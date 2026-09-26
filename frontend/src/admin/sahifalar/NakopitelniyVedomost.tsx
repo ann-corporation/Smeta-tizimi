@@ -181,17 +181,23 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (!taf.ok || taf.toliq === false || !taf.qatorlar) {
         setXato('F2 qatorlari to‘liq o‘qilmadi — F3 chala ma’lumot ustida tuzilmaydi.'); return;
       }
-      const f2Oylik = taf.qatorlar
-        .filter((t) => t.akt_holat === 'tasdiqlangan')
-        .map((t) => ({ obyekt_id: t.obyekt_id, qator_id: t.qator_id, oy: String(t.oy).slice(0, 7), summa: t.summa ?? 0, akt_id: t.akt_id }));
+      const tasdiqlanganF2 = taf.qatorlar.filter((t) => t.akt_holat === 'tasdiqlangan');
+      if (tasdiqlanganF2.some((t) => !Number.isSafeInteger(t.akt_id) || t.akt_id <= 0)) {
+        setXato('Tasdiqlangan F2 manbasining akt ID si topilmadi — F3 yaratilmadi.'); return;
+      }
+      if (tasdiqlanganF2.some((t) => t.summa == null || !Number.isFinite(t.summa))) {
+        setXato('Tasdiqlangan F2 manbasining exact summasi noma’lum — F3 yaratilmadi.'); return;
+      }
+      const f2Oylik = tasdiqlanganF2
+        .map((t) => ({ obyekt_id: t.obyekt_id, qator_id: t.qator_id, oy: String(t.oy).slice(0, 7), summa: Number(t.summa), akt_id: Number(t.akt_id) }));
       const lineage: PtoF3LineageInput = {
         scope,
-        sources: [...new Set(f2Oylik.map((x) => `${x.akt_id ?? 'akt'}:${x.oy}`))]
+        sources: [...new Set(f2Oylik.map((x) => `${x.akt_id}:${x.oy}`))]
           .map((key) => {
             const split = key.lastIndexOf(':');
             const akt = key.slice(0, split);
             const oy = key.slice(split + 1);
-            const rows = f2Oylik.filter((x) => `${x.akt_id ?? 'akt'}:${x.oy}` === key);
+            const rows = f2Oylik.filter((x) => `${x.akt_id}:${x.oy}` === key);
             return { documentId: `F2-AKT:${akt}`, scope: { ...scope, periodId: oy }, approved: true, qatorIds: rows.map((x) => x.qator_id) };
           }),
       };

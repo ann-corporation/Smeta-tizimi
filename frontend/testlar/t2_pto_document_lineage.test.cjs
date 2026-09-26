@@ -16,6 +16,9 @@ assert.match(f3, /assertF3Lineage\(o\.lineage\)/);
 assert.match(nakop, /sbT2ShartnomaBogOl/);
 assert.match(nakop, /contractProjectId:\s*shartnoma\.loyiha_id/);
 assert.match(nakop, /lineageRequired: true/);
+assert.match(nakop, /Tasdiqlangan F2 manbasining akt ID si/);
+assert.match(nakop, /Tasdiqlangan F2 manbasining exact summasi/);
+assert.doesNotMatch(nakop, /akt_id\s*\?\?\s*['"]akt/);
 assert.match(nakop, /akt_id/);
 assert.doesNotMatch(nakop, /lineageRequired:\s*false/);
 

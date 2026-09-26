@@ -14,6 +14,8 @@
   ishlamasligi uchun `lineageRequired: true` qilindi.
 - F2 source'ning `akt_id` va `qator_id` identity'lari F3 source lineage'iga
   o'tkazildi; duplicate qator manbasi bloklanadi.
+- Tasdiqlangan F2 source'da `akt_id` yoki exact `summa` noma'lum bo'lsa
+  anonim `akt` yoki `0` fallback ishlatilmaydi — F3 fail-closed bo'ladi.
 - Nakopitelniy va F2 eksportlari ham explicit object → active contract
   relation gate'dan o'tadi.
 - `t2_shartnoma_bog` client read active link (`holat=eq.faol`) bilan
