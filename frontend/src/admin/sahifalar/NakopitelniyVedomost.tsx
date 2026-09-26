@@ -8,11 +8,13 @@ import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat } from 
 import { f2AktHujjat } from '../../lib/f2-akt-tn-export';
 import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
+import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl } from '../../api/t2-shartnoma';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
+import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -36,6 +38,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [qatorlar, setQatorlar] = useState<NakopitelniyQator[]>([]);
   const [jami, setJami] = useState<NakopitelniyJami | null>(null);
   const [obyektNom, setObyektNom] = useState('');
+  const [loyihaId, setLoyihaId] = useState<number | null>(null);
+  const [obyektKompaniyaId, setObyektKompaniyaId] = useState<number | null>(null);
   const [qidiruv, setQidiruv] = useState('');
   const [busy, setBusy] = useState(false);
   const [xato, setXato] = useState('');
@@ -62,7 +66,10 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       const r = await t2NakopitelniyOl(objId, tanlanganDavr || null);
       if (!r.ok) { setXato(r.xato || r.code || 'Yuklanmadi'); setQatorlar([]); return; }
-      setQatorlar(r.qatorlar); setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom); setTruncated(Boolean(r.truncated));
+      setQatorlar(r.qatorlar); setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
+      setLoyihaId(r.obyekt.loyiha_id);
+      setObyektKompaniyaId(r.obyekt.kompaniya_id);
+      setTruncated(Boolean(r.truncated));
       setPage(0);
     } catch (e) { setXato(e instanceof Error ? e.message : 'Yuklanmadi'); }
     finally { setBusy(false); }
@@ -128,6 +135,31 @@ function Sessiya({ companyId }: { companyId: number }) {
     return Number.isFinite(x) && x >= 0 ? x : null;
   };
 
+  /** Barcha rasmiy exportlar uchun bir xil canonical company/project/object/contract gate. */
+  const canonicalScopeOl = async (): Promise<PtoLineageScope | null> => {
+    if (!loyihaId || !objectId || obyektKompaniyaId == null) {
+      setXato('Hujjat uchun obyektning canonical company/project bog‘lanishi topilmadi.');
+      return null;
+    }
+    const bog = await sbT2ShartnomaBogOl(Number(objectId));
+    const boglar = bog.ok ? (bog.qatorlar ?? []) : [];
+    if (boglar.length !== 1) { setXato('Hujjat uchun obyektning bitta faol shartnoma bog‘lanishi aniq emas.'); return null; }
+    const shartnomalar = await sbT2ShartnomalarOl(companyId, false);
+    const shartnoma = shartnomalar.ok ? (shartnomalar.qatorlar ?? []).find((x) => x.id === boglar[0].shartnoma_id) : undefined;
+    if (!shartnoma) { setXato('Hujjat uchun shartnoma canonical ma’lumoti topilmadi.'); return null; }
+    const hierarchy = validatePtoHierarchy({
+      companyId, projectId: Number(loyihaId), objectId: Number(objectId), contractId: shartnoma.id,
+      projectCompanyId: companyId,
+      objectCompanyId: obyektKompaniyaId,
+      objectProjectId: Number(loyihaId),
+      contractCompanyId: shartnoma.kompaniya_id,
+      contractProjectId: shartnoma.loyiha_id,
+      linkedContractIds: [shartnoma.id],
+    });
+    if (!hierarchy.ok) { setXato(`Hujjat lineage tekshiruvi blokladi: ${hierarchy.issues[0]?.code ?? 'LINEAGE_ERROR'}`); return null; }
+    return { companyId, projectId: Number(loyihaId), objectId: Number(objectId), contractId: shartnoma.id, periodId: davr };
+  };
+
   /** ФОРМА № 3 — СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (счет-фактура
    *  к актам формы № 2). Manba: to‘liq nakopitelniy + TASDIQLANGAN F2 oylik
    *  summalari (t2_f2_tafsilot, akt_holat='tasdiqlangan') + tasdiqlangan
@@ -141,6 +173,8 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!objectId || !davr) { setXato('F3 uchun tasdiqlangan F2 davri yo‘q — hujjat yasalmadi.'); return; }
     setForma3Busy(true);
     try {
+      const scope = await canonicalScopeOl();
+      if (!scope) return;
       const rows = await toliqQatorlar();
       if (!rows) return;
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
@@ -149,7 +183,18 @@ function Sessiya({ companyId }: { companyId: number }) {
       }
       const f2Oylik = taf.qatorlar
         .filter((t) => t.akt_holat === 'tasdiqlangan')
-        .map((t) => ({ obyekt_id: t.obyekt_id, qator_id: t.qator_id, oy: String(t.oy).slice(0, 7), summa: t.summa ?? 0 }));
+        .map((t) => ({ obyekt_id: t.obyekt_id, qator_id: t.qator_id, oy: String(t.oy).slice(0, 7), summa: t.summa ?? 0, akt_id: t.akt_id }));
+      const lineage: PtoF3LineageInput = {
+        scope,
+        sources: [...new Set(f2Oylik.map((x) => `${x.akt_id ?? 'akt'}:${x.oy}`))]
+          .map((key) => {
+            const split = key.lastIndexOf(':');
+            const akt = key.slice(0, split);
+            const oy = key.slice(split + 1);
+            const rows = f2Oylik.filter((x) => `${x.akt_id ?? 'akt'}:${x.oy}` === key);
+            return { documentId: `F2-AKT:${akt}`, scope: { ...scope, periodId: oy }, approved: true, qatorIds: rows.map((x) => x.qator_id) };
+          }),
+      };
       let ozgarishlar: Forma3ExportOptions['ozgarishlar'] = [];
       try {
         const oz = await ozgarishRoyxatOl(Number(objectId), 500);
@@ -163,7 +208,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       } catch { /* ro‘yxat o‘qilmasa СМЕТНАЯ o‘zgarmaydi — davom etamiz */ }
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik },
-        { obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(), smetaNakrutka: jami?.smeta_nakrutka ?? null, ozgarishlar },
+        { obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(), smetaNakrutka: jami?.smeta_nakrutka ?? null, ozgarishlar, lineage, lineageRequired: true },
       );
       setForma3Diqqat(h.diqqat);
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
@@ -176,6 +221,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const eksportQil = async (korish = false) => {
     setXato('');
     try {
+      if (!await canonicalScopeOl()) return;
       const rows = await toliqQatorlar();
       if (!rows) return;
       const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka: jami?.smeta_nakrutka ?? null, nakrutka });
@@ -187,6 +233,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const aktEksportQil = async (korish = false) => {
     setXato('');
     try {
+      if (!await canonicalScopeOl()) return;
       const rows = await toliqQatorlar();
       if (!rows) return;
       const h = f2AktHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), nakrutka });
