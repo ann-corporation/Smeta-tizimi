@@ -9,7 +9,7 @@
       "machine": "pc-ishxona",
       "branch": "codex/pto-document-lineage-f2-f3-v1",
       "base_sha": "361261e775df5173181f2967fcda227748f21dfb",
-      "status": "active",
+      "status": "ready_for_review",
       "owns": [
     "frontend/src/lib/pto-document-lineage/",
     "frontend/src/lib/forma3-export.ts",
