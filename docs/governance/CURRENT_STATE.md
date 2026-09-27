@@ -232,3 +232,18 @@ production catalog bo‘yicha C1 holatini ajratadi.
 | `focused_gate` | `forma3-export.hujjat.test.ts`: `9/9 PASS`; migration static/rollback review: PASS; functions/frontend typecheck: PASS; `npm run tekshir`: PASS; `git diff --check`: PASS. |
 | `authenticated_rendering` | `UNKNOWN`: egasining login sessiyasi va Excel/LibreOffice chop dalili kerak; agent parol/cookie so‘ramaydi. |
 | `task` | `T2-FORMA3-F3-RECONCILIATION-002` — branch `codex/f3-closeout-v1`; source ownership boshqa agent taskida qolgan. |
+# 2026-09-27 — T2 PTO document fidelity release checkpoint
+
+Ushbu addendum eng so‘nggi remote va runtime holatni qayd etadi. Oldingi
+addendumlar tarixiy dalil sifatida saqlanadi.
+
+| Field | Current value |
+|---|---|
+| `main_sha` | `d7b9bba5fcf72ac3c204f09838356673fdbd7c27` — `origin/main` bilan tasdiqlangan. |
+| `release` | T2 exact certified F2 amount propagation + live Forma-2/Nakopitelniy/Forma-3 formula exports main’ga fast-forward qilindi. |
+| `production_migration` | `20260927120004 / t2_workbench_certified_amount_v1` Supabase `tuoyrzadkgoltpqkdiyx` loyihasiga additive migration sifatida qo‘llandi; rollback fayli repoda bor. |
+| `supabase_verification` | `t2_workbench_exact_v1` mavjud; `anon`/`authenticated` execute huquqiga ega emas; `service_role` execute qiladi; `certifiedAmount` exact source sifatida qaytadi; amount quantity×price bilan qayta hisoblanmaydi. |
+| `cloudflare_production` | Pages deployment `68239d1e-69f9-409e-8aaa-21b126d7a1a8` `success`; trigger commit `d7b9bba5fcf72ac3c204f09838356673fdbd7c27`; `https://smeta-tizimi.pages.dev/api/soglik` HTTP 200 / `ok=true`. |
+| `authenticated_smoke` | Owner login/session talab qiladi; bu muhitda tasdiqlanmagan. Real production’da approved F2 `certified_amount` qatori hozircha yo‘q (`approved_exact_rows=0`), shuning uchun concrete amount parity UNKNOWN. |
+| `full_vitest` | 699 passed, 8 failed, 12 skipped; timeout/large-XLSX/export va matcher performance thresholdlari. Exact-amount targeted suite yashil. |
+| `production_write_allowed` | `false` — keyingi production DDL/DML yoki config o‘zgarishi uchun alohida scope kerak. |
