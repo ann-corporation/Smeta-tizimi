@@ -49,6 +49,11 @@ Keyingi checkpoint quyidagilarni qo‘shadi:
 - `NakopitelniyVedomost.tsx` — `Smeta − Fakt`, `F2 mumkin` va
   `Kontrakt − F2` alohida ustunlari.
 
+Backend compatibility checkpoint ham tayyor: `t2_nakopitelniy_ledger_v1` additive
+wrapperi mavjud v2 read-modeldan explicit `smeta_qoldiq_*`, `f2_mumkin_summa` va
+`contract_qoldiq_*` maydonlarini beradi. API gateway hali v2da qoladi; source migration
+productionga qo‘llanib acceptance'dan o'tmaguncha yangi RPC'ga switch qilinmaydi.
+
 Bu canonical database truthni o‘zgartirmaydi va production migration qo‘llamaydi.
 Maqsad — baseline/Fakt/F2 qoldiqlarini bitta noaniq `QOLDIQ` ostida ko‘rsatmaslik.
 

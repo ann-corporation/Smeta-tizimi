@@ -20,6 +20,13 @@ export type NakopitelniyQator = {
   jami_hajm: number; jami_summa: number;
   f2_mumkin_hajm: number;
   qoldiq_hajm: number; qoldiq_summa: number;
+  /** Additive v1 ledger wrapper fields; absent until that source migration is applied. */
+  smeta_qoldiq_hajm?: number | null;
+  smeta_qoldiq_summa?: number | null;
+  f2_mumkin_summa?: number;
+  contract_qoldiq_hajm?: number | null;
+  contract_qoldiq_summa?: number | null;
+  ledger_semantics?: 'v1';
   jami_baseline_summa: number; jami_actual_summa: number | null; narx_variance_summa: number;
   bajarilish_foiz: number | null;
 };

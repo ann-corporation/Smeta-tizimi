@@ -84,6 +84,12 @@ Bu ikkinchi business truth emas, faqat bir xil ko‘rsatish/reconciliation layer
 Manfiy F2 mavjudligi `OVER_CERTIFIED` sifatida saqlanadi; u yashirilmaydi yoki jim
 `0`ga qisqartirilmaydi. Previous/current cumulative tafovutlari ham explicit issue bo‘lib qoladi.
 
+Backend uchun ham additive source contract tayyor: `20261102110000_t2_nakopitelniy_ledger_semantics_v1.sql`
+`t2_nakopitelniy_v2`ni o‘zgartirmasdan `t2_nakopitelniy_ledger_v1` wrapperini beradi.
+U `smeta_qoldiq_*`, `f2_mumkin_summa` va `contract_qoldiq_*` maydonlarini aniq nomlaydi.
+Migration hali productionga qo‘llanmagan; gateway migration mavjudligi isbotlanmaguncha
+eski v2 compatibility pathdan foydalanadi.
+
 Static/type/unit evidence quyidagilarda bor: lineage validator, F3 export
 call-site va migration acceptance SQL. Real authenticated Excel/print smoke,
 real approved F2 equality va migration rollback/runtime acceptance — alohida
