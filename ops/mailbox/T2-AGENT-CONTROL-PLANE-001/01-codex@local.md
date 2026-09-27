@@ -3,7 +3,7 @@ agent: codex
 mashina: codex-local
 sana: 2026-09-27
 branch: codex/t2-agent-control-plane-v1
-sha: pending-final-commit
+sha: ee14e1d
 ---
 
 STATUS: READY_FOR_REVIEW

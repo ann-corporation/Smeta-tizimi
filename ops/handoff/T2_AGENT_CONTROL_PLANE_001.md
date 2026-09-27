@@ -8,6 +8,7 @@ SOURCE READY · VERIFIED STATIC + UI COMPONENT · production NOT APPLIED
 
 - Branch: `codex/t2-agent-control-plane-v1`
 - Base: `f54c69645b7e71fdc2084b1f9d851995a8f00740`
+- Commit: `ee14e1dc9b24ad27d9840f599883076a5641d9d2`
 - Machine: `codex-local`
 - UI lane: no Freebuff component path edited
 
