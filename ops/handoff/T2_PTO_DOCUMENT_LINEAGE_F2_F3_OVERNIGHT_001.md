@@ -68,6 +68,15 @@ AI endpoint source'da auth, company scope va fail-closed javoblar bilan bor,
 ammo provider konfiguratsiyasi va authenticated live smoke bu branchda
 isbotlanmagan.
 
+## Read-only production lineage finding
+
+Production read-only query showed 36 objects and 2 active object-contract links
+whose contract `loyiha_id` is `NULL` while the object belongs to project 4:
+`Amfiteatr` (object 6 / contract 6) and `Stella` (object 10 / contract 8).
+No data was changed. The validator now blocks official export when the contract
+project parent is unknown; a data repair must be a separately reviewed operation,
+not a name-based automatic fill.
+
 ## Claude uchun integratsiya tartibi
 
 1. Branchni fetch qilib commit diffini review qiling.

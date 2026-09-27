@@ -43,6 +43,20 @@ describe('PTO canonical document lineage', () => {
     ]));
   });
 
+  it('unknown contract projectni taxmin qilmaydi', () => {
+    const r = validatePtoHierarchy({
+      ...scope,
+      projectCompanyId: 7,
+      objectCompanyId: 7,
+      objectProjectId: 11,
+      contractCompanyId: 7,
+      contractProjectId: null,
+      linkedContractIds: [91],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.issues.map((x) => x.code)).toContain('CONTRACT_PROJECT_MISMATCH');
+  });
+
   it('F3 uchun bir xil scope va tasdiqlangan F2 PASS', () => {
     expect(validateF3Lineage({ scope, sources: [approved('f2-1')] }).ok).toBe(true);
   });

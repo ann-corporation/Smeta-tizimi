@@ -95,9 +95,8 @@ export function validatePtoLineageScope(scope: Partial<PtoLineageScope> | null |
 }
 
 /**
- * Project/object/contract parentlari bo'yicha faqat mavjud dalilni tekshiradi.
- * Dalil berilmagan joyda taxmin qilmaydi; F3 uchun bunday noma'lumlik keyingi
- * strict validatorda majburiy ravishda bloklanadi.
+ * Project/object/contract parentlari bo'yicha canonical export dalilini tekshiradi.
+ * Parent ID noma'lum bo'lsa ham taxmin qilmaydi: rasmiy PTO exporti fail-closed.
  */
 export function validatePtoHierarchy(evidence: PtoHierarchyEvidence): PtoLineageValidation {
   const issues: PtoLineageIssue[] = [];
@@ -108,17 +107,32 @@ export function validatePtoHierarchy(evidence: PtoHierarchyEvidence): PtoLineage
   if (evidence.projectCompanyId != null && !same(evidence.projectCompanyId, evidence.companyId)) {
     issues.push(issue('COMPANY_PROJECT_MISMATCH', 'project.companyId', 'Loyiha boshqa kompaniyaga tegishli.', evidence.companyId, evidence.projectCompanyId));
   }
+  if (evidence.projectCompanyId == null) {
+    issues.push(issue('COMPANY_PROJECT_MISMATCH', 'project.companyId', 'Loyiha kompaniya parenti noma’lum; export uchun taxmin qilinmaydi.', evidence.companyId, null));
+  }
   if (evidence.objectCompanyId != null && !same(evidence.objectCompanyId, evidence.companyId)) {
     issues.push(issue('COMPANY_OBJECT_MISMATCH', 'object.companyId', 'Obyekt boshqa kompaniyaga tegishli.', evidence.companyId, evidence.objectCompanyId));
+  }
+  if (evidence.objectCompanyId == null) {
+    issues.push(issue('COMPANY_OBJECT_MISMATCH', 'object.companyId', 'Obyekt kompaniya parenti noma’lum; export uchun taxmin qilinmaydi.', evidence.companyId, null));
   }
   if (evidence.objectProjectId != null && !same(evidence.objectProjectId, evidence.projectId)) {
     issues.push(issue('OBJECT_PROJECT_MISMATCH', 'object.projectId', 'Obyekt tanlangan loyihaga tegishli emas.', evidence.projectId, evidence.objectProjectId));
   }
+  if (evidence.objectProjectId == null) {
+    issues.push(issue('OBJECT_PROJECT_MISMATCH', 'object.projectId', 'Obyekt loyiha parenti noma’lum; export uchun taxmin qilinmaydi.', evidence.projectId, null));
+  }
   if (evidence.contractCompanyId != null && !same(evidence.contractCompanyId, evidence.companyId)) {
     issues.push(issue('COMPANY_CONTRACT_MISMATCH', 'contract.companyId', 'Shartnoma boshqa kompaniyaga tegishli.', evidence.companyId, evidence.contractCompanyId));
   }
+  if (evidence.contractCompanyId == null) {
+    issues.push(issue('COMPANY_CONTRACT_MISMATCH', 'contract.companyId', 'Shartnoma kompaniya parenti noma’lum; export uchun taxmin qilinmaydi.', evidence.companyId, null));
+  }
   if (evidence.contractProjectId != null && !same(evidence.contractProjectId, evidence.projectId)) {
     issues.push(issue('CONTRACT_PROJECT_MISMATCH', 'contract.projectId', 'Shartnoma tanlangan loyihaga tegishli emas.', evidence.projectId, evidence.contractProjectId));
+  }
+  if (evidence.contractProjectId == null) {
+    issues.push(issue('CONTRACT_PROJECT_MISMATCH', 'contract.projectId', 'Shartnoma loyiha parenti noma’lum; export uchun taxmin qilinmaydi.', evidence.projectId, null));
   }
   if (evidence.linkedContractIds && !evidence.linkedContractIds.some((id) => same(id, evidence.contractId))) {
     issues.push(issue('OBJECT_CONTRACT_UNLINKED', 'object.contractId', 'Obyekt tanlangan shartnoma bilan explicit bog\'lanmagan.', evidence.contractId, evidence.linkedContractIds));
