@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
-import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
+import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import { t2NakopitelniyOl, t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat } from '../../lib/nakopitelniy-vedomost-export';
 import { f2AktHujjat } from '../../lib/f2-akt-tn-export';
@@ -10,7 +10,7 @@ import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export'
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl } from '../../api/t2-shartnoma';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
-import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
+import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
@@ -44,6 +44,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [busy, setBusy] = useState(false);
   const [xato, setXato] = useState('');
   const [page, setPage] = useState(0);
+  const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
 
   useEffect(() => {
     let active = true;
@@ -53,20 +54,33 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   // Ikki narx (egasi): hujjatda к оплате = прямые × Kf — obyekt/shartnoma nakrutka foizlari.
   const [nakrutka, setNakrutka] = useState<NakrutkaKoeffitsientlar | null>(null);
+  const [nakrutkaKaskadi, setNakrutkaKaskadi] = useState<NakrutkaKaskad | null>(null);
   useEffect(() => {
     let active = true;
     setNakrutka(null);
+    setNakrutkaKaskadi(null);
     if (!objectId) return;
-    void t2ObyektNakrutka(Number(objectId)).then((r) => { if (active && r.ok && r.koeffitsientlar) setNakrutka(r.koeffitsientlar); }).catch(() => undefined);
+    void t2ObyektNakrutka(Number(objectId)).then((r) => {
+      if (!active || !r.ok) return;
+      if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
+      if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
+    }).catch(() => undefined);
     return () => { active = false; };
   }, [objectId]);
 
   const yukla = async (objId: number, tanlanganDavr: string) => {
     setBusy(true); setXato('');
     try {
-      const r = await t2NakopitelniyOl(objId, tanlanganDavr || null);
+      const [r, daraxt] = await Promise.all([
+        t2NakopitelniyOl(objId, tanlanganDavr || null),
+        sbT2DaraxtOl(objId, 'id,ota_id,daraja'),
+      ]);
       if (!r.ok) { setXato(r.xato || r.code || 'Yuklanmadi'); setQatorlar([]); return; }
-      setQatorlar(r.qatorlar); setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
+      const meta = new Map<number, { ota_id: number | null; daraja: number | null }>();
+      if (daraxt.ok) for (const q of daraxt.qatorlar ?? []) meta.set(Number(q.id), { ota_id: q.ota_id ?? null, daraja: q.daraja ?? null });
+      setTreeMeta(meta);
+      setQatorlar(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}) })));
+      setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
       setLoyihaId(r.obyekt.loyiha_id);
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
       setTruncated(Boolean(r.truncated));
@@ -76,7 +90,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   };
 
   useEffect(() => {
-    if (!objectId) { setQatorlar([]); setDavrlar([]); return; }
+    if (!objectId) { setQatorlar([]); setDavrlar([]); setTreeMeta(new Map()); return; }
     void yukla(Number(objectId), '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objectId]);
@@ -84,25 +98,29 @@ function Sessiya({ companyId }: { companyId: number }) {
   const filtr = qidiruv.trim().toLowerCase();
   const korinadigan = useMemo(() => {
     if (!filtr) return qatorlar;
+    const byId = new Map(qatorlar.map(q => [q.qator_id, q]));
     const keep = new Set<number>();
     for (const q of qatorlar) {
-      if (q.tur === 'rz') continue;
-      if ((q.kod || '').toLowerCase().includes(filtr) || (q.nom || '').toLowerCase().includes(filtr)) keep.add(q.qator_id);
+      if ((q.kod || '').toLowerCase().includes(filtr) || (q.nom || '').toLowerCase().includes(filtr)) {
+        let current: NakopitelniyQator | undefined = q;
+        while (current) {
+          if (keep.has(current.qator_id)) break;
+          keep.add(current.qator_id);
+          current = current.ota_id == null ? undefined : byId.get(current.ota_id);
+        }
+      }
     }
-    return qatorlar.filter(q => q.tur === 'rz' || keep.has(q.qator_id));
+    // Eski RPC parent ID bermasa, foydalanuvchi hech bo'lmaganda bo'lim
+    // sarlavhasini yo'qotmasin. Yangi canonical oqimda esa faqat haqiqiy
+    // ajdodlar ko'rsatiladi.
+    if (!qatorlar.some(q => q.ota_id != null)) return qatorlar.filter(q => q.tur === 'rz' || keep.has(q.qator_id));
+    return qatorlar.filter(q => keep.has(q.qator_id));
   }, [qatorlar, filtr]);
 
-  // Drop RZ section headers with no visible children left after filtering.
-  const gorunumRows = useMemo(() => {
-    const out: NakopitelniyQator[] = [];
-    for (let i = 0; i < korinadigan.length; i++) {
-      const q = korinadigan[i];
-      if (q.tur !== 'rz') { out.push(q); continue; }
-      const next = korinadigan[i + 1];
-      if (next && next.tur !== 'rz') out.push(q);
-    }
-    return out;
-  }, [korinadigan]);
+  // Qator tartibi canonical tartib; ierarxiya esa ota_id/daraja bilan
+  // ko'rsatiladi. Keyingi satrga qarab RZ ni o'chirish mumkin emas: ichma-ich
+  // RZ bo'limlarida bunday usul bo'limlarni yo'qotadi.
+  const gorunumRows = korinadigan;
 
   const sahifa = gorunumRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   const sahifaSoni = Math.max(1, Math.ceil(gorunumRows.length / PAGE_SIZE));
@@ -110,6 +128,16 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [tomonlar, setTomonlar] = useHujjatTomonlari(companyId);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const [truncated, setTruncated] = useState(false);
+  const smetaNakrutka = useMemo(() => {
+    if (!nakrutkaKaskadi) return jami?.smeta_nakrutka ?? null;
+    return {
+      pryamye: nakrutkaKaskadi.pryamye,
+      itogo4: nakrutkaKaskadi.itogo4,
+      nds: nakrutkaKaskadi.nds,
+      nds_foiz: nakrutka?.НДС ?? null,
+      vsego: nakrutkaKaskadi.vsego,
+    };
+  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi]);
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
    *  (server sukuti 500 qator) — server sahifalari avtomat oxirigacha o'qiladi
@@ -125,7 +153,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
-      return r.qatorlar;
+      return r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}) }));
     } finally { setEksportBusy(false); }
   };
   const stavkaOl = (): number | null => {
@@ -214,7 +242,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       } catch { /* ro‘yxat o‘qilmasa СМЕТНАЯ o‘zgarmaydi — davom etamiz */ }
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik },
-        { obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(), smetaNakrutka: jami?.smeta_nakrutka ?? null, ozgarishlar, lineage, lineageRequired: true },
+        { obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(), smetaNakrutka, ozgarishlar, lineage, lineageRequired: true },
       );
       setForma3Diqqat(h.diqqat);
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
@@ -227,10 +255,9 @@ function Sessiya({ companyId }: { companyId: number }) {
   const eksportQil = async (korish = false) => {
     setXato('');
     try {
-      if (!await canonicalScopeOl()) return;
       const rows = await toliqQatorlar();
       if (!rows) return;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka: jami?.smeta_nakrutka ?? null, nakrutka });
+      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka });
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
     } catch (e) { setXato(e instanceof HujjatToliqEmasXato ? 'Hujjat to‘liq emas — eksport bloklandi.' : 'Excel fayli tuzilmadi.'); }
   };
@@ -239,7 +266,6 @@ function Sessiya({ companyId }: { companyId: number }) {
   const aktEksportQil = async (korish = false) => {
     setXato('');
     try {
-      if (!await canonicalScopeOl()) return;
       const rows = await toliqQatorlar();
       if (!rows) return;
       const h = f2AktHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), nakrutka });
@@ -346,8 +372,11 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {jami && (
         <div className="karta p-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-[12px]">
-          <div><span className="text-text-mute block">Smeta jami (to‘g‘ri xarajat)</span><FmtN val={jami.smeta_summa} />
-            {jami.smeta_nakrutka && <span className="block text-text-mute">nakrutka va QQS bilan: <FmtN val={jami.smeta_nakrutka.vsego} /></span>}
+          <div><span className="text-text-mute block">Smeta jami — to‘g‘ri xarajat</span><FmtN val={jami.smeta_summa} />
+            <span className="text-text-mute block mt-1">Smeta jami — к оплате (nakrutka + QQS)</span>
+            {smetaNakrutka ? <FmtN val={smetaNakrutka.vsego} /> : <span className="text-warn block">Nakrutka hisoblanmadi</span>}
+            {smetaNakrutka && <span className="block text-text-mute">Farq (nakrutka + QQS): <FmtN val={smetaNakrutka.vsego - smetaNakrutka.pryamye} /></span>}
+            {!nakrutkaKaskadi && <span className="block text-warn">Koeffitsientlar o‘qilmadi — eksportda alohida ogohlantirish beriladi.</span>}
             {!!jami.smeta_summa_nomalum && <span className="block text-warn">{jami.smeta_summa_nomalum} ta qatorda summa noma’lum</span>}
           </div>
           <div><span className="text-text-mute block">Fakt jami</span><FmtN val={jami.fakt_summa} /></div>
@@ -385,7 +414,7 @@ function Sessiya({ companyId }: { companyId: number }) {
               <tbody>
                 {sahifa.map(q => q.tur === 'rz' ? (
                   <tr key={q.qator_id} className="bg-surface-2/70">
-                    <td colSpan={16} className="px-2 py-1.5 font-semibold text-text sticky left-0 bg-surface-2/70">{q.nom}</td>
+                    <td colSpan={16} className="px-2 py-1.5 font-semibold text-text sticky left-0 bg-surface-2/70" style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }}>{q.nom}</td>
                   </tr>
                 ) : (
                   (() => {
@@ -404,7 +433,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                       approvedF2Amount: q.jami_summa,
                     });
                     return <tr key={q.qator_id} className="border-t border-border/60 hover:bg-surface-2/40 text-right">
-                    <td className="text-left px-2 py-1 sticky left-0 bg-surface" title={q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}</td>
+                    <td className={'text-left px-2 py-1 sticky left-0 bg-surface ' + (q.tur === 'bl' ? 'font-medium' : '')} style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }} title={q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}</td>
                     <td className="text-center px-2 py-1">{q.birlik || '—'}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums"><FmtN val={jamiHajmSafe(q)} /></td>
                     <td className="px-2 py-1 tabular-nums">{q.smeta_narx == null ? '—' : <FmtN val={q.smeta_narx} />}</td>

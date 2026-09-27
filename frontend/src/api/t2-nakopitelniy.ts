@@ -13,6 +13,8 @@
 export type NakopitelniyQator = {
   qator_id: number; tartib: number; kod: string | null; nom: string | null; birlik: string | null;
   tur: 'rz' | 'bl' | 'rs' | 'mat' | 'ob'; kat: string | null; qoshimcha: boolean; zamena: boolean;
+  /** Canonical tree relation from t2_qator/t2_daraxt. Optional for older RPC deployments. */
+  ota_id?: number | null; daraja?: number | null;
   smeta_hajm: number | null; smeta_narx: number | null; smeta_summa: number | null;
   fakt_hajm: number; fakt_summa: number;
   oldingi_hajm: number; oldingi_summa: number;
