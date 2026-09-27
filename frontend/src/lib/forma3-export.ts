@@ -32,6 +32,8 @@
  */
 import type { NakopitelniyQator, SmetaNakrutka } from '../api/t2-nakopitelniy';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
+import type { PtoF3LineageInput } from './pto-document-lineage';
+import { assertF3Lineage } from './pto-document-lineage';
 import {
   RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2,
   type ImzoNomlar, type Qiymat, type RasmiyUstun,
@@ -61,6 +63,10 @@ export interface Forma3ExportOptions {
   smetaNakrutka?: SmetaNakrutka | null;
   /** Tasdiqlangan o'zgarishlar (tur='olib_tashlash') — СМЕТНАЯ dan chiqadi. */
   ozgarishlar?: ReadonlyArray<{ holat: string; tur: string; qatorlar: ReadonlyArray<{ qator_id: number; amal: string }> }>;
+  /** Canonical company → project → object → contract → period scope. */
+  lineage?: PtoF3LineageInput;
+  /** Real UI uchun scope majburiy; eski unit fixturelar backward-compatible qoladi. */
+  lineageRequired?: boolean;
 }
 
 /** НДС sukuti (egasi qarori Q2) — Nakopitelniy bilan bir xil. */
@@ -79,7 +85,7 @@ export interface Forma3Manba {
    * t2_f2_tafsilot (akt_holat='tasdiqlangan'): har (obyekt, qator, oy) uchun
    * yig'indi. Barcha F3 ustunlari shu yig'indilardan.
    */
-  f2Oylik: ReadonlyArray<{ obyekt_id: number; qator_id: number; oy: string; summa: number; akt_raqam?: string | null }>;
+  f2Oylik: ReadonlyArray<{ obyekt_id: number; qator_id: number; oy: string; summa: number; akt_id?: number; akt_raqam?: string | null }>;
 }
 
 /** Hujjatning pul ustunlari (to'g'ri xarajat) — podval ham shular ustida. */
@@ -345,6 +351,10 @@ export interface Forma3Natija {
 }
 
 export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Natija {
+  if (o.lineageRequired || o.lineage) {
+    if (!o.lineage) throw new Error('LINEAGE_SCOPE_REQUIRED');
+    assertF3Lineage(o.lineage);
+  }
   const model = f3Model(m, o);
   const rows = f3ModelQatorlar(model);
   const davrMatn = f3DavrMatni(o.davr);

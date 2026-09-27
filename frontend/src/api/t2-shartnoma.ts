@@ -22,6 +22,7 @@ export type Shartnoma = {
   holat: 'faol' | 'yopilgan' | 'bekor';
   chel_stavka: number | null; izoh: string | null;
   versiya: number; yaratildi: string; yangilandi: string; kim: string | null;
+  loyiha_id: number | null;
 };
 
 /* ⚠️ 2026-08-28 (Claude) — TENANT IZOLYATSIYASI TUZATILDI.
@@ -48,11 +49,14 @@ export function sbT2ShartnomalarOl(kompaniyaId: number, faqatFaol = true) {
 }
 
 /* ── Obyekt → shartnoma bog'lanishi ──────────────────────────────── */
-export type ShartnomaBog = { id: number; obyekt_id: number; shartnoma_id: number };
+export type ShartnomaBog = {
+  id: number; obyekt_id: number; shartnoma_id: number;
+  holat: 'faol' | 'bekor';
+};
 
 export function sbT2ShartnomaBogOl(obyektId: number) {
   return sbOqi<ShartnomaBog>({
-    jadval: 't2_shartnoma_bog', filtr: 'obyekt_id=eq.' + obyektId,
+    jadval: 't2_shartnoma_bog', filtr: 'obyekt_id=eq.' + obyektId + '&holat=eq.faol',
   });
 }
 

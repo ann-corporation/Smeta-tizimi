@@ -3,6 +3,38 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-PTO-DOCUMENT-LINEAGE-F2-F3-OVERNIGHT-001",
+      "title": "PTO chiquuvchi hujjatlar lineage va F2/F3 canonical scope hardening",
+      "owner": "codex",
+      "machine": "pc-ishxona",
+      "branch": "codex/pto-document-lineage-f2-f3-v1",
+      "base_sha": "361261e775df5173181f2967fcda227748f21dfb",
+      "status": "ready_for_review",
+      "owns": [
+    "frontend/src/lib/pto-document-lineage/",
+    "frontend/src/lib/forma3-export.ts",
+    "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+    "frontend/src/api/t2-shartnoma.ts",
+        "frontend/testlar/t2_pto_document_lineage.test.cjs",
+        "supabase/migrations/20261102100000_t2_forma3_lineage_guard_v1.sql",
+        "supabase/migrations/20261102100000_t2_forma3_lineage_guard_v1.rollback.sql",
+        "supabase/migrations/20261102100000_t2_forma3_lineage_guard_v1.acceptance.sql",
+        "docs/architecture/PTO_DOCUMENT_LINEAGE_F2_F3_V1.md",
+        "ops/handoff/T2_PTO_DOCUMENT_LINEAGE_F2_F3_OVERNIGHT_001.md"
+      ],
+      "depends_on": ["F2-IMPORT-V3-001", "T2-FORMA3-F3-001"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md",
+        "docs/architecture/HUJJAT_STANDARTI_V1.md",
+        "ops/handoff/PTO_LINIYA_YAKUNIY_TOPSHIRIQ_2026-09-25.md",
+        "ops/handoff/T2_FORMA3_F3_001.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Yangi business truth yaratmaydi; chiquvchi hujjat scope/lineage validatori va mavjud F3 chaqirig'iga fail-closed adapter."
+    },
+    {
       "id": "T2-PTO-WORKFLOW-HARDENING-002",
       "title": "Owner topshirig‘i: yagona Smeta/Fakt ish joyi, F2 va yig‘ma hisob ishonchliligi",
       "owner": "codex",
