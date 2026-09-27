@@ -199,3 +199,12 @@ export function assertF3Lineage(input: PtoF3LineageInput): void {
   const result = validateF3Lineage(input);
   if (!result.ok) throw new PtoLineageError(result.issues);
 }
+
+export { buildPtoLineLedger, summarizePtoLedger } from './ledger';
+export type {
+  PtoLedgerInput,
+  PtoLedgerNumber,
+  PtoLedgerIssueCode,
+  PtoLineLedger,
+  PtoLedgerTotals,
+} from './ledger';

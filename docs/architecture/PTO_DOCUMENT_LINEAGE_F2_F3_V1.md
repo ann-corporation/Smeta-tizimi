@@ -70,6 +70,20 @@ bajarilmaydi.
 
 ## Tekshiruv chegarasi
 
+### PTO line ledger semantikasi
+
+`frontend/src/lib/pto-document-lineage/ledger.ts` client-side projection layeri
+quyidagi qiymatlarni alohida saqlaydi va `NULL`ni nolga aylantirmaydi:
+
+- `smetaRemaining*` = baseline estimate minus effective Fakt;
+- `f2Available*` = effective Fakt minus approved/certified F2;
+- `contractualRemaining*` = approved entitlement minus approved/certified F2;
+- `cumulative*` = canonical read-model bergan exact approved F2 amount/quantity.
+
+Bu ikkinchi business truth emas, faqat bir xil ko‘rsatish/reconciliation layeridir.
+Manfiy F2 mavjudligi `OVER_CERTIFIED` sifatida saqlanadi; u yashirilmaydi yoki jim
+`0`ga qisqartirilmaydi. Previous/current cumulative tafovutlari ham explicit issue bo‘lib qoladi.
+
 Static/type/unit evidence quyidagilarda bor: lineage validator, F3 export
 call-site va migration acceptance SQL. Real authenticated Excel/print smoke,
 real approved F2 equality va migration rollback/runtime acceptance — alohida

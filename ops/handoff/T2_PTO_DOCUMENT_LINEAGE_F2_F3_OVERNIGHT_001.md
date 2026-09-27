@@ -39,6 +39,19 @@
 
 ## Dalil va cheklovlar
 
+### PTO ledger checkpoint
+
+Keyingi checkpoint quyidagilarni qo‘shadi:
+
+- `frontend/src/lib/pto-document-lineage/ledger.ts` — pure semantic projection;
+- `frontend/src/lib/pto-document-lineage/ledger.test.ts` — quantity/value,
+  `NULL`, over-certification va cumulative reconciliation testlari;
+- `NakopitelniyVedomost.tsx` — `Smeta − Fakt`, `F2 mumkin` va
+  `Kontrakt − F2` alohida ustunlari.
+
+Bu canonical database truthni o‘zgartirmaydi va production migration qo‘llamaydi.
+Maqsad — baseline/Fakt/F2 qoldiqlarini bitta noaniq `QOLDIQ` ostida ko‘rsatmaslik.
+
 Repo migrationlari va Supabase read-only catalog tekshiruvi `t2_forma3`,
 `t2_shartnoma`, `t2_shartnoma_bog`, `t2_loyiha`, `t2_obyekt` va kerakli
 columnlarni ko'rsatdi. Migration hali productionga qo'llanmagan.

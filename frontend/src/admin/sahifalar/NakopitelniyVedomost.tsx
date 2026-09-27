@@ -14,7 +14,7 @@ import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nak
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
-import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
+import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -354,6 +354,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           <div><span className="text-text-mute block">Jami tasdiqlangan F2</span><FmtN val={jami.jami_tasdiqlangan_summa} /></div>
           <div><span className="text-text-mute block">Faktdan F2ga mumkin</span>
             <span className={jami.f2_mumkin_summa < 0 ? 'text-danger font-semibold' : ''}><FmtN val={jami.f2_mumkin_summa} /></span>
+            <span className="block text-text-mute">Fakt − tasdiqlangan F2</span>
           </div>
         </div>
       )}
@@ -371,23 +372,38 @@ function Sessiya({ companyId }: { companyId: number }) {
                   <th colSpan={2} className="px-2 py-1 border-l border-border">OLDINGI F2</th>
                   <th colSpan={3} className="px-2 py-1 border-l border-border">JORIY F2</th>
                   <th colSpan={2} className="px-2 py-1 border-l border-border">JAMI (tasdiqlangan) F2</th>
-                  <th colSpan={2} className="px-2 py-1 border-l border-border">QOLDIQ</th>
+                  <th colSpan={3} className="px-2 py-1 border-l border-border">QOLDIQ SEMANTIKASI</th>
                 </tr>
                 <tr className="text-text-mute text-right">
                   <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Narx</th><th className="px-2 py-1">Summa</th>
                   <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th>
                   <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Narx</th><th className="px-2 py-1">Summa</th>
                   <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th>
-                  <th className="px-2 py-1 border-l border-border">Smeta</th><th className="px-2 py-1">F2 mumkin</th>
+                  <th className="px-2 py-1 border-l border-border">Smeta − Fakt</th><th className="px-2 py-1">F2 mumkin</th><th className="px-2 py-1">Kontrakt − F2</th>
                 </tr>
               </thead>
               <tbody>
                 {sahifa.map(q => q.tur === 'rz' ? (
                   <tr key={q.qator_id} className="bg-surface-2/70">
-                    <td colSpan={14} className="px-2 py-1.5 font-semibold text-text sticky left-0 bg-surface-2/70">{q.nom}</td>
+                    <td colSpan={16} className="px-2 py-1.5 font-semibold text-text sticky left-0 bg-surface-2/70">{q.nom}</td>
                   </tr>
                 ) : (
-                  <tr key={q.qator_id} className="border-t border-border/60 hover:bg-surface-2/40 text-right">
+                  (() => {
+                    const ledger = buildPtoLineLedger({
+                      lineId: q.qator_id,
+                      baselineQuantity: q.smeta_hajm,
+                      baselineUnitPrice: q.smeta_narx,
+                      baselineAmount: q.smeta_summa,
+                      factQuantity: q.fakt_hajm,
+                      factAmount: q.fakt_summa,
+                      previousApprovedQuantity: q.oldingi_hajm,
+                      previousApprovedAmount: q.oldingi_summa,
+                      currentApprovedQuantity: q.joriy_hajm,
+                      currentApprovedAmount: q.joriy_summa,
+                      approvedF2Quantity: q.jami_hajm,
+                      approvedF2Amount: q.jami_summa,
+                    });
+                    return <tr key={q.qator_id} className="border-t border-border/60 hover:bg-surface-2/40 text-right">
                     <td className="text-left px-2 py-1 sticky left-0 bg-surface" title={q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}</td>
                     <td className="text-center px-2 py-1">{q.birlik || '—'}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums"><FmtN val={jamiHajmSafe(q)} /></td>
@@ -401,9 +417,11 @@ function Sessiya({ companyId }: { companyId: number }) {
                     <td className="px-2 py-1 tabular-nums">{q.joriy_summa ? <FmtN val={q.joriy_summa} /> : '—'}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.jami_hajm ? <FmtN val={q.jami_hajm} /> : '—'}</td>
                     <td className="px-2 py-1 tabular-nums">{q.jami_summa ? <FmtN val={q.jami_summa} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums">{q.qoldiq_hajm ? <FmtN val={q.qoldiq_hajm} /> : '—'}</td>
-                    <td className={'px-2 py-1 tabular-nums font-medium ' + (q.f2_mumkin_hajm < 0 ? 'text-danger' : '')}><FmtN val={q.f2_mumkin_hajm} /></td>
-                  </tr>
+                    <td className="px-2 py-1 border-l border-border tabular-nums">{ledger.smetaRemainingQuantity == null ? '—' : <FmtN val={ledger.smetaRemainingQuantity} />}</td>
+                    <td className={'px-2 py-1 tabular-nums font-medium ' + (ledger.overCertified ? 'text-danger' : '')}>{ledger.f2AvailableQuantity == null ? '—' : <FmtN val={ledger.f2AvailableQuantity} />}</td>
+                    <td className="px-2 py-1 tabular-nums">{ledger.contractualRemainingQuantity == null ? '—' : <FmtN val={ledger.contractualRemainingQuantity} />}</td>
+                  </tr>;
+                  })()
                 ))}
               </tbody>
             </table>
