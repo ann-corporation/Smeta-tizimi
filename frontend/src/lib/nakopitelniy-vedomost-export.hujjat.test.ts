@@ -56,6 +56,25 @@ describe('Накопительная ведомость — hujjat standarti', (
     expect(vsego.length).toBeGreaterThan(0);
   });
 
+  it('ichma-ich RZ lar canonical ota_id bo‘yicha alohida yopiladi', () => {
+    const rows: NakopitelniyQator[] = [
+      q({ qator_id: 501, tur: 'rz', daraja: 0, nom: 'АМФИТЕАТР' }),
+      q({ qator_id: 502, tur: 'rz', ota_id: 501, daraja: 1, nom: 'СЦЕНА' }),
+      q({ qator_id: 503, tur: 'bl', ota_id: 502, daraja: 2, kod: 'СЦ-01', nom: 'БЕТОННЫЕ РАБОТЫ' }),
+      q({ qator_id: 504, tur: 'mat', ota_id: 503, daraja: 3, kat: 'МАТ', kod: 'М-01', nom: 'БЕТОН', birlik: 'м3', smeta_hajm: 10, smeta_summa: 1000, joriy_hajm: 2, joriy_summa: 200 }),
+      q({ qator_id: 505, tur: 'rz', ota_id: 501, daraja: 1, nom: 'ЗДАНИЕ' }),
+      q({ qator_id: 506, tur: 'bl', ota_id: 505, daraja: 2, kod: 'ЗД-01', nom: 'КЛАДКА' }),
+      q({ qator_id: 507, tur: 'mat', ota_id: 506, daraja: 3, kat: 'МАТ', kod: 'М-02', nom: 'КИРПИЧ', birlik: 'м2', smeta_hajm: 20, smeta_summa: 2000, joriy_hajm: 4, joriy_summa: 400 }),
+    ];
+    const t = hujjatTekshir(nakopitelniyVedomostHujjat(rows, { obyektNom: 'Амфитеатр', davr: '2026-09' }).bytes);
+    const sections = t.matnlar.filter((s) => s.startsWith('ИТОГО ПО РАЗДЕЛУ:'));
+    expect(sections).toEqual([
+      'ИТОГО ПО РАЗДЕЛУ: СЦЕНА',
+      'ИТОГО ПО РАЗДЕЛУ: ЗДАНИЕ',
+      'ИТОГО ПО РАЗДЕЛУ: АМФИТЕАТР',
+    ]);
+  });
+
   it('H7: smeta summasi noma‘lum — остаток va ВСЕГО smeta bo‘sh, ro‘yxatda', () => {
     const rows = ROWS.map((r) => (r.nom === 'ПЕСОК' ? { ...r, smeta_summa: null } : r));
     const { bytes, jamilar } = nakopitelniyVedomostHujjat(rows, { obyektNom: 'Объект', davr: '2026-09' });

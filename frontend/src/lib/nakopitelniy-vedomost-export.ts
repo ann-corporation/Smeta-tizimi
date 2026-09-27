@@ -140,39 +140,71 @@ export function nakopitelniyVedomostHujjat(
     yonalish: 'landscape',
   });
   const bosh = v.malumotBoshi;
-  // Qatorlar tartibi RPC tartibida; rz — bo'lim, keyingi rz gacha — uning bolalari.
-  // Har rz oxirida ИТОГО; bl pul ustunlari — o'z bolalari (barglar) yig'indisi.
-  type Rej = { tur: 'rz' | 'bl' | 'barg' | 'itogo' | 'vsego'; q?: NakopitelniyQator; bolalar: number[]; nom?: string };
+  // Qatorlar RPC tartibida keladi, lekin bo'lim chegarasi "keyingi RZ gacha"
+  // emas. `ota_id` mavjud bo'lsa, aynan canonical daraxtdan plan quriladi;
+  // shuning uchun ichma-ich RZ lar bir-birini yopib yubormaydi. Parent metadata
+  // berilmagan eski RPC uchun depth-stack fallback saqlanadi.
+  type Rej = { tur: 'rz' | 'bl' | 'barg' | 'itogo' | 'vsego'; q?: NakopitelniyQator; bolalar: number[]; nom?: string; daraja?: number };
+  type PlanNode = { tur: 'rz' | 'bl' | 'barg'; q: NakopitelniyQator; bolalar: PlanNode[]; daraja: number };
+  const parentTur = (tur: PlanNode['tur']) => tur === 'rz' || tur === 'bl';
+  const qatorTur = (q: NakopitelniyQator): PlanNode['tur'] => q.tur === 'rz' ? 'rz' : q.tur === 'bl' ? 'bl' : 'barg';
+  const canonicalTree = qatorlar.some((q) => q.ota_id != null || q.daraja != null);
+  const nodes: PlanNode[] = qatorlar.map((q) => ({
+    tur: qatorTur(q), q, bolalar: [],
+    daraja: Number.isFinite(q.daraja) ? Math.max(0, Number(q.daraja)) : 0,
+  }));
+  const byId = new Map<number, PlanNode>();
+  for (const node of nodes) if (!byId.has(node.q.qator_id)) byId.set(node.q.qator_id, node);
+  const roots: PlanNode[] = [];
+  if (canonicalTree) {
+    for (const node of nodes) {
+      const parent = node.q.ota_id == null ? undefined : byId.get(node.q.ota_id);
+      if (parent && parentTur(parent.tur)) {
+        if (node.q.daraja == null) node.daraja = parent.daraja + 1;
+        parent.bolalar.push(node);
+      } else {
+        if (node.q.daraja == null) node.daraja = node.tur === 'rz' ? 0 : 0;
+        roots.push(node);
+      }
+    }
+  } else {
+    const stack: PlanNode[] = [];
+    for (const node of nodes) {
+      const depth = Number.isFinite(node.q.daraja)
+        ? Math.max(0, Number(node.q.daraja))
+        : (node.tur === 'rz' ? 0 : (stack.at(-1)?.daraja ?? -1) + 1);
+      node.daraja = depth;
+      while (stack.length && stack.at(-1)!.daraja >= depth) stack.pop();
+      const parent = stack.at(-1);
+      if (parent && parentTur(parent.tur)) parent.bolalar.push(node); else roots.push(node);
+      if (parentTur(node.tur)) stack.push(node);
+    }
+  }
+
   const reja: Rej[] = [];
-  let rzItogo: Rej | null = null;
-  let bl: Rej | null = null;
   const bargRows: number[] = [];
   let no = 0;
   const diqqat: Array<{ nom: string; sabab: string }> = [];
-  const yop = () => { if (rzItogo) { if (rzItogo.bolalar.length) reja.push(rzItogo); else reja.pop(); } rzItogo = null; bl = null; };
-  for (const q of qatorlar) {
-    if (q.tur === 'rz') {
-      yop();
-      reja.push({ tur: 'rz', q, bolalar: [] });
-      rzItogo = { tur: 'itogo', bolalar: [], nom: `ИТОГО ПО РАЗДЕЛУ: ${q.nom ?? ''}` };
-      continue;
-    }
-    if (q.tur === 'bl') {
-      bl = { tur: 'bl', q, bolalar: [] };
-      reja.push(bl);
-      continue;
-    }
+  const emit = (node: PlanNode): number => {
     const i = reja.length;
-    reja.push({ tur: 'barg', q, bolalar: [] });
-    bargRows.push(i);
-    if (bl) bl.bolalar.push(i);
-    if (rzItogo) rzItogo.bolalar.push(i);
-    if (q.smeta_hajm == null || q.smeta_summa == null) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'нет объема или стоимости по смете — остаток не определен' });
-    if (!nakrutkaKat(q.kat)) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
-    const mozhno = q.fakt_hajm - (q.oldingi_hajm + q.joriy_hajm);
-    if (mozhno < -1e-9) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(-mozhno)})` });
-  }
-  yop();
+    const row: Rej = { tur: node.tur, q: node.q, bolalar: [], daraja: node.daraja };
+    reja.push(row);
+    if (node.tur === 'barg') {
+      bargRows.push(i);
+      const q = node.q;
+      if (q.smeta_hajm == null || q.smeta_summa == null) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'нет объема или стоимости по смете — остаток не определен' });
+      if (!nakrutkaKat(q.kat)) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
+      const mozhno = q.fakt_hajm - (q.oldingi_hajm + q.joriy_hajm);
+      if (mozhno < -1e-9) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(-mozhno)})` });
+      return i;
+    }
+    row.bolalar = node.bolalar.map(emit);
+    if (node.tur === 'rz' && row.bolalar.length) {
+      reja.push({ tur: 'itogo', bolalar: row.bolalar, nom: `ИТОГО ПО РАЗДЕЛУ: ${node.q.nom ?? ''}`, daraja: node.daraja + 1 });
+    }
+    return i;
+  };
+  roots.forEach(emit);
   // bo'sh bl (bargsiz) — hujjatda qoladi (hajmlari bor), puli bo'sh.
   const j = nakopitelniyJamilar(qatorlar);
   const rowOf = (i: number) => bosh + i;
@@ -225,7 +257,7 @@ export function nakopitelniyVedomostHujjat(
   reja.forEach((x, i) => {
     let r = 0;
     const q = x.q;
-    if (x.tur === 'rz') r = v.bolim(q!.nom ?? '', { daraja: 0 });
+    if (x.tur === 'rz') r = v.bolim(q!.nom ?? '', { daraja: x.daraja ?? 0 });
     else if (x.tur === 'barg' || x.tur === 'bl') {
       const barg = x.tur === 'barg';
       const tartib = barg ? '' : String(++no);
@@ -248,7 +280,7 @@ export function nakopitelniyVedomostHujjat(
           const kf = `F${kfQ[ko.kat]}`;
           return [{ f: `ROUND(L${rr}*${kf},2)`, v: ko.per ?? '' }, { f: `ROUND(N${rr}*${kf},2)`, v: ko.jami ?? '' }, ko.kat, 1];
         })() : [koSum(x.bolalar, 'R'), koSum(x.bolalar, 'S'), null, null]),
-      ], { daraja: barg ? 2 : 1 });
+      ], { daraja: x.daraja ?? (barg ? 2 : 1) });
     } else {
       r = v.qator('jami', (rr) => {
         const cells: Qiymat[] = Array(USTUNLAR.length).fill(null);
@@ -261,7 +293,7 @@ export function nakopitelniyVedomostHujjat(
         cells[17] = koSum(x.bolalar, 'R');
         cells[18] = koSum(x.bolalar, 'S');
         return cells;
-      }, { daraja: 0 });
+      }, { daraja: x.daraja ?? 0 });
     }
     if (r !== rowOf(i)) throw new Error('NAKOPITELNIY_QATOR_SILJIDI');
   });
