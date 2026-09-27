@@ -1,0 +1,46 @@
+{
+  "schema": "tizim02-decision-register-v1",
+  "entries": [
+    {
+      "id": "DEC-ARCH-001",
+      "date": "2026-09-27",
+      "status": "accepted",
+      "decision": "Supabase/Postgres business truth, private R2 binary truth, Drive/Sheets secondary replicas, GAS bridge only.",
+      "scope": ["platform", "PTO", "documents"],
+      "evidence": ["docs/governance/CONSTITUTION.md", "docs/architecture/FILE_TRUTH_AND_SECONDARY_REPLICA_V1.md"]
+    },
+    {
+      "id": "DEC-PTO-001",
+      "date": "2026-09-27",
+      "status": "accepted",
+      "decision": "PTO hisobida baseline/reference, certified F2, actual/procurement va change price yashirincha bir-birini almashtirmaydi.",
+      "scope": ["SMETA", "F2", "Nakopitelniy", "exports"],
+      "evidence": ["docs/governance/CONSTITUTION.md", "docs/architecture/HUJJAT_STANDARTI_V1.md"]
+    },
+    {
+      "id": "DEC-DOC-001",
+      "date": "2026-09-27",
+      "status": "owner_accepted_pending_code_verification",
+      "decision": "Shartnoma bog‘lanishi yo‘q, metadata noaniq yoki F2 bo‘sh bo‘lsa, exportning oddiy shakli bloklanmaydi: hujjat yaratiladi, aniqlanmagan titul/moliya maydonlari bo‘sh qoladi va foydalanuvchiga warning ko‘rsatiladi. Noto‘g‘ri tenant, unauthorized scope, buzilgan binary yoki integrity xavfi esa hard blocker.",
+      "scope": ["Nakopitelniy", "F2", "F3", "PTO exports"],
+      "evidence": ["ops/second-mind/PROJECT_MEMORY.json"],
+      "implementation_note": "Bu qaror candidate branchdagi export oqimiga qo‘llanishi va authenticated smoke bilan tekshirilishi kerak. Production status alohida tekshiriladi."
+    },
+    {
+      "id": "DEC-AI-001",
+      "date": "2026-09-27",
+      "status": "accepted",
+      "decision": "AI faqat source retrieval, classification, candidate va explanation beradi; canonical narx/norma/formula/qarorni o‘zi tasdiqlamaydi.",
+      "scope": ["AI", "imports", "matching"],
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    },
+    {
+      "id": "DEC-OPS-001",
+      "date": "2026-09-27",
+      "status": "accepted",
+      "decision": "Har yangi agent avval second mind va current governance evidence’ni o‘qiydi; chatdagi aytilmagan taxminlar project truth hisoblanmaydi.",
+      "scope": ["agent orchestration", "release"],
+      "evidence": ["AGENTS.md", "ops/second-mind/README.md"]
+    }
+  ]
+}

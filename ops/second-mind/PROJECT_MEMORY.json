@@ -1,0 +1,149 @@
+{
+  "schema": "tizim02-second-mind-v1",
+  "product": {
+    "name": "TIZIM_02",
+    "description": "Multi-company Construction Network Operating System",
+    "repository": "ann-corporation/Smeta-tizimi",
+    "primary_language": "uzbek",
+    "canonical_identity": "ONE ENTITY — ONE ID — ONE SOURCE OF TRUTH — MANY VIEWS"
+  },
+  "truth_model": [
+    {
+      "layer": "business_and_metadata",
+      "system": "Supabase/Postgres",
+      "authority": "canonical",
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    },
+    {
+      "layer": "binary_files",
+      "system": "private Cloudflare R2",
+      "authority": "canonical",
+      "evidence": ["docs/architecture/FILE_TRUTH_AND_SECONDARY_REPLICA_V1.md"]
+    },
+    {
+      "layer": "human_workspace_projection",
+      "system": "Google Drive / Google Sheets",
+      "authority": "secondary_replica",
+      "evidence": ["docs/architecture/FILE_TRUTH_AND_SECONDARY_REPLICA_V1.md"]
+    },
+    {
+      "layer": "integration_bridge",
+      "system": "Google Apps Script",
+      "authority": "bridge_only",
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    }
+  ],
+  "non_negotiable_laws": [
+    {
+      "id": "LAW-NULL",
+      "rule": "NULL unknown/not supplied; NULL silently zero qilinmaydi.",
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    },
+    {
+      "id": "LAW-NO-FAKE",
+      "rule": "AI va UI missing fact, narx, norma, quantity yoki moliyaviy natijani uydirmaydi.",
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    },
+    {
+      "id": "LAW-IDENTITY",
+      "rule": "Row number, nom, sheet nomi yoki fuzzy match canonical identity emas; stable ID ishlatiladi.",
+      "evidence": ["docs/governance/CONSTITUTION.md", "docs/architecture/SMETA_ANATOMIYA_V1.md"]
+    },
+    {
+      "id": "LAW-FROZEN-F2",
+      "rule": "Tasdiqlangan F2 tarixiy qiymati keyingi hisob bilan qayta yozilmaydi.",
+      "evidence": ["docs/architecture/HUJJAT_STANDARTI_V1.md", "docs/architecture/SMETA_ANATOMIYA_V1.md"]
+    },
+    {
+      "id": "LAW-TWO-PRICES",
+      "rule": "Baseline/reference, certified F2, actual/procurement va approved change narxlari alohida semantika.",
+      "evidence": ["docs/governance/CONSTITUTION.md", "docs/architecture/HUJJAT_STANDARTI_V1.md"]
+    },
+    {
+      "id": "LAW-SECURITY",
+      "rule": "Company/project/object scope server/RPC qatlamida tekshiriladi; frontend selector security boundary emas.",
+      "evidence": ["docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"]
+    },
+    {
+      "id": "LAW-OWNER-SMOKE",
+      "rule": "Product-facing release authenticated owner vertical smoke PASS bo‘lmasdan complete hisoblanmaydi.",
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    },
+    {
+      "id": "LAW-DOCUMENT-SOFT-WARNING",
+      "rule": "Contract metadata yo‘qligi yoki noaniqligi oddiy hujjat exportini to‘smasin; noma’lum titul maydonlari bo‘sh, warning esa ko‘rinadigan bo‘lsin. Security/data-integrity bloklari bundan mustasno.",
+      "status": "owner_decision_pending_integration",
+      "evidence": ["ops/second-mind/DECISIONS.json"]
+    }
+  ],
+  "domains": [
+    {
+      "id": "company_context",
+      "name": "Company / actor / project / object context",
+      "truth": "Supabase membership and server authorization",
+      "entrypoints": ["frontend/src/umumiy/kontekst/", "frontend/src/admin/AdminShell.tsx", "frontend/functions/api/"],
+      "evidence": ["ops/handoff/T2_COMPANY_CONTEXT_UX_AUDIT_001_CODEX.md"]
+    },
+    {
+      "id": "pto",
+      "name": "SMETA / LRV / Fakt / F2 / Nakopitelniy / exports",
+      "truth": "Supabase canonical rows plus deterministic TypeScript exporters",
+      "entrypoints": ["frontend/src/admin/sahifalar/HolatNative.tsx", "frontend/src/admin/sahifalar/FaktNative.tsx", "frontend/src/admin/sahifalar/F2ImportNative.tsx", "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx"],
+      "evidence": ["docs/architecture/SMETA_ANATOMIYA_V1.md", "docs/architecture/HUJJAT_STANDARTI_V1.md", "ops/handoff/PTO_LINIYA_YAKUN_HISOBOT_2026-09-25.md"]
+    },
+    {
+      "id": "document_control",
+      "name": "Document registry, R2 file truth, replicas and closeout",
+      "truth": "Supabase metadata + private R2 binary",
+      "entrypoints": ["frontend/src/lib/pto-document-lineage/", "frontend/functions/api/hujjat-yukla.ts", "frontend/functions/api/hujjat-ol.ts"],
+      "evidence": ["docs/architecture/FILE_TRUTH_AND_SECONDARY_REPLICA_V1.md", "docs/architecture/PTO_DOCUMENT_LINEAGE_F2_F3_V1.md"]
+    },
+    {
+      "id": "mindmap",
+      "name": "Operational graph / control projection",
+      "truth": "Natural relation tables and mindmap RPCs; mindmap itself is not entity truth",
+      "entrypoints": ["frontend/src/test02/TestXarita.tsx", "frontend/src/api/t2-mindmap.ts"],
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    },
+    {
+      "id": "ai",
+      "name": "AI assistant and AI-assisted analysis",
+      "truth": "Evidence retrieval/classification/explanation only; deterministic engine remains authoritative",
+      "entrypoints": ["frontend/src/", "frontend/functions/", "docs/governance/CONSTITUTION.md"],
+      "evidence": ["docs/governance/CONSTITUTION.md"]
+    }
+  ],
+  "status_vocabulary": [
+    "UNKNOWN",
+    "UNPROVEN",
+    "SOURCE_READY",
+    "TESTED",
+    "INTEGRATED",
+    "PREVIEW_DEPLOYED",
+    "PRODUCTION_DEPLOYED",
+    "LIVE_SMOKE_PASS",
+    "BLOCKED",
+    "DEFERRED"
+  ],
+  "agent_read_order": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md",
+    "docs/governance/CURRENT_STATE.md",
+    "docs/governance/AGENT_COMMS_PROTOCOL.md",
+    "docs/governance/OWNER_AUTHORIZATION.md",
+    "docs/governance/AGENT_CAPABILITY_POLICY.md",
+    "ops/ACTIVE_TASKS.json",
+    "ops/mailbox/INBOX.md",
+    "ops/second-mind/PROJECT_MEMORY.json",
+    "ops/second-mind/DECISIONS.json",
+    "ops/second-mind/INDEX.json",
+    "relevant architecture and handoff evidence"
+  ],
+  "unknowns_are_first_class": true,
+  "update_policy": {
+    "manual_decisions": "DECISIONS.json with owner/evidence/date/status",
+    "source_inventory": "build-index.cjs",
+    "validation": "verify.cjs plus governance-check and relevant tests",
+    "production": "never performed by second mind; follows explicit release authorization"
+  }
+}

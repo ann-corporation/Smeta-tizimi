@@ -3,6 +3,34 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-SECOND-MIND-001",
+      "title": "TIZIM_02 project second mind: evidence index, decision register and agent boot memory",
+      "owner": "codex",
+      "machine": "pc-ishxona",
+      "branch": "codex/tizim02-second-mind-v1",
+      "base_sha": "af65d77dc78fc018c58d374bbe35c47c790921a9",
+      "status": "in_progress",
+      "owns": [
+        "AGENTS.md",
+        "ops/ACTIVE_TASKS.json",
+        "ops/second-mind/",
+        "ops/handoff/T2_SECOND_MIND_001.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md",
+        "docs/governance/AGENT_COMMS_PROTOCOL.md",
+        "docs/governance/OWNER_AUTHORIZATION.md",
+        "docs/governance/AGENT_CAPABILITY_POLICY.md",
+        "ops/ACTIVE_TASKS.json",
+        "ops/mailbox/INBOX.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Project memory only. No production write, migration, deployment or business truth mutation. Index is evidence navigation; source/runtime verification remains mandatory."
+    },
+    {
       "id": "T2-PTO-DOCUMENT-LINEAGE-F2-F3-OVERNIGHT-001",
       "title": "PTO chiquuvchi hujjatlar lineage va F2/F3 canonical scope hardening",
       "owner": "codex",
