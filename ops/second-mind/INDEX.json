@@ -1,0 +1,857 @@
+{
+  "schema": "tizim02-second-mind-index-v1",
+  "generated_from": {
+    "git_head": "002b9d8437e636212b6c2139e92237250a2f9b2f",
+    "builder": "ops/second-mind/build-index.cjs"
+  },
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "exists": true,
+      "category": "control",
+      "bytes": 2472,
+      "sha256": "ee90dd2f06aba49e3f42474123b9a6449be46c7d2737ecf315d40f860cc93c13"
+    },
+    {
+      "path": "docs/architecture/CONSTRUCTION_DOMAIN_GRAPH_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 6430,
+      "sha256": "442fea70adff7d0037e652d71d52eb3144a9b1deea5f8fc5e331a74fa966971c"
+    },
+    {
+      "path": "docs/architecture/CONSTRUCTION_OS_MASTER_ROADMAP.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 9906,
+      "sha256": "381440814e31dbb345b562f607dff63530b10f7467a9f7b03f9d33761e7a0f0b"
+    },
+    {
+      "path": "docs/architecture/CONTROL_SIGNAL_ENGINE_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 3217,
+      "sha256": "48971caec59eb7a87cdd4b481cd406e5dc45b40e6f6144ce8e7502e90fb0803f"
+    },
+    {
+      "path": "docs/architecture/DATABASE_BASELINE_AND_MIGRATION_STRATEGY_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 8516,
+      "sha256": "dbe84cfa8e996f3fb34c20dac24581c1863128bbb00779ff0eb014279c9c6e2d"
+    },
+    {
+      "path": "docs/architecture/ENTITY_PARTICIPANT_BACKEND_RECONCILIATION.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 5450,
+      "sha256": "1f1bdcbabfc12c23e7cb8d207d513c6a667d5c0db7008d8faf9f79cc54f552dd"
+    },
+    {
+      "path": "docs/architecture/F2_IMPORT_V3.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 10246,
+      "sha256": "c706b581bcda3a8e34b9d2daa6825041a4064f0a0757d532f4846aa192c0156b"
+    },
+    {
+      "path": "docs/architecture/FILE_TRUTH_AND_SECONDARY_REPLICA_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 13621,
+      "sha256": "06db3b13d8a0ce48e8318cd96441b48b420683f7ea5c4591df0a830d73c4cf3e"
+    },
+    {
+      "path": "docs/architecture/HUJJAT_STANDARTI_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 10136,
+      "sha256": "5d2f9eaf251cdef3ce70d6897f3d42baddf37f779d54ccea39d03fc3623a1bd2"
+    },
+    {
+      "path": "docs/architecture/MINDMAP_COMMAND_RPC_V2.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 4835,
+      "sha256": "6bfa2f9fdd1d2d8c2b0f7bd5c8c398730051dddd2c29f0badfe5a71942f54c5a"
+    },
+    {
+      "path": "docs/architecture/PTO_DOCUMENT_LINEAGE_F2_F3_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 4382,
+      "sha256": "2e9647693ac06d051984e8dc93b8f01f58cf7742311ed162023084d4bf0c4d55"
+    },
+    {
+      "path": "docs/architecture/SMETA_ANATOMIYA_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 11280,
+      "sha256": "b4b4d87387c5f2de7107318ae225a028327ed36f0f03ce579c846b14afdf3e21"
+    },
+    {
+      "path": "docs/architecture/SMETA_F2_NAKOPITELNIY_CHANGE_CONTROL_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 5792,
+      "sha256": "32f928a74d7fb66a41412b464c357acb391b4d9d4f713f2f8d3dad0e191371bd"
+    },
+    {
+      "path": "docs/architecture/SYSTEM_CONTROL_CENTER_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 5548,
+      "sha256": "1d4db58fe74e170ec1ca6ac8f085afbb8cb75f1682c5f5d0896a80106d49db17"
+    },
+    {
+      "path": "docs/architecture/TIZIM_02_PROCUREMENT_REQUEST_CONTRACT_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 4308,
+      "sha256": "f1fb6af2f08d6757095891ada7a4dcd42acf90dd32b3e2200b2d836816dbaa6c"
+    },
+    {
+      "path": "docs/architecture/UZ_CONSTRUCTION_DOCUMENT_CATALOG_AND_TEMPLATES_V1.md",
+      "exists": true,
+      "category": "architecture",
+      "bytes": 33638,
+      "sha256": "f2175511116a0f48015aa0d5524e7263a195d44ca3901e95c3b6fb87d15ce51e"
+    },
+    {
+      "path": "docs/governance/AGENT_CAPABILITY_POLICY.md",
+      "exists": true,
+      "category": "governance",
+      "bytes": 2618,
+      "sha256": "f49beedb33da697c8a69fffb5cf994234d2bc540ed747c2e323db82ece7c01a3"
+    },
+    {
+      "path": "docs/governance/AGENT_COMMS_PROTOCOL.md",
+      "exists": true,
+      "category": "governance",
+      "bytes": 10032,
+      "sha256": "7c02b8e2d47b71d86ba8ac937ed9ed23b84c229e3960116324d5bd17942ffdff"
+    },
+    {
+      "path": "docs/governance/CONSTITUTION.md",
+      "exists": true,
+      "category": "governance",
+      "bytes": 3502,
+      "sha256": "e2d9c66ccbbe661d1867483f6c72590e5993b30b604f97b2d3598a65fdb0c8a5"
+    },
+    {
+      "path": "docs/governance/CURRENT_STATE.md",
+      "exists": true,
+      "category": "governance",
+      "bytes": 43190,
+      "sha256": "41bca7f30d7bf10af32551a8f7c60609b3f3cac4fe460d5864a108143ddff903"
+    },
+    {
+      "path": "docs/governance/DOCUMENT_MAP.md",
+      "exists": true,
+      "category": "governance",
+      "bytes": 1847,
+      "sha256": "f6e2e5e57d1b0cc8b23587cd1285857e5118f760441f0e2c00e883cee685d489"
+    },
+    {
+      "path": "docs/governance/OWNER_AUTHORIZATION.md",
+      "exists": true,
+      "category": "governance",
+      "bytes": 2140,
+      "sha256": "9d72c742a9e713c13bc63aa7bfb1a1e0a0f754f24b7c3f99710e23bc4f2dc7fe"
+    },
+    {
+      "path": "frontend/functions/api/hujjat-ol.ts",
+      "exists": true,
+      "category": "source",
+      "bytes": 3308,
+      "sha256": "10d99f9ff182061141e2fcd26c4136120be3215334789812871fb442c062942f"
+    },
+    {
+      "path": "frontend/functions/api/hujjat-yukla.ts",
+      "exists": true,
+      "category": "source",
+      "bytes": 11681,
+      "sha256": "b3dcb32a535440ee96142e78e1e4298a2bd2bf692a5981bf9aa7ae5d2f9dace8"
+    },
+    {
+      "path": "frontend/src/admin/AdminShell.tsx",
+      "exists": true,
+      "category": "source",
+      "bytes": 24242,
+      "sha256": "e77098e0420d0f1040e74c8cb528c26143fd5c104a007a4c261d66e81c14abe7"
+    },
+    {
+      "path": "frontend/src/admin/sahifalar/F2ImportNative.tsx",
+      "exists": true,
+      "category": "source",
+      "bytes": 37625,
+      "sha256": "149bf979eae8fbb44010102e8771051bec21c5ecf1f93e62f2546cdaa3cb28ac"
+    },
+    {
+      "path": "frontend/src/admin/sahifalar/FaktNative.tsx",
+      "exists": true,
+      "category": "source",
+      "bytes": 7450,
+      "sha256": "0617d2ffa1dd91fabaae9c52020705065fffbf619b85b58e7d46eaf9f05da7d5"
+    },
+    {
+      "path": "frontend/src/admin/sahifalar/HolatNative.tsx",
+      "exists": true,
+      "category": "source",
+      "bytes": 27230,
+      "sha256": "f4575345b158fca00a58043555aad8a0e70afb5835da67c9297284f84aed0155"
+    },
+    {
+      "path": "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+      "exists": true,
+      "category": "source",
+      "bytes": 27258,
+      "sha256": "fb236c0e5cfe1dcf4aa2e25e909a52b24df707573f9b291277f2a86c0ed79bcb"
+    },
+    {
+      "path": "frontend/src/api/t2-mindmap.ts",
+      "exists": true,
+      "category": "source",
+      "bytes": 12081,
+      "sha256": "967cc3baa86e399b0a2fcec72255319985eb0f8e60f226b280dcf5abab08ca8d"
+    },
+    {
+      "path": "frontend/src/test02/TestXarita.tsx",
+      "exists": true,
+      "category": "source",
+      "bytes": 66957,
+      "sha256": "73d0ae1045e3e8ced65ff67ec53bb5923854ca95c21286e5b0890257cf7c7958"
+    },
+    {
+      "path": "ops/ACTIVE_TASKS.json",
+      "exists": true,
+      "category": "control",
+      "bytes": 102936,
+      "sha256": "f3b579cf45ee504d1cc37f9df264b6442fbd73b63d7bd9ce9c9dcb495e7ec8d8"
+    },
+    {
+      "path": "ops/handoff/BRANCH_RECONCILIATION_NEXT_RELEASE.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4257,
+      "sha256": "1df6a3b941f35a6f0d9ca80026d1fcd84f72e75dbb0870af5c53fad38c4f174a"
+    },
+    {
+      "path": "ops/handoff/CODEX_TO_CLAUDE_CONSTRUCTION_DOCUMENT_WORKBENCH_V1.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3910,
+      "sha256": "0f41edc8b3d8102a20ce1da388620b9b0eedf3bf4bf1fb0198cc769c04f9c0f4"
+    },
+    {
+      "path": "ops/handoff/CODEX_TO_CLAUDE_DOCUMENT_FIDELITY_RELEASE_V1.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4919,
+      "sha256": "0ab0085072bdfd2967f2b3a8ec6dea56ebcdfa02c9500cf3777e9ace55ed57b9"
+    },
+    {
+      "path": "ops/handoff/CODEX_TO_CLAUDE_PARK_CLOSEOUT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3329,
+      "sha256": "732a812a5959093a35f341531f7ed50a209c7b492819ac00bb847fb042ba27c7"
+    },
+    {
+      "path": "ops/handoff/CODEX_TO_CLAUDE_PARK_REGRESSION.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4241,
+      "sha256": "416b7c410479163eddef90578651949004e4222f149ef42887bcf5afc44b678c"
+    },
+    {
+      "path": "ops/handoff/CODEX_TO_CLAUDE_PRE_MAIN_RELEASE_QA_V1.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 5245,
+      "sha256": "bebfece4ec2010482a981e2dbe514e20c584d5d93e85c8de9461cb4f0e1caeb5"
+    },
+    {
+      "path": "ops/handoff/CTRL-001.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2050,
+      "sha256": "591ae110c332ade87eebb209d3414d7a91806ae50db561e59d47c16af0a8d670"
+    },
+    {
+      "path": "ops/handoff/EGASI_TALABLARI_KEYINGI_AGENTLAR_2026-09-26.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 13017,
+      "sha256": "13cb6269bdf302f459867838ca205fe3b4e94b8b96f8202c0567f0c3decec84f"
+    },
+    {
+      "path": "ops/handoff/EGA_TALABLARI_BARCHA_AGENTLAR_2026-09-26.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 9246,
+      "sha256": "cda99f3be948459631a6042d3d3605bd006894b54c09a33190ba05d6cc3c59e6"
+    },
+    {
+      "path": "ops/handoff/IJRO_HUJJATLARI_T2_REJA_2026-09-25.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4953,
+      "sha256": "a18daf7e0419be6945c3d71187bef633641a5df51fe6f640c51e9e0b6fb52d3f"
+    },
+    {
+      "path": "ops/handoff/MAIN_CONSOLIDATION_20260916.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3154,
+      "sha256": "d7340e26bafba8b083df16891b3775c34c15a1dd80a094c94878747709bc0d1e"
+    },
+    {
+      "path": "ops/handoff/NEXT_MAIN_RELEASE_CONTINUATION.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 15044,
+      "sha256": "130fe48b6547e1241f3c7806176d7c46fd34836348ccd5424748aedd7b5353e3"
+    },
+    {
+      "path": "ops/handoff/PTO_EGASI_QARORLARI_2026-09-25.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 16178,
+      "sha256": "e56fd6a7e8fe54f61f23e90c6c51ddd7dca1a22457513058ffaa54346c1333c1"
+    },
+    {
+      "path": "ops/handoff/PTO_LINIYA_YAKUNIY_TOPSHIRIQ_2026-09-25.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 18001,
+      "sha256": "d3fb3f2ff140b595261edda6d212a5a6eb4b33bbee14bd83250ffb6600ce58b3"
+    },
+    {
+      "path": "ops/handoff/PTO_LINIYA_YAKUN_HISOBOT_2026-09-25.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 13511,
+      "sha256": "e8359f7445f9ad1b25016f7eb9bba1e39f7683713e09cc4d250d1a97ae258d07"
+    },
+    {
+      "path": "ops/handoff/SMETA_ANATOMIYA_IKKI_QISM_2026-09-25.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 8441,
+      "sha256": "90fafcbaef3ab61d850915c982b452993238dc1a1a93ec0ae0f4e2c9cb7e7d5b"
+    },
+    {
+      "path": "ops/handoff/T2_AUTH_PASSWORD_MIGRATION_001_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 7303,
+      "sha256": "2c641c21c4d06734fc136cf619ae3f4ec355c65230e12c583f4237090d490cad"
+    },
+    {
+      "path": "ops/handoff/T2_BRIDGE_CALLER_AUDIT_003.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 9421,
+      "sha256": "d67403d3291a8b055edb560064abe1bc27164db1b75b3a27fd6eee30360e4e25"
+    },
+    {
+      "path": "ops/handoff/T2_CLAUDE_TYPE_DRIFT_AUDIT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2573,
+      "sha256": "ea81fdfcd6b65c91bb3fd9d4ce0d8b53a1c41b62df6fdb11592c49c7d71ab179"
+    },
+    {
+      "path": "ops/handoff/T2_CODEX_ISH_2026-09-08.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 5604,
+      "sha256": "dc555b81bb2a040db17e21d1263fcabe7ecaba382525ba8eb10dc402165df18b"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTEXT_ADVERSARIAL_TESTS_001_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 10520,
+      "sha256": "033010a1ead5cbe50a5d9a99ff5e364d1d7e28dc71cb414156c0746fb653d0dc"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTEXT_CONTINUATION.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 8061,
+      "sha256": "3e979269147c42ca4cb3c59aaa04bd6c6ec271e423c68c0f71a4f486314a2ddf"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTEXT_UX_AUDIT_001_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 31636,
+      "sha256": "d3720f4f89abc67d6c4b67c917f6aaf20613d8c393f0909053bee2484f3d4f9d"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTROL_AUTH_CORE_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 7185,
+      "sha256": "cf46c90c0cbef656b20243bc81ed3c1661fbd956be45db60a843e898147596fb"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTROL_AUTH_CORE_V2_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4354,
+      "sha256": "46b1ed5677570eb6182469c9eb79b1a5e2a1fef877d0192cee41b447e8e698d9"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTROL_FINAL_AUDIT_002_ANTIGRAVITY.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4392,
+      "sha256": "bede7e2d55e09c795d43ac75e735f86e387d030afe688ab6fedbc5c46e22646e"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTROL_FOUNDATION_001_CONTRACT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 13083,
+      "sha256": "29d6a304263abc8a8af89aa79370ecd28fb7c96d6dca81a5efb5d864e387a792"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTROL_REAUDIT_003_ANTIGRAVITY.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 1405,
+      "sha256": "b17956304445f58999f07ae10f2790ee311e65db8e5228e511f6522be94c82be"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTROL_SECURITY_INCIDENT_2026-09-03.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 6511,
+      "sha256": "15d83a78a8408a5049e5588fa9a50443852682289c76dc80e10a06fd766fcfb1"
+    },
+    {
+      "path": "ops/handoff/T2_COMPANY_CONTROL_UX_AUDIT_001_ANTIGRAVITY.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 6298,
+      "sha256": "1fddc19f692b7cec63a87f43c23862e265c2ece49874f2d694ac83abde190094"
+    },
+    {
+      "path": "ops/handoff/T2_CONSTRUCTION_CATALOG_001.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 8178,
+      "sha256": "6f7d32d31f299571a9d53b8411dbc68dbdcfade74fed69459e34ebb1e6322faf"
+    },
+    {
+      "path": "ops/handoff/T2_DAILY_PTO_NATIVE_LRV_001_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4145,
+      "sha256": "21337873622ab2b1dab8b902b8350ef78529e247c69822b083cc59e758d21c5a"
+    },
+    {
+      "path": "ops/handoff/T2_FORMA3_F3_001.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 6178,
+      "sha256": "32baa639efa07485b10e97c7a0ed925874fed5a9a9d61bd071882e4806190ec1"
+    },
+    {
+      "path": "ops/handoff/T2_FORMA3_F3_RECONCILIATION_002.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2575,
+      "sha256": "9a9174fa0aaa3164a2d3c0a814f933b6ffc9e6fa60915a592e3a9ceeb5cfdaa2"
+    },
+    {
+      "path": "ops/handoff/T2_GAS_EXIT_001.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 33990,
+      "sha256": "a98c516aa175c08decf6d49284c3981410e172c7c45f4a074c1a0e9e08bc1914"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_ANTIGRAVITY_MERGE_AUDIT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4065,
+      "sha256": "02b5496ad455822020b0f2ec5d237083d0f5d41dfe32ef190dd238774b94f2d2"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_ANTIGRAVITY_MERGE_AUDIT_RESULT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3989,
+      "sha256": "53dde08704392376941dafcef02a4c950c4a175a20e7977f2a842ffff8452510"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_ANTIGRAVITY_PREAUDIT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 5145,
+      "sha256": "17f24c67094f55738ae3ae5b4f686fb88bf38e0e093bdf0cef13d199bd3480f3"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_ANTIGRAVITY_PREAUDIT_RESULT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4427,
+      "sha256": "9f0b86c3e4a485222cde2fc885990732bf9131527f212a681d9db4ed9f2ce347"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_CLAUDE.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 14609,
+      "sha256": "864ed4098c71578c069d178e8c6f65d8ab733937bdbabdfdcb02a300b3a24336"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_CLAUDE_INTEGRATION_REVIEW.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 7630,
+      "sha256": "4790f55a2574c68e0f58c29fab02a9575e4ef06281347eb59909c3fb1407e407"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_CODEX_DBINDEP.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 5345,
+      "sha256": "b8452811a904b76a721829da6bdefce842754feefdeb3b36c2d0ad0627530016"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_CODEX_DBINDEP_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 1527,
+      "sha256": "e50d867d6831e851ba6cb27c4b6e9a8f69415d44204e896d742819d50801b317"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_CODEX_PREAPPROVAL_UI.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4058,
+      "sha256": "1fd24a8dd6675876d5e8045f02745c0e40821df2c03751f9240de1057ce1c19e"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CLOSURE_006_CODEX_PREAPPROVAL_UI_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 1235,
+      "sha256": "2aef4eea3c8703bc6533779228ef0cea59000cf46238d3f14b2f601673520605"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_CONTROL_001_CONTRACT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 13538,
+      "sha256": "8666be223dd5aa3deb7f67dd9a8c3aff62f7c166487444374836484797dd9d14"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_EXACT_F2_AUDIT_003_ANTIGRAVITY.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3386,
+      "sha256": "8f660e28c05e904a3ae81d2c9696eae750e855a4063fb6efc80666aab3c5891a"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_EXACT_F2_INTEGRATION_003.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 11114,
+      "sha256": "866e1d760279739c3095d5de0697ab1d5de104d8c823f3a5851d572ed32e9884"
+    },
+    {
+      "path": "ops/handoff/T2_LRV_PRODUCT_AUDIT_001_ANTIGRAVITY.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 8446,
+      "sha256": "c7bb5bbe0d7132dc06b27b22c11a47e0704d968e05b55659c8d15a9c7332d78a"
+    },
+    {
+      "path": "ops/handoff/T2_OVERNIGHT_NATIVE_CORE_RECONCILIATION_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 6229,
+      "sha256": "4ef6e7060795b999bc6c278944ee8549a328b60719399f793c50c6352ecd92fe"
+    },
+    {
+      "path": "ops/handoff/T2_POST_DEPLOY_INCIDENT_ROUND_2026-09-05.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 8655,
+      "sha256": "6318204322ca73c8c9e9fa1cefd6d1fe85b3cfaf595bae9eb6e42d88ef620f20"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_ANTIGRAVITY_DOCUMENT_EXPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 6751,
+      "sha256": "a015db85de20241ac78c6b29a6c742d3cb6f484e41499691151008ba221af618"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_ANTIGRAVITY_F2_CUTOVER_AUDIT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4450,
+      "sha256": "4fc36907ebb5791b52a20d453827d58483ed1df6ac07ff08c3ac9745ef8b67f4"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CLAUDE_F2_RESUMABLE_UI_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 9240,
+      "sha256": "0a661ef944d8cbf8e60bf6a177ea42bf180e5e85ebdf3966ead0497c343a096a"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CLAUDE_RESURS_VEDOMOST.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3137,
+      "sha256": "c8808c1edc1666dbe2d1b69b553ee517d02befa12a4fd3a9bfbaf96f187e77b7"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_ADDITIONAL_REPLACEMENT_BACKEND.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4640,
+      "sha256": "a9d0665247805531d96ffa2c2e523e9295e8a82259d9239e8074ff10fd1ece12"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_ADDITIONAL_REPLACEMENT_BACKEND_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 1977,
+      "sha256": "68051241b67e64015ddc3119126d949de06faa38e766aeca180717e9df7fed55"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_CATALOG_WRITE.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3323,
+      "sha256": "16f7aab3dc593aac0f6094fb71b79026a560f464c4c1fbb5d36e715983ae92aa"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_CATALOG_WRITE_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 1640,
+      "sha256": "a5fa028a891b24353804218f678ba031df23057caa97005f565de3d356091944"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_F2_CANONICAL_CUTOVER.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4548,
+      "sha256": "70c8b739e23304d18a95c4daa76afbcc048f3199269cc50935086f2b5f6f4356"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_F2_CANONICAL_CUTOVER_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2825,
+      "sha256": "8af9768498b95c3e906938db469e172c51e0bae029ee6b609680952e03744928"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_F2_RESUMABLE_IMPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4913,
+      "sha256": "99ee901292aed3d74566049caf631233171007668d8dc917e6c2e27636d3155a"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_F2_RESUMABLE_IMPORT_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3700,
+      "sha256": "b798422820edfa1d37db1cb31f8c566dc84d5dd29853cc533089400b10c71b9c"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_NARXLAR_MARKAZI_CUTOVER.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 6447,
+      "sha256": "86cf9112558b5685c42f2ab3d0944f110a82e62188b7fa19012da29053617b99"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CLOSURE_007_CODEX_NARXLAR_MARKAZI_CUTOVER_REPORT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4919,
+      "sha256": "236af784c627beea159efdc9515402751fb04aebe379d650164b24a6635e2128"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_CONTRACT_NAKRUTKA_SCOPE_V1_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4953,
+      "sha256": "e704fece16e43522d96b6e3c2bb716827aed1d8d5d9aeb206d3ea90ac4b3cd84"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_DAILY_WORKFLOW_CLOSURE_007.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 10305,
+      "sha256": "ae976869302e52454e1c7cbdf1a8cf3674e33e48bf6e1def71da0a278a51815c"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_DAILY_WORKFLOW_CLOSURE_007_RUNTIME_CHECKPOINT.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 5020,
+      "sha256": "841daef23c986297c451004db2086f37b34fb0c24277e40248dd0aa3c7d7086a"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_DAILY_WORKFLOW_RELIABILITY_V1_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 12628,
+      "sha256": "cebe63200a0d62b8fcf3fc41a6c52c2061cac65649e916cea8926216bce54ef8"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_DOCUMENT_CHAIN_001_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2528,
+      "sha256": "957e12aa4083b09c2d944cde6c19e3f369829467e347293743dc5271798c5dd5"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_DOCUMENT_LINEAGE_F2_F3_OVERNIGHT_001.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 5473,
+      "sha256": "3d8530acde1f236b7017cb42c6733d0f13f177b989ff33b5996520b6a9e9d476"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_MULTI_SHEET_IMPORT_001_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2259,
+      "sha256": "908105767655d287c20abe82eb0cfe92b2b198e74b615b729572742da7a7d72f"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_SMETA_PACKAGE_IMPORT_001_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 3737,
+      "sha256": "a151569ff7fe2f4b0ec294815e8cbda56c94f93acacbb758709c524f9b66a116"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_SMETA_XLSX_RUNTIME_FIX_003.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2984,
+      "sha256": "6436a4289d1d6fadc65282eaa6c78401117dca16fc5393e0a46a9ff44fac4077"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_TENDER_OFERTA_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 4145,
+      "sha256": "9176fce68766197e304bdf2f1a42155dafb448e4bf62052cdce8ce64257e419f"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_UNIVERSAL_SMETA_IMPORT_CONTINUATION_002.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 12683,
+      "sha256": "93e1c49842d1d1a57aa110217af8726094d219f8421031a19b9f48ca7aa9e867"
+    },
+    {
+      "path": "ops/handoff/T2_PTO_WORKFLOW_HARDENING_002.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2357,
+      "sha256": "7b8bafcc85913262cea611b1e7ab4b534ed2bbec905cafb8a259819129584942"
+    },
+    {
+      "path": "ops/handoff/T2_REAL_PARK_LRV_CLOSURE_005_CLAUDE.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 17844,
+      "sha256": "76774f3f4520d1d6b78e7c4a1deb1edfd39ee3bcd011d411265a685bf2e02413"
+    },
+    {
+      "path": "ops/handoff/T2_REAL_PARK_LRV_VERTICAL_SLICE_004.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 15061,
+      "sha256": "cfe073679a6a8da2efa7f52c326e2c339d060a2b54a9d4086900e99eb859f29b"
+    },
+    {
+      "path": "ops/handoff/T2_SECOND_MIND_001.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 1906,
+      "sha256": "9a22f36cd2998a65eee5a8ea2f3c8c0a2920bbb50b2a27718a71c480e69237f1"
+    },
+    {
+      "path": "ops/handoff/T2_SHEETS_SUPABASE_BRIDGE_001.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 8903,
+      "sha256": "a2a9f10ef55fee7a247804df10cb97eb19e6ecc6a30a913d6d357aabf21a0aaf"
+    },
+    {
+      "path": "ops/handoff/T2_SMETA_TREE_IMPLEMENTATION_001_CLAUDE.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 5427,
+      "sha256": "208fa3d13929e6012384e4d6f3e4db7c3aa1f67de9d695549864dd216c25f90c"
+    },
+    {
+      "path": "ops/handoff/T2_SMETA_TREE_IMPLEMENTATION_002_CODEX.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 2562,
+      "sha256": "ee1f3eda391706fc6797649c8df74d54bfc1fe1619377eeed1afb3ae3f4edfc6"
+    },
+    {
+      "path": "ops/handoff/T2_SMETA_TREE_UX_REDESIGN_001_ANTIGRAVITY.md",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 7763,
+      "sha256": "993522a6d1ba73aad91956ed21f929e6129d3ec8418b08468b24a40238550cbb"
+    },
+    {
+      "path": "ops/handoff/t2_schema_inventory.cjs",
+      "exists": true,
+      "category": "handoff",
+      "bytes": 11048,
+      "sha256": "ddb659c77a83af222af44d11601f843d2f25fc904fb44665aa0e9362a2ea568d"
+    },
+    {
+      "path": "ops/mailbox/INBOX.md",
+      "exists": true,
+      "category": "control",
+      "bytes": 1430,
+      "sha256": "e76818202f545247cffb728887e402a20787b164d58a6bf99b1150037a4733ef"
+    },
+    {
+      "path": "ops/second-mind/DECISIONS.json",
+      "exists": true,
+      "category": "control",
+      "bytes": 2342,
+      "sha256": "032277436554536e695fca1415f6d8c0ed01e6f56ef8219095d593b91538560e"
+    },
+    {
+      "path": "ops/second-mind/PROJECT_MEMORY.json",
+      "exists": true,
+      "category": "control",
+      "bytes": 6246,
+      "sha256": "a2bd0e012dea69b9148d999f27c00bb52ed41f60ac69ce6fd9582554173da1b5"
+    },
+    {
+      "path": "ops/second-mind/README.md",
+      "exists": true,
+      "category": "control",
+      "bytes": 1988,
+      "sha256": "fc6d42c4fd3586e4a2c3e1389304523388ab0f849807d77ca805665284252455"
+    }
+  ],
+  "missing_required": []
+}
