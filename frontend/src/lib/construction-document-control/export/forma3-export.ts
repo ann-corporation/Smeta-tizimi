@@ -64,15 +64,18 @@ export async function generateForma3(
     cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
   });
 
-  const { previousValue, currentValue, cumulativeValue } = valuation.totals;
-  const valuationUnknown = previousValue === null || currentValue === null || cumulativeValue === null;
+  // Forma-3 progress value is based on approved F2 source amounts, not on
+  // baseline estimate quantity × price. The latter remains a separate control
+  // fact in the workbench.
+  const { previousCertifiedValue, currentCertifiedValue, cumulativeCertifiedValue } = valuation.totals;
+  const valuationUnknown = previousCertifiedValue === null || currentCertifiedValue === null || cumulativeCertifiedValue === null;
 
   const dataRow = worksheet.addRow([
     '1',
     'Bajarilgan ishlar qiymati (QQSsiz)',
-    valuationUnknown ? 'FORMA3_RULE_UNRESOLVED' : previousValue,
-    valuationUnknown ? 'FORMA3_RULE_UNRESOLVED' : currentValue,
-    valuationUnknown ? 'FORMA3_RULE_UNRESOLVED' : cumulativeValue
+    valuationUnknown ? 'FORMA3_RULE_UNRESOLVED' : previousCertifiedValue,
+    valuationUnknown ? 'FORMA3_RULE_UNRESOLVED' : currentCertifiedValue,
+    valuationUnknown ? 'FORMA3_RULE_UNRESOLVED' : cumulativeCertifiedValue
   ]);
 
   dataRow.eachCell((cell, colNumber) => {
@@ -80,23 +83,24 @@ export async function generateForma3(
     if (colNumber >= 3) cell.numFmt = '#,##0.00';
   });
 
-  let prevVat: number | string = 'FORMA3_RULE_UNRESOLVED';
-  let curVat: number | string = 'FORMA3_RULE_UNRESOLVED';
-  let cumVat: number | string = 'FORMA3_RULE_UNRESOLVED';
-  
-  let prevTotal: number | string = 'FORMA3_RULE_UNRESOLVED';
-  let curTotal: number | string = 'FORMA3_RULE_UNRESOLVED';
-  let cumTotal: number | string = 'FORMA3_RULE_UNRESOLVED';
+  type FormulaCell = { formula: string; result: number };
+  let prevVat: number | string | FormulaCell = 'FORMA3_RULE_UNRESOLVED';
+  let curVat: number | string | FormulaCell = 'FORMA3_RULE_UNRESOLVED';
+  let cumVat: number | string | FormulaCell = 'FORMA3_RULE_UNRESOLVED';
+
+  let prevTotal: number | string | FormulaCell = 'FORMA3_RULE_UNRESOLVED';
+  let curTotal: number | string | FormulaCell = 'FORMA3_RULE_UNRESOLVED';
+  let cumTotal: number | string | FormulaCell = 'FORMA3_RULE_UNRESOLVED';
 
   if (!valuationUnknown) {
     const rate = options.legalRuleEvidence.vatRatePercent / 100;
-    prevVat = previousValue! * rate;
-    curVat = currentValue! * rate;
-    cumVat = cumulativeValue! * rate;
+    prevVat = { formula: `ROUND(C8*${rate},2)`, result: previousCertifiedValue! * rate };
+    curVat = { formula: `ROUND(D8*${rate},2)`, result: currentCertifiedValue! * rate };
+    cumVat = { formula: `ROUND(E8*${rate},2)`, result: cumulativeCertifiedValue! * rate };
 
-    prevTotal = previousValue + (prevVat as number);
-    curTotal = currentValue + (curVat as number);
-    cumTotal = cumulativeValue + (cumVat as number);
+    prevTotal = { formula: 'C8+C9', result: previousCertifiedValue + previousCertifiedValue * rate };
+    curTotal = { formula: 'D8+D9', result: currentCertifiedValue + currentCertifiedValue * rate };
+    cumTotal = { formula: 'E8+E9', result: cumulativeCertifiedValue + cumulativeCertifiedValue * rate };
   }
 
   const vatRow = worksheet.addRow([
@@ -118,7 +122,7 @@ export async function generateForma3(
   [vatRow, totalRow].forEach(row => {
     row.eachCell((cell, colNumber) => {
       cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-      if (typeof cell.value === 'number' && colNumber >= 3) {
+      if ((typeof cell.value === 'number' || (typeof cell.value === 'object' && cell.value !== null && 'formula' in cell.value)) && colNumber >= 3) {
         cell.numFmt = '#,##0.00';
       }
       if (cell.value === 'FORMA3_RULE_UNRESOLVED') {

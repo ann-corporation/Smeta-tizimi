@@ -15,7 +15,7 @@ const raw = {
     periods: [{
       periodId: '2026-03', label: '2026-03', revisionId: 'rev-11', frozen: true, documentIds: ['akt-1'],
       lines: [
-        { lineId: '1', quantity: 3, f2ValuationPrice: 120, actualProcurementPrice: null, referencePriceSourceId: 'baseline-11', actualPriceSourceId: null },
+        { lineId: '1', quantity: 3, certifiedAmount: 361.23, f2ValuationPrice: 120, actualProcurementPrice: null, referencePriceSourceId: 'baseline-11', actualPriceSourceId: null },
       ],
     }],
   },
@@ -34,9 +34,10 @@ describe('t2-document-control adapter', () => {
     expect('actualProcurementPrice' in line).toBe(false);
     expect('actualPriceSourceId' in line).toBe(false);
     expect(line.f2ValuationPrice).toBe(120);
+    expect(line.certifiedAmount).toBe(361.23);
     const row = calculateProgressValuation(m.valuation).rows[0];
     expect(row.actualValue).toBeNull();      // not 0 — no actual price was certified
-    expect(row.f2ValuationValue).toBe(360);  // 3 × 120
+    expect(row.f2ValuationValue).toBe(361.23);  // exact certified_amount, not 3 × 120
   });
 
   it('maps SQL requirement/document vocabulary to the pure-engine contract', () => {

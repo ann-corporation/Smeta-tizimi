@@ -5,8 +5,8 @@ import type { ConstructionDocumentControlReadModel, ProgressLine } from './types
 const makeModel = (count: number): ConstructionDocumentControlReadModel => {
   const lines: ProgressLine[] = Array.from({ length: count }, (_, i) => ({ lineId: `line-${i}`, sectionId: `section-${i % 40}`, description: `BOQ ${i}`, unit: 'm', baselineQuantity: 10, baselineReferencePrice: 123.456 }));
   return { projectId: 'p', objectId: 'o', projectName: 'P', objectName: 'O', requirements: [], documents: [], revisions: [], valuation: { projectId: 'p', objectId: 'o', estimateRevisionId: 'base', currency: 'UZS', throughPeriod: 1, lines, changes: [], periods: [
-    { periodId: 'p0', label: 'P0', revisionId: 'r0', frozen: true, documentIds: [], lines: lines.map(line => ({ lineId: line.lineId, quantity: 1, f2ValuationPrice: 123.456, referencePriceSourceId: 'base' })) },
-    { periodId: 'p1', label: 'P1', revisionId: 'r1', frozen: true, documentIds: [], lines: lines.map(line => ({ lineId: line.lineId, quantity: 2, f2ValuationPrice: 123.456, referencePriceSourceId: 'base' })) },
+    { periodId: 'p0', label: 'P0', revisionId: 'r0', frozen: true, documentIds: [], lines: lines.map(line => ({ lineId: line.lineId, quantity: 1, certifiedAmount: 123.46, f2ValuationPrice: 123.456, referencePriceSourceId: 'base' })) },
+    { periodId: 'p1', label: 'P1', revisionId: 'r1', frozen: true, documentIds: [], lines: lines.map(line => ({ lineId: line.lineId, quantity: 2, certifiedAmount: 246.91, f2ValuationPrice: 123.456, referencePriceSourceId: 'base' })) },
   ] } };
 };
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];

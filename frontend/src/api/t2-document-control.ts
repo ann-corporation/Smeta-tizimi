@@ -105,7 +105,7 @@ export function normalizeWorkbench(raw: any): ConstructionDocumentControlReadMod
         documentIds: p.documentIds ?? [],
         lines: (p.lines ?? []).map((x: any) => dropNulls({
           lineId: String(x.lineId), quantity: Number(x.quantity ?? 0),
-          f2ValuationPrice: x.f2ValuationPrice, actualProcurementPrice: x.actualProcurementPrice,
+          certifiedAmount: x.certifiedAmount, f2ValuationPrice: x.f2ValuationPrice, actualProcurementPrice: x.actualProcurementPrice,
           referencePriceSourceId: x.referencePriceSourceId, actualPriceSourceId: x.actualPriceSourceId,
         })),
       })),

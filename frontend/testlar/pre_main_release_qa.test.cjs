@@ -38,7 +38,8 @@ const calc = R('frontend','src','lib','construction-document-control','calculati
 const validation = R('frontend','src','lib','construction-document-control','validation.ts');
 const types = R('frontend','src','lib','construction-document-control','types.ts');
 const fidelity = R('frontend','src','lib','construction-document-control','document-fidelity.test.ts');
-must('certified F2 amount is quantity × certified unit price', /val\(x\.quantity,x\.f2ValuationPrice!\)/.test(calc));
+must('certified F2 amount stays the exact source fact (no quantity × price fallback)',
+  /certifiedAmount/.test(calc) && /MISSING_CERTIFIED_AMOUNT/.test(calc) && !/val\(x\.quantity,x\.f2ValuationPrice!\)/.test(calc));
 must('baseline, certified F2 and actual procurement are separate values', /baselineReferencePrice/.test(calc) && /f2ValuationPrice/.test(calc) && /actualProcurementPrice/.test(calc));
 must('pending/rejected changes cannot enter approved entitlement', /c\.status === 'approved'/.test(calc));
 must('historical F2 is pure/read-only and price variance is surfaced', /does not mutate certified history/.test(calc) && /PRICE_VARIANCE/.test(calc));

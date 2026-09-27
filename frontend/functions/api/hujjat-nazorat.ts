@@ -79,7 +79,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
     switch (amal) {
       case 'workbench':
-        return reply('t2_workbench_v1', await rpc(ctx.env, 't2_workbench_v1',
+        // Exact F2 source amounts must survive the boundary. The additive
+        // wrapper keeps old deployments readable while the new migration is
+        // applied; it never derives certified_amount from quantity*price.
+        return reply('t2_workbench_exact_v1', await rpc(ctx.env, 't2_workbench_exact_v1',
           { p_obyekt_id: obyektId, p_actor_id: actorId, p_davr: davr, p_limit: limit ?? 800 }), 'WORKBENCH_FAILED');
       case 'nakopitelniy':
         return reply('t2_nakopitelniy_v2', await rpc(ctx.env, 't2_nakopitelniy_v2',

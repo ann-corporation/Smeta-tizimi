@@ -9,6 +9,7 @@ const model = {
   totals: {
     previousQuantity: 0, currentQuantity: 0, cumulativeQuantity: 0, remainingQuantity: 0,
     previousValue: 0, currentValue: 0, cumulativeValue: 0, remainingValue: 0,
+    previousCertifiedValue: 0, currentCertifiedValue: 0, cumulativeCertifiedValue: 0,
   },
   reconciliation: [], documents: [], projectName: 'Test loyiha', objectName: 'Test obyekt',
 };

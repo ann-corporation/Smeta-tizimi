@@ -100,22 +100,31 @@ export async function generateNakopitelniy(
     const entitlementNoaniq = row.approvedEntitlementQuantity == null;
     const remainingQuantityNoaniq = row.remainingQuantity == null;
     const remainingValueNoaniq = row.remainingValue == null;
+    const excelRow = worksheet.rowCount + 1;
+    const liveEntitlement = entitlementNoaniq ? 'NOANIQ' : { formula: `C${excelRow}+D${excelRow}`, result: row.approvedEntitlementQuantity as number };
+    const liveCumulativeQuantity = { formula: `F${excelRow}+G${excelRow}`, result: row.cumulativeQuantity };
+    const liveRemainingQuantity = remainingQuantityNoaniq ? 'NOANIQ' : { formula: `E${excelRow}-H${excelRow}`, result: row.remainingQuantity as number };
+    const liveCumulativeValue = summaNoaniq ? 'NOANIQ' : { formula: `J${excelRow}+K${excelRow}`, result: row.cumulativeCertifiedValue as number };
+    const liveRemainingValue = remainingValueNoaniq ? 'NOANIQ' : { formula: `ROUND(I${excelRow}*O${excelRow},2)`, result: row.remainingValue as number };
     const dataRow = worksheet.addRow([
       row.description,
       row.unit,
       baselineQuantityNoaniq ? 'NOANIQ' : row.baselineQuantity,
       row.approvedChangeQuantity,
-      entitlementNoaniq ? 'NOANIQ' : row.approvedEntitlementQuantity,
+      liveEntitlement,
       row.previousQuantity,
       row.currentQuantity,
-      row.cumulativeQuantity,
-      remainingQuantityNoaniq ? 'NOANIQ' : row.remainingQuantity,
+      liveCumulativeQuantity,
+      liveRemainingQuantity,
       previousSummaNoaniq ? 'NOANIQ' : row.previousCertifiedValue,
       currentSummaNoaniq ? 'NOANIQ' : row.currentCertifiedValue,
-      summaNoaniq ? 'NOANIQ' : row.cumulativeCertifiedValue,
-      remainingValueNoaniq ? 'NOANIQ' : row.remainingValue,
+      liveCumulativeValue,
+      liveRemainingValue,
       holatDisplay
     ]);
+    // Hidden calculation input: official columns stay professional while the
+    // remaining-value formula remains live after the workbook is downloaded.
+    dataRow.getCell(15).value = row.baselineReferencePrice == null ? 'NOANIQ' : row.baselineReferencePrice;
 
     // Simple formatting
     dataRow.eachCell((cell, colNumber) => {
@@ -127,7 +136,7 @@ export async function generateNakopitelniy(
       };
 
       // Miqdor va qiymat ustunlari.
-      if (colNumber >= 3 && colNumber <= 14 && typeof cell.value === 'number') {
+      if (colNumber >= 3 && colNumber <= 15 && (typeof cell.value === 'number' || (typeof cell.value === 'object' && cell.value !== null))) {
         cell.numFmt = '#,##0.00';
       }
     });
@@ -152,6 +161,8 @@ export async function generateNakopitelniy(
   for (let i = 3; i <= 14; i++) {
     worksheet.getColumn(i).width = 15;
   }
+  worksheet.getColumn(15).hidden = true;
+  worksheet.getColumn(15).width = 0;
 
   const buffer = await workbook.xlsx.writeBuffer();
   return new Uint8Array(buffer);

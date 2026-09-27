@@ -26,12 +26,12 @@ export const documentFidelityFixture: ConstructionDocumentControlReadModel = {
     ],
     periods:[
       {periodId:'f2-previous',label:'01.2026',revisionId:'f2-rev-previous',frozen:true,documentIds:['f2-previous-doc'],lines:[
-        {lineId:'bl-original',quantity:40,f2ValuationPrice:100_000,actualProcurementPrice:110_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-high'},
-        {lineId:'rs-cement',quantity:4,f2ValuationPrice:500_000,actualProcurementPrice:550_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-high'}]},
+        {lineId:'bl-original',quantity:40,certifiedAmount:4_000_000,f2ValuationPrice:100_000,actualProcurementPrice:110_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-high'},
+        {lineId:'rs-cement',quantity:4,certifiedAmount:2_000_000,f2ValuationPrice:500_000,actualProcurementPrice:550_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-high'}]},
       {periodId:'f2-current',label:'02.2026',revisionId:'f2-rev-current',frozen:true,documentIds:['f2-current-doc'],lines:[
-        {lineId:'bl-original',quantity:30,f2ValuationPrice:100_000,actualProcurementPrice:90_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-low'},
-        {lineId:'rs-cement',quantity:5,f2ValuationPrice:500_000,actualProcurementPrice:450_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-low'},
-        {lineId:'additional',quantity:5,f2ValuationPrice:80_000,actualProcurementPrice:75_000,referencePriceSourceId:'rev-1',actualPriceSourceId:'purchase-low'}]}
+        {lineId:'bl-original',quantity:30,certifiedAmount:3_000_000,f2ValuationPrice:100_000,actualProcurementPrice:90_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-low'},
+        {lineId:'rs-cement',quantity:5,certifiedAmount:2_500_000,f2ValuationPrice:500_000,actualProcurementPrice:450_000,referencePriceSourceId:'rev-base',actualPriceSourceId:'purchase-low'},
+        {lineId:'additional',quantity:5,certifiedAmount:400_000,f2ValuationPrice:80_000,actualProcurementPrice:75_000,referencePriceSourceId:'rev-1',actualPriceSourceId:'purchase-low'}]}
     ]
   },
   requirements:[],documents:[],revisions:[

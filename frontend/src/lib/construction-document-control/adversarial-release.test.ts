@@ -10,12 +10,34 @@ const calc = (mutate: (model: typeof documentFidelityFixture) => void) => {
 const row = (result: ReturnType<typeof calculateProgressValuation>, id: string) => result.rows.find(x => x.lineId === id)!;
 
 describe('pre-main adversarial document-control contract', () => {
+  it('uses the frozen source amount even when quantity × price differs', () => {
+    const result = calc(model => {
+      const current = (model.valuation.periods[1].lines as CertifiedLine[]).find(x => x.lineId === 'bl-original')!;
+      current.certifiedAmount = 2_999_999.99;
+    });
+    const original = row(result, 'bl-original');
+    expect(original.currentCertifiedValue).toBe(2_999_999.99);
+    expect(original.f2ValuationValue).toBe(6_999_999.99);
+    expect(original.currentF2ValuationPrice).toBe(100_000);
+    expect(original.warnings).toContain('PRICE_VARIANCE');
+  });
+
+  it('does not fabricate an F2 amount when the source amount is absent', () => {
+    const result = calc(model => {
+      delete (model.valuation.periods[1].lines as CertifiedLine[]).find(x => x.lineId === 'bl-original')!.certifiedAmount;
+    });
+    const original = row(result, 'bl-original');
+    expect(original.currentCertifiedValue).toBeNull();
+    expect(original.f2ValuationValue).toBeNull();
+    expect(original.warnings).toContain('MISSING_CERTIFIED_AMOUNT');
+  });
+
   it('keeps zero, fractional, high-precision and negative certified corrections on the F2 valuation basis', () => {
     const result = calc(model => {
       (model.valuation.periods[1].lines as CertifiedLine[]).push(
-        { lineId: 'finish', quantity: 0, f2ValuationPrice: 150_000, referencePriceSourceId: 'rev-base' },
-        { lineId: 'finish', quantity: 0.333333, f2ValuationPrice: 150.5555, referencePriceSourceId: 'rev-base' },
-        { lineId: 'finish', quantity: -0.1, f2ValuationPrice: 150.5555, referencePriceSourceId: 'rev-base' },
+        { lineId: 'finish', quantity: 0, certifiedAmount: 0, f2ValuationPrice: 150_000, referencePriceSourceId: 'rev-base' },
+        { lineId: 'finish', quantity: 0.333333, certifiedAmount: 50.19, f2ValuationPrice: 150.5555, referencePriceSourceId: 'rev-base' },
+        { lineId: 'finish', quantity: -0.1, certifiedAmount: -15.06, f2ValuationPrice: 150.5555, referencePriceSourceId: 'rev-base' },
       );
     });
     const finish = row(result, 'finish');
@@ -25,7 +47,7 @@ describe('pre-main adversarial document-control contract', () => {
   });
 
   it('fails visibly on over-certification while retaining certified history and the baseline price', () => {
-    const result = calc(model => { (model.valuation.periods[1].lines as CertifiedLine[]).push({ lineId: 'remove', quantity: 1, f2ValuationPrice: 50_000, referencePriceSourceId: 'rev-base' }); });
+    const result = calc(model => { (model.valuation.periods[1].lines as CertifiedLine[]).push({ lineId: 'remove', quantity: 1, certifiedAmount: 50_000, f2ValuationPrice: 50_000, referencePriceSourceId: 'rev-base' }); });
     const removed = row(result, 'remove');
     expect(removed.approvedEntitlementQuantity).toBe(0);
     expect(removed.cumulativeQuantity).toBe(1);

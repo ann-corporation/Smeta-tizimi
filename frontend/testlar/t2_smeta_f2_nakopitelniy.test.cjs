@@ -156,7 +156,7 @@ const app = R('frontend', 'src', 'App.tsx');
 const shell = R('frontend', 'src', 'admin', 'AdminShell.tsx');
 const routes = R('frontend', 'src', 'umumiy', 'marshrutTekshir.ts');
 must('Cloudflare fn resolves actor from session + forwards to canonical RPCs only',
-  /from '\.\.\/_shared\/auth'/.test(fn) && /t2_workbench_v1/.test(fn) && /t2_smeta_ozgarish_tasdiqlash_v[12]/.test(fn) && /t2_forma3_yarat_v1/.test(fn));
+  /from '\.\.\/_shared\/auth'/.test(fn) && /t2_workbench_(?:exact_)?v1/.test(fn) && /t2_smeta_ozgarish_tasdiqlash_v[12]/.test(fn) && /t2_forma3_yarat_v1/.test(fn));
 // 2026-09-25: tasdiqlash v2 = v1 ning o'rami (signal oxirida bir marta) — semantika v1 da qoladi.
 const m6 = R('supabase', 'migrations', '20261101091000_t2_ozgarish_tasdiqlash_signal_bir_marta.sql');
 must('ozgarish tasdiqlash v2 wraps v1 unchanged (signal refresh once at end)',

@@ -66,6 +66,7 @@ export async function generateForma2(
   let totalSertSum = 0;
   let totalHisobSum = 0;
   let jamiNoaniq = false;
+  const dataRowNumbers: number[] = [];
 
   rows.forEach((row) => {
     // Only output rows that have current quantity or value (F-2 is for current period)
@@ -88,6 +89,10 @@ export async function generateForma2(
     if (!certValNoaniq) totalSertSum += row.currentCertifiedValue as number;
     if (!calcValNoaniq) totalHisobSum += currentCalculatedValue as number;
 
+    const excelRow = worksheet.rowCount + 1;
+    const liveCalculatedValue = calcValNoaniq ? NOANIQ : { formula: `ROUND(E${excelRow}*D${excelRow},2)`, result: currentCalculatedValue as number };
+    const liveDifference = farqNoaniq ? NOANIQ : { formula: `F${excelRow}-G${excelRow}`, result: currentArithmeticDifference as number };
+    const liveCumulativeQuantity = { formula: `I${excelRow}+E${excelRow}`, result: row.cumulativeQuantity };
     const dataRow = worksheet.addRow([
       index++,
       row.description,
@@ -95,15 +100,16 @@ export async function generateForma2(
       narxNoaniq ? NOANIQ : row.currentF2ValuationPrice,
       row.currentQuantity,
       certValNoaniq ? NOANIQ : row.currentCertifiedValue,
-      calcValNoaniq ? NOANIQ : currentCalculatedValue,
-      farqNoaniq ? NOANIQ : currentArithmeticDifference,
+      liveCalculatedValue,
+      liveDifference,
       row.previousQuantity,
-      row.cumulativeQuantity
+      liveCumulativeQuantity
     ]);
+    dataRowNumbers.push(dataRow.number);
 
     dataRow.eachCell((cell, colNumber) => {
       cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-      if (colNumber >= 4 && colNumber <= 10 && typeof cell.value === 'number') cell.numFmt = '#,##0.00';
+      if (colNumber >= 4 && colNumber <= 10 && (typeof cell.value === 'number' || (typeof cell.value === 'object' && cell.value !== null))) cell.numFmt = '#,##0.00';
       if (cell.value === NOANIQ) cell.font = { color: { argb: 'FFFF0000' }, italic: true };
     });
 
@@ -115,10 +121,22 @@ export async function generateForma2(
   // Footer totals. Agar biror qatorda summasi noma'lum bo'lsa, JAMI ham
   // "to'liq emas" deb aniq belgilanadi -- soxta, kamaytirilgan jami
   // hech qachon yakuniy raqam sifatida ko'rsatilmaydi.
+  const firstDataRow = dataRowNumbers[0];
+  const lastDataRow = dataRowNumbers[dataRowNumbers.length - 1];
+  const totalRowNumber = worksheet.rowCount + 1;
+  const totalCertCell = !jamiNoaniq && firstDataRow != null && lastDataRow != null
+    ? { formula: `SUM(F${firstDataRow}:F${lastDataRow})`, result: totalSertSum }
+    : (jamiNoaniq ? NOANIQ : totalSertSum);
+  const totalCalcCell = !jamiNoaniq && firstDataRow != null && lastDataRow != null
+    ? { formula: `SUM(G${firstDataRow}:G${lastDataRow})`, result: totalHisobSum }
+    : (jamiNoaniq ? NOANIQ : totalHisobSum);
+  const totalDiffCell = !jamiNoaniq && firstDataRow != null && lastDataRow != null
+    ? { formula: `F${totalRowNumber}-G${totalRowNumber}`, result: totalSertSum - totalHisobSum }
+    : (jamiNoaniq ? NOANIQ : totalSertSum - totalHisobSum);
   const totalRow = worksheet.addRow([
     '', jamiNoaniq ? 'JAMI JORIY OY UCHUN (TO\'LIQ EMAS -- ba\'zi narx/summa noaniq):' : 'JAMI JORIY OY UCHUN:',
     '', '', '',
-    totalSertSum, totalHisobSum, totalSertSum - totalHisobSum, '', ''
+    totalCertCell, totalCalcCell, totalDiffCell, '', ''
   ]);
   totalRow.font = { bold: true };
   totalRow.eachCell((cell, colNumber) => {

@@ -5,6 +5,10 @@ import { generateForma2 } from './forma2-export';
 import { generateForma3 } from './forma3-export';
 import { type ProgressLineResult, type ProgressValuationResult } from '../types';
 
+const formulaResult = (value: unknown) => typeof value === 'object' && value !== null && 'result' in value
+  ? (value as { result: unknown }).result
+  : value;
+
 describe('Document Export Generators', () => {
   const dummyRow: ProgressLineResult = {
     lineId: 'l1',
@@ -46,7 +50,10 @@ describe('Document Export Generators', () => {
       previousValue: 25000,
       currentValue: 15000,
       cumulativeValue: 40000,
-      remainingValue: 20000
+      remainingValue: 20000,
+      previousCertifiedValue: 25000,
+      currentCertifiedValue: 15000,
+      cumulativeCertifiedValue: 40000
     }
   };
 
@@ -71,7 +78,8 @@ describe('Document Export Generators', () => {
     expect(dataRow.getCell(3).value).toBe(100);
     expect(dataRow.getCell(7).value).toBe(30); // Joriy F-2 hajmi
     expect(dataRow.getCell(11).value).toBe(15000); // Joriy F-2 original manba summasi
-    expect(dataRow.getCell(13).value).toBe(20000); // Qoldiq summa (smeta nazorati)
+    expect(formulaResult(dataRow.getCell(13).value)).toBe(20000); // Qoldiq summa (smeta nazorati)
+    expect((dataRow.getCell(13).value as { formula: string }).formula).toBe('ROUND(I6*O6,2)');
   });
 
   it('generates Forma-2 (TPL-05/06)', async () => {
@@ -93,7 +101,8 @@ describe('Document Export Generators', () => {
     expect(dataRow.getCell(2).value).toBe('Test ish');
     expect(dataRow.getCell(5).value).toBe(30); // Joriy oy miqdori
     expect(dataRow.getCell(6).value).toBe(15000); // Sertifikatlangan summa
-    expect(dataRow.getCell(7).value).toBe(15000); // Joriy oy uchun analitik hisob
+    expect(formulaResult(dataRow.getCell(7).value)).toBe(15000); // Joriy oy uchun analitik hisob
+    expect((dataRow.getCell(7).value as { formula: string }).formula).toBe('ROUND(E8*D8,2)');
   });
 
   it('keeps a current Forma-2 source amount exact and compares it only with the current-period arithmetic', async () => {
@@ -112,8 +121,8 @@ describe('Document Export Generators', () => {
     await wb.xlsx.load(buffer.buffer as ArrayBuffer);
     const dataRow = wb.getWorksheet(1)!.getRow(8);
     expect(dataRow.getCell(6).value).toBe(1234.49);
-    expect(dataRow.getCell(7).value).toBe(1234.5);
-    expect(dataRow.getCell(8).value).toBe(-0.01);
+    expect(formulaResult(dataRow.getCell(7).value)).toBe(1234.5);
+    expect(formulaResult(dataRow.getCell(8).value)).toBe(-0.01);
   });
 
   it('Forma-2 does not fabricate 0 for unknown price/value -- writes NOANIQ instead', async () => {
@@ -178,6 +187,7 @@ describe('Document Export Generators', () => {
     
     const vatRow = ws!.getRow(9);
     expect(vatRow.getCell(2).value).toContain('QQS (12%, asos: contract-rule-17');
-    expect(vatRow.getCell(4).value).toBe(15000 * 0.12); // QQS joriy davr
+    expect(formulaResult(vatRow.getCell(4).value)).toBe(15000 * 0.12); // QQS joriy davr
+    expect((vatRow.getCell(4).value as { formula: string }).formula).toBe('ROUND(D8*0.12,2)');
   });
 });
