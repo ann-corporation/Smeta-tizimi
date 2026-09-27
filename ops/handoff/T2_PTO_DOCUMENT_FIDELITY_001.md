@@ -2,13 +2,13 @@
 
 ## Holat
 
-SOURCE READY · targeted verified · production migration NOT APPLIED
+SOURCE READY · targeted verified · additive RPC applied and verified in Supabase
 
 ## Branch
 
 - branch: `codex/pto-document-fidelity-v1`
 - base: `1dd256f31d01ff604238218fb846fedf90d5a589`
-- final commit: `b193ff5` (`fix(pto): preserve exact certified amounts and live exports`)
+- final source commit: `b193ff5` (`fix(pto): preserve exact certified amounts and live exports`)
 
 ## Nima tuzatildi
 
@@ -37,13 +37,13 @@ SOURCE READY · targeted verified · production migration NOT APPLIED
 
 ## Release order
 
-1. Apply the additive migration in a disposable/staging or approved database.
-2. Run the acceptance SQL inside rollback transaction.
+1. Migration `20260927120004 / t2_workbench_certified_amount_v1` is now applied to Supabase project `tuoyrzadkgoltpqkdiyx`.
+2. Read-only verification confirmed the exact RPC, source columns, privilege boundary and no amount recomputation.
 3. Deploy the Cloudflare function route and frontend bundle.
 4. Verify `/api/hujjat-nazorat?amal=workbench` returns `certifiedAmount` for an approved F2 source row.
 5. Open Forma-2, Nakopitelniy and Forma-3 exports and verify formula/result pairs.
 
-No production migration was applied by this task.
+The migration is additive and reversible with the checked-in rollback file. The current production database has no approved F2 row with a non-null `certified_amount` (`approved_exact_rows=0`), so a concrete source-amount parity sample remains pending until an approved F2 is present.
 
 ## Verification evidence
 
@@ -52,8 +52,16 @@ No production migration was applied by this task.
 - `npm run tekshir`: all registered checks passed
 - `npm run lint`: passed with existing warnings only
 - `npm run build` / browser and Functions type gates: passed
-- full Vitest: 104 files passed, 6 skipped, 7 files failed (699 passed / 8 failed / 12 skipped); failures are existing large XLSX/export timeout and matcher-performance-threshold failures, not exact-amount assertion failures
+- full Vitest: 104 files passed, 6 skipped, 7 files failed (699 passed / 8 failed / 12 skipped); failures are large XLSX/export timeout and matcher-performance-threshold failures, not exact-amount assertion failures
 - `git diff --check`: passed before checkpoint
+
+## Supabase verification
+
+- `t2_workbench_exact_v1(bigint,bigint,date,integer)` exists.
+- `t2_workbench_v1(bigint,bigint,date,integer)` exists as the guarded base read model.
+- `anon` and `authenticated` cannot execute the exact RPC; `service_role` can.
+- Function definition exposes `certifiedAmount` and does not contain `coalesce(aq.certified_amount...)` or another quantity/price fallback.
+- Applied migration appears in the remote migration ledger as `20260927120004 / t2_workbench_certified_amount_v1`.
 
 ## Production dependency
 
