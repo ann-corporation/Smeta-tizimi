@@ -27,6 +27,11 @@ for (const f of index.files) {
   if (digest !== f.sha256) errors.push(`INDEX_STALE_HASH:${f.path}`);
 }
 const head = cp.execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
-if (head !== index.generated_from.git_head) errors.push(`INDEX_HEAD_STALE:${index.generated_from.git_head}->${head}`);
+const indexedHead = index.generated_from.git_head;
+try {
+  cp.execFileSync('git', ['merge-base', '--is-ancestor', indexedHead, head], { cwd: root, stdio: 'ignore' });
+} catch {
+  errors.push(`INDEX_HEAD_NOT_ANCESTOR:${indexedHead}->${head}`);
+}
 if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
-console.log(`Second mind verify PASS: ${index.files.length} evidence paths, ${decisions.entries.length} decisions, head=${head}`);
+console.log(`Second mind verify PASS: ${index.files.length} evidence paths, ${decisions.entries.length} decisions, indexed=${indexedHead}, current=${head}`);

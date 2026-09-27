@@ -1,7 +1,7 @@
 {
   "schema": "tizim02-second-mind-index-v1",
   "generated_from": {
-    "git_head": "002b9d8437e636212b6c2139e92237250a2f9b2f",
+    "git_head": "e71ab67d82111a5d475a2fc8fe704abf84cac43a",
     "builder": "ops/second-mind/build-index.cjs"
   },
   "files": [
