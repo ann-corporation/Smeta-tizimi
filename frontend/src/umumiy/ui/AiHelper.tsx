@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Bot, X, Send, User } from 'lucide-react';
 import { t2AiJarvisSavol } from '../../api/t2-ai';
+import { jarvisSalomJavobi, jarvisSalommi } from '../../lib/jarvis/intent';
 import ReactMarkdown from 'react-markdown';
 
 type Message = {
@@ -44,6 +45,12 @@ export function AiHelper() {
     const userMsgId = Date.now().toString();
     setMessages(prev => [...prev, { id: userMsgId, role: 'user', text: userText }]);
     setIsLoading(true);
+
+    if (jarvisSalommi(userText)) {
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'ai', text: jarvisSalomJavobi() }]);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const saqlangan = Number(window.localStorage.getItem('t2_kompaniya_id'));

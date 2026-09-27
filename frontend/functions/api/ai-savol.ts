@@ -2,6 +2,7 @@ import { tekshir } from '../_shared/auth';
 import { aiCall, aiPublicError } from '../_shared/ai';
 import { AI_KORSATMA, type AiUmumiy } from '../../src/api/t2-ai';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { jarvisSalomJavobi, jarvisSalommi } from '../../src/lib/jarvis/intent';
 
 type Env = {
   SESSIYA_KALIT: string;
@@ -111,6 +112,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const savol = String(body.savol || '').trim();
     if (!savol || savol.length > MAX_SAVOL) return xato('Savol 1–' + MAX_SAVOL + ' belgi bo\'lishi kerak');
+
+    // Oddiy salomlashuv kompaniya dalilini talab qilmaydi. Bu global floating
+    // Jarvis oynasi kompaniya tanlanmagan paytda ham foydalanuvchini xom 422
+    // bilan qaytarmasligi uchun local, deterministic javobdir.
+    if (jarvisSalommi(savol)) {
+      return Response.json({ ok: true, agent: 'Jarvis', javob: jarvisSalomJavobi(), requires_approval: false, provider: 'local', model: 'greeting', ms: Date.now() - boshlandi });
+    }
 
     if (!Array.isArray(sess.kompaniyalar)) {
       return xato('Sessiya kompaniya ruxsatini tasdiqlamayapti; qayta kiring', 403);

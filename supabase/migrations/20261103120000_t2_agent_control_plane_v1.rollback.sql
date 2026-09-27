@@ -1,0 +1,13 @@
+begin;
+drop function if exists public.t2_agent_control_v1(bigint,bigint,integer);
+drop function if exists public.t2_agent_tool_call_prepare_v1(bigint,bigint,text,jsonb,uuid,integer);
+drop function if exists public.t2_agent_approval_decide_v1(bigint,bigint,text,text,integer,uuid);
+drop function if exists public.t2_agent_run_transition_v1(bigint,bigint,text,integer,uuid,jsonb,text,text);
+drop function if exists public.t2_agent_run_start_v1(bigint,text,text,bigint,bigint,bigint,uuid,jsonb,boolean);
+drop function if exists public.t2_agent_scope_guard_v1(bigint,bigint,bigint,bigint);
+drop table if exists public.t2_agent_command_log;
+drop table if exists public.t2_agent_tool_call;
+drop table if exists public.t2_agent_approval;
+drop table if exists public.t2_agent_run;
+drop table if exists public.t2_agent_profile;
+commit;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AI_KORSATMA, aiKontekstMatni, type AiKontekst } from './t2-ai';
+import { jarvisSalomJavobi, jarvisSalommi } from '../lib/jarvis/intent';
 
 const kontekst: AiKontekst = {
   ok: true,
@@ -22,5 +23,13 @@ describe('Jarvis beta kontrakti', () => {
     const matn = aiKontekstMatni(kontekst);
     expect(matn).toContain('TO\'LIQ EMAS');
     expect(matn).toContain('1 qatorda narx yo\'q');
+  });
+
+  it('kompaniya tanlanmagan bo‘lsa ham oddiy salomlashuvni kompaniya API’siga yubormaydi', () => {
+    expect(jarvisSalommi('salom')).toBe(true);
+    expect(jarvisSalommi('Salom!')).toBe(true);
+    expect(jarvisSalommi('  ASSALOMU ALAYKUM  ')).toBe(true);
+    expect(jarvisSalommi('Amfiteatrda fakt qancha?')).toBe(false);
+    expect(jarvisSalomJavobi()).toContain('yuqoridan kompaniya kontekstini tanlang');
   });
 });

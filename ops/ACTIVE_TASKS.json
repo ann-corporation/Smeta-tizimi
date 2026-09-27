@@ -1340,6 +1340,48 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Yakunlandi: F3 source main’da, production migration live, focused 9/9, full Vitest 675 passed/12 skipped, tsc/functions/build/oxlint/tekshir/governance/diff-check PASS. Real approved F2 bilan davr tengligi va authenticated/Excel rendering hali UNKNOWN."
+    },
+    {
+      "id": "T2-AGENT-CONTROL-PLANE-001",
+      "title": "Agent control plane: role registry, guarded runs, approval, tool policy and idempotent execution contract",
+      "owner": "codex",
+      "machine": "codex-local",
+      "branch": "codex/t2-agent-control-plane-v1",
+      "base_sha": "f54c69645b7e71fdc2084b1f9d851995a8f00740",
+      "status": "ready_for_review",
+      "owns": [
+        "supabase/migrations/20261103120000_t2_agent_control_plane_v1.sql",
+        "supabase/migrations/20261103120000_t2_agent_control_plane_v1.rollback.sql",
+        "supabase/migrations/20261103120000_t2_agent_control_plane_v1.acceptance.sql",
+        "frontend/functions/api/agent-control.ts",
+        "frontend/src/api/t2-agent-control.ts",
+        "frontend/src/lib/agent-control-plane/",
+        "frontend/src/lib/agent-control-plane.test.ts",
+        "frontend/src/components/agent-control/",
+        "frontend/src/admin/sahifalar/SmetaYuklaNative.tsx",
+        "frontend/src/admin/sahifalar/SmetaYuklaNative.test.ts",
+        "frontend/src/lib/jarvis/",
+        "frontend/src/api/ai-savol-contract.test.ts",
+        "frontend/functions/api/ai-savol.ts",
+        "frontend/src/umumiy/ui/AiHelper.tsx",
+        "frontend/testlar/t2_agent_control_plane.test.cjs",
+        "docs/architecture/T2_AGENT_CONTROL_PLANE_V1.md",
+        "ops/handoff/T2_AGENT_CONTROL_PLANE_001.md",
+        "ops/mailbox/T2-AGENT-CONTROL-PLANE-001/**"
+      ],
+      "depends_on": ["CTRL-001A", "NREL-001"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md",
+        "docs/governance/AGENT_COMMS_PROTOCOL.md",
+        "docs/governance/OWNER_AUTHORIZATION.md",
+        "docs/governance/AGENT_CAPABILITY_POLICY.md",
+        "ops/ACTIVE_TASKS.json",
+        "docs/architecture/SYSTEM_CONTROL_CENTER_V1.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Backend/core agent execution contracti va typed reusable AgentControlCenter UI source-ready; route/shell integratsiyasi NREL/Claude ownershipida qoladi. Migration source-only."
     }
   ]
 }

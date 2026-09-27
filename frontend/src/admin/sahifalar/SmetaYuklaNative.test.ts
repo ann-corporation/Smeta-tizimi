@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bolakniQaytaUrinibYubor, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur } from './SmetaYuklaNative';
+import { bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur } from './SmetaYuklaNative';
 import type { AktNode } from '../../lib/f2-match-engine';
 import type { F2ColumnConfig } from '../../lib/f2-import-parse';
 
@@ -535,6 +535,26 @@ describe('varaqTuriTaxmin (owner: bitta faylda ham LRV, ham RES varaqlari bo‘l
 
   it('bo‘sh/mazmunsiz varaqni taxmin qilmaydi', () => {
     expect(varaqTuriTaxmin([['x'], [], []])).toBe('nomalum');
+  });
+});
+
+describe('smeta paket fayl tanlovi', () => {
+  it('Excel lock faylini haqiqiy workbook sifatida parserga yubormaydi', () => {
+    const lock = new File(['lock'], '~$ПK2+60 уч-к№1 переход.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const real = new File(['xlsx'], 'ПK2+60 уч-к№1 переход.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    expect(paketImportFayllariniSarala([lock, real])).toEqual({ accepted: [real], ignoredExcelLocks: [lock.name] });
+  });
+
+  it('faqat lock fayli tanlansa accepted bo‘sh qoladi va operator ogohlantirilishi mumkin', () => {
+    const lock = new File(['lock'], '~$smeta.xlsx');
+    expect(paketImportFayllariniSarala([lock])).toEqual({ accepted: [], ignoredExcelLocks: [lock.name] });
+  });
+
+  it('ZIP/XLSX parser xatosini texnik kodsiz operator xabariga aylantiradi', () => {
+    const error = spreadsheetReadError('smeta.xlsx', new Error('XLSX_NOT_A_ZIP: End-of-central-directory record not found'));
+    expect(error.message).toContain('haqiqiy Excel workbook emas');
+    expect(error.message).not.toContain('XLSX_NOT_A_ZIP');
+    expect(error.message).not.toContain('End-of-central-directory');
   });
 });
 

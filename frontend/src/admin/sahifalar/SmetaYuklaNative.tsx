@@ -74,12 +74,34 @@ function safeSheetRows(rows: unknown): SheetGrid {
     : []);
 }
 
-function spreadsheetReadError(fileName: string, error: unknown): Error {
+export function spreadsheetReadError(fileName: string, error: unknown): Error {
   const message = error instanceof Error ? error.message : '';
   if (/Cannot read properties of undefined \(reading ['"]length['"]\)/i.test(message)) {
     return new Error(`«${fileName}» jadval tuzilmasi o‘qilmadi. Faylni Excelda ochib, yangi .xlsx sifatida saqlang va qayta tanlang.`);
   }
-  return new Error(`«${fileName}» o‘qilmadi: ${message || 'noma’lum XLSX o‘qish xatosi'}`);
+  if (/XLSX_NOT_A_ZIP|End-of-central-directory|not a zip/i.test(message)) {
+    return new Error(`«${fileName}» haqiqiy Excel workbook emas yoki hali Excel tomonidan band qilingan. Faylni yopib, asosiy .xlsx/.xlsm faylni tanlang.`);
+  }
+  return new Error(`«${fileName}» o‘qilmadi. Faylni Excelda ochib, yangi .xlsx sifatida saqlang va qayta tanlang.`);
+}
+
+/** Excel ochiq turganda yonida yaratiladigan `~$...xlsx` lock fayli
+ * workbook emas: uning ichida ZIP markazi bo‘lmaydi. Paket importiga bunday
+ * faylni kiritish `XLSX_NOT_A_ZIP`ni keltirib chiqarardi. Uni biznes fayldek
+ * tahlil qilmaymiz; operatorga faqat tanlov yakunida tushunarli ogohlantirish
+ * ko‘rsatamiz. */
+export function paketImportFayllariniSarala(files: FileList | File[]): { accepted: File[]; ignoredExcelLocks: string[] } {
+  const accepted: File[] = [];
+  const ignoredExcelLocks: string[] = [];
+  for (const file of Array.from(files || [])) {
+    if (!/\.(xlsx|xlsm|xls)$/i.test(file.name)) continue;
+    if (/^~\$/i.test(file.name)) {
+      ignoredExcelLocks.push(file.name);
+      continue;
+    }
+    accepted.push(file);
+  }
+  return { accepted, ignoredExcelLocks };
 }
 
 /** `/api/smeta-yukla` ga bitta so'rov. Tarmoq uzilishi ham `ok:false`
@@ -993,8 +1015,14 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
    */
   async function paketFayllariniTahlilQil(files: FileList | File[]) {
     if (!objectId) { setError('Avval obyektni tanlang.'); return; }
-    const incoming = Array.from(files || []).filter((file) => /\.(xlsx|xlsm|xls)$/i.test(file.name));
-    if (!incoming.length) { setError('XLSX/XLSM/XLS fayl topilmadi.'); return; }
+    const fileSelection = paketImportFayllariniSarala(files);
+    const incoming = fileSelection.accepted;
+    if (!incoming.length) {
+      setError(fileSelection.ignoredExcelLocks.length
+        ? 'Faqat Excel vaqtinchalik lock fayli (`~$...`) tanlandi. Excel faylini yopib, asosiy .xlsx yoki .xlsm faylni tanlang.'
+        : 'XLSX/XLSM/XLS fayl topilmadi.');
+      return;
+    }
     setError(''); setPaketBand(true); setPhase('Paket varaqlari tahlil qilinmoqda');
     try {
       const fresh: PaketVaraq[] = [];
@@ -1043,7 +1071,10 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       setPaketTasdiqImzosi(null); paketImportOperationId.current = '';
       if (!paketKalit) setPaketKalit(yangiOperationId());
       if (!paketNom) setPaketNom((objects.find((x) => x.id === Number(objectId))?.nom || 'Obyekt') + ' — boshlang‘ich smeta paketi');
-      setPhase(`${fresh.length} ta varaq tahlil qilindi — rol va RES bog‘lanishini tasdiqlang`);
+      const lockNote = fileSelection.ignoredExcelLocks.length
+        ? ` ${fileSelection.ignoredExcelLocks.length} ta vaqtinchalik Excel fayli e’tiborsiz qoldirildi.`
+        : '';
+      setPhase(`${fresh.length} ta varaq tahlil qilindi — rol va RES bog‘lanishini tasdiqlang.${lockNote}`);
     } catch (e) { setError(e instanceof Error ? e.message : 'Paket fayllari o‘qilmadi.'); }
     finally { setPaketBand(false); }
   }
