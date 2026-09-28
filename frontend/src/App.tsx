@@ -65,6 +65,7 @@ const ParticipantNetworkDemo = lazy(() => import('./admin/participants/Participa
 const SystemControlDemo = lazy(() => import('./admin/system-control/SystemControlDemo'));
 import F2ImportNative from './admin/sahifalar/F2ImportNative';
 import F2ImportV3 from './admin/sahifalar/F2ImportV3';
+import M29Native from './admin/sahifalar/M29Native';
 import { F2TayyorlashNative } from './admin/sahifalar/F2TayyorlashNative';
 import NakopitelniyVedomost from './admin/sahifalar/NakopitelniyVedomost';
 import NakrutkaNative from './admin/sahifalar/NakrutkaNative';
@@ -130,6 +131,7 @@ export default function App() {
           <Route path="f2-eski" element={<F2ImportNative />} />
           <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
           <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
+          <Route path="m29" element={<M29Native />} />
           <Route path="nakrutka" element={<NakrutkaNative />} />
           <Route path="f2-tarix" element={<F2TarixNative />} />
           <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />

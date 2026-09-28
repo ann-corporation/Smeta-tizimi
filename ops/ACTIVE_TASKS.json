@@ -30,7 +30,11 @@
         "ops/ACTIVE_TASKS.json"
       ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/OWNER_AUTHORIZATION.md"
+      ],
       "production_write_allowed": false,
       "_izoh": "Owner 2026-09-28 explicitly requested fixing the PTO document chain; standing authorization covers reversible migration and release. No financial approval is performed on the owner's behalf."
     },
@@ -43,10 +47,10 @@
       "base_sha": "361261e775df5173181f2967fcda227748f21dfb",
       "status": "completed",
       "owns": [
-    "frontend/src/lib/pto-document-lineage/",
-    "frontend/src/lib/forma3-export.ts",
-    "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
-    "frontend/src/api/t2-shartnoma.ts",
+        "frontend/src/lib/pto-document-lineage/",
+        "frontend/src/lib/forma3-export.ts",
+        "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+        "frontend/src/api/t2-shartnoma.ts",
         "frontend/testlar/t2_pto_document_lineage.test.cjs",
         "supabase/migrations/20261102100000_t2_forma3_lineage_guard_v1.sql",
         "supabase/migrations/20261102100000_t2_forma3_lineage_guard_v1.rollback.sql",
@@ -54,7 +58,10 @@
         "docs/architecture/PTO_DOCUMENT_LINEAGE_F2_F3_V1.md",
         "ops/handoff/T2_PTO_DOCUMENT_LINEAGE_F2_F3_OVERNIGHT_001.md"
       ],
-      "depends_on": ["F2-IMPORT-V3-001", "T2-FORMA3-F3-001"],
+      "depends_on": [
+        "F2-IMPORT-V3-001",
+        "T2-FORMA3-F3-001"
+      ],
       "must_read": [
         "AGENTS.md",
         "docs/governance/CONSTITUTION.md",
@@ -1401,7 +1408,10 @@
         "ops/handoff/T2_AGENT_CONTROL_PLANE_001.md",
         "ops/mailbox/T2-AGENT-CONTROL-PLANE-001/**"
       ],
-      "depends_on": ["CTRL-001A", "NREL-001"],
+      "depends_on": [
+        "CTRL-001A",
+        "NREL-001"
+      ],
       "must_read": [
         "AGENTS.md",
         "docs/governance/CONSTITUTION.md",
@@ -1435,7 +1445,9 @@
         "frontend/testlar/t2_workbench_exact_amount.test.cjs",
         "ops/handoff/T2_PTO_DOCUMENT_FIDELITY_001.md"
       ],
-      "depends_on": ["T2-AGENT-CONTROL-PLANE-001"],
+      "depends_on": [
+        "T2-AGENT-CONTROL-PLANE-001"
+      ],
       "must_read": [
         "AGENTS.md",
         "docs/governance/CONSTITUTION.md",
@@ -1444,6 +1456,30 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Approved F2 certified_amount endi Workbench exact RPC orqali o‘tadi; Forma-3 approved F2 source amountdan, Forma-2/Nakopitelniy hosila ustunlari live Excel formula bilan ishlaydi. Migration source-ready, production apply qilinmagan."
+    },
+    {
+      "id": "T2-M29-001",
+      "title": "M-29: material norma (tasdiqlangan F2) ↔ haqiqiy sarf (sklad), oylik va boshidan beri, pul ta'siri",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/m29-v1",
+      "base_sha": "93c9211",
+      "status": "completed",
+      "owns": [
+        "frontend/src/lib/m29/index.ts",
+        "frontend/src/lib/m29/export.ts",
+        "frontend/src/lib/m29/m29.test.ts",
+        "frontend/src/admin/sahifalar/M29Native.tsx",
+        "frontend/src/App.tsx",
+        "frontend/src/admin/AdminShell.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi 2026-09-28: M29 oylik va umumiy davr uchun yo'q edi; resurs/ostatka nazorati foydaga bog'liq. Faqat o'qish — migratsiya yo'q."
     }
   ]
 }
