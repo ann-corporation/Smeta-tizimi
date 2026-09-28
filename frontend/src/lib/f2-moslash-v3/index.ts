@@ -38,6 +38,8 @@ export interface SmetaQator {
   birlik: string | null;
   hajm: number | null;
   narx?: number | null;
+  /** Resurs normasi (ish birligiga) — ko'rsatish uchun. */
+  norma?: number | null;
   tartib?: number | null;
 }
 
@@ -366,6 +368,27 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       .sort((a, b) => b.ball - a.ball || (S.byId.get(a.qatorId)!.tartib ?? a.qatorId) - (S.byId.get(b.qatorId)!.tartib ?? b.qatorId)).slice(0, 12);
     const [b1, b2] = nz;
     const toza = (n: Nomzod) => !n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka') && q.ball < 0);
+    // Egasi sinovi 2026-09-28: F2 razdeli smetadagi razdelga ANIQ bog'langan-u, shu razdel ichida
+    // nomzod yo'q — boshqa razdeldan (masalan fasad paroizolyatsiyasiga POL paroizolyatsiyasi)
+    // taklif BERILMAYDI: bu zamena yoki qo'shimcha ish. Tashqi nomzodlar faqat variant sifatida.
+    if (d.rzlar && !ichida.length) {
+      const rzNom = d.rzlar.map((r) => r.nom).filter(Boolean).join(' / ');
+      yoz(f.uid, { uid: f.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz,
+        sabab: `smetaning «${rzNom}» razdelida mos ish yo‘q — zamena (shu razdeldagi ish o‘rniga) yoki qo‘shimcha ish${nz.length ? `; boshqa razdellarda ${nz.length} ta o‘xshash bor (variantlar)` : ''}` });
+      return null;
+    }
+    // Razdel ichida nomi va birligi AYNAN bir xil yagona qator (masalan «С БЛОКИ ДВЕРНЫЕ ПВХ») — ✓.
+    if (ichida.length) {
+      const aynan = nz.filter((n) => toza(n) && normNom(S.byId.get(n.qatorId)!.nom) === normNom(f.nom) && normBir(S.byId.get(n.qatorId)!.birlik) === normBir(f.birlik));
+      if (aynan.length === 1) {
+        const t = S.byId.get(aynan[0].qatorId)!;
+        const egizakBor = [...tartibBand].some((id) => { const e = S.byId.get(id); return !!e && e.id !== t.id && e.kNb === t.kNb; });
+        if (!egizakBor) {
+          yoz(f.uid, { uid: f.uid, holat: 'aniq', qatorId: t.id, usul: 'nom_aynan', nomzodlar: nz, sabab: 'o‘sha razdelda nomi va birligi aynan bir xil yagona qator' });
+          return t;
+        }
+      }
+    }
     // EGIZAKLAR (Tizim1 `ekvivmi` → birinchi bo'sh): eng yuqori ballli nomzodlar shifr, nom,
     // birlik va resurs tarkibi bo'yicha AYNAN bir xil bo'lsa — qaysi biri ekani ma'lumotdan
     // ajralmaydi; F2 tartibi smeta tartibiga tekislanadi (nz tartib bo'yicha saralangan).

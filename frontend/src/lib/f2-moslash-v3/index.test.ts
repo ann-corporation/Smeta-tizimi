@@ -75,6 +75,25 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(n.natijalar.get(b.uid)).toMatchObject({ holat: 'taklif', qatorId: E2, usul: 'tartib' });
   });
 
+  it('F2 razdeli smeta razdeliga bog‘langan, ichida ish yo‘q — boshqa razdeldan TAKLIF yo‘q (egasi sinovi: fasad ↔ pol)', () => {
+    // «ФУНДАМЕНТ (ЛИСТ.-11)» razdelida «УСТРОЙСТВО СТЕН ПОДПОРНЫХ» yo'q (u ПОДПОРНАЯ СТЕНА da).
+    const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
+    const w = f('bl', 'E6-1-24-3', 'УСТРОЙСТВО СТЕН ПОДПОРНЫХ', '100М3', 0.5, yol);
+    const n = f2MoslashV3([rzF(yol[0], [], [w])], S);
+    const r = n.natijalar.get(w.uid)!;
+    expect(r.holat).toBe('topilmadi');
+    expect(r.qatorId).toBeNull();
+    expect(r.nomzodlar.length).toBeGreaterThan(0); // variant sifatida ko'rsatiladi
+    expect(r.sabab).toMatch(/zamena|qo‘shimcha/);
+  });
+
+  it('razdel ichida nomi va birligi aynan bir xil yagona qator — ✓ (ball chegarasidan qat’i nazar)', () => {
+    const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
+    const w = f('bl', 'С', 'ПРОВОЛОКА ВЯЗАЛЬНАЯ', 'Т', 0.1, yol);
+    const n = f2MoslashV3([rzF(yol[0], [], [w])], S, { avtoMin: 999 });
+    expect(n.natijalar.get(w.uid)).toMatchObject({ holat: 'aniq', qatorId: P1, usul: 'nom_aynan' });
+  });
+
   it('birlik qalqoni: Т ↔ КГ hech qachon avto bog‘lanmaydi', () => {
     const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
     const w = f('bl', 'E14-1-1', 'ПРОВОЛОКА ВЯЗАЛЬНАЯ', 'КГ', 500, yol);

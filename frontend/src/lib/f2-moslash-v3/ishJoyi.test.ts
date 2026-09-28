@@ -63,13 +63,15 @@ describe('F2 V3 ish joyi holati', () => {
   });
 
   it('taklif tasdiqlanmaguncha yozilmaydi; qayta hisoblashda qo‘lda qarorlar saqlanadi', () => {
-    const n = f2MoslashV3([rz], S, { avtoMin: 999 }); // hammasini ◐ yoki ✕ ga majburlaymiz
+    // Nomi biroz farqli (aynan bir xil nom ✓ bo'ladi) va avtoMin baland — hammasi ◐ yoki ✕.
+    const rzT = { ...rz, bolalar: rz.bolalar.map((x) => ({ ...x, nom: x.nom + ' (F2)' })) };
+    const n = f2MoslashV3([rzT], S, { avtoMin: 999 });
     let ij = boshlangich(n);
     const takliflar = [...ij.bog.entries()].filter(([, b]) => b.holat === 'taklif').map(([u]) => u);
     expect(takliflar.length).toBeGreaterThan(0);
     ij = tasdiqla(ij, takliflar);
     expect(takliflar.every((u) => korinish(ij, u) === 'qolda')).toBe(true);
-    const qayta = boshlangich(f2MoslashV3([rz], S, { avtoMin: 999 }), ij);
+    const qayta = boshlangich(f2MoslashV3([rzT], S, { avtoMin: 999 }), ij);
     expect(takliflar.every((u) => korinish(qayta, u) === 'qolda')).toBe(true);
   });
 

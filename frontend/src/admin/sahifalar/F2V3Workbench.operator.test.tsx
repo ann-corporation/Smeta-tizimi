@@ -71,9 +71,9 @@ describe('F2 workbench operator controls', () => {
     expect(screen.getAllByRole('button', { name: 'Hammasini ochish' })).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: 'Hammasini yopish' })).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: '1-qavatdagi barcha bo‘limlarni ochish/yopish' })).toHaveLength(2);
-    const sourceSum = screen.getByText('F2 manba qatorlari yig‘indisi').parentElement;
-    expect(sourceSum?.textContent).toContain('F2 hujjatining “Итого прямые затраты” jami: 175');
-    expect(screen.getByText('Bog‘lanish qamrovi')).toBeTruthy();
+    const sourceSum = screen.getByText('F2 hujjat jami').parentElement;
+    expect(sourceSum?.textContent).toContain('hujjat ИТОГО ПРЯМЫЕ: 175');
+    expect(screen.getByText('✓ Bog‘langan')).toBeTruthy();
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
     expect(f2Tree.getByRole('group', { name: 'F2 bl: Beton B25' }).textContent).toContain('125');
     expect(screen.getByRole('button', { name: 'Bog‘lanishni uzish: Beton B25' })).toBeTruthy();
@@ -107,7 +107,7 @@ describe('F2 workbench operator controls', () => {
     const f2Region = screen.getByRole('region', { name: 'F2 akt' });
     const smetaRegion = screen.getByRole('region', { name: 'Smeta' });
 
-    expect(screen.getByText(/F2 daraxtida/).textContent).toContain('30');
+    expect(screen.getByText(/qator ko‘rinmoqda/).textContent).toContain('30');
     expect(f2Region.querySelectorAll('[data-index]')).toHaveLength(24);
     expect(smetaRegion.querySelectorAll('[data-index]')).toHaveLength(24);
   });
