@@ -12,7 +12,9 @@ qilindi. Main/production o‘zgartirilmadi.
 G:\...\GAS dagi dirty owner ishiga tegilmadi. Izolyatsiyalangan worktree:
 `C:\Temp\f2-import-robustness-v1`, branch `codex/f2-import-robustness-v1`, base
 `b36c552e0b8de22bb398f04ab851449a3e68b87f`.
-Current remote HEAD: `819104405fdebf0dd91f3b3e46625f45ba14266b`.
+Remote tip `819104405fdebf0dd91f3b3e46625f45ba14266b` was verified before the
+final documentation-only reconciliation commits; use `git rev-parse HEAD` for
+the current exact branch tip.
 Checkpoint chain: `49119fb` → `749004d` → `ee931c9` → `8191044`.
 
 Natija: T1 `35_F2Moslash.js`/`Panel.html` dan ikki daraxt, qator bo‘yicha

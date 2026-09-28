@@ -12,8 +12,8 @@ ushbu importer yo‘llarini qayta ishlash vakolatini berdi.
 - Repo: `SQLI-DUMPER-CRACK-Link-1/Smeta-tizimi`
 - Base: `origin/main` / `b36c552e0b8de22bb398f04ab851449a3e68b87f`
 - Branch: `codex/f2-import-robustness-v1`
-- Current remote HEAD: `819104405fdebf0dd91f3b3e46625f45ba14266b` on `origin/codex/f2-import-robustness-v1`
-- Checkpoint commits: `49119fb` (parser/matcher/30k), `749004d` (initial evidence), `ee931c9` (memory type/scope guard), `8191044` (current handoff/mailbox reconciliation)
+- Latest source-code checkpoint: `ee931c9` on `codex/f2-import-robustness-v1`
+- Checkpoint commits: `49119fb` (parser/matcher/30k), `749004d` (initial evidence), `ee931c9` (memory type/scope guard). Later commits only reconcile handoff/mailbox evidence; read the branch tip from Git before integration.
 - Worktree: `C:\Temp\f2-import-robustness-v1`
 - Asosiy `G:\Другие компьютеры\Компьютер\GAS` papkasidagi dirty/human fayllar o‘zgartirilmaydi.
 
