@@ -12,6 +12,7 @@ ushbu importer yo‘llarini qayta ishlash vakolatini berdi.
 - Repo: `SQLI-DUMPER-CRACK-Link-1/Smeta-tizimi`
 - Base: `origin/main` / `b36c552e0b8de22bb398f04ab851449a3e68b87f`
 - Branch: `codex/f2-import-robustness-v1`
+- Current checkpoint: `49119fbe131b14c58b5c62563cd9a94c605acca4` (pushed to origin)
 - Worktree: `C:\Temp\f2-import-robustness-v1`
 - Asosiy `G:\Другие компьютеры\Компьютер\GAS` papkasidagi dirty/human fayllar o‘zgartirilmaydi.
 

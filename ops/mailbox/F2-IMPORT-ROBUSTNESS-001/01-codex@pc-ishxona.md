@@ -12,6 +12,7 @@ qilindi. Main/production o‘zgartirilmadi.
 G:\...\GAS dagi dirty owner ishiga tegilmadi. Izolyatsiyalangan worktree:
 `C:\Temp\f2-import-robustness-v1`, branch `codex/f2-import-robustness-v1`, base
 `b36c552e0b8de22bb398f04ab851449a3e68b87f`.
+Remote checkpoint: `49119fbe131b14c58b5c62563cd9a94c605acca4`.
 
 Natija: T1 `35_F2Moslash.js`/`Panel.html` dan ikki daraxt, qator bo‘yicha
 bog‘lash va tur/RZ scope skeleti olindi; T1 GAS/row identity/ko‘r-ko‘rona match
