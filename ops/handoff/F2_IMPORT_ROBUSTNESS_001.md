@@ -12,8 +12,8 @@ ushbu importer yo‘llarini qayta ishlash vakolatini berdi.
 - Repo: `SQLI-DUMPER-CRACK-Link-1/Smeta-tizimi`
 - Base: `origin/main` / `b36c552e0b8de22bb398f04ab851449a3e68b87f`
 - Branch: `codex/f2-import-robustness-v1`
-- Latest source-code checkpoint: `ee931c9` on `codex/f2-import-robustness-v1`
-- Checkpoint commits: `49119fb` (parser/matcher/30k), `749004d` (initial evidence), `ee931c9` (memory type/scope guard). Later commits only reconcile handoff/mailbox evidence; read the branch tip from Git before integration.
+- Latest source-code checkpoint: `bbd128d7723c66f0e1f67fe0c8b00f71bf98cb45` on `codex/f2-import-robustness-v1`
+- Checkpoint commits: `49119fb` (parser/matcher/30k), `749004d` (initial evidence), `ee931c9` (memory type/scope guard), `bbd128d` (RZ fallback with row evidence, explicit source-read review, technical specification conflict guards, truthful match-state counts, worker-side Blob read). Handoff itself is being updated after `bbd128d`; read branch tip from Git before integration.
 - Worktree: `C:\Temp\f2-import-robustness-v1`
 - Asosiy `G:\Другие компьютеры\Компьютер\GAS` papkasidagi dirty/human fayllar o‘zgartirilmaydi.
 
@@ -110,16 +110,61 @@ Fayllar gitga qo‘shilmadi, tizimga yoki Supabase’ga import qilinmadi.
 
 | Fayl | Parser kuzatuvi | Ehtiyot sharti |
 |---|---|---|
-| `Fast food 1этаж_LRV_PLUS (2).xlsx` | 6 BL, 59 RS, 7 mustaqil MAT, 8 mazmunli RZ, 66 summali leaf; parser summasi 239 200 683,38; parser warning yo‘q | Preview’da ilgari ko‘ringan 241 983 934,96 bilan farq bor. Ehtimol turli workbook/revision/cache; source hash va serverdagi hujjat revisioni birikmaguncha tafovut unresolved, qoralama tasdiqlanmasin. |
-| `amfiteatr raschet.xlsx` | 50 BL, 450 RS, 56 MAT + 20 OB mustaqil resurs, 20 RZ; 526 summali leaf; parser summasi 3 004 484 761,41; 7 manfiy qiymat ogohlantirishi | Xom texnik markerlarda 445 RS / 19 RZ bo‘lgan; parser qo‘shimcha 5 RS va bitta RZni heuristik topdi. Shuning uchun daraxt va jami mustaqil ravishda operator tasdig‘ini talab qiladi. |
-| `искусственное озера (2).xlsx` | 62 BL, 492 RS, 28 MAT + 34 OB mustaqil resurs, 8 mazmunli RZ; 554 summali leaf; parser summasi 6 962 663 411,71; 3 manfiy qiymat ogohlantirishi | Xom markerlarda 30 RZ bor; 22 tasi mazmunsiz/bo‘sh bo‘lgani sababli chiqarilgan. Ko‘plab sarlavha/unknown qatorlar review talab qiladi; jami importga tayyorlikni isbotlamaydi. |
+| `Fast food 1этаж_LRV_PLUS (2).xlsx` | 6 BL, 59 RS, 7 MAT, 8 manbada aniq belgilangan RZ, 66 summali leaf; parser summasi 239 200 683,38; 10 manba-qatori/sarlavha review’da | Preview’da ilgari ko‘ringan 241 983 934,96 bilan farq bor. Workbook hash va serverdagi hujjat revisioni tengligi isbotlanmaguncha tafovut unresolved; qoralama tasdiqlanmasin. |
+| `amfiteatr raschet.xlsx` | 50 BL, 450 RS, 56 MAT + 20 OB mustaqil resurs, 19 manbada belgilangan RZ; 526 summali leaf; parser summasi 3 004 484 761,41; 9 review bandi + 1 ko‘p-ustun sarlavha; 7 manfiy miqdor ogohlantirishi | Xom markerlarda 445 RS bo‘lgan: parser yana 5 RSni heuristik aniqlagan. Daraxt, qo‘shimcha qatorlar va jami operator ko‘rigini talab qiladi. |
+| `искусственное озера (2).xlsx` | 62 BL, 492 RS, 28 MAT + 34 OB mustaqil resurs, 30 manbada belgilangan RZ; 554 summali leaf; parser summasi 6 962 663 411,71; 9 review bandi + 1 ko‘p-ustun sarlavha; 3 manfiy miqdor ogohlantirishi | 30 ta RZ markerining hammasida qisqa “ПОЛ” kabi nomlar ham saqlandi. Bu mazmuniy hierarchy tasdig‘i emas; daraxt va jami operator ko‘rigini talab qiladi. |
 
-Bu natijalar parserning qatorlarni yo‘qotmaslik va mustaqil resurs/BL turini
-saqlashini tekshiradi; biznes tasdig‘i, canonical DB importi yoki to‘liq RZ
-semantikasi isbotlangan degani emas. Avvalgi online kuzatuvdagi 6 495 554,72
+Bu natijalar parserning marker bilan ko‘rsatilgan RZ sarlavhalarini saqlashi,
+mustaqil resurs/BL turini ajratishi va o‘qishda shubhali qolgan qatorlarni
+operatorga chiqarishini tekshiradi; biznes tasdig‘i, canonical DB importi yoki
+to‘liq RZ semantikasi isbotlangan degani emas. Avvalgi online kuzatuvdagi 6 495 554,72
 tasdiqlangan summa yangi parserning read-only 239 200 683,38 summasi bilan ayni
 tasdiq emas; Preview va lokal source hash/revision tenglashtirilmaguncha bu
 tafovut unresolved va F2 qoralamasini tasdiqlashga asos bo‘lmaydi.
+
+### 2026-09-29 — davomiy tekshiruv: T1 skeleti va qator-o‘qish halolligi
+
+- Tizim1 `30_Panel.js`dagi markerli LRV_PLUS qatori uchun “nom ustuni bo‘sh
+  bo‘lsa, data qismidagi nomzod sarlavhani izlash” skeleti tekshirildi. T2’da
+  faqat aniq `rz` markerli qatorda, marker ustunidan chapda qo‘llanadi; raqamli
+  kodlar, jami/imzo va sarlavha zonalari chiqariladi. Tizim1 parseri yoki uning
+  flat hierarchy cheklovi ko‘chirilmagan; T2 hierarchy builder saqlangan.
+- Real hujjatlarda bo‘sh tanlangan nom ustunidagi RZ matni, jumladan qisqa
+  `ПОЛ`, endi yo‘qolmaydi. Manba qatorlari `review` ro‘yxatida qoladi; ularni
+  jim ravishda “tekshirildi” deb belgilash mumkin emas.
+- Workbench match holatini uchga ajratadi: tizim topgan, oldingi qarordan
+  qayta ishlatilgan, operator tasdiqlagan. Source parsing review’i match
+  hisobidan mustaqil, alohida ogohlantirish panelida ko‘rsatiladi; 20 tadan
+  ortiq band scrollable ko‘rinishda kesiladi va qolgan son ochiq aytiladi.
+- Texnik spesifikatsiya qalqoni beton klassi, armatura klass/markasi, diametr
+  (1–4 raqam, jumladan 8 mm), W/F va beton markasi farqlarini ochiq nomzod
+  ziddiyati sifatida ushlaydi. Bir xil shifr spetsifikatsiya ziddiyatini
+  bekor qilmaydi. Bu qurilish standartlari katalogi emas: faqat matnda ikkala
+  tomonda mavjud tanilgan belgi turlari solishtiriladi; noma’lum formatlar
+  operator review’ida qolishi kerak.
+- F2 workbook fayli asosiy threaddagi `arrayBuffer()`ga aylantirilmasdan
+  Worker’ga Blob/File sifatida uzatiladi. Worker ichida o‘qiladi; Worker yo‘q
+  fallback eski o‘qish yo‘lini ishlatadi.
+
+### Davomiy tekshiruv natijalari
+
+- Fokuslangan Vitest: 5 fayl, 38 test PASS.
+- F2/smeta bilan bog‘liq kengaytirilgan to‘plam: 38 fayldan 31 PASS, 6 SKIP,
+  1 faylda 2 ta perf assertion FAIL; 224 test PASS va 12 SKIP. Ikki mavjud
+  10k/50k perf assertion parallel
+  test yuklamasida limitdan oshdi; threshold o‘zgartirilmadi. Xuddi shu ikki
+  benchmark alohida tinch run’da PASS bo‘ldi: 10k ~1,490 ms; 50k ~4,970 ms.
+- T2 F2 V3 30k matcher benchmarki alohida: PASS, 9,672 ms (test ceiling
+  20,000 ms). Bu XLSX parsing, brauzer RAM yoki butun import SLA’si emas.
+- `npx tsc -b --pretty false`: PASS.
+- `npm run build`: PASS (Functions type-check ham ichida). Vite’da oldindan
+  mavjud `/grid.svg`, katta bundle va dynamic import ogohlantirishlari bor.
+- `npm run lint`: PASS, repo bo‘ylab warninglar mavjud; davomiy fixdan
+  kiritilgan unused-variable, ternary side-effect va unnecessary-escape
+  warninglari tuzatildi.
+- `npm run tekshir`: PASS, barcha tekshiruvlar o‘tdi; Functions gate ham PASS.
+- 30k/50k natija haqiqiy Excel parse + brauzer xotirasi + UI + import job’ni
+  birgalikda qamramaydi.
 
 ### Hajm va tekshiruv
 
