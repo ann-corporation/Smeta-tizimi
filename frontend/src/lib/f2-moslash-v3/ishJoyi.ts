@@ -170,6 +170,9 @@ export function otkazibYubor(ij: IshJoyi, f: F2Tugun, on: boolean): IshJoyi {
 export interface IshJoyiHisob {
   jami: number;
   tayyor: number; // ✓ (aniq + xotira + qo'lda)
+  tizimTopdi: number;
+  avvalgiQaror: number;
+  operatorTasdiqladi: number;
   taklif: number;
   topilmadi: number;
   otkazildi: number;
@@ -183,7 +186,7 @@ export interface IshJoyiHisob {
 }
 
 export function hisobla(ind: F2Indeks, ij: IshJoyi): IshJoyiHisob {
-  const h: IshJoyiHisob = { jami: 0, tayyor: 0, taklif: 0, topilmadi: 0, otkazildi: 0, boglanganSumma: 0, hujjatSumma: 0, otkazilganSumma: 0, kopBog: new Map() };
+  const h: IshJoyiHisob = { jami: 0, tayyor: 0, tizimTopdi: 0, avvalgiQaror: 0, operatorTasdiqladi: 0, taklif: 0, topilmadi: 0, otkazildi: 0, boglanganSumma: 0, hujjatSumma: 0, otkazilganSumma: 0, kopBog: new Map() };
   const qayerga = new Map<number, string[]>();
   for (const t of ind.qatorlar) {
     h.jami++;
@@ -191,7 +194,12 @@ export function hisobla(ind: F2Indeks, ij: IshJoyi): IshJoyiHisob {
     if (k === 'taklif') h.taklif++;
     else if (k === 'topilmadi') h.topilmadi++;
     else if (k === 'otkazildi') h.otkazildi++;
-    else h.tayyor++;
+    else {
+      h.tayyor++;
+      if (k === 'aniq') h.tizimTopdi++;
+      else if (k === 'xotira') h.avvalgiQaror++;
+      else if (k === 'qolda') h.operatorTasdiqladi++;
+    }
     const b = ij.bog.get(t.uid);
     if (b) { const a = qayerga.get(b.qatorId); if (a) a.push(t.uid); else qayerga.set(b.qatorId, [t.uid]); }
     if (t.barg && t.summa != null) {

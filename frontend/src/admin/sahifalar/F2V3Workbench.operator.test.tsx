@@ -19,7 +19,7 @@ const leaf = (uid: string, nom: string, tur: F2Tugun['tur'] = 'bl'): F2Tugun => 
   manzil: { fayl: 'f2.xlsx', varaq: 'Akt', qator: Number(uid.slice(1)) + 9 }, yol: ['Beton ishlari'], bolalar: [], barg: true,
 });
 
-function renderWorkbench(rowCount = 2, specialTypes: F2Tugun['tur'][] = []) {
+function renderWorkbench(rowCount = 2, specialTypes: F2Tugun['tur'][] = [], review: Array<{ kod: string; izoh: string; manzil?: { fayl: string; varaq: string; qator: number } }> = []) {
   const f2Rows = Array.from({ length: rowCount }, (_, index) => leaf(
     `f${index + 1}`,
     index === 0 ? 'Beton B25' : index === 1 ? 'Armatura A500' : `Ish ${index + 1}`,
@@ -51,7 +51,7 @@ function renderWorkbench(rowCount = 2, specialTypes: F2Tugun['tur'][] = []) {
     fayl: 'f2.xlsx', varaq: 'Akt', davr: '2026-08', davrMatn: 'Avgust 2026', daraxt: [rz],
     jami: { pryamye: 175, vsego: 175, ranee: null, raznica: null, nds: null },
     qatorlarJami: 125 + Math.max(0, rowCount - 1) * 50,
-    barglarSoni: rowCount, ishlarSoni: rowCount, ogohlantirishlar: [], anatomiya: {},
+    barglarSoni: rowCount, ishlarSoni: rowCount, ogohlantirishlar: [], anatomiya: { review },
   } as unknown as F2Akt;
   const onIj = vi.fn();
   render(<F2V3Workbench
@@ -82,6 +82,17 @@ describe('F2 workbench operator controls', () => {
     expect(screen.getByRole('button', { name: 'Bog‘lanishni uzish: Beton B25' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lash variantlari: Beton B25' }));
     expect(screen.getAllByText('93%').length).toBeGreaterThan(0);
+  });
+
+  it('separates source-reading review from row matching and never claims all source rows were checked', () => {
+    renderWorkbench(2, [], [{ kod: 'noaniq_qator', izoh: 'manbada tanilmagan qator: "ПОЛ"', manzil: { fayl: 'f2.xlsx', varaq: 'Akt', qator: 284 } }]);
+    const review = screen.getByRole('alert', { name: 'F2 faylini o‘qish tekshiruvi' });
+    expect(review.textContent).toContain('1 ta qator yoki sarlavha');
+    expect(review.textContent).toContain('fayldagi har bir qator to‘liq o‘qildi degani emas');
+    fireEvent.click(screen.getByText('Tekshiruv qatorlarini ko‘rish (birinchi 1 ta)'));
+    expect(review.textContent).toContain('Manba qatori 284');
+    expect(review.textContent).toContain('tanilmagan qator');
+    expect(screen.queryByText(/hammasi tekshirilgan/i)).toBeNull();
   });
 
   it('filters to unbound F2 lines without hiding the source tree or its explicit bind action', () => {

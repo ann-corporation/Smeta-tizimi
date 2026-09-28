@@ -41,6 +41,25 @@ const FARAVON_BR: Katak[][] = [
   [null, 'ИТОГО ПО ТРУДОВЫМ РЕСУРСАМ:', null, 'СУМ', null, null, 362329333],
 ];
 
+/** T1 LRV_PLUS markerli qator: RZ nomi A ustunida, T2 aniqlagan nom ustuni C bo'sh. */
+const T1_LRV_PLUS_RZ: Katak[][] = [
+  ['НАИМЕНОВАНИЕ ОБЪЕКТА: ИСКУССТВЕННОЕ ОЗЕРА'],
+  ['ЛОКАЛЬНАЯ РЕСУРСНАЯ ВЕДОМОСТЬ № 01'],
+  ['№№', 'ОБОСНОВАНИЕ', 'НАИМЕНОВАНИЕ РАБОТ И РЕСУРСОВ', 'ЕД.ИЗМ', 'КОЛ-ВО', null, 'ЦЕНА', 'СУММА', null],
+  [null, null, null, null, 'НА ЕДИНИЦУ', 'ПО ПРОЕКТУ', null, null, null],
+  [1, 2, 3, 4, 5, 6, 7, 8, null],
+  ['СМЕТА № 01 НА ТЕПЛОВЫЕ СЕТИ', null, null, null, null, null, null, 0, 'rz'],
+  ['РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ', null, null, null, null, null, null, 0, 'rz'],
+  ['1', 'E1-1-1', 'РАЗРАБОТКА ГРУНТА', '1000М3', null, 1, 100, 100, 'bl'],
+  ['1.1', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 1, 1, 10, 10, 'rs'],
+  ['РАЗДЕЛ: ТЕПЛОВЫЕ СЕТИ', null, null, null, null, null, null, 0, 'rz'],
+  ['2', 'E2-1-1', 'УСТАНОВКА ТРУБ', 'М', null, 2, 50, 100, 'bl'],
+  ['2.1', '000002', 'МАШИНЫ И МЕХАНИЗМЫ', 'МАШ-Ч', 2, 2, 5, 10, 'rs'],
+  ['РАЗДЕЛ: ОТДЕЛОЧНЫЕ РАБОТЫ', null, null, null, null, null, null, 0, 'rz'],
+  ['3', 'E3-1-1', 'ОТДЕЛКА ПОВЕРХНОСТЕЙ', 'М2', null, 3, 20, 60, 'bl'],
+  ['3.1', '000003', 'МАТЕРИАЛ', 'КГ', 3, 9, 2, 18, 'rs'],
+];
+
 describe('varaq anatomiyasi', () => {
   it('ABC4 LRV: rol, titul yo\'li, ish/resurs, vergulli son, NULL saqlanadi, vedomost ajraladi', () => {
     const a = kitobAnatomiyasi({ fayl: 'k.xls', varaqlar: [{ nom: 'LRV', rows: ABC4_LRV }] });
@@ -60,6 +79,33 @@ describe('varaq anatomiyasi', () => {
     expect(v.vedomost[0].guruh).toBe('ТРУДОВЫЕ РЕСУРСЫ');
     expect(v.ishlar[0].manzil).toMatchObject({ varaq: 'LRV', qator: 11, ustun: 3 });
     expect(v.review).toEqual([]);
+  });
+
+  it('T1 LRV_PLUS: selected nom ustuni bo\'sh bo\'lsa, aniq RZ markeridan oldingi nomni olib ichma-ich yo\'lni saqlaydi', () => {
+    const v = kitobAnatomiyasi({ fayl: 'lrv-plus.xlsx', varaqlar: [{ nom: 'LRV', rows: T1_LRV_PLUS_RZ }] }).varaqlar[0];
+    expect(v.ustunlar?.nom).toBe(2);
+    expect(v.sarlavhalar.map((s) => s.xom)).toEqual([
+      'СМЕТА № 01 НА ТЕПЛОВЫЕ СЕТИ',
+      'РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ',
+      'РАЗДЕЛ: ТЕПЛОВЫЕ СЕТИ',
+      'РАЗДЕЛ: ОТДЕЛОЧНЫЕ РАБОТЫ',
+    ]);
+    expect(v.ishlar).toHaveLength(3);
+    expect(v.ishlar.map((ish) => sarlavhaYoli(v.sarlavhalar, ish.sarlavha).map((s) => s.xom))).toEqual([
+      ['СМЕТА № 01 НА ТЕПЛОВЫЕ СЕТИ', 'РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ'],
+      ['СМЕТА № 01 НА ТЕПЛОВЫЕ СЕТИ', 'РАЗДЕЛ: ТЕПЛОВЫЕ СЕТИ'],
+      ['СМЕТА № 01 НА ТЕПЛОВЫЕ СЕТИ', 'РАЗДЕЛ: ОТДЕЛОЧНЫЕ РАБОТЫ'],
+    ]);
+    expect(v.sarlavhalar.every((s) => s.manzil.ustun === 1 && s.dalil.some((d) => d.qoida === 't1_lrv_plus_rz_nom_fallback'))).toBe(true);
+    expect(v.jamilar).toEqual([]); // RZ subtotal-like 0 values never become F2 money rows.
+    expect(v.review.filter((r) => r.kod === 'rz_nomsiz')).toEqual([]);
+  });
+
+  it('markerli RZ dagi qisqa, lekin mazmunli nomni (masalan, POL) saqlaydi', () => {
+    const rows = T1_LRV_PLUS_RZ.map((row) => [...row]);
+    rows[12][0] = 'ПОЛ';
+    const v = kitobAnatomiyasi({ fayl: 'lrv-plus.xlsx', varaqlar: [{ nom: 'LRV', rows }] }).varaqlar[0];
+    expect(v.sarlavhalar.some((s) => s.xom === 'ПОЛ' && s.manzil.qator === 13)).toBe(true);
   });
 
   it('Faravon БР: sarlavhasi LRV ga o\'xshasa ham ma\'lumot shakli bo\'yicha RES', () => {

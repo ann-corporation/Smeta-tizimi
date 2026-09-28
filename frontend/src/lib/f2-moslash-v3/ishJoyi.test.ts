@@ -52,6 +52,18 @@ describe('F2 V3 ish joyi holati', () => {
     expect(h).toMatchObject({ jami: 4, tayyor: 4, boglanganSumma: 12950, hujjatSumma: 12950 });
   });
 
+  it('avtomatik topilgan, oldingi qarordan olingan va operator tasdiqlagan bog‘lanishlarni alohida sanaydi', () => {
+    const ij = { bog: new Map([
+      [ish.uid, { qatorId: 2, holat: 'aniq' as const, usul: 'ball' }],
+      [r1.uid, { qatorId: 3, holat: 'xotira' as const, usul: 'xotira' }],
+      [r2.uid, { qatorId: 4, holat: 'qolda' as const, usul: 'qolda' }],
+      [sim.uid, { qatorId: 5, holat: 'qolda' as const, usul: 'taklif_tasdiq' }],
+    ]), otkaz: new Set<string>() };
+    expect(hisobla(IND, ij)).toMatchObject({
+      jami: 4, tayyor: 4, tizimTopdi: 1, avvalgiQaror: 1, operatorTasdiqladi: 2,
+    });
+  });
+
   it('o‘tkazib yuborilgan ish resurslari bilan chiqadi, summa alohida ko‘rinadi', () => {
     let ij = bogla({ bog: new Map(), otkaz: new Set() }, sim.uid, 5);
     ij = otkazibYubor(ij, ish, true);

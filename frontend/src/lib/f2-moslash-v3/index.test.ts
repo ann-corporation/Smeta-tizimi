@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { f2Imzo, f2MoslashV3, rzKalit, type SmetaQator } from './index';
+import { f2Imzo, f2MoslashV3, gradeFarq, rzKalit, texnikTafsilotFarqlari, type SmetaQator } from './index';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 
 let sid = 0;
@@ -93,6 +93,54 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(r.holat).toBe('topilmadi');
     expect(r.nomzodlar[0].qatorId).toBe(K1);
     expect(r.sabab).toMatch(/zamena/);
+  });
+
+  it('texnik spetsifikatsiya lotin/kirill va yozuv farqidan qat’i nazar farqni taniydi', () => {
+    expect(gradeFarq('БЕТОН B15 W6', 'бетон В25 W6')).toBe(true);
+    expect(gradeFarq('БЕТОН B25 W6', 'бетон В25 W6')).toBe(false);
+    expect(texnikTafsilotFarqlari('АРМАТУРА A400', 'Арматура А500')).toContain('armatura klassi');
+    expect(texnikTafsilotFarqlari('Бетон В25 W6 F150', 'Бетон B25 W8 F150')).toContain('suv o‘tkazmaslik markasi');
+    expect(texnikTafsilotFarqlari('АРМАТУРА А-I ДИАМ. 8 ММ', 'АРМАТУРА A-III ДИАМ. 8 ММ')).toContain('armatura markasi');
+    expect(texnikTafsilotFarqlari('АРМАТУРА А-III ДИАМ. 8 ММ', 'АРМАТУРА А-III ДИАМ. 10 ММ')).toContain('diametr');
+    expect(texnikTafsilotFarqlari('АРМАТУРА А-III ДИАМ. 22 ММ', 'АРМАТУРА А-III ДИАМ. 25 ММ')).toContain('diametr');
+  });
+
+  it('BL shifri va nomi bir xil bo‘lsa ham resursdagi beton klassi farqi avto bog‘lashni bloklaydi', () => {
+    const sectionId = rz('РАЗДЕЛ: ТЕХНИЧЕСКАЯ ПРОВЕРКА');
+    const workId = ish(sectionId, 'TECH-GRADE-WORK-001', 'УСТРОЙСТВО МОНОЛИТНОГО ОСНОВАНИЯ', '100М3', 2, [
+      ['000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 10],
+      ['TECH-CONCRETE-001', 'БЕТОН В15 W6', 'М3', 4],
+    ]);
+    const yol = ['РАЗДЕЛ: ТЕХНИЧЕСКАЯ ПРОВЕРКА'];
+    const fWork = f('bl', 'TECH-GRADE-WORK-001', 'УСТРОЙСТВО МОНОЛИТНОГО ОСНОВАНИЯ', '100М3', 2, yol, [
+      f('rs', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 20, yol, [], 10),
+      f('rs', 'TECH-CONCRETE-001', 'БЕТОН B25 W6', 'М3', 8, yol, [], 4),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [fWork])], S).natijalar.get(fWork.uid)!;
+
+    expect(result.qatorId).not.toBe(workId);
+    expect(result.holat).not.toBe('aniq');
+    expect(result.nomzodlar.some((n) => n.qatorId === workId && n.qavatlar.some((q) => q.nom === 'texnik_tafsilot' && q.ball < 0))).toBe(true);
+    const resourceResult = f2MoslashV3([rzF(yol[0], [], [fWork])], S).natijalar.get(fWork.bolalar[1].uid)!;
+    expect(resourceResult.holat).toBe('topilmadi');
+  });
+
+  it('bir xil ish nomzodlarida resurs klassi to‘g‘ri qatorni ajratadi, boshqa klass avto tanlanmaydi', () => {
+    const sectionId = rz('РАЗДЕЛ: КЛАСС БЕТОНА ТЕСТИ');
+    const wrongId = ish(sectionId, 'TECH-GRADE-CHOICE-001', 'УСТРОЙСТВО ТЕСТОВОГО ОСНОВАНИЯ', '100М3', 2, [
+      ['TECH-GRADE-MATERIAL-001', 'БЕТОН В15', 'М3', 4],
+    ]);
+    const rightId = ish(sectionId, 'TECH-GRADE-CHOICE-001', 'УСТРОЙСТВО ТЕСТОВОГО ОСНОВАНИЯ', '100М3', 2, [
+      ['TECH-GRADE-MATERIAL-001', 'БЕТОН В25', 'М3', 4],
+    ]);
+    const yol = ['РАЗДЕЛ: КЛАСС БЕТОНА ТЕСТИ'];
+    const fWork = f('bl', 'TECH-GRADE-CHOICE-001', 'УСТРОЙСТВО ТЕСТОВОГО ОСНОВАНИЯ', '100М3', 2, yol, [
+      f('rs', 'TECH-GRADE-MATERIAL-001', 'БЕТОН B25', 'М3', 8, yol, [], 4),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [fWork])], S).natijalar.get(fWork.uid)!;
+
+    expect(result).toMatchObject({ holat: 'aniq', qatorId: rightId });
+    expect(result.qatorId).not.toBe(wrongId);
   });
 
   it('ish ichida yo‘q resurs — zamena material/qo‘shimcha resurs sifatida topilmadi', () => {

@@ -43,7 +43,7 @@ export interface SmetaQator {
 
 export type F2Holat = 'aniq' | 'xotira' | 'taklif' | 'topilmadi';
 
-export interface Qavat { nom: 'razdel' | 'shifr' | 'nom' | 'birlik' | 'hajm' | 'resurslar' | 'marka' | 'tartib'; ball: number; izoh: string }
+export interface Qavat { nom: 'razdel' | 'shifr' | 'nom' | 'birlik' | 'hajm' | 'resurslar' | 'marka' | 'texnik_tafsilot' | 'tartib'; ball: number; izoh: string }
 
 export interface Nomzod {
   qatorId: number;
@@ -92,11 +92,11 @@ const birMos = (a: unknown, b: unknown) => { const x = normBir(a), y = normBir(b
 /** Razdel/lokal nomi kaliti: "СМЕТА № 01-01 НА X" → X (raqam F2 va smetada farq qiladi). */
 export function rzKalit(s: unknown): string {
   const t = String(s ?? '').toUpperCase().replace(/Ё/g, 'Е')
-    .replace(/^\s*(РАЗДЕЛ\s*[:№.\-]*\s*)?(ЛОКАЛЬНАЯ\s+)?СМЕТА\s*№?\s*[\dA-ZА-Я.\-/]*\s*(НА\s+)?/, ' ');
+    .replace(/^\s*(РАЗДЕЛ\s*[:№.-]*\s*)?(ЛОКАЛЬНАЯ\s+)?СМЕТА\s*№?\s*[\dA-ZА-Я./-]*\s*(НА\s+)?/, ' ');
   return normRz(t);
 }
 function listRaqamlari(s: unknown): string {
-  const m = String(s ?? '').toUpperCase().match(/ЛИСТ[\s.\-№]*(?:[А-Я]{1,3}[\s.\-]*)?([0-9][0-9,\s.\-]*)/);
+  const m = String(s ?? '').toUpperCase().match(/ЛИСТ[-\s.№]*(?:[А-Я]{1,3}[-\s.]*)?([0-9][0-9,\s.-]*)/);
   return m ? m[1].replace(/[^0-9,]/g, '').replace(/,+/g, ',').replace(/^,|,$/g, '') : '';
 }
 function tokenlar(s: unknown): string[] {
@@ -113,15 +113,66 @@ function dice(a: readonly string[], b: readonly string[]): number {
   a.forEach((t) => { const n = m.get(t) ?? 0; if (n > 0) { hit++; m.set(t, n - 1); } });
   return (2 * hit) / (a.length + b.length);
 }
-/** Marka farqi (ПК↔ПБ, АI↔АIII) — boshqa mahsulot, avtomat bog'lanmaydi (Tizim1). */
-export function gradeFarq(a: unknown, b: unknown): boolean {
+/** Tizim1 dagi harfli marka qalqoni; loyiha qator kodi bu tekshiruvga kiritilmaydi. */
+function harfliMarkaFarq(a: unknown, b: unknown): boolean {
   const A = tokenlar(a).filter((t) => /^[А-Я]{2,3}$/.test(t));
   const B = tokenlar(b).filter((t) => /^[А-Я]{2,3}$/.test(t));
   if (!A.length || !B.length) return false;
   const sa = new Set(A), sb = new Set(B);
   return A.some((t) => !sb.has(t)) && B.some((t) => !sa.has(t));
 }
-const resKalit = (kod: unknown, nom: unknown, bir: unknown) => normKod(kod) || nb(nom, bir);
+
+/**
+ * Construction-grade signatures are extracted only for known, explicit
+ * designation families. A difference is a hard review gate, not a fuzzy-score
+ * penalty: B15/B25, A400/A500, W6/W8, F100/F200, M200/M300 and DN values must
+ * not be silently treated as the same resource merely because their code is
+ * equal. Unknown designations remain candidates for a human; we do not infer
+ * missing grade data.
+ */
+function texnikBelgilar(s: unknown): Map<string, string> {
+  // normNom nom mosligi uchun barcha tinish belgilarini olib tashlaydi; marka
+  // tahlilida esa W/F kabi lotincha standart belgilar va ularning chegarasi zarur.
+  const text = String(s ?? '').toUpperCase().replace(/Ё/g, 'Е')
+    .replace(/[ABCDEHIKMNOPTVXY]/g, (ch) => ({ A: 'А', B: 'В', C: 'С', D: 'Д', E: 'Е', H: 'Н', I: 'И', K: 'К', M: 'М', N: 'Н', O: 'О', P: 'Р', T: 'Т', V: 'В', X: 'Х', Y: 'У' })[ch] ?? ch)
+    .replace(/[^0-9A-ZА-Я]+/g, ' ').trim();
+  const out = new Map<string, string>();
+  const putFirst = (key: string, pattern: RegExp) => {
+    const m = text.match(pattern);
+    if (m) out.set(key, m[1]);
+  };
+  putFirst('beton_klass', /(?:^|[^А-Я0-9])В\s*(10|12|15|20|22|25|30|35|40|45|50|55|60|70|80|90|100)(?!\d)/);
+  putFirst('armatura_klass', /(?:^|[^А-Я0-9])А\s*(240|300|400|500|600|800)(?!\d)/);
+  putFirst('armatura_roman', /(?:^|[^А-Я0-9])А\s*(И{1,3}|ИВ)(?![А-Я])/);
+  putFirst('suv_otkazmaslik', /(?:^|[^A-Z0-9])W\s*(1|2|3|4|5|6|8|10|12|14|16|18|20)(?!\d)/);
+  putFirst('sovuqqa_chidamlilik', /(?:^|[^A-Z0-9])F\s*(25|35|50|75|100|150|200|300)(?!\d)/);
+  putFirst('beton_markasi', /(?:^|[^А-Я0-9])М\s*(50|75|100|150|200|250|300|350|400|450|500|550|600|700|800|900|1000)(?!\d)/);
+  putFirst('diametr', /(?:^|[^А-Я0-9])(?:ДН|ДИАМ(?:ЕТР(?:ОМ)?)?\.?)\s*(\d{1,4})(?!\d)/);
+  return out;
+}
+
+/** Ikki nomda ham mavjud bo'lgan bir xil texnik o'lchovning qiymati farqlimi? */
+export function texnikTafsilotFarqlari(a: unknown, b: unknown): string[] {
+  const A = texnikBelgilar(a), B = texnikBelgilar(b);
+  const labels: Record<string, string> = {
+    beton_klass: 'beton klassi', armatura_klass: 'armatura klassi', armatura_roman: 'armatura markasi',
+    suv_otkazmaslik: 'suv o‘tkazmaslik markasi', sovuqqa_chidamlilik: 'sovuqqa chidamlilik markasi',
+    beton_markasi: 'beton markasi', diametr: 'diametr',
+  };
+  return [...A.keys()].filter((key) => B.has(key) && A.get(key) !== B.get(key)).map((key) => labels[key] ?? key);
+}
+
+/** Marka/klass farqi — bir xil kod ham bu to'siqni chetlab o'tmaydi. */
+export function gradeFarq(a: unknown, b: unknown): boolean {
+  return harfliMarkaFarq(a, b) || texnikTafsilotFarqlari(a, b).length > 0;
+}
+
+function resKalit(kod: unknown, nom: unknown, bir: unknown): string {
+  const code = normKod(kod);
+  const base = code || nb(nom, bir);
+  const specs = [...texnikBelgilar(nom)].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}:${v}`).join(',');
+  return specs ? `${base}||${specs}` : base;
+}
 function lcsNisbat(a: readonly string[], b: readonly string[]): number {
   if (!a.length || !b.length) return 0;
   const dp = new Array(b.length + 1).fill(0);
@@ -257,6 +308,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   // ── Qavatma-qavat ball ──
   function ballHisobla(f: F2Tugun, t: STugun, d: Doira): Nomzod {
     const q: Qavat[] = [];
+    const lineSpecConflicts = texnikTafsilotFarqlari(f.nom, t.nom);
     // 1. Razdel
     let rz = 0;
     const fYol = f.yol.map(rzKalit).filter(Boolean);
@@ -315,6 +367,20 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     q.push({ nom: 'hajm', ball: hj, izoh: hIzoh });
     // Marka farqi, tartib
     if (gradeFarq(f.nom, t.nom)) q.push({ nom: 'marka', ball: -30, izoh: 'marka farqli — ehtimoliy zamena' });
+    const resourceSpecConflicts = new Set<string>();
+    for (const fr of f.bolalar) {
+      const fkRes = normKod(fr.kod);
+      if (!fkRes) continue;
+      for (const sr of t.bolalar) {
+        if (normKod(sr.kod) !== fkRes || !birMos(fr.birlik, sr.birlik)) continue;
+        for (const label of texnikTafsilotFarqlari(fr.nom, sr.nom)) resourceSpecConflicts.add(label);
+      }
+    }
+    const specConflicts = [...new Set([...lineSpecConflicts, ...resourceSpecConflicts])];
+    if (specConflicts.length) q.push({
+      nom: 'texnik_tafsilot', ball: -100,
+      izoh: `texnik spetsifikatsiya farqli (${specConflicts.join(', ')}) — avtomatik bog‘lash bloklandi`,
+    });
     if (oxirgiTartib >= 0 && (t.tartib ?? t.id) > oxirgiTartib) q.push({ nom: 'tartib', ball: 2, izoh: 'tartib ✓' });
     const ball = q.reduce((s, x) => s + x.ball, 0);
     return { qatorId: t.id, ball, yol: t.yol, qavatlar: q, sabab: q.filter((x) => x.nom !== 'tartib').map((x) => x.izoh) };
@@ -378,7 +444,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     const nz = (ichida.length ? ichida : hovuz).map((t) => ballHisobla(f, t, d))
       .sort((a, b) => b.ball - a.ball || (S.byId.get(a.qatorId)!.tartib ?? a.qatorId) - (S.byId.get(b.qatorId)!.tartib ?? b.qatorId)).slice(0, 12);
     const [b1, b2] = nz;
-    const toza = (n: Nomzod) => !n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka') && q.ball < 0);
+    const toza = (n: Nomzod) => !n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka' || q.nom === 'texnik_tafsilot') && q.ball < 0);
     // EGIZAKLAR (Tizim1 `ekvivmi` → birinchi bo'sh): eng yuqori ballli nomzodlar shifr, nom,
     // birlik va resurs tarkibi bo'yicha AYNAN bir xil bo'lsa — qaysi biri ekani ma'lumotdan
     // ajralmaydi; F2 tartibi smeta tartibiga tekislanadi (nz tartib bo'yicha saralangan).

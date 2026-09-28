@@ -296,7 +296,37 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
 
   const turUstun = turUstuniniTop(rows, u.malumotBoshi);
   const qatorTexnikTuri = (row: readonly Katak[]) => turUstun >= 0 ? texnikTurniOqi(row[turUstun]) : null;
-  const rzQatormi = (row: readonly Katak[]) => qatorTexnikTuri(row)?.tur === 'rz' && !bosh(ol(row, u.nom));
+  const rzSarlavhaOl = (row: readonly Katak[]): { xom: string; ustun: number } | null => {
+    const mosMatn = (ustun: number): { xom: string; ustun: number } | null => {
+      const qiymat = ol(row, ustun);
+      if (typeof qiymat !== 'string') return null;
+      const matn = qiymat.trim();
+      if (!matn || !/[A-Za-zА-ЯЁа-яё]/.test(matn) || texnikTurniOqi(matn)) return null;
+      const k = kalit(matn);
+      if (JAMI.test(k) || HISOB_QATORI.test(k) || IMZO.test(k) || VEDOMOST_BOSHI.test(k)) return null;
+      // Marker ustuni bo'sh nom ustunini almashtirishi mumkin, lekin kodni
+      // sarlavha deb ko'rsatmaymiz. Qisqa haqiqiy nomlar (masalan, "ПОЛ" yoki
+      // "АР") RZ markerida saqlanadi; ular taxmin bilan kengaytirilmaydi.
+      if (/^[A-ZА-ЯЁ]{1,5}\d[A-ZА-ЯЁ0-9./_-]*$/i.test(matn)) return null;
+      return { xom: matn, ustun };
+    };
+
+    const tanlanganNom = mosMatn(u.nom);
+    if (tanlanganNom) return tanlanganNom;
+
+    // T1 LRV_PLUS skeleti markerli RZ uchun avval nom ustunini, keyin A:H
+    // ma'lumot qismini ko'rardi. T2 shu fallbackni faqat aniqlangan markerdan
+    // keyingi hujayralargacha qo'llaydi: o'ngdagi project/projection ustunlari
+    // birinchi bola ish nomini RZ sarlavhasi deb yutib yubormaydi.
+    const chegara = turUstun >= 0 ? turUstun : row.length;
+    const nomzodlar: Array<{ xom: string; ustun: number }> = [];
+    for (let c = 0; c < chegara; c++) {
+      const nomzod = mosMatn(c);
+      if (nomzod) nomzodlar.push(nomzod);
+    }
+    return nomzodlar.sort((a, b) => b.xom.length - a.xom.length || a.ustun - b.ustun)[0] ?? null;
+  };
+  const rzQatormi = (row: readonly Katak[]) => qatorTexnikTuri(row)?.tur === 'rz' && rzSarlavhaOl(row) != null;
   const ishYarat = (row: readonly Katak[], r: number, marker?: string | null): Ish => {
     const hajmL = son(ol(row, u.hajmLoyiha));
     const ish: Ish = {
@@ -340,10 +370,20 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     // LRV_PLUS markerlari qatorning haqiqiy turini bildiradi. Ular tartib raqamidan
     // kuchliroq dalil: MAT/OB ishga yutib yuborilmaydi, RS esa raqam formati buzilsa
     // ham joriy ishga birikadi. MAT/OB RZ ostidagi sibling bo'lib qoladi (T1 treeBuild).
-    if (texnik?.tur === 'rz' && !bosh(ol(row, u.nom))) {
+    if (texnik?.tur === 'rz') {
+      const rzNomi = rzSarlavhaOl(row);
+      if (!rzNomi) {
+        review('rz_nomsiz', 'RZ belgisi bor, lekin ishonchli bo‘lim nomi topilmadi; qator tashlab ketilmadi, importdan oldin tekshiring', r);
+        joriyIsh = null;
+        iq.ishKeldi();
+        continue;
+      }
       let k = r + 1;
       while (k < rows.length && !toliqUstunlar(rows[k] ?? []).length) k++;
-      iq.sarlavha(xom(ol(row, u.nom)), manzil(r, u.nom), k < rows.length && rzQatormi(rows[k] ?? []));
+      const sarlavha = iq.sarlavha(rzNomi.xom, manzil(r, rzNomi.ustun), k < rows.length && rzQatormi(rows[k] ?? []));
+      if (rzNomi.ustun !== u.nom) {
+        sarlavha.dalil.push({ qoida: 't1_lrv_plus_rz_nom_fallback', ishonch: 'yuqori', izoh: 'aniq RZ markeri bor; sarlavha nom ustuni bo‘sh bo‘lgani uchun markerdan oldingi matn katagidan olindi' });
+      }
       joriyIsh = null;
       continue;
     }

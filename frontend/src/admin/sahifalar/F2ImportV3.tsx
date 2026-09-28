@@ -78,7 +78,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       if (file.size > MAX_FILE_BYTES) throw new Error('Fayl 50 MB dan katta.');
       // Fayl o'qish va akt tahlili FONDA (Web Worker) — katta faylda sahifa qotmaydi.
-      const a = await f2AktlarniOqiFonda(file.name, await file.arrayBuffer());
+      const a = await f2AktlarniOqiFonda(file.name, file);
       if (!a.length) throw new Error('Faylda F2 akt varag‘i topilmadi (ishlar ro‘yxati bor LRV shaklidagi varaq kerak).');
       setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? '');
       setHolat(a[0].davr ? 'Akt o‘qildi. Moslashtirilmoqda…' : 'Akt o‘qildi. Hisobot davrini tanlang.');
