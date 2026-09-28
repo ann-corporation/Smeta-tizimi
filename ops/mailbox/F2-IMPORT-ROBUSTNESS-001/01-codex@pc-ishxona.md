@@ -35,3 +35,20 @@ Keyingi ish: safe feature branch commit/push; keyin Claude/integrator source
 revisioni bilan mos Preview’da authenticated operator import + F2 tarix/
 Nakopitelniy/F3 acceptance’ni bajarsin. Bu ishchi task production yozuvi, main
 merge yoki deploy qilmagan; to‘liq release readiness emas.
+
+## 2026-09-29 qo‘shimcha adversarial checkpoint
+
+- Matcher oldingi F2 xotira bog‘lanishini ishlatishdan oldin joriy canonical
+  qator turi, birlik va tanlangan RZ chegarasini tekshiradi. Noto‘g‘ri xotira
+  rad etilib, joriy dalillardan match qayta hisoblanadi.
+- Yangi regression testlar: explicit BL signature collision → MAT rad etiladi;
+  tanlangan RZ-A chegarasidan tashqaridagi saqlangan RZ-B match rad etiladi.
+- Relevant suite: 14 fayl, 82 PASS / 12 SKIP / 0 FAIL. 30k benchmark yakka
+  holatda 1 PASS; bir vaqtdagi full suite+tsc ostida 23,556 ms bo‘lib timeout
+  guardi yiqilgan, threshold o‘zgartirilmagan.
+- TypeScript, `npm run tekshir`, build: PASS. Lint exit 0, oldindan mavjud
+  warninglar bor. Governance-check PASS, ammo CURRENT_STATE main SHA eskirgan
+  warning bor. `git diff --check`: PASS.
+- Kod va handoff checkpoint commit `ee931c9`, remote feature branchga push
+  qilindi. Authenticated Preview importi va Fast Food lokal/Preview jami farqi
+  hali unresolved; main/deploy yo‘q.
