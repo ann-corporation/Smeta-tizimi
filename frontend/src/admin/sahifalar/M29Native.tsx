@@ -122,6 +122,9 @@ function Sessiya({ companyId }: { companyId: number }) {
     x == null ? <span className="text-text-mute">—</span> : <span className={cls}>{fmt(x, d)}</span>;
   const farqCls = (x: number | null | undefined) => (x == null ? '' : x > 1e-9 ? 'text-danger' : x < -1e-9 ? 'text-ok' : '');
   const kodKor = (k: string | null) => (k && k.trim().length > 2 ? k : null);
+  /** Uzun material nomi: farqlovchi qism (diametr, sinf, o'lcham) oxirida — bosh + … + oxir. */
+  const qisqaNom = (n: string) => (n.length <= 70 ? n : n.slice(0, 28).trimEnd() + ' … ' + n.slice(-40).trimStart());
+  const faktBor = !!natija && natija.guruhlar.some((g) => g.materiallar.some((m) => m.faktJami != null));
 
   return (
     <section className="w-full space-y-4 p-3 sm:p-5">
@@ -163,16 +166,16 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {natija && (
         <>
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ko'rsatkichlar">
+          <section className="grid grid-cols-2 gap-2 xl:grid-cols-4" aria-label="Ko'rsatkichlar">
             {[
               { t: 'Materiallar', v: String(materialSoni), s: `${m29DavrMatni(natija.davr)} · boshidan beri`, c: '' },
-              { t: 'Tejash (normadan kam)', v: pul(natija.jami.tejashSumma), s: 'сум, smeta narxida', c: 'text-ok' },
-              { t: 'Ortiqcha sarf (normadan ko‘p)', v: pul(natija.jami.ortiqchaSumma), s: 'сум, smeta narxida', c: 'text-danger' },
-              { t: 'Sof natija', v: pul(natija.jami.farqSummaJami), s: '+ zarar · − foyda', c: (natija.jami.farqSummaJami ?? 0) > 0 ? 'text-danger' : 'text-ok' },
+              { t: 'Tejash (normadan kam)', v: faktBor ? pul(natija.jami.tejashSumma) : '—', s: faktBor ? 'сум, smeta narxida' : 'sklad chiqimi kiritilmagan', c: 'text-ok' },
+              { t: 'Ortiqcha sarf (normadan ko‘p)', v: faktBor ? pul(natija.jami.ortiqchaSumma) : '—', s: faktBor ? 'сум, smeta narxida' : 'sklad chiqimi kiritilmagan', c: 'text-danger' },
+              { t: 'Sof natija', v: faktBor ? pul(natija.jami.farqSummaJami) : '—', s: faktBor ? '+ zarar · − foyda' : 'haqiqiy sarf noma’lum', c: !faktBor ? '' : (natija.jami.farqSummaJami ?? 0) > 0 ? 'text-danger' : 'text-ok' },
             ].map((k) => (
-              <div key={k.t} className="karta px-4 py-3">
+              <div key={k.t} className="karta px-3 py-2">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-text-mute">{k.t}</p>
-                <p className={`mt-1 text-xl font-semibold tabular-nums ${k.c}`}>{k.v}</p>
+                <p className={`text-lg font-semibold tabular-nums ${k.c}`}>{k.v}</p>
                 <p className="text-[11px] text-text-mute">{k.s}</p>
               </div>
             ))}
@@ -238,7 +241,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                             <td className="py-1.5 pl-7 pr-2" title={m.nom}>
                               <div className="flex items-start gap-1">
                                 {m.ishlar.length ? (mOchiq ? <ChevronDown size={13} className="mt-0.5 shrink-0 text-text-mute" /> : <ChevronRight size={13} className="mt-0.5 shrink-0 text-text-mute" />) : <span className="w-[13px] shrink-0" />}
-                                <span className="line-clamp-2">{kodKor(m.kod) && <span className="mr-1 font-mono text-[11px] text-text-mute">{m.kod}</span>}{m.nom}</span>
+                                <span>{kodKor(m.kod) && <span className="mr-1 font-mono text-[11px] text-text-mute">{m.kod}</span>}{qisqaNom(m.nom)}</span>
                               </div>
                             </td>
                             <td className="px-2 text-text-dim">{m.birlik}</td>
