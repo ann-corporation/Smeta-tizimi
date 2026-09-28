@@ -164,6 +164,34 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(n.natijalar.get(w.uid)).toMatchObject({ holat: 'xotira', qatorId: W2 });
   });
 
+  it('eskirgan xotira explicit BL qatorini bir xil identifikatorli MAT qatoriga bog‘lamaydi', () => {
+    const matId = ++sid;
+    S.push({ id: matId, otaId: L3c, tur: 'mat', kod: 'MEMORY-TYPE-GUARD', nom: 'BETON B25', birlik: 'M3', hajm: 4, tartib: matId });
+    const yol = ['BOSHQA SMETA'];
+    const work = Object.assign(f('bl', 'MEMORY-TYPE-GUARD', 'BETON B25', 'M3', 1, yol), { texnikBelgi: 'bl' });
+    // Eski signature formatida tur belgisi yo‘q: xotira kaliti aynan to‘qnashadi.
+    const remembered = new Map([[f2Imzo(work), matId]]);
+
+    const result = f2MoslashV3([rzF(yol[0], [], [work])], S, { xotira: remembered });
+    const matched = result.natijalar.get(work.uid)!;
+    expect(matched.holat).not.toBe('xotira');
+    expect(matched.qatorId).not.toBe(matId);
+  });
+
+  it('oldingi tasdiqlangan xotira joriy operator tanlagan boshqa razdel chegarasidan o‘tmaydi', () => {
+    const yol = ['РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ-3)'];
+    const work = Object.assign(f('bl', 'E1-1-195-19 ШHК.ДОП.11', 'РАЗРАБОТКА ГРУНТА В ОТВАЛ', '1000М3', 4.3524, yol, [
+      f('rs', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 16.19, yol, [], 3.72),
+      f('rs', '001942', 'ЭКСКАВАТОРЫ', 'МАШ-Ч', 34.17, yol, [], 7.85),
+    ]), { texnikBelgi: 'bl' });
+    const section = rzF(yol[0], [], [work]);
+    const remembered = new Map([[f2Imzo(work), W2]]);
+    const sectionBinding = new Map([[section.uid, L1z]]);
+
+    const result = f2MoslashV3([section], S, { xotira: remembered, rzBog: sectionBinding });
+    expect(result.natijalar.get(work.uid)).toMatchObject({ holat: 'aniq', qatorId: W1 });
+  });
+
   it('smetada umuman yo‘q ish — topilmadi, qo‘shimcha ish taklif qilinadi', () => {
     const w = f('bl', 'E99-9-9', 'УСТАНОВКА СКАМЕЕК ПАРКОВЫХ', 'ШТ', 3, ['ЛЮБОЙ']);
     const n = f2MoslashV3([rzF('ЛЮБОЙ', [], [w])], S);

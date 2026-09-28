@@ -95,6 +95,10 @@ write yo‘q.
   shart. `BL` markerli qator `MAT/OB`ga, `RS` esa `MAT`ga avtomatik ulanmaydi.
   Marker bo‘lmagan tarixiy qatorlarda eski leaf nomzodlari operatorga taklif
   bo‘lishi mumkin, ammo bu o‘zi avtomatik tasdiq mezoni emas.
+- Oldingi davrning saqlangan match xotirasi ham joriy qator turi va operator
+  tanlagan razdel chegarasini chetlab o‘ta olmaydi. Noto‘g‘ri tur yoki boshqa
+  razdelga ishora qilgan xotira rad etilib, joriy dalillardan match qayta
+  hisoblanadi.
 - F2 Workbench boshlang‘ich filtri `Barcha qatorlar`; PTO avvaldan moslangan
   qatorlarni “ko‘rinmay qoldi” deb o‘ylamaydi. Ikkala daraxtning virtual
   renderi saqlangan, qator turining o‘zbekcha yorliqlari ko‘rsatiladi.
@@ -123,6 +127,9 @@ tafovut unresolved va F2 qoralamasini tasdiqlashga asos bo‘lmaydi.
   7,351 ms; test chegarasi 20,000 ms. Bu matcher benchmarki — XLSX parse, browser
   xotirasi va barcha import bosqichlarining 30k SLA’si emas.
 - Focused Vitest: 5 test fayli, 27 test PASS (shu jumladan 30k benchmark).
+- Xotira trust-boundary uchun qo‘shimcha adversarial testlar: explicit BL→MAT
+  signature collision va tanlangan razdel tashqarisidagi eski match; ikkalasi
+  ham rad etiladi.
 - `npx tsc -b --pretty false`: PASS.
 - `npm run lint`: exit 0; repo bo‘ylab oldindan mavjud ogohlantirishlar bor.
 - `node ops/governance-check.cjs`: PASS, 4 artifact / 50 task; `CURRENT_STATE.md`
@@ -132,6 +139,17 @@ tafovut unresolved va F2 qoralamasini tasdiqlashga asos bo‘lmaydi.
 - `npm run build`: PASS; Vite/Rolldown’da mavjud dynamic-import va katta chunk
   ogohlantirishlari bor, lekin build muvaffaqiyatli tugadi.
 - `git diff --check`: PASS.
+
+### 2026-09-29 — xotira bog‘lanishiga qarshi adversarial tekshiruv
+
+- F2 importer/matcher/parser/operator UI qamrovi: 14 test fayli, 82 PASS,
+  12 SKIP, 0 FAIL.
+- 30k matcher performance testi alohida jarayonda: 1 PASS. Uni katta Vitest
+  to‘plami va TypeScript bilan bir vaqtda yugurtirganda Windows muhitidagi
+  resurs raqobati sabab 23,556 ms bo‘lib, 20,000 ms guard yiqildi. Threshold
+  yumshatilmadi; yakka qayta ishga tushirish PASS bo‘ldi. Bu natija bir vaqtda
+  ko‘p og‘ir vazifa ishlatishdagi vaqt o‘zgaruvchanligini ko‘rsatadi.
+- `npx tsc -b --pretty false`: PASS.
 
 ### Hali isbotlanmagan / integratsiya gate’lari
 

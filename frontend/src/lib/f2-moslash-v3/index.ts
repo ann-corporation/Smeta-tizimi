@@ -320,7 +320,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     return { qatorId: t.id, ball, yol: t.yol, qavatlar: q, sabab: q.filter((x) => x.nom !== 'tartib').map((x) => x.izoh) };
   }
 
-  function nomzodHovuz(f: F2Tugun, d: Doira): STugun[] {
+  function nomzodHovuz(f: F2Tugun): STugun[] {
     const out = new Set<STugun>();
     const qosh = (a?: STugun[]) => a?.forEach((t) => out.add(t));
     const fk = normKod(f.kod), fkan = kodKanon(f.kod);
@@ -337,17 +337,18 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       }
       [...hisob.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 60).forEach(([t]) => out.add(t));
     }
-    // T1 processStandalone: mustaqil resurs faqat barg qatorga boradi. T2
-    // canonical qator turi esa aniq: explicit marker bo'lsa aynan shu tur; eski,
-    // markersiz F2 da `rs` umumiy resurs deb olinadi. Markerli BL hech qachon
-    // MAT/OB bilan almashtirilmaydi. Markersiz tarixiy BL leaf fallback saqlanadi.
-    const turMos = (t: STugun) => {
-      if (f.tur === 'bl') return t.tur === 'bl' || (!f.texnikBelgi && t.tur !== 'rz' && !t.bolalar.length);
-      const belgiTuri = f.texnikBelgi?.replace(/[+~]$/, '').toLowerCase();
-      if (belgiTuri) return t.tur === belgiTuri;
-      return t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob';
-    };
-    return [...out].filter((t) => !band.has(t.id) && turMos(t) && (d.rzlar ? true : true));
+    return [...out].filter((t) => !band.has(t.id) && f2TuriMos(f, t));
+  }
+
+  // T1 processStandalone: mustaqil resurs faqat barg qatorga boradi. T2
+  // canonical qator turi esa aniq: explicit marker bo'lsa aynan shu tur; eski,
+  // markersiz F2 da `rs` umumiy resurs deb olinadi. Markerli BL hech qachon
+  // MAT/OB bilan almashtirilmaydi. Markersiz tarixiy BL leaf fallback saqlanadi.
+  function f2TuriMos(f: F2Tugun, t: STugun): boolean {
+    if (f.tur === 'bl') return t.tur === 'bl' || (!f.texnikBelgi && t.tur !== 'rz' && !t.bolalar.length);
+    const belgiTuri = f.texnikBelgi?.replace(/[+~]$/, '').toLowerCase();
+    if (belgiTuri) return t.tur === belgiTuri;
+    return t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob';
   }
 
   function yoz(uid: string, n: F2QatorNatija) {
@@ -364,12 +365,15 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     const imzo = f2Imzo(f, otaImzo);
     const x = opts.xotira?.get(imzo);
     const xt = x != null ? S.byId.get(x) : undefined;
-    if (xt && !band.has(xt.id) && birMos(f.birlik, xt.birlik)) {
+    // Tasdiqlangan xotira kuchli dalil, lekin joriy importning qator turi,
+    // birlik va tanlangan canonical razdel chegarasini chetlab o'tmaydi.
+    if (xt && !band.has(xt.id) && birMos(f.birlik, xt.birlik)
+      && f2TuriMos(f, xt) && (!d.rzlar || doiradami(d, xt))) {
       yoz(f.uid, { uid: f.uid, holat: 'xotira', qatorId: xt.id, usul: 'xotira', nomzodlar: [], sabab: 'o‘tgan oylarda tasdiqlangan bog‘lanish' });
       return xt;
     }
     // Tizim1: doira ichida nomzod bo'lsa — faqat doira; global faqat doira bo'sh bo'lsa.
-    const hovuz = nomzodHovuz(f, d);
+    const hovuz = nomzodHovuz(f);
     const ichida = d.rzlar ? hovuz.filter((t) => doiradami(d, t)) : [];
     const nz = (ichida.length ? ichida : hovuz).map((t) => ballHisobla(f, t, d))
       .sort((a, b) => b.ball - a.ball || (S.byId.get(a.qatorId)!.tartib ?? a.qatorId) - (S.byId.get(b.qatorId)!.tartib ?? b.qatorId)).slice(0, 12);
