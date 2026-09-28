@@ -121,7 +121,6 @@ function Sessiya({ companyId }: { companyId: number }) {
   const Son = ({ x, d = 3, cls = '' }: { x: number | null | undefined; d?: number; cls?: string }) =>
     x == null ? <span className="text-text-mute">—</span> : <span className={cls}>{fmt(x, d)}</span>;
   const farqCls = (x: number | null | undefined) => (x == null ? '' : x > 1e-9 ? 'text-danger' : x < -1e-9 ? 'text-ok' : '');
-  const kodKor = (k: string | null) => (k && k.trim().length > 2 ? k : null);
   /** Uzun material nomi: farqlovchi qism (diametr, sinf, o'lcham) oxirida — bosh + … + oxir. */
   const qisqaNom = (n: string) => (n.length <= 70 ? n : n.slice(0, 28).trimEnd() + ' … ' + n.slice(-40).trimStart());
   const faktBor = !!natija && natija.guruhlar.some((g) => g.materiallar.some((m) => m.faktJami != null));
@@ -241,7 +240,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                             <td className="py-1.5 pl-7 pr-2" title={m.nom}>
                               <div className="flex items-start gap-1">
                                 {m.ishlar.length ? (mOchiq ? <ChevronDown size={13} className="mt-0.5 shrink-0 text-text-mute" /> : <ChevronRight size={13} className="mt-0.5 shrink-0 text-text-mute" />) : <span className="w-[13px] shrink-0" />}
-                                <span>{kodKor(m.kod) && <span className="mr-1 font-mono text-[11px] text-text-mute">{m.kod}</span>}{qisqaNom(m.nom)}</span>
+                                <span>{qisqaNom(m.nom)}</span>
                               </div>
                             </td>
                             <td className="px-2 text-text-dim">{m.birlik}</td>
@@ -255,7 +254,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                           </tr>,
                           ...(mOchiq ? m.ishlar.map((ish) => (
                             <tr key={'i' + m.kalit + ish.blId} className="border-b border-border/20 text-[11.5px] text-text-dim">
-                              <td className="py-1 pl-14 pr-2" title={ish.nom}><span className="line-clamp-1">{kodKor(ish.kod) && <span className="mr-1 font-mono">{ish.kod}</span>}{ish.nom}</span></td>
+                              <td className="py-1 pl-14 pr-2" title={ish.nom}><span className="line-clamp-1">{ish.nom}</span></td>
                               <td className="px-2">{ish.birlik}</td>
                               <td className="border-l border-border/30 px-2 text-right tabular-nums"><Son x={ish.normaOy} /></td>
                               <td />
