@@ -1480,6 +1480,36 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi 2026-09-28: M29 oylik va umumiy davr uchun yo'q edi; resurs/ostatka nazorati foydaga bog'liq. Faqat o'qish — migratsiya yo'q."
+    },
+    {
+      "id": "T2-F2-OPERATOR-LINK-UX-001",
+      "title": "F2 import operator workbench: per-row binding controls, level tree controls, explicit amount reconciliation and review filters",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/f2-link-review-ux-v1",
+      "base_sha": "1c4bfc2fe200794fa1f2b4e545b761a59f8f016d",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
+        "frontend/src/admin/sahifalar/F2V3Workbench.operator.test.tsx",
+        "frontend/src/lib/f2-link-review/",
+        "ops/handoff/T2_F2_OPERATOR_LINK_UX_001_CODEX.md",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": ["F2-IMPORT-V3-001"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md",
+        "docs/governance/AGENT_COMMS_PROTOCOL.md",
+        "docs/governance/OWNER_AUTHORIZATION.md",
+        "docs/governance/AGENT_CAPABILITY_POLICY.md",
+        "ops/ACTIVE_TASKS.json",
+        "ops/mailbox/INBOX.md",
+        "docs/architecture/F2_IMPORT_V3.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Workbench operator UX + 30k virtualized display source-ready; end-to-end 30k import remains PARTIAL because F2 anatomy/index/matcher still execute synchronously in F2-IMPORT-V3-001-owned paths. See handoff for test evidence and duplicate/order auto-confirm risk. No production writes."
     }
   ]
 }
