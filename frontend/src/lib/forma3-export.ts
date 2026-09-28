@@ -35,13 +35,32 @@ import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import type { PtoF3LineageInput } from './pto-document-lineage';
 import { assertF3Lineage } from './pto-document-lineage';
 import {
-  RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2,
+  RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2,
   type ImzoNomlar, type Qiymat, type RasmiyUstun,
 } from './hujjat-yozuvchi';
 import {
   NAKRUTKA_KATLAR, kategoriyaKf, nakrutkaKaskadJS, nakrutkaKat, nakrutkaPodvaliYoz,
   type KatSummalar, type NakrutkaHisobJS,
 } from './nakrutka-podval';
+
+/**
+ * Bir tomonning TO'LIQ rekvizitlari — haqiqiy SPRAVKA-SCHET-FAKTURA blankasi
+ * (F2 paketining o'z СЧЁТ-ФАКТ varag'i) namunasi bilan bir xil maydonlar:
+ * egasi (2026-09-28): «har tarafni rekvizitlarini qo'ya oladigan kuchli
+ * hujjat» — nom+imzo yetarli emas. Har maydon ixtiyoriy: bo'sh bo'lsa shu
+ * qator titulda ko'rinmaydi (chiziq bilan majburlanmaydi).
+ */
+export interface Forma3Rekvizit {
+  toliqNom?: string | null;
+  manzil?: string | null;
+  telefon?: string | null;
+  /** Podratchi uchun «р/с», zakazchik uchun «Основной счёт» — ikkalasi ham hisob raqami. */
+  hisobRaqam?: string | null;
+  bank?: string | null;
+  mfo?: string | null;
+  inn?: string | null;
+  oked?: string | null;
+}
 
 export interface Forma3ExportOptions {
   /** Asosiy obyekt nomi (titul «Объект:») va id si (guruh tartibi). */
@@ -52,9 +71,19 @@ export interface Forma3ExportOptions {
   /** Loyiha (shartnoma) nomi — ko'p obyektli hujjatda titulda. */
   loyihaNom?: string | null;
   shartnomaRaqam?: string | null;
+  /** Shartnoma sanasi va umumiy shartnoma summasi — «Договор № … от … Общая договорная стоимость». */
+  shartnomaSana?: string | null;
+  shartnomaSumma?: number | null;
+  /** Obyekt manzili — «Наименование объекта и его адрес» qatoriga qo'shiladi. */
+  obyektManzil?: string | null;
   /** Hujjat raqami (bo'sh — to'ldirish chizig'i). */
   raqam?: string | null;
+  /** Hujjat tuzilgan sana — bo'sh bo'lsa bugungi kun. */
+  hujjatSana?: string | null;
   imzo?: ImzoNomlar;
+  /** ПОДРЯДЧИК / ЗАКАЗЧИК to'liq rekvizitlari — titulda yonma-yon. */
+  pudratchi?: Forma3Rekvizit | null;
+  zakazchik?: Forma3Rekvizit | null;
   /** Obyekt nakrutka foizlari (t2_obyekt_nakrutka). null — 0 % + diqqat. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
   /** НДС stavkasi % (sukut 12, F3_NDS_SUKUT); null — kaskaddagi qiymat. */
@@ -368,19 +397,53 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   const qiymatIdx = f3QiymatIndekslar(rows);
   const ustunlar = f3UstunlarNatijasi(rows, qiymatIdx, nk);
 
+  /** ISO `YYYY-MM-DD[...]` → «ДД.ММ.ГГГГ г.»; noto'g'ri/bo'sh — null (chiziq emas, qator o'zi tashlab ketiladi). */
+  const sanaMatni = (iso: string | null | undefined): string | null => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? `${m[3]}.${m[2]}.${m[1]} г.` : null;
+  };
+  const davrOraligi = (() => {
+    const m = /^(\d{4})-(\d{2})$/.exec(o.davr || '');
+    if (!m) return null;
+    const oxirgiKun = new Date(Number(m[1]), Number(m[2]), 0).getDate();
+    return { boshi: `01.${m[2]}.${m[1]} г.`, oxiri: `${String(oxirgiKun).padStart(2, '0')}.${m[2]}.${m[1]} г.` };
+  })();
+  const pud = o.pudratchi ?? {};
+  const zak = o.zakazchik ?? {};
+  const obyektToliqNom = o.obyektManzil ? `${o.obyektNom}, ${o.obyektManzil}` : o.obyektNom;
+  const dogovorYorliq = o.shartnomaRaqam
+    ? `Договор № ${o.shartnomaRaqam}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}. Общая договорная текущая стоимость`
+    : null;
+  const dogovorQiymat = o.shartnomaSumma != null ? `${fmt2(o.shartnomaSumma)} сум` : null;
+
   const v = new RasmiyVaraq({
     nom: 'Форма № 3',
-    sarlavha: 'СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ',
+    // Egasi (2026-09-28): F3 F2 paketining o'z СЧЁТ-ФАКТ varag'i nomiga mos
+    // bo'lishi kerak ("СПРАВКА-СЧЕТ-ФАКТУРА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ
+    // (ПОНЕСЕННЫХ ЗАТРАТ)") — ilgarigi qisqartirilgan sarlavha emas.
+    sarlavha: 'СПРАВКА-СЧЕТ-ФАКТУРА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ (ПОНЕСЕННЫХ ЗАТРАТ)',
     ostSarlavha: [
-      'по объекту строительства (счет-фактура к актам формы № 2)',
-      `за отчетный период: ${davrMatn} — учтены только УТВЕРЖДЕННЫЕ акты формы № 2`,
+      `№ документа: ${o.raqam ?? '—'}     Дата составления: ${sanaMatni(o.hujjatSana) ?? sanaMatni(bugunSana()) ?? ''}`,
+      davrOraligi ? `Отчетный период: с ${davrOraligi.boshi} по ${davrOraligi.oxiri}` : `за отчетный период: ${davrMatn}`,
+      'Учтены только УТВЕРЖДЕННЫЕ акты формы № 2',
+    ],
+    // Ikkala tomonning TO'LIQ rekvizitlari yonma-yon — egasi (2026-09-28):
+    // "har tarafni rekvizitlarini qo'ya oladigan kuchli hujjat". Maydon
+    // kiritilmagan bo'lsa qator o'zi ko'rinmaydi (o'ylab to'qilmaydi).
+    ikkiTomonRekvizit: [
+      ['Подрядчик:', pud.toliqNom ?? o.imzo?.pudratchi, 'Заказчик:', zak.toliqNom ?? o.imzo?.zakazchik],
+      ['Адрес:', pud.manzil, 'Адрес:', zak.manzil],
+      ['Телефон:', pud.telefon, 'Телефон:', zak.telefon],
+      ['р/с:', pud.hisobRaqam, 'Основной счёт:', zak.hisobRaqam],
+      ['Банк:', pud.bank, 'Банк:', zak.bank],
+      ['МФО:', pud.mfo, 'МФО:', zak.mfo],
+      ['ИНН:', pud.inn, 'ИНН:', zak.inn],
+      ['ОКЭД:', pud.oked, 'ОКЭД:', zak.oked],
     ],
     titul: [
-      ['Инвестор/Заказчик:', o.imzo?.zakazchik],
-      ['Подрядчик:', o.imzo?.pudratchi],
-      ['Объект:', o.obyektNom],
+      ['Наименование объекта и его адрес:', obyektToliqNom],
       ...(o.loyihaNom ? [['Локальные сметы (в составе):', o.loyihaNom]] as const : []),
-      ['Договор:', o.shartnomaRaqam ?? null],
+      ...(dogovorYorliq ? [[dogovorYorliq, dogovorQiymat]] as const : []),
       ['Справка №:', o.raqam ?? null],
     ],
     ustunlar: USTUNLAR,

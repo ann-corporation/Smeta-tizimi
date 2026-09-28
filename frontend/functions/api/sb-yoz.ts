@@ -802,6 +802,17 @@ export const onRequestPost: PagesFunction<{
         p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
         p_manba: 'frontend',
         p_kim: sess.email || '',
+        /* ЗАКАЗЧИК rekvizitlari (F3 — счет-фактура titulida) — egasi 2026-09-28. */
+        p_zakazchik_toliq_nom: so.zakazchik_toliq_nom ? String(so.zakazchik_toliq_nom).slice(0, 300) : null,
+        p_zakazchik_manzil: so.zakazchik_manzil ? String(so.zakazchik_manzil).slice(0, 500) : null,
+        p_zakazchik_telefon: so.zakazchik_telefon ? String(so.zakazchik_telefon).slice(0, 60) : null,
+        p_zakazchik_hisob_raqam: so.zakazchik_hisob_raqam ? String(so.zakazchik_hisob_raqam).slice(0, 60) : null,
+        p_zakazchik_bank: so.zakazchik_bank ? String(so.zakazchik_bank).slice(0, 300) : null,
+        p_zakazchik_mfo: so.zakazchik_mfo ? String(so.zakazchik_mfo).slice(0, 20) : null,
+        p_zakazchik_inn: so.zakazchik_inn ? String(so.zakazchik_inn).slice(0, 30) : null,
+        p_zakazchik_oked: so.zakazchik_oked ? String(so.zakazchik_oked).slice(0, 30) : null,
+        /* Kanonik bog'lanish — t2_kompaniya registriga (egasi 2026-09-28: rekvizit bir marta kiritiladi, ko'p joyda ishlatiladi). */
+        p_zakazchik_kompaniya_id: so.zakazchik_kompaniya_id == null ? null : Number(so.zakazchik_kompaniya_id),
       };
 
     /* ══════════ ШАРТНОМА BEKOR QILISH ══════════ */
@@ -1657,6 +1668,7 @@ export const onRequestPost: PagesFunction<{
         p_hisob_raqam: so.hisob_raqam != null ? String(so.hisob_raqam).slice(0, 40) : null,
         p_mfo: so.mfo != null ? String(so.mfo).slice(0, 20) : null,
         p_mavqe: mavqe3,
+        p_oked: so.oked != null ? String(so.oked).slice(0, 30) : null,
       };
 
     /* ══════════ MATERIAL ALIASLARI (AI semantik qidiruv) ══════════ */

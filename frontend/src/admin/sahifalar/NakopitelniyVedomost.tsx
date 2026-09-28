@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
-import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
+import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
+import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { t2NakopitelniyOl, t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat } from '../../lib/nakopitelniy-vedomost-export';
 import { f2AktHujjat } from '../../lib/f2-akt-tn-export';
 import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
-import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl } from '../../api/t2-shartnoma';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
@@ -67,6 +68,52 @@ function Sessiya({ companyId }: { companyId: number }) {
     }).catch(() => undefined);
     return () => { active = false; };
   }, [objectId]);
+
+  /**
+   * F3 (СПРАВКА-СЧЕТ-ФАКТУРА) titulidagi TO'LIQ rekvizitlar — egasi
+   * (2026-09-28): "har tarafni rekvizitlarini qo'ya oladigan kuchli hujjat".
+   * ПОДРЯДЧИК — kompaniyaning o'z profili (t2_kompaniya); ЗАКАЗЧИК —
+   * obyektga bog'langan shartnomaning rekviziti. Ikkalasi ham bo'sh bo'lishi
+   * mumkin (hali kiritilmagan) — bu holda titulda o'sha qator ko'rinmaydi
+   * (`forma3-export.ts` ikkiTomonRekvizit qoidasi), o'ylab to'qilmaydi.
+   */
+  const [kompaniyalar, setKompaniyalar] = useState<T2Kompaniya[]>([]);
+  useEffect(() => {
+    let active = true;
+    void sbT2KompaniyalarOl().then((r) => { if (active && r.ok) setKompaniyalar((r.qatorlar || []) as T2Kompaniya[]); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  const pudratchiRek = useMemo<Forma3Rekvizit | null>(() => {
+    const k = kompaniyalar.find((x) => x.id === companyId);
+    return k ? { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked } : null;
+  }, [kompaniyalar, companyId]);
+  const [zakazchikRek, setZakazchikRek] = useState<Forma3Rekvizit | null>(null);
+  const [shartnoma, setShartnoma] = useState<{ raqam: string; sana: string | null; summa: number | null } | null>(null);
+  useEffect(() => {
+    let active = true;
+    setZakazchikRek(null); setShartnoma(null);
+    if (!objectId) return;
+    void (async () => {
+      const bog = await sbT2ShartnomaBogOl(Number(objectId));
+      if (!active || !bog.ok) return;
+      const shId = (bog.qatorlar || []).find((x) => x.obyekt_id === Number(objectId))?.shartnoma_id;
+      if (shId == null) return;
+      const sh = await sbT2ShartnomalarOl(companyId, false);
+      if (!active || !sh.ok) return;
+      const s = (sh.qatorlar || []).find((x) => x.id === shId);
+      if (!s) return;
+      // KANONIK yo'l (egasi 2026-09-28): avval `zakazchik_kompaniya_id`
+      // bog'lanishidan (rekvizit bir marta kompaniya profilida kiritiladi);
+      // bog'lanmagan bo'lsa shartnomaning o'z zaxira matn maydonlaridan.
+      setZakazchikRek(zakazchikRekvizit(s, (id) => kompaniyalar.find((x) => x.id === id)));
+      // Shartnoma sanasi bazada alohida saqlanmaydi (faqat yaratildi — texnik
+      // sana) — shuning uchun F3 titulidagi "от ..." faqat egasi qo'lda
+      // kiritsa chiqadi; hozircha raqam + summa yetarli, sana UNKNOWN.
+      setShartnoma({ raqam: s.raqam, sana: null, summa: s.jami_nds_bilan ?? s.summa_bez_nds });
+    })().catch(() => undefined);
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objectId, companyId, kompaniyalar]);
 
   const yukla = async (objId: number, tanlanganDavr: string) => {
     setBusy(true); setXato('');
@@ -242,7 +289,12 @@ function Sessiya({ companyId }: { companyId: number }) {
       } catch { /* ro‘yxat o‘qilmasa СМЕТНАЯ o‘zgarmaydi — davom etamiz */ }
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik },
-        { obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(), smetaNakrutka, ozgarishlar, lineage, lineageRequired: true },
+        {
+          obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(),
+          smetaNakrutka, ozgarishlar, lineage, lineageRequired: true,
+          pudratchi: pudratchiRek, zakazchik: zakazchikRek,
+          shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
+        },
       );
       setForma3Diqqat(h.diqqat);
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);

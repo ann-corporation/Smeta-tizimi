@@ -23,7 +23,55 @@ export type Shartnoma = {
   chel_stavka: number | null; izoh: string | null;
   versiya: number; yaratildi: string; yangilandi: string; kim: string | null;
   loyiha_id: number | null;
+  /**
+   * ЗАКАЗЧИК — egasi (2026-09-28): "eng baland iyerarxiyada — tomonlar
+   * bog'langanida hal qilinadigan narsa". KANONIK yo'l: `t2_kompaniya`
+   * registriga bog'lanish (rekvizit BIR MARTA o'sha kompaniya profilida
+   * kiritiladi, hamma shartnoma/F3 shu bog'lanishdan o'qiydi). Matn
+   * maydonlari faqat ZAXIRA — kompaniya hali ro'yxatga olinmagan bo'lsa.
+   */
+  zakazchik_kompaniya_id: number | null;
+  zakazchik_toliq_nom: string | null; zakazchik_manzil: string | null; zakazchik_telefon: string | null;
+  zakazchik_hisob_raqam: string | null; zakazchik_bank: string | null; zakazchik_mfo: string | null;
+  zakazchik_inn: string | null; zakazchik_oked: string | null;
 };
+
+/** F3 titulida ishlatiladigan ЗАКАЗЧИК rekvizitlari to'plami (qisqa nom). */
+export type ZakazchikRekvizit = {
+  toliqNom?: string | null; manzil?: string | null; telefon?: string | null;
+  hisobRaqam?: string | null; bank?: string | null; mfo?: string | null;
+  inn?: string | null; oked?: string | null;
+};
+
+/** `t2_kompaniya` (registr) dagi rekvizit maydonlari — pudratchi va bog'langan zakazchik uchun bir xil shakl. */
+export type KompaniyaRekvizitManbasi = {
+  toliq_nom: string | null; manzil: string | null; telefon: string | null;
+  hisob_raqam: string | null; bank: string | null; mfo: string | null;
+  inn: string | null; oked: string | null;
+};
+
+/**
+ * ЗАКАЗЧИК rekvizitini aniqlaydi: KANONIK yo'l — `zakazchik_kompaniya_id`
+ * bog'lanган bo'lsa, kompaniya registridagi rekvizit (bitta joyda kiritilgan,
+ * barcha shartnomalar bo'ylab qayta ishlatiladi). Bog'lanmagan bo'lsa —
+ * shartnomaning o'z (zaxira) matn maydonlari. Ikkalasi ham bo'sh — `{}`
+ * (hujjatda chiziq emas, qator o'zi ko'rinmaydi — `forma3-export.ts`).
+ */
+export function zakazchikRekvizit(
+  sh: Pick<Shartnoma, 'zakazchik_kompaniya_id' | 'zakazchik_toliq_nom' | 'zakazchik_manzil' | 'zakazchik_telefon' | 'zakazchik_hisob_raqam' | 'zakazchik_bank' | 'zakazchik_mfo' | 'zakazchik_inn' | 'zakazchik_oked'> | null | undefined,
+  kompaniyaOl: (id: number) => KompaniyaRekvizitManbasi | undefined,
+): ZakazchikRekvizit {
+  if (!sh) return {};
+  if (sh.zakazchik_kompaniya_id != null) {
+    const k = kompaniyaOl(sh.zakazchik_kompaniya_id);
+    if (k) return { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked };
+  }
+  return {
+    toliqNom: sh.zakazchik_toliq_nom, manzil: sh.zakazchik_manzil, telefon: sh.zakazchik_telefon,
+    hisobRaqam: sh.zakazchik_hisob_raqam, bank: sh.zakazchik_bank, mfo: sh.zakazchik_mfo,
+    inn: sh.zakazchik_inn, oked: sh.zakazchik_oked,
+  };
+}
 
 /* ⚠️ 2026-08-28 (Claude) — TENANT IZOLYATSIYASI TUZATILDI.
  *
@@ -132,12 +180,21 @@ export function sbT2ShartnomaSaqla(p: {
   raqam: string; nom?: string; taraf?: string;
   summaBezNds?: number; nds?: number; jamiNdsBilan?: number;
   chelStavka?: number; izoh?: string; kutilganVersiya?: number;
+  /** ЗАКАЗЧИК: kanonik yo'l — `t2_kompaniya` registriga bog'lash (rekvizit bir marta shu yerda kiritiladi). */
+  zakazchikKompaniyaId?: number | null;
+  /** Zaxira matn rekvizitlari — faqat kompaniya hali ro'yxatga olinmaganda. Berilmagan maydon mavjudini o'zgartirmaydi. */
+  zakazchik?: ZakazchikRekvizit;
 }): Promise<ShartnomaNatija> {
   return trackEntityCommand('shartnoma', p.kompaniyaId, yoz({
     amal: 'shartnoma_saqla', kompaniya_id: p.kompaniyaId,
     raqam: p.raqam, nom: p.nom, taraf: p.taraf,
     summa_bez_nds: p.summaBezNds, nds: p.nds, jami_nds_bilan: p.jamiNdsBilan,
     chel_stavka: p.chelStavka, izoh: p.izoh, kutilgan_versiya: p.kutilganVersiya,
+    zakazchik_kompaniya_id: p.zakazchikKompaniyaId,
+    zakazchik_toliq_nom: p.zakazchik?.toliqNom, zakazchik_manzil: p.zakazchik?.manzil,
+    zakazchik_telefon: p.zakazchik?.telefon, zakazchik_hisob_raqam: p.zakazchik?.hisobRaqam,
+    zakazchik_bank: p.zakazchik?.bank, zakazchik_mfo: p.zakazchik?.mfo,
+    zakazchik_inn: p.zakazchik?.inn, zakazchik_oked: p.zakazchik?.oked,
   }));
 }
 

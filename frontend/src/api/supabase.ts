@@ -489,7 +489,7 @@ export type T2Kompaniya = {
   mavqe: KompaniyaMavqe | null; versiya: number;
   toliq_nom: string | null; inn: string | null; manzil: string | null;
   rahbar: string | null; telefon: string | null; bank: string | null;
-  hisob_raqam: string | null; mfo: string | null;
+  hisob_raqam: string | null; mfo: string | null; oked: string | null;
   yaratildi: string;
 };
 
@@ -1118,13 +1118,13 @@ export function sbKorzinkaOqish(kompaniyaId?: number | null) {
  * sababi bilan rad etiladi, jimgina ustidan yozilmaydi). */
 export function sbKompaniyaYangila(id: number, kutilganVersiya: number, maydonlar: {
   toliqNom?: string; inn?: string; manzil?: string; rahbar?: string;
-  telefon?: string; bank?: string; hisobRaqam?: string; mfo?: string;
+  telefon?: string; bank?: string; hisobRaqam?: string; mfo?: string; oked?: string;
   mavqe?: 'zakazchik' | 'pudratchi' | 'loyihachi';
 }) {
   return yozAmali({
     amal: 'kompaniya_yangila', id, kutilgan_versiya: kutilganVersiya,
     toliq_nom: maydonlar.toliqNom, inn: maydonlar.inn, manzil: maydonlar.manzil,
     rahbar: maydonlar.rahbar, telefon: maydonlar.telefon, bank: maydonlar.bank,
-    hisob_raqam: maydonlar.hisobRaqam, mfo: maydonlar.mfo, mavqe: maydonlar.mavqe,
+    hisob_raqam: maydonlar.hisobRaqam, mfo: maydonlar.mfo, oked: maydonlar.oked, mavqe: maydonlar.mavqe,
   });
 }

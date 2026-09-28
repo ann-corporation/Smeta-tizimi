@@ -60,6 +60,14 @@ export type RasmiyVaraqSozlama = {
   ostSarlavha?: readonly string[];
   /** Titul: [yorliq, qiymat]. Qiymat bo'sh — chiziq. */
   titul?: ReadonlyArray<readonly [string, string | null | undefined]>;
+  /**
+   * Ikki tomon rekvizitlari — YONMA-YON (chap ПОДРЯДЧИК, o'ng ЗАКАЗЧИК),
+   * haqiqiy SPRAVKA-SCHET-FAKTURA blankasidagi kabi: "Подрядчик: … | Заказчик: …",
+   * "Адрес: … | Адрес: …", "р/с: … | Основной счёт: …" va h.k. Qiymat bo'sh —
+   * chiziq emas, qator o'zi tashlab ketiladi (rekvizit hali kiritilmagan bo'lishi
+   * mumkin — bo'sh joy majburlanmaydi).
+   */
+  ikkiTomonRekvizit?: ReadonlyArray<readonly [string, string | null | undefined, string, string | null | undefined]>;
   ustunlar: readonly RasmiyUstun[];
   yonalish?: 'portrait' | 'landscape';
 };
@@ -212,6 +220,34 @@ export class RasmiyVaraq {
     for (const s of o.ostSarlavha ?? []) {
       this.put([katakXml(0, RS.ost, s)]);
       this.merge(0, this.r - 1, oxir);
+    }
+    if (o.ikkiTomonRekvizit?.length) {
+      this.put([]);
+      // Ikki blok: chap (ПОДРЯДЧИК) 0..yarim, o'ng (ЗАКАЗЧИК) yarim+1..oxir.
+      // Tituldan OLDIN — haqiqiy SPRAVKA-SCHET-FAKTURA blankasida ham tomonlar
+      // rekvizitlari avval, obyekt/shartnoma qatorlari keyin keladi.
+      const yarim = Math.max(1, Math.floor((oxir + 1) / 2)) - 1;
+      let chapYorliqOxiri = 0;
+      while (chapYorliqOxiri < yarim && this.kenglikJami(0, chapYorliqOxiri) < 13) chapYorliqOxiri++;
+      let ongYorliqOxiri = yarim + 1;
+      while (ongYorliqOxiri < oxir && this.kenglikJami(yarim + 1, ongYorliqOxiri) < 13) ongYorliqOxiri++;
+      for (const [chapYorliq, chapQiymat, ongYorliq, ongQiymat] of o.ikkiTomonRekvizit) {
+        const cq = (chapQiymat ?? '').trim();
+        const oq = (ongQiymat ?? '').trim();
+        // Ikkalasi ham bo'sh — rekvizit hali kiritilmagan, qator o'zi tashlab ketiladi
+        // (titul kabi "________" chizig'i emas: bu blok butunlay ixtiyoriy).
+        if (!cq && !oq) continue;
+        const r = this.put([
+          katakXml(0, RS.titulYorliq, chapYorliq),
+          katakXml(chapYorliqOxiri + 1, RS.titulQiymat, cq || null),
+          katakXml(yarim + 1, RS.titulYorliq, ongYorliq),
+          katakXml(ongYorliqOxiri + 1, RS.titulQiymat, oq || null),
+        ], Math.max(balandlik(cq, this.kenglikJami(chapYorliqOxiri + 1, yarim)) ?? 0, balandlik(oq, this.kenglikJami(ongYorliqOxiri + 1, oxir)) ?? 0) || undefined);
+        if (chapYorliqOxiri > 0) this.merge(0, r, chapYorliqOxiri);
+        this.merge(chapYorliqOxiri + 1, r, yarim);
+        if (ongYorliqOxiri > yarim + 1) this.merge(yarim + 1, r, ongYorliqOxiri);
+        this.merge(ongYorliqOxiri + 1, r, oxir);
+      }
     }
     if (o.titul?.length) {
       this.put([]);

@@ -171,6 +171,46 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
     expect(hisobot.matnlar.some((t) => t.includes('ПОДРЯДЧИК'))).toBe(true);
   });
 
+  it('egasi 2026-09-28: har ikki tomonning TO‘LIQ rekvizitlari (adres, telefon, bank, INN, OKED) titulda yonma-yon chiqadi', () => {
+    const h = forma3Hujjat(MANBA, {
+      obyektNom: 'Сунъий кўл', obyektManzil: 'Навои шаҳри', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK,
+      raqam: '12', hujjatSana: '2026-10-03',
+      shartnomaRaqam: 'ЯНШАК 1/1', shartnomaSana: '2025-04-18', shartnomaSumma: 45_390_000_000,
+      pudratchi: {
+        toliqNom: 'ООО "New Temes Buildings"', manzil: 'г.Ташкент, ул. Турсунзода 60', telefon: '(90) 233-97-07',
+        hisobRaqam: '2020 8000 8008 3155 6001', bank: 'АК "Ипотека Банк"', mfo: '00425', inn: '305238901', oked: '41201',
+      },
+      zakazchik: {
+        toliqNom: 'Дирекция "Янги Навоий шахарчаси"', manzil: 'г.Навои ул.И.Каримова 77', telefon: '95-246-70-70',
+        hisobRaqam: '4600 1086 0124 0117 0139 9001 8001', bank: 'Марказий банк', mfo: '00014', inn: '311311785', oked: '84130',
+      },
+    });
+    const hisobot = hujjatTekshir(h.bytes, { ruxsat: [/Сунъий кўл/, /Навои/] });
+    const matn = hisobot.matnlar.join(' | ');
+    // Sarlavha — F2 paketining o'z СЧЁТ-ФАКТ varag'i nomi bilan bir xil.
+    expect(matn).toContain('СПРАВКА-СЧЕТ-ФАКТУРА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ (ПОНЕСЕННЫХ ЗАТРАТ)');
+    expect(matn).toContain('03.10.2026 г.');
+    expect(matn).toContain('с 01.09.2026 г. по 30.09.2026 г.');
+    // Ikkala tomon — nom, adres, telefon, hisob raqami, bank, MFO, INN, OKED.
+    for (const kutilgan of [
+      'ООО "New Temes Buildings"', 'г.Ташкент, ул. Турсунзода 60', '(90) 233-97-07',
+      '2020 8000 8008 3155 6001', 'АК "Ипотека Банк"', '00425', '305238901', '41201',
+      'Дирекция "Янги Навоий шахарчаси"', 'г.Навои ул.И.Каримова 77', '95-246-70-70',
+      '4600 1086 0124 0117 0139 9001 8001', 'Марказий банк', '00014', '311311785', '84130',
+    ]) expect(matn).toContain(kutilgan);
+    expect(matn).toContain('Договор № ЯНШАК 1/1 от 18.04.2025 г.');
+    expect(matn.replace(/\s/g, '')).toContain('45390000000,00сум');
+    expect(matn).toContain('Навои шаҳри');
+  });
+
+  it('rekvizit kiritilmagan — chiziq bilan majburlanmaydi, qator ko‘rinmaydi', () => {
+    const h = forma3Hujjat(MANBA, { obyektNom: 'X', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK });
+    const hisobot = hujjatTekshir(h.bytes, { ruxsat: [] });
+    const matn = hisobot.matnlar.join(' | ');
+    expect(matn).not.toContain('Адрес:');
+    expect(matn).not.toContain('Договор №');
+  });
+
   it('255 argumentdan katta: 300 bargli hujjat SUMIF oraliqlari bilan yigʻiladi', () => {
     const koop: NakopitelniyQator[] = [q({ tur: 'rz', nom: 'РАЗДЕЛ 1' })];
     const oylik: Array<Forma3Manba['f2Oylik'][number]> = [];
