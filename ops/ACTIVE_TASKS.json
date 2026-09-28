@@ -9,7 +9,7 @@
       "machine": "noutbuk",
       "branch": "codex/pto-lifecycle-repair-v1",
       "base_sha": "1c4bfc2fe200794fa1f2b4e545b761a59f8f016d",
-      "status": "active",
+      "status": "completed",
       "owns": [
         "supabase/migrations/20260928103802_t2_f2_lifecycle_audit_lineage_fix.sql",
         "supabase/migrations/20260928103802_t2_f2_lifecycle_audit_lineage_fix.rollback.sql",
@@ -36,7 +36,7 @@
         "docs/governance/OWNER_AUTHORIZATION.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Owner 2026-09-28 explicitly requested fixing the PTO document chain; standing authorization covers reversible migration and release. No financial approval is performed on the owner's behalf."
+      "_izoh": "Owner 2026-09-28 explicitly requested fixing the PTO document chain; standing authorization covers reversible migration and release. No financial approval is performed on the owner's behalf. 2026-09-28 Claude: main ga rebase qilinib qo'shildi (93c9211), deploy success."
     },
     {
       "id": "T2-PTO-DOCUMENT-LINEAGE-F2-F3-OVERNIGHT-001",
@@ -1488,7 +1488,7 @@
       "machine": "noutbuk",
       "branch": "codex/f2-link-review-ux-v1",
       "base_sha": "1c4bfc2fe200794fa1f2b4e545b761a59f8f016d",
-      "status": "ready_for_review",
+      "status": "completed",
       "owns": [
         "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
         "frontend/src/admin/sahifalar/F2V3Workbench.operator.test.tsx",
@@ -1496,7 +1496,9 @@
         "ops/handoff/T2_F2_OPERATOR_LINK_UX_001_CODEX.md",
         "ops/ACTIVE_TASKS.json"
       ],
-      "depends_on": ["F2-IMPORT-V3-001"],
+      "depends_on": [
+        "F2-IMPORT-V3-001"
+      ],
       "must_read": [
         "AGENTS.md",
         "docs/governance/CONSTITUTION.md",
@@ -1509,7 +1511,7 @@
         "docs/architecture/F2_IMPORT_V3.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Workbench operator UX + 30k virtualized display source-ready; end-to-end 30k import remains PARTIAL because F2 anatomy/index/matcher still execute synchronously in F2-IMPORT-V3-001-owned paths. See handoff for test evidence and duplicate/order auto-confirm risk. No production writes."
+      "_izoh": "Workbench operator UX + 30k virtualized display source-ready; end-to-end 30k import remains PARTIAL because F2 anatomy/index/matcher still execute synchronously in F2-IMPORT-V3-001-owned paths. See handoff for test evidence and duplicate/order auto-confirm risk. No production writes. 2026-09-28 Claude: main ustiga rebase, gate yashil, main ga qo'shildi. Qolgan P0 (egizak auto-aniq, zamena N so'rov, main-thread) F2-IMPORT-V3-001 da tuzatiladi."
     }
   ]
 }
