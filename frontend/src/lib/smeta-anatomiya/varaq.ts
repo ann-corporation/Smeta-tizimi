@@ -31,7 +31,13 @@ function ol(row: readonly Katak[], i: number): Katak {
 }
 
 /** Tizim1/LRV_PLUS texnik "tur" ustuni qiymatlari (rz/bl/rs/mat/ob, "+" qo'shimcha, "~" zamena). */
-const TUR_BELGI = /^(rz|bl|rs|mat|ob)[+~]?$/;
+const TUR_BELGI = /^(rz|bl|rs|mat|ob)[+~]?$/i;
+type TexnikTur = 'rz' | 'bl' | 'rs' | 'mat' | 'ob';
+function texnikTurniOqi(v: Katak): { tur: TexnikTur; belgi: string } | null {
+  const belgi = xom(v).trim().toLowerCase();
+  const m = belgi.match(TUR_BELGI);
+  return m ? { tur: m[1] as TexnikTur, belgi } : null;
+}
 /**
  * Texnik tur ustuni (Tizim1 LRV_PLUS eksportlari: I ustun = rz/bl/rs/mat/ob) — ma'lumotdan:
  * to'ldirilgan kataklarning ≥ 90 % i shu belgilar va kamida 10 ta. Bo'lsa, `rz` qatori
@@ -261,7 +267,7 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
   let vedomostRejimi = rol === 'res';
   let guruh: string | null = null;
 
-  const resursOl = (row: readonly Katak[], r: number, vedomost: boolean): Resurs => ({
+  const resursOl = (row: readonly Katak[], r: number, vedomost: boolean, marker?: string | null): Resurs => ({
     tartib: xom(ol(row, u.tartib)),
     kod: matnYoki(row, u.shifr),
     xom: xom(ol(row, u.nom)),
@@ -271,6 +277,8 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     narx: son(ol(row, u.narx)),
     summa: son(ol(row, u.summa)),
     guruh,
+    ...(marker ? { texnikBelgi: marker } : {}),
+    sarlavha: vedomost ? null : iq.joriy,
     manzil: manzil(r, u.nom),
   });
 
@@ -287,13 +295,35 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
   };
 
   const turUstun = turUstuniniTop(rows, u.malumotBoshi);
-  const rzQatormi = (row: readonly Katak[]) => turUstun >= 0 && /^rz/.test(xom(row[turUstun])) && !bosh(ol(row, u.nom));
+  const qatorTexnikTuri = (row: readonly Katak[]) => turUstun >= 0 ? texnikTurniOqi(row[turUstun]) : null;
+  const rzQatormi = (row: readonly Katak[]) => qatorTexnikTuri(row)?.tur === 'rz' && !bosh(ol(row, u.nom));
+  const ishYarat = (row: readonly Katak[], r: number, marker?: string | null): Ish => {
+    const hajmL = son(ol(row, u.hajmLoyiha));
+    const ish: Ish = {
+      tartib: xom(ol(row, u.tartib)),
+      shifr: matnYoki(row, u.shifr),
+      xom: xom(ol(row, u.nom)),
+      birlik: matnYoki(row, u.birlik),
+      hajm: hajmL ?? son(ol(row, u.hajmBirlikka)),
+      narx: son(ol(row, u.narx)),
+      summa: son(ol(row, u.summa)),
+      sarlavha: iq.joriy,
+      ...(marker ? { texnikBelgi: marker } : {}),
+      manzil: manzil(r, u.nom),
+      resurslar: [],
+    };
+    iq.ishKeldi();
+    natija.ishlar.push(ish);
+    return ish;
+  };
+  const mustaqilResurslar = (): Resurs[] => (natija.mustaqilResurslar ??= []);
   for (let r = u.malumotBoshi; r < rows.length; r++) {
     const row = rows[r] ?? [];
     const toliq = toliqUstunlar(row);
     if (!toliq.length) continue;
     const birinchiMatn = xom(row[toliq[0]]);
     const bk = kalit(birinchiMatn);
+    const texnik = rol === 'lrv' ? qatorTexnikTuri(row) : null;
     if (toliq.some((i) => IMZO.test(kalit(row[i])))) break;
     if (toliq.length <= 2 && AKT_IMZO.test(bk) && !toliq.some((i) => typeof row[i] === 'number')) break;
     // Ma'lumot ichida takrorlangan "1 | 2 | 3 | 4 …" ustun raqamlari qatori — ma'lumot emas.
@@ -304,6 +334,17 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       const jamiMatn = JAMI.test(bk) ? birinchiMatn : xom(ol(row, u.nom));
       natija.jamilar.push({ xom: jamiMatn, qiymat: son(ol(row, u.summa)), manzil: manzil(r, u.summa) });
       if (!vedomostRejimi) iq.jamiKeldi(jamiMatn);
+      continue;
+    }
+
+    // LRV_PLUS markerlari qatorning haqiqiy turini bildiradi. Ular tartib raqamidan
+    // kuchliroq dalil: MAT/OB ishga yutib yuborilmaydi, RS esa raqam formati buzilsa
+    // ham joriy ishga birikadi. MAT/OB RZ ostidagi sibling bo'lib qoladi (T1 treeBuild).
+    if (texnik?.tur === 'rz' && !bosh(ol(row, u.nom))) {
+      let k = r + 1;
+      while (k < rows.length && !toliqUstunlar(rows[k] ?? []).length) k++;
+      iq.sarlavha(xom(ol(row, u.nom)), manzil(r, u.nom), k < rows.length && rzQatormi(rows[k] ?? []));
+      joriyIsh = null;
       continue;
     }
 
@@ -324,6 +365,29 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       continue;
     }
 
+    if (texnik?.tur === 'bl') {
+      if (!nomBor && bosh(ol(row, u.shifr))) { review('bl_nomsiz', 'BL markerli qatorida nom ham, shifr ham yo‘q — qo‘lda ko‘rib chiqing', r); continue; }
+      joriyIsh = ishYarat(row, r, texnik.belgi);
+      continue;
+    }
+    if (texnik?.tur === 'rs') {
+      if (!nomBor && bosh(ol(row, u.shifr))) { review('rs_nomsiz', 'RS markerli qatorida nom ham, shifr ham yo‘q — qo‘lda ko‘rib chiqing', r); continue; }
+      iq.ishKeldi();
+      const resurs = resursOl(row, r, false, texnik.belgi);
+      if (joriyIsh) joriyIsh.resurslar.push(resurs);
+      else {
+        mustaqilResurslar().push(resurs);
+        review('resurs_ishsiz', `RS qatori (${resurs.tartib || 'tartibsiz'}) uchun BL egasi topilmadi; qator yo‘qotilmadi, tekshirish kerak`, r);
+      }
+      continue;
+    }
+    if (texnik?.tur === 'mat' || texnik?.tur === 'ob') {
+      if (!nomBor && bosh(ol(row, u.shifr))) { review(`${texnik.tur}_nomsiz`, `${texnik.tur.toUpperCase()} markerli qatorida nom ham, shifr ham yo‘q — qo‘lda ko‘rib chiqing`, r); continue; }
+      iq.ishKeldi();
+      mustaqilResurslar().push(resursOl(row, r, false, texnik.belgi));
+      continue;
+    }
+
     // Ish ostidagi resurs, lekin tartibi butun son ko'rinishida: Google Sheets "3.1" ni
     // sanaga aylantiradi (46025), ba'zi eksportlar "1,10" ni 1.1 emas matn qiladi.
     // Resurs kodi sof raqam (000001, 3, 1941) — ish shifri hech qachon sof raqam emas.
@@ -335,21 +399,7 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     }
 
     if (butunTartib(tartibKatak) && (nomBor || !bosh(ol(row, u.shifr)))) {
-      iq.ishKeldi();
-      const hajmL = son(ol(row, u.hajmLoyiha));
-      joriyIsh = {
-        tartib: xom(tartibKatak),
-        shifr: matnYoki(row, u.shifr),
-        xom: xom(ol(row, u.nom)),
-        birlik: matnYoki(row, u.birlik),
-        hajm: hajmL ?? son(ol(row, u.hajmBirlikka)),
-        narx: son(ol(row, u.narx)),
-        summa: son(ol(row, u.summa)),
-        sarlavha: iq.joriy,
-        manzil: manzil(r, u.nom),
-        resurslar: [],
-      };
-      natija.ishlar.push(joriyIsh);
+      joriyIsh = ishYarat(row, r);
       continue;
     }
 
@@ -360,14 +410,6 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       if (!joriyIsh) { review('resurs_ishsiz', `resurs "${xom(tartibKatak)}" hech bir ishga tegishli emas`, r); continue; }
       if (!nomBor) review('resurs_nomsiz', `resurs ${xom(tartibKatak)} (kod ${xom(ol(row, u.shifr))}) nomi bo'sh`, r);
       joriyIsh.resurslar.push(resursOl(row, r, false));
-      continue;
-    }
-
-    // Texnik tur ustuni "rz" — razdel (nom ustunidagi matn; qatordagi 0 sonlar hisob kataklari).
-    if (rzQatormi(row)) {
-      let k = r + 1;
-      while (k < rows.length && !toliqUstunlar(rows[k] ?? []).length) k++;
-      iq.sarlavha(xom(ol(row, u.nom)), manzil(r, u.nom), k < rows.length && rzQatormi(rows[k] ?? []));
       continue;
     }
 

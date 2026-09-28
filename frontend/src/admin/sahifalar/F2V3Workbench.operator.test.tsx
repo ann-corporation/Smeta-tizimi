@@ -14,15 +14,16 @@ vi.mock('@tanstack/react-virtual', () => ({
   }),
 }));
 
-const leaf = (uid: string, nom: string): F2Tugun => ({
-  uid, tur: 'bl', kod: uid, nom, birlik: 'm3', hajm: 1, narx: 100, summa: uid === 'f1' ? 125 : 50,
+const leaf = (uid: string, nom: string, tur: F2Tugun['tur'] = 'bl'): F2Tugun => ({
+  uid, tur, kod: uid, nom, birlik: 'm3', hajm: 1, narx: 100, summa: uid === 'f1' ? 125 : 50,
   manzil: { fayl: 'f2.xlsx', varaq: 'Akt', qator: Number(uid.slice(1)) + 9 }, yol: ['Beton ishlari'], bolalar: [], barg: true,
 });
 
-function renderWorkbench(rowCount = 2) {
+function renderWorkbench(rowCount = 2, specialTypes: F2Tugun['tur'][] = []) {
   const f2Rows = Array.from({ length: rowCount }, (_, index) => leaf(
     `f${index + 1}`,
     index === 0 ? 'Beton B25' : index === 1 ? 'Armatura A500' : `Ish ${index + 1}`,
+    specialTypes[index] ?? 'bl',
   ));
   const rz: F2Tugun = {
     uid: 'frz', tur: 'rz', kod: null, nom: 'KONSTRUKSIYA', birlik: null, hajm: null, narx: null, summa: null,
@@ -75,7 +76,9 @@ describe('F2 workbench operator controls', () => {
     expect(sourceSum?.textContent).toContain('F2 hujjatining “Итого прямые затраты” jami: 175');
     expect(screen.getByText('Bog‘lanish qamrovi')).toBeTruthy();
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
-    expect(f2Tree.getByRole('group', { name: 'F2 bl: Beton B25' }).textContent).toContain('125');
+    expect(screen.getByRole('button', { name: 'Barcha qatorlar' }).getAttribute('aria-pressed')).toBe('true');
+    expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
+    expect(f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Beton B25' }).textContent).toContain('125');
     expect(screen.getByRole('button', { name: 'Bog‘lanishni uzish: Beton B25' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lash variantlari: Beton B25' }));
     expect(screen.getAllByText('93%').length).toBeGreaterThan(0);
@@ -85,9 +88,17 @@ describe('F2 workbench operator controls', () => {
     renderWorkbench();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lanmagan' }));
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
+    expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
     expect(f2Tree.getByText('Armatura A500')).toBeTruthy();
     expect(f2Tree.queryByText('Beton B25')).toBeNull();
     expect(f2Tree.getByRole('button', { name: 'Bog‘lash variantlari: Armatura A500' })).toBeTruthy();
+  });
+
+  it('labels standalone materials and equipment in PTO language, not as generic resources', () => {
+    renderWorkbench(2, ['mat', 'ob']);
+    const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
+    expect(f2Tree.getByRole('group', { name: 'F2 qatori (Mustaqil material): Beton B25' })).toBeTruthy();
+    expect(f2Tree.getByRole('group', { name: 'F2 qatori (Mustaqil uskuna): Armatura A500' })).toBeTruthy();
   });
 
   it('opens/closes all and toggles exactly one hierarchy level', () => {

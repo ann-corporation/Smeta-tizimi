@@ -16,7 +16,7 @@ import { sarlavhaYoli } from './ierarxiya';
 import { kalit, xom } from './matn';
 import type { Ish, KirishKitob, KirishVaraq, Manzil, Resurs, VaraqAnatomiyasi } from './turlar';
 
-export type F2TugunTuri = 'rz' | 'bl' | 'rs';
+export type F2TugunTuri = 'rz' | 'bl' | 'rs' | 'mat' | 'ob';
 
 export interface F2Tugun {
   /** Fayl ichida barqaror manzil: `varaq!qator`. */
@@ -31,6 +31,8 @@ export interface F2Tugun {
   summa: number | null;
   /** Resurs: norma (birlikka). */
   norma?: number | null;
+  /** LRV_PLUS qatorining texnik markerini aynan saqlaydi; suffix biznes holati sifatida talqin qilinmaydi. */
+  texnikBelgi?: string | null;
   manzil: Manzil;
   /** RZ nomlari ildizdan (asl matn). */
   yol: string[];
@@ -150,8 +152,8 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
   const uid = (m: Manzil) => `${m.varaq}!${m.qator}`;
 
   /** RZ zanjiri (titul/qurilish darajalari bundan tashqari — ular varaq sarlavhasi). */
-  const rzTugun = (ish: Ish): F2Tugun | null => {
-    const yol = sarlavhaYoli(barchaSarlavha, ish.sarlavha).filter((s) => s.tur !== 'qurilish' && s.tur !== 'obyekt');
+  const rzTugun = (sarlavhaId: number | null): F2Tugun | null => {
+    const yol = sarlavhaYoli(barchaSarlavha, sarlavhaId).filter((s) => s.tur !== 'qurilish' && s.tur !== 'obyekt');
     let ota: F2Tugun | null = null;
     const nomlar: string[] = [];
     for (const s of yol) {
@@ -171,14 +173,37 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
   let qatorlarJami = 0;
   let barglar = 0;
   let ishlar = 0;
-  for (const ish of v.ishlar) {
-    const ota = rzTugun(ish);
+  const kiruvchilar = [
+    ...v.ishlar.map((qiymat) => ({ tur: 'bl' as const, qator: qiymat.manzil.qator, qiymat })),
+    ...(v.mustaqilResurslar ?? []).map((qiymat) => ({ tur: 'mustaqil' as const, qator: qiymat.manzil.qator, qiymat })),
+  ].sort((a, b) => a.qator - b.qator);
+
+  for (const kiruvchi of kiruvchilar) {
+    if (kiruvchi.tur === 'mustaqil') {
+      const r = kiruvchi.qiymat;
+      const ota = rzTugun(r.sarlavha ?? null);
+      const yol = ota ? [...ota.yol, ota.nom] : [];
+      const tugunTuri = r.texnikBelgi?.startsWith('mat') ? 'mat' : r.texnikBelgi?.startsWith('ob') ? 'ob' : 'rs';
+      const tugun = resursTugun(r, yol, tugunTuri);
+      const xato = qiymatXatosi(v, k, r.manzil.qator);
+      if (xato) {
+        (tugun.ogohlantirish ??= []).push(`katakda ${xato}`);
+        ogoh.push({ kod: 'XATO_QIYMAT', izoh: `${r.tartib || 'qator'} "${(r.xom || r.kod || '').slice(0, 40)}": katakda ${xato} — qiymat noma'lum`, manzil: r.manzil });
+      } else if (r.summa != null) qatorlarJami += r.summa;
+      if (!r.xom) ogoh.push({ kod: 'NOMSIZ_RESURS', izoh: `${r.tartib || 'qator'} (kod ${r.kod ?? '—'}) — nomi bo'sh; kod bo'yicha tekshiring`, manzil: r.manzil });
+      barglar++;
+      if (ota) ota.bolalar.push(tugun); else ildiz.push(tugun);
+      continue;
+    }
+
+    const ish = kiruvchi.qiymat;
+    const ota = rzTugun(ish.sarlavha);
     const yol = ota ? [...ota.yol, ota.nom] : [];
     const ishXato = qiymatXatosi(v, k, ish.manzil.qator);
     const bl: F2Tugun = {
       uid: uid(ish.manzil), tur: 'bl', kod: ish.shifr, nom: ish.xom, birlik: ish.birlik,
       hajm: ish.hajm, narx: ish.narx, summa: ish.summa, manzil: ish.manzil, yol, bolalar: [],
-      barg: ish.resurslar.length === 0,
+      barg: ish.resurslar.length === 0, texnikBelgi: ish.texnikBelgi,
     };
     if (ish.hajm == null && !ishXato) {
       ogoh.push({ kod: 'HAJMSIZ_ISH', izoh: `${ish.tartib}-ish "${ish.xom.slice(0, 50)}" — hajmi bo'sh: shu oy bajarilmagan deb olinadi (aktga kirmaydi)`, manzil: ish.manzil });
@@ -191,7 +216,7 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
     }
     if ((ish.hajm ?? 0) < 0) ogoh.push({ kod: 'MANFIY_QATOR', izoh: `${ish.tartib}-ish: manfiy hajm ${ish.hajm} — перерасчет (oldingi F2 kamayadi)`, manzil: ish.manzil });
     for (const r of ish.resurslar) {
-      const rt = resursTugun(r, [...yol, ish.xom]);
+      const rt = resursTugun(r, [...yol, ish.xom], 'rs');
       const xato = qiymatXatosi(v, k, r.manzil.qator);
       if (xato) {
         (rt.ogohlantirish ??= []).push(`katakda ${xato}`);
@@ -222,10 +247,11 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
   };
 }
 
-function resursTugun(r: Resurs, yol: string[]): F2Tugun {
+function resursTugun(r: Resurs, yol: string[], tur: 'rs' | 'mat' | 'ob' = 'rs'): F2Tugun {
   return {
-    uid: `${r.manzil.varaq}!${r.manzil.qator}`, tur: 'rs', kod: r.kod, nom: r.xom || (r.kod ? `(nomsiz, kod ${r.kod})` : '(nomsiz)'),
-    birlik: r.birlik, hajm: r.hajm, narx: r.narx, summa: r.summa, norma: r.normaBirlikka, manzil: r.manzil, yol, bolalar: [], barg: true,
+    uid: `${r.manzil.varaq}!${r.manzil.qator}`, tur, kod: r.kod, nom: r.xom || (r.kod ? `(nomsiz, kod ${r.kod})` : '(nomsiz)'),
+    birlik: r.birlik, hajm: r.hajm, narx: r.narx, summa: r.summa, norma: r.normaBirlikka, texnikBelgi: r.texnikBelgi,
+    manzil: r.manzil, yol, bolalar: [], barg: true,
   };
 }
 

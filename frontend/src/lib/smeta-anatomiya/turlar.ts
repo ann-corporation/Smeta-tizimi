@@ -75,6 +75,10 @@ export interface Resurs {
   summa: number | null;
   /** Vedomost/RES dagi guruh sarlavhasi (ТРУДОВЫЕ РЕСУРСЫ, МЕСТНЫЕ МАТЕРИАЛЫ…), asl matn. */
   guruh: string | null;
+  /** LRV_PLUS texnik satr turi. Ma'no aynan saqlanadi; suffiks biznes holati deb talqin qilinmaydi. */
+  texnikBelgi?: string | null;
+  /** Mustaqil mat/ob qatori tegishli bo'lgan eng yaqin RZ. */
+  sarlavha?: number | null;
   manzil: Manzil;
 }
 
@@ -88,6 +92,8 @@ export interface Ish {
   summa: number | null;
   /** Eng yaqin sarlavha; ildizdan yo'l — `sarlavhaYoli()` bilan. */
   sarlavha: number | null;
+  /** LRV_PLUS texnik satr turi; suffixlar faqat manba belgisi sifatida saqlanadi. */
+  texnikBelgi?: string | null;
   manzil: Manzil;
   resurslar: Resurs[];
 }
@@ -127,6 +133,8 @@ export interface VaraqAnatomiyasi {
   titul: Sarlavha[];
   sarlavhalar: Sarlavha[];
   ishlar: Ish[];
+  /** LRV ichidagi RZ darajasida turgan mustaqil MAT/OB yoki egasiz RS qatorlari. */
+  mustaqilResurslar?: Resurs[];
   /** Ish daraxtidan keyingi ВЕДОМОСТЬ РЕСУРСОВ yoki RES varag'i qatorlari. */
   vedomost: Resurs[];
   jamilar: JamiQator[];

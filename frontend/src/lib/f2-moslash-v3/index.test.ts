@@ -107,6 +107,55 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(n.natijalar.get(w.bolalar[2].uid)!.sabab).toMatch(/zamena material|qo‘shimcha resurs/);
   });
 
+  it('mustaqil MAT/OB qatori BL ota yoki RZ ga emas, faqat mos smeta bargiga bog‘lanadi', () => {
+    const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
+    const matParent = rz('РАЗДЕЛ: МАТЕРИАЛЫ');
+    const onlyWork = ish(matParent, 'MAT-EXACT', 'БЛОКИ ДВЕРНЫЕ ПВХ', 'ШТ', 3);
+    const matId = ++sid;
+    S.push({ id: matId, otaId: L3c, tur: 'mat', kod: 'MAT-EXACT-2', nom: 'БЛОКИ ОКОННЫЕ ПВХ', birlik: 'ШТ', hajm: 4, tartib: matId });
+    const mat = f('mat', 'MAT-EXACT', 'БЛОКИ ДВЕРНЫЕ ПВХ', 'ШТ', 1, yol);
+    const root = rzF(yol[0], [], [mat]);
+    const n1 = f2MoslashV3([root], S);
+    expect(n1.natijalar.get(mat.uid)?.qatorId).not.toBe(onlyWork);
+    expect(n1.natijalar.get(mat.uid)?.holat).toBe('topilmadi');
+
+    const exactMat = f('mat', 'MAT-EXACT-2', 'БЛОКИ ОКОННЫЕ ПВХ', 'ШТ', 1, yol);
+    const n2 = f2MoslashV3([rzF(yol[0], [], [exactMat])], S);
+    expect(n2.natijalar.get(exactMat.uid)?.qatorId).toBe(matId);
+    expect(n2.natijalar.get(exactMat.uid)?.holat).not.toBe('topilmadi');
+  });
+
+  it('explicit row type is a hard matching boundary; only unmarked legacy work keeps the leaf suggestion', () => {
+    const id = ++sid;
+    S.push({ id, otaId: L3c, tur: 'ob', kod: 'TYPE-BOUNDARY', nom: 'СВЕТИЛЬНИК', birlik: 'ШТ', hajm: 3, tartib: id });
+    const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
+    const markedMaterial = Object.assign(f('mat', 'TYPE-BOUNDARY', 'СВЕТИЛЬНИК', 'ШТ', 1, yol), { texnikBelgi: 'mat' });
+    const markedWork = Object.assign(f('bl', 'TYPE-BOUNDARY', 'СВЕТИЛЬНИК', 'ШТ', 1, yol), { texnikBelgi: 'bl' });
+    const legacyUnmarkedWork = f('bl', 'TYPE-BOUNDARY', 'СВЕТИЛЬНИК', 'ШТ', 1, yol);
+
+    const wrongMaterialType = f2MoslashV3([rzF(yol[0], [], [markedMaterial])], S).natijalar.get(markedMaterial.uid)!;
+    const wrongWorkType = f2MoslashV3([rzF(yol[0], [], [markedWork])], S).natijalar.get(markedWork.uid)!;
+    const legacyReview = f2MoslashV3([rzF(yol[0], [], [legacyUnmarkedWork])], S).natijalar.get(legacyUnmarkedWork.uid)!;
+
+    expect(wrongMaterialType.holat).toBe('topilmadi');
+    expect(wrongWorkType.holat).toBe('topilmadi');
+    expect(legacyReview.holat).not.toBe('aniq');
+    expect(legacyReview.qatorId).toBe(id);
+  });
+
+  it('explicit RS resource cannot bind to a same-code MAT child', () => {
+    const materialId = ++sid;
+    S.push({ id: materialId, otaId: W1, tur: 'mat', kod: 'RS-MAT-BOUNDARY', nom: 'БЕТОН В25', birlik: 'М3', hajm: 2, tartib: materialId });
+    const work = Object.assign(f('bl', 'E1-1-195-19 ШHК.ДОП.11', 'РАЗРАБОТКА ГРУНТА В ОТВАЛ', '1000М3', 1, ['РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ-3)']), { texnikBelgi: 'bl' });
+    const resource = Object.assign(f('rs', 'RS-MAT-BOUNDARY', 'БЕТОН В25', 'М3', 2, []), { texnikBelgi: 'rs' });
+    work.bolalar.push(resource);
+    const result = f2MoslashV3([rzF('РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ-3)', [], [work])], S);
+
+    expect(result.natijalar.get(work.uid)?.qatorId).toBe(W1);
+    expect(result.natijalar.get(resource.uid)?.holat).toBe('topilmadi');
+    expect(result.natijalar.get(resource.uid)?.qatorId).not.toBe(materialId);
+  });
+
   it('xotira: o‘tgan oyda tasdiqlangan bog‘lanish birinchi', () => {
     const yol = ['БОШҚА НОМ'];
     const w = f('bl', 'E1-1-195-19 ШHК.ДОП.11', 'РАЗРАБОТКА ГРУНТА В ОТВАЛ', '1000М3', 0.1, yol);

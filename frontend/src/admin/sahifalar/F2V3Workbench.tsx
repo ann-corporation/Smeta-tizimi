@@ -81,12 +81,24 @@ export interface F2V3WorkbenchProps {
 /** Resurs turi birlikdan: ЧЕЛ/МАШ — rs, qolgani material (kategoriyani server birlik/nom bo'yicha aniqlaydi). */
 const resTuri = (birlik: string | null): 'rs' | 'mat' => (/ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
 
+function f2QatorTuriYorlig(i: F2Tugun['tur']): string {
+  switch (i) {
+    case 'bl': return 'Ish';
+    case 'rs': return 'Ish tarkibidagi resurs';
+    case 'mat': return 'Mustaqil material';
+    case 'ob': return 'Mustaqil uskuna';
+    case 'rz': return 'Bo‘lim';
+  }
+}
+
 export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const { ind, S, ij } = p;
   const [tanlangan, setTanlangan] = useState<string | null>(null);
   const [ochiqS, setOchiqS] = useState<Set<number>>(new Set());
   const [yopiqF, setYopiqF] = useState<Set<string>>(new Set());
-  const [filtr, setFiltr] = useState<'hammasi' | 'hal' | 'muammo' | 'boglanmagan'>('hal');
+  // PTO birinchi kirganda butun manba daraxtini ko'radi. Virtualizatsiya katta
+  // hujjatda DOM hajmini cheklaydi; filtrni operator keyin ongli ravishda tanlaydi.
+  const [filtr, setFiltr] = useState<'hammasi' | 'hal' | 'muammo' | 'boglanmagan'>('hammasi');
   const [q, setQ] = useState('');
   const [dropKey, setDropKey] = useState<string | null>(null);
   const [tanlov, setTanlov] = useState<Tanlov | null>(null);
@@ -329,7 +341,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const candidateCount = p.natija.natijalar.get(t.uid)?.nomzodlar.length ?? 0;
     const rowOpen = t.bolalar.length > 0 && !yopiqF.has(t.uid);
     return (
-      <div data-fuid={t.uid} role="group" aria-label={`F2 ${t.tur}: ${t.nom}`}
+      <div data-fuid={t.uid} role="group" aria-label={`F2 qatori (${f2QatorTuriYorlig(t.tur)}): ${t.nom}`}
         className={'flex items-center gap-1 rounded border px-1 py-0.5 ' + (sel ? 'border-accent bg-accent/10' : 'border-transparent hover:bg-surface-2/60')}
         style={{ marginLeft: depth * 12 }}>
         {t.bolalar.length > 0
@@ -344,7 +356,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTanlangan(sel ? null : t.uid); } }}
           aria-pressed={sel}
           className={'grid min-w-0 flex-1 cursor-grab grid-cols-[16px_1fr_auto] items-center gap-1 rounded px-1 py-[3px] text-left text-[12px] '
-            + (t.tur === 'rs' ? 'text-text-dim' : 'text-text')}>
+            + (t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob' ? 'text-text-dim' : 'text-text')}>
           <span className={`text-center font-bold ${B.cls}`} title={B.t}>{B.b}</span>
           <span className="min-w-0">
             <span className="block truncate" title={t.nom}>{t.kod && <span className="mr-1 font-mono text-[11px] text-text-mute">{t.kod}</span>}{t.nom}</span>
@@ -481,7 +493,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium text-text">{tTugun.kod && <span className="mr-1 font-mono text-text-mute">{tTugun.kod}</span>}{tTugun.nom}</p>
             <p className="text-[11px] text-text-dim">
-              {tTugun.tur === 'bl' ? 'Ish' : 'Resurs'} · {fmt(tTugun.hajm)} {tTugun.birlik ?? ''}{tTugun.narx != null ? ` × ${fmt(tTugun.narx, 2)}` : ''}{tTugun.summa != null ? ` = ${fmt(tTugun.summa, 2)}` : ''}
+              {f2QatorTuriYorlig(tTugun.tur)} · {fmt(tTugun.hajm)} {tTugun.birlik ?? ''}{tTugun.narx != null ? ` × ${fmt(tTugun.narx, 2)}` : ''}{tTugun.summa != null ? ` = ${fmt(tTugun.summa, 2)}` : ''}
               {' · '}{tTugun.manzil.varaq}!{tTugun.manzil.qator}
             </p>
             {s && <p className="text-[11px] text-accent">→ {s.kod ? s.kod + ' ' : ''}{s.nom} ({s.birlik ?? '—'}) <span className="text-text-mute">[{b!.usul}]</span></p>}

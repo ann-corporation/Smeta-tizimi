@@ -102,4 +102,34 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     expect(akt.ogohlantirishlar.filter((o) => o.kod === 'XATO_QIYMAT').length).toBeGreaterThanOrEqual(1);
     expect(akt.qatorlarJami).toBe(700);
   });
+
+  it('LRV_PLUS markerlari BL/RS/MAT/OB ni ajratadi, MAT/OB RZ ostida qoladi va keyingi RS avvalgi BL ga birikadi', () => {
+    const markerli: Katak[][] = [
+      ['№№', 'ОБОСНОВАНИЕ', 'НАИМЕНОВАНИЕ РАБОТ И РЕСУРСОВ', 'ЕД.ИЗМ', 'КОЛ-ВО', null, 'ЦЕНА', 'СУММА', 'ТИП'],
+      [null, null, null, null, 'НА ЕДИНИЦУ', 'ПО ПРОЕКТУ', null, null, null],
+      [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      ['РАЗДЕЛ: АМФИТЕАТР', 0, 'АМФИТЕАТР', null, 0, 0, 0, 0, 'rz'],
+      ['РАЗДЕЛ: СЦЕНА', 0, 'СЦЕНА', null, 0, 0, 0, 0, 'rz'],
+      [1, 'W-1', 'УСТРОЙСТВО БЕТОННЫХ РАБОТ', 'м3', 10, 10, 100, 1000, 'bl'],
+      [1.1, '000001', 'ЗАТРАТЫ ТРУДА', 'чел-ч', 2, 20, 5, 100, 'rs'],
+      [2, 'MAT-1', 'БЛОКИ ДВЕРНЫЕ ПВХ', 'шт', null, 3, 50, 150, 'mat'],
+      [1.2, '000002', 'ЗАТРАТЫ МАШИНИСТОВ', 'маш-ч', 1, 10, 4, 40, 'rs'],
+      [3, 'OB-1', 'НАСОС', 'шт', null, 1, 200, 200, 'ob'],
+      [2, 'W-2', 'ОТДЕЛОЧНЫЕ РАБОТЫ', 'м2', 5, 5, 20, 100, 'bl'],
+      [2.1, 'MAT-2', 'СМЕСЬ', 'кг', 3, 15, 2, 30, 'mat'],
+      [2.2, '000003', 'ЗАТРАТЫ ТРУДА', 'чел-ч', 1, 5, 5, 25, 'rs'],
+      ['ИТОГО ПРЯМЫЕ ЗАТРАТЫ', null, null, null, null, null, null, 545, null],
+    ];
+    const [akt] = f2AktlarniOqi({ fayl: 'markerli-f2.xlsx', varaqlar: [{ nom: 'LRV', rows: [...SARLAVHA, ...markerli] }] });
+    const flatten = (nodes: typeof akt.daraxt): typeof akt.daraxt => nodes.flatMap((n) => [n, ...flatten(n.bolalar)]);
+    const tugunlar = flatten(akt.daraxt);
+    expect(tugunlar.filter((n) => n.tur === 'bl').map((n) => n.nom)).toEqual(['УСТРОЙСТВО БЕТОННЫХ РАБОТ', 'ОТДЕЛОЧНЫЕ РАБОТЫ']);
+    expect(tugunlar.filter((n) => n.tur === 'mat').map((n) => n.nom)).toEqual(['БЛОКИ ДВЕРНЫЕ ПВХ', 'СМЕСЬ']);
+    expect(tugunlar.filter((n) => n.tur === 'ob').map((n) => n.nom)).toEqual(['НАСОС']);
+    expect(tugunlar.find((n) => n.nom === 'БЛОКИ ДВЕРНЫЕ ПВХ')?.yol).toEqual(['АМФИТЕАТР', 'СЦЕНА']);
+    expect(tugunlar.find((n) => n.nom === 'ЗАТРАТЫ МАШИНИСТОВ')?.yol.at(-1)).toBe('УСТРОЙСТВО БЕТОННЫХ РАБОТ');
+    expect(akt.qatorlarJami).toBe(545);
+    expect(akt.barglarSoni).toBe(6);
+    expect(akt.ogohlantirishlar.map((x) => x.kod)).not.toContain('JAMI_FARQ');
+  });
 });

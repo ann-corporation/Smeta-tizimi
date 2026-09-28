@@ -337,7 +337,16 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       }
       [...hisob.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 60).forEach(([t]) => out.add(t));
     }
-    const turMos = (t: STugun) => (f.tur === 'bl' ? t.tur === 'bl' || !t.bolalar.length : true);
+    // T1 processStandalone: mustaqil resurs faqat barg qatorga boradi. T2
+    // canonical qator turi esa aniq: explicit marker bo'lsa aynan shu tur; eski,
+    // markersiz F2 da `rs` umumiy resurs deb olinadi. Markerli BL hech qachon
+    // MAT/OB bilan almashtirilmaydi. Markersiz tarixiy BL leaf fallback saqlanadi.
+    const turMos = (t: STugun) => {
+      if (f.tur === 'bl') return t.tur === 'bl' || (!f.texnikBelgi && t.tur !== 'rz' && !t.bolalar.length);
+      const belgiTuri = f.texnikBelgi?.replace(/[+~]$/, '').toLowerCase();
+      if (belgiTuri) return t.tur === belgiTuri;
+      return t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob';
+    };
     return [...out].filter((t) => !band.has(t.id) && turMos(t) && (d.rzlar ? true : true));
   }
 
@@ -423,7 +432,11 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: [], sabab: 'ishi bog‘lanmagan — ish hal qilinganda resurs ham hal bo‘ladi' });
         continue;
       }
-      const ichki = sIsh.bolalar.filter((t) => t.tur !== 'rz' && !band.has(t.id));
+      const markerTuri = r.texnikBelgi?.replace(/[+~]$/, '').toLowerCase();
+      const ichki = sIsh.bolalar.filter((t) =>
+        (t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob')
+        && (!markerTuri || t.tur === markerTuri)
+        && !band.has(t.id));
       const x = opts.xotira?.get(f2Imzo(r, otaImzo));
       if (x != null && ichki.some((t) => t.id === x)) {
         yoz(r.uid, { uid: r.uid, holat: 'xotira', qatorId: x, usul: 'xotira', nomzodlar: [], sabab: 'o‘tgan oylarda tasdiqlangan' });
