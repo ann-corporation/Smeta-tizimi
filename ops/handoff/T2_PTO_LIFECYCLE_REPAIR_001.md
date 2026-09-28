@@ -50,4 +50,13 @@ takrorlandi. Read-only SQL `2026-07` uchun 22007 xatosini isbotladi;
 sanaga aylantiradi; sahifalash regression testi aynan shu sanani tekshiradi.
 LRV virtual daraxti uchun nol balandlik muammosi aniq viewport bilan tuzatildi.
 Ushbu qo‘shimcha uchun 24 focused test va build (ikkala TypeScript gate) PASS.
-Yangi buildning browser download smoke tekshiruvi hali davom etmoqda.
+Preview: https://codex-pto-lifecycle-repair-v.smeta-tizimi.pages.dev
+Code checkpoint: 8e5e94bff49664d965a38c834037b36f34cf772b.
+Authenticated Chrome smoke: Fast Food LRV daraxti ochildi, ZEMLYANYE RABOTY
+razdeli va BL/RS ko‘rindi. Downloads ichida haqiqiy fayllar tekshirildi:
+LRV_PLUS (290570 bytes), Nakopitelniy (264185 bytes), Forma-3 (136419 bytes).
+F3 hozir approved F2 yo‘qligini ochiq bildiradi; draft sum kiritilmaydi.
+To‘liq Vitest: 113 suites / 728 tests PASS; 6 suites / 12 tests skipped.
+Build, browser/functions tsc, lint, tekshir, governance va diff-check PASS.
+F2 real moliyaviy tasdiqlash operatorga berildi; keyingi nonzero F3 browser
+tekshiruvi shu operator harakatidan keyin davom etadi. Main hali o‘zgarmagan.
