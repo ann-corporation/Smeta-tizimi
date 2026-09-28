@@ -29,6 +29,59 @@ function ichkiTartib(v: Katak): boolean {
 function ol(row: readonly Katak[], i: number): Katak {
   return i >= 0 ? row[i] : null;
 }
+
+/** Tizim1/LRV_PLUS texnik "tur" ustuni qiymatlari (rz/bl/rs/mat/ob, "+" qo'shimcha, "~" zamena). */
+const TUR_BELGI = /^(rz|bl|rs|mat|ob)[+~]?$/;
+/**
+ * Texnik tur ustuni (Tizim1 LRV_PLUS eksportlari: I ustun = rz/bl/rs/mat/ob) — ma'lumotdan:
+ * to'ldirilgan kataklarning ≥ 90 % i shu belgilar va kamida 10 ta. Bo'lsa, `rz` qatori
+ * (nomida 0 sonlari bo'lsa ham) razdel sarlavhasi (egasi 2026-09-28: "razdellar yo'q").
+ */
+function turUstuniniTop(rows: readonly Katak[][], bosh: number): number {
+  const hisob = new Map<number, { mos: number; jami: number }>();
+  for (let r = bosh; r < Math.min(rows.length, bosh + 3000); r++) {
+    const row = rows[r] ?? [];
+    for (let c = 0; c < row.length; c++) {
+      const v = row[c];
+      if (typeof v !== 'string' || !v.trim()) continue;
+      const h = hisob.get(c) ?? { mos: 0, jami: 0 };
+      h.jami++;
+      if (TUR_BELGI.test(v.trim())) h.mos++;
+      hisob.set(c, h);
+    }
+  }
+  let eng = -1, engMos = 0;
+  for (const [c, h] of hisob) if (h.mos >= 10 && h.mos / h.jami >= 0.9 && h.mos > engMos) { eng = c; engMos = h.mos; }
+  return eng;
+}
+
+/**
+ * Norma (birlikka) ustuni sarlavhasi topilmaganda — MA'LUMOTDAN isbotlab topadi.
+ * Holat (egasi, 2026-09-28, Fast food F2): Tizim1 LRV_PLUS eksporti "Количество: на
+ * единицу | всего" sarlavhasini 0 bilan yozgan; ish (bl) hajmi E da, resurs E = norma,
+ * F = E(ish) × E(resurs). Qoida: miqdor ustunidan chapdagi ustun uchun resurslarning
+ * kamida 80 % ida (≥ 5 namuna) `miqdor ≈ ish qiymati × resurs qiymati` bajarilsa —
+ * bu ustun norma/ish hajmi ustuni. Taxmin emas: tekshirilgan arifmetik dalil.
+ * Ichki tartib Excelda son (96.1) yoki matn ("96.1") bo'lishi mumkin — ikkalasi ham.
+ */
+function normaUstuniniMalumotdanTop(rows: readonly Katak[][], u: UstunXaritasi): { ustun: number; izoh: string } | null {
+  if (u.hajmBirlikka >= 0 || u.hajmLoyiha < 1 || u.tartib < 0) return null;
+  const c = u.hajmLoyiha - 1;
+  if ([u.tartib, u.shifr, u.nom, u.birlik, u.narx, u.summa].includes(c)) return null;
+  let ishQ: number | null = null;
+  let namuna = 0, mos = 0;
+  for (const row of rows) {
+    const t = ol(row, u.tartib);
+    if (butunTartib(t)) { ishQ = son(ol(row, c)); continue; }
+    if (!ichkiTartib(t) || ishQ == null) continue;
+    const e = son(ol(row, c)), f = son(ol(row, u.hajmLoyiha));
+    if (e == null || f == null || f === 0) continue;
+    namuna++;
+    if (Math.abs(ishQ * e - f) <= Math.max(Math.abs(f) * 0.005, 1e-6)) mos++;
+  }
+  if (namuna < 5 || mos / namuna < 0.8) return null;
+  return { ustun: c, izoh: `norma ustuni sarlavhasiz, ma'lumotdan isbotlandi: ${mos}/${namuna} resursda miqdor = ish hajmi × norma` };
+}
 function matnYoki(row: readonly Katak[], i: number): string | null {
   const t = xom(ol(row, i));
   return t || null;
@@ -176,6 +229,12 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       u.hajmLoyiha = m.uchlik.hajm; u.narx = m.uchlik.narx; u.summa = m.uchlik.summa;
     }
     rolDalil.push({ qoida: `ustunlar:${m.qoida}`, ishonch: m.ishonch, izoh: m.izoh });
+    const nb = normaUstuniniMalumotdanTop(rows.slice(u.malumotBoshi, u.malumotBoshi + 3000), u);
+    if (nb) {
+      u.hajmBirlikka = nb.ustun;
+      band.add(nb.ustun);
+      rolDalil.push({ qoida: 'ustunlar:norma_arifmetika', ishonch: 'yuqori', izoh: nb.izoh });
+    }
     qoshimcha = qoshimchaUstunlar(blok.sarlavhalar, new Set([...band, u.hajmLoyiha, u.narx, u.summa]));
   }
   const natija: VaraqAnatomiyasi = {
@@ -227,6 +286,8 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     return ![u.hajmBirlikka, u.hajmLoyiha, u.narx, u.summa].some((c) => c >= 0 && son(row[c]) != null);
   };
 
+  const turUstun = turUstuniniTop(rows, u.malumotBoshi);
+  const rzQatormi = (row: readonly Katak[]) => turUstun >= 0 && /^rz/.test(xom(row[turUstun])) && !bosh(ol(row, u.nom));
   for (let r = u.malumotBoshi; r < rows.length; r++) {
     const row = rows[r] ?? [];
     const toliq = toliqUstunlar(row);
@@ -299,6 +360,14 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       if (!joriyIsh) { review('resurs_ishsiz', `resurs "${xom(tartibKatak)}" hech bir ishga tegishli emas`, r); continue; }
       if (!nomBor) review('resurs_nomsiz', `resurs ${xom(tartibKatak)} (kod ${xom(ol(row, u.shifr))}) nomi bo'sh`, r);
       joriyIsh.resurslar.push(resursOl(row, r, false));
+      continue;
+    }
+
+    // Texnik tur ustuni "rz" — razdel (nom ustunidagi matn; qatordagi 0 sonlar hisob kataklari).
+    if (rzQatormi(row)) {
+      let k = r + 1;
+      while (k < rows.length && !toliqUstunlar(rows[k] ?? []).length) k++;
+      iq.sarlavha(xom(ol(row, u.nom)), manzil(r, u.nom), k < rows.length && rzQatormi(rows[k] ?? []));
       continue;
     }
 

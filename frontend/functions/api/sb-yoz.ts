@@ -29,6 +29,8 @@ const AMALLAR = {
   qoshimcha_ish_yarat_v1: { rpc: 't2_qoshimcha_ish_yarat_v1' },
   zamena_ish_yarat_v1: { rpc: 't2_zamena_ish_yarat_v1' },
   resurs_bola_qosh_v1: { rpc: 't2_resurs_bola_qosh_v1' },
+  /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
+  ish_resurslar_bilan_yarat_v1: { rpc: 't2_ish_resurslar_bilan_yarat_v1' },
   catalog_observation_yoz_v1: { rpc: 't2_catalog_observation_yoz_v1' },
   smeta_narxla_res: { rpc: 't2_smeta_narxla_res_v1' },
   qator_tahrir:   { rpc: 't2_qator_tahrir' },
@@ -455,6 +457,27 @@ export const onRequestPost: PagesFunction<{
       };
       if (amal === 'zamena_ish_yarat_v1') yuk.p_almashtirilayotgan_qator_id = so.almashtirilayotgan_qator_id;
       if (amal === 'resurs_bola_qosh_v1') yuk.p_tur = so.tur;
+    } else if (amal === 'ish_resurslar_bilan_yarat_v1') {
+      const buyruq = String(so.command || '');
+      const resurslar = Array.isArray(so.resurslar) ? so.resurslar : [];
+      if (!sess.foydalanuvchi_id || !so.operation_id || !Number.isSafeInteger(Number(so.kutilgan_versiya))
+          || (buyruq !== 'additional' && buyruq !== 'replacement') || resurslar.length > 500) {
+        return Response.json({ ok: false, error: 'Buyruq, operatsiya, versiya va ≤500 resurs talab qilinadi.' }, { status: 400 });
+      }
+      const matnQ = (x: unknown, n: number) => (x == null || String(x).trim() === '' ? null : String(x).slice(0, n));
+      const sonQ = (x: unknown) => (x == null || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));
+      yuk = { p_request: {
+        command: buyruq, kompaniya_id: Number(so.kompaniya_id), actor_id: sess.foydalanuvchi_id,
+        obyekt_id: Number(so.obyekt_id), ota_qator_id: Number(so.ota_qator_id),
+        almashtirilayotgan_qator_id: buyruq === 'replacement' ? Number(so.almashtirilayotgan_qator_id) : null,
+        nom: matnQ(so.nom, 500), birlik: matnQ(so.birlik, 40), hajm: sonQ(so.hajm), kod: matnQ(so.kod, 100),
+        keyin_qator_id: so.keyin_qator_id ?? null, sabab: matnQ(so.sabab, 500), dalil_hujjat_id: so.dalil_hujjat_id ?? null,
+        operation_id: so.operation_id, kutilgan_versiya: Number(so.kutilgan_versiya),
+        resurslar: resurslar.map((r: Record<string, unknown>) => ({
+          tur: ['rs', 'mat', 'ob'].includes(String(r.tur)) ? String(r.tur) : 'rs',
+          nom: matnQ(r.nom, 500), birlik: matnQ(r.birlik, 40), hajm: sonQ(r.hajm), kod: matnQ(r.kod, 100),
+        })),
+      } };
     } else if (amal === 'catalog_observation_yoz_v1') {
       if (!sess.foydalanuvchi_id || !so.operation_id || !Array.isArray(so.observations) || so.observations.length > 1000) {
         return Response.json({ ok: false, error: 'Operatsiya va 1–1000 ta katalog kuzatuvi talab qilinadi.' }, { status: 400 });
@@ -2101,7 +2124,7 @@ export const onRequestPost: PagesFunction<{
       });
 
     const matn = await r.text();
-    if (!r.ok && ['qoshimcha_ish_yarat_v1', 'zamena_ish_yarat_v1', 'resurs_bola_qosh_v1'].includes(amal)) {
+    if (!r.ok && ['qoshimcha_ish_yarat_v1', 'zamena_ish_yarat_v1', 'resurs_bola_qosh_v1', 'ish_resurslar_bilan_yarat_v1'].includes(amal)) {
       let code = '';
       try { code = JSON.parse(matn).code || ''; } catch { /* Faqat xavfsiz xabar qaytadi. */ }
       return Response.json({ ok: false, error: code === '40001'

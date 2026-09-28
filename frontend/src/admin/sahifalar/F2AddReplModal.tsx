@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import type { T2Qator } from '../../api/supabase';
 import { yangiOperationId } from '../../api/supabase';
-import { sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
+import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE: the old system's F2-import gesture the
@@ -31,7 +31,9 @@ export interface F2AddReplModalProps {
   initialBirlik?: string;
   initialHajm?: number;
   onClose: () => void;
-  onCreated: (qatorId: number) => void;
+  /** Ish yaratilganda F2 dagi resurslari — BIR so'rovda birga yaratiladi (egasi: zamena kuttirmasin). */
+  resurslar?: Array<{ tur: 'rs' | 'mat' | 'ob'; nom: string; birlik: string; hajm?: number | null; kod?: string | null }>;
+  onCreated: (qatorId: number, resursQatorIdlar?: number[]) => void;
 }
 
 const TUR_LABEL: Record<string, string> = { rs: 'Resurs (RS)', mat: 'Material (MAT)', ob: 'Uskuna (OB)' };
@@ -47,6 +49,9 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
     action.kind === 'replacement' ? 'F2 importda topilgan zamena' : 'F2 importda topilgan qo‘shimcha ish',
   );
   const [busy, setBusy] = useState(false);
+  /* Qayta urinishda AYNI operatsiya — tarmoq uzilsa ham dublikat yaratilmaydi. */
+  const opRef = useRef(yangiOperationId());
+  const resurslar = action.kind !== 'resource' ? (p.resurslar ?? []) : [];
   const [error, setError] = useState('');
 
   const sarlavha =
@@ -65,9 +70,19 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
       kompaniyaId: p.companyId, obyektId: p.objectId, otaQatorId: action.parent.id,
       nom: nom.trim(), birlik: birlik.trim(), hajm: hajmSoni as number,
       kod: kod.trim() || undefined, sabab: sabab.trim(),
-      operationId: yangiOperationId(), expectedVersion: action.parent.versiya,
+      operationId: opRef.current, expectedVersion: action.parent.versiya,
     };
     try {
+      if (resurslar.length && action.kind !== 'resource') {
+        const rr = await sbT2IshResurslarBilanYarat({
+          ...asos, command: action.kind === 'replacement' ? 'replacement' : 'additional',
+          almashtirilayotganQatorId: action.kind === 'replacement' ? action.oldRow.id : undefined,
+          resurslar,
+        });
+        if (!rr.ok || rr.qator_id == null) { setError(rr.xabar || rr.error || 'Saqlanmadi.'); return; }
+        p.onCreated(rr.qator_id, rr.resurs_qator_idlar ?? []);
+        return;
+      }
       const r = action.kind === 'replacement'
         ? await sbT2ZamenaIshYarat({ ...asos, almashtirilayotganQatorId: action.oldRow.id })
         : action.kind === 'additional'
@@ -122,6 +137,7 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
           <input value={sabab} onChange={e => setSabab(e.target.value)}
             className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
         </label>
+        {resurslar.length > 0 && <p className="mb-3 text-[12px] text-text-dim">F2 dagi <b>{resurslar.length}</b> ta resurs ham shu ish ostida birga yaratiladi va bog‘lanadi (bitta amal).</p>}
         {error && <p role="alert" className="text-danger text-[12px] mb-3">{error}</p>}
         <div className="flex gap-2 justify-end">
           <button onClick={p.onClose} className="px-5 py-2 rounded-xl text-sm font-medium text-text-dim hover:bg-surface-2 transition-colors">Bekor qilish</button>

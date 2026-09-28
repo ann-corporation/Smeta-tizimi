@@ -63,7 +63,7 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(r.nomzodlar.find((x) => x.qatorId === B15)!.ball).toBeLessThan(r.nomzodlar[0].ball);
   });
 
-  it('egizaklar (ЛИСТ-8 va ЛИСТ-9 da aynan bir xil ish) — tartib bo‘yicha, ikkinchisi ikkinchiga', () => {
+  it('egizaklar (ЛИСТ-8 va ЛИСТ-9 da aynan bir xil ish) — tartib bo‘yicha TAKLIF (avto-tasdiq emas), ikkinchisi ikkinchiga', () => {
     const yol = ['СМЕТА № 01-01 НА КОНСТРУКТИВНАЯ ЧАСТЬ-ОЗЕРА', 'РАЗДЕЛ: ПОДПОРНАЯ СТЕНА (ЛИСТ.-8,9)'];
     const mk = () => f('bl', 'E6-1-24-3', 'УСТРОЙСТВО СТЕН ПОДПОРНЫХ', '100М3', 1, yol, [
       f('rs', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 1051, yol, [], 1051),
@@ -71,8 +71,8 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     ]);
     const a = mk(), b = mk();
     const n = f2MoslashV3([rzF(yol[0], [], [rzF(yol[1], [yol[0]], [a, b])])], S);
-    expect(n.natijalar.get(a.uid)).toMatchObject({ holat: 'aniq', qatorId: E1, usul: 'tartib' });
-    expect(n.natijalar.get(b.uid)).toMatchObject({ holat: 'aniq', qatorId: E2 });
+    expect(n.natijalar.get(a.uid)).toMatchObject({ holat: 'taklif', qatorId: E1, usul: 'tartib' });
+    expect(n.natijalar.get(b.uid)).toMatchObject({ holat: 'taklif', qatorId: E2, usul: 'tartib' });
   });
 
   it('birlik qalqoni: Т ↔ КГ hech qachon avto bog‘lanmaydi', () => {

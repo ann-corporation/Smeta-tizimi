@@ -208,6 +208,8 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   const natijalar = new Map<string, F2QatorNatija>();
   const rzDiag: RzDiag[] = [];
   const band = new Set<number>();
+  /** Egizaklar tartib bo'yicha TAKLIF bilan band qilgan smeta qatorlari (tasdiqlanmagan). */
+  const tartibBand = new Set<number>();
   const AVTO_MIN = opts.avtoMin ?? 75;
   const AVTO_FARQ = opts.avtoFarq ?? 12;
   const barchaRz = [...S.byId.values()].filter((t) => t.tur === 'rz');
@@ -344,7 +346,8 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     if (n.qatorId != null) {
       band.add(n.qatorId);
       const t = S.byId.get(n.qatorId);
-      if (t && (n.holat === 'aniq' || n.holat === 'xotira')) oxirgiTartib = t.tartib ?? t.id;
+      if (t && (n.holat === 'aniq' || n.holat === 'xotira' || n.usul === 'tartib')) oxirgiTartib = t.tartib ?? t.id;
+      if (n.usul === 'tartib') tartibBand.add(n.qatorId);
     }
   }
 
@@ -371,9 +374,24 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const egizak = (n: Nomzod) => { const t = S.byId.get(n.qatorId)!; return t.kKod === t1.kKod && t.kNb === t1.kNb && t.resKalitlar.join() === t1.resKalitlar.join(); };
       const teng = nz.filter((n) => b1.ball - n.ball < AVTO_FARQ);
       if (teng.every(egizak) && teng.every((n) => n.ball === b1.ball)) {
-        yoz(f.uid, { uid: f.uid, holat: 'aniq', qatorId: b1.qatorId, usul: 'tartib', nomzodlar: nz, sabab: `bir xil ish ${teng.length} joyda (shifr, nom, birlik, resurslar teng) — tartib bo‘yicha birinchi bo‘shi` });
+        // Arxitektura (F2_IMPORT_V3 §2) + Codex tekshiruvi 2026-09-28: 'aniq' faqat yagona nomzodda.
+        // Egizaklarda tartib bo'yicha birinchi bo'shi OLDINDAN TANLANADI, lekin ◐ taklif — operator
+        // tasdiqlaydi (bir bosishda hammasini tasdiqlash bor). Jim avto-tasdiq yo'q.
+        yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: b1.qatorId, usul: 'tartib', nomzodlar: nz, sabab: `bir xil ish ${teng.length} joyda (shifr, nom, birlik, resurslar teng) — tartib bo‘yicha taklif, tasdiqlang` });
         return t1;
       }
+    }
+    const egizakTaklifBand = (qid: number) => {
+      const t = S.byId.get(qid)!;
+      for (const id of tartibBand) {
+        const e = S.byId.get(id);
+        if (e && e.id !== t.id && e.kKod === t.kKod && e.kNb === t.kNb && e.resKalitlar.join() === t.resKalitlar.join()) return true;
+      }
+      return false;
+    };
+    if (b1 && toza(b1) && b1.ball >= AVTO_MIN && egizakTaklifBand(b1.qatorId)) {
+      yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: b1.qatorId, usul: 'tartib', nomzodlar: nz, sabab: `bir xil ish boshqa joyda ham bor va u hali tasdiqlanmagan — tartib bo‘yicha taklif, tasdiqlang` });
+      return S.byId.get(b1.qatorId)!;
     }
     if (b1 && toza(b1) && b1.ball >= AVTO_MIN && (!b2 || b1.ball - b2.ball >= AVTO_FARQ)) {
       yoz(f.uid, { uid: f.uid, holat: 'aniq', qatorId: b1.qatorId, usul: 'ball', nomzodlar: nz, sabab: `${b1.ball} ball: ${b1.sabab.join(', ')}` });

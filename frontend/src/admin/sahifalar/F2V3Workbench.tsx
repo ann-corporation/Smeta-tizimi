@@ -74,9 +74,12 @@ export interface F2V3WorkbenchProps {
   companyId: number;
   objectId: number;
   /** Qo'shimcha/zamena qator yaratilgach: sahifa smetani yangilaydi, ish bo'lsa resurslarini yaratadi va bog'laydi. */
-  onYaratildi: (f: F2Tugun, qatorId: number) => Promise<void>;
+  onYaratildi: (f: F2Tugun, qatorId: number, resursQatorIdlar?: number[]) => Promise<void>;
   disabled?: boolean;
 }
+
+/** Resurs turi birlikdan: ЧЕЛ/МАШ — rs, qolgani material (kategoriyani server birlik/nom bo'yicha aniqlaydi). */
+const resTuri = (birlik: string | null): 'rs' | 'mat' => (/ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
 
 export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const { ind, S, ij } = p;
@@ -124,7 +127,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     })), [p.akt.jami.pryamye, ind, ij, S]);
 
   const f2ExpandableDepths = useMemo(() => expandableDepths(p.akt.daraxt, (node) => node.bolalar), [p.akt.daraxt]);
-  const smetaRoots = S.bolalar.get(null) ?? [];
+  const smetaRoots = useMemo(() => S.bolalar.get(null) ?? [], [S]);
   const smetaExpandableDepths = useMemo(() => expandableDepths(smetaRoots, (node) => S.bolalar.get(node.id) ?? []), [S, smetaRoots]);
   const f2VisibleRows = useMemo(() => {
     const matches = (node: F2Tugun) => {
@@ -147,7 +150,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     };
     return flattenVisibleTree(p.akt.daraxt, (node) => node.bolalar, (node) => node.uid,
       matches, (uid) => !yopiqF.has(String(uid)));
-  }, [p.akt.daraxt, filtr, ij, h.kopBog, S, shuF2, yopiqF]);
+  }, [p.akt.daraxt, filtr, ij, h.kopBog, S, shuF2, yopiqF, p.oldingi]);
   const qidir = q.trim().toUpperCase();
   const qidiruvNatija = useMemo(() => {
     if (qidir.length < 2) return null;
@@ -655,7 +658,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           initialBirlik={modal.f.birlik ?? undefined}
           initialHajm={modal.f.hajm ?? undefined}
           onClose={() => setModal(null)}
-          onCreated={(id) => { const f = modal.f; setModal(null); void p.onYaratildi(f, id); }}
+          resurslar={modal.f.tur === 'bl' ? modal.f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })) : undefined}
+          onCreated={(id, resIdlar) => { const f = modal.f; setModal(null); void p.onYaratildi(f, id, resIdlar); }}
         />
       )}
     </div>

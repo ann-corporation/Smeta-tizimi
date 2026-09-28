@@ -2,13 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   sbOqi, sbT2AktYaratV2, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator,
 } from '../../api/supabase';
-import { sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
 import { t2NakopitelniyToliq } from '../../api/t2-nakopitelniy';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
-import { f2AktlarniOqi, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
-import { f2MoslashV3, type F2MoslashNatija, type SmetaQator } from '../../lib/f2-moslash-v3';
+import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
+import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
+import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
   bogla, boshlangich, f2Indeks, smetaIndeks, yozishManbasi, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
@@ -28,7 +27,6 @@ const fmt = (n: number | null | undefined) => (n == null ? '—' : new Intl.Numb
 function smetaQatorlari(rows: T2Qator[]): SmetaQator[] {
   return rows.map((q) => ({ id: q.id, otaId: q.ota_id, tur: q.tur ?? 'rs', kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx, tartib: q.tartib }));
 }
-const resTur = (birlik: string | null): 'rs' | 'mat' => (/ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
 
 type SnapQator = { uid: string; imzo?: string };
 
@@ -79,8 +77,8 @@ function Sessiya({ companyId }: { companyId: number }) {
     rawFile.current = file; sourceDoc.current = undefined; sourceOp.current = yangiOperationId();
     try {
       if (file.size > MAX_FILE_BYTES) throw new Error('Fayl 50 MB dan katta.');
-      const kitob = await readXlsxFonda(await file.arrayBuffer());
-      const a = f2AktlarniOqi({ fayl: file.name, varaqlar: kitob.sheets.map((s) => ({ nom: s.name, rows: s.rows, merges: s.merges })) });
+      // Fayl o'qish va akt tahlili FONDA (Web Worker) — katta faylda sahifa qotmaydi.
+      const a = await f2AktlarniOqiFonda(file.name, await file.arrayBuffer());
       if (!a.length) throw new Error('Faylda F2 akt varag‘i topilmadi (ishlar ro‘yxati bor LRV shaklidagi varaq kerak).');
       setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? '');
       setHolat(a[0].davr ? 'Akt o‘qildi. Moslashtirilmoqda…' : 'Akt o‘qildi. Hisobot davrini tanlang.');
@@ -117,8 +115,10 @@ function Sessiya({ companyId }: { companyId: number }) {
     return { r, qol, x };
   }
 
-  function moslash(a: F2Akt, r: T2Qator[], qol: Map<number, number>, x: Map<string, number>, rb: Map<string, number>, avvalgi?: IshJoyi | null) {
-    const n = f2MoslashV3(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
+  async function moslash(a: F2Akt, r: T2Qator[], qol: Map<number, number>, x: Map<string, number>, rb: Map<string, number>, avvalgi?: IshJoyi | null) {
+    setHolat('Moslashtirilmoqda (fonda)…');
+    // Moslashtirish FONDA (Web Worker) — 30 ming qatorli smetada ham sahifa javob beradi.
+    const n = await f2MoslashV3Fonda(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
     setNatija(n); setIj(boshlangich(n, avvalgi ?? undefined));
     const { aniq, xotira: xt, taklif, topilmadi } = n.stat;
     setHolat(`Moslashtirildi: ✓ ${aniq + xt} · ◐ ${taklif} · ✕ ${topilmadi}. ◐ larni tasdiqlang, ✕ larni torting.`);
@@ -134,7 +134,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     void (async () => {
       try {
         const { r, qol, x } = await malumotYukla(Number(objectId), davr);
-        moslash(akt, r, qol, x, new Map());
+        await moslash(akt, r, qol, x, new Map());
         operation.current = yangiOperationId();
       } catch (e) { setXato(e instanceof Error ? e.message : 'Moslashtirish bajarilmadi.'); }
       finally { setBusy(false); }
@@ -145,7 +145,10 @@ function Sessiya({ companyId }: { companyId: number }) {
   function rzOrgat(f2Uid: string, sRz: number) {
     if (!akt) return;
     const rb = new Map(rzBog); rb.set(f2Uid, sRz); setRzBog(rb);
-    moslash(akt, rows, qoldiq, xotira, rb, ijRef.current);
+    setBusy(true);
+    void moslash(akt, rows, qoldiq, xotira, rb, ijRef.current)
+      .catch((e) => setXato(e instanceof Error ? e.message : 'Moslashtirish bajarilmadi.'))
+      .finally(() => setBusy(false));
   }
 
   async function smetaYangila(): Promise<T2Qator[]> {
@@ -155,34 +158,37 @@ function Sessiya({ companyId }: { companyId: number }) {
     setRows(r);
     return r;
   }
-  async function versiya(id: number): Promise<number> {
-    const r = await sbOqi<{ versiya: number }>({ jadval: 't2_daraxt', filtr: `obyekt_id=eq.${objectId}&id=eq.${id}`, ustunlar: 'id,versiya', limit: 1 });
-    const v = r.ok ? r.qatorlar?.[0]?.versiya : undefined;
-    if (v == null) throw new Error('Qator versiyasi o‘qilmadi.');
-    return v;
+  /** Faqat ko'rsatilgan qatorlarni o'qib, joriy smetaga qo'shadi/almashtiradi — 25–30 ming
+   *  qatorli smetani har zamenadan keyin qayta yuklamaslik uchun (egasi: kuttiradi). */
+  async function qatorlarniYangila(idlar: number[]): Promise<T2Qator[]> {
+    const toza = [...new Set(idlar.filter((x) => Number.isSafeInteger(x) && x > 0))];
+    if (!toza.length) return [];
+    const d = await sbOqi<T2Qator>({ jadval: 't2_daraxt', filtr: `obyekt_id=eq.${objectId}&id=in.(${toza.join(',')})`, limit: toza.length });
+    if (!d.ok) throw new Error('Yangi qatorlar o‘qilmadi.');
+    const kelgan = (d.qatorlar || []) as T2Qator[];
+    const yangi = new Map(kelgan.map((q) => [q.id, q]));
+    setRows((old) => {
+      const out = old.map((q) => yangi.get(q.id) ?? q);
+      for (const q of yangi.values()) if (!old.some((x) => x.id === q.id)) out.push(q);
+      return out;
+    });
+    return kelgan;
   }
-  /** Qo'shimcha/zamena ish yaratilgach: F2 resurslari ham shu ish ostiga yaratiladi va hammasi bog'lanadi. */
-  async function yaratildi(f: F2Tugun, qatorId: number) {
+  /** Qo'shimcha/zamena ish yaratildi — resurslari o'sha BITTA server amalida birga yaratilgan
+   *  (`t2_ish_resurslar_bilan_yarat_v1`); bu yerda faqat bog'lanadi va yangi qatorlar o'qiladi. */
+  async function yaratildi(f: F2Tugun, qatorId: number, resursIdlar?: number[]) {
     setBusy(true); setXato('');
     try {
       let joriy = bogla(ijRef.current!, f.uid, qatorId);
+      const resIdlar = resursIdlar ?? [];
+      if (f.tur === 'bl') f.bolalar.forEach((r, i) => { if (resIdlar[i] != null) joriy = bogla(joriy, r.uid, resIdlar[i]); });
       setIj(joriy);
-      if (f.tur === 'bl' && f.bolalar.length) {
-        let n = 0;
-        for (const r of f.bolalar) {
-          setHolat(`Resurslar yaratilmoqda: ${++n}/${f.bolalar.length}…`);
-          const res = await sbT2ResursBolaQosh({
-            kompaniyaId: companyId, obyektId: Number(objectId), otaQatorId: qatorId, tur: resTur(r.birlik),
-            nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm ?? undefined, kod: r.kod ?? undefined,
-            sabab: `F2 ${akt?.davr ?? davr}: ${f.nom.slice(0, 80)}`, operationId: yangiOperationId(), expectedVersion: await versiya(qatorId),
-          });
-          if (!res.ok || res.qator_id == null) throw new Error(`Resurs «${r.nom.slice(0, 40)}» yaratilmadi: ${res.xabar || res.error || 'xato'}`);
-          joriy = bogla(joriy, r.uid, res.qator_id);
-          setIj(joriy);
-        }
-      }
-      await smetaYangila();
-      setHolat('Smetaga qo‘shildi va bog‘landi.');
+      const kelgan = await qatorlarniYangila([qatorId, ...resIdlar]);
+      // Otasi (razdel/ish) versiyasi o'zgardi — keyingi amal eskirgan versiya bilan ketmasin.
+      const ota = kelgan.find((q) => q.id === qatorId)?.ota_id;
+      if (ota != null) await qatorlarniYangila([ota]);
+      const bogsiz = f.tur === 'bl' ? f.bolalar.length - resIdlar.length : 0;
+      setHolat(bogsiz > 0 ? `Smetaga qo‘shildi; ${bogsiz} ta resurs bog‘lanmadi — qo‘lda bog‘lang.` : 'Smetaga qo‘shildi va bog‘landi.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Yaratish bajarilmadi.'); await smetaYangila().catch(() => undefined); }
     finally { setBusy(false); }
   }

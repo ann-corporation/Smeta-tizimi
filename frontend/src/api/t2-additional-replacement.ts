@@ -109,3 +109,32 @@ export function sbT2ResursBolaQosh(p: T2ResursBolaQoshInput): Promise<AktNatija>
     kutilgan_versiya: p.expectedVersion,
   });
 }
+
+/**
+ * Egasi 2026-09-28 ("bitta zamena uchun dafiga kuttiradi"): qo'shimcha yoki zamena
+ * ish F2 dagi RESURSLARI BILAN birga — BITTA so'rov, BITTA tranzaksiya
+ * (`t2_ish_resurslar_bilan_yarat_v1`). Biror resurs rad etilsa hech narsa yozilmaydi;
+ * qayta urinishda ayni `operationId` dublikat yaratmaydi.
+ */
+export type IshResurslarBilanNatija = AktNatija & { resurs_qator_idlar?: number[] };
+
+export function sbT2IshResurslarBilanYarat(p: CommandBase & {
+  command: 'additional' | 'replacement';
+  otaQatorId: number;
+  almashtirilayotganQatorId?: number;
+  nom: string; birlik: string; hajm: number; kod?: string;
+  resurslar: Array<{ tur: 'rs' | 'mat' | 'ob'; nom: string; birlik: string; hajm?: number | null; kod?: string | null }>;
+}): Promise<IshResurslarBilanNatija> {
+  return yozAmali({
+    amal: 'ish_resurslar_bilan_yarat_v1',
+    command: p.command,
+    kompaniya_id: p.kompaniyaId,
+    obyekt_id: p.obyektId,
+    ota_qator_id: p.otaQatorId,
+    almashtirilayotgan_qator_id: p.almashtirilayotganQatorId,
+    nom: p.nom, birlik: p.birlik, hajm: p.hajm, kod: p.kod,
+    sabab: p.sabab, dalil_hujjat_id: p.dalilHujjatId,
+    operation_id: p.operationId, kutilgan_versiya: p.expectedVersion,
+    resurslar: p.resurslar,
+  }) as Promise<IshResurslarBilanNatija>;
+}
