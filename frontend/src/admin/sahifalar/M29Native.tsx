@@ -19,6 +19,16 @@ import { m29DavrMatni, m29Hujjat } from '../../lib/m29/export';
 const fmt = (x: number | null | undefined, d = 3) => (x == null ? '—' : x.toLocaleString('ru-RU', { maximumFractionDigits: d }));
 const pul = (x: number | null | undefined) => (x == null ? '—' : x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
+/** Diqqat turlari — muhimlari (pulga bevosita ta'sir, "qayerga ishlatildi?") birinchi. */
+const DIQQAT_TURLARI = [
+  { tur: 'SMETADA_YOQ', nom: 'Smetada yo‘q material skladdan chiqarilgan — qayerga ishlatildi?', muhim: true },
+  { tur: 'ASOSSIZ_CHIQIM', nom: 'Tasdiqlangan F2 da ishi yo‘q, lekin skladdan chiqarilgan — qayerga ishlatildi?', muhim: true },
+  { tur: 'PERERASXOD', nom: 'Normadan ortiq sarf', muhim: true },
+  { tur: 'SKLAD_KIRITILMAGAN', nom: 'Norma bo‘yicha sarflangan, sklad chiqimi kiritilmagan (haqiqiy sarf noma’lum)', muhim: false },
+  { tur: 'NORMA_YOQ', nom: 'Smetada norma yo‘q', muhim: false },
+  { tur: 'NARX_FARQLI', nom: 'Smetada narxlar farqli', muhim: false },
+] as const;
+
 function muammoli(m: M29Material): boolean {
   return (m.faktJami == null && m.normaJami > 0) || (m.farqJami != null && m.farqJami > 1e-9);
 }
@@ -36,6 +46,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [ogoh, setOgoh] = useState('');
   const [ochiq, setOchiq] = useState<Set<string>>(new Set());
   const [faqatMuammo, setFaqatMuammo] = useState(false);
+  const [oyna, setOyna] = useState<'jadval' | 'diqqat' | 'yoq'>('jadval');
   const [pudratchi, setPudratchi] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,6 +97,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     ])].filter((x) => /^\d{4}-\d{2}$/.test(x)).sort().reverse();
   }, [kirish]);
   const natija: M29Natija | null = useMemo(() => (kirish && davr ? m29Hisobla(kirish, davr) : null), [kirish, davr]);
+  useEffect(() => { if (natija) setOchiq(new Set(natija.guruhlar.map((g) => 'g:' + g.kat))); }, [natija]);
   const obyektNom = objects.find((o) => String(o.id) === objectId)?.nom ?? '';
 
   function eksport(korish: boolean) {
@@ -104,124 +116,205 @@ function Sessiya({ companyId }: { companyId: number }) {
     setOchiq(s);
   };
 
+  const materialSoni = natija ? natija.guruhlar.reduce((s, g) => s + g.materiallar.length, 0) : 0;
+  const muhimDiqqat = natija ? natija.diqqat.filter((d) => d.tur === 'SMETADA_YOQ' || d.tur === 'ASOSSIZ_CHIQIM' || d.tur === 'PERERASXOD').length : 0;
+  const Son = ({ x, d = 3, cls = '' }: { x: number | null | undefined; d?: number; cls?: string }) =>
+    x == null ? <span className="text-text-mute">—</span> : <span className={cls}>{fmt(x, d)}</span>;
+  const farqCls = (x: number | null | undefined) => (x == null ? '' : x > 1e-9 ? 'text-danger' : x < -1e-9 ? 'text-ok' : '');
+  const kodKor = (k: string | null) => (k && k.trim().length > 2 ? k : null);
+
   return (
-    <section className="w-full space-y-3 p-3 sm:p-4">
-      <div className="flex flex-wrap items-baseline gap-2">
-        <h1 className="text-lg font-semibold sm:text-xl">М-29 — materiallar: norma ↔ haqiqiy sarf</h1>
-        <p className="text-[12px] text-text-dim">Norma bo‘yicha — tasdiqlangan F2 (ish hajmi × norma); haqiqiy — sklad chiqimi.</p>
-      </div>
-      <div className="karta flex flex-wrap items-end gap-3 p-3">
-        <label className="text-[12px] font-medium">Obyekt
+    <section className="w-full space-y-4 p-3 sm:p-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">М-29 · Материалы: норма ↔ факт</h1>
+          <p className="mt-0.5 text-[12px] text-text-dim">Norma — tasdiqlangan F2 bo‘yicha (ish hajmi × norma) · haqiqiy — obyekt skladidan chiqim</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" className="tugma h-9 px-3" disabled={!natija || busy} onClick={() => eksport(true)} title="Hujjatni saytda ko‘rish"><Eye size={15} /> Ko‘rish</button>
+          <button type="button" className="tugma tugma-asosiy h-9 px-3" disabled={!natija || busy} onClick={() => eksport(false)}><Download size={15} /> Excel М-29</button>
+        </div>
+      </header>
+
+      <div className="karta grid gap-3 p-3 sm:grid-cols-[minmax(220px,2fr)_minmax(160px,1fr)_auto]">
+        <label className="text-[12px] font-medium text-text-dim">Obyekt
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
-            className="input mt-1 block h-9 min-w-[220px] px-2 text-[13px]">
+            className="input mt-1 block h-9 w-full px-2 text-[13px] text-text">
             <option value="">Tanlang</option>{objects.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
           </select>
         </label>
-        <label className="text-[12px] font-medium">Hisobot oyi
+        <label className="text-[12px] font-medium text-text-dim">Hisobot oyi
           <select aria-label="Hisobot oyi" value={davr} onChange={(e) => setDavr(e.target.value)} disabled={!oylar.length}
-            className="input mt-1 block h-9 px-2 text-[13px]">
+            className="input mt-1 block h-9 w-full px-2 text-[13px] text-text">
+            {!oylar.length && <option value="">—</option>}
             {oylar.map((o) => <option key={o} value={o}>{m29DavrMatni(o)}</option>)}
           </select>
         </label>
-        <button type="button" className="tugma h-9" disabled={!objectId || busy} onClick={() => void yukla(Number(objectId))}><RefreshCw size={14} /> Yangilash</button>
-        <button type="button" className="tugma tugma-asosiy h-9" disabled={!natija || busy} onClick={() => eksport(false)}><Download size={14} /> Excel (М-29)</button>
-        <button type="button" className="tugma h-9" disabled={!natija || busy} onClick={() => eksport(true)} aria-label="M-29 ko‘rish"><Eye size={14} /></button>
-        <div className="min-w-[260px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+        <div className="flex items-end">
+          <button type="button" className="tugma h-9 px-3" disabled={!objectId || busy} onClick={() => void yukla(Number(objectId))}><RefreshCw size={14} className={busy ? 'animate-spin' : ''} /> Yangilash</button>
+        </div>
+        <div className="sm:col-span-3"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
       </div>
+
+      {!objectId && <p className="karta p-6 text-center text-[13px] text-text-dim">Obyektni tanlang.</p>}
       {busy && <p className="text-[13px] text-text-dim">Yuklanmoqda…</p>}
-      {xato && <p role="alert" className="text-[13px] text-danger">{xato}</p>}
-      {ogoh && <p className="text-[12px] text-warn">{ogoh}</p>}
+      {xato && <p role="alert" className="karta border-danger/40 p-3 text-[13px] text-danger">{xato}</p>}
+      {ogoh && <p className="karta border-warn/40 p-3 text-[12px] text-warn">{ogoh}</p>}
 
       {natija && (
         <>
-          <section className="grid gap-2 sm:grid-cols-3" aria-label="Pul ta'siri">
-            <div className="karta px-3 py-2"><p className="text-[10px] uppercase tracking-wide text-text-mute">Tejash (normadan kam sarf)</p><p className="text-lg font-semibold tabular-nums text-ok">{pul(natija.jami.tejashSumma)}</p></div>
-            <div className="karta px-3 py-2"><p className="text-[10px] uppercase tracking-wide text-text-mute">Ortiqcha sarf (normadan ko‘p)</p><p className="text-lg font-semibold tabular-nums text-danger">{pul(natija.jami.ortiqchaSumma)}</p></div>
-            <div className="karta px-3 py-2"><p className="text-[10px] uppercase tracking-wide text-text-mute">Sof farq (+ zarar / − foyda)</p><p className="text-lg font-semibold tabular-nums">{pul(natija.jami.farqSummaJami)}</p></div>
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ko'rsatkichlar">
+            {[
+              { t: 'Materiallar', v: String(materialSoni), s: `${m29DavrMatni(natija.davr)} · boshidan beri`, c: '' },
+              { t: 'Tejash (normadan kam)', v: pul(natija.jami.tejashSumma), s: 'сум, smeta narxida', c: 'text-ok' },
+              { t: 'Ortiqcha sarf (normadan ko‘p)', v: pul(natija.jami.ortiqchaSumma), s: 'сум, smeta narxida', c: 'text-danger' },
+              { t: 'Sof natija', v: pul(natija.jami.farqSummaJami), s: '+ zarar · − foyda', c: (natija.jami.farqSummaJami ?? 0) > 0 ? 'text-danger' : 'text-ok' },
+            ].map((k) => (
+              <div key={k.t} className="karta px-4 py-3">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-text-mute">{k.t}</p>
+                <p className={`mt-1 text-xl font-semibold tabular-nums ${k.c}`}>{k.v}</p>
+                <p className="text-[11px] text-text-mute">{k.s}</p>
+              </div>
+            ))}
           </section>
 
-          {natija.diqqat.length > 0 && (
-            <details className="karta p-3" open>
-              <summary className="cursor-pointer text-[13px] font-semibold text-warn"><AlertTriangle size={14} className="mr-1 inline" />Diqqat talab qiladi — {natija.diqqat.length}</summary>
-              <ul className="mt-2 space-y-1 text-[12px]">
-                {natija.diqqat.map((d, i) => (
-                  <li key={i}><b>{d.nom}</b> — {d.sabab}{d.summa != null ? <span className="ml-1 tabular-nums text-danger">({pul(d.summa)} сум)</span> : null}</li>
-                ))}
-              </ul>
-            </details>
+          <div className="flex flex-wrap items-center gap-2 border-b border-border">
+            {([['jadval', 'Jadval'], ['diqqat', `Diqqat (${natija.diqqat.length})`], ['yoq', `Smetada yo‘q (${natija.smetadaYoq.length})`]] as const).map(([k, t]) => (
+              <button key={k} type="button" onClick={() => setOyna(k)}
+                className={`-mb-px border-b-2 px-3 py-2 text-[13px] font-medium ${oyna === k ? 'border-accent text-text' : 'border-transparent text-text-dim hover:text-text'}`}>
+                {t}{k === 'diqqat' && muhimDiqqat ? <span className="ml-1.5 rounded bg-danger/15 px-1.5 text-[11px] text-danger">{muhimDiqqat}</span> : null}
+              </button>
+            ))}
+            {oyna === 'jadval' && (
+              <div className="ml-auto flex items-center gap-2 pb-1 text-[12px]">
+                <button type="button" className="tugma h-7 px-2" onClick={() => hammasiniOch(true)}>Hammasini ochish</button>
+                <button type="button" className="tugma h-7 px-2" onClick={() => hammasiniOch(false)}>Yopish</button>
+                <label className="inline-flex items-center gap-1.5 text-text-dim"><input type="checkbox" checked={faqatMuammo} onChange={(e) => setFaqatMuammo(e.target.checked)} /> faqat muammolilar</label>
+              </div>
+            )}
+          </div>
+
+          {oyna === 'jadval' && (
+            <div className="karta max-h-[70vh] overflow-auto">
+              <table className="w-full min-w-[1040px] table-fixed text-[12.5px]">
+                <colgroup>
+                  <col /><col className="w-16" /><col className="w-24" /><col className="w-24" /><col className="w-28" /><col className="w-28" /><col className="w-24" /><col className="w-32" /><col className="w-24" />
+                </colgroup>
+                <thead className="sticky top-0 z-10 bg-surface text-[11px] text-text-dim">
+                  <tr className="border-b border-border">
+                    <th rowSpan={2} className="px-3 py-2 text-left font-medium">Material / ish</th>
+                    <th rowSpan={2} className="px-2 text-left font-medium">Ед.</th>
+                    <th colSpan={2} className="border-l border-border px-2 pt-2 text-center font-medium">{m29DavrMatni(natija.davr)}</th>
+                    <th colSpan={4} className="border-l border-border px-2 pt-2 text-center font-medium">Boshidan beri</th>
+                    <th rowSpan={2} className="border-l border-border px-2 text-right font-medium">Skladda qoldiq</th>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <th className="border-l border-border px-2 py-1 text-right font-normal">Norma</th>
+                    <th className="px-2 text-right font-normal">Haqiqiy</th>
+                    <th className="border-l border-border px-2 text-right font-normal">Norma</th>
+                    <th className="px-2 text-right font-normal">Haqiqiy</th>
+                    <th className="px-2 text-right font-normal">Farq</th>
+                    <th className="px-2 text-right font-normal">Farq, сум</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {natija.guruhlar.map((g) => {
+                    const ms = g.materiallar.filter((m) => !faqatMuammo || muammoli(m));
+                    if (!ms.length) return null;
+                    const gOchiq = ochiq.has('g:' + g.kat);
+                    return [
+                      <tr key={'g' + g.kat} className="cursor-pointer border-b border-border bg-surface-2/70 font-semibold hover:bg-surface-2" onClick={() => almashtir('g:' + g.kat)}>
+                        <td className="px-3 py-2" colSpan={2}>{gOchiq ? <ChevronDown size={14} className="mr-1 inline" /> : <ChevronRight size={14} className="mr-1 inline" />}{g.nom} <span className="ml-1 font-normal text-text-mute">{ms.length} ta</span></td>
+                        <td colSpan={2} className="border-l border-border" />
+                        <td colSpan={2} className="border-l border-border px-2 text-right text-[11px] font-normal text-text-dim">{g.normaSummaJami != null ? `norma: ${pul(g.normaSummaJami)} сум` : ''}</td>
+                        <td />
+                        <td className={`px-2 text-right tabular-nums ${farqCls(g.farqSummaJami)}`}>{g.farqSummaJami == null ? <span className="text-text-mute">—</span> : pul(g.farqSummaJami)}</td>
+                        <td className="border-l border-border" />
+                      </tr>,
+                      ...(gOchiq ? ms.flatMap((m) => {
+                        const mOchiq = ochiq.has('m:' + m.kalit);
+                        return [
+                          <tr key={'m' + m.kalit} className={`border-b border-border/40 hover:bg-surface-2/40 ${m.ishlar.length ? 'cursor-pointer' : ''}`} onClick={() => m.ishlar.length && almashtir('m:' + m.kalit)}>
+                            <td className="py-1.5 pl-7 pr-2" title={m.nom}>
+                              <div className="flex items-start gap-1">
+                                {m.ishlar.length ? (mOchiq ? <ChevronDown size={13} className="mt-0.5 shrink-0 text-text-mute" /> : <ChevronRight size={13} className="mt-0.5 shrink-0 text-text-mute" />) : <span className="w-[13px] shrink-0" />}
+                                <span className="line-clamp-2">{kodKor(m.kod) && <span className="mr-1 font-mono text-[11px] text-text-mute">{m.kod}</span>}{m.nom}</span>
+                              </div>
+                            </td>
+                            <td className="px-2 text-text-dim">{m.birlik}</td>
+                            <td className="border-l border-border/40 px-2 text-right tabular-nums"><Son x={m.normaOy} /></td>
+                            <td className="px-2 text-right tabular-nums"><Son x={m.faktOy} /></td>
+                            <td className="border-l border-border/40 px-2 text-right tabular-nums"><Son x={m.normaJami} /></td>
+                            <td className="px-2 text-right tabular-nums"><Son x={m.faktJami} /></td>
+                            <td className="px-2 text-right tabular-nums"><Son x={m.farqJami} cls={farqCls(m.farqJami)} /></td>
+                            <td className="px-2 text-right tabular-nums">{m.farqSummaJami == null ? <span className="text-text-mute">—</span> : <span className={farqCls(m.farqSummaJami)}>{pul(m.farqSummaJami)}</span>}</td>
+                            <td className="border-l border-border/40 px-2 text-right tabular-nums"><Son x={m.skladQoldiq} /></td>
+                          </tr>,
+                          ...(mOchiq ? m.ishlar.map((ish) => (
+                            <tr key={'i' + m.kalit + ish.blId} className="border-b border-border/20 text-[11.5px] text-text-dim">
+                              <td className="py-1 pl-14 pr-2" title={ish.nom}><span className="line-clamp-1">{kodKor(ish.kod) && <span className="mr-1 font-mono">{ish.kod}</span>}{ish.nom}</span></td>
+                              <td className="px-2">{ish.birlik}</td>
+                              <td className="border-l border-border/30 px-2 text-right tabular-nums"><Son x={ish.normaOy} /></td>
+                              <td />
+                              <td className="border-l border-border/30 px-2 text-right tabular-nums"><Son x={ish.normaJami} /></td>
+                              <td colSpan={3} className="px-2 text-[11px] text-text-mute">
+                                {ish.toGridan ? 'miqdor F2 aktidan' : ish.norma != null ? `${fmt(ish.norma, 6)} × ${fmt(ish.hajmJami)} ${ish.birlik ?? ''}` : 'norma noma’lum'}
+                              </td>
+                              <td className="border-l border-border/30" />
+                            </tr>
+                          )) : []),
+                        ];
+                      }) : []),
+                    ];
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 text-[12px]">
-            <button type="button" className="tugma h-7 px-2" onClick={() => hammasiniOch(true)}>Hammasini ochish</button>
-            <button type="button" className="tugma h-7 px-2" onClick={() => hammasiniOch(false)}>Hammasini yopish</button>
-            <label className="inline-flex items-center gap-1.5"><input type="checkbox" checked={faqatMuammo} onChange={(e) => setFaqatMuammo(e.target.checked)} /> faqat muammolilar</label>
-          </div>
+          {oyna === 'diqqat' && (
+            <section className="space-y-2" aria-label="Diqqat">
+              {!natija.diqqat.length && <p className="karta p-4 text-[13px] text-ok">Diqqat talab qiladigan holat yo‘q.</p>}
+              {DIQQAT_TURLARI.map((t) => {
+                const list = natija.diqqat.filter((d) => d.tur === t.tur);
+                if (!list.length) return null;
+                const summa = list.reduce((s, d) => s + (d.summa ?? 0), 0);
+                return (
+                  <details key={t.tur} className="karta p-3 text-[12.5px]" open={t.muhim}>
+                    <summary className="flex cursor-pointer items-center gap-2">
+                      <AlertTriangle size={14} className={t.muhim ? 'text-danger' : 'text-text-mute'} />
+                      <span className={t.muhim ? 'font-semibold text-text' : 'text-text-dim'}>{t.nom}</span>
+                      <span className="rounded bg-surface-2 px-1.5 text-[11px]">{list.length}</span>
+                      {summa ? <span className="ml-auto tabular-nums text-danger">{pul(summa)} сум</span> : null}
+                    </summary>
+                    <ul className="mt-2 max-h-80 divide-y divide-border/40 overflow-auto">
+                      {list.map((d, i) => (
+                        <li key={i} className="flex gap-3 py-1.5">
+                          <span className="min-w-0 flex-1"><b className="font-medium">{d.nom}</b><span className="block text-[11.5px] text-text-dim">{d.sabab}</span></span>
+                          {d.summa != null && <span className="shrink-0 tabular-nums text-danger">{pul(d.summa)}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                );
+              })}
+            </section>
+          )}
 
-          <div className="karta overflow-auto">
-            <table className="w-full min-w-[980px] text-[12px]">
-              <thead className="bg-surface-2/60 text-text-dim">
-                <tr>
-                  <th className="px-2 py-1.5 text-left">Material / ish</th>
-                  <th className="px-2 text-left">Ед.</th>
-                  <th className="px-2 text-right">Norma (oy)</th>
-                  <th className="px-2 text-right">Haqiqiy (oy)</th>
-                  <th className="px-2 text-right">Norma (boshidan)</th>
-                  <th className="px-2 text-right">Haqiqiy (boshidan)</th>
-                  <th className="px-2 text-right">Farq</th>
-                  <th className="px-2 text-right">Farq, сум</th>
-                  <th className="px-2 text-right">Skladda qoldiq</th>
-                </tr>
-              </thead>
-              <tbody>
-                {natija.guruhlar.map((g) => {
-                  const ms = g.materiallar.filter((m) => !faqatMuammo || muammoli(m));
-                  if (!ms.length) return null;
-                  const gOchiq = ochiq.has('g:' + g.kat);
-                  return [
-                    <tr key={'g' + g.kat} className="cursor-pointer border-t border-border bg-surface-2/40 font-semibold" onClick={() => almashtir('g:' + g.kat)}>
-                      <td className="px-2 py-1.5">{gOchiq ? <ChevronDown size={13} className="inline" /> : <ChevronRight size={13} className="inline" />} {g.nom} <span className="font-normal text-text-mute">({ms.length})</span></td>
-                      <td /><td /><td /><td className="px-2 text-right tabular-nums text-text-dim">{g.normaSummaJami != null ? `${pul(g.normaSummaJami)} сум` : ''}</td><td /><td />
-                      <td className={`px-2 text-right tabular-nums ${(g.farqSummaJami ?? 0) > 0 ? 'text-danger' : 'text-ok'}`}>{pul(g.farqSummaJami)}</td><td />
-                    </tr>,
-                    ...(gOchiq ? ms.flatMap((m) => {
-                      const mOchiq = ochiq.has('m:' + m.kalit);
-                      const tone = m.farqJami == null ? 'text-text-mute' : m.farqJami > 1e-9 ? 'text-danger' : 'text-ok';
-                      return [
-                        <tr key={'m' + m.kalit} className="cursor-pointer border-t border-border/50 hover:bg-surface-2/40" onClick={() => almashtir('m:' + m.kalit)}>
-                          <td className="py-1 pl-6 pr-2">{m.ishlar.length ? (mOchiq ? <ChevronDown size={12} className="inline" /> : <ChevronRight size={12} className="inline" />) : <span className="inline-block w-3" />} {m.kod ? <span className="mr-1 font-mono text-text-mute">{m.kod}</span> : null}{m.nom}</td>
-                          <td className="px-2">{m.birlik}</td>
-                          <td className="px-2 text-right tabular-nums">{fmt(m.normaOy)}</td>
-                          <td className="px-2 text-right tabular-nums">{fmt(m.faktOy)}</td>
-                          <td className="px-2 text-right tabular-nums">{fmt(m.normaJami)}</td>
-                          <td className="px-2 text-right tabular-nums">{fmt(m.faktJami)}</td>
-                          <td className={`px-2 text-right tabular-nums ${tone}`}>{fmt(m.farqJami)}</td>
-                          <td className={`px-2 text-right tabular-nums ${tone}`}>{pul(m.farqSummaJami)}</td>
-                          <td className="px-2 text-right tabular-nums">{fmt(m.skladQoldiq)}</td>
-                        </tr>,
-                        ...(mOchiq ? m.ishlar.map((ish) => (
-                          <tr key={'i' + m.kalit + ish.blId} className="border-t border-border/30 text-text-dim">
-                            <td className="py-0.5 pl-12 pr-2">{ish.kod ? <span className="mr-1 font-mono">{ish.kod}</span> : null}{ish.nom}{ish.toGridan ? ' (F2 da resurs miqdori)' : ''}</td>
-                            <td className="px-2">{ish.birlik}</td>
-                            <td className="px-2 text-right tabular-nums">{fmt(ish.normaOy)}</td>
-                            <td />
-                            <td className="px-2 text-right tabular-nums">{fmt(ish.normaJami)}</td>
-                            <td colSpan={4} className="px-2 text-[11px]">{ish.norma != null ? `norma ${fmt(ish.norma, 6)} × hajm ${fmt(ish.hajmJami)}` : 'norma noma’lum'}</td>
-                          </tr>
-                        )) : []),
-                      ];
-                    }) : []),
-                  ];
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {natija.smetadaYoq.length > 0 && (
-            <section className="karta p-3 text-[12px]">
-              <h2 className="mb-1 font-semibold text-warn">Smetada yo‘q, lekin skladdan chiqarilgan materiallar — qayerga ishlatildi?</h2>
-              <ul className="space-y-0.5">
-                {natija.smetadaYoq.map((s, i) => <li key={i}>{s.nomi} ({s.birligi ?? '—'}): kirim {fmt(s.kirimJami)}, oyda chiqim {fmt(s.chiqimOy)}, boshidan {fmt(s.chiqimJami)}</li>)}
-              </ul>
+          {oyna === 'yoq' && (
+            <section className="karta overflow-auto">
+              {!natija.smetadaYoq.length ? <p className="p-4 text-[13px] text-ok">Skladdan chiqarilgan barcha materiallar smetada bor.</p> : (
+                <table className="w-full text-[12.5px]">
+                  <thead className="bg-surface text-[11px] text-text-dim"><tr className="border-b border-border">
+                    <th className="px-3 py-2 text-left font-medium">Material (skladdan) — qayerga ishlatildi?</th><th className="px-2 text-left font-medium">Ед.</th>
+                    <th className="px-2 text-right font-medium">Kirim</th><th className="px-2 text-right font-medium">Chiqim (oy)</th><th className="px-2 text-right font-medium">Chiqim (boshidan)</th>
+                  </tr></thead>
+                  <tbody>{natija.smetadaYoq.map((s, i) => (
+                    <tr key={i} className="border-b border-border/40"><td className="px-3 py-1.5">{s.nomi}</td><td className="px-2 text-text-dim">{s.birligi ?? '—'}</td>
+                      <td className="px-2 text-right tabular-nums">{fmt(s.kirimJami)}</td><td className="px-2 text-right tabular-nums">{fmt(s.chiqimOy)}</td><td className="px-2 text-right tabular-nums text-danger">{fmt(s.chiqimJami)}</td></tr>
+                  ))}</tbody>
+                </table>
+              )}
             </section>
           )}
         </>
@@ -230,6 +323,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     </section>
   );
 }
+
 
 export default function M29Native() {
   const { joriy, yuklanmoqda } = useKompaniya();

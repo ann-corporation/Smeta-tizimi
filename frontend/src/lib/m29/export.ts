@@ -17,8 +17,8 @@ import type { M29Natija } from './index';
 
 const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
-  { sarlavha: 'Шифр, код', kenglik: 13, tur: 'kod' },
-  { sarlavha: 'Наименование материала / работы', kenglik: 44, tur: 'matn' },
+  { sarlavha: 'Шифр, код', kenglik: 12, tur: 'kod' },
+  { sarlavha: 'Наименование материала / работы', kenglik: 58, tur: 'matn' },
   { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
   { sarlavha: 'Норма на ед. работ', kenglik: 11, tur: 'norma' },
   { sarlavha: 'Объём работ', kenglik: 11, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
@@ -82,7 +82,7 @@ export function m29Hujjat(n: M29Natija, o: M29ExportOpsiya): M29HujjatNatija {
       const oxir = bosh + m.ishlar.length; // bola qatorlari: bosh+1 … oxir
       const bolaSum = (c: string, qiymat: number): Qiymat => (m.ishlar.length ? { f: `SUM(${c}${bosh + 1}:${c}${oxir})`, v: qiymat } : qiymat);
       const r = v.qator('ish', (rr) => [
-        no, m.kod, m.nom, m.birlik, null,
+        no, kodKor(m.kod), m.nom, m.birlik, null,
         null, bolaSum('G', m.normaOy), n0(m.faktOy), { f: `IF(H${rr}="","",H${rr}-G${rr})`, v: m.farqOy ?? '' },
         null, bolaSum('K', m.normaJami), n0(m.faktJami), { f: `IF(L${rr}="","",L${rr}-K${rr})`, v: m.farqJami ?? '' },
         n0(m.narx), { f: `IF(OR(M${rr}="",N${rr}=""),"",ROUND(M${rr}*N${rr},2))`, v: m.farqSummaJami ?? '' },
@@ -91,7 +91,7 @@ export function m29Hujjat(n: M29Natija, o: M29ExportOpsiya): M29HujjatNatija {
       matQatorlar.push(r);
       for (const ish of m.ishlar) {
         v.qator('oddiy', (rr) => [
-          null, ish.kod, `   ${ish.nom}${ish.toGridan ? ' (расход по акту Ф-2)' : ''}`, ish.birlik,
+          null, kodKor(ish.kod), `   ${ish.nom}${ish.toGridan ? ' (расход по акту Ф-2)' : ''}`, ish.birlik,
           ish.norma == null ? null : { n: ish.norma, uslub: 'norma' },
           ish.hajmOy, ish.toGridan || ish.norma == null ? ish.normaOy : { f: `ROUND(E${rr}*F${rr},6)`, v: ish.normaOy }, null, null,
           ish.hajmJami, ish.toGridan || ish.norma == null ? ish.normaJami : { f: `ROUND(E${rr}*J${rr},6)`, v: ish.normaJami }, null, null,
@@ -126,5 +126,7 @@ export function m29Hujjat(n: M29Natija, o: M29ExportOpsiya): M29HujjatNatija {
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'М-29', davr: n.davr }) };
 }
 
+/** 1–2 belgili kod (masalan «С») — ma'nosiz, hujjatda ko'rsatilmaydi. */
+const kodKor = (k: string | null) => (k && k.trim().length > 2 ? k : null);
 const fmt2 = (x: number) => x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmt3 = (x: number) => x.toLocaleString('ru-RU', { maximumFractionDigits: 3 });

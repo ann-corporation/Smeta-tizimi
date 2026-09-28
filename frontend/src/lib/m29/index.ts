@@ -50,7 +50,8 @@ export interface M29Ish {
   /** Ish birligiga material normasi (null — noma'lum). */
   norma: number | null;
   /** Ish hajmi (tasdiqlangan F2): davr va boshidan. */
-  hajmOy: number; hajmJami: number;
+  /** null — F2 da ish hajmi yozilmagan (faqat resurs miqdori bor): NULL ≠ 0. */
+  hajmOy: number | null; hajmJami: number | null;
   /** Shu ish bo'yicha normativ sarf. */
   normaOy: number; normaJami: number;
   /** Resurs F2 da o'zi yozilgan (true) yoki ish hajmi × norma (false). */
@@ -142,7 +143,8 @@ export function m29Hisobla(k: M29Kirish, davr: string): M29Natija {
     let ish: M29Ish | null = null;
     if (f2Bor.has(r.id)) {
       // Resurs F2 da o'zi yozilgan — uning miqdori normativ sarf.
-      const bh = bl ? { oy: f2Oy.get(bl.id) ?? 0, jami: f2Jami.get(bl.id) ?? 0 } : { oy: 0, jami: 0 };
+      const blBor = !!bl && f2Bor.has(bl.id);
+      const bh = blBor ? { oy: f2Oy.get(bl!.id) ?? 0, jami: f2Jami.get(bl!.id) ?? 0 } : { oy: null, jami: null };
       ish = {
         blId: bl?.id ?? r.id, kod: bl?.kod ?? null, nom: blNom, birlik: bl?.birlik ?? null,
         norma: r.norma ?? (bl?.hajm ? (r.hajm ?? 0) / bl.hajm : null),
@@ -158,7 +160,7 @@ export function m29Hisobla(k: M29Kirish, davr: string): M29Natija {
       };
       if (norma == null && hJ > EPS) normaYoqIshlar.add(`${r.nom} — ${blNom}`);
     }
-    if (ish && (ish.normaJami > EPS || ish.hajmJami > EPS)) {
+    if (ish && (ish.normaJami > EPS || (ish.hajmJami ?? 0) > EPS)) {
       m.ishlar.push(ish);
       m.normaOy += ish.normaOy; m.normaJami += ish.normaJami;
     }
