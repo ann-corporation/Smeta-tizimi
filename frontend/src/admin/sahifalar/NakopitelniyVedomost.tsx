@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
@@ -16,6 +17,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
+import { f3CertifiedSources } from '../../lib/pto-document-lineage/f3-sources';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -33,7 +35,10 @@ function jamiHajmSafe(q: NakopitelniyQator) { return q.smeta_hajm ?? 0; }
 
 function Sessiya({ companyId }: { companyId: number }) {
   const [objects, setObjects] = useState<T2Obyekt[]>([]);
-  const [objectId, setObjectId] = useState('');
+  const workspace = usePTOWorkspace();
+  const objectId = workspace.scope.objectId ? String(workspace.scope.objectId) : '';
+  const setObjectId = (value: string) => workspace.setObjectId(value ? Number(value) : null);
+  const requestId = useRef(0);
   const [davrlar, setDavrlar] = useState<NakopitelniyDavr[]>([]);
   const [davr, setDavr] = useState('');
   const [qatorlar, setQatorlar] = useState<NakopitelniyQator[]>([]);
@@ -116,12 +121,14 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [objectId, companyId, kompaniyalar]);
 
   const yukla = async (objId: number, tanlanganDavr: string) => {
+    const currentRequest = ++requestId.current;
     setBusy(true); setXato('');
     try {
       const [r, daraxt] = await Promise.all([
         t2NakopitelniyOl(objId, tanlanganDavr || null),
         sbT2DaraxtOl(objId, 'id,ota_id,daraja'),
       ]);
+      if (currentRequest !== requestId.current) return;
       if (!r.ok) { setXato(r.xato || r.code || 'Yuklanmadi'); setQatorlar([]); return; }
       const meta = new Map<number, { ota_id: number | null; daraja: number | null }>();
       if (daraxt.ok) for (const q of daraxt.qatorlar ?? []) meta.set(Number(q.id), { ota_id: q.ota_id ?? null, daraja: q.daraja ?? null });
@@ -132,15 +139,18 @@ function Sessiya({ companyId }: { companyId: number }) {
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
       setTruncated(Boolean(r.truncated));
       setPage(0);
-    } catch (e) { setXato(e instanceof Error ? e.message : 'Yuklanmadi'); }
-    finally { setBusy(false); }
+    } catch { if (currentRequest === requestId.current) setXato('Ma’lumotlarni yuklab bo‘lmadi. Yangilab qayta urinib ko‘ring.'); }
+    finally { if (currentRequest === requestId.current) setBusy(false); }
   };
 
   useEffect(() => {
-    if (!objectId) { setQatorlar([]); setDavrlar([]); setTreeMeta(new Map()); return; }
-    void yukla(Number(objectId), '');
+    ++requestId.current;
+    setQatorlar([]); setJami(null); setDavrlar([]); setTreeMeta(new Map()); setDavr(''); setXato('');
+    if (!objectId) { setBusy(false); return; }
+    void yukla(Number(objectId), workspace.scope.periodId || '');
+    return () => { ++requestId.current; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objectId]);
+  }, [objectId, workspace.scope.periodId]);
 
   const filtr = qidiruv.trim().toLowerCase();
   const korinadigan = useMemo(() => {
@@ -211,17 +221,18 @@ function Sessiya({ companyId }: { companyId: number }) {
   };
 
   /** Barcha rasmiy exportlar uchun bir xil canonical company/project/object/contract gate. */
-  const canonicalScopeOl = async (): Promise<PtoLineageScope | null> => {
-    if (!loyihaId || !objectId || obyektKompaniyaId == null) {
-      setXato('Hujjat uchun obyektning canonical company/project bog‘lanishi topilmadi.');
+  const canonicalScopeOl = async (): Promise<{ scope: PtoLineageScope | null; warning?: string } | null> => {
+    if (!objectId || obyektKompaniyaId !== companyId) {
+      setXato('Hujjat obyekti tanlangan kompaniyaga tegishli ekanligi tasdiqlanmadi.');
       return null;
     }
+    if (!loyihaId) return { scope: null, warning: 'Loyiha rekvizitlari bog‘lanmagan; hujjatda ular bo‘sh qoldiriladi.' };
     const bog = await sbT2ShartnomaBogOl(Number(objectId));
     const boglar = bog.ok ? (bog.qatorlar ?? []) : [];
-    if (boglar.length !== 1) { setXato('Hujjat uchun obyektning bitta faol shartnoma bog‘lanishi aniq emas.'); return null; }
+    if (boglar.length !== 1) return { scope: null, warning: 'Shartnoma tanlanmagan yoki bir nechta bog‘lanish bor; shartnoma rekvizitlari bo‘sh qoldiriladi.' };
     const shartnomalar = await sbT2ShartnomalarOl(companyId, false);
     const shartnoma = shartnomalar.ok ? (shartnomalar.qatorlar ?? []).find((x) => x.id === boglar[0].shartnoma_id) : undefined;
-    if (!shartnoma) { setXato('Hujjat uchun shartnoma canonical ma’lumoti topilmadi.'); return null; }
+    if (!shartnoma) return { scope: null, warning: 'Shartnoma rekvizitlari o‘qilmadi; hujjatda ular bo‘sh qoldiriladi.' };
     const hierarchy = validatePtoHierarchy({
       companyId, projectId: Number(loyihaId), objectId: Number(objectId), contractId: shartnoma.id,
       projectCompanyId: companyId,
@@ -231,8 +242,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       contractProjectId: shartnoma.loyiha_id,
       linkedContractIds: [shartnoma.id],
     });
-    if (!hierarchy.ok) { setXato(`Hujjat lineage tekshiruvi blokladi: ${hierarchy.issues[0]?.code ?? 'LINEAGE_ERROR'}`); return null; }
-    return { companyId, projectId: Number(loyihaId), objectId: Number(objectId), contractId: shartnoma.id, periodId: davr };
+    if (!hierarchy.ok) { setXato('Shartnoma tanlangan kompaniya, loyiha va obyektga mos kelmayapti. Bog‘lanishni tekshiring.'); return null; }
+    return { scope: { companyId, projectId: Number(loyihaId), objectId: Number(objectId), contractId: shartnoma.id, periodId: davr } };
   };
 
   /** ФОРМА № 3 — СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (счет-фактура
@@ -248,34 +259,31 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!objectId || !davr) { setXato('F3 uchun tasdiqlangan F2 davri yo‘q — hujjat yasalmadi.'); return; }
     setForma3Busy(true);
     try {
-      const scope = await canonicalScopeOl();
-      if (!scope) return;
+      const context = await canonicalScopeOl();
+      if (!context) return;
+      const scope = context.scope;
       const rows = await toliqQatorlar();
       if (!rows) return;
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
       if (!taf.ok || taf.toliq === false || !taf.qatorlar) {
         setXato('F2 qatorlari to‘liq o‘qilmadi — F3 chala ma’lumot ustida tuzilmaydi.'); return;
       }
-      const tasdiqlanganF2 = taf.qatorlar.filter((t) => t.akt_holat === 'tasdiqlangan');
-      if (tasdiqlanganF2.some((t) => !Number.isSafeInteger(t.akt_id) || t.akt_id <= 0)) {
-        setXato('Tasdiqlangan F2 manbasining akt ID si topilmadi — F3 yaratilmadi.'); return;
+      const f2Oylik = f3CertifiedSources(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7));
+      const sourceRows = new Map<string, Set<number>>();
+      for (const line of f2Oylik) {
+        const key = `${line.akt_id}:${line.oy}`;
+        if (!sourceRows.has(key)) sourceRows.set(key, new Set());
+        sourceRows.get(key)!.add(line.qator_id);
       }
-      if (tasdiqlanganF2.some((t) => t.summa == null || !Number.isFinite(t.summa))) {
-        setXato('Tasdiqlangan F2 manbasining exact summasi noma’lum — F3 yaratilmadi.'); return;
-      }
-      const f2Oylik = tasdiqlanganF2
-        .map((t) => ({ obyekt_id: t.obyekt_id, qator_id: t.qator_id, oy: String(t.oy).slice(0, 7), summa: Number(t.summa), akt_id: Number(t.akt_id) }));
-      const lineage: PtoF3LineageInput = {
+      const lineage: PtoF3LineageInput | undefined = scope && f2Oylik.length ? {
         scope,
-        sources: [...new Set(f2Oylik.map((x) => `${x.akt_id}:${x.oy}`))]
-          .map((key) => {
+        sources: [...sourceRows].map(([key, ids]) => {
             const split = key.lastIndexOf(':');
             const akt = key.slice(0, split);
             const oy = key.slice(split + 1);
-            const rows = f2Oylik.filter((x) => `${x.akt_id}:${x.oy}` === key);
-            return { documentId: `F2-AKT:${akt}`, scope: { ...scope, periodId: oy }, approved: true, qatorIds: rows.map((x) => x.qator_id) };
+            return { documentId: `F2-AKT:${akt}`, scope: { ...scope, periodId: oy }, approved: true, qatorIds: [...ids] };
           }),
-      };
+      } : undefined;
       let ozgarishlar: Forma3ExportOptions['ozgarishlar'] = [];
       try {
         const oz = await ozgarishRoyxatOl(Number(objectId), 500);
@@ -291,15 +299,17 @@ function Sessiya({ companyId }: { companyId: number }) {
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik },
         {
           obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(),
-          smetaNakrutka, ozgarishlar, lineage, lineageRequired: true,
+          smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage),
           pudratchi: pudratchiRek, zakazchik: zakazchikRek,
           shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
         },
       );
-      setForma3Diqqat(h.diqqat);
+      setForma3Diqqat([...h.diqqat, ...(context.warning ? [{ nom: 'Rekvizitlar', sabab: context.warning }] : []), ...(!f2Oylik.length ? [{ nom: 'F2 manbasi', sabab: 'Bu davrgacha tasdiqlangan F2 yo‘q; bajarilgan ish qiymatlari bo‘sh hisobot sifatida beriladi.' }] : [])]);
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
     } catch (e) {
-      setXato(e instanceof Error ? `F3 tuzilmadi: ${e.message}` : 'F3 fayli tuzilmadi.');
+      setXato(e instanceof Error && e.message === 'MISSING_CERTIFIED_AMOUNT'
+        ? 'Tasdiqlangan F2 manba summasi yetishmaydi. Manba hujjatni tekshiring; qiymat taxminan hisoblanmaydi.'
+        : 'F3 fayli tuzilmadi. Hujjat manbalari va bog‘lanishlarini tekshiring.');
     } finally { setForma3Busy(false); }
   };
 

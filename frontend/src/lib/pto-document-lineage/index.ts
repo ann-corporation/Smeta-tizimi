@@ -189,7 +189,7 @@ export function validateF3Lineage(input: PtoF3LineageInput | null | undefined): 
         issues.push(idIssue(`sources.${source.documentId}.qatorIds`, rowId));
         continue;
       }
-      const key = `${source.scope.objectId}:${source.scope.periodId}:${rowId}`;
+      const key = `${source.documentId}:${source.scope.objectId}:${source.scope.periodId}:${rowId}`;
       if (seenRows.has(key)) issues.push(issue('F3_SOURCE_ROW_DUPLICATE', `sources.${source.documentId}.qatorIds`, 'Bir canonical qator F3 manbalarida ikki marta takrorlangan.', key, key));
       seenRows.add(key);
     }

@@ -351,6 +351,7 @@ export function sbT2QatorHolatOl(obyektId: number, ustunlar?: string) {
  *  (Tizim_01 dagi `apiF2ReestrOl` ning o'rnini bosadi — bazada VIEW
  *  sifatida jonli hisoblanadi, alohida yozish/tiklash kerak emas). */
 export type T2AktReestr = {
+  lifecycle_status?: import('./t2-akt-lifecycle').PtoLifecycleStatus;
   id: number; obyekt_id: number; kompaniya_id: number; obyekt: string | null;
   tur: string; raqam: string | null; oy: string; holat: string;
   fayl_id: string | null; izoh: string | null; yaratildi: string;

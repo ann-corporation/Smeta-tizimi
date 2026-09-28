@@ -3,13 +3,42 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-PTO-LIFECYCLE-REPAIR-001",
+      "title": "F2 approval audit lineage, resumable approval and PTO document chain verification",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/pto-lifecycle-repair-v1",
+      "base_sha": "1c4bfc2fe200794fa1f2b4e545b761a59f8f016d",
+      "status": "active",
+      "owns": [
+        "supabase/migrations/20260928103802_t2_f2_lifecycle_audit_lineage_fix.sql",
+        "supabase/migrations/20260928103802_t2_f2_lifecycle_audit_lineage_fix.rollback.sql",
+        "supabase/migrations/20260928103802_t2_f2_lifecycle_audit_lineage_fix.acceptance.sql",
+        "frontend/src/api/supabase.ts",
+        "frontend/src/admin/sahifalar/F2TarixNative.tsx",
+        "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+        "frontend/src/lib/pto-document-lineage/index.ts",
+        "frontend/src/lib/pto-document-lineage/index.test.ts",
+        "frontend/src/lib/pto-document-lineage/f3-sources.ts",
+        "frontend/src/lib/pto-document-lineage/f3-sources.test.ts",
+        "frontend/src/lib/f2-lifecycle-workflow.ts",
+        "frontend/src/lib/f2-lifecycle-workflow.test.ts",
+        "ops/handoff/T2_PTO_LIFECYCLE_REPAIR_001.md",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "production_write_allowed": false,
+      "_izoh": "Owner 2026-09-28 explicitly requested fixing the PTO document chain; standing authorization covers reversible migration and release. No financial approval is performed on the owner's behalf."
+    },
+    {
       "id": "T2-PTO-DOCUMENT-LINEAGE-F2-F3-OVERNIGHT-001",
       "title": "PTO chiquuvchi hujjatlar lineage va F2/F3 canonical scope hardening",
       "owner": "codex",
       "machine": "pc-ishxona",
       "branch": "codex/pto-document-lineage-f2-f3-v1",
       "base_sha": "361261e775df5173181f2967fcda227748f21dfb",
-      "status": "ready_for_review",
+      "status": "completed",
       "owns": [
     "frontend/src/lib/pto-document-lineage/",
     "frontend/src/lib/forma3-export.ts",

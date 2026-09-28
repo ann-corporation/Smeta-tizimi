@@ -84,8 +84,8 @@ describe('PTO canonical document lineage', () => {
     expect(validateF3Lineage({ scope, sources: [approved('f2-future', { periodId: '2026-10' })] }).ok).toBe(false);
   });
 
-  it('bir xil canonical qator ikki manbada takrorlansa bloklaydi', () => {
-    const r = validateF3Lineage({ scope, sources: [approved('f2-1'), approved('f2-2')] });
+  it('bir xil F2 manbasi va canonical qator qayta sanalsa bloklaydi', () => {
+    const r = validateF3Lineage({ scope, sources: [approved('f2-1'), approved('f2-1')] });
     expect(r.ok).toBe(false);
     expect(r.issues.map((x) => x.code)).toContain('F3_SOURCE_ROW_DUPLICATE');
   });

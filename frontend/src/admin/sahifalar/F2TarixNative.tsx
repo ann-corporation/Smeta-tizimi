@@ -9,10 +9,11 @@ import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import {
   sbT2AktReestrOl, sbT2ObyektlarOlKomp,
-  yangiOperationId, type T2AktReestr, type T2Obyekt,
+  yangiOperationId, sbOqi, type T2AktReestr, type T2Obyekt,
 } from '../../api/supabase';
 import { sbT2F2TafsilotOl, type F2Tafsilot } from '../../api/t2-narx';
-import { t2AktLifecycleTransition } from '../../api/t2-akt-lifecycle';
+import { t2AktLifecycleTransition, type PtoLifecycleStatus } from '../../api/t2-akt-lifecycle';
+import { f2LifecyclePlan, f2LifecycleError, f2LifecycleLabels } from '../../lib/f2-lifecycle-workflow';
 
 type F2Detail = F2Tafsilot;
 
@@ -108,8 +109,18 @@ export function F2TarixNative() {
     try {
       const kompaniyaId = workspace.companyId ?? joriy?.id;
       if (!kompaniyaId) { toast('Faol kompaniya tanlanmagan.', 'danger'); return; }
-      let expectedVersion = akt.versiya;
-      for (const toStatus of statuses) {
+      const live = await sbOqi<{ id: number; versiya: number; lifecycle_status: PtoLifecycleStatus }>({
+        jadval: 't2_akt', filtr: `id=eq.${akt.id}&kompaniya_id=eq.${kompaniyaId}&obyekt_id=eq.${obyektId}`,
+        ustunlar: 'id,versiya,lifecycle_status', limit: 1,
+      });
+      const current = live.ok ? live.qatorlar?.[0] : null;
+      if (!current) { toast('Hujjatning joriy holatini tekshirib bo‘lmadi. Sahifani yangilang.', 'danger'); return; }
+      const target = statuses.at(-1);
+      if (target !== 'approved' && target !== 'rejected' && target !== 'cancelled') return;
+      const plan = f2LifecyclePlan(current.lifecycle_status, target);
+      if (plan === null) { toast('Bu hujjatning joriy holatida ushbu amal bajarilmaydi.', 'danger'); return; }
+      let expectedVersion = current.versiya;
+      for (const toStatus of plan) {
         const result = await t2AktLifecycleTransition({
           kompaniyaId,
           aktId: akt.id,
@@ -119,17 +130,16 @@ export function F2TarixNative() {
           reason: sabab,
         });
         if (!result.ok) {
-          toast('F2 lifecycle amali bajarilmadi. Jarayon ' + toStatus + ' bosqichida to‘xtadi; yangilang va holatni tekshiring.', 'danger', undefined, 9000);
+          toast(f2LifecycleError(result.code), 'danger', undefined, 9000);
           return;
         }
         expectedVersion = result.version ?? expectedVersion + 1;
       }
       toast(statuses.at(-1) === 'approved' ? 'F2 tasdiqlandi; LRV va Nakopitelniy yangilanadi.' : 'F2 lifecycle holati saqlandi.', 'ok');
       setActionReason('');
-      await yuklash();
     } catch {
       toast('F2 tasdiqlash javobi olinmadi. Shu hujjatni qayta yubormang; avval yangilang.', 'danger', undefined, 9000);
-    } finally { setSavingId(null); }
+    } finally { await yuklash(); setSavingId(null); }
   }
 
   async function tasdiqlash(akt: T2AktReestr) {
@@ -167,7 +177,7 @@ export function F2TarixNative() {
                     const active = (selectedAkt?.id ?? null) === akt.id;
                     return <tr key={akt.id} className={`border-t border-border/60 align-top ${active ? 'bg-accent/10' : ''}`}>
                       <td className="p-3"><button className="text-left" onClick={() => setSelectedAktId(akt.id)}><div className="font-medium text-text">{akt.oy?.slice(0, 7) || 'Davr noma’lum'}</div><div className="text-text-dim">{akt.raqam || 'F2 hujjati'}</div></button></td>
-                      <td><PtoStatusChip label={holatMatni[akt.holat] || 'Noma’lum holat'} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-[10px] text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
+                      <td><PtoStatusChip label={(akt.lifecycle_status ? f2LifecycleLabels[akt.lifecycle_status] : holatMatni[akt.holat]) || 'Noma’lum holat'} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-[10px] text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
                       <td className="text-right tabular-nums"><FmtN val={akt.hujjat_jami} /><div className="text-[10px] text-text-mute">{akt.qator_soni ?? '—'} qator</div></td>
                       <td className="p-3 text-right">{akt.holat === 'qoralama' && <button onClick={() => void tasdiqlash(akt)} disabled={savingId != null} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : 'Tasdiqlash'}</button>}</td>
                     </tr>;
@@ -179,7 +189,7 @@ export function F2TarixNative() {
 
             <section className="karta min-h-0 overflow-auto p-4">
               {selectedAkt ? <>
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-[11px] text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {holatMatni[selectedAkt.holat] || 'Noma’lum holat'} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-[11px] text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-[11px] text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b></div></div>
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-[11px] text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {(selectedAkt.lifecycle_status ? f2LifecycleLabels[selectedAkt.lifecycle_status] : holatMatni[selectedAkt.holat]) || 'Noma’lum holat'} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-[11px] text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-[11px] text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b></div></div>
                 <table className="w-full text-left text-[12px]"><thead className="text-text-dim"><tr><th className="py-2">Ish / resurs</th><th className="text-right">Hajm</th><th className="text-right">Narx</th><th className="text-right">Summa</th><th>Manba</th></tr></thead><tbody>{selectedLines.map((line) => { const quantity = line.gorunish_hajm ?? line.certified_quantity ?? line.hajm; const unitPrice = line.gorunish_narx ?? line.certified_unit_price ?? line.narx; const amount = line.gorunish_summa ?? line.certified_amount ?? line.summa; const mismatch = quantity != null && unitPrice != null && amount != null && Number.isFinite(Number(quantity)) && Number.isFinite(Number(unitPrice)) && Number.isFinite(Number(amount)) && Math.abs(Number(quantity) * Number(unitPrice) - Number(amount)) > 0.005; return <tr key={line.akt_qator_id} className="border-t border-border/60"><td className="py-2"><div className="font-medium">{line.kod || '—'}</div><div>{line.nom || 'Nomsiz qator'}</div><div className="text-[10px] text-text-dim">{line.birlik || '—'}</div></td><td className="text-right tabular-nums"><FmtN val={quantity} /></td><td className="text-right tabular-nums"><FmtN val={unitPrice} /></td><td className="text-right tabular-nums"><FmtN val={amount} />{mismatch && <div className="text-[10px] text-warn">Q×narx farqi</div>}</td><td className="text-text-dim">{line.provenance_status ? 'Qayd etilgan' : 'Manba qaydi mavjud'}</td></tr>; })}</tbody></table>
                 {selectedLines.length === 0 && <div className="p-5 text-[13px] text-text-dim">Bu hujjatda qator tafsiloti yo‘q. Tasdiqlashdan oldin manba va moslashtirishni tekshiring.</div>}
                 {selectedAkt.holat === 'qoralama' && <>
