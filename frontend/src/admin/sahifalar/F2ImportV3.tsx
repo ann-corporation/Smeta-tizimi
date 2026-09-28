@@ -25,7 +25,7 @@ const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const fmt = (n: number | null | undefined) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n));
 
 function smetaQatorlari(rows: T2Qator[]): SmetaQator[] {
-  return rows.map((q) => ({ id: q.id, otaId: q.ota_id, tur: q.tur ?? 'rs', kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx, tartib: q.tartib }));
+  return rows.map((q) => ({ id: q.id, otaId: q.ota_id, tur: q.tur ?? 'rs', kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx, norma: (q as T2Qator & { norma?: number | null }).norma ?? null, tartib: q.tartib }));
 }
 
 type SnapQator = { uid: string; imzo?: string };

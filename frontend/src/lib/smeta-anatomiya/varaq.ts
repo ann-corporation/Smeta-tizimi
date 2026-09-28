@@ -267,20 +267,31 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
   let vedomostRejimi = rol === 'res';
   let guruh: string | null = null;
 
-  const resursOl = (row: readonly Katak[], r: number, vedomost: boolean, marker?: string | null): Resurs => ({
-    tartib: xom(ol(row, u.tartib)),
-    kod: matnYoki(row, u.shifr),
-    xom: xom(ol(row, u.nom)),
-    birlik: matnYoki(row, u.birlik),
-    normaBirlikka: vedomost ? null : son(ol(row, u.hajmBirlikka)),
-    hajm: vedomost ? (son(ol(row, u.hajmLoyiha)) ?? son(ol(row, u.hajmBirlikka))) : son(ol(row, u.hajmLoyiha)),
-    narx: son(ol(row, u.narx)),
-    summa: son(ol(row, u.summa)),
-    guruh,
-    ...(marker ? { texnikBelgi: marker } : {}),
-    sarlavha: vedomost ? null : iq.joriy,
-    manzil: manzil(r, u.nom),
-  });
+  const resursOl = (row: readonly Katak[], r: number, vedomost: boolean, marker?: string | null): Resurs => {
+    const e = son(ol(row, u.hajmBirlikka));
+    const f = son(ol(row, u.hajmLoyiha));
+    const narx = son(ol(row, u.narx));
+    const summa = son(ol(row, u.summa));
+    // Tizim1 LRV_PLUS: normasiz material (masalan «ВЕТРО-ВЛАГОЗАЩИТНОЕ МЕМБРАНА», «С …»)
+    // miqdori E da, F bo'sh. Faqat arifmetik ISBOT bilan: E × narx ≈ summa — shunda E miqdor,
+    // norma emas. Isbot bo'lmasa miqdor bo'sh qoladi (NULL ≠ 0, o'ylab to'qilmaydi).
+    const eMiqdor = !vedomost && f == null && e != null && narx != null && summa != null && summa !== 0
+      && Math.abs(e * narx - summa) <= Math.max(Math.abs(summa) * 0.005, 0.5);
+    return {
+      tartib: xom(ol(row, u.tartib)),
+      kod: matnYoki(row, u.shifr),
+      xom: xom(ol(row, u.nom)),
+      birlik: matnYoki(row, u.birlik),
+      normaBirlikka: vedomost || eMiqdor ? null : e,
+      hajm: vedomost ? (f ?? e) : eMiqdor ? e : f,
+      narx,
+      summa,
+      guruh,
+      ...(marker ? { texnikBelgi: marker } : {}),
+      sarlavha: vedomost ? null : iq.joriy,
+      manzil: manzil(r, u.nom),
+    };
+  };
 
   /** Sarlavha shakli: tartib raqami yo'q, sonli miqdor/narx/summa yo'q, matn bilan boshlanadi. */
   const sarlavhaShakli = (row: readonly Katak[]): boolean => {
