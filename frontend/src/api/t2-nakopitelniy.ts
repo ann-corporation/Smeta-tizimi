@@ -71,7 +71,8 @@ const NAKOPITELNIY_MAX_SAHIFA = 200;
 
 export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, limit?: number, offset?: number): Promise<NakopitelniyJavob> {
   const q = new URLSearchParams({ amal: 'nakopitelniy', obyekt_id: String(obyektId), faqat_faol: '0' });
-  if (davr) q.set('davr', davr);
+  // UI month selector uses YYYY-MM; PostgreSQL RPC requires a complete date.
+  if (davr) q.set('davr', /^\d{4}-\d{2}$/.test(davr) ? `${davr}-01` : davr);
   if (limit) q.set('limit', String(limit));
   if (offset) q.set('offset', String(offset));
   const r = await fetch('/api/hujjat-nazorat?' + q.toString());

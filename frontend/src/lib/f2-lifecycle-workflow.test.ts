@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { f2LifecycleError, f2LifecyclePlan } from './f2-lifecycle-workflow';
+
+describe('PTO visible workflow regression guards', () => {
+  it('keeps an explicit non-collapsing viewport for the virtual LRV tree', () => {
+    const source = readFileSync(resolve(__dirname, '../admin/sahifalar/HolatNative.tsx'), 'utf8');
+    expect(source).toContain('h-[65vh] min-h-[420px] shrink-0');
+  });
+  it('uses the shared object scope and rejects obsolete Nakopitelniy responses', () => {
+    const source = readFileSync(resolve(__dirname, '../admin/sahifalar/NakopitelniyVedomost.tsx'), 'utf8');
+    expect(source).toContain('workspace.scope.objectId');
+    expect(source).not.toContain("const [objectId, setObjectId] = useState");
+    expect(source).toContain('if (currentRequest !== requestId.current) return;');
+    expect(source).toContain('return () => { ++requestId.current; };');
+  });
+});
 
 describe('F2 interruption recovery', () => {
   it.each([

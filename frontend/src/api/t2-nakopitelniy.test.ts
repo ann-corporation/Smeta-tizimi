@@ -30,7 +30,7 @@ describe('t2NakopitelniyToliq — server sahifalari avtomat', () => {
     expect(r.truncated).toBe(false);
     expect(r.jami).toEqual({ smeta_summa: 1 });
     expect(urls).toHaveLength(3);
-    expect(urls.every((u) => u.includes('limit=5000') && u.includes('davr=2026-09'))).toBe(true);
+    expect(urls.every((u) => new URL(u, 'http://x').searchParams.get('davr') === '2026-09-01' && u.includes('limit=5000'))).toBe(true);
   });
 
   it('sahifalar orasida qator soni o‘zgarsa — xato, chala ro‘yxat qaytmaydi', async () => {

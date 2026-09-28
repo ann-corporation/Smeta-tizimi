@@ -40,3 +40,14 @@ Rasmiy biznes F2 tasdiqlashi operatorning qarori; test uchun takroriy import yok
 Dirty original worktree va boshqa agentning importer/matcher source fayllari o‘zgartirilmagan.
 Old lineage task source `b994c45` va keyingi fixlar main ichida mavjud: governance status completed bilan reconciled.
 Rollback source business rowsni o‘chirmaydi; eski audit xatosini qaytaradi, shu sabab faqat emergency rollback uchun.
+# Authenticated Preview — qo‘shimcha topilgan xatolar
+
+Fast Food 1-etaj tanlanganda Nakopitelniy avtomatik yuklandi. To‘g‘ri xarajat
+742 939 194.64, nakrutka + QQS 1 008 620 120.96 — alohida qiymatlar.
+F3 yuklashda `YYYY-MM` PostgreSQL `date` parametriga yuborilgani sabab xato
+takrorlandi. Read-only SQL `2026-07` uchun 22007 xatosini isbotladi;
+`2026-07-01` bilan RPC ok:true, 1440 qator qaytardi. Mijoz davrni to‘liq
+sanaga aylantiradi; sahifalash regression testi aynan shu sanani tekshiradi.
+LRV virtual daraxti uchun nol balandlik muammosi aniq viewport bilan tuzatildi.
+Ushbu qo‘shimcha uchun 24 focused test va build (ikkala TypeScript gate) PASS.
+Yangi buildning browser download smoke tekshiruvi hali davom etmoqda.

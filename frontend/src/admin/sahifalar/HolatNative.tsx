@@ -339,7 +339,7 @@ export function HolatNative() {
             hajm (Fakt) uchun, `onQatorTahrirlandi` — smeta qatorining o'z
             maydonlari (nom/hajm/narx/birlik/kat) tahriridan keyin daraxtni
             qayta yuklash uchun. */}
-        {tree.length > 0 && <div className="min-h-0 flex-1"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash} /></div>}
+        {tree.length > 0 && <div className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash} /></div>}
         {selected && !loading && !error && (
           <div className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">
             <details className="karta group p-3" open={ochiqPanel === 'smeta'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'smeta' : null)}>
