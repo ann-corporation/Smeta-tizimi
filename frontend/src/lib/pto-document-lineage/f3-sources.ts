@@ -11,6 +11,9 @@ export function f3CertifiedSources(rows: readonly F2Tafsilot[], companyId: numbe
     if (month > period) continue;
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('F3_PERIOD_MISMATCH');
     if (!Number.isSafeInteger(row.akt_id) || row.akt_id <= 0 || !Number.isSafeInteger(row.qator_id) || row.qator_id <= 0) throw new Error('F3_SOURCE_ID_REQUIRED');
+    // Quantity-only BL/resource records are not money facts. Keep NULL distinct
+    // from zero; never synthesize an amount from their quantity or estimate.
+    if (row.certified_amount == null && row.certified_unit_price == null && row.narx == null && row.summa == null) continue;
     if (row.certified_amount == null || !Number.isFinite(Number(row.certified_amount))) throw new Error('MISSING_CERTIFIED_AMOUNT');
     result.push({ obyekt_id: objectId, qator_id: row.qator_id, oy: month, summa: Number(row.certified_amount), akt_id: row.akt_id });
   }

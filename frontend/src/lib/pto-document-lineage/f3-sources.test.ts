@@ -19,6 +19,13 @@ describe('F2 → F3 certified source chain', () => {
   it('preserves certified zero and negative reversal values', () => {
     expect(f3CertifiedSources([row({ certified_amount: 0 }), row({ certified_amount: -7.01 })],17,79,'2026-07').map(x=>x.summa)).toEqual([0,-7.01]);
   });
+  it('keeps quantity-only work and resource records out of monetary totals without inventing zero', () => {
+    const quantityOnly = { certified_amount: null, certified_unit_price: null, narx: null, summa: null };
+    expect(f3CertifiedSources([row({ ...quantityOnly, qator_tur: 'bl' }), row({ ...quantityOnly, qator_tur: 'rs' }), row()],17,79,'2026-07').map(x=>x.summa)).toEqual([1234.49]);
+  });
+  it('refuses missing certified amount when a legacy monetary amount exists', () => {
+    expect(() => f3CertifiedSources([row({ certified_amount: null, certified_unit_price: null, narx: null })],17,79,'2026-07')).toThrow('MISSING_CERTIFIED_AMOUNT');
+  });
   it('excludes drafts and future periods from cumulative exports', () => {
     expect(f3CertifiedSources([row({ akt_holat:'qoralama' }),row({oy:'2026-08-01'}),row()],17,79,'2026-07')).toHaveLength(1);
   });
