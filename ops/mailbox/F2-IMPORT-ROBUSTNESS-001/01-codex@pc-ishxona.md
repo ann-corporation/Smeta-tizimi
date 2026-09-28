@@ -12,7 +12,8 @@ qilindi. Main/production o‘zgartirilmadi.
 G:\...\GAS dagi dirty owner ishiga tegilmadi. Izolyatsiyalangan worktree:
 `C:\Temp\f2-import-robustness-v1`, branch `codex/f2-import-robustness-v1`, base
 `b36c552e0b8de22bb398f04ab851449a3e68b87f`.
-Remote checkpoint: `49119fbe131b14c58b5c62563cd9a94c605acca4`.
+Current remote HEAD: `819104405fdebf0dd91f3b3e46625f45ba14266b`.
+Checkpoint chain: `49119fb` → `749004d` → `ee931c9` → `8191044`.
 
 Natija: T1 `35_F2Moslash.js`/`Panel.html` dan ikki daraxt, qator bo‘yicha
 bog‘lash va tur/RZ scope skeleti olindi; T1 GAS/row identity/ko‘r-ko‘rona match
@@ -31,10 +32,10 @@ Verification: focused Vitest 5 fayl/27 test PASS; `tsc -b`, Functions gate,
 build va `git diff --check` PASS. Governance-check `CURRENT_STATE.md` main SHA
 eskiligi warning berdi.
 
-Keyingi ish: safe feature branch commit/push; keyin Claude/integrator source
-revisioni bilan mos Preview’da authenticated operator import + F2 tarix/
-Nakopitelniy/F3 acceptance’ni bajarsin. Bu ishchi task production yozuvi, main
-merge yoki deploy qilmagan; to‘liq release readiness emas.
+Keyingi ish: source hash/revisioni aynan tenglashtirilgan workbook bilan
+authenticated Preview operator importini bajarish, Fast Food jami tafovutini
+tushuntirish va F2 tarix/Nakopitelniy/F3 acceptance qilish. Bu ishchi task
+production yozuvi, main merge yoki deploy qilmagan; to‘liq release readiness emas.
 
 ## 2026-09-29 qo‘shimcha adversarial checkpoint
 
@@ -49,6 +50,6 @@ merge yoki deploy qilmagan; to‘liq release readiness emas.
 - TypeScript, `npm run tekshir`, build: PASS. Lint exit 0, oldindan mavjud
   warninglar bor. Governance-check PASS, ammo CURRENT_STATE main SHA eskirgan
   warning bor. `git diff --check`: PASS.
-- Kod va handoff checkpoint commit `ee931c9`, remote feature branchga push
-  qilindi. Authenticated Preview importi va Fast Food lokal/Preview jami farqi
-  hali unresolved; main/deploy yo‘q.
+- Kod patchi `ee931c9`, handoff/mailbox reconciliation `8191044`; ikkalasi ham
+  remote feature branchda. Authenticated Preview importi va Fast Food
+  lokal/Preview jami farqi hali unresolved; main/deploy yo‘q.
