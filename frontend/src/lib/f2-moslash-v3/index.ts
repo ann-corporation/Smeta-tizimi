@@ -212,6 +212,8 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   const band = new Set<number>();
   /** Egizaklar tartib bo'yicha TAKLIF bilan band qilgan smeta qatorlari (tasdiqlanmagan). */
   const tartibBand = new Set<number>();
+  /** Ish darajasida bog'langan smeta qatorlari → shu F2 dagi jami hajm (takror qismlar uchun). */
+  const ishHajm = new Map<number, number>();
   const AVTO_MIN = opts.avtoMin ?? 75;
   const AVTO_FARQ = opts.avtoFarq ?? 12;
   const barchaRz = [...S.byId.values()].filter((t) => t.tur === 'rz');
@@ -368,6 +370,30 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       .sort((a, b) => b.ball - a.ball || (S.byId.get(a.qatorId)!.tartib ?? a.qatorId) - (S.byId.get(b.qatorId)!.tartib ?? b.qatorId)).slice(0, 12);
     const [b1, b2] = nz;
     const toza = (n: Nomzod) => !n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka') && q.ball < 0);
+    // TAKROR QISM (egasi sinovi 2026-09-29, Karting): bitta F2 da o'sha ish ikki marta keladi
+    // (УПЛОТНЕНИЕ 3,11 + 5,4745 — ikki uchastka), smetada esa u BITTA qator (39,148). Ikkinchi qism
+    // ✕ emas — o'sha smeta qatoriga qo'shiladi. Faqat: bo'sh aynan nomzod (egizak) yo'q, shifr +
+    // nom + birlik aynan, razdel doirasida. Jami F2 hajmi qoldiqdan oshsa — ◐ va ogohlantirish.
+    {
+      const fKod = normKod(f.kod), fKan = kodKanon(f.kod), fNb = nb(f.nom, f.birlik);
+      const aynanmi = (t: STugun) => t.kNb === fNb && (!fKod || t.kKod === fKod || (!!fKan && t.kKanon === fKan));
+      const doirada = (t: STugun) => !d.rzlar || doiradami(d, t);
+      if (!hovuz.some((t) => aynanmi(t) && doirada(t))) {
+        const takror = [...ishHajm.keys()].map((id) => S.byId.get(id)).filter((t): t is STugun => !!t && aynanmi(t) && doirada(t))
+          .sort((a, b) => (a.tartib ?? a.id) - (b.tartib ?? b.id));
+        if (takror.length) {
+          const t = takror[0];
+          const chegara = opts.qoldiq?.get(t.id) ?? t.hajm;
+          const jami = (ishHajm.get(t.id) ?? 0) + (f.hajm ?? 0);
+          const sigadi = chegara == null || f.hajm == null || jami <= chegara * 1.001 + 1e-9;
+          const fmtH = (n: number) => +n.toFixed(4);
+          const holat = takror.length === 1 && sigadi ? 'aniq' as const : 'taklif' as const;
+          yoz(f.uid, { uid: f.uid, holat, qatorId: t.id, usul: 'takror', nomzodlar: nz,
+            sabab: `shu ish hujjatda yana bir qism: smeta qatori bitta, F2 jami ${fmtH(jami)}${chegara != null ? ` / ${sigadi ? 'qoldiq' : '⚠ qoldiqdan oshdi'} ${fmtH(chegara)}` : ''}${takror.length > 1 ? ` · ${takror.length} ta egizakdan birinchisi — tasdiqlang` : ''}` });
+          return t;
+        }
+      }
+    }
     // Egasi sinovi 2026-09-28: F2 razdeli smetadagi razdelga ANIQ bog'langan-u, shu razdel ichida
     // nomzod yo'q — boshqa razdeldan (masalan fasad paroizolyatsiyasiga POL paroizolyatsiyasi)
     // taklif BERILMAYDI: bu zamena yoki qo'shimcha ish. Tashqi nomzodlar faqat variant sifatida.
@@ -441,14 +467,18 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
 
   /** Resurslar faqat bog'langan ish ichida (Tizim1). Topilmasa — zamena material/qo'shimcha resurs. */
   function resurslarniMosla(fIsh: F2Tugun, sIsh: STugun | null, otaImzo: string) {
+    // Resurs faqat SHU F2 ishi ichida bir marta band: o'sha smeta ishining takror qismi
+    // (yuqoridagi 'takror') o'z resurslarini xuddi shu smeta resurslariga bog'laydi.
+    const lokalBand = new Set<number>();
     for (const r of fIsh.bolalar) {
       if (!sIsh) {
         yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: [], sabab: 'ishi bog‘lanmagan — ish hal qilinganda resurs ham hal bo‘ladi' });
         continue;
       }
-      const ichki = sIsh.bolalar.filter((t) => t.tur !== 'rz' && !band.has(t.id));
+      const ichki = sIsh.bolalar.filter((t) => t.tur !== 'rz' && !lokalBand.has(t.id));
       const x = opts.xotira?.get(f2Imzo(r, otaImzo));
       if (x != null && ichki.some((t) => t.id === x)) {
+        lokalBand.add(x);
         yoz(r.uid, { uid: r.uid, holat: 'xotira', qatorId: x, usul: 'xotira', nomzodlar: [], sabab: 'o‘tgan oylarda tasdiqlangan' });
         continue;
       }
@@ -462,6 +492,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         if (c.length === 1) { topildi = c[0]; usul = u; break; }
       }
       if (topildi && birMos(r.birlik, topildi.birlik) && !gradeFarq(r.nom, topildi.nom)) {
+        lokalBand.add(topildi.id);
         yoz(r.uid, { uid: r.uid, holat: 'aniq', qatorId: topildi.id, usul: `ish_ichida:${usul}`, nomzodlar: [], sabab: 'ish ichida yagona' });
         continue;
       }
@@ -484,6 +515,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     for (const t of tugunlar) {
       if (t.tur === 'rz') { yur(t.bolalar, doiraTop(t, d)); continue; }
       const s = ishniMosla(t, d, t.yol.map(rzKalit).join('/'));
+      if (s) ishHajm.set(s.id, (ishHajm.get(s.id) ?? 0) + (t.hajm ?? 0));
       if (t.tur === 'bl') resurslarniMosla(t, s, f2Imzo(t));
     }
   }

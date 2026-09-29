@@ -82,7 +82,7 @@ export interface F2V3WorkbenchProps {
 const resTuri = (birlik: string | null): 'rs' | 'mat' => (/ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
 
 /** Egasi 2026-09-28: har pozitsiya — norma · miqdor · birlik · narx · summa (aniq ustunlarda). */
-const USTUN_GRID = 'grid shrink-0 grid-cols-[58px_72px_52px_76px_96px] items-center gap-x-1 text-right tabular-nums text-[11px]';
+const USTUN_GRID = 'ml-auto grid shrink-0 grid-cols-[58px_72px_52px_76px_96px] items-center gap-x-1 text-right tabular-nums text-[11px]';
 function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: { norma?: number | null; miqdor?: number | null; birlik?: string | null; narx?: number | null; oxirgi?: React.ReactNode; oxirgiCls?: string }) {
   return (
     <span className={USTUN_GRID}>
@@ -96,8 +96,8 @@ function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: {
 }
 function UstunSarlavha({ oxirgi }: { oxirgi: string }) {
   return (
-    <div className="flex items-center gap-1 border-b border-border px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-text-mute">
-      <span className="flex-1">Nomi</span>
+    <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-text-mute">
+      <span className="min-w-[200px] flex-1">Nomi</span>
       <span className={USTUN_GRID}><span>Norma</span><span>Miqdor</span><span className="text-left">Birlik</span><span>Narx</span><span>{oxirgi}</span></span>
       <span className="w-[92px] shrink-0" />
     </div>
@@ -373,10 +373,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           onClick={() => sel ? setTanlangan(null) : scrollTanlanganPanelga(t.uid)}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTanlangan(sel ? null : t.uid); } }}
           aria-pressed={sel}
-          className={'flex min-w-0 flex-1 cursor-grab items-center gap-1 rounded px-1 py-[3px] text-left text-[12px] '
+          className={'flex min-w-0 flex-1 cursor-grab flex-wrap items-center gap-1 rounded px-1 py-[3px] text-left text-[12px] '
             + (t.tur === 'rs' ? 'text-text-dim' : 'text-text')}>
           <span className={`w-4 shrink-0 text-center font-bold ${B.cls}`} title={B.t}>{B.b}</span>
-          <span className="min-w-0 flex-1">
+          <span className="min-w-[200px] flex-1 basis-[200px]">
             <span className="block truncate" title={t.nom}>
               {t.belgi && <span className={`mr-1 rounded px-1 text-[10px] font-medium ${t.belgi === 'zamena' ? 'bg-warn/15 text-warn' : 'bg-accent/15 text-accent'}`}
                 title={t.belgi === 'zamena' ? 'Hujjatda zamena (~) deb belgilangan' : 'Hujjatda qo‘shimcha ish (+) deb belgilangan'}>{t.belgi === 'zamena' ? '~ zamena' : '+ qo‘shimcha'}</span>}
@@ -463,10 +463,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             {ochiq ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </button>
           : <span className="w-3 shrink-0" />}
-        <button type="button" className={'flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-[3px] text-left text-[12px] '
+        <button type="button" className={'flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded px-1 py-[3px] text-left text-[12px] '
           + (s.tur === 'bl' ? 'text-text' : 'text-text-dim')} onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
-          <span className="min-w-0 flex-1">
+          <span className="min-w-[200px] flex-1 basis-[200px]">
             <span className="block truncate" title={s.nom ?? ''}>{percent != null && <span className="mr-1 rounded bg-warn/15 px-1 text-[10px] text-warn" title="Moslik indeksi — ehtimollik emas">{percent}%</span>}{s.kod && <span className="mr-1 font-mono text-[11px] text-text-mute">{s.kod}</span>}{s.nom}
               {(yangi?.qoshimcha || yangi?.zamena) && <span className="ml-1 rounded bg-accent/15 px-1 text-[10px] text-accent">{yangi.zamena ? 'zamena' : 'qo‘shimcha'}</span>}
             </span>
