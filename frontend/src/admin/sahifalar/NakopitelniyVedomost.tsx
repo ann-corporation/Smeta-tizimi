@@ -17,7 +17,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
-import { f3CertifiedSources } from '../../lib/pto-document-lineage/f3-sources';
+import { f3CertifiedHajm, f3CertifiedSources } from '../../lib/pto-document-lineage/f3-sources';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -313,7 +313,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           }));
       } catch { /* ro‘yxat o‘qilmasa СМЕТНАЯ o‘zgarmaydi — davom etamiz */ }
       const h = forma3Hujjat(
-        { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik },
+        { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
           obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(),
           smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage),

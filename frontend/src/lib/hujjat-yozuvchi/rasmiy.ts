@@ -68,9 +68,25 @@ export type RasmiyVaraqSozlama = {
    * mumkin — bo'sh joy majburlanmaydi).
    */
   ikkiTomonRekvizit?: ReadonlyArray<readonly [string, string | null | undefined, string, string | null | undefined]>;
+  /** Sarlavhadan keyin, rekvizitdan oldin erkin qatorlar (masalan Форма № 3 dagi
+   *  «Номер документа | Дата составления | Отчетный период» ramkali qutisi). */
+  oldBloklar?: ReadonlyArray<ReadonlyArray<BlokKatak>>;
+  /** Maxsus ko'p qavatli jadval sarlavhasi (masalan Форма № 3 — uch qavat, 16 grafa).
+   *  Berilsa, `guruh` asosidagi avtomatik sarlavha o'rniga shu yoziladi. */
+  maxsusSarlavha?: { qatorSoni: number; kataklar: ReadonlyArray<SarlavhaKatak>; balandliklar?: readonly number[] };
   ustunlar: readonly RasmiyUstun[];
   yonalish?: 'portrait' | 'landscape';
 };
+
+/** Erkin blok katagi: c1..c2 ustunlar birlashtiriladi. */
+export type BlokKatak = {
+  c1: number; c2?: number; matn: Qiymat;
+  /** yorliq — qalin chap; qiymat — oddiy chap; quti — ramkali markaz; qutiQalin — ramkali qalin;
+   *  imzo — imzo matni; izoh — mayda kursiv markaz; ost — markaz; qalin — qalin chap. */
+  tur?: 'yorliq' | 'qiymat' | 'quti' | 'qutiQalin' | 'imzo' | 'izoh' | 'ost' | 'qalin';
+};
+/** Maxsus sarlavha katagi: `qator` — sarlavha ichidagi 0-asosli qator; `qatorlar` — vertikal birlashma. */
+export type SarlavhaKatak = { c1: number; c2?: number; qator: number; qatorlar?: number; matn: string };
 
 type Katak = { col: number; s: number; xml: (ref: string) => string };
 type Qator = { cells: Katak[]; daraja?: number; ht?: number };
@@ -97,7 +113,7 @@ export const RS = {
   header: 5, raqam: 6, matn: 7, markaz: 8, pul: 9, hajm: 10, norma: 11, foiz: 12,
   bolimMatn: 13, bolimPul: 14, jamiMatn: 15, jamiPul: 16, vsegoMatn: 17, vsegoPul: 18,
   imzoMatn: 19, imzoIzoh: 20, bolimSarlavha: 21, izoh: 22, bolimHajm: 23, bolimMarkaz: 24,
-  jamiMarkaz: 25, vsegoMarkaz: 26, jamiHajm: 27,
+  jamiMarkaz: 25, vsegoMarkaz: 26, jamiHajm: 27, qutiMarkaz: 28,
 } as const;
 
 const B1 = '<left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/>';
@@ -122,7 +138,7 @@ export const RASMIY_STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalon
   + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
   + `<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border>${B1}</border><border>${B2}</border></borders>`
   + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-  + '<cellXfs count="28">'
+  + '<cellXfs count="29">'
   + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' // 0 oddiy
   + xf(0, 2, 0, 'horizontal="center" vertical="center" wrapText="1"') // 1 sarlavha
   + xf(0, 0, 0, 'horizontal="center" vertical="center" wrapText="1"') // 2 ost
@@ -151,6 +167,7 @@ export const RASMIY_STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalon
   + xf(0, 1, 1, 'horizontal="center" vertical="top"') // 25 jami markaz
   + xf(0, 1, 2, 'horizontal="center" vertical="top"') // 26 vsego markaz
   + xf(165, 1, 1, R) // 27 jami hajm
+  + xf(0, 0, 1, C) // 28 quti (ramkali, oddiy, markaz)
   + '</cellXfs>'
   + '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
   + '</styleSheet>';
@@ -221,6 +238,10 @@ export class RasmiyVaraq {
       this.put([katakXml(0, RS.ost, s)]);
       this.merge(0, this.r - 1, oxir);
     }
+    if (o.oldBloklar?.length) {
+      this.put([]);
+      for (const b of o.oldBloklar) this.blok(b);
+    }
     if (o.ikkiTomonRekvizit?.length) {
       this.put([]);
       // Ikki blok: chap (ПОДРЯДЧИК) 0..yarim, o'ng (ЗАКАЗЧИК) yarim+1..oxir.
@@ -263,6 +284,30 @@ export class RasmiyVaraq {
     }
     this.put([]);
 
+    // Maxsus ko'p qavatli sarlavha (Форма № 3): kataklar aniq joyi va birlashmalari bilan.
+    if (o.maxsusSarlavha) {
+      const ms = o.maxsusSarlavha;
+      const h0 = this.r;
+      this.sarlavhaQatori = h0;
+      for (let k = 0; k < ms.qatorSoni; k++) {
+        const kat = ms.kataklar.filter((x) => x.qator === k);
+        const cells: Katak[] = [];
+        // Ramka uzluksiz bo'lishi uchun har ko'rinadigan ustunga katak (bo'shi ham).
+        for (let i = 0; i <= oxir; i++) {
+          if (o.ustunlar[i]?.yashirin) continue;
+          const t = kat.find((x) => x.c1 === i);
+          cells.push(katakXml(i, RS.header, t ? t.matn : null));
+        }
+        this.put(cells, ms.balandliklar?.[k]);
+      }
+      for (const x of ms.kataklar) {
+        const r1 = h0 + x.qator, r2 = r1 + Math.max(1, x.qatorlar ?? 1) - 1, c2 = x.c2 ?? x.c1;
+        if (r2 > r1 || c2 > x.c1) this.merges.push(`${ustunHarfi(x.c1)}${r1}:${ustunHarfi(c2)}${r2}`);
+      }
+      let n = 0;
+      this.raqamQatori = this.put(o.ustunlar.map((u, i) => katakXml(i, RS.raqam, u.yashirin ? null : ++n)));
+      return;
+    }
     // Jadval sarlavhasi (guruh bo'lsa — ikki qator).
     const ikki = o.ustunlar.some((u) => u.guruh);
     const h1 = this.r;
@@ -344,6 +389,24 @@ export class RasmiyVaraq {
   }
 
   bosh(): number { return this.put([]); }
+
+  /** Erkin qator: har katak c1..c2 ga birlashtiriladi (quti — ramkali). */
+  blok(kataklar: ReadonlyArray<BlokKatak>, ht?: number): number {
+    const S: Record<NonNullable<BlokKatak['tur']>, number> = {
+      yorliq: RS.titulYorliq, qiymat: RS.titulQiymat, quti: RS.qutiMarkaz, qutiQalin: RS.header,
+      imzo: RS.imzoMatn, izoh: RS.imzoIzoh, ost: RS.ost, qalin: RS.bolimSarlavha,
+    };
+    const cells: Katak[] = [];
+    for (const k of kataklar) {
+      const s = S[k.tur ?? 'qiymat'];
+      cells.push(katakXml(k.c1, s, k.matn));
+      // Ramkali katak birlashmasi — ichki kataklar ham ramkali (chegara uzilmasin).
+      if (k.tur === 'quti' || k.tur === 'qutiQalin') for (let i = k.c1 + 1; i <= (k.c2 ?? k.c1); i++) cells.push(katakXml(i, s, null));
+    }
+    const r = this.put(cells, ht);
+    for (const k of kataklar) this.merge(k.c1, r, k.c2 ?? k.c1);
+    return r;
+  }
 
   /** Jadvaldan tashqaridagi qalin sarlavha (masalan "ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ"). */
   sarlavhaMatn(matn: string): number {

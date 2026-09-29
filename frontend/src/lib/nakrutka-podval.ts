@@ -140,6 +140,16 @@ export type PodvalOpsiya = {
   nk: Partial<NakrutkaKoeffitsientlar>;
   /** Har pul ustunining kategoriya jamilari (kesh uchun). */
   katSummalar: Record<string, KatSummalar>;
+  /** Kategoriya qatorlarida fizik ko'rsatkich (Форма № 3, egasi 2026-09-29: «shuncha chel.-ch,
+   *  shuncha mash.-ch»): ustun harfi → kategoriya → soat. Birlik (чел.-ч / маш.-ч) `birlikUstun` ga. */
+  katHajm?: { qiymat: Record<string, Partial<Record<NakrutkaKat, number>>>; birlikUstun?: string };
+  /** Bo'lim sarlavhasi va oxirgi qator nomi (sukut: «РАСЧЕТ …», «ВСЕГО К ОПЛАТЕ …»). */
+  sarlavha?: string;
+  vsegoNom?: string;
+  /** Koeffitsientlar jadvali (sukut true). Форма № 3 da kerak emas. */
+  kfJadval?: boolean;
+  /** Kategoriya summalari SUMIF emas, qiymat sifatida (jadvalda resurs qatorlari bo'lmasa — Форма № 3). */
+  katFormulasiz?: boolean;
 };
 
 const colIdx = (h: string) => h.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
@@ -160,12 +170,17 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
   const row = (fill: (cells: Qiymat[], r: number) => void) => (r: number) => { const c: Qiymat[] = Array(n).fill(null); fill(c, r); return c; };
   const [a, b] = o.oraliq;
 
-  v.bolim('РАСЧЕТ СТОИМОСТИ К ОПЛАТЕ (прямые затраты → накладные и прочие расходы → НДС)', { daraja: 0 });
+  v.bolim(o.sarlavha ?? 'РАСЧЕТ СТОИМОСТИ К ОПЛАТЕ (прямые затраты → накладные и прочие расходы → НДС)', { daraja: 0 });
   const katQ: Record<NakrutkaKat, number> = {} as Record<NakrutkaKat, number>;
   for (const k of NAKRUTKA_KATLAR) {
     katQ[k] = v.qator('oddiy', row((c) => {
       c[mc] = KAT_NOMI[k];
-      for (const col of o.pulUstunlar) c[colIdx(col)] = { f: `SUMIF(${o.katUstun}${a}:${o.katUstun}${b},"${k}",${col}${a}:${col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
+      if (o.katHajm) {
+        const bor = Object.values(o.katHajm.qiymat).some((x) => x[k] != null);
+        if (bor && o.katHajm.birlikUstun) c[colIdx(o.katHajm.birlikUstun)] = k === 'ЧЕЛ' ? 'чел.-ч' : k === 'МАШ' ? 'маш.-ч' : '';
+        for (const [hc, x] of Object.entries(o.katHajm.qiymat)) if (x[k] != null) c[colIdx(hc)] = x[k]!;
+      }
+      for (const col of o.pulUstunlar) c[colIdx(col)] = o.katFormulasiz ? yaxlit2(o.katSummalar[col][k]) : { f: `SUMIF(${o.katUstun}${a}:${o.katUstun}${b},"${k}",${col}${a}:${col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
     }));
   }
   const pryQ = v.qator('jami', row((c) => {
@@ -199,12 +214,13 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
       }
     };
     v.qator(k.kod === 'vsego' ? 'vsego' : k.jami ? 'jami' : 'oddiy', row((c) => {
-      c[mc] = k.nom;
+      c[mc] = k.kod === 'vsego' && o.vsegoNom ? o.vsegoNom : k.nom;
       if (k.koef) c[fi] = { n: Number(o.nk[k.koef] ?? 0), uslub: 'foiz' };
       for (const col of o.pulUstunlar) c[colIdx(col)] = { f: f(col), v: kaskad[col][k.kod] };
     }));
   }
   const vsegoQator = q.vsego;
+  if (o.kfJadval === false) return { bosh, vsegoQator, kfQator, kaskad };
   // Koeffitsientlar — foiz kataklaridan formula (foizni o'zgartirsangiz qator
   // «к оплате» summalari ham qayta hisoblanadi).
   const P = (kod: string) => `${o.foizUstun}${q[kod]}/100`;

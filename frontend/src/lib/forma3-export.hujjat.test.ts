@@ -190,7 +190,8 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
     // Sarlavha — F2 paketining o'z СЧЁТ-ФАКТ varag'i nomi bilan bir xil.
     expect(matn).toContain('СПРАВКА-СЧЕТ-ФАКТУРА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ (ПОНЕСЕННЫХ ЗАТРАТ)');
     expect(matn).toContain('03.10.2026 г.');
-    expect(matn).toContain('с 01.09.2026 г. по 30.09.2026 г.');
+    // Rasmiy blanka qutisi: Номер документа | Дата составления | Отчетный период с … по …
+    for (const k of ['Номер документа', 'Дата составления', 'Отчетный период', '01.09.2026 г.', '30.09.2026 г.', 'ЗА СЕНТЯБРЬ МЕСЯЦ 2026 ГОДА']) expect(matn).toContain(k);
     // Ikkala tomon — nom, adres, telefon, hisob raqami, bank, MFO, INN, OKED.
     for (const kutilgan of [
       'ООО "New Temes Buildings"', 'г.Ташкент, ул. Турсунзода 60', '(90) 233-97-07',
@@ -198,17 +199,27 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
       'Дирекция "Янги Навоий шахарчаси"', 'г.Навои ул.И.Каримова 77', '95-246-70-70',
       '4600 1086 0124 0117 0139 9001 8001', 'Марказий банк', '00014', '311311785', '84130',
     ]) expect(matn).toContain(kutilgan);
-    expect(matn).toContain('Договор № ЯНШАК 1/1 от 18.04.2025 г.');
+    expect(matn).toContain('№ ЯНШАК 1/1 от 18.04.2025 г. Общая стоимость в договорных текущих ценах');
     expect(matn.replace(/\s/g, '')).toContain('45390000000,00сум');
     expect(matn).toContain('Навои шаҳри');
   });
 
-  it('rekvizit kiritilmagan — chiziq bilan majburlanmaydi, qator ko‘rinmaydi', () => {
+  it('rekvizit kiritilmagan — rasmiy blankadagi kabi to‘ldirish chizig‘i qoladi, o‘ylab to‘qilmaydi, diqqatda aytiladi', () => {
     const h = forma3Hujjat(MANBA, { obyektNom: 'X', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK });
     const hisobot = hujjatTekshir(h.bytes, { ruxsat: [] });
     const matn = hisobot.matnlar.join(' | ');
-    expect(matn).not.toContain('Адрес:');
+    expect(matn).toContain('Заказчик: | ________________');
     expect(matn).not.toContain('Договор №');
+    expect(h.diqqat.some((d) => d.nom === 'Заказчик')).toBe(true);
+  });
+
+  it('egasi 2026-09-29: rasmiy 16 grafa, podvalda chel.-ch / mash.-ch soatlari, ИТОГО К ОПЛАТЕ va summa so‘z bilan', () => {
+    const h = forma3Hujjat(MANBA, { obyektNom: 'X', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK });
+    const matn = hujjatTekshir(h.bytes, { ruxsat: [] }).matnlar.join(' | ');
+    for (const k of ['в % к объему всего работ (гр.8:гр.4)×100', 'с начала года по отчетный месяц включительно', 'в том числе за отчетный месяц',
+      'I. СТРОИТЕЛЬНО-МОНТАЖНЫЕ РАБОТЫ', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО ОБЪЕКТУ', 'чел.-ч', 'ИТОГО К ОПЛАТЕ (с учетом НДС)']) expect(matn).toContain(k);
+    expect(matn).toMatch(/сум \d\d тийин с НДС/);
+    expect(h.soatlar.ЧЕЛ).toBeDefined();
   });
 
   it('255 argumentdan katta: 300 bargli hujjat SUMIF oraliqlari bilan yigʻiladi', () => {

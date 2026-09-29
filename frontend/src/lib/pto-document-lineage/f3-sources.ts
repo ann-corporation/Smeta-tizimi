@@ -19,3 +19,22 @@ export function f3CertifiedSources(rows: readonly F2Tafsilot[], companyId: numbe
   }
   return result;
 }
+
+/**
+ * Tasdiqlangan F2 HAJMLARI (fizik ko'rsatkich) — Форма № 3 ning 8/11/14-grafalari va
+ * podvaldagi chel.-ch / mash.-ch soatlari uchun (egasi 2026-09-29). Pul emas: faqat
+ * hujjatning o'z miqdori (certified_quantity, bo'lmasa hajm); ish (bl) qatorlari ham.
+ */
+export function f3CertifiedHajm(rows: readonly F2Tafsilot[], companyId: number, objectId: number, period: string): NonNullable<Forma3Manba['f2Hajm']> {
+  const result: Array<NonNullable<Forma3Manba['f2Hajm']>[number]> = [];
+  for (const row of rows) {
+    if (row.kompaniya_id !== companyId || row.obyekt_id !== objectId) throw new Error('F3_SOURCE_SCOPE_MISMATCH');
+    if (row.akt_holat !== 'tasdiqlangan') continue;
+    const month = String(row.oy).slice(0, 7);
+    if (month > period) continue;
+    const h = row.certified_quantity ?? row.hajm;
+    if (h == null || !Number.isFinite(Number(h))) continue;
+    result.push({ obyekt_id: objectId, qator_id: row.qator_id, oy: month, hajm: Number(h) });
+  }
+  return result;
+}
