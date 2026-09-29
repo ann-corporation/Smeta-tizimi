@@ -296,3 +296,65 @@ Qo‘shimcha qarori va F2 importni final tasdiqlash bajarilmadi.
 - Authenticated Preview’ga kirish, UI’da haqiqiy faylni yuborish/saqlash va
   F2→Nakopitelniy→F3 oqimini ko‘rish bajarilmadi. Branch build/test tayyor,
   ammo bu sababli main/production release tayyor deb e’lon qilinmaydi.
+
+### 2026-09-29 — owner workbooklar asosida yakuniy xavfsiz import tekshiruvi
+
+- Tizim1 dagi ikki daraxtli, RZ doirasida ishlaydigan PTO ko‘rib chiqish
+  shakli saqlandi, ammo uning tarixiy avtomatik taxminlari authoritative deb
+  olinmadi. T2’da mos kelmagan/noma’lum RZ endi ota bo‘limga jim qaytmaydi;
+  operator bo‘limni aniq ulmaguncha shu bo‘lim ichidagi qatorlar avtomatik
+  bog‘lanmaydi. Boshqa bo‘limdagi shifr aynan mos bo‘lsa ham “taklif” bo‘lib
+  ko‘rinadi, tasdiqlanmaydi.
+- Resursdagi umumiy bir harfli `С` shifri identity hisoblanmaydi. Birlikning
+  o‘zi ham nomzod dalili emas; resurs nomi/shifri bilan dalil bo‘lmasa, soxta
+  “variant” ko‘rsatilmaydi. F2 va LRV qiymatlari to‘liq ikki oynada va manbadagi
+  hierarchy/scope bilan taqqoslanadi.
+- F2 faylidan topilgan “ПО ОБЪЕКТУ” sarlavhasi selected object nomi yonida
+  ko‘rsatiladi. Bu sarlavha faqat operator tekshiruvi uchun; identity yoki
+  avtomatik mapping kaliti emas.
+- Hujjat direct total va parsed leaf total farqi endi tiyinga
+  yaxlitlangan holda tekshiriladi: 0,01 so‘m farq ko‘rsatiladi, floatning
+  0,001 kabi sub-tiyin shovqini false warning bermaydi. Import preview aniq
+  farqni va foizini ko‘rsatadi, “qatorlar to‘g‘ri” deb dalilsiz hukm chiqarmaydi
+  va hech qaysi source summasini avtomatik tuzatmaydi.
+- Uch owner workbook faqat local read-only parse/diagnostic qilingan:
+  Fast Food’dagi detail total va e’lon qilingan direct total tiyin doirasida
+  mos; Amfiteatr `+127 068 502,71`, sun’iy ko‘l `−6 990,88` farqlari saqlanib,
+  UI’dagi warningga chiqariladi. Qator/kategoriya ustunlari ayrim satrlarda
+  takroriy summa berishi mumkinligi manba formulalari bilan ko‘rildi; importer
+  farqni yashirmaydi yoki qatorni o‘zgartirmaydi. Workbooklar repo’ga
+  qo‘shilmadi, Preview/Supabase’ga yuklanmadi.
+- Fast Food F2 → alohida full LRV lokal matcher runida 66 leafning 31 tasi
+  aniq, 35 tasi yechilmagan, 0 tasi sust dalildan “variant” deb chiqarildi.
+  Bu juftlik importni avtomatik yakunlashga yaroqli emas; qolgan qatorlarni
+  operator ko‘rib chiqishi kerak. Bu natija Preview’dagi avval ko‘rilgan boshqa
+  file revisioni bilan teng deb olinmaydi.
+- Regressiya: fokuslangan Vitest 3 fayl / 38 test PASS; uchta owner workbook
+  read-only smoke 1 fayl / 4 test PASS (faqat ishchi kompyuterda mavjud
+  fayllar bilan; ushbu vaqtinchalik test repo’ga kiritilmadi).
+- Full frontend Vitest: 127 fayl / 121 PASS / 6 SKIP / 0 FAIL; 798 testdan
+  786 PASS / 12 SKIP / 0 FAIL. Bu full run tiyinga comparator qo‘shilishidan
+  oldin bo‘lgan; comparatorning keyingi o‘zgarishi fokuslangan 38 testda,
+  so‘nggi build’da tekshirildi.
+- Eng so‘nggi `npm run build`: PASS (`tsc -b`, `tsc -p tsconfig.functions.json`,
+  Vite build birga). Avvaldan mavjud `/grid.svg`, katta chunk va dynamic import
+  ogohlantirishlari bor. `npm run lint`: exit 0; repo bo‘ylab avvalgi
+  ogohlantirishlar bor. `npm run tekshir`: barcha tekshiruvlar PASS.
+  `git diff --check`: PASS. Governance check PASS (4 artifact / 50 task), ammo
+  `CURRENT_STATE.md`da main SHA eskirganligi WARN; bu fayl task owns doirasida
+  emas va o‘zgartirilmadi.
+- Natija SOURCE/LOCAL VERIFIED holati. Authenticated Preview import,
+  canonical draft save va keyingi F2 → Nakopitelniy → F3 biznes oqimi bu run’da
+  bajarilmadi. Shuning uchun userga real import “ishlaydi” deb aytilmaydi va
+  bu checkpoint o‘z-o‘zidan main/production release approval emas.
+- Kod checkpointi: `02271bdb94ff7e54e03866f90fc61633ae845468`
+  (`fix(f2-import): fail closed on scope and expose source total variance`).
+  Yakuniy handoff ushbu kod commitidan keyingi commitda qayd qilinadi.
+- Commit oldidan fetch qilingan `origin/main` hanuz
+  `6f1d7e870ec702f8beb54efe32ce07400e18681b`; F2 branch shu bazani o‘z ichiga
+  oladi. Main/production bu ish davomida o‘zgartirilmadi.
+- Eng so‘nggi source holatida fokuslangan Vitest 38/38 PASS, full suite oldingi
+  786 PASS / 12 SKIP / 0 FAIL; build va Functions TypeScript gate PASS;
+  repository `tekshir` PASS; umumiy lint exit 0, o‘zgartirilgan 7 source/test
+  faylning alohida oxlint tekshiruvi 0 warning; governance PASS / 1 stale-main
+  WARN; `git diff --check` PASS.
