@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2ResursKategoriyaBelgila, yangiOperationId, type T2Obyekt, type T2Qator, type T2ResursKategoriya } from '../../api/supabase';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -7,6 +7,8 @@ import { f2FaylOqiCore, f2UstunAniqla, type XlsxWorkbook, type F2ColumnConfig, t
 import { smetaDaraxtniYoy, bolaklarga } from '../../lib/smeta-flatten';
 import { smetaPaketQatorlariniYoy, smetaPaketRejasiniTekshir, type SmetaPaketManbaReja } from '../../lib/smeta-package-import';
 import { lrvVaIchkiResniAjrat } from '../../lib/smeta-lrv-boundary';
+import type { SverkaManba } from '../../lib/smeta-anatomiya/sverka';
+import { LrvResSverkaPanel } from './LrvResSverkaPanel';
 import {
   smetaPaketTasdiqImzosi, smetaPaketTanloviniTekshir, smetaVaraqniTahlilQil,
   smetaPaketResTargetlariniTaklifQil, type SmetaPackageSheetChoice, type SmetaSheetAnalysis,
@@ -1457,6 +1459,35 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   const selectedObject = objects.find(o => o.id === Number(objectId));
   const alreadyHasSmeta = !!selectedObject?.qator_soni;
 
+  /* C5: LRV ↔ RES solishtirish manbalari (bitta fayl oqimi). Belgi qo'yilmagan
+     yagona varaqli faylda tanlangan varaq — LRV. */
+  const sverkaLrvlar = useMemo<SverkaManba[]>(() => {
+    if (!book) return [];
+    const tegli = Object.keys(varaqTeglari).length > 0;
+    return book.sheets.flatMap((s) => {
+      if (tegli ? varaqTeglari[s.name] !== 'lrv' : s.name !== sheetName) return [];
+      const sheet = book.sheet(s.name);
+      return sheet ? [{ nom: s.name, rows: sheet.rows as SverkaManba['rows'] }] : [];
+    });
+  }, [book, varaqTeglari, sheetName]);
+  const sverkaReslar = useMemo<SverkaManba[]>(() => {
+    const out: SverkaManba[] = [];
+    for (const s of book?.sheets ?? []) {
+      if (varaqTeglari[s.name] !== 'res') continue;
+      const sheet = book!.sheet(s.name);
+      if (sheet) out.push({ nom: s.name, rows: sheet.rows as SverkaManba['rows'] });
+    }
+    for (const name of resBook ? resSheetNames : []) {
+      const sheet = resBook!.sheet(name);
+      if (sheet) out.push({ nom: name, rows: sheet.rows as SverkaManba['rows'] });
+    }
+    return out;
+  }, [book, varaqTeglari, resBook, resSheetNames]);
+  const paketSverka = useMemo(() => ({
+    lrvlar: paketVaraqlar.filter((v) => v.selectedRole === 'lrv').map((v) => ({ nom: `${v.file.name} / ${v.sheetName}`, rows: v.rows as SverkaManba['rows'] })),
+    reslar: paketVaraqlar.filter((v) => v.selectedRole === 'res').map((v) => ({ nom: `${v.file.name} / ${v.sheetName}`, rows: v.rows as SverkaManba['rows'] })),
+  }), [paketVaraqlar]);
+
   return (
     <div className="space-y-3 p-1">
       {!fixedObjectId && <label className="block text-sm">Obyekt
@@ -1567,6 +1598,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                     })}</tbody>
                   </table>
                 </div>
+                <LrvResSverkaPanel lrvlar={paketSverka.lrvlar} reslar={paketSverka.reslar} obyektNomi={selectedObject?.nom ?? ''} />
                 <div className="flex flex-wrap items-center gap-2">
                   <button type="button" className="tugma disabled:opacity-50" disabled={paketBand || busy} onClick={paketTahliliniTasdiqla}>Tahlil va manba bog‘lanishini tasdiqlash</button>
                   <span className={paketTasdiqImzosi === smetaPaketTasdiqImzosi(paketVaraqlar) ? 'text-success text-[12px]' : 'text-warn text-[12px]'}>
@@ -1808,6 +1840,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                 {katSaqlanmoqda && <p role="status" className="text-[11px]">Kategoriyalar saqlanmoqda…</p>}
               </div>
             )}
+
+            <LrvResSverkaPanel lrvlar={sverkaLrvlar} reslar={sverkaReslar} obyektNomi={selectedObject?.nom ?? ''} />
 
             {/* Owner (2026-09-10): "narxlanmagan rs mat ob kabi har bir
                 qatorlarni bildirishi va sababini keltirib bera olishi kerak" --

@@ -1552,6 +1552,32 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Workbench operator UX + 30k virtualized display source-ready; end-to-end 30k import remains PARTIAL because F2 anatomy/index/matcher still execute synchronously in F2-IMPORT-V3-001-owned paths. See handoff for test evidence and duplicate/order auto-confirm risk. No production writes. 2026-09-28 Claude: main ustiga rebase, gate yashil, main ga qo'shildi. Qolgan P0 (egizak auto-aniq, zamena N so'rov, main-thread) F2-IMPORT-V3-001 da tuzatiladi."
+    },
+    {
+      "id": "T2-LRV-RES-SVERKA-001",
+      "title": "C5: smeta yuklanganda LRV ↔ RES farqlari — yuklash oynasida ogohlantirish va «Сверка ЛРВ и РС» hujjati",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "9e0fb38",
+      "status": "completed",
+      "owns": [
+        "frontend/src/lib/smeta-anatomiya/sverka.ts",
+        "frontend/src/lib/smeta-anatomiya/sverka.test.ts",
+        "frontend/src/lib/lrv-res-sverka-export.ts",
+        "frontend/src/lib/lrv-res-sverka-export.hujjat.test.ts",
+        "frontend/src/admin/sahifalar/LrvResSverkaPanel.tsx",
+        "frontend/src/admin/sahifalar/LrvResSverkaPanel.test.tsx",
+        "frontend/src/admin/sahifalar/SmetaYuklaNative.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "ops/handoff/EGASI_TALABLARI_KEYINGI_AGENTLAR_2026-09-26.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi C5: LRV va RES farqlari yuklashda hisoblanadi, foydalanuvchiga va hujjatda bildiriladi. Kalit nom+birlik, taxminiy moslash yo‘q, import to‘xtatilmaydi. Faqat mijoz tomoni — migratsiya yo‘q."
     }
   ]
 }
