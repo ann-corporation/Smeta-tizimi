@@ -222,6 +222,9 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
   // PTO qo'shgan/o'zgartirgan ustunlarga moslashish: hajm/narx/summa uchligi
   // ma'lumot bilan isbotlanadi (hajm × narx ≈ summa); tanilmagan ustunlar ro'yxati.
   let qoshimcha: VaraqAnatomiyasi['qoshimchaUstunlar'];
+  /** Norma ustuni arifmetik isbotlangan (resurs miqdori = ish qiymati × norma) — demak ish
+   *  hajmi aynan shu ustunda; miqdor ustunidagi boshqa son (bl+ qatorda 18,51) hajm emas. */
+  let ishHajmiNormaUstunida = false;
   if (u && blok && (rol === 'lrv' || rol === 'res')) {
     const band = new Set([u.tartib, u.shifr, u.nom, u.birlik, u.hajmBirlikka].filter((i) => i >= 0));
     const m = uchlikniMoslashtir(blok.sarlavhalar, rows.slice(u.malumotBoshi, u.malumotBoshi + 2000), { hajm: u.hajmLoyiha, narx: u.narx, summa: u.summa }, band);
@@ -232,6 +235,7 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     const nb = normaUstuniniMalumotdanTop(rows.slice(u.malumotBoshi, u.malumotBoshi + 3000), u);
     if (nb) {
       u.hajmBirlikka = nb.ustun;
+      ishHajmiNormaUstunida = true;
       band.add(nb.ustun);
       rolDalil.push({ qoida: 'ustunlar:norma_arifmetika', ishonch: 'yuqori', izoh: nb.izoh });
     }
@@ -313,7 +317,14 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     const nomK = kalit(ol(row, u.nom));
     if (JAMI.test(bk) || JAMI.test(nomK) || HISOB_QATORI.test(bk)) {
       const jamiMatn = JAMI.test(bk) ? birinchiMatn : xom(ol(row, u.nom));
-      natija.jamilar.push({ xom: jamiMatn, qiymat: son(ol(row, u.summa)), manzil: manzil(r, u.summa) });
+      // Summa ustuni bo'sh bo'lsa (Tizim1 podvali: qiymat G da, summa H da emas) — nomdan
+      // o'ngdagi birinchi son. Faqat shu qatorning o'z qiymati; o'ylab topilmaydi.
+      let jc = u.summa;
+      if (son(ol(row, jc)) == null) {
+        const k = toliq.find((i) => i > Math.max(u.nom, 0) && son(row[i]) != null);
+        if (k != null) jc = k;
+      }
+      natija.jamilar.push({ xom: jamiMatn, qiymat: son(ol(row, jc)), manzil: manzil(r, jc) });
       if (!vedomostRejimi) iq.jamiKeldi(jamiMatn);
       continue;
     }
@@ -335,6 +346,45 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       continue;
     }
 
+    // Texnik tur ustuni (Tizim1 LRV_PLUS) — qator turi fayl o'zida yozilgan: bl/rs/mat/ob,
+    // "+" qo'shimcha ish, "~" zamena. Bunday qatorlarda tartib raqami bo'lmasligi mumkin
+    // (Karting F2: qo'shimcha armirovka va zamena setkasi tartibsiz) — baribir o'qiladi.
+    const tur = turUstun >= 0 ? xom(row[turUstun]) : '';
+    if (tur && TUR_BELGI.test(tur) && !tur.startsWith('rz') && (nomBor || !bosh(ol(row, u.shifr)))) {
+      iq.ishKeldi();
+      if (tur.startsWith('rs')) {
+        if (!joriyIsh) { review('resurs_ishsiz', `resurs "${xom(ol(row, u.nom)).slice(0, 50)}" hech bir ishga tegishli emas`, r); continue; }
+        joriyIsh.resurslar.push(resursOl(row, r, false));
+        continue;
+      }
+      const e = son(ol(row, u.hajmBirlikka)), f = son(ol(row, u.hajmLoyiha));
+      const narx = son(ol(row, u.narx)), summa = son(ol(row, u.summa));
+      let hajm: number | null;
+      if (tur.startsWith('bl')) hajm = ishHajmiNormaUstunida ? (e ?? f) : (f ?? e);
+      else {
+        // Material/uskuna pozitsiyasi: miqdor qaysi ustunda ekanini arifmetika hal qiladi.
+        const mos = (q: number | null) => q != null && narx != null && summa != null && summa !== 0
+          && Math.abs(q * narx - summa) <= Math.max(Math.abs(summa) * 0.005, 0.5);
+        hajm = mos(e) ? e : mos(f) ? f : (e ?? f);
+      }
+      const ish: Ish = {
+        tartib: xom(tartibKatak),
+        shifr: matnYoki(row, u.shifr),
+        xom: xom(ol(row, u.nom)),
+        birlik: matnYoki(row, u.birlik),
+        hajm,
+        narx,
+        summa,
+        sarlavha: iq.joriy,
+        manzil: manzil(r, u.nom),
+        resurslar: [],
+        ...(tur.endsWith('+') ? { belgi: 'qoshimcha' as const } : tur.endsWith('~') ? { belgi: 'zamena' as const } : {}),
+      };
+      natija.ishlar.push(ish);
+      joriyIsh = tur.startsWith('bl') ? ish : null;
+      continue;
+    }
+
     // Ish ostidagi resurs, lekin tartibi butun son ko'rinishida: Google Sheets "3.1" ni
     // sanaga aylantiradi (46025), ba'zi eksportlar "1,10" ni 1.1 emas matn qiladi.
     // Resurs kodi sof raqam (000001, 3, 1941) — ish shifri hech qachon sof raqam emas.
@@ -353,7 +403,7 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
         shifr: matnYoki(row, u.shifr),
         xom: xom(ol(row, u.nom)),
         birlik: matnYoki(row, u.birlik),
-        hajm: hajmL ?? son(ol(row, u.hajmBirlikka)),
+        hajm: ishHajmiNormaUstunida ? (son(ol(row, u.hajmBirlikka)) ?? hajmL) : (hajmL ?? son(ol(row, u.hajmBirlikka))),
         narx: son(ol(row, u.narx)),
         summa: son(ol(row, u.summa)),
         sarlavha: iq.joriy,

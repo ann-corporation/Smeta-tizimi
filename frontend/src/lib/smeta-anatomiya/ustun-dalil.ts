@@ -56,6 +56,10 @@ export function arifmetikUchlik(
 ): UchlikDalili | null {
   const namuna = qatorlar.slice(0, chegara);
   let eng: UchlikDalili | null = null;
+  /** Tabiiy shakldagi (hajm → narx → summa chapdan o'ngga, eng ixcham) uchliklar. */
+  const tabiiylar: UchlikDalili[] = [];
+  const yaxshiroq = (a: UchlikDalili, b: UchlikDalili | null) =>
+    !b || a.mos > b.mos || (a.mos === b.mos && a.sinalgan > b.sinalgan);
   for (const h of nomzod.hajm) for (const n of nomzod.narx) for (const s of nomzod.summa) {
     if (h === n || h === s || n === s) continue;
     let sinalgan = 0, mos = 0;
@@ -66,7 +70,19 @@ export function arifmetikUchlik(
       if (teng(a * b, c)) mos++;
     }
     if (sinalgan < 3 || mos / sinalgan < 0.6) continue;
-    if (!eng || mos > eng.mos || (mos === eng.mos && sinalgan > eng.sinalgan)) eng = { hajm: h, narx: n, summa: s, sinalgan, mos };
+    const d = { hajm: h, narx: n, summa: s, sinalgan, mos };
+    if (yaxshiroq(d, eng)) eng = d;
+    if (h < n && n < s) tabiiylar.push(d);
+  }
+  // Ko'paytma simmetrik (G×R = R×G), yordamchi ustunlar esa (R «остаток» = F − 0, Z = H nusxa)
+  // miqdor/summani takrorlashi mumkin (Karting F2, 2026-09-29: sarlavha 0 lar bilan, R va Z
+  // asl ustunlarni o'g'irlagan). Hujjat shakli: miqdor → narx → summa yonma-yon. Isboti deyarli
+  // teng (≥ 80 %) tabiiy uchliklardan eng ixchami (keyin eng chapdagisi) tanlanadi.
+  if (eng) {
+    const e = eng;
+    const ixcham = tabiiylar.filter((d) => d.mos >= e.mos * 0.8)
+      .sort((a, b) => (a.summa - a.hajm) - (b.summa - b.hajm) || a.hajm - b.hajm || b.mos - a.mos)[0];
+    if (ixcham) return ixcham;
   }
   return eng;
 }

@@ -37,6 +37,8 @@ export interface F2Tugun {
   bolalar: F2Tugun[];
   /** Pulga kiradimi (barg): resurs yoki resurssiz ish. */
   barg: boolean;
+  /** Hujjatda qo'shimcha ish (+) yoki zamena (~) deb belgilangan. */
+  belgi?: 'qoshimcha' | 'zamena';
   ogohlantirish?: string[];
 }
 
@@ -179,6 +181,7 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
       uid: uid(ish.manzil), tur: 'bl', kod: ish.shifr, nom: ish.xom, birlik: ish.birlik,
       hajm: ish.hajm, narx: ish.narx, summa: ish.summa, manzil: ish.manzil, yol, bolalar: [],
       barg: ish.resurslar.length === 0,
+      ...(ish.belgi ? { belgi: ish.belgi } : {}),
     };
     if (ish.hajm == null && !ishXato) {
       ogoh.push({ kod: 'HAJMSIZ_ISH', izoh: `${ish.tartib}-ish "${ish.xom.slice(0, 50)}" — hajmi bo'sh: shu oy bajarilmagan deb olinadi (aktga kirmaydi)`, manzil: ish.manzil });
@@ -245,6 +248,13 @@ export function farqTushuntir(hujjat: number, qatorlar: number, v: VaraqAnatomiy
     }
     return null;
   };
+  // Farq aynan bitta pozitsiyaga teng (masalan zamena «~» materiali hujjat jamisiga kiritilmagan).
+  const yakka = ishPuli.findIndex((p) => p !== 0 && Math.abs(p - farq) <= 1);
+  if (yakka >= 0) {
+    const i = v.ishlar[yakka];
+    const b = i.belgi === 'zamena' ? 'zamena (~) ' : i.belgi === 'qoshimcha' ? "qo'shimcha (+) " : '';
+    return `${asos}: farq aynan ${b}${i.tartib ? `${i.tartib}-ish ` : ''}(${i.shifr ?? ''}, ${i.manzil.qator}-qator) "${i.xom.slice(0, 50)}" summasiga teng — u hujjat formulasiga kirmagan. Qatorlar o'zaro to'g'ri.`;
+  }
   const oxiri = tekshir(v.ishlar.map((_, i) => v.ishlar.length - 1 - i));
   const boshi = oxiri ? null : tekshir(v.ishlar.map((_, i) => i));
   const topildi = oxiri ?? boshi;

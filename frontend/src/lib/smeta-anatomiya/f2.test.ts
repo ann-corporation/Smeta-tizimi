@@ -102,4 +102,46 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     expect(akt.ogohlantirishlar.filter((o) => o.kod === 'XATO_QIYMAT').length).toBeGreaterThanOrEqual(1);
     expect(akt.qatorlarJami).toBe(700);
   });
+it('Tizim1 LRV_PLUS: sarlavha 0, yordamchi R/Z ustunlar, tartibsiz qo‘shimcha (bl+) va zamena (mat~) — hammasi o‘qiladi', () => {
+    // Karting F2 (2026-09-29): E–H sarlavhalari 0; R = F yoki E (qoldiq), Z = H nusxa; I = tur.
+    const q = (a: Katak, b: Katak, c: string, d: string, e: Katak, f: Katak, g: Katak, h: Katak, tur: string): Katak[] => {
+      const r: Katak[] = [a, b, c, d, e, f, g, h, tur];
+      r[17] = f ?? e; r[25] = h;
+      return r;
+    };
+    const rows: Katak[][] = [
+      ['Подрядчик: ООО "NEW TIMES BUILDINGS"'], [], ['АКТ'], ['За август месяц 2026 года'], [],
+      ['N п.п.', 'Шифр номера нормативов и коды ресурсов', 'Наименование работ и затрат', 'Единица измерения', 0, null, null, 0, 'rz'],
+      [null, null, null, null, 0, 0],
+      [1, 2, 3, 4, 5, 6, null, 0, 'rz'],
+      [null, null, 'СТЕНЫ', null, 0, 0, null, 0, 'rz'],
+      q(78, 'Е0904-006-04', 'МОНТАЖ СТЕН', '100М2', 24.09, null, null, 915679005, 'bl'),
+      q(78.1, '1', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ.-Ч', 170.24, 4101.0816, 29421, 120657921.7536, 'rs'),
+      q(78.2, '762', 'КРАНЫ', 'МАШ.-Ч', 1.42, 34.2078, 244250, 8355255.15, 'rs'),
+      q(78.3, '30322', 'БОЛТЫ', 'Т', 0.0126, 0.303534, 12000000, 3642408, 'rs'),
+      q(78.4, '34241', 'КИСЛОРОД', 'М3', 2.98, 71.7882, 4406, 316298.8092, 'rs'),
+      q(78.5, '45077', 'ПРОПАН', 'КГ', 3.16, 76.1244, 2667, 203023.7748, 'rs'),
+      q(79, 'С', 'СЭНДВИЧ ПАНЕЛЬ', 'М2', 2409, null, 320000, 770880000, 'mat'),
+      q(null, 'Е0601-015-10', 'АРМИРОВАНИЕ', 'Т', 1.91887, 18.51, null, 713592.14, 'bl+'),
+      q(null, '1', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ.-Ч', 12.64, 24.2545168, 29421, 713592.1387728, 'rs+'),
+      q(null, 'С', 'СЕТКА ВР-1', 'М2', 547.45, 18.8802, 12500, 6843125, 'mat~'),
+      [null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, 904768499.6264],
+    ];
+    const [akt] = f2AktlarniOqi({ fayl: 'k.xlsx', varaqlar: [{ nom: 'LRV', rows }] });
+    const u = akt.anatomiya.ustunlar!;
+    expect([u.hajmBirlikka, u.hajmLoyiha, u.narx, u.summa]).toEqual([4, 5, 6, 7]);
+    const stena = akt.daraxt[0];
+    expect(stena.nom).toBe('СТЕНЫ');
+    const [ish, panel, arm, setka] = stena.bolalar;
+    expect(ish.hajm).toBe(24.09);
+    expect(ish.bolalar).toHaveLength(5);
+    expect(ish.bolalar[0]).toMatchObject({ norma: 170.24, hajm: 4101.0816, narx: 29421 });
+    expect(panel).toMatchObject({ hajm: 2409, narx: 320000, summa: 770880000, barg: true });
+    expect(arm).toMatchObject({ kod: 'Е0601-015-10', hajm: 1.91887, belgi: 'qoshimcha' });
+    expect(arm.bolalar).toHaveLength(1);
+    expect(setka).toMatchObject({ hajm: 547.45, belgi: 'zamena' });
+    expect(akt.jami.pryamye).toBeCloseTo(904768499.6264, 2);
+    const f = akt.ogohlantirishlar.find((o) => o.kod === 'JAMI_FARQ')!;
+    expect(f.izoh).toMatch(/zamena \(~\) \(С, \d+-qator\) "СЕТКА ВР-1"/);
+  });
 });

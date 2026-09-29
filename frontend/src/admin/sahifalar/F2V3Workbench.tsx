@@ -377,7 +377,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             + (t.tur === 'rs' ? 'text-text-dim' : 'text-text')}>
           <span className={`w-4 shrink-0 text-center font-bold ${B.cls}`} title={B.t}>{B.b}</span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate" title={t.nom}>{t.kod && <span className="mr-1 font-mono text-[11px] text-text-mute">{t.kod}</span>}{t.nom}</span>
+            <span className="block truncate" title={t.nom}>
+              {t.belgi && <span className={`mr-1 rounded px-1 text-[10px] font-medium ${t.belgi === 'zamena' ? 'bg-warn/15 text-warn' : 'bg-accent/15 text-accent'}`}
+                title={t.belgi === 'zamena' ? 'Hujjatda zamena (~) deb belgilangan' : 'Hujjatda qo‘shimcha ish (+) deb belgilangan'}>{t.belgi === 'zamena' ? '~ zamena' : '+ qo‘shimcha'}</span>}
+              {t.kod && <span className="mr-1 font-mono text-[11px] text-text-mute">{t.kod}</span>}{t.nom}</span>
             {s && k !== 'otkazildi' && <span className="block truncate text-[10.5px] text-text-mute" title={s.nom ?? ''}>→ {s.kod ? s.kod + ' ' : ''}{s.nom}</span>}
             {t.ogohlantirish?.length ? <span className="block text-[10.5px] text-danger">{t.ogohlantirish.join('; ')}</span> : null}
           </span>

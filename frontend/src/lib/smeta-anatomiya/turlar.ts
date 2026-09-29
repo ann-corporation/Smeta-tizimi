@@ -90,6 +90,8 @@ export interface Ish {
   sarlavha: number | null;
   manzil: Manzil;
   resurslar: Resurs[];
+  /** Tizim1 tur ustuni: "bl+"/"mat+" qo'shimcha ish, "~" zamena. */
+  belgi?: 'qoshimcha' | 'zamena';
 }
 
 export interface UstunXaritasi {
