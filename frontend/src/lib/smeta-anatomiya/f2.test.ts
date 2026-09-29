@@ -63,6 +63,7 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     ];
     const [akt] = f2AktlarniOqi(kitob(ISHLAR, podval));
     expect(akt.davr).toBe('2025-09');
+    expect(akt.hujjatSarlavhasi).toBe('О выполненых работ по объекту "Янги Узбекистон боги"');
     expect(akt.ishlarSoni).toBe(4); // 4-ish (hajmsiz) chiqarildi
     expect(akt.qatorlarJami).toBe(300 + 1000 + 200 + 500 + 100);
     expect(akt.jami).toMatchObject({ pryamye: 2100, vsego: 2800, ranee: 1000 });
@@ -87,7 +88,9 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     const [akt] = f2AktlarniOqi(kitob(ISHLAR, podval));
     const f = akt.ogohlantirishlar.find((o) => o.kod === 'JAMI_FARQ')!;
     expect(f.izoh).toMatch(/126-ish \(С124-22/);
-    expect(f.izoh).toMatch(/formulasiga kirmagan/);
+    expect(f.izoh).toMatch(/oxirgi qatorlar yig'indisiga yaqin/);
+    expect(f.izoh).toMatch(/importer qiymatlarni o'zgartirmadi/);
+    expect(f.izoh).not.toMatch(/Qatorlar to'g'ri/);
   });
 
   it('#REF! kataklari pulga kirmaydi va ochiq aytiladi', () => {
@@ -119,6 +122,15 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     const [akt] = f2AktlarniOqi(kitob([[1, 'W-1', 'РАБОТА', 'М3', 1, null, null, 100]], [[null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, null, null]]));
     expect(akt.jami.pryamye).toBeNull();
     expect(akt.anatomiya.review).toContainEqual(expect.objectContaining({ kod: 'jami_summa_yoq' }));
+  });
+
+  it('one tiyina mismatch is visible while sub-tiyina floating-point noise is rounded away', () => {
+    const row: Katak[] = [1, 'W-1', 'ISH', 'М2', 1, null, null, 100];
+    const [oneTiyin] = f2AktlarniOqi(kitob([row], [[null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, null, 99.99]]));
+    expect(oneTiyin.ogohlantirishlar).toContainEqual(expect.objectContaining({ kod: 'JAMI_FARQ' }));
+
+    const [floatNoise] = f2AktlarniOqi(kitob([row], [[null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, null, 99.999]]));
+    expect(floatNoise.ogohlantirishlar.map((warning) => warning.kod)).not.toContain('JAMI_FARQ');
   });
 
   it('LRV_PLUS markerlari BL/RS/MAT/OB ni ajratadi, MAT/OB RZ ostida qoladi va keyingi RS avvalgi BL ga birikadi', () => {

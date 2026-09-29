@@ -359,7 +359,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             title="Razdelni o‘ngdagi smeta razdeliga tortsangiz — shu razdel ichidan qidiriladi">
             <span className="truncate">{t.nom}</span>
             <span className={`ml-auto max-w-[45%] shrink-0 truncate text-[10px] font-normal ${d?.ok || !t.bolalar.some((c) => c.tur !== 'rz') ? 'text-text-mute' : 'text-warn'}`} title={sNom || undefined}>
-              {d?.ok ? `→ ${sNom || 'smeta razdeli'}` : t.bolalar.some((c) => c.tur !== 'rz') ? 'smetada razdel topilmadi — smeta razdeliga torting' : 'guruh'}
+              {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : t.bolalar.some((c) => c.tur !== 'rz') ? 'bo‘lim ulanmagan — mos smeta bo‘limiga torting' : 'guruh'}
             </span>
           </button>
         </div>
@@ -525,6 +525,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const r = p.natija.natijalar.get(tTugun.uid);
     const b = ij.bog.get(tTugun.uid);
     const s = b ? S.byId.get(b.qatorId) : undefined;
+    const ota = ind.ota.get(tTugun.uid);
+    const otaBoglangan = ota ? ij.bog.has(ota.uid) : false;
     return (
       <div className="space-y-2">
         <div className="flex flex-wrap items-start gap-2">
@@ -570,6 +572,11 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               );
             })}
           </div>
+        )}
+        {tTugun.tur === 'rs' && otaBoglangan && nomzodlar.length === 0 && (
+          <p className="rounded border border-warn/30 bg-warn/5 px-2 py-1.5 text-[11px] text-text-dim">
+            Shu ish ichida shifr yoki nom bo‘yicha ishonchli resurs varianti topilmadi. O‘ngdagi smeta daraxtidan qidirib, mos resursni qo‘lda bog‘lang. Bir xil birlikning o‘zi moslik dalili emas.
+          </p>
         )}
         {k === 'topilmadi' && tTugun.tur === 'bl' && (() => {
           // Egasi sinovi 2026-09-28: ✕ ish — smetaning o'sha razdelida nima borligi yonma-yon;

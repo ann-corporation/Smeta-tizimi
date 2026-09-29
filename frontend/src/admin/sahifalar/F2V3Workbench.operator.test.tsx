@@ -78,6 +78,7 @@ describe('F2 workbench operator controls', () => {
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
     expect(screen.getByRole('button', { name: 'Barcha qatorlar' }).getAttribute('aria-pressed')).toBe('true');
     expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
+    expect(f2Tree.getByText('bo‘lim ulanmagan — mos smeta bo‘limiga torting')).toBeTruthy();
     expect(f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Beton B25' }).textContent).toContain('125');
     expect(screen.getByRole('button', { name: 'Bog‘lanishni uzish: Beton B25' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lash variantlari: Beton B25' }));

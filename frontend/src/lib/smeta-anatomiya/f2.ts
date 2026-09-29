@@ -14,7 +14,7 @@
 import { kitobAnatomiyasi } from './index';
 import { sarlavhaYoli } from './ierarxiya';
 import { kalit, xom } from './matn';
-import type { Ish, KirishKitob, KirishVaraq, Manzil, Resurs, VaraqAnatomiyasi } from './turlar';
+import type { KirishKitob, KirishVaraq, Manzil, Resurs, VaraqAnatomiyasi } from './turlar';
 
 export type F2TugunTuri = 'rz' | 'bl' | 'rs' | 'mat' | 'ob';
 
@@ -62,6 +62,8 @@ export interface F2Jami {
 export interface F2Akt {
   fayl: string;
   varaq: string;
+  /** Source title/subject line, shown for operator cross-check; never used as identity. */
+  hujjatSarlavhasi?: string | null;
   /** "YYYY-MM" — fayldan ("За сентябрь месяц 2025 года", "Отчетный период: Сентябрь.2025"). */
   davr: string | null;
   davrMatn: string | null;
@@ -145,6 +147,8 @@ export function f2AktlarniOqi(kitob: KirishKitob): F2Akt[] {
 
 function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
   const k = kitob.varaqlar.find((x) => x.nom === v.varaq)!;
+  const hujjatSarlavhasi = k.rows.slice(0, 30).flatMap((row) => row.map(xom))
+    .find((cell) => cell.length <= 250 && kalit(cell).includes('ПО ОБЪЕКТУ')) ?? null;
   const ogoh: F2Ogohlantirish[] = [];
   const barchaSarlavha = [...v.titul, ...v.sarlavhalar];
   const rzXarita = new Map<string, F2Tugun>();
@@ -238,11 +242,11 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
   const jami = jamiTop(v);
   const { davr, matn } = davrniTop(kitob, k);
   if (!davr) ogoh.push({ kod: 'DAVR_YOQ', izoh: 'hisobot davri (oy, yil) fayldan topilmadi — qo‘lda tanlang' });
-  if (jami.pryamye != null && Math.abs(jami.pryamye - qatorlarJami) > 1) {
+  if (jami.pryamye != null && tiyingaYaxlitla(jami.pryamye - qatorlarJami) !== 0) {
     ogoh.push({ kod: 'JAMI_FARQ', izoh: farqTushuntir(jami.pryamye, qatorlarJami, v) });
   }
   return {
-    fayl: kitob.fayl, varaq: v.varaq, davr, davrMatn: matn, daraxt: ildiz, jami,
+    fayl: kitob.fayl, varaq: v.varaq, hujjatSarlavhasi, davr, davrMatn: matn, daraxt: ildiz, jami,
     qatorlarJami, barglarSoni: barglar, ishlarSoni: ishlar, ogohlantirishlar: ogoh, anatomiya: v,
   };
 }
@@ -257,8 +261,13 @@ function resursTugun(r: Resurs, yol: string[], tur: 'rs' | 'mat' | 'ob' = 'rs'):
 
 const fmt = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n);
 
-/** Hujjat jami ↔ qatorlar: farq aynan oxirgi (yoki birinchi) bir necha ishlar yig'indisiga
- *  teng bo'lsa — ularni ko'rsatadi (hujjat formulasi ularni qamramagan). */
+/** Summani tiyinga ko'rsatib, float yig'indi shovqinini biznes farqidan ajratadi. */
+export function tiyingaYaxlitla(n: number): number {
+  return Number(n.toFixed(2));
+}
+
+/** Hujjat jami ↔ qatorlar: farq oxirgi (yoki birinchi) bir necha ishlar yig'indisiga
+ *  yaqin bo'lsa, ehtimoliy qatorlarni operator tekshiruvi uchun ko'rsatadi. */
 export function farqTushuntir(hujjat: number, qatorlar: number, v: VaraqAnatomiyasi): string {
   const farq = qatorlar - hujjat;
   const asos = `Hujjatdagi ИТОГО ПРЯМЫЕ ЗАТРАТЫ ${fmt(hujjat)}, qatorlar yig'indisi ${fmt(qatorlar)} — farq ${fmt(farq)}`;
@@ -276,7 +285,7 @@ export function farqTushuntir(hujjat: number, qatorlar: number, v: VaraqAnatomiy
   const topildi = oxiri ?? boshi;
   if (topildi && farq > 0) {
     const nomlar = [...topildi].sort((a, b) => a - b).map((i) => `${v.ishlar[i].tartib}-ish (${v.ishlar[i].shifr ?? ''}, ${v.ishlar[i].manzil.qator}-qator)`);
-    return `${asos}: ${nomlar.join(', ')} hujjat formulasiga kirmagan. Qatorlar to'g'ri — hujjat jami noto'g'ri bo'lishi mumkin.`;
+    return `${asos}. Farq oxirgi qatorlar yig'indisiga yaqin: ${nomlar.join(', ')}. Bu qatorlar yoki hujjat jami formulasini operator tekshirishi kerak; importer qiymatlarni o'zgartirmadi.`;
   }
-  return `${asos}. Qatorlar o'zaro to'g'ri (summa = hajm × narx); hujjat jami formulasini tekshiring.`;
+  return `${asos}. Qatorlardagi manba summalari bilan hujjat jami mos emas; importer qiymatlarni o'zgartirmadi. Manba qatorlari va jami formulasini tekshiring.`;
 }

@@ -263,6 +263,69 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     const w = f('bl', 'E99-9-9', 'УСТАНОВКА СКАМЕЕК ПАРКОВЫХ', 'ШТ', 3, ['ЛЮБОЙ']);
     const n = f2MoslashV3([rzF('ЛЮБОЙ', [], [w])], S);
     expect(n.natijalar.get(w.uid)).toMatchObject({ holat: 'topilmadi' });
-    expect(n.natijalar.get(w.uid)!.sabab).toMatch(/qo‘shimcha/);
+    expect(n.natijalar.get(w.uid)!.sabab).toMatch(/bo‘lim.*hali bog‘lanmagan/);
+  });
+
+  it('unmapped F2 section never auto-links a globally unique work from another section', () => {
+    const otherSection = rz('SMETA — AMALDAGI BO‘LIM');
+    const targetId = ish(otherSection, 'UNMAPPED-SCOPE-001', 'ISH NOMI TO‘LIQ MOS', 'M2', 5);
+    const source = f('bl', 'UNMAPPED-SCOPE-001', 'ISH NOMI TO‘LIQ MOS', 'M2', 1, ['F2 DA TOPILMAGAN BO‘LIM']);
+    const fSection = rzF('F2 DA TOPILMAGAN BO‘LIM', [], [source]);
+
+    const automatic = f2MoslashV3([fSection], S).natijalar.get(source.uid)!;
+    expect(automatic).toMatchObject({ holat: 'topilmadi', qatorId: null });
+    expect(automatic.sabab).toMatch(/bo‘lim.*hali bog‘lanmagan/);
+    expect(automatic.nomzodlar.some((candidate) => candidate.qatorId === targetId)).toBe(true);
+
+    const taught = f2MoslashV3([fSection], S, { rzBog: new Map([[fSection.uid, otherSection]]) }).natijalar.get(source.uid)!;
+    expect(taught).toMatchObject({ holat: 'aniq', qatorId: targetId });
+  });
+
+  it('unmapped nested F2 subsection cannot fall back to its matched parent scope', () => {
+    const parentName = 'СМЕТА № 01-01 НА КОНСТРУКТИВНАЯ ЧАСТЬ-ОЗЕРА';
+    const childName = 'ВНУТРЕННИЙ РАЗДЕЛ БЕЗ СОВПАДЕНИЯ';
+    const targetId = ish(L3a, 'NESTED-SCOPE-001', 'ВНУТРЕННИЙ ТЕСТОВЫЙ РАБОЧИЙ ПРОЦЕСС', 'М2', 1);
+    const source = f('bl', 'NESTED-SCOPE-001', 'ВНУТРЕННИЙ ТЕСТОВЫЙ РАБОЧИЙ ПРОЦЕСС', 'М2', 0.5, [parentName, childName]);
+    const inner = rzF(childName, [parentName], [source]);
+    const outer = rzF(parentName, [], [inner]);
+
+    const automatic = f2MoslashV3([outer], S).natijalar.get(source.uid)!;
+    expect(automatic).toMatchObject({ holat: 'topilmadi', qatorId: null });
+    expect(automatic.sabab).toMatch(/bo‘lim.*hali bog‘lanmagan/);
+
+    const taught = f2MoslashV3([outer], S, { rzBog: new Map([[inner.uid, L3a]]) }).natijalar.get(source.uid)!;
+    expect(taught).toMatchObject({ holat: 'aniq', qatorId: targetId });
+  });
+
+  it('one-letter resource code С is not identity and cannot bind a different material', () => {
+    const section = rz('GENERIC RESOURCE CODE TEST');
+    const targetWork = ish(section, 'GENERIC-CODE-PARENT', 'ИШ ОДИНАКОВОЕ', 'М2', 1,
+      [['С', 'СТЕКЛО ЖИДКОЕ КАЛИЙНОЕ', 'Т', 1]]);
+    const wrongMaterialId = S.find((row) => row.otaId === targetWork)!.id;
+    const yol = ['GENERIC RESOURCE CODE TEST'];
+    const source = f('bl', 'GENERIC-CODE-PARENT', 'ИШ ОДИНАКОВОЕ', 'М2', 1, yol, [
+      f('rs', 'С', 'АРМАТУРА AIII ДИАМЕТРОМ 12 ММ', 'Т', 0.1, yol, [], 0.1),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [source])], S);
+
+    expect(result.natijalar.get(source.uid)).toMatchObject({ holat: 'aniq', qatorId: targetWork });
+    expect(result.natijalar.get(source.bolalar[0].uid)).toMatchObject({ holat: 'topilmadi', qatorId: null });
+    expect(result.natijalar.get(source.bolalar[0].uid)?.qatorId).not.toBe(wrongMaterialId);
+    expect(result.natijalar.get(source.bolalar[0].uid)?.nomzodlar).toEqual([]);
+  });
+
+  it('one-letter resource markers do not make different BL resource compositions look equal', () => {
+    const section = rz('GENERIC MATERIAL COMPOSITION');
+    const wrongWork = ish(section, 'DUPLICATE-WORK-CODE-1', 'BIR XIL ISH', 'M2', 1, [['С', 'QUMLI TAYYORLASH', 'М3', 2]]);
+    const rightWork = ish(section, 'DUPLICATE-WORK-CODE-1', 'BIR XIL ISH', 'M2', 1, [['С', 'BETON В25 W6', 'М3', 2]]);
+    const yol = ['GENERIC MATERIAL COMPOSITION'];
+    const source = f('bl', 'DUPLICATE-WORK-CODE-1', 'BIR XIL ISH', 'M2', 1, yol, [
+      f('rs', 'С', 'BETON B25 W6', 'М3', 2, yol, [], 2),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [source])], S);
+
+    expect(result.natijalar.get(source.uid)).toMatchObject({ holat: 'aniq', qatorId: rightWork });
+    expect(result.natijalar.get(source.uid)?.qatorId).not.toBe(wrongWork);
+    expect(result.natijalar.get(source.bolalar[0].uid)).toMatchObject({ holat: 'aniq' });
   });
 });

@@ -170,10 +170,16 @@ export function gradeFarq(a: unknown, b: unknown): boolean {
 }
 
 function resKalit(kod: unknown, nom: unknown, bir: unknown): string {
-  const code = normKod(kod);
+  // LRV_PLUS/F2 can place `С` in the code field for unrelated materials.
+  // A one-letter marker is not identity; use name + unit instead.
+  const code = resursKodiIshonchlimi(kod) ? normKod(kod) : '';
   const base = code || nb(nom, bir);
   const specs = [...texnikBelgilar(nom)].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}:${v}`).join(',');
   return specs ? `${base}||${specs}` : base;
+}
+function resursKodiIshonchlimi(kod: unknown): boolean {
+  const k = normKod(kod);
+  return !!k && (/[0-9]/.test(k) || k.length >= 2);
 }
 function lcsNisbat(a: readonly string[], b: readonly string[]): number {
   if (!a.length || !b.length) return 0;
@@ -192,7 +198,7 @@ function lcsNisbat(a: readonly string[], b: readonly string[]): number {
 /** Oy-dan-oyga barqaror F2 imzosi (xotira kaliti). */
 export function f2Imzo(t: Pick<F2Tugun, 'tur' | 'kod' | 'nom' | 'birlik' | 'yol'>, otaImzo?: string): string {
   const yol = t.yol.map(rzKalit).filter(Boolean).join('/');
-  if (t.tur === 'rs') return `${otaImzo ?? yol}>${normKod(t.kod) || ''}|${nb(t.nom, t.birlik)}`;
+  if (t.tur === 'rs') return `${otaImzo ?? yol}>${(resursKodiIshonchlimi(t.kod) ? normKod(t.kod) : '')}|${nb(t.nom, t.birlik)}`;
   return `${yol}|${kodKanon(t.kod) || normKod(t.kod)}|${nb(t.nom, t.birlik)}`;
 }
 
@@ -271,12 +277,12 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   let oxirgiTartib = -1;
 
   // ── Razdel doirasi (ierarxik): bonus uchun, qat'iy cheklov emas ──
-  type Doira = { rzlar: STugun[] | null };
+  type Doira = { rzlar: STugun[] | null; holat: 'global' | 'scoped' | 'unresolved' };
   function doiraTop(rz: F2Tugun, ota: Doira): Doira {
     const qolda = opts.rzBog?.get(rz.uid);
     if (qolda != null && S.byId.get(qolda)) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [qolda], ok: true, usul: 'qolda' });
-      return { rzlar: [S.byId.get(qolda)!] };
+      return { rzlar: [S.byId.get(qolda)!], holat: 'scoped' };
     }
     const nomzod = ota.rzlar ? barchaRz.filter((s) => ota.rzlar!.some((o) => ajdodmi(o, s))) : barchaRz;
     const k = rzKalit(rz.nom);
@@ -300,10 +306,14 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     if (mos.length > 1) mos = mos.filter((s) => !mos.some((b) => b !== s && ajdodmi(s, b)));
     if (!mos.length) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [], ok: false, usul: 'ota_doirasi' });
-      return ota;
+      // An unmatched heading is a real scope ambiguity even when its parent
+      // matched: sibling subsections may contain duplicate work codes. A later
+      // child heading can resolve the scope again; otherwise require an
+      // explicit operator section link instead of falling back to its parent.
+      return { rzlar: ota.rzlar, holat: 'unresolved' };
     }
     rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: mos.map((s) => s.id), ok: true, usul });
-    return { rzlar: mos };
+    return { rzlar: mos, holat: 'scoped' };
   }
   const doiradami = (d: Doira, t: STugun) => !!d.rzlar && d.rzlar.some((r) => ajdodmi(r, t));
 
@@ -371,7 +381,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     if (gradeFarq(f.nom, t.nom)) q.push({ nom: 'marka', ball: -30, izoh: 'marka farqli — ehtimoliy zamena' });
     const resourceSpecConflicts = new Set<string>();
     for (const fr of f.bolalar) {
-      const fkRes = normKod(fr.kod);
+      const fkRes = resursKodiIshonchlimi(fr.kod) ? normKod(fr.kod) : '';
       if (!fkRes) continue;
       for (const sr of t.bolalar) {
         if (normKod(sr.kod) !== fkRes || !birMos(fr.birlik, sr.birlik)) continue;
@@ -461,6 +471,11 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const rzNom = d.rzlar.map((r) => r.nom).filter(Boolean).join(' / ');
       yoz(f.uid, { uid: f.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz,
         sabab: `smetaning «${rzNom}» razdelida mos ish yo‘q — zamena (shu razdeldagi ish o‘rniga) yoki qo‘shimcha ish${nz.length ? `; boshqa razdellarda ${nz.length} ta o‘xshash bor (variantlar)` : ''}` });
+      return null;
+    }
+    if (d.holat === 'unresolved') {
+      yoz(f.uid, { uid: f.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz,
+        sabab: 'F2 bo‘limi smeta bo‘limiga hali bog‘lanmagan — avval bo‘limni o‘ngdagi mos RZga ulang; boshqa bo‘limdan avtomatik tanlanmadi' });
       return null;
     }
     // Razdel ichida nomi va birligi AYNAN bir xil yagona qator (masalan «С БЛОКИ ДВЕРНЫЕ ПВХ») — ✓.
@@ -554,7 +569,8 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         yoz(r.uid, { uid: r.uid, holat: 'xotira', qatorId: x, usul: 'xotira', nomzodlar: [], sabab: 'o‘tgan oylarda tasdiqlangan' });
         continue;
       }
-      const rk = normKod(r.kod), rkan = kodKanon(r.kod), rnb = nb(r.nom, r.birlik);
+      const codeIsIdentity = resursKodiIshonchlimi(r.kod);
+      const rk = codeIsIdentity ? normKod(r.kod) : '', rkan = codeIsIdentity ? kodKanon(r.kod) : '', rnb = nb(r.nom, r.birlik);
       let topildi: STugun | null = null; let usul = '';
       for (const [u, c] of [
         ['kod', rk ? ichki.filter((t) => t.kKod === rk) : []],
@@ -577,7 +593,12 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         qv.push({ nom: 'birlik', ball: bmb ? 10 : -40, izoh: bmb ? 'birlik ✓' : 'birlik ✗' });
         const ball = qv.reduce((s, y) => s + y.ball, 0);
         return { qatorId: t.id, ball, yol: t.yol, qavatlar: qv, sabab: qv.map((y) => y.izoh) };
-      }).filter((n) => n.ball > 0).sort((a, b) => b.ball - a.ball).slice(0, 8);
+      })
+        // A shared unit alone (for example Т) is not matching evidence. Do not
+        // send unrelated materials to the operator as plausible suggestions.
+        .filter((n) => n.qavatlar.some((q) => q.nom === 'shifr' && q.ball > 0)
+          || n.qavatlar.some((q) => q.nom === 'nom' && q.ball > 0))
+        .sort((a, b) => b.ball - a.ball).slice(0, 8);
       yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz, sabab: topildi ? 'birlik yoki marka farqli — zamena material bo‘lishi mumkin' : 'smeta ishida bu resurs yo‘q — zamena material yoki qo‘shimcha resurs' });
     }
   }
@@ -589,7 +610,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       if (t.tur === 'bl') resurslarniMosla(t, s, f2Imzo(t));
     }
   }
-  yur(f2, { rzlar: null });
+  yur(f2, { rzlar: null, holat: 'global' });
 
   const stat = { aniq: 0, xotira: 0, taklif: 0, topilmadi: 0 };
   for (const n of natijalar.values()) stat[n.holat]++;
