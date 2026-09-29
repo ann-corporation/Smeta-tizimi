@@ -471,7 +471,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   function sudrashBoshla(e: React.DragEvent, t: F2Tugun) {
     e.dataTransfer.setData('text/plain', t.uid);
     e.dataTransfer.effectAllowed = 'link';
-    setTanlangan(t.uid);
+    // Tanlov (yuqoridagi panel) sudrash paytida O'ZGARMAYDI — aks holda panel ochilib jadvalni
+    // pastga suradi va nishon qo'l ostidan qochadi (egasi sinovi 2026-09-29). Tashlangach tanlanadi.
     setSudrash(t);
   }
   function sudrashTugadi() { setSudrash(null); setDropKey(null); }
@@ -495,7 +496,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     return {
       onDragOver: (e: React.DragEvent) => { if (p.disabled) return; e.preventDefault(); e.dataTransfer.dropEffect = 'link'; if (dropKey !== key) setDropKey(key); },
       onDragLeave: () => { if (dropKey === key) setDropKey(null); },
-      onDrop: (e: React.DragEvent) => { e.preventDefault(); setDropKey(null); const uid = e.dataTransfer.getData('text/plain'); if (uid) tashla(uid, s.id); },
+      onDrop: (e: React.DragEvent) => { e.preventDefault(); setDropKey(null); setSudrash(null); const uid = e.dataTransfer.getData('text/plain'); if (uid) { setTanlangan(uid); tashla(uid, s.id); } },
     };
   }
   function smetaQator(s: SmetaQator, depth: number, tekis = false): React.ReactNode {

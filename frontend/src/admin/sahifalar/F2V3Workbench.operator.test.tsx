@@ -111,4 +111,23 @@ describe('F2 workbench operator controls', () => {
     expect(f2Region.querySelectorAll('[data-index]')).toHaveLength(24);
     expect(smetaRegion.querySelectorAll('[data-index]')).toHaveLength(24);
   });
+
+  it('drag-and-drop: butun F2 qatori sudraladi, mos nishonlar belgilanadi, tashlanganda bog‘lanadi', () => {
+    const { onIj } = renderWorkbench();
+    fireEvent.click(screen.getByRole('button', { name: 'Barcha qatorlar' }));
+    const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
+    const row = f2Tree.getByRole('group', { name: 'F2 bl: Armatura A500' });
+    expect(row.getAttribute('draggable')).toBe('true');
+    const data = new Map<string, string>();
+    const dataTransfer = { setData: (k: string, v: string) => data.set(k, v), getData: (k: string) => data.get(k) ?? '', effectAllowed: '', dropEffect: '' };
+    fireEvent.dragStart(row, { dataTransfer });
+    expect(screen.getByRole('status').textContent).toContain('smeta ISHIGA tashlang');
+    const target = document.querySelector('[data-sid="3"]')!;
+    expect(target.className).toContain('outline-dashed');
+    fireEvent.dragOver(target, { dataTransfer });
+    fireEvent.drop(target, { dataTransfer });
+    expect(onIj).toHaveBeenCalled();
+    const [ij] = onIj.mock.calls.at(-1)!;
+    expect(ij.bog.get('f2')?.qatorId).toBe(3);
+  });
 });
