@@ -14,7 +14,7 @@ ushbu importer yo‘llarini qayta ishlash vakolatini berdi.
 - Yangilangan main baseline: `origin/main` / `6f1d7e870ec702f8beb54efe32ce07400e18681b`; branchga `81f5af2` merge checkpointida qo‘shildi.
 - Branch: `codex/f2-import-robustness-v1`
 - Kod auditining oldingi checkpointi: `bbd128d7723c66f0e1f67fe0c8b00f71bf98cb45`; lokal read-only workbook audit checkpointi: `fb64871856956217a1ff4210088dda3348dd7917`.
-- Checkpoint commits: `49119fb` (parser/matcher/30k), `749004d` (initial evidence), `ee931c9` (memory type/scope guard), `bbd128d` (RZ fallback with row evidence, explicit source-read review, technical specification conflict guards, truthful match-state counts, worker-side Blob read). Handoff itself is being updated after `bbd128d`; read branch tip from Git before integration.
+- Checkpoint commits: `49119fb` (parser/matcher/30k), `749004d` (initial evidence), `ee931c9` (memory type/scope guard), `bbd128d` (RZ fallback with row evidence, explicit source-read review, technical specification conflict guards, truthful match-state counts, worker-side Blob read), `81f5af2` (latest main merge), `44764a7` (owner workbook parser/matcher/UI corrections and final verification evidence). Final handoff update follows on the same branch.
 - Worktree: `C:\Temp\f2-import-robustness-v1`
 - Asosiy `G:\Другие компьютеры\Компьютер\GAS` papkasidagi dirty/human fayllar o‘zgartirilmaydi.
 
