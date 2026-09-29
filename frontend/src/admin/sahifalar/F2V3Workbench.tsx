@@ -105,7 +105,7 @@ function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: {
  * sig'sin". Jadval: har ustun alohida katak (chegara bilan), nom o'raladi (qisqartirilmaydi),
  * tor oynada gorizontal aylantiriladi (Excel kabi), sarlavha yopishqoq.
  */
-const F2_GRID = 'grid grid-cols-[30px_minmax(84px,120px)_minmax(260px,1fr)_72px_88px_68px_96px_118px_176px]';
+const F2_GRID = 'grid grid-cols-[30px_minmax(84px,120px)_minmax(260px,1fr)_72px_88px_68px_96px_118px_250px]';
 const S_GRID = 'grid grid-cols-[minmax(84px,120px)_minmax(260px,1fr)_72px_88px_68px_96px_100px_112px]';
 const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
 const SON = `${KATAK} text-right tabular-nums text-[11.5px]`;
@@ -135,6 +135,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const [filtr, setFiltr] = useState<'hammasi' | 'hal' | 'muammo' | 'boglanmagan'>('hal');
   const [q, setQ] = useState('');
   const [dropKey, setDropKey] = useState<string | null>(null);
+  /** Sudralayotgan F2 qatori (egasi 2026-09-29: drag-and-drop aniq ko'rinsin). */
+  const [sudrash, setSudrash] = useState<F2Tugun | null>(null);
   const [tanlov, setTanlov] = useState<Tanlov | null>(null);
   const [modal, setModal] = useState<{ f: F2Tugun; action: DropAction } | null>(null);
   const [xabar, setXabar] = useState<string | null>(null);
@@ -377,7 +379,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       return (
         <div data-fuid={t.uid} className={`${F2_GRID} bg-surface-2/80 text-[12px] font-semibold text-text`}>
           <button type="button" draggable={!p.disabled}
-            onDragStart={(e) => { e.dataTransfer.setData('text/plain', t.uid); e.dataTransfer.effectAllowed = 'link'; setTanlangan(t.uid); }}
+            onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
             onClick={() => scrollTanlanganPanelga(t.uid)}
             className={`${KATAK} col-span-7 flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             title="Razdelni o‘ngdagi smeta razdeliga tortsangiz — shu razdel ichidan qidiriladi">
@@ -404,11 +406,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     return (
       <div data-fuid={t.uid} role="group" aria-label={`F2 ${t.tur}: ${t.nom}`}
-        className={`${F2_GRID} text-[12px] ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? 'font-medium text-text' : 'text-text-dim'}`}>
+        draggable={!p.disabled} onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
+        title={p.disabled ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
+        className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? 'font-medium text-text' : 'text-text-dim'}`}>
         <span className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${HOLAT_KATAK[k]}`} title={B.t}>{B.b}</span>
         <span className={`${KATAK} break-all font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
-        <button type="button" draggable={!p.disabled}
-          onDragStart={(e) => { e.dataTransfer.setData('text/plain', t.uid); e.dataTransfer.effectAllowed = 'link'; setTanlangan(t.uid); }}
+        <button type="button"
           onClick={tanla}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tanla(); } }}
           aria-pressed={sel}
@@ -427,7 +430,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${SON} ${ish ? 'font-semibold text-text' : 'text-text'}`} title={t.barg ? undefined : 'Resurslari yig‘indisi'}>
           {t.barg ? fmt(t.summa, 2) : bolaSumma(t) != null ? fmt(bolaSumma(t), 2) : ''}
         </span>
-        <span className={`${KATAK} flex flex-wrap items-start gap-1 font-normal`}>
+        <span className={`${KATAK} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {k === 'taklif' && <button type="button" className={`${tugma} tugma-asosiy`} disabled={p.disabled}
             onClick={() => p.onIj(tasdiqla(ij, [t.uid]))} title="Tizim taklifini tasdiqlash"><Check size={11} /> Tasdiqlash</button>}
           {k === 'topilmadi' && ish && <button type="button" className={tugma} disabled={p.disabled}
@@ -465,6 +468,28 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
 
   // ── O'ng: smeta daraxti ──
 
+  function sudrashBoshla(e: React.DragEvent, t: F2Tugun) {
+    e.dataTransfer.setData('text/plain', t.uid);
+    e.dataTransfer.effectAllowed = 'link';
+    setTanlangan(t.uid);
+    setSudrash(t);
+  }
+  function sudrashTugadi() { setSudrash(null); setDropKey(null); }
+  /** Sudralayotgan F2 qatori shu smeta qatoriga tushishi mumkinmi (Tizim1 qoidalari, tashla() bilan bir xil). */
+  function mosNishon(s: SmetaQator): boolean {
+    if (!sudrash) return false;
+    if (sudrash.tur === 'rz') return s.tur === 'rz';
+    if (sudrash.tur === 'bl') return s.tur === 'rz' || s.tur === 'bl' || !(S.bolalar.get(s.id) ?? []).length && s.tur !== 'rs';
+    return s.tur !== 'rz';
+  }
+  /** Sudrash paytida smeta oynasi chetiga yaqinlashsa — o'zi aylanadi. */
+  function avtoAylantir(e: React.DragEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    const chet = 60;
+    if (e.clientY < r.top + chet) el.scrollTop -= Math.ceil((r.top + chet - e.clientY) / 3);
+    else if (e.clientY > r.bottom - chet) el.scrollTop += Math.ceil((e.clientY - (r.bottom - chet)) / 3);
+  }
   function dropProps(s: SmetaQator) {
     const key = 's' + s.id;
     return {
@@ -489,7 +514,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     if (s.tur === 'rz') {
       return (
-        <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/15 outline outline-1 outline-amber-500' : 'bg-surface-2/80'}`}>
+        <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}`}>
           <button type="button" className={`${KATAK} col-span-7 flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             onClick={() => tTugun ? tashla(tTugun.uid, s.id) : toggle()} title={tTugun ? 'Tanlangan F2 qatorini shu smeta razdeliga bog‘lash/qo‘shimcha qilish' : undefined}>
             {chevron}<span className="min-w-0 flex-1 break-words">{s.nom}</span>
@@ -508,7 +533,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const ish = s.tur === 'bl';
     return (
       <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} `
-        + (drop ? 'bg-amber-500/15 outline outline-1 outline-amber-500' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')}>
+        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')}>
         <span className={`${KATAK} break-all font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <button type="button" className={`${KATAK} text-left`} style={{ paddingLeft: 6 + depth * 14 }} onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
@@ -526,7 +551,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${KATAK} break-words text-[11px]`}>{s.birlik ?? ''}</span>
         <span className={SON}>{s.narx ? fmt(s.narx, 2) : ''}</span>
         <span className={`${SON} ${qoldiq != null && qoldiq < -1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
-        <span className={`${KATAK} flex flex-wrap items-start gap-1 font-normal`}>
+        <span className={`${KATAK} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {tTugun && (tBog
             ? <button type="button" className={tugma} disabled={p.disabled} onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={11} /> Uzish</button>
             : <button type="button" className={tugma} disabled={p.disabled} onClick={() => tashla(tTugun.uid, s.id)}><Link2 size={11} /> Bog‘lash</button>)}
@@ -723,7 +748,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             </div>
           </header>
           <TreeControls depths={qidiruvNatija ? [] : smetaExpandableDepths} onOpenAll={smetaBarchasiniOch} onCloseAll={smetaBarchasiniYop} onToggleDepth={smetaSath} />
-          <div ref={smetaQuti} className="h-[66vh] overflow-auto">
+          {sudrash && <div className="border-b border-accent/40 bg-accent/15 px-2 py-1 text-[11.5px] text-text" role="status">
+            <b>«{sudrash.nom.slice(0, 60)}»</b> — {sudrash.tur === 'rz' ? 'smeta RAZDELIGA tashlang (razdel o‘rgatiladi)'
+              : sudrash.tur === 'bl' ? 'smeta ISHIGA tashlang (bog‘lash yoki zamena) yoki RAZDELGA (qo‘shimcha ish)'
+                : 'smeta RESURSIGA (bog‘lash/zamena) yoki ISHIGA (qo‘shimcha resurs) tashlang'}. Punktir ramka — mos joylar.
+          </div>}
+          <div ref={smetaQuti} className="h-[66vh] overflow-auto" onDragOver={avtoAylantir}>
             <div className="min-w-[960px] border-l border-t border-border/70">
             <JadvalSarlavha tur="smeta" />
             {qidiruvNatija && !qidiruvNatija.length
