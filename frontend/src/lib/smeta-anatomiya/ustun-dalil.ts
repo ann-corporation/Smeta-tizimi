@@ -127,7 +127,10 @@ export function uchlikniMoslashtir(
   if (!summa.length) summa = zaxira;
   const hs = sarlavhaUchligi;
   const sarlavhaDalili = hs.hajm >= 0 && hs.narx >= 0 && hs.summa >= 0 ? arifmetikUchlik(qatorlar, { hajm: [hs.hajm], narx: [hs.narx], summa: [hs.summa] }) : null;
-  const eng = arifmetikUchlik(qatorlar, { hajm, narx, summa });
+  // Sarlavha so'zlari faqat nomzod: ular isbot bermasa (masalan o'ngdagi yordamchi matn ustuni
+  // «ОБЩЕСТРОИТЕЛЬНЫЕ РАБОТЫ» summa nomzodi bo'lib qolgan — YEVROPA F2, 2026-09-29) — barcha sonli
+  // ustunlardan arifmetik isbot qidiriladi.
+  const eng = arifmetikUchlik(qatorlar, { hajm, narx, summa }) ?? arifmetikUchlik(qatorlar, { hajm: zaxira, narx: zaxira, summa: zaxira });
   if (sarlavhaDalili && (!eng || sarlavhaDalili.mos >= eng.mos)) {
     return { uchlik: hs, qoida: 'sarlavha', ishonch: 'yuqori', izoh: `sarlavha ma'lumot bilan tasdiqlandi: ${sarlavhaDalili.mos}/${sarlavhaDalili.sinalgan} qatorda hajm × narx = summa`, dalil: sarlavhaDalili };
   }

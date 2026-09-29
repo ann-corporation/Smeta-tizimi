@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { f2Imzo, f2MoslashV3, rzKalit, type SmetaQator } from './index';
+import { f2Imzo, f2MoslashV3, gradeFarq, rzKalit, texnikTafsilotFarqlari, type SmetaQator } from './index';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 
 let sid = 0;
@@ -114,6 +114,54 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(r.sabab).toMatch(/zamena/);
   });
 
+  it('texnik spetsifikatsiya lotin/kirill va yozuv farqidan qat’i nazar farqni taniydi', () => {
+    expect(gradeFarq('БЕТОН B15 W6', 'бетон В25 W6')).toBe(true);
+    expect(gradeFarq('БЕТОН B25 W6', 'бетон В25 W6')).toBe(false);
+    expect(texnikTafsilotFarqlari('АРМАТУРА A400', 'Арматура А500')).toContain('armatura klassi');
+    expect(texnikTafsilotFarqlari('Бетон В25 W6 F150', 'Бетон B25 W8 F150')).toContain('suv o‘tkazmaslik markasi');
+    expect(texnikTafsilotFarqlari('АРМАТУРА А-I ДИАМ. 8 ММ', 'АРМАТУРА A-III ДИАМ. 8 ММ')).toContain('armatura markasi');
+    expect(texnikTafsilotFarqlari('АРМАТУРА А-III ДИАМ. 8 ММ', 'АРМАТУРА А-III ДИАМ. 10 ММ')).toContain('diametr');
+    expect(texnikTafsilotFarqlari('АРМАТУРА А-III ДИАМ. 22 ММ', 'АРМАТУРА А-III ДИАМ. 25 ММ')).toContain('diametr');
+  });
+
+  it('BL shifri va nomi bir xil bo‘lsa ham resursdagi beton klassi farqi avto bog‘lashni bloklaydi', () => {
+    const sectionId = rz('РАЗДЕЛ: ТЕХНИЧЕСКАЯ ПРОВЕРКА');
+    const workId = ish(sectionId, 'TECH-GRADE-WORK-001', 'УСТРОЙСТВО МОНОЛИТНОГО ОСНОВАНИЯ', '100М3', 2, [
+      ['000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 10],
+      ['TECH-CONCRETE-001', 'БЕТОН В15 W6', 'М3', 4],
+    ]);
+    const yol = ['РАЗДЕЛ: ТЕХНИЧЕСКАЯ ПРОВЕРКА'];
+    const fWork = f('bl', 'TECH-GRADE-WORK-001', 'УСТРОЙСТВО МОНОЛИТНОГО ОСНОВАНИЯ', '100М3', 2, yol, [
+      f('rs', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 20, yol, [], 10),
+      f('rs', 'TECH-CONCRETE-001', 'БЕТОН B25 W6', 'М3', 8, yol, [], 4),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [fWork])], S).natijalar.get(fWork.uid)!;
+
+    expect(result.qatorId).not.toBe(workId);
+    expect(result.holat).not.toBe('aniq');
+    expect(result.nomzodlar.some((n) => n.qatorId === workId && n.qavatlar.some((q) => q.nom === 'texnik_tafsilot' && q.ball < 0))).toBe(true);
+    const resourceResult = f2MoslashV3([rzF(yol[0], [], [fWork])], S).natijalar.get(fWork.bolalar[1].uid)!;
+    expect(resourceResult.holat).toBe('topilmadi');
+  });
+
+  it('bir xil ish nomzodlarida resurs klassi to‘g‘ri qatorni ajratadi, boshqa klass avto tanlanmaydi', () => {
+    const sectionId = rz('РАЗДЕЛ: КЛАСС БЕТОНА ТЕСТИ');
+    const wrongId = ish(sectionId, 'TECH-GRADE-CHOICE-001', 'УСТРОЙСТВО ТЕСТОВОГО ОСНОВАНИЯ', '100М3', 2, [
+      ['TECH-GRADE-MATERIAL-001', 'БЕТОН В15', 'М3', 4],
+    ]);
+    const rightId = ish(sectionId, 'TECH-GRADE-CHOICE-001', 'УСТРОЙСТВО ТЕСТОВОГО ОСНОВАНИЯ', '100М3', 2, [
+      ['TECH-GRADE-MATERIAL-001', 'БЕТОН В25', 'М3', 4],
+    ]);
+    const yol = ['РАЗДЕЛ: КЛАСС БЕТОНА ТЕСТИ'];
+    const fWork = f('bl', 'TECH-GRADE-CHOICE-001', 'УСТРОЙСТВО ТЕСТОВОГО ОСНОВАНИЯ', '100М3', 2, yol, [
+      f('rs', 'TECH-GRADE-MATERIAL-001', 'БЕТОН B25', 'М3', 8, yol, [], 4),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [fWork])], S).natijalar.get(fWork.uid)!;
+
+    expect(result).toMatchObject({ holat: 'aniq', qatorId: rightId });
+    expect(result.qatorId).not.toBe(wrongId);
+  });
+
   it('ish ichida yo‘q resurs — zamena material/qo‘shimcha resurs sifatida topilmadi', () => {
     const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
     const w = f('bl', 'E6-1-1-22', 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ', '100М3', 1, yol, [
@@ -126,6 +174,55 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(n.natijalar.get(w.bolalar[2].uid)!.sabab).toMatch(/zamena material|qo‘shimcha resurs/);
   });
 
+  it('mustaqil MAT/OB qatori BL ota yoki RZ ga emas, faqat mos smeta bargiga bog‘lanadi', () => {
+    const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
+    const matParent = rz('РАЗДЕЛ: МАТЕРИАЛЫ');
+    const onlyWork = ish(matParent, 'MAT-EXACT', 'БЛОКИ ДВЕРНЫЕ ПВХ', 'ШТ', 3);
+    const matId = ++sid;
+    S.push({ id: matId, otaId: L3c, tur: 'mat', kod: 'MAT-EXACT-2', nom: 'БЛОКИ ОКОННЫЕ ПВХ', birlik: 'ШТ', hajm: 4, tartib: matId });
+    const mat = f('mat', 'MAT-EXACT', 'БЛОКИ ДВЕРНЫЕ ПВХ', 'ШТ', 1, yol);
+    const root = rzF(yol[0], [], [mat]);
+    const n1 = f2MoslashV3([root], S);
+    expect(n1.natijalar.get(mat.uid)?.qatorId).not.toBe(onlyWork);
+    expect(n1.natijalar.get(mat.uid)?.holat).toBe('topilmadi');
+
+    const exactMat = f('mat', 'MAT-EXACT-2', 'БЛОКИ ОКОННЫЕ ПВХ', 'ШТ', 1, yol);
+    const n2 = f2MoslashV3([rzF(yol[0], [], [exactMat])], S);
+    expect(n2.natijalar.get(exactMat.uid)?.qatorId).toBe(matId);
+    expect(n2.natijalar.get(exactMat.uid)?.holat).not.toBe('topilmadi');
+  });
+
+  it('explicit row type is a hard matching boundary; only unmarked legacy work keeps the leaf suggestion', () => {
+    const id = ++sid;
+    S.push({ id, otaId: L3c, tur: 'ob', kod: 'TYPE-BOUNDARY', nom: 'СВЕТИЛЬНИК', birlik: 'ШТ', hajm: 3, tartib: id });
+    const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
+    const markedMaterial = Object.assign(f('mat', 'TYPE-BOUNDARY', 'СВЕТИЛЬНИК', 'ШТ', 1, yol), { texnikBelgi: 'mat' });
+    const markedWork = Object.assign(f('bl', 'TYPE-BOUNDARY', 'СВЕТИЛЬНИК', 'ШТ', 1, yol), { texnikBelgi: 'bl' });
+    const legacyUnmarkedWork = f('bl', 'TYPE-BOUNDARY', 'СВЕТИЛЬНИК', 'ШТ', 1, yol);
+
+    const wrongMaterialType = f2MoslashV3([rzF(yol[0], [], [markedMaterial])], S).natijalar.get(markedMaterial.uid)!;
+    const wrongWorkType = f2MoslashV3([rzF(yol[0], [], [markedWork])], S).natijalar.get(markedWork.uid)!;
+    const legacyReview = f2MoslashV3([rzF(yol[0], [], [legacyUnmarkedWork])], S).natijalar.get(legacyUnmarkedWork.uid)!;
+
+    expect(wrongMaterialType.holat).toBe('topilmadi');
+    expect(wrongWorkType.holat).toBe('topilmadi');
+    expect(legacyReview.holat).not.toBe('aniq');
+    expect(legacyReview.qatorId).toBe(id);
+  });
+
+  it('explicit RS resource cannot bind to a same-code MAT child', () => {
+    const materialId = ++sid;
+    S.push({ id: materialId, otaId: W1, tur: 'mat', kod: 'RS-MAT-BOUNDARY', nom: 'БЕТОН В25', birlik: 'М3', hajm: 2, tartib: materialId });
+    const work = Object.assign(f('bl', 'E1-1-195-19 ШHК.ДОП.11', 'РАЗРАБОТКА ГРУНТА В ОТВАЛ', '1000М3', 1, ['РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ-3)']), { texnikBelgi: 'bl' });
+    const resource = Object.assign(f('rs', 'RS-MAT-BOUNDARY', 'БЕТОН В25', 'М3', 2, []), { texnikBelgi: 'rs' });
+    work.bolalar.push(resource);
+    const result = f2MoslashV3([rzF('РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ-3)', [], [work])], S);
+
+    expect(result.natijalar.get(work.uid)?.qatorId).toBe(W1);
+    expect(result.natijalar.get(resource.uid)?.holat).toBe('topilmadi');
+    expect(result.natijalar.get(resource.uid)?.qatorId).not.toBe(materialId);
+  });
+
   it('xotira: o‘tgan oyda tasdiqlangan bog‘lanish birinchi', () => {
     const yol = ['БОШҚА НОМ'];
     const w = f('bl', 'E1-1-195-19 ШHК.ДОП.11', 'РАЗРАБОТКА ГРУНТА В ОТВАЛ', '1000М3', 0.1, yol);
@@ -134,11 +231,102 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(n.natijalar.get(w.uid)).toMatchObject({ holat: 'xotira', qatorId: W2 });
   });
 
+  it('eskirgan xotira explicit BL qatorini bir xil identifikatorli MAT qatoriga bog‘lamaydi', () => {
+    const matId = ++sid;
+    S.push({ id: matId, otaId: L3c, tur: 'mat', kod: 'MEMORY-TYPE-GUARD', nom: 'BETON B25', birlik: 'M3', hajm: 4, tartib: matId });
+    const yol = ['BOSHQA SMETA'];
+    const work = Object.assign(f('bl', 'MEMORY-TYPE-GUARD', 'BETON B25', 'M3', 1, yol), { texnikBelgi: 'bl' });
+    // Eski signature formatida tur belgisi yo‘q: xotira kaliti aynan to‘qnashadi.
+    const remembered = new Map([[f2Imzo(work), matId]]);
+
+    const result = f2MoslashV3([rzF(yol[0], [], [work])], S, { xotira: remembered });
+    const matched = result.natijalar.get(work.uid)!;
+    expect(matched.holat).not.toBe('xotira');
+    expect(matched.qatorId).not.toBe(matId);
+  });
+
+  it('oldingi tasdiqlangan xotira joriy operator tanlagan boshqa razdel chegarasidan o‘tmaydi', () => {
+    const yol = ['РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ-3)'];
+    const work = Object.assign(f('bl', 'E1-1-195-19 ШHК.ДОП.11', 'РАЗРАБОТКА ГРУНТА В ОТВАЛ', '1000М3', 4.3524, yol, [
+      f('rs', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 16.19, yol, [], 3.72),
+      f('rs', '001942', 'ЭКСКАВАТОРЫ', 'МАШ-Ч', 34.17, yol, [], 7.85),
+    ]), { texnikBelgi: 'bl' });
+    const section = rzF(yol[0], [], [work]);
+    const remembered = new Map([[f2Imzo(work), W2]]);
+    const sectionBinding = new Map([[section.uid, L1z]]);
+
+    const result = f2MoslashV3([section], S, { xotira: remembered, rzBog: sectionBinding });
+    expect(result.natijalar.get(work.uid)).toMatchObject({ holat: 'aniq', qatorId: W1 });
+  });
+
   it('smetada umuman yo‘q ish — topilmadi, qo‘shimcha ish taklif qilinadi', () => {
     const w = f('bl', 'E99-9-9', 'УСТАНОВКА СКАМЕЕК ПАРКОВЫХ', 'ШТ', 3, ['ЛЮБОЙ']);
     const n = f2MoslashV3([rzF('ЛЮБОЙ', [], [w])], S);
     expect(n.natijalar.get(w.uid)).toMatchObject({ holat: 'topilmadi' });
-    expect(n.natijalar.get(w.uid)!.sabab).toMatch(/qo‘shimcha/);
+    expect(n.natijalar.get(w.uid)!.sabab).toMatch(/bo‘lim.*hali bog‘lanmagan/);
+  });
+
+  it('unmapped F2 section never auto-links a globally unique work from another section', () => {
+    const otherSection = rz('SMETA — AMALDAGI BO‘LIM');
+    const targetId = ish(otherSection, 'UNMAPPED-SCOPE-001', 'ISH NOMI TO‘LIQ MOS', 'M2', 5);
+    const source = f('bl', 'UNMAPPED-SCOPE-001', 'ISH NOMI TO‘LIQ MOS', 'M2', 1, ['F2 DA TOPILMAGAN BO‘LIM']);
+    const fSection = rzF('F2 DA TOPILMAGAN BO‘LIM', [], [source]);
+
+    const automatic = f2MoslashV3([fSection], S).natijalar.get(source.uid)!;
+    expect(automatic).toMatchObject({ holat: 'topilmadi', qatorId: null });
+    expect(automatic.sabab).toMatch(/bo‘lim.*hali bog‘lanmagan/);
+    expect(automatic.nomzodlar.some((candidate) => candidate.qatorId === targetId)).toBe(true);
+
+    const taught = f2MoslashV3([fSection], S, { rzBog: new Map([[fSection.uid, otherSection]]) }).natijalar.get(source.uid)!;
+    expect(taught).toMatchObject({ holat: 'aniq', qatorId: targetId });
+  });
+
+  it('unmapped nested F2 subsection cannot fall back to its matched parent scope', () => {
+    const parentName = 'СМЕТА № 01-01 НА КОНСТРУКТИВНАЯ ЧАСТЬ-ОЗЕРА';
+    const childName = 'ВНУТРЕННИЙ РАЗДЕЛ БЕЗ СОВПАДЕНИЯ';
+    const targetId = ish(L3a, 'NESTED-SCOPE-001', 'ВНУТРЕННИЙ ТЕСТОВЫЙ РАБОЧИЙ ПРОЦЕСС', 'М2', 1);
+    const source = f('bl', 'NESTED-SCOPE-001', 'ВНУТРЕННИЙ ТЕСТОВЫЙ РАБОЧИЙ ПРОЦЕСС', 'М2', 0.5, [parentName, childName]);
+    const inner = rzF(childName, [parentName], [source]);
+    const outer = rzF(parentName, [], [inner]);
+
+    const automatic = f2MoslashV3([outer], S).natijalar.get(source.uid)!;
+    expect(automatic).toMatchObject({ holat: 'topilmadi', qatorId: null });
+    expect(automatic.sabab).toMatch(/bo‘lim.*hali bog‘lanmagan/);
+
+    const taught = f2MoslashV3([outer], S, { rzBog: new Map([[inner.uid, L3a]]) }).natijalar.get(source.uid)!;
+    expect(taught).toMatchObject({ holat: 'aniq', qatorId: targetId });
+  });
+
+  it('one-letter resource code С is not identity and cannot bind a different material', () => {
+    const section = rz('GENERIC RESOURCE CODE TEST');
+    const targetWork = ish(section, 'GENERIC-CODE-PARENT', 'ИШ ОДИНАКОВОЕ', 'М2', 1,
+      [['С', 'СТЕКЛО ЖИДКОЕ КАЛИЙНОЕ', 'Т', 1]]);
+    const wrongMaterialId = S.find((row) => row.otaId === targetWork)!.id;
+    const yol = ['GENERIC RESOURCE CODE TEST'];
+    const source = f('bl', 'GENERIC-CODE-PARENT', 'ИШ ОДИНАКОВОЕ', 'М2', 1, yol, [
+      f('rs', 'С', 'АРМАТУРА AIII ДИАМЕТРОМ 12 ММ', 'Т', 0.1, yol, [], 0.1),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [source])], S);
+
+    expect(result.natijalar.get(source.uid)).toMatchObject({ holat: 'aniq', qatorId: targetWork });
+    expect(result.natijalar.get(source.bolalar[0].uid)).toMatchObject({ holat: 'topilmadi', qatorId: null });
+    expect(result.natijalar.get(source.bolalar[0].uid)?.qatorId).not.toBe(wrongMaterialId);
+    expect(result.natijalar.get(source.bolalar[0].uid)?.nomzodlar).toEqual([]);
+  });
+
+  it('one-letter resource markers do not make different BL resource compositions look equal', () => {
+    const section = rz('GENERIC MATERIAL COMPOSITION');
+    const wrongWork = ish(section, 'DUPLICATE-WORK-CODE-1', 'BIR XIL ISH', 'M2', 1, [['С', 'QUMLI TAYYORLASH', 'М3', 2]]);
+    const rightWork = ish(section, 'DUPLICATE-WORK-CODE-1', 'BIR XIL ISH', 'M2', 1, [['С', 'BETON В25 W6', 'М3', 2]]);
+    const yol = ['GENERIC MATERIAL COMPOSITION'];
+    const source = f('bl', 'DUPLICATE-WORK-CODE-1', 'BIR XIL ISH', 'M2', 1, yol, [
+      f('rs', 'С', 'BETON B25 W6', 'М3', 2, yol, [], 2),
+    ]);
+    const result = f2MoslashV3([rzF(yol[0], [], [source])], S);
+
+    expect(result.natijalar.get(source.uid)).toMatchObject({ holat: 'aniq', qatorId: rightWork });
+    expect(result.natijalar.get(source.uid)?.qatorId).not.toBe(wrongWork);
+    expect(result.natijalar.get(source.bolalar[0].uid)).toMatchObject({ holat: 'aniq' });
   });
 it('bitta F2 da o‘sha ish bir necha qism (smetada bitta qator) — takror qism o‘sha qatorga, resurslari bilan; qoldiqdan oshsa ◐', () => {
     const yol = ['СМЕТА № 01-01 НА ОБЪЕДИНЁННЫЙ ВОДОПРОВОД'];

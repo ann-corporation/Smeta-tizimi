@@ -14,15 +14,16 @@ vi.mock('@tanstack/react-virtual', () => ({
   }),
 }));
 
-const leaf = (uid: string, nom: string): F2Tugun => ({
-  uid, tur: 'bl', kod: uid, nom, birlik: 'm3', hajm: 1, narx: 100, summa: uid === 'f1' ? 125 : 50,
+const leaf = (uid: string, nom: string, tur: F2Tugun['tur'] = 'bl'): F2Tugun => ({
+  uid, tur, kod: uid, nom, birlik: 'm3', hajm: 1, narx: 100, summa: uid === 'f1' ? 125 : 50,
   manzil: { fayl: 'f2.xlsx', varaq: 'Akt', qator: Number(uid.slice(1)) + 9 }, yol: ['Beton ishlari'], bolalar: [], barg: true,
 });
 
-function renderWorkbench(rowCount = 2) {
+function renderWorkbench(rowCount = 2, specialTypes: F2Tugun['tur'][] = [], review: Array<{ kod: string; izoh: string; manzil?: { fayl: string; varaq: string; qator: number } }> = []) {
   const f2Rows = Array.from({ length: rowCount }, (_, index) => leaf(
     `f${index + 1}`,
     index === 0 ? 'Beton B25' : index === 1 ? 'Armatura A500' : `Ish ${index + 1}`,
+    specialTypes[index] ?? 'bl',
   ));
   const rz: F2Tugun = {
     uid: 'frz', tur: 'rz', kod: null, nom: 'KONSTRUKSIYA', birlik: null, hajm: null, narx: null, summa: null,
@@ -50,7 +51,7 @@ function renderWorkbench(rowCount = 2) {
     fayl: 'f2.xlsx', varaq: 'Akt', davr: '2026-08', davrMatn: 'Avgust 2026', daraxt: [rz],
     jami: { pryamye: 175, vsego: 175, ranee: null, raznica: null, nds: null },
     qatorlarJami: 125 + Math.max(0, rowCount - 1) * 50,
-    barglarSoni: rowCount, ishlarSoni: rowCount, ogohlantirishlar: [], anatomiya: {},
+    barglarSoni: rowCount, ishlarSoni: rowCount, ogohlantirishlar: [], anatomiya: { review },
   } as unknown as F2Akt;
   const onIj = vi.fn();
   render(<F2V3Workbench
@@ -75,19 +76,55 @@ describe('F2 workbench operator controls', () => {
     expect(sourceSum?.textContent).toContain('hujjat ИТОГО ПРЯМЫЕ: 175');
     expect(screen.getByText('✓ Bog‘langan')).toBeTruthy();
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
-    expect(f2Tree.getByRole('group', { name: 'F2 bl: Beton B25' }).textContent).toContain('125');
+    expect(screen.getByRole('button', { name: 'Barcha qatorlar' }).getAttribute('aria-pressed')).toBe('true');
+    expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
+    expect(f2Tree.getByText('bo‘lim ulanmagan — mos smeta bo‘limiga torting')).toBeTruthy();
+    expect(f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Beton B25' }).textContent).toContain('125');
     expect(screen.getByRole('button', { name: 'Bog‘lanishni uzish: Beton B25' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lash variantlari: Beton B25' }));
     expect(screen.getAllByText('93%').length).toBeGreaterThan(0);
+  });
+
+  it('separates source-reading review from row matching and never claims all source rows were checked', () => {
+    renderWorkbench(2, [], [{ kod: 'noaniq_qator', izoh: 'manbada tanilmagan qator: "ПОЛ"', manzil: { fayl: 'f2.xlsx', varaq: 'Akt', qator: 284 } }]);
+    const review = screen.getByRole('alert', { name: 'F2 faylini o‘qish tekshiruvi' });
+    expect(review.textContent).toContain('1 ta qator yoki sarlavha');
+    expect(review.textContent).toContain('fayldagi har bir qator to‘liq o‘qildi degani emas');
+    fireEvent.click(screen.getByText('Tekshiruv qatorlarini ko‘rish (birinchi 1 ta)'));
+    expect(review.textContent).toContain('Manba qatori 284');
+    expect(review.textContent).toContain('tanilmagan qator');
+    expect(screen.queryByText(/hammasi tekshirilgan/i)).toBeNull();
+  });
+
+  it('shows recognized F2 closing lines as information, not as unresolved work rows', () => {
+    renderWorkbench(2, [], [
+      { kod: 'f2_podval_qatori', izoh: 'F2 hisob/podval satri; ish-resurs moslashiga qo‘shilmadi' },
+      { kod: 'f2_podval_qatori', izoh: 'F2 hisob/podval satri; ish-resurs moslashiga qo‘shilmadi' },
+      { kod: 'noaniq_qator', izoh: 'Manbada tanilmagan ish qatori' },
+    ]);
+    const alert = screen.getByRole('alert', { name: 'F2 faylini o‘qish tekshiruvi' });
+    expect(alert.textContent).toContain('1 ta qator yoki sarlavha');
+    expect(alert.textContent).not.toContain('3 ta qator');
+    const note = screen.getByRole('note', { name: 'F2 hisob va podval satrlari' });
+    expect(note.textContent).toContain('2 ta yakuniy/podval satri');
+    expect(note.textContent).toContain('bog‘lash daraxtiga kiritilmaydi');
   });
 
   it('filters to unbound F2 lines without hiding the source tree or its explicit bind action', () => {
     renderWorkbench();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lanmagan' }));
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
+    expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
     expect(f2Tree.getByText('Armatura A500')).toBeTruthy();
     expect(f2Tree.queryByText('Beton B25')).toBeNull();
     expect(f2Tree.getByRole('button', { name: 'Bog‘lash variantlari: Armatura A500' })).toBeTruthy();
+  });
+
+  it('labels standalone materials and equipment in PTO language, not as generic resources', () => {
+    renderWorkbench(2, ['mat', 'ob']);
+    const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
+    expect(f2Tree.getByRole('group', { name: 'F2 qatori (Mustaqil material): Beton B25' })).toBeTruthy();
+    expect(f2Tree.getByRole('group', { name: 'F2 qatori (Mustaqil uskuna): Armatura A500' })).toBeTruthy();
   });
 
   it('opens/closes all and toggles exactly one hierarchy level', () => {
@@ -116,7 +153,7 @@ describe('F2 workbench operator controls', () => {
     const { onIj } = renderWorkbench();
     fireEvent.click(screen.getByRole('button', { name: 'Barcha qatorlar' }));
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
-    const row = f2Tree.getByRole('group', { name: 'F2 bl: Armatura A500' });
+    const row = f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Armatura A500' });
     expect(row.getAttribute('draggable')).toBe('true');
     const data = new Map<string, string>();
     const dataTransfer = { setData: (k: string, v: string) => data.set(k, v), getData: (k: string) => data.get(k) ?? '', effectAllowed: '', dropEffect: '' };

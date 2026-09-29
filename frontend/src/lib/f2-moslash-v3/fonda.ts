@@ -8,7 +8,7 @@ import { f2AktlarniOqi, type F2Akt, type F2Tugun } from '../smeta-anatomiya/f2';
 import { f2MoslashV3, type F2MoslashNatija, type F2MoslashOpts, type SmetaQator } from './index';
 
 export type F2IshchiKirish =
-  | { id: number; tur: 'oqi'; fayl: string; bytes: ArrayBuffer }
+  | { id: number; tur: 'oqi'; fayl: string; source: Blob | ArrayBuffer }
   | { id: number; tur: 'mosla'; daraxt: F2Tugun[]; smeta: SmetaQator[]; opts: F2MoslashOpts };
 
 let keyingiId = 1;
@@ -37,11 +37,11 @@ async function ishchida<T>(xabar: BezId<F2IshchiKirish>, kalit: 'aktlar' | 'nati
   }
 }
 
-/** XLSX → F2 aktlari (fonda). */
-export async function f2AktlarniOqiFonda(fayl: string, bytes: ArrayBuffer): Promise<F2Akt[]> {
-  const nusxa = bytes.slice(0);
-  const r = await ishchida<F2Akt[]>({ tur: 'oqi', fayl, bytes: nusxa }, 'aktlar', [nusxa]);
+/** XLSX → F2 aktlari (fonda); Blob/File workerga ko'chiriladi, katta buffer main threadda ochilmaydi. */
+export async function f2AktlarniOqiFonda(fayl: string, source: Blob | ArrayBuffer): Promise<F2Akt[]> {
+  const r = await ishchida<F2Akt[]>({ tur: 'oqi', fayl, source }, 'aktlar');
   if (r) return r;
+  const bytes = source instanceof ArrayBuffer ? source : await source.arrayBuffer();
   const kitob = await readXlsxFonda(bytes);
   return f2AktlarniOqi({ fayl, varaqlar: kitob.sheets.map((s) => ({ nom: s.name, rows: s.rows, merges: s.merges })) });
 }

@@ -87,6 +87,16 @@ export interface F2V3WorkbenchProps {
 /** Resurs turi birlikdan: ЧЕЛ/МАШ — rs, qolgani material (kategoriyani server birlik/nom bo'yicha aniqlaydi). */
 const resTuri = (birlik: string | null): 'rs' | 'mat' => (/ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
 
+function f2QatorTuriYorlig(i: F2Tugun['tur']): string {
+  switch (i) {
+    case 'bl': return 'Ish';
+    case 'rs': return 'Ish tarkibidagi resurs';
+    case 'mat': return 'Mustaqil material';
+    case 'ob': return 'Mustaqil uskuna';
+    case 'rz': return 'Bo‘lim';
+  }
+}
+
 /** Egasi 2026-09-28: har pozitsiya — norma · miqdor · birlik · narx · summa (aniq ustunlarda). */
 const USTUN_GRID = 'ml-auto grid shrink-0 grid-cols-[58px_72px_52px_76px_96px] items-center gap-x-1 text-right tabular-nums text-[11px]';
 function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: { norma?: number | null; miqdor?: number | null; birlik?: string | null; narx?: number | null; oxirgi?: React.ReactNode; oxirgiCls?: string }) {
@@ -132,7 +142,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const [tanlangan, setTanlangan] = useState<string | null>(null);
   const [ochiqS, setOchiqS] = useState<Set<number>>(new Set());
   const [yopiqF, setYopiqF] = useState<Set<string>>(new Set());
-  const [filtr, setFiltr] = useState<'hammasi' | 'hal' | 'muammo' | 'boglanmagan'>('hal');
+  // PTO birinchi kirganda butun manba daraxtini ko'radi. Virtualizatsiya katta
+  // hujjatda DOM hajmini cheklaydi; filtrni operator keyin ongli ravishda tanlaydi.
+  const [filtr, setFiltr] = useState<'hammasi' | 'hal' | 'muammo' | 'boglanmagan'>('hammasi');
   const [q, setQ] = useState('');
   const [dropKey, setDropKey] = useState<string | null>(null);
   /** Sudralayotgan F2 qatori (egasi 2026-09-29: drag-and-drop aniq ko'rinsin). */
@@ -145,6 +157,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const h = useMemo(() => hisobla(ind, ij), [ind, ij]);
+  const barchaManbaIzohlari = p.akt.anatomiya?.review ?? [];
+  const manbaTekshiruvi = barchaManbaIzohlari.filter((review) => review.kod !== 'f2_podval_qatori');
+  const manbaPodvalQatorlari = barchaManbaIzohlari.filter((review) => review.kod === 'f2_podval_qatori');
   const shuF2 = useMemo(() => {
     const m = new Map<number, { hajm: number; uidlar: string[] }>();
     for (const [uid, b] of ij.bog) {
@@ -387,7 +402,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           </button>
           <span className={`${SON} font-semibold`}>{fmt(rzSumma.get(t.uid) ?? null, 2)}</span>
           <span className={`${KATAK} text-[10.5px] font-normal normal-case ${d?.ok || !ishliRz ? 'text-text-mute' : 'text-warn'}`} title={sNom || undefined}>
-            {d?.ok ? `→ ${sNom || 'smeta razdeli'}` : ishliRz ? 'smetada razdel topilmadi — smeta razdeliga torting' : 'guruh'}
+            {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : ishliRz ? 'bo‘lim ulanmagan — mos smeta bo‘limiga torting' : 'guruh'}
           </span>
         </div>
       );
@@ -428,7 +443,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tavsiyaS = tavsiya?.tur === 'zamena' ? S.byId.get(tavsiya.qatorId) : undefined;
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     return (
-      <div data-fuid={t.uid} role="group" aria-label={`F2 ${t.tur}: ${t.nom}`}
+      <div data-fuid={t.uid} role="group" aria-label={`F2 qatori (${f2QatorTuriYorlig(t.tur)}): ${t.nom}`}
         draggable={!p.disabled} onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
         title={p.disabled ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
         className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? 'font-medium text-text' : 'text-text-dim'}`}>
@@ -480,12 +495,26 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   function f2Sath(depth: number) {
     const ids = expandableIdsAtDepth(p.akt.daraxt, (node) => node.bolalar, (node) => node.uid, depth).map(String);
     const shouldOpen = ids.some((id) => yopiqF.has(id));
-    setYopiqF((old) => { const next = new Set(old); for (const id of ids) shouldOpen ? next.delete(id) : next.add(id); return next; });
+    setYopiqF((old) => {
+      const next = new Set(old);
+      for (const id of ids) {
+        if (shouldOpen) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
   }
   function smetaSath(depth: number) {
     const ids = expandableIdsAtDepth(smetaRoots, (node) => S.bolalar.get(node.id) ?? [], (node) => node.id, depth).map(Number);
     const shouldOpen = ids.some((id) => !ochiqS.has(id));
-    setOchiqS((old) => { const next = new Set(old); for (const id of ids) shouldOpen ? next.add(id) : next.delete(id); return next; });
+    setOchiqS((old) => {
+      const next = new Set(old);
+      for (const id of ids) {
+        if (shouldOpen) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
   }
   function smetaBarchasiniOch() {
     setOchiqS(smetaExpandableDepths.reduce((expanded, depth) => {
@@ -604,6 +633,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const r = p.natija.natijalar.get(tTugun.uid);
     const b = ij.bog.get(tTugun.uid);
     const s = b ? S.byId.get(b.qatorId) : undefined;
+    const ota = ind.ota.get(tTugun.uid);
+    const otaBoglangan = ota ? ij.bog.has(ota.uid) : false;
     return (
       <div className="space-y-2">
         <div className="flex flex-wrap items-start gap-2">
@@ -611,7 +642,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium text-text">{tTugun.kod && <span className="mr-1 font-mono text-text-mute">{tTugun.kod}</span>}{tTugun.nom}</p>
             <p className="text-[11px] text-text-dim">
-              {tTugun.tur === 'bl' ? 'Ish' : 'Resurs'} · {fmt(tTugun.hajm)} {tTugun.birlik ?? ''}{tTugun.narx != null ? ` × ${fmt(tTugun.narx, 2)}` : ''}{tTugun.summa != null ? ` = ${fmt(tTugun.summa, 2)}` : ''}
+              {f2QatorTuriYorlig(tTugun.tur)} · {fmt(tTugun.hajm)} {tTugun.birlik ?? ''}{tTugun.narx != null ? ` × ${fmt(tTugun.narx, 2)}` : ''}{tTugun.summa != null ? ` = ${fmt(tTugun.summa, 2)}` : ''}
               {' · '}{tTugun.manzil.varaq}!{tTugun.manzil.qator}
             </p>
             {s && <p className="text-[11px] text-accent">→ {s.kod ? s.kod + ' ' : ''}{s.nom} ({s.birlik ?? '—'}) <span className="text-text-mute">[{b!.usul}]</span></p>}
@@ -697,6 +728,11 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             })}
           </div>
         )}
+        {tTugun.tur === 'rs' && otaBoglangan && nomzodlar.length === 0 && (
+          <p className="rounded border border-warn/30 bg-warn/5 px-2 py-1.5 text-[11px] text-text-dim">
+            Shu ish ichida shifr yoki nom bo‘yicha ishonchli resurs varianti topilmadi. O‘ngdagi smeta daraxtidan qidirib, mos resursni qo‘lda bog‘lang. Bir xil birlikning o‘zi moslik dalili emas.
+          </p>
+        )}
         {k === 'topilmadi' && tTugun.tur === 'bl' && (() => {
           // Egasi sinovi 2026-09-28: ✕ ish — smetaning o'sha razdelida nima borligi yonma-yon;
           // bir bosishda "shu ish o'rniga (zamena)" yoki "qo'shimcha ish".
@@ -735,7 +771,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     <div className="space-y-2">
       <div className="karta space-y-2 p-2 text-[12px]">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <span><b className="text-ok">✓ {h.tayyor}</b> tasdiqlangan bog‘lanish</span>
+          <span title="Moslik dvigateli dalillar bo‘yicha avtomatik topdi; bu operator tekshiruvi degani emas."><b className="text-ok">✓ {h.tizimTopdi}</b> tizim mos topdi</span>
+          <span title="Avvalgi davrda tasdiqlangan bog‘lanish xotirasidan olindi."><b className="text-ok">↻ {h.avvalgiQaror}</b> oldingi qaror</span>
+          <span title="Bu qatorni operator qo‘lda bog‘ladi yoki taklifni tasdiqladi."><b className="text-ok">✋ {h.operatorTasdiqladi}</b> operator tasdiqladi</span>
           <span><b className="text-warn">◐ {h.taklif}</b> operator tasdig‘ini kutmoqda</span>
           <span><b className="text-danger">✕ {h.topilmadi}</b> topilmadi</span>
           <span><b className="text-text-mute">– {h.otkazildi}</b> ataylab chiqarilgan</span>
@@ -784,6 +822,30 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       </div>
 
       <div className="karta p-2" ref={panelRef}><Panel /></div>
+      {manbaTekshiruvi.length > 0 && (
+        <section role="alert" aria-label="F2 faylini o‘qish tekshiruvi" className="karta space-y-1.5 border border-warn/50 p-3 text-[12px]">
+          <p className="font-semibold text-warn">F2 faylida {manbaTekshiruvi.length} ta qator yoki sarlavha qo‘lda tekshirilishi kerak.</p>
+          <p className="text-text-dim">Bu ro‘yxat bog‘lash holatidan alohida. “Bog‘lanishlar hal qilindi” degani fayldagi har bir qator to‘liq o‘qildi degani emas.</p>
+          <details>
+            <summary className="cursor-pointer text-text">Tekshiruv qatorlarini ko‘rish (birinchi {Math.min(20, manbaTekshiruvi.length)} ta)</summary>
+            <ul className="mt-1 max-h-48 space-y-1 overflow-auto pl-4 text-text-dim">
+              {manbaTekshiruvi.slice(0, 20).map((review, index) => (
+                <li key={`${review.manzil?.qator ?? 'no-row'}-${review.kod}-${index}`}>
+                  {review.manzil?.qator != null && <b className="text-text">Manba qatori {review.manzil.qator}: </b>}
+                  {review.izoh}
+                </li>
+              ))}
+              {manbaTekshiruvi.length > 20 && <li>Yana {manbaTekshiruvi.length - 20} ta tekshiruv bandi mavjud.</li>}
+            </ul>
+          </details>
+        </section>
+      )}
+      {manbaPodvalQatorlari.length > 0 && (
+        <section role="note" aria-label="F2 hisob va podval satrlari" className="karta space-y-1.5 border border-border p-3 text-[12px]">
+          <p className="font-semibold text-text">F2 hisobida {manbaPodvalQatorlari.length} ta yakuniy/podval satri aniqlandi.</p>
+          <p className="text-text-dim">Bular ish yoki resurs emas, shuning uchun smeta bilan bog‘lash daraxtiga kiritilmaydi. Ular F2 manba summasini tekshirishda alohida hisobga olinadi.</p>
+        </section>
+      )}
       {xabar && (
         <p role="status" className="flex items-start gap-2 text-[12px] text-text-dim">
           <span className="flex-1">{xabar}</span>
@@ -794,7 +856,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="F2 akt">
           <header className="border-b border-border bg-surface-2/60 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim">
-            F2 akt — {p.akt.varaq} {filtr === 'hal' && halSoni === 0 ? '· hammasi tekshirilgan' : ''}
+            F2 akt — {p.akt.varaq} {filtr === 'hal' && halSoni === 0 ? '· bog‘lanishlar hal qilindi' : ''}
           </header>
           <TreeControls depths={f2ExpandableDepths} onOpenAll={f2BarchasiniOch} onCloseAll={f2BarchasiniYop} onToggleDepth={f2Sath} />
           <div ref={f2Quti} className="h-[66vh] overflow-auto">
@@ -810,7 +872,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               })}
             </div>
             </div>
-            {filtr === 'hal' && halSoni === 0 && <p className="p-3 text-center text-[12px] text-ok">Tekshirilmagan qator qolmadi. „Barcha qatorlar“ filtrida qayta ko‘rishingiz mumkin.</p>}
+            {filtr === 'hal' && halSoni === 0 && <p className="p-3 text-center text-[12px] text-ok">Bog‘lash yoki tasdiq kutayotgan qator qolmadi. Faylni o‘qish tekshiruvlarini alohida ko‘ring.</p>}
             {filtr !== 'hammasi' && !f2VisibleRows.length && <p className="p-3 text-center text-[12px] text-text-mute">Bu filtr bo‘yicha qator topilmadi.</p>}
           </div>
         </section>

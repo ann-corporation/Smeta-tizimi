@@ -91,14 +91,16 @@ export function ustunXaritasi(blok: SarlavhaBloki): UstunXaritasi {
   const s = blok.sarlavhalar;
   const band = new Set<number>();
   const ol = (i: number) => { if (i >= 0) band.add(i); return i; };
-  const PUL = /СТОИМ|ЦЕНА|NARX|СУММА|SUMMA/;
-  const hajmBirlikka = ol(birinchi(s, /НА\.? ?ЕД|BIRLIGI BO.?YICHA|НА ЕДИНИЦУ/, PUL, band));
-  const hajmLoyiha = ol(birinchi(s, /ПО ПРОЕКТ|LOYIHA BO.?YICHA|НА ВЕСЬ ОБЪЕМ|КОЛ-?ВО|КОЛИЧЕСТВ|MIQDOR/, /ЦЕНА|СТОИМ|NARX/, band));
+  const PUL = /СТОИМ|ЦЕНА|НАРХ|БАҲО|NARX|СУММА|SUMMA/;
+  // Nom sarlavhasi ham "…и его масса, на единицу…" kabi so'zlarni o'z ichiga olishi mumkin (ЛРВ .xls) —
+  // miqdor ustuni nom ustuniga tushmasin.
+  const hajmBirlikka = ol(birinchi(s, /НА\.? ?ЕД|НА ЕДИНИЦУ|BIRLIGI BO.?YICHA|(?:ҲАЖМ|HAJM)\s*\(?\s*(?:ЕД|ED)(?:\s|\)|$)/, new RegExp(`${PUL.source}|${NOM.source}`), band));
+  const hajmLoyiha = ol(birinchi(s, /ПО ПРОЕКТ|LOYIHA BO.?YICHA|НА ВЕСЬ ОБЪЕМ|КОЛ-?ВО|КОЛИЧЕСТВ|MIQDOR|(?:ҲАЖМ|HAJM).*?(?:ЖАМИ|ЖАМИЙ|JAMI)|^(?:ҲАЖМ|HAJM)\b/, /ЦЕНА|СТОИМ|НАРХ|БАҲО|NARX|НАИМЕНОВАН|NOMI\b/, band));
   const nom = ol(birinchi(s, NOM, undefined, band));
   const tartib = ol(birinchi(s, /^(№|N П|NN|№№)|^N$/, undefined, band));
   const shifr = ol(birinchi(s, /ШИФР|ОБОСНОВ|ASOS|^РЕСУРС$|^КОД/, undefined, band));
   const birlik = ol(birinchi(s, /ЕД\.? ?ИЗМ|ЕДИНИЦА ИЗМ|O.?LCHOV|BIRLIK/, /КОЛИЧ|КОЛ-?ВО|MIQDOR|BO.?YICHA/, band));
-  const narx = ol(birinchi(s, /ЦЕНА|NARX|СТОИМОСТЬ ЕД|ЕДИНИЦЫ$|СТОИМ.*НА\.? ?ЕД/, /ВСЕГО|ОБЩ|ВЕСЬ/, band));
+  const narx = ol(birinchi(s, /ЦЕНА|НАРХ|БАҲО|NARX|СТОИМОСТЬ ЕД|ЕДИНИЦЫ$|СТОИМ.*НА\.? ?ЕД/, /ВСЕГО|ОБЩ|ВЕСЬ/, band));
   const summa = ol(birinchi(s, /СУММА|SUMMA|ВСЕГО|НА ВЕСЬ|СТОИМ|ОБЩАЯ/, undefined, band));
   return {
     tartib, shifr, nom, birlik, hajmBirlikka,

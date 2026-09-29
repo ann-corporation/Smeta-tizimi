@@ -1292,7 +1292,7 @@
       "machine": "noutbuk",
       "branch": "claude/f2-import-v3",
       "base_sha": "96fd92e",
-      "status": "in_progress",
+      "status": "superseded",
       "owns": [
         "docs/architecture/F2_IMPORT_V3.md",
         "frontend/src/lib/f2-moslash-v3/",
@@ -1316,7 +1316,47 @@
         "docs/architecture/SMETA_ANATOMIYA_V1.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Egasi 2026-09-25: F2 importni Tizim1 (35_F2Moslash.js, Panel f2Imp*) kabi yoki undan yaxshi qilish; № kalit emas."
+      "_izoh": "2026-09-29 Product Ownerning yangi topshirig‘i bilan Codex mustaqil F2 importer yakunlash vazifasini oldi; davomiylik F2-IMPORT-ROBUSTNESS-001 da, eski branch va commitlar saqlangan."
+    },
+    {
+      "id": "F2-IMPORT-ROBUSTNESS-001",
+      "title": "T1 skeletiga tayangan, katta va aralash F2 fayllar uchun aniq, qaytariladigan F2 import",
+      "owner": "codex",
+      "machine": "pc-ishxona",
+      "branch": "codex/f2-import-robustness-v1",
+      "base_sha": "b36c552e0b8de22bb398f04ab851449a3e68b87f",
+      "base_ref": "origin/main",
+      "status": "in_progress",
+      "owns": [
+        "ops/ACTIVE_TASKS.json",
+        "ops/mailbox/INBOX.md",
+        "ops/mailbox/F2-IMPORT-ROBUSTNESS-001/",
+        "ops/handoff/F2_IMPORT_ROBUSTNESS_001.md",
+        "docs/architecture/F2_IMPORT_V3.md",
+        "frontend/src/lib/smeta-anatomiya/turlar.ts",
+        "frontend/src/lib/smeta-anatomiya/varaq.ts",
+        "frontend/src/lib/smeta-anatomiya/varaq.test.ts",
+        "frontend/src/lib/smeta-anatomiya/f2.ts",
+        "frontend/src/lib/smeta-anatomiya/f2.test.ts",
+        "frontend/src/lib/f2-moslash-v3/",
+        "frontend/src/lib/f2-import-parse/",
+        "frontend/src/admin/sahifalar/F2ImportV3.tsx",
+        "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
+        "frontend/src/admin/sahifalar/F2V3Workbench.operator.test.tsx"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md",
+        "docs/governance/AGENT_COMMS_PROTOCOL.md",
+        "docs/architecture/F2_IMPORT_V3.md",
+        "docs/architecture/SMETA_ANATOMIYA_V1.md",
+        "Smeta tizimi/35_F2Moslash.js",
+        "Smeta tizimi/Panel.html"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Owner topshirig‘i: avvalgi T1 importerning razdel-scope, qavatli dalil, ikki daraxtli operator UX va aniq nazorat skeletini saqlab, GAS timeout/kimligini ko‘chirmasdan T2da kuchaytirish; 30k+ qator, har qator bo‘yicha link/unlink, taklif foizi, suma/qty reconciliation, barcha/hal qilinmagan/muammoli filtrlari. Real fayllar faqat read-only korpus; hech qanday real import yoki production write yo‘q."
     },
     {
       "id": "T2-FORMA3-F3-001",

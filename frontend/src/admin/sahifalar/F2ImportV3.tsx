@@ -5,7 +5,7 @@ import {
 import { t2NakopitelniyToliq } from '../../api/t2-nakopitelniy';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
+import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
@@ -78,7 +78,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       if (file.size > MAX_FILE_BYTES) throw new Error('Fayl 50 MB dan katta.');
       // Fayl o'qish va akt tahlili FONDA (Web Worker) — katta faylda sahifa qotmaydi.
-      const a = await f2AktlarniOqiFonda(file.name, await file.arrayBuffer());
+      const a = await f2AktlarniOqiFonda(file.name, file);
       if (!a.length) throw new Error('Faylda F2 akt varag‘i topilmadi (ishlar ro‘yxati bor LRV shaklidagi varaq kerak).');
       setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? '');
       setHolat(a[0].davr ? 'Akt o‘qildi. Moslashtirilmoqda…' : 'Akt o‘qildi. Hisobot davrini tanlang.');
@@ -247,6 +247,10 @@ function Sessiya({ companyId }: { companyId: number }) {
   }
 
   const jamiFarq = akt && akt.jami.pryamye != null ? akt.qatorlarJami - akt.jami.pryamye : null;
+  const jamiFarqFoiz = jamiFarq != null && akt?.jami.pryamye != null && Math.abs(akt.jami.pryamye) > 0.005
+    ? jamiFarq / Math.abs(akt.jami.pryamye) * 100
+    : null;
+  const selectedObjectName = objects.find((o) => o.id === Number(objectId))?.nom;
   return (
     <section className="w-full space-y-3 p-3 sm:p-4">
       <div className="flex flex-wrap items-baseline gap-2">
@@ -290,6 +294,18 @@ function Sessiya({ companyId }: { companyId: number }) {
             <span className="text-text-dim">Qatorlar yig‘indisi: <b className={`tabular-nums ${jamiFarq != null && Math.abs(jamiFarq) > 1 ? 'text-warn' : 'text-ok'}`}>{fmt(akt.qatorlarJami)}</b></span>
             {akt.jami.ranee != null && <span className="text-text-dim">Ранее оформленным: <b className="tabular-nums text-text">{fmt(akt.jami.ranee)}</b></span>}
           </div>
+          {jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0 && (
+            <p role="alert" className="rounded border border-warn/40 bg-warn/10 px-2 py-1.5 text-[12px] text-warn">
+              Manba jami va qatorlar yig‘indisi mos emas: <b className="tabular-nums">{jamiFarq > 0 ? '+' : ''}{fmt(jamiFarq)} so‘m{jamiFarqFoiz != null ? ` (${jamiFarq > 0 ? '+' : ''}{fmt(jamiFarqFoiz)}%)` : ''}</b>.
+              Importer qiymatlarni o‘zgartirmadi. Qator summalari va hujjatning jami formulasini tekshiring.
+            </p>
+          )}
+          {akt.hujjatSarlavhasi && (
+            <p className="text-[11px] text-text-dim">
+              Fayl sarlavhasi: <span className="text-text">{akt.hujjatSarlavhasi}</span>
+              {selectedObjectName && <> · Tanlangan obyekt: <span className="text-text">{selectedObjectName}</span></>}
+            </p>
+          )}
           {akt.ogohlantirishlar.length > 0 && (
             <details>
               <summary className="cursor-pointer text-warn">Hujjat bo‘yicha {akt.ogohlantirishlar.length} ta ogohlantirish</summary>

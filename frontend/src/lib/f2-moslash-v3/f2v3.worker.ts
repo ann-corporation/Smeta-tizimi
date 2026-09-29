@@ -16,7 +16,8 @@ self.onmessage = async (e: MessageEvent<F2IshchiKirish>) => {
   const javob = (x: Record<string, unknown>) => (self as unknown as Worker).postMessage({ id: d.id, ...x });
   try {
     if (d.tur === 'oqi') {
-      const wb = await readXlsx(d.bytes);
+      const bytes = d.source instanceof ArrayBuffer ? d.source : await d.source.arrayBuffer();
+      const wb = await readXlsx(bytes);
       const aktlar = f2AktlarniOqi({ fayl: d.fayl, varaqlar: wb.sheets.map((s) => ({ nom: s.name, rows: s.rows, merges: s.merges })) });
       javob({ ok: true, aktlar });
     } else {

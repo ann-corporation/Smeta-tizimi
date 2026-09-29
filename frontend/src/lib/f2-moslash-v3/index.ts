@@ -45,7 +45,7 @@ export interface SmetaQator {
 
 export type F2Holat = 'aniq' | 'xotira' | 'taklif' | 'topilmadi';
 
-export interface Qavat { nom: 'razdel' | 'shifr' | 'nom' | 'birlik' | 'hajm' | 'resurslar' | 'marka' | 'tartib'; ball: number; izoh: string }
+export interface Qavat { nom: 'razdel' | 'shifr' | 'nom' | 'birlik' | 'hajm' | 'resurslar' | 'marka' | 'texnik_tafsilot' | 'tartib'; ball: number; izoh: string }
 
 export interface Nomzod {
   qatorId: number;
@@ -102,11 +102,11 @@ const birMos = (a: unknown, b: unknown) => { const x = normBir(a), y = normBir(b
 /** Razdel/lokal nomi kaliti: "СМЕТА № 01-01 НА X" → X (raqam F2 va smetada farq qiladi). */
 export function rzKalit(s: unknown): string {
   const t = String(s ?? '').toUpperCase().replace(/Ё/g, 'Е')
-    .replace(/^\s*(РАЗДЕЛ\s*[:№.\-]*\s*)?(ЛОКАЛЬНАЯ\s+)?СМЕТА\s*№?\s*[\dA-ZА-Я.\-/]*\s*(НА\s+)?/, ' ');
+    .replace(/^\s*(РАЗДЕЛ\s*[:№.-]*\s*)?(ЛОКАЛЬНАЯ\s+)?СМЕТА\s*№?\s*[\dA-ZА-Я./-]*\s*(НА\s+)?/, ' ');
   return normRz(t);
 }
 function listRaqamlari(s: unknown): string {
-  const m = String(s ?? '').toUpperCase().match(/ЛИСТ[\s.\-№]*(?:[А-Я]{1,3}[\s.\-]*)?([0-9][0-9,\s.\-]*)/);
+  const m = String(s ?? '').toUpperCase().match(/ЛИСТ[-\s.№]*(?:[А-Я]{1,3}[-\s.]*)?([0-9][0-9,\s.-]*)/);
   return m ? m[1].replace(/[^0-9,]/g, '').replace(/,+/g, ',').replace(/^,|,$/g, '') : '';
 }
 function tokenlar(s: unknown): string[] {
@@ -123,15 +123,72 @@ function dice(a: readonly string[], b: readonly string[]): number {
   a.forEach((t) => { const n = m.get(t) ?? 0; if (n > 0) { hit++; m.set(t, n - 1); } });
   return (2 * hit) / (a.length + b.length);
 }
-/** Marka farqi (ПК↔ПБ, АI↔АIII) — boshqa mahsulot, avtomat bog'lanmaydi (Tizim1). */
-export function gradeFarq(a: unknown, b: unknown): boolean {
+/** Tizim1 dagi harfli marka qalqoni; loyiha qator kodi bu tekshiruvga kiritilmaydi. */
+function harfliMarkaFarq(a: unknown, b: unknown): boolean {
   const A = tokenlar(a).filter((t) => /^[А-Я]{2,3}$/.test(t));
   const B = tokenlar(b).filter((t) => /^[А-Я]{2,3}$/.test(t));
   if (!A.length || !B.length) return false;
   const sa = new Set(A), sb = new Set(B);
   return A.some((t) => !sb.has(t)) && B.some((t) => !sa.has(t));
 }
-const resKalit = (kod: unknown, nom: unknown, bir: unknown) => normKod(kod) || nb(nom, bir);
+
+/**
+ * Construction-grade signatures are extracted only for known, explicit
+ * designation families. A difference is a hard review gate, not a fuzzy-score
+ * penalty: B15/B25, A400/A500, W6/W8, F100/F200, M200/M300 and DN values must
+ * not be silently treated as the same resource merely because their code is
+ * equal. Unknown designations remain candidates for a human; we do not infer
+ * missing grade data.
+ */
+function texnikBelgilar(s: unknown): Map<string, string> {
+  // normNom nom mosligi uchun barcha tinish belgilarini olib tashlaydi; marka
+  // tahlilida esa W/F kabi lotincha standart belgilar va ularning chegarasi zarur.
+  const text = String(s ?? '').toUpperCase().replace(/Ё/g, 'Е')
+    .replace(/[ABCDEHIKMNOPTVXY]/g, (ch) => ({ A: 'А', B: 'В', C: 'С', D: 'Д', E: 'Е', H: 'Н', I: 'И', K: 'К', M: 'М', N: 'Н', O: 'О', P: 'Р', T: 'Т', V: 'В', X: 'Х', Y: 'У' })[ch] ?? ch)
+    .replace(/[^0-9A-ZА-Я]+/g, ' ').trim();
+  const out = new Map<string, string>();
+  const putFirst = (key: string, pattern: RegExp) => {
+    const m = text.match(pattern);
+    if (m) out.set(key, m[1]);
+  };
+  putFirst('beton_klass', /(?:^|[^А-Я0-9])В\s*(10|12|15|20|22|25|30|35|40|45|50|55|60|70|80|90|100)(?!\d)/);
+  putFirst('armatura_klass', /(?:^|[^А-Я0-9])А\s*(240|300|400|500|600|800)(?!\d)/);
+  putFirst('armatura_roman', /(?:^|[^А-Я0-9])А\s*(И{1,3}|ИВ)(?![А-Я])/);
+  putFirst('suv_otkazmaslik', /(?:^|[^A-Z0-9])W\s*(1|2|3|4|5|6|8|10|12|14|16|18|20)(?!\d)/);
+  putFirst('sovuqqa_chidamlilik', /(?:^|[^A-Z0-9])F\s*(25|35|50|75|100|150|200|300)(?!\d)/);
+  putFirst('beton_markasi', /(?:^|[^А-Я0-9])М\s*(50|75|100|150|200|250|300|350|400|450|500|550|600|700|800|900|1000)(?!\d)/);
+  putFirst('diametr', /(?:^|[^А-Я0-9])(?:ДН|ДИАМ(?:ЕТР(?:ОМ)?)?\.?)\s*(\d{1,4})(?!\d)/);
+  return out;
+}
+
+/** Ikki nomda ham mavjud bo'lgan bir xil texnik o'lchovning qiymati farqlimi? */
+export function texnikTafsilotFarqlari(a: unknown, b: unknown): string[] {
+  const A = texnikBelgilar(a), B = texnikBelgilar(b);
+  const labels: Record<string, string> = {
+    beton_klass: 'beton klassi', armatura_klass: 'armatura klassi', armatura_roman: 'armatura markasi',
+    suv_otkazmaslik: 'suv o‘tkazmaslik markasi', sovuqqa_chidamlilik: 'sovuqqa chidamlilik markasi',
+    beton_markasi: 'beton markasi', diametr: 'diametr',
+  };
+  return [...A.keys()].filter((key) => B.has(key) && A.get(key) !== B.get(key)).map((key) => labels[key] ?? key);
+}
+
+/** Marka/klass farqi — bir xil kod ham bu to'siqni chetlab o'tmaydi. */
+export function gradeFarq(a: unknown, b: unknown): boolean {
+  return harfliMarkaFarq(a, b) || texnikTafsilotFarqlari(a, b).length > 0;
+}
+
+function resKalit(kod: unknown, nom: unknown, bir: unknown): string {
+  // LRV_PLUS/F2 can place `С` in the code field for unrelated materials.
+  // A one-letter marker is not identity; use name + unit instead.
+  const code = resursKodiIshonchlimi(kod) ? normKod(kod) : '';
+  const base = code || nb(nom, bir);
+  const specs = [...texnikBelgilar(nom)].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}:${v}`).join(',');
+  return specs ? `${base}||${specs}` : base;
+}
+function resursKodiIshonchlimi(kod: unknown): boolean {
+  const k = normKod(kod);
+  return !!k && (/[0-9]/.test(k) || k.length >= 2);
+}
 function lcsNisbat(a: readonly string[], b: readonly string[]): number {
   if (!a.length || !b.length) return 0;
   const dp = new Array(b.length + 1).fill(0);
@@ -149,7 +206,7 @@ function lcsNisbat(a: readonly string[], b: readonly string[]): number {
 /** Oy-dan-oyga barqaror F2 imzosi (xotira kaliti). */
 export function f2Imzo(t: Pick<F2Tugun, 'tur' | 'kod' | 'nom' | 'birlik' | 'yol'>, otaImzo?: string): string {
   const yol = t.yol.map(rzKalit).filter(Boolean).join('/');
-  if (t.tur === 'rs') return `${otaImzo ?? yol}>${normKod(t.kod) || ''}|${nb(t.nom, t.birlik)}`;
+  if (t.tur === 'rs') return `${otaImzo ?? yol}>${(resursKodiIshonchlimi(t.kod) ? normKod(t.kod) : '')}|${nb(t.nom, t.birlik)}`;
   return `${yol}|${kodKanon(t.kod) || normKod(t.kod)}|${nb(t.nom, t.birlik)}`;
 }
 
@@ -230,12 +287,12 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   let oxirgiTartib = -1;
 
   // ── Razdel doirasi (ierarxik): bonus uchun, qat'iy cheklov emas ──
-  type Doira = { rzlar: STugun[] | null };
+  type Doira = { rzlar: STugun[] | null; holat: 'global' | 'scoped' | 'unresolved' };
   function doiraTop(rz: F2Tugun, ota: Doira): Doira {
     const qolda = opts.rzBog?.get(rz.uid);
     if (qolda != null && S.byId.get(qolda)) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [qolda], ok: true, usul: 'qolda' });
-      return { rzlar: [S.byId.get(qolda)!] };
+      return { rzlar: [S.byId.get(qolda)!], holat: 'scoped' };
     }
     const nomzod = ota.rzlar ? barchaRz.filter((s) => ota.rzlar!.some((o) => ajdodmi(o, s))) : barchaRz;
     const k = rzKalit(rz.nom);
@@ -259,16 +316,21 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     if (mos.length > 1) mos = mos.filter((s) => !mos.some((b) => b !== s && ajdodmi(s, b)));
     if (!mos.length) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [], ok: false, usul: 'ota_doirasi' });
-      return ota;
+      // An unmatched heading is a real scope ambiguity even when its parent
+      // matched: sibling subsections may contain duplicate work codes. A later
+      // child heading can resolve the scope again; otherwise require an
+      // explicit operator section link instead of falling back to its parent.
+      return { rzlar: ota.rzlar, holat: 'unresolved' };
     }
     rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: mos.map((s) => s.id), ok: true, usul });
-    return { rzlar: mos };
+    return { rzlar: mos, holat: 'scoped' };
   }
   const doiradami = (d: Doira, t: STugun) => !!d.rzlar && d.rzlar.some((r) => ajdodmi(r, t));
 
   // ── Qavatma-qavat ball ──
   function ballHisobla(f: F2Tugun, t: STugun, d: Doira): Nomzod {
     const q: Qavat[] = [];
+    const lineSpecConflicts = texnikTafsilotFarqlari(f.nom, t.nom);
     // 1. Razdel
     let rz = 0;
     const fYol = f.yol.map(rzKalit).filter(Boolean);
@@ -327,12 +389,26 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     q.push({ nom: 'hajm', ball: hj, izoh: hIzoh });
     // Marka farqi, tartib
     if (gradeFarq(f.nom, t.nom)) q.push({ nom: 'marka', ball: -30, izoh: 'marka farqli — ehtimoliy zamena' });
+    const resourceSpecConflicts = new Set<string>();
+    for (const fr of f.bolalar) {
+      const fkRes = resursKodiIshonchlimi(fr.kod) ? normKod(fr.kod) : '';
+      if (!fkRes) continue;
+      for (const sr of t.bolalar) {
+        if (normKod(sr.kod) !== fkRes || !birMos(fr.birlik, sr.birlik)) continue;
+        for (const label of texnikTafsilotFarqlari(fr.nom, sr.nom)) resourceSpecConflicts.add(label);
+      }
+    }
+    const specConflicts = [...new Set([...lineSpecConflicts, ...resourceSpecConflicts])];
+    if (specConflicts.length) q.push({
+      nom: 'texnik_tafsilot', ball: -100,
+      izoh: `texnik spetsifikatsiya farqli (${specConflicts.join(', ')}) — avtomatik bog‘lash bloklandi`,
+    });
     if (oxirgiTartib >= 0 && (t.tartib ?? t.id) > oxirgiTartib) q.push({ nom: 'tartib', ball: 2, izoh: 'tartib ✓' });
     const ball = q.reduce((s, x) => s + x.ball, 0);
     return { qatorId: t.id, ball, yol: t.yol, qavatlar: q, sabab: q.filter((x) => x.nom !== 'tartib').map((x) => x.izoh) };
   }
 
-  function nomzodHovuz(f: F2Tugun, d: Doira): STugun[] {
+  function nomzodHovuz(f: F2Tugun): STugun[] {
     const out = new Set<STugun>();
     const qosh = (a?: STugun[]) => a?.forEach((t) => out.add(t));
     const fk = normKod(f.kod), fkan = kodKanon(f.kod);
@@ -349,8 +425,18 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       }
       [...hisob.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 60).forEach(([t]) => out.add(t));
     }
-    const turMos = (t: STugun) => (f.tur === 'bl' ? t.tur === 'bl' || !t.bolalar.length : true);
-    return [...out].filter((t) => !band.has(t.id) && turMos(t) && (d.rzlar ? true : true));
+    return [...out].filter((t) => !band.has(t.id) && f2TuriMos(f, t));
+  }
+
+  // T1 processStandalone: mustaqil resurs faqat barg qatorga boradi. T2
+  // canonical qator turi esa aniq: explicit marker bo'lsa aynan shu tur; eski,
+  // markersiz F2 da `rs` umumiy resurs deb olinadi. Markerli BL hech qachon
+  // MAT/OB bilan almashtirilmaydi. Markersiz tarixiy BL leaf fallback saqlanadi.
+  function f2TuriMos(f: F2Tugun, t: STugun): boolean {
+    if (f.tur === 'bl') return t.tur === 'bl' || (!f.texnikBelgi && t.tur !== 'rz' && !t.bolalar.length);
+    const belgiTuri = f.texnikBelgi?.replace(/[+~]$/, '').toLowerCase();
+    if (belgiTuri) return t.tur === belgiTuri;
+    return t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob';
   }
 
   function yoz(uid: string, n: F2QatorNatija) {
@@ -367,17 +453,27 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     const imzo = f2Imzo(f, otaImzo);
     const x = opts.xotira?.get(imzo);
     const xt = x != null ? S.byId.get(x) : undefined;
-    if (xt && !band.has(xt.id) && birMos(f.birlik, xt.birlik)) {
+    // Tasdiqlangan xotira kuchli dalil, lekin joriy importning qator turi,
+    // birlik va tanlangan canonical razdel chegarasini chetlab o'tmaydi.
+    if (xt && !band.has(xt.id) && birMos(f.birlik, xt.birlik)
+      && f2TuriMos(f, xt) && (!d.rzlar || doiradami(d, xt))) {
       yoz(f.uid, { uid: f.uid, holat: 'xotira', qatorId: xt.id, usul: 'xotira', nomzodlar: [], sabab: 'o‘tgan oylarda tasdiqlangan bog‘lanish' });
       return xt;
     }
     // Tizim1: doira ichida nomzod bo'lsa — faqat doira; global faqat doira bo'sh bo'lsa.
-    const hovuz = nomzodHovuz(f, d);
+    const hovuz = nomzodHovuz(f);
     const ichida = d.rzlar ? hovuz.filter((t) => doiradami(d, t)) : [];
     const nz = (ichida.length ? ichida : hovuz).map((t) => ballHisobla(f, t, d))
       .sort((a, b) => b.ball - a.ball || (S.byId.get(a.qatorId)!.tartib ?? a.qatorId) - (S.byId.get(b.qatorId)!.tartib ?? b.qatorId)).slice(0, 12);
     const [b1, b2] = nz;
-    const toza = (n: Nomzod) => !n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka') && q.ball < 0);
+    const toza = (n: Nomzod) => {
+      if (n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka' || q.nom === 'texnik_tafsilot') && q.ball < 0)) return false;
+      const target = S.byId.get(n.qatorId);
+      // Legacy F2 rows without a row-type marker may be offered against any
+      // canonical leaf for review, but a work row must not auto-certify as MAT/OB.
+      if (f.tur === 'bl' && !f.texnikBelgi && target?.tur !== 'bl') return false;
+      return true;
+    };
     // TAKROR QISM (egasi sinovi 2026-09-29, Karting): bitta F2 da o'sha ish ikki marta keladi
     // (УПЛОТНЕНИЕ 3,11 + 5,4745 — ikki uchastka), smetada esa u BITTA qator (39,148). Ikkinchi qism
     // ✕ emas — o'sha smeta qatoriga qo'shiladi. Faqat: bo'sh aynan nomzod (egizak) yo'q, shifr +
@@ -409,6 +505,11 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const rzNom = d.rzlar.map((r) => r.nom).filter(Boolean).join(' / ');
       yoz(f.uid, { uid: f.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz,
         sabab: `smetaning «${rzNom}» razdelida mos ish yo‘q — zamena (shu razdeldagi ish o‘rniga) yoki qo‘shimcha ish${nz.length ? `; boshqa razdellarda ${nz.length} ta o‘xshash bor (variantlar)` : ''}` });
+      return null;
+    }
+    if (d.holat === 'unresolved') {
+      yoz(f.uid, { uid: f.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz,
+        sabab: 'F2 bo‘limi smeta bo‘limiga hali bog‘lanmagan — avval bo‘limni o‘ngdagi mos RZga ulang; boshqa bo‘limdan avtomatik tanlanmadi' });
       return null;
     }
     // Razdel ichida nomi va birligi AYNAN bir xil yagona qator (masalan «С БЛОКИ ДВЕРНЫЕ ПВХ») — ✓.
@@ -461,6 +562,18 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       yoz(f.uid, { uid: f.uid, holat: 'aniq', qatorId: b1.qatorId, usul: 'hajm_aynan', nomzodlar: nz, sabab: `${b1.ball} ball, F2 hajmi aynan shu qatorning smeta hajmiga teng: ${b1.sabab.join(', ')}` });
       return S.byId.get(b1.qatorId)!;
     }
+    // Legacy work rows can lack a trustworthy BL/MAT/OB marker. Preserve a
+    // unique exact cross-type candidate as an explicit operator proposal, never
+    // as an automatic link (e.g. a work label matching a canonical equipment row).
+    if (f.tur === 'bl' && !f.texnikBelgi && b1 && S.byId.get(b1.qatorId)?.tur !== 'bl'
+      && normNom(S.byId.get(b1.qatorId)!.nom) === normNom(f.nom)
+      && normBir(S.byId.get(b1.qatorId)!.birlik) === normBir(f.birlik)
+      && (!b2 || b1.ball > b2.ball)) {
+      const target = S.byId.get(b1.qatorId)!;
+      yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: target.id, usul: 'ball', nomzodlar: nz,
+        sabab: `legacy F2 qator turi aniqlanmagan; nomi va birligi aynan mos ${target.tur.toUpperCase()} nomzodi — operator tekshiruvi shart` });
+      return target;
+    }
     if (b1 && toza(b1) && b1.ball >= 45) {
       const izoh = b2 && b1.ball - b2.ball < AVTO_FARQ ? `2 ta nomzod yaqin (${b1.ball} va ${b2.ball})` : `${b1.ball} ball`;
       yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: b1.qatorId, usul: 'ball', nomzodlar: nz, sabab: `${izoh}: ${b1.sabab.join(', ')} — tasdiqlang` });
@@ -484,14 +597,19 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: [], sabab: 'ishi bog‘lanmagan — ish hal qilinganda resurs ham hal bo‘ladi' });
         continue;
       }
-      const ichki = sIsh.bolalar.filter((t) => t.tur !== 'rz' && !lokalBand.has(t.id));
+      const markerTuri = r.texnikBelgi?.replace(/[+~]$/, '').toLowerCase();
+      const ichki = sIsh.bolalar.filter((t) =>
+        (t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob')
+        && (!markerTuri || t.tur === markerTuri)
+        && !lokalBand.has(t.id)); // takror qism uchun: faqat shu F2 ishi ichida band
       const x = opts.xotira?.get(f2Imzo(r, otaImzo));
       if (x != null && ichki.some((t) => t.id === x)) {
         lokalBand.add(x);
         yoz(r.uid, { uid: r.uid, holat: 'xotira', qatorId: x, usul: 'xotira', nomzodlar: [], sabab: 'o‘tgan oylarda tasdiqlangan' });
         continue;
       }
-      const rk = normKod(r.kod), rkan = kodKanon(r.kod), rnb = nb(r.nom, r.birlik);
+      const codeIsIdentity = resursKodiIshonchlimi(r.kod);
+      const rk = codeIsIdentity ? normKod(r.kod) : '', rkan = codeIsIdentity ? kodKanon(r.kod) : '', rnb = nb(r.nom, r.birlik);
       let topildi: STugun | null = null; let usul = '';
       for (const [u, c] of [
         ['kod', rk ? ichki.filter((t) => t.kKod === rk) : []],
@@ -515,7 +633,12 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         qv.push({ nom: 'birlik', ball: bmb ? 10 : -40, izoh: bmb ? 'birlik ✓' : 'birlik ✗' });
         const ball = qv.reduce((s, y) => s + y.ball, 0);
         return { qatorId: t.id, ball, yol: t.yol, qavatlar: qv, sabab: qv.map((y) => y.izoh) };
-      }).filter((n) => n.ball > 0).sort((a, b) => b.ball - a.ball).slice(0, 8);
+      })
+        // A shared unit alone (for example Т) is not matching evidence. Do not
+        // send unrelated materials to the operator as plausible suggestions.
+        .filter((n) => n.qavatlar.some((q) => q.nom === 'shifr' && q.ball > 0)
+          || n.qavatlar.some((q) => q.nom === 'nom' && q.ball > 0))
+        .sort((a, b) => b.ball - a.ball).slice(0, 8);
       qolgan.push({ r, nz, topildi: !!topildi });
     }
     if (!sIsh || !qolgan.length) return;
@@ -572,7 +695,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       if (t.tur === 'bl') resurslarniMosla(t, s, f2Imzo(t));
     }
   }
-  yur(f2, { rzlar: null });
+  yur(f2, { rzlar: null, holat: 'global' });
 
   const stat = { aniq: 0, xotira: 0, taklif: 0, topilmadi: 0 };
   for (const n of natijalar.values()) stat[n.holat]++;
