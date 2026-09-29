@@ -103,6 +103,24 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     expect(akt.qatorlarJami).toBe(700);
   });
 
+  it('explicit F2 total in one alternate amount cell is read exactly and flagged for source-column review', () => {
+    const rows: Katak[][] = [
+      ['РАЗДЕЛ: ТЕСТ'],
+      [1, 'W-1', 'РАБОТА', 'М3', 1, null, null, 100],
+    ];
+    const [akt] = f2AktlarniOqi(kitob(rows, [[null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, 100, null]]));
+    expect(akt.jami.pryamye).toBe(100);
+    expect(akt.anatomiya.jamilar[0].manzil.ustun).toBe(7);
+    expect(akt.anatomiya.review).toContainEqual(expect.objectContaining({ kod: 'jami_summa_ustun_fallback' }));
+    expect(akt.ogohlantirishlar.map((warning) => warning.kod)).not.toContain('JAMI_FARQ');
+  });
+
+  it('does not invent a total if the explicit total row has no usable amount cell', () => {
+    const [akt] = f2AktlarniOqi(kitob([[1, 'W-1', 'РАБОТА', 'М3', 1, null, null, 100]], [[null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, null, null]]));
+    expect(akt.jami.pryamye).toBeNull();
+    expect(akt.anatomiya.review).toContainEqual(expect.objectContaining({ kod: 'jami_summa_yoq' }));
+  });
+
   it('LRV_PLUS markerlari BL/RS/MAT/OB ni ajratadi, MAT/OB RZ ostida qoladi va keyingi RS avvalgi BL ga birikadi', () => {
     const markerli: Katak[][] = [
       ['№№', 'ОБОСНОВАНИЕ', 'НАИМЕНОВАНИЕ РАБОТ И РЕСУРСОВ', 'ЕД.ИЗМ', 'КОЛ-ВО', null, 'ЦЕНА', 'СУММА', 'ТИП'],
@@ -131,5 +149,35 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     expect(akt.qatorlarJami).toBe(545);
     expect(akt.barglarSoni).toBe(6);
     expect(akt.ogohlantirishlar.map((x) => x.kod)).not.toContain('JAMI_FARQ');
+  });
+
+  it('legacy F2: blank row-number + numeric resource code + explicit Кат. binds resource under the current work', () => {
+    const rows: Katak[][] = [
+      ['Подрядчик: ООО'],
+      ['За сентябрь месяц 2026 года'],
+      ['№ п/п', 'Шифр', 'Наименование работ и затрат', 'Ед. изм.', 'Количество', null, 'Стоимость, сум', null, 'К оплате, сум', 'Кат.', 'Т'],
+      [null, null, null, null, 'на единицу', 'по проектным данным', 'на ед. изм.', 'общая'],
+      [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      ['ЗЕМЛЯНЫЕ РАБОТЫ'],
+      [1, 'W-1', 'РАЗРАБОТКА ГРУНТА', 'м3', 2, 2, 6, 12, 16],
+      [null, '1', 'ЗАТРАТЫ ТРУДА', 'чел-ч', 1, 2, 1, 2, 2, 'ЧЕЛ', 1],
+      [null, '2264', 'ЭКСКАВАТОР', 'маш-ч', 0.1, 0.2, 0, 0, 0, 'МАШ', 1],
+      [null, 'С', 'ЩЕБЕНЬ', 'м3', 0.5, 1, 10, 10, 10, 'МАТ', 1],
+      [null, null, 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', 'СУМ', null, null, null, 12, 16],
+      [null, null, 'Прямые затраты: материалы (МАТ)', null, null, null, null, 10],
+      [null, null, 'Прочие расходы подрядчика, %', null, null, null, 18, 2.16],
+      [null, null, 'НДС, %', null, null, null, 12, 1.46],
+    ];
+    const [act] = f2AktlarniOqi({ fayl: 'legacy-f2-kat.xlsx', varaqlar: [{ nom: 'Акт Ф-2', rows }] });
+    const flat = (nodes: typeof act.daraxt): typeof act.daraxt => nodes.flatMap((node) => [node, ...flat(node.bolalar)]);
+    const work = flat(act.daraxt).find((node) => node.tur === 'bl')!;
+    expect(work.nom).toBe('РАЗРАБОТКА ГРУНТА');
+    expect(work.bolalar.map((node) => node.nom)).toEqual(['ЗАТРАТЫ ТРУДА', 'ЭКСКАВАТОР', 'ЩЕБЕНЬ']);
+    expect(act.anatomiya.review.filter((review) => [8, 9, 10].includes(review.manzil?.qator ?? -1))).toEqual([]);
+    expect(act.qatorlarJami).toBe(12);
+    expect(act.jami.pryamye).toBe(12);
+    expect(act.ogohlantirishlar.map((warning) => warning.kod)).not.toContain('JAMI_FARQ');
+    expect(act.anatomiya.review.filter((review) => review.kod === 'f2_podval_qatori')).toHaveLength(3);
+    expect(act.anatomiya.review.filter((review) => review.kod === 'noaniq_qator')).toEqual([]);
   });
 });

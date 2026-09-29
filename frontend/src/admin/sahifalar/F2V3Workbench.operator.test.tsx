@@ -95,6 +95,20 @@ describe('F2 workbench operator controls', () => {
     expect(screen.queryByText(/hammasi tekshirilgan/i)).toBeNull();
   });
 
+  it('shows recognized F2 closing lines as information, not as unresolved work rows', () => {
+    renderWorkbench(2, [], [
+      { kod: 'f2_podval_qatori', izoh: 'F2 hisob/podval satri; ish-resurs moslashiga qo‘shilmadi' },
+      { kod: 'f2_podval_qatori', izoh: 'F2 hisob/podval satri; ish-resurs moslashiga qo‘shilmadi' },
+      { kod: 'noaniq_qator', izoh: 'Manbada tanilmagan ish qatori' },
+    ]);
+    const alert = screen.getByRole('alert', { name: 'F2 faylini o‘qish tekshiruvi' });
+    expect(alert.textContent).toContain('1 ta qator yoki sarlavha');
+    expect(alert.textContent).not.toContain('3 ta qator');
+    const note = screen.getByRole('note', { name: 'F2 hisob va podval satrlari' });
+    expect(note.textContent).toContain('2 ta yakuniy/podval satri');
+    expect(note.textContent).toContain('bog‘lash daraxtiga kiritilmaydi');
+  });
+
   it('filters to unbound F2 lines without hiding the source tree or its explicit bind action', () => {
     renderWorkbench();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lanmagan' }));

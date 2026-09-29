@@ -132,7 +132,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const h = useMemo(() => hisobla(ind, ij), [ind, ij]);
-  const manbaTekshiruvi = p.akt.anatomiya?.review ?? [];
+  const barchaManbaIzohlari = p.akt.anatomiya?.review ?? [];
+  const manbaTekshiruvi = barchaManbaIzohlari.filter((review) => review.kod !== 'f2_podval_qatori');
+  const manbaPodvalQatorlari = barchaManbaIzohlari.filter((review) => review.kod === 'f2_podval_qatori');
   const shuF2 = useMemo(() => {
     const m = new Map<number, { hajm: number; uidlar: string[] }>();
     for (const [uid, b] of ij.bog) {
@@ -674,6 +676,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               {manbaTekshiruvi.length > 20 && <li>Yana {manbaTekshiruvi.length - 20} ta tekshiruv bandi mavjud.</li>}
             </ul>
           </details>
+        </section>
+      )}
+      {manbaPodvalQatorlari.length > 0 && (
+        <section role="note" aria-label="F2 hisob va podval satrlari" className="karta space-y-1.5 border border-border p-3 text-[12px]">
+          <p className="font-semibold text-text">F2 hisobida {manbaPodvalQatorlari.length} ta yakuniy/podval satri aniqlandi.</p>
+          <p className="text-text-dim">Bular ish yoki resurs emas, shuning uchun smeta bilan bog‘lash daraxtiga kiritilmaydi. Ular F2 manba summasini tekshirishda alohida hisobga olinadi.</p>
         </section>
       )}
       {xabar && (

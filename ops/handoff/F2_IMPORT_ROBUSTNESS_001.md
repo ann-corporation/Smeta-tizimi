@@ -10,9 +10,10 @@ ushbu importer yo‘llarini qayta ishlash vakolatini berdi.
 ## Baza va ishchi ref
 
 - Repo: `SQLI-DUMPER-CRACK-Link-1/Smeta-tizimi`
-- Base: `origin/main` / `b36c552e0b8de22bb398f04ab851449a3e68b87f`
+- Dastlabki task base: `origin/main` / `b36c552e0b8de22bb398f04ab851449a3e68b87f`
+- Yangilangan main baseline: `origin/main` / `6f1d7e870ec702f8beb54efe32ce07400e18681b`; branchga `81f5af2` merge checkpointida qo‘shildi.
 - Branch: `codex/f2-import-robustness-v1`
-- Latest source-code checkpoint: `bbd128d7723c66f0e1f67fe0c8b00f71bf98cb45` on `codex/f2-import-robustness-v1`
+- Kod auditining oldingi checkpointi: `bbd128d7723c66f0e1f67fe0c8b00f71bf98cb45`; lokal read-only workbook audit checkpointi: `fb64871856956217a1ff4210088dda3348dd7917`.
 - Checkpoint commits: `49119fb` (parser/matcher/30k), `749004d` (initial evidence), `ee931c9` (memory type/scope guard), `bbd128d` (RZ fallback with row evidence, explicit source-read review, technical specification conflict guards, truthful match-state counts, worker-side Blob read). Handoff itself is being updated after `bbd128d`; read branch tip from Git before integration.
 - Worktree: `C:\Temp\f2-import-robustness-v1`
 - Asosiy `G:\Другие компьютеры\Компьютер\GAS` papkasidagi dirty/human fayllar o‘zgartirilmaydi.
@@ -186,6 +187,54 @@ tafovut unresolved va F2 qoralamasini tasdiqlashga asos bo‘lmaydi.
   ogohlantirishlari bor, lekin build muvaffaqiyatli tugadi.
 - `git diff --check`: PASS.
 
+### 2026-09-29 — Fast Food real F2 anatomiyasi va T1 skeletiga asoslangan tuzatish
+
+Bu tekshiruvdagi owner fayllari faqat lokal o‘qildi; UI orqali upload/import,
+Supabase write yoki Preview login bo‘lmadi.
+
+- Tizim1 `35_F2Moslash.js` va `Panel.html`dagi foydali operator skeleti
+  (yonma-yon ikki daraxt, RZ scope, har qator uchun Bog‘lash/Zamena/Qo‘shimcha,
+  noaniq qatorni operatorga berish) ko‘rildi. T1 ning eski heuristik/fuzzy
+  natijalari canonical deb olinmadi; u yerda ham noto‘g‘ri qamrov, duplicate va
+  spec mismatch holatlari uchun himoyalar tarixan o‘zgartirilgan.
+- T2 LRV_PLUS eksporti avval `ТИП` ustunini rol deb tanimagan va
+  `ҲАЖМ (ед)`, `НАРХ` ustunlarini map qilmagan. Endi aynan `ТИП` sarlavhasi va
+  BL+RZ/resurs marker qiymatlari birgalikda tekshiriladi; o‘zbek kirill
+  ustunlari map qilinadi. Random “ТИП” ustuni bilan rol taxmin qilinmaydi.
+- Real legacy F2’da resursning № п/п katagi bo‘sh, kod ustunida `1`, `2264` yoki
+  materiallar uchun umumiy `С`, ammo alohida `Кат.` ustunida `ЧЕЛ/МАШ/МАТ` bor.
+  Endi faqat aktiv BL ostida, kategoriya sarlavhasi tasdiqlangan, nom/birlik va
+  kamida bitta sonli hajm/narx/summa dalili bo‘lgan qator resurs sifatida
+  biriktiriladi. Qator tartibi identity emas. F2 podvalidagi “Прямые затраты”,
+  “НДС”, “Коэффициент к оплате” kabi satrlar ish/resurs tree’ga kiritilmaydi,
+  lekin `f2_podval_qatori` sifatida manzil bilan qayd etilib, UI’da alohida
+  ma’lumot ko‘rinishida chiqadi.
+- Shu sabab workbench “F2 faylida N ta qator qo‘lda tekshirilishi kerak” soniga
+  tanilgan podval satrlarini qo‘shmaydi. Haqiqiy parse noaniqlari esa warningda
+  alohida qoladi. F2 declared total va qatorlar total reconciliation alohida.
+
+#### Real local dry-run natijalari
+
+| Read-only workbook | Parser / matching | Natija va ochiq shart |
+|---|---|---|
+| `Fast Food 1-etaj_АКТ_Ф-2_2026-07.xlsx` | 42 ish, 353 resurs, 16 tanilgan F2 podval satri | Parser leaf jami `241 983 934,9563564`; hujjat `ИТОГО ПРЯМЫЕ` `241 983 934,95635635`; farq faqat floating-point `0,00000006` atrofida. Bu faylning UI’dagi manba revisioni/hash’i mosligi hali isbotlanmagan. |
+| `Fast Food 1-etaj_LRV_PLUS_2026-09-28.xlsx` | 136 ish, 1 033 ichki RS, 229 mustaqil MAT/OB; 8 noaniq, 6 jami-katak qiymati yo‘q | Explicit F2 direct total yo‘q (`NULL`); parser `742 939 194,396537` summa oldi, lekin bu declared subtotal bilan reconcile qilingan deb aytilmaydi. |
+| July F2 → September LRV, lokal matcher dry-run | 395 source leaves; 1 442 synthetic LRV rows; IDlar faqat test surrogate | 367 aniq, 1 operator taklifi, 27 topilmadi. 27 satr asosan armatura/metall/material qatorlari, manbada umumiy `С` kodi; avtomatik “qo‘shimcha” yoki “zamena” qilinmadi. Operator ularni tekshirishi shart. |
+| `Fast food 1этаж_LRV_PLUS (2).xlsx` | 6 ish, 59 ichki resurs, 7 mustaqil resurs; 10 noaniq source qatori | Leaf jami `239 200 683,38279882`, explicit jami `239 200 683,38279885`; farq `0,00000003` atrofida. Bu workbookning hash/revisioni July F2 va Preview’dagi faylga tengligi tasdiqlanmagan. |
+| `amfiteatr raschet.xlsx` | 50 ish, 450 ichki RS, 76 mustaqil MAT/OB | Parser `3 004 484 761,41`; declared subtotal `2 877 416 258,71`; `+127 068 502,71` tafovut — qo‘lda kiritish/auto-confirm bloklanishi kerak. |
+| `искусственное озера (2).xlsx` | 62 ish, 492 ichki RS, 62 mustaqil resurs | Parser `6 962 663 411,71`; declared subtotal `6 962 670 402,59`; `−6 990,88` tafovut — operator ko‘rigi kerak. |
+
+Bu natijalar desktop file’dagi parser/matcher dry-run; production yoki Preview’da
+authenticated acceptance emas. 27 topilmadi satrga qo‘lda Bog‘lash/Zamena/
+Qo‘shimcha qarori va F2 importni final tasdiqlash bajarilmadi.
+
+#### Shu davomda bajarilgan testlar
+
+- `varaq.test.ts` + `f2.test.ts` + `F2V3Workbench.operator.test.tsx`: 23 PASS.
+- T2 matcher 30k benchmark, yakka run: PASS, 6 423 ms (test ichidagi 20 000 ms limit).
+- Real local workbook parser summary: Vitest harness ichida 1 PASS; bu repo CI uchun emas, faqat owner workstationidagi read-only evidence.
+- Keyingi yakuniy `tsc`, build, lint, tekshir, governance va diff-check natijalari commit oldidan qo‘shiladi.
+
 ### 2026-09-29 — xotira bog‘lanishiga qarshi adversarial tekshiruv
 
 - F2 importer/matcher/parser/operator UI qamrovi: 14 test fayli, 82 PASS,
@@ -207,3 +256,43 @@ tafovut unresolved va F2 qoralamasini tasdiqlashga asos bo‘lmaydi.
   tasdiqlanmagan; amfiteatr va sun’iy ko‘l review flaglari mavjud.
 - Shu sabab bu checkpoint source/test readiness; Preview, main yoki production
   readiness emas. Production write, main merge va deploy bajarilmagan.
+
+### 2026-09-29 — yakuniy davomiy tekshiruv
+
+- Main baseline `6f1d7e870ec702f8beb54efe32ce07400e18681b` xavfsiz merge qilindi;
+  merge commit `81f5af2`. Ish `codex/f2-import-robustness-v1` izolyatsiyalangan
+  worktree’da qoldi.
+- F2/parser/matcher to‘plami, bitta worker: 33 fayl, 185 PASS, 12 SKIP, 0 FAIL.
+  27k XLSX o‘qish testi: 856 ms o‘qish + 764 ms anatomiya; 5 394 ish qatori.
+  F2 matcher 10k/50k benchmarklari: 1 068 ms / 3 858 ms. Alohida nested F2
+  matcher 30k: 6 399 ms, PASS (20 000 ms guard o‘zgartirilmadi).
+- XLSX eksport/reconciliation to‘plami (LRV_PLUS, Ostatka, PTO workbook):
+  4 fayl, 53 PASS, 0 FAIL.
+- `npm run build`: PASS; mavjud `/grid.svg` va katta chunk/dynamic import
+  ogohlantirishlari bor. `npx tsc -b --pretty false`: PASS.
+  `npm run typecheck:functions -- --pretty false`: PASS.
+  `npm run lint`: exit 0; repo bo‘ylab ogohlantirishlar bor.
+  `npm run tekshir`: PASS, barcha tekshiruvlar o‘tdi.
+  `node ops/governance-check.cjs`: PASS (4 artifact, 50 task), lekin
+  `CURRENT_STATE.md` main SHA `d7b9bba...` eskirgan degan WARN qaytardi; bu
+  governance fayl task owns scope’ida emasligi sababli o‘zgartirilmadi.
+  `git diff --check`: PASS.
+- Butun frontend `npm test -- --reporter=dot`: 127 fayldan 113 PASS, 6 SKIP,
+  8 FAIL; 794 testdan 773 PASS, 12 SKIP, 9 FAIL. Fail’lar: 5 ta XLSX/export/parser
+  timeout va 3 ta matcher perf guard parallel full-suite yukida oshgani;
+  F2 30k testi full-suite’da 41 993 ms bo‘lib yiqildi, ammo shu test alohida
+  6 399 ms PASS. Muammoli 4 eksport fayli yakka-worker run’da 53 PASS bo‘ldi;
+  27k XLSX parser va eski 10k/50k matcherlar ham F2 bir-worker run’da PASS.
+  Qolgan 1 ta Resurs Vedomost testining full-suite’dagi muvaffaqiyatsizligi
+  izolyatsiyada 3/3 PASS bo‘ldi. Threshold yoki testlar yumshatilmadi.
+- `npm run korpus`: 6 fayl / 12 test SKIP; repoda faollashtirilgan golden
+  workbook korpusi bu run’da bajarilmadi.
+- Owner’ning haqiqiy workbook’lari lokalda faqat o‘qildi. July Fast Food F2:
+  42 ish + 353 resurs; leaf total manbadagi `ИТОГО ПРЯМЫЕ` bilan taxminan
+  `0,00000006` so‘m farq. Lokal matcher 367 aniq, 1 taklif, 27 yechilmagan;
+  shu sabab operator ko‘rigi bo‘lmasdan “to‘liq mos” yoki import-ready deyilmaydi.
+  Amfiteatr va sun’iy ko‘l summalarida mos ravishda `+127 068 502,71` va
+  `−6 990,88` manba tafovutlari saqlanib, auto-confirm qilinmadi.
+- Authenticated Preview’ga kirish, UI’da haqiqiy faylni yuborish/saqlash va
+  F2→Nakopitelniy→F3 oqimini ko‘rish bajarilmadi. Branch build/test tayyor,
+  ammo bu sababli main/production release tayyor deb e’lon qilinmaydi.

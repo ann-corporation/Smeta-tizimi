@@ -12,9 +12,11 @@ const IMZO = /^(СОСТАВИЛ|ПРОВЕРИЛ|TUZDI|TEKSHIRDI|ИСПОЛНИ
  *  работ / (Дата.Подп) / Директор / Гл. бухгалтер) — faqat sonsiz, 1–2 katakli qatorda:
  *  bundan keyin ma'lumot yo'q. Sarlavha sifatida o'qilmasin. */
 const AKT_IMZO = /^(ЗАКАЗЧИК|ПОДРЯДЧИК|ПРЕДСТАВИТЕЛЬ|ПРОИЗВОДИТЕЛЬ РАБОТ|ДИРЕКТОР|ГЛ\.? ?БУХГАЛТЕР|\(ДАТА)/;
-const JAMI = /^(ИТОГО|ВСЕГО|JAMI|ЖАМИ)/;
+const JAMI = /^(ИТОГО|ВСЕГО|JAMI|ЖАМИ|ПРЯМЫЕ ЗАТРАТЫ\s*[—–-]\s*ВСЕГО)/;
 /** Jamiga tegishli hisob qatorlari: resurs emas, lekin o'z summasi bilan saqlanadi. */
 const HISOB_QATORI = /^(В Т\.? ?Ч\.?|В ТОМ ЧИСЛЕ|ТРАНСПОРТНЫЕ РАСХОДЫ|ЗАГОТОВИТЕЛЬНО|СКЛАДСКИЕ РАСХОДЫ)/;
+/** F2 yakuniy hisob/podval satrlari — matching daraxti qatori emas, lekin review'da saqlanadi. */
+const F2_PODVAL_QATORI = /^(ПРЯМЫЕ ЗАТРАТЫ\s*:|ПРОЧИЕ РАСХОДЫ ПОДРЯДЧИКА|СТРАХОВАНИЕ ОБЪЕКТА|РИСК\s*,?\s*%|НДС\s*,?\s*%|КОЭФФИЦИЕНТ К ОПЛАТЕ\s*:)/i;
 /** Ish daraxtini yopadi: bundan keyin resurs vedomosti, sarlavha emas. */
 const VEDOMOST_BOSHI = /^(ВЕДОМОСТЬ РЕСУРСОВ|ТРУДОВЫЕ РЕСУРСЫ|ЗАТРАТЫ ТРУДА$|(СТРОИТЕЛЬНЫЕ )?МАШИНЫ И МЕХАНИЗМЫ|МАТЕРИАЛЬНЫЕ РЕСУРСЫ|СТРОИТЕЛЬНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ)/;
 
@@ -33,6 +35,7 @@ function ol(row: readonly Katak[], i: number): Katak {
 /** Tizim1/LRV_PLUS texnik "tur" ustuni qiymatlari (rz/bl/rs/mat/ob, "+" qo'shimcha, "~" zamena). */
 const TUR_BELGI = /^(rz|bl|rs|mat|ob)[+~]?$/i;
 type TexnikTur = 'rz' | 'bl' | 'rs' | 'mat' | 'ob';
+const RESURS_KATEGORIYALARI = new Set(['ЧЕЛ', 'МАШ', 'МАТ']);
 function texnikTurniOqi(v: Katak): { tur: TexnikTur; belgi: string } | null {
   const belgi = xom(v).trim().toLowerCase();
   const m = belgi.match(TUR_BELGI);
@@ -59,6 +62,37 @@ function turUstuniniTop(rows: readonly Katak[][], bosh: number): number {
   let eng = -1, engMos = 0;
   for (const [c, h] of hisob) if (h.mos >= 10 && h.mos / h.jami >= 0.9 && h.mos > engMos) { eng = c; engMos = h.mos; }
   return eng;
+}
+
+/** LRV_PLUS eksportidagi aniq `ТИП` ustuni: nom dalili + qator qiymatlaridan tekshiriladi. */
+function lrvPlusTurUstuniniTop(rows: readonly Katak[][], blok: SarlavhaBloki | null): number {
+  if (!blok) return -1;
+  const ustun = blok.sarlavhalar.findIndex((s) => /^(ТИП|TIP|TUR)$/.test(kalit(s)));
+  if (ustun < 0) return -1;
+  let jami = 0, mos = 0;
+  const turlar = new Set<TexnikTur>();
+  for (let r = blok.malumotBoshi; r < Math.min(rows.length, blok.malumotBoshi + 3000); r++) {
+    const qiymat = rows[r]?.[ustun];
+    if (typeof qiymat !== 'string' || !qiymat.trim()) continue;
+    jami++;
+    const tur = texnikTurniOqi(qiymat);
+    if (tur) { mos++; turlar.add(tur.tur); }
+  }
+  // Kamida bir necha real satr va BL bilan birga RZ/resurs turi bo'lmasa, sarlavha
+  // tasodifiy “ТИП” bo'lishi mumkin. Noma'lum formatni avtomatik LRV deb olmaymiz.
+  return jami >= 3 && mos / jami >= 0.85 && turlar.has('bl') && [...turlar].some((t) => t !== 'bl') ? ustun : -1;
+}
+
+/** Eski F2 dagi `Кат.` ustuni resurs turini tartib raqamisiz ham bevosita belgilaydi. */
+function resursKategoriyaUstuniniTop(headers: readonly string[]): number {
+  return headers.findIndex((header) => /^(КАТ\.?|КАТЕГОРИЯ|RESOURCE CATEGORY|TUR RESURS)$/.test(kalit(header)));
+}
+
+function resursKategoriyaAniq(row: readonly Katak[], ustun: number): boolean {
+  if (ustun < 0) return false;
+  // Hozirgi real F2 korpusida hujjatning `Кат.` ustunida aynan shu sinflar bor.
+  // Yangi kategoriya faqat dalilli korpus/test bilan qo'shiladi.
+  return RESURS_KATEGORIYALARI.has(kalit(row[ustun]).replace(/\.$/, ''));
 }
 
 /**
@@ -99,6 +133,9 @@ function rolAniqla(nom: string, blok: SarlavhaBloki | null, rows: readonly Katak
   const n = kalit(nom);
   const sarlavha = blok ? blok.sarlavhalar.join(' | ') : '';
   const dalil: Dalil[] = [];
+  if (lrvPlusTurUstuniniTop(rows, blok) >= 0) {
+    return { rol: 'lrv', dalil: [...dalil, { qoida: 'lrv_plus:tip_va_qator_turlari', ishonch: 'yuqori', izoh: 'ТИП ustuni BL hamda RZ/resurs turlarini qatorlardan tasdiqladi' }] };
+  }
   const nomLrv = /(^|_)(LRV|БВ|ЛРВ|F5)/.test(n);
   const nomRes = /(^|_)(RES|БР|РС)(_A)?$/.test(n);
   if (nomLrv) dalil.push({ qoida: 'varaq_nomi', ishonch: 'orta', izoh: `nomi "${nom}" — LRV belgisi` });
@@ -263,6 +300,29 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
   }
 
   const review = (kod: string, izoh: string, r?: number) => natija.review.push({ kod, izoh, ...(r != null ? { manzil: manzil(r) } : {}) });
+  const jamiQiymatiniOl = (row: readonly Katak[], r: number): { qiymat: number | null; ustun: number } => {
+    const belgilangan = son(ol(row, u.summa));
+    if (belgilangan != null) return { qiymat: belgilangan, ustun: u.summa };
+
+    // Some LRV_PLUS/F2 exports keep explicit subtotal/total values in the last
+    // numeric amount cell immediately beside an empty mapped SUM column. Use it
+    // only when the total label is explicit and exactly one numeric candidate
+    // exists to the right of the unit-price column; never derive a missing total.
+    const raqamli = row.flatMap((cell, ustun) =>
+      ustun >= Math.max(0, u.narx) && typeof cell === 'number' && Number.isFinite(cell)
+        ? [{ qiymat: cell, ustun }]
+        : []);
+    if (raqamli.length === 1) {
+      review('jami_summa_ustun_fallback', 'Hujjat jami summasi standart summa ustunida emas; yagona sonli qiymat olindi, manbadagi katakni tekshiring', r);
+      return raqamli[0];
+    }
+    if (raqamli.length > 1) {
+      review('jami_summa_ustun_noaniq', 'Jami qatorida standart summa ustuni bo‘sh va bir nechta sonli qiymat bor; jami taxmin qilinmadi', r);
+    } else {
+      review('jami_summa_yoq', 'Jami qatorining standart summa katagida qiymat yo‘q; jami boshqa qatorlardan hisoblab to‘ldirilmadi', r);
+    }
+    return { qiymat: null, ustun: u.summa };
+  };
   let joriyIsh: Ish | null = null;
   let vedomostRejimi = rol === 'res';
   let guruh: string | null = null;
@@ -305,7 +365,9 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     return ![u.hajmBirlikka, u.hajmLoyiha, u.narx, u.summa].some((c) => c >= 0 && son(row[c]) != null);
   };
 
-  const turUstun = turUstuniniTop(rows, u.malumotBoshi);
+  const lrvPlusTurUstun = lrvPlusTurUstuniniTop(rows, blok);
+  const turUstun = lrvPlusTurUstun >= 0 ? lrvPlusTurUstun : turUstuniniTop(rows, u.malumotBoshi);
+  const resursKategoriyaUstun = resursKategoriyaUstuniniTop(blok.sarlavhalar);
   const qatorTexnikTuri = (row: readonly Katak[]) => turUstun >= 0 ? texnikTurniOqi(row[turUstun]) : null;
   const rzSarlavhaOl = (row: readonly Katak[]): { xom: string; ustun: number } | null => {
     const mosMatn = (ustun: number): { xom: string; ustun: number } | null => {
@@ -373,8 +435,14 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     const nomK = kalit(ol(row, u.nom));
     if (JAMI.test(bk) || JAMI.test(nomK) || HISOB_QATORI.test(bk)) {
       const jamiMatn = JAMI.test(bk) ? birinchiMatn : xom(ol(row, u.nom));
-      natija.jamilar.push({ xom: jamiMatn, qiymat: son(ol(row, u.summa)), manzil: manzil(r, u.summa) });
+      const jamiQiymat = jamiQiymatiniOl(row, r);
+      natija.jamilar.push({ xom: jamiMatn, qiymat: jamiQiymat.qiymat, manzil: manzil(r, jamiQiymat.ustun) });
       if (!vedomostRejimi) iq.jamiKeldi(jamiMatn);
+      continue;
+    }
+
+    if (F2_PODVAL_QATORI.test(bk)) {
+      review('f2_podval_qatori', 'F2 hisob/podval satri; ish-resurs moslashiga qo‘shilmadi, manba faylda saqlandi', r);
       continue;
     }
 
@@ -444,6 +512,17 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     // Resurs kodi sof raqam (000001, 3, 1941) — ish shifri hech qachon sof raqam emas.
     if (joriyIsh && nomBor && butunTartib(tartibKatak) && /^\d{1,6}$/.test(xom(ol(row, u.shifr)))
       && (Number(xom(tartibKatak)) >= 1000 || son(ol(row, u.hajmBirlikka)) != null)) {
+      iq.ishKeldi();
+      joriyIsh.resurslar.push(resursOl(row, r, false));
+      continue;
+    }
+
+    // Legacy Forma-2 ko'rinishi: ishda № п/п bor, resurs satrida esa tartib katagi
+    // bo'sh; shifr raqamli, `Кат.` sarlavhali ustunda ЧЕЛ/МАШ/МАТ tur ko'rsatilgan.
+    // Bu kombinatsiya resursni tasdiqlaydi; qator pozitsiyasi yoki nom o'xshashligi emas.
+    if (joriyIsh && bosh(tartibKatak) && nomBor && !bosh(ol(row, u.birlik))
+      && [u.hajmBirlikka, u.hajmLoyiha, u.narx, u.summa].some((column) => son(ol(row, column)) != null)
+      && resursKategoriyaAniq(row, resursKategoriyaUstun)) {
       iq.ishKeldi();
       joriyIsh.resurslar.push(resursOl(row, r, false));
       continue;

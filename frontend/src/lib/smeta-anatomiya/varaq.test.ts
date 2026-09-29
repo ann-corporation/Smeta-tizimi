@@ -60,6 +60,21 @@ const T1_LRV_PLUS_RZ: Katak[][] = [
   ['3.1', '000003', 'МАТЕРИАЛ', 'КГ', 3, 9, 2, 18, 'rs'],
 ];
 
+/** T2 LRV_PLUS export: Uzbek Cyrillic headers, explicit row type, 24 metadata columns. */
+const T2_LRV_PLUS: Katak[][] = [
+  ['Fast Food 1-etaj'],
+  ['№', 'КОД', 'НАИМЕНОВАНИЕ', 'ЕД.ИЗМ.', 'ҲАЖМ (ед)', 'ҲАЖМ (жами)', 'НАРХ', 'СУММА', 'ТИП', 'ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К', 'ФАКТ ҳажм', 'ОСТАТКА ҳажм', 'F2 ОЛИНГАН ҳажм', 'F2 ОЛИНИШИ МУМКИН ҳажм', 'ФАКТ сумма', 'ОСТАТКА сумма', 'F2 ОЛИНГАН сумма', 'F2 ОЛИНИШИ МУМКИН сумма', 'Даража', 'КАЛИТ'],
+  [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  [1, null, 'LRV.xlsx — LRV', null, 0, 0, 0, 0, 'rz'],
+  [2, null, 'ЗЕМЛЯНЫЕ РАБОТЫ', null, 0, 0, 0, 0, 'rz'],
+  [3, 'W-1', 'УСТРОЙСТВО БЕТОННЫХ РАБОТ', 'м3', null, 2, 6, 12, 'bl'],
+  [4, '000001', 'ЗАТРАТЫ ТРУДА', 'чел-ч', 1, 2, 1, 2, 'rs'],
+  [5, '000002', 'БЕТОН', 'м3', 0.5, 1, 10, 10, 'mat'],
+  [6, 'W-2', 'МОНТАЖ ОБОРУДОВАНИЯ', 'шт', null, 1, 4, 4, 'bl'],
+  [7, '000003', 'ОБОРУДОВАНИЕ', 'шт', 1, 1, 4, 4, 'ob'],
+  [null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, null, 16, null],
+];
+
 describe('varaq anatomiyasi', () => {
   it('ABC4 LRV: rol, titul yo\'li, ish/resurs, vergulli son, NULL saqlanadi, vedomost ajraladi', () => {
     const a = kitobAnatomiyasi({ fayl: 'k.xls', varaqlar: [{ nom: 'LRV', rows: ABC4_LRV }] });
@@ -99,6 +114,19 @@ describe('varaq anatomiyasi', () => {
     expect(v.sarlavhalar.every((s) => s.manzil.ustun === 1 && s.dalil.some((d) => d.qoida === 't1_lrv_plus_rz_nom_fallback'))).toBe(true);
     expect(v.jamilar).toEqual([]); // RZ subtotal-like 0 values never become F2 money rows.
     expect(v.review.filter((r) => r.kod === 'rz_nomsiz')).toEqual([]);
+  });
+
+  it('T2 LRV_PLUS: TIP dalili va Uzbek Cyrillic hajm/narx ustunlari bilan daraxtni topadi', () => {
+    const a = kitobAnatomiyasi({ fayl: 'Fast-Food-LRV_PLUS.xlsx', varaqlar: [{ nom: 'LRV_PLUS', rows: T2_LRV_PLUS }] });
+    const v = a.varaqlar[0];
+    expect(v.rol).toBe('lrv');
+    expect(v.rolDalil).toContainEqual(expect.objectContaining({ qoida: 'lrv_plus:tip_va_qator_turlari', ishonch: 'yuqori' }));
+    expect(v.ustunlar).toMatchObject({ tartib: 0, shifr: 1, nom: 2, birlik: 3, hajmBirlikka: 4, hajmLoyiha: 5, narx: 6, summa: 7 });
+    expect(v.ishlar.map((work) => work.shifr)).toEqual(['W-1', 'W-2']);
+    expect(v.ishlar.map((work) => work.resurslar.length)).toEqual([1, 0]);
+    expect(v.mustaqilResurslar?.map((resource) => resource.texnikBelgi)).toEqual(['mat', 'ob']);
+    expect(sarlavhaYoli(v.sarlavhalar, v.ishlar[0].sarlavha).map((section) => section.xom)).toEqual(['LRV.xlsx — LRV', 'ЗЕМЛЯНЫЕ РАБОТЫ']);
+    expect(a.asosiyLrv).toBe('LRV_PLUS');
   });
 
   it('markerli RZ dagi qisqa, lekin mazmunli nomni (masalan, POL) saqlaydi', () => {

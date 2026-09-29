@@ -446,7 +446,14 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     const nz = (ichida.length ? ichida : hovuz).map((t) => ballHisobla(f, t, d))
       .sort((a, b) => b.ball - a.ball || (S.byId.get(a.qatorId)!.tartib ?? a.qatorId) - (S.byId.get(b.qatorId)!.tartib ?? b.qatorId)).slice(0, 12);
     const [b1, b2] = nz;
-    const toza = (n: Nomzod) => !n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka' || q.nom === 'texnik_tafsilot') && q.ball < 0);
+    const toza = (n: Nomzod) => {
+      if (n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka' || q.nom === 'texnik_tafsilot') && q.ball < 0)) return false;
+      const target = S.byId.get(n.qatorId);
+      // Legacy F2 rows without a row-type marker may be offered against any
+      // canonical leaf for review, but a work row must not auto-certify as MAT/OB.
+      if (f.tur === 'bl' && !f.texnikBelgi && target?.tur !== 'bl') return false;
+      return true;
+    };
     // Egasi sinovi 2026-09-28: F2 razdeli smetadagi razdelga ANIQ bog'langan-u, shu razdel ichida
     // nomzod yo'q — boshqa razdeldan (masalan fasad paroizolyatsiyasiga POL paroizolyatsiyasi)
     // taklif BERILMAYDI: bu zamena yoki qo'shimcha ish. Tashqi nomzodlar faqat variant sifatida.
@@ -505,6 +512,18 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     if (b1 && toza(b1) && b1.ball >= AVTO_MIN && hajmTeng(b1) && nz.slice(1).every((n) => !hajmTeng(n) && b1.ball > n.ball)) {
       yoz(f.uid, { uid: f.uid, holat: 'aniq', qatorId: b1.qatorId, usul: 'hajm_aynan', nomzodlar: nz, sabab: `${b1.ball} ball, F2 hajmi aynan shu qatorning smeta hajmiga teng: ${b1.sabab.join(', ')}` });
       return S.byId.get(b1.qatorId)!;
+    }
+    // Legacy work rows can lack a trustworthy BL/MAT/OB marker. Preserve a
+    // unique exact cross-type candidate as an explicit operator proposal, never
+    // as an automatic link (e.g. a work label matching a canonical equipment row).
+    if (f.tur === 'bl' && !f.texnikBelgi && b1 && S.byId.get(b1.qatorId)?.tur !== 'bl'
+      && normNom(S.byId.get(b1.qatorId)!.nom) === normNom(f.nom)
+      && normBir(S.byId.get(b1.qatorId)!.birlik) === normBir(f.birlik)
+      && (!b2 || b1.ball > b2.ball)) {
+      const target = S.byId.get(b1.qatorId)!;
+      yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: target.id, usul: 'ball', nomzodlar: nz,
+        sabab: `legacy F2 qator turi aniqlanmagan; nomi va birligi aynan mos ${target.tur.toUpperCase()} nomzodi — operator tekshiruvi shart` });
+      return target;
     }
     if (b1 && toza(b1) && b1.ball >= 45) {
       const izoh = b2 && b1.ball - b2.ball < AVTO_FARQ ? `2 ta nomzod yaqin (${b1.ball} va ${b2.ball})` : `${b1.ball} ball`;
