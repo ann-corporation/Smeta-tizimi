@@ -358,3 +358,22 @@ Qo‘shimcha qarori va F2 importni final tasdiqlash bajarilmadi.
   repository `tekshir` PASS; umumiy lint exit 0, o‘zgartirilgan 7 source/test
   faylning alohida oxlint tekshiruvi 0 warning; governance PASS / 1 stale-main
   WARN; `git diff --check` PASS.
+
+### 2026-09-29 — manba workbook ishonchliligi bo'yicha owner izohi
+
+- Egasi to'g'ri ta'kidladi: yuborilgan Excel nusxasining o'zi ham noto'g'ri,
+  eskirgan yoki noto'g'ri obyekt/davr/sheetdan tanlangan bo'lishi mumkin.
+  Shuning uchun workbookdagi declared total ham, parser chiqargan summa ham
+  tasdiqlangan etalon emas; ikkisi ham tekshiriladigan dalil, xolos.
+- Har qanday “mos/mos emas” yoki import-ready xulosasidan oldin source faylning
+  obyekt/davr/revisioni, worksheet, yashirin/filtrlangan qatorlar, formula va
+  cached values, subtotal range/ustunlari hamda owner tasdiqlagan nusxa aniqlansin.
+  Noaniqlik qolsa fail-closed/review; qatorlar yoki summalarni jim
+  tashlash, qayta taqsimlash yoki avtomatik moslashtirish mumkin emas.
+- Amfiteatr `+127 068 502,71` va Sun'iy ko'l `−6 990,88` tafovutlari parser
+  yoki workbookdan qaysi biri aybdorligini o'z-o'zidan isbotlamaydi. Sabab
+  UNKNOWN; owner-approved etalon bilan qatorma-qator/formula audit talab.
+- Obsidian vault boshqa qurilmada ko'rinishi kafolatlanmagan; Claude uchun shu
+  caveat va to'liq davom prompti vaultdagi
+  `20_PROJECTS/Smeta-tizimi/F2_IMPORT_CLAUDE_HANDOFF_2026-09-29.md`da.
+  GitHub branch va ushbu repo handoff — mashinalararo tekshiriladigan manba.
