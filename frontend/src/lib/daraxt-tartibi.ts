@@ -7,11 +7,11 @@
  * Rasmiy Ф2, Nakopitelniy, Slichitelniy) ularni OXIRGI razdelga yozib yuborardi
  * (Karting: ПОЛЫ 106,4 mln + «НБШ» 17,2 mln o'rniga ПОЛЫ 123,6 mln).
  *
- * Qoida: har tugun o'z otasi ostida (ichki tartib — asl tartib), zamena qatori
- * almashtirgan qatoridan KEYIN (xuddi shu ota ostida bo'lsa), qo'shimcha — ota
- * ostidagi qatorlar oxirida. Ota topilmagan / sikl — asl tartibda oxirida (yo'qolmaydi).
+ * Qoida: har tugun o'z otasi ostida (ichki tartib — `tartib`, teng bo'lsa id), zamena qatori
+ * almashtirgan qatoridan KEYIN (xuddi shu ota ostida bo'lsa), qo'shimcha — foydalanuvchi
+ * tanlagan langardan keyin (server joylashi). Ota topilmagan / sikl — asl tartibda oxirida (yo'qolmaydi).
  */
-export function daraxtTartibida<T extends { qator_id: number; ota_id?: number | null }>(
+export function daraxtTartibida<T extends { qator_id: number; ota_id?: number | null; tartib?: number | null }>(
   rows: readonly T[],
   almashtiradi?: ReadonlyMap<number, number>,
 ): T[] {
@@ -22,6 +22,10 @@ export function daraxtTartibida<T extends { qator_id: number; ota_id?: number | 
     const ota = r.ota_id != null && idx.has(r.ota_id) ? r.ota_id : null;
     const l = bolalar.get(ota);
     if (l) l.push(r); else bolalar.set(ota, [r]);
+  }
+  // Aka-ukalar: tartib, teng bo'lsa id (server joylash qoidasi: yangi qator langardan keyin).
+  if (rows.some((r) => r.tartib != null)) {
+    for (const l of bolalar.values()) l.sort((x, y) => (x.tartib ?? idx.get(x.qator_id)!) - (y.tartib ?? idx.get(y.qator_id)!) || x.qator_id - y.qator_id);
   }
   const out: T[] = [];
   const korildi = new Set<number>();

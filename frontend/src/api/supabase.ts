@@ -372,7 +372,8 @@ export function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
   return sbOqi<T2Qator>({
     jadval: 't2_daraxt',
     filtr: 'obyekt_id=eq.' + obyektId,
-    tartib: 'tartib.asc',
+    // Teng tartibda id: qo'shimcha/zamena langar qatoridan keyin (t2_addrepl joylash qoidasi).
+    tartib: 'tartib.asc,id.asc',
     limit: 200000,
     ...(ustunlar ? { ustunlar } : {}),
   });

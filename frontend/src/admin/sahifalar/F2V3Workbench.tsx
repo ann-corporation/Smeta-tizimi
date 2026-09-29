@@ -284,14 +284,14 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       return;
     }
     if (f.tur === 'bl') {
-      if (s.tur === 'rz') { ochModal(f, { kind: 'additional', parent: p.raw.get(s.id)! }); return; }
+      if (s.tur === 'rz') { ochModal(f, { kind: 'additional', parent: p.raw.get(s.id)!, keyinId: s.id }); return; }
       if (sRes) { xab('Ishni smeta ISHIGA (bog‘lash/zamena) yoki RAZDELGA (qo‘shimcha ish) torting.'); return; }
       if (oshaQatormi(f, s) || (nomzodBallOf(f.uid, s.id) ?? -1) >= 45) { ishBogla(f, s.id); return; }
       setTanlov({ f, s, tur: 'ish' });
       return;
     }
     // resurs
-    if (s.tur === 'bl') { ochModal(f, { kind: 'resource', parent: p.raw.get(s.id)! }); return; }
+    if (s.tur === 'bl') { ochModal(f, { kind: 'resource', parent: p.raw.get(s.id)!, keyinId: s.id }); return; }
     if (s.tur === 'rz') { xab('Resursni smeta RESURSIGA (bog‘lash/zamena) yoki smeta ISHIGA (qo‘shimcha resurs) torting.'); return; }
     if (oshaQatormi(f, s)) { p.onIj(bogla(ij, f.uid, s.id)); xab(`«${f.nom.slice(0, 50)}» bog‘landi.`); return; }
     setTanlov({ f, s, tur: 'resurs' });
@@ -403,6 +403,29 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const otaRz = ind.ota.get(t.uid);
     const rzId = otaRz ? rzDiag.get(otaRz.uid)?.smetaRzIdlar[0] : undefined;
     const tanla = () => (sel ? setTanlangan(null) : scrollTanlanganPanelga(t.uid));
+    /** F2 dagi qo'shnilar tartibi: shu qatordan oldingi, smetaga bog'langan eng yaqin qatordan keyin. */
+    const oldingiKeyin = (): number | undefined => {
+      const aka = otaRz?.bolalar ?? [];
+      for (let i = aka.findIndex((x) => x.uid === t.uid) - 1; i >= 0; i--) {
+        const bb = ij.bog.get(aka[i].uid);
+        if (bb && S.byId.get(bb.qatorId)?.otaId === rzId) return bb.qatorId;
+      }
+      return rzId;
+    };
+    // Resurs uchun: F2 ishi bog'langan smeta ishi va massivdagi oldingi resursning smeta jufti.
+    const otaIsh = !ish ? ind.ota.get(t.uid) : undefined;
+    const otaSmetaIsh = otaIsh ? ij.bog.get(otaIsh.uid)?.qatorId : undefined;
+    const resursKeyin = (): number | undefined => {
+      if (otaSmetaIsh == null || !otaIsh) return undefined;
+      const aka = otaIsh.bolalar;
+      for (let i = aka.findIndex((x) => x.uid === t.uid) - 1; i >= 0; i--) {
+        const bb = ij.bog.get(aka[i].uid);
+        if (bb && S.byId.get(bb.qatorId)?.otaId === otaSmetaIsh) return bb.qatorId;
+      }
+      return otaSmetaIsh;
+    };
+    const tavsiya = p.natija.natijalar.get(t.uid)?.tavsiya;
+    const tavsiyaS = tavsiya?.tur === 'zamena' ? S.byId.get(tavsiya.qatorId) : undefined;
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     return (
       <div data-fuid={t.uid} role="group" aria-label={`F2 ${t.tur}: ${t.nom}`}
@@ -421,6 +444,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             title={t.belgi === 'zamena' ? 'Hujjatda zamena (~) deb belgilangan' : 'Hujjatda qo‘shimcha ish (+) deb belgilangan'}>{t.belgi === 'zamena' ? '~ zamena' : '+ qo‘shimcha'}</span>}
           <span className="break-words">{t.nom}</span>
           {s && k !== 'otkazildi' && <span className="mt-0.5 block text-[10.5px] font-normal text-accent" title={s.nom ?? ''}>→ {s.nom}</span>}
+          {!s && tavsiya && <span className="mt-0.5 block text-[10.5px] font-normal text-warn">{tavsiya.tur === 'zamena' ? `⇄ zamena taklifi: «${tavsiyaS?.nom ?? ''}» o‘rniga` : '＋ smeta ishida mos resurs yo‘q — qo‘shimcha resurs'}</span>}
           {t.ogohlantirish?.length ? <span className="mt-0.5 block text-[10.5px] font-normal text-danger">{t.ogohlantirish.join('; ')}</span> : null}
         </button>
         <span className={`${SON} text-text-mute`}>{t.norma == null ? '' : fmt(t.norma, 6)}</span>
@@ -436,11 +460,15 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {k === 'topilmadi' && ish && <button type="button" className={tugma} disabled={p.disabled}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Smeta razdelidagi qaysi ish o‘rniga bajarilganini tanlang">⇄ Zamena</button>}
           {k === 'topilmadi' && ish && rzId != null && p.raw.get(rzId) && <button type="button" className={tugma} disabled={p.disabled}
-            onClick={() => ochModal(t, { kind: 'additional', parent: p.raw.get(rzId)! })} title="Smetaga qo‘shimcha ish sifatida qo‘shish (resurslari bilan)">＋ Qo‘shimcha</button>}
+            onClick={() => ochModal(t, { kind: 'additional', parent: p.raw.get(rzId)!, keyinId: oldingiKeyin() })} title="Smetaga qo‘shimcha ish (resurslari bilan) — F2 dagi tartibda, oldingi bog‘langan ishdan keyin">＋ Qo‘shimcha</button>}
           <button type="button" className={tugma} disabled={p.disabled}
             aria-label={`Bog‘lash variantlari: ${t.nom}`} onClick={() => scrollTanlanganPanelga(t.uid)} title="Mos smeta qatorlari va dalillari"><Link2 size={11} /> {candidateCount ? `Variant ${candidateCount}` : 'Variantlar'}</button>
-          {k === 'topilmadi' && !ish && <button type="button" className={tugma} disabled={p.disabled}
-            onClick={() => scrollTanlanganPanelga(t.uid)} title="O‘ngdagi smeta resursiga bog‘lash, zamena yoki qo‘shimcha resurs">Tanlash</button>}
+          {k === 'topilmadi' && !ish && tavsiyaS && <button type="button" className={`${tugma} tugma-asosiy`} disabled={p.disabled}
+            onClick={() => zamena(t, tavsiyaS)} title={`Smetadagi «${tavsiyaS.nom ?? ''}» o‘rniga (zamena resurs) — aynan uning ortidan joylashadi`}>⇄ Zamena</button>}
+          {k === 'topilmadi' && !ish && otaSmetaIsh != null && p.raw.get(otaSmetaIsh) && <button type="button" className={`${tugma} ${tavsiya?.tur === 'qoshimcha' ? 'tugma-asosiy' : ''}`} disabled={p.disabled}
+            onClick={() => ochModal(t, { kind: 'resource', parent: p.raw.get(otaSmetaIsh)!, keyinId: resursKeyin() })} title="Smeta ishiga qo‘shimcha resurs — F2 dagi tartibda">＋ Resurs</button>}
+          {k === 'topilmadi' && !ish && otaSmetaIsh == null && <button type="button" className={tugma} disabled={p.disabled}
+            onClick={() => scrollTanlanganPanelga(t.uid)} title="Avval ishini bog‘lang">Tanlash</button>}
           {b && <button type="button" className={tugma} disabled={p.disabled}
             aria-label={`Bog‘lanishni uzish: ${t.nom}`} onClick={() => p.onIj(uz(ij, t))} title="Bog‘lanishni bekor qilish"><Unlink size={11} /> Uzish</button>}
         </span>
@@ -597,6 +625,53 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             </button>
           </div>
         </div>
+        {tTugun.tur === 'bl' && b && tTugun.bolalar.length > 0 && (() => {
+          // Egasi 2026-09-29: ish — resurslar MASSIVI. F2 resurslari ↔ smeta ishining resurslari
+          // yonma-yon; juftsiz har biri uchun aniq amal (zamena / qo'shimcha); smetada qolgan
+          // juftsiz resurslar ham ko'rinadi — hech biri "tushib qolmaydi".
+          const sIshId = b.qatorId;
+          const smetaRes = (S.bolalar.get(sIshId) ?? []).filter((x) => x.tur !== 'rz');
+          const juftSmeta = new Set<number>();
+          for (const r of tTugun.bolalar) { const rb = ij.bog.get(r.uid); if (rb) juftSmeta.add(rb.qatorId); }
+          const juftsiz = smetaRes.filter((x) => !juftSmeta.has(x.id));
+          const kat = 'border-b border-r border-border/60 px-1.5 py-1';
+          return (
+            <div className="overflow-auto rounded border border-border/60">
+              <div className="grid min-w-[860px] grid-cols-[28px_minmax(200px,1fr)_110px_minmax(200px,1fr)_110px_170px] bg-surface-2 text-[10.5px] font-semibold uppercase text-text-dim">
+                <span className={kat}>●</span><span className={kat}>F2 resursi</span><span className={`${kat} text-right`}>F2 miqdor</span>
+                <span className={kat}>Smeta resursi (jufti)</span><span className={`${kat} text-right`}>Smeta miqdor</span><span className={kat}>Amal</span>
+              </div>
+              {tTugun.bolalar.map((r, i) => {
+                const rk = korinish(ij, r.uid);
+                const rb = ij.bog.get(r.uid);
+                const sr = rb ? S.byId.get(rb.qatorId) : undefined;
+                const tv = p.natija.natijalar.get(r.uid)?.tavsiya;
+                const tvS = tv?.tur === 'zamena' ? S.byId.get(tv.qatorId) : undefined;
+                let keyin: number = sIshId;
+                for (let j = i - 1; j >= 0; j--) { const bb = ij.bog.get(tTugun.bolalar[j].uid); if (bb && S.byId.get(bb.qatorId)?.otaId === sIshId) { keyin = bb.qatorId; break; } }
+                return (
+                  <div key={r.uid} className={`grid min-w-[860px] grid-cols-[28px_minmax(200px,1fr)_110px_minmax(200px,1fr)_110px_170px] text-[11.5px] ${QATOR_FON[rk]}`}>
+                    <span className={`${kat} text-center font-bold ${HOLAT_KATAK[rk]}`}>{BELGI[rk].b}</span>
+                    <span className={kat}>{r.nom}</span>
+                    <span className={`${kat} text-right tabular-nums`}>{fmt(r.hajm)} {r.birlik ?? ''}</span>
+                    <span className={kat}>{sr ? sr.nom : tvS ? <span className="text-warn">⇄ taklif: {tvS.nom}</span> : <span className="text-text-mute">— smetada jufti yo‘q</span>}</span>
+                    <span className={`${kat} text-right tabular-nums`}>{sr ? `${fmt(sr.hajm)} ${sr.birlik ?? ''}` : ''}</span>
+                    <span className={`${kat} flex flex-wrap gap-1`}>
+                      {!sr && tvS && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" onClick={() => zamena(r, tvS)}>⇄ Zamena</button>}
+                      {!sr && p.raw.get(sIshId) && <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => ochModal(r, { kind: 'resource', parent: p.raw.get(sIshId)!, keyinId: keyin })}>＋ Resurs</button>}
+                      {sr && <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => p.onIj(uz(ij, r))}><Unlink size={11} /> Uzish</button>}
+                    </span>
+                  </div>
+                );
+              })}
+              {juftsiz.length > 0 && (
+                <div className="border-t border-border/60 bg-surface-2/40 px-2 py-1 text-[11px] text-text-dim">
+                  <b>Smetada, lekin shu F2 da yo‘q ({juftsiz.length}):</b> {juftsiz.map((x) => x.nom).join('; ')} — bu oy bajarilmagan yoki F2 dagi boshqa resurs uning o‘rniga (⇄ Zamena).
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {nomzodlar.length > 0 && (
           <div className="max-h-48 overflow-auto rounded border border-border/60">
             {nomzodlar.slice(0, 20).map((n) => {
@@ -791,9 +866,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <button type="button" className="tugma justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); zamena(f, s); }}>
                 <span>⇄</span> <span><b>{tanlov.tur === 'ish' ? 'Zamena ish' : 'Zamena material'}</b> — smetadagi qator o‘rniga F2 dagisi bajarilgan (yangi qator, eskisi o‘zgarmaydi)</span>
               </button>
-              {tanlov.tur === 'ish' && tanlov.s.otaId != null && (
-                <button type="button" className="tugma justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); ochModal(f, { kind: 'additional', parent: p.raw.get(s.otaId!)! }); }}>
-                  <span>＋</span> <span><b>Qo‘shimcha ish</b> — smetada yo‘q ish, shu razdelga qo‘shiladi</span>
+              {tanlov.s.otaId != null && p.raw.get(tanlov.s.otaId) && (
+                <button type="button" className="tugma justify-start text-left" onClick={() => {
+                  const { f, s, tur } = tanlov; setTanlov(null);
+                  ochModal(f, { kind: tur === 'ish' ? 'additional' : 'resource', parent: p.raw.get(s.otaId!)!, keyinId: s.id });
+                }}>
+                  <span>＋</span> <span><b>{tanlov.tur === 'ish' ? 'Qo‘shimcha ish' : 'Qo‘shimcha resurs'}</b> — smetada yo‘q; aynan shu qatordan KEYIN joylashadi</span>
                 </button>
               )}
               <button type="button" className="tugma" onClick={() => setTanlov(null)}>Bekor qilish</button>

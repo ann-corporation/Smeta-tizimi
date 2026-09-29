@@ -156,4 +156,20 @@ it('bitta F2 da o‘sha ish bir necha qism (smetada bitta qator) — takror qism
     expect(r).toMatchObject({ holat: 'taklif', qatorId: W1, usul: 'takror' });
     expect(r.sabab).toMatch(/qoldiqdan oshdi/);
   });
+
+  it('ish = resurslar massivi: ekspertizadan keyin kran boshqa (16 t гусеничный → 25 т автомобильный) — zamena taklifi; smetada yo‘q material — qo‘shimcha resurs', () => {
+    const rzId = rz('РАЗДЕЛ: МОНТАЖ КРАНОМ');
+    const w = ish(rzId, 'E9-1-1-1', 'МОНТАЖ КОЛОНН', 'Т', 10, [['000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 5], ['000780', 'КРАНЫ НА ГУСЕНИЧНОМ ХОДУ 16 Т', 'МАШ-Ч', 2]]);
+    const kranId = S.find((x) => x.otaId === w && x.kod === '000780')!.id;
+    const yol = ['РАЗДЕЛ: МОНТАЖ КРАНОМ'];
+    const fw = f('bl', 'E9-1-1-1', 'МОНТАЖ КОЛОНН', 'Т', 4, yol, [
+      f('rs', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 20, yol, [], 5),
+      f('rs', '000762', 'КРАНЫ НА АВТОМОБИЛЬНОМ ХОДУ 25 Т', 'МАШ-Ч', 8, yol, [], 2),
+      f('rs', '030407', 'ГВОЗДИ СТРОИТЕЛЬНЫЕ', 'Т', 0.01, yol, [], 0.0025),
+    ]);
+    const n = f2MoslashV3([rzF(yol[0], [], [fw])], S);
+    expect(n.natijalar.get(fw.bolalar[0].uid)).toMatchObject({ holat: 'aniq' });
+    expect(n.natijalar.get(fw.bolalar[1].uid)?.tavsiya).toEqual({ tur: 'zamena', qatorId: kranId, sabab: expect.stringContaining('КРАНЫ НА ГУСЕНИЧНОМ') });
+    expect(n.natijalar.get(fw.bolalar[2].uid)?.tavsiya).toMatchObject({ tur: 'qoshimcha' });
+  });
 });

@@ -17,10 +17,13 @@ import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, 
  * t2_resurs_bola_qosh_v1) -- OLD+NEW law unchanged: replacement NEVER
  * mutates the old row, it inserts a new one with replaces_line_id.
  */
+/** `keyinId` — yangi qator shu qatordan (va uning resurslaridan) KEYIN joylashadi (egasi
+ *  2026-09-29: "foydalanuvchi o'zi xohlagan qatorlar orasiga"); `parent` ning o'zi — birinchi
+ *  o'rin. Zamena doim almashtirilgan qatordan keyin. */
 export type DropAction =
   | { kind: 'replacement'; oldRow: T2Qator; parent: T2Qator }
-  | { kind: 'additional'; parent: T2Qator }
-  | { kind: 'resource'; parent: T2Qator };
+  | { kind: 'additional'; parent: T2Qator; keyinId?: number }
+  | { kind: 'resource'; parent: T2Qator; keyinId?: number };
 
 export interface F2AddReplModalProps {
   action: DropAction;
@@ -63,6 +66,9 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
     action.kind === 'replacement' ? `Zamena — "${action.oldRow.nom}" o‘rniga`
       : action.kind === 'additional' ? `Qo‘shimcha ish — "${action.parent.nom}" ostiga`
         : `Resurs qo‘shish — "${action.parent.nom}" ostiga`;
+  const joyMatni = action.kind === 'replacement' ? `Joyi: «${action.oldRow.nom}» dan keyin`
+    : action.keyinId == null ? 'Joyi: ota qator oxirida'
+      : action.keyinId === action.parent.id ? 'Joyi: birinchi o‘rinda' : 'Joyi: tanlangan qatordan keyin';
 
   async function submit() {
     if (!nom.trim() || !birlik.trim() || !sabab.trim()) { setError('Nom, birlik va sabab majburiy.'); return; }
@@ -76,6 +82,7 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
       nom: nom.trim(), birlik: birlik.trim(), hajm: hajmSoni as number,
       kod: kod.trim() || undefined, sabab: sabab.trim(),
       operationId: opRef.current, expectedVersion: action.parent.versiya,
+      keyinQatorId: action.kind === 'replacement' ? action.oldRow.id : action.keyinId,
     };
     try {
       if (resurslar.length && action.kind !== 'resource') {
@@ -153,6 +160,7 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
           <input value={sabab} onChange={e => setSabab(e.target.value)}
             className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
         </label>
+        <p className="mb-2 text-[12px] text-accent">{joyMatni}</p>
         {resurslar.length > 0 && <p className="mb-3 text-[12px] text-text-dim">F2 dagi <b>{resurslar.length}</b> ta resurs ham shu ish ostida birga yaratiladi va bog‘lanadi (bitta amal).</p>}
         {error && <p role="alert" className="text-danger text-[12px] mb-3">{error}</p>}
         <div className="flex gap-2 justify-end">

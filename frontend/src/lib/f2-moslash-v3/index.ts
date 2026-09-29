@@ -64,6 +64,14 @@ export interface F2QatorNatija {
   usul?: string;
   nomzodlar: Nomzod[];
   sabab: string;
+  /**
+   * Bog'lanmagan RESURS uchun aniq harakat taklifi (egasi 2026-09-29: "ish turi — resurslar
+   * massivi; birorta resurs ulanganda bir biridan tushib qolmasin"; ekspertizadan keyin
+   * 16 t gusenichniy kran → 25 t avtomobilniy kran kabi holatlar):
+   *   zamena — o'sha smeta ishining F2 bilan juftlanmagan, xuddi shu turdagi (ЧЕЛ/МАШ/material)
+   *            resursi o'rniga; qoshimcha — mos resurs umuman yo'q: qo'shimcha resurs.
+   */
+  tavsiya?: { tur: 'zamena'; qatorId: number; sabab: string } | { tur: 'qoshimcha'; sabab: string };
 }
 
 export interface RzDiag { f2Uid: string; nom: string; smetaRzIdlar: number[]; ok: boolean; usul: string }
@@ -470,6 +478,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     // Resurs faqat SHU F2 ishi ichida bir marta band: o'sha smeta ishining takror qismi
     // (yuqoridagi 'takror') o'z resurslarini xuddi shu smeta resurslariga bog'laydi.
     const lokalBand = new Set<number>();
+    const qolgan: Array<{ r: F2Tugun; nz: Nomzod[]; topildi: boolean }> = [];
     for (const r of fIsh.bolalar) {
       if (!sIsh) {
         yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: [], sabab: 'ishi bog‘lanmagan — ish hal qilinganda resurs ham hal bo‘ladi' });
@@ -507,8 +516,52 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         const ball = qv.reduce((s, y) => s + y.ball, 0);
         return { qatorId: t.id, ball, yol: t.yol, qavatlar: qv, sabab: qv.map((y) => y.izoh) };
       }).filter((n) => n.ball > 0).sort((a, b) => b.ball - a.ball).slice(0, 8);
-      yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz, sabab: topildi ? 'birlik yoki marka farqli — zamena material bo‘lishi mumkin' : 'smeta ishida bu resurs yo‘q — zamena material yoki qo‘shimcha resurs' });
+      qolgan.push({ r, nz, topildi: !!topildi });
     }
+    if (!sIsh || !qolgan.length) return;
+    // Ikkinchi o'tish (massivlar): F2 ishining juftlanmagan resurslari ↔ smeta ishining juftlanmagan
+    // resurslari. Faqat bir xil turdagi resurs (ЧЕЛ ↔ ЧЕЛ, МАШ ↔ МАШ, material ↔ material bir xil
+    // birlikda) zamena bo'la oladi — eng yuqori ball birinchi, har smeta resursi bir marta.
+    const sinf = (birlik: unknown): string => {
+      const b = String(birlik ?? '').toUpperCase();
+      return /ЧЕЛ/.test(b) ? 'ЧЕЛ' : /МАШ/.test(b) ? 'МАШ' : 'МАТ';
+    };
+    const bosh = sIsh.bolalar.filter((t) => t.tur !== 'rz' && !lokalBand.has(t.id));
+    const juftlar: Array<{ i: number; t: STugun; ball: number }> = [];
+    qolgan.forEach((x, i) => {
+      for (const t of bosh) {
+        const sf = sinf(x.r.birlik);
+        if (sf !== sinf(t.birlik)) continue;
+        if (sf === 'МАТ' && !birMos(x.r.birlik, t.birlik)) continue;
+        const rk = normKod(x.r.kod);
+        const ball = (rk && t.kKod === rk ? 30 : 0) + Math.round(dice(tokenlar(x.r.nom), t.kTok) * 25) + (birMos(x.r.birlik, t.birlik) ? 10 : 0);
+        juftlar.push({ i, t, ball });
+      }
+    });
+    juftlar.sort((a, b) => b.ball - a.ball || (a.t.tartib ?? a.t.id) - (b.t.tartib ?? b.t.id));
+    const tavsiya = new Map<number, STugun>();
+    const olingan = new Set<number>();
+    for (const j of juftlar) {
+      if (tavsiya.has(j.i) || olingan.has(j.t.id)) continue;
+      tavsiya.set(j.i, j.t);
+      olingan.add(j.t.id);
+    }
+    qolgan.forEach((x, i) => {
+      const t = tavsiya.get(i);
+      if (t) {
+        yoz(x.r.uid, {
+          uid: x.r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: x.nz,
+          sabab: `smeta ishida «${t.nom ?? ''}» (${t.birlik ?? '—'}) F2 bilan juftlanmagan — o'rniga bajarilgan bo'lsa zamena (masalan ekspertizadan keyin resurs o'zgargan)`,
+          tavsiya: { tur: 'zamena', qatorId: t.id, sabab: `«${t.nom ?? ''}» o'rniga` },
+        });
+      } else {
+        yoz(x.r.uid, {
+          uid: x.r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: x.nz,
+          sabab: 'smeta ishida bu turdagi juftlanmagan resurs yo‘q — qo‘shimcha resurs',
+          tavsiya: { tur: 'qoshimcha', sabab: 'mos resurs yo‘q' },
+        });
+      }
+    });
   }
 
   function yur(tugunlar: readonly F2Tugun[], d: Doira) {
