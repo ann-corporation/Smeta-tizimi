@@ -28,7 +28,7 @@ export function pulQisqa(n?: number | null): string {
 }
 
 // React komponent formatida (Nafosat qatlami uchun)
-export function FmtN({ val, cl = '', qisqa = false }: { val?: number | null, cl?: string, qisqa?: boolean }) {
+export function FmtN({ val, cl = '', qisqa = false, kasr = 2 }: { val?: number | null, cl?: string, qisqa?: boolean, kasr?: number }) {
   if (qisqa) return <span className={`tabular-nums ${cl}`}>{pulQisqa(val)}</span>;
   if (val == null) return <span className={cl} title="Manba qiymati yo‘q">—</span>;
   // ⚡ 2026-08-13: NaN "NaN.undefined" bo'lib chiqardi ("NaN".split('.')[1]
@@ -39,12 +39,13 @@ export function FmtN({ val, cl = '', qisqa = false }: { val?: number | null, cl?
   const absVal = Math.abs(val);
   
   // Butun va kasr qismga ajratish
-  const parts = absVal.toFixed(2).split('.');
+  const parts = absVal.toFixed(kasr).split('.');
   const whole = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  const fraction = `.${parts[1]}`;
+  const fraction = parts[1] ? `.${parts[1]}` : '';
 
+  // whitespace-nowrap: egasi 2026-09-29 — tor katakda "9 632.68 / 755" bo'lib ikki qatorga bo'linardi.
   return (
-    <span className={`inline-flex items-baseline ${isNegative ? 'text-danger' : cl}`}>
+    <span className={`inline-flex items-baseline whitespace-nowrap ${isNegative ? 'text-danger' : cl}`}>
       {isNegative && <span className="mr-[1px] opacity-70">(</span>}
       <span>{whole}</span>
       {fraction && <span className="text-[0.85em] opacity-50">{fraction}</span>}

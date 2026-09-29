@@ -6,7 +6,7 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
-import { t2NakopitelniyOl, t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
+import { t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat } from '../../lib/nakopitelniy-vedomost-export';
 import { f2AktHujjat } from '../../lib/f2-akt-tn-export';
 import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export';
@@ -125,7 +125,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato('');
     try {
       const [r, daraxt] = await Promise.all([
-        t2NakopitelniyOl(objId, tanlanganDavr || null),
+        t2NakopitelniyToliq(objId, tanlanganDavr || null),
         sbT2DaraxtOl(objId, 'id,ota_id,daraja'),
       ]);
       if (currentRequest !== requestId.current) return;
@@ -179,6 +179,23 @@ function Sessiya({ companyId }: { companyId: number }) {
   // RZ bo'limlarida bunday usul bo'limlarni yo'qotadi.
   const gorunumRows = korinadigan;
 
+  /** Egasi: "har bir qavatning o'z hisobi" — razdel qatorida smeta / oldingi / joriy / jami summalar. */
+  const rzJami = useMemo(() => {
+    const otaBor = new Set<number>();
+    for (const q of qatorlar) if (q.ota_id != null) otaBor.add(q.ota_id);
+    const byId = new Map(qatorlar.map((q) => [q.qator_id, q]));
+    const m = new Map<number, { smeta: number; oldingi: number; joriy: number; jami: number }>();
+    for (const q of qatorlar) {
+      if (q.tur === 'rz' || otaBor.has(q.qator_id)) continue;
+      for (let o = q.ota_id != null ? byId.get(q.ota_id) : undefined; o; o = o.ota_id != null ? byId.get(o.ota_id) : undefined) {
+        if (o.tur !== 'rz') continue;
+        const x = m.get(o.qator_id) ?? { smeta: 0, oldingi: 0, joriy: 0, jami: 0 };
+        x.smeta += q.smeta_summa ?? 0; x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
+        m.set(o.qator_id, x);
+      }
+    }
+    return m;
+  }, [qatorlar]);
   const sahifa = gorunumRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   const sahifaSoni = Math.max(1, Math.ceil(gorunumRows.length / PAGE_SIZE));
 
@@ -420,7 +437,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       {eksportBusy && <p role="status">To‘liq ro‘yxat serverdan sahifalab o‘qilmoqda…</p>}
       {forma3Busy && <p role="status">Форма № 3 manbalari yig‘ilmoqda (nakopitelniy + tasdiqlangan F2)…</p>}
       {truncated && !busy && (
-        <p className="text-[12px] text-text-dim">Ekranda birinchi {qatorlar.length} ta qator; Excel hujjatlari obyektning barcha qatorlari bilan (avtomat) tuziladi.</p>
+        <p className="text-[12px] text-text-dim">{truncated ? `Ekranda ${qatorlar.length} ta qator (to‘liq emas); Excel hujjatlari barcha qatorlar bilan tuziladi.` : `Barcha ${qatorlar.length} ta qator; har razdel qatorida o‘z jamisi.`}</p>
       )}
       {xato && <p role="alert" className="text-danger flex items-center gap-1.5"><AlertTriangle size={14} /> {xato}</p>}
       {forma3Diqqat.length > 0 && (
@@ -475,8 +492,14 @@ function Sessiya({ companyId }: { companyId: number }) {
               </thead>
               <tbody>
                 {sahifa.map(q => q.tur === 'rz' ? (
-                  <tr key={q.qator_id} className="bg-surface-2/70">
-                    <td colSpan={16} className="px-2 py-1.5 font-semibold text-text sticky left-0 bg-surface-2/70" style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }}>{q.nom}</td>
+                  <tr key={q.qator_id} className="bg-surface-2/70 text-right font-semibold text-text">
+                    <td colSpan={2} className="px-2 py-1.5 text-left sticky left-0 bg-surface-2/70" style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }}>{q.nom}</td>
+                    <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id) ? <FmtN val={rzJami.get(q.qator_id)!.smeta} /> : ''}</td>
+                    <td className="border-l border-border" />
+                    <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oldingi ? <FmtN val={rzJami.get(q.qator_id)!.oldingi} /> : '—'}</td>
+                    <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.joriy ? <FmtN val={rzJami.get(q.qator_id)!.joriy} /> : '—'}</td>
+                    <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.jami ? <FmtN val={rzJami.get(q.qator_id)!.jami} /> : '—'}</td>
+                    <td className="border-l border-border" /><td /><td />
                   </tr>
                 ) : (
                   (() => {
@@ -497,20 +520,20 @@ function Sessiya({ companyId }: { companyId: number }) {
                     return <tr key={q.qator_id} className="border-t border-border/60 hover:bg-surface-2/40 text-right">
                     <td className={'text-left px-2 py-1 sticky left-0 bg-surface ' + (q.tur === 'bl' ? 'font-medium' : '')} style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }} title={q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}</td>
                     <td className="text-center px-2 py-1">{q.birlik || '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums"><FmtN val={jamiHajmSafe(q)} /></td>
+                    <td className="px-2 py-1 border-l border-border tabular-nums"><FmtN val={jamiHajmSafe(q)} kasr={3} /></td>
                     <td className="px-2 py-1 tabular-nums">{q.smeta_narx == null ? '—' : <FmtN val={q.smeta_narx} />}</td>
                     <td className="px-2 py-1 tabular-nums"><FmtN val={q.smeta_summa ?? 0} /></td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.fakt_hajm ? <FmtN val={q.fakt_hajm} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums">{q.oldingi_hajm ? <FmtN val={q.oldingi_hajm} /> : '—'}</td>
+                    <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.fakt_hajm ? <FmtN val={q.fakt_hajm} kasr={3} /> : '—'}</td>
+                    <td className="px-2 py-1 border-l border-border tabular-nums">{q.oldingi_hajm ? <FmtN val={q.oldingi_hajm} kasr={3} /> : '—'}</td>
                     <td className="px-2 py-1 tabular-nums">{q.oldingi_summa ? <FmtN val={q.oldingi_summa} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums">{q.joriy_hajm ? <FmtN val={q.joriy_hajm} /> : '—'}</td>
+                    <td className="px-2 py-1 border-l border-border tabular-nums">{q.joriy_hajm ? <FmtN val={q.joriy_hajm} kasr={3} /> : '—'}</td>
                     <td className="px-2 py-1 tabular-nums">{q.joriy_hajm ? <FmtN val={Math.round((q.joriy_summa / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
                     <td className="px-2 py-1 tabular-nums">{q.joriy_summa ? <FmtN val={q.joriy_summa} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.jami_hajm ? <FmtN val={q.jami_hajm} /> : '—'}</td>
+                    <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.jami_hajm ? <FmtN val={q.jami_hajm} kasr={3} /> : '—'}</td>
                     <td className="px-2 py-1 tabular-nums">{q.jami_summa ? <FmtN val={q.jami_summa} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums">{ledger.smetaRemainingQuantity == null ? '—' : <FmtN val={ledger.smetaRemainingQuantity} />}</td>
-                    <td className={'px-2 py-1 tabular-nums font-medium ' + (ledger.overCertified ? 'text-danger' : '')}>{ledger.f2AvailableQuantity == null ? '—' : <FmtN val={ledger.f2AvailableQuantity} />}</td>
-                    <td className="px-2 py-1 tabular-nums">{ledger.contractualRemainingQuantity == null ? '—' : <FmtN val={ledger.contractualRemainingQuantity} />}</td>
+                    <td className="px-2 py-1 border-l border-border tabular-nums">{ledger.smetaRemainingQuantity == null ? '—' : <FmtN val={ledger.smetaRemainingQuantity} kasr={3} />}</td>
+                    <td className={'px-2 py-1 tabular-nums font-medium ' + (ledger.overCertified ? 'text-danger' : '')}>{ledger.f2AvailableQuantity == null ? '—' : <FmtN val={ledger.f2AvailableQuantity} kasr={3} />}</td>
+                    <td className="px-2 py-1 tabular-nums">{ledger.contractualRemainingQuantity == null ? '—' : <FmtN val={ledger.contractualRemainingQuantity} kasr={3} />}</td>
                   </tr>;
                   })()
                 ))}
