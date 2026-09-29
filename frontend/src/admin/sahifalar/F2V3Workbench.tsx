@@ -42,6 +42,16 @@ const BELGI: Record<KorinishHolat, { b: string; cls: string; t: string }> = {
   otkazildi: { b: '–', cls: 'text-text-mute', t: 'Aktga kiritilmaydi' },
 };
 
+/** Egasi 2026-09-29: har qator holatiga ko'ra rang — bir qarashda tushunarli (chap chiziq + och fon). */
+const QATOR_RANG: Record<KorinishHolat, string> = {
+  aniq: 'border-l-ok bg-ok/[0.06]',
+  xotira: 'border-l-ok bg-ok/[0.06]',
+  qolda: 'border-l-accent bg-accent/[0.07]',
+  taklif: 'border-l-warn bg-warn/[0.10]',
+  topilmadi: 'border-l-danger bg-danger/[0.08]',
+  otkazildi: 'border-l-border bg-transparent opacity-70',
+};
+
 type Tanlov = { f: F2Tugun; s: SmetaQator; tur: 'ish' | 'resurs' };
 
 function TreeControls(props: {
@@ -360,7 +370,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const rowOpen = t.bolalar.length > 0 && !yopiqF.has(t.uid);
     return (
       <div data-fuid={t.uid} role="group" aria-label={`F2 ${t.tur}: ${t.nom}`}
-        className={'flex items-center gap-1 rounded border px-1 py-0.5 ' + (sel ? 'border-accent bg-accent/10' : 'border-transparent hover:bg-surface-2/60')}
+        className={'flex items-center gap-1 rounded border border-l-[3px] px-1 py-0.5 ' + (sel ? 'border-accent bg-accent/15' : 'border-y-transparent border-r-transparent hover:brightness-110 ' + QATOR_RANG[k])}
         style={{ marginLeft: depth * 12 }}>
         {t.bolalar.length > 0
           ? <button type="button" className="shrink-0 text-text-mute" aria-label={rowOpen ? `F2 qatorni yopish: ${t.nom}` : `F2 qatorni ochish: ${t.nom}`}
