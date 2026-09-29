@@ -74,8 +74,10 @@ export function f2AggregatsiyaQator(
     if (!smetaId) return;
     const h = Number(n.hajm) || 0;
     const s = Number(n.summa) || 0;
-    const bor = n.summaYozilgan ? n.summa != null && Number.isFinite(Number(n.summa)) : !!s;
     const yangiNarx = n.narx != null && n.narx > 0 ? n.narx : undefined;
+    // Aniq yozilgan 0 — faqat narx bor bo'lsa haqiqiy summa (АРМАТУРА: narx × 0). Narx ham 0 bo'lsa
+    // (ЗАТРАТЫ ТРУДА МАШИНИСТОВ) — narx ataylab yo'q holati, yo'qoladigan pul yo'q.
+    const bor = n.summaYozilgan ? n.summa != null && Number.isFinite(Number(n.summa)) && (s !== 0 || yangiNarx != null) : !!s;
     const existing = map.get(smetaId);
     if (existing) {
       existing.hajm += h;

@@ -272,4 +272,11 @@ describe('F2 pre-approval audit — exceptions-only (LRV Control law, Section 3)
     const r = f2ExactPayloadQur(rows);
     expect(r.ok && r.qatorlar[0]).toMatchObject({ certifiedAmount: 0, certifiedUnitPrice: 7936451 });
   });
+
+  it('V3: narx 0 va summa 0 (ЗАТРАТЫ ТРУДА МАШИНИСТОВ) — narx ataylab yo‘q, to‘xtatmaydi', () => {
+    const rows = f2AggregatsiyaQator([{ uid: 'm', hajm: 71.79, narx: 0, summa: 0, summaYozilgan: true }], () => 1);
+    expect(rows[0].summaBor).toBe(false);
+    const r = f2ExactPayloadQur(rows);
+    expect(r.ok && r.qatorlar[0]).toMatchObject({ priceIntentionallyAbsent: true });
+  });
 });
