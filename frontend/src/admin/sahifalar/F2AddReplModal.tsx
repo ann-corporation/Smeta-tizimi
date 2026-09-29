@@ -34,6 +34,9 @@ export interface F2AddReplModalProps {
   /** Ish yaratilganda F2 dagi resurslari — BIR so'rovda birga yaratiladi (egasi: zamena kuttirmasin). */
   resurslar?: Array<{ tur: 'rs' | 'mat' | 'ob'; nom: string; birlik: string; hajm?: number | null; kod?: string | null }>;
   onCreated: (qatorId: number, resursQatorIdlar?: number[]) => void;
+  /** Qo'shimcha pozitsiya turi (egasi 2026-09-29, Karting АРМАТУРА): resurssiz «С» material ish
+   *  (bl) emas — smetadagi kabi material (mat, kategoriya МАТ) bo'lib yaratiladi. */
+  initialTur?: 'bl' | 'mat' | 'ob';
 }
 
 const TUR_LABEL: Record<string, string> = { rs: 'Resurs (RS)', mat: 'Material (MAT)', ob: 'Uskuna (OB)' };
@@ -45,6 +48,8 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
   const [birlik, setBirlik] = useState(p.initialBirlik || '');
   const [hajm, setHajm] = useState(p.initialHajm != null ? String(+p.initialHajm.toPrecision(12)) : '');
   const [resTur, setResTur] = useState<'rs' | 'mat' | 'ob'>('rs');
+  /** Qo'shimcha: ish (bl) yoki razdel ostidagi material/uskuna pozitsiyasi. */
+  const [qTur, setQTur] = useState<'bl' | 'mat' | 'ob'>(p.initialTur ?? 'bl');
   const [sabab, setSabab] = useState(
     action.kind === 'replacement' ? 'F2 importda topilgan zamena' : 'F2 importda topilgan qo‘shimcha ish',
   );
@@ -86,7 +91,7 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
       const r = action.kind === 'replacement'
         ? await sbT2ZamenaIshYarat({ ...asos, almashtirilayotganQatorId: action.oldRow.id })
         : action.kind === 'additional'
-          ? await sbT2QoshimchaIshYarat(asos)
+          ? (qTur === 'bl' ? await sbT2QoshimchaIshYarat(asos) : await sbT2ResursBolaQosh({ ...asos, tur: qTur, hajm: hajmSoni }))
           : await sbT2ResursBolaQosh({ ...asos, tur: resTur, hajm: hajmSoni });
       if (!r.ok || r.qator_id == null) { setError(r.xabar || r.error || 'Saqlanmadi.'); return; }
       p.onCreated(r.qator_id);
@@ -101,6 +106,17 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
           <h3 className="font-bold text-[15px] text-text">{sarlavha}</h3>
           <button onClick={p.onClose} className="text-text-mute hover:text-text" aria-label="Yopish"><X size={18} /></button>
         </div>
+        {action.kind === 'additional' && !resurslar.length && (
+          <label className="block text-sm mb-3">
+            <span className="text-text-dim text-[12px]">Pozitsiya turi</span>
+            <select value={qTur} onChange={e => setQTur(e.target.value as 'bl' | 'mat' | 'ob')}
+              className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500">
+              <option value="bl">Ish (resurssiz)</option>
+              <option value="mat">Material («С», kategoriya birlikdan)</option>
+              <option value="ob">Uskuna / oborudovaniye</option>
+            </select>
+          </label>
+        )}
         {action.kind === 'resource' && (
           <label className="block text-sm mb-3">
             <span className="text-text-dim text-[12px]">Turi</span>

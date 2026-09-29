@@ -207,6 +207,9 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<LoadingState>({ hierarchy: false, periods: false, documents: false });
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  /** Iyerarxiya qaysi kompaniya uchun HAQIQATAN yuklangan — undan oldin URL dagi obyekt tekshirilmaydi
+   *  (egasi 2026-09-29: ?obyekt=78 bo'sh ro'yxatda 'topilmadi' deb o'chib ketardi). */
+  const [yuklanganKompaniya, setYuklanganKompaniya] = useState<number | null>(null);
   const readyCompany = useRef<number | null>(null);
 
   const writeScope = useCallback((next: PtoScope) => {
@@ -265,6 +268,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
         }
         setProjects((projectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
         setObjects((objectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
+        setYuklanganKompaniya(companyId);
       })
       .catch(() => {
         if (alive) setError('PTO iyerarxiyasini yuklab bo‘lmadi.');
@@ -276,7 +280,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   // URL IDs are accepted only after server lists prove they belong to the
   // active company/project. An invalid deep link is cleared, never guessed.
   useEffect(() => {
-    if (companyId == null || loading.hierarchy) return;
+    if (companyId == null || loading.hierarchy || yuklanganKompaniya !== companyId) return;
     const project = scope.projectId == null ? null : projects.find((row) => row.id === scope.projectId && row.kompaniya_id === companyId);
     const object = scope.objectId == null ? null : objects.find((row) => row.id === scope.objectId && row.kompaniya_id === companyId);
     const projectId = project?.id ?? null;
@@ -290,7 +294,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
       revisionId: objectId === scope.objectId ? scope.revisionId : null,
     };
     if (JSON.stringify(next) !== JSON.stringify(scope)) writeScope(next);
-  }, [companyId, loading.hierarchy, objects, projects, scope, writeScope]);
+  }, [companyId, loading.hierarchy, objects, projects, scope, writeScope, yuklanganKompaniya]);
 
   useEffect(() => {
     if (companyId == null || scope.objectId == null) {

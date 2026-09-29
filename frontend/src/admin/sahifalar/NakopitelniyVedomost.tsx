@@ -3,7 +3,7 @@ import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { sbOqi, sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
@@ -16,6 +16,7 @@ import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } f
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
+import { daraxtTartibida } from '../../lib/daraxt-tartibi';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 import { f3CertifiedHajm, f3CertifiedSources } from '../../lib/pto-document-lineage/f3-sources';
 
@@ -51,6 +52,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [xato, setXato] = useState('');
   const [page, setPage] = useState(0);
   const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
+  /** Zamena qatori → almashtirgan qator (daraxt tartibi uchun). */
+  const [almashtiradi, setAlmashtiradi] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     let active = true;
@@ -124,16 +127,23 @@ function Sessiya({ companyId }: { companyId: number }) {
     const currentRequest = ++requestId.current;
     setBusy(true); setXato('');
     try {
-      const [r, daraxt] = await Promise.all([
+      const [r, daraxt, zam] = await Promise.all([
         t2NakopitelniyToliq(objId, tanlanganDavr || null),
         sbT2DaraxtOl(objId, 'id,ota_id,daraja'),
+        // Zamena qatori almashtirgan qatoridan keyin turishi uchun (daraxt tartibi).
+        sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objId}&zamena=is.true`, ustunlar: 'id,replaces_line_id', limit: 20000 }).catch(() => null),
       ]);
       if (currentRequest !== requestId.current) return;
       if (!r.ok) { setXato(r.xato || r.code || 'Yuklanmadi'); setQatorlar([]); return; }
       const meta = new Map<number, { ota_id: number | null; daraja: number | null }>();
       if (daraxt.ok) for (const q of daraxt.qatorlar ?? []) meta.set(Number(q.id), { ota_id: q.ota_id ?? null, daraja: q.daraja ?? null });
       setTreeMeta(meta);
-      setQatorlar(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}) })));
+      const almashtiradi = new Map<number, number>();
+      if (zam?.ok) for (const z of zam.qatorlar ?? []) if (z.replaces_line_id != null) almashtiradi.set(Number(z.id), Number(z.replaces_line_id));
+      setAlmashtiradi(almashtiradi);
+      // Egasi 2026-09-29: qo'shimcha/zamena qatorlarining tartib raqami smeta oxirida — hujjatlar
+      // ularni oxirgi razdelga yozardi. Barcha hujjatlar shu ro'yxatdan: DARAXT tartibida.
+      setQatorlar(daraxtTartibida(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}) })), almashtiradi));
       setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
       setLoyihaId(r.obyekt.loyiha_id);
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
@@ -227,7 +237,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
-      return r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}) }));
+      return daraxtTartibida(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}) })), almashtiradi);
     } finally { setEksportBusy(false); }
   };
   const stavkaOl = (): number | null => {

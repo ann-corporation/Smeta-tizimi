@@ -811,6 +811,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           initialKod={modal.f.kod ?? undefined}
           initialBirlik={modal.f.birlik ?? undefined}
           initialHajm={modal.f.hajm ?? undefined}
+          initialTur={modal.f.tur === 'bl' && !modal.f.bolalar.length && /^С(\s|$|\d)/.test((modal.f.kod ?? '').trim()) ? 'mat' : 'bl'}
           onClose={() => setModal(null)}
           resurslar={modal.f.tur === 'bl' ? modal.f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })) : undefined}
           onCreated={(id, resIdlar) => { const f = modal.f; setModal(null); void p.onYaratildi(f, id, resIdlar); }}
