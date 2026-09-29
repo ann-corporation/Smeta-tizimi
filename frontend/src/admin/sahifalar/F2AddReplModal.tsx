@@ -43,7 +43,7 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
   const [nom, setNom] = useState(p.initialNom);
   const [kod, setKod] = useState(p.initialKod || '');
   const [birlik, setBirlik] = useState(p.initialBirlik || '');
-  const [hajm, setHajm] = useState(p.initialHajm != null ? String(p.initialHajm) : '');
+  const [hajm, setHajm] = useState(p.initialHajm != null ? String(+p.initialHajm.toPrecision(12)) : '');
   const [resTur, setResTur] = useState<'rs' | 'mat' | 'ob'>('rs');
   const [sabab, setSabab] = useState(
     action.kind === 'replacement' ? 'F2 importda topilgan zamena' : 'F2 importda topilgan qo‘shimcha ish',

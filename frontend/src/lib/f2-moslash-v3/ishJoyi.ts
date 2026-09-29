@@ -219,6 +219,7 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
   const imzolar = new Map<string, string>();
   const hal: string[] = [];
   const qiymatsiz: string[] = [];
+  const summasiz: string[] = [];
   const qisqa = (t: F2Tugun) => `«${(t.kod ? t.kod + ' ' : '') + t.nom.slice(0, 60)}» (${t.manzil.varaq}!${t.manzil.qator})`;
   for (const t of ind.qatorlar) {
     const k = korinish(ij, t.uid);
@@ -231,11 +232,16 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
     imzolar.set(t.uid, t.tur === 'rs' && ota ? f2Imzo(t, f2Imzo(ota)) : f2Imzo(t, t.yol.map(rzKalit).join('/')));
     // Resurslari bor ish — faqat hajm; pul uning resurslarida (ikki marta sanalmaydi).
     if (t.tur === 'bl' && !t.barg) nodes.push({ uid: t.uid, hajm: t.hajm, narx: undefined, summa: undefined, tur: 'bl' });
-    else nodes.push({ uid: t.uid, hajm: t.hajm, narx: t.narx, summa: t.summa, tur: t.tur });
+    else {
+      // Narxi bor-u hujjatda summasi bo'sh — pul to'qilmaydi: aniq qator nomi bilan to'xtatiladi.
+      if (t.narx != null && t.narx > 0 && t.summa == null) summasiz.push(qisqa(t));
+      nodes.push({ uid: t.uid, hajm: t.hajm, narx: t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null });
+    }
   }
   const toxtatish: string[] = [];
   if (hal.length) toxtatish.push(`${hal.length} ta qator hal qilinmagan (✕ yoki ◐): ${hal.slice(0, 5).join('; ')}${hal.length > 5 ? ' …' : ''}`);
   if (qiymatsiz.length) toxtatish.push(`${qiymatsiz.length} ta qatorda qiymat noma'lum (#REF! yoki bo'sh) — hujjatni tuzating yoki qatorni o'tkazib yuboring: ${qiymatsiz.slice(0, 5).join('; ')}${qiymatsiz.length > 5 ? ' …' : ''}`);
+  if (summasiz.length) toxtatish.push(`${summasiz.length} ta qatorda narx bor, lekin hujjatda summa bo'sh — summa to'qilmaydi, hujjatni tuzating yoki qatorni aktga kiritmang: ${summasiz.slice(0, 5).join('; ')}${summasiz.length > 5 ? ' …' : ''}`);
   if (!nodes.length && !toxtatish.length) toxtatish.push('Aktga kiradigan qator yo‘q.');
   return { nodes, mapping, toxtatish, imzolar };
 }

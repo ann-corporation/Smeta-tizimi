@@ -265,4 +265,11 @@ describe('F2 pre-approval audit — exceptions-only (LRV Control law, Section 3)
     }));
     expect(f2IstisnolarniAniqla(rows)).toEqual([]);
   });
+
+  it('V3: hujjatda ANIQ yozilgan 0 summa — haqiqiy qiymat (Karting АРМАТУРА), to‘xtatmaydi', () => {
+    const rows = f2AggregatsiyaQator([{ uid: 'a', hajm: 1.957, narx: 7936451, summa: 0, summaYozilgan: true }], () => 1);
+    expect(rows[0]).toMatchObject({ summaBor: true, summa: 0 });
+    const r = f2ExactPayloadQur(rows);
+    expect(r.ok && r.qatorlar[0]).toMatchObject({ certifiedAmount: 0, certifiedUnitPrice: 7936451 });
+  });
 });

@@ -165,7 +165,7 @@ export function exactWrite(nodes: F2ExactManbaTugun[], mapping: Map<string, numb
     }
     throw new Error(result.sabab === 'AMOUNT_WITHOUT_PRICE'
       ? `${result.noaniqSoni} qatorda summa bor, lekin birlik narxi yo‘q — bunday qator yozilsa summa yo‘qoladi. Narxni to‘ldiring yoki manbani tekshiring.`
-      : 'Hujjat summasi noaniq. Yozish to‘xtatildi.');
+      : `${result.noaniqSoni} ta smeta qatorida narx bor, lekin F2 summasi yo‘q yoki bo‘laklarning faqat bir qismida bor — summa to‘qilmaydi. Yozish to‘xtatildi.`);
   }
   return result.qatorlar;
 }

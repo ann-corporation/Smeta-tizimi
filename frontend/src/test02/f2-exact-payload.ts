@@ -28,6 +28,10 @@ export type F2ExactManbaTugun = {
    *  fallback'i shu maydonga tayanadi). Eski (bu maydon qo'shilishidan
    *  oldingi) qoralamalarda undefined bo'lishi mumkin. */
   tur?: string;
+  /** F2 V3 o'quvchisi: summa katagi hujjatda ANIQ yozilgan (bo'sh katak = null, shuning uchun
+   *  0 ham haqiqiy qiymat — masalan hujjat materialni 0 so'mga yozgan). Eski o'quvchilar bo'sh
+   *  katakni 0 qilgani uchun bu bayroqsiz 0 hamon "summa yo'q" (o'zgarmagan qoida). */
+  summaYozilgan?: boolean;
 };
 
 export type F2ExactQator = {
@@ -70,12 +74,13 @@ export function f2AggregatsiyaQator(
     if (!smetaId) return;
     const h = Number(n.hajm) || 0;
     const s = Number(n.summa) || 0;
+    const bor = n.summaYozilgan ? n.summa != null && Number.isFinite(Number(n.summa)) : !!s;
     const yangiNarx = n.narx != null && n.narx > 0 ? n.narx : undefined;
     const existing = map.get(smetaId);
     if (existing) {
       existing.hajm += h;
       existing.summa += s;
-      if (s) existing.summaBor = true; else existing.summasizBolak = (existing.summasizBolak ?? 0) + 1;
+      if (bor) existing.summaBor = true; else existing.summasizBolak = (existing.summasizBolak ?? 0) + 1;
       if (yangiNarx != null && !existing.barchaNarxlar.includes(yangiNarx)) {
         existing.barchaNarxlar.push(yangiNarx);
       }
@@ -85,8 +90,8 @@ export function f2AggregatsiyaQator(
         hajm: h,
         narx: yangiNarx,
         summa: s,
-        summaBor: !!s,
-        summasizBolak: s ? 0 : 1,
+        summaBor: bor,
+        summasizBolak: bor ? 0 : 1,
         barchaNarxlar: yangiNarx != null ? [yangiNarx] : [],
       });
     }
