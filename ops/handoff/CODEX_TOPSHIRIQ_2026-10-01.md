@@ -10,6 +10,10 @@ Repo: `ann-corporation/Smeta-tizimi` (GitHub). Supabase `tuoyrzadkgoltpqkdiyx`. 
    Vault ko'rinmasa — shu fayl va `ops/handoff/` yetarli.
 3. Ish tugagach: Obsidian `AGENT_LOG.md` (yuqoriga yangi yozuv), `CURRENT_STATE.md`, `HANDOFF.md` ni yangilang.
 
+## 0.1 Hamkorlik — Obsidian orqali
+
+Claude bilan **** orqali kelishing: ish boshlashdan oldin "Hozir kim nima qilyapti"ni yangilang, har push'dan keyin "Jurnal"ga bir qator, savol — "Savollar"ga, bir-biringiz commitlarini kuzating ("Kuzatuv"). Qoidalar o'sha qaydda.
+
 ## 1. Ish bo'linishi (fayllar KESISHMASIN)
 
 | Kim | Vazifa | Egallagan fayllar |
