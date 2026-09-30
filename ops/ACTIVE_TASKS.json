@@ -1804,6 +1804,32 @@
       ],
       "production_write_allowed": false,
       "_izoh": "EGASI_SINOV_2026-09-30 #13 davomi. Bog‘lash mavjud chiziqniBogla (sbMindmapBog, qoidalar, rol modali) orqali — yangi yozish yo‘li yo‘q. Namunaviy ma’lumotda brauzerda tekshirildi (3D va 2D bog‘lash, sozlamalar); real login bilan UNKNOWN."
+    },
+    {
+      "id": "T2-IJRO-AOSR-LAB-001",
+      "title": "C2: АОСР (ШНК 3.01.01-22 Прил.6) blank maydonlari + generator, laboratoriya (kontragent) protokollari, kompaniya logosi va kolontitul",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "2ad12c4",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261105100000_t2_ijro_aosr_lab_logo_v1.sql",
+        "supabase/migrations/20261105100000_t2_ijro_aosr_lab_logo_v1.rollback.sql",
+        "frontend/src/lib/aosr-export.ts",
+        "frontend/src/api/t2-aosr.ts",
+        "frontend/src/test02/TestAosr.tsx",
+        "frontend/src/lib/hujjat-yozuvchi/rasmiy.ts",
+        "frontend/functions/api/sb-yoz.ts (ijro bloki)",
+        "frontend/functions/api/sb.ts (ijro o‘qish ro‘yxati)"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "ops/handoff/IJRO_HUJJATLARI_T2_REJA_2026-09-25.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi 2026-09-30: migratsiyaga ruxsat, laboratoriya — alohida kompaniya (kontragent mavqe=laboratoriya). Migratsiya production’ga qo‘llandi 2026-10-01, funksiyalar rollback tranzaksiyada sinaldi. Codex bilan bo‘linish: ops/handoff/CODEX_TOPSHIRIQ_2026-10-01.md."
     }
   ]
 }

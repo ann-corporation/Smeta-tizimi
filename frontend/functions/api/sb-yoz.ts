@@ -97,6 +97,13 @@ const AMALLAR = {
   aosr_bekor: { rpc: 't2_aosr_bekor' },
   aosr_bog_saqla: { rpc: 't2_aosr_bog_saqla' },
   aosr_bog_ochir: { rpc: 't2_aosr_bog_ochir' },
+  /* Ijro hujjatlari v2 (2026-10-01): АОСР to'liq blank maydonlari, laboratoriya
+     protokollari (laboratoriya — kontragent), kompaniya logosi. */
+  aosr_yoz_v2: { rpc: 't2_aosr_yoz_v2' },
+  lab_protokol_yoz: { rpc: 't2_lab_protokol_yoz_v1' },
+  lab_protokol_bekor: { rpc: 't2_lab_protokol_bekor_v1' },
+  lab_protokol_bog_saqla: { rpc: 't2_lab_protokol_bog_saqla_v1' },
+  kompaniya_logo_saqla: { rpc: 't2_kompaniya_logo_saqla_v1' },
   audit_yoz: { rpc: 't2_audit_yoz' },
   hujjat_yoz: { rpc: 't2_obyekt_hujjat_yoz' },
   hujjat_ochir: { rpc: 't2_obyekt_hujjat_ochir' },
@@ -1220,6 +1227,75 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'aosr_id yoki qator_id noto\'g\'ri' });
       }
       yuk = { p_aosr_id: aosrId, p_qator_id: qatorId };
+
+    /* ══════════ IJRO HUJJATLARI v2 (АОСР, laboratoriya, logo) ══════════
+       kompaniya_id MAJBURIY — yuqoridagi a'zolik tekshiruvi shu orqali ishlaydi;
+       RPC obyekt shu kompaniyaga tegishliligini qayta tekshiradi. */
+    } else if (amal === 'aosr_yoz_v2' || amal === 'lab_protokol_yoz') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = Number(so.obyekt_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(obyektId) || obyektId <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id va obyekt_id majburiy' });
+      }
+      const id = so.id ? Number(so.id) : null;
+      if (!id && !uuidRe.test(operationId)) {
+        return Response.json({ ok: false, error: 'operation_id (UUID) majburiy — usiz takroriy so\'rov ikkinchi yozuv yaratadi' });
+      }
+      const m = so.malumot && typeof so.malumot === 'object' && !Array.isArray(so.malumot) ? so.malumot : {};
+      const toza: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(m)) {
+        if (k === 'komissiya') {
+          if (!Array.isArray(v) || v.length > 20) return Response.json({ ok: false, error: 'komissiya ro\'yxati noto\'g\'ri' });
+          toza[k] = v.map((x: any) => ({
+            rol: String(x?.rol ?? '').slice(0, 60), tashkilot: String(x?.tashkilot ?? '').slice(0, 300),
+            fio: String(x?.fio ?? '').slice(0, 200), lavozim: String(x?.lavozim ?? '').slice(0, 200),
+          }));
+        } else if (v === null || typeof v === 'number') {
+          toza[k] = v;
+        } else {
+          toza[k] = String(v).slice(0, 4000);
+        }
+      }
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_malumot: toza,
+        p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
+        p_operation_id: id ? null : operationId, p_kim: sess.email || '',
+      };
+
+    } else if (amal === 'lab_protokol_bekor') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const id = Number(so.id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(id) || id <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id va id majburiy' });
+      }
+      yuk = { p_kompaniya_id: kompaniyaId, p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya) };
+
+    } else if (amal === 'lab_protokol_bog_saqla') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const id = Number(so.protokol_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(id) || id <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id va protokol_id majburiy' });
+      }
+      const sonlar = (x: unknown, n: number) => (Array.isArray(x) ? x.slice(0, n).map(Number).filter((v) => Number.isInteger(v) && v > 0) : []);
+      yuk = { p_kompaniya_id: kompaniyaId, p_protokol_id: id, p_aosr_ids: sonlar(so.aosr_ids, 200), p_qator_ids: sonlar(so.qator_ids, 1000) };
+
+    } else if (amal === 'kompaniya_logo_saqla') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id majburiy' });
+      }
+      if (!Array.isArray(sess.kompaniyalar) ||
+          !sess.kompaniyalar.some((a) => a.kompaniya_id === kompaniyaId && (a.rol === 'boss' || a.rol === 'superadmin' || a.rol === 'admin'))) {
+        return Response.json({ ok: false, error: 'Logoni faqat kompaniya rahbariyati (boss/admin) o\'zgartiradi' }, { status: 403 });
+      }
+      const data = so.data_b64 == null ? null : String(so.data_b64);
+      if (data !== null && (data.length > 409600 || !/^[A-Za-z0-9+/=]+$/.test(data))) {
+        return Response.json({ ok: false, error: 'Logo ma\'lumoti noto\'g\'ri yoki juda katta (≤ 300 KB)' });
+      }
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_mime: so.mime ? String(so.mime) : null, p_data_b64: data,
+        p_sha256: so.sha256 ? String(so.sha256).slice(0, 64) : null, p_kim: sess.email || '',
+      };
 
     /* ══════════ AUDIT LOG ══════════
        ⚠️ Log yozuvi — idempotentlik shart emas (ikkilanib yozilishi
