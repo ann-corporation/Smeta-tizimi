@@ -29,7 +29,7 @@
 
 ## A — Suniy Ko‘l import dublikatlari
 
-Yakuniy A source-ready commit: `TBD` (ushbu fayl keyingi checkpointda aniq SHA bilan yangilanadi).
+Yakuniy A source-ready commit: `cc0a9f1` (remote branchga push qilingan; branch HEAD shu SHA).
 
 Aniqlangan xavf: obyektga import first-import-only bo‘lsa ham, source hujjat darajasidagi aniq preflight yo‘q edi; yangi `operation_id` bilan takroriy urinish umumiy `SMETA_ALREADY_EXISTS`ga tushardi. `ВЕДОМОСТЬ РЕСУРСОВ` esa mavjud anatomiya kontraktida ish daraxtidan chiqariladi, lekin buni import dublikat acceptance bilan birga regressiyada ushlab turish kerak.
 
@@ -47,7 +47,7 @@ Kiritilgan:
 
 1. `20261105110000_t2_resurs_kategoriya_bez_sklad_v1.sql` va `20261105120000_t2_smeta_import_dublikat_guard_v1.sql`ni faqat Claude Supabase MCP orqali tranzaksion production/staging tartibida qo‘llaydi va acceptance fayllarini ishga tushiradi.
 2. A acceptance dry-run Suniy Ko‘l obyekt 84 bo‘yicha candidate ro‘yxatini chiqaradi; hech bir mavjud qatorni avtomatik o‘chirish/merge qilishga ruxsat yo‘q.
-3. Remote branch rebase qilingan commit bilan push qilinadi; final SHA va Obsidian jurnaliga yoziladi.
+3. Remote branch `codex/20261001-site-map-bez-sklad-suniy-kol` `cc0a9f1` bilan push qilindi; exact SHA va testlar Obsidian AGENT_LOG/CURRENT_STATE/HANDOFF/KOORDINATSIYAga yozildi.
 
 ## Production
 
