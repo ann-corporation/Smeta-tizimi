@@ -17,6 +17,7 @@ const RPC = {
 /** Agent → ishchi RPC (faqat o'qib tahlil qiladi; biznes ma'lumotiga yozmaydi). */
 const ISHCHILAR: Record<string, string> = {
   quality_handover: 't2_agent_ishchi_sifat_v1',
+  pto_smeta: 't2_agent_ishchi_narx_audit_v1',
 };
 
 async function actor(ctx: any): Promise<{ actorId: number } | Response> {
