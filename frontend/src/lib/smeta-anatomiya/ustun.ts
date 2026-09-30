@@ -7,7 +7,9 @@ import type { Katak, UstunXaritasi } from './turlar';
  * sarlavhaga qo'shilmaydi — oferta parseridagi "kod ustunidagi ЦЕНА narx
  * ustuni bo'lib qoldi" xatosi shu chegara yo'qligidan edi.
  */
-const NOM = /НАИМЕНОВАН|NOMI\b/;
+// ^RESURS$ — tizimning o'z RESURS_VEDOMOST eksporti ("Kategoriya | Kod | Resurs | Birlik | Smeta hajm | Smeta summa").
+// Kirillcha "РЕСУРС" ba'zi shablonlarda KOD ustuni — shuning uchun faqat lotincha.
+const NOM = /НАИМЕНОВАН|NOMI\b|^RESURS$/;
 const QIDIRUV_CHEGARASI = 60;
 
 /** `1 | 2 | 3 | 4 …` — ketma-ket butun sonlar qatori (kamida 4 ta). Real F2 larda
@@ -95,10 +97,10 @@ export function ustunXaritasi(blok: SarlavhaBloki): UstunXaritasi {
   // Nom sarlavhasi ham "…и его масса, на единицу…" kabi so'zlarni o'z ichiga olishi mumkin (ЛРВ .xls) —
   // miqdor ustuni nom ustuniga tushmasin.
   const hajmBirlikka = ol(birinchi(s, /НА\.? ?ЕД|НА ЕДИНИЦУ|BIRLIGI BO.?YICHA|(?:ҲАЖМ|HAJM)\s*\(?\s*(?:ЕД|ED)(?:\s|\)|$)/, new RegExp(`${PUL.source}|${NOM.source}`), band));
-  const hajmLoyiha = ol(birinchi(s, /ПО ПРОЕКТ|LOYIHA BO.?YICHA|НА ВЕСЬ ОБЪЕМ|КОЛ-?ВО|КОЛИЧЕСТВ|MIQDOR|(?:ҲАЖМ|HAJM).*?(?:ЖАМИ|ЖАМИЙ|JAMI)|^(?:ҲАЖМ|HAJM)\b/, /ЦЕНА|СТОИМ|НАРХ|БАҲО|NARX|НАИМЕНОВАН|NOMI\b/, band));
+  const hajmLoyiha = ol(birinchi(s, /ПО ПРОЕКТ|LOYIHA BO.?YICHA|НА ВЕСЬ ОБЪЕМ|КОЛ-?ВО|КОЛИЧЕСТВ|MIQDOR|(?:ҲАЖМ|HAJM).*?(?:ЖАМИ|ЖАМИЙ|JAMI)|^(?:ҲАЖМ|HAJM)\b|^SMETA HAJM/, /ЦЕНА|СТОИМ|НАРХ|БАҲО|NARX|НАИМЕНОВАН|NOMI\b/, band));
   const nom = ol(birinchi(s, NOM, undefined, band));
   const tartib = ol(birinchi(s, /^(№|N П|NN|№№)|^N$/, undefined, band));
-  const shifr = ol(birinchi(s, /ШИФР|ОБОСНОВ|ASOS|^РЕСУРС$|^КОД/, undefined, band));
+  const shifr = ol(birinchi(s, /ШИФР|ОБОСНОВ|ASOS|^РЕСУРС$|^КОД|^KOD$/, undefined, band));
   const birlik = ol(birinchi(s, /ЕД\.? ?ИЗМ|ЕДИНИЦА ИЗМ|O.?LCHOV|BIRLIK/, /КОЛИЧ|КОЛ-?ВО|MIQDOR|BO.?YICHA/, band));
   const narx = ol(birinchi(s, /ЦЕНА|НАРХ|БАҲО|NARX|СТОИМОСТЬ ЕД|ЕДИНИЦЫ$|СТОИМ.*НА\.? ?ЕД/, /ВСЕГО|ОБЩ|ВЕСЬ/, band));
   const summa = ol(birinchi(s, /СУММА|SUMMA|ВСЕГО|НА ВЕСЬ|СТОИМ|ОБЩАЯ/, undefined, band));

@@ -156,6 +156,10 @@ function rolAniqla(nom: string, blok: SarlavhaBloki | null, rows: readonly Katak
   if (/ЗАТРАТ|ОБЪЕКТОВ И СМЕТ/.test(sarlavha) || /СВОД|^ФОРМА$/.test(n)) {
     return { rol: 'svod', dalil: [...dalil, { qoida: 'sarlavha', ishonch: 'yuqori', izoh: 'svod: xarajat moddalari' }] };
   }
+  // Tizimning o'z RESURS_VEDOMOST eksporti: "Kategoriya | Kod | Resurs | Birlik | Smeta hajm | Smeta summa | F2 … | Qoldiq …".
+  if (blok && /(^| \| )RESURS( \| |$)/.test(sarlavha) && /HAJM/.test(sarlavha) && /SUMMA/.test(sarlavha)) {
+    return { rol: 'res', dalil: [...dalil, { qoida: 'sarlavha', ishonch: 'yuqori', izoh: 'tizim RESURS_VEDOMOST eksporti: resurs + hajm + summa ustunlari' }] };
+  }
   if (blok && /КОЛ|MIQDOR/.test(sarlavha) && /ЦЕНА|СТОИМ|СУММА|NARX/.test(sarlavha)) {
     return { rol: 'res', dalil: [...dalil, { qoida: 'sarlavha', ishonch: nomRes || /РЕСУРС/.test(sarlavha) ? 'yuqori' : 'orta', izoh: 'nom + miqdor + narx ustunlari' }] };
   }
@@ -506,6 +510,8 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       const boshShablon = !nomBor && bosh(ol(row, u.birlik)) && butunTartib(tartibKatak)
         && jadvalda.length > 0 && jadvalda.every((i) => son(row[i]) === 0);
       if (boshShablon) continue;
+      // Kategoriya guruhi yig'indisi bilan: "ЧЕЛ (1 resurs) | … | =SUM(F3:F3)" (tizim RESURS_VEDOMOST eksporti).
+      if (!nomBor && bosh(ol(row, u.birlik)) && /^(ЧЕЛ|МАШ|МАТ|ОБ|КАБ|М\/К)(\s|\(|$)/.test(bk)) { guruh = birinchiMatn; continue; }
       // "ИТОГО" yozuvi o'chirilgan jami qatori: nom bo'sh, birlik "СУМ" (Amfiteatr "9-Этаж" 8-qator).
       if (!nomBor && /^СУМ\.?$/.test(kalit(ol(row, u.birlik)))) {
         const jq = jamiQiymatiniOl(row, r);

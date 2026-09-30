@@ -1594,7 +1594,10 @@
         "frontend/src/lib/smeta-source-analysis.ts",
         "frontend/src/admin/sahifalar/SmetaYuklaNative.tsx",
         "ops/ACTIVE_TASKS.json",
-        "frontend/src/lib/res-narxlash.ts"
+        "frontend/src/lib/res-narxlash.ts",
+        "frontend/src/lib/tender-oferta-parser.ts",
+        "frontend/src/lib/smeta-anatomiya/ustun.ts",
+        "frontend/src/lib/smeta-anatomiya/varaq.test.ts"
       ],
       "depends_on": [
         "SMETA-ANAT-001"
@@ -1604,7 +1607,7 @@
         "docs/architecture/SMETA_ANATOMIYA_V1.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Egasi C4: bitta modul smetani tushunadi, qolganlar faqat shuni ishlatadi. Eski treeBuild/columnDetect/ball evristikasi faqat zaxira (operator ustunni qo‘lda o‘zgartirsa yoki anatomiya varaqni tanimasa). Korpus: 136 LRV varaqdan 132 tasi anatomiyadan; qolgan 4 — smeta emas. Keyingi: F2ImportNative, OfertaNative, SmetaNarxlashResNative, res-narxlash RES o‘qishi. 2-bosqich: RES narxlash ustunlari anatomiyadan (eski detektor 183 ta ustun-raqamlash qatorini soxta narx deb olardi)."
+      "_izoh": "Egasi C4: bitta modul smetani tushunadi, qolganlar faqat shuni ishlatadi. Eski treeBuild/columnDetect/ball evristikasi faqat zaxira (operator ustunni qo‘lda o‘zgartirsa yoki anatomiya varaqni tanimasa). Korpus: 136 LRV varaqdan 132 tasi anatomiyadan; qolgan 4 — smeta emas. Keyingi: F2ImportNative, OfertaNative, SmetaNarxlashResNative, res-narxlash RES o‘qishi. 2-bosqich: RES narxlash ustunlari anatomiyadan (eski detektor 183 ta ustun-raqamlash qatorini soxta narx deb olardi). 3-bosqich: oferta RES ustunlari anatomiyadan (real oferta fayllarida resurs soni o‘zgarmadi); anatomiya tizimning RESURS_VEDOMOST eksportini taniydi."
     }
   ]
 }

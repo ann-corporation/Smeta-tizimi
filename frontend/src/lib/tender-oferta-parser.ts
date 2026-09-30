@@ -2,7 +2,8 @@ import type { SheetGrid, XlsxWorkbook } from './f2-import-parse';
 import type { T2ResursKategoriya } from '../api/supabase';
 import type { OfertaKategoriya, OfertaKategoriyaManbasi, OfertaMalumKategoriya, OfertaQator, OfertaRol } from './tender-oferta';
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from './res-kategoriya';
-import { sarlavhaBlokiniTop, uchlikniMoslashtir, ustunXaritasi, type UstunXaritasi } from './smeta-anatomiya';
+import { sarlavhaBlokiniTop, uchlikniMoslashtir, ustunXaritasi, type Katak, type UstunXaritasi } from './smeta-anatomiya';
+import { varaqniTahlilQil } from './smeta-anatomiya/varaq';
 
 export type OfertaSheetRole = 'res' | 'lrv' | 'transport' | 'unknown';
 export type OfertaSheetConfidence = 'yuqori' | 'o‘rta' | 'past';
@@ -537,6 +538,27 @@ function primaryDuplicateSheet(left: OfertaSheetTahlili, right: OfertaSheetTahli
   return score(left) >= score(right) ? left : right;
 }
 
+/**
+ * Anatomiya RES deb tanigan varaqning ustunlari (oferta shaklida). Korpus: oferta detektori
+ * ЛРВ .xls da nom sarlavhasini birlik deb olardi; tizimning RESURS_VEDOMOST eksporti ham
+ * anatomiyada taniladi. Rol RES emas yoki nom/birlik/narx-summa yo'q bo'lsa — null (oferta detektori).
+ */
+function anatomiyaResUstunlari(nom: string, rows: SheetGrid): OfertaResursUstunlar | null {
+  try {
+    const v = varaqniTahlilQil(nom, { nom, rows: rows as Katak[][] });
+    const u = v.ustunlar;
+    if (v.rol !== 'res' || !u || u.nom < 0 || u.birlik < 0 || (u.narx < 0 && u.summa < 0)) return null;
+    return {
+      tartib: u.tartib, shifr: u.shifr, nom: u.nom, birlik: u.birlik,
+      hajm: u.hajmLoyiha >= 0 ? u.hajmLoyiha : u.hajmBirlikka,
+      smetaNarx: u.narx, smetaSumma: u.summa,
+      sarlavhaBoshlanishi: u.sarlavhaQatori, malumotBoshlanishi: u.malumotBoshi,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Anatomiya ustun xaritasi ↔ Oferta ustunlari solishtiruvi (faqat dalil — natijaga ta'sir qilmaydi). */
 export function anatomiyaSolishtir(rows: SheetGrid, ustunlar: OfertaResursUstunlar | null): NonNullable<OfertaSheetTahlili['anatomiya']> {
   const blok = sarlavhaBlokiniTop(rows);
@@ -554,11 +576,14 @@ export function ofertaResursVaraqlariniAniqla(workbook: XlsxWorkbook): OfertaShe
   const analyses: OfertaSheetTahlili[] = workbook.sheets.map((sheet) => {
     const rows = safeRows(workbook.sheet(sheet.name)?.rows ?? sheet.rows);
     const evidenceData = evidenceFor(rows, sheet.name);
-    const ustunlar = findHeaders(rows);
+    // C4: RES varag'i ustunlari yagona anatomiyadan; anatomiya RES deb tanimasa — oferta detektori.
+    const anatUstun = anatomiyaResUstunlari(sheet.name, rows);
+    const ustunlar = anatUstun ?? findHeaders(rows);
     // PTO qo'shgan/o'zgartirgan ustunlar: hajm/narx/summa uchligi ma'lumot
     // bilan isbotlanadi (hajm × narx ≈ summa) — sarlavha faqat nomzod.
+    // Anatomiya ustunlari buni o'zi ichida isbotlagan.
     let ustunDalil: ReturnType<typeof uchlikniMoslashtir> | null = null;
-    if (ustunlar) {
+    if (ustunlar && !anatUstun) {
       const blok = sarlavhaBlokiniTop(rows);
       const kenglik = maxCols(rows);
       const matnlar = blok?.sarlavhalar ?? Array.from({ length: kenglik }, (_, c) => columnHeader(rows, ustunlar.sarlavhaBoshlanishi, ustunlar.malumotBoshlanishi - 1, c));

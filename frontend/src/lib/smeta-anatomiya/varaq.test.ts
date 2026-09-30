@@ -110,6 +110,24 @@ describe('varaq anatomiyasi', () => {
     expect(v.ishlar[0].resurslar[0]).toMatchObject({ xom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', normaBirlikka: 12.86, hajm: 0.69701 });
   });
 
+  it('tizimning o‘z RESURS_VEDOMOST eksporti (lotincha sarlavha, kategoriya guruhi yig‘indi bilan) — RES', () => {
+    const rows: Katak[][] = [
+      ['Kategoriya', 'Kod', 'Resurs', 'Birlik', 'Smeta hajm', 'Smeta summa', 'F2 hajm', 'F2 summa'],
+      ['ЧЕЛ (1 resurs)', null, null, null, null, 3000, null, 0],
+      [null, '1', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'ЧЕЛ.-Ч', 30, 3000, 0, 0],
+      ['МАШ (1 resurs)', null, null, null, null, 2000, null, 0],
+      [null, '112', 'АВТОПОГРУЗЧИКИ 5 Т', 'МАШ.-Ч', 4, 2000, 0, 0],
+    ];
+    const v = kitobAnatomiyasi({ fayl: 'k.xlsx', varaqlar: [{ nom: 'RESURS_VEDOMOST', rows }] }).varaqlar[0];
+    expect(v.rol).toBe('res');
+    expect(v.ustunlar).toMatchObject({ shifr: 1, nom: 2, birlik: 3, hajmLoyiha: 4, summa: 5 });
+    expect(v.vedomost.map((r) => [r.xom, r.guruh, r.hajm, r.summa])).toEqual([
+      ['ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'ЧЕЛ (1 resurs)', 30, 3000],
+      ['АВТОПОГРУЗЧИКИ 5 Т', 'МАШ (1 resurs)', 4, 2000],
+    ]);
+    expect(v.review).toEqual([]);
+  });
+
   it('RES ro‘yxati № ustunisiz, ИТОГО yozuvi o‘chgan jami va bo‘sh shablon qatorlari (Amfiteatr)', () => {
     const rows: Katak[][] = [
       ['НАИМЕНОВАНИЕ', 'ЕД. ИЗМ.', 'КОЛ-ВО', 'ЦЕНА ЗА ЕД.', 'СУММА (сум)'],
