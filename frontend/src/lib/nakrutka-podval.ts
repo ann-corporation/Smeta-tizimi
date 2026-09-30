@@ -7,8 +7,11 @@ import { yaxlit2, type Qiymat, type RasmiyVaraq } from './hujjat-yozuvchi';
  * к оплате narxi — to'liq nakrutkalari bilan; hujjat oxirida nakrutka podvali".
  *
  * Kaskad server `t2_nakrutka_hisob` bilan AYNAN bir xil (20261014090000):
- *   pryamye = ЧЕЛ + МАШ + МАТ + ОБ (МАТ bucket = МАТ + КАБ + М/К)
- *   tr_mat  = (МАТ + М/К) × ТРАНСПОРТ_МАТЕРИАЛ
+ *   pryamye = ЧЕЛ + МАШ + МАТ + ОБ (МАТ bucket = МАТ + КАБ + М/К + БЕЗ СКЛАД)
+ *   tr_mat  = (МАТ + М/К + БЕЗ СКЛАД) × ТРАНСПОРТ_МАТЕРИАЛ
+ *   БЕЗ СКЛАД (egasi 2026-10-01: omborda saqlanmaydigan, darhol ishlatiladigan —
+ *   tovar beton, qorishma, rastvor, asfaltobeton) — transport OLADI, ombor ustamasi OLMAYDI
+ *   (server: skl_mat = (mat − bez − mk) × k).
  *   skl_mat = (МАТ + КАБ) × СКЛАДСКИЕ_МАТЕРИАЛ;  skl_mk = М/К × СКЛАДСКИЕ_МК
  *   tr_kab  = КАБ × ТРАНСПОРТ_КАБЕЛЬ
  *   ИТОГО-1 = pryamye − ОБ + tr_mat + skl_mat + skl_mk + tr_kab
@@ -25,7 +28,7 @@ import { yaxlit2, type Qiymat, type RasmiyVaraq } from './hujjat-yozuvchi';
  * formula, qator "к оплате" — koeffitsient katagiga havola. `$` yo'q.
  */
 
-export const NAKRUTKA_KATLAR = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К'] as const;
+export const NAKRUTKA_KATLAR = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К', 'БЕЗ СКЛАД'] as const;
 export type NakrutkaKat = typeof NAKRUTKA_KATLAR[number];
 export type KatSummalar = Record<NakrutkaKat, number>;
 
@@ -36,11 +39,13 @@ const KAT_NOMI: Record<NakrutkaKat, string> = {
   ОБ: 'Прямые затраты: оборудование (ОБ)',
   КАБ: 'Прямые затраты: кабели и провода (КАБ)',
   'М/К': 'Прямые затраты: металлоконструкции (М/К)',
+  'БЕЗ СКЛАД': 'Прямые затраты: материалы без складского хранения (БЕЗ СКЛАД)',
 };
 
 /** Qatorning kategoriyasi (noma'lum — null: к оплате hisoblanmaydi, diqqatga). */
 export function nakrutkaKat(kat: string | null | undefined): NakrutkaKat | null {
-  const k = (kat ?? '').trim().toUpperCase();
+  const k = (kat ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
+  if (k === 'БЕЗСКЛАД' || k === 'БЕЗ_СКЛАД' || k === 'BEZ_SKLAD') return 'БЕЗ СКЛАД';
   return (NAKRUTKA_KATLAR as readonly string[]).includes(k) ? (k as NakrutkaKat) : null;
 }
 
@@ -59,6 +64,7 @@ export function kategoriyaKf(nk: Partial<NakrutkaKoeffitsientlar>): Record<Nakru
     ОБ: (1 + pc(nk, 'ТРАНСПОРТ_ОБОРУД') + pc(nk, 'ЗАГОТ_СКЛАД_ОБОРУД')) * sr * n,
     КАБ: (1 + pc(nk, 'СКЛАДСКИЕ_МАТЕРИАЛ') + pc(nk, 'ТРАНСПОРТ_КАБЕЛЬ')) * q,
     'М/К': (1 + pc(nk, 'ТРАНСПОРТ_МАТЕРИАЛ') + pc(nk, 'СКЛАДСКИЕ_МК')) * q,
+    'БЕЗ СКЛАД': (1 + pc(nk, 'ТРАНСПОРТ_МАТЕРИАЛ')) * q,
   };
 }
 
@@ -100,8 +106,9 @@ export type NakrutkaHisobJS = Record<string, number> & { pryamye: number; vsego:
 export function nakrutkaKaskadJS(s: KatSummalar, nk: Partial<NakrutkaKoeffitsientlar>): NakrutkaHisobJS {
   const y = yaxlit2;
   const r: Record<string, number> = {};
-  r.pryamye = y(s.ЧЕЛ + s.МАШ + s.МАТ + s.ОБ + s.КАБ + s['М/К']);
-  r.tr_mat = y((s.МАТ + s['М/К']) * pc(nk, 'ТРАНСПОРТ_МАТЕРИАЛ'));
+  const bez = s['БЕЗ СКЛАД'] ?? 0;
+  r.pryamye = y(s.ЧЕЛ + s.МАШ + s.МАТ + s.ОБ + s.КАБ + s['М/К'] + bez);
+  r.tr_mat = y((s.МАТ + s['М/К'] + bez) * pc(nk, 'ТРАНСПОРТ_МАТЕРИАЛ'));
   r.skl_mat = y((s.МАТ + s.КАБ) * pc(nk, 'СКЛАДСКИЕ_МАТЕРИАЛ'));
   r.skl_mk = y(s['М/К'] * pc(nk, 'СКЛАДСКИЕ_МК'));
   r.tr_kab = y(s.КАБ * pc(nk, 'ТРАНСПОРТ_КАБЕЛЬ'));
@@ -196,7 +203,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
       const K = (kat: NakrutkaKat) => `${col}${katQ[kat]}`;
       const Q = (kod: string) => `${col}${q[kod]}`;
       switch (k.kod) {
-        case 'tr_mat': return `ROUND((${K('МАТ')}+${K('М/К')})*${F}/100,2)`;
+        case 'tr_mat': return `ROUND((${K('МАТ')}+${K('М/К')}+${K('БЕЗ СКЛАД')})*${F}/100,2)`;
         case 'skl_mat': return `ROUND((${K('МАТ')}+${K('КАБ')})*${F}/100,2)`;
         case 'skl_mk': return `ROUND(${K('М/К')}*${F}/100,2)`;
         case 'tr_kab': return `ROUND(${K('КАБ')}*${F}/100,2)`;
@@ -232,6 +239,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
     ОБ: `(1+${P('tr_ob')}+${P('zag_ob')})*(1+${P('strax')}+${P('risk')})*(1+${P('nds')})`,
     КАБ: `(1+${P('skl_mat')}+${P('tr_kab')})*${umumiy}`,
     'М/К': `(1+${P('tr_mat')}+${P('skl_mk')})*${umumiy}`,
+    'БЕЗ СКЛАД': `(1+${P('tr_mat')})*${umumiy}`,
   };
   v.qator('jami', row((c) => { c[mc] = 'Коэффициенты пересчета прямых затрат в стоимость к оплате (по видам затрат)'; }));
   for (const k of NAKRUTKA_KATLAR) {
