@@ -1810,9 +1810,9 @@
       "title": "C: koddan yig‘iladigan sayt xaritasi; B: БЕЗ СКЛАД resurs kategoriyasi; A: Suniy Ko‘l import dublikatlari uchun tizimli himoya",
       "owner": "codex",
       "machine": "pc-ishxona",
-      "branch": "codex/20261001-site-map-bez-sklad-suniy-kol",
-      "base_sha": "2950e12704083d4e2b1fbdecc20ab790c9aa4a6a",
-      "status": "in_progress",
+      "branch": "codex/20261001-site-map-bez-sklad-suniy-kol-current",
+      "base_sha": "62947e3b97ab968b176a468bf3111c39bab66eb2",
+      "status": "merged",
       "owns": [
         "frontend/src/lib/sayt-xaritasi/",
         "frontend/src/admin/sahifalar/SaytXaritasi.tsx",
@@ -1844,7 +1844,7 @@
         "D:/Obsidian/Anvar_Brain/20_PROJECTS/Smeta-tizimi/SMETA_ANATOMIYA.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "C→B→A source-ready. C main 7ef8a6a ichida; B/A migratsiyalari productionga qo‘llanmagan va acceptance Claude zimmasida. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmaydi."
+      "_izoh": "C→B→A integratsiya qilingan. C/B/A kodlari origin/main tarixida bor; B 20261105160000 va A 20261105170000 migrationlari Claude main integratsiya commitida ko'rsatilgan. Production/runtime acceptance mustaqil Codex sessiyasida qayta tekshirilmagan (UNKNOWN); mavjud qatorlar uchun delete/merge bajarilmagan. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmagan."
     },
     {
       "id": "T2-IJRO-AOSR-LAB-001",

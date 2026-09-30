@@ -1,5 +1,16 @@
 # T2-SAYT-BEZSKLAD-SUNIY-KOL — checkpoint
 
+> **LATEST INTEGRATED STATE (2026-10-01):** `origin/main @ 62947e3b97ab968b176a468bf3111c39bab66eb2` C/B/A kodlarini o‘z ichiga oladi. Claude main integratsiya commiti (`c7908ba`) B/A production qo‘llanganini bildiradi, lekin bu Codex sessiyasida Supabase runtime acceptance qayta mustaqil tekshirilmagan — `UNKNOWN`. Suniy Ko‘l mavjud qatorlarini delete/merge qilish bajarilmagan.
+
+## Latest integration record
+
+- Codex branch: `codex/20261001-site-map-bez-sklad-suniy-kol-current` (metadata checkpoint yangi main ustiga qayta yoziladi).
+- C: code-generated manifest, `/admin/sayt-xaritasi`, route/read/write oracle; current source test `62/62 PASS`.
+- B: `БЕЗСКЛАД` classifier/API/UI va `20261105160000_t2_resurs_kategoriya_bez_sklad_v1.sql` (+ rollback/acceptance).
+- A: source/object import guard, idempotency/advisory lock/dry-run va `20261105170000_t2_smeta_import_dublikat_guard_v1.sql` (+ rollback/acceptance); static guard `8/8 PASS`.
+- Main’dagi latest AI agent commiti `62947e3`; C/B/A’dan keyin main yana o‘zgargan, shu sabab final branch main’ga fast-forward qilingan.
+- Full current-main Vitest: `807 passed / 6 failed / 12 skipped`; 6 failure katta XLSX/export timeoutlari va 10k/30k/50k performance thresholdlari. C/B/A focused checks PASS.
+
 ## C — sayt xaritasi
 
 2026-10-01, Codex, branch `codex/20261001-site-map-bez-sklad-suniy-kol`.
