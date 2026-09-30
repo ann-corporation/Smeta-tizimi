@@ -1,6 +1,6 @@
 # T2-SAYT-BEZSKLAD-SUNIY-KOL — checkpoint
 
-> **LATEST INTEGRATED STATE (2026-10-01):** `origin/main @ 3a1bdf72c322f20c3a19e9ce62164bdb7eae272d` C/B/A kodlarini o‘z ichiga oladi. Claude main integratsiya commiti (`c7908ba`) B/A production qo‘llanganini bildiradi, lekin bu Codex sessiyasida Supabase runtime acceptance qayta mustaqil tekshirilmagan — `UNKNOWN`. Suniy Ko‘l mavjud qatorlarini delete/merge qilish bajarilmagan.
+> **LATEST INTEGRATED STATE (2026-10-01):** `origin/main @ 3a1bdf72c322f20c3a19e9ce62164bdb7eae272d` C/B/A kodlarini o‘z ichiga oladi. Supabase read-only runtime verification B/A migrationlar va guard kontraktini tasdiqladi. Object 84 dry-run `2,411` candidate, `147,831,682,356.81` summa, `akt=0`, `AOSR=0`; mavjud qatorlarni delete/merge qilish bajarilmadi.
 
 ## Latest integration record
 
@@ -12,6 +12,7 @@
 - Joriy main gate dalili: site-map `62/62`, duplicate guard `8/8`, pre-main QA `33/33`, focused Vitest `26/26`, frontend/functions TypeScript, build, tekshir va diff-check PASS. Oxlint `0 error`, mavjud warninglar bor.
 - Full current-main Vitest: `810 passed / 3 failed / 12 skipped`. 3 failure mavjud og‘ir benchmarklar: `f2-import-parse/xlsxFonda` 27k XLSX timeout, `f2-moslash-v3` 30k threshold, `f2-match-engine` 50k threshold. C/B/A focused checks PASS; testlar yumshatilmadi.
 - `node ops/governance-check.cjs`: exit 0, `62 tasks` PASS; repo `docs/governance/CURRENT_STATE.md` joriy `origin/main` SHA’sidan ortda qolganligi haqida warning berdi. Bu Codex task `owns` hududidan tashqarida, Claude bilan coordination orqali tuzatilishi kerak.
+- Supabase read-only evidence: migration versions `20260930215806` (`t2_resurs_kategoriya_bez_sklad_v1`) va `20260930215932` (`t2_smeta_import_dublikat_guard_v1`) mavjud; `t2_qator_kat_check` tarkibida `БЕЗСКЛАД`, source guard/package wrappers/index/semantics mavjud. No DML was executed.
 
 ## C — sayt xaritasi
 

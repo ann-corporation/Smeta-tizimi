@@ -1844,7 +1844,7 @@
         "D:/Obsidian/Anvar_Brain/20_PROJECTS/Smeta-tizimi/SMETA_ANATOMIYA.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "C→B→A integratsiya qilingan. C/B/A kodlari origin/main tarixida bor; B 20261105160000 va A 20261105170000 migrationlari Claude main integratsiya commitida ko'rsatilgan. Production/runtime acceptance mustaqil Codex sessiyasida qayta tekshirilmagan (UNKNOWN); mavjud qatorlar uchun delete/merge bajarilmagan. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmagan."
+      "_izoh": "C→B→A integratsiya qilingan. C/B/A kodlari origin/main tarixida bor. Supabase read-only runtime verification (project tuoyrzadkgoltpqkdiyx, 2026-10-01) B/A migration presence, category/source-guard/package RPC, source index, category constraint va guard semanticsni tasdiqladi. Object 84 dry-run: 2,411 candidate, summa 147,831,682,356.81, akt=0, AOSR=0; delete/merge bajarilmadi. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmagan."
     },
     {
       "id": "T2-IJRO-AOSR-LAB-001",
