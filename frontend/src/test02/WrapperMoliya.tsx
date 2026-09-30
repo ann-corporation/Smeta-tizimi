@@ -3,21 +3,16 @@ import { Briefcase, CreditCard, FileText } from 'lucide-react';
 import TestShartnoma from './TestShartnoma';
 import TestTolov from './TestTolov';
 import TestFaktura from './TestFaktura';
-import TestSmetaBirlashgan from './TestSmetaBirlashgan';
 
+/* 2026-09-30 egasi: "Smeta & F2" tabi olib tashlandi — smeta, F2, fakt PTO bo'limida
+   (/admin/holat, /admin/f2); moliya paneli faqat shartnoma, to'lov va fakturalar. */
 export default function WrapperMoliya() {
-  const [activeTab, setActiveTab] = useState<'smeta' | 'shartnoma' | 'tolov' | 'faktura'>('smeta');
+  const [activeTab, setActiveTab] = useState<'shartnoma' | 'tolov' | 'faktura'>('shartnoma');
 
   return (
     <div className="h-full flex flex-col bg-transparent">
       {/* Wrapper Tabs */}
       <div className="flex items-center gap-2 px-6 pt-4 border-b border-white/10 bg-black/20">
-        <button
-          onClick={() => setActiveTab('smeta')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'smeta' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <FileText size={16} /> Smeta & F2
-        </button>
         <button
           onClick={() => setActiveTab('shartnoma')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'shartnoma' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
@@ -40,7 +35,6 @@ export default function WrapperMoliya() {
 
       {/* Content */}
       <div className="flex-1 overflow-hidden relative">
-        {activeTab === 'smeta' && <TestSmetaBirlashgan />}
         {activeTab === 'shartnoma' && <TestShartnoma />}
         {activeTab === 'tolov' && <TestTolov />}
         {activeTab === 'faktura' && <TestFaktura />}

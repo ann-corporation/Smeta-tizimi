@@ -8,12 +8,13 @@ import { PtoStatusChip } from '../../umumiy/ui/PTOUi';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import {
-  sbT2AktReestrOl, sbT2ObyektlarOlKomp,
+  sbT2AktReestrOl, sbT2ObyektlarOlKomp, sbT2DaraxtOl,
   yangiOperationId, sbOqi, type T2AktReestr, type T2Obyekt,
 } from '../../api/supabase';
 import { sbT2F2TafsilotOl, type F2Tafsilot } from '../../api/t2-narx';
 import { t2AktLifecycleTransition, type PtoLifecycleStatus } from '../../api/t2-akt-lifecycle';
 import { f2LifecyclePlan, f2LifecycleError, f2LifecycleLabels } from '../../lib/f2-lifecycle-workflow';
+import { f2Ierarxiya, type F2IerSmeta } from '../../lib/f2-ierarxiya';
 
 type F2Detail = F2Tafsilot;
 
@@ -28,6 +29,10 @@ const reestrMatni: Record<string, string> = {
   farq: 'Farq bor',
   jami_nomalum: 'Hujjat jami noma’lum',
 };
+
+const miqdor = (line: F2Detail) => line.gorunish_hajm ?? line.certified_quantity ?? line.hajm;
+const birlikNarx = (line: F2Detail) => line.gorunish_narx ?? line.certified_unit_price ?? line.narx;
+const pul = (line: F2Detail) => line.gorunish_summa ?? line.certified_amount ?? line.summa;
 
 function xavfsizXato() {
   return 'F2 reestri yoki tafsiloti o‘qilmadi. Birozdan so‘ng qayta urinib ko‘ring.';
@@ -47,6 +52,8 @@ export function F2TarixNative() {
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [reestr, setReestr] = useState<T2AktReestr[]>([]);
   const [tafsilot, setTafsilot] = useState<F2Detail[]>([]);
+  /** Smeta daraxti — F2 qatorlari ierarxiyada (bo'lim → ish → resurs) ko'rsatiladi. */
+  const [smeta, setSmeta] = useState<F2IerSmeta[]>([]);
   const [selectedAktId, setSelectedAktId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -61,6 +68,7 @@ export function F2TarixNative() {
     () => selectedAkt ? tafsilot.filter((line) => line.akt_id === selectedAkt.id) : [],
     [selectedAkt, tafsilot],
   );
+  const ierarxiya = useMemo(() => f2Ierarxiya(selectedLines, smeta, pul), [selectedLines, smeta]);
   const selectedArithmeticIssues = useMemo(() => selectedLines.filter((line) => {
     const quantity = line.gorunish_hajm ?? line.certified_quantity ?? line.hajm;
     const unitPrice = line.gorunish_narx ?? line.certified_unit_price ?? line.narx;
@@ -79,10 +87,12 @@ export function F2TarixNative() {
     if (!validId) { setReestr([]); setTafsilot([]); setSelectedAktId(null); return; }
     setLoading(true); setError('');
     try {
-      const [r, d] = await Promise.all([
+      const [r, d, t] = await Promise.all([
         sbT2AktReestrOl(obyektId),
         sbT2F2TafsilotOl({ obyektId, tur: 'f2' }),
+        sbT2DaraxtOl(obyektId, 'id,ota_id,tartib,tur,kod,nom,birlik,qoshimcha,zamena'),
       ]);
+      setSmeta(t.ok ? ((t.qatorlar || []) as unknown as F2IerSmeta[]) : []);
       if (!r.ok) throw new Error(xavfsizXato());
       setReestr((r.qatorlar || []) as T2AktReestr[]);
       if (!d.ok) throw new Error(xavfsizXato());
@@ -190,7 +200,18 @@ export function F2TarixNative() {
             <section className="karta min-h-0 overflow-auto p-4">
               {selectedAkt ? <>
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-[11px] text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {(selectedAkt.lifecycle_status ? f2LifecycleLabels[selectedAkt.lifecycle_status] : holatMatni[selectedAkt.holat]) || 'Noma’lum holat'} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-[11px] text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-[11px] text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b></div></div>
-                <table className="w-full text-left text-[12px]"><thead className="text-text-dim"><tr><th className="py-2">Ish / resurs</th><th className="text-right">Hajm</th><th className="text-right">Narx</th><th className="text-right">Summa</th><th>Manba</th></tr></thead><tbody>{selectedLines.map((line) => { const quantity = line.gorunish_hajm ?? line.certified_quantity ?? line.hajm; const unitPrice = line.gorunish_narx ?? line.certified_unit_price ?? line.narx; const amount = line.gorunish_summa ?? line.certified_amount ?? line.summa; const mismatch = quantity != null && unitPrice != null && amount != null && Number.isFinite(Number(quantity)) && Number.isFinite(Number(unitPrice)) && Number.isFinite(Number(amount)) && Math.abs(Number(quantity) * Number(unitPrice) - Number(amount)) > 0.005; return <tr key={line.akt_qator_id} className="border-t border-border/60"><td className="py-2"><div className="font-medium">{line.kod || '—'}</div><div>{line.nom || 'Nomsiz qator'}</div><div className="text-[10px] text-text-dim">{line.birlik || '—'}</div></td><td className="text-right tabular-nums"><FmtN val={quantity} /></td><td className="text-right tabular-nums"><FmtN val={unitPrice} /></td><td className="text-right tabular-nums"><FmtN val={amount} />{mismatch && <div className="text-[10px] text-warn">Q×narx farqi</div>}</td><td className="text-text-dim">{line.provenance_status ? 'Qayd etilgan' : 'Manba qaydi mavjud'}</td></tr>; })}</tbody></table>
+                <table className="w-full text-left text-[12px]"><thead className="sticky top-0 bg-surface text-text-dim"><tr><th className="py-2">Bo‘lim / ish / resurs</th><th className="text-right">Hajm</th><th className="text-right">Narx</th><th className="text-right">Summa</th></tr></thead><tbody>{ierarxiya.map((q) => {
+                  const belgi = q.zamena ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetadagi qator o‘rniga bajarilgan (zamena)">zamena</span> : q.qoshimcha ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetada yo‘q, qo‘shimcha kiritilgan">qo‘shimcha</span> : null;
+                  const pad = { paddingLeft: 4 + q.daraja * 16 };
+                  if (q.bolaSoni > 0 || q.tur === 'rz') {
+                    return <tr key={'o' + q.qator_id} className={`border-t border-border/60 ${q.tur === 'rz' ? 'bg-surface-2/70 font-semibold uppercase text-text' : 'font-medium text-text'}`}><td className="py-1.5" style={pad}>{q.kod && <span className="mr-1 font-mono text-[10.5px] normal-case text-text-mute">{q.kod}</span>}{q.nom || '—'}{belgi}</td><td className="text-right tabular-nums">{q.tur === 'bl' && q.qatorlar[0] ? <FmtN val={miqdor(q.qatorlar[0])} /> : null}</td><td /><td className="text-right tabular-nums"><FmtN val={q.summa} /></td></tr>;
+                  }
+                  return q.qatorlar.map((line, k) => {
+                    const quantity = miqdor(line); const unitPrice = birlikNarx(line); const amount = pul(line);
+                    const mismatch = quantity != null && unitPrice != null && amount != null && Number.isFinite(Number(quantity)) && Number.isFinite(Number(unitPrice)) && Number.isFinite(Number(amount)) && Math.abs(Number(quantity) * Number(unitPrice) - Number(amount)) > 0.005;
+                    return <tr key={line.akt_qator_id} className="border-t border-border/40 text-text-dim"><td className="py-1.5" style={pad}>{line.kod && <span className="mr-1 font-mono text-[10.5px] text-text-mute">{line.kod}</span>}{line.nom || 'Nomsiz qator'}<span className="ml-1 text-[10px] text-text-mute">{line.birlik || ''}</span>{k === 0 && belgi}</td><td className="text-right tabular-nums"><FmtN val={quantity} /></td><td className="text-right tabular-nums"><FmtN val={unitPrice} /></td><td className="text-right tabular-nums"><FmtN val={amount} />{mismatch && <div className="text-[10px] text-warn">Q×narx farqi</div>}</td></tr>;
+                  });
+                })}</tbody></table>
                 {selectedLines.length === 0 && <div className="p-5 text-[13px] text-text-dim">Bu hujjatda qator tafsiloti yo‘q. Tasdiqlashdan oldin manba va moslashtirishni tekshiring.</div>}
                 {selectedAkt.holat === 'qoralama' && <>
                   <p className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] text-amber-100"><ShieldAlert size={15} className="mt-0.5 shrink-0" />Qoralama hali LRVning tasdiqlangan F2 tarixiga kirmaydi. Tasdiqlash amaldagi ma’lumot va hajm chegaralarini qayta tekshiradi.</p>

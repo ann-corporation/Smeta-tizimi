@@ -291,14 +291,19 @@ export function lrvPlusQatorlarniHisobla(
     let sum = 0;
     let hasChild = false;
     let unknownChild = false;
+    // Egasi 2026-09-30: "F2 kiritilgandan keyin LRV Excel da F2 umuman 0" — `t2_qator_holat` fakt/F2
+    // pulini faqat barglarda saqlaydi; ota qatorda ham bolalar yig'indisi (Excel da SUMIF formulasi).
+    let fakt = 0, f2 = 0;
     for (let j = i + 1; j < rows.length && (rows[j].daraja ?? 0) > item.daraja; j++) {
       if ((rows[j].daraja ?? 0) !== item.daraja + 1) continue;
       hasChild = true;
       const childSum = out[j].summaQiymat;
       if (childSum == null) unknownChild = true;
       else sum += childSum;
+      fakt += out[j].faktSumma; f2 += out[j].f2Summa;
     }
     item.summaQiymat = hasChild && !unknownChild ? sum : null;
+    if (hasChild) { item.faktSumma = fakt; item.f2Summa = f2; }
   }
 
   return out;
@@ -784,6 +789,13 @@ export async function lrvPlusFaylBaytlari(
       ws[`S${q.row}`] = { t: 'n', f: `P${q.row}-R${q.row}`, v: q.faktHajm - q.f2Hajm };
       ws[`U${q.row}`] = kesh(`IF(H${q.row}="","",H${q.row}-T${q.row})`, q.summaQiymat == null ? null : q.summaQiymat - q.faktSumma);
       ws[`W${q.row}`] = { t: 'n', f: `T${q.row}-V${q.row}`, v: q.faktSumma - q.f2Summa };
+      // Ota (rz/bl) qatorida Fakt (T) va F2 (V) summasi — bevosita bolalar yig'indisi (tirik formula).
+      const sumif = OTA_TUR.has(q.tur) ? q.summaFormula?.match(/SUMIF\(([^,]+),([^,]+),H(\d+):H(\d+)\)\)?$/) : null;
+      if (sumif) {
+        const [, oraliq, daraja, c1, c2] = sumif;
+        ws[`T${q.row}`] = { t: 'n', f: `SUMIF(${oraliq},${daraja},T${c1}:T${c2})`, v: q.faktSumma };
+        ws[`V${q.row}`] = { t: 'n', f: `SUMIF(${oraliq},${daraja},V${c1}:V${c2})`, v: q.f2Summa };
+      }
     }
   }
 

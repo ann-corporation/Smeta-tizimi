@@ -467,6 +467,22 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
     return jami;
   };
   for (const n of ildiz) if (n.type === 'rz') rzJami(n);
+
+  /* 4-o'tish: Fakt / F2 / F2-mumkin PUL qiymatlari. `t2_qator_holat` ularni faqat
+   * barglarda (rs/mat/ob, resurssiz bl) saqlaydi — ish (bl) va bo'lim (rz) da 0.
+   * Egasi 2026-09-30 (Yevropa oshxonasi): "F2 summa yuqorida 0, ichkariga kirsa bor".
+   * Bolasi bor tugunda qiymat = bolalar yig'indisi (pastdan yuqoriga); bolasizda — o'zi. */
+  const pulJami = (n: TreeNode): void => {
+    const b = n.children ?? [];
+    if (!b.length) return;
+    let fakt = 0, f2 = 0, mum = 0;
+    for (const c of b) {
+      pulJami(c);
+      fakt += c.stFakt ?? 0; f2 += c.stF2 ?? 0; mum += c.stF2Mum ?? 0;
+    }
+    n.stFakt = fakt; n.stF2 = f2; n.stF2Mum = mum;
+  };
+  for (const n of ildiz) pulJami(n);
   return ildiz;
 }
 

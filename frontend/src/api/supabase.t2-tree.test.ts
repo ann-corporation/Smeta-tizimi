@@ -111,3 +111,23 @@ describe('kanonik LRV daraxti', () => {
     expect(bosh.smeta).toBeNull();
   });
 });
+
+describe('F2 / Fakt pul qiymatlari ichma-ich yig‘iladi (egasi 2026-09-30, Yevropa oshxonasi)', () => {
+  const q = (id: number, ota_id: number | null, tur: string) => ({
+    id, obyekt_id: 82, kompaniya_id: 1, ota_id, daraja: 0, tartib: id, tur, kod: null, nom: 'n' + id, birlik: null,
+    hajm: null, narx: null, summa: null, kat: null, narx_usul: null, qoshimcha: false, zamena: false,
+    d1: null, d2: null, d3: null, xom_qator: null, yangilandi: null, manba_id: null, versiya: 1, raqam: null, norma: null, obyekt: 'Y',
+  }) as T2Qator;
+  const h = (qator_id: number, f2_summa: number, fakt_summa = 0) => ({
+    id: qator_id, qator_id, obyekt_id: 82, tur: 'rs', kod: null, nom: null, birlik: null, kat: null, smeta_hajm: null, smeta_summa: null,
+    fakt_hajm: 0, fakt_summa, f2_hajm: 0, f2_summa, qoldiq_hajm: null, qoldiq_summa: null, f2_mumkin_hajm: 0, f2_mumkin_summa: 0,
+    f2_narx: null, fakt_narx: null, f2_narx_farq_foiz: null,
+  }) as T2QatorHolat;
+  it('rz → rz → bl → rs: bo‘lim va ishda barglar yig‘indisi', () => {
+    const [rz] = sbT2TreeQur([q(1, null, 'rz'), q(2, 1, 'rz'), q(3, 2, 'bl'), q(4, 3, 'rs'), q(5, 3, 'rs'), q(6, 2, 'mat')],
+      [h(1, 0), h(2, 0), h(3, 0), h(4, 100, 40), h(5, 50), h(6, 7)]);
+    expect(rz.stF2).toBe(157);
+    expect(rz.stFakt).toBe(40);
+    expect(rz.children![0].children![0].stF2).toBe(150);
+  });
+});

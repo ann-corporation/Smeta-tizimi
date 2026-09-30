@@ -155,6 +155,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const smetaQuti = useRef<HTMLDivElement>(null);
   const f2Quti = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  /** Sudrab tashlangan tanlov — smeta oynasi avto-aylantirilmaydi (operator o'sha joyda ishlayapti). */
+  const sudrabTanlandi = useRef(false);
+  /** Smeta daraxti birinchi marta ochildimi — keyingi qayta yuklashlarda yoyilganlar saqlanadi. */
+  const smetaOchildi = useRef(false);
 
   const h = useMemo(() => hisobla(ind, ij), [ind, ij]);
   const barchaManbaIzohlari = p.akt.anatomiya?.review ?? [];
@@ -232,7 +236,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const smetaVirtual = useVirtualizer({ count: smetaVisibleRows.length, getScrollElement: () => smetaQuti.current, estimateSize: () => 38, overscan: 12 });
 
   // Har ikki daraxt birinchi ochilganda to'liq ochiq; keyin operator har sathni alohida boshqaradi.
+  // Egasi 2026-09-30: qo'shimcha/zamena yozilgach smeta qayta yuklanadi — yoyilgan bo'limlar va
+  // aylantirish joyi SAQLANADI (avval hammasi qayta ochilib, operator joyni qaytadan qidirardi).
   useEffect(() => {
+    if (smetaOchildi.current) {
+      const top = smetaQuti.current?.scrollTop ?? 0;
+      setOchiqS((old) => new Set([...old].filter((id) => S.byId.has(id))));
+      requestAnimationFrame(() => { if (smetaQuti.current) smetaQuti.current.scrollTop = top; });
+      return;
+    }
+    smetaOchildi.current = true;
     setOchiqS(smetaExpandableDepths.reduce((expanded, depth) => {
       for (const id of expandableIdsAtDepth(smetaRoots, (node) => S.bolalar.get(node.id) ?? [], (node) => node.id, depth)) expanded.add(Number(id));
       return expanded;
@@ -260,6 +273,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   // Tanlanganda: bog'langan qator (yoki eng yaxshi nomzodlar) o'ngda ochiladi va ko'rinadi.
   useEffect(() => {
     if (!tTugun) return;
+    if (sudrabTanlandi.current) { sudrabTanlandi.current = false; return; }
     const b = ij.bog.get(tTugun.uid);
     const ids = [b?.qatorId, ...nomzodlar.slice(0, 3).map((n) => n.qatorId)].filter((x): x is number => x != null);
     if (!ids.length) return;
@@ -301,19 +315,22 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (f.tur === 'bl') {
       if (s.tur === 'rz') { ochModal(f, { kind: 'additional', parent: p.raw.get(s.id)!, keyinId: s.id }); return; }
       if (sRes) { xab('Ishni smeta ISHIGA (bog‘lash/zamena) yoki RAZDELGA (qo‘shimcha ish) torting.'); return; }
-      if (oshaQatormi(f, s) || (nomzodBallOf(f.uid, s.id) ?? -1) >= 45) { ishBogla(f, s.id); return; }
+      // Egasi 2026-09-30: nomida bitta nuqta farq bo'lsa ham so'ralsin (bog'lash / zamena / qo'shimcha).
+      if (aynanBirXil(f, s)) { ishBogla(f, s.id); return; }
       setTanlov({ f, s, tur: 'ish' });
       return;
     }
     // resurs
     if (s.tur === 'bl') { ochModal(f, { kind: 'resource', parent: p.raw.get(s.id)!, keyinId: s.id }); return; }
     if (s.tur === 'rz') { xab('Resursni smeta RESURSIGA (bog‘lash/zamena) yoki smeta ISHIGA (qo‘shimcha resurs) torting.'); return; }
-    if (oshaQatormi(f, s)) { p.onIj(bogla(ij, f.uid, s.id)); xab(`«${f.nom.slice(0, 50)}» bog‘landi.`); return; }
+    if (aynanBirXil(f, s)) { p.onIj(bogla(ij, f.uid, s.id)); xab(`«${f.nom.slice(0, 50)}» bog‘landi.`); return; }
     setTanlov({ f, s, tur: 'resurs' });
   }
-  function nomzodBallOf(uid: string, sId: number) {
-    const n = p.natija.natijalar.get(uid)?.nomzodlar.find((x) => x.qatorId === sId);
-    return n && !n.qavatlar.some((qv) => (qv.nom === 'birlik' || qv.nom === 'marka') && qv.ball < 0) ? n.ball : undefined;
+  /** Qo'lda tashlaganda jim bog'lanadigan yagona holat: nom (katta-kichik harf va bo'shliqdan tashqari)
+   *  va birlik AYNAN bir xil. Kod bir xil bo'lsa ham ("С" materiallar) nom farq qilsa — so'raladi. */
+  function aynanBirXil(f: F2Tugun, s: SmetaQator): boolean {
+    const n = (x: string | null | undefined) => (x ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, ' ').trim();
+    return n(f.nom) === n(s.nom) && n(f.birlik) === n(s.birlik) && oshaQatormi(f, s);
   }
   function ochModal(f: F2Tugun, action: DropAction) {
     if (!action.parent) { xab('Smeta qatori topilmadi — sahifani yangilang.'); return; }
@@ -548,13 +565,68 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (e.clientY < r.top + chet) el.scrollTop -= Math.ceil((r.top + chet - e.clientY) / 3);
     else if (e.clientY > r.bottom - chet) el.scrollTop += Math.ceil((e.clientY - (r.bottom - chet)) / 3);
   }
+  /** Egasi 2026-09-30: "qatorlar ORASIGA sudrab qo'yib bo'lmaydi". Qatorning yuqori/pastki
+   *  choragi — oraliq (qo'shimcha aynan shu joyga), o'rtasi — qatorning o'ziga (bog'lash/zamena). */
+  function zonaOl(e: React.DragEvent): 'oldin' | 'ustiga' | 'keyin' {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - r.top;
+    if (y < r.height * 0.25) return 'oldin';
+    if (y > r.height * 0.75) return 'keyin';
+    return 'ustiga';
+  }
   function dropProps(s: SmetaQator) {
-    const key = 's' + s.id;
     return {
-      onDragOver: (e: React.DragEvent) => { if (p.disabled) return; e.preventDefault(); e.dataTransfer.dropEffect = 'link'; if (dropKey !== key) setDropKey(key); },
-      onDragLeave: () => { if (dropKey === key) setDropKey(null); },
-      onDrop: (e: React.DragEvent) => { e.preventDefault(); setDropKey(null); setSudrash(null); const uid = e.dataTransfer.getData('text/plain'); if (uid) { setTanlangan(uid); tashla(uid, s.id); } },
+      onDragOver: (e: React.DragEvent) => {
+        if (p.disabled) return;
+        e.preventDefault(); e.dataTransfer.dropEffect = 'link';
+        const key = `s${s.id}:${zonaOl(e)}`;
+        if (dropKey !== key) setDropKey(key);
+      },
+      onDragLeave: () => { if (dropKey?.startsWith(`s${s.id}:`)) setDropKey(null); },
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault();
+        const zona = zonaOl(e);
+        setDropKey(null); setSudrash(null);
+        const uid = e.dataTransfer.getData('text/plain');
+        if (!uid) return;
+        // Sudrab tashlanganda smeta oynasi O'Z JOYIDA qoladi (egasi: "boshqa joyga ketib qoladi").
+        sudrabTanlandi.current = true;
+        setTanlangan(uid);
+        if (zona === 'ustiga') tashla(uid, s.id); else oraliqqaTashla(uid, s, zona);
+      },
     };
+  }
+  /** Oraliqqa tashlash: qo'shimcha ish / resurs aynan shu ikki qator orasiga (langar = yuqoridagi qator). */
+  function oraliqqaTashla(fUid: string, s: SmetaQator, zona: 'oldin' | 'keyin') {
+    if (p.disabled) return;
+    const f = ind.byUid.get(fUid);
+    if (!f) return;
+    // Langar: "keyin" — shu qator; "oldin" — ekranda undan oldingi qator (yo'q bo'lsa — ota boshiga).
+    let langar: SmetaQator | undefined = s;
+    if (zona === 'oldin') {
+      const i = smetaVisibleRows.findIndex((r) => r.node.id === s.id);
+      langar = i > 0 ? smetaVisibleRows[i - 1].node : undefined;
+    }
+    const ota = (x: SmetaQator | undefined) => (x?.otaId != null ? S.byId.get(x.otaId) : undefined);
+    if (f.tur === 'rz') { xab('Razdelni smeta razdeliga torting.'); return; }
+    if (f.tur === 'bl' || ((f.tur === 'mat' || f.tur === 'ob') && (!langar || langar.tur === 'rz' || ota(langar)?.tur === 'rz'))) {
+      // Qo'shimcha ish (yoki razdel ostidagi mustaqil MAT/OB): ota — razdel, langar — shu razdeldagi ish.
+      let rz: SmetaQator | undefined, keyin: SmetaQator | undefined;
+      if (!langar) { rz = s.tur === 'rz' ? s : ota(s); keyin = rz; }
+      else if (langar.tur === 'rz' && zona === 'keyin' && langar.id === s.id) { rz = langar; keyin = langar; }
+      else {
+        const ish = langar.tur === 'rz' ? undefined : (ota(langar)?.tur === 'rz' ? langar : ota(langar));
+        rz = ish ? ota(ish) : langar;
+        keyin = ish ?? langar;
+      }
+      if (!rz || rz.tur !== 'rz') { xab('Bu joyda razdel topilmadi — qo‘shimcha ishni razdel ichiga torting.'); return; }
+      ochModal(f, { kind: 'additional', parent: p.raw.get(rz.id)!, keyinId: keyin?.id ?? rz.id });
+      return;
+    }
+    // Resurs: ota — ish (bl), langar — shu ishdagi resurs (yoki ishning o'zi — boshiga).
+    const ish = langar?.tur === 'bl' ? langar : ota(langar)?.tur === 'bl' ? ota(langar) : undefined;
+    if (!ish) { xab('Qo‘shimcha resursni smeta ISHI ichiga (resurslari orasiga) torting.'); return; }
+    ochModal(f, { kind: 'resource', parent: p.raw.get(ish.id)!, keyinId: langar!.id });
   }
   function smetaQator(s: SmetaQator, depth: number, tekis = false): React.ReactNode {
     const bolalar = S.bolalar.get(s.id) ?? [];
@@ -562,7 +634,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const percent = tTugun ? nomzodFoiz.get(s.id) : undefined;
     const band = shuF2.get(s.id);
     const tBog = tTugun ? ij.bog.get(tTugun.uid)?.qatorId === s.id : false;
-    const drop = dropKey === 's' + s.id;
+    const drop = dropKey === `s${s.id}:ustiga`;
+    // Oraliq nishoni: qatorlar ORASIDA qalin sariq chiziq (qo'shimcha aynan shu joyga).
+    const oraliq = dropKey === `s${s.id}:oldin` ? ' shadow-[inset_0_3px_0_0_rgb(245,158,11)]'
+      : dropKey === `s${s.id}:keyin` ? ' shadow-[inset_0_-3px_0_0_rgb(245,158,11)]' : '';
     const toggle = () => setOchiqS((x) => { const n = new Set(x); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n; });
     const chevron = bolalar.length > 0
       ? <button type="button" aria-label={ochiq ? `Smeta qatorini yopish: ${s.nom}` : `Smeta qatorini ochish: ${s.nom}`} onClick={(e) => { e.stopPropagation(); toggle(); }} className="mr-1 shrink-0 align-middle text-text-mute">
@@ -572,7 +647,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     if (s.tur === 'rz') {
       return (
-        <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}`}>
+        <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}${oraliq}`}>
           <button type="button" className={`${KATAK} col-span-7 flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             onClick={() => tTugun ? tashla(tTugun.uid, s.id) : toggle()} title={tTugun ? 'Tanlangan F2 qatorini shu smeta razdeliga bog‘lash/qo‘shimcha qilish' : undefined}>
             {chevron}<span className="min-w-0 flex-1 break-words">{s.nom}</span>
@@ -591,7 +666,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const ish = s.tur === 'bl';
     return (
       <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} `
-        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')}>
+        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60') + oraliq}>
         <span className={`${KATAK} break-all font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <button type="button" className={`${KATAK} text-left`} style={{ paddingLeft: 6 + depth * 14 }} onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>

@@ -1638,6 +1638,33 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi 2026-09-30: \"bitta manba bo‘lishi kerak, zaxira keyingi agentlarni chalkashtiradi\". Yagona F2 import /admin/f2 (V3); eski manzillar /admin/f2 ga yo‘naltiriladi; test/smeta \"Smeta yuklash\" tabi SmetaYuklaNative ni ko‘rsatadi."
+    },
+    {
+      "id": "EGASI-SINOV-0930-A",
+      "title": "Egasi sinovi 1-guruh: F2 qatorlar orasiga tashlash, sakrashsiz bog‘lash, nom farqida so‘rash, ierarxik tasdiqlash, F2/Fakt summalari daraxt va LRV Excel da, moliya panelidan Smeta&F2 tabi",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "6a6f0a3",
+      "status": "completed",
+      "owns": [
+        "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
+        "frontend/src/admin/sahifalar/F2TarixNative.tsx",
+        "frontend/src/lib/f2-ierarxiya.ts",
+        "frontend/src/lib/f2-ierarxiya.test.ts",
+        "frontend/src/api/supabase.ts",
+        "frontend/src/api/supabase.t2-tree.test.ts",
+        "frontend/src/lib/lrv-plus-export.ts",
+        "frontend/src/lib/lrv-plus-export.test.ts",
+        "frontend/src/test02/WrapperMoliya.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Obsidian: EGASI_SINOV_2026-09-30 #2–#7, #14."
     }
   ]
 }

@@ -576,3 +576,18 @@ describe('LRV_PLUS export gate', () => {
     expect(natija).toEqual({ ok: true });
   });
 });
+
+describe('LRV Excel: ota qatorda F2 / Fakt summasi (egasi 2026-09-30: "F2 umuman 0")', () => {
+  it('holat faqat barglarda bo‘lsa ham ish va bo‘limda bolalar yig‘indisi, V/T da SUMIF formulasi', async () => {
+    const faqatBarg = HOLATLAR.map((h) => (h.qator_id <= 2 ? { ...h, fakt_summa: 0, f2_summa: 0 } : h));
+    const h = lrvPlusQatorlarniHisobla(DARAXT, faqatBarg);
+    expect(h.find((q) => q.id === 2)).toMatchObject({ f2Summa: 85000, faktSumma: 170000 });
+    expect(h.find((q) => q.id === 1)).toMatchObject({ f2Summa: 85000 });
+    const XLSX = await import('xlsx-js-style');
+    const ws = XLSX.read(await lrvPlusFaylBaytlari(DARAXT, 'Sinov', faqatBarg), { type: 'array', cellFormula: true }).Sheets['LRV_PLUS'];
+    const bl = h.find((q) => q.id === 2)!;
+    expect(ws[`V${bl.row}`].f).toMatch(/^SUMIF\(X\d+:X\d+,2,V\d+:V\d+\)$/);
+    expect(ws[`V${bl.row}`].v).toBe(85000);
+    expect(ws[`T${bl.row}`].f).toMatch(/^SUMIF\(/);
+  });
+});
