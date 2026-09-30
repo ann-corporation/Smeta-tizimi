@@ -42,6 +42,7 @@ export const SAHIFA_KATALOGI: readonly SaytSahifa[] = [
   { kalit: 'supabase', nom: 'Supabase sozlamasi', yol: '/admin/supabase', scope: 'GLOBAL', oqiydi: ['t2_sozlama'], yozadi: ['sozlama_saqla'], chiqaradi: ['integratsiya sozlamasi'], beradi: ['/admin/system-control'], izoh: 'Texnik sozlama sahifasi; kundalik PTO oqimining qismi emas.', legacy: true },
   { kalit: 'tezlik', nom: 'Tezlik sinovi', yol: '/admin/tezlik', scope: 'GLOBAL', oqiydi: [], yozadi: [], chiqaradi: ['performance probe'], beradi: [], izoh: 'Texnik diagnostika sahifasi.', legacy: true },
   { kalit: 'site-map', nom: 'Sayt xaritasi', yol: '/admin/sayt-xaritasi', scope: 'GLOBAL', oqiydi: ['koddan yig‘ilgan manifest'], yozadi: [], chiqaradi: ['TIZIM_02 oqim xaritasi'], beradi: ['barcha modullar'], izoh: 'Sahifa, canonical read/write va hujjat oqimining bitta ko‘rinishi.' },
+  { kalit: 'ai-agentlar', nom: 'AI ishchilar (agentlar)', yol: '/admin/ai-agentlar', scope: 'COMPANY', oqiydi: ['t2_agent_control_v1'], yozadi: ['agent run_transition', 'agent approval_decide'], chiqaradi: ['agent run va tasdiq jurnali'], beradi: ['kanonik buyruqlar (faqat tasdiq bilan)'], izoh: 'Chegaralangan agent rollari, inson tasdig‘i va audit — AI ishchilar poydevori.' },
 ];
 
 export const SAHIFA_KATALOGI_BY_PATH = new Map(SAHIFA_KATALOGI.map((x) => [x.yol, x]));

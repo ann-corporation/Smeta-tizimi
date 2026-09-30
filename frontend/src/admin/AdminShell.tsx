@@ -21,6 +21,7 @@ const TIZIM_02_GURUHLAR = [
       { yol: '/admin/kompaniya', nom: 'Kompaniya', Ikonka: Building2 },
       { yol: '/admin/system-control', nom: 'Tizim boshqaruv markazi', Ikonka: ShieldAlert },
       { yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', Ikonka: Map },
+      { yol: '/admin/ai-agentlar', nom: 'AI ishchilar', Ikonka: ShieldAlert },
     ]
   },
   {

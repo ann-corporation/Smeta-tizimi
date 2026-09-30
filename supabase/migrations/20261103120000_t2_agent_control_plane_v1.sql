@@ -358,7 +358,7 @@ begin
   if not (v_profile.allowed_tools ? p_tool_kod) then return jsonb_build_object('ok',false,'code','TOOL_NOT_ALLOWED','tool_kod',p_tool_kod); end if;
   select coalesce(p_sequence_no,max(sequence_no)+1) into v_seq from public.t2_agent_tool_call where run_id=p_run_id;
   insert into public.t2_agent_tool_call(run_id,sequence_no,operation_id,actor_id,tool_kod,request)
-    values(p_run_id,v_seq,p_operation_id,p_actor_id,p_tool_kod,coalesce(p_request,'{}'::jsonb)) returning * into v_call;
+    values(p_run_id,coalesce(v_seq,1),p_operation_id,p_actor_id,p_tool_kod,coalesce(p_request,'{}'::jsonb)) returning * into v_call;
   v_res := jsonb_build_object('ok',true,'tool_call_id',v_call.id,'run_id',p_run_id,'sequence_no',v_call.sequence_no,'tool_kod',v_call.tool_kod,'holat',v_call.holat);
   insert into public.t2_agent_command_log(operation_id,actor_id,command,natija) values (p_operation_id,p_actor_id,'agent_tool_call_prepare',v_res);
   return v_res;
