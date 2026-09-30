@@ -68,6 +68,8 @@ const RUXSAT_JADVALLAR = new Set([
   't2_aosr_reestr_v2', 't2_lab_protokol_reestr', 't2_kompaniya_logo',
   /* Nakrutka podval konstruktori (2026-10-01) */
   't2_nakrutka_podval_royxat',
+  /* Narx manbalari va dalil (2026-10-01) */
+  't2_narx_manba_royxat', 't2_narx_taklif', 't2_narx_dalil_holat',
   /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval
      birlashgan VIEW — `holat='bekor'`, is_deleted EMAS). */
   't2_korzinka',

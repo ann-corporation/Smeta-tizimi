@@ -107,6 +107,11 @@ const AMALLAR = {
   /* Nakrutka podval konstruktori (2026-10-01, egasi Q6). */
   nakrutka_podval_saqla: { rpc: 't2_nakrutka_podval_saqla_v1' },
   nakrutka_podval_ochir: { rpc: 't2_nakrutka_podval_ochir_v1' },
+  /* Narx manbalari va narx dalili (2026-10-01, egasi Q4/Q5). */
+  narx_manba_yoz: { rpc: 't2_narx_manba_yoz_v1' },
+  narx_manba_bekor: { rpc: 't2_narx_manba_bekor_v1' },
+  narx_dalil_bogla: { rpc: 't2_narx_dalil_bogla_v1' },
+  narx_dalil_ochir: { rpc: 't2_narx_dalil_ochir_v1' },
   audit_yoz: { rpc: 't2_audit_yoz' },
   hujjat_yoz: { rpc: 't2_obyekt_hujjat_yoz' },
   hujjat_ochir: { rpc: 't2_obyekt_hujjat_ochir' },
@@ -1333,6 +1338,64 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'kompaniya_id va id majburiy' });
       }
       yuk = { p_kompaniya_id: kompaniyaId, p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_kim: sess.email || '' };
+
+    /* ══════════ NARX MANBALARI VA DALIL ══════════
+       Katta kataloglar bo'laklab yuboriladi (rejim 'qosh', bir bo'lakda ≤ 20 000 qator). */
+    } else if (amal === 'narx_manba_yoz') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id majburiy' });
+      }
+      const id = so.id ? Number(so.id) : null;
+      if (!id && !uuidRe.test(operationId)) {
+        return Response.json({ ok: false, error: 'operation_id (UUID) majburiy' });
+      }
+      if (so.qatorlar != null && (!Array.isArray(so.qatorlar) || so.qatorlar.length > 20000)) {
+        return Response.json({ ok: false, error: 'Qatorlar ro\'yxati noto\'g\'ri yoki juda katta (bir bo\'lakda ≤ 20 000)' });
+      }
+      const m = so.malumot && typeof so.malumot === 'object' && !Array.isArray(so.malumot) ? so.malumot : {};
+      const toza: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(m)) toza[k] = v == null || typeof v === 'number' ? v : String(v).slice(0, 1000);
+      const qatorlar = Array.isArray(so.qatorlar)
+        ? so.qatorlar.map((q: any) => ({
+          kod: q?.kod == null ? null : String(q.kod).slice(0, 100), nom: String(q?.nom ?? '').slice(0, 1500),
+          birlik: q?.birlik == null ? null : String(q.birlik).slice(0, 60),
+          narx: q?.narx == null || q.narx === '' ? null : String(q.narx).replace(',', '.').replace(/\s/g, '').slice(0, 30),
+          izoh: q?.izoh == null ? null : String(q.izoh).slice(0, 500),
+        }))
+        : null;
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_malumot: toza, p_qatorlar: qatorlar, p_rejim: so.rejim === 'qosh' ? 'qosh' : 'almashtir',
+        p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
+        p_operation_id: id ? null : operationId, p_kim: sess.email || '',
+      };
+
+    } else if (amal === 'narx_manba_bekor') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const id = Number(so.id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(id) || id <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id va id majburiy' });
+      }
+      yuk = { p_kompaniya_id: kompaniyaId, p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_kim: sess.email || '' };
+
+    } else if (amal === 'narx_dalil_bogla' || amal === 'narx_dalil_ochir') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = Number(so.obyekt_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(obyektId) || obyektId <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id va obyekt_id majburiy' });
+      }
+      if (amal === 'narx_dalil_bogla') {
+        if (!Array.isArray(so.boglar) || !so.boglar.length || so.boglar.length > 5000) {
+          return Response.json({ ok: false, error: 'Bog\'lanishlar 1..5000 bo\'lishi shart' });
+        }
+        yuk = {
+          p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_kim: sess.email || '',
+          p_boglar: so.boglar.map((b: any) => ({ qator_id: Number(b?.qator_id), manba_qator_id: Number(b?.manba_qator_id), izoh: b?.izoh == null ? null : String(b.izoh).slice(0, 500) })),
+        };
+      } else {
+        const ids = Array.isArray(so.qator_ids) ? so.qator_ids.slice(0, 5000).map(Number).filter((x: number) => Number.isInteger(x) && x > 0) : [];
+        yuk = { p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_qator_ids: ids, p_kim: sess.email || '' };
+      }
 
     /* ══════════ AUDIT LOG ══════════
        ⚠️ Log yozuvi — idempotentlik shart emas (ikkilanib yozilishi

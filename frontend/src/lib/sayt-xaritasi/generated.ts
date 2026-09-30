@@ -175,6 +175,7 @@ export const GENERATED_SITE_MAP = {
     ",\n  /* АОСР — yashirin ishlar akti (2026-08-27, hujjat domeni) */\n  ",
     ",\n  /* Ijro hujjatlari v2 (2026-10-01): АОСР blank maydonlari, laboratoriya, logo */\n  ",
     ",\n  /* Nakrutka podval konstruktori (2026-10-01) */\n  ",
+    ",\n  /* Narx manbalari va dalil (2026-10-01) */\n  ",
     ",\n  /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval\n     birlashgan VIEW — `holat=",
     "`, is_deleted EMAS). */\n  ",
     ",\n  /* AUDIT & LOGLAR (2026-08-27, Antigravity SQL + Claude qo",
@@ -467,6 +468,22 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "nakrutka_podval_ochir",
       "rpc": "t2_nakrutka_podval_ochir_v1"
+    },
+    {
+      "amal": "narx_manba_yoz",
+      "rpc": "t2_narx_manba_yoz_v1"
+    },
+    {
+      "amal": "narx_manba_bekor",
+      "rpc": "t2_narx_manba_bekor_v1"
+    },
+    {
+      "amal": "narx_dalil_bogla",
+      "rpc": "t2_narx_dalil_bogla_v1"
+    },
+    {
+      "amal": "narx_dalil_ochir",
+      "rpc": "t2_narx_dalil_ochir_v1"
     },
     {
       "amal": "audit_yoz",
