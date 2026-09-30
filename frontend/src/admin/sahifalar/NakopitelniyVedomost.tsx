@@ -3,7 +3,7 @@ import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { sbOqi, sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
@@ -16,7 +16,7 @@ import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } f
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
-import { daraxtTartibida } from '../../lib/daraxt-tartibi';
+import { ozgarishIzohi, smetaModeliniYukla, tartibla, type SmetaModel } from '../../lib/smeta-model';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 import { f3CertifiedHajm, f3CertifiedSources } from '../../lib/pto-document-lineage/f3-sources';
 
@@ -40,6 +40,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const objectId = workspace.scope.objectId ? String(workspace.scope.objectId) : '';
   const setObjectId = (value: string) => workspace.setObjectId(value ? Number(value) : null);
   const requestId = useRef(0);
+  /** Yagona smeta modeli (daraxt + zamena bog'lanishi) — to'liq qayta o'qishda ham izohlar uchun. */
+  const modelRef = useRef<SmetaModel | null>(null);
   const [davrlar, setDavrlar] = useState<NakopitelniyDavr[]>([]);
   const [davr, setDavr] = useState('');
   const [qatorlar, setQatorlar] = useState<NakopitelniyQator[]>([]);
@@ -52,8 +54,6 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [xato, setXato] = useState('');
   const [page, setPage] = useState(0);
   const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
-  /** Zamena qatori → almashtirgan qator (daraxt tartibi uchun). */
-  const [almashtiradi, setAlmashtiradi] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     let active = true;
@@ -127,23 +127,20 @@ function Sessiya({ companyId }: { companyId: number }) {
     const currentRequest = ++requestId.current;
     setBusy(true); setXato('');
     try {
-      const [r, daraxt, zam] = await Promise.all([
+      // Yagona smeta modeli (lib/smeta-model): daraxt, zamena bog'lanishi va o'zgarish izohlari bir joydan.
+      const [r, model] = await Promise.all([
         t2NakopitelniyToliq(objId, tanlanganDavr || null),
-        sbT2DaraxtOl(objId, 'id,ota_id,daraja'),
-        // Zamena qatori almashtirgan qatoridan keyin turishi uchun (daraxt tartibi).
-        sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objId}&zamena=is.true`, ustunlar: 'id,replaces_line_id', limit: 20000 }).catch(() => null),
+        smetaModeliniYukla(objId),
       ]);
       if (currentRequest !== requestId.current) return;
       if (!r.ok) { setXato(r.xato || r.code || 'Yuklanmadi'); setQatorlar([]); return; }
       const meta = new Map<number, { ota_id: number | null; daraja: number | null }>();
-      if (daraxt.ok) for (const q of daraxt.qatorlar ?? []) meta.set(Number(q.id), { ota_id: q.ota_id ?? null, daraja: q.daraja ?? null });
+      for (const q of model.byId.values()) meta.set(q.id, { ota_id: q.ota_id, daraja: q.daraja });
       setTreeMeta(meta);
-      const almashtiradi = new Map<number, number>();
-      if (zam?.ok) for (const z of zam.qatorlar ?? []) if (z.replaces_line_id != null) almashtiradi.set(Number(z.id), Number(z.replaces_line_id));
-      setAlmashtiradi(almashtiradi);
+      modelRef.current = model;
       // Egasi 2026-09-29: qo'shimcha/zamena qatorlarining tartib raqami smeta oxirida — hujjatlar
       // ularni oxirgi razdelga yozardi. Barcha hujjatlar shu ro'yxatdan: DARAXT tartibida.
-      setQatorlar(daraxtTartibida(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}) })), almashtiradi));
+      setQatorlar(tartibla(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, model) })), model));
       setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
       setLoyihaId(r.obyekt.loyiha_id);
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
@@ -237,7 +234,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
-      return daraxtTartibida(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}) })), almashtiradi);
+      return tartibla(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, modelRef.current) })), modelRef.current);
     } finally { setEksportBusy(false); }
   };
   const stavkaOl = (): number | null => {
@@ -528,7 +525,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                       approvedF2Amount: q.jami_summa,
                     });
                     return <tr key={q.qator_id} className="border-t border-border/60 hover:bg-surface-2/40 text-right">
-                    <td className={'text-left px-2 py-1 sticky left-0 bg-surface ' + (q.tur === 'bl' ? 'font-medium' : '')} style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }} title={q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}</td>
+                    <td className={'text-left px-2 py-1 sticky left-0 bg-surface ' + (q.tur === 'bl' ? 'font-medium' : '')} style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }} title={q.ozgarish_izoh || q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}{q.ozgarish_izoh && <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent">{q.zamena ? 'zamena' : 'qo‘shimcha'}</span>}</td>
                     <td className="text-center px-2 py-1">{q.birlik || '—'}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums"><FmtN val={jamiHajmSafe(q)} kasr={3} /></td>
                     <td className="px-2 py-1 tabular-nums">{q.smeta_narx == null ? '—' : <FmtN val={q.smeta_narx} />}</td>

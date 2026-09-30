@@ -1,3 +1,4 @@
+import { nomIzohBilan } from './smeta-model';
 /**
  * forma3-export.ts — F3 (СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ /
  * счет-фактура, Forma-3) — egasi (2026-09-26):
@@ -169,7 +170,7 @@ export interface F3Model {
   diqqat: Array<{ nom: string; sabab: string }>;
 }
 
-const nomOf = (q: NakopitelniyQator): string => `${q.kod ? q.kod + ' ' : ''}${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`.trim();
+const nomOf = (q: NakopitelniyQator): string => nomIzohBilan(`${q.kod ? q.kod + ' ' : ''}${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`.trim(), q.ozgarish_izoh);
 
 /**
  * F3 modeli: nakopitelniy qatorlaridan razdel → ish → qiymat (barglar va
@@ -579,7 +580,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
       const h = 'bolalar' in x ? x.f2H : x.f2H;
       const hajm = q.smeta_hajm;
       const r = v.qator('oddiy', (rr) => [
-        String(++raqam), `${q.kod ? q.kod + ' ' : ''}${q.nom ?? ''}`.trim(), q.birlik ?? '',
+        String(++raqam), nomIzohBilan(`${q.kod ? q.kod + ' ' : ''}${q.nom ?? ''}`.trim(), q.ozgarish_izoh), q.birlik ?? '',
         hajm ?? null, hajm == null ? null : { f: `D${rr}`, v: hajm },
         d.smeta == null ? null : r2(d.smeta), d.smeta == null ? null : { f: `F${rr}`, v: r2(d.smeta) },
         h.boshidan || null, foizF('H', 'D', rr, hajm ? ulush(h.boshidan, hajm) : null), r2(d.b),

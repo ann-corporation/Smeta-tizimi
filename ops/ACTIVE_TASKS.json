@@ -1665,6 +1665,32 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Obsidian: EGASI_SINOV_2026-09-30 #2–#7, #14."
+    },
+    {
+      "id": "SMETA-MODEL-YAGONA-001",
+      "title": "Yagona smeta modeli (lib/smeta-model): zamena/qo‘shimcha izohi Nakopitelniy va F3 da; LRV Excel ogohlantirishlari va son formatlari",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "ad6fd14",
+      "status": "completed",
+      "owns": [
+        "frontend/src/lib/smeta-model.ts",
+        "frontend/src/lib/smeta-model.test.ts",
+        "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+        "frontend/src/api/t2-nakopitelniy.ts",
+        "frontend/src/lib/nakopitelniy-vedomost-export.ts",
+        "frontend/src/lib/forma3-export.ts",
+        "frontend/src/lib/hujjat-yozuvchi/kitob.ts",
+        "frontend/src/lib/lrv-plus-export.ts",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi C4 (to‘g‘ri ma’nosi): smetaga bog‘liq barcha funksiyalar bitta smeta moduli orqali. 1-qadam: daraxt+zamena bog‘lanishi+o‘zgarish izohi. EGASI_SINOV_2026-09-30 #8, #11."
     }
   ]
 }

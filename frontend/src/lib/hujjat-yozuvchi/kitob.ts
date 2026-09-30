@@ -146,6 +146,30 @@ export function boshKeshQoy(bytes: Uint8Array, varaqlar?: readonly string[]): Ui
   return zipSync(files, { level: 6 });
 }
 
+/**
+ * Excel "yashil uchburchak" ogohlantirishlarini o'chiradi (egasi 2026-09-30: "kompyuterda ochsam
+ * xato va uvedomleniyalar chiqadi"). Resurs kodlari ('000001', '1942') ataylab MATN — boshidagi nol
+ * yo'qolmasin; Excel ularni "Число сохранено как текст" deb belgilardi. Ota qatorda SUMIF, bargda
+ * H=F×G — "Несогласованная формула" / "Формула не охватывает смежные ячейки" ham ma'noli emas.
+ * `<ignoredErrors>` OOXML tartibida (`smartTags`/`drawing`/…/`extLst` dan oldin) qo'yiladi.
+ */
+export function ogohlantirishlarniOchir(bytes: Uint8Array, varaqlar?: readonly string[]): Uint8Array {
+  const files = unzipSync(bytes);
+  const yollar = varaqYollari(files).filter((y) => !varaqlar || varaqlar.includes(y.name));
+  const EL = '<ignoredErrors><ignoredError sqref="A1:XFD1048576" numberStoredAsText="1" formula="1" formulaRange="1" unlockedFormula="1"/></ignoredErrors>';
+  for (const y of yollar) {
+    const x = files[y.path];
+    if (!x) continue;
+    let xml = strFromU8(x);
+    if (/<(?:\w+:)?ignoredErrors\b/.test(xml)) continue;
+    const m = xml.match(/<(?:\w+:)?(?:smartTags|drawing|legacyDrawing|legacyDrawingHF|picture|oleObjects|controls|webPublishItems|tableParts|extLst)\b|<\/(?:\w+:)?worksheet>/);
+    if (!m || m.index == null) continue;
+    xml = xml.slice(0, m.index) + EL + xml.slice(m.index);
+    files[y.path] = strToU8(xml);
+  }
+  return zipSync(files, { level: 6 });
+}
+
 /** Chop nomlarini (Print_Area / Print_Titles) to'liq absolyut shaklga keltiradi:
  * exceljs `$A1:$W42` yozadi — nisbiy qator raqami defined name da faol katakka
  * bog'lanib siljishi mumkin; standart shakl `$A$1:$W$42`. */

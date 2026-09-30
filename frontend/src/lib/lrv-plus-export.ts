@@ -46,7 +46,7 @@ import type { T2Qator, T2QatorHolat } from '../api/supabase';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { resursVedomostAoa } from './resurs-vedomost';
-import { boshKeshQoy, chopNomlariAbsolyut, bugunSana, hujjatFaylNomi, imzoMatni, imzoMuhrli, imzoTomonlari, IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, type ImzoNomlar } from './hujjat-yozuvchi';
+import { boshKeshQoy, chopNomlariAbsolyut, ogohlantirishlarniOchir, bugunSana, hujjatFaylNomi, imzoMatni, imzoMuhrli, imzoTomonlari, IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, type ImzoNomlar } from './hujjat-yozuvchi';
 
 /**
  * `toliq` — butun LRV_PLUS (A..W + yashirin Даража).
@@ -835,8 +835,10 @@ export async function lrvPlusFaylBaytlari(
   const HAJM_FORMAT = '#,##0.####';
   /** C = nom; E/F = hajm; G/H = narx va summa; J..O = kategoriya summalari. */
   const NOM_USTUN = 2;
-  const HAJM_USTUN = new Set([4, 5]);
-  const PUL_USTUN = new Set([6, 7, 9, 10, 11, 12, 13, 14]);
+  // To'liq rejim: P..S — fakt/ostatka/F2 HAJMLARI, T..W — ularning SUMMALARI (egasi 2026-09-30: formatsiz xom
+  // sonlar «2269841167.865» o'qib bo'lmas edi).
+  const HAJM_USTUN = new Set(rejim === 'toliq' ? [4, 5, 15, 16, 17, 18] : [4, 5]);
+  const PUL_USTUN = new Set(rejim === 'toliq' ? [6, 7, 9, 10, 11, 12, 13, 14, 19, 20, 21, 22] : [6, 7, 9, 10, 11, 12, 13, 14]);
 
   // ── Uslub: guruhlangan sarlavha + yengil panjara + qator turi rangi ───
   // Sarlavha qiymatlari o'zgarmaydi; guruhlar rang va qalin ajratgich bilan
@@ -1085,7 +1087,7 @@ export async function lrvPlusFaylBaytlari(
   if (manbaWs) manbaWs.state = 'hidden';
 
   const out = (await ewb.xlsx.writeBuffer()) as ArrayBuffer;
-  return chopNomlariAbsolyut(boshKeshQoy(new Uint8Array(out), [rejim === 'forma2' ? 'FORMA_2' : 'LRV_PLUS']));
+  return ogohlantirishlarniOchir(chopNomlariAbsolyut(boshKeshQoy(new Uint8Array(out), [rejim === 'forma2' ? 'FORMA_2' : 'LRV_PLUS'])));
 }
 
 /** LRV_PLUS / Forma-2 fayl nomi (H8): `<Obyekt>_LRV_PLUS_<sana>.xlsx`. */

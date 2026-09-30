@@ -1,3 +1,4 @@
+import { nomIzohBilan } from './smeta-model';
 /**
  * НАКОПИТЕЛЬНАЯ ВЕДОМОСТЬ ВЫПОЛНЕННЫХ РАБОТ — rasmiy hujjat (P3, H1–H9).
  *
@@ -263,7 +264,7 @@ export function nakopitelniyVedomostHujjat(
       const tartib = barg ? '' : String(++no);
       const sum = (c: string) => pulYig(c, x.bolalar);
       r = v.qator(barg ? 'oddiy' : 'ish', (rr) => [
-        barg ? tartib : tartib, q!.kod ?? '', q!.nom ?? '', q!.birlik ?? '',
+        barg ? tartib : tartib, q!.kod ?? '', nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh), q!.birlik ?? '',
         n(q!.smeta_hajm), barg ? n(q!.smeta_narx) : null,
         barg ? n(q!.smeta_summa) : sum('G'),
         q!.fakt_hajm,
