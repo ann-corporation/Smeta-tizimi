@@ -1,5 +1,6 @@
 import type { SheetGrid, XlsxWorkbook } from './f2-import-parse';
 import { HAJM_NAQSH, NARX_NAQSH, SUMMA_NAQSH, uchlikniMoslashtir } from './smeta-anatomiya/ustun-dalil';
+import { varaqniTahlilQil } from './smeta-anatomiya/varaq';
 
 export type ResNarx = { kod?: string; nom: string; birlik: string; narx: number };
 /** `dalil` — narx ustuni qanday isbotlandi (sarlavha / ma'lumot arifmetikasi). */
@@ -48,6 +49,18 @@ function son(v: unknown): number | undefined {
  * isbotlanadi: hajm × narx ≈ summa (smeta-anatomiya/ustun-dalil.ts, barcha
  * hujjat o'quvchilari uchun yagona mexanizm). */
 export function resUstunlariniAniqla(rows: SheetGrid): ResUstunlar | null {
+  // C4: ustunlarni avval yagona anatomiya aniqlaydi; topilmasa — quyidagi RES detektori.
+  try {
+    const v = varaqniTahlilQil('', { nom: '', rows });
+    const u = v.ustunlar;
+    if (u && u.nom >= 0 && u.birlik >= 0 && u.narx >= 0) {
+      return { kod: u.shifr, nom: u.nom, birlik: u.birlik, narx: u.narx, sarlavha: Math.max(0, u.malumotBoshi - 1), dalil: v.rolDalil.map((d) => d.izoh).filter((x) => /ustun|narx|summa|hajm/.test(x)).join('; ') || 'anatomiya ustunlari' };
+    }
+  } catch { /* zaxira detektor */ }
+  return resUstunlariEski(rows);
+}
+
+function resUstunlariEski(rows: SheetGrid): ResUstunlar | null {
   for (let r = 0; r < Math.min(rows.length, 80); r++) {
     const row = rows[r] ?? [];
     let nom = -1; let birlik = -1; let kod = -1;
