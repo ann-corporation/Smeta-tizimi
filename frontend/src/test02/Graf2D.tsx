@@ -1,26 +1,47 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * ObsidianGraf — mindmap'ning Obsidian "graph view" uslubidagi ko'rinishi (egasi 2026-09-30:
+ * Graf2D — mindmap'ning Obsidian "graph view" uslubidagi ko'rinishi (egasi 2026-09-30:
  * "mindmapni ham obsidian shaklida qilib chiroyli qilib ber").
  *
  * Canvas + oddiy kuch simulyatsiyasi (itarish, bog'lanish prujinasi, markazga tortish):
  *   - tugun — dumaloq nuqta, o'lchami bog'lanishlar soniga qarab; rangi — tur rangi;
  *   - chiziqlar ingichka; sichqoncha tugun ustida — qo'shnilari yorishadi, qolgani xiralashadi;
  *   - g'ildirak — kursor ostida zoom, bo'sh joyni sudrash — pan, tugunni sudrash — joyini o'zgartirish;
- *   - bosish — `onTanla(id)` (to'liq sahifaga o'tish yoki tafsilot).
+ *   - bosish — `onTanla(id)` (to'liq sahifaga o'tish yoki tafsilot);
+ *   - "Bog'lash" rejimi: A, keyin B tugunni bosish — `onBogla(A, B)` (qoidalar va saqlash ota komponentda);
+ *   - rang: sukut bo'yicha vazmin bir rangli (egasi: "rang-barang kamalak qilma"), tur ranglari — ixtiyoriy.
  * Joylashuv faqat ko'rinish uchun — bazadagi mindmap joylashuviga yozilmaydi.
  */
 export type GrafTugun = { id: string; nom: string; rang: string; tur: string };
 export type GrafBog = { manba: string; maqsad: string };
 
+const MONO = '#b4bccc';
+const URGU = '#8fb0ff';
+const RANG_KALIT = 'graf2d-rang-v1';
+
 type N = GrafTugun & { x: number; y: number; vx: number; vy: number; r: number; daraja: number; qotgan: boolean };
 
-export function ObsidianGraf({ tugunlar, boglar, onTanla }: {
+export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
   tugunlar: readonly GrafTugun[];
   boglar: readonly GrafBog[];
   onTanla?: (id: string) => void;
+  /** Qo'lda bog'lash: manba → maqsad. */
+  onBogla?: (manba: string, maqsad: string) => void;
 }) {
+  /** Bog'lash rejimi: null — o'chiq; '' — yoqilgan; id — manba tanlangan. */
+  const [boglash, setBoglash] = useState<string | null>(null);
+  const boglashRef = useRef<string | null>(null);
+  useEffect(() => { boglashRef.current = boglash; }, [boglash]);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setBoglash(null); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, []);
+  const [turRang, setTurRang] = useState<boolean>(() => { try { return localStorage.getItem(RANG_KALIT) === 'tur'; } catch { return false; } });
+  const turRangRef = useRef(turRang);
+  useEffect(() => { turRangRef.current = turRang; try { localStorage.setItem(RANG_KALIT, turRang ? 'tur' : 'mono'); } catch { /* eslab qolinmaydi */ } }, [turRang]);
+  const kursor = useRef({ x: 0, y: 0 });
   const quti = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const holat = useRef<{ n: N[]; byId: Map<string, N>; e: Array<[N, N]>; qo: Map<string, Set<string>> }>({ n: [], byId: new Map(), e: [], qo: new Map() });
@@ -55,12 +76,12 @@ export function ObsidianGraf({ tugunlar, boglar, onTanla }: {
     const byId = new Map(n.map((x) => [x.id, x]));
     const e: Array<[N, N]> = [];
     const qo = new Map<string, Set<string>>();
+    const qosh = (k: string, v: string) => { let s = qo.get(k); if (!s) { s = new Set(); qo.set(k, s); } s.add(v); };
     for (const b of boglar) {
       const a = byId.get(b.manba), c = byId.get(b.maqsad);
       if (!a || !c) continue;
       e.push([a, c]);
-      (qo.get(a.id) ?? qo.set(a.id, new Set()).get(a.id)!).add(c.id);
-      (qo.get(c.id) ?? qo.set(c.id, new Set()).get(c.id)!).add(a.id);
+      qosh(a.id, c.id); qosh(c.id, a.id);
     }
     holat.current = { n, byId, e, qo };
     issiqlik.current = 1;
@@ -121,7 +142,8 @@ export function ObsidianGraf({ tugunlar, boglar, onTanla }: {
     ctx.fillStyle = '#1e1e1e';
     ctx.fillRect(0, 0, w, h);
     ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * (w / 2 + kx), dpr * (h / 2 + ky));
-    const hv = hoverRef.current;
+    const bm = boglashRef.current;
+    const hv = hoverRef.current ?? (bm || null);
     const qs = qidirRef.current.trim().toLowerCase();
     const faol = hv ? new Set([hv, ...(qo.get(hv) ?? [])]) : null;
     const moslik = (x: N) => !qs || x.nom.toLowerCase().includes(qs);
@@ -129,16 +151,24 @@ export function ObsidianGraf({ tugunlar, boglar, onTanla }: {
     ctx.lineWidth = 1 / k;
     for (const [a, b] of e) {
       const yoniq = faol ? (faol.has(a.id) && faol.has(b.id) && (a.id === hv || b.id === hv)) : true;
-      ctx.strokeStyle = yoniq ? (faol ? 'rgba(167,139,250,0.9)' : 'rgba(160,160,160,0.28)') : 'rgba(120,120,120,0.07)';
+      ctx.strokeStyle = yoniq ? (faol ? 'rgba(143,176,255,0.9)' : 'rgba(160,160,160,0.28)') : 'rgba(120,120,120,0.07)';
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    // Bog'lash rejimi: manbadan kursorgacha punktir.
+    const bmTugun = bm ? holat.current.byId.get(bm) : undefined;
+    if (bmTugun) {
+      const kx2 = (kursor.current.x - w / 2 - kx) / k, ky2 = (kursor.current.y - h / 2 - ky) / k;
+      ctx.setLineDash([6 / k, 6 / k]); ctx.strokeStyle = 'rgba(143,176,255,0.9)'; ctx.lineWidth = 1.5 / k;
+      ctx.beginPath(); ctx.moveTo(bmTugun.x, bmTugun.y); ctx.lineTo(kx2, ky2); ctx.stroke();
+      ctx.setLineDash([]); ctx.lineWidth = 1 / k;
     }
     // Tugunlar
     for (const a of n) {
       const yoniq = (!faol || faol.has(a.id)) && moslik(a);
       ctx.globalAlpha = yoniq ? 1 : 0.15;
-      ctx.fillStyle = a.id === hv ? '#a78bfa' : a.rang;
+      ctx.fillStyle = a.id === hv || a.id === bm ? URGU : turRangRef.current ? a.rang : MONO;
       ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2); ctx.fill();
-      if (a.id === hv) { ctx.strokeStyle = '#ddd6fe'; ctx.lineWidth = 1.5 / k; ctx.stroke(); }
+      if (a.id === hv || a.id === bm) { ctx.strokeStyle = '#dbe5ff'; ctx.lineWidth = 1.5 / k; ctx.stroke(); }
       // Yozuv: yaqinlashganda yoki faol tugunlarda (Obsidian kabi).
       const muhim = a.daraja >= 5;
       if (k > 1.25 || (faol && faol.has(a.id)) || muhim || (qs && moslik(a))) {
@@ -170,14 +200,17 @@ export function ObsidianGraf({ tugunlar, boglar, onTanla }: {
       <canvas
         ref={canvas}
         className="block"
-        style={{ cursor: hover ? 'pointer' : sud.current?.tur === 'pan' ? 'grabbing' : 'grab' }}
+        style={{ cursor: boglash != null ? 'crosshair' : hover ? 'pointer' : sud.current?.tur === 'pan' ? 'grabbing' : 'grab' }}
         onPointerDown={(e) => {
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
           const t = topTugun(e.clientX, e.clientY);
+          if (boglash != null) { sud.current = { tur: 'pan', x: e.clientX, y: e.clientY, kochdi: false }; return; }
           sud.current = t ? { tur: 'tugun', id: t.id, x: e.clientX, y: e.clientY, kochdi: false } : { tur: 'pan', x: e.clientX, y: e.clientY, kochdi: false };
           if (t) { t.qotgan = true; issiqlik.current = Math.max(issiqlik.current, 0.3); }
         }}
         onPointerMove={(e) => {
+          const cr = canvas.current!.getBoundingClientRect();
+          kursor.current = { x: e.clientX - cr.left, y: e.clientY - cr.top };
           const s = sud.current;
           if (s) {
             const dx = e.clientX - s.x, dy = e.clientY - s.y;
@@ -190,9 +223,17 @@ export function ObsidianGraf({ tugunlar, boglar, onTanla }: {
           const id = t?.id ?? null;
           if (id !== hoverRef.current) { hoverRef.current = id; setHover(id); }
         }}
-        onPointerUp={() => {
+        onPointerUp={(e) => {
           const s = sud.current;
           sud.current = null;
+          if (boglash != null) {
+            if (s?.kochdi) return;
+            const t = topTugun(e.clientX, e.clientY);
+            if (!t) return;
+            if (!boglash) { setBoglash(t.id); return; }
+            if (t.id !== boglash) { onBogla?.(boglash, t.id); setBoglash(null); }
+            return;
+          }
           if (s?.tur === 'tugun') {
             const a = holat.current.byId.get(s.id!);
             if (a) a.qotgan = false;
@@ -208,15 +249,24 @@ export function ObsidianGraf({ tugunlar, boglar, onTanla }: {
           cam.x = mx - ((mx - cam.x) / oldK) * newK; cam.y = my - ((my - cam.y) / oldK) * newK; cam.k = newK;
         }}
       />
-      <div style={{ position: 'absolute', left: 12, top: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div className="whitespace-nowrap" style={{ position: 'absolute', left: 12, top: 12, right: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <input value={qidir} onChange={(e) => { setQidir(e.target.value); qidirRef.current = e.target.value; }} placeholder="Qidirish…"
-          className="w-56 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-violet-400/60" />
+          className="w-56 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-sky-300/60" />
         <button type="button" onClick={() => sigdir()}
           className="rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-300 hover:bg-white/10">Ekranga sig‘dirish</button>
+        {onBogla && (
+          <button type="button" onClick={() => setBoglash((b) => (b == null ? '' : null))} title="Avval birinchi tugunni, keyin ikkinchisini bosing (Esc — bekor)"
+            className={boglash != null ? 'rounded-md border border-sky-300/40 bg-sky-400/15 px-2.5 py-1.5 text-[12px] text-sky-100' : 'rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-300 hover:bg-white/10'}>
+            🔗 {boglash == null ? 'Bog‘lash' : boglash ? 'Ikkinchi tugunni bosing… (Esc)' : 'Birinchi tugunni bosing… (Esc)'}
+          </button>
+        )}
+        <label className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-300">
+          <input type="checkbox" checked={turRang} onChange={(e) => setTurRang(e.target.checked)} className="accent-sky-400" /> Tur ranglari
+        </label>
       </div>
       {hover && (() => { const a = holat.current.byId.get(hover); return a ? (
         <div className="rounded-md border border-white/10 bg-black/60 px-3 py-2 text-[12px] text-zinc-200" style={{ position: 'absolute', left: 12, bottom: 12, pointerEvents: 'none' }}>
-          <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: a.rang }} />
+          <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: turRang ? a.rang : MONO }} />
           <b>{a.nom}</b> <span className="text-zinc-400">· {a.tur} · {a.daraja} ta bog‘lanish</span>
         </div>) : null; })()}
     </div>

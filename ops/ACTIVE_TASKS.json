@@ -1781,6 +1781,29 @@
       ],
       "production_write_allowed": false,
       "_izoh": "EGASI_SINOV_2026-09-30 #13. Namunaviy ma’lumotda brauzerda vizual tekshirildi; real login bilan UNKNOWN."
+    },
+    {
+      "id": "MINDMAP-GRAF3D-001",
+      "title": "Mindmap: 3D aylanuvchi graf (sukut) + sozlamalar + qo‘lda bog‘lash; 2D graf saqlanadi; vazmin bir rangli palitra",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "992384d",
+      "status": "completed",
+      "owns": [
+        "frontend/src/test02/Graf3D.tsx",
+        "frontend/src/test02/Graf2D.tsx",
+        "frontend/src/test02/TestXarita.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [
+        "MINDMAP-OBSIDIAN-001"
+      ],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "EGASI_SINOV_2026-09-30 #13 davomi. Bog‘lash mavjud chiziqniBogla (sbMindmapBog, qoidalar, rol modali) orqali — yangi yozish yo‘li yo‘q. Namunaviy ma’lumotda brauzerda tekshirildi (3D va 2D bog‘lash, sozlamalar); real login bilan UNKNOWN."
     }
   ]
 }

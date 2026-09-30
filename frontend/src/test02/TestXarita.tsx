@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   Building2, Warehouse, FileText, Truck, HardHat, FolderKanban,
   Users, Plus, X, ZoomIn, ZoomOut, RefreshCcw, Unlink, Move,
@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaTanlov';
-import { ObsidianGraf } from './ObsidianGraf';
+import { Graf3D } from './Graf3D';
+import { Graf2D } from './Graf2D';
 import { toast } from '../umumiy/ui/Toast';
 import { pulQisqa } from '../lib/format';
 import { sbObyektHodisalariOl, qachon, MODUL_RANG, type Hodisa } from '../api/t2-hodisa';
@@ -156,7 +157,8 @@ export default function TestXarita() {
   const [yaratXato, setYaratXato] = useState('');
   const [tanlangan, setTanlangan] = useState<string | null>(null);
   /** Egasi 2026-09-30: Obsidian grafigi uslubi (sukut) yoki tahrir kanvasi (bog'lash/yaratish/joylash). */
-  const [korinish, setKorinish] = useState<'graf' | 'tahrir'>('graf');
+  /** Ko'rinish: 3D graf (sukut), 2D graf (Obsidian uslubi — egasi: "eskisini ham o'chirma") yoki tahrir kanvasi. */
+  const [korinish, setKorinish] = useState<'3d' | '2d' | 'tahrir'>('3d');
   const [tanlanganBog, setTanlanganBog] = useState<MindmapGraf['bogichlar'][number] | null>(null);
   const [obyektHodisalari, setObyektHodisalari] = useState<Hodisa[]>([]);
   const [hodisaYuklanmoqda, setHodisaYuklanmoqda] = useState(false);
@@ -554,6 +556,12 @@ export default function TestXarita() {
   });
   const korsatilganIdlar = new Set(korsatilganTugunlar.map((t) => t.id));
   const korsatilganBoglar = graf.bogichlar.filter((b) => korsatilganIdlar.has(b.manba) && korsatilganIdlar.has(b.maqsad));
+  // Graf komponentlariga barqaror massivlar: tuzilish o'zgarmasa simulyatsiya qayta boshlanmaydi.
+  const grafKalit = korsatilganTugunlar.map((t) => t.id + '|' + t.nom + '|' + t.tur).join('~') + '#' + graf.bogichlar.map((b) => b.manba + '>' + b.maqsad).join('~');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const grafTugunlar = useMemo(() => korsatilganTugunlar.map((t) => ({ id: t.id, nom: t.nom, tur: TUR_NOM[t.tur] ?? t.tur, rang: TUR_RANG[t.tur] ?? '#94a3b8' })), [grafKalit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const grafBoglar = useMemo(() => graf.bogichlar.map((b) => ({ manba: b.manba, maqsad: b.maqsad })), [grafKalit]);
   const tanlanganBogManba = tanlanganBog ? graf.tugunlar.find((t) => t.id === tanlanganBog.manba) : null;
   const tanlanganBogMaqsad = tanlanganBog ? graf.tugunlar.find((t) => t.id === tanlanganBog.maqsad) : null;
 
@@ -575,8 +583,9 @@ export default function TestXarita() {
           <div className="flex items-center gap-1.5">
             {oxirgiYangilanish && <span className="text-[10px] text-zinc-500 inline-flex items-center gap-1 mr-1"><Clock size={11} /> {oxirgiYangilanish.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>}
             <div className="mr-1 inline-flex overflow-hidden rounded-lg border border-white/10">
-              <button onClick={() => setKorinish('graf')} className={'px-2.5 py-2 text-[11px] ' + (korinish === 'graf' ? 'bg-violet-500/30 text-violet-100' : 'bg-white/5 hover:bg-white/10')}>Graf</button>
-              <button onClick={() => setKorinish('tahrir')} className={'px-2.5 py-2 text-[11px] ' + (korinish === 'tahrir' ? 'bg-violet-500/30 text-violet-100' : 'bg-white/5 hover:bg-white/10')}>Tahrir</button>
+              {([['3d', '3D graf'], ['2d', '2D graf'], ['tahrir', 'Tahrir']] as const).map(([k, nom]) => (
+                <button key={k} onClick={() => setKorinish(k)} className={'px-2.5 py-2 text-[11px] ' + (korinish === k ? 'bg-sky-500/25 text-sky-100' : 'bg-white/5 hover:bg-white/10')}>{nom}</button>
+              ))}
             </div>
             <button onClick={hammasiniQaytaTer} title="Hammasini ustunlarga qayta terish"
               className="px-2.5 py-2 bg-white/5 hover:bg-white/10 rounded-lg inline-flex items-center gap-1.5 text-[11px]">
@@ -668,13 +677,11 @@ export default function TestXarita() {
 
       {xato && <div className="m-3 p-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg text-sm">{xato}</div>}
 
-      {korinish === 'graf' && (
+      {korinish !== 'tahrir' && (
         <div className="flex-1 min-h-0">
-          <ObsidianGraf
-            tugunlar={korsatilganTugunlar.map((t) => ({ id: t.id, nom: t.nom, tur: TUR_NOM[t.tur] ?? t.tur, rang: TUR_RANG[t.tur] ?? '#94a3b8' }))}
-            boglar={graf.bogichlar.map((b) => ({ manba: b.manba, maqsad: b.maqsad }))}
-            onTanla={(id) => setTanlangan(id)}
-          />
+          {korinish === '3d'
+            ? <Graf3D tugunlar={grafTugunlar} boglar={grafBoglar} onTanla={(id) => setTanlangan(id)} onBogla={(a, b) => void chiziqniBogla(a, b)} />
+            : <Graf2D tugunlar={grafTugunlar} boglar={grafBoglar} onTanla={(id) => setTanlangan(id)} onBogla={(a, b) => void chiziqniBogla(a, b)} />}
         </div>
       )}
 
@@ -683,7 +690,7 @@ export default function TestXarita() {
         ref={wrapRef}
         className="flex-1 relative overflow-hidden touch-none"
         style={{
-          display: korinish === 'graf' ? 'none' : undefined,
+          display: korinish !== 'tahrir' ? 'none' : undefined,
           cursor: chiziqManbaId ? 'crosshair' : 'grab',
           backgroundImage: 'radial-gradient(circle, #1e293b 1px, transparent 1px)',
           backgroundSize: (24 * zoom) + 'px ' + (24 * zoom) + 'px',
