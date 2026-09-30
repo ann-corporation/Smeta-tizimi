@@ -12,7 +12,7 @@ Repo: `ann-corporation/Smeta-tizimi` (GitHub). Supabase `tuoyrzadkgoltpqkdiyx`. 
 
 ## 0.1 Hamkorlik — Obsidian orqali
 
-Claude bilan **** orqali kelishing: ish boshlashdan oldin "Hozir kim nima qilyapti"ni yangilang, har push'dan keyin "Jurnal"ga bir qator, savol — "Savollar"ga, bir-biringiz commitlarini kuzating ("Kuzatuv"). Qoidalar o'sha qaydda.
+Claude bilan Obsidian **20_PROJECTS/Smeta-tizimi/KOORDINATSIYA.md** orqali kelishing: ish boshlashdan oldin "Hozir kim nima qilyapti"ni yangilang, har push'dan keyin "Jurnal"ga bir qator, savol — "Savollar"ga, bir-biringiz commitlarini kuzating ("Kuzatuv"). Qoidalar o'sha qaydda.
 
 ## 1. Ish bo'linishi (fayllar KESISHMASIN)
 
