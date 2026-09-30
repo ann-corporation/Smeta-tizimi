@@ -1,7 +1,7 @@
 import { kalit } from './matn';
 import { sarlavhaYoli } from './ierarxiya';
 import type { AktNode } from '../f2-match-engine';
-import type { Sarlavha, VaraqAnatomiyasi } from './turlar';
+import type { Resurs, Sarlavha, VaraqAnatomiyasi } from './turlar';
 
 /**
  * Anatomiya → import quvurining `AktNode` daraxti (smeta-flatten → bo'laklar →
@@ -13,7 +13,9 @@ import type { Sarlavha, VaraqAnatomiyasi } from './turlar';
  * (tenglik qo'riqchisi shunga tayanadi):
  *   - resurslari bor ish → `bl`, ichida `rs` (hajm = loyiha, yo'q bo'lsa norma);
  *   - resurssiz ish qatori → `ob` (nomida yoki RZ yo'lida ОБОРУДОВАН) yoki `mat`;
- *   - hajmi bo'sh/0 yoki nomsiz qator eski quruvchidagidek kirmaydi.
+ *   - hajmi bo'sh/0 yoki nomsiz qator eski quruvchidagidek kirmaydi;
+ *   - LRV_PLUS mustaqil MAT/OB (RZ ostida, ishdan tashqari) — o'z turida (`mat`/`ob`),
+ *     egasiz RS — `rs`; hujjat qatori tartibida.
  */
 export interface AktDaraxtNatija {
   tree: AktNode[];
@@ -57,16 +59,28 @@ export function anatomiyadanAktDaraxt(v: VaraqAnatomiyasi): AktDaraxtNatija {
 
   // Hujjat tartibi: sarlavha va ishlar Excel qatori bo'yicha birga — daraxtning
   // pre-order yurishi aynan hujjat tartibini beradi (bazadagi `tartib` shunga tayanadi).
-  type Hodisa = { qator: number; sarlavha?: Sarlavha; ish?: VaraqAnatomiyasi['ishlar'][number] };
+  type Hodisa = { qator: number; sarlavha?: Sarlavha; ish?: VaraqAnatomiyasi['ishlar'][number]; mustaqil?: Resurs };
   const hodisalar: Hodisa[] = [
     // Svoddan qo'shilgan obyekt tugunlari boshqa faylda — bolasi kelganda rzQosh o'zi yaratadi.
     ...v.sarlavhalar.filter((s) => s.manzil.fayl === v.fayl).map((s) => ({ qator: s.manzil.qator, sarlavha: s })),
     ...v.ishlar.map((i) => ({ qator: i.manzil.qator, ish: i })),
+    ...(v.mustaqilResurslar ?? []).map((r) => ({ qator: r.manzil.qator, mustaqil: r })),
   ].sort((a, b) => a.qator - b.qator);
 
   let otkazildi = 0;
   for (const h of hodisalar) {
     if (h.sarlavha) { rzQosh(h.sarlavha); continue; }
+    if (h.mustaqil) {
+      const r = h.mustaqil;
+      const rh = r.hajm ?? r.normaBirlikka;
+      if (!r.xom || !rh) { otkazildi++; continue; }
+      const tur: AktNode['type'] = r.texnikBelgi?.startsWith('ob') ? 'ob' : r.texnikBelgi?.startsWith('mat') ? 'mat' : 'rs';
+      joy(r.sarlavha ?? null).push({
+        uid: `anat_m${r.manzil.qator}`, type: tur, kod: r.kod ?? '', nom: r.xom, bir: r.birlik ?? '',
+        hajm: rh, narx: r.narx ?? 0, summa: r.summa ?? 0, children: [], norma: 0,
+      } as Tugun);
+      continue;
+    }
     const ish = h.ish!;
     const hajm = ish.hajm;
     if (!ish.xom || !hajm) { otkazildi += 1 + ish.resurslar.length; continue; }

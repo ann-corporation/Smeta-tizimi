@@ -1,4 +1,5 @@
 import type { SheetGrid } from './f2-import-parse';
+import { varaqRoli } from './smeta-anatomiya/yuklash';
 
 /**
  * Paket importi uchun varaq roli faqat mazmunidan aniqlanadi. Fayl/papka
@@ -91,8 +92,33 @@ function xavfsizGrid(rows: unknown): SheetGrid {
     : []);
 }
 
-export function smetaVaraqniTahlilQil(rows: SheetGrid | null | undefined): SmetaSheetAnalysis {
+export function smetaVaraqniTahlilQil(rows: SheetGrid | null | undefined, nom = ''): SmetaSheetAnalysis {
   const grid = xavfsizGrid(rows);
+  const natija = ballTahlili(grid);
+  /* C4: rolni yagona anatomiya aytadi (ish daraxti/resurs ro'yxati/svod/katalog).
+     Aniq xulosa bo'lmasa — quyidagi ball evristikasi o'zgarishsiz qoladi. */
+  try {
+    const x = varaqRoli(nom, grid);
+    if (x.aniq) {
+      const etiborsiz = x.rol === 'etiborsiz';
+      return {
+        ...natija,
+        detectedRole: etiborsiz ? 'unknown' : x.rol === 'lrv' ? 'lrv' : 'res',
+        suggestedIgnore: etiborsiz,
+        ignoreReason: etiborsiz ? x.dalil[0]?.replace(/^anatomiya: /, '') : undefined,
+        confidence: x.ishonch,
+        evidence: [...x.dalil.slice(0, 3), ...natija.evidence],
+      };
+    }
+    // Hujjat nomida LRV/lokal smeta sarlavhasi bo'lsa heuristika xulosasi saqlanadi (tartib ustunisiz shakllar).
+    if (natija.detectedRole === 'lrv' && !natija.evidence.includes('lokal smeta/LRV sarlavhasi') && !(x.anatomiya.rol === 'lrv' && x.anatomiya.ishlar.length > 0)) {
+      return { ...natija, detectedRole: 'unknown', confidence: 'low', evidence: [...natija.evidence, 'anatomiya ish daraxtini topmadi — LRV deb avtomatik belgilanmadi'] };
+    }
+  } catch { /* ball evristikasi */ }
+  return natija;
+}
+
+function ballTahlili(grid: SheetGrid): SmetaSheetAnalysis {
   const nonEmpty = grid.filter((row) => row.some((cell) => text(cell) !== ''));
   const header = nonEmpty.slice(0, 35).flatMap((row) => row.map(text)).join(' ');
   let lrvScore = 0;

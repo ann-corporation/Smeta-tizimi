@@ -15,7 +15,7 @@ import {
 } from '../../lib/smeta-source-analysis';
 import type { AktNode } from '../../lib/f2-match-engine';
 import { varaqniTahlilQil } from '../../lib/smeta-anatomiya/varaq';
-import { anatomiyadanAktDaraxt, daraxtlarTengmi } from '../../lib/smeta-anatomiya/akt-daraxt';
+import { lrvDaraxti, ustunSozlamasi, varaqRoli } from '../../lib/smeta-anatomiya/yuklash';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from '../../lib/res-kategoriya';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
@@ -372,8 +372,23 @@ export type VaraqTegi = 'lrv' | 'res' | 'etibor_bermaslik';
  * Ikkalasi ham yo'q yoki juda kam ma'lumot -- "nomalum" (foydalanuvchi
  * qo'lda belgilaydi, hech narsa taxmin qilib yozilmaydi).
  */
-export function varaqTuriTaxmin(rows: SheetGrid | null | undefined): 'lrv' | 'res' | 'nomalum' {
+export function varaqTuriTaxmin(rows: SheetGrid | null | undefined, nom = ''): 'lrv' | 'res' | 'nomalum' {
   const grid = safeSheetRows(rows);
+  /* C4: rolni avval yagona anatomiya aytadi (katalog, 1C hisobot, svod —
+     LRV deb olinmaydi; LRV_PLUS — RES deb olinmaydi). Aniq xulosa bo'lmasa
+     quyidagi eski mazmun evristikasi. */
+  let anatLrv = true;
+  try {
+    const x = varaqRoli(nom, grid);
+    if (x.aniq) return x.rol === 'lrv' ? 'lrv' : x.rol === 'res' ? 'res' : 'nomalum';
+    // Ish daraxti topilmagan varaq (1C hisobot, katalog, grafik, ostatka) avtomatik LRV bo'lmaydi.
+    anatLrv = x.anatomiya.rol === 'lrv' && x.anatomiya.ishlar.length > 0;
+  } catch { /* zaxira evristika */ }
+  const eski = eskiVaraqTuri(grid);
+  return eski === 'lrv' && !anatLrv ? 'nomalum' : eski;
+}
+
+function eskiVaraqTuri(grid: SheetGrid): 'lrv' | 'res' | 'nomalum' {
   const cols = f2UstunAniqla(grid);
   if (cols.nom < 0) return 'nomalum';
   let jami = 0, narxli = 0, hajmli = 0;
@@ -675,28 +690,44 @@ function rzChuqurligi(tree: readonly AktNode[], d = 0): number {
   return tree.reduce((m, n) => (n.type === 'rz' ? Math.max(m, rzChuqurligi(n.children ?? [], d + 1)) : m), d);
 }
 
+/** C4: ustunlarni anatomiya aniqlaydi (sarlavha + ma'lumot arifmetikasi); topilmasa eski detektor. */
+export function avtoUstunlar(rows: SheetGrid, nom = ''): F2ColumnConfig {
+  try {
+    const v = varaqniTahlilQil(nom, { nom, rows });
+    if (v.ustunlar && v.ustunlar.nom >= 0) return ustunSozlamasi(v.ustunlar);
+  } catch { /* zaxira */ }
+  return f2UstunAniqla(rows);
+}
+
+const ustunTeng = (a: F2ColumnConfig, b: Partial<F2ColumnConfig> | null): boolean =>
+  !!b && a.kod === b.kod && a.nom === b.nom && a.bir === b.bir && a.norma === b.norma && a.obyom === b.obyom && a.narx === b.narx && a.sum === b.sum;
+
 /**
- * SMETA_ANATOMIYA_V1: eski `treeBuild` daraxti quriladi (operator tuzatgan
- * ustunlar bilan), anatomiya daraxti esa tenglik qo'riqchisidan o'tsa —
- * ish/resurs barglari (tur, kod, nom, hajm, tartib) aynan bir xil — uning
- * ichma-ich RZ ierarxiyasi ishlatiladi. Teng bo'lmasa eski daraxt qoladi va
- * sababi hisobotga yoziladi. Korpus: Navoiy 180/180, Faravon 18/18 LRV varaq teng.
+ * SMETA_ANATOMIYA_V1 / C4 — smetani faqat anatomiya tushunadi: LRV daraxti
+ * (ichma-ich RZ, mustaqil MAT/OB, vedomost chiqarilgan) `lrvDaraxti` dan.
+ * Eski `treeBuild` faqat ikki holatda zaxira: (1) operator ustunlarni qo'lda
+ * o'zgartirgan — uning qarori hurmat qilinadi; (2) anatomiya varaqni LRV deb
+ * tanimadi. Ikkalasida sabab hisobotga yoziladi (anatomiyani o'rgatish uchun signal).
  */
-function ierarxikDaraxt(name: string, rows: SheetGrid, eski: AktNode[]): { tree: AktNode[]; hisobot: AnatomiyaHisobot } {
+function ierarxikDaraxt(name: string, rows: SheetGrid, cols: F2ColumnConfig): { tree: AktNode[]; hisobot: AnatomiyaHisobot } {
+  let sabab: string;
   try {
     const v = varaqniTahlilQil(name, { nom: name, rows });
-    if (v.rol !== 'lrv' || !v.ishlar.length) {
-      return { tree: eski, hisobot: { manba: name, ierarxiya: false, rzChuqurlik: rzChuqurligi(eski), vedomostChiqarildi: 0, sabab: 'anatomiya varaqni LRV deb tanimadi' } };
+    const avto = v.ustunlar ? ustunSozlamasi(v.ustunlar) : null;
+    const operator = !ustunTeng(cols, avto) && !ustunTeng(cols, f2UstunAniqla(rows)) && !ustunTeng(cols, avtoUstunlar(rows, name));
+    if (!operator) {
+      const d = lrvDaraxti(name, rows, v);
+      if (d.anatomiya) return { tree: d.tree, hisobot: { manba: name, ierarxiya: true, rzChuqurlik: rzChuqurligi(d.tree), vedomostChiqarildi: d.vedomost, sabab: null } };
+      sabab = `${d.sabab} — eski o‘quvchi ishlatildi`;
+    } else {
+      sabab = 'operator ustunlarni qo‘lda o‘zgartirdi — shu ustunlar bilan o‘qildi (anatomiya ustunlari bilan mos emas)';
     }
-    const yangi = anatomiyadanAktDaraxt(v);
-    const t = daraxtlarTengmi(eski, yangi.tree, v.vedomost.map((r) => r.xom));
-    if (!t.teng) {
-      return { tree: eski, hisobot: { manba: name, ierarxiya: false, rzChuqurlik: rzChuqurligi(eski), vedomostChiqarildi: 0, sabab: `qatorlar mos emas (eski ${t.eski}, yangi ${t.yangi}, ${t.birinchiFarq + 1}-qatordan farq) — eski daraxt ishlatildi` } };
-    }
-    return { tree: yangi.tree, hisobot: { manba: name, ierarxiya: true, rzChuqurlik: rzChuqurligi(yangi.tree), vedomostChiqarildi: t.vedomostChiqarildi, sabab: null } };
   } catch {
-    return { tree: eski, hisobot: { manba: name, ierarxiya: false, rzChuqurlik: rzChuqurligi(eski), vedomostChiqarildi: 0, sabab: 'anatomiya xatosi — eski daraxt ishlatildi' } };
+    sabab = 'anatomiya xatosi — eski o‘quvchi ishlatildi';
   }
+  const parsed = f2FaylOqiCore(rows, cols);
+  const eski = 'tree' in parsed ? parsed.tree : [];
+  return { tree: eski, hisobot: { manba: name, ierarxiya: false, rzChuqurlik: rzChuqurligi(eski), vedomostChiqarildi: 0, sabab } };
 }
 
 export function tanlanganLrvVaraqlaridanDaraxtQur(
@@ -712,9 +743,8 @@ export function tanlanganLrvVaraqlaridanDaraxtQur(
   const out: AktNode[] = [];
   for (const [index, manba] of manbalar.entries()) {
     const { lrvRows } = lrvVaIchkiResniAjrat(manba.rows);
-    const parsed = f2FaylOqiCore(lrvRows, manba.cols);
-    if (!('tree' in parsed) || !parsed.tree.length) continue;
-    const ier = ierarxikDaraxt(manba.name, lrvRows, parsed.tree);
+    const ier = ierarxikDaraxt(manba.name, lrvRows, manba.cols);
+    if (!ier.tree.length) continue;
     options?.hisobot?.(ier.hisobot);
     const tree = namespace(ier.tree, `varaq_${index}`);
     if (koP) {
@@ -857,15 +887,14 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         if (prev[name]) return prev;
         const sheet = workbook.sheet(name);
         if (!sheet) return prev;
-        const detected = f2FaylOqiCore(sheet.rows);
-        return 'cols' in detected ? { ...prev, [name]: detected.cols } : prev;
+        return { ...prev, [name]: avtoUstunlar(sheet.rows, name) };
       });
     }
     if (teg === 'res') {
       setInFileResCols(prev => {
         if (prev[name]) return prev; // avval belgilangan tuzatish saqlanadi
         const sheet = workbook.sheet(name);
-        return sheet ? { ...prev, [name]: f2UstunAniqla(sheet.rows) } : prev;
+        return sheet ? { ...prev, [name]: avtoUstunlar(sheet.rows, name) } : prev;
       });
     }
   }
@@ -875,7 +904,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
     const sheet = workbook.sheet(name);
     if (!sheet) { setCols(null); setPreview([]); return; }
     const detected = f2FaylOqiCore(sheet.rows);
-    if ('cols' in detected) { setCols(detected.cols); setPreview(detected.preview); }
+    // Ustunlar — anatomiyadan (yagona manba); ko'rinish (preview) eski yordamchidan.
+    if ('cols' in detected) { setCols(avtoUstunlar(sheet.rows, name)); setPreview(detected.preview); }
     else { setCols(null); setPreview([]); }
   }
 
@@ -920,22 +950,18 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       let lrvTanlandi = '';
       for (const s of workbook.sheets) {
         const sheet = workbook.sheet(s.name);
-        const taxmin = sheet ? varaqTuriTaxmin(sheet.rows) : 'nomalum';
+        const taxmin = sheet ? varaqTuriTaxmin(sheet.rows, s.name) : 'nomalum';
         teglar[s.name] = taxmin === 'nomalum' ? 'etibor_bermaslik' : taxmin;
         if (taxmin === 'lrv' && sheet) {
-          const detected = f2FaylOqiCore(sheet.rows);
-          if ('cols' in detected) lrvUstunlari[s.name] = detected.cols;
+          lrvUstunlari[s.name] = avtoUstunlar(sheet.rows, s.name);
           if (!lrvTanlandi) lrvTanlandi = s.name;
         }
-        if (taxmin === 'res' && sheet) resUstunlari[s.name] = f2UstunAniqla(sheet.rows);
+        if (taxmin === 'res' && sheet) resUstunlari[s.name] = avtoUstunlar(sheet.rows, s.name);
       }
       if (!lrvTanlandi) { lrvTanlandi = workbook.sheets[0]?.name || ''; teglar[lrvTanlandi] = 'lrv'; }
       if (lrvTanlandi && !lrvUstunlari[lrvTanlandi]) {
         const sheet = workbook.sheet(lrvTanlandi);
-        if (sheet) {
-          const detected = f2FaylOqiCore(sheet.rows);
-          if ('cols' in detected) lrvUstunlari[lrvTanlandi] = detected.cols;
-        }
+        if (sheet) lrvUstunlari[lrvTanlandi] = avtoUstunlar(sheet.rows, lrvTanlandi);
       }
       setVaraqTeglari(teglar); setInFileLrvCols(lrvUstunlari); setInFileResCols(resUstunlari);
 
@@ -993,8 +1019,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       const detected: Record<string, F2ColumnConfig> = {};
       const tanlangan: string[] = [];
       for (const s of workbook.sheets) {
-        if (varaqTuriTaxmin(s.rows) !== 'res') continue;
-        detected[s.name] = f2UstunAniqla(s.rows);
+        if (varaqTuriTaxmin(s.rows, s.name) !== 'res') continue;
+        detected[s.name] = avtoUstunlar(s.rows, s.name);
         tanlangan.push(s.name);
       }
       // Bir varaqlik faylni operator alohida RES deb tanlagan bo'lsa,
@@ -1002,7 +1028,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       if (!tanlangan.length && workbook.sheets.length === 1) {
         const only = workbook.sheets[0];
         tanlangan.push(only.name);
-        detected[only.name] = f2UstunAniqla(only.rows);
+        detected[only.name] = avtoUstunlar(only.rows, only.name);
       }
       setResSheetNames(tanlangan);
       setResColsBySheet(detected);
@@ -1048,7 +1074,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           // Bo'sh yoki nostandart satrlar `unknown` review qatori bo'ladi;
           // tashqi XLSX strukturasining `undefined.length` xatosi UIga chiqmaydi.
           const rows = safeSheetRows(sheet.rows);
-          const analysis = smetaVaraqniTahlilQil(rows);
+          const analysis = smetaVaraqniTahlilQil(rows, sheetInfo.name);
           const parsed = f2FaylOqiCore(rows);
           const lrvSplit = analysis.detectedRole === 'lrv' ? lrvVaIchkiResniAjrat(rows) : undefined;
           fresh.push({
@@ -1058,8 +1084,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
             file,
             sheetName: sheetInfo.name,
             rows,
-            lrvCols: 'cols' in parsed ? parsed.cols : null,
-            resCols: f2UstunAniqla(rows),
+            lrvCols: 'cols' in parsed ? avtoUstunlar(rows, sheetInfo.name) : null,
+            resCols: avtoUstunlar(rows, sheetInfo.name),
             analysis,
             embeddedResBoundaryRow: lrvSplit?.boundaryRow,
             analysisKey: analysis.analysisKey,
@@ -1222,7 +1248,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
     if (!tanlandi) return;
     const sheet = workbook.sheet(name);
     if (!sheet) return;
-    setResColsBySheet(prev => prev[name] ? prev : { ...prev, [name]: f2UstunAniqla(sheet.rows) });
+    setResColsBySheet(prev => prev[name] ? prev : { ...prev, [name]: avtoUstunlar(sheet.rows, name) });
   }
   /** Narx satrlarini BARCHA manbalardan yig'adi: (1) asosiy faylda RES deb
    *  belgilangan varaq(lar) -- ustunlar avtomatik aniqlanadi, (2) alohida
@@ -1237,7 +1263,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         if (varaqTeglari[s.name] !== 'res') continue;
         const sheet = book.sheet(s.name);
         if (!sheet) continue;
-        manbalar.push({ rows: sheet.rows, cols: inFileResCols[s.name] || f2UstunAniqla(sheet.rows) });
+        manbalar.push({ rows: sheet.rows, cols: inFileResCols[s.name] || avtoUstunlar(sheet.rows, s.name) });
       }
     }
     if (resBook) {
@@ -1736,7 +1762,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                     </thead>
                     <tbody>
                       {resBook.sheets.map(s => {
-                        const taxmin = varaqTuriTaxmin(s.rows);
+                        const taxmin = varaqTuriTaxmin(s.rows, s.name);
                         return (
                           <tr key={s.name} className="border-t border-border/40">
                             <td className="py-1 pr-2">

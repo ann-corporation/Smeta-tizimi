@@ -26,7 +26,8 @@ function butunTartib(v: Katak): boolean {
 }
 function ichkiTartib(v: Katak): boolean {
   if (typeof v === 'number') return Number.isFinite(v) && !Number.isInteger(v) && v > 0;
-  return /^\d+\.\d+$/.test(xom(v));
+  // "1. 1", "1 .2" — eski ABC/Excel eksportlarida nuqta atrofida bo'sh joy (Ф3 а3061.xls).
+  return /^\d+\s*\.\s*\d+$/.test(xom(v));
 }
 function ol(row: readonly Katak[], i: number): Katak {
   return i >= 0 ? row[i] : null;

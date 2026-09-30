@@ -1578,6 +1578,32 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi C5: LRV va RES farqlari yuklashda hisoblanadi, foydalanuvchiga va hujjatda bildiriladi. Kalit nom+birlik, taxminiy moslash yo‘q, import to‘xtatilmaydi. Faqat mijoz tomoni — migratsiya yo‘q."
+    },
+    {
+      "id": "SMETA-ANAT-YAGONA-001",
+      "title": "C4: smetani yagona anatomiya tushunadi — smeta yuklash (rol, ustunlar, LRV daraxti) va paket tahlili anatomiyaga o‘tkazildi",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "e8d18d3",
+      "status": "completed",
+      "owns": [
+        "frontend/src/lib/smeta-anatomiya/yuklash.ts",
+        "frontend/src/lib/smeta-anatomiya/akt-daraxt.ts",
+        "frontend/src/lib/smeta-anatomiya/varaq.ts",
+        "frontend/src/lib/smeta-source-analysis.ts",
+        "frontend/src/admin/sahifalar/SmetaYuklaNative.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [
+        "SMETA-ANAT-001"
+      ],
+      "must_read": [
+        "AGENTS.md",
+        "docs/architecture/SMETA_ANATOMIYA_V1.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi C4: bitta modul smetani tushunadi, qolganlar faqat shuni ishlatadi. Eski treeBuild/columnDetect/ball evristikasi faqat zaxira (operator ustunni qo‘lda o‘zgartirsa yoki anatomiya varaqni tanimasa). Korpus: 136 LRV varaqdan 132 tasi anatomiyadan; qolgan 4 — smeta emas. Keyingi: F2ImportNative, OfertaNative, SmetaNarxlashResNative, res-narxlash RES o‘qishi."
     }
   ]
 }
