@@ -68,7 +68,8 @@ export const AOSR_SARLAVHA: Record<NonNullable<AosrKirish['tur']>, string> = {
   sinov: 'АКТ ИСПЫТАНИЯ',
 };
 
-export const TIZIM_KOLONTITUL = 'Сформировано в системе «Smeta tizimi» — smeta-tizimi.pages.dev';
+export { HUJJAT_KOLONTITUL as TIZIM_KOLONTITUL } from './hujjat-yozuvchi/rasmiy';
+import { HUJJAT_KOLONTITUL as TIZIM_KOLONTITUL } from './hujjat-yozuvchi/rasmiy';
 
 const ROL_MATNI: Record<string, string> = {
   smo: 'Представитель строительно-монтажной организации:',

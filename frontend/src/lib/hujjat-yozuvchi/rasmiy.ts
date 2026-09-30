@@ -29,6 +29,9 @@ import { num, sheetRef, ustunHarfi, xmlEsc } from './ooxml';
 import { sumRefs } from './formula';
 import { IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, imzoMatni, imzoMuhrli, type ImzoTomon } from './imzo';
 
+/** Barcha rasmiy hujjatlar kolontituli — tizim nomi (egasi: hujjatlarda tizim reklamasi bo'lsin). */
+export const HUJJAT_KOLONTITUL = 'Сформировано в системе «Smeta tizimi» — smeta-tizimi.pages.dev';
+
 export type UstunTuri = 'tartib' | 'kod' | 'matn' | 'birlik' | 'hajm' | 'narx' | 'pul' | 'foiz' | 'norma' | 'texnik';
 
 export type RasmiyUstun = {
@@ -482,7 +485,7 @@ export class RasmiyVaraq {
       + '<printOptions horizontalCentered="1"/>'
       + '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.6" header="0.3" footer="0.3"/>'
       + `<pageSetup paperSize="9" orientation="${this.yonalish}" fitToWidth="1" fitToHeight="0"/>`
-      + '<headerFooter><oddFooter>&amp;CСтраница &amp;P из &amp;N</oddFooter></headerFooter>'
+      + '<headerFooter><oddFooter>' + xmlEsc('&L&7' + HUJJAT_KOLONTITUL + '&C&8Страница &P из &N') + '</oddFooter></headerFooter>'
       + '</worksheet>';
   }
 }
