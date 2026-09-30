@@ -17,6 +17,8 @@ export type NakopitelniyQator = {
   ota_id?: number | null; daraja?: number | null;
   /** Yagona smeta modeli izohi (lib/smeta-model): qo'shimcha ish / zamena — nima o'rniga. */
   ozgarish_izoh?: string | null;
+  /** Resurs normasi (yagona smeta modelidan) — hujjatda smeta hajmi = norma × ish hajmi formulasi. */
+  norma?: number | null;
   smeta_hajm: number | null; smeta_narx: number | null; smeta_summa: number | null;
   fakt_hajm: number; fakt_summa: number;
   oldingi_hajm: number; oldingi_summa: number;

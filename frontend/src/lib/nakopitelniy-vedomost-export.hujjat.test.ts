@@ -183,3 +183,19 @@ describe('Накопительная ведомость — har oy alohida ustun
     expect(v.kataklar.find((k) => k.ref === `P${row}`)?.f).toBe(`J${row}+L${row}+N${row}`);
   });
 });
+
+describe('Накопительная ведомость — tirik smeta (egasi 2026-09-30)', () => {
+  it('resurs hajmi = norma × ish hajmi, summa = hajm × narx (formula); ish/razdel summasi SUMIF', () => {
+    const rz = q({ tur: 'rz', nom: 'РАЗДЕЛ' });
+    const bl = q({ tur: 'bl', nom: 'ИШ', birlik: 'м3', smeta_hajm: 100, ota_id: null });
+    const rs = q({ tur: 'rs', kat: 'ЧЕЛ', nom: 'ТРУД', birlik: 'чел.-ч', smeta_hajm: 200, smeta_narx: 5000, smeta_summa: 1_000_000, norma: 2 });
+    bl.ota_id = rz.qator_id; rs.ota_id = bl.qator_id; rz.ota_id = null;
+    const { bytes } = nakopitelniyVedomostHujjat([rz, bl, rs], { obyektNom: 'O', davr: '2026-09-01' });
+    const v = hujjatTekshir(bytes, { ruxsat: [/^O$/] }).varaqlar[0];
+    const r = (m: string) => v.kataklar.find((k) => k.matn === m)!.ref.replace(/^[A-Z]+/, '');
+    const blR = r('ИШ'), rsR = r('ТРУД');
+    expect(v.kataklar.find((k) => k.ref === `E${rsR}`)?.f).toBe(`ROUND(2*E${blR},6)`);
+    expect(v.kataklar.find((k) => k.ref === `G${rsR}`)?.f).toBe(`IF(OR(E${rsR}="",F${rsR}=""),"",ROUND(E${rsR}*F${rsR},2))`);
+    expect(v.kataklar.find((k) => k.ref === `G${blR}`)?.f).toMatch(/SUMIF/);
+  });
+});

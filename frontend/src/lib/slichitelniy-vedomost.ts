@@ -67,6 +67,9 @@ export type SlichitelniyQator = {
   kat?: string | null;
   /** Noma'lum pul pozitsiyalari soni (bu qator va uning ostida). */
   nomalum: number;
+  /** Resurs normasi va ota ish qatori indeksi — hujjatda smeta hajmi = norma × ish hajmi (tirik formula). */
+  norma?: number | null;
+  otaIdx?: number | null;
   bolalar: number[];
 };
 
@@ -127,7 +130,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     return { h, smeta, fakt, farq, f2Hajm: h ? Number(h.f2_hajm ?? 0) : 0, f2Summa: h ? Number(h.f2_summa ?? 0) : 0 };
   };
 
-  const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number): number | null => {
+  const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number, otaIdx: number | null = null): number | null => {
     const tur = q.tur ?? '';
     const kids = bolalar.get(q.id) ?? [];
     if (BARG.has(tur) || (tur === 'bl' && !kids.length)) {
@@ -146,7 +149,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       out.push({
         id: q.id, tur: 'barg', daraja, tartib: blNo ? `${blNo}.${k}` : String(++no), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma,
-        izoh: izohOf(q, smeta, fakt, farq), nomalum, kat: q.kat ?? null, bolalar: [],
+        izoh: izohOf(q, smeta, fakt, farq), nomalum, kat: q.kat ?? null, bolalar: [], norma: q.norma ?? null, otaIdx,
       });
       return out.length - 1;
     }
@@ -161,7 +164,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       });
       const b: number[] = [];
       let kk = 0;
-      for (const c of kids) { const i = qayta(c, daraja + 1, nomer, kk + 1); if (i != null) { b.push(i); kk++; } }
+      for (const c of kids) { const i = qayta(c, daraja + 1, nomer, kk + 1, idx); if (i != null) { b.push(i); kk++; } }
       if (!b.length && o.faqatFarq && (farq === 0)) { out.length = idx; no--; return null; }
       yigindi(out[idx], b);
       return idx;
@@ -271,8 +274,11 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     let r = 0;
     if (q.tur === 'rz') r = v.bolim(q.nom, { daraja: q.daraja });
     else if (q.tur === 'barg') {
+      // Egasi 2026-09-30: tirik smeta — resurs hajmi = norma × ish hajmi (ish hajmi o'zgarsa resurs ham).
+      const ota = q.otaIdx != null ? model.qatorlar[q.otaIdx] : undefined;
+      const normaF = q.norma != null && ota?.tur === 'bl' && ota.smetaHajm != null && q.smetaHajm != null;
       r = v.qator('oddiy', (n) => [
-        q.tartib, q.kod, q.nom, q.birlik, qiy(q.smetaHajm), qiy(q.narx),
+        q.tartib, q.kod, q.nom, q.birlik, normaF ? { f: `ROUND(${q.norma}*E${rowOf(q.otaIdx!)},6)`, v: q.smetaHajm! } : qiy(q.smetaHajm), qiy(q.narx),
         { f: `IF(OR(E${n}="",F${n}=""),"",ROUND(E${n}*F${n},2))`, v: q.smetaSumma ?? '' },
         qiy(q.faktHajm),
         { f: `IF(OR(H${n}="",F${n}=""),"",ROUND(H${n}*F${n},2))`, v: q.faktSumma ?? '' },

@@ -1736,6 +1736,31 @@
       ],
       "production_write_allowed": false,
       "_izoh": "EGASI_SINOV_2026-09-30 #9."
+    },
+    {
+      "id": "HUJJAT-TIRIK-SMETA-001",
+      "title": "Tirik smeta hujjatlarda: resurs hajmi = norma × ish hajmi, summa = hajm × narx (Nakopitelniy, Slichitelniy)",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "cb3cbec",
+      "status": "completed",
+      "owns": [
+        "frontend/src/lib/smeta-model.ts",
+        "frontend/src/api/t2-nakopitelniy.ts",
+        "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+        "frontend/src/lib/nakopitelniy-vedomost-export.ts",
+        "frontend/src/lib/nakopitelniy-vedomost-export.hujjat.test.ts",
+        "frontend/src/lib/slichitelniy-vedomost.ts",
+        "frontend/src/lib/slichitelniy-vedomost.hujjat.test.ts",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "EGASI_SINOV_2026-09-30 #12. LRV_PLUS/Ostatka allaqachon tirik. F2 ustunlari — hujjatdagidek qiymat."
     }
   ]
 }

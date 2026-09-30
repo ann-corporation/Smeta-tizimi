@@ -99,3 +99,14 @@ describe('Сличительная ведомость — ikki narx', () => {
     expect(t.taqiqlangan).toEqual([]);
   });
 });
+
+describe('Сличительная ведомость — tirik smeta (egasi 2026-09-30)', () => {
+  it('resurs smeta hajmi = norma × ish hajmi formulasi', () => {
+    const rows = QATOR.map((r) => (r.id === 3 ? { ...r, norma: 2 } : r));
+    const m = slichitelniyModeli(rows, HOLAT);
+    const t = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-30' }).bytes);
+    const v = t.varaqlar[0];
+    const r = (nom: string) => v.kataklar.find((k) => k.matn === nom)!.ref.replace(/^[A-Z]+/, '');
+    expect(v.kataklar.find((k) => k.ref === `E${r('ЗАТРАТЫ ТРУДА')}`)?.f).toBe(`ROUND(2*E${r('ЗАСЫПКА ПАЗУХ')},6)`);
+  });
+});

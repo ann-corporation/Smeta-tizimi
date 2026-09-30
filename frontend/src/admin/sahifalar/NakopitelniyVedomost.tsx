@@ -143,7 +143,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       modelRef.current = model;
       // Egasi 2026-09-29: qo'shimcha/zamena qatorlarining tartib raqami smeta oxirida — hujjatlar
       // ularni oxirgi razdelga yozardi. Barcha hujjatlar shu ro'yxatdan: DARAXT tartibida.
-      setQatorlar(tartibla(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, model) })), model));
+      setQatorlar(tartibla(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, model), norma: model.byId.get(q.qator_id)?.norma ?? null })), model));
       setOyKesim(taf?.ok && taf.toliq !== false && taf.qatorlar && r.davr ? f2OyKesimi(taf.qatorlar, String(r.davr).slice(0, 7)) : null);
       setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
       setLoyihaId(r.obyekt.loyiha_id);
@@ -242,7 +242,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
-      return tartibla(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, modelRef.current) })), modelRef.current);
+      return tartibla(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, modelRef.current), norma: modelRef.current?.byId.get(q.qator_id)?.norma ?? null })), modelRef.current);
     } finally { setEksportBusy(false); }
   };
   const stavkaOl = (): number | null => {

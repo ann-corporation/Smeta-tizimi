@@ -172,7 +172,7 @@ export function nakopitelniyVedomostHujjat(
   });
   const bosh = v.malumotBoshi;
   // Qatorlar canonical daraxtdan (ota_id) plan qilinadi; parent metadata berilmagan eski RPC uchun depth-stack.
-  type Rej = { tur: 'rz' | 'bl' | 'barg' | 'itogo' | 'vsego'; q?: NakopitelniyQator; bolalar: number[]; nom?: string; daraja?: number };
+  type Rej = { tur: 'rz' | 'bl' | 'barg' | 'itogo' | 'vsego'; q?: NakopitelniyQator; bolalar: number[]; nom?: string; daraja?: number; ota?: number };
   type PlanNode = { tur: 'rz' | 'bl' | 'barg'; q: NakopitelniyQator; bolalar: PlanNode[]; daraja: number };
   const parentTur = (tur: PlanNode['tur']) => tur === 'rz' || tur === 'bl';
   const qatorTur = (q: NakopitelniyQator): PlanNode['tur'] => q.tur === 'rz' ? 'rz' : q.tur === 'bl' ? 'bl' : 'barg';
@@ -219,9 +219,9 @@ export function nakopitelniyVedomostHujjat(
   let no = 0;
   const diqqat: Array<{ nom: string; sabab: string }> = [];
   const nomi = (q: NakopitelniyQator) => `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`;
-  const emit = (node: PlanNode): number => {
+  const emit = (node: PlanNode, ota?: number): number => {
     const i = reja.length;
-    const row: Rej = { tur: node.tur, q: node.q, bolalar: [], daraja: node.daraja };
+    const row: Rej = { tur: node.tur, q: node.q, bolalar: [], daraja: node.daraja, ota };
     reja.push(row);
     if (node.tur === 'barg') {
       bargRows.push(i);
@@ -236,13 +236,13 @@ export function nakopitelniyVedomostHujjat(
       }
       return i;
     }
-    row.bolalar = node.bolalar.map(emit);
+    row.bolalar = node.bolalar.map((b) => emit(b, i));
     if (node.tur === 'rz' && row.bolalar.length) {
       reja.push({ tur: 'itogo', bolalar: row.bolalar, nom: `ИТОГО ПО РАЗДЕЛУ: ${node.q.nom ?? ''}`, daraja: node.daraja + 1 });
     }
     return i;
   };
-  roots.forEach(emit);
+  roots.forEach((r) => emit(r));
   const j = nakopitelniyJamilar(qatorlar);
   const rowOf = (i: number) => bosh + i;
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
@@ -314,8 +314,15 @@ export function nakopitelniyVedomostHujjat(
       r = v.qator(barg ? 'oddiy' : 'ish', (rr) => {
         const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
         c[0] = tartib; c[1] = q!.kod ?? ''; c[2] = nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh); c[3] = q!.birlik ?? '';
-        c[4] = n(q!.smeta_hajm); c[5] = barg ? n(q!.smeta_narx) : null;
-        c[6] = barg ? n(q!.smeta_summa) : pulYig('G', x.bolalar);
+        // Egasi 2026-09-30: tirik smeta — ish hajmi (E) o'zgarsa resurs hajmi = norma × ish hajmi,
+        // resurs summasi = hajm × narx (F2 ustunlari esa hujjatdagidek, qiymat).
+        const ota = barg && x.ota != null ? reja[x.ota] : undefined;
+        const normaF = barg && q!.norma != null && ota?.tur === 'bl' && ota.q?.smeta_hajm != null && q!.smeta_hajm != null;
+        c[4] = normaF ? { f: `ROUND(${q!.norma}*E${rowOf(x.ota!)},6)`, v: q!.smeta_hajm! } : n(q!.smeta_hajm);
+        c[5] = barg ? n(q!.smeta_narx) : null;
+        c[6] = barg
+          ? (q!.smeta_narx != null && q!.smeta_hajm != null && q!.smeta_summa != null ? { f: `IF(OR(E${rr}="",F${rr}=""),"",ROUND(E${rr}*F${rr},2))`, v: q!.smeta_summa } : n(q!.smeta_summa))
+          : pulYig('G', x.bolalar);
         c[7] = q!.fakt_hajm;
         davrlar.forEach((d, k) => {
           c[col(U.davrH[k])] = d.hajm(q!);

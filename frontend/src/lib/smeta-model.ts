@@ -18,6 +18,8 @@ import { daraxtTartibida } from './daraxt-tartibi';
 export interface SmetaModelQator {
   id: number; ota_id: number | null; daraja: number | null; tur: string | null;
   kod: string | null; nom: string | null; birlik: string | null;
+  /** Resurs normasi (ish birligiga) — hujjatlarda resurs hajmi = norma × ish hajmi (tirik formula). */
+  norma?: number | null;
   qoshimcha: boolean; zamena: boolean;
   /** Zamena qatori qaysi smeta qatori o'rniga (replaces_line_id). */
   almashtirgan: number | null;
@@ -43,7 +45,7 @@ export function smetaModeliQur(qatorlar: ReadonlyArray<Omit<SmetaModelQator, 'al
 /** Obyekt smetasini bir marta o'qiydi (daraxt + zamena bog'lanishi). Xato bo'lsa — bo'sh model (hujjat to'xtamaydi). */
 export async function smetaModeliniYukla(obyektId: number): Promise<SmetaModel> {
   const [d, z] = await Promise.all([
-    sbT2DaraxtOl(obyektId, 'id,ota_id,daraja,tur,kod,nom,birlik,qoshimcha,zamena'),
+    sbT2DaraxtOl(obyektId, 'id,ota_id,daraja,tur,kod,nom,birlik,norma,qoshimcha,zamena'),
     sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&zamena=is.true`, ustunlar: 'id,replaces_line_id', limit: 20000 }).catch(() => null),
   ]);
   const alm = new Map<number, number>();
@@ -51,7 +53,7 @@ export async function smetaModeliniYukla(obyektId: number): Promise<SmetaModel> 
   const rows = d.ok ? (d.qatorlar ?? []) : [];
   return smetaModeliQur(rows.map((q) => ({
     id: Number(q.id), ota_id: q.ota_id ?? null, daraja: q.daraja ?? null, tur: q.tur ?? null,
-    kod: q.kod ?? null, nom: q.nom ?? null, birlik: q.birlik ?? null,
+    kod: q.kod ?? null, nom: q.nom ?? null, birlik: q.birlik ?? null, norma: q.norma ?? null,
     qoshimcha: Boolean(q.qoshimcha), zamena: Boolean(q.zamena), almashtirgan: alm.get(Number(q.id)) ?? null,
   })));
 }
