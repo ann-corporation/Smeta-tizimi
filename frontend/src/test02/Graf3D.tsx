@@ -14,7 +14,8 @@ import { useEffect, useRef, useState } from 'react';
  *   - sozlamalar paneli (brauzerda eslab qolinadi).
  * Joylashuv faqat ko'rinish uchun — bazadagi mindmap joylashuviga yozilmaydi.
  */
-export type GrafTugun = { id: string; nom: string; rang: string; tur: string };
+/** `markaz` — ildiz tugun (kompaniya): graf markaziga qotiriladi, katta, alohida rangda, yozuvi doim ko'rinadi. */
+export type GrafTugun = { id: string; nom: string; rang: string; tur: string; markaz?: boolean };
 export type GrafBog = { manba: string; maqsad: string };
 
 export type Graf3DSozlama = {
@@ -48,6 +49,8 @@ function sozlamaOqi(): Graf3DSozlama {
 /** Monoxrom palitra: kumush-ko'kish tugunlar, bitta urg'u (tanlash/bog'lash). */
 const MONO = '#c9d4ec';
 const URGU = '#8fb0ff';
+/** Markaz (kompaniya) rangi — palitradan mustaqil, iliq oltin. */
+const MARKAZ = '#f2c46d';
 
 type N = GrafTugun & {
   x: number; y: number; z: number; vx: number; vy: number; vz: number;
@@ -139,7 +142,7 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
         ...t,
         x: o?.x ?? (Math.random() - 0.5) * 4, y: o?.y ?? (Math.random() - 0.5) * 4, z: o?.z ?? (Math.random() - 0.5) * 4,
         vx: o ? 0 : tez * Math.sin(v) * Math.cos(u), vy: o ? 0 : tez * Math.sin(v) * Math.sin(u), vz: o ? 0 : tez * Math.cos(v),
-        r: 4 + Math.min(12, Math.sqrt(d) * 2.6), daraja: d, faza: Math.random() * Math.PI * 2, ritm: 0.8 + Math.random() * 1.4,
+        r: t.markaz ? 18 : 4 + Math.min(12, Math.sqrt(d) * 2.6), daraja: d, faza: Math.random() * Math.PI * 2, ritm: 0.8 + Math.random() * 1.4,
         sx: 0, sy: 0, s: 1, pz: 0,
       };
     });
@@ -173,17 +176,18 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
           let d2 = dx * dx + dy * dy + dz * dz;
           if (d2 < 0.01) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; dz = Math.random() - 0.5; d2 = 0.5; }
           if (d2 > chegara) continue;
-          const d = Math.sqrt(d2), f = Math.min(8, itar / d2);
+          const d = Math.sqrt(d2), f = Math.min(a.markaz || b.markaz ? 24 : 8, (a.markaz || b.markaz ? 8 : 1) * itar / d2);
           a.vx += (dx / d) * f; a.vy += (dy / d) * f; a.vz += (dz / d) * f;
           b.vx -= (dx / d) * f; b.vy -= (dy / d) * f; b.vz -= (dz / d) * f;
         }
         for (const { a, b } of e) {
           const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-          const f = (d - oraliq) * 0.03;
+          const f = (d - (a.markaz || b.markaz ? oraliq * 3 : oraliq)) * 0.03;
           a.vx += (dx / d) * f; a.vy += (dy / d) * f; a.vz += (dz / d) * f;
           b.vx -= (dx / d) * f; b.vy -= (dy / d) * f; b.vz -= (dz / d) * f;
         }
         for (const a of n) {
+          if (a.markaz) { a.x = 0; a.y = 0; a.z = 0; a.vx = 0; a.vy = 0; a.vz = 0; continue; }
           a.vx -= a.x * 0.012; a.vy -= a.y * 0.012; a.vz -= a.z * 0.012;
           a.x += a.vx * t; a.y += a.vy * t; a.z += a.vz * t;
           a.vx *= 0.55; a.vy *= 0.55; a.vz *= 0.55;
@@ -257,8 +261,11 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
     // Og'irlik markazi va o'lcham (silliq kuzatiladi) — graf ekran markazida, avtomatik sig'adi.
     if (n.length) {
       let mx = 0, my = 0, mz = 0;
-      for (const a of n) { mx += a.x; my += a.y; mz += a.z; }
-      mx /= n.length; my /= n.length; mz /= n.length;
+      const ildiz = n.find((a) => a.markaz);
+      if (!ildiz) {
+        for (const a of n) { mx += a.x; my += a.y; mz += a.z; }
+        mx /= n.length; my /= n.length; mz /= n.length;
+      }
       const m = markaz.current;
       m.x += (mx - m.x) * 0.08; m.y += (my - m.y) * 0.08; m.z += (mz - m.z) * 0.08;
       if (avtoZoom.current) {
@@ -313,7 +320,7 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
       const yoniq = (!faol || faol.has(a.id)) && moslik(a);
       const alfa = (yoniq ? 1 : 0.1) * chuqurAlfa(a.s);
       const urgu = a.id === hv || a.id === bm;
-      const [r, g, b] = urgu ? [ur, ug, ub] : rgb(rangOf(a));
+      const [r, g, b] = urgu ? [ur, ug, ub] : a.markaz ? rgb(MARKAZ) : rgb(rangOf(a));
       const nafas = so.nafas ? 1 + 0.12 * Math.sin(T * a.ritm * 2 + a.faza) : 1;
       const R = Math.max(0.5, a.r * a.s * nafas * so.olcham);
       if (so.nur > 0) {
@@ -325,8 +332,8 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
       const yadro = ctx.createRadialGradient(a.sx - R * 0.35, a.sy - R * 0.35, R * 0.1, a.sx, a.sy, R);
       yadro.addColorStop(0, `rgba(255,255,255,${alfa})`); yadro.addColorStop(0.4, `rgba(${r},${g},${b},${alfa})`); yadro.addColorStop(1, `rgba(${Math.round(r * 0.3)},${Math.round(g * 0.3)},${Math.round(b * 0.3)},${alfa})`);
       ctx.fillStyle = yadro; ctx.beginPath(); ctx.arc(a.sx, a.sy, R, 0, Math.PI * 2); ctx.fill();
-      if (urgu) {
-        ctx.lineWidth = 1.4;
+      if (urgu || a.markaz) {
+        ctx.lineWidth = a.markaz && !urgu ? 1.8 : 1.4;
         for (let i = 0; i < 2; i++) {
           const rr = R * (2 + i * 0.9) + 3 * Math.sin(T * 3 + i);
           ctx.strokeStyle = `rgba(${r},${g},${b},${0.75 - i * 0.3})`;
@@ -341,17 +348,17 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
     for (const a of tartib) {
       if (a.s <= 0) continue;
       const yoniq = (!faol || faol.has(a.id)) && moslik(a);
-      const korsat = (faol && faol.has(a.id)) || (qs && moslik(a))
+      const korsat = a.markaz || (faol && faol.has(a.id)) || (qs && moslik(a))
         || so.yozuvlar === 'hammasi' || (so.yozuvlar === 'muhim' && (a.daraja >= 5 || a.s / kamera.current.k > 1.25));
       if (!korsat) continue;
-      const fs = Math.max(10, Math.min(15, 11.5 * a.s));
-      ctx.font = `${a.id === hv ? 600 : 500} ${fs}px Inter, system-ui, sans-serif`;
+      const fs = a.markaz ? Math.max(13, Math.min(18, 15 * a.s)) : Math.max(10, Math.min(15, 11.5 * a.s));
+      ctx.font = `${a.id === hv || a.markaz ? 700 : 500} ${fs}px Inter, system-ui, sans-serif`;
       ctx.globalAlpha = (yoniq ? 1 : 0.12) * chuqurAlfa(a.s);
       const matn = a.nom.length > 34 ? a.nom.slice(0, 32) + '…' : a.nom;
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(3,4,9,0.85)';
-      const ty = a.sy + a.r * a.s * so.olcham + fs + 2;
+      const ty = a.markaz ? a.sy - a.r * a.s * so.olcham * 2.4 - 6 : a.sy + a.r * a.s * so.olcham + fs + 2;
       ctx.strokeText(matn, a.sx, ty);
-      ctx.fillStyle = a.id === hv ? '#ffffff' : '#d4d9e8';
+      ctx.fillStyle = a.markaz ? MARKAZ : a.id === hv ? '#ffffff' : '#d4d9e8';
       ctx.fillText(matn, a.sx, ty);
       ctx.globalAlpha = 1;
     }

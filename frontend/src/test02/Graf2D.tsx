@@ -13,11 +13,13 @@ import { useEffect, useRef, useState } from 'react';
  *   - rang: sukut bo'yicha vazmin bir rangli (egasi: "rang-barang kamalak qilma"), tur ranglari — ixtiyoriy.
  * Joylashuv faqat ko'rinish uchun — bazadagi mindmap joylashuviga yozilmaydi.
  */
-export type GrafTugun = { id: string; nom: string; rang: string; tur: string };
+/** `markaz` — ildiz tugun (kompaniya): markazga qotiriladi, katta, alohida rangda. */
+export type GrafTugun = { id: string; nom: string; rang: string; tur: string; markaz?: boolean };
 export type GrafBog = { manba: string; maqsad: string };
 
 const MONO = '#b4bccc';
 const URGU = '#8fb0ff';
+const MARKAZ = '#f2c46d';
 const RANG_KALIT = 'graf2d-rang-v1';
 
 type N = GrafTugun & { x: number; y: number; vx: number; vy: number; r: number; daraja: number; qotgan: boolean };
@@ -71,6 +73,7 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
       const o = eski.get(t.id);
       const a = (i / Math.max(1, tugunlar.length)) * Math.PI * 2, rad = 120 + (i % 7) * 25;
       const d = daraja.get(t.id) ?? 0;
+      if (t.markaz) return { ...t, x: 0, y: 0, vx: 0, vy: 0, r: 14, daraja: d, qotgan: true };
       return { ...t, x: o?.x ?? Math.cos(a) * rad, y: o?.y ?? Math.sin(a) * rad, vx: 0, vy: 0, r: 3.5 + Math.min(10, Math.sqrt(d) * 2.2), daraja: d, qotgan: false };
     });
     const byId = new Map(n.map((x) => [x.id, x]));
@@ -101,15 +104,15 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
           let dx = a.x - b.x, dy = a.y - b.y;
           let d2 = dx * dx + dy * dy;
           if (d2 < 0.01) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d2 = 0.5; }
-          if (d2 > 400000) continue;
-          const f = 2200 / d2;
+          if (d2 > 400000 && !a.markaz && !b.markaz) continue;
+          const f = (a.markaz || b.markaz ? 16000 : 2200) / d2;
           const d = Math.sqrt(d2);
           a.vx += (dx / d) * f; a.vy += (dy / d) * f; b.vx -= (dx / d) * f; b.vy -= (dy / d) * f;
         }
         // Prujina (bog'lanish).
         for (const [a, b] of e) {
           const dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
-          const f = (d - 95) * 0.02;
+          const f = (d - (a.markaz || b.markaz ? 260 : 95)) * 0.02;
           a.vx += (dx / d) * f; a.vy += (dy / d) * f; b.vx -= (dx / d) * f; b.vy -= (dy / d) * f;
         }
         for (const a of n) {
@@ -166,17 +169,21 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
     for (const a of n) {
       const yoniq = (!faol || faol.has(a.id)) && moslik(a);
       ctx.globalAlpha = yoniq ? 1 : 0.15;
-      ctx.fillStyle = a.id === hv || a.id === bm ? URGU : turRangRef.current ? a.rang : MONO;
+      ctx.fillStyle = a.id === hv || a.id === bm ? URGU : a.markaz ? MARKAZ : turRangRef.current ? a.rang : MONO;
       ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2); ctx.fill();
       if (a.id === hv || a.id === bm) { ctx.strokeStyle = '#dbe5ff'; ctx.lineWidth = 1.5 / k; ctx.stroke(); }
       // Yozuv: yaqinlashganda yoki faol tugunlarda (Obsidian kabi).
-      const muhim = a.daraja >= 5;
+      const muhim = a.daraja >= 5 || !!a.markaz;
+      if (a.markaz) { ctx.strokeStyle = 'rgba(242,196,109,0.55)'; ctx.lineWidth = 2 / k; ctx.beginPath(); ctx.arc(a.x, a.y, a.r + 6 / k, 0, Math.PI * 2); ctx.stroke(); }
       if (k > 1.25 || (faol && faol.has(a.id)) || muhim || (qs && moslik(a))) {
         ctx.globalAlpha = yoniq ? Math.min(1, (faol?.has(a.id) || muhim || qs ? 1 : (k - 1.1) * 3)) : 0.1;
         ctx.fillStyle = '#dcddde';
         ctx.font = `${12 / Math.max(0.8, k)}px Inter, system-ui, sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(a.nom.length > 38 ? a.nom.slice(0, 36) + '…' : a.nom, a.x, a.y + a.r + 12 / Math.max(0.8, k));
+        if (a.markaz) {
+          ctx.font = `700 ${16 / Math.max(0.8, k)}px Inter, system-ui, sans-serif`; ctx.fillStyle = MARKAZ;
+          ctx.fillText(a.nom, a.x, a.y - a.r - 10 / Math.max(0.8, k));
+        } else ctx.fillText(a.nom.length > 38 ? a.nom.slice(0, 36) + '…' : a.nom, a.x, a.y + a.r + 12 / Math.max(0.8, k));
       }
       ctx.globalAlpha = 1;
     }
@@ -236,7 +243,7 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
           }
           if (s?.tur === 'tugun') {
             const a = holat.current.byId.get(s.id!);
-            if (a) a.qotgan = false;
+            if (a && !a.markaz) a.qotgan = false;
             if (!s.kochdi && s.id) onTanla?.(s.id);
           }
         }}

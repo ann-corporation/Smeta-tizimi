@@ -559,7 +559,7 @@ export default function TestXarita() {
   // Graf komponentlariga barqaror massivlar: tuzilish o'zgarmasa simulyatsiya qayta boshlanmaydi.
   const grafKalit = korsatilganTugunlar.map((t) => t.id + '|' + t.nom + '|' + t.tur).join('~') + '#' + graf.bogichlar.map((b) => b.manba + '>' + b.maqsad).join('~');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const grafTugunlar = useMemo(() => korsatilganTugunlar.map((t) => ({ id: t.id, nom: t.nom, tur: TUR_NOM[t.tur] ?? t.tur, rang: TUR_RANG[t.tur] ?? '#94a3b8' })), [grafKalit]);
+  const grafTugunlar = useMemo(() => korsatilganTugunlar.map((t) => ({ id: t.id, nom: t.nom, tur: TUR_NOM[t.tur] ?? t.tur, rang: TUR_RANG[t.tur] ?? '#94a3b8', markaz: t.tur === 'kompaniya' })), [grafKalit]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const grafBoglar = useMemo(() => graf.bogichlar.map((b) => ({ manba: b.manba, maqsad: b.maqsad })), [grafKalit]);
   const tanlanganBogManba = tanlanganBog ? graf.tugunlar.find((t) => t.id === tanlanganBog.manba) : null;
