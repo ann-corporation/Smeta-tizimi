@@ -52,6 +52,7 @@ const TESTLAR = [
   ['Cloudflare Functions TS gate oracle (Codex)', 't2_functions_typecheck_gate.test.cjs'],
   ['Smeta faqat yagona modul orqali o‘qiladi (P6)', 't2_smeta_oqish_yagona.test.cjs'],
   ['Koddan yig‘iladigan sayt xaritasi', 't2_sayt_xaritasi.test.cjs'],
+  ['SMETA import dublikat guard', 't2_smeta_import_dublikat_guard.test.cjs'],
 ];
 
 let yiqildi = 0;

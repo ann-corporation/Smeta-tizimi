@@ -1110,7 +1110,7 @@
       "machine": "noutbuk",
       "branch": "claude/smeta-anatomiya-v1",
       "base_sha": "3e2e74b",
-      "status": "in_progress",
+      "status": "completed",
       "owns": [],
       "depends_on": [],
       "must_read": [
@@ -1829,10 +1829,11 @@
     "supabase/migrations/20261105110000_t2_resurs_kategoriya_bez_sklad_v1.sql",
     "supabase/migrations/20261105110000_t2_resurs_kategoriya_bez_sklad_v1.rollback.sql",
     "supabase/migrations/20261105110000_t2_resurs_kategoriya_bez_sklad_v1.acceptance.sql",
-        "supabase/migrations/20261105110000_t2_smeta_import_dublikat_guard_v1.sql",
-        "supabase/migrations/20261105110000_t2_smeta_import_dublikat_guard_v1.rollback.sql",
-        "supabase/migrations/20261105110000_t2_smeta_import_dublikat_guard_v1.acceptance.sql",
-        "supabase/tests/t2_smeta_import_dublikat_guard_v1.sql",
+        "frontend/functions/api/smeta-yukla.ts",
+        "frontend/testlar/t2_smeta_import_dublikat_guard.test.cjs",
+        "supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.sql",
+        "supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.rollback.sql",
+        "supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.acceptance.sql",
         "ops/handoff/T2_SAYT_BEZSKLAD_SUNIY_KOL_2026-10-01.md"
       ],
       "depends_on": [],
@@ -1843,7 +1844,7 @@
         "D:/Obsidian/Anvar_Brain/20_PROJECTS/Smeta-tizimi/SMETA_ANATOMIYA.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "C→B→A ketma-ketligi. Migratsiyalar source-ready bo‘ladi; production qo‘llash Claude zimmasida. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmaydi."
+      "_izoh": "C→B→A source-ready. C main 7ef8a6a ichida; B/A migratsiyalari productionga qo‘llanmagan va acceptance Claude zimmasida. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmaydi."
     },
     {
       "id": "T2-IJRO-AOSR-LAB-001",

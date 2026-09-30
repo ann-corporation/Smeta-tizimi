@@ -148,6 +148,15 @@ async function handleImport(env: Env, actorId: number, body: ImportBody) {
     return Response.json({ ok: false, code: 'TOO_MANY_ROWS', xabar: `${rows.length} qator (limit ${MAX_ROWS})` }, { status: 422 });
   }
 
+  try {
+    const guard = await importManbaGuard(env, body.kompaniyaId, actorId, body.obyektId,
+      body.sourceDocumentId == null ? [] : [body.sourceDocumentId]);
+    if (!guard.ok) return guard.response;
+  } catch (err) {
+    console.error('[smeta-yukla] source guard unreachable:', err);
+    return importRpcFailure('IMPORT_GUARD_UNREACHABLE', 503);
+  }
+
   let res: Awaited<ReturnType<typeof rpc>>;
   try {
     res = await rpc(env, 't2_smeta_import_bulk_v1', {
@@ -192,9 +201,45 @@ async function bolakliRpc(env: Env, nom: string, args: Record<string, unknown>) 
   return Response.json(res.body, { status: res.body.ok ? 200 : 409 });
 }
 
+/**
+ * Import boshlanishidan oldingi source/object guard.
+ * Yakunlovchi import RPC'lar ham obyektni advisory lock bilan tekshiradi;
+ * preflight o'tib ketgan parallel chaqiriq ham ikkinchi smetani yarata olmaydi.
+ */
+async function importManbaGuard(
+  env: Env,
+  kompaniyaId: number,
+  actorId: number,
+  obyektId: number,
+  sourceDocumentIds: number[],
+) {
+  const res = await rpc(env, 't2_smeta_import_source_guard_v1', {
+    p_kompaniya_id: kompaniyaId,
+    p_actor_id: actorId,
+    p_obyekt_id: obyektId,
+    p_source_document_ids: sourceDocumentIds.length ? sourceDocumentIds : null,
+  });
+  if (!res.httpOk || !res.body) {
+    console.error('[smeta-yukla] source guard failed:', res.raw.slice(0, 2000));
+    return { ok: false as const, response: importRpcFailure('IMPORT_GUARD_UNAVAILABLE', 503) };
+  }
+  if (res.body.ok !== true) {
+    return { ok: false as const, response: Response.json(res.body, { status: 409 }) };
+  }
+  return { ok: true as const };
+}
+
 async function handleImportBoshla(env: Env, actorId: number, body: ImportBoshlaBody) {
   if (!body.kompaniyaId || !body.obyektId || !body.operationId) {
     return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
+  }
+  try {
+    const guard = await importManbaGuard(env, body.kompaniyaId, actorId, body.obyektId,
+      body.sourceDocumentId == null ? [] : [body.sourceDocumentId]);
+    if (!guard.ok) return guard.response;
+  } catch (err) {
+    console.error('[smeta-yukla] source guard unreachable:', err);
+    return importRpcFailure('IMPORT_GUARD_UNREACHABLE', 503);
   }
   return bolakliRpc(env, 't2_smeta_import_boshla_v1', {
     p_kompaniya_id: body.kompaniyaId, p_actor_id: actorId, p_obyekt_id: body.obyektId,
@@ -231,6 +276,19 @@ async function handleImportYakunla(env: Env, actorId: number, body: ImportYakunl
 async function handlePaketImportBoshla(env: Env, actorId: number, body: PaketImportBoshlaBody) {
   if (!body.kompaniyaId || !body.obyektId || !body.operationId || !body.paketKalit || !body.paketNom || !Array.isArray(body.manbalar)) {
     return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
+  }
+  const sourceDocumentIds = body.manbalar
+    .map((m) => m.lrvDocumentId)
+    .filter((id): id is number => Number.isSafeInteger(id) && id > 0);
+  if (sourceDocumentIds.length !== body.manbalar.length) {
+    return Response.json({ ok: false, code: 'PACKAGE_SOURCE_INVALID' }, { status: 400 });
+  }
+  try {
+    const guard = await importManbaGuard(env, body.kompaniyaId, actorId, body.obyektId, sourceDocumentIds);
+    if (!guard.ok) return guard.response;
+  } catch (err) {
+    console.error('[smeta-yukla] package source guard unreachable:', err);
+    return importRpcFailure('IMPORT_GUARD_UNREACHABLE', 503);
   }
   return bolakliRpc(env, 't2_smeta_paket_import_boshla_v1', {
     p_kompaniya_id: body.kompaniyaId, p_actor_id: actorId, p_obyekt_id: body.obyektId,
