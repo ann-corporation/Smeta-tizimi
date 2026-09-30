@@ -1806,6 +1806,40 @@
       "_izoh": "EGASI_SINOV_2026-09-30 #13 davomi. Bog‘lash mavjud chiziqniBogla (sbMindmapBog, qoidalar, rol modali) orqali — yangi yozish yo‘li yo‘q. Namunaviy ma’lumotda brauzerda tekshirildi (3D va 2D bog‘lash, sozlamalar); real login bilan UNKNOWN."
     },
     {
+      "id": "T2-SAYT-BEZSKLAD-SUNIY-KOL-20261001",
+      "title": "C: koddan yig‘iladigan sayt xaritasi; B: БЕЗ СКЛАД resurs kategoriyasi; A: Suniy Ko‘l import dublikatlari uchun tizimli himoya",
+      "owner": "codex",
+      "machine": "pc-ishxona",
+      "branch": "codex/20261001-site-map-bez-sklad-suniy-kol",
+      "base_sha": "2950e12704083d4e2b1fbdecc20ab790c9aa4a6a",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/lib/sayt-xaritasi/",
+        "frontend/src/admin/sahifalar/SaytXaritasi.tsx",
+        "frontend/src/App.tsx",
+        "frontend/src/admin/AdminShell.tsx",
+        "frontend/src/lib/pageTitle.ts",
+        "frontend/testlar/t2_sayt_xaritasi.test.cjs",
+        "frontend/testlar/hammasi.cjs",
+        "frontend/src/lib/resurs-kategoriyasi/bez-sklad.ts",
+        "frontend/src/lib/resurs-kategoriyasi/bez-sklad.test.ts",
+        "supabase/migrations/20261105110000_t2_smeta_import_dublikat_guard_v1.sql",
+        "supabase/migrations/20261105110000_t2_smeta_import_dublikat_guard_v1.rollback.sql",
+        "supabase/migrations/20261105110000_t2_smeta_import_dublikat_guard_v1.acceptance.sql",
+        "supabase/tests/t2_smeta_import_dublikat_guard_v1.sql",
+        "ops/handoff/T2_SAYT_BEZSKLAD_SUNIY_KOL_2026-10-01.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "ops/handoff/CODEX_TOPSHIRIQ_2026-10-01.md",
+        "docs/governance/CONSTITUTION.md",
+        "D:/Obsidian/Anvar_Brain/20_PROJECTS/Smeta-tizimi/SMETA_ANATOMIYA.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "C→B→A ketma-ketligi. Migratsiyalar source-ready bo‘ladi; production qo‘llash Claude zimmasida. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmaydi."
+    },
+    {
       "id": "T2-IJRO-AOSR-LAB-001",
       "title": "C2: АОСР (ШНК 3.01.01-22 Прил.6) blank maydonlari + generator, laboratoriya (kontragent) protokollari, kompaniya logosi va kolontitul",
       "owner": "claude",

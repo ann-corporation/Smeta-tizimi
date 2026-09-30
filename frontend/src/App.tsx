@@ -58,6 +58,7 @@ const HujjatNazoratPage = lazy(() => import('./admin/pages/HujjatNazoratPage'));
 const ParticipantsPage = lazy(() => import('./admin/pages/ParticipantsPage'));
 const SystemControlPage = lazy(() => import('./admin/pages/SystemControlPage'));
 const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
+const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
 const ParticipantNetworkDemo = lazy(() => import('./admin/participants/ParticipantNetworkDemo'));
 const SystemControlDemo = lazy(() => import('./admin/system-control/SystemControlDemo'));
@@ -155,6 +156,7 @@ export default function App() {
           <Route path="hujjat-nazorat" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><HujjatNazoratPage /></Suspense>} />
           <Route path="participants" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><ParticipantsPage /></Suspense>} />
           <Route path="system-control" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><SystemControlPage /></Suspense>} />
+          <Route path="sayt-xaritasi" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><SaytXaritasi /></Suspense>} />
           <Route path="kompaniya" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><KompaniyaPage /></Suspense>} />
           {/* Demo harnesses — explicit, never the default route. */}
           <Route path="_demo/documents" element={<Suspense fallback={null}><DocumentCenterDemo /></Suspense>} />
