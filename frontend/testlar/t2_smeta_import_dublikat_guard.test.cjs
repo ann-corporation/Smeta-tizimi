@@ -11,9 +11,9 @@ function tek(name, ok) {
 }
 
 const api = read('frontend/functions/api/smeta-yukla.ts');
-const sql = read('supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.sql');
-const rollback = read('supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.rollback.sql');
-const acceptance = read('supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.acceptance.sql');
+const sql = read('supabase/migrations/20261105170000_t2_smeta_import_dublikat_guard_v1.sql');
+const rollback = read('supabase/migrations/20261105170000_t2_smeta_import_dublikat_guard_v1.rollback.sql');
+const acceptance = read('supabase/migrations/20261105170000_t2_smeta_import_dublikat_guard_v1.acceptance.sql');
 const anatomy = read('frontend/src/lib/smeta-anatomiya/akt-daraxt.test.ts');
 
 tek('API source guard RPC is called before one-file import',

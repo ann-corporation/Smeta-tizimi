@@ -11,6 +11,12 @@
 
 begin;
 
+-- Claude ko'rib chiqishi (2026-10-01): smeta qatorlari ham БЕЗСКЛАД qabul qilsin — aks holda
+-- klassifikator betonni БЕЗСКЛАД deb belgilaganda import t2_qator_kat_check da yiqilardi.
+alter table public.t2_qator drop constraint if exists t2_qator_kat_check;
+alter table public.t2_qator add constraint t2_qator_kat_check
+  check (kat = any (array['ЧЕЛ','МАШ','МАТ','ОБ','М/К','КАБ','БЕЗСКЛАД']));
+
 alter table public.t2_resurs_kategoriya
   drop constraint if exists t2_resurs_kategoriya_kategoriya_check;
 alter table public.t2_resurs_kategoriya

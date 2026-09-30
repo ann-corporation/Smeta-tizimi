@@ -1427,7 +1427,7 @@
       "machine": "codex-local",
       "branch": "codex/t2-agent-control-plane-v1",
       "base_sha": "f54c69645b7e71fdc2084b1f9d851995a8f00740",
-      "status": "ready_for_review",
+      "status": "completed",
       "owns": [
         "supabase/migrations/20261103120000_t2_agent_control_plane_v1.sql",
         "supabase/migrations/20261103120000_t2_agent_control_plane_v1.rollback.sql",
@@ -1463,7 +1463,7 @@
         "docs/architecture/SYSTEM_CONTROL_CENTER_V1.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Backend/core agent execution contracti va typed reusable AgentControlCenter UI source-ready; route/shell integratsiyasi NREL/Claude ownershipida qoladi. Migration source-only."
+      "_izoh": "Backend/core agent execution contracti va typed reusable AgentControlCenter UI source-ready; route/shell integratsiyasi NREL/Claude ownershipida qoladi. Migration source-only. 2026-10-01 Claude: migratsiya production'ga qo'llandi (tool-call tartib raqami tuzatildi), qabul testi 8/8 o'tdi, /admin/ai-agentlar ulandi (6e6ea54, f5551d8)."
     },
     {
       "id": "T2-PTO-DOCUMENT-FIDELITY-001",
@@ -1821,19 +1821,19 @@
         "frontend/src/lib/pageTitle.ts",
         "frontend/testlar/t2_sayt_xaritasi.test.cjs",
         "frontend/testlar/hammasi.cjs",
-    "frontend/src/lib/resurs-kategoriyasi/bez-sklad.ts",
-    "frontend/src/lib/resurs-kategoriyasi/bez-sklad.test.ts",
-    "frontend/src/admin/sahifalar/SmetaYuklaNative.tsx",
-    "frontend/src/api/supabase.ts",
-    "frontend/functions/api/sb-yoz.ts",
-    "supabase/migrations/20261105110000_t2_resurs_kategoriya_bez_sklad_v1.sql",
-    "supabase/migrations/20261105110000_t2_resurs_kategoriya_bez_sklad_v1.rollback.sql",
-    "supabase/migrations/20261105110000_t2_resurs_kategoriya_bez_sklad_v1.acceptance.sql",
+        "frontend/src/lib/resurs-kategoriyasi/bez-sklad.ts",
+        "frontend/src/lib/resurs-kategoriyasi/bez-sklad.test.ts",
+        "frontend/src/admin/sahifalar/SmetaYuklaNative.tsx",
+        "frontend/src/api/supabase.ts",
+        "frontend/functions/api/sb-yoz.ts",
+        "supabase/migrations/20261105160000_t2_resurs_kategoriya_bez_sklad_v1.sql",
+        "supabase/migrations/20261105160000_t2_resurs_kategoriya_bez_sklad_v1.rollback.sql",
+        "supabase/migrations/20261105160000_t2_resurs_kategoriya_bez_sklad_v1.acceptance.sql",
         "frontend/functions/api/smeta-yukla.ts",
         "frontend/testlar/t2_smeta_import_dublikat_guard.test.cjs",
-        "supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.sql",
-        "supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.rollback.sql",
-        "supabase/migrations/20261105120000_t2_smeta_import_dublikat_guard_v1.acceptance.sql",
+        "supabase/migrations/20261105170000_t2_smeta_import_dublikat_guard_v1.sql",
+        "supabase/migrations/20261105170000_t2_smeta_import_dublikat_guard_v1.rollback.sql",
+        "supabase/migrations/20261105170000_t2_smeta_import_dublikat_guard_v1.acceptance.sql",
         "ops/handoff/T2_SAYT_BEZSKLAD_SUNIY_KOL_2026-10-01.md"
       ],
       "depends_on": [],

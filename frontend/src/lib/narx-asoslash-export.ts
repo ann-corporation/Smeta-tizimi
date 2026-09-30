@@ -39,6 +39,9 @@ const KAT_NOMI: Record<string, string> = {
   'М/К': 'МЕТАЛЛОКОНСТРУКЦИИ', КАБ: 'КАБЕЛИ И ПРОВОДА', 'БЕЗ СКЛАД': 'МАТЕРИАЛЫ БЕЗ СКЛАДСКОГО ХРАНЕНИЯ', ОБ: 'ОБОРУДОВАНИЕ',
 };
 
+/** Bazadagi kanonik qiymat 'БЕЗСКЛАД' (bo'shliqsiz) — hujjatda bir bo'lim. */
+const katKalit = (k: string | null) => { const x = (k ?? '').trim().toUpperCase(); return x === 'БЕЗСКЛАД' ? 'БЕЗ СКЛАД' : x; };
+
 const NDS_MATNI = { nds_siz: 'без НДС', nds_bilan: 'с НДС', nomalum: '' } as const;
 
 /** Hujjat rekvizitlari matni: «№ 125 от 12.08.2026, ООО «Бетон» (ИНН 301234567), без НДС» / «3 кв. 2026, Навоийская обл.». */
@@ -69,9 +72,9 @@ export function narxAsoslashXlsx(resurslar: readonly AsoslashResurs[], dalillar:
   let no = 0;
   let tasdiqlangan = 0;
   const dalilsiz: { nom: string; sabab: string }[] = [];
-  const katlar = [...KAT_TARTIB, ...new Set(resurslar.map((r) => (r.kat ?? '').trim().toUpperCase()).filter((k) => k && !KAT_TARTIB.includes(k)))];
+  const katlar = [...KAT_TARTIB, ...new Set(resurslar.map((r) => katKalit(r.kat)).filter((k) => k && !KAT_TARTIB.includes(k)))];
   for (const kat of [...katlar, '']) {
-    const bandlar = resurslar.filter((r) => ((r.kat ?? '').trim().toUpperCase() || '') === kat);
+    const bandlar = resurslar.filter((r) => (katKalit(r.kat) || '') === kat);
     if (!bandlar.length) continue;
     v.bolim(KAT_NOMI[kat] ?? (kat || 'ПРОЧИЕ РЕСУРСЫ (категория не указана)'));
     for (const r of bandlar) {
