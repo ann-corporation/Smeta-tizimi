@@ -15,6 +15,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
+import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 
 type Draft = Omit<F2NativeInput, 'qatorId'>;
 const boshDraft: Draft = { quantity: '', unitPrice: '', amount: '', sourceReference: '', priceIntentionallyAbsent: false };
@@ -129,9 +130,10 @@ export function F2TayyorlashNative() {
       const stavka = ndsFoiz.trim() === '' ? null : Number(ndsFoiz.replace(',', '.'));
       // Ikki narx (egasi): к оплате = прямые × Kf — obyekt nakrutka foizlari.
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
+      const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
       const h = f2QoralamaHujjat(qatorlar, tekshiruv.qatorlar, {
         obyektNom: object.nom, davr: oy, imzo: tomonlar, ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
-        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null,
+        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
       });
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
     } catch { toast('Forma-2 Excel qoralamasini yaratib bo‘lmadi.', 'danger'); }

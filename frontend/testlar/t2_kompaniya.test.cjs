@@ -55,6 +55,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_korzinkaga_tashlash', 't2_korzinkadan_tiklash', 't2_butunlay_ochirish', 't2_obyekt_yangila',
                       't2_aosr_yoz', 't2_aosr_bekor', 't2_aosr_bog_saqla', 't2_aosr_bog_ochir', 't2_audit_yoz',
                       't2_aosr_yoz_v2', 't2_lab_protokol_yoz_v1', 't2_lab_protokol_bekor_v1', 't2_lab_protokol_bog_saqla_v1', 't2_kompaniya_logo_saqla_v1',
+                      't2_nakrutka_podval_saqla_v1', 't2_nakrutka_podval_ochir_v1',
                       't2_obyekt_hujjat_yoz', 't2_obyekt_hujjat_ochir',
                       't2_sklad_yarat', 't2_kadr_yarat', 't2_texnika_yarat',
                       't2_resurs_yarat_v2', 't2_resurs_yangila_v2', 't2_resurs_bekor_v2',

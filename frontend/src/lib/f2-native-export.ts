@@ -5,6 +5,7 @@ import { RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2, type 
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, type KatSummalar } from './nakrutka-podval';
+import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 
 /**
  * Native F2 qoralamasini mavjud rasmiy Excel proyeksiyasiga o‘giradi.
@@ -66,6 +67,8 @@ export type F2QoralamaOpsiya = {
   ndsFoiz?: number | null;
   /** Obyekt nakrutka foizlari — к оплате = прямые × Kf. Berilmasa 0 %. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
+  podval?: Podval | null;
 };
 
 const QORALAMA_USTUNLAR: RasmiyUstun[] = [
@@ -109,9 +112,10 @@ export function f2QoralamaHujjat(qatorlar: readonly QatorHolat[], certified: rea
   // Ikki narx: M = ROUND(G × Kf[kat], 2); podval ИТОГО dan keyin bitta bo'sh qatordan so'ng.
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const kfJS = kategoriyaKf(nk);
+  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
+  const kfJS = kategoriyaKf(nk, podval);
   const bosh0 = v.malumotBoshi;
-  const kfQ = podvalKfQatorlari(bosh0 + rows.length + 2);
+  const kfQ = podvalKfQatorlari(bosh0 + rows.length + 2, podval);
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
   let kOplata: number | null = 0;
   let jami: number | null = 0;
@@ -147,7 +151,7 @@ export function f2QoralamaHujjat(qatorlar: readonly QatorHolat[], certified: rea
     { f: `IF(COUNTBLANK(M${a}:M${b})>0,"",SUM(M${a}:M${b}))`, v: kJami == null ? '' : yaxlit2(kJami) }, null]);
   const jamiQ = jami as number | null;
   v.bosh();
-  const p = nakrutkaPodvaliYoz(v, { katUstun: 'N', oraliq: [a, b], pulUstunlar: ['G'], foizUstun: 'F', nk, katSummalar: { G: ks } });
+  const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'N', oraliq: [a, b], pulUstunlar: ['G'], foizUstun: 'F', nk, katSummalar: { G: ks } });
   if (p.kfQator.ЧЕЛ !== kfQ.ЧЕЛ) throw new Error('F2_QORALAMA_PODVAL_SILJIDI');
   if (!o.nakrutka || !Object.keys(o.nakrutka).length) diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — в расчете приняты 0 %' });
   v.bosh();

@@ -3,6 +3,7 @@ import { RasmiyVaraq, bugunSana, sumRefs, hujjatFaylNomi, imzoTomonlari, rasmiyK
 import { HujjatToliqEmasXato, davrMatni } from './nakopitelniy-vedomost-export';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, type KatSummalar, type NakrutkaHisobJS } from './nakrutka-podval';
+import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 
 /**
  * f2-akt-tn-export.ts — rasmiy "АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (Ф-2)" hujjati,
@@ -153,6 +154,8 @@ export type F2AktHujjatOpsiya = F2AktTnOptions & {
   ndsFoiz?: number | null;
   /** Obyekt nakrutka foizlari — к оплате = прямые × Kf. Berilmasa 0 %. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
+  podval?: Podval | null;
   truncated?: boolean;
 };
 
@@ -207,9 +210,10 @@ export function f2AktHujjat(qatorlar: readonly NakopitelniyQator[], o: F2AktHujj
   // Ikki narx: I = ROUND(H × Kf[kat], 2); podval ВСЕГО ПО АКТУ dan keyin bitta bo'sh qatordan so'ng.
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const kfJS = kategoriyaKf(nk);
+  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
+  const kfJS = kategoriyaKf(nk, podval);
   const podvalBosh = bosh + rows.length + 1;
-  const kfQ = podvalKfQatorlari(podvalBosh);
+  const kfQ = podvalKfQatorlari(podvalBosh, podval);
   const chiziqlar = rows.map((r, i) => (r.kind === 'chiziq_bl' || r.kind === 'chiziq_mustaqil' ? i : -1)).filter((i) => i >= 0);
   const koOf = (i: number): number | null => { const r = rows[i]; return r.kind === 'chiziq_bl' || r.kind === 'chiziq_mustaqil' ? kOplate(r.cells[7], nakrutkaKat(r.kat), kfJS) : null; };
   const koYig = (a: number, b: number): Qiymat => {
@@ -259,7 +263,7 @@ export function f2AktHujjat(qatorlar: readonly NakopitelniyQator[], o: F2AktHujj
   v.bosh();
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
   for (const i of chiziqlar) { const r = rows[i] as Extract<F2AktTnQator, { kind: 'chiziq_bl' | 'chiziq_mustaqil' }>; const kat = nakrutkaKat(r.kat); if (kat) ks[kat] += r.cells[7]; }
-  const p = nakrutkaPodvaliYoz(v, { katUstun: 'J', oraliq: [bosh, bosh + rows.length - 1], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks } });
+  const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [bosh, bosh + rows.length - 1], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks } });
   if (p.bosh !== podvalBosh) throw new Error('F2_AKT_PODVAL_SILJIDI');
   const kaskad = p.kaskad.H;
   const kVals = chiziqlar.map(koOf);

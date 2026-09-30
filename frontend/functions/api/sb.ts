@@ -66,6 +66,8 @@ const RUXSAT_JADVALLAR = new Set([
   't2_aosr_reestr', 't2_aosr_coverage',
   /* Ijro hujjatlari v2 (2026-10-01): АОСР blank maydonlari, laboratoriya, logo */
   't2_aosr_reestr_v2', 't2_lab_protokol_reestr', 't2_kompaniya_logo',
+  /* Nakrutka podval konstruktori (2026-10-01) */
+  't2_nakrutka_podval_royxat',
   /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval
      birlashgan VIEW — `holat='bekor'`, is_deleted EMAS). */
   't2_korzinka',

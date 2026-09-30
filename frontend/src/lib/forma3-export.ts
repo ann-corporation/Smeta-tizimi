@@ -40,9 +40,10 @@ import {
   summaSozBilan, type ImzoNomlar, type Qiymat, type RasmiyUstun, type SarlavhaKatak,
 } from './hujjat-yozuvchi';
 import {
-  NAKRUTKA_KATLAR, kategoriyaKf, nakrutkaKaskadJS, nakrutkaKat, nakrutkaPodvaliYoz,
+  NAKRUTKA_KATLAR, kategoriyaKf, nakrutkaKaskadJS, nakrutkaKat, nakrutkaPodvaliYoz, podvalliKaskad,
   type KatSummalar, type NakrutkaHisobJS,
 } from './nakrutka-podval';
+import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 
 /**
  * Bir tomonning TO'LIQ rekvizitlari — haqiqiy SPRAVKA-SCHET-FAKTURA blankasi
@@ -87,6 +88,8 @@ export interface Forma3ExportOptions {
   zakazchik?: Forma3Rekvizit | null;
   /** Obyekt nakrutka foizlari (t2_obyekt_nakrutka). null — 0 % + diqqat. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
+  podval?: Podval | null;
   /** НДС stavkasi % (sukut 12, F3_NDS_SUKUT); null — kaskaddagi qiymat. */
   ndsFoiz?: number | null;
   /** Smeta nakrutka kaskadi (RPC jami.smeta_nakrutka) — izohda. */
@@ -337,14 +340,14 @@ export interface F3UstunNatija {
   kOplate: Record<F3PulUstun, number | null>;
 }
 
-export function f3UstunlarNatijasi(rows: readonly QatorReja[], qiymatIdx: readonly number[], nk: Partial<NakrutkaKoeffitsientlar>): F3UstunNatija {
-  const kf = kategoriyaKf(nk);
+export function f3UstunlarNatijasi(rows: readonly QatorReja[], qiymatIdx: readonly number[], nk: Partial<NakrutkaKoeffitsientlar>, podval: Podval | null = null): F3UstunNatija {
+  const kf = kategoriyaKf(nk, podval);
   const kat = {} as Record<F3PulUstun, KatSummalar>;
   const kaskad = {} as Record<F3PulUstun, NakrutkaHisobJS>;
   const ko = {} as Record<F3PulUstun, number | null>;
   for (const c of F3_PUL) {
     kat[c] = f3KatSumma(rows, qiymatIdx, c);
-    kaskad[c] = nakrutkaKaskadJS(kat[c], nk);
+    kaskad[c] = podvalliKaskad(kat[c], nk, podval, c === F3_PUL[0]);
     let jami: number | null = 0;
     let bor = false;
     for (const i of qiymatIdx) {
@@ -481,7 +484,8 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     model.diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — в расчете приняты 0 %; стоимость к оплате отличается от прямых затрат только НДС' });
   }
   const qiymatIdx = f3QiymatIndekslar(rows);
-  const ustunlar = f3UstunlarNatijasi(rows, qiymatIdx, nk);
+  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
+  const ustunlar = f3UstunlarNatijasi(rows, qiymatIdx, nk, podval);
 
   // ── Titul ──
   const sanaMatni = (iso: string | null | undefined): string | null => {
@@ -647,7 +651,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   for (const c of F3_PUL) katSummalar[VARAQ_USTUN[c]] = ustunlar.kat[c];
   katSummalar.G = ustunlar.kat.G; // «в т.ч. на текущий год» = всего (график не задан)
   const s = umumiy.soat;
-  const p = nakrutkaPodvaliYoz(v, {
+  const p = nakrutkaPodvaliYoz(v, { podval,
     katUstun: KAT_USTUN, oraliq: [itogoQ, itogoQ], pulUstunlar: ['F', 'G', 'J', 'M', 'P'], foizUstun: 'C', nk, katSummalar,
     katFormulasiz: true, kfJadval: false,
     sarlavha: 'РАСЧЕТ СТОИМОСТИ К ОПЛАТЕ ПО ОБЪЕКТУ: прямые затраты по видам (физ. показатели и стоимость) → накладные и прочие → НДС',

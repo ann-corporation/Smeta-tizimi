@@ -104,6 +104,9 @@ const AMALLAR = {
   lab_protokol_bekor: { rpc: 't2_lab_protokol_bekor_v1' },
   lab_protokol_bog_saqla: { rpc: 't2_lab_protokol_bog_saqla_v1' },
   kompaniya_logo_saqla: { rpc: 't2_kompaniya_logo_saqla_v1' },
+  /* Nakrutka podval konstruktori (2026-10-01, egasi Q6). */
+  nakrutka_podval_saqla: { rpc: 't2_nakrutka_podval_saqla_v1' },
+  nakrutka_podval_ochir: { rpc: 't2_nakrutka_podval_ochir_v1' },
   audit_yoz: { rpc: 't2_audit_yoz' },
   hujjat_yoz: { rpc: 't2_obyekt_hujjat_yoz' },
   hujjat_ochir: { rpc: 't2_obyekt_hujjat_ochir' },
@@ -1296,6 +1299,40 @@ export const onRequestPost: PagesFunction<{
         p_kompaniya_id: kompaniyaId, p_mime: so.mime ? String(so.mime) : null, p_data_b64: data,
         p_sha256: so.sha256 ? String(so.sha256).slice(0, 64) : null, p_kim: sess.email || '',
       };
+
+    /* ══════════ NAKRUTKA PODVAL KONSTRUKTORI ══════════
+       Tuzilma (qatorlar) frontend `lib/nakrutka-konstruktor.ts` da tekshiriladi, RPC
+       qayta tekshiradi (kod/tur, doira kompaniyaga tegishliligi). */
+    } else if (amal === 'nakrutka_podval_saqla') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id majburiy' });
+      }
+      if (!Array.isArray(so.qatorlar) || !so.qatorlar.length || so.qatorlar.length > 80) {
+        return Response.json({ ok: false, error: 'Podval qatorlari 1..80 bo\'lishi shart' });
+      }
+      if (JSON.stringify(so.qatorlar).length > 60000) {
+        return Response.json({ ok: false, error: 'Podval juda katta' });
+      }
+      const id = so.id ? Number(so.id) : null;
+      if (!id && !uuidRe.test(operationId)) {
+        return Response.json({ ok: false, error: 'operation_id (UUID) majburiy' });
+      }
+      const ixtiyoriyId = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_obyekt_id: ixtiyoriyId(so.obyekt_id), p_shartnoma_id: ixtiyoriyId(so.shartnoma_id),
+        p_nom: so.nom ? String(so.nom).slice(0, 200) : null, p_qatorlar: so.qatorlar,
+        p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
+        p_operation_id: id ? null : operationId, p_kim: sess.email || '',
+      };
+
+    } else if (amal === 'nakrutka_podval_ochir') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const id = Number(so.id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(id) || id <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id va id majburiy' });
+      }
+      yuk = { p_kompaniya_id: kompaniyaId, p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_kim: sess.email || '' };
 
     /* ══════════ AUDIT LOG ══════════
        ⚠️ Log yozuvi — idempotentlik shart emas (ikkilanib yozilishi

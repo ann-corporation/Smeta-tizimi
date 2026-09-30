@@ -13,6 +13,9 @@ import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export'
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
+import { obyektPodvali, serverCatsKatga } from '../../api/t2-nakrutka-podval';
+import { podvalgaKoefQoy, type Podval } from '../../lib/nakrutka-konstruktor';
+import { podvalliKaskad } from '../../lib/nakrutka-podval';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { FmtN } from '../../lib/format';
@@ -66,15 +69,23 @@ function Sessiya({ companyId }: { companyId: number }) {
   // Ikki narx (egasi): hujjatda к оплате = прямые × Kf — obyekt/shartnoma nakrutka foizlari.
   const [nakrutka, setNakrutka] = useState<NakrutkaKoeffitsientlar | null>(null);
   const [nakrutkaKaskadi, setNakrutkaKaskadi] = useState<NakrutkaKaskad | null>(null);
+  /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
+  const [podval, setPodval] = useState<Podval | null>(null);
+  const [nakrutkaCats, setNakrutkaCats] = useState<ReturnType<typeof serverCatsKatga> | null>(null);
   useEffect(() => {
     let active = true;
     setNakrutka(null);
     setNakrutkaKaskadi(null);
+    setPodval(null);
+    setNakrutkaCats(null);
     if (!objectId) return;
-    void t2ObyektNakrutka(Number(objectId)).then((r) => {
+    void t2ObyektNakrutka(Number(objectId)).then(async (r) => {
       if (!active || !r.ok) return;
       if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
       if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
+      if (r.cats) setNakrutkaCats(serverCatsKatga(r.cats));
+      const p = await obyektPodvali(companyId, Number(objectId), r.shartnoma_id ?? null);
+      if (active) setPodval(p);
     }).catch(() => undefined);
     return () => { active = false; };
   }, [objectId]);
@@ -218,6 +229,13 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const [truncated, setTruncated] = useState(false);
   const smetaNakrutka = useMemo(() => {
+    // Maxsus podval — ekrandagi smeta к оплате ham shu podval bo'yicha (hujjat bilan bir xil).
+    if (podval && nakrutkaCats && nakrutka) {
+      try {
+        const k = podvalliKaskad(nakrutkaCats, nakrutka, podvalgaKoefQoy(podval, nakrutka));
+        return { pryamye: k.pryamye, itogo4: k.itogo4, nds: k.nds, nds_foiz: nakrutka.НДС ?? null, vsego: k.vsego };
+      } catch { return null; }
+    }
     if (!nakrutkaKaskadi) return jami?.smeta_nakrutka ?? null;
     return {
       pryamye: nakrutkaKaskadi.pryamye,
@@ -226,7 +244,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       nds_foiz: nakrutka?.НДС ?? null,
       vsego: nakrutkaKaskadi.vsego,
     };
-  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi]);
+  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi, podval, nakrutkaCats]);
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
    *  (server sukuti 500 qator) — server sahifalari avtomat oxirigacha o'qiladi
@@ -330,7 +348,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
-          obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, ndsFoiz: stavkaOl(),
+          obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, ndsFoiz: stavkaOl(),
           smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage),
           pudratchi: pudratchiRek, zakazchik: zakazchikRek,
           shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
@@ -354,7 +372,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
       const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, oylar });
+      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar });
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
     } catch (e) { setXato(e instanceof HujjatToliqEmasXato ? 'Hujjat to‘liq emas — eksport bloklandi.' : 'Excel fayli tuzilmadi.'); }
   };
@@ -365,7 +383,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       const rows = await toliqQatorlar();
       if (!rows) return;
-      const h = f2AktHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), nakrutka });
+      const h = f2AktHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), nakrutka, podval });
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
     } catch (e) {
       const m = e instanceof Error ? e.message : '';

@@ -33,6 +33,7 @@ import {
   NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari,
   type KatSummalar, type NakrutkaHisobJS,
 } from './nakrutka-podval';
+import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 
 export interface NakopitelniyVedomostExportOptions {
   obyektNom: string;
@@ -47,6 +48,8 @@ export interface NakopitelniyVedomostExportOptions {
   /** Obyekt nakrutka foizlari (t2_obyekt_nakrutka_v1.koeffitsientlar). Berilmasa — 0 %
    *  (к оплате = прямые) va hujjatda "проценты не заданы" deyiladi. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
+  podval?: Podval | null;
   /** Smeta nakrutka kaskadi (RPC jami.smeta_nakrutka) — izohda ko'rsatiladi. */
   smetaNakrutka?: SmetaNakrutka | null;
   /** Oy kesimi (egasi 2026-09-30): har tasdiqlangan F2 oyi alohida ustun + ИТОГО. Berilmasa — "ранее / за период". */
@@ -247,9 +250,10 @@ export function nakopitelniyVedomostHujjat(
   const rowOf = (i: number) => bosh + i;
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const kfJS = kategoriyaKf(nk);
+  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
+  const kfJS = kategoriyaKf(nk, podval);
   const podvalBosh = bosh + reja.length + 2;
-  const kfQ = podvalKfQatorlari(podvalBosh);
+  const kfQ = podvalKfQatorlari(podvalBosh, podval);
   const koOf = (q: NakopitelniyQator) => {
     const kat = nakrutkaKat(q.kat);
     return { kat, per: kOplate(perS(q), kat, kfJS), jami: kOplate(jamiS(q), kat, kfJS) };
@@ -393,7 +397,7 @@ export function nakopitelniyVedomostHujjat(
       }
       katSummalar[p] = ks;
     }
-    const p = nakrutkaPodvaliYoz(v, { katUstun: U.kat, oraliq: [bosh, bosh + reja.length - 1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar });
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [bosh, bosh + reja.length - 1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar });
     if (p.bosh !== podvalBosh) throw new Error('NAKOPITELNIY_PODVAL_SILJIDI');
     kaskad = p.kaskad;
   }

@@ -174,6 +174,7 @@ export const GENERATED_SITE_MAP = {
     "rishlar (2026-08-25) */\n  ",
     ",\n  /* АОСР — yashirin ishlar akti (2026-08-27, hujjat domeni) */\n  ",
     ",\n  /* Ijro hujjatlari v2 (2026-10-01): АОСР blank maydonlari, laboratoriya, logo */\n  ",
+    ",\n  /* Nakrutka podval konstruktori (2026-10-01) */\n  ",
     ",\n  /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval\n     birlashgan VIEW — `holat=",
     "`, is_deleted EMAS). */\n  ",
     ",\n  /* AUDIT & LOGLAR (2026-08-27, Antigravity SQL + Claude qo",
@@ -458,6 +459,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "kompaniya_logo_saqla",
       "rpc": "t2_kompaniya_logo_saqla_v1"
+    },
+    {
+      "amal": "nakrutka_podval_saqla",
+      "rpc": "t2_nakrutka_podval_saqla_v1"
+    },
+    {
+      "amal": "nakrutka_podval_ochir",
+      "rpc": "t2_nakrutka_podval_ochir_v1"
     },
     {
       "amal": "audit_yoz",

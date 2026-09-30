@@ -6,6 +6,7 @@ import {
 import type { OstatkaIstisno } from './ostatka-export';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, type KatSummalar } from './nakrutka-podval';
+import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 import { bosRefs } from './hujjat-yozuvchi';
 
 /**
@@ -41,6 +42,8 @@ export type SlichitelniyOpsiya = {
   istisnolar?: readonly OstatkaIstisno[];
   /** Obyekt nakrutka foizlari — к оплате = прямые × Kf. Berilmasa 0 %. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
+  podval?: Podval | null;
   /** НДС stavkasi (sukut: nakrutkadagi НДС, u ham bo'lmasa 12 %). */
   ndsFoiz?: number | null;
 };
@@ -249,8 +252,9 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   // Ikki narx: P = ROUND(I × Kf), Q = ROUND(M × Kf); podval ВСЕГО dan keyin.
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   nk.НДС = o.ndsFoiz ?? nk.НДС ?? 12;
-  const kfJS = kategoriyaKf(nk);
-  const kfQ = podvalKfQatorlari(bosh + model.qatorlar.length + 2);
+  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
+  const kfJS = kategoriyaKf(nk, podval);
+  const kfQ = podvalKfQatorlari(bosh + model.qatorlar.length + 2, podval);
   const koMemo = new Map<string, number | null>();
   const koOf = (i: number, c: 'P' | 'Q'): number | null => {
     const key = `${i}${c}`;
@@ -342,7 +346,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       }
       katSummalar[c] = ks;
     }
-    const p = nakrutkaPodvaliYoz(v, { katUstun: 'R', oraliq: [bosh, bosh + model.qatorlar.length - 1], pulUstunlar: ['G', 'I', 'K', 'M'], foizUstun: 'F', nk, katSummalar });
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'R', oraliq: [bosh, bosh + model.qatorlar.length - 1], pulUstunlar: ['G', 'I', 'K', 'M'], foizUstun: 'F', nk, katSummalar });
     if (p.kfQator.ЧЕЛ !== kfQ.ЧЕЛ) throw new Error('SLICHITELNIY_PODVAL_SILJIDI');
   }
   v.bosh();

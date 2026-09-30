@@ -14,6 +14,7 @@ import {
   type ShartnomaQamrovQatori,
 } from '../../api/t2-shartnoma-qamrov';
 import { FmtN } from '../../lib/format';
+import { PodvalKonstruktor } from './PodvalKonstruktor';
 
 /**
  * T1->T2 PTO gap-close: NAKRUTKA (markup/overhead) sahifasi -- T1 GAS'ning
@@ -384,6 +385,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </label>
         {objectId && <ObyektKaskad key={`${objectId}:${contractId ?? 'default'}`} obyektId={Number(objectId)} contractId={contractId} />}
       </div>
+      <PodvalKonstruktor companyId={companyId} contractId={contractId} objectId={objectId ? Number(objectId) : null} />
     </div>
   );
 }

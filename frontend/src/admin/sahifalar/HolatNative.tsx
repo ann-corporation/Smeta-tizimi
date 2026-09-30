@@ -11,6 +11,7 @@ import { lrvPlusEksportGate, lrvPlusFaylBaytlari, lrvPlusFaylNomi, lrvPlusYuklab
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { sbFaktBelgilaV2, sbFaktYoz } from '../../api/t2-fakt';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
+import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import type { TreeNode } from '../../api/types';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ostatkaHujjatModeli, ostatkaHujjatXlsx } from '../../lib/ostatka-export';
@@ -184,7 +185,8 @@ export function HolatNative() {
     setEksportBolmoqda(true);
     try {
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
-      const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null });
+      const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
+      const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval });
       if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi);
       const izoh = [
         model.oshibKetgan.length ? `${model.oshibKetgan.length} ta qatorda fakt smetadan oshgan — alohida ro‘yxatda` : '',
@@ -218,7 +220,8 @@ export function HolatNative() {
     setEksportBolmoqda(true);
     try {
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
-      const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null });
+      const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
+      const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval });
       if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi);
       toast(`Slichitelniy: ${model.barglar} ta pozitsiya, ${model.ortiq} tasida smetadan ortiq, ${model.kam} tasida kam bajarilgan${model.diqqat.length ? `; ${model.diqqat.length} ta pozitsiyada ma’lumot yetishmaydi — jami bo‘sh qoldirildi` : ''}.`, model.diqqat.length ? 'warn' : 'ok');
     } catch {

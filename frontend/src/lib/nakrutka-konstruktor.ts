@@ -46,7 +46,7 @@ const y2 = (x: number) => Math.round((x + Number.EPSILON * Math.sign(x)) * 100) 
 
 const K = (kat: NakrutkaKat, k = 1): PodvalHad => ({ kat, k });
 const Q = (qator: string, k = 1): PodvalHad => ({ qator, k });
-const BARCHA_KAT = NAKRUTKA_KATLAR.map((k) => K(k));
+const barchaKat = () => NAKRUTKA_KATLAR.map((k) => K(k));
 
 /** Hozirgi standart kaskad (server `t2_nakrutka_hisob` bilan bir xil) — podval ko'rinishida. */
 export function standartPodval(nk: Partial<NakrutkaKoeffitsientlar>): Podval {
@@ -57,7 +57,7 @@ export function standartPodval(nk: Partial<NakrutkaKoeffitsientlar>): Podval {
     versiya: 1,
     nom: 'Стандартный расчет',
     qatorlar: [
-      j('pryamye', 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', BARCHA_KAT),
+      j('pryamye', 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', barchaKat()),
       q('tr_mat', 'Транспортные расходы — материалы, %', 'ТРАНСПОРТ_МАТЕРИАЛ', [K('МАТ'), K('М/К'), K('БЕЗ СКЛАД')]),
       q('skl_mat', 'Складские расходы — материалы, %', 'СКЛАДСКИЕ_МАТЕРИАЛ', [K('МАТ'), K('КАБ')]),
       q('skl_mk', 'Складские расходы — металлоконструкции, %', 'СКЛАДСКИЕ_МК', [K('М/К')]),
@@ -133,6 +133,11 @@ function hisobla(p: Podval, s: Partial<Record<NakrutkaKat, number>>, yaxlit: boo
   }
   const vsegoKod = p.qatorlar[p.qatorlar.length - 1]?.kod ?? '';
   return { qiymat, vsego: qiymat[vsegoKod] ?? null, vsegoKod };
+}
+
+/** Belgilangan summalarsiz hisob (ko'p ustunli hujjatning ikkinchi va keyingi pul ustunlari uchun). */
+export function podvalHisoblaSummasiz(p: Podval, s: Partial<KatSummalar>): PodvalNatija {
+  return hisobla(p, s, true, false);
 }
 
 /** Podval hisobi (Excel bilan aynan — har qadam ROUND 2). */

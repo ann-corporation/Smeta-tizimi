@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ostatkaHujjatModeli, ostatkaHujjatXlsx } from './ostatka-export';
+import { standartPodval } from './nakrutka-konstruktor';
 import { hujjatTekshir, imzoRollariBormi } from './hujjat-yozuvchi';
 import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
@@ -50,6 +51,26 @@ describe('Ostatka — rasmiy hujjat (H1–H9)', () => {
     expect(m.oshibKetgan.map((x) => x.nom)).toEqual(['Позиция 7']);
     expect(m.barglar).toBe(2);
     expect(m.qatorlar[2].narx).toBe(50_000); // bl birlik narxi = 300 000 / 6
+  });
+
+it('maxsus nakrutka podvali (konstruktor): qo‘shilgan statya hujjatda, к оплате oshadi, formulalar tirik, $ yo‘q', () => {
+    const NK = { ПРОЧИЕ_ПОДРЯДЧИК: 10, НДС: 12 };
+    const m = ostatkaHujjatModeli(TOZA, TOZA_H);
+    const oddiy = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK });
+    const podval = structuredClone(standartPodval(NK));
+    const i = podval.qatorlar.findIndex((q) => q.kod === 'itogo2');
+    podval.qatorlar.splice(i + 1, 0, { kod: 'vrem', nom: 'Временные здания и сооружения, %', tur: 'foiz', foiz: 2, baza: [{ qator: 'itogo2' }], izoh: 'по договору п. 4.3' });
+    const it3 = podval.qatorlar.find((q) => q.kod === 'itogo3')!;
+    it3.baza = [...(it3.baza ?? []), { qator: 'vrem' }];
+    const maxsus = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, podval });
+    expect(maxsus.kOplataVsego!).toBeGreaterThan(oddiy.kOplataVsego!);
+    const t = hujjatTekshir(maxsus.bytes);
+    expect(t.dollarFormulalar).toEqual([]);
+    expect(t.keshsizFormulalar).toEqual([]);
+    expect(t.matnlar.some((x) => x.includes('Временные здания и сооружения') && x.includes('п. 4.3'))).toBe(true);
+    // standart nusxasi — hujjat ВСЕГО oddiy bilan bir xil
+    const nusxa = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, podval: standartPodval(NK) });
+    expect(nusxa.kOplataVsego).toBe(oddiy.kOplataVsego);
   });
 
   it('hujjat standarti: sarlavha, raqamlash, chop, imzo, $ yo‘q, kesh = model, texnik matn yo‘q', () => {

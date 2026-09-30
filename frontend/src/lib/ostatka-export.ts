@@ -5,6 +5,7 @@ import {
 } from './hujjat-yozuvchi';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, type KatSummalar } from './nakrutka-podval';
+import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 import { bosRefs } from './hujjat-yozuvchi';
 
 /**
@@ -147,6 +148,8 @@ export type OstatkaHujjatOpsiya = {
   imzo?: ImzoNomlar;
   /** Obyekt nakrutka foizlari — остаток к оплате = прямые × Kf. Berilmasa 0 %. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
+  podval?: Podval | null;
   /** НДС stavkasi (sukut: nakrutkadagi НДС, u ham bo'lmasa 12 %). */
   ndsFoiz?: number | null;
 };
@@ -359,8 +362,9 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   // Ikki narx: K = ROUND(I × Kf[kat], 2); podval ВСЕГО dan keyin bitta bo'sh qatordan so'ng.
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   nk.НДС = o.ndsFoiz ?? nk.НДС ?? 12;
-  const kfJS = kategoriyaKf(nk);
-  const kfQ = podvalKfQatorlari(bosh + model.qatorlar.length + 2);
+  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
+  const kfJS = kategoriyaKf(nk, podval);
+  const kfQ = podvalKfQatorlari(bosh + model.qatorlar.length + 2, podval);
   const koMemo = new Map<number, number | null>();
   const koOf = (i: number): number | null => {
     if (koMemo.has(i)) return koMemo.get(i)!;
@@ -430,7 +434,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
     v.bosh();
     const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
     for (const q of model.qatorlar) { const kat = q.tur === 'barg' ? nakrutkaKat(q.kat) : null; if (kat && q.summa != null) ks[kat] += q.summa; }
-    const p = nakrutkaPodvaliYoz(v, { katUstun: 'L', oraliq: [bosh, bosh + model.qatorlar.length - 1], pulUstunlar: ['I'], foizUstun: 'H', nk, katSummalar: { I: ks } });
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'L', oraliq: [bosh, bosh + model.qatorlar.length - 1], pulUstunlar: ['I'], foizUstun: 'H', nk, katSummalar: { I: ks } });
     if (p.kfQator.ЧЕЛ !== kfQ.ЧЕЛ) throw new Error('OSTATKA_PODVAL_SILJIDI');
     kOplataVsego = model.jami == null ? null : p.kaskad.I.vsego;
   }
