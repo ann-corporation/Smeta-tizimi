@@ -260,7 +260,7 @@ Commit `db27c87` dan keyin quyidagilar o'zgargan (mening ishim emas):
 | Fayl | Nima qo'shilgan |
 |---|---|
 | `frontend/src/api/supabase.ts` | `T2QatorHolat` tipi, `sbT2QatorHolatOl` |
-| `frontend/src/test02/TestF2Import.tsx` | +82 qator |
+| TestF2Import.tsx (2026-09-30 olib tashlandi — yagona F2 import `/admin/f2`) | +82 qator |
 | `frontend/src/test02/TestDaraxt.tsx` | +8 qator |
 | `fix.js` | +59 qator |
 

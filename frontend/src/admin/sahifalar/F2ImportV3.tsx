@@ -11,7 +11,7 @@ import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
   bogla, boshlangich, f2Indeks, smetaIndeks, yozishManbasi, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
-import { exactWrite } from './F2ImportNative';
+import { exactWrite } from '../../lib/f2-exact-write';
 import { F2V3Workbench } from './F2V3Workbench';
 
 /**

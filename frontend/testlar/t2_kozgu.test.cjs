@@ -16,6 +16,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ILDIZ = path.join(__dirname, '..', '..');
+// 2026-09-30: eski GAS UI (test02/TestImport.tsx) olib tashlandi — smeta yuklash yagona SmetaYuklaNative.
+// Bu yerda faqat GAS server shartnomasi qoladi; UI tekshiruvlari (5 ta) olib tashlandi.
 const KOZGU = fs.readFileSync(path.join(ILDIZ, 'Smeta tizimi', 'T2_Kozgu.js'), 'utf8');
 const CFG = fs.readFileSync(path.join(ILDIZ, 'Smeta tizimi', '00_Config.js'), 'utf8');
 
@@ -130,9 +132,6 @@ tek('navbatda turgani bo\'lsa yangi tirgak yasalmaydi',
 tek('fon tirgagi O\'ZINI o\'chiradi', /deleteTrigger\(trg\[i\]\)/.test(KOZGU));
 tek('tirgak limiti tekshiriladi va OCHIQ aytiladi',
     /trg\.length >= 18/.test(KOZGU) && /holat:'limit'/.test(KOZGU));
-tek('panel avto-sinxron yo\'qligini ko\'rsatadi',
-    /avto-sinxron yo'q/.test(fs.readFileSync(
-      path.join(ILDIZ, 'frontend', 'src', 'test02', 'TestImport.tsx'), 'utf8')));
 
 console.log('\n── Formula hujjat TILIDA to\'g\'ri bo\'lsin ──');
 
@@ -180,9 +179,6 @@ console.log('\n── Atama: «ko\'zgu» emas ──');
    bir ilmiyroq nom topsangchi». */
 tek('hujjat nomi «ИШЧИ СМЕТА»', /faylNomi = obyekt \+ ' — ИШЧИ СМЕТА'/.test(KOZGU));
 tek('API nomi apiT2VaraqYarat', /function apiT2VaraqYarat\(/.test(KOZGU));
-const UI = fs.readFileSync(path.join(ILDIZ, 'frontend', 'src', 'test02', 'TestImport.tsx'), 'utf8');
-tek('panelda «ko\'zgu» so\'zi yo\'q', !/ko‘zgu|ko'zgu/i.test(UI));
-tek('panelda «Ishchi smeta» deyiladi', /Ishchi smeta varag/.test(UI));
 
 console.log('\n── № va NORMA manbai ──');
 
@@ -276,9 +272,6 @@ tek('joriy ФАКТ `t2_qator_holat` dan o\'qiladi (takror hujjat bo\'lmasin)',
 tek('kutilgan versiya yuboriladi', /p_kutilgan_versiya: kutilganV/.test(KOZGU));
 tek('ziddiyat ro\'yxatga yig\'iladi, jim o\'tkazilmaydi',
     /ziddiyat\.push\(\{/.test(KOZGU));
-tek('panel ziddiyatni ochiq aytadi',
-    /qator YOZILMADI/.test(fs.readFileSync(
-      path.join(ILDIZ, 'frontend', 'src', 'test02', 'TestImport.tsx'), 'utf8')));
 
 /* FAQAT odam kiritadigan maydonlar qaytadi */
 const mm = KOZGU.match(/var MAYDON = \[([\s\S]*?)\];/);

@@ -34,8 +34,6 @@ const WrapperLogistika = lazy(() => import('./test02/WrapperLogistika'));
 const WrapperCRM = lazy(() => import('./test02/WrapperCRM'));
 const TestSmetaBirlashgan = lazy(() => import('./test02/TestSmetaBirlashgan'));
 const TestNarxlar   = lazy(() => import('./test02/TestNarxlar'));
-const TestF2Import  = lazy(() => import('./test02/TestF2Import'));
-const TestF2Native  = lazy(() => import('./test02/TestF2Native'));
 const TestF2        = lazy(() => import('./test02/TestF2'));
 const TestSklad     = lazy(() => import('./test02/TestSklad'));
 const TestZayavka   = lazy(() => import('./test02/TestZayavka'));
@@ -63,7 +61,6 @@ const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
 const ParticipantNetworkDemo = lazy(() => import('./admin/participants/ParticipantNetworkDemo'));
 const SystemControlDemo = lazy(() => import('./admin/system-control/SystemControlDemo'));
-import F2ImportNative from './admin/sahifalar/F2ImportNative';
 import F2ImportV3 from './admin/sahifalar/F2ImportV3';
 import M29Native from './admin/sahifalar/M29Native';
 import { F2TayyorlashNative } from './admin/sahifalar/F2TayyorlashNative';
@@ -128,7 +125,7 @@ export default function App() {
           <Route path="fakt" element={<FaktNative />} />
           <Route path="f2" element={<F2ImportV3 />} />
           {/* Eski F2 import (V2) — V3 barqarorlashguncha zaxira yo'l. */}
-          <Route path="f2-eski" element={<F2ImportNative />} />
+          <Route path="f2-eski" element={<Navigate to="/admin/f2" replace />} />
           <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
           <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
           <Route path="m29" element={<M29Native />} />
@@ -192,7 +189,7 @@ export default function App() {
             <Route path="tolov" element={<TestTolov />} />
             <Route path="sklad" element={<TestSklad />} />
               <Route path="zayavka" element={<TestZayavka />} />
-            <Route path="f2native" element={<TestF2Native />} />
+            <Route path="f2native" element={<Navigate to="/admin/f2" replace />} />
             <Route path="faktura" element={<TestFaktura />} />
             <Route path="erp" element={<TestErp />} />
             <Route path="hisobot" element={<TestHisobot />} />

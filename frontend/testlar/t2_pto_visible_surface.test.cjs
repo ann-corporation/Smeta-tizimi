@@ -108,7 +108,9 @@ console.log('\n── LRV / F2 operator workflow guard ──');
 const lrv = noComment(read('frontend', 'src', 'umumiy', 'daraxt', 'SmetaTree.tsx'));
 const holat = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'HolatNative.tsx'));
 const f2Prep = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'F2TayyorlashNative.tsx'));
-const f2Import = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'F2ImportNative.tsx'));
+/* 2026-09-30: yagona F2 import — /admin/f2 (F2ImportV3 + F2V3Workbench). Eski F2ImportNative va
+   F2TwoPaneWorkbench olib tashlandi (egasi: "bitta manba"); talablar o'zgarmadi — tekshiruv V3 ga qaratildi. */
+const f2Import = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'F2ImportV3.tsx'));
 must('LRV exposes canonical Fakt save port', /onFaktSave\?/.test(lrv) && /sbFaktBelgilaV2/.test(holat) && /sbFaktYoz/.test(holat),
   'Fakt LRV ichidan typed canonical adapter orqali yozilishi kerak');
 must('LRV distinguishes total and delta Fakt', /Jami Faktni o‘rnatish/.test(lrv) && /Faktga qo‘shish/.test(lrv),
@@ -126,12 +128,12 @@ must('F2 preparation has exception summary', /Tanlangan qatorlar/.test(f2Prep) &
    kerak"), shuning uchun `F2TwoPaneWorkbench` saqlab qolindi. Talab
    o'zgargani yo'q -- faqat uni bajaradigan komponent boshqa, shuning
    uchun tekshiruv HAQIQIY komponentga qaratildi. */
-const f2Workbench = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'F2TwoPaneWorkbench.tsx'));
-must('F2 import has exact/unmatched summary', /Aniq mos/.test(f2Import) && /Moslashmagan/.test(f2Import) && /Arifmetik farq/.test(f2Import),
+const f2Workbench = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'F2V3Workbench.tsx'));
+must('F2 import has exact/unmatched summary', /Aniq bog‘landi/.test(f2Workbench) && /Bog‘lanmagan/.test(f2Workbench) && /mos emas/.test(f2Import),
   'F2 import operatorga raw JSON o‘rniga tekshiruv xulosasini ko‘rsatishi kerak');
-must('F2 import is a two-pane matching workbench', /F2TwoPaneWorkbench/.test(f2Import) && /F2 manba/.test(f2Workbench) && /Smeta \/ LRV|Kanonik/.test(f2Workbench),
+must('F2 import is a two-pane matching workbench', /F2V3Workbench/.test(f2Import) && /F2 qatori/.test(f2Workbench) && /smeta/i.test(f2Workbench),
   'F2 manbasi va kanonik smeta yonma-yon ko‘rinishi kerak');
-must('F2 matching supports visual rebind', /onDragStart/.test(f2Workbench) && /onDrop/.test(f2Workbench) && /setSelected/.test(f2Workbench),
+must('F2 matching supports visual rebind', /onDragStart/.test(f2Workbench) && /onDrop/.test(f2Workbench) && /setTanlangan|tanla/.test(f2Workbench),
   'manba qatorini tanlab yoki sudrab kanonik qatorga bog‘lash mumkin bo‘lishi kerak');
 const nakopPage = noComment(read('frontend', 'src', 'admin', 'pages', 'HujjatNazoratPage.tsx'));
 const nakop = noComment(read('frontend', 'src', 'components', 'construction-document-control', 'NakopitelniyWorkspace.tsx'));

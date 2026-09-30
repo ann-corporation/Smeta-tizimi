@@ -4,22 +4,26 @@
  * Foydalanuvchi: "smeta yuklash, f2 fakt, f2 import kabilar bitta
  * tabda bo'lishi kerak".
  *
- * Uchta mustaqil, murakkab sahifa (TestImport/TestF2/TestF2Import)
+ * 2026-09-30: F2 import bu yerdan olib tashlandi — yagona F2 import /admin/f2
+ * (egasi: "bitta manba bo'lishi kerak, zaxira keyingi agentlarni chalkashtiradi").
+ *
+ * Smeta yuklash — yagona SmetaYuklaNative (smeta-anatomiya); eski GAS'ga bog'langan
+ * TestImport olib tashlandi.
+ *
+ * Mustaqil, murakkab sahifalar (TestF2)
  * BIR faylga QAYTA YOZILMAYDI — bu xavfli (ayniqsa F2 import mantiqi
  * juda nozik). Buning o'rniga ICHKI sub-tab bilan bittasi ko'rsatiladi,
- * uchalasining o'z kodi teginilmagan holda qoladi.
+ * ularning o'z kodi teginilmagan holda qoladi.
  */
 import { useState } from 'react';
-import { Upload, TrendingUp, FileInput, ShieldAlert } from 'lucide-react';
-import TestImport from './TestImport';
+import { Upload, TrendingUp, ShieldAlert } from 'lucide-react';
+import SmetaYuklaNative from '../admin/sahifalar/SmetaYuklaNative';
 import TestF2 from './TestF2';
-import TestF2Import from './TestF2Import';
 import TestNarxNazorati from './TestNarxNazorati';
 
 const ICHKI_TAB = [
-  { kalit: 'yuklash', nom: 'Smeta yuklash', Ikonka: Upload, Komponent: TestImport },
+  { kalit: 'yuklash', nom: 'Smeta yuklash', Ikonka: Upload, Komponent: SmetaYuklaNative },
   { kalit: 'f2fakt',  nom: 'F2 / Fakt',     Ikonka: TrendingUp, Komponent: TestF2 },
-  { kalit: 'import',  nom: 'F2 import',     Ikonka: FileInput, Komponent: TestF2Import },
   /* T2-REAL-PARK-LRV-VERTICAL-SLICE-004: real Price Control panel, wired
      to t2_price_control_v1 (source-only, not yet applied) via /api/sb. */
   { kalit: 'narx',    nom: 'Narx nazorati', Ikonka: ShieldAlert, Komponent: TestNarxNazorati },

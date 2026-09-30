@@ -94,7 +94,6 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/documents',
   '/admin/hujjatlar',
   '/admin/smeta',
-  '/admin/f2native',
 ];
 
 export function isPtoRoute(pathname: string): boolean {

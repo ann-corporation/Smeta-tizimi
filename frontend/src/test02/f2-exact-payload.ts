@@ -2,7 +2,7 @@
  * f2-exact-payload.ts — T2-LRV-CLOSURE-006 Section 3 (DB-independent).
  * ═══════════════════════════════════════════════════════════════════
  *
- * `TestF2Import.tsx`ning `yozish()` funksiyasi ichida yashiringan
+ * (tarixan) `TestF2Import.tsx`ning `yozish()` funksiyasi ichida yashiringan
  * aggregatsiya/ambiguity mantig'i shu yerga PURE funksiya sifatida
  * chiqarildi — bazasiz (DB-independent) haqiqiy vitest bilan tekshirish
  * uchun (`f2-exact-payload.test.ts`). Mantiq BAYT-BAYTIGA bir xil

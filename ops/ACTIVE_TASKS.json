@@ -1608,6 +1608,36 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi C4: bitta modul smetani tushunadi, qolganlar faqat shuni ishlatadi. Eski treeBuild/columnDetect/ball evristikasi faqat zaxira (operator ustunni qo‘lda o‘zgartirsa yoki anatomiya varaqni tanimasa). Korpus: 136 LRV varaqdan 132 tasi anatomiyadan; qolgan 4 — smeta emas. Keyingi: F2ImportNative, OfertaNative, SmetaNarxlashResNative, res-narxlash RES o‘qishi. 2-bosqich: RES narxlash ustunlari anatomiyadan (eski detektor 183 ta ustun-raqamlash qatorini soxta narx deb olardi). 3-bosqich: oferta RES ustunlari anatomiyadan (real oferta fayllarida resurs soni o‘zgarmadi); anatomiya tizimning RESURS_VEDOMOST eksportini taniydi."
+    },
+    {
+      "id": "F2-IMPORT-YAGONA-001",
+      "title": "Yagona F2 import: eski F2 sahifalari (f2-eski, test/f2native, test/smeta F2 tab) va GAS smeta yuklovchi TestImport olib tashlandi",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "1273392",
+      "status": "completed",
+      "owns": [
+        "frontend/src/App.tsx",
+        "frontend/src/lib/f2-exact-write.ts",
+        "frontend/src/lib/f2-exact-write.test.ts",
+        "frontend/src/admin/sahifalar/F2ImportV3.tsx",
+        "frontend/src/test02/TestSmetaBirlashgan.tsx",
+        "frontend/src/umumiy/kontekst/PTOWorkspaceContext.tsx",
+        "frontend/testlar/t2_hujjat.test.cjs",
+        "frontend/testlar/t2_kozgu.test.cjs",
+        "frontend/testlar/t2_pto_visible_surface.test.cjs",
+        "tizim02/MULOQOT.md",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [
+        "SMETA-ANAT-YAGONA-001"
+      ],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi 2026-09-30: \"bitta manba bo‘lishi kerak, zaxira keyingi agentlarni chalkashtiradi\". Yagona F2 import /admin/f2 (V3); eski manzillar /admin/f2 ga yo‘naltiriladi; test/smeta \"Smeta yuklash\" tabi SmetaYuklaNative ni ko‘rsatadi."
     }
   ]
 }

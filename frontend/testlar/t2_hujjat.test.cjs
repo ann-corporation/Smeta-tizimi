@@ -19,8 +19,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ILDIZ = path.join(__dirname, '..', '..');
+// 2026-09-30: eski GAS UI (test02/TestImport.tsx) olib tashlandi — smeta yuklash yagona SmetaYuklaNative.
+// Bu yerda faqat GAS server shartnomasi qoladi; UI tekshiruvlari (38 ta) olib tashlandi.
 const YUKLASH = fs.readFileSync(path.join(ILDIZ, 'Smeta tizimi', 'T2_Yuklash.js'), 'utf8');
-const IMPORT_UI = fs.readFileSync(path.join(ILDIZ, 'frontend', 'src', 'test02', 'TestImport.tsx'), 'utf8');
 
 let ok = 0, xato = 0;
 const tek = (nom, shart, izoh) => {
@@ -128,57 +129,15 @@ console.log('\n── Frontend: obyekt → qismlar ──');
 /* ⚠️ 2026-08-25: `apiT2ObyektYarat` → `apiT2YangiObyektYarat` ga
    almashtirildi — endi Drive papka tuzilmasini (Смета/F2, Лойиха
    ҳужжатлари, Виборка) ham bitta amalda yaratadi. */
-tek('obyekt yaratish bor', /apiT2YangiObyektYarat/.test(IMPORT_UI));
-tek('obyekt tanlansa bazadagi hujjatlar tortiladi', /apiT2ObyektHujjatlar/.test(IMPORT_UI));
-tek('bazadagi hujjat «bazada» deb belgilanadi', /bazada: true/.test(IMPORT_UI));
-tek('LRV va RES — ikki alohida qism',
-    /QISMLAR/.test(IMPORT_UI) && /rol: 'lokalka'/.test(IMPORT_UI) && /rol: 'svodka'/.test(IMPORT_UI));
-tek('har qismning O\'Z yuklash maydoni bor',
-    /fayllarTanlandi\(e\.target\.files, q\.rol\)/.test(IMPORT_UI));
-tek('rol QISMDAN olinadi, fayl nomi taxminidan emas',
-    /nom: r\.asl_nom \|\| f\.name, rol,/.test(IMPORT_UI));
-tek('nom bilan qism zid kelsa ogohlantiriladi', /r\.rol_taklif !== rol/.test(IMPORT_UI));
-tek('hujjatni boshqa qismga ko\'chirish mumkin', /rolKochir/.test(IMPORT_UI));
-tek('hujjatni olib tashlash mumkin', /hujjatOchir\(h\)/.test(IMPORT_UI));
-tek('obyekt tanlanmasa qismlar ko\'rsatilmaydi', /Obyekt yarating yoki tanlang/.test(IMPORT_UI));
-tek('bir xil nomli obyekt qayta yaratilmaydi',
-    /obyektlar\.some\(\(o\) => o\.nom === nom\)/.test(IMPORT_UI));
-tek('fayl tanlagich qayta ishlatiladi (value tozalanadi)',
-    /e\.currentTarget\.value = ''/.test(IMPORT_UI));
 
 /* Bazadagi hujjat yoyilganda Drive'dan TO'LIQ ro'yxat tortilishi kerak —
    aks holda o'tgan safar belgilanmagan varaqni qo'shib bo'lmaydi. */
-tek('yoyilganda Drive varaqlari tortiladi', /apiT2HujjatVaraqlar/.test(IMPORT_UI));
-tek('bir marta tortiladi (`toliq` bayrog\'i)',
-    /\|\| h\.toliq\) return;/.test(IMPORT_UI) && /toliq: true/.test(IMPORT_UI));
-tek('import qilinmagan varaq belgisiz keladi',
-    /if \(!import1\.has\(v\.nom\)\) olinsin\[v\.nom\] = false/.test(IMPORT_UI));
-tek('Drive\'da yo\'q, bazada bor varaq yo\'qolmaydi',
-    /const driveda = new Set/.test(IMPORT_UI));
-tek('import qilinmagan varaq ekranda ajratiladi',
-    /import qilinmagan/.test(IMPORT_UI));
 
 console.log('\n── Hujjatni solishning IKKI yo\'li ──');
 
 /* Foydalanuvchi: «ikkita hujjat yuklanadi YOKI shu paytgacha
    yuklanganlar tanlanadi — biri lrv biri res».
    Ya'ni yuklash yagona yo'l EMAS; tanlash ham teng huquqli yo'l. */
-tek('har qismda «Kompyuterdan yuklash» bor',
-    /Kompyuterdan yuklash/.test(IMPORT_UI));
-tek('har qismda «Yuklanganlardan tanlash» bor',
-    /Yuklanganlardan tanlash/.test(IMPORT_UI));
-tek('tanlash ro\'yxati qismga bog\'langan (har qism o\'ziga ochadi)',
-    /manbaOchiq === q\.rol/.test(IMPORT_UI));
-tek('tanlangan hujjat shu qism roli bilan qo\'shiladi',
-    /manbadanQosh\(m, q\.rol\)/.test(IMPORT_UI));
-tek('tanlanganda varaqlar Drive\'dan o\'qiladi',
-    /manbadanQosh[\s\S]{0,900}apiT2HujjatVaraqlar/.test(IMPORT_UI));
-tek('bir hujjat ikki marta qo\'shilmaydi',
-    /hujjatlar\.some\(\(h\) => h\.fayl_id === m\.fayl_id\)/.test(IMPORT_UI));
-tek('o\'qilmaydigan (konvert bo\'lmagan) fayl bloklanadi',
-    /if \(!m\.oqiladi\)/.test(IMPORT_UI));
-tek('yangi yuklashdan keyin ro\'yxat yangilanadi',
-    /qoshildi \+ ' hujjat qo\\'shildi', 'ok'\); manbaYukla\(\)/.test(IMPORT_UI));
 
 console.log('\n── GAS: manba ro\'yxati bitta hujjat = bitta qator ──');
 
@@ -216,31 +175,11 @@ tek('hech varaq o\'qilmasa ham sabab bor',
     /Hech bir varaq o\\'qilmadi/.test(YUKLASH));
 
 /* JAMI ekranda ko'rinishi kerak — foydalanuvchi shu raqamni so'raydi */
-tek('JAMI va narxsiz soni ko\'rsatiladi',
-    /natija\.hisob\?\.jami/.test(IMPORT_UI) && /Narxsiz:/.test(IMPORT_UI));
-tek('to\'liq bo\'lmagan jami OGOHLANTIRISH bilan chiqadi',
-    /jami\.toliq[\s\S]{0,120}border-warn/.test(IMPORT_UI));
 
 /* Tanlash ro'yxatida hujjat QAYSI qismda turgani aytilsin */
-tek('band hujjat qaysi qismda ekani ko\'rsatiladi',
-    /shuQismda \? 'shu yerda'/.test(IMPORT_UI) && /'RES da' : 'LRV da'/.test(IMPORT_UI));
 
 console.log('\n── Frontend: yuboriladigan shakl ──');
 
-tek('gas() ga 2 argument yuboriladi',
-    /gas<ImportNatija>\('apiT2YuklanganImport',\s*obyekt,\s*yuk\)/.test(IMPORT_UI));
-tek('yuk = [{fayl_id, rol, nom, varaqlar}]',
-    /fayl_id: h\.fayl_id, rol: h\.rol, nom: h\.nom/.test(IMPORT_UI));
-tek('varaqlar {nom, olinsin} shaklida', /\{ nom: v\.nom, olinsin: true \}/.test(IMPORT_UI));
-tek('fayl tanlash `multiple`', /<input type="file" multiple/.test(IMPORT_UI));
-tek('hujjatlar RO\'YXAT sifatida saqlanadi', /useState<Hujjat\[\]>\(\[\]\)/.test(IMPORT_UI));
-tek('yangi hujjat ro\'yxatga QO\'SHILADI (almashtirilmaydi)',
-    /setHujjatlar\(\(p\) => \[\.\.\.p,/.test(IMPORT_UI));
-tek('har varaqda checkbox', /varaqOzgar\(h\.fayl_id, v\.nom, e\.target\.checked\)/.test(IMPORT_UI));
-tek('varaqlar boshida hammasi belgilangan', /olinsin\[v\.nom\] = true/.test(IMPORT_UI));
-tek('Tizim_01 obyekt ro\'yxati chaqirilmaydi',
-    !/apiObyektlar|apiPapkaSkan|LRV_PLUS/i.test(IMPORT_UI),
-    'Tizim_02 mustaqil — eski tizim ro\'yxati bu yerda bo\'lmasligi kerak');
 
 console.log('\n' + ok + ' o\'tdi, ' + xato + ' yiqildi');
 process.exit(xato ? 1 : 0);
