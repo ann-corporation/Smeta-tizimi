@@ -25,7 +25,7 @@ import { nomIzohBilan } from './smeta-model';
  */
 import type { NakopitelniyQator, SmetaNakrutka } from '../api/t2-nakopitelniy';
 import {
-  RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2,
+  RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, ustunHarfi, yaxlit2,
   type ImzoNomlar, type Qiymat, type RasmiyUstun,
 } from './hujjat-yozuvchi';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
@@ -49,6 +49,14 @@ export interface NakopitelniyVedomostExportOptions {
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
   /** Smeta nakrutka kaskadi (RPC jami.smeta_nakrutka) — izohda ko'rsatiladi. */
   smetaNakrutka?: SmetaNakrutka | null;
+  /** Oy kesimi (egasi 2026-09-30): har tasdiqlangan F2 oyi alohida ustun + ИТОГО. Berilmasa — "ранее / за период". */
+  oylar?: NakopitelniyOylar | null;
+}
+
+/** Tasdiqlangan F2 qatorlari oy bo'yicha: oylar — 'YYYY-MM' o'sish tartibida (oxirgisi — hisobot davri). */
+export interface NakopitelniyOylar {
+  oylar: string[];
+  qiymat: ReadonlyMap<number, ReadonlyMap<string, { hajm: number; summa: number }>>;
 }
 
 /** НДС stavkasi sukuti (egasi qarori Q2): 12 %, o'zgartiriladi. */
@@ -70,38 +78,57 @@ export function davrMatni(davr: string): string {
 
 const BARG = new Set(['rs', 'mat', 'ob']);
 
-const USTUNLAR: RasmiyUstun[] = [
-  { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
-  { sarlavha: 'Шифр, код', kenglik: 13, tur: 'kod' },
-  { sarlavha: 'Наименование работ и затрат', kenglik: 44, tur: 'matn' },
-  { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ПО СМЕТЕ' },
-  { sarlavha: 'цена, сум', kenglik: 13, tur: 'narx', guruh: 'ПО СМЕТЕ' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ПО СМЕТЕ' },
-  { sarlavha: 'Выполнено (факт), кол-во', kenglik: 11, tur: 'hajm' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ПРИНЯТО РАНЕЕ' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ПРИНЯТО РАНЕЕ' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ЗА ОТЧЕТНЫЙ ПЕРИОД' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ЗА ОТЧЕТНЫЙ ПЕРИОД' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ОСТАТОК ПО СМЕТЕ' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ОСТАТОК ПО СМЕТЕ' },
-  { sarlavha: 'Можно предъявить (факт − принято), кол-во', kenglik: 13, tur: 'hajm' },
-  { sarlavha: 'за отчетный период, сум', kenglik: 16, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
-  { sarlavha: 'с начала строительства, сум', kenglik: 16, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
-  // Yashirin texnik ustun: kategoriya (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — podval SUMIF i uchun.
-  { sarlavha: 'Кат.', kenglik: 6, tur: 'texnik', yashirin: true },
-  // Yashirin belgi: 1 — resurs (barg) qatori. Jamilar SUMIF(U,1,…) oralig'i bilan
-  // (Excel funksiyasi ≤ 255 argument — katta bo'limda katak ro'yxati sig'maydi).
-  { sarlavha: 'Т', kenglik: 4, tur: 'texnik', yashirin: true },
-];
-// Ustun harflari: A№ B kod C nom D birlik E smHajm F smNarx G smSumma H fakt
-// I ranHajm J ranSumma K perHajm L perSumma M jamiHajm N jamiSumma O ostHajm P ostSumma Q mozhno
-// R kOplataPeriod S kOplataJami T kat(yashirin) U barg belgisi (yashirin).
-const KAT_USTUN = 'T';
-const BARG_BELGI = 'U';
-const PUL = ['G', 'J', 'L', 'N', 'P'] as const;
+/** Davr ustun guruhi: har tasdiqlangan F2 oyi (yoki eski ko'rinishda "ранее / за период"). */
+type DavrUstun = { sarlavha: string; hajm: (q: NakopitelniyQator) => number; summa: (q: NakopitelniyQator) => number };
+
+/** Ustunlar va ularning harflari — davrlar soniga qarab (egasi 2026-09-30: har oy alohida ustun + ИТОГО). */
+function ustunRejasi(davrlar: readonly DavrUstun[]) {
+  const u: RasmiyUstun[] = [
+    { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+    { sarlavha: 'Шифр, код', kenglik: 13, tur: 'kod' },
+    { sarlavha: 'Наименование работ и затрат', kenglik: 44, tur: 'matn' },
+    { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
+    { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ПО СМЕТЕ' },
+    { sarlavha: 'цена, сум', kenglik: 13, tur: 'narx', guruh: 'ПО СМЕТЕ' },
+    { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ПО СМЕТЕ' },
+    { sarlavha: 'Выполнено (факт), кол-во', kenglik: 11, tur: 'hajm' },
+  ];
+  const davrH: string[] = [], davrS: string[] = [];
+  for (const d of davrlar) {
+    davrH.push(ustunHarfi(u.length)); u.push({ sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: d.sarlavha });
+    davrS.push(ustunHarfi(u.length)); u.push({ sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: d.sarlavha });
+  }
+  const at = (s: RasmiyUstun) => { const h = ustunHarfi(u.length); u.push(s); return h; };
+  const JAMI_GURUH = davrlar.length > 2 || !davrlar[0]?.sarlavha.startsWith('ПРИНЯТО') ? 'С НАЧАЛА СТРОИТЕЛЬСТВА (ИТОГО ЗА ВСЕ МЕСЯЦЫ)' : 'С НАЧАЛА СТРОИТЕЛЬСТВА';
+  const jamiH = at({ sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: JAMI_GURUH });
+  const jamiS = at({ sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: JAMI_GURUH });
+  const ostH = at({ sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ОСТАТОК ПО СМЕТЕ' });
+  const ostS = at({ sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ОСТАТОК ПО СМЕТЕ' });
+  const mozhno = at({ sarlavha: 'Можно предъявить (факт − принято), кол-во', kenglik: 13, tur: 'hajm' });
+  const koPer = at({ sarlavha: 'за отчетный период, сум', kenglik: 16, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' });
+  const koJami = at({ sarlavha: 'с начала строительства, сум', kenglik: 16, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' });
+  // Yashirin texnik ustunlar: kategoriya (podval SUMIF) va barg belgisi (jamilar SUMIF(belgi,1,…)).
+  const kat = at({ sarlavha: 'Кат.', kenglik: 6, tur: 'texnik', yashirin: true });
+  const belgi = at({ sarlavha: 'Т', kenglik: 4, tur: 'texnik', yashirin: true });
+  const idx = (h: string) => u.findIndex((_, i) => ustunHarfi(i) === h);
+  return { ustunlar: u, davrH, davrS, jamiH, jamiS, ostH, ostS, mozhno, koPer, koJami, kat, belgi, idx, pul: ['G', ...davrS, jamiS, ostS] };
+}
+
+/** Davr ustunlari: oylar berilsa — har oy; berilmasa — "принято ранее" va "за отчетный период". */
+function davrUstunlari(o: NakopitelniyVedomostExportOptions): DavrUstun[] {
+  const m = o.oylar;
+  if (m && m.oylar.length) {
+    return m.oylar.map((oy, i) => ({
+      sarlavha: `${davrMatni(oy).toUpperCase()}${i === m.oylar.length - 1 ? ' — ОТЧЕТНЫЙ ПЕРИОД' : ''}`,
+      hajm: (q) => m.qiymat.get(q.qator_id)?.get(oy)?.hajm ?? 0,
+      summa: (q) => m.qiymat.get(q.qator_id)?.get(oy)?.summa ?? 0,
+    }));
+  }
+  return [
+    { sarlavha: 'ПРИНЯТО РАНЕЕ', hajm: (q) => q.oldingi_hajm, summa: (q) => q.oldingi_summa },
+    { sarlavha: 'ЗА ОТЧЕТНЫЙ ПЕРИОД', hajm: (q) => q.joriy_hajm, summa: (q) => q.joriy_summa },
+  ];
+}
 
 export type NakopitelniyJamilar = { smeta: number | null; oldingi: number; joriy: number; jami: number; qoldiq: number | null };
 
@@ -132,19 +159,19 @@ export function nakopitelniyVedomostHujjat(
   o: NakopitelniyVedomostExportOptions,
 ): { bytes: Uint8Array; faylNomi: string; jamilar: NakopitelniyJamilar; kaskad: Record<string, NakrutkaHisobJS> | null; kOplata: { davr: number | null; jami: number | null } } {
   if (o.truncated) throw new HujjatToliqEmasXato('ro‘yxat server chegarasida qirqilgan');
+  const davrlar = davrUstunlari(o);
+  const U = ustunRejasi(davrlar);
+  const oyKesimi = Boolean(o.oylar?.oylar.length);
   const v = new RasmiyVaraq({
     nom: 'Накопительная ведомость',
     sarlavha: 'НАКОПИТЕЛЬНАЯ ВЕДОМОСТЬ ВЫПОЛНЕННЫХ РАБОТ',
-    ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)} (учтены только утвержденные акты формы № 2)`],
+    ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)} (учтены только утвержденные акты формы № 2${oyKesimi ? '; принято — по каждому месяцу отдельно' : ''})`],
     titul: [['Объект:', o.obyektNom], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi]],
-    ustunlar: USTUNLAR,
+    ustunlar: U.ustunlar,
     yonalish: 'landscape',
   });
   const bosh = v.malumotBoshi;
-  // Qatorlar RPC tartibida keladi, lekin bo'lim chegarasi "keyingi RZ gacha"
-  // emas. `ota_id` mavjud bo'lsa, aynan canonical daraxtdan plan quriladi;
-  // shuning uchun ichma-ich RZ lar bir-birini yopib yubormaydi. Parent metadata
-  // berilmagan eski RPC uchun depth-stack fallback saqlanadi.
+  // Qatorlar canonical daraxtdan (ota_id) plan qilinadi; parent metadata berilmagan eski RPC uchun depth-stack.
   type Rej = { tur: 'rz' | 'bl' | 'barg' | 'itogo' | 'vsego'; q?: NakopitelniyQator; bolalar: number[]; nom?: string; daraja?: number };
   type PlanNode = { tur: 'rz' | 'bl' | 'barg'; q: NakopitelniyQator; bolalar: PlanNode[]; daraja: number };
   const parentTur = (tur: PlanNode['tur']) => tur === 'rz' || tur === 'bl';
@@ -164,7 +191,7 @@ export function nakopitelniyVedomostHujjat(
         if (node.q.daraja == null) node.daraja = parent.daraja + 1;
         parent.bolalar.push(node);
       } else {
-        if (node.q.daraja == null) node.daraja = node.tur === 'rz' ? 0 : 0;
+        if (node.q.daraja == null) node.daraja = 0;
         roots.push(node);
       }
     }
@@ -182,10 +209,16 @@ export function nakopitelniyVedomostHujjat(
     }
   }
 
+  /** Qator bo'yicha: davrlar yig'indisi (с начала) va hisobot davri (oxirgi davr). */
+  const jamiH = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + d.hajm(q), 0);
+  const jamiS = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + d.summa(q), 0);
+  const perS = (q: NakopitelniyQator) => davrlar[davrlar.length - 1].summa(q);
+
   const reja: Rej[] = [];
   const bargRows: number[] = [];
   let no = 0;
   const diqqat: Array<{ nom: string; sabab: string }> = [];
+  const nomi = (q: NakopitelniyQator) => `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`;
   const emit = (node: PlanNode): number => {
     const i = reja.length;
     const row: Rej = { tur: node.tur, q: node.q, bolalar: [], daraja: node.daraja };
@@ -193,10 +226,14 @@ export function nakopitelniyVedomostHujjat(
     if (node.tur === 'barg') {
       bargRows.push(i);
       const q = node.q;
-      if (q.smeta_hajm == null || q.smeta_summa == null) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'нет объема или стоимости по смете — остаток не определен' });
-      if (!nakrutkaKat(q.kat)) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
-      const mozhno = q.fakt_hajm - (q.oldingi_hajm + q.joriy_hajm);
-      if (mozhno < -1e-9) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(-mozhno)})` });
+      if (q.smeta_hajm == null || q.smeta_summa == null) diqqat.push({ nom: nomi(q), sabab: 'нет объема или стоимости по смете — остаток не определен' });
+      if (!nakrutkaKat(q.kat)) diqqat.push({ nom: nomi(q), sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
+      const mozhno = q.fakt_hajm - jamiH(q);
+      if (mozhno < -1e-9) diqqat.push({ nom: nomi(q), sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(-mozhno)})` });
+      // Oy kesimi RPC jamisi bilan mos bo'lishi shart — farq bo'lsa ochiq aytiladi (to'qilmaydi).
+      if (oyKesimi && Math.abs(jamiS(q) - (q.oldingi_summa + q.joriy_summa)) > 0.01) {
+        diqqat.push({ nom: nomi(q), sabab: `сумма по месяцам (${fmt2(jamiS(q))}) не совпадает с итогом ведомости (${fmt2(q.oldingi_summa + q.joriy_summa)})` });
+      }
       return i;
     }
     row.bolalar = node.bolalar.map(emit);
@@ -206,25 +243,29 @@ export function nakopitelniyVedomostHujjat(
     return i;
   };
   roots.forEach(emit);
-  // bo'sh bl (bargsiz) — hujjatda qoladi (hajmlari bor), puli bo'sh.
   const j = nakopitelniyJamilar(qatorlar);
   const rowOf = (i: number) => bosh + i;
-  // Ikki narx: to'g'ri xarajat (G…P) va к оплате (R, S) = ROUND(summa × Kf[kat], 2).
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
   const kfJS = kategoriyaKf(nk);
-  // Podval ВСЕГО dan keyin bitta bo'sh qatordan so'ng boshlanadi.
   const podvalBosh = bosh + reja.length + 2;
   const kfQ = podvalKfQatorlari(podvalBosh);
   const koOf = (q: NakopitelniyQator) => {
     const kat = nakrutkaKat(q.kat);
-    return { kat, per: kOplate(q.joriy_summa, kat, kfJS), jami: kOplate(q.oldingi_summa + q.joriy_summa, kat, kfJS) };
+    return { kat, per: kOplate(perS(q), kat, kfJS), jami: kOplate(jamiS(q), kat, kfJS) };
+  };
+  /** Pul ustuni qiymati (barg). */
+  const pulOf = (q: NakopitelniyQator, c: string): number | null => {
+    if (c === 'G') return q.smeta_summa;
+    if (c === U.jamiS) return jamiS(q);
+    const k = U.davrS.indexOf(c);
+    return k >= 0 ? davrlar[k].summa(q) : null;
   };
   /** Barglar (idx) yig'indisi — oraliq + belgi bo'yicha; bittasi bo'sh bo'lsa bo'sh (NULL ≠ 0). */
   const yig = (c: string, idx: readonly number[], val: number | null): Qiymat => {
     if (!idx.length) return null;
     const a = rowOf(Math.min(...idx)), b = rowOf(Math.max(...idx));
-    const rng = `${c}${a}:${c}${b}`, m = `${BARG_BELGI}${a}:${BARG_BELGI}${b}`;
+    const rng = `${c}${a}:${c}${b}`, m = `${U.belgi}${a}:${U.belgi}${b}`;
     return { f: `IF(COUNTIFS(${m},1,${rng},"")>0,"",SUMIF(${m},1,${rng}))`, v: val == null ? '' : yaxlit2(val) };
   };
   const bargIdx = (idx: readonly number[]): number[] => {
@@ -238,62 +279,80 @@ export function nakopitelniyVedomostHujjat(
     const vals = bl.map((k) => pulOf(reja[k].q!, c));
     return yig(c, bl, vals.some((x) => x == null) ? null : vals.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0));
   };
-  const koSum = (idx: readonly number[], c: 'R' | 'S'): Qiymat => {
-    const bl = bargIdx(idx);
-    const vals = bl.map((k) => koQiymat(k, c));
-    return yig(c, bl, vals.some((x) => x == null) ? null : vals.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0));
-  };
   const koMemo = new Map<string, number | null>();
-  function koQiymat(k: number, c: 'R' | 'S'): number | null {
+  function koQiymat(k: number, c: 'per' | 'jami'): number | null {
     const key = `${k}${c}`;
     if (koMemo.has(key)) return koMemo.get(key)!;
     const x = reja[k];
     let val: number | null;
-    if (x.tur === 'barg') { const ko = koOf(x.q!); val = c === 'R' ? ko.per : ko.jami; }
+    if (x.tur === 'barg') { const ko = koOf(x.q!); val = c === 'per' ? ko.per : ko.jami; }
     else { const vs = x.bolalar.map((b2) => koQiymat(b2, c)); val = !x.bolalar.length || vs.some((z) => z == null) ? null : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); }
     koMemo.set(key, val);
     return val;
   }
+  const koSum = (idx: readonly number[], c: 'per' | 'jami'): Qiymat => {
+    const bl = bargIdx(idx);
+    const vals = bl.map((k) => koQiymat(k, c));
+    return yig(c === 'per' ? U.koPer : U.koJami, bl, vals.some((x) => x == null) ? null : vals.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0));
+  };
+  const ostatok = (idx: readonly number[]): number | string => {
+    const bl = bargIdx(idx);
+    if (bl.some((k) => reja[k].q!.smeta_summa == null)) return '';
+    return bl.reduce((s, k) => s + (reja[k].q!.smeta_summa ?? 0) - jamiS(reja[k].q!), 0);
+  };
   const n = (x: number | null | undefined): Qiymat => (x == null ? null : x);
+  const col = (h: string) => U.idx(h);
+  const jamiHF = (rr: number) => U.davrH.map((h) => `${h}${rr}`).join('+');
+  const jamiSF = (rr: number) => U.davrS.map((h) => `${h}${rr}`).join('+');
   reja.forEach((x, i) => {
     let r = 0;
     const q = x.q;
-    if (x.tur === 'rz') r = v.bolim(q!.nom ?? '', { daraja: x.daraja ?? 0 });
+    if (x.tur === 'rz') r = v.bolim(nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh), { daraja: x.daraja ?? 0 });
     else if (x.tur === 'barg' || x.tur === 'bl') {
       const barg = x.tur === 'barg';
       const tartib = barg ? '' : String(++no);
-      const sum = (c: string) => pulYig(c, x.bolalar);
-      r = v.qator(barg ? 'oddiy' : 'ish', (rr) => [
-        barg ? tartib : tartib, q!.kod ?? '', nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh), q!.birlik ?? '',
-        n(q!.smeta_hajm), barg ? n(q!.smeta_narx) : null,
-        barg ? n(q!.smeta_summa) : sum('G'),
-        q!.fakt_hajm,
-        q!.oldingi_hajm, barg ? q!.oldingi_summa : sum('J'),
-        q!.joriy_hajm, barg ? q!.joriy_summa : sum('L'),
-        { f: `I${rr}+K${rr}`, v: q!.oldingi_hajm + q!.joriy_hajm },
-        barg ? { f: `J${rr}+L${rr}`, v: q!.oldingi_summa + q!.joriy_summa } : sum('N'),
-        { f: `IF(E${rr}="","",E${rr}-M${rr})`, v: q!.smeta_hajm == null ? '' : q!.smeta_hajm - (q!.oldingi_hajm + q!.joriy_hajm) },
-        barg || x.bolalar.length ? { f: `IF(G${rr}="","",G${rr}-N${rr})`, v: pulOstatok(x, reja) } : null,
-        { f: `H${rr}-M${rr}`, v: q!.fakt_hajm - (q!.oldingi_hajm + q!.joriy_hajm) },
-        ...(barg ? ((): Qiymat[] => {
+      r = v.qator(barg ? 'oddiy' : 'ish', (rr) => {
+        const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
+        c[0] = tartib; c[1] = q!.kod ?? ''; c[2] = nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh); c[3] = q!.birlik ?? '';
+        c[4] = n(q!.smeta_hajm); c[5] = barg ? n(q!.smeta_narx) : null;
+        c[6] = barg ? n(q!.smeta_summa) : pulYig('G', x.bolalar);
+        c[7] = q!.fakt_hajm;
+        davrlar.forEach((d, k) => {
+          c[col(U.davrH[k])] = d.hajm(q!);
+          c[col(U.davrS[k])] = barg ? d.summa(q!) : pulYig(U.davrS[k], x.bolalar);
+        });
+        const jh = jamiH(q!);
+        c[col(U.jamiH)] = { f: jamiHF(rr), v: jh };
+        c[col(U.jamiS)] = barg ? { f: jamiSF(rr), v: jamiS(q!) } : pulYig(U.jamiS, x.bolalar);
+        c[col(U.ostH)] = { f: `IF(E${rr}="","",E${rr}-${U.jamiH}${rr})`, v: q!.smeta_hajm == null ? '' : q!.smeta_hajm - jh };
+        c[col(U.ostS)] = barg || x.bolalar.length ? { f: `IF(G${rr}="","",G${rr}-${U.jamiS}${rr})`, v: barg ? (q!.smeta_summa == null ? '' : q!.smeta_summa - jamiS(q!)) : ostatok(x.bolalar) } : null;
+        c[col(U.mozhno)] = { f: `H${rr}-${U.jamiH}${rr}`, v: q!.fakt_hajm - jh };
+        if (barg) {
           const ko = koOf(q!);
-          if (!ko.kat) return [null, null, null, 1];
-          const kf = `F${kfQ[ko.kat]}`;
-          return [{ f: `ROUND(L${rr}*${kf},2)`, v: ko.per ?? '' }, { f: `ROUND(N${rr}*${kf},2)`, v: ko.jami ?? '' }, ko.kat, 1];
-        })() : [koSum(x.bolalar, 'R'), koSum(x.bolalar, 'S'), null, null]),
-      ], { daraja: x.daraja ?? (barg ? 2 : 1) });
+          if (ko.kat) {
+            const kf = `F${kfQ[ko.kat]}`;
+            c[col(U.koPer)] = { f: `ROUND(${U.davrS[U.davrS.length - 1]}${rr}*${kf},2)`, v: ko.per ?? '' };
+            c[col(U.koJami)] = { f: `ROUND(${U.jamiS}${rr}*${kf},2)`, v: ko.jami ?? '' };
+            c[col(U.kat)] = ko.kat;
+          }
+          c[col(U.belgi)] = 1;
+        } else {
+          c[col(U.koPer)] = koSum(x.bolalar, 'per');
+          c[col(U.koJami)] = koSum(x.bolalar, 'jami');
+        }
+        return c;
+      }, { daraja: x.daraja ?? (barg ? 2 : 1) });
     } else {
       r = v.qator('jami', (rr) => {
-        const cells: Qiymat[] = Array(USTUNLAR.length).fill(null);
-        cells[2] = x.nom;
-        for (const c of PUL) {
-          const col = c.charCodeAt(0) - 65;
-          if (c === 'P') { cells[col] = { f: `IF(G${rr}="","",G${rr}-N${rr})`, v: bolimOstatok(x, reja) }; continue; }
-          cells[col] = pulYig(c, x.bolalar);
+        const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
+        c[2] = x.nom;
+        for (const p of U.pul) {
+          if (p === U.ostS) { c[col(p)] = { f: `IF(G${rr}="","",G${rr}-${U.jamiS}${rr})`, v: ostatok(x.bolalar) }; continue; }
+          c[col(p)] = pulYig(p, x.bolalar);
         }
-        cells[17] = koSum(x.bolalar, 'R');
-        cells[18] = koSum(x.bolalar, 'S');
-        return cells;
+        c[col(U.koPer)] = koSum(x.bolalar, 'per');
+        c[col(U.koJami)] = koSum(x.bolalar, 'jami');
+        return c;
       }, { daraja: x.daraja ?? 0 });
     }
     if (r !== rowOf(i)) throw new Error('NAKOPITELNIY_QATOR_SILJIDI');
@@ -301,42 +360,41 @@ export function nakopitelniyVedomostHujjat(
   let kaskad: Record<string, NakrutkaHisobJS> | null = null;
   let kOplataJami: { davr: number | null; jami: number | null } = { davr: null, jami: null };
   if (bargRows.length) {
-    // ВСЕГО — barcha barglar (bo'limsiz barglar ham) SUMIF bilan.
     v.qator('vsego', (rr) => {
-      const cells: Qiymat[] = Array(USTUNLAR.length).fill(null);
-      cells[2] = 'ВСЕГО ПО ОБЪЕКТУ';
-      cells[6] = pulYig('G', bargRows);
-      cells[9] = pulYig('J', bargRows);
-      cells[11] = pulYig('L', bargRows);
-      cells[13] = pulYig('N', bargRows);
-      cells[15] = { f: `IF(G${rr}="","",G${rr}-N${rr})`, v: j.qoldiq ?? '' };
-      cells[17] = koSum(bargRows, 'R');
-      cells[18] = koSum(bargRows, 'S');
-      return cells;
+      const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
+      c[2] = 'ВСЕГО ПО ОБЪЕКТУ';
+      for (const p of U.pul) {
+        if (p === U.ostS) { c[col(p)] = { f: `IF(G${rr}="","",G${rr}-${U.jamiS}${rr})`, v: j.qoldiq == null ? '' : ostatok(bargRows) }; continue; }
+        c[col(p)] = pulYig(p, bargRows);
+      }
+      c[col(U.koPer)] = koSum(bargRows, 'per');
+      c[col(U.koJami)] = koSum(bargRows, 'jami');
+      return c;
     });
-    const vs = (c: 'R' | 'S') => { const x = bargRows.map((i) => koQiymat(i, c)); return x.some((z) => z == null) ? null : yaxlit2(x.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); };
-    kOplataJami = { davr: vs('R'), jami: vs('S') };
+    const vs = (c: 'per' | 'jami') => { const x = bargRows.map((i) => koQiymat(i, c)); return x.some((z) => z == null) ? null : yaxlit2(x.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); };
+    kOplataJami = { davr: vs('per'), jami: vs('jami') };
     v.bosh();
-    // Nakrutka podvali — har pul ustuni uchun (смета, ранее, за период, с начала, остаток).
+    // Nakrutka podvali — har pul ustuni uchun (смета, har oy, с начала, остаток).
     const katSummalar: Record<string, KatSummalar> = {};
-    for (const c of PUL) {
+    for (const p of U.pul) {
       const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
       for (const i of bargRows) {
         const q = reja[i].q!;
         const kat = nakrutkaKat(q.kat);
         if (!kat) continue;
-        const val = c === 'P' ? (q.smeta_summa == null ? 0 : q.smeta_summa - (q.oldingi_summa + q.joriy_summa)) : (pulOf(q, c) ?? 0);
-        ks[kat] += val;
+        ks[kat] += p === U.ostS ? (q.smeta_summa == null ? 0 : q.smeta_summa - jamiS(q)) : (pulOf(q, p) ?? 0);
       }
-      katSummalar[c] = ks;
+      katSummalar[p] = ks;
     }
-    const p = nakrutkaPodvaliYoz(v, { katUstun: KAT_USTUN, oraliq: [bosh, bosh + reja.length - 1], pulUstunlar: PUL, foizUstun: 'F', nk, katSummalar });
+    const p = nakrutkaPodvaliYoz(v, { katUstun: U.kat, oraliq: [bosh, bosh + reja.length - 1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar });
     if (p.bosh !== podvalBosh) throw new Error('NAKOPITELNIY_PODVAL_SILJIDI');
     kaskad = p.kaskad;
   }
   v.bosh();
-  v.izoh('Графы «Принято ранее», «За отчетный период» и «С начала строительства» — по утвержденным актам формы № 2. «Можно предъявить» = выполнено по факту − принято с начала строительства. Суммы по разделам подводятся по ресурсам (материалам, труду, машинам, оборудованию).');
-  v.izoh('Графы 7, 10, 12, 14, 16 — прямые затраты (без накладных расходов и НДС). Графы 18–19 — стоимость к оплате: прямые затраты × коэффициент по виду затрат (ниже, раздел «Расчет стоимости к оплате»); расхождение с итогом расчета — только округление.');
+  v.izoh(oyKesimi
+    ? 'Принято по утвержденным актам формы № 2 — отдельно за каждый месяц; «С начала строительства» — итог за все месяцы (формула). «Можно предъявить» = выполнено по факту − принято с начала строительства. Суммы по разделам подводятся по ресурсам.'
+    : 'Графы «Принято ранее», «За отчетный период» и «С начала строительства» — по утвержденным актам формы № 2. «Можно предъявить» = выполнено по факту − принято с начала строительства. Суммы по разделам подводятся по ресурсам (материалам, труду, машинам, оборудованию).');
+  v.izoh('Суммы — прямые затраты (без накладных расходов и НДС). Графы «К оплате» — прямые затраты × коэффициент по виду затрат (раздел «Расчет стоимости к оплате»); расхождение с итогом расчета — только округление. Позиции с пометкой [ЗАМЕНА] / [ДОПОЛНИТЕЛЬНАЯ РАБОТА] — изменения к смете.');
   if (!o.nakrutka || !Object.keys(o.nakrutka).length) diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — в расчете приняты 0 %; стоимость к оплате отличается от прямых затрат только НДС' });
   const sn = o.smetaNakrutka;
   if (sn) {
@@ -346,28 +404,6 @@ export function nakopitelniyVedomostHujjat(
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
   const { bytes } = rasmiyKitob([v]);
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'НАКОПИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: o.davr.slice(0, 7) }), jamilar: j, kaskad, kOplata: kOplataJami };
-}
-
-function pulOf(q: NakopitelniyQator, c: string): number | null {
-  switch (c) {
-    case 'G': return q.smeta_summa;
-    case 'J': return q.oldingi_summa;
-    case 'L': return q.joriy_summa;
-    case 'N': return q.oldingi_summa + q.joriy_summa;
-    default: return null;
-  }
-}
-
-type RejX = { tur: string; q?: NakopitelniyQator; bolalar: number[] };
-function pulOstatok(x: RejX, reja: readonly RejX[]): number | string {
-  if (x.tur === 'barg') return x.q!.smeta_summa == null ? '' : x.q!.smeta_summa - (x.q!.oldingi_summa + x.q!.joriy_summa);
-  return bolimOstatok(x, reja);
-}
-function bolimOstatok(x: RejX, reja: readonly RejX[]): number | string {
-  if (x.bolalar.some((k) => reja[k].q!.smeta_summa == null)) return '';
-  const g = (x.bolalar.reduce((s, k) => s + (reja[k].q!.smeta_summa ?? 0), 0));
-  const nn = (x.bolalar.reduce((s, k) => s + reja[k].q!.oldingi_summa + reja[k].q!.joriy_summa, 0));
-  return g - nn;
 }
 
 function fmt2(x: number): string {

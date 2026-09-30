@@ -93,3 +93,25 @@ describe('M-29 — norma bo\'yicha va haqiqiy sarf', () => {
     expect(h.faylNomi).toMatch(/М-29_2026-09\.xlsx$/);
   });
 });
+
+describe('M-29 — oylar bo‘yicha ustunlar (egasi 2026-09-30)', () => {
+  it('oldingi oylar alohida ustun; keyingi formulalar harflari to‘g‘ri siljiydi', async () => {
+    const { m29Hujjat } = await import('./export');
+    const { hujjatTekshir } = await import('../hujjat-yozuvchi');
+    const bo = (davr: string) => ({ davr, guruhlar: [{ kat: 'МАТ' as const, nom: 'МАТЕРИАЛЫ', farqSummaJami: 0, normaSummaJami: 0, materiallar: [{
+      kalit: 'ПЕСОК||М3', kat: 'МАТ' as const, kod: 'С101', nom: 'ПЕСОК', birlik: 'М3', narx: 1000, narxlarFarqli: false, smetaHajm: 100,
+      normaOy: davr === '2026-08' ? 10 : 5, normaJami: 15, faktOy: davr === '2026-08' ? 9 : 6, faktJami: 15, farqOy: 1, farqJami: 0, farqSummaJami: 0,
+      kirimJami: 20, skladQoldiq: 5, ishlar: [],
+    }] }], smetadaYoq: [], diqqat: [], jami: { farqSummaJami: 0, tejashSumma: 0, ortiqchaSumma: 0 } });
+    const { bytes } = m29Hujjat(bo('2026-09') as never, { obyektNom: 'Obj', oldingiOylar: [{ oy: '2026-08', natija: bo('2026-08') as never }] });
+    const t = hujjatTekshir(bytes, { ruxsat: [/^Obj$/] });
+    expect(t.dollarFormulalar).toEqual([]);
+    expect(t.matnlar).toEqual(expect.arrayContaining(['АВГУСТ 2026 Г.']));
+    const v = t.varaqlar[0];
+    const row = v.kataklar.find((k) => k.matn === 'ПЕСОК')!.ref.replace(/^[A-Z]+/, '');
+    expect(Number(v.kataklar.find((k) => k.ref === `F${row}`)?.v)).toBe(10); // avgust norma
+    expect(Number(v.kataklar.find((k) => k.ref === `G${row}`)?.v)).toBe(9);  // avgust fakt
+    expect(v.kataklar.find((k) => k.ref === `K${row}`)?.f).toBe(`IF(J${row}="","",J${row}-I${row})`); // sentyabr farqi
+    expect(v.kataklar.find((k) => k.ref === `S${row}`)?.f).toBe(`IF(R${row}="","",R${row}-N${row})`); // sklad qoldig'i
+  });
+});

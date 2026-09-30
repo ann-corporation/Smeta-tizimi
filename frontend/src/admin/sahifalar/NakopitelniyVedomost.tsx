@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -7,7 +7,7 @@ import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyek
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
-import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat } from '../../lib/nakopitelniy-vedomost-export';
+import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, davrMatni } from '../../lib/nakopitelniy-vedomost-export';
 import { f2AktHujjat } from '../../lib/f2-akt-tn-export';
 import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
@@ -18,7 +18,7 @@ import { downloadBlob } from '../../lib/construction-document-control/export/dow
 import { FmtN } from '../../lib/format';
 import { ozgarishIzohi, smetaModeliniYukla, tartibla, type SmetaModel } from '../../lib/smeta-model';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
-import { f3CertifiedHajm, f3CertifiedSources } from '../../lib/pto-document-lineage/f3-sources';
+import { f3CertifiedHajm, f3CertifiedSources, f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -54,6 +54,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [xato, setXato] = useState('');
   const [page, setPage] = useState(0);
   const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
+  /** Egasi 2026-09-30: jadvalda ham har tasdiqlangan F2 oyi alohida ustun (+ ИТОГО). */
+  const [oyKesim, setOyKesim] = useState<ReturnType<typeof f2OyKesimi> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -128,9 +130,10 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato('');
     try {
       // Yagona smeta modeli (lib/smeta-model): daraxt, zamena bog'lanishi va o'zgarish izohlari bir joydan.
-      const [r, model] = await Promise.all([
+      const [r, model, taf] = await Promise.all([
         t2NakopitelniyToliq(objId, tanlanganDavr || null),
         smetaModeliniYukla(objId),
+        sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' }).catch(() => null),
       ]);
       if (currentRequest !== requestId.current) return;
       if (!r.ok) { setXato(r.xato || r.code || 'Yuklanmadi'); setQatorlar([]); return; }
@@ -141,6 +144,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Egasi 2026-09-29: qo'shimcha/zamena qatorlarining tartib raqami smeta oxirida — hujjatlar
       // ularni oxirgi razdelga yozardi. Barcha hujjatlar shu ro'yxatdan: DARAXT tartibida.
       setQatorlar(tartibla(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, model) })), model));
+      setOyKesim(taf?.ok && taf.toliq !== false && taf.qatorlar && r.davr ? f2OyKesimi(taf.qatorlar, String(r.davr).slice(0, 7)) : null);
       setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
       setLoyihaId(r.obyekt.loyiha_id);
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
@@ -191,18 +195,22 @@ function Sessiya({ companyId }: { companyId: number }) {
     const otaBor = new Set<number>();
     for (const q of qatorlar) if (q.ota_id != null) otaBor.add(q.ota_id);
     const byId = new Map(qatorlar.map((q) => [q.qator_id, q]));
-    const m = new Map<number, { smeta: number; oldingi: number; joriy: number; jami: number }>();
+    const m = new Map<number, { smeta: number; oldingi: number; joriy: number; jami: number; oy: Map<string, number> }>();
     for (const q of qatorlar) {
       if (q.tur === 'rz' || otaBor.has(q.qator_id)) continue;
       for (let o = q.ota_id != null ? byId.get(q.ota_id) : undefined; o; o = o.ota_id != null ? byId.get(o.ota_id) : undefined) {
         if (o.tur !== 'rz') continue;
-        const x = m.get(o.qator_id) ?? { smeta: 0, oldingi: 0, joriy: 0, jami: 0 };
+        const x = m.get(o.qator_id) ?? { smeta: 0, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
         x.smeta += q.smeta_summa ?? 0; x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
+        for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, (x.oy.get(oy) ?? 0) + v.summa);
         m.set(o.qator_id, x);
       }
     }
     return m;
-  }, [qatorlar]);
+  }, [qatorlar, oyKesim]);
+  /** Ko'rinadigan davr ustunlari: oylar (bor bo'lsa) yoki eski "oldingi / joriy". */
+  const oyUstunlar = oyKesim && oyKesim.oylar.length ? oyKesim.oylar : null;
+  const oyQ = (id: number, oy: string) => oyKesim?.qiymat.get(id)?.get(oy);
   const sahifa = gorunumRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   const sahifaSoni = Math.max(1, Math.ceil(gorunumRows.length / PAGE_SIZE));
 
@@ -343,7 +351,10 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       const rows = await toliqQatorlar();
       if (!rows) return;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka });
+      // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
+      const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
+      const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
+      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, oylar });
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
     } catch (e) { setXato(e instanceof HujjatToliqEmasXato ? 'Hujjat to‘liq emas — eksport bloklandi.' : 'Excel fayli tuzilmadi.'); }
   };
@@ -484,15 +495,21 @@ function Sessiya({ companyId }: { companyId: number }) {
                   <th rowSpan={2} className="px-2 py-1.5">Birlik</th>
                   <th colSpan={3} className="px-2 py-1 border-l border-border">SMETA</th>
                   <th rowSpan={2} className="px-2 py-1.5 border-l border-border">FAKT<br />hajm</th>
-                  <th colSpan={2} className="px-2 py-1 border-l border-border">OLDINGI F2</th>
-                  <th colSpan={3} className="px-2 py-1 border-l border-border">JORIY F2</th>
-                  <th colSpan={2} className="px-2 py-1 border-l border-border">JAMI (tasdiqlangan) F2</th>
+                  {oyUstunlar ? oyUstunlar.map((oy, i) => (
+                    <th key={oy} colSpan={2} className={'px-2 py-1 border-l border-border ' + (i === oyUstunlar.length - 1 ? 'text-accent' : '')}>{davrMatni(oy).toUpperCase()}{i === oyUstunlar.length - 1 ? ' (hisobot davri)' : ''}</th>
+                  )) : <>
+                    <th colSpan={2} className="px-2 py-1 border-l border-border">OLDINGI F2</th>
+                    <th colSpan={3} className="px-2 py-1 border-l border-border">JORIY F2</th>
+                  </>}
+                  <th colSpan={2} className="px-2 py-1 border-l border-border">{oyUstunlar ? 'ИТОГО (barcha oylar)' : 'JAMI (tasdiqlangan) F2'}</th>
                   <th colSpan={3} className="px-2 py-1 border-l border-border">QOLDIQ SEMANTIKASI</th>
                 </tr>
                 <tr className="text-text-mute text-right">
                   <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Narx</th><th className="px-2 py-1">Summa</th>
-                  <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th>
-                  <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Narx</th><th className="px-2 py-1">Summa</th>
+                  {oyUstunlar ? oyUstunlar.map((oy) => <Fragment key={oy}><th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th></Fragment>) : <>
+                    <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th>
+                    <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Narx</th><th className="px-2 py-1">Summa</th>
+                  </>}
                   <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th>
                   <th className="px-2 py-1 border-l border-border">Smeta − Fakt</th><th className="px-2 py-1">F2 mumkin</th><th className="px-2 py-1">Kontrakt − F2</th>
                 </tr>
@@ -503,8 +520,10 @@ function Sessiya({ companyId }: { companyId: number }) {
                     <td colSpan={2} className="px-2 py-1.5 text-left sticky left-0 bg-surface-2/70" style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }}>{q.nom}</td>
                     <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id) ? <FmtN val={rzJami.get(q.qator_id)!.smeta} /> : ''}</td>
                     <td className="border-l border-border" />
-                    <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oldingi ? <FmtN val={rzJami.get(q.qator_id)!.oldingi} /> : '—'}</td>
-                    <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.joriy ? <FmtN val={rzJami.get(q.qator_id)!.joriy} /> : '—'}</td>
+                    {oyUstunlar ? oyUstunlar.map((oy) => <Fragment key={oy}><td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oy.get(oy) ? <FmtN val={rzJami.get(q.qator_id)!.oy.get(oy)!} /> : '—'}</td></Fragment>) : <>
+                      <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oldingi ? <FmtN val={rzJami.get(q.qator_id)!.oldingi} /> : '—'}</td>
+                      <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.joriy ? <FmtN val={rzJami.get(q.qator_id)!.joriy} /> : '—'}</td>
+                    </>}
                     <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.jami ? <FmtN val={rzJami.get(q.qator_id)!.jami} /> : '—'}</td>
                     <td className="border-l border-border" /><td /><td />
                   </tr>
@@ -531,11 +550,16 @@ function Sessiya({ companyId }: { companyId: number }) {
                     <td className="px-2 py-1 tabular-nums">{q.smeta_narx == null ? '—' : <FmtN val={q.smeta_narx} />}</td>
                     <td className="px-2 py-1 tabular-nums"><FmtN val={q.smeta_summa ?? 0} /></td>
                     <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.fakt_hajm ? <FmtN val={q.fakt_hajm} kasr={3} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums">{q.oldingi_hajm ? <FmtN val={q.oldingi_hajm} kasr={3} /> : '—'}</td>
-                    <td className="px-2 py-1 tabular-nums">{q.oldingi_summa ? <FmtN val={q.oldingi_summa} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums">{q.joriy_hajm ? <FmtN val={q.joriy_hajm} kasr={3} /> : '—'}</td>
-                    <td className="px-2 py-1 tabular-nums">{q.joriy_hajm ? <FmtN val={Math.round((q.joriy_summa / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
-                    <td className="px-2 py-1 tabular-nums">{q.joriy_summa ? <FmtN val={q.joriy_summa} /> : '—'}</td>
+                    {oyUstunlar ? oyUstunlar.map((oy) => { const x = oyQ(q.qator_id, oy); return <Fragment key={oy}>
+                      <td className="px-2 py-1 border-l border-border tabular-nums">{x?.hajm ? <FmtN val={x.hajm} kasr={3} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{x?.summa ? <FmtN val={x.summa} /> : '—'}</td>
+                    </Fragment>; }) : <>
+                      <td className="px-2 py-1 border-l border-border tabular-nums">{q.oldingi_hajm ? <FmtN val={q.oldingi_hajm} kasr={3} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{q.oldingi_summa ? <FmtN val={q.oldingi_summa} /> : '—'}</td>
+                      <td className="px-2 py-1 border-l border-border tabular-nums">{q.joriy_hajm ? <FmtN val={q.joriy_hajm} kasr={3} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{q.joriy_hajm ? <FmtN val={Math.round((q.joriy_summa / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{q.joriy_summa ? <FmtN val={q.joriy_summa} /> : '—'}</td>
+                    </>}
                     <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.jami_hajm ? <FmtN val={q.jami_hajm} kasr={3} /> : '—'}</td>
                     <td className="px-2 py-1 tabular-nums">{q.jami_summa ? <FmtN val={q.jami_summa} /> : '—'}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums">{ledger.smetaRemainingQuantity == null ? '—' : <FmtN val={ledger.smetaRemainingQuantity} kasr={3} />}</td>

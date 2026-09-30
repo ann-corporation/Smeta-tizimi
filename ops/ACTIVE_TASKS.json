@@ -1691,6 +1691,31 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi C4 (to‘g‘ri ma’nosi): smetaga bog‘liq barcha funksiyalar bitta smeta moduli orqali. 1-qadam: daraxt+zamena bog‘lanishi+o‘zgarish izohi. EGASI_SINOV_2026-09-30 #8, #11."
+    },
+    {
+      "id": "NAKOP-M29-OYLAR-001",
+      "title": "Nakopitelniy va M-29: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (hujjat va ekran)",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "5a97f10",
+      "status": "completed",
+      "owns": [
+        "frontend/src/lib/nakopitelniy-vedomost-export.ts",
+        "frontend/src/lib/nakopitelniy-vedomost-export.hujjat.test.ts",
+        "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+        "frontend/src/lib/pto-document-lineage/f3-sources.ts",
+        "frontend/src/lib/m29/export.ts",
+        "frontend/src/lib/m29/m29.test.ts",
+        "frontend/src/admin/sahifalar/M29Native.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "EGASI_SINOV_2026-09-30 #10. Manba — F3 bilan bir xil certified F2 (f2OyKesimi). Oylar berilmasa eski «ранее / за период» ko‘rinishi."
     }
   ]
 }

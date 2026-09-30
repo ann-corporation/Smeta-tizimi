@@ -38,3 +38,26 @@ export function f3CertifiedHajm(rows: readonly F2Tafsilot[], companyId: number, 
   }
   return result;
 }
+
+/**
+ * Nakopitelniy / M-29 uchun OY KESIMI (egasi 2026-09-30: "otchetniy period avgust, sentyabr, noyabr —
+ * har birining ustunlari va barcha oylar ИТОГО"). Faqat tasdiqlangan F2, davrgacha; hujjat
+ * qiymatlari (certified_quantity / certified_amount) — qayta hisoblanmaydi.
+ */
+export function f2OyKesimi(rows: readonly F2Tafsilot[], period: string): { oylar: string[]; qiymat: Map<number, Map<string, { hajm: number; summa: number }>> } {
+  const qiymat = new Map<number, Map<string, { hajm: number; summa: number }>>();
+  const oylar = new Set<string>();
+  for (const row of rows) {
+    if (row.akt_holat !== 'tasdiqlangan') continue;
+    const oy = String(row.oy).slice(0, 7);
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(oy) || oy > period) continue;
+    oylar.add(oy);
+    let m = qiymat.get(row.qator_id);
+    if (!m) { m = new Map(); qiymat.set(row.qator_id, m); }
+    const x = m.get(oy) ?? { hajm: 0, summa: 0 };
+    x.hajm += Number(row.certified_quantity ?? row.hajm ?? 0);
+    x.summa += Number(row.certified_amount ?? 0);
+    m.set(oy, x);
+  }
+  return { oylar: [...oylar].sort(), qiymat };
+}

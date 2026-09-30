@@ -103,7 +103,9 @@ function Sessiya({ companyId }: { companyId: number }) {
   function eksport(korish: boolean) {
     if (!natija) return;
     try {
-      const h = m29Hujjat(natija, { obyektNom, pudratchi, imzo: tomonlar });
+      // Egasi 2026-09-30: hisobot oyidan oldingi har oy — alohida ustun (bitta M-29 hisobi har oy uchun).
+      const oldingiOylar = kirish ? [...oylar].filter((m) => m < davr).sort().map((oy) => ({ oy, natija: m29Hisobla(kirish, oy) })) : [];
+      const h = m29Hujjat(natija, { obyektNom, pudratchi, imzo: tomonlar, oldingiOylar });
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
     } catch (e) { setXato(e instanceof Error ? `M-29 tuzilmadi: ${e.message}` : 'M-29 tuzilmadi.'); }
   }

@@ -158,3 +158,28 @@ describe('АКТ Ф-2 — hujjat standarti', () => {
     expect(t.matnlar.some((m) => m.includes('не заданы'))).toBe(false);
   });
 });
+
+describe('Накопительная ведомость — har oy alohida ustun (egasi 2026-09-30)', () => {
+  it('avgust, sentyabr, oktyabr — o‘z ustunlari; ИТОГО = oylar yig‘indisi formulasi; hisobot davri — oxirgi oy', () => {
+    const rs = ROWS[2], mat = ROWS[3];
+    // RPC: oldingi = avgust + sentyabr, joriy = oktyabr (rs: 300 000 = 100 000 + 200 000; 200 000.5 oktyabr)
+    const qiymat = new Map<number, Map<string, { hajm: number; summa: number }>>([
+      [rs.qator_id, new Map([['2026-08', { hajm: 20, summa: 100_000 }], ['2026-09', { hajm: 40, summa: 200_000 }], ['2026-10', { hajm: 40, summa: 200_000.5 }]])],
+      [mat.qator_id, new Map([['2026-09', { hajm: 10, summa: 120_000 }], ['2026-10', { hajm: 15, summa: 180_000 }]])],
+    ]);
+    const qatorlar = ROWS.slice(0, 4);
+    const { bytes } = nakopitelniyVedomostHujjat(qatorlar, { obyektNom: 'Obj', davr: '2026-10-01', oylar: { oylar: ['2026-08', '2026-09', '2026-10'], qiymat } });
+    namunaSaqla('nakopitelniy-oylar.xlsx', bytes);
+    const t = hujjatTekshir(bytes, { ruxsat: [/^Obj$/] });
+    expect(t.dollarFormulalar).toEqual([]);
+    expect(t.keshsizFormulalar).toEqual([]);
+    expect(t.matnlar).toEqual(expect.arrayContaining(['АВГУСТ 2026 Г.', 'СЕНТЯБРЬ 2026 Г.', 'ОКТЯБРЬ 2026 Г. — ОТЧЕТНЫЙ ПЕРИОД', 'С НАЧАЛА СТРОИТЕЛЬСТВА (ИТОГО ЗА ВСЕ МЕСЯЦЫ)']));
+    const v = t.varaqlar[0];
+    const nomKatak = v.kataklar.find((k) => k.matn === 'ЗАТРАТЫ ТРУДА РАБОЧИХ')!;
+    const row = nomKatak.ref.replace(/^[A-Z]+/, '');
+    // Oylar: I/J (avg), K/L (sen), M/N (okt); ИТОГО: O (hajm) = I+K+M, P (summa) = J+L+N
+    expect(v.kataklar.find((k) => k.ref === `O${row}`)?.f).toBe(`I${row}+K${row}+M${row}`);
+    expect(Number(v.kataklar.find((k) => k.ref === `P${row}`)?.v)).toBe(500_000.5);
+    expect(v.kataklar.find((k) => k.ref === `P${row}`)?.f).toBe(`J${row}+L${row}+N${row}`);
+  });
+});
