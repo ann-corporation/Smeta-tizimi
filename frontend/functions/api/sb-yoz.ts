@@ -1710,7 +1710,7 @@ export const onRequestPost: PagesFunction<{
       if (inn && !/^[0-9]{9}$/.test(inn)) {
         return Response.json({ ok: false, error: 'STIR (INN) 9 ta raqamdan iborat bo\'lishi shart' });
       }
-      const MAVQE_RUXSAT = ['buyurtmachi', 'pudratchi', 'subpudratchi', 'loyihachi', 'taminotchi'];
+      const MAVQE_RUXSAT = ['buyurtmachi', 'pudratchi', 'subpudratchi', 'loyihachi', 'taminotchi', 'laboratoriya'];
       const mavqe = so.mavqe && MAVQE_RUXSAT.includes(String(so.mavqe)) ? String(so.mavqe) : null;
       yuk = {
         p_kompaniya_id: kompaniyaId,

@@ -18,7 +18,7 @@ export type Kontragent = {
   id: number; kompaniya_id: number; inn: string | null; nom: string;
   rahbar: string | null; manzil: string | null; mfo: string | null;
   hisob_raqam: string | null; qqs_tolovchi: boolean | null;
-  mavqe: 'buyurtmachi' | 'pudratchi' | 'subpudratchi' | 'loyihachi' | 'taminotchi' | null;
+  mavqe: 'buyurtmachi' | 'pudratchi' | 'subpudratchi' | 'loyihachi' | 'taminotchi' | 'laboratoriya' | null;
   versiya: number; yaratildi: string;
 };
 
@@ -30,7 +30,7 @@ export function sbKontragentlarOl(kompaniyaId: number) {
 export function sbKontragentSaqla(p: {
   kompaniyaId: number; inn?: string; nom: string; rahbar?: string; manzil?: string;
   mfo?: string; hisobRaqam?: string; qqsTolovchi?: boolean;
-  mavqe?: 'buyurtmachi' | 'pudratchi' | 'subpudratchi' | 'loyihachi' | 'taminotchi';
+  mavqe?: 'buyurtmachi' | 'pudratchi' | 'subpudratchi' | 'loyihachi' | 'taminotchi' | 'laboratoriya';
 }) {
   return trackEntityCommand('kontragent', p.kompaniyaId, yozAmali({
     amal: 'kontragent_saqla', kompaniya_id: p.kompaniyaId, inn: p.inn, nom: p.nom,
