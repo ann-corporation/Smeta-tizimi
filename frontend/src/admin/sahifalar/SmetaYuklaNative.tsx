@@ -18,6 +18,7 @@ import { varaqniTahlilQil } from '../../lib/smeta-anatomiya/varaq';
 import { lrvDaraxti, ustunSozlamasi, varaqRoli } from '../../lib/smeta-anatomiya/yuklash';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from '../../lib/res-kategoriya';
+import { bezSkladKategoriyaAniqla } from '../../lib/resurs-kategoriyasi/bez-sklad';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 
 /**
@@ -334,9 +335,10 @@ export function resSatrlariniOl(rows: SheetGrid, cols: F2ColumnConfig): ResNarxY
       else if (b) joriyKat = b;
       continue;
     }
+    const bez = bezSkladKategoriyaAniqla(nom);
     out.push({
       kod: kod || undefined, nom: nom || undefined, birlik: bir || undefined, narx,
-      kat: resursMkKabAniqla(nom, bir, joriyKat),
+      kat: bez.kategoriya ?? resursMkKabAniqla(nom, bir, joriyKat),
     });
   }
   return out;
@@ -1823,14 +1825,16 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                   ЧЕЛ-Ч → ЧЕЛ, МАШ-Ч → МАШ (mashinist mehnati МАШ, chunki u mashina stavkasi ichida).
                   <b>КАБ</b> — kabel/provod oilasi, nomi bo‘yicha. <b>М/К</b> — nomi tayyor
                   konstruksiyani bildirsa <b>va</b> birligi og‘irlikda (кг/т) bo‘lsa, shuning uchun
-                  armatura va prokat unga tushmaydi (ular xomashyo). <b>МАТ va ОБ</b> farqi esa faqat
+                  armatura va prokat unga tushmaydi (ular xomashyo). <b>БЕЗСКЛАД</b> faqat товарный бетон,
+                  beton qorishmasi, rastvor va asfaltobeton kabi tayyor aralashmalar uchun ishlatiladi;
+                  beton blok/konstruksiya ombor materiali bo'lib qoladi. <b>МАТ va ОБ</b> farqi esa faqat
                   RES faylining bo‘lim sarlavhasidan yoki podvaldagi nakrutka foizidan olinadi
                   (ОБ: {'«'}ЗАГОТ-СКЛАДСКИЕ=1,2%{'»'}, МАТ: {'«'}…=2% И М/К=0,75%{'»'}) — buni
                   birlikdan (шт, м2, компл) topib bo‘lmaydi. Noto‘g‘ri bo‘lsa shu yerda tuzating;
                   belgilangan tur registrga yozilib, keyingi importlarda ham eslab qolinadi.
                 </p>
                 <p className="text-[11px] text-text-mute">
-                  {(['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К'] as const)
+                  {(['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К', 'БЕЗСКЛАД'] as const)
                     .map(k => ({ k, n: katKorib.filter(x => x.tanlangan === k).length }))
                     .filter(x => x.n > 0)
                     .map(x => `${x.k}: ${x.n}`).join(' · ')}
@@ -1850,7 +1854,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                               <option value="МАТ">МАТ</option>
                               <option value="ОБ">ОБ</option>
                               <option value="КАБ">КАБ</option>
-                              <option value="М/К">М/К</option>
+                            <option value="М/К">М/К</option>
+                            <option value="БЕЗСКЛАД">БЕЗСКЛАД</option>
                             </select>
                           </td>
                         </tr>

@@ -1516,7 +1516,7 @@ export const onRequestPost: PagesFunction<{
         p_operation_id: UUID_RE.test(String(so.operation_id || '')) ? so.operation_id : crypto.randomUUID(),
       };
 
-    /* T2-PTO-OWNER-CRITICAL-CLOSURE: resurs kategoriya (ЧЕЛ/МАШ/МАТ/ОБ/М/К/КАБ)
+    /* T2-PTO-OWNER-CRITICAL-CLOSURE: resurs kategoriya (ЧЕЛ/МАШ/МАТ/ОБ/М/К/КАБ/БЕЗСКЛАД)
        registri -- T1 GAS'ning "NARXLAR" registri (10_Engine.js _narxlarKatMap)
        bilan bir xil mexanizm: bir marta tasdiqlangan nom+birlik keyingi
        importlarda avtomatik eslab qolinadi. */
@@ -1525,7 +1525,7 @@ export const onRequestPost: PagesFunction<{
       if (!Number.isFinite(kompaniyaId) || kompaniyaId <= 0) {
         return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
       }
-      const KAT_RUXSAT = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'М/К', 'КАБ'];
+      const KAT_RUXSAT = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'М/К', 'КАБ', 'БЕЗСКЛАД'];
       if (!KAT_RUXSAT.includes(String(so.kategoriya))) {
         return Response.json({ ok: false, error: 'kategoriya noto\'g\'ri: ' + KAT_RUXSAT.join('|') });
       }
