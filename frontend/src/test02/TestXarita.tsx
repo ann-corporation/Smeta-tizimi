@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaTanlov';
+import { ObsidianGraf } from './ObsidianGraf';
 import { toast } from '../umumiy/ui/Toast';
 import { pulQisqa } from '../lib/format';
 import { sbObyektHodisalariOl, qachon, MODUL_RANG, type Hodisa } from '../api/t2-hodisa';
@@ -101,7 +102,8 @@ const ROLLAR = [
 
 /** Tugun turidan to'liq sahifaga o'tish yo'li (bo'lmasa — tugma ko'rsatilmaydi) */
 const SAHIFA_YOLI: Partial<Record<TugunTur, (id: number, nom: string) => string>> = {
-  obyekt:     (_id, nom) => '/admin/test/smeta?obyekt=' + encodeURIComponent(nom),
+  // PTO obyekt sahifasi (smeta, fakt, F2) — obyekt id bo'yicha.
+  obyekt:     (id) => '/admin/holat?obyekt=' + id,
   loyiha:     () => '/admin/test/portfel',
   shartnoma:  () => '/admin/test/moliya',
   sklad:      () => '/admin/test/logistika',
@@ -153,6 +155,8 @@ export default function TestXarita() {
   const [yaratSaqlanmoqda, setYaratSaqlanmoqda] = useState(false);
   const [yaratXato, setYaratXato] = useState('');
   const [tanlangan, setTanlangan] = useState<string | null>(null);
+  /** Egasi 2026-09-30: Obsidian grafigi uslubi (sukut) yoki tahrir kanvasi (bog'lash/yaratish/joylash). */
+  const [korinish, setKorinish] = useState<'graf' | 'tahrir'>('graf');
   const [tanlanganBog, setTanlanganBog] = useState<MindmapGraf['bogichlar'][number] | null>(null);
   const [obyektHodisalari, setObyektHodisalari] = useState<Hodisa[]>([]);
   const [hodisaYuklanmoqda, setHodisaYuklanmoqda] = useState(false);
@@ -570,6 +574,10 @@ export default function TestXarita() {
           </div>
           <div className="flex items-center gap-1.5">
             {oxirgiYangilanish && <span className="text-[10px] text-zinc-500 inline-flex items-center gap-1 mr-1"><Clock size={11} /> {oxirgiYangilanish.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>}
+            <div className="mr-1 inline-flex overflow-hidden rounded-lg border border-white/10">
+              <button onClick={() => setKorinish('graf')} className={'px-2.5 py-2 text-[11px] ' + (korinish === 'graf' ? 'bg-violet-500/30 text-violet-100' : 'bg-white/5 hover:bg-white/10')}>Graf</button>
+              <button onClick={() => setKorinish('tahrir')} className={'px-2.5 py-2 text-[11px] ' + (korinish === 'tahrir' ? 'bg-violet-500/30 text-violet-100' : 'bg-white/5 hover:bg-white/10')}>Tahrir</button>
+            </div>
             <button onClick={hammasiniQaytaTer} title="Hammasini ustunlarga qayta terish"
               className="px-2.5 py-2 bg-white/5 hover:bg-white/10 rounded-lg inline-flex items-center gap-1.5 text-[11px]">
               <LayoutGrid size={14} /> Qayta terish
@@ -660,11 +668,22 @@ export default function TestXarita() {
 
       {xato && <div className="m-3 p-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg text-sm">{xato}</div>}
 
-      {/* KANVAS */}
+      {korinish === 'graf' && (
+        <div className="flex-1 min-h-0">
+          <ObsidianGraf
+            tugunlar={korsatilganTugunlar.map((t) => ({ id: t.id, nom: t.nom, tur: TUR_NOM[t.tur] ?? t.tur, rang: TUR_RANG[t.tur] ?? '#94a3b8' }))}
+            boglar={graf.bogichlar.map((b) => ({ manba: b.manba, maqsad: b.maqsad }))}
+            onTanla={(id) => setTanlangan(id)}
+          />
+        </div>
+      )}
+
+      {/* KANVAS (tahrir rejimi) */}
       <div
         ref={wrapRef}
         className="flex-1 relative overflow-hidden touch-none"
         style={{
+          display: korinish === 'graf' ? 'none' : undefined,
           cursor: chiziqManbaId ? 'crosshair' : 'grab',
           backgroundImage: 'radial-gradient(circle, #1e293b 1px, transparent 1px)',
           backgroundSize: (24 * zoom) + 'px ' + (24 * zoom) + 'px',

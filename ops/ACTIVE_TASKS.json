@@ -1761,6 +1761,26 @@
       ],
       "production_write_allowed": false,
       "_izoh": "EGASI_SINOV_2026-09-30 #12. LRV_PLUS/Ostatka allaqachon tirik. F2 ustunlari — hujjatdagidek qiymat."
+    },
+    {
+      "id": "MINDMAP-OBSIDIAN-001",
+      "title": "Mindmap: Obsidian grafigi uslubidagi ko‘rinish (sukut) + tahrir rejimi",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "7959175",
+      "status": "completed",
+      "owns": [
+        "frontend/src/test02/ObsidianGraf.tsx",
+        "frontend/src/test02/TestXarita.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "EGASI_SINOV_2026-09-30 #13. Namunaviy ma’lumotda brauzerda vizual tekshirildi; real login bilan UNKNOWN."
     }
   ]
 }
