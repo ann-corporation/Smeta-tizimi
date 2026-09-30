@@ -1,15 +1,17 @@
 # T2-SAYT-BEZSKLAD-SUNIY-KOL — checkpoint
 
-> **LATEST INTEGRATED STATE (2026-10-01):** `origin/main @ 62947e3b97ab968b176a468bf3111c39bab66eb2` C/B/A kodlarini o‘z ichiga oladi. Claude main integratsiya commiti (`c7908ba`) B/A production qo‘llanganini bildiradi, lekin bu Codex sessiyasida Supabase runtime acceptance qayta mustaqil tekshirilmagan — `UNKNOWN`. Suniy Ko‘l mavjud qatorlarini delete/merge qilish bajarilmagan.
+> **LATEST INTEGRATED STATE (2026-10-01):** `origin/main @ 3a1bdf72c322f20c3a19e9ce62164bdb7eae272d` C/B/A kodlarini o‘z ichiga oladi. Claude main integratsiya commiti (`c7908ba`) B/A production qo‘llanganini bildiradi, lekin bu Codex sessiyasida Supabase runtime acceptance qayta mustaqil tekshirilmagan — `UNKNOWN`. Suniy Ko‘l mavjud qatorlarini delete/merge qilish bajarilmagan.
 
 ## Latest integration record
 
-- Codex branch: `codex/20261001-site-map-bez-sklad-suniy-kol-current` (metadata checkpoint yangi main ustiga qayta yoziladi).
+- Codex branch: `codex/20261001-site-map-bez-sklad-suniy-kol-current` @ `3a1bdf72c322f20c3a19e9ce62164bdb7eae272d`.
 - C: code-generated manifest, `/admin/sayt-xaritasi`, route/read/write oracle; current source test `62/62 PASS`.
 - B: `БЕЗСКЛАД` classifier/API/UI va `20261105160000_t2_resurs_kategoriya_bez_sklad_v1.sql` (+ rollback/acceptance).
 - A: source/object import guard, idempotency/advisory lock/dry-run va `20261105170000_t2_smeta_import_dublikat_guard_v1.sql` (+ rollback/acceptance); static guard `8/8 PASS`.
-- Main’dagi latest AI agent commiti `62947e3`; C/B/A’dan keyin main yana o‘zgargan, shu sabab final branch main’ga fast-forward qilingan.
-- Full current-main Vitest: `807 passed / 6 failed / 12 skipped`; 6 failure katta XLSX/export timeoutlari va 10k/30k/50k performance thresholdlari. C/B/A focused checks PASS.
+- Main’dagi latest AI agent commiti `62947e3`; undan keyin `5e87712` va ushbu metadata checkpointi qo‘shilgan, remote `main` hozir `3a1bdf7` bilan teng.
+- Joriy main gate dalili: site-map `62/62`, duplicate guard `8/8`, pre-main QA `33/33`, focused Vitest `26/26`, frontend/functions TypeScript, build, tekshir va diff-check PASS. Oxlint `0 error`, mavjud warninglar bor.
+- Full current-main Vitest: `810 passed / 3 failed / 12 skipped`. 3 failure mavjud og‘ir benchmarklar: `f2-import-parse/xlsxFonda` 27k XLSX timeout, `f2-moslash-v3` 30k threshold, `f2-match-engine` 50k threshold. C/B/A focused checks PASS; testlar yumshatilmadi.
+- `node ops/governance-check.cjs`: exit 0, `62 tasks` PASS; repo `docs/governance/CURRENT_STATE.md` joriy `origin/main` SHA’sidan ortda qolganligi haqida warning berdi. Bu Codex task `owns` hududidan tashqarida, Claude bilan coordination orqali tuzatilishi kerak.
 
 ## C — sayt xaritasi
 

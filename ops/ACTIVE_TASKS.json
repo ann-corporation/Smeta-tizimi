@@ -1811,7 +1811,7 @@
       "owner": "codex",
       "machine": "pc-ishxona",
       "branch": "codex/20261001-site-map-bez-sklad-suniy-kol-current",
-      "base_sha": "62947e3b97ab968b176a468bf3111c39bab66eb2",
+      "base_sha": "3a1bdf72c322f20c3a19e9ce62164bdb7eae272d",
       "status": "merged",
       "owns": [
         "frontend/src/lib/sayt-xaritasi/",
