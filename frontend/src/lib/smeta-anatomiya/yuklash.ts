@@ -16,6 +16,7 @@ import { varaqniTahlilQil } from './varaq';
 import { anatomiyadanAktDaraxt } from './akt-daraxt';
 import type { Katak, UstunXaritasi, VaraqAnatomiyasi } from './turlar';
 import type { AktNode } from '../f2-match-engine';
+import { resBolimKategoriya } from '../res-kategoriya';
 
 export type YuklashRoli = 'lrv' | 'res' | 'etiborsiz' | 'nomalum';
 
@@ -39,6 +40,23 @@ export function ustunSozlamasi(u: UstunXaritasi): { kod: number; nom: number; bi
   return { kod: u.shifr, nom: u.nom, bir: u.birlik, norma: u.hajmBirlikka, obyom: u.hajmLoyiha, narx: u.narx, sum: u.summa };
 }
 
+/** Eski import ustun sozlamasi (operator muharriri) → anatomiya ustun xaritasi (teskari `ustunSozlamasi`). */
+export function ustunXaritasigaQayt(c: { kod: number; nom: number; bir: number; norma: number; obyom: number; narx: number; sum: number }): Partial<Omit<UstunXaritasi, 'sarlavhaQatori' | 'malumotBoshi'>> {
+  return { shifr: c.kod, nom: c.nom, birlik: c.bir, hajmBirlikka: c.norma, hajmLoyiha: c.obyom, narx: c.narx, summa: c.sum };
+}
+
+/** Varaqdagi RES bo'lim kategoriyalari (nom ustuni noma'lum bo'lsa — qatorning birinchi matn katagi). */
+function resBolimlari(rows: readonly (readonly Katak[])[], nomUstun: number): Set<string> {
+  const b = new Set<string>();
+  for (const row of rows.slice(0, 20000)) {
+    const matn = nomUstun >= 0 ? row[nomUstun] : row.find((x) => typeof x === 'string' && x.trim() !== '');
+    if (typeof matn !== 'string' || !matn.trim()) continue;
+    const k = resBolimKategoriya(matn.trim());
+    if (k && k !== 'YAKUN') b.add(k);
+  }
+  return b;
+}
+
 export function varaqRoli(nom: string, rows: readonly (readonly Katak[])[]): VaraqRoliXulosa {
   const a = varaqniTahlilQil(nom, { nom, rows: rows as Katak[][] });
   const dalil = a.rolDalil.map((d) => d.izoh).filter(Boolean);
@@ -51,6 +69,13 @@ export function varaqRoli(nom: string, rows: readonly (readonly Katak[])[]): Var
   }
   const sabab = ETIBORSIZ_SABAB[a.rol];
   if (sabab) return { rol: 'etiborsiz', aniq: true, ishonch: 'medium', dalil: [`anatomiya: ${sabab}`, ...dalil], anatomiya: a };
+  // Eski import evristikasidan ko'chirildi (egasi Q3; qoidani egasi 2026-09-10 tasdiqlagan):
+  // kamida IKKI xil RES bo'lim sarlavhasi (ЗАТРАТЫ ТРУДА / МАШИНЫ / МАТЕРИАЛЫ / ОБОРУДОВАНИЕ …)
+  // bo'lsa — bu RES; LRV ish ierarxiyasida bunday bo'limlar bo'lmaydi.
+  const bolimlar = resBolimlari(rows, a.ustunlar?.nom ?? -1);
+  if (bolimlar.size >= 2) {
+    return { rol: 'res', aniq: true, ishonch: 'medium', dalil: [`anatomiya: ${bolimlar.size} xil RES bo'limi (${[...bolimlar].join(', ')})`, ...dalil], anatomiya: a };
+  }
   return { rol: 'nomalum', aniq: false, ishonch: 'low', dalil, anatomiya: a };
 }
 

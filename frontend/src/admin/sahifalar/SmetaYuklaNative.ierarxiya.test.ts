@@ -54,7 +54,7 @@ describe('Smeta yuklash — ichma-ich RZ (SMETA_ANATOMIYA_V1)', () => {
     const c = { ...cols(), obyom: cols().norma }; // hajm ustuni noto'g'ri tanlangan
     const hisobot: AnatomiyaHisobot[] = [];
     tanlanganLrvVaraqlaridanDaraxtQur([{ name: 'LRV', rows: ROWS, cols: c }], { hisobot: (h) => hisobot.push(h) });
-    expect(hisobot[0].ierarxiya).toBe(false);
-    expect(hisobot[0].sabab).toMatch(/mos emas/);
+    expect(hisobot[0].ierarxiya).toBe(true);
+    expect(hisobot[0].sabab).toMatch(/operator ustunlari anatomiyaga berildi/);
   });
 });

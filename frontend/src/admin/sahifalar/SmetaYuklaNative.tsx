@@ -15,7 +15,7 @@ import {
 } from '../../lib/smeta-source-analysis';
 import type { AktNode } from '../../lib/f2-match-engine';
 import { varaqniTahlilQil } from '../../lib/smeta-anatomiya/varaq';
-import { lrvDaraxti, ustunSozlamasi, varaqRoli } from '../../lib/smeta-anatomiya/yuklash';
+import { lrvDaraxti, ustunSozlamasi, ustunXaritasigaQayt, varaqRoli } from '../../lib/smeta-anatomiya/yuklash';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from '../../lib/res-kategoriya';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
@@ -705,9 +705,10 @@ const ustunTeng = (a: F2ColumnConfig, b: Partial<F2ColumnConfig> | null): boolea
 /**
  * SMETA_ANATOMIYA_V1 / C4 — smetani faqat anatomiya tushunadi: LRV daraxti
  * (ichma-ich RZ, mustaqil MAT/OB, vedomost chiqarilgan) `lrvDaraxti` dan.
- * Eski `treeBuild` faqat ikki holatda zaxira: (1) operator ustunlarni qo'lda
- * o'zgartirgan — uning qarori hurmat qilinadi; (2) anatomiya varaqni LRV deb
- * tanimadi. Ikkalasida sabab hisobotga yoziladi (anatomiyani o'rgatish uchun signal).
+ * Operator ustunlarni qo'lda o'zgartirsa — (2026-10-01, egasi Q3) anatomiya o'zi shu
+ * ustunlar bilan o'qiydi (ierarxiya, vedomost, RZ — bir xil qoidalar). Eski `treeBuild`
+ * O'CHIRILMAGAN — faqat anatomiya varaqni LRV deb tanimasa zaxira; sabab hisobotga yoziladi
+ * (anatomiyani o'rgatish uchun signal).
  */
 function ierarxikDaraxt(name: string, rows: SheetGrid, cols: F2ColumnConfig): { tree: AktNode[]; hisobot: AnatomiyaHisobot } {
   let sabab: string;
@@ -715,13 +716,14 @@ function ierarxikDaraxt(name: string, rows: SheetGrid, cols: F2ColumnConfig): { 
     const v = varaqniTahlilQil(name, { nom: name, rows });
     const avto = v.ustunlar ? ustunSozlamasi(v.ustunlar) : null;
     const operator = !ustunTeng(cols, avto) && !ustunTeng(cols, f2UstunAniqla(rows)) && !ustunTeng(cols, avtoUstunlar(rows, name));
-    if (!operator) {
-      const d = lrvDaraxti(name, rows, v);
-      if (d.anatomiya) return { tree: d.tree, hisobot: { manba: name, ierarxiya: true, rzChuqurlik: rzChuqurligi(d.tree), vedomostChiqarildi: d.vedomost, sabab: null } };
-      sabab = `${d.sabab} — eski o‘quvchi ishlatildi`;
-    } else {
-      sabab = 'operator ustunlarni qo‘lda o‘zgartirdi — shu ustunlar bilan o‘qildi (anatomiya ustunlari bilan mos emas)';
+    const va = operator ? varaqniTahlilQil(name, { nom: name, rows }, 1, { ustunlar: ustunXaritasigaQayt(cols) }) : v;
+    const d = lrvDaraxti(name, rows, va);
+    if (d.anatomiya) {
+      return { tree: d.tree, hisobot: { manba: name, ierarxiya: true, rzChuqurlik: rzChuqurligi(d.tree), vedomostChiqarildi: d.vedomost, sabab: operator ? 'operator ustunlari anatomiyaga berildi (ierarxiya saqlandi)' : null } };
     }
+    sabab = operator
+      ? `operator ustunlari bilan ham ${d.sabab} — eski o‘quvchi ishlatildi`
+      : `${d.sabab} — eski o‘quvchi ishlatildi`;
   } catch {
     sabab = 'anatomiya xatosi — eski o‘quvchi ishlatildi';
   }

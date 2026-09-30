@@ -236,13 +236,20 @@ function titulOqi(rows: readonly Katak[][], oxir: number): Titul {
 
 // ─── Qatorlar ────────────────────────────────────────────────────────────────
 
-export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshId = 1): VaraqAnatomiyasi {
+/** Operator ko'rsatgan ustunlar (egasi Q3, 2026-10-01: zaxira yo'llarning kerakli qismi asosiy modulga) —
+ *  anatomiya o'z ustun xaritasi o'rniga shularni oladi, qolgan tahlil (rol, ierarxiya, vedomost) o'zgarmaydi. */
+export type AnatomiyaOpsiya = { ustunlar?: Partial<Omit<UstunXaritasi, 'sarlavhaQatori' | 'malumotBoshi'>> };
+
+export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshId = 1, opsiya: AnatomiyaOpsiya = {}): VaraqAnatomiyasi {
   const rows = varaq.rows;
   const blok = sarlavhaBlokiniTop(rows);
   const aniqlangan = rolAniqla(varaq.nom, blok, rows);
   let rol = aniqlangan.rol;
   const rolDalil = aniqlangan.dalil;
   const u: UstunXaritasi | null = blok ? ustunXaritasi(blok) : null;
+  if (u && opsiya.ustunlar) {
+    for (const [k, v] of Object.entries(opsiya.ustunlar)) if (typeof v === 'number' && v >= -1) (u as unknown as Record<string, number>)[k] = v;
+  }
   // Tartib ustuni sarlavhasiz bo'lsa (real F2: "№" katagi bo'sh, raqamlash B dan) —
   // shifrdan chapdagi ustunda tartib raqamlari (1, 1.1, 2 …) bo'lsa, o'sha tartib.
   if (u && u.tartib < 0 && u.shifr > 0) {
