@@ -244,3 +244,23 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
     expect(f3DavrMatni('2026-01')).toBe('январь 2026 г.');
   });
 });
+
+describe('F3 — manba varag‘i va SUMIFS (egasi 2026-09-30: "qayerdan olinganini bilish uchun formula")', () => {
+  it('ish qatorida F2 summalari «Ф-2 (источник)» varag‘idan SUMIFS bilan; manba satrlari to‘liq', () => {
+    const h = forma3Hujjat(MANBA, { obyektNom: 'Сунъий кўл', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK });
+    const t = hujjatTekshir(h.bytes, { ruxsat: [/^Сунъий кўл$/] });
+    expect(t.dollarFormulalar).toEqual([]);
+    expect(t.keshsizFormulalar).toEqual([]);
+    expect(t.varaqlar.map((v) => v.nom)).toEqual(expect.arrayContaining(['Ф-2 (источник)']));
+    const v = hisobotVaraq(t);
+    const nom = v.kataklar.find((k) => k.matn === 'Е01-01 РАЗРАБОТКА ГРУНТА')!;
+    const row = nom.ref.replace(/^[A-Z]+/, '');
+    const J = v.kataklar.find((k) => k.ref === `J${row}`)!;
+    expect(J.f).toBe(`SUMIFS('Ф-2 (источник)'!I:I,'Ф-2 (источник)'!A:A,R${row},'Ф-2 (источник)'!B:B,"сумма",'Ф-2 (источник)'!D:D,"<=202609")`);
+    expect(Number(J.v)).toBe(1_100_000); // ish ichidagi ЧЕЛ (100k+500k) va ПЕСОК (200k+300k)
+    const P = v.kataklar.find((k) => k.ref === `P${row}`)!;
+    expect(P.f).toMatch(/'Ф-2 \(источник\)'!D:D,202609\)$/);
+    const m = t.varaqlar.find((x) => x.nom === 'Ф-2 (источник)')!;
+    expect(m.kataklar.filter((k) => k.matn === 'сумма').length).toBe(4);
+  });
+});

@@ -395,8 +395,25 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'сум', kenglik: 16, tur: 'pul' },
   // Yashirin texnik: kategoriya (ЧЕЛ/МАШ/…).
   { sarlavha: 'Кат.', kenglik: 6, tur: 'texnik', yashirin: true },
+  // Yashirin texnik: F3 qatorining kaliti (smeta qatori id) — «Ф-2 (источник)» varag'idan SUMIFS uchun.
+  { sarlavha: 'Ключ', kenglik: 8, tur: 'texnik', yashirin: true },
 ];
 const KAT_USTUN = 'Q';
+const KALIT_USTUN = 'R';
+/** Manba varag'i: F3 ga kirgan har bir tasdiqlangan F2 qatori (egasi 2026-09-30: "qayerdan olinganini
+ *  bilish uchun maksimal formula"). F3 dagi F2 summalari/hajmlari shu varaqdan SUMIFS bilan olinadi. */
+const MANBA_VARAQ = 'Ф-2 (источник)';
+const MANBA_USTUNLAR: RasmiyUstun[] = [
+  { sarlavha: 'Ключ строки Ф-3', kenglik: 10, tur: 'kod' },
+  { sarlavha: 'Вид', kenglik: 9, tur: 'birlik' },
+  { sarlavha: 'Акт Ф-2', kenglik: 12, tur: 'kod' },
+  { sarlavha: 'Месяц (ГГГГММ)', kenglik: 10, tur: 'tartib' },
+  { sarlavha: 'Шифр, код', kenglik: 14, tur: 'kod' },
+  { sarlavha: 'Наименование позиции', kenglik: 52, tur: 'matn' },
+  { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
+  { sarlavha: 'Количество', kenglik: 13, tur: 'hajm' },
+  { sarlavha: 'Сумма, сум', kenglik: 16, tur: 'pul' },
+];
 const SARLAVHA_KATAKLAR: SarlavhaKatak[] = [
   { c1: 0, qator: 0, qatorlar: 3, matn: '№ п/п' },
   { c1: 1, qator: 0, qatorlar: 3, matn: 'Наименование объектов, этапов, видов работ, оборудования, затрат' },
@@ -545,6 +562,10 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     }
   }
 
+  const manba: Array<{ kalit: number; vid: 'сумма' | 'объем'; akt: string; oy: number; kod: string; nom: string; birlik: string; hajm: number | null; summa: number | null }> = [];
+  const oyNum = (oy: string) => Number(oy.slice(0, 7).replace('-', ''));
+  const davrNum = oyNum(o.davr);
+  const yilBoshNum = Number(o.davr.slice(0, 4) + '01');
   let oldingiObyekt: number | null = null;
   for (const rz of model.razdellar) {
     if (!rz.ishlar.length) continue; // bo'sh (fayl nomi/guruh) razdel — hujjatga kirmaydi
@@ -579,14 +600,30 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
       const d = 'bolalar' in x ? ishYig(x) : qiymatlar(x);
       const h = 'bolalar' in x ? x.f2H : x.f2H;
       const hajm = q.smeta_hajm;
+      // Manba satrlari: pul — barglar (ish ichidagi resurslar yoki o'zi), hajm — shu qator.
+      const bargIdlar = new Set<number>('bolalar' in x ? x.bolalar.map((b) => b.q.qator_id) : [q.qator_id]);
+      for (const f of m.f2Oylik) if (f.obyekt_id === x.obyekt_id && bargIdlar.has(f.qator_id) && f.oy <= o.davr) {
+        const bq = ('bolalar' in x ? x.bolalar.find((b) => b.q.qator_id === f.qator_id)?.q : q) ?? q;
+        manba.push({ kalit: q.qator_id, vid: 'сумма', akt: f.akt_raqam ?? (f.akt_id != null ? `№ ${f.akt_id}` : ''), oy: oyNum(f.oy), kod: bq.kod ?? '', nom: bq.nom ?? '', birlik: bq.birlik ?? '', hajm: null, summa: f.summa });
+      }
+      for (const f of m.f2Hajm ?? []) if (f.obyekt_id === x.obyekt_id && f.qator_id === q.qator_id && f.oy <= o.davr) {
+        manba.push({ kalit: q.qator_id, vid: 'объем', akt: '', oy: oyNum(f.oy), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', hajm: f.hajm, summa: null });
+      }
+      const pulBor = [...bargIdlar].some((id) => m.f2Oylik.some((f) => f.qator_id === id && f.oy <= o.davr));
+      const hajmBor = (m.f2Hajm ?? []).some((f) => f.qator_id === q.qator_id && f.oy <= o.davr);
+      const sif = (ustun: 'H' | 'I', vid: string, shart: string, rr: number) => `SUMIFS('${MANBA_VARAQ}'!${ustun}:${ustun},'${MANBA_VARAQ}'!A:A,${KALIT_USTUN}${rr},'${MANBA_VARAQ}'!B:B,"${vid}",${shart})`;
+      const B = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,"<=${davrNum}"`, rr);
+      const Y = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,">=${yilBoshNum}",'${MANBA_VARAQ}'!D:D,"<=${davrNum}"`, rr);
+      const D = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,${davrNum}`, rr);
       const r = v.qator('oddiy', (rr) => [
         String(++raqam), nomIzohBilan(`${q.kod ? q.kod + ' ' : ''}${q.nom ?? ''}`.trim(), q.ozgarish_izoh), q.birlik ?? '',
         hajm ?? null, hajm == null ? null : { f: `D${rr}`, v: hajm },
         d.smeta == null ? null : r2(d.smeta), d.smeta == null ? null : { f: `F${rr}`, v: r2(d.smeta) },
-        h.boshidan || null, foizF('H', 'D', rr, hajm ? ulush(h.boshidan, hajm) : null), r2(d.b),
-        h.yildan || null, foizF('K', 'E', rr, hajm ? ulush(h.yildan, hajm) : null), r2(d.y),
-        h.davr || null, foizF('N', 'E', rr, hajm ? ulush(h.davr, hajm) : null), r2(d.d),
+        hajmBor ? { f: B(rr, 'H', 'объем'), v: h.boshidan } : (h.boshidan || null), foizF('H', 'D', rr, hajm ? ulush(h.boshidan, hajm) : null), pulBor ? { f: B(rr, 'I', 'сумма'), v: r2(d.b) } : r2(d.b),
+        hajmBor ? { f: Y(rr, 'H', 'объем'), v: h.yildan } : (h.yildan || null), foizF('K', 'E', rr, hajm ? ulush(h.yildan, hajm) : null), pulBor ? { f: Y(rr, 'I', 'сумма'), v: r2(d.y) } : r2(d.y),
+        hajmBor ? { f: D(rr, 'H', 'объем'), v: h.davr } : (h.davr || null), foizF('N', 'E', rr, hajm ? ulush(h.davr, hajm) : null), pulBor ? { f: D(rr, 'I', 'сумма'), v: r2(d.d) } : r2(d.d),
         'bolalar' in x ? '' : (nakrutkaKat(q.kat) ?? ''),
+        q.qator_id,
       ], { daraja: 2 });
       ishQatorlar.push(r);
       if (d.smeta == null) { /* diqqat f3Model da yozilgan */ }
@@ -678,7 +715,17 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   v.blok([{ c1: 0, c2: 1, matn: 'М.П.', tur: 'izoh' }]);
   v.bosh();
   v.izoh('Форма одобрена решением Республиканской комиссии по мониторингу за реализацией реформ и лицензированию деятельности в области строительства (протокол от 21.05.2004 г. № 02-5-56). Заполняется ежемесячно подрядной организацией и представляется заказчику для подтверждения.');
-  const { bytes } = rasmiyKitob([v]);
+  const mv = new RasmiyVaraq({
+    nom: MANBA_VARAQ,
+    sarlavha: 'ИСТОЧНИК ДАННЫХ СПРАВКИ Ф-3: УТВЕРЖДЕННЫЕ АКТЫ ФОРМЫ № 2',
+    ostSarlavha: [`по состоянию на ${f3DavrMatni(o.davr)}; графы 8–16 справки берутся из этого листа формулами СУММЕСЛИМН по ключу строки и месяцу`],
+    titul: [['Объект:', o.obyektNom]],
+    ustunlar: MANBA_USTUNLAR,
+    yonalish: 'landscape',
+  });
+  manba.sort((a, b) => a.kalit - b.kalit || a.oy - b.oy || a.vid.localeCompare(b.vid));
+  for (const x of manba) mv.qator('oddiy', () => [x.kalit, x.vid, x.akt, x.oy, x.kod, x.nom, x.birlik, x.hajm, x.summa == null ? null : r2(x.summa)]);
+  const { bytes } = rasmiyKitob(manba.length ? [v, mv] : [v]);
   return {
     bytes,
     faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'ФОРМА_3', davr: o.davr }),

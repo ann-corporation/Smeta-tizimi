@@ -1716,6 +1716,26 @@
       ],
       "production_write_allowed": false,
       "_izoh": "EGASI_SINOV_2026-09-30 #10. Manba — F3 bilan bir xil certified F2 (f2OyKesimi). Oylar berilmasa eski «ранее / за период» ko‘rinishi."
+    },
+    {
+      "id": "F3-MANBA-FORMULA-001",
+      "title": "F3: F2 summalari va hajmlari «Ф-2 (источник)» varag‘idan SUMIFS formulasi bilan",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/f2-integr",
+      "base_sha": "ee8e7fa",
+      "status": "completed",
+      "owns": [
+        "frontend/src/lib/forma3-export.ts",
+        "frontend/src/lib/forma3-export.hujjat.test.ts",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "EGASI_SINOV_2026-09-30 #9."
     }
   ]
 }
