@@ -9,10 +9,10 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { AgentControlCenter } from '../../components/agent-control/AgentControlCenter';
-import { agentApprovalDecide, agentControlOl, agentRunTransition } from '../../api/t2-agent-control';
+import { agentApprovalDecide, agentControlOl, agentRunStart, agentRunTransition, agentWorkerRun } from '../../api/t2-agent-control';
 import type { AgentControlReadModel } from '../../lib/agent-control-plane';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
-import { yangiOperationId } from '../../api/supabase';
+import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
 import { toast } from '../../umumiy/ui/Toast';
 
 export default function AiAgentlar() {
@@ -20,6 +20,13 @@ export default function AiAgentlar() {
   const [data, setData] = useState<AgentControlReadModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
+  const [obyektId, setObyektId] = useState<number | null>(null);
+  const [natija, setNatija] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    if (!joriy?.id) return;
+    void sbT2ObyektlarOlKomp(joriy.id).then((r) => { const q = r.ok ? r.qatorlar ?? [] : []; setObyektlar(q); setObyektId(q[0]?.id ?? null); });
+  }, [joriy?.id]);
 
   const yukla = useCallback(async () => {
     setLoading(true); setError(null);
@@ -40,6 +47,28 @@ export default function AiAgentlar() {
         <h1 className="text-lg font-semibold">AI ishchilar (agentlar)</h1>
         <p className="text-xs text-text-dim">Har agent faqat o‘z roliga ruxsat etilgan buyruqlarni tayyorlaydi; pul va hujjatga ta’sir qiluvchi amallar — faqat rahbar tasdig‘i bilan. Barcha qadamlar auditda.</p>
       </div>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm">
+        <span className="font-medium">Sifat/Topshirish agenti:</span>
+        <select className="border rounded px-2 py-1 text-sm" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>
+          {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+        </select>
+        <button type="button" disabled={!obyektId || !joriy?.id} className="rounded-md border border-accent/40 px-3 py-1 text-accent hover:bg-accent/10 disabled:opacity-40"
+          onClick={() => {
+            const o = obyektlar.find((x) => x.id === obyektId);
+            if (!o || !joriy?.id) return;
+            void amal(() => agentRunStart({ agent_kod: 'quality_handover', command_kod: 'quality.handover.prepare', kompaniya_id: joriy.id, loyiha_id: (o as T2Obyekt & { loyiha_id?: number | null }).loyiha_id ?? null, obyekt_id: o.id, operation_id: yangiOperationId() }), 'Tahlil so‘rovi yaratildi — tasdiqlang');
+          }}>Obyektni tahlil qilish (АОСР + laboratoriya)</button>
+        <span className="text-xs text-text-dim">So‘rov → rahbar tasdig‘i → «Boshlash» → natija ko‘rib chiqishga.</span>
+      </div>
+      {natija && (
+        <div className="rounded-lg border border-border bg-surface p-3 text-sm space-y-1">
+          <div className="font-medium">Agent xulosasi</div>
+          <p>{String(natija.xulosa ?? '')}</p>
+          {Array.isArray(natija.yashirin_aktsiz) && natija.yashirin_aktsiz.length > 0 && (
+            <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.yashirin_aktsiz as Array<{ qator_id: number; nom: string; fakt_hajm: number; birlik: string }>).slice(0, 30).map((x) => <li key={x.qator_id}>{x.nom} — {x.fakt_hajm} {x.birlik}</li>)}</ul>
+          )}
+        </div>
+      )}
       <AgentControlCenter
         data={data} loading={loading} error={error}
         onRefresh={() => void yukla()}
@@ -49,7 +78,14 @@ export default function AiAgentlar() {
           if (!sabab) return;
           void amal(() => agentApprovalDecide({ run_id: run.run_id, decision: 'reject', sabab, expected_version: run.versiya, operation_id: yangiOperationId() }), 'Rad etildi');
         }}
-        onTransition={(run, holat) => void amal(() => agentRunTransition({ run_id: run.run_id, new_holat: holat, expected_version: run.versiya, operation_id: yangiOperationId() }), 'Holat o‘zgardi')}
+        onTransition={(run, holat) => {
+          // Ishchi agent bor bo'lsa — «Boshlash» uni ishga tushiradi (tahlil → ko'rib chiqishga).
+          if (holat === 'running' && run.agent_kod === 'quality_handover') {
+            void amal(async () => { const r = await agentWorkerRun({ agent_kod: run.agent_kod, run_id: run.run_id, expected_version: run.versiya, operation_id: yangiOperationId() }); setNatija(r.result); }, 'Tahlil tayyor — ko‘rib chiqing');
+            return;
+          }
+          void amal(() => agentRunTransition({ run_id: run.run_id, new_holat: holat, expected_version: run.versiya, operation_id: yangiOperationId() }), 'Holat o‘zgardi');
+        }}
       />
     </div>
   );

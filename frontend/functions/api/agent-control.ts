@@ -10,7 +10,14 @@ const RPC = {
   approval_decide: 't2_agent_approval_decide_v1',
   tool_prepare: 't2_agent_tool_call_prepare_v1',
   read: 't2_agent_control_v1',
+  /* Ishchi agentlar (2026-10-01): run 'queued' → tahlil → 'waiting_review'. Faqat ro'yxatdagi ishchilar. */
+  worker_run: 'worker',
 } as const;
+
+/** Agent → ishchi RPC (faqat o'qib tahlil qiladi; biznes ma'lumotiga yozmaydi). */
+const ISHCHILAR: Record<string, string> = {
+  quality_handover: 't2_agent_ishchi_sifat_v1',
+};
 
 async function actor(ctx: any): Promise<{ actorId: number } | Response> {
   const session = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
@@ -72,6 +79,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       payload = { p_actor_id: a.actorId, p_agent_kod: String(body.agent_kod || ''), p_command_kod: String(body.command_kod || ''), p_kompaniya_id: body.kompaniya_id == null ? null : Number(body.kompaniya_id), p_loyiha_id: body.loyiha_id == null ? null : Number(body.loyiha_id), p_obyekt_id: body.obyekt_id == null ? null : Number(body.obyekt_id), p_operation_id: operationId, p_input: body.input || {}, p_requires_approval: body.requires_approval !== false };
     } else if (action === 'run_transition') {
       payload = { p_actor_id: a.actorId, p_run_id: Number(body.run_id), p_new_holat: String(body.new_holat || ''), p_expected_version: Number(body.expected_version), p_operation_id: operationId, p_result: body.result ?? null, p_error_code: body.error_code ?? null, p_error_detail: body.error_detail ?? null };
+    } else if (action === 'worker_run') {
+      const rpcNom = ISHCHILAR[String(body.agent_kod || '')];
+      if (!rpcNom) return Response.json({ ok: false, code: 'WORKER_NOT_AVAILABLE' }, { status: 400 });
+      const result = await rpc(ctx.env, rpcNom, { p_actor_id: a.actorId, p_run_id: Number(body.run_id), p_expected_version: Number(body.expected_version), p_operation_id: operationId });
+      if (!result.response.ok || !result.json?.ok) {
+        const code = result.json?.code || 'AGENT_WORKER_FAILED';
+        return xavfsizUpstream(result.response.status, result.json || result.text, statusFor(code));
+      }
+      return Response.json({ ...result.json, operation_id: operationId });
     } else if (action === 'approval_decide') {
       payload = { p_actor_id: a.actorId, p_run_id: Number(body.run_id), p_decision: String(body.decision || ''), p_sabab: body.sabab ?? null, p_expected_version: Number(body.expected_version), p_operation_id: operationId };
     } else {

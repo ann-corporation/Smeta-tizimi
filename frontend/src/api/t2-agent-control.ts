@@ -48,6 +48,13 @@ export function agentApprovalDecide(input: AgentApprovalDecisionInput) {
   });
 }
 
+/** Ishchi agentni ishga tushirish (run 'queued' bo'lishi — ya'ni tasdiqlangan — shart). */
+export function agentWorkerRun(input: { agent_kod: string; run_id: number; expected_version: number; operation_id?: string }) {
+  return request<{ ok: true; run_id: number; holat: string; versiya: number; result: Record<string, unknown> }>({
+    method: 'POST', body: JSON.stringify({ action: 'worker_run', ...input }),
+  });
+}
+
 export function agentToolPrepare(input: AgentToolPrepareInput) {
   return request<{ ok: true; tool_call_id: number; run_id: number; sequence_no: number; tool_kod: string; holat: string }>({
     method: 'POST', body: JSON.stringify({ action: 'tool_prepare', ...input }),
