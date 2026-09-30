@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "tekshir": "node testlar/hammasi.cjs",
+    "site-map:generate": "node scripts/generate-site-map.mjs",
+    "site-map:check": "node scripts/generate-site-map.mjs --check",
     "korpus": "vitest run src/lib/smeta-anatomiya/korpus"
   },
   "dependencies": {

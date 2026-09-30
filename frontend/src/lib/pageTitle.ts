@@ -3,7 +3,7 @@ const titles: Array<[RegExp, string]> = [
   [/^\/admin\/storage(?:\/|$)/, 'Fayl saqlash'], [/^\/admin\/(?:test\/)?saqlash(?:\/|$)/, 'Fayl saqlash'],
   [/^\/admin\/mindmap(?:\/|$)/, 'Mindmap'], [/^\/admin\/(?:test\/)?xarita(?:\/|$)/, 'Mindmap'],
   [/^\/admin\/participants(?:\/|$)/, 'Loyiha ishtirokchilari'], [/^\/admin\/(?:system-control|control)(?:\/|$)/, 'Tizim boshqaruv markazi'],
-  [/^\/admin\/documents(?:\/|$)/, 'Hujjatlar'], [/^\/admin\/dashboard(?:\/|$)/, 'Rahbar paneli'],
+  [/^\/admin\/documents(?:\/|$)/, 'Hujjatlar'], [/^\/admin\/sayt-xaritasi(?:\/|$)/, 'Sayt xaritasi'], [/^\/admin\/dashboard(?:\/|$)/, 'Rahbar paneli'],
   [/^\/admin\/obyektlar(?:\/|$)/, 'Loyihalar va obyektlar'],
   [/^\/admin\/holat(?:\/|$)/, 'PTO workbench'], [/^\/admin\/fakt(?:\/|$)/, 'Fakt'],
   [/^\/admin\/f2-tayyorlash(?:\/|$)/, 'F2 tayyorlash'], [/^\/admin\/f2(?:\/|$)/, 'F2 import'],
