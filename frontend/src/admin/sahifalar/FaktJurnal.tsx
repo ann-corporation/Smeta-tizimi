@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import { CheckCircle2, ChevronDown, ChevronRight, Cpu, Plus, Repeat2, RotateCcw, Save, Search, X } from 'lucide-react';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
-import { JURNAL_XATO_MATN, jurnalPaket, jurnalQur, qoldiqUlushi, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim } from '../../lib/fakt-jurnal';
+import { faktFormulaKonteksti, JURNAL_XATO_MATN, jurnalPaket, jurnalQur, kiritmaSon, qoldiqUlushi, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim } from '../../lib/fakt-jurnal';
 import { toast } from '../../umumiy/ui/Toast';
 import { SmetadanTashqariModal } from './SmetadanTashqariModal';
 
@@ -55,7 +55,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const faktlar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, Number(x.fakt_hajm ?? 0)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? 0])); }, [rows, states]);
   useEffect(() => { if (bolimId == null && bolimlar.length) setBolimId(bolimlar[0].id); }, [bolimId, bolimlar]);
 
-  const paket = useMemo(() => jurnalPaket(kiritmalar, faktlar), [kiritmalar, faktlar]);
+  const formulaKontekstlari = useMemo(() => {
+    const all = new Map<number, ReturnType<typeof faktFormulaKonteksti>>();
+    for (const ishlar of bolimIshlari.values()) for (const ish of ishlar) {
+      all.set(ish.id, faktFormulaKonteksti(ish));
+      for (const r of [...ish.resurslar, ...ish.avtomatik]) all.set(r.id, faktFormulaKonteksti(r));
+    }
+    return all;
+  }, [bolimIshlari]);
+  const paket = useMemo(() => jurnalPaket(kiritmalar, faktlar, formulaKontekstlari), [kiritmalar, faktlar, formulaKontekstlari]);
   const ozgarishSoni = Object.values(kiritmalar).filter((k) => k.qiymat.trim()).length;
 
   // Ko'rinadigan ishlar: qidiruv bo'lsa — butun obyekt bo'yicha; aks holda tanlangan bo'lim.
@@ -123,7 +131,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     const i = tabIndeks++;
     const k = kiritmalar[q.id] ?? { rejim: '+' as Rejim, qiymat: '' };
     const xato = paket.xatolar.get(q.id);
-    const yangiFakt = (() => { const n = Number(k.qiymat.replace(',', '.')); if (!k.qiymat.trim() || !Number.isFinite(n)) return null; return k.rejim === '+' ? q.fakt + n : n; })();
+    const hisoblangan = kiritmaSon(k.qiymat, faktFormulaKonteksti(q));
+    const yangiFakt = typeof hisoblangan === 'number' ? (k.rejim === '+' ? q.fakt + hisoblangan : hisoblangan) : null;
+    const formula = k.qiymat.trim().startsWith('=');
     return <div className="flex items-center justify-end gap-1.5">
       <div className="flex w-[118px] justify-end gap-1">{!kichik && [25, 50, 100].map((p) => { const v = qoldiqUlushi(q, p); return v ? <button key={p} type="button" tabIndex={-1} onClick={() => kirit(q.id, { rejim: '+', qiymat: v })} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-text-dim hover:border-accent hover:text-text">{p}%</button> : null; })}</div>
       <div className="inline-flex overflow-hidden rounded-md border border-border text-[11px]" role="group" aria-label="Kiritish rejimi">
@@ -131,10 +141,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       </div>
       <div className="relative">
         <input ref={(el) => { inputlar.current[i] = el; }} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, i, q.id)} inputMode="decimal"
-          placeholder={k.rejim === '+' ? 'bugun' : 'jami'} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
+          placeholder={k.rejim === '+' ? 'bugun yoki =QOLDIQ*0.25' : 'jami yoki =SMETA-FAKT'} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
           className={`w-28 rounded-md border bg-bg px-2 py-1 text-right font-mono text-[13px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 ${xato ? 'border-warn' : k.qiymat ? 'border-accent/60' : 'border-border'}`} />
         {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10px] text-warn">{JURNAL_XATO_MATN[xato]}</div>
-          : yangiFakt != null && <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10px] text-text-mute">→ {fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}</div>}
+          : yangiFakt != null && <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10px] text-text-mute">{formula ? `= ${fmt(hisoblangan as number)} → ` : '→ '}{fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}</div>}
       </div>
     </div>;
   };
@@ -178,6 +188,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           <input ref={qidiruvRef} value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Butun obyekt bo‘yicha qidirish…  ( / )" aria-label="Qidirish" className="input h-8 w-full pl-8 pr-8 text-[13px]" />
           {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute" aria-label="Qidiruvni tozalash"><X size={14} /></button>}</div>
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> faqat bajarilmaganlar</label>
+        <span className="text-[11px] text-text-mute" title="Faqat shu qator qiymatlari: SMETA, FAKT, QOLDIQ, F2_MUMKIN. SUM/MIN/MAX/ROUND ham ishlaydi.">Formula: <b>=QOLDIQ*0.25</b></span>
         <button onClick={() => setModal({ bolimId })} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 px-3 text-[12px] font-semibold text-text hover:bg-accent/10"><Plus size={14} className="text-accent" /> Smetadan tashqari ish</button>
       </section>
 

@@ -9,6 +9,7 @@
  *    `fakt_yoz_v2` paketiga delta sifatida tushadi (bitta tranzaksiya, bitta operation_id).
  */
 import type { T2Qator } from '../api/supabase';
+import { numberFormula, type FormulaContext, type FormulaError } from './formula/number-formula';
 
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
@@ -143,24 +144,36 @@ export function sonOqi(v: string): number | null {
   return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
 }
 
-export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL';
+export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL' | FormulaError;
 export const JURNAL_XATO_MATN: Record<JurnalXato, string> = {
   SON_EMAS: 'Son emas', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', NOL: '0 qo‘shilmaydi',
+  SYNTAX: 'Formula yozilishi noto‘g‘ri', UNKNOWN_NAME: 'Noma’lum nom yoki funksiya', MISSING_VALUE: 'Formula uchun qiymat noma’lum',
+  DIVIDE_BY_ZERO: '0 ga bo‘lish mumkin emas', INVALID_NUMBER: 'Son yoki formula kiriting', TOO_COMPLEX: 'Formula juda murakkab',
 };
+
+/** Shu qator uchun formula oq ro‘yxati. Boshqa qator/obyektga havola yo‘q. */
+export function faktFormulaKonteksti(q: Pick<JurnalQator, 'smeta' | 'fakt' | 'qoldiq' | 'f2Mumkin'>): FormulaContext {
+  return { SMETA: q.smeta, FAKT: q.fakt, QOLDIQ: q.qoldiq, F2_MUMKIN: q.f2Mumkin };
+}
+
+export function kiritmaSon(value: string, context: FormulaContext = {}): number | null | FormulaError {
+  const result = numberFormula(value, context);
+  return result.ok ? result.value : (value.trim() ? result.error : null);
+}
 
 /**
  * Kiritmalarni bitta delta paketiga: "+" → n; "=" → n − joriy fakt (o'zgarish yo'q bo'lsa tashlanadi).
  * `faktlar` — joriy server qiymatlari (qator_id → fakt).
  */
-export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktlar: ReadonlyMap<number, number>) {
+export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktlar: ReadonlyMap<number, number>, contexts: ReadonlyMap<number, FormulaContext> = new Map()) {
   const qatorlar: { qator_id: number; hajm: number }[] = [];
   const xatolar = new Map<number, JurnalXato>();
   for (const [k, v] of Object.entries(kiritmalar)) {
     const id = Number(k); const joriy = faktlar.get(id);
     if (joriy == null) continue;
-    const n = sonOqi(v.qiymat);
+    const n = kiritmaSon(v.qiymat, contexts.get(id));
     if (n == null) continue;
-    if (!Number.isFinite(n)) { xatolar.set(id, 'SON_EMAS'); continue; }
+    if (typeof n !== 'number' || !Number.isFinite(n)) { xatolar.set(id, typeof n === 'string' ? n : 'SON_EMAS'); continue; }
     const delta = v.rejim === '+' ? n : yaxlit(n - joriy);
     if (v.rejim === '+' && n === 0) { xatolar.set(id, 'NOL'); continue; }
     if (joriy + delta < -1e-9) { xatolar.set(id, 'MANFIY'); continue; }

@@ -20,7 +20,7 @@
       "branch": "codex/pto-chain-integrity-implementation",
       "base_sha": "15b689a2f4a540ec4cca265250b377334bb72d34",
       "status": "in_progress",
-      "owns": ["frontend/src/lib/pto-document-lineage/", "frontend/src/lib/narx-dalil/taklif.ts", "frontend/src/lib/narx-dalil/narx-dalil.test.ts", "ops/handoff/T2_PTO_CHAIN_INTEGRITY_001.md"],
+      "owns": ["frontend/src/lib/pto-document-lineage/", "frontend/src/lib/narx-dalil/taklif.ts", "frontend/src/lib/narx-dalil/narx-dalil.test.ts", "frontend/src/lib/formula/", "frontend/src/lib/fakt-jurnal.ts", "frontend/src/lib/fakt-jurnal.test.ts", "frontend/src/admin/sahifalar/FaktJurnal.tsx", "frontend/src/admin/sahifalar/FaktJurnal.test.tsx", "ops/handoff/T2_PTO_CHAIN_INTEGRITY_001.md"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
       "production_write_allowed": false

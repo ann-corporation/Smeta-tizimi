@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi } from './fakt-jurnal';
+import { faktFormulaKonteksti, holatTur, jurnalPaket, jurnalQur, kiritmaSon, qoldiqUlushi, sonOqi } from './fakt-jurnal';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 1, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: 'n', birlik: 'м3',
@@ -25,6 +25,17 @@ const states = [
 ];
 
 describe('fakt jurnali', () => {
+  it('formula faqat shu qatorning oq ro‘yxatdagi qiymatlarini hisoblaydi', () => {
+    const c = faktFormulaKonteksti({ smeta: 100, fakt: 40, qoldiq: 60, f2Mumkin: 12 });
+    expect(kiritmaSon('=QOLDIQ*25/100', c)).toBe(15);
+    expect(kiritmaSon('=SMETA+BEGONA', c)).toBe('UNKNOWN_NAME');
+    expect(kiritmaSon('=SMETA/0', c)).toBe('DIVIDE_BY_ZERO');
+  });
+
+  it('formula qiymatini Fakt paketiga delta qilib yuboradi', () => {
+    const p = jurnalPaket({ 2: { rejim: '+', qiymat: '=QOLDIQ*0.25' } }, new Map([[2, 40]]), new Map([[2, { QOLDIQ: 60 }]]));
+    expect(p).toMatchObject({ ok: true, qatorlar: [{ qator_id: 2, hajm: 15 }] });
+  });
   it('bo‘limlar daraxt tartibida, ichki bo‘lim bilan foiz (summa bo‘yicha)', () => {
     const { bolimlar } = jurnalQur(rows, states);
     expect(bolimlar.map((b) => [b.id, b.daraja])).toEqual([[1, 0], [5, 1]]);

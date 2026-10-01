@@ -7,6 +7,10 @@ Egasi real oferta uchun dalilli reestrni ustuvor qildi. To‘liq talab: `D:/Obsi
 
 Branch: `codex/pto-chain-integrity-implementation`. Base: `15b689a2f4a540ec4cca265250b377334bb72d34`.
 
+## Checkpoint 3 — formula input
+
+Fakt jurnalida `=` bilan boshlanuvchi yengil Excel formula qabul qilinadi. Parser oq ro‘yxatli (`+ - * /`, qavs, `SUM/MIN/MAX/ROUND`), `eval` yo‘q. Kontekst faqat shu qator: `SMETA`, `FAKT`, `QOLDIQ`, `F2_MUMKIN`. Formula preview natijasi aniq Fakt delta sifatida saqlanadi. Unknown, NULL va 0 ga bo‘lish fail-closed. Formula F2 tarixini o‘zgartirmaydi. Testlar qo‘shilgan; parallel Node jarayonlari sabab vitest/build yakuniy logi toza runnerda qayta tekshirilishi kerak.
+
 Amaliy tuzatishlar:
 - Explicit object-contract evidence yo‘qligi endi validatorni chetlab o‘tmaydi.
 - Calendar month 01..12 va source canonical IDs pul/hajm yo‘llarida tekshiriladi.

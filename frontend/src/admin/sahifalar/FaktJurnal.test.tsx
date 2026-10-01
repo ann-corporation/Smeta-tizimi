@@ -55,6 +55,15 @@ describe('FaktJurnal', () => {
     await waitFor(() => expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ qatorlar: [{ qator_id: 2, hajm: 60 }] })));
   });
 
+  it('Excel-uslubidagi formula shu qator kontekstida hisoblanib saqlanadi', async () => {
+    m.yoz.mockResolvedValue({ ok: true });
+    render(<FaktJurnal {...props()} />);
+    fireEvent.change(screen.getByLabelText('Bugun bajarildi: Grunt'), { target: { value: '=QOLDIQ*0.25' } });
+    expect(screen.getByText(/= 15/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^Saqlash/ }));
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ qatorlar: [{ qator_id: 2, hajm: 15 }] })));
+  });
+
   it('boshqa bo‘lim tanlanadi; qidiruv butun obyekt bo‘yicha', () => {
     render(<FaktJurnal {...props()} />);
     expect(screen.queryByText('Poydevor')).toBeNull();
