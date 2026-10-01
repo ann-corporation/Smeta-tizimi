@@ -227,6 +227,8 @@ export const onRequestPost: PagesFunction<{
         ish_turi_qidir_v1: 'obyekt_actor',
         resurs_qidir_v1: 'obyekt_actor',
         resurs_narx_taklif_v1: 'obyekt_actor',
+        /* Egasi 2026-10-01: Loyiha → Shartnoma (tomonlar) → Obyektlar liniyasi. `stable`, a'zolik ichida. */
+        shartnoma_liniya_v1: 'kompaniya_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {

@@ -35,6 +35,8 @@ const AMALLAR = {
   /* Qo'shilgan qatorlarni o'chirish/asliga qaytarish va tahrirlash — smeta qatorlari o'zgarmas (server tekshiradi). */
   ish_abc_ochir_v1: { rpc: 't2_ish_abc_ochir_v1' },
   ish_abc_tahrir_v1: { rpc: 't2_ish_abc_tahrir_v1' },
+  /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
+  shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   zamena_ish_yarat_v1: { rpc: 't2_zamena_ish_yarat_v1' },
   resurs_bola_qosh_v1: { rpc: 't2_resurs_bola_qosh_v1' },
   /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
@@ -531,6 +533,27 @@ export const onRequestPost: PagesFunction<{
         p_ish: so.ish ?? null, p_resurslar: so.resurslar ?? null,
         p_fakt_hajm: so.fakt_hajm == null || so.fakt_hajm === '' ? null : Number(so.fakt_hajm),
         p_sana: so.sana ?? null, p_sabab: String(so.sabab).slice(0, 500), p_operation_id: so.operation_id,
+      };
+    } else if (amal === 'shartnoma_saqla_v2') {
+      const m = so.malumot;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !m || typeof m !== 'object' || Array.isArray(m)
+          || (so.id != null && !Number.isSafeInteger(Number(so.id)))
+          || (so.tomonlar != null && (!Array.isArray(so.tomonlar) || so.tomonlar.length > 30))
+          || (so.obyektlar != null && (!Array.isArray(so.obyektlar) || so.obyektlar.length > 500 || so.obyektlar.some((x: unknown) => !Number.isSafeInteger(Number(x)))))) {
+        return Response.json({ ok: false, error: 'Shartnoma ma\'lumoti, ≤30 tomon, ≤500 obyekt va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      const mk = ['loyiha_id', 'raqam', 'nom', 'turi', 'asosiy', 'taraf', 'summa_bez_nds', 'nds', 'jami_nds_bilan', 'izoh', 'holat'];
+      const malumot: Record<string, unknown> = {};
+      for (const k of mk) if (m[k] !== undefined) malumot[k] = typeof m[k] === 'string' ? String(m[k]).slice(0, 1000) : m[k];
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_id: so.id == null ? null : Number(so.id),
+        p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_malumot: malumot,
+        p_tomonlar: so.tomonlar == null ? null : so.tomonlar.map((t: any) => ({
+          rol: String(t?.rol ?? '').slice(0, 120), nom: String(t?.nom ?? '').slice(0, 300), inn: t?.inn == null ? null : String(t.inn).slice(0, 30),
+          kontragent_id: t?.kontragent_id ?? null, tomon_kompaniya_id: t?.tomon_kompaniya_id ?? null,
+          rekvizit: t?.rekvizit && typeof t.rekvizit === 'object' && !Array.isArray(t.rekvizit) ? t.rekvizit : {},
+        })),
+        p_obyektlar: so.obyektlar == null ? null : so.obyektlar.map(Number), p_operation_id: so.operation_id,
       };
     } else if (amal === 'ish_turi_saqla_v1') {
       if (!sess.foydalanuvchi_id) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });

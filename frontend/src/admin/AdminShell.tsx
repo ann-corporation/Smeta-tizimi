@@ -58,6 +58,7 @@ const TIZIM_02_GURUHLAR = [
       { yol: '/admin/nakrutka', nom: 'Nakrutka (ustama) hisobi', Ikonka: Calculator },
       { yol: '/admin/narx-manbalari', nom: 'Narx manbalari (katalog, faktura, КП)', Ikonka: Calculator },
       { yol: '/admin/narx-dalil', nom: 'Narx dalili (Обоснование цен)', Ikonka: Calculator },
+        { yol: '/admin/shartnoma-liniya', nom: 'Loyiha → Shartnoma → Obyekt', Ikonka: FolderKanban },
         { yol: '/admin/moliya', nom: 'Moliya va Shartnomalar', Ikonka: Briefcase },
       { yol: '/admin/logistika', nom: 'Ta\'minot va Sklad', Ikonka: Box },
         { yol: '/admin/zayavka', nom: 'Zayavkalar (PTO)', Ikonka: ClipboardList },

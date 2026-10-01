@@ -26,6 +26,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/nakrutka",
     "/admin/narx-manbalari",
     "/admin/narx-dalil",
+    "/admin/shartnoma-liniya",
     "/admin/moliya",
     "/admin/logistika",
     "/admin/zayavka",
@@ -54,6 +55,7 @@ export const GENERATED_SITE_MAP = {
     "f2",
     "f2-eski",
     "f2-tayyorlash",
+    "shartnoma-liniya",
     "nakopitelniy",
     "m29",
     "nakrutka",
@@ -238,6 +240,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "ish_abc_tahrir_v1",
       "rpc": "t2_ish_abc_tahrir_v1"
+    },
+    {
+      "amal": "shartnoma_saqla_v2",
+      "rpc": "t2_shartnoma_saqla_v2"
     },
     {
       "amal": "zamena_ish_yarat_v1",
