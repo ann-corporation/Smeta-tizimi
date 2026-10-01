@@ -23,6 +23,7 @@ import { useSystemControl } from '../../api/t2-control';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { tizimdanChiq } from '../../umumiy/kontekst/chiqish';
+import { KompaniyaLogoYuklash } from '../../umumiy/hujjat/KompaniyaLogo';
 import { PERMISSIONS, ROLE_PERMISSIONS, MEMBERSHIP_ROLES } from '../../lib/company-authorization/effective-authorization';
 
 const AZO_ROLLAR = ['boss', 'rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'] as const;
@@ -538,7 +539,7 @@ function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniy
         ))}
       </div>
       <div className="mt-3">
-        {tab === 'profil' && <ProfilTab kompaniyaId={kompaniyaId} isDirector={isDirector} />}
+        {tab === 'profil' && <><ProfilTab kompaniyaId={kompaniyaId} isDirector={isDirector} /><KompaniyaLogoYuklash kompaniyaId={kompaniyaId} isDirector={isDirector} /></>}
         {tab === 'azolar' && <AzolarBoshqaruv kompaniyaId={kompaniyaId} kompaniyaNom={kompaniyaNom} isDirector={isDirector} />}
         {tab === 'rollar' && <RollarTab kompaniyaId={kompaniyaId} isDirector={isDirector} />}
         {tab === 'modullar' && <ModullarTab kompaniyaId={kompaniyaId} />}

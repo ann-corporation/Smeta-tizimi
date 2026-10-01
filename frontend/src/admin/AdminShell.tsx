@@ -6,6 +6,7 @@ import { Map, LogOut, Building2, FileInput, Activity, Tags, Network, Calculator,
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
 import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
+import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
@@ -286,12 +287,16 @@ function AdminShellInner() {
         }`}
       >
         <div className={`p-4 border-b border-border flex items-center ${sidebarKengaygan ? 'gap-3' : 'justify-center'}`}>
-          <div className="os-brand-mark w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
-            <FlaskConical className="text-white" size={18} />
-          </div>
+          <KompaniyaLogoRasm
+            kompaniyaId={k.globalRejim ? null : k.joriy?.id}
+            className="w-8 h-8 rounded-lg object-contain bg-white flex-shrink-0"
+            zaxira={<div className="os-brand-mark w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FlaskConical className="text-white" size={18} />
+            </div>}
+          />
           {sidebarKengaygan && (
             <div className="min-w-0">
-              <h1 className="text-[15px] font-bold text-text leading-tight tracking-wider whitespace-nowrap">SMETA TIZIM 02</h1>
+              <h1 className="text-[15px] font-bold text-text leading-tight tracking-wider whitespace-nowrap truncate" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'SMETA TIZIM 02'}</h1>
               <p className="text-[11px] text-text-dim uppercase tracking-wider font-medium mt-0.5 text-accent/80 whitespace-nowrap">
                 👑 {k.globalRejim ? 'Global (superadmin)' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan'))}
               </p>

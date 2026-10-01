@@ -25,6 +25,7 @@ import { sbKontragentlarOl, type Kontragent } from '../api/t2-kontragent';
 import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../api/supabase';
 import { aosrExcel, aosrFaylNomi, aosrKomissiyaTartibi } from '../lib/aosr-export';
 import { qoralamaTanlangandan } from '../lib/aosr-qoralama';
+import { aosrReestrXlsx, labReestrXlsx } from '../lib/ijro-reestr-export';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
 
@@ -143,6 +144,21 @@ export default function TestAosr() {
     }
   };
 
+  /** Reestr Excel (РЕЕСТР АОСР / РЕЕСТР ПРОТОКОЛОВ) — joriy obyekt bo'yicha. */
+  const reestr = (tur: 'aosr' | 'lab') => {
+    try {
+      const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
+      const imzo = { pudratchi: joriy?.nom };
+      const { bytes, faylNomi } = tur === 'aosr' ? aosrReestrXlsx(aktlar, { obyektNomi, imzo }) : labReestrXlsx(protokollar, { obyektNomi, imzo });
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const el = document.createElement('a');
+      el.href = url; el.download = faylNomi; el.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      toast('Reestr yasalmadi: ' + (e instanceof Error ? e.message : String(e)), 'danger');
+    }
+  };
+
   const ulash = async () => {
     if (!forma?.id || belgilangan.size === 0) { toast('Aktni oching va kamida bitta ish belgilang', 'warn'); return; }
     const r = await sbAosrBogSaqla([forma.id], Array.from(belgilangan));
@@ -253,6 +269,7 @@ export default function TestAosr() {
           <div className="bg-black border border-zinc-800 rounded-lg overflow-hidden">
             <div className="p-2.5 bg-zinc-800 flex items-center justify-between">
               <h2 className="font-bold text-sm">Akt reestri ({faolAktlar.length})</h2>
+              <button onClick={() => reestr('aosr')} disabled={!faolAktlar.length} className="ml-auto mr-2 text-emerald-400 hover:text-emerald-300 disabled:opacity-40 text-xs flex items-center gap-1" title="РЕЕСТР АОСР (Excel)"><FileSpreadsheet size={14} /> Reestr</button>
               <button onClick={() => yangiAkt(false)} className="bg-emerald-700 hover:bg-emerald-600 px-2.5 py-1 rounded text-xs flex items-center gap-1"><Plus size={13} /> Yangi akt</button>
             </div>
             {forma ? (
@@ -329,6 +346,7 @@ export default function TestAosr() {
           <div className="bg-black border border-zinc-800 rounded-lg overflow-hidden">
             <div className="p-2.5 bg-zinc-800 flex items-center justify-between">
               <h2 className="font-bold text-sm">Laboratoriya protokollari ({protokollar.length})</h2>
+              <button onClick={() => reestr('lab')} disabled={!protokollar.length} className="ml-auto mr-2 text-emerald-400 hover:text-emerald-300 disabled:opacity-40 text-xs flex items-center gap-1" title="РЕЕСТР ПРОТОКОЛОВ (Excel)"><FileSpreadsheet size={14} /> Reestr</button>
               <button onClick={() => setPForma({ sinov_turi: 'beton', natija: 'kutilmoqda', laboratoriya_id: lablar[0]?.id ?? null, sana: new Date().toISOString().slice(0, 10), aosr_ids: [] })}
                 className="bg-emerald-700 hover:bg-emerald-600 px-2.5 py-1 rounded text-xs flex items-center gap-1"><Plus size={13} /> Protokol</button>
             </div>
