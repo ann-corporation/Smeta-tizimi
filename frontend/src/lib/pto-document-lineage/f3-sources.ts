@@ -1,16 +1,30 @@
 import type { F2Tafsilot } from '../../api/t2-narx';
 import type { Forma3Manba } from '../forma3-export';
 
+const validPeriod = (value: string): boolean => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+
+function requirePeriod(period: string): void {
+  if (!validPeriod(period)) throw new Error('F3_PERIOD_MISMATCH');
+}
+
+/** Pul va hajm bir xil tasdiqlangan manba doirasidan olinadi. */
+function sourceMonth(row: F2Tafsilot, companyId: number, objectId: number): string {
+  if (row.kompaniya_id !== companyId || row.obyekt_id !== objectId) throw new Error('F3_SOURCE_SCOPE_MISMATCH');
+  if (!Number.isSafeInteger(row.akt_id) || row.akt_id <= 0 || !Number.isSafeInteger(row.qator_id) || row.qator_id <= 0) throw new Error('F3_SOURCE_ID_REQUIRED');
+  const month = String(row.oy).slice(0, 7);
+  requirePeriod(month);
+  return month;
+}
+
 /** Certified snapshots, never legacy generated summa or current estimate price. */
 export function f3CertifiedSources(rows: readonly F2Tafsilot[], companyId: number, objectId: number, period: string): Forma3Manba['f2Oylik'] {
+  requirePeriod(period);
   const result: Array<Forma3Manba['f2Oylik'][number]> = [];
   for (const row of rows) {
     if (row.kompaniya_id !== companyId || row.obyekt_id !== objectId) throw new Error('F3_SOURCE_SCOPE_MISMATCH');
     if (row.akt_holat !== 'tasdiqlangan') continue;
-    const month = String(row.oy).slice(0, 7);
+    const month = sourceMonth(row, companyId, objectId);
     if (month > period) continue;
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('F3_PERIOD_MISMATCH');
-    if (!Number.isSafeInteger(row.akt_id) || row.akt_id <= 0 || !Number.isSafeInteger(row.qator_id) || row.qator_id <= 0) throw new Error('F3_SOURCE_ID_REQUIRED');
     // Quantity-only BL/resource records are not money facts. Keep NULL distinct
     // from zero; never synthesize an amount from their quantity or estimate.
     if (row.certified_amount == null && row.certified_unit_price == null && row.narx == null && row.summa == null) continue;
@@ -26,11 +40,12 @@ export function f3CertifiedSources(rows: readonly F2Tafsilot[], companyId: numbe
  * hujjatning o'z miqdori (certified_quantity, bo'lmasa hajm); ish (bl) qatorlari ham.
  */
 export function f3CertifiedHajm(rows: readonly F2Tafsilot[], companyId: number, objectId: number, period: string): NonNullable<Forma3Manba['f2Hajm']> {
+  requirePeriod(period);
   const result: Array<NonNullable<Forma3Manba['f2Hajm']>[number]> = [];
   for (const row of rows) {
     if (row.kompaniya_id !== companyId || row.obyekt_id !== objectId) throw new Error('F3_SOURCE_SCOPE_MISMATCH');
     if (row.akt_holat !== 'tasdiqlangan') continue;
-    const month = String(row.oy).slice(0, 7);
+    const month = sourceMonth(row, companyId, objectId);
     if (month > period) continue;
     const h = row.certified_quantity ?? row.hajm;
     if (h == null || !Number.isFinite(Number(h))) continue;
@@ -45,12 +60,16 @@ export function f3CertifiedHajm(rows: readonly F2Tafsilot[], companyId: number, 
  * qiymatlari (certified_quantity / certified_amount) — qayta hisoblanmaydi.
  */
 export function f2OyKesimi(rows: readonly F2Tafsilot[], period: string): { oylar: string[]; qiymat: Map<number, Map<string, { hajm: number; summa: number }>> } {
+  requirePeriod(period);
   const qiymat = new Map<number, Map<string, { hajm: number; summa: number }>>();
-  const oylar = new Set<string>();
+  // Hisobot oyida akt bo‘lmasa ham uni saqlash zarur: aks holda exporter
+  // oxirgi eski akt oyini «за отчетный период» deb ko‘rsatadi.
+  const oylar = new Set<string>([period]);
   for (const row of rows) {
     if (row.akt_holat !== 'tasdiqlangan') continue;
     const oy = String(row.oy).slice(0, 7);
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(oy) || oy > period) continue;
+    requirePeriod(oy);
+    if (oy > period) continue;
     oylar.add(oy);
     let m = qiymat.get(row.qator_id);
     if (!m) { m = new Map(); qiymat.set(row.qator_id, m); }

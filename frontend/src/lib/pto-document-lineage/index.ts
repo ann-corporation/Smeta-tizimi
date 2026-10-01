@@ -88,7 +88,7 @@ export function validatePtoLineageScope(scope: Partial<PtoLineageScope> | null |
   for (const field of ['companyId', 'projectId', 'objectId', 'contractId'] as const) {
     if (!validId(scope[field])) issues.push(idIssue(field, scope[field]));
   }
-  if (typeof scope.periodId !== 'string' || !/^\d{4}-\d{2}$/.test(scope.periodId)) {
+  if (typeof scope.periodId !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(scope.periodId)) {
     issues.push(issue('INVALID_PERIOD', 'periodId', "Hujjat davri YYYY-MM ko'rinishida bo'lishi kerak.", 'YYYY-MM', scope.periodId));
   }
   return { ok: issues.length === 0, issues };
@@ -134,7 +134,7 @@ export function validatePtoHierarchy(evidence: PtoHierarchyEvidence): PtoLineage
   if (evidence.contractProjectId == null) {
     issues.push(issue('CONTRACT_PROJECT_MISMATCH', 'contract.projectId', 'Shartnoma loyiha parenti noma’lum; export uchun taxmin qilinmaydi.', evidence.projectId, null));
   }
-  if (evidence.linkedContractIds && !evidence.linkedContractIds.some((id) => same(id, evidence.contractId))) {
+  if (!evidence.linkedContractIds?.some((id) => same(id, evidence.contractId))) {
     issues.push(issue('OBJECT_CONTRACT_UNLINKED', 'object.contractId', 'Obyekt tanlangan shartnoma bilan explicit bog\'lanmagan.', evidence.contractId, evidence.linkedContractIds));
   }
   return { ok: issues.length === 0, issues };

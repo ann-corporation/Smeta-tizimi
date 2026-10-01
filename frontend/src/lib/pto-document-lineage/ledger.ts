@@ -65,8 +65,9 @@ function closeEnough(a: PtoLedgerNumber, b: PtoLedgerNumber): boolean {
 
 /** Canonical PTO semantikasi: to'rtta turli qoldiq bitta nomga aralashmaydi. */
 export function buildPtoLineLedger(input: PtoLedgerInput): PtoLineLedger {
-  const approvedEntitlementQuantity = add(input.baselineQuantity, input.approvedChangeQuantity ?? 0);
-  const approvedEntitlementAmount = add(input.baselineAmount, input.approvedChangeAmount ?? 0);
+  // Berilmagan delta — o‘zgarish yo‘q; explicit NULL — delta noma’lum.
+  const approvedEntitlementQuantity = add(input.baselineQuantity, input.approvedChangeQuantity === undefined ? 0 : input.approvedChangeQuantity);
+  const approvedEntitlementAmount = add(input.baselineAmount, input.approvedChangeAmount === undefined ? 0 : input.approvedChangeAmount);
   const smetaRemainingQuantity = subtract(input.baselineQuantity, input.factQuantity);
   const smetaRemainingAmount = subtract(input.baselineAmount, input.factAmount);
   const f2AvailableQuantity = subtract(input.factQuantity, input.approvedF2Quantity);

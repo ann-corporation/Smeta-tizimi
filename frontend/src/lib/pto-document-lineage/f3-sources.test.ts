@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { F2Tafsilot } from '../../api/t2-narx';
-import { f3CertifiedSources } from './f3-sources';
+import { f3CertifiedSources, f3CertifiedHajm, f2OyKesimi } from './f3-sources';
 import { validateF3Lineage } from './index';
 
 const row = (p: Partial<F2Tafsilot> = {}): F2Tafsilot => ({
@@ -10,6 +10,41 @@ const row = (p: Partial<F2Tafsilot> = {}): F2Tafsilot => ({
 } as F2Tafsilot);
 
 describe('F2 → F3 certified source chain', () => {
+  it('sentabrda akt yo‘q bo‘lsa iyulni joriy davrga ko‘chirmaydi', () => {
+    const result = f2OyKesimi([row()], '2026-09');
+    expect(result.oylar).toEqual(['2026-07', '2026-09']);
+    expect(result.qiymat.get(12)?.get('2026-07')?.summa).toBe(1234.49);
+    expect(result.qiymat.get(12)?.has('2026-09')).toBe(false);
+  });
+
+  it('bo‘sh tarixda hisobot davri bor, soxta qator yo‘q', () => {
+    const result = f2OyKesimi([], '2026-09');
+    expect(result.oylar).toEqual(['2026-09']);
+    expect(result.qiymat.size).toBe(0);
+  });
+
+  it('oy kesimida draft va kelajak aktlari yo‘q', () => {
+    expect(f2OyKesimi([row({ akt_holat: 'qoralama' }), row({ oy: '2026-10-01' })], '2026-09').qiymat.size).toBe(0);
+  });
+
+  it('oy kesimi noto‘g‘ri davrni jim yo‘qotmaydi', () => {
+    expect(() => f2OyKesimi([row({ oy: '2026-13-01' })], '2026-09')).toThrow('F3_PERIOD_MISMATCH');
+  });
+  it.each(['2026-00', '2026-13', 'noto‘g‘ri'])('pul va hajm noto‘g‘ri manba davrini jim tashlamaydi: %s', oy => {
+    for (const read of [f3CertifiedSources, f3CertifiedHajm]) {
+      expect(() => read([row({ oy })], 17, 79, '2026-07')).toThrow('F3_PERIOD_MISMATCH');
+    }
+  });
+
+  it.each(['', '2026-00', '2026-13'])('bo‘sh manbada ham hisobot davri tekshiriladi: %s', period => {
+    for (const read of [f3CertifiedSources, f3CertifiedHajm]) {
+      expect(() => read([], 17, 79, period)).toThrow('F3_PERIOD_MISMATCH');
+    }
+  });
+
+  it.each([{ akt_id: 0 }, { qator_id: 0 }])('hajm ham canonical identitysiz qabul qilinmaydi: %j', patch => {
+    expect(() => f3CertifiedHajm([row(patch)], 17, 79, '2026-07')).toThrow('F3_SOURCE_ID_REQUIRED');
+  });
   it('retains the exact certified cent, separate from Q×price and legacy generated amount', () => {
     expect(f3CertifiedSources([row()], 17, 79, '2026-07')[0].summa).toBe(1234.49);
   });

@@ -18,6 +18,22 @@ const input = (overrides: Partial<PtoLedgerInput> = {}): PtoLedgerInput => ({
 });
 
 describe('PTO canonical line ledger', () => {
+  it('tasdiqlangan o‘zgarish noma’lum bo‘lsa entitlementni to‘qimaydi', () => {
+    const line = buildPtoLineLedger(input({ approvedChangeQuantity: null, approvedChangeAmount: null }));
+    expect(line.approvedEntitlementQuantity).toBeNull();
+    expect(line.approvedEntitlementAmount).toBeNull();
+    expect(line.contractualRemainingQuantity).toBeNull();
+    expect(line.contractualRemainingAmount).toBeNull();
+    expect(line.cumulativeAmount).toBe(320);
+  });
+
+  it('berilmagan va aniq nol o‘zgarish baseline tarixini saqlaydi', () => {
+    for (const delta of [undefined, 0]) {
+      const line = buildPtoLineLedger(input({ approvedChangeQuantity: delta, approvedChangeAmount: delta }));
+      expect(line.approvedEntitlementQuantity).toBe(100);
+      expect(line.approvedEntitlementAmount).toBe(1000);
+    }
+  });
   it('baseline, Fakt qoldig‘i, F2 mumkin va contractual qoldiqni aralashtirmaydi', () => {
     const line = buildPtoLineLedger(input());
     expect(line.smetaRemainingQuantity).toBe(40);

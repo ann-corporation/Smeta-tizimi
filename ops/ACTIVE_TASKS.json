@@ -3,6 +3,19 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-PTO-CHAIN-INTEGRITY-001",
+      "title": "PTO zanjiri: canonical bog‘lanish va tasdiqlangan davr dalillarini mustahkamlash",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/pto-chain-integrity-implementation",
+      "base_sha": "15b689a2f4a540ec4cca265250b377334bb72d34",
+      "status": "in_progress",
+      "owns": ["frontend/src/lib/pto-document-lineage/", "ops/handoff/T2_PTO_CHAIN_INTEGRITY_001.md"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
+      "production_write_allowed": false
+    },
+    {
       "id": "T2-PTO-LIFECYCLE-REPAIR-001",
       "title": "F2 approval audit lineage, resumable approval and PTO document chain verification",
       "owner": "codex",

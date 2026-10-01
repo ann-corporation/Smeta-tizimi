@@ -20,6 +20,20 @@ const approved = (documentId: string, patch: Partial<typeof scope> = {}) => ({
 });
 
 describe('PTO canonical document lineage', () => {
+  it.each(['2026-00', '2026-13', '2026-99'])('mavjud bo‘lmagan oy: %s', periodId => {
+    expect(validatePtoLineageScope({ ...scope, periodId }).ok).toBe(false);
+  });
+
+  it.each([undefined, [], [92]])('explicit object-contract dalilisiz o‘tkazmaydi: %j', linkedContractIds => {
+    const result = validatePtoHierarchy({ ...scope, projectCompanyId: 7, objectCompanyId: 7,
+      objectProjectId: 11, contractCompanyId: 7, contractProjectId: 11, linkedContractIds });
+    expect(result.issues.map(x => x.code)).toEqual(['OBJECT_CONTRACT_UNLINKED']);
+  });
+
+  it('bir obyektning bir nechta shartnomasi bo‘lishi mumkin, tanlangani explicit bog‘langan', () => {
+    expect(validatePtoHierarchy({ ...scope, projectCompanyId: 7, objectCompanyId: 7,
+      objectProjectId: 11, contractCompanyId: 7, contractProjectId: 11, linkedContractIds: [91, 92] }).ok).toBe(true);
+  });
   it('scope bo‘lmasa yoki ID noto‘g‘ri bo‘lsa fail-closed qiladi', () => {
     expect(validatePtoLineageScope(undefined).ok).toBe(false);
     const r = validatePtoLineageScope({ ...scope, objectId: 0 });
