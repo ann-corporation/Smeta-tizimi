@@ -330,7 +330,12 @@ export function tahlilMashinaSoatMatni(fileName: string, text: string, pages?: s
     const row = parseMachineLine(line);
     if (row) qatorlar.push({ ...row, sahifa: pageIndex + 1 });
   }));
-  const warnings = qatorlar.length ? [] : ['PDF_TEXT_TABLE_UNRESOLVED: jadvaldan ishonchli mashina-soat qatorlari ajratilmadi'];
+  // Skanerlangan PDF: sahifalar bor, matn qatlami deyarli yo'q — OCR'siz o'qib bo'lmaydi (taxmin qilinmaydi).
+  const sahifaSoni = pages?.length ?? 1;
+  const skan = text.replace(/\s+/g, '').length < 60 * sahifaSoni;
+  const warnings = qatorlar.length ? [] : [skan
+    ? 'PDF_SKAN_MATNSIZ: fayl skanerlangan rasm (matn qatlami yo‘q) — Excel yoki matnli PDF yuklang'
+    : 'PDF_TEXT_TABLE_UNRESOLVED: jadvaldan ishonchli mashina-soat qatorlari ajratilmadi'];
   return { faylNomi: fileName, turi: 'mashina_soat', davr, qatorlar, warnings, importgaTayyor: qatorlar.length > 0 };
 }
 

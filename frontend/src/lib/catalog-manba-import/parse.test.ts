@@ -130,3 +130,11 @@ describe('catalog-manba-import', () => {
     ]);
   });
 });
+
+describe('mashina-soat PDF — skan', () => {
+  it('matn qatlami yo‘q PDF aniq xabar bilan rad etiladi', () => {
+    const r = tahlilMashinaSoatMatni('маш-час 2023.pdf', '-- 1 of 16 --\n-- 2 of 16 --', Array.from({ length: 16 }, () => ''));
+    expect(r.importgaTayyor).toBe(false);
+    expect(r.warnings[0]).toMatch(/^PDF_SKAN_MATNSIZ/);
+  });
+});
