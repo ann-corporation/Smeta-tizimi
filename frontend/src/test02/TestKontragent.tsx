@@ -12,6 +12,8 @@ export default function TestKontragent() {
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [royxatYuklanmoqda, setRoyxatYuklanmoqda] = useState(false);
   const [kontragentlar, setKontragentlar] = useState<Kontragent[]>([]);
+  const [rolFiltr, setRolFiltr] = useState('');
+  const korinadigan = rolFiltr ? kontragentlar.filter((k) => k.mavqe === rolFiltr) : kontragentlar;
 
   // Form states
   const [inn, setInn] = useState('');
@@ -171,10 +173,11 @@ export default function TestKontragent() {
                       className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-accent outline-none appearance-none"
                     >
                       <option value="buyurtmachi">Buyurtmachi</option>
-                      <option value="bosh_pudratchi">Bosh Pudratchi</option>
+                      <option value="pudratchi">Bosh Pudratchi</option>
                       <option value="subpudratchi">Subpudratchi</option>
                       <option value="loyihachi">Loyihachi</option>
                       <option value="taminotchi">Ta'minotchi</option>
+                      <option value="laboratoriya">Laboratoriya (Лаборатория)</option>
                     </select>
                   </div>
                 </div>
@@ -248,13 +251,27 @@ export default function TestKontragent() {
                   <Building2 size={18} className="text-accent" />
                   Mavjud Kontragentlar
                 </h3>
+                <select
+                  value={rolFiltr}
+                  onChange={(e) => setRolFiltr(e.target.value)}
+                  aria-label="Rol bo'yicha filtr"
+                  className="ml-auto mr-2 bg-bg border border-border rounded-lg px-2 py-1 text-xs text-text outline-none"
+                >
+                  <option value="">Barcha rollar</option>
+                  <option value="buyurtmachi">Buyurtmachi</option>
+                  <option value="pudratchi">Bosh Pudratchi</option>
+                  <option value="subpudratchi">Subpudratchi</option>
+                  <option value="loyihachi">Loyihachi</option>
+                  <option value="taminotchi">Ta'minotchi</option>
+                  <option value="laboratoriya">Laboratoriya</option>
+                </select>
                 <button onClick={royxatniYangila} className="p-1.5 text-text-dim hover:text-white transition-colors">
                   <RefreshCw size={16} className={royxatYuklanmoqda ? "animate-spin" : ""} />
                 </button>
               </div>
 
               <div className="p-0 overflow-y-auto max-h-[600px] scrollbar-thin">
-                {kontragentlar.length === 0 ? (
+                {korinadigan.length === 0 ? (
                   <div className="p-8 text-center text-text-dim">
                     Hozircha hech qanday kontragent qo'shilmagan.
                   </div>
@@ -269,7 +286,7 @@ export default function TestKontragent() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {kontragentlar.map(k => (
+                      {korinadigan.map(k => (
                         <tr key={k.id} className="hover:bg-bg/50 transition-colors group">
                           <td className="px-4 py-3">
                             <div className="font-bold text-white">{k.nom}</div>

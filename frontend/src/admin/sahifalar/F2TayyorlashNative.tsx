@@ -16,6 +16,7 @@ import { downloadBlob } from '../../lib/construction-document-control/export/dow
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
+import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 
 type Draft = Omit<F2NativeInput, 'qatorId'>;
 const boshDraft: Draft = { quantity: '', unitPrice: '', amount: '', sourceReference: '', priceIntentionallyAbsent: false };
@@ -36,6 +37,8 @@ export function F2TayyorlashNative() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  /** АОСР qamrovi (egasi: yashirin ishda АОСР yo'q bo'lsa — ogohlantirish, F2 taqiqlanmaydi). */
+  const [aosrsiz, setAosrsiz] = useState<AosrCoverage[]>([]);
   const operationId = useRef(yangiOperationId());
   const obyektId = Number(params.get('obyekt'));
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
@@ -61,6 +64,7 @@ export function F2TayyorlashNative() {
     if (!validId) { setQatorlar([]); return; }
     setLoading(true); setError('');
     try {
+      void sbAosrCoverageOl(obyektId).then((c) => setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : [])).catch(() => setAosrsiz([]));
       const result = await sbQatorHolatOl(obyektId);
       if (!result.ok) { setQatorlar([]); setError('F2 uchun kanonik Fakt qoldig‘i o‘qilmadi.'); return; }
       setQatorlar((result.qatorlar || []).filter((row) => row.tur !== 'rz' && row.f2_mumkin_hajm > 0));
@@ -95,6 +99,8 @@ export function F2TayyorlashNative() {
       frozenIfApproved: certified.length,
     };
   }, [qatorlar, tanlangan.length, tekshiruv.qatorlar, tekshiruv.issues.length]);
+  const aosrsizId = useMemo(() => new Set(aosrsiz.map((x) => x.qator_id)), [aosrsiz]);
+  const tanlanganAosrsiz = useMemo(() => tanlangan.filter((x) => aosrsizId.has(x.qatorId)).length, [tanlangan, aosrsizId]);
   const ozgartir = (id: number, next: Partial<Draft>) => setDrafts((old) => ({ ...old, [id]: { ...(old[id] || boshDraft), ...next } }));
   const barchaMumkinniOlish = () => setDrafts((old) => qatorlar.reduce<Record<number, Draft>>((next, row) => ({
     ...next,
@@ -164,13 +170,18 @@ export function F2TayyorlashNative() {
             ['Tasdiqlansa muzlaydi', summary.frozenIfApproved, 'text-text-dim'],
           ].map(([label, value, tone]) => <div key={String(label)} className="karta px-3 py-2"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-mute">{label}</p><p className={`mt-1 text-lg font-semibold tabular-nums ${tone}`}>{value}</p></div>)}
         </section>
+        {aosrsiz.length > 0 && <section role="status" className="flex flex-wrap items-center gap-3 rounded-xl border border-warn/40 bg-warn/5 px-4 py-3 text-xs text-text">
+          <AlertTriangle size={15} className="shrink-0 text-warn" />
+          <span className="flex-1"><b>АОСР yo‘q yashirin ishlar: {aosrsiz.length} ta</b>{tanlanganAosrsiz > 0 && <> — shundan <b>{tanlanganAosrsiz} tasi shu F2 ga tanlangan</b></>}. F2 bloklanmaydi (egasi qarori) — lekin topshirishda АОСР talab qilinadi.</span>
+          <button type="button" onClick={() => navigate('/admin/aosr')} className="rounded-lg border border-warn/40 px-3 py-1.5 font-semibold hover:bg-warn/10">АОСР yaratish</button>
+        </section>}
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3">
           <div className="flex items-start gap-2 text-xs text-text-dim"><Zap size={15} className="mt-0.5 shrink-0 text-accent" /><span><b className="text-text">Avval hajmni to‘ldiring.</b> Narx, summa va manba F2 hujjatidan kiritiladi; smeta narxi bilan to‘ldirilmaydi.</span></div>
           <button type="button" onClick={barchaMumkinniOlish} disabled={saving || qatorlar.length === 0} className="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-surface-2 disabled:opacity-50"><CheckCircle2 size={14} className="text-accent" />Barcha mumkin hajmni olish</button>
         </section>
         <section className="karta min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[1100px] text-left text-[12px]"><thead className="sticky top-0 bg-surface-2 text-text-dim"><tr><th className="p-3">Ish / resurs</th><th>F2 mumkin</th><th>Joriy hajm</th><th>Narx</th><th>Hujjat summasi</th><th>Manba</th><th className="p-3">Holat</th></tr></thead>
-          <tbody>{qatorlar.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-text-dim">F2 olish mumkin bo‘lgan kanonik Fakt qoldig‘i yo‘q.</td></tr> : qatorlar.map((row) => { const draft = drafts[row.qator_id] || boshDraft; const issue = issueMap.get(row.qator_id); const label = row.kod || row.nom || 'Ish / resurs'; return <tr key={row.qator_id} className="border-t border-border/60 align-top"><td className="p-3"><div className="font-medium">{row.kod || '—'}</div><div>{row.nom}</div><div className="text-text-dim">{row.birlik}</div></td><td><FmtN val={row.f2_mumkin_hajm} /></td><td><input aria-label={`F2 hajmi: ${label}`} type="number" min="0" value={draft.quantity} onChange={(event) => ozgartir(row.qator_id, { quantity: event.target.value })} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right" /></td><td><input aria-label={`F2 narxi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.unitPrice} onChange={(event) => ozgartir(row.qator_id, { unitPrice: event.target.value })} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" /></td><td><input aria-label={`F2 summasi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.amount} onChange={(event) => ozgartir(row.qator_id, { amount: event.target.value })} className="w-32 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" /></td><td><input aria-label={`F2 manbasi: ${label}`} value={draft.sourceReference} onChange={(event) => ozgartir(row.qator_id, { sourceReference: event.target.value })} placeholder="F2 №, sahifa" className="w-40 rounded border border-border bg-bg px-2 py-1" /><label className="mt-1 block text-[10px] text-text-dim"><input type="checkbox" checked={draft.priceIntentionallyAbsent} onChange={(event) => ozgartir(row.qator_id, { priceIntentionallyAbsent: event.target.checked })} /> narx hujjatda ataylab yo‘q</label></td><td className="p-3">{issue ? <span className={issue.blocking ? 'text-danger' : 'text-warn'}>{issueText(issue.code)}</span> : draft.quantity ? <span className="text-ok">Tayyor</span> : <span className="text-text-dim">Tanlanmagan</span>}</td></tr>; })}</tbody>
+          <tbody>{qatorlar.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-text-dim">F2 olish mumkin bo‘lgan kanonik Fakt qoldig‘i yo‘q.</td></tr> : qatorlar.map((row) => { const draft = drafts[row.qator_id] || boshDraft; const issue = issueMap.get(row.qator_id); const label = row.kod || row.nom || 'Ish / resurs'; return <tr key={row.qator_id} className="border-t border-border/60 align-top"><td className="p-3"><div className="font-medium">{row.kod || '—'}</div><div>{row.nom}</div><div className="text-text-dim">{row.birlik}</div>{aosrsizId.has(row.qator_id) && <div className="mt-1 inline-block rounded bg-warn/10 px-1.5 py-0.5 text-[10px] font-semibold text-warn">yashirin ish · АОСР yo‘q</div>}</td><td><FmtN val={row.f2_mumkin_hajm} /></td><td><input aria-label={`F2 hajmi: ${label}`} type="number" min="0" value={draft.quantity} onChange={(event) => ozgartir(row.qator_id, { quantity: event.target.value })} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right" /></td><td><input aria-label={`F2 narxi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.unitPrice} onChange={(event) => ozgartir(row.qator_id, { unitPrice: event.target.value })} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" /></td><td><input aria-label={`F2 summasi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.amount} onChange={(event) => ozgartir(row.qator_id, { amount: event.target.value })} className="w-32 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" /></td><td><input aria-label={`F2 manbasi: ${label}`} value={draft.sourceReference} onChange={(event) => ozgartir(row.qator_id, { sourceReference: event.target.value })} placeholder="F2 №, sahifa" className="w-40 rounded border border-border bg-bg px-2 py-1" /><label className="mt-1 block text-[10px] text-text-dim"><input type="checkbox" checked={draft.priceIntentionallyAbsent} onChange={(event) => ozgartir(row.qator_id, { priceIntentionallyAbsent: event.target.checked })} /> narx hujjatda ataylab yo‘q</label></td><td className="p-3">{issue ? <span className={issue.blocking ? 'text-danger' : 'text-warn'}>{issueText(issue.code)}</span> : draft.quantity ? <span className="text-ok">Tayyor</span> : <span className="text-text-dim">Tanlanmagan</span>}</td></tr>; })}</tbody>
         </table>
       </section></>}
       {validId && qatorlar.length > 0 && <section className="flex flex-wrap items-start gap-3"><div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div><label className="text-[12px] text-text-dim">QQS (НДС) stavkasi, % — hujjat oxirida bir marta<input aria-label="QQS stavkasi" value={ndsFoiz} onChange={(event) => setNdsFoiz(event.target.value)} placeholder="bo‘sh — QQS qo‘shilmaydi" inputMode="decimal" className="ml-2 w-44 rounded border border-border bg-bg px-2 py-1" /></label></section>}
