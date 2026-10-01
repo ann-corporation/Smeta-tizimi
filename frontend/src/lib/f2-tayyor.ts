@@ -29,6 +29,9 @@ const son = (v: unknown): number | null => (v == null || v === '' || !Number.isF
 export const y6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
 function narxTaklif(f2Narx: number | null, smetaNarx: number | null): { narx: number | null; manba: NarxManba } {
+  // Smeta faylidagi suzuvchi nuqta shovqini (1442.3999999999) — 6 xonagacha tozalanadi.
+  if (f2Narx != null) f2Narx = y6(f2Narx);
+  if (smetaNarx != null) smetaNarx = y6(smetaNarx);
   if (f2Narx != null && f2Narx > 0) return { narx: f2Narx, manba: 'oldingi_f2' };
   // Smetada aniq 0 (masalan «ЗАТРАТЫ ТРУДА МАШИНИСТОВ» — mashina-soat narxi ichida) — bu ma'lum qiymat, NULL emas.
   if (smetaNarx != null && smetaNarx >= 0) return { narx: smetaNarx, manba: 'smeta' };

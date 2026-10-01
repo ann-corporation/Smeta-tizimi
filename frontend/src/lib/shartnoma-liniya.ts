@@ -97,3 +97,27 @@ export function shaklYuk(s: Shakl) {
     obyektlar: [...new Set(s.obyektlar)].sort((a, b) => a - b),
   };
 }
+
+/**
+ * Hujjat imzolovchilari shartnoma tomonlaridan (egasi, 2026-10-02: "imzolovchilarni tizim qo'yadi — zakazchik va
+ * pudratchi aniq; 3 tomonlama bo'lsa sub ham"). Rollar erkin matn — kalit so'zlar bo'yicha aniqlanadi.
+ * Topilmasa — bo'sh (hujjatda chiziq), hech qachon o'ylab topilmaydi. Operator panelda tahrirlay oladi (yumshoq rejim).
+ */
+export function imzoNomlariTomonlardan(tomonlar: ReadonlyArray<Pick<LiniyaTomon, 'rol' | 'nom'>>): { zakazchik?: string; pudratchi?: string; subpudratchi?: string; texnadzor?: string } {
+  const out: { zakazchik?: string; pudratchi?: string; subpudratchi?: string; texnadzor?: string } = {};
+  for (const t of tomonlar) {
+    const r = (t.rol || '').toLocaleLowerCase('ru').replace(/[ʻ'’‘]/g, '');
+    const nom = (t.nom || '').trim();
+    if (!nom) continue;
+    if (/sub|суб/.test(r)) { out.subpudratchi ??= nom; continue; }
+    if (/buyurtmachi|заказчик|zakazchik/.test(r)) { out.zakazchik ??= nom; continue; }
+    if (/pudratchi|подрядчик|pudrat/.test(r)) { out.pudratchi ??= nom; continue; }
+    if (/nazorat|надзор|texnadzor/.test(r)) { out.texnadzor ??= nom; continue; }
+  }
+  return out;
+}
+
+/** Hujjatdagi imzo tartibi: ЗАКАЗЧИК, ПОДРЯДЧИК, (СУБПОДРЯДЧИК — 3 tomonlama bo'lsa), ТЕХНАДЗОР. */
+export function imzoRollari(n: { subpudratchi?: string }): Array<'ЗАКАЗЧИК' | 'ПОДРЯДЧИК' | 'СУБПОДРЯДЧИК' | 'ТЕХНАДЗОР'> {
+  return n.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'];
+}

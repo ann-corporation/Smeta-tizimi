@@ -7,12 +7,12 @@
  * Nom hech qachon o'ylab topilmaydi.
  */
 
-export type ImzoRol = 'ЗАКАЗЧИК' | 'ПОДРЯДЧИК' | 'ТЕХНАДЗОР' | 'СОСТАВИЛ' | 'ПРОВЕРИЛ';
+export type ImzoRol = 'ЗАКАЗЧИК' | 'ПОДРЯДЧИК' | 'СУБПОДРЯДЧИК' | 'ТЕХНАДЗОР' | 'СОСТАВИЛ' | 'ПРОВЕРИЛ';
 
 export type ImzoTomon = { rol: ImzoRol; nom?: string | null };
 
 /** Oferta va tomonlar nomi uchun qisqa kirish: tashkilot yoki F.I.O. */
-export type ImzoNomlar = { zakazchik?: string; pudratchi?: string; texnadzor?: string; tuzuvchi?: string; tekshiruvchi?: string };
+export type ImzoNomlar = { zakazchik?: string; pudratchi?: string; subpudratchi?: string; texnadzor?: string; tuzuvchi?: string; tekshiruvchi?: string };
 
 export const IMZO_CHIZIQ = '________________________________________';
 export const IMZO_IMZO_CHIZIQ = '____________________';
@@ -31,6 +31,7 @@ export function imzoTomonlari(rollar: readonly ImzoRol[], nomlar?: ImzoNomlar): 
   const nomi: Record<ImzoRol, string | undefined> = {
     ЗАКАЗЧИК: nomlar?.zakazchik,
     ПОДРЯДЧИК: nomlar?.pudratchi,
+    СУБПОДРЯДЧИК: nomlar?.subpudratchi,
     ТЕХНАДЗОР: nomlar?.texnadzor,
     СОСТАВИЛ: nomlar?.tuzuvchi,
     ПРОВЕРИЛ: nomlar?.tekshiruvchi,
@@ -39,4 +40,4 @@ export function imzoTomonlari(rollar: readonly ImzoRol[], nomlar?: ImzoNomlar): 
 }
 
 /** Tashkilot tomonlari (muhr qo'yiladi) va shaxslar (СОСТАВИЛ/ПРОВЕРИЛ). */
-export const imzoMuhrli = (rol: ImzoRol): boolean => rol === 'ЗАКАЗЧИК' || rol === 'ПОДРЯДЧИК' || rol === 'ТЕХНАДЗОР';
+export const imzoMuhrli = (rol: ImzoRol): boolean => rol === 'ЗАКАЗЧИК' || rol === 'ПОДРЯДЧИК' || rol === 'СУБПОДРЯДЧИК' || rol === 'ТЕХНАДЗОР';
