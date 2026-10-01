@@ -71,6 +71,9 @@ export type F2QoralamaOpsiya = {
   podval?: Podval | null;
 };
 
+/** Yashirin "Кат." ustunida ish (sarlavha) qatori belgisi — ИТОГО tekshiruvidan chiqariladi. */
+const ISH_BELGI = 'РАБ';
+
 const QORALAMA_USTUNLAR: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
   { sarlavha: 'Шифр, код', kenglik: 13, tur: 'kod' },
@@ -119,8 +122,16 @@ export function f2QoralamaHujjat(qatorlar: readonly QatorHolat[], certified: rea
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
   let kOplata: number | null = 0;
   let jami: number | null = 0;
+  const ishMi = new Set(certified.filter((c) => c.priceIntentionallyAbsent && holat.get(c.qatorId)?.tur === 'bl').map((c) => c.qatorId));
   rows.forEach((row, i) => {
     const kod = holat.get(Number(row.lineId))?.kod ?? '';
+    /* Resursli F2 (egasi, 2026-10-01): ish (bl) — faqat hajm, narxi resurslarida. Bu sarlavha qatori:
+       ИТОГО ga kirmaydi, "нет цены" ogohlantirishi yozilmaydi. */
+    if (ishMi.has(Number(row.lineId))) {
+      dataRows.push(v.qator('ish', (r) => [i + 1, kod, row.description, row.unit, row.currentQuantity, null, null, null, null,
+        row.previousQuantity, { f: `J${r}+E${r}`, v: row.previousQuantity + row.currentQuantity }, manba.get(Number(row.lineId)) ?? '', null, ISH_BELGI]));
+      return;
+    }
     const summa = row.currentCertifiedValue;
     const narx = row.currentF2ValuationPrice;
     const hisob = narx == null ? null : yaxlit2(row.currentQuantity * narx);
@@ -147,8 +158,8 @@ export function f2QoralamaHujjat(qatorlar: readonly QatorHolat[], certified: rea
   const a = dataRows[0], b = dataRows[dataRows.length - 1];
   const kJami = kOplata as number | null;
   v.qator('vsego', () => [null, null, 'ИТОГО ПО АКТУ (прямые затраты)', null, null, null,
-    { f: `IF(COUNTBLANK(G${a}:G${b})>0,"",SUM(G${a}:G${b}))`, v: jami ?? '' }, null, null, null, null, null,
-    { f: `IF(COUNTBLANK(M${a}:M${b})>0,"",SUM(M${a}:M${b}))`, v: kJami == null ? '' : yaxlit2(kJami) }, null]);
+    { f: `IF(COUNTIFS(N${a}:N${b},"<>${ISH_BELGI}",G${a}:G${b},"")>0,"",SUM(G${a}:G${b}))`, v: jami ?? '' }, null, null, null, null, null,
+    { f: `IF(COUNTIFS(N${a}:N${b},"<>${ISH_BELGI}",M${a}:M${b},"")>0,"",SUM(M${a}:M${b}))`, v: kJami == null ? '' : yaxlit2(kJami) }, null]);
   const jamiQ = jami as number | null;
   v.bosh();
   const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'N', oraliq: [a, b], pulUstunlar: ['G'], foizUstun: 'F', nk, katSummalar: { G: ks } });

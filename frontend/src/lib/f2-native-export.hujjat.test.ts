@@ -38,7 +38,20 @@ describe('Проект акта Ф-2 (F2 tayyorlash) — hujjat standarti', () =
     expect(r.jami).toBeNull();
     const t = hujjatTekshir(r.bytes);
     expect(t.matnlar.some((s) => s.includes('в документе нет цены/суммы'))).toBe(true);
-    expect(t.varaqlar[0].kataklar.find((k) => k.f?.startsWith('IF(COUNTBLANK(G'))?.v).toBe('');
+    expect(t.varaqlar[0].kataklar.find((k) => k.f?.startsWith('IF(COUNTIFS(N'))?.v).toBe('');
     expect(t.taqiqlangan).toEqual([]);
+  });
+
+  it('resursli F2: ish (bl) — sarlavha qatori, ИТОГО resurslardan aniq, "нет цены" yo‘q', () => {
+    const ish = holat(9, 'УСТРОЙСТВО ФУНДАМЕНТА', { tur: 'bl', kat: null, smeta_narx: null });
+    const chel = holat(10, 'Затраты труда', { tur: 'rs', kat: 'ЧЕЛ', birlik: 'чел.-ч' });
+    const r = f2QoralamaHujjat([ish, chel, holat(8, 'ПЕСОК')], [cert(9, 6), cert(10, 12, 25000, 300000), cert(8, 5, 1000, 5000)], { obyektNom: 'Амфитеатр', davr: '2026-09' });
+    expect(r.jami).toBe(305000);
+    const t = hujjatTekshir(r.bytes);
+    expect(t.matnlar.some((m) => m.includes('в документе нет цены'))).toBe(false);
+    expect(t.matnlar.some((m) => m.includes('не указан вид затрат'))).toBe(false);
+    expect(t.varaqlar[0].kataklar.find((k) => k.f?.startsWith('IF(COUNTIFS(N'))?.v).toBe('305000');
+    expect(t.taqiqlangan).toEqual([]);
+    expect(t.dollarFormulalar).toEqual([]);
   });
 });
