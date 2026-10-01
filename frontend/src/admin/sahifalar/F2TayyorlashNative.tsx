@@ -155,7 +155,7 @@ export function F2TayyorlashNative() {
 
   function resursQatori(r: F2Resurs) {
     const x = byId.get(r.id);
-    const taklif = r.taklifNarx != null ? `${r.taklifNarx}` : '';
+    const taklif = r.taklifNarx != null ? String(Math.round(r.taklifNarx * 1e6) / 1e6) : '';
     return (
       <tr key={r.id} className="border-t border-border/40 align-top">
         <td className="py-1 pl-8 pr-2">
@@ -176,10 +176,10 @@ export function F2TayyorlashNative() {
           {x && <div className={`text-[10px] ${x.manba === 'qolda' ? 'text-text-dim' : x.manba === 'yoq' ? 'text-warn' : 'text-accent'}`}>{NARX_MANBA_NOMI[x.manba]}</div>}
         </td>
         <td className="px-2 py-1 text-right">
-          <input aria-label={`F2 summasi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.summa[r.id] ?? ''} onChange={(e) => yoz('summa', r.id, e.target.value)} placeholder={x?.summa != null ? String(x.summa) : ''} className={`${kirit} w-32 disabled:opacity-40`} />
+          <input aria-label={`F2 summasi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.summa[r.id] ?? ''} onChange={(e) => yoz('summa', r.id, e.target.value)} placeholder={x?.summa != null ? x.summa.toFixed(2) : ''} className={`${kirit} w-32 disabled:opacity-40`} />
         </td>
-        <td className="px-2 py-1">
-          <label className="flex items-center gap-1 text-[10px] text-text-dim"><input type="checkbox" aria-label={`Narxsiz: ${r.nom}`} checked={k.narxsiz[r.id] === true} onChange={(e) => yoz('narxsiz', r.id, e.target.checked || undefined)} />narxsiz</label>
+        <td className="w-24 px-2 py-1">
+          <label className="flex items-center gap-1 whitespace-nowrap text-[10px] text-text-dim"><input type="checkbox" aria-label={`Narxsiz: ${r.nom}`} checked={k.narxsiz[r.id] === true} onChange={(e) => yoz('narxsiz', r.id, e.target.checked || undefined)} />narxsiz</label>
           {x?.xato && <div className="text-[10px] text-danger">{XATO_MATN[x.xato]}</div>}
           {x?.ogoh && <div className="text-[10px] text-warn">{OGOH_MATN[x.ogoh]}</div>}
         </td>

@@ -88,7 +88,8 @@ describe('F2 tayyorlash mantig‘i', () => {
     const y = f2Yuk(f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '6' }, narxsiz: { 4: true } })), '12');
     expect(y[0]).toMatchObject({ qatorId: 2, certifiedQuantity: 6, priceIntentionallyAbsent: true, certifiedUnitPrice: undefined });
     expect(y[1]).toMatchObject({ qatorId: 3, certifiedUnitPrice: 25000, certifiedAmount: 300000, priceIntentionallyAbsent: false });
-    expect(y[1].rawSnapshot.sourceReference).toBe('F2 № 12; narx: smeta');
+    expect(y[0].rawSnapshot.sourceReference).toBe('Ф-2 № 12');
+    expect(y[1].rawSnapshot.sourceReference).toBe('Ф-2 № 12; цена по смете');
     expect(ulushHajm(6, 50)).toBe('3');
   });
 });

@@ -164,15 +164,18 @@ export function f2Jami(q: F2Qator[]): F2Jami {
   return j;
 }
 
+/** Hujjatdagi "Основание" ustuni uchun (hujjat tili — rus). */
+const NARX_MANBA_HUJJAT: Record<NarxManba, string> = { oldingi_f2: 'цена по предыдущей Ф-2', smeta: 'цена по смете', qolda: 'цена по документу', yoq: 'без цены' };
+
 /** Server yuki (t2_akt_yarat_v2): ish — narxsiz; resurs — hujjat narxi va summasi. Manba — hujjat raqami. */
 export function f2Yuk(q: F2Qator[], hujjatRaqam: string): F2NativePayloadRow[] {
-  const manba = hujjatRaqam.trim() ? `F2 № ${hujjatRaqam.trim()}` : 'F2 (tizimda tayyorlangan)';
+  const manba = hujjatRaqam.trim() ? `Ф-2 № ${hujjatRaqam.trim()}` : 'Ф-2 (сформирована в системе)';
   return q.filter((x) => !x.xato).map((x) => ({
     qatorId: x.id, certifiedQuantity: x.hajm,
     certifiedUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined,
     certifiedAmount: x.narxsiz ? undefined : x.summa ?? undefined,
     priceIntentionallyAbsent: x.narxsiz,
-    rawSnapshot: { source: 'native_f2_preparation', sourceReference: `${manba}; narx: ${NARX_MANBA_NOMI[x.manba]}`, enteredQuantity: x.hajm, enteredUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined, enteredAmount: x.narxsiz ? undefined : x.summa ?? undefined },
+    rawSnapshot: { source: 'native_f2_preparation', sourceReference: x.tur === 'bl' ? manba : `${manba}; ${NARX_MANBA_HUJJAT[x.manba]}`, enteredQuantity: x.hajm, enteredUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined, enteredAmount: x.narxsiz ? undefined : x.summa ?? undefined },
   }));
 }
 
