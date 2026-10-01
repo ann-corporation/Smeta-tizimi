@@ -239,7 +239,8 @@ addendumlar tarixiy dalil sifatida saqlanadi.
 
 | Field | Current value |
 |---|---|
-| `main_sha` | `d7b9bba5fcf72ac3c204f09838356673fdbd7c27` — `origin/main` bilan tasdiqlangan. |
+| `main_sha` | `68eabd44abefbb1659800e68adedb78f6be4a8df` — `origin/main` bilan tasdiqlangan. |
+| `2026-10-01_night_main` | `8f0a0ee` — narx dalili UI; `fbf78e4` — АОСР ogohlantirishi + laboratoriya roli; `bdf037c` — kompaniya logosi UI + АОСР/laboratoriya reestri Excel; `68eabd4` — Ombor agenti: БЕЗСКЛАД nomzodlari, `bez-sklad.ts` kirill `\b` tuzatildi. |
 | `release` | T2 exact certified F2 amount propagation + live Forma-2/Nakopitelniy/Forma-3 formula exports main’ga fast-forward qilindi. |
 | `production_migration` | `20260927120004 / t2_workbench_certified_amount_v1` Supabase `tuoyrzadkgoltpqkdiyx` loyihasiga additive migration sifatida qo‘llandi; rollback fayli repoda bor. |
 | `supabase_verification` | `t2_workbench_exact_v1` mavjud; `anon`/`authenticated` execute huquqiga ega emas; `service_role` execute qiladi; `certifiedAmount` exact source sifatida qaytadi; amount quantity×price bilan qayta hisoblanmaydi. |
