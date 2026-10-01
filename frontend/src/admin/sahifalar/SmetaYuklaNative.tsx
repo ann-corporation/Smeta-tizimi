@@ -335,10 +335,13 @@ export function resSatrlariniOl(rows: SheetGrid, cols: F2ColumnConfig): ResNarxY
       else if (b) joriyKat = b;
       continue;
     }
-    const bez = bezSkladKategoriyaAniqla(nom);
+    // Egasi qoidasi (beton/rastvor + м³) faqat material qatoriga — ОБ/М/К/КАБ ga tegmaydi.
+    // Yakuniy qaror bazadagi trigger (t2_bez_sklad_qoida); bu yerda oldindan ko'rsatish.
+    const asosiy = resursMkKabAniqla(nom, bir, joriyKat);
+    const bez = asosiy === 'МАТ' ? bezSkladKategoriyaAniqla(nom, null, bir) : null;
     out.push({
       kod: kod || undefined, nom: nom || undefined, birlik: bir || undefined, narx,
-      kat: bez.kategoriya ?? resursMkKabAniqla(nom, bir, joriyKat),
+      kat: bez?.kategoriya ?? asosiy,
     });
   }
   return out;
