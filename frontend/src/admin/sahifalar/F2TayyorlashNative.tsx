@@ -17,6 +17,8 @@ import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
+import { narxTakliflari } from '../../api/t2-ish-abc';
+import { F2_NARX_MANBA_NOMI, f2NarxTanla, f2Summa, type F2NarxManba } from '../../lib/f2-narx-taklif';
 
 type Draft = Omit<F2NativeInput, 'qatorId'>;
 const boshDraft: Draft = { quantity: '', unitPrice: '', amount: '', sourceReference: '', priceIntentionallyAbsent: false };
@@ -39,6 +41,9 @@ export function F2TayyorlashNative() {
   const [saving, setSaving] = useState(false);
   /** АОСР qamrovi (egasi: yashirin ishda АОСР yo'q bo'lsa — ogohlantirish, F2 taqiqlanmaydi). */
   const [aosrsiz, setAosrsiz] = useState<AosrCoverage[]>([]);
+  /** Narx taklifi manbasi (qator → oldingi F2 / katalog / smeta) — faqat ko'rsatish uchun. */
+  const [narxManba, setNarxManba] = useState<Record<number, F2NarxManba>>({});
+  const [narxBand, setNarxBand] = useState(false);
   const operationId = useRef(yangiOperationId());
   const obyektId = Number(params.get('obyekt'));
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
@@ -106,6 +111,30 @@ export function F2TayyorlashNative() {
     ...next,
     [row.qator_id]: { ...(old[row.qator_id] || boshDraft), quantity: String(row.f2_mumkin_hajm) },
   }), { ...old }));
+  /** Egasi ruxsati (2026-10-01): hajmi bor, narxi BO'SH qatorlarga — oldingi F2 → katalog → smeta. */
+  const narxlarniTaklif = async () => {
+    const nishon = qatorlar.filter((row) => { const d = drafts[row.qator_id]; return d?.quantity.trim() && !d.unitPrice.trim() && !d.priceIntentionallyAbsent; });
+    if (!nishon.length) { toast('Narx taklifi uchun avval hajm kiriting (narxi bo‘sh qatorlar).', 'warn'); return; }
+    setNarxBand(true);
+    try {
+      const katalog = await narxTakliflari(obyektId, nishon.map((row) => ({ nom: row.nom, birlik: row.birlik ?? '' }))).catch(() => [] as Awaited<ReturnType<typeof narxTakliflari>>);
+      let n = 0;
+      const manbalar: Record<number, F2NarxManba> = {};
+      setDrafts((old) => {
+        const next = { ...old };
+        nishon.forEach((row, i) => {
+          const t = f2NarxTanla({ f2Narx: row.f2_narx, katalogNarx: katalog[i]?.find((v) => v.manba === 'katalog')?.narx, smetaNarx: row.smeta_narx });
+          const d = next[row.qator_id]; const q = Number(d.quantity.replace(',', '.'));
+          if (!t || !Number.isFinite(q)) return;
+          next[row.qator_id] = { ...d, unitPrice: String(t.narx), amount: String(f2Summa(q, t.narx)), sourceReference: d.sourceReference.trim() || `Narx: ${F2_NARX_MANBA_NOMI[t.manba]}` };
+          manbalar[row.qator_id] = t.manba; n += 1;
+        });
+        return next;
+      });
+      setNarxManba((o) => ({ ...o, ...manbalar }));
+      toast(n ? `${n} ta qatorga narx taklif qilindi — manbasi ko‘rsatilgan, tekshirib tahrirlang.` : 'Mos narx topilmadi — qo‘lda kiriting.', n ? 'ok' : 'warn');
+    } finally { setNarxBand(false); }
+  };
   const issueText = (code: string) => ({
     QTY_INVALID: 'Hajm 0 dan katta bo‘lishi kerak',
     QTY_EXCEEDS_FAKT: 'Fakt qoldig‘idan oshib ketdi',
@@ -178,10 +207,11 @@ export function F2TayyorlashNative() {
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3">
           <div className="flex items-start gap-2 text-xs text-text-dim"><Zap size={15} className="mt-0.5 shrink-0 text-accent" /><span><b className="text-text">Avval hajmni to‘ldiring.</b> Narx, summa va manba F2 hujjatidan kiritiladi; smeta narxi bilan to‘ldirilmaydi.</span></div>
           <button type="button" onClick={barchaMumkinniOlish} disabled={saving || qatorlar.length === 0} className="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-surface-2 disabled:opacity-50"><CheckCircle2 size={14} className="text-accent" />Barcha mumkin hajmni olish</button>
+          <button type="button" onClick={() => void narxlarniTaklif()} disabled={saving || narxBand || tanlangan.length === 0} title="Narxi bo‘sh qatorlarga: oldingi F2 narxi → katalog → smeta narxi (manbasi ko‘rsatiladi)" className="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-surface-2 disabled:opacity-50"><Zap size={14} className="text-accent" />{narxBand ? 'Qidirilmoqda…' : 'Narxlarni taklif qilish'}</button>
         </section>
         <section className="karta min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[1100px] text-left text-[12px]"><thead className="sticky top-0 bg-surface-2 text-text-dim"><tr><th className="p-3">Ish / resurs</th><th>F2 mumkin</th><th>Joriy hajm</th><th>Narx</th><th>Hujjat summasi</th><th>Manba</th><th className="p-3">Holat</th></tr></thead>
-          <tbody>{qatorlar.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-text-dim">F2 olish mumkin bo‘lgan kanonik Fakt qoldig‘i yo‘q.</td></tr> : qatorlar.map((row) => { const draft = drafts[row.qator_id] || boshDraft; const issue = issueMap.get(row.qator_id); const label = row.kod || row.nom || 'Ish / resurs'; return <tr key={row.qator_id} className="border-t border-border/60 align-top"><td className="p-3"><div className="font-medium">{row.kod || '—'}</div><div>{row.nom}</div><div className="text-text-dim">{row.birlik}</div>{aosrsizId.has(row.qator_id) && <div className="mt-1 inline-block rounded bg-warn/10 px-1.5 py-0.5 text-[10px] font-semibold text-warn">yashirin ish · АОСР yo‘q</div>}</td><td><FmtN val={row.f2_mumkin_hajm} /></td><td><input aria-label={`F2 hajmi: ${label}`} type="number" min="0" value={draft.quantity} onChange={(event) => ozgartir(row.qator_id, { quantity: event.target.value })} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right" /></td><td><input aria-label={`F2 narxi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.unitPrice} onChange={(event) => ozgartir(row.qator_id, { unitPrice: event.target.value })} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" /></td><td><input aria-label={`F2 summasi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.amount} onChange={(event) => ozgartir(row.qator_id, { amount: event.target.value })} className="w-32 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" /></td><td><input aria-label={`F2 manbasi: ${label}`} value={draft.sourceReference} onChange={(event) => ozgartir(row.qator_id, { sourceReference: event.target.value })} placeholder="F2 №, sahifa" className="w-40 rounded border border-border bg-bg px-2 py-1" /><label className="mt-1 block text-[10px] text-text-dim"><input type="checkbox" checked={draft.priceIntentionallyAbsent} onChange={(event) => ozgartir(row.qator_id, { priceIntentionallyAbsent: event.target.checked })} /> narx hujjatda ataylab yo‘q</label></td><td className="p-3">{issue ? <span className={issue.blocking ? 'text-danger' : 'text-warn'}>{issueText(issue.code)}</span> : draft.quantity ? <span className="text-ok">Tayyor</span> : <span className="text-text-dim">Tanlanmagan</span>}</td></tr>; })}</tbody>
+          <tbody>{qatorlar.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-text-dim">F2 olish mumkin bo‘lgan kanonik Fakt qoldig‘i yo‘q.</td></tr> : qatorlar.map((row) => { const draft = drafts[row.qator_id] || boshDraft; const issue = issueMap.get(row.qator_id); const label = row.kod || row.nom || 'Ish / resurs'; return <tr key={row.qator_id} className="border-t border-border/60 align-top"><td className="p-3"><div className="font-medium">{row.kod || '—'}</div><div>{row.nom}</div><div className="text-text-dim">{row.birlik}</div>{aosrsizId.has(row.qator_id) && <div className="mt-1 inline-block rounded bg-warn/10 px-1.5 py-0.5 text-[10px] font-semibold text-warn">yashirin ish · АОСР yo‘q</div>}</td><td><FmtN val={row.f2_mumkin_hajm} /></td><td><input aria-label={`F2 hajmi: ${label}`} type="number" min="0" value={draft.quantity} onChange={(event) => ozgartir(row.qator_id, { quantity: event.target.value })} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right" /></td><td><input aria-label={`F2 narxi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.unitPrice} onChange={(event) => { ozgartir(row.qator_id, { unitPrice: event.target.value }); setNarxManba(({ [row.qator_id]: _, ...rest }) => rest); }} className="w-28 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" />{narxManba[row.qator_id] && <div className="mt-0.5 text-[10px] text-accent">manba: {F2_NARX_MANBA_NOMI[narxManba[row.qator_id]]}</div>}</td><td><input aria-label={`F2 summasi: ${label}`} type="number" disabled={draft.priceIntentionallyAbsent} value={draft.amount} onChange={(event) => ozgartir(row.qator_id, { amount: event.target.value })} className="w-32 rounded border border-border bg-bg px-2 py-1 text-right disabled:opacity-50" /></td><td><input aria-label={`F2 manbasi: ${label}`} value={draft.sourceReference} onChange={(event) => ozgartir(row.qator_id, { sourceReference: event.target.value })} placeholder="F2 №, sahifa" className="w-40 rounded border border-border bg-bg px-2 py-1" /><label className="mt-1 block text-[10px] text-text-dim"><input type="checkbox" checked={draft.priceIntentionallyAbsent} onChange={(event) => ozgartir(row.qator_id, { priceIntentionallyAbsent: event.target.checked })} /> narx hujjatda ataylab yo‘q</label></td><td className="p-3">{issue ? <span className={issue.blocking ? 'text-danger' : 'text-warn'}>{issueText(issue.code)}</span> : draft.quantity ? <span className="text-ok">Tayyor</span> : <span className="text-text-dim">Tanlanmagan</span>}</td></tr>; })}</tbody>
         </table>
       </section></>}
       {validId && qatorlar.length > 0 && <section className="flex flex-wrap items-start gap-3"><div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div><label className="text-[12px] text-text-dim">QQS (НДС) stavkasi, % — hujjat oxirida bir marta<input aria-label="QQS stavkasi" value={ndsFoiz} onChange={(event) => setNdsFoiz(event.target.value)} placeholder="bo‘sh — QQS qo‘shilmaydi" inputMode="decimal" className="ml-2 w-44 rounded border border-border bg-bg px-2 py-1" /></label></section>}

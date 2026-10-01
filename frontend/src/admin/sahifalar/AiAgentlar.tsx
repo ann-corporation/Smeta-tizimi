@@ -19,7 +19,7 @@ import { toast } from '../../umumiy/ui/Toast';
 const ISHCHILAR = {
   quality_handover: { nom: 'Sifat/Topshirish agenti — АОСР qamrovi va laboratoriya', buyruq: 'quality.handover.prepare' },
   pto_smeta: { nom: 'Narx auditori — smeta narxlari dalili (НАПУ himoyasi)', buyruq: 'price.evidence.audit' },
-  warehouse: { nom: 'Ombor agenti — БЕЗСКЛАД nomzodlari (beton, qorishma)', buyruq: 'warehouse.bezsklad.audit' },
+  warehouse: { nom: 'Ombor agenti — БЕЗСКЛАД nazorati (beton/rastvor + м³)', buyruq: 'warehouse.bezsklad.audit' },
 } as const;
 
 export default function AiAgentlar() {
@@ -77,9 +77,15 @@ export default function AiAgentlar() {
           {Array.isArray(natija.katta_ogish) && natija.katta_ogish.length > 0 && (
             <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.katta_ogish as Array<{ qator_id: number; nom: string; smeta_narx: number; manba_narx: number; ogish_foiz: number }>).slice(0, 30).map((x) => <li key={x.qator_id}>{x.nom}: smeta {x.smeta_narx} → manba {x.manba_narx} ({x.ogish_foiz}%)</li>)}</ul>
           )}
-          {Array.isArray(natija.nomzodlar) && natija.nomzodlar.length > 0 && (
-            <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.nomzodlar as Array<{ nom: string; birlik: string | null; qatorlar: number; summa: number | null }>).slice(0, 30).map((x, i) => <li key={i}>{x.nom}{x.birlik ? `, ${x.birlik}` : ''} — {x.qatorlar} qator{x.summa != null ? `, ${Math.round(x.summa).toLocaleString('ru-RU')} so‘m` : ''}</li>)}</ul>
-          )}
+          {/* Ombor agenti: БЕЗСКЛАД qoidasi bazada avtomatik — agent faqat istisnolarni ko'rsatadi. */}
+          {Array.isArray(natija.aktda_qolgan) && natija.aktda_qolgan.length > 0 && (<>
+            <div className="pt-1 text-xs font-medium">F2 aktida bo‘lgani uchun МАТ qolgan (topshirilgan summa o‘zgarmasin):</div>
+            <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.aktda_qolgan as Array<{ qator_id: number; nom: string; birlik: string | null; summa: number | null }>).slice(0, 30).map((x) => <li key={x.qator_id}>{x.nom}{x.birlik ? `, ${x.birlik}` : ''}{x.summa != null ? ` — ${Math.round(x.summa).toLocaleString('ru-RU')} so‘m` : ''}</li>)}</ul>
+          </>)}
+          {Array.isArray(natija.shubhali) && natija.shubhali.length > 0 && (<>
+            <div className="pt-1 text-xs font-medium">Nomida beton/rastvor bor, lekin qoidaga tushmagan — ko‘zdan kechiring:</div>
+            <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.shubhali as Array<{ nom: string; birlik: string | null; qatorlar: number; summa: number | null }>).slice(0, 30).map((x, i) => <li key={i}>{x.nom}{x.birlik ? `, ${x.birlik}` : ''} — {x.qatorlar} qator{x.summa != null ? `, ${Math.round(x.summa).toLocaleString('ru-RU')} so‘m` : ''}</li>)}</ul>
+          </>)}
           {Array.isArray(natija.yashirin_aktsiz) && natija.yashirin_aktsiz.length > 0 && (
             <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.yashirin_aktsiz as Array<{ qator_id: number; nom: string; fakt_hajm: number; birlik: string }>).slice(0, 30).map((x) => <li key={x.qator_id}>{x.nom} — {x.fakt_hajm} {x.birlik}</li>)}</ul>
           )}

@@ -145,6 +145,8 @@ export type QatorHolat = {
   qoldiq_hajm: number | null; qoldiq_summa: number | null;
   /** Ф2 ga olish MUMKIN bo'lgan qoldiq = fakt − f2 (manfiy bo'lmaydi). */
   f2_mumkin_hajm: number; f2_mumkin_summa: number;
+  /** Shu qatorning oldingi tasdiqlangan F2 narxi (view'da bor). */
+  f2_narx?: number | null;
 };
 
 export function sbQatorHolatOl(obyektId: number) {

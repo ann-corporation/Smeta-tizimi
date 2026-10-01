@@ -26,7 +26,7 @@ export function son(v: string | number | null | undefined): number | null {
 const y6 = (x: number) => Math.round(x * 1e6) / 1e6;
 /** Postgres numeric bilan bir xil yaxlitlash: avval float shovqinini (…7849999) 6 xonada tozalab,
  *  keyin o'nlik ko'rinishda 2 xonaga (85,085 × 29 421 = 2 503 285,785 → ,79 — server ham ,79). */
-const y2 = (x: number) => { const t = y6(x); return Number(Math.round(Number(`${t}e2`)) + 'e-2'); };
+export const pulYaxlit = (x: number): number => { const t = y6(x); return Number(Math.round(Number(`${t}e2`)) + 'e-2'); };
 
 /** Smeta kategoriyasini aniqlash (sostavdagi kat/tur → ЧЕЛ/МАШ/МАТ/ОБ). */
 export function katAniqla(kat: string | null | undefined, tur?: string | null, birlik?: string | null): Kat {
@@ -54,12 +54,12 @@ export function abcHisobla(ishHajm: string | number | null, resurslar: readonly 
   const qatorlar = resurslar.map((r) => {
     const n = son(r.norma); const p = son(r.narx);
     const hajm = h != null && n != null ? y6(n * h) : null;
-    const summa = hajm != null && p != null && p > 0 ? y2(hajm * p) : null;
+    const summa = hajm != null && p != null && p > 0 ? pulYaxlit(hajm * p) : null;
     if (summa == null) narxsiz += 1; else { jamiKat[r.kat] += summa; jami += summa; }
     return { hajm, summa };
   });
-  jami = y2(jami);
-  return { qatorlar, jamiKat, jami, narxsiz, ishNarxi: h && h > 0 && jami > 0 ? y2(jami / h) : null };
+  jami = pulYaxlit(jami);
+  return { qatorlar, jamiKat, jami, narxsiz, ishNarxi: h && h > 0 && jami > 0 ? pulYaxlit(jami / h) : null };
 }
 
 export type AbcXato = { joy: string; matn: string };
