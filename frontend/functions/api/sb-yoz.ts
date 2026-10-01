@@ -30,6 +30,8 @@ const AMALLAR = {
   /* Egasi 2026-10-01: fakt kiritishda qo'shimcha ish/zamena, smetasiz obyekt (qator + resurslar + fakt bitta tranzaksiya). */
   fakt_smetadan_tashqari_v1: { rpc: 't2_fakt_smetadan_tashqari_v1' },
   ish_turi_saqla_v1: { rpc: 't2_ish_turi_saqla_v1' },
+  /* Egasi 2026-10-01 — kichik ABC: ШНК tuzilishida qo'shimcha ish / ish zamenasi / resurs zamenasi. */
+  ish_abc_saqla_v1: { rpc: 't2_ish_abc_saqla_v1' },
   zamena_ish_yarat_v1: { rpc: 't2_zamena_ish_yarat_v1' },
   resurs_bola_qosh_v1: { rpc: 't2_resurs_bola_qosh_v1' },
   /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
@@ -490,6 +492,22 @@ export const onRequestPost: PagesFunction<{
         p_sana: so.sana, p_sabab: String(so.sabab).slice(0, 500), p_ish_turi_id: so.ish_turi_id ?? null,
         p_resurslar: Array.isArray(so.resurslar) ? so.resurslar.slice(0, 50) : null,
         p_katalogga_saqla: so.katalogga_saqla === true, p_operation_id: so.operation_id, p_kutilgan_versiya: Number(so.kutilgan_versiya),
+      };
+    } else if (amal === 'ish_abc_saqla_v1') {
+      const buyruq = String(so.command || '');
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || ''))
+          || !['additional', 'replacement', 'resurs_zamena'].includes(buyruq) || !String(so.sabab || '').trim()
+          || (so.resurslar != null && (!Array.isArray(so.resurslar) || so.resurslar.length > 60))
+          || (so.sana != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana)))) {
+        return Response.json({ ok: false, error: 'Buyruq, sabab, operatsiya va ≤60 resurs talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_obyekt_id: so.obyekt_id, p_command: buyruq,
+        p_ota_qator_id: so.ota_qator_id ?? null, p_almashtirilayotgan_qator_id: so.almashtirilayotgan_qator_id ?? null,
+        p_ish: so.ish ?? null, p_resurslar: so.resurslar ?? null,
+        p_fakt_hajm: so.fakt_hajm == null || so.fakt_hajm === '' ? null : Number(so.fakt_hajm),
+        p_sana: so.sana ?? null, p_sabab: String(so.sabab).slice(0, 500),
+        p_operation_id: so.operation_id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
       };
     } else if (amal === 'ish_turi_saqla_v1') {
       if (!sess.foydalanuvchi_id) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });

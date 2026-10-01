@@ -174,6 +174,8 @@ export const onRequestPost: PagesFunction<{
       tartib?: string; limit?: number;
       soro?: string; obyekt_id?: number; kompaniya_id?: number; akt_id?: number; job_id?: number;
       shartnoma_id?: number;
+      /* ABC kutubxona qidiruvi (2026-10-01). */
+      q?: string; kat?: string; items?: Array<{ nom?: string; birlik?: string }>;
     }>();
 
     /* ══════════ O'QISH-RPC (AI konteksti) ══════════════════════════════
@@ -220,6 +222,11 @@ export const onRequestPost: PagesFunction<{
            mismatched pair simply returns zero rows rather than leaking
            another tenant's history. */
         akt_lifecycle_history_v1: 'akt_kompaniya_actor',
+        /* Egasi 2026-10-01 — kichik ABC: ish turi / resurs kutubxonalari (yuklangan smetalardan) va
+           narx takliflari. `stable`, a'zolik ichida (t2_obyekt_kompaniya_azo). */
+        ish_turi_qidir_v1: 'obyekt_actor',
+        resurs_qidir_v1: 'obyekt_actor',
+        resurs_narx_taklif_v1: 'obyekt_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -316,6 +323,14 @@ export const onRequestPost: PagesFunction<{
           }
           q.set('p_obyekt_id', String(objectId));
         }
+      }
+      if (so.soro === 'ish_turi_qidir_v1' || so.soro === 'resurs_qidir_v1') {
+        q.set('p_q', String(so.q ?? '').slice(0, 100));
+        if (so.soro === 'resurs_qidir_v1') q.set('p_kat', String(so.kat ?? '').slice(0, 10));
+      }
+      if (so.soro === 'resurs_narx_taklif_v1') {
+        const items = Array.isArray(so.items) ? so.items.slice(0, 80).map((x, i) => ({ i, nom: String(x?.nom ?? '').slice(0, 300), birlik: String(x?.birlik ?? '').slice(0, 30) })) : [];
+        q.set('p_items', JSON.stringify(items));
       }
       if (so.soro === 'hodisa_obyekt_lenta') {
         const lim = Math.min(100, Math.max(1, Number(so.limit || 20)));

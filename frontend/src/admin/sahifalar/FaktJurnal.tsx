@@ -4,7 +4,7 @@ import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { JURNAL_XATO_MATN, jurnalPaket, jurnalQur, qoldiqUlushi, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim } from '../../lib/fakt-jurnal';
 import { toast } from '../../umumiy/ui/Toast';
-import { SmetadanTashqariModal } from './SmetadanTashqariModal';
+import { IshAbcModal, type AbcRejim } from './IshAbcModal';
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 const foiz = (u: number | null) => (u == null ? '—' : `${Math.round(u * 100)}%`);
@@ -46,7 +46,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const [yopiqBolim, setYopiqBolim] = useState<Set<number>>(new Set());
   const [band, setBand] = useState(false);
   const [saqlangan, setSaqlangan] = useState<Set<number>>(new Set());
-  const [modal, setModal] = useState<{ zamena?: JurnalQator | null; bolimId?: number | null } | null>(null);
+  const [modal, setModal] = useState<AbcRejim | null>(null);
+  /** Zamena: ish (yoki mustaqil material) — ish zamenasi; ish ichidagi resurs — resurs zamenasi (ish hajmi bilan). */
+  const zamenaOch = (q: JurnalQator, ishHajm?: number | null) => setModal(q.tur === 'bl' || ishHajm === undefined
+    ? { tur: 'replacement', eski: { id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, otaId: q.otaId, otaVersiya: q.otaVersiya } }
+    : { tur: 'resurs_zamena', eski: { id: q.id, nom: q.nom, birlik: q.birlik, kat: null, norma: q.norma }, ishHajm: ishHajm ?? null });
   const operationId = useRef(yangiOperationId());
   const inputlar = useRef<Array<HTMLInputElement | null>>([]);
   const qidiruvRef = useRef<HTMLInputElement | null>(null);
@@ -139,7 +143,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     </div>;
   };
 
-  const qator = (q: JurnalQator, resurs?: boolean, children?: ReactNode) => {
+  const qator = (q: JurnalQator, resurs?: boolean, children?: ReactNode, ishHajm?: number | null) => {
     const rang = HOLAT_RANG[q.holat];
     return <div key={q.id} className={`grid grid-cols-[minmax(0,1fr)_minmax(150px,220px)_auto] items-center gap-4 px-3 ${resurs ? 'py-1.5 pl-9' : 'py-2.5'} transition-colors ${saqlangan.has(q.id) ? 'bg-ok/10' : kiritmalar[q.id]?.qiymat ? 'bg-accent/[.04]' : ''}`}>
       <div className="min-w-0">
@@ -160,7 +164,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       </div>
       <div className="flex items-center gap-1.5">
         {kiritish(q, resurs)}
-        {q.otaId != null && <button type="button" tabIndex={-1} onClick={() => setModal({ zamena: q })} title="Zamena — boshqa ish/material bilan almashtirish" aria-label={`Zamena: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-warn/10 hover:text-warn"><Repeat2 size={14} /></button>}
+        {q.otaId != null && <button type="button" tabIndex={-1} onClick={() => zamenaOch(q, resurs ? ishHajm : undefined)} title="Zamena — boshqa ish/material bilan almashtirish" aria-label={`Zamena: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-warn/10 hover:text-warn"><Repeat2 size={14} /></button>}
       </div>
     </div>;
   };
@@ -178,13 +182,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           <input ref={qidiruvRef} value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Butun obyekt bo‘yicha qidirish…  ( / )" aria-label="Qidirish" className="input h-8 w-full pl-8 pr-8 text-[13px]" />
           {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute" aria-label="Qidiruvni tozalash"><X size={14} /></button>}</div>
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> faqat bajarilmaganlar</label>
-        <button onClick={() => setModal({ bolimId })} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 px-3 text-[12px] font-semibold text-text hover:bg-accent/10"><Plus size={14} className="text-accent" /> Smetadan tashqari ish</button>
+        <button onClick={() => setModal({ tur: 'additional', bolimId })} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 px-3 text-[12px] font-semibold text-text hover:bg-accent/10"><Plus size={14} className="text-accent" /> Smetadan tashqari ish</button>
       </section>
 
       {bolimlar.length === 0
         ? <section className="karta flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
             <p className="max-w-md text-[13px] text-text-dim">Bu obyektda smeta yo‘q. Bajarilgan ishlarni resurslari bilan to‘g‘ridan-to‘g‘ri kiriting — ular faktga yoziladi va <b className="text-text">F2 ga tayyor</b> bo‘ladi.</p>
-            <button onClick={() => setModal({})} className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white"><Plus size={16} /> Bajarilgan ishni kiritish</button>
+            <button onClick={() => setModal({ tur: 'additional' })} className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white"><Plus size={16} /> Bajarilgan ishni kiritish</button>
           </section>
         : <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Bo‘limlar">
@@ -219,8 +223,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
                 {bolim && <div className="bg-surface-2/60 px-3 py-1 text-[10px] text-text-mute">{bolim}</div>}
                 {qator(ish, false, ish.avtomatik.length > 0 && <button type="button" tabIndex={-1} onClick={() => setOchiqAvto((s) => { const n = new Set(s); if (n.has(ish.id)) n.delete(ish.id); else n.add(ish.id); return n; })} className="mt-0.5 inline-flex items-center gap-1 pl-4 text-[10px] text-text-mute hover:text-text">
                     <Cpu size={11} /> mehnat va mashina: {ish.avtomatik.length} ta — avtomatik (norma × ish fakti) {ochiqAvto.has(ish.id) ? <ChevronDown size={11} /> : <ChevronRight size={11} />}</button>)}
-                {ochiqAvto.has(ish.id) && <div className="bg-surface-2/30 py-1 pl-12 pr-3">{ish.avtomatik.map((a) => <div key={a.id} className="flex justify-between gap-3 py-0.5 text-[11px] text-text-mute"><span className="truncate">{a.nom}</span><span className="shrink-0 tabular-nums">{fmt(a.fakt)} / {fmt(a.smeta)} {a.birlik}{a.norma != null ? ` · norma ${fmt(a.norma)}` : ''}</span></div>)}</div>}
-                {ish.resurslar.map((r) => qator(r, true))}
+                {ochiqAvto.has(ish.id) && <div className="bg-surface-2/30 py-1 pl-12 pr-3">{ish.avtomatik.map((a) => <div key={a.id} className="flex justify-between gap-3 py-0.5 text-[11px] text-text-mute"><span className="truncate">{a.nom}</span><span className="flex shrink-0 items-center gap-2 tabular-nums">{fmt(a.fakt)} / {fmt(a.smeta)} {a.birlik}{a.norma != null ? ` · norma ${fmt(a.norma)}` : ''}<button type="button" tabIndex={-1} onClick={() => zamenaOch(a, ish.smeta)} title="Resurs zamenasi" aria-label={`Zamena: ${a.nom}`} className="rounded p-0.5 hover:bg-warn/10 hover:text-warn"><Repeat2 size={12} /></button></span></div>)}</div>}
+                {ish.resurslar.map((r) => qator(r, true, undefined, ish.smeta))}
               </div>)}
             </div>
           </section>
@@ -236,9 +240,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         </div>
       </div>}
 
-      {modal && <SmetadanTashqariModal kompaniyaId={kompaniyaId} obyektId={obyektId} sana={sana}
+      {modal && <IshAbcModal kompaniyaId={kompaniyaId} obyektId={obyektId} sana={sana}
         bolimlar={bolimlar.map((b) => ({ id: b.id, versiya: b.versiya, nom: `${'· '.repeat(b.daraja)}${b.nom}` }))}
-        zamena={modal.zamena} boshBolimId={modal.bolimId} onYop={() => setModal(null)}
+        rejim={modal} onYop={() => setModal(null)}
         onSaqlandi={(xabar) => { setModal(null); toast(xabar, 'ok'); void tuzilmaniYangila(); }} />}
     </div>
   );

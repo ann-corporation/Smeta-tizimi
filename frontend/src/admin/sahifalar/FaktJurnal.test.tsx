@@ -5,7 +5,7 @@ import type { T2Qator } from '../../api/supabase';
 const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn() }));
 vi.mock('../../api/t2-fakt', () => ({ sbFaktYoz: m.yoz }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
-vi.mock('../../api/t2-fakt-smetadan-tashqari', () => ({ sbIshTurlariOl: () => Promise.resolve({ ok: true, qatorlar: [] }), sbFaktSmetadanTashqari: vi.fn(), smetadanTashqariXato: () => '' }));
+vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: vi.fn(async () => []), resursQidir: vi.fn(async () => []), narxTakliflari: vi.fn(async () => []), ishAbcSaqla: vi.fn(), abcXato: () => '' }));
 
 import { FaktJurnal } from './FaktJurnal';
 
@@ -74,6 +74,6 @@ describe('FaktJurnal', () => {
   it('smetasiz obyekt — bajarilgan ishni kiritish taklifi', () => {
     render(<FaktJurnal {...props()} rows={[]} states={[]} />);
     fireEvent.click(screen.getByRole('button', { name: /Bajarilgan ishni kiritish/ }));
-    expect(screen.getByRole('dialog', { name: 'Smetadan tashqari ish' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Qo‘shimcha ish (smetadan tashqari)' })).toBeTruthy();
   });
 });
