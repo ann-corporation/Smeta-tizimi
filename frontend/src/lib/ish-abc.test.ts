@@ -25,10 +25,19 @@ describe('ish ABC hisobi (ШНК)', () => {
     expect(abcTekshir({ rejim: 'resurs', resurslar: [], sabab: 's' })[0].joy).toBe('resurs');
   });
 
-  it('eng yaxshi narx: shu smeta → boshqa smeta → katalog', () => {
+  it('eng yaxshi narx: shu smeta → shu shartnoma → boshqa shartnoma; katalog avtomatik emas', () => {
     expect(engYaxshiNarx([{ manba: 'katalog', narx: 5, izoh: '' }, { manba: 'smeta', narx: 7, izoh: '' }])?.narx).toBe(7);
-    expect(engYaxshiNarx([{ manba: 'smeta', narx: 7, izoh: '' }, { manba: 'smeta_obyekt', narx: 9, izoh: '' }])?.manba).toBe('smeta_obyekt');
+    expect(engYaxshiNarx([{ manba: 'smeta', narx: 7, izoh: '' }, { manba: 'smeta_shartnoma', narx: 8, izoh: '' }])?.manba).toBe('smeta_shartnoma');
+    expect(engYaxshiNarx([{ manba: 'smeta_shartnoma', narx: 8, izoh: '' }, { manba: 'smeta_obyekt', narx: 9, izoh: '' }])?.manba).toBe('smeta_obyekt');
+    expect(engYaxshiNarx([{ manba: 'katalog', narx: 5, izoh: '' }])).toBeNull();
     expect(engYaxshiNarx([])).toBeNull();
+  });
+
+  it('normasiz resurs: aniq hajm, norma talab qilinmaydi', () => {
+    const h = abcHisobla('2', [r({ norma: '', hajm: '15', narx: '1000' })]);
+    expect(h.qatorlar[0]).toEqual({ hajm: 15, summa: 15000 });
+    expect(abcTekshir({ rejim: 'ish', ish: { nom: 'a', birlik: 'м3', hajm: '1' }, resurslar: [r({ norma: '', hajm: '3' })], sabab: 's' })).toEqual([]);
+    expect(abcTekshir({ rejim: 'ish', ish: { nom: 'a', birlik: 'м3', hajm: '1' }, resurslar: [r({ norma: '', hajm: '' })], sabab: 's' })[0].joy).toBe('r0');
   });
 
   it('kategoriya aniqlash', () => {

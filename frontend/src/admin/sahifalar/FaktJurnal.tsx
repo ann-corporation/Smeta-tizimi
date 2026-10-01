@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { CheckCircle2, ChevronDown, ChevronRight, Cpu, Plus, Repeat2, RotateCcw, Save, Search, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Cpu, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { JURNAL_XATO_MATN, jurnalPaket, jurnalQur, qoldiqUlushi, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim } from '../../lib/fakt-jurnal';
 import { toast } from '../../umumiy/ui/Toast';
-import { IshAbcModal, type AbcRejim } from './IshAbcModal';
+import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
+import { abcXato, ishAbcOchir, type NarxManba } from '../../api/t2-ish-abc';
+import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
+
+const MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'];
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 const foiz = (u: number | null) => (u == null ? '—' : `${Math.round(u * 100)}%`);
@@ -46,11 +50,44 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const [yopiqBolim, setYopiqBolim] = useState<Set<number>>(new Set());
   const [band, setBand] = useState(false);
   const [saqlangan, setSaqlangan] = useState<Set<number>>(new Set());
-  const [modal, setModal] = useState<AbcRejim | null>(null);
+  const [modal, setModal] = useState<{ rejim: AbcRejim; tahrir?: AbcTahrir | null } | null>(null);
   /** Zamena: ish (yoki mustaqil material) — ish zamenasi; ish ichidagi resurs — resurs zamenasi (ish hajmi bilan). */
-  const zamenaOch = (q: JurnalQator, ishHajm?: number | null) => setModal(q.tur === 'bl' || ishHajm === undefined
+  const zamenaOch = (q: JurnalQator, ishHajm?: number | null) => setModal({ rejim: q.tur === 'bl' || ishHajm === undefined
     ? { tur: 'replacement', eski: { id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, otaId: q.otaId, otaVersiya: q.otaVersiya } }
-    : { tur: 'resurs_zamena', eski: { id: q.id, nom: q.nom, birlik: q.birlik, kat: null, norma: q.norma }, ishHajm: ishHajm ?? null });
+    : { tur: 'resurs_zamena', eski: { id: q.id, nom: q.nom, birlik: q.birlik, kat: null, norma: q.norma }, ishHajm: ishHajm ?? null } });
+
+  // ── Qo'shilgan ish/zamena: TAHRIRLASH va O'CHIRISH (asliga qaytarish). Smeta qatorlari — o'zgarmas. ──
+  const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
+  const resursPrefill = (c: T2Qator): AbcResurs => {
+    const norma = Number((c as T2Qator & { norma?: number | null }).norma ?? 0);
+    const usul = String(c.narx_usul ?? '').toLowerCase() as NarxManba;
+    return { kat: katAniqla(c.kat, c.tur, c.birlik), kod: c.kod ?? '', nom: c.nom ?? '', birlik: c.birlik ?? '',
+      norma: norma > 0 ? String(norma) : '', hajm: norma > 0 ? '' : String(c.hajm ?? ''),
+      narx: c.narx ? String(c.narx) : '', manba: MANBALAR.includes(usul) ? usul : 'qolda' };
+  };
+  const tahrirOch = (q: JurnalQator) => {
+    const r = rowById.get(q.id); if (!r) return;
+    if (r.tur === 'bl') {
+      const bolalar = rows.filter((c) => c.ota_id === r.id && (c.tur === 'rs' || c.tur === 'mat' || c.tur === 'ob'));
+      const fakt = faktlar.get(r.id) ?? 0;
+      setModal({
+        rejim: q.zamena ? { tur: 'replacement', eski: { id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, otaId: q.otaId, otaVersiya: q.otaVersiya } } : { tur: 'additional' },
+        tahrir: { qatorId: r.id, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: fakt > 0 ? String(fakt) : '' },
+      });
+    } else if (q.zamena) {
+      const ota = r.ota_id != null ? rowById.get(r.ota_id) : undefined;
+      setModal({ rejim: { tur: 'resurs_zamena', eski: { id: r.id, nom: r.nom ?? '', birlik: r.birlik, kat: r.kat, norma: q.norma }, ishHajm: ota?.hajm ?? null },
+        tahrir: { qatorId: r.id, resurslar: [resursPrefill(r)] } });
+    } else toast('Bu resurs qo‘shilgan ish ichida — ishning o‘zini tahrirlang.', 'warn');
+  };
+  const ochir = async (q: JurnalQator) => {
+    const sabab = window.prompt(`«${q.nom}» o‘chirilsinmi? ${q.zamena ? 'Asl qator qaytadi.' : 'Ish va uning resurslari, fakti o‘chiriladi (arxivda qoladi).'}\nSabab (ixtiyoriy):`, '');
+    if (sabab === null) return;
+    const r = await ishAbcOchir({ kompaniyaId, obyektId, qatorId: q.id, sabab: sabab || undefined, operationId: yangiOperationId() });
+    if (!r.ok) { toast(abcXato(r), 'danger'); return; }
+    toast(q.zamena ? 'Zamena bekor qilindi — asl qator qaytdi.' : `O‘chirildi: ${r.ochirildi ?? 1} ta qator.`, 'ok');
+    await tuzilmaniYangila();
+  };
   const operationId = useRef(yangiOperationId());
   const inputlar = useRef<Array<HTMLInputElement | null>>([]);
   const qidiruvRef = useRef<HTMLInputElement | null>(null);
@@ -164,7 +201,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       </div>
       <div className="flex items-center gap-1.5">
         {kiritish(q, resurs)}
-        {q.otaId != null && <button type="button" tabIndex={-1} onClick={() => zamenaOch(q, resurs ? ishHajm : undefined)} title="Zamena — boshqa ish/material bilan almashtirish" aria-label={`Zamena: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-warn/10 hover:text-warn"><Repeat2 size={14} /></button>}
+        {(q.qoshimcha || q.zamena) && <>
+          <button type="button" tabIndex={-1} onClick={() => tahrirOch(q)} title="Tahrirlash" aria-label={`Tahrirlash: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-accent/10 hover:text-accent"><Pencil size={13} /></button>
+          <button type="button" tabIndex={-1} onClick={() => void ochir(q)} title={q.zamena ? 'Zamenani bekor qilish (asliga qaytarish)' : 'O‘chirish'} aria-label={`O‘chirish: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-danger/10 hover:text-danger"><Trash2 size={13} /></button>
+        </>}
+        {q.otaId != null && !q.qoshimcha && <button type="button" tabIndex={-1} onClick={() => zamenaOch(q, resurs ? ishHajm : undefined)} title="Zamena — boshqa ish/material bilan almashtirish" aria-label={`Zamena: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-warn/10 hover:text-warn"><Repeat2 size={14} /></button>}
       </div>
     </div>;
   };
@@ -182,13 +223,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           <input ref={qidiruvRef} value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Butun obyekt bo‘yicha qidirish…  ( / )" aria-label="Qidirish" className="input h-8 w-full pl-8 pr-8 text-[13px]" />
           {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute" aria-label="Qidiruvni tozalash"><X size={14} /></button>}</div>
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> faqat bajarilmaganlar</label>
-        <button onClick={() => setModal({ tur: 'additional', bolimId })} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 px-3 text-[12px] font-semibold text-text hover:bg-accent/10"><Plus size={14} className="text-accent" /> Smetadan tashqari ish</button>
+        <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 px-3 text-[12px] font-semibold text-text hover:bg-accent/10"><Plus size={14} className="text-accent" /> Smetadan tashqari ish</button>
       </section>
 
       {bolimlar.length === 0
         ? <section className="karta flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
             <p className="max-w-md text-[13px] text-text-dim">Bu obyektda smeta yo‘q. Bajarilgan ishlarni resurslari bilan to‘g‘ridan-to‘g‘ri kiriting — ular faktga yoziladi va <b className="text-text">F2 ga tayyor</b> bo‘ladi.</p>
-            <button onClick={() => setModal({ tur: 'additional' })} className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white"><Plus size={16} /> Bajarilgan ishni kiritish</button>
+            <button onClick={() => setModal({ rejim: { tur: 'additional' } })} className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white"><Plus size={16} /> Bajarilgan ishni kiritish</button>
           </section>
         : <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Bo‘limlar">
@@ -223,7 +264,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
                 {bolim && <div className="bg-surface-2/60 px-3 py-1 text-[10px] text-text-mute">{bolim}</div>}
                 {qator(ish, false, ish.avtomatik.length > 0 && <button type="button" tabIndex={-1} onClick={() => setOchiqAvto((s) => { const n = new Set(s); if (n.has(ish.id)) n.delete(ish.id); else n.add(ish.id); return n; })} className="mt-0.5 inline-flex items-center gap-1 pl-4 text-[10px] text-text-mute hover:text-text">
                     <Cpu size={11} /> mehnat va mashina: {ish.avtomatik.length} ta — avtomatik (norma × ish fakti) {ochiqAvto.has(ish.id) ? <ChevronDown size={11} /> : <ChevronRight size={11} />}</button>)}
-                {ochiqAvto.has(ish.id) && <div className="bg-surface-2/30 py-1 pl-12 pr-3">{ish.avtomatik.map((a) => <div key={a.id} className="flex justify-between gap-3 py-0.5 text-[11px] text-text-mute"><span className="truncate">{a.nom}</span><span className="flex shrink-0 items-center gap-2 tabular-nums">{fmt(a.fakt)} / {fmt(a.smeta)} {a.birlik}{a.norma != null ? ` · norma ${fmt(a.norma)}` : ''}<button type="button" tabIndex={-1} onClick={() => zamenaOch(a, ish.smeta)} title="Resurs zamenasi" aria-label={`Zamena: ${a.nom}`} className="rounded p-0.5 hover:bg-warn/10 hover:text-warn"><Repeat2 size={12} /></button></span></div>)}</div>}
+                {ochiqAvto.has(ish.id) && <div className="bg-surface-2/30 py-1 pl-12 pr-3">{ish.avtomatik.map((a) => <div key={a.id} className="flex justify-between gap-3 py-0.5 text-[11px] text-text-mute"><span className="truncate">{a.nom}</span><span className="flex shrink-0 items-center gap-2 tabular-nums">{fmt(a.fakt)} / {fmt(a.smeta)} {a.birlik}{a.norma != null ? ` · norma ${fmt(a.norma)}` : ''}{(a.zamena || a.qoshimcha)
+                  ? <><button type="button" tabIndex={-1} onClick={() => tahrirOch(a)} title="Tahrirlash" aria-label={`Tahrirlash: ${a.nom}`} className="rounded p-0.5 hover:bg-accent/10 hover:text-accent"><Pencil size={12} /></button>
+                     <button type="button" tabIndex={-1} onClick={() => void ochir(a)} title="O‘chirish / asliga qaytarish" aria-label={`O‘chirish: ${a.nom}`} className="rounded p-0.5 hover:bg-danger/10 hover:text-danger"><Trash2 size={12} /></button></>
+                  : <button type="button" tabIndex={-1} onClick={() => zamenaOch(a, ish.smeta)} title="Resurs zamenasi" aria-label={`Zamena: ${a.nom}`} className="rounded p-0.5 hover:bg-warn/10 hover:text-warn"><Repeat2 size={12} /></button>}</span></div>)}</div>}
                 {ish.resurslar.map((r) => qator(r, true, undefined, ish.smeta))}
               </div>)}
             </div>
@@ -242,7 +286,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 
       {modal && <IshAbcModal kompaniyaId={kompaniyaId} obyektId={obyektId} sana={sana}
         bolimlar={bolimlar.map((b) => ({ id: b.id, versiya: b.versiya, nom: `${'· '.repeat(b.daraja)}${b.nom}` }))}
-        rejim={modal} onYop={() => setModal(null)}
+        rejim={modal.rejim} tahrir={modal.tahrir} onYop={() => setModal(null)}
         onSaqlandi={(xabar) => { setModal(null); toast(xabar, 'ok'); void tuzilmaniYangila(); }} />}
     </div>
   );

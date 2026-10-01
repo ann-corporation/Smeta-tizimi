@@ -5,7 +5,8 @@ import type { T2Qator } from '../../api/supabase';
 const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn() }));
 vi.mock('../../api/t2-fakt', () => ({ sbFaktYoz: m.yoz }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
-vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: vi.fn(async () => []), resursQidir: vi.fn(async () => []), narxTakliflari: vi.fn(async () => []), ishAbcSaqla: vi.fn(), abcXato: () => '' }));
+const abc = vi.hoisted(() => ({ ochir: vi.fn() }));
+vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: vi.fn(async () => []), resursQidir: vi.fn(async () => []), narxTakliflari: vi.fn(async () => []), ishAbcSaqla: vi.fn(), ishAbcTahrir: vi.fn(), ishAbcOchir: abc.ochir, abcXato: () => '' }));
 
 import { FaktJurnal } from './FaktJurnal';
 
@@ -75,5 +76,26 @@ describe('FaktJurnal', () => {
     render(<FaktJurnal {...props()} rows={[]} states={[]} />);
     fireEvent.click(screen.getByRole('button', { name: /Bajarilgan ishni kiritish/ }));
     expect(screen.getByRole('dialog', { name: 'Qo‘shimcha ish (smetadan tashqari)' })).toBeTruthy();
+  });
+
+  it('asl smeta qatorida tahrir/o‘chirish YO‘Q; qo‘shilgan ishda bor — o‘chirish va tahrir', async () => {
+    abc.ochir.mockResolvedValue({ ok: true, ochirildi: 2 });
+    const p = props();
+    const qosh = [...rows,
+      q({ id: 9, tur: 'bl', ota_id: 1, daraja: 1, nom: 'Qo‘shimcha devor', hajm: 4, qoshimcha: true }),
+      q({ id: 10, tur: 'rs', ota_id: 9, daraja: 2, nom: 'G‘isht', birlik: 'шт', hajm: 8, narx: 1500, narx_usul: 'SMETA_OBYEKT', kat: 'МАТ', norma: 2 } as Partial<T2Qator> & { id: number; tur: string })];
+    render(<FaktJurnal {...p} rows={qosh} states={[...states, { qator_id: 9, smeta_hajm: 4, fakt_hajm: 1 }]} />);
+    expect(screen.queryByRole('button', { name: 'O‘chirish: Grunt' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tahrirlash: Grunt' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Tahrirlash: Qo‘shimcha devor' }));
+    expect(screen.getByRole('dialog', { name: 'Tahrirlash: Qo‘shimcha ish (smetadan tashqari)' })).toBeTruthy();
+    expect((screen.getByLabelText('Ish hajmi') as HTMLInputElement).value).toBe('4');
+    expect((screen.getByLabelText('1-resurs normasi') as HTMLInputElement).value).toBe('2');
+    expect((screen.getByLabelText('Bajarilgan hajm') as HTMLInputElement).value).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
+    vi.spyOn(window, 'prompt').mockReturnValue('xato kiritilgan');
+    fireEvent.click(screen.getByRole('button', { name: 'O‘chirish: Qo‘shimcha devor' }));
+    await waitFor(() => expect(abc.ochir).toHaveBeenCalledWith(expect.objectContaining({ obyektId: 8, qatorId: 9, sabab: 'xato kiritilgan' })));
+    await waitFor(() => expect(p.tuzilmaniYangila).toHaveBeenCalled());
   });
 });

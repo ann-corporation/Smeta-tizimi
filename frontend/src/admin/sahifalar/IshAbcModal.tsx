@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { BookOpen, Plus, Repeat2, Trash2, X } from 'lucide-react';
 import { yangiOperationId } from '../../api/supabase';
-import { abcXato, ishAbcSaqla, ishTuriQidir, narxTakliflari, resursQidir, type IshTuriVariant, type Kat, type NarxManba, type ResursVariant } from '../../api/t2-ish-abc';
+import { abcXato, ishAbcSaqla, ishAbcTahrir, ishTuriQidir, narxTakliflari, resursQidir, type IshTuriVariant, type Kat, type NarxManba, type ResursVariant } from '../../api/t2-ish-abc';
 import { KATLAR, KAT_NOMI, MANBA_NOMI, abcHisobla, abcTekshir, engYaxshiNarx, katAniqla, son, type AbcResurs } from '../../lib/ish-abc';
 
 export type AbcRejim =
@@ -10,7 +10,7 @@ export type AbcRejim =
   | { tur: 'resurs_zamena'; eski: { id: number; nom: string; birlik: string | null; kat: string | null; norma: number | null }; ishHajm: number | null };
 
 const fmt = (v: number | null | undefined, d = 2) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: d }));
-const MANBA_RANG: Record<NarxManba, string> = { smeta_obyekt: 'bg-ok/15 text-ok', smeta: 'bg-accent/15 text-accent', katalog: 'bg-warn/15 text-warn', qolda: 'bg-surface-2 text-text-dim' };
+const MANBA_RANG: Record<NarxManba, string> = { smeta_obyekt: 'bg-ok/15 text-ok', smeta_shartnoma: 'bg-ok/10 text-ok', smeta: 'bg-accent/15 text-accent', katalog: 'bg-warn/15 text-warn', qolda: 'bg-surface-2 text-text-dim' };
 
 /** Yozish bilan kutubxonadan taklif beradigan maydon (debounce 300 ms, ↑↓ Enter Esc). */
 function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, ariaLabel, className }: {
@@ -54,18 +54,23 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
  * Ish turi nomini yozganda — kompaniyaning yuklangan smetalaridan variantlar (resurs tarkibi va
  * normalari bilan); resurs narxi — shu smeta (RES) → boshqa smetalar → katalog → qo'lda.
  */
-export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, onYop, onSaqlandi }: {
+export type AbcTahrir = { qatorId: number; ish?: { kod: string; nom: string; birlik: string; hajm: string }; resurslar: AbcResurs[]; fakt?: string };
+
+export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, onYop, onSaqlandi }: {
   kompaniyaId: number; obyektId: number; sana: string;
   bolimlar: Array<{ id: number; nom: string; versiya: number }>;
-  rejim: AbcRejim; onYop: () => void; onSaqlandi: (xabar: string) => void;
+  rejim: AbcRejim;
+  /** Berilsa — mavjud qo'shilgan ish/zamenani tahrirlash (shu joyda almashtirish). */
+  tahrir?: AbcTahrir | null;
+  onYop: () => void; onSaqlandi: (xabar: string) => void;
 }) {
   const resursRejim = rejim.tur === 'resurs_zamena';
   const [bolimId, setBolimId] = useState(rejim.tur === 'additional' && rejim.bolimId ? String(rejim.bolimId) : '');
-  const [ish, setIsh] = useState({ kod: '', nom: '', birlik: rejim.tur === 'replacement' ? rejim.eski.birlik ?? '' : '', hajm: '' });
-  const [resurslar, setResurslar] = useState<AbcResurs[]>(() => rejim.tur === 'resurs_zamena'
+  const [ish, setIsh] = useState(tahrir?.ish ?? { kod: '', nom: '', birlik: rejim.tur === 'replacement' ? rejim.eski.birlik ?? '' : '', hajm: '' });
+  const [resurslar, setResurslar] = useState<AbcResurs[]>(() => tahrir ? tahrir.resurslar : rejim.tur === 'resurs_zamena'
     ? [{ kat: katAniqla(rejim.eski.kat, null, rejim.eski.birlik), kod: '', nom: '', birlik: rejim.eski.birlik ?? '', norma: rejim.eski.norma != null ? String(rejim.eski.norma) : '', narx: '', manba: 'qolda' }]
     : []);
-  const [fakt, setFakt] = useState('');
+  const [fakt, setFakt] = useState(tahrir?.fakt ?? '');
   const [sabab, setSabab] = useState('');
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
@@ -93,8 +98,8 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, onYo
 
   const ishTuriTanla = (v: IshTuriVariant) => {
     setIsh((o) => ({ ...o, kod: v.kod ?? '', nom: v.nom, birlik: v.birlik ?? o.birlik }));
-    const rs: AbcResurs[] = v.sostav.filter((c) => c.norma != null && c.norma > 0).map((c) => ({
-      kat: katAniqla(c.kat, c.tur, c.birlik), kod: c.kod ?? '', nom: c.nom, birlik: c.birlik ?? '', norma: String(c.norma),
+    const rs: AbcResurs[] = v.sostav.map((c) => ({
+      kat: katAniqla(c.kat, c.tur, c.birlik), kod: c.kod ?? '', nom: c.nom, birlik: c.birlik ?? '', norma: c.norma != null && c.norma > 0 ? String(c.norma) : '', hajm: '',
       narx: c.narx ? String(c.narx) : '', manba: c.narx ? 'smeta' : 'qolda',
     }));
     setResurslar(rs);
@@ -112,17 +117,19 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, onYo
     setBand(true); setXato('');
     try {
       const bolim = bolimlar.find((b) => String(b.id) === bolimId);
-      const res = await ishAbcSaqla({
+      const ishP = resursRejim ? null : { kod: ish.kod.trim() || null, nom: ish.nom.trim(), birlik: ish.birlik.trim(), hajm: son(ish.hajm)! };
+      const resP = resurslar.map((r) => { const n = son(r.norma); return { kat: r.kat, kod: r.kod.trim() || null, nom: r.nom.trim(), birlik: r.birlik.trim(), norma: n != null && n > 0 ? n : null, hajm: n != null && n > 0 ? null : son(r.hajm ?? ''), narx: son(r.narx), narx_manba: r.manba }; });
+      const res = tahrir
+        ? await ishAbcTahrir({ kompaniyaId, obyektId, qatorId: tahrir.qatorId, sana, sabab: sabab.trim(), operationId: operationId.current, ish: ishP, resurslar: resP, faktHajm: resursRejim ? null : son(fakt) })
+        : await ishAbcSaqla({
         kompaniyaId, obyektId, command: rejim.tur, sana, sabab: sabab.trim(), operationId: operationId.current,
         otaQatorId: rejim.tur === 'additional' ? bolim?.id ?? null : rejim.tur === 'replacement' ? rejim.eski.otaId : null,
         kutilganVersiya: rejim.tur === 'additional' ? bolim?.versiya ?? null : rejim.tur === 'replacement' ? rejim.eski.otaVersiya : null,
         almashtirilayotganQatorId: rejim.tur === 'additional' ? null : rejim.eski.id,
-        ish: resursRejim ? null : { kod: ish.kod.trim() || null, nom: ish.nom.trim(), birlik: ish.birlik.trim(), hajm: son(ish.hajm)! },
-        resurslar: resurslar.map((r) => ({ kat: r.kat, kod: r.kod.trim() || null, nom: r.nom.trim(), birlik: r.birlik.trim(), norma: son(r.norma)!, narx: son(r.narx), narx_manba: r.manba })),
-        faktHajm: resursRejim ? null : son(fakt),
+        ish: ishP, resurslar: resP, faktHajm: resursRejim ? null : son(fakt),
       });
       if (!res.ok) { setXato(abcXato(res)); return; }
-      onSaqlandi(rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».`
+      onSaqlandi(tahrir ? 'O‘zgartirishlar saqlandi.' : rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».`
         : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.`);
     } catch { setXato('Javob olinmadi. Qayta bosing — takroriy saqlash xavfsiz.'); }
     finally { setBand(false); }
@@ -130,7 +137,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, onYo
 
   const inp = 'w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text outline-none focus:border-accent';
   const num = `${inp} text-right font-mono`;
-  const sarlavha = rejim.tur === 'additional' ? 'Qo‘shimcha ish (smetadan tashqari)' : rejim.tur === 'replacement' ? 'Ish zamenasi' : 'Resurs zamenasi';
+  const sarlavha = (tahrir ? 'Tahrirlash: ' : '') + (rejim.tur === 'additional' ? 'Qo‘shimcha ish (smetadan tashqari)' : rejim.tur === 'replacement' ? 'Ish zamenasi' : 'Resurs zamenasi');
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/60 p-4" role="dialog" aria-modal="true" aria-label={sarlavha}>
@@ -144,7 +151,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, onYo
           <button onClick={onYop} className="rounded p-1 text-text-dim hover:bg-surface-2" aria-label="Yopish"><X size={18} /></button>
         </div>
 
-        {rejim.tur === 'additional' && <label className="block max-w-xl text-[12px] font-medium">Bo‘lim
+        {rejim.tur === 'additional' && !tahrir && <label className="block max-w-xl text-[12px] font-medium">Bo‘lim
           <select value={bolimId} onChange={(e) => setBolimId(e.target.value)} className={`${inp} mt-1`} aria-label="Bo‘lim">
             <option value="">«СМЕТАДАН ТАШҚАРИ ИШЛАР» (avtomatik bo‘lim)</option>
             {bolimlar.map((b) => <option key={b.id} value={b.id}>{b.nom}</option>)}
@@ -178,7 +185,8 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, onYo
                     <div className="shrink-0 text-right"><div className="font-mono text-text">{fmt(v.narx)}</div><span className={`rounded px-1 text-[10px] ${MANBA_RANG[v.narx_manba]}`}>{MANBA_NOMI[v.narx_manba]}</span></div></div>} /></td>
                 <td className="p-1.5"><input value={r.birlik} onChange={(e) => yangila(i, { birlik: e.target.value })} className={inp} aria-label={`${i + 1}-resurs birligi`} /></td>
                 <td className="p-1.5"><input value={r.norma} onChange={(e) => yangila(i, { norma: e.target.value })} inputMode="decimal" className={num} aria-label={`${i + 1}-resurs normasi`} /></td>
-                <td className="p-2 text-right tabular-nums text-text-dim">{fmt(hisob.qatorlar[i]?.hajm, 6)}</td>
+                <td className="p-1.5 text-right tabular-nums text-text-dim">{son(r.norma) != null && son(r.norma)! > 0 ? fmt(hisob.qatorlar[i]?.hajm, 6)
+                  : <input value={r.hajm ?? ''} onChange={(e) => yangila(i, { hajm: e.target.value })} inputMode="decimal" placeholder="aniq hajm" title="Normasiz resurs — sarflangan aniq miqdor" className={num} aria-label={`${i + 1}-resurs aniq hajmi`} />}</td>
                 <td className="p-1.5"><div className="flex items-center gap-1">
                   <span className={`shrink-0 rounded px-1 text-[10px] ${MANBA_RANG[r.manba]}`} title="Narx manbasi">{MANBA_NOMI[r.manba]}</span>
                   <input value={r.narx} onChange={(e) => yangila(i, { narx: e.target.value, manba: 'qolda' })} inputMode="decimal" className={num} aria-label={`${i + 1}-resurs narxi`} />

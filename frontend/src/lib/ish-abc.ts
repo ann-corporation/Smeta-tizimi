@@ -7,14 +7,15 @@ import type { Kat, NarxManba, NarxVariant } from '../api/t2-ish-abc';
 
 export type AbcResurs = {
   kat: Kat; kod: string; nom: string; birlik: string;
-  norma: string; narx: string; manba: NarxManba;
+  /** Norma bo'sh bo'lsa — aniq sarflangan hajm (normasiz resurs; fakti shu miqdor). */
+  norma: string; hajm?: string; narx: string; manba: NarxManba;
   /** Server bergan narx variantlari (shu smeta / boshqa smeta / katalog). */
   variantlar?: NarxVariant[];
 };
 
 export const KATLAR: readonly Kat[] = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ'];
 export const KAT_NOMI: Record<Kat, string> = { ЧЕЛ: 'Mehnat', МАШ: 'Mashina', МАТ: 'Material', ОБ: 'Uskuna' };
-export const MANBA_NOMI: Record<NarxManba, string> = { smeta_obyekt: 'shu smeta', smeta: 'boshqa smeta', katalog: 'katalog', qolda: 'qo‘lda' };
+export const MANBA_NOMI: Record<NarxManba, string> = { smeta_obyekt: 'shu smeta', smeta_shartnoma: 'shu shartnoma', smeta: 'boshqa shartnoma', katalog: 'katalog', qolda: 'qo‘lda' };
 
 export function son(v: string | number | null | undefined): number | null {
   if (v == null) return null;
@@ -53,7 +54,7 @@ export function abcHisobla(ishHajm: string | number | null, resurslar: readonly 
   let jami = 0; let narxsiz = 0;
   const qatorlar = resurslar.map((r) => {
     const n = son(r.norma); const p = son(r.narx);
-    const hajm = h != null && n != null ? y6(n * h) : null;
+    const hajm = n != null && n > 0 ? (h != null ? y6(n * h) : null) : son(r.hajm ?? '');
     const summa = hajm != null && p != null && p > 0 ? pulYaxlit(hajm * p) : null;
     if (summa == null) narxsiz += 1; else { jamiKat[r.kat] += summa; jami += summa; }
     return { hajm, summa };
@@ -74,16 +75,18 @@ export function abcTekshir(p: { rejim: 'ish' | 'resurs'; ish?: { nom: string; bi
   } else if (p.resurslar.length !== 1) x.push({ joy: 'resurs', matn: 'Bitta yangi resurs tanlang' });
   p.resurslar.forEach((r, i) => {
     if (!r.nom.trim() || !r.birlik.trim()) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: nom va birlik kerak` });
-    const n = son(r.norma); if (n == null || n <= 0) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: norma > 0 bo‘lishi kerak` });
+    const n = son(r.norma); const hj = son(r.hajm ?? '');
+    if (!((n != null && n > 0) || (hj != null && hj > 0))) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: norma yoki aniq hajm > 0 bo‘lishi kerak` });
     const pr = son(r.narx); if (r.narx.trim() && (pr == null || pr < 0)) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: narx noto‘g‘ri` });
   });
   if (!p.sabab.trim()) x.push({ joy: 'sabab', matn: 'Sabab majburiy' });
   return x;
 }
 
-/** Variantlardan eng yaxshisi: shu smeta (RES) → boshqa smeta → katalog. */
+/** Avtomatik tanlov (egasi): shu smeta (RES) → shu shartnoma smetalari → boshqa shartnomalar.
+ *  Katalog avtomatik QO'YILMAYDI — alohida variant sifatida taklif qilinadi. */
 export function engYaxshiNarx(v: readonly NarxVariant[]): NarxVariant | null {
-  const tartib: NarxManba[] = ['smeta_obyekt', 'smeta', 'katalog'];
+  const tartib: NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta'];
   for (const m of tartib) { const t = v.find((x) => x.manba === m && x.narx > 0); if (t) return t; }
   return null;
 }
