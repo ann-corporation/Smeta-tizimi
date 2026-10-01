@@ -5,7 +5,7 @@
  * Brauzerda shu vaqt Worker ichida o'tadi (asosiy oqim bloklanmaydi) — jonli
  * "uzun vazifa" o'lchovi egasining brauzerida (UNKNOWN shu muhitda).
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as XLSX from 'xlsx';
 import { readXlsx } from './xlsxReader';
 import { readXlsxFonda } from './xlsxFonda';
@@ -42,5 +42,19 @@ describe('P5 — 27 000 qatorli smeta o‘qish', () => {
     expect(b.sheets.map((s) => [s.name, s.rows.length])).toEqual(a.sheets.map((s) => [s.name, s.rows.length]));
     expect(b.sheet('LRV')?.rows[27_000 - 1]).toEqual(a.sheet('LRV')?.rows[27_000 - 1]);
     expect(anat.varaqlar[0].ishlar.length).toBeGreaterThan(5000);
+  });
+});
+
+describe('legacy XLS worker safety', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('BIFF8 .xls ni katta natijani Worker postMessage clone stackiga bermaydi', async () => {
+    let workerConstructed = 0;
+    vi.stubGlobal('Worker', class {
+      constructor() { workerConstructed++; }
+    });
+    const biff8 = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+    await expect(readXlsxFonda(biff8)).rejects.toThrow();
+    expect(workerConstructed).toBe(0);
   });
 });

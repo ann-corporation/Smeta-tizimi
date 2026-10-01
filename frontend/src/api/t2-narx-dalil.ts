@@ -26,6 +26,10 @@ export type NarxManba = {
 
 export type NarxManbaMalumot = Partial<Pick<NarxManba, 'tur' | 'nom' | 'raqam' | 'sana' | 'yetkazuvchi' | 'yetkazuvchi_inn' | 'region' | 'yil' | 'kvartal' | 'nds_holati' | 'fayl_document_id' | 'izoh'>>;
 export type NarxManbaQatorKirish = { kod?: string | null; nom: string; birlik?: string | null; narx?: number | null; izoh?: string | null };
+export type NarxManbaQidiruvQatori = {
+  id: number; manba_id: number; kompaniya_id: number; kod: string | null; nom: string;
+  birlik: string | null; narx: number | null; izoh: string | null;
+};
 
 export type NarxTaklif = {
   kompaniya_id: number; obyekt_id: number; qator_id: number; tur: string; kat: string | null;
@@ -48,6 +52,17 @@ export type NarxDalilHolat = {
 
 export function sbNarxManbalarOl(kompaniyaId: number) {
   return sbOqi<NarxManba>({ jadval: 't2_narx_manba_royxat', filtr: 'kompaniya_id=eq.' + kompaniyaId + '&holat=eq.faol', tartib: 'yangilandi.desc', limit: 1000 });
+}
+/** Source rows are read-only evidence. They are used for semantic suggestions;
+ * this read never changes smeta/Fakt/F2 prices. */
+export function sbNarxManbaQidiruvQatorlariOl(kompaniyaId: number) {
+  return sbOqi<NarxManbaQidiruvQatori>({
+    jadval: 't2_narx_manba_qator',
+    ustunlar: 'id,manba_id,kompaniya_id,kod,nom,birlik,narx,izoh',
+    filtr: 'kompaniya_id=eq.' + kompaniyaId,
+    tartib: 'id.asc',
+    limit: 50000,
+  });
 }
 export function sbNarxTakliflarOl(kompaniyaId: number, obyektId: number) {
   return sbOqi<NarxTaklif>({ jadval: 't2_narx_taklif', filtr: 'kompaniya_id=eq.' + kompaniyaId + '&obyekt_id=eq.' + obyektId, limit: 50000 });

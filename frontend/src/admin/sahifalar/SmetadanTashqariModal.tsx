@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Repeat2, Trash2, X } from 'lucide-react';
 import { yangiOperationId } from '../../api/supabase';
 import { sbFaktSmetadanTashqari, sbIshTurlariOl, smetadanTashqariXato, type IshTuri, type SmetadanTashqariResurs } from '../../api/t2-fakt-smetadan-tashqari';
-import { sonOqi, type TezkorQator } from '../../lib/fakt-tezkor';
+import { sonOqi } from '../../lib/fakt-jurnal';
+
+/** Zamena qilinadigan qator — faqat kerakli maydonlar. */
+export type ZamenaNishon = { id: number; tur: string; nom: string; birlik: string | null; otaId: number | null; otaVersiya: number | null };
 
 export type Bolim = { id: number; nom: string; versiya: number };
 
@@ -16,7 +19,7 @@ export function SmetadanTashqariModal({ kompaniyaId, obyektId, sana, bolimlar, z
   kompaniyaId: number; obyektId: number; sana: string;
   bolimlar: Bolim[];
   /** Berilsa — shu qatorni ZAMENA qilish; aks holda qo'shimcha ish. */
-  zamena?: TezkorQator | null;
+  zamena?: ZamenaNishon | null;
   boshBolimId?: number | null;
   onYop: () => void; onSaqlandi: (xabar: string) => void;
 }) {
