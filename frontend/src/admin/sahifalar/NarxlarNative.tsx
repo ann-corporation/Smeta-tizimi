@@ -16,6 +16,12 @@ import {
   sbT2NarxBelgila, sbT2NarxMarkazOl, sbT2NarxSanaQosh,
   sbT2TopilmaganlarOl, type NarxMarkaz, type Topilmagan,
 } from '../../api/t2-narx';
+import {
+  sbNarxDalilBogla, sbNarxDalillarOl, sbNarxManbaQidiruvQatorlariOl, sbNarxManbalarOl,
+  type NarxDalilHolat, type NarxManba, type NarxManbaQidiruvQatori,
+} from '../../api/t2-narx-dalil';
+import { birlikKalit, narxSemantikNomzodlari, nomKalit, type NarxQidiruvResurs, type NarxSemantikNomzod } from '../../lib/narx-dalil/semantik';
+import KatalogManbaImport from './KatalogManbaImport';
 
 type NarxRegistr = {
   id: number;
@@ -24,6 +30,8 @@ type NarxRegistr = {
   versiya: number;
   narx: number;
 };
+
+type NarxQidiruvQator = NarxQidiruvResurs & { obyekt_id: number; hajm: number | null };
 
 const ERKIN_KAT = ['МАТ', 'ОБ', 'М/К', 'КАБ'];
 
@@ -50,6 +58,10 @@ export default function NarxlarNative() {
   const [obyektId, setObyektId] = useState<number | null>(null);
   const [markaz, setMarkaz] = useState<NarxMarkaz[]>([]);
   const [topilmaganlar, setTopilmaganlar] = useState<Topilmagan[]>([]);
+  const [manbalar, setManbalar] = useState<NarxManba[]>([]);
+  const [manbaQatorlar, setManbaQatorlar] = useState<NarxManbaQidiruvQatori[]>([]);
+  const [dalillar, setDalillar] = useState<NarxDalilHolat[]>([]);
+  const [qidiruvQatorlar, setQidiruvQatorlar] = useState<NarxQidiruvQator[]>([]);
   const [registr, setRegistr] = useState<Record<string, NarxRegistr>>({});
   const [qidiruv, setQidiruv] = useState('');
   const [faqatXavf, setFaqatXavf] = useState(false);
@@ -97,11 +109,32 @@ export default function NarxlarNative() {
   }, [kompaniyaId, workspace.scope.objectId]);
 
   const topilmaganlarniYukla = useCallback(async () => {
-    if (!obyektId) { setTopilmaganlar([]); return; }
-    const r = await sbT2TopilmaganlarOl(obyektId);
+    if (!obyektId || !kompaniyaId) {
+      setTopilmaganlar([]); setManbalar([]); setManbaQatorlar([]); setDalillar([]); setQidiruvQatorlar([]); return;
+    }
+    const [r, q, m, d, manba] = await Promise.all([
+      sbT2TopilmaganlarOl(obyektId),
+      sbOqi<NarxQidiruvQator>({
+        jadval: 't2_qator',
+        ustunlar: 'id,obyekt_id,tur,kod,nom,birlik,narx,kat,hajm',
+        filtr: `obyekt_id=eq.${obyektId}&tur=in.(rs,mat,ob)`,
+        tartib: 'id.asc', limit: 50000,
+      }),
+      sbNarxManbalarOl(kompaniyaId),
+      sbNarxDalillarOl(kompaniyaId, obyektId),
+      sbNarxManbaQidiruvQatorlariOl(kompaniyaId),
+    ]);
     if (!r.ok) { setXato(r.error || 'Bog‘lanish topilmagan resurslar o‘qilmadi'); return; }
+    if (!q.ok) { setXato(q.error || 'Smeta qatorlari o‘qilmadi'); return; }
+    if (!m.ok) { setXato(m.error || 'Narx manbalari o‘qilmadi'); return; }
+    if (!d.ok) { setXato(d.error || 'Narx dalillari o‘qilmadi'); return; }
+    if (!manba.ok) { setXato(manba.error || 'Narx manbasi qatorlari o‘qilmadi'); return; }
     setTopilmaganlar((r.qatorlar as Topilmagan[]) || []);
-  }, [obyektId]);
+    setQidiruvQatorlar((q.qatorlar as NarxQidiruvQator[]) || []);
+    setManbalar((m.qatorlar as NarxManba[]) || []);
+    setDalillar((d.qatorlar as NarxDalilHolat[]) || []);
+    setManbaQatorlar((manba.qatorlar as NarxManbaQidiruvQatori[]) || []);
+  }, [obyektId, kompaniyaId]);
 
   useEffect(() => { if (!kompaniyaYuklanmoqda) void yukla(); }, [kompaniyaYuklanmoqda, yukla]);
   useEffect(() => { void topilmaganlarniYukla(); }, [topilmaganlarniYukla]);
@@ -129,6 +162,53 @@ export default function NarxlarNative() {
     const q = qidiruv.trim().toLocaleLowerCase();
     return topilmaganlar.filter(r => !q || `${r.nom || ''} ${r.birlik || ''}`.toLocaleLowerCase().includes(q));
   }, [topilmaganlar, qidiruv]);
+
+  const manbaById = useMemo(() => new Map(manbalar.map(m => [m.id, m])), [manbalar]);
+  const sourceRows = useMemo(() => manbaQatorlar.map(r => ({
+    ...r, manbaTur: manbaById.get(r.manba_id)?.tur,
+  })), [manbaQatorlar, manbaById]);
+  const semantikNomzodlar = useMemo(
+    () => narxSemantikNomzodlari(qidiruvQatorlar.filter(q => q.narx == null), sourceRows),
+    [qidiruvQatorlar, sourceRows],
+  );
+  const takliflarByKey = useMemo(() => {
+    const groups = new Map<string, { qatorIds: number[]; nomzodlar: NarxSemantikNomzod[] }>();
+    for (const q of qidiruvQatorlar) {
+      const key = `${nomKalit(q.nom)}|${birlikKalit(q.birlik)}`;
+      const group = groups.get(key) ?? { qatorIds: [], nomzodlar: [] };
+      if (!group.qatorIds.includes(q.id)) group.qatorIds.push(q.id);
+      groups.set(key, group);
+    }
+    for (const candidate of semantikNomzodlar) {
+      const group = groups.get(candidate.resursKalit);
+      if (!group) continue;
+      const old = group.nomzodlar.findIndex(x => x.manba_qator_id === candidate.manba_qator_id);
+      if (old < 0) group.nomzodlar.push(candidate);
+      else if (candidate.moslikFoiz > group.nomzodlar[old].moslikFoiz) group.nomzodlar[old] = candidate;
+    }
+    for (const group of groups.values()) group.nomzodlar.sort((a, b) => b.moslikFoiz - a.moslikFoiz || a.manba_narx - b.manba_narx);
+    return groups;
+  }, [qidiruvQatorlar, semantikNomzodlar]);
+  const dalilQatorIds = useMemo(() => new Set(dalillar.map(d => d.qator_id)), [dalillar]);
+
+  async function dalilniBoglash(qatorIds: number[], candidate: NarxSemantikNomzod) {
+    if (!kompaniyaId || !obyektId || !qatorIds.length) return;
+    setSaqlanmoqda(true); setXato(''); setXabar('');
+    try {
+      const r = await sbNarxDalilBogla(kompaniyaId, obyektId, qatorIds.map(qator_id => ({
+        qator_id,
+        manba_qator_id: candidate.manba_qator_id,
+        izoh: `Deterministik taklif: ${candidate.moslikFoiz}% moslik; smeta narxi o‘zgartirilmaydi.`,
+      })));
+      if (!r.ok) throw new Error(r.error || r.sabab || 'Narx dalili bog‘lanmadi');
+      setXabar(`${qatorIds.length} ta qatorga katalog dalili bog‘landi. Smeta narxi o‘zgarmadi; farq faqat taqqoslash uchun ko‘rsatiladi.`);
+      await topilmaganlarniYukla();
+    } catch (e) {
+      setXato(xatoXabari(e));
+    } finally {
+      setSaqlanmoqda(false);
+    }
+  }
 
   async function narxniSaqlash() {
     if (!tanlangan || !tanlanganKalit) return;
@@ -194,6 +274,7 @@ export default function NarxlarNative() {
       </button>}
     >
       <div className="space-y-3">
+        <KatalogManbaImport />
         <div className="karta p-3 flex flex-wrap items-end gap-2">
           <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text">Obyekt
             <select value={obyektId ?? ''} onChange={e => { const id = Number(e.target.value); setObyektId(Number.isSafeInteger(id) && id > 0 ? id : null); workspace.setObjectId(Number.isSafeInteger(id) && id > 0 ? id : null); }}
@@ -219,14 +300,36 @@ export default function NarxlarNative() {
         <section className="karta p-3">
           <h2 className="text-[13px] font-semibold text-text flex gap-2 items-center"><AlertTriangle size={15} className={topilmaganSatrlar.length ? 'text-warn' : 'text-ok'} />
             Bog‘lanish topilmagan resurslar ({topilmaganSatrlar.length})</h2>
-          <p className="text-[11px] text-text-mute mt-1">Bu qatorlar jamiga narx sifatida kirmaydi. Boshqa obyekt narxi taklif bo‘lishi mumkin, lekin avtomatik qo‘llanmaydi.</p>
+          <p className="text-[11px] text-text-mute mt-1">Har bir qator uchun katalogdan birlik va mazmun bo‘yicha taklif qidiriladi. Taklif narxi smeta narxidan alohida ko‘rsatiladi; u smetaga avtomatik yozilmaydi.</p>
           <div className="mt-2 max-h-64 overflow-auto divide-y divide-border">
-            {topilmaganSatrlar.map(r => <button key={`${r.obyekt_id}|${r.nom_key}|${r.birlik_key}`} onClick={() => setTanlangan(r)}
-              className="w-full py-2 text-left flex gap-3 items-center hover:bg-white/[.03] text-[12px]">
-              <span className="flex-1 truncate text-text">{r.nom || '—'}</span><span className="w-16 text-text-mute">{r.birlik || '—'}</span>
-              <span className="w-20 text-right text-text-dim">{r.qator_soni} qator</span>
-              <span className="text-accent">Narx belgilash</span>
-            </button>)}
+            {topilmaganSatrlar.map(r => {
+              const key = `${nomKalit(r.nom)}|${birlikKalit(r.birlik)}`;
+              const group = takliflarByKey.get(key);
+              const dalilBoglangan = !!group?.qatorIds.some(id => dalilQatorIds.has(id));
+              return <div key={`${r.obyekt_id}|${r.nom_key}|${r.birlik_key}`} className="py-2 text-[12px]">
+                <div className="flex gap-3 items-center">
+                  <button onClick={() => setTanlangan(r)} className="flex-1 min-w-0 text-left flex gap-3 items-center hover:bg-white/[.03]">
+                    <span className="truncate text-text">{r.nom || '—'}</span><span className="w-16 shrink-0 text-text-mute">{r.birlik || '—'}</span>
+                    <span className="w-20 shrink-0 text-right text-text-dim">{r.qator_soni} qator</span>
+                    <span className="shrink-0 text-accent">Qo‘lda narxlash</span>
+                  </button>
+                  {dalilBoglangan && <span className="shrink-0 text-ok">Dalil bog‘langan</span>}
+                </div>
+                {group?.nomzodlar.slice(0, 3).map(candidate => {
+                  const manba = manbaById.get(candidate.manba_id);
+                  return <div key={`${key}|${candidate.manba_qator_id}`} className="mt-2 ml-3 rounded-lg border border-accent/20 bg-accent/5 p-2 grid gap-1 md:grid-cols-[1fr_auto_auto] md:items-center">
+                    <div className="min-w-0">
+                      <div className="truncate text-text">Taklif: {manba?.nom || `Manba #${candidate.manba_id}`} · {candidate.manba_narx.toLocaleString('ru-RU')} so‘m/{r.birlik || 'birlik'}</div>
+                      <div className="text-[11px] text-text-mute">Moslik: <b className="text-accent">{candidate.moslikFoiz}%</b> · Smeta: {candidate.smeta_narx == null ? 'narx ko‘rsatilmagan' : `${candidate.smeta_narx.toLocaleString('ru-RU')} so‘m`} · Farq: {candidate.farqFoiz == null ? 'hisoblanmadi' : `${candidate.farqFoiz > 0 ? '+' : ''}${candidate.farqFoiz}%`}</div>
+                      <div className="text-[11px] text-text-mute">{candidate.sabablar.join(' · ')}</div>
+                    </div>
+                    <span className="text-[11px] text-text-mute">{manba?.tur || 'manba'}</span>
+                    <button onClick={() => void dalilniBoglash(group.qatorIds, candidate)} disabled={saqlanmoqda} className="px-2 py-1 rounded bg-accent text-white text-[11px] disabled:opacity-50">Dalilni bog‘lash</button>
+                  </div>;
+                })}
+                {!group?.nomzodlar.length && <div className="mt-1 ml-3 text-[11px] text-warn">Katalogdan birlik va mazmun bo‘yicha ishonchli taklif topilmadi — qo‘lda tanlash kerak.</div>}
+              </div>;
+            })}
             {!topilmaganSatrlar.length && <p className="py-4 text-center text-[12px] text-ok">Tanlangan obyekt uchun narxi topilmagan resurs yo‘q.</p>}
           </div>
         </section>
