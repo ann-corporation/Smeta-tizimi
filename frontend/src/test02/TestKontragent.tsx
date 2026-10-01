@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building2, UserCircle, MapPin, CreditCard, CheckCircle2, AlertCircle, Building, Save, RefreshCw, Trash2 } from 'lucide-react';
+import { Search, Building2, CheckCircle2, AlertCircle, Building, Save, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
 import { sbKontragentSaqla, sbKontragentlarOl, sbKontragentOchir, type Kontragent } from '../api/t2-kontragent';
@@ -27,7 +27,7 @@ export default function TestKontragent() {
     mavqe: 'subpudratchi' as any
   });
 
-  const royxatniYangila = async () => {
+  const royxatniYangila = useCallback(async () => {
     if (!joriy) return;
     setRoyxatYuklanmoqda(true);
     try {
@@ -38,14 +38,14 @@ export default function TestKontragent() {
     } finally {
       setRoyxatYuklanmoqda(false);
     }
-  };
+  }, [joriy]);
 
   useEffect(() => {
     royxatniYangila();
-  }, [joriy]);
+  }, [royxatniYangila]);
   useEffect(() => onEntityChanged((event) => {
     if (joriy && event.detail.kompaniyaId === joriy.id && event.detail.type === 'kontragent') royxatniYangila();
-  }), [joriy]);
+  }), [joriy, royxatniYangila]);
 
   const handleFetchINN = async () => {
     // ⚠️ QAT'IY QOIDA: Bu yerda endi mock yo'q!

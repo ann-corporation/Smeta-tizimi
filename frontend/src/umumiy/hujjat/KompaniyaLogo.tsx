@@ -5,21 +5,12 @@
  * boss/admin (server `kompaniya_logo_saqla` darvozasi).
  */
 import { useRef, useState, type ReactNode } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
-import { sbKompaniyaLogoOl, sbKompaniyaLogoSaqla } from '../../api/t2-ijro';
+import { sbKompaniyaLogoSaqla } from '../../api/t2-ijro';
+import { kalit, useKompaniyaLogo } from './useKompaniyaLogo';
 
 const MAX_BAYT = 300 * 1024;
-const kalit = (id: number) => ['kompaniya-logo', id] as const;
-
-export function useKompaniyaLogo(kompaniyaId: number | null | undefined) {
-  return useQuery({
-    queryKey: kalit(kompaniyaId ?? 0),
-    queryFn: () => sbKompaniyaLogoOl(kompaniyaId!),
-    enabled: !!kompaniyaId,
-    staleTime: 10 * 60 * 1000,
-  });
-}
 
 /** Logo rasmi; logo bo'lmasa `zaxira` ko'rsatiladi. */
 export function KompaniyaLogoRasm({ kompaniyaId, className, zaxira }: { kompaniyaId: number | null | undefined; className?: string; zaxira?: ReactNode }) {

@@ -45,8 +45,19 @@ const norm = (value: string): string => String(value || '')
   .replace(/\s+/g, ' ')
   .trim();
 
+/* JS `\b` faqat ASCII so'z chegarasini taniydi — kirill nomlarda hech qachon ishlamaydi.
+ * Shuning uchun chegara qo'lda: oldin/keyin harf-raqam bo'lmasin (SQL egizagi bilan bir xil). */
+const H = '0-9A-ZА-ЯЎҚҒҲЁ';
+const soz = (ichi: string) => new RegExp(`(?<![${H}])(?:${ichi})(?![${H}])`);
+
 /* These are manufactured/storeable goods, not ready-mix delivery. */
-const STORAGE_MATERIAL = /\b(?:БЛОК(?:И|ОВ)?|ЖБИ|ЖЕЛЕЗОБЕТОН(?:НЫЙ|НЫЕ)?|КОНСТРУКЦ(?:ИЯ|ИИ|ИЙ)|ПЛИТ(?:А|Ы)?|КОЛЬЦ(?:О|А)?|БОРДЮР(?:Ы)?|ЛОТК(?:И)?|ТРУБ(?:А|Ы)?|ПЕРЕМЫЧК(?:А|И)|СТОЙК(?:А|КИ))\b/;
+const STORAGE_MATERIAL = soz(String.raw`(?:БЛОК(?:И|ОВ)?|ЖБИ|ЖЕЛЕЗОБЕТОН(?:НЫЙ|НЫЕ)?|КОНСТРУКЦ(?:ИЯ|ИИ|ИЙ)|ПЛИТ(?:А|Ы)?|КОЛЬЦ(?:О|А)?|БОРДЮР(?:Ы)?|ЛОТК(?:И)?|ТРУБ(?:А|Ы)?|ПЕРЕМЫЧК(?:А|И)|СТОЙК(?:А|КИ)|ЦЕМЕНТ|ПЕСОК|ДЮБЕЛ[А-Я]*|ИЗДЕЛИ[А-Я]*|СРЕДСТВ[А-Я]*|АЦЕТИЛЕН|КЛЕЕВОЙ)`);
+/* Real smetalardan (2026-10-01, 3664 nomzod tahlili): РАСТВОР faqat alohida so'z — РАСТВОРИТЕЛЬ,
+ * РАСТВОРЕННЫЙ, "для раствора/растворов" tayyor qorishma emas. */
+const RASTVOR_SOZ = soz('РАСТВОР(?:Ы)?');
+const BETON_SOZ = soz('БЕТОН');
+/* Quruq (qopdagi) aralashmalar omborda saqlanadi. */
+const QURUQ_SMES = soz('СУХОЙ|СУХАЯ|СУХИЕ|СУХИХ');
 
 /**
  * Operator tanlovi keyworddan ustun turadi. Bu yerda faqat ruxsat etilgan
@@ -66,14 +77,15 @@ export function bezSkladKategoriyaAniqla(
 
   const s = norm(nom);
   if (!s) return { kategoriya: null, manba: 'none', ishonch: 'none', sabab: 'Nom bo\'sh.' };
-  if (STORAGE_MATERIAL.test(s)) {
+  if (STORAGE_MATERIAL.test(s) || QURUQ_SMES.test(s)) {
     return { kategoriya: null, manba: 'none', ishonch: 'none', sabab: 'Nom ombor materiali yoki tayyor konstruksiyaga o\'xshaydi.' };
   }
   const hit = BEZ_SKLAD_KEYWORDS.find((keyword) => {
     const k = norm(keyword);
+    if (k === 'РАСТВОР' || k === 'РАСТВОРЫ') return RASTVOR_SOZ.test(s);
     return s === k || s.includes(k) || (k === 'АСФАЛЬТО-БЕТОН' && s.includes('АСФАЛЬТОБЕТОН'));
   });
-  if (!hit && /\bБЕТОН\b/.test(s) && !/\b(?:СУХОЙ|СУХАЯ)\s+СМЕСЬ\b/.test(s)) {
+  if (!hit && BETON_SOZ.test(s)) {
     return { kategoriya: BEZ_SKLAD_KATEGORIYA, manba: 'keyword', ishonch: 'high', sabab: 'Tayyor beton nomi dalilli keywordga mos.' };
   }
   if (hit) {

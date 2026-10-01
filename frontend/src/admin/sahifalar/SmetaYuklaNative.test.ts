@@ -433,7 +433,8 @@ describe('RES bo‘lim sarlavhalari — МАТ/ОБ/КАБ/М-К ni ajratish', (
       ['9219', 'ПЕСОК ДЛЯ СТРОИТЕЛЬНЫХ РАБОТ', 'М3', '1850'],
     ];
     const out = resSatrlariniOl(rows, cols);
-    expect(out.map((r) => r.kat)).toEqual(['МАТ', 'МАТ', 'МАТ']);
+    // Beton — БЕЗСКЛАД (egasi Q1; bez-sklad.ts kirill so'z chegarasi tuzatilgach), lekin М/К emas.
+    expect(out.map((r) => r.kat)).toEqual(['БЕЗСКЛАД', 'МАТ', 'МАТ']);
   });
 
   /* ⭐ Asosiy talab: «materialni va oborudovaniyani ham ajrata oladigan
