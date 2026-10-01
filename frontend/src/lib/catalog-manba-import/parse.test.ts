@@ -20,11 +20,14 @@ describe('catalog-manba-import', () => {
       ],
     }, { name: 'Izoh', rows: [['Faqat ma’lumot'], ['Qayta import qilinmaydi']] }]), 'Каталог 1 кв. 2026.xls');
     expect(result.turi).toBe('material_katalog');
-    expect(result.qatorlar).toHaveLength(4);
+    // 2026-10-01 (Claude): "-" ustuni yozilmaydi (0 ham emas, bo'sh qator ham emas); mahsulotning HECH narxi
+    // bo'lmasa — bitta NULL qator PRICE_MISSING bilan ko'rinib turadi.
+    expect(result.qatorlar).toHaveLength(3);
     expect(result.qatorlar.find(q => q.nom === 'Beton B25' && q.narxVarianti === 'nds_bilan')?.narx).toBe(1200000);
     expect(result.qatorlar.find(q => q.nom === 'Beton B25' && q.narxVarianti === 'nds_siz')?.narx).toBe(1000000);
-    expect(result.qatorlar.find(q => q.nom === 'Armatura' && q.narxVarianti === 'nds_bilan')?.narx).toBeNull();
-    expect(result.qatorlar.find(q => q.nom === 'Armatura' && q.narxVarianti === 'nds_bilan')?.ogohlantirishlar[0]).toMatch(/PRICE_MISSING/);
+    expect(result.qatorlar.find(q => q.nom === 'Armatura' && q.narxVarianti === 'nds_bilan')).toBeUndefined();
+    expect(result.qatorlar.find(q => q.nom === 'Armatura' && q.narxVarianti === 'nds_siz')?.narx).toBe(4250000);
+    expect(result.qatorlar.some(q => q.narx === 0)).toBe(false);
     expect(result.varaqlar.find(v => v.nom === 'Izoh')?.rol).toBe('noma_lum');
   });
 
@@ -82,5 +85,48 @@ describe('catalog-manba-import', () => {
     expect(api[1].narx).toBeNull();
     expect(api[0].izoh).toContain('sourceKey');
     expect(api.some(q => q.izoh?.includes('ijtimoiy_12'))).toBe(true);
+  });
+
+  it('real katalog tuzilishi: 3 qatorli sarlavha (НДС + sana), raqamlash, guruh, izoh — faqat mahsulotlar', () => {
+    const r = tahlilKatalogXlsx(wb([{
+      name: 'г. Ташкент, сум',
+      rows: [
+        ['№ п/п', 'Наименование выпускаемой продукции', 'Ед. изм', 'Отпускная цена, сум', 'Отпускная цена, сум', 'Отпускная цена, сум', 'Отпускная цена, сум'],
+        ['№ п/п', 'Наименование выпускаемой продукции', 'Ед. изм', 'с НДС', 'с НДС', 'без НДС', 'без НДС'],
+        ['№ п/п', 'Наименование выпускаемой продукции', 'Ед. изм', '01.08.2025', '01.09.2025', '01.08.2025', '01.09.2025'],
+        ['1', '2', '3', '4', '5', '6', '7'],
+        ['1. КЛАСТЕР', '1. КЛАСТЕР', '1. КЛАСТЕР', '1. КЛАСТЕР', '1. КЛАСТЕР', '1. КЛАСТЕР', '1. КЛАСТЕР'],
+        ['', 'Изделия для мостов', 'Изделия для мостов', 'Изделия для мостов', 'Изделия для мостов', 'Изделия для мостов', 'Изделия для мостов'],
+        ['1', 'Плиты ПН-18', 'шт', 28998482, '-', 25891502, '-'],
+        ['2', 'Фанера', 'лист', '-', '-', '-', 0],
+        ['', 'Примечание: При формировании себестоимости продукции использованы биржевые цены', '', '', '', '', ''],
+      ],
+    }]), 'каталог 3 кв. 2025 года.xls');
+    expect(r.qatorlar.map(q => [q.nom, q.narxVarianti, q.narx, JSON.parse(q.izoh).sana])).toEqual([
+      ['Плиты ПН-18', 'nds_bilan', 28998482, '2025-08-01'],
+      ['Плиты ПН-18', 'nds_siz', 25891502, '2025-08-01'],
+      ['Фанера', 'nds_bilan', null, '2025-08-01'],
+    ]);
+    expect(JSON.parse(r.qatorlar[0].izoh).guruh).toBe('Изделия для мостов');
+    expect(r.qatorlar[2].ogohlantirishlar[0]).toMatch(/PRICE_MISSING/);
+    expect(r.varaqlar[0].ma_lumotBoshi).toBe(4);
+  });
+
+  it('mashina-soat Excel: yil ustunlari, birlik МАШ.-Ч, raqamlash qatori ma’lumot emas', () => {
+    const r = tahlilKatalogXlsx(wb([{
+      name: 'маш час',
+      rows: [
+        ['', 'СТОИМОСТЬ 1 МАШ.ЧАСА МАШИН И МЕХАНИЗМОВ', '', ''],
+        ['N п/п', 'Наименование', 'Цена за ед.измерения на (сум)', 'Цена за ед.измерения на (сум)'],
+        ['1', '2', '3', '3'],
+        ['', 'Механизмы', 'на 2021год.', 'на 2022год.'],
+        ['1', 'Автобетоносмесители', 93123, 121060],
+      ],
+    }]), 'маш-час 2022.xls');
+    expect(r.turi).toBe('mashina_soat');
+    expect(r.qatorlar.map(q => [q.nom, q.birlik, q.narx, JSON.parse(q.izoh).sana])).toEqual([
+      ['Автобетоносмесители', 'МАШ.-Ч', 93123, '2021'],
+      ['Автобетоносмесители', 'МАШ.-Ч', 121060, '2022'],
+    ]);
   });
 });

@@ -67,6 +67,57 @@ function davrAniqla(fileName: string, text: string): CatalogDavr {
 
 function isPriceText(v: unknown) { return numberOrNull(v) !== null; }
 
+/** Katalog narxi: bo'sh, "-" va 0 — e'lon qilinmagan (NULL). Manfiy narx ham yaroqsiz. */
+function narxOqi(v: unknown): number | null {
+  const n = numberOrNull(v);
+  return n === null || n <= 0 ? null : n;
+}
+
+/** "1 | 2 | 3 | 4 …" — ustunlarni raqamlash qatori. */
+function raqamlashQatori(row: unknown[]): boolean {
+  const vals = row.map(CLEAN).filter(Boolean);
+  return vals.length >= 3 && vals.every((v) => /^\d{1,2}$/.test(v));
+}
+
+/** Birlashtirilgan katak (guruh nomi) — bir xil matn 3+ katakda takrorlanadi. */
+function guruhQatori(row: unknown[]): string | null {
+  const vals = row.map(CLEAN).filter(Boolean);
+  if (vals.length < 2) return null;
+  const top = vals.reduce<Record<string, number>>((a, v) => { a[v] = (a[v] ?? 0) + 1; return a; }, {});
+  const [matn, soni] = Object.entries(top).sort((a, b) => b[1] - a[1])[0];
+  return soni >= Math.max(2, Math.ceil(vals.length * 0.6)) && !/^\d+([.,]\d+)?$/.test(matn) ? matn : null;
+}
+
+/**
+ * Sarlavha bloki: asosiy sarlavha qatoridan keyin НДС / sana / yil / raqamlash qatorlari bo'lishi
+ * mumkin (real katalog: 3 qatorli sarlavha). Har narx ustuniga butun blok matni yig'iladi;
+ * ma'lumot birinchi "haqiqiy" qatordan boshlanadi.
+ */
+function sarlavhaBloki(sheet: XlsxSheet, headerRow: number, nameCol: number): { boshi: number; ustunMatni: (c: number) => string } {
+  const headName = CLEAN(sheet.rows[headerRow]?.[nameCol]);
+  let r = headerRow + 1;
+  const blok: number[] = [headerRow];
+  for (; r < Math.min(sheet.rows.length, headerRow + 8); r++) {
+    const row = sheet.rows[r] || [];
+    const nm = CLEAN(row[nameCol]);
+    const bosh = row.every((v) => !CLEAN(v));
+    if (bosh || raqamlashQatori(row)) { blok.push(r); continue; }
+    if (nm && nm === headName) { blok.push(r); continue; }
+    // Nom ustuni bo'sh, lekin boshqa kataklarda НДС/sana/yil yozuvi — sarlavha davomi.
+    if (!nm && row.some((v) => /ндс|\d{1,2}[./]\d{1,2}[./]20\d{2}|20\d{2}\s*(г|год)|цена|стоимость/i.test(CLEAN(v)))) { blok.push(r); continue; }
+    if (/^(механизмы|материалы|наименование)$/i.test(nm) && !row.some((v, i) => i !== nameCol && narxOqi(v) !== null && /^[\d\s.,]+$/.test(CLEAN(v)) && Number(CLEAN(v).replace(/\s/g, '').replace(',', '.')) > 31)) { blok.push(r); continue; }
+    break;
+  }
+  return { boshi: r, ustunMatni: (c: number) => blok.map((i) => CLEAN(sheet.rows[i]?.[c])).filter(Boolean).join(' | ') };
+}
+
+function ustunSanasi(matn: string): string | null {
+  const d = dateLabel(` ${matn.replace(/\|/g, ' ')} `);
+  if (d) return d;
+  const y = matn.match(/(?:на\s*)?((?:19|20)\d{2})\s*(?:г|год)/i)?.[1];
+  return y ?? null;
+}
+
 function sheetText(sheet: XlsxSheet, maxRows = 35, maxCols = 24) {
   return sheet.rows.slice(0, maxRows).map(row => row.slice(0, maxCols).map(CLEAN).join(' | ')).join(' | ');
 }
@@ -80,6 +131,7 @@ function isNameHeader(v: unknown) {
 
 function isUnitHeader(v: unknown) {
   const s = norm(v);
+  if (s.includes('цена') || s.includes('стоимост')) return false;
   return s.includes('едизм') || s.includes('единица') || s === 'ед' || s.includes('измер');
 }
 
@@ -106,7 +158,8 @@ function findHeader(sheet: XlsxSheet, salary: boolean) {
     const hasUnit = (sheet.rows[r] || []).some(isUnitHeader);
     const hasSalary = /соц\.?\s*страх|заработн|иш\s*хаки/i.test(text);
     const hasRegionCell = (sheet.rows[r] || []).some(cell => /^регионы?$|^hududlar?$/i.test(CLEAN(cell)));
-    if (salary ? hasRegion && hasSalary && hasRegionCell : hasName && hasUnit) return r;
+    const hasPrice = /цена|стоимость/i.test(text);
+    if (salary ? hasRegion && hasSalary && hasRegionCell : hasName && (hasUnit || hasPrice)) return r;
   }
   return null;
 }
@@ -124,9 +177,10 @@ function detectMaterial(sheet: XlsxSheet) {
 function detectRole(sheet: XlsxSheet): CatalogVaraqRoli {
   if (sheet.hidden) return 'qopqoq';
   if (detectSalary(sheet)) return 'ish_haqi_jadvali';
-  if (detectMaterial(sheet)) return 'narx_jadvali';
   const t = LOWER(sheetText(sheet, 18, 20));
-  if (/транспорт|машин|механизм|маш[- ]?час|мех\.?час/.test(t) && /цена|стоимость/.test(t)) return 'mashina_soat_jadvali';
+  if (/маш\.?\s*час|маш[- ]?ч\b|машино-?час/.test(t) && /цена|стоимость/.test(t)) return 'mashina_soat_jadvali';
+  if (detectMaterial(sheet)) return 'narx_jadvali';
+  if (/транспорт|машин|механизм|мех\.?час/.test(t) && /цена|стоимость/.test(t)) return 'mashina_soat_jadvali';
   return 'noma_lum';
 }
 
@@ -167,7 +221,7 @@ function parseSalarySheet(sheet: XlsxSheet, fileName: string, davr: CatalogDavr,
     if (!region || /итого|жами|республика узбекистан/i.test(region) && !isPriceText(cells[2])) continue;
     const name = region;
     for (const col of cols.prices) {
-      const price = numberOrNull(cells[col.indeks]);
+      const price = narxOqi(cells[col.indeks]);
       const variant = col.varianti === 'noma_lum' ? 'asosiy' : col.varianti;
       const warnings = price === null ? ['PRICE_MISSING: manbada qiymat ko‘rsatilmagan'] : [];
       out.push({ sourceKey: sourceKey(fileName, sheet.name, r + 1, name, 'ЧЕЛ.-Ч', variant, col.sanasi), varaqqa: sheet.name, manbaQatori: r + 1, nom: name, birlik: 'ЧЕЛ.-Ч', kod: null, hudud: region, narx: price, narxVarianti: variant, valyuta: 'UZS', davr, izoh: JSON.stringify({ manba: 'ish_haqi', hudud: region, variant, ustun: col.sarlavha || null }), ogohlantirishlar: warnings });
@@ -178,22 +232,44 @@ function parseSalarySheet(sheet: XlsxSheet, fileName: string, davr: CatalogDavr,
 
 function parseMaterialSheet(sheet: XlsxSheet, fileName: string, davr: CatalogDavr, analysis: CatalogVaraqTahlili): CatalogQator[] {
   const header = analysis.sarlavhaQatori ?? 0;
+  const mashina = analysis.rol === 'mashina_soat_jadvali';
   const cols = headerColumns(sheet, header, false);
+  const blok = sarlavhaBloki(sheet, header, cols.name);
+  // Har narx ustuni — butun sarlavha blokidan: НДС holati va sana/yil (real katalog: 01.08/01.09/01.10).
+  const narxUstunlari = cols.prices.map((col) => {
+    const matn = blok.ustunMatni(col.indeks);
+    const v = variantOf(matn, matn);
+    return { ...col, varianti: v === 'noma_lum' ? (mashina ? 'asosiy' as const : 'noma_lum' as const) : v, sanasi: ustunSanasi(matn) ?? col.sanasi, sarlavha: matn || col.sarlavha };
+  });
+  analysis.ustunlar = narxUstunlari;
+  analysis.ma_lumotBoshi = blok.boshi;
   const out: CatalogQator[] = [];
-  const fullHeaderText = sheetText(sheet, Math.min(sheet.rows.length, header + 4), 30);
-  const valyuta = currencyOf(`${sheet.name} ${fullHeaderText}`);
+  const fullHeaderText = sheetText(sheet, Math.min(sheet.rows.length, blok.boshi + 1), 30);
+  const valyuta = currencyOf(`${sheet.name} ${fullHeaderText}`) === 'noma_lum' && mashina ? 'UZS' : currencyOf(`${sheet.name} ${fullHeaderText}`);
   const hudud = analysis.hudud;
-  for (let r = (analysis.ma_lumotBoshi ?? header + 1); r < sheet.rows.length; r++) {
+  const headName = CLEAN(sheet.rows[header]?.[cols.name]);
+  let guruh: string | null = null;
+  for (let r = blok.boshi; r < sheet.rows.length; r++) {
     const cells = sheet.rows[r] || [];
+    if (raqamlashQatori(cells)) continue;
+    const g = guruhQatori(cells);
+    if (g) { guruh = g; continue; }
     const name = CLEAN(cells[cols.name]);
-    const unit = cols.unit === null ? null : CLEAN(cells[cols.unit]) || null;
-    if (!name || !unit) continue;
+    if (!name || name === headName || /^примечани|^итого|^всего|^jami/i.test(name)) continue;
+    const unitRaw = cols.unit === null ? null : CLEAN(cells[cols.unit]) || null;
+    const unit = unitRaw ?? (mashina ? 'МАШ.-Ч' : null);
+    if (!unit || unit.length > 24) continue;          // birlik o'rnida izoh — mahsulot emas
     const code = CLEAN(cells[0]) || null;
-    for (const col of cols.prices) {
-      const price = numberOrNull(cells[col.indeks]);
-      const warnings = price === null ? ['PRICE_MISSING: manbada qiymat ko‘rsatilmagan'] : [];
-      const variant = col.varianti === 'noma_lum' ? 'noma_lum' : col.varianti;
-      out.push({ sourceKey: sourceKey(fileName, sheet.name, r + 1, name, unit, variant, col.sanasi), varaqqa: sheet.name, manbaQatori: r + 1, nom: name, birlik: unit, kod: code && /^\d+$/.test(code) ? null : code, hudud, narx: price, narxVarianti: variant, valyuta, davr, izoh: JSON.stringify({ manba: 'katalog', hudud, valyuta, variant, ustun: col.sarlavha || null, sana: col.sanasi }), ogohlantirishlar: warnings });
+    const narxlar = narxUstunlari.map((col) => narxOqi(cells[col.indeks]));
+    const hechNarx = narxlar.every((n) => n === null);
+    if (hechNarx && !narxUstunlari.length) continue;
+    for (let ci = 0; ci < narxUstunlari.length; ci++) {
+      const col = narxUstunlari[ci];
+      const price = narxlar[ci];
+      // "-" / bo'sh / 0 — shu ustunda e'lon qilinmagan; faqat HECH narxi yo'q mahsulot uchun bitta NULL qator.
+      if (price === null && !(hechNarx && ci === 0)) continue;
+      const variant = col.varianti;
+      out.push({ sourceKey: sourceKey(fileName, sheet.name, r + 1, name, unit, variant, col.sanasi), varaqqa: sheet.name, manbaQatori: r + 1, nom: name, birlik: unit, kod: code && /^\d+$/.test(code) ? null : code, hudud: mashina ? null : hudud, narx: price, narxVarianti: variant, valyuta, davr, izoh: JSON.stringify({ manba: mashina ? 'mashina_soat' : 'katalog', hudud: mashina ? null : hudud, guruh, valyuta, variant, ustun: col.sarlavha || null, sana: col.sanasi }), ogohlantirishlar: price === null ? ['PRICE_MISSING: manbada narx e‘lon qilinmagan'] : [] });
     }
   }
   return out;
@@ -208,7 +284,7 @@ export function tahlilKatalogXlsx(workbook: CatalogWorkbookLike, fileName: strin
   for (const sheet of workbook.sheets) {
     const rol = detectRole(sheet);
     const salary = rol === 'ish_haqi_jadvali';
-    const header = salary ? findHeader(sheet, true) : rol === 'narx_jadvali' ? findHeader(sheet, false) : null;
+    const header = salary ? findHeader(sheet, true) : rol === 'narx_jadvali' || rol === 'mashina_soat_jadvali' ? findHeader(sheet, false) : null;
     const source = sheetText(sheet, Math.min(sheet.rows.length, 10), 14);
     const sheetDavr = davrAniqla(fileName, `${sheet.name} ${source}`);
     const roleWarnings: string[] = [];
@@ -218,18 +294,21 @@ export function tahlilKatalogXlsx(workbook: CatalogWorkbookLike, fileName: strin
       periodNizolari.push(`${sheet.name}: ${conflict}`);
     }
     if (rol === 'noma_lum' && sheet.rows.length > 0) roleWarnings.push('SHEET_UNRESOLVED: varaq katalog sifatida tasdiqlanmadi');
-    if (header === null && (rol === 'narx_jadvali' || rol === 'ish_haqi_jadvali')) roleWarnings.push('HEADER_UNRESOLVED: sarlavha qatori aniqlanmadi');
+    if (header === null && (rol === 'narx_jadvali' || rol === 'ish_haqi_jadvali' || rol === 'mashina_soat_jadvali')) roleWarnings.push('HEADER_UNRESOLVED: sarlavha qatori aniqlanmadi');
     const cols = header === null ? { name: 0, unit: null, region: null, prices: [] as CatalogUstun[] } : headerColumns(sheet, header, salary);
     const analysis: CatalogVaraqTahlili = { nom: sheet.name, rol, sarlavhaQatori: header, ma_lumotBoshi: header === null ? null : header + 1, hudud: CLEAN(sheet.name).replace(/,.*$/, '') || null, ustunlar: cols.prices, qatorSoni: 0, narxliQatorSoni: 0, warnings: roleWarnings };
     let rows: CatalogQator[] = [];
     if (header !== null && salary) rows = parseSalarySheet(sheet, fileName, sheetDavr, analysis);
-    else if (header !== null && rol === 'narx_jadvali') rows = parseMaterialSheet(sheet, fileName, sheetDavr, analysis);
+    else if (header !== null && (rol === 'narx_jadvali' || rol === 'mashina_soat_jadvali')) rows = parseMaterialSheet(sheet, fileName, sheetDavr, analysis);
     analysis.qatorSoni = rows.length;
     analysis.narxliQatorSoni = rows.filter(r => r.narx !== null).length;
     varaqlar.push(analysis);
-    qatorlar.push(...rows);
+    // push(...rows) katta katalogda (100k+ qator) call-stack to'ldiradi — oddiy sikl.
+    for (const r of rows) qatorlar.push(r);
   }
-  const turi: CatalogManbaTuri | 'noma_lum' = varaqlar.some(v => v.rol === 'ish_haqi_jadvali') ? 'ish_haqi' : qatorlar.length ? 'material_katalog' : 'noma_lum';
+  const turi: CatalogManbaTuri | 'noma_lum' = varaqlar.some(v => v.rol === 'ish_haqi_jadvali') ? 'ish_haqi'
+    : varaqlar.some(v => v.rol === 'mashina_soat_jadvali' && v.qatorSoni > 0) && !varaqlar.some(v => v.rol === 'narx_jadvali' && v.qatorSoni > 0) ? 'mashina_soat'
+    : qatorlar.length ? 'material_katalog' : 'noma_lum';
   const warnings = varaqlar.flatMap(v => v.warnings.map(w => `${v.nom}: ${w}`));
   if (!qatorlar.length) warnings.push('NO_IMPORTABLE_ROWS: import qilinadigan nom+birlik qatori topilmadi');
   return { faylNomi: fileName, turi, davr, varaqlar, qatorlar, warnings, periodNizolari, importgaTayyor: qatorlar.length > 0 && !qatorlar.some(r => r.ogohlantirishlar.some(w => w.startsWith('SHEET_'))) };
