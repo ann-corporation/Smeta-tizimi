@@ -16,6 +16,7 @@ import {
   sbT2NarxBelgila, sbT2NarxMarkazOl, sbT2NarxSanaQosh,
   sbT2TopilmaganlarOl, type NarxMarkaz, type Topilmagan,
 } from '../../api/t2-narx';
+import KatalogManbaImport from './KatalogManbaImport';
 
 type NarxRegistr = {
   id: number;
@@ -194,6 +195,7 @@ export default function NarxlarNative() {
       </button>}
     >
       <div className="space-y-3">
+        <KatalogManbaImport />
         <div className="karta p-3 flex flex-wrap items-end gap-2">
           <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text">Obyekt
             <select value={obyektId ?? ''} onChange={e => { const id = Number(e.target.value); setObyektId(Number.isSafeInteger(id) && id > 0 ? id : null); workspace.setObjectId(Number.isSafeInteger(id) && id > 0 ? id : null); }}
