@@ -8,11 +8,22 @@ import { readXlsx, type XlsxSheet, type XlsxWorkbook } from './xlsxReader';
 
 let keyingiId = 1;
 
+/** Legacy BIFF8 `.xls` fayllarida SheetJS natijasini Worker'dan
+ * `postMessage` bilan qaytarish katta varaqlarda Chromium call-stack'ini
+ * to'ldirishi mumkin. Bunday faylni mavjud asosiy oqim reader'i xavfsizroq
+ * qayta ishlaydi; `.xlsx` esa odatdagidek Worker'da qoladi. */
+function legacyXls(bytes: ArrayBuffer | Uint8Array): boolean {
+  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  return b.length >= 8 && b[0] === 0xd0 && b[1] === 0xcf && b[2] === 0x11 && b[3] === 0xe0
+    && b[4] === 0xa1 && b[5] === 0xb1 && b[6] === 0x1a && b[7] === 0xe1;
+}
+
 function kitob(sheets: XlsxSheet[]): XlsxWorkbook {
   return { sheets, sheet: (name: string) => sheets.find((s) => s.name === name) ?? null };
 }
 
 export async function readXlsxFonda(bytes: ArrayBuffer | Uint8Array): Promise<XlsxWorkbook> {
+  if (legacyXls(bytes)) return readXlsx(bytes);
   if (typeof Worker === 'undefined' || typeof URL === 'undefined') return readXlsx(bytes);
   let worker: Worker;
   try {
@@ -33,10 +44,15 @@ export async function readXlsxFonda(bytes: ArrayBuffer | Uint8Array): Promise<Xl
       worker.onerror = (e) => { e.preventDefault?.(); reject(new Error('XLSX_WORKER_YIQILDI')); };
       worker.postMessage({ id, bytes: nusxa }, [nusxa as ArrayBuffer]);
     });
-  } catch (e) {
-    // Faylning o'zi buzuq bo'lsa asosiy oqim ham xuddi shu xatoni beradi.
-    if (e instanceof Error && e.message !== 'XLSX_WORKER_YIQILDI') throw e;
-    return readXlsx(bytes);
+  } catch (workerError) {
+    // Worker natijani clone qila olmasa (katta jadval/call-stack), original
+    // bufer hali bizda bor: asosiy oqim reader'i bilan davom etamiz. Faqat
+    // fallback ham yiqilsa uning aniq format xatosini qaytaramiz.
+    try {
+      return readXlsx(bytes);
+    } catch (fallbackError) {
+      throw fallbackError instanceof Error ? fallbackError : workerError;
+    }
   } finally {
     worker.terminate();
   }

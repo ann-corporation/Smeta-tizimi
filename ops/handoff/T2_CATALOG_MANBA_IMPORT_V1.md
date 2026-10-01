@@ -5,7 +5,7 @@
 **STATUS: SOURCE_READY — PRODUCTIONGA QO‘LLANMAGAN**
 
 - Branch: `codex/t2-catalog-import-v1-source`
-- Source checkpoint: `7d6b3d2f56ea2eabc399a943017895422f6ce472`
+- Source checkpoint: `7d6b3d2f56ea2eabc399a943017895422f6ce472`; follow-up branch changes are uncommitted at handoff update and will be recorded in the next commit.
 - Base: `4221d6dfa508fb9b5c0e7f7c5f013bb0904a1c47`
 - Production Supabase migration: qo‘shilmadi va qo‘llanmadi.
 - Production Cloudflare/GAS/Drive konfiguratsiyasi: o‘zgartirilmadi.
@@ -24,6 +24,8 @@ Bu paket material katalogi, ish haqi katalogi va mashina-soat manbalarini operat
 - `frontend/src/lib/catalog-manba-import/index.ts` — public export.
 - `frontend/src/admin/sahifalar/KatalogManbaImport.tsx` — `/admin/narxlar` ichidagi multi-file preview → explicit confirmation → chunked source import paneli.
 - `frontend/src/admin/sahifalar/NarxlarNative.tsx` — panelni native Narxlar sahifasiga ulaydi.
+- `frontend/src/lib/narx-dalil/semantik.ts` — source-row nomzodlarini kod/birlik/kategoriya/token-ildizlari bo‘yicha deterministik topadi; top-5 taklif, moslik foizi va smeta/manba narxi farqini hisoblaydi. Bu faqat taklif, narxni yozmaydi.
+- `frontend/src/api/t2-narx-dalil.ts` — canonical source rows, source metadata va dalil holatini o‘qish porti; operator tasdig‘i `sbNarxDalilBogla` orqali yoziladi.
 
 ## Operator workflow
 
@@ -75,9 +77,31 @@ Nom/kod/birlik va narx sarlavhalari asosida aniqlanadi. NDS bilan va NDSsiz narx
 
 1. Bu source rows’larni canonical binary fayl bilan bog‘lash uchun original XLS/PDF fayllarni private R2/document registry orqali saqlash adapteri kerak. Hozir hash/provenance metadata yoziladi; fayl binary archive’iga claim qilinmaydi.
 2. Production Supabase’da mavjud `t2_narx_manba_yoz_v1` migratsiya/acceptance holati alohida tekshirilib, kerak bo‘lsa owner approval bilan qo‘llanadi. Ushbu branch migration qo‘shmadi.
-3. Narx markazi ichidagi yangi panelni release preview’da login bilan tekshirish kerak: varaq konflikt checkbox’i, duplicate hash, PDF preview, 5 000-row chunking va source-only yozuvlar.
+3. Narx markazi ichidagi yangi panelni release preview’da login bilan tekshirish kerak: varaq konflikt checkbox’i, duplicate hash, PDF preview, 5 000-row chunking, source-only yozuvlar, topilmagan resurslar uchun semantik katalog takliflari, moslik foizi va smeta/manba narxi farqi.
 4. `mashina_soat` source type mavjud DB enum/domain mapping bilan mosligi production acceptance’da tasdiqlansin.
 5. Narx source’larini keyin smeta/F2 narxiga qo‘llash faqat alohida approved price-basis workflow orqali bo‘lsin; importning o‘zi buni qilmasin.
+
+## Narx topilmagan resurslar uchun yangi taklif qatlami
+
+Oldingi native ekran faqat exact `t2_narx_taklif` ko‘rinishiga tayanganligi sababli nomi biroz farq qilgan, lekin katalogda mavjud resurs “topilmadi” bo‘lib qolishi mumkin edi. Follow-up qatlam:
+
+- `t2_narx_manba_qator` source rows va faol manba metama’lumotini kompaniya chegarasida o‘qiydi.
+- `narxSemantikNomzodlari` `kod` bo‘lsa exact matchni ustun qo‘yadi; aks holda birlik mosligi, kategoriya/manba turi va nom tokenlari bo‘yicha top-5 nomzod beradi.
+- Ruscha ko‘plik/kelishik (`экскаваторы`/`экскаватор`, `гусеничном`/`гусеничный`) konservativ token ildizi bilan qamrab olinadi; umumiy token posting listlari 3 000 ta bilan cheklanib, brauzerga O(n²) yuk berilmaydi.
+- UI har nomzodda manba narxi, smeta narxi, `+/- farq %`, moslik foizi va manba turini ko‘rsatadi.
+- `Dalilni bog‘lash` operator harakatidir. U `t2_narx_dalil_holat`ga dalil bog‘laydi, smeta/Fakt/F2 narxini yashirin o‘zgartirmaydi. Shuning uchun narx hali yo‘q qator “topilmagan” ro‘yxatida qolishi mumkin, lekin “Dalil bog‘langan” statusini ko‘rsatadi.
+- Birlik mos kelmasa yoki nomzod mazmunan yetarli bo‘lmasa taklif chiqmaydi; operator qo‘lda narx tanlashi kerak. Bu tizimni noto‘g‘ri narxni avtomatik yozishdan himoya qiladi.
+
+## Follow-up regression evidence
+
+- `frontend/src/lib/narx-dalil/semantik.test.ts`: renamed machine resource, unit normalization, above-estimate price variance and unrelated/unit-mismatch rejection — **3/3 PASS**.
+- `frontend/src/lib/f2-import-parse/xlsxFonda.test.ts`: legacy BIFF8 `.xls` worker `postMessage` stack overflow regression; old `.xls` main-thread fallback — PASS.
+- Combined focused run (`semantik`, `xlsxFonda`, catalog parser): **3 test files, 10/10 tests PASS**.
+- `tsc -p tsconfig.app.json --noEmit`: PASS.
+- `npm run build`: PASS (frontend + Functions TSC; existing `/grid.svg` and large-chunk warnings only).
+- `npm run lint`: exit 0; repository-wide pre-existing warnings only.
+- `npm run tekshir`: **62 checks passed, 0 failed**.
+- `git diff --check`: PASS. Production DB/R2/GAS deploy remains NOT APPLIED.
 
 ## Obsidian / parallel agent eslatmasi
 
