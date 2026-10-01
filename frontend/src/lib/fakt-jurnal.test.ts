@@ -28,7 +28,7 @@ describe('fakt jurnali', () => {
   it('bo‘limlar daraxt tartibida, ichki bo‘lim bilan foiz (summa bo‘yicha)', () => {
     const { bolimlar } = jurnalQur(rows, states);
     expect(bolimlar.map((b) => [b.id, b.daraja])).toEqual([[1, 0], [5, 1]]);
-    expect(bolimlar[0].ulush).toBeCloseTo(0.7);          // (400 + 1000) / 2000
+    expect(bolimlar[0].ulush).toBeCloseTo(0.8);          // hajm ulushi × smeta summasi: (0.4·1000 + 1·1000 + 1·1000) / 3000
     expect(bolimlar[0]).toMatchObject({ ishSoni: 3, tugaganSoni: 2, versiya: 4 });
     expect(bolimlar[1].ulush).toBe(1);
   });
@@ -41,6 +41,13 @@ describe('fakt jurnali', () => {
     expect(ishlar[0].resurslar.map((x) => x.id)).toEqual([4]);
     expect(ishlar[0].avtomatik.map((x) => [x.id, x.fakt])).toEqual([[3, 20]]);
     expect(ishlar[1].holat).toBe('oshdi');
+  });
+
+  it('hamma ishi 100% bo‘lgan bo‘lim — 100% (ish qatorining fakt summasi 0 bo‘lsa ham)', () => {
+    // Real holat (obyekt 81): bl narxsiz → fakt_summa 0; avval 12% ko‘rinardi.
+    const r = [q({ id: 1, tur: 'rz', nom: 'Стена' }), q({ id: 2, tur: 'bl', ota_id: 1, hajm: 0.2 }), q({ id: 3, tur: 'mat', ota_id: 1, hajm: 0.037 })];
+    const h = [{ qator_id: 2, smeta_hajm: 0.2, fakt_hajm: 0.2, smeta_summa: 2246153, fakt_summa: 0 }, { qator_id: 3, smeta_hajm: 0.037, fakt_hajm: 0.037, smeta_summa: 285084, fakt_summa: 285084 }];
+    expect(jurnalQur(r, h).bolimlar[0].ulush).toBe(1);
   });
 
   it('holatTur', () => {

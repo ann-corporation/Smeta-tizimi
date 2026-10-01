@@ -95,20 +95,26 @@ export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat
     bolimIshlari.set(r.id, ishlar);
   }
 
-  // Bo'lim ulushi — o'zi va ichki bo'limlari bo'yicha (summa; summa yo'q bo'lsa hajm ulushlari o'rtachasi).
-  const yigindi = new Map<number, { s: number; f: number; u: number[]; n: number; t: number }>();
-  const hisobla = (id: number): { s: number; f: number; u: number[]; n: number; t: number } => {
+  // Bo'lim ulushi — har ishning HAJM bo'yicha bajarilishi (0..1), smeta summasi bilan tortilgan o'rtacha.
+  // Fakt summasi ishlatilmaydi: ish (bl) qatorining o'z narxi yo'q (summa resurslardan), shuning uchun
+  // uning "fakt summasi" 0 bo'lib qoladi va hamma ishi 100% bo'lgan bo'lim 12% ko'rinardi (egasi, 2026-10-01).
+  // Hammasi 100% → bo'lim ham 100%. Summasi yo'q ishlar teng og'irlik oladi.
+  const yigindi = new Map<number, { w: number; wu: number; n: number; t: number }>();
+  const hisobla = (id: number): { w: number; wu: number; n: number; t: number } => {
     const bor = yigindi.get(id); if (bor) return bor;
-    const acc = { s: 0, f: 0, u: [] as number[], n: 0, t: 0 };
-    for (const ish of bolimIshlari.get(id) ?? []) {
-      const h = holat.get(ish.id);
-      const s = son(h?.smeta_summa); const f = son(h?.fakt_summa);
-      if (s != null && s > 0) { acc.s += s; acc.f += Math.min(f ?? 0, s); }
-      if (ish.ulush != null) acc.u.push(Math.min(ish.ulush, 1));
+    const acc = { w: 0, wu: 0, n: 0, t: 0 };
+    const ishlar = bolimIshlari.get(id) ?? [];
+    const summalar = ishlar.map((ish) => son(holat.get(ish.id)?.smeta_summa));
+    const ortacha = (() => { const m = summalar.filter((x): x is number => x != null && x > 0); return m.length ? m.reduce((a, b) => a + b, 0) / m.length : 1; })();
+    ishlar.forEach((ish, i) => {
+      if (ish.ulush != null) {
+        const vazn = summalar[i] != null && summalar[i]! > 0 ? summalar[i]! : ortacha;
+        acc.w += vazn; acc.wu += vazn * Math.min(ish.ulush, 1);
+      }
       acc.n += 1; if (ish.holat === 'tugadi' || ish.holat === 'oshdi') acc.t += 1;
-    }
+    });
     for (const c of bolalar.get(id) ?? []) if (c.tur === 'rz') {
-      const ich = hisobla(c.id); acc.s += ich.s; acc.f += ich.f; acc.u.push(...ich.u); acc.n += ich.n; acc.t += ich.t;
+      const ich = hisobla(c.id); acc.w += ich.w; acc.wu += ich.wu; acc.n += ich.n; acc.t += ich.t;
     }
     yigindi.set(id, acc); return acc;
   };
@@ -120,7 +126,7 @@ export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat
       bolimlar.push({
         id: r.id, otaId: r.ota_id ?? null, daraja: r.daraja ?? 0, versiya: r.versiya,
         nom: [r.kod, r.nom].filter(Boolean).join(' ') || 'Bo‘lim',
-        ulush: a.s > 0 ? a.f / a.s : a.u.length ? a.u.reduce((x, y) => x + y, 0) / a.u.length : null,
+        ulush: a.w > 0 ? a.wu / a.w : null,
         ishSoni: a.n, tugaganSoni: a.t,
       });
       tartibla(r.id);
