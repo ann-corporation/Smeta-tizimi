@@ -3,6 +3,16 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-FRONTEND-NAVIGATION-001",
+      "base_sha": "0c4b7e6",
+      "title": "Markaziy menyu qulayligi va xarita navigatsiyasi",
+      "owner": "codex", "machine": "noutbuk",
+      "branch": "codex/pto-chain-integrity-implementation",
+      "status": "in_progress",
+      "owns": ["frontend/src/admin/AdminShell.tsx", "frontend/src/lib/navigation-search.ts", "frontend/src/lib/navigation-search.test.ts"],
+      "depends_on": [], "must_read": ["AGENTS.md"], "production_write_allowed": false
+    },
+    {
       "id": "T2-PTO-CHAIN-INTEGRITY-001",
       "title": "PTO zanjiri: canonical bog‘lanish va tasdiqlangan davr dalillarini mustahkamlash",
       "owner": "codex",

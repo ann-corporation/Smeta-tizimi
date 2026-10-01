@@ -11,6 +11,7 @@ import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
+import { searchNavigation } from '../lib/navigation-search';
 
 const TIZIM_02_GURUHLAR = [
   {
@@ -150,7 +151,9 @@ function AdminShellInner() {
   // katta ochiladigan bo'lmasa faqat belgichalari ko'rinib turadigan".
   const [kengaygan, setKengaygan] = useState(false);
   const [mobilMenyuOchiq, setMobilMenyuOchiq] = useState(false);
-  const sidebarKengaygan = kengaygan || mobilMenyuOchiq;
+  const [mahkam, setMahkam] = useState(false);
+  const [menyuQidiruv, setMenyuQidiruv] = useState('');
+  const sidebarKengaygan = mahkam || kengaygan || mobilMenyuOchiq;
 
   // Qaysi guruhlar ochiq ekanligini saqlash
   const [ochiqGuruhlar, setOchiqGuruhlar] = useState<Record<string, boolean>>(() => {
@@ -239,7 +242,7 @@ function AdminShellInner() {
   // filtrlanadi. Server tomon (RuxsatGuard, RPC ichidagi tekshiruv) yakuniy
   // qo'riqchi — bu yerdagi filtr faqat menyu tuzilishi, xavfsizlik chegarasi
   // EMAS.
-  const filtrKilinganGuruhlar = TIZIM_02_GURUHLAR.map(g => {
+  const filtrKilinganGuruhlar = searchNavigation(TIZIM_02_GURUHLAR.map(g => {
     if (g.id === 'global' || g.id === 'tizim') return g;
     let allowedMenus = g.menyular;
     if (effektivRol === 'prorab') {
@@ -267,7 +270,7 @@ function AdminShellInner() {
       allowedMenus = []; // Kompaniya hali tanlanmagan yoki noma'lum rol
     }
     return { ...g, menyular: allowedMenus };
-  }).filter(g => g.menyular.length > 0);
+  }).filter(g => g.menyular.length > 0), menyuQidiruv);
 
   return (
     <div className="os-app-shell flex h-screen overflow-hidden text-white relative font-sans selection:bg-accent/30">
@@ -279,6 +282,8 @@ function AdminShellInner() {
       <aside
         onMouseEnter={() => setKengaygan(true)}
         onMouseLeave={() => setKengaygan(false)}
+        onFocusCapture={() => setKengaygan(true)}
+        onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setKengaygan(false); }}
         aria-label="Asosiy navigatsiya"
         className={`os-sidebar relative z-30 border-r backdrop-blur-xl flex flex-col flex-shrink-0 overflow-hidden transition-[width] duration-200 ease-out ${
           mobilMenyuOchiq ? 'os-sidebar--open' : ''
@@ -304,7 +309,17 @@ function AdminShellInner() {
           )}
         </div>
 
+        {sidebarKengaygan && <div className="border-b border-border p-3 space-y-2">
+          <button type="button" aria-pressed={mahkam} onClick={() => setMahkam(v => !v)} className="text-xs text-text-dim hover:text-text">
+            {mahkam ? 'Menyuni avtomatik yig‘ish' : 'Menyuni ochiq saqlash'}
+          </button>
+          <input aria-label="Menyudan qidirish" placeholder="Bo‘limni qidiring…" value={menyuQidiruv}
+            onChange={e => setMenyuQidiruv(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setMenyuQidiruv(''); }}
+            className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text" />
+          {menyuQidiruv && <button type="button" onClick={() => setMenyuQidiruv('')} className="text-xs text-accent">Qidiruvni tozalash</button>}
+        </div>}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-3 space-y-4">
+          {menyuQidiruv && !filtrKilinganGuruhlar.length && <p role="status" className="text-sm text-text-dim">Sizga ochiq bo‘limlardan mos natija topilmadi.</p>}
           {!sidebarKengaygan ? (
             /* Belgichalar qatori: guruh sarlavhalarisiz, faqat ikonalar --
              * har bir guruh orasida yupqa ajratuvchi chiziq. */
@@ -341,7 +356,7 @@ function AdminShellInner() {
                     {ochiqGuruhlar[guruh.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </button>
 
-                  <div className={`space-y-0.5 pl-2 ${ochiqGuruhlar[guruh.id] ? 'block' : 'hidden'}`}>
+                  <div className={`space-y-0.5 pl-2 ${menyuQidiruv || ochiqGuruhlar[guruh.id] ? 'block' : 'hidden'}`}>
                     {guruh.menyular.map(m => (
                       <NavLink
                         key={m.yol}
