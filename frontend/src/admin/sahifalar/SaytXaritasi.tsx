@@ -88,7 +88,7 @@ function SaytTree({ layout, onSelect }: { layout: ReturnType<typeof buildSaytTre
   };
   return <div className="rounded-xl border border-white/10 bg-bg/45 p-3">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-text-mute">
-      <span><b className="text-text">TIZIM_02</b> → scope → sahifalar</span>
+      <span><b className="text-text">TIZIM_02</b> → doira (Global / Kompaniya / Loyiha / Obyekt) → sahifalar</span>
       <span>{layout.nodes.filter((node) => node.kind === 'page').length} ta sahifa · chiziqlar navigatsiya yo‘nalishini ko‘rsatadi</span>
     </div>
     <div className="overflow-auto rounded-lg border border-white/10 bg-[#0a0d14]" data-testid="sayt-2d-tree">
@@ -105,7 +105,7 @@ function SaytTree({ layout, onSelect }: { layout: ReturnType<typeof buildSaytTre
         {layout.nodes.map((node) => {
           const isPage = node.kind === 'page';
           const tone = node.kind === 'root' ? 'border-blue-300/60 bg-blue-500/15 text-blue-50' : node.kind === 'scope' ? scopeTone[node.scope ?? ''] : scopeTone[node.scope ?? ''] ?? 'border-white/15 bg-white/[.06] text-text';
-          const content = <><div className="truncate text-sm font-semibold">{node.label}</div>{isPage && <><div className="mt-1 truncate text-[11px] text-sky-300">{node.route}</div><div className="mt-2 flex gap-1.5 text-[10px] text-text-mute"><span>O‘qish {node.page?.oqiydi.length ?? 0}</span><span>·</span><span>Yozish {node.page?.yozadi.length ?? 0}</span></div></>}{node.kind === 'scope' && <div className="mt-1 text-[11px] text-text-mute">{layout.edges.filter((edge) => edge.from === node.id).length} ta sahifa</div>}{node.kind === 'root' && <div className="mt-1 text-[11px] text-text-mute">global navigatsiya daraxti</div>}</>;
+          const content = <><div className="truncate text-sm font-semibold">{node.kind === 'scope' ? SCOPE_LABEL[node.scope ?? ''] ?? node.label : node.label}</div>{isPage && <><div className="mt-1 truncate text-[11px] text-sky-300">{node.route}</div><div className="mt-2 flex gap-1.5 text-[10px] text-text-mute"><span>O‘qish {node.page?.oqiydi.length ?? 0}</span><span>·</span><span>Yozish {node.page?.yozadi.length ?? 0}</span></div></>}{node.kind === 'scope' && <div className="mt-1 text-[11px] text-text-mute">{layout.edges.filter((edge) => edge.from === node.id).length} ta sahifa</div>}{node.kind === 'root' && <div className="mt-1 text-[11px] text-text-mute">global navigatsiya daraxti</div>}</>;
           return isPage ? <button key={node.id} onClick={() => onSelect(node.route!)} className={`absolute rounded-xl border p-3 text-left shadow-lg transition hover:-translate-y-0.5 hover:border-sky-300/70 hover:bg-sky-400/[.14] ${tone}`} style={{ left: node.x, top: node.y, width: node.width, height: node.height }} aria-label={`${node.label} ${node.route}`}>{content}</button> : <div key={node.id} className={`absolute rounded-xl border p-3 shadow-lg ${tone}`} style={{ left: node.x, top: node.y, width: node.width, height: node.height }}>{content}</div>;
         })}
       </div>
