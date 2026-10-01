@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { narxTakliflari } from './taklif';
+import { narxTakliflari, narxTaklifMuammosi } from './taklif';
 import { narxAsoslashXlsx, manbaRekviziti } from '../narx-asoslash-export';
 import { hujjatTekshir, imzoRollariBormi } from '../hujjat-yozuvchi';
 import type { NarxDalilHolat, NarxTaklif } from '../../api/t2-narx-dalil';
@@ -12,6 +12,22 @@ const T = (p: Partial<NarxTaklif>): NarxTaklif => ({
 });
 
 describe('Narx takliflari (egasi qoidalari)', () => {
+  it('kod teng bo‘lsa ham kg narxini tonnaga qo‘llamaydi', () => {
+    const t = T({ moslik: 'kod', birlik: 'т', manba_birlik: 'кг' });
+    expect(narxTaklifMuammosi(t)).toBe('BIRLIK_MOS_EMAS');
+    expect(narxTakliflari([t])).toEqual([]);
+  });
+  it('noma’lum birlik uchun conversion to‘qimaydi', () => {
+    expect(narxTaklifMuammosi(T({ manba_birlik: null }))).toBe('BIRLIK_NOMALUM');
+  });
+  it('yozilishdagi nuqta, probel va kub belgisi birlikni o‘zgartirmaydi', () => {
+    expect(narxTaklifMuammosi(T({ birlik: ' м³ ', manba_birlik: 'М3' }))).toBeNull();
+    expect(narxTaklifMuammosi(T({ birlik: 'маш.-ч', manba_birlik: 'МАШ-Ч' }))).toBeNull();
+  });
+  it('manfiy/NaN narx rad, aniq nol saqlanadi', () => {
+    for (const manba_narx of [-1, NaN, Infinity]) expect(narxTaklifMuammosi(T({ manba_narx }))).toBe('NARX_NOTOGRI');
+    expect(narxTakliflari([T({ manba_narx: 0 })])[0].tavsiya.manba_narx).toBe(0);
+  });
   it('МАШ — eng qimmat kalkulyatsiya', () => {
     const n = narxTakliflari([
       T({ qator_id: 5, kat: 'МАШ', manba_qator_id: 1, manba_tur: 'kalkulyatsiya_mash', manba_narx: 150_000 }),

@@ -27,6 +27,17 @@ const sana = (t: NarxTaklif) => t.manba_sana ?? '';
 const katNorm = (k: string | null) => (k ?? '').trim().toUpperCase();
 const MAT_MANBA_TARTIB: Record<NarxManbaTur, number> = { katalog: 0, faktura: 1, kp: 2, kalkulyatsiya_mash: 3, chel_chas: 4, boshqa: 5 };
 
+/** Faqat yozilish farqi; kg↔t yoki dona↔komplekt conversion EMAS. */
+const birlikKaliti = (v: string | null): string => (v ?? '').normalize('NFKC').trim().toLowerCase().replace(/[\s.]/g, '');
+
+export function narxTaklifMuammosi(t: NarxTaklif): 'NARX_NOTOGRI' | 'BIRLIK_NOMALUM' | 'BIRLIK_MOS_EMAS' | null {
+  if (t.manba_narx == null || !Number.isFinite(Number(t.manba_narx)) || Number(t.manba_narx) < 0) return 'NARX_NOTOGRI';
+  const birlik = birlikKaliti(t.birlik), manba = birlikKaliti(t.manba_birlik);
+  if (!birlik || !manba) return 'BIRLIK_NOMALUM';
+  if (birlik !== manba) return 'BIRLIK_MOS_EMAS';
+  return null;
+}
+
 function solishtirgich(kat: string, region: string | null): (a: NarxTaklif, b: NarxTaklif) => number {
   const moslik = (a: NarxTaklif, b: NarxTaklif) => (a.moslik === b.moslik ? 0 : a.moslik === 'kod' ? -1 : 1);
   const yangi = (a: NarxTaklif, b: NarxTaklif) => davr(b) - davr(a) || sana(b).localeCompare(sana(a));
@@ -47,7 +58,7 @@ const SABAB: Record<string, string> = {
 export function narxTakliflari(takliflar: readonly NarxTaklif[], opts: { region?: string | null } = {}): TaklifNatija[] {
   const guruh = new Map<number, NarxTaklif[]>();
   for (const t of takliflar) {
-    if (t.manba_narx == null || !Number.isFinite(Number(t.manba_narx))) continue;
+    if (narxTaklifMuammosi(t)) continue;
     const g = guruh.get(t.qator_id);
     if (g) g.push(t); else guruh.set(t.qator_id, [t]);
   }

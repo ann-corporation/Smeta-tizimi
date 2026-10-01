@@ -1,5 +1,10 @@
 # PTO zanjiri: checkpoint 1
 
+## Checkpoint 2 — narx reestri
+
+Egasi real oferta uchun dalilli reestrni ustuvor qildi. To‘liq talab: `D:/Obsidian/Anvar_Brain/20_PROJECTS/Smeta-tizimi/NARXLAR_REESTRI_EGASI_MAQSADI_V1.md`.
+`narxTaklifMuammosi` explicit unit/price guard qo‘shildi; kod teng bo‘lsa ham noto‘g‘ri birlik tavsiya qilinmaydi. NFKC/nuqta/probel normalizatsiya — conversion emas. 12 narx-dalil testi PASS. Bu semantic matching, oferta integration yoki to‘liq production registry tayyor degani emas. UI rejected reasons va as-of currency/tax/technical specification gates qolgan.
+
 Branch: `codex/pto-chain-integrity-implementation`. Base: `15b689a2f4a540ec4cca265250b377334bb72d34`.
 
 Amaliy tuzatishlar:
