@@ -274,7 +274,7 @@ export function f2AktHujjat(qatorlar: readonly NakopitelniyQator[], o: F2AktHujj
   if (!o.nakrutka || !Object.keys(o.nakrutka).length) diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — в расчете приняты 0 %' });
   v.diqqat(diqqat);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'f2_tn' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'АКТ_Ф-2', davr: o.davr.slice(0, 7) }), jamiSumma, ndsSumma: kaskad.nds, jamiNds: kaskad.vsego, kOplata, kaskad };
 }
 

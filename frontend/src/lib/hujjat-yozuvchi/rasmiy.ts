@@ -161,6 +161,37 @@ export const MAVZU_HEX: Record<RangMavzusi, Record<QatorRangi, string | null>> =
 };
 for (const k of RANG_TARTIB) if (MAVZU_HEX.rangsiz[k] === '') MAVZU_HEX.rangsiz[k] = null;
 
+/** Hujjat turlari (egasi: "tizimning o'zida har hujjat dizaynini tanlash mumkin bo'lsin"). Sozlamalarda shu ro'yxat. */
+export const HUJJAT_TURLARI = {
+  f2: 'Акт Ф-2 (форма № 2) va resurs vedomosti',
+  f2_qoralama: 'Проект акта Ф-2',
+  f2_tn: 'Акт Ф-2 (ТН shakli)',
+  f3: 'Справка Ф-3 (форма № 3)',
+  nakopitelniy: 'Накопительная ведомость',
+  slichitelniy: 'Сличительная ведомость',
+  ostatka: 'Остатка (qoldiq) ведомости',
+  resurs_vedomost: 'Ведомость ресурсов',
+  m29: 'М-29',
+  lrv_sverka: 'LRV ↔ RES сверка',
+  ijro_reestr: 'Ijro hujjatlari reestri',
+  narx_asoslash: 'Обоснование цен',
+  oferta: 'Tender oferta',
+  pto: 'PTO hujjatlari (Ф-2/Ф-3/М-29/…)',
+} as const;
+export type HujjatTuri = keyof typeof HUJJAT_TURLARI;
+const MAVZU_KALIT = 'hujjat-mavzu:';
+/** Shu turdagi hujjat uchun tanlangan mavzu (brauzerda saqlanadi; yo'q bo'lsa — kulrang). */
+export function hujjatMavzusi(tur: HujjatTuri): RangMavzusi {
+  try {
+    const m = globalThis.localStorage?.getItem(MAVZU_KALIT + tur);
+    if (m && (RANG_MAVZULARI as readonly string[]).includes(m)) return m as RangMavzusi;
+  } catch { /* xususiy rejim — sukut */ }
+  return 'kulrang';
+}
+export function hujjatMavzusiniSaqla(tur: HujjatTuri, m: RangMavzusi): void {
+  try { globalThis.localStorage?.setItem(MAVZU_KALIT + tur, m); } catch { /* saqlanmasa — sukut ishlaydi */ }
+}
+
 /** Joriy mavzu: hujjat yaratishdan oldin sahifa tanlovidan o'rnatiladi (sukut — kulrang). */
 let joriyMavzu: RangMavzusi = 'kulrang';
 export function rangMavzusiniOrnat(m: RangMavzusi | null | undefined): void { joriyMavzu = m && (RANG_MAVZULARI as readonly string[]).includes(m) ? m : 'kulrang'; }
@@ -573,7 +604,7 @@ export type RasmiyKitobNatija = { bytes: Uint8Array; varaqlar: RasmiyVaraqMeta[]
 
 /** Bir yoki bir nechta rasmiy varaqdan .xlsx yasaydi (Print_Area, Print_Titles,
  * fullCalcOnLoad). Varaq nomlari takrorlansa raqam qo'shiladi. */
-export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi }): RasmiyKitobNatija {
+export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri }): RasmiyKitobNatija {
   if (!varaqlar.length) throw new Error('RASMIY_KITOB_BOSH');
   const nomlar: string[] = [];
   for (const v of varaqlar) {
@@ -599,7 +630,7 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
     'xl/_rels/workbook.xml.rels': strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       + varaqlar.map((_v, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')
       + `<Relationship Id="rId${varaqlar.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`),
-    'xl/styles.xml': strToU8(rasmiyStylesXml(o?.mavzu ?? joriyMavzu)),
+    'xl/styles.xml': strToU8(rasmiyStylesXml(o?.mavzu ?? (o?.tur ? hujjatMavzusi(o.tur) : joriyMavzu))),
   };
   varaqlar.forEach((v, i) => { files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(v.xml()); });
   return { bytes: zipSync(files, { level: 6 }), varaqlar: metas };

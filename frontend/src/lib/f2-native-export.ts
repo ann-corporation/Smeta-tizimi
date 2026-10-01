@@ -170,6 +170,6 @@ export function f2QoralamaHujjat(qatorlar: readonly QatorHolat[], certified: rea
   v.izoh('Графа 13 — стоимость к оплате: прямые затраты × коэффициент по виду затрат (раздел «Расчет стоимости к оплате»); расхождение с итогом расчета — только округление.');
   v.diqqat(diqqat);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'f2_qoralama' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'ПРОЕКТ_АКТА_Ф-2', davr: o.davr.slice(0, 7) }), jami: jamiQ, kOplata: kJami == null ? null : yaxlit2(kJami), jamiNds: jamiQ == null ? null : p.kaskad.G.vsego };
 }

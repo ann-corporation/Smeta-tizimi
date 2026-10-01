@@ -146,7 +146,7 @@ export function m29Hujjat(n: M29Natija, o: M29ExportOpsiya): M29HujjatNatija {
   }
   v.diqqat(n.diqqat.map((d) => ({ nom: d.nom, sabab: d.sabab + (d.summa != null ? ` (${fmt2(d.summa)} сум)` : '') })));
   v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ', 'ПРОВЕРИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'm29' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'М-29', davr: n.davr }) };
 }
 

@@ -413,7 +413,7 @@ export function nakopitelniyVedomostHujjat(
   }
   v.diqqat(diqqat);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'nakopitelniy' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'НАКОПИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: o.davr.slice(0, 7) }), jamilar: j, kaskad, kOplata: kOplataJami };
 }
 

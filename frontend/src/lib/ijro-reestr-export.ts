@@ -58,7 +58,7 @@ export function aosrReestrXlsx(aktlar: readonly AosrV2[], o: ReestrOpsiya): { by
     .map((a) => ({ nom: a.ish_nomi || `Акт id ${a.id}`, sabab: [!a.raqam && 'нет номера', !a.sana && 'нет даты', !a.ish_nomi && 'не указаны работы'].filter(Boolean).join(', ') }));
   if (diqqat.length) v.diqqat(diqqat);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'ijro_reestr' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'РЕЕСТР_АОСР', davr: sana }) };
 }
 
@@ -112,6 +112,6 @@ export function labReestrXlsx(protokollar: readonly LabProtokol[], o: ReestrOpsi
   ];
   if (diqqat.length) v.diqqat(diqqat);
   v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'ТЕХНАДЗОР', 'СОСТАВИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'ijro_reestr' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'РЕЕСТР_ЛАБ_ПРОТОКОЛОВ', davr: sana }) };
 }

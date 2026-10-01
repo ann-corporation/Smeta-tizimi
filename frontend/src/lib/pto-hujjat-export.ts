@@ -193,7 +193,7 @@ export async function ptoHujjatXlsx(h: PtoHujjat): Promise<Uint8Array> {
   for (const s of h.izoh ?? []) v.izoh(s);
   v.diqqat(diqqat);
   v.imzo(imzoTomonlari(h.turi === 'forma2' || h.turi === 'forma3' ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], { zakazchik: h.buyurtmachi, pudratchi: h.pudratchi }));
-  return rasmiyKitob([v, ptoResursVaragi(h)]).bytes;
+  return rasmiyKitob([v, ptoResursVaragi(h)], { tur: 'pto' }).bytes;
 }
 
 function ptoResursVaragi(h: PtoHujjat): RasmiyVaraq {

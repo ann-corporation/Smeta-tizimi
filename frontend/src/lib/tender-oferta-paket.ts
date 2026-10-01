@@ -118,7 +118,7 @@ export function paketSvodXlsx(obyektlar: readonly PaketSvodObyekt[], imzo?: { za
   ]);
   v.diqqat(obyektlar.filter((o) => o.hisob.yakuniyOferta == null).map((o) => ({ nom: o.nom, sabab: `${o.hisob.halQilinmagan} поз. без цены или категории — итог оферты по объекту не определен` })));
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], imzo));
-  return rasmiyKitob([v]).bytes;
+  return rasmiyKitob([v], { tur: 'oferta' }).bytes;
 }
 
 /** Paket arxivi: har bir obyektning OFERTA fayli + paket svodi. Nomlar

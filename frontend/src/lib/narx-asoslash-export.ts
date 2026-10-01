@@ -95,6 +95,6 @@ export function narxAsoslashXlsx(resurslar: readonly AsoslashResurs[], dalillar:
   v.izoh('Отклонение = (цена по документу − цена в смете) / цена в смете × 100. Для машин и механизмов принята наибольшая стоимость маш.-часа по подтвержденным калькуляциям; для материалов — цены последнего квартала каталога либо документов поставщиков. Копии документов-оснований прилагаются.');
   if (dalilsiz.length) v.diqqat(dalilsiz, 'ПОЗИЦИИ БЕЗ ДОКУМЕНТА-ОСНОВАНИЯ ЦЕНЫ');
   v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ', 'ПРОВЕРИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'narx_asoslash' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ОБОСНОВАНИЕ_ЦЕН', davr: sana }), tasdiqlangan, dalilsiz: dalilsiz.length };
 }

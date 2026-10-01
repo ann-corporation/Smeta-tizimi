@@ -218,6 +218,6 @@ export function resursVedomostHujjat(holatlar: readonly T2QatorHolat[], o: Resur
   v.bosh();
   v.izoh('Количество по разделам и объекту не суммируется (разные единицы измерения). Затраты труда машинистов учтены в стоимости машино-часа.');
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'resurs_vedomost' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'РЕСУРСНАЯ_ВЕДОМОСТЬ', davr: sana }) };
 }

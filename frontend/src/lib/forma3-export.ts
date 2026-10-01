@@ -729,7 +729,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   });
   manba.sort((a, b) => a.kalit - b.kalit || a.oy - b.oy || a.vid.localeCompare(b.vid));
   for (const x of manba) mv.qator('oddiy', () => [x.kalit, x.vid, x.akt, x.oy, x.kod, x.nom, x.birlik, x.hajm, x.summa == null ? null : r2(x.summa)]);
-  const { bytes } = rasmiyKitob(manba.length ? [v, mv] : [v]);
+  const { bytes } = rasmiyKitob(manba.length ? [v, mv] : [v], { tur: 'f3' });
   return {
     bytes,
     faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'ФОРМА_3', davr: o.davr }),

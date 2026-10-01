@@ -72,6 +72,7 @@ const TIZIM_02_GURUHLAR = [
     id: 'tizim',
     menyular: [
       { yol: '/admin/tizim-sozlama', nom: 'Sozlamalar', Ikonka: Settings },
+      { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', Ikonka: FileText },
       { yol: '/admin/storage', nom: 'Fayl saqlash (Storage)', Ikonka: HardHat },
       { yol: '/admin/fayl-boglash', nom: 'Fayl bog’lash / sinxronizatsiya', Ikonka: Link2 },
       { yol: '/admin/korzinka', nom: 'Korzinka', Ikonka: Trash2 },

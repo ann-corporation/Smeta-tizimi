@@ -59,6 +59,7 @@ const ParticipantsPage = lazy(() => import('./admin/pages/ParticipantsPage'));
 const SystemControlPage = lazy(() => import('./admin/pages/SystemControlPage'));
 const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const ShartnomaLiniya = lazy(() => import('./admin/sahifalar/ShartnomaLiniya'));
+const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
 const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
@@ -133,6 +134,8 @@ export default function App() {
           <Route path="f2-eski" element={<Navigate to="/admin/f2" replace />} />
           <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
           {/* Egasi 2026-10-01: Loyiha → Shartnoma (tomonlar) → Obyektlar. */}
+          {/* Egasi 2026-10-02: har hujjat turi uchun rang mavzusi. */}
+          <Route path="hujjat-dizayn" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><HujjatDizayni /></Suspense>} />
           <Route path="shartnoma-liniya" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><ShartnomaLiniya /></Suspense>} />
           <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
           <Route path="m29" element={<M29Native />} />

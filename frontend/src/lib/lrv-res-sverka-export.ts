@@ -84,6 +84,6 @@ export function sverkaHujjatXlsx(s: SverkaNatija, o: SverkaOpsiya): { bytes: Uin
     .map((p) => ({ nom: `${p.nom}${p.birlik ? `, ${p.birlik}` : ''}`, sabab: [SVERKA_HOLAT_NOMI[p.holat], p.izoh].filter(Boolean).join(': ') }));
   if (diqqat.length) v.diqqat(diqqat, 'ПОЗИЦИИ С РАСХОЖДЕНИЯМИ');
   v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v]);
+  const { bytes } = rasmiyKitob([v], { tur: 'lrv_sverka' });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'СВЕРКА_ЛРВ_И_РС', davr: sana }) };
 }
