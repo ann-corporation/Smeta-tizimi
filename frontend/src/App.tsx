@@ -60,6 +60,8 @@ const SystemControlPage = lazy(() => import('./admin/pages/SystemControlPage'));
 const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
+const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
+const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
 const ParticipantNetworkDemo = lazy(() => import('./admin/participants/ParticipantNetworkDemo'));
 const SystemControlDemo = lazy(() => import('./admin/system-control/SystemControlDemo'));
@@ -132,6 +134,8 @@ export default function App() {
           <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
           <Route path="m29" element={<M29Native />} />
           <Route path="nakrutka" element={<NakrutkaNative />} />
+          <Route path="narx-manbalari" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><NarxManbalari /></Suspense>} />
+          <Route path="narx-dalil" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><NarxDalil /></Suspense>} />
           <Route path="f2-tarix" element={<F2TarixNative />} />
           <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
           <Route path="oferta" element={<OfertaNative />} />
