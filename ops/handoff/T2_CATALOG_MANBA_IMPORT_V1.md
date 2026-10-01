@@ -5,7 +5,8 @@
 **STATUS: SOURCE_READY — PRODUCTIONGA QO‘LLANMAGAN**
 
 - Branch: `codex/t2-catalog-import-v1-source`
-- Source checkpoint: `7d6b3d2f56ea2eabc399a943017895422f6ce472`; follow-up branch changes are uncommitted at handoff update and will be recorded in the next commit.
+- Source checkpoint: `7d6b3d2f56ea2eabc399a943017895422f6ce472`.
+- Follow-up implementation commit: `1c8760f1d5cc2b11635b10c9add3a089aded135a`.
 - Base: `4221d6dfa508fb9b5c0e7f7c5f013bb0904a1c47`
 - Production Supabase migration: qo‘shilmadi va qo‘llanmadi.
 - Production Cloudflare/GAS/Drive konfiguratsiyasi: o‘zgartirilmadi.
