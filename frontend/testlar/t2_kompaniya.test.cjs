@@ -96,6 +96,8 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          ichida o'sha `t2_addrepl_execute_v1` (rol, versiya, OLD o'zgarmaydi,
                          audit); faqat service_role, actor sessiyadan. */
                       't2_ish_resurslar_bilan_yarat_v1',
+                      // Egasi 2026-10-01: fakt kiritishda qo'shimcha ish/zamena, smetasiz obyekt; ish turlari katalogi.
+                      't2_fakt_smetadan_tashqari_v1', 't2_ish_turi_saqla_v1',
                       /* 2026-09-05, T2-PTO-CLOSURE-007 (Codex): catalog
                          observation ingestion -- exact-match-only auto-link,
                          no price ever stored/copied through this path. */

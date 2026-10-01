@@ -27,6 +27,9 @@ import { xavfsizUpstream } from '../_shared/xato';
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
 const AMALLAR = {
   qoshimcha_ish_yarat_v1: { rpc: 't2_qoshimcha_ish_yarat_v1' },
+  /* Egasi 2026-10-01: fakt kiritishda qo'shimcha ish/zamena, smetasiz obyekt (qator + resurslar + fakt bitta tranzaksiya). */
+  fakt_smetadan_tashqari_v1: { rpc: 't2_fakt_smetadan_tashqari_v1' },
+  ish_turi_saqla_v1: { rpc: 't2_ish_turi_saqla_v1' },
   zamena_ish_yarat_v1: { rpc: 't2_zamena_ish_yarat_v1' },
   resurs_bola_qosh_v1: { rpc: 't2_resurs_bola_qosh_v1' },
   /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
@@ -472,6 +475,30 @@ export const onRequestPost: PagesFunction<{
       };
       if (amal === 'zamena_ish_yarat_v1') yuk.p_almashtirilayotgan_qator_id = so.almashtirilayotgan_qator_id;
       if (amal === 'resurs_bola_qosh_v1') yuk.p_tur = so.tur;
+    } else if (amal === 'fakt_smetadan_tashqari_v1') {
+      const buyruq = String(so.command || '');
+      const hajm = Number(so.hajm);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.kutilgan_versiya))
+          || (buyruq !== 'additional' && buyruq !== 'replacement') || !(hajm > 0) || (so.resurslar != null && !Array.isArray(so.resurslar))
+          || !/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana || '')) || !String(so.sabab || '').trim()) {
+        return Response.json({ ok: false, error: 'Tur, hajm (>0), sana, sabab, operatsiya va versiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_obyekt_id: so.obyekt_id,
+        p_command: buyruq, p_ota_qator_id: so.ota_qator_id, p_almashtirilayotgan_qator_id: so.almashtirilayotgan_qator_id ?? null,
+        p_nom: so.nom ?? null, p_birlik: so.birlik ?? null, p_kod: so.kod ?? null, p_hajm: hajm,
+        p_sana: so.sana, p_sabab: String(so.sabab).slice(0, 500), p_ish_turi_id: so.ish_turi_id ?? null,
+        p_resurslar: Array.isArray(so.resurslar) ? so.resurslar.slice(0, 50) : null,
+        p_katalogga_saqla: so.katalogga_saqla === true, p_operation_id: so.operation_id, p_kutilgan_versiya: Number(so.kutilgan_versiya),
+      };
+    } else if (amal === 'ish_turi_saqla_v1') {
+      if (!sess.foydalanuvchi_id) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_id: so.id ?? null,
+        p_kod: so.kod ?? null, p_nomi: so.nomi ?? null, p_birligi: so.birligi ?? null,
+        p_narx: so.narx ?? null, p_norma: so.norma ?? null, p_kategoriya: so.kategoriya ?? null,
+        p_kutilgan_versiya: so.kutilgan_versiya ?? null,
+      };
     } else if (amal === 'ish_resurslar_bilan_yarat_v1') {
       const buyruq = String(so.command || '');
       const resurslar = Array.isArray(so.resurslar) ? so.resurslar : [];

@@ -14,7 +14,7 @@ vi.mock('../../api/t2-fakt', () => ({ sbFaktYoz: m.yoz, sbFaktBelgilaV2: m.jami 
 vi.mock('../../api/t2-price-control', () => ({ priceControlOl: async () => ({ ok: true, qatorlar: [] }) }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../umumiy/daraxt/SmetaTree', () => ({ SmetaTree: ({ data, onFaktSave }: any) => <div data-testid="tree"><span>{data[0]?.smetaHajm}</span><button onClick={() => onFaktSave(data[0], 'qoshish', 3.5)}>Qo‘shish</button><button onClick={() => onFaktSave(data[0], 'jami', 128.75)}>Jami</button></div> }));
-function renderFakt() { return render(<MemoryRouter initialEntries={['/admin/fakt?obyekt=8']}><FaktNative /></MemoryRouter>); }
+function renderFakt() { const r = render(<MemoryRouter initialEntries={['/admin/fakt?obyekt=8']}><FaktNative /></MemoryRouter>); void screen.findByRole('button', { name: 'Daraxt' }).then((b) => fireEvent.click(b)); return r; }
 afterEach(() => { cleanup(); m.yoz.mockReset(); m.jami.mockReset(); m.toast.mockReset(); });
 describe('Fakt daraxtli oqimi', () => {
   it('smeta hajmini ko‘rsatib, qo‘shish RPC kontraktini saqlaydi', async () => { m.yoz.mockResolvedValue({ ok: true }); renderFakt(); await screen.findByTestId('tree'); expect(screen.getByText('200')).toBeTruthy(); fireEvent.click(screen.getByRole('button', { name: 'Qo‘shish' })); await waitFor(() => expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ obyektId: 8, qatorlar: [{ qator_id: 22, hajm: 3.5 }] }))); });
