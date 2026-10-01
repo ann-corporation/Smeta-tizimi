@@ -12,7 +12,11 @@
 
 begin;
 
-create table if not exists public.t2_qator_zaxira_suniy_kol_84 (like public.t2_qator including all);
+-- 2026-10-01 tuzatish: "including all" id ni GENERATED ALWAYS identity qilib nusxalaydi va insert
+-- yiqiladi (428C9) — zaxira identity'siz bo'lishi shart. Dry-run qayta tasdiqlandi (2026-10-01 ertalab):
+-- 2411 qator, 147 831 682 357 so'm; akt/АОСР/lab/narx dalili/price basis/bola qatorlar — hammasi 0.
+create table if not exists public.t2_qator_zaxira_suniy_kol_84 (like public.t2_qator including defaults excluding identity);
+revoke all on public.t2_qator_zaxira_suniy_kol_84 from anon, authenticated;
 
 with q as (select * from public.t2_qator where obyekt_id in (84, 91)),
 m as (
@@ -47,5 +51,5 @@ commit;
 
 -- ROLLBACK (kerak bo'lsa):
 --   begin;
---   insert into public.t2_qator select * from public.t2_qator_zaxira_suniy_kol_84 on conflict (id) do nothing;
+--   insert into public.t2_qator overriding system value select * from public.t2_qator_zaxira_suniy_kol_84 on conflict (id) do nothing;
 --   commit;
