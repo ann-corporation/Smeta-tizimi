@@ -4,6 +4,7 @@
  * Google bergan ID token serverda tekshiriladi (`POST /api/kirish-google`), sessiya cookie o'sha yerda beriladi.
  */
 import { useEffect, useRef, useState } from 'react';
+import { t, tilOl } from '../i18n/til';
 
 type GoogleId = {
   accounts: { id: {
@@ -63,7 +64,7 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
           } catch { natijaRef.current({ ok: false, xato: 'Tarmoq xatosi' }); }
         },
       });
-      g.renderButton(joy.current, { theme: 'filled_black', size: 'large', shape: 'pill', text: matn, width: joy.current.offsetWidth || 320, logo_alignment: 'center' });
+      g.renderButton(joy.current, { theme: 'filled_black', size: 'large', shape: 'pill', text: matn, width: joy.current.offsetWidth || 320, logo_alignment: 'center', locale: tilOl() === 'uz-Cyrl' ? 'uz' : tilOl() });
     }).catch(() => undefined);
     return () => { tirik = false; };
   }, [clientId, matn]);
@@ -74,7 +75,7 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
       {/* colorScheme: 'normal' — qorong'i sahifada Google iframe'i atrofidagi oq fon chiqmasligi uchun. */}
       <div ref={joy} className="w-full flex justify-center min-h-[44px]" style={{ colorScheme: 'normal' }} data-testid="google-kirish" />
       <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-zinc-500">
-        <span className="h-px flex-1 bg-white/10" />yoki<span className="h-px flex-1 bg-white/10" />
+        <span className="h-px flex-1 bg-white/10" />{t('yoki')}<span className="h-px flex-1 bg-white/10" />
       </div>
     </div>
   );

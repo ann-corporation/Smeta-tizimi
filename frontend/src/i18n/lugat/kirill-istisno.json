@@ -1,0 +1,16 @@
+{
+  "_izoh": "O'zbek kirill istisnolari. 'sozlar' — so'z darajasida (kalit kichik harfda, lotin), 'matnlar' — to'liq matn (kalit = t() manbasi). Qoida bilan to'g'ri chiqadigan so'zni bu yerga YOZMANG.",
+  "sozlar": {
+    "pto": "ПТО",
+    "lrv": "ЛРВ",
+    "res": "РЕС",
+    "crm": "CRM",
+    "edo": "ЭДО",
+    "tsement": "цемент",
+    "sirkulyar": "циркуляр",
+    "aksiya": "акция",
+    "nakopitelniy": "накопительный",
+    "mindmap": "майндмап"
+  },
+  "matnlar": {}
+}

@@ -9,6 +9,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, type ReactNode } from 'react';
 import { RefreshCw, AlertTriangle, Inbox, X } from 'lucide-react';
+import { t } from '../../i18n/til';
 
 /* ---------- Sahifa karkasi ---------- */
 
@@ -43,8 +44,8 @@ export function Sahifa<T = unknown>({
     >
       <header className="flex-shrink-0 px-6 pt-6 pb-4 flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <h2 className="text-[22px] leading-7 font-semibold text-text tracking-tight">{sarlavha}</h2>
-          {tavsif && <p className="text-sm text-text-dim mt-1">{tavsif}</p>}
+          <h2 className="text-[22px] leading-7 font-semibold text-text tracking-tight">{t(sarlavha)}</h2>
+          {tavsif && <p className="text-sm text-text-dim mt-1">{t(tavsif)}</p>}
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           {yangilangan != null && <MalumotYoshi vaqt={yangilangan} />}
@@ -151,7 +152,7 @@ export function Holatlar<T,>({
   if (soragan.error) return <XatoHolat xato={soragan.error} qayta={soragan.refetch} />;
   const d = soragan.data;
   const bosgmi = d == null || (Array.isArray(d) && d.length === 0);
-  if (bosgmi) return <BoshHolat matn={bosh?.matn ?? "Ma'lumot yo'q"} izoh={bosh?.izoh} amal={bosh?.amal} />;
+  if (bosgmi) return <BoshHolat matn={t(bosh?.matn ?? "Ma'lumot yo'q")} izoh={bosh?.izoh} amal={bosh?.amal} />;
   return <>{children(d as T)}</>;
 }
 

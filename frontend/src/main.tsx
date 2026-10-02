@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.tsx'
+import { TilChegarasi } from './i18n/TilTanlagich'
 
 import { kuzatuvniBoshlash } from './_shared/kuzatuv';
 
@@ -46,7 +47,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <TilChegarasi><App /></TilChegarasi>
       </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,

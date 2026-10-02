@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ShieldCheck, Lock, User, ArrowRight, Building2, FlaskConical, Mail, Phone } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import GoogleKirish, { type GoogleNatija } from './GoogleKirish';
+import { t } from '../i18n/til';
+import { TilTanlagich } from '../i18n/TilTanlagich';
 
 const Sahna3D = lazy(() => import('./Sahna3D'));
 
@@ -203,18 +205,19 @@ export default function KirishSahifa() {
             <span className="text-xl font-bold tracking-widest text-white">SMETA OS<span className="text-indigo-500">.</span></span>
           </div>
 
+          <div className="mb-3 flex justify-end"><TilTanlagich /></div>
           <div className="flex bg-[#0a0f1d] border border-white/10 p-1 rounded-xl mb-8">
             <button 
               onClick={() => { setIsLogin(true); setError(''); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${isLogin ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-400 hover:text-white'}`}
             >
-              Kirish
+              {t('Kirish')}
             </button>
             <button 
               onClick={() => { setIsLogin(false); setError(''); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${!isLogin ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-400 hover:text-white'}`}
             >
-              Ro'yxatdan o'tish
+              {t("Ro'yxatdan o'tish")}
             </button>
           </div>
 
@@ -227,13 +230,13 @@ export default function KirishSahifa() {
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-2xl font-bold text-white mb-2">Tizimga kirish</h2>
-                <p className="text-zinc-400 text-sm mb-8">O'z hisob ma'lumotlaringizni kiriting</p>
+                <h2 className="text-2xl font-bold text-white mb-2">{t('Tizimga kirish')}</h2>
+                <p className="text-zinc-400 text-sm mb-8">{t("O'z hisob ma'lumotlaringizni kiriting")}</p>
 
                 <div className="mb-5"><GoogleKirish matn="signin_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
                 <form onSubmit={handleLogin} className="flex flex-col gap-5">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Логин</label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Login')}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input
@@ -248,7 +251,7 @@ export default function KirishSahifa() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Парол</label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Parol')}</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input
@@ -271,7 +274,7 @@ export default function KirishSahifa() {
                         className="overflow-hidden"
                       >
                         <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-sm">
-                          {error}
+                          {t(error)}
                         </div>
                       </motion.div>
                     )}
@@ -290,7 +293,7 @@ export default function KirishSahifa() {
 
                 <div className="flex items-center gap-4 my-8">
                   <div className="flex-1 h-px bg-white/10"></div>
-                  <span className="text-zinc-500 text-xs font-medium uppercase tracking-widest">Tezkor</span>
+                  <span className="text-zinc-500 text-xs font-medium uppercase tracking-widest">{t('Tezkor')}</span>
                   <div className="flex-1 h-px bg-white/10"></div>
                 </div>
 
@@ -324,13 +327,13 @@ export default function KirishSahifa() {
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-2xl font-bold text-white mb-2">Bepul sinab ko'rish</h2>
-                <p className="text-zinc-400 text-sm mb-6">1 daqiqada hisob oching — bepul tokenlar bilan smeta import, F2 va hujjatlarni o'zingiz sinab ko'ring. Operator kutish shart emas.</p>
+                <h2 className="text-2xl font-bold text-white mb-2">{t("Bepul sinab ko'rish")}</h2>
+                <p className="text-zinc-400 text-sm mb-6">{t("1 daqiqada hisob oching — bepul tokenlar bilan smeta import, F2 va hujjatlarni o'zingiz sinab ko'ring. Operator kutish shart emas.")}</p>
 
                 <div className="mb-4"><GoogleKirish matn="signup_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
                 <form onSubmit={handleRegister} className="flex flex-col gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Ismingiz</label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Ismingiz')}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder="F.I.Sh."
@@ -339,7 +342,7 @@ export default function KirishSahifa() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Telefon <span className="text-zinc-500">(ixtiyoriy)</span></label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Telefon')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input type="tel" autoComplete="tel" value={regTelefon} onChange={e => setRegTelefon(e.target.value)} placeholder="+998"
@@ -348,7 +351,7 @@ export default function KirishSahifa() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Kompaniya <span className="text-zinc-500">(ixtiyoriy)</span></label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Kompaniya')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder="MChJ / XK nomi"
@@ -357,7 +360,7 @@ export default function KirishSahifa() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Login yoki email</label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Login yoki email')}</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input type="text" autoComplete="username" required value={regLogin} onChange={e => setRegLogin(e.target.value.toLowerCase())} placeholder="aziz.pto yoki aziz@mail.uz"
@@ -366,7 +369,7 @@ export default function KirishSahifa() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Parol <span className="text-zinc-500">(kamida 8 belgi)</span></label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Parol')} <span className="text-zinc-500">{t('(kamida 8 belgi)')}</span></label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input type={regParolKor ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={regParol} onChange={e => setRegParol(e.target.value)}
@@ -387,7 +390,7 @@ export default function KirishSahifa() {
                         className="overflow-hidden"
                       >
                         <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-sm">
-                          {error}
+                          {t(error)}
                         </div>
                       </motion.div>
                     )}
@@ -398,7 +401,7 @@ export default function KirishSahifa() {
                     disabled={loading}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]"
                   >
-                    {loading ? 'Hisob ochilmoqda...' : 'Hisob ochish va bepul sinash'}
+                    {loading ? t('Hisob ochilmoqda...') : t('Hisob ochish va bepul sinash')}
                   </button>
                 </form>
                 

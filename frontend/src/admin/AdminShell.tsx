@@ -11,6 +11,8 @@ import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
+import { t } from '../i18n/til';
+import { TilTanlagich } from '../i18n/TilTanlagich';
 
 /* 2026-10-02 (egasi): menyu product relsi bo'yicha qayta tuzildi — "oddiy PTO ham, o'zim ham
  * adashmasin". Tartib = ish ketma-ketligi: PTO ish yo'li → narx → loyiha/shartnoma → kompaniya
@@ -324,7 +326,7 @@ function AdminShellInner() {
                     <NavLink
                       key={m.yol}
                       to={m.yol}
-                      title={m.nom}
+                      title={t(m.nom)}
                       className={({ isActive }) =>
                         `os-nav-link flex items-center justify-center h-10 rounded-lg transition-colors duration-[120ms] cursor-pointer ${
                           isActive ? 'os-nav-link--active' : ''
@@ -346,7 +348,7 @@ function AdminShellInner() {
                     className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] font-bold text-text-dim uppercase tracking-wider hover:text-text transition-colors group"
                   >
                     <guruh.Ikonka size={14} className="text-text-dim group-hover:text-accent transition-colors" />
-                    <span className="flex-1 text-left whitespace-nowrap">{guruh.nom}</span>
+                    <span className="flex-1 text-left whitespace-nowrap">{t(guruh.nom)}</span>
                     {ochiqGuruhlar[guruh.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </button>
 
@@ -366,7 +368,7 @@ function AdminShellInner() {
                         {({ isActive }) => (
                           <>
                             <m.Ikonka className="w-[16px] h-[16px] flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} />
-                            <span className="truncate">{m.nom}</span>
+                            <span className="truncate">{t(m.nom)}</span>
                           </>
                         )}
                       </NavLink>
@@ -401,7 +403,7 @@ function AdminShellInner() {
                       }
                     >
                       <m.Ikonka className="w-[14px] h-[14px] flex-shrink-0" strokeWidth={1.5} />
-                      <span className="truncate">{m.nom}</span>
+                      <span className="truncate">{t(m.nom)}</span>
                     </NavLink>
                   ))}
                 </div>
@@ -433,6 +435,7 @@ function AdminShellInner() {
           </button>
           <KompaniyaTanlagich />
           <PTOWorkspaceBar />
+          <div className="ml-auto"><TilTanlagich ixcham /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`

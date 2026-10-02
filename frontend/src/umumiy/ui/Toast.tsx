@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { t } from '../../i18n/til';
 
 /** Dizayn tokenlariga mos: ok=--ok, warn=--warn, danger=--danger.
  *  ⚠️ 'success' YO'Q — 'ok' ishlating (build yiqiladi). */
@@ -25,7 +26,8 @@ export const toast = (
   action?: { label: string; onClick: () => void },
 ) => {
   if (toastListener) {
-    toastListener({ message, type, onUndo, davomiylik, action });
+    // Til qoidasi: xabar lug'atda bo'lsa — tanlangan tilda (dinamik xabarlar o'zgarmaydi).
+    toastListener({ message: t(message), type, onUndo, davomiylik, action: action && { ...action, label: t(action.label) } });
   }
 };
 
