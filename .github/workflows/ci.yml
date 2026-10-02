@@ -1,0 +1,42 @@
+# Majburiy CI (egasi 2026-10-02: universal skelet §60 — "CI yashil bo'lmasa main yo'q").
+# Agent qo'lda yuritadigan gate'lar endi har push/PR da avtomatik: typecheck, lint, tekshir, sayt xaritasi, test, build.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Typecheck (app)
+        run: npx tsc -b
+      - name: Typecheck (functions)
+        run: npx tsc -p tsconfig.functions.json --noEmit
+      - name: Lint
+        run: npx oxlint
+      - name: Sayt xaritasi (generated bilan mos)
+        run: npm run site-map:check
+      - name: Biznes invariantlar va governance
+        run: npm run tekshir
+      - name: Unit testlar
+        run: npx vitest run --no-file-parallelism
+      - name: Build
+        run: npx cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build
