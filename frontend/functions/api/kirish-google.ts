@@ -13,6 +13,10 @@ import { supabaseBaseUrl } from '../_shared/supabase-url';
 type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; GOOGLE_CLIENT_ID?: string };
 type Jwk = JsonWebKey & { kid?: string };
 
+/* Client ID MAXFIY EMAS (har bir foydalanuvchi brauzerida ko'rinadi) — env bilan almashtirish mumkin.
+ * Google Cloud: loyiha studious-matrix-427110-k9, client "Smeta tizimi kirish", origin https://smeta-tizimi.pages.dev. */
+const STANDART_CLIENT_ID = '117465515912-at2e7g7n3dcham5u43f6ld4510n5ij2p.apps.googleusercontent.com';
+
 const b64u = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=')), (c) => c.charCodeAt(0));
 const jsonB64u = (s: string) => JSON.parse(new TextDecoder().decode(b64u(s)));
 
@@ -48,10 +52,11 @@ export async function googleTokenTekshir(token: string, clientId: string, kalitl
 }
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) =>
-  Response.json({ ok: !!ctx.env.GOOGLE_CLIENT_ID, clientId: ctx.env.GOOGLE_CLIENT_ID || null });
+  Response.json({ ok: true, clientId: ctx.env.GOOGLE_CLIENT_ID || STANDART_CLIENT_ID });
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const { SUPABASE_URL, SUPABASE_KEY, GOOGLE_CLIENT_ID } = ctx.env;
+  const { SUPABASE_URL, SUPABASE_KEY } = ctx.env;
+  const GOOGLE_CLIENT_ID = ctx.env.GOOGLE_CLIENT_ID || STANDART_CLIENT_ID;
   if (!GOOGLE_CLIENT_ID || !SUPABASE_URL || !SUPABASE_KEY) return Response.json({ ok: false, xato: 'Google bilan kirish hali sozlanmagan' }, { status: 503 });
   let so: { credential?: string } = {};
   try { so = await ctx.request.json(); } catch { return Response.json({ ok: false, xato: 'Noto‘g‘ri so‘rov' }, { status: 400 }); }
