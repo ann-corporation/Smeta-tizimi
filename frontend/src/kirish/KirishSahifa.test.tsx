@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({ navigate: vi.fn(), toast: vi.fn() }));
 vi.mock('react-router-dom', async (asl) => ({ ...(await asl<typeof import('react-router-dom')>()), useNavigate: () => m.navigate }));
 vi.mock('../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('./Sahna3D', () => ({ default: () => null }));
+vi.mock('./GoogleKirish', () => ({ default: () => null }));
 
 import KirishSahifa from './KirishSahifa';
 

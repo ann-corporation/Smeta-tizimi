@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ShieldCheck, Lock, User, ArrowRight, Building2, FlaskConical, Mail, Phone } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
+import GoogleKirish, { type GoogleNatija } from './GoogleKirish';
 
 const Sahna3D = lazy(() => import('./Sahna3D'));
 
@@ -106,6 +107,18 @@ export default function KirishSahifa() {
     setParol('');
     setTimeout(() => parolMaydoni.current?.focus(), 0);
   };
+
+  /* Google bilan kirish (egasi 2026-10-02): yangi hisob → Tokenlar; mavjud hisob → odatdagi rol sahifasi. */
+  const googleNatija = (n: GoogleNatija) => {
+    setLoading(false);
+    if (!n.ok) { setError(n.xato); return; }
+    if (n.yangi) {
+      toast(n.demo ? 'Xush kelibsiz! Bepul tokenlar va demo obyekt tayyor.' : 'Xush kelibsiz! Bepul tokenlar hisobingizda.', 'ok');
+      navigate('/admin/tokenlar');
+    } else if (['boss', 'rahbar'].includes(n.rol)) navigate('/boss');
+    else navigate('/admin/test/obyektlar');
+  };
+  const googleBoshlandi = () => { setError(''); setLoading(true); };
 
   const handleBossLogin = () => loginniToldir('boss');
   const handleSuperadminLogin = () => loginniToldir('Anvar');
@@ -217,6 +230,7 @@ export default function KirishSahifa() {
                 <h2 className="text-2xl font-bold text-white mb-2">Tizimga kirish</h2>
                 <p className="text-zinc-400 text-sm mb-8">O'z hisob ma'lumotlaringizni kiriting</p>
 
+                <div className="mb-5"><GoogleKirish matn="signin_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
                 <form onSubmit={handleLogin} className="flex flex-col gap-5">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-zinc-300">Логин</label>
@@ -313,6 +327,7 @@ export default function KirishSahifa() {
                 <h2 className="text-2xl font-bold text-white mb-2">Bepul sinab ko'rish</h2>
                 <p className="text-zinc-400 text-sm mb-6">1 daqiqada hisob oching — bepul tokenlar bilan smeta import, F2 va hujjatlarni o'zingiz sinab ko'ring. Operator kutish shart emas.</p>
 
+                <div className="mb-4"><GoogleKirish matn="signup_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
                 <form onSubmit={handleRegister} className="flex flex-col gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-zinc-300">Ismingiz</label>
