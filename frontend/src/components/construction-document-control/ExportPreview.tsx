@@ -1,7 +1,5 @@
 import type { Id, ProgressLineResult, ProgressValuationResult } from '../../lib/construction-document-control';
-import { generateNakopitelniy } from '../../lib/construction-document-control/export/nakopitelniy-export';
-import { generateForma2 } from '../../lib/construction-document-control/export/forma2-export';
-import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { t } from '../../i18n/til';
 
 export interface ExportPreviewModel { 
   f2PeriodId: Id; 
@@ -19,34 +17,14 @@ const show = (value: number | null) => value == null ? 'NOANIQ' : value;
 const errorLabel: Record<string, string> = { NAKOPITELNIY_MISMATCH: 'Nakopitelniy yig‘indisi mos emas', MISSING_BASELINE_PRICE: 'Boshlang‘ich narx manbasi yo‘q' };
 
 export function ExportPreview({model}:{model:ExportPreviewModel}) {
-  const handleNakopitelniy = async () => {
-    const data = await generateNakopitelniy(model.rows, {
-      projectName: model.projectName,
-      objectName: model.objectName,
-      periodLabel: model.f2PeriodId,
-      documentNumber: `NAK-${model.f2PeriodId}`
-    });
-    downloadBlob(data, `Nakopitelniy_${model.f2PeriodId}.xlsx`);
-  };
-
-  const handleForma2 = async () => {
-    const data = await generateForma2(model.rows, {
-      projectName: model.projectName,
-      objectName: model.objectName,
-      periodLabel: model.f2PeriodId,
-      documentNumber: `F2-${model.f2PeriodId}`,
-      contractNumber: model.contractId
-    });
-    downloadBlob(data, `Forma2_${model.f2PeriodId}.xlsx`);
-  };
-
   return (
     <section aria-label="Excel eksporti oldindan ko‘rish" className="rounded-xl border border-white/10 p-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-medium">Hujjatlarni yuklab olish</h2>
         <div className="flex gap-2">
-          <button onClick={handleNakopitelniy} className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium transition-colors">Nakopitelniy</button>
-          <button onClick={handleForma2} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition-colors">Forma-2</button>
+          {/* Egasi 2026-10-02: har chiquvchi hujjat bitta shaklda — asosiy sahifalarda (bu yerdagi ikkinchi generatorlar olib tashlandi). */}
+          <a href="/admin/nakopitelniy" className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium transition-colors">{t('Nakopitelniy')}</a>
+          <a href="/admin/f2-tarix" className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition-colors">{t('Forma-2')}</a>
           <button disabled aria-describedby="forma3-holati" className="px-3 py-1 rounded text-sm font-medium bg-slate-700 text-slate-400 cursor-not-allowed">Forma-3</button>
         </div>
       </div>

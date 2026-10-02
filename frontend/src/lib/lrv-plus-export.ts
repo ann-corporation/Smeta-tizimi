@@ -1026,6 +1026,10 @@ export async function lrvPlusFaylBaytlari(
   const ExcelJS = (await import('exceljs')).default;
   const ewb = new ExcelJS.Workbook();
   await ewb.xlsx.load(raw);
+  /* ⚠️ 2026-10-02 (Excel ochmasligi sababi): SheetJS varaqqa <sheetFormatPr> yozmaydi, ExcelJS esa qayta yozganda
+     `<sheetFormatPr customHeight="1"/>` — MAJBURIY defaultRowHeight siz — chiqaradi; Excel faylni "buzuq" deb ochmaydi
+     (LibreOffice ochardi, shuning uchun sezilmagan). Har varaqqa standart balandlik beriladi. */
+  for (const w of ewb.worksheets) if (!w.properties.defaultRowHeight) w.properties.defaultRowHeight = 15;
   const asosiy = ewb.getWorksheet(rejim === 'forma2' ? 'FORMA_2' : 'LRV_PLUS');
   if (asosiy) {
     asosiy.views = [{ state: 'frozen', xSplit: 3, ySplit: 3 }];

@@ -64,7 +64,7 @@
  "src/components/agent-control/AgentControlCenter.tsx": 20,
  "src/components/construction-document-control/ChangeControlWorkspace.tsx": 8,
  "src/components/construction-document-control/ConstructionDocumentWorkbench.tsx": 10,
- "src/components/construction-document-control/ExportPreview.tsx": 8,
+ "src/components/construction-document-control/ExportPreview.tsx": 6,
  "src/components/construction-document-control/NakopitelniyWorkspace.tsx": 11,
  "src/components/construction-document-control/ProgressValuationWorkspace.tsx": 18,
  "src/components/construction-document-control/ProjectCloseoutWorkspace.tsx": 6,

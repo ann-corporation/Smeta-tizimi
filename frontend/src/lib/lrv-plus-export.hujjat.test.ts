@@ -4,6 +4,7 @@
  * belgilari (rz/bl/rs) egasining o'z matni — H9 istisnosi (ruxsat ro'yxati).
  */
 import { describe, expect, it } from 'vitest';
+import { strFromU8, unzipSync } from 'fflate';
 import { lrvPlusFaylBaytlari, lrvPlusFaylNomi } from './lrv-plus-export';
 import { NAKRUTKA_STANDART } from './nakrutka-kaskad';
 import { hujjatTekshir, imzoRollariBormi } from './hujjat-yozuvchi';
@@ -41,6 +42,12 @@ describe('LRV_PLUS — hujjat standarti', () => {
     it(`${rejim}: NULL ≠ 0 — narx noma'lum bargda summa va barcha yuqori jamilar bo'sh; imzo; chop; $ yo'q`, async () => {
       const bytes = await lrvPlusFaylBaytlari(DARAXT, 'Амфитеатр', HOLAT, { rejim, nakrutka: NAKRUTKA_STANDART, imzo: { pudratchi: 'ООО Подрядчик' } });
       namunaSaqla(`lrv_${rejim}.xlsx`, bytes);
+      // Excel ochishi uchun: har varaqda <sheetFormatPr> majburiy defaultRowHeight bilan (2026-10-02 regressiyasi).
+      const z = unzipSync(bytes);
+      for (const [k, v] of Object.entries(z)) if (/^xl\/worksheets\/sheet\d+\.xml$/.test(k)) {
+        const sf = strFromU8(v).match(/<sheetFormatPr[^>]*>/)?.[0] ?? '';
+        expect(sf, k).toMatch(/defaultRowHeight="[\d.]+"/);
+      }
       const t = hujjatTekshir(bytes, { ruxsat: T1_MATNI });
       expect(t.taqiqlangan).toEqual([]);
       expect(t.dollarFormulalar).toEqual([]);

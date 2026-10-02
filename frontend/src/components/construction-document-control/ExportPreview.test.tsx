@@ -24,10 +24,10 @@ describe('ExportPreview hujjat xavfsizligi', () => {
 
   // Egasi (2026-09-25): eski slichitelniy prototipi olib tashlandi — rasmiy
   // Сличительная ведомость LRV sahifasida (lib/slichitelniy-vedomost.ts).
-  it('offers Forma-2 and Nakopitelniy; old Slichitelniy prototype is removed', () => {
+  it('Forma-2 va Nakopitelniy — asosiy sahifalarga havola (ikkinchi generator yo‘q); Slichitelniy prototipi yo‘q', () => {
     render(<ExportPreview model={model} />);
-    expect((screen.getByRole('button', { name: 'Nakopitelniy' }) as HTMLButtonElement).disabled).toBe(false);
-    expect((screen.getByRole('button', { name: 'Forma-2' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByRole('link', { name: 'Nakopitelniy' }).getAttribute('href')).toBe('/admin/nakopitelniy');
+    expect(screen.getByRole('link', { name: 'Forma-2' }).getAttribute('href')).toBe('/admin/f2-tarix');
     expect(screen.queryByRole('button', { name: 'Slichitelniy' })).toBeNull();
   });
 });
