@@ -245,8 +245,11 @@ export function f3Model(m: Forma3Manba, o: Pick<Forma3ExportOptions, 'davr' | 'o
   for (const r of m.f2Oylik) {
     const t = qiymatJoylar.get(`${r.obyekt_id}:${r.qator_id}`);
     if (!t) { yetim.push(r); continue; }
-    if (r.oy <= o.davr) t.f2.boshidan += r.summa;
-    if (r.oy <= o.davr && r.oy.startsWith(yil)) t.f2.yildan += r.summa;
+    /* Egasi (2026-10-02, Game Club sinovi bilan tasdiqlangan): «за отчетный период» — FAQAT shu oy F2 si;
+     * «с начала строительства» va «в т.ч. текущего года» — FAQAT oldin yopilgan (hisobot oyidan oldingi) F2 lar.
+     * Shu oy summasi keyingi oy F3 sida boshqa ustunlarga o'tadi (iyul F3: 1 435,9 / 1 435,9 / 1 106,3). */
+    if (r.oy < o.davr) t.f2.boshidan += r.summa;
+    if (r.oy < o.davr && r.oy.startsWith(yil)) t.f2.yildan += r.summa;
     if (r.oy === o.davr) t.f2.davr += r.summa;
   }
   // Fizik hajmlar: barg/resurssiz ish — o'z qatori; resursli ish — ish qatori.
@@ -256,8 +259,8 @@ export function f3Model(m: Forma3Manba, o: Pick<Forma3ExportOptions, 'davr' | 'o
     const kalit = `${r.obyekt_id}:${r.qator_id}`;
     const t = qiymatJoylar.get(kalit)?.f2H ?? ishJoylar.get(kalit)?.f2H;
     if (!t) continue;
-    if (r.oy <= o.davr) t.boshidan += r.hajm;
-    if (r.oy <= o.davr && r.oy.startsWith(yil)) t.yildan += r.hajm;
+    if (r.oy < o.davr) t.boshidan += r.hajm;
+    if (r.oy < o.davr && r.oy.startsWith(yil)) t.yildan += r.hajm;
     if (r.oy === o.davr) t.davr += r.hajm;
   }
   if (yetim.length) {
@@ -424,9 +427,9 @@ const SARLAVHA_KATAKLAR: SarlavhaKatak[] = [
   { c1: 3, c2: 4, qator: 0, qatorlar: 2, matn: 'Объем работ и затрат в физических показателях' },
   { c1: 5, c2: 6, qator: 0, qatorlar: 2, matn: 'Стоимость в договорных текущих ценах, сум' },
   { c1: 7, c2: 15, qator: 0, matn: 'Выполненные работы (понесенные затраты)' },
-  { c1: 7, c2: 9, qator: 1, matn: 'с начала строительства' },
-  { c1: 10, c2: 12, qator: 1, matn: 'с начала года по отчетный месяц включительно' },
-  { c1: 13, c2: 15, qator: 1, matn: 'в том числе за отчетный месяц' },
+  { c1: 7, c2: 9, qator: 1, matn: 'с начала строительства (до отчетного месяца)' },
+  { c1: 10, c2: 12, qator: 1, matn: 'в том числе текущего года (до отчетного месяца)' },
+  { c1: 13, c2: 15, qator: 1, matn: 'за отчетный месяц' },
   { c1: 3, qator: 2, matn: 'всего' },
   { c1: 4, qator: 2, matn: 'в т.ч. на текущий год' },
   { c1: 5, qator: 2, matn: 'всего' },
@@ -616,8 +619,8 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
       const pulBor = [...bargIdlar].some((id) => m.f2Oylik.some((f) => f.qator_id === id && f.oy <= o.davr));
       const hajmBor = (m.f2Hajm ?? []).some((f) => f.qator_id === q.qator_id && f.oy <= o.davr);
       const sif = (ustun: 'H' | 'I', vid: string, shart: string, rr: number) => `SUMIFS('${MANBA_VARAQ}'!${ustun}:${ustun},'${MANBA_VARAQ}'!A:A,${KALIT_USTUN}${rr},'${MANBA_VARAQ}'!B:B,"${vid}",${shart})`;
-      const B = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,"<=${davrNum}"`, rr);
-      const Y = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,">=${yilBoshNum}",'${MANBA_VARAQ}'!D:D,"<=${davrNum}"`, rr);
+      const B = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,"<${davrNum}"`, rr);
+      const Y = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,">=${yilBoshNum}",'${MANBA_VARAQ}'!D:D,"<${davrNum}"`, rr);
       const D = (rr: number, ustun: 'H' | 'I', vid: string) => sif(ustun, vid, `'${MANBA_VARAQ}'!D:D,${davrNum}`, rr);
       const r = v.qator('oddiy', (rr) => [
         String(++raqam), nomIzohBilan(`${q.kod ? q.kod + ' ' : ''}${q.nom ?? ''}`.trim(), q.ozgarish_izoh), q.birlik ?? '',
@@ -688,7 +691,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
 
   // ── Izoh, diqqat, imzo ──
   v.bosh();
-  v.izoh('Графы 8–16 — по УТВЕРЖДЕННЫМ актам формы № 2 (с начала строительства / с начала года / за отчетный месяц). Графы 6–7 — стоимость по утвержденной смете (прямые затраты по разделам); итог к оплате — с транспортными, складскими, прочими расходами, страхованием и НДС по ставкам объекта. График производства работ на текущий год не задан — графы 5 и 7 приняты равными графам 4 и 6.');
+  v.izoh('Графы 8–16 — по УТВЕРЖДЕННЫМ актам формы № 2: графы 8–13 — акты, закрытые ДО отчетного месяца (с начала строительства / в том числе текущего года); графы 14–16 — акт за отчетный месяц (переходит в графы 8–13 в справке следующего месяца). Графы 6–7 — стоимость по утвержденной смете (прямые затраты по разделам); итог к оплате — с транспортными, складскими, прочими расходами, страхованием и НДС по ставкам объекта. График производства работ на текущий год не задан — графы 5 и 7 приняты равными графам 4 и 6.');
   v.izoh('Физические показатели по видам затрат: затраты труда рабочих-строителей — чел.-ч; эксплуатация машин и механизмов — маш.-ч (по утвержденным актам формы № 2).');
   const diqqat = [...model.diqqat];
   const farqlar: string[] = [];

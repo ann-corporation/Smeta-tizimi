@@ -73,18 +73,19 @@ describe('F3 — model', () => {
     const rows = f3ModelQatorlar(m);
     const idx = f3QiymatIndekslar(rows);
     const u = f3UstunlarNatijasi(rows, idx, NK);
-    // ЧЕЛ barg (id 3): boshidan = 100k + 500k = 600k; yildan = 500k; davr = 500k.
+    // Egasi (2026-10-02): boshidan/yildan — FAQAT hisobot oyidan OLDIN yopilgan F2; davr — faqat shu oy.
+    // ЧЕЛ barg (id 3): boshidan = 100k (2025-12); yildan = 0; davr = 500k.
     const chel = u.kat.G['ЧЕЛ'];
     void chel;
     // G (сметная): 1 000 000 + 600 000 + 9 180 000 = 10 780 000.
     expect(u.kat.G['ЧЕЛ']).toBeCloseTo(1_000_000, 2);
     expect(u.kat.G['МАТ']).toBeCloseTo(600_000 + 9_180_000, 2);
-    // H (с начала строительства): 2025-12 + 2026-01 + 2026-09.
-    expect(u.kat.H['ЧЕЛ']).toBeCloseTo(600_000, 2);
-    expect(u.kat.H['МАТ']).toBeCloseTo(500_000, 2);
-    // I (с начала года): faqat 2026-* — 2025-12 chiqariladi.
-    expect(u.kat.I['ЧЕЛ']).toBeCloseTo(500_000, 2);
-    expect(u.kat.I['МАТ']).toBeCloseTo(500_000, 2);
+    // H (с начала строительства, до отчетного месяца): 2025-12 + 2026-01; 2026-09 — EMAS.
+    expect(u.kat.H['ЧЕЛ']).toBeCloseTo(100_000, 2);
+    expect(u.kat.H['МАТ']).toBeCloseTo(200_000, 2);
+    // I (в т.ч. текущего года, до отчетного месяца): faqat 2026-01..2026-08.
+    expect(u.kat.I['ЧЕЛ']).toBeCloseTo(0, 2);
+    expect(u.kat.I['МАТ']).toBeCloseTo(200_000, 2);
     // J (за отчетный период): faqat davr.
     expect(u.kat.J['ЧЕЛ']).toBeCloseTo(500_000, 2);
     expect(u.kat.J['МАТ']).toBeCloseTo(300_000, 2);
@@ -119,6 +120,33 @@ describe('F3 — model', () => {
   });
 });
 
+describe('F3 — Game Club (egasi 2026-10-02: davrlar qat\'iy)', () => {
+  // May F2 = 1 435 923 432,11; iyul F2 = 1 106 313 230,92 (ikkalasi tasdiqlangan).
+  const gc: Forma3Manba = {
+    nakopitelniy: [{ obyekt_id: 80, obyektNom: 'Game Club', qatorlar: ROWS }],
+    f2Oylik: [
+      { obyekt_id: 80, qator_id: 4, oy: '2026-05', summa: 1_435_923_432.11 },
+      { obyekt_id: 80, qator_id: 4, oy: '2026-07', summa: 1_106_313_230.92 },
+    ],
+  };
+  const ustun = (davr: string) => {
+    const rows = f3ModelQatorlar(f3Model(gc, { davr, asosiyObyektId: 80 }));
+    return f3UstunlarNatijasi(rows, f3QiymatIndekslar(rows), NK).kat;
+  };
+  it('may F3: boshidan 0 / yil 0 / davr 1 435,9 mln', () => {
+    const k = ustun('2026-05');
+    expect(k.H['МАТ']).toBeCloseTo(0, 2); expect(k.I['МАТ']).toBeCloseTo(0, 2); expect(k.J['МАТ']).toBeCloseTo(1_435_923_432.11, 2);
+  });
+  it('iyul F3: boshidan 1 435,9 / yil 1 435,9 / davr 1 106,3 — iyul summasi jamilarga KIRMAYDI', () => {
+    const k = ustun('2026-07');
+    expect(k.H['МАТ']).toBeCloseTo(1_435_923_432.11, 2); expect(k.I['МАТ']).toBeCloseTo(1_435_923_432.11, 2); expect(k.J['МАТ']).toBeCloseTo(1_106_313_230.92, 2);
+  });
+  it('avgust F3: iyul jamilarga o\'tdi — 2 542,2 / 2 542,2 / davr 0', () => {
+    const k = ustun('2026-08');
+    expect(k.H['МАТ']).toBeCloseTo(2_542_236_663.03, 2); expect(k.I['МАТ']).toBeCloseTo(2_542_236_663.03, 2); expect(k.J['МАТ']).toBeCloseTo(0, 2);
+  });
+});
+
 describe('F3 — NULL, bekor, hujjat standarti', () => {
   it('NULL ≠ 0: smetyasi nomaʼlum barg — G boʻsh, jami boʻsh, diqqatga; H/I/J normal', () => {
     const rows2: NakopitelniyQator[] = [
@@ -150,8 +178,8 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
     const u = f3UstunlarNatijasi(rows, f3QiymatIndekslar(rows), NK);
     // ПЕСОК (id 4) G dan chiqdi: 1 000 000 + 9 180 000.
     expect(u.kat.G['МАТ']).toBeCloseTo(9_180_000, 2);
-    // F2 ustunlari o'zgarmaydi (bajariyligi saqlanadi).
-    expect(u.kat.H['МАТ']).toBeCloseTo(500_000, 2);
+    // F2 ustunlari o'zgarmaydi (bajariyligi saqlanadi): H — oldingi oylar (2026-01).
+    expect(u.kat.H['МАТ']).toBeCloseTo(200_000, 2);
   });
 
   it('H2–H9: rasmiy shakl, formulalar $ siz, imzo, chop, fayl nomi', () => {
@@ -216,7 +244,7 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
   it('egasi 2026-09-29: rasmiy 16 grafa, podvalda chel.-ch / mash.-ch soatlari, ИТОГО К ОПЛАТЕ va summa so‘z bilan', () => {
     const h = forma3Hujjat(MANBA, { obyektNom: 'X', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK });
     const matn = hujjatTekshir(h.bytes, { ruxsat: [] }).matnlar.join(' | ');
-    for (const k of ['в % к объему всего работ (гр.8:гр.4)×100', 'с начала года по отчетный месяц включительно', 'в том числе за отчетный месяц',
+    for (const k of ['в % к объему всего работ (гр.8:гр.4)×100', 'с начала строительства (до отчетного месяца)', 'в том числе текущего года (до отчетного месяца)', 'за отчетный месяц',
       'I. СТРОИТЕЛЬНО-МОНТАЖНЫЕ РАБОТЫ', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО ОБЪЕКТУ', 'чел.-ч', 'ИТОГО К ОПЛАТЕ (с учетом НДС)']) expect(matn).toContain(k);
     expect(matn).toMatch(/сум \d\d тийин с НДС/);
     expect(h.soatlar.ЧЕЛ).toBeDefined();
@@ -256,8 +284,8 @@ describe('F3 — manba varag‘i va SUMIFS (egasi 2026-09-30: "qayerdan olingani
     const nom = v.kataklar.find((k) => k.matn === 'Е01-01 РАЗРАБОТКА ГРУНТА')!;
     const row = nom.ref.replace(/^[A-Z]+/, '');
     const J = v.kataklar.find((k) => k.ref === `J${row}`)!;
-    expect(J.f).toBe(`SUMIFS('Ф-2 (источник)'!I:I,'Ф-2 (источник)'!A:A,R${row},'Ф-2 (источник)'!B:B,"сумма",'Ф-2 (источник)'!D:D,"<=202609")`);
-    expect(Number(J.v)).toBe(1_100_000); // ish ichidagi ЧЕЛ (100k+500k) va ПЕСОК (200k+300k)
+    expect(J.f).toBe(`SUMIFS('Ф-2 (источник)'!I:I,'Ф-2 (источник)'!A:A,R${row},'Ф-2 (источник)'!B:B,"сумма",'Ф-2 (источник)'!D:D,"<202609")`);
+    expect(Number(J.v)).toBe(300_000); // hisobot oyidan OLDIN: ЧЕЛ 100k (2025-12) + ПЕСОК 200k (2026-01)
     const P = v.kataklar.find((k) => k.ref === `P${row}`)!;
     expect(P.f).toMatch(/'Ф-2 \(источник\)'!D:D,202609\)$/);
     const m = t.varaqlar.find((x) => x.nom === 'Ф-2 (источник)')!;
