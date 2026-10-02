@@ -61,4 +61,21 @@ describe('F2 tarixi → yangi Ф-2 shabloni', () => {
     const k = f2AktKirish(AKT246_ROWS, [...lines, { ...lines[0], qator_id: 999999, akt_qator_id: 1 }]);
     expect(k.topilmagan).toBe(1);
   });
+
+  // Egasi (2026-10-02): tasdiqlangan F2 — faqat qiymatlar, formulasiz; ongli narxsiz (машинисты) ИТОГО ni bo'shatmaydi.
+  it('formulasiz: bitta ham <f> yo‘q, jami o‘zgarmaydi; narxsiz resurs «—», ИТОГО bor', () => {
+    const { lines } = saqlanganAkt();
+    const l = lines.find((x) => x.qator_id === 678865)!;
+    const ayirma = Number(l.certified_amount);
+    l.certified_unit_price = null; l.certified_amount = null; l.narx = null; l.summa = null;
+    const k = f2AktKirish(AKT246_ROWS, lines);
+    const h = f2Hujjat(k.bolimlar, k.qatorlar, { obyektNom: 'X', davr: '2026-10', raqam: '1', formulasiz: true });
+    const kut = Math.round((150026606.32 - ayirma) * 100) / 100;
+    expect(h.jami).toBe(kut);
+    const z = unzipSync(h.bytes);
+    for (const f of Object.keys(z).filter((x) => x.startsWith('xl/worksheets/'))) expect(strFromU8(z[f])).not.toContain('<f>');
+    const xml = strFromU8(z['xl/worksheets/sheet1.xml']);
+    expect(xml).toContain('<t xml:space="preserve">—</t>');
+    expect(xml).toContain(`<v>${kut}</v>`);
+  });
 });

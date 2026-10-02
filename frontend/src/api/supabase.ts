@@ -50,21 +50,33 @@ export type SbSoro = {
   limit?: number;
 };
 
+/* Egasi (2026-10-02): fakt saqlashda tugma 10 daqiqa «Saqlanmoqda…» da qotdi — server yozib bo'lgan, javob esa yo'lda
+ * yo'qolgan; fetch'da vaqt chegarasi yo'q edi. Endi har so'rovga chegara: o'qish 60 s, yozish 90 s. Yozish amallari
+ * operation_id bilan idempotent — chegaradan keyin qayta bosish ikkinchi hujjat yaratmaydi. */
+export const OQISH_CHEGARA_MS = 60_000;
+export const YOZISH_CHEGARA_MS = 90_000;
+export function vaqtliFetch(url: string, init: RequestInit, ms: number): Promise<Response> {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), ms);
+  return fetch(url, { ...init, signal: c.signal }).finally(() => clearTimeout(t));
+}
+const chegaraOtdimi = (e: unknown) => e instanceof DOMException && e.name === 'AbortError';
+
 /** Supabase ko'zgusidan o'qiydi. Xato bo'lsa TASHLAMAYDI — javobda aytadi. */
 export async function sbOqi<T = Record<string, unknown>>(s: SbSoro): Promise<SbJavob<T>> {
   const t0 = performance.now();
   try {
-    const r = await fetch('/api/sb', {
+    const r = await vaqtliFetch('/api/sb', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(s),
-    });
+    }, OQISH_CHEGARA_MS);
     const j = (await r.json()) as SbJavob<T>;
     /* Server o'z ms ini beradi (Supabase gacha), biz TO'LIQ yo'lni
        o'lchaymiz — foydalanuvchi kutadigan vaqt aynan shu. */
     return { ...j, ms: Math.round(performance.now() - t0) };
-  } catch {
-    return { ok: false, error: 'Ma’lumotni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
+  } catch (e) {
+    return { ok: false, error: chegaraOtdimi(e) ? 'Server 60 soniyada javob bermadi. Sahifani yangilab qayta urinib ko‘ring.' : 'Ma’lumotni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
              ms: Math.round(performance.now() - t0) };
   }
 }
@@ -592,11 +604,11 @@ export type AktNatija = {
 export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija> {
   const t0 = performance.now();
   try {
-    const r = await fetch('/api/sb-yoz', {
+    const r = await vaqtliFetch('/api/sb-yoz', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(yuk),
-    });
+    }, YOZISH_CHEGARA_MS);
     const matn = await r.text();
     let j: AktNatija;
     try { j = JSON.parse(matn) as AktNatija; }
@@ -606,8 +618,10 @@ export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija>
       ms: Math.round(performance.now() - t0) }; }
     if (!r.ok && !j.error) j.error = `HTTP ${r.status}: yozish so'rovi rad etildi`;
     return { ...j, ms: Math.round(performance.now() - t0) };
-  } catch {
-    return { ok: false, error: 'O‘zgarishni saqlab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
+  } catch (e) {
+    return { ok: false, error: chegaraOtdimi(e)
+      ? 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin. Sahifani yangilab tekshiring; qayta saqlash xavfsiz (bir xil amal ID, ikkinchi hujjat yaratilmaydi).'
+      : 'O‘zgarishni saqlab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
              ms: Math.round(performance.now() - t0) };
   }
 }

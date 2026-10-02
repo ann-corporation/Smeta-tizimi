@@ -131,7 +131,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500);
       setKiritmalar({}); operationId.current = yangiOperationId();
       toast(`${ids.size} ta qator saqlandi — F2 qoldig‘i yangilandi.`, 'ok');
-      await holatniYangila();
+      // Saqlash tugadi — tugma darhol bo'shaydi; holat fonda yangilanadi (sekin o'qish tugmani qotirmasin).
+      setBand(false);
+      void Promise.resolve(holatniYangila()).catch(() => toast('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.', 'warn'));
     } catch { toast('Javob olinmadi. Qayta saqlang — takror xavfsiz (bir xil amal ID).', 'danger'); }
     finally { setBand(false); }
   }, [paket, band, obyektId, sana, holatniYangila]);

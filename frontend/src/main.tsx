@@ -6,8 +6,10 @@ import App from './App.tsx'
 import { TilChegarasi } from './i18n/TilTanlagich'
 
 import { kuzatuvniBoshlash } from './_shared/kuzatuv';
+import { versiyaKuzatuvi } from './_shared/versiya';
 
 kuzatuvniBoshlash();
+versiyaKuzatuvi();
 
 const queryClient = new QueryClient({
   defaultOptions: {

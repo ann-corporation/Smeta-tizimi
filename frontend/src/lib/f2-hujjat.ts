@@ -30,6 +30,8 @@ export type F2HujjatOpsiya = {
   podval?: Podval | null;
   /** Rang mavzusi (berilmasa — sahifada tanlangan joriy mavzu). */
   mavzu?: RangMavzusi;
+  /** Saqlangan/tasdiqlangan akt: faqat qiymatlar, bitta ham formula yo'q (egasi 2026-10-02). */
+  formulasiz?: boolean;
 };
 
 const USTUNLAR: RasmiyUstun[] = [
@@ -82,13 +84,17 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
     // Hujjat summasi qo'lda o'zgartirilgan (ARIFMETIKA) yoki resurs fakt bilan cheklangan — qiymat yoziladi.
     const summaQiymat = narxBor && x.summa != null && Math.abs((x.summa as number) - (hisob as number)) > 0.005;
     const ishgaBogliq = ishQator != null && norma != null && norma > 0 && x.ogoh !== 'RESURS_CHEGARA';
+    /* Ongli narxsiz (masalan «затраты труда машинистов» — mashina narxi ichida, alohida to'lanmaydi): summa yo'q,
+     * lekin bu MA'LUMOT YETISHMASLIGI EMAS — jami bo'sh bo'lmaydi (Game Club F2 №249: 31 shunday qator ИТОГО ni yo'qotardi).
+     * Narx asosi umuman yo'q (narxsiz belgilanmagan) — NULL ≠ 0: jami bo'sh. */
+    const ongliNarxsiz = x.narxsiz;
     oxirgiSumma = narxBor && x.summa != null ? x.summa : null;
-    if (oxirgiSumma != null) { jamiJS = jamiJS == null ? null : jamiJS + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; } else jamiJS = null;
+    if (oxirgiSumma != null) { jamiJS = jamiJS == null ? null : jamiJS + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; } else if (!ongliNarxsiz) jamiJS = null;
     const qatorR = v.r;
     const vk = `${kat ?? ''}|${(kod ?? '').trim()}|${x.nom.trim()}|${(x.birlik ?? '').trim()}`;
     const vd = vedomost.get(vk) ?? { kat, kod: (kod ?? '').trim(), nom: x.nom.trim(), birlik: (x.birlik ?? '').trim(), qatorlar: [], hajm: 0, summa: 0, narxlar: new Set<number>() };
     vd.qatorlar.push(qatorR); vd.hajm = yaxlit6(vd.hajm + x.hajm);
-    vd.summa = vd.summa == null || oxirgiSumma == null ? null : yaxlit2(vd.summa + oxirgiSumma);
+    vd.summa = vd.summa == null || (oxirgiSumma == null && !ongliNarxsiz) ? null : yaxlit2(vd.summa + (oxirgiSumma ?? 0));
     if (narxBor) vd.narxlar.add(x.narx as number);
     vedomost.set(vk, vd);
     return v.qator('oddiy', (r): Qiymat[] => [
@@ -96,7 +102,8 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
       norma != null ? { n: norma, uslub: 'norma' } : null,
       ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
-      !narxBor ? null : summaQiymat ? x.summa : { f: `ROUND(F${r}*G${r},2)`, v: hisob },
+      // «—» (matn): SUM uni o'tkazib yuboradi, ИТОГО dagi «bo'sh summa» tekshiruvi esa uni yetishmovchilik deb sanamaydi.
+      !narxBor ? (ongliNarxsiz ? '—' : null) : summaQiymat ? x.summa : { f: `ROUND(F${r}*G${r},2)`, v: hisob },
       x.tur, kat ?? '',
     ], { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
   };
@@ -142,7 +149,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false });
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const rv = resursVedomosti([...vedomost.values()], { nom: v.nom, itogoR, jami: jamiJS, raqam, davr: o.davr, obyektNom: o.obyektNom });
-  const { bytes, yacheykalar } = rasmiyKitob([v, rv], { mavzu: o.mavzu, tur: 'f2' });
+  const { bytes, yacheykalar } = rasmiyKitob([v, rv], { mavzu: o.mavzu, tur: 'f2', formulasiz: o.formulasiz });
   return {
     bytes, yacheykalar,
     faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: `АКТ_Ф-2${raqam ? `_№${raqam}` : ''}`, davr: o.davr.slice(0, 7) }),

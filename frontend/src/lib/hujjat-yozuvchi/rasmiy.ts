@@ -631,7 +631,16 @@ export type RasmiyKitobNatija = { bytes: Uint8Array; varaqlar: RasmiyVaraqMeta[]
 
 /** Bir yoki bir nechta rasmiy varaqdan .xlsx yasaydi (Print_Area, Print_Titles,
  * fullCalcOnLoad). Varaq nomlari takrorlansa raqam qo'shiladi. */
-export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri }): RasmiyKitobNatija {
+/** Formulalarni keshlangan qiymatiga almashtiradi (egasi 2026-10-02: tasdiqlangan F2 — "hech qanday hisob bilan
+ * chiqarilmaydi, faqat qiymatlari ko'chiriladi"). Matnli natija — inlineStr, keshsiz formula — bo'sh katak. */
+export function formulalarniQiymatga(xml: string): string {
+  return xml.replace(/<c ([^>]*?)( t="str")?><f>[^<]*<\/f>(?:<v>([^<]*)<\/v>)?<\/c>/g, (_m, attr: string, str: string | undefined, v: string | undefined) => {
+    if (v == null) return `<c ${attr}/>`;
+    return str ? `<c ${attr} t="inlineStr"><is><t xml:space="preserve">${v}</t></is></c>` : `<c ${attr}><v>${v}</v></c>`;
+  });
+}
+
+export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri; formulasiz?: boolean }): RasmiyKitobNatija {
   if (!varaqlar.length) throw new Error('RASMIY_KITOB_BOSH');
   const nomlar: string[] = [];
   for (const v of varaqlar) {
@@ -662,7 +671,7 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
   };
   let yacheykalar = 0;
   varaqlar.forEach((v, i) => {
-    const x = v.xml();
+    const x = o?.formulasiz ? formulalarniQiymatga(v.xml()) : v.xml();
     // Bo'sh (faqat uslubli) `<c .../>` sanalmaydi — faqat qiymat/formula bor kataklar.
     yacheykalar += x.match(/<c [^>]*[^/]>/g)?.length ?? 0;
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(x);
