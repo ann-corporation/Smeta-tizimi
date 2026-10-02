@@ -1,33 +1,25 @@
-# Governance document map
-
-The boot path is intentionally short:
+# Document map (2026-10-02)
 
 ```text
 AGENTS.md
+  -> Obsidian HOME (20_PROJECTS/Smeta-tizimi/Smeta-tizimi.md): CURRENT_STATE, PRODUCT_ROADMAP, CODEMAP, ROLE_TRUST_MODEL, KOORDINATSIYA
   -> docs/governance/CONSTITUTION.md
-  -> docs/governance/CURRENT_STATE.md
   -> ops/ACTIVE_TASKS.json
-  -> relevant accepted contract or ADR in docs/architecture/
+  -> relevant accepted contract in docs/architecture/
 ```
 
-## Current authority
-
-- `AGENTS.md`: boot protocol only.
-- `docs/governance/CONSTITUTION.md`: non-negotiable rules.
-- `docs/governance/CURRENT_STATE.md`: replaceable measured state.
-- `ops/ACTIVE_TASKS.json`: task locks and handoffs.
-- `docs/architecture/*`: accepted implementation contracts/ADRs, only when
-  explicitly relevant to the task and consistent with the Constitution.
-
-## Retained historical or compatibility material
-
-| Existing path | Treatment |
+## Canonical
+| Topic | Source |
 |---|---|
-| `00_BOSH_QONUN.md` | Retained legacy policy. Its evidence-backed rules were extracted into the Constitution; its old “highest document” claim is superseded by the boot chain. |
-| `ARXITEKTURA.md` | Retained ecosystem vision; mixed GAS/Drive-first sections are historical unless an accepted contract confirms them. |
-| `tizim02/ARXITEKTURA.md` | Retained layer detail; current Supabase-first rules in the Constitution and accepted ADRs win on conflict. |
-| `tizim02/AGENT.md` | Compatibility detail for old agents. Root `AGENTS.md` must be read first. |
-| `tizim02/MULOQOT.md` | Append-only historical journal. It records evidence and handoffs but is never current-state authority. |
-| `tizim02/navbat.json` | Legacy domain ownership map. New work is locked by task in `ops/ACTIVE_TASKS.json`; keep both consistent when a handoff affects domains. |
-| `docs/reviews/*` | Point-in-time review/evidence snapshots; they do not override current state or contracts. |
-| `ANTIGRAVITY_*.md`, `Smeta tizimi/CLAUDE.md` | Retained briefs/project detail, reached through compatibility shims and verified against the boot chain. |
+| Vision, roadmap, business model, ideas | Obsidian `PRODUCT_VISION`, `PRODUCT_ROADMAP`, `BUSINESS_MODEL`, `IDEA_INBOX` |
+| Domain, workflow, trust/roles, decisions | Obsidian `DOMAIN_MODEL`, `WORKFLOW_MODEL`, `ROLE_TRUST_MODEL`, `DECISIONS` |
+| Current state, handoff, risks, code map | Obsidian `CURRENT_STATE`, `HANDOFF`, `RISK_REGISTER`, `CODEMAP` |
+| Technical constitution | `docs/governance/CONSTITUTION.md` |
+| Task locks | `ops/ACTIVE_TASKS.json` |
+| Accepted implementation contracts | `docs/architecture/*` |
+
+`docs/governance/CURRENT_STATE.md` is kept only for `governance-check` (`main_sha`); real state is in Obsidian.
+
+## Historical (evidence only, never current state)
+`ops/handoff/*`, `docs/reviews/*`, `docs/audit/*`, `docs/ai/*`, `tizim02/*` (legacy GAS-era detail, `MULOQOT.md` journal).
+Root-level legacy briefs/plans (`00_BOSH_QONUN.md`, `ARXITEKTURA.md`, `ANTIGRAVITY_*`, `MASTER_*`, `TIZIM_*`, `KOPRIK/*`, `Smeta tizimi/*.md`, …) were merged into the canonical Obsidian documents and deleted on 2026-10-02 (recoverable from git history).
