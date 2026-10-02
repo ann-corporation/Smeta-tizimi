@@ -6,6 +6,10 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { ustunHarfi, ustunIndeksi, unEsc, xmlEsc, sheetRef } from './ooxml';
 
+/** ZIP ichidagi fayl vaqti — QAT'IY (fflate sukut bo'yicha joriy vaqtni yozadi). Shunda bir xil mazmun → bir xil
+ *  bayt → bir xil xesh: "aynan bir xil hujjat qayta — bepul" va arxivda takror versiya yo'q (2026-10-02). */
+export const BARQAROR_VAQT = '2000-01-01T00:00:00Z';
+
 /** Workbookdagi varaqlar: nom → ZIP ichidagi yo'l (workbook tartibida). */
 export function varaqYollari(files: Record<string, Uint8Array>): Array<{ name: string; path: string }> {
   const wb = strFromU8(files['xl/workbook.xml']);
@@ -143,7 +147,7 @@ export function boshKeshQoy(bytes: Uint8Array, varaqlar?: readonly string[]): Ui
     });
     if (yangi !== xml) files[y.path] = strToU8(yangi);
   }
-  return zipSync(files, { level: 6 });
+  return zipSync(files, { level: 6, mtime: BARQAROR_VAQT });
 }
 
 /**
@@ -167,7 +171,7 @@ export function ogohlantirishlarniOchir(bytes: Uint8Array, varaqlar?: readonly s
     xml = xml.slice(0, m.index) + EL + xml.slice(m.index);
     files[y.path] = strToU8(xml);
   }
-  return zipSync(files, { level: 6 });
+  return zipSync(files, { level: 6, mtime: BARQAROR_VAQT });
 }
 
 /** Chop nomlarini (Print_Area / Print_Titles) to'liq absolyut shaklga keltiradi:
@@ -180,5 +184,5 @@ export function chopNomlariAbsolyut(bytes: Uint8Array): Uint8Array {
     `${a}${ref.replace(/\$([A-Z]{1,3})(\d+)/g, '$$$1$$$2')}${z}`);
   if (yangi === wb) return bytes;
   files['xl/workbook.xml'] = strToU8(yangi);
-  return zipSync(files, { level: 6 });
+  return zipSync(files, { level: 6, mtime: BARQAROR_VAQT });
 }

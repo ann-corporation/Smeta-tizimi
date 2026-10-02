@@ -21,6 +21,7 @@ import { f2AktKirish } from '../../lib/f2-akt-hujjat';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
+import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
@@ -194,6 +195,11 @@ export function F2TarixNative() {
       if (!r.ok) toast(r.xabar, 'danger');
       else if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
       else toast(`${r.sarflandi} token · ${Number(r.hisob?.yakuniy_som ?? 0).toLocaleString('ru-RU')} so‘m (${h.yacheykalar} yacheyka)`, 'ok');
+      // Tasdiqlangan F2 — R2 arxivga o'zgarmas versiya (bir xil mazmun qayta saqlanmaydi). Hujjat berishni to'xtatmaydi.
+      if (r.ok && akt.holat === 'tasdiqlangan') {
+        void hujjatArxivla({ kompaniyaId, obyektId, turi: 'f2_hujjat', faylNomi: h.faylNomi, bytes: h.bytes, davr: (akt.oy || '').slice(0, 7) })
+          .then((a) => { if (!a.ok) toast('Hujjat arxivga saqlanmadi — keyinroq qayta chiqaring.', 'warn'); else if (!a.takror) toast(`Arxivga saqlandi (v${a.versiya})`, 'ok'); });
+      }
     } catch { toast('Ф-2 hujjatini yaratib bo‘lmadi.', 'danger'); }
     finally { setChiqarilmoqda(false); }
   }

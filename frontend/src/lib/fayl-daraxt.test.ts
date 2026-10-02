@@ -19,17 +19,19 @@ describe('Fayl menejeri — papkalar', () => {
     expect(d.soni).toBe(4);
     expect(d.bolalar.map((b) => b.nom)).toEqual(["Navoiy bog'", LOYIHASIZ]); // biriktirilmagan — oxirida
     const gc = papkaTop(d, "Navoiy bog'/Game Club")!;
-    expect(gc.bolalar.map((b) => b.nom)).toEqual(['F2 aktlari', 'Smetalar']);
-    const f2 = papkaTop(d, "Navoiy bog'/Game Club/F2 aktlari/2026-10")!;
+    expect(gc.bolalar.map((b) => b.nom)).toEqual(['F2 aktlari (import manbasi)', 'Smetalar']);
+    const f2 = papkaTop(d, "Navoiy bog'/Game Club/F2 aktlari (import manbasi)/2026-10")!;
     expect(f2.fayllar.map((f) => f.id)).toEqual([2, 1]); // yangisi tepada
-    expect(papkaTop(d, "Navoiy bog'/Game Club/F2 aktlari")!.hajm).toBe(187_545 + 145_875);
+    expect(papkaTop(d, "Navoiy bog'/Game Club/F2 aktlari (import manbasi)")!.hajm).toBe(187_545 + 145_875);
+    // Arxivlangan rasmiy hujjat — hisobot oyi papkasida (yuklangan kuni emas).
+    expect(faylYoli(F({ id: 9, tur: 'f3', davr: '2026-07', sana: '2026-10-02T10:00:00Z' }))).toEqual(["Navoiy bog'", 'Game Club', 'F3 spravkalar', '2026-07']);
     expect(papkaFayllari(gc)).toHaveLength(3);
     expect(faylYoli(fayllar[3])).toEqual([LOYIHASIZ, OBYEKTSIZ, 'Boshqa hujjatlar', '2026-10']);
   });
 
   it('yuklash konteksti papkadan: loyiha/obyekt/tur', () => {
     const d = faylDaraxti(fayllar);
-    expect(papkaTop(d, "Navoiy bog'/Game Club/F2 aktlari")).toMatchObject({ loyiha_id: 7, obyekt_id: 80, tur: 'f2_akt' });
+    expect(papkaTop(d, "Navoiy bog'/Game Club/F2 aktlari (import manbasi)")).toMatchObject({ loyiha_id: 7, obyekt_id: 80, tur: 'f2_akt' });
     expect(papkaTop(d, "Navoiy bog'")).toMatchObject({ loyiha_id: 7, obyekt_id: null, tur: null });
   });
 

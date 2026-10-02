@@ -18,6 +18,8 @@ import { podvalgaKoefQoy, type Podval } from '../../lib/nakrutka-konstruktor';
 import { podvalliKaskad } from '../../lib/nakrutka-podval';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
+import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { ozgarishIzohi, smetaModeliniYukla, tartibla, type SmetaModel } from '../../lib/smeta-model';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
@@ -356,6 +358,11 @@ function Sessiya({ companyId }: { companyId: number }) {
       );
       setForma3Diqqat([...h.diqqat, ...(context.warning ? [{ nom: 'Rekvizitlar', sabab: context.warning }] : []), ...(!f2Oylik.length ? [{ nom: 'F2 manbasi', sabab: 'Bu davrgacha tasdiqlangan F2 yo‘q; bajarilgan ish qiymatlari bo‘sh hisobot sifatida beriladi.' }] : [])]);
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
+      // F3 — rasmiy hujjat: R2 arxivga o'zgarmas versiya (davr bo'yicha; aynan bir xil mazmun qayta saqlanmaydi).
+      if (f2Oylik.length) {
+        void hujjatArxivla({ kompaniyaId: companyId, loyihaId: loyihaId ?? null, obyektId: Number(objectId), turi: 'f3', faylNomi: h.faylNomi, bytes: h.bytes, davr: davr.slice(0, 7) })
+          .then((a) => { if (!a.ok) toast('F3 arxivga saqlanmadi — keyinroq qayta chiqaring.', 'warn'); else if (!a.takror) toast(`F3 arxivga saqlandi (v${a.versiya})`, 'ok'); });
+      }
     } catch (e) {
       setXato(e instanceof Error && e.message === 'MISSING_CERTIFIED_AMOUNT'
         ? 'Tasdiqlangan F2 manba summasi yetishmaydi. Manba hujjatni tekshiring; qiymat taxminan hisoblanmaydi.'

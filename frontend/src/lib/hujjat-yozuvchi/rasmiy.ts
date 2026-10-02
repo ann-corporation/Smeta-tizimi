@@ -25,6 +25,7 @@
  * hujjat rasmiy: qora matn, ingichka ramka, qalin jami.
  */
 import { strToU8, zipSync, type Zippable } from 'fflate';
+import { BARQAROR_VAQT } from './kitob';
 import { num, sheetRef, ustunHarfi, xmlEsc } from './ooxml';
 import { sumRefs } from './formula';
 import { IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, imzoMatni, imzoMuhrli, type ImzoTomon } from './imzo';
@@ -676,7 +677,7 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
     yacheykalar += x.match(/<c [^>]*[^/]>/g)?.length ?? 0;
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(x);
   });
-  return { bytes: zipSync(files, { level: 6 }), varaqlar: metas, yacheykalar };
+  return { bytes: zipSync(files, { level: 6, mtime: BARQAROR_VAQT }), varaqlar: metas, yacheykalar };
 }
 
 /** Ro'yxatdagi qatorlar yig'indisi formulasi: `SUM(H5:H9,H12)`; bo'sh bo'lsa null. */

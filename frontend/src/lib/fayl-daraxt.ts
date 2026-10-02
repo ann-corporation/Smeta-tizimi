@@ -10,6 +10,8 @@ export type Fayl = {
   id: number; nom: string; tur: string; versiya: number; mime: string; hajm: number; sha256: string | null;
   sana: string; kim: string | null; loyiha_id: number | null; loyiha: string | null; obyekt_id: number | null; obyekt: string | null;
   slot?: string | null;
+  /** Rasmiy hujjatning hisobot oyi (YYYY-MM) — papka shu oy bo'yicha (yuklangan kuni emas). */
+  davr?: string | null;
 };
 
 export type Papka = {
@@ -25,8 +27,8 @@ export type Papka = {
 };
 
 export const TUR_NOMI: Readonly<Record<string, string>> = {
-  smeta: 'Smetalar', smeta_lrv: 'LRV', smeta_res: 'Resurs vedomostlari (RES)', f2_akt: 'F2 aktlari',
-  f3: 'F3 (spravka)', nakopitelniy: 'Nakopitelniy', aosr: 'AOSR', lab: 'Laboratoriya', shartnoma: 'Shartnomalar',
+  smeta: 'Smetalar', smeta_lrv: 'LRV', smeta_res: 'Resurs vedomostlari (RES)', f2_akt: 'F2 aktlari (import manbasi)',
+  f2_hujjat: 'F2 hujjatlari (tasdiqlangan)', f3: 'F3 spravkalar', slichitelniy: 'Slichitelniy', m29: 'M-29', nakopitelniy: 'Nakopitelniy', aosr: 'AOSR', lab: 'Laboratoriya', shartnoma: 'Shartnomalar',
   katalog: 'Kataloglar', faktura: 'Hisob-fakturalar', hujjat: 'Boshqa hujjatlar',
 };
 export const turNomi = (t: string) => TUR_NOMI[t] ?? t;
@@ -46,7 +48,7 @@ export function faylYoli(f: Fayl): string[] {
     xavfsizNom(f.loyiha ?? LOYIHASIZ),
     xavfsizNom(f.obyekt ?? OBYEKTSIZ),
     xavfsizNom(turNomi(f.tur)),
-    (f.sana || '').slice(0, 7) || 'sanasiz',
+    (f.davr && /^\d{4}-\d{2}$/.test(f.davr) ? f.davr : (f.sana || '').slice(0, 7)) || 'sanasiz',
   ];
 }
 
