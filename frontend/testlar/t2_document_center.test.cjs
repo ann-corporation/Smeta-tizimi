@@ -57,10 +57,15 @@ console.log('\n── Transport + page ──');
 must('registry fn takes actor from session, not body', /tekshir\(ctx\.request\.headers\.get\('Cookie'\)/.test(fn) && /foydalanuvchi_id/.test(fn) && !/body[\s\S]{0,20}actor/i.test(nocomment(fn)));
 must('registry fn maps membership failure -> 403', /42501[\s\S]{0,40}403|403[\s\S]{0,40}42501/.test(fn) || /membership/i.test(fn) && /403/.test(fn));
 must('client hujjatRoyxatOl hits /api/hujjat-royxat only', /fetch\('\/api\/hujjat-royxat/.test(client));
-must('DocumentsPage renders the real Codex DocumentCenter (no demo dataset)',
-  /<DocumentCenter/.test(page) && !/demoData|DEMO_DATA|makeDemo|demoDocuments/.test(nocomment(page)));
-must('DocumentsPage feeds it real data from hujjatRoyxatOl', /hujjatRoyxatOl/.test(page));
-must('DocumentsPage download goes to canonical R2 url', /hujjatYuklabOlishUrl/.test(page));
+/* 2026-10-02 (egasi: "R2 ni fayl explorer darajasida"): /admin/documents endi FAYL MENEJERI — real ma'lumot
+   (fayl_explorer_v1, a'zolik serverda), yuklab olish/ko'rish — kanonik R2 (/api/hujjat-ol), demo yo'q. */
+const menejer = R('frontend', 'src', 'admin', 'sahifalar', 'FaylMenejer.tsx');
+const faylApi = R('frontend', 'src', 'api', 't2-fayl.ts');
+must('DocumentsPage renders the real FaylMenejer (no demo dataset)',
+  /<FaylMenejer/.test(page) && !/demoData|DEMO_DATA|makeDemo|demoDocuments/.test(nocomment(page) + nocomment(menejer)));
+must('FaylMenejer feeds on real data from fayl_explorer_v1 via /api/sb', /faylExplorerOl/.test(menejer) && /soro: 'fayl_explorer_v1'/.test(faylApi));
+must('FaylMenejer download/preview goes to canonical R2 url', /\/api\/hujjat-ol\?id=/.test(faylApi) && /faylBaytlari/.test(menejer));
+must('FaylMenejer: no Drive/GAS on the canonical path', !/DriveApp|drive\.google|\/api\/gas/i.test(nocomment(menejer) + nocomment(faylApi)));
 
 console.log('\n── Migration hygiene ──');
 must('rollback drops the function', /drop function if exists public\.t2_document_registry_v1/.test(roll));
