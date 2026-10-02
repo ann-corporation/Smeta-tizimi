@@ -9,7 +9,7 @@
       "machine": "noutbuk",
       "branch": "codex/pto-chain-integrity-implementation",
       "base_sha": "15b689a2f4a540ec4cca265250b377334bb72d34",
-      "status": "ready_for_review",
+      "status": "in_progress",
       "owns": ["frontend/src/lib/pto-document-lineage/", "ops/handoff/T2_PTO_CHAIN_INTEGRITY_001.md"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
@@ -1866,7 +1866,7 @@
       "machine": "pc-ishxona",
       "branch": "codex/i18n-hardening-v1",
       "base_sha": "f1f08faa21a243d6054313f4a825bd7b2b22874f",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": [
         "frontend/src/i18n/",
         "frontend/src/main.tsx",
