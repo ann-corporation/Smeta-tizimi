@@ -8,8 +8,8 @@
  * Manba va smeta qiymatlari o'zgartirilmaydi; noma'lum — bo'sh (NULL ≠ 0).
  */
 import {
-  RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob,
-  type ImzoNomlar, type RasmiyUstun,
+  RANG_TARTIB, RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob,
+  type ImzoNomlar, type QatorRangi, type RasmiyUstun,
 } from './hujjat-yozuvchi';
 import { NARX_MANBA_TUR_NOMI, type NarxDalilHolat } from '../api/t2-narx-dalil';
 
@@ -69,29 +69,47 @@ export function narxAsoslashXlsx(resurslar: readonly AsoslashResurs[], dalillar:
     ustunlar: USTUNLAR,
     yonalish: 'landscape',
   });
+  /* Egasi (2026-10-02): "smetadagi bir xil pozitsiyalar qayta-qayta kelavergan — resurs vedomostidek kategoriyaga
+   * ajratilgan holatda bo'lsin". Bir xil resurs (tur | kod | nom | birlik | smeta narxi) — BITTA qator, miqdori jamlanadi.
+   * Smeta narxi farqli bo'lsa — alohida pozitsiya (har narx o'z asosini talab qiladi). */
+  type Band = { kat: string; kod: string | null; nom: string | null; birlik: string | null; narx: number | null; hajm: number | null; qatorlar: number; dalillar: NarxDalilHolat[]; dalilsizQator: number };
+  const bandlar = new Map<string, Band>();
+  for (const r of resurslar) {
+    const kat = katKalit(r.kat) || '';
+    const k = [kat, (r.kod ?? '').trim(), (r.nom ?? '').trim().toUpperCase(), (r.birlik ?? '').trim().toUpperCase(), r.narx ?? ''].join('|');
+    const b = bandlar.get(k) ?? { kat, kod: r.kod, nom: r.nom, birlik: r.birlik, narx: r.narx, hajm: 0, qatorlar: 0, dalillar: [], dalilsizQator: 0 };
+    b.qatorlar++;
+    b.hajm = b.hajm == null || r.hajm == null ? null : Math.round((b.hajm + Number(r.hajm)) * 1e6) / 1e6;
+    const d = dalil.get(r.qator_id);
+    if (d) { const dk = (x: NarxDalilHolat) => `${x.manba_id}|${x.manba_kod ?? ""}|${x.manba_nom_qator ?? ""}|${x.manba_narx ?? ""}`; if (!b.dalillar.some((x) => dk(x) === dk(d))) b.dalillar.push(d); } else b.dalilsizQator++;
+    bandlar.set(k, b);
+  }
   let no = 0;
   let tasdiqlangan = 0;
   const dalilsiz: { nom: string; sabab: string }[] = [];
-  const katlar = [...KAT_TARTIB, ...new Set(resurslar.map((r) => katKalit(r.kat)).filter((k) => k && !KAT_TARTIB.includes(k)))];
+  const hammasi = [...bandlar.values()];
+  const katlar = [...KAT_TARTIB, ...new Set(hammasi.map((b) => b.kat).filter((k) => k && !KAT_TARTIB.includes(k)))];
   for (const kat of [...katlar, '']) {
-    const bandlar = resurslar.filter((r) => (katKalit(r.kat) || '') === kat);
-    if (!bandlar.length) continue;
+    const guruh = hammasi.filter((b) => b.kat === kat).sort((a, b) => (a.nom ?? '').localeCompare(b.nom ?? '', 'ru') || (a.kod ?? '').localeCompare(b.kod ?? ''));
+    if (!guruh.length) continue;
     v.bolim(KAT_NOMI[kat] ?? (kat || 'ПРОЧИЕ РЕСУРСЫ (категория не указана)'));
-    for (const r of bandlar) {
-      const d = dalil.get(r.qator_id);
-      if (d) tasdiqlangan++;
-      else dalilsiz.push({ nom: `${r.nom ?? '—'}${r.birlik ? `, ${r.birlik}` : ''}`, sabab: r.narx == null ? 'цена в смете не указана' : 'документ-основание цены не приложен' });
+    for (const b of guruh) {
+      const d = b.dalillar[0];
+      if (d && !b.dalilsizQator) tasdiqlangan++;
+      else if (!d) dalilsiz.push({ nom: `${b.nom ?? '—'}${b.birlik ? `, ${b.birlik}` : ''}`, sabab: b.narx == null ? 'цена в смете не указана' : 'документ-основание цены не приложен' });
+      else dalilsiz.push({ nom: `${b.nom ?? '—'}${b.birlik ? `, ${b.birlik}` : ''}`, sabab: `основание приложено не ко всем позициям сметы (без документа: ${b.dalilsizQator} из ${b.qatorlar})` });
+      const rekvizit = d ? manbaRekviziti(d) + (b.dalillar.length > 1 ? `; ещё документов: ${b.dalillar.length - 1}` : '') : null;
       v.qator('oddiy', (n) => [
-        ++no, r.kod, r.nom, r.birlik, r.hajm, r.narx,
+        ++no, b.kod, b.nom, b.birlik, b.hajm, b.narx,
         d ? NARX_MANBA_TUR_NOMI[d.manba_tur] : null,
-        d ? manbaRekviziti(d) : null,
+        rekvizit,
         d ? d.manba_narx : null,
-        d ? { f: `IF(OR(F${n}="",I${n}="",F${n}=0),"",ROUND((I${n}-F${n})/F${n}*100,2))`, v: r.narx && d.manba_narx != null ? Math.round(((Number(d.manba_narx) - r.narx) / r.narx) * 10000) / 100 : '' } : null,
-      ]);
+        d ? { f: `IF(OR(F${n}="",I${n}="",F${n}=0),"",ROUND((I${n}-F${n})/F${n}*100,2))`, v: b.narx && d.manba_narx != null ? Math.round(((Number(d.manba_narx) - b.narx) / b.narx) * 10000) / 100 : '' } : null,
+      ], { rang: (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
     }
   }
   v.bosh();
-  v.izoh(`Всего ресурсов: ${resurslar.length}; цена подтверждена документом — ${tasdiqlangan}; без подтверждения — ${dalilsiz.length}.`);
+  v.izoh(`Всего ресурсов: ${hammasi.length} (позиций в смете: ${resurslar.length}); цена подтверждена документом — ${tasdiqlangan}; без полного подтверждения — ${dalilsiz.length}.`);
   v.izoh('Отклонение = (цена по документу − цена в смете) / цена в смете × 100. Для машин и механизмов принята наибольшая стоимость маш.-часа по подтвержденным калькуляциям; для материалов — цены последнего квартала каталога либо документов поставщиков. Копии документов-оснований прилагаются.');
   if (dalilsiz.length) v.diqqat(dalilsiz, 'ПОЗИЦИИ БЕЗ ДОКУМЕНТА-ОСНОВАНИЯ ЦЕНЫ');
   v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ', 'ПРОВЕРИЛ'], o.imzo));

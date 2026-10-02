@@ -82,4 +82,29 @@ describe('Обоснование цен — hujjat', () => {
     expect(t.matnlar.some((m) => m.includes('Кран 25 т') && m.includes('документ-основание цены не приложен'))).toBe(true);
     expect(imzoRollariBormi(t, ['ПОДРЯДЧИК', 'СОСТАВИЛ', 'ПРОВЕРИЛ']).yoq).toEqual([]);
   });
+
+  // Egasi (2026-10-02): bir xil resurs smetada ko'p ish ostida — hujjatda BITTA qator (vedomostdek), miqdor jamlanadi.
+  it('dublikatsiz: bir xil resurs bitta qator, miqdor jami; narxi farqli — alohida; qisman dalil — diqqatda', () => {
+    const r = narxAsoslashXlsx(
+      [
+        { qator_id: 1, kat: 'ЧЕЛ', kod: '1', nom: 'Затраты труда рабочих', birlik: 'чел.-ч', hajm: 10, narx: 29421 },
+        { qator_id: 2, kat: 'ЧЕЛ', kod: '1', nom: 'Затраты труда рабочих', birlik: 'чел.-ч', hajm: 5.5, narx: 29421 },
+        { qator_id: 3, kat: 'ЧЕЛ', kod: '1', nom: 'Затраты труда рабочих', birlik: 'чел.-ч', hajm: 4.5, narx: 29421 },
+        { qator_id: 4, kat: 'МАТ', kod: 'C101', nom: 'Бетон B25', birlik: 'м3', hajm: 2, narx: 1000 },
+        { qator_id: 5, kat: 'МАТ', kod: 'C101', nom: 'Бетон B25', birlik: 'м3', hajm: 3, narx: 1200 },
+      ],
+      [D(1, { kat: 'ЧЕЛ' }), D(2, { kat: 'ЧЕЛ' }), D(3, { kat: 'ЧЕЛ' }), D(4)],
+      { obyektNomi: 'X', sana: '2026-10-02' },
+    );
+    const t = hujjatTekshir(r.bytes, { ruxsat: [/.*/] });
+    const v = t.varaqlar[0];
+    const trud = v.kataklar.filter((k) => k.matn === 'Затраты труда рабочих');
+    expect(trud).toHaveLength(1);
+    const row = trud[0].ref.replace(/^[A-Z]+/, '');
+    expect(Number(v.kataklar.find((k) => k.ref === `E${row}`)?.v)).toBe(20);
+    expect(v.kataklar.filter((k) => k.matn === 'Бетон B25')).toHaveLength(2);
+    expect(r.tasdiqlangan).toBe(2);
+    expect(r.dalilsiz).toBe(1);
+    expect(t.matnlar.some((m) => m.includes('Всего ресурсов: 3 (позиций в смете: 5)'))).toBe(true);
+  });
 });
