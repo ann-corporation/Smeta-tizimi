@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSessiya } from '../api/hooks';
-import { AlertTriangle, ChevronDown, ChevronRight, Archive, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Archive, ShieldCheck, Crown } from 'lucide-react';
 import { Map, LogOut, Building2, FileInput, Activity, Tags, Network, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, NotebookPen, Database, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
@@ -17,6 +17,15 @@ import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
  * boshqaruvi → hisob → tizim. Rol faqat KO'RINISHNI qisqartiradi (pastdagi filtr), tuzilma hamma
  * uchun bir xil. Har yo'l faqat BIR joyda (takror yo'q). Server tekshiruvi — yakuniy qo'riqchi. */
 const TIZIM_02_GURUHLAR = [
+  {
+    /* Egasi 2026-10-02: platforma boshqaruv paneli — faqat superadmin ko'radi (server ham tekshiradi). */
+    nom: 'Platforma boshqaruvi',
+    Ikonka: Crown,
+    id: 'boshqaruv',
+    menyular: [
+      { yol: '/admin/boshqaruv', nom: 'Boshqaruv paneli', Ikonka: Crown },
+    ]
+  },
   {
     nom: 'PTO ish yo‘li',
     Ikonka: FileText,
@@ -175,7 +184,7 @@ function AdminShellInner() {
     const d: Record<string, boolean> = {};
     TIZIM_02_GURUHLAR.forEach(g => {
       // Agar ochiq sahifa shu guruhga tegishli bo'lsa, uni ochamiz
-      d[g.id] = g.id === 'pto' || g.menyular.some(m => joy.pathname.startsWith(m.yol));
+      d[g.id] = g.id === 'pto' || g.id === 'boshqaruv' || g.menyular.some(m => joy.pathname.startsWith(m.yol));
     });
     return d;
   });
@@ -257,7 +266,8 @@ function AdminShellInner() {
     const rol = effektivRol;
     const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
     let allowed = g.menyular;
-    if (g.id === 'tizim') allowed = rol === 'admin' || rol === 'superadmin' ? allowed : [];
+    if (g.id === 'boshqaruv') allowed = k.superadmin ? allowed : [];
+    else if (g.id === 'tizim') allowed = rol === 'admin' || rol === 'superadmin' || k.superadmin ? allowed : [];
     else if (g.id === 'hisob') allowed = toliq || rol === 'pto' || rol === 'bugalter' || rol === 'prorab' ? allowed : allowed.filter(m => m.yol.includes('kompaniya'));
     else if (toliq) { /* hammasi */ }
     else if (rol === 'pto') allowed = g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('zayavka') || m.yol.includes('logistika')) : g.id === 'loyiha' ? allowed.filter(m => !m.yol.includes('participants')) : allowed;

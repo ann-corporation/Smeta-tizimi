@@ -61,6 +61,7 @@ const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const ShartnomaLiniya = lazy(() => import('./admin/sahifalar/ShartnomaLiniya'));
 const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const Tokenlar = lazy(() => import('./admin/sahifalar/Tokenlar'));
+const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
 const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
@@ -138,6 +139,8 @@ export default function App() {
           {/* Egasi 2026-10-02: har hujjat turi uchun rang mavzusi. */}
           {/* Egasi 2026-10-02: token balansi, obuna, superadmin to'lov tasdig'i. */}
           <Route path="tokenlar" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><Tokenlar /></Suspense>} />
+          {/* Egasi 2026-10-02: platforma boshqaruv paneli (faqat superadmin; server tekshiradi). */}
+          <Route path="boshqaruv" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><BoshqaruvPanel /></Suspense>} />
           <Route path="hujjat-dizayn" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><HujjatDizayni /></Suspense>} />
           <Route path="shartnoma-liniya" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><ShartnomaLiniya /></Suspense>} />
           <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
