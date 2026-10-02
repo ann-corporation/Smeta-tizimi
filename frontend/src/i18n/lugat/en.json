@@ -198,5 +198,10 @@
   "Audit": "Audit",
   "Funksiyalar va tizim": "Features & system",
   "Saqlandi": "Saved",
-  "Demo manba saqlandi": "Demo source saved"
+  "Demo manba saqlandi": "Demo source saved",
+  "Koʻrish": "Preview",
+  "Ф-2 Excel": "F-2 Excel",
+  "{n} ta qator smetada topilmadi — hujjatga kirmadi": "{n} lines not found in the estimate — left out of the document",
+  "Bu hujjatda chiqariladigan qator yo‘q.": "This document has no lines to export.",
+  "Ф-2 hujjatini yaratib bo‘lmadi.": "Could not generate the F-2 document."
 }

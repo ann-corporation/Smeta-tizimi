@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, FileText, RefreshCw, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Download, Eye, FileText, RefreshCw, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
@@ -15,6 +15,16 @@ import { sbT2F2TafsilotOl, type F2Tafsilot } from '../../api/t2-narx';
 import { t2AktLifecycleTransition, type PtoLifecycleStatus } from '../../api/t2-akt-lifecycle';
 import { f2LifecyclePlan, f2LifecycleError, f2LifecycleLabels } from '../../lib/f2-lifecycle-workflow';
 import { f2Ierarxiya, type F2IerSmeta } from '../../lib/f2-ierarxiya';
+import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
+import type { T2Qator } from '../../api/supabase';
+import { f2AktKirish } from '../../lib/f2-akt-hujjat';
+import { f2Hujjat } from '../../lib/f2-hujjat';
+import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
+import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
+import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
+import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { t } from '../../i18n/til';
 
 type F2Detail = F2Tafsilot;
 
@@ -54,6 +64,10 @@ export function F2TarixNative() {
   const [tafsilot, setTafsilot] = useState<F2Detail[]>([]);
   /** Smeta daraxti — F2 qatorlari ierarxiyada (bo'lim → ish → resurs) ko'rsatiladi. */
   const [smeta, setSmeta] = useState<F2IerSmeta[]>([]);
+  /** To'liq smeta qatorlari (norma, kat) — Ф-2 hujjatini qayta chiqarish uchun. */
+  const [smetaRows, setSmetaRows] = useState<T2Qator[]>([]);
+  const [chiqarilmoqda, setChiqarilmoqda] = useState(false);
+  const korinish = useHujjatKorinish();
   const [selectedAktId, setSelectedAktId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -90,9 +104,10 @@ export function F2TarixNative() {
       const [r, d, t] = await Promise.all([
         sbT2AktReestrOl(obyektId),
         sbT2F2TafsilotOl({ obyektId, tur: 'f2' }),
-        sbT2DaraxtOl(obyektId, 'id,ota_id,tartib,tur,kod,nom,birlik,qoshimcha,zamena'),
+        sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI),
       ]);
       setSmeta(t.ok ? ((t.qatorlar || []) as unknown as F2IerSmeta[]) : []);
+      setSmetaRows(t.ok ? ((t.qatorlar || []) as unknown as T2Qator[]) : []);
       if (!r.ok) throw new Error(xavfsizXato());
       setReestr((r.qatorlar || []) as T2AktReestr[]);
       if (!d.ok) throw new Error(xavfsizXato());
@@ -152,12 +167,41 @@ export function F2TarixNative() {
     } finally { await yuklash(); setSavingId(null); }
   }
 
+  /* Egasi (2026-10-02): tasdiqlangan F2 ham yangi Ф-2 shablonida chiqadi. Sertifikatlangan raqamlar aynan
+   * (lib/f2-akt-hujjat). Token: bitta F2 (obyekt + oy + raqam) uchun bir marta — qayta chiqarish bepul. */
+  async function hujjatChiqar(akt: T2AktReestr, korish: boolean) {
+    const kompaniyaId = workspace.companyId ?? joriy?.id;
+    if (!kompaniyaId || chiqarilmoqda) return;
+    const object = obyektlar.find((o) => o.id === obyektId);
+    setChiqarilmoqda(true);
+    try {
+      const k = f2AktKirish(smetaRows, selectedLines);
+      if (!k.qatorlar.length) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
+      if (k.topilmagan) toast(t('{n} ta qator smetada topilmadi — hujjatga kirmadi', { n: k.topilmagan }), 'warn');
+      const ctx = await f2HujjatKonteksti(kompaniyaId, obyektId);
+      const h = f2Hujjat(k.bolimlar, k.qatorlar, {
+        obyektNom: object?.nom || '', davr: akt.oy || '', raqam: akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
+        ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval,
+      });
+      const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
+      const r = await tokenBilan({ kompaniyaId, amal: 'f2_hujjat', birlikSoni: h.yacheykalar,
+        meta: { hujjat: 'F2', sabab: `F2 №${akt.raqam || '—'} · ${object?.nom || ''} · ${(akt.oy || '').slice(0, 7)}`.slice(0, 200), obyekt: obyektId, akt: akt.id, yacheyka: h.yacheykalar, xesh } }, async () => {
+        if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
+        return true;
+      });
+      if (!r.ok) toast(r.xabar, 'danger');
+      else if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
+      else toast(`${r.sarflandi} token · ${Number(r.hisob?.yakuniy_som ?? 0).toLocaleString('ru-RU')} so‘m (${h.yacheykalar} yacheyka)`, 'ok');
+    } catch { toast('Ф-2 hujjatini yaratib bo‘lmadi.', 'danger'); }
+    finally { setChiqarilmoqda(false); }
+  }
+
   async function tasdiqlash(akt: T2AktReestr) {
     await holatniOzgartir(akt, ['submitted', 'checked', 'approved']);
   }
 
   return (
-    <Sahifa
+    <>{korinish.oyna}<Sahifa
       sarlavha="F2 tarixi va tasdiqlash"
       tavsif="Qoralama ko‘rib chiqiladi; faqat tasdiqlangan aniq manba LRV va Nakopitelniyga kiradi"
       amallar={<button onClick={() => void yuklash()} disabled={!validId || loading} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Yangilash</button>}
@@ -199,7 +243,11 @@ export function F2TarixNative() {
 
             <section className="karta min-h-0 overflow-auto p-4">
               {selectedAkt ? <>
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-[11px] text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {(selectedAkt.lifecycle_status ? f2LifecycleLabels[selectedAkt.lifecycle_status] : holatMatni[selectedAkt.holat]) || 'Noma’lum holat'} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-[11px] text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-[11px] text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b></div></div>
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-[11px] text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {(selectedAkt.lifecycle_status ? f2LifecycleLabels[selectedAkt.lifecycle_status] : holatMatni[selectedAkt.holat]) || 'Noma’lum holat'} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-[11px] text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-[11px] text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b>
+                  {selectedLines.length > 0 && <div className="mt-2 flex justify-end gap-1.5">
+                    <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text disabled:opacity-50"><Eye size={13} />{t('Koʻrish')}</button>
+                    <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"><Download size={13} />{t('Ф-2 Excel')}</button>
+                  </div>}</div></div>
                 <table className="w-full text-left text-[12px]"><thead className="sticky top-0 bg-surface text-text-dim"><tr><th className="py-2">Bo‘lim / ish / resurs</th><th className="text-right">Hajm</th><th className="text-right">Narx</th><th className="text-right">Summa</th></tr></thead><tbody>{ierarxiya.map((q) => {
                   const belgi = q.zamena ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetadagi qator o‘rniga bajarilgan (zamena)">zamena</span> : q.qoshimcha ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetada yo‘q, qo‘shimcha kiritilgan">qo‘shimcha</span> : null;
                   const pad = { paddingLeft: 4 + q.daraja * 16 };
@@ -228,7 +276,7 @@ export function F2TarixNative() {
           </div>
         )}
       </div>
-    </Sahifa>
+    </Sahifa></>
   );
 }
 

@@ -12,6 +12,7 @@ import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
+import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
 import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
 import { imzoNomlariTomonlardan } from '../../lib/shartnoma-liniya';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
@@ -183,7 +184,7 @@ export function F2TayyorlashNative() {
       // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.
       // Mazmun xeshi: aynan shu hujjat qayta ochilsa/yuklansa — qayta to'lov yo'q. Sabab daftarda ko'rinadi.
       if (!joriy?.id) return;
-      const xesh = await mazmunXeshi(h.bytes);
+      const xesh = f2HujjatKaliti(obyektId, oy, raqam) ?? await mazmunXeshi(h.bytes);
       const t = await tokenBilan({ kompaniyaId: joriy.id, amal: 'f2_hujjat', birlikSoni: h.yacheykalar,
         meta: { hujjat: 'F2', sabab: `F2 №${raqam || '—'} · ${object.nom} · ${oy}`.slice(0, 200), obyekt: obyektId, yacheyka: h.yacheykalar, xesh } }, async () => {
         if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);

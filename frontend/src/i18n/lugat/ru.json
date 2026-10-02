@@ -198,5 +198,10 @@
   "Audit": "Аудит",
   "Funksiyalar va tizim": "Функции и система",
   "Saqlandi": "Сохранено",
-  "Demo manba saqlandi": "Демо-источник сохранён"
+  "Demo manba saqlandi": "Демо-источник сохранён",
+  "Koʻrish": "Просмотр",
+  "Ф-2 Excel": "Ф-2 Excel",
+  "{n} ta qator smetada topilmadi — hujjatga kirmadi": "{n} строк не найдено в смете — в документ не вошли",
+  "Bu hujjatda chiqariladigan qator yo‘q.": "В этом документе нет строк для вывода.",
+  "Ф-2 hujjatini yaratib bo‘lmadi.": "Не удалось сформировать документ Ф-2."
 }
