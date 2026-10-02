@@ -77,5 +77,9 @@
   "Yuklanmoqda...": "Loading...",
   "Saqlash": "Save",
   "Bekor qilish": "Cancel",
-  "Yangilash": "Refresh"
+  "Yangilash": "Refresh",
+  "Sahifani ko‘rsatib bo‘lmadi": "The page could not be displayed",
+  "Kutilmagan nosozlik yuz berdi. Sahifani qayta yuklab ko‘ring; muammo takrorlansa quyidagi kodni administratorga ayting.": "An unexpected error occurred. Reload the page; if the problem repeats, give the code below to an administrator.",
+  "Diagnostika kodi": "Diagnostic code",
+  "Qayta yuklash": "Reload page"
 }

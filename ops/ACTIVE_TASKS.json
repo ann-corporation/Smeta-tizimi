@@ -1860,6 +1860,24 @@
       "_izoh": "C→B→A integratsiya qilingan. C/B/A kodlari origin/main tarixida bor. Supabase read-only runtime verification (project tuoyrzadkgoltpqkdiyx, 2026-10-01) B/A migration presence, category/source-guard/package RPC, source index, category constraint va guard semanticsni tasdiqladi. Object 84 dry-run: 2,411 candidate, summa 147,831,682,356.81, akt=0, AOSR=0; delete/merge bajarilmadi. Claude egallagan export/nakrutka/AOSR/mindmap fayllariga tegilmagan."
     },
     {
+      "id": "T2-I18N-CORE-HARDENING-001",
+      "title": "To'rt tilli interfeys poydevori: locale, xato oynasi va ko'p-tab sinxronlash hardening",
+      "owner": "codex",
+      "machine": "pc-ishxona",
+      "branch": "codex/i18n-hardening-v1",
+      "base_sha": "f1f08faa21a243d6054313f4a825bd7b2b22874f",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/i18n/",
+        "frontend/src/main.tsx",
+        "ops/ACTIVE_TASKS.json"
+      ],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
+      "production_write_allowed": false,
+      "_izoh": "Claude f1f08fa poydevorini takrorlamaydi; faqat locale formatlari, xato oynasi va ko'p tabdagi tanlov sinxronligini test bilan mustahkamlaydi. Rasmiy Excel/PDF hujjatlari ruscha qoladi."
+    },
+    {
       "id": "T2-IJRO-AOSR-LAB-001",
       "title": "C2: АОСР (ШНК 3.01.01-22 Прил.6) blank maydonlari + generator, laboratoriya (kontragent) protokollari, kompaniya logosi va kolontitul",
       "owner": "claude",

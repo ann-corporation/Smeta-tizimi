@@ -77,5 +77,9 @@
   "Yuklanmoqda...": "Загрузка...",
   "Saqlash": "Сохранить",
   "Bekor qilish": "Отмена",
-  "Yangilash": "Обновить"
+  "Yangilash": "Обновить",
+  "Sahifani ko‘rsatib bo‘lmadi": "Не удалось отобразить страницу",
+  "Kutilmagan nosozlik yuz berdi. Sahifani qayta yuklab ko‘ring; muammo takrorlansa quyidagi kodni administratorga ayting.": "Произошла непредвиденная ошибка. Обновите страницу; если проблема повторится, сообщите администратору код ниже.",
+  "Diagnostika kodi": "Код диагностики",
+  "Qayta yuklash": "Обновить страницу"
 }
