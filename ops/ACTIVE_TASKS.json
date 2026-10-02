@@ -9,7 +9,7 @@
       "machine": "noutbuk",
       "branch": "codex/pto-chain-integrity-implementation",
       "base_sha": "15b689a2f4a540ec4cca265250b377334bb72d34",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": ["frontend/src/lib/pto-document-lineage/", "ops/handoff/T2_PTO_CHAIN_INTEGRITY_001.md"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
