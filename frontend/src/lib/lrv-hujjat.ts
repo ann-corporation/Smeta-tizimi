@@ -23,6 +23,7 @@ import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, type KatSummalar, typ
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { davrMatni } from './nakopitelniy-vedomost-export';
+import { pivotQosh, type PivotKatak } from './hujjat-yozuvchi/pivot';
 
 export type LrvHujjatOpsiya = {
   obyektNom: string;
@@ -112,8 +113,10 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   const diqqat: Array<{ nom: string; sabab: string; joy?: string }> = [];
   let n = 0;
   const birinchi = v.r;
+  /** Pivot uchun tekis jadval: har barg — bitta qator, qiymatlar LRV kataklariga formula. */
+  const pivotQatorlar: PivotKatak[][] = [];
 
-  const yoz = (t: Tugun, daraja: number, ishQator: number | null, ishHajm: number | null) => {
+  const yoz = (t: Tugun, daraja: number, ishQator: number | null, ishHajm: number | null, bolimNom = '') => {
     const q = t.q;
     const hq = h.get(q.id);
     const kat = nakrutkaKat(q.kat) ?? (q.tur === 'mat' ? 'МАТ' : q.tur === 'ob' ? 'ОБ' : null);
@@ -126,7 +129,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
         null, b >= a ? { f: bargJami(C.L, a, b), v: '' } : null, null, b >= a ? { f: bargJami(C.N, a, b), v: '' } : null,
         null, { f: `IF(OR(H${r}="",L${r}=""),"",ROUND(H${r}-L${r},2))`, v: '' }, null, { f: `IF(OR(L${r}="",N${r}=""),"",ROUND(L${r}-N${r},2))`, v: '' },
         null, 0, kalit], { daraja });
-      for (const b2 of t.bolalar) yoz(b2, daraja + 1, null, null);
+      for (const b2 of t.bolalar) yoz(b2, daraja + 1, null, null, bolimNom || q.nom || 'Раздел');
       return;
     }
     if (!t.barg) {
@@ -139,7 +142,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
         { f: `IF(F${r}="","",ROUND(F${r}-K${r},6))`, v: '' }, { f: `IF(OR(H${r}="",L${r}=""),"",ROUND(H${r}-L${r},2))`, v: '' },
         { f: `ROUND(K${r}-M${r},6)`, v: '' }, { f: `IF(OR(L${r}="",N${r}=""),"",ROUND(L${r}-N${r},2))`, v: '' },
         null, 0, kalit], { daraja });
-      for (const b2 of t.bolalar) yoz(b2, daraja + 1, r0, F);
+      for (const b2 of t.bolalar) yoz(b2, daraja + 1, r0, F, bolimNom);
       return;
     }
     // Barg: resurs, material, uskuna (yoki resurssiz ish).
@@ -164,6 +167,11 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     res.faktSumma = res.faktSumma == null || faktSumma == null ? null : yaxlit2(res.faktSumma + faktSumma);
     if (narx != null) res.narxlar.add(narx);
     resurslar.set(rk, res);
+    const lr = v.r;
+    const L = (c: string, x: number | null) => ({ f: `'LRV'!${c}${lr}`, v: x });
+    pivotQatorlar.push([bolimNom || 'Без раздела', q.kod ?? '', q.nom || 'Nomsiz', q.birlik ?? '', kat ? VED_GURUH[kat] : 'ПРОЧИЕ РЕСУРСЫ', tur,
+      L('F', smetaHajm), L('H', summa), L('K', fakt), L('L', faktSumma), L('N', f2Summa),
+      L('P', summa == null || faktSumma == null ? null : yaxlit2(summa - faktSumma))]);
     v.qator('oddiy', (r): Qiymat[] => [++n, q.kod ?? '', q.nom || 'Nomsiz', q.birlik ?? '',
       norma != null ? { n: norma, uslub: 'norma' } : null,
       normaFormula ? { f: `ROUND(E${r}*F${ishQator},6)`, v: smetaHajm } : smetaHajm,
@@ -196,7 +204,17 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
 
   const rv = resursVedomosti([...resurslar.values()], { nom: v.nom, a: birinchi, b: oxirgi, itogoR, jami: jamiJS.H, obyektNom: o.obyektNom });
   const sv = svod({ nom: v.nom, a: birinchi, b: oxirgi, obyektNom: o.obyektNom, ks, jamiJS });
-  const { bytes, yacheykalar } = rasmiyKitob([v, rv, sv], { mavzu: o.mavzu, tur: 'lrv' });
+  const kitob = rasmiyKitob([v, rv, sv], { mavzu: o.mavzu, tur: 'lrv' });
+  // Haqiqiy Excel pivot: xarajat turi → resurs; smeta / fakt / ostatka summalari (ochilganda yangilanadi).
+  const bytes = pivotQatorlar.length ? pivotQosh(kitob.bytes, {
+    malumotVaraq: 'Данные', pivotVaraq: 'Сводная', sarlavha: 'Сводная по ресурсам',
+    maydonlar: [{ nom: 'Раздел' }, { nom: 'Шифр' }, { nom: 'Наименование' }, { nom: 'Ед. изм.' }, { nom: 'Вид затрат' }, { nom: 'Тип' },
+      { nom: 'Кол-во по смете', son: true }, { nom: 'Сумма по смете', son: true }, { nom: 'Кол-во выполнено', son: true },
+      { nom: 'Сумма выполнено', son: true }, { nom: 'Сумма по Ф-2', son: true }, { nom: 'Остаток сумма', son: true }],
+    qatorlar: pivotQatorlar, qatorMaydon: [4, 2],
+    qiymatMaydon: [{ i: 7, nom: 'Сумма по смете ' }, { i: 9, nom: 'Выполнено ' }, { i: 11, nom: 'Остаток ' }],
+  }) : kitob.bytes;
+  const yacheykalar = kitob.yacheykalar;
   return {
     bytes, yacheykalar,
     faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'ЛРВ', davr: (o.davr ?? '').slice(0, 7) }),

@@ -25,7 +25,16 @@ describe('LRV — yangi shakl (butun smeta, Ф-2 bilan bir xil yozuvchi)', () =>
     namunaSaqla('lrv_yangi.xlsx', r.bytes);
     expect(r.jami).toBe(SMETA_JAMI);
     const t = hujjatTekshir(r.bytes, { ruxsat: [/^(rz|bl|rs|mat|ob)$/, /^Р\d+$/, /^\d+:[0-9a-z]+$/] });
-    expect(t.varaqlar.map((v) => v.nom)).toEqual(['LRV', 'Ведомость ресурсов', 'Свод']);
+    expect(t.varaqlar.map((v) => v.nom)).toEqual(['LRV', 'Ведомость ресурсов', 'Свод', 'Сводная', 'Данные']);
+    // Haqiqiy pivot: kesh ochilganda yangilanadi; qatorlar — xarajat turi → resurs; qiymatlar — smeta/fakt/ostatka.
+    const z = unzipSync(r.bytes);
+    const kesh = strFromU8(z['xl/pivotCache/pivotCacheDefinition1.xml']);
+    expect(kesh).toMatch(/saveData="0" refreshOnLoad="1"/);
+    expect(kesh).toContain('sheet="Данные"');
+    const pv = strFromU8(z['xl/pivotTables/pivotTable1.xml']);
+    expect(pv).toContain('<rowFields count="2"><field x="4"/><field x="2"/></rowFields>');
+    expect(pv).toContain('<dataFields count="3">');
+    expect(strFromU8(z['xl/worksheets/sheet4.xml'])).toMatch(/<f>'LRV'!H\d+<\/f>/);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
     expect(t.matnlar).toEqual(expect.arrayContaining(['ЛИМИТНО-РЕСУРСНАЯ ВЕДОМОСТЬ (ЛРВ)', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО СМЕТЕ', 'ВЕДОМОСТЬ РЕСУРСОВ ПО СМЕТЕ', 'СВОД ПО ВИДАМ ЗАТРАТ']));
