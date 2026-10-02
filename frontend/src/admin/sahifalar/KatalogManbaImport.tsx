@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, FileText, Loader2, UploadCloud } from 'lucide-react';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { catalogQatorlariniApiFormatga, tahlilKatalogXlsx, tahlilMashinaSoatPdf, type CatalogTahlil } from '../../lib/catalog-manba-import';
-import { narxManbaniYukla, sbNarxManbalarOl, type NarxManba } from '../../api/t2-narx-dalil';
+import { narxManbaniYukla, platformaManbaniYukla, sbNarxManbalarOl, sbPlatformaManbalarOl, type NarxManba } from '../../api/t2-narx-dalil';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
+import { useKompaniya as useKontekst } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { t } from '../../i18n/til';
 
 function sha256(bytes: ArrayBuffer) {
   if (!globalThis.crypto || !globalThis.crypto.subtle) return Promise.resolve(null);
@@ -47,15 +49,23 @@ export default function KatalogManbaImport() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [periodChecked, setPeriodChecked] = useState(false);
+  /* Egasi 2026-10-02: "katalog hamma foydalanuvchi alohida tashlanmasligi kerak" — superadmin platformaga BIR MARTA
+     yuklaydi, hamma kompaniya narx taklifida ko'radi. Server superadminlikni qayta tekshiradi. */
+  const superadmin = useKontekst().superadmin;
+  const [platforma, setPlatforma] = useState(false);
+  const [platformaHash, setPlatformaHash] = useState<Set<string>>(new Set());
 
   const refreshSources = useCallback(async () => {
     if (!kompaniyaId) { setManbalar([]); return; }
     const r = await sbNarxManbalarOl(kompaniyaId);
     if (r.ok) setManbalar(r.qatorlar || []);
+    const p = await sbPlatformaManbalarOl();
+    if (p.ok) setPlatformaHash(new Set((p.qatorlar || []).map((x) => x.fayl_document_id).filter((x): x is string => !!x)));
   }, [kompaniyaId]);
   useEffect(() => { void refreshSources(); }, [refreshSources]);
 
-  const existingHashes = useMemo(() => new Set(manbalar.map(function (m) { return m.fayl_document_id; }).filter(Boolean)), [manbalar]);
+  // Takror tekshiruvi: platforma rejimida — platforma katalogi; aks holda — kompaniya manbalari + platforma (bir xil fayl ikki marta kerak emas).
+  const existingHashes = useMemo(() => new Set([...(platforma ? [] : manbalar.map(function (m) { return m.fayl_document_id; })), ...platformaHash].filter(Boolean)), [manbalar, platformaHash, platforma]);
   const totalRows = analyses.reduce(function (n, a) { return n + a.qatorlar.length; }, 0);
   const unresolved = analyses.filter(function (a) { return !a.importgaTayyor || (!!a.periodNizolari?.length && !periodChecked); });
 
@@ -96,7 +106,7 @@ export default function KatalogManbaImport() {
     try {
       for (const analysis of analyses) {
         const rows = catalogQatorlariniApiFormatga(analysis.qatorlar);
-        const result = await narxManbaniYukla(kompaniyaId, {
+        const malumot = {
           tur: manbaTur(analysis.turi),
           nom: analysis.faylNomi,
           sana: davrSana(analysis),
@@ -104,11 +114,15 @@ export default function KatalogManbaImport() {
           kvartal: analysis.davr.kvartal ?? undefined,
           fayl_document_id: analysis.contentHash ? 'sha256:' + analysis.contentHash : undefined,
           izoh: JSON.stringify({ importer: 'T2_CATALOG_MANBA_IMPORT_V1', tur: analysis.turi, davr: analysis.davr, varaqlar: analysis.varaqlar.map(function (v) { return { nom: v.nom, rol: v.rol, qatorSoni: v.qatorSoni }; }) }),
-        }, rows, opId(), 5000, function (loaded) { setProgress({ done: done + loaded, total: totalRows }); });
+        };
+        const jarayon = function (loaded: number) { setProgress({ done: done + loaded, total: totalRows }); };
+        const result = platforma
+          ? await platformaManbaniYukla(malumot, rows, opId(), 5000, jarayon)
+          : await narxManbaniYukla(kompaniyaId, malumot, rows, opId(), 5000, jarayon);
         if (!result.ok) throw new Error(analysis.faylNomi + ': ' + (result.error || result.sabab || 'manba saqlanmadi'));
         done += rows.length; setProgress({ done: done, total: totalRows });
       }
-      setMessage(String(analyses.length) + ' ta manba, ' + totalRows.toLocaleString('uz-UZ') + ' ta qator source-only dalil sifatida saqlandi. Smeta narxi avtomatik o‘zgartirilmadi.');
+      setMessage((platforma ? t('Platforma katalogi (barcha kompaniyalar uchun): ') : '') + String(analyses.length) + ' ta manba, ' + totalRows.toLocaleString('uz-UZ') + ' ta qator source-only dalil sifatida saqlandi. Smeta narxi avtomatik o‘zgartirilmadi.');
       await refreshSources();
     } catch (e) { setError(xatoMatni(e)); }
     finally { setBusy(false); setProgress(null); }
@@ -120,6 +134,7 @@ export default function KatalogManbaImport() {
         <h2 className="text-[14px] font-semibold text-text flex items-center gap-2"><UploadCloud size={16} className="text-accent" /> Katalog manbasini o‘qitish</h2>
         <p className="mt-1 text-[11px] text-text-mute max-w-3xl">Material katalogi, ish haqi va mashina-soat manbalari alohida dalil sifatida saqlanadi. Narx registri yoki smeta narxi operator tasdig‘isiz almashtirilmaydi.</p>
       </div>
+      {superadmin && <label className="inline-flex items-center gap-2 text-[12px] text-text"><input type="checkbox" checked={platforma} onChange={function (e) { setPlatforma(e.target.checked); }} />{t('Platforma katalogi — bir marta, barcha kompaniyalar uchun')}</label>}
       <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-white text-[12px] cursor-pointer">
         <FileSpreadsheet size={15} /> Fayllarni tahlil qilish
         <input className="hidden" type="file" multiple accept=".xls,.xlsx,.xlsm,.pdf" onChange={function (e) { return void analyze(Array.from(e.target.files || [])); }} />

@@ -55,6 +55,11 @@ describe('Yozish izolyatsiyasi (NTB ↔ Discover Invest)', () => {
     expect(egaQarori([NTB], { kompaniyalar: [DISCOVER], sorovlar: [] }, new Map())).toMatchObject({ ok: false });
   });
 
+  it('platforma katalogi (kompaniya_id NULL): p_id — RPC superadminlikni o‘zi tekshiradi (gateway rad etmaydi)', () => {
+    expect(yozishTalablari('platforma_narx_manba_yoz', { p_actor_id: 1, p_id: 5, p_qatorlar: [{ nom: 'x' }] })).toEqual({ ok: true, kompaniyalar: [], sorovlar: [] });
+    expect(yozishTalablari('platforma_narx_manba_bekor', { p_actor_id: 1, p_id: 5 })).toEqual({ ok: true, kompaniyalar: [], sorovlar: [] });
+  });
+
   it('resurs bog‘lash — tur bo‘yicha jadval, noma’lum tur rad', () => {
     expect(yozishTalablari('resurs_bog_saqla', { p_tur: 'kadr', p_resurs_id: 3, p_obyekt_id: 80 })).toMatchObject({ ok: true });
     expect(yozishTalablari('resurs_bog_saqla', { p_tur: 'x', p_resurs_id: 3 })).toMatchObject({ ok: false });

@@ -25,7 +25,10 @@ export type NarxManba = {
 };
 
 export type NarxManbaMalumot = Partial<Pick<NarxManba, 'tur' | 'nom' | 'raqam' | 'sana' | 'yetkazuvchi' | 'yetkazuvchi_inn' | 'region' | 'yil' | 'kvartal' | 'nds_holati' | 'fayl_document_id' | 'izoh'>>;
-export type NarxManbaQatorKirish = { kod?: string | null; nom: string; birlik?: string | null; narx?: number | null; izoh?: string | null };
+export type NarxManbaQatorKirish = {
+  kod?: string | null; nom: string; birlik?: string | null; narx?: number | null; izoh?: string | null;
+  hudud?: string | null; guruh?: string | null; yil?: number | null; kvartal?: number | null; narx_varianti?: string | null; nds_holati?: string | null;
+};
 export type NarxManbaQidiruvQatori = {
   id: number; manba_id: number; kompaniya_id: number; kod: string | null; nom: string;
   birlik: string | null; narx: number | null; izoh: string | null;
@@ -38,6 +41,8 @@ export type NarxTaklif = {
   manba_sana: string | null; yil: number | null; kvartal: number | null; region: string | null; yetkazuvchi: string | null;
   nds_holati: NarxManba['nds_holati']; manba_kod: string | null; manba_nom_qator: string; manba_birlik: string | null;
   manba_narx: number; moslik: 'kod' | 'nom_birlik';
+  /** Platforma katalogi (2026-10-02): zavod, NDS izohi ("НДС 12%"), narx varianti, mahsulot guruhi, platforma qatori. */
+  ishlab_chiqaruvchi?: string | null; nds_izoh?: string | null; narx_varianti?: string | null; manba_guruh?: string | null; platforma?: boolean | null;
 };
 
 export type NarxDalilHolat = {
@@ -48,6 +53,7 @@ export type NarxDalilHolat = {
   yil: number | null; kvartal: number | null; region: string | null; yetkazuvchi: string | null; yetkazuvchi_inn: string | null;
   nds_holati: NarxManba['nds_holati']; fayl_document_id: string | null;
   manba_kod: string | null; manba_nom_qator: string; manba_birlik: string | null;
+  ishlab_chiqaruvchi?: string | null; nds_izoh?: string | null; narx_varianti?: string | null; manba_guruh?: string | null; platforma?: boolean | null;
 };
 
 export function sbNarxManbalarOl(kompaniyaId: number) {
@@ -99,6 +105,29 @@ export async function narxManbaniYukla(kompaniyaId: number, malumot: NarxManbaMa
   jarayon?.(yuklandi, qatorlar.length);
   for (let i = bolak; i < qatorlar.length; i += bolak) {
     const r = await sbNarxManbaYoz({ kompaniyaId, malumot: {}, qatorlar: qatorlar.slice(i, i + bolak), rejim: 'qosh', id: birinchi.id, kutilganVersiya: versiya });
+    if (!r.ok) return { ...r, id: birinchi.id, error: `${yuklandi} ta qator yuklangandan keyin to'xtadi: ${r.error ?? r.sabab ?? ''}` };
+    versiya++;
+    yuklandi = Math.min(i + bolak, qatorlar.length);
+    jarayon?.(yuklandi, qatorlar.length);
+  }
+  return { ok: true, id: birinchi.id, qator_qoshildi: yuklandi };
+}
+
+/** Platforma katalogi manbalari (bir marta yuklanadi, hamma kompaniya ko'radi). */
+export type PlatformaNarxManba = { id: number; tur: NarxManbaTur; nom: string; yil: number | null; kvartal: number | null; region: string | null; nds_holati: NarxManba['nds_holati']; fayl_document_id: string | null; holat: string; versiya: number; qator_soni: number; yangilandi: string };
+export function sbPlatformaManbalarOl() {
+  return sbOqi<PlatformaNarxManba>({ jadval: 't2_platforma_narx_manba', filtr: 'holat=eq.faol', tartib: 'yangilandi.desc', limit: 1000 });
+}
+
+/** Superadmin: platforma katalogini bo'laklab yuklash (server superadminlikni tekshiradi). */
+export async function platformaManbaniYukla(malumot: NarxManbaMalumot, qatorlar: Array<Record<string, unknown>>, operationId: string, bolak = 5000, jarayon?: (yuklandi: number, jami: number) => void): Promise<Natija> {
+  const birinchi = await yoz({ amal: 'platforma_narx_manba_yoz', malumot, qatorlar: qatorlar.slice(0, bolak), rejim: 'almashtir', operation_id: operationId });
+  if (!birinchi.ok || !birinchi.id) return birinchi;
+  let versiya = 1;
+  let yuklandi = Math.min(bolak, qatorlar.length);
+  jarayon?.(yuklandi, qatorlar.length);
+  for (let i = bolak; i < qatorlar.length; i += bolak) {
+    const r = await yoz({ amal: 'platforma_narx_manba_yoz', malumot: {}, qatorlar: qatorlar.slice(i, i + bolak), rejim: 'qosh', id: birinchi.id, kutilgan_versiya: versiya });
     if (!r.ok) return { ...r, id: birinchi.id, error: `${yuklandi} ta qator yuklangandan keyin to'xtadi: ${r.error ?? r.sabab ?? ''}` };
     versiya++;
     yuklandi = Math.min(i + bolak, qatorlar.length);

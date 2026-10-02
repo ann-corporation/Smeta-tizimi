@@ -15,6 +15,7 @@ import {
 } from '../../api/t2-narx-dalil';
 import { narxTakliflari } from '../../lib/narx-dalil/taklif';
 import { manbaRekviziti, narxAsoslashXlsx, type AsoslashResurs } from '../../lib/narx-asoslash-export';
+import { narxIzohi } from '../../lib/narx-dalil/izoh';
 import { useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
 
@@ -137,8 +138,10 @@ export default function NarxDalil() {
                       <td className="px-2 py-1.5 text-right tabular-nums">{pul(n.smeta_narx)}</td>
                       <td className="px-2 py-1.5">
                         <select className="w-full border rounded px-1 py-0.5" value={t.manba_qator_id} onChange={(e) => belgila(n.qator_id, Number(e.target.value))}>
-                          {nomzodlar.map((x) => <option key={x.manba_qator_id} value={x.manba_qator_id}>{NARX_MANBA_TUR_NOMI[x.manba_tur]}: {manbaRekviziti({ manba_nom: x.manba_nom, manba_raqam: x.manba_raqam, manba_sana: x.manba_sana, yetkazuvchi: x.yetkazuvchi, yetkazuvchi_inn: null, yil: x.yil, kvartal: x.kvartal, region: x.region, nds_holati: x.nds_holati })} — {pul(x.manba_narx)}</option>)}
+                          {nomzodlar.map((x) => <option key={x.manba_qator_id} value={x.manba_qator_id}>{NARX_MANBA_TUR_NOMI[x.manba_tur]}: {manbaRekviziti({ manba_nom: x.manba_nom, manba_raqam: x.manba_raqam, manba_sana: x.manba_sana, yetkazuvchi: x.yetkazuvchi, yetkazuvchi_inn: null, yil: x.yil, kvartal: x.kvartal, region: x.region, nds_holati: x.nds_holati, ishlab_chiqaruvchi: x.ishlab_chiqaruvchi, nds_izoh: x.nds_izoh })} — {pul(x.manba_narx)}</option>)}
                         </select>
+                        {/* Egasi 2026-10-02: narx qayerdan — "katalog 2026 2-kv · Toshkent sh. · zavod · NDS siz". */}
+                        <div className="mt-0.5 text-[10px] text-text-dim">{narxIzohi(t)}</div>
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums">{pul(t.manba_narx)}</td>
                       <td className={'px-2 py-1.5 text-right tabular-nums ' + (ogish != null && Math.abs(ogish) > 10 ? 'text-warning font-semibold' : '')}>{ogish == null ? '—' : `${ogish > 0 ? '+' : ''}${ogish}%`}</td>

@@ -242,5 +242,9 @@
   "Ko‘rish": "Просмотр",
   "Yuklab olish": "Скачать",
   "Hech narsa topilmadi": "Ничего не найдено",
-  "Bu papka bo‘sh": "Папка пуста"
+  "Bu papka bo‘sh": "Папка пуста",
+  "Platforma katalogi (barcha kompaniyalar uchun): ": "Каталог платформы (для всех компаний): ",
+  "Platforma katalogi — bir marta, barcha kompaniyalar uchun": "Каталог платформы — один раз, для всех компаний",
+  "Google bilan kirish — asosiy manzilda": "Войти через Google — на основном адресе",
+  "Google bilan kirish faqat asosiy manzilda ishlaydi": "Вход через Google работает только на основном адресе"
 }

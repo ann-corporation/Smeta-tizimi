@@ -48,7 +48,9 @@ export const P_ID_JADVAL: Readonly<Record<string, string>> = {
   kompaniya_yangila: 't2_kompaniya',
 };
 /** `p_id` ni o'zi a'zolik bilan tekshiradigan (kompaniya + actor bilan chaqiriladigan) amallar. */
-const P_ID_OZI_TEKSHIRADI = new Set(['mindmap_tugun_ochir', 'resurs_yangila_v2', 'resurs_bekor_v2']);
+const P_ID_OZI_TEKSHIRADI = new Set(['mindmap_tugun_ochir', 'resurs_yangila_v2', 'resurs_bekor_v2',
+  /* platforma katalogi (kompaniya_id NULL) — RPC superadminlikni tekshiradi (_t2_boshqaruv_tekshir). */
+  'platforma_narx_manba_yoz', 'platforma_narx_manba_bekor']);
 /** Korzinka: `p_jadval` + `p_id` (jadval shlyuzda oq ro'yxatdan). */
 const KORZINKA = new Set(['korzinkaga_tashlash', 'korzinkadan_tiklash', 'butunlay_ochirish']);
 /** `p_kompaniya_id` — maqsad kompaniya (superadmin to'ldiradi/obuna beradi; RPC superadminligini tekshiradi). */

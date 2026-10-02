@@ -190,6 +190,7 @@ export const GENERATED_SITE_MAP = {
     "t2_narx_manba_qator",
     "t2_narx_taklif",
     "t2_narx_dalil_holat",
+    "t2_platforma_narx_manba",
     "t2_korzinka",
     "t2_audit_reestr",
     "t2_obyekt_hujjat_royxat",
@@ -524,6 +525,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "narx_manba_bekor",
       "rpc": "t2_narx_manba_bekor_v1"
+    },
+    {
+      "amal": "platforma_narx_manba_yoz",
+      "rpc": "t2_platforma_narx_manba_yoz_v1"
+    },
+    {
+      "amal": "platforma_narx_manba_bekor",
+      "rpc": "t2_platforma_narx_manba_bekor_v1"
     },
     {
       "amal": "narx_dalil_bogla",

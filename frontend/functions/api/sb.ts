@@ -71,6 +71,8 @@ const RUXSAT_JADVALLAR = new Set([
   't2_nakrutka_podval_royxat',
   /* Narx manbalari va dalil (2026-10-01) */
   't2_narx_manba_royxat', 't2_narx_manba_qator', 't2_narx_taklif', 't2_narx_dalil_holat',
+  /* Platforma katalogi (egasi 2026-10-02: bir marta, hamma kompaniya uchun) — faqat platforma qatorlari. */
+  't2_platforma_narx_manba',
   /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval
      birlashgan VIEW — `holat='bekor'`, is_deleted EMAS). */
   't2_korzinka',

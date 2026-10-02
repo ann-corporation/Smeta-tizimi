@@ -45,14 +45,17 @@ const katKalit = (k: string | null) => { const x = (k ?? '').trim().toUpperCase(
 const NDS_MATNI = { nds_siz: 'без НДС', nds_bilan: 'с НДС', nomalum: '' } as const;
 
 /** Hujjat rekvizitlari matni: «№ 125 от 12.08.2026, ООО «Бетон» (ИНН 301234567), без НДС» / «3 кв. 2026, Навоийская обл.». */
-export function manbaRekviziti(d: Pick<NarxDalilHolat, 'manba_nom' | 'manba_raqam' | 'manba_sana' | 'yetkazuvchi' | 'yetkazuvchi_inn' | 'yil' | 'kvartal' | 'region' | 'nds_holati'>): string {
+export function manbaRekviziti(d: Pick<NarxDalilHolat, 'manba_nom' | 'manba_raqam' | 'manba_sana' | 'yetkazuvchi' | 'yetkazuvchi_inn' | 'yil' | 'kvartal' | 'region' | 'nds_holati'> & Partial<Pick<NarxDalilHolat, 'ishlab_chiqaruvchi' | 'nds_izoh'>>): string {
   const q: string[] = [d.manba_nom];
   const nomer = [d.manba_raqam ? `№ ${d.manba_raqam}` : '', d.manba_sana ? `от ${d.manba_sana.split('-').reverse().join('.')}` : ''].filter(Boolean).join(' ');
   if (nomer) q.push(nomer);
   if (d.kvartal && d.yil) q.push(`${d.kvartal} кв. ${d.yil}`); else if (d.yil) q.push(`${d.yil} г.`);
   if (d.region) q.push(d.region);
   if (d.yetkazuvchi) q.push(d.yetkazuvchi + (d.yetkazuvchi_inn ? ` (ИНН ${d.yetkazuvchi_inn})` : ''));
+  // Platforma katalogi (2026-10-02): ishlab chiqaruvchi zavod — "цена завода ООО «…»".
+  if (d.ishlab_chiqaruvchi && d.ishlab_chiqaruvchi !== d.yetkazuvchi) q.push(`производитель: ${d.ishlab_chiqaruvchi}`);
   if (NDS_MATNI[d.nds_holati]) q.push(NDS_MATNI[d.nds_holati]);
+  else if (d.nds_izoh) q.push(d.nds_izoh);
   return q.join(', ');
 }
 

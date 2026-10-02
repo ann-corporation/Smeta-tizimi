@@ -242,5 +242,9 @@
   "Ko‘rish": "View",
   "Yuklab olish": "Download",
   "Hech narsa topilmadi": "Nothing found",
-  "Bu papka bo‘sh": "This folder is empty"
+  "Bu papka bo‘sh": "This folder is empty",
+  "Platforma katalogi (barcha kompaniyalar uchun): ": "Platform catalog (for all companies): ",
+  "Platforma katalogi — bir marta, barcha kompaniyalar uchun": "Platform catalog — once, for all companies",
+  "Google bilan kirish — asosiy manzilda": "Sign in with Google — on the main address",
+  "Google bilan kirish faqat asosiy manzilda ishlaydi": "Google sign-in works only on the main address"
 }

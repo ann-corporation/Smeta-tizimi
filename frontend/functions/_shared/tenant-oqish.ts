@@ -54,6 +54,8 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   t2_loyiha_qatnashchilar_royxat: { tur: 'ota', ustun: 'loyiha_id', otaJadval: 't2_loyiha' },
   t2_viborka_qabul: { tur: 'ota', ustun: 'viborka_id', otaJadval: 't2_viborka' },
   t2_hujjat_turi: { tur: 'global' },
+  /* Platforma katalogi ro'yxati — faqat kompaniya_id IS NULL qatorlar (ko'rinish shuni beradi); hamma uchun umumiy. */
+  t2_platforma_narx_manba: { tur: 'global' },
 };
 
 /** PostgREST filtri — faqat oddiy `ustun=op.qiymat` shakllari (`or=`, embedding va h.k. yo'q). */

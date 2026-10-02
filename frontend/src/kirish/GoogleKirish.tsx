@@ -28,6 +28,11 @@ function gsiYukla(): Promise<void> {
   return skript;
 }
 
+/** Joriy sahifa manzili Google'da ro'yxatdan o'tgan origin'lardan birimi (aks holda Google "origin_mismatch" beradi). */
+export function originRuxsatmi(joriy: string, originlar: readonly string[]): boolean {
+  return originlar.some((o) => o.toLowerCase() === joriy.toLowerCase());
+}
+
 export type GoogleNatija = { ok: true; rol: string; yangi: boolean; demo: boolean } | { ok: false; xato: string };
 
 export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
@@ -37,12 +42,20 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
 }) {
   const joy = useRef<HTMLDivElement>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+  /** Ruxsat etilmagan manzil (preview deploy, boshqa domen): Google tugmasi o'rniga asosiy manzilga o'tish. */
+  const [asosiy, setAsosiy] = useState<string | null>(null);
   const natijaRef = useRef(onNatija); natijaRef.current = onNatija;
   const boshRef = useRef(onBoshlandi); boshRef.current = onBoshlandi;
 
   useEffect(() => {
     let tirik = true;
-    fetch('/api/kirish-google').then((r) => r.json()).then((d: { clientId?: string | null }) => { if (tirik && d.clientId) setClientId(d.clientId); }).catch(() => undefined);
+    fetch('/api/kirish-google').then((r) => r.json()).then((d: { clientId?: string | null; originlar?: string[] }) => {
+      if (!tirik || !d.clientId) return;
+      const originlar = Array.isArray(d.originlar) ? d.originlar : [];
+      // Ro'yxat berilmagan (eski server) — avvalgidek; berilgan va mos emas — Google'ga yubormaymiz (origin_mismatch bo'lardi).
+      if (originlar.length && !originRuxsatmi(window.location.origin, originlar)) { setAsosiy(originlar[0]); return; }
+      setClientId(d.clientId);
+    }).catch(() => undefined);
     return () => { tirik = false; };
   }, []);
 
@@ -69,6 +82,16 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
     return () => { tirik = false; };
   }, [clientId, matn]);
 
+  if (asosiy) {
+    return (
+      <div className="flex flex-col gap-3">
+        <a href={asosiy + '/kirish'} className="w-full rounded-full bg-black px-4 py-2.5 text-center text-[14px] font-medium text-white ring-1 ring-white/15 hover:bg-zinc-900" data-testid="google-asosiy">
+          {t('Google bilan kirish — asosiy manzilda')}
+        </a>
+        <div className="text-center text-[11px] text-zinc-500">{t('Google bilan kirish faqat asosiy manzilda ishlaydi')}</div>
+      </div>
+    );
+  }
   if (!clientId) return null;
   return (
     <div className="flex flex-col gap-3">

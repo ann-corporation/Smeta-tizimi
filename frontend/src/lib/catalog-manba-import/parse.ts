@@ -369,6 +369,18 @@ export function mashinaSoatTahliliniCatalogga(tahlil: MashinaSoatMatnTahlili): C
   };
 }
 
+/** API qatori. Egasi (2026-10-02): "katalog 2026 2-kv Toshkent sh. narxlaridan TTZ zavodidan NDS siz narxi olindi" —
+ *  shu izoh uchun hudud, yil/kvartal, narx varianti, NDS holati va zavod sarlavhasi (guruh) alohida maydonlarda.
+ *  Zavod nomi va NDS izohini server guruh dan o'zi ajratadi (_t2_katalog_zavod). */
 export function catalogQatorlariniApiFormatga(qatorlar: CatalogQator[]) {
-  return qatorlar.map(q => ({ kod: q.kod, nom: q.nom, birlik: q.birlik, narx: q.narx, izoh: JSON.stringify({ sourceKey: q.sourceKey, varaqqa: q.varaqqa, manbaQatori: q.manbaQatori, hudud: q.hudud, davr: q.davr, narxVarianti: q.narxVarianti, valyuta: q.valyuta, originalIzoh: q.izoh, warnings: q.ogohlantirishlar }) }));
+  return qatorlar.map(q => {
+    let guruh: string | null = null;
+    try { const j = JSON.parse(q.izoh || '{}') as { guruh?: unknown }; guruh = typeof j.guruh === 'string' && j.guruh.trim() ? j.guruh : null; } catch { /* izoh JSON emas */ }
+    return {
+      kod: q.kod, nom: q.nom, birlik: q.birlik, narx: q.narx,
+      hudud: q.hudud, guruh, yil: q.davr.yil, kvartal: q.davr.kvartal, narx_varianti: q.narxVarianti,
+      nds_holati: q.narxVarianti === 'nds_siz' ? 'nds_siz' : q.narxVarianti === 'nds_bilan' ? 'nds_bilan' : null,
+      izoh: JSON.stringify({ sourceKey: q.sourceKey, varaqqa: q.varaqqa, manbaQatori: q.manbaQatori, hudud: q.hudud, davr: q.davr, narxVarianti: q.narxVarianti, valyuta: q.valyuta, originalIzoh: q.izoh, warnings: q.ogohlantirishlar }),
+    };
+  });
 }

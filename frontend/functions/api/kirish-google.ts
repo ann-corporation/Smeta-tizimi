@@ -52,8 +52,20 @@ export async function googleTokenTekshir(token: string, clientId: string, kalitl
   return { ok: true, p: { email: p.email.toLowerCase(), ism: typeof p.name === 'string' ? p.name : '', sub: p.sub } };
 }
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) =>
-  Response.json({ ok: true, clientId: ctx.env.GOOGLE_CLIENT_ID || STANDART_CLIENT_ID });
+/* Egasi (2026-10-02): "Error 400: origin_mismatch — production'da chiqsa oqibati jiddiy". Google faqat OAuth
+ * mijozida ro'yxatdan o'tgan JavaScript origin'larda ishlaydi va wildcard qabul qilmaydi — Cloudflare har deploy uchun
+ * beradigan preview manzillar (xxxx.smeta-tizimi.pages.dev) HECH QACHON ishlamaydi. Shuning uchun ruxsat etilgan
+ * origin'lar ro'yxati sahifaga beriladi: boshqa manzilda Google tugmasi chizilmaydi, foydalanuvchi asosiy manzilga
+ * yo'naltiriladi. Ro'yxat Google Cloud Console dagi "Authorized JavaScript origins" bilan AYNAN bir xil bo'lishi kerak
+ * (env GOOGLE_ORIGINS, vergul bilan; sukut — asosiy prod manzil). */
+const STANDART_ORIGINLAR = ['https://smeta-tizimi.pages.dev'];
+export function googleOriginlar(env: { GOOGLE_ORIGINS?: string }): string[] {
+  const r = String(env.GOOGLE_ORIGINS || '').split(',').map((s) => s.trim().replace(/\/+$/, '')).filter((s) => /^https?:\/\/[^/\s]+$/.test(s));
+  return r.length ? r : STANDART_ORIGINLAR;
+}
+
+export const onRequestGet: PagesFunction<Env & { GOOGLE_ORIGINS?: string }> = async (ctx) =>
+  Response.json({ ok: true, clientId: ctx.env.GOOGLE_CLIENT_ID || STANDART_CLIENT_ID, originlar: googleOriginlar(ctx.env) });
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const { SUPABASE_URL, SUPABASE_KEY } = ctx.env;
