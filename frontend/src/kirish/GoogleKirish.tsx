@@ -71,7 +71,8 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
   if (!clientId) return null;
   return (
     <div className="flex flex-col gap-3">
-      <div ref={joy} className="w-full flex justify-center min-h-[44px]" data-testid="google-kirish" />
+      {/* colorScheme: 'normal' — qorong'i sahifada Google iframe'i atrofidagi oq fon chiqmasligi uchun. */}
+      <div ref={joy} className="w-full flex justify-center min-h-[44px]" style={{ colorScheme: 'normal' }} data-testid="google-kirish" />
       <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-zinc-500">
         <span className="h-px flex-1 bg-white/10" />yoki<span className="h-px flex-1 bg-white/10" />
       </div>
