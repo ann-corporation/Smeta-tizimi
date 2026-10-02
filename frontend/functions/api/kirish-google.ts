@@ -14,8 +14,9 @@ type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string
 type Jwk = JsonWebKey & { kid?: string };
 
 /* Client ID MAXFIY EMAS (har bir foydalanuvchi brauzerida ko'rinadi) — env bilan almashtirish mumkin.
- * Google Cloud: loyiha studious-matrix-427110-k9, client "Smeta tizimi kirish", origin https://smeta-tizimi.pages.dev. */
-const STANDART_CLIENT_ID = '117465515912-at2e7g7n3dcham5u43f6ld4510n5ij2p.apps.googleusercontent.com';
+ * Google Cloud: loyiha studious-matrix-427110-k9, client "Smeta tizimi" (Cloudflare GOOGLE_CLIENT_ID ham shu),
+ * origin https://smeta-tizimi.pages.dev. */
+const STANDART_CLIENT_ID = '117465515912-avm12uflc7m9p7m5ioid8v998j42p2ok.apps.googleusercontent.com';
 
 const b64u = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=')), (c) => c.charCodeAt(0));
 const jsonB64u = (s: string) => JSON.parse(new TextDecoder().decode(b64u(s)));
