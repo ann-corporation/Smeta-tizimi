@@ -203,5 +203,7 @@
   "Ф-2 Excel": "Ф-2 Excel",
   "{n} ta qator smetada topilmadi — hujjatga kirmadi": "{n} строк не найдено в смете — в документ не вошли",
   "Bu hujjatda chiqariladigan qator yo‘q.": "В этом документе нет строк для вывода.",
-  "Ф-2 hujjatini yaratib bo‘lmadi.": "Не удалось сформировать документ Ф-2."
+  "Ф-2 hujjatini yaratib bo‘lmadi.": "Не удалось сформировать документ Ф-2.",
+  "Ф-2 hujjati yagona shaklda — F2 tarixida (har tasdiqlangan akt uchun)": "Документ Ф-2 — единая форма, в истории Ф-2 (для каждого утверждённого акта)",
+  "Ф-2 — F2 tarixida": "Ф-2 — в истории Ф-2"
 }

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { NakopitelniyQator } from '../api/t2-nakopitelniy';
 import { nakopitelniyJamilar, nakopitelniyVedomostHujjat, HujjatToliqEmasXato, NDS_SUKUT_FOIZ } from './nakopitelniy-vedomost-export';
 import { yaxlit2 as yaxlit } from './hujjat-yozuvchi';
-import { f2AktHujjat } from './f2-akt-tn-export';
 import { hujjatTekshir, imzoRollariBormi } from './hujjat-yozuvchi';
 import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 
@@ -123,39 +122,6 @@ describe('Накопительная ведомость — hujjat standarti', (
 
   it('qirqilgan ro‘yxatdan hujjat yasalmaydi (chala hujjat — rasmiy emas)', () => {
     expect(() => nakopitelniyVedomostHujjat(ROWS, { obyektNom: 'X', davr: '2026-09', truncated: true })).toThrow(HujjatToliqEmasXato);
-    expect(() => f2AktHujjat(ROWS, { obyektNom: 'X', davr: '2026-09', truncated: true })).toThrow(HujjatToliqEmasXato);
-  });
-});
-
-describe('АКТ Ф-2 — hujjat standarti', () => {
-  it('ikki narx: общая (прямые) va к оплате; podvalda НДС 12 % va ВСЕГО К ОПЛАТЕ', () => {
-    const r = f2AktHujjat(ROWS, { obyektNom: 'Сунъий кўл', davr: '2026-09-01', ndsFoiz: 12, shartnoma: '№ 15/2026 от 01.02.2026', sana: '2026-09-30' });
-    namunaSaqla('f2_akt_nds.xlsx', r.bytes);
-    expect(r.jamiSumma).toBe(4_970_000.5);
-    // Foizlar berilmagan (0 %) — к оплате = прямые + НДС 12 %.
-    expect(r.ndsSumma).toBe(596_400.06);
-    expect(r.jamiNds).toBeCloseTo(5_566_400.56, 6);
-    expect(Math.abs((r.kOplata ?? 0) - (r.jamiNds ?? 0))).toBeLessThan(0.05);
-    expect(r.faylNomi).toBe('Сунъий кўл_АКТ_Ф-2_2026-09.xlsx');
-    const t = hujjatTekshir(r.bytes, { ruxsat: [/^Сунъий кўл$/] });
-    expect(t.taqiqlangan).toEqual([]);
-    expect(t.dollarFormulalar).toEqual([]);
-    expect(t.keshsizFormulalar).toEqual([]);
-    expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР']).yoq).toEqual([]);
-    expect(t.matnlar).toEqual(expect.arrayContaining(['АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2)', 'ВСЕГО ПО АКТУ (прямые затраты)', 'НДС, %', 'ВСЕГО К ОПЛАТЕ (с накладными расходами и НДС)', '№ 15/2026 от 01.02.2026', '30.09.2026']));
-    const v = t.varaqlar[0];
-    expect(v.a4 && v.bittaEnli && v.yonalish === 'portrait').toBe(true);
-    expect(v.kataklar.some((k) => /^ROUND\(H\d+\*G\d+,2\)$/.test(k.f ?? ''))).toBe(true);
-  });
-
-  it('nakrutka foizlari bilan: к оплате > прямые, Σ qatorlar = podval ВСЕГО', () => {
-    const nakrutka = { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, ПРОЧИЕ_ПОДРЯДЧИК: 18, СТРАХОВАНИЕ: 0.32, НДС: 12 };
-    const r = f2AktHujjat(ROWS, { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12, nakrutka });
-    expect(r.jamiNds!).toBeGreaterThan(r.jamiSumma * 1.3);
-    expect(Math.abs((r.kOplata ?? 0) - r.jamiNds!)).toBeLessThan(0.05);
-    const t = hujjatTekshir(r.bytes);
-    expect(t.keshsizFormulalar).toEqual([]);
-    expect(t.matnlar.some((m) => m.includes('не заданы'))).toBe(false);
   });
 });
 

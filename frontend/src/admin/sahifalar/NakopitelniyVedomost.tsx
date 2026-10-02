@@ -8,7 +8,7 @@ import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../..
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, davrMatni } from '../../lib/nakopitelniy-vedomost-export';
-import { f2AktHujjat } from '../../lib/f2-akt-tn-export';
+import { t } from '../../i18n/til';
 import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
@@ -377,20 +377,6 @@ function Sessiya({ companyId }: { companyId: number }) {
     } catch (e) { setXato(e instanceof HujjatToliqEmasXato ? 'Hujjat to‘liq emas — eksport bloklandi.' : 'Excel fayli tuzilmadi.'); }
   };
 
-  /** Rasmiy АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2) — TN Akt-2 shakli. */
-  const aktEksportQil = async (korish = false) => {
-    setXato('');
-    try {
-      const rows = await toliqQatorlar();
-      if (!rows) return;
-      const h = f2AktHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), nakrutka, podval });
-      if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
-    } catch (e) {
-      const m = e instanceof Error ? e.message : '';
-      setXato(m.startsWith('F2_AKT_BOSH') ? 'Tanlangan davrda tasdiqlangan F2 qatori yo‘q — akt yasalmadi.' : 'Ф2 akt fayli tuzilmadi.');
-    }
-  };
-
   return (
     <div className="space-y-3 p-1">
       {korinish.oyna}
@@ -435,16 +421,11 @@ function Sessiya({ companyId }: { companyId: number }) {
           <button type="button" onClick={() => void eksportQil(true)} disabled={eksportBusy} title="Накопительная ведомость — saytda hujjatdagiday ko‘rish" aria-label="Nakopitelniy ko‘rish"
             className="h-8 px-2 inline-flex items-center rounded-lg border text-sm hover:border-accent/50"><Eye size={14} /></button>
         )}
-        {qatorlar.length > 0 && (
-          <button type="button" onClick={() => void aktEksportQil(false)} disabled={eksportBusy}
-            title="Mijoz/bankka topshiriladigan rasmiy shakl (TN Akt-2)"
+        {qatorlar.length > 0 && objectId && (
+          <a href={`/admin/f2-tarix?obyekt=${objectId}`} title={t('Ф-2 hujjati yagona shaklda — F2 tarixida (har tasdiqlangan akt uchun)')}
             className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-accent/50 text-accent text-sm hover:bg-accent/10">
-            <Download size={14} /> Rasmiy Ф2 hujjati
-          </button>
-        )}
-        {qatorlar.length > 0 && (
-          <button type="button" onClick={() => void aktEksportQil(true)} disabled={eksportBusy} title="Акт Ф-2 — saytda hujjatdagiday ko‘rish" aria-label="Ф2 akt ko‘rish"
-            className="h-8 px-2 inline-flex items-center rounded-lg border text-sm hover:border-accent/50"><Eye size={14} /></button>
+            <Download size={14} /> {t('Ф-2 — F2 tarixida')}
+          </a>
         )}
         {qatorlar.length > 0 && !!davr && (
           <button type="button" onClick={() => void forma3EksportQil(false)} disabled={eksportBusy || forma3Busy}

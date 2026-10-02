@@ -14,7 +14,6 @@ const rollback = read('supabase', 'migrations', '20261011120000_t2_workbench_pre
 const acceptance = read('supabase', 'migrations', '20261011120000_t2_workbench_preserve_null_v1.acceptance.sql');
 const adapter = read('frontend', 'src', 'api', 't2-document-control.ts');
 const calculation = read('frontend', 'src', 'lib', 'construction-document-control', 'calculation.ts');
-const native = read('frontend', 'src', 'lib', 'f2-native-export.ts');
 const fail = (message) => { throw new assert.AssertionError({ message }); };
 let checks = 0;
 const must = (message, condition) => { if (!condition) fail(message); checks++; };
@@ -29,5 +28,4 @@ must('acceptance has a real NULL fixture and PASS sentinel', /hajm is null or q\
 must('client adapter preserves nullable baseline facts', /nullableNumber/.test(adapter) && /baselineQuantity: nullableNumber\(l\.baselineQuantity\)/.test(adapter) && /baselineReferencePrice: nullableNumber\(l\.baselineReferencePrice\)/.test(adapter));
 must('pure engine keeps unknown entitlement/value as null', /approvedEntitlementQuantity = line\.baselineQuantity === null \? null/.test(calculation) && /line\.baselineReferencePrice === null \? null/.test(calculation));
 must('pure engine surfaces explicit missing baseline warnings', /MISSING_BASELINE_QUANTITY/.test(calculation) && /MISSING_BASELINE_PRICE/.test(calculation));
-must('legacy native F2 adapter does not convert missing baseline to zero', /nullableNumber\(row\.smeta_hajm\)/.test(native) && /nullableNumber\(row\.smeta_narx\)/.test(native));
 console.log(`✅ Workbench NULL semantics: ${checks} checks passed`);

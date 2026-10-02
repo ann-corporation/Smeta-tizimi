@@ -164,19 +164,16 @@ for (const k of RANG_TARTIB) if (MAVZU_HEX.rangsiz[k] === '') MAVZU_HEX.rangsiz[
 /** Hujjat turlari (egasi: "tizimning o'zida har hujjat dizaynini tanlash mumkin bo'lsin"). Sozlamalarda shu ro'yxat. */
 export const HUJJAT_TURLARI = {
   f2: 'Акт Ф-2 (форма № 2) va resurs vedomosti',
-  f2_qoralama: 'Проект акта Ф-2',
-  f2_tn: 'Акт Ф-2 (ТН shakli)',
   f3: 'Справка Ф-3 (форма № 3)',
   nakopitelniy: 'Накопительная ведомость',
   slichitelniy: 'Сличительная ведомость',
   ostatka: 'Остатка (qoldiq) ведомости',
-  resurs_vedomost: 'Ведомость ресурсов',
+  resurs_vedomost: 'Ведомость ресурсов (по смете объекта)',
   m29: 'М-29',
   lrv_sverka: 'LRV ↔ RES сверка',
   ijro_reestr: 'Ijro hujjatlari reestri',
   narx_asoslash: 'Обоснование цен',
   oferta: 'Tender oferta',
-  pto: 'PTO hujjatlari (Ф-2/Ф-3/М-29/…)',
 } as const;
 export type HujjatTuri = keyof typeof HUJJAT_TURLARI;
 const MAVZU_KALIT = 'hujjat-mavzu:';
