@@ -10,7 +10,10 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbT2AktYaratV2, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, type QatorHolat } from '../../api/t2-fakt';
-import { f2QoralamaHujjat } from '../../lib/f2-native-export';
+import { f2Hujjat } from '../../lib/f2-hujjat';
+import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
+import { imzoNomlariTomonlardan } from '../../lib/shartnoma-liniya';
+import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
@@ -53,6 +56,8 @@ export function F2TayyorlashNative() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [aosrsiz, setAosrsiz] = useState<AosrCoverage[]>([]);
+  /** Shartnoma liniyasidan: imzolovchilar (buyurtmachi, pudratchi, subpudratchi, texnadzor) va shartnoma raqami. */
+  const [avto, setAvto] = useState<{ imzo: ImzoNomlar; shartnoma: string | null }>({ imzo: {}, shartnoma: null });
   const operationId = useRef(yangiOperationId());
   const obyektId = Number(params.get('obyekt'));
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
@@ -83,6 +88,21 @@ export function F2TayyorlashNative() {
     finally { setLoading(false); }
   }, [obyektId, validId]);
   useEffect(() => { void yuklash(); }, [yuklash]);
+
+  /* Egasi (2026-10-02): imzolovchilarni tizim qo'yadi — shartnoma tomonlaridan (yumshoq: panelda qo'lda o'zgartirsa, o'sha ustun). */
+  useEffect(() => {
+    if (!joriy?.id || !validId) { setAvto({ imzo: {}, shartnoma: null }); return; }
+    let bekor = false;
+    void shartnomaLiniyaOl(joriy.id).then((r) => {
+      if (bekor || !r.ok) return;
+      const ob = r.natija.obyektlar.find((o) => o.id === obyektId);
+      const asosiy = r.natija.shartnomalar.find((s) => s.id === ob?.asosiy_shartnoma_id);
+      const qoshimcha = r.natija.shartnomalar.filter((s) => !s.asosiy && s.obyektlar.includes(obyektId));
+      const imzo = imzoNomlariTomonlardan([...(asosiy?.tomonlar ?? []), ...qoshimcha.flatMap((s) => s.tomonlar)]);
+      setAvto({ imzo, shartnoma: asosiy ? `№ ${asosiy.raqam}${asosiy.nom ? ` — ${asosiy.nom}` : ''}` : null });
+    }).catch(() => undefined);
+    return () => { bekor = true; };
+  }, [joriy?.id, obyektId, validId]);
 
   const bolimlar = useMemo(() => f2Qur(rows, holat), [rows, holat]);
   const qatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
@@ -145,8 +165,11 @@ export function F2TayyorlashNative() {
       const stavka = ndsFoiz.trim() === '' ? null : Number(ndsFoiz.replace(',', '.'));
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
-      const h = f2QoralamaHujjat(holat, f2Yuk(qatorlar, raqam), {
-        obyektNom: object.nom, davr: oy, imzo: tomonlar, ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
+      // Qo'lda kiritilgan imzo (panel) — shartnomadagidan ustun; bo'sh maydon — shartnomadagi qoladi.
+      const qolda = Object.fromEntries(Object.entries(tomonlar).filter(([, x]) => typeof x === 'string' && x.trim())) as ImzoNomlar;
+      const h = f2Hujjat(bolimlar, qatorlar, {
+        obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
+        ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
         nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
       });
       if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
@@ -271,7 +294,10 @@ export function F2TayyorlashNative() {
             </div>
           </section>
         </div>
-        <section className="flex flex-wrap items-start gap-3"><div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div><label className="text-[12px] text-text-dim">QQS (НДС), % — hujjat oxirida<input aria-label="QQS stavkasi" value={ndsFoiz} onChange={(event) => setNdsFoiz(event.target.value)} placeholder="bo‘sh — QQS yo‘q" inputMode="decimal" className="ml-2 w-32 rounded border border-border bg-bg px-2 py-1" /></label></section>
+        <section className="flex flex-wrap items-start gap-3"><div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} />
+          <p className="mt-1 text-[11px] text-text-mute">{avto.shartnoma || avto.imzo.zakazchik || avto.imzo.pudratchi
+            ? <>Shartnomadan avtomatik: <b className="text-text-dim">{[avto.shartnoma, avto.imzo.zakazchik, avto.imzo.pudratchi, avto.imzo.subpudratchi].filter(Boolean).join(' · ')}</b> (panelda qo‘lda yozilgani ustun turadi)</>
+            : <>Obyekt asosiy shartnomaga biriktirilmagan — imzolovchilarni <a href="/admin/shartnoma-liniya" className="text-accent underline">Shartnoma liniyasi</a>da bog‘lang yoki panelda yozing.</>}</p></div><label className="text-[12px] text-text-dim">QQS (НДС), % — hujjat oxirida<input aria-label="QQS stavkasi" value={ndsFoiz} onChange={(event) => setNdsFoiz(event.target.value)} placeholder="bo‘sh — QQS yo‘q" inputMode="decimal" className="ml-2 w-32 rounded border border-border bg-bg px-2 py-1" /></label></section>
         <section aria-label="F2 jami" className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-surface/95 px-4 py-2.5 shadow-2xl backdrop-blur">
           <span className="text-[12px] text-text-dim">Tanlangan qatorlar: <b className="text-text">{jami.qator}</b> ({jami.ish} ish)</span>
           {Object.entries(jami.kat).map(([kat, s]) => <span key={kat} className="text-[11px] text-text-dim">{kat}: <b className="tabular-nums text-text"><FmtN val={s} /></b></span>)}

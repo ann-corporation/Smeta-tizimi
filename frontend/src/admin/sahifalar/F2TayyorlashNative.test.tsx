@@ -32,6 +32,16 @@ vi.mock('../../api/supabase', () => ({
 }));
 vi.mock('../../api/t2-fakt', () => ({ sbQatorHolatOl: vi.fn(async () => ({ ok: true, qatorlar: holat })) }));
 vi.mock('../../api/t2-aosr', () => ({ sbAosrCoverageOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
+vi.mock('../../api/t2-shartnoma-liniya', () => ({ shartnomaLiniyaOl: vi.fn(async () => ({ ok: true, natija: {
+  loyihalar: [], rollar: [], turlar: [],
+  obyektlar: [{ id: 8, nom: 'Ko‘l', loyiha_id: 1, asosiy_shartnoma_id: 45 }],
+  shartnomalar: [
+    { id: 45, loyiha_id: 1, raqam: '45', nom: 'Bosh pudrat', turi: null, asosiy: true, holat: 'faol', summa_bez_nds: null, nds: null, jami_nds_bilan: null, izoh: null, versiya: 1,
+      tomonlar: [{ rol: 'Buyurtmachi', nom: 'Дирекция', inn: null }, { rol: 'Pudratchi', nom: 'ООО «NTB»', inn: null }], obyektlar: [8] },
+    { id: 46, loyiha_id: 1, raqam: '46', nom: 'Subpudrat', turi: 'Subpudrat', asosiy: false, holat: 'faol', summa_bez_nds: null, nds: null, jami_nds_bilan: null, izoh: null, versiya: 1,
+      tomonlar: [{ rol: 'Subpudratchi', nom: 'ООО «Суб»', inn: null }], obyektlar: [8] },
+  ],
+} })) }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 1 } }) }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => ({ scope: { objectId: null }, setObjectId: vi.fn() }) }));
@@ -74,5 +84,10 @@ describe('F2 tayyorlash', () => {
     fireEvent.change(screen.getByLabelText('Qidirish'), { target: { value: 'kran' } });
     expect(screen.getByText('Beton quyish')).toBeTruthy();
     expect(screen.queryByText('G‘isht terish')).toBeNull();
+  });
+
+  it('imzolovchilar va shartnoma raqami shartnoma liniyasidan avtomatik (3 tomonlama — subpudratchi)', async () => {
+    ochish();
+    expect(await screen.findByText(/№ 45 — Bosh pudrat · Дирекция · ООО «NTB» · ООО «Суб»/)).toBeTruthy();
   });
 });

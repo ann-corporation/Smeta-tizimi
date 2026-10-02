@@ -32,6 +32,7 @@ export function useHujjatTomonlari(kompaniyaId: number | null | undefined): [Imz
 const MAYDONLAR: Array<{ k: keyof ImzoNomlar; yorliq: string }> = [
   { k: 'zakazchik', yorliq: 'Buyurtmachi (ЗАКАЗЧИК)' },
   { k: 'pudratchi', yorliq: 'Pudratchi (ПОДРЯДЧИК)' },
+  { k: 'subpudratchi', yorliq: 'Subpudratchi (СУБПОДРЯДЧИК) — 3 tomonlama bo‘lsa' },
   { k: 'texnadzor', yorliq: 'Texnik nazorat (ТЕХНАДЗОР)' },
   { k: 'tuzuvchi', yorliq: 'Tuzuvchi (СОСТАВИЛ)' },
 ];
