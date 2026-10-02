@@ -76,17 +76,23 @@ console.log('\n── 3. sb-yoz.ts HAR YOZUVDA A\'ZOLIKNI TEKSHIRADIMI ──');
 
 console.log('\n── 4. sb.ts (O\'QISH) HAM KOMPANIYA A\'ZOLIGINI TEKSHIRADIMI ──');
 {
+  /* 2026-10-02: o'qish izolyatsiyasi `_shared/tenant-oqish.ts` ga ko'chdi (DEFAULT DENY, majburiy kompaniya
+     filtri). Xulq-atvor — `functions/_shared/tenant-oqish.test.ts` (vitest); bu yerda faqat ulanganini tekshiramiz. */
   const s = oqi('functions/api/sb.ts');
-  T('filtrdan kompaniya_id ajratib olinadi',
-    /filtr \|\| ''\)\.match\(\/.*kompaniya_id=eq/.test(s));
-  T('sessiya a\'zoligi bilan solishtiriladi',
-    /sess\.kompaniyalar\.some\(\(a\) => a\.kompaniya_id === soraganKompaniya\)/.test(s));
-  T('eski sessiya (kompaniyalar yo\'q) bloklanib qolmaydi',
-    /Array\.isArray\(sess\.kompaniyalar\)/.test(s));
-  T('rad javobi 403 bilan qaytadi', /zo emassiz[\s\S]{0,80}status:\s*403/.test(s));
-  T('t2_obyekt_jami kompaniya filtrisiz o\'qilmaydi',
-    /MAJBURIY_KOMPANIYA_FILTRI[\s\S]{0,120}t2_obyekt_jami/.test(s) &&
-    /MAJBURIY_KOMPANIYA_FILTRI\.has\(jadval\) && !mos/.test(s));
+  const t = oqi('functions/_shared/tenant-oqish.ts');
+  T('sb.ts har jadval o\'qishida oqishQarori ni chaqiradi', /const qaror = oqishQarori\(jadval, so, sess\)/.test(s));
+  T('majburiy tenant filtri URL ga qo\'shiladi', /majburiyFiltr \? '&' \+ majburiyFiltr/.test(s));
+  T('ota yozuv (obyekt/loyiha/viborka) egasi serverda tekshiriladi', /otaKompaniyasi\(ctx\.env, qaror\.ota\.jadval/.test(s));
+  T('kompaniya jadvaliga kompaniya_id=in.(a\'zolar) majburan qo\'shiladi', /kompaniya_id=in\.\$\{royxat\}/.test(t));
+  T('rad javobi 403 bilan qaytadi', /zo emassiz[\s\S]{0,80}/.test(t) && /rad\(403, 'TENANT_FORBIDDEN'/.test(t));
+  T('eski anchorsiz o\'tkazib yuborish olib tashlandi', !/HOZIRCHA o'tkazib yuboriladi/.test(s));
+  const blok = (s.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '');
+  const ochiq = [...new Set([...blok.matchAll(/'([^']+)'/g)].map((m) => m[1]))].sort();
+  const sBlok = (t.match(/export const OQISH_SIYOSATI[\s\S]*?\n\};/m) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '');
+  const siyosat = [...new Set([...sBlok.matchAll(/\b([a-z][a-z0-9_]*):\s*(?:K\b|OBYEKT\b|\{\s*tur)/g)].map((m) => m[1]))].sort();
+  T('har ochiq jadvalning izolyatsiya siyosati bor (va ortiqcha siyosat yo\'q)',
+    ochiq.length > 0 && JSON.stringify(ochiq) === JSON.stringify(siyosat),
+    'faqat sb.ts da: ' + ochiq.filter((x) => !siyosat.includes(x)).join(',') + ' | faqat siyosatda: ' + siyosat.filter((x) => !ochiq.includes(x)).join(','));
 }
 
 console.log(`\n═══ ${ok} o'tdi, ${xato} yiqildi ═══`);

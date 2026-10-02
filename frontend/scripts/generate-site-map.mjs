@@ -12,7 +12,8 @@ const out = path.join(root, 'src/lib/sayt-xaritasi/generated.ts');
 const unique = (xs) => [...new Set(xs)];
 const menuRoutes = unique([...shell.matchAll(/yol:\s*'([^']+)'/g)].map((m) => m[1]));
 const appRouteSegments = unique([...app.matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1]));
-const readBlock = sb.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m)?.[0] ?? '';
+// Izohlar olib tashlanadi: ulardagi apostroflar ("ro'yxat") jadval nomi deb o'qilmasin.
+const readBlock = (sb.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m)?.[0] ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
 const readTables = unique([...readBlock.matchAll(/'([^']+)'/g)].map((m) => m[1]));
 const writeActions = [];
 for (const m of sbWrite.matchAll(/^\s*([A-Za-z0-9_]+):\s*\{\s*rpc:\s*'([^']+)'\s*\}/gm)) {

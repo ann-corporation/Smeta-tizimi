@@ -36,7 +36,7 @@ must('/admin/sayt-xaritasi Global menyuda bor', shell.includes("/admin/sayt-xari
 must('manifest menyu yo‘llari AdminShell bilan teng', JSON.stringify(generated.menuRoutes) === JSON.stringify(menuRoutes));
 must('manifestda sayt xaritasi segmenti bor', generated.appRouteSegments.includes('sayt-xaritasi'));
 
-const readBlock = sb.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m)?.[0] || '';
+const readBlock = (sb.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m)?.[0] || '').replace(/\/\*[\s\S]*?\*\//g, '');
 const sourceReads = unique([...readBlock.matchAll(/'([^']+)'/g)].map((m) => m[1]));
 must('read oq ro‘yxatining barcha elementlari manifestda bor', sourceReads.every((x) => generated.readTables.includes(x)));
 must('read manbalari bo‘sh emas', generated.readTables.length > 0);

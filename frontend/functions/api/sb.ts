@@ -28,14 +28,15 @@
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
+import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
 
-/* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA
-   qo'shiladi — «hamma jadval ochiq» holatiga hech qachon o'tmaymiz. */
+/* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA va `_shared/tenant-oqish.ts` dagi
+   OQISH_SIYOSATI ga (aniq izolyatsiya siyosati bilan) qo'shiladi — ikkalasi bir xil bo'lishi testda majburiy.
+   «hamma jadval ochiq» holatiga hech qachon o'tmaymiz. */
 const RUXSAT_JADVALLAR = new Set([
-  /* ── TIZIM_01 ko’zgusi (eski) ── */
-  'obyektlar', 'holat', 'oylik_f2', 'narxlar', 'material_kerak',
-  'shartnoma', 'v_sklad_nomlar', 'tolovlar', 'prixod', 'rashod', 'topilmaganlar',
-  'akt', 'akt_ish', 'tarix', 'anomaliya',
+  /* ── TIZIM_01 ko’zgusi (eski) — 2026-10-02: faqat superadmin (Tezlik sinovi); kompaniya ustuni yo'q.
+     Ishlatilmaydigan eski jadvallar (oylik_f2, narxlar, akt, …) ro'yxatdan olib tashlandi. ── */
+  'obyektlar', 'holat', 'v_sklad_nomlar',
   /* ── TIZIM_02 (t2_) — BU YERDA BAZA HAQIQAT MANBAI ──
      Tizim_02 sahifalari FAQAT shu jadvallarni o’qiydi. Eski ko’zgu
      jadvallariga (yuqoridagilar) ular MUROJAAT QILMAYDI — aks holda
@@ -43,7 +44,7 @@ const RUXSAT_JADVALLAR = new Set([
      bilinmay qoladi. */
   't2_kompaniya', 't2_obyekt', 't2_obyekt_jami', 't2_daraxt', 't2_qator',
   't2_narx', 't2_manba', 't2_xom', 't2_lrv',
-  't2_kozgu', 't2_ozgarish', 't2_kopruk_navbat', 't2_sozlama',
+  't2_kozgu', 't2_ozgarish', 't2_sozlama',
   /* F2 / FAKT (E bosqichi) */
   't2_akt', 't2_akt_qator', 't2_akt_reestr', 't2_qator_holat', 't2_faktura', 't2_ish_turi', 't2_shaxsiy_smeta',
   'v_erp_kadrlar_dashboard', 'v_erp_texnika_dashboard', 'v_erp_taminot_dashboard', 'v_erp_sifat_dashboard', 't2_grafik_holat', 'v_boss_init', 'v_boss_data',
@@ -121,32 +122,18 @@ const RUXSAT_JADVALLAR = new Set([
   't2_sklad_konsolidatsiya',
 ]);
 
-/* Bu view obyektlarning pul/smeta jamlanmasini beradi. U hech qachon
-   kompaniya chegarasisiz o'qilmaydi: frontend filtri qulaylik, sessiya
-   a'zoligi esa majburiy himoya. */
-const MAJBURIY_KOMPANIYA_FILTRI = new Set(['t2_obyekt_jami']);
-
-/* t2_* GLOBAL / REFERENCE jadvallar — tenant chegarasi yo'q, a'zolik
-   tekshiruvidan ozod. Boshqa BARCHA `t2_*` jadval company-scoped deb
-   qabul qilinadi (Codex audit §12: filter-shape guard qismiy edi). */
-const T2_GLOBAL_JADVALLAR = new Set([
-  't2_ish_turi', 't2_hujjat_turi', 't2_material_alias_royxat',
-]);
-
 /** Bitta `/api/sb` o'qishining vaqt byudjeti (ms). Oshsa — log + `sekin: true`. */
 const TEZLIK_BYUDJETI_MS = 3000;
 
-/** Company-scoped `t2_*` jadvalmi (a'zolik anchori majburiy)? */
-function t2CompanyScoped(jadval: string): boolean {
-  return jadval.startsWith('t2_') && !T2_GLOBAL_JADVALLAR.has(jadval);
-}
-
-/** PostgREST filtri xavfsizmi — faqat oddiy `ustun=op.qiymat` shakllari. */
-function filtrXavfsizmi(f: string): boolean {
-  if (!f) return true;
-  /* bir nechta shart `&` bilan ajratiladi */
-  return f.split('&').every((qism) =>
-    /^[a-z_][a-z0-9_]*=(eq|neq|gt|gte|lt|lte|like|ilike|in|is)\.[^&]*$/i.test(qism));
+/** Ota yozuvning (obyekt / loyiha / viborka) kompaniyasi — service_role bilan, faqat `kompaniya_id` ustuni. */
+async function otaKompaniyasi(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, jadval: string, id: number): Promise<number | null> {
+  const r = await fetch(
+    supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/' + jadval + '?select=kompaniya_id&id=eq.' + id + '&limit=1',
+    { headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY } });
+  if (!r.ok) throw new Error('OTA_OQILMADI');
+  const rows = await r.json() as Array<{ kompaniya_id?: number | null }>;
+  const k = Array.isArray(rows) && rows[0] ? Number(rows[0].kompaniya_id) : NaN;
+  return Number.isSafeInteger(k) && k > 0 ? k : null;
 }
 
 export const onRequestPost: PagesFunction<{
@@ -282,16 +269,24 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_actor_id', String(sess.foydalanuvchi_id));
       }
-      if (tur === 'kompaniya' || tur === 'obyekt_kompaniya') {
-        const kid = so.kompaniya_id == null ? null : Number(so.kompaniya_id);
-        /* Kompaniya berilsa — sessiya a'zoligida bo'lishi shart
-           (sb-yoz.ts dagi bilan bir xil qoida). */
-        if (kid != null && Array.isArray(sess.kompaniyalar) &&
-            !sess.kompaniyalar.some((a) => a.kompaniya_id === kid)) {
-          return Response.json(
-            { ok: false, error: 'Bu kompaniyaga ruxsat yo\'q' }, { status: 403 });
+      /* 2026-10-02 izolyatsiya auditi: avval `obyekt` turidagi RPC (ai_kontekst) obyektning kimga tegishliligini
+         tekshirmasdi, `kompaniya` turida esa kompaniya berilmasa BARCHA kompaniyalar qaytardi. Endi:
+         obyekt → uning kompaniyasi a'zolikda bo'lishi shart; kompaniya → majburiy va a'zo. */
+      if (tur === 'obyekt' || tur === 'obyekt_kompaniya') {
+        if (!Array.isArray(sess.kompaniyalar)) {
+          return Response.json({ ok: false, code: 'SESSION_STALE', error: 'Sessiyani yangilang — chiqib, qaytadan kiring.' }, { status: 401 });
         }
-        if (kid != null) q.set('p_kompaniya_id', String(kid));
+        let okid: number | null;
+        try { okid = await otaKompaniyasi(ctx.env, 't2_obyekt', Number(so.obyekt_id)); }
+        catch { return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED', error: 'Obyekt tegishliligini tekshirib bo\'lmadi' }, { status: 502 }); }
+        if (okid == null || !azoKompaniyalar(sess).includes(okid)) {
+          return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu obyektga ruxsat yo\'q' }, { status: 403 });
+        }
+      }
+      if (tur === 'kompaniya' || tur === 'obyekt_kompaniya') {
+        const k = rpcKompaniyasi(sess, so.kompaniya_id);
+        if (!k.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: k.error }, { status: k.status });
+        q.set('p_kompaniya_id', String(k.id));
       }
       if (tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor') {
         const kid = Number(so.kompaniya_id);
@@ -362,63 +357,27 @@ export const onRequestPost: PagesFunction<{
     if (!RUXSAT_JADVALLAR.has(jadval)) {
       return Response.json({ ok: false, error: 'Jadval ochiq emas: ' + jadval });
     }
-    if (!filtrXavfsizmi(so.filtr || '')) {
-      return Response.json({ ok: false, error: 'Filtr shakli qabul qilinmadi' });
+    /* ═══ TENANT IZOLYATSIYASI (o'qish) — 2026-10-02, DEFAULT DENY ═══
+     * Har jadvalning aniq siyosati `_shared/tenant-oqish.ts` da. Kompaniya ustunli jadvalga server
+     * `kompaniya_id=in.(a'zo kompaniyalar)` ni MAJBURAN qo'shadi; ustunsiz jadval aniq ota yozuv
+     * (obyekt/loyiha/viborka) orqali tekshiriladi; eski TIZIM_01 ko'zgusi — faqat superadmin. */
+    const qaror = oqishQarori(jadval, so, sess);
+    if (!qaror.ok) {
+      return Response.json({ ok: false, code: qaror.code, error: qaror.error }, { status: qaror.status });
     }
-
-    /* ═══ TENANT IZOLYATSIYASI (o'qish) — Codex audit §12 asosida kuchaytirildi ═══
-     * `sb-yoz.ts` yozishda a'zolik tekshiradi; o'qishda ham shart.
-     *
-     * Bu qadam 2 ta ANIQ bo'shliqni yopadi (butun o'qish yo'lini
-     * qayta qurmasdan):
-     *   1) ESKI SESSIYA (`sess.kompaniyalar` massiv emas) — company-scoped
-     *      `t2_*` uchun FAIL CLOSED. 12h ko'prik tugadi; `kirish.ts` endi
-     *      har sessiyaga a'zolikni majburiy yozadi.
-     *   2) `obyekt_id=eq.N` bilan filtrlangan company-scoped `t2_*` o'qish —
-     *      obyektning kompaniyasi a'zolikda ekanini SERVERDA tekshiramiz
-     *      (avval faqat `kompaniya_id=eq.N` shakli tekshirilardi).
-     *
-     * ⚠️ Anchorsiz (`kompaniya_id`/`obyekt_id` yo'q) `t2_*` o'qishlar
-     * HOZIRCHA o'tkazib yuboriladi — ularni majburlash butun frontend
-     * `sbOqi` chaqiruvlari auditi + testini talab qiladi (P1, handoff). */
-    const mosKomp = (so.filtr || '').match(/(?:^|&)kompaniya_id=eq\.(-?\d+)/);
+    if (qaror.ota) {
+      let okid: number | null;
+      try { okid = await otaKompaniyasi(ctx.env, qaror.ota.jadval, qaror.ota.id); }
+      catch { return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED', error: 'Tegishlilikni tekshirib bo\'lmadi' }, { status: 502 }); }
+      if (okid == null || !azoKompaniyalar(sess).includes(okid)) {
+        return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu ma\'lumotga ruxsat yo\'q' }, { status: 403 });
+      }
+    }
+    const majburiyFiltr = qaror.qoshimchaFiltr.map((f) => {
+      const i = f.indexOf('=');
+      return encodeURIComponent(f.slice(0, i)) + '=' + encodeURIComponent(f.slice(i + 1));
+    }).join('&');
     const mosObyekt = (so.filtr || '').match(/(?:^|&)obyekt_id=eq\.(-?\d+)/);
-    const companyScoped = t2CompanyScoped(jadval);
-
-    if (MAJBURIY_KOMPANIYA_FILTRI.has(jadval) && !mosKomp) {
-      return Response.json({ ok: false,
-        error: 'Bu o\'qish uchun kompaniya_id filtri majburiy' }, { status: 400 });
-    }
-
-    if (companyScoped && !Array.isArray(sess.kompaniyalar)) {
-      return Response.json({ ok: false, code: 'SESSION_STALE',
-        error: 'Sessiyani yangilang — chiqib, qaytadan kiring.' }, { status: 401 });
-    }
-
-    if (Array.isArray(sess.kompaniyalar)) {
-      const azo = (kid: number) => sess.kompaniyalar!.some((a) => a.kompaniya_id === kid);
-      if (mosKomp && !azo(Number(mosKomp[1]))) {
-        return Response.json({ ok: false, code: 'TENANT_FORBIDDEN',
-          error: 'Bu kompaniyaga a\'zo emassiz (kompaniya_id: ' + Number(mosKomp[1]) + ')' }, { status: 403 });
-      }
-      if (companyScoped && !mosKomp && mosObyekt) {
-        const oid = Number(mosObyekt[1]);
-        try {
-          const lr = await fetch(
-            supabaseBaseUrl(ctx.env.SUPABASE_URL) + '/rest/v1/t2_obyekt?select=kompaniya_id&id=eq.' + oid + '&limit=1',
-            { headers: { apikey: ctx.env.SUPABASE_KEY, Authorization: 'Bearer ' + ctx.env.SUPABASE_KEY } });
-          const rows = lr.ok ? await lr.json() : [];
-          const okid = Array.isArray(rows) && rows[0] ? Number((rows[0] as { kompaniya_id?: number }).kompaniya_id) : null;
-          if (okid == null || !azo(okid)) {
-            return Response.json({ ok: false, code: 'TENANT_FORBIDDEN',
-              error: 'Bu obyektga ruxsat yo\'q (obyekt_id: ' + oid + ')' }, { status: 403 });
-          }
-        } catch {
-          return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED',
-            error: 'Obyekt tegishliligini tekshirib bo\'lmadi' }, { status: 502 });
-        }
-      }
-    }
 
     /* ══════════════════════════════════════════════════════════════
      * ⚠️ 2026-08-17 — SAHIFALAB O'QISH (1000 QATOR CHEGARASI)
@@ -487,7 +446,8 @@ export const onRequestPost: PagesFunction<{
       if (so.tartib) p.set('order', so.tartib);
       p.set('limit', String(limit));
       p.set('offset', String(offset));
-      const url = baza + '?' + p.toString() + (so.filtr ? '&' + so.filtr : '');
+      // Majburiy tenant filtri (server qo'shadi) brauzer filtri bilan AND qilinadi.
+      const url = baza + '?' + p.toString() + (so.filtr ? '&' + so.filtr : '') + (majburiyFiltr ? '&' + majburiyFiltr : '');
       const r = await fetch(url, { headers: boshHeaders });
       const matn = await r.text();
       if (!r.ok) return { failed: true, status: r.status, detail: matn.slice(0, 500) };
