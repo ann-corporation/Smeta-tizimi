@@ -23,6 +23,8 @@
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
+import { azoKompaniyalar } from '../_shared/tenant-oqish';
+import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
 const AMALLAR = {
@@ -2409,6 +2411,21 @@ export const onRequestPost: PagesFunction<{
     } else {
       return Response.json({ ok: false,
         error: 'Amal "' + amal + '" ro\'yxatda bor, lekin hali parametr moslashtirilmagan (TODO)' });
+    }
+
+    /* ═══ YOZISH IZOLYATSIYASI (2026-10-02, DEFAULT DENY) — `_shared/tenant-yozish.ts` ═══
+       RPC ga ketadigan YAKUNIY argumentlardagi har ID (obyekt, qator, akt, to'lov, shartnoma, …) ning egasi bazadan
+       aniqlanadi; foydalanuvchi o'sha kompaniyaga a'zo bo'lishi shart. Ko'p eski RPC a'zolikni o'zi tekshirmaydi. */
+    {
+      if (!Array.isArray(sess.kompaniyalar)) {
+        return Response.json({ ok: false, code: 'SESSION_STALE', error: 'Sessiyani yangilang — chiqib, qaytadan kiring.' }, { status: 401 });
+      }
+      const talab = yozishTalablari(amal, yuk);
+      if (!talab.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: talab.error }, { status: talab.status });
+      const topilgan = await egalarniOqi(supabaseBaseUrl(ctx.env.SUPABASE_URL), ctx.env.SUPABASE_KEY, talab.sorovlar);
+      if (!topilgan) return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED', error: 'Yozuv egasini tekshirib bo\'lmadi' }, { status: 502 });
+      const ega = egaQarori(azoKompaniyalar(sess), talab, topilgan);
+      if (!ega.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: ega.error }, { status: ega.status });
     }
 
     /* Keep the public action names stable for old clients/tests, while
