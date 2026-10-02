@@ -18,7 +18,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   let so: { login?: string; parol?: string; ism?: string; telefon?: string; kompaniya?: string; operation_id?: string } = {};
   try { so = await ctx.request.json(); } catch { return Response.json({ ok: false, xabar: 'Noto\'g\'ri so\'rov formati' }, { status: 400 }); }
 
-  const login = String(so.login || '').trim().toLowerCase().slice(0, 40);
+  const login = String(so.login || '').trim().toLowerCase().slice(0, 80);
   const parol = String(so.parol || '').slice(0, 200);
   const ism = String(so.ism || '').trim().slice(0, 200);
   const telefon = String(so.telefon || '').trim().slice(0, 40);

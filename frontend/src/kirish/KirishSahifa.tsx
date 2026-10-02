@@ -63,7 +63,8 @@ export default function KirishSahifa() {
     e.preventDefault();
     const l = regLogin.trim().toLowerCase();
     if (regIsm.trim().length < 2) { setError('Ismingizni kiriting'); return; }
-    if (!/^[a-z0-9][a-z0-9_.-]{2,39}$/.test(l)) { setError('Login 3–40 belgi: lotin harf, raqam, _ . -'); return; }
+    // Egasi sinovi 2026-10-02: odamlar login o'rniga email yozadi — email ham login bo'la oladi.
+    if (!/^[a-z0-9][a-z0-9_.@+-]{2,79}$/.test(l) || (l.match(/@/g)?.length ?? 0) > 1) { setError('Login yoki email: lotin harf, raqam, _ . - @ (3–80 belgi)'); return; }
     if (regParol.length < 8) { setError('Parol kamida 8 belgi'); return; }
     setLoading(true);
     setError('');
@@ -341,10 +342,10 @@ export default function KirishSahifa() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Login</label>
+                    <label className="text-sm font-medium text-zinc-300">Login yoki email</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="text" autoComplete="username" required value={regLogin} onChange={e => setRegLogin(e.target.value.toLowerCase())} placeholder="masalan: aziz.pto"
+                      <input type="text" autoComplete="username" required value={regLogin} onChange={e => setRegLogin(e.target.value.toLowerCase())} placeholder="aziz.pto yoki aziz@mail.uz"
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>

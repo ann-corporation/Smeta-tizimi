@@ -16,7 +16,7 @@ const ochish = () => {
 };
 const toldir = async (ism: string, login: string, parol: string) => {
   fireEvent.change(await screen.findByPlaceholderText('F.I.Sh.'), { target: { value: ism } });
-  fireEvent.change(screen.getByPlaceholderText('masalan: aziz.pto'), { target: { value: login } });
+  fireEvent.change(screen.getByPlaceholderText('aziz.pto yoki aziz@mail.uz'), { target: { value: login } });
   fireEvent.change(document.querySelector('input[autocomplete="new-password"]')!, { target: { value: parol } });
   fireEvent.click(screen.getByRole('button', { name: /Hisob ochish/ }));
 };
@@ -55,5 +55,14 @@ describe('O‘zi ro‘yxatdan o‘tish', () => {
     await toldir('Aziz', 'aziz.pto', 'Sinov2026!x');
     expect(await screen.findByText('Bu login band')).toBeTruthy();
     expect(m.navigate).not.toHaveBeenCalled();
+  });
+
+  it('email login sifatida qabul qilinadi (egasi sinovi)', async () => {
+    const fetchMock = vi.fn(async (url: string) => ({ json: async () => (url === '/api/royxat-ozi' ? { ok: true } : { ok: true, rol: 'boss' }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    ochish();
+    await toldir('Anvar', 'Anvar.Test@Gmail.com', 'Sinov2026!x');
+    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/tokenlar'));
+    expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, { body: string }])[1].body).login).toBe('anvar.test@gmail.com');
   });
 });
