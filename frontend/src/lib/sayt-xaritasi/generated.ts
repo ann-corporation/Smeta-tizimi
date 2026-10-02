@@ -2,38 +2,39 @@
 export const GENERATED_SITE_MAP = {
   "generatedAt": "source",
   "menuRoutes": [
-    "/admin/kompaniya",
-    "/admin/system-control",
-    "/admin/sayt-xaritasi",
-    "/admin/ai-agentlar",
-    "/admin/dashboard",
-    "/admin/loyiha",
     "/admin/obyektlar",
-    "/admin/participants",
-    "/admin/documents",
-    "/admin/hujjat-nazorat",
-    "/admin/f2-tarix",
-    "/admin/mindmap",
-    "/admin/crm",
     "/admin/holat",
-    "/admin/f2",
     "/admin/f2-tayyorlash",
+    "/admin/f2-tarix",
     "/admin/nakopitelniy",
     "/admin/m29",
+    "/admin/aosr",
+    "/admin/f2",
     "/admin/smeta-narxlash",
     "/admin/oferta",
-    "/admin/narxlar",
-    "/admin/nakrutka",
     "/admin/narx-manbalari",
     "/admin/narx-dalil",
+    "/admin/nakrutka",
+    "/admin/narxlar",
+    "/admin/loyiha",
     "/admin/shartnoma-liniya",
+    "/admin/documents",
+    "/admin/hujjat-nazorat",
+    "/admin/participants",
+    "/admin/crm",
+    "/admin/dashboard",
     "/admin/moliya",
     "/admin/logistika",
     "/admin/zayavka",
-    "/admin/aosr",
     "/admin/erp",
-    "/admin/tizim-sozlama",
+    "/admin/mindmap",
+    "/admin/tokenlar",
+    "/admin/kompaniya",
     "/admin/hujjat-dizayn",
+    "/admin/tizim-sozlama",
+    "/admin/system-control",
+    "/admin/ai-agentlar",
+    "/admin/sayt-xaritasi",
     "/admin/storage",
     "/admin/fayl-boglash",
     "/admin/korzinka",
@@ -56,6 +57,7 @@ export const GENERATED_SITE_MAP = {
     "f2",
     "f2-eski",
     "f2-tayyorlash",
+    "tokenlar",
     "hujjat-dizayn",
     "shartnoma-liniya",
     "nakopitelniy",
@@ -246,6 +248,26 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "shartnoma_saqla_v2",
       "rpc": "t2_shartnoma_saqla_v2"
+    },
+    {
+      "amal": "token_sarfla_v1",
+      "rpc": "t2_token_sarfla_v1"
+    },
+    {
+      "amal": "token_qaytar_v1",
+      "rpc": "t2_token_qaytar_v1"
+    },
+    {
+      "amal": "token_toldir_v1",
+      "rpc": "t2_token_toldir_v1"
+    },
+    {
+      "amal": "obuna_belgila_v1",
+      "rpc": "t2_obuna_belgila_v1"
+    },
+    {
+      "amal": "demo_manba_belgila_v1",
+      "rpc": "t2_demo_manba_belgila_v1"
     },
     {
       "amal": "zamena_ish_yarat_v1",

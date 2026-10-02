@@ -600,7 +600,8 @@ export class RasmiyVaraq {
 
 // ───────────────────────── kitob ─────────────────────────
 
-export type RasmiyKitobNatija = { bytes: Uint8Array; varaqlar: RasmiyVaraqMeta[] };
+/** yacheykalar — to'ldirilgan (qiymat yoki formula) kataklar soni; token hisobi shundan (egasi 2026-10-02). */
+export type RasmiyKitobNatija = { bytes: Uint8Array; varaqlar: RasmiyVaraqMeta[]; yacheykalar: number };
 
 /** Bir yoki bir nechta rasmiy varaqdan .xlsx yasaydi (Print_Area, Print_Titles,
  * fullCalcOnLoad). Varaq nomlari takrorlansa raqam qo'shiladi. */
@@ -632,8 +633,14 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
       + `<Relationship Id="rId${varaqlar.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`),
     'xl/styles.xml': strToU8(rasmiyStylesXml(o?.mavzu ?? (o?.tur ? hujjatMavzusi(o.tur) : joriyMavzu))),
   };
-  varaqlar.forEach((v, i) => { files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(v.xml()); });
-  return { bytes: zipSync(files, { level: 6 }), varaqlar: metas };
+  let yacheykalar = 0;
+  varaqlar.forEach((v, i) => {
+    const x = v.xml();
+    // Bo'sh (faqat uslubli) `<c .../>` sanalmaydi — faqat qiymat/formula bor kataklar.
+    yacheykalar += x.match(/<c [^>]*[^/]>/g)?.length ?? 0;
+    files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(x);
+  });
+  return { bytes: zipSync(files, { level: 6 }), varaqlar: metas, yacheykalar };
 }
 
 /** Ro'yxatdagi qatorlar yig'indisi formulasi: `SUM(H5:H9,H12)`; bo'sh bo'lsa null. */

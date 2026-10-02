@@ -12,69 +12,86 @@ import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWor
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 
+/* 2026-10-02 (egasi): menyu product relsi bo'yicha qayta tuzildi — "oddiy PTO ham, o'zim ham
+ * adashmasin". Tartib = ish ketma-ketligi: PTO ish yo'li → narx → loyiha/shartnoma → kompaniya
+ * boshqaruvi → hisob → tizim. Rol faqat KO'RINISHNI qisqartiradi (pastdagi filtr), tuzilma hamma
+ * uchun bir xil. Har yo'l faqat BIR joyda (takror yo'q). Server tekshiruvi — yakuniy qo'riqchi. */
 const TIZIM_02_GURUHLAR = [
   {
-    // GLOBAL — kompaniya tanlash SHART EMAS
-    nom: 'Global',
-    Ikonka: ShieldAlert,
-    id: 'global',
+    nom: 'PTO ish yo‘li',
+    Ikonka: FileText,
+    id: 'pto',
     menyular: [
-      { yol: '/admin/kompaniya', nom: 'Kompaniya', Ikonka: Building2 },
-      { yol: '/admin/system-control', nom: 'Tizim boshqaruv markazi', Ikonka: ShieldAlert },
-      { yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', Ikonka: Map },
-      { yol: '/admin/ai-agentlar', nom: 'AI ishchilar', Ikonka: ShieldAlert },
-    ]
-  },
-  {
-    // KOMPANIYA KONTEKSTI — tanlangan kompaniyaga tegishli
-    nom: 'Kompaniya ishi',
-    Ikonka: LayoutDashboard,
-    id: 'asosiy',
-    menyular: [
-      { yol: '/admin/dashboard', nom: 'Rahbar paneli', Ikonka: BarChart },
-      { yol: '/admin/loyiha', nom: 'Loyihalar', Ikonka: FolderKanban },
-      { yol: '/admin/obyektlar', nom: 'Obyektlar ro‘yxati', Ikonka: Building2 },
-      { yol: '/admin/participants', nom: 'Loyiha ishtirokchilari', Ikonka: Users },
-      { yol: '/admin/documents', nom: 'Hujjatlar', Ikonka: FileStack },
-      { yol: '/admin/hujjat-nazorat', nom: 'Hujjat nazorati (F2/Nakopitelniy)', Ikonka: FileOutput },
-      { yol: '/admin/f2-tarix', nom: 'F2 tarixi / tasdiqlash', Ikonka: ClipboardList },
-        { yol: '/admin/mindmap', nom: 'Mindmap (Xarita)', Ikonka: Map },
-      { yol: '/admin/crm', nom: 'Tashqi Aloqa (CRM/EDO)', Ikonka: Users },
-    ]
-  },
-  {
-    nom: 'Operatsion Boshqaruv',
-    Ikonka: HardHat,
-    id: 'operatsion',
-    menyular: [
+      { yol: '/admin/obyektlar', nom: 'Obyektlar va smeta yuklash', Ikonka: Building2 },
       { yol: '/admin/holat', nom: 'Smeta va Fakt / LRV', Ikonka: FileText },
-      { yol: '/admin/f2', nom: 'F2 import (kanonik)', Ikonka: FileInput },
       { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', Ikonka: FileOutput },
-      { yol: '/admin/nakopitelniy', nom: 'Nakopitelniy vedomost', Ikonka: NotebookPen },
-      { yol: '/admin/m29', nom: 'M-29 (material norma ↔ sarf)', Ikonka: Box },
+      { yol: '/admin/f2-tarix', nom: 'F2 tarixi va tasdiqlash', Ikonka: ShieldCheck },
+      { yol: '/admin/nakopitelniy', nom: 'Nakopitelniy va F3', Ikonka: NotebookPen },
+      { yol: '/admin/m29', nom: 'M-29 (material sarfi)', Ikonka: Box },
+      { yol: '/admin/aosr', nom: 'АОСР va laboratoriya', Ikonka: ShieldCheck },
+      { yol: '/admin/f2', nom: 'F2 import (tayyor F2 faylidan)', Ikonka: FileInput },
+    ]
+  },
+  {
+    nom: 'Narx va oferta',
+    Ikonka: Tags,
+    id: 'narx',
+    menyular: [
       { yol: '/admin/smeta-narxlash', nom: 'Smetani narxlash (RES)', Ikonka: Tags },
-      { yol: '/admin/oferta', nom: 'Tender oferta (RES)', Ikonka: FileOutput },
-      { yol: '/admin/narxlar', nom: 'Narxlar nazorati', Ikonka: Tags },
-      { yol: '/admin/nakrutka', nom: 'Nakrutka (ustama) hisobi', Ikonka: Calculator },
+      { yol: '/admin/oferta', nom: 'Tender oferta', Ikonka: FileOutput },
       { yol: '/admin/narx-manbalari', nom: 'Narx manbalari (katalog, faktura, КП)', Ikonka: Calculator },
       { yol: '/admin/narx-dalil', nom: 'Narx dalili (Обоснование цен)', Ikonka: Calculator },
-        { yol: '/admin/shartnoma-liniya', nom: 'Loyiha → Shartnoma → Obyekt', Ikonka: FolderKanban },
-        { yol: '/admin/moliya', nom: 'Moliya va Shartnomalar', Ikonka: Briefcase },
-      { yol: '/admin/logistika', nom: 'Ta\'minot va Sklad', Ikonka: Box },
-        { yol: '/admin/zayavka', nom: 'Zayavkalar (PTO)', Ikonka: ClipboardList },
-        { yol: '/admin/aosr', nom: 'QA/QC (AOSR/APPOK)', Ikonka: ShieldCheck },
-      { yol: '/admin/erp', nom: 'Kadrlar, Texnika (ERP)', Ikonka: Users },
+      { yol: '/admin/nakrutka', nom: 'Nakrutka (ustama)', Ikonka: Calculator },
+      { yol: '/admin/narxlar', nom: 'Narxlar nazorati', Ikonka: Tags },
     ]
   },
   {
-    nom: 'Sozlama',
+    nom: 'Loyiha va shartnoma',
+    Ikonka: FolderKanban,
+    id: 'loyiha',
+    menyular: [
+      { yol: '/admin/loyiha', nom: 'Loyihalar', Ikonka: FolderKanban },
+      { yol: '/admin/shartnoma-liniya', nom: 'Shartnomalar va tomonlar', Ikonka: Briefcase },
+      { yol: '/admin/documents', nom: 'Hujjatlar', Ikonka: FileStack },
+      { yol: '/admin/hujjat-nazorat', nom: 'Hujjat nazorati', Ikonka: FileOutput },
+      { yol: '/admin/participants', nom: 'Loyiha ishtirokchilari', Ikonka: Users },
+      { yol: '/admin/crm', nom: 'Kontragentlar (CRM/EDO)', Ikonka: Users },
+    ]
+  },
+  {
+    nom: 'Kompaniya boshqaruvi',
+    Ikonka: LayoutDashboard,
+    id: 'kompaniya',
+    menyular: [
+      { yol: '/admin/dashboard', nom: 'Rahbar paneli', Ikonka: BarChart },
+      { yol: '/admin/moliya', nom: 'Moliya (to‘lov, xarajat)', Ikonka: Briefcase },
+      { yol: '/admin/logistika', nom: 'Ta‘minot va sklad', Ikonka: Box },
+      { yol: '/admin/zayavka', nom: 'Zayavkalar', Ikonka: ClipboardList },
+      { yol: '/admin/erp', nom: 'Kadrlar va texnika', Ikonka: Users },
+      { yol: '/admin/mindmap', nom: 'Mindmap (xarita)', Ikonka: Map },
+    ]
+  },
+  {
+    nom: 'Hisob',
     Ikonka: Settings,
+    id: 'hisob',
+    menyular: [
+      { yol: '/admin/tokenlar', nom: 'Tokenlar va obuna', Ikonka: Gauge },
+      { yol: '/admin/kompaniya', nom: 'Kompaniya va a‘zolar', Ikonka: Building2 },
+      { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', Ikonka: FileText },
+      { yol: '/admin/tizim-sozlama', nom: 'Sozlamalar', Ikonka: Settings },
+    ]
+  },
+  {
+    nom: 'Tizim (admin)',
+    Ikonka: ShieldAlert,
     id: 'tizim',
     menyular: [
-      { yol: '/admin/tizim-sozlama', nom: 'Sozlamalar', Ikonka: Settings },
-      { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', Ikonka: FileText },
+      { yol: '/admin/system-control', nom: 'Tizim boshqaruv markazi', Ikonka: ShieldAlert },
+      { yol: '/admin/ai-agentlar', nom: 'AI ishchilar', Ikonka: FlaskConical },
+      { yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', Ikonka: Map },
       { yol: '/admin/storage', nom: 'Fayl saqlash (Storage)', Ikonka: HardHat },
-      { yol: '/admin/fayl-boglash', nom: 'Fayl bog’lash / sinxronizatsiya', Ikonka: Link2 },
+      { yol: '/admin/fayl-boglash', nom: 'Fayl bog‘lash', Ikonka: Link2 },
       { yol: '/admin/korzinka', nom: 'Korzinka', Ikonka: Trash2 },
     ]
   }
@@ -103,7 +120,6 @@ const ESKI_TIZIM_MENYU = [
   { yol: '/admin/buxgalteriya', nom: 'Buxgalteriya', Ikonka: Calculator },
   { yol: '/admin/ierarxiya',  nom: 'Ierarxiya',    Ikonka: Network },
   { yol: '/admin/monitoring', nom: 'Monitoring',   Ikonka: Activity },
-  { yol: '/admin/fayl-boglash', nom: 'Fayl bog’lash', Ikonka: Link2 },
   { yol: '/admin/shaxsiy-smeta', nom: 'Shaxsiy smeta', Ikonka: NotebookPen },
   { yol: '/admin/supabase', nom: 'Supabase', Ikonka: Database },
   { yol: '/admin/tezlik', nom: 'Tezlik sinovi', Ikonka: Gauge },
@@ -159,11 +175,7 @@ function AdminShellInner() {
     const d: Record<string, boolean> = {};
     TIZIM_02_GURUHLAR.forEach(g => {
       // Agar ochiq sahifa shu guruhga tegishli bo'lsa, uni ochamiz
-      if (g.menyular.some(m => joy.pathname.startsWith(m.yol))) {
-        d[g.id] = true;
-      } else {
-        d[g.id] = true; // Default open for better visibility
-      }
+      d[g.id] = g.id === 'pto' || g.menyular.some(m => joy.pathname.startsWith(m.yol));
     });
     return d;
   });
@@ -242,33 +254,18 @@ function AdminShellInner() {
   // qo'riqchi — bu yerdagi filtr faqat menyu tuzilishi, xavfsizlik chegarasi
   // EMAS.
   const filtrKilinganGuruhlar = TIZIM_02_GURUHLAR.map(g => {
-    if (g.id === 'global' || g.id === 'tizim') return g;
-    let allowedMenus = g.menyular;
-    if (effektivRol === 'prorab') {
-      // Prorab faqat Logistika (Sklad) va Loyihalar(Fakt) ko'radi
-      if (g.id === 'asosiy') allowedMenus = allowedMenus.filter(m => m.yol.includes('loyiha') || m.yol.includes('fakt'));
-      else if (g.id === 'operatsion') allowedMenus = allowedMenus.filter(m => m.yol.includes('logistika'));
-    } else if (effektivRol === 'pto') {
-      // PTO — bu butun T2 native smeta/F2/nakopitelniy quvurining asosiy
-      // ishlatuvchisi: 'operatsion' (Ishchi smeta/F2/Nakopitelniy/Narxlar/
-      // Nakrutka/Moliya/Logistika/Zayavka/AOSR/ERP) VA 'asosiy' (Loyihalar/
-      // Obyektlar/Hujjatlar/F2 tarixi/Fakt) to'liq ochiq -- cheklash faqat
-      // "Rahbar paneli" va ishtirokchi boshqaruvi kabi rahbariyat funksiyalarida.
-      if (g.id === 'asosiy') allowedMenus = allowedMenus.filter(m => !m.yol.includes('dashboard') && !m.yol.includes('participants'));
-    } else if (effektivRol === 'bugalter') {
-      // Bugalter Moliya, CRM
-      if (g.id === 'asosiy') allowedMenus = allowedMenus.filter(m => m.yol.includes('crm'));
-      else if (g.id === 'operatsion') allowedMenus = allowedMenus.filter(m => m.yol.includes('moliya'));
-    } else if (effektivRol === 'rahbar' || effektivRol === 'boss' || effektivRol === 'admin' || effektivRol === 'superadmin') {
-      // Ruxsat hammasiga
-    } else if (effektivRol === 'buyurtmachi' || effektivRol === 'pudratchi' || effektivRol === 'kuzatuvchi') {
-      // Faqat loyihalar/obyektlar (o'qish uchun) — yozuv ruxsati alohida serverda tekshiriladi
-      if (g.id === 'asosiy') allowedMenus = allowedMenus.filter(m => m.yol.includes('loyiha') || m.yol.includes('obyekt'));
-      else allowedMenus = [];
-    } else {
-      allowedMenus = []; // Kompaniya hali tanlanmagan yoki noma'lum rol
-    }
-    return { ...g, menyular: allowedMenus };
+    const rol = effektivRol;
+    const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
+    let allowed = g.menyular;
+    if (g.id === 'tizim') allowed = rol === 'admin' || rol === 'superadmin' ? allowed : [];
+    else if (g.id === 'hisob') allowed = toliq || rol === 'pto' || rol === 'bugalter' || rol === 'prorab' ? allowed : allowed.filter(m => m.yol.includes('kompaniya'));
+    else if (toliq) { /* hammasi */ }
+    else if (rol === 'pto') allowed = g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('zayavka') || m.yol.includes('logistika')) : g.id === 'loyiha' ? allowed.filter(m => !m.yol.includes('participants')) : allowed;
+    else if (rol === 'prorab') allowed = g.id === 'pto' ? allowed.filter(m => m.yol.includes('fakt') || m.yol.includes('obyekt')) : g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('logistika') || m.yol.includes('zayavka')) : g.id === 'loyiha' ? allowed.filter(m => m.yol.includes('loyiha')) : [];
+    else if (rol === 'bugalter') allowed = g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('moliya')) : g.id === 'loyiha' ? allowed.filter(m => m.yol.includes('crm') || m.yol.includes('shartnoma')) : g.id === 'pto' ? allowed.filter(m => m.yol.includes('f2-tarix') || m.yol.includes('nakopitelniy')) : [];
+    else if (rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi') allowed = g.id === 'loyiha' ? allowed.filter(m => m.yol.includes('loyiha')) : g.id === 'pto' ? allowed.filter(m => m.yol.includes('obyekt')) : [];
+    else allowed = [];
+    return { ...g, menyular: allowed };
   }).filter(g => g.menyular.length > 0);
 
   return (

@@ -171,6 +171,11 @@ export function f2Jami(q: F2Qator[]): F2Jami {
 const NARX_MANBA_HUJJAT: Record<NarxManba, string> = { oldingi_f2: 'цена по предыдущей Ф-2', smeta: 'цена по смете', qolda: 'цена по документу', yoq: 'без цены' };
 
 /** Server yuki (t2_akt_yarat_v2): ish — narxsiz; resurs — hujjat narxi va summasi. Manba — hujjat raqami. */
+/** F2 qoralamasida ishlanadigan yacheykalar: har qatorning to'ldirilgan hajm/narx/summa qiymatlari (token hisobi). */
+export function f2Yacheykalar(yuk: readonly F2NativePayloadRow[]): number {
+  return yuk.reduce((s, r) => s + [r.certifiedQuantity, r.certifiedUnitPrice, r.certifiedAmount].filter((v) => v != null).length, 0);
+}
+
 export function f2Yuk(q: F2Qator[], hujjatRaqam: string): F2NativePayloadRow[] {
   const manba = hujjatRaqam.trim() ? `Ф-2 № ${hujjatRaqam.trim()}` : 'Ф-2 (сформирована в системе)';
   return q.filter((x) => !x.xato).map((x) => ({

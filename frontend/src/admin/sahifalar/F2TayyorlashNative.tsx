@@ -11,6 +11,7 @@ import { sbT2AktYaratV2, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, ty
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { tokenBilan } from '../../api/t2-token';
 import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
 import { imzoNomlariTomonlardan } from '../../lib/shartnoma-liniya';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
@@ -21,7 +22,7 @@ import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import {
-  NARX_MANBA_NOMI, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, narxsizNomzodlar, ulushHajm,
+  NARX_MANBA_NOMI, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, narxsizNomzodlar, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Qator, type F2Resurs,
 } from '../../lib/f2-tayyor';
 
@@ -144,13 +145,20 @@ export function F2TayyorlashNative() {
   });
   const narxsizBelgila = () => setK((o) => ({ ...o, narxsiz: { ...o.narxsiz, ...Object.fromEntries(narxsizlar.map((id) => [id, true])) } }));
 
+  const f2Yacheyka = f2Yacheykalar(f2Yuk(qatorlar, raqam));
   const saqlash = async () => {
     if (!validId || !tayyor || saving) return;
+    if (!joriy?.id) return;
     setSaving(true);
     try {
-      const result = await sbT2AktYaratV2({ obyektId, oy, operationId: operationId.current, qatorlar: f2Yuk(qatorlar, raqam), raqam: raqam.trim() || undefined });
-      if (!result.ok) { toast(result.error || result.xabar || 'F2 qoralama yaratilmadi.', 'danger'); return; }
-      toast('F2 qoralama yaratildi. Tasdiqlash — F2 tarixida.', 'ok');
+      // Token (egasi 2026-10-02): F2 qoralama — "f2_qoralama"; server xato bersa token avtomatik qaytadi.
+      const t = await tokenBilan({ kompaniyaId: joriy.id, amal: 'f2_qoralama', birlikSoni: f2Yacheyka, meta: { obyekt: obyektId, qator: qatorlar.length, yacheyka: f2Yacheyka } }, async () => {
+        const result = await sbT2AktYaratV2({ obyektId, oy, operationId: operationId.current, qatorlar: f2Yuk(qatorlar, raqam), raqam: raqam.trim() || undefined });
+        if (!result.ok) throw new Error(result.error || result.xabar || 'F2 qoralama yaratilmadi.');
+        return result;
+      });
+      if (!t.ok) { toast(t.xabar, 'danger'); return; }
+      toast(`F2 qoralama yaratildi (${t.sarflandi} token). Tasdiqlash — F2 tarixida.`, 'ok');
       await yuklash();
     } catch { toast('Javob olinmadi. Shu amal IDsi bilan qayta urinishingiz mumkin.', 'danger'); }
     finally { setSaving(false); }
@@ -172,7 +180,13 @@ export function F2TayyorlashNative() {
         ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
         nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
       });
-      if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
+      // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "hujjat" sarfi bilan beriladi.
+      if (!joriy?.id) return;
+      const t = await tokenBilan({ kompaniyaId: joriy.id, amal: 'hujjat', birlikSoni: h.yacheykalar, meta: { hujjat: 'f2', obyekt: obyektId, yacheyka: h.yacheykalar } }, async () => {
+        if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
+        return true;
+      });
+      if (!t.ok) toast(t.xabar, 'danger'); else toast(`${t.sarflandi} token (${h.yacheykalar} yacheyka)`, 'ok');
     } catch { toast('Forma-2 Excel qoralamasini yaratib bo‘lmadi.', 'danger'); }
   };
 
@@ -311,7 +325,7 @@ export function F2TayyorlashNative() {
             <button type="button" onClick={() => navigate(`/admin/f2-tarix?obyekt=${obyektId}`)} className="rounded-lg border border-border px-3 py-1.5 text-[12px] text-text">F2 tarixi</button>
             <button type="button" onClick={() => void excelYuklash(false)} disabled={!tayyor || saving} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] font-semibold text-text disabled:opacity-50"><Download size={14} />Excel</button>
             <button type="button" onClick={() => void excelYuklash(true)} disabled={!tayyor || saving} aria-label="Forma-2 qoralama ko‘rish" className="inline-flex items-center rounded-lg border border-border px-2 py-1.5 text-text disabled:opacity-50"><Eye size={14} /></button>
-            <button type="button" onClick={() => void saqlash()} disabled={!tayyor || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"><Save size={14} />{saving ? 'Yaratilmoqda…' : `F2 qoralama yaratish (${qatorlar.length})`}</button>
+            <button type="button" onClick={() => void saqlash()} disabled={!tayyor || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"><Save size={14} />{saving ? 'Yaratilmoqda…' : `F2 qoralama yaratish (${qatorlar.length}) · ~${Math.max(1, Math.ceil(f2Yacheyka / 500))} token`}</button>
           </div>
         </section>
       </>}

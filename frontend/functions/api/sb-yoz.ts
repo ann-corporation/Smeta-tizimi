@@ -37,6 +37,12 @@ const AMALLAR = {
   ish_abc_tahrir_v1: { rpc: 't2_ish_abc_tahrir_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
+  /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
+  token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
+  token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
+  token_toldir_v1: { rpc: 't2_token_toldir_v1' },
+  obuna_belgila_v1: { rpc: 't2_obuna_belgila_v1' },
+  demo_manba_belgila_v1: { rpc: 't2_demo_manba_belgila_v1' },
   zamena_ish_yarat_v1: { rpc: 't2_zamena_ish_yarat_v1' },
   resurs_bola_qosh_v1: { rpc: 't2_resurs_bola_qosh_v1' },
   /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
@@ -534,6 +540,34 @@ export const onRequestPost: PagesFunction<{
         p_fakt_hajm: so.fakt_hajm == null || so.fakt_hajm === '' ? null : Number(so.fakt_hajm),
         p_sana: so.sana ?? null, p_sabab: String(so.sabab).slice(0, 500), p_operation_id: so.operation_id,
       };
+    } else if (amal === 'token_sarfla_v1') {
+      const n = so.birlik_soni == null ? 1 : Number(so.birlik_soni);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !/^[a-z_0-9]{2,40}$/.test(String(so.tur_amal || '')) || !Number.isFinite(n) || n < 0 || n > 10_000_000) {
+        return Response.json({ ok: false, error: 'Amal, miqdor va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_amal: String(so.tur_amal), p_birlik_soni: n, p_operation_id: so.operation_id,
+        p_meta: so.meta && typeof so.meta === 'object' && !Array.isArray(so.meta) ? Object.fromEntries(Object.entries(so.meta).slice(0, 10).map(([k, v]) => [String(k).slice(0, 40), typeof v === 'number' ? v : String(v).slice(0, 200)])) : {} };
+    } else if (amal === 'token_qaytar_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !uuidRe.test(String(so.sarf_operation_id || ''))) {
+        return Response.json({ ok: false, error: 'Sarf va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_sarf_operation_id: so.sarf_operation_id, p_operation_id: so.operation_id, p_sabab: so.sabab ? String(so.sabab).slice(0, 300) : null };
+    } else if (amal === 'token_toldir_v1') {
+      const m = Number(so.miqdor);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isFinite(m) || Math.abs(m) > 10_000_000 || !['toldirish', 'bonus', 'tuzatish'].includes(String(so.tur_harakat))) {
+        return Response.json({ ok: false, error: 'Miqdor, tur va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: Number(so.maqsad_kompaniya_id), p_miqdor: m, p_tur: String(so.tur_harakat), p_izoh: String(so.izoh || '').slice(0, 500), p_operation_id: so.operation_id };
+    } else if (amal === 'obuna_belgila_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !/^[a-z_]{2,30}$/.test(String(so.tarif || ''))) {
+        return Response.json({ ok: false, error: 'Tarif va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: Number(so.maqsad_kompaniya_id), p_tarif_kod: String(so.tarif), p_oylar: Number(so.oylar ?? 1), p_operation_id: so.operation_id };
+    } else if (amal === 'demo_manba_belgila_v1') {
+      if (!sess.foydalanuvchi_id || (so.obyekt_id != null && !Number.isSafeInteger(Number(so.obyekt_id)))) {
+        return Response.json({ ok: false, error: 'Obyekt noto\'g\'ri.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: so.obyekt_id == null ? null : Number(so.obyekt_id) };
     } else if (amal === 'shartnoma_saqla_v2') {
       const m = so.malumot;
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !m || typeof m !== 'object' || Array.isArray(m)

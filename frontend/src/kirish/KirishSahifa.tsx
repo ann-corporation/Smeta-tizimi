@@ -15,7 +15,10 @@ export default function KirishSahifa() {
   
   // Register form state
   const [regKompaniya, setRegKompaniya] = useState('');
-  const [regInn, setRegInn] = useState('');
+  const [regLogin, setRegLogin] = useState('');
+  const [regParol, setRegParol] = useState('');
+  const [regParolKor, setRegParolKor] = useState(false);
+  const regOpId = useRef<string>(crypto.randomUUID());
   const [regIsm, setRegIsm] = useState('');
   const [regTelefon, setRegTelefon] = useState('');
   
@@ -53,37 +56,35 @@ export default function KirishSahifa() {
     }
   };
 
+  /* Egasi 2026-10-02: tashqaridan kelgan odam O'ZI ro'yxatdan o'tadi (operator kutilmaydi):
+     /api/royxat-ozi → foydalanuvchi + o'z kompaniyasi + bepul tarif tokenlari (+ demo obyekt, agar egasi tanlagan bo'lsa),
+     so'ng odatdagi /api/kirish (parol bazadagi bcrypt xesh bilan tekshiriladi) — yangi auth yo'li yo'q. */
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regKompaniya || !regInn || !regIsm || !regTelefon) {
-      setError("Barcha maydonlarni to'ldiring");
-      return;
-    }
-    
+    const l = regLogin.trim().toLowerCase();
+    if (regIsm.trim().length < 2) { setError('Ismingizni kiriting'); return; }
+    if (!/^[a-z0-9][a-z0-9_.-]{2,39}$/.test(l)) { setError('Login 3–40 belgi: lotin harf, raqam, _ . -'); return; }
+    if (regParol.length < 8) { setError('Parol kamida 8 belgi'); return; }
     setLoading(true);
     setError('');
-
-    /* ⚠️ 2026-08-28: avval bu yerda `setTimeout` bilan SOXTA muvaffaqiyat
-       ko'rsatilardi — odamga «so'rovingiz qabul qilindi, operator aloqaga
-       chiqadi» deyilardi, lekin hech narsa saqlanmasdi va hech kim
-       xabar olmasdi. Endi haqiqiy so'rov `/api/royxat` ga ketadi va
-       `t2_royxat_sorov` jadvaliga yoziladi. */
     try {
-      const r = await fetch('/api/royxat', {
+      const r = await fetch('/api/royxat-ozi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kompaniya: regKompaniya, inn: regInn, ism: regIsm, telefon: regTelefon,
-        }),
+        body: JSON.stringify({ login: l, parol: regParol, ism: regIsm.trim(), telefon: regTelefon.trim(), kompaniya: regKompaniya.trim(), operation_id: regOpId.current }),
       });
-      const data = await r.json();
-      if (data.ok) {
-        toast("So'rovingiz ro'yxatga yozildi. Operator aloqaga chiqadi.", "ok");
-        setIsLogin(true);
-        setRegKompaniya(''); setRegInn(''); setRegIsm(''); setRegTelefon('');
-      } else {
-        setError(data.xabar || "So'rovni saqlab bo'lmadi");
+      const d = await r.json().catch(() => ({ ok: false, xabar: 'Server javobi noto‘g‘ri' }));
+      if (!d.ok) {
+        setError(d.xabar || "Ro'yxatdan o'tkazib bo'lmadi");
+        // Login band / parol qisqa kabi xatoda keyingi urinish yangi amal bo'ladi.
+        if (d.code && d.code !== 'LIMIT') regOpId.current = crypto.randomUUID();
+        return;
       }
+      const k = await fetch('/api/kirish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: l, parol: regParol }) });
+      const kd = await k.json().catch(() => ({ ok: false }));
+      if (!kd.ok) { toast("Hisob yaratildi. Endi login va parol bilan kiring.", 'ok'); setIsLogin(true); setLogin(l); setParol(''); return; }
+      toast(d.demo ? 'Xush kelibsiz! Bepul tokenlar va demo obyekt tayyor.' : 'Xush kelibsiz! Bepul tokenlar hisobingizda.', 'ok');
+      navigate('/admin/tokenlar');
     } catch (err: any) {
       setError(err.message || 'Tarmoq xatosi');
     } finally {
@@ -308,63 +309,56 @@ export default function KirishSahifa() {
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-2xl font-bold text-white mb-2">Platformaga ulanish</h2>
-                <p className="text-zinc-400 text-sm mb-6">Kompaniyangizni ro'yxatdan o'tkazing va bepul sinov muddatini boshlang.</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Bepul sinab ko'rish</h2>
+                <p className="text-zinc-400 text-sm mb-6">1 daqiqada hisob oching — bepul tokenlar bilan smeta import, F2 va hujjatlarni o'zingiz sinab ko'ring. Operator kutish shart emas.</p>
 
                 <form onSubmit={handleRegister} className="flex flex-col gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Kompaniya Nomi</label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input
-                        type="text"
-                        value={regKompaniya}
-                        onChange={e => setRegKompaniya(e.target.value)}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                        placeholder="MChJ / XK nomi"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">STIR (INN)</label>
-                    <div className="relative">
-                      <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input
-                        type="text"
-                        value={regInn}
-                        onChange={e => setRegInn(e.target.value)}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                        placeholder="9 xonali raqam"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Sizning ismingiz</label>
+                    <label className="text-sm font-medium text-zinc-300">Ismingiz</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input
-                        type="text"
-                        value={regIsm}
-                        onChange={e => setRegIsm(e.target.value)}
+                      <input type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder="F.I.Sh."
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                        placeholder="F.I.Sh."
                       />
                     </div>
                   </div>
-
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">Telefon raqam</label>
+                    <label className="text-sm font-medium text-zinc-300">Telefon <span className="text-zinc-500">(ixtiyoriy)</span></label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input
-                        type="text"
-                        value={regTelefon}
-                        onChange={e => setRegTelefon(e.target.value)}
+                      <input type="tel" autoComplete="tel" value={regTelefon} onChange={e => setRegTelefon(e.target.value)} placeholder="+998"
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                        placeholder="+998"
                       />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-zinc-300">Kompaniya <span className="text-zinc-500">(ixtiyoriy)</span></label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                      <input type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder="MChJ / XK nomi"
+                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-zinc-300">Login</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                      <input type="text" autoComplete="username" required value={regLogin} onChange={e => setRegLogin(e.target.value.toLowerCase())} placeholder="masalan: aziz.pto"
+                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-zinc-300">Parol <span className="text-zinc-500">(kamida 8 belgi)</span></label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                      <input type={regParolKor ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={regParol} onChange={e => setRegParol(e.target.value)}
+                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+                      />
+                      <button type="button" onClick={() => setRegParolKor(v => !v)} aria-label={regParolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish'} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+                        {regParolKor ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
                     </div>
                   </div>
                   
@@ -388,12 +382,12 @@ export default function KirishSahifa() {
                     disabled={loading}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]"
                   >
-                    {loading ? 'Yuborilmoqda...' : 'Sotib olish / Bepul sinash'}
+                    {loading ? 'Hisob ochilmoqda...' : 'Hisob ochish va bepul sinash'}
                   </button>
                 </form>
                 
                 <p className="text-xs text-zinc-500 text-center mt-6">
-                  Ro'yxatdan o'tish orqali siz <a href="#" className="text-indigo-400 hover:underline">Foydalanish shartlariga</a> rozi bo'lasiz
+                  Bepul tarif: 300 token (≈150 ta F2 hujjati). Keyin tarifni «Tokenlar va obuna» bo'limida tanlaysiz.
                 </p>
               </motion.div>
             )}

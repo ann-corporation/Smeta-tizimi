@@ -51,7 +51,7 @@ const USTUNLAR: RasmiyUstun[] = [
 const yaxlit6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
 /** Ф-2 hujjati: `bolimlar` — F2 tayyorlash daraxti, `qatorlar` — shu aktga tanlangan qatorlar (f2Qatorlar natijasi). */
-export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qator[], o: F2HujjatOpsiya): { bytes: Uint8Array; faylNomi: string; jami: number | null } {
+export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qator[], o: F2HujjatOpsiya): { bytes: Uint8Array; faylNomi: string; jami: number | null; yacheykalar: number } {
   const tanlangan = new Map(qatorlar.filter((x) => !x.xato).map((x) => [x.id, x]));
   if (!tanlangan.size) throw new Error('F2_HUJJAT_BOSH');
   const raqam = (o.raqam ?? '').trim();
@@ -142,9 +142,9 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false });
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const rv = resursVedomosti([...vedomost.values()], { nom: v.nom, itogoR, jami: jamiJS, raqam, davr: o.davr, obyektNom: o.obyektNom });
-  const { bytes } = rasmiyKitob([v, rv], { mavzu: o.mavzu, tur: 'f2' });
+  const { bytes, yacheykalar } = rasmiyKitob([v, rv], { mavzu: o.mavzu, tur: 'f2' });
   return {
-    bytes,
+    bytes, yacheykalar,
     faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: `АКТ_Ф-2${raqam ? `_№${raqam}` : ''}`, davr: o.davr.slice(0, 7) }),
     jami: jamiJS == null ? null : yaxlit2(jamiJS),
   };

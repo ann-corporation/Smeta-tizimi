@@ -30,6 +30,8 @@ vi.mock('../../api/supabase', () => ({
   sbT2AktYaratV2: m.yarat,
   yangiOperationId: () => '00000000-0000-4000-8000-000000000001',
 }));
+// Token daftari: sarf muvaffaqiyatli — amal bajariladi (token mantig'i t2-token/f2-yacheyka testlarida).
+vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(async (_p: unknown, ish: () => Promise<unknown>) => ({ ok: true, natija: await ish(), sarflandi: 1 })) }));
 vi.mock('../../api/t2-fakt', () => ({ sbQatorHolatOl: vi.fn(async () => ({ ok: true, qatorlar: holat })) }));
 vi.mock('../../api/t2-aosr', () => ({ sbAosrCoverageOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('../../api/t2-shartnoma-liniya', () => ({ shartnomaLiniyaOl: vi.fn(async () => ({ ok: true, natija: {
