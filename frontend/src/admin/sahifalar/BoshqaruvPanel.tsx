@@ -5,27 +5,29 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Building2, Coins, Crown, FileSearch, Settings, ToggleLeft, Users } from 'lucide-react';
+import { Activity, Building2, Coins, CreditCard, Crown, FileSearch, Settings, ToggleLeft, Users } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
-import { demoManbaBelgila, obunaBelgila, tokenHolatOl, tokenToldir, tokenXato, type TokenNarx, type TokenTarif } from '../../api/t2-token';
-import { boshqaruvOqi, boshqaruvYoz, type BAudit, type BFoydalanuvchi, type BKompaniya, type BTokenDaftar, type BUmumiy } from '../../api/t2-boshqaruv';
+import { demoManbaBelgila, narxHisob, obunaBelgila, tokenHolatOl, tokenToldir, tokenXato, type TokenNarx, type TokenSozlama, type TokenTarif } from '../../api/t2-token';
+import { t } from '../../i18n/til';
+import { boshqaruvOqi, boshqaruvYoz, type BAudit, type BFoydalanuvchi, type BKompaniya, type BTokenDaftar, type BTolov, type BUmumiy } from '../../api/t2-boshqaruv';
 
 const SystemControlPage = lazy(() => import('../pages/SystemControlPage'));
 
 const son = (x: number | null | undefined) => (x == null ? '—' : Number(x).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const vaqt = (s: string) => new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
 const ROLLAR = ['superadmin', 'admin', 'boss', 'rahbar', 'bugalter', 'pto', 'prorab', 'kuzatuvchi'];
-const AMAL_NOMI: Record<string, string> = { smeta_import: 'Smeta import', f2_import: 'F2 import', katalog_import: 'Katalog import', f2_qoralama: 'F2 qoralama', hujjat: 'Hujjat', ai_kirish: 'AI kiruvchi', ai_chiqish: 'AI chiquvchi' };
+const AMAL_NOMI: Record<string, string> = { smeta_import: 'Smeta import', f2_import: 'F2 import', katalog_import: 'Katalog import', f2_qoralama: 'F2 qoralama', f2_hujjat: 'F2 hujjati', hujjat: 'Hujjat', ai_kirish: 'AI kiruvchi', ai_chiqish: 'AI chiquvchi' };
 const TUR_NOMI: Record<string, string> = { oylik: 'Oylik', toldirish: 'To‘lov', bonus: 'Bonus', sarf: 'Sarf', qaytarish: 'Qaytarish', tuzatish: 'Tuzatish' };
 
-type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar';
+type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'tolovlar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar';
 const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
   { id: 'umumiy', nom: 'Umumiy', Ikonka: Activity },
   { id: 'foydalanuvchilar', nom: 'Foydalanuvchilar', Ikonka: Users },
   { id: 'kompaniyalar', nom: 'Kompaniyalar va obunalar', Ikonka: Building2 },
+  { id: 'tolovlar', nom: 'Toʻlovlar', Ikonka: CreditCard },
   { id: 'token', nom: 'Token hisobi', Ikonka: Coins },
   { id: 'audit', nom: 'Audit', Ikonka: FileSearch },
   { id: 'sozlamalar', nom: 'Sozlamalar', Ikonka: Settings },
@@ -304,80 +306,162 @@ function Audit({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
   );
 }
 
-// ─── Sozlamalar ───
+// ─── To'lovlar (qo'lda tasdiq; Payme/Click ulanganda — avtomatik) ───
+function Tolovlar() {
+  const [holat, setHolat] = useState('kutilmoqda');
+  const { d, xato, yukla } = useOqi<BTolov[]>('tolovlar', { holat }, holat);
+  const hal = async (s: BTolov, qaror: 'tasdiqlandi' | 'rad') => {
+    const sabab = qaror === 'rad' ? sababSora(t('Rad etish sababi')) : window.confirm(t('{k}: {s} soʻm uchun {n} token yozilsinmi? Pul hisobingizga tushganini tekshirdingizmi?', { k: s.kompaniya, s: son(s.summa_som), n: son(s.token) })) ? 'tasdiq' : null;
+    if (!sabab) return;
+    const r = await boshqaruvYoz('tolov_hal', { sorov_id: s.id, qaror, sabab: qaror === 'rad' ? sabab : null });
+    toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
+  };
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-1">
+        {['kutilmoqda', 'tasdiqlandi', 'rad', ''].map((h) => (
+          <button key={h || 'hammasi'} type="button" aria-pressed={holat === h} onClick={() => setHolat(h)}
+            className={`rounded-lg border px-3 py-1 text-[12px] ${holat === h ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim'}`}>
+            {t(h === 'kutilmoqda' ? 'Kutilmoqda' : h === 'tasdiqlandi' ? 'Tasdiqlandi' : h === 'rad' ? 'Rad etildi' : 'Hammasi')}
+          </button>
+        ))}
+      </div>
+      {xato && <Xato x={xato} />}
+      {d && (d.length === 0 ? <p className="karta p-4 text-[13px] text-text-mute">{t('Soʻrov yoʻq.')}</p> : (
+        <div className="karta overflow-x-auto">
+          <table className="w-full text-[13px]"><tbody>
+            {d.map((s) => (
+              <tr key={s.id} className="border-t border-border/60 align-top">
+                <td className="p-2 text-text-mute">#{s.id}<div className="text-[11px]">{vaqt(s.vaqt)}</div></td>
+                <td className="p-2"><div className="text-text">{s.kompaniya}</div><div className="text-[11px] text-text-mute">{s.kim}</div></td>
+                <td className="p-2 tabular-nums"><b className="text-text">{son(s.summa_som)} {t('soʻm')}</b><div className="text-[11px] text-text-mute">{son(s.token)} {t('token')} · {s.usul}</div></td>
+                <td className="p-2 text-[12px] text-text-dim break-all">{s.tolov_malumot}</td>
+                <td className="p-2 text-right whitespace-nowrap">
+                  {s.holat === 'kutilmoqda' ? (
+                    <>
+                      <button type="button" className="tugma-asosiy h-7 px-2 text-[12px]" onClick={() => void hal(s, 'tasdiqlandi')}>{t('Tasdiqlash')}</button>
+                      <button type="button" className="tugma ml-1 h-7 px-2 text-[12px] text-danger" onClick={() => void hal(s, 'rad')}>{t('Rad etish')}</button>
+                    </>
+                  ) : <span className={s.holat === 'tasdiqlandi' ? 'text-ok' : 'text-danger'}>{t(s.holat === 'tasdiqlandi' ? 'Tasdiqlandi' : s.holat === 'rad' ? 'Rad etildi' : 'Bekor qilindi')}{s.sabab && s.sabab !== 'tasdiq' ? ` — ${s.sabab}` : ''}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody></table>
+        </div>
+      ))}
+      <p className="text-[12px] text-text-mute">{t('Tasdiqlashdan oldin pul kartangiz yoki hisobingizga tushganini tekshiring. Tasdiqlangach tokenlar darhol yoziladi va qaytarib boʻlmaydi (faqat tuzatish bilan).')}</p>
+    </div>
+  );
+}
+
+// ─── Sozlamalar: 1 token narxi, foyda %, sinov bonusi, rekvizit; har amal narxi (tannarx + foyda) ───
 function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
   const [narxlar, setNarxlar] = useState<TokenNarx[]>([]);
   const [tariflar, setTariflar] = useState<TokenTarif[]>([]);
+  const [soz, setSoz] = useState<TokenSozlama | null>(null);
   const [demo, setDemo] = useState<number | null>(null);
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const yukla = useCallback(async () => {
     if (!kompaniyaId) return;
     const h = await tokenHolatOl(kompaniyaId);
-    if (h.ok) { setNarxlar(h.natija.narxlar); setTariflar(h.natija.tariflar); setDemo(h.natija.demo_obyekt_id); }
+    if (h.ok) { setNarxlar(h.natija.narxlar); setTariflar(h.natija.tariflar); setSoz(h.natija.sozlama); setDemo(h.natija.demo_obyekt_id); }
     const o = await sbT2ObyektlarOlKomp(kompaniyaId);
     if (o.ok) setObyektlar(o.qatorlar ?? []);
   }, [kompaniyaId]);
   useEffect(() => { void yukla(); }, [yukla]);
 
-  const narxSaqla = async (n: TokenNarx) => {
-    const r = await boshqaruvYoz('narx', { amal_kod: n.amal, narx: n.narx, birlik: n.birlik, minimum: n.minimum, faol: true });
+  const sozSaqla = async () => {
+    if (!soz) return;
+    const r = await boshqaruvYoz('sozlama', { ...soz });
     toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
   };
-  const tarifSaqla = async (t: TokenTarif & { faol?: boolean }) => {
-    const r = await boshqaruvYoz('tarif', { kod: t.kod, nom: t.nom, oylik_token: t.oylik_token, narx_som: t.narx_som, faol: t.faol !== false });
+  const narxSaqla = async (n: TokenNarx) => {
+    const r = await boshqaruvYoz('narx', { amal_kod: n.amal, asos_som: n.asos_som, birlik: n.birlik, birlik_som: n.birlik_som, min_som: n.min_som, max_som: n.max_som, foyda_foiz: n.foyda_foiz, faol: n.faol });
+    toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
+  };
+  const tarifSaqla = async (tf: TokenTarif & { faol?: boolean }) => {
+    const r = await boshqaruvYoz('tarif', { kod: tf.kod, nom: tf.nom, oylik_token: tf.oylik_token, narx_som: tf.narx_som, faol: tf.faol !== false });
     toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
   };
   const yangiTarif = () => {
-    const kod = window.prompt('Yangi tarif kodi (lotin, masalan: pto_korporativ)'); if (!kod) return;
+    const kod = window.prompt(t('Yangi tarif kodi (lotin, masalan: pto_korporativ)')); if (!kod) return;
     setTariflar((p) => [...p, { kod: kod.trim().toLowerCase(), nom: 'Yangi tarif', oylik_token: 0, narx_som: 0 }]);
   };
   const ozgar = <T,>(set: (f: (p: T[]) => T[]) => void, i: number, qism: Partial<T>) => set((p) => p.map((x, j) => (j === i ? { ...x, ...qism } : x)));
+  const raqam = (v: string) => (v === '' ? null : Number(v));
+  const kir = 'input h-7 px-2';
 
-  if (!kompaniyaId) return <p className="karta p-4 text-text-dim">Sozlamalarni ko‘rish uchun yuqorida istalgan kompaniyani tanlang (sozlamalar butun platforma uchun umumiy).</p>;
+  if (!kompaniyaId) return <p className="karta p-4 text-text-dim">{t('Sozlamalarni koʻrish uchun yuqorida istalgan kompaniyani tanlang (sozlamalar butun platforma uchun umumiy).')}</p>;
   return (
     <div className="space-y-3">
-      <section className="karta p-4">
-        <h2 className="mb-1 text-[14px] font-semibold text-text">Token narxlari</h2>
-        <p className="mb-2 text-[12px] text-text-mute">Fayl va hujjatlar — ishlangan yacheykalar soniga ko‘ra: «narx» token har «birlik» yacheykaga, kamida «minimum». AI — 1000 LLM token uchun.</p>
-        <table className="w-full text-[13px]">
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>Amal</th><th>Narx</th><th>Birlik</th><th>Minimum</th><th /></tr></thead>
-          <tbody>{narxlar.map((n, i) => (
-            <tr key={n.amal} className="border-t border-border/60">
-              <td className="py-1 text-text">{n.nom}</td>
-              <td className="py-1"><input type="number" step="0.01" className="input h-7 px-2 w-24 py-0" value={n.narx} onChange={(e) => ozgar(setNarxlar, i, { narx: Number(e.target.value) })} aria-label={`${n.nom} narxi`} /></td>
-              <td className="py-1"><input type="number" className="input h-7 px-2 w-24 py-0" value={n.birlik} onChange={(e) => ozgar(setNarxlar, i, { birlik: Number(e.target.value) })} aria-label={`${n.nom} birligi`} /></td>
-              <td className="py-1"><input type="number" step="0.01" className="input h-7 px-2 w-20 py-0" value={n.minimum} onChange={(e) => ozgar(setNarxlar, i, { minimum: Number(e.target.value) })} aria-label={`${n.nom} minimumi`} /></td>
-              <td className="py-1 text-right"><button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void narxSaqla(n)}>Saqlash</button></td>
-            </tr>
-          ))}</tbody>
+      {soz && (
+        <section className="karta p-4">
+          <h2 className="mb-2 text-[14px] font-semibold text-text">{t('Asosiy sozlamalar')}</h2>
+          <div className="grid gap-2 md:grid-cols-4">
+            <label className="text-[12px] text-text-dim">{t('1 token narxi (soʻm)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.token_som} onChange={(e) => setSoz({ ...soz, token_som: Number(e.target.value) })} /></label>
+            <label className="text-[12px] text-text-dim">{t('Foyda foizi (umumiy, %)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.foyda_foiz} onChange={(e) => setSoz({ ...soz, foyda_foiz: Number(e.target.value) })} /></label>
+            <label className="text-[12px] text-text-dim">{t('Sinov bonusi (bir marta, token)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.royxat_bonus_token} onChange={(e) => setSoz({ ...soz, royxat_bonus_token: Number(e.target.value) })} /></label>
+            <label className="text-[12px] text-text-dim">{t('Dollar kursi (AI tannarxi uchun)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.usd_kurs} onChange={(e) => setSoz({ ...soz, usd_kurs: Number(e.target.value) })} /></label>
+          </div>
+          <label className="mt-2 block text-[12px] text-text-dim">{t('Toʻlov rekvizitlari (foydalanuvchilarga koʻrinadi: karta raqami, egasi, bank, hisob raqam)')}
+            <textarea rows={3} className="input mt-1 w-full px-2 py-1.5 text-[13px]" value={soz.tolov_rekvizit ?? ''} onChange={(e) => setSoz({ ...soz, tolov_rekvizit: e.target.value })} />
+          </label>
+          <button type="button" className="tugma-asosiy mt-2 h-8 px-3 text-[13px]" onClick={() => void sozSaqla()}>{t('Saqlash')}</button>
+        </section>
+      )}
+      <section className="karta overflow-x-auto p-4">
+        <h2 className="mb-1 text-[14px] font-semibold text-text">{t('Amallar narxi: tannarx + foyda')}</h2>
+        <p className="mb-2 text-[12px] text-text-mute">{t('Yakuniy = (asosiy + har birlik boʻlagi × narx) × (1 + foyda%), keyin min/max. Foyda boʻsh — umumiy foiz. Oʻzgarish faqat keyingi sarflarga taʼsir qiladi.')}</p>
+        <table className="w-full text-[12px]">
+          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Amal')}</th><th>{t('Asosiy (soʻm)')}</th><th>{t('Birlik')}</th><th>{t('Har birlik (soʻm)')}</th><th>{t('Min')}</th><th>{t('Max')}</th><th>{t('Foyda %')}</th><th>{t('Misol')}</th><th /></tr></thead>
+          <tbody>{narxlar.map((n, i) => {
+            const misolN = n.tur === 'ai' ? 10000 : n.amal === 'f2_hujjat' || n.amal === 'hujjat' ? 792 : 20000;
+            const m = soz ? narxHisob({ ...n, faol: true }, misolN, soz) : null;
+            return (
+              <tr key={n.amal} className="border-t border-border/60">
+                <td className="py-1 pr-2 text-text">{t(n.nom)}</td>
+                <td className="py-1"><input type="number" className={`${kir} w-24`} value={n.asos_som} onChange={(e) => ozgar(setNarxlar, i, { asos_som: Number(e.target.value) })} aria-label={t('Asosiy (soʻm)')} /></td>
+                <td className="py-1"><input type="number" className={`${kir} w-20`} value={n.birlik} onChange={(e) => ozgar(setNarxlar, i, { birlik: Number(e.target.value) })} aria-label={t('Birlik')} /></td>
+                <td className="py-1"><input type="number" className={`${kir} w-20`} value={n.birlik_som} onChange={(e) => ozgar(setNarxlar, i, { birlik_som: Number(e.target.value) })} aria-label={t('Har birlik (soʻm)')} /></td>
+                <td className="py-1"><input type="number" className={`${kir} w-24`} value={n.min_som} onChange={(e) => ozgar(setNarxlar, i, { min_som: Number(e.target.value) })} aria-label={t('Min')} /></td>
+                <td className="py-1"><input type="number" className={`${kir} w-24`} value={n.max_som ?? ''} onChange={(e) => ozgar(setNarxlar, i, { max_som: raqam(e.target.value) })} aria-label={t('Max')} /></td>
+                <td className="py-1"><input type="number" className={`${kir} w-16`} value={n.foyda_foiz ?? ''} placeholder={soz ? String(soz.foyda_foiz) : ''} onChange={(e) => ozgar(setNarxlar, i, { foyda_foiz: raqam(e.target.value) })} aria-label={t('Foyda %')} /></td>
+                <td className="py-1 pr-2 tabular-nums text-text-dim whitespace-nowrap">{m ? `${son(misolN)} → ${son(m.yakuniy_som)} = ${son(m.token)} ${t('token')}` : '—'}</td>
+                <td className="py-1 text-right whitespace-nowrap">
+                  <label className="mr-1 text-[11px] text-text-mute"><input type="checkbox" checked={n.faol} onChange={(e) => ozgar(setNarxlar, i, { faol: e.target.checked })} /> {t('faol')}</label>
+                  <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void narxSaqla(n)}>{t('Saqlash')}</button>
+                </td>
+              </tr>
+            );
+          })}</tbody>
         </table>
       </section>
       <section className="karta p-4">
-        <div className="mb-2 flex items-center justify-between"><h2 className="text-[14px] font-semibold text-text">Tariflar</h2><button type="button" className="tugma h-7 px-2 text-[12px]" onClick={yangiTarif}>+ Yangi tarif</button></div>
+        <div className="mb-2 flex items-center justify-between"><h2 className="text-[14px] font-semibold text-text">{t('Tariflar')}</h2><button type="button" className="tugma h-7 px-2 text-[12px]" onClick={yangiTarif}>{t('+ Yangi tarif')}</button></div>
         <table className="w-full text-[13px]">
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>Kod</th><th>Nomi</th><th>Token/oy</th><th>Narx (so‘m/oy)</th><th /></tr></thead>
-          <tbody>{tariflar.map((t, i) => (
-            <tr key={t.kod} className="border-t border-border/60">
-              <td className="py-1 text-text-mute">{t.kod}</td>
-              <td className="py-1"><input className="input h-7 px-2" value={t.nom} onChange={(e) => ozgar(setTariflar, i, { nom: e.target.value })} aria-label={`${t.kod} nomi`} /></td>
-              <td className="py-1"><input type="number" className="input h-7 px-2 w-28 py-0" value={t.oylik_token} onChange={(e) => ozgar(setTariflar, i, { oylik_token: Number(e.target.value) })} aria-label={`${t.kod} tokeni`} /></td>
-              <td className="py-1"><input type="number" className="input h-7 px-2 w-32 py-0" value={t.narx_som} onChange={(e) => ozgar(setTariflar, i, { narx_som: Number(e.target.value) })} aria-label={`${t.kod} narxi`} /></td>
+          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Kod')}</th><th>{t('Nomi')}</th><th>{t('Token/oy')}</th><th>{t('Narx (soʻm/oy)')}</th><th /></tr></thead>
+          <tbody>{tariflar.map((tf, i) => (
+            <tr key={tf.kod} className="border-t border-border/60">
+              <td className="py-1 text-text-mute">{tf.kod}</td>
+              <td className="py-1"><input className={kir} value={tf.nom} onChange={(e) => ozgar(setTariflar, i, { nom: e.target.value })} aria-label={t('Nomi')} /></td>
+              <td className="py-1"><input type="number" className={`${kir} w-28`} value={tf.oylik_token} onChange={(e) => ozgar(setTariflar, i, { oylik_token: Number(e.target.value) })} aria-label={t('Token/oy')} /></td>
+              <td className="py-1"><input type="number" className={`${kir} w-32`} value={tf.narx_som} onChange={(e) => ozgar(setTariflar, i, { narx_som: Number(e.target.value) })} aria-label={t('Narx (soʻm/oy)')} /></td>
               <td className="py-1 text-right whitespace-nowrap">
-                <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void tarifSaqla(t)}>Saqlash</button>
-                {t.kod !== 'free' && <button type="button" className="ml-1 tugma h-7 px-2 text-[12px] text-danger" onClick={() => void tarifSaqla({ ...t, faol: false })}>Yashirish</button>}
+                <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void tarifSaqla(tf)}>{t('Saqlash')}</button>
+                {tf.kod !== 'free' && <button type="button" className="tugma ml-1 h-7 px-2 text-[12px] text-danger" onClick={() => void tarifSaqla({ ...tf, faol: false })}>{t('Yashirish')}</button>}
               </td>
             </tr>
           ))}</tbody>
         </table>
       </section>
       <section className="karta p-4">
-        <h2 className="mb-1 text-[14px] font-semibold text-text">Demo obyekt (yangi foydalanuvchilarga nusxalanadi)</h2>
-        <p className="mb-2 text-[12px] text-warn">Diqqat: tanlangan obyekt smetasi (narxlari bilan) har yangi foydalanuvchiga ko‘rinadi. Kichik namuna obyekt tavsiya etiladi — katta obyekt ro‘yxatni sekinlashtiradi.</p>
-        <select className="input px-2 py-1.5 text-[13px] max-w-md" value={demo ?? ''} aria-label="Demo obyekt"
+        <h2 className="mb-1 text-[14px] font-semibold text-text">{t('Demo obyekt (yangi foydalanuvchilarga nusxalanadi)')}</h2>
+        <p className="mb-2 text-[12px] text-warn">{t('Diqqat: tanlangan obyekt smetasi (narxlari bilan) har yangi foydalanuvchiga koʻrinadi. Kichik namuna obyekt tavsiya etiladi — katta obyekt roʻyxatni sekinlashtiradi.')}</p>
+        <select className="input max-w-md px-2 py-1.5 text-[13px]" value={demo ?? ''} aria-label={t('Demo obyekt')}
           onChange={async (e) => { const v = e.target.value ? Number(e.target.value) : null; const r = await demoManbaBelgila(v); toast(r.ok ? 'Demo manba saqlandi' : tokenXato(r), r.ok ? 'ok' : 'danger'); if (r.ok) setDemo(v); }}>
-          <option value="">Demo yo‘q</option>
+          <option value="">{t('Demo yoʻq')}</option>
           {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
-          {demo != null && !obyektlar.some((o) => o.id === demo) && <option value={demo}>#{demo} (boshqa kompaniyada)</option>}
+          {demo != null && !obyektlar.some((o) => o.id === demo) && <option value={demo}>#{demo}</option>}
         </select>
       </section>
     </div>
@@ -424,13 +508,14 @@ export default function BoshqaruvPanel() {
         {BOLIMLAR.map(({ id, nom, Ikonka }) => (
           <button key={id} type="button" onClick={() => setBolim(id)} aria-pressed={bolim === id}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] ${bolim === id ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:text-text'}`}>
-            <Ikonka size={14} />{nom}
+            <Ikonka size={14} />{t(nom)}
           </button>
         ))}
       </nav>
       {bolim === 'umumiy' && <Umumiy />}
       {bolim === 'foydalanuvchilar' && <Foydalanuvchilar kompaniyalar={komp.d ?? []} />}
       {bolim === 'kompaniyalar' && <Kompaniyalar d={komp.d} xato={komp.xato} yukla={() => void komp.yukla()} tariflar={tariflar} />}
+      {bolim === 'tolovlar' && <Tolovlar />}
       {bolim === 'token' && <TokenHisobi kompaniyalar={komp.d ?? []} />}
       {bolim === 'audit' && <Audit kompaniyalar={komp.d ?? []} />}
       {bolim === 'sozlamalar' && <Sozlamalar kompaniyaId={joriy?.id ?? null} />}

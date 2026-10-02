@@ -260,6 +260,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_token_qaytar_v1"
     },
     {
+      "amal": "tolov_sorov_yarat_v1",
+      "rpc": "t2_tolov_sorov_yarat_v1"
+    },
+    {
       "amal": "token_toldir_v1",
       "rpc": "t2_token_toldir_v1"
     },

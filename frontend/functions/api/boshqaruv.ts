@@ -17,11 +17,14 @@ const OQISH: Record<string, string> = {
   kompaniyalar: 't2_boshqaruv_kompaniyalar_v1',
   token: 't2_boshqaruv_token_daftar_v1',
   audit: 't2_boshqaruv_audit_v1',
+  tolovlar: 't2_boshqaruv_tolovlar_v1',
 };
 const YOZISH: Record<string, string> = {
   foydalanuvchi_holat: 't2_boshqaruv_foydalanuvchi_holat_v1',
   azolik: 't2_boshqaruv_azolik_v1',
-  narx: 't2_boshqaruv_narx_saqla_v1',
+  narx: 't2_boshqaruv_narx_v2_saqla',
+  sozlama: 't2_boshqaruv_sozlama_saqla_v1',
+  tolov_hal: 't2_tolov_hal_qil_v1',
   tarif: 't2_boshqaruv_tarif_saqla_v1',
 };
 
@@ -38,10 +41,22 @@ export function yozishYuki(amal: string, so: Record<string, unknown>): Record<st
       if (!sonmi(so.foydalanuvchi_id) || !sonmi(so.kompaniya_id)) return 'foydalanuvchi_id va kompaniya_id kerak';
       return { p_foydalanuvchi_id: Number(so.foydalanuvchi_id), p_kompaniya_id: Number(so.kompaniya_id), p_rol: so.rol == null || so.rol === '' ? null : String(so.rol).slice(0, 30), p_sabab: matn(so.sabab, 300) };
     case 'narx': {
-      const [n, b, m] = [Number(so.narx), Number(so.birlik), Number(so.minimum)];
-      if (!/^[a-z_]{2,40}$/.test(String(so.amal_kod || '')) || ![n, b, m].every(Number.isFinite)) return 'amal_kod, narx, birlik, minimum kerak';
-      return { p_amal: String(so.amal_kod), p_narx: n, p_birlik: Math.trunc(b), p_minimum: m, p_faol: so.faol !== false };
+      const ixt = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      const [a, b, bs, mn] = [Number(so.asos_som), Number(so.birlik), Number(so.birlik_som), Number(so.min_som)];
+      const [mx, f] = [ixt(so.max_som), ixt(so.foyda_foiz)];
+      if (!/^[a-z0-9_]{2,40}$/.test(String(so.amal_kod || '')) || ![a, b, bs, mn].every(Number.isFinite) || (mx != null && !Number.isFinite(mx)) || (f != null && !Number.isFinite(f))) {
+        return 'amal_kod, asos_som, birlik, birlik_som, min_som kerak';
+      }
+      return { p_amal: String(so.amal_kod), p_asos_som: a, p_birlik: Math.trunc(b), p_birlik_som: bs, p_min_som: mn, p_max_som: mx, p_foyda_foiz: f, p_faol: so.faol !== false };
     }
+    case 'sozlama': {
+      const [ts, f, bon, k] = [Number(so.token_som), Number(so.foyda_foiz), Number(so.royxat_bonus_token), Number(so.usd_kurs)];
+      if (![ts, f, bon, k].every(Number.isFinite)) return 'token_som, foyda_foiz, royxat_bonus_token, usd_kurs kerak';
+      return { p_token_som: ts, p_foyda_foiz: f, p_royxat_bonus: bon, p_usd_kurs: k, p_tolov_rekvizit: matn(so.tolov_rekvizit, 500) };
+    }
+    case 'tolov_hal':
+      if (!sonmi(so.sorov_id) || !['tasdiqlandi', 'rad'].includes(String(so.qaror))) return 'sorov_id va qaror (tasdiqlandi/rad) kerak';
+      return { p_sorov_id: Number(so.sorov_id), p_qaror: String(so.qaror), p_sabab: matn(so.sabab, 300) };
     case 'tarif': {
       const [t, s] = [Number(so.oylik_token), Number(so.narx_som)];
       if (!/^[a-z_]{2,30}$/.test(String(so.kod || '')) || !String(so.nom || '').trim() || ![t, s].every(Number.isFinite)) return 'kod, nom, oylik_token, narx_som kerak';
@@ -86,6 +101,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const oldin = u.searchParams.get('oldin_id');
   if (bolim === 'foydalanuvchilar') yuk.p_qidiruv = q ? q.slice(0, 100) : null;
   if (bolim === 'token') yuk.p_kompaniya_id = sonmi(k) ? Number(k) : null;
+  if (bolim === 'tolovlar') { const h = u.searchParams.get('holat'); yuk.p_holat = h && /^[a-z]{2,15}$/.test(h) ? h : null; }
   if (bolim === 'audit') Object.assign(yuk, { p_qidiruv: q ? q.slice(0, 100) : null, p_kompaniya_id: sonmi(k) ? Number(k) : null, p_oldin_id: sonmi(oldin) ? Number(oldin) : null });
   return rpc(ctx.env, nom, yuk);
 };

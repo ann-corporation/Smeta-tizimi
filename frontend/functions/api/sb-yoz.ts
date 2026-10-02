@@ -40,6 +40,8 @@ const AMALLAR = {
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
+  /* Egasi 2026-10-02: token sotib olish so'rovi (o'tkazma; superadmin tasdiqlaydi — /api/boshqaruv). */
+  tolov_sorov_yarat_v1: { rpc: 't2_tolov_sorov_yarat_v1' },
   token_toldir_v1: { rpc: 't2_token_toldir_v1' },
   obuna_belgila_v1: { rpc: 't2_obuna_belgila_v1' },
   demo_manba_belgila_v1: { rpc: 't2_demo_manba_belgila_v1' },
@@ -547,6 +549,11 @@ export const onRequestPost: PagesFunction<{
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_amal: String(so.tur_amal), p_birlik_soni: n, p_operation_id: so.operation_id,
         p_meta: so.meta && typeof so.meta === 'object' && !Array.isArray(so.meta) ? Object.fromEntries(Object.entries(so.meta).slice(0, 10).map(([k, v]) => [String(k).slice(0, 40), typeof v === 'number' ? v : String(v).slice(0, 200)])) : {} };
+    } else if (amal === 'tolov_sorov_yarat_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !/^[a-z0-9_]{2,30}$/.test(String(so.paket_kod || '')) || !['otkazma', 'payme', 'click'].includes(String(so.usul))) {
+        return Response.json({ ok: false, error: 'Paket, usul va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_paket_kod: String(so.paket_kod), p_usul: String(so.usul), p_tolov_malumot: String(so.tolov_malumot || '').slice(0, 300), p_operation_id: so.operation_id };
     } else if (amal === 'token_qaytar_v1') {
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !uuidRe.test(String(so.sarf_operation_id || ''))) {
         return Response.json({ ok: false, error: 'Sarf va operatsiya talab qilinadi.' }, { status: 400 });

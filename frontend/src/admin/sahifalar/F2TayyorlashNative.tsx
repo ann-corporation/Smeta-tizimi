@@ -11,7 +11,7 @@ import { sbT2AktYaratV2, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, ty
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
-import { tokenBilan } from '../../api/t2-token';
+import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
 import { imzoNomlariTomonlardan } from '../../lib/shartnoma-liniya';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
@@ -180,13 +180,18 @@ export function F2TayyorlashNative() {
         ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
         nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
       });
-      // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "hujjat" sarfi bilan beriladi.
+      // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.
+      // Mazmun xeshi: aynan shu hujjat qayta ochilsa/yuklansa — qayta to'lov yo'q. Sabab daftarda ko'rinadi.
       if (!joriy?.id) return;
-      const t = await tokenBilan({ kompaniyaId: joriy.id, amal: 'hujjat', birlikSoni: h.yacheykalar, meta: { hujjat: 'f2', obyekt: obyektId, yacheyka: h.yacheykalar } }, async () => {
+      const xesh = await mazmunXeshi(h.bytes);
+      const t = await tokenBilan({ kompaniyaId: joriy.id, amal: 'f2_hujjat', birlikSoni: h.yacheykalar,
+        meta: { hujjat: 'F2', sabab: `F2 №${raqam || '—'} · ${object.nom} · ${oy}`.slice(0, 200), obyekt: obyektId, yacheyka: h.yacheykalar, xesh } }, async () => {
         if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
         return true;
       });
-      if (!t.ok) toast(t.xabar, 'danger'); else toast(`${t.sarflandi} token (${h.yacheykalar} yacheyka)`, 'ok');
+      if (!t.ok) toast(t.xabar, 'danger');
+      else if (t.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
+      else toast(`${t.sarflandi} token · ${Number(t.hisob?.yakuniy_som ?? 0).toLocaleString('ru-RU')} so‘m (${h.yacheykalar} yacheyka)`, 'ok');
     } catch { toast('Forma-2 Excel qoralamasini yaratib bo‘lmadi.', 'danger'); }
   };
 
@@ -325,7 +330,7 @@ export function F2TayyorlashNative() {
             <button type="button" onClick={() => navigate(`/admin/f2-tarix?obyekt=${obyektId}`)} className="rounded-lg border border-border px-3 py-1.5 text-[12px] text-text">F2 tarixi</button>
             <button type="button" onClick={() => void excelYuklash(false)} disabled={!tayyor || saving} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] font-semibold text-text disabled:opacity-50"><Download size={14} />Excel</button>
             <button type="button" onClick={() => void excelYuklash(true)} disabled={!tayyor || saving} aria-label="Forma-2 qoralama ko‘rish" className="inline-flex items-center rounded-lg border border-border px-2 py-1.5 text-text disabled:opacity-50"><Eye size={14} /></button>
-            <button type="button" onClick={() => void saqlash()} disabled={!tayyor || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"><Save size={14} />{saving ? 'Yaratilmoqda…' : `F2 qoralama yaratish (${qatorlar.length}) · ~${Math.max(1, Math.ceil(f2Yacheyka / 500))} token`}</button>
+            <button type="button" onClick={() => void saqlash()} disabled={!tayyor || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"><Save size={14} />{saving ? 'Yaratilmoqda…' : `F2 qoralama yaratish (${qatorlar.length})`}</button>
           </div>
         </section>
       </>}

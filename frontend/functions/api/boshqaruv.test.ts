@@ -17,8 +17,13 @@ describe('boshqaruv shlyuzi — yozish yuki', () => {
   });
 
   it('narx va tarif — raqamlar majburiy', () => {
-    expect(yozishYuki('narx', { amal_kod: 'hujjat', narx: 1, birlik: 500.7, minimum: 1 })).toEqual({ p_amal: 'hujjat', p_narx: 1, p_birlik: 500, p_minimum: 1, p_faol: true });
-    expect(yozishYuki('narx', { amal_kod: 'hujjat; drop', narx: 1, birlik: 1, minimum: 0 })).toMatch(/amal_kod/);
+    expect(yozishYuki('narx', { amal_kod: 'f2_hujjat', asos_som: 20000, birlik: 100.7, birlik_som: 1000, min_som: 30000, max_som: '', foyda_foiz: 40 }))
+      .toEqual({ p_amal: 'f2_hujjat', p_asos_som: 20000, p_birlik: 100, p_birlik_som: 1000, p_min_som: 30000, p_max_som: null, p_foyda_foiz: 40, p_faol: true });
+    expect(yozishYuki('narx', { amal_kod: 'hujjat; drop', asos_som: 1, birlik: 1, birlik_som: 0, min_som: 0 })).toMatch(/amal_kod/);
+    expect(yozishYuki('sozlama', { token_som: 100, foyda_foiz: 30, royxat_bonus_token: 500, usd_kurs: 12700, tolov_rekvizit: 'Karta 8600…' }))
+      .toEqual({ p_token_som: 100, p_foyda_foiz: 30, p_royxat_bonus: 500, p_usd_kurs: 12700, p_tolov_rekvizit: 'Karta 8600…' });
+    expect(yozishYuki('tolov_hal', { sorov_id: 3, qaror: 'tasdiqlandi' })).toEqual({ p_sorov_id: 3, p_qaror: 'tasdiqlandi', p_sabab: null });
+    expect(yozishYuki('tolov_hal', { sorov_id: 3, qaror: 'ok' })).toMatch(/qaror/);
     expect(yozishYuki('tarif', { kod: 'pto_start', nom: 'PTO Start', oylik_token: 1500, narx_som: 99000, faol: false }))
       .toEqual({ p_kod: 'pto_start', p_nom: 'PTO Start', p_oylik_token: 1500, p_narx_som: 99000, p_faol: false });
     expect(yozishYuki('tarif', { kod: 'x', nom: '', oylik_token: 1, narx_som: 1 })).toMatch(/kod/);

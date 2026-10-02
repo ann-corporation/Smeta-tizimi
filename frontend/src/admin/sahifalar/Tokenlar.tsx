@@ -1,23 +1,39 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Coins, Gift, ShieldCheck, Sparkles } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, ChevronRight, Coins, CreditCard, Crown, ReceiptText, ShieldCheck } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
-import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
-import {
-  demoManbaBelgila, obunaBelgila, tokenHolatOl, tokenTaxmin, tokenToldir, tokenXato, type TokenHarakat, type TokenHolat,
-} from '../../api/t2-token';
+import { yangiOperationId } from '../../api/supabase';
+import { narxHisob, tokenHolatOl, tokenXato, tolovSorovYarat, type NarxTafsilot, type TokenHarakat, type TokenHolat } from '../../api/t2-token';
+import { t, tilLocale } from '../../i18n/til';
 
 const TUR_NOMI: Record<TokenHarakat['tur'], string> = { oylik: 'Obuna (oylik)', toldirish: 'Sotib olindi', bonus: 'Bonus', sarf: 'Sarf', qaytarish: 'Qaytarildi', tuzatish: 'Tuzatish' };
-const son = (x: number) => x.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+const HOLAT_NOMI: Record<string, string> = { kutilmoqda: 'Kutilmoqda', tasdiqlandi: 'Tasdiqlandi', rad: 'Rad etildi', bekor: 'Bekor qilindi' };
+const son = (x: number | null | undefined) => (x == null ? '—' : Number(x).toLocaleString(tilLocale(), { maximumFractionDigits: 2 }));
 const kirit = 'rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
 
+/** Sarf hisobining to'liq izohi: nima uchun, qancha birlik, tannarx, foyda, yakuniy narx. */
+function HisobIzoh({ h, meta }: { h: NarxTafsilot; meta: TokenHarakat['meta'] }) {
+  return (
+    <div className="grid gap-x-6 gap-y-0.5 text-[12px] text-text-dim md:grid-cols-2">
+      {meta?.sabab && <div className="md:col-span-2 text-text">{String(meta.sabab)}</div>}
+      <div>{t('Amal')}: <b className="text-text">{t(h.nom)}</b></div>
+      <div>{t('Hajm')}: <b className="text-text">{son(h.birlik_soni)}</b> {t('birlik')} ({son(h.qism)} × {son(h.birlik)})</div>
+      <div>{t('Tannarx')}: {son(h.asos_som)} + {son(h.qism)} × {son(h.birlik_som)} = <b className="text-text">{son(h.tannarx_som)} {t('soʻm')}</b></div>
+      <div>{t('Foyda')}: {son(h.foyda_foiz)}% {h.min_som ? `· ${t('min')} ${son(h.min_som)}` : ''} {h.max_som ? `· ${t('max')} ${son(h.max_som)}` : ''}</div>
+      <div>{t('Yakuniy narx')}: <b className="text-text">{son(h.yakuniy_som)} {t('soʻm')}</b></div>
+      <div>{t('Token')}: {son(h.yakuniy_som)} ÷ {son(h.token_som)} = <b className="text-text">{son(h.token)}</b></div>
+    </div>
+  );
+}
+
 /**
- * Tokenlar va obuna (egasi, 2026-10-02: "pulga foydalanuvchi token oladi; fayllar va AI shu token bilan").
- * Foydalanuvchi: balans, tarif, narxlar, tarix. Superadmin: to'lovni tasdiqlab token yozish, tarif, demo manbasi.
+ * Tokenlar va obuna (egasi, 2026-10-02): balans, token sotib olish, narxlar (tannarx + foyda), har sarfning
+ * "nima uchun" izohi. Superadmin amallari — Boshqaruv panelida.
  */
 export function Tokenlar() {
-  const { joriy, kompaniyalar } = useKompaniya();
+  const { joriy } = useKompaniya();
   const kid = joriy?.id ?? null;
   const [h, setH] = useState<TokenHolat | null>(null);
   const [xato, setXato] = useState<string | null>(null);
@@ -31,132 +47,149 @@ export function Tokenlar() {
   }, [kid]);
   useEffect(() => { void yukla(); }, [yukla]);
 
-  // Superadmin paneli
-  const [maqsad, setMaqsad] = useState('');
-  const [miqdor, setMiqdor] = useState('');
-  const [tur, setTur] = useState<'toldirish' | 'bonus' | 'tuzatish'>('toldirish');
-  const [izoh, setIzoh] = useState('');
-  const [tarif, setTarif] = useState('pto_start');
-  const [oylar, setOylar] = useState('1');
-  const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
+  const [paket, setPaket] = useState('');
+  const [malumot, setMalumot] = useState('');
   const [band, setBand] = useState(false);
-  useEffect(() => { if (kid) setMaqsad(String(kid)); }, [kid]);
-  useEffect(() => {
-    if (h?.superadmin && kid) void sbT2ObyektlarOlKomp(kid).then((r) => setObyektlar((r.ok ? r.qatorlar : []) as T2Obyekt[]));
-  }, [h?.superadmin, kid]);
+  const [ochiq, setOchiq] = useState<number | null>(null);
+  const opId = useRef(yangiOperationId());
+  useEffect(() => { if (h?.paketlar?.length && !paket) setPaket(h.paketlar[1]?.kod ?? h.paketlar[0].kod); }, [h, paket]);
 
   const sarfJami = useMemo(() => (h?.harakatlar ?? []).filter((x) => x.tur === 'sarf').reduce((s, x) => s - x.miqdor, 0), [h]);
+  const f2Misol = useMemo(() => narxHisob(h?.narxlar.find((n) => n.amal === 'f2_hujjat'), 792, h?.sozlama), [h]);
 
-  async function bajar(f: () => Promise<{ ok: boolean }>, xabar: string) {
-    if (band) return;
+  async function sotibOl() {
+    if (!kid || !paket || band) return;
     setBand(true);
-    const r = await f();
+    const r = await tolovSorovYarat({ kompaniyaId: kid, paketKod: paket, usul: 'otkazma', tolovMalumot: malumot.trim(), operationId: opId.current });
     setBand(false);
-    if (!r.ok) { toast(tokenXato(r as never), 'danger'); return; }
-    toast(xabar, 'ok');
+    if (!r.ok) { toast(tokenXato(r), 'danger'); return; }
+    opId.current = yangiOperationId(); setMalumot('');
+    toast('So‘rov yuborildi — to‘lov tasdiqlangach tokenlar hisobingizga yoziladi', 'ok');
     await yukla();
   }
 
   return (
     <Sahifa sarlavha="Tokenlar va obuna" tavsif="Fayllarni qayta ishlash, hujjatlar va AI — tokenlar bilan" onYangila={() => void yukla()} yangilanmoqda={yuk}>
-      {!kid && <section className="karta p-4 text-text-dim">Avval kompaniyani tanlang.</section>}
+      {!kid && <section className="karta p-4 text-text-dim">{t('Avval kompaniyani tanlang.')}</section>}
       {xato && <section role="alert" className="karta border-danger/40 p-4 text-danger">{xato}</section>}
       {h && (
         <div className="space-y-3">
+          {h.superadmin && (
+            <Link to="/admin/boshqaruv" className="karta flex items-center gap-2 border-accent/40 p-3 text-[13px] text-text hover:border-accent">
+              <Crown size={15} className="text-accent" />{t('Toʻlovlarni tasdiqlash, narx va foyda foizi — Boshqaruv panelida')}
+            </Link>
+          )}
           <section className="grid gap-3 md:grid-cols-3">
             <div className="karta p-4">
-              <div className="flex items-center gap-2 text-[12px] uppercase tracking-wide text-text-mute"><Coins size={14} className="text-accent" />Balans</div>
-              <div className="mt-1 text-3xl font-bold tabular-nums text-text" aria-label="Token balansi">{son(h.balans)}</div>
-              <div className="text-[12px] text-text-dim">token · oxirgi 100 harakatda sarf: {son(sarfJami)}</div>
+              <div className="flex items-center gap-2 text-[12px] uppercase tracking-wide text-text-mute"><Coins size={14} className="text-accent" />{t('Balans')}</div>
+              <div className="mt-1 text-3xl font-bold tabular-nums text-text" aria-label={t('Token balansi')}>{son(h.balans)}</div>
+              <div className="text-[12px] text-text-dim">{t('token ≈ {s} soʻm · oxirgi sarf: {n} token', { s: son(h.balans * h.sozlama.token_som), n: son(sarfJami) })}</div>
             </div>
             <div className="karta p-4">
-              <div className="flex items-center gap-2 text-[12px] uppercase tracking-wide text-text-mute"><ShieldCheck size={14} className="text-accent" />Obuna</div>
-              <div className="mt-1 text-xl font-semibold text-text">{h.obuna ? h.obuna.nom : 'Obuna yo‘q'}</div>
-              <div className="text-[12px] text-text-dim">{h.obuna ? `${son(h.obuna.oylik_token)} token/oy · ${h.obuna.tugaydi ? `${h.obuna.tugaydi} gacha` : 'muddatsiz'}` : 'Tarif tanlang — pastda'}</div>
+              <div className="flex items-center gap-2 text-[12px] uppercase tracking-wide text-text-mute"><ShieldCheck size={14} className="text-accent" />{t('Obuna')}</div>
+              <div className="mt-1 text-xl font-semibold text-text">{h.obuna ? t(h.obuna.nom) : t('Obuna yoʻq')}</div>
+              <div className="text-[12px] text-text-dim">{h.obuna && h.obuna.oylik_token > 0 ? t('{n} token/oy', { n: son(h.obuna.oylik_token) }) : t('Tokenlarni paket bilan sotib oling')}</div>
             </div>
             <div className="karta p-4 text-[12px] text-text-dim">
-              <div className="mb-1 flex items-center gap-2 text-[12px] uppercase tracking-wide text-text-mute"><Sparkles size={14} className="text-accent" />Qanday ishlaydi</div>
-              Har amal oldidan narx ko‘rsatiladi; token yetmasa amal bajarilmaydi. Amal xato bilan tugasa token avtomatik qaytadi. AI — haqiqiy sarf bo‘yicha (kiruvchi va chiquvchi matn hajmi).
+              <div className="mb-1 text-[12px] uppercase tracking-wide text-text-mute">{t('Qanday hisoblanadi')}</div>
+              {t('Narx = tannarx (hujjat hajmi boʻyicha) + foyda. Har sarfning toʻliq hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.')}
+              {f2Misol && <div className="mt-1 text-text">{t('Masalan: F2 (792 yacheyka) = {s} soʻm = {n} token', { s: son(f2Misol.yakuniy_som), n: son(f2Misol.token) })}</div>}
             </div>
           </section>
 
-          <section className="karta p-4" aria-label="Tariflar">
-            <h2 className="mb-2 text-[14px] font-semibold text-text">Tariflar</h2>
+          <section className="karta p-4" aria-label={t('Token sotib olish')}>
+            <h2 className="mb-2 flex items-center gap-2 text-[14px] font-semibold text-text"><CreditCard size={15} className="text-accent" />{t('Token sotib olish')}</h2>
             <div className="grid gap-2 md:grid-cols-4">
-              {h.tariflar.map((t) => (
-                <div key={t.kod} className={`rounded-lg border p-3 ${h.obuna?.tarif === t.kod ? 'border-accent bg-accent/5' : 'border-border'}`}>
-                  <div className="text-[13px] font-semibold text-text">{t.nom}</div>
-                  <div className="text-lg font-bold tabular-nums text-text">{t.narx_som ? `${son(t.narx_som)} so‘m` : 'Bepul'}<span className="text-[11px] font-normal text-text-mute"> /oy</span></div>
-                  <div className="text-[12px] text-text-dim">{son(t.oylik_token)} token har oy</div>
-                </div>
+              {h.paketlar.map((p) => (
+                <button key={p.kod} type="button" onClick={() => setPaket(p.kod)} aria-pressed={paket === p.kod}
+                  className={`rounded-lg border p-3 text-left ${paket === p.kod ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'}`}>
+                  <div className="text-[13px] font-semibold text-text">{t(p.nom)}</div>
+                  <div className="text-lg font-bold tabular-nums text-text">{son(p.narx_som)} {t('soʻm')}</div>
+                  <div className="text-[11px] text-text-mute">{t('1 token = {s} soʻm', { s: son(p.narx_som / p.token) })}</div>
+                </button>
               ))}
             </div>
-            <p className="mt-2 text-[12px] text-text-mute">To‘lov: hozircha administrator orqali (o‘tkazma). To‘lovdan keyin tokenlar hisobingizga yoziladi.</p>
-          </section>
-
-          <section className="karta p-4" aria-label="Narxlar">
-            <h2 className="mb-2 text-[14px] font-semibold text-text">Amallar narxi</h2>
-            <table className="w-full text-[13px]"><tbody>
-              {h.narxlar.map((n) => (
-                <tr key={n.amal} className="border-t border-border/60">
-                  <td className="py-1.5 text-text">{n.nom}</td>
-                  <td className="py-1.5 text-right tabular-nums text-text-dim">
-                    {n.tur === 'qatiy' ? `${son(n.narx)} token` : n.tur === 'yacheyka' ? `${son(n.narx)} token / ${son(n.birlik)} yacheyka (min ${son(n.minimum)})` : `${son(n.narx)} token / 1000 AI token`}
-                  </td>
-                  <td className="py-1.5 pl-3 text-right text-[11px] text-text-mute">{n.tur === 'yacheyka' ? `masalan 10 000 yacheyka → ${son(tokenTaxmin(n, 10000) ?? 0)}` : ''}</td>
-                </tr>
-              ))}
-            </tbody></table>
-          </section>
-
-          <section className="karta p-4" aria-label="Harakatlar">
-            <h2 className="mb-2 text-[14px] font-semibold text-text">Harakatlar tarixi (o‘zgarmas daftar)</h2>
-            {h.harakatlar.length === 0 ? <p className="text-[12px] text-text-mute">Hali harakat yo‘q.</p> : (
-              <table className="w-full text-[12px]"><tbody>
-                {h.harakatlar.map((x) => (
-                  <tr key={x.id} className="border-t border-border/60">
-                    <td className="py-1 text-text-mute">{new Date(x.yaratildi).toLocaleString('ru-RU')}</td>
-                    <td className="py-1 text-text">{TUR_NOMI[x.tur]}{x.amal ? ` · ${h.narxlar.find((n) => n.amal === x.amal)?.nom ?? x.amal}` : ''}{x.izoh ? ` — ${x.izoh}` : ''}</td>
-                    <td className={`py-1 text-right font-semibold tabular-nums ${x.miqdor < 0 ? 'text-danger' : 'text-ok'}`}>{x.miqdor > 0 ? '+' : ''}{son(x.miqdor)}</td>
+            <div className="mt-3 space-y-2 text-[13px]">
+              <div className="rounded-lg border border-border p-3">
+                <div className="text-[12px] text-text-mute">{t('Toʻlov rekvizitlari (karta yoki hisob raqamiga oʻtkazma)')}</div>
+                <div className="whitespace-pre-wrap text-text">{h.sozlama.tolov_rekvizit || t('Administrator rekvizitlarni hali kiritmagan — u bilan bogʻlaning.')}</div>
+              </div>
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="flex-1 text-[12px] text-text-dim">{t('Toʻlov maʼlumoti (chek raqami, vaqt, karta oxirgi 4 raqami)')}
+                  <input value={malumot} onChange={(e) => setMalumot(e.target.value)} className={`${kirit} mt-1 w-full`} aria-label={t('Toʻlov maʼlumoti')} />
+                </label>
+                <button type="button" disabled={band || !paket || malumot.trim().length < 4} onClick={() => void sotibOl()}
+                  className="rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50">{t('Toʻladim — tasdiqlashga yuborish')}</button>
+              </div>
+              <p className="text-[11px] text-text-mute">{t('Payme va Click orqali avtomatik toʻlov — tez orada (pul tushishi bilan tokenlar oʻzi yoziladi).')}</p>
+            </div>
+            {h.sorovlar.length > 0 && (
+              <table className="mt-3 w-full text-[12px]"><tbody>
+                {h.sorovlar.map((s) => (
+                  <tr key={s.id} className="border-t border-border/60">
+                    <td className="py-1 text-text-mute">#{s.id} · {new Date(s.vaqt).toLocaleString(tilLocale())}</td>
+                    <td className="py-1 text-text">{son(s.token)} {t('token')} · {son(s.summa_som)} {t('soʻm')}</td>
+                    <td className={`py-1 text-right ${s.holat === 'tasdiqlandi' ? 'text-ok' : s.holat === 'rad' ? 'text-danger' : 'text-warn'}`}>{t(HOLAT_NOMI[s.holat] ?? s.holat)}{s.sabab ? ` — ${s.sabab}` : ''}</td>
                   </tr>
                 ))}
               </tbody></table>
             )}
           </section>
 
-          {h.superadmin && (
-            <section className="karta space-y-3 border-accent/40 p-4" aria-label="Superadmin">
-              <h2 className="flex items-center gap-2 text-[14px] font-semibold text-text"><Gift size={15} className="text-accent" />Superadmin: to‘lov, tarif, demo</h2>
-              <div className="flex flex-wrap items-end gap-2">
-                <label className="text-[12px] text-text-dim">Kompaniya ID
-                  <input aria-label="Maqsad kompaniya" list="tk-komp" value={maqsad} onChange={(e) => setMaqsad(e.target.value)} className={`${kirit} ml-1 w-24`} />
-                  <datalist id="tk-komp">{kompaniyalar.map((k) => <option key={k.id} value={k.id}>{k.nom}</option>)}</datalist>
-                </label>
-                <label className="text-[12px] text-text-dim">Miqdor<input aria-label="Token miqdori" inputMode="decimal" value={miqdor} onChange={(e) => setMiqdor(e.target.value)} className={`${kirit} ml-1 w-28`} /></label>
-                <select aria-label="Harakat turi" value={tur} onChange={(e) => setTur(e.target.value as typeof tur)} className={kirit}>
-                  <option value="toldirish">To‘lov (sotib oldi)</option><option value="bonus">Bonus</option><option value="tuzatish">Tuzatish (±)</option>
-                </select>
-                <input aria-label="Izoh" value={izoh} onChange={(e) => setIzoh(e.target.value)} placeholder="To‘lov raqami / sabab (majburiy)" className={`${kirit} min-w-[220px] flex-1`} />
-                <button type="button" disabled={band} onClick={() => void bajar(() => tokenToldir({ maqsadKompaniyaId: Number(maqsad), miqdor: Number(miqdor.replace(',', '.')), tur, izoh }), 'Tokenlar yozildi')}
-                  className="rounded-lg bg-accent px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50">Yozish</button>
-              </div>
-              <div className="flex flex-wrap items-end gap-2">
-                <select aria-label="Tarif" value={tarif} onChange={(e) => setTarif(e.target.value)} className={kirit}>{h.tariflar.map((t) => <option key={t.kod} value={t.kod}>{t.nom}</option>)}</select>
-                <label className="text-[12px] text-text-dim">Oylar<input aria-label="Oylar" value={oylar} onChange={(e) => setOylar(e.target.value)} className={`${kirit} ml-1 w-16`} /></label>
-                <button type="button" disabled={band} onClick={() => void bajar(() => obunaBelgila({ maqsadKompaniyaId: Number(maqsad), tarif, oylar: Number(oylar) }), 'Obuna belgilandi, 1-oy tokenlari yozildi')}
-                  className="rounded-lg border border-accent/40 px-3 py-1.5 text-[13px] font-semibold text-text hover:bg-accent/10 disabled:opacity-50">Obunani belgilash</button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-dim">
-                Demo manbasi (yangi ro‘yxatdan o‘tganlarga nusxalanadi):
-                <select aria-label="Demo manbasi" value={h.demo_obyekt_id ?? ''} disabled={band}
-                  onChange={(e) => void bajar(() => demoManbaBelgila(e.target.value ? Number(e.target.value) : null), 'Demo manbasi saqlandi')} className={kirit}>
-                  <option value="">— demo yo‘q —</option>
-                  {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
-                </select>
-                <span className="text-warn">Diqqat: tanlangan obyekt smetasi (narxlari bilan) har bir yangi foydalanuvchiga ko‘rinadi.</span>
-              </div>
-            </section>
-          )}
+          <section className="karta p-4" aria-label={t('Narxlar')}>
+            <h2 className="mb-2 text-[14px] font-semibold text-text">{t('Amallar narxi')}</h2>
+            <table className="w-full text-[13px]">
+              <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Amal')}</th><th>{t('Qanday hisoblanadi')}</th><th className="text-right">{t('Misol')}</th></tr></thead>
+              <tbody>
+                {h.narxlar.filter((n) => n.faol).map((n) => {
+                  const misolN = n.tur === 'ai' ? 10000 : n.amal === 'f2_hujjat' || n.amal === 'hujjat' ? 800 : 20000;
+                  const m = narxHisob(n, misolN, h.sozlama);
+                  return (
+                    <tr key={n.amal} className="border-t border-border/60 align-top">
+                      <td className="py-1.5 text-text">{t(n.nom)}{n.izoh && <div className="text-[11px] text-text-mute">{t(n.izoh)}</div>}</td>
+                      <td className="py-1.5 text-[12px] text-text-dim">
+                        {n.asos_som || n.birlik_som
+                          ? t('{a} soʻm + har {b} birlikka {c} soʻm, foyda {f}%', { a: son(n.asos_som), b: son(n.birlik), c: son(n.birlik_som), f: son(n.foyda_foiz ?? h.sozlama.foyda_foiz) })
+                          : t('Bepul')}
+                        {n.min_som ? ` · ${t('min')} ${son(n.min_som)}` : ''}{n.max_som ? ` · ${t('max')} ${son(n.max_som)}` : ''}
+                      </td>
+                      <td className="py-1.5 text-right text-[12px] tabular-nums text-text-dim">{m && m.token > 0 ? `${son(misolN)} → ${son(m.yakuniy_som)} ${t('soʻm')} = ${son(m.token)} ${t('token')}` : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="karta p-4" aria-label={t('Harakatlar')}>
+            <h2 className="mb-2 flex items-center gap-2 text-[14px] font-semibold text-text"><ReceiptText size={15} className="text-accent" />{t('Token nimaga sarflandi (oʻzgarmas daftar)')}</h2>
+            {h.harakatlar.length === 0 ? <p className="text-[12px] text-text-mute">{t('Hali harakat yoʻq.')}</p> : (
+              <table className="w-full text-[12px]"><tbody>
+                {h.harakatlar.map((x) => {
+                  const hisob = x.meta?.hisob;
+                  return (
+                    <Fragment key={x.id}>
+                      <tr className="border-t border-border/60">
+                        <td className="w-5 py-1">{hisob && (
+                          <button type="button" aria-label={t('Hisobni koʻrsatish')} onClick={() => setOchiq(ochiq === x.id ? null : x.id)} className="text-text-mute hover:text-text">
+                            {ochiq === x.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </button>)}</td>
+                        <td className="py-1 text-text-mute">{new Date(x.yaratildi).toLocaleString(tilLocale())}</td>
+                        <td className="py-1 text-text">
+                          {t(TUR_NOMI[x.tur])}{x.amal ? ` · ${t(h.narxlar.find((n) => n.amal === x.amal)?.nom ?? x.amal)}` : ''}
+                          {x.meta?.sabab ? ` — ${String(x.meta.sabab)}` : x.izoh ? ` — ${x.izoh}` : ''}
+                          {x.qaytarilgan && <span className="ml-1 text-ok">({t('qaytarilgan')})</span>}
+                          {x.kim && <span className="ml-1 text-text-mute">· {x.kim}</span>}
+                        </td>
+                        <td className={`py-1 text-right font-semibold tabular-nums ${x.miqdor < 0 ? 'text-danger' : 'text-ok'}`}>{x.miqdor > 0 ? '+' : ''}{son(x.miqdor)}</td>
+                      </tr>
+                      {ochiq === x.id && hisob && <tr><td /><td colSpan={3} className="pb-2"><HisobIzoh h={hisob} meta={x.meta} /></td></tr>}
+                    </Fragment>
+                  );
+                })}
+              </tbody></table>
+            )}
+          </section>
         </div>
       )}
     </Sahifa>
