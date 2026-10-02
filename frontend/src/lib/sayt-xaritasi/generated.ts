@@ -191,6 +191,7 @@ export const GENERATED_SITE_MAP = {
     "t2_narx_taklif",
     "t2_narx_dalil_holat",
     "t2_platforma_narx_manba",
+    "t2_platforma_narx_manba_qator",
     "t2_korzinka",
     "t2_audit_reestr",
     "t2_obyekt_hujjat_royxat",

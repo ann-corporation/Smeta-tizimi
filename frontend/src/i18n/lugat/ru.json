@@ -253,5 +253,20 @@
   "Obyekt hududi": "Регион объекта",
   "— tanlanmagan —": "— не выбран —",
   "Xaritadagi joylashuvga ko‘ra: {nom} — tasdiqlash": "По местоположению на карте: {nom} — подтвердить",
-  "Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang": "Местоположение на карте не указано — выберите регион вручную"
+  "Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang": "Местоположение на карте не указано — выберите регион вручную",
+  "Qidiruv bajarilmadi": "Поиск не выполнен",
+  "Platforma katalogi — qidirish": "Каталог платформы — поиск",
+  "Katalog bir marta yuklanadi, barcha kompaniyalar shu yerdan qidiradi. Narx qayerdan ekanligi to‘liq ko‘rinadi.": "Каталог загружается один раз, все компании ищут здесь. Источник цены виден полностью.",
+  "Masalan: труба 57 3,5 yoki бетон В25": "Например: труба 57 3,5 или бетон В25",
+  "Katalogdan qidirish": "Поиск по каталогу",
+  "Hudud": "Регион",
+  "Barcha hududlar": "Все регионы",
+  "Qidirish": "Искать",
+  "Narx": "Цена",
+  "NDS": "НДС",
+  "Ishlab chiqaruvchi": "Производитель",
+  "Davr": "Период",
+  "NDS siz": "без НДС",
+  "NDS bilan": "с НДС",
+  "Birinchi 200 ta ko‘rsatildi — so‘rovni aniqlashtiring": "Показаны первые 200 — уточните запрос"
 }

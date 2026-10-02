@@ -17,6 +17,7 @@ import type { XlsxWorkbook } from '../../lib/f2-import-parse';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { katalogniOqi, type KatalogUstunlar } from '../../lib/narx-dalil/katalog-oqish';
 import { toast } from '../../umumiy/ui/Toast';
+import { KatalogQidiruv } from './KatalogQidiruv';
 
 const inp = 'w-full border rounded px-2 py-1 text-sm bg-transparent';
 const harf = (i: number) => (i < 0 ? '—' : String.fromCharCode(65 + (i % 26)) + (i >= 26 ? String(Math.floor(i / 26)) : ''));
@@ -84,6 +85,9 @@ export default function NarxManbalari() {
         </div>
         {!forma && <button type="button" onClick={() => setForma({ tur: 'katalog', nds_holati: 'nomalum' })} className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-sm"><Plus size={14} /> Yangi manba</button>}
       </div>
+
+      {/* Egasi 2026-10-03: platforma katalogini ko'rish va qidirish (bir marta yuklanadi, hamma kompaniya uchun). */}
+      <KatalogQidiruv />
 
       {forma && (
         <div className="rounded-lg border bg-surface p-3 space-y-3">

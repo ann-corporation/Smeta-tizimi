@@ -56,6 +56,8 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   t2_hujjat_turi: { tur: 'global' },
   /* Platforma katalogi ro'yxati — faqat kompaniya_id IS NULL qatorlar (ko'rinish shuni beradi); hamma uchun umumiy. */
   t2_platforma_narx_manba: { tur: 'global' },
+  /* Platforma katalogi qatorlari (kompaniya_id IS NULL) — katalogdan qidirish (2026-10-03). */
+  t2_platforma_narx_manba_qator: { tur: 'global' },
 };
 
 /** PostgREST filtri — faqat oddiy `ustun=op.qiymat` shakllari (`or=`, embedding va h.k. yo'q). */

@@ -179,6 +179,22 @@ export async function platformaManbaniYukla(malumot: NarxManbaMalumot, qatorlar:
   return { ok: true, id, qator_qoshildi: boshi };
 }
 
+/** Platforma katalogidan qidirish (egasi 2026-10-03: "katalogni qayerdan ko'rsam bo'ladi"). */
+export type KatalogQatori = {
+  id: number; manba_id: number; kod: string | null; nom: string; birlik: string | null; narx: number | null; hudud: string | null;
+  ishlab_chiqaruvchi: string | null; nds_holati: string | null; nds_izoh: string | null; yil: number | null; kvartal: number | null;
+  narx_varianti: string | null; guruh: string | null; hudud_kalit: string | null; manba_nom: string; manba_tur: NarxManbaTur;
+};
+/** So'zlar bo'yicha (har biri nom ichida bo'lishi shart), ixtiyoriy hudud; ko'pi bilan 200 natija. */
+export function katalogQidirSozlar(matn: string): string[] {
+  return matn.toLowerCase().replace(/[*&,()%.\\"]/g, ' ').split(/\s+/).map((w) => w.trim()).filter((w) => w.length >= 2).slice(0, 6);
+}
+export function katalogQidir(matn: string, hudud?: string | null) {
+  const sozlar = katalogQidirSozlar(matn);
+  const filtr = [...sozlar.map((w) => 'nom=ilike.*' + w + '*'), ...(hudud ? ['hudud_kalit=eq.' + hudud] : [])].join('&');
+  return sbOqi<KatalogQatori>({ jadval: 't2_platforma_narx_manba_qator', filtr, tartib: 'nom.asc', limit: 200 });
+}
+
 /** Obyekt hududi va xaritadagi joylashuvi (chel.-soat narxi shu hududdan). */
 export async function obyektHududOl(obyektId: number): Promise<{ hudud: string | null; lat: number | null; lng: number | null } | null> {
   const r = await sbOqi<{ id: number; hudud: string | null; lat: number | null; lng: number | null }>({ jadval: 't2_obyekt', ustunlar: 'id,hudud,lat,lng', filtr: 'id=eq.' + obyektId, limit: 1 });

@@ -253,5 +253,20 @@
   "Obyekt hududi": "Object region",
   "— tanlanmagan —": "— not selected —",
   "Xaritadagi joylashuvga ko‘ra: {nom} — tasdiqlash": "By map location: {nom} — confirm",
-  "Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang": "No map location — choose the region manually"
+  "Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang": "No map location — choose the region manually",
+  "Qidiruv bajarilmadi": "Search failed",
+  "Platforma katalogi — qidirish": "Platform catalog — search",
+  "Katalog bir marta yuklanadi, barcha kompaniyalar shu yerdan qidiradi. Narx qayerdan ekanligi to‘liq ko‘rinadi.": "The catalog is uploaded once; every company searches it here. The price source is fully visible.",
+  "Masalan: труба 57 3,5 yoki бетон В25": "E.g. труба 57 3,5 or бетон В25",
+  "Katalogdan qidirish": "Search the catalog",
+  "Hudud": "Region",
+  "Barcha hududlar": "All regions",
+  "Qidirish": "Search",
+  "Narx": "Price",
+  "NDS": "VAT",
+  "Ishlab chiqaruvchi": "Manufacturer",
+  "Davr": "Period",
+  "NDS siz": "excl. VAT",
+  "NDS bilan": "incl. VAT",
+  "Birinchi 200 ta ko‘rsatildi — so‘rovni aniqlashtiring": "First 200 shown — refine the query"
 }
