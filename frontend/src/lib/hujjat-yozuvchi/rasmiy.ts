@@ -79,6 +79,10 @@ export type RasmiyVaraqSozlama = {
   maxsusSarlavha?: { qatorSoni: number; kataklar: ReadonlyArray<SarlavhaKatak>; balandliklar?: readonly number[] };
   ustunlar: readonly RasmiyUstun[];
   yonalish?: 'portrait' | 'landscape';
+  /** Chapdagi nechta ustun muzlatilsin (masalan № | Шифр | Наименование) — o'ngga varaqlaganda ko'rinib turadi. */
+  muzlatUstun?: number;
+  /** Avtofiltr (raqamlash qatorida) — ishchi hujjatlarda qidirish/saralash uchun (LRV). Oxiri: `filtrOxiri()`. */
+  filtr?: boolean;
 };
 
 /** Erkin blok katagi: c1..c2 ustunlar birlashtiriladi. */
@@ -106,6 +110,8 @@ export type RasmiyVaraqMeta = {
   oxirgiQator: number;
   /** Oxirgi ko'rinadigan ustun indeksi (Print_Area eni). */
   oxirgiUstun: number;
+  /** Avtofiltr diapazoni (masalan "A7:S120") — kitobda _FilterDatabase nomi uchun. */
+  filtr?: string;
 };
 
 // ───────────────────────── uslublar ─────────────────────────
@@ -170,6 +176,7 @@ export const HUJJAT_TURLARI = {
   ostatka: 'Остатка (qoldiq) ведомости',
   resurs_vedomost: 'Ведомость ресурсов (по смете объекта)',
   m29: 'М-29',
+  lrv: 'Лимитно-ресурсная ведомость (ЛРВ)',
   lrv_sverka: 'LRV ↔ RES сверка',
   ijro_reestr: 'Ijro hujjatlari reestri',
   narx_asoslash: 'Обоснование цен',
@@ -324,9 +331,14 @@ export class RasmiyVaraq {
   readonly sarlavhaQatori: number;
   readonly raqamQatori: number;
   private readonly korinadigan: number[];
+  private readonly muzlatUstun: number;
+  private readonly filtrBor: boolean;
+  private filtrOxir: number | null = null;
 
   constructor(o: RasmiyVaraqSozlama) {
     this.nom = o.nom.replace(/[\\/?*[\]:]/g, '_').slice(0, 31);
+    this.muzlatUstun = Math.max(0, o.muzlatUstun ?? 0);
+    this.filtrBor = !!o.filtr;
     this.ustunlar = o.ustunlar;
     this.yonalish = o.yonalish ?? 'landscape';
     this.korinadigan = o.ustunlar.map((u, i) => (u.yashirin ? -1 : i)).filter((i) => i >= 0);
@@ -560,8 +572,17 @@ export class RasmiyVaraq {
     });
   }
 
+  /** Avtofiltr qamrovining oxirgi qatori (jadval ma'lumotlari tugagan joy). */
+  filtrOxiri(r: number): void { this.filtrOxir = r; }
+
+  private get filtrRef(): string | undefined {
+    if (!this.filtrBor) return undefined;
+    const oxir = Math.max(this.raqamQatori + 1, this.filtrOxir ?? this.qatorlar.length);
+    return `A${this.raqamQatori}:${ustunHarfi(this.ustunlar.length - 1)}${oxir}`;
+  }
+
   meta(): RasmiyVaraqMeta {
-    return { nom: this.nom, sarlavhaQatori: this.sarlavhaQatori, raqamQatori: this.raqamQatori, malumotBoshi: this.malumotBoshi, oxirgiQator: this.qatorlar.length, oxirgiUstun: this.oxirgiUstun };
+    return { nom: this.nom, sarlavhaQatori: this.sarlavhaQatori, raqamQatori: this.raqamQatori, malumotBoshi: this.malumotBoshi, oxirgiQator: this.qatorlar.length, oxirgiUstun: this.oxirgiUstun, filtr: this.filtrRef };
   }
 
   /** Varaq XML (worksheet). */
@@ -575,7 +596,13 @@ export class RasmiyVaraq {
     }).join('');
     const cols = this.ustunlar.map((u, i) => `<col min="${i + 1}" max="${i + 1}" width="${u.kenglik}" customWidth="1"${u.yashirin ? ' hidden="1"' : ''}/>`).join('');
     const oxirgiQ = Math.max(1, this.qatorlar.length);
-    const pane = `<pane ySplit="${this.raqamQatori}" topLeftCell="A${this.raqamQatori + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${this.raqamQatori + 1}" sqref="A${this.raqamQatori + 1}"/>`;
+    const y = this.raqamQatori, x = this.muzlatUstun;
+    const bosh = `${ustunHarfi(x)}${y + 1}`;
+    // Ustun ham muzlatilsa — to'rt qismli panel (OOXML: topRight, bottomLeft, bottomRight tanlovlari).
+    const pane = x > 0
+      ? `<pane xSplit="${x}" ySplit="${y}" topLeftCell="${bosh}" activePane="bottomRight" state="frozen"/><selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="${bosh}" sqref="${bosh}"/>`
+      : `<pane ySplit="${y}" topLeftCell="A${y + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${y + 1}" sqref="A${y + 1}"/>`;
+    const filtr = this.filtrRef;
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
       + '<sheetPr><outlinePr summaryBelow="0"/><pageSetUpPr fitToPage="1"/></sheetPr>'
@@ -584,6 +611,8 @@ export class RasmiyVaraq {
       + `<sheetFormatPr defaultRowHeight="13.2"${maxD ? ` outlineLevelRow="${Math.min(7, maxD)}"` : ''}/>`
       + `<cols>${cols}</cols>`
       + `<sheetData>${rows}</sheetData>`
+      // OOXML tartibi: autoFilter — sheetData dan keyin, mergeCells dan oldin.
+      + (filtr ? `<autoFilter ref="${filtr}"/>` : '')
       + (this.merges.length ? `<mergeCells count="${this.merges.length}">${this.merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : '')
       + '<printOptions horizontalCentered="1"/>'
       + '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.6" header="0.3" footer="0.3"/>'
@@ -615,6 +644,7 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
   const dn = metas.flatMap((m, i) => [
     `<definedName name="_xlnm.Print_Area" localSheetId="${i}">${xmlEsc(`${sheetRef(m.nom)}!$A$1:$${ustunHarfi(m.oxirgiUstun)}$${m.oxirgiQator}`)}</definedName>`,
     `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">${xmlEsc(`${sheetRef(m.nom)}!$${m.sarlavhaQatori}:$${m.raqamQatori}`)}</definedName>`,
+    ...(m.filtr ? [`<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">${xmlEsc(`${sheetRef(m.nom)}!${m.filtr.replace(/([A-Z]+)(\d+)/g, '$$$1$$$2')}`)}</definedName>`] : []),
   ]).join('');
   const files: Zippable = {
     '[Content_Types].xml': strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
