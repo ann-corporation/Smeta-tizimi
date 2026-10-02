@@ -28,19 +28,22 @@ const katNorm = (k: string | null) => (k ?? '').trim().toUpperCase();
 const MAT_MANBA_TARTIB: Record<NarxManbaTur, number> = { katalog: 0, faktura: 1, kp: 2, kalkulyatsiya_mash: 3, chel_chas: 4, boshqa: 5 };
 
 function solishtirgich(kat: string, region: string | null): (a: NarxTaklif, b: NarxTaklif) => number {
-  const moslik = (a: NarxTaklif, b: NarxTaklif) => (a.moslik === b.moslik ? 0 : a.moslik === 'kod' ? -1 : 1);
+  const DARAJA: Record<string, number> = { kod: 0, hudud: 1, nom_birlik: 2 };
+  const moslik = (a: NarxTaklif, b: NarxTaklif) => (DARAJA[a.moslik] ?? 3) - (DARAJA[b.moslik] ?? 3);
   const yangi = (a: NarxTaklif, b: NarxTaklif) => davr(b) - davr(a) || sana(b).localeCompare(sana(a));
   if (kat === 'МАШ') return (a, b) => moslik(a, b) || b.manba_narx - a.manba_narx || yangi(a, b);
   if (kat === 'ЧЕЛ') {
     const r = (t: NarxTaklif) => (region && t.region && t.region.trim().toLowerCase() === region.trim().toLowerCase() ? 0 : 1);
-    return (a, b) => moslik(a, b) || r(a) - r(b) || yangi(a, b);
+    // Bir davrda bir nechta ijtimoiy soliq varianti — amaldagi 12% birinchi, 25% muqobil sifatida qoladi (2026-10-03).
+    const v = (t: NarxTaklif) => (t.narx_varianti === 'ijtimoiy_12' ? 0 : t.narx_varianti === 'ijtimoiy_25' ? 2 : 1);
+    return (a, b) => moslik(a, b) || r(a) - r(b) || yangi(a, b) || v(a) - v(b);
   }
   return (a, b) => moslik(a, b) || MAT_MANBA_TARTIB[a.manba_tur] - MAT_MANBA_TARTIB[b.manba_tur] || yangi(a, b);
 }
 
 const SABAB: Record<string, string> = {
   МАШ: 'маш.-час: наибольшая стоимость среди подтвержденных калькуляций',
-  ЧЕЛ: 'чел.-час: последняя публикация (квартал)',
+  ЧЕЛ: 'чел.-час: регион объекта, последняя публикация (квартал)',
 };
 
 /** Qator bo'yicha nomzodlarni guruhlab, qoidaga ko'ra tavsiyani tanlaydi. */

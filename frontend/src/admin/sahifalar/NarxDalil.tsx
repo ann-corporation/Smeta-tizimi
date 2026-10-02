@@ -10,12 +10,14 @@ import { FileSpreadsheet, Link2, Unlink } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import {
-  NARX_MANBA_TUR_NOMI, sbNarxDalilBogla, sbNarxDalilOchir, sbNarxDalillarOl, sbNarxTakliflarOl,
+  NARX_MANBA_TUR_NOMI, obyektHududBelgila, obyektHududOl, sbNarxDalilBogla, sbNarxDalilOchir, sbNarxDalillarOl, sbNarxTakliflarOl,
   type NarxDalilHolat, type NarxTaklif,
 } from '../../api/t2-narx-dalil';
 import { narxTakliflari } from '../../lib/narx-dalil/taklif';
 import { manbaRekviziti, narxAsoslashXlsx, type AsoslashResurs } from '../../lib/narx-asoslash-export';
 import { narxIzohi } from '../../lib/narx-dalil/izoh';
+import { HUDUDLAR, hududNomi, joylashuvdanHudud } from '../../lib/hudud';
+import { t } from '../../i18n/til';
 import { useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
 
@@ -33,6 +35,17 @@ export default function NarxDalil() {
   const [tanlov, setTanlov] = useState<Map<number, number>>(new Map());
   const [varaq, setVaraq] = useState<'taklif' | 'dalil'>('taklif');
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  /* Egasi 2026-10-03: chel.-soat narxi obyekt hududidan — xaritadagi joylashuvdan taklif yoki qo'lda tanlash. */
+  const [hudud, setHudud] = useState<{ hudud: string | null; lat: number | null; lng: number | null } | null>(null);
+  const hududTaklif = hudud && !hudud.hudud ? joylashuvdanHudud(hudud.lat, hudud.lng) : null;
+  const hududSaqla = async (k: string | null) => {
+    if (!obyektId) return;
+    const r = await obyektHududBelgila(obyektId, k);
+    if (!r.ok) { toast(r.error || t('Hudud saqlanmadi'), 'danger'); return; }
+    setHudud((h) => ({ lat: h?.lat ?? null, lng: h?.lng ?? null, hudud: k }));
+    toast(t('Obyekt hududi saqlandi — chel.-soat narxlari shu hududdan'), 'ok');
+    await yukla();
+  };
 
   useEffect(() => {
     if (!kompaniyaId) return;
@@ -55,6 +68,7 @@ export default function NarxDalil() {
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void yukla(); }, [kompaniyaId, obyektId]);
+  useEffect(() => { setHudud(null); if (obyektId) void obyektHududOl(obyektId).then(setHudud); }, [obyektId]);
 
   const dalilBor = useMemo(() => new Set(dalillar.map((d) => d.qator_id)), [dalillar]);
   const natijalar = useMemo(() => narxTakliflari(takliflar).filter((n) => !dalilBor.has(n.qator_id)), [takliflar, dalilBor]);
@@ -100,6 +114,20 @@ export default function NarxDalil() {
           <select className="border rounded px-2 py-1 text-sm max-w-xs" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>{obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select>
           <button type="button" onClick={excel} disabled={!obyekt || !resurslar.length} className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-sm disabled:opacity-40"><FileSpreadsheet size={14} /> Обоснование цен</button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded border border-border px-3 py-2 text-xs">
+        <span className="text-text-dim">{t('Obyekt hududi (chel.-soat narxi shu hududdan):')}</span>
+        <select aria-label={t('Obyekt hududi')} className="rounded border px-2 py-1" value={hudud?.hudud ?? ''} onChange={(e) => void hududSaqla(e.target.value || null)} disabled={!obyektId || !hudud}>
+          <option value="">{t('— tanlanmagan —')}</option>
+          {HUDUDLAR.map((h) => <option key={h.kalit} value={h.kalit}>{h.nom}</option>)}
+        </select>
+        {hududTaklif && (
+          <button type="button" onClick={() => void hududSaqla(hududTaklif)} className="rounded border border-accent/50 px-2 py-1 text-accent">
+            {t('Xaritadagi joylashuvga ko‘ra: {nom} — tasdiqlash', { nom: hududNomi(hududTaklif) ?? '' })}
+          </button>
+        )}
+        {hudud && !hudud.hudud && !hududTaklif && <span className="text-warning">{t('Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang')}</span>}
       </div>
 
       <div className="flex flex-wrap gap-3 text-xs text-text-dim">

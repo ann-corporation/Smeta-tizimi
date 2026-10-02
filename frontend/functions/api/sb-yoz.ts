@@ -133,6 +133,8 @@ const AMALLAR = {
   /* Egasi 2026-10-02: katalog platformada BIR MARTA (har kompaniya alohida yuklamaydi) — faqat superadmin (RPC tekshiradi). */
   platforma_narx_manba_yoz: { rpc: 't2_platforma_narx_manba_yoz_v1' },
   platforma_narx_manba_bekor: { rpc: 't2_platforma_narx_manba_bekor_v1' },
+  /* Egasi 2026-10-03: obyekt hududi (chel.-soat narxi shu hududdan) — xaritadan taklif yoki qo'lda. */
+  obyekt_hudud_belgila: { rpc: 't2_obyekt_hudud_belgila_v1' },
   narx_dalil_bogla: { rpc: 't2_narx_dalil_bogla_v1' },
   narx_dalil_ochir: { rpc: 't2_narx_dalil_ochir_v1' },
   audit_yoz: { rpc: 't2_audit_yoz' },
@@ -1532,6 +1534,13 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'kompaniya_id va id majburiy' });
       }
       yuk = { p_kompaniya_id: kompaniyaId, p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_kim: sess.email || '' };
+
+    } else if (amal === 'obyekt_hudud_belgila') {
+      const obyektId = Number(so.obyekt_id);
+      if (!Number.isInteger(obyektId) || obyektId <= 0 || !Number.isInteger(sess.foydalanuvchi_id)) {
+        return Response.json({ ok: false, error: 'obyekt_id va sessiya majburiy' });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_hudud: so.hudud == null || so.hudud === '' ? null : String(so.hudud).slice(0, 40) };
 
     } else if (amal === 'platforma_narx_manba_bekor') {
       const id = Number(so.id);

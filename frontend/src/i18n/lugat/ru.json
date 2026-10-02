@@ -246,5 +246,12 @@
   "Platforma katalogi (barcha kompaniyalar uchun): ": "Каталог платформы (для всех компаний): ",
   "Platforma katalogi — bir marta, barcha kompaniyalar uchun": "Каталог платформы — один раз, для всех компаний",
   "Google bilan kirish — asosiy manzilda": "Войти через Google — на основном адресе",
-  "Google bilan kirish faqat asosiy manzilda ishlaydi": "Вход через Google работает только на основном адресе"
+  "Google bilan kirish faqat asosiy manzilda ishlaydi": "Вход через Google работает только на основном адресе",
+  "Hudud saqlanmadi": "Регион не сохранён",
+  "Obyekt hududi saqlandi — chel.-soat narxlari shu hududdan": "Регион объекта сохранён — цены чел.-часа по этому региону",
+  "Obyekt hududi (chel.-soat narxi shu hududdan):": "Регион объекта (цена чел.-часа по этому региону):",
+  "Obyekt hududi": "Регион объекта",
+  "— tanlanmagan —": "— не выбран —",
+  "Xaritadagi joylashuvga ko‘ra: {nom} — tasdiqlash": "По местоположению на карте: {nom} — подтвердить",
+  "Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang": "Местоположение на карте не указано — выберите регион вручную"
 }

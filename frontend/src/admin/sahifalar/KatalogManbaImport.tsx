@@ -101,8 +101,14 @@ export default function KatalogManbaImport() {
     if (!kompaniyaId || !analyses.length || unresolved.length) return;
     const batchCounts = new Map<string, number>();
     analyses.forEach(function (a) { if (a.contentHash) batchCounts.set(a.contentHash, (batchCounts.get(a.contentHash) || 0) + 1); });
-    // Platformada chala qolgan (uzilgan) manba — takror emas, o'sha manbaga to'liq qayta yoziladi.
-    const chala = function (a: CatalogTahlil) { const m = a.contentHash ? platformaManba.get('sha256:' + a.contentHash) : undefined; return platforma && !!m && m.qator_soni < a.qatorlar.length ? m : undefined; };
+    // Platformada chala qolgan (uzilgan) manba — takror emas, o'sha joydan davom ettiriladi. Ro'yxat import boshlanishidan
+    // oldin BAZADAN yangidan (sahifa ochilgandan keyin yaratilgan manba ham ko'rinsin).
+    let pm = platformaManba;
+    if (platforma) {
+      const p = await sbPlatformaManbalarOl();
+      if (p.ok) pm = new Map((p.qatorlar || []).filter((x) => !!x.fayl_document_id).map((x) => [x.fayl_document_id as string, { id: x.id, versiya: x.versiya, qator_soni: Number(x.qator_soni) }]));
+    }
+    const chala = function (a: CatalogTahlil) { const m = a.contentHash ? pm.get('sha256:' + a.contentHash) : undefined; return platforma && !!m && m.qator_soni < a.qatorlar.length ? m : undefined; };
     const duplicates = analyses.filter(function (a) { return !!a.contentHash && !chala(a) && (existingHashes.has('sha256:' + a.contentHash) || (batchCounts.get(a.contentHash) || 0) > 1); });
     if (duplicates.length) {
       setError('Qayta import bloklandi: ' + duplicates.map(function (x) { return x.faylNomi; }).join(', ') + ' allaqachon shu SHA-256 bilan mavjud.');
@@ -124,7 +130,7 @@ export default function KatalogManbaImport() {
         };
         const jarayon = function (loaded: number) { setProgress({ done: done + loaded, total: totalRows }); };
         const result = platforma
-          ? await platformaManbaniYukla(malumot, rows, opId(), 2000, jarayon, chala(analysis))
+          ? await platformaManbaniYukla(malumot, rows, opId(), 1000, jarayon, chala(analysis)?.id)
           : await narxManbaniYukla(kompaniyaId, malumot, rows, opId(), 5000, jarayon);
         if (!result.ok) throw new Error(analysis.faylNomi + ': ' + (result.error || result.sabab || 'manba saqlanmadi'));
         done += rows.length; setProgress({ done: done, total: totalRows });

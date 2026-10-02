@@ -535,6 +535,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_platforma_narx_manba_bekor_v1"
     },
     {
+      "amal": "obyekt_hudud_belgila",
+      "rpc": "t2_obyekt_hudud_belgila_v1"
+    },
+    {
       "amal": "narx_dalil_bogla",
       "rpc": "t2_narx_dalil_bogla_v1"
     },

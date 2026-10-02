@@ -246,5 +246,12 @@
   "Platforma katalogi (barcha kompaniyalar uchun): ": "Platform catalog (for all companies): ",
   "Platforma katalogi — bir marta, barcha kompaniyalar uchun": "Platform catalog — once, for all companies",
   "Google bilan kirish — asosiy manzilda": "Sign in with Google — on the main address",
-  "Google bilan kirish faqat asosiy manzilda ishlaydi": "Google sign-in works only on the main address"
+  "Google bilan kirish faqat asosiy manzilda ishlaydi": "Google sign-in works only on the main address",
+  "Hudud saqlanmadi": "Region was not saved",
+  "Obyekt hududi saqlandi — chel.-soat narxlari shu hududdan": "Object region saved — man-hour prices come from this region",
+  "Obyekt hududi (chel.-soat narxi shu hududdan):": "Object region (man-hour price from this region):",
+  "Obyekt hududi": "Object region",
+  "— tanlanmagan —": "— not selected —",
+  "Xaritadagi joylashuvga ko‘ra: {nom} — tasdiqlash": "By map location: {nom} — confirm",
+  "Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang": "No map location — choose the region manually"
 }
