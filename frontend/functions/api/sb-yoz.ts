@@ -1506,6 +1506,7 @@ export const onRequestPost: PagesFunction<{
           /* 2026-10-02: narx izohi uchun (katalog yili/kvartali, hudud, zavod sarlavhasi, NDS, narx varianti). */
           hudud: q?.hudud == null ? null : String(q.hudud).slice(0, 200),
           guruh: q?.guruh == null ? null : String(q.guruh).slice(0, 1000),
+          zavod: q?.zavod == null ? null : String(q.zavod).slice(0, 1000),
           ishlab_chiqaruvchi: q?.ishlab_chiqaruvchi == null ? null : String(q.ishlab_chiqaruvchi).slice(0, 300),
           nds_holati: ['nds_siz', 'nds_bilan', 'nomalum'].includes(String(q?.nds_holati)) ? String(q.nds_holati) : null,
           nds_izoh: q?.nds_izoh == null ? null : String(q.nds_izoh).slice(0, 100),

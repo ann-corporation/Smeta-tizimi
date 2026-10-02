@@ -79,6 +79,13 @@ function raqamlashQatori(row: unknown[]): boolean {
   return vals.length >= 3 && vals.every((v) => /^\d{1,2}$/.test(v));
 }
 
+/** Zavod (ishlab chiqaruvchi) sarlavhasi: "17. ООО "…". (НДС 12%) Руководитель… Адрес…" — SQL _t2_katalog_zavod bilan bir xil
+ *  qoida. Katalog 1 kv. 2026: zavod ostida mahsulot guruhlari ("Трубы стальные… ГОСТ…") — ikki daraja (2026-10-03). */
+const ZAVOD_TASHKILOT = /(ООО|OOO|ОАО|АО|АЖ|ЧП|ИП|СП|ХК|ДП|УП|ГУП|МЧЖ|MCHJ|LLC|JV|QK|XK|AJ|ЧФ|ФХ|Корхона|Компания|завод|комбинат)/i;
+export function zavodSarlavhasimi(s: string): boolean {
+  return /^\s*\d+\.\s/.test(s) && ZAVOD_TASHKILOT.test(s);
+}
+
 /** Birlashtirilgan katak (guruh nomi) — bir xil matn 3+ katakda takrorlanadi. */
 function guruhQatori(row: unknown[]): string | null {
   const vals = row.map(CLEAN).filter(Boolean);
@@ -249,11 +256,13 @@ function parseMaterialSheet(sheet: XlsxSheet, fileName: string, davr: CatalogDav
   const hudud = analysis.hudud;
   const headName = CLEAN(sheet.rows[header]?.[cols.name]);
   let guruh: string | null = null;
+  let zavod: string | null = null;
   for (let r = blok.boshi; r < sheet.rows.length; r++) {
     const cells = sheet.rows[r] || [];
     if (raqamlashQatori(cells)) continue;
     const g = guruhQatori(cells);
-    if (g) { guruh = g; continue; }
+    // Zavod sarlavhasi — yangi zavod bloki (mahsulot guruhi yangilanadi); oddiy sarlavha — zavod ostidagi mahsulot guruhi.
+    if (g) { if (zavodSarlavhasimi(g)) { zavod = g; guruh = null; } else guruh = g; continue; }
     const name = CLEAN(cells[cols.name]);
     if (!name || name === headName || /^примечани|^итого|^всего|^jami/i.test(name)) continue;
     const unitRaw = cols.unit === null ? null : CLEAN(cells[cols.unit]) || null;
@@ -269,7 +278,7 @@ function parseMaterialSheet(sheet: XlsxSheet, fileName: string, davr: CatalogDav
       // "-" / bo'sh / 0 — shu ustunda e'lon qilinmagan; faqat HECH narxi yo'q mahsulot uchun bitta NULL qator.
       if (price === null && !(hechNarx && ci === 0)) continue;
       const variant = col.varianti;
-      out.push({ sourceKey: sourceKey(fileName, sheet.name, r + 1, name, unit, variant, col.sanasi), varaqqa: sheet.name, manbaQatori: r + 1, nom: name, birlik: unit, kod: code && /^\d+$/.test(code) ? null : code, hudud: mashina ? null : hudud, narx: price, narxVarianti: variant, valyuta, davr, izoh: JSON.stringify({ manba: mashina ? 'mashina_soat' : 'katalog', hudud: mashina ? null : hudud, guruh, valyuta, variant, ustun: col.sarlavha || null, sana: col.sanasi }), ogohlantirishlar: price === null ? ['PRICE_MISSING: manbada narx e‘lon qilinmagan'] : [] });
+      out.push({ sourceKey: sourceKey(fileName, sheet.name, r + 1, name, unit, variant, col.sanasi), varaqqa: sheet.name, manbaQatori: r + 1, nom: name, birlik: unit, kod: code && /^\d+$/.test(code) ? null : code, hudud: mashina ? null : hudud, narx: price, narxVarianti: variant, valyuta, davr, izoh: JSON.stringify({ manba: mashina ? 'mashina_soat' : 'katalog', hudud: mashina ? null : hudud, zavod, guruh, valyuta, variant, ustun: col.sarlavha || null, sana: col.sanasi }), ogohlantirishlar: price === null ? ['PRICE_MISSING: manbada narx e‘lon qilinmagan'] : [] });
     }
   }
   return out;
@@ -375,10 +384,15 @@ export function mashinaSoatTahliliniCatalogga(tahlil: MashinaSoatMatnTahlili): C
 export function catalogQatorlariniApiFormatga(qatorlar: CatalogQator[]) {
   return qatorlar.map(q => {
     let guruh: string | null = null;
-    try { const j = JSON.parse(q.izoh || '{}') as { guruh?: unknown }; guruh = typeof j.guruh === 'string' && j.guruh.trim() ? j.guruh : null; } catch { /* izoh JSON emas */ }
+    let zavod: string | null = null;
+    try {
+      const j = JSON.parse(q.izoh || '{}') as { guruh?: unknown; zavod?: unknown };
+      guruh = typeof j.guruh === 'string' && j.guruh.trim() ? j.guruh : null;
+      zavod = typeof j.zavod === 'string' && j.zavod.trim() ? j.zavod : null;
+    } catch { /* izoh JSON emas */ }
     return {
       kod: q.kod, nom: q.nom, birlik: q.birlik, narx: q.narx,
-      hudud: q.hudud, guruh, yil: q.davr.yil, kvartal: q.davr.kvartal, narx_varianti: q.narxVarianti,
+      hudud: q.hudud, zavod, guruh, yil: q.davr.yil, kvartal: q.davr.kvartal, narx_varianti: q.narxVarianti,
       nds_holati: q.narxVarianti === 'nds_siz' ? 'nds_siz' : q.narxVarianti === 'nds_bilan' ? 'nds_bilan' : null,
       izoh: JSON.stringify({ sourceKey: q.sourceKey, varaqqa: q.varaqqa, manbaQatori: q.manbaQatori, hudud: q.hudud, davr: q.davr, narxVarianti: q.narxVarianti, valyuta: q.valyuta, originalIzoh: q.izoh, warnings: q.ogohlantirishlar }),
     };
