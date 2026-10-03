@@ -3,6 +3,13 @@ import { supabaseBaseUrl } from '../_shared/supabase-url';
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; RESEND_API_KEY: string; EMAIL_FROM: string };
 const EMAIL = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
 const rpc = (env: Env, nom: string, body: unknown) => fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/' + nom, { method: 'POST', headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+function yangiKod(): string {
+  const diapazon = 900_000;
+  const chegara = Math.floor(0x1_0000_0000 / diapazon) * diapazon;
+  const qiymat = new Uint32Array(1);
+  do { crypto.getRandomValues(qiymat); } while (qiymat[0] >= chegara);
+  return String(100_000 + (qiymat[0] % diapazon));
+}
 const xesh = async (s: string, kalit: string) => {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(kalit), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const out = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(s));
@@ -14,7 +21,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const email = String(body.email || '').trim().toLowerCase();
   if (!EMAIL.test(email)) return Response.json({ ok: false, xabar: 'Email manzilini to‘g‘ri kiriting.' }, { status: 400 });
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY || !ctx.env.SESSIYA_KALIT || !ctx.env.RESEND_API_KEY || !ctx.env.EMAIL_FROM) return Response.json({ ok: false, code: 'EMAIL_XIZMATI_SOZLANMAGAN', xabar: 'Email tasdiqlash xizmati hali sozlanmagan.' }, { status: 503 });
-  const kod = String(Math.floor(100000 + Math.random() * 900000));
+  const kod = yangiKod();
   const ip = ctx.request.headers.get('CF-Connecting-IP') || '';
   const ipBelgi = ip ? (await xesh(ip + '|t2-email-ip', ctx.env.SESSIYA_KALIT)).slice(0, 16) : null;
   try {
