@@ -451,7 +451,10 @@ export const onRequestPost: PagesFunction<{
       p.set('limit', String(limit));
       p.set('offset', String(offset));
       // Majburiy tenant filtri (server qo'shadi) brauzer filtri bilan AND qilinadi.
-      const url = baza + '?' + p.toString() + (so.filtr ? '&' + so.filtr : '') + (majburiyFiltr ? '&' + majburiyFiltr : '');
+      // 2026-10-03: filtrdagi kodlanmagan ASCII bo'lmagan belgilar (kirillcha qidiruv) shu yerda percent-kodlanadi —
+      // aks holda so'rov Supabase ga yetmasdan yiqilardi (katalog qidiruvi "keyinroq urinib ko'ring").
+      const filtrUrl = (so.filtr || '').replace(/[^\x20-\x7e]+/g, (m) => encodeURIComponent(m));
+      const url = baza + '?' + p.toString() + (filtrUrl ? '&' + filtrUrl : '') + (majburiyFiltr ? '&' + majburiyFiltr : '');
       const r = await fetch(url, { headers: boshHeaders });
       const matn = await r.text();
       if (!r.ok) return { failed: true, status: r.status, detail: matn.slice(0, 500) };

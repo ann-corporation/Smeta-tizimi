@@ -189,9 +189,11 @@ export type KatalogQatori = {
 export function katalogQidirSozlar(matn: string): string[] {
   return matn.toLowerCase().replace(/[*&,()%.\\"]/g, ' ').split(/\s+/).map((w) => w.trim()).filter((w) => w.length >= 2).slice(0, 6);
 }
+/** 2026-10-03: qiymat brauzerda percent-kodlanadi — kodlanmagan kirillcha URL Cloudflare fetch'ida bazaga yetmasdan
+ *  yiqilardi ("keyinroq urinib ko'ring"). So'z bo'lmasa — katalogni ko'rish (hudud bo'yicha birinchi 200 qator). */
 export function katalogQidir(matn: string, hudud?: string | null) {
   const sozlar = katalogQidirSozlar(matn);
-  const filtr = [...sozlar.map((w) => 'nom=ilike.*' + w + '*'), ...(hudud ? ['hudud_kalit=eq.' + hudud] : [])].join('&');
+  const filtr = [...sozlar.map((w) => 'nom=ilike.*' + encodeURIComponent(w) + '*'), ...(hudud ? ['hudud_kalit=eq.' + hudud] : [])].join('&');
   return sbOqi<KatalogQatori>({ jadval: 't2_platforma_narx_manba_qator', filtr, tartib: 'nom.asc', limit: 200 });
 }
 

@@ -23,11 +23,10 @@ export function KatalogQidiruv() {
   useEffect(() => { void sbPlatformaManbalarOl().then((r) => setManbalar(r.ok ? r.qatorlar ?? [] : [])); }, []);
 
   const qidir = async () => {
-    if (!katalogQidirSozlar(matn).length) { setNatija(null); return; }
     setBand(true); setXato('');
     const r = await katalogQidir(matn, hudud || null);
     setBand(false);
-    if (!r.ok) { setXato(r.error || t('Qidiruv bajarilmadi')); return; }
+    if (!r.ok) { setXato(t('Qidiruv bajarilmadi') + (r.error ? ': ' + r.error : '')); return; }
     setNatija(r.qatorlar ?? []);
   };
 
@@ -56,7 +55,7 @@ export function KatalogQidiruv() {
           <option value="">{t('Barcha hududlar')}</option>
           {HUDUDLAR.map((h) => <option key={h.kalit} value={h.kalit}>{h.nom}</option>)}
         </select>
-        <button type="button" onClick={() => void qidir()} disabled={band} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50">{t('Qidirish')}</button>
+        <button type="button" onClick={() => void qidir()} disabled={band} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50">{katalogQidirSozlar(matn).length ? t('Qidirish') : t('Katalogni ko‘rish')}</button>
       </div>
       {xato && <div role="alert" className="text-[12px] text-danger">{xato}</div>}
       {natija && (
