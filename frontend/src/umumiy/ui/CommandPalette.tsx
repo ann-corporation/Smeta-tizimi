@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calculator, User, Building, FileText } from 'lucide-react';
 import { useObyektlar } from '../../api/hooks';
+import { t } from '../../i18n/til';
 
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +43,7 @@ export function CommandPalette() {
             autoFocus
             type="text"
             className="flex-1 bg-transparent border-none text-white focus:outline-none placeholder:text-text-dim/50"
-            placeholder="Obyekt izlash yoki buyruq kiritish..."
+            placeholder={t('Obyekt izlash yoki buyruq kiritish...')}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -52,29 +53,29 @@ export function CommandPalette() {
         <div className="overflow-y-auto p-2">
           {query.length === 0 && (
             <div className="px-3 py-2 text-xs font-semibold text-text-dim uppercase tracking-wider mb-1">
-              Asosiy Bo'limlar
+              {t("Asosiy bo'limlar")}
             </div>
           )}
           {query.length === 0 && (
             <>
               <button onClick={() => handleSelect('/admin/obyektlar')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">
-                <Building size={18} className="text-accent" /> Obyektlar
+                <Building size={18} className="text-accent" /> {t('Obyektlar')}
               </button>
               <button onClick={() => handleSelect('/admin/shartnomalar')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">
-                <FileText size={18} className="text-ok" /> Shartnomalar
+                <FileText size={18} className="text-ok" /> {t('Shartnomalar')}
               </button>
               <button onClick={() => handleSelect('/admin/kalkulyator')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">
-                <Calculator size={18} className="text-warn" /> Kalkulyator
+                <Calculator size={18} className="text-warn" /> {t('Kalkulyator')}
               </button>
               <button onClick={() => handleSelect('/boss')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">
-                <User size={18} className="text-t-rs" /> Rahbar paneli
+                <User size={18} className="text-t-rs" /> {t('Rahbar paneli')}
               </button>
             </>
           )}
 
           {query.length > 0 && (
             <div className="px-3 py-2 text-xs font-semibold text-text-dim uppercase tracking-wider mb-1 mt-2">
-              Obyektlar
+              {t('Obyektlar')}
             </div>
           )}
           {query.length > 0 && filteredObjects.map(obj => (

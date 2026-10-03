@@ -29,6 +29,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Compass } from 'lucide-react';
 import { Sahifa } from './Sahifa';
+import { t } from '../../i18n/til';
 
 export default function SahifaTopilmadi() {
   const joy = useLocation();
@@ -40,21 +41,19 @@ export default function SahifaTopilmadi() {
           <Compass size={22} className="text-warn flex-shrink-0 mt-0.5" />
           <div className="min-w-0">
             <p className="text-[13px] text-text mb-2">
-              So'ralgan manzil mavjud emas:
+              {t("So'ralgan manzil mavjud emas:")}
             </p>
             <p className="text-[12px] font-mono text-text-dim bg-[var(--surface-2)]/60
                           border border-border rounded px-2 py-1 mb-3 break-all">
               {joy.pathname}
             </p>
             <p className="text-[12px] text-text-dim mb-4">
-              Sababi odatda eski havola: xatcho'p, brauzer tarixi yoki
-              boshqadan olingan manzil. <b>Sessiyangiz joyida</b> — chapdagi
-              menyudan istagan bo'limga o'tavering.
+              {t("Sababi odatda eski havola: xatcho'p, brauzer tarixi yoki boshqadan olingan manzil.")} <b>{t('Sessiyangiz joyida')}</b> — {t("chapdagi menyudan istagan bo'limga o'tavering.")}
             </p>
             <Link to="/admin/obyektlar"
               className="inline-flex items-center px-4 py-2 rounded-lg bg-accent text-white
                          text-[13px] font-medium hover:bg-accent/90 transition-colors">
-              Obyektlarga qaytish
+              {t('Obyektlarga qaytish')}
             </Link>
           </div>
         </div>

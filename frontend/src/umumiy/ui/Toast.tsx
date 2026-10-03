@@ -82,7 +82,7 @@ export function ToastContainer() {
                 }}
                 className="ml-4 px-2 py-1 text-xs font-medium bg-surface rounded border border-border hover:bg-surface-2 transition-colors text-white"
               >
-                ↶ Bekor qilish
+                ↶ {t('Bekor qilish')}
               </button>
             )}
             {t.action && (
@@ -98,6 +98,8 @@ export function ToastContainer() {
             )}
             <button
               onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
+              aria-label={t('Yopish')}
+              title={t('Yopish')}
               className={`${(t.onUndo || t.action) ? 'ml-2' : 'ml-auto'} p-1 rounded hover:bg-white/10 transition-colors text-text-dim hover:text-white`}
             >
               <X size={16} />
