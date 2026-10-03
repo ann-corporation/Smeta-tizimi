@@ -366,5 +366,12 @@
   "Manba:": "Source:",
   "Xabaringizni yozing...": "Write your message...",
   "Yuborish": "Send",
-  "AI xato qilishi mumkin. Moliya qarorlarida e’tiborli bo‘ling.": "AI can make mistakes. Be careful with financial decisions."
+  "AI xato qilishi mumkin. Moliya qarorlarida e’tiborli bo‘ling.": "AI can make mistakes. Be careful with financial decisions.",
+  "Yangilash": "Refresh",
+  "Ma'lumot yangilangan vaqti": "Data updated time",
+  "Nomaʼlum xato": "Unknown error",
+  "Ma'lumot yuklanmadi": "Data could not be loaded",
+  "Ma'lumot yo'q": "No data",
+  "Qidirish…": "Search…",
+  "Yopish": "Close"
 }

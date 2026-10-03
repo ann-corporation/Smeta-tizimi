@@ -64,7 +64,7 @@ export function AiHelper() {
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         role: 'ai', 
-        text: `${t('Xatolik yuz berdi:')} ${err.message}` 
+        text: `${t('Xatolik yuz berdi:')} ${err.message}`
       }]);
     } finally {
       setIsLoading(false);
