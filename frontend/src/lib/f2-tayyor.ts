@@ -14,13 +14,17 @@ import { pulYaxlit } from './ish-abc';
 import type { F2NativePayloadRow } from './f2-native-preparation';
 
 export type F2Holat = { qator_id: number; f2_mumkin_hajm?: number | null; f2_hajm?: number | null; fakt_hajm?: number | null; smeta_hajm?: number | null; f2_narx?: number | null };
-export type NarxManba = 'oldingi_f2' | 'smeta' | 'qolda' | 'yoq';
-export const NARX_MANBA_NOMI: Record<NarxManba, string> = { oldingi_f2: 'oldingi F2', smeta: 'smeta', qolda: 'qo‘lda', yoq: 'narxsiz' };
+export type NarxManba = 'protokol' | 'oldingi_f2' | 'smeta' | 'qolda' | 'yoq';
+export const NARX_MANBA_NOMI: Record<NarxManba, string> = { protokol: 'protokol', oldingi_f2: 'oldingi F2', smeta: 'smeta', qolda: 'qo‘lda', yoq: 'narxsiz' };
+/** Shu oyda kuchga kirgan Протокол согласования цен narxlari: qator_id → narx va rekvizit (api/t2-narx-protokol). */
+export type ProtokolNarxlari = ReadonlyMap<number, { narx: number; raqam: string; sana: string }>;
 
 export type F2Resurs = {
   id: number; tur: 'rs' | 'mat' | 'ob'; kat: string | null; kod: string | null; nom: string; birlik: string | null;
   norma: number | null; mumkin: number; /** avtomatik (rs) — ish hajmi × norma */ avto: boolean;
   taklifNarx: number | null; taklifManba: NarxManba;
+  /** Narx protokoldan olingan bo'lsa — hujjatdagi asos: «№ … от …». */
+  protokol?: string;
 };
 export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[] };
 export type F2Bolim = { id: number | null; nom: string; daraja: number; ishlar: F2Ish[]; alohida: F2Resurs[] };
@@ -28,7 +32,9 @@ export type F2Bolim = { id: number | null; nom: string; daraja: number; ishlar: 
 const son = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 export const y6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
-function narxTaklif(f2Narx: number | null, smetaNarx: number | null): { narx: number | null; manba: NarxManba } {
+/** Narx ustuvorligi (egasi 2026-10-03): imzolangan protokol → oldingi F2 → smeta. */
+function narxTaklif(f2Narx: number | null, smetaNarx: number | null, protokolNarx?: number | null): { narx: number | null; manba: NarxManba } {
+  if (protokolNarx != null && Number.isFinite(protokolNarx) && protokolNarx >= 0) return { narx: y6(protokolNarx), manba: 'protokol' };
   // Smeta faylidagi suzuvchi nuqta shovqini (1442.3999999999) — 6 xonagacha tozalanadi.
   if (f2Narx != null) f2Narx = y6(f2Narx);
   if (smetaNarx != null) smetaNarx = y6(smetaNarx);
@@ -39,15 +45,18 @@ function narxTaklif(f2Narx: number | null, smetaNarx: number | null): { narx: nu
 }
 
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
-export function f2Qur(rows: T2Qator[], holat: F2Holat[]): F2Bolim[] {
+export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari): F2Bolim[] {
   const h = new Map(holat.map((x) => [x.qator_id, x]));
   const bolalar = new Map<number | null, T2Qator[]>();
   for (const r of rows) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
   for (const a of bolalar.values()) a.sort((p, q) => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id);
   const mumkin = (id: number) => Math.max(0, son(h.get(id)?.f2_mumkin_hajm) ?? 0);
   const resurs = (r: T2Qator, avto: boolean): F2Resurs => {
-    const t = narxTaklif(son(h.get(r.id)?.f2_narx), son(r.narx));
-    return { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba };
+    const p = protokol?.get(r.id);
+    const t = narxTaklif(son(h.get(r.id)?.f2_narx), son(r.narx), p?.narx);
+    const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba };
+    if (p && t.manba === 'protokol') x.protokol = `№ ${p.raqam} от ${p.sana.slice(0, 10).split('-').reverse().join('.')}`;
+    return x;
   };
   const out: F2Bolim[] = [];
   const bolimlar = new Map<number | null, F2Bolim>();
@@ -92,6 +101,7 @@ export const sonOqi = (s: string | undefined): number | null | 'xato' => {
 export type F2Qator = {
   id: number; ishId: number | null; tur: 'bl' | 'rs' | 'mat' | 'ob'; kat: string | null; nom: string; birlik: string | null;
   hajm: number; narx: number | null; summa: number | null; manba: NarxManba; narxsiz: boolean;
+  protokol?: string;
   xato?: 'HAJM' | 'OSHDI' | 'NARX' | 'SUMMA'; ogoh?: 'RESURS_CHEGARA' | 'ARIFMETIKA' | 'SMETADAN_OSHDI';
 };
 
@@ -103,6 +113,7 @@ function resursQator(r: F2Resurs, hajm: number, ishId: number | null, k: F2Kirit
   const narx = narxsiz ? null : qolNarx === 'xato' ? null : (qolNarx ?? r.taklifNarx);
   const manba: NarxManba = narxsiz ? 'yoq' : qolNarx != null ? 'qolda' : r.taklifManba;
   const q: F2Qator = { id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm, narx, summa: null, manba, narxsiz };
+  if (manba === 'protokol' && r.protokol) q.protokol = r.protokol;
   if (narxsiz) return q;
   if (qolNarx === 'xato' || narx == null || narx < 0) { q.xato = 'NARX'; return q; }
   if (qolSumma === 'xato') { q.xato = 'SUMMA'; return q; }
@@ -151,7 +162,7 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
 export type F2Jami = { ish: number; qator: number; xato: number; ogoh: number; narxsiz: number; summa: number; kat: Record<string, number>; manba: Record<NarxManba, number> };
 
 export function f2Jami(q: F2Qator[]): F2Jami {
-  const j: F2Jami = { ish: 0, qator: q.length, xato: 0, ogoh: 0, narxsiz: 0, summa: 0, kat: {}, manba: { oldingi_f2: 0, smeta: 0, qolda: 0, yoq: 0 } };
+  const j: F2Jami = { ish: 0, qator: q.length, xato: 0, ogoh: 0, narxsiz: 0, summa: 0, kat: {}, manba: { protokol: 0, oldingi_f2: 0, smeta: 0, qolda: 0, yoq: 0 } };
   for (const x of q) {
     if (x.tur === 'bl') j.ish++;
     if (x.xato) j.xato++;
@@ -168,7 +179,7 @@ export function f2Jami(q: F2Qator[]): F2Jami {
 }
 
 /** Hujjatdagi "Основание" ustuni uchun (hujjat tili — rus). */
-const NARX_MANBA_HUJJAT: Record<NarxManba, string> = { oldingi_f2: 'цена по предыдущей Ф-2', smeta: 'цена по смете', qolda: 'цена по документу', yoq: 'без цены' };
+const NARX_MANBA_HUJJAT: Record<NarxManba, string> = { protokol: 'цена по протоколу согласования цен', oldingi_f2: 'цена по предыдущей Ф-2', smeta: 'цена по смете', qolda: 'цена по документу', yoq: 'без цены' };
 
 /** Server yuki (t2_akt_yarat_v2): ish — narxsiz; resurs — hujjat narxi va summasi. Manba — hujjat raqami. */
 /** F2 qoralamasida ishlanadigan yacheykalar: har qatorning to'ldirilgan hajm/narx/summa qiymatlari (token hisobi). */
@@ -183,7 +194,7 @@ export function f2Yuk(q: F2Qator[], hujjatRaqam: string): F2NativePayloadRow[] {
     certifiedUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined,
     certifiedAmount: x.narxsiz ? undefined : x.summa ?? undefined,
     priceIntentionallyAbsent: x.narxsiz,
-    rawSnapshot: { source: 'native_f2_preparation', sourceReference: x.tur === 'bl' ? manba : `${manba}; ${NARX_MANBA_HUJJAT[x.manba]}`, enteredQuantity: x.hajm, enteredUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined, enteredAmount: x.narxsiz ? undefined : x.summa ?? undefined },
+    rawSnapshot: { source: 'native_f2_preparation', sourceReference: x.tur === 'bl' ? manba : `${manba}; ${NARX_MANBA_HUJJAT[x.manba]}${x.protokol ? ` ${x.protokol}` : ''}`, enteredQuantity: x.hajm, enteredUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined, enteredAmount: x.narxsiz ? undefined : x.summa ?? undefined },
   }));
 }
 

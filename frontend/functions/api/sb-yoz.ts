@@ -135,6 +135,10 @@ const AMALLAR = {
   platforma_narx_manba_bekor: { rpc: 't2_platforma_narx_manba_bekor_v1' },
   /* Egasi 2026-10-03: obyekt hududi (chel.-soat narxi shu hududdan) — xaritadan taklif yoki qo'lda. */
   obyekt_hudud_belgila: { rpc: 't2_obyekt_hudud_belgila_v1' },
+  /* Протокол согласования цен (2026-10-03): qoralama → imzolangan nusxa bilan tasdiqlash → bekor. */
+  narx_protokol_yarat: { rpc: 't2_narx_protokol_yarat_v1' },
+  narx_protokol_tasdiqla: { rpc: 't2_narx_protokol_tasdiqla_v1' },
+  narx_protokol_bekor: { rpc: 't2_narx_protokol_bekor_v1' },
   narx_dalil_bogla: { rpc: 't2_narx_dalil_bogla_v1' },
   narx_dalil_ochir: { rpc: 't2_narx_dalil_ochir_v1' },
   audit_yoz: { rpc: 't2_audit_yoz' },
@@ -1534,6 +1538,34 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'kompaniya_id va id majburiy' });
       }
       yuk = { p_kompaniya_id: kompaniyaId, p_id: id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_kim: sess.email || '' };
+
+    } else if (amal === 'narx_protokol_yarat' || amal === 'narx_protokol_tasdiqla' || amal === 'narx_protokol_bekor') {
+      if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
+        return Response.json({ ok: false, error: 'Sessiya talab qilinadi' }, { status: 401 });
+      }
+      if (amal === 'narx_protokol_yarat') {
+        const obyektId = Number(so.obyekt_id);
+        if (!Number.isInteger(obyektId) || obyektId <= 0 || !uuidRe.test(operationId)) {
+          return Response.json({ ok: false, error: 'obyekt_id va operation_id (UUID) majburiy' });
+        }
+        const lines = Array.isArray(so.qatorlar) ? so.qatorlar.slice(0, 5000).map((x: any) => ({
+          qator_id: Number(x?.qator_id), yangi_narx: Number(x?.yangi_narx),
+          manba_qator_id: x?.manba_qator_id == null ? null : Number(x.manba_qator_id),
+          izoh: x?.izoh == null ? null : String(x.izoh).slice(0, 500),
+        })) : [];
+        yuk = { p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_lines: lines, p_izoh: so.izoh == null ? null : String(so.izoh).slice(0, 1000), p_operation_id: operationId };
+      } else if (amal === 'narx_protokol_tasdiqla') {
+        const id = Number(so.id); const doc = Number(so.document_id);
+        const sana = String(so.kuchga_kirish || '');
+        if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(doc) || doc <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(sana)) {
+          return Response.json({ ok: false, error: 'id, document_id va kuchga_kirish (YYYY-MM-DD) majburiy' });
+        }
+        yuk = { p_actor_id: sess.foydalanuvchi_id, p_id: id, p_document_id: doc, p_kuchga_kirish: sana };
+      } else {
+        const id = Number(so.id);
+        if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: 'id majburiy' });
+        yuk = { p_actor_id: sess.foydalanuvchi_id, p_id: id, p_sabab: so.sabab == null ? null : String(so.sabab).slice(0, 300) };
+      }
 
     } else if (amal === 'obyekt_hudud_belgila') {
       const obyektId = Number(so.obyekt_id);

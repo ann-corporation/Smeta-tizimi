@@ -192,6 +192,8 @@ export const GENERATED_SITE_MAP = {
     "t2_narx_dalil_holat",
     "t2_platforma_narx_manba",
     "t2_platforma_narx_manba_qator",
+    "t2_narx_protokol_royxat",
+    "t2_narx_protokol_qator",
     "t2_korzinka",
     "t2_audit_reestr",
     "t2_obyekt_hujjat_royxat",
@@ -538,6 +540,18 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "obyekt_hudud_belgila",
       "rpc": "t2_obyekt_hudud_belgila_v1"
+    },
+    {
+      "amal": "narx_protokol_yarat",
+      "rpc": "t2_narx_protokol_yarat_v1"
+    },
+    {
+      "amal": "narx_protokol_tasdiqla",
+      "rpc": "t2_narx_protokol_tasdiqla_v1"
+    },
+    {
+      "amal": "narx_protokol_bekor",
+      "rpc": "t2_narx_protokol_bekor_v1"
     },
     {
       "amal": "narx_dalil_bogla",

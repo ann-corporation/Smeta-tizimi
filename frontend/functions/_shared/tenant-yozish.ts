@@ -25,6 +25,7 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_aosr_id: 't2_aosr',
   p_protokol_id: 't2_lab_protokol',
   p_azolik_id: 't2_azolik',
+  p_document_id: 't2_document_registry',
 };
 /** Massiv argumentlar. */
 export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt' };
@@ -46,6 +47,7 @@ export const P_ID_JADVAL: Readonly<Record<string, string>> = {
   shartnoma_saqla_v2: 't2_shartnoma',
   grafik_yangilash: 't2_grafik_qator', grafik_sozlama_saqla: 't2_grafik_qator',
   kompaniya_yangila: 't2_kompaniya',
+  narx_protokol_tasdiqla: 't2_price_basis', narx_protokol_bekor: 't2_price_basis',
 };
 /** `p_id` ni o'zi a'zolik bilan tekshiradigan (kompaniya + actor bilan chaqiriladigan) amallar. */
 const P_ID_OZI_TEKSHIRADI = new Set(['mindmap_tugun_ochir', 'resurs_yangila_v2', 'resurs_bekor_v2',

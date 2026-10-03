@@ -59,6 +59,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_narx_manba_yoz_v1', 't2_narx_manba_bekor_v1', 't2_narx_dalil_bogla_v1', 't2_narx_dalil_ochir_v1',
                       /* 2026-10-02: platforma katalogi — superadmin (RPC ichida _t2_boshqaruv_tekshir). */
                       't2_platforma_narx_manba_yoz_v1', 't2_platforma_narx_manba_bekor_v1', 't2_obyekt_hudud_belgila_v1',
+                      't2_narx_protokol_yarat_v1', 't2_narx_protokol_tasdiqla_v1', 't2_narx_protokol_bekor_v1',
                       't2_obyekt_hujjat_yoz', 't2_obyekt_hujjat_ochir',
                       't2_sklad_yarat', 't2_kadr_yarat', 't2_texnika_yarat',
                       't2_resurs_yarat_v2', 't2_resurs_yangila_v2', 't2_resurs_bekor_v2',

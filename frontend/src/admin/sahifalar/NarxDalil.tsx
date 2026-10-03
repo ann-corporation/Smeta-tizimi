@@ -20,6 +20,7 @@ import { HUDUDLAR, hududNomi, joylashuvdanHudud } from '../../lib/hudud';
 import { t } from '../../i18n/til';
 import { useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
+import { NarxProtokolPanel } from './NarxProtokolPanel';
 
 const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 
@@ -33,7 +34,7 @@ export default function NarxDalil() {
   const [dalillar, setDalillar] = useState<NarxDalilHolat[]>([]);
   const [resurslar, setResurslar] = useState<AsoslashResurs[]>([]);
   const [tanlov, setTanlov] = useState<Map<number, number>>(new Map());
-  const [varaq, setVaraq] = useState<'taklif' | 'dalil'>('taklif');
+  const [varaq, setVaraq] = useState<'taklif' | 'dalil' | 'protokol'>('taklif');
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   /* Egasi 2026-10-03: chel.-soat narxi obyekt hududidan — xaritadagi joylashuvdan taklif yoki qo'lda tanlash. */
   const [hudud, setHudud] = useState<{ hudud: string | null; lat: number | null; lng: number | null } | null>(null);
@@ -71,7 +72,8 @@ export default function NarxDalil() {
   useEffect(() => { setHudud(null); if (obyektId) void obyektHududOl(obyektId).then(setHudud); }, [obyektId]);
 
   const dalilBor = useMemo(() => new Set(dalillar.map((d) => d.qator_id)), [dalillar]);
-  const natijalar = useMemo(() => narxTakliflari(takliflar).filter((n) => !dalilBor.has(n.qator_id)), [takliflar, dalilBor]);
+  const hammaTaklif = useMemo(() => narxTakliflari(takliflar), [takliflar]);
+  const natijalar = useMemo(() => hammaTaklif.filter((n) => !dalilBor.has(n.qator_id)), [hammaTaklif, dalilBor]);
   const obyekt = obyektlar.find((o) => o.id === obyektId);
 
   const belgila = (qatorId: number, manbaQatorId: number | null) => setTanlov((m) => {
@@ -140,9 +142,12 @@ export default function NarxDalil() {
       <div className="inline-flex overflow-hidden rounded border text-xs">
         <button type="button" onClick={() => setVaraq('taklif')} className={'px-3 py-1.5 ' + (varaq === 'taklif' ? 'bg-accent/15 text-accent' : '')}>Takliflar ({natijalar.length})</button>
         <button type="button" onClick={() => setVaraq('dalil')} className={'px-3 py-1.5 ' + (varaq === 'dalil' ? 'bg-accent/15 text-accent' : '')}>Bog‘langan dalillar ({dalillar.length})</button>
+        <button type="button" onClick={() => setVaraq('protokol')} className={'px-3 py-1.5 ' + (varaq === 'protokol' ? 'bg-accent/15 text-accent' : '')}>{t('Протокол согласования цен')}</button>
       </div>
 
-      {yuklanmoqda ? <p className="text-sm text-text-dim">Yuklanmoqda…</p> : varaq === 'taklif' ? (
+      {yuklanmoqda ? <p className="text-sm text-text-dim">Yuklanmoqda…</p> : varaq === 'protokol' ? (
+        kompaniyaId && obyekt ? <NarxProtokolPanel kompaniyaId={kompaniyaId} obyektId={obyekt.id} obyektNomi={obyekt.nom} takliflar={hammaTaklif} dalillar={dalillar} imzo={tomonlar} /> : null
+      ) : varaq === 'taklif' ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => setTanlov(new Map(natijalar.map((n) => [n.qator_id, n.tavsiya.manba_qator_id])))}>Barcha tavsiyalarni belgilash</button>

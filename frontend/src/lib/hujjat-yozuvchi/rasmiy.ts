@@ -181,6 +181,7 @@ export const HUJJAT_TURLARI = {
   lrv_sverka: 'LRV ↔ RES сверка',
   ijro_reestr: 'Ijro hujjatlari reestri',
   narx_asoslash: 'Обоснование цен',
+  narx_protokol: 'Протокол согласования цен',
   oferta: 'Tender oferta',
 } as const;
 export type HujjatTuri = keyof typeof HUJJAT_TURLARI;

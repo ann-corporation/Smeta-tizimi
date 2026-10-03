@@ -40,6 +40,7 @@
  "src/admin/sahifalar/NarxDalil.tsx": 24,
  "src/admin/sahifalar/NarxManbalari.tsx": 35,
  "src/admin/sahifalar/NarxNazoratNative.tsx": 27,
+ "src/admin/sahifalar/NarxProtokolPanel.tsx": 0,
  "src/admin/sahifalar/Narxlar.tsx": 30,
  "src/admin/sahifalar/NarxlarNative.tsx": 27,
  "src/admin/sahifalar/Obyektlar.tsx": 32,
