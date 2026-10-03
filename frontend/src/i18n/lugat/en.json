@@ -429,5 +429,11 @@
   "(Bo'sh)": "(Empty)",
   "Tozalash": "Clear",
   "Qo'llash": "Apply",
-  "Katalogdagi aynan nomi:": "Exact name from catalog:"
+  "Katalogdagi aynan nomi:": "Exact name from catalog:",
+  "Email manzili": "Email address",
+  "masalan: aziz@gmail.com": "for example: aziz@gmail.com",
+  "Email tasdiqlash kodi": "Email verification code",
+  "Kodni qayta yuborish": "Send code again",
+  "Kodni tasdiqlash va hisob ochish": "Confirm code and create account",
+  "Emailga kod yuborish": "Send code to email"
 }

@@ -24,6 +24,8 @@ export default function KirishSahifa() {
   const regOpId = useRef<string>(crypto.randomUUID());
   const [regIsm, setRegIsm] = useState('');
   const [regTelefon, setRegTelefon] = useState('');
+  const [regKod, setRegKod] = useState('');
+  const [tasdiqlashId, setTasdiqlashId] = useState<string | null>(null);
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,16 +68,23 @@ export default function KirishSahifa() {
     e.preventDefault();
     const l = regLogin.trim().toLowerCase();
     if (regIsm.trim().length < 2) { setError('Ismingizni kiriting'); return; }
-    // Egasi sinovi 2026-10-02: odamlar login o'rniga email yozadi — email ham login bo'la oladi.
-    if (!/^[a-z0-9][a-z0-9_.@+-]{2,79}$/.test(l) || (l.match(/@/g)?.length ?? 0) > 1) { setError('Login yoki email: lotin harf, raqam, _ . - @ (3–80 belgi)'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(l)) { setError('Email manzilini to‘g‘ri kiriting'); return; }
     if (regParol.length < 8) { setError('Parol kamida 8 belgi'); return; }
     setLoading(true);
     setError('');
     try {
+      if (!tasdiqlashId) {
+        const r = await fetch('/api/royxat-email-kod', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: l }) });
+        const d = await r.json().catch(() => ({ ok: false, xabar: 'Server javobi noto‘g‘ri' }));
+        if (!d.ok) { setError(d.xabar || 'Kod yuborib bo‘lmadi'); return; }
+        setTasdiqlashId(d.tasdiqlash_id);
+        toast('Emailingizga 6 xonali kod yuborildi.', 'ok');
+        return;
+      }
       const r = await fetch('/api/royxat-ozi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: l, parol: regParol, ism: regIsm.trim(), telefon: regTelefon.trim(), kompaniya: regKompaniya.trim(), operation_id: regOpId.current }),
+        body: JSON.stringify({ login: l, parol: regParol, ism: regIsm.trim(), telefon: regTelefon.trim(), kompaniya: regKompaniya.trim(), operation_id: regOpId.current, tasdiqlash_id: tasdiqlashId, kod: regKod }),
       });
       const d = await r.json().catch(() => ({ ok: false, xabar: 'Server javobi noto‘g‘ri' }));
       if (!d.ok) {
@@ -360,14 +369,19 @@ export default function KirishSahifa() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Login yoki email')}</label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Email manzili')}</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="text" autoComplete="username" required value={regLogin} onChange={e => setRegLogin(e.target.value.toLowerCase())} placeholder={t('masalan: aziz.pto yoki aziz@mail.uz')}
+                      <input type="email" autoComplete="email" required value={regLogin} onChange={e => { setRegLogin(e.target.value.toLowerCase()); setTasdiqlashId(null); setRegKod(''); }} placeholder={t('masalan: aziz@gmail.com')}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
                   </div>
+                  {tasdiqlashId && <div className="space-y-1.5">
+                    <label htmlFor="email-tasdiqlash-kodi" className="text-sm font-medium text-zinc-300">{t('Email tasdiqlash kodi')}</label>
+                    <input id="email-tasdiqlash-kodi" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={regKod} onChange={e => setRegKod(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600" />
+                    <button type="button" disabled={loading} onClick={() => { setTasdiqlashId(null); setRegKod(''); }} className="text-xs text-indigo-300 hover:text-indigo-200">{t('Kodni qayta yuborish')}</button>
+                  </div>}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-zinc-300">{t('Parol')} <span className="text-zinc-500">{t('(kamida 8 belgi)')}</span></label>
                     <div className="relative">
@@ -401,7 +415,7 @@ export default function KirishSahifa() {
                     disabled={loading}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]"
                   >
-                    {loading ? t('Hisob ochilmoqda...') : t('Hisob ochish va bepul sinash')}
+                    {loading ? t('Hisob ochilmoqda...') : tasdiqlashId ? t('Kodni tasdiqlash va hisob ochish') : t('Emailga kod yuborish')}
                   </button>
                 </form>
                 

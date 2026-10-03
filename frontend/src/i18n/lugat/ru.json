@@ -429,5 +429,11 @@
   "(Bo'sh)": "(Пусто)",
   "Tozalash": "Очистить",
   "Qo'llash": "Применить",
-  "Katalogdagi aynan nomi:": "Точное наименование из каталога:"
+  "Katalogdagi aynan nomi:": "Точное наименование из каталога:",
+  "Email manzili": "Адрес электронной почты",
+  "masalan: aziz@gmail.com": "например: aziz@gmail.com",
+  "Email tasdiqlash kodi": "Код подтверждения email",
+  "Kodni qayta yuborish": "Отправить код повторно",
+  "Kodni tasdiqlash va hisob ochish": "Подтвердить код и создать аккаунт",
+  "Emailga kod yuborish": "Отправить код на email"
 }
