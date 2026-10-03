@@ -354,5 +354,17 @@
   "chapdagi menyudan istagan bo'limga o'tavering.": "use the menu on the left to open the needed section.",
   "Obyektlarga qaytish": "Return to sites",
   "Buyruq markazi": "Command center",
-  "Yopish uchun Escape tugmasi": "Escape key to close"
+  "Yopish uchun Escape tugmasi": "Escape key to close",
+  "Salom! Men **Jarvis** — shu tizimning yordamchisiman.\n\nJoriy kompaniyadagi dalilli ma’lumot bilan javob beraman. Masalan:\n\n- Amfiteatrda bu oy qancha fakt bajarildi?\n- Qaysi obyektda F2 orqada qolgan?\n- Suniy ko‘lda qoldiq qancha?": "Hello! I am **Jarvis**, this system's assistant.\n\nI answer using evidence from the current company. For example:\n\n- What actual work was completed at Amfiteatr this month?\n- Which site has an F-2 lag?\n- What is the remaining balance for Suniy Ko‘l?",
+  "Jarvis javob bo‘sh qaytardi": "Jarvis returned an empty answer",
+  "Jarvis javob bera olmadi": "Jarvis could not answer",
+  "Xatolik yuz berdi:": "An error occurred:",
+  "Jarvis AI yordamchisini ochish": "Open the Jarvis AI assistant",
+  "Jarvis AI yordamchisi": "Jarvis AI assistant",
+  "Faqat o‘qish rejimi · beta": "Read-only · beta",
+  "Jarvis beta · kompaniya konteksti": "Jarvis beta · company context",
+  "Manba:": "Source:",
+  "Xabaringizni yozing...": "Write your message...",
+  "Yuborish": "Send",
+  "AI xato qilishi mumkin. Moliya qarorlarida e’tiborli bo‘ling.": "AI can make mistakes. Be careful with financial decisions."
 }

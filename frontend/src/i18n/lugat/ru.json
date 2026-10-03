@@ -354,5 +354,17 @@
   "chapdagi menyudan istagan bo'limga o'tavering.": "перейдите в нужный раздел через меню слева.",
   "Obyektlarga qaytish": "Вернуться к объектам",
   "Buyruq markazi": "Центр команд",
-  "Yopish uchun Escape tugmasi": "Клавиша Escape для закрытия"
+  "Yopish uchun Escape tugmasi": "Клавиша Escape для закрытия",
+  "Salom! Men **Jarvis** — shu tizimning yordamchisiman.\n\nJoriy kompaniyadagi dalilli ma’lumot bilan javob beraman. Masalan:\n\n- Amfiteatrda bu oy qancha fakt bajarildi?\n- Qaysi obyektda F2 orqada qolgan?\n- Suniy ko‘lda qoldiq qancha?": "Здравствуйте! Я **Jarvis**, помощник этой системы.\n\nЯ отвечаю по подтвержденным данным текущей компании. Например:\n\n- Какой фактический объем выполнен в Амфитеатре в этом месяце?\n- На каком объекте Ф-2 отстаёт?\n- Какой остаток по Сунъий Кулю?",
+  "Jarvis javob bo‘sh qaytardi": "Jarvis вернул пустой ответ",
+  "Jarvis javob bera olmadi": "Jarvis не смог ответить",
+  "Xatolik yuz berdi:": "Произошла ошибка:",
+  "Jarvis AI yordamchisini ochish": "Открыть помощника Jarvis AI",
+  "Jarvis AI yordamchisi": "Помощник Jarvis AI",
+  "Faqat o‘qish rejimi · beta": "Только чтение · бета",
+  "Jarvis beta · kompaniya konteksti": "Jarvis бета · контекст компании",
+  "Manba:": "Источник:",
+  "Xabaringizni yozing...": "Введите сообщение...",
+  "Yuborish": "Отправить",
+  "AI xato qilishi mumkin. Moliya qarorlarida e’tiborli bo‘ling.": "AI может ошибаться. Будьте внимательны при финансовых решениях."
 }
