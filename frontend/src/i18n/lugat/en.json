@@ -416,5 +416,17 @@
   "Past": "Low",
   "O'rta": "Medium",
   "Yuqori": "High",
-  "Qo'shimcha izoh": "Additional note"
+  "Qo'shimcha izoh": "Additional note",
+  "Jami:": "Total:",
+  "ta qator ko'rsatilmoqda": "rows displayed",
+  "Excel (CSV) ga yuklash": "Download Excel (CSV)",
+  "{nom} filtri": "{nom} filter",
+  "Ma'lumot topilmadi yoki filtrlar juda qattiq": "No data found or filters are too restrictive",
+  "Qidirish...": "Search...",
+  "(Barchasi)": "(All)",
+  "Topilmadi": "Not found",
+  "(Bosh)": "(Header)",
+  "(Bo'sh)": "(Empty)",
+  "Tozalash": "Clear",
+  "Qo'llash": "Apply"
 }

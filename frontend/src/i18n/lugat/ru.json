@@ -416,5 +416,17 @@
   "Past": "Низкий",
   "O'rta": "Средний",
   "Yuqori": "Высокий",
-  "Qo'shimcha izoh": "Дополнительное примечание"
+  "Qo'shimcha izoh": "Дополнительное примечание",
+  "Jami:": "Всего:",
+  "ta qator ko'rsatilmoqda": "строк показано",
+  "Excel (CSV) ga yuklash": "Скачать Excel (CSV)",
+  "{nom} filtri": "Фильтр: {nom}",
+  "Ma'lumot topilmadi yoki filtrlar juda qattiq": "Данные не найдены или фильтры слишком строгие",
+  "Qidirish...": "Поиск...",
+  "(Barchasi)": "(Все)",
+  "Topilmadi": "Не найдено",
+  "(Bosh)": "(Заголовок)",
+  "(Bo'sh)": "(Пусто)",
+  "Tozalash": "Очистить",
+  "Qo'llash": "Применить"
 }

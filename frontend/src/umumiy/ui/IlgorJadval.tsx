@@ -1,6 +1,7 @@
 import { useState, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Filter, Search, Download, X } from 'lucide-react';
+import { t, tilLocale } from '../../i18n/til';
 
 export type IlgorUstun<T> = {
   kalit: keyof T & string;
@@ -34,7 +35,7 @@ export function IlgorJadval<T extends Record<string, any>>({
     return satrlar.filter(s => {
       for (const [k, ruxsatEtilganlar] of Object.entries(filtrlar)) {
         if (ruxsatEtilganlar.length === 0) continue;
-        const val = String(s[k] || '');
+        const val = String(s[k] ?? '');
         if (!ruxsatEtilganlar.includes(val)) return false;
       }
       return true;
@@ -73,7 +74,7 @@ export function IlgorJadval<T extends Record<string, any>>({
 
   const handleExportCSV = () => {
     const csvRows = [];
-    const headers = ustunlar.map(u => `"${u.nom}"`);
+    const headers = ustunlar.map(u => `"${t(u.nom)}"`);
     csvRows.push(headers.join(','));
 
     for (const s of yakuniySatrlar) {
@@ -107,13 +108,13 @@ export function IlgorJadval<T extends Record<string, any>>({
     <div className="flex flex-col gap-3">
       <div className="flex justify-between items-center bg-[var(--surface-2)] p-2 px-4 rounded-xl border border-border shadow-md">
         <div className="text-text-dim text-sm font-medium">
-          Jami: <span className="text-white font-bold">{yakuniySatrlar.length}</span> ta qator ko'rsatilmoqda
+          {t('Jami:')} <span className="text-white font-bold">{yakuniySatrlar.length}</span> {t("ta qator ko'rsatilmoqda")}
         </div>
         <button 
           onClick={handleExportCSV}
           className="flex items-center gap-2 bg-accent/20 hover:bg-accent/30 text-accent px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-accent/20 cursor-pointer"
         >
-          <Download size={16} /> Excel (CSV) ga yuklash
+          <Download size={16} /> {t('Excel (CSV) ga yuklash')}
         </button>
       </div>
 
@@ -136,7 +137,7 @@ export function IlgorJadval<T extends Record<string, any>>({
                            className={`flex items-center gap-1 ${u.saralanadigan !== false ? 'cursor-pointer hover:text-accent transition-colors' : 'text-text-dim'}`}
                            onClick={() => u.saralanadigan !== false && handleSort(u.kalit)}
                         >
-                          <span className={isActiveSort ? 'text-accent font-bold' : ''}>{u.nom}</span>
+                          <span className={isActiveSort ? 'text-accent font-bold' : ''}>{t(u.nom)}</span>
                           {isActiveSort && sortConf.dir === 'asc' && <ChevronUp size={14} className="text-accent" />}
                           {isActiveSort && sortConf.dir === 'desc' && <ChevronDown size={14} className="text-accent" />}
                         </div>
@@ -145,6 +146,8 @@ export function IlgorJadval<T extends Record<string, any>>({
                           <div className="relative">
                             <button 
                               onClick={(e) => { e.stopPropagation(); setFaolFiltUstun(faolFiltUstun === u.kalit ? null : u.kalit); }}
+                              aria-label={t('{nom} filtri', { nom: t(u.nom) })}
+                              title={t('{nom} filtri', { nom: t(u.nom) })}
                               className={`p-1 rounded transition-colors cursor-pointer ${isFiltered ? 'bg-accent text-black' : 'text-text-dim hover:bg-white/10 hover:text-white'}`}
                             >
                               <Filter size={12} />
@@ -176,7 +179,7 @@ export function IlgorJadval<T extends Record<string, any>>({
               {yakuniySatrlar.length === 0 ? (
                 <tr>
                   <td colSpan={ustunlar.length} className="text-center py-12 text-text-dim">
-                    Ma'lumot topilmadi yoki filtrlar juda qattiq
+                    {t("Ma'lumot topilmadi yoki filtrlar juda qattiq")}
                   </td>
                 </tr>
               ) : (
@@ -226,7 +229,7 @@ function FiltrPopover({
     satrlar.forEach(row => {
       s.add(String(row[ustun.kalit] || ''));
     });
-    return Array.from(s).sort((a,b) => String(a).localeCompare(String(b)));
+    return Array.from(s).sort((a,b) => String(a).localeCompare(String(b), tilLocale()));
   }, [satrlar, ustun.kalit]);
 
   const korinadiganlar = useMemo(() => {
@@ -262,8 +265,8 @@ function FiltrPopover({
       onClick={e => e.stopPropagation()}
     >
       <div className="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
-        <h4 className="text-white font-medium text-[13px] capitalize">{ustun.nom} Filtri</h4>
-        <button onClick={onYopish} className="text-text-dim hover:text-white cursor-pointer"><X size={14}/></button>
+        <h4 className="text-white font-medium text-[13px] capitalize">{t('{nom} filtri', { nom: t(ustun.nom) })}</h4>
+        <button onClick={onYopish} aria-label={t('Yopish')} title={t('Yopish')} className="text-text-dim hover:text-white cursor-pointer"><X size={14}/></button>
       </div>
       
       <div className="p-2 border-b border-white/10">
@@ -271,7 +274,7 @@ function FiltrPopover({
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-dim" />
           <input 
             value={q} onChange={e => setQ(e.target.value)}
-            placeholder="Qidirish..."
+            placeholder={t('Qidirish...')}
             className="w-full bg-black/40 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-[13px] text-white focus:outline-none focus:border-accent"
           />
         </div>
@@ -285,11 +288,11 @@ function FiltrPopover({
             onChange={toggleHammasi}
             className="rounded border-white/20 bg-black/50 text-accent focus:ring-accent/50 focus:ring-offset-0 cursor-pointer"
           />
-          <span className="text-[13px] text-white font-medium">(Barchasi)</span>
+          <span className="text-[13px] text-white font-medium">{t('(Barchasi)')}</span>
         </label>
         
         {korinadiganlar.length === 0 ? (
-          <div className="text-text-dim text-center py-4 text-[12px]">Topilmadi</div>
+          <div className="text-text-dim text-center py-4 text-[12px]">{t('Topilmadi')}</div>
         ) : (
           korinadiganlar.map(v => (
             <label key={v} className="flex items-center gap-2 p-1.5 hover:bg-white/5 rounded cursor-pointer">
@@ -299,7 +302,7 @@ function FiltrPopover({
                 onChange={() => toggleBiri(v)}
                 className="rounded border-white/20 bg-black/50 text-accent focus:ring-accent/50 focus:ring-offset-0 cursor-pointer"
               />
-              <span className="text-[13px] text-text-dim truncate flex-1" title={v || '(Bosh)'}>{v || '(Bo\'sh)'}</span>
+              <span className="text-[13px] text-text-dim truncate flex-1" title={v || t('(Bosh)')}>{v || t("(Bo'sh)")}</span>
             </label>
           ))
         )}
@@ -310,13 +313,13 @@ function FiltrPopover({
           onClick={() => { setTanlangan(new Set()); onSaqlash([]); }}
           className="flex-1 py-1.5 text-[12px] font-medium text-text-dim hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
         >
-          Tozalash
+          {t('Tozalash')}
         </button>
         <button 
           onClick={() => onSaqlash(Array.from(tanlangan))}
           className="flex-1 py-1.5 text-[12px] font-medium text-black bg-accent hover:bg-accent/90 rounded-lg transition-colors cursor-pointer"
         >
-          Qo'llash
+          {t("Qo'llash")}
         </button>
       </div>
     </motion.div>
