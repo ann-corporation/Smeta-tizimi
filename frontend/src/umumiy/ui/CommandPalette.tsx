@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calculator, User, Building, FileText } from 'lucide-react';
 import { useObyektlar } from '../../api/hooks';
@@ -7,6 +7,8 @@ import { t } from '../../i18n/til';
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const dialogTitleId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { data: obyektlar } = useObyektlar();
 
@@ -24,6 +26,10 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (isOpen) inputRef.current?.focus();
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const filteredObjects = (obyektlar || []).filter(o => o.obyekt.toLowerCase().includes(query.toLowerCase()));
@@ -35,19 +41,23 @@ export function CommandPalette() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-bg/80 backdrop-blur-sm p-4">
-      <div className="bg-surface-2 border border-border w-full max-w-xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-bg/80 p-4 pt-[12vh] backdrop-blur-sm" onMouseDown={() => setIsOpen(false)}>
+      <div role="dialog" aria-modal="true" aria-labelledby={dialogTitleId} onMouseDown={(e) => e.stopPropagation()}
+        className="flex max-h-[72vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-2xl">
         <div className="flex items-center px-4 py-3 border-b border-border gap-3">
           <Search className="text-text-dim" size={20} />
+          <span id={dialogTitleId} className="sr-only">{t('Buyruq markazi')}</span>
           <input
+            ref={inputRef}
             autoFocus
             type="text"
             className="flex-1 bg-transparent border-none text-white focus:outline-none placeholder:text-text-dim/50"
+            aria-label={t('Obyekt izlash yoki buyruq kiritish...')}
             placeholder={t('Obyekt izlash yoki buyruq kiritish...')}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
-          <kbd className="hidden sm:inline-block text-xs font-sans px-2 py-1 bg-surface rounded text-text-dim border border-border">ESC</kbd>
+          <kbd aria-label={t('Yopish uchun Escape tugmasi')} className="hidden rounded border border-border bg-surface px-2 py-1 font-sans text-xs text-text-dim sm:inline-block">ESC</kbd>
         </div>
         
         <div className="overflow-y-auto p-2">
