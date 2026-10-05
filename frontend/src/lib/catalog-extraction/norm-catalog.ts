@@ -1,6 +1,6 @@
 /** Source catalogue, not canonical smeta/F2 storage. Exact keys only. */
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
-export type NormWork = { id: string; code: string; name: string | null; collection: string | null; section: string | null; subsection: string | null; tableCode: string | null; unitCode: string | null };
+export type NormWork = { id: string; code: string; name: string | null; bookType?: string | null; collection: string | null; section: string | null; subsection: string | null; tableCode: string | null; unitCode: string | null };
 export type NormPath = Array<string | null>;
 export type NormResource = { id: string; code: string | null; resourceIdCode: string | null; name: string | null; unitCode: string | null; type: string | null };
 export type NormRecipe = { id: string; workCode: string; resourceCode: string | null; resourceIdCode: string | null; norm: string | null };
@@ -32,7 +32,7 @@ export class NormCatalog {
     const push = <T,>(map: Map<string, T[]>, key: string | null, value: T) => { if (key == null) return; const list = map.get(key) ?? []; list.push(value); map.set(key, list); };
     if (table === 'basis') {
       const code = text('KodE'); if (!code) throw new Error('WORK_CODE_MISSING');
-      const w = { id, code, name: name(), collection: text('KodA'), section: text('KodRaz'), subsection: text('KodPRaz'), tableCode: text('KodTab'), unitCode: text('KodI') };
+      const w = { id, code, name: name(), bookType: text('TipBook'), collection: text('KodA'), section: text('KodRaz'), subsection: text('KodPRaz'), tableCode: text('KodTab'), unitCode: text('KodI') };
       this.works.set(id, w); push(this.worksByCode, code, w);
       this.searchKeys.set(id,qidiruvKaliti([w.code,w.name].filter(Boolean).join(' ')));
       const levels = [w.collection, w.section, w.subsection, w.tableCode];

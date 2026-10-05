@@ -9,7 +9,7 @@
       "machine": "noutbuk",
       "branch": "codex/catalog-extraction-integration-v1",
       "base_sha": "a0cf0bf8f2ab7648ba4b09b2341a0c7e68f95713",
-      "status": "in_progress",
+      "status": "superseded",
       "owns": [
         "frontend/src/lib/catalog-extraction/",
         "frontend/src/admin/sahifalar/KatalogExtractionReview.tsx",
@@ -24,8 +24,13 @@
         "ops/mailbox/T2-CATALOG-EXTRACTION-INTEGRATION-001/"
       ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
-      "production_write_allowed": false
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "2026-10-05 Claude (integrator): Codex checkpointlari 97ea8982/fe668d21/aab72560 to‘liq olindi (fast-forward) va T2-UNIVERSAL-SMETA-STUDIO-001 ga topshirildi; owns locklari o‘sha taskka o‘tdi."
     },
     {
       "id": "T2-PTO-CHAIN-INTEGRITY-001",
@@ -35,9 +40,16 @@
       "branch": "codex/pto-chain-integrity-implementation",
       "base_sha": "15b689a2f4a540ec4cca265250b377334bb72d34",
       "status": "in_progress",
-      "owns": ["frontend/src/lib/pto-document-lineage/", "ops/handoff/T2_PTO_CHAIN_INTEGRITY_001.md"],
+      "owns": [
+        "frontend/src/lib/pto-document-lineage/",
+        "ops/handoff/T2_PTO_CHAIN_INTEGRITY_001.md"
+      ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md"
+      ],
       "production_write_allowed": false
     },
     {
@@ -1909,6 +1921,42 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi 2026-09-30: migratsiyaga ruxsat, laboratoriya — alohida kompaniya (kontragent mavqe=laboratoriya). Migratsiya production’ga qo‘llandi 2026-10-01, funksiyalar rollback tranzaksiyada sinaldi. Codex bilan bo‘linish: ops/handoff/CODEX_TOPSHIRIQ_2026-10-01.md."
+    },
+    {
+      "id": "T2-UNIVERSAL-SMETA-STUDIO-001",
+      "title": "Universal smeta studiyasi: platforma normativ katalogi (R2 shard), nomli ierarxiya, ikki panelli smeta muharriri, yagona command qatlami, canonical save va tirik Excel",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/t2-smeta-studio-v1",
+      "base_sha": "aab72560c1918cd07200fc105cdb5174b9d3005d",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/lib/catalog-extraction/",
+        "frontend/src/lib/smeta-studio/",
+        "frontend/src/admin/sahifalar/SmetaStudio.tsx",
+        "frontend/src/admin/sahifalar/SmetaStudio.test.tsx",
+        "frontend/src/admin/sahifalar/KatalogExtractionReview.tsx",
+        "frontend/src/admin/sahifalar/KatalogExtractionReview.test.tsx",
+        "frontend/src/admin/sahifalar/NormSmetaWorkbench.tsx",
+        "frontend/src/admin/sahifalar/NormSmetaWorkbench.test.tsx",
+        "frontend/src/admin/sahifalar/KatalogManbaImport.tsx",
+        "frontend/functions/api/norm-katalog.ts",
+        "frontend/functions/api/norm-katalog.test.ts",
+        "frontend/scripts/catalog-extraction/",
+        "frontend/src/i18n/lugat/ru.json",
+        "frontend/src/i18n/lugat/en.json",
+        "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md",
+        "ops/mailbox/T2-CATALOG-EXTRACTION-INTEGRATION-001/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md",
+        "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi."
     }
   ]
 }

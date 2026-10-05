@@ -1,4 +1,4 @@
-import { NormCatalog, previewResourceAmount, previewResourceQuantity } from './norm-catalog';
+import { previewResourceAmount, previewResourceQuantity, type NormCatalog } from './norm-catalog';
 
 /** Review draft only: source IDs are not t2_qator IDs. Backend must revalidate. */
 export type NormDraftRequest = {
@@ -35,7 +35,7 @@ export function sumDraftAmounts(values: Array<string | null>): string | null {
   return text.slice(0, -2) + '.' + text.slice(-2);
 }
 
-export function buildNormDraftLine(catalog: NormCatalog, request: NormDraftRequest): NormDraftLine {
+export function buildNormDraftLine(catalog: Pick<NormCatalog, 'detail'>, request: NormDraftRequest): NormDraftLine {
   const first = catalog.detail(request.workId);
   if (first.workCodeAmbiguous) throw new Error('WORK_AMBIGUOUS');
   if (!request.unitLabel.trim() || !request.currency.trim()) throw new Error('CONTEXT_REQUIRED');
