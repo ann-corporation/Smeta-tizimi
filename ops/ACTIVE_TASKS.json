@@ -1952,7 +1952,8 @@
         "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.sql",
         "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.rollback.sql",
         "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.acceptance.sql",
-        "ops/handoff/T2_UNIVERSAL_SMETA_STUDIO_001.md"
+        "ops/handoff/T2_UNIVERSAL_SMETA_STUDIO_001.md",
+        "ops/sql/T2_BAZA_IXCHAMLASH_20261005.sql"
       ],
       "depends_on": [],
       "must_read": [
