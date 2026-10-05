@@ -1988,6 +1988,36 @@
       ],
       "production_write_allowed": false,
       "_izoh": "1-bosqich: R2 rev f03b13183496d6bc (213 691 qator, DB md5 12adeab8 bilan aynan), qidiruv va platforma takliflari R2 dan (real obyekt 76/14 da view bilan aynan). 2-bosqich (DB yozish kerak): dalil/protokol snapshot, superadmin yuklash R2 ga. 3-bosqich (egasi tasdig‘i): platforma qatorlarini DB dan o‘chirish + VACUUM FULL."
+    },
+    {
+      "id": "T2-ZAKAZCHIK-TOMON-001",
+      "title": "Zakazchik tomoni: tomonlar aloqasi (handshake), ko‘rinish grantlari, taqdim/qaror va zakazchik kabineti — kelajakdagi barcha tomonlar uchun ochiq poydevor",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "main",
+      "base_sha": "4d7a361",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261106200000_t2_tomon_aloqa_v1.sql",
+        "supabase/migrations/20261106200000_t2_tomon_aloqa_v1.rollback.sql",
+        "supabase/migrations/20261106*_t2_tomon_*",
+        "supabase/tests/t2_tomon_aloqa_contract.sql",
+        "frontend/functions/api/tomon.ts",
+        "frontend/functions/api/tomon.test.ts",
+        "frontend/src/api/t2-tomon.ts",
+        "frontend/src/admin/zakazchik/",
+        "frontend/src/lib/tomon/",
+        "ops/handoff/T2_ZAKAZCHIK_TOMON_001.md",
+        "ops/mailbox/T2-ZAKAZCHIK-TOMON-001/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "ops/handoff/T2_ZAKAZCHIK_TOMON_001.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi qoidasi 2026-10-05: o‘zgaruvchan ma’lumot — Supabase, o‘zgarmas — R2. Tomon jadvallari (aloqa/grant/taqdim holati) o‘zgaruvchan → Supabase; F2 qatorlari NUSXALANMAYDI (o‘zgarmas tasdiqlangan aktdan o‘qiladi), hujjat nusxasi R2 reyestridan (t2_document_registry). /api/sb va /api/sb-yoz izolyatsiyasiga TEGILMAYDI — kompaniyalararo ko‘rinish faqat alohida tomon.ts shlyuzi orqali. Umumiy (egasiz) fayllarga faqat additiv tegiladi: AdminShell.tsx (menyu guruhi), App.tsx (marshrutlar), i18n lugat ru/en (yangi kalitlar), sayt-xaritasi/generated.ts (regeneratsiya). Prod bazaga migratsiya 20261106200000 qo‘llangan (rollback-sinovli, 53/53)."
     }
   ]
 }
