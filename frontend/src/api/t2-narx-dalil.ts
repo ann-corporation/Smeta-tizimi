@@ -4,6 +4,7 @@
  * Takliflar qoidalari: lib/narx-dalil/taklif.ts. Hujjat: lib/narx-asoslash-export.ts.
  */
 import { sbOqi } from './supabase';
+import { narxKatalogi, katalogQidirSozlar as katalogSozlari, type KatalogQatori as R2KatalogQatori, type SmetaResurs } from '../lib/narx-katalog/price-remote';
 
 export type NarxManbaTur = 'katalog' | 'faktura' | 'kp' | 'kalkulyatsiya_mash' | 'chel_chas' | 'boshqa';
 
@@ -70,8 +71,21 @@ export function sbNarxManbaQidiruvQatorlariOl(kompaniyaId: number) {
     limit: 50000,
   });
 }
-export function sbNarxTakliflarOl(kompaniyaId: number, obyektId: number) {
-  return sbOqi<NarxTaklif>({ jadval: 't2_narx_taklif', filtr: 'kompaniya_id=eq.' + kompaniyaId + '&obyekt_id=eq.' + obyektId, limit: 50000 });
+/** Offers = company-owned price sources (Supabase view, business data) + platform catalogue (immutable R2
+ *  shards, owner rule 2026-10-05). The platform branch reproduces the former view exactly (real-data test). */
+export async function sbNarxTakliflarOl(kompaniyaId: number, obyektId: number): Promise<{ ok: boolean; qatorlar?: NarxTaklif[]; error?: string }> {
+  const [own, resurs, katalog] = await Promise.all([
+    sbOqi<NarxTaklif>({ jadval: 't2_narx_taklif', filtr: 'kompaniya_id=eq.' + kompaniyaId + '&obyekt_id=eq.' + obyektId + '&platforma=eq.false', limit: 50000 }),
+    sbOqi<SmetaResurs>({ jadval: 't2_qator', ustunlar: 'id,kompaniya_id,obyekt_id,tur,kat,kod,nom,birlik,narx,nom_key,birlik_key',
+      filtr: 'kompaniya_id=eq.' + kompaniyaId + '&obyekt_id=eq.' + obyektId + '&tur=in.(rs,mat,ob)', limit: 50000 }),
+    narxKatalogi().then(c => ({ ok: true as const, c }), (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) })),
+  ]);
+  if (!own.ok) return { ok: false, error: own.error };
+  if (!resurs.ok) return { ok: false, error: resurs.error };
+  // Platform catalogue unavailable: say so — never silently present "no offers".
+  if (!katalog.ok) return { ok: false, error: 'Platforma narx katalogi ochilmadi (' + katalog.error + ')' };
+  const platforma = katalog.c.takliflar((resurs.qatorlar ?? []).map(q => ({ ...q, narx: q.narx == null ? null : Number(q.narx) })));
+  return { ok: true, qatorlar: [...(own.qatorlar ?? []), ...(platforma as NarxTaklif[])] };
 }
 export function sbNarxDalillarOl(kompaniyaId: number, obyektId: number) {
   return sbOqi<NarxDalilHolat>({ jadval: 't2_narx_dalil_holat', filtr: 'kompaniya_id=eq.' + kompaniyaId + '&obyekt_id=eq.' + obyektId, limit: 50000 });
@@ -179,22 +193,14 @@ export async function platformaManbaniYukla(malumot: NarxManbaMalumot, qatorlar:
   return { ok: true, id, qator_qoshildi: boshi };
 }
 
-/** Platforma katalogidan qidirish (egasi 2026-10-03: "katalogni qayerdan ko'rsam bo'ladi"). */
-export type KatalogQatori = {
-  id: number; manba_id: number; kod: string | null; nom: string; birlik: string | null; narx: number | null; hudud: string | null;
-  ishlab_chiqaruvchi: string | null; nds_holati: string | null; nds_izoh: string | null; yil: number | null; kvartal: number | null;
-  narx_varianti: string | null; guruh: string | null; hudud_kalit: string | null; manba_nom: string; manba_tur: NarxManbaTur;
-};
-/** So'zlar bo'yicha (har biri nom ichida bo'lishi shart), ixtiyoriy hudud; ko'pi bilan 200 natija. */
-export function katalogQidirSozlar(matn: string): string[] {
-  return matn.toLowerCase().replace(/[*&,()%.\\"]/g, ' ').split(/\s+/).map((w) => w.trim()).filter((w) => w.length >= 2).slice(0, 6);
-}
-/** 2026-10-03: qiymat brauzerda percent-kodlanadi — kodlanmagan kirillcha URL Cloudflare fetch'ida bazaga yetmasdan
- *  yiqilardi ("keyinroq urinib ko'ring"). So'z bo'lmasa — katalogni ko'rish (hudud bo'yicha birinchi 200 qator). */
-export function katalogQidir(matn: string, hudud?: string | null) {
-  const sozlar = katalogQidirSozlar(matn);
-  const filtr = [...sozlar.map((w) => 'nom=ilike.*' + encodeURIComponent(w) + '*'), ...(hudud ? ['hudud_kalit=eq.' + hudud] : [])].join('&');
-  return sbOqi<KatalogQatori>({ jadval: 't2_platforma_narx_manba_qator', filtr, tartib: 'nom.asc', limit: 200 });
+/** Platforma katalogidan qidirish (egasi 2026-10-03: "katalogni qayerdan ko'rsam bo'ladi").
+ *  2026-10-05: katalog R2 da (o'zgarmas ma'lumotnoma). Qidiruv brauzerda, oldingi qoida bilan bir xil:
+ *  har so'z nom ichida, hudud ixtiyoriy, ko'pi bilan 200; so'z bo'lmasa — katalogni ko'rish. */
+export type KatalogQatori = R2KatalogQatori;
+export const katalogQidirSozlar = katalogSozlari;
+export async function katalogQidir(matn: string, hudud?: string | null): Promise<{ ok: boolean; qatorlar?: KatalogQatori[]; error?: string }> {
+  try { return { ok: true, qatorlar: (await narxKatalogi()).qidir(matn, hudud ?? null, 200) }; }
+  catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
 /** Obyekt hududi va xaritadagi joylashuvi (chel.-soat narxi shu hududdan). */

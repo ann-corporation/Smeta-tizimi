@@ -1964,6 +1964,30 @@
       ],
       "production_write_allowed": false,
       "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi."
+    },
+    {
+      "id": "T2-NARX-KATALOG-R2-001",
+      "title": "Platforma narx katalogini R2 ga ko‘chirish (o‘zgarmas ma’lumotnoma R2, biznes ma’lumoti Supabase) — egasi qoidasi 2026-10-05",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/t2-smeta-studio-v1",
+      "base_sha": "e0eb416326d8f72cbd9518ed67e831b469747d54",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/lib/narx-katalog/",
+        "frontend/src/api/t2-narx-dalil.ts",
+        "frontend/functions/api/narx-katalog.ts",
+        "frontend/functions/api/narx-katalog.test.ts",
+        "frontend/scripts/narx-katalog/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "ops/handoff/T2_UNIVERSAL_SMETA_STUDIO_001.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "1-bosqich: R2 rev f03b13183496d6bc (213 691 qator, DB md5 12adeab8 bilan aynan), qidiruv va platforma takliflari R2 dan (real obyekt 76/14 da view bilan aynan). 2-bosqich (DB yozish kerak): dalil/protokol snapshot, superadmin yuklash R2 ga. 3-bosqich (egasi tasdig‘i): platforma qatorlarini DB dan o‘chirish + VACUUM FULL."
     }
   ]
 }
