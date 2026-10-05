@@ -105,6 +105,7 @@ describe('tomon shlyuzi — taklif kodi', () => {
 describe('tomon shlyuzi — o‘qish va xatolar', () => {
   it('bo‘limlar va parametrlar', () => {
     expect(oqishYuki('aloqalar', new URLSearchParams('kompaniya_id=3'))).toEqual({ p_kompaniya_id: 3 });
+    expect(oqishYuki('resurslar', new URLSearchParams('kompaniya_id=3'))).toEqual({ p_kompaniya_id: 3 });
     expect(oqishYuki('aloqalar', new URLSearchParams(''))).toMatch(/kompaniya_id/);
     expect(oqishYuki('taqdimlar', new URLSearchParams('kompaniya_id=3&yonalish=kelgan&holat=yuborilgan'))).toEqual({ p_kompaniya_id: 3, p_yonalish: 'kelgan', p_holat: 'yuborilgan', p_aloqa_id: null, p_limit: 100 });
     expect(oqishYuki('taqdimlar', new URLSearchParams('kompaniya_id=3&yonalish=hammasi&holat=x;y'))).toMatchObject({ p_yonalish: null, p_holat: null });

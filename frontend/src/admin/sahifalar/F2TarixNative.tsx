@@ -26,6 +26,7 @@ import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
+import { ZakazchigaYuborish } from '../zakazchik/ZakazchigaYuborish';
 
 type F2Detail = F2Tafsilot;
 
@@ -255,6 +256,7 @@ export function F2TarixNative() {
                   {selectedLines.length > 0 && <div className="mt-2 flex justify-end gap-1.5">
                     <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text disabled:opacity-50"><Eye size={13} />{t('Koʻrish')}</button>
                     <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"><Download size={13} />{t('Ф-2 Excel')}</button>
+                    {selectedAkt.lifecycle_status === 'approved' && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
                   </div>}</div></div>
                 <table className="w-full text-left text-[12px]"><thead className="sticky top-0 bg-surface text-text-dim"><tr><th className="py-2">Bo‘lim / ish / resurs</th><th className="text-right">Hajm</th><th className="text-right">Narx</th><th className="text-right">Summa</th></tr></thead><tbody>{ierarxiya.map((q) => {
                   const belgi = q.zamena ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetadagi qator o‘rniga bajarilgan (zamena)">zamena</span> : q.qoshimcha ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetada yo‘q, qo‘shimcha kiritilgan">qo‘shimcha</span> : null;

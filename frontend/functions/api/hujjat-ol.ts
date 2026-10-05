@@ -34,7 +34,13 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     if (!id) return Response.json({ ok: false, code: 'DOCUMENT_CONTEXT_REQUIRED' }, { status: 400 });
 
     // Authorization + canonical row (RLS-equivalent check inside the RPC).
-    const res = await rpc(ctx.env, 't2_document_canonical_get_v1', { p_actor_id: actorId, p_document_id: id });
+    let res = await rpc(ctx.env, 't2_document_canonical_get_v1', { p_actor_id: actorId, p_document_id: id });
+    // T2-ZAKAZCHIK-TOMON-001: hujjat egasi bo'lmagan, lekin unga TAQDIM qilingan hujjatning qabul qiluvchisi (faol aloqa) —
+    // faqat shu aniq hujjat. Egalik tekshiruvi o'zgarmaydi: avval canonical yo'l, u rad etsagina tomon yo'li.
+    if ((!res.httpOk || !res.body || res.body.ok !== true) && (!res.body || !['DOCUMENT_NOT_FOUND', 'CANONICAL_BINARY_MISSING'].includes(res.body.code))) {
+      const tomon = await rpc(ctx.env, 't2_tomon_hujjat_ol_v1', { p_actor_id: actorId, p_document_id: id });
+      if (tomon.httpOk && tomon.body && tomon.body.ok === true) res = tomon;
+    }
     if (!res.httpOk || !res.body || res.body.ok !== true) {
       const code = (res.body && res.body.code) || 'DOCUMENT_FORBIDDEN';
       const status = code === 'DOCUMENT_NOT_FOUND' ? 404 : code === 'CANONICAL_BINARY_MISSING' ? 502 : 403;

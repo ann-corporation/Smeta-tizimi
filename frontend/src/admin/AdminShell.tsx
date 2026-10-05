@@ -71,6 +71,17 @@ const TIZIM_02_GURUHLAR = [
     ]
   },
   {
+    /* Egasi 2026-10-05: tomonlar (zakazchik ↔ pudratchi …) — handshake, ruxsat (grant), hujjat taqdimi. T2-ZAKAZCHIK-TOMON-001. */
+    nom: 'Tomonlar',
+    Ikonka: Network,
+    id: 'tomonlar',
+    menyular: [
+      { yol: '/admin/zakazchik', nom: 'Buyurtmachi kabineti', Ikonka: Building2 },
+      { yol: '/admin/taqdimlar', nom: 'Tomonlar hujjatlari', Ikonka: FileStack },
+      { yol: '/admin/aloqalar', nom: 'Tomonlar aloqasi', Ikonka: Link2 },
+    ]
+  },
+  {
     nom: 'Kompaniya boshqaruvi',
     Ikonka: LayoutDashboard,
     id: 'kompaniya',
@@ -272,6 +283,7 @@ function AdminShellInner() {
     if (g.id === 'boshqaruv') allowed = k.superadmin ? allowed : [];
     else if (g.id === 'tizim') allowed = rol === 'admin' || rol === 'superadmin' || k.superadmin ? allowed : [];
     else if (g.id === 'hisob') allowed = toliq || rol === 'pto' || rol === 'bugalter' || rol === 'prorab' ? allowed : allowed.filter(m => m.yol.includes('kompaniya'));
+    else if (g.id === 'tomonlar') allowed = toliq || rol === 'pto' || rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi' ? allowed : [];
     else if (toliq) { /* hammasi */ }
     else if (rol === 'pto') allowed = g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('zayavka') || m.yol.includes('logistika')) : g.id === 'loyiha' ? allowed.filter(m => !m.yol.includes('participants')) : allowed;
     else if (rol === 'prorab') allowed = g.id === 'pto' ? allowed.filter(m => m.yol.includes('fakt') || m.yol.includes('obyekt')) : g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('logistika') || m.yol.includes('zayavka')) : g.id === 'loyiha' ? allowed.filter(m => m.yol.includes('loyiha')) : [];

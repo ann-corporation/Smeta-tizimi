@@ -21,6 +21,7 @@ const OQISH: Record<string, string> = {
   taqdim: 't2_tomon_taqdim_tafsilot_v1',
   obyektlar: 't2_zakazchik_obyektlar_v1',
   qidir: 't2_tomon_kompaniya_qidir_v1',
+  resurslar: 't2_tomon_resurslar_v1',
 };
 /** Yozish amallari: amal → RPC. */
 const YOZISH: Record<string, string> = {
@@ -138,7 +139,7 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
   if (!sonmi(k)) return 'kompaniya_id kerak';
   const p_kompaniya_id = Number(k);
   switch (bolim) {
-    case 'aloqalar': case 'obyektlar': return { p_kompaniya_id };
+    case 'aloqalar': case 'obyektlar': case 'resurslar': return { p_kompaniya_id };
     case 'aloqa': return sonmi(q.get('aloqa_id')) ? { p_kompaniya_id, p_aloqa_id: Number(q.get('aloqa_id')) } : 'aloqa_id kerak';
     case 'taqdim': return sonmi(q.get('taqdim_id')) ? { p_kompaniya_id, p_taqdim_id: Number(q.get('taqdim_id')) } : 'taqdim_id kerak';
     case 'taqdimlar': {
