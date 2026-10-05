@@ -56,3 +56,19 @@ node --max-old-space-size=8192 scripts/catalog-extraction/run-ts.mjs scripts/cat
 node scripts/catalog-extraction/upload-norm-shards.mjs C:/t2dev/norm-shards-vN --activate
 node node_modules/vitest/vitest.mjs run src/lib/catalog-extraction src/lib/smeta-studio src/admin/sahifalar/SmetaStudio.test.tsx functions/api/norm-katalog.test.ts functions/api/smeta-studio.test.ts
 ```
+
+## Narx katalogi → R2 (T2-NARX-KATALOG-R2-001, egasi qoidasi 2026-10-05)
+
+Qoida: o'zgarmas ma'lumotnoma (narx katalogi, normativ baza, smeta fayllari) — R2; o'zgaruvchan biznes
+ma'lumoti (smeta, Fakt, F2, dalil, protokol, kompaniyaning o'z narx manbalari) — Supabase.
+
+1-bosqich DONE (`c2440d74`, production): platforma katalogi R2 da — rev `f03b13183496d6bc`, 213 691 qator,
+2.1 MB gzip (bazada 492 MB). Eksport DB md5 `12adeab895f84bd844fde0a25c72841c` bilan aynan; kalitlar 0 farq.
+`katalogQidir` va platforma takliflari (`sbNarxTakliflarOl`) R2 dan; real obyekt 76/14 da eski view bilan teng.
+Eksport fayli: `C:\t2dev\price-export\platforma-katalog-5.jsonl` (sha256 d1fc63fa…).
+
+2-bosqich (DB yozish kerak, MCP read-only): `t2_narx_dalil` va `t2_price_basis_line` ga katalog snapshot
+(revision + qator ma'lumoti) ustunlari, 25 ta protokol havolasini backfill, `manba_qator_id` FK ni olib
+tashlash, bog'lash/protokol RPC'larida platforma qatorini Function R2 dan tekshirib snapshot bilan yozish;
+superadmin katalog yuklashi R2 ga.
+3-bosqich (egasi tasdig'i): platforma qatorlarini bazadan o'chirish + `VACUUM FULL` → baza ~200 MB.
