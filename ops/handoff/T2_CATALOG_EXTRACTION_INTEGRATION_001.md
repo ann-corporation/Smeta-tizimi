@@ -160,3 +160,26 @@ node node_modules/vitest/vitest.mjs run src/lib/catalog-extraction src/admin/sah
 Bu bosqich SOURCE_READY + LOCAL_TESTED; permanent DB import, authenticated
 browser smoke, main integration va production deployment hali bajarilmagan.
 Qo'shimcha fizik bprice qatori (headerdan tashqari) karantinda qoldi.
+
+## 3-bosqich: egasining ikki-panel/hierarchy aniqlashtirishi
+
+`NormCatalog.branches(path,page)` basis source KodA → KodRaz → KodPRaz →
+KodTab indeksini yaratadi, branch count/work scope aniq kalit bilan tekshiriladi.
+NULL alohida unresolved bucket; prefix/fuzzy yoki qator pozitsiyasi ishlatilmaydi.
+UI chapda drill-down/breadcrumb/search/detail, o'ngda doimiy smeta paneli.
+Object/section/subsection draft destination va unique draft occurrence mavjud;
+bir ish har xil destinationda takrorlanishi mumkin. Bir occurrence olib tashlash
+boshqasini olib tashlamaydi. NormDraft schema optional additive maydonlar bilan
+saqlandi; DB/RPC endpoint o'zgarmadi. Rus/en UI tarjimalari ham qo'shildi.
+
+Hali PARTIAL: category/section uchun inson tushunadigan nomli daraxt (BOOK
+IDPARENT mavjud, lekin eski TIPBOOK=A va yangi TipBook=H edition reconciliation
+isbotlanmagan), o'ngda to'liq nested editor, inline resurs substitution va
+koeffitsient apply/undo, canonical save, Excel. Ular source-ready deb aytilmasin.
+POPRAV.PRAV verified calculation rule emas; raw matnni eval qilish yo'q.
+Egasining to'liq talabi Obsidian handoff §16da saqlandi.
+Oxirgi focused paket: 82 test PASS (7 fayl), jumladan to'liq real corpus,
+4-level scope, NULL branch, Latin/Cyrillic search, ikki-panel elementlari,
+hierarchy click requestlari va global i18n qorovuli. Build/functions typecheck,
+focused lint, governance/diff-check PASS. Oldingi tekshir PASS o'z kuchida;
+bu UI checkpointda to'liq Vitest kampaniyasi o'tkazilmadi.

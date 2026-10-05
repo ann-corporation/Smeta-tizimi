@@ -27,3 +27,17 @@ it('stale search response cannot overwrite newer query', async () => {
   expect(screen.queryByText(/Stale work/)).toBeNull();
 });
 it('worker disposed on unmount', () => { const worker = start(); cleanup(); expect(worker.terminate).toHaveBeenCalled(); });
+it('hierarchy click scopes both work search and next branch request', async () => {
+  const worker=start(); worker.respond('load',{counts:{basis:54013}});
+  worker.respond('branches',{nodes:[{code:'E6',workCount:12}],total:1});
+  fireEvent.click(screen.getByRole('button',{name:/E6.*12/}));
+  expect(worker.messages.findLast(m=>m.command==='branches')?.path).toEqual(['E6']);
+  await waitFor(()=>expect(worker.messages.findLast(m=>m.command==='search')?.path).toEqual(['E6']));
+});
+it('estimate workspace is present on right before selecting work', () => {
+  const worker=start(); worker.respond('load',{counts:{basis:1}});
+  expect(screen.getByLabelText('Smeta obyekti')).toBeTruthy();
+  expect(screen.getByLabelText('Smeta razdeli')).toBeTruthy();
+  expect(screen.getByLabelText('Smeta podrazdeli')).toBeTruthy();
+  expect(screen.getByRole('button',{name:'Qoralama paketini saqlash'}).hasAttribute('disabled')).toBe(true);
+});

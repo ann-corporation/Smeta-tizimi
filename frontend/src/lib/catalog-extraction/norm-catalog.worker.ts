@@ -32,7 +32,7 @@ self.onmessage = async (event: MessageEvent) => {
       loaded = true; self.postMessage({ id, result: { counts: catalog.counts } });
     } else {
       if (!loaded) throw new Error('CATALOG_NOT_READY');
-      self.postMessage({ id, result: command === 'search' ? catalog.search(query, page) : command === 'detail' ? catalog.detail(workId, page) : command === 'draft' ? buildNormDraftLine(catalog, event.data.request) : (() => { throw new Error('COMMAND_INVALID'); })() });
+      self.postMessage({ id, result: command === 'search' ? catalog.search(query, page, '', event.data.path ?? []) : command === 'branches' ? catalog.branches(event.data.path, page) : command === 'detail' ? catalog.detail(workId, page) : command === 'draft' ? buildNormDraftLine(catalog, event.data.request) : (() => { throw new Error('COMMAND_INVALID'); })() });
     }
   } catch { if (command === 'load') loaded = false; self.postMessage({ id, error: 'Manba o‘qilmadi yoki bog‘lanish noaniq. Fayllarni tekshirib qayta oching.' }); }
 };

@@ -7,6 +7,8 @@ export type NormDraftRequest = {
   priceEvidence: string; prices: Record<string, string>;
 };
 export type NormDraftLine = {
+  draftOccurrenceId?: string;
+  destination?: { objectName: string; sectionName: string; subsectionName: string };
   sourceWorkId: string; code: string; name: string | null; collection: string | null;
   quantity: string; basisQuantity: string; unitLabel: string; unitEvidence: string;
   currency: string; priceEvidence: string;

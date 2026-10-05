@@ -1,16 +1,20 @@
 /** Source catalogue, not canonical smeta/F2 storage. Exact keys only. */
-export type NormWork = { id: string; code: string; name: string | null; collection: string | null; section: string | null; unitCode: string | null };
+import { qidiruvKaliti } from '../../i18n/lotin-kirill';
+export type NormWork = { id: string; code: string; name: string | null; collection: string | null; section: string | null; subsection: string | null; tableCode: string | null; unitCode: string | null };
+export type NormPath = Array<string | null>;
 export type NormResource = { id: string; code: string | null; resourceIdCode: string | null; name: string | null; unitCode: string | null; type: string | null };
 export type NormRecipe = { id: string; workCode: string; resourceCode: string | null; resourceIdCode: string | null; norm: string | null };
 export type NormPrice = { id: string; resourceCode: string | null; regionCode: string | null; price: string | null; transport: string | null };
 export class NormCatalog {
   works = new Map<string, NormWork>();
   private worksByCode = new Map<string, NormWork[]>();
+  private searchKeys = new Map<string, string>();
   private resources = new Map<string, NormResource[]>();
   private resourcesByIdCode = new Map<string, NormResource[]>();
   private recipes = new Map<string, NormRecipe[]>();
   private prices = new Map<string, NormPrice[]>();
   private seen = new Map<string, Set<string>>();
+  private branchIndex = new Map<string, Map<string | null, number>>();
   counts: Record<string, number> = { basis: 0, basisres: 0, material: 0, bprice: 0 };
   add(table: string, row: Record<string, unknown>) {
     if (!Object.hasOwn(this.counts, table) || !Number.isSafeInteger(row.Kod) || Number(row.Kod) < 0) throw new Error('SOURCE_ID_INVALID');
@@ -28,8 +32,15 @@ export class NormCatalog {
     const push = <T,>(map: Map<string, T[]>, key: string | null, value: T) => { if (key == null) return; const list = map.get(key) ?? []; list.push(value); map.set(key, list); };
     if (table === 'basis') {
       const code = text('KodE'); if (!code) throw new Error('WORK_CODE_MISSING');
-      const w = { id, code, name: name(), collection: text('KodA'), section: text('KodRaz'), unitCode: text('KodI') };
+      const w = { id, code, name: name(), collection: text('KodA'), section: text('KodRaz'), subsection: text('KodPRaz'), tableCode: text('KodTab'), unitCode: text('KodI') };
       this.works.set(id, w); push(this.worksByCode, code, w);
+      this.searchKeys.set(id,qidiruvKaliti([w.code,w.name].filter(Boolean).join(' ')));
+      const levels = [w.collection, w.section, w.subsection, w.tableCode];
+      for (let level=0; level<4; level++) {
+        const key=JSON.stringify(levels.slice(0,level));
+        const branches=this.branchIndex.get(key) ?? new Map<string | null, number>();
+        branches.set(levels[level], (branches.get(levels[level]) ?? 0)+1); this.branchIndex.set(key,branches);
+      }
     } else if (table === 'material') {
       const r = { id, code: text('KodM'), resourceIdCode: text('KodR'), name: name(), unitCode: text('KodI'), type: text('Tip') };
       push(this.resources, r.code, r);
@@ -43,12 +54,22 @@ export class NormCatalog {
     }
     this.counts[table]++;
   }
-  search(query: string, page: number, collection = '') {
+  branches(path: NormPath, page = 0) {
+    if (!Array.isArray(path) || path.length > 4 || path.some(v=>v!==null && typeof v!=='string') || !Number.isInteger(page) || page<0) throw new Error('PATH_INVALID');
+    const nodes = this.branchIndex.get(JSON.stringify(path));
+    if (!nodes) return { nodes: [], total: 0 };
+    const all=[...nodes].sort(([a],[b]) => (a ?? '').localeCompare(b ?? '', 'ru', {numeric:true}));
+    return { nodes: all.slice(page*25,(page+1)*25).map(([code, workCount])=>({ code, workCount })), total: all.length };
+  }
+  search(query: string, page: number, collection = '', path: NormPath = []) {
+    if (!Array.isArray(path) || path.length>4 || path.some(v=>v!==null && typeof v!=='string')) throw new Error('PATH_INVALID');
     if (!Number.isInteger(page) || page < 0) throw new Error('PAGE_INVALID');
-    const q = query.trim().toLocaleLowerCase('ru'); let total = 0; const rows: NormWork[] = [];
+    const q = qidiruvKaliti(query); let total = 0; const rows: NormWork[] = [];
     for (const work of this.works.values()) {
       if (collection && work.collection !== collection) continue;
-      if (q && ![work.name, work.code].some(v => v?.toLocaleLowerCase('ru').includes(q))) continue;
+      const levels=[work.collection,work.section,work.subsection,work.tableCode];
+      if (path.some((value,index)=>value!==levels[index])) continue;
+      if (q && !this.searchKeys.get(work.id)?.includes(q)) continue;
       if (total >= page * 25 && rows.length < 25) rows.push(work); total++;
     }
     return { rows, total };

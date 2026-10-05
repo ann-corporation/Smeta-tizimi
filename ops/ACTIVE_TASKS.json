@@ -17,6 +17,8 @@
         "frontend/src/admin/sahifalar/NormSmetaWorkbench.tsx",
         "frontend/src/admin/sahifalar/NormSmetaWorkbench.test.tsx",
         "frontend/src/admin/sahifalar/KatalogManbaImport.tsx",
+        "frontend/src/i18n/lugat/ru.json",
+        "frontend/src/i18n/lugat/en.json",
         "frontend/scripts/catalog-extraction/",
         "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md",
         "ops/mailbox/T2-CATALOG-EXTRACTION-INTEGRATION-001/"
