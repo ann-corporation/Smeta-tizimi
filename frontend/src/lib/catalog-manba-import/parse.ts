@@ -394,7 +394,10 @@ export function catalogQatorlariniApiFormatga(qatorlar: CatalogQator[]) {
       kod: q.kod, nom: q.nom, birlik: q.birlik, narx: q.narx,
       hudud: q.hudud, zavod, guruh, yil: q.davr.yil, kvartal: q.davr.kvartal, narx_varianti: q.narxVarianti,
       nds_holati: q.narxVarianti === 'nds_siz' ? 'nds_siz' : q.narxVarianti === 'nds_bilan' ? 'nds_bilan' : null,
-      izoh: JSON.stringify({ sourceKey: q.sourceKey, varaqqa: q.varaqqa, manbaQatori: q.manbaQatori, hudud: q.hudud, davr: q.davr, narxVarianti: q.narxVarianti, valyuta: q.valyuta, originalIzoh: q.izoh, warnings: q.ogohlantirishlar }),
+      // Egasi 2026-10-05: hudud/davr/narxVarianti/valyuta/sourceKey allaqachon alohida ustunlarda — bu yerda
+      // takrorlanmaydi (213 691 qatorli katalogda bu yolg'iz o'zi 135 MB keraksiz joy yegan edi). Faqat haqiqiy
+      // ogohlantirish (masalan PRICE_MISSING) bo'lsa saqlanadi; bo'lmasa izoh NULL.
+      izoh: q.ogohlantirishlar && q.ogohlantirishlar.length ? JSON.stringify({ warnings: q.ogohlantirishlar }) : null,
     };
   });
 }
