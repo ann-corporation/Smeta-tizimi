@@ -6,6 +6,7 @@ import { narxManbaniYukla, platformaManbaniYukla, sbNarxManbalarOl, sbPlatformaM
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { useKompaniya as useKontekst } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { t } from '../../i18n/til';
+import KatalogExtractionReview from './KatalogExtractionReview';
 
 function sha256(bytes: ArrayBuffer) {
   if (!globalThis.crypto || !globalThis.crypto.subtle) return Promise.resolve(null);
@@ -169,5 +170,6 @@ export default function KatalogManbaImport() {
       <button type="button" onClick={function () { return void importSources(); }} disabled={busy || !kompaniyaId || !!unresolved.length || !analyses.length} className="px-3 py-2 rounded-lg bg-accent text-white text-[12px] disabled:opacity-50">Tahlilni tasdiqlash va manbalarni saqlash</button>
       {unresolved.length > 0 && <p className="text-[11px] text-warn">Noaniq yoki bo‘sh fayl import qilinmaydi. Avval fayl formatini tekshiring.</p>}
     </>}
+    <KatalogExtractionReview />
   </section>;
 }

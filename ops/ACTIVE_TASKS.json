@@ -3,6 +3,26 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-CATALOG-EXTRACTION-INTEGRATION-001",
+      "title": "Ochiq normativ extraction paketini mavjud katalog oynasiga review-only ulash",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/catalog-extraction-integration-v1",
+      "base_sha": "a0cf0bf8f2ab7648ba4b09b2341a0c7e68f95713",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/src/lib/catalog-extraction/",
+        "frontend/src/admin/sahifalar/KatalogExtractionReview.tsx",
+        "frontend/src/admin/sahifalar/KatalogManbaImport.tsx",
+        "frontend/scripts/catalog-extraction/",
+        "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md",
+        "ops/mailbox/T2-CATALOG-EXTRACTION-INTEGRATION-001/"
+      ],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
+      "production_write_allowed": false
+    },
+    {
       "id": "T2-PTO-CHAIN-INTEGRITY-001",
       "title": "PTO zanjiri: canonical bog‘lanish va tasdiqlangan davr dalillarini mustahkamlash",
       "owner": "codex",
