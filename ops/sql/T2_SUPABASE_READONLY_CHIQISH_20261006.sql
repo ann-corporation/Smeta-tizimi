@@ -37,7 +37,23 @@ begin;
               'anomaliya','tolovlar','shartnoma','system_config','viborka_nazorat'))
        and c.conrelid in (select oid from pg_class where relnamespace = 'public'::regnamespace and relname like 't2\_%');
     if v > 0 then raise exception 'TO''XTADI: TIZIM_02 jadvali eski jadvalga bog''langan (% ta FK)', v; end if;
+    -- Eski jadvallarga bog'liq siyosat/view/trigger faqat eski jadvallarning o'zida bo'lishi kerak.
+    select count(*) into v from pg_depend d
+      left join pg_policy pol on d.classid = 'pg_policy'::regclass and pol.oid = d.objid
+      left join pg_rewrite rw on d.classid = 'pg_rewrite'::regclass and rw.oid = d.objid
+      left join pg_trigger tg on d.classid = 'pg_trigger'::regclass and tg.oid = d.objid
+     where d.refobjid in (select oid from pg_class where relnamespace = 'public'::regnamespace and relname in
+             ('akt','holat','obyektlar','companies','oylik_f2','akt_ish','audit_log','profiles','kontragentlar','qoshimcha_ishlar',
+              'anomaliya','tolovlar','shartnoma','system_config','viborka_nazorat'))
+       and coalesce(pol.polrelid, rw.ev_class, tg.tgrelid) is not null
+       and coalesce(pol.polrelid, rw.ev_class, tg.tgrelid) not in (select oid from pg_class where relnamespace = 'public'::regnamespace and relname in
+             ('akt','holat','obyektlar','companies','oylik_f2','akt_ish','audit_log','profiles','kontragentlar','qoshimcha_ishlar',
+              'anomaliya','tolovlar','shartnoma','system_config','viborka_nazorat'));
+    if v > 0 then raise exception 'TO''XTADI: eski jadvalga boshqa jadval siyosati/view/trigger bog''langan (% ta)', v; end if;
   end $$;
+  -- Eski jadvallar orasidagi RLS siyosatlari (companies va audit_log siyosatlari profiles ga tayanadi).
+  drop policy if exists "Users can view their own company" on public.companies;
+  drop policy if exists "Admins can view audit logs" on public.audit_log;
   drop table if exists public.akt_ish;
   drop table if exists public.akt;
   drop table if exists public.holat;
