@@ -83,3 +83,80 @@ audit va official exporter moslash alohida keyingi ish.
 
 Obsidian to'liq manba xaritasi:
 `20_PROJECTS/Smeta-tizimi/KATALOG_PTO_MANBALARI_TO_LIQ_HANDOFF_2026-10-05.md`.
+
+## 2-bosqich: ochilgan to'liq normativ baza va smeta konstruktori
+
+Egasi bergan yangi manba: `D:\CatalogMigration\paradox-open-20261005-145050`.
+Avvalgi 188 671 yozuvli review paketidan alohida dataset:
+basis 54 013 ish, basisres 531 015 sarf normasi,
+material 337 016 resurs, bprice 167 566 narx — jami 1 089 610.
+`checksums.json` barcha fayl hash/size tekshiruvi PASS. Source SQLite faqat
+`mode=ro` / `query_only` rejimida o'qildi. Manba fayllari tahrirlanmadi.
+
+### Ishlaydigan kod
+
+- `norm-catalog.ts`: source-ID indekslari, exact KodE ish–retsept bog'lanishi;
+  KodM+KodR ikkalasi mavjud bo'lsa conjunction, KodM yo'q bo'lsa exact KodR.
+  Nom, massiv pozitsiyasi va qator raqami join identity emas.
+- `norm-catalog.worker.ts`: 4 JSONL File stream, UTF-8 decoder, worker indeks,
+  main threadda 300MB JSON.parse yo'q; 25 ta ish/resurs sahifasi.
+- `NormSmetaWorkbench.tsx`: ish qidirish/tanlash, sbornik/bo'lim, norma,
+  resurs nomlari, narx nomzodlari, fizik hajm/asos/dalil, alohida qoralama narxi,
+  ko'p ishli smeta qoralamasi va REVIEW_ONLY paketini yuklab olish.
+- `norm-draft.ts`: barcha resurslarni (faqat ekrandagi 25 emas) hisoblaydi;
+  1000 recipe/work limiti; BigInt decimal preview, 6 xona quantity / 2 xona
+  money half-away; NULL saqlanadi. Bir narx noma'lum => jami noma'lum.
+  Har xil valyuta jami birlashtirilmaydi. Unit/base/price evidence majburiy.
+  `NormSmetaReviewPort` actor/tenant/canonical persistence uchun typed kontrakt;
+  hozir backendga bog'lanmagan. Bu yangi canonical database emas.
+- `audit-open.py`: checksum va SQLite join oracle; raw data ochish/bypass yo'q.
+
+### Haqiqiy ma'lumotda tekshirilgan bog'lanishlar
+
+Ish: unique 528 962 recipe, missing 2 042, ambiguous 11.
+Takror work code: `E24-2-100-1`; tasodifiy birinchi ish olinmaydi.
+Resurs: explicit KodM/KodR gates unique 530 220, missing 752, ambiguous 43.
+Faqat unique-work recipe uchun independent SQLite oracle:
+exact 528 210, missing 709, ambiguous 43 (jami 528 962).
+Muhim tuzatish: dastlabki audit NULL KodMlarni Counter orqali bir-biriga
+mos deb sanagan edi. NULL identity emas; bu statistika va lookup tuzatildi.
+
+### Testlar
+
+74 focused test PASS (6 fayl), jumladan real 4 JSONL to'liq o'qish,
+oldingi 9-jadval packet deep equality, 10k search, decimal quantity/money,
+full recipe pagination, source immutability, NULL, ikki kod conflict,
+narx dalili, worker lifecycle va async stale search guard.
+Corpus testi local-only environment bilan yoqiladi; CI'da tegishli manba
+bo'lmasa real corpus testlari skip, synthetic testlar ishlaydi.
+Oxirgi real corpus qayta testi: 32 795 ms; Node RSS 665 591 808 bayt.
+Bu browser peak memory yoki foydalanuvchi authenticated smoke o'lchovi emas.
+Natija: `D:\CatalogMigration\norm-smeta-acceptance-20261005-v1.json`.
+Oxirgi app/functions TypeScript, focused oxlint, Vite build, tekshir,
+governance va diff-check PASS; mavjud chunk/grid.svg va stale main_sha warning.
+
+```powershell
+# frontend cwd
+$env:NORM_SOURCE_DIRECTORY='D:\CatalogMigration\paradox-open-20261005-145050'
+$env:CATALOG_REVIEW_PACKET='D:\CatalogMigration\supplemental-20261005\tizim2-review-packet-v1.json'
+$env:CATALOG_FULL_PACKET='D:\CatalogMigration\tizim2-full-review-packet-v1.json'
+node node_modules/vitest/vitest.mjs run src/lib/catalog-extraction src/admin/sahifalar/KatalogExtractionReview.test.tsx src/admin/sahifalar/NormSmetaWorkbench.test.tsx --maxWorkers 1
+```
+
+### Ochiq keyingi ish — tayyor production smeta deb aytilmasin
+
+1. Baza platforma catalog registry/R2ga bir marta import qilinishi va
+   actor/platform permission + operation_id + audit bilan canonical read port.
+   Hozir fayllar worker/browserda, refreshda qayta ochiladi; draft ham vaqtinchalik.
+2. KodI fizik unit/scale lug'ati va normativ tahrir/amaldalik dalili.
+   Qoralamada operator dalil/asos kiritadi, bu norma avtomatik legal tasdiq emas.
+3. Bprice Rajon/sana/valyuta/VAT/CenaUE semantics; hozir narxlar faqat nomzod.
+   Source JSON/SQLite floating-pointdan kelgan, original exact decimal deb
+   kafolat berilmaydi; manba ko'rinishini qayta tasdiqlash kerak.
+4. 752 missing / 43 ambiguous resurs va 2 042 orphan work uchun review queue.
+5. Canonical `t2_qator`ga smeta command, hierarchy va rasmiy tirik Excel export.
+   `shaxsiy_smeta_yarat` legacy bypass/NULL-to-zero oqimi ko'r-ko'rona olinmadi.
+
+Bu bosqich SOURCE_READY + LOCAL_TESTED; permanent DB import, authenticated
+browser smoke, main integration va production deployment hali bajarilmagan.
+Qo'shimcha fizik bprice qatori (headerdan tashqari) karantinda qoldi.

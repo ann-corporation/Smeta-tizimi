@@ -7,6 +7,7 @@ import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { useKompaniya as useKontekst } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { t } from '../../i18n/til';
 import KatalogExtractionReview from './KatalogExtractionReview';
+import NormSmetaWorkbench from './NormSmetaWorkbench';
 
 function sha256(bytes: ArrayBuffer) {
   if (!globalThis.crypto || !globalThis.crypto.subtle) return Promise.resolve(null);
@@ -171,5 +172,6 @@ export default function KatalogManbaImport() {
       {unresolved.length > 0 && <p className="text-[11px] text-warn">Noaniq yoki bo‘sh fayl import qilinmaydi. Avval fayl formatini tekshiring.</p>}
     </>}
     <KatalogExtractionReview />
+    <NormSmetaWorkbench />
   </section>;
 }
