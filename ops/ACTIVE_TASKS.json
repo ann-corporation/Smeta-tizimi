@@ -1963,7 +1963,7 @@
         "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi."
+      "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi. 2026-10-06: t2_smeta_studio_qoralama_v1 production ga qo‘llandi (shadow 11/11)."
     },
     {
       "id": "T2-NARX-KATALOG-R2-001",
@@ -1972,13 +1972,17 @@
       "machine": "noutbuk",
       "branch": "claude/t2-smeta-studio-v1",
       "base_sha": "e0eb416326d8f72cbd9518ed67e831b469747d54",
-      "status": "in_progress",
+      "status": "completed",
       "owns": [
         "frontend/src/lib/narx-katalog/",
         "frontend/src/api/t2-narx-dalil.ts",
         "frontend/functions/api/narx-katalog.ts",
         "frontend/functions/api/narx-katalog.test.ts",
-        "frontend/scripts/narx-katalog/"
+        "frontend/scripts/narx-katalog/",
+        "supabase/migrations/20261106120000_t2_narx_katalog_r2_v1.sql",
+        "frontend/functions/_shared/narx-katalog-snapshot.ts",
+        "frontend/functions/_shared/narx-katalog-snapshot.test.ts",
+        "ops/sql/T2_SUPABASE_READONLY_CHIQISH_20261006.sql"
       ],
       "depends_on": [],
       "must_read": [
@@ -1987,7 +1991,7 @@
         "ops/handoff/T2_UNIVERSAL_SMETA_STUDIO_001.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "1-bosqich: R2 rev f03b13183496d6bc (213 691 qator, DB md5 12adeab8 bilan aynan), qidiruv va platforma takliflari R2 dan (real obyekt 76/14 da view bilan aynan). 2-bosqich (DB yozish kerak): dalil/protokol snapshot, superadmin yuklash R2 ga. 3-bosqich (egasi tasdig‘i): platforma qatorlarini DB dan o‘chirish + VACUUM FULL."
+      "_izoh": "2026-10-06 DONE: R2 rev 677dbac888ba440f (lookup bilan); migratsiya t2_narx_katalog_r2_v1 production (shadow 10/10): snapshot ustunlari, 25 protokol backfill, FK lar olib tashlandi, dalil/protokol RPC snapshot bilan, bazaga katalog yuklash yopildi, 213 691 platforma qatori o‘chirildi + VACUUM FULL. Arxiv: R2 arxiv/supabase-tozalash-20261006/t2_narx_manba_qator.jsonl.gz (sha256 tekshirilgan). Baza 715 MB → 193 MB. TIZIM_01 15 jadval egasi tomonidan o‘chirildi."
     }
   ]
 }

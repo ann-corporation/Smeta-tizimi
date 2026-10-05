@@ -72,3 +72,15 @@ Eksport fayli: `C:\t2dev\price-export\platforma-katalog-5.jsonl` (sha256 d1fc63f
 tashlash, bog'lash/protokol RPC'larida platforma qatorini Function R2 dan tekshirib snapshot bilan yozish;
 superadmin katalog yuklashi R2 ga.
 3-bosqich (egasi tasdig'i): platforma qatorlarini bazadan o'chirish + `VACUUM FULL` → baza ~200 MB.
+
+## 2026-10-06 — Supabase tozalandi (egasi qoidasi: o'zgarmas → R2, o'zgaruvchan → Supabase)
+
+- Egasi SQL Editor'da: `VACUUM FULL` + TIZIM_01 ning 15 ta jadvalini o'chirdi (`ops/sql/T2_SUPABASE_READONLY_CHIQISH_20261006.sql`).
+- Claude (yozish huquqi bilan, ikkalasi ham avval production'da shadow acceptance):
+  - `t2_smeta_studio_qoralama_v1` qo'llandi (11/11) — Smeta studiyasida "Serverga saqlash" ishlaydi.
+  - `t2_narx_katalog_r2_v1` qo'llandi (10/10): dalil/protokol katalog qatoriga snapshot bilan ishora qiladi,
+    FK'lar (dalil FK ON DELETE CASCADE edi) olib tashlandi, platforma katalogi qatorlari bazadan chiqarildi, VACUUM FULL.
+  - Zaxira: R2 `arxiv/supabase-tozalash-20261006/t2_narx_manba_qator.jsonl.gz` (213 691 qator, barcha ustunlar, sha256 tekshirilgan).
+- Natija: baza **715 MB → 193 MB**. Eng katta jadval endi `t2_qator` (116 MB, biznes).
+- Yangi platforma katalogi bazaga emas, R2 nashri orqali: `scripts/narx-katalog/build-price-shards.ts` + `upload-price-shards.mjs`
+  (superadmin UI dagi bazaga yuklash RPC darajasida yopilgan, aniq xabar qaytaradi).
