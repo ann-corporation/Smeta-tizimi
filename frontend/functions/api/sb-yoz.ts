@@ -25,6 +25,7 @@ import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar } from '../_shared/tenant-oqish';
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
+import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
 const AMALLAR = {
@@ -238,7 +239,7 @@ async function aktTasdiqlashRuxsati(
 }
 
 export const onRequestPost: PagesFunction<{
-  SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string;
+  SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; R2_CANONICAL?: R2Bucket;
 }> = async (ctx) => {
   const t0 = Date.now();
   try {
@@ -1553,6 +1554,9 @@ export const onRequestPost: PagesFunction<{
           manba_qator_id: x?.manba_qator_id == null ? null : Number(x.manba_qator_id),
           izoh: x?.izoh == null ? null : String(x.izoh).slice(0, 500),
         })) : [];
+        // Platform catalogue rows live in R2 (owner rule 2026-10-05): verify cited rows there and pass a snapshot.
+        const snap = ctx.env.R2_CANONICAL ? await katalogSnapshotlari(ctx.env.R2_CANONICAL as never, lines.map((x: any) => x.manba_qator_id).filter((x: any) => x != null)).catch(() => new Map()) : new Map();
+        for (const x of lines as any[]) if (x.manba_qator_id != null && snap.has(x.manba_qator_id)) x.katalog = snap.get(x.manba_qator_id);
         yuk = { p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_lines: lines, p_izoh: so.izoh == null ? null : String(so.izoh).slice(0, 1000), p_operation_id: operationId };
       } else if (amal === 'narx_protokol_tasdiqla') {
         const id = Number(so.id); const doc = Number(so.document_id);
@@ -1595,6 +1599,11 @@ export const onRequestPost: PagesFunction<{
           p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_kim: sess.email || '',
           p_boglar: so.boglar.map((b: any) => ({ qator_id: Number(b?.qator_id), manba_qator_id: Number(b?.manba_qator_id), izoh: b?.izoh == null ? null : String(b.izoh).slice(0, 500) })),
         };
+        // Platform catalogue rows live in R2: attach a verified snapshot (company-owned sources stay DB-validated).
+        if (ctx.env.R2_CANONICAL) {
+          const snap = await katalogSnapshotlari(ctx.env.R2_CANONICAL as never, (yuk.p_boglar as any[]).map((b: any) => b.manba_qator_id)).catch(() => new Map());
+          for (const b of yuk.p_boglar as any[]) if (snap.has(b.manba_qator_id)) b.katalog = snap.get(b.manba_qator_id);
+        }
       } else {
         const ids = Array.isArray(so.qator_ids) ? so.qator_ids.slice(0, 5000).map(Number).filter((x: number) => Number.isInteger(x) && x > 0) : [];
         yuk = { p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_qator_ids: ids, p_kim: sess.email || '' };

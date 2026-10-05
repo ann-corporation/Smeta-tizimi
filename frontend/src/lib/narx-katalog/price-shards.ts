@@ -8,8 +8,10 @@
 import { birlikKalit, nomKalit } from './kalit';
 
 export const PRICE_SHARD_SCHEMA = 'narx-katalog-shards-v1';
-export const PRICE_BUILD_FORMAT = 1;
+export const PRICE_BUILD_FORMAT = 2;
 export const PRICE_ROWS_PER_FILE = 25000;
+/** Small id-ordered files for server-side lookup (a Function parses ~100 KB, within the Workers CPU budget). */
+export const PRICE_LOOKUP_ROWS = 1000;
 
 /** Export row (exact DB order): id, manba_id, tartib, kod, nom, birlik, narx(text), hudud, ishlab_chiqaruvchi,
  *  nds_holati, nds_izoh, yil, kvartal, narx_varianti, guruh, kod_key, nom_key, birlik_key, sarlavha */
@@ -57,5 +59,12 @@ export function buildPriceShards(rows: ExportRow[], manba: PriceManba, hududKali
     files.set(path, JSON.stringify({ rows: out.slice(i * PRICE_ROWS_PER_FILE, (i + 1) * PRICE_ROWS_PER_FILE) }));
     rowFiles.push(path);
   }
-  return { files, rowFiles, counts: { source: rows.length, rows: out.length, headersSkipped: skipped, keyOverrides: Object.keys(keyOverrides).length } };
+  const lookupFiles: Array<{ path: string; from: number; to: number }> = [];
+  for (let i = 0; i * PRICE_LOOKUP_ROWS < out.length; i++) {
+    const part = out.slice(i * PRICE_LOOKUP_ROWS, (i + 1) * PRICE_LOOKUP_ROWS);
+    const path = `i/${String(i).padStart(4, '0')}.json`;
+    files.set(path, JSON.stringify({ rows: part }));
+    lookupFiles.push({ path, from: part[0][0], to: part[part.length - 1][0] });
+  }
+  return { files, rowFiles, lookupFiles, counts: { source: rows.length, rows: out.length, headersSkipped: skipped, keyOverrides: Object.keys(keyOverrides).length } };
 }

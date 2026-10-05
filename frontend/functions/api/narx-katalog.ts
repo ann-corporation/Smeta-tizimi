@@ -12,7 +12,7 @@ import { tekshir } from '../_shared/auth';
 
 type Env = { SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket };
 const REVISION = /^[a-f0-9]{16}$/;
-const FILE = /^(manifest\.json|dict\.json|r\/\d{4}\.json)$/;
+const FILE = /^(manifest\.json|dict\.json|[ri]\/\d{4}\.json)$/;
 
 export function narxKatalogKey(rev: string | null, f: string | null): string | null {
   if (f === 'current' && rev == null) return 'narx-katalog/CURRENT.json';

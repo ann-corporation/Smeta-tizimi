@@ -36,7 +36,8 @@ for (const [path, text] of built.files) {
 }
 const manifest = { schema: PRICE_SHARD_SCHEMA, revision, status: 'REFERENCE', builtAt: new Date().toISOString(),
   source: { table: 't2_narx_manba_qator', manba: meta.manba, exportSha256: sha(exportBytes), dbChecksum: meta.dbChecksum },
-  counts: built.counts, files: { dict: files['dict.json'], rows: built.rowFiles.map(p => files[p]) } };
+  counts: built.counts, files: { dict: files['dict.json'], rows: built.rowFiles.map(p => files[p]),
+    lookup: built.lookupFiles.map(l => ({ ...files[l.path], from: l.from, to: l.to })) } };
 const text = JSON.stringify(manifest, null, 1);
 writeFileSync(join(outDir, 'manifest.json'), text, { flag: 'wx' });
 writeFileSync(join(outDir, 'gz', 'manifest.json.gz'), gzipSync(Buffer.from(text, 'utf8'), { level: 9 }), { flag: 'wx' });
