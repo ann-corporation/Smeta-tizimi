@@ -24,6 +24,8 @@ export default function KirishSahifa() {
   const regOpId = useRef<string>(crypto.randomUUID());
   const [regIsm, setRegIsm] = useState('');
   const [regTelefon, setRegTelefon] = useState('');
+  const [regKod, setRegKod] = useState('');
+  const [tasdiqlashId, setTasdiqlashId] = useState<string | null>(null);
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,16 +68,23 @@ export default function KirishSahifa() {
     e.preventDefault();
     const l = regLogin.trim().toLowerCase();
     if (regIsm.trim().length < 2) { setError('Ismingizni kiriting'); return; }
-    // Egasi sinovi 2026-10-02: odamlar login o'rniga email yozadi — email ham login bo'la oladi.
-    if (!/^[a-z0-9][a-z0-9_.@+-]{2,79}$/.test(l) || (l.match(/@/g)?.length ?? 0) > 1) { setError('Login yoki email: lotin harf, raqam, _ . - @ (3–80 belgi)'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(l)) { setError('Email manzilini to‘g‘ri kiriting'); return; }
     if (regParol.length < 8) { setError('Parol kamida 8 belgi'); return; }
     setLoading(true);
     setError('');
     try {
+      if (!tasdiqlashId) {
+        const r = await fetch('/api/royxat-email-kod', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: l }) });
+        const d = await r.json().catch(() => ({ ok: false, xabar: 'Server javobi noto‘g‘ri' }));
+        if (!d.ok) { setError(d.xabar || 'Kod yuborib bo‘lmadi'); return; }
+        setTasdiqlashId(d.tasdiqlash_id);
+        toast('Emailingizga 6 xonali kod yuborildi.', 'ok');
+        return;
+      }
       const r = await fetch('/api/royxat-ozi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: l, parol: regParol, ism: regIsm.trim(), telefon: regTelefon.trim(), kompaniya: regKompaniya.trim(), operation_id: regOpId.current }),
+        body: JSON.stringify({ login: l, parol: regParol, ism: regIsm.trim(), telefon: regTelefon.trim(), kompaniya: regKompaniya.trim(), operation_id: regOpId.current, tasdiqlash_id: tasdiqlashId, kod: regKod }),
       });
       const d = await r.json().catch(() => ({ ok: false, xabar: 'Server javobi noto‘g‘ri' }));
       if (!d.ok) {
@@ -158,26 +167,26 @@ export default function KirishSahifa() {
             className="max-w-xl"
           >
             <h1 className="text-5xl font-extrabold text-white leading-tight mb-6 tracking-tight">
-              Qurilishni <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Raqamli Boshqaring</span>
+              {t('Qurilishni')} <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{t('raqamli boshqaring')}</span>
             </h1>
             <p className="text-zinc-400 text-lg leading-relaxed mb-8">
-              Barcha loyihalar, smetalar, va pudratchilarni bir joyda nazorat qiling. O'zbekistonning eng ilg'or SaaS platformasi.
+              {t("Barcha loyihalar, smetalar va pudratchilarni bir joyda nazorat qiling. O‘zbekistonning ilg‘or qurilish boshqaruv platformasi.")}
             </p>
             
             <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-zinc-300">
               <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2 border border-white/10 backdrop-blur-md">
                 <ShieldCheck size={16} className="text-emerald-400" />
-                Bitcoin-level himoya
+                {t('Yuqori darajadagi himoya')}
               </div>
               <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2 border border-white/10 backdrop-blur-md">
                 <FlaskConical size={16} className="text-indigo-400" />
-                SaaS Multi-Tenant
+                {t('Ko‘p kompaniyali tizim')}
               </div>
             </div>
           </motion.div>
           
           <div className="text-zinc-500 text-sm font-medium flex justify-between items-center w-full pr-12">
-            <span>© 2026 O'zbekiston. Barcha huquqlar himoyalangan.</span>
+            <span>{t('© 2026 O‘zbekiston. Barcha huquqlar himoyalangan.')}</span>
             
             <button
               onClick={() => {
@@ -188,7 +197,7 @@ export default function KirishSahifa() {
               className="flex items-center gap-2 px-3 py-1.5 bg-white/5 backdrop-blur border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
             >
               {uch_D ? <Eye size={14} /> : <EyeOff size={14} />}
-              <span>3D Fon: {uch_D ? 'ON' : 'OFF'}</span>
+              <span>{t('3D fon:')} {uch_D ? t('Yoqilgan') : t('O‘chirilgan')}</span>
             </button>
           </div>
         </div>
@@ -244,7 +253,7 @@ export default function KirishSahifa() {
                         value={login}
                         onChange={e => setLogin(e.target.value)}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                        placeholder="foydalanuvchi_nomi"
+                        placeholder={t('foydalanuvchi_nomi')}
                         autoFocus
                       />
                     </div>
@@ -285,8 +294,8 @@ export default function KirishSahifa() {
                     disabled={loading || !login || !parol}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 shadow-[0_4px_14px_0_rgba(79,70,229,0.39)]"
                   >
-                    {loading ? 'Текширилмоқда...' : (
-                      <>Kirish <ArrowRight size={18} /></>
+                    {loading ? t('Tekshirilmoqda...') : (
+                      <>{t('Kirish')} <ArrowRight size={18} /></>
                     )}
                   </button>
                 </form>
@@ -305,7 +314,7 @@ export default function KirishSahifa() {
                     className="w-full bg-indigo-600/10 border border-indigo-500/30 hover:bg-indigo-600/20 text-indigo-400 rounded-xl py-3 text-sm font-semibold transition-all disabled:opacity-50 flex justify-center items-center gap-2 group"
                   >
                     <ShieldCheck size={18} className="group-hover:scale-110 transition-transform" />
-                    Anvar (Superadmin)
+                    {t('Anvar (superadmin)')}
                   </button>
 
                   <button
@@ -314,7 +323,7 @@ export default function KirishSahifa() {
                     disabled={loading}
                     className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 rounded-xl py-3 text-sm font-medium transition-all disabled:opacity-50"
                   >
-                    Раҳбар кириши (Сводка)
+                    {t('Rahbar kirishi (svodka)')}
                   </button>
                 </div>
 
@@ -336,7 +345,7 @@ export default function KirishSahifa() {
                     <label className="text-sm font-medium text-zinc-300">{t('Ismingiz')}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder="F.I.Sh."
+                      <input type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder={t('F.I.Sh.')}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
@@ -354,20 +363,25 @@ export default function KirishSahifa() {
                     <label className="text-sm font-medium text-zinc-300">{t('Kompaniya')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder="MChJ / XK nomi"
+                      <input type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder={t('MChJ / XK nomi')}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Login yoki email')}</label>
+                    <label className="text-sm font-medium text-zinc-300">{t('Email manzili')}</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="text" autoComplete="username" required value={regLogin} onChange={e => setRegLogin(e.target.value.toLowerCase())} placeholder="aziz.pto yoki aziz@mail.uz"
+                      <input type="email" autoComplete="email" required value={regLogin} onChange={e => { setRegLogin(e.target.value.toLowerCase()); setTasdiqlashId(null); setRegKod(''); }} placeholder={t('masalan: aziz@gmail.com')}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
                   </div>
+                  {tasdiqlashId && <div className="space-y-1.5">
+                    <label htmlFor="email-tasdiqlash-kodi" className="text-sm font-medium text-zinc-300">{t('Email tasdiqlash kodi')}</label>
+                    <input id="email-tasdiqlash-kodi" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={regKod} onChange={e => setRegKod(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600" />
+                    <button type="button" disabled={loading} onClick={() => { setTasdiqlashId(null); setRegKod(''); }} className="text-xs text-indigo-300 hover:text-indigo-200">{t('Kodni qayta yuborish')}</button>
+                  </div>}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-zinc-300">{t('Parol')} <span className="text-zinc-500">{t('(kamida 8 belgi)')}</span></label>
                     <div className="relative">
@@ -375,7 +389,7 @@ export default function KirishSahifa() {
                       <input type={regParolKor ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={regParol} onChange={e => setRegParol(e.target.value)}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
-                      <button type="button" onClick={() => setRegParolKor(v => !v)} aria-label={regParolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish'} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+                      <button type="button" onClick={() => setRegParolKor(v => !v)} aria-label={t(regParolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
                         {regParolKor ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
@@ -401,12 +415,12 @@ export default function KirishSahifa() {
                     disabled={loading}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]"
                   >
-                    {loading ? t('Hisob ochilmoqda...') : t('Hisob ochish va bepul sinash')}
+                    {loading ? t('Hisob ochilmoqda...') : tasdiqlashId ? t('Kodni tasdiqlash va hisob ochish') : t('Emailga kod yuborish')}
                   </button>
                 </form>
                 
                 <p className="text-xs text-zinc-500 text-center mt-6">
-                  Bepul tarif: 300 token (≈150 ta F2 hujjati). Keyin tarifni «Tokenlar va obuna» bo'limida tanlaysiz.
+                  {t('Bepul tarif: 300 token (taxminan 150 ta F2 hujjati). Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.')}
                 </p>
               </motion.div>
             )}

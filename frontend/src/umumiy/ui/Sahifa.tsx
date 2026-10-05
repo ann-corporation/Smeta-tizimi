@@ -9,7 +9,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, type ReactNode } from 'react';
 import { RefreshCw, AlertTriangle, Inbox, X } from 'lucide-react';
-import { t } from '../../i18n/til';
+import { t, tilLocale } from '../../i18n/til';
 
 /* ---------- Sahifa karkasi ---------- */
 
@@ -53,13 +53,14 @@ export function Sahifa<T = unknown>({
             <button
               onClick={onYangila}
               disabled={yangilanmoqda}
-              title="Yangilash"
+              title={t('Yangilash')}
+              aria-label={t('Yangilash')}
               className="h-9 px-3 inline-flex items-center gap-2 rounded-[10px] karta text-sm
                          text-text hover:border-[var(--accent)]/50 transition-colors
                          disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw size={16} className={yangilanmoqda ? 'animate-spin' : ''} />
-              Yangilash
+              {t('Yangilash')}
             </button>
           )}
           {amallar}
@@ -82,9 +83,11 @@ export function MalumotYoshi({ vaqt }: { vaqt: number }) {
   if (!vaqt || !Number.isFinite(vaqt) || vaqt <= 0) return null;
   const daq = Math.floor((Date.now() - vaqt) / 60000);
   if (daq < 0) return null;                       // kelajakdagi vaqt — soat noto'g'ri
-  const matn = daq < 1 ? 'hozirgina' : daq < 60 ? `${daq} daqiqa oldin` : `${Math.floor(daq / 60)} soat oldin`;
+  const birlik: Intl.RelativeTimeFormatUnit = daq < 60 ? 'minute' : 'hour';
+  const farq = daq < 1 ? 0 : daq < 60 ? -daq : -Math.floor(daq / 60);
+  const matn = new Intl.RelativeTimeFormat(tilLocale(), { numeric: 'auto' }).format(farq, birlik);
   const rang = daq > 15 ? 'text-warn' : daq >= 1 ? 'text-text-dim' : 'text-text-mute';
-  return <span className={`text-xs ${rang}`} title="Ma'lumot yangilangan vaqti">{matn}</span>;
+  return <span className={`text-xs ${rang}`} title={t("Ma'lumot yangilangan vaqti")}>{matn}</span>;
 }
 
 /* ---------- Holatlar: yuklanmoqda / bo'sh / xato ---------- */
@@ -109,21 +112,21 @@ export function BoshHolat({ matn, izoh, amal }: { matn: string; izoh?: string; a
   return (
     <div className="karta py-16 px-6 flex flex-col items-center text-center">
       <Inbox size={48} className="text-text-mute mb-4" strokeWidth={1.5} />
-      <p className="text-text font-medium">{matn}</p>
-      {izoh && <p className="text-sm text-text-dim mt-1 max-w-md">{izoh}</p>}
+      <p className="text-text font-medium">{t(matn)}</p>
+      {izoh && <p className="text-sm text-text-dim mt-1 max-w-md">{t(izoh)}</p>}
       {amal && <div className="mt-4">{amal}</div>}
     </div>
   );
 }
 
 export function XatoHolat({ xato, qayta }: { xato: unknown; qayta?: () => void }) {
-  const xabar = xato instanceof Error ? xato.message : String(xato ?? 'Nomaʼlum xato');
+  const xabar = xato instanceof Error ? xato.message : String(xato ?? t('Nomaʼlum xato'));
   return (
     <div className="rounded-[10px] border border-danger/25 bg-danger/[.08] p-4">
       <div className="flex gap-3">
         <AlertTriangle size={18} className="text-danger flex-shrink-0 mt-0.5" />
         <div className="min-w-0">
-          <p className="font-medium text-text">Ma'lumot yuklanmadi</p>
+          <p className="font-medium text-text">{t("Ma'lumot yuklanmadi")}</p>
           <p className="text-sm text-text-dim mt-1 break-words">{xabar}</p>
           {qayta && (
             <button
@@ -131,7 +134,7 @@ export function XatoHolat({ xato, qayta }: { xato: unknown; qayta?: () => void }
               className="mt-3 h-9 px-3 rounded-[10px] karta text-sm text-text
                          hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
             >
-              Qayta urinish
+              {t('Qayta urinish')}
             </button>
           )}
         </div>
@@ -152,7 +155,7 @@ export function Holatlar<T,>({
   if (soragan.error) return <XatoHolat xato={soragan.error} qayta={soragan.refetch} />;
   const d = soragan.data;
   const bosgmi = d == null || (Array.isArray(d) && d.length === 0);
-  if (bosgmi) return <BoshHolat matn={t(bosh?.matn ?? "Ma'lumot yo'q")} izoh={bosh?.izoh} amal={bosh?.amal} />;
+  if (bosgmi) return <BoshHolat matn={bosh?.matn ?? "Ma'lumot yo'q"} izoh={bosh?.izoh} amal={bosh?.amal} />;
   return <>{children(d as T)}</>;
 }
 
@@ -194,7 +197,7 @@ export function Jadval<T,>({
                               text-[11px] uppercase tracking-[0.04em] text-text-dim
                               border-b border-border ${u.raqam ? 'text-right' : 'text-left'}`}
                 >
-                  {u.nom}
+                  {t(u.nom)}
                 </th>
               ))}
             </tr>
@@ -246,7 +249,7 @@ export function Nishon({ matn, tur = 'neytral' }: { matn: string; tur?: 'ok' | '
 export function KpiKarta({ nom, qiymat, ost }: { nom: string; qiymat: ReactNode; ost?: ReactNode }) {
   return (
     <div className="karta p-5">
-      <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{nom}</p>
+      <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{t(nom)}</p>
       <p className="text-[26px] leading-8 font-semibold text-text mt-1 tabular-nums">{qiymat}</p>
       {ost && <p className="text-xs text-text-mute mt-1 tabular-nums">{ost}</p>}
     </div>
@@ -260,7 +263,7 @@ export function Qidiruv({ qiymat, ozgardi, placeholder = 'Qidirish…' }: {
     <input
       value={qiymat}
       onChange={(e) => ozgardi(e.target.value)}
-      placeholder={placeholder}
+      placeholder={t(placeholder)}
       className="input h-9 px-3 text-sm w-64 max-w-full"
     />
   );
@@ -302,17 +305,21 @@ export function Yon({
           <motion.aside
             initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t(sarlavha)}
             className="fixed right-0 top-0 bottom-0 w-full sm:w-[520px] max-w-full z-50
                        bg-[var(--surface)] border-l border-border flex flex-col"
           >
             <header className="flex-shrink-0 px-5 py-4 border-b border-border flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-[17px] font-semibold text-text truncate">{sarlavha}</h3>
+                <h3 className="text-[17px] font-semibold text-text truncate">{t(sarlavha)}</h3>
                 {tavsif && <div className="text-sm text-text-dim mt-0.5">{tavsif}</div>}
               </div>
               <button
                 onClick={yop}
-                aria-label="Yopish"
+                aria-label={t('Yopish')}
+                title={t('Yopish')}
                 className="h-8 w-8 grid place-items-center rounded-lg text-text-dim
                            hover:bg-[var(--surface-2)] hover:text-text transition-colors cursor-pointer"
               >
@@ -333,9 +340,9 @@ export function Yon({
 export function Maydon({ nom, children, izoh }: { nom: string; children: ReactNode; izoh?: string }) {
   return (
     <label className="block">
-      <span className="block text-[11px] uppercase tracking-[0.04em] text-text-dim mb-1.5">{nom}</span>
+      <span className="block text-[11px] uppercase tracking-[0.04em] text-text-dim mb-1.5">{t(nom)}</span>
       {children}
-      {izoh && <span className="block text-[11px] text-text-mute mt-1">{izoh}</span>}
+      {izoh && <span className="block text-[11px] text-text-mute mt-1">{t(izoh)}</span>}
     </label>
   );
 }

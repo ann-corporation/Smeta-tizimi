@@ -4,6 +4,7 @@ import { Bot, X, Send, User } from 'lucide-react';
 import { t2AiJarvisSavol } from '../../api/t2-ai';
 import { jarvisSalomJavobi, jarvisSalommi } from '../../lib/jarvis/intent';
 import ReactMarkdown from 'react-markdown';
+import { t } from '../../i18n/til';
 
 type Message = {
   id: string;
@@ -20,12 +21,7 @@ export function AiHelper() {
     {
       id: '1',
       role: 'ai',
-      text:
-        'Salom! Men **Jarvis** — shu tizimning yordamchisiman.\n\n' +
-        'Joriy kompaniyadagi dalilli ma\'lumot bilan javob beraman. Masalan:\n\n' +
-        '- Amfiteatrda bu oy qancha fakt bajarildi?\n' +
-        '- Qaysi obyektda F2 orqada qolgan?\n' +
-        '- Suniy ko\'lda qoldiq qancha?',
+      text: t('Salom! Men **Jarvis** — shu tizimning yordamchisiman.\n\nJoriy kompaniyadagi dalilli ma’lumot bilan javob beraman. Masalan:\n\n- Amfiteatrda bu oy qancha fakt bajarildi?\n- Qaysi obyektda F2 orqada qolgan?\n- Suniy ko‘lda qoldiq qancha?'),
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +52,7 @@ export function AiHelper() {
       const saqlangan = Number(window.localStorage.getItem('t2_kompaniya_id'));
       const kompaniyaId = Number.isInteger(saqlangan) && saqlangan > 0 ? saqlangan : undefined;
       const res = await t2AiJarvisSavol(kompaniyaId, userText);
-      const aiText = res.ok ? (res.javob || 'Jarvis javob bo\'sh qaytardi') : (res.xabar || 'Jarvis javob bera olmadi');
+      const aiText = res.ok ? (res.javob || t('Jarvis javob bo‘sh qaytardi')) : (res.xabar || t('Jarvis javob bera olmadi'));
 
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
@@ -68,7 +64,7 @@ export function AiHelper() {
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         role: 'ai', 
-        text: `Xatolik yuz berdi: ${err.message}` 
+        text: `${t('Xatolik yuz berdi:')} ${err.message}`
       }]);
     } finally {
       setIsLoading(false);
@@ -83,6 +79,7 @@ export function AiHelper() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
+          aria-label={t('Jarvis AI yordamchisini ochish')}
           className="fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-accent/90 text-white rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 z-40 group"
         >
           <Bot size={26} />
@@ -90,14 +87,14 @@ export function AiHelper() {
           
           {/* Tooltip */}
           <div className="absolute right-full mr-4 bg-surface-2 border border-border text-white text-sm px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg">
-            Jarvis AI
+            {t('Jarvis AI yordamchisi')}
           </div>
         </button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] max-h-[80vh] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden transform transition-all">
+        <div role="dialog" aria-modal="false" aria-label={t('Jarvis AI yordamchisi')} className="fixed bottom-6 right-6 w-96 h-[600px] max-h-[80vh] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden transform transition-all">
           {/* Header */}
           <div className="bg-surface-2 px-4 py-3 border-b border-border flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -107,12 +104,14 @@ export function AiHelper() {
               <div>
                 <h3 className="font-semibold text-white text-sm">Jarvis AI</h3>
                 <p className="text-xs text-text-dim flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ok"></span> Read-only beta
+                  <span className="w-1.5 h-1.5 rounded-full bg-ok"></span> {t('Faqat o‘qish rejimi · beta')}
                 </p>
               </div>
             </div>
             <button 
               onClick={() => setIsOpen(false)}
+              aria-label={t('Yopish')}
+              title={t('Yopish')}
               className="text-text-dim hover:text-white p-1 rounded hover:bg-white/5 transition-colors"
             >
               <X size={20} />
@@ -125,7 +124,7 @@ export function AiHelper() {
           <div className="px-4 py-2 border-b border-border bg-surface flex items-center gap-2 relative">
             <div className="flex items-center gap-1.5 px-2 py-1 bg-accent/10 rounded-md border border-accent/20">
                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
-               <span className="text-[10px] uppercase font-bold text-accent tracking-wider">Jarvis beta · kompaniya konteksti</span>
+               <span className="text-[10px] uppercase font-bold text-accent tracking-wider">{t('Jarvis beta · kompaniya konteksti')}</span>
             </div>
           </div>
 
@@ -148,7 +147,7 @@ export function AiHelper() {
                   </div>
                   {m.source && (
                     <div className="mt-2 pt-2 border-t border-border/50 text-[10px] text-text-mute flex items-center justify-between">
-                      <span>Manba: {m.source}</span>
+                      <span>{t('Manba:')} {m.source}</span>
                     </div>
                   )}
                 </div>
@@ -181,14 +180,14 @@ export function AiHelper() {
                     handleSend();
                   }
                 }}
-                placeholder="Xabaringizni yozing..."
+                placeholder={t('Xabaringizni yozing...')}
                 className="w-full bg-surface border border-border text-white text-sm rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:border-accent resize-none min-h-[44px] max-h-32"
                 rows={1}
               />
               <button
                 onClick={handleSend}
-                aria-label="Yuborish"
-                title="Yuborish"
+                aria-label={t('Yuborish')}
+                title={t('Yuborish')}
                 disabled={!input.trim() || isLoading}
                 className="absolute right-2 bottom-2 w-8 h-8 bg-accent text-white rounded-lg flex items-center justify-center hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
@@ -197,7 +196,7 @@ export function AiHelper() {
             </div>
             <div className="text-center mt-2">
               <span className="text-[10px] text-text-mute">
-                AI xato qilishi mumkin. Moliya qarorlarida e'tiborli bo'ling.
+                {t('AI xato qilishi mumkin. Moliya qarorlarida e’tiborli bo‘ling.')}
               </span>
             </div>
           </div>

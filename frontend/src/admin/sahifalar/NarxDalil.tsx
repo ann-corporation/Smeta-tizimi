@@ -162,23 +162,28 @@ export default function NarxDalil() {
                 {natijalar.slice(0, 1000).map((n) => {
                   const nomzodlar = [n.tavsiya, ...n.boshqalar];
                   const tanlangan = tanlov.get(n.qator_id);
-                  const t = nomzodlar.find((x) => x.manba_qator_id === tanlangan) ?? n.tavsiya;
-                  const ogish = n.smeta_narx ? Math.round(((Number(t.manba_narx) - n.smeta_narx) / n.smeta_narx) * 10000) / 100 : null;
+                  const tanlanganTaklif = nomzodlar.find((x) => x.manba_qator_id === tanlangan) ?? n.tavsiya;
+                  const ogish = n.smeta_narx ? Math.round(((Number(tanlanganTaklif.manba_narx) - n.smeta_narx) / n.smeta_narx) * 10000) / 100 : null;
                   return (
                     <tr key={n.qator_id} className="border-t align-top">
-                      <td className="px-2 py-1.5"><input type="checkbox" checked={tanlangan != null} onChange={(e) => belgila(n.qator_id, e.target.checked ? t.manba_qator_id : null)} /></td>
-                      <td className="px-2 py-1.5"><div>{t.nom}</div><div className="text-text-dim">{n.kat} · {t.birlik} · {t.moslik === 'kod' ? 'kod bo‘yicha' : 'nom+birlik'}</div></td>
+                      <td className="px-2 py-1.5"><input type="checkbox" checked={tanlangan != null} onChange={(e) => belgila(n.qator_id, e.target.checked ? tanlanganTaklif.manba_qator_id : null)} /></td>
+                      <td className="px-2 py-1.5"><div>{tanlanganTaklif.nom}</div><div className="text-text-dim">{n.kat} · {tanlanganTaklif.birlik} · {tanlanganTaklif.moslik === 'kod' ? 'kod bo‘yicha' : 'nom+birlik'}</div></td>
                       <td className="px-2 py-1.5 text-right tabular-nums">{pul(n.smeta_narx)}</td>
                       <td className="px-2 py-1.5">
-                        <select className="w-full border rounded px-1 py-0.5" value={t.manba_qator_id} onChange={(e) => belgila(n.qator_id, Number(e.target.value))}>
+                        <select className="w-full border rounded px-1 py-0.5" value={tanlanganTaklif.manba_qator_id} onChange={(e) => belgila(n.qator_id, Number(e.target.value))}>
                           {nomzodlar.map((x) => <option key={x.manba_qator_id} value={x.manba_qator_id}>{NARX_MANBA_TUR_NOMI[x.manba_tur]}: {manbaRekviziti({ manba_nom: x.manba_nom, manba_raqam: x.manba_raqam, manba_sana: x.manba_sana, yetkazuvchi: x.yetkazuvchi, yetkazuvchi_inn: null, yil: x.yil, kvartal: x.kvartal, region: x.region, nds_holati: x.nds_holati, ishlab_chiqaruvchi: x.ishlab_chiqaruvchi, nds_izoh: x.nds_izoh })} — {pul(x.manba_narx)}</option>)}
                         </select>
                         {/* Egasi 2026-10-02: narx qayerdan — "katalog 2026 2-kv · Toshkent sh. · zavod · NDS siz". */}
-                        <div className="mt-0.5 text-[10px] text-text-dim">{narxIzohi(t)}</div>
+                        <div className="mt-0.5 text-[10px] text-text-dim">{narxIzohi(tanlanganTaklif)}</div>
+                        {tanlanganTaklif.manba_nom_qator && (
+                          <div className="mt-0.5 break-words text-[11px] text-text">
+                            <span className="text-text-dim">{t('Katalogdagi aynan nomi:')} </span>{tanlanganTaklif.manba_nom_qator}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-2 py-1.5 text-right tabular-nums">{pul(t.manba_narx)}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums">{pul(tanlanganTaklif.manba_narx)}</td>
                       <td className={'px-2 py-1.5 text-right tabular-nums ' + (ogish != null && Math.abs(ogish) > 10 ? 'text-warning font-semibold' : '')}>{ogish == null ? '—' : `${ogish > 0 ? '+' : ''}${ogish}%`}</td>
-                      <td className="px-2 py-1.5 text-text-dim">{t === n.tavsiya ? n.sabab : 'operator tanlovi'}</td>
+                      <td className="px-2 py-1.5 text-text-dim">{tanlanganTaklif === n.tavsiya ? n.sabab : 'operator tanlovi'}</td>
                     </tr>
                   );
                 })}
@@ -197,7 +202,10 @@ export default function NarxDalil() {
                 <tr key={d.id} className="border-t">
                   <td className="px-2 py-1.5">{d.nom}<div className="text-text-dim">{d.kat} · {d.birlik}</div></td>
                   <td className="px-2 py-1.5 text-right tabular-nums">{pul(d.hozirgi_narx)}</td>
-                  <td className="px-2 py-1.5">{NARX_MANBA_TUR_NOMI[d.manba_tur]}: {manbaRekviziti(d)}</td>
+                  <td className="px-2 py-1.5">
+                    <div>{NARX_MANBA_TUR_NOMI[d.manba_tur]}: {manbaRekviziti(d)}</div>
+                    {d.manba_nom_qator && <div className="mt-0.5 break-words text-text-dim">{t('Katalogdagi aynan nomi:')} {d.manba_nom_qator}</div>}
+                  </td>
                   <td className="px-2 py-1.5 text-right tabular-nums">{pul(d.manba_narx)}</td>
                   <td className="px-2 py-1.5 text-text-dim">{d.kim ?? '—'} · {d.vaqt?.slice(0, 10)}</td>
                   <td className="px-2 py-1.5 text-right"><button type="button" onClick={() => void ochir(d)} className="text-text-dim hover:text-danger" title="Dalilni olib tashlash"><Unlink size={13} /></button></td>

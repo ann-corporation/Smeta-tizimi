@@ -45,7 +45,9 @@ describe('til qoidasi', () => {
     const yoq: string[] = [];
     for (const p of fayllar(SRC)) {
       for (const m of readFileSync(p, 'utf8').matchAll(/\bt\(\s*(['"])((?:\\.|(?!\1).)*?)\1/g)) {
-        const k = m[2].replace(/\\(['"\\])/g, '$1');
+        // JavaScript satr literalidagi `\\n` runtime'da haqiqiy qator uzilishiga
+        // aylanadi; JSON lug'at kalitlari ham shu ko'rinishda yuklanadi.
+        const k = m[2].replace(/\\(['"\\])/g, '$1').replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t');
         if (!(k in ru) || !(k in en)) yoq.push(`${yol(p)}: ${k}${k in ru ? '' : ' [ru]'}${k in en ? '' : ' [en]'}`);
       }
     }

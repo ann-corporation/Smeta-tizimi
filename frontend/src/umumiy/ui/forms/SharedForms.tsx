@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { t } from '../../../i18n/til';
 
 export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'date';
 
@@ -118,7 +119,7 @@ export function SharedEntityForm({ entityType, initialData = {}, dynamicOptions,
     return init;
   });
 
-  if (!config) return <div className="p-4 text-red-500">Config topilmadi: {entityType}</div>;
+  if (!config) return <div className="p-4 text-red-500">{t('Sozlama topilmadi:')} {entityType}</div>;
 
   const handleChange = (key: string, val: any) => {
     setData(prev => ({ ...prev, [key]: val }));
@@ -138,13 +139,13 @@ export function SharedEntityForm({ entityType, initialData = {}, dynamicOptions,
         return (
           <div key={field.key}>
             <label className="block text-[12px] font-medium text-zinc-400 mb-1">
-              {field.label} {field.required && <span className="text-rose-400">*</span>}
+              {t(field.label)} {field.required && <span className="text-rose-400">*</span>}
             </label>
             {field.type === 'textarea' ? (
               <textarea
                 value={value}
                 onChange={e => handleChange(field.key, e.target.value)}
-                placeholder={field.placeholder}
+                placeholder={field.placeholder ? t(field.placeholder) : undefined}
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none resize-none"
                 rows={3}
                 required={field.required}
@@ -156,9 +157,9 @@ export function SharedEntityForm({ entityType, initialData = {}, dynamicOptions,
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
                 required={field.required}
               >
-                <option value="">Tanlang...</option>
+                <option value="">{t('Tanlang...')}</option>
                 {options?.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>{t(opt.label)}</option>
                 ))}
               </select>
             ) : (
@@ -166,7 +167,7 @@ export function SharedEntityForm({ entityType, initialData = {}, dynamicOptions,
                 type={field.type || 'text'}
                 value={value}
                 onChange={e => handleChange(field.key, e.target.value)}
-                placeholder={field.placeholder}
+                placeholder={field.placeholder ? t(field.placeholder) : undefined}
                 required={field.required}
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
               />
@@ -178,7 +179,7 @@ export function SharedEntityForm({ entityType, initialData = {}, dynamicOptions,
       <div className="pt-4 flex justify-end gap-3 mt-4">
         {onCancel && (
           <button type="button" onClick={onCancel} className="px-4 py-2 text-zinc-400 hover:text-white transition-colors text-sm font-medium">
-            Bekor qilish
+            {t('Bekor qilish')}
           </button>
         )}
         <button 
@@ -186,7 +187,7 @@ export function SharedEntityForm({ entityType, initialData = {}, dynamicOptions,
           disabled={isLoading}
           className="bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-lg text-white text-sm font-medium transition-colors shadow-lg shadow-indigo-900/20 disabled:opacity-50"
         >
-          {isLoading ? 'Saqlanmoqda...' : 'Saqlash'}
+          {isLoading ? t('Saqlanmoqda...') : t('Saqlash')}
         </button>
       </div>
     </form>
@@ -198,10 +199,10 @@ export function EntityFormModal({ entityType, title, color = '#38bdf8', onClose,
   const config = ENTITY_CONFIGS[entityType];
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[#111827] border border-white/10 rounded-xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={title ? t(title) : t(config?.title ?? 'Yangi yozuv')} className="bg-[#111827] border border-white/10 rounded-xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
-          <h3 className="font-bold text-lg" style={{ color }}>{title || `Yangi ${config?.title}`}</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white"><X size={18} /></button>
+          <h3 className="font-bold text-lg" style={{ color }}>{title ? t(title) : `${t('Yangi')} ${t(config?.title ?? 'yozuv')}`}</h3>
+          <button onClick={onClose} aria-label={t('Yopish')} title={t('Yopish')} className="text-zinc-500 hover:text-white"><X size={18} /></button>
         </div>
         <SharedEntityForm entityType={entityType} onCancel={onClose} {...props} />
       </div>

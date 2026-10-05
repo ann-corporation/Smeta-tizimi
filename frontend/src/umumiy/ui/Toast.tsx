@@ -62,43 +62,45 @@ export function ToastContainer() {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
       <AnimatePresence>
-        {toasts.map((t) => (
+        {toasts.map((item) => (
           <motion.div
-            key={t.id}
+            key={item.id}
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border bg-surface-2 ${USLUB[t.type]}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border bg-surface-2 ${USLUB[item.type]}`}
           >
-            {t.type === 'ok' ? <CheckCircle2 size={20} />
-              : t.type === 'warn' ? <AlertTriangle size={20} />
+            {item.type === 'ok' ? <CheckCircle2 size={20} />
+              : item.type === 'warn' ? <AlertTriangle size={20} />
               : <AlertCircle size={20} />}
-            <span className="text-white font-medium text-sm">{t.message}</span>
-            {t.onUndo && (
+            <span className="text-white font-medium text-sm">{item.message}</span>
+            {item.onUndo && (
               <button
                 onClick={() => {
-                  t.onUndo!();
-                  setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
+                  item.onUndo!();
+                  setToasts((prev) => prev.filter((toast) => toast.id !== item.id));
                 }}
                 className="ml-4 px-2 py-1 text-xs font-medium bg-surface rounded border border-border hover:bg-surface-2 transition-colors text-white"
               >
-                ↶ Bekor qilish
+                ↶ {t('Bekor qilish')}
               </button>
             )}
-            {t.action && (
+            {item.action && (
               <button
                 onClick={() => {
-                  t.action!.onClick();
-                  setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
+                  item.action!.onClick();
+                  setToasts((prev) => prev.filter((toast) => toast.id !== item.id));
                 }}
                 className="ml-4 px-2 py-1 text-xs font-medium bg-sky-500/20 text-sky-300 rounded border border-sky-500/50 hover:bg-sky-500/30 transition-colors"
               >
-                {t.action.label}
+                {item.action.label}
               </button>
             )}
             <button
-              onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
-              className={`${(t.onUndo || t.action) ? 'ml-2' : 'ml-auto'} p-1 rounded hover:bg-white/10 transition-colors text-text-dim hover:text-white`}
+              onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== item.id))}
+              aria-label={t('Yopish')}
+              title={t('Yopish')}
+              className={`${(item.onUndo || item.action) ? 'ml-2' : 'ml-auto'} p-1 rounded hover:bg-white/10 transition-colors text-text-dim hover:text-white`}
             >
               <X size={16} />
             </button>

@@ -17,53 +17,57 @@ const ochish = () => {
 };
 const toldir = async (ism: string, login: string, parol: string) => {
   fireEvent.change(await screen.findByPlaceholderText('F.I.Sh.'), { target: { value: ism } });
-  fireEvent.change(screen.getByPlaceholderText('aziz.pto yoki aziz@mail.uz'), { target: { value: login } });
+  fireEvent.change(screen.getByPlaceholderText('masalan: aziz@gmail.com'), { target: { value: login } });
   fireEvent.change(document.querySelector('input[autocomplete="new-password"]')!, { target: { value: parol } });
-  fireEvent.click(screen.getByRole('button', { name: /Hisob ochish/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Emailga kod yuborish/ }));
 };
 
 describe('O‘zi ro‘yxatdan o‘tish', () => {
   beforeEach(() => { m.navigate.mockReset(); m.toast.mockReset(); });
 
-  it('ro‘yxat → odatdagi kirish → Tokenlar sahifasi', async () => {
+  it('email kodi → tasdiq → odatdagi kirish → Tokenlar sahifasi', async () => {
     const fetchMock = vi.fn(async (url: string) => ({
-      json: async () => (url === '/api/royxat-ozi' ? { ok: true, login: 'aziz.pto', demo: false } : { ok: true, rol: 'boss' }),
+      json: async () => (url === '/api/royxat-email-kod' ? { ok: true, tasdiqlash_id: '11111111-1111-4111-8111-111111111111' } : url === '/api/royxat-ozi' ? { ok: true, login: 'aziz@gmail.com', demo: false } : { ok: true, rol: 'boss' }),
     }));
     vi.stubGlobal('fetch', fetchMock);
     ochish();
-    await toldir('Aziz Karimov', 'Aziz.PTO', 'Sinov2026!x');
+    await toldir('Aziz Karimov', 'Aziz@Gmail.com', 'Sinov2026!x');
+    await screen.findByLabelText('Email tasdiqlash kodi');
+    fireEvent.change(screen.getByPlaceholderText('123456'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: /Kodni tasdiqlash/ }));
     await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/tokenlar'));
-    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(['/api/royxat-ozi', '/api/kirish']);
-    const royxat = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, { body: string }])[1].body);
-    expect(royxat).toMatchObject({ login: 'aziz.pto', ism: 'Aziz Karimov' });
+    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual(['/api/royxat-email-kod', '/api/royxat-ozi', '/api/kirish']);
+    const royxat = JSON.parse((fetchMock.mock.calls[1] as unknown as [string, { body: string }])[1].body);
+    expect(royxat).toMatchObject({ login: 'aziz@gmail.com', ism: 'Aziz Karimov', kod: '123456', tasdiqlash_id: '11111111-1111-4111-8111-111111111111' });
     expect(royxat.operation_id).toMatch(/^[0-9a-f-]{36}$/);
-    const kirish = JSON.parse((fetchMock.mock.calls[1] as unknown as [string, { body: string }])[1].body);
-    expect(kirish).toEqual({ login: 'aziz.pto', parol: 'Sinov2026!x' });
+    const kirish = JSON.parse((fetchMock.mock.calls[2] as unknown as [string, { body: string }])[1].body);
+    expect(kirish).toEqual({ login: 'aziz@gmail.com', parol: 'Sinov2026!x' });
   });
 
   it('qisqa parol — serverga umuman bormaydi', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     ochish();
-    await toldir('Aziz', 'aziz.pto', '123');
+    await toldir('Aziz', 'aziz@gmail.com', '123');
     expect(await screen.findByText('Parol kamida 8 belgi')).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('login band — xabar ko‘rinadi, kirishga o‘tilmaydi', async () => {
+  it('email band — xabar ko‘rinadi, kirishga o‘tilmaydi', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ ok: false, code: 'LOGIN_BAND', xabar: 'Bu login band' }) })));
     ochish();
-    await toldir('Aziz', 'aziz.pto', 'Sinov2026!x');
+    await toldir('Aziz', 'aziz@gmail.com', 'Sinov2026!x');
     expect(await screen.findByText('Bu login band')).toBeTruthy();
     expect(m.navigate).not.toHaveBeenCalled();
   });
 
-  it('email login sifatida qabul qilinadi (egasi sinovi)', async () => {
-    const fetchMock = vi.fn(async (url: string) => ({ json: async () => (url === '/api/royxat-ozi' ? { ok: true } : { ok: true, rol: 'boss' }) }));
+  it('email kichik harfga o‘tkazib kod so‘raladi', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: unknown) => ({ json: async () => ({ ok: true, tasdiqlash_id: '11111111-1111-4111-8111-111111111111' }) }));
     vi.stubGlobal('fetch', fetchMock);
     ochish();
     await toldir('Anvar', 'Anvar.Test@Gmail.com', 'Sinov2026!x');
-    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/tokenlar'));
-    expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, { body: string }])[1].body).login).toBe('anvar.test@gmail.com');
+    await screen.findByLabelText('Email tasdiqlash kodi');
+    const codeCall = fetchMock.mock.calls.find((c) => c[0] === '/api/royxat-email-kod') as unknown as [string, { body: string }];
+    expect(JSON.parse(codeCall[1].body).email).toBe('anvar.test@gmail.com');
   });
 });
