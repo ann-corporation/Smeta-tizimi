@@ -728,5 +728,11 @@
   "Faol aloqa yo‘q. Avval “Tomonlar aloqasi” sahifasida zakazchik bilan ulaning.": "Нет активной связи. Сначала подключитесь к заказчику на странице «Связи сторон».",
   "Kimga": "Кому",
   "— tanlang —": "— выберите —",
-  "Yuborilgach hujjat zakazchikka ochiladi va tahrirlanmaydi; qaror — zakazchikda.": "После отправки документ открывается заказчику и не редактируется; решение — за заказчиком."
+  "Yuborilgach hujjat zakazchikka ochiladi va tahrirlanmaydi; qaror — zakazchikda.": "После отправки документ открывается заказчику и не редактируется; решение — за заказчиком.",
+  "Tizimdagi F2 fayl yuklanmoqda…": "Загрузка F2 из системы…",
+  "Tizimdagi fayl ochilmadi.": "Не удалось открыть файл из системы.",
+  "Fayl o‘qilmadi.": "Файл не прочитан.",
+  "Yoki tizimdagi F2 fayldan (qayta yuklanmaydi)": "Или из F2-файла в системе (повторно не загружается)",
+  "Tizimdagi F2 fayl": "F2-файл в системе",
+  "— tizimdagi fayl —": "— файл в системе —"
 }

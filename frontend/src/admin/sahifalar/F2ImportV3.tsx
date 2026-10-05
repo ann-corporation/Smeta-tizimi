@@ -13,6 +13,9 @@ import {
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { exactWrite } from '../../lib/f2-exact-write';
 import { F2V3Workbench } from './F2V3Workbench';
+import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
+import type { Fayl } from '../../lib/fayl-daraxt';
+import { t } from '../../i18n/til';
 
 /**
  * F2 IMPORT V3 (docs/architecture/F2_IMPORT_V3.md): fayl → akt (davr, jami, ogohlantirishlar
@@ -22,6 +25,9 @@ import { F2V3Workbench } from './F2V3Workbench';
  */
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+/** Tizimda (R2) saqlangan F2 fayllar: avval import qilingan manba va arxivlangan tasdiqlangan F2 — qayta yuklash shart emas. */
+const TIZIM_F2_TURLARI = ['f2_akt', 'f2_hujjat'];
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const fmt = (n: number | null | undefined) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n));
 
 function smetaQatorlari(rows: T2Qator[]): SmetaQator[] {
@@ -49,6 +55,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [xato, setXato] = useState('');
   const [ogoh, setOgoh] = useState('');
   const [done, setDone] = useState<string | null>(null);
+  const [tizimFayllar, setTizimFayllar] = useState<Fayl[]>([]);
+  const [tizimTanlov, setTizimTanlov] = useState('');
   const rawFile = useRef<File | null>(null);
   const operation = useRef('');
   const sourceOp = useRef('');
@@ -65,6 +73,18 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (workspace.scope.objectId != null && objects.some((o) => o.id === workspace.scope.objectId)) setObjectId(String(workspace.scope.objectId));
   }, [objects, workspace.scope.objectId]);
 
+  // Tizimdagi F2 fayllar ro'yxati (shu kompaniya, shu obyekt): kompyuterdan qayta yuklamasdan tanlash uchun.
+  useEffect(() => {
+    let active = true;
+    if (!objectId) { setTizimFayllar([]); setTizimTanlov(''); return () => { active = false; }; }
+    void faylExplorerOl(companyId).then((e) => {
+      if (!active) return;
+      setTizimFayllar(e.fayllar.filter((f) => f.obyekt_id === Number(objectId) && TIZIM_F2_TURLARI.includes(f.tur))
+        .sort((a, b) => String(b.sana).localeCompare(String(a.sana)) || b.versiya - a.versiya));
+    }).catch(() => { if (active) setTizimFayllar([]); });
+    return () => { active = false; };
+  }, [companyId, objectId]);
+
   const akt = aktlar[aktIdx] ?? null;
   const ind = useMemo(() => (akt ? f2Indeks(akt.daraxt) : null), [akt]);
   const S = useMemo(() => smetaIndeks(smetaQatorlari(rows)), [rows]);
@@ -72,9 +92,10 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   function tozala() { setNatija(null); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = ''; }
 
-  async function faylTanla(file: File) {
+  /** `mavjudHujjatId` berilsa — fayl tizimdagi R2 hujjatidan olingan: yozishda QAYTA yuklanmaydi, o'sha hujjat manba bo'ladi. */
+  async function faylTanla(file: File, mavjudHujjatId?: number) {
     tozala(); setAktlar([]); setBusy(true); setHolat('Fayl o‘qilmoqda…');
-    rawFile.current = file; sourceDoc.current = undefined; sourceOp.current = yangiOperationId();
+    rawFile.current = file; sourceDoc.current = mavjudHujjatId; sourceOp.current = yangiOperationId();
     try {
       if (file.size > MAX_FILE_BYTES) throw new Error('Fayl 50 MB dan katta.');
       // Fayl o'qish va akt tahlili FONDA (Web Worker) — katta faylda sahifa qotmaydi.
@@ -84,6 +105,17 @@ function Sessiya({ companyId }: { companyId: number }) {
       setHolat(a[0].davr ? 'Akt o‘qildi. Moslashtirilmoqda…' : 'Akt o‘qildi. Hisobot davrini tanlang.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Fayl o‘qilmadi.'); setHolat('Fayl o‘qilmadi.'); }
     finally { setBusy(false); }
+  }
+
+  async function tizimdanTanla(id: number) {
+    const f = tizimFayllar.find((x) => x.id === id);
+    if (!f) return;
+    setTizimTanlov(String(id)); tozala(); setAktlar([]); setBusy(true); setHolat(t('Tizimdagi F2 fayl yuklanmoqda…'));
+    try {
+      const bytes = await faylBaytlari(id);
+      const nom = /\.xls[xm]$/i.test(f.nom) ? f.nom : f.nom + '.xlsx';
+      await faylTanla(new File([bytes.slice()], nom, { type: f.mime || XLSX_MIME }), id);
+    } catch (e) { setXato(e instanceof Error ? e.message : t('Tizimdagi fayl ochilmadi.')); setHolat(t('Fayl o‘qilmadi.')); setBusy(false); }
   }
 
   /** Smeta, oldingi F2 (Nakopitelniy) va xotira (o'tgan F2 larning imzolari). */
@@ -265,9 +297,18 @@ function Sessiya({ companyId }: { companyId: number }) {
           </select>
         </label>
         <label className="block text-[12px] font-medium text-text">F2 fayl (XLSX)
-          <input type="file" accept=".xlsx,.xlsm" onChange={(e) => { const f = e.target.files?.[0]; if (f) void faylTanla(f); }}
+          <input type="file" accept=".xlsx,.xlsm" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setTizimTanlov(''); void faylTanla(f); } }}
             className="input mt-1.5 block h-9 w-full px-2 py-1.5 text-[12px]" />
         </label>
+        {tizimFayllar.length > 0 && (
+          <label className="block text-[12px] font-medium text-text">{t('Yoki tizimdagi F2 fayldan (qayta yuklanmaydi)')}
+            <select aria-label={t('Tizimdagi F2 fayl')} value={tizimTanlov} onChange={(e) => { if (e.target.value) void tizimdanTanla(Number(e.target.value)); }}
+              className="input mt-1.5 block h-9 w-full px-2 text-[13px]">
+              <option value="">{t('— tizimdagi fayl —')}</option>
+              {tizimFayllar.map((f) => <option key={f.id} value={f.id}>{f.nom} · v{f.versiya} · {f.davr ?? String(f.sana).slice(0, 10)}</option>)}
+            </select>
+          </label>
+        )}
         {aktlar.length > 1 && (
           <label className="block text-[12px] font-medium text-text">Akt varag‘i
             <select value={aktIdx} onChange={(e) => { const i = Number(e.target.value); setAktIdx(i); setDavr(aktlar[i].davr ?? davr); }}

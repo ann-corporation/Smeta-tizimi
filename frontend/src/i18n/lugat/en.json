@@ -728,5 +728,11 @@
   "Faol aloqa yo‘q. Avval “Tomonlar aloqasi” sahifasida zakazchik bilan ulaning.": "No active link. First connect to the client on the “Party links” page.",
   "Kimga": "To",
   "— tanlang —": "— select —",
-  "Yuborilgach hujjat zakazchikka ochiladi va tahrirlanmaydi; qaror — zakazchikda.": "Once sent the document is opened to the client and cannot be edited; the decision is theirs."
+  "Yuborilgach hujjat zakazchikka ochiladi va tahrirlanmaydi; qaror — zakazchikda.": "Once sent the document is opened to the client and cannot be edited; the decision is theirs.",
+  "Tizimdagi F2 fayl yuklanmoqda…": "Loading F2 file from the system…",
+  "Tizimdagi fayl ochilmadi.": "Could not open the file from the system.",
+  "Fayl o‘qilmadi.": "The file could not be read.",
+  "Yoki tizimdagi F2 fayldan (qayta yuklanmaydi)": "Or from an F2 file in the system (not re-uploaded)",
+  "Tizimdagi F2 fayl": "F2 file in the system",
+  "— tizimdagi fayl —": "— file in the system —"
 }

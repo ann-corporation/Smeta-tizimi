@@ -125,7 +125,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // Already stored (retry) — nothing more to do.
     if (reserve.body.canonical_storage_status === 'stored') {
       return Response.json({ ok: true, document_id: documentId, r2_key: r2Key, sha256: reserve.body.sha256,
-        versiya: reserve.body.versiya, drive_sync: 'pending', retry: true });
+        versiya: reserve.body.versiya, drive_sync: 'pending', retry: true, dedup: reserve.body.dedup === true });
     }
 
     // ── PHASE 2: bytes -> PRIVATE R2 ─────────────────────────────────────
