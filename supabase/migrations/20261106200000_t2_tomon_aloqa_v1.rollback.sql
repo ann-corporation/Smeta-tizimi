@@ -1,0 +1,30 @@
+-- ROLLBACK: t2_tomon_aloqa_v1. Diqqat: barcha aloqa, grant, taqdim va hodisalar jurnali O'CHADI.
+-- Faqat ishlab chiqarishda ma'lumot yo'q (yoki zaxira olingan) bo'lganda ishlating.
+drop function if exists public.t2_zakazchik_obyektlar_v1(bigint, bigint);
+drop function if exists public.t2_tomon_taqdim_tafsilot_v1(bigint, bigint, bigint);
+drop function if exists public.t2_tomon_taqdimlar_v1(bigint, bigint, text, text, bigint, integer);
+drop function if exists public.t2_tomon_aloqa_tafsilot_v1(bigint, bigint, bigint);
+drop function if exists public.t2_tomon_aloqalar_v1(bigint, bigint);
+drop function if exists public.t2_tomon_izoh_v1(bigint, bigint, bigint, bigint, text);
+drop function if exists public.t2_tomon_taqdim_qaytar_v1(bigint, bigint, bigint, text);
+drop function if exists public.t2_tomon_qaror_v1(bigint, bigint, bigint, text, text);
+drop function if exists public.t2_tomon_taqdim_yarat_v1(bigint, bigint, bigint, text, bigint, text, uuid);
+drop function if exists public._t2_tomon_f2_xesh(bigint);
+drop function if exists public.t2_tomon_grant_bekor_v1(bigint, bigint, bigint);
+drop function if exists public.t2_tomon_grant_saqla_v1(bigint, bigint, bigint, jsonb);
+drop function if exists public.t2_tomon_holat_v1(bigint, bigint, bigint, text, text);
+drop function if exists public.t2_tomon_kod_qabul_v1(bigint, bigint, text);
+drop function if exists public.t2_tomon_javob_v1(bigint, bigint, bigint, text, text);
+drop function if exists public.t2_tomon_taklif_v1(bigint, bigint, bigint, text, text, text, text, text, text, text, text, uuid);
+drop function if exists public.t2_tomon_kompaniya_qidir_v1(bigint, bigint, text);
+drop function if exists public.t2_tomon_ruxsat_bor(bigint, bigint, text, text, bigint);
+drop function if exists public._t2_tomon_qarshi(public.t2_tomon_aloqa, bigint);
+drop function if exists public._t2_tomon_hodisa_yoz(bigint, bigint, bigint, bigint, text, text, jsonb);
+drop function if exists public._t2_tomon_azo(bigint, bigint, text);
+drop function if exists public._t2_tomon_rol_ok(text, text);
+drop table if exists public.t2_tomon_hodisa;
+drop table if exists public.t2_tomon_taqdim;
+drop table if exists public.t2_tomon_grant;
+drop table if exists public.t2_tomon_aloqa;
+drop table if exists public.t2_tomon_resurs;
+drop function if exists public._t2_tomon_hodisa_ozgarmas();
