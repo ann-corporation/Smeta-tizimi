@@ -93,22 +93,10 @@ export type SbHolatQator = {
   updated_at: string | null;
 };
 
-/** Bitta obyektning butun holati — varaq/qator tartibida. */
-export function sbHolatOl(obyekt: string) {
-  return sbOqi<SbHolatQator>({
-    jadval: 'holat',
-    filtr: 'obyekt=eq.' + encodeURIComponent(obyekt),
-    tartib: 'varaq.asc,qator.asc',
-    limit: 100000,
-  });
-}
-
-/** Obyektlar ro'yxati + jamlanma raqamlar. */
-export function sbObyektlarOl() {
-  return sbOqi<{
-    nom: string; smeta: number; fakt: number; f2: number; qoldiq: number;
-    progress: number; f2pct: number; sana: string; updated_at: string;
-  }>({ jadval: 'obyektlar', tartib: 'nom.asc', limit: 1000 });
+/** 2026-10-06: TIZIM_01 ko'zgusi (`holat`, `obyektlar`) bazadan o'chirildi (egasi: "tizim1 ga tegishli hech narsa
+ *  kerak emas"; oxirgi yozuv 2026-08-19). Tezlik sinovi Supabase tomonida aniq sababni ko'rsatadi. */
+export async function sbHolatOl(_obyekt: string): Promise<SbJavob<SbHolatQator>> {
+  return { ok: false, error: "TIZIM_01 ko'zgusi (holat) 2026-10-06 da bazadan o'chirildi — solishtirish uchun ma'lumot yo'q" } as SbJavob<SbHolatQator>;
 }
 
 /**

@@ -8,6 +8,7 @@ import { Search } from 'lucide-react';
 import { katalogQidir, katalogQidirSozlar, sbPlatformaManbalarOl, type KatalogQatori, type PlatformaNarxManba } from '../../api/t2-narx-dalil';
 import { HUDUDLAR } from '../../lib/hudud';
 import { useTil } from '../../i18n/til';
+import { narxKatalogi } from '../../lib/narx-katalog/price-remote';
 
 const pul = (v: number | null) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 
@@ -20,7 +21,10 @@ export function KatalogQidiruv() {
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
 
+  /** 2026-10-06: platforma katalogi qatorlari R2 da — son ham R2 manifestidan (bazada qatorlar yo'q). */
+  const [r2Soni, setR2Soni] = useState<{ manbaId: number; soni: number } | null>(null);
   useEffect(() => { void sbPlatformaManbalarOl().then((r) => setManbalar(r.ok ? r.qatorlar ?? [] : [])); }, []);
+  useEffect(() => { void narxKatalogi().then((c) => setR2Soni({ manbaId: c.dict.manba.id, soni: c.rows.length })).catch(() => setR2Soni(null)); }, []);
 
   const qidir = async () => {
     setBand(true); setXato('');
@@ -40,7 +44,7 @@ export function KatalogQidiruv() {
         <div className="flex flex-wrap gap-2 text-[11px]">
           {manbalar.map((m) => (
             <span key={m.id} className="rounded border border-border px-2 py-1 text-text-dim">
-              {m.nom}{m.yil ? ` · ${m.yil}${m.kvartal ? `-${m.kvartal}` : ''}` : ''} · {Number(m.qator_soni).toLocaleString('ru-RU')}
+              {m.nom}{m.yil ? ` · ${m.yil}${m.kvartal ? `-${m.kvartal}` : ''}` : ''} · {(r2Soni && r2Soni.manbaId === m.id ? r2Soni.soni : Number(m.qator_soni)).toLocaleString('ru-RU')}
             </span>
           ))}
         </div>

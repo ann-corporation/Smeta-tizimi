@@ -26,7 +26,7 @@ const OBYEKT: OqishSiyosat = { tur: 'ota', ustun: 'obyekt_id', otaJadval: 't2_ob
 
 export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   /* Eski TIZIM_01 ko'zgusi — faqat superadmin (Tezlik sinovi). */
-  holat: { tur: 'superadmin' }, obyektlar: { tur: 'superadmin' }, v_sklad_nomlar: { tur: 'superadmin' },
+  v_sklad_nomlar: { tur: 'superadmin' },  // holat/obyektlar (TIZIM_01) 2026-10-06 o'chirildi
   /* Kompaniya ustunli jadval/ko'rinishlar. */
   t2_obyekt: K, t2_obyekt_jami: K, t2_daraxt: K, t2_qator: K, t2_narx: K, t2_manba: K, t2_xom: K,
   t2_kozgu: K, t2_ozgarish: K, t2_sozlama: K,

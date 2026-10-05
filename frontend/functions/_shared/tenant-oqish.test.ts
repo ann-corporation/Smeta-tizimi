@@ -44,8 +44,8 @@ describe('O‘qish izolyatsiyasi (NTB ↔ Discover Invest)', () => {
   });
 
   it('eski TIZIM_01 ko‘zgusi — faqat superadmin', () => {
-    expect(oqishQarori('holat', { filtr: 'obyekt=eq.X' }, pto())).toMatchObject({ ok: false, status: 403 });
-    expect(oqishQarori('holat', { filtr: 'obyekt=eq.X' }, { ...pto(), rol: 'superadmin' })).toEqual({ ok: true, qoshimchaFiltr: [] });
+    expect(oqishQarori('v_sklad_nomlar', { filtr: 'nomi=eq.X' }, pto())).toMatchObject({ ok: false, status: 403 });
+    expect(oqishQarori('v_sklad_nomlar', { filtr: 'nomi=eq.X' }, { ...pto(), rol: 'superadmin' })).toEqual({ ok: true, qoshimchaFiltr: [] });
   });
 
   it('noma’lum jadval, `or=`, embedding, alias, cast — rad', () => {

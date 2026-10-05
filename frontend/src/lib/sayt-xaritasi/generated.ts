@@ -136,9 +136,8 @@ export const GENERATED_SITE_MAP = {
     "eski"
   ],
   "readTables": [
-    "obyektlar",
-    "holat",
     "v_sklad_nomlar",
+    "zgusi) 2026-10-06 bazadan o",
     "t2_kompaniya",
     "t2_obyekt",
     "t2_obyekt_jami",
