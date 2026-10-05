@@ -34,6 +34,7 @@ const TIZIM_02_GURUHLAR = [
     id: 'pto',
     menyular: [
       { yol: '/admin/obyektlar', nom: 'Obyektlar va smeta yuklash', Ikonka: Building2 },
+      { yol: '/admin/smeta-studio', nom: 'Smeta studiyasi', Ikonka: Calculator },
       { yol: '/admin/holat', nom: 'Smeta va Fakt / LRV', Ikonka: FileText },
       { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', Ikonka: FileOutput },
       { yol: '/admin/f2-tarix', nom: 'F2 tarixi va tasdiqlash', Ikonka: ShieldCheck },

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { t } from './i18n/til';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { titleForPath } from './lib/pageTitle';
@@ -60,6 +61,7 @@ const SystemControlPage = lazy(() => import('./admin/pages/SystemControlPage'));
 const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const ShartnomaLiniya = lazy(() => import('./admin/sahifalar/ShartnomaLiniya'));
 const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
+const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
 const Tokenlar = lazy(() => import('./admin/sahifalar/Tokenlar'));
 const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
@@ -142,6 +144,7 @@ export default function App() {
           {/* Egasi 2026-10-02: platforma boshqaruv paneli (faqat superadmin; server tekshiradi). */}
           <Route path="boshqaruv" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><BoshqaruvPanel /></Suspense>} />
           <Route path="hujjat-dizayn" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><HujjatDizayni /></Suspense>} />
+          <Route path="smeta-studio" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('Yuklanmoqda...')}</div>}><SmetaStudio /></Suspense>} />
           <Route path="shartnoma-liniya" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><ShartnomaLiniya /></Suspense>} />
           <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
           <Route path="m29" element={<M29Native />} />
