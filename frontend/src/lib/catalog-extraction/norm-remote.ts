@@ -32,15 +32,20 @@ export class RemoteNormCatalog implements NormDetailSource {
   private tableKeysUnder = new Map<number, Set<string>>();
   private worksById = new Map<string, { work: NormWork; row: WorkIndexRow; key: string }>();
   private shards = new Map<string, NormShard>();
+  private tableNode = new Map<string, number>();
   readonly manifest: NormManifest; readonly nodes: TreeNode[]; readonly works: WorkIndexRow[];
   private units: Record<string, UnitEntry>; private fetcher: Fetcher; private base: string;
   private constructor(manifest: NormManifest, nodes: TreeNode[], works: WorkIndexRow[], units: Record<string, UnitEntry>, fetcher: Fetcher, base: string) {
     this.manifest = manifest; this.nodes = nodes; this.works = works; this.units = units; this.fetcher = fetcher; this.base = base;
-    nodes.forEach((n, i) => { const l = this.children.get(n[1]) ?? []; l.push(i); this.children.set(n[1], l); });
+    nodes.forEach((n, i) => { const l = this.children.get(n[1]) ?? []; l.push(i); this.children.set(n[1], l); if (n[4]) this.tableNode.set(n[4], i); });
+    const keys = new Map<string, Array<string | null>>();
     for (const row of works) {
-      const [bookType, collection, tableCode] = JSON.parse(row[3]) as Array<string | null>;
+      let parsed = keys.get(row[3]);
+      if (!parsed) { parsed = JSON.parse(row[3]) as Array<string | null>; keys.set(row[3], parsed); }
+      const [bookType, collection, tableCode] = parsed;
       const work: NormWork = { id: row[0], code: row[1], name: row[2], bookType, collection, section: row[8], subsection: row[9], tableCode, unitCode: row[4] };
-      this.worksById.set(row[0], { work, row, key: qidiruvKaliti([row[1], row[2]].filter(Boolean).join(' ')) });
+      // Search key is precomputed by the builder with the same qidiruvKaliti (older revisions: computed here).
+      this.worksById.set(row[0], { work, row, key: row[10] ?? qidiruvKaliti([row[1], row[2]].filter(Boolean).join(' ')) });
     }
   }
 
@@ -60,6 +65,11 @@ export class RemoteNormCatalog implements NormDetailSource {
 
   /** Observed physical unit for a source KodI; null = unknown (manual basis + evidence). */
   unit(code: string | null): UnitEntry | null { const u = code == null ? null : this.units[code]; return u && u.status === 'OBSERVED' ? u : null; }
+  /** Human table name from the named tree (BOOK label or code-only node); null if unknown. */
+  tableLabel(workId: string): string | null {
+    const w = this.worksById.get(workId); const i = w ? this.tableNode.get(w.row[3]) : undefined;
+    return i == null ? null : this.nodes[i][2] || null;
+  }
   childNodes(parent: number, page = 0): { nodes: RemoteTreeNode[]; total: number } {
     const all = this.children.get(parent) ?? [];
     return { total: all.length, nodes: all.slice(page * PAGE, (page + 1) * PAGE).map(i => this.node(i)) };
@@ -86,11 +96,12 @@ export class RemoteNormCatalog implements NormDetailSource {
   /** scope = tree node index (or -1 for everything). Latin/Cyrillic search via qidiruvKaliti. */
   search(query: string, page: number, scope = -1): { rows: NormWork[]; total: number } {
     if (!Number.isInteger(page) || page < 0) throw new Error('PAGE_INVALID');
-    const q = qidiruvKaliti(query), keys = scope >= 0 ? this.keysUnder(scope) : null;
+    // Every word must match (order-free): "армирование фундамент" finds "...фундаментов... армирование".
+    const words = qidiruvKaliti(query).split(' ').filter(Boolean), keys = scope >= 0 ? this.keysUnder(scope) : null;
     const rows: NormWork[] = []; let total = 0;
     for (const w of this.worksById.values()) {
       if (keys && !keys.has(w.row[3])) continue;
-      if (q && !w.key.includes(q)) continue;
+      if (words.length && !words.every(x => w.key.includes(x))) continue;
       if (total >= page * PAGE && rows.length < PAGE) rows.push(w.work); total++;
     }
     return { rows, total };

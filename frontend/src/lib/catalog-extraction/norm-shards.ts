@@ -10,9 +10,12 @@
  * so it is part of the key, not an "edition" assumption. Ambiguous/missing tables stay
  * in an explicit code-only branch; names never become join identity.
  */
+import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import type { NormCatalog, NormWork } from './norm-catalog';
 
 export const NORM_SHARD_SCHEMA = 'norm-catalog-shards-v1';
+/** Bump whenever file layout changes: it is part of the revision hash (immutable caching). */
+export const NORM_BUILD_FORMAT = 2;
 
 export type BookRow = { ID: string; IDPARENT: string | null; NAME: string | null; TIPBOOK: string | null;
   KODA: string | null; KODTAB: string | null; OLITEM?: string | null };
@@ -20,8 +23,8 @@ export type BookRow = { ID: string; IDPARENT: string | null; NAME: string | null
 /** [id, parentIndex (-1 root), name, workCount, tableKey | null, status] */
 export type TreeNode = [string, number, string, number, string | null, TreeStatus];
 export type TreeStatus = 'BOOK' | 'EXACT' | 'MISSING' | 'AMBIGUOUS' | 'GROUP';
-/** [id, code, name, tableKey, unitCode, recipeCount, codeAmbiguous(0/1), shard, section, subsection] */
-export type WorkIndexRow = [string, string, string | null, string, string | null, number, 0 | 1, string, string | null, string | null];
+/** [id, code, name, tableKey, unitCode, recipeCount, codeAmbiguous(0/1), shard, section, subsection, searchKey] */
+export type WorkIndexRow = [string, string, string | null, string, string | null, number, 0 | 1, string, string | null, string | null, string];
 /** [recipeId, resourceCode, resourceIdCode, norm, status E/A/M, candidateIds, candidateCount] */
 export type ShardRecipe = [string, string | null, string | null, string | null, 'E' | 'A' | 'M', string[], number];
 /** [code, idCode, name, unitCode, type] */
@@ -194,7 +197,8 @@ export function buildNormShards(catalog: NormCatalog, book: BookRow[], revision:
       }
     }
     shard.recipes[w.id] = list;
-    index.push([w.id, w.code, w.name, tableKey(w), w.unitCode, first.recipeCount, first.workCodeAmbiguous ? 1 : 0, path, w.section, w.subsection]);
+    index.push([w.id, w.code, w.name, tableKey(w), w.unitCode, first.recipeCount, first.workCodeAmbiguous ? 1 : 0, path, w.section, w.subsection,
+      qidiruvKaliti([w.code, w.name].filter(Boolean).join(' '))]);
   }
   const files = new Map<string, string>();
   files.set('tree.json', JSON.stringify({ schema: NORM_SHARD_SCHEMA, revision, nodes: tree.nodes }));

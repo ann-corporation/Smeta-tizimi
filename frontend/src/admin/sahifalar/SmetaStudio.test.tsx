@@ -1,0 +1,88 @@
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { NormCatalog } from '../../lib/catalog-extraction/norm-catalog';
+import { NORM_SHARD_SCHEMA, buildNormShards, type BookRow } from '../../lib/catalog-extraction/norm-shards';
+
+vi.mock('../../i18n/til', () => ({ t: (s: string, p?: Record<string, string | number>) => p ? s.replace(/\{(\w+)\}/g, (_m, k: string) => String(p[k])) : s }));
+const store = new Map<string, unknown>();
+vi.mock('idb-keyval', () => ({ get: async (k: string) => store.get(k), set: async (k: string, v: unknown) => { store.set(k, v); } }));
+import SmetaStudio from './SmetaStudio';
+
+const REV = 'b'.repeat(16);
+const blob = (s: string) => ({ text_cp1251: s });
+const book: BookRow[] = [
+  { ID: '1', IDPARENT: '0', NAME: 'ШНК', TIPBOOK: null, KODA: null, KODTAB: null },
+  { ID: '2', IDPARENT: '1', NAME: 'E06-Бетонные работы', TIPBOOK: 'H', KODA: 'E06', KODTAB: null },
+  { ID: '3', IDPARENT: '2', NAME: 'E6-1 Бетонная подготовка', TIPBOOK: 'H', KODA: 'E06', KODTAB: 'E6-1' },
+];
+function files() {
+  const c = new NormCatalog();
+  c.add('basis', { Kod: 10, KodE: 'E6-1-1', TipBook: 'H', KodA: 'E06', KodRaz: '01', KodPRaz: '001', KodTab: 'E6-1', KodI: '003', NameP: blob('Устройство бетонной подготовки') });
+  c.add('material', { Kod: 20, KodM: 'C1', KodR: '001', NameP: blob('Бетон B7,5'), KodI: '005', Tip: 'M' });
+  c.add('basisres', { Kod: 30, KodE: 'E6-1-1', KodM: 'C1', KodR: '001', NormaR: 1.02 });
+  const built = buildNormShards(c, book, REV, [{ kod: 'E6-1-1', birlik: 'М3', n: 12 }]);
+  const enc = new TextEncoder();
+  return crypto.subtle && Promise.all([...built.files].map(async ([path, text]) => {
+    const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(text)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    return [path, { path, sha256: h, bytes: enc.encode(text).length }] as const;
+  })).then(metas => {
+    const meta = Object.fromEntries(metas);
+    const manifest = { schema: NORM_SHARD_SCHEMA, revision: REV, status: 'REVIEW_ONLY', source: {}, counts: { basis: 1 }, caveats: [],
+      linkage: {}, files: { tree: meta['tree.json'], works: meta['works.json'], shards: Object.fromEntries(Object.entries(built.shardIndex).map(([k, p]) => [k, meta[p]])) } };
+    const all = new Map(built.files); all.set('manifest.json', JSON.stringify(manifest));
+    return all;
+  });
+}
+let requests: string[] = [];
+beforeEach(async () => {
+  store.clear(); requests = [];
+  const all = await files();
+  vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
+    requests.push(`${init?.method ?? 'GET'} ${u}`);
+    const f = new URL(u, 'https://x').searchParams.get('f')!;
+    if (f === 'current') return new Response(JSON.stringify({ revision: REV }));
+    return all.has(f) ? new Response(all.get(f)!) : new Response('', { status: 404 });
+  }));
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, narxsiz jami noma’lum; faqat GET', async () => {
+  render(<SmetaStudio />);
+  await screen.findByText('ШНК');
+  fireEvent.change(screen.getByLabelText('Yangi bo‘lim nomi'), { target: { value: 'FM-1 fundamenti' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Bo‘lim qo‘shish' }));
+  // Named tree navigation: category → sbornik → table → works.
+  fireEvent.click(screen.getByText('ШНК'));
+  fireEvent.click(await screen.findByText('E06-Бетонные работы'));
+  fireEvent.click(await screen.findByText('E6-1 Бетонная подготовка'));
+  fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
+  await screen.findByText('Бетон B7,5');
+  expect(screen.getByText('М3')).toBeTruthy();
+  fireEvent.change(screen.getByPlaceholderText('4,5'), { target: { value: '4' } });
+  fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
+  const panel = screen.getByRole('region', { name: 'Smeta qoralamasi' });
+  await within(panel).findByText('Устройство бетонной подготовки');
+  expect((within(panel).getByLabelText('Ish hajmi') as HTMLInputElement).value).toBe('4');
+  fireEvent.click(within(panel).getByRole('button', { name: 'Resurslarni ochish' }));
+  expect(within(panel).getByText('4.080000')).toBeTruthy();          // 4 м3 × 1.02 ÷ 1
+  expect(within(panel).getAllByText('Noma’lum').length).toBeGreaterThan(0);
+  expect(requests.every(r => r.startsWith('GET /api/norm-katalog'))).toBe(true);
+  // Undo removes the occurrence; the draft is persisted locally.
+  fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
+  await waitFor(() => expect(within(panel).queryByText('Устройство бетонной подготовки')).toBeNull());
+});
+
+it('bo‘limsiz qo‘shish aniq xato beradi, jim yutilmaydi', async () => {
+  render(<SmetaStudio />);
+  fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'), { target: { value: 'beton' } });
+  fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
+  await screen.findByText('Бетон B7,5');
+  fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
+  expect((await screen.findByRole('alert')).textContent).toContain('bo‘limni tanlang');
+});
+
+it('katalog yuklanmagan bo‘lsa aniq holat ko‘rsatiladi', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
+  render(<SmetaStudio />);
+  expect(await screen.findByText('Platforma normativ katalogi hali yuklanmagan.')).toBeTruthy();
+});

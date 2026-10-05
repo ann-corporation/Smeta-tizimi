@@ -1946,7 +1946,13 @@
         "frontend/src/i18n/lugat/ru.json",
         "frontend/src/i18n/lugat/en.json",
         "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md",
-        "ops/mailbox/T2-CATALOG-EXTRACTION-INTEGRATION-001/"
+        "ops/mailbox/T2-CATALOG-EXTRACTION-INTEGRATION-001/",
+        "frontend/functions/api/smeta-studio.ts",
+        "frontend/functions/api/smeta-studio.test.ts",
+        "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.sql",
+        "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.rollback.sql",
+        "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.acceptance.sql",
+        "ops/handoff/T2_UNIVERSAL_SMETA_STUDIO_001.md"
       ],
       "depends_on": [],
       "must_read": [

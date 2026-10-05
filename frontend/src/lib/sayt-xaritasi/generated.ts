@@ -4,6 +4,7 @@ export const GENERATED_SITE_MAP = {
   "menuRoutes": [
     "/admin/boshqaruv",
     "/admin/obyektlar",
+    "/admin/smeta-studio",
     "/admin/holat",
     "/admin/f2-tayyorlash",
     "/admin/f2-tarix",
@@ -61,6 +62,7 @@ export const GENERATED_SITE_MAP = {
     "tokenlar",
     "boshqaruv",
     "hujjat-dizayn",
+    "smeta-studio",
     "shartnoma-liniya",
     "nakopitelniy",
     "m29",

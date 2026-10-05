@@ -13,7 +13,7 @@ import { createInterface } from 'node:readline';
 import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { NormCatalog } from '../../src/lib/catalog-extraction/norm-catalog';
-import { NORM_CAVEATS, NORM_SHARD_SCHEMA, buildNormShards, type BookRow, type NormManifest, type ShardFileMeta } from '../../src/lib/catalog-extraction/norm-shards';
+import { NORM_BUILD_FORMAT, NORM_CAVEATS, NORM_SHARD_SCHEMA, buildNormShards, type BookRow, type NormManifest, type ShardFileMeta } from '../../src/lib/catalog-extraction/norm-shards';
 
 const [sourceDir, packetPath, outDir, unitsPath] = process.argv.slice(2);
 if (!sourceDir || !packetPath || !outDir) throw new Error('usage: <paradox-open-dir> <review-packet.json> <output-dir>');
@@ -40,7 +40,7 @@ const unitsBytes = unitsPath ? readFileSync(unitsPath) : null;
 const unitsDoc = unitsBytes ? JSON.parse(unitsBytes.toString('utf8')) : null;
 if (unitsDoc && (unitsDoc.schema !== 'work-unit-observations-v1' || !Array.isArray(unitsDoc.rows))) throw new Error('UNIT_OBSERVATIONS_INVALID');
 const unitsSha = unitsBytes ? sha(unitsBytes) : 'none';
-const revision = sha(NORM_SHARD_SCHEMA + '\n' + sha(checksumsBytes) + '\n' + packetSha + '\n' + unitsSha).slice(0, 16);
+const revision = sha(NORM_SHARD_SCHEMA + '\nformat:' + NORM_BUILD_FORMAT + '\n' + sha(checksumsBytes) + '\n' + packetSha + '\n' + unitsSha).slice(0, 16);
 
 const started = Date.now();
 const catalog = new NormCatalog();
