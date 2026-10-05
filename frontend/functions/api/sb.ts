@@ -36,7 +36,7 @@ import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-
 const RUXSAT_JADVALLAR = new Set([
   /* ── TIZIM_01 ko’zgusi (eski) — 2026-10-02: faqat superadmin (Tezlik sinovi); kompaniya ustuni yo'q.
      Ishlatilmaydigan eski jadvallar (oylik_f2, narxlar, akt, …) ro'yxatdan olib tashlandi. ── */
-  'obyektlar', 'holat', 'v_sklad_nomlar',
+  'v_sklad_nomlar',  // holat/obyektlar (TIZIM_01 ko'zgusi) 2026-10-06 bazadan o'chirildi
   /* ── TIZIM_02 (t2_) — BU YERDA BAZA HAQIQAT MANBAI ──
      Tizim_02 sahifalari FAQAT shu jadvallarni o’qiydi. Eski ko’zgu
      jadvallariga (yuqoridagilar) ular MUROJAAT QILMAYDI — aks holda
