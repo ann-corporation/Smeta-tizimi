@@ -183,3 +183,17 @@ Oxirgi focused paket: 82 test PASS (7 fayl), jumladan to'liq real corpus,
 hierarchy click requestlari va global i18n qorovuli. Build/functions typecheck,
 focused lint, governance/diff-check PASS. Oldingi tekshir PASS o'z kuchida;
 bu UI checkpointda to'liq Vitest kampaniyasi o'tkazilmadi.
+
+## 4-bosqich: conversational estimate fundamenti
+
+Egasi chat/ovozdan smeta yig'ish orzusini aniq bildirdi; Obsidian §17da to'liq
+talab va misol saqlandi. `conversation-estimate.ts` typed source-proof facts,
+explicit user scope confirmation va suggestion-only `ConversationEstimatePort`
+beradi. Parser/LLM output tasdiqlangan norma yoki canonical command emas.
+4m3/4t/15m3 × 14 misolida scope unresolved bo'lsa barcha totalQuantity NULL;
+PER_ITEM user tasdiqlasa 56/56/210, TOTAL tasdiqlasa 4/4/15.
+AI quantity/unit/material hallucination sourceQuote gate bilan bloklanadi;
+BigInt decimal multiplication, decimal comma, duplicate fact ID va invalid count
+gate'lari bor. 17 test PASS. No API call, no ASR, no paid model, no DB write.
+REGISTER_FACT va CREATE_ESTIMATE ajratilishi backend bindingda majburiy;
+«qilindi» so'zi avtomatik Fakt yozish vakolati emas.
