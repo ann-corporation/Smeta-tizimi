@@ -76,15 +76,19 @@ describe('catalog-manba-import', () => {
     expect(mashinaSoatTahliliniCatalogga(result).turi).toBe('mashina_soat');
   });
 
-  it('API payload provenance va NULL qiymatni saqlaydi', () => {
+  it('API payload NULL qiymatni saqlaydi; izoh faqat haqiqiy ogohlantirishni saqlaydi, boshqa ustunlarni takrorlamaydi', () => {
     const result = tahlilKatalogXlsx(wb([{ name: '1 квартал', rows: [
       ['№', 'Регионы', '2026 год 1 квартал', 'Соц. страх. 12 %'], ['1', 'Ташкент', '200', '-'],
     ] }]), 'Иш хаки 1 кв 2026.xls');
     const api = catalogQatorlariniApiFormatga(result.qatorlar);
     expect(api[0].narx).toBe(200);
     expect(api[1].narx).toBeNull();
-    expect(api[0].izoh).toContain('sourceKey');
-    expect(api.some(q => q.izoh?.includes('ijtimoiy_12'))).toBe(true);
+    // Egasi 2026-10-05: narxi bor qatorda ogohlantirish yo'q — hudud/davr/narxVarianti/valyuta allaqachon
+    // alohida ustunda, izoh JSON bilan takrorlanmaydi (317 MB bazaning 135 MB qismi shu takrordan edi).
+    expect(api[0].izoh).toBeNull();
+    expect(api[1].izoh).toContain('PRICE_MISSING');
+    expect(api[1].izoh).not.toContain('sourceKey');
+    expect(api[1].izoh).not.toContain('ijtimoiy_12');
   });
 
   it('real katalog tuzilishi: 3 qatorli sarlavha (НДС + sana), raqamlash, guruh, izoh — faqat mahsulotlar', () => {
