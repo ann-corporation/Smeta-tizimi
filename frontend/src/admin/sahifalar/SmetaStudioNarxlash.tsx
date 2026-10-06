@@ -19,7 +19,8 @@ import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { autoPrice, matchResource, type AutoPriceLine } from '../../lib/smeta-studio/resource-match';
 import { priceCommand } from '../../lib/smeta-studio/price-lookup';
-import { studioToRows } from '../../lib/smeta-studio/export-adapter';
+import { resourceCategory, studioToRows } from '../../lib/smeta-studio/export-adapter';
+import { resourceUnitText } from '../../lib/smeta-studio/resource-units';
 import { narxAgentSora, type AgentResult } from '../../api/smeta-narx-agent';
 import type { KatalogSnapshot } from '../../../functions/_shared/narx-katalog-snapshot';
 
@@ -31,7 +32,13 @@ const fmt = (n: number | string | null | undefined) => n == null ? '—' : Numbe
 
 /** Normative resource unit code → plain unit text the price catalogue uses (base unit of "100 м3" is "м3"). */
 export function unitTextOf(katalog: RemoteNormCatalog | null) {
-  return (code: string | null) => { if (!code || !katalog) return null; const u = katalog.unit(code); return u ? (u.base ?? u.text) : null; };
+  return (code: string | null) => {
+    if (!code) return null;
+    const r = resourceUnitText(code);
+    if (r) return r;
+    const u = katalog?.unit(code);
+    return u ? (u.base ?? u.text) : null;
+  };
 }
 const snapToRow = (s: KatalogSnapshot): KatalogQatori => ({ ...s, narx: s.narx == null ? null : Number(s.narx), hudud_kalit: null });
 type Pending = { occurrenceId: string; recipeId: string; name: string | null; unit: string | null };
@@ -70,11 +77,17 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
     return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [cat]);
 
-  const pending = useMemo(() => {
-    const out: Pending[] = [];
-    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? [])
-      if (l.price == null && l.resource) out.push({ occurrenceId: o.id, recipeId: l.recipeId, name: l.resource.name, unit: unitText(l.resource.unitCode) });
-    return out;
+  // Labour and machine-hours are not in the material price catalogue: they are priced from the region's
+  // man-hour / machine-hour rates, never matched against materials (that produced "gloves" for labour).
+  const { pending, ishMashina } = useMemo(() => {
+    const out: Pending[] = []; let im = 0;
+    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) {
+      if (l.price != null || !l.resource) continue;
+      const kat = resourceCategory(l.resource);
+      if (kat === 'ЧЕЛ' || kat === 'МАШ') { im++; continue; }
+      out.push({ occurrenceId: o.id, recipeId: l.recipeId, name: l.resource.name, unit: unitText(l.resource.unitCode) });
+    }
+    return { pending: out, ishMashina: im };
   }, [doc.occurrences, hisob, unitText]);
   const key = (p: { occurrenceId: string; recipeId: string }) => `${p.occurrenceId}:${p.recipeId}`;
 
@@ -151,6 +164,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!Object.keys(doc.occurrences).length} onClick={() => void lrvYukla()}>{t('LRV + Ведомость + Свод (Excel)')}</button>
     </div>
     {xabar && <p role="status" className="text-xs text-accent">{xabar}</p>}
+    {ishMashina > 0 && <p className="text-xs text-text-mute">{t('Mehnat va mashina resurslari ({n}) material katalogidan narxlanmaydi — ular hudud chel.-soat / mash.-soat stavkasidan olinadi.', { n: ishMashina })}</p>}
     {openReview.length > 0 && <div className="rounded border border-border/60">
       <button type="button" className="flex w-full items-center gap-2 px-2 py-1 text-left text-xs" aria-expanded={ochiq} onClick={() => setOchiq(v => !v)}>
         <span>{ochiq ? '▾' : '▸'}</span><span className="font-medium">{t('Ko‘rib chiqish kerak: {n} ta resurs', { n: openReview.length })}</span>

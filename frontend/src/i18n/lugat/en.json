@@ -832,5 +832,6 @@
   "{izoh}: {a} ta resursga katalogdan narx qo‘yildi, {r} tasi ko‘rib chiqishda.": "{izoh}: catalogue price set for {a} resources, {r} under review.",
   "{n} ta rad etildi": "{n} rejected",
   "— barcha hududlar —": "— all regions —",
-  "— nomzod tanlang ({n}) —": "— choose a candidate ({n}) —"
+  "— nomzod tanlang ({n}) —": "— choose a candidate ({n}) —",
+  "Mehnat va mashina resurslari ({n}) material katalogidan narxlanmaydi — ular hudud chel.-soat / mash.-soat stavkasidan olinadi.": "Labour and machine resources ({n}) are not priced from the material catalogue — regional man-hour / machine-hour rates apply."
 }

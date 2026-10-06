@@ -832,5 +832,6 @@
   "{izoh}: {a} ta resursga katalogdan narx qo‘yildi, {r} tasi ko‘rib chiqishda.": "{izoh}: цена из каталога назначена ресурсам: {a}, на проверке: {r}.",
   "{n} ta rad etildi": "отклонено: {n}",
   "— barcha hududlar —": "— все регионы —",
-  "— nomzod tanlang ({n}) —": "— выберите кандидата ({n}) —"
+  "— nomzod tanlang ({n}) —": "— выберите кандидата ({n}) —",
+  "Mehnat va mashina resurslari ({n}) material katalogidan narxlanmaydi — ular hudud chel.-soat / mash.-soat stavkasidan olinadi.": "Трудовые и машинные ресурсы ({n}) не оцениваются по каталогу материалов — для них применяются региональные ставки чел.-ч / маш.-ч."
 }

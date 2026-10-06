@@ -85,3 +85,11 @@ describe('matchResource — strong identity', () => {
     expect(matchResource(cat, 'Кабели силовые марки АВВГ 4X2,5', null).confidence).toBe('REVIEW');
   });
 });
+
+describe('matchResource — no auto-apply for generic names or extra characteristics', () => {
+  const extra: MatchCatalog = { size: 2, name: i => ['ПРОВОД КРОССОВЫЙ ПКСВ 2Х0,4', 'ГРУНТОВКА БИТУМНАЯ'][i], unit: i => ['м', 'т'][i],
+    region: () => 'toshkent', price: () => 1000, row: i => row(i) };
+  it('one-word "ПРОВОД" never auto-binds to a specific branded wire', () => {
+    expect(matchResource(extra, 'Провод', 'м').confidence).toBe('REVIEW');
+  });
+});
