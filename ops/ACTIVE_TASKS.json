@@ -10,11 +10,11 @@
       "branch": "codex/catalog-hierarchy-review-v1",
       "base_sha": "2099628",
       "status": "in_progress",
-      "owns": ["ops/catalog-hierarchy/", "ops/handoff/T2_CATALOG_HIERARCHY_8053_001.md", "ops/ACTIVE_TASKS.json"],
+      "owns": ["ops/catalog-hierarchy/", "frontend/src/lib/resource-semantics/", "frontend/src/lib/hour-price-catalog/", "frontend/functions/api/hour-price-catalog.ts", "frontend/functions/api/hour-price-catalog.test.ts", "ops/handoff/T2_CATALOG_HIERARCHY_8053_001.md", "ops/ACTIVE_TASKS.json"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md"],
       "production_write_allowed": false,
-      "_izoh": "Egasi 2026-10-06: Claude Studio'da; Codex 8053 source hierarchy review. Qo'shimcha egasi talabi: koeffitsient/alternative uchun hash-verified suggestion support va 2023/2025 mashina-soat manbalari uchun MAX_PER_EXACT_MACHINE: aynan bir xil texnikaga bitta eng yuqori narx, dalilsiz OCR narxi kiritilmaydi; faqat ops/catalog-hierarchy ichida. Immutable R2 support publication ruxsat. UI/builder/R2 active pointerga tegilmaydi. Binding Claude bilan Obsidian KOORDINATSIYA orqali kelishiladi."
+      "_izoh": "Egasi 2026-10-06: Claude Studio'da; Codex 8053 source hierarchy review va resource-category/hour-price support. Pure resource-semantics: real 7916 resurs, 1730 machine-hour, 17 labour-hour, 781 R-machinery; unknown units fail-closed. R2 hour-price-catalog/16ee27da8700cc28: 30 verified machine MAX offers (60 paired readings, PARTIAL coverage), labour 2026 30 region-quarter rates, 30 empty quarter cells excluded. 3 original sources + 2 JSON objects SHA readback verified. API/read client tested, no duplicate DB truth. Website production binding NOT DONE: Claude export-adapter/pricing lane locked, KOORDINATSIYA exact binding requested. Immutable R2 support publication ruxsat; UI/builder/material CURRENT pointerga tegilmaydi. 88 relevant Vitest + 44 source/support tests PASS; tsc/functions/build/lint/tekshir/governance/diff PASS (existing warnings)."
     },
     {
       "id": "T2-SMETA-STUDIO-PRO-UI-002",

@@ -116,3 +116,84 @@ Shu sabab real katalogning to'liq production importi hali bajarilmadi;
 beriladi. Renderer/OCR scripts repo ichida, original biznes fayllar
 o'zgarmadi. Local source pack:
 `D:/CatalogMigration/outputs/machine-prices-2023-2025-sources-v1`.
+
+## 2026-10-06 — resource category + hourly price executable checkpoint
+
+Branch: `codex/catalog-hierarchy-review-v1`. Integration base `07a0442bd1607217560dfd74eba7fbdb795fec3d`;
+local safe sync commit `ef9fc65`. This section ships in the following implementation commit;
+exact final remote SHA: `git ls-remote origin refs/heads/codex/catalog-hierarchy-review-v1`.
+
+Root cause: `smeta-studio/export-adapter.ts` maps M/R to МАТ; actual source Tip R
+also contains machinery. Among 7916 unique resources in revision `567137e5ebdf076c`,
+1730 have proven machine-hour units, 17 human-hour units; 781 machine rows have R.
+These are unique resources within exported work shards, not the entire global corpus.
+
+Reusable executable paths:
+
+- `frontend/src/lib/resource-semantics/index.ts`: `resourceFacts`, `normativeWorkUnit`.
+  Source-observed KodI outranks broad Tip. 001=чел-ч; 010/011/619=маш-ч.
+  Unknown/conflicting unit stays UNRESOLVED, no work-unit fallback.
+  Machinist labour stays чел-ч/LABOUR_HOUR but existing cost grouping МАШ is retained.
+  This does NOT authorize applying construction-worker regional rate to machinists.
+- `frontend/src/lib/hour-price-catalog/index.ts`: typed read-only loader, SHA/length/revision
+  checks, exact machine MAX offer, region/year/quarter/worker-scope labour lookup.
+- `frontend/functions/api/hour-price-catalog.ts`: authenticated private R2 read port,
+  only manifest/catalog JSON; no arbitrary key, source-file disclosure, DB mutation.
+- `ops/catalog-hierarchy/read-labour-catalog.mjs`, `build-hour-price-pack.mjs`,
+  `upload-hour-price-pack.py`: deterministic preparation/publication commands.
+- `prepare-hour-crops.py`, `hour-cell-crops.py`: OCR review aids ONLY. Crop counts and
+  OCR agreement are not normative or reading verification.
+
+R2 bucket `smeta-tizimi-canonical`:
+
+```
+hour-price-catalog/16ee27da8700cc28/catalog.json
+hour-price-catalog/16ee27da8700cc28/manifest.json
+hour-price-catalog/sources/574e32c8731c18e8d757ebfa1a10dca6bc208bf1afa799603d700384a62e1a4c.pdf
+hour-price-catalog/sources/f47836597303b649f5f82600fd0f5ca2c95577db48c6a3799c4ee87a8efd8329.pdf
+hour-price-catalog/sources/813c3261c92bb2548bb65755a74f836baced78458b4fc9d4e590afa13bf27f54.xls
+```
+
+All five uploaded/read-back SHA verified; original business files unchanged.
+Catalog JSON 127697 bytes, SHA `16ee27da8700cc2853c3b4112e57237250df8eb497d0ab360284645271b35fde`.
+Machine coverage **PARTIAL_VERIFIED_SUBSET**: 30 machines, each with visually checked
+2023+2025 observations, one highest offer; remaining PDF rows NOT approved.
+Labour 30 rates =15 regional/aggregate rows ×2 quarters; Q3/Q4 30 unavailable cells
+are NOT zero. C base excludes 12% social addition; D=C×1.12 stored as evidence only.
+Machine source explicitly reference/forecast, VAT excluded; not actual procurement
+or automatically certified F2 price. Source IDs are strings derived from hashes/cells;
+they are not invented canonical DB IDs.
+
+### Claude production binding required — no parallel store
+
+1. Merge this support branch (not cherry-picking unknown prerequisite files).
+2. In export-adapter `resourceCategory` use `resourceFacts` result instead of M/R=МАТ.
+   Keep calculation/core snapshot semantics; unknown category must surface review.
+3. In Studio resource unit rendering remove WORK unit fallback for RESOURCE KodI.
+   Render human and machine units from proven dictionary. Work basis `1000 м3`
+   is distinct from physical input e.g.4 м3; NEVER relabel physical4 as4×1000 м3.
+4. In SmetaStudioNarxlash load the hourly reference port once. Region+quarter must be
+   selected for worker rates; no national-average or missing-quarter fallback.
+   Machine exact offer → typed existing SET_PRICE candidate/evidence, operator decides.
+   Name variants use existing characteristic gates+human review, NOT fuzzy autoapproval.
+5. Save path must validate string source-reference IDs against this immutable R2 revision;
+   do not fabricate t2_narx_manba_qator numeric IDs. R2 proof≠canonical mutation authority.
+6. Existing baseline/certified/actual prices stay separate; historical F2 unchanged.
+7. Test live excavator R/619, worker001, 1000м3 norm basis, hourly offer save/export/reload.
+
+Production binding/deploy/authenticated smoke remain **NOT DONE** in this checkpoint.
+Claude locked Studio files were not edited. Obsidian KOORDINATSIYA has the exact request.
+
+### Verification commands and measured result
+
+Frontend: `CATALOG_SHARD_DIR=C:/t2dev/norm-shards-v3 npx vitest run src/lib/resource-semantics/ src/lib/hour-price-catalog/ src/lib/smeta-studio/ functions/api/hour-price-catalog.test.ts functions/api/narx-katalog.test.ts`
+→ 12 files,88 tests PASS,0 skipped with actual corpus env set.
+
+Repo root: set `CATALOG_SHARD_DIR`, `CATALOG_BOOK_PACKET`, `CATALOG_SUGGESTION_PACK`,
+`HOUR_PRICE_PACK=D:/CatalogMigration/outputs/hour-price-catalog-v1`,
+then `node --test ops/catalog-hierarchy/*.test.mjs` →44 PASS.
+
+`tsc -b`, `tsc -p tsconfig.functions.json --noEmit`, `npm run build`, `npm run lint`,
+`npm run tekshir`, `node ops/governance-check.cjs`, `git diff --check` PASS.
+Existing lint warnings, large bundle/grid.svg warning and stale CURRENT_STATE SHA
+warning remain; they are not silently described as warning-free.
