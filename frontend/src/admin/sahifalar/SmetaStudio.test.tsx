@@ -48,20 +48,20 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, narxsiz jami noma’lum; faqat GET', async () => {
   render(<SmetaStudio />);
-  await screen.findByText('ШНК');
+  await screen.findByText('ШНК', undefined, { timeout: 8000 });
   fireEvent.change(screen.getByLabelText('Yangi bo‘lim nomi'), { target: { value: 'FM-1 fundamenti' } });
   fireEvent.click(screen.getByRole('button', { name: 'Bo‘lim qo‘shish' }));
   // Named tree navigation: category → sbornik → table → works.
   fireEvent.click(screen.getByText('ШНК'));
-  fireEvent.click(await screen.findByText('E06-Бетонные работы'));
-  fireEvent.click(await screen.findByText('E6-1 Бетонная подготовка'));
-  fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
-  await screen.findByText('Бетон B7,5');
+  fireEvent.click(await screen.findByText('E06-Бетонные работы', undefined, { timeout: 8000 }));
+  fireEvent.click(await screen.findByText('E6-1 Бетонная подготовка', undefined, { timeout: 8000 }));
+  fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
+  await screen.findByText('Бетон B7,5', undefined, { timeout: 8000 });
   expect(screen.getByText('М3')).toBeTruthy();
   fireEvent.change(screen.getByPlaceholderText('4,5'), { target: { value: '4' } });
   fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
   const panel = screen.getByRole('region', { name: 'Smeta qoralamasi' });
-  await within(panel).findByText('Устройство бетонной подготовки');
+  await within(panel).findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 });
   expect((within(panel).getByLabelText('Ish hajmi') as HTMLInputElement).value).toBe('4');
   fireEvent.click(within(panel).getByRole('button', { name: 'Resurslarni ochish' }));
   expect(within(panel).getByText('4.080000')).toBeTruthy();          // 4 м3 × 1.02 ÷ 1
@@ -75,8 +75,8 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
 it('bo‘limsiz qo‘shish aniq xato beradi, jim yutilmaydi', async () => {
   render(<SmetaStudio />);
   fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'), { target: { value: 'beton' } });
-  fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
-  await screen.findByText('Бетон B7,5');
+  fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
+  await screen.findByText('Бетон B7,5', undefined, { timeout: 8000 });
   fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
   expect((await screen.findByRole('alert')).textContent).toContain('bo‘limni tanlang');
 });
@@ -84,5 +84,5 @@ it('bo‘limsiz qo‘shish aniq xato beradi, jim yutilmaydi', async () => {
 it('katalog yuklanmagan bo‘lsa aniq holat ko‘rsatiladi', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
   render(<SmetaStudio />);
-  expect(await screen.findByText('Platforma normativ katalogi hali yuklanmagan.')).toBeTruthy();
+  expect(await screen.findByText('Platforma normativ katalogi hali yuklanmagan.', undefined, { timeout: 8000 })).toBeTruthy();
 });

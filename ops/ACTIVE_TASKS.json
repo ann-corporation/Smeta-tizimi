@@ -1376,7 +1376,7 @@
       "branch": "codex/f2-import-robustness-v1",
       "base_sha": "b36c552e0b8de22bb398f04ab851449a3e68b87f",
       "base_ref": "origin/main",
-      "status": "in_progress",
+      "status": "superseded",
       "owns": [
         "ops/ACTIVE_TASKS.json",
         "ops/mailbox/INBOX.md",
@@ -1406,7 +1406,7 @@
         "Smeta tizimi/Panel.html"
       ],
       "production_write_allowed": false,
-      "_izoh": "Owner topshirig‘i: avvalgi T1 importerning razdel-scope, qavatli dalil, ikki daraxtli operator UX va aniq nazorat skeletini saqlab, GAS timeout/kimligini ko‘chirmasdan T2da kuchaytirish; 30k+ qator, har qator bo‘yicha link/unlink, taklif foizi, suma/qty reconciliation, barcha/hal qilinmagan/muammoli filtrlari. Real fayllar faqat read-only korpus; hech qanday real import yoki production write yo‘q."
+      "_izoh": "Owner topshirig‘i: avvalgi T1 importerning razdel-scope, qavatli dalil, ikki daraxtli operator UX va aniq nazorat skeletini saqlab, GAS timeout/kimligini ko‘chirmasdan T2da kuchaytirish; 30k+ qator, har qator bo‘yicha link/unlink, taklif foizi, suma/qty reconciliation, barcha/hal qilinmagan/muammoli filtrlari. Real fayllar faqat read-only korpus; hech qanday real import yoki production write yo‘q. 2026-10-06 Claude: branch 29.09 dan beri harakatsiz, ishi main ga 29–30.09 merge qilingan. F2V3Workbench UX tuzatishlari T2-F2-IMPORT-UX-001 ga o‘tdi (egasi sinovi topilmalari)."
     },
     {
       "id": "T2-FORMA3-F3-001",
@@ -2031,6 +2031,28 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi qoidasi 2026-10-05: o‘zgaruvchan ma’lumot — Supabase, o‘zgarmas — R2. Tomon jadvallari (aloqa/grant/taqdim holati) o‘zgaruvchan → Supabase; F2 qatorlari NUSXALANMAYDI (o‘zgarmas tasdiqlangan aktdan o‘qiladi), hujjat nusxasi R2 reyestridan (t2_document_registry). /api/sb va /api/sb-yoz izolyatsiyasiga TEGILMAYDI — kompaniyalararo ko‘rinish faqat alohida tomon.ts shlyuzi orqali. Umumiy (egasiz) fayllarga faqat additiv tegiladi: AdminShell.tsx (menyu guruhi), App.tsx (marshrutlar), i18n lugat ru/en (yangi kalitlar), sayt-xaritasi/generated.ts (regeneratsiya). Prod bazaga migratsiya 20261106200000 qo‘llangan (rollback-sinovli, 53/53). 2026-10-06: R2 takrorlanishini to‘xtatish — t2_document_canonical_reserve_v1 ga sha256 dedupe (shu kompaniya+loyiha+obyekt+tur+revision da bir xil mazmun qayta saqlanmaydi) va F2 importda «tizimdagi F2 fayldan tanlash»."
+    },
+    {
+      "id": "T2-F2-IMPORT-UX-001",
+      "title": "F2 import ish joyi: razdel ochib-yopishda siljish, nomzodga aylanmaslik, sahifa sakrashi, siqilish, deploy paytida ish yo‘qolishi (egasi sinovi 2026-10-06)",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/t2-smeta-studio-v1",
+      "base_sha": "c4bbf971",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
+        "frontend/src/admin/sahifalar/F2V3Workbench.operator.test.tsx",
+        "frontend/src/_shared/versiya.ts",
+        "frontend/src/_shared/versiya.test.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Topilmalar va o‘lchovlar: Obsidian 20_PROJECTS/Smeta-tizimi/F2_IMPORT_UX_SINOV_2026-10-06.md. F2ImportV3.tsx (T2-ZAKAZCHIK-TOMON-001 additiv) da faqat 1 qatorlik fmt() matn tuzatish — KOORDINATSIYA da qayd."
     }
   ]
 }

@@ -25,7 +25,9 @@ function bannerKorsat() {
   d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;gap:12px;align-items:center;justify-content:center;'
     + 'padding:8px 16px;background:#1d4ed8;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.3)';
   const m = document.createElement('span');
-  m.textContent = 'Tizimning yangi versiyasi chiqdi — eski hujjat shakllari chiqmasligi uchun sahifani yangilang.';
+  m.textContent = saqlanmaganIshBormi()
+    ? 'Tizimning yangi versiyasi chiqdi. Avval joriy ishingizni saqlang, keyin sahifani yangilang.'
+    : 'Tizimning yangi versiyasi chiqdi — eski hujjat shakllari chiqmasligi uchun sahifani yangilang.';
   const b = document.createElement('button');
   b.type = 'button';
   b.textContent = 'Yangilash';
@@ -35,9 +37,26 @@ function bannerKorsat() {
   document.body.appendChild(d);
 }
 
+/* Egasi sinovi (2026-10-06): F2 import moslashtirilayotganda boshqa deploy chiqdi, eski chunk topilmadi va sahifa
+ * SO'RAMASDAN qayta yuklandi — operatorning butun ishi yo'qoldi. Endi saqlanmagan ishi bor sahifa o'zini shu yerda
+ * belgilaydi: unda avto-reload qilinmaydi (banner chiqadi) va sahifani yopish/yangilashda brauzer ogohlantiradi. */
+const saqlanmagan = new Set<string>();
+function tarkModal(e: BeforeUnloadEvent) { e.preventDefault(); e.returnValue = ''; }
+
+/** Sahifada saqlanmagan ish bor/yo'qligini belgilaydi (masalan F2 import moslashtirish ish joyi). */
+export function saqlanmaganIsh(belgi: string, bor: boolean): void {
+  const oldin = saqlanmagan.size;
+  if (bor) saqlanmagan.add(belgi); else saqlanmagan.delete(belgi);
+  if (!oldin && saqlanmagan.size) window.addEventListener('beforeunload', tarkModal);
+  if (oldin && !saqlanmagan.size) window.removeEventListener('beforeunload', tarkModal);
+}
+export const saqlanmaganIshBormi = (): boolean => saqlanmagan.size > 0;
+
 export function versiyaKuzatuvi(davriyMs = 5 * 60_000): void {
-  // Deploydan keyin eski lazy chunk topilmasa — Vite shu hodisani beradi: bitta marta avtomatik yangilaymiz.
+  // Deploydan keyin eski lazy chunk topilmasa — Vite shu hodisani beradi: bitta marta avtomatik yangilaymiz,
+  // LEKIN saqlanmagan ish bo'lsa — yo'q (faqat banner; operator ishini saqlab, o'zi yangilaydi).
   window.addEventListener('vite:preloadError', () => {
+    if (saqlanmaganIshBormi()) { bannerKorsat(); return; }
     try {
       if (sessionStorage.getItem('versiya-reload') === '1') return;
       sessionStorage.setItem('versiya-reload', '1');

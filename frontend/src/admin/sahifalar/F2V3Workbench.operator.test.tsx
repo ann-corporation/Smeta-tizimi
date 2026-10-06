@@ -1,16 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { F2V3Workbench } from './F2V3Workbench';
+import { saqlanmaganIshBormi } from '../../_shared/versiya';
 import { f2Indeks, smetaIndeks, type IshJoyi } from '../../lib/f2-moslash-v3/ishJoyi';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 
+const scrollCalls: number[] = [];
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
     getTotalSize: () => count * 40,
     // Emulate a viewport: even a 30k-row tree must render only a small window.
     getVirtualItems: () => Array.from({ length: Math.min(count, 24) }, (_, index) => ({ index, start: index * 40, size: 40, key: index })),
     measureElement: () => undefined,
+    scrollToIndex: (i: number) => { scrollCalls.push(i); },
   }),
 }));
 
@@ -166,5 +169,20 @@ describe('F2 workbench operator controls', () => {
     expect(onIj).toHaveBeenCalled();
     const [ij] = onIj.mock.calls.at(-1)!;
     expect(ij.bog.get('f2')?.qatorId).toBe(3);
+  });
+
+  // Egasi sinovi 2026-10-06: virtual ro'yxatda maqsad qator DOM'da yo'q — scrollIntoView ishlamasdi.
+  it('Keyingi tekshirilmagan virtual ro‘yxatni indeks orqali aylantiradi (DOM qidiruvi emas)', () => {
+    renderWorkbench(30_000);
+    scrollCalls.length = 0;
+    fireEvent.click(screen.getByRole('button', { name: /Keyingi tekshirilmagan/ }));
+    expect(scrollCalls.length).toBeGreaterThan(0);
+  });
+
+  it('ish joyi ochiq turganda saqlanmagan ish belgilanadi; yopilganda olib tashlanadi', () => {
+    renderWorkbench();
+    expect(saqlanmaganIshBormi()).toBe(true);
+    cleanup();
+    expect(saqlanmaganIshBormi()).toBe(false);
   });
 });
