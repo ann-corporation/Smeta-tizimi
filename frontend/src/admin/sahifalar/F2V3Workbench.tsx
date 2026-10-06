@@ -12,6 +12,7 @@ import { F2AddReplModal, type DropAction } from './F2AddReplModal';
 import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
 import { expandableDepths, expandableIdsAtDepth, flattenVisibleTree } from '../../lib/f2-link-review/tree';
+import { saqlanmaganIsh } from '../../_shared/versiya';
 
 /**
  * F2 V3 — ikki oynali moslashtirish (docs/architecture/F2_IMPORT_V3.md §3).
@@ -118,6 +119,8 @@ function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: {
 const F2_GRID = 'grid grid-cols-[30px_minmax(84px,120px)_minmax(260px,1fr)_72px_88px_68px_96px_118px_250px]';
 const S_GRID = 'grid grid-cols-[minmax(84px,120px)_minmax(260px,1fr)_72px_88px_68px_96px_100px_112px]';
 const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
+/** Amal ustuni gorizontal aylantirishda ham o'ngda ko'rinib turadi (egasi sinovi: tugmalar kesilib qolardi). */
+const AMAL_YOPISHQOQ = 'sticky right-0 z-[1] bg-surface-1 shadow-[-6px_0_6px_-6px_rgba(0,0,0,.6)]';
 const SON = `${KATAK} text-right tabular-nums text-[11.5px]`;
 /** Holat katagi — to'liq rangli fon (Excel shartli formatlashi kabi). */
 const HOLAT_KATAK: Record<KorinishHolat, string> = {
@@ -132,10 +135,13 @@ function JadvalSarlavha({ tur }: { tur: 'f2' | 'smeta' }) {
       <span className={u}>Shifr / kod</span><span className={u}>Nomi</span>
       <span className={`${u} text-right`}>Norma</span><span className={`${u} text-right`}>Miqdor</span><span className={u}>Birlik</span>
       <span className={`${u} text-right`}>Narx</span><span className={`${u} text-right`}>{tur === 'f2' ? 'Summa' : 'Qoldiq'}</span>
-      <span className={u}>Amal</span>
+      <span className={`${u} ${AMAL_YOPISHQOQ} bg-surface-2`}>Amal</span>
     </div>
   );
 }
+
+/** Nomlarni solishtirish: registr, Ё/Е va bo'shliq farqi hisobga olinmaydi. */
+const nomKalit = (x: string | null | undefined) => (x ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, ' ').trim();
 
 export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const { ind, S, ij } = p;
@@ -232,8 +238,30 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     ? qidiruvNatija.map((node) => ({ node, depth: 0 }))
     : flattenVisibleTree(smetaRoots, (node) => S.bolalar.get(node.id) ?? [], (node) => node.id,
       () => true, (id) => ochiqS.has(Number(id))), [qidiruvNatija, smetaRoots, S, ochiqS]);
-  const f2Virtual = useVirtualizer({ count: f2VisibleRows.length, getScrollElement: () => f2Quti.current, estimateSize: () => 38, overscan: 12 });
-  const smetaVirtual = useVirtualizer({ count: smetaVisibleRows.length, getScrollElement: () => smetaQuti.current, estimateSize: () => 38, overscan: 12 });
+  // getItemKey MAJBURIY: o'lcham keshi qator identifikatori bo'yicha. Index bo'yicha bo'lsa (avvalgi holat), razdel
+  // ochilib-yopilganda qatorlar indeksi o'zgaradi, eski indeksning balandligi ishlatilib, qatorlar orasida bo'shliq
+  // yoki ustma-ust tushish paydo bo'lardi (egasi sinovi 2026-10-06: «СТЕНЫ» yopilganda 153 px gacha bo'shliq).
+  const f2Virtual = useVirtualizer({ count: f2VisibleRows.length, getScrollElement: () => f2Quti.current, estimateSize: () => 38, overscan: 12,
+    getItemKey: (i) => f2VisibleRows[i]?.node.uid ?? i });
+  const smetaVirtual = useVirtualizer({ count: smetaVisibleRows.length, getScrollElement: () => smetaQuti.current, estimateSize: () => 38, overscan: 12,
+    getItemKey: (i) => smetaVisibleRows[i]?.node.id ?? i });
+  // Virtual ro'yxatda maqsad qator DOM'da bo'lmasligi mumkin — querySelector+scrollIntoView ishlamaydi. Aylantirish
+  // indeks orqali; daraxt ochilishi (state) render bo'lgach bajariladi.
+  // Moslashtirish ish joyi ochiq — deploy/yangilash ishni so'ramasdan o'chirmasin (versiya.ts).
+  useEffect(() => { saqlanmaganIsh('f2-import', !p.disabled); return () => saqlanmaganIsh('f2-import', false); }, [p.disabled]);
+  const f2RowsRef = useRef(f2VisibleRows); f2RowsRef.current = f2VisibleRows;
+  const smetaRowsRef = useRef(smetaVisibleRows); smetaRowsRef.current = smetaVisibleRows;
+  const f2Fokus = useRef<string | null>(null), smetaFokus = useRef<number | null>(null);
+  useEffect(() => {
+    if (f2Fokus.current != null) {
+      const i = f2RowsRef.current.findIndex((r) => r.node.uid === f2Fokus.current);
+      if (i >= 0) { f2Virtual.scrollToIndex(i, { align: 'center' }); f2Fokus.current = null; }
+    }
+    if (smetaFokus.current != null) {
+      const i = smetaRowsRef.current.findIndex((r) => r.node.id === smetaFokus.current);
+      if (i >= 0) { smetaVirtual.scrollToIndex(i, { align: 'center' }); smetaFokus.current = null; }
+    }
+  });
 
   // Har ikki daraxt birinchi ochilganda to'liq ochiq; keyin operator har sathni alohida boshqaradi.
   // Egasi 2026-09-30: qo'shimcha/zamena yozilgach smeta qayta yuklanadi — yoyilgan bo'limlar va
@@ -282,11 +310,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       for (const id of ids) for (let t = S.byId.get(id); t && t.otaId != null; t = S.byId.get(t.otaId)) s.add(t.otaId);
       return s;
     });
-    const fokus = ids[0];
-    requestAnimationFrame(() => {
-      const el = smetaQuti.current?.querySelector(`[data-sid="${fokus}"]`);
-      if (el && 'scrollIntoView' in el) (el as HTMLElement).scrollIntoView({ block: 'center' });
-    });
+    smetaFokus.current = ids[0];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tanlangan]);
 
@@ -355,7 +379,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           for (let parent = ind.ota.get(t.uid); parent; parent = ind.ota.get(parent.uid)) next.delete(parent.uid);
           return next;
         });
-        requestAnimationFrame(() => document.querySelector(`[data-fuid="${CSS.escape(t.uid)}"]`)?.scrollIntoView({ block: 'center' }));
+        f2Fokus.current = t.uid;
         return;
       }
     }
@@ -370,9 +394,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     visit(roots);
     return ids;
   }
+  /** Tanlash sahifani aylantirmaydi: tafsilot paneli daraxtlar ustida, doimiy balandlikda (pastki qatorlar siljimaydi). */
   function scrollTanlanganPanelga(uid: string) {
     setTanlangan(uid);
-    requestAnimationFrame(() => panelRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }));
   }
 
   // ── Chap: F2 daraxti. Har qator mustaqil tanlanadi; bog'lash amali qatorning o'zida. ──
@@ -465,7 +489,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         title={p.disabled ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
         className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? 'font-medium text-text' : 'text-text-dim'}`}>
         <span className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${HOLAT_KATAK[k]}`} title={B.t}>{B.b}</span>
-        <span className={`${KATAK} break-all font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
+        <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
         <button type="button"
           onClick={tanla}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tanla(); } }}
@@ -475,7 +499,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {t.belgi && <span className={`mr-1 rounded px-1 text-[10px] font-semibold ${t.belgi === 'zamena' ? 'bg-warn/20 text-warn' : 'bg-accent/20 text-accent'}`}
             title={t.belgi === 'zamena' ? 'Hujjatda zamena (~) deb belgilangan' : 'Hujjatda qo‘shimcha ish (+) deb belgilangan'}>{t.belgi === 'zamena' ? '~ zamena' : '+ qo‘shimcha'}</span>}
           <span className="break-words">{t.nom}</span>
-          {s && k !== 'otkazildi' && <span className="mt-0.5 block text-[10.5px] font-normal text-accent" title={s.nom ?? ''}>→ {s.nom}</span>}
+          {/* Bog'langan smeta nomi faqat F2 nomidan FARQ qilsa (aks holda ✓ yetarli) va bitta qatorda — qator balandligi ikki baravar oshmaydi. */}
+          {s && k !== 'otkazildi' && nomKalit(s.nom) !== nomKalit(t.nom) && <span className="mt-0.5 block truncate text-[10.5px] font-normal text-accent" title={s.nom ?? ''}>→ {s.nom}</span>}
           {!s && tavsiya && <span className="mt-0.5 block text-[10.5px] font-normal text-warn">{tavsiya.tur === 'zamena' ? `⇄ zamena taklifi: «${tavsiyaS?.nom ?? ''}» o‘rniga` : '＋ smeta ishida mos resurs yo‘q — qo‘shimcha resurs'}</span>}
           {t.ogohlantirish?.length ? <span className="mt-0.5 block text-[10.5px] font-normal text-danger">{t.ogohlantirish.join('; ')}</span> : null}
         </button>
@@ -486,7 +511,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${SON} ${ish ? 'font-semibold text-text' : 'text-text'}`} title={t.barg ? undefined : 'Resurslari yig‘indisi'}>
           {t.barg ? fmt(t.summa, 2) : bolaSumma(t) != null ? fmt(bolaSumma(t), 2) : ''}
         </span>
-        <span className={`${KATAK} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
+        <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {k === 'taklif' && <button type="button" className={`${tugma} tugma-asosiy`} disabled={p.disabled}
             onClick={() => p.onIj(tasdiqla(ij, [t.uid]))} title="Tizim taklifini tasdiqlash"><Check size={11} /> Tasdiqlash</button>}
           {k === 'topilmadi' && ish && <button type="button" className={tugma} disabled={p.disabled}
@@ -667,7 +692,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     return (
       <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} `
         + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60') + oraliq}>
-        <span className={`${KATAK} break-all font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
+        <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <button type="button" className={`${KATAK} text-left`} style={{ paddingLeft: 6 + depth * 14 }} onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
           {chevron}
@@ -684,7 +709,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${KATAK} break-words text-[11px]`}>{s.birlik ?? ''}</span>
         <span className={SON}>{s.narx ? fmt(s.narx, 2) : ''}</span>
         <span className={`${SON} ${qoldiq != null && qoldiq < -1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
-        <span className={`${KATAK} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
+        <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {tTugun && (tBog
             ? <button type="button" className={tugma} disabled={p.disabled} onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={11} /> Uzish</button>
             : <button type="button" className={tugma} disabled={p.disabled} onClick={() => tashla(tTugun.uid, s.id)}><Link2 size={11} /> Bog‘lash</button>)}
@@ -896,7 +921,6 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         </div>
       </div>
 
-      <div className="karta p-2" ref={panelRef}><Panel /></div>
       {manbaTekshiruvi.length > 0 && (
         <section role="alert" aria-label="F2 faylini o‘qish tekshiruvi" className="karta space-y-1.5 border border-warn/50 p-3 text-[12px]">
           <p className="font-semibold text-warn">F2 faylida {manbaTekshiruvi.length} ta qator yoki sarlavha qo‘lda tekshirilishi kerak.</p>
@@ -921,12 +945,17 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <p className="text-text-dim">Bular ish yoki resurs emas, shuning uchun smeta bilan bog‘lash daraxtiga kiritilmaydi. Ular F2 manba summasini tekshirishda alohida hisobga olinadi.</p>
         </section>
       )}
-      {xabar && (
-        <p role="status" className="flex items-start gap-2 text-[12px] text-text-dim">
-          <span className="flex-1">{xabar}</span>
-          <button type="button" aria-label="Yopish" onClick={() => setXabar(null)}><X size={13} /></button>
+      {/* Tanlangan qator paneli va xabar — daraxtlar ustida, DOIMIY balandlikda: tanlash/bog'lash pastdagi
+          daraxtlarni surmaydi (egasi sinovi 2026-10-06: tanlashda ~130 px, bog'lashda ~26 px sakrash). */}
+      <div className="karta flex h-[164px] flex-col overflow-hidden p-2" ref={panelRef}>
+        <div className="min-h-0 flex-1 overflow-auto"><Panel /></div>
+        <p role={xabar ? 'status' : undefined} className="mt-1 flex h-5 shrink-0 items-center gap-2 border-t border-border/50 pt-1 text-[12px] text-text-dim">
+          {xabar ? <>
+            <span className="min-w-0 flex-1 truncate" title={xabar}>{xabar}</span>
+            <button type="button" aria-label="Yopish" onClick={() => setXabar(null)}><X size={13} /></button>
+          </> : null}
         </p>
-      )}
+      </div>
 
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="F2 akt">

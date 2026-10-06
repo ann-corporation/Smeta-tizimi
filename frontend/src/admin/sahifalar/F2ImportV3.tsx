@@ -337,7 +337,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           </div>
           {jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0 && (
             <p role="alert" className="rounded border border-warn/40 bg-warn/10 px-2 py-1.5 text-[12px] text-warn">
-              Manba jami va qatorlar yig‘indisi mos emas: <b className="tabular-nums">{jamiFarq > 0 ? '+' : ''}{fmt(jamiFarq)} so‘m{jamiFarqFoiz != null ? ` (${jamiFarq > 0 ? '+' : ''}{fmt(jamiFarqFoiz)}%)` : ''}</b>.
+              Manba jami va qatorlar yig‘indisi mos emas: <b className="tabular-nums">{jamiFarq > 0 ? '+' : ''}{fmt(jamiFarq)} so‘m{jamiFarqFoiz != null ? ` (${jamiFarq > 0 ? '+' : ''}${fmt(jamiFarqFoiz)}%)` : ''}</b>.
               Importer qiymatlarni o‘zgartirmadi. Qator summalari va hujjatning jami formulasini tekshiring.
             </p>
           )}
