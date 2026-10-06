@@ -13,11 +13,12 @@
  *  • Kalit/model serverda; provayder sozlanmagan bo'lsa fail-closed (503).
  */
 import { tekshir } from '../_shared/auth';
-import { aiCall, aiPublicError, isAiGatewayError, type AiEnv } from '../_shared/ai';
+import { aiPublicError, isAiGatewayError } from '../_shared/ai';
+import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { katalogSnapshotlari, type KatalogSnapshot } from '../_shared/narx-katalog-snapshot';
 import { characteristics, gateFailure, normName } from '../../src/lib/smeta-studio/resource-match';
 
-type Env = AiEnv & { SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket };
+type Env = HisobEnv & { SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket };
 type Item = { key: string; nom: string; birlik: string | null; nomzodlar: number[] };
 type AgentChoice = { key: string; tanlov_id: number | null; ishonch: 'yuqori' | 'orta' | 'past'; sabab: string };
 
@@ -94,12 +95,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const payload = ask.map(i => ({ key: i.key, resurs: i.nom, birlik: i.birlik,
     nomzodlar: allowed.get(i.key)!.map(s => ({ id: s.id, nom: s.nom, birlik: s.birlik, narx: s.narx, hudud: s.hudud, zavod: s.ishlab_chiqaruvchi, yil: s.yil, kvartal: s.kvartal })) }));
   try {
-    const r = await aiCall(ctx.env, { system: SYSTEM, tier: 'reasoning', temperature: 0, maxOutputTokens: 4000, jsonSchema: SCHEMA,
+    // Owner: resource matching runs on the cheaper model tier; company AI budget is checked and charged.
+    const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'pto_smeta', 'narx_moslash', { system: SYSTEM, tier: 'fast', temperature: 0, maxOutputTokens: 4000, jsonSchema: SCHEMA,
       text: `Obyekt hududi: ${hudud ?? 'noma’lum'}\n<MALUMOT>\n${JSON.stringify(payload)}\n</MALUMOT>` });
     let parsed: unknown = null;
     try { parsed = JSON.parse(r.text); } catch { parsed = null; }
     return Response.json({ ok: true, items: validateChoices(parsed, allowed), provider: r.provider, model: r.model, usage: r.usage ?? null });
   } catch (e) {
+    if (e instanceof AiByudjetXatosi) return fail(e.kod, 402, e.xabar);
     const p = aiPublicError(e);
     return fail(isAiGatewayError(e) && p.code === 'not_configured' ? 'AI_NOT_CONFIGURED' : 'AI_UNAVAILABLE', 503, p.message);
   }

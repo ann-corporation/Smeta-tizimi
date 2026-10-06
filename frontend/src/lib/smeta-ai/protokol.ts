@@ -1,0 +1,81 @@
+/**
+ * Smetachi AI — shared contract between the browser orchestrator and /api/smeta-ai.
+ * The model never writes the estimate: it returns (1) a reply + questions, (2) work intents with Russian
+ * normative search phrases and a quantity FORMULA from the user's own dimensions, (3) a choice among
+ * catalogue candidates the browser found. Everything is validated here; invalid parts are dropped.
+ */
+export const BIRLIKLAR = ['м3', 'м2', 'м', 'т', 'кг', 'шт', 'компл'] as const;
+export type Birlik = typeof BIRLIKLAR[number];
+export type IshHolati = 'TAYYOR' | 'HAJM_KERAK' | 'ANIQLASH_KERAK';
+
+export type IshNiyati = {
+  /** Stable within a conversation ("w1", "w2"...). */
+  id: string;
+  /** Section in the estimate, e.g. "Fundament". */
+  bolim: string;
+  /** Plain Uzbek description, e.g. "Beton tayyorlov (podbetonka) B7,5, 100 mm". */
+  tavsif: string;
+  /** 1–3 Russian phrases in normative (ShNQ/ГЭСН) wording for catalogue search. */
+  qidiruv: string[];
+  birlik: Birlik;
+  /** Quantity formula built ONLY from numbers the user gave (or null if still unknown). */
+  hajmIfoda: string | null;
+  /** Where the numbers came from / assumptions, shown to the user. */
+  hajmIzoh: string | null;
+  /** Material characteristic that matters for the resource (e.g. "Бетон B7,5"), optional. */
+  material: string | null;
+  holat: IshHolati;
+};
+export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyati[] };
+export type SuhbatXabari = { rol: 'user' | 'assistant'; matn: string };
+
+export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: string | null };
+export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; material: string | null; nomzodlar: TanlovNomzodi[] };
+export type Tanlov = { id: string; ishId: string | null; sabab: string };
+
+const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const ID = /^[A-Za-z0-9_-]{1,40}$/;
+
+/** Keep only well-formed intents; never trust lengths, ids or units from the model. */
+export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const ishlar: IshNiyati[] = [];
+  const seen = new Set<string>();
+  for (const x of Array.isArray(o.ishlar) ? o.ishlar.slice(0, 60) : []) {
+    const r = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
+    const id = str(r.id, 40), birlik = str(r.birlik, 10) as Birlik;
+    if (!ID.test(id) || seen.has(id) || !BIRLIKLAR.includes(birlik)) continue;
+    const qidiruv = (Array.isArray(r.qidiruv) ? r.qidiruv : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
+    const tavsif = str(r.tavsif, 300);
+    if (!tavsif || !qidiruv.length) continue;
+    const holat = (['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] as const).includes(r.holat as IshHolati) ? r.holat as IshHolati : 'ANIQLASH_KERAK';
+    const ifoda = str(r.hajmIfoda, 200) || null;
+    seen.add(id);
+    ishlar.push({ id, bolim: str(r.bolim, 120) || 'Asosiy', tavsif, qidiruv, birlik, hajmIfoda: ifoda,
+      hajmIzoh: str(r.hajmIzoh, 300) || null, material: str(r.material, 120) || null, holat: ifoda ? holat : holat === 'TAYYOR' ? 'HAJM_KERAK' : holat });
+  }
+  return { javob: str(o.javob, 2000) || 'Tushunarli.', savollar: (Array.isArray(o.savollar) ? o.savollar : []).map(q => str(q, 300)).filter(Boolean).slice(0, 5), ishlar };
+}
+
+/** A choice survives only if it names one of the candidates the browser sent for that intent. */
+export function tanlovlarniTekshir(raw: unknown, sorovlar: TanlovSorovi[]): Tanlov[] {
+  const list = Array.isArray((raw as { tanlovlar?: unknown })?.tanlovlar) ? (raw as { tanlovlar: unknown[] }).tanlovlar : [];
+  const by = new Map(list.map(x => { const r = (x ?? {}) as Record<string, unknown>; return [str(r.id, 40), r] as const; }));
+  return sorovlar.map(s => {
+    const r = by.get(s.id);
+    const ishId = r && typeof r.ishId === 'string' && s.nomzodlar.some(n => n.id === r.ishId) ? r.ishId : null;
+    return { id: s.id, ishId, sabab: str(r?.sabab, 300) || (ishId ? '' : 'Mos normativ ish tanlanmadi') };
+  });
+}
+
+export const SUHBAT_SXEMA = { name: 'smetachi_suhbat', schema: { type: 'object', additionalProperties: false, required: ['javob', 'savollar', 'ishlar'], properties: {
+  javob: { type: 'string' }, savollar: { type: 'array', items: { type: 'string' } },
+  ishlar: { type: 'array', items: { type: 'object', additionalProperties: false,
+    required: ['id', 'bolim', 'tavsif', 'qidiruv', 'birlik', 'hajmIfoda', 'hajmIzoh', 'material', 'holat'], properties: {
+      id: { type: 'string' }, bolim: { type: 'string' }, tavsif: { type: 'string' }, qidiruv: { type: 'array', items: { type: 'string' } },
+      birlik: { type: 'string', enum: [...BIRLIKLAR] }, hajmIfoda: { type: ['string', 'null'] }, hajmIzoh: { type: ['string', 'null'] },
+      material: { type: ['string', 'null'] }, holat: { type: 'string', enum: ['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] } } } } } } };
+
+export const TANLOV_SXEMA = { name: 'smetachi_tanlov', schema: { type: 'object', additionalProperties: false, required: ['tanlovlar'], properties: {
+  tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'ishId', 'sabab'], properties: {
+    id: { type: 'string' }, ishId: { type: ['string', 'null'] }, sabab: { type: 'string' } } } } } } };

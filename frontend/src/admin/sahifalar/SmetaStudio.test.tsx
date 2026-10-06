@@ -45,6 +45,8 @@ beforeAll(() => {
 afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
   store.clear(); requests = [];
+  // These tests exercise the catalogue tab; the AI estimator tab is the default for new users.
+  try { localStorage.setItem('smeta-studio:chap-tab', 'katalog'); } catch { /* jsdom */ }
   const all = await files();
   vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
     requests.push(`${init?.method ?? 'GET'} ${u}`);
