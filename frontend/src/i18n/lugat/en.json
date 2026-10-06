@@ -785,5 +785,6 @@
   "Savol / aniqlashtirish (RFI)": "Request for information (RFI)",
   "Sinov so‘rovi (laboratoriya)": "Test request (laboratory)",
   "Yetkazib berish talabi": "Delivery requirement",
-  "Boshqa": "Other"
+  "Boshqa": "Other",
+  "Fayl uchun loyiha topilmadi": "Project for the file was not found"
 }

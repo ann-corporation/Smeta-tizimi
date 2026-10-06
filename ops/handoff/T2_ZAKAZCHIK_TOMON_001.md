@@ -43,6 +43,11 @@ GET `?bolim=aloqalar|aloqa|taqdimlar|taqdim|obyektlar|qidir&kompaniya_id=…` ·
 - Sinov: `supabase/tests/t2_tomon_murojaat_contract.sql` 32/32; gateway 15 test; UI 4 test.
 - **Ochiq:** `t2_document_registry.loyiha_id` NOT NULL — loyihasiz kompaniya (laboratoriya, ekspert, zakazchik) dalil yuklay olmaydi; UI shuni tushunarli xabar bilan bildiradi. Qaror: avtomatik «Umumiy» loyiha yoki ustunni bo'shatish (KOORDINATSIYA → Ochiq qaror).
 
+## Loyiha/shartnoma tahriri — ROL asosida + avtomatik «Umumiy» loyiha (2026-10-06)
+- **Hal qilindi:** `t2_document_registry.loyiha_id` NOT NULL muammosi — `t2_loyiha_umumiy_v1(actor, kompaniya)` (idempotent; bor loyihani qaytaradi, yo'q bo'lsa «Umumiy» yaratadi; istalgan faol a'zo). `/api/tomon` amal `loyiha_umumiy`, klient `sbLoyihaUmumiy`. Murojaatlar dalil yuklash shuni ishlatadi.
+- **Rol xaritasi (server, bitta joy):** `_t2_tahrir_rol_ok(rol, ob)`: loyiha yaratish/tahrir = admin, superadmin, boss, director, pto, prorab; loyihani bekor qilish = admin, superadmin, boss, director; shartnoma bekori = admin, superadmin, boss, director, pto, bugalter (shartnoma yaratish/tahrir — `t2_shartnoma_saqla_v2` ichida: shu ro'yxat + to'liq maydonlar/tomonlar/obyektlar). Yangi mansab = shu funksiyada bitta qator.
+- Avval `t2_loyiha_*` da rol tekshiruvi YO'Q edi (kuzatuvchi/buyurtmachi ham tahrirlay olardi) — endi imzolar `p_actor_id` oladi; `sb-yoz.ts` faqat actor uzatadi. Sinov: `supabase/tests/t2_loyiha_rol_umumiy_contract.sql` 17/17.
+
 ## Keyingi bosqichlar
 1. Frontend: Aloqalar, Taqdimlar (inbox + qaror), Zakazchik kabineti (obyektlar monitoringi), F2 tarixidan «Zakazchikka yuborish».
 2. `hujjat` taqdimi uchun yuklab olish ruxsati (`/api/hujjat-ol` — taqdim asosida qabul qiluvchiga).
