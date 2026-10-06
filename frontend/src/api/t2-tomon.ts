@@ -95,3 +95,34 @@ export const taqdimYubor = (k: number, aloqaId: number, resurs: string, manbaId:
 export const taqdimQarori = (k: number, taqdimId: number, qaror: 'korilmoqda' | 'qabul' | 'rad' | 'tuzatish', izoh?: string) => tomonYoz('qaror', k, { taqdim_id: taqdimId, qaror, izoh: izoh || null });
 export const taqdimniQaytar = (k: number, taqdimId: number, sabab?: string) => tomonYoz('taqdim_qaytar', k, { taqdim_id: taqdimId, sabab: sabab || null });
 export const izohYoz = (k: number, p: { aloqaId?: number; taqdimId?: number; matn: string }) => tomonYoz('izoh', k, { aloqa_id: p.aloqaId ?? null, taqdim_id: p.taqdimId ?? null, matn: p.matn });
+
+/* ───── Murojaat (remark / predpisaniya / sinov so'rovi …): bitta mexanizm hamma tomonlar uchun ───── */
+export type MurojaatHolat = 'ochiq' | 'bajarildi' | 'yopildi' | 'bekor';
+export type Muhimlik = 'past' | 'oddiy' | 'yuqori' | 'kritik';
+export type MurojaatTuri = { kalit: string; nom: string; nom_ru: string | null };
+export type MurojaatQisqa = {
+  id: number; aloqa_id: number; turi: string; sarlavha: string; muhimlik: Muhimlik; muddat: string | null; holat: MurojaatHolat; raund: number;
+  menga: boolean; qarshi_nom: string | null; obyekt_nom: string | null; yaratildi: string; yangilandi: string; kechikkan: boolean;
+};
+export type MurojaatTafsilot = {
+  murojaat: Omit<MurojaatQisqa, 'qarshi_nom' | 'yangilandi' | 'kechikkan'> & {
+    matn: string | null; joy: string | null; men_beruvchiman: boolean; beruvchi_nom: string | null; ijrochi_nom: string | null;
+    javob_matn: string | null; javob_vaqti: string | null; yopish_izoh: string | null;
+  };
+  hujjatlar: Array<{ document_id: number; raund: number; vaqt: string; men_biriktirdim: boolean; kompaniya_nom: string | null; fayl: string | null; mime: string | null; olcham: number | null }>;
+  hodisalar: Hodisa[];
+};
+
+export const murojaatlarOl = (k: number, p: { yonalish?: 'menga' | 'mendan'; holat?: string; aloqaId?: number } = {}) =>
+  tomonOqi<MurojaatQisqa[]>('murojaatlar', k, { yonalish: p.yonalish, holat: p.holat, aloqa_id: p.aloqaId });
+export const murojaatTafsilotOl = (k: number, id: number) => tomonOqi<MurojaatTafsilot>('murojaat', k, { murojaat_id: id });
+export const murojaatTurlariOl = (k: number) => tomonOqi<MurojaatTuri[]>('murojaat_turlari', k);
+export const murojaatYarat = (k: number, p: { aloqaId: number; turi: string; sarlavha: string; matn?: string; muhimlik?: Muhimlik; muddat?: string; obyektId?: number | null; joy?: string }) =>
+  tomonYoz<{ id: number; holat: MurojaatHolat }>('murojaat_yarat', k, {
+    aloqa_id: p.aloqaId, turi: p.turi, sarlavha: p.sarlavha, matn: p.matn || null, muhimlik: p.muhimlik || 'oddiy', muddat: p.muddat || null,
+    obyekt_id: p.obyektId ?? null, joy: p.joy || null, operation_id: yangiOperationId(),
+  });
+export const murojaatJavob = (k: number, id: number, matn: string, documentIds: number[] = []) => tomonYoz<{ dalil_soni: number }>('murojaat_javob', k, { murojaat_id: id, matn, document_ids: documentIds });
+export const murojaatHujjat = (k: number, id: number, documentId: number) => tomonYoz('murojaat_hujjat', k, { murojaat_id: id, document_id: documentId });
+export const murojaatQarori = (k: number, id: number, qaror: 'yopish' | 'qayta_ochish', izoh?: string) => tomonYoz('murojaat_qaror', k, { murojaat_id: id, qaror, izoh: izoh || null });
+export const murojaatBekor = (k: number, id: number, sabab?: string) => tomonYoz('murojaat_bekor', k, { murojaat_id: id, sabab: sabab || null });

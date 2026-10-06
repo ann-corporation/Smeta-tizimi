@@ -22,6 +22,9 @@ const OQISH: Record<string, string> = {
   obyektlar: 't2_zakazchik_obyektlar_v1',
   qidir: 't2_tomon_kompaniya_qidir_v1',
   resurslar: 't2_tomon_resurslar_v1',
+  murojaatlar: 't2_tomon_murojaat_royxat_v1',
+  murojaat: 't2_tomon_murojaat_tafsilot_v1',
+  murojaat_turlari: 't2_tomon_murojaat_turlari_v1',
 };
 /** Yozish amallari: amal → RPC. */
 const YOZISH: Record<string, string> = {
@@ -35,6 +38,11 @@ const YOZISH: Record<string, string> = {
   qaror: 't2_tomon_qaror_v1',
   taqdim_qaytar: 't2_tomon_taqdim_qaytar_v1',
   izoh: 't2_tomon_izoh_v1',
+  murojaat_yarat: 't2_tomon_murojaat_yarat_v1',
+  murojaat_javob: 't2_tomon_murojaat_javob_v1',
+  murojaat_hujjat: 't2_tomon_murojaat_hujjat_v1',
+  murojaat_qaror: 't2_tomon_murojaat_qaror_v1',
+  murojaat_bekor: 't2_tomon_murojaat_bekor_v1',
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -129,6 +137,32 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
       if (!m) return 'Izoh matni kerak';
       return { p_kompaniya_id, p_aloqa_id: a, p_taqdim_id: t, p_matn: m };
     }
+    case 'murojaat_yarat': {
+      if (!sonmi(so.aloqa_id) || !KALIT.test(String(so.turi ?? ''))) return 'aloqa_id va turi kerak';
+      const sarlavha = matn(so.sarlavha, 200);
+      if (!sarlavha || sarlavha.length < 3) return 'Sarlavha kamida 3 belgi';
+      const muhimlik = so.muhimlik == null || so.muhimlik === '' ? 'oddiy' : String(so.muhimlik);
+      if (!['past', 'oddiy', 'yuqori', 'kritik'].includes(muhimlik)) return 'muhimlik: past | oddiy | yuqori | kritik';
+      const muddat = so.muddat == null || so.muddat === '' ? null : String(so.muddat);
+      if (muddat != null && !/^\d{4}-\d{2}-\d{2}$/.test(muddat)) return 'muddat YYYY-MM-DD bo‘lishi kerak';
+      return { p_kompaniya_id, p_aloqa_id: son(so.aloqa_id), p_turi: String(so.turi), p_sarlavha: sarlavha, p_matn: matn(so.matn, 4000), p_muhimlik: muhimlik, p_muddat: muddat,
+               p_obyekt_id: ixtSon(so.obyekt_id), p_joy: matn(so.joy, 300), p_operation_id: opId(so.operation_id) };
+    }
+    case 'murojaat_javob': {
+      if (!sonmi(so.murojaat_id)) return 'murojaat_id kerak';
+      const idlar = Array.isArray(so.document_ids) ? (so.document_ids as unknown[]) : [];
+      if (idlar.length > 20 || !idlar.every(sonmi)) return 'document_ids: ko‘pi bilan 20 ta musbat son';
+      return { p_kompaniya_id, p_id: son(so.murojaat_id), p_matn: matn(so.matn, 4000), p_document_ids: idlar.map(Number) };
+    }
+    case 'murojaat_hujjat':
+      if (!sonmi(so.murojaat_id) || !sonmi(so.document_id)) return 'murojaat_id va document_id kerak';
+      return { p_kompaniya_id, p_id: son(so.murojaat_id), p_document_id: son(so.document_id) };
+    case 'murojaat_qaror':
+      if (!sonmi(so.murojaat_id) || !['yopish', 'qayta_ochish'].includes(String(so.qaror))) return 'murojaat_id va qaror (yopish/qayta_ochish) kerak';
+      return { p_kompaniya_id, p_id: son(so.murojaat_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000) };
+    case 'murojaat_bekor':
+      if (!sonmi(so.murojaat_id)) return 'murojaat_id kerak';
+      return { p_kompaniya_id, p_id: son(so.murojaat_id), p_sabab: matn(so.sabab, 500) };
     default: return 'Amal ochiq emas';
   }
 }
@@ -139,7 +173,12 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
   if (!sonmi(k)) return 'kompaniya_id kerak';
   const p_kompaniya_id = Number(k);
   switch (bolim) {
-    case 'aloqalar': case 'obyektlar': case 'resurslar': return { p_kompaniya_id };
+    case 'aloqalar': case 'obyektlar': case 'resurslar': case 'murojaat_turlari': return { p_kompaniya_id };
+    case 'murojaat': return sonmi(q.get('murojaat_id')) ? { p_kompaniya_id, p_id: Number(q.get('murojaat_id')) } : 'murojaat_id kerak';
+    case 'murojaatlar': {
+      const y = q.get('yonalish'), h = q.get('holat');
+      return { p_kompaniya_id, p_yonalish: y === 'menga' || y === 'mendan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null, p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
+    }
     case 'aloqa': return sonmi(q.get('aloqa_id')) ? { p_kompaniya_id, p_aloqa_id: Number(q.get('aloqa_id')) } : 'aloqa_id kerak';
     case 'taqdim': return sonmi(q.get('taqdim_id')) ? { p_kompaniya_id, p_taqdim_id: Number(q.get('taqdim_id')) } : 'taqdim_id kerak';
     case 'taqdimlar': {
@@ -161,6 +200,7 @@ const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 export function xatoJavobi(text: string): { status: number; body: Yuk } {
   let code = ''; let msg = '';
   try { const j = JSON.parse(text) as { code?: string; message?: string }; code = j.code ?? ''; msg = j.message ?? ''; } catch { /* matn emas */ }
+  if (code === '42501' && /DALIL_BEGONA/.test(msg)) return { status: 403, body: { ok: false, code: 'DALIL_BEGONA', error: 'Dalil fayli sizning kompaniyangizniki emas yoki hali saqlanmagan' } };
   if (code === '42501') {
     if (/TOMON_ROL_YETARLI_EMAS/.test(msg)) return { status: 403, body: { ok: false, code: 'ROL_YETARLI_EMAS', error: 'Sizning rolingiz bu amal uchun yetarli emas' } };
     return { status: 403, body: { ok: false, code: 'AZO_EMAS', error: 'Siz bu kompaniyaning faol a’zosi emassiz' } };
