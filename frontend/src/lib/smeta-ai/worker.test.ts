@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
-import { birlashtir, nomzodlarTop, smetagaQoshish, type AiKatalog } from './worker';
+import { birlashtir, nomzodlarTop, smetagaQoshish, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -84,5 +84,18 @@ describe('smetachi AI — nested model reply shape', () => {
     expect(r.javob).toBe('Ishlar aniqlandi');
     expect(r.ishlar.map(i => [i.id, i.tavsif, i.holat])).toEqual([['w1', 'Разработка грунта в отвал', 'HAJM_KERAK']]);
     expect(r.savollar).toEqual(['Kotlovan chuqurligi?']);
+  });
+});
+
+describe('smetachi AI — tolerant choice and system fallback', () => {
+  const s = [{ id: 'w2', tavsif: 't', birlik: 'м3' as const, material: null, nomzodlar: [{ id: 'a1', kod: 'E6-1-1-1', nom: 'УСТРОЙСТВО БЕТОННОЙ ПОДГОТОВКИ', birlik: '100М3' }] }];
+  it('accepts results/array shapes and a code instead of the id — still only within the candidates', () => {
+    expect(tanlovlarniTekshir({ results: [{ id: 'w2', tanlov_id: 'E6-1-1-1' }] }, s)[0].ishId).toBe('a1');
+    expect(tanlovlarniTekshir([{ id: 'w2', ishId: 'a1' }], s)[0].ishId).toBe('a1');
+    expect(tanlovlarniTekshir({ javob: { tanlovlar: [{ id: 'w2', ishId: 'E9-9-9' }] } }, s)[0].ishId).toBeNull();
+  });
+  it('system pick only when the top candidate covers every stem of the first phrase', () => {
+    expect(tizimTanlovi({ qidiruv: ['Устройство бетонной подготовки'], nomzodlar: s[0].nomzodlar })?.workId).toBe('a1');
+    expect(tizimTanlovi({ qidiruv: ['Бетонирование ленточных фундаментов'], nomzodlar: s[0].nomzodlar })).toBeNull();
   });
 });

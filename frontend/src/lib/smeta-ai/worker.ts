@@ -14,6 +14,8 @@ import type { Birlik, IshNiyati, TanlovNomzodi, TanlovSorovi } from './protokol'
 
 export type AiKatalog = NormDetailSource & {
   search(q: string, page: number): { rows: NormWork[]; total: number };
+  /** Optional ranked any-word search (RemoteNormCatalog). */
+  searchAny?(stems: string[], limit?: number, minHits?: number): NormWork[];
   unit(code: string | null): UnitEntry | null;
   load(workId: string): Promise<void>;
   tableLabel(workId: string): string | null;
@@ -43,6 +45,9 @@ export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'bir
     const stems = words.map(x => x.slice(0, Math.max(4, x.length - 3)));
     if (stems.length) tryQ(stems.join(' '));
     if (stems.length > 2) tryQ(stems.slice(0, 2).join(' '));
+    // Normative wording differs from everyday wording ("бетонирование ленточных фундаментов" vs
+    // "устройство железобетонных фундаментов"): fall back to ranked any-stem search.
+    if (found.size < 5 && k.searchAny) for (const w of k.searchAny(stems, 25, 2)) if (!found.has(w.id)) found.set(w.id, w);
   }
   const allStems = [...new Set(ish.qidiruv.flatMap(q => q.toLowerCase().split(/\s+/).filter(x => x.length >= 4).map(x => x.slice(0, Math.max(4, x.length - 3)))))];
   const hits = (w: NormWork) => { const n = (w.name ?? '').toLowerCase(); return allStems.filter(st => n.includes(st)).length; };
@@ -50,6 +55,15 @@ export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'bir
     .filter(x => x.mos !== false)                     // a known different unit is never offered
     .sort((a, b) => Number(b.mos === true) - Number(a.mos === true) || b.h - a.h);
   return ranked.slice(0, limit).map(({ w }) => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null }));
+}
+
+/** System pick when the model declines: the top candidate only if it covers every stem of the first search phrase. */
+export function tizimTanlovi(ish: Pick<AiIsh, 'qidiruv' | 'nomzodlar'>): TanlanganIsh | null {
+  const top = ish.nomzodlar[0];
+  if (!top || !ish.qidiruv[0]) return null;
+  const stems = ish.qidiruv[0].toLowerCase().split(/\s+/).filter(x => x.length >= 4).map(x => x.slice(0, Math.max(4, x.length - 3)));
+  const name = top.nom.toLowerCase();
+  return stems.length && stems.every(st => name.includes(st)) ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: 'tizim tanlovi (nom bo‘yicha eng yaqin) — tekshiring' } : null;
 }
 
 export function tanlovSorovi(ish: AiIsh): TanlovSorovi {

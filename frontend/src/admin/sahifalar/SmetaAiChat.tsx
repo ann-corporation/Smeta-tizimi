@@ -10,7 +10,7 @@ import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import type { SuhbatXabari } from '../../lib/smeta-ai/protokol';
-import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tizimTanlovi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { smetachiSuhbat, smetachiTanla } from '../../api/smeta-ai';
 
@@ -66,7 +66,8 @@ export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
         });
       } else setHolat(xato(r.code, r.message));
     }
-    return next;
+    // Where the model declined, the system pre-selects the obvious best match (visibly marked for review).
+    return next.map(i => (i.tanlangan || !i.nomzodlar.length ? i : { ...i, tanlangan: tizimTanlovi(i) }));
   }
 
   async function yubor(txt?: string) {

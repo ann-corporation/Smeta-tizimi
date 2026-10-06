@@ -75,7 +75,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (!sorovlar) return fail('SOROV_INVALID');
       const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash',
         { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA });
-      return Response.json({ ok: true, tanlovlar: tanlovlarniTekshir(parse(r.text), sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+      const tanlovlar = tanlovlarniTekshir(parse(r.text), sorovlar);
+      const xom = sess.rol === 'superadmin' && tanlovlar.every(x => !x.ishId) ? r.text.slice(0, 2000) : undefined;
+      return Response.json({ ok: true, tanlovlar, model: r.model, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     return fail('AMAL_INVALID');
   } catch (e) {

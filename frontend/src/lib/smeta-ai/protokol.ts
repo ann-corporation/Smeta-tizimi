@@ -75,11 +75,16 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
 
 /** A choice survives only if it names one of the candidates the browser sent for that intent. */
 export function tanlovlarniTekshir(raw: unknown, sorovlar: TanlovSorovi[]): Tanlov[] {
-  const list = Array.isArray((raw as { tanlovlar?: unknown })?.tanlovlar) ? (raw as { tanlovlar: unknown[] }).tanlovlar : [];
-  const by = new Map(list.map(x => { const r = (x ?? {}) as Record<string, unknown>; return [str(r.id, 40), r] as const; }));
+  // Accept the shapes real models produce: { tanlovlar }, { results }, { choices }, a bare array, or nested under javob.
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const inner = o.javob && typeof o.javob === 'object' ? o.javob as Record<string, unknown> : {};
+  const list = (Array.isArray(raw) ? raw : [o.tanlovlar, o.results, o.choices, inner.tanlovlar].find(Array.isArray) ?? []) as unknown[];
+  const by = new Map(list.map(x => { const r = (x ?? {}) as Record<string, unknown>; return [str(r.id ?? r.ish ?? r.key, 40), r] as const; }));
   return sorovlar.map(s => {
     const r = by.get(s.id);
-    const ishId = r && typeof r.ishId === 'string' && s.nomzodlar.some(n => n.id === r.ishId) ? r.ishId : null;
+    const v = r ? str(r.ishId ?? r.tanlov_id ?? r.workId ?? r.tanlov ?? r.chosen, 60) : '';
+    // A model may answer with the normative CODE instead of our id — map it, but only within the given candidates.
+    const ishId = v ? (s.nomzodlar.find(n => n.id === v) ?? s.nomzodlar.find(n => n.kod === v))?.id ?? null : null;
     return { id: s.id, ishId, sabab: str(r?.sabab, 300) || (ishId ? '' : 'Mos normativ ish tanlanmadi') };
   });
 }

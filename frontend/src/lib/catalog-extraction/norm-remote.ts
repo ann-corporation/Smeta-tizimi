@@ -106,6 +106,18 @@ export class RemoteNormCatalog implements NormDetailSource {
     }
     return { rows, total };
   }
+  /** Ranked "any word" search: works scored by how many stems their search key contains (≥ minHits). */
+  searchAny(stems: string[], limit = 30, minHits = 2): NormWork[] {
+    const keys = stems.map(s => qidiruvKaliti(s)).filter(Boolean);
+    if (!keys.length) return [];
+    const need = Math.min(minHits, keys.length);
+    const scored: Array<[number, NormWork]> = [];
+    for (const w of this.worksById.values()) {
+      let h = 0; for (const k of keys) if (w.key.includes(k)) h++;
+      if (h >= need) scored.push([h, w.work]);
+    }
+    return scored.sort((a, b) => b[0] - a[0]).slice(0, limit).map(x => x[1]);
+  }
   /** Loads the sbornik shard for this work (cached, integrity-checked). */
   async load(workId: string): Promise<void> {
     const w = this.worksById.get(workId);
