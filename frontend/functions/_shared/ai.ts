@@ -13,7 +13,10 @@
  *   - modeldan kelgan ichki xato klientga berilmaydi.
  */
 
-export type AiProvider = 'gemini' | 'groq' | 'openai' | 'anthropic';
+export type AiProvider = 'gemini' | 'groq' | 'openai' | 'anthropic' | 'openrouter';
+
+/** Model darajasi: qaysi ish qaysi modelga ketishini SERVER belgilaydi (klient model nomini yubormaydi). */
+export type AiTier = 'fast' | 'coding' | 'reasoning';
 
 export type AiAttachment = {
   mimeType: string;
@@ -33,6 +36,8 @@ export type AiRequest = {
   jsonSchema?: AiJsonSchema;
   temperature?: number;
   maxOutputTokens?: number;
+  /** Berilsa va OpenRouter sozlangan bo'lsa — shu daraja modeli birinchi tanlanadi. */
+  tier?: AiTier;
 };
 
 export type AiUsage = {
@@ -61,11 +66,17 @@ export type AiEnv = {
   GROQ_MODEL?: string;
   OPENAI_MODEL?: string;
   ANTHROPIC_MODEL?: string;
+  /** OpenRouter: bitta kalit orqali ko'p model. Faqat Cloudflare secret; kodda/gitda/frontendda YO'Q. */
+  OPENROUTER_API_KEY?: string;
+  OPENROUTER_MODEL?: string;
+  OPENROUTER_MODEL_FAST?: string;
+  OPENROUTER_MODEL_CODING?: string;
+  OPENROUTER_MODEL_REASONING?: string;
 };
 
 type JsonObject = Record<string, any>;
 
-const PROVIDER_ORDER: AiProvider[] = ['gemini', 'groq', 'openai', 'anthropic'];
+const PROVIDER_ORDER: AiProvider[] = ['gemini', 'groq', 'openai', 'anthropic', 'openrouter'];
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 const DEFAULT_MODELS: Record<AiProvider, string> = {
@@ -73,6 +84,7 @@ const DEFAULT_MODELS: Record<AiProvider, string> = {
   groq: 'llama-3.3-70b-versatile',
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-latest',
+  openrouter: 'openrouter/auto',
 };
 
 const ENV_KEY: Record<AiProvider, keyof AiEnv> = {
@@ -80,6 +92,7 @@ const ENV_KEY: Record<AiProvider, keyof AiEnv> = {
   groq: 'GROQ_API_KEY',
   openai: 'OPENAI_API_KEY',
   anthropic: 'ANTHROPIC_API_KEY',
+  openrouter: 'OPENROUTER_API_KEY',
 };
 
 const ENV_MODEL: Record<AiProvider, keyof AiEnv> = {
@@ -87,6 +100,13 @@ const ENV_MODEL: Record<AiProvider, keyof AiEnv> = {
   groq: 'GROQ_MODEL',
   openai: 'OPENAI_MODEL',
   anthropic: 'ANTHROPIC_MODEL',
+  openrouter: 'OPENROUTER_MODEL',
+};
+
+const ENV_TIER_MODEL: Record<AiTier, keyof AiEnv> = {
+  fast: 'OPENROUTER_MODEL_FAST',
+  coding: 'OPENROUTER_MODEL_CODING',
+  reasoning: 'OPENROUTER_MODEL_REASONING',
 };
 
 export type AiErrorCode =
@@ -119,8 +139,9 @@ function providerFrom(value: string | undefined): AiProvider | null {
   return (PROVIDER_ORDER as string[]).includes(normalized) ? normalized as AiProvider : null;
 }
 
-function modelFor(env: AiEnv, provider: AiProvider): string {
-  const configured = env[ENV_MODEL[provider]];
+function modelFor(env: AiEnv, provider: AiProvider, tier?: AiTier): string {
+  const tierModel = provider === 'openrouter' && tier ? env[ENV_TIER_MODEL[tier]] : undefined;
+  const configured = tierModel || env[ENV_MODEL[provider]];
   return String(configured || DEFAULT_MODELS[provider]).trim();
 }
 
@@ -139,8 +160,10 @@ function supportsAttachment(provider: AiProvider, attachment?: AiAttachment): bo
 
 function candidateProviders(env: AiEnv, request: AiRequest): AiProvider[] {
   const primary = providerFrom(env.AI_PRIMARY_PROVIDER);
-  const order = primary
-    ? [primary, ...PROVIDER_ORDER.filter((provider) => provider !== primary)]
+  /* tier berilgan so'rovda OpenRouter (sozlangan bo'lsa) birinchi: daraja → model xaritasi shu yerda. */
+  const first = request.tier && !primary ? 'openrouter' : primary;
+  const order = first
+    ? [first, ...PROVIDER_ORDER.filter((provider) => provider !== first)]
     : PROVIDER_ORDER;
   return order.filter((provider) => keyFor(env, provider) && supportsAttachment(provider, request.attachment));
 }
@@ -190,7 +213,7 @@ async function providerFetch(
   maxRetryDelayMs: number,
 ): Promise<{ body: JsonObject; headers: Headers }> {
   const key = keyFor(env, provider);
-  const model = modelFor(env, provider);
+  const model = modelFor(env, provider, request.tier);
   const payload = providerPayload(provider, model, request);
   const prepared = providerInit(provider, key, model, payload);
   let lastStatus = 0;
@@ -222,6 +245,7 @@ async function providerFetch(
 function providerUrl(provider: AiProvider): string {
   if (provider === 'gemini') return 'https://generativelanguage.googleapis.com/v1beta/models';
   if (provider === 'groq') return 'https://api.groq.com/openai/v1/chat/completions';
+  if (provider === 'openrouter') return 'https://openrouter.ai/api/v1/chat/completions';
   if (provider === 'openai') return 'https://api.openai.com/v1/responses';
   return 'https://api.anthropic.com/v1/messages';
 }
@@ -323,6 +347,7 @@ function providerInit(
     headers['anthropic-version'] = '2023-06-01';
   } else {
     headers.Authorization = 'Bearer ' + key;
+    if (provider === 'openrouter') headers['X-Title'] = 'Smeta-tizimi';
   }
   return { url, init: { method: 'POST', headers, body: JSON.stringify(payload) } };
 }
@@ -362,13 +387,14 @@ function textFromProvider(provider: AiProvider, body: JsonObject): { text: strin
     : Array.isArray(content)
       ? content.map((part: JsonObject) => String(part.text || '')).join('').trim()
       : '';
-  return { text, usage: usageFrom(body.usage, 'groq') };
+  return { text, usage: usageFrom(body.usage, provider) };
 }
 
 function usageFrom(usage: JsonObject | undefined, provider: AiProvider): AiUsage | undefined {
   if (!usage) return undefined;
-  const input = provider === 'gemini' ? usage.promptTokenCount : usage.input_tokens;
-  const output = provider === 'gemini' ? usage.candidatesTokenCount : usage.output_tokens;
+  /* OpenAI-mos chat (groq/openrouter) prompt_tokens/completion_tokens qaytaradi. */
+  const input = provider === 'gemini' ? usage.promptTokenCount : usage.input_tokens ?? usage.prompt_tokens;
+  const output = provider === 'gemini' ? usage.candidatesTokenCount : usage.output_tokens ?? usage.completion_tokens;
   const total = provider === 'gemini' ? usage.totalTokenCount : usage.total_tokens;
   return {
     inputTokens: Number.isFinite(Number(input)) ? Number(input) : undefined,
@@ -451,7 +477,7 @@ export async function aiCall(env: AiEnv, request: AiRequest): Promise<AiResponse
 
   for (const provider of providers) {
     try {
-      const model = modelFor(env, provider);
+      const model = modelFor(env, provider, request.tier);
       const { body } = await providerFetch(provider, env, { ...request, text }, timeoutMs, maxRetries, maxRetryDelayMs);
       const parsed = textFromProvider(provider, body);
       if (!parsed.text) throw new AiGatewayError('invalid_response', 'AI bo\'sh javob qaytardi');
