@@ -814,7 +814,6 @@
   "Katalogda mos narx topilmadi": "No matching price found in the catalogue",
   "Katalogdan narx topish": "Find price in catalogue",
   "Ko‘rib chiqish kerak: {n} ta resurs": "Needs review: {n} resources",
-  "LRV + Ведомость + Свод (Excel)": "LRV + Resource statement + Summary (Excel)",
   "Narx katalogi ochilmadi": "The price catalogue could not be opened",
   "Narx katalogi yuklanmoqda...": "Loading the price catalogue...",
   "Narx katalogi: {n} qator": "Price catalogue: {n} rows",
@@ -902,5 +901,6 @@
   "xavf": "risk",
   "Ijrochiga yuborish": "Send to executor",
   "Tizim (platforma)": "System (platform)",
-  "PR": "PR"
+  "PR": "PR",
+  "LRV + RES (Excel)": "LRV + RES (Excel)"
 }

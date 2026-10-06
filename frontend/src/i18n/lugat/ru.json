@@ -814,7 +814,6 @@
   "Katalogda mos narx topilmadi": "В каталоге подходящая цена не найдена",
   "Katalogdan narx topish": "Найти цену в каталоге",
   "Ko‘rib chiqish kerak: {n} ta resurs": "Требуют проверки: {n} ресурсов",
-  "LRV + Ведомость + Свод (Excel)": "ЛРВ + Ведомость + Свод (Excel)",
   "Narx katalogi ochilmadi": "Каталог цен не открылся",
   "Narx katalogi yuklanmoqda...": "Загружается каталог цен...",
   "Narx katalogi: {n} qator": "Каталог цен: {n} строк",
@@ -902,5 +901,6 @@
   "xavf": "риск",
   "Ijrochiga yuborish": "Отправить исполнителю",
   "Tizim (platforma)": "Система (платформа)",
-  "PR": "PR"
+  "PR": "PR",
+  "LRV + RES (Excel)": "ЛРВ + RES (Excel)"
 }

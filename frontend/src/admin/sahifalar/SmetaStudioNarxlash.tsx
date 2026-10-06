@@ -8,7 +8,7 @@
  *   2. Noaniqlar ro'yxati: eng yaxshi nomzodlar, bir bosishda qo'yish yoki boshqasini tanlash.
  *   3. AI agent (/api/smeta-narx-agent): faqat server tasdiqlagan nomzodlar ichidan tanlaydi, sababini yozadi;
  *      operator qabul qiladi (DB yozuvi yo'q).
- *   4. Hujjatlar: LRV + Ведомость ресурсов + Свод + pivot (mavjud lrv-hujjat dvigateli).
+ *   4. Hujjatlar: LRV + RES ABC/TN dasturlari shaklida (lib/smeta-studio/abc-hujjat), tirik formulalar.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
@@ -19,7 +19,7 @@ import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { autoPrice, matchResource, type AutoPriceLine } from '../../lib/smeta-studio/resource-match';
 import { priceCommand } from '../../lib/smeta-studio/price-lookup';
-import { resourceCategory, studioToRows } from '../../lib/smeta-studio/export-adapter';
+import { resourceCategory } from '../../lib/smeta-studio/export-adapter';
 import { resourceUnitText } from '../../lib/smeta-studio/resource-units';
 import { narxAgentSora, type AgentResult } from '../../api/smeta-narx-agent';
 import type { KatalogSnapshot } from '../../../functions/_shared/narx-katalog-snapshot';
@@ -138,8 +138,9 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
 
   async function lrvYukla() {
     try {
-      const { lrvHujjat } = await import('../../lib/lrv-hujjat');
-      const r = lrvHujjat(studioToRows(doc, hisob, unitText), [], { obyektNom: doc.context.objectLabel || doc.context.title || t('Smeta qoralamasi') });
+      // ABC/TN shape (owner: "study LRV and RES from real smetas"): LRV + RES, live formulas.
+      const { abcHujjat } = await import('../../lib/smeta-studio/abc-hujjat');
+      const r = abcHujjat(doc, hisob, unitText, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null });
       const url = URL.createObjectURL(new Blob([r.bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const a = document.createElement('a'); a.href = url; a.download = r.faylNomi; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (e) {
@@ -161,7 +162,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={holat !== 'tayyor' || !pending.length} onClick={() => narxla(pending, t('Qayta tekshiruv'))}>
         {t('Narxsizlarni katalogdan topish ({n})', { n: pending.length })}</button>
       <span className="flex-1" />
-      <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!Object.keys(doc.occurrences).length} onClick={() => void lrvYukla()}>{t('LRV + Ведомость + Свод (Excel)')}</button>
+      <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!Object.keys(doc.occurrences).length} onClick={() => void lrvYukla()}>{t('LRV + RES (Excel)')}</button>
     </div>
     {xabar && <p role="status" className="text-xs text-accent">{xabar}</p>}
     {ishMashina > 0 && <p className="text-xs text-text-mute">{t('Mehnat va mashina resurslari ({n}) material katalogidan narxlanmaydi — ular hudud chel.-soat / mash.-soat stavkasidan olinadi.', { n: ishMashina })}</p>}
