@@ -89,3 +89,30 @@ R2 publication VERIFIED: `smeta-tizimi-canonical` bucket,
 Receipt local outputdagi `R2_RECEIPT.json`; websiteIntegrated=false,
 activePointerChanged=false. Obsidian binding:
 `NORM_SUGGESTION_DATABASE_2026-10-06_CODEX.md`.
+
+## Mashina-soat: egasi belgilagan yagona narx siyosati (2026-10-06)
+
+`ops/catalog-hierarchy/machine-price-max.mjs`: `MAX_PER_EXACT_MACHINE`.
+2023/2025 manbalardagi aynan bir xil texnikaga bitta eng yuqori narx
+tanlanadi, o'rtacha yoki eng yangi narx emas. Teng narxda yangi manba;
+keyin stable sourceKey tartibi. Pul decimal satrlaridan BigInt orqali
+solishtiriladi, float yoki rounding bilan narx o'zgarmaydi.
+
+Quvvat/model/tonnaj nomdagi raqamlar saqlanadi: 5t/10t/25t bir texnika emas.
+Fuzzy yoki manba qator tartibi identity emas. Faqat tasdiqlangan o'qish,
+manba SHA/page/date, UZS, mash-ch va NDS siz narxlar qabul qilinadi.
+Dalil ichkarida saqlanadi; operatorga har davrdan alohida variant emas,
+bitta maksimal reference offer beriladi. Bu certified F2 narxini
+almashtirish yoki smetani avtomatik qayta narxlash ruxsati emas.
+
+Test: `node --test ops/catalog-hierarchy/machine-price-max.test.mjs`
+12/12 PASS, jumladan 10k source observation, different capacity,
+NULL/zero, unverified OCR, NDS/currency/unit, reorder, exact decimal.
+
+Source PDFlar 36 sahifa render+OCR qilingan. 2023 PDF skan, 2025 text/OCR
+ham ayrim narx raqamlarini to'liq o'qimagan; OCRning o'zi verified=false.
+Shu sabab real katalogning to'liq production importi hali bajarilmadi;
+`readingVerified=true` faqat sahifa dalili bilan tekshirilgan yozuvga
+beriladi. Renderer/OCR scripts repo ichida, original biznes fayllar
+o'zgarmadi. Local source pack:
+`D:/CatalogMigration/outputs/machine-prices-2023-2025-sources-v1`.
