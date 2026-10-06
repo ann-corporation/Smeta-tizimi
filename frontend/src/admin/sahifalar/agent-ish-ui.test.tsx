@@ -2,12 +2,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
-  toast: vi.fn(), modellarOl: vi.fn(), modelTanla: vi.fn(), modelKatalogYoz: vi.fn(),
+  toast: vi.fn(), modellarOl: vi.fn(), modelTanla: vi.fn(),
   takliflarOl: vi.fn(), taklifQarori: vi.fn(), buyruqlarOl: vi.fn(), buyruqYubor: vi.fn(), rivojlanishTahlil: vi.fn(),
 }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../api/t2-agent-ish', () => ({
-  modellarOl: m.modellarOl, modelTanla: m.modelTanla, modelKatalogYoz: m.modelKatalogYoz, takliflarOl: m.takliflarOl, taklifQarori: m.taklifQarori,
+  modellarOl: m.modellarOl, modelTanla: m.modelTanla, takliflarOl: m.takliflarOl, taklifQarori: m.taklifQarori,
   buyruqlarOl: m.buyruqlarOl, buyruqYubor: m.buyruqYubor, rivojlanishTahlil: m.rivojlanishTahlil,
 }));
 
@@ -40,16 +40,7 @@ describe('AgentModellar', () => {
     expect(screen.queryByLabelText(/Hujjat nazorati/)).toBeNull();
   });
 
-  it('tizim doirasida katalogga model qo‘shish (kompaniyada bu forma yo‘q)', async () => {
-    m.modellarOl.mockResolvedValue(modellar(true)); m.modelKatalogYoz.mockResolvedValue({ ok: true, natija: {} });
-    const { unmount } = render(<AgentModellar kompaniyaId={5} tizim />);
-    await screen.findByText('Hujjat nazorati');
-    fireEvent.change(screen.getByPlaceholderText('ishlab-chiqaruvchi/model-nomi'), { target: { value: 'vendor/c' } });
-    fireEvent.change(screen.getByPlaceholderText('Ko‘rinadigan nom'), { target: { value: 'Model C' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Katalogga qo‘shish' }));
-    await waitFor(() => expect(m.modelKatalogYoz).toHaveBeenCalledWith({ id: 'vendor/c', nom: 'Model C' }));
-    expect(m.modellarOl).toHaveBeenCalledWith(null);
-    unmount();
+  it('kompaniya sahifasida katalogni boshqarish formasi YO‘Q (u faqat Boshqaruv → AI markazida)', async () => {
     m.modellarOl.mockResolvedValue(modellar(true));
     render(<AgentModellar kompaniyaId={5} tizim={false} />);
     await screen.findByText('Hujjat nazorati');

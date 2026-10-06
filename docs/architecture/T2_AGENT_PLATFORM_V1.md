@@ -75,6 +75,15 @@ quyi agent signali ────────────► t2_agent_signal (toza
 - **Takliflar UI:** `AgentTakliflar` (tasdiq/rad, past xavfda avto-birlashtirish belgisi, ish buyruqlari, ijrochiga yuborish).
 - **Ijrochi workflow:** `.github/workflows/agent-task.yml` — label `agent-task` + `AGENT_EXECUTOR_ENABLED=true` + OWNER/MEMBER/COLLABORATOR muallifi + sarlavha `[agent-task #` bilan boshlanishi; ijrochi modeli OPENROUTER orqali (Anthropic kaliti kerak emas): GitHub secret `OPENROUTER_API_KEY`, o'zgaruvchilar `AGENT_EXECUTOR_ENABLED=true` va `AGENT_EXECUTOR_MODEL`; agent faqat fayl yozadi, git/PR ni workflow qiladi. Birinchi ishga tushirishda Claude Code CLI + OpenRouter ulanishi tekshiriladi (o'chiq turadi).
 
+## AI markazi, xarajat va hisob-kitob (2026-10-06)
+- **Joylashuv:** tizim agentlari va butun AI boshqaruvi — **Boshqaruv paneli → «AI markazi»** (faqat superadmin): Umumiy ko'rinish (tayyorlik ro'yxati), Agentlar va modellar (galereya, narxlar), Takliflar va ishlar, O'rganish, Qoidalar va manbalar, Xarajat va limit. Kompaniya sahifasida (`/admin/ai-agentlar`) tizim agentlari YO'Q: faqat kompaniya agentlari va «AI sozlamalari».
+- **Limit yo'q = AI yo'q:** `t2_agent_byudjet` da platforma oylik limiti (USD) belgilanmasa yoki tugasa — model chaqirilmaydi. Kill-switch: limitni nofaol qilish. Kompaniya limiti ham mumkin.
+- **Sarf jurnali:** `t2_agent_sarf` — har chaqiruv: model, token, haqiqiy narx (OpenRouter `usage.cost`; bo'lmasa katalog narxi; bo'lmasa «narxsiz» deb belgilanadi).
+- **Ustama va token:** mijoz narxi = provayder sarfi × (1 + ustama%) → × `usd_kurs` → / `token_som` → kompaniya hamyonidan `t2_token_harakat` (amal `ai_sarf`, meta: tannarx, ustama, kurs). **Misol: provayder $5 → ustama 40% → $7.00 → 889 token** (kurs 12 700, 1 token = 100 so'm). Ustama: platforma standarti (`t2_token_sozlama.ai_ustama_foiz`) + kompaniyaga alohida (`t2_agent_ustama`). Tizim agentlari sarfi kompaniyaga yozilmaydi (platforma xarajati).
+- **Ko'rinish chegarasi:** kompaniya faqat TOKEN sarfini va balansini ko'radi — tannarx, ustama va USD ko'rinmaydi; superadmin tannarx / hisoblangan / **foyda**ni ko'radi.
+- **Kompaniya admini sozlamalari (`t2_agent_kompaniya_sozlama`):** AI yoqish/o'chirish, oylik token limiti, a'zolar uchun AI kuzatuviga ruxsat — admin/boss/director o'zgartiradi, hamma ko'radi; `sarf_tekshir` majburan qo'llaydi; audit yoziladi.
+- Sinov: `t2_agent_sarf_byudjet_contract.sql` 23/23, `t2_agent_hisob_ustama_contract.sql` 18/18, `t2_agent_kompaniya_sozlama_contract.sql` 13/13; gateway + UI testlari.
+
 ## Ochiq qarorlar (egasi)
 
 - Cloudflare Pages'ga `OPENROUTER_API_KEY` ni **egasi o'zi** qo'yadi (Production + Preview); aniq 3 daraja uchun model nomlari.

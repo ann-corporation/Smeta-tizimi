@@ -71,7 +71,7 @@ export function AgentTakliflar({ kompaniyaId, tizim }: { kompaniyaId: number | n
       {!xato && royxat.length === 0 && <p className="text-xs text-text-dim">{t('Tasdiq kutayotgan taklif yo‘q')}</p>}
       <ul className="space-y-2">
         {royxat.map((x) => (
-          <li key={x.id} className="space-y-1.5 rounded-lg border border-border bg-surface p-3">
+          <li key={x.id} className="karta space-y-1.5 p-3">
             <div className="flex items-center gap-2"><span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-accent">{t(TUR[x.tur] ?? x.tur)}</span><span className="text-sm font-medium">{x.sarlavha}</span></div>
             <Tafsilot t={x} />
             <div className="flex flex-wrap items-center gap-2">
@@ -79,8 +79,8 @@ export function AgentTakliflar({ kompaniyaId, tizim }: { kompaniyaId: number | n
               {x.tur === 'rivojlanish' && x.doira === 'global' && x.mazmun.xavf === 'past' && (
                 <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={avto[x.id] === true} onChange={(e) => setAvto((p) => ({ ...p, [x.id]: e.target.checked }))} />{t('CI yashil bo‘lsa avto-birlashtirish')}</label>
               )}
-              <button type="button" onClick={() => void qaror(x, 'tasdiqlash')} className="rounded-md bg-accent px-3 py-1 text-xs text-white">{t('Tasdiqlash')}</button>
-              <button type="button" onClick={() => void qaror(x, 'rad')} className="rounded-md border border-border px-3 py-1 text-xs hover:bg-white/5">{t('Rad etish')}</button>
+              <button type="button" onClick={() => void qaror(x, 'tasdiqlash')} className="tugma-asosiy h-7 px-3 text-[12px]">{t('Tasdiqlash')}</button>
+              <button type="button" onClick={() => void qaror(x, 'rad')} className="tugma h-7 px-3 text-[12px]">{t('Rad etish')}</button>
             </div>
           </li>
         ))}
@@ -90,7 +90,7 @@ export function AgentTakliflar({ kompaniyaId, tizim }: { kompaniyaId: number | n
           <h3 className="text-xs font-semibold text-text-dim">{t('Ish buyruqlari')}</h3>
           <ul className="space-y-1.5">
             {buyruqlar.map((b) => (
-              <li key={b.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs">
+              <li key={b.id} className="karta flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
                 <span className="font-medium">#{b.id} {b.sarlavha}</span>
                 <span className="rounded bg-surface-2 px-1.5 py-0.5">{t(HOLAT[b.holat] ?? b.holat)}</span>
                 <span className="text-text-mute">{t('xavf')}: {b.xavf}{b.avto_birlashtirish ? ' · auto' : ''}</span>
