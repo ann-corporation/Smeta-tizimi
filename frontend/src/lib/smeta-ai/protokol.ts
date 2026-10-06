@@ -45,15 +45,22 @@ const ID = /^[A-Za-z0-9_-]{1,40}$/;
 
 /** Keep only well-formed intents; never trust lengths, ids or units from the model. */
 export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
-  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  // Real models nest the reply ({ javob: { matn, ishlar } }), rename fields (nom/name for tavsif, works/items for ishlar)
+  // and attach questions per work. Normalise the shape first; validation stays strict on values.
+  const top = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const inner = top.javob && typeof top.javob === 'object' && !Array.isArray(top.javob) ? top.javob as Record<string, unknown> : null;
+  const o: Record<string, unknown> = inner ? { ...top, ...inner, javob: inner.matn ?? inner.javob ?? inner.text ?? '' } : top;
+  const list = [o.ishlar, o.works, o.items, o.ishlar_royxati].find(Array.isArray) as unknown[] | undefined;
+  const extraQ: string[] = [];
   const ishlar: IshNiyati[] = [];
   const seen = new Set<string>();
-  for (const x of Array.isArray(o.ishlar) ? o.ishlar.slice(0, 60) : []) {
+  for (const x of (list ?? []).slice(0, 60)) {
     const r = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
     const id = str(r.id, 40), birlik = birlikNormal(r.birlik);
     if (!ID.test(id) || seen.has(id) || !birlik) continue;
     const qidiruv = (Array.isArray(r.qidiruv) ? r.qidiruv : typeof r.qidiruv === 'string' ? r.qidiruv.split(/[;|]/) : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
-    const tavsif = str(r.tavsif, 300);
+    const tavsif = str(r.tavsif ?? r.nom ?? r.name ?? r.description, 300);
+    for (const q of Array.isArray(r.savollar) ? r.savollar : []) { const t = str(q, 300); if (t && !extraQ.includes(t)) extraQ.push(t); }
     if (!tavsif || !qidiruv.length) continue;
     const h = str(r.holat, 20).toUpperCase();
     const holat = (['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] as const).includes(h as IshHolati) ? h as IshHolati : 'ANIQLASH_KERAK';
@@ -62,7 +69,8 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
     ishlar.push({ id, bolim: str(r.bolim, 120) || 'Asosiy', tavsif, qidiruv, birlik, hajmIfoda: ifoda,
       hajmIzoh: str(r.hajmIzoh, 300) || null, material: str(r.material, 120) || null, holat: ifoda ? holat : holat === 'TAYYOR' ? 'HAJM_KERAK' : holat });
   }
-  return { javob: str(o.javob, 2000) || 'Tushunarli.', savollar: (Array.isArray(o.savollar) ? o.savollar : []).map(q => str(q, 300)).filter(Boolean).slice(0, 5), ishlar };
+  const savollar = [...(Array.isArray(o.savollar) ? o.savollar : []).map(q => str(q, 300)).filter(Boolean), ...extraQ];
+  return { javob: str(o.javob, 2000) || 'Tushunarli.', savollar: [...new Set(savollar)].slice(0, 5), ishlar };
 }
 
 /** A choice survives only if it names one of the candidates the browser sent for that intent. */

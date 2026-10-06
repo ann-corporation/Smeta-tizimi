@@ -76,3 +76,13 @@ describe('smetachi AI — tolerant to real model output', () => {
     expect(r.ishlar.map(i => [i.id, i.birlik, i.hajmIfoda, i.holat])).toEqual([['w1', 'м3', '19.2', 'TAYYOR'], ['w2', 'т', '1,8', 'TAYYOR'], ['w3', 'м2', '2*(12+8)*0,2', 'TAYYOR']]);
   });
 });
+
+describe('smetachi AI — nested model reply shape', () => {
+  it('unwraps { javob: { matn, ishlar } }, accepts nom for tavsif and collects per-work questions', () => {
+    const r = suhbatJavobiniTekshir({ javob: { matn: 'Ishlar aniqlandi', ishlar: [
+      { id: 'w1', nom: 'Разработка грунта в отвал', qidiruv: ['разработка грунта'], birlik: 'м3', hajmIfoda: null, holat: 'HAJM_KERAK', savollar: ['Kotlovan chuqurligi?'] }] } });
+    expect(r.javob).toBe('Ishlar aniqlandi');
+    expect(r.ishlar.map(i => [i.id, i.tavsif, i.holat])).toEqual([['w1', 'Разработка грунта в отвал', 'HAJM_KERAK']]);
+    expect(r.savollar).toEqual(['Kotlovan chuqurligi?']);
+  });
+});
