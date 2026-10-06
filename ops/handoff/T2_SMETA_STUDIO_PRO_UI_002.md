@@ -29,6 +29,37 @@ Egasi talabi Obsidian: `SMETA_STUDIO_PRO_V2_EGASI_TALABI_2026-10-06.md`.
   specifications/normative basis hamda backend command tekshiruvi majburiy.
 - 3 test fayli: hierarchy 13, component 4, substitution 11 = 28 yangi test.
 
+## Davom: tahrirlash ish joyi (2026-10-06)
+
+`EstimateEditingWorkspace.tsx` daraxt + tanlangan ish/resurs inspectorini
+birlashtiradi. Mavjud `StudioCommand` callback yagona yozish yo'li; yangi
+DB/store/endpoint yoki kalkulyator YO'Q. Hajm, bo'lim nomi, ishni ko'chirish,
+narx turi/dalili, katalog nomzodini tanlash, resurs almashtirish va qaytarish
+bor. Miqdor/summa mavjud `calcOccurrence`dan olinadi. Katalog narxini tanlash
+tasdiq emas: dalil kiritilishi shart. Narx qo'lda o'zgarsa catalog ID/dalil
+tozalanadi; almashtirilgan resursga eski katalog narxi tanlanmaydi. Transport
+ustuni avtomatik qo'shilmaydi. Company/object/draft switch inspectorni tozalaydi.
+Bo'lim ko'chirish selecti 50 nomzod bilan cheklangan, lotin/kirill qidiruv bor.
+
+Yangi inspector uchun 8 executable UI test: haqiqiy applyCommand bilan hajm,
+exact summa, narx manbasi, manba o'zgarmasligi, replacement/restore/type gate,
+safe error, tenant switch cleanup va ishni ko'chirish. Umumiy suite 68 test.
+Labels caller tomonidan 4 tilga tarjima qilinadi. Mavjud katalogning nomzod
+resurslari ishlatiladi; butun katalog bo'yicha replacement qidiruvi hali yo'q.
+
+Davom checkpoint tekshiruvi: 7 fayl / **68 test PASS**, `tsc -b`,
+functions type-check, focused oxlint va production build PASS. 30k deep
+`npm run tekshir`, governance va diff-check ham PASS (governance stale main_sha WARN saqlangan).
+presentation testi 239 ms (jsdom/local, browser kafolati emas). Origin/main
+`82d886b` xavfsiz merge qilindi; Claude'ning F2/tomon o'zgarishlari saqlandi.
+
+Claude binding: eski recursive `Bolim/Qator/ResursQator` presentation o'rniga
+`<EstimateEditingWorkspace doc={doc} labels={localizedLabels} command={amal}
+onTargetSection={setNishon} />`. Parentdagi katalog paneli, canonical save,
+autosave, undo/redo va jami saqlanadi. Bir xil command ikki marta bajarilmasin.
+`SmetaStudio.tsx` Claude qulfida: ushbu branch routega ulanmagan. Bu
+SOURCE_READY komponent; productionda foydalanuvchi ko'radi degani emas.
+
 ## Tekshiruv va chegaralar
 
 2026-10-06: yangi va mavjud engine suite birga **60/60 PASS** (6 fayl).
