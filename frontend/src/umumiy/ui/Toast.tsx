@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { t } from '../../i18n/til';
+import { izHodisasiYubor } from '../../lib/agent-faoliyat';
 
 /** Dizayn tokenlariga mos: ok=--ok, warn=--warn, danger=--danger.
  *  ⚠️ 'success' YO'Q — 'ok' ishlating (build yiqiladi). */
@@ -25,6 +26,8 @@ export const toast = (
   davomiylik?: number,
   action?: { label: string; onClick: () => void },
 ) => {
+  /* AI kuzatuvi uchun: xato bo'ldi (MATNSIZ — faqat tur; foydalanuvchi ma'lumoti AI izga tushmaydi). */
+  if (type === 'danger') izHodisasiYubor('xato', 'xato xabari');
   if (toastListener) {
     // Til qoidasi: xabar lug'atda bo'lsa — tanlangan tilda (dinamik xabarlar o'zgarmaydi).
     toastListener({ message: t(message), type, onUndo, davomiylik, action: action && { ...action, label: t(action.label) } });

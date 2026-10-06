@@ -38,12 +38,16 @@ export type AiRequest = {
   maxOutputTokens?: number;
   /** Berilsa va OpenRouter sozlangan bo'lsa — shu daraja modeli birinchi tanlanadi. */
   tier?: AiTier;
+  /** Admin katalogidan tanlangan aniq OpenRouter modeli (faqat openrouter provayderiga ta'sir qiladi; tier dan ustun). */
+  model?: string;
 };
 
 export type AiUsage = {
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
+  /** Provayder qaytargan haqiqiy narx (USD) — OpenRouter `usage.cost`. */
+  cost?: number;
 };
 
 export type AiResponse = {
@@ -139,7 +143,8 @@ function providerFrom(value: string | undefined): AiProvider | null {
   return (PROVIDER_ORDER as string[]).includes(normalized) ? normalized as AiProvider : null;
 }
 
-function modelFor(env: AiEnv, provider: AiProvider, tier?: AiTier): string {
+function modelFor(env: AiEnv, provider: AiProvider, tier?: AiTier, model?: string): string {
+  if (provider === 'openrouter' && model) return model;
   const tierModel = provider === 'openrouter' && tier ? env[ENV_TIER_MODEL[tier]] : undefined;
   const configured = tierModel || env[ENV_MODEL[provider]];
   return String(configured || DEFAULT_MODELS[provider]).trim();
@@ -161,7 +166,7 @@ function supportsAttachment(provider: AiProvider, attachment?: AiAttachment): bo
 function candidateProviders(env: AiEnv, request: AiRequest): AiProvider[] {
   const primary = providerFrom(env.AI_PRIMARY_PROVIDER);
   /* tier berilgan so'rovda OpenRouter (sozlangan bo'lsa) birinchi: daraja → model xaritasi shu yerda. */
-  const first = request.tier && !primary ? 'openrouter' : primary;
+  const first = (request.tier || request.model) && !primary ? 'openrouter' : primary;
   const order = first
     ? [first, ...PROVIDER_ORDER.filter((provider) => provider !== first)]
     : PROVIDER_ORDER;
@@ -213,7 +218,7 @@ async function providerFetch(
   maxRetryDelayMs: number,
 ): Promise<{ body: JsonObject; headers: Headers }> {
   const key = keyFor(env, provider);
-  const model = modelFor(env, provider, request.tier);
+  const model = modelFor(env, provider, request.tier, request.model);
   const payload = providerPayload(provider, model, request);
   const prepared = providerInit(provider, key, model, payload);
   let lastStatus = 0;
@@ -329,6 +334,8 @@ function providerPayload(provider: AiProvider, model: string, request: AiRequest
       { role: 'user', content: request.text + jsonInstruction },
     ],
     ...(request.jsonSchema ? { response_format: { type: 'json_object' } } : {}),
+    /* OpenRouter: javobda haqiqiy narx (usage.cost) — xarajat hisobi uchun. */
+    ...(provider === 'openrouter' ? { usage: { include: true } } : {}),
   };
 }
 
@@ -400,6 +407,7 @@ function usageFrom(usage: JsonObject | undefined, provider: AiProvider): AiUsage
     inputTokens: Number.isFinite(Number(input)) ? Number(input) : undefined,
     outputTokens: Number.isFinite(Number(output)) ? Number(output) : undefined,
     totalTokens: Number.isFinite(Number(total)) ? Number(total) : undefined,
+    cost: provider === 'openrouter' && usage.cost != null && Number.isFinite(Number(usage.cost)) && Number(usage.cost) >= 0 ? Number(usage.cost) : undefined,
   };
 }
 
@@ -477,7 +485,7 @@ export async function aiCall(env: AiEnv, request: AiRequest): Promise<AiResponse
 
   for (const provider of providers) {
     try {
-      const model = modelFor(env, provider, request.tier);
+      const model = modelFor(env, provider, request.tier, request.model);
       const { body } = await providerFetch(provider, env, { ...request, text }, timeoutMs, maxRetries, maxRetryDelayMs);
       const parsed = textFromProvider(provider, body);
       if (!parsed.text) throw new AiGatewayError('invalid_response', 'AI bo\'sh javob qaytardi');

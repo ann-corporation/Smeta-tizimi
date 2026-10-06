@@ -1,10 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Bot, X, Send, User } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Bot, X, Send, User, Eye, EyeOff, Lightbulb } from 'lucide-react';
 import { t2AiJarvisSavol } from '../../api/t2-ai';
 import { jarvisSalomJavobi, jarvisSalommi } from '../../lib/jarvis/intent';
 import ReactMarkdown from 'react-markdown';
 import { t } from '../../i18n/til';
+import { AiFikrPanel } from './AiFikrPanel';
+import { useAiKuzatuv } from './useAiKuzatuv';
+import { yolNaqshi } from '../../lib/agent-faoliyat';
+
+const TAB_USLUB = 'flex-1 px-3 py-2 text-xs font-medium transition-colors';
+
+function saqlanganKompaniya(): number | undefined {
+  try {
+    const n = Number(window.localStorage.getItem('t2_kompaniya_id'));
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+  } catch { return undefined; }
+}
 
 type Message = {
   id: string;
@@ -15,6 +27,9 @@ type Message = {
 
 export function AiHelper() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<'savol' | 'fikr'>('savol');
+  const kuzatuv = useAiKuzatuv(saqlanganKompaniya());
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -73,9 +88,25 @@ export function AiHelper() {
 
   if (location.pathname.startsWith('/boss')) return null;
 
+  /* Proaktiv taklif kartasi: ixtiyoriy — qabul qilish yoki rad etish; hech narsani o'zi bajarmaydi. */
+  const taklifKarta = kuzatuv.taklif ? (
+    <div role="status" className="rounded-xl border border-accent/40 bg-surface-2 p-3 text-sm shadow-lg">
+      <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-accent"><Lightbulb size={14} /> {t('AI taklifi (ixtiyoriy)')}</div>
+      <p className="text-text">{kuzatuv.taklif.taklif}</p>
+      <div className="mt-2 flex gap-2">
+        {kuzatuv.taklif.yol && (
+          <button type="button" className="rounded-md bg-accent px-2.5 py-1 text-xs text-white"
+            onClick={() => { const y = kuzatuv.taklif?.yol; kuzatuv.qabul(); if (y) navigate(y); }}>{t('Ko‘rish')}</button>
+        )}
+        <button type="button" className="rounded-md border border-border px-2.5 py-1 text-xs text-text-dim hover:bg-white/5" onClick={kuzatuv.rad}>{t('Hozir kerak emas')}</button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       {/* Floating Button */}
+      {!isOpen && taklifKarta && <div className="fixed bottom-24 right-6 z-40 w-72">{taklifKarta}</div>}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -108,7 +139,17 @@ export function AiHelper() {
                 </p>
               </div>
             </div>
-            <button 
+            <button
+              type="button"
+              onClick={() => kuzatuv.almashtir(!kuzatuv.yoqilgan)}
+              aria-pressed={kuzatuv.yoqilgan}
+              aria-label={t('AI kuzatuvi')}
+              title={kuzatuv.yoqilgan ? t('AI kuzatuvi yoqilgan: qiyinchilikda taklif beradi (matn o‘qilmaydi)') : t('AI kuzatuvi o‘chiq')}
+              className={`mr-1 rounded p-1 transition-colors hover:bg-white/5 ${kuzatuv.yoqilgan ? 'text-accent' : 'text-text-dim'}`}
+            >
+              {kuzatuv.yoqilgan ? <Eye size={18} /> : <EyeOff size={18} />}
+            </button>
+            <button
               onClick={() => setIsOpen(false)}
               aria-label={t('Yopish')}
               title={t('Yopish')}
@@ -118,6 +159,13 @@ export function AiHelper() {
             </button>
           </div>
 
+          <div className="flex border-b border-border bg-surface" role="tablist">
+            <button type="button" role="tab" aria-selected={tab === 'savol'} className={`${TAB_USLUB} ${tab === 'savol' ? 'border-b-2 border-accent text-white' : 'text-text-dim'}`} onClick={() => setTab('savol')}>{t('Savol')}</button>
+            <button type="button" role="tab" aria-selected={tab === 'fikr'} className={`${TAB_USLUB} ${tab === 'fikr' ? 'border-b-2 border-accent text-white' : 'text-text-dim'}`} onClick={() => setTab('fikr')}>{t('Fikr / muammo')}</button>
+          </div>
+          {taklifKarta && <div className="p-3">{taklifKarta}</div>}
+          {tab === 'fikr' && <AiFikrPanel kompaniyaId={saqlanganKompaniya()} sahifa={yolNaqshi(location.pathname)} />}
+          {tab === 'savol' && (<>
           {/* Jarvis beta only receives the selected Tizim_02 company ID.
               This is intentionally not an object dropdown: an object ID without
               a server-side tenant check could expose another company's data. */}
@@ -200,6 +248,7 @@ export function AiHelper() {
               </span>
             </div>
           </div>
+          </>)}
         </div>
       )}
     </>

@@ -5,7 +5,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Building2, Coins, CreditCard, Crown, FileSearch, Settings, ToggleLeft, Users } from 'lucide-react';
+import { Activity, Bot, Building2, Coins, CreditCard, Crown, FileSearch, Settings, ToggleLeft, Users } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
@@ -15,6 +15,7 @@ import { t } from '../../i18n/til';
 import { boshqaruvOqi, boshqaruvYoz, type BAudit, type BFoydalanuvchi, type BKompaniya, type BTokenDaftar, type BTolov, type BUmumiy } from '../../api/t2-boshqaruv';
 
 const SystemControlPage = lazy(() => import('../pages/SystemControlPage'));
+const AiMarkaz = lazy(() => import('../ai-markaz/AiMarkaz').then((m) => ({ default: m.AiMarkaz })));
 
 const son = (x: number | null | undefined) => (x == null ? '—' : Number(x).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const vaqt = (s: string) => new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
@@ -22,7 +23,7 @@ const ROLLAR = ['superadmin', 'admin', 'boss', 'rahbar', 'bugalter', 'pto', 'pro
 const AMAL_NOMI: Record<string, string> = { smeta_import: 'Smeta import', f2_import: 'F2 import', katalog_import: 'Katalog import', f2_qoralama: 'F2 qoralama', f2_hujjat: 'F2 hujjati', hujjat: 'Hujjat', ai_kirish: 'AI kiruvchi', ai_chiqish: 'AI chiquvchi' };
 const TUR_NOMI: Record<string, string> = { oylik: 'Oylik', toldirish: 'To‘lov', bonus: 'Bonus', sarf: 'Sarf', qaytarish: 'Qaytarish', tuzatish: 'Tuzatish' };
 
-type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'tolovlar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar';
+type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'tolovlar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar' | 'ai';
 const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
   { id: 'umumiy', nom: 'Umumiy', Ikonka: Activity },
   { id: 'foydalanuvchilar', nom: 'Foydalanuvchilar', Ikonka: Users },
@@ -31,6 +32,7 @@ const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
   { id: 'token', nom: 'Token hisobi', Ikonka: Coins },
   { id: 'audit', nom: 'Audit', Ikonka: FileSearch },
   { id: 'sozlamalar', nom: 'Sozlamalar', Ikonka: Settings },
+  { id: 'ai', nom: 'AI markazi', Ikonka: Bot },
   { id: 'funksiyalar', nom: 'Funksiyalar va tizim', Ikonka: ToggleLeft },
 ];
 
@@ -472,7 +474,7 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
 function Funksiyalar() {
   const havolalar = [
     { yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', izoh: 'Barcha sahifalar, ular nimani o‘qiydi/yozadi' },
-    { yol: '/admin/ai-agentlar', nom: 'AI ishchilar', izoh: 'Sifat, narx auditori, ombor agentlari' },
+    { yol: '/admin/ai-agentlar', nom: 'AI ishchilar (kompaniya)', izoh: 'Kompaniya agentlari: ishga tushirish va tasdiq' },
     { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', izoh: 'Har hujjat turining rang mavzusi' },
     { yol: '/admin/storage', nom: 'Fayl saqlash (R2)', izoh: 'Fayllar holati' },
     { yol: '/admin/korzinka', nom: 'Korzinka', izoh: 'O‘chirilganlarni tiklash' },
@@ -519,6 +521,7 @@ export default function BoshqaruvPanel() {
       {bolim === 'token' && <TokenHisobi kompaniyalar={komp.d ?? []} />}
       {bolim === 'audit' && <Audit kompaniyalar={komp.d ?? []} />}
       {bolim === 'sozlamalar' && <Sozlamalar kompaniyaId={joriy?.id ?? null} />}
+      {bolim === 'ai' && <Suspense fallback={<Yuklanmoqda />}><AiMarkaz kompaniyalar={(komp.d ?? []).map((k) => ({ id: k.id, nom: k.nom }))} /></Suspense>}
       {bolim === 'funksiyalar' && <Funksiyalar />}
     </Sahifa>
   );

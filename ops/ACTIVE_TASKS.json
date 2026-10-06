@@ -26,7 +26,11 @@
       "status": "completed",
       "owns": ["frontend/src/components/smeta-studio-pro/", "frontend/src/admin/sahifalar/SmetaStudio.tsx", "frontend/src/admin/sahifalar/SmetaStudio.test.tsx", "frontend/src/i18n/lugat/ru.json", "frontend/src/i18n/lugat/en.json", "ops/ACTIVE_TASKS.json", "ops/handoff/T2_SMETA_STUDIO_PRO_UI_002.md"],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md"
+      ],
       "production_write_allowed": false,
       "_izoh": "2026-10-06: route main'da. Follow-up: yopiq/filterlangan razdelga yangi ish qo'shish reveal+scroll; inline success/error; A→B stale detail guard; 8053 yozuvda ish nomlari saqlangan, BOOK linkage 1128 missing+70 ambiguous. 12 fayl/106 test, build/functions/tekshir/lint/governance/diff PASS. Deployment SHA Obsidian jurnalida. Authenticated owner smoke UNKNOWN; engine/backend truth o'zgarmadi."
     },
@@ -1977,7 +1981,11 @@
         "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.rollback.sql",
         "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.acceptance.sql",
         "ops/handoff/T2_UNIVERSAL_SMETA_STUDIO_001.md",
-        "ops/sql/T2_BAZA_IXCHAMLASH_20261005.sql"
+        "ops/sql/T2_BAZA_IXCHAMLASH_20261005.sql",
+        "frontend/src/admin/sahifalar/SmetaStudioNarxlash.tsx",
+        "frontend/functions/api/smeta-narx-agent.ts",
+        "frontend/functions/api/smeta-narx-agent.test.ts",
+        "frontend/src/api/smeta-narx-agent.ts"
       ],
       "depends_on": [],
       "must_read": [
@@ -1987,7 +1995,8 @@
         "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi. 2026-10-06: t2_smeta_studio_qoralama_v1 production ga qo‘llandi (shadow 11/11)."
+      "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi. 2026-10-06: t2_smeta_studio_qoralama_v1 production ga qo‘llandi (shadow 11/11).",
+      "note": "2026-10-06: T2-SMETA-NARX-AGENT-001 — xarakteristika bo‘yicha avto-narx (resource-match), AI narx agenti (/api/smeta-narx-agent, faqat taklif), LRV+Ведомость+Свод eksporti, chuqur bo‘limlar/BATCH/copy-on-write undo."
     },
     {
       "id": "T2-NARX-KATALOG-R2-001",
@@ -2057,7 +2066,28 @@
         "frontend/functions/_shared/agent-veb*.ts",
         "frontend/functions/_shared/agent-prompt.ts",
         "frontend/functions/_shared/ai-openrouter.test.ts",
-        "docs/architecture/T2_AGENT_PLATFORM_V1.md"
+        "docs/architecture/T2_AGENT_PLATFORM_V1.md",
+        "supabase/migrations/20261106270000_t2_agent_oqish_buyruq_v1*.sql",
+        "supabase/tests/t2_agent_oqish_buyruq_contract.sql",
+        "supabase/migrations/20261106280000_t2_agent_model_registri_v1*.sql",
+        "supabase/tests/t2_agent_model_registri_contract.sql",
+        ".github/workflows/agent-task.yml",
+        "frontend/src/api/t2-agent-ish.ts",
+        "frontend/src/lib/agent-faoliyat*.ts",
+        "frontend/src/umumiy/ui/AiFikrPanel.tsx",
+        "frontend/src/umumiy/ui/useAiKuzatuv.ts",
+        "frontend/src/umumiy/ui/ai-kuzatuv.test.tsx",
+        "frontend/src/admin/sahifalar/Agent*.tsx",
+        "frontend/src/admin/sahifalar/agent-ish-ui.test.tsx",
+        "supabase/migrations/20261106290000_t2_agent_sarf_byudjet_v1*.sql",
+        "supabase/migrations/20261106300000_t2_agent_hisob_ustama_v1*.sql",
+        "supabase/migrations/20261106310000_t2_agent_kompaniya_sozlama_v1*.sql",
+        "supabase/tests/t2_agent_sarf_byudjet_contract.sql",
+        "supabase/tests/t2_agent_hisob_ustama_contract.sql",
+        "supabase/tests/t2_agent_kompaniya_sozlama_contract.sql",
+        "frontend/src/admin/ai-markaz/**",
+        "frontend/src/admin/sahifalar/AgentKompaniyaSozlama.tsx",
+        "frontend/src/admin/sahifalar/agent-kompaniya-sozlama.test.tsx"
       ],
       "depends_on": [],
       "must_read": [
@@ -2066,7 +2096,7 @@
         "ops/handoff/T2_ZAKAZCHIK_TOMON_001.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Egasi qoidasi 2026-10-05: o‘zgaruvchan ma’lumot — Supabase, o‘zgarmas — R2. Tomon jadvallari (aloqa/grant/taqdim holati) o‘zgaruvchan → Supabase; F2 qatorlari NUSXALANMAYDI (o‘zgarmas tasdiqlangan aktdan o‘qiladi), hujjat nusxasi R2 reyestridan (t2_document_registry). /api/sb va /api/sb-yoz izolyatsiyasiga TEGILMAYDI — kompaniyalararo ko‘rinish faqat alohida tomon.ts shlyuzi orqali. Umumiy (egasiz) fayllarga faqat additiv tegiladi: AdminShell.tsx (menyu guruhi), App.tsx (marshrutlar), i18n lugat ru/en (yangi kalitlar), sayt-xaritasi/generated.ts (regeneratsiya). Prod bazaga migratsiya 20261106200000 qo‘llangan (rollback-sinovli, 53/53). 2026-10-06: R2 takrorlanishini to‘xtatish — t2_document_canonical_reserve_v1 ga sha256 dedupe (shu kompaniya+loyiha+obyekt+tur+revision da bir xil mazmun qayta saqlanmaydi) va F2 importda «tizimdagi F2 fayldan tanlash». 2026-10-06: umumiy MUROJAAT primitivi (remark/predpisaniya/ekspertiza/mualliflik/savol/sinov so‘rovi/yetkazish talabi): t2_tomon_murojaat*, /admin/murojaatlar; dalil — R2 reyestridan. 2026-10-06: ROL asosidagi loyiha/shartnoma tahriri (t2_loyiha_yarat/yangila/ochir, t2_shartnoma_ochir endi p_actor_id + _t2_tahrir_rol_ok) va avtomatik «Umumiy» loyiha (t2_loyiha_umumiy_v1 via /api/tomon). sb-yoz.ts faqat p_actor_id qo‘shildi. 2026-10-06: AGENT ISH MUHITI (qoida yadro/tizim/kompaniya, xotira, tasdiqlangan veb-manbalar, takliflar→admin tasdig‘i) + OpenRouter tier; /api/agent-ish (AGENT_ISH_YOQILGAN=1 bilan yoqiladi). _shared/ai.ts ga faqat additiv."
+      "_izoh": "Egasi qoidasi 2026-10-05: o‘zgaruvchan ma’lumot — Supabase, o‘zgarmas — R2. Tomon jadvallari (aloqa/grant/taqdim holati) o‘zgaruvchan → Supabase; F2 qatorlari NUSXALANMAYDI (o‘zgarmas tasdiqlangan aktdan o‘qiladi), hujjat nusxasi R2 reyestridan (t2_document_registry). /api/sb va /api/sb-yoz izolyatsiyasiga TEGILMAYDI — kompaniyalararo ko‘rinish faqat alohida tomon.ts shlyuzi orqali. Umumiy (egasiz) fayllarga faqat additiv tegiladi: AdminShell.tsx (menyu guruhi), App.tsx (marshrutlar), i18n lugat ru/en (yangi kalitlar), sayt-xaritasi/generated.ts (regeneratsiya). Prod bazaga migratsiya 20261106200000 qo‘llangan (rollback-sinovli, 53/53). 2026-10-06: R2 takrorlanishini to‘xtatish — t2_document_canonical_reserve_v1 ga sha256 dedupe (shu kompaniya+loyiha+obyekt+tur+revision da bir xil mazmun qayta saqlanmaydi) va F2 importda «tizimdagi F2 fayldan tanlash». 2026-10-06: umumiy MUROJAAT primitivi (remark/predpisaniya/ekspertiza/mualliflik/savol/sinov so‘rovi/yetkazish talabi): t2_tomon_murojaat*, /admin/murojaatlar; dalil — R2 reyestridan. 2026-10-06: ROL asosidagi loyiha/shartnoma tahriri (t2_loyiha_yarat/yangila/ochir, t2_shartnoma_ochir endi p_actor_id + _t2_tahrir_rol_ok) va avtomatik «Umumiy» loyiha (t2_loyiha_umumiy_v1 via /api/tomon). sb-yoz.ts faqat p_actor_id qo‘shildi. 2026-10-06: AGENT ISH MUHITI (qoida yadro/tizim/kompaniya, xotira, tasdiqlangan veb-manbalar, takliflar→admin tasdig‘i) + OpenRouter tier; /api/agent-ish (AGENT_ISH_YOQILGAN=1 bilan yoqiladi). _shared/ai.ts ga faqat additiv. 2026-10-06: O‘RGANISH TSIKLI — fikr/skrinshot (yordamchi), tozalangan signal, rivojlantiruvchi agent taklifi, tasdiq -> ISH BUYRUG‘I (t2_agent_buyruq) -> GitHub issue. 2026-10-06: MODEL REGISTRI (agent->model, katalog faqat superadmin), proaktiv AI kuzatuvi (matnsiz harakat izi, ixtiyoriy), fikr/skrinshot paneli, takliflar/buyruqlar UI, agent-task workflow (o‘chiq, egasi so‘rovi). Umumiy fayllar additiv: AiHelper.tsx, Toast.tsx, AiAgentlar.tsx, ai.ts. 2026-10-06: AI MARKAZI (Boshqaruv paneli, faqat superadmin), AI xarajat nazorati + limit (default-deny), provayder sarfi × ustama → token (kompaniya hamyonidan), kompaniya AI sozlamalari (yoqish/token limiti/kuzatuv). Umumiy fayllar additiv: BoshqaruvPanel.tsx, AiAgentlar.tsx."
     },
     {
       "id": "T2-F2-IMPORT-UX-001",

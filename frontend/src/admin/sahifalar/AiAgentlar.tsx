@@ -14,6 +14,10 @@ import type { AgentControlReadModel } from '../../lib/agent-control-plane';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
 import { toast } from '../../umumiy/ui/Toast';
+import { AgentKompaniyaSozlama } from './AgentKompaniyaSozlama';
+import { t } from '../../i18n/til';
+import { AgentModellar } from './AgentModellar';
+import { AgentTakliflar } from './AgentTakliflar';
 
 /** Ishga tushiriladigan ishchi agentlar (server: functions/api/agent-control.ts ISHCHILAR). */
 const ISHCHILAR = {
@@ -31,6 +35,7 @@ export default function AiAgentlar() {
   const [obyektId, setObyektId] = useState<number | null>(null);
   const [natija, setNatija] = useState<Record<string, unknown> | null>(null);
   const [ishchi, setIshchi] = useState<keyof typeof ISHCHILAR>('quality_handover');
+  /* Platforma/tizim agentlari bu yerda YO'Q — ular Boshqaruv → AI markazi da (faqat superadmin). */
   useEffect(() => {
     if (!joriy?.id) return;
     void sbT2ObyektlarOlKomp(joriy.id).then((r) => { const q = r.ok ? r.qatorlar ?? [] : []; setObyektlar(q); setObyektId(q[0]?.id ?? null); });
@@ -90,6 +95,16 @@ export default function AiAgentlar() {
             <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.yashirin_aktsiz as Array<{ qator_id: number; nom: string; fakt_hajm: number; birlik: string }>).slice(0, 30).map((x) => <li key={x.qator_id}>{x.nom} — {x.fakt_hajm} {x.birlik}</li>)}</ul>
           )}
         </div>
+      )}
+      {joriy?.id && <AgentKompaniyaSozlama kompaniyaId={joriy.id} />}
+      {joriy?.id && (
+        <details className="rounded-lg border border-border bg-surface p-3">
+          <summary className="cursor-pointer text-sm font-medium">{t('Kompaniya AI sozlamalari (admin)')}</summary>
+          <div className="mt-3 space-y-4">
+            <AgentModellar kompaniyaId={joriy.id} tizim={false} />
+            <AgentTakliflar kompaniyaId={joriy.id} tizim={false} />
+          </div>
+        </details>
       )}
       <AgentControlCenter
         data={data} loading={loading} error={error}

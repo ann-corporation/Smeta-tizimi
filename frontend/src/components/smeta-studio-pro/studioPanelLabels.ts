@@ -24,5 +24,7 @@ export function studioPanelLabels(): DocumentPanelLabels {
     documentTitle: t('Smeta nomi'), currency: t('Valyuta'), newSection: t('Yangi bo‘lim nomi'),
     subsection: t('Podrazdel qo‘shish'), targetSection: t('Ish qo‘shiladigan bo‘lim'),
     knownAmount: t('ma’lum qismi'), unresolved: t('hal qilinmagan'),
+    catalogSearch: t('Katalogdan narx topish'), catalogFind: t('Topish'), catalogExact: t('aniq'),
+    catalogNone: t('Katalogda mos narx topilmadi'), catalogLoading: t('Narx katalogi yuklanmoqda...'), catalogUse: t('Qo‘llash'),
   };
 }

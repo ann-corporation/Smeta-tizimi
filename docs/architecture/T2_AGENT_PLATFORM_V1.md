@@ -1,4 +1,4 @@
-# T2 Agent Platform V1 — OpenRouter va boshqa modellar bilan ishlaydigan agentlar
+﻿# T2 Agent Platform V1 — OpenRouter va boshqa modellar bilan ishlaydigan agentlar
 
 Status: DIZAYN + 1-qadam (AI shlyuzida OpenRouter provayderi) · 2026-10-06
 Asos: `T2_AGENT_CONTROL_PLANE_V1.md` (10 profil, run/approval/tool_call jadvallari prod'da bor), `tizim02/AI_AGENT_CONNECTOR.md` (HMAC read-only tool connector), `functions/_shared/ai.ts` (provider-agnostik shlyuz).
@@ -50,8 +50,43 @@ Xaritadagi aniq model nomlarini egasi belgilaydi (OpenRouter narxi/mavjudligi o'
 - **Sinov:** `supabase/tests/t2_agent_ish_muhiti_contract.sql` (rollback; 30/31 + 1 test xatosi tuzatilgan, funksiya tomoni tasdiqlangan), `agent-ish.test.ts`, `agent-veb.test.ts` (SSRF/redirect/prompt-injection to'siqlari).
 - **Hali yo'q:** token hisobi (`t2_token_harakat`) va limit; admin UI (qoida/taklif/manba tasdiqlash sahifasi); `t2_agent_run` bilan bog'lash; fon kuzatuvchi (`t2_job`).
 
+## O'rganish tsikli (2026-10-06) — o'zini rivojlantiradigan tizim
+```
+foydalanuvchi fikri/skrinshoti ─► YORDAMCHI agent (kompaniya doirasi): javob + TOZALANGAN umumiy xulosa
+quyi agent signali ────────────► t2_agent_signal (tozalangan; kompaniya faqat xesh)
+                                   │
+              RIVOJLANTIRUVCHI agent (faqat tizim/superadmin): signallarni guruhlab ≤3 ish taklifi (maqsad, qabul mezonlari, xavf)
+                                   ▼
+                      ADMIN tasdig'i (superadmin) ──► t2_agent_buyruq (navbat)
+                                   ▼
+        buyruq_yubor ──► GitHub issue [agent-task] ──► ijrochi agent: branch + PR + test ──► CI ──► birlashtirish
+```
+- **Tenant xavfsizligi:** global agent HECH QACHON fikr matnini/skrinshotni/kompaniya ID sini ko'rmaydi; faqat `_t2_agent_tozala_v1` dan o'tgan xulosa (kompaniya/obyekt nomi, ≥4 xonali raqam, email, havola, telefon bo'lsa — ULASHILMAYDI, fail-closed) va hisob (nechta signal/kompaniya).
+- **Fikr yo'qolmaydi:** AI ishlamasa ham fikr saqlanadi; kuniga 50 limit; skrinshot R2 reyestridan (o'z kompaniyasi hujjati).
+- **Ish buyrug'i:** global rivojlanish taklifi tasdiqlansa yaratiladi (kompaniya darajasidagi g'oya umumiy kodni o'zgartirmaydi — tozalangan signalga aylanadi). Xavf past bo'lsagina avto-birlashtirish belgilanadi (DB CHECK).
+- **Ijrochi:** buyruq GitHub issue ga aylanadi (`GITHUB_AGENT_TOKEN`, `GITHUB_REPO` — egasi kiritadi). Bajaruvchi: mavjud Claude/Codex sessiyalari yoki GitHub Actions agenti — **egasi qarori** (avtomatik ishga tushadigan workflow xavfsizlik klassifikatori tomonidan rad etildi, egasining aniq ruxsatisiz yaratilmaydi).
+- **Chegara:** agent prod bazaga migratsiya qo'llamaydi, main ga to'g'ridan push qilmaydi; faqat PR.
+- Sinov: `supabase/tests/t2_agent_oqish_buyruq_contract.sql` 25/25, `agent-ish.test.ts` 11.
+
+## Model registri, proaktiv yordam, ijrochi workflow (2026-10-06)
+- **Model registri:** `t2_agent_model_katalog` (faqat superadmin boshqaradi; model id OpenRouter shaklida, regex bilan tekshiriladi) + `t2_agent_model_tanlov` (kompaniya yoki platforma tanlovi). Hal qilish: kompaniya → platforma → server standarti (tier). Kompaniya tizim agentini tanlay olmaydi; tanlash — admin/boss/director. `/admin/ai-agentlar` da har agentning roli, rejimi, doirasi va hozirgi modeli (manbasi bilan) ko'rinadi.
+- **Proaktiv yordam (`qadam_taklif`):** foydalanuvchi AI kuzatuvini O'ZI yoqadi (standart O'CHIQ). Mahalliy harakat izi (≤40 hodisa, xotirada): sahifa naqshi (ID lar `:id`), tugma yorlig'i, xato turi — matn/qiymat, input maydonlari HECH QACHON o'qilmaydi. Model faqat haqiqiy qiyinchilik belgisida (3 xato/90 s, adashish, xatodan keyin qotib qolish) chaqiriladi; taklif ixtiyoriy, bitta, qisqa; rad etilsa sovush 5→10→20… daqiqa (≤2 soat); yo'l faqat `/admin/…`.
+- **Fikr paneli:** AiHelper → «Fikr / muammo» (tur, matn, skrinshot — R2 «Umumiy» loyihaga, tahlil uchun vision model).
+- **Takliflar UI:** `AgentTakliflar` (tasdiq/rad, past xavfda avto-birlashtirish belgisi, ish buyruqlari, ijrochiga yuborish).
+- **Ijrochi workflow:** `.github/workflows/agent-task.yml` — label `agent-task` + `AGENT_EXECUTOR_ENABLED=true` + OWNER/MEMBER/COLLABORATOR muallifi + sarlavha `[agent-task #` bilan boshlanishi; ijrochi modeli OPENROUTER orqali (Anthropic kaliti kerak emas): GitHub secret `OPENROUTER_API_KEY`, o'zgaruvchilar `AGENT_EXECUTOR_ENABLED=true` va `AGENT_EXECUTOR_MODEL`; agent faqat fayl yozadi, git/PR ni workflow qiladi. Birinchi ishga tushirishda Claude Code CLI + OpenRouter ulanishi tekshiriladi (o'chiq turadi).
+
+## AI markazi, xarajat va hisob-kitob (2026-10-06)
+- **Joylashuv:** tizim agentlari va butun AI boshqaruvi — **Boshqaruv paneli → «AI markazi»** (faqat superadmin): Umumiy ko'rinish (tayyorlik ro'yxati), Agentlar va modellar (galereya, narxlar), Takliflar va ishlar, O'rganish, Qoidalar va manbalar, Xarajat va limit. Kompaniya sahifasida (`/admin/ai-agentlar`) tizim agentlari YO'Q: faqat kompaniya agentlari va «AI sozlamalari».
+- **Limit yo'q = AI yo'q:** `t2_agent_byudjet` da platforma oylik limiti (USD) belgilanmasa yoki tugasa — model chaqirilmaydi. Kill-switch: limitni nofaol qilish. Kompaniya limiti ham mumkin.
+- **Sarf jurnali:** `t2_agent_sarf` — har chaqiruv: model, token, haqiqiy narx (OpenRouter `usage.cost`; bo'lmasa katalog narxi; bo'lmasa «narxsiz» deb belgilanadi).
+- **Ustama va token:** mijoz narxi = provayder sarfi × (1 + ustama%) → × `usd_kurs` → / `token_som` → kompaniya hamyonidan `t2_token_harakat` (amal `ai_sarf`, meta: tannarx, ustama, kurs). **Misol: provayder $5 → ustama 40% → $7.00 → 889 token** (kurs 12 700, 1 token = 100 so'm). Ustama: platforma standarti (`t2_token_sozlama.ai_ustama_foiz`) + kompaniyaga alohida (`t2_agent_ustama`). Tizim agentlari sarfi kompaniyaga yozilmaydi (platforma xarajati).
+- **Ko'rinish chegarasi:** kompaniya faqat TOKEN sarfini va balansini ko'radi — tannarx, ustama va USD ko'rinmaydi; superadmin tannarx / hisoblangan / **foyda**ni ko'radi.
+- **Kompaniya admini sozlamalari (`t2_agent_kompaniya_sozlama`):** AI yoqish/o'chirish, oylik token limiti, a'zolar uchun AI kuzatuviga ruxsat — admin/boss/director o'zgartiradi, hamma ko'radi; `sarf_tekshir` majburan qo'llaydi; audit yoziladi.
+- Sinov: `t2_agent_sarf_byudjet_contract.sql` 23/23, `t2_agent_hisob_ustama_contract.sql` 18/18, `t2_agent_kompaniya_sozlama_contract.sql` 13/13; gateway + UI testlari.
+
 ## Ochiq qarorlar (egasi)
 
 - Cloudflare Pages'ga `OPENROUTER_API_KEY` ni **egasi o'zi** qo'yadi (Production + Preview); aniq 3 daraja uchun model nomlari.
 - Kompaniya agentlari uchun xarajat: platforma tokeni (hozirgi `t2_token_*` hamyon) yoki BYOK?
 - Birinchi kompaniya agenti: hujjat nazorati yoki PTO/smeta?
+
