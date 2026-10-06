@@ -128,6 +128,22 @@ describe('agent-ish shlyuzi', () => {
     expect((await post({ amal: 'model_tanla', kompaniya_id: 5, profil: 'BAD PROFIL', model_id: 'a/b' })).status).toBe(400);
   });
 
+  it('AI o‘chiq bo‘lsa ham boshqaruv amallari ishlaydi: model tanlash va fikrni SAQLASH (model chaqirilmaydi)', async () => {
+    const f = vi.fn(async (u: string) => {
+      if (String(u).includes('t2_agent_model_tanla_v1')) return rpcJavob({ ok: true });
+      if (String(u).includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'company', qoidalar: [], xotira: [], manbalar: [] });
+      if (String(u).includes('t2_agent_fikr_yoz_v1')) return rpcJavob({ ok: true, id: 3, ulashildi: false });
+      return new Response('{}', { status: 500 });
+    });
+    vi.stubGlobal('fetch', f);
+    const off = env({ AGENT_ISH_YOQILGAN: undefined, OPENROUTER_API_KEY: 'k' });
+    expect((await post({ amal: 'model_tanla', kompaniya_id: 5, profil: 'document_control', model_id: 'vendor/a' }, off)).status).toBe(200);
+    const r = await post({ amal: 'fikr', kompaniya_id: 5, tur: 'fikr', matn: 'Yaxshi bo‘lardi' }, off);
+    expect(await r.json()).toMatchObject({ ok: true, fikr_id: 3, javob: null });
+    expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai'))).toBe(false);
+    expect((await post({ amal: 'qadam_taklif', kompaniya_id: 5, iz: [] }, off)).status).toBe(503);
+  });
+
   it('noma‘lum amal rad', async () => {
     vi.stubGlobal('fetch', vi.fn());
     expect((await post({ amal: 'sql_yoz' })).status).toBe(400);

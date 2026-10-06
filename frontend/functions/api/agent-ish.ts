@@ -4,7 +4,9 @@
  * Qonunlar: actor HAR DOIM sessiyadan; a'zolik/rol/doira bazada (RPC birinchi qatori); kompaniya_id berilmasa — GLOBAL (tizim)
  * doira, uni faqat platforma superadmini ocha oladi (baza tekshiradi). Model chaqiruvidan OLDIN doira tekshiriladi (ruxsatsizga token sarflanmaydi).
  * Agent biznes jadvalga yozmaydi: natija — javob matni yoki TAKLIF (kutilmoqda). Qoida/manba faqat admin tasdig'idan keyin kuchga kiradi.
- * Funksiya o'chiq turadi: Cloudflare env `AGENT_ISH_YOQILGAN=1` bo'lgandagina ishlaydi (egasi kalitlarni qo'yib yoqadi).
+ * MODEL chaqiradigan amallar (savol, fikr tahlili, qadam_taklif, veb_*, rivojlanish_tahlil) o'chiq turadi: Cloudflare env `AGENT_ISH_YOQILGAN=1`
+ * bo'lgandagina ishlaydi (token hisobi tayyor bo'lgach egasi yoqadi). Boshqaruv amallari (modellar, takliflar, buyruqlar, qoidalar, xotira, fikrni SAQLASH)
+ * model chaqirmaydi — doim ochiq; ruxsatni baza tekshiradi.
  */
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
@@ -38,11 +40,12 @@ async function rpcData(env: Env, nom: string, yuk: Yuk): Promise<RpcNatija> {
 
 /** Admin tanlagan (katalogdagi) model; yo'q bo'lsa server standarti (tier). */
 const modelOf = (m: RpcNatija): string | undefined => (typeof m.data.model === 'string' && m.data.model ? m.data.model : undefined);
+/** Model chaqiradigan (token sarflaydigan) amallar. */
+const AI_AMALLAR = new Set(['savol', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
 async function kirish(ctx: EventContext<Env, string, unknown>): Promise<{ actor: number } | Response> {
-  if (ctx.env.AGENT_ISH_YOQILGAN !== '1') return xato('AI agent muhiti hali yoqilmagan', 503);
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) return xato('Server sozlanmagan', 503);
   const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT).catch(() => null);
   if (!sess) return xato('Kirish talab qilinadi', 401);
@@ -148,6 +151,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (profil && !PROFIL.test(profil)) return xato('profil noto‘g‘ri');
   const amal = String(so.amal || '');
   const env = ctx.env;
+  const aiYoq = env.AGENT_ISH_YOQILGAN === '1';
+  if (AI_AMALLAR.has(amal) && !aiYoq) return xato('AI hali yoqilmagan (token hisobi tayyor bo‘lgach yoqiladi)', 503);
 
   if (amal === 'xotira_yoz') {
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
@@ -227,7 +232,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: 'company_access' });
     if (!m.ok) return chiqar(m);
     let javob: string | null = null; let xulosa: string | null = null;
-    try {
+    if (aiYoq) try {
       const r = await aiCall(env, {
         system: tizimPrompti(m.data as unknown as Muhit, 'company_access') + '\n\nVAZIFA (yordamchi): foydalanuvchining muammo/fikr/etirozini tushun' + (rasm ? ' va skrinshotda ko‘ringan xato yoki holatni tasvirla' : '') + '. "javob" — qisqa, o‘zbekcha: nima bo‘lishi mumkinligi, hozir nima qilish kerakligi va muammo qayd etilgani. "umumiy_xulosa" — BOSHQA kompaniyalarga ham tegishli UMUMIY muammo ta’rifi (≤300 belgi): hech qanday nom, raqam, summa, email, havola, shaxs/obyekt/kompaniya nomisiz.',
         text: 'Tur: ' + tur + '\nSahifa: ' + (qisqa(so.sahifa, 200) || '-') + '\n\n' + tashqiMatnOra('foydalanuvchi-fikri', mt), tier: 'fast', model: modelOf(m), maxOutputTokens: 900, jsonSchema: FIKR_SXEMA, ...(rasm ? { attachment: rasm } : {}),
