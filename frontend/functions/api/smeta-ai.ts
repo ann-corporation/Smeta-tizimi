@@ -66,8 +66,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { system: SMETACHI_TIZIM, text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA });
       const parsed = parse(r.text);
       const out = suhbatJavobiniTekshir(parsed);
-      // Platform superadmin sees the raw model output when nothing usable came back (format diagnostics).
-      const xom = sess.rol === 'superadmin' && (!parsed || !out.ishlar.length) ? r.text.slice(0, 3000) : undefined;
+      // When nothing usable came back, the caller gets the raw model output of THEIR OWN request (format diagnostics).
+      const xom = (!parsed || !out.ishlar.length) ? r.text.slice(0, 3000) : undefined;
       return Response.json({ ok: true, ...out, model: r.model, versiya: SMETACHI_VERSIYA, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'tanla') {
@@ -76,7 +76,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash',
         { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA });
       const tanlovlar = tanlovlarniTekshir(parse(r.text), sorovlar);
-      const xom = sess.rol === 'superadmin' && tanlovlar.every(x => !x.ishId) ? r.text.slice(0, 2000) : undefined;
+      const xom = tanlovlar.every(x => !x.ishId) ? r.text.slice(0, 2000) : undefined;
       return Response.json({ ok: true, tanlovlar, model: r.model, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     return fail('AMAL_INVALID');
