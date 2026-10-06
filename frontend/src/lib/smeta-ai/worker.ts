@@ -63,7 +63,8 @@ export function tizimTanlovi(ish: Pick<AiIsh, 'qidiruv' | 'nomzodlar'>): Tanlang
   if (!top || !ish.qidiruv[0]) return null;
   const stems = ish.qidiruv[0].toLowerCase().split(/\s+/).filter(x => x.length >= 4).map(x => x.slice(0, Math.max(4, x.length - 3)));
   const name = top.nom.toLowerCase();
-  return stems.length && stems.every(st => name.includes(st)) ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: 'tizim tanlovi (nom bo‘yicha eng yaqin) — tekshiring' } : null;
+  // The action must lead the name ("армирование колонн" ≠ "монтаж анкерных колонн ... армирования"; бетонирование ≠ обетонирование).
+  return stems.length && name.startsWith(stems[0]) && stems.every(st => name.includes(st)) ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: 'tizim tanlovi (nom bo‘yicha eng yaqin) — tekshiring' } : null;
 }
 
 export function tanlovSorovi(ish: AiIsh): TanlovSorovi {

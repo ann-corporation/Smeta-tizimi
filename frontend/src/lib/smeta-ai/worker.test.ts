@@ -99,3 +99,14 @@ describe('smetachi AI — tolerant choice and system fallback', () => {
     expect(tizimTanlovi({ qidiruv: ['Бетонирование ленточных фундаментов'], nomzodlar: s[0].nomzodlar })).toBeNull();
   });
 });
+
+describe('smetachi AI — stricter system pick and swapped keys', () => {
+  it('rejects a candidate whose leading action differs (монтаж ... армирования, обетонирование)', () => {
+    expect(tizimTanlovi({ qidiruv: ['Армирование колонн'], nomzodlar: [{ id: 'x', kod: 'E9', nom: 'МОНТАЖ АНКЕРНЫХ КОЛОНН С БАЛКАМИ АРМИРОВАНИЯ', birlik: 'Т' }] })).toBeNull();
+    expect(tizimTanlovi({ qidiruv: ['Бетонирование колонн'], nomzodlar: [{ id: 'y', kod: 'E46', nom: 'ОБЕТОНИРОВАНИЕ КОЛОНН', birlik: '10 М3' }] })).toBeNull();
+  });
+  it('reads the swapped shape { ishId: "w1", tanlov: "<candidate>" }', () => {
+    const s = [{ id: 'w1', tavsif: 't', birlik: 'м3' as const, material: null, nomzodlar: [{ id: '3236270', kod: 'E6-1-1-1', nom: 'n', birlik: '100М3' }] }];
+    expect(tanlovlarniTekshir([{ ishId: 'w1', tanlov: '3236270', sabab: 'ok' }], s)[0].ishId).toBe('3236270');
+  });
+});

@@ -79,7 +79,14 @@ export function tanlovlarniTekshir(raw: unknown, sorovlar: TanlovSorovi[]): Tanl
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const inner = o.javob && typeof o.javob === 'object' ? o.javob as Record<string, unknown> : {};
   const list = (Array.isArray(raw) ? raw : [o.tanlovlar, o.results, o.choices, inner.tanlovlar].find(Array.isArray) ?? []) as unknown[];
-  const by = new Map(list.map(x => { const r = (x ?? {}) as Record<string, unknown>; return [str(r.id ?? r.ish ?? r.key, 40), r] as const; }));
+  const ids = new Set(sorovlar.map(q => q.id));
+  const by = new Map(list.map(x => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    // Some models swap the keys: { ishId: "w1", ... } — treat a request id found under ishId as the row key.
+    const key = str(r.id ?? r.ish ?? r.key, 40) || (ids.has(str(r.ishId, 40)) ? str(r.ishId, 40) : '');
+    const row = !r.id && ids.has(str(r.ishId, 40)) ? { ...r, ishId: r.tanlov ?? r.nomzod ?? r.workId ?? null } : r;
+    return [key, row] as const;
+  }));
   return sorovlar.map(s => {
     const r = by.get(s.id);
     const v = r ? str(r.ishId ?? r.tanlov_id ?? r.workId ?? r.tanlov ?? r.chosen, 60) : '';
