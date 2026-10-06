@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { emptyDoc, normDec, type RecipeSnapshot, type UnitBasis, type WorkSource } from './model';
-import { applyCommand, dispatch, historyOf, redo, undo, type StudioCommand } from './commands';
+import { emptyDoc, normDec, type Occurrence, type RecipeSnapshot, type UnitBasis, type WorkSource } from './model';
+import { applyCommand, dispatch, historyOf, MAX_SECTION_DEPTH, redo, undo, type StudioCommand } from './commands';
 import { calcDoc, calcOccurrence, mulDec } from './calc';
 import { suggestedBasis } from './catalog-bridge';
 
@@ -27,10 +27,10 @@ describe('decimal input', () => {
 });
 
 describe('command layer — sections and occurrences', () => {
-  it('two-level hierarchy; depth limit; non-empty section cannot be removed', () => {
+  it('deep hierarchy up to MAX_SECTION_DEPTH; non-empty section cannot be removed', () => {
     const d = run(...base());
     expect(d.rootOrder).toEqual(['s1']); expect(d.sections.s1.children).toEqual(['s2']);
-    expect(() => applyCommand(d, { type: 'ADD_SECTION', sectionId: 's3', parentId: 's2', name: 'x' })).toThrow('SECTION_DEPTH_LIMIT');
+    expect(applyCommand(d, { type: 'ADD_SECTION', sectionId: 's3', parentId: 's2', name: 'x' }).sections.s2.children).toEqual(['s3']);
     expect(() => applyCommand(d, { type: 'REMOVE_SECTION', sectionId: 's2' })).toThrow('SECTION_NOT_EMPTY');
     expect(() => applyCommand(d, { type: 'ADD_SECTION', sectionId: 's9', parentId: null, name: '  ' })).toThrow('SECTION_NAME_REQUIRED');
   });
@@ -122,5 +122,48 @@ describe('observed unit basis', () => {
       .toMatchObject({ scale: '100', unitLabel: 'м3', origin: 'OBSERVED' });
     expect(suggestedBasis('007', null)).toEqual({ scale: null, unitLabel: null, evidence: null, origin: null });
     expect(suggestedBasis('007', { text: '', scale: null, base: null, observations: 3, status: 'CONFLICT', variants: [] }).scale).toBeNull();
+  });
+});
+
+describe('command layer — deep hierarchy and copy-on-write', () => {
+  const chain = (n: number) => Array.from({ length: n }, (_, i): StudioCommand => ({ type: 'ADD_SECTION', sectionId: 'k' + i, parentId: i ? 'k' + (i - 1) : null, name: 'Daraja ' + (i + 1) }));
+  it('nests to MAX_SECTION_DEPTH and refuses one level more', () => {
+    const d = run(...chain(MAX_SECTION_DEPTH));
+    expect(() => applyCommand(d, { type: 'ADD_SECTION', sectionId: 'x', parentId: 'k' + (MAX_SECTION_DEPTH - 1), name: 'x' })).toThrow('SECTION_DEPTH_LIMIT');
+  });
+  it('MOVE_SECTION re-parents with index; cannot move into own descendant; depth checked for the whole subtree', () => {
+    let d = run(...base(), { type: 'ADD_SECTION', sectionId: 's4', parentId: null, name: 'FM-2' });
+    expect(() => applyCommand(d, { type: 'MOVE_SECTION', sectionId: 's1', parentId: 's2' })).toThrow('SECTION_CYCLE');
+    expect(() => applyCommand(d, { type: 'MOVE_SECTION', sectionId: 's1', parentId: 's1' })).toThrow('SECTION_CYCLE');
+    d = applyCommand(d, { type: 'MOVE_SECTION', sectionId: 's2', parentId: 's4', index: 0 });
+    expect(d.sections.s4.children).toEqual(['s2']); expect(d.sections.s1.children).toEqual([]); expect(d.sections.s2.parentId).toBe('s4');
+    expect(calcDoc(d).sections.s4.knownAmount).toBe(calcDoc(d).sections.s2.knownAmount);
+    d = applyCommand(d, { type: 'MOVE_SECTION', sectionId: 's2', parentId: null, index: 0 });
+    expect(d.rootOrder).toEqual(['s2', 's1', 's4']);
+    const deep = run(...chain(MAX_SECTION_DEPTH - 1), { type: 'ADD_SECTION', sectionId: 'a', parentId: null, name: 'a' }, { type: 'ADD_SECTION', sectionId: 'b', parentId: 'a', name: 'b' });
+    expect(() => applyCommand(deep, { type: 'MOVE_SECTION', sectionId: 'a', parentId: 'k' + (MAX_SECTION_DEPTH - 2) })).toThrow('SECTION_DEPTH_LIMIT');
+  });
+  it('input document is never mutated and untouched entities are shared (cheap undo)', () => {
+    const d = run(...base(), { type: 'ADD_SECTION', sectionId: 's4', parentId: null, name: 'FM-2' });
+    const frozen = JSON.stringify(d);
+    const n = applyCommand(d, { type: 'SET_QUANTITY', occurrenceId: 'o1', quantity: '20' });
+    expect(JSON.stringify(d)).toBe(frozen);
+    expect(n.sections).toBe(d.sections); expect(n.occurrences.o1).not.toBe(d.occurrences.o1);
+    expect(n.occurrences.o1.recipe).toBe(d.occurrences.o1.recipe);
+    const p = applyCommand(n, { type: 'SET_PRICE', occurrenceId: 'o1', recipeId: 'r1', price: { value: '5', basis: 'CONTRACT_DRAFT', evidence: 'x', sourcePriceId: null } });
+    expect(n.occurrences.o1.overrides.r1).toBeUndefined(); expect(p.occurrences.o1.overrides.r1.price?.value).toBe('5');
+    expect(() => applyCommand(d, { type: 'MOVE_OCCURRENCE', occurrenceId: 'o1', sectionId: 's4', index: 5 })).toThrow('INDEX_INVALID');
+    expect(JSON.stringify(d)).toBe(frozen);
+  });
+  it('30k occurrences: 100 edits with history stay fast (no full-document clone)', () => {
+    let d = run({ type: 'ADD_SECTION', sectionId: 'big', parentId: null, name: 'Big' });
+    const sec = d.sections.big; const occ: Record<string, Occurrence> = {};
+    for (let i = 0; i < 30000; i++) occ['o' + i] = { id: 'o' + i, sectionId: 'big', source, quantity: '1', basis, recipe, overrides: {} };
+    d = { ...d, occurrences: occ, sections: { big: { ...sec, items: Object.keys(occ) } } };
+    let h = historyOf(d); const t0 = performance.now();
+    for (let i = 0; i < 100; i++) h = dispatch(h, { type: 'SET_QUANTITY', occurrenceId: 'o' + i, quantity: String(i + 2) });
+    // Wall clock only guards against a full-document clone regression (that took minutes); CI load varies.
+    expect(performance.now() - t0).toBeLessThan(25000);
+    expect(h.past.length).toBe(100); expect(undo(h).present.occurrences.o99.quantity).toBe('1'); expect(h.present.occurrences.o5000).toBe(d.occurrences.o5000);
   });
 });

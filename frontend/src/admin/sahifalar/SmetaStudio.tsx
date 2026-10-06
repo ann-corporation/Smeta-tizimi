@@ -18,6 +18,8 @@ import { saveToServer } from '../../lib/smeta-studio/server-save';
 import { SmetaDocumentPanel } from '../../components/smeta-studio-pro/SmetaDocumentPanel';
 import { studioPanelLabels } from '../../components/smeta-studio-pro/studioPanelLabels';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
+import { HUDUD_KALIT, SmetaNarxlash, lsGet, lsSet, unitTextOf } from './SmetaStudioNarxlash';
 
 const uid = () => crypto.randomUUID();
 
@@ -29,7 +31,8 @@ const XATOLAR: Record<string, string> = {
   PRICE_EVIDENCE_REQUIRED: 'Narx manbasini (hujjat, sana) kiriting.',
   SECTION_NAME_REQUIRED: 'Bo‘lim nomini kiriting.',
   SECTION_NOT_EMPTY: 'Bo‘limda ish yoki podrazdel bor — avval ularni ko‘chiring yoki o‘chiring.',
-  SECTION_DEPTH_LIMIT: 'Podrazdel ichida yana podrazdel ochilmaydi.',
+  SECTION_DEPTH_LIMIT: 'Bo‘limlar 12 darajadan chuqur bo‘lmaydi.',
+  SECTION_CYCLE: 'Bo‘limni o‘z ichidagi podrazdelga ko‘chirib bo‘lmaydi.',
   WORK_AMBIGUOUS: 'Bir shifrga ikki ish yozuvi mos keladi — bu ish hisobga qo‘shilmaydi.',
   RECIPE_LIMIT_REVIEW_REQUIRED: 'Ishda 1000 dan ortiq resurs — alohida ko‘rib chiqish kerak.',
   CONVERSION_EVIDENCE_REQUIRED: 'Birlik o‘tkazish koeffitsienti uchun dalil kiriting.',
@@ -51,6 +54,11 @@ export default function SmetaStudio() {
   const pendingOp = useRef<{ id: string; edits: number; draftId: string } | null>(null);
   const doc = hist.present;
   const hisob = useMemo(() => calcDoc(doc), [doc]);
+  const [narxKat, setNarxKat] = useState<PriceCatalog | null>(null);
+  const [hudud, setHududState] = useState<string>(() => lsGet(HUDUD_KALIT) ?? '');
+  const setHudud = (v: string) => { setHududState(v); lsSet(HUDUD_KALIT, v); };
+  const unitText = useMemo(() => unitTextOf(katalog), [katalog]);
+  useEffect(() => { let alive = true; narxKatalogi().then(c => { if (alive) setNarxKat(c); }).catch(() => {}); return () => { alive = false; }; }, []);
 
   useEffect(() => {
     let alive = true;
@@ -141,8 +149,12 @@ export default function SmetaStudio() {
             } catch (e) { setXato(xatoMatni(e)); return false; }
           }} />}
       </section>
-      <SmetaDocumentPanel doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
-        setTargetSection={setNishon} command={amal} labels={studioPanelLabels()} />
+      <div className="min-w-0 space-y-3">
+        <SmetaNarxlash doc={doc} hisob={hisob} katalog={katalog} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} />
+        <SmetaDocumentPanel doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
+          setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
+          pricing={{ source: narxKat, unitText, region: hudud || null }} />
+      </div>
     </div>
   </div>;
 }
