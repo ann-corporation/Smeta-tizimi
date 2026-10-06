@@ -116,8 +116,8 @@ function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: {
  * sig'sin". Jadval: har ustun alohida katak (chegara bilan), nom o'raladi (qisqartirilmaydi),
  * tor oynada gorizontal aylantiriladi (Excel kabi), sarlavha yopishqoq.
  */
-const F2_GRID = 'grid grid-cols-[30px_minmax(84px,120px)_minmax(260px,1fr)_72px_88px_68px_96px_118px_250px]';
-const S_GRID = 'grid grid-cols-[minmax(84px,120px)_minmax(260px,1fr)_72px_88px_68px_96px_100px_112px]';
+const F2_GRID = 'grid grid-cols-[26px_88px_minmax(180px,1fr)_56px_72px_52px_76px_96px_96px]';
+const S_GRID = 'grid grid-cols-[88px_minmax(180px,1fr)_56px_72px_52px_76px_80px_88px]';
 const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
 /** Amal ustuni gorizontal aylantirishda ham o'ngda ko'rinib turadi (egasi sinovi: tugmalar kesilib qolardi). */
 const AMAL_YOPISHQOQ = 'sticky right-0 z-[1] bg-surface-1 shadow-[-6px_0_6px_-6px_rgba(0,0,0,.6)]';
@@ -519,7 +519,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {k === 'topilmadi' && ish && rzId != null && p.raw.get(rzId) && <button type="button" className={tugma} disabled={p.disabled}
             onClick={() => ochModal(t, { kind: 'additional', parent: p.raw.get(rzId)!, keyinId: oldingiKeyin() })} title="Smetaga qo‘shimcha ish (resurslari bilan) — F2 dagi tartibda, oldingi bog‘langan ishdan keyin">＋ Qo‘shimcha</button>}
           <button type="button" className={tugma} disabled={p.disabled}
-            aria-label={`Bog‘lash variantlari: ${t.nom}`} onClick={() => scrollTanlanganPanelga(t.uid)} title="Mos smeta qatorlari va dalillari"><Link2 size={11} /> {candidateCount ? `Variant ${candidateCount}` : 'Variantlar'}</button>
+            aria-label={`Bog‘lash variantlari: ${t.nom}`} onClick={() => scrollTanlanganPanelga(t.uid)} title={candidateCount ? `Mos smeta qatorlari va dalillari (${candidateCount} ta variant)` : 'Mos smeta qatorlari va dalillari'}><Link2 size={11} /> {candidateCount || ''}</button>
           {k === 'topilmadi' && !ish && tavsiyaS && <button type="button" className={`${tugma} tugma-asosiy`} disabled={p.disabled}
             onClick={() => zamena(t, tavsiyaS)} title={`Smetadagi «${tavsiyaS.nom ?? ''}» o‘rniga (zamena resurs) — aynan uning ortidan joylashadi`}>⇄ Zamena</button>}
           {k === 'topilmadi' && !ish && otaSmetaIsh != null && p.raw.get(otaSmetaIsh) && <button type="button" className={`${tugma} ${tavsiya?.tur === 'qoshimcha' ? 'tugma-asosiy' : ''}`} disabled={p.disabled}
@@ -527,7 +527,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {k === 'topilmadi' && !ish && otaSmetaIsh == null && <button type="button" className={tugma} disabled={p.disabled}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Avval ishini bog‘lang">Tanlash</button>}
           {b && <button type="button" className={tugma} disabled={p.disabled}
-            aria-label={`Bog‘lanishni uzish: ${t.nom}`} onClick={() => p.onIj(uz(ij, t))} title="Bog‘lanishni bekor qilish"><Unlink size={11} /> Uzish</button>}
+            aria-label={`Bog‘lanishni uzish: ${t.nom}`} onClick={() => p.onIj(uz(ij, t))} title="Bog‘lanishni bekor qilish"><Unlink size={11} /></button>}
         </span>
       </div>
     );
@@ -964,7 +964,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           </header>
           <TreeControls depths={f2ExpandableDepths} onOpenAll={f2BarchasiniOch} onCloseAll={f2BarchasiniYop} onToggleDepth={f2Sath} />
           <div ref={f2Quti} className="h-[66vh] overflow-auto">
-            <div className="min-w-[1080px] border-l border-t border-border/70">
+            <div className="min-w-[742px] border-l border-t border-border/70">
             <JadvalSarlavha tur="f2" />
             <div style={{ height: f2Virtual.getTotalSize(), position: 'relative', width: '100%' }}>
               {f2Virtual.getVirtualItems().map((virtualRow) => {
@@ -996,7 +996,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 : 'smeta RESURSIGA (bog‘lash/zamena) yoki ISHIGA (qo‘shimcha resurs) tashlang'}. Punktir ramka — mos joylar.
           </div>}
           <div ref={smetaQuti} className="h-[66vh] overflow-auto" onDragOver={avtoAylantir}>
-            <div className="min-w-[960px] border-l border-t border-border/70">
+            <div className="min-w-[692px] border-l border-t border-border/70">
             <JadvalSarlavha tur="smeta" />
             {qidiruvNatija && !qidiruvNatija.length
               ? <p className="p-2 text-[12px] text-text-mute">Topilmadi.</p>
