@@ -92,7 +92,9 @@ export class PriceCatalog {
   private buildView() {
     const d = this.dict, rows = this.rows;
     return { size: rows.length, name: (i: number) => rows[i][3], unit: (i: number) => at(d.birlik, rows[i][4]),
-      region: (i: number) => at(d.hududKalit, rows[i][6]), price: (i: number) => (rows[i][5] == null ? null : Number(rows[i][5])),
+      region: (i: number) => at(d.hududKalit, rows[i][6]),
+      // Smeta pricing is VAT-free only (owner rule 2026-10-06): a VAT-inclusive row has no usable price here.
+      price: (i: number) => (rows[i][5] == null || at(d.ndsHolati, rows[i][8]) === 'nds_bilan' ? null : Number(rows[i][5])),
       row: (i: number) => this.qator(i) };
   }
 

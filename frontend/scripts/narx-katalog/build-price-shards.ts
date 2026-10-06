@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { PRICE_BUILD_FORMAT, PRICE_SHARD_SCHEMA, buildPriceShards, type ExportRow } from '../../src/lib/narx-katalog/price-shards';
+import { PRICE_BUILD_FORMAT, PRICE_SHARD_SCHEMA, buildPriceShards, smetaNarxlari, type ExportRow } from '../../src/lib/narx-katalog/price-shards';
 
 const [exportPath, manbaPath, outDir] = process.argv.slice(2);
 if (!exportPath || !manbaPath || !outDir) throw new Error('usage: <export.jsonl> <manba.json> <out-dir>');
@@ -24,7 +24,9 @@ const md5 = createHash('md5').update(rows.map(r => [r[0], c(r[6]), c(r[4]), c(r[
 if (md5 !== meta.dbChecksum.md5) throw new Error('DB_CHECKSUM_MISMATCH');
 
 const revision = sha(PRICE_SHARD_SCHEMA + '\nformat:' + PRICE_BUILD_FORMAT + '\n' + sha(exportBytes) + '\n' + sha(JSON.stringify(meta))).slice(0, 16);
-const built = buildPriceShards(rows, meta.manba, meta.hududKalit);
+// Smeta pricing uses VAT-free prices only, each product once (owner rule 2026-10-06).
+const net = smetaNarxlari(rows);
+const built = buildPriceShards(net.rows, meta.manba, meta.hududKalit);
 mkdirSync(outDir, { recursive: true });
 const files: Record<string, { path: string; sha256: string; bytes: number }> = {};
 for (const [path, text] of built.files) {
@@ -36,9 +38,9 @@ for (const [path, text] of built.files) {
 }
 const manifest = { schema: PRICE_SHARD_SCHEMA, revision, status: 'REFERENCE', builtAt: new Date().toISOString(),
   source: { table: 't2_narx_manba_qator', manba: meta.manba, exportSha256: sha(exportBytes), dbChecksum: meta.dbChecksum },
-  counts: built.counts, files: { dict: files['dict.json'], rows: built.rowFiles.map(p => files[p]),
+  counts: { ...built.counts, smetaNarxlari: net.counts }, policy: 'VAT_FREE_ONLY_DEDUPED', files: { dict: files['dict.json'], rows: built.rowFiles.map(p => files[p]),
     lookup: built.lookupFiles.map(l => ({ ...files[l.path], from: l.from, to: l.to })) } };
 const text = JSON.stringify(manifest, null, 1);
 writeFileSync(join(outDir, 'manifest.json'), text, { flag: 'wx' });
 writeFileSync(join(outDir, 'gz', 'manifest.json.gz'), gzipSync(Buffer.from(text, 'utf8'), { level: 9 }), { flag: 'wx' });
-console.info(JSON.stringify({ revision, counts: built.counts, rowFiles: built.rowFiles.length }));
+console.info(JSON.stringify({ revision, counts: built.counts, net: net.counts, rowFiles: built.rowFiles.length }));

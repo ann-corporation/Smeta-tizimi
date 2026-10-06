@@ -8,7 +8,8 @@
 import { birlikKalit, nomKalit } from './kalit';
 
 export const PRICE_SHARD_SCHEMA = 'narx-katalog-shards-v1';
-export const PRICE_BUILD_FORMAT = 2;
+/** 3: smeta-pricing catalogue — VAT-free prices only, exact duplicates collapsed (owner rule 2026-10-06). */
+export const PRICE_BUILD_FORMAT = 3;
 export const PRICE_ROWS_PER_FILE = 25000;
 /** Small id-ordered files for server-side lookup (a Function parses ~100 KB, within the Workers CPU budget). */
 export const PRICE_LOOKUP_ROWS = 1000;
@@ -29,6 +30,42 @@ export type PriceDict = { birlik: string[]; hudud: string[]; hududKalit: Array<s
 class Dict {
   values: string[] = []; private idx = new Map<string, number>();
   add(v: string | null) { if (v == null) return -1; let i = this.idx.get(v); if (i == null) { i = this.values.length; this.values.push(v); this.idx.set(v, i); } return i; }
+}
+
+/**
+ * Owner rule (2026-10-06): "smetani narxlashda har qanday holatda NDS siz narx ishlatiladi".
+ * The source price list repeats every product 3× (identical except the source row number) and again
+ * with VAT (×1.12). For estimating only the VAT-free price is valid, once:
+ *   • keep nds_siz rows; collapse rows identical in every field except id/source row (lowest id kept,
+ *     so existing evidence that cites it still resolves);
+ *   • a VAT-inclusive row with NO VAT-free twin gets a derived net price = price ÷ (1 + rate) from its own
+ *     «НДС n%» note, explicitly marked as derived; without a readable rate it is dropped (counted).
+ */
+export function smetaNarxlari(rows: ExportRow[]) {
+  const header = rows.filter(r => r[18]);
+  const body = [...rows].filter(r => !r[18]).sort((a, b) => a[0] - b[0]);
+  const twinKey = (r: ExportRow) => JSON.stringify([r[3], r[4], r[5], r[7], r[8], r[11], r[12], r[14]]);
+  const fullKey = (r: ExportRow) => JSON.stringify(r.slice(3, 18));
+  const netTwins = new Set(body.filter(r => r[9] === 'nds_siz').map(twinKey));
+  const seen = new Set<string>();
+  const out: ExportRow[] = [];
+  const c = { source: rows.length, headers: header.length, vatRowsDropped: 0, duplicatesCollapsed: 0, derivedNet: 0, unknownVatDropped: 0, nonVatTagged: 0 };
+  for (const r0 of body) {
+    let r = r0;
+    if (r[9] === 'nds_bilan') {
+      if (netTwins.has(twinKey(r))) { c.vatRowsDropped++; continue; }
+      const rate = Number((r[10] ?? '').match(/(\d+(?:[.,]\d+)?)\s*%/)?.[1]?.replace(',', '.'));
+      if (r[6] == null || !Number.isFinite(rate)) { c.unknownVatDropped++; continue; }
+      const net = (Math.round((Number(r[6]) / (1 + rate / 100)) * 100) / 100).toFixed(2).replace(/\.00$/, '');
+      r = [...r] as ExportRow;
+      r[6] = net; r[9] = 'nds_siz'; r[13] = 'nds_siz'; r[10] = `hisoblangan: ${r0[10]} chiqarildi (manba narxi ${r0[6]})`;
+      c.derivedNet++;
+    } else if (r[9] !== 'nds_siz') c.nonVatTagged++;
+    const k = fullKey(r);
+    if (seen.has(k)) { c.duplicatesCollapsed++; continue; }
+    seen.add(k); out.push(r);
+  }
+  return { rows: [...header, ...out], counts: c };
 }
 
 export function buildPriceShards(rows: ExportRow[], manba: PriceManba, hududKalit: Record<string, string | null>) {

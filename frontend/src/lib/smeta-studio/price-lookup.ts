@@ -25,12 +25,12 @@ export function catalogEvidence(k: KatalogQatori): string {
 /** Exact name+unit matches first (same region first), then word search on the name. */
 export function findOffers(src: PriceSource, name: string | null, unit: string | null, region?: string | null, limit = 30): PriceOffer[] {
   const out: PriceOffer[] = [], seen = new Set<number>();
-  const exact = src.aniqMoslik(name, unit).sort((a, b) => Number(b.hudud_kalit === region) - Number(a.hudud_kalit === region));
+  const exact = src.aniqMoslik(name, unit).filter(k => k.nds_holati !== 'nds_bilan').sort((a, b) => Number(b.hudud_kalit === region) - Number(a.hudud_kalit === region));
   for (const row of exact) { seen.add(row.id); out.push({ row, exact: true }); }
   if (name && name.trim().length >= 2) {
     for (const row of src.qidir(name, null, limit * 2)) {
       if (out.length >= limit) break;
-      if (!seen.has(row.id) && row.narx != null) { seen.add(row.id); out.push({ row, exact: false }); }
+      if (!seen.has(row.id) && row.narx != null && row.nds_holati !== 'nds_bilan') { seen.add(row.id); out.push({ row, exact: false }); }
     }
   }
   return out.slice(0, limit);
@@ -38,6 +38,8 @@ export function findOffers(src: PriceSource, name: string | null, unit: string |
 
 export function priceCommand(occurrenceId: string, recipeId: string, k: KatalogQatori): StudioCommand {
   if (k.narx == null) throw new Error('PRICE_INVALID');
+  // Owner rule (2026-10-06): estimates are always priced WITHOUT VAT.
+  if (k.nds_holati === 'nds_bilan') throw new Error('PRICE_VAT_INCLUDED');
   return { type: 'SET_PRICE', occurrenceId, recipeId,
     price: { value: String(k.narx), basis: 'CATALOG_CANDIDATE', evidence: catalogEvidence(k), sourcePriceId: `narx-katalog:${k.id}` } };
 }
@@ -58,7 +60,7 @@ export function bulkProposals(doc: EstimateDoc, calc: DocCalc, src: PriceSource,
     for (const l of calc.occurrences[o.id]?.lines ?? []) {
       if (l.price != null || !l.resource) continue;
       const unit = unitText(l.resource.unitCode);
-      const offers = src.aniqMoslik(l.resource.name, unit);
+      const offers = src.aniqMoslik(l.resource.name, unit).filter(k => k.nds_holati !== 'nds_bilan');
       const regional = region ? offers.filter(k => k.hudud_kalit === region) : [];
       const pick = offers.length === 1 ? offers[0] : regional.length === 1 ? regional[0] : null;
       out.push({ occurrenceId: o.id, recipeId: l.recipeId, resourceName: l.resource.name ?? '', unit, offers,

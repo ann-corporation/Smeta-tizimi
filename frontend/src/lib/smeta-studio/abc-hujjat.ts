@@ -3,8 +3,8 @@
  * (studied from real files, 2026-10-06: «…_ALL_SM.xls» RES / RES_A / LRV, «2061_ALL.xls»):
  *
  *  LRV   — «ЛОКАЛЬНАЯ РЕСУРСНАЯ ВЕДОМОСТЬ»
- *          №№ | ОБОСНОВАНИЕ | НАИМЕНОВАНИЕ РАБОТ И РЕСУРСОВ | ЕД.ИЗМ | КОЛ-ВО (НА ЕДИНИЦУ | ПО ПРОЕКТУ)
- *          [+ СМЕТНАЯ СТОИМОСТЬ (НА ЕДИНИЦУ | ПО ПРОЕКТУ)]. Work row «1» carries its quantity in NORMATIVE
+ *          №№ | ОБОСНОВАНИЕ | НАИМЕНОВАНИЕ РАБОТ И РЕСУРСОВ | ЕД.ИЗМ | КОЛ-ВО (НА ЕДИНИЦУ | ПО ПРОЕКТУ).
+ *          Quantities only — prices live in RES (owner 2026-10-06). Work row «1» carries its quantity in NORMATIVE
  *          units (e.g. 2,5299 × 1000М3) in «НА ЕДИНИЦУ»; resource rows «1.1, 1.2…» carry resource code (KodR),
  *          norm per normative unit and quantity for the project (norm × work quantity). «РАЗДЕЛ: …» rows.
  *  RES   — «ЛОКАЛЬНАЯ РЕСУРСНАЯ СМЕТА»: header block ПРЯМЫЕ ЗАТРАТЫ / в том числе (заработная плата,
@@ -22,7 +22,7 @@ import type { DocCalc, LineCalc } from './calc';
 import type { CatalogResource, EstimateDoc } from './model';
 import { resourceCategory } from './export-adapter';
 
-export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null; narxli?: boolean };
+export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null };
 type UnitText = (code: string | null) => string | null;
 
 const n = (v: string | null | undefined) => (v == null ? null : Number(v));
@@ -45,7 +45,6 @@ const titul = (o: AbcHujjatOpsiya, doc: EstimateDoc) => [
 
 /* ───────────────────────────── LRV ───────────────────────────── */
 function lrvVaraq(doc: EstimateDoc, calc: DocCalc, unitText: UnitText, o: AbcHujjatOpsiya): RasmiyVaraq {
-  const narxli = o.narxli !== false;
   const U: RasmiyUstun[] = [
     { sarlavha: '№№', kenglik: 7, tur: 'tartib' },
     { sarlavha: 'ОБОСНОВАНИЕ', kenglik: 22, tur: 'kod' },
@@ -53,14 +52,10 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, unitText: UnitText, o: AbcHuj
     { sarlavha: 'ЕД.ИЗМ', kenglik: 10, tur: 'birlik' },
     { sarlavha: 'НА ЕДИНИЦУ', kenglik: 12, tur: 'norma', guruh: 'КОЛ-ВО' },
     { sarlavha: 'ПО ПРОЕКТУ', kenglik: 14, tur: 'hajm', guruh: 'КОЛ-ВО' },
-    ...(narxli ? [{ sarlavha: 'НА ЕДИНИЦУ', kenglik: 14, tur: 'narx', guruh: 'СМЕТНАЯ СТОИМОСТЬ, СУМ' } as RasmiyUstun,
-      { sarlavha: 'ПО ПРОЕКТУ', kenglik: 16, tur: 'pul', guruh: 'СМЕТНАЯ СТОИМОСТЬ, СУМ' } as RasmiyUstun] : []),
   ];
   const v = new RasmiyVaraq({ nom: 'LRV', sarlavha: 'ЛОКАЛЬНАЯ РЕСУРСНАЯ ВЕДОМОСТЬ', ostSarlavha: [doc.context.title || ''].filter(Boolean),
     titul: [...titul(o, doc), ['ОСНОВАНИЕ:', o.asos ?? '']], ustunlar: U, yonalish: 'landscape', muzlatUstun: 3, filtr: true });
   let work = 0;
-  const first = v.r;
-  const leafRows: number[] = [];
   const stack = doc.rootOrder.map(id => ({ id, depth: 0 })).reverse();
   while (stack.length) {
     const { id, depth } = stack.pop()!;
@@ -72,29 +67,22 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, unitText: UnitText, o: AbcHuj
       const scale = n(occ.basis.scale), qty = n(occ.quantity);
       const normQty = qty != null && scale ? Math.round((qty / scale) * 1e9) / 1e9 : null;
       const unit = unitText(occ.source.unitCode) ?? occ.basis.unitLabel ?? '';
-      const wr = v.r, a = wr + 1, b = wr + c.lines.length;
-      v.qator('ish', (r): Qiymat[] => [String(work), occ.source.code, occ.source.name ?? '', unit,
-        normQty == null ? null : { n: normQty, uslub: 'norma' }, null,
-        ...(narxli ? [c.lines.length ? { f: `IF(OR(E${r}="",E${r}=0,H${r}=""),"",ROUND(H${r}/E${r},2))`, v: '' } : null,
-          c.lines.length ? { f: blankSum('H', a, b), v: c.amount == null ? '' : Number(c.amount) } : null] : [])], { daraja: depth + 1 });
+      const wr = v.r;
+      v.qator('ish', (): Qiymat[] => [String(work), occ.source.code, occ.source.name ?? '', unit,
+        normQty == null ? null : { n: normQty, uslub: 'norma' }, null], { daraja: depth + 1 });
       c.lines.forEach((l: LineCalc, j) => {
         const sub = occ.overrides[l.recipeId]?.substitution;
         const perUnit = l.norm == null ? null : Number(l.norm) * Number(sub?.conversion ?? '1');
-        const rr = v.qator('oddiy', (r): Qiymat[] => [`${work}.${j + 1}`, idCode(l.resource) ?? l.resource?.code ?? '',
+        v.qator('oddiy', (r): Qiymat[] => [`${work}.${j + 1}`, idCode(l.resource) ?? l.resource?.code ?? '',
           l.resource?.name ?? 'НЕ ОПРЕДЕЛЁН РЕСУРС (ТРЕБУЕТ ВЫБОРА)', unitText(l.resource?.unitCode ?? null) ?? '',
           perUnit == null ? null : { n: perUnit, uslub: 'norma' },
-          l.quantity == null ? null : (normQty != null && perUnit != null ? { f: `ROUND(E${r}*E${wr},6)`, v: n(l.quantity) } : n(l.quantity)),
-          ...(narxli ? [n(l.price), { f: `IF(OR(F${r}="",G${r}=""),"",ROUND(F${r}*G${r},2))`, v: l.amount == null ? '' : Number(l.amount) }] : [])],
+          l.quantity == null ? null : (normQty != null && perUnit != null ? { f: `ROUND(E${r}*E${wr},6)`, v: n(l.quantity) } : n(l.quantity))],
           { daraja: depth + 2, rang: null });
-        leafRows.push(rr);
       });
     }
     for (let i = s.children.length - 1; i >= 0; i--) stack.push({ id: s.children[i], depth: depth + 1 });
   }
   v.filtrOxiri(v.r - 1);
-  if (narxli && leafRows.length) v.qator('vsego', (): Qiymat[] => ['', '', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', '', null, null, null,
-    { f: `IF(COUNTIFS(A${first}:A${v.r - 1},"*.*",H${first}:H${v.r - 1},"")>0,"",SUMIFS(H${first}:H${v.r - 1},A${first}:A${v.r - 1},"*.*"))`,
-      v: calc.total.amount == null ? '' : Number(calc.total.amount) }]);
   return v;
 }
 

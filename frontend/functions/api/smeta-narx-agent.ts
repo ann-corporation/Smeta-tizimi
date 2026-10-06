@@ -40,7 +40,7 @@ export function parseItems(raw: unknown): Item[] | null {
 /** Server-side gate: only candidates that really exist, have a price and pass the characteristic gates. */
 export function allowedCandidates(item: Item, snaps: Map<number, KatalogSnapshot>): KatalogSnapshot[] {
   const src = characteristics(item.nom);
-  return item.nomzodlar.map(id => snaps.get(id)).filter((s): s is KatalogSnapshot => !!s && s.narx != null)
+  return item.nomzodlar.map(id => snaps.get(id)).filter((s): s is KatalogSnapshot => !!s && s.narx != null && s.nds_holati !== 'nds_bilan')
     .filter(s => !gateFailure(src, characteristics(s.nom), item.birlik, s.birlik, normName(s.nom)));
 }
 

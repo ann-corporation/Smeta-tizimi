@@ -43,6 +43,9 @@ describe('ABC-shaped LRV + RES', () => {
     const flat = rows.map(x => x.join('|'));
     expect(flat.some(x => x.includes('ЛОКАЛЬНАЯ РЕСУРСНАЯ ВЕДОМОСТЬ'))).toBe(true);
     expect(flat.some(x => x.startsWith('РАЗДЕЛ: СТЕЛЛА'))).toBe(true);
+    // Owner: LRV carries quantities only — no price columns (prices live in RES).
+    expect(flat.some(x => /СТОИМОСТЬ|ЦЕНА|СУММА|ИТОГО/.test(x))).toBe(false);
+    expect(Math.max(...rows.map(x => x.length))).toBeLessThanOrEqual(6);
     const w = rows.find(x => x[1] === 'E1-1-195-20')!;
     expect([w[0], w[3]]).toEqual(['1', '1000 м3']);
     expect(Number(String(w[4]).replace(',', '.'))).toBeCloseTo(2.5299, 6);
