@@ -19,7 +19,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe('agent-ish shlyuzi', () => {
   it('yoqilmagan bo‘lsa 503 (hech narsa chaqirilmaydi)', async () => {
     const f = vi.fn(); vi.stubGlobal('fetch', f);
-    const r = await post({ amal: 'savol', savol: 'salom' }, env({ AGENT_ISH_YOQILGAN: undefined }));
+    const r = await post({ amal: 'savol', savol: 'salom' }, env({ AGENT_ISH_YOQILGAN: '0' }));
     expect(r.status).toBe(503); expect(f).not.toHaveBeenCalled();
   });
 
@@ -140,7 +140,7 @@ describe('agent-ish shlyuzi', () => {
       return new Response('{}', { status: 500 });
     });
     vi.stubGlobal('fetch', f);
-    const off = env({ AGENT_ISH_YOQILGAN: undefined, OPENROUTER_API_KEY: 'k' });
+    const off = env({ AGENT_ISH_YOQILGAN: '0', OPENROUTER_API_KEY: 'k' });
     expect((await post({ amal: 'model_tanla', kompaniya_id: 5, profil: 'document_control', model_id: 'vendor/a' }, off)).status).toBe(200);
     const r = await post({ amal: 'fikr', kompaniya_id: 5, tur: 'fikr', matn: 'Yaxshi bo‘lardi' }, off);
     expect(await r.json()).toMatchObject({ ok: true, fikr_id: 3, javob: null });
@@ -222,6 +222,149 @@ describe('agent-ish shlyuzi', () => {
       expect(((await r.json()) as { error: string }).error).toContain(bo);
       expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai'))).toBe(false);
     }
+  });
+
+  it('standart holatda AI YOQIQ (bayroq shart emas) — xarajatni limit/hamyon cheklaydi', async () => {
+    const f = vi.fn(async (u: string) => (String(u).includes('t2_agent_sarf_tekshir_v1') ? rpcJavob({ ok: false, code: 'BYUDJET_YOQ' }) : String(u).includes('t2_agent_muhit_v1') ? rpcJavob({ ok: true, scope: 'company', qoidalar: [], xotira: [], manbalar: [] }) : new Response('{}', { status: 500 })));
+    vi.stubGlobal('fetch', f);
+    const r = await post({ amal: 'savol', kompaniya_id: 5, savol: 'salom' }, env({ AGENT_ISH_YOQILGAN: undefined, OPENROUTER_API_KEY: 'k' }));
+    expect(r.status).toBe(402);
+  });
+
+  describe('kasb_savol — lavozimga ajratilgan AI ishchi', () => {
+    const kasb = (rol: string, kat: string[], nom = 'Prorab yordamchisi') => ({ ok: true, rol, profil: 'prorab', nom, vazifa: 'Ish borishi va ombor.', kategoriyalar: kat, namuna_savollar: ['Omborda nima bor?'], taqiq_izoh: 'Pul sizning doirangizda emas.',
+      boshalar: [], boshqalar: [{ rol: 'bugalter', nom: 'Bugalter yordamchisi', vazifa: 'To‘lov' }, { rol: 'boss', nom: 'Direktor yordamchisi', vazifa: 'Umumiy' }] });
+    const mock = (kat: string[], modelJavobi = 'Omborda 10 t sement bor.') => vi.fn(async (u: string, init?: RequestInit) => {
+      const url = String(u);
+      if (url.includes('t2_agent_kasb_v1')) return rpcJavob(kasb('prorab', kat));
+      if (url.includes('t2_agent_fakt_v1')) { const y = JSON.parse(String(init?.body)); return rpcJavob({ ok: true, ishlatilgan: y.p_kategoriyalar, taqiqlangan: [], fakt: { ombor_qoldiq: [{ nomi: 'Sement', qoldiq: 10 }] } }); }
+      if (url.includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'company', qoidalar: [], xotira: [], manbalar: [], model: 'google/gemini-2.5-flash-lite' });
+      if (url.includes('t2_agent_sarf_')) return rpcJavob({ ok: true });
+      if (url.includes('openrouter.ai')) return new Response(JSON.stringify({ choices: [{ message: { content: modelJavobi } }], usage: { prompt_tokens: 900, completion_tokens: 60, cost: 0.0004 } }), { status: 200 });
+      return new Response('{}', { status: 500 });
+    });
+    const PROR = ['obyektlar', 'hajm', 'grafik', 'ombor', 'sifat', 'texnika'];
+
+    it('ruxsatsiz mavzu (pul): model CHAQIRILMAYDI, token sarflanmaydi, kim ko‘ra olishi aytiladi', async () => {
+      const f = mock(PROR); vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Shu oy qancha to‘lov bo‘ldi?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const j = await r.json() as { ok: boolean; rad: boolean; javob: string; kasb: { nom: string } };
+      expect(j).toMatchObject({ ok: true, rad: true }); expect(j.javob).toContain('doirasida emas'); expect(j.kasb.nom).toBe('Prorab yordamchisi');
+      expect(f.mock.calls.some(([u]) => /openrouter\.ai|t2_agent_fakt_v1|t2_agent_sarf_/.test(String(u)))).toBe(false);
+    });
+
+    it('ruxsatli savol: faqat kerakli toifa bazadan so‘raladi (ruxsatsiz toifa so‘ralmaydi), model admin tanlagan modelda, sarf yoziladi', async () => {
+      const f = mock(PROR); vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha qolgan?', sahifa: '/admin/moliya' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const j = await r.json() as { javob: string; model: string; toifalar: string[] };
+      expect(j.javob).toContain('10 t sement'); expect(j.model).toBe('google/gemini-2.5-flash-lite');
+      const fakt = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_fakt_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(fakt.p_kategoriyalar).toEqual(['obyektlar', 'ombor']);       // sahifa=/moliya ishorasi ham ruxsat doirasidan chiqolmadi
+      const model = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('openrouter.ai')) as unknown as [string, RequestInit])[1].body));
+      expect(model.model).toBe('google/gemini-2.5-flash-lite');
+      expect(JSON.stringify(model.messages)).toContain('Sement');
+      expect(f.mock.calls.some(([u]) => String(u).includes('t2_agent_sarf_yoz_v1'))).toBe(true);
+    });
+
+    it('salomlashuv — mahalliy (model chaqirilmaydi), ishchi nomi va namunalar bilan', async () => {
+      const f = mock(PROR); vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Salom' }, env({ OPENROUTER_API_KEY: 'k' }));
+      const j = await r.json() as { javob: string; model: string };
+      expect(j.model).toBe('local'); expect(j.javob).toContain('Prorab yordamchisi'); expect(j.javob).toContain('Omborda nima bor?');
+      expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai'))).toBe(false);
+    });
+
+    const toliq = (modelMatni: string, o: { til?: string; ishonch?: string } = {}) => vi.fn(async (u: string, init?: RequestInit) => {
+      const url = String(u);
+      if (url.includes('t2_agent_kasb_v1')) return rpcJavob({ ...kasb('prorab', PROR), harakatlar: ['ombor_kirim', 'ombor_chiqim', 'eslatma'] });
+      if (url.includes('t2_agent_shaxsiy_v1')) return rpcJavob({ ok: true, til: o.til ?? 'auto', uslub: 'qisqa', ishonch: o.ishonch ?? 'jiddiy' });
+      if (url.includes('t2_agent_fakt_v1')) { const y = JSON.parse(String(init?.body)); return rpcJavob({ ok: true, ishlatilgan: y.p_kategoriyalar, taqiqlangan: ['moliya'], fakt: { obyektlar: [{ id: 7, nom: 'Obyekt 7' }], ombor_qoldiq: [{ nomi: 'Sement M400', qoldiq: 10 }] } }); }
+      if (url.includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'company', qoidalar: [{ doira: 'yadro', kod: 'a', matn: 'm' }], xotira: [], manbalar: [], model: 'google/gemini-2.5-flash-lite' });
+      if (url.includes('t2_agent_jurnal_yoz_v1')) return rpcJavob({ ok: true, id: 55 });
+      if (url.includes('t2_agent_harakat_taklif_v1')) { const y = JSON.parse(String(init?.body)); return rpcJavob({ ok: true, id: 9, amal: y.p_amal, xavf: 'orta', avto: false, parametrlar: y.p_param, tushuntirish: y.p_tushuntirish }); }
+      if (url.includes('t2_agent_sarf_')) return rpcJavob({ ok: true });
+      if (url.includes('openrouter.ai')) return new Response(JSON.stringify({ choices: [{ message: { content: modelMatni } }], usage: { prompt_tokens: 800, completion_tokens: 50, cost: 0.0003 } }), { status: 200 });
+      return new Response('{}', { status: 500 });
+    });
+
+    it('har qadam javobda ko‘rinadi (lavozim → mavzu → ma’lumot → qoidalar → model → tayyor) va jurnalga yoziladi', async () => {
+      const f = toliq('{"javob":"Omborda **10 t** sement bor.","harakatlar":[]}'); vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const j = await r.json() as { javob: string; qadamlar: Array<{ belgi: string; matn: string }>; jurnal_id: number };
+      expect(j.javob).toContain('10 t'); expect(j.jurnal_id).toBe(55);
+      const matnlar = j.qadamlar.map((q) => q.matn).join(' | ');
+      expect(matnlar).toMatch(/Lavozim: prorab/); expect(matnlar).toMatch(/Savol tahlil qilindi/); expect(matnlar).toMatch(/Olindi:.*yopiq: to‘lov/); expect(matnlar).toMatch(/Qoidalar yuklandi: 1 ta/); expect(matnlar).toMatch(/Model: google\/gemini-2\.5-flash-lite/); expect(matnlar).toMatch(/Tayyor:/);
+      const jurnal = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_jurnal_yoz_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(jurnal).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_tur: 'savol', p_model: 'google/gemini-2.5-flash-lite', p_kirish: 800, p_chiqish: 50 });
+      expect(jurnal.p_qadamlar.length).toBeGreaterThan(5);
+    });
+
+    it('harakat taklifi: model so‘ragan harakat bazada tekshiriladi va javobga qo‘shiladi (hech narsa bajarilmaydi)', async () => {
+      const f = toliq('{"javob":"Kirim tayyor, tasdiqlang.","harakatlar":[{"amal":"ombor_kirim","parametrlar":{"obyekt_id":7,"nomi":"Sement M400","birligi":"tonna","obyomi":5},"tushuntirish":"5 t sement kirimi","aniq":true}]}'); vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborga 5 tonna Sement M400 kirim qil' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const j = await r.json() as { harakatlar: Array<{ id: number; xavf: string; avto: boolean }>; qadamlar: Array<{ matn: string }> };
+      expect(j.harakatlar).toHaveLength(1); expect(j.harakatlar[0]).toMatchObject({ id: 9, xavf: 'orta', avto: false });
+      const taklif = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_harakat_taklif_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(taklif).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_jurnal: 55, p_amal: 'ombor_kirim', p_aniq: true });
+      expect(j.qadamlar.map((q) => q.matn).join(' ')).toMatch(/tasdig‘ingiz kutilmoqda/);
+      // gateway hech qanday biznes yozuvini (sklad/grafik) o'zi bajarmaydi
+      expect(f.mock.calls.some(([u]) => /skladga|grafik_yangilash|t2_sklad_harakat/.test(String(u)))).toBe(false);
+    });
+
+    it('shaxsiy sozlama (til/uslub) promptga ta’sir qiladi', async () => {
+      const f = toliq('{"javob":"Xo‘sh","harakatlar":[]}', { til: 'ru' }); vi.stubGlobal('fetch', f);
+      await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const model = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('openrouter.ai')) as unknown as [string, RequestInit])[1].body));
+      expect(JSON.stringify(model.messages)).toContain('rus tilida');
+      expect(JSON.stringify(model.messages)).toContain('ombor_kirim');
+      expect(JSON.stringify(model.messages)).not.toContain('grafik_foiz:');   // rolga ruxsat etilmagan harakat promptga kirmaydi
+    });
+
+    it('OQIM (NDJSON): qadamlar sodir bo‘lishi bilan keladi, oxirida yakun', async () => {
+      const f = toliq('{"javob":"Tayyor","harakatlar":[]}'); vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha?', oqim: true }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      expect(r.headers.get('content-type')).toContain('x-ndjson');
+      const satrlar = (await r.text()).trim().split('\n').map((x) => JSON.parse(x) as { t: string; matn?: string; javob?: string; ok?: boolean });
+      const qadamlar = satrlar.filter((x) => x.t === 'qadam');
+      expect(qadamlar.length).toBeGreaterThan(5); expect(qadamlar[0].matn).toContain('Lavozimingiz');
+      const yakun = satrlar[satrlar.length - 1];
+      expect(yakun).toMatchObject({ t: 'yakun', ok: true, javob: 'Tayyor' });
+    });
+
+    it('OQIM: limit yo‘q bo‘lsa yakun xatosi tushunarli (model chaqirilmaydi)', async () => {
+      const f = vi.fn(async (u: string) => {
+        const url = String(u);
+        if (url.includes('t2_agent_kasb_v1')) return rpcJavob(kasb('prorab', PROR));
+        if (url.includes('t2_agent_fakt_v1')) return rpcJavob({ ok: true, ishlatilgan: ['obyektlar'], taqiqlangan: [], fakt: {} });
+        if (url.includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'company', qoidalar: [], xotira: [], manbalar: [] });
+        if (url.includes('t2_agent_sarf_tekshir_v1')) return rpcJavob({ ok: false, code: 'BYUDJET_YOQ' });
+        return new Response('{}', { status: 500 });
+      });
+      vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha?', oqim: true }, env({ OPENROUTER_API_KEY: 'k' }));
+      const satrlar = (await r.text()).trim().split('\n').map((x) => JSON.parse(x) as { t: string; code?: string; error?: string; status?: number });
+      const yakun = satrlar[satrlar.length - 1];
+      expect(yakun).toMatchObject({ t: 'yakun', ok: false, code: 'BYUDJET_YOQ', status: 402 });
+      expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai'))).toBe(false);
+    });
+
+    it('jurnal, shaxsiy sozlama va harakat qarori — faqat sessiyadagi foydalanuvchi nomidan', async () => {
+      const f = vi.fn(async (u: string) => rpcJavob({ ok: true, til: 'uz' })); vi.stubGlobal('fetch', f);
+      expect((await post({ amal: 'shaxsiy_saqla', til: 'uz', uslub: 'batafsil', ishonch: 'sora' })).status).toBe(200);
+      expect((await post({ amal: 'harakat_qaror', harakat_id: 9, qaror: 'tasdiqlash', p_actor_id: 999 })).status).toBe(200);
+      expect((await post({ amal: 'harakat_natija', harakat_id: 9, ok: true, natija: { id: 3 } })).status).toBe(200);
+      expect((await post({ amal: 'harakat_qaror', qaror: 'tasdiqlash' })).status).toBe(400);
+      for (const c of f.mock.calls) expect(JSON.parse(String((c as unknown as [string, RequestInit])[1].body)).p_actor_id).toBe(7);
+      const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=jurnal&kompaniya_id=5&hamma=1'), env: env() } as never);
+      expect(g.status).toBe(200);
+      expect(JSON.parse(String((f.mock.calls[f.mock.calls.length - 1] as unknown as [string, RequestInit])[1].body))).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_hamma: true });
+    });
+
+    it('kompaniyasiz so‘rov 422; ruxsatsiz kompaniya bazada rad (model yo‘q)', async () => {
+      vi.stubGlobal('fetch', vi.fn(async (u: string) => (String(u).includes('t2_agent_kasb_v1') ? rpcJavob({ ok: false, code: 'COMPANY_ACCESS_DENIED' }) : new Response('{}', { status: 500 }))));
+      expect((await post({ amal: 'kasb_savol', savol: 'Salom' })).status).toBe(422);
+      expect((await post({ amal: 'kasb_savol', kompaniya_id: 9, savol: 'Omborda nima bor?' })).status).toBe(403);
+    });
   });
 
   it('noma‘lum amal rad', async () => {

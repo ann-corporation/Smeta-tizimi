@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { modelTanla, modellarOl, type ModellarJavobi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { ModelTanlagich } from '../ai-markaz/ModelTanlagich';
 
 const MANBA: Record<string, string> = { kompaniya: 'Kompaniya tanlovi', platforma: 'Platforma tanlovi', standart: 'Server standarti' };
 const REJIM: Record<string, string> = { read_only: 'Faqat o‘qish', command_prepare: 'Buyruq tayyorlaydi', human_approval_required: 'Odam tasdig‘i shart' };
@@ -46,10 +47,7 @@ export function AgentModellar({ kompaniyaId, tizim }: { kompaniyaId: number | nu
                 <td className="px-3 py-2 text-xs">{a.default_scope}</td>
                 <td className="px-3 py-2">
                   {d.tanlash_mumkin ? (
-                    <select aria-label={`${t('Model')} — ${a.nom || a.kod}`} className="rounded border border-border bg-surface px-2 py-1 text-xs" value={a.model_id ?? ''} onChange={(e) => void tanla(a.kod, e.target.value)}>
-                      <option value="">{t('Server standarti')}</option>
-                      {d.katalog.map((m) => <option key={m.id} value={m.id}>{m.nom}{m.vision ? ' 👁' : ''}</option>)}
-                    </select>
+                    <ModelTanlagich profil={a.kod} qiymat={a.model_id} katalog={d.katalog} rejim="kompaniya" yorliq={`${t('Model')} — ${a.nom || a.kod}`} onTanla={(id) => void tanla(a.kod, id ?? '')} />
                   ) : <span className="text-xs">{nomi(a.model_id)}</span>}
                   <div className="mt-1 text-[10px] text-text-mute">{t(MANBA[a.model_manba] ?? a.model_manba)}</div>
                 </td>

@@ -88,7 +88,8 @@ const DEFAULT_MODELS: Record<AiProvider, string> = {
   groq: 'llama-3.3-70b-versatile',
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-5-haiku-latest',
-  openrouter: 'openrouter/auto',
+  /* openrouter/auto NOTO'G'RI standart: qimmat modelni tanlab yuborishi mumkin. Aniq arzon model; katalogdagi tanlov undan ustun. */
+  openrouter: 'google/gemini-2.5-flash-lite',
 };
 
 const ENV_KEY: Record<AiProvider, keyof AiEnv> = {

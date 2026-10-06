@@ -3,6 +3,7 @@ import { modelKatalogYoz, modelTanla, modellarOl, type AgentModelQatori, type Ma
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { agentTavsifi, MANBA_NOMI, rejimMatni, usd } from './ai-markaz-yordam';
+import { ModelTanlagich } from './ModelTanlagich';
 
 const MODEL_NAMUNA = 'ishlab-chiqaruvchi/model-nomi';
 const NOM_NAMUNA = 'Ko‘rinadigan nom';
@@ -21,12 +22,10 @@ function AgentKarta({ a, d, sarf, onTanla }: { a: AgentModelQatori; d: ModellarJ
       </div>
       <p className="text-[12px] text-text-dim">{agentTavsifi(a.kod, a.izoh)}</p>
       <div className="rounded-md border border-border/70 bg-surface-2/50 px-2 py-1 text-[11px] text-text-dim">🛡 {rejimMatni(a.permission_mode)}</div>
-      <label className="text-[11px] text-text-mute">{t('Ishlatadigan modeli')}
-        <select aria-label={`${t('Model')} — ${a.nom || a.kod}`} className="input mt-1 h-8 w-full px-2 text-[12px]" value={a.model_id ?? ''} onChange={(e) => onTanla(a.kod, e.target.value)}>
-          <option value="">{t('Server standarti')}</option>
-          {d.katalog.map((m) => <option key={m.id} value={m.id}>{m.nom}{m.vision ? ' 👁' : ''}</option>)}
-        </select>
-      </label>
+      <div>
+        <div className="mb-1 text-[11px] text-text-mute">{t('Ishlatadigan modeli')}</div>
+        <ModelTanlagich profil={a.kod} qiymat={a.model_id} katalog={d.katalog} rejim="superadmin" yorliq={`${t('Model')} — ${a.nom || a.kod}`} onTanla={(id) => onTanla(a.kod, id ?? '')} />
+      </div>
       <div className="flex items-center justify-between text-[11px] text-text-mute">
         <span>{t(MANBA_NOMI[a.model_manba] ?? a.model_manba)}{tanlangan?.narx_kirish_usd != null ? ` · $${tanlangan.narx_kirish_usd}/$${tanlangan.narx_chiqish_usd} ${t('1M token uchun')}` : ''}</span>
         <span title={t('Shu oy sarfi')}>{usd(sarf)}</span>
