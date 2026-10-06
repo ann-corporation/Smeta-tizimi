@@ -90,6 +90,15 @@ export function sbLoyihaYangila(
   });
 }
 
+/** Kompaniyada loyiha bo'lmasa avtomatik «Umumiy» loyiha yaratadi (idempotent); mavjud bo'lsa — birinchisini qaytaradi. */
+export function sbLoyihaUmumiy(kompaniyaId: number) {
+  return fetch('/api/tomon', {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amal: 'loyiha_umumiy', kompaniya_id: kompaniyaId }),
+  }).then((r) => r.json() as Promise<{ ok: boolean; id?: number; yangi?: boolean; error?: string }>)
+    .catch(() => ({ ok: false as const, error: 'Tarmoq xatosi' }));
+}
+
 export function sbLoyihaOchir(id: number) {
   return yozAmali({ amal: 'loyiha_ochir', id });
 }

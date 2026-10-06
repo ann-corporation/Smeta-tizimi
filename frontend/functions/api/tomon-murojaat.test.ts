@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { oqishYuki, xatoJavobi, yozishYuki } from './tomon';
 
 describe('tomon shlyuzi — murojaat', () => {
+  it('umumiy loyiha: faqat kompaniya_id kerak', () => {
+    expect(yozishYuki('loyiha_umumiy', { kompaniya_id: 4 })).toEqual({ p_kompaniya_id: 4 });
+    expect(typeof yozishYuki('loyiha_umumiy', {})).toBe('string');
+  });
   it('yaratish: sarlavha, muhimlik, muddat va tur tekshiriladi', () => {
     const y = yozishYuki('murojaat_yarat', { kompaniya_id: 3, aloqa_id: 5, turi: 'remark', sarlavha: ' Beton sifati ', matn: 'B20 quyilgan', muhimlik: 'yuqori', muddat: '2026-10-20', obyekt_id: 7, joy: '2-qavat' }) as Record<string, unknown>;
     expect(y).toMatchObject({ p_kompaniya_id: 3, p_aloqa_id: 5, p_turi: 'remark', p_sarlavha: 'Beton sifati', p_muhimlik: 'yuqori', p_muddat: '2026-10-20', p_obyekt_id: 7, p_joy: '2-qavat' });

@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   toast: vi.fn(), murojaatlarOl: vi.fn(), murojaatTafsilotOl: vi.fn(), murojaatTurlariOl: vi.fn(), aloqalarOl: vi.fn(), zakazchikObyektlarOl: vi.fn(),
-  murojaatJavob: vi.fn(), murojaatQarori: vi.fn(), murojaatYarat: vi.fn(), hujjatYukla: vi.fn(), sbT2LoyihalarOl: vi.fn(),
+  murojaatJavob: vi.fn(), murojaatQarori: vi.fn(), murojaatYarat: vi.fn(), hujjatYukla: vi.fn(), sbLoyihaUmumiy: vi.fn(),
 }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: { id: 5, nom: 'NTB', rol: 'boss' } }) }));
 vi.mock('../../api/supabase', async (asl) => ({ ...(await asl<typeof import('../../api/supabase')>()), sbT2ObyektlarOlKomp: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
-vi.mock('../../api/t2-loyiha', async (asl) => ({ ...(await asl<typeof import('../../api/t2-loyiha')>()), sbT2LoyihalarOl: m.sbT2LoyihalarOl }));
+vi.mock('../../api/t2-loyiha', async (asl) => ({ ...(await asl<typeof import('../../api/t2-loyiha')>()), sbLoyihaUmumiy: m.sbLoyihaUmumiy }));
 vi.mock('../../api/t2-hujjat-canonical', async (asl) => ({ ...(await asl<typeof import('../../api/t2-hujjat-canonical')>()), hujjatYukla: m.hujjatYukla }));
 vi.mock('../../api/t2-tomon', async (asl) => ({
   ...(await asl<typeof import('../../api/t2-tomon')>()),
@@ -32,7 +32,7 @@ beforeEach(() => {
   m.zakazchikObyektlarOl.mockResolvedValue({ ok: true, natija: [] });
   m.murojaatlarOl.mockResolvedValue({ ok: true, natija: [qisqa()] });
   m.murojaatTafsilotOl.mockResolvedValue(tafsilot());
-  m.sbT2LoyihalarOl.mockResolvedValue({ ok: true, qatorlar: [{ id: 9, nom: 'Loyiha' }] });
+  m.sbLoyihaUmumiy.mockResolvedValue({ ok: true, id: 9, yangi: false });
 });
 afterEach(cleanup);
 
@@ -62,15 +62,15 @@ describe('Murojaatlar', () => {
     expect(m.hujjatYukla).toHaveBeenCalledWith(expect.objectContaining({ kompaniyaId: 5, loyihaId: 9, documentType: 'murojaat_dalil' }));
   });
 
-  it('loyihasi yo‘q kompaniyada fayl yuklanmaydi va tushunarli xabar chiqadi', async () => {
-    m.sbT2LoyihalarOl.mockResolvedValue({ ok: true, qatorlar: [] });
+  it('umumiy loyiha ochilmasa fayl yuklanmaydi va xabar chiqadi', async () => {
+    m.sbLoyihaUmumiy.mockResolvedValue({ ok: false, error: 'loyiha xatosi' });
     render(<Murojaatlar />);
     fireEvent.click(await screen.findByText('Beton sinfi mos emas'));
     await screen.findByRole('button', { name: 'Bajarildi' });
     fireEvent.change(screen.getByPlaceholderText(/Nima qilindi/), { target: { value: 'Protokol ilova' } });
     fireEvent.change(screen.getByLabelText('Dalil fayllari', { selector: 'input' }), { target: { files: [new File(['x'], 'p.pdf')] } });
     fireEvent.click(screen.getByRole('button', { name: 'Bajarildi' }));
-    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.stringContaining('loyiha'), 'danger'));
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith('loyiha xatosi', 'danger'));
     expect(m.hujjatYukla).not.toHaveBeenCalled();
     expect(m.murojaatJavob).not.toHaveBeenCalled();
   });
