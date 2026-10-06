@@ -78,6 +78,7 @@ const TIZIM_02_GURUHLAR = [
     menyular: [
       { yol: '/admin/zakazchik', nom: 'Buyurtmachi kabineti', Ikonka: Building2 },
       { yol: '/admin/taqdimlar', nom: 'Tomonlar hujjatlari', Ikonka: FileStack },
+      { yol: '/admin/murojaatlar', nom: 'Murojaatlar (remark, so‘rov)', Ikonka: ClipboardList },
       { yol: '/admin/aloqalar', nom: 'Tomonlar aloqasi', Ikonka: Link2 },
     ]
   },

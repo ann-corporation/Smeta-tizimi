@@ -36,6 +36,13 @@ GET `?bolim=aloqalar|aloqa|taqdimlar|taqdim|obyektlar|qidir&kompaniya_id=…` ·
 ## Umumiy fayllarga tegish (additiv, kelishilgan)
 `AdminShell.tsx` (yangi «Tomonlar» menyu guruhi), `App.tsx` (marshrutlar), `i18n/lugat/ru.json|en.json` (yangi kalitlar, mavjudlari o'zgarmaydi), `sayt-xaritasi/generated.ts` (regeneratsiya). Mojarodan qochish: har birini kichik commit bilan, `git fetch && merge` dan keyin.
 
+## Murojaat primitivi (2026-10-06) — hamma tomonlar uchun bitta mexanizm
+`t2_tomon_murojaat` (+ `_turi` katalogi, `_hujjat` dalil bog'lari). Oqim: **ochiq → bajarildi (ijrochi + dalil) → yopildi | qayta_ochildi (raund+1)**, yoki bekor (faqat ochiq). Asl murojaat va jurnal o'zgarmaydi.
+- Turlar katalogda (yangi tur = bitta qator): remark, predpisaniya, ekspertiza_izoh, mualliflik_remark, savol (RFI), sinov_sorovi, yetkazish_talabi, boshqa. Shu bilan: zakazchik remarki, texnadzor/davlat nazorati predpisaniyasi, ekspertiza, loyihachi, laboratoriya (so'rov → protokol dalil), logistika/yetkazib beruvchi — alohida jadvalsiz.
+- Qoida: faqat FAOL aloqaning ikki tomoni; qarshi tomon obyektiga — faqat `obyekt_holat` ko'rish grant bo'lsa; dalil faqat biriktiruvchining o'z (R2'da saqlangan) hujjati; qarshi tomon dalilni `t2_tomon_hujjat_ol_v1` orqali (faol aloqa) yuklab oladi.
+- Sinov: `supabase/tests/t2_tomon_murojaat_contract.sql` 32/32; gateway 15 test; UI 4 test.
+- **Ochiq:** `t2_document_registry.loyiha_id` NOT NULL — loyihasiz kompaniya (laboratoriya, ekspert, zakazchik) dalil yuklay olmaydi; UI shuni tushunarli xabar bilan bildiradi. Qaror: avtomatik «Umumiy» loyiha yoki ustunni bo'shatish (KOORDINATSIYA → Ochiq qaror).
+
 ## Keyingi bosqichlar
 1. Frontend: Aloqalar, Taqdimlar (inbox + qaror), Zakazchik kabineti (obyektlar monitoringi), F2 tarixidan «Zakazchikka yuborish».
 2. `hujjat` taqdimi uchun yuklab olish ruxsati (`/api/hujjat-ol` — taqdim asosida qabul qiluvchiga).
