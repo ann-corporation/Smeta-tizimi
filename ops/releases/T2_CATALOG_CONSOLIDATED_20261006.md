@@ -60,7 +60,13 @@ paid model request executed, or feature flag silently changed. Deploy does not p
 real provider response/token metering. Separate Smeta price suggestion endpoint uses
 the existing AI gateway; its calls must not be described as budgeted agent calls.
 
-Pending candidate verification/main push; final SHA/deployment ID recorded in the
-Obsidian release note and journal after Cloudflare success, not guessed in advance.
+Code release SHA `64af58f7b96bbe4aac09b663f73733dfb08ef710`: main+sourcebranch remote
+verified; Cloudflare canonical production `b7cacd02-3173-40e1-a69d-659825276aaf`,
+deploy success ended2026-10-06T13:20:14.026988Z, exact SHA matches.
+Production and deployment-URL /api/soglik HTTP200,ok:true; /admin/smeta-studio200;
+hour catalogue unauthenticated401 AUTH_REQUIRED; agent-ish unauthenticated401.
+This following governance-only checkpoint records measured code deployment and
+completes the release task; its final SHA/deploy are recorded in Obsidian.
+Authenticated owner flow/provider response remain UNKNOWN, not falsely PASS.
 Rollback: redeploy previous verified07a0442 if deployment regression is observed;
 no DB/data rollback is required because this release applies no DB writes.
