@@ -53,3 +53,39 @@ Ambiguous candidate avtomatik normativ qaror emas. Bu paket original
 source hierarchy correction, recipe approval yoki official edition emas.
 Production websiteIntegrated=false: R2 builder/active pointer ulanmaguncha
 saytdagi 8053 yo'qoldi deb aytilmaydi. Obsidian'da adapter owns so'ralgan.
+
+## Koeffitsient / alternativa: egasining qo'shimcha talabi
+
+`build-suggestions.mjs` source version manifest bilan uch JSONL hash/bytes
+tekshiradi. 1438 qoida, 95704 link, 54013 scope: 94771 scoped association,
+933 unresolved link. 16 lookup shard + raw rules + unresolved file;
+721052 compressed bytes. Revision
+`2f7debfba6e22b1a61d045cdb51906665eaba6d7341e55d06765cf0c504d395f`.
+Local `D:/CatalogMigration/outputs/norm-suggestion-support-v1`.
+
+`suggestions.mjs`: coefficientCandidates, alternativeCandidates,
+workAlternativeCandidates. Candidate score lexical overlap, ishonchlilik
+probabilitysi emas. Resource type/unit va work source/basis/revision
+chegaralari saqlanadi. 10t→25t capacity warning, automatic multiplier YO'Q.
+Bir shard shortlist O(n × token_count × bounded_limit), global all-pairs yo'q.
+Koeffitsientlar source lookup key = JSON.stringify([bookType,collection,table,code]);
+SHA256 key birinchi byte %16 → lookup-hex.gz. Rules ID orqali rules.gz dan.
+Original opaque PRAV saqlanadi, eval/execute yo'q; canApply:false.
+
+Alternativa semantic equivalence DB tayyor deb aytilmaydi: mavjud norm
+shardning real resource/work qatorlari lexical review kandidatidir.
+Texnika quvvati, marka, sinf, ish usuli va sarf o'zgarishini dalilli
+tasdiqlash kontrakti hali kerak. Rasmiy edition/condition/base/DSL
+verifikatsiyasi bo'lmaguncha avtomatik coefficient execution yopiq.
+
+Test: suggestions.test.mjs (8), suggestion-pack.test.mjs (5 real pack).
+R2 uploader: publish-suggestions.py existing verified upload helperdan
+foydalanadi, immutable key conflict fail-closed; GET/readback SHA.
+Server binding/UI integratsiya Claude'da; yangi canonical DB yoki pointer yo'q.
+
+R2 publication VERIFIED: `smeta-tizimi-canonical` bucket,
+`norm-katalog/suggestion-support/2f7debfba6e22b1a61d045cdb51906665eaba6d7341e55d06765cf0c504d395f`.
+19 objects /727289bytes; har biri GET/readback compressed SHA256 PASS.
+Receipt local outputdagi `R2_RECEIPT.json`; websiteIntegrated=false,
+activePointerChanged=false. Obsidian binding:
+`NORM_SUGGESTION_DATABASE_2026-10-06_CODEX.md`.

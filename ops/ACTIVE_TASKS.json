@@ -14,7 +14,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md"],
       "production_write_allowed": false,
-      "_izoh": "Egasi 2026-10-06: Claude Studio'da; Codex 8053 unresolved yozuvlarni manbadan tahlil/kategoriyalash. Isolated review generator; UI/builder/R2 active pointerga tegilmaydi. Binding Claude bilan Obsidian KOORDINATSIYA orqali kelishiladi."
+      "_izoh": "Egasi 2026-10-06: Claude Studio'da; Codex 8053 source hierarchy review. Qo'shimcha egasi talabi: koeffitsient/alternative uchun hash-verified suggestion support, faqat ops/catalog-hierarchy ichida; immutable R2 support publication ruxsat. UI/builder/R2 active pointerga tegilmaydi. Binding Claude bilan Obsidian KOORDINATSIYA orqali kelishiladi."
     },
     {
       "id": "T2-SMETA-STUDIO-PRO-UI-002",
