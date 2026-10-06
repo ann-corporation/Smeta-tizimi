@@ -1052,5 +1052,10 @@
   "Standartga qaytarish": "Reset to default",
   "Hisoblangan": "Billed",
   "Ustama": "Markup",
-  "ustama": "markup"
+  "ustama": "markup",
+  "Mehnat: {l}, mashina: {m} ta narx qo‘yildi; mashinistlar: {o} (alohida stavka kerak); topilmadi: {f}.": "Labour: {l}, machines: {m} prices set; operators: {o} (separate rate needed); not found: {f}.",
+  "Chel.-soat davri": "Man-hour rate period",
+  "chorak": "qtr",
+  "Mehnat va mashina narxini qo‘yish": "Set labour and machine prices",
+  "Mehnat stavkasi uchun hududni tanlang.": "Choose a region for the labour rate."
 }

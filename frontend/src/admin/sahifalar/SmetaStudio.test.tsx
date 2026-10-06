@@ -48,7 +48,7 @@ beforeEach(async () => {
   const all = await files();
   vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
     requests.push(`${init?.method ?? 'GET'} ${u}`);
-    if (u.startsWith('/api/narx-katalog')) return new Response('', { status: 404 });
+    if (u.startsWith('/api/narx-katalog') || u.startsWith('/api/hour-price-catalog')) return new Response('', { status: 404 });
     const f = new URL(u, 'https://x').searchParams.get('f')!;
     if (f === 'current') return new Response(JSON.stringify({ revision: REV }));
     return all.has(f) ? new Response(all.get(f)!) : new Response('', { status: 404 });
@@ -84,7 +84,7 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
   fireEvent.change(within(panel).getByLabelText('Narx manbasi'), { target: { value: 'Sinov taklifi, 2026-10-06' } });
   fireEvent.submit(within(panel).getByLabelText('Birlik narxi').closest('form')!);
   await waitFor(() => expect(within(panel).getAllByText(/2040/).length).toBeGreaterThan(0));
-  expect(requests.every(r => r.startsWith('GET /api/norm-katalog') || r.startsWith('GET /api/narx-katalog'))).toBe(true);
+  expect(requests.every(r => /^GET \/api\/(norm-katalog|narx-katalog|hour-price-catalog)/.test(r))).toBe(true);
   // Narxni bekor qilish noma'lum summani qaytaradi, retsept o'zgarmaydi.
   fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
   await waitFor(() => expect((within(panel).getByLabelText('Birlik narxi') as HTMLInputElement).value).toBe(''));

@@ -1052,5 +1052,10 @@
   "Standartga qaytarish": "Вернуть к стандарту",
   "Hisoblangan": "Начислено",
   "Ustama": "Наценка",
-  "ustama": "наценка"
+  "ustama": "наценка",
+  "Mehnat: {l}, mashina: {m} ta narx qo‘yildi; mashinistlar: {o} (alohida stavka kerak); topilmadi: {f}.": "Труд: {l}, машины: {m} цен назначено; машинисты: {o} (нужна отдельная ставка); не найдено: {f}.",
+  "Chel.-soat davri": "Период ставки чел.-ч",
+  "chorak": "кв.",
+  "Mehnat va mashina narxini qo‘yish": "Назначить цены труда и машин",
+  "Mehnat stavkasi uchun hududni tanlang.": "Для ставки труда выберите регион."
 }

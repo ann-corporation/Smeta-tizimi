@@ -22,6 +22,8 @@ import { priceCommand } from '../../lib/smeta-studio/price-lookup';
 import { resourceCategory } from '../../lib/smeta-studio/export-adapter';
 import { resourceUnitText } from '../../lib/smeta-studio/resource-units';
 import { narxAgentSora, type AgentResult } from '../../api/smeta-narx-agent';
+import { loadHourCatalog, type HourCatalog } from '../../lib/hour-price-catalog';
+import { hourPrices, labourPeriods, type HourPeriod } from '../../lib/smeta-studio/hour-pricing';
 import type { KatalogSnapshot } from '../../../functions/_shared/narx-katalog-snapshot';
 
 export const HUDUD_KALIT = 'smeta-studio:hudud';
@@ -30,15 +32,14 @@ export const lsGet = (k: string) => { try { return localStorage.getItem(k); } ca
 export const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
 const fmt = (n: number | string | null | undefined) => n == null ? '—' : Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
 
-/** Normative resource unit code → plain unit text the price catalogue uses (base unit of "100 м3" is "м3"). */
-export function unitTextOf(katalog: RemoteNormCatalog | null) {
-  return (code: string | null) => {
-    if (!code) return null;
-    const r = resourceUnitText(code);
-    if (r) return r;
-    const u = katalog?.unit(code);
-    return u ? (u.base ?? u.text) : null;
-  };
+/** Resource unit: ONLY the observed resource dictionary — an unknown resource KodI is never filled from the
+ *  work-unit dictionary (Codex audit: different code spaces). */
+export function unitTextOf(_katalog?: RemoteNormCatalog | null) {
+  return (code: string | null) => resourceUnitText(code);
+}
+/** Work unit as the normative catalogue observed it (e.g. "1000 М3"). */
+export function workUnitOf(katalog: RemoteNormCatalog | null) {
+  return (code: string | null) => { if (!code || !katalog) return null; const u = katalog.unit(code); return u ? u.text : null; };
 }
 const snapToRow = (s: KatalogSnapshot): KatalogQatori => ({ ...s, narx: s.narx == null ? null : Number(s.narx), hudud_kalit: null });
 type Pending = { occurrenceId: string; recipeId: string; name: string | null; unit: string | null };
@@ -56,6 +57,15 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
   const [ochiq, setOchiq] = useState(false);
   const tried = useRef(new Set<string>());
   const unitText = useMemo(() => unitTextOf(katalog), [katalog]);
+  const workUnit = useMemo(() => workUnitOf(katalog), [katalog]);
+  const [soat, setSoat] = useState<HourCatalog | null>(null);
+  const [davr, setDavr] = useState<HourPeriod | null>(null);
+  const triedHour = useRef(new Set<string>());
+  useEffect(() => {
+    let alive = true;
+    loadHourCatalog().then(c => { if (!alive) return; setSoat(c); setDavr(labourPeriods(c)[0] ?? null); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -68,7 +78,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
     return () => { alive = false; };
   }, []);
   // A new draft starts with a clean "already tried" memory.
-  useEffect(() => { tried.current = new Set(); setReview([]); setAgent({ holat: 'tayyor', matn: '', natija: [] }); }, [doc.draftId]);
+  useEffect(() => { tried.current = new Set(); triedHour.current = new Set(); setReview([]); setAgent({ holat: 'tayyor', matn: '', natija: [] }); }, [doc.draftId]);
 
   const regions = useMemo(() => {
     if (!cat) return [] as Array<[string, string]>;
@@ -108,6 +118,20 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
     if (fresh.length) narxla(fresh, t('Avto-narx'));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avto, holat, pending]);
+  /** Labour / machine-hours from the hour catalogue (region + period); each line is tried once. */
+  function soatNarxla(majburiy: boolean) {
+    if (!soat) return;
+    const r = hourPrices(doc, hisob, soat, unitText, hudud || null, davr);
+    const commands = r.commands.filter(c => c.type === 'SET_PRICE' && (majburiy || !triedHour.current.has(`${c.occurrenceId}:${c.recipeId}`)));
+    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) if (l.price == null) triedHour.current.add(`${o.id}:${l.recipeId}`);
+    if (commands.length) command({ type: 'BATCH', label: 'Chel.-soat / mash.-soat narxi', commands });
+    if (commands.length || majburiy) setXabar(t('Mehnat: {l}, mashina: {m} ta narx qo‘yildi; mashinistlar: {o} (alohida stavka kerak); topilmadi: {f}.',
+      { l: r.labour, m: r.machines, o: r.operatorsLeft, f: r.notFound }));
+  }
+  useEffect(() => {
+    if (avto && soat && ishMashina > 0) soatNarxla(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avto, soat, ishMashina, hudud, davr]);
 
   const agentTaklifBor = agent.natija.some(a => a.tanlov);
   const openReview = review.filter(r => pending.some(p => key(p) === key(r)));
@@ -140,7 +164,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
     try {
       // ABC/TN shape (owner: "study LRV and RES from real smetas"): LRV + RES, live formulas.
       const { abcHujjat } = await import('../../lib/smeta-studio/abc-hujjat');
-      const r = abcHujjat(doc, hisob, unitText, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null });
+      const r = abcHujjat(doc, hisob, { resource: unitText, work: workUnit }, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null });
       const url = URL.createObjectURL(new Blob([r.bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const a = document.createElement('a'); a.href = url; a.download = r.faylNomi; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (e) {
@@ -165,7 +189,16 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!Object.keys(doc.occurrences).length} onClick={() => void lrvYukla()}>{t('LRV + RES (Excel)')}</button>
     </div>
     {xabar && <p role="status" className="text-xs text-accent">{xabar}</p>}
-    {ishMashina > 0 && <p className="text-xs text-text-mute">{t('Mehnat va mashina resurslari ({n}) material katalogidan narxlanmaydi — ular hudud chel.-soat / mash.-soat stavkasidan olinadi.', { n: ishMashina })}</p>}
+    {ishMashina > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-text-mute">
+      <span>{t('Mehnat va mashina resurslari ({n}) material katalogidan narxlanmaydi — ular hudud chel.-soat / mash.-soat stavkasidan olinadi.', { n: ishMashina })}</span>
+      {soat && <label className="flex items-center gap-1">{t('Davr')}
+        <select aria-label={t('Chel.-soat davri')} className="input h-7 text-[12px]" value={davr ? `${davr.year}-${davr.quarter}` : ''}
+          onChange={e => { const [y, q] = e.target.value.split('-').map(Number); setDavr(y ? { year: y, quarter: q } : null); triedHour.current = new Set(); }}>
+          {labourPeriods(soat).map(p => <option key={`${p.year}-${p.quarter}`} value={`${p.year}-${p.quarter}`}>{p.year} · {p.quarter}-{t('chorak')}</option>)}
+        </select></label>}
+      {soat && <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => soatNarxla(true)}>{t('Mehnat va mashina narxini qo‘yish')}</button>}
+      {!hudud && <span className="text-warn">{t('Mehnat stavkasi uchun hududni tanlang.')}</span>}
+    </div>}
     {openReview.length > 0 && <div className="rounded border border-border/60">
       <button type="button" className="flex w-full items-center gap-2 px-2 py-1 text-left text-xs" aria-expanded={ochiq} onClick={() => setOchiq(v => !v)}>
         <span>{ochiq ? '▾' : '▸'}</span><span className="font-medium">{t('Ko‘rib chiqish kerak: {n} ta resurs', { n: openReview.length })}</span>
