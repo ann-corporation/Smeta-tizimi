@@ -64,7 +64,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
       const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat',
         { system: SMETACHI_TIZIM, text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA });
-      return Response.json({ ok: true, ...suhbatJavobiniTekshir(parse(r.text)), model: r.model, versiya: SMETACHI_VERSIYA }, { headers: { 'Cache-Control': 'no-store' } });
+      const parsed = parse(r.text);
+      const out = suhbatJavobiniTekshir(parsed);
+      // Platform superadmin sees the raw model output when nothing usable came back (format diagnostics).
+      const xom = sess.rol === 'superadmin' && (!parsed || !out.ishlar.length) ? r.text.slice(0, 3000) : undefined;
+      return Response.json({ ok: true, ...out, model: r.model, versiya: SMETACHI_VERSIYA, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'tanla') {
       const sorovlar = sorovlarniTayyorla(so.sorovlar);
