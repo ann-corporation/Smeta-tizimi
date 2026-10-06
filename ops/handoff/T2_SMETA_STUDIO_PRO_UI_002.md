@@ -171,3 +171,32 @@ focused oxlint/governance/diff PASS. Faqat safe branch checkpoint;
 bu tuzatishlar hali main/productionga chiqarilmadi. Ownerning aynan
 qaysi bosqichi ishlamasligi UNKNOWN: browser control runtime mavjud emas.
 Authenticated browser sinovini kod fixture sinovi deb almashtirmang.
+
+## 2026-10-06 — qo‘shish va 8053 katalog yozuvi
+
+Egasi: razdel tanlab hajm kiritgach «Smetaga qo‘shish» jim ko‘rinadi.
+Qo‘shish natijasi endi tugma yonida aniq ko‘rsatiladi; xato hajm
+yo‘qolmaydi. Qo‘shilgan ish ancestorsi ochiladi, yashiruvchi filter
+tozalanadi va virtual daraxt yangi ishga siljiydi. Podrazdel + 4,5
+hajm, invalid hajm, yo‘q target, kechikkan A→B retsept testlari mavjud.
+
+READ-ONLY katalog dalili: C:/t2dev/norm-shards-v3/manifest.json va
+gz/{tree,works}.json.gz, revision 567137e5ebdf076c:
+- basis=54013; ish nomi bo‘sh yozuv=0.
+- BOOK exact jadval=7625; missing=1128; ambiguous=70.
+- unresolved 1198 jadval ostida 8053 yozuv; ularda ham nom bo‘sh=0.
+- bu ish nomi emas, (TipBook,KodA,KodTab) → BOOK linkage masalasi.
+- misol: basis KodA=kirill Е20, BOOK KODA=lotin E20, bir xil
+  KodTab=E20-1-5; boshqa С1-51-465 kabi kodlar BOOK’da yo‘q.
+  Barcha 1128 uchun sabab bir xil deb aytilmaydi.
+- UI yorlig‘i bo‘lim aniqlanmagan yozuvlarga o‘zgartirildi.
+  Fuzzy/global key normalization kiritilmadi; canonical engine/backend
+  Claude lane’ida. Reconciliation alohida audit/testli qoida talab qiladi.
+
+Bu qo‘shish o‘zgarishi smeta qoralamasiga tegishli; avtomatik production
+biznes yozuvi emas. Serverga saqlash alohida mavjud buyruq.
+
+Verification: 12 fayl / 106 test PASS (route, virtual hierarchy, engine,
+catalog reconciliation, i18n, API authorization/save); build (tsc-b +
+functions tsc + Vite), tekshir, full oxlint exit 0 (baseline warninglar),
+governance va diff-check PASS. Real authenticated browser smoke UNKNOWN.

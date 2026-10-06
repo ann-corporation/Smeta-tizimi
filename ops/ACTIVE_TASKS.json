@@ -14,7 +14,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
       "production_write_allowed": false,
-      "_izoh": "2026-10-06: d846c39 main'ga integratsiya qilindi. Route UI + engine/i18n 122 va API authorization 11 test PASS; build/functions/tekshir/governance/diff PASS. Cloudflare SHA tekshiruvi Obsidian jurnalida. Authenticated owner smoke UNKNOWN, full smeta authoring parity hali ochiq; engine/backend truth o'zgarmadi."
+      "_izoh": "2026-10-06: route main'da. Follow-up: yopiq/filterlangan razdelga yangi ish qo'shish reveal+scroll; inline success/error; A→B stale detail guard; 8053 yozuvda ish nomlari saqlangan, BOOK linkage 1128 missing+70 ambiguous. 12 fayl/106 test, build/functions/tekshir/lint/governance/diff PASS. Deployment SHA Obsidian jurnalida. Authenticated owner smoke UNKNOWN; engine/backend truth o'zgarmadi."
     },
     {
       "id": "T2-CATALOG-EXTRACTION-INTEGRATION-001",

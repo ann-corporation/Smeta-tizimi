@@ -130,7 +130,7 @@ export default function SmetaStudio() {
         {katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
         {katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
         {katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
-        {katalog && <KatalogPanel katalog={katalog} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
+        {katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
           onAdd={(work, detail, quantity) => {
             if (!nishon || !doc.sections[nishon]) { setXato(t(XATOLAR.TARGET_REQUIRED)); return false; }
             try {
@@ -148,13 +148,15 @@ export default function SmetaStudio() {
 }
 
 /* ─────────────── Chap panel: katalog ─────────────── */
-function KatalogPanel({ katalog, nishon, onAdd }: { katalog: RemoteNormCatalog; nishon: string | null;
+function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: RemoteNormCatalog; nishon: string | null; commandError: string;
   onAdd: (work: NormWork, detail: NormDetail, quantity: string) => boolean }) {
   const [tugun, setTugun] = useState(-1), [tugunSahifa, setTugunSahifa] = useState(0);
   const [soz, setSoz] = useState(''), [qidiruv, setQidiruv] = useState(''), [sahifa, setSahifa] = useState(0);
   const [tanlangan, setTanlangan] = useState<NormWork | null>(null), [detail, setDetail] = useState<NormDetail | null>(null);
   const [yuklash, setYuklash] = useState(false), [resSahifa, setResSahifa] = useState(0), [hajm, setHajm] = useState('');
   const [xato, setXato] = useState('');
+  const [addResult, setAddResult] = useState<'success' | 'failed' | null>(null);
+  const [addedSection, setAddedSection] = useState('');
   useEffect(() => { const timer = setTimeout(() => { setQidiruv(soz); setSahifa(0); }, 200); return () => clearTimeout(timer); }, [soz]);
   const selectionRequest = useRef(0);
   useEffect(() => () => { selectionRequest.current++; }, []);
@@ -162,17 +164,18 @@ function KatalogPanel({ katalog, nishon, onAdd }: { katalog: RemoteNormCatalog; 
   const yolak = useMemo(() => tugun >= 0 ? katalog.breadcrumb(tugun) : [], [katalog, tugun]);
   const jadvalmi = tugun >= 0 && katalog.node(tugun).isTable;
   const ishlar = useMemo(() => (qidiruv.trim() || jadvalmi) ? katalog.search(qidiruv, sahifa, tugun) : null, [katalog, qidiruv, sahifa, tugun, jadvalmi]);
-  const nom = (n: RemoteTreeNode) => n.name || (n.status === 'GROUP' ? t('Nomi manbada topilmagan jadvallar (kod bo‘yicha)') : '—');
+  const nom = (n: RemoteTreeNode) => n.name || (n.status === 'GROUP' ? t('Katalog bo‘limi aniqlanmagan yozuvlar (shifr bo‘yicha)') : '—');
   const ochish = (i: number) => { setTugun(i); setTugunSahifa(0); setSahifa(0); };
   async function tanla(w: NormWork) {
     const request = ++selectionRequest.current;
-    setTanlangan(w); setDetail(null); setResSahifa(0); setHajm(''); setXato(''); setYuklash(true);
+    setTanlangan(w); setDetail(null); setResSahifa(0); setHajm(''); setXato(''); setAddResult(null); setYuklash(true);
     try { await katalog.load(w.id); if (request === selectionRequest.current) setDetail(katalog.detail(w.id, 0)); }
     catch { if (request === selectionRequest.current) setXato(t('Ish resurslari yuklanmadi. Qayta urinib ko‘ring.')); }
     finally { if (request === selectionRequest.current) setYuklash(false); }
   }
   const unit = tanlangan ? katalog.unit(tanlangan.unitCode) : null;
   return <div className="space-y-2">
+    {tugun >= 0 && katalog.breadcrumb(tugun).some(n => n.status === 'GROUP') && <p role="status" className="text-sm text-warn">{t('Bu yozuvlarning nomlari saqlangan. Katalog bo‘limi topilmagan yoki bir nechta bo‘lim mos kelgan; shifr va manbani tekshiring.')}</p>}
     <nav aria-label={t('Katalog ierarxiyasi')} className="flex flex-wrap gap-1 text-sm">
       <button className="underline" onClick={() => ochish(-1)}>{t('Katalog')}</button>
       {yolak.map(n => <span key={n.index}>/ <button className="underline" onClick={() => ochish(n.index)}>{nom(n)}</button></span>)}
@@ -222,11 +225,17 @@ function KatalogPanel({ katalog, nishon, onAdd }: { katalog: RemoteNormCatalog; 
       </div>}
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-sm">{t('Hajm')}{unit?.base ? ` (${unit.base})` : ''}
-          <input className="block w-32 p-1 border border-border rounded bg-bg" inputMode="decimal" value={hajm} onChange={e => setHajm(e.target.value)} placeholder="4,5" /></label>
+          <input className="block w-32 p-1 border border-border rounded bg-bg" inputMode="decimal" value={hajm} onChange={e => { setHajm(e.target.value); setAddResult(null); }} placeholder="4,5" /></label>
         <button className="px-3 py-1.5 rounded bg-accent text-white disabled:opacity-40" disabled={detail.workCodeAmbiguous}
-          onClick={() => { if (onAdd(tanlangan, detail, hajm)) setHajm(''); }}>{t('Smetaga qo‘shish')} →</button>
+          onClick={() => {
+            const ok = onAdd(tanlangan, detail, hajm);
+            setAddResult(ok ? 'success' : 'failed');
+            if (ok) { setAddedSection(nishon ?? ''); setHajm(''); }
+          }}>{t('Smetaga qo‘shish')} →</button>
         <span className="text-xs text-text-mute">{nishon ? t('Bo‘lim: {n}', { n: nishon }) : t('Avval o‘ngda bo‘lim tanlang')}</span>
       </div>
+      {addResult === 'success' && <p role="status" className="text-sm text-accent">{t('Ish «{nom}» «{bolim}» bo‘limiga qo‘shildi.', { nom: detail.work.name ?? detail.work.code, bolim: addedSection })}</p>}
+      {addResult === 'failed' && <p role="alert" className="text-sm text-danger">{commandError || t('Amal bajarilmadi. Kiritilgan qiymatlarni tekshiring.')}</p>}
     </div>}
   </div>;
 }

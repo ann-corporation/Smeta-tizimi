@@ -20,6 +20,7 @@ function files() {
   const c = new NormCatalog();
   c.add('basis', { Kod: 10, KodE: 'E6-1-1', TipBook: 'H', KodA: 'E06', KodRaz: '01', KodPRaz: '001', KodTab: 'E6-1', KodI: '003', NameP: blob('Устройство бетонной подготовки') });
   c.add('basis', { Kod: 11, KodE: 'E6-1-2', TipBook: 'H', KodA: 'E06', KodRaz: '01', KodPRaz: '001', KodTab: 'E6-1', KodI: '003', NameP: blob('Другой бетонный фундамент') });
+  c.add('basis', { Kod: 12, KodE: 'E99-1-1', TipBook: 'H', KodA: 'E99', KodTab: 'E99-1', NameP: blob('Работа с сохранённым названием') });
   c.add('material', { Kod: 20, KodM: 'C1', KodR: '001', NameP: blob('Бетон B7,5'), KodI: '005', Tip: 'M' });
   c.add('basisres', { Kod: 30, KodE: 'E6-1-1', KodM: 'C1', KodR: '001', NormaR: 1.02 });
   const built = buildNormShards(c, book, REV, [{ kod: 'E6-1-1', birlik: 'М3', n: 12 }]);
@@ -97,13 +98,48 @@ it('bo‘limsiz qo‘shish aniq xato beradi, jim yutilmaydi', async () => {
   fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
   await screen.findByText('Бетон B7,5', undefined, { timeout: 8000 });
   fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
-  expect((await screen.findByRole('alert')).textContent).toContain('bo‘limni tanlang');
+  expect((await screen.findAllByRole('alert')).every(el => el.textContent?.includes('bo‘limni tanlang'))).toBe(true);
+});
+
+it('tanlangan podrazdelga vergulli hajm qo‘shiladi; noto‘g‘ri hajm tugma yonida izohlanadi va saqlanadi', async () => {
+  render(<SmetaStudio />);
+  await screen.findByText('ШНК', undefined, { timeout: 8000 });
+  const sectionInput = screen.getByLabelText('Yangi bo‘lim nomi');
+  fireEvent.change(sectionInput, { target: { value: 'Fundament' } });
+  fireEvent.submit(sectionInput.closest('form')!);
+  fireEvent.click(screen.getByLabelText('Podrazdel qo‘shish'));
+  fireEvent.change(sectionInput, { target: { value: 'FM-1' } });
+  fireEvent.submit(sectionInput.closest('form')!);
+  fireEvent.change(screen.getByLabelText('Normativ ish qidirish'), { target: { value: 'бетон' } });
+  fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
+  await screen.findByText('Бетон B7,5', undefined, { timeout: 8000 });
+  const quantity = screen.getByPlaceholderText('4,5') as HTMLInputElement;
+  const button = screen.getByRole('button', { name: /Smetaga qo‘shish/ });
+  fireEvent.change(quantity, { target: { value: '-4' } });
+  fireEvent.click(button);
+  expect(within(button.closest('.space-y-2')!).getByRole('alert').textContent).toContain('Hajm noto‘g‘ri');
+  expect(quantity.value).toBe('-4');
+  fireEvent.change(quantity, { target: { value: '4,5' } });
+  fireEvent.click(button);
+  expect(await screen.findByText('Ish «Устройство бетонной подготовки» «FM-1» bo‘limiga qo‘shildi.')).toBeTruthy();
+  const panel = screen.getByRole('region', { name: 'Smeta qoralamasi' });
+  fireEvent.click(await within(panel).findByRole('button', { name: 'Tanlash: Устройство бетонной подготовки' }));
+  expect((within(panel).getByLabelText('Ish hajmi') as HTMLInputElement).value).toBe('4.5');
+  expect(quantity.value).toBe('');
 });
 
 it('katalog yuklanmagan bo‘lsa aniq holat ko‘rsatiladi', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
   render(<SmetaStudio />);
   expect(await screen.findByText('Platforma normativ katalogi hali yuklanmagan.', undefined, { timeout: 8000 })).toBeTruthy();
+});
+
+it('BOOK bo‘limi topilmagan yozuv ish nomi yo‘q deb ko‘rsatilmaydi', async () => {
+  render(<SmetaStudio />);
+  fireEvent.click(await screen.findByText('Katalog bo‘limi aniqlanmagan yozuvlar (shifr bo‘yicha)', undefined, { timeout: 8000 }));
+  expect(screen.getByText(/Bu yozuvlarning nomlari saqlangan/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Normativ ish qidirish'), { target: { value: 'E99-1-1' } });
+  expect(await screen.findByText('Работа с сохранённым названием', undefined, { timeout: 8000 })).toBeTruthy();
 });
 
 it('sekin A javobi B tanlovining retseptini almashtirmaydi', async () => {
