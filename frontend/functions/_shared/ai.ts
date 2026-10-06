@@ -46,6 +46,8 @@ export type AiUsage = {
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
+  /** Provayder qaytargan haqiqiy narx (USD) — OpenRouter `usage.cost`. */
+  cost?: number;
 };
 
 export type AiResponse = {
@@ -332,6 +334,8 @@ function providerPayload(provider: AiProvider, model: string, request: AiRequest
       { role: 'user', content: request.text + jsonInstruction },
     ],
     ...(request.jsonSchema ? { response_format: { type: 'json_object' } } : {}),
+    /* OpenRouter: javobda haqiqiy narx (usage.cost) — xarajat hisobi uchun. */
+    ...(provider === 'openrouter' ? { usage: { include: true } } : {}),
   };
 }
 
@@ -403,6 +407,7 @@ function usageFrom(usage: JsonObject | undefined, provider: AiProvider): AiUsage
     inputTokens: Number.isFinite(Number(input)) ? Number(input) : undefined,
     outputTokens: Number.isFinite(Number(output)) ? Number(output) : undefined,
     totalTokens: Number.isFinite(Number(total)) ? Number(total) : undefined,
+    cost: provider === 'openrouter' && usage.cost != null && Number.isFinite(Number(usage.cost)) && Number(usage.cost) >= 0 ? Number(usage.cost) : undefined,
   };
 }
 

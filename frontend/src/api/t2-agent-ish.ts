@@ -10,7 +10,7 @@ export type AgentModelQatori = {
   kod: string; nom: string | null; rol: string | null; izoh: string | null; permission_mode: string; default_scope: string;
   model_id: string | null; model_manba: 'kompaniya' | 'platforma' | 'standart';
 };
-export type ModelKatalogi = { id: string; nom: string; tavsif: string | null; narx_izoh: string | null; vision: boolean };
+export type ModelKatalogi = { id: string; nom: string; tavsif: string | null; narx_izoh: string | null; vision: boolean; narx_kirish_usd?: number | null; narx_chiqish_usd?: number | null };
 export type ModellarJavobi = { rol: string; tanlash_mumkin: boolean; agentlar: AgentModelQatori[]; katalog: ModelKatalogi[] };
 
 export type AgentTaklif = {
@@ -51,8 +51,8 @@ export async function agentYoz<T = Record<string, unknown>>(amal: string, kompan
 
 export const modellarOl = (k: number | null) => agentOqi<ModellarJavobi>('modellar', k);
 export const modelTanla = (k: number | null, profil: string, modelId: string | null) => agentYoz('model_tanla', k, { profil, model_id: modelId });
-export const modelKatalogYoz = (p: { id: string; nom: string; tavsif?: string; narxIzoh?: string; vision?: boolean; faol?: boolean }) =>
-  agentYoz('model_katalog_yoz', null, { model_id: p.id, nom: p.nom, tavsif: p.tavsif, narx_izoh: p.narxIzoh, vision: p.vision, faol: p.faol });
+export const modelKatalogYoz = (p: { id: string; nom: string; tavsif?: string; narxIzoh?: string; vision?: boolean; faol?: boolean; narxKirishUsd?: number | null; narxChiqishUsd?: number | null }) =>
+  agentYoz('model_katalog_yoz', null, { model_id: p.id, nom: p.nom, tavsif: p.tavsif, narx_izoh: p.narxIzoh, vision: p.vision, faol: p.faol, narx_kirish_usd: p.narxKirishUsd, narx_chiqish_usd: p.narxChiqishUsd });
 export const takliflarOl = (k: number | null, holat: string | null = 'kutilmoqda') => agentOqi<{ natija: AgentTaklif[] }>('takliflar', k, { holat });
 export const taklifQarori = (k: number | null, taklifId: number, qaror: 'tasdiqlash' | 'rad', izoh?: string, avtoBirlashtirish?: boolean) =>
   agentYoz('taklif_qaror', k, { taklif_id: taklifId, qaror, izoh, avto_birlashtirish: avtoBirlashtirish === true });
@@ -62,3 +62,36 @@ export const rivojlanishTahlil = () => agentYoz<{ takliflar: number[]; otkazildi
 export const fikrYubor = (k: number, p: { tur: string; matn: string; sahifa?: string; skrinIds?: number[]; skrinTahlil?: { mimeType: string; data: string } }) =>
   agentYoz<{ fikr_id: number; javob: string | null; ulashildi: boolean }>('fikr', k, { tur: p.tur, matn: p.matn, sahifa: p.sahifa, skrin_ids: p.skrinIds, skrin_tahlil: p.skrinTahlil });
 export const qadamTaklifOl = (k: number, sahifa: string, iz: HarakatIzi[]) => agentYoz<QadamTaklifi>('qadam_taklif', k, { sahifa, iz });
+
+export type MarkazSonlar = {
+  taklif_kutilmoqda: number; buyruq_navbat: number; buyruq_ishda: number; buyruq_bitgan: number; signal_yangi: number; fikr_30kun: number;
+  qoida_faol: number; manba_faol: number; agent_soni: number; model_soni: number;
+};
+export type KunSarfi = { kun: string; narx_usd: number; chaqiruv: number };
+export type Markaz = {
+  oy_sarfi_usd: number; limit_usd: number | null; ogohlantirish_foiz: number | null; limit_faol: boolean;
+  kunlar: KunSarfi[]; agentlar: Array<{ profil: string; amal: string; chaqiruv: number; narx_usd: number; token: number }>;
+  modellar: Array<{ model: string; chaqiruv: number; narx_usd: number; narxsiz: number }>;
+  kompaniyalar: Array<{ kompaniya_id: number | null; nom: string | null; narx_usd: number; mijoz_usd: number; token: number; chaqiruv: number; limit_usd: number | null; ustama_foiz: number }>;
+  ustama_foiz: number; mijoz_oy_usd: number; foyda_oy_usd: number;
+  sonlar: MarkazSonlar; sozlama: { ai_yoqilgan: boolean; openrouter: boolean; github: boolean };
+};
+/** Kompaniya faqat TOKEN sarfini ko'radi (tannarx va ustama yo'q). */
+export type SarfHisoboti = { oy_token: number; balans: number; agentlar: Array<{ profil: string; chaqiruv: number; token: number }>; kunlar: Array<{ kun: string; token: number; chaqiruv: number }> };
+export type KompaniyaSozlama = { ai_yoqilgan: boolean; oylik_token_limit: number | null; kuzatuv_ruxsat: boolean; oy_token: number; balans: number; tahrir_mumkin: boolean };
+export type SignalGuruhi = { sahifa: string; tur: string; soni: number; kompaniya_soni: number; namunalar: string[] };
+export type MuhitQoidasi = { doira: 'yadro' | 'global' | 'company'; kod: string; matn: string; versiya: number };
+export type MuhitKorinishi = { qoidalar: MuhitQoidasi[]; manbalar: Array<{ domen: string; nom: string }> };
+
+export const markazOl = () => agentOqi<Markaz>('markaz', null);
+export const sarfHisobotiOl = (k: number) => agentOqi<SarfHisoboti>('hisobot', k);
+export const kompaniyaSozlamaOl = (k: number) => agentOqi<KompaniyaSozlama>('kompaniya_sozlama', k);
+export const kompaniyaSozlamaSaqla = (k: number, p: { aiYoqilgan: boolean; tokenLimit: number | null; kuzatuvRuxsat: boolean }) =>
+  agentYoz('kompaniya_sozlama_saqla', k, { ai_yoqilgan: p.aiYoqilgan, token_limit: p.tokenLimit, kuzatuv_ruxsat: p.kuzatuvRuxsat });
+/** Ustama (%): kompaniyaId=null — platforma standarti; berilsa — shu kompaniyaga alohida; foiz=null — kompaniya ustamasini olib tashlash. */
+export const ustamaBelgila = (kompaniyaId: number | null, foiz: number | null) => agentYoz('ustama_belgila', kompaniyaId, { foiz });
+export const signallarOl = () => agentOqi<{ natija: SignalGuruhi[] }>('signallar', null);
+export const muhitRoyxatiOl = () => agentOqi<MuhitKorinishi>('muhit_royxat', null);
+export const byudjetBelgila = (k: number | null, limitUsd: number, ogohlantirishFoiz = 80, faol = true) =>
+  agentYoz('byudjet_belgila', k, { limit_usd: limitUsd, ogohlantirish_foiz: ogohlantirishFoiz, faol });
+export const manbaHolati = (domen: string, faol: boolean) => agentYoz('manba_holat', null, { domen, faol });

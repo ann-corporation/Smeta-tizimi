@@ -3,20 +3,16 @@
  * Katalogni faqat platforma superadmini boshqaradi (kompaniya ixtiyoriy model nomini kirita olmaydi).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { modelKatalogYoz, modelTanla, modellarOl, type ModellarJavobi } from '../../api/t2-agent-ish';
+import { modelTanla, modellarOl, type ModellarJavobi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 
 const MANBA: Record<string, string> = { kompaniya: 'Kompaniya tanlovi', platforma: 'Platforma tanlovi', standart: 'Server standarti' };
 const REJIM: Record<string, string> = { read_only: 'Faqat o‘qish', command_prepare: 'Buyruq tayyorlaydi', human_approval_required: 'Odam tasdig‘i shart' };
-const MODEL_NAMUNA = 'ishlab-chiqaruvchi/model-nomi';
-const NOM_NAMUNA = 'Ko‘rinadigan nom';
 
 export function AgentModellar({ kompaniyaId, tizim }: { kompaniyaId: number | null; tizim: boolean }) {
   const [d, setD] = useState<ModellarJavobi | null>(null);
   const [xato, setXato] = useState<string | null>(null);
-  const [yangiId, setYangiId] = useState('');
-  const [yangiNom, setYangiNom] = useState('');
   const k = tizim ? null : kompaniyaId;
 
   const yukla = useCallback(async () => {
@@ -29,10 +25,6 @@ export function AgentModellar({ kompaniyaId, tizim }: { kompaniyaId: number | nu
   const tanla = async (profil: string, modelId: string) => {
     const r = await modelTanla(k, profil, modelId || null);
     if (r.ok) { toast(t('Model saqlandi'), 'ok'); void yukla(); } else toast(r.error, 'danger');
-  };
-  const katalogQosh = async () => {
-    const r = await modelKatalogYoz({ id: yangiId.trim(), nom: yangiNom.trim() });
-    if (r.ok) { toast(t('Katalogga qo‘shildi'), 'ok'); setYangiId(''); setYangiNom(''); void yukla(); } else toast(r.error, 'danger');
   };
 
   if (xato) return <p className="text-xs text-text-dim">{t('Modellar ro‘yxati mavjud emas')}: {xato}</p>;
@@ -67,17 +59,6 @@ export function AgentModellar({ kompaniyaId, tizim }: { kompaniyaId: number | nu
         </table>
       </div>
       {!d.tanlash_mumkin && <p className="text-xs text-text-dim">{t('Modelni admin, boss yoki direktor o‘zgartira oladi.')}</p>}
-      {tizim && (
-        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border p-3 text-xs">
-          <label className="flex flex-col gap-1">{t('Model identifikatori')}
-            <input value={yangiId} onChange={(e) => setYangiId(e.target.value)} placeholder={MODEL_NAMUNA} className="w-64 rounded border border-border bg-surface px-2 py-1" />
-          </label>
-          <label className="flex flex-col gap-1">{t('Nomi')}
-            <input value={yangiNom} onChange={(e) => setYangiNom(e.target.value)} placeholder={t(NOM_NAMUNA)} className="w-48 rounded border border-border bg-surface px-2 py-1" />
-          </label>
-          <button type="button" disabled={!yangiId.trim() || yangiNom.trim().length < 2} onClick={() => void katalogQosh()} className="rounded-md border border-accent/40 px-3 py-1 text-accent hover:bg-accent/10 disabled:opacity-40">{t('Katalogga qo‘shish')}</button>
-        </div>
-      )}
     </section>
   );
 }
