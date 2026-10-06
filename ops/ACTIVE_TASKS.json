@@ -3,6 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-CATALOG-CONSOLIDATED-RELEASE-20261006",
+      "title": "Egasi topshirig'i: Claude current main + Codex tested catalog support birlashtirish va production SHA tekshiruvi",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/catalog-hierarchy-review-v1",
+      "base_sha": "07a0442bd1607217560dfd74eba7fbdb795fec3d",
+      "status": "in_progress",
+      "owns": ["ops/releases/T2_CATALOG_CONSOLIDATED_20261006.md", "docs/governance/CURRENT_STATE.md"],
+      "depends_on": [],
+      "must_read": ["docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md", "ops/handoff/T2_CATALOG_HIERARCHY_8053_001.md"],
+      "production_write_allowed": false,
+      "_izoh": "Egasi 2026-10-06 bevosita Claude+Codex ishlarini main/deploy qilishni topshirdi. Claude remote branch current main07a0442 bilan aynan teng, local C:/Temp/GAS-xarita clean. Codex source b1428ff currentmainni o'z ichiga oladi. Only tested committed current lane; historical unrelated branches, human dirty G:/GAS va Claude locked business paths tahrirlanmaydi. DB migration/paid activation/authenticated business mutation yo'q. Source code/R2/deployed SHA alohida; UI production binding va full machine-PDF coverage hanuz ochiq, authenticated owner smoke UNKNOWN. Main ordinary fast-forward only; force push yo'q."
+    },
+    {
       "id": "T2-CATALOG-HIERARCHY-8053-001",
       "title": "8053 unresolved katalog yozuvi: dalilli kategoriya va BOOK mapping review paketi",
       "owner": "codex",
