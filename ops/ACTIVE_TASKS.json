@@ -23,7 +23,7 @@
       "machine": "noutbuk",
       "branch": "codex/smeta-studio-pro-v2",
       "base_sha": "0fc3e402564460df6c535075be879fff981c5283",
-      "status": "ready_for_review",
+      "status": "completed",
       "owns": ["frontend/src/components/smeta-studio-pro/", "frontend/src/admin/sahifalar/SmetaStudio.tsx", "frontend/src/admin/sahifalar/SmetaStudio.test.tsx", "frontend/src/i18n/lugat/ru.json", "frontend/src/i18n/lugat/en.json", "ops/ACTIVE_TASKS.json", "ops/handoff/T2_SMETA_STUDIO_PRO_UI_002.md"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
