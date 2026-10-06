@@ -66,3 +66,13 @@ describe('smetachi AI — catalogue grounding and batch', () => {
     expect([occ.quantity, occ.basis.scale, occ.basis.unitLabel, occ.source.code]).toEqual(['0.72', '100', 'м3', 'E6-1-1']);
   });
 });
+
+describe('smetachi AI — tolerant to real model output', () => {
+  it('accepts Latin units, a single search string, numeric formula and lower-case status', () => {
+    const r = suhbatJavobiniTekshir({ javob: 'x', savollar: [], ishlar: [
+      { id: 'w1', bolim: 'Plita', tavsif: 'Beton', qidiruv: 'Бетонирование плит', birlik: 'm3', hajmIfoda: 19.2, holat: 'tayyor' },
+      { id: 'w2', bolim: 'Plita', tavsif: 'Armatura', qidiruv: ['Армирование'], birlik: 't', hajmIfoda: '1,8', holat: 'TAYYOR' },
+      { id: 'w3', bolim: 'Plita', tavsif: 'Opalubka', qidiruv: ['Устройство опалубки'], birlik: 'кв.м', hajmIfoda: '2*(12+8)*0,2', holat: 'TAYYOR' }] });
+    expect(r.ishlar.map(i => [i.id, i.birlik, i.hajmIfoda, i.holat])).toEqual([['w1', 'м3', '19.2', 'TAYYOR'], ['w2', 'т', '1,8', 'TAYYOR'], ['w3', 'м2', '2*(12+8)*0,2', 'TAYYOR']]);
+  });
+});

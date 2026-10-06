@@ -62,14 +62,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const text = [`Obyekt: ${clip(so.obyekt, 200) || 'ko‘rsatilmagan'}`,
         `Hozirgi ishlar ro'yxati (yangilang yoki to'ldiring):\n${JSON.stringify(joriy satisfies IshNiyati[])}`,
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
-      const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'pto_smeta', 'smeta_suhbat',
+      const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat',
         { system: SMETACHI_TIZIM, text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA });
       return Response.json({ ok: true, ...suhbatJavobiniTekshir(parse(r.text)), model: r.model, versiya: SMETACHI_VERSIYA }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'tanla') {
       const sorovlar = sorovlarniTayyorla(so.sorovlar);
       if (!sorovlar) return fail('SOROV_INVALID');
-      const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'pto_smeta', 'smeta_ish_tanlash',
+      const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash',
         { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA });
       return Response.json({ ok: true, tanlovlar: tanlovlarniTekshir(parse(r.text), sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
     }
