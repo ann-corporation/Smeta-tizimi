@@ -84,6 +84,15 @@ quyi agent signali ────────────► t2_agent_signal (toza
 - **Kompaniya admini sozlamalari (`t2_agent_kompaniya_sozlama`):** AI yoqish/o'chirish, oylik token limiti, a'zolar uchun AI kuzatuviga ruxsat — admin/boss/director o'zgartiradi, hamma ko'radi; `sarf_tekshir` majburan qo'llaydi; audit yoziladi.
 - Sinov: `t2_agent_sarf_byudjet_contract.sql` 23/23, `t2_agent_hisob_ustama_contract.sql` 18/18, `t2_agent_kompaniya_sozlama_contract.sql` 13/13; gateway + UI testlari.
 
+## Kasb ishchilari, jonli qadam-log, harakat tasdiqi, model tanlagich (2026-10-06)
+- **Kasb ishchisi:** har lavozim (boss, direktor, PTO smetachi, buxgalter, prorab, usta, omborchi, ta'minotchi, laborant…) uchun profil: `t2_agent_kasb` (rol → profil → ruxsat etilgan ma'lumot toifalari). Ma'lumot paketini `t2_agent_fakt_v1` DB'da rolga qarab yig'adi — boshqa rolga mo'ljallangan ma'lumot modelga HECH QACHON yetib bormaydi (kompaniya 17'da tekshirilgan: boss pulni ko'radi, prorab ko'rmaydi).
+- **Doiradan tashqari savol** (masalan prorabdan maosh haqida) — kalit-so'z qo'riqchisi model chaqirmasdan rad etadi (token sarflanmaydi).
+- **Jonli qadam-log:** `oqim:true` → NDJSON, har bosqich (rol aniqlandi, ma'lumot yig'ildi, model chaqirildi…) ko'rinadi; `t2_agent_jurnal` ga saqlanadi (savol, javob, qadamlar, model, tokenlar).
+- **Harakat tasdiqi:** AI taklif qiladi → server tekshiradi (rol, obyekt egaligi, parametrlar, xavf: past/o'rta/yuqori) → foydalanuvchi tasdiqlaydi (shaxsiy `ishonch` sozlamasiga ko'ra past xavf o'zi bajariladi; yuqori xavf hech qachon avtomatik emas) → mijoz foydalanuvchi sessiyasi bilan mavjud shlyuzlar (`sbSkladgaYozish`, `sbGrafikYangila`, `xotira_yoz`) orqali bajaradi. AI biznes jadvallarga to'g'ridan yozmaydi.
+- **Model tanlagich (`ModelTanlagich`):** har ishchi talabiga (`TALAB`) qarab baholaydi (Juda mos / Mos / Chegarada / Kuchsiz), kuchsiz tanlansa sababi bilan tasdiq so'raydi; superadmin OpenRouter'dagi istalgan modelni qidirib katalogga qo'shadi (narx serverda OpenRouter'dan olinadi), kompaniya faqat tasdiqlangan katalogdan tanlaydi.
+- **Migratsiyalar:** `20261106320000_t2_agent_kasb_v1`, `20261106330000_t2_agent_jurnal_harakat_v1` (+ rollback), prod'ga qo'llangan. Testlar: `supabase/tests/t2_agent_kasb_contract.sql`, gateway/UI vitest.
+- **Ochiq:** `usta`/`omborchi`/`ta'minotchi`/`laborant` rollari AI uchun xaritalangan, lekin a'zolik/ruxsat mexanizmida hali tayinlanmaydi (alohida ish); Smeta Studio agenti `aiHisobli` ni qabul qilishi kerak.
+
 ## Ochiq qarorlar (egasi)
 
 - Cloudflare Pages'ga `OPENROUTER_API_KEY` ni **egasi o'zi** qo'yadi (Production + Preview); aniq 3 daraja uchun model nomlari.
