@@ -68,6 +68,13 @@ quyi agent signali ────────────► t2_agent_signal (toza
 - **Chegara:** agent prod bazaga migratsiya qo'llamaydi, main ga to'g'ridan push qilmaydi; faqat PR.
 - Sinov: `supabase/tests/t2_agent_oqish_buyruq_contract.sql` 25/25, `agent-ish.test.ts` 11.
 
+## Model registri, proaktiv yordam, ijrochi workflow (2026-10-06)
+- **Model registri:** `t2_agent_model_katalog` (faqat superadmin boshqaradi; model id OpenRouter shaklida, regex bilan tekshiriladi) + `t2_agent_model_tanlov` (kompaniya yoki platforma tanlovi). Hal qilish: kompaniya → platforma → server standarti (tier). Kompaniya tizim agentini tanlay olmaydi; tanlash — admin/boss/director. `/admin/ai-agentlar` da har agentning roli, rejimi, doirasi va hozirgi modeli (manbasi bilan) ko'rinadi.
+- **Proaktiv yordam (`qadam_taklif`):** foydalanuvchi AI kuzatuvini O'ZI yoqadi (standart O'CHIQ). Mahalliy harakat izi (≤40 hodisa, xotirada): sahifa naqshi (ID lar `:id`), tugma yorlig'i, xato turi — matn/qiymat, input maydonlari HECH QACHON o'qilmaydi. Model faqat haqiqiy qiyinchilik belgisida (3 xato/90 s, adashish, xatodan keyin qotib qolish) chaqiriladi; taklif ixtiyoriy, bitta, qisqa; rad etilsa sovush 5→10→20… daqiqa (≤2 soat); yo'l faqat `/admin/…`.
+- **Fikr paneli:** AiHelper → «Fikr / muammo» (tur, matn, skrinshot — R2 «Umumiy» loyihaga, tahlil uchun vision model).
+- **Takliflar UI:** `AgentTakliflar` (tasdiq/rad, past xavfda avto-birlashtirish belgisi, ish buyruqlari, ijrochiga yuborish).
+- **Ijrochi workflow:** `.github/workflows/agent-task.yml` — label `agent-task` + `AGENT_EXECUTOR_ENABLED=true` + OWNER/MEMBER/COLLABORATOR muallifi + sarlavha `[agent-task #` bilan boshlanishi; `ANTHROPIC_API_KEY` GitHub secret; faqat branch+PR. Dastlabki ishga tushirishda `anthropics/claude-code-action@v1` kiritishlarini tekshirish kerak (o'chiq turadi).
+
 ## Ochiq qarorlar (egasi)
 
 - Cloudflare Pages'ga `OPENROUTER_API_KEY` ni **egasi o'zi** qo'yadi (Production + Preview); aniq 3 daraja uchun model nomlari.

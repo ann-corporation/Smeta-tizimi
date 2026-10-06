@@ -14,6 +14,10 @@ import type { AgentControlReadModel } from '../../lib/agent-control-plane';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
 import { toast } from '../../umumiy/ui/Toast';
+import { modellarOl } from '../../api/t2-agent-ish';
+import { t } from '../../i18n/til';
+import { AgentModellar } from './AgentModellar';
+import { AgentTakliflar } from './AgentTakliflar';
 
 /** Ishga tushiriladigan ishchi agentlar (server: functions/api/agent-control.ts ISHCHILAR). */
 const ISHCHILAR = {
@@ -31,6 +35,10 @@ export default function AiAgentlar() {
   const [obyektId, setObyektId] = useState<number | null>(null);
   const [natija, setNatija] = useState<Record<string, unknown> | null>(null);
   const [ishchi, setIshchi] = useState<keyof typeof ISHCHILAR>('quality_handover');
+  /* Tizim (platforma) doirasi — faqat superadmin: baza tekshiradi; ruxsat bo'lmasa tugma ko'rinmaydi. */
+  const [tizimMumkin, setTizimMumkin] = useState(false);
+  const [tizim, setTizim] = useState(false);
+  useEffect(() => { void modellarOl(null).then((r) => setTizimMumkin(r.ok)); }, []);
   useEffect(() => {
     if (!joriy?.id) return;
     void sbT2ObyektlarOlKomp(joriy.id).then((r) => { const q = r.ok ? r.qatorlar ?? [] : []; setObyektlar(q); setObyektId(q[0]?.id ?? null); });
@@ -91,6 +99,14 @@ export default function AiAgentlar() {
           )}
         </div>
       )}
+      {tizimMumkin && (
+        <div className="flex gap-1 text-xs" role="tablist">
+          <button type="button" role="tab" aria-selected={!tizim} onClick={() => setTizim(false)} className={`rounded-md border px-3 py-1 ${!tizim ? 'border-accent text-accent' : 'border-border text-text-dim'}`}>{t('Kompaniya')}</button>
+          <button type="button" role="tab" aria-selected={tizim} onClick={() => setTizim(true)} className={`rounded-md border px-3 py-1 ${tizim ? 'border-accent text-accent' : 'border-border text-text-dim'}`}>{t('Tizim (platforma)')}</button>
+        </div>
+      )}
+      {(tizim || joriy?.id) && <AgentModellar kompaniyaId={joriy?.id ?? null} tizim={tizim} />}
+      {(tizim || joriy?.id) && <AgentTakliflar kompaniyaId={joriy?.id ?? null} tizim={tizim} />}
       <AgentControlCenter
         data={data} loading={loading} error={error}
         onRefresh={() => void yukla()}
