@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   toast: vi.fn(), modellarOl: vi.fn(), modelTanla: vi.fn(),
-  takliflarOl: vi.fn(), taklifQarori: vi.fn(), buyruqlarOl: vi.fn(), buyruqYubor: vi.fn(), rivojlanishTahlil: vi.fn(),
+  takliflarOl: vi.fn(), taklifQarori: vi.fn(), buyruqlarOl: vi.fn(), buyruqYubor: vi.fn(), rivojlanishTahlil: vi.fn(), orModellar: vi.fn(),
 }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../api/t2-agent-ish', () => ({
   modellarOl: m.modellarOl, modelTanla: m.modelTanla, takliflarOl: m.takliflarOl, taklifQarori: m.taklifQarori,
-  buyruqlarOl: m.buyruqlarOl, buyruqYubor: m.buyruqYubor, rivojlanishTahlil: m.rivojlanishTahlil,
+  buyruqlarOl: m.buyruqlarOl, buyruqYubor: m.buyruqYubor, rivojlanishTahlil: m.rivojlanishTahlil, openrouterModellarOl: m.orModellar, modelOpenrouterdanQosh: vi.fn(),
 }));
 
 import { AgentModellar } from './AgentModellar';
@@ -20,7 +20,10 @@ const modellar = (tanlash: boolean) => ({ ok: true, natija: {
   katalog: [{ id: 'vendor/a', nom: 'Model A', tavsif: null, narx_izoh: null, vision: false }, { id: 'vendor/b', nom: 'Model B', tavsif: null, narx_izoh: null, vision: true }],
 } });
 
-beforeEach(() => { Object.values(m).forEach((f) => f.mockReset()); });
+beforeEach(() => {
+  Object.values(m).forEach((f) => f.mockReset());
+  m.orModellar.mockResolvedValue({ ok: true, natija: { jami: 2, tavsiya: [], talab: { min: 52, izoh: 'x' }, natija: [{ id: 'vendor/a', nom: 'Model A', kirish_usd: 0.1, chiqish_usd: 0.4, kontekst: 100000, vision: true, tools: true, json: true, reasoning: false, ball: 66, manba: 'tanilgan', daraja: 'mos', talab: 62, sabablar: [], ogohlantirish: null, javob_narxi_usd: 0.0005 }, { id: 'vendor/b', nom: 'Model B', kirish_usd: 0.1, chiqish_usd: 0.4, kontekst: 100000, vision: true, tools: true, json: true, reasoning: false, ball: 66, manba: 'tanilgan', daraja: 'mos', talab: 62, sabablar: [], ogohlantirish: null, javob_narxi_usd: 0.0005 }] } });
+});
 afterEach(cleanup);
 
 describe('AgentModellar', () => {
@@ -29,7 +32,8 @@ describe('AgentModellar', () => {
     render(<AgentModellar kompaniyaId={5} tizim={false} />);
     expect(await screen.findByText('Hujjat nazorati')).toBeTruthy();
     expect(screen.getByText('Platforma tanlovi')).toBeTruthy();
-    fireEvent.change(screen.getByLabelText(/Hujjat nazorati/), { target: { value: 'vendor/b' } });
+    fireEvent.click(screen.getByRole('button', { name: /Model — Hujjat nazorati/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /Model B/ }));
     await waitFor(() => expect(m.modelTanla).toHaveBeenCalledWith(5, 'document_control', 'vendor/b'));
   });
 

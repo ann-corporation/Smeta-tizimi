@@ -2,12 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
-  toast: vi.fn(), markazOl: vi.fn(), modellarOl: vi.fn(), modelTanla: vi.fn(), modelKatalogYoz: vi.fn(), byudjetBelgila: vi.fn(), ustamaBelgila: vi.fn(),
+  toast: vi.fn(), markazOl: vi.fn(), modellarOl: vi.fn(), modelTanla: vi.fn(), modelKatalogYoz: vi.fn(), byudjetBelgila: vi.fn(), ustamaBelgila: vi.fn(), orModellar: vi.fn(), orQosh: vi.fn(),
   muhitRoyxatiOl: vi.fn(), manbaHolati: vi.fn(), signallarOl: vi.fn(), rivojlanishTahlil: vi.fn(), takliflarOl: vi.fn(), buyruqlarOl: vi.fn(), taklifQarori: vi.fn(), buyruqYubor: vi.fn(),
 }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../api/t2-agent-ish', () => ({
-  markazOl: m.markazOl, modellarOl: m.modellarOl, modelTanla: m.modelTanla, modelKatalogYoz: m.modelKatalogYoz, byudjetBelgila: m.byudjetBelgila, ustamaBelgila: m.ustamaBelgila,
+  markazOl: m.markazOl, modellarOl: m.modellarOl, modelTanla: m.modelTanla, modelKatalogYoz: m.modelKatalogYoz, byudjetBelgila: m.byudjetBelgila, ustamaBelgila: m.ustamaBelgila, openrouterModellarOl: m.orModellar, modelOpenrouterdanQosh: m.orQosh,
   muhitRoyxatiOl: m.muhitRoyxatiOl, manbaHolati: m.manbaHolati, signallarOl: m.signallarOl, rivojlanishTahlil: m.rivojlanishTahlil,
   takliflarOl: m.takliflarOl, buyruqlarOl: m.buyruqlarOl, taklifQarori: m.taklifQarori, buyruqYubor: m.buyruqYubor,
 }));
@@ -31,6 +31,9 @@ const agentlar = [
 
 beforeEach(() => {
   Object.values(m).forEach((f) => f.mockReset());
+  m.orModellar.mockImplementation(async (p: { ids?: string[]; q?: string }) => ({ ok: true, natija: { jami: 3, tavsiya: ['vendor/a'], talab: { min: 62, izoh: 'Raqamli xulosa va xavflarni to‘g‘ri aytishi shart' },
+    natija: p.ids ? [{ id: 'vendor/a', nom: 'Model A', kirish_usd: 0.1, chiqish_usd: 0.4, kontekst: 100000, vision: true, tools: true, json: true, reasoning: false, ball: 66, manba: 'tanilgan', daraja: 'mos', talab: 62, sabablar: [], ogohlantirish: null, javob_narxi_usd: 0.0005 }, { id: 'vendor/b', nom: 'Model B', kirish_usd: 0.1, chiqish_usd: 0.4, kontekst: 100000, vision: true, tools: true, json: true, reasoning: false, ball: 66, manba: 'tanilgan', daraja: 'kuchsiz', talab: 62, sabablar: [], ogohlantirish: 'KUCHSIZ: raqamlarni noto‘g‘ri aytishi mumkin', javob_narxi_usd: 0.0005 }]
+      : [{ id: 'vendor/yangi', nom: 'Yangi Model', kirish_usd: 0.1, chiqish_usd: 0.4, kontekst: 100000, vision: true, tools: true, json: true, reasoning: false, ball: 66, manba: 'tanilgan', daraja: 'juda_mos', talab: 62, sabablar: [], ogohlantirish: null, javob_narxi_usd: 0.0005 }] } }));
   m.markazOl.mockResolvedValue({ ok: true, natija: markaz() });
   m.modellarOl.mockResolvedValue({ ok: true, natija: { rol: 'superadmin', tanlash_mumkin: true, agentlar, katalog } });
   m.takliflarOl.mockResolvedValue({ ok: true, natija: { natija: [] } }); m.buyruqlarOl.mockResolvedValue({ ok: true, natija: { natija: [] } });
@@ -71,7 +74,10 @@ describe('AiMarkaz', () => {
     expect(await screen.findByText('Tizim agentlari')).toBeTruthy();
     expect(screen.getByText('Kompaniya agentlari — standart model')).toBeTruthy();
     m.modelTanla.mockResolvedValue({ ok: true, natija: {} });
-    fireEvent.change(screen.getByLabelText(/Model — PTO/), { target: { value: 'vendor/b' } });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    fireEvent.click(screen.getByRole('button', { name: /Model — PTO/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /Model B/ }));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('KUCHSIZ'));           // kuchsiz model — sabab bilan tasdiq so'raladi
     await waitFor(() => expect(m.modelTanla).toHaveBeenCalledWith(null, 'pto_smeta', 'vendor/b'));
   });
 
@@ -120,6 +126,36 @@ describe('AiXarajatBolimi', () => {
     await waitFor(() => expect(m.byudjetBelgila).toHaveBeenCalledWith(6, 15, 80, true));
     fireEvent.click(screen.getByRole('button', { name: /kill-switch/ }));
     await waitFor(() => expect(m.byudjetBelgila).toHaveBeenCalledWith(null, 50, 80, false));
+  });
+});
+
+describe('ModelTanlagich — ishga qarab tavsiya va ogohlantirish', () => {
+  it('kuchsiz modelni tanlashni rad etsa — hech narsa saqlanmaydi', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<AiMarkaz kompaniyalar={[]} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Agentlar va modellar/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Model — PTO/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /Model B/ }));
+    expect(m.modelTanla).not.toHaveBeenCalled();
+  });
+  it('tavsiya belgisi, moslik nishoni va talab; joriy model kuchsiz bo‘lsa doimiy ogohlantirish ko‘rinadi', async () => {
+    m.modellarOl.mockResolvedValue({ ok: true, natija: { rol: 'superadmin', tanlash_mumkin: true, agentlar: [{ ...agentlar[1], model_id: 'vendor/b' }], katalog } });
+    render(<AiMarkaz kompaniyalar={[]} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Agentlar va modellar/ }));
+    expect((await screen.findByRole('alert')).textContent).toContain('KUCHSIZ');
+    fireEvent.click(screen.getByRole('button', { name: /Model — PTO/ }));
+    expect((await screen.findAllByText('Tavsiya')).length).toBeGreaterThan(0);
+  });
+  it('superadmin OpenRouter ro‘yxatidan qidirib, katalogda yo‘q modelni tanlasa — avval katalogga qo‘shiladi, keyin tayinlanadi', async () => {
+    m.orQosh.mockResolvedValue({ ok: true, natija: {} }); m.modelTanla.mockResolvedValue({ ok: true, natija: {} });
+    render(<AiMarkaz kompaniyalar={[]} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Agentlar va modellar/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Model — PTO/ }));
+    fireEvent.change(await screen.findByPlaceholderText(/Model nomini qidiring/), { target: { value: 'yangi' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Yangi Model/ }));
+    await waitFor(() => expect(m.modelTanla).toHaveBeenCalledWith(null, 'pto_smeta', 'vendor/yangi'));
+    expect(m.orQosh).toHaveBeenCalledWith('vendor/yangi');
+    expect(m.orQosh.mock.invocationCallOrder[0]).toBeLessThan(m.modelTanla.mock.invocationCallOrder[0]);
   });
 });
 

@@ -90,8 +90,74 @@ export const kompaniyaSozlamaSaqla = (k: number, p: { aiYoqilgan: boolean; token
   agentYoz('kompaniya_sozlama_saqla', k, { ai_yoqilgan: p.aiYoqilgan, token_limit: p.tokenLimit, kuzatuv_ruxsat: p.kuzatuvRuxsat });
 /** Ustama (%): kompaniyaId=null — platforma standarti; berilsa — shu kompaniyaga alohida; foiz=null — kompaniya ustamasini olib tashlash. */
 export const ustamaBelgila = (kompaniyaId: number | null, foiz: number | null) => agentYoz('ustama_belgila', kompaniyaId, { foiz });
+export type KasbIshchi = { rol: string; profil: string; nom: string; vazifa: string; kategoriyalar: string[]; namuna_savollar: string[]; taqiq_izoh: string | null; boshqalar: Array<{ rol: string; nom: string; vazifa: string }> };
+export type KasbJavobi = { javob: string; kasb: { nom: string; rol: string; profil: string }; toifalar?: string[]; rad?: boolean; model?: string; ms?: number };
+export const kasbOl = (k: number) => agentOqi<KasbIshchi>('kasb', k);
+export const kasbSavol = (k: number, savol: string, sahifa?: string, obyektId?: number | null) => agentYoz<KasbJavobi>('kasb_savol', k, { savol, sahifa, obyekt_id: obyektId ?? undefined });
+export type ModelMoslik = {
+  id: string; nom: string; kirish_usd: number; chiqish_usd: number; kontekst: number; vision: boolean; tools: boolean; json: boolean; reasoning: boolean;
+  ball: number; manba: 'tanilgan' | 'taxmin'; daraja: 'juda_mos' | 'mos' | 'chegarada' | 'kuchsiz'; talab: number; sabablar: string[]; ogohlantirish: string | null; javob_narxi_usd: number;
+};
+export type ModellarRoyxati = { jami: number; tavsiya: string[]; talab: { min: number; izoh: string }; natija: ModelMoslik[] };
+export const openrouterModellarOl = (p: { profil?: string | null; q?: string; ids?: string[] } = {}) =>
+  agentOqi<ModellarRoyxati>('openrouter_modellar', null, { profil: p.profil ?? undefined, q: p.q, ids: p.ids?.join(',') });
+export const modelOpenrouterdanQosh = (modelId: string) => agentYoz('model_openrouterdan_qosh', null, { model_id: modelId });
 export const signallarOl = () => agentOqi<{ natija: SignalGuruhi[] }>('signallar', null);
 export const muhitRoyxatiOl = () => agentOqi<MuhitKorinishi>('muhit_royxat', null);
 export const byudjetBelgila = (k: number | null, limitUsd: number, ogohlantirishFoiz = 80, faol = true) =>
   agentYoz('byudjet_belgila', k, { limit_usd: limitUsd, ogohlantirish_foiz: ogohlantirishFoiz, faol });
 export const manbaHolati = (domen: string, faol: boolean) => agentYoz('manba_holat', null, { domen, faol });
+
+/* ───────── Kasb ishchisi: jonli qadamlar, jurnal, shaxsiy sozlama, harakat takliflari ───────── */
+export type Qadam = { ms: number; belgi: string; matn: string };
+export type HarakatTaklif = {
+  id: number; amal: string; parametrlar: Record<string, unknown>; xavf: 'past' | 'orta' | 'yuqori'; avto: boolean; ogohlantirish: string | null; tushuntirish: string;
+};
+export type KasbYakun = {
+  ok: boolean; status?: number; javob?: string; rad?: boolean; kasb?: { nom: string; rol: string; profil: string }; harakatlar?: HarakatTaklif[];
+  toifalar?: string[]; model?: string; ms?: number; jurnal_id?: number | null; qadamlar?: Qadam[]; error?: string; code?: string;
+};
+
+/** Savolni yuboradi va AI qadamlarini JONLI oladi (NDJSON). `qadam` har yangi qadamda chaqiriladi; yakunda to'liq natija qaytadi. */
+export async function kasbSavolOqim(k: number, savol: string, o: { sahifa?: string; obyektId?: number | null; qadam?: (q: Qadam) => void; signal?: AbortSignal } = {}): Promise<KasbYakun> {
+  let r: Response;
+  try {
+    r = await fetch('/api/agent-ish', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, signal: o.signal,
+      body: JSON.stringify({ amal: 'kasb_savol', kompaniya_id: k, savol, sahifa: o.sahifa, obyekt_id: o.obyektId ?? undefined, oqim: true }) });
+  } catch (e) { return { ok: false, error: 'Tarmoq: ' + (e instanceof Error ? e.message : String(e)) }; }
+  if (!(r.headers.get('content-type') ?? '').includes('x-ndjson') || !r.body) {
+    try { return { ...(await r.json() as KasbYakun), status: r.status }; } catch { return { ok: false, error: `Server javob bermadi (HTTP ${r.status})` }; }
+  }
+  const reader = r.body.getReader(); const dec = new TextDecoder(); let bufer = ''; let yakun: KasbYakun | null = null;
+  const qator = (x: string) => {
+    if (!x.trim()) return;
+    try {
+      const j = JSON.parse(x) as { t?: string } & Record<string, unknown>;
+      if (j.t === 'qadam') o.qadam?.({ ms: Number(j.ms) || 0, belgi: String(j.belgi ?? ''), matn: String(j.matn ?? '') });
+      else if (j.t === 'yakun') { const { t: _t, ...qolgan } = j; void _t; yakun = qolgan as unknown as KasbYakun; }
+    } catch { /* buzilgan satr — o'tkazib yuboriladi */ }
+  };
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bufer += dec.decode(value, { stream: true });
+      const q = bufer.split('\n'); bufer = q.pop() ?? '';
+      q.forEach(qator);
+    }
+    qator(bufer);
+  } catch (e) { if ((e as { name?: string })?.name === 'AbortError') return { ok: false, error: 'To‘xtatildi' }; }
+  return yakun ?? { ok: false, error: 'Aloqa uzildi — javob to‘liq kelmadi' };
+}
+
+export type JurnalYozuvi = {
+  id: number; vaqt: string; profil_kod: string | null; rol: string | null; tur: 'savol' | 'rad' | 'salom' | 'xato'; savol: string | null; javob: string | null; qadamlar: Qadam[];
+  toifalar: string[]; model: string | null; kirish_token: number; chiqish_token: number; ms: number | null; rad: boolean; kim: string | null;
+  harakatlar: Array<{ id: number; amal: string; xavf: string; holat: string; tushuntirish: string | null }>;
+};
+export const jurnalOl = (k: number, hamma = false) => agentOqi<{ hamma: boolean; natija: JurnalYozuvi[] }>('jurnal', k, { hamma: hamma ? '1' : undefined });
+export type ShaxsiySozlama = { til: 'auto' | 'uz' | 'ru'; uslub: 'qisqa' | 'batafsil'; ishonch: 'sora' | 'jiddiy' | 'avto' };
+export const shaxsiyOl = () => agentOqi<ShaxsiySozlama>('shaxsiy', null);
+export const shaxsiySaqla = (p: ShaxsiySozlama) => agentYoz('shaxsiy_saqla', null, { ...p });
+export const harakatQarori = (harakatId: number, qaror: 'tasdiqlash' | 'rad') => agentYoz<{ holat: string }>('harakat_qaror', null, { harakat_id: harakatId, qaror });
+export const harakatNatijasi = (harakatId: number, ok: boolean, natija: Record<string, unknown>) => agentYoz('harakat_natija', null, { harakat_id: harakatId, ok, natija });

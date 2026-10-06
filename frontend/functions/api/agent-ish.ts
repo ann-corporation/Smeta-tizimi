@@ -9,68 +9,24 @@
  * model chaqirmaydi — doim ochiq; ruxsatni baza tekshiradi.
  */
 import { tekshir } from '../_shared/auth';
-import { supabaseBaseUrl } from '../_shared/supabase-url';
-import { aiCall as aiXom, aiPublicError, parseJsonText, type AiEnv, type AiRequest, type AiResponse } from '../_shared/ai';
+import { aiPublicError, parseJsonText, type AiEnv } from '../_shared/ai';
+import { rpcData, type RpcNatija, type Yuk } from '../_shared/agent-rpc';
+import { aiHisobli, aiXatoJavobi, aiXatoMalumoti, modelOf } from '../_shared/agent-hisob';
 import { tizimPrompti, tashqiMatnOra, profilDarajasi, type Muhit } from '../_shared/agent-prompt';
 import { vebOl } from '../_shared/agent-veb';
+import { faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../_shared/agent-kasb';
+import { jarvisSalommi } from '../../src/lib/jarvis/intent';
+import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
 
 type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
-type Yuk = Record<string, unknown>;
-type RpcNatija = { ok: boolean; status: number; data: Yuk };
 
 const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
 const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
 const PROFIL = /^[a-z_]{3,40}$/;
 
-async function rpcData(env: Env, nom: string, yuk: Yuk): Promise<RpcNatija> {
-  const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL!) + '/rest/v1/rpc/' + nom, {
-    method: 'POST', headers: { apikey: env.SUPABASE_KEY!, Authorization: 'Bearer ' + env.SUPABASE_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify(yuk),
-  });
-  const text = await r.text();
-  if (!r.ok) {
-    let code = ''; try { code = (JSON.parse(text) as { code?: string }).code ?? ''; } catch { /* matn emas */ }
-    return { ok: false, status: code === '42501' ? 403 : code === '22023' ? 400 : 502, data: { ok: false, error: code === '42501' ? 'Bu doiraga ruxsat yo‘q' : 'Server xatosi' } };
-  }
-  let d: unknown = null;
-  try { d = JSON.parse(text); } catch { return { ok: false, status: 502, data: { ok: false, error: 'Noto‘g‘ri javob' } }; }
-  const o = (d && typeof d === 'object' ? d : { ok: true, natija: d }) as Yuk;
-  return { ok: o.ok !== false, status: o.ok === false ? (o.code === 'GLOBAL_SCOPE_DENIED' || o.code === 'COMPANY_ACCESS_DENIED' || o.code === 'WRITE_ROLE_REQUIRED' ? 403 : 400) : 200, data: o };
-}
-
-class ByudjetXatosi extends Error { constructor(readonly kod: string, readonly xabar: string) { super(kod); } }
-const BYUDJET_XABAR: Record<string, string> = {
-  BYUDJET_YOQ: 'AI uchun oylik limit belgilanmagan — avval Boshqaruv → AI markazi → Xarajat bo‘limida limit qo‘ying',
-  BYUDJET_TUGADI: 'AI oylik limiti tugadi — limitni oshiring yoki keyingi oyni kuting',
-  TOKEN_YETMAYDI: 'Tokenlar yetarli emas — hisobni to‘ldiring',
-  KOMPANIYA_AI_OCHIQ: 'Kompaniya admini AI ni o‘chirgan (Sozlamalar → AI)',
-  TOKEN_LIMIT_TUGADI: 'Kompaniyaning AI oylik token limiti tugadi — admin limitni oshirishi mumkin',
-};
-
-/** BARCHA model chaqiruvlari shu orqali: (1) limit tekshiruvi — limit yo'q/tugagan bo'lsa model CHAQIRILMAYDI; (2) chaqiruv; (3) haqiqiy sarf jurnalga. */
-async function aiHisobli(env: Env, actor: number, kid: number | null, profil: string | null, amal: string, req: AiRequest): Promise<AiResponse> {
-  const t = await rpcData(env, 't2_agent_sarf_tekshir_v1', { p_actor_id: actor, p_kompaniya_id: kid });
-  if (!t.ok) { const c = String(t.data.code ?? ''); throw new ByudjetXatosi(c, BYUDJET_XABAR[c] ?? 'AI hozir mavjud emas'); }
-  try {
-    const r = await aiXom(env, req);
-    await rpcData(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: profil, p_amal: amal, p_model: r.model, p_kirish: r.usage?.inputTokens ?? 0, p_chiqish: r.usage?.outputTokens ?? 0, p_narx_usd: r.usage?.cost ?? null, p_muvaffaqiyat: true });
-    return r;
-  } catch (e) {
-    await rpcData(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: profil, p_amal: amal, p_model: req.model ?? null, p_kirish: 0, p_chiqish: 0, p_narx_usd: 0, p_muvaffaqiyat: false }).catch(() => null);
-    throw e;
-  }
-}
-/** Model xatosi/limit xatosini foydalanuvchiga tushunarli javobga aylantiradi. */
-function aiXatoJavobi(e: unknown): Response {
-  if (e instanceof ByudjetXatosi) return Response.json({ ok: false, code: e.kod, error: e.xabar }, { status: 402, ...JAVOB });
-  const p = aiPublicError(e);
-  return Response.json({ ok: false, code: p.code, error: p.message }, { status: p.code === 'not_configured' ? 503 : 502, ...JAVOB });
-}
-
-/** Admin tanlagan (katalogdagi) model; yo'q bo'lsa server standarti (tier). */
-const modelOf = (m: RpcNatija): string | undefined => (typeof m.data.model === 'string' && m.data.model ? m.data.model : undefined);
 /** Model chaqiradigan (token sarflaydigan) amallar. */
-const AI_AMALLAR = new Set(['savol', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif']);
+const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
@@ -109,7 +65,33 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const m = await rpcData(ctx.env, 't2_agent_markaz_v1', { p_actor_id: k.actor });
     if (!m.ok) return chiqar(m);
     /* Sozlama holati — faqat mavjudligi (true/false); kalit qiymatlari HECH QACHON qaytmaydi. */
-    return Response.json({ ...m.data, sozlama: { ai_yoqilgan: ctx.env.AGENT_ISH_YOQILGAN === '1', openrouter: !!ctx.env.OPENROUTER_API_KEY, github: !!(ctx.env.GITHUB_AGENT_TOKEN && ctx.env.GITHUB_REPO) } }, JAVOB);
+    return Response.json({ ...m.data, sozlama: { ai_yoqilgan: ctx.env.AGENT_ISH_YOQILGAN !== '0', openrouter: !!ctx.env.OPENROUTER_API_KEY, github: !!(ctx.env.GITHUB_AGENT_TOKEN && ctx.env.GITHUB_REPO) } }, JAVOB);
+  }
+  if (bolim === 'kasb') {
+    if (kid == null) return xato('kompaniya_id kerak');
+    return chiqar(await rpcData(ctx.env, 't2_agent_kasb_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+  }
+  /* OpenRouter'ning jonli ro'yxati + shu ishchi uchun moslik bahosi va ogohlantirishlar. Kalit kerak emas (ommaviy API). */
+  if (bolim === 'openrouter_modellar') {
+    const royxat = await openrouterModellar();
+    const q = (u.searchParams.get('q') ?? '').toLowerCase().trim().slice(0, 60);
+    const ids = new Set((u.searchParams.get('ids') ?? '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 80));
+    const hamma = royxat.map((m) => { const b = baholash(m, profil || null); return { ...m, ...b, narx: javobNarxi(m) }; });
+    const tavsiya = tavsiyaEtilgan(hamma.map((x) => ({ id: x.id, b: x, narx: x.narx })), 3);
+    const RANK: Record<string, number> = { juda_mos: 0, mos: 1, chegarada: 2, kuchsiz: 3 };
+    const tanlangan = (ids.size ? hamma.filter((x) => ids.has(x.id)) : hamma.filter((x) => !q || x.id.toLowerCase().includes(q) || x.nom.toLowerCase().includes(q)))
+      .sort((a, c) => (tavsiya.includes(c.id) ? 1 : 0) - (tavsiya.includes(a.id) ? 1 : 0) || RANK[a.daraja] - RANK[c.daraja] || a.narx - c.narx).slice(0, ids.size ? 80 : 120);
+    const t = (profil && TALAB[profil]) || { min: 50, izoh: 'Umumiy ishchi' };
+    return Response.json({ ok: true, jami: royxat.length, tavsiya, talab: { min: t.min, izoh: t.izoh }, natija: tanlangan }, JAVOB);
+  }
+  if (bolim === 'shaxsiy') return chiqar(await rpcData(ctx.env, 't2_agent_shaxsiy_v1', { p_actor_id: k.actor }));
+  if (bolim === 'jurnal') {
+    if (kid == null) return xato('kompaniya_id kerak');
+    return chiqar(await rpcData(ctx.env, 't2_agent_jurnal_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_hamma: u.searchParams.get('hamma') === '1', p_limit: 30 }));
+  }
+  if (bolim === 'harakatlar') {
+    if (kid == null) return xato('kompaniya_id kerak');
+    return chiqar(await rpcData(ctx.env, 't2_agent_harakat_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_limit: 30 }));
   }
   if (bolim === 'kompaniya_sozlama') {
     if (kid == null) return xato('kompaniya_id kerak');
@@ -194,6 +176,93 @@ const TAKLIF_SXEMA = {
   },
 };
 
+type Qadam = { ms: number; belgi: string; matn: string };
+const KASB_SXEMA = {
+  name: 'kasb_javobi',
+  schema: { type: 'object', additionalProperties: false, required: ['javob', 'harakatlar'], properties: {
+    javob: { type: 'string' },
+    harakatlar: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['amal', 'parametrlar', 'tushuntirish', 'aniq'],
+      properties: { amal: { type: 'string' }, parametrlar: { type: 'object' }, tushuntirish: { type: 'string' }, aniq: { type: 'boolean' } } } } } },
+};
+const nomlar = (t: readonly string[]) => t.map((x) => MAVZU_NOMI[x as Toifa] ?? x).join(', ');
+
+/**
+ * KASB AGENTI quvuri: lavozim → mavzu qo'riqchisi → rolga ruxsat etilgan ma'lumot → qoidalar → limit/hamyon → model → harakat takliflari → jurnal.
+ * Har qadam `log` orqali chiqariladi (jonli ko'rinadi va jurnalga yoziladi). Ruxsatsiz mavzu modelga umuman yuborilmaydi.
+ */
+async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (belgi: string, matn: string) => void): Promise<{ status: number; body: Record<string, unknown> }> {
+  const t0 = Date.now();
+  const savol = matn(so.savol, 2000) ?? '';
+  const sessiya = crypto.randomUUID();
+  log('🔐', 'Lavozimingiz aniqlanmoqda…');
+  const kr = await rpcData(env, 't2_agent_kasb_v1', { p_actor_id: actor, p_kompaniya_id: kid });
+  if (!kr.ok) return { status: kr.status, body: kr.data };
+  const kasb = kr.data as unknown as KasbMalumoti;
+  const ish = { nom: kasb.nom, rol: kasb.rol, profil: kasb.profil };
+  log('👤', `Lavozim: ${kasb.rol} → «${kasb.nom}» ishchisi ulandi`);
+  const sh = await rpcData(env, 't2_agent_shaxsiy_v1', { p_actor_id: actor });
+  const til = String(sh.data.til ?? 'auto'); const uslub = String(sh.data.uslub ?? 'qisqa');
+  const yozJurnal = async (tur: string, javob: string, qadamlar: Qadam[], extra: { toifalar?: string[]; model?: string; kirish?: number; chiqish?: number; rad?: boolean }) =>
+    rpcData(env, 't2_agent_jurnal_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_sessiya: sessiya, p_profil: kasb.profil, p_rol: kasb.rol, p_tur: tur, p_savol: savol.slice(0, 600), p_javob: javob.slice(0, 2000),
+      p_qadamlar: qadamlar, p_toifalar: extra.toifalar ?? [], p_model: extra.model ?? null, p_kirish: extra.kirish ?? 0, p_chiqish: extra.chiqish ?? 0, p_ms: Date.now() - t0, p_rad: extra.rad === true });
+  const qadamlar: Qadam[] = [];
+  const qd = (b: string, m: string) => { qadamlar.push({ ms: Date.now() - t0, belgi: b, matn: m }); log(b, m); };
+
+  if (jarvisSalommi(savol)) {
+    const javob = `Salom! Men — **${kasb.nom}**. ${kasb.vazifa}\n\nMasalan: ${kasb.namuna_savollar.slice(0, 3).map((x) => '«' + x + '»').join(' · ')}`;
+    qd('👋', 'Salomlashuv — model kerak emas, token sarflanmadi');
+    await yozJurnal('salom', javob, qadamlar, {});
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', javob } };
+  }
+  const taqiq = mavzuTaqiqi(savol, kasb.kategoriyalar);
+  if (taqiq) {
+    const javob = radMatni(kasb, taqiq);
+    qd('🛑', `Savol sizning doirangizdan tashqarida (${taqiq.sabab === 'pul' ? 'pul va narx' : nomlar(taqiq.toifalar)}) — model chaqirilmadi, token sarflanmadi`);
+    await yozJurnal('rad', javob, qadamlar, { rad: true });
+    return { status: 200, body: { ok: true, kasb: ish, rad: true, model: 'local', javob } };
+  }
+  const toifalar = toifalarniTanla(savol, kasb.kategoriyalar, matn(so.sahifa, 160));
+  qd('🧭', `Savol tahlil qilindi — kerakli ma’lumot: ${nomlar(toifalar)}`);
+  qd('🗄️', 'Tizimdan ma’lumot olinmoqda (faqat lavozimingizga ruxsat etilgan)…');
+  const fk = await rpcData(env, 't2_agent_fakt_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_kategoriyalar: toifalar, p_obyekt_id: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null });
+  if (!fk.ok) return { status: fk.status, body: fk.data };
+  const ishlatilgan = (fk.data.ishlatilgan ?? []) as string[];
+  const taqiqlangan = (fk.data.taqiqlangan ?? []) as string[];
+  const faktJson = faktMatni(fk.data.fakt);
+  qd('✅', `Olindi: ${(faktJson.length / 1024).toFixed(1)} KB (${nomlar(ishlatilgan)})${taqiqlangan.length ? ` · yopiq: ${nomlar(taqiqlangan)}` : ''}`);
+  const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: kasb.profil });
+  if (!m.ok) return { status: m.status, body: m.data };
+  const qoidalar = (m.data.qoidalar as Array<{ doira: string }> | undefined) ?? [];
+  qd('📜', `Qoidalar yuklandi: ${qoidalar.length} ta (${qoidalar.filter((x) => x.doira === 'yadro').length} ta o‘zgarmas yadro qoida)`);
+  const model = modelOf(m);
+  qd('🤖', `Model: ${model ?? 'server standarti'} — limit va hamyon tekshirilmoqda…`);
+  const tilIshora = til === 'uz' ? 'Javobni DOIM o‘zbek (lotin) tilida yoz.' : til === 'ru' ? 'Javobni DOIM rus tilida yoz.' : '';
+  const uslubIshora = uslub === 'batafsil' ? 'Javobni batafsil yoz: sabablari va hisob-kitobini ham ko‘rsat.' : 'Javobni juda qisqa yoz (6 gapdan oshmasin).';
+  const system = tizimPrompti(m.data as unknown as Muhit, kasb.profil) + '\n\n' + kasbPrompti(kasb, ishlatilgan, taqiqlangan) + '\n\n' +
+    harakatMatni(kasb.harakatlar ?? ['eslatma']) + '\n' + [tilIshora, uslubIshora].filter(Boolean).join(' ') +
+    '\nJAVOB FORMATI: faqat JSON: {"javob": "<markdown matn>", "harakatlar": [ ... ]}. Harakat kerak bo‘lmasa "harakatlar": [].';
+  qd('✍️', 'Javob yozilmoqda…');
+  const r = await aiHisobli(env, actor, kid, kasb.profil, 'kasb_savol', {
+    system, text: tashqiMatnOra('tizim-faktlari', faktJson) + '\n\nFOYDALANUVCHI SAVOLI: ' + savol,
+    tier: profilDarajasi(kasb.profil), model, maxOutputTokens: 1200, temperature: 0.1, jsonSchema: KASB_SXEMA,
+  });
+  const ajr = javobniAjrat(r.text);
+  const kir = r.usage?.inputTokens ?? 0; const chiq = r.usage?.outputTokens ?? 0;
+  qd('📥', `Javob olindi (${r.model}): ${kir + chiq} token`);
+  const jr = await yozJurnal('savol', ajr.javob, qadamlar, { toifalar: ishlatilgan, model: r.model, kirish: kir, chiqish: chiq });
+  const jid = jr.ok ? Number(jr.data.id) : null;
+  const harakatlar: Array<Record<string, unknown>> = [];
+  for (const h of ajr.harakatlar.slice(0, 2)) {
+    const t = await rpcData(env, 't2_agent_harakat_taklif_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_jurnal: jid, p_amal: h.amal, p_param: h.parametrlar, p_tushuntirish: h.tushuntirish, p_aniq: h.aniq });
+    if (t.ok) {
+      harakatlar.push(t.data);
+      qd('🧾', `Harakat taklif qilindi: ${h.amal} · xavf: ${String(t.data.xavf)}${t.data.avto ? ' — sozlamangizga ko‘ra avtomatik bajariladi' : ' — sizning tasdig‘ingiz kutilmoqda'}`);
+    } else qd('⚠️', `Taklif qilingan harakat rad etildi (${String(t.data.xabar ?? t.data.code ?? 'noto‘g‘ri')}) — hech narsa o‘zgarmadi`);
+  }
+  qd('🏁', `Tayyor: ${((Date.now() - t0) / 1000).toFixed(1)} s · ${kir + chiq} token`);
+  return { status: 200, body: { ok: true, kasb: ish, javob: ajr.javob, harakatlar, toifalar: ishlatilgan, model: r.model, provider: r.provider, ms: Date.now() - t0, jurnal_id: jid } };
+}
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const k = await kirish(ctx); if (k instanceof Response) return k;
   let so: Yuk;
@@ -203,8 +272,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (profil && !PROFIL.test(profil)) return xato('profil noto‘g‘ri');
   const amal = String(so.amal || '');
   const env = ctx.env;
-  const aiYoq = env.AGENT_ISH_YOQILGAN === '1';
-  if (AI_AMALLAR.has(amal) && !aiYoq) return xato('AI hali yoqilmagan (token hisobi tayyor bo‘lgach yoqiladi)', 503);
+  /* AI standart YOQIQ: xarajatni oylik limit (default-deny) va hamyon cheklaydi. `AGENT_ISH_YOQILGAN=0` — favqulodda o'chirgich. */
+  const aiYoq = env.AGENT_ISH_YOQILGAN !== '0';
+  if (AI_AMALLAR.has(amal) && !aiYoq) return xato('AI o‘chirilgan (AGENT_ISH_YOQILGAN=0)', 503);
 
   if (amal === 'xotira_yoz') {
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
@@ -377,6 +447,54 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     } catch (e) {
       return aiXatoJavobi(e);
     }
+  }
+
+  if (amal === 'kasb_savol') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    if (!matn(so.savol, 2000)) return xato('savol kerak');
+    const t0 = Date.now();
+    if (so.oqim !== true) {
+      const qadamlar: Qadam[] = [];
+      const r = await kasbQuvur(env, k.actor, kid, so, (b, m) => qadamlar.push({ ms: Date.now() - t0, belgi: b, matn: m }));
+      return Response.json({ ...r.body, qadamlar }, { status: r.status, ...JAVOB });
+    }
+    /* OQIM (NDJSON): har qadam sodir bo'lishi bilan foydalanuvchiga yuboriladi — «hozir nima qilinayapti» jonli ko'rinadi. */
+    const { readable, writable } = new TransformStream();
+    const w = writable.getWriter(); const enc = new TextEncoder();
+    const yoz = (o: Record<string, unknown>) => w.write(enc.encode(JSON.stringify(o) + '\n')).catch(() => undefined);
+    const ish = (async () => {
+      const qadamlar: Qadam[] = [];
+      try {
+        const r = await kasbQuvur(env, k.actor, kid, so, (b, m) => { const q = { ms: Date.now() - t0, belgi: b, matn: m }; qadamlar.push(q); void yoz({ t: 'qadam', ...q }); });
+        await yoz({ t: 'yakun', status: r.status, ...r.body, qadamlar });
+      } catch (e) {
+        const m = aiXatoMalumoti(e);
+        await yoz({ t: 'yakun', status: m.status, ...m.body, qadamlar });
+      } finally { await w.close().catch(() => undefined); }
+    })();
+    (ctx as unknown as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil?.(ish);
+    return new Response(readable, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' } });
+  }
+
+  /* Superadmin OpenRouter'dagi ISTALGAN modelni katalogga qo'shadi: narx/imkoniyat OpenRouter'dan SERVER oladi (mijozga ishonilmaydi). */
+  if (amal === 'model_openrouterdan_qosh') {
+    if (kid != null) return xato('Katalogni faqat tizim doirasida boshqarish mumkin', 403);
+    const id = String(so.model_id ?? '').slice(0, 120);
+    const m = (await openrouterModellar()).find((x) => x.id === id);
+    if (!m) return xato('Bu model OpenRouter ro‘yxatida topilmadi', 404);
+    return chiqar(await rpcData(env, 't2_agent_model_katalog_yoz_v1', { p_actor_id: k.actor, p_id: m.id, p_nom: m.nom, p_tavsif: ('OpenRouter ro‘yxatidan qo‘shilgan' + (m.reasoning ? ' (fikrlash rejimi bor)' : '')).slice(0, 400), p_narx_izoh: ('≈ $' + javobNarxi(m).toFixed(4) + ' / javob').slice(0, 200), p_vision: m.vision, p_faol: true, p_narx_kirish: m.kirish_usd, p_narx_chiqish: m.chiqish_usd }));
+  }
+  if (amal === 'shaxsiy_saqla') {
+    return chiqar(await rpcData(env, 't2_agent_shaxsiy_saqla_v1', { p_actor_id: k.actor, p_til: String(so.til ?? ''), p_uslub: String(so.uslub ?? ''), p_ishonch: String(so.ishonch ?? '') }));
+  }
+  if (amal === 'harakat_qaror') {
+    if (!sonmi(so.harakat_id)) return xato('harakat_id kerak');
+    return chiqar(await rpcData(env, 't2_agent_harakat_qaror_v1', { p_actor_id: k.actor, p_id: Number(so.harakat_id), p_qaror: String(so.qaror ?? '') }));
+  }
+  if (amal === 'harakat_natija') {
+    if (!sonmi(so.harakat_id)) return xato('harakat_id kerak');
+    const nat = so.natija && typeof so.natija === 'object' && !Array.isArray(so.natija) ? so.natija : null;
+    return chiqar(await rpcData(env, 't2_agent_harakat_natija_v1', { p_actor_id: k.actor, p_id: Number(so.harakat_id), p_ok: so.ok === true, p_natija: nat }));
   }
 
   if (amal === 'savol' || amal === 'veb_tahlil') {

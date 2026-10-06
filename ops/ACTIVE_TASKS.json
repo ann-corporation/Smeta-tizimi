@@ -2096,7 +2096,48 @@
         "supabase/tests/t2_tomon_murojaat_contract.sql",
         "frontend/functions/api/tomon-murojaat.test.ts",
         "supabase/migrations/20261106250000_t2_loyiha_shartnoma_rol_umumiy_v1*.sql",
-        "supabase/tests/t2_loyiha_rol_umumiy_contract.sql",
+        "supabase/tests/t2_loyiha_rol_umumiy_contract.sql"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "ops/handoff/T2_ZAKAZCHIK_TOMON_001.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Egasi qoidasi 2026-10-05: o‘zgaruvchan ma’lumot — Supabase, o‘zgarmas — R2. Tomon jadvallari (aloqa/grant/taqdim holati) o‘zgaruvchan → Supabase; F2 qatorlari NUSXALANMAYDI (o‘zgarmas tasdiqlangan aktdan o‘qiladi), hujjat nusxasi R2 reyestridan (t2_document_registry). /api/sb va /api/sb-yoz izolyatsiyasiga TEGILMAYDI — kompaniyalararo ko‘rinish faqat alohida tomon.ts shlyuzi orqali. Umumiy (egasiz) fayllarga faqat additiv tegiladi: AdminShell.tsx (menyu guruhi), App.tsx (marshrutlar), i18n lugat ru/en (yangi kalitlar), sayt-xaritasi/generated.ts (regeneratsiya). Prod bazaga migratsiya 20261106200000 qo‘llangan (rollback-sinovli, 53/53). 2026-10-06: R2 takrorlanishini to‘xtatish — t2_document_canonical_reserve_v1 ga sha256 dedupe (shu kompaniya+loyiha+obyekt+tur+revision da bir xil mazmun qayta saqlanmaydi) va F2 importda «tizimdagi F2 fayldan tanlash». 2026-10-06: umumiy MUROJAAT primitivi (remark/predpisaniya/ekspertiza/mualliflik/savol/sinov so‘rovi/yetkazish talabi): t2_tomon_murojaat*, /admin/murojaatlar; dalil — R2 reyestridan. (AI agent platformasi 2026-10-06 dan T2-AI-ISHCHILAR-001 ga ko‘chirildi.)"
+    },
+    {
+      "id": "T2-F2-IMPORT-UX-001",
+      "title": "F2 import ish joyi: razdel ochib-yopishda siljish, nomzodga aylanmaslik, sahifa sakrashi, siqilish, deploy paytida ish yo‘qolishi (egasi sinovi 2026-10-06)",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "claude/t2-smeta-studio-v1",
+      "base_sha": "c4bbf971",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
+        "frontend/src/admin/sahifalar/F2V3Workbench.operator.test.tsx",
+        "frontend/src/_shared/versiya.ts",
+        "frontend/src/_shared/versiya.test.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Topilmalar va o‘lchovlar: Obsidian 20_PROJECTS/Smeta-tizimi/F2_IMPORT_UX_SINOV_2026-10-06.md. F2ImportV3.tsx (T2-ZAKAZCHIK-TOMON-001 additiv) da faqat 1 qatorlik fmt() matn tuzatish — KOORDINATSIYA da qayd."
+    },
+    {
+      "id": "T2-AI-ISHCHILAR-001",
+      "title": "AI ishchilar platformasi: kasb agentlari (rol bo‘yicha ajratilgan ma’lumot), model registri/tavsiya, xarajat nazorati + ustama → token, jonli qadam-log, foydalanuvchi nazorati va tasdiq siyosati, tizim AI markazi",
+      "owner": "claude",
+      "machine": "noutbuk",
+      "branch": "main",
+      "base_sha": "3de1db1",
+      "status": "in_progress",
+      "owns": [
         "supabase/migrations/20261106260000_t2_agent_ish_muhiti_v1*.sql",
         "supabase/tests/t2_agent_ish_muhiti_contract.sql",
         "frontend/functions/api/agent-ish*.ts",
@@ -2124,38 +2165,26 @@
         "supabase/tests/t2_agent_kompaniya_sozlama_contract.sql",
         "frontend/src/admin/ai-markaz/**",
         "frontend/src/admin/sahifalar/AgentKompaniyaSozlama.tsx",
-        "frontend/src/admin/sahifalar/agent-kompaniya-sozlama.test.tsx"
+        "frontend/src/admin/sahifalar/agent-kompaniya-sozlama.test.tsx",
+        "supabase/migrations/20261106320000_t2_agent_kasb_v1*.sql",
+        "supabase/migrations/20261106330000_t2_agent_*.sql",
+        "supabase/tests/t2_agent_kasb_contract.sql",
+        "supabase/tests/t2_agent_*_contract.sql",
+        "frontend/functions/_shared/agent-*.ts",
+        "frontend/src/umumiy/ui/Ai*.tsx",
+        "frontend/src/umumiy/ui/useAi*.ts",
+        "ops/handoff/T2_AI_ISHCHILAR_001.md",
+        "ops/mailbox/T2-AI-ISHCHILAR-001/"
       ],
       "depends_on": [],
       "must_read": [
         "AGENTS.md",
         "docs/governance/CONSTITUTION.md",
-        "ops/handoff/T2_ZAKAZCHIK_TOMON_001.md"
+        "docs/architecture/T2_AGENT_PLATFORM_V1.md",
+        "ops/handoff/T2_AI_ISHCHILAR_001.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Egasi qoidasi 2026-10-05: o‘zgaruvchan ma’lumot — Supabase, o‘zgarmas — R2. Tomon jadvallari (aloqa/grant/taqdim holati) o‘zgaruvchan → Supabase; F2 qatorlari NUSXALANMAYDI (o‘zgarmas tasdiqlangan aktdan o‘qiladi), hujjat nusxasi R2 reyestridan (t2_document_registry). /api/sb va /api/sb-yoz izolyatsiyasiga TEGILMAYDI — kompaniyalararo ko‘rinish faqat alohida tomon.ts shlyuzi orqali. Umumiy (egasiz) fayllarga faqat additiv tegiladi: AdminShell.tsx (menyu guruhi), App.tsx (marshrutlar), i18n lugat ru/en (yangi kalitlar), sayt-xaritasi/generated.ts (regeneratsiya). Prod bazaga migratsiya 20261106200000 qo‘llangan (rollback-sinovli, 53/53). 2026-10-06: R2 takrorlanishini to‘xtatish — t2_document_canonical_reserve_v1 ga sha256 dedupe (shu kompaniya+loyiha+obyekt+tur+revision da bir xil mazmun qayta saqlanmaydi) va F2 importda «tizimdagi F2 fayldan tanlash». 2026-10-06: umumiy MUROJAAT primitivi (remark/predpisaniya/ekspertiza/mualliflik/savol/sinov so‘rovi/yetkazish talabi): t2_tomon_murojaat*, /admin/murojaatlar; dalil — R2 reyestridan. 2026-10-06: ROL asosidagi loyiha/shartnoma tahriri (t2_loyiha_yarat/yangila/ochir, t2_shartnoma_ochir endi p_actor_id + _t2_tahrir_rol_ok) va avtomatik «Umumiy» loyiha (t2_loyiha_umumiy_v1 via /api/tomon). sb-yoz.ts faqat p_actor_id qo‘shildi. 2026-10-06: AGENT ISH MUHITI (qoida yadro/tizim/kompaniya, xotira, tasdiqlangan veb-manbalar, takliflar→admin tasdig‘i) + OpenRouter tier; /api/agent-ish (AGENT_ISH_YOQILGAN=1 bilan yoqiladi). _shared/ai.ts ga faqat additiv. 2026-10-06: O‘RGANISH TSIKLI — fikr/skrinshot (yordamchi), tozalangan signal, rivojlantiruvchi agent taklifi, tasdiq -> ISH BUYRUG‘I (t2_agent_buyruq) -> GitHub issue. 2026-10-06: MODEL REGISTRI (agent->model, katalog faqat superadmin), proaktiv AI kuzatuvi (matnsiz harakat izi, ixtiyoriy), fikr/skrinshot paneli, takliflar/buyruqlar UI, agent-task workflow (o‘chiq, egasi so‘rovi). Umumiy fayllar additiv: AiHelper.tsx, Toast.tsx, AiAgentlar.tsx, ai.ts. 2026-10-06: AI MARKAZI (Boshqaruv paneli, faqat superadmin), AI xarajat nazorati + limit (default-deny), provayder sarfi × ustama → token (kompaniya hamyonidan), kompaniya AI sozlamalari (yoqish/token limiti/kuzatuv). Umumiy fayllar additiv: BoshqaruvPanel.tsx, AiAgentlar.tsx."
-    },
-    {
-      "id": "T2-F2-IMPORT-UX-001",
-      "title": "F2 import ish joyi: razdel ochib-yopishda siljish, nomzodga aylanmaslik, sahifa sakrashi, siqilish, deploy paytida ish yo‘qolishi (egasi sinovi 2026-10-06)",
-      "owner": "claude",
-      "machine": "noutbuk",
-      "branch": "claude/t2-smeta-studio-v1",
-      "base_sha": "c4bbf971",
-      "status": "in_progress",
-      "owns": [
-        "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
-        "frontend/src/admin/sahifalar/F2V3Workbench.operator.test.tsx",
-        "frontend/src/_shared/versiya.ts",
-        "frontend/src/_shared/versiya.test.ts"
-      ],
-      "depends_on": [],
-      "must_read": [
-        "AGENTS.md",
-        "docs/governance/CONSTITUTION.md"
-      ],
-      "production_write_allowed": false,
-      "_izoh": "Topilmalar va o‘lchovlar: Obsidian 20_PROJECTS/Smeta-tizimi/F2_IMPORT_UX_SINOV_2026-10-06.md. F2ImportV3.tsx (T2-ZAKAZCHIK-TOMON-001 additiv) da faqat 1 qatorlik fmt() matn tuzatish — KOORDINATSIYA da qayd."
+      "_izoh": "Egasi talabi 2026-10-06: har kasb uchun AI ishchi; ma’lumot lavozim doirasidan chiqmasin; tizim AI Boshqaruv panelida (superadmin); xarajat nazorati, provayder sarfi × ustama → token; model tanlash + tavsiya; foydalanuvchi har qadamni ko‘rsin va jiddiy qarorni o‘zi tasdiqlasin. Umumiy fayllar additiv: AiHelper.tsx, Toast.tsx, AiAgentlar.tsx, BoshqaruvPanel.tsx, _shared/ai.ts. Smeta-AI (T2-SMETACHI-AI-001) o‘z mantig‘ini yozadi, lekin model chaqiruvini _shared/agent-hisob.ts aiHisobli orqali o‘tkazadi."
     }
   ]
 }

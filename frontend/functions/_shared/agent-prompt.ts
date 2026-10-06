@@ -49,6 +49,7 @@ export function tashqiMatnOra(url: string, matn: string): string {
 /** Profil → model darajasi (server belgilaydi). */
 const PROFIL_TIER: Record<string, 'fast' | 'coding' | 'reasoning'> = {
   platform_orchestrator: 'reasoning', pto_smeta: 'reasoning', finance: 'reasoning', project_contract: 'reasoning',
+  direktor: 'reasoning', prorab: 'fast', usta: 'fast', buyurtmachi: 'fast', kuzatuvchi: 'fast',
   document_control: 'fast', company_access: 'fast', warehouse: 'fast', procurement: 'fast', schedule_execution: 'fast', quality_handover: 'fast',
 };
 export const profilDarajasi = (profil: string | null) => (profil && PROFIL_TIER[profil]) || 'fast';
