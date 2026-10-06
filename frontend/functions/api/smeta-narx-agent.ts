@@ -96,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     nomzodlar: allowed.get(i.key)!.map(s => ({ id: s.id, nom: s.nom, birlik: s.birlik, narx: s.narx, hudud: s.hudud, zavod: s.ishlab_chiqaruvchi, yil: s.yil, kvartal: s.kvartal })) }));
   try {
     // Owner: resource matching runs on the cheaper model tier; company AI budget is checked and charged.
-    const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'pto_smeta', 'narx_moslash', { system: SYSTEM, tier: 'fast', temperature: 0, maxOutputTokens: 4000, jsonSchema: SCHEMA,
+    const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'narx_moslash', { system: SYSTEM, tier: 'fast', temperature: 0, maxOutputTokens: 4000, jsonSchema: SCHEMA,
       text: `Obyekt hududi: ${hudud ?? 'noma’lum'}\n<MALUMOT>\n${JSON.stringify(payload)}\n</MALUMOT>` });
     let parsed: unknown = null;
     try { parsed = JSON.parse(r.text); } catch { parsed = null; }
