@@ -11,12 +11,8 @@ type FileMeta = { path: string; sha256: string; bytes: number };
 export type PriceManifest = { schema: string; revision: string; status: string; counts: { rows: number };
   source: { manba: PriceDict['manba'] }; files: { dict: FileMeta; rows: FileMeta[] } };
 
-/** Shape of the former t2_platforma_narx_manba_qator view row. */
-export type KatalogQatori = {
-  id: number; manba_id: number; kod: string | null; nom: string; birlik: string | null; narx: number | null; hudud: string | null;
-  ishlab_chiqaruvchi: string | null; nds_holati: string | null; nds_izoh: string | null; yil: number | null; kvartal: number | null;
-  narx_varianti: string | null; guruh: string | null; hudud_kalit: string | null; manba_nom: string; manba_tur: string;
-};
+import type { KatalogQatori } from './types';
+export type { KatalogQatori } from './types';
 /** Smeta resource as needed for offers (t2_qator rs/mat/ob). */
 export type SmetaResurs = { id: number; kompaniya_id: number; obyekt_id: number; tur: string; kat: string | null; kod: string | null;
   nom: string | null; birlik: string | null; narx: number | null; nom_key: string | null; birlik_key: string | null };
@@ -87,6 +83,17 @@ export class PriceCatalog {
     const coll = new Intl.Collator('en-US');
     hit.sort((a, b) => coll.compare(this.rows[a][3], this.rows[b][3]) || this.rows[a][0] - this.rows[b][0]);
     return hit.slice(0, limit).map(i => this.qator(i));
+  }
+
+  /** Read-only view for the characteristic matcher (lib/smeta-studio/resource-match). */
+  private view: ReturnType<PriceCatalog['buildView']> | null = null;
+  /** Cached so the matcher index (WeakMap per view) is built once per catalogue. */
+  matchView() { return (this.view ??= this.buildView()); }
+  private buildView() {
+    const d = this.dict, rows = this.rows;
+    return { size: rows.length, name: (i: number) => rows[i][3], unit: (i: number) => at(d.birlik, rows[i][4]),
+      region: (i: number) => at(d.hududKalit, rows[i][6]), price: (i: number) => (rows[i][5] == null ? null : Number(rows[i][5])),
+      row: (i: number) => this.qator(i) };
   }
 
   /** Catalogue rows (with a price) whose name+unit key equals the given resource exactly. */

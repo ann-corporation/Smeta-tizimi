@@ -187,7 +187,7 @@ export function applyCommand(input: EstimateDoc, cmd: StudioCommand): EstimateDo
     }
     case 'SET_PRICE': {
       const prev = w.readOcc(cmd.occurrenceId);
-      prev.recipe.find(r => r.recipeId === cmd.recipeId) ?? fail('RECIPE_NOT_FOUND');
+      if (!prev.recipe.some(r => r.recipeId === cmd.recipeId)) fail('RECIPE_NOT_FOUND');
       const ov = { ...(prev.overrides[cmd.recipeId] ?? {}) };
       if (cmd.price == null) ov.price = null;
       else {
@@ -200,7 +200,7 @@ export function applyCommand(input: EstimateDoc, cmd: StudioCommand): EstimateDo
     }
     case 'SUBSTITUTE_RESOURCE': {
       const prev = w.readOcc(cmd.occurrenceId);
-      prev.recipe.find(r => r.recipeId === cmd.recipeId) ?? fail('RECIPE_NOT_FOUND');
+      if (!prev.recipe.some(r => r.recipeId === cmd.recipeId)) fail('RECIPE_NOT_FOUND');
       const ov = { ...(prev.overrides[cmd.recipeId] ?? {}) };
       if (cmd.substitution == null) ov.substitution = null;
       else {

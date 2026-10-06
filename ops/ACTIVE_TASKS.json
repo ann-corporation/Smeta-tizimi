@@ -10,9 +10,21 @@
       "branch": "codex/smeta-studio-pro-v2",
       "base_sha": "0fc3e402564460df6c535075be879fff981c5283",
       "status": "ready_for_review",
-      "owns": ["frontend/src/components/smeta-studio-pro/", "frontend/src/admin/sahifalar/SmetaStudio.tsx", "frontend/src/admin/sahifalar/SmetaStudio.test.tsx", "frontend/src/i18n/lugat/ru.json", "frontend/src/i18n/lugat/en.json", "ops/ACTIVE_TASKS.json", "ops/handoff/T2_SMETA_STUDIO_PRO_UI_002.md"],
+      "owns": [
+        "frontend/src/components/smeta-studio-pro/",
+        "frontend/src/admin/sahifalar/SmetaStudio.tsx",
+        "frontend/src/admin/sahifalar/SmetaStudio.test.tsx",
+        "frontend/src/i18n/lugat/ru.json",
+        "frontend/src/i18n/lugat/en.json",
+        "ops/ACTIVE_TASKS.json",
+        "ops/handoff/T2_SMETA_STUDIO_PRO_UI_002.md"
+      ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md"
+      ],
       "production_write_allowed": false,
       "_izoh": "2026-10-06: route main'da. Follow-up: yopiq/filterlangan razdelga yangi ish qo'shish reveal+scroll; inline success/error; A→B stale detail guard; 8053 yozuvda ish nomlari saqlangan, BOOK linkage 1128 missing+70 ambiguous. 12 fayl/106 test, build/functions/tekshir/lint/governance/diff PASS. Deployment SHA Obsidian jurnalida. Authenticated owner smoke UNKNOWN; engine/backend truth o'zgarmadi."
     },
@@ -1963,7 +1975,11 @@
         "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.rollback.sql",
         "supabase/migrations/20261106100000_t2_smeta_studio_qoralama_v1.acceptance.sql",
         "ops/handoff/T2_UNIVERSAL_SMETA_STUDIO_001.md",
-        "ops/sql/T2_BAZA_IXCHAMLASH_20261005.sql"
+        "ops/sql/T2_BAZA_IXCHAMLASH_20261005.sql",
+        "frontend/src/admin/sahifalar/SmetaStudioNarxlash.tsx",
+        "frontend/functions/api/smeta-narx-agent.ts",
+        "frontend/functions/api/smeta-narx-agent.test.ts",
+        "frontend/src/api/smeta-narx-agent.ts"
       ],
       "depends_on": [],
       "must_read": [
@@ -1973,7 +1989,8 @@
         "ops/handoff/T2_CATALOG_EXTRACTION_INTEGRATION_001.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi. 2026-10-06: t2_smeta_studio_qoralama_v1 production ga qo‘llandi (shadow 11/11)."
+      "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi. 2026-10-06: t2_smeta_studio_qoralama_v1 production ga qo‘llandi (shadow 11/11).",
+      "note": "2026-10-06: T2-SMETA-NARX-AGENT-001 — xarakteristika bo‘yicha avto-narx (resource-match), AI narx agenti (/api/smeta-narx-agent, faqat taklif), LRV+Ведомость+Свод eksporti, chuqur bo‘limlar/BATCH/copy-on-write undo."
     },
     {
       "id": "T2-NARX-KATALOG-R2-001",
