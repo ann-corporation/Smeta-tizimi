@@ -42,7 +42,7 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
     return result;
   }, [calculation]);
   return <div className="grid gap-3 2xl:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]">
-    <EstimateOutline doc={doc} labels={labels} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
+    <EstimateOutline doc={doc} labels={{ ...labels, title: labels.works }} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
       renderSummary={calculation ? row => {
         if (row.kind === 'section') return calculation.sections[row.sectionId]?.amount ?? labels.unknown;
         const id = row.occurrenceId!;

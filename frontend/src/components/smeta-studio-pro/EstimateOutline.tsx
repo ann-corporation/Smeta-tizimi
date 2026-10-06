@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ReactNode } from 'react';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
@@ -28,11 +28,39 @@ export function EstimateOutline({ doc, labels, onSelect, renderSummary }: {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  const seenKeys = useRef<Set<string> | null>(null);
+  const revealKey = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = seenKeys.current;
+    seenKeys.current = new Set(parsed.index.byKey.keys());
+    if (!previous || !parsed.valid) return;
+    // Reveal newly added rows, without reopening branches on price/quantity edits.
+    const reveal = new Set<string>();
+    for (const row of parsed.index.rows) if (!previous.has(row.key)) {
+      if (row.kind === 'section') reveal.add(row.key);
+      if (row.kind === 'work' && !revealKey.current) revealKey.current = row.key;
+      if (row.parentKey) reveal.add(row.parentKey);
+    }
+    if (!reveal.size) return;
+    if (revealKey.current) setQuery('');
+    for (let i = parsed.index.rows.length - 1; i >= 0; i--) {
+      const row = parsed.index.rows[i];
+      if (reveal.has(row.key) && row.parentKey) reveal.add(row.parentKey);
+    }
+    setOpen(old => new Set([...old].filter(k => parsed.index.byKey.has(k)).concat([...reveal])));
+  }, [parsed]);
   const deferred = useDeferredValue(query);
   const rows = useMemo(() => visibleOutline(parsed.index, open, deferred), [parsed.index, open, deferred]);
   const parent = useRef<HTMLDivElement>(null);
   const virtual = useVirtualizer({ count: rows.length, getScrollElement: () => parent.current,
     estimateSize: () => ROW_H, overscan: 8, initialRect: { width: 1000, height: 520 }, getItemKey: i => rows[i].key });
+  useEffect(() => {
+    if (!revealKey.current) return;
+    const index = rows.findIndex(row => row.key === revealKey.current);
+    if (index < 0) return;
+    virtual.scrollToIndex(index, { align: 'auto' });
+    revealKey.current = null;
+  }, [rows, virtual]);
   const levels = (depth: number) => { setQuery(''); setOpen(expandThroughDepth(parsed.index, depth)); virtual.scrollToOffset(0); };
   return <section aria-label={labels.title} className="karta overflow-hidden p-0">
     <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface-2/60 px-2 py-1.5">

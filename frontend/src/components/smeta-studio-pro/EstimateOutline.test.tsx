@@ -61,3 +61,17 @@ it('shows caller calculation output without recomputing or replacing unknown val
   fireEvent.click(screen.getByRole('button', { name: 'Works' }));
   expect(await screen.findByText('Unknown amount')).toBeTruthy();
 });
+
+it('a newly added work clears a hiding search and opens its parent', async () => {
+  const doc = fixture();
+  const { rerender } = render(<EstimateOutline doc={doc} labels={labels} onSelect={() => {}} />);
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'nothing matches' } });
+  expect(await screen.findByText('No rows')).toBeTruthy();
+  const next = structuredClone(doc);
+  next.sections['secret-section-id'].items.push('new-work');
+  next.occurrences['new-work'] = { ...structuredClone(doc.occurrences['internal-work-0']), id: 'new-work',
+    source: { ...doc.occurrences['internal-work-0'].source, name: 'New foundation' } };
+  rerender(<EstimateOutline doc={next} labels={labels} onSelect={() => {}} />);
+  expect(await screen.findByRole('button', { name: 'Select: New foundation' })).toBeTruthy();
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('');
+});
