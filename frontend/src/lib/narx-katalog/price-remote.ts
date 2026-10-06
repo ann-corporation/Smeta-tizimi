@@ -89,6 +89,11 @@ export class PriceCatalog {
     return hit.slice(0, limit).map(i => this.qator(i));
   }
 
+  /** Catalogue rows (with a price) whose name+unit key equals the given resource exactly. */
+  aniqMoslik(nom: string | null, birlik: string | null): KatalogQatori[] {
+    return (this.byKey.get(nomKalit(nom) + '\u0001' + birlikKalit(birlik)) ?? []).filter(i => this.rows[i][5] != null).map(i => this.qator(i));
+  }
+
   /** Offers for smeta resources by exact name+unit key (former t2_narx_taklif platform branch). Rows without price are skipped. */
   takliflar(resurslar: SmetaResurs[]) {
     const m = this.dict.manba;

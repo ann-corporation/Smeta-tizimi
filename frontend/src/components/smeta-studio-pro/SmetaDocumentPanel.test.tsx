@@ -42,10 +42,10 @@ it('creates child under selected section rather than guessing from the visible n
   expect(h.doc().sections['section-2'].parentId).toBe('section-1');
   expect(h.doc().sections['section-1'].children).toEqual(['section-2']);
 });
-it('current engine depth limit is reported safely, without partially adding another section', () => {
-  const h = mount(); add('Foundations'); fireEvent.click(screen.getByLabelText('Subsection')); add('Concrete'); add('Too deep');
-  expect(screen.getByRole('alert').textContent).toBe('Action failed');
-  expect(Object.keys(h.doc().sections)).toHaveLength(2);
+it('engine supports deeper podrazdel levels (object → razdel → podrazdel → …)', () => {
+  const h = mount(); add('Foundations'); fireEvent.click(screen.getByLabelText('Subsection')); add('Concrete'); add('Grillage');
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(h.doc().sections['section-3'].parentId).toBe('section-2');
 });
 it('context labels do not silently replace canonical numeric object/project IDs', () => {
   const doc = emptyDoc('draft'); doc.context.objectId = 79; doc.context.projectId = 3; doc.context.companyId = 1;
