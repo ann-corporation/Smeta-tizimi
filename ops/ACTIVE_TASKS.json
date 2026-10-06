@@ -3,6 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-CATALOG-HIERARCHY-8053-001",
+      "title": "8053 unresolved katalog yozuvi: dalilli kategoriya va BOOK mapping review paketi",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/catalog-hierarchy-review-v1",
+      "base_sha": "2099628",
+      "status": "in_progress",
+      "owns": ["ops/catalog-hierarchy/", "ops/handoff/T2_CATALOG_HIERARCHY_8053_001.md", "ops/ACTIVE_TASKS.json"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md"],
+      "production_write_allowed": false,
+      "_izoh": "Egasi 2026-10-06: Claude Studio'da; Codex 8053 unresolved yozuvlarni manbadan tahlil/kategoriyalash. Isolated review generator; UI/builder/R2 active pointerga tegilmaydi. Binding Claude bilan Obsidian KOORDINATSIYA orqali kelishiladi."
+    },
+    {
       "id": "T2-SMETA-STUDIO-PRO-UI-002",
       "title": "Professional smeta ish joyi: katta va chuqur daraxt uchun izolyatsiyalangan presentation komponenti",
       "owner": "codex",
