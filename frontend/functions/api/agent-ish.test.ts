@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({ tekshir: vi.fn() }));
 vi.mock('../_shared/auth', () => ({ tekshir: m.tekshir }));
 
-import { buyruqIssueMatni, onRequestGet, onRequestPost } from './agent-ish';
+import { buyruqIssueMatni, izTozala, onRequestGet, onRequestPost } from './agent-ish';
 
 const env = (o: Record<string, unknown> = {}) => ({ SUPABASE_URL: 'https://x.supabase.co', SUPABASE_KEY: 'svc', SESSIYA_KALIT: 's', AGENT_ISH_YOQILGAN: '1', GROQ_API_KEY: 'g', ...o });
 const post = (body: unknown, e = env()) => onRequestPost({ request: new Request('https://t/api/agent-ish', { method: 'POST', body: JSON.stringify(body) }), env: e } as never);
@@ -88,6 +88,60 @@ describe('agent-ish shlyuzi', () => {
       spec: { maqsad: 'Tez qidiruv', tavsif: 'Sinonimlar', qabul_mezonlari: ['test yashil'], yashirin: 'SIR-QIYMAT' } });
     expect(t.title).toContain('#9'); expect(t.body).toContain('test yashil'); expect(t.body).toContain('Pull Request'); expect(t.body).toContain('CI yashil');
     expect(t.body).not.toContain('SIR-QIYMAT');
+  });
+
+  it('izTozala: tur oq ro‘yxatdan, uzun raqam maskalanadi, ortiqcha belgi va 40 dan ko‘p hodisa kesiladi', () => {
+    const iz = izTozala([{ t: 5, tur: 'sql', nom: 'Obyekt 123456 <script>' }, { t: -3, tur: 'xato', nom: 'saqlash xatosi' }, { t: 1, tur: 'bosish', nom: '   ' }, ...Array.from({ length: 60 }, (_, i) => ({ t: i, tur: 'sahifa', nom: 'sahifa ' + i }))]);
+    expect(iz.length).toBeLessThanOrEqual(40);
+    const bosh = izTozala([{ t: 5, tur: 'sql', nom: 'Obyekt 123456 <script>' }, { t: -3, tur: 'xato', nom: 'saqlash xatosi' }, { t: 1, tur: 'bosish', nom: '   ' }]);
+    expect(bosh).toEqual([{ t: 5, tur: 'bosish', nom: 'Obyekt # script' }, { t: 0, tur: 'xato', nom: 'saqlash xatosi' }]);
+  });
+
+  it('qadam_taklif: iz qisqa bo‘lsa model chaqirilmaydi; admin tanlagan model OpenRouter ga uzatiladi; yo‘l faqat /admin/…', async () => {
+    const f = vi.fn(async (u: string, init?: RequestInit) => {
+      if (String(u).includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'company', qoidalar: [], xotira: [], manbalar: [], model: 'vendor/model-a' });
+      if (String(u).includes('openrouter.ai')) {
+        expect(JSON.parse(String(init?.body)).model).toBe('vendor/model-a');
+        return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ taklif: 'Xohlasangiz F2 import sahifasiga o‘ting', sabab: 'takror xato', yol: '/admin/f2-import' }) } }], usage: {} }), { status: 200 });
+      }
+      return new Response('{}', { status: 500 });
+    });
+    vi.stubGlobal('fetch', f);
+    const qisqa = await post({ amal: 'qadam_taklif', kompaniya_id: 5, sahifa: '/admin/f2', iz: [{ t: 5, tur: 'sahifa', nom: 'F2' }] }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+    expect(await qisqa.json()).toMatchObject({ ok: true, taklif: null });
+    expect(f).not.toHaveBeenCalled();
+    const r = await post({ amal: 'qadam_taklif', kompaniya_id: 5, sahifa: '/admin/f2', iz: [{ t: 30, tur: 'sahifa', nom: 'F2' }, { t: 20, tur: 'xato', nom: 'saqlash' }, { t: 5, tur: 'xato', nom: 'saqlash' }] }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+    expect(await r.json()).toMatchObject({ ok: true, taklif: 'Xohlasangiz F2 import sahifasiga o‘ting', yol: '/admin/f2-import' });
+  });
+
+  it('qadam_taklif: model qaytargan tashqi yo‘l (https://…) tashlab yuboriladi', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (u: string) => (String(u).includes('t2_agent_muhit_v1')
+      ? rpcJavob({ ok: true, scope: 'company', qoidalar: [], xotira: [], manbalar: [] })
+      : new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ taklif: 'Bu yerga o‘ting', sabab: 'x', yol: 'https://evil.example/x' }) } }] }), { status: 200 }))));
+    const r = await post({ amal: 'qadam_taklif', kompaniya_id: 5, iz: [{ t: 3, tur: 'sahifa', nom: 'a' }, { t: 2, tur: 'xato', nom: 'b' }, { t: 1, tur: 'xato', nom: 'c' }] });
+    expect(await r.json()).toMatchObject({ ok: true, taklif: 'Bu yerga o‘ting', yol: null });
+  });
+
+  it('model_katalog_yoz kompaniya doirasida rad; model_tanla profil talab qiladi', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    expect((await post({ amal: 'model_katalog_yoz', kompaniya_id: 5, model_id: 'a/b', nom: 'X' })).status).toBe(403);
+    expect((await post({ amal: 'model_tanla', kompaniya_id: 5, profil: 'BAD PROFIL', model_id: 'a/b' })).status).toBe(400);
+  });
+
+  it('AI o‘chiq bo‘lsa ham boshqaruv amallari ishlaydi: model tanlash va fikrni SAQLASH (model chaqirilmaydi)', async () => {
+    const f = vi.fn(async (u: string) => {
+      if (String(u).includes('t2_agent_model_tanla_v1')) return rpcJavob({ ok: true });
+      if (String(u).includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'company', qoidalar: [], xotira: [], manbalar: [] });
+      if (String(u).includes('t2_agent_fikr_yoz_v1')) return rpcJavob({ ok: true, id: 3, ulashildi: false });
+      return new Response('{}', { status: 500 });
+    });
+    vi.stubGlobal('fetch', f);
+    const off = env({ AGENT_ISH_YOQILGAN: undefined, OPENROUTER_API_KEY: 'k' });
+    expect((await post({ amal: 'model_tanla', kompaniya_id: 5, profil: 'document_control', model_id: 'vendor/a' }, off)).status).toBe(200);
+    const r = await post({ amal: 'fikr', kompaniya_id: 5, tur: 'fikr', matn: 'Yaxshi bo‘lardi' }, off);
+    expect(await r.json()).toMatchObject({ ok: true, fikr_id: 3, javob: null });
+    expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai'))).toBe(false);
+    expect((await post({ amal: 'qadam_taklif', kompaniya_id: 5, iz: [] }, off)).status).toBe(503);
   });
 
   it('noma‘lum amal rad', async () => {
