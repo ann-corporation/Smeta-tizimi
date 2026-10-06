@@ -20,6 +20,9 @@ import { studioPanelLabels } from '../../components/smeta-studio-pro/studioPanel
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
 import { HUDUD_KALIT, SmetaNarxlash, lsGet, lsSet, unitTextOf } from './SmetaStudioNarxlash';
+import { SmetaAiChat } from './SmetaAiChat';
+
+const CHAP_TAB_KALIT = 'smeta-studio:chap-tab';
 
 const uid = () => crypto.randomUUID();
 
@@ -55,6 +58,8 @@ export default function SmetaStudio() {
   const doc = hist.present;
   const hisob = useMemo(() => calcDoc(doc), [doc]);
   const [narxKat, setNarxKat] = useState<PriceCatalog | null>(null);
+  // The AI estimator is the default entry: describe the work in words; the catalogue stays one click away.
+  const [chapTab, setChapTab] = useState<'ai' | 'katalog'>(() => (lsGet(CHAP_TAB_KALIT) === 'katalog' ? 'katalog' : 'ai'));
   const [hudud, setHududState] = useState<string>(() => lsGet(HUDUD_KALIT) ?? '');
   const setHudud = (v: string) => { setHududState(v); lsSet(HUDUD_KALIT, v); };
   const unitText = useMemo(() => unitTextOf(katalog), [katalog]);
@@ -135,10 +140,17 @@ export default function SmetaStudio() {
     {xato && <p role="alert" className="text-sm text-danger">{xato}</p>}
     <div className="grid xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-3 items-start">
       <section aria-label={t('Normativ katalog')} className="border border-border rounded-lg p-3 bg-surface-1 min-w-0">
-        {katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
-        {katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
-        {katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
-        {katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
+        <div role="tablist" aria-label={t('Chap panel')} className="mb-2 flex gap-1 border-b border-border pb-2">
+          {([['ai', t('Smetachi AI')], ['katalog', t('Normativ katalog')]] as const).map(([k, l]) =>
+            <button key={k} type="button" role="tab" aria-selected={chapTab === k} className={`tugma h-8 px-3 text-[12.5px] ${chapTab === k ? 'tugma-asosiy' : ''}`}
+              onClick={() => { setChapTab(k); lsSet(CHAP_TAB_KALIT, k); }}>{l}</button>)}
+        </div>
+        {chapTab === 'ai' && <SmetaAiChat doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={amal} newId={uid} />}
+        {chapTab === 'ai' && !katalog && katalogHolat === 'yuklanmoqda' && <p className="text-xs text-text-mute">{t('Normativ katalog yuklanmoqda...')}</p>}
+        {chapTab === 'katalog' && katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
+        {chapTab === 'katalog' && katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
+        {chapTab === 'katalog' && katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
+        {chapTab === 'katalog' && katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
           onAdd={(work, detail, quantity) => {
             if (!nishon || !doc.sections[nishon]) { setXato(t(XATOLAR.TARGET_REQUIRED)); return false; }
             try {

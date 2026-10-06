@@ -12,19 +12,15 @@ import type { T2Qator } from '../../api/supabase';
 import type { NakrutkaKat } from '../nakrutka-podval';
 import type { DocCalc } from './calc';
 import type { CatalogResource, EstimateDoc } from './model';
+import { resourceFacts } from '../resource-semantics';
 
 /**
- * Normative catalogue resource → cost category. Catalogue `Tip`: R — labour/resource, X — machines,
- * M — materials. Labour of machine operators belongs to machines (same rule as RES import).
+ * Normative catalogue resource → cost category, via the shared resource semantics (Codex): the observed
+ * unit (чел-ч / маш-ч) outranks the broad source Tip — Tip=R also contains machines (e.g. excavators).
+ * Machine operators' labour stays in the МАШ cost group. Unknown/conflicting → null (never guessed).
  */
 export function resourceCategory(r: CatalogResource | null): NakrutkaKat | null {
-  if (!r) return null;
-  const n = (r.name ?? '').toUpperCase();
-  if (/ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ/.test(n)) return 'МАШ';
-  if (/^ЗАТРАТЫ\s+ТРУДА/.test(n)) return 'ЧЕЛ';
-  if (r.type === 'X') return 'МАШ';
-  if (r.type === 'M' || r.type === 'R') return 'МАТ';
-  return null;
+  return resourceFacts(r).costCategory;
 }
 
 const num = (v: string | null | undefined) => (v == null ? null : Number(v));

@@ -24,6 +24,9 @@ import { resourceCategory } from './export-adapter';
 
 export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null };
 type UnitText = (code: string | null) => string | null;
+/** Resource units and work units live in different code spaces; one function may serve both in tests. */
+export type Units = UnitText | { resource: UnitText; work: UnitText };
+const unitsOf = (u: Units) => (typeof u === 'function' ? { resource: u, work: u } : u);
 
 const n = (v: string | null | undefined) => (v == null ? null : Number(v));
 const idCode = (r: CatalogResource | null) => (r as (CatalogResource & { resourceIdCode?: string | null }) | null)?.resourceIdCode ?? null;
@@ -44,7 +47,8 @@ const titul = (o: AbcHujjatOpsiya, doc: EstimateDoc) => [
 ];
 
 /* ───────────────────────────── LRV ───────────────────────────── */
-function lrvVaraq(doc: EstimateDoc, calc: DocCalc, unitText: UnitText, o: AbcHujjatOpsiya): RasmiyVaraq {
+function lrvVaraq(doc: EstimateDoc, calc: DocCalc, units: Units, o: AbcHujjatOpsiya): RasmiyVaraq {
+  const { resource: unitText, work: workUnit } = unitsOf(units);
   const U: RasmiyUstun[] = [
     { sarlavha: '№№', kenglik: 7, tur: 'tartib' },
     { sarlavha: 'ОБОСНОВАНИЕ', kenglik: 22, tur: 'kod' },
@@ -66,7 +70,7 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, unitText: UnitText, o: AbcHuj
       work++;
       const scale = n(occ.basis.scale), qty = n(occ.quantity);
       const normQty = qty != null && scale ? Math.round((qty / scale) * 1e9) / 1e9 : null;
-      const unit = unitText(occ.source.unitCode) ?? occ.basis.unitLabel ?? '';
+      const unit = workUnit(occ.source.unitCode) ?? occ.basis.unitLabel ?? '';
       const wr = v.r;
       v.qator('ish', (): Qiymat[] => [String(work), occ.source.code, occ.source.name ?? '', unit,
         normQty == null ? null : { n: normQty, uslub: 'norma' }, null], { daraja: depth + 1 });
@@ -90,7 +94,8 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, unitText: UnitText, o: AbcHuj
 type ResLine = { code: string; price: string; name: string; unit: string; qty: number; unitPrice: number | null; amount: number | null };
 type ResGroups = { labour: ResLine[]; machines: ResLine[]; materials: Map<string, ResLine[]>; equipment: ResLine[] };
 
-export function resGroups(doc: EstimateDoc, calc: DocCalc, unitText: UnitText): ResGroups {
+export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGroups {
+  const unitText = unitsOf(units).resource;
   const acc = new Map<string, ResLine & { bucket: string }>();
   for (const o of Object.values(doc.occurrences)) for (const l of calc.occurrences[o.id]?.lines ?? []) {
     if (!l.resource) continue;
@@ -164,7 +169,7 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVar
 }
 
 /** One workbook: LRV + RES — the resource documents an ABC/TN smeta is delivered with. */
-export function abcHujjat(doc: EstimateDoc, calc: DocCalc, unitText: UnitText, o: AbcHujjatOpsiya = {}) {
+export function abcHujjat(doc: EstimateDoc, calc: DocCalc, unitText: Units, o: AbcHujjatOpsiya = {}) {
   if (!Object.keys(doc.occurrences).length) throw new Error('LRV_BOSH');
   const g = resGroups(doc, calc, unitText);
   const kitob = rasmiyKitob([lrvVaraq(doc, calc, unitText, o), resVaraq(doc, g, o)], { tur: 'lrv' });

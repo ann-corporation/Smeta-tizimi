@@ -30,12 +30,14 @@ function draft() {
 }
 
 describe('studio → smeta rows → LRV / Ведомость ресурсов / Свод', () => {
-  it('categories from catalogue Tip; operators of machines count as machines', () => {
-    expect(resourceCategory(res('1', 'ЗАТРАТЫ ТРУДА РАБОЧИХ', 'R'))).toBe('ЧЕЛ');
-    expect(resourceCategory(res('1', 'ЗАТРАТЫ ТРУДА МАШИНИСТОВ', 'R'))).toBe('МАШ');
-    expect(resourceCategory(res('1', 'КРАН', 'X'))).toBe('МАШ');
-    expect(resourceCategory(res('1', 'БЕТОН', 'M'))).toBe('МАТ');
-    expect(resourceCategory(res('1', '?', ''))).toBeNull();
+  it('categories from the observed unit first (Tip=R also contains machines); operators stay with machines', () => {
+    expect(resourceCategory(res('1', 'ЗАТРАТЫ ТРУДА РАБОЧИХ', 'R', '001'))).toBe('ЧЕЛ');
+    expect(resourceCategory(res('1', 'ЗАТРАТЫ ТРУДА МАШИНИСТОВ', 'R', '001'))).toBe('МАШ');
+    expect(resourceCategory(res('1', 'ЭКСКАВАТОРЫ ОДНОКОВШОВЫЕ', 'R', '011'))).toBe('МАШ');
+    expect(resourceCategory(res('1', 'КРАН', 'X', '011'))).toBe('МАШ');
+    expect(resourceCategory(res('1', 'БЕТОН', 'M', '003'))).toBe('МАТ');
+    expect(resourceCategory(res('1', 'ЭКСКАВАТОР', 'R', '003'))).toBeNull();
+    expect(resourceCategory(res('1', '?', '', '999'))).toBeNull();
   });
 
   it('keeps the deep hierarchy and per-unit norm; LRV total equals the studio total to the tiyin', () => {
