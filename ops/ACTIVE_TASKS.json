@@ -3,6 +3,15 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-JARVIS-ANSWER-20261006",
+      "title": "Jarvis foydali javoblar, dalilli summalar va OpenRouter priority",
+      "owner": "codex", "machine": "noutbuk", "branch": "codex/catalog-hierarchy-review-v1",
+      "base_sha": "d18451ed27b6cc465b1c6b2368f408bc6ea0b370", "status": "completed",
+      "owns": ["frontend/functions/api/ai-savol.ts", "frontend/functions/api/ai-savol.test.ts", "frontend/src/lib/jarvis/answers.ts", "frontend/src/lib/jarvis/answers.test.ts"],
+      "depends_on": [], "must_read": ["docs/governance/CONSTITUTION.md"], "production_write_allowed": false,
+      "_izoh": "20 Vitest/5 files PASS, app+functions TS/build/lint/tekshir/governance/diff PASS. Capability reply local, unique explicit object aggregate exact cents+NULL warnings local; scoped/period/mumkin requests not replaced by aggregate. OpenRouter configured key wins over Workers AI. No paid provider call or budget/flag change; authenticated owner answer smoke UNKNOWN."
+    },
+    {
       "id": "T2-JARVIS-CONTEXT-20261006",
       "title": "Jarvis salom va canonical company provider regressiyasi",
       "owner": "codex",

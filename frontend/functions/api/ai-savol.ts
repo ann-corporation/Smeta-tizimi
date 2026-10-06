@@ -1,10 +1,11 @@
 import { tekshir } from '../_shared/auth';
-import { aiCall, aiPublicError } from '../_shared/ai';
+import { aiCall, aiPublicError, type AiEnv } from '../_shared/ai';
 import { AI_KORSATMA, type AiUmumiy } from '../../src/api/t2-ai';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { jarvisSalomJavobi, jarvisSalommi } from '../../src/lib/jarvis/intent';
+import { jarvisHelp, jarvisMoney, jarvisEvidenceAnswer } from '../../src/lib/jarvis/answers';
 
-type Env = {
+type Env = AiEnv & {
   SESSIYA_KALIT: string;
   SUPABASE_URL: string;
   SUPABASE_KEY: string;
@@ -60,7 +61,7 @@ async function oqishRpc<T>(env: Env, id: number): Promise<T> {
 }
 
 function umumiyMatn(k: AiUmumiy): string {
-  const pul = (n: number | null) => n == null ? 'noma\'lum' : Math.round(n).toLocaleString('ru-RU');
+  const pul = jarvisMoney;
   const satrlar = k.obyektlar.map((o) =>
     '• ' + o.nom + ': smeta ' + pul(o.smeta) +
     (o.toliq ? '' : ' ⚠️ TO\'LIQ EMAS (' + o.narxsiz + ' qatorda narx yo\'q)') +
@@ -69,6 +70,10 @@ function umumiyMatn(k: AiUmumiy): string {
 }
 
 async function jarvisJavobi(env: Env, system: string, text: string) {
+  if (env.OPENROUTER_API_KEY?.trim()) {
+    // Egasi ulagan provider: Workers binding yoki boshqa eski kalit uni chetlab o'tmaydi.
+    return aiCall({ ...env, AI_PRIMARY_PROVIDER: 'openrouter' }, { system, text, temperature: 0.1, maxOutputTokens: 1000, tier: 'fast' });
+  }
   /* Cloudflare Workers AI birinchi tanlov: kalit emas, Pages binding orqali
      account ruxsati ishlatiladi. Tashqi providerlar faqat oldindan sozlangan
      bo'lsa, eski gateway orqali fallback bo'lib qoladi. */
@@ -119,6 +124,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (jarvisSalommi(savol)) {
       return Response.json({ ok: true, agent: 'Jarvis', javob: jarvisSalomJavobi(), requires_approval: false, provider: 'local', model: 'greeting', ms: Date.now() - boshlandi });
     }
+    const help = jarvisHelp(savol);
+    if (help) return Response.json({ ok: true, agent: 'Jarvis', javob: help, requires_approval: false, provider: 'local', model: 'capabilities' });
 
     if (!Array.isArray(sess.kompaniyalar)) {
       return xato('Sessiya kompaniya ruxsatini tasdiqlamayapti; qayta kiring', 403);
@@ -141,6 +148,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const kontekst = await oqishRpc<AiUmumiy>(ctx.env, kompaniyaId);
     if (!kontekst?.ok) return xato(String((kontekst && 'xabar' in kontekst && (kontekst as { xabar?: string }).xabar) || 'Kontekst olinmadi'), 422);
+    const exact = jarvisEvidenceAnswer(savol, kontekst);
+    if (exact) return Response.json({ ok: true, agent: 'Jarvis', javob: exact, dalil: { tur: 'kompaniya', id: kompaniyaId, rpc: 't2_ai_umumiy' }, requires_approval: false, provider: 'local', model: 'evidence', ms: Date.now() - boshlandi });
 
     const dalil = umumiyMatn(kontekst);
     const text = 'MA\'LUMOT (tizimdan):\n' + dalil + '\n\nSAVOL: ' + savol;
@@ -149,7 +158,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const natija = await jarvisJavobi(
       ctx.env,
       'Sening noming Jarvis. ' + AI_KORSATMA +
-        '\n6. Bu beta agent faqat o\'qiydi; hech qanday amal bajarilgan deb aytma.',
+        '\n6. Bu beta agent faqat o\'qiydi; hech qanday amal bajarilgan deb aytma.' +
+        '\n7. Qoidalarni javob sifatida takrorlama. «N qatorda» deb yozma: faqat manbadagi haqiqiy sonni yoz.' +
+        '\n8. Tayin kompaniya ma’lumoti berilgan; qayta kompaniya tanlashni so‘rama. Faqat savolga tegishli obyektni tushuntir.' +
+        '\n9. Summalarning tiyinlarini saqla. F2 va smeta to‘liqligini aralashtirma. Obyekt raqamlaridan o‘zingning imkoniyatlaring haqida xulosa qilma.',
       text,
     );
 
