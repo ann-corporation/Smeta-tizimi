@@ -10,7 +10,7 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
-import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
+import { sbLoyihaUmumiy } from '../../api/t2-loyiha';
 import { hujjatYukla, hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import {
   aloqalarOl, murojaatBekor, murojaatHujjat, murojaatJavob, murojaatQarori, murojaatTafsilotOl, murojaatTurlariOl, murojaatYarat, murojaatlarOl, zakazchikObyektlarOl,
@@ -91,9 +91,9 @@ function Tafsilot({ kompaniyaId, id, turlar, yangila }: { kompaniyaId: number; i
   /** Fayllarni R2 ga yuklaydi (kompaniyaning birinchi loyihasi ostida) va hujjat ID larini qaytaradi. */
   async function yukla(): Promise<number[] | null> {
     if (!fayllar.length) return [];
-    const lr = await sbT2LoyihalarOl(kompaniyaId);
-    const loyiha = (lr.ok ? (lr.qatorlar as Loyiha[]) : [])[0];
-    if (!loyiha) { toast(t('Fayl yuklash uchun kompaniyada kamida bitta loyiha kerak (Loyihalar sahifasida yarating).'), 'danger'); return null; }
+    const lr = await sbLoyihaUmumiy(kompaniyaId);
+    if (!lr.ok || !lr.id) { toast(lr.error || t('Fayl uchun loyiha topilmadi'), 'danger'); return null; }
+    const loyiha = { id: lr.id };
     const idlar: number[] = [];
     for (const file of fayllar) {
       const r = await hujjatYukla({ file, kompaniyaId, loyihaId: loyiha.id, documentType: 'murojaat_dalil' });

@@ -43,6 +43,7 @@ const YOZISH: Record<string, string> = {
   murojaat_hujjat: 't2_tomon_murojaat_hujjat_v1',
   murojaat_qaror: 't2_tomon_murojaat_qaror_v1',
   murojaat_bekor: 't2_tomon_murojaat_bekor_v1',
+  loyiha_umumiy: 't2_loyiha_umumiy_v1',
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -160,6 +161,8 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
     case 'murojaat_qaror':
       if (!sonmi(so.murojaat_id) || !['yopish', 'qayta_ochish'].includes(String(so.qaror))) return 'murojaat_id va qaror (yopish/qayta_ochish) kerak';
       return { p_kompaniya_id, p_id: son(so.murojaat_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000) };
+    case 'loyiha_umumiy':
+      return { p_kompaniya_id };
     case 'murojaat_bekor':
       if (!sonmi(so.murojaat_id)) return 'murojaat_id kerak';
       return { p_kompaniya_id, p_id: son(so.murojaat_id), p_sabab: matn(so.sabab, 500) };

@@ -785,5 +785,6 @@
   "Savol / aniqlashtirish (RFI)": "Запрос на разъяснение (RFI)",
   "Sinov so‘rovi (laboratoriya)": "Запрос на испытание",
   "Yetkazib berish talabi": "Требование по поставке",
-  "Boshqa": "Другое"
+  "Boshqa": "Другое",
+  "Fayl uchun loyiha topilmadi": "Проект для файла не найден"
 }

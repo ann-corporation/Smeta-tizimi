@@ -999,11 +999,13 @@ export const onRequestPost: PagesFunction<{
 
     /* ══════════ ШАРТНОМА BEKOR QILISH ══════════ */
     } else if (amal === 'shartnoma_ochir') {
-      const shartnomaId = Number(so.shartnoma_id);
+      if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });
+            const shartnomaId = Number(so.shartnoma_id);
       if (!Number.isFinite(shartnomaId) || shartnomaId <= 0) {
         return Response.json({ ok: false, error: 'shartnoma_id noto\'g\'ri' });
       }
       yuk = {
+        p_actor_id: sess.foydalanuvchi_id,
         p_shartnoma_id: shartnomaId,
         p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
       };
@@ -1750,7 +1752,8 @@ export const onRequestPost: PagesFunction<{
 
     /* ══════════ LOYIHA (Kompaniya→Loyiha→Obyekt) ══════════ */
     } else if (amal === 'loyiha_yarat') {
-      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });
+            const kompaniyaId = Number(so.kompaniya_id);
       if (!Number.isFinite(kompaniyaId) || kompaniyaId <= 0) {
         return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
       }
@@ -1758,6 +1761,7 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'nom bo\'sh bo\'lishi mumkin emas' });
       }
       yuk = {
+        p_actor_id: sess.foydalanuvchi_id,
         p_kompaniya_id: kompaniyaId,
         p_nom: String(so.nom).slice(0, 300),
         p_izoh: so.izoh ? String(so.izoh).slice(0, 1000) : null,
@@ -1768,7 +1772,8 @@ export const onRequestPost: PagesFunction<{
       };
 
     } else if (amal === 'loyiha_yangila') {
-      const id = Number(so.id);
+      if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });
+            const id = Number(so.id);
       const kutilganVersiya = Number(so.kutilgan_versiya);
       if (!Number.isFinite(id) || id <= 0) {
         return Response.json({ ok: false, error: 'id noto\'g\'ri' });
@@ -1781,6 +1786,7 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'holat noto\'g\'ri: ' + HOLAT_RUXSAT.join('|') });
       }
       yuk = {
+        p_actor_id: sess.foydalanuvchi_id,
         p_id: id,
         p_kutilgan_versiya: kutilganVersiya,
         p_nom: so.nom ? String(so.nom).slice(0, 300) : null,
@@ -1791,11 +1797,12 @@ export const onRequestPost: PagesFunction<{
       };
 
     } else if (amal === 'loyiha_ochir') {
-      const id = Number(so.id);
+      if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });
+            const id = Number(so.id);
       if (!Number.isFinite(id) || id <= 0) {
         return Response.json({ ok: false, error: 'id noto\'g\'ri' });
       }
-      yuk = { p_id: id };
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_id: id };
 
     } else if (amal === 'obyekt_loyihaga_biriktir') {
       const obyektId = Number(so.obyekt_id);
