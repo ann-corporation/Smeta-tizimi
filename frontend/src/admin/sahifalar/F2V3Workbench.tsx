@@ -120,6 +120,10 @@ const F2_GRID = 'grid grid-cols-[26px_88px_minmax(180px,1fr)_56px_72px_52px_76px
 const S_GRID = 'grid grid-cols-[88px_minmax(180px,1fr)_56px_72px_52px_76px_80px_88px]';
 const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
 /** Amal ustuni gorizontal aylantirishda ham o'ngda ko'rinib turadi (egasi sinovi: tugmalar kesilib qolardi). */
+/** Egasi 2026-10-06: har bir ish va uning resurslari massivi alohida chegarada ko'rinsin (ikkala panelda bir xil).
+ *  Ish — ustida qalin chiziq; uning resurslari — chapda shu rangdagi vertikal chiziq. */
+const ISH_CHEGARA = 'border-t-2 border-t-sky-400/70';
+const RESURS_CHEGARA = 'shadow-[inset_4px_0_0_0_rgba(56,189,248,0.45)]';
 const AMAL_YOPISHQOQ = 'sticky right-0 z-[1] bg-surface-1 shadow-[-6px_0_6px_-6px_rgba(0,0,0,.6)]';
 const SON = `${KATAK} text-right tabular-nums text-[11.5px]`;
 /** Holat katagi — to'liq rangli fon (Excel shartli formatlashi kabi). */
@@ -127,6 +131,17 @@ const HOLAT_KATAK: Record<KorinishHolat, string> = {
   aniq: 'bg-ok/25 text-ok', xotira: 'bg-ok/25 text-ok', qolda: 'bg-accent/25 text-accent',
   taklif: 'bg-warn/30 text-warn', topilmadi: 'bg-danger/30 text-danger', otkazildi: 'bg-surface-2 text-text-mute',
 };
+/** Panel filtri — F2 va smeta panellarida bir xil ko'rinish va xatti-harakat. */
+function PanelFiltr<T extends string>(props: { label: string; value: T; onChange: (v: T) => void; options: ReadonlyArray<readonly [T, string]>; izoh?: string }) {
+  return (
+    <div role="group" aria-label={props.label} className="flex flex-wrap items-center gap-1 border-b border-border/60 px-2 py-1">
+      {props.options.map(([v, l]) => <button key={v} type="button" aria-pressed={props.value === v}
+        className={`tugma h-6 px-1.5 text-[10.5px] ${props.value === v ? 'tugma-asosiy' : ''}`} onClick={() => props.onChange(v)}>{l}</button>)}
+      {props.izoh && <span className="ml-auto text-[10px] text-text-mute">{props.izoh}</span>}
+    </div>
+  );
+}
+
 function JadvalSarlavha({ tur }: { tur: 'f2' | 'smeta' }) {
   const u = 'border-b border-r border-border px-1.5 py-1.5';
   return (
@@ -152,6 +167,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   // hujjatda DOM hajmini cheklaydi; filtrni operator keyin ongli ravishda tanlaydi.
   const [filtr, setFiltr] = useState<'hammasi' | 'hal' | 'muammo' | 'boglanmagan'>('hammasi');
   const [q, setQ] = useState('');
+  /** F2 panelidagi qidiruv (smetadagi bilan bir xil) va smeta panelidagi filtr (F2 dagi bilan bir xil). */
+  const [qF, setQF] = useState('');
+  const [sFiltr, setSFiltr] = useState<'hammasi' | 'boglangan' | 'boglanmagan'>('hammasi');
   const [dropKey, setDropKey] = useState<string | null>(null);
   /** Sudralayotgan F2 qatori (egasi 2026-09-29: drag-and-drop aniq ko'rinsin). */
   const [sudrash, setSudrash] = useState<F2Tugun | null>(null);
@@ -203,6 +221,15 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const smetaRoots = useMemo(() => S.bolalar.get(null) ?? [], [S]);
   const smetaExpandableDepths = useMemo(() => expandableDepths(smetaRoots, (node) => S.bolalar.get(node.id) ?? []), [S, smetaRoots]);
   const f2VisibleRows = useMemo(() => {
+    const qq = qF.trim().toUpperCase();
+    if (qq.length >= 2) {
+      const out: Array<{ node: F2Tugun; depth: number }> = [];
+      for (const t of ind.qatorlar) {
+        if (t.tur === 'rz') continue;
+        if (((t.kod ?? '') + ' ' + (t.nom ?? '')).toUpperCase().includes(qq)) { out.push({ node: t, depth: 0 }); if (out.length >= 500) break; }
+      }
+      return out;
+    }
     const matches = (node: F2Tugun) => {
       if (node.tur === 'rz') return filtr === 'hammasi';
       if (filtr === 'hammasi') return true;
@@ -223,7 +250,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     };
     return flattenVisibleTree(p.akt.daraxt, (node) => node.bolalar, (node) => node.uid,
       matches, (uid) => !yopiqF.has(String(uid)));
-  }, [p.akt.daraxt, filtr, ij, h.kopBog, S, shuF2, yopiqF, p.oldingi]);
+  }, [p.akt.daraxt, filtr, ij, h.kopBog, S, shuF2, yopiqF, p.oldingi, qF, ind]);
   const qidir = q.trim().toUpperCase();
   const qidiruvNatija = useMemo(() => {
     if (qidir.length < 2) return null;
@@ -237,7 +264,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const smetaVisibleRows = useMemo(() => qidiruvNatija
     ? qidiruvNatija.map((node) => ({ node, depth: 0 }))
     : flattenVisibleTree(smetaRoots, (node) => S.bolalar.get(node.id) ?? [], (node) => node.id,
-      () => true, (id) => ochiqS.has(Number(id))), [qidiruvNatija, smetaRoots, S, ochiqS]);
+      (node) => sFiltr === 'hammasi' || (node.tur !== 'rz' && (sFiltr === 'boglangan') === shuF2.has(node.id)),
+      // Filtr yoqilganda mos qatorlar yopiq bo'limda yashirinib qolmasin.
+      (id) => sFiltr !== 'hammasi' || ochiqS.has(Number(id))), [qidiruvNatija, smetaRoots, S, ochiqS, sFiltr, shuF2]);
   // getItemKey MAJBURIY: o'lcham keshi qator identifikatori bo'yicha. Index bo'yicha bo'lsa (avvalgi holat), razdel
   // ochilib-yopilganda qatorlar indeksi o'zgaradi, eski indeksning balandligi ishlatilib, qatorlar orasida bo'shliq
   // yoki ustma-ust tushish paydo bo'lardi (egasi sinovi 2026-10-06: «СТЕНЫ» yopilganda 153 px gacha bo'shliq).
@@ -487,7 +516,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       <div data-fuid={t.uid} role="group" aria-label={`F2 qatori (${f2QatorTuriYorlig(t.tur)}): ${t.nom}`}
         draggable={!p.disabled} onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
         title={p.disabled ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
-        className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? 'font-medium text-text' : 'text-text-dim'}`}>
+        className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? `font-medium text-text ${ISH_CHEGARA}` : `text-text-dim ${RESURS_CHEGARA}`}`}>
         <span className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${HOLAT_KATAK[k]}`} title={B.t}>{B.b}</span>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
         <button type="button"
@@ -691,7 +720,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const ish = s.tur === 'bl';
     return (
       <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} `
-        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60') + oraliq}>
+        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
+        + (oraliq || ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA))}>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <button type="button" className={`${KATAK} text-left`} style={{ paddingLeft: 6 + depth * 14 }} onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
@@ -912,13 +942,6 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             </div>
           );
         })()}
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-2">
-          {([
-            ['hal', `Tekshirilmagan (${halSoni})`], ['boglanmagan', 'Bog‘lanmagan'], ['muammo', 'Muammoli'], ['hammasi', 'Barcha qatorlar'],
-          ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={filtr === value}
-            className={`tugma h-7 px-2 text-[11px] ${filtr === value ? 'tugma-asosiy' : ''}`} onClick={() => setFiltr(value)}>{label}</button>)}
-          <span className="ml-auto text-[10px] text-text-mute">{f2VisibleRows.length.toLocaleString('ru-RU')} qator ko‘rinmoqda</span>
-        </div>
       </div>
 
       {manbaTekshiruvi.length > 0 && (
@@ -959,10 +982,17 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
 
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="F2 akt">
-          <header className="border-b border-border bg-surface-2/60 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim">
-            F2 akt — {p.akt.varaq} {filtr === 'hal' && halSoni === 0 ? '· bog‘lanishlar hal qilindi' : ''}
+          <header className="flex items-center gap-2 border-b border-border bg-surface-2/60 px-2 py-1.5">
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-text-dim">F2 akt — {p.akt.varaq} {filtr === 'hal' && halSoni === 0 ? '· hal qilindi' : ''}</span>
+            <div className="relative flex-1">
+              <Search size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-mute" />
+              <input aria-label="F2 dan qidirish" value={qF} onChange={(e) => setQF(e.target.value)} placeholder="shifr yoki nom…"
+                className="input h-7 w-full pl-5 pr-1.5 text-[12px]" />
+            </div>
           </header>
-          <TreeControls depths={f2ExpandableDepths} onOpenAll={f2BarchasiniOch} onCloseAll={f2BarchasiniYop} onToggleDepth={f2Sath} />
+          <TreeControls depths={qF.trim().length >= 2 ? [] : f2ExpandableDepths} onOpenAll={f2BarchasiniOch} onCloseAll={f2BarchasiniYop} onToggleDepth={f2Sath} />
+          <PanelFiltr label="F2 filtri" value={filtr} onChange={setFiltr} options={[['hammasi', 'Hammasi'], ['hal', `Tekshirilmagan (${halSoni})`], ['boglanmagan', 'Bog‘lanmagan'], ['muammo', 'Muammoli']]}
+            izoh={`${f2VisibleRows.length.toLocaleString('ru-RU')} qator ko‘rinmoqda`} />
           <div ref={f2Quti} className="h-[66vh] overflow-auto">
             <div className="min-w-[742px] border-l border-t border-border/70">
             <JadvalSarlavha tur="f2" />
@@ -990,6 +1020,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             </div>
           </header>
           <TreeControls depths={qidiruvNatija ? [] : smetaExpandableDepths} onOpenAll={smetaBarchasiniOch} onCloseAll={smetaBarchasiniYop} onToggleDepth={smetaSath} />
+          <PanelFiltr label="Smeta filtri" value={sFiltr} onChange={setSFiltr} options={[['hammasi', 'Hammasi'], ['boglangan', 'Shu F2 da bog‘langan'], ['boglanmagan', 'Bog‘lanmagan']]}
+            izoh={`${smetaVisibleRows.length.toLocaleString('ru-RU')} qator ko‘rinmoqda`} />
           {sudrash && <div className="border-b border-accent/40 bg-accent/15 px-2 py-1 text-[11.5px] text-text" role="status">
             <b>«{sudrash.nom.slice(0, 60)}»</b> — {sudrash.tur === 'rz' ? 'smeta RAZDELIGA tashlang (razdel o‘rgatiladi)'
               : sudrash.tur === 'bl' ? 'smeta ISHIGA tashlang (bog‘lash yoki zamena) yoki RAZDELGA (qo‘shimcha ish)'
