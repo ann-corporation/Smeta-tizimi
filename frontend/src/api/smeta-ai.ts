@@ -10,6 +10,6 @@ async function post<T>(body: unknown): Promise<T | AiXato> {
   } catch { return { ok: false, code: 'NETWORK' }; }
 }
 export const smetachiSuhbat = (kompaniyaId: number, xabarlar: SuhbatXabari[], ishlar: IshNiyati[], obyekt: string) =>
-  post<{ ok: true; model: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt });
+  post<{ ok: true; model: string; xom?: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt });
 export const smetachiTanla = (kompaniyaId: number, sorovlar: TanlovSorovi[]) =>
   post<{ ok: true; tanlovlar: Tanlov[] }>({ amal: 'tanla', kompaniya_id: kompaniyaId, sorovlar });
