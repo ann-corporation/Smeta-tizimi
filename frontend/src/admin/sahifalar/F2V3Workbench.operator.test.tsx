@@ -79,7 +79,7 @@ describe('F2 workbench operator controls', () => {
     expect(sourceSum?.textContent).toContain('hujjat ИТОГО ПРЯМЫЕ: 175');
     expect(screen.getByText('✓ Bog‘langan')).toBeTruthy();
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
-    expect(screen.getByRole('button', { name: 'Barcha qatorlar' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(screen.getByRole('group', { name: 'F2 filtri' })).getByRole('button', { name: 'Hammasi' }).getAttribute('aria-pressed')).toBe('true');
     expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
     expect(f2Tree.getByText('bo‘lim ulanmagan — mos smeta bo‘limiga torting')).toBeTruthy();
     expect(f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Beton B25' }).textContent).toContain('125');
@@ -115,7 +115,7 @@ describe('F2 workbench operator controls', () => {
 
   it('filters to unbound F2 lines without hiding the source tree or its explicit bind action', () => {
     renderWorkbench();
-    fireEvent.click(screen.getByRole('button', { name: 'Bog‘lanmagan' }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'F2 filtri' })).getByRole('button', { name: 'Bog‘lanmagan' }));
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
     expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
     expect(f2Tree.getByText('Armatura A500')).toBeTruthy();
@@ -147,14 +147,14 @@ describe('F2 workbench operator controls', () => {
     const f2Region = screen.getByRole('region', { name: 'F2 akt' });
     const smetaRegion = screen.getByRole('region', { name: 'Smeta' });
 
-    expect(screen.getByText(/qator ko‘rinmoqda/).textContent).toContain('30');
+    expect(within(screen.getByRole('group', { name: 'F2 filtri' })).getByText(/qator ko‘rinmoqda/).textContent).toContain('30');
     expect(f2Region.querySelectorAll('[data-index]')).toHaveLength(24);
     expect(smetaRegion.querySelectorAll('[data-index]')).toHaveLength(24);
   });
 
   it('drag-and-drop: butun F2 qatori sudraladi, mos nishonlar belgilanadi, tashlanganda bog‘lanadi', () => {
     const { onIj } = renderWorkbench();
-    fireEvent.click(screen.getByRole('button', { name: 'Barcha qatorlar' }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'F2 filtri' })).getByRole('button', { name: 'Hammasi' }));
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
     const row = f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Armatura A500' });
     expect(row.getAttribute('draggable')).toBe('true');
@@ -184,5 +184,33 @@ describe('F2 workbench operator controls', () => {
     expect(saqlanmaganIshBormi()).toBe(true);
     cleanup();
     expect(saqlanmaganIshBormi()).toBe(false);
+  });
+
+  // Egasi 2026-10-06: ikkala panelda bir xil imkoniyatlar; har bir ish va resurs massivi alohida chegarada.
+  it('F2 panelida ham qidiruv bor (smetadagi kabi): shifr/nom bo‘yicha tekis natija', () => {
+    renderWorkbench();
+    const f2 = within(screen.getByRole('region', { name: 'F2 akt' }));
+    fireEvent.change(f2.getByRole('textbox', { name: 'F2 dan qidirish' }), { target: { value: 'armatura' } });
+    expect(f2.getByRole('group', { name: 'F2 qatori (Ish): Armatura A500' })).toBeTruthy();
+    expect(f2.queryByText('Beton B25')).toBeNull();
+  });
+
+  it('smeta panelida ham filtr bor (F2 dagi kabi): faqat shu F2 da bog‘langanlar / bog‘lanmaganlar', () => {
+    renderWorkbench();
+    const smeta = within(screen.getByRole('region', { name: 'Smeta' }));
+    const filtr = within(smeta.getByRole('group', { name: 'Smeta filtri' }));
+    const hammasi = smeta.getAllByRole('group').length;
+    fireEvent.click(filtr.getByRole('button', { name: 'Shu F2 da bog‘langan' }));
+    expect(filtr.getByRole('button', { name: 'Shu F2 da bog‘langan' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(filtr.getByRole('button', { name: 'Hammasi' }));
+    expect(smeta.getAllByRole('group').length).toBe(hammasi);
+  });
+
+  it('ish qatori ustida qalin chegara, resurs qatorlari chapda chiziq bilan ajratiladi (ikkala panelda)', () => {
+    renderWorkbench();
+    const ish = screen.getByRole('group', { name: 'F2 qatori (Ish): Armatura A500' });
+    expect(ish.className).toContain('border-t-2');
+    const smetaIsh = document.querySelector('[data-sid="3"]')!;
+    expect(smetaIsh.className).toMatch(/border-t-2|inset_4px/);
   });
 });
