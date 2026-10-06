@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NormCatalog } from '../../lib/catalog-extraction/norm-catalog';
 import { NORM_SHARD_SCHEMA, buildNormShards, type BookRow } from '../../lib/catalog-extraction/norm-shards';
@@ -34,6 +34,12 @@ function files() {
   });
 }
 let requests: string[] = [];
+beforeAll(() => {
+  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(520);
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(1000);
+  HTMLElement.prototype.scrollTo = vi.fn();
+});
+afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
   store.clear(); requests = [];
   const all = await files();
@@ -50,7 +56,7 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
   render(<SmetaStudio />);
   await screen.findByText('ШНК', undefined, { timeout: 8000 });
   fireEvent.change(screen.getByLabelText('Yangi bo‘lim nomi'), { target: { value: 'FM-1 fundamenti' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Bo‘lim qo‘shish' }));
+  fireEvent.submit(screen.getByLabelText('Yangi bo‘lim nomi').closest('form')!);
   // Named tree navigation: category → sbornik → table → works.
   fireEvent.click(screen.getByText('ШНК'));
   fireEvent.click(await screen.findByText('E06-Бетонные работы', undefined, { timeout: 8000 }));
@@ -61,12 +67,21 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
   fireEvent.change(screen.getByPlaceholderText('4,5'), { target: { value: '4' } });
   fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
   const panel = screen.getByRole('region', { name: 'Smeta qoralamasi' });
-  await within(panel).findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 });
+  fireEvent.click(within(panel).getByRole('button', { name: 'Resurslar' }));
+  fireEvent.click(await within(panel).findByRole('button', { name: 'Tanlash: Устройство бетонной подготовки' }, { timeout: 8000 }));
   expect((within(panel).getByLabelText('Ish hajmi') as HTMLInputElement).value).toBe('4');
-  fireEvent.click(within(panel).getByRole('button', { name: 'Resurslarni ochish' }));
-  expect(within(panel).getByText('4.080000')).toBeTruthy();          // 4 м3 × 1.02 ÷ 1
-  expect(within(panel).getAllByText('Noma’lum').length).toBeGreaterThan(0);
+  fireEvent.click(await within(panel).findByRole('button', { name: 'Tanlash: Бетон B7,5' }));
+  expect(within(panel).getByText(/Ish hajmi: 4.080000/)).toBeTruthy(); // 4 м3 × 1.02 ÷ 1
+  expect(within(panel).getAllByText(/Noma’lum/).length).toBeGreaterThan(0);
+  // Narx faqat dalilli buyruq orqali; 4 × 1.02 × 500 = 2040.
+  fireEvent.change(within(panel).getByLabelText('Birlik narxi'), { target: { value: '500' } });
+  fireEvent.change(within(panel).getByLabelText('Narx manbasi'), { target: { value: 'Sinov taklifi, 2026-10-06' } });
+  fireEvent.submit(within(panel).getByLabelText('Birlik narxi').closest('form')!);
+  await waitFor(() => expect(within(panel).getAllByText(/2040/).length).toBeGreaterThan(0));
   expect(requests.every(r => r.startsWith('GET /api/norm-katalog'))).toBe(true);
+  // Narxni bekor qilish noma'lum summani qaytaradi, retsept o'zgarmaydi.
+  fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
+  await waitFor(() => expect((within(panel).getByLabelText('Birlik narxi') as HTMLInputElement).value).toBe(''));
   // Undo removes the occurrence; the draft is persisted locally.
   fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
   await waitFor(() => expect(within(panel).queryByText('Устройство бетонной подготовки')).toBeNull());

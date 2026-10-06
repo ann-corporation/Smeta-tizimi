@@ -1,4 +1,12 @@
 {
+  "Hammasini yopish": "Свернуть всё",
+  "Smeta daraxtini ochib bo‘lmadi. Qoralamani tekshiring.": "Не удалось открыть дерево сметы. Проверьте черновик.",
+  "Tanlangan ish yoki resurs": "Выбранная работа или ресурс",
+  "Katalogda narx nomzodi yo‘q.": "В каталоге нет подходящей цены.",
+  "Resurs almashtirish": "Замена ресурса",
+  "Birlik koeffitsienti": "Коэффициент перевода единиц",
+  "Resurs turi, birlik va almashtirish dalilini tekshiring.": "Проверьте тип ресурса, единицы и обоснование замены.",
+  "Asl resursga qaytarish": "Вернуть исходный ресурс",
   "PTO ish yo‘li": "Работа ПТО",
   "Obyektlar va smeta yuklash": "Объекты и загрузка сметы",
   "Smeta va Fakt / LRV": "Смета и факт / ЛРВ",

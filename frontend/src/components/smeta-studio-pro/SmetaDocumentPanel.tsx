@@ -33,7 +33,7 @@ export function SmetaDocumentPanel({ doc, total, targetSectionId, setTargetSecti
   function run(c: StudioCommand): boolean {
     try { const ok = command(c); setFailed(!ok); return ok; } catch { setFailed(true); return false; }
   }
-  return <section className="min-w-0 space-y-3" aria-label={l.title}>
+  return <section className="min-w-0 space-y-3 [&>form_button]:rounded [&>form_button]:border [&>form_button]:border-border [&>form_button]:px-3 [&>form_button]:py-2 [&_button:disabled]:opacity-40" aria-label={l.title}>
     <form className="grid gap-2 md:grid-cols-3" onSubmit={e => {
       e.preventDefault(); run({ type: 'SET_CONTEXT', context: { objectLabel: context.objectLabel, title: context.title }, currency: context.currency });
     }}>

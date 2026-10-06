@@ -1,4 +1,12 @@
 {
+  "Hammasini yopish": "Collapse all",
+  "Smeta daraxtini ochib bo‘lmadi. Qoralamani tekshiring.": "Could not open the estimate tree. Check the draft.",
+  "Tanlangan ish yoki resurs": "Selected work or resource",
+  "Katalogda narx nomzodi yo‘q.": "No candidate price in the catalog.",
+  "Resurs almashtirish": "Replace resource",
+  "Birlik koeffitsienti": "Unit conversion factor",
+  "Resurs turi, birlik va almashtirish dalilini tekshiring.": "Check resource type, units and replacement evidence.",
+  "Asl resursga qaytarish": "Restore original resource",
   "PTO ish yo‘li": "PTO workflow",
   "Obyektlar va smeta yuklash": "Sites & estimate upload",
   "Smeta va Fakt / LRV": "Estimate & actuals / LRV",

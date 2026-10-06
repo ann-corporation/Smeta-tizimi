@@ -130,3 +130,26 @@ TypeScript/build/focused oxlint PASS; yangi DocumentPanel 7, basis 2 va
 tree calculated-summary 1 regression testi qo'shildi. UI ikkita competing
 total hisoblamaydi: parent DocCalc yagona manba. Main route/deploy/smoke
 dalili hali yo'q, to'liq dastur tayyor deb e'lon qilinmaydi.
+
+## 2026-10-06 — egasi topshirig'i bilan route integratsiyasi
+
+Egasi Claude limiti tugagach Codexga production chiqarishni topshirdi.
+`origin/main @ 08770668285fecbc6ed6a572d6b206e5aac8c892` merge qilindi;
+Claude'ning dirty agent-ish fayllari bu releasega kiritilmadi.
+`/admin/smeta-studio`dagi eski SmetaPanel endi SmetaDocumentPanel bilan
+almashtirildi. Chap katalog, IndexedDB autosave, undo/redo, server save
+mavjud contractlari saqlandi. Caller labels mavjud t() orqali 4 UI tilida.
+Katalog revision hash oddiy foydalanuvchi headeridan olib tashlandi.
+
+12 fayl / 122 Vitest PASS: route katalog → bo'lim → ish → resurs;
+4 × 1.02 × 500 = 2040 dalilli narx, undo va NULL qaytishi ham tekshirildi.
+30k chuqur presentation fixture 102 ms (lokal test; browser SLA emas).
+Build (tsc-b + functions tsc + Vite), tekshir, governance, diff-check PASS.
+Full oxlint exit 0, boshqa modullarda oldindan mavjud warninglar bor.
+
+Release faqat yangi muharrir presentation bindingi; to'liq ABC/TN parity
+emas. Modeldagi 2-level section, snapshot undo, umumiy resurs qidiruv,
+Excel/nakrutka/export authoring end-to-end hali keyingi bosqich.
+Authenticated owner live smoke UNKNOWN: bu sessiyada browser control
+runtime yo'q. Deploy/anonymous health buni PASSga almashtirmaydi.
+Production SHA/status Obsidian KOORDINATSIYA va AGENT_LOGda qayd qilinadi.

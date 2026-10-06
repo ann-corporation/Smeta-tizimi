@@ -35,7 +35,7 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
     return result;
   }, [calculation]);
   return <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)]">
-    <EstimateOutline doc={doc} labels={labels} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
+    <EstimateOutline doc={doc} labels={{ ...labels, title: labels.works }} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
       renderSummary={calculation ? row => {
         if (row.kind === 'section') return calculation.sections[row.sectionId]?.amount ?? labels.unknown;
         const id = row.occurrenceId!;
@@ -99,7 +99,7 @@ function Inspector({ doc, row, labels: l, command }: {
     conversionEvidence: conversionEvidence.trim() || null, normOverride: null } : null;
   const permitted = requested && recipe ? reviewSubstitution(recipe.resource, requested).readyForOperatorReview : false;
   const inputClass = 'w-full rounded border border-slate-600 bg-slate-900 p-2';
-  return <div className="space-y-4">
+  return <div className="space-y-4 [&_button]:rounded [&_button]:border [&_button]:border-slate-600 [&_button]:px-3 [&_button]:py-2 [&_button:disabled]:opacity-40">
     <h3 className="font-semibold break-words">{line?.resource?.name ?? work?.source.name ?? doc.sections[row.sectionId].name}</h3>
     {failed && <p role="alert">{l.failed}</p>}
     {!work ? <form onSubmit={e => { e.preventDefault(); run({ type: 'RENAME_SECTION', sectionId: row.sectionId, name }); }}>
