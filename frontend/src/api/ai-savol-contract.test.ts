@@ -30,6 +30,7 @@ describe('Jarvis beta kontrakti', () => {
     expect(jarvisSalommi('Salom!')).toBe(true);
     expect(jarvisSalommi('  ASSALOMU ALAYKUM  ')).toBe(true);
     expect(jarvisSalommi('Amfiteatrda fakt qancha?')).toBe(false);
-    expect(jarvisSalomJavobi()).toContain('yuqoridan kompaniya kontekstini tanlang');
+    expect(jarvisSalomJavobi()).toContain('qanday yordam');
+    expect(jarvisSalomJavobi()).not.toContain('kontekstini tanlang');
   });
 });

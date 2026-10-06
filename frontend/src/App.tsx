@@ -99,12 +99,17 @@ const ErpTexnika = lazy(() => import('./erp/sahifalar/ErpTexnika'));
 const ErpTaminot = lazy(() => import('./erp/sahifalar/ErpTaminot'));
 const ErpSifat = lazy(() => import('./erp/sahifalar/ErpSifat'));
 
+function GlobalAiHelper() {
+  const { pathname } = useLocation();
+  return pathname === '/admin' || pathname.startsWith('/admin/') ? null : <AiHelper />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <PageIdentity />
       <CommandPalette />
-      <AiHelper />
+      <GlobalAiHelper />
       <Routes>
         <Route path="/" element={<KirishSahifa />} />
         

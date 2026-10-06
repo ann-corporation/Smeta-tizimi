@@ -13,6 +13,7 @@ import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
+import { AiHelper } from '../umumiy/ui/AiHelper';
 
 /* 2026-10-02 (egasi): menyu product relsi bo'yicha qayta tuzildi — "oddiy PTO ham, o'zim ham
  * adashmasin". Tartib = ish ketma-ketligi: PTO ish yo'li → narx → loyiha/shartnoma → kompaniya
@@ -161,6 +162,7 @@ export default function AdminShell() {
     <KompaniyaProvider>
       <PTOWorkspaceProvider>
         <AdminShellInner />
+        <AiHelper />
       </PTOWorkspaceProvider>
     </KompaniyaProvider>
   );

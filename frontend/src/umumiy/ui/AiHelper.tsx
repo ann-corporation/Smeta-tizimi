@@ -8,15 +8,9 @@ import { t } from '../../i18n/til';
 import { AiFikrPanel } from './AiFikrPanel';
 import { useAiKuzatuv } from './useAiKuzatuv';
 import { yolNaqshi } from '../../lib/agent-faoliyat';
+import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 
 const TAB_USLUB = 'flex-1 px-3 py-2 text-xs font-medium transition-colors';
-
-function saqlanganKompaniya(): number | undefined {
-  try {
-    const n = Number(window.localStorage.getItem('t2_kompaniya_id'));
-    return Number.isInteger(n) && n > 0 ? n : undefined;
-  } catch { return undefined; }
-}
 
 type Message = {
   id: string;
@@ -28,8 +22,13 @@ type Message = {
 export function AiHelper() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { joriyId } = useKompaniya();
+  const companyRef = useRef({ id: joriyId, generation: 0 });
+  if (companyRef.current.id !== joriyId) {
+    companyRef.current = { id: joriyId, generation: companyRef.current.generation + 1 };
+  }
   const [tab, setTab] = useState<'savol' | 'fikr'>('savol');
-  const kuzatuv = useAiKuzatuv(saqlanganKompaniya());
+  const kuzatuv = useAiKuzatuv(joriyId ?? undefined);
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -43,6 +42,12 @@ export function AiHelper() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMessages([{ id: 'welcome', role: 'ai', text: jarvisSalomJavobi() }]);
+    setInput('');
+    setIsLoading(false);
+  }, [joriyId]);
+
+  useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -52,6 +57,8 @@ export function AiHelper() {
     if (!input.trim() || isLoading) return;
     
     const userText = input.trim();
+    const requestCompany = joriyId;
+    const requestGeneration = companyRef.current.generation;
     setInput('');
     const userMsgId = Date.now().toString();
     setMessages(prev => [...prev, { id: userMsgId, role: 'user', text: userText }]);
@@ -64,9 +71,8 @@ export function AiHelper() {
     }
 
     try {
-      const saqlangan = Number(window.localStorage.getItem('t2_kompaniya_id'));
-      const kompaniyaId = Number.isInteger(saqlangan) && saqlangan > 0 ? saqlangan : undefined;
-      const res = await t2AiJarvisSavol(kompaniyaId, userText);
+      const res = await t2AiJarvisSavol(requestCompany ?? undefined, userText);
+      if (companyRef.current.generation !== requestGeneration) return;
       const aiText = res.ok ? (res.javob || t('Jarvis javob bo‘sh qaytardi')) : (res.xabar || t('Jarvis javob bera olmadi'));
 
       setMessages(prev => [...prev, { 
@@ -76,13 +82,14 @@ export function AiHelper() {
         source: res.dalil ? `${res.dalil.rpc} · kompaniya #${res.dalil.id}` : undefined,
       }]);
     } catch (err: any) {
+      if (companyRef.current.generation !== requestGeneration) return;
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         role: 'ai', 
         text: `${t('Xatolik yuz berdi:')} ${err.message}`
       }]);
     } finally {
-      setIsLoading(false);
+      if (companyRef.current.generation === requestGeneration) setIsLoading(false);
     }
   };
 
@@ -164,7 +171,7 @@ export function AiHelper() {
             <button type="button" role="tab" aria-selected={tab === 'fikr'} className={`${TAB_USLUB} ${tab === 'fikr' ? 'border-b-2 border-accent text-white' : 'text-text-dim'}`} onClick={() => setTab('fikr')}>{t('Fikr / muammo')}</button>
           </div>
           {taklifKarta && <div className="p-3">{taklifKarta}</div>}
-          {tab === 'fikr' && <AiFikrPanel kompaniyaId={saqlanganKompaniya()} sahifa={yolNaqshi(location.pathname)} />}
+          {tab === 'fikr' && <AiFikrPanel kompaniyaId={joriyId ?? undefined} sahifa={yolNaqshi(location.pathname)} />}
           {tab === 'savol' && (<>
           {/* Jarvis beta only receives the selected Tizim_02 company ID.
               This is intentionally not an object dropdown: an object ID without

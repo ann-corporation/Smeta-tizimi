@@ -3,6 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-JARVIS-CONTEXT-20261006",
+      "title": "Jarvis salom va canonical company provider regressiyasi",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/catalog-hierarchy-review-v1",
+      "base_sha": "9ee385bee00bbf71691b681d8d7e4e6f7e632284",
+      "status": "completed",
+      "owns": ["frontend/src/umumiy/ui/AiHelper.tsx", "frontend/src/umumiy/ui/AiHelper.context.test.tsx", "frontend/src/lib/jarvis/intent.ts", "frontend/src/api/ai-savol-contract.test.ts", "frontend/src/App.tsx", "frontend/src/admin/AdminShell.tsx"],
+      "depends_on": [],
+      "must_read": ["docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "production_write_allowed": false,
+      "_izoh": "7 focused Vitest PASS, build (app+functions TS) PASS, lint/tekshir/governance/diff PASS. AiHelper production provider ichida; salom xabari neutral; company switch chat reset + generation race guard. DB/auth/provider/AI flag/budget o'zgarmadi. Authenticated owner live smoke hali UNKNOWN."
+    },
+    {
       "id": "T2-CATALOG-CONSOLIDATED-RELEASE-20261006",
       "title": "Egasi topshirig'i: Claude current main + Codex tested catalog support birlashtirish va production SHA tekshiruvi",
       "owner": "codex",
