@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { EstimateDoc, PriceBasis, CatalogResource, Substitution } from '../../lib/smeta-studio/model';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
-import { calcOccurrence } from '../../lib/smeta-studio/calc';
+import { calcOccurrence, type DocCalc } from '../../lib/smeta-studio/calc';
 import { EstimateOutline, type OutlineLabels } from './EstimateOutline';
 import type { OutlineRow } from './hierarchy';
 import { reviewSubstitution } from './substitution-review';
@@ -14,18 +14,36 @@ export type EditingLabels = OutlineLabels & {
   priceBases: Record<PriceBasis, string>; candidates: string; noCandidates: string;
   source: string; replacement: string; reason: string; conversion: string;
   conversionEvidence: string; blocked: string; restore: string; move: string;
+  basisScale?: string; basisUnit?: string; basisEvidence?: string;
 };
-export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection }: {
+export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection, calculation }: {
   doc: EstimateDoc; labels: EditingLabels; command: (command: StudioCommand) => boolean;
   onTargetSection?: (sectionId: string) => void;
+  calculation?: DocCalc;
 }) {
   const [selected, select] = useState<OutlineRow | null>(null);
   // Draft/context switch must unmount the old inspector, not inherit another estimate's edits.
-  useEffect(() => { select(null); }, [doc.draftId, doc.context.companyId, doc.context.objectId]);
+  useEffect(() => { select(null); }, [doc.draftId, doc.context.companyId, doc.context.projectId, doc.context.objectId]);
   const work = selected?.occurrenceId ? doc.occurrences[selected.occurrenceId] : null;
   const section = selected ? doc.sections[selected.sectionId] : null;
+  // Index the parent's existing result once; visible rows never scan entire recipes to find amounts.
+  const resourceLines = useMemo(() => {
+    const result = new Map<string, Map<string, { quantity: string | null; amount: string | null }>>();
+    if (calculation) for (const [id, work] of Object.entries(calculation.occurrences)) {
+      result.set(id, new Map(work.lines.map(line => [line.recipeId, line])));
+    }
+    return result;
+  }, [calculation]);
   return <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)]">
-    <EstimateOutline doc={doc} labels={labels} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }} />
+    <EstimateOutline doc={doc} labels={labels} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
+      renderSummary={calculation ? row => {
+        if (row.kind === 'section') return calculation.sections[row.sectionId]?.amount ?? labels.unknown;
+        const id = row.occurrenceId!;
+        const line = row.recipeId ? resourceLines.get(id)?.get(row.recipeId) : null;
+        const quantity = row.recipeId ? line?.quantity : doc.occurrences[id]?.quantity;
+        const amount = row.recipeId ? line?.amount : calculation.occurrences[id]?.amount;
+        return `${quantity ?? labels.unknown} · ${amount ?? labels.unknown}`;
+      } : undefined} />
     <aside aria-label={labels.inspector} className="min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-4 text-slate-100">
       {!selected || !section || (selected.occurrenceId && !work) ? <p>{labels.choose}</p> :
         <Inspector key={JSON.stringify([doc.draftId, doc.context.companyId, selected.key])}
@@ -44,6 +62,9 @@ function Inspector({ doc, row, labels: l, command }: {
   const [failed, setFailed] = useState(false);
   const [quantity, setQuantity] = useState(work?.quantity ?? '');
   const [name, setName] = useState(doc.sections[row.sectionId].name);
+  const [scale, setScale] = useState(work?.basis.scale ?? '');
+  const [basisUnit, setBasisUnit] = useState(work?.basis.unitLabel ?? '');
+  const [basisEvidence, setBasisEvidence] = useState(work?.basis.evidence ?? '');
   const [price, setPrice] = useState(override?.price?.value ?? '');
   const [basis, setBasis] = useState<PriceBasis>(override?.price?.basis ?? 'OPERATOR_MANUAL');
   const [evidence, setEvidence] = useState(override?.price?.evidence ?? '');
@@ -64,6 +85,8 @@ function Inspector({ doc, row, labels: l, command }: {
   }, [doc.sections, sectionSearch, work?.sectionId]);
   // Undo/redo or another caller's edits refresh the selected editor from the shared document.
   useEffect(() => { setQuantity(work?.quantity ?? ''); }, [work?.quantity]);
+  useEffect(() => { setScale(work?.basis.scale ?? ''); setBasisUnit(work?.basis.unitLabel ?? '');
+    setBasisEvidence(work?.basis.evidence ?? ''); }, [work?.basis]);
   useEffect(() => { setName(doc.sections[row.sectionId].name); }, [doc.sections, row.sectionId]);
   useEffect(() => {
     setPrice(override?.price?.value ?? ''); setEvidence(override?.price?.evidence ?? '');
@@ -89,6 +112,17 @@ function Inspector({ doc, row, labels: l, command }: {
         <label>{l.quantity}<input className={inputClass} inputMode="decimal" value={quantity} onChange={e => setQuantity(e.target.value)} /></label>
         <button type="submit">{l.save}</button>
       </form>
+      {l.basisScale && l.basisUnit && l.basisEvidence && <form onSubmit={e => {
+        e.preventDefault(); run({ type: 'SET_BASIS', occurrenceId: work.id, basis: {
+          scale: scale.trim() || null, unitLabel: basisUnit.trim() || null,
+          evidence: basisEvidence.trim() || null, origin: scale.trim() ? 'OPERATOR' : null,
+        } });
+      }}>
+        <label>{l.basisScale}<input className={inputClass} inputMode="decimal" value={scale} onChange={e => setScale(e.target.value)} /></label>
+        <label>{l.basisUnit}<input className={inputClass} value={basisUnit} onChange={e => setBasisUnit(e.target.value)} /></label>
+        <label>{l.basisEvidence}<input className={inputClass} value={basisEvidence} onChange={e => setBasisEvidence(e.target.value)} /></label>
+        <button type="submit" disabled={!!scale.trim() && !basisEvidence.trim()}>{l.save}</button>
+      </form>}
       <label>{l.search}<input className={inputClass} value={sectionSearch} onChange={e => setSectionSearch(e.target.value)} /></label>
       <label>{l.move}<select className={inputClass} value={work.sectionId} onChange={e => run({ type: 'MOVE_OCCURRENCE', occurrenceId: work.id, sectionId: e.target.value })}>
         <option value={work.sectionId}>{doc.sections[work.sectionId].name}</option>

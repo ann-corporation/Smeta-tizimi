@@ -1,5 +1,6 @@
 import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import type { ReactNode } from 'react';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { expandThroughDepth, indexEstimate, outlineBreadcrumb, visibleOutline, type OutlineRow } from './hierarchy';
 
@@ -8,8 +9,9 @@ export type OutlineLabels = {
   title: string; search: string; collapse: string; sections: string; works: string; resources: string;
   empty: string; invalid: string; select: string; expand: string; close: string;
 };
-export function EstimateOutline({ doc, labels, onSelect }: {
+export function EstimateOutline({ doc, labels, onSelect, renderSummary }: {
   doc: EstimateDoc; labels: OutlineLabels; onSelect: (row: OutlineRow) => void;
+  renderSummary?: (row: OutlineRow) => ReactNode;
 }) {
   // IDs remain internal; selection reports IDs, while visible names/codes stay professional.
   const parsed = useMemo(() => {
@@ -55,6 +57,7 @@ export function EstimateOutline({ doc, labels, onSelect }: {
                   className="min-w-0 flex-1 truncate text-left" onClick={() => { setSelected(row.key); onSelect(row); }}>
                   {row.code && <span className="mr-2 text-slate-400">{row.code}</span>}{row.label}
                 </button>
+                {renderSummary && <span className="shrink-0 text-xs tabular-nums">{renderSummary(row)}</span>}
               </div>;
             })}
           </div>

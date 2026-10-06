@@ -104,3 +104,29 @@ Receipt: `D:/CatalogMigration/compact-estimate-reference-v1-20261005/R2_UPLOAD_R
 Snapshot `norm-katalog/reference-snapshots/66de1eea4dee809665fb998e37ff0539e62e67ba4c9de1011192d7971853ce6b/`.
 QA `norm-katalog/review-support/a9d50b7e40cb0d994b3bfd64e0112a1874a6fbe87970eae6341148a7c18a1028/`.
 Website active pointer o'zgarmadi. Brauzerga 165 MB SQLite to'liq berilmaydi.
+
+## 3-checkpoint — to'liq o'ng panel bindingi
+
+`SmetaDocumentPanel.tsx` yangi o'ng panelni almashtirish uchun tayyor:
+context label/title/currency, root/podrazdel yaratish, target section,
+tasdiqlanmagan jami + known subtotal + unresolved, virtualized tree/inspector.
+`total={hisob.total} calculation={hisob}` — mavjud hisobdan bitta projection;
+resurs summalari map bilan indekslanadi, har qator recipe scan qilmaydi.
+`targetSectionId={nishon} setTargetSection={setNishon} command={amal}`.
+Company/project/object/draft switch target va inspectorni tozalaydi.
+Norm basis scale/unit/evidence inspector orqali SET_BASIS; null qolsa summa
+noma'lum, yashirin zero emas. Model hali 2 section darajali — UI chuqurlik
+qoidasini chetlab o'tmaydi, xavfsiz error qaytaradi. Deep engine/undo va
+resource global search Claude lane'da ochiq; bu hali tayyor professional
+program yoki production route emas.
+
+`labels: DocumentPanelLabels` parentda t() bilan tarjima qilinadi; yangi
+`basisScale/basisUnit/basisEvidence` berilsa norma asosi formasi ko'rinadi.
+Header/katalog panel/autosave/serverga saqlash/undo saqlanadi. Context text
+formasi numeric company/project/object IDni almashtirmaydi.
+
+3-checkpoint: **78/78 PASS**, 8 test fayli (yangi 46 + existing engine 32).
+TypeScript/build/focused oxlint PASS; yangi DocumentPanel 7, basis 2 va
+tree calculated-summary 1 regression testi qo'shildi. UI ikkita competing
+total hisoblamaydi: parent DocCalc yagona manba. Main route/deploy/smoke
+dalili hali yo'q, to'liq dastur tayyor deb e'lon qilinmaydi.

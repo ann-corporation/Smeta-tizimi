@@ -15,6 +15,7 @@ const labels: EditingLabels = { title: 'Tree', search: 'Search', collapse: 'Coll
   priceBases: { OPERATOR_MANUAL: 'Manual', CATALOG_CANDIDATE: 'Catalog', CONTRACT_DRAFT: 'Contract', PROCUREMENT_ACTUAL: 'Actual' },
   candidates: 'Candidates', noCandidates: 'No candidates', source: 'Source', replacement: 'Replacement', reason: 'Reason', conversion: 'Conversion',
   conversionEvidence: 'Conversion evidence', blocked: 'Review required', restore: 'Restore', move: 'Move' };
+labels.basisScale = 'Norm basis'; labels.basisUnit = 'Norm unit'; labels.basisEvidence = 'Norm evidence';
 function fixture(): EstimateDoc {
   const doc = emptyDoc('draft');
   doc.rootOrder = ['s']; doc.sections.s = { id: 's', name: 'Concrete', parentId: null, children: [], items: ['w'] };
@@ -97,4 +98,22 @@ it('moving a work preserves stable work identity and resource source', () => {
   expect(result.occurrences.w.sectionId).toBe('target');
   expect(result.sections.s.items).toEqual([]); expect(result.sections.target.items).toEqual(['w']);
   expect(result.occurrences.w.recipe).toEqual(doc.occurrences.w.recipe);
+});
+it('basis change uses explicit source evidence and recomputes resource quantity', () => {
+  const h = mount();
+  fireEvent.change(screen.getByLabelText('Norm basis'), { target: { value: '100' } });
+  fireEvent.change(screen.getByLabelText('Norm evidence'), { target: { value: '' } });
+  const form = screen.getByLabelText('Norm basis').closest('form')!;
+  expect(form.querySelector('button')!.disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText('Norm evidence'), { target: { value: 'Approved norm per 100 m3' } });
+  fireEvent.submit(form);
+  expect(h.doc().occurrences.w.basis.scale).toBe('100');
+  expect(h.doc().occurrences.w.basis.origin).toBe('OPERATOR');
+  expect(screen.getByText(/0.040400/)).toBeTruthy();
+});
+it('clearing unknown basis does not turn resource quantity into zero', () => {
+  const h = mount(); fireEvent.change(screen.getByLabelText('Norm basis'), { target: { value: '' } });
+  fireEvent.submit(screen.getByLabelText('Norm basis').closest('form')!);
+  expect(h.doc().occurrences.w.basis.scale).toBeNull();
+  expect(screen.getByText('Quantity: Unknown · Amount: Unknown')).toBeTruthy();
 });

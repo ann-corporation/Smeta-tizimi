@@ -54,3 +54,10 @@ it('30k works render a bounded viewport instead of 30k DOM nodes', async () => {
   await waitFor(() => expect(screen.getByRole('button', { name: 'Select: Concrete 0' })).toBeTruthy());
   expect(container.querySelectorAll('[role="treeitem"]').length).toBeLessThan(50);
 });
+it('shows caller calculation output without recomputing or replacing unknown values', async () => {
+  render(<EstimateOutline doc={fixture()} labels={labels} onSelect={() => {}}
+    renderSummary={row => row.kind === 'section' ? '125.01' : 'Unknown amount'} />);
+  expect(screen.getByText('125.01')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Works' }));
+  expect(await screen.findByText('Unknown amount')).toBeTruthy();
+});
