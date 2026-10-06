@@ -50,6 +50,24 @@ Xaritadagi aniq model nomlarini egasi belgilaydi (OpenRouter narxi/mavjudligi o'
 - **Sinov:** `supabase/tests/t2_agent_ish_muhiti_contract.sql` (rollback; 30/31 + 1 test xatosi tuzatilgan, funksiya tomoni tasdiqlangan), `agent-ish.test.ts`, `agent-veb.test.ts` (SSRF/redirect/prompt-injection to'siqlari).
 - **Hali yo'q:** token hisobi (`t2_token_harakat`) va limit; admin UI (qoida/taklif/manba tasdiqlash sahifasi); `t2_agent_run` bilan bog'lash; fon kuzatuvchi (`t2_job`).
 
+## O'rganish tsikli (2026-10-06) — o'zini rivojlantiradigan tizim
+```
+foydalanuvchi fikri/skrinshoti ─► YORDAMCHI agent (kompaniya doirasi): javob + TOZALANGAN umumiy xulosa
+quyi agent signali ────────────► t2_agent_signal (tozalangan; kompaniya faqat xesh)
+                                   │
+              RIVOJLANTIRUVCHI agent (faqat tizim/superadmin): signallarni guruhlab ≤3 ish taklifi (maqsad, qabul mezonlari, xavf)
+                                   ▼
+                      ADMIN tasdig'i (superadmin) ──► t2_agent_buyruq (navbat)
+                                   ▼
+        buyruq_yubor ──► GitHub issue [agent-task] ──► ijrochi agent: branch + PR + test ──► CI ──► birlashtirish
+```
+- **Tenant xavfsizligi:** global agent HECH QACHON fikr matnini/skrinshotni/kompaniya ID sini ko'rmaydi; faqat `_t2_agent_tozala_v1` dan o'tgan xulosa (kompaniya/obyekt nomi, ≥4 xonali raqam, email, havola, telefon bo'lsa — ULASHILMAYDI, fail-closed) va hisob (nechta signal/kompaniya).
+- **Fikr yo'qolmaydi:** AI ishlamasa ham fikr saqlanadi; kuniga 50 limit; skrinshot R2 reyestridan (o'z kompaniyasi hujjati).
+- **Ish buyrug'i:** global rivojlanish taklifi tasdiqlansa yaratiladi (kompaniya darajasidagi g'oya umumiy kodni o'zgartirmaydi — tozalangan signalga aylanadi). Xavf past bo'lsagina avto-birlashtirish belgilanadi (DB CHECK).
+- **Ijrochi:** buyruq GitHub issue ga aylanadi (`GITHUB_AGENT_TOKEN`, `GITHUB_REPO` — egasi kiritadi). Bajaruvchi: mavjud Claude/Codex sessiyalari yoki GitHub Actions agenti — **egasi qarori** (avtomatik ishga tushadigan workflow xavfsizlik klassifikatori tomonidan rad etildi, egasining aniq ruxsatisiz yaratilmaydi).
+- **Chegara:** agent prod bazaga migratsiya qo'llamaydi, main ga to'g'ridan push qilmaydi; faqat PR.
+- Sinov: `supabase/tests/t2_agent_oqish_buyruq_contract.sql` 25/25, `agent-ish.test.ts` 11.
+
 ## Ochiq qarorlar (egasi)
 
 - Cloudflare Pages'ga `OPENROUTER_API_KEY` ni **egasi o'zi** qo'yadi (Production + Preview); aniq 3 daraja uchun model nomlari.
