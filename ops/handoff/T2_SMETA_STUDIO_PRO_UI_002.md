@@ -153,3 +153,9 @@ Excel/nakrutka/export authoring end-to-end hali keyingi bosqich.
 Authenticated owner live smoke UNKNOWN: bu sessiyada browser control
 runtime yo'q. Deploy/anonymous health buni PASSga almashtirmaydi.
 Production SHA/status Obsidian KOORDINATSIYA va AGENT_LOGda qayd qilinadi.
+
+`d846c399eb2d24396cb01033b7e4d5ef47db9215` origin/main'ga fast-forward
+push qilindi. Qo'shimcha `functions/api/smeta-studio.test.ts` 11/11 PASS
+(auth/tenant/save contract): jami bu release uchun 133 test, 13 fayl.
+Task ready_for_review — owner live smoke hali o'tmagan; bu status
+to'liq professional smeta dasturi tayyor degani emas.

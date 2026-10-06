@@ -9,12 +9,12 @@
       "machine": "noutbuk",
       "branch": "codex/smeta-studio-pro-v2",
       "base_sha": "0fc3e402564460df6c535075be879fff981c5283",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": ["frontend/src/components/smeta-studio-pro/", "frontend/src/admin/sahifalar/SmetaStudio.tsx", "frontend/src/admin/sahifalar/SmetaStudio.test.tsx", "frontend/src/i18n/lugat/ru.json", "frontend/src/i18n/lugat/en.json", "ops/ACTIVE_TASKS.json", "ops/handoff/T2_SMETA_STUDIO_PRO_UI_002.md"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/CURRENT_STATE.md"],
       "production_write_allowed": false,
-      "_izoh": "2026-10-06 egasi: Claude limiti tugadi, Codex smeta UI integration/main/deployni oladi. Faqat SmetaStudio presentation va testi o'tkazildi; canonical engine/backend truth o'zgarmaydi."
+      "_izoh": "2026-10-06: d846c39 main'ga integratsiya qilindi. Route UI + engine/i18n 122 va API authorization 11 test PASS; build/functions/tekshir/governance/diff PASS. Cloudflare SHA tekshiruvi Obsidian jurnalida. Authenticated owner smoke UNKNOWN, full smeta authoring parity hali ochiq; engine/backend truth o'zgarmadi."
     },
     {
       "id": "T2-CATALOG-EXTRACTION-INTEGRATION-001",
