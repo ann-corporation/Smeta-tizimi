@@ -75,7 +75,7 @@ export function characteristics(nameRaw: string | null | undefined): Characteris
 }
 
 export type MatchConfidence = 'EXACT' | 'HIGH' | 'REVIEW';
-export type MatchCandidate = { index: number; row: KatalogQatori; score: number; regional: boolean; reasons: string[] };
+export type MatchCandidate = { index: number; row: KatalogQatori; score: number; regional: boolean; reasons: string[]; extraSpecs: number };
 export type MatchResult = { confidence: MatchConfidence | 'NONE'; best: MatchCandidate | null; candidates: MatchCandidate[]; gateRejected: number };
 
 /** Why a candidate fails the hard gates (null = passes). */
@@ -142,7 +142,7 @@ export function matchResource(cat: MatchCatalog, name: string | null, unit: stri
     const regional = !!region && cat.region(i) === region;
     const reasons = [exact ? 'nom aynan mos' : `so‘z mosligi ${Math.round(wordSim * 100)}%`, src.specs.length ? `xarakteristika ${Math.round(specCover * 100)}%` : '',
       src.grade ? `klass ${src.grade}` : '', src.rebar ? `armatura ${src.rebar}` : '', src.diameter ? `Ø${src.diameter}` : '', regional ? 'obyekt hududi' : ''].filter(Boolean);
-    scored.push({ index: i, row: cat.row(i), score, regional, reasons });
+    scored.push({ index: i, row: cat.row(i), score, regional, reasons, extraSpecs });
   }
   scored.sort((a, b) => b.score - a.score || Number(b.regional) - Number(a.regional) || (a.row.narx ?? 0) - (b.row.narx ?? 0) || a.index - b.index);
   const candidates = scored.slice(0, limit);
@@ -156,7 +156,7 @@ export function matchResource(cat: MatchCatalog, name: string | null, unit: stri
   const strong = !!(src.grade || (src.section && src.brand) || (src.rebar && src.diameter));
   const uniqueProduct = !rival || rival.score < 0.35;
   const confidence: MatchConfidence = best.score === 1 ? 'EXACT'
-    : unit != null && ((best.score >= 0.85 && margin >= 0.1) || (strong && uniqueProduct && best.score >= 0.35)) ? 'HIGH' : 'REVIEW';
+    : unit != null && ((best.score >= 0.85 && margin >= 0.1 && src.words.length >= 2 && best.extraSpecs === 0) || (strong && uniqueProduct && best.score >= 0.35)) ? 'HIGH' : 'REVIEW';
   return { confidence, best, candidates, gateRejected };
 }
 

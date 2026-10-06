@@ -10,7 +10,9 @@
 export type Dec = string;
 export const STUDIO_SCHEMA = 'smeta-studio-v1' as const;
 
-export type CatalogResource = { id: string; code: string | null; name: string | null; unitCode: string | null; type: string | null };
+export type CatalogResource = { id: string; code: string | null; name: string | null; unitCode: string | null; type: string | null;
+  /** Resource code (KodR, e.g. 000001) as printed in ABC LRV/RES; optional for older drafts. */
+  resourceIdCode?: string | null };
 export type RecipeSnapshot = {
   recipeId: string; status: 'EXACT' | 'AMBIGUOUS' | 'MISSING'; resource: CatalogResource | null;
   /** Source consumption per `basis.scale` work units; NULL = unknown in source. */
