@@ -156,6 +156,8 @@ function KatalogPanel({ katalog, nishon, onAdd }: { katalog: RemoteNormCatalog; 
   const [yuklash, setYuklash] = useState(false), [resSahifa, setResSahifa] = useState(0), [hajm, setHajm] = useState('');
   const [xato, setXato] = useState('');
   useEffect(() => { const timer = setTimeout(() => { setQidiruv(soz); setSahifa(0); }, 200); return () => clearTimeout(timer); }, [soz]);
+  const selectionRequest = useRef(0);
+  useEffect(() => () => { selectionRequest.current++; }, []);
   const bolalar = useMemo(() => katalog.childNodes(tugun, tugunSahifa), [katalog, tugun, tugunSahifa]);
   const yolak = useMemo(() => tugun >= 0 ? katalog.breadcrumb(tugun) : [], [katalog, tugun]);
   const jadvalmi = tugun >= 0 && katalog.node(tugun).isTable;
@@ -163,10 +165,11 @@ function KatalogPanel({ katalog, nishon, onAdd }: { katalog: RemoteNormCatalog; 
   const nom = (n: RemoteTreeNode) => n.name || (n.status === 'GROUP' ? t('Nomi manbada topilmagan jadvallar (kod bo‘yicha)') : '—');
   const ochish = (i: number) => { setTugun(i); setTugunSahifa(0); setSahifa(0); };
   async function tanla(w: NormWork) {
+    const request = ++selectionRequest.current;
     setTanlangan(w); setDetail(null); setResSahifa(0); setHajm(''); setXato(''); setYuklash(true);
-    try { await katalog.load(w.id); setDetail(katalog.detail(w.id, 0)); }
-    catch { setXato(t('Ish resurslari yuklanmadi. Qayta urinib ko‘ring.')); }
-    finally { setYuklash(false); }
+    try { await katalog.load(w.id); if (request === selectionRequest.current) setDetail(katalog.detail(w.id, 0)); }
+    catch { if (request === selectionRequest.current) setXato(t('Ish resurslari yuklanmadi. Qayta urinib ko‘ring.')); }
+    finally { if (request === selectionRequest.current) setYuklash(false); }
   }
   const unit = tanlangan ? katalog.unit(tanlangan.unitCode) : null;
   return <div className="space-y-2">

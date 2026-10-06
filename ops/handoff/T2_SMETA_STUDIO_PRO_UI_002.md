@@ -159,3 +159,15 @@ push qilindi. Qo'shimcha `functions/api/smeta-studio.test.ts` 11/11 PASS
 (auth/tenant/save contract): jami bu release uchun 133 test, 13 fayl.
 Task ready_for_review — owner live smoke hali o'tmagan; bu status
 to'liq professional smeta dasturi tayyor degani emas.
+
+## 2026-10-06 — owner «ishlamayapti» follow-up
+
+Source tekshiruvda ikki qayta ishlab bo'ladigan nuqson tuzatildi:
+qo'shilgan ishning ancestorsi avtomatik ochiladi; tez A→B tanlashda
+kechikkan A load javobi B detailini almashtirmaydi (request generation).
+Route regression yangi ish qo'shgach yashirin expand bosmasdan ko'rishni
+va A/B race'ni tekshiradi. 6 fayl / 50 test PASS, tsc-b PASS,
+focused oxlint/governance/diff PASS. Faqat safe branch checkpoint;
+bu tuzatishlar hali main/productionga chiqarilmadi. Ownerning aynan
+qaysi bosqichi ishlamasligi UNKNOWN: browser control runtime mavjud emas.
+Authenticated browser sinovini kod fixture sinovi deb almashtirmang.

@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NormCatalog } from '../../lib/catalog-extraction/norm-catalog';
+import { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote';
 import { NORM_SHARD_SCHEMA, buildNormShards, type BookRow } from '../../lib/catalog-extraction/norm-shards';
 
 vi.mock('../../i18n/til', () => ({ t: (s: string, p?: Record<string, string | number>) => p ? s.replace(/\{(\w+)\}/g, (_m, k: string) => String(p[k])) : s }));
@@ -18,6 +19,7 @@ const book: BookRow[] = [
 function files() {
   const c = new NormCatalog();
   c.add('basis', { Kod: 10, KodE: 'E6-1-1', TipBook: 'H', KodA: 'E06', KodRaz: '01', KodPRaz: '001', KodTab: 'E6-1', KodI: '003', NameP: blob('Устройство бетонной подготовки') });
+  c.add('basis', { Kod: 11, KodE: 'E6-1-2', TipBook: 'H', KodA: 'E06', KodRaz: '01', KodPRaz: '001', KodTab: 'E6-1', KodI: '003', NameP: blob('Другой бетонный фундамент') });
   c.add('material', { Kod: 20, KodM: 'C1', KodR: '001', NameP: blob('Бетон B7,5'), KodI: '005', Tip: 'M' });
   c.add('basisres', { Kod: 30, KodE: 'E6-1-1', KodM: 'C1', KodR: '001', NormaR: 1.02 });
   const built = buildNormShards(c, book, REV, [{ kod: 'E6-1-1', birlik: 'М3', n: 12 }]);
@@ -67,6 +69,8 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
   fireEvent.change(screen.getByPlaceholderText('4,5'), { target: { value: '4' } });
   fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
   const panel = screen.getByRole('region', { name: 'Smeta qoralamasi' });
+  // Operator does not need a hidden extra expansion step after adding the work.
+  expect(await within(panel).findByRole('button', { name: 'Tanlash: Устройство бетонной подготовки' })).toBeTruthy();
   fireEvent.click(within(panel).getByRole('button', { name: 'Resurslar' }));
   fireEvent.click(await within(panel).findByRole('button', { name: 'Tanlash: Устройство бетонной подготовки' }, { timeout: 8000 }));
   expect((within(panel).getByLabelText('Ish hajmi') as HTMLInputElement).value).toBe('4');
@@ -100,4 +104,25 @@ it('katalog yuklanmagan bo‘lsa aniq holat ko‘rsatiladi', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
   render(<SmetaStudio />);
   expect(await screen.findByText('Platforma normativ katalogi hali yuklanmagan.', undefined, { timeout: 8000 })).toBeTruthy();
+});
+
+it('sekin A javobi B tanlovining retseptini almashtirmaydi', async () => {
+  const original = RemoteNormCatalog.prototype.load;
+  let release!: () => void;
+  const slow = new Promise<void>(resolve => { release = resolve; });
+  const spy = vi.spyOn(RemoteNormCatalog.prototype, 'load').mockImplementation(async function (this: RemoteNormCatalog, id: string) {
+    await original.call(this, id);
+    if (this.works.find(w => w[0] === id)?.[1] === 'E6-1-1') await slow;
+  });
+  try {
+    render(<SmetaStudio />);
+    fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'), { target: { value: 'бетон' } });
+    fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
+    fireEvent.click(await screen.findByText('Другой бетонный фундамент'));
+    await screen.findByRole('heading', { name: /Другой бетонный фундамент/ });
+    release();
+    await slow;
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Другой бетонный фундамент/ })).toBeTruthy());
+    expect(screen.queryByRole('heading', { name: /Устройство бетонной подготовки/ })).toBeNull();
+  } finally { release(); spy.mockRestore(); }
 });

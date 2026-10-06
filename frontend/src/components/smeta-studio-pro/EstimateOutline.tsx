@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ReactNode } from 'react';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
@@ -21,6 +21,24 @@ export function EstimateOutline({ doc, labels, onSelect, renderSummary }: {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  const seenKeys = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const previous = seenKeys.current;
+    seenKeys.current = new Set(parsed.index.byKey.keys());
+    if (!previous || !parsed.valid) return;
+    // Reveal newly added rows, without reopening branches on price/quantity edits.
+    const reveal = new Set<string>();
+    for (const row of parsed.index.rows) if (!previous.has(row.key)) {
+      if (row.kind === 'section') reveal.add(row.key);
+      if (row.parentKey) reveal.add(row.parentKey);
+    }
+    if (!reveal.size) return;
+    for (let i = parsed.index.rows.length - 1; i >= 0; i--) {
+      const row = parsed.index.rows[i];
+      if (reveal.has(row.key) && row.parentKey) reveal.add(row.parentKey);
+    }
+    setOpen(old => new Set([...old].filter(k => parsed.index.byKey.has(k)).concat([...reveal])));
+  }, [parsed]);
   const deferred = useDeferredValue(query);
   const rows = useMemo(() => visibleOutline(parsed.index, open, deferred), [parsed.index, open, deferred]);
   const parent = useRef<HTMLDivElement>(null);
