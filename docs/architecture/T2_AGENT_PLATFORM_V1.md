@@ -40,6 +40,16 @@ Xaritadagi aniq model nomlarini egasi belgilaydi (OpenRouter narxi/mavjudligi o'
 5. **Tizim agentlari:** `platform_auditor` (RLS/izolyatsiya regressiya tekshiruvi, sxema drift), `platform_cost` (token/xarajat anomaliyasi). Faqat superadmin, faqat o'qish + hisobot.
 6. **Tanlangan provayder siyosati:** kompaniya o'zi OpenRouter kaliti ulashi (BYOK) yoki platforma tokenlari — egasi qarori.
 
+## Ish muhiti (2026-10-06) — HAQIQIY holat
+- **Qoidalar:** `t2_agent_qoida` — `yadro` (8 ta, bazada trigger bilan o'zgarmas: UPDATE/DELETE/INSERT bloklangan), `global` (superadmin tasdiqlagan), `company` (shu kompaniya admin/boss/director tasdiqlagan). Versiyalanadi, eski arxivga o'tadi.
+- **Xotira:** `t2_agent_xotira` — kompaniya xotirasi faqat shu kompaniyaga; platforma xotirasi (kompaniya NULL) faqat tizim agentiga. Promptda «ishonchsiz eslatma» sifatida (buyruq emas).
+- **Internet:** faqat `t2_agent_manba` dagi admin tasdiqlagan domenlar, faqat https/443, IP/localhost/ichki nomlar rad, har redirect qayta tekshiriladi, 1 MB / 8 s chegarasi; olingan matn `<TASHQI_MANBA>` to'sig'ida «ishonchsiz»; har olish `t2_agent_veb_olish` jurnaliga (url, sha256). Yangi domen — faqat taklif → SUPERADMIN tasdig'i.
+- **Qoidalarni tatbiq etish (admin ruxsati bilan):** `veb_tahlil` — manbadan ≤3 qoida taklifi (dalil: url+sha256) → `t2_agent_taklif` (kutilmoqda) → admin `taklif_qaror` → faqat shundan keyin qoida faol. Global maqsad — superadmin; kompaniya maqsadi — shu kompaniya admini. Kompaniya kontekstidan global qoida taklif qilib bo'lmaydi (tenant ma'lumoti oqib chiqmasin), faqat manba domeni.
+- **O'zini rivojlantirish:** `rivojlanish` taklifi — tasdiqlansa faqat «tasdiqlandi» g'oya bo'lib qoladi; kod/migratsiya/deploy ni agent bajarmaydi.
+- **Shlyuz:** `/api/agent-ish` (GET muhit|takliflar; POST xotira_yoz, taklif_yarat, taklif_qaror, veb_ol, savol, veb_tahlil). `AGENT_ISH_YOQILGAN=1` bo'lmaguncha 503. Doira bazada model chaqiruvidan OLDIN tekshiriladi.
+- **Sinov:** `supabase/tests/t2_agent_ish_muhiti_contract.sql` (rollback; 30/31 + 1 test xatosi tuzatilgan, funksiya tomoni tasdiqlangan), `agent-ish.test.ts`, `agent-veb.test.ts` (SSRF/redirect/prompt-injection to'siqlari).
+- **Hali yo'q:** token hisobi (`t2_token_harakat`) va limit; admin UI (qoida/taklif/manba tasdiqlash sahifasi); `t2_agent_run` bilan bog'lash; fon kuzatuvchi (`t2_job`).
+
 ## Ochiq qarorlar (egasi)
 
 - Cloudflare Pages'ga `OPENROUTER_API_KEY` ni **egasi o'zi** qo'yadi (Production + Preview); aniq 3 daraja uchun model nomlari.
