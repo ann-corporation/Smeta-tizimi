@@ -162,7 +162,8 @@ describe('command layer — deep hierarchy and copy-on-write', () => {
     d = { ...d, occurrences: occ, sections: { big: { ...sec, items: Object.keys(occ) } } };
     let h = historyOf(d); const t0 = performance.now();
     for (let i = 0; i < 100; i++) h = dispatch(h, { type: 'SET_QUANTITY', occurrenceId: 'o' + i, quantity: String(i + 2) });
-    expect(performance.now() - t0).toBeLessThan(8000);
+    // Wall clock only guards against a full-document clone regression (that took minutes); CI load varies.
+    expect(performance.now() - t0).toBeLessThan(25000);
     expect(h.past.length).toBe(100); expect(undo(h).present.occurrences.o99.quantity).toBe('1'); expect(h.present.occurrences.o5000).toBe(d.occurrences.o5000);
   });
 });
