@@ -29,6 +29,11 @@ export interface XlsxSheet {
   merges: Array<{ r1: number; c1: number; r2: number; c2: number }>;
   /** Excelda yashirin varaq (state=hidden/veryHidden) — odatda eski qoralama. */
   hidden?: boolean;
+  /** Source formula/outline evidence for the universal document reader. */
+  formulalar?: Array<Array<string | null | undefined>>;
+  outline?: Array<number | undefined>;
+  /** OOXML numeric lexical values, before conversion to JS Number. */
+  numericText?: Array<Array<string | null | undefined>>;
 }
 export interface XlsxWorkbook {
   sheets: XlsxSheet[];
@@ -69,10 +74,11 @@ async function readWithSheetJs(buf: Uint8Array): Promise<XlsxWorkbook> {
   } catch {
     throw new Error('XLS_SPREADSHEET_READER_UNAVAILABLE: jadval formatini o‘qish kutubxonasi yuklanmadi.');
   }
-  const wb = XLSX.read(buf, { type: 'array', cellDates: false });
+  const wb = XLSX.read(buf, { type: 'array', cellDates: false, cellFormula: true, cellStyles: true });
   const sheets: XlsxSheet[] = wb.SheetNames.map((name) => {
     const ws = wb.Sheets[name];
-    const rows = (XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null }) as unknown[][])
+    const sourceRange = ws['!ref'] ? { s: { r: 0, c: 0 }, e: XLSX.utils.decode_range(ws['!ref']).e } : 0;
+    const rows = (XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, range: sourceRange, blankrows: true }) as unknown[][])
       .map((row) => row.map((cell): CellValue => {
         if (cell == null) return null;
         if (typeof cell === 'string' || typeof cell === 'number') return cell;
@@ -82,7 +88,14 @@ async function readWithSheetJs(buf: Uint8Array): Promise<XlsxWorkbook> {
       r1: m.s.r, c1: m.s.c, r2: m.e.r, c2: m.e.c,
     }));
     const hidden = !!wb.Workbook?.Sheets?.find((s) => s.name === name)?.Hidden;
-    return { name, rows, merges, ...(hidden ? { hidden } : {}) };
+    const formulalar: XlsxSheet['formulalar'] = [];
+    for (const [address, cell] of Object.entries(ws)) {
+      if (address.startsWith('!') || !(cell as import('xlsx').CellObject).f) continue;
+      const { r, c } = XLSX.utils.decode_cell(address);
+      (formulalar[r] ??= [])[c] = (cell as import('xlsx').CellObject).f;
+    }
+    const outline = (ws['!rows'] ?? []).map((row) => row?.level);
+    return { name, rows, merges, formulalar, outline, ...(hidden ? { hidden } : {}) };
   });
   return { sheets, sheet: (name: string) => sheets.find((s) => s.name === name) ?? null };
 }
@@ -194,10 +207,15 @@ function colIdx(ref: string): number {
   return c - 1;
 }
 
-function parseSheetXml(xml: string, sharedStrings: string[]): { rows: SheetGrid; merges: XlsxSheet['merges'] } {
+function parseSheetXml(xml: string, sharedStrings: string[]): Pick<XlsxSheet, 'rows' | 'merges' | 'formulalar' | 'outline' | 'numericText'> {
   const rows: SheetGrid = [];
+  const formulalar: NonNullable<XlsxSheet['formulalar']> = [];
+  const outline: NonNullable<XlsxSheet['outline']> = [];
+  const numericText: NonNullable<XlsxSheet['numericText']> = [];
   for (const rm of xml.matchAll(/<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g)) {
     const rIdx = +rm[1] - 1;
+    const level = rm[0].slice(0, rm[0].indexOf('>')).match(/outlineLevel="(\d+)"/);
+    if (level) outline[rIdx] = Number(level[1]);
     const arr: CellValue[] = [];
     for (const cm of rm[2].matchAll(/<c\s+([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const attrs = cm[1];
@@ -205,10 +223,15 @@ function parseSheetXml(xml: string, sharedStrings: string[]): { rows: SheetGrid;
       const refM = attrs.match(/r="([A-Z]+)\d+"/);
       if (!refM) continue;
       const t = (attrs.match(/t="(\w+)"/) || [])[1] || '';
+      const cIdx = colIdx(refM[1]);
+      const fm = body.match(/<f(?:\s[^>]*)?>([\s\S]*?)<\/f>/);
+      if (fm) (formulalar[rIdx] ??= [])[cIdx] = decodeXmlEntities(fm[1]);
+      else if (/<f(?:\s[^>]*)?\s*\/>/.test(body)) (formulalar[rIdx] ??= [])[cIdx] = '#SHARED_FORMULA_UNRESOLVED!';
       let v: CellValue = '';
       const vm = body.match(/<v>([\s\S]*?)<\/v>/);
       if (vm) v = decodeXmlEntities(vm[1]);
       else { const im = body.match(/<is>[\s\S]*?<t[^>]*>([\s\S]*?)<\/t>/); if (im) v = decodeXmlEntities(im[1]); }
+      if (vm && (t === '' || t === 'n')) (numericText[rIdx] ??= [])[cIdx] = decodeXmlEntities(vm[1]);
       if (t === 's') v = sharedStrings[Number(v)] ?? '';
       else if (t !== 'str' && t !== 'inlineStr' && v !== '' && !isNaN(Number(v))) v = Number(v);
       arr[colIdx(refM[1])] = v;
@@ -226,7 +249,7 @@ function parseSheetXml(xml: string, sharedStrings: string[]): { rows: SheetGrid;
   for (const m of xml.matchAll(/<mergeCell ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"/g)) {
     merges.push({ r1: +m[2] - 1, c1: colIdx(m[1]), r2: +m[4] - 1, c2: colIdx(m[3]) });
   }
-  return { rows, merges };
+  return { rows, merges, formulalar, outline, numericText };
 }
 
 function parseWorkbookSheetList(xml: string, relsXml: string | undefined): Array<{ name: string; target: string; hidden: boolean }> {
@@ -279,7 +302,7 @@ export async function readXlsx(bytes: ArrayBuffer | Uint8Array): Promise<XlsxWor
     const path = 'xl/' + target;
     const xml = files[path] ? dec.decode(files[path]) : null;
     const parsed = xml ? parseSheetXml(xml, sharedStrings) : { rows: [] as SheetGrid, merges: [] };
-    return { name, rows: parsed.rows, merges: parsed.merges, ...(hidden ? { hidden } : {}) };
+    return { name, ...parsed, ...(hidden ? { hidden } : {}) };
   });
 
   // Ayrim Excel/ABC/TN fayllarida varaq XML'i to'g'ri ochiladi, lekin

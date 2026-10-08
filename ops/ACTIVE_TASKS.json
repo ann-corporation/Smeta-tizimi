@@ -2216,6 +2216,29 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Direct owner 2026-10-08. Existing company imports retained; platform ingestion to content-addressed private R2. Existing locked studio/price catalog API and DB truth unchanged. Shared control/dictionaries additive only. Deployment/integration handled by Claude."
+    },
+    {
+      "id": "T2-SMETA-SOURCE-FIDELITY-DATA-20261008",
+      "title": "Source evidence envelope for arbitrary documents: decimals, formulas, percentages, unknown rows; canonical binary reader extension",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/document-understanding-v1",
+      "base_sha": "6fe5b617",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/src/lib/document-understanding/",
+      "frontend/src/lib/smeta-anatomiya/index.ts",
+        "frontend/src/lib/f2-import-parse/xlsxReader.ts",
+        "frontend/src/lib/smeta-anatomiya/turlar.ts",
+        "ops/handoff/T2_SMETA_SOURCE_FIDELITY_DATA_20261008.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/architecture/SMETA_ANATOMIYA_V1.md"
+      ],
+      "production_write_allowed": false
     }
   ]
 }
