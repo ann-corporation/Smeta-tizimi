@@ -103,3 +103,27 @@ Qolganlar: haqiqiy anonimlashtirilgan screenshot corpus (`screenshots` prop
 tayyor, rasm berilmaguncha gallery chizilmaydi), public support gateway + owner
 operator inbox + receipt/notifications + human takeover server guard, real
 mobile/desktop preview QA, integrator release. Main/prod/DB o'zgartirilmadi.
+
+## 2026-10-09 — egasi v1ni rad etdi, mahsulot qamrovi revision
+
+Egasi: introdan ro'yxatdan o'tishni xohlamaydi, ma'lumot juda kam va tizim
+qamrovi to'liq ko'rsatilmagan. V1ni final design sifatida olish MUMKIN EMAS.
+
+`product-scope.ts` source-backed public copy: 8 domain (kompaniya/loyiha,
+smeta/normativ, Fakt/F2/davr, narx/oferta, ta'minot/sklad, ijro/hujjat,
+shartnoma/moliya, AI/boshqaruv). Evidence `src/lib/sayt-xaritasi/pageCatalog.ts`,
+`src/App.tsx`, Obsidian CODEMAP domain rows. Route borligi to'liq runtime
+readiness deb olinmadi: rivojlanayotgan studio/coefficient, accounting
+chegarasi, AI final approval cheklovi va role/access note ko'rsatiladi.
+
+Hero product-first: "Qurilishni boshqaring. Faqat hujjatlarni emas." + 8
+yo'nalish clickable xaritasi, 6 lavozim uchun interaktiv task/output,
+5 bosqich connected chain, narx/F2/NULL/source qonunlari. Kirish formasi
+pastdagi signup/login bo'limida; har CTA shu formaga focus/scroll qiladi.
+Design navy hero + light editorial sections; responsive domain cards/map.
+Public scope/roles uz/ru/en va avtomatik uz-Cyrl; fake KPI/testimonial yo'q.
+
+21 focused tests PASS (old16 + scope5), focused oxlint PASS. Full build va
+tekshir qayta ishga tushirildi; final receipt keyingi mailboxda. Browser
+local webview attach timeout: desktop/mobile visual acceptance UNKNOWN.
+Real screenshots va live support adapter bu revisionda ham ulanmagan.

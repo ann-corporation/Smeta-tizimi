@@ -16,13 +16,13 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); tilQoy('uz'); });
 describe('Public kirish sayti', () => {
   it('haqiqiy telefon, intro va auth form bitta sahifada', () => {
     render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Hisoblar tartibli.');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Qurilishni boshqaring.');
     expect(screen.getAllByRole('link').filter(a => a.getAttribute('href') === `tel:${OWNER_PHONE}`).length).toBeGreaterThan(1);
     expect(screen.getByPlaceholderText('foydalanuvchi_nomi')).toBeTruthy();
   });
   it('hero CTA signup formasini tanlaydi', async () => {
     render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Hisob ochish' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Hisob ochish' })[0]);
     expect(await screen.findByPlaceholderText('F.I.Sh.')).toBeTruthy();
   });
   it('mavjud login API va role yo‘naltirishi saqlangan', async () => {
@@ -47,7 +47,7 @@ describe('Public kirish sayti', () => {
   });
   it.each(['ru', 'en'] as const)('%s intro matnlari shu tilga o‘tadi', til => {
     tilQoy(til); render(<PublicEntry onChooseAuth={vi.fn()}><span>Form</span></PublicEntry>);
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain(til === 'ru' ? 'Порядок в расчётах.' : 'Clear calculations.');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain(til === 'ru' ? 'Управляйте строительством.' : 'Manage construction.');
   });
   it('skrinshotlar faqat real asset berilganda chiziladi', () => {
     const { rerender } = render(<PublicEntry onChooseAuth={vi.fn()}><span>Form</span></PublicEntry>);
