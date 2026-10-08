@@ -9,7 +9,7 @@
       "machine": "noutbuk-public-entry",
       "branch": "codex/public-entry-ui-20261008",
       "base_sha": "1ef3e6d4b8b282fda8e534196c7d55d1918f135f",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": ["frontend/src/components/public-entry/", "frontend/src/kirish/KirishSahifa.tsx", "frontend/src/kirish/KirishSahifa.public.test.tsx", "ops/handoff/T2_PUBLIC_ENTRY_SUPPORT_20261008.md", "ops/mailbox/T2-PUBLIC-ENTRY-UI-20261008/"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md", "docs/governance/AGENT_CAPABILITY_POLICY.md", "ops/handoff/T2_PUBLIC_ENTRY_SUPPORT_20261008.md"],

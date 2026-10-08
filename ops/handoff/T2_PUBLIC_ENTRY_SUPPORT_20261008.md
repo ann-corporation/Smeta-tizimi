@@ -123,7 +123,7 @@ pastdagi signup/login bo'limida; har CTA shu formaga focus/scroll qiladi.
 Design navy hero + light editorial sections; responsive domain cards/map.
 Public scope/roles uz/ru/en va avtomatik uz-Cyrl; fake KPI/testimonial yo'q.
 
-21 focused tests PASS (old16 + scope5), focused oxlint PASS. Full build va
-tekshir qayta ishga tushirildi; final receipt keyingi mailboxda. Browser
+21 focused tests PASS (old16 + scope5), focused oxlint PASS. Yakuniy full
+build exit0 (app TS + Functions + Vite3442modules) va tekshir PASS. Browser
 local webview attach timeout: desktop/mobile visual acceptance UNKNOWN.
 Real screenshots va live support adapter bu revisionda ham ulanmagan.
