@@ -47,6 +47,7 @@ import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { resursVedomostAoa } from './resurs-vedomost';
 import { boshKeshQoy, chopNomlariAbsolyut, ogohlantirishlarniOchir, bugunSana, hujjatFaylNomi, imzoMatni, imzoMuhrli, imzoTomonlari, IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, type ImzoNomlar } from './hujjat-yozuvchi';
+import { narxBildirishnomaKerak } from './narx-bildirishnoma';
 
 /**
  * `toliq` — butun LRV_PLUS (A..W + yashirin Даража).
@@ -108,8 +109,7 @@ export interface LrvPlusQator {
   faktHajm: number;
   faktSumma: number;
   f2Hajm: number;
-  /** NULL = certified F2 amount unknown (never 0). */
-  f2Summa: number | null;
+  f2Summa: number;
   /** X (yashirin) va Excel outline darajasi. */
   daraja: number;
 }
@@ -261,15 +261,15 @@ export function lrvPlusQatorlarniHisobla(
 
     if (LEAF_TUR.has(tur)) {
       narx = q.narx ?? null;
-      // Hajm yoki narx noma'lum — natija bo'sh (Excel 0 chiqarmasin: NULL ≠ 0).
+      // Hajm yoki narx yo'q — faqat SHU qator bo'sh (bildirishnoma bilan); narx 0 — haqiqiy 0.
       summaFormula = `IF(OR(F${r}="",G${r}=""),"",F${r}*G${r})`;
       // Missing input is unknown, not zero. The formula remains live in
       // Excel, but its cached value stays blank until both inputs are known.
       summaQiymat = obyomQiymat != null && narx != null ? obyomQiymat * narx : null;
     } else if (OTA_TUR.has(tur)) {
       const sp = span.get(q.id);
-      // Bevosita bolalardan birortasining summasi noma'lum bo'lsa — ota ham noma'lum.
-      if (sp) summaFormula = `IF(COUNTIFS(${darajaUstun}${sp.c1}:${darajaUstun}${sp.c2},${daraja + 1},H${sp.c1}:H${sp.c2},"")>0,"",SUMIF(${darajaUstun}${sp.c1}:${darajaUstun}${sp.c2},${daraja + 1},H${sp.c1}:H${sp.c2}))`;
+      // Egasi qoidasi (2026-10-08): ota summasi har doim bevosita bolalar yig'indisi — narxsiz bola jamini bo'shatmaydi.
+      if (sp) summaFormula = `SUMIF(${darajaUstun}${sp.c1}:${darajaUstun}${sp.c2},${daraja + 1},H${sp.c1}:H${sp.c2})`;
       // No known children -- unknown, not a fabricated zero (Constitution:
       // NULL is never silently converted to zero).
       else summaQiymat = null;
@@ -291,19 +291,17 @@ export function lrvPlusQatorlarniHisobla(
     if (!OTA_TUR.has(item.tur) || !item.summaFormula) continue;
     let sum = 0;
     let hasChild = false;
-    let unknownChild = false;
     // Egasi 2026-09-30: "F2 kiritilgandan keyin LRV Excel da F2 umuman 0" — `t2_qator_holat` fakt/F2
     // pulini faqat barglarda saqlaydi; ota qatorda ham bolalar yig'indisi (Excel da SUMIF formulasi).
-    let fakt = 0, f2: number | null = 0;
+    let fakt = 0, f2 = 0;
     for (let j = i + 1; j < rows.length && (rows[j].daraja ?? 0) > item.daraja; j++) {
       if ((rows[j].daraja ?? 0) !== item.daraja + 1) continue;
       hasChild = true;
       const childSum = out[j].summaQiymat;
-      if (childSum == null) unknownChild = true;
-      else sum += childSum;
-      fakt += out[j].faktSumma; f2 = f2 == null || out[j].f2Summa == null ? null : f2 + (out[j].f2Summa as number);
+      if (childSum != null) sum += childSum;
+      fakt += out[j].faktSumma; f2 += out[j].f2Summa;
     }
-    item.summaQiymat = hasChild && !unknownChild ? sum : null;
+    item.summaQiymat = hasChild ? sum : null;
     if (hasChild) { item.faktSumma = fakt; item.f2Summa = f2; }
   }
 
@@ -315,7 +313,7 @@ export function lrvPlusQatorlarniHisobla(
 export function lrvPlusJamiFormula(qatorlar: LrvPlusQator[], ustun: string, darajaUstun = 'X'): string | null {
   if (!qatorlar.length) return null;
   const c1 = qatorlar[0].row, c2 = qatorlar[qatorlar.length - 1].row;
-  return `IF(COUNTIFS(${darajaUstun}${c1}:${darajaUstun}${c2},0,${ustun}${c1}:${ustun}${c2},"")>0,"",SUMIF(${darajaUstun}${c1}:${darajaUstun}${c2},0,${ustun}${c1}:${ustun}${c2}))`;
+  return `SUMIF(${darajaUstun}${c1}:${darajaUstun}${c2},0,${ustun}${c1}:${ustun}${c2})`;
 }
 
 /**
@@ -758,7 +756,7 @@ export async function lrvPlusFaylBaytlari(
       aoa.push([
         ...asosiy,
         q.faktHajm, q.obyomQiymat == null ? '' : q.obyomQiymat - q.faktHajm, q.f2Hajm, q.faktHajm - q.f2Hajm,
-        q.faktSumma, q.summaQiymat == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa ?? '', q.f2Summa == null ? '' : q.faktSumma - q.f2Summa,
+        q.faktSumma, q.summaQiymat == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa, q.faktSumma - q.f2Summa,
         q.daraja,
         lrvKalitYoz(q.id, q.kod, q.nom, q.birlik),
       ]);
@@ -789,7 +787,7 @@ export async function lrvPlusFaylBaytlari(
       ws[`Q${q.row}`] = kesh(`IF(F${q.row}="","",F${q.row}-P${q.row})`, q.obyomQiymat == null ? null : q.obyomQiymat - q.faktHajm);
       ws[`S${q.row}`] = { t: 'n', f: `P${q.row}-R${q.row}`, v: q.faktHajm - q.f2Hajm };
       ws[`U${q.row}`] = kesh(`IF(H${q.row}="","",H${q.row}-T${q.row})`, q.summaQiymat == null ? null : q.summaQiymat - q.faktSumma);
-      ws[`W${q.row}`] = kesh(`IF(V${q.row}="","",T${q.row}-V${q.row})`, q.f2Summa == null ? null : q.faktSumma - q.f2Summa);
+      ws[`W${q.row}`] = { t: 'n', f: `T${q.row}-V${q.row}`, v: q.faktSumma - q.f2Summa };
       // Ota (rz/bl) qatorida Fakt (T) va F2 (V) summasi — bevosita bolalar yig'indisi (tirik formula).
       const sumif = OTA_TUR.has(q.tur) ? q.summaFormula?.match(/SUMIF\(([^,]+),([^,]+),H(\d+):H(\d+)\)\)?$/) : null;
       if (sumif) {
@@ -1053,9 +1051,9 @@ export async function lrvPlusFaylBaytlari(
   }
   if (asosiy) {
     /* Hujjat standarti (docs/architecture/HUJJAT_STANDARTI_V1.md):
-       H7 — narxi/hajmi noma'lum barglar hujjatda ochiq ro'yxat (jamilar bo'sh
-       qoladi, taxmin yo'q); H3 — imzo bloki; H4 — chop hududi hujjat + imzo. */
-    const nomalumlar = hisob.filter((q) => LEAF_TUR.has(q.tur) && q.summaQiymat == null);
+       H7 — narxi/hajmi yo'q barglar hujjatda ochiq ro'yxat (faqat o'sha qator bo'sh,
+       jamilar ko'rinadi; mashinist mehnati ro'yxatga kirmaydi); H3 — imzo bloki; H4 — chop hududi. */
+    const nomalumlar = hisob.filter((q) => LEAF_TUR.has(q.tur) && q.summaQiymat == null && !(q.narx == null && !narxBildirishnomaKerak(q, q.narx)));
     let r = Math.max(asosiy.rowCount, oxirgiMalumotQator) + 2;
     const matn = (row: number, col: number, v: string, font?: Partial<import('exceljs').Font>) => {
       const c = asosiy.getCell(row, col);
@@ -1068,7 +1066,7 @@ export async function lrvPlusFaylBaytlari(
       const LIMIT = 500;
       nomalumlar.slice(0, LIMIT).forEach((q, i) => {
         const sabab = q.obyomQiymat == null && q.narx == null ? 'нет количества и цены' : q.obyomQiymat == null ? 'нет количества' : 'нет цены';
-        matn(r++, 3, `${i + 1}. ${q.kod ? q.kod + ' ' : ''}${q.nom}${q.birlik ? ', ' + q.birlik : ''} (стр. ${q.row}): ${sabab} — сумма и итоги по разделу не определены`, { italic: true });
+        matn(r++, 3, `${i + 1}. ${q.kod ? q.kod + ' ' : ''}${q.nom}${q.birlik ? ', ' + q.birlik : ''} (стр. ${q.row}): ${sabab} — строка не включена в сумму`, { italic: true });
       });
       if (nomalumlar.length > LIMIT) matn(r++, 3, `… и еще ${nomalumlar.length - LIMIT} позиций (см. строки без суммы в графе «СУММА»)`, { italic: true });
       r++;

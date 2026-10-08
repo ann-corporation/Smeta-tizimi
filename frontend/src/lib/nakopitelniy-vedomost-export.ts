@@ -34,6 +34,7 @@ import {
   type KatSummalar, type NakrutkaHisobJS,
 } from './nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
+import { narxBildirishnomaKerak } from './narx-bildirishnoma';
 
 export interface NakopitelniyVedomostExportOptions {
   obyektNom: string;
@@ -82,8 +83,7 @@ export function davrMatni(davr: string): string {
 const BARG = new Set(['rs', 'mat', 'ob']);
 
 /** Davr ustun guruhi: har tasdiqlangan F2 oyi (yoki eski ko'rinishda "ранее / за период"). */
-/** summa NULL = certified amount unknown for that period (never 0). */
-type DavrUstun = { sarlavha: string; hajm: (q: NakopitelniyQator) => number; summa: (q: NakopitelniyQator) => number | null };
+type DavrUstun = { sarlavha: string; hajm: (q: NakopitelniyQator) => number; summa: (q: NakopitelniyQator) => number };
 
 /** Ustunlar va ularning harflari — davrlar soniga qarab (egasi 2026-09-30: har oy alohida ustun + ИТОГО). */
 function ustunRejasi(davrlar: readonly DavrUstun[]) {
@@ -134,20 +134,20 @@ function davrUstunlari(o: NakopitelniyVedomostExportOptions): DavrUstun[] {
   ];
 }
 
-export type NakopitelniyJamilar = { smeta: number | null; oldingi: number | null; joriy: number | null; jami: number | null; qoldiq: number | null };
+export type NakopitelniyJamilar = { smeta: number; oldingi: number; joriy: number; jami: number; qoldiq: number };
 
 /** Hujjat jamilari — barglar bo'yicha (UI shu sonni ko'rsatadi, Excel ВСЕГО bilan teng). */
 export function nakopitelniyJamilar(qatorlar: readonly NakopitelniyQator[]): NakopitelniyJamilar {
-  let smeta: number | null = 0, oldingi: number | null = 0, joriy: number | null = 0;
-  const qosh = (a: number | null, v: number | null) => (a == null || v == null ? null : a + v);
+  let smeta = 0, oldingi = 0, joriy = 0;
   for (const q of qatorlar) {
     if (!BARG.has(q.tur)) continue;
-    smeta = qosh(smeta, q.smeta_summa);
-    oldingi = qosh(oldingi, q.oldingi_summa);
-    joriy = qosh(joriy, q.joriy_summa);
+    smeta += q.smeta_summa ?? 0;   // egasi qoidasi: narxsiz qator jamini bo'shatmaydi (bildirishnoma alohida)
+    oldingi += q.oldingi_summa;
+    joriy += q.joriy_summa;
   }
-  const jami = qosh(oldingi, joriy);
-  return { smeta, oldingi, joriy, jami, qoldiq: smeta == null || jami == null ? null : smeta - jami };
+  const r = (x: number) => x;
+  const jami = r(oldingi + joriy);
+  return { smeta: r(smeta), oldingi: r(oldingi), joriy: r(joriy), jami, qoldiq: r(smeta - jami) };
 }
 
 /** Накопительная ведомость (.xlsx). */
@@ -215,8 +215,7 @@ export function nakopitelniyVedomostHujjat(
 
   /** Qator bo'yicha: davrlar yig'indisi (с начала) va hisobot davri (oxirgi davr). */
   const jamiH = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + d.hajm(q), 0);
-  /** NULL if any period amount is unknown — a partial sum is never shown as "с начала". */
-  const jamiS = (q: NakopitelniyQator): number | null => davrlar.reduce<number | null>((s, d) => { const x = d.summa(q); return s == null || x == null ? null : s + x; }, 0);
+  const jamiS = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + d.summa(q), 0);
   const perS = (q: NakopitelniyQator) => davrlar[davrlar.length - 1].summa(q);
 
   const reja: Rej[] = [];
@@ -231,15 +230,13 @@ export function nakopitelniyVedomostHujjat(
     if (node.tur === 'barg') {
       bargRows.push(i);
       const q = node.q;
-      if (q.smeta_hajm == null || q.smeta_summa == null) diqqat.push({ nom: nomi(q), sabab: 'нет объема или стоимости по смете — остаток не определен' });
+      if (q.smeta_hajm == null || (q.smeta_summa == null && narxBildirishnomaKerak(q, null))) diqqat.push({ nom: nomi(q), sabab: 'нет объема или стоимости по смете — строка не включена в сумму' });
       if (!nakrutkaKat(q.kat)) diqqat.push({ nom: nomi(q), sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
       const mozhno = q.fakt_hajm - jamiH(q);
       if (mozhno < -1e-9) diqqat.push({ nom: nomi(q), sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(-mozhno)})` });
       // Oy kesimi RPC jamisi bilan mos bo'lishi shart — farq bo'lsa ochiq aytiladi (to'qilmaydi).
-      const js = jamiS(q);
-      if (js == null) diqqat.push({ nom: nomi(q), sabab: 'в утвержденном акте Ф-2 цена не указана — сумма принятого не определена (не 0)' });
-      else if (oyKesimi && q.oldingi_summa != null && q.joriy_summa != null && Math.abs(js - (q.oldingi_summa + q.joriy_summa)) > 0.01) {
-        diqqat.push({ nom: nomi(q), sabab: `сумма по месяцам (${fmt2(js)}) не совпадает с итогом ведомости (${fmt2(q.oldingi_summa + q.joriy_summa)})` });
+      if (oyKesimi && Math.abs(jamiS(q) - (q.oldingi_summa + q.joriy_summa)) > 0.01) {
+        diqqat.push({ nom: nomi(q), sabab: `сумма по месяцам (${fmt2(jamiS(q))}) не совпадает с итогом ведомости (${fmt2(q.oldingi_summa + q.joriy_summa)})` });
       }
       return i;
     }
@@ -260,8 +257,7 @@ export function nakopitelniyVedomostHujjat(
   const kfQ = podvalKfQatorlari(podvalBosh, podval);
   const koOf = (q: NakopitelniyQator) => {
     const kat = nakrutkaKat(q.kat);
-    const p = perS(q), s = jamiS(q);
-    return { kat, per: p == null ? null : kOplate(p, kat, kfJS), jami: s == null ? null : kOplate(s, kat, kfJS) };
+    return { kat, per: kOplate(perS(q), kat, kfJS), jami: kOplate(jamiS(q), kat, kfJS) };
   };
   /** Pul ustuni qiymati (barg). */
   const pulOf = (q: NakopitelniyQator, c: string): number | null => {
@@ -270,12 +266,12 @@ export function nakopitelniyVedomostHujjat(
     const k = U.davrS.indexOf(c);
     return k >= 0 ? davrlar[k].summa(q) : null;
   };
-  /** Barglar (idx) yig'indisi — oraliq + belgi bo'yicha; bittasi bo'sh bo'lsa bo'sh (NULL ≠ 0). */
+  /** Barglar (idx) yig'indisi — oraliq + belgi bo'yicha; narxsiz barg jamini bo'shatmaydi (egasi qoidasi). */
   const yig = (c: string, idx: readonly number[], val: number | null): Qiymat => {
     if (!idx.length) return null;
     const a = rowOf(Math.min(...idx)), b = rowOf(Math.max(...idx));
     const rng = `${c}${a}:${c}${b}`, m = `${U.belgi}${a}:${U.belgi}${b}`;
-    return { f: `IF(COUNTIFS(${m},1,${rng},"")>0,"",SUMIF(${m},1,${rng}))`, v: val == null ? '' : yaxlit2(val) };
+    return { f: `SUMIF(${m},1,${rng})`, v: yaxlit2(val ?? 0) };
   };
   const bargIdx = (idx: readonly number[]): number[] => {
     const out: number[] = [];
@@ -286,7 +282,7 @@ export function nakopitelniyVedomostHujjat(
   const pulYig = (c: string, idx: readonly number[]): Qiymat => {
     const bl = bargIdx(idx);
     const vals = bl.map((k) => pulOf(reja[k].q!, c));
-    return yig(c, bl, vals.some((x) => x == null) ? null : vals.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0));
+    return yig(c, bl, vals.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0));
   };
   const koMemo = new Map<string, number | null>();
   function koQiymat(k: number, c: 'per' | 'jami'): number | null {
@@ -295,26 +291,23 @@ export function nakopitelniyVedomostHujjat(
     const x = reja[k];
     let val: number | null;
     if (x.tur === 'barg') { const ko = koOf(x.q!); val = c === 'per' ? ko.per : ko.jami; }
-    else { const vs = x.bolalar.map((b2) => koQiymat(b2, c)); val = !x.bolalar.length || vs.some((z) => z == null) ? null : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); }
+    else { const vs = x.bolalar.map((b2) => koQiymat(b2, c)); val = !x.bolalar.length ? null : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); }
     koMemo.set(key, val);
     return val;
   }
   const koSum = (idx: readonly number[], c: 'per' | 'jami'): Qiymat => {
     const bl = bargIdx(idx);
     const vals = bl.map((k) => koQiymat(k, c));
-    return yig(c === 'per' ? U.koPer : U.koJami, bl, vals.some((x) => x == null) ? null : vals.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0));
+    return yig(c === 'per' ? U.koPer : U.koJami, bl, vals.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0));
   };
   const ostatok = (idx: readonly number[]): number | string => {
     const bl = bargIdx(idx);
-    if (bl.some((k) => reja[k].q!.smeta_summa == null)) return '';
-    if (bl.some((k) => jamiS(reja[k].q!) == null)) return '';
-    return bl.reduce((s, k) => s + (reja[k].q!.smeta_summa ?? 0) - (jamiS(reja[k].q!) as number), 0);
+    return bl.reduce((s, k) => s + (reja[k].q!.smeta_summa ?? 0) - jamiS(reja[k].q!), 0);
   };
   const n = (x: number | null | undefined): Qiymat => (x == null ? null : x);
   const col = (h: string) => U.idx(h);
   const jamiHF = (rr: number) => U.davrH.map((h) => `${h}${rr}`).join('+');
-  // "" + number is #VALUE! in Excel — an unknown period amount keeps the running total empty instead.
-  const jamiSF = (rr: number) => `IF(OR(${U.davrS.map((h) => `${h}${rr}=""`).join(',')}),"",${U.davrS.map((h) => `${h}${rr}`).join('+')})`;
+  const jamiSF = (rr: number) => U.davrS.map((h) => `${h}${rr}`).join('+');
   reja.forEach((x, i) => {
     let r = 0;
     const q = x.q;
@@ -337,13 +330,13 @@ export function nakopitelniyVedomostHujjat(
         c[7] = q!.fakt_hajm;
         davrlar.forEach((d, k) => {
           c[col(U.davrH[k])] = d.hajm(q!);
-          c[col(U.davrS[k])] = barg ? n(d.summa(q!)) : pulYig(U.davrS[k], x.bolalar);
+          c[col(U.davrS[k])] = barg ? d.summa(q!) : pulYig(U.davrS[k], x.bolalar);
         });
         const jh = jamiH(q!);
         c[col(U.jamiH)] = { f: jamiHF(rr), v: jh };
-        c[col(U.jamiS)] = barg ? { f: jamiSF(rr), v: jamiS(q!) ?? '' } : pulYig(U.jamiS, x.bolalar);
+        c[col(U.jamiS)] = barg ? { f: jamiSF(rr), v: jamiS(q!) } : pulYig(U.jamiS, x.bolalar);
         c[col(U.ostH)] = { f: `IF(E${rr}="","",E${rr}-${U.jamiH}${rr})`, v: q!.smeta_hajm == null ? '' : q!.smeta_hajm - jh };
-        c[col(U.ostS)] = barg || x.bolalar.length ? { f: `IF(G${rr}="","",G${rr}-${U.jamiS}${rr})`, v: barg ? (q!.smeta_summa == null || jamiS(q!) == null ? '' : q!.smeta_summa - (jamiS(q!) as number)) : ostatok(x.bolalar) } : null;
+        c[col(U.ostS)] = barg || x.bolalar.length ? { f: `IF(G${rr}="","",G${rr}-${U.jamiS}${rr})`, v: barg ? (q!.smeta_summa == null ? '' : q!.smeta_summa - jamiS(q!)) : ostatok(x.bolalar) } : null;
         c[col(U.mozhno)] = { f: `H${rr}-${U.jamiH}${rr}`, v: q!.fakt_hajm - jh };
         if (barg) {
           const ko = koOf(q!);
@@ -400,7 +393,7 @@ export function nakopitelniyVedomostHujjat(
         const q = reja[i].q!;
         const kat = nakrutkaKat(q.kat);
         if (!kat) continue;
-        ks[kat] += p === U.ostS ? (q.smeta_summa == null ? 0 : q.smeta_summa - (jamiS(q) ?? 0)) : (pulOf(q, p) ?? 0);
+        ks[kat] += p === U.ostS ? (q.smeta_summa == null ? 0 : q.smeta_summa - jamiS(q)) : (pulOf(q, p) ?? 0);
       }
       katSummalar[p] = ks;
     }

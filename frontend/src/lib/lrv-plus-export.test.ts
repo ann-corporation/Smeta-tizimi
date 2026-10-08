@@ -71,7 +71,7 @@ describe('lrvPlusQatorlarniHisobla — smeta kaskadi', () => {
     const bl = h.find((r) => r.nom === 'Qazish')!;
     const rs = h.filter((r) => r.tur === 'rs');
     const c1 = Math.min(...rs.map((r) => r.row)), c2 = Math.max(...rs.map((r) => r.row));
-    expect(bl.summaFormula).toBe(`IF(COUNTIFS(X${c1}:X${c2},${bl.daraja + 1},H${c1}:H${c2},"")>0,"",SUMIF(X${c1}:X${c2},${bl.daraja + 1},H${c1}:H${c2}))`);
+    expect(bl.summaFormula).toBe(`SUMIF(X${c1}:X${c2},${bl.daraja + 1},H${c1}:H${c2})`);
     expect(bl.summaQiymat).toBe(190000 + 235000);
   });
 
@@ -109,8 +109,8 @@ describe('lrvPlusQatorlarniHisobla — FAKT / F2 (egasining talabi: har bir qato
   it('ЖАМИ formulasi berilgan ustun bo\'yicha faqat ildiz (daraja=0) qatorlarni yig\'adi', () => {
     const h = lrvPlusQatorlarniHisobla(DARAXT);
     const c1 = h[0].row, c2 = h[h.length - 1].row;
-    expect(lrvPlusJamiFormula(h, 'H')).toBe(`IF(COUNTIFS(X${c1}:X${c2},0,H${c1}:H${c2},"")>0,"",SUMIF(X${c1}:X${c2},0,H${c1}:H${c2}))`);
-    expect(lrvPlusJamiFormula(h, 'T')).toBe(`IF(COUNTIFS(X${c1}:X${c2},0,T${c1}:T${c2},"")>0,"",SUMIF(X${c1}:X${c2},0,T${c1}:T${c2}))`);
+    expect(lrvPlusJamiFormula(h, 'H')).toBe(`SUMIF(X${c1}:X${c2},0,H${c1}:H${c2})`);
+    expect(lrvPlusJamiFormula(h, 'T')).toBe(`SUMIF(X${c1}:X${c2},0,T${c1}:T${c2})`);
   });
 });
 

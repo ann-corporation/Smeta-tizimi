@@ -28,10 +28,9 @@ export type ResursVedomostQator = {
   smetaHajm: number;
   smetaSumma: number;
   f2Hajm: number;
-  /** NULL = at least one certified F2 amount is unknown (price intentionally absent) — never 0. */
-  f2Summa: number | null;
+  f2Summa: number;
   qoldiqHajm: number;
-  qoldiqSumma: number | null;
+  qoldiqSumma: number;
   /** Nechta smeta qatorida shu resurs ishlatilgan (bir xil nom/birlik/kat kelib qo'shilgan). */
   qatorSoni: number;
 };
@@ -57,10 +56,6 @@ function katTartibRaqami(kat: string): number {
 function katTaqqosla(a: string, b: string): number {
   return katTartibRaqami(a) - katTartibRaqami(b) || a.localeCompare(b);
 }
-
-/** Sticky-unknown addition: once any part is unknown the total is unknown (NULL ≠ 0). */
-const qosh = (a: number | null, v: unknown): number | null => (a == null || v == null || v === '' || !Number.isFinite(Number(v)) ? null : a + Number(v));
-const yigN = (xs: Array<number | null>): number | null => xs.reduce<number | null>((s, x) => (s == null || x == null ? null : s + x), 0);
 
 function son(v: unknown): number {
   const n = Number(v);
@@ -89,9 +84,9 @@ export function resursVedomostQur(qatorlar: readonly T2QatorHolat[]): ResursVedo
     r.smetaHajm += son(q.smeta_hajm);
     r.smetaSumma += son(q.smeta_summa);
     r.f2Hajm += son(q.f2_hajm);
-    r.f2Summa = qosh(r.f2Summa, q.f2_summa);
+    r.f2Summa += son(q.f2_summa);
     r.qoldiqHajm += son(q.qoldiq_hajm);
-    r.qoldiqSumma = qosh(r.qoldiqSumma, q.qoldiq_summa);
+    r.qoldiqSumma += son(q.qoldiq_summa);
     r.qatorSoni += 1;
     if (!r.kod && q.kod) r.kod = q.kod;
   }
@@ -102,8 +97,8 @@ export type ResursVedomostKategoriya = {
   kat: string;
   qatorlar: ResursVedomostQator[];
   jamiSmetaSumma: number;
-  jamiF2Summa: number | null;
-  jamiQoldiqSumma: number | null;
+  jamiF2Summa: number;
+  jamiQoldiqSumma: number;
 };
 
 /**
@@ -145,9 +140,9 @@ export function resursKategoriyaSarlavha(kat: string, n: number): string {
 export function resursVedomostAoa(qatorlar: readonly T2QatorHolat[]): (string | number)[][] {
   const aoa: (string | number)[][] = [[...RESURS_VEDOMOST_SARLAVHA]];
   for (const k of resursVedomostKategoriyalarga(qatorlar)) {
-    aoa.push([resursKategoriyaSarlavha(k.kat, k.qatorlar.length), '', '', '', '', k.jamiSmetaSumma, '', k.jamiF2Summa ?? '', '', k.jamiQoldiqSumma ?? '']);
+    aoa.push([resursKategoriyaSarlavha(k.kat, k.qatorlar.length), '', '', '', '', k.jamiSmetaSumma, '', k.jamiF2Summa, '', k.jamiQoldiqSumma]);
     for (const r of k.qatorlar) {
-      aoa.push(['', r.kod || '', r.nom, r.birlik || '', r.smetaHajm, r.smetaSumma, r.f2Hajm, r.f2Summa ?? '', r.qoldiqHajm, r.qoldiqSumma ?? '']);
+      aoa.push(['', r.kod || '', r.nom, r.birlik || '', r.smetaHajm, r.smetaSumma, r.f2Hajm, r.f2Summa, r.qoldiqHajm, r.qoldiqSumma]);
     }
   }
   return aoa;
@@ -166,8 +161,8 @@ export function resursVedomostKategoriyalarga(qatorlar: readonly T2QatorHolat[])
     .map(([kat, list]) => ({
       kat, qatorlar: list,
       jamiSmetaSumma: list.reduce((s, r) => s + r.smetaSumma, 0),
-      jamiF2Summa: yigN(list.map(r => r.f2Summa)),
-      jamiQoldiqSumma: yigN(list.map(r => r.qoldiqSumma)),
+      jamiF2Summa: list.reduce((s, r) => s + r.f2Summa, 0),
+      jamiQoldiqSumma: list.reduce((s, r) => s + r.qoldiqSumma, 0),
     }));
 }
 
@@ -206,13 +201,11 @@ export function resursVedomostHujjat(holatlar: readonly T2QatorHolat[], o: Resur
   let no = 0;
   const guruhlar: number[] = [];
   const sum = (c: string, a: number, b: number) => `SUM(${c}${a}:${c}${b})`;
-  // An empty (unknown) F2/remainder cell makes the group total unknown instead of a partial sum.
-  const sumN = (c: string, a: number, b: number) => `IF(COUNTIF(${c}${a}:${c}${b},"")>0,"",SUM(${c}${a}:${c}${b}))`;
   for (const k of kategoriyalar) {
     const r0 = v.r;
     const a = r0 + 1, b = r0 + k.qatorlar.length;
     guruhlar.push(v.qator('ish', [null, null, resursKategoriyaSarlavha(k.kat, k.qatorlar.length), null,
-      null, { f: sum('F', a, b), v: k.jamiSmetaSumma }, null, { f: sumN('H', a, b), v: k.jamiF2Summa ?? '' }, null, { f: sumN('J', a, b), v: k.jamiQoldiqSumma ?? '' }]));
+      null, { f: sum('F', a, b), v: k.jamiSmetaSumma }, null, { f: sum('H', a, b), v: k.jamiF2Summa }, null, { f: sum('J', a, b), v: k.jamiQoldiqSumma }]));
     for (const r of k.qatorlar) {
       v.qator('oddiy', [++no, r.kod ?? '', r.nom, r.birlik ?? '', r.smetaHajm, r.smetaSumma, r.f2Hajm, r.f2Summa, r.qoldiqHajm, r.qoldiqSumma], { daraja: 1 });
     }
@@ -220,9 +213,7 @@ export function resursVedomostHujjat(holatlar: readonly T2QatorHolat[], o: Resur
   if (guruhlar.length) {
     const s = (c: string) => sumRefs(c, guruhlar);
     const j = (f: (k: ResursVedomostKategoriya) => number) => kategoriyalar.reduce((x, k) => x + f(k), 0);
-    const jN = (f: (k: ResursVedomostKategoriya) => number | null) => yigN(kategoriyalar.map(f));
-    const sN = (c: string) => `IF(OR(${guruhlar.map(r => `${c}${r}=""`).join(',')}),"",${s(c)})`;
-    v.qator('vsego', [null, null, 'ВСЕГО ПО ВЕДОМОСТИ', null, null, { f: s('F'), v: j((k) => k.jamiSmetaSumma) }, null, { f: sN('H'), v: jN((k) => k.jamiF2Summa) ?? '' }, null, { f: sN('J'), v: jN((k) => k.jamiQoldiqSumma) ?? '' }]);
+    v.qator('vsego', [null, null, 'ВСЕГО ПО ВЕДОМОСТИ', null, null, { f: s('F'), v: j((k) => k.jamiSmetaSumma) }, null, { f: s('H'), v: j((k) => k.jamiF2Summa) }, null, { f: s('J'), v: j((k) => k.jamiQoldiqSumma) }]);
   }
   v.bosh();
   v.izoh('Количество по разделам и объекту не суммируется (разные единицы измерения). Затраты труда машинистов учтены в стоимости машино-часа.');

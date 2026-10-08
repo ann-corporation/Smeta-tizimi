@@ -69,10 +69,11 @@ describe('Сличительная ведомость (H1–H9)', () => {
     expect(Number(v.kataklar.find((k) => k.ref === `G${row}`)?.v)).toBe(4_160_000);
   });
 
-  it('H7: narx noma‘lum — summa va jamilar bo‘sh, diqqat ro‘yxatida', () => {
+  it('H7: narx yo‘q — faqat o‘sha qator bo‘sh, jamilar ko‘rinadi, diqqat ro‘yxatida (egasi qoidasi)', () => {
     const rows = QATOR.map((r) => (r.id === 4 ? { ...r, narx: null } : r));
     const m = slichitelniyModeli(rows, HOLAT);
-    expect(m.jami.smeta).toBeNull();
+    expect(m.jami.smeta).toBeLessThan(slichitelniyModeli(QATOR, HOLAT).jami.smeta!);
+    expect(m.jami.smeta).toBeGreaterThan(0);
     expect(m.diqqat).toHaveLength(1);
     const t = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25' }).bytes);
     expect(t.matnlar.some((s) => s.startsWith('ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ (1)'))).toBe(true);

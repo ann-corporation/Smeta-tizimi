@@ -39,15 +39,15 @@ describe('tender oferta V2 — barg narxlash', () => {
     expect(r.qatorlar[0].narxManbasi).toBe('kategoriya_foiz');
   });
 
-  it('qo‘lda rejimda kiritilmagan narx 0 ga aylanmaydi, yakuniy oferta null', () => {
+  it('qo‘lda rejimda kiritilmagan narx 0 ga aylanmaydi; yakuniy oferta ma’lum summalardan ko‘rinadi, qator ro‘yxatda (egasi qoidasi)', () => {
     const r = ofertaHisobla([qator()], { sozlama: { rejim: 'qolda' } });
     expect(r.qatorlar[0].pudratchiSumma).toBeNull();
     expect(r.qatorlar[0].muammolar).toContain('PUDRATCHI_NARXI_YOQ');
-    expect(r.yakuniyOferta).toBeNull();
+    expect(r.yakuniyOferta).toBe(0);
     expect(r.halQilinmagan).toBe(1);
   });
 
-  it('smeta narxi ANIQ 0 — taklif 0, yakuniy to‘silmaydi, ogohlantirish qoladi; NULL esa hal qilinmagan', () => {
+  it('smeta narxi ANIQ 0 — taklif 0, hal qilingan; NULL — faqat o‘sha qator ro‘yxatda, yakuniy ko‘rinadi', () => {
     const r = ofertaHisobla([qator({ smetaBirlikNarx: 0, smetaSumma: 0 })], foiz(10));
     expect(r.qatorlar[0].pudratchiBirlikNarx).toBe(0);
     expect(r.qatorlar[0].pudratchiSumma).toBe(0);
@@ -56,7 +56,7 @@ describe('tender oferta V2 — barg narxlash', () => {
     const n = ofertaHisobla([qator({ smetaBirlikNarx: null, smetaSumma: null })], foiz(10));
     expect(n.qatorlar[0].pudratchiSumma).toBeNull();
     expect(n.halQilinmagan).toBe(1);
-    expect(n.yakuniyOferta).toBeNull();
+    expect(n.yakuniyOferta).toBe(0);
   });
 
   it('P0: manba hajmi bo‘sh, qo‘lda taklif hajmi 10 × 800 000 = 8 000 000; manba hajmi null qoladi', () => {
@@ -116,10 +116,11 @@ describe('tender oferta V2 — jami, kategoriya va kaskad', () => {
     expect(r.kaskad.tr_mat).toBe(45); // (1350−450)×5%, eski podval 75 emas
   });
 
-  it('noma’lum kategoriya yakuniy ofertani to‘sadi, operator tanlasa ochiladi', () => {
+  it('noma’lum kategoriya — qator ro‘yxatda, yakuniy ko‘rinadi; operator tanlasa kaskadga kiradi', () => {
     const u = [qator({ sourceId: 'x', kategoriya: 'UNKNOWN', kategoriyaManbasi: 'yoq', kategoriyaTaklifi: 'БЕЗСКЛАД' })];
     const r1 = ofertaHisobla(u, foiz(0));
-    expect(r1.yakuniyOferta).toBeNull();
+    expect(r1.yakuniyOferta).not.toBeNull();
+    expect(r1.halQilinmagan).toBe(1);
     expect(r1.qatorlar[0].muammolar).toContain('KATEGORIYA_NOMALUM');
     const r2 = ofertaHisobla(u, { ...foiz(0), manualKategoriyalar: { x: 'БЕЗСКЛАД' } });
     expect(r2.asos.bez).toBe(1234.5);

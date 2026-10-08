@@ -21,6 +21,7 @@ import { RasmiyVaraq, rasmiyKitob, hujjatFaylNomi, type Qiymat, type RasmiyUstun
 import type { DocCalc, LineCalc } from './calc';
 import type { CatalogResource, EstimateDoc } from './model';
 import { resourceCategory } from './export-adapter';
+import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from '../narx-bildirishnoma';
 
 export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null };
 type UnitText = (code: string | null) => string | null;
@@ -40,7 +41,8 @@ export function materialGroup(r: CatalogResource | null): 'МЕСТНЫЕ МАТ
   if (/^С157-/.test(c)) return 'КАБЕЛЬНАЯ ПРОДУКЦИЯ';
   return 'МЕСТНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ';
 }
-const blankSum = (col: string, a: number, b: number) => `IF(COUNTIF(${col}${a}:${col}${b},"")>0,"",SUM(${col}${a}:${col}${b}))`;
+/** Egasi qoidasi (2026-10-08): jami har doim ko'rinadi — narxsiz qator faqat o'zi bo'sh (bildirishnoma bilan). */
+const groupSum = (col: string, a: number, b: number) => `SUM(${col}${a}:${col}${b})`;
 const titul = (o: AbcHujjatOpsiya, doc: EstimateDoc) => [
   ['НАИМЕНОВАНИЕ СТРОЙКИ:', o.qurilish ?? doc.context.title ?? ''] as const,
   ['НАИМЕНОВАНИЕ ОБЪЕКТА:', o.obyekt ?? doc.context.objectLabel ?? ''] as const,
@@ -107,6 +109,7 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
     const cur = acc.get(key) ?? { bucket, code: idCode(l.resource) ?? '', price: l.resource.code ?? '', name: l.resource.name ?? '',
       unit: unitText(l.resource.unitCode) ?? '', qty: 0, unitPrice, amount: 0 };
     cur.qty = Math.round((cur.qty + (n(l.quantity) ?? 0)) * 1e7) / 1e7;
+    // Narxsiz qism qatorning o'zini bo'sh qiladi (bildirishnoma), lekin guruh/jami ma'lum summalardan yig'iladi.
     cur.amount = cur.amount == null || l.amount == null ? null : Math.round((cur.amount + Number(l.amount)) * 100) / 100;
     acc.set(key, cur);
   }
@@ -119,7 +122,7 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
   }
   return g;
 }
-const sumOf = (xs: ResLine[]) => xs.reduce<number | null>((s, x) => (s == null || x.amount == null ? null : Math.round((s + x.amount) * 100) / 100), 0);
+const sumOf = (xs: ResLine[]) => xs.reduce<number>((s, x) => (x.amount == null ? s : Math.round((s + x.amount) * 100) / 100), 0);
 
 function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVaraq {
   const U: RasmiyUstun[] = [
@@ -129,9 +132,9 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVar
   ];
   const Q = 'F', P = 'G', S = 'H';
   const mats = [...g.materials.values()].flat();
-  const val = (x: number | null) => (x == null ? 'не определено (нет цены)' : x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' сум');
+  const val = (x: number) => x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' сум';
   const direct = [sumOf(g.labour), sumOf(g.machines), sumOf(mats), sumOf(g.equipment)];
-  const total = direct.some(x => x == null) ? null : direct.reduce((a, b) => a! + b!, 0);
+  const total = Math.round(direct.reduce((a, b) => a + b, 0) * 100) / 100;
   const v = new RasmiyVaraq({ nom: 'RES', sarlavha: 'ЛОКАЛЬНАЯ РЕСУРСНАЯ СМЕТА', ostSarlavha: [doc.context.title || ''].filter(Boolean),
     titul: [...titul(o, doc), ['ПРЯМЫЕ ЗАТРАТЫ', val(total)], ['в том числе: ЗАРАБОТНАЯ ПЛАТА', val(direct[0])],
       ['ЭКСПЛУАТАЦИЯ МАШИН И МЕХАНИЗМОВ', val(direct[1])], ['СТОИМОСТЬ СТРОИТЕЛЬНЫХ МАТЕРИАЛОВ', val(direct[2])],
@@ -146,8 +149,8 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVar
     v.bolim(title);
     const a = v.r; xs.forEach((x, i) => row(i + 1, x)); const b = v.r - 1;
     const s = sumOf(xs);
-    const r1 = label('ИТОГО', { f: blankSum(S, a, b), v: s ?? '' });
-    if (withVsego) label('ВСЕГО', { f: `${S}${r1}`, v: s ?? '' });
+    const r1 = label('ИТОГО', { f: groupSum(S, a, b), v: s });
+    if (withVsego) label('ВСЕГО', { f: `${S}${r1}`, v: s });
     v.bosh();
     return r1;
   };
@@ -160,11 +163,13 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVar
     for (const k of ['МЕСТНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ', 'ИНЕРТНЫЕ МАТЕРИАЛЫ', 'МЕТАЛЛОКОНСТРУКЦИИ', 'КАБЕЛЬНАЯ ПРОДУКЦИЯ']) {
       const r = group(k, g.materials.get(k) ?? [], true); if (r) sub.push(r);
     }
-    const m = label('ВСЕГО МАТЕРИАЛОВ', { f: sub.length ? `IF(OR(${sub.map(r => `${S}${r}=""`).join(',')}),"",${sub.map(r => `${S}${r}`).join('+')})` : '0', v: sumOf(mats) ?? '' }, 'vsego');
+    const m = label('ВСЕГО МАТЕРИАЛОВ', { f: sub.length ? `SUM(${sub.map(r => `${S}${r}`).join(',')})` : '0', v: sumOf(mats) }, 'vsego');
     totals.push(m); v.bosh();
   }
   const t4 = group('ОБОРУДОВАНИЕ', g.equipment); if (t4) totals.push(t4);
-  if (totals.length) label('ВСЕГО', { f: `IF(OR(${totals.map(r => `${S}${r}=""`).join(',')}),"",${totals.map(r => `${S}${r}`).join('+')})`, v: total ?? '' }, 'vsego');
+  if (totals.length) label('ВСЕГО', { f: `SUM(${totals.map(r => `${S}${r}`).join(',')})`, v: total }, 'vsego');
+  const narxsiz = [...g.labour, ...g.machines, ...mats, ...g.equipment].filter((x) => x.amount == null && narxBildirishnomaKerak({ nom: x.name }, null));
+  if (narxsiz.length) v.diqqat(narxsiz.map((x) => ({ nom: `${x.price ? `${x.price} ` : ''}${x.name}`, sabab: NARX_YOQ_SABAB })));
   return v;
 }
 

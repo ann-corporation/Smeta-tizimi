@@ -7,7 +7,7 @@ import type { OstatkaIstisno } from './ostatka-export';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, type KatSummalar } from './nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
-import { bosRefs } from './hujjat-yozuvchi';
+import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
 
 /**
  * СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ — smeta va haqiqatda bajarilgan hajmlarni
@@ -62,8 +62,7 @@ export type SlichitelniyQator = {
   faktHajm: number | null;
   faktSumma: number | null;
   f2Hajm: number;
-  /** NULL = certified F2 amount unknown (never 0). */
-  f2Summa: number | null;
+  f2Summa: number;
   farqHajm: number | null;
   farqSumma: number | null;
   izoh: string;
@@ -77,7 +76,7 @@ export type SlichitelniyQator = {
   bolalar: number[];
 };
 
-export type SlichitelniyJami = { smeta: number | null; fakt: number | null; f2: number | null; farq: number | null };
+export type SlichitelniyJami = { smeta: number | null; fakt: number | null; f2: number; farq: number | null };
 
 export type SlichitelniyModel = {
   qatorlar: SlichitelniyQator[];
@@ -131,7 +130,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     const smeta = q.hajm ?? null;
     const fakt = h ? Number(h.fakt_hajm ?? 0) : null;
     const farq = smeta == null || fakt == null ? null : nol(fakt - smeta);
-    return { h, smeta, fakt, farq, f2Hajm: h ? Number(h.f2_hajm ?? 0) : 0, f2Summa: h ? (h.f2_summa == null ? (Number(h.f2_hajm ?? 0) === 0 ? 0 : null) : Number(h.f2_summa)) : 0 };
+    return { h, smeta, fakt, farq, f2Hajm: h ? Number(h.f2_hajm ?? 0) : 0, f2Summa: h ? Number(h.f2_summa ?? 0) : 0 };
   };
 
   const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number, otaIdx: number | null = null): number | null => {
@@ -144,12 +143,12 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       const smetaSumma = smeta != null && narx != null ? yaxlit2(smeta * narx) : null;
       const faktSumma = fakt != null && narx != null ? yaxlit2(fakt * narx) : null;
       const farqSumma = farq != null && narx != null ? yaxlit2(farq * narx) : null;
-      const sabab = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narx == null ? 'нет сметной цены' : ''].filter(Boolean);
+      const sabab = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narxBildirishnomaKerak(q, narx) ? 'нет сметной цены — строка не включена в сумму' : ''].filter(Boolean);
       if (sabab.length) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: sabab.join('; '), joy: yolOf(q) || undefined });
       barglar++;
       if (farq != null && farq > 0) ortiq++;
       if (farq != null && farq < 0) kam++;
-      const nomalum = smetaSumma == null || faktSumma == null || farqSumma == null ? 1 : 0;
+      const nomalum = (smetaSumma == null || faktSumma == null || farqSumma == null) && !(narx == null && mashinistMehnati(q)) ? 1 : 0;
       out.push({
         id: q.id, tur: 'barg', daraja, tartib: blNo ? `${blNo}.${k}` : String(++no), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma,
@@ -180,27 +179,27 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     if (!b.length) { out.length = idx; return null; }
     const it: SlichitelniyQator = { id: q.id, tur: 'itogo', daraja, tartib: '', kod: '', nom: `ИТОГО ПО РАЗДЕЛУ: ${q.nom ?? ''}`, birlik: '', smetaHajm: null, narx: null, smetaSumma: null, faktHajm: null, faktSumma: null, f2Hajm: 0, f2Summa: 0, farqHajm: null, farqSumma: null, izoh: '', nomalum: 0, bolalar: [] };
     yigindi(it, b);
-    out[idx].f2Summa = it.f2Summa;   // section header carries the same (possibly unknown) certified total, never a fake 0
     out.push(it);
     return out.length - 1;
   };
   function yigindi(r: SlichitelniyQator, b: number[]) {
     r.bolalar = b;
     r.nomalum = b.reduce((s, i) => s + out[i].nomalum, 0);
-    const s = (f: (x: SlichitelniyQator) => number | null) => (r.nomalum ? null : yaxlit2(b.reduce((t, i) => t + (f(out[i]) ?? 0), 0)));
+    // Egasi qoidasi (2026-10-08): summa har doim ko'rinadi — narxsiz barg faqat o'zi bo'sh, bildirishnoma alohida.
+    const s = (f: (x: SlichitelniyQator) => number | null) => yaxlit2(b.reduce((t, i) => t + (f(out[i]) ?? 0), 0));
     r.smetaSumma = s((x) => x.smetaSumma);
     r.faktSumma = s((x) => x.faktSumma);
     r.farqSumma = s((x) => x.farqSumma);
-    r.f2Summa = b.some(i => out[i].f2Summa == null) ? null : yaxlit2(b.reduce((t, i) => t + (out[i].f2Summa as number), 0));
+    r.f2Summa = yaxlit2(b.reduce((t, i) => t + out[i].f2Summa, 0));
   }
 
   const ildizlar: number[] = [];
   for (const q of bolalar.get(null) ?? []) { const i = qayta(q, 0, null, 0); if (i != null) ildizlar.push(i); }
   const nomalum = ildizlar.reduce((s, i) => s + out[i].nomalum, 0);
-  const js = (f: (x: SlichitelniyQator) => number | null) => (!ildizlar.length || nomalum ? null : yaxlit2(ildizlar.reduce((t, i) => t + (f(out[i]) ?? 0), 0)));
+  const js = (f: (x: SlichitelniyQator) => number | null) => (!ildizlar.length ? null : yaxlit2(ildizlar.reduce((t, i) => t + (f(out[i]) ?? 0), 0)));
   return {
     qatorlar: out, ildizlar, diqqat, barglar, ortiq, kam,
-    jami: { smeta: js((x) => x.smetaSumma), fakt: js((x) => x.faktSumma), farq: js((x) => x.farqSumma), f2: ildizlar.some(i => out[i].f2Summa == null) ? null : yaxlit2(ildizlar.reduce((t, i) => t + (out[i].f2Summa as number), 0)) },
+    jami: { smeta: js((x) => x.smetaSumma), fakt: js((x) => x.faktSumma), farq: js((x) => x.farqSumma), f2: yaxlit2(ildizlar.reduce((t, i) => t + out[i].f2Summa, 0)) },
   };
 }
 
@@ -250,7 +249,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   const qiy = (x: number | null): Qiymat => (x == null ? null : x);
   const sumKid = (q: SlichitelniyQator, col: string) => sumRefs(col, q.bolalar.map(rowOf));
   const pulYig = (q: SlichitelniyQator, col: string, val: number | null, n: number): Qiymat =>
-    (q.bolalar.length ? { f: `IF(O${n}>0,"",${sumKid(q, col)})`, v: val ?? '' } : null);
+    (q.bolalar.length ? { f: sumKid(q, col), v: val ?? 0 } : null);
   // Ikki narx: P = ROUND(I × Kf), Q = ROUND(M × Kf); podval ВСЕГО dan keyin.
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   nk.НДС = o.ndsFoiz ?? nk.НДС ?? 12;
@@ -273,7 +272,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     if (!idx.length) return null;
     const rows = idx.map(rowOf);
     const vs = idx.map((k) => koOf(k, c));
-    return { f: `IF(${bosRefs(c, rows)}>0,"",${sumRefs(c, rows)})`, v: vs.some((x) => x == null) ? '' : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) };
+    return { f: sumRefs(c, rows), v: yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) };
   };
   const katsiz: string[] = [];
   model.qatorlar.forEach((q, i) => {
@@ -292,7 +291,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
         { f: `IF(OR(E${n}="",H${n}=""),"",H${n}-E${n})`, v: q.farqHajm ?? '' },
         { f: `IF(OR(L${n}="",F${n}=""),"",ROUND(L${n}*F${n},2))`, v: q.farqSumma ?? '' },
         q.izoh || null,
-        { f: `IF(OR(G${n}="",I${n}="",M${n}=""),1,0)`, v: q.nomalum },
+        q.narx == null && mashinistMehnati(q) ? 0 : { f: `IF(OR(G${n}="",I${n}="",M${n}=""),1,0)`, v: q.nomalum },
         ...((): Qiymat[] => {
           const kat = nakrutkaKat(q.kat);
           if (!kat) { katsiz.push(`${q.nom}${q.birlik ? `, ${q.birlik}` : ''}`); return [null, null, null]; }
@@ -328,10 +327,10 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     const ref = (c: string) => sumRefs(c, model.ildizlar.map(rowOf));
     v.qator('vsego', (n) => [
       null, null, 'ВСЕГО ПО ОБЪЕКТУ', null, null, null,
-      { f: `IF(O${n}>0,"",${ref('G')})`, v: model.jami.smeta ?? '' }, null,
-      { f: `IF(O${n}>0,"",${ref('I')})`, v: model.jami.fakt ?? '' }, null,
+      { f: ref('G'), v: model.jami.smeta ?? '' }, null,
+      { f: ref('I'), v: model.jami.fakt ?? '' }, null,
       { f: ref('K'), v: model.jami.f2 }, null,
-      { f: `IF(O${n}>0,"",${ref('M')})`, v: model.jami.farq ?? '' }, null,
+      { f: ref('M'), v: model.jami.farq ?? '' }, null,
       { f: ref('O'), v: nomalum },
       koYig(model.ildizlar, 'P'), koYig(model.ildizlar, 'Q'), null,
     ]);

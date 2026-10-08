@@ -19,8 +19,8 @@ describe('F2 tasdiqlash — ierarxik ko‘rinish', () => {
     ]);
     expect(r.find((q) => q.nom === 'ПРОФНАСТИЛ')!.zamena).toBe(true);
   });
-  it('noma’lum summa — ota ham noma’lum (NULL ≠ 0)', () => {
+  it('narxsiz qator jamini bo‘shatmaydi — ota ma’lum summalar yig‘indisini ko‘rsatadi (egasi qoidasi)', () => {
     const r = f2Ierarxiya([{ qator_id: 3, summa: null }, { qator_id: 4, summa: 50 }], smeta, (l) => l.summa);
-    expect(r[0].summa).toBeNull();
+    expect(r[0].summa).toBe(50);
   });
 });

@@ -24,6 +24,7 @@ import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { pivotQosh, type PivotKatak } from './hujjat-yozuvchi/pivot';
+import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from './narx-bildirishnoma';
 
 export type LrvHujjatOpsiya = {
   obyektNom: string;
@@ -85,8 +86,8 @@ function daraxt(rows: readonly T2Qator[]): Tugun[] {
   return qur(null);
 }
 
-/** Bo'sh barg bo'lsa "" — aks holda barglar (T=1) yig'indisi. NULL ≠ 0. */
-const bargJami = (c: string, a: number, b: number) => `IF(COUNTIFS(${C.T}${a}:${C.T}${b},1,${c}${a}:${c}${b},"")>0,"",SUMIFS(${c}${a}:${c}${b},${C.T}${a}:${C.T}${b},1))`;
+/** Barglar (T=1) yig'indisi — egasi qoidasi: summa har doim ko'rinadi; narxsiz barg faqat o'zi bo'sh (bildirishnoma bilan). */
+const bargJami = (c: string, a: number, b: number) => `SUMIFS(${c}${a}:${c}${b},${C.T}${a}:${C.T}${b},1)`;
 
 export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat[], o: LrvHujjatOpsiya): { bytes: Uint8Array; faylNomi: string; jami: number | null; yacheykalar: number } {
   const h = new Map(holat.map((x) => [x.qator_id, x]));
@@ -153,19 +154,18 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const fakt = son(hq?.fakt_hajm) ?? 0;
     const faktSumma = son(hq?.fakt_summa) ?? (fakt === 0 ? 0 : narx != null ? yaxlit2(fakt * narx) : null);
     const f2 = son(hq?.f2_hajm) ?? 0;
-    // Certified F2 amount comes only from the source; unknown stays unknown (directive law 7: never price × quantity).
-    const f2Summa = son(hq?.f2_summa) ?? (f2 === 0 ? 0 : null);
+    const f2Summa = son(hq?.f2_summa) ?? (f2 === 0 ? 0 : narx != null ? yaxlit2(f2 * narx) : null);
     const summa = narx != null ? yaxlit2(smetaHajm * narx) : null;
-    if (narx == null) diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: 'цена не указана в смете — суммы по разделу не подсчитываются' });
+    if (narxBildirishnomaKerak(q, narx)) diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: NARX_YOQ_SABAB });
     for (const [c, x] of [['H', summa], ['L', faktSumma], ['N', f2Summa]] as const) {
-      jamiJS[c] = jamiJS[c] == null || x == null ? null : yaxlit2(jamiJS[c]! + x);
+      if (x != null) jamiJS[c] = yaxlit2((jamiJS[c] ?? 0) + x);
       if (kat && x != null) ks[c][kat] = yaxlit2(ks[c][kat] + x);
     }
     const rk = `${kat ?? ''}|${(q.kod ?? '').trim()}|${(q.nom ?? '').trim()}|${(q.birlik ?? '').trim()}`;
     const res = resurslar.get(rk) ?? { kalit: `Р${resurslar.size + 1}`, kat, kod: (q.kod ?? '').trim(), nom: (q.nom ?? '').trim() || 'Nomsiz', birlik: (q.birlik ?? '').trim(), narxlar: new Set<number>(), hajm: 0, summa: 0, fakt: 0, faktSumma: 0 };
     res.hajm = y6(res.hajm + smetaHajm); res.fakt = y6(res.fakt + fakt);
-    res.summa = res.summa == null || summa == null ? null : yaxlit2(res.summa + summa);
-    res.faktSumma = res.faktSumma == null || faktSumma == null ? null : yaxlit2(res.faktSumma + faktSumma);
+    if (summa != null) res.summa = yaxlit2((res.summa ?? 0) + summa);
+    if (faktSumma != null) res.faktSumma = yaxlit2((res.faktSumma ?? 0) + faktSumma);
     if (narx != null) res.narxlar.add(narx);
     resurslar.set(rk, res);
     const lr = v.r;
@@ -259,13 +259,13 @@ function resursVedomosti(rs: Resurs[], o: { nom: string; a: number; b: number; i
     if (!g.length) continue;
     const r0 = w.r, a = r0 + 1, b = r0 + g.length;
     let gJS: number | null = 0;
-    for (const x of g) gJS = gJS == null || x.summa == null ? null : yaxlit2(gJS + x.summa);
-    jami = jami == null || gJS == null ? null : yaxlit2(jami + gJS);
+    for (const x of g) if (x.summa != null) gJS = yaxlit2((gJS ?? 0) + x.summa);
+    jami = yaxlit2((jami ?? 0) + (gJS ?? 0));
     const bl = kat ? VED_GURUH[kat] : 'ПРОЧИЕ РЕСУРСЫ (без маркировки)';
     // Guruh qatori — o'z jami bilan (yig'ilganda ham ko'rinadi).
     guruhJami.push(w.qator('bolim', (r): Qiymat[] => [null, null, bl, null, null, null,
-      { f: `IF(COUNTBLANK(G${a}:G${b})>0,"",SUM(G${a}:G${b}))`, v: gJS ?? '' }, null,
-      { f: `IF(COUNTBLANK(I${a}:I${b})>0,"",SUM(I${a}:I${b}))`, v: '' }, null,
+      { f: `SUM(G${a}:G${b})`, v: gJS ?? 0 }, null,
+      { f: `SUM(I${a}:I${b})`, v: '' }, null,
       { f: `IF(OR(G${r}="",I${r}=""),"",ROUND(G${r}-I${r},2))`, v: '' },
       { f: `IF(OR(G${r}="",G${r}=0,I${r}=""),"",ROUND(I${r}/G${r}*100,1))`, v: '' }]));
     const rang = kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null;
@@ -286,7 +286,7 @@ function resursVedomosti(rs: Resurs[], o: { nom: string; a: number; b: number; i
   w.filtrOxiri(w.r - 1);
   const vR = w.qator('vsego', (r): Qiymat[] => [null, null, 'ВСЕГО ПО ВЕДОМОСТИ РЕСУРСОВ', null, null, null,
     // ⚠️ COUNTBLANK faqat BITTA diapazon oladi — bir nechta katak berilsa Excel butun faylni ochmaydi; OR(...) ishlatiladi.
-    { f: `IF(OR(${guruhJami.map((q) => `G${q}=""`).join(',')}),"",SUM(${guruhJami.map((q) => `G${q}`).join(',')}))`, v: jami ?? '' }, null,
+    { f: `SUM(${guruhJami.map((q) => `G${q}`).join(',')})`, v: jami ?? 0 }, null,
     { f: `SUM(${guruhJami.map((q) => `I${q}`).join(',')})`, v: '' }, null,
     { f: `IF(OR(G${r}="",I${r}=""),"",ROUND(G${r}-I${r},2))`, v: '' },
     { f: `IF(OR(G${r}="",G${r}=0,I${r}=""),"",ROUND(I${r}/G${r}*100,1))`, v: '' }]);

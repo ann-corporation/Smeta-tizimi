@@ -74,11 +74,13 @@ describe('Накопительная ведомость — hujjat standarti', (
     ]);
   });
 
-  it('H7: smeta summasi noma‘lum — остаток va ВСЕГО smeta bo‘sh, ro‘yxatda', () => {
+  it('H7: smeta summasi yo‘q — faqat o‘sha qator bo‘sh, ВСЕГО va остаток ko‘rinadi, ro‘yxatda (egasi qoidasi)', () => {
     const rows = ROWS.map((r) => (r.nom === 'ПЕСОК' ? { ...r, smeta_summa: null } : r));
     const { bytes, jamilar } = nakopitelniyVedomostHujjat(rows, { obyektNom: 'Объект', davr: '2026-09' });
-    expect(jamilar.smeta).toBeNull();
-    expect(jamilar.qoldiq).toBeNull();
+    const toliq = nakopitelniyVedomostHujjat(ROWS, { obyektNom: 'Объект', davr: '2026-09' }).jamilar;
+    const pesok = ROWS.find((r) => r.nom === 'ПЕСОК')!.smeta_summa ?? 0;
+    expect(jamilar.smeta).toBeCloseTo((toliq.smeta ?? 0) - pesok, 2);
+    expect(jamilar.qoldiq).toBeCloseTo(jamilar.smeta - jamilar.jami, 2);
     const t = hujjatTekshir(bytes);
     // ПЕСОК: smeta noma'lum + qabul qilingan > fakt; БЕТОН: qabul qilingan > fakt.
     // + nakrutka foizlari berilmagan (4-band)
@@ -146,7 +148,7 @@ describe('Накопительная ведомость — har oy alohida ustun
     // Oylar: I/J (avg), K/L (sen), M/N (okt); ИТОГО: O (hajm) = I+K+M, P (summa) = J+L+N
     expect(v.kataklar.find((k) => k.ref === `O${row}`)?.f).toBe(`I${row}+K${row}+M${row}`);
     expect(Number(v.kataklar.find((k) => k.ref === `P${row}`)?.v)).toBe(500_000.5);
-    expect(v.kataklar.find((k) => k.ref === `P${row}`)?.f).toBe(`IF(OR(J${row}="",L${row}="",N${row}=""),"",J${row}+L${row}+N${row})`);  // unknown month → empty, never a partial sum
+    expect(v.kataklar.find((k) => k.ref === `P${row}`)?.f).toBe(`J${row}+L${row}+N${row}`);
   });
 });
 

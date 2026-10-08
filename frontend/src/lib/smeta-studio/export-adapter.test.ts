@@ -54,13 +54,16 @@ describe('studio → smeta rows → LRV / Ведомость ресурсов / 
     expect(t.varaqlar.map(v => v.nom)).toEqual(['LRV', 'Ведомость ресурсов', 'Свод', 'Сводная', 'Данные']);
   });
 
-  it('unknown price or quantity → LRV total blank (NULL ≠ 0), never a fake zero', () => {
+  it('missing price or quantity: only that line is blank, the LRV total is the sum of the known lines (owner rule)', () => {
     let d = draft();
+    const toliq = lrvHujjat(studioToRows(d, calcDoc(d)), [], { obyektNom: 'K' }).jami!;
     d = applyCommand(d, { type: 'SET_PRICE', occurrenceId: 'o1', recipeId: 'r3', price: null });
-    expect(lrvHujjat(studioToRows(d, calcDoc(d)), [], { obyektNom: 'K' }).jami).toBeNull();
+    const qisman = lrvHujjat(studioToRows(d, calcDoc(d)), [], { obyektNom: 'K' }).jami!;
+    expect(qisman).toBeLessThan(toliq);
+    expect(qisman).toBeGreaterThanOrEqual(0);
     d = applyCommand(draft(), { type: 'SET_QUANTITY', occurrenceId: 'o1', quantity: null });
     const rows = studioToRows(d, calcDoc(d));
     expect(rows.filter(r => r.tur !== 'rz' && r.tur !== 'bl').every(r => r.hajm == null && r.narx == null)).toBe(true);
-    expect(lrvHujjat(rows, [], { obyektNom: 'K' }).jami).toBeNull();
+    expect(lrvHujjat(rows, [], { obyektNom: 'K' }).jami).toBe(0);
   });
 });
