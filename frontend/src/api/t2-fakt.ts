@@ -141,10 +141,10 @@ export type QatorHolat = {
   tur: string; kod: string | null; nom: string; birlik: string | null; kat: string | null;
   smeta_hajm: number | null; smeta_narx: number | null; smeta_summa: number | null;
   fakt_hajm: number; fakt_summa: number;
-  f2_hajm: number; f2_summa: number;
+  f2_hajm: number; f2_summa: number | null;
   qoldiq_hajm: number | null; qoldiq_summa: number | null;
   /** Ф2 ga olish MUMKIN bo'lgan qoldiq = fakt − f2 (manfiy bo'lmaydi). */
-  f2_mumkin_hajm: number; f2_mumkin_summa: number;
+  f2_mumkin_hajm: number; f2_mumkin_summa: number | null;
   /** Shu qatorning oldingi tasdiqlangan F2 narxi (view'da bor). */
   f2_narx?: number | null;
 };

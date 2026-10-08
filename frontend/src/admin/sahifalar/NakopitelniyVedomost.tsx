@@ -208,13 +208,14 @@ function Sessiya({ companyId }: { companyId: number }) {
     const otaBor = new Set<number>();
     for (const q of qatorlar) if (q.ota_id != null) otaBor.add(q.ota_id);
     const byId = new Map(qatorlar.map((q) => [q.qator_id, q]));
-    const m = new Map<number, { smeta: number; oldingi: number; joriy: number; jami: number; oy: Map<string, number> }>();
+    const m = new Map<number, { smeta: number; oldingi: number | null; joriy: number | null; jami: number | null; oy: Map<string, number> }>();
+    const qosh = (a: number | null, v: number | null | undefined) => (a == null || v == null ? null : a + v);
     for (const q of qatorlar) {
       if (q.tur === 'rz' || otaBor.has(q.qator_id)) continue;
       for (let o = q.ota_id != null ? byId.get(q.ota_id) : undefined; o; o = o.ota_id != null ? byId.get(o.ota_id) : undefined) {
         if (o.tur !== 'rz') continue;
         const x = m.get(o.qator_id) ?? { smeta: 0, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
-        x.smeta += q.smeta_summa ?? 0; x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
+        x.smeta += q.smeta_summa ?? 0; x.oldingi = qosh(x.oldingi, q.oldingi_summa); x.joriy = qosh(x.joriy, q.joriy_summa); x.jami = qosh(x.jami, q.jami_summa);
         for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, (x.oy.get(oy) ?? 0) + v.summa);
         m.set(o.qator_id, x);
       }
@@ -485,7 +486,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           <div><span className="text-text-mute block">Fakt jami</span><FmtN val={jami.fakt_summa} /></div>
           <div><span className="text-text-mute block">Jami tasdiqlangan F2</span><FmtN val={jami.jami_tasdiqlangan_summa} /></div>
           <div><span className="text-text-mute block">Faktdan F2ga mumkin</span>
-            <span className={jami.f2_mumkin_summa < 0 ? 'text-danger font-semibold' : ''}><FmtN val={jami.f2_mumkin_summa} /></span>
+            <span className={(jami.f2_mumkin_summa ?? 0) < 0 ? 'text-danger font-semibold' : ''}><FmtN val={jami.f2_mumkin_summa} /></span>
             <span className="block text-text-mute">Fakt − tasdiqlangan F2</span>
           </div>
         </div>
@@ -563,7 +564,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                       <td className="px-2 py-1 border-l border-border tabular-nums">{q.oldingi_hajm ? <FmtN val={q.oldingi_hajm} kasr={3} /> : '—'}</td>
                       <td className="px-2 py-1 tabular-nums">{q.oldingi_summa ? <FmtN val={q.oldingi_summa} /> : '—'}</td>
                       <td className="px-2 py-1 border-l border-border tabular-nums">{q.joriy_hajm ? <FmtN val={q.joriy_hajm} kasr={3} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{q.joriy_hajm ? <FmtN val={Math.round((q.joriy_summa / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{q.joriy_hajm && q.joriy_summa != null ? <FmtN val={Math.round((q.joriy_summa / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
                       <td className="px-2 py-1 tabular-nums">{q.joriy_summa ? <FmtN val={q.joriy_summa} /> : '—'}</td>
                     </>}
                     <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.jami_hajm ? <FmtN val={q.jami_hajm} kasr={3} /> : '—'}</td>

@@ -153,7 +153,8 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const fakt = son(hq?.fakt_hajm) ?? 0;
     const faktSumma = son(hq?.fakt_summa) ?? (fakt === 0 ? 0 : narx != null ? yaxlit2(fakt * narx) : null);
     const f2 = son(hq?.f2_hajm) ?? 0;
-    const f2Summa = son(hq?.f2_summa) ?? (f2 === 0 ? 0 : narx != null ? yaxlit2(f2 * narx) : null);
+    // Certified F2 amount comes only from the source; unknown stays unknown (directive law 7: never price × quantity).
+    const f2Summa = son(hq?.f2_summa) ?? (f2 === 0 ? 0 : null);
     const summa = narx != null ? yaxlit2(smetaHajm * narx) : null;
     if (narx == null) diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: 'цена не указана в смете — суммы по разделу не подсчитываются' });
     for (const [c, x] of [['H', summa], ['L', faktSumma], ['N', f2Summa]] as const) {
