@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpRight, Building2, Check, ChevronDown, MessageCircle, Phone, X } from 'lucide-react';
 import { useTil } from '../../i18n/til';
 import './public-entry.css';
@@ -27,9 +27,9 @@ const copy = {
     screenshots: 'Tizimning haqiqiy ko‘rinishlari', faq: 'Boshlashdan oldin',
     q1: 'Mavjud Excel smetam bilan ishlay olamanmi?', a1: 'Smeta importi mavjud. Fayl tuzilishi tahlil qilinadi; noaniq varaq yoki bog‘lanish operator tomonidan tekshirilishi kerak.',
     q2: 'Login va ro‘yxatdan o‘tish qayerda?', a2: 'Shu sahifadagi kirish blokidan foydalaning. Yangi hisob uchun ro‘yxatdan o‘tishni tanlang va email tasdiqlash bosqichini bajaring.',
-    q3: 'Savol yoki muammom bo‘lsa kimga murojaat qilaman?', a3: 'Anvar bilan telefon orqali bog‘laning. Xato bo‘lgan sahifa nomi va nima qilganingizni aytsangiz, muammoni aniqlash osonlashadi.',
-    contactTitle: 'Boshlashga yordam kerakmi?', contactText: 'Tizim bo‘yicha savollar va muammolar uchun Anvar bilan bog‘laning.', call: 'Qo‘ng‘iroq qilish',
-    help: 'Yordam', helpTitle: 'Boshlash bo‘yicha yordam', helpNote: 'Bu sahifa yo‘riqnomasi. Xabar yuborilmaydi; jonli operator yoki AI chat hali ulanmagan.', close: 'Yordamni yopish',
+    q3: 'Savolim bo‘lsa, kimga murojaat qilaman?', a3: 'Admin bilan telefon orqali bog‘laning. Qaysi sahifada va qaysi amalni bajarayotganda muammo yuz berganini ayting.',
+    contactTitle: 'Ishni boshlashda yordam kerakmi?', contactText: 'Tizimdan foydalanish bo‘yicha savol va muammolar yuzasidan admin bilan bog‘laning.', call: 'Qo‘ng‘iroq qilish',
+    help: 'Qo‘llanma', helpTitle: 'Tizimdan foydalanish qo‘llanmasi', helpNote: 'Bu yerda ko‘p so‘raladigan savollarga javob topasiz. Ushbu oynadan xabar yuborilmaydi; admin bilan telefon orqali bog‘lanishingiz mumkin.', close: 'Qo‘llanmani yopish',
     footer: 'TIZIM_02 · Qurilish uchun raqamli ish joyi', skip: 'Kirish formasiga o‘tish',
   },
   ru: {
@@ -48,9 +48,9 @@ const copy = {
     screenshots: 'Реальные экраны системы', faq: 'Перед началом',
     q1: 'Можно работать с моей сметой Excel?', a1: 'Импорт сметы доступен. Структура файла анализируется; неоднозначные листы и связи необходимо проверить оператору.',
     q2: 'Где вход и регистрация?', a2: 'Используйте форму на этой странице. Для нового аккаунта выберите регистрацию и подтвердите email.',
-    q3: 'К кому обратиться с вопросом?', a3: 'Свяжитесь с Анваром по телефону. Укажите страницу и действия перед ошибкой — это поможет разобраться.',
-    contactTitle: 'Нужна помощь с началом?', contactText: 'Вопросы и проблемы по системе можно обсудить с Анваром.', call: 'Позвонить',
-    help: 'Помощь', helpTitle: 'Помощь с началом', helpNote: 'Это справочник страницы. Сообщения не отправляются; чат с оператором или AI пока не подключён.', close: 'Закрыть помощь',
+    q3: 'К кому обратиться с вопросом?', a3: 'Свяжитесь с администратором по телефону. Укажите страницу и действия перед ошибкой — это поможет разобраться.',
+    contactTitle: 'Нужна помощь с началом?', contactText: 'Вопросы и проблемы по системе можно обсудить с администратором.', call: 'Позвонить',
+    help: 'Руководство', helpTitle: 'Руководство по системе', helpNote: 'Здесь собраны ответы на частые вопросы. Сообщения из этого окна не отправляются; с администратором можно связаться по телефону.', close: 'Закрыть руководство',
     footer: 'TIZIM_02 · Цифровое рабочее место для строительства', skip: 'Перейти к форме входа',
   },
   en: {
@@ -69,9 +69,9 @@ const copy = {
     screenshots: 'Actual product screens', faq: 'Before you begin',
     q1: 'Can I use my existing Excel estimate?', a1: 'Estimate import is available. The file structure is analysed; ambiguous sheets and links require operator review.',
     q2: 'Where do I sign in or sign up?', a2: 'Use the form on this page. Select registration for a new account and complete email verification.',
-    q3: 'Who can help with a question?', a3: 'Call Anvar. Include the page name and what you did before the error to help identify the problem.',
-    contactTitle: 'Need help getting started?', contactText: 'Contact Anvar with questions and issues about the system.', call: 'Call Anvar',
-    help: 'Help', helpTitle: 'Getting started', helpNote: 'This is a page guide. No messages are sent; live operator and AI chat are not connected yet.', close: 'Close help',
+    q3: 'Who can help with a question?', a3: 'Call the admin. Include the page name and what you did before the error to help identify the problem.',
+    contactTitle: 'Need help getting started?', contactText: 'Contact the admin with questions and issues about the system.', call: 'Call the admin',
+    help: 'Guide', helpTitle: 'Getting started guide', helpNote: 'Find answers to common questions here. This panel does not send messages; you can contact the admin by phone.', close: 'Close guide',
     footer: 'TIZIM_02 · A digital workspace for construction', skip: 'Skip to sign-in form',
   },
 };
@@ -80,6 +80,9 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
   const { til, t } = useTil();
   const c = copy[til === 'ru' ? 'ru' : til === 'en' ? 'en' : 'uz'];
   const [help, setHelp] = useState(false);
+  const helpToggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (help) document.getElementById('entry-help-close')?.focus(); }, [help]);
+  const closeHelp = () => { setHelp(false); helpToggle.current?.focus(); };
   const [role, setRole] = useState('pto');
   const text = (s: string) => til === 'uz-Cyrl' ? t(s) : s;
   const local = (s: EntryCopy) => text(s[til === 'ru' ? 1 : til === 'en' ? 2 : 0]);
@@ -128,8 +131,8 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
       <section id="entry-contact" className="entry-contact"><div><p className="entry-eyebrow">{text(c.contact)}</p><h2>{text(c.contactTitle)}</h2><p>{text(c.contactText)}</p></div><a href={`tel:${OWNER_PHONE}`} className="entry-phone"><span>{text(c.call)}</span><strong>+998 50 501 25 66</strong><ArrowUpRight size={22} /></a></section>
     </main>
     <footer className="entry-footer"><span>{text(c.footer)}</span><a href="#entry-account" onClick={() => choose('signup')}>{text(c.signup)}<ArrowUpRight size={14} /></a></footer>
-    <button className="entry-help-toggle" aria-expanded={help} aria-controls="entry-help" onClick={() => setHelp(!help)}><MessageCircle size={20} />{text(c.help)}</button>
-    {help && <aside id="entry-help" className="entry-help" aria-label={text(c.helpTitle)}><header><h2>{text(c.helpTitle)}</h2><button aria-label={text(c.close)} onClick={() => setHelp(false)}><X size={20} /></button></header>{supportPort ? <SupportConversation port={supportPort} /> : <><p>{text(c.helpNote)}</p>{faq.map(([q, a]) => <details key={q}><summary>{text(q)}</summary><p>{text(a)}</p></details>)}</>}<a className="entry-primary" href={`tel:${OWNER_PHONE}`}><Phone size={17} />+998 50 501 25 66</a></aside>}
+    <button ref={helpToggle} className="entry-help-toggle" aria-expanded={help} aria-controls="entry-help" onClick={() => help ? closeHelp() : setHelp(true)}><MessageCircle size={20} />{text(c.help)}</button>
+    {help && <aside id="entry-help" className="entry-help" aria-label={text(c.helpTitle)} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); closeHelp(); } }}><header><h2>{text(c.helpTitle)}</h2><button id="entry-help-close" aria-label={text(c.close)} onClick={closeHelp}><X size={20} /></button></header>{supportPort ? <SupportConversation port={supportPort} /> : <><p>{text(c.helpNote)}</p>{faq.map(([q, a]) => <details key={q}><summary>{text(q)}</summary><p>{text(a)}</p></details>)}</>}<a className="entry-primary" href={`tel:${OWNER_PHONE}`}><Phone size={17} />+998 50 501 25 66</a></aside>}
   </div>;
 }
 

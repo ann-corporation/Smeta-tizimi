@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTil } from '../../i18n/til';
-import type { PublicSupportPort, SupportSnapshot } from './support-port';
+import { validateSupportSnapshot, type PublicSupportPort, type SupportSnapshot } from './support-port';
 
 /** Bot va inson xabarlari server transcriptidan; local fake javob yoki receipt yo'q. */
 export function SupportConversation({ port }: { port: PublicSupportPort }) {
@@ -18,8 +18,9 @@ export function SupportConversation({ port }: { port: PublicSupportPort }) {
   const revision = useRef(0);
   const appliedVersion = useRef(-1);
   const accept = (value: SupportSnapshot) => {
-    if (!Number.isSafeInteger(value.version) || value.version < 0 || value.version < appliedVersion.current) return false;
-    appliedVersion.current = value.version; setSnapshot({ ...value, messages: value.messages.slice(-100) });
+    const checked = validateSupportSnapshot(value);
+    if (!checked || checked.version < appliedVersion.current) return false;
+    appliedVersion.current = checked.version; setSnapshot(checked);
     return true;
   };
   useEffect(() => {
@@ -28,16 +29,21 @@ export function SupportConversation({ port }: { port: PublicSupportPort }) {
     pending.current = null; operatorId.current = null; write.current = false;
     appliedVersion.current = -1;
     const activeControllers = controllers.current;
+    let reading = false;
     const invalidate = () => { ++generation.current; };
     const read = async () => {
-      if (write.current) return;
+      if (write.current || reading) return;
+      reading = true;
       const version = revision.current;
       const controller = new AbortController(); controllers.current.add(controller);
       try {
         const value = await port.read(AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]));
-        if (generation.current === epoch && !write.current && revision.current === version) { accept(value); setError(false); }
+        if (generation.current === epoch && !write.current && revision.current === version) {
+          if (!accept(value)) throw new Error('Invalid support receipt');
+          setError(false);
+        }
       } catch { if (generation.current === epoch) setError(true); }
-      finally { controllers.current.delete(controller); }
+      finally { reading = false; controllers.current.delete(controller); }
     };
     void read();
     const timer = setInterval(() => { void read(); }, 5000);
@@ -73,10 +79,10 @@ export function SupportConversation({ port }: { port: PublicSupportPort }) {
   return <div className="entry-conversation">
     <p role="status">{snapshot ? status : ru ? 'Загрузка разговора…' : en ? 'Loading conversation…' : 'Suhbat yuklanmoqda…'}</p>
     <div className="entry-transcript" role="log" aria-label={ru ? 'Разговор' : en ? 'Conversation' : 'Suhbat'} aria-live="polite">
-      {snapshot?.messages.slice(-100).map(m => <article key={m.id} data-author={m.author}><small>{m.author === 'visitor' ? (ru ? 'Вы' : en ? 'You' : 'Siz') : m.author === 'operator' ? 'Anvar' : 'AI'}</small><p>{m.text}</p></article>)}
+      {snapshot?.messages.slice(-100).map(m => <article key={m.id} data-author={m.author}><small>{m.author === 'visitor' ? (ru ? 'Вы' : en ? 'You' : 'Siz') : m.author === 'operator' ? 'Admin' : 'AI'}</small><p>{m.text}</p></article>)}
     </div>
     {error && <p role="alert">{ru ? 'Не удалось обновить разговор. Повторите попытку или позвоните.' : en ? 'Could not update the conversation. Try again or call.' : 'Suhbatni yangilab bo‘lmadi. Qayta urinib ko‘ring yoki qo‘ng‘iroq qiling.'}</p>}
     <form onSubmit={e => { e.preventDefault(); void command(false); }}><label htmlFor="public-support-message">{ru ? 'Ваш вопрос' : en ? 'Your question' : 'Savolingiz'}</label><textarea id="public-support-message" maxLength={2000} value={text} onChange={e => setText(e.target.value)} disabled={!snapshot || busy || mode === 'CLOSED'} /><button className="entry-primary" disabled={!snapshot || busy || !text.trim() || mode === 'CLOSED'}>{ru ? 'Отправить' : en ? 'Send' : 'Yuborish'}</button></form>
-    <button type="button" disabled={!snapshot || busy || mode !== 'AI_ASSISTING'} onClick={() => { void command(true); }}>{ru ? 'Позвать оператора' : en ? 'Request an operator' : 'Anvarni suhbatga chaqirish'}</button>
+    <button type="button" disabled={!snapshot || busy || mode !== 'AI_ASSISTING'} onClick={() => { void command(true); }}>{ru ? 'Позвать администратора' : en ? 'Request the admin' : 'Adminni suhbatga chaqirish'}</button>
   </div>;
 }

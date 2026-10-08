@@ -127,3 +127,26 @@ Public scope/roles uz/ru/en va avtomatik uz-Cyrl; fake KPI/testimonial yo'q.
 build exit0 (app TS + Functions + Vite3442modules) va tekshir PASS. Browser
 local webview attach timeout: desktop/mobile visual acceptance UNKNOWN.
 Real screenshots va live support adapter bu revisionda ham ulanmagan.
+
+## 2026-10-09 — public UI regressiya va egasining vizual tuzatishlari
+
+Egasi browserda Jarvis va Yordam tugmalari ustma-ust ekanini ko'rsatdi.
+Public qo'llanma tugmasi/paneli chap pastga ko'chirildi; Jarvisning global
+komponenti o'zgartirilmadi. FAQ nomi Qo'llanma, operator nomi Admin bo'ldi;
+UZ/RU/EN public contact copy'dan shaxsiy ism olib tashlandi. Uzbek hero,
+role va onboarding jumlalari qayta tahrirlandi. Auth quick-button ham Admin;
+haqiqiy login identity o'zgartirilmadi.
+
+Signupdagi 5 label input ID bilan bog'landi. Qo'llanma ochilganda focus
+close tugmasiga o'tadi; Escape/yopish focusni ochgan tugmaga qaytaradi.
+Support runtime receipt malformed/duplicate/unknown-author/oversized javobni
+qabul qilmaydi; polling single-flight, sekin read ustma-ust ketmaydi.
+Version/epoch/idempotency va server transcript truth saqlandi.
+
+Cloudflare API read orqali `bd75c85` Preview success isbotlandi:
+https://1fb9d724.smeta-tizimi.pages.dev . Browserda hero, 8 domain,
+signup CTA, FAQ/phone va 390px viewport tekshirildi (clientWidth=382,
+scrollWidth=382). Bu smoke eski checkpointga tegishli; yangi tugma joyi
+va Admin matni deploydan keyin alohida qayta tekshirilishi kerak.
+Live support, yangi user ro'yxatdan o'tishi, authenticated login va real
+product screenshots bu read-only public smoke bilan isbotlanmaydi.

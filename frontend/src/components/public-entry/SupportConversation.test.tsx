@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { SupportConversation } from './SupportConversation';
 import type { PublicSupportPort, SupportSnapshot } from './support-port';
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.useRealTimers(); });
 const initial: SupportSnapshot = { version: 0, mode: 'AI_ASSISTING', messages: [] };
 const port = (override: Partial<PublicSupportPort> = {}): PublicSupportPort => ({
   read: vi.fn(async () => initial),
@@ -12,12 +12,24 @@ const port = (override: Partial<PublicSupportPort> = {}): PublicSupportPort => (
   ...override,
 });
 describe('Public support server kontrakti', () => {
+  it('buzuq server receiptida crash yoki fake muvaffaqiyat emas, xavfsiz xabar beradi', async () => {
+    render(<SupportConversation port={port({ read: vi.fn(async () => ({ version: 1, mode: 'AI_ASSISTING' }) as SupportSnapshot) })} />);
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Yuborish' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+  it('sekin read tugamaguncha polling ustma-ust so‘rov yubormaydi', async () => {
+    vi.useFakeTimers();
+    const read = vi.fn(() => new Promise<SupportSnapshot>(() => {}));
+    render(<SupportConversation port={port({ read })} />);
+    await act(async () => { vi.advanceTimersByTime(10000); });
+    expect(read).toHaveBeenCalledTimes(1);
+  });
   it('xabar server transcriptidan keladi va human holati aniq ko‘rsatiladi', async () => {
     const p = port({ read: vi.fn(async (): Promise<SupportSnapshot> => ({ version: 1, mode: 'HUMAN_ACTIVE', messages: [{ id: '1', author: 'operator', text: 'Qaysi sahifada muammo?' }] })) });
     render(<SupportConversation port={p} />);
     expect(await screen.findByText('Operator suhbatga qo‘shildi')).toBeTruthy();
     expect(screen.getByText('Qaysi sahifada muammo?')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Anvarni suhbatga chaqirish' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Adminni suhbatga chaqirish' }) as HTMLButtonElement).disabled).toBe(true);
   });
   it('yuborishda error chiqsa draft va operation_id retryda saqlanadi, raw error chiqmaydi', async () => {
     const send = vi.fn().mockRejectedValueOnce(new Error('SQL secret PGRST')).mockResolvedValueOnce({ version: 1, mode: 'AI_ASSISTING', messages: [{ id: 'm1', author: 'visitor', text: 'F2 savol' }] });
@@ -36,7 +48,7 @@ describe('Public support server kontrakti', () => {
   it('operator chaqirish faqat server tasdiqlagan holatni ko‘rsatadi', async () => {
     const p = port(); render(<SupportConversation port={p} />);
     await screen.findByText('AI yordamchi');
-    fireEvent.click(screen.getByRole('button', { name: 'Anvarni suhbatga chaqirish' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Adminni suhbatga chaqirish' }));
     expect(await screen.findByText('Operator javobi kutilmoqda')).toBeTruthy();
     expect(p.requestOperator).toHaveBeenCalledWith({ operationId: expect.any(String) }, expect.any(AbortSignal));
   });

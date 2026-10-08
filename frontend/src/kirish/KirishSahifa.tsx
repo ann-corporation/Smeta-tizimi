@@ -241,7 +241,7 @@ export default function KirishSahifa() {
                     className="w-full bg-indigo-600/10 border border-indigo-500/30 hover:bg-indigo-600/20 text-indigo-400 rounded-xl py-3 text-sm font-semibold transition-all disabled:opacity-50 flex justify-center items-center gap-2 group"
                   >
                     <ShieldCheck size={18} className="group-hover:scale-110 transition-transform" />
-                    {t('Anvar (superadmin)')}
+                    {t('Admin')}
                   </button>
 
                   <button
@@ -269,37 +269,37 @@ export default function KirishSahifa() {
                 <div className="mb-4"><GoogleKirish matn="signup_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
                 <form onSubmit={handleRegister} className="flex flex-col gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Ismingiz')}</label>
+                    <label htmlFor="entry-signup-name" className="text-sm font-medium text-zinc-300">{t('Ismingiz')}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder={t('F.I.Sh.')}
+                      <input id="entry-signup-name" type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder={t('F.I.Sh.')}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Telefon')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
+                    <label htmlFor="entry-signup-phone" className="text-sm font-medium text-zinc-300">{t('Telefon')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="tel" autoComplete="tel" value={regTelefon} onChange={e => setRegTelefon(e.target.value)} placeholder="+998"
+                      <input id="entry-signup-phone" type="tel" autoComplete="tel" value={regTelefon} onChange={e => setRegTelefon(e.target.value)} placeholder="+998"
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Kompaniya')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
+                    <label htmlFor="entry-signup-company" className="text-sm font-medium text-zinc-300">{t('Kompaniya')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder={t('MChJ / XK nomi')}
+                      <input id="entry-signup-company" type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder={t('MChJ / XK nomi')}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Email manzili')}</label>
+                    <label htmlFor="entry-signup-email" className="text-sm font-medium text-zinc-300">{t('Email manzili')}</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type="email" autoComplete="email" required value={regLogin} onChange={e => { setRegLogin(e.target.value.toLowerCase()); setTasdiqlashId(null); setRegKod(''); }} placeholder={t('masalan: aziz@gmail.com')}
+                      <input id="entry-signup-email" type="email" autoComplete="email" required value={regLogin} onChange={e => { setRegLogin(e.target.value.toLowerCase()); setTasdiqlashId(null); setRegKod(''); }} placeholder={t('masalan: aziz@gmail.com')}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                     </div>
@@ -310,10 +310,10 @@ export default function KirishSahifa() {
                     <button type="button" disabled={loading} onClick={() => { setTasdiqlashId(null); setRegKod(''); }} className="text-xs text-indigo-300 hover:text-indigo-200">{t('Kodni qayta yuborish')}</button>
                   </div>}
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Parol')} <span className="text-zinc-500">{t('(kamida 8 belgi)')}</span></label>
+                    <label htmlFor="entry-signup-password" className="text-sm font-medium text-zinc-300">{t('Parol')} <span className="text-zinc-500">{t('(kamida 8 belgi)')}</span></label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input type={regParolKor ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={regParol} onChange={e => setRegParol(e.target.value)}
+                      <input id="entry-signup-password" type={regParolKor ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={regParol} onChange={e => setRegParol(e.target.value)}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                       />
                       <button type="button" onClick={() => setRegParolKor(v => !v)} aria-label={t(regParolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
