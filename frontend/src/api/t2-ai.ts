@@ -176,6 +176,7 @@ export async function t2AiFakturaParse(payload: {
   base64: string;
   mimeType: string;
   nomi: string;
+  kompaniya_id?: number;
 }): Promise<T2AiFakturaParse> {
   const t0 = performance.now();
   try {

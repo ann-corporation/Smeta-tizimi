@@ -1,7 +1,8 @@
 import { tekshir } from '../_shared/auth';
-import { aiCall, aiPublicError, type AiEnv } from '../_shared/ai';
+import { aiPublicError, type AiEnv } from '../_shared/ai';
 import { AI_KORSATMA, type AiUmumiy } from '../../src/api/t2-ai';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { AiByudjetXatosi, aiHisobli } from '../_shared/ai-hisobli';
 import { jarvisSalomJavobi, jarvisSalommi } from '../../src/lib/jarvis/intent';
 import { jarvisHelp, jarvisMoney, jarvisEvidenceAnswer } from '../../src/lib/jarvis/answers';
 
@@ -69,10 +70,11 @@ function umumiyMatn(k: AiUmumiy): string {
   return 'OBYEKTLAR HOLATI (tizimdan):\n' + satrlar.join('\n') + '\n\n' + k.izoh;
 }
 
-async function jarvisJavobi(env: Env, system: string, text: string) {
+/** Pullik model chaqiruvlari HISOBLI (limit, hamyon, sarf jurnali, foydalanuvchi/kompaniya modeli). Faqat bepul Workers AI binding hisobsiz. */
+async function jarvisJavobi(env: Env, system: string, text: string, actor: number, kompaniyaId: number) {
   if (env.OPENROUTER_API_KEY?.trim()) {
     // Egasi ulagan provider: Workers binding yoki boshqa eski kalit uni chetlab o'tmaydi.
-    return aiCall({ ...env, AI_PRIMARY_PROVIDER: 'openrouter' }, { system, text, temperature: 0.1, maxOutputTokens: 1000, tier: 'fast' });
+    return aiHisobli({ ...env, AI_PRIMARY_PROVIDER: 'openrouter' }, actor, kompaniyaId, 'company_access', 'jarvis_eski', { system, text, temperature: 0.1, maxOutputTokens: 1000, tier: 'fast' });
   }
   /* Cloudflare Workers AI birinchi tanlov: kalit emas, Pages binding orqali
      account ruxsati ishlatiladi. Tashqi providerlar faqat oldindan sozlangan
@@ -96,7 +98,7 @@ async function jarvisJavobi(env: Env, system: string, text: string) {
       usage: raw.usage,
     };
   }
-  return aiCall(env, { system, text, temperature: 0.1, maxOutputTokens: 1000 });
+  return aiHisobli(env, actor, kompaniyaId, 'company_access', 'jarvis_eski', { system, text, temperature: 0.1, maxOutputTokens: 1000 });
 }
 
 /**
@@ -163,6 +165,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         '\n8. Tayin kompaniya ma’lumoti berilgan; qayta kompaniya tanlashni so‘rama. Faqat savolga tegishli obyektni tushuntir.' +
         '\n9. Summalarning tiyinlarini saqla. F2 va smeta to‘liqligini aralashtirma. Obyekt raqamlaridan o‘zingning imkoniyatlaring haqida xulosa qilma.',
       text,
+      Number(sess.foydalanuvchi_id),
+      kompaniyaId,
     );
 
     return Response.json({
@@ -177,6 +181,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       ms: Date.now() - boshlandi,
     });
   } catch (error) {
+    if (error instanceof AiByudjetXatosi) return Response.json({ ok: false, xabar: error.xabar, code: error.kod }, { status: 402 });
     const ochiqXato = aiPublicError(error);
     const status = ochiqXato.code === 'request_invalid' ? 400 : 502;
     return Response.json({ ok: false, xabar: ochiqXato.message, code: ochiqXato.code }, { status });

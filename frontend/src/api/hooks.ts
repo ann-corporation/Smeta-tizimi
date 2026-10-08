@@ -685,9 +685,10 @@ export function useFakturaYoz() {
 }
 
 export function useFakturaAiParse() {
+  const { joriyId } = useKompaniya();   // AI chaqiruvi kompaniya hisobiga yoziladi (limit/hamyon)
   return useMutation({
     mutationFn: (payload: { base64: string; mimeType: string; nomi: string }) =>
-      t2AiFakturaParse(payload) as Promise<{ ok: boolean; items?: FakturaItem[]; supplier?: string; xabar?: string }>
+      t2AiFakturaParse({ ...payload, kompaniya_id: joriyId ?? undefined }) as Promise<{ ok: boolean; items?: FakturaItem[]; supplier?: string; xabar?: string }>
   });
 }
 

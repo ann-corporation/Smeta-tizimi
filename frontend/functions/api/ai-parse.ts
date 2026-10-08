@@ -1,9 +1,14 @@
 import { tekshir } from '../_shared/auth';
-import { aiCall, aiPublicError, parseJsonText } from '../_shared/ai';
+import { aiPublicError, parseJsonText } from '../_shared/ai';
+import { AiByudjetXatosi, aiHisobli } from '../_shared/ai-hisobli';
+import { sessiyaKompaniya } from '../_shared/ai-kompaniya';
 import { FAKTURA_AI_SCHEMA, normalizeFakturaAiPayload } from '../_shared/faktura-ai';
 
 type Env = {
   SESSIYA_KALIT: string;
+  SUPABASE_URL?: string;
+  SUPABASE_KEY?: string;
+  OPENROUTER_API_KEY?: string;
   GEMINI_API_KEY?: string;
   GROQ_API_KEY?: string;
   OPENAI_API_KEY?: string;
@@ -47,13 +52,16 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const session = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
     if (!session) return jsonError('Кириш талаб қилинади', 401);
 
-    let body: { base64?: string; mimeType?: string; nomi?: string; text?: string };
+    let body: { base64?: string; mimeType?: string; nomi?: string; text?: string; kompaniya_id?: unknown };
     try {
       body = await ctx.request.json();
     } catch {
       return jsonError('Noto\'g\'ri JSON so\'rov');
     }
 
+    /* Model chaqiruvi HISOBLI: kompaniya sessiyadan tekshiriladi; oylik limit, kompaniya hamyoni va sarf jurnali shu orqali (limit yo'q = AI yo'q). */
+    const komp = sessiyaKompaniya(session, body.kompaniya_id);
+    if (!komp.ok) return jsonError(komp.xabar, komp.status);
     const text = String(body.text || '').trim();
     if (text.length > MAX_TEXT_LENGTH) return jsonError('Matn hajmi juda katta');
     const encoded = String(body.base64 || '').trim();
@@ -81,7 +89,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       text ? `Qo'shimcha matn:\n${text}` : '',
     ].filter(Boolean).join('\n');
 
-    const result = await aiCall(ctx.env, {
+    const result = await aiHisobli(ctx.env, komp.actor, komp.id, 'document_control', 'faktura_parse', {
       system: 'Siz OCR va hujjat rekvizitlarini ajratuvchi yordamchisiz. Javob faqat berilgan JSON schema bo\'yicha bo\'lsin.',
       text: prompt,
       attachment,
@@ -103,6 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       ms: Date.now() - started,
     });
   } catch (error) {
+    if (error instanceof AiByudjetXatosi) return Response.json({ ok: false, xabar: error.xabar, code: error.kod }, { status: 402 });
     const publicError = aiPublicError(error);
     const status = publicError.code === 'request_invalid' ? 400 : 502;
     return Response.json({ ok: false, xabar: publicError.message, code: publicError.code }, { status });
