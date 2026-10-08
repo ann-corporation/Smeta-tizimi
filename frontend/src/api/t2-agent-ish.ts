@@ -14,7 +14,7 @@ export type ModelKatalogi = { id: string; nom: string; tavsif: string | null; na
 export type ModellarJavobi = { rol: string; tanlash_mumkin: boolean; agentlar: AgentModelQatori[]; katalog: ModelKatalogi[] };
 
 export type AgentTaklif = {
-  id: number; tur: 'qoida' | 'manba' | 'rivojlanish'; doira: 'global' | 'company'; profil_kod: string | null; sarlavha: string;
+  id: number; tur: 'qoida' | 'manba' | 'rivojlanish' | 'bilim'; doira: 'global' | 'company'; profil_kod: string | null; sarlavha: string;
   mazmun: Record<string, unknown>; dalil: Array<Record<string, unknown>>; holat: 'kutilmoqda' | 'tasdiqlandi' | 'qollandi' | 'rad'; yaratildi: string;
   qaror_izoh: string | null; qaror_vaqt: string | null;
 };
@@ -113,8 +113,10 @@ export type Qadam = { ms: number; belgi: string; matn: string };
 export type HarakatTaklif = {
   id: number; amal: string; parametrlar: Record<string, unknown>; xavf: 'past' | 'orta' | 'yuqori'; avto: boolean; ogohlantirish: string | null; tushuntirish: string;
 };
+export type SahifaIshora = { yol: string; nom: string };
 export type KasbYakun = {
   ok: boolean; status?: number; javob?: string; rad?: boolean; kasb?: { nom: string; rol: string; profil: string }; harakatlar?: HarakatTaklif[];
+  sahifalar?: SahifaIshora[]; model_manba?: 'foydalanuvchi' | 'kompaniya' | 'platforma' | null;
   toifalar?: string[]; model?: string; ms?: number; jurnal_id?: number | null; qadamlar?: Qadam[]; error?: string; code?: string;
 };
 
@@ -159,5 +161,29 @@ export const jurnalOl = (k: number, hamma = false) => agentOqi<{ hamma: boolean;
 export type ShaxsiySozlama = { til: 'auto' | 'uz' | 'ru'; uslub: 'qisqa' | 'batafsil'; ishonch: 'sora' | 'jiddiy' | 'avto' };
 export const shaxsiyOl = () => agentOqi<ShaxsiySozlama>('shaxsiy', null);
 export const shaxsiySaqla = (p: ShaxsiySozlama) => agentYoz('shaxsiy_saqla', null, { ...p });
-export const harakatQarori = (harakatId: number, qaror: 'tasdiqlash' | 'rad') => agentYoz<{ holat: string }>('harakat_qaror', null, { harakat_id: harakatId, qaror });
+/* Foydalanuvchi uslubi (o'rganilgan shakl belgilari + o'z ko'rsatmasi), shaxsiy model tanlovi, kompaniyasiz tokensiz tizim yordamchisi */
+export type UslubHolati = { xususiyat: Record<string, number>; xulosa: string[]; korsatma: string | null; yoqilgan: boolean };
+export const uslubOl = () => agentOqi<UslubHolati>('uslub', null);
+export const uslubSaqla = (korsatma: string, yoqilgan: boolean) => agentYoz('uslub_saqla', null, { korsatma, yoqilgan });
+export const uslubTozala = () => agentYoz('uslub_tozala', null);
+export type ShaxsiyModelTanlovi = { tanlovlar: Array<{ profil: string; model_id: string }> };
+export const modelShaxsiyOl = () => agentOqi<ShaxsiyModelTanlovi>('model_shaxsiy', null);
+export const modelShaxsiyTanla = (profil: string, modelId: string | null) => agentYoz('model_shaxsiy_tanla', null, { profil, model_id: modelId });
+/* Bilim bazasi va boshqaruvchi agent */
+export type BilimYozuvi = { id: number; doira: 'global' | 'company'; kod: string; sarlavha: string; matn: string; kalit: string[]; manba_url: string | null; versiya: number };
+export type KuzatuvUrl = { id: number; url: string; domen: string; nom: string; maqsad: string | null; faol: boolean; oxirgi_holat: 'ozgarmadi' | 'yangi' | 'ozgardi' | 'xato' | null; oxirgi_vaqt: string | null; oxirgi_izoh: string | null };
+export type BilimHolati = {
+  bilim_global: number; bilim_kompaniya: number; bilim_kutilmoqda: number; kuzatuv_jami: number; kuzatuv_ozgargan: number;
+  oxirgi_veb: Array<{ url: string; domen: string; status: number | null; sha256: string | null; yaratildi: string }>;
+};
+export type BilimYigishNatijasi = { korildi: number; ozgardi: number; takliflar: number[]; xatolar: number; xabar?: string; natija?: Array<{ nom: string; holat: string }> };
+export const bilimOl = (k: number | null) => agentOqi<{ natija: BilimYozuvi[] }>('bilim', k);
+export const bilimHolatiOl = () => agentOqi<BilimHolati>('bilim_holat', null);
+export const kuzatuvOl = () => agentOqi<{ natija: KuzatuvUrl[] }>('kuzatuv', null);
+export const kuzatuvSaqla = (p: { url: string; nom: string; maqsad?: string; faol?: boolean }) => agentYoz('kuzatuv_saqla', null, { ...p });
+export const bilimYigish = (id?: number) => agentYoz<BilimYigishNatijasi>('bilim_yigish', null, id ? { id } : {});
+export const bilimYoz = (k: number | null, p: { sarlavha: string; matn: string; kalit: string }) => agentYoz<{ taklif_id: number; qabul: boolean; kutilmoqda: boolean }>('bilim_yoz', k, { ...p });
+export type TizimYordam ={ javob: string; sahifalar: SahifaIshora[]; topildi: boolean };
+export const tizimYordamSavol = (savol: string, sahifa?: string) => agentYoz<TizimYordam>('tizim_yordam', null, { savol, sahifa });
+export const harakatQarori =(harakatId: number, qaror: 'tasdiqlash' | 'rad') => agentYoz<{ holat: string }>('harakat_qaror', null, { harakat_id: harakatId, qaror });
 export const harakatNatijasi = (harakatId: number, ok: boolean, natija: Record<string, unknown>) => agentYoz('harakat_natija', null, { harakat_id: harakatId, ok, natija });

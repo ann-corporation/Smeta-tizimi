@@ -140,10 +140,10 @@ export function harakatMatni(harakatlar: readonly string[]): string {
 
 export type TaklifHarakat = { amal: string; parametrlar: Record<string, unknown>; tushuntirish: string; aniq: boolean };
 /** Model javobini ajratadi: JSON bo'lsa {javob, harakatlar}, aks holda butun matn — oddiy javob (hech qachon yo'qolmaydi). */
-export function javobniAjrat(xom: string): { javob: string; harakatlar: TaklifHarakat[] } {
+export function javobniAjrat(xom: string): { javob: string; harakatlar: TaklifHarakat[]; otish?: string } {
   const s = String(xom ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
   try {
-    const j = JSON.parse(s) as { javob?: unknown; harakatlar?: unknown };
+    const j = JSON.parse(s) as { javob?: unknown; harakatlar?: unknown; otish?: unknown };
     if (j && typeof j === 'object' && typeof j.javob === 'string') {
       const h = (Array.isArray(j.harakatlar) ? j.harakatlar : []).flatMap((x): TaklifHarakat[] => {
         const o = (x ?? {}) as Record<string, unknown>;
@@ -151,7 +151,7 @@ export function javobniAjrat(xom: string): { javob: string; harakatlar: TaklifHa
         const p = o.parametrlar && typeof o.parametrlar === 'object' && !Array.isArray(o.parametrlar) ? o.parametrlar as Record<string, unknown> : null;
         return amal && p ? [{ amal, parametrlar: p, tushuntirish: String(o.tushuntirish ?? '').slice(0, 400), aniq: o.aniq === true }] : [];
       });
-      return { javob: j.javob.trim() || 'Javob bo‘sh qaytdi', harakatlar: h };
+      return { javob: j.javob.trim() || 'Javob bo‘sh qaytdi', harakatlar: h, ...(typeof j.otish === 'string' && j.otish ? { otish: j.otish.slice(0, 120) } : {}) };
     }
   } catch { /* JSON emas */ }
   return { javob: s || 'Javob bo‘sh qaytdi', harakatlar: [] };

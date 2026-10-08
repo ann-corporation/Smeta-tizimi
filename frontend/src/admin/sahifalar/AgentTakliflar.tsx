@@ -7,7 +7,7 @@ import { buyruqYubor, buyruqlarOl, rivojlanishTahlil, takliflarOl, taklifQarori,
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 
-const TUR: Record<string, string> = { qoida: 'Qoida', manba: 'Veb-manba', rivojlanish: 'Rivojlanish' };
+const TUR: Record<string, string> = { qoida: 'Qoida', manba: 'Veb-manba', rivojlanish: 'Rivojlanish', bilim: 'Bilim' };
 const HOLAT: Record<string, string> = { navbat: 'Navbatda', bajarilmoqda: 'Bajarilmoqda', pr_ochildi: 'PR ochildi', birlashtirildi: 'Birlashtirildi', muvaffaqiyatsiz: 'Muvaffaqiyatsiz', bekor: 'Bekor' };
 const IZOH_NAMUNA = 'Izoh (rad uchun sabab)';
 
@@ -18,6 +18,7 @@ function Tafsilot({ t: x }: { t: AgentTaklif }) {
     <div className="space-y-0.5 text-xs text-text-dim">
       {x.tur === 'qoida' && <>{satr(t('Kod'), m.kod)}{satr(t('Matn'), m.matn)}</>}
       {x.tur === 'manba' && <>{satr(t('Domen'), m.domen)}{satr(t('Nomi'), m.nom)}</>}
+      {x.tur === 'bilim' && <>{satr(t('Matn'), m.matn)}{satr(t('Kalit so‘zlar'), Array.isArray(m.kalit) ? (m.kalit as unknown[]).join(', ') : '')}{x.dalil.length === 0 && <div className="text-warn">{t('Manba dalili yo‘q — qo‘lda yozilgan')}</div>}</>}
       {x.tur === 'rivojlanish' && <>{satr(t('Maqsad'), m.maqsad)}{satr(t('Tavsif'), m.tavsif)}{satr(t('Xavf'), m.xavf)}
         {Array.isArray(m.qabul_mezonlari) && m.qabul_mezonlari.length > 0 && <ul className="list-disc pl-5">{(m.qabul_mezonlari as unknown[]).map((q, i) => <li key={i}>{String(q)}</li>)}</ul>}</>}
       {x.dalil.length > 0 && <div className="text-text-mute">{t('Dalil')}: {x.dalil.map((d) => String(d.url ?? d.guruh ?? '')).filter(Boolean).join(', ')}</div>}

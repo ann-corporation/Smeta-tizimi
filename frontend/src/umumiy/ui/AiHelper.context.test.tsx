@@ -10,6 +10,8 @@ vi.mock('../../api/t2-agent-ish', () => ({
   kasbOl: m.kasbOl, kasbSavolOqim: m.savol, jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })),
   shaxsiyOl: vi.fn(async () => ({ ok: true, natija: { til: 'auto', uslub: 'qisqa', ishonch: 'jiddiy' } })), shaxsiySaqla: vi.fn(),
   harakatQarori: vi.fn(), harakatNatijasi: vi.fn(),
+  modellarOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), modelShaxsiyOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), modelShaxsiyTanla: vi.fn(),
+  uslubOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), uslubSaqla: vi.fn(), uslubTozala: vi.fn(), tizimYordamSavol: vi.fn(),
 }));
 vi.mock('./useAiKuzatuv', () => ({ useAiKuzatuv: () => ({ taklif: null, yoqilgan: false, almashtir: vi.fn() }) }));
 vi.mock('./AiFikrPanel', () => ({ AiFikrPanel: () => <div>fikr-panel</div> }));
@@ -84,9 +86,11 @@ it('A → B → A almashish eski async javobni va suhbatni qaytarmaydi', async (
   expect(screen.queryByText('Eski A javobi')).toBeNull();
 });
 
-it('kompaniya tanlanmagan bo‘lsa yo‘nalish matni ko‘rsatiladi', async () => {
+it('kompaniya tanlanmagan bo‘lsa «Tizim yordamchisi» ochiladi (kompaniya ma‘lumotisiz, tokensiz) va kompaniya tanlashni tushuntiradi', async () => {
   m.id = null; render(view()); och();
-  expect(await screen.findByText(/Avval kompaniyani tanlang/)).toBeTruthy();
+  expect(await screen.findByText('Tizim yordamchisi')).toBeTruthy();
+  expect(screen.getByText(/Kompaniyani tanlasangiz/)).toBeTruthy();
+  expect(m.savol).not.toHaveBeenCalled();
 });
 
 it('tablar: jurnal, fikr, sozlamalar ochiladi', async () => {

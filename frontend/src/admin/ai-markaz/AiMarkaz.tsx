@@ -3,19 +3,21 @@
  * o'rganish va xarajat/limit shu yerda. Oddiy foydalanuvchi va kompaniya admini bu bo'limni ko'rmaydi (server ham tekshiradi).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Bot, Coins, GraduationCap, Inbox, LayoutDashboard, ScrollText } from 'lucide-react';
+import { Bot, Coins, Crown, GraduationCap, Inbox, LayoutDashboard, ScrollText } from 'lucide-react';
 import { markazOl, type Markaz } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { AgentTakliflar } from '../sahifalar/AgentTakliflar';
 import { AiAgentlarBolimi } from './AiAgentlarBolimi';
+import { AiBoshqaruvchi } from './AiBoshqaruvchi';
 import { AiKorinish } from './AiKorinish';
 import { AiOrganishBolimi } from './AiOrganishBolimi';
 import { AiQoidalarBolimi } from './AiQoidalarBolimi';
 import { AiXarajatBolimi } from './AiXarajatBolimi';
 
-type Bolim = 'korinish' | 'agentlar' | 'takliflar' | 'qoidalar' | 'organish' | 'xarajat';
+type Bolim = 'korinish' | 'boshqaruvchi' | 'agentlar' | 'takliflar' | 'qoidalar' | 'organish' | 'xarajat';
 const BOLIMLAR: Array<{ id: Bolim; nom: string; Ikonka: typeof Bot }> = [
   { id: 'korinish', nom: 'Umumiy ko‘rinish', Ikonka: LayoutDashboard },
+  { id: 'boshqaruvchi', nom: 'Boshqaruvchi agent', Ikonka: Crown },
   { id: 'agentlar', nom: 'Agentlar va modellar', Ikonka: Bot },
   { id: 'takliflar', nom: 'Takliflar va ishlar', Ikonka: Inbox },
   { id: 'organish', nom: 'O‘rganish', Ikonka: GraduationCap },
@@ -45,6 +47,7 @@ export function AiMarkaz({ kompaniyalar }: { kompaniyalar: Array<{ id: number; n
         ))}
       </nav>
       {bolim === 'korinish' && <AiKorinish m={m} bolimOch={(b) => setBolim(b as Bolim)} />}
+      {bolim === 'boshqaruvchi' && <AiBoshqaruvchi m={m} taklifgaOt={() => setBolim('takliflar')} />}
       {bolim === 'agentlar' && <AiAgentlarBolimi markaz={m} />}
       {bolim === 'takliflar' && (
         <div className="space-y-2">

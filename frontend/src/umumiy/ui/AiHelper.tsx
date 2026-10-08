@@ -5,7 +5,8 @@ import { kasbOl, type KasbIshchi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { yolNaqshi } from '../../lib/agent-faoliyat';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
-import { AiChat } from './AiChat';
+import { AiChat, type TayyorSavol } from './AiChat';
+import { ModelChip } from './ModelChip';
 import { AiFikrPanel } from './AiFikrPanel';
 import { AiJurnal } from './AiJurnal';
 import { AiShaxsiy } from './AiShaxsiy';
@@ -30,6 +31,18 @@ export function AiHelper() {
   const [isOpen, setIsOpen] = useState(false);
   const [kasb, setKasb] = useState<KasbIshchi | null>(null);
   const kuzatuv = useAiKuzatuv(joriyId ?? undefined);
+
+  const [tayyor, setTayyor] = useState<TayyorSavol | null>(null);
+  /* Istalgan sahifa/komponent `window.dispatchEvent(new CustomEvent('ai:ochish', { detail: { savol } }))` bilan AI ni tayyor savol bilan ochadi. */
+  useEffect(() => {
+    const eshit = (e: Event) => {
+      const savol = String((e as CustomEvent<{ savol?: string }>).detail?.savol ?? '').trim().slice(0, 600);
+      setIsOpen(true); setTab('chat');
+      if (savol) setTayyor({ id: Date.now(), matn: savol });
+    };
+    window.addEventListener('ai:ochish', eshit);
+    return () => window.removeEventListener('ai:ochish', eshit);
+  }, []);
 
   useEffect(() => {
     let tirik = true;
@@ -95,7 +108,8 @@ export function AiHelper() {
           </div>
           {taklifKarta && <div className="shrink-0 p-3">{taklifKarta}</div>}
 
-          {tab === 'chat' && <AiChat kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} />}
+          {tab === 'chat' && kasb && <ModelChip profil={kasb.profil} kompaniyaId={joriyId ?? null} />}
+          {tab === 'chat' && <AiChat kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} tayyorSavol={tayyor} onOqildi={() => setTayyor(null)} />}
           {tab === 'jurnal' && (joriyId ? <AiJurnal kompaniyaId={joriyId} admin={ADMIN_ROLLAR.includes(kasb?.rol ?? '')} /> : <p className="p-4 text-sm text-text-dim">{t('Avval kompaniyani tanlang')}</p>)}
           {tab === 'fikr' && <AiFikrPanel kompaniyaId={joriyId ?? undefined} sahifa={yolNaqshi(location.pathname)} />}
           {tab === 'sozlama' && <AiShaxsiy kasb={kasb} kuzatuvYoqilgan={kuzatuv.yoqilgan} kuzatuvAlmashtir={kuzatuv.almashtir} />}

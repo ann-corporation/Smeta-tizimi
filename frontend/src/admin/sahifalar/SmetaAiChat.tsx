@@ -13,6 +13,7 @@ import type { SuhbatXabari } from '../../lib/smeta-ai/protokol';
 import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tizimTanlovi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { smetachiSuhbat, smetachiTanla } from '../../api/smeta-ai';
+import { ModelChip } from '../../umumiy/ui/ModelChip';
 
 const XATO: Record<string, string> = {
   AI_NOT_CONFIGURED: 'AI hali sozlanmagan (Cloudflare’da AI kaliti yo‘q).',
@@ -120,6 +121,7 @@ export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
   }
 
   return <section aria-label={t('Smetachi AI')} className="flex min-h-[520px] flex-col gap-2 text-sm">
+    <ModelChip profil="smeta_ai" kompaniyaId={kompaniyaId} />
     <div className="karta max-h-72 min-h-[140px] flex-1 space-y-2 overflow-auto p-2" role="log" aria-live="polite">
       {!xabarlar.length && <div className="space-y-1 text-[12.5px] text-text-dim">
         <p className="font-medium text-text">{t('Bajarilgan ishni oddiy so‘z bilan yozing — tizim normativ ishlarga ajratib, hajmni siz bilan aniqlaydi.')}</p>

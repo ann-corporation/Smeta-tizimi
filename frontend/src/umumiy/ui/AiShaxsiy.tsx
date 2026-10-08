@@ -4,6 +4,7 @@ import { shaxsiyOl, shaxsiySaqla, type KasbIshchi, type ShaxsiySozlama } from '.
 import { t } from '../../i18n/til';
 import { toast } from './Toast';
 import { TOIFA_NOMI } from './ai-harakat';
+import { AiUslub } from './AiUslub';
 
 const ISHONCH: Array<[ShaxsiySozlama['ishonch'], string, string]> = [
   ['sora', 'Har doim so‘rasin', 'Omborga yozish, grafik o‘zgartirish va eslatma ham — hammasi sizning tasdig‘ingizdan keyin.'],
@@ -57,6 +58,8 @@ export function AiShaxsiy({ kasb, kuzatuvYoqilgan, kuzatuvAlmashtir }: { kasb: K
         </div>
         <button type="button" onClick={() => void saqla()} className="rounded-md bg-accent px-3 py-1.5 text-xs text-white">{t('Saqlash')}</button>
       </fieldset>
+
+      <AiUslub />
 
       <section className="rounded-xl border border-border p-3">
         <label className="flex cursor-pointer items-start gap-2">
