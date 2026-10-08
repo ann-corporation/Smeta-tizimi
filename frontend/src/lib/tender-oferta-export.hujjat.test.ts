@@ -97,7 +97,7 @@ describe('Tender Oferta — hujjat standarti (H1–H9)', () => {
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
     expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК']).yoq).toEqual([]);
-    const itogo = t.varaqlar[0].kataklar.find((k) => k.f?.startsWith('IF(COUNTBLANK(D'))!;
+    const itogo = t.varaqlar[0].kataklar.find((k) => k.f?.startsWith('SUM(D'))!;
     expect(Number(itogo.v)).toBeCloseTo((h[0].yakuniyOferta ?? NaN) + (h[1].yakuniyOferta ?? NaN), 2);
     for (const x of fayl) expect(hujjatTekshir(x.bytes).dollarFormulalar).toEqual([]);
   });

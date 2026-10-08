@@ -379,9 +379,9 @@ function jamiVaraqXml(
   }).join('+') : '0';
   put([]);
   const rUn = put([bosCell(0, st.matn), strCell(1, st.matn, 'Позиции без цены или категории, шт.'), fCell(2, st.son, unresolved, h.halQilinmagan), bosCell(3, st.son),
-    strCell(4, st.matn, h.halQilinmagan ? 'итог не определен до их заполнения — см. перечень ниже' : '')]);
+    strCell(4, st.matn, h.halQilinmagan ? 'не включены в итог — см. перечень ниже' : '')]);
   const rFinal = put([bosCell(0, st.jamiMatn), strCell(1, st.jamiMatn, 'ИТОГО ОФЕРТА С НДС'),
-    fCell(2, st.jamiSon, `IF(${c(rUn)}>0,"",ROUND(${c(rVs)},2))`, h.yakuniyOferta ?? ''), numCell(3, st.jamiSon, h.manbaKaskad.vsego), bosCell(4, st.jamiMatn)]);
+    fCell(2, st.jamiSon, `ROUND(${c(rVs)},2)`, h.yakuniyOferta ?? ''), numCell(3, st.jamiSon, h.manbaKaskad.vsego), bosCell(4, st.jamiMatn)]);
 
   // Diqqat talab qiladigan pozitsiyalar — hujjatda ochiq ko‘rinadi.
   const diqqat = h.qatorlar.filter((q) => narxlanadiganmi(q) && q.muammolar.length);

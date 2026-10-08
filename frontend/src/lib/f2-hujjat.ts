@@ -86,15 +86,15 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
     const ishgaBogliq = ishQator != null && norma != null && norma > 0 && x.ogoh !== 'RESURS_CHEGARA';
     /* Ongli narxsiz (masalan «затраты труда машинистов» — mashina narxi ichida, alohida to'lanmaydi): summa yo'q,
      * lekin bu MA'LUMOT YETISHMASLIGI EMAS — jami bo'sh bo'lmaydi (Game Club F2 №249: 31 shunday qator ИТОГО ni yo'qotardi).
-     * Narx asosi umuman yo'q (narxsiz belgilanmagan) — NULL ≠ 0: jami bo'sh. */
+     * Egasi qoidasi (2026-10-08): narxsiz qator jamini HECH QACHON bo'shatmaydi — faqat o'zi bo'sh qoladi. */
     const ongliNarxsiz = x.narxsiz;
     oxirgiSumma = narxBor && x.summa != null ? x.summa : null;
-    if (oxirgiSumma != null) { jamiJS = jamiJS == null ? null : jamiJS + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; } else if (!ongliNarxsiz) jamiJS = null;
+    if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; }
     const qatorR = v.r;
     const vk = `${kat ?? ''}|${(kod ?? '').trim()}|${x.nom.trim()}|${(x.birlik ?? '').trim()}`;
     const vd = vedomost.get(vk) ?? { kat, kod: (kod ?? '').trim(), nom: x.nom.trim(), birlik: (x.birlik ?? '').trim(), qatorlar: [], hajm: 0, summa: 0, narxlar: new Set<number>() };
     vd.qatorlar.push(qatorR); vd.hajm = yaxlit6(vd.hajm + x.hajm);
-    vd.summa = vd.summa == null || (oxirgiSumma == null && !ongliNarxsiz) ? null : yaxlit2(vd.summa + (oxirgiSumma ?? 0));
+    vd.summa = yaxlit2((vd.summa ?? 0) + (oxirgiSumma ?? 0));
     if (narxBor) vd.narxlar.add(x.narx as number);
     vedomost.set(vk, vd);
     return v.qator('oddiy', (r): Qiymat[] => [
@@ -136,11 +136,9 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
       { f: tarkib.length ? `SUM(${tarkib.map((q) => `H${q}`).join(',')})` : '0', v: yaxlit2(bolimJS) }, null, null]));
   }
   const oxirgi = v.r - 1;
-  // Narxsiz resurs bo'lsa — ИТОГО bo'sh (0 emas): markirovkasi bor va summasi bo'sh qator sanaladi.
-  const bosh = `COUNTIFS(J${birinchi}:J${oxirgi},"<>",H${birinchi}:H${oxirgi},"")`;
   const itogoR = v.r;
   v.qator('vsego', (): Qiymat[] => [null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО АКТУ', null, null, null, null,
-    { f: `IF(${bosh}>0,"",SUM(${bolimJamiQatorlari.map((q) => `H${q}`).join(',')}))`, v: jamiJS == null ? '' : yaxlit2(jamiJS) }, null, null]);
+    { f: `SUM(${bolimJamiQatorlari.map((q) => `H${q}`).join(',')})`, v: yaxlit2(jamiJS ?? 0) }, null, null]);
 
   v.bosh();
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
@@ -201,7 +199,7 @@ function resursVedomosti(
     const boshi = w.r;
     let gJS: number | null = 0;
     for (const x of guruh) {
-      gJS = gJS == null || x.summa == null ? null : yaxlit2(gJS + x.summa);
+      if (x.summa != null) gJS = yaxlit2((gJS ?? 0) + x.summa);
       const bittaNarx = x.narxlar.size === 1 ? [...x.narxlar][0] : null;
       w.qator('oddiy', (r): Qiymat[] => [
         ++n, x.kod, x.nom, x.birlik,
@@ -211,7 +209,7 @@ function resursVedomosti(
       ], { rang });
     }
     const oxiri = w.r - 1;
-    jamiJS = jamiJS == null || gJS == null ? null : yaxlit2(jamiJS + gJS);
+    jamiJS = yaxlit2((jamiJS ?? 0) + (gJS ?? 0));
     guruhJami.push(w.qator('jami', (): Qiymat[] => [null, null, `Итого: ${kat ? VED_GURUH[kat] : 'прочие ресурсы'}`, null, null, null,
       { f: `SUM(G${boshi}:G${oxiri})`, v: gJS ?? '' }]));
   }

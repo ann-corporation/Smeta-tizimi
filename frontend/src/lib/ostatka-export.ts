@@ -6,7 +6,7 @@ import {
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, type KatSummalar } from './nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
-import { bosRefs } from './hujjat-yozuvchi';
+import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
 
 /**
  * OSTATKA — bajarilmay qolgan ishlar smeta shaklida (egasi 2026-09-23: "tizim
@@ -245,13 +245,13 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       if (o === 0) return null;
       const narx = q.narx ?? null;
       const summa = o != null && narx != null ? yaxlit2(o * narx) : null;
-      const sabablar = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narx == null ? 'нет сметной цены' : ''].filter(Boolean);
+      const sabablar = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narxBildirishnomaKerak(q, narx) ? 'нет сметной цены — строка не включена в сумму' : ''].filter(Boolean);
       if (sabablar.length) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: sabablar.join('; '), joy: yolOf(q) || undefined });
       const kutilmoqda = istisnoOf.get(q.id);
       if (kutilmoqda?.holat === 'qoralama') diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: `исключение из остатка на согласовании (${kutilmoqda.asos}${kutilmoqda.sabab ? `; ${kutilmoqda.sabab}` : ''}) — до утверждения учитывается в остатке`, joy: yolOf(q) || undefined });
       barglar++;
       const tartib = blNo ? `${blNo}.${k}` : String(++no);
-      out.push({ id: q.id, tur: 'barg', daraja, tartib, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta, faktHajm: fakt, ostatkaHajm: o, narx, summa, nomalum: summa == null ? 1 : 0, kat: q.kat ?? null, bolalar: [] });
+      out.push({ id: q.id, tur: 'barg', daraja, tartib, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta, faktHajm: fakt, ostatkaHajm: o, narx, summa, nomalum: summa == null && !mashinistMehnati(q) ? 1 : 0, kat: q.kat ?? null, bolalar: [] });
       return out.length - 1;
     }
     if (tur === 'bl') {
@@ -266,7 +266,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       const row = out[idx];
       row.bolalar = b;
       row.nomalum = b.reduce((s, i) => s + out[i].nomalum, 0);
-      row.summa = row.nomalum ? null : yaxlit2(b.reduce((s, i) => s + (out[i].summa ?? 0), 0));
+      row.summa = yaxlit2(b.reduce((s, i) => s + (out[i].summa ?? 0), 0));   // egasi qoidasi: summa har doim ko'rinadi
       row.narx = row.summa != null && row.ostatkaHajm ? row.summa / row.ostatkaHajm : null;
       return idx;
     }
@@ -277,7 +277,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
     for (const c of kids) { const i = qayta(c, daraja + 1, null, 0); if (i != null) b.push(i); }
     if (!b.length) { out.length = idx; return null; }
     const nomalum = b.reduce((s, i) => s + out[i].nomalum, 0);
-    const summa = nomalum ? null : yaxlit2(b.reduce((s, i) => s + (out[i].summa ?? 0), 0));
+    const summa = yaxlit2(b.reduce((s, i) => s + (out[i].summa ?? 0), 0));
     out.push({ id: q.id, tur: 'itogo', daraja, tartib: '', kod: '', nom: `ИТОГО ПО РАЗДЕЛУ: ${q.nom ?? ''}`, birlik: '', smetaHajm: null, faktHajm: null, ostatkaHajm: null, narx: null, summa, nomalum, bolalar: b });
     out[idx].nomalum = nomalum;
     out[idx].summa = summa;
@@ -287,7 +287,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
   const ildizlar: number[] = [];
   for (const q of bolalar.get(null) ?? []) { const i = qayta(q, 0, null, 0); if (i != null) ildizlar.push(i); }
   const nomalum = ildizlar.reduce((s, i) => s + out[i].nomalum, 0);
-  const jami = !ildizlar.length || nomalum ? null : yaxlit2(ildizlar.reduce((s, i) => s + (out[i].summa ?? 0), 0));
+  const jami = !ildizlar.length ? null : yaxlit2(ildizlar.reduce((s, i) => s + (out[i].summa ?? 0), 0));
   // Tasdiqlangan istisnolar: chiqarilgan hajm = asl smeta hajmi − yangi hajm.
   const chiqarilgan: OstatkaIstisnoQator[] = [];
   for (const x of istisnolar) {
@@ -380,7 +380,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
     if (!idx.length) return null;
     const rows = idx.map(rowOf);
     const vs = idx.map(koOf);
-    return { f: `IF(${bosRefs('K', rows)}>0,"",${sumRefs('K', rows)})`, v: vs.some((x) => x == null) ? '' : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) };
+    return { f: sumRefs('K', rows), v: yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) };
   };
   const katsiz: string[] = [];
   model.qatorlar.forEach((q, i) => {
@@ -393,7 +393,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
         { f: `IF(OR(E${n}="",F${n}=""),"",E${n}-F${n})`, v: q.ostatkaHajm ?? '' },
         qiy(q.narx),
         { f: `IF(OR(G${n}="",H${n}=""),"",ROUND(G${n}*H${n},2))`, v: q.summa ?? '' },
-        { f: `IF(I${n}="",1,0)`, v: q.nomalum },
+        mashinistMehnati(q) ? 0 : { f: `IF(I${n}="",1,0)`, v: q.nomalum },
         ...((): Qiymat[] => {
           const kat = nakrutkaKat(q.kat);
           if (!kat) { katsiz.push(`${q.nom}${q.birlik ? `, ${q.birlik}` : ''}`); return [null, null]; }
@@ -405,14 +405,14 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
         q.tartib, q.kod, q.nom, q.birlik, qiy(q.smetaHajm), qiy(q.faktHajm),
         { f: `IF(OR(E${n}="",F${n}=""),"",MAX(E${n}-F${n},0))`, v: q.ostatkaHajm ?? '' },
         { f: `IF(OR(I${n}="",N(G${n})=0),"",I${n}/G${n})`, v: q.narx ?? '' },
-        { f: `IF(J${n}>0,"",${kid('I')})`, v: q.summa ?? '' },
+        { f: kid('I'), v: q.summa ?? '' },
         { f: kid('J'), v: q.nomalum },
         koYig(q.bolalar), null,
       ], { daraja: q.daraja });
     } else {
       r = v.qator('jami', (n) => [
         null, null, q.nom, null, null, null, null, null,
-        { f: `IF(J${n}>0,"",${kid('I')})`, v: q.summa ?? '' },
+        { f: kid('I'), v: q.summa ?? '' },
         { f: kid('J'), v: q.nomalum },
         koYig(q.bolalar), null,
       ], { daraja: q.daraja });
@@ -423,7 +423,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
     const nomalum = model.ildizlar.reduce((s, i) => s + model.qatorlar[i].nomalum, 0);
     v.qator('vsego', (n) => [
       null, null, 'ВСЕГО ОСТАТОК РАБОТ ПО ОБЪЕКТУ', null, null, null, null, null,
-      { f: `IF(J${n}>0,"",${sumRefs('I', model.ildizlar.map(rowOf))})`, v: model.jami ?? '' },
+      { f: sumRefs('I', model.ildizlar.map(rowOf)), v: model.jami ?? '' },
       { f: sumRefs('J', model.ildizlar.map(rowOf)), v: nomalum },
       koYig(model.ildizlar), null,
     ]);
@@ -455,7 +455,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
     const nomalumCh = model.chiqarilgan.filter((c) => c.summa == null).length;
     v.qator('jami', (n) => [
       null, null, 'ИТОГО ИСКЛЮЧЕНО ИЗ ОСТАТКА (в остаток не включено)', null, null, null, null, null,
-      { f: `IF(J${n}>0,"",${sumRefs('I', qatorlar)})`, v: model.chiqarilganJami ?? '' },
+      { f: sumRefs('I', qatorlar), v: model.chiqarilganJami ?? '' },
       { f: sumRefs('J', qatorlar), v: nomalumCh },
     ], { daraja: 0 });
   }
@@ -463,7 +463,6 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   v.izoh('Графа 9 — стоимость остатка по сметным ценам (прямые затраты), без накладных расходов и НДС; графа 10 — стоимость остатка к оплате: прямые затраты × коэффициент по виду затрат (раздел «Расчет стоимости к оплате»). Позиции с неизвестным количеством, выполнением или ценой оставлены без суммы; итоги по ним не подводятся до уточнения.');
   if (katsiz.length) v.diqqat(katsiz.map((nom) => ({ nom, sabab: 'не указан вид затрат — стоимость к оплате не определена' })), 'ВИД ЗАТРАТ НЕ УКАЗАН');
   if (!o.nakrutka || !Object.keys(o.nakrutka).length) v.izoh('Проценты накладных и прочих расходов для объекта не заданы — в расчете стоимости к оплате приняты 0 % (учтен только НДС).');
-  if (model.jami == null && model.ildizlar.length) v.izoh('Итог не определен: есть позиции без суммы — см. перечень ниже.');
   v.diqqat(model.diqqat);
   if (model.oshibKetgan.length) {
     v.diqqat(model.oshibKetgan.map((x) => ({

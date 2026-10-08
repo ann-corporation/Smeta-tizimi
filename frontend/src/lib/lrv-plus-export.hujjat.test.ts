@@ -39,7 +39,7 @@ const T1_MATNI = [/^(ҲАЖМ \(ед\)|ҲАЖМ \(жами\)|НАРХ|ЖАМИ|�
 
 describe('LRV_PLUS — hujjat standarti', () => {
   for (const rejim of ['toliq', 'forma2'] as const) {
-    it(`${rejim}: NULL ≠ 0 — narx noma'lum bargda summa va barcha yuqori jamilar bo'sh; imzo; chop; $ yo'q`, async () => {
+    it(`${rejim}: narxsiz barg faqat o'zi bo'sh, jamilar ko'rinadi (egasi qoidasi); imzo; chop; $ yo'q`, async () => {
       const bytes = await lrvPlusFaylBaytlari(DARAXT, 'Амфитеатр', HOLAT, { rejim, nakrutka: NAKRUTKA_STANDART, imzo: { pudratchi: 'ООО Подрядчик' } });
       namunaSaqla(`lrv_${rejim}.xlsx`, bytes);
       // Excel ochishi uchun: har varaqda <sheetFormatPr> majburiy defaultRowHeight bilan (2026-10-02 regressiyasi).
@@ -58,9 +58,9 @@ describe('LRV_PLUS — hujjat standarti', () => {
       expect(v.a4 && v.bittaEnli).toBe(true);
       expect(v.printArea).toMatch(rejim === 'toliq' ? /!\$A\$1:\$W\$\d+$/ : /!\$A\$1:\$P\$\d+$/);
       expect(v.printTitles).toMatch(/\$1:\$3$/);
-      // БЕТОН В25 (narxsiz) H katagi va ЖАМИ H3 — bo'sh, 0 emas.
+      // БЕТОН В25 (narxsiz) H katagi bo'sh; ЖАМИ H3 — ma'lum summalar yig'indisi (narxsiz qator jamini bo'shatmaydi).
       const h3 = v.kataklar.find((k) => k.ref === 'H3')!;
-      expect(h3.v ?? '').toBe('');
+      expect(Number(h3.v)).toBe(425000);
       const betonH = v.kataklar.find((k) => k.ref === 'H9')!;
       expect(betonH.f).toBe('IF(OR(F9="",G9=""),"",F9*G9)');
       expect(betonH.v ?? '').toBe('');

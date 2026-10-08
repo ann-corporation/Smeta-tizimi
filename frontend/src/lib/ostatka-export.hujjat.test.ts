@@ -93,27 +93,27 @@ it('maxsus nakrutka podvali (konstruktor): qo‘shilgan statya hujjatda, к оп
     const raqam = v.kataklar.filter((k) => /^[A-J]\d+$/.test(k.ref) && Number(k.ref.slice(1)) === Number(v.printTitles!.split('$').pop()));
     expect(raqam.map((k) => k.v)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', null]);
     // UI == Excel: ВСЕГО katagining keshlangan qiymati = model.jami.
-    const vsego = v.kataklar.find((k) => k.f?.startsWith('IF(J') && k.f.includes('SUM(I') && Number(k.v) === m.jami);
+    const vsego = v.kataklar.find((k) => k.f?.startsWith('SUM(I') && Number(k.v) === m.jami);
     expect(vsego).toBeTruthy();
     expect(t.matnlar.some((s) => s.startsWith('ВЫПОЛНЕНО СВЕРХ СМЕТНОГО ОБЪЕМА (1)'))).toBe(true);
   });
 
-  it('H7: narx yoki fakt noma‘lum — summa bo‘sh, yuqoridagi barcha jamilar bo‘sh, ro‘yxatda', () => {
+  it('H7: narx yoki fakt yo‘q — faqat o‘sha qator bo‘sh, jamilar ko‘rinadi, ro‘yxatda (egasi qoidasi)', () => {
     const rows = [...TOZA.map((r) => (r.id === 10 ? { ...r, narx: null } : r))];
     const m = ostatkaHujjatModeli(rows, TOZA_H.filter((x) => x.qator_id !== 4));
-    expect(m.jami).toBeNull();
+    expect(m.jami).not.toBeNull();
     expect(m.qatorlar.find((r) => r.nom === 'ПЛИТКА')!.summa).toBeNull();
     expect(m.qatorlar.find((r) => r.nom === 'ЗАТРАТЫ ТРУДА')!.ostatkaHajm).toBeNull();
-    expect(m.diqqat.map((d) => d.sabab)).toEqual(['нет данных о выполнении', 'нет сметной цены']);
+    expect(m.diqqat.map((d) => d.sabab)).toEqual(['нет данных о выполнении', 'нет сметной цены — строка не включена в сумму']);
     const { bytes } = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25' });
     namunaSaqla('ostatka_nomalum.xlsx', bytes);
     const t = hujjatTekshir(bytes);
     expect(t.taqiqlangan).toEqual([]);
     expect(t.matnlar.some((s) => s.startsWith('ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ (2)'))).toBe(true);
-    expect(t.matnlar).toContain('Итог не определен: есть позиции без суммы — см. перечень ниже.');
-    // Hech bir jami katagida 0 yozilmagan: noma'lum → bo'sh matn natija.
-    const jamilar = t.varaqlar[0].kataklar.filter((k) => k.f?.startsWith('IF(J'));
-    expect(jamilar.every((k) => k.v === '')).toBe(true);
+    expect(t.matnlar.some((s) => s.startsWith('Итог не определен'))).toBe(false);
+    // Jamilar ma'lum summalardan: ВСЕГО katagi = model.jami (bo'sh emas).
+    const vsego = t.varaqlar[0].kataklar.find((k) => k.f?.startsWith('SUM(I') && Number(k.v) === m.jami);
+    expect(vsego).toBeTruthy();
   });
 });
 

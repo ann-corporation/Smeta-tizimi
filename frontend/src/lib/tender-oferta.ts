@@ -18,6 +18,7 @@
  */
 import type { NakrutkaKoefKod, NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_STANDART, nakrutkaKaskadXom, pulYaxlitla, type NakrutkaAsos, type NakrutkaQadamlar } from './nakrutka-kaskad';
+import { mashinistMehnati } from './narx-bildirishnoma';
 
 export type OfertaNarxRejimi = 'foiz' | 'qolda';
 export type OfertaFoizYon = 'pasaytirish' | 'oshirish';
@@ -652,9 +653,11 @@ export function ofertaYigish(natijalar: OfertaQatorNatija[], nk: NakrutkaKoeffit
   const qoshimcha = transportSiyosati === 'varaq' ? { trMatOverride: transportVaraqJami } : {};
   const kaskadXom = nakrutkaKaskadXom(asos, nk, qoshimcha);
 
-  const halQilinmagan = natijalar.filter((n) => n.rol === 'RESOURCE' && (n.pudratchiSumma == null || n.samaraliKategoriya === 'UNKNOWN')).length;
+  // Egasi qoidasi (2026-10-08): yakuniy summa har doim ko'rinadi; narxsiz/kategoriyasiz qator — faqat o'zi uchun bildirishnoma
+  // (mashinist mehnati narxi mashina ichida — sanalmaydi). Narx 0 — haqiqiy 0.
+  const halQilinmagan = natijalar.filter((n) => n.rol === 'RESOURCE' && ((n.pudratchiSumma == null && !mashinistMehnati(n)) || n.samaraliKategoriya === 'UNKNOWN')).length;
   const muammolarSoni = natijalar.reduce((a, n) => a + n.muammolar.length, 0);
-  const yakuniyOferta = halQilinmagan === 0 && natijalar.some((n) => n.rol === 'RESOURCE') ? pulYaxlitla(kaskadXom.vsego) : null;
+  const yakuniyOferta = natijalar.some((n) => n.rol === 'RESOURCE') ? pulYaxlitla(kaskadXom.vsego) : null;
 
   return {
     qatorlar: natijalar,

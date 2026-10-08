@@ -305,16 +305,13 @@ export type T2QatorHolat = {
    *  ARALASHTIRILMAYDI: invariant f2≤fakt≤smeta shu ikkisini alohida
    *  talab qiladi). */
   f2_hajm: number;
-  /** NULL = a certified F2 amount is unknown (price intentionally absent) — never 0. */
-  f2_summa: number | null;
+  f2_summa: number;
   /** Qoldiq — smeta dan F2 orqali OLINMAGAN qism (hali hisob-fakturaga
    *  chiqmagan). */
   qoldiq_hajm: number | null;
   qoldiq_summa: number | null;
   f2_mumkin_hajm?: number;
-  f2_mumkin_summa?: number | null;
-  /** Approved F2 lines of this row whose certified amount is unknown. */
-  f2_summa_nomalum?: number;
+  f2_mumkin_summa?: number;
   f2_narx?: number | null;
   fakt_narx?: number | null;
   f2_narx_farq_foiz?: number | null;
@@ -434,7 +431,7 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
       stOst: h ? h.qoldiq_summa : son(r.summa),
       /* `f2mum` hajm ustuni bilan bir xil qoida — bazadagi tayyor
          `f2_mumkin_summa`, u bo'lmasa fakt-f2 (manfiy bo'lmasin). */
-      stF2Mum: h ? (h.f2_mumkin_summa !== undefined ? h.f2_mumkin_summa : h.fakt_summa == null || h.f2_summa == null ? null : Math.max(0, h.fakt_summa - h.f2_summa)) : 0,
+      stF2Mum: h ? (h.f2_mumkin_summa ?? Math.max(0, h.fakt_summa - h.f2_summa)) : 0,
       faktHajm: h ? h.fakt_hajm : 0,
       qoldiqHajm: h ? h.qoldiq_hajm : son(r.hajm),
       qoldiqSumma: h ? h.qoldiq_summa : son(r.summa),

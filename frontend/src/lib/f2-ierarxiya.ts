@@ -54,7 +54,7 @@ export function f2Ierarxiya<L extends { qator_id: number }>(
   for (let i = out.length - 1; i >= 0; i--) {
     const q = out[i];
     let sum: number | null = q.qatorlar.length ? 0 : null;
-    for (const l of q.qatorlar) { const v = summaOl(l); sum = v == null || sum == null ? null : sum + Number(v); }
+    for (const l of q.qatorlar) { const v = summaOl(l); if (v != null) sum = (sum ?? 0) + Number(v); }
     let bola = 0, nomalum = false, bolaSum = 0;
     for (let j = i + 1; j < out.length && out[j].daraja > q.daraja; j++) {
       if (out[j].daraja !== q.daraja + 1) continue;
@@ -62,7 +62,7 @@ export function f2Ierarxiya<L extends { qator_id: number }>(
       if (out[j].summa == null) nomalum = true; else bolaSum += out[j].summa!;
     }
     q.bolaSoni = bola;
-    if (bola) q.summa = nomalum ? null : bolaSum + (sum ?? 0);
+    if (bola) q.summa = bolaSum + (sum ?? 0);   // egasi qoidasi: ma'lum summalar har doim yig'iladi
     else q.summa = sum;
   }
   return out;

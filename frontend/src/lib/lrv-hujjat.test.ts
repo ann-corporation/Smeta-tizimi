@@ -57,7 +57,7 @@ describe('LRV — yangi shakl (butun smeta, Ф-2 bilan bir xil yozuvchi)', () =>
     const v = t.varaqlar[0];
     const qator = (matn: string) => v.kataklar.find((k) => k.matn === matn)!.ref.replace(/^[A-Z]+/, '');
     const krovlya = qator('МОНТАЖ КРОВЕЛЬНОГО ПОКРЫТИЯ ИЗ МНОГОСЛОЙНЫХ ПАНЕЛЕЙ ЗАВОДСКОЙ ГОТОВНОСТИ ПРИ ВЫСОТЕ ДО 50 М');
-    expect(v.kataklar.find((k) => k.ref === `H${krovlya}`)?.f).toMatch(/^IF\(COUNTIFS\(T\d+:T\d+,1,H\d+:H\d+,""\)>0,"",SUMIFS\(H\d+:H\d+,T\d+:T\d+,1\)\)$/);
+    expect(v.kataklar.find((k) => k.ref === `H${krovlya}`)?.f).toMatch(/^SUMIFS\(H\d+:H\d+,T\d+:T\d+,1\)$/);
     const sendvich = qator('СЕНДВИС ПАНЕЛЬ 100КГ/М3');
     expect(v.kataklar.find((k) => k.ref === `F${sendvich}`)?.f).toBe(`ROUND(E${sendvich}*F${krovlya},6)`);
     const bolim = qator('НАРУЖНАЯ ОТДЕЛКА');
@@ -80,10 +80,12 @@ describe('LRV — yangi shakl (butun smeta, Ф-2 bilan bir xil yozuvchi)', () =>
     expect(svod.kataklar.some((k) => /^SUMIF\('LRV'!J\d+:J\d+,"МАТ",'LRV'!H\d+:H\d+\)$/.test(k.f ?? ''))).toBe(true);
   });
 
-  it('narxi noma‘lum resurs: ish va bo‘lim jami bo‘sh (NULL ≠ 0), diqqat ro‘yxatida', () => {
+  it('narxi yo‘q resurs: faqat o‘sha qator bo‘sh, jamilar ko‘rinadi, diqqat ro‘yxatida (egasi qoidasi)', () => {
     const rows = AKT246_ROWS.map((r) => (r.id === 601112 ? { ...r, narx: null } : r));
     const r = lrvHujjat(rows, [], { obyektNom: 'X' });
-    expect(r.jami).toBeNull();
+    const toliq = lrvHujjat(AKT246_ROWS, [], { obyektNom: 'X' }).jami!;
+    expect(r.jami).toBeGreaterThan(0);
+    expect(r.jami).toBeLessThan(toliq);
     const t = hujjatTekshir(r.bytes, { ruxsat: [/.*/] });
     expect(t.matnlar.some((m) => m.startsWith('ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ (1)'))).toBe(true);
   });

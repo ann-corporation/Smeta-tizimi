@@ -102,21 +102,21 @@ export function paketSvodXlsx(obyektlar: readonly PaketSvodObyekt[], imzo?: { za
     v.qator('oddiy', (r) => [
       i + 1, o.nom, h.togridanJami, h.yakuniyOferta, h.manbaKaskad.vsego,
       { f: `IF(D${r}="","",D${r}-E${r})`, v: h.yakuniyOferta == null ? '' : h.yakuniyOferta - h.manbaKaskad.vsego },
-      h.yakuniyOferta == null ? `итог не определен: ${h.halQilinmagan} поз. без цены или категории` : o.faylNomi,
+      h.halQilinmagan ? `${o.faylNomi} — ${h.halQilinmagan} поз. без цены или категории не включены в итог` : o.faylNomi,
     ]);
   });
   const oxir = bosh + obyektlar.length - 1;
-  const hammasi = obyektlar.every((o) => o.hisob.yakuniyOferta != null);
+  const hammasi = obyektlar.every((o) => o.hisob.halQilinmagan === 0);
   const jam = (k: (h: OfertaHisoblash) => number | null) => obyektlar.reduce((a, o) => a + (k(o.hisob) ?? 0), 0);
   v.qator('vsego', (r) => [
     null, 'ИТОГО ПО ПАКЕТУ',
     { f: `SUM(C${bosh}:C${oxir})`, v: jam((h) => h.togridanJami) },
-    { f: `IF(COUNTBLANK(D${bosh}:D${oxir})>0,"",SUM(D${bosh}:D${oxir}))`, v: hammasi ? jam((h) => h.yakuniyOferta) : '' },
+    { f: `SUM(D${bosh}:D${oxir})`, v: jam((h) => h.yakuniyOferta) },
     { f: `SUM(E${bosh}:E${oxir})`, v: jam((h) => h.manbaKaskad.vsego) },
-    { f: `IF(D${r}="","",D${r}-E${r})`, v: hammasi ? jam((h) => h.yakuniyOferta) - jam((h) => h.manbaKaskad.vsego) : '' },
-    hammasi ? '' : 'итог не определен — есть позиции без цены',
+    { f: `D${r}-E${r}`, v: jam((h) => h.yakuniyOferta) - jam((h) => h.manbaKaskad.vsego) },
+    hammasi ? '' : 'есть позиции без цены — не включены в итог (см. ниже)',
   ]);
-  v.diqqat(obyektlar.filter((o) => o.hisob.yakuniyOferta == null).map((o) => ({ nom: o.nom, sabab: `${o.hisob.halQilinmagan} поз. без цены или категории — итог оферты по объекту не определен` })));
+  v.diqqat(obyektlar.filter((o) => o.hisob.halQilinmagan > 0).map((o) => ({ nom: o.nom, sabab: `${o.hisob.halQilinmagan} поз. без цены или категории — не включены в итог оферты` })));
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], imzo));
   return rasmiyKitob([v], { tur: 'oferta' }).bytes;
 }

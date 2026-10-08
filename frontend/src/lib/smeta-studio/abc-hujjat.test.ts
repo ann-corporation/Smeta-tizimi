@@ -66,10 +66,11 @@ describe('ABC-shaped LRV + RES', () => {
     expect(Number(total.split('|').pop()!.replace(/[\s,]/g, ''))).toBeCloseTo(Number(c.total.amount), 2);
   });
 
-  it('unknown prices leave RES totals blank instead of a fake zero', () => {
+  it('missing prices: only those lines are blank, totals stay visible, each line is listed (owner rule 2026-10-08)', () => {
     const d = draft(false), r = abcHujjat(d, calcDoc(d), unitText);
     const flat = sheet(r.bytes, 'RES').map(x => x.join('|'));
-    expect(flat.filter(x => x.includes('|ВСЕГО|')).pop()!.split('|').pop()).toBe('');
-    expect(flat.some(x => x.includes('не определено'))).toBe(true);
+    expect(flat.filter(x => x.includes('|ВСЕГО|')).pop()!.split('|').pop()).not.toBe('');
+    expect(flat.some(x => x.includes('цена не указана'))).toBe(true);
+    expect(flat.some(x => x.includes('не определено'))).toBe(false);
   });
 });

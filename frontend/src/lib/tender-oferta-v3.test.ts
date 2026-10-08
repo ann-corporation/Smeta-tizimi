@@ -206,8 +206,8 @@ describe('oferta v3 — material bir marta, paket', () => {
     expect(strFromU8(unzipSync(n1.bytes)['xl/worksheets/sheet1.xml'])).toContain('<f>SUM(I6:I7)</f>');
     const svod = paketSvodXlsx([{ nom: 'Obyekt 1', faylNomi: 'a', hisob: h1 }, { nom: 'Obyekt 2', faylNomi: 'b', hisob: h2 }], { zakazchik: 'Z' });
     const ws = XLSX.read(svod, { type: 'array', cellFormula: true }).Sheets['СВОД ПАКЕТА'];
-    const itogo = Object.entries(ws).find(([k, c]) => !k.startsWith('!') && typeof (c as { f?: string }).f === 'string' && (c as { f: string }).f.startsWith('IF(COUNTBLANK(D'))!;
-    expect((itogo[1] as { f: string }).f).toMatch(/^IF\(COUNTBLANK\(D(\d+):D(\d+)\)>0,"",SUM\(D\1:D\2\)\)$/);
+    const itogo = Object.entries(ws).find(([k, c]) => !k.startsWith('!') && typeof (c as { f?: string }).f === 'string' && (c as { f: string }).f.startsWith('SUM(D'))!;
+    expect((itogo[1] as { f: string }).f).toMatch(/^SUM\(D\d+:D\d+\)$/);
     expect((itogo[1] as { v: number }).v).toBeCloseTo((h1.yakuniyOferta ?? 0) + (h2.yakuniyOferta ?? 0), 2);
     const zip = unzipSync(paketZip([{ nom: 'a.xlsx', bytes: n1.bytes }, { nom: 'a.xlsx', bytes: n1.bytes }]));
     expect(Object.keys(zip).sort()).toEqual(['a (2).xlsx', 'a.xlsx']);
