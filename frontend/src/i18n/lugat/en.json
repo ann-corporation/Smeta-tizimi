@@ -1182,5 +1182,8 @@
   "Grafik yangilanmadi (sahifa eskirgan bo‘lishi mumkin — savolni qayta bering)": "Schedule was not updated (the page may be stale — ask again)",
   "Eslatma saqlandi": "Note saved",
   "Noma’lum harakat": "Unknown action",
-  "Javobni to‘liq tushunib bo‘lmadi — ishlar ro‘yxati o‘zgarmadi. Iltimos, aniqroq yozing yoki qayta yuboring.": "The reply could not be fully understood — the work list is unchanged. Please be more specific or resend."
+  "Javobni to‘liq tushunib bo‘lmadi — ishlar ro‘yxati o‘zgarmadi. Iltimos, aniqroq yozing yoki qayta yuboring.": "The reply could not be fully understood — the work list is unchanged. Please be more specific or resend.",
+  "Kompaniya smetalaridan: {n} ta resursga aynan shu kod bo‘yicha narx qo‘yildi{b}.": "From the company’s estimates: exact-code price set for {n} resources{b}.",
+  " ({b} tasida birlik mos emas)": " ({b} with a different unit)",
+  "Kompaniya smetalaridan narx": "Prices from company estimates"
 }

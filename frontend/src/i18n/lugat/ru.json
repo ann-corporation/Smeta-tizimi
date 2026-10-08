@@ -1182,5 +1182,8 @@
   "Grafik yangilanmadi (sahifa eskirgan bo‘lishi mumkin — savolni qayta bering)": "График не обновлён (страница могла устареть — задайте вопрос заново)",
   "Eslatma saqlandi": "Заметка сохранена",
   "Noma’lum harakat": "Неизвестное действие",
-  "Javobni to‘liq tushunib bo‘lmadi — ishlar ro‘yxati o‘zgarmadi. Iltimos, aniqroq yozing yoki qayta yuboring.": "Ответ не удалось понять полностью — список работ не изменён. Напишите точнее или отправьте ещё раз."
+  "Javobni to‘liq tushunib bo‘lmadi — ishlar ro‘yxati o‘zgarmadi. Iltimos, aniqroq yozing yoki qayta yuboring.": "Ответ не удалось понять полностью — список работ не изменён. Напишите точнее или отправьте ещё раз.",
+  "Kompaniya smetalaridan: {n} ta resursga aynan shu kod bo‘yicha narx qo‘yildi{b}.": "Из смет компании: цена по точному коду назначена ресурсам: {n}{b}.",
+  " ({b} tasida birlik mos emas)": " (у {b} не совпала единица)",
+  "Kompaniya smetalaridan narx": "Цены из смет компании"
 }

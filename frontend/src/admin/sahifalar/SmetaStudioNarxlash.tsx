@@ -24,6 +24,7 @@ import { resourceUnitText } from '../../lib/smeta-studio/resource-units';
 import { narxAgentSora, type AgentResult } from '../../api/smeta-narx-agent';
 import { loadHourCatalog, type HourCatalog } from '../../lib/hour-price-catalog';
 import { hourPrices, labourPeriods, type HourPeriod } from '../../lib/smeta-studio/hour-pricing';
+import { kompaniyaKuzatuvlari, kompaniyaNarxlari, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
 import type { KatalogSnapshot } from '../../../functions/_shared/narx-katalog-snapshot';
 
 export const HUDUD_KALIT = 'smeta-studio:hudud';
@@ -61,6 +62,12 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
   const [soat, setSoat] = useState<HourCatalog | null>(null);
   const [davr, setDavr] = useState<HourPeriod | null>(null);
   const triedHour = useRef(new Set<string>());
+  // Source #1: the company's own estimates, exact resource code. Other sources wait for it, so a weaker
+  // match never pre-empts an exact-code price.
+  const kuzatuv = useRef(new Map<string, KuzatilganNarx[]>());
+  const sorlangan = useRef(new Set<string>());
+  const triedKomp = useRef(new Set<string>());
+  const [kompTayyor, setKompTayyor] = useState(false);
   useEffect(() => {
     let alive = true;
     loadHourCatalog().then(c => { if (!alive) return; setSoat(c); setDavr(labourPeriods(c)[0] ?? null); }).catch(() => {});
@@ -78,7 +85,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
     return () => { alive = false; };
   }, []);
   // A new draft starts with a clean "already tried" memory.
-  useEffect(() => { tried.current = new Set(); triedHour.current = new Set(); setReview([]); setAgent({ holat: 'tayyor', matn: '', natija: [] }); }, [doc.draftId]);
+  useEffect(() => { tried.current = new Set(); triedHour.current = new Set(); triedKomp.current = new Set(); setReview([]); setAgent({ holat: 'tayyor', matn: '', natija: [] }); }, [doc.draftId]);
 
   const regions = useMemo(() => {
     if (!cat) return [] as Array<[string, string]>;
@@ -113,11 +120,11 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
   // System does it: every newly appearing priceless resource is matched once (an operator's later
   // removal of a price is respected — the same line is not re-filled automatically).
   useEffect(() => {
-    if (!avto || holat !== 'tayyor') return;
+    if (!avto || holat !== 'tayyor' || !kompTayyor) return;
     const fresh = pending.filter(p => !tried.current.has(key(p)));
     if (fresh.length) narxla(fresh, t('Avto-narx'));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avto, holat, pending]);
+  }, [avto, holat, pending, kompTayyor]);
   /** Labour / machine-hours from the hour catalogue (region + period); each line is tried once. */
   function soatNarxla(majburiy: boolean) {
     if (!soat) return;
@@ -129,9 +136,37 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       { l: r.labour, m: r.machines, o: r.operatorsLeft, f: r.notFound }));
   }
   useEffect(() => {
-    if (avto && soat && ishMashina > 0) soatNarxla(false);
+    if (avto && soat && kompTayyor && ishMashina > 0) soatNarxla(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avto, soat, ishMashina, hudud, davr]);
+  }, [avto, soat, ishMashina, hudud, davr, kompTayyor]);
+
+  /** Every priceless line (any category) → exact-code price from the company's own estimates. */
+  const narxsizKalitlar = useMemo(() => {
+    const out: string[] = [];
+    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) if (l.price == null && l.resource) out.push(`${o.id}:${l.recipeId}`);
+    return out.join('|');
+  }, [doc.occurrences, hisob]);
+  async function kompNarxla(majburiy: boolean) {
+    if (kompaniyaId == null) { setKompTayyor(true); return; }
+    const kodlar: string[] = [];
+    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) {
+      if (l.price != null || !l.resource) continue;
+      for (const k of [l.resource.resourceIdCode, l.resource.code]) if (k && !sorlangan.current.has(k)) { kodlar.push(k); sorlangan.current.add(k); }
+    }
+    try {
+      if (kodlar.length) for (const [k, v] of await kompaniyaKuzatuvlari(kompaniyaId, kodlar)) kuzatuv.current.set(k, v);
+      const r = kompaniyaNarxlari(doc, hisob, kuzatuv.current, unitText, k => !majburiy && triedKomp.current.has(k));
+      for (const k of narxsizKalitlar.split('|')) if (k) triedKomp.current.add(k);
+      if (r.commands.length) command({ type: 'BATCH', label: 'Kompaniya smetalaridagi narx', commands: r.commands });
+      if (r.commands.length || majburiy) setXabar(t('Kompaniya smetalaridan: {n} ta resursga aynan shu kod bo‘yicha narx qo‘yildi{b}.',
+        { n: r.topildi, b: r.birlikMosEmas ? t(' ({b} tasida birlik mos emas)', { b: r.birlikMosEmas }) : '' }));
+    } finally { setKompTayyor(true); }
+  }
+  useEffect(() => {
+    if (avto && narxsizKalitlar) void kompNarxla(false);
+    else setKompTayyor(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avto, narxsizKalitlar, kompaniyaId]);
 
   const agentTaklifBor = agent.natija.some(a => a.tanlov);
   const openReview = review.filter(r => pending.some(p => key(p) === key(r)));
@@ -183,6 +218,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
           {regions.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select></label>
       <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={avto} onChange={e => { setAvto(e.target.checked); lsSet(AVTO_KALIT, e.target.checked ? '1' : '0'); }} />{t('Avto-narx')}</label>
+      <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={kompaniyaId == null} onClick={() => void kompNarxla(true)}>{t('Kompaniya smetalaridan narx')}</button>
       <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={holat !== 'tayyor' || !pending.length} onClick={() => narxla(pending, t('Qayta tekshiruv'))}>
         {t('Narxsizlarni katalogdan topish ({n})', { n: pending.length })}</button>
       <span className="flex-1" />
