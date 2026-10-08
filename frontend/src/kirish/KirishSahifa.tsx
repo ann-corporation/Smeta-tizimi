@@ -1,13 +1,12 @@
-import { useState, useRef, Suspense, lazy } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, ShieldCheck, Lock, User, ArrowRight, Building2, FlaskConical, Mail, Phone } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Lock, User, ArrowRight, Building2, Mail, Phone } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import GoogleKirish, { type GoogleNatija } from './GoogleKirish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
-
-const Sahna3D = lazy(() => import('./Sahna3D'));
+import { PublicEntry } from '../components/public-entry/PublicEntry';
 
 export default function KirishSahifa() {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,6 +14,7 @@ export default function KirishSahifa() {
   // Login form state
   const [login, setLogin] = useState('');
   const [parol, setParol] = useState('');
+  const [parolKor, setParolKor] = useState(false);
   
   // Register form state
   const [regKompaniya, setRegKompaniya] = useState('');
@@ -30,7 +30,6 @@ export default function KirishSahifa() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const [uch_D, setUch_D] = useState(() => localStorage.getItem('uchD') !== 'off');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +53,8 @@ export default function KirishSahifa() {
       } else {
         setError(data.xato || 'Xato yuz berdi');
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch {
+      setError('Tizimga ulanish amalga oshmadi. Qayta urinib ko‘ring.');
     } finally {
       setLoading(false);
     }
@@ -98,8 +97,8 @@ export default function KirishSahifa() {
       if (!kd.ok) { toast("Hisob yaratildi. Endi login va parol bilan kiring.", 'ok'); setIsLogin(true); setLogin(l); setParol(''); return; }
       toast(d.demo ? 'Xush kelibsiz! Bepul tokenlar va demo obyekt tayyor.' : 'Xush kelibsiz! Bepul tokenlar hisobingizda.', 'ok');
       navigate('/admin/tokenlar');
-    } catch (err: any) {
-      setError(err.message || 'Tarmoq xatosi');
+    } catch {
+      setError('Tizimga ulanish amalga oshmadi. Qayta urinib ko‘ring.');
     } finally {
       setLoading(false);
     }
@@ -135,84 +134,8 @@ export default function KirishSahifa() {
   const handleSuperadminLogin = () => loginniToldir('Anvar');
 
   return (
-    <div className="flex w-full h-screen overflow-hidden bg-[#020617] text-white">
-      
-      {/* LEFT SIDE: Visual & Branding */}
-      <div className="relative hidden lg:flex flex-1 items-center justify-center overflow-hidden border-r border-white/10">
-        
-        {/* 3D Background */}
-        {uch_D && (
-          <div className="absolute inset-0 z-0">
-            <Suspense fallback={<div className="w-full h-full bg-gradient-to-br from-[#020617] to-indigo-950 opacity-50" />}>
-              <Sahna3D />
-            </Suspense>
-          </div>
-        )}
-        
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-black/40 to-[#020617]/80 z-10 pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10 z-10 pointer-events-none" />
-
-        <div className="relative z-20 flex flex-col p-12 w-full h-full justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-              <Building2 className="text-indigo-400" size={24} />
-            </div>
-            <span className="text-xl font-bold tracking-widest text-white">SMETA OS<span className="text-indigo-500">.</span></span>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-xl"
-          >
-            <h1 className="text-5xl font-extrabold text-white leading-tight mb-6 tracking-tight">
-              {t('Qurilishni')} <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{t('raqamli boshqaring')}</span>
-            </h1>
-            <p className="text-zinc-400 text-lg leading-relaxed mb-8">
-              {t("Barcha loyihalar, smetalar va pudratchilarni bir joyda nazorat qiling. O‘zbekistonning ilg‘or qurilish boshqaruv platformasi.")}
-            </p>
-            
-            <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-zinc-300">
-              <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2 border border-white/10 backdrop-blur-md">
-                <ShieldCheck size={16} className="text-emerald-400" />
-                {t('Yuqori darajadagi himoya')}
-              </div>
-              <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2 border border-white/10 backdrop-blur-md">
-                <FlaskConical size={16} className="text-indigo-400" />
-                {t('Ko‘p kompaniyali tizim')}
-              </div>
-            </div>
-          </motion.div>
-          
-          <div className="text-zinc-500 text-sm font-medium flex justify-between items-center w-full pr-12">
-            <span>{t('© 2026 O‘zbekiston. Barcha huquqlar himoyalangan.')}</span>
-            
-            <button
-              onClick={() => {
-                const newVal = !uch_D;
-                setUch_D(newVal);
-                localStorage.setItem('uchD', newVal ? 'on' : 'off');
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 backdrop-blur border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              {uch_D ? <Eye size={14} /> : <EyeOff size={14} />}
-              <span>{t('3D fon:')} {uch_D ? t('Yoqilgan') : t('O‘chirilgan')}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT SIDE: Login / Register Form */}
-      <div className="w-full lg:w-[480px] xl:w-[560px] flex flex-col justify-center items-center p-8 sm:p-12 xl:p-16 bg-[#020617] relative z-20 overflow-y-auto custom-scrollbar">
-        
-        <div className="w-full max-w-sm py-8">
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
-              <Building2 className="text-indigo-400" size={24} />
-            </div>
-            <span className="text-xl font-bold tracking-widest text-white">SMETA OS<span className="text-indigo-500">.</span></span>
-          </div>
+    <PublicEntry onChooseAuth={(mode) => { setIsLogin(mode === "login"); setError(""); }}>
+        <div className="w-full py-8">
 
           <div className="mb-3 flex justify-end"><TilTanlagich /></div>
           <div className="flex bg-[#0a0f1d] border border-white/10 p-1 rounded-xl mb-8">
@@ -230,7 +153,7 @@ export default function KirishSahifa() {
             </button>
           </div>
 
-          <AnimatePresence mode="wait">
+          <div>
             {isLogin ? (
               <motion.div
                 key="login"
@@ -245,32 +168,36 @@ export default function KirishSahifa() {
                 <div className="mb-5"><GoogleKirish matn="signin_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
                 <form onSubmit={handleLogin} className="flex flex-col gap-5">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Login')}</label>
+                    <label htmlFor="entry-login" className="text-sm font-medium text-zinc-300">{t('Login')}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input
                         type="text"
+                        id="entry-login"
+                        autoComplete="username"
                         value={login}
                         onChange={e => setLogin(e.target.value)}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                         placeholder={t('foydalanuvchi_nomi')}
-                        autoFocus
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-zinc-300">{t('Parol')}</label>
+                    <label htmlFor="entry-password" className="text-sm font-medium text-zinc-300">{t('Parol')}</label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                       <input
                         ref={parolMaydoni}
-                        type="password"
+                        id="entry-password"
+                        autoComplete="current-password"
+                        type={parolKor ? 'text' : 'password'}
                         value={parol}
                         onChange={e => setParol(e.target.value)}
                         className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                         placeholder="••••••••"
                       />
+                      <button type="button" onClick={() => setParolKor(!parolKor)} aria-label={t(parolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">{parolKor ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                     </div>
                   </div>
                   
@@ -424,9 +351,8 @@ export default function KirishSahifa() {
                 </p>
               </motion.div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
-      </div>
-    </div>
+    </PublicEntry>
   );
 }

@@ -3,6 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-PUBLIC-ENTRY-UI-20261008",
+      "title": "Egasi bevosita topshirig'i: public intro va mavjud login/signup presentation",
+      "owner": "codex",
+      "machine": "noutbuk-public-entry",
+      "branch": "codex/public-entry-ui-20261008",
+      "base_sha": "1ef3e6d4b8b282fda8e534196c7d55d1918f135f",
+      "status": "in_progress",
+      "owns": ["frontend/src/components/public-entry/", "frontend/src/kirish/KirishSahifa.tsx", "frontend/src/kirish/KirishSahifa.public.test.tsx", "ops/handoff/T2_PUBLIC_ENTRY_SUPPORT_20261008.md", "ops/mailbox/T2-PUBLIC-ENTRY-UI-20261008/"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md", "docs/governance/AGENT_CAPABILITY_POLICY.md", "ops/handoff/T2_PUBLIC_ENTRY_SUPPORT_20261008.md"],
+      "production_write_allowed": false,
+      "_izoh": "Egasi 2026-10-08 qurishni boshla dedi. Registry faqat yangi isolated task row bilan additiv yangilandi; boshqa task owns/status o'zgarmadi. Auth/server/AI agent platformasi tahrirlanmaydi; operator support backend binding Claude bilan koordinatsiyada. Main/prod release Claude'da."
+    },
+    {
       "id": "T2-JARVIS-ANSWER-20261006",
       "title": "Jarvis foydali javoblar, dalilli summalar va OpenRouter priority",
       "owner": "codex", "machine": "noutbuk", "branch": "codex/catalog-hierarchy-review-v1",

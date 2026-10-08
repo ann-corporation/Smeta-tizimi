@@ -68,6 +68,34 @@ komponent/API mavjud bo'lsa qayta ishlatiladi; public endpoint invented emas.
 NULL adversarial task saqlanadi; navbat Claude bilan kelishiladi.
 
 ## Status
-REQUIREMENTS_CAPTURED / OWNERSHIP_REQUESTED. Sahifa implementatsiyasi,
-skrinshot corpus va jonli AI→owner chat hali tayyor emas. Shu hujjatni
-production readiness deb qabul qilmaslik kerak.
+SOURCE IMPLEMENTED (frontend checkpoint), production readiness EMAS.
+
+Branch `codex/public-entry-ui-20261008`, task T2-PUBLIC-ENTRY-UI-20261008.
+Yangi task registry'ga faqat additiv qo'shildi; boshqa task qulflari o'zgarmadi.
+`PublicEntry.tsx` + scoped CSS haqiqiy KirishSahifa'ga ulandi: responsive intro,
+process/features/FAQ/contact, phone, existing auth slot; 3D kirish dependency
+olib tashlandi. Login/sign up/email-code/Google server oqimi saqlandi.
+Login label/autocomplete/show-password va generic network error qo'shildi.
+Intro matnlari uz/ru/en, kirill mavjud t() orqali. Existing auth tarjimalari
+mavjud i18n qatlamidan. Tarjima to'liq mahsulot bo'yicha qayta tekshirilmadi.
+
+`PublicSupportPort` + `SupportConversation` frontend kodi: versioned snapshot,
+AI/HUMAN/WAITING/CLOSED holatlari, send/requestOperator, retry operation_id,
+abort/epoch guard, timeout, 5s polling, UI/state so'nggi 100 xabar bilan
+chegaralangan. Port yo'q paytda FAQ+phone; fake yuborish/chat receipt yo'q.
+Bu server RLS/auth/budget/AI-human arbitrationning o'rnini BOSMAYDI.
+Backend adapter `KirishSahifa`ga hali BERILMAGAN; user jonli operator chatdan
+foydalana olmaydi. Claude AI platforma/backend lane bilan ulash kerak.
+
+16 focused tests PASS: KirishSahifa existing4 + public7 + support5.
+Focused oxlint PASS (warninglar tuzatildi). Functions standalone typecheck
+PASS (undan keyingi tekshir bosqichi boshlandi). Full app build/tekshir
+yakuniy natijasi alohida mailbox checkpointda yoziladi; hozir da'vo yo'q.
+Governance PASS75task, diff-check PASS; stale CURRENT_STATE SHA warning.
+Lokal HTTP200; ichki brauzer localhostga CONNECTION_REFUSED berdi, desktop/
+mobile visual smoke hali UNKNOWN. Authenticated signup/login live smoke yo'q.
+
+Qolganlar: haqiqiy anonimlashtirilgan screenshot corpus (`screenshots` prop
+tayyor, rasm berilmaguncha gallery chizilmaydi), public support gateway + owner
+operator inbox + receipt/notifications + human takeover server guard, real
+mobile/desktop preview QA, integrator release. Main/prod/DB o'zgartirilmadi.
