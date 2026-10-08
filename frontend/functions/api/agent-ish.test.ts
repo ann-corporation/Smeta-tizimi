@@ -360,6 +360,72 @@ describe('agent-ish shlyuzi', () => {
       expect(JSON.parse(String((f.mock.calls[f.mock.calls.length - 1] as unknown as [string, RequestInit])[1].body))).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_hamma: true });
     });
 
+    const uslubli = (modelMatni: string, uslub: Record<string, unknown>) => {
+      const asos = toliq(modelMatni);
+      return vi.fn(async (u: string, init?: RequestInit) => (String(u).includes('t2_agent_uslub_v1') ? rpcJavob({ ok: true, ...uslub })
+        : String(u).includes('t2_agent_uslub_yangila_v1') ? rpcJavob({ ok: true, saqlandi: true }) : asos(u, init)));
+    };
+    const modelSoroviga = (f: ReturnType<typeof vi.fn>) => JSON.stringify(JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('openrouter.ai')) as unknown as [string, RequestInit])[1].body)).messages);
+
+    it('tizim bilimi: savolga tegishli atama va sahifa mantig‘i promptga qo‘shiladi, qadamda ko‘rinadi', async () => {
+      const f = uslubli('{"javob":"Xo‘sh","harakatlar":[]}', { xususiyat: {}, korsatma: null, yoqilgan: true }); vi.stubGlobal('fetch', f);
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Grafikdagi rz va bl qator turlari nima?', sahifa: '/admin/f2-tarix' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const j = await r.json() as { qadamlar: Array<{ matn: string }> };
+      const p = modelSoroviga(f);
+      expect(p).toContain('TIZIM BILIMI'); expect(p).toContain('Smeta qator turlari'); expect(p).toContain('F2 tarixi va tasdiqlash');
+      expect(j.qadamlar.map((q) => q.matn).join(' ')).toMatch(/Tizim bilimi qo‘shildi/);
+    });
+
+    it('uslub: o‘rganilgan belgi va ko‘rsatma promptga ketadi; faqat SHAKL saqlanadi (savol matni emas); o‘chirilgan bo‘lsa na prompt, na saqlash', async () => {
+      const xus = { n: 8, ru: 0.9, uzunlik: 30, batafsil: 0, qisqa: 0.5, jadval: 0, rasmiy: 0 };
+      const f = uslubli('{"javob":"Xo‘sh","harakatlar":[]}', { xususiyat: xus, korsatma: 'Avval xulosa yoz', yoqilgan: true }); vi.stubGlobal('fetch', f);
+      await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const p = modelSoroviga(f);
+      expect(p).toContain('FOYDALANUVCHI USLUBI'); expect(p).toContain('asosan ruscha'); expect(p).toContain('Avval xulosa yoz');
+      const yoz = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_uslub_yangila_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(yoz.p_actor_id).toBe(7); expect(yoz.p_xususiyat.n).toBe(9); expect(JSON.stringify(yoz)).not.toContain('sement');
+
+      const f2 = uslubli('{"javob":"Xo‘sh","harakatlar":[]}', { xususiyat: xus, korsatma: 'Avval xulosa yoz', yoqilgan: false }); vi.stubGlobal('fetch', f2);
+      await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      expect(modelSoroviga(f2)).not.toContain('FOYDALANUVCHI USLUBI');
+      expect(f2.mock.calls.some(([u]) => String(u).includes('t2_agent_uslub_yangila_v1'))).toBe(false);
+    });
+
+    it('sahifa ochish: faqat katalogdagi yo‘l qabul qilinadi (o‘ylab topilgan va tashqi havola tashlanadi); navigatsiya savolida tokensiz qidiruv qo‘shiladi', async () => {
+      const f = toliq('{"javob":"Mana.","harakatlar":[],"otish":"/admin/m29"}'); vi.stubGlobal('fetch', f);
+      let j = await (await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Material sarfi hisobotini ko‘rsat' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }))).json() as { sahifalar: Array<{ yol: string }> };
+      expect(j.sahifalar.map((x) => x.yol)).toEqual(['/admin/m29']);
+      vi.stubGlobal('fetch', toliq('{"javob":"Mana.","harakatlar":[],"otish":"https://evil.example/x"}'));
+      j = await (await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Material sarfi hisobotini ko‘rsat' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }))).json() as { sahifalar: Array<{ yol: string }> };
+      expect(j.sahifalar).toEqual([]);
+      vi.stubGlobal('fetch', toliq('{"javob":"Mana.","harakatlar":[],"otish":"/admin/yoq-sahifa"}'));
+      j = await (await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Nakopitelniy qayerda?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }))).json() as { sahifalar: Array<{ yol: string }> };
+      expect(j.sahifalar.map((x) => x.yol)).toContain('/admin/nakopitelniy');
+      expect(j.sahifalar.map((x) => x.yol)).not.toContain('/admin/yoq-sahifa');
+    });
+
+    it('tizim_yordam: kompaniyasiz va TOKENSIZ (model/baza chaqirilmaydi); mos qo‘llanma yo‘q bo‘lsa halol aytadi', async () => {
+      const f = vi.fn(async () => new Response('{}', { status: 500 })); vi.stubGlobal('fetch', f);
+      const j = await (await post({ amal: 'tizim_yordam', savol: 'F2 nima?' })).json() as { ok: boolean; javob: string; topildi: boolean; model: string };
+      expect(j).toMatchObject({ ok: true, topildi: true, model: 'local' }); expect(j.javob).toContain('Акт приёмки');
+      const bos = await (await post({ amal: 'tizim_yordam', savol: 'qwertyuiop' })).json() as { topildi: boolean; javob: string };
+      expect(bos.topildi).toBe(false); expect(bos.javob).toContain('topilmadi');
+      expect((await post({ amal: 'tizim_yordam' })).status).toBe(400);
+      expect(f.mock.calls.length).toBe(0);
+    });
+
+    it('uslub va shaxsiy model amallari faqat sessiyadagi foydalanuvchi nomidan; GET uslub odam o‘qiydigan xulosa qaytaradi', async () => {
+      const f = vi.fn(async (u: string) => rpcJavob(String(u).includes('t2_agent_uslub_v1') ? { ok: true, xususiyat: { n: 9, ru: 1, uzunlik: 20, batafsil: 0, qisqa: 0, jadval: 0, rasmiy: 0 }, korsatma: null, yoqilgan: true } : { ok: true }));
+      vi.stubGlobal('fetch', f);
+      expect((await post({ amal: 'uslub_saqla', korsatma: 'Qisqa yoz', yoqilgan: true, p_actor_id: 999 })).status).toBe(200);
+      expect((await post({ amal: 'uslub_tozala' })).status).toBe(200);
+      expect((await post({ amal: 'model_shaxsiy_tanla', profil: 'prorab', model_id: 'google/gemini-2.5-flash-lite' })).status).toBe(200);
+      expect((await post({ amal: 'model_shaxsiy_tanla', model_id: 'x/y' })).status).toBe(400);
+      for (const c of f.mock.calls) expect(JSON.parse(String((c as unknown as [string, RequestInit])[1].body)).p_actor_id).toBe(7);
+      const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=uslub'), env: env() } as never);
+      expect((await g.json() as { xulosa: string[] }).xulosa.join(' ')).toContain('ruscha');
+    });
+
     it('kompaniyasiz so‘rov 422; ruxsatsiz kompaniya bazada rad (model yo‘q)', async () => {
       vi.stubGlobal('fetch', vi.fn(async (u: string) => (String(u).includes('t2_agent_kasb_v1') ? rpcJavob({ ok: false, code: 'COMPANY_ACCESS_DENIED' }) : new Response('{}', { status: 500 }))));
       expect((await post({ amal: 'kasb_savol', savol: 'Salom' })).status).toBe(422);

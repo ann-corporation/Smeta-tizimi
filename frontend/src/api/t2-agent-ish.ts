@@ -113,8 +113,10 @@ export type Qadam = { ms: number; belgi: string; matn: string };
 export type HarakatTaklif = {
   id: number; amal: string; parametrlar: Record<string, unknown>; xavf: 'past' | 'orta' | 'yuqori'; avto: boolean; ogohlantirish: string | null; tushuntirish: string;
 };
+export type SahifaIshora = { yol: string; nom: string };
 export type KasbYakun = {
   ok: boolean; status?: number; javob?: string; rad?: boolean; kasb?: { nom: string; rol: string; profil: string }; harakatlar?: HarakatTaklif[];
+  sahifalar?: SahifaIshora[]; model_manba?: 'foydalanuvchi' | 'kompaniya' | 'platforma' | null;
   toifalar?: string[]; model?: string; ms?: number; jurnal_id?: number | null; qadamlar?: Qadam[]; error?: string; code?: string;
 };
 
@@ -159,5 +161,15 @@ export const jurnalOl = (k: number, hamma = false) => agentOqi<{ hamma: boolean;
 export type ShaxsiySozlama = { til: 'auto' | 'uz' | 'ru'; uslub: 'qisqa' | 'batafsil'; ishonch: 'sora' | 'jiddiy' | 'avto' };
 export const shaxsiyOl = () => agentOqi<ShaxsiySozlama>('shaxsiy', null);
 export const shaxsiySaqla = (p: ShaxsiySozlama) => agentYoz('shaxsiy_saqla', null, { ...p });
-export const harakatQarori = (harakatId: number, qaror: 'tasdiqlash' | 'rad') => agentYoz<{ holat: string }>('harakat_qaror', null, { harakat_id: harakatId, qaror });
+/* Foydalanuvchi uslubi (o'rganilgan shakl belgilari + o'z ko'rsatmasi), shaxsiy model tanlovi, kompaniyasiz tokensiz tizim yordamchisi */
+export type UslubHolati = { xususiyat: Record<string, number>; xulosa: string[]; korsatma: string | null; yoqilgan: boolean };
+export const uslubOl = () => agentOqi<UslubHolati>('uslub', null);
+export const uslubSaqla = (korsatma: string, yoqilgan: boolean) => agentYoz('uslub_saqla', null, { korsatma, yoqilgan });
+export const uslubTozala = () => agentYoz('uslub_tozala', null);
+export type ShaxsiyModelTanlovi = { tanlovlar: Array<{ profil: string; model_id: string }> };
+export const modelShaxsiyOl = () => agentOqi<ShaxsiyModelTanlovi>('model_shaxsiy', null);
+export const modelShaxsiyTanla = (profil: string, modelId: string | null) => agentYoz('model_shaxsiy_tanla', null, { profil, model_id: modelId });
+export type TizimYordam = { javob: string; sahifalar: SahifaIshora[]; topildi: boolean };
+export const tizimYordamSavol = (savol: string, sahifa?: string) => agentYoz<TizimYordam>('tizim_yordam', null, { savol, sahifa });
+export const harakatQarori =(harakatId: number, qaror: 'tasdiqlash' | 'rad') => agentYoz<{ holat: string }>('harakat_qaror', null, { harakat_id: harakatId, qaror });
 export const harakatNatijasi = (harakatId: number, ok: boolean, natija: Record<string, unknown>) => agentYoz('harakat_natija', null, { harakat_id: harakatId, ok, natija });
