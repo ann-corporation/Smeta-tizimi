@@ -2185,6 +2185,34 @@
       ],
       "production_write_allowed": false,
       "_izoh": "Egasi talabi 2026-10-06: har kasb uchun AI ishchi; ma’lumot lavozim doirasidan chiqmasin; tizim AI Boshqaruv panelida (superadmin); xarajat nazorati, provayder sarfi × ustama → token; model tanlash + tavsiya; foydalanuvchi har qadamni ko‘rsin va jiddiy qarorni o‘zi tasdiqlasin. Umumiy fayllar additiv: AiHelper.tsx, Toast.tsx, AiAgentlar.tsx, BoshqaruvPanel.tsx, _shared/ai.ts. Smeta-AI (T2-SMETACHI-AI-001) o‘z mantig‘ini yozadi, lekin model chaqiruvini _shared/agent-hisob.ts aiHisobli orqali o‘tkazadi."
+    },
+    {
+      "id": "T2-CATALOG-UPLOAD-SCOPES-001",
+      "title": "Owner: company catalogue uploads and superadmin immutable platform source uploads; PTO reference R2 receipt",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/catalog-upload-scopes-v1",
+      "base_sha": "1ef3e6d4b8b282fda8e534196c7d55d1918f135f",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/functions/api/catalog-release.ts",
+        "frontend/functions/api/catalog-release.test.ts",
+        "frontend/src/lib/catalog-release/",
+        "frontend/src/admin/catalog-release/",
+        "frontend/src/admin/sahifalar/BoshqaruvPanel.tsx",
+        "frontend/src/i18n/lugat/ru.json",
+        "frontend/src/i18n/lugat/en.json",
+        "frontend/src/lib/sayt-xaritasi/generated.ts",
+        "ops/handoff/T2_CATALOG_UPLOAD_SCOPES_001.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/OWNER_AUTHORIZATION.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "Direct owner 2026-10-08. Existing company imports retained; platform ingestion to content-addressed private R2. Existing locked studio/price catalog API and DB truth unchanged. Shared control/dictionaries additive only. Deployment/integration handled by Claude."
     }
   ]
 }
