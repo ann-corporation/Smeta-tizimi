@@ -8,12 +8,12 @@ const initial: SupportSnapshot = { version: 0, mode: 'AI_ASSISTING', messages: [
 const port = (override: Partial<PublicSupportPort> = {}): PublicSupportPort => ({
   read: vi.fn(async () => initial),
   send: vi.fn(async () => initial),
-  requestOperator: vi.fn(async () => ({ version: 1, mode: 'WAITING_OPERATOR', messages: [] })),
+  requestOperator: vi.fn(async (): Promise<SupportSnapshot> => ({ version: 1, mode: 'WAITING_OPERATOR', messages: [] })),
   ...override,
 });
 describe('Public support server kontrakti', () => {
   it('xabar server transcriptidan keladi va human holati aniq ko‘rsatiladi', async () => {
-    const p = port({ read: vi.fn(async () => ({ version: 1, mode: 'HUMAN_ACTIVE', messages: [{ id: '1', author: 'operator', text: 'Qaysi sahifada muammo?' }] })) });
+    const p = port({ read: vi.fn(async (): Promise<SupportSnapshot> => ({ version: 1, mode: 'HUMAN_ACTIVE', messages: [{ id: '1', author: 'operator', text: 'Qaysi sahifada muammo?' }] })) });
     render(<SupportConversation port={p} />);
     expect(await screen.findByText('Operator suhbatga qo‘shildi')).toBeTruthy();
     expect(screen.getByText('Qaysi sahifada muammo?')).toBeTruthy();
@@ -42,16 +42,16 @@ describe('Public support server kontrakti', () => {
   });
   it('port/sessiya o‘zgarsa kechikkan eski suhbat ko‘rinmaydi', async () => {
     let resolve!: (v: SupportSnapshot) => void;
-    const slow = port({ read: vi.fn(() => new Promise(r => { resolve = r; })) });
+    const slow = port({ read: vi.fn(() => new Promise<SupportSnapshot>(r => { resolve = r; })) });
     const { rerender } = render(<SupportConversation port={slow} />);
-    rerender(<SupportConversation port={port({ read: vi.fn(async () => ({ version: 0, mode: 'HUMAN_ACTIVE', messages: [{ id: 'new', author: 'operator', text: 'Yangi sessiya' }] })) })} />);
+    rerender(<SupportConversation port={port({ read: vi.fn(async (): Promise<SupportSnapshot> => ({ version: 0, mode: 'HUMAN_ACTIVE', messages: [{ id: 'new', author: 'operator', text: 'Yangi sessiya' }] })) })} />);
     expect(await screen.findByText('Yangi sessiya')).toBeTruthy();
     resolve({ version: 9, mode: 'AI_ASSISTING', messages: [{ id: 'old', author: 'assistant', text: 'Eski sessiya' }] });
     await Promise.resolve();
     expect(screen.queryByText('Eski sessiya')).toBeNull();
   });
   it('yopilgan suhbatda write yo‘q va render 100 xabar bilan chegaralangan', async () => {
-    const p = port({ read: vi.fn(async () => ({ version: 2, mode: 'CLOSED', messages: Array.from({ length: 150 }, (_, i) => ({ id: String(i), author: 'visitor' as const, text: `Xabar ${i}` })) })) });
+    const p = port({ read: vi.fn(async (): Promise<SupportSnapshot> => ({ version: 2, mode: 'CLOSED', messages: Array.from({ length: 150 }, (_, i) => ({ id: String(i), author: 'visitor' as const, text: `Xabar ${i}` })) })) });
     render(<SupportConversation port={p} />);
     await screen.findByText('Murojaat yopilgan');
     expect(screen.getByRole('log').querySelectorAll('article').length).toBe(100);

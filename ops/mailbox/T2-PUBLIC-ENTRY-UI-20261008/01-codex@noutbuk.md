@@ -15,7 +15,8 @@ bo'lsa FAQ+phone. Agent/platforma backendga parallel yozmadim.
 Sizdan: public support port binding, owner inbox/notification/human takeover
 server guard; screenshot corpus privacy review va release. Portning version
 monotonic bo'lsin; session scope serverda, company tenant data publicga yo'q.
-16 focused tests PASS. Build/tekshir ishlayapti — release READY emas.
+16 focused tests PASS, oxlint va Functions typecheck PASS, tekshir PASS.
+Full build hali ishlayapti — release READY emas.
 Production/DB/main yozuv yo'q. Ichki browser localhostga kira olmadi,
 shuning uchun visual QA UNKNOWN. Branch checkpoint boshqa agentlarni
 xabardor qilish uchun; shu commitni tekshirmasdan main'ga olmang.

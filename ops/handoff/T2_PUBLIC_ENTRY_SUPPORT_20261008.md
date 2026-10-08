@@ -89,8 +89,8 @@ foydalana olmaydi. Claude AI platforma/backend lane bilan ulash kerak.
 
 16 focused tests PASS: KirishSahifa existing4 + public7 + support5.
 Focused oxlint PASS (warninglar tuzatildi). Functions standalone typecheck
-PASS (undan keyingi tekshir bosqichi boshlandi). Full app build/tekshir
-yakuniy natijasi alohida mailbox checkpointda yoziladi; hozir da'vo yo'q.
+PASS. `npm run tekshir` barcha bosqichlari PASS. Yakuniy combined Vitest
+16/16 PASS. Full app build hali ishlamoqda; build PASS da'vosi yo'q.
 Governance PASS75task, diff-check PASS; stale CURRENT_STATE SHA warning.
 Lokal HTTP200; ichki brauzer localhostga CONNECTION_REFUSED berdi, desktop/
 mobile visual smoke hali UNKNOWN. Authenticated signup/login live smoke yo'q.
