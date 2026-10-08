@@ -36,6 +36,8 @@ function validDate(text: string): boolean {
 export function analyzeTextEvidence(pages: readonly TextPageSource[]) {
   const familyCandidates: Array<TextCandidate & { family: DocumentFamily }> = [];
   const fields: TextFieldCandidate[] = [];
+  const normReferences: Array<TextCandidate & { code: string }> = [];
+  const publicationMarkers: Array<TextCandidate & { marker: 'draft' | 'official_edition' }> = [];
   const issues: Array<{ page: number; line: number; code: string; raw: string }> = [];
   for (const page of pages) {
     const lines = page.text.split(/\r\n|\n|\r/);
@@ -43,6 +45,12 @@ export function analyzeTextEvidence(pages: readonly TextPageSource[]) {
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i];
       const evidence: TextCandidate = { page: page.page, line: i + 1, raw, rule: 'explicit_source_label', origin: page.origin, reviewRequired: true };
+      // A reference identifies cited text, never its current legal validity.
+      for (const match of raw.matchAll(/(?:ШН[КҚ]|SHN[QK]|КМК|QMQ)\s*\d{1,2}\.\d{2}\.\d{2}\s*[-–—]\s*\d{2,4}/giu)) {
+        normReferences.push({ ...evidence, rule: 'literal_norm_reference', code: match[0] });
+      }
+      if (/^\s*(?:ПРОЕКТ|ЛОЙИҲА|LOYIHA|DRAFT)\s*$/iu.test(raw)) publicationMarkers.push({ ...evidence, rule: 'standalone_publication_marker', marker: 'draft' });
+      if (/^\s*(?:ОФИЦИАЛЬНОЕ ИЗДАНИЕ|РАСМИЙ НАШР|RASMIY NASHR)\s*$/iu.test(raw)) publicationMarkers.push({ ...evidence, rule: 'standalone_publication_marker', marker: 'official_edition' });
       // Titles may wrap. Keep the original lines; the regex uses whitespace only.
       if (i < 40) {
         const window = lines.slice(i, i + 3).join('\n');
@@ -71,5 +79,5 @@ export function analyzeTextEvidence(pages: readonly TextPageSource[]) {
     }
   }
   if (!familyCandidates.length) issues.push({ page: pages[0]?.page ?? 0, line: 0, code: 'DOCUMENT_FAMILY_UNKNOWN', raw: '' });
-  return { familyCandidates, fields, issues, canonicalWriteAllowed: false as const };
+  return { familyCandidates, fields, issues, normReferences, publicationMarkers, normativeActivationAllowed: false as const, canonicalWriteAllowed: false as const };
 }

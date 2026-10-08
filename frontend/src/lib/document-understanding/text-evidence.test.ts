@@ -3,6 +3,20 @@ import { analyzeTextEvidence } from './text-evidence';
 import { understandText } from './index';
 
 describe('native/OCR semantic source candidates', () => {
+  it('preserves cited editions and draft markers without approving a norm', () => {
+    const result = analyzeTextEvidence([{ page: 2, origin: 'native', text: 'ПРОЕКТ\nШНК 4.02.70–05\nВзамен КМК 4.02.70-96\nРАСМИЙ НАШР' }]);
+    expect(result.normReferences.map((item) => item.code)).toEqual(['ШНК 4.02.70–05', 'КМК 4.02.70-96']);
+    expect(result.publicationMarkers.map((item) => item.marker)).toEqual(['draft', 'official_edition']);
+    expect(result.normativeActivationAllowed).toBe(false);
+    expect(result.normReferences[0]).toMatchObject({ page: 2, line: 2, raw: 'ШНК 4.02.70–05', reviewRequired: true });
+  });
+
+  it('does not mistake an ordinary project name for draft publication status or repair OCR codes', () => {
+    const result = analyzeTextEvidence([{ page: 1, origin: 'ocr', text: 'LOYIHA NOMI: maktab\nIIIHTC 4.01.16-09\nШНҚ 4.02.00-20' }]);
+    expect(result.publicationMarkers).toEqual([]);
+    expect(result.normReferences.map((item) => item.code)).toEqual(['ШНҚ 4.02.00-20']);
+    expect(result.normReferences[0].origin).toBe('ocr');
+  });
   it('finds wrapped F2 titles and explicit fields without choosing a company identity', () => {
     const text = 'АКТ О ПРИЁМКЕ\nВЫПОЛНЕННЫХ РАБОТ\nАКТ № 17/А\nДоговор № D-2026\nЗаказчик: ООО «Пример»\nПодрядчик: ООО «Работа»\nОтчетный период: сентябрь 2026\nИТОГО: 1 234,50 UZS';
     const result = analyzeTextEvidence([{ page: 3, text, origin: 'native' }]);
