@@ -5,6 +5,7 @@
  */
 import { varaqniTahlilQil } from './varaq';
 import { erkinVaraqlar } from './erkin';
+import { analyzeWorkbookEvidence, type WorkbookEvidence } from '../document-understanding/evidence';
 import type { ErkinVaraq, KirishKitob, ReviewBand, VaraqAnatomiyasi } from './turlar';
 
 export interface KitobAnatomiyasi {
@@ -16,6 +17,8 @@ export interface KitobAnatomiyasi {
   asosiyLrv: string | null;
   dublikat: Array<{ varaq: string; asl: string; sabab: string }>;
   review: ReviewBand[];
+  /** Lossless source facts, formulas, explicit rates and unassigned rows. */
+  sourceEvidence: WorkbookEvidence;
 }
 
 /** Ikki LRV varag'i bir xil ishlarni beradimi (shifr + hajm ketma-ketligi). */
@@ -51,7 +54,8 @@ export function kitobAnatomiyasi(kitob: KirishKitob): KitobAnatomiyasi {
   for (const e of erkin) {
     if (!e.yakuniy) review.push({ kod: 'erkin_summa_yoq', izoh: `"${e.varaq}" varag'ida ИТОГО/ВСЕГО summasi topilmadi — operator ko'rib chiqadi` });
   }
-  return { fayl: kitob.fayl, varaqlar, erkin, asosiyLrv: asosiylar[0]?.varaq ?? null, dublikat, review };
+  const result = { fayl: kitob.fayl, varaqlar, erkin, asosiyLrv: asosiylar[0]?.varaq ?? null, dublikat, review };
+  return { ...result, sourceEvidence: analyzeWorkbookEvidence(kitob, result) };
 }
 
 export { sarlavhaYoli } from './ierarxiya';
