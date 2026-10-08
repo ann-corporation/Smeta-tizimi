@@ -1,0 +1,32 @@
+name: bilim-kuzatuv
+
+# Boshqaruvchi agent: tasdiqlangan me'yor/qonun sahifalarini DAVRIY tekshiradi (har kuni). Sahifa o'zgarmagan bo'lsa token sarflanmaydi;
+# o'zgargan bo'lsa AI faqat bilim TAKLIFI tayyorlaydi — kuchga kirishi uchun Boshqaruv → AI markazi'da superadmin tasdig'i shart.
+# Yoqish: GitHub sir KUZATUV_KALIT (kamida 24 belgi) + repo o'zgaruvchisi PROD_URL (masalan https://smeta-tizimi.pages.dev);
+# Cloudflare Pages sirlari: KUZATUV_KALIT (shu qiymat) va KUZATUV_ACTOR_ID (superadmin foydalanuvchi id). Sozlanmasa ish jim o'tkazib yuboriladi.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tekshir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KUZATUV_KALIT: ${{ secrets.KUZATUV_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - name: Me'yor sahifalarini tekshirish
+        run: |
+          if [ -z "$KUZATUV_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "KUZATUV_KALIT yoki PROD_URL sozlanmagan — o'tkazib yuborildi."; exit 0
+          fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/agent-ish" \
+            -H 'Content-Type: application/json' -H "X-Kuzatuv-Kalit: $KUZATUV_KALIT" \
+            --data '{"amal":"bilim_yigish"}' --max-time 120 || echo 000)
+          echo "HTTP $code"; head -c 600 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::bilim tekshiruvi muvaffaqiyatsiz (HTTP $code)"; fi

@@ -21,7 +21,7 @@ import { BAHO_TURLARI, BOSH_USLUB, uslubBaho, type Baho, uslubBolimi, uslubXulos
 import { jarvisSalommi } from '../../src/lib/jarvis/intent';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
 
-type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
+type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
 
 const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
@@ -33,8 +33,27 @@ const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'veb_tahlil', 'veb_ol', 'rivo
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
-async function kirish(ctx: EventContext<Env, string, unknown>): Promise<{ actor: number } | Response> {
+/** Vaqtni oshkor qilmaydigan satr solishtirish (kalit uchun). */
+function teng(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i += 1) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+/**
+ * Kirish: odatda sessiya cookie'si. Davriy me'yor tekshiruvi (GitHub Actions) uchun yagona istisno: `X-Kuzatuv-Kalit` sarlavhasi
+ * Cloudflare sirri `KUZATUV_KALIT` ga teng bo'lsa, `KUZATUV_ACTOR_ID` (superadmin) nomidan FAQAT `bilim_yigish` ruxsat etiladi — boshqa amal va GET yo'q.
+ */
+async function kirish(ctx: EventContext<Env, string, unknown>): Promise<{ actor: number; kalit?: true } | Response> {
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) return xato('Server sozlanmagan', 503);
+  const kalit = ctx.request.headers.get('X-Kuzatuv-Kalit');
+  if (kalit !== null) {
+    const sir = ctx.env.KUZATUV_KALIT; const aid = Number(ctx.env.KUZATUV_ACTOR_ID);
+    if (!sir || sir.length < 24 || !sonmi(aid)) return xato('Davriy tekshiruv sozlanmagan', 503);
+    if (!teng(kalit, sir)) return xato('Kalit noto‘g‘ri', 401);
+    return { actor: aid, kalit: true };
+  }
   const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT).catch(() => null);
   if (!sess) return xato('Kirish talab qilinadi', 401);
   if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return xato('Sessiyada foydalanuvchi yo‘q', 401);
@@ -49,6 +68,7 @@ function doira(v: unknown): number | null | 'xato' {
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const k = await kirish(ctx); if (k instanceof Response) return k;
+  if (k.kalit) return xato('Kalit bilan o‘qish yo‘q', 403);
   const u = new URL(ctx.request.url);
   const kid = doira(u.searchParams.get('kompaniya_id')); if (kid === 'xato') return xato('kompaniya_id noto‘g‘ri');
   const profil = u.searchParams.get('profil');
@@ -308,6 +328,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const profil = so.profil == null || so.profil === '' ? null : String(so.profil);
   if (profil && !PROFIL.test(profil)) return xato('profil noto‘g‘ri');
   const amal = String(so.amal || '');
+  if (k.kalit && (amal !== 'bilim_yigish' || kid !== null)) return xato('Kalit faqat davriy bilim tekshiruvi uchun', 403);
   const env = ctx.env;
   /* AI standart YOQIQ: xarajatni oylik limit (default-deny) va hamyon cheklaydi. `AGENT_ISH_YOQILGAN=0` — favqulodda o'chirgich. */
   const aiYoq = env.AGENT_ISH_YOQILGAN !== '0';

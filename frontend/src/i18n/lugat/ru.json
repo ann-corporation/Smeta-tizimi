@@ -1282,5 +1282,9 @@
   "Tushundim — keyingi javoblar batafsilroq bo‘ladi": "Понял — следующие ответы будут подробнее",
   "Rahmat — aniqroq javob berishga harakat qilamiz": "Спасибо — постараемся отвечать яснее",
   "Bu nimani bildiradi va qanday hisoblangan?": "Что это означает и как рассчитано?",
-  "AI: tushuntir": "ИИ: объяснить"
+  "AI: tushuntir": "ИИ: объяснить",
+  "Material zayavkasi yaratish": "Создать заявку на материал",
+  "Zayavka yaratildi": "Заявка создана",
+  "Zayavka yaratilmadi": "Заявка не создана",
+  "Kerak sana": "Нужна к дате"
 }

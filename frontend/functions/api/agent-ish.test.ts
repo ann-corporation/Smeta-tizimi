@@ -484,6 +484,24 @@ describe('agent-ish shlyuzi', () => {
         expect(f.mock.calls.some(([u]) => String(u).includes('t2_agent_taklif_yarat_v1'))).toBe(false);
       });
 
+      it('davriy tekshiruv (GitHub Actions): kalit + actor sirdan; faqat bilim_yigish; noto‘g‘ri/yo‘q kalit rad; GET va boshqa amal yo‘q', async () => {
+        const KALIT = 'k'.repeat(32);
+        const so = (kalit: string | null, body: unknown, e = env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined, KUZATUV_KALIT: KALIT, KUZATUV_ACTOR_ID: '21' })) =>
+          onRequestPost({ request: new Request('https://t/api/agent-ish', { method: 'POST', body: JSON.stringify(body), headers: kalit === null ? {} : { 'X-Kuzatuv-Kalit': kalit } }), env: e } as never);
+        const f = kuz('eski-sha'); vi.stubGlobal('fetch', f);
+        const ok = await so(KALIT, { amal: 'bilim_yigish' });
+        expect(ok.status).toBe(200); expect((await ok.json() as { takliflar: number[] }).takliflar).toEqual([41]);
+        expect(JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_kuzatuv_royxat_v1')) as unknown as [string, RequestInit])[1].body)).p_actor_id).toBe(21);
+        expect((await so('wrong-key-wrong-key-wrong-key-xx', { amal: 'bilim_yigish' })).status).toBe(401);
+        expect((await so(KALIT, { amal: 'bilim_yigish' }, env({ KUZATUV_KALIT: undefined, KUZATUV_ACTOR_ID: '21' }))).status).toBe(503);
+        expect((await so(KALIT, { amal: 'bilim_yigish' }, env({ KUZATUV_KALIT: 'qisqa', KUZATUV_ACTOR_ID: '21' }))).status).toBe(503);   // zaif kalit qabul qilinmaydi
+        expect((await so(KALIT, { amal: 'kuzatuv_saqla', url: 'https://x.uz', nom: 'x' })).status).toBe(403);
+        expect((await so(KALIT, { amal: 'bilim_yigish', kompaniya_id: 5 })).status).toBe(403);
+        expect((await so(null, { amal: 'bilim_yigish' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined, KUZATUV_KALIT: KALIT, KUZATUV_ACTOR_ID: '21' }))).status).toBe(200);   // sarlavhasiz — odatdagi sessiya yo'li (mock sessiya)
+        const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=kuzatuv', { headers: { 'X-Kuzatuv-Kalit': KALIT } }), env: env({ KUZATUV_KALIT: KALIT, KUZATUV_ACTOR_ID: '21' }) } as never);
+        expect(g.status).toBe(403);
+      });
+
       it('superadmin bo‘lmasa (baza rad etadi) hech narsa olinmaydi; kompaniya doirasida rad', async () => {
         const f = kuz('x', { royxatXato: true });
         const r = await yuboring(f);
