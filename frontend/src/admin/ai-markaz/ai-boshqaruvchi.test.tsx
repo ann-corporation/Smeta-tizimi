@@ -47,7 +47,20 @@ describe('AiBoshqaruvchi — boshqaruvchi agent oynasi', () => {
     await waitFor(() => expect(m.toast).toHaveBeenCalledWith('Avval bu domenni tasdiqlang', 'danger'));
     fireEvent.click(screen.getByRole('button', { name: 'Kuzatuvga qo‘shish' }));
     await waitFor(() => expect(m.saqla).toHaveBeenCalledTimes(2));
-    expect(m.saqla).toHaveBeenLastCalledWith({ url: 'https://lex.uz/docs/1', nom: 'Lex', maqsad: undefined });
+    expect(m.saqla).toHaveBeenLastCalledWith({ url: 'https://lex.uz/docs/1', nom: 'Lex', maqsad: undefined, domenniTasdiqla: false });
+  });
+
+  it('tasdiqlanmagan domen: tushunarli xabar + «Domenni tasdiqlab qo‘shish» tugmasi (bir bosishda), tavsiya manbalar maydonni to‘ldiradi', async () => {
+    m.saqla.mockResolvedValueOnce({ ok: false, error: 'Bu domen tasdiqlangan manbalar ro‘yxatida yo‘q', code: 'MANBA_TASDIQLANMAGAN' }).mockResolvedValueOnce({ ok: true, natija: { id: 5 } });
+    render(<AiBoshqaruvchi m={markaz} taklifgaOt={vi.fn()} />);
+    await screen.findByText('Yashirin ishlar talabi');
+    fireEvent.click(screen.getByRole('button', { name: 'lex.uz' }));
+    expect((screen.getByLabelText('Manba sahifa manzili (https://…)') as HTMLInputElement).value).toBe('https://lex.uz');
+    fireEvent.click(screen.getByRole('button', { name: 'Kuzatuvga qo‘shish' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Domenni tasdiqlab qo‘shish' }));
+    await waitFor(() => expect(m.saqla).toHaveBeenCalledTimes(2));
+    expect(m.saqla).toHaveBeenLastCalledWith(expect.objectContaining({ url: 'https://lex.uz', domenniTasdiqla: true }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Domenni tasdiqlab qo‘shish' })).toBeNull());
   });
 
   it('kuzatuv yo‘q bo‘lsa tekshirish tugmasi o‘chiq; kutayotgan takliflarga o‘tish tugmasi ishlaydi', async () => {

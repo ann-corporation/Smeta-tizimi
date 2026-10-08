@@ -13,11 +13,11 @@ import { aiPublicError, parseJsonText, type AiEnv } from '../_shared/ai';
 import { rpcData, type RpcNatija, type Yuk } from '../_shared/agent-rpc';
 import { aiHisobli, aiXatoJavobi, aiXatoMalumoti, modelOf } from '../_shared/agent-hisob';
 import { tizimPrompti, tashqiMatnOra, profilDarajasi, type Muhit } from '../_shared/agent-prompt';
-import { vebOl } from '../_shared/agent-veb';
+import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
 import { faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../_shared/agent-kasb';
 import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, tizimYordamJavobi, yolTekshir } from '../_shared/agent-bilim';
 import { BILIM_SXEMA, BILIM_VAZIFA, bilimKodi, bilimTakliflariniAjrat } from '../_shared/agent-bilim-yigish';
-import { BOSH_USLUB, uslubBolimi, uslubXulosasi, uslubYangila, type UslubXususiyat } from '../_shared/agent-uslub';
+import { BAHO_TURLARI, BOSH_USLUB, uslubBaho, type Baho, uslubBolimi, uslubXulosasi, uslubYangila, type UslubXususiyat } from '../_shared/agent-uslub';
 import { jarvisSalommi } from '../../src/lib/jarvis/intent';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
 
@@ -526,6 +526,22 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return chiqar(await rpcData(env, 't2_agent_uslub_saqla_v1', { p_actor_id: k.actor, p_korsatma: matn(so.korsatma, 600), p_yoqilgan: so.yoqilgan !== false }));
   }
   if (amal === 'uslub_tozala') return chiqar(await rpcData(env, 't2_agent_uslub_tozala_v1', { p_actor_id: k.actor }));
+  /* Javobga baho (👍/👎, «qisqaroq/batafsilroq»): uslubga ta'sir qiladi; yomon/noaniq baho tizim signaliga (matnsiz) aylanadi — tizim agenti sahifa/profil bo'yicha to'playdi. */
+  if (amal === 'javob_baho') {
+    const baho = String(so.baho ?? '') as Baho;
+    if (!BAHO_TURLARI.includes(baho)) return xato('baho noto‘g‘ri');
+    if (kid == null) return xato('kompaniya_id kerak');
+    if (baho === 'qisqaroq' || baho === 'batafsilroq') {
+      const us = await rpcData(env, 't2_agent_uslub_v1', { p_actor_id: k.actor }).catch(() => null);
+      if (us?.ok && us.data.yoqilgan !== false) {
+        await rpcData(env, 't2_agent_uslub_yangila_v1', { p_actor_id: k.actor, p_xususiyat: uslubBaho(us.data.xususiyat as Partial<UslubXususiyat> | undefined, baho) }).catch(() => null);
+      }
+    }
+    if (baho === 'yomon' || baho === 'noaniq') {
+      await rpcData(env, 't2_agent_signal_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_sahifa: matn(so.sahifa, 200), p_tur: 'ai_javob_' + baho, p_xulosa: baho === 'yomon' ? 'Foydalanuvchi AI javobini yaroqsiz deb baholadi' : 'Foydalanuvchi AI javobini noaniq deb baholadi' }).catch(() => null);
+    }
+    return Response.json({ ok: true, baho }, JAVOB);
+  }
   /* Har funksiya (profil) uchun SHAXSIY model: faqat tasdiqlangan katalogdan (baza FK tekshiradi). */
   if (amal === 'model_shaxsiy_tanla') {
     if (!PROFIL.test(String(so.profil ?? ''))) return xato('profil kerak');
@@ -541,7 +557,19 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   /* Kuzatiladigan manba sahifa (faqat superadmin; domen oldindan tasdiqlangan bo'lishi shart — baza tekshiradi). */
   if (amal === 'kuzatuv_saqla') {
     if (kid != null) return xato('Faqat tizim doirasida', 403);
-    return chiqar(await rpcData(env, 't2_agent_kuzatuv_saqla_v1', { p_actor_id: k.actor, p_url: String(so.url ?? '').slice(0, 1000), p_nom: String(so.nom ?? '').slice(0, 120), p_maqsad: matn(so.maqsad, 300), p_faol: so.faol !== false }));
+    const yuk = { p_actor_id: k.actor, p_url: String(so.url ?? '').trim().slice(0, 1000), p_nom: String(so.nom ?? '').trim().slice(0, 120), p_maqsad: matn(so.maqsad, 300), p_faol: so.faol !== false };
+    let r = await rpcData(env, 't2_agent_kuzatuv_saqla_v1', yuk);
+    /* Domen tasdiqlanmagan va superadmin buni AYNAN so'ragan bo'lsa: domen manba sifatida taklif qilinib, shu superadminning o'zi tomonidan tasdiqlanadi (baza hamon superadminni tekshiradi), so'ng qayta uriniladi. */
+    if (!r.ok && r.data.code === 'MANBA_TASDIQLANMAGAN' && so.domenni_tasdiqla === true) {
+      const u = vebUrlTekshir(yuk.p_url);
+      if (!u.ok) return xato(u.xato);
+      const c = await rpcData(env, 't2_agent_taklif_yarat_v1', { p_actor_id: k.actor, p_kompaniya_id: null, p_tur: 'manba', p_doira: 'global', p_profil: null, p_sarlavha: `Manba: ${u.domen}`, p_mazmun: { domen: u.domen, nom: yuk.p_nom.slice(0, 100) || u.domen }, p_dalil: [], p_run_id: null });
+      if (!c.ok) return chiqar(c);
+      const q = await rpcData(env, 't2_agent_taklif_qaror_v1', { p_actor_id: k.actor, p_taklif_id: Number(c.data.id), p_qaror: 'tasdiqlash', p_izoh: 'Kuzatuv qo‘shishda superadmin tasdiqladi' });
+      if (!q.ok) return chiqar(q);
+      r = await rpcData(env, 't2_agent_kuzatuv_saqla_v1', yuk);
+    }
+    return chiqar(r);
   }
   /* Inson yozgan bilim (kompaniya admini o'z kompaniyasi uchun yoki superadmin umumiy): taklif yaratiladi va yozuvchining O'ZI vakolati bo'lsa darhol tasdiqlanadi, aks holda tasdiq kutadi. */
   if (amal === 'bilim_yoz') {

@@ -43,7 +43,23 @@ export function uslubYangila(oldingi: Partial<UslubXususiyat> | null | undefined
   };
 }
 
-const MIN_NAMUNA = 4;   // shundan kam savolda «o'rganildi» deyilmaydi (shovqin)
+export const BAHO_TURLARI = ['yaxshi', 'yomon', 'qisqaroq', 'batafsilroq', 'noaniq'] as const;
+export type Baho = (typeof BAHO_TURLARI)[number];
+
+/**
+ * Javobga bildirilgan baho uslubga ta'sir qiladi (savol matni emas, faqat shakl): «qisqaroq» — qisqa tomonga, «batafsilroq» — batafsil tomonga
+ * kuchliroq siljitadi (savol-kuzatuvdan 2.5× tez). «yaxshi/yomon/noaniq» uslubni o'zgartirmaydi (yomon/noaniq signalga aylanadi).
+ */
+export function uslubBaho(oldingi: Partial<UslubXususiyat> | null | undefined, baho: Baho): UslubXususiyat {
+  const o = uslubYangila(oldingi, '');   // faqat me'yorlashtirish (bo'sh savol sonni oshirmaydi)
+  const yum = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 1000) / 1000;
+  const k = ALFA * 2.5;
+  if (baho === 'qisqaroq') return { ...o, n: Math.max(o.n, 1), qisqa: yum(o.qisqa + k * (1 - o.qisqa)), batafsil: yum(o.batafsil - k * o.batafsil) };
+  if (baho === 'batafsilroq') return { ...o, n: Math.max(o.n, 1), batafsil: yum(o.batafsil + k * (1 - o.batafsil)), qisqa: yum(o.qisqa - k * o.qisqa) };
+  return o;
+}
+
+const MIN_NAMUNA = 4;  // shundan kam savolda «o'rganildi» deyilmaydi (shovqin)
 
 /** Odam o'qiydigan xulosa (UI da ko'rsatiladi va promptga shundan olinadi). */
 export function uslubXulosasi(x: UslubXususiyat): string[] {
