@@ -146,7 +146,7 @@ describe('Накопительная ведомость — har oy alohida ustun
     // Oylar: I/J (avg), K/L (sen), M/N (okt); ИТОГО: O (hajm) = I+K+M, P (summa) = J+L+N
     expect(v.kataklar.find((k) => k.ref === `O${row}`)?.f).toBe(`I${row}+K${row}+M${row}`);
     expect(Number(v.kataklar.find((k) => k.ref === `P${row}`)?.v)).toBe(500_000.5);
-    expect(v.kataklar.find((k) => k.ref === `P${row}`)?.f).toBe(`J${row}+L${row}+N${row}`);
+    expect(v.kataklar.find((k) => k.ref === `P${row}`)?.f).toBe(`IF(OR(J${row}="",L${row}="",N${row}=""),"",J${row}+L${row}+N${row})`);  // unknown month → empty, never a partial sum
   });
 });
 

@@ -62,7 +62,8 @@ export type SlichitelniyQator = {
   faktHajm: number | null;
   faktSumma: number | null;
   f2Hajm: number;
-  f2Summa: number;
+  /** NULL = certified F2 amount unknown (never 0). */
+  f2Summa: number | null;
   farqHajm: number | null;
   farqSumma: number | null;
   izoh: string;
@@ -76,7 +77,7 @@ export type SlichitelniyQator = {
   bolalar: number[];
 };
 
-export type SlichitelniyJami = { smeta: number | null; fakt: number | null; f2: number; farq: number | null };
+export type SlichitelniyJami = { smeta: number | null; fakt: number | null; f2: number | null; farq: number | null };
 
 export type SlichitelniyModel = {
   qatorlar: SlichitelniyQator[];
@@ -130,7 +131,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     const smeta = q.hajm ?? null;
     const fakt = h ? Number(h.fakt_hajm ?? 0) : null;
     const farq = smeta == null || fakt == null ? null : nol(fakt - smeta);
-    return { h, smeta, fakt, farq, f2Hajm: h ? Number(h.f2_hajm ?? 0) : 0, f2Summa: h ? Number(h.f2_summa ?? 0) : 0 };
+    return { h, smeta, fakt, farq, f2Hajm: h ? Number(h.f2_hajm ?? 0) : 0, f2Summa: h ? (h.f2_summa == null ? (Number(h.f2_hajm ?? 0) === 0 ? 0 : null) : Number(h.f2_summa)) : 0 };
   };
 
   const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number, otaIdx: number | null = null): number | null => {
@@ -179,6 +180,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     if (!b.length) { out.length = idx; return null; }
     const it: SlichitelniyQator = { id: q.id, tur: 'itogo', daraja, tartib: '', kod: '', nom: `ИТОГО ПО РАЗДЕЛУ: ${q.nom ?? ''}`, birlik: '', smetaHajm: null, narx: null, smetaSumma: null, faktHajm: null, faktSumma: null, f2Hajm: 0, f2Summa: 0, farqHajm: null, farqSumma: null, izoh: '', nomalum: 0, bolalar: [] };
     yigindi(it, b);
+    out[idx].f2Summa = it.f2Summa;   // section header carries the same (possibly unknown) certified total, never a fake 0
     out.push(it);
     return out.length - 1;
   };
@@ -189,7 +191,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     r.smetaSumma = s((x) => x.smetaSumma);
     r.faktSumma = s((x) => x.faktSumma);
     r.farqSumma = s((x) => x.farqSumma);
-    r.f2Summa = yaxlit2(b.reduce((t, i) => t + out[i].f2Summa, 0));
+    r.f2Summa = b.some(i => out[i].f2Summa == null) ? null : yaxlit2(b.reduce((t, i) => t + (out[i].f2Summa as number), 0));
   }
 
   const ildizlar: number[] = [];
@@ -198,7 +200,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
   const js = (f: (x: SlichitelniyQator) => number | null) => (!ildizlar.length || nomalum ? null : yaxlit2(ildizlar.reduce((t, i) => t + (f(out[i]) ?? 0), 0)));
   return {
     qatorlar: out, ildizlar, diqqat, barglar, ortiq, kam,
-    jami: { smeta: js((x) => x.smetaSumma), fakt: js((x) => x.faktSumma), farq: js((x) => x.farqSumma), f2: yaxlit2(ildizlar.reduce((t, i) => t + out[i].f2Summa, 0)) },
+    jami: { smeta: js((x) => x.smetaSumma), fakt: js((x) => x.faktSumma), farq: js((x) => x.farqSumma), f2: ildizlar.some(i => out[i].f2Summa == null) ? null : yaxlit2(ildizlar.reduce((t, i) => t + (out[i].f2Summa as number), 0)) },
   };
 }
 

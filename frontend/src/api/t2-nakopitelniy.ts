@@ -21,11 +21,13 @@ export type NakopitelniyQator = {
   norma?: number | null;
   smeta_hajm: number | null; smeta_narx: number | null; smeta_summa: number | null;
   fakt_hajm: number; fakt_summa: number;
-  oldingi_hajm: number; oldingi_summa: number;
-  joriy_hajm: number; joriy_summa: number; joriy_qoralama_summa: number;
-  jami_hajm: number; jami_summa: number;
+  oldingi_hajm: number; oldingi_summa: number | null;
+  joriy_hajm: number; joriy_summa: number | null; joriy_qoralama_summa: number | null;
+  jami_hajm: number; jami_summa: number | null;
+  /** Approved F2 lines whose certified amount is unknown (then the sums above are NULL, never 0). */
+  f2_summa_nomalum?: number;
   f2_mumkin_hajm: number;
-  qoldiq_hajm: number; qoldiq_summa: number;
+  qoldiq_hajm: number; qoldiq_summa: number | null;
   /** Additive v1 ledger wrapper fields; absent until that source migration is applied. */
   smeta_qoldiq_hajm?: number | null;
   smeta_qoldiq_summa?: number | null;
@@ -33,7 +35,7 @@ export type NakopitelniyQator = {
   contract_qoldiq_hajm?: number | null;
   contract_qoldiq_summa?: number | null;
   ledger_semantics?: 'v1';
-  jami_baseline_summa: number; jami_actual_summa: number | null; narx_variance_summa: number;
+  jami_baseline_summa: number; jami_actual_summa: number | null; narx_variance_summa: number | null;
   bajarilish_foiz: number | null;
 };
 
@@ -43,9 +45,11 @@ export type NakopitelniyDavr = {
 };
 
 export type NakopitelniyJami = {
-  smeta_summa: number; fakt_summa: number; oldingi_summa: number; joriy_tasdiqlangan_summa: number;
-  joriy_qoralama_summa: number; jami_tasdiqlangan_summa: number; qoldiq_summa: number;
-  f2_mumkin_summa: number; baseline_summa: number; narx_variance_summa: number;
+  smeta_summa: number; fakt_summa: number; oldingi_summa: number | null; joriy_tasdiqlangan_summa: number | null;
+  joriy_qoralama_summa: number; jami_tasdiqlangan_summa: number | null; qoldiq_summa: number | null;
+  f2_mumkin_summa: number | null; baseline_summa: number; narx_variance_summa: number | null;
+  /** Known part of the approved total and the number of unknown lines (NULL ≠ 0). */
+  jami_tasdiqlangan_malum_summa?: number; f2_summa_nomalum?: number;
   pending_ozgarish_delta: number; bajarilish_foiz: number | null;
   /** v2: smeta summasi faqat barglardan (rs/mat/ob); summasi noma'lum barglar soni. */
   smeta_summa_asos?: 'barglar'; smeta_summa_nomalum?: number;

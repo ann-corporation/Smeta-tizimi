@@ -108,7 +108,8 @@ export interface LrvPlusQator {
   faktHajm: number;
   faktSumma: number;
   f2Hajm: number;
-  f2Summa: number;
+  /** NULL = certified F2 amount unknown (never 0). */
+  f2Summa: number | null;
   /** X (yashirin) va Excel outline darajasi. */
   daraja: number;
 }
@@ -293,14 +294,14 @@ export function lrvPlusQatorlarniHisobla(
     let unknownChild = false;
     // Egasi 2026-09-30: "F2 kiritilgandan keyin LRV Excel da F2 umuman 0" — `t2_qator_holat` fakt/F2
     // pulini faqat barglarda saqlaydi; ota qatorda ham bolalar yig'indisi (Excel da SUMIF formulasi).
-    let fakt = 0, f2 = 0;
+    let fakt = 0, f2: number | null = 0;
     for (let j = i + 1; j < rows.length && (rows[j].daraja ?? 0) > item.daraja; j++) {
       if ((rows[j].daraja ?? 0) !== item.daraja + 1) continue;
       hasChild = true;
       const childSum = out[j].summaQiymat;
       if (childSum == null) unknownChild = true;
       else sum += childSum;
-      fakt += out[j].faktSumma; f2 += out[j].f2Summa;
+      fakt += out[j].faktSumma; f2 = f2 == null || out[j].f2Summa == null ? null : f2 + (out[j].f2Summa as number);
     }
     item.summaQiymat = hasChild && !unknownChild ? sum : null;
     if (hasChild) { item.faktSumma = fakt; item.f2Summa = f2; }
@@ -757,7 +758,7 @@ export async function lrvPlusFaylBaytlari(
       aoa.push([
         ...asosiy,
         q.faktHajm, q.obyomQiymat == null ? '' : q.obyomQiymat - q.faktHajm, q.f2Hajm, q.faktHajm - q.f2Hajm,
-        q.faktSumma, q.summaQiymat == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa, q.faktSumma - q.f2Summa,
+        q.faktSumma, q.summaQiymat == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa ?? '', q.f2Summa == null ? '' : q.faktSumma - q.f2Summa,
         q.daraja,
         lrvKalitYoz(q.id, q.kod, q.nom, q.birlik),
       ]);
@@ -788,7 +789,7 @@ export async function lrvPlusFaylBaytlari(
       ws[`Q${q.row}`] = kesh(`IF(F${q.row}="","",F${q.row}-P${q.row})`, q.obyomQiymat == null ? null : q.obyomQiymat - q.faktHajm);
       ws[`S${q.row}`] = { t: 'n', f: `P${q.row}-R${q.row}`, v: q.faktHajm - q.f2Hajm };
       ws[`U${q.row}`] = kesh(`IF(H${q.row}="","",H${q.row}-T${q.row})`, q.summaQiymat == null ? null : q.summaQiymat - q.faktSumma);
-      ws[`W${q.row}`] = { t: 'n', f: `T${q.row}-V${q.row}`, v: q.faktSumma - q.f2Summa };
+      ws[`W${q.row}`] = kesh(`IF(V${q.row}="","",T${q.row}-V${q.row})`, q.f2Summa == null ? null : q.faktSumma - q.f2Summa);
       // Ota (rz/bl) qatorida Fakt (T) va F2 (V) summasi — bevosita bolalar yig'indisi (tirik formula).
       const sumif = OTA_TUR.has(q.tur) ? q.summaFormula?.match(/SUMIF\(([^,]+),([^,]+),H(\d+):H(\d+)\)\)?$/) : null;
       if (sumif) {
