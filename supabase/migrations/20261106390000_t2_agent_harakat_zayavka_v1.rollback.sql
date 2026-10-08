@@ -1,4 +1,4 @@
--- Rollback: 20261106380000_t2_agent_harakat_zayavka_v1
+-- Rollback: 20261106390000_t2_agent_harakat_zayavka_v1
 delete from public.t2_agent_harakat where amal = 'zayavka_yarat';
 update public.t2_agent_kasb set harakatlar = array_remove(harakatlar, 'zayavka_yarat');
 alter table public.t2_agent_harakat drop constraint if exists t2_agent_harakat_amal_check;
