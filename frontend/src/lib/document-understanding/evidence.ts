@@ -1,5 +1,6 @@
 import type { KitobAnatomiyasi } from '../smeta-anatomiya';
 import type { Katak, KirishKitob, KirishVaraq } from '../smeta-anatomiya/turlar';
+import { analyzeTextEvidence } from './text-evidence';
 
 /** Source evidence, never a command to mutate certified business data. */
 export interface CellEvidence {
@@ -207,5 +208,6 @@ export function understandText(file: string, pages: readonly { page: number; tex
     version: 'source-text-v1' as const, file, importAllowed: false as const,
     pages: pages.map((page) => ({ ...page, lines: page.text.split(/\r\n|\n|\r/).map((raw, i) => ({ line: i + 1, raw })),
       review: page.origin === 'ocr' ? 'OCR_NOT_VERIFIED' : 'SEMANTIC_MAPPING_REQUIRED' })),
+    semantic: analyzeTextEvidence(pages),
   };
 }

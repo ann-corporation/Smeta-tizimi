@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import * as XLSX from 'xlsx';
 import { readDocumentFile } from './file';
+import { triageUnassignedRows } from './triage';
 
 const manifestPath = process.env.DOCUMENT_CORPUS_MANIFEST;
 type Source = { path: string; sha256: string; kind: 'spreadsheet' | 'pdf' | 'docx' };
@@ -41,7 +42,8 @@ describe.skipIf(!manifestPath)('local real document evidence corpus', () => {
         records.push({ path: source.path, sha256: before, kind: result.kind, verifiedCells,
           coverage: result.evidence.coverage,
           sheets: result.evidence.sheets.map((s) => ({ name: s.name, formulas: s.formulas.length, rateCandidates: s.rates.length, unassignedRows: s.unassignedRows.length })),
-          reviewIssues: result.evidence.issues.length });
+          reviewIssues: result.evidence.issues.length,
+          unassigned: triageUnassignedRows(result.evidence) });
       } else if (result.kind === 'pdf') {
         expect(result.evidence.pages.length).toBeGreaterThan(0);
         records.push({ path: source.path, sha256: before, kind: result.kind, pages: result.evidence.pages.length, ocrRequired: result.review.length });
