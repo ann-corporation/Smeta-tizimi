@@ -124,6 +124,7 @@ const HARAKAT_TAVSIFI: Record<string, string> = {
   ombor_kirim: '- ombor_kirim: omborga KIRIM yozish. parametrlar: {"obyekt_id": <FAKTLARdagi obyekt id>, "nomi": "Sement M400", "birligi": "tonna", "obyomi": 5, "sana": "YYYY-MM-DD (ixtiyoriy)", "izoh": "ixtiyoriy"}',
   ombor_chiqim: '- ombor_chiqim: ombordan CHIQIM yozish. parametrlar: ombor_kirim bilan bir xil.',
   grafik_foiz: '- grafik_foiz: grafikdagi ish bajarilish foizini yangilash. parametrlar: {"grafik_id": <FAKTLARdagi grafik "id">, "foiz": 0-100}',
+  zayavka_yarat: '- zayavka_yarat: MATERIAL ZAYAVKASI yaratish (ta‘minotga so‘rov). parametrlar: {"obyekt_id": <FAKTLARdagi obyekt id>, "nomi": "Sement M400", "birligi": "tonna", "miqdor": 12, "kerak_sana": "YYYY-MM-DD (ixtiyoriy)", "izoh": "ixtiyoriy"}',
   eslatma: '- eslatma: foydalanuvchi uchun eslatma saqlash. parametrlar: {"kalit": "qisqa.kalit", "mazmun": "matn"}',
 };
 /** Rolga ruxsat etilgan harakatlar ro'yxati va qoidalari (prompt qismi). */

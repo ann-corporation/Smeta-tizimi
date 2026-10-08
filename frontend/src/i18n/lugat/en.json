@@ -1282,5 +1282,9 @@
   "Tushundim — keyingi javoblar batafsilroq bo‘ladi": "Got it — next answers will be more detailed",
   "Rahmat — aniqroq javob berishga harakat qilamiz": "Thanks — we will try to answer more clearly",
   "Bu nimani bildiradi va qanday hisoblangan?": "What does this mean and how is it calculated?",
-  "AI: tushuntir": "AI: explain"
+  "AI: tushuntir": "AI: explain",
+  "Material zayavkasi yaratish": "Create a material request",
+  "Zayavka yaratildi": "Request created",
+  "Zayavka yaratilmadi": "Request was not created",
+  "Kerak sana": "Needed by"
 }

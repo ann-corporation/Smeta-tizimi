@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const m = vi.hoisted(() => ({
-  sklad: vi.fn(), grafik: vi.fn(), agentYoz: vi.fn(), qaror: vi.fn(), natija: vi.fn(),
+  sklad: vi.fn(), grafik: vi.fn(), agentYoz: vi.fn(), qaror: vi.fn(), natija: vi.fn(), zayavka: vi.fn(),
 }));
 vi.mock('../../api/supabase', () => ({ sbSkladgaYozish: m.sklad, yangiOperationId: () => 'op-1' }));
 vi.mock('../../api/t2-grafik', () => ({ sbGrafikYangila: m.grafik }));
+vi.mock('../../api/t2-zayavka', () => ({ sbZayavkaYoz: m.zayavka }));
 vi.mock('../../api/t2-agent-ish', () => ({ agentYoz: m.agentYoz, harakatQarori: m.qaror, harakatNatijasi: m.natija }));
 vi.mock('../../i18n/til', () => ({ t: (s: string) => s }));
 
@@ -30,6 +31,16 @@ describe('harakatniBajar — foydalanuvchining o‘z sessiyasi orqali mavjud gat
     expect((await harakatniBajar(5, 'ombor_kirim', { obyekt_id: 7, nomi: 'x', birligi: 't', obyomi: 0 })).ok).toBe(false);
     expect((await harakatniBajar(5, 'grafik_foiz', { grafik_id: 3, foiz: 120, kutilgan_versiya: 1 })).ok).toBe(false);
     expect(m.sklad).not.toHaveBeenCalled(); expect(m.grafik).not.toHaveBeenCalled();
+  });
+  it('zayavka_yarat: foydalanuvchi sessiyasi bilan mavjud zayavka gatewayiga (sana/izoh ixtiyoriy); noto‘g‘ri miqdor gatewayga bormaydi; xato qaytadi', async () => {
+    m.zayavka.mockResolvedValue({ ok: true, id: 31 });
+    const r = await harakatniBajar(5, 'zayavka_yarat', { obyekt_id: 7, nomi: 'Sement M400', birligi: 'tonna', miqdor: '12', kerak_sana: '2026-10-20', izoh: 'tezkor' });
+    expect(r).toMatchObject({ ok: true, natija: { id: 31, miqdor: 12 } });
+    expect(m.zayavka).toHaveBeenCalledWith(5, { obyektId: 7, itemText: 'Sement M400', requestedQty: 12, unit: 'tonna', requiredDate: '2026-10-20', note: 'tezkor' });
+    expect((await harakatniBajar(5, 'zayavka_yarat', { obyekt_id: 7, nomi: 'x', birligi: 't', miqdor: 0 })).ok).toBe(false);
+    expect(m.zayavka).toHaveBeenCalledTimes(1);
+    m.zayavka.mockResolvedValue({ ok: false, error: 'Ruxsat yo‘q' });
+    expect(await harakatniBajar(5, 'zayavka_yarat', { obyekt_id: 7, nomi: 'x', birligi: 't', miqdor: 1 })).toMatchObject({ ok: false, xabar: 'Ruxsat yo‘q' });
   });
   it('grafik: foizga qarab holat; versiya bilan (optimistik qulf)', async () => {
     m.grafik.mockResolvedValue({ ok: true });

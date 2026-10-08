@@ -5,10 +5,11 @@
  */
 import { sbSkladgaYozish, yangiOperationId } from '../../api/supabase';
 import { sbGrafikYangila, type GrafikHolat } from '../../api/t2-grafik';
+import { sbZayavkaYoz } from '../../api/t2-zayavka';
 import { agentYoz } from '../../api/t2-agent-ish';
 
 export const HARAKAT_NOMI: Record<string, string> = {
-  ombor_kirim: 'Omborga kirim', ombor_chiqim: 'Ombordan chiqim', grafik_foiz: 'Grafik foizini yangilash', eslatma: 'Eslatma saqlash',
+  ombor_kirim: 'Omborga kirim', ombor_chiqim: 'Ombordan chiqim', grafik_foiz: 'Grafik foizini yangilash', eslatma: 'Eslatma saqlash', zayavka_yarat: 'Material zayavkasi yaratish',
 };
 export const XAVF_NOMI: Record<string, string> = { past: 'Past xavf', orta: 'O‘rta xavf — tasdiq kerak', yuqori: 'YUQORI XAVF' };
 
@@ -23,6 +24,7 @@ export type MaydonTuri = { kalit: string; nom: string; tur: 'matn' | 'son' | 'sa
 export const HARAKAT_MAYDONLARI: Record<string, MaydonTuri[]> = {
   ombor_kirim: [{ kalit: 'nomi', nom: 'Material', tur: 'matn' }, { kalit: 'obyomi', nom: 'Miqdor', tur: 'son' }, { kalit: 'birligi', nom: 'Birlik', tur: 'matn' }, { kalit: 'sana', nom: 'Sana', tur: 'sana' }, { kalit: 'izoh', nom: 'Izoh', tur: 'matn' }],
   ombor_chiqim: [{ kalit: 'nomi', nom: 'Material', tur: 'matn' }, { kalit: 'obyomi', nom: 'Miqdor', tur: 'son' }, { kalit: 'birligi', nom: 'Birlik', tur: 'matn' }, { kalit: 'sana', nom: 'Sana', tur: 'sana' }, { kalit: 'izoh', nom: 'Izoh', tur: 'matn' }],
+  zayavka_yarat: [{ kalit: 'nomi', nom: 'Material', tur: 'matn' }, { kalit: 'miqdor', nom: 'Miqdor', tur: 'son' }, { kalit: 'birligi', nom: 'Birlik', tur: 'matn' }, { kalit: 'kerak_sana', nom: 'Kerak sana', tur: 'sana' }, { kalit: 'izoh', nom: 'Izoh', tur: 'matn' }],
   grafik_foiz: [{ kalit: 'foiz', nom: 'Yangi foiz', tur: 'son' }],
   eslatma: [{ kalit: 'mazmun', nom: 'Matn', tur: 'matn' }],
 };
@@ -41,6 +43,13 @@ export async function harakatniBajar(kompaniyaId: number, amal: string, p: Recor
         nomi: String(p.nomi ?? ''), birligi: String(p.birligi ?? ''), obyomi: hajm, izoh: p.izoh ? String(p.izoh) : undefined, operation_id: yangiOperationId(),
       });
       return r.ok ? { ok: true, xabar: 'Omborga yozildi', natija: { nomi: p.nomi, obyomi: hajm } } : { ok: false, xabar: r.error || 'Omborga yozilmadi', natija: {} };
+    }
+    if (amal === 'zayavka_yarat') {
+      const miqdor = son(p.miqdor);
+      if (!(miqdor > 0)) return { ok: false, xabar: 'Miqdor 0 dan katta bo‘lishi kerak', natija: {} };
+      const r = await sbZayavkaYoz(kompaniyaId, { obyektId: Number(p.obyekt_id), itemText: String(p.nomi ?? ''), requestedQty: miqdor, unit: p.birligi ? String(p.birligi) : undefined,
+        requiredDate: p.kerak_sana ? String(p.kerak_sana) : undefined, note: p.izoh ? String(p.izoh) : undefined });
+      return r.ok ? { ok: true, xabar: 'Zayavka yaratildi', natija: { nomi: p.nomi, miqdor, id: r.id ?? null } } : { ok: false, xabar: r.error || 'Zayavka yaratilmadi', natija: {} };
     }
     if (amal === 'grafik_foiz') {
       const foiz = son(p.foiz);

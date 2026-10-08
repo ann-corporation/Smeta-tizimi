@@ -113,3 +113,4 @@ describe('javob bahosi uslubga', () => {
     expect(BAHO_TURLARI).toEqual(['yaxshi', 'yomon', 'qisqaroq', 'batafsilroq', 'noaniq']);
   });
 });
+
