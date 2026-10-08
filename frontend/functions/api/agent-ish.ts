@@ -33,6 +33,9 @@ const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'veb_tahlil', 'veb_ol', 'rivo
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
+/** Davriy kalit bilan ruxsat etilgan yagona amallar: me'yor sahifalarini tekshirish va signallardan rivojlanish takliflari (ikkalasi ham faqat TAKLIF yaratadi). */
+const KALIT_AMALLARI = new Set(['bilim_yigish', 'rivojlanish_tahlil']);
+
 /** Vaqtni oshkor qilmaydigan satr solishtirish (kalit uchun). */
 function teng(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -329,7 +332,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const profil = so.profil == null || so.profil === '' ? null : String(so.profil);
   if (profil && !PROFIL.test(profil)) return xato('profil noto‘g‘ri');
   const amal = String(so.amal || '');
-  if (k.kalit && (amal !== 'bilim_yigish' || kid !== null)) return xato('Kalit faqat davriy bilim tekshiruvi uchun', 403);
+  if (k.kalit && (!KALIT_AMALLARI.has(amal) || kid !== null)) return xato('Kalit faqat davriy tizim tekshiruvlari uchun', 403);
   const env = ctx.env;
   /* AI standart YOQIQ: xarajatni oylik limit (default-deny) va hamyon cheklaydi. `AGENT_ISH_YOQILGAN=0` — favqulodda o'chirgich. */
   const aiYoq = env.AGENT_ISH_YOQILGAN !== '0';

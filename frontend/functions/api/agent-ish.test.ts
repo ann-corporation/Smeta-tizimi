@@ -497,6 +497,8 @@ describe('agent-ish shlyuzi', () => {
         expect((await so(KALIT, { amal: 'bilim_yigish' }, env({ KUZATUV_KALIT: 'qisqa', KUZATUV_ACTOR_ID: '21' }))).status).toBe(503);   // zaif kalit qabul qilinmaydi
         expect((await so(KALIT, { amal: 'kuzatuv_saqla', url: 'https://x.uz', nom: 'x' })).status).toBe(403);
         expect((await so(KALIT, { amal: 'bilim_yigish', kompaniya_id: 5 })).status).toBe(403);
+        expect((await so(KALIT, { amal: 'savol', savol: 'x' })).status).toBe(403);   // boshqa AI amal kalit bilan yo'q
+        expect((await so(KALIT, { amal: 'rivojlanish_tahlil' })).status).not.toBe(403);   // haftalik tizim yaxshilash takliflari — ruxsat (faqat TAKLIF)
         expect((await so(null, { amal: 'bilim_yigish' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined, KUZATUV_KALIT: KALIT, KUZATUV_ACTOR_ID: '21' }))).status).toBe(200);   // sarlavhasiz — odatdagi sessiya yo'li (mock sessiya)
         const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=kuzatuv', { headers: { 'X-Kuzatuv-Kalit': KALIT } }), env: env({ KUZATUV_KALIT: KALIT, KUZATUV_ACTOR_ID: '21' }) } as never);
         expect(g.status).toBe(403);
