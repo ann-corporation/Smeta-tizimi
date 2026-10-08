@@ -166,4 +166,11 @@ nomlar ruscha screenshotda saqlanadi. Hero real image, yuqorida yangi
 ko'rish, auth CTA. Lazy/decode image, keyboard focus, responsive CSS.
 40 focused Vitest PASS, focused oxlint PASS. Bu screenshotlar modul mavjudligini
 ko'rsatadi, barcha workflowlarning production-ready ekanini isbotlamaydi.
-Build/tekshir va yangi Preview acceptance keyingi mailbox receiptda qayd qilinadi.
+Full build PASS (app TS + Functions + Vite3448); tekshir va full lint exit0
+(old warninglar), governance75task/diff PASS. `4f25df7` Preview
+https://e1b61f39.smeta-tizimi.pages.dev Cloudflare SUCCESS exact SHA. Real IAB:
+asset natural dimensions1308×642,526×304 loaded; selector/caption almashdi;
+native details Enter bilan ochilib/yopildi.390px clientWidth382=scrollWidth382;
+1280px clientWidth1272=scrollWidth1272. Viewport reset, Preview deliverable.
+Oxirgi CSS-only polish: kichik recipe native hajmda qolmay, contain bilan
+stagega kattalashadi; final Vite va Preview alohida receipt bilan isbotlanadi.
