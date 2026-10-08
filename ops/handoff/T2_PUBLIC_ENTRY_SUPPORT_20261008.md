@@ -150,3 +150,20 @@ scrollWidth=382). Bu smoke eski checkpointga tegishli; yangi tugma joyi
 va Admin matni deploydan keyin alohida qayta tekshirilishi kerak.
 Live support, yangi user ro'yxatdan o'tishi, authenticated login va real
 product screenshots bu read-only public smoke bilan isbotlanmaydi.
+
+## 2026-10-09 — haqiqiy mahsulot lavhalari
+
+Egasi intro hali jalb qilmasligini va aynan saytdan lavhalar talab qildi.
+Production UI read-only ko'rilib, 3 JPEG crop tayyorlandi: hujjatlar ish
+oqimlari navigatsiyasi, norm katalogida beton/fundament ishlar ro'yxati,
+E6-1-1-1 resurs tarkibi. Tenant konteksti, summalar va user draft chiqarilmadi;
+Add/Save bosilmadi. `assets/README.md` exact route/viewport/crop provenance.
+Assetlar jami270649 bytes; public preview hech qanday company query yubormaydi.
+
+`product-screens.ts` source-backed UZ/RU/EN caption manifest; original normativ
+nomlar ruscha screenshotda saqlanadi. Hero real image, yuqorida yangi
+`ProductShowcase`: uch tanlov, oldingi/keyingi, native details orqali katta
+ko'rish, auth CTA. Lazy/decode image, keyboard focus, responsive CSS.
+40 focused Vitest PASS, focused oxlint PASS. Bu screenshotlar modul mavjudligini
+ko'rsatadi, barcha workflowlarning production-ready ekanini isbotlamaydi.
+Build/tekshir va yangi Preview acceptance keyingi mailbox receiptda qayd qilinadi.

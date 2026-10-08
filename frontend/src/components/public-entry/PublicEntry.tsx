@@ -5,9 +5,11 @@ import './public-entry.css';
 import { SupportConversation } from './SupportConversation';
 import type { PublicSupportPort } from './support-port';
 import { chainSteps, productDomains, productRoles, scopeCopy, trustPoints, type EntryCopy } from './product-scope';
+import { productScreens } from './product-screens';
+import { ProductShowcase, type ProductScreenshot } from './ProductShowcase';
+export type { ProductScreenshot } from './ProductShowcase';
 
 export const OWNER_PHONE = '+998505012566';
-export type ProductScreenshot = { src: string; alt: string; caption: string };
 type Props = { children: ReactNode; onChooseAuth: (mode: 'login' | 'signup') => void; screenshots?: readonly ProductScreenshot[]; supportPort?: PublicSupportPort };
 
 const copy = {
@@ -87,6 +89,13 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
   const text = (s: string) => til === 'uz-Cyrl' ? t(s) : s;
   const local = (s: EntryCopy) => text(s[til === 'ru' ? 1 : til === 'en' ? 2 : 0]);
   const currentRole = productRoles.find(r => r.id === role) ?? productRoles[1];
+  const realScreens = screenshots.length ? screenshots : productScreens.map(s => ({ src: s.src, alt: local(s.title), caption: local(s.caption) }));
+  const screenCopy = {
+    note: local(['Haqiqiy ekrandan lavhalar', 'Фрагменты реальных экранов', 'Actual product captures']),
+    title: local(['O‘qib tasavvur qilmang. Ko‘rib tanlang.', 'Не представляйте. Посмотрите.', 'See the workspace for yourself.']),
+    expand: local(['Lavhani katta ko‘rish', 'Увеличить экран', 'View full-size capture']),
+    close: local(['Yopish uchun shu sarlavhani qayta bosing.', 'Нажмите заголовок повторно, чтобы свернуть.', 'Select the heading again to collapse.']),
+  };
   const choose = (mode: 'login' | 'signup') => {
     onChooseAuth(mode);
     document.getElementById('entry-account')?.scrollIntoView?.({ block: 'start' });
@@ -103,17 +112,19 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
       <section id="entry-top" className="entry-hero">
         <div className="entry-pitch"><p className="entry-eyebrow"><span />{local(scopeCopy.eyebrow)}</p>
           <h1>{local(scopeCopy.title)}<br /><span>{local(scopeCopy.accent)}</span></h1><p className="entry-description">{local(scopeCopy.description)}</p>
-          <div className="entry-actions"><button className="entry-primary" onClick={() => choose('signup')}>{text(c.start)}<ArrowUpRight size={18} /></button><a className="entry-secondary" href="#entry-features">{text(c.tour)}<ChevronDown size={17} /></a></div>
+          <div className="entry-actions"><button className="entry-primary" onClick={() => choose('signup')}>{text(c.start)}<ArrowUpRight size={18} /></button><a className="entry-secondary" href="#entry-screens">{text(c.tour)}<ChevronDown size={17} /></a></div>
           <div className="entry-flow" aria-label={local(scopeCopy.foundation)}>{chainSteps.slice(0, 3).map((v, i) => <span key={v[0]}><i>0{i + 1}</i>{local(v)}{i < 2 && <b aria-hidden="true">→</b>}</span>)}</div>
           <a className="entry-hero-contact" href={`tel:${OWNER_PHONE}`}><Phone size={15} />+998 50 501 25 66<span>{text(c.contact)}</span></a>
         </div>
         <aside className="entry-system-map" aria-label={local(scopeCopy.map)}>
+          <a className="entry-hero-screen" href="#entry-screens"><img src={realScreens[0].src} alt={`${realScreens[0].alt} — TIZIM_02`} fetchPriority="high" decoding="async" /><span>{screenCopy.note}<ArrowUpRight size={17} /></span></a>
           <div className="entry-map-top"><span className="entry-map-mark"><Building2 size={25} /></span><div><p>{local(scopeCopy.map)}</p><strong>TIZIM_02</strong></div><LayersBadge /></div>
           <div className="entry-map-foundation">{local(scopeCopy.foundation)}</div>
           <div className="entry-map-grid">{productDomains.map((d, i) => <a key={d.id} href={`#entry-domain-${d.id}`}><span>0{i + 1}</span><strong>{local(d.title)}</strong><ArrowUpRight size={15} /></a>)}</div>
           <p className="entry-map-note">{local(scopeCopy.mapNote)}</p>
         </aside>
       </section>
+      <ProductShowcase screens={realScreens} title={screenCopy.title} note={screenCopy.note} expand={screenCopy.expand} close={screenCopy.close} start={text(c.start)} onStart={() => choose('signup')} />
       <section id="entry-roles" className="entry-section entry-roles"><p className="entry-eyebrow">{local(scopeCopy.foundation)}</p><h2>{local(scopeCopy.roles)}</h2><p className="entry-section-description">{local(scopeCopy.rolesNote)}</p>
         <div className="entry-role-options" role="group" aria-label={local(scopeCopy.roles)}>{productRoles.map(r => <button key={r.id} aria-pressed={role === r.id} onClick={() => setRole(r.id)}>{local(r.title)}</button>)}</div>
         <article className="entry-role-detail" aria-live="polite"><div><h3>{local(currentRole.title)}</h3><p>{local(currentRole.task)}</p></div><div className="entry-role-output"><span>{local(scopeCopy.result)}</span><p>{local(currentRole.result)}</p><button className="entry-secondary" onClick={() => choose('signup')}>{text(c.start)}<ArrowUpRight size={17} /></button></div></article>
@@ -125,7 +136,6 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
         <ol className="entry-chain">{chainSteps.map((step, i) => <li key={step[0]}><span>0{i + 1}</span><h3>{local(step)}</h3>{i < chainSteps.length - 1 && <ArrowUpRight aria-hidden="true" size={20} />}</li>)}</ol>
         <div className="entry-trust"><h3>{local(scopeCopy.trust)}</h3><ul>{trustPoints.map(p => <li key={p[0]}><Check size={18} aria-hidden="true" />{local(p)}</li>)}</ul></div>
       </section>
-      {screenshots.length > 0 && <section className="entry-section"><h2>{text(c.screenshots)}</h2><div className="entry-screenshots">{screenshots.map(s => <figure key={s.src}><img src={s.src} alt={s.alt} loading="lazy" decoding="async" /><figcaption>{s.caption}</figcaption></figure>)}</div></section>}
       <section className="entry-section entry-faq"><h2>{text(c.faq)}</h2>{faq.map(([q, a]) => <details key={q}><summary>{text(q)}<ChevronDown size={18} /></summary><p>{text(a)}</p></details>)}</section>
       <section className="entry-section entry-join"><div><p className="entry-eyebrow">TIZIM_02</p><h2>{local(scopeCopy.account)}</h2><p className="entry-section-description">{local(scopeCopy.accountNote)}</p><a className="entry-hero-contact" href={`tel:${OWNER_PHONE}`}><Phone size={16} />+998 50 501 25 66</a></div><section id="entry-account" tabIndex={-1} aria-label={text(c.login)} className="entry-account">{children}</section></section>
       <section id="entry-contact" className="entry-contact"><div><p className="entry-eyebrow">{text(c.contact)}</p><h2>{text(c.contactTitle)}</h2><p>{text(c.contactText)}</p></div><a href={`tel:${OWNER_PHONE}`} className="entry-phone"><span>{text(c.call)}</span><strong>+998 50 501 25 66</strong><ArrowUpRight size={22} /></a></section>

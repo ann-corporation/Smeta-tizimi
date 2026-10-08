@@ -67,7 +67,7 @@ describe('Public kirish sayti', () => {
   });
   it('skrinshotlar faqat real asset berilganda chiziladi', () => {
     const { rerender } = render(<PublicEntry onChooseAuth={vi.fn()}><span>Form</span></PublicEntry>);
-    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
     rerender(<PublicEntry onChooseAuth={vi.fn()} screenshots={[{ src: '/verified-lrv.png', alt: 'LRV ekran', caption: 'LRV' }]}><span>Form</span></PublicEntry>);
     expect(screen.getByRole('img', { name: 'LRV ekran' }).getAttribute('src')).toBe('/verified-lrv.png');
   });
