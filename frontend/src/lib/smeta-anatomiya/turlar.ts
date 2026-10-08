@@ -18,6 +18,8 @@ export interface KirishVaraq {
   /** Formulalar setkasi (`=` siz), `rows` bilan bir xil indekslar (bo'lsa).
    *  Varaqlar orasidagi havola — bog'lanishning eng kuchli dalili. */
   formulalar?: Array<Array<string | null | undefined>>;
+  /** Exact OOXML numeric text when the binary reader provides it. */
+  numericText?: Array<Array<string | null | undefined>>;
 }
 
 /** Erkin hisob varag'i (transport, perevozka, shefmontaj…): resursga bo'linmaydi. */
