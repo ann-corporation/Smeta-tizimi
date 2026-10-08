@@ -1209,8 +1209,7 @@
   "Tizim ma’lumotnomalari": "Справочники системы",
   "resurs": "ресурсов",
   "katalog narxi": "каталожных цен",
-  "mehnat stavkasi": "ставок труда"
-,
+  "mehnat stavkasi": "ставок труда",
   "Tizim yordamchisi": "Помощник по системе",
   "Kompaniya tanlanmagan: men tizim haqida (atamalar, sahifalar, hisob mantig‘i) javob beraman. Kompaniyani tanlasangiz — lavozimingizga mos AI ishchi sizning ma‘lumotlaringiz bo‘yicha ishlaydi.": "Компания не выбрана: я отвечаю о системе (термины, страницы, логика расчётов). Если выберете компанию — ИИ-сотрудник по вашей должности будет работать с вашими данными.",
   "Tizim yordamchisi — model chaqirilmadi, token sarflanmadi": "Помощник по системе — модель не вызывалась, токены не тратились",
@@ -1311,5 +1310,11 @@
   "Material zayavkasi yaratish": "Создать заявку на материал",
   "Zayavka yaratildi": "Заявка создана",
   "Zayavka yaratilmadi": "Заявка не создана",
-  "Kerak sana": "Нужна к дате"
+  "Kerak sana": "Нужна к дате",
+  "Yil": "Год",
+  "Kvartal": "Квартал",
+  "QQS holati": "Статус НДС",
+  "QQS siz": "Без НДС",
+  "QQS bilan": "С НДС",
+  "qator": "строк"
 }

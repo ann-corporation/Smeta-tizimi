@@ -1209,8 +1209,7 @@
   "Tizim ma’lumotnomalari": "System reference data",
   "resurs": "resources",
   "katalog narxi": "catalog prices",
-  "mehnat stavkasi": "labour rates"
-,
+  "mehnat stavkasi": "labour rates",
   "Tizim yordamchisi": "System assistant",
   "Kompaniya tanlanmagan: men tizim haqida (atamalar, sahifalar, hisob mantig‘i) javob beraman. Kompaniyani tanlasangiz — lavozimingizga mos AI ishchi sizning ma‘lumotlaringiz bo‘yicha ishlaydi.": "No company selected: I answer about the system (terms, pages, calculation logic). Select a company and the AI worker for your position will work with your data.",
   "Tizim yordamchisi — model chaqirilmadi, token sarflanmadi": "System assistant — no model called, no tokens spent",
@@ -1311,5 +1310,11 @@
   "Material zayavkasi yaratish": "Create a material request",
   "Zayavka yaratildi": "Request created",
   "Zayavka yaratilmadi": "Request was not created",
-  "Kerak sana": "Needed by"
+  "Kerak sana": "Needed by",
+  "Yil": "Year",
+  "Kvartal": "Quarter",
+  "QQS holati": "VAT status",
+  "QQS siz": "Excluding VAT",
+  "QQS bilan": "Including VAT",
+  "qator": "rows"
 }
