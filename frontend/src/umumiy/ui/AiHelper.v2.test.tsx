@@ -5,12 +5,12 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 
 const m = vi.hoisted(() => ({
   id: 11 as number | null, savol: vi.fn(), kasbOl: vi.fn(), yordam: vi.fn(), modellar: vi.fn(), shaxsiyModel: vi.fn(), tanla: vi.fn(),
-  uslubOl: vi.fn(), uslubSaqla: vi.fn(), uslubTozala: vi.fn(),
+  uslubOl: vi.fn(), uslubSaqla: vi.fn(), uslubTozala: vi.fn(), baho: vi.fn(),
 }));
 vi.mock('../kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriyId: m.id }) }));
 vi.mock('../../api/t2-agent-ish', () => ({
   kasbOl: m.kasbOl, kasbSavolOqim: m.savol, tizimYordamSavol: m.yordam, modellarOl: m.modellar, modelShaxsiyOl: m.shaxsiyModel, modelShaxsiyTanla: m.tanla,
-  uslubOl: m.uslubOl, uslubSaqla: m.uslubSaqla, uslubTozala: m.uslubTozala,
+  uslubOl: m.uslubOl, uslubSaqla: m.uslubSaqla, uslubTozala: m.uslubTozala, javobBaho: m.baho,
   openrouterModellarOl: vi.fn(async () => ({ ok: true, natija: { jami: 1, tavsiya: [], talab: { min: 50, izoh: 'Umumiy' }, natija: [] } })), modelOpenrouterdanQosh: vi.fn(),
   jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })), shaxsiyOl: vi.fn(async () => ({ ok: true, natija: { til: 'auto', uslub: 'qisqa', ishonch: 'jiddiy' } })), shaxsiySaqla: vi.fn(), harakatQarori: vi.fn(), harakatNatijasi: vi.fn(),
 }));
@@ -27,7 +27,7 @@ const view = () => <MemoryRouter initialEntries={['/admin/f2']}><AiHelper /><Joy
 const och = () => fireEvent.click(screen.getByLabelText('Jarvis AI yordamchisini ochish'));
 beforeEach(() => {
   m.id = 11; Element.prototype.scrollIntoView = vi.fn();
-  for (const f of [m.savol, m.kasbOl, m.yordam, m.modellar, m.shaxsiyModel, m.tanla, m.uslubOl, m.uslubSaqla, m.uslubTozala]) f.mockReset();
+  for (const f of [m.savol, m.kasbOl, m.yordam, m.modellar, m.shaxsiyModel, m.tanla, m.uslubOl, m.uslubSaqla, m.uslubTozala, m.baho]) f.mockReset();
   m.kasbOl.mockResolvedValue({ ok: true, natija: KASB });
   m.modellar.mockResolvedValue({ ok: true, natija: { rol: 'prorab', tanlash_mumkin: false, agentlar: [{ kod: 'prorab', model_id: 'google/gemini-2.5-flash-lite', model_manba: 'platforma' }], katalog: KATALOG } });
   m.shaxsiyModel.mockResolvedValue({ ok: true, natija: { tanlovlar: [] } });
@@ -96,4 +96,19 @@ it('uslub paneli: o‘rganilgan xulosa va ko‘rsatma ko‘rinadi; saqlash/tozal
   await waitFor(() => expect(m.uslubSaqla).toHaveBeenCalledWith('Jadval ko‘rinishida', true));
   fireEvent.click(screen.getByRole('button', { name: 'O‘rganilganni tozalash' }));
   await waitFor(() => expect(m.uslubTozala).toHaveBeenCalled());
+});
+
+it('javobga baho: «qisqaroq» serverga ketadi (profil + sahifa), minnatdorchilik ko‘rinadi; salom/rad javobda baho tugmalari yo‘q', async () => {
+  m.savol.mockResolvedValue({ ok: true, javob: 'Javob', kasb: { nom: 'Prorab yordamchisi', rol: 'prorab', profil: 'prorab' }, model: 'x/y', ms: 100, qadamlar: [] });
+  m.baho.mockResolvedValue({ ok: true, natija: {} });
+  render(view()); och(); await screen.findByText('Omborda nima bor?');
+  send('Omborda sement qancha?');
+  fireEvent.click(await screen.findByRole('button', { name: 'Qisqaroq' }));
+  await waitFor(() => expect(m.baho).toHaveBeenCalledWith(11, 'qisqaroq', { profil: 'prorab', sahifa: '/admin/f2' }));
+  expect(await screen.findByText(/keyingi javoblar qisqaroq/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Batafsilroq' })).toBeNull();
+  m.savol.mockResolvedValue({ ok: true, rad: true, javob: 'Doirangizda emas', model: 'local', qadamlar: [] });
+  send('Maosh qancha?');
+  await screen.findByText('Doirangizda emas');
+  expect(screen.queryAllByRole('button', { name: 'Qisqaroq' })).toHaveLength(0);
 });

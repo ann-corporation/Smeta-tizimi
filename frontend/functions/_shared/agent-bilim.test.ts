@@ -24,6 +24,24 @@ describe('tizim bilimi', () => {
     expect(hammasi).toMatch(/НДС siz/);
     expect(hammasi).toMatch(/tasdiqlangan F2 muzlaydi/);
   });
+  it('Obsidian asosidagi kengaytirilgan bilim: rollar, zamena, holatlar, parity, zanjir, xavf, xarid, M-29, tomonlar, standart', () => {
+    const top = (q: string, p?: string) => bilimTanla(q, p ?? null, 6000, 8).map((x) => x.id);
+    expect(top('Prorab nimalarni qila olmaydi, kim tasdiqlaydi?')).toContain('sod_rollar');
+    expect(top('Zamena va qo‘shimcha ish farqi nima?')).toContain('zamena_qoshimcha');
+    expect(top('Tasdiqlangan F2 da xato chiqsa correction qanday?')).toContain('status_oqim');
+    expect(top('Slichitelniy va nakopitelniy bir xil bo‘lishi kerakmi?')).toContain('f2_parity');
+    expect(top('Smetadan F3 gacha ish tartibi qanday?')).toContain('pto_zanjir');
+    expect(top('Qaysi muammo signallari bor?')).toContain('xavf_markazi');
+    expect(top('Xarid RFQ va zayavka tartibi')).toContain('xarid_oqim');
+    expect(top('M-29 da perexod va tejash qanday hisoblanadi')).toContain('m29_qoida');
+    expect(top('Zakazchik nimani ko‘radi va qanday ruxsat beraman?')).toContain('tomon_korinish');
+    expect(top('Excel hujjat tili va formulalar')).toContain('hujjat_standarti');
+  });
+  it('bilim yozuvlari identifikatorlari takrorlanmaydi va har birida kalit/matn bor', () => {
+    const idlar = BILIM.map((x) => x.id);
+    expect(new Set(idlar).size).toBe(idlar.length);
+    for (const y of BILIM) { expect(y.kalit.length).toBeGreaterThan(0); expect(y.matn.length).toBeGreaterThan(80); expect(y.matn.length).toBeLessThanOrEqual(1500); }
+  });
   it('sahifa bilimi eng uzun mos yo‘lni oladi va keyingi qadamni ko‘rsatadi', () => {
     const s = sahifaBilimi('/admin/f2-tarix?x=1');
     expect(s).toContain('F2 tarixi va tasdiqlash');
@@ -79,5 +97,19 @@ describe('uslub o‘rganish', () => {
     expect(b.match(/<\/uslub-korsatma>/g)).toHaveLength(1);
     expect(b).toContain('O‘ZGARTIRMAYDI');
     expect(uslubBolimi(BOSH_USLUB, null, true)).toBe('');
+  });
+});
+
+describe('javob bahosi uslubga', () => {
+  it('«qisqaroq» qisqa tomonga, «batafsilroq» batafsil tomonga siljitadi; yaxshi/yomon o‘zgartirmaydi; chegaradan chiqmaydi', async () => {
+    const { uslubBaho, BAHO_TURLARI } = await import('./agent-uslub');
+    let x = BOSH_USLUB;
+    for (let i = 0; i < 12; i++) x = uslubBaho(x, 'qisqaroq');
+    expect(x.qisqa).toBeGreaterThan(0.9); expect(x.batafsil).toBeLessThan(0.05); expect(x.qisqa).toBeLessThanOrEqual(1);
+    expect(uslubXulosasi({ ...x, n: 10 }).join(' ')).toContain('qisqa xulosani');
+    for (let i = 0; i < 20; i++) x = uslubBaho(x, 'batafsilroq');
+    expect(x.batafsil).toBeGreaterThan(0.9); expect(x.qisqa).toBeLessThan(0.05);
+    const y = uslubBaho(x, 'yaxshi'); expect(y.batafsil).toBe(x.batafsil); expect(uslubBaho(x, 'yomon').qisqa).toBe(x.qisqa);
+    expect(BAHO_TURLARI).toEqual(['yaxshi', 'yomon', 'qisqaroq', 'batafsilroq', 'noaniq']);
   });
 });

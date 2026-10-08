@@ -183,7 +183,9 @@ export const kuzatuvOl = () => agentOqi<{ natija: KuzatuvUrl[] }>('kuzatuv', nul
 export const kuzatuvSaqla = (p: { url: string; nom: string; maqsad?: string; faol?: boolean; domenniTasdiqla?: boolean }) => agentYoz('kuzatuv_saqla', null, { url: p.url, nom: p.nom, maqsad: p.maqsad, faol: p.faol, domenni_tasdiqla: p.domenniTasdiqla === true ? true : undefined });
 export const bilimYigish = (id?: number) => agentYoz<BilimYigishNatijasi>('bilim_yigish', null, id ? { id } : {});
 export const bilimYoz = (k: number | null, p: { sarlavha: string; matn: string; kalit: string }) => agentYoz<{ taklif_id: number; qabul: boolean; kutilmoqda: boolean }>('bilim_yoz', k, { ...p });
-export type TizimYordam ={ javob: string; sahifalar: SahifaIshora[]; topildi: boolean };
+export type JavobBahosi = 'yaxshi' | 'yomon' | 'qisqaroq' | 'batafsilroq' | 'noaniq';
+export const javobBaho = (k: number, baho: JavobBahosi, p: { profil?: string; sahifa?: string } = {}) => agentYoz('javob_baho', k, { baho, profil: p.profil, sahifa: p.sahifa });
+export type TizimYordam = { javob: string; sahifalar: SahifaIshora[]; topildi: boolean };
 export const tizimYordamSavol = (savol: string, sahifa?: string) => agentYoz<TizimYordam>('tizim_yordam', null, { savol, sahifa });
 export const harakatQarori =(harakatId: number, qaror: 'tasdiqlash' | 'rad') => agentYoz<{ holat: string }>('harakat_qaror', null, { harakat_id: harakatId, qaror });
 export const harakatNatijasi = (harakatId: number, ok: boolean, natija: Record<string, unknown>) => agentYoz('harakat_natija', null, { harakat_id: harakatId, ok, natija });

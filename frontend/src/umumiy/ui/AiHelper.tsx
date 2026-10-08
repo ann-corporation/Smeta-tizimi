@@ -7,6 +7,7 @@ import { yolNaqshi } from '../../lib/agent-faoliyat';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import { AiChat, type TayyorSavol } from './AiChat';
 import { ModelChip } from './ModelChip';
+import { AiSelektsiya } from './AiSelektsiya';
 import { AiFikrPanel } from './AiFikrPanel';
 import { AiJurnal } from './AiJurnal';
 import { AiShaxsiy } from './AiShaxsiy';
@@ -70,6 +71,7 @@ export function AiHelper() {
 
   return (
     <>
+      {location.pathname.startsWith('/admin') && <AiSelektsiya />}
       {!isOpen && taklifKarta && <div className="fixed bottom-24 right-6 z-40 w-72">{taklifKarta}</div>}
       {!isOpen && (
         <button onClick={() => setIsOpen(true)} aria-label={t('Jarvis AI yordamchisini ochish')}

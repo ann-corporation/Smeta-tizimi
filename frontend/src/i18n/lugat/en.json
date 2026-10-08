@@ -1269,5 +1269,18 @@
   "Domenni tasdiqlab qo‘shish": "Approve domain and add",
   "Tavsiya etilgan rasmiy manbalar": "Suggested official sources",
   "O‘zbekiston qonunchilik ma‘lumotlari milliy bazasi": "National database of Uzbekistan legislation",
-  "Norma.uz — me‘yoriy hujjatlar": "Norma.uz — regulatory documents"
+  "Norma.uz — me‘yoriy hujjatlar": "Norma.uz — regulatory documents",
+  "Javobni baholash": "Rate the answer",
+  "Javob yaxshi": "Good answer",
+  "Javob yaroqsiz": "Unusable answer",
+  "Qisqaroq": "Shorter",
+  "Batafsilroq": "More detailed",
+  "Tushunarsiz": "Unclear",
+  "Rahmat — bu uslub saqlab qolinadi": "Thanks — this style will be kept",
+  "Rahmat — bu javob tizim yaxshilanishiga signal bo‘ldi": "Thanks — this answer became a signal to improve the system",
+  "Tushundim — keyingi javoblar qisqaroq bo‘ladi": "Got it — next answers will be shorter",
+  "Tushundim — keyingi javoblar batafsilroq bo‘ladi": "Got it — next answers will be more detailed",
+  "Rahmat — aniqroq javob berishga harakat qilamiz": "Thanks — we will try to answer more clearly",
+  "Bu nimani bildiradi va qanday hisoblangan?": "What does this mean and how is it calculated?",
+  "AI: tushuntir": "AI: explain"
 }

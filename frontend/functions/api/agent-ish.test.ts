@@ -543,6 +543,23 @@ describe('agent-ish shlyuzi', () => {
       expect(r3.status).toBe(400); expect(f.mock.calls.some(([u]) => String(u).includes('t2_agent_taklif_yarat_v1'))).toBe(false);
     });
 
+    it('javob_baho: «qisqaroq» uslubni yangilaydi (o‘chirilgan bo‘lsa yo‘q); «yomon» matnsiz signal; noto‘g‘ri baho rad; actor sessiyadan', async () => {
+      const f = vi.fn(async (u: string) => (String(u).includes('t2_agent_uslub_v1') ? rpcJavob({ ok: true, xususiyat: { n: 6, ru: 0, uzunlik: 50, batafsil: 0.5, qisqa: 0.1, jadval: 0, rasmiy: 0 }, korsatma: null, yoqilgan: true }) : rpcJavob({ ok: true }))); vi.stubGlobal('fetch', f);
+      expect((await post({ amal: 'javob_baho', kompaniya_id: 5, baho: 'qisqaroq', p_actor_id: 99 })).status).toBe(200);
+      const yoz = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_uslub_yangila_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(yoz.p_actor_id).toBe(7); expect(yoz.p_xususiyat.qisqa).toBeGreaterThan(0.1); expect(yoz.p_xususiyat.batafsil).toBeLessThan(0.5);
+      f.mockClear();
+      expect((await post({ amal: 'javob_baho', kompaniya_id: 5, baho: 'yomon', profil: 'prorab', sahifa: '/admin/f2' })).status).toBe(200);
+      const sig = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_signal_yoz_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(sig).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_tur: 'ai_javob_yomon', p_sahifa: '/admin/f2', p_profil: 'prorab' });
+      expect(String(sig.p_xulosa)).not.toMatch(/sement|savol:/i);
+      expect((await post({ amal: 'javob_baho', kompaniya_id: 5, baho: 'zo‘r' })).status).toBe(400);
+      expect((await post({ amal: 'javob_baho', baho: 'yaxshi' })).status).toBe(400);
+      vi.stubGlobal('fetch', vi.fn(async (u: string) => (String(u).includes('t2_agent_uslub_v1') ? rpcJavob({ ok: true, xususiyat: {}, korsatma: null, yoqilgan: false }) : rpcJavob({ ok: true }))));
+      const g = vi.fn(async (u: string) => (String(u).includes('t2_agent_uslub_v1') ? rpcJavob({ ok: true, xususiyat: {}, korsatma: null, yoqilgan: false }) : rpcJavob({ ok: true }))); vi.stubGlobal('fetch', g);
+      await post({ amal: 'javob_baho', kompaniya_id: 5, baho: 'batafsilroq' });
+      expect(g.mock.calls.some(([u]) => String(u).includes('t2_agent_uslub_yangila_v1'))).toBe(false);
+    });
     it('kuzatuv_saqla va bilim GET yo‘llari sessiya foydalanuvchisi nomidan', async () => {
       const f = vi.fn(async () => rpcJavob({ ok: true, natija: [] })); vi.stubGlobal('fetch', f);
       expect((await post({ amal: 'kuzatuv_saqla', url: 'https://norma.uz/a', nom: 'Norma', p_actor_id: 999 })).status).toBe(200);
@@ -565,3 +582,4 @@ describe('agent-ish shlyuzi', () => {
     expect((await post({ amal: 'sql_yoz' })).status).toBe(400);
   });
 });
+
