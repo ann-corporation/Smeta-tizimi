@@ -1,4 +1,4 @@
-﻿{
+{
   "_schema": "agent-governance-v2",
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [

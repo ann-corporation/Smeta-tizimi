@@ -1,4 +1,4 @@
-﻿# T2 AI TIZIM V2 (2026-10-08)
+# T2 AI TIZIM V2 (2026-10-08)
 
 Reja va qaror tarixi: Obsidian `AI_TIZIM_V2_REJA.md`. Poydevor: `T2_AGENT_PLATFORM_V1.md`.
 
