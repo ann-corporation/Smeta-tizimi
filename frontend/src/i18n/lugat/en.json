@@ -1316,5 +1316,11 @@
   "QQS holati": "VAT status",
   "QQS siz": "Excluding VAT",
   "QQS bilan": "Including VAT",
-  "qator": "rows"
+  "qator": "rows",
+  "Narxsiz qator jamiga qanday kiradi?": "How does an unpriced row enter the total?",
+  "A’zolar AI modelini o‘zi tanlay olsin": "Members can choose the AI model themselves",
+  "O‘chirsangiz, hamma uchun admin belgilagan (yoki platforma) model ishlaydi — qimmat model tanlanishi oldi olinadi. Shaxsiy tanlovlar saqlanadi, lekin hisobga olinmaydi.": "If turned off, everyone uses the admin-set (or platform) model — expensive model choices are prevented. Personal choices are kept but ignored.",
+  "A’zolar AI modelini o‘zi tanlay oladi": "Members can choose the AI model themselves",
+  "Endi hamma uchun kompaniya/platforma modeli ishlaydi": "Now everyone uses the company/platform model",
+  "kompaniya admini model tanlashni cheklagan": "the company admin has restricted model choice"
 }

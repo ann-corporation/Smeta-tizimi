@@ -118,6 +118,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   if (bolim === 'bilim') return chiqar(await rpcData(ctx.env, 't2_agent_bilim_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
   if (bolim === 'kuzatuv') return chiqar(await rpcData(ctx.env, 't2_agent_kuzatuv_royxat_v1', { p_actor_id: k.actor }));
   if (bolim === 'bilim_holat') return chiqar(await rpcData(ctx.env, 't2_agent_bilim_holat_v1', { p_actor_id: k.actor }));
+  if (bolim === 'model_siyosat') { if (kid == null) return xato('kompaniya_id kerak'); return chiqar(await rpcData(ctx.env, 't2_agent_model_siyosat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid })); }
   if (bolim === 'jurnal') {
     if (kid == null) return xato('kompaniya_id kerak');
     return chiqar(await rpcData(ctx.env, 't2_agent_jurnal_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_hamma: u.searchParams.get('hamma') === '1', p_limit: 30 }));
@@ -562,6 +563,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       await rpcData(env, 't2_agent_signal_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_sahifa: matn(so.sahifa, 200), p_tur: 'ai_javob_' + baho, p_xulosa: baho === 'yomon' ? 'Foydalanuvchi AI javobini yaroqsiz deb baholadi' : 'Foydalanuvchi AI javobini noaniq deb baholadi' }).catch(() => null);
     }
     return Response.json({ ok: true, baho }, JAVOB);
+  }
+  /* Kompaniya model siyosati: admin/boss/direktor a'zolarning shaxsiy model tanlashini cheklaydi (xarajat nazorati). */
+  if (amal === 'model_siyosat_saqla') {
+    if (kid == null) return xato('kompaniya_id kerak');
+    return chiqar(await rpcData(env, 't2_agent_model_siyosat_saqla_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_model_erkin: so.model_erkin !== false }));
   }
   /* Har funksiya (profil) uchun SHAXSIY model: faqat tasdiqlangan katalogdan (baza FK tekshiradi). */
   if (amal === 'model_shaxsiy_tanla') {
