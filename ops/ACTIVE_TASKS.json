@@ -1,4 +1,4 @@
-{
+﻿{
   "_schema": "agent-governance-v2",
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
@@ -2168,7 +2168,7 @@
         "frontend/src/admin/sahifalar/agent-kompaniya-sozlama.test.tsx",
         "supabase/migrations/20261106320000_t2_agent_kasb_v1*.sql",
         "supabase/migrations/20261106330000_t2_agent_*.sql",
-        "supabase/migrations/20261106340000_t2_agent_*.sql",
+        "supabase/migrations/20261106350000_t2_agent_*.sql",
         "supabase/tests/t2_agent_kasb_contract.sql",
         "frontend/src/umumiy/ui/ModelChip.tsx",
         "docs/architecture/T2_AI_TIZIM_V2.md",

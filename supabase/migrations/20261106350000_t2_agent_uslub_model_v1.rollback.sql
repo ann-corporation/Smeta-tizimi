@@ -1,4 +1,4 @@
--- Rollback: 20261106340000_t2_agent_uslub_model_v1 (muhit eski ta'rifiga qaytariladi, keyin yangi obyektlar o'chiriladi)
+﻿-- Rollback: 20261106350000_t2_agent_uslub_model_v1 (muhit eski ta'rifiga qaytariladi, keyin yangi obyektlar o'chiriladi)
 create or replace function public.t2_agent_muhit_v1(p_actor_id bigint, p_kompaniya_id bigint, p_profil text default null)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare g jsonb; v_q jsonb; v_x jsonb; v_m jsonb; v_model text;
