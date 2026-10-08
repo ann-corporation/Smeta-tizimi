@@ -691,15 +691,9 @@ export async function lrvPlusFaylBaytlari(
   const ustunlar = rejim === 'forma2' ? LRV_FORMA2_USTUNLAR : LRV_PLUS_USTUNLAR;
   const hisob = lrvPlusQatorlarniHisobla(qatorlar, holatlar, darajaUstun);
   const ildiz = hisob.filter((q) => q.daraja === 0);
-  const knownSum = (items: LrvPlusQator[], pick: (row: LrvPlusQator) => number | null): number | null => {
-    let sum = 0;
-    for (const item of items) {
-      const value = pick(item);
-      if (value == null) return null;
-      sum += value;
-    }
-    return items.length ? sum : null;
-  };
+  // Egasi qoidasi (2026-10-08): jami — ma'lum summalar yig'indisi; narxsiz qator jamini bo'shatmaydi.
+  const knownSum = (items: LrvPlusQator[], pick: (row: LrvPlusQator) => number | null): number | null =>
+    items.length ? items.reduce((s, item) => s + (pick(item) ?? 0), 0) : null;
   const jamiSumma = knownSum(ildiz, (q) => q.summaQiymat);
   const jamiFakt = knownSum(ildiz, (q) => q.faktSumma);
   const jamiF2 = knownSum(ildiz, (q) => q.f2Summa);

@@ -15,6 +15,8 @@ import { downloadBlob } from '../../lib/construction-document-control/export/dow
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
+import type { SheetGrid } from '../../lib/f2-import-parse/types';
+import { ofertaLrvHujjati } from '../../lib/tender-oferta-lrv';
 
 const MAX_FILE_BYTES = 80 * 1024 * 1024;
 const SAHIFA = 200;
@@ -32,7 +34,7 @@ function parseInput(value: string): number | null {
 function roleText(role: OfertaSheetTahlili['role']): string {
   if (role === 'res') return 'RES';
   if (role === 'transport') return 'TRANSPORT XARAJATI';
-  if (role === 'lrv') return 'LRV — tanlanmaydi';
+  if (role === 'lrv') return 'LRV — oferta LRV (F2 shakli) shundan';
   return 'Noma’lum — tekshirish kerak';
 }
 
@@ -49,7 +51,8 @@ const KASKAD_QADAMLARI: Array<[keyof NakrutkaQadamlar, string]> = [
 ];
 
 type Koef = { qiymatlar: NakrutkaKoeffitsientlar; manba: 'kompaniya' | 'standart' | 'tahrirlangan' | 'fayl' };
-type PaketFayl = OfertaPaketFayl & { bytes: Uint8Array };
+/** `lrv` — fayldagi LRV varag'i (oferta LRV'si F2 shaklida shundan quriladi; egasi talabi 2026-10-08). */
+type PaketFayl = OfertaPaketFayl & { bytes: Uint8Array; lrv?: { nom: string; rows: SheetGrid } };
 
 /** Sukut tanlov: RES/transport, alternativ ko'rinish va YASHIRIN (eski qoralama) emas. */
 function sukutTanlov(t: OfertaSheetTahlili[]): string[] {
@@ -165,9 +168,12 @@ function Sessiya() {
         if (file.size > MAX_FILE_BYTES) { xatolar.push(`${file.name}: 80 MB dan katta`); continue; }
         try {
           const bytes = new Uint8Array(await file.arrayBuffer());
-          const tahlillar = ofertaResursVaraqlariniAniqla(await readXlsxFonda(bytes));
+          const wb = await readXlsxFonda(bytes);
+          const tahlillar = ofertaResursVaraqlariniAniqla(wb);
+          const lrvVaraq = tahlillar.find((s) => s.role === 'lrv' && !s.yashirin);
+          const lrvRows = lrvVaraq ? wb.sheet(lrvVaraq.nom)?.rows : undefined;
           if (!tahlillar.some((s) => s.qatorlar.length > 0)) { xatolar.push(`${file.name}: resurs jadvali topilmadi`); continue; }
-          yangi.push({ id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, nom: file.name.replace(/\.(xlsx|xlsm|xls)$/i, ''), faylNomi: file.name, bytes, tahlillar, tanlanganVaraqlar: sukutTanlov(tahlillar) });
+          yangi.push({ id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, nom: file.name.replace(/\.(xlsx|xlsm|xls)$/i, ''), faylNomi: file.name, bytes, tahlillar, tanlanganVaraqlar: sukutTanlov(tahlillar), ...(lrvVaraq && lrvRows ? { lrv: { nom: lrvVaraq.nom, rows: lrvRows } } : {}) });
         } catch (e) { xatolar.push(`${file.name}: ${e instanceof Error ? e.message : 'o‘qilmadi'}`); }
       }
       if (yangi.length) setFayllar((old) => [...old, ...yangi]);
@@ -258,6 +264,7 @@ function Sessiya() {
       const imzo = { zakazchik, pudratchi };
       const koeffitsientManbasi = koef.manba === 'kompaniya' ? 'kompaniya koeffitsientlari' : koef.manba === 'tahrirlangan' ? 'qo‘lda tahrirlangan' : koef.manba === 'fayl' ? 'fayldagi foizlar' : 'T1 standarti';
       const natijalar: Array<{ nom: string; bytes: Uint8Array; saqlanish: string }> = [];
+      const lrvIzoh: string[] = [];
       for (const o of obyektHisoblari) {
         if (!o.fayl.tanlanganVaraqlar.length || !o.hisob.qatorlar.length) continue;
         const n = await tenderOfertaXlsx({
@@ -265,12 +272,21 @@ function Sessiya() {
           tanlanganVaraqlar: o.fayl.tanlanganVaraqlar, tahlillar: o.fayl.tahlillar, hisob: o.hisob, koeffitsientManbasi, imzo,
         });
         natijalar.push({ nom: n.faylNomi, bytes: n.bytes, saqlanish: n.saqlanish });
+        // Oferta LRV — F2 shaklida (to'liq bo'lim ierarxiyasi, oferta narxlari, jonli formulalar, nakrutka jadvali).
+        if (o.fayl.lrv) {
+          const l = await ofertaLrvHujjati({ lrvVaraqNomi: o.fayl.lrv.nom, rows: o.fayl.lrv.rows, natijalar: o.hisob.qatorlar, obyektNomi: o.fayl.nom, nk: o.hisob.koeffitsientlar, imzo });
+          if (l) {
+            natijalar.push({ nom: l.faylNomi, bytes: l.bytes, saqlanish: 'toliq' });
+            const farq = Math.round((l.togridanJami - o.hisob.togridanJami) * 100) / 100;
+            lrvIzoh.push(`${o.fayl.nom}: LRV (F2) — ${l.narxlandi}/${l.resurslar} resurs narxlandi${l.topilmadi.length ? `, ${l.topilmadi.length} tasining narxi RES da topilmadi (ro‘yxat hujjatda)` : ''}; to‘g‘ridan-to‘g‘ri xarajat LRV ${fmt(l.togridanJami)} / RES ${fmt(o.hisob.togridanJami)}${farq ? ` (farq ${fmt(farq)} — manbadagi RES hajmlari yaxlitlangan)` : ' — mos'}${l.bezSkladBor ? '; БЕЗСКЛАД resurs bor — nakrutka jadvali LRV da berilmadi, yakuniy summa oferta svodida' : ''}.`);
+          }
+        }
       }
       if (!natijalar.length) { setError('Eksport uchun tanlangan varaq yo‘q.'); return; }
       const qisman = natijalar.some((n) => n.saqlanish !== 'toliq') ? ' .xls fayllar .xlsx ga o‘girildi — ba’zi format qisman o‘zgargan bo‘lishi mumkin.' : '';
       if (natijalar.length === 1 && fayllar.length === 1) {
         downloadBlob(natijalar[0].bytes, natijalar[0].nom);
-        setMessage(`Oferta tayyor: ${natijalar[0].nom}.${qisman}${hisob.halQilinmagan ? ` ${hisob.halQilinmagan} ta resurs hal qilinmagan — yakuniy summa bo‘sh.` : ''}`);
+        setMessage(`Oferta tayyor: ${natijalar[0].nom}.${qisman}${hisob.halQilinmagan ? ` ${hisob.halQilinmagan} ta resurs narxsiz/kategoriyasiz — yakuniyga kirmadi (ro‘yxat hujjatda).` : ''}`);
       } else {
         const svod = paketSvodXlsx(obyektHisoblari.map((o) => ({ nom: o.fayl.nom, faylNomi: o.fayl.faylNomi, hisob: o.hisob })), imzo,
           paketNomi.trim() ? `СВОДНЫЙ РАСЧЕТ ОФЕРТЫ — ${paketNomi.trim()}` : undefined);
@@ -278,7 +294,7 @@ function Sessiya() {
         const svodNomi = hujjatFaylNomi({ obyekt: nom, hujjat: 'СВОД_ОФЕРТЫ', davr: bugunSana() });
         const zipNomi = hujjatFaylNomi({ obyekt: nom, hujjat: 'ОФЕРТА', davr: bugunSana(), kengaytma: 'zip' });
         downloadBlob(paketZip([...natijalar, { nom: svodNomi, bytes: svod }]), zipNomi, 'application/zip');
-        setMessage(`Paket tayyor: ${natijalar.length} ta obyekt + svod (${zipNomi}).${qisman}`);
+        setMessage(`Paket tayyor: ${natijalar.length} ta hujjat + svod (${zipNomi}).${qisman}${lrvIzoh.length ? ' ' + lrvIzoh.join(' ') : ''}`);
       }
     } catch (e) { setError(e instanceof Error ? e.message : 'Oferta fayli yaratilmadi.'); }
     finally { setBusy(false); }
