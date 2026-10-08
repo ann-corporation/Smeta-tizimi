@@ -90,7 +90,11 @@ foydalana olmaydi. Claude AI platforma/backend lane bilan ulash kerak.
 16 focused tests PASS: KirishSahifa existing4 + public7 + support5.
 Focused oxlint PASS (warninglar tuzatildi). Functions standalone typecheck
 PASS. `npm run tekshir` barcha bosqichlari PASS. Yakuniy combined Vitest
-16/16 PASS. Full app build hali ishlamoqda; build PASS da'vosi yo'q.
+16/16 PASS. Fixture mock return tipidagi TS xato `df0b4e4`da tuzatildi,
+5 support test qayta PASS. Yakuniy `npm run build` exit0: `tsc -b`, Functions
+typecheck va Vite production bundle PASS (3441 module). Grid.svg resolve va
+500kB chunk warninglari bor; error emas. Task frontend review uchun tayyor,
+to'liq user support/prod readiness emas.
 Governance PASS75task, diff-check PASS; stale CURRENT_STATE SHA warning.
 Lokal HTTP200; ichki brauzer localhostga CONNECTION_REFUSED berdi, desktop/
 mobile visual smoke hali UNKNOWN. Authenticated signup/login live smoke yo'q.
