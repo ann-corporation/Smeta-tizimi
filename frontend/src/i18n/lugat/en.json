@@ -1264,5 +1264,10 @@
   "Umumiy bilim (faol)": "Shared knowledge (active)",
   "Kutayotgan bilim": "Pending knowledge",
   "O‘zgargan manbalar": "Changed sources",
-  "Bilim": "Knowledge"
+  "Bilim": "Knowledge",
+  "Bu domen hali tasdiqlangan manba emas. Uni ishonchli manba deb tasdiqlab, kuzatuvga qo‘shaymi?": "This domain is not an approved source yet. Approve it as a trusted source and add it to monitoring?",
+  "Domenni tasdiqlab qo‘shish": "Approve domain and add",
+  "Tavsiya etilgan rasmiy manbalar": "Suggested official sources",
+  "O‘zbekiston qonunchilik ma‘lumotlari milliy bazasi": "National database of Uzbekistan legislation",
+  "Norma.uz — me‘yoriy hujjatlar": "Norma.uz — regulatory documents"
 }

@@ -1264,5 +1264,10 @@
   "Umumiy bilim (faol)": "Общие знания (активные)",
   "Kutayotgan bilim": "Ожидающие знания",
   "O‘zgargan manbalar": "Изменённые источники",
-  "Bilim": "Знание"
+  "Bilim": "Знание",
+  "Bu domen hali tasdiqlangan manba emas. Uni ishonchli manba deb tasdiqlab, kuzatuvga qo‘shaymi?": "Этот домен ещё не подтверждён как источник. Подтвердить его как надёжный и добавить в наблюдение?",
+  "Domenni tasdiqlab qo‘shish": "Подтвердить домен и добавить",
+  "Tavsiya etilgan rasmiy manbalar": "Рекомендуемые официальные источники",
+  "O‘zbekiston qonunchilik ma‘lumotlari milliy bazasi": "Национальная база данных законодательства Узбекистана",
+  "Norma.uz — me‘yoriy hujjatlar": "Norma.uz — нормативные документы"
 }

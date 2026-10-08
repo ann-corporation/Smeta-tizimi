@@ -520,6 +520,29 @@ describe('agent-ish shlyuzi', () => {
       expect((await post({ amal: 'bilim_yoz', kompaniya_id: 5, sarlavha: 'Faqat sarlavha' })).status).toBe(400);
     });
 
+    it('kuzatuv_saqla: tasdiqlanmagan domen — tushunarli xato; domenni_tasdiqla bilan manba taklif qilinib superadmin tomonidan tasdiqlanadi va qayta uriniladi', async () => {
+      let urinish = 0;
+      const f = vi.fn(async (u: string) => {
+        const url = String(u);
+        if (url.includes('t2_agent_kuzatuv_saqla_v1')) { urinish += 1; return urinish === 1 ? rpcJavob({ ok: false, code: 'MANBA_TASDIQLANMAGAN' }) : rpcJavob({ ok: true, id: 8 }); }
+        if (url.includes('t2_agent_taklif_yarat_v1')) return rpcJavob({ ok: true, id: 60 });
+        if (url.includes('t2_agent_taklif_qaror_v1')) return rpcJavob({ ok: true, holat: 'qollandi' });
+        return new Response('{}', { status: 500 });
+      });
+      vi.stubGlobal('fetch', f);
+      const r1 = await post({ amal: 'kuzatuv_saqla', url: 'https://lex.uz/docs/1', nom: 'Lex' });
+      expect(r1.status).toBe(400); expect((await r1.json() as { error: string }).error).toContain('tasdiqlang');   // «Xato» emas, tushunarli matn
+      urinish = 0;
+      const r2 = await post({ amal: 'kuzatuv_saqla', url: 'https://lex.uz/docs/1', nom: 'Lex', domenni_tasdiqla: true });
+      expect(r2.status).toBe(200); expect((await r2.json() as { id: number }).id).toBe(8);
+      const t = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_taklif_yarat_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(t).toMatchObject({ p_actor_id: 7, p_tur: 'manba', p_doira: 'global', p_kompaniya_id: null }); expect(t.p_mazmun.domen).toBe('lex.uz');
+      // noto'g'ri (http) manzil bilan domen tasdiqlanmaydi
+      urinish = 0; f.mockClear();
+      const r3 = await post({ amal: 'kuzatuv_saqla', url: 'http://lex.uz/x', nom: 'Lex', domenni_tasdiqla: true });
+      expect(r3.status).toBe(400); expect(f.mock.calls.some(([u]) => String(u).includes('t2_agent_taklif_yarat_v1'))).toBe(false);
+    });
+
     it('kuzatuv_saqla va bilim GET yo‘llari sessiya foydalanuvchisi nomidan', async () => {
       const f = vi.fn(async () => rpcJavob({ ok: true, natija: [] })); vi.stubGlobal('fetch', f);
       expect((await post({ amal: 'kuzatuv_saqla', url: 'https://norma.uz/a', nom: 'Norma', p_actor_id: 999 })).status).toBe(200);

@@ -15,6 +15,12 @@ const YARLIQ_URL = 'Manba sahifa manzili (https://…)';
 const YARLIQ_NOM = 'Nomi (masalan: ShNQ 3.01.01-22)';
 const YARLIQ_MAQSAD = 'Nimani izlash kerak (ixtiyoriy)';
 
+/** Tanish rasmiy me'yor portallari (manzilni o'zingiz tekshiring — tavsiya, kafolat emas). */
+const TAVSIYA_MANBA = [
+  { url: 'https://lex.uz', nom: 'O‘zbekiston qonunchilik ma‘lumotlari milliy bazasi' },
+  { url: 'https://norma.uz', nom: 'Norma.uz — me‘yoriy hujjatlar' },
+];
+
 function Karta({ nom, qiymat, ogoh }: { nom: string; qiymat: number; ogoh?: boolean }) {
   return (
     <div className="karta p-3">
@@ -32,6 +38,7 @@ export function AiBoshqaruvchi({ m, taklifgaOt }: { m: Markaz; taklifgaOt: () =>
   const [band, setBand] = useState(false);
   const [url, setUrl] = useState(''); const [nom, setNom] = useState(''); const [maqsad, setMaqsad] = useState('');
   const [bs, setBs] = useState(''); const [bm, setBm] = useState(''); const [bk, setBk] = useState('');
+  const [domenSoraldi, setDomenSoraldi] = useState(false);
 
   const yukla = useCallback(async () => {
     const [a, b, c] = await Promise.all([bilimHolatiOl(), kuzatuvOl(), bilimOl(null)]);
@@ -51,10 +58,13 @@ export function AiBoshqaruvchi({ m, taklifgaOt }: { m: Markaz; taklifgaOt: () =>
       void yukla();
     } finally { setBand(false); }
   };
-  const qosh = async () => {
-    const r = await kuzatuvSaqla({ url: url.trim(), nom: nom.trim(), maqsad: maqsad.trim() || undefined });
-    if (!r.ok) { toast(r.error, 'danger'); return; }
-    toast(t('Sahifa kuzatuvga qo‘shildi'), 'ok'); setUrl(''); setNom(''); setMaqsad(''); void yukla();
+  const qosh = async (domenniTasdiqla = false) => {
+    const r = await kuzatuvSaqla({ url: url.trim(), nom: nom.trim(), maqsad: maqsad.trim() || undefined, domenniTasdiqla });
+    if (!r.ok) {
+      setDomenSoraldi(r.code === 'MANBA_TASDIQLANMAGAN');
+      toast(r.error, 'danger'); return;
+    }
+    toast(t('Sahifa kuzatuvga qo‘shildi'), 'ok'); setDomenSoraldi(false); setUrl(''); setNom(''); setMaqsad(''); void yukla();
   };
   const yoz = async () => {
     const r = await bilimYoz(null, { sarlavha: bs.trim(), matn: bm.trim(), kalit: bk });
@@ -107,6 +117,18 @@ export function AiBoshqaruvchi({ m, taklifgaOt }: { m: Markaz; taklifgaOt: () =>
           <input aria-label={t(YARLIQ_NOM)} placeholder={t(YARLIQ_NOM)} value={nom} onChange={(e) => setNom(e.target.value)} className="input h-8 px-2 text-[12px]" />
           <input aria-label={t(YARLIQ_MAQSAD)} placeholder={t(YARLIQ_MAQSAD)} value={maqsad} onChange={(e) => setMaqsad(e.target.value)} className="input h-8 px-2 text-[12px]" />
           <button type="button" disabled={!url.trim() || !nom.trim()} onClick={() => void qosh()} className="tugma-asosiy h-8 px-3 text-[12px] disabled:opacity-40">{t('Kuzatuvga qo‘shish')}</button>
+        </div>
+        {domenSoraldi && (
+          <div role="status" className="flex flex-wrap items-center gap-2 rounded border border-warn/40 bg-warn/10 px-2 py-1.5 text-xs text-warn">
+            <span>{t('Bu domen hali tasdiqlangan manba emas. Uni ishonchli manba deb tasdiqlab, kuzatuvga qo‘shaymi?')}</span>
+            <button type="button" onClick={() => void qosh(true)} className="rounded-md border border-warn/60 px-2.5 py-1 text-warn hover:bg-warn/10">{t('Domenni tasdiqlab qo‘shish')}</button>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-text-mute">
+          <span>{t('Tavsiya etilgan rasmiy manbalar')}:</span>
+          {TAVSIYA_MANBA.map((x) => (
+            <button key={x.url} type="button" onClick={() => { setUrl(x.url); setNom(t(x.nom)); setDomenSoraldi(false); }} className="rounded-full border border-border px-2 py-0.5 hover:bg-white/5">{x.url.replace('https://', '')}</button>
+          ))}
         </div>
       </div>
 
