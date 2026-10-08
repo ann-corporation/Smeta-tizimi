@@ -14,5 +14,13 @@ Reja va qaror tarixi: Obsidian `AI_TIZIM_V2_REJA.md`. Poydevor: `T2_AGENT_PLATFO
 ## Migratsiya `20261106350000_t2_agent_uslub_model_v1` (+rollback, `supabase/tests/t2_agent_uslub_model_contract.sql`, 22/22 rollback-sinov o'tgan)
 Prod'ga faqat egasi roziligi bilan. Qo'llanmaguncha: uslub/shaxsiy model jim o'chiq, qolgani (bilim, sahifa ochish, tizim yordamchisi) ishlaydi.
 
+## Boshqaruvchi agent va bilim bazasi (E1–E3, E5) — migratsiya `20261106360000_t2_agent_bilim_v1`
+- **Bilim bazasi** (`t2_agent_bilim`): taklif turi `bilim` → inson tasdig'i (global: superadmin; kompaniya: shu kompaniya admin/boss/director) → faol yozuv (versiyalanadi, eskisi arxivga). Dalil (url + sha256) taklifda va yozuvda saqlanadi. Savol/sahifaga qarab `agent-bilim.ts` qidiruvida kod ichidagi lug'at bilan birga ishtirok etadi (bir xil ballda DB bilimi ustun). Tenant chegarasi: kompaniya bilimi boshqa kompaniyaga ko'rinmaydi; tenant kontekstidan global bilim taklif qilib bo'lmaydi.
+- **Kuzatuv** (`t2_agent_kuzatuv_url`, faqat superadmin): me'yor/qonun sahifalari; domen oldindan tasdiqlangan manbalar ro'yxatida bo'lishi shart (baza tekshiradi). `bilim_yigish` har sahifani oladi (SSRF-himoyali `vebOl`), sha256 o'zgarmagan bo'lsa MODEL CHAQIRILMAYDI; o'zgargan/yangi bo'lsa `platform_orchestrator` (aiHisobli, platforma limiti) ≤3 bilim taklifi ajratadi — hech narsa o'zi kuchga kirmaydi.
+- **Boshqaruvchi agent oynasi** (Boshqaruv → AI markazi → «Boshqaruvchi agent»): kutayotgan takliflar, signallar, umumiy/kompaniya bilimi, o'zgargan manbalar, kuzatuv ro'yxati, «Yangi me'yorlarni tekshirish», qo'lda bilim qo'shish.
+- **Kompaniya bilimi** (Sozlamalar → AI): kompaniya rahbari o'z qoidalarini yozadi; shu kompaniyadagi barcha AI ishchilar foydalanadi.
+- **Kompaniyasiz tizim yordamchisi** global bilimdan ham javob beradi (`t2_agent_bilim_umumiy_v1`), tokensiz.
+- **Chegara:** deploy, migratsiya va yangi me'yor kuchga kirishi har doim inson tasdig'i bilan; ijrochi workflow (`agent-task.yml`) egasi yoqmaguncha o'chiq. Davriy (cron) tekshirish hali yo'q: Pages'da cron yo'q, GitHub Actions schedule + himoyalangan endpoint egasi roziligi va sir (secret) talab qiladi.
+
 ## Navbat
 Harakat katalogini kengaytirish; fikr (👍/👎) → uslub; bilim bazasi DBda (superadmin tasdiqlagan, internetdan o'rganilgan me'yorlar/qonunlar) va kompaniya agentlariga uzatish; boshqaruvchi agent davriyligi; kompaniya siyosati (model narx chegarasi).

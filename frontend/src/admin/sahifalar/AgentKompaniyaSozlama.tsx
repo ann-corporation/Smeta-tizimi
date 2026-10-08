@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { kompaniyaSozlamaOl, kompaniyaSozlamaSaqla, sarfHisobotiOl, type KompaniyaSozlama, type SarfHisoboti } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { AgentKompaniyaBilimi } from './AgentKompaniyaBilimi';
 
 const son = (n: number) => Math.round(n).toLocaleString('ru-RU');
 const LIMIT_NAMUNA = 'Cheklovsiz';
@@ -73,6 +74,8 @@ export function AgentKompaniyaSozlama({ kompaniyaId }: { kompaniyaId: number }) 
           ? <button type="button" className="tugma-asosiy h-8 px-3 text-[12px]" onClick={() => void saqla()}>{t('Saqlash')}</button>
           : <p className="text-[12px] text-text-mute">{t('Sozlamalarni admin, boss yoki direktor o‘zgartira oladi.')}</p>}
       </div>
+
+      <AgentKompaniyaBilimi kompaniyaId={kompaniyaId} tahrir={tahrir} />
 
       {h && h.agentlar.length > 0 && (
         <div className="karta overflow-x-auto p-3">

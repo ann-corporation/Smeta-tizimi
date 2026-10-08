@@ -65,8 +65,24 @@ export const BILIM: readonly BilimYozuv[] = [
     matn: 'AI: (1) lavozimga ruxsat etilgan ma‘lumot bo‘yicha savolga aniq javob (raqamlar FAKTLAR dan); (2) tizimdagi atama/mantiqni tushuntiradi; (3) kerakli sahifani ko‘rsatadi va ochish tugmasini beradi; (4) ombor kirim/chiqim, grafik foizi, eslatma kabi ishlarni TAKLIF qiladi — bajarish foydalanuvchi tasdig‘idan keyin (xavfi past ishni sozlamaga ko‘ra o‘zi bajarishi mumkin, yuqori xavf hech qachon avtomatik emas); (5) foydalanuvchi uslubiga moslashadi. AI ruxsatsiz ma‘lumotni ko‘rsatmaydi va tasdiqlangan hujjatni o‘zgartirmaydi.' },
 ];
 
-/** Savol va sahifa bo'yicha eng mos bilim yozuvlari (ball: kalit so'z urishi + sahifa moslik), belgilar byudjeti bilan. */
-export function bilimTanla(savol: string, sahifa?: string | null, byudjet = 3000, maks = 5): BilimYozuv[] {
+/** Bazadagi (superadmin/kompaniya admini tasdiqlagan) bilim yozuvi — `t2_agent_bilim_v1` natijasi. */
+export type DbBilim = { kod: string; doira?: string; sarlavha: string; matn: string; kalit: string[]; manba_url?: string | null };
+
+/** DB yozuvini qidiruv yozuviga aylantiradi (manba havolasi matn oxirida; kalit va matn uzunligi chegaralanadi). */
+export function dbBilimYozuvlari(royxat: unknown): BilimYozuv[] {
+  if (!Array.isArray(royxat)) return [];
+  return royxat.slice(0, 300).flatMap((x): BilimYozuv[] => {
+    const o = (x ?? {}) as Partial<DbBilim>;
+    if (typeof o.kod !== 'string' || typeof o.sarlavha !== 'string' || typeof o.matn !== 'string' || !Array.isArray(o.kalit)) return [];
+    const kalit = o.kalit.filter((k): k is string => typeof k === 'string' && k.length >= 2).slice(0, 12);
+    if (!kalit.length) return [];
+    const manba = typeof o.manba_url === 'string' && o.manba_url.startsWith('https://') ? ` (manba: ${o.manba_url.slice(0, 200)})` : '';
+    return [{ id: 'db:' + o.kod, kalit, sarlavha: o.sarlavha.slice(0, 200) + (o.doira === 'company' ? ' · kompaniya bilimi' : ''), matn: o.matn.slice(0, 1500) + manba }];
+  });
+}
+
+/** Savol va sahifa bo'yicha eng mos bilim yozuvlari (ball: kalit so'z urishi + sahifa moslik), belgilar byudjeti bilan. `qoshimcha` — bazadagi tasdiqlangan bilim. */
+export function bilimTanla(savol: string, sahifa?: string | null, byudjet = 3000, maks = 5, qoshimcha: readonly BilimYozuv[] = []): BilimYozuv[] {
   const q = normBilim(savol); const s = (sahifa ?? '').toLowerCase();
   const ball = (y: BilimYozuv): number => {
     let b = 0;
@@ -74,7 +90,8 @@ export function bilimTanla(savol: string, sahifa?: string | null, byudjet = 3000
     if (s && y.sahifa?.some((p) => s.startsWith(p))) b += 2;
     return b;
   };
-  const tartib = BILIM.map((y) => ({ y, b: ball(y) })).filter((x) => x.b > 0).sort((a, c) => c.b - a.b);
+  // Bazadagi tasdiqlangan bilim (yangi me'yor/qonun) bir xil ball bo'lsa USTUN: kod ichidagi lug'at eskirgan bo'lishi mumkin.
+  const tartib = [...BILIM.map((y) => ({ y, b: ball(y) })), ...qoshimcha.map((y) => ({ y, b: ball(y) + 0.5 }))].filter((x) => x.b > 0).sort((a, c) => c.b - a.b);
   const chiqish: BilimYozuv[] = []; let n = 0;
   for (const { y } of tartib) {
     const uzun = y.sarlavha.length + y.matn.length + 6;
@@ -124,8 +141,8 @@ export function sahifaQidirish(savol: string, maks = 3): Array<{ yol: string; no
  * Kompaniya/lavozimi yo'q foydalanuvchi uchun TOKENSIZ «Tizim yordamchisi»: lug'at va sahifa katalogi asosida javob.
  * Kompaniya ma'lumotiga umuman tegmaydi; mos qo'llanma topilmasa — halol shuni aytadi.
  */
-export function tizimYordamJavobi(savol: string, sahifa?: string | null): { javob: string; sahifalar: Array<{ yol: string; nom: string }>; topildi: boolean } {
-  const yozuvlar = bilimTanla(savol, sahifa, 2600, 3);
+export function tizimYordamJavobi(savol: string, sahifa?: string | null, qoshimcha: readonly BilimYozuv[] = []): { javob: string; sahifalar: Array<{ yol: string; nom: string }>; topildi: boolean } {
+  const yozuvlar = bilimTanla(savol, sahifa, 2600, 3, qoshimcha);
   const sahifalar = sahifaQidirish(savol, 3);
   const qismlar: string[] = [];
   if (yozuvlar.length) qismlar.push(...yozuvlar.map((x) => `**${x.sarlavha}**\n${x.matn}`));
@@ -145,8 +162,8 @@ export function sahifalarXaritasi(): string {
 }
 
 /** Promptga qo'shiladigan bilim bo'limi (bo'sh bo'lishi mumkin). */
-export function bilimBolimi(savol: string, sahifa: string | null | undefined, byudjet = 3200): string {
-  const y = bilimTanla(savol, sahifa, byudjet);
+export function bilimBolimi(savol: string, sahifa: string | null | undefined, byudjet = 3200, qoshimcha: readonly BilimYozuv[] = []): string {
+  const y = bilimTanla(savol, sahifa, byudjet, 5, qoshimcha);
   const sb = sahifaBilimi(sahifa);
   const xarita = navigatsiyaSorovi(savol) ? `\nSAHIFALAR XARITASI (faqat shu yo‘llar mavjud):\n${sahifalarXaritasi()}` : '';
   if (!y.length && !sb && !xarita) return '';

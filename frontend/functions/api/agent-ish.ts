@@ -15,7 +15,8 @@ import { aiHisobli, aiXatoJavobi, aiXatoMalumoti, modelOf } from '../_shared/age
 import { tizimPrompti, tashqiMatnOra, profilDarajasi, type Muhit } from '../_shared/agent-prompt';
 import { vebOl } from '../_shared/agent-veb';
 import { faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../_shared/agent-kasb';
-import { bilimBolimi, navigatsiyaSorovi, sahifaQidirish, tizimYordamJavobi, yolTekshir } from '../_shared/agent-bilim';
+import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, tizimYordamJavobi, yolTekshir } from '../_shared/agent-bilim';
+import { BILIM_SXEMA, BILIM_VAZIFA, bilimKodi, bilimTakliflariniAjrat } from '../_shared/agent-bilim-yigish';
 import { BOSH_USLUB, uslubBolimi, uslubXulosasi, uslubYangila, type UslubXususiyat } from '../_shared/agent-uslub';
 import { jarvisSalommi } from '../../src/lib/jarvis/intent';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
@@ -28,7 +29,7 @@ const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? 
 const PROFIL = /^[a-z_]{3,40}$/;
 
 /** Model chaqiradigan (token sarflaydigan) amallar. */
-const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif']);
+const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
@@ -93,6 +94,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return Response.json({ ...r.data, xulosa: uslubXulosasi({ ...BOSH_USLUB, ...(r.data.xususiyat as Partial<UslubXususiyat>) }) }, JAVOB);
   }
   if (bolim === 'model_shaxsiy') return chiqar(await rpcData(ctx.env, 't2_agent_model_shaxsiy_v1', { p_actor_id: k.actor }));
+  /* Bilim bazasi: faol bilim (global + kompaniya), kuzatiladigan sahifalar va boshqaruvchi agent holati (oxirgi ikkisi faqat superadmin — baza tekshiradi). */
+  if (bolim === 'bilim') return chiqar(await rpcData(ctx.env, 't2_agent_bilim_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+  if (bolim === 'kuzatuv') return chiqar(await rpcData(ctx.env, 't2_agent_kuzatuv_royxat_v1', { p_actor_id: k.actor }));
+  if (bolim === 'bilim_holat') return chiqar(await rpcData(ctx.env, 't2_agent_bilim_holat_v1', { p_actor_id: k.actor }));
   if (bolim === 'jurnal') {
     if (kid == null) return xato('kompaniya_id kerak');
     return chiqar(await rpcData(ctx.env, 't2_agent_jurnal_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_hamma: u.searchParams.get('hamma') === '1', p_limit: 30 }));
@@ -253,7 +258,9 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   const tilIshora = til === 'uz' ? 'Javobni DOIM o‘zbek (lotin) tilida yoz.' : til === 'ru' ? 'Javobni DOIM rus tilida yoz.' : '';
   const uslubIshora = uslub === 'batafsil' ? 'Javobni batafsil yoz: sabablari va hisob-kitobini ham ko‘rsat.' : 'Javobni juda qisqa yoz (6 gapdan oshmasin).';
   const sahifaYoli = matn(so.sahifa, 160);
-  const bilim = bilimBolimi(savol, sahifaYoli);
+  const blr = await rpcData(env, 't2_agent_bilim_v1', { p_actor_id: actor, p_kompaniya_id: kid }).catch(() => null);
+  const dbBilim = dbBilimYozuvlari(blr?.ok ? blr.data.natija : []);
+  const bilim = bilimBolimi(savol, sahifaYoli, 3200, dbBilim);
   if (bilim) qd('📚', 'Tizim bilimi qo‘shildi: savolga tegishli atama va sahifa mantiqi');
   const uslubB = uslubBolimi(uslubXus, uslubKorsatma, uslubOchiq);
   if (uslubB) qd('🎨', 'Sizning uslubingizga moslashtirilmoqda (Sozlamalar → Mening AI ishchim)');
@@ -528,7 +535,57 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (amal === 'tizim_yordam') {
     const savol = matn(so.savol, 600);
     if (!savol) return xato('savol kerak');
-    return Response.json({ ok: true, model: 'local', ...tizimYordamJavobi(savol, matn(so.sahifa, 160)) }, JAVOB);
+    const ub = await rpcData(env, 't2_agent_bilim_umumiy_v1', { p_actor_id: k.actor }).catch(() => null);
+    return Response.json({ ok: true, model: 'local', ...tizimYordamJavobi(savol, matn(so.sahifa, 160), dbBilimYozuvlari(ub?.ok ? ub.data.natija : [])) }, JAVOB);
+  }
+  /* Kuzatiladigan manba sahifa (faqat superadmin; domen oldindan tasdiqlangan bo'lishi shart — baza tekshiradi). */
+  if (amal === 'kuzatuv_saqla') {
+    if (kid != null) return xato('Faqat tizim doirasida', 403);
+    return chiqar(await rpcData(env, 't2_agent_kuzatuv_saqla_v1', { p_actor_id: k.actor, p_url: String(so.url ?? '').slice(0, 1000), p_nom: String(so.nom ?? '').slice(0, 120), p_maqsad: matn(so.maqsad, 300), p_faol: so.faol !== false }));
+  }
+  /* Inson yozgan bilim (kompaniya admini o'z kompaniyasi uchun yoki superadmin umumiy): taklif yaratiladi va yozuvchining O'ZI vakolati bo'lsa darhol tasdiqlanadi, aks holda tasdiq kutadi. */
+  if (amal === 'bilim_yoz') {
+    const kalit = (Array.isArray(so.kalit) ? so.kalit : String(so.kalit ?? '').split(',')).map((x) => String(x).trim().slice(0, 40)).filter((x) => x.length >= 2).slice(0, 12);
+    const sarlavha = matn(so.sarlavha, 200); const tavsif = matn(so.matn, 1500);
+    if (!sarlavha || !tavsif) return xato('sarlavha va matn kerak');
+    const c = await rpcData(env, 't2_agent_taklif_yarat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_tur: 'bilim', p_doira: kid == null ? 'global' : 'company', p_profil: null, p_sarlavha: sarlavha,
+      p_mazmun: { kod: bilimKodi(String(so.kod ?? sarlavha)), sarlavha, matn: tavsif, kalit }, p_dalil: [], p_run_id: null });
+    if (!c.ok) return chiqar(c);
+    const q = await rpcData(env, 't2_agent_taklif_qaror_v1', { p_actor_id: k.actor, p_taklif_id: Number(c.data.id), p_qaror: 'tasdiqlash', p_izoh: 'Inson yozgan bilim' });
+    return Response.json({ ok: true, taklif_id: c.data.id, qabul: q.ok, kutilmoqda: !q.ok }, JAVOB);
+  }
+  /* BOSHQARUVCHI AGENT — bilim yig'ish: kuzatiladigan sahifalarda O'ZGARISH bo'lsa (sha256) yangi bilim TAKLIFLARI ajratiladi; o'zgarmagan sahifa uchun token sarflanmaydi.
+     Natija faqat taklif: superadmin tasdiqlamaguncha hech bir agent bilimiga kirmaydi. */
+  if (amal === 'bilim_yigish') {
+    if (kid != null) return xato('Faqat tizim doirasida', 403);
+    const l = await rpcData(env, 't2_agent_kuzatuv_royxat_v1', { p_actor_id: k.actor });
+    if (!l.ok) return chiqar(l);
+    const royxat = (l.data.natija as Array<{ id: number; url: string; nom: string; maqsad: string | null; faol: boolean; oxirgi_sha256: string | null }>)
+      .filter((x) => x.faol && (!sonmi(so.id) || x.id === Number(so.id))).slice(0, 6);
+    if (!royxat.length) return Response.json({ ok: true, korildi: 0, ozgardi: 0, takliflar: [], xatolar: 0, xabar: 'Kuzatiladigan sahifa yo‘q' }, JAVOB);
+    const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: k.actor, p_kompaniya_id: null, p_profil: 'platform_orchestrator' });
+    if (!m.ok) return chiqar(m);
+    const yaratildi: number[] = []; let ozgardi = 0; let xatolar = 0; const natija: Array<{ nom: string; holat: string }> = [];
+    try {
+      for (const u of royxat) {
+        const v = await vebYukla(u.url);
+        if (!v.ok) { xatolar += 1; natija.push({ nom: u.nom, holat: 'xato' }); await rpcData(env, 't2_agent_kuzatuv_belgila_v1', { p_actor_id: k.actor, p_id: u.id, p_sha256: null, p_holat: 'xato', p_izoh: v.xato }); continue; }
+        if (u.oxirgi_sha256 && u.oxirgi_sha256 === v.sha256) { natija.push({ nom: u.nom, holat: 'ozgarmadi' }); await rpcData(env, 't2_agent_kuzatuv_belgila_v1', { p_actor_id: k.actor, p_id: u.id, p_sha256: v.sha256, p_holat: 'ozgarmadi', p_izoh: null }); continue; }
+        const r = await aiHisobli(env, k.actor, null, 'platform_orchestrator', 'bilim_yigish', {
+          system: tizimPrompti(m.data as unknown as Muhit, 'platform_orchestrator') + '\n\n' + BILIM_VAZIFA, tier: 'reasoning', model: modelOf(m), maxOutputTokens: 1800, temperature: 0, jsonSchema: BILIM_SXEMA,
+          text: `Sahifa: ${u.nom}. Maqsad: ${u.maqsad || 'qurilish me‘yorlari va talablari'}.\n\n` + tashqiMatnOra(v.url, v.matn),
+        });
+        let soni = 0;
+        for (const t of bilimTakliflariniAjrat(r.text)) {
+          const c = await rpcData(env, 't2_agent_taklif_yarat_v1', { p_actor_id: k.actor, p_kompaniya_id: null, p_tur: 'bilim', p_doira: 'global', p_profil: null, p_sarlavha: t.sarlavha,
+            p_mazmun: t, p_dalil: [{ url: v.url, sha256: v.sha256, olingan: new Date().toISOString() }], p_run_id: null });
+          if (c.ok) { yaratildi.push(Number(c.data.id)); soni += 1; }
+        }
+        ozgardi += 1; natija.push({ nom: u.nom, holat: u.oxirgi_sha256 ? 'ozgardi' : 'yangi' });
+        await rpcData(env, 't2_agent_kuzatuv_belgila_v1', { p_actor_id: k.actor, p_id: u.id, p_sha256: v.sha256, p_holat: u.oxirgi_sha256 ? 'ozgardi' : 'yangi', p_izoh: `${soni} ta taklif` });
+      }
+    } catch (e) { return aiXatoJavobi(e); }
+    return Response.json({ ok: true, korildi: royxat.length, ozgardi, takliflar: yaratildi, xatolar, natija }, JAVOB);
   }
   if (amal === 'shaxsiy_saqla') {
     return chiqar(await rpcData(env, 't2_agent_shaxsiy_saqla_v1', { p_actor_id: k.actor, p_til: String(so.til ?? ''), p_uslub: String(so.uslub ?? ''), p_ishonch: String(so.ishonch ?? '') }));

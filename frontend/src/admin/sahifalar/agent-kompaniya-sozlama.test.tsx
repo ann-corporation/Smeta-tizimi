@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const m = vi.hoisted(() => ({ toast: vi.fn(), kompaniyaSozlamaOl: vi.fn(), kompaniyaSozlamaSaqla: vi.fn(), sarfHisobotiOl: vi.fn() }));
+const m = vi.hoisted(() => ({ toast: vi.fn(), kompaniyaSozlamaOl: vi.fn(), kompaniyaSozlamaSaqla: vi.fn(), sarfHisobotiOl: vi.fn(), bilimOl: vi.fn(), bilimYoz: vi.fn() }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
-vi.mock('../../api/t2-agent-ish', () => ({ kompaniyaSozlamaOl: m.kompaniyaSozlamaOl, kompaniyaSozlamaSaqla: m.kompaniyaSozlamaSaqla, sarfHisobotiOl: m.sarfHisobotiOl }));
+vi.mock('../../api/t2-agent-ish', () => ({ kompaniyaSozlamaOl: m.kompaniyaSozlamaOl, kompaniyaSozlamaSaqla: m.kompaniyaSozlamaSaqla, sarfHisobotiOl: m.sarfHisobotiOl, bilimOl: m.bilimOl, bilimYoz: m.bilimYoz }));
 
 import { AgentKompaniyaSozlama } from './AgentKompaniyaSozlama';
 
@@ -12,6 +12,10 @@ beforeEach(() => {
   Object.values(m).forEach((f) => f.mockReset());
   m.kompaniyaSozlamaOl.mockResolvedValue(soz());
   m.sarfHisobotiOl.mockResolvedValue({ ok: true, natija: { oy_token: 889, balans: 5000, agentlar: [{ profil: 'pto_smeta', chaqiruv: 3, token: 889 }], kunlar: [] } });
+  m.bilimOl.mockResolvedValue({ ok: true, natija: { natija: [
+    { id: 1, doira: 'global', kod: 'umumiy', sarlavha: 'Umumiy yozuv', matn: 'platforma', kalit: ['x1'], manba_url: null, versiya: 1 },
+    { id: 2, doira: 'company', kod: 'bizniki', sarlavha: 'Ombor tartibi', matn: 'Chiqimni omborchi va prorab birga tasdiqlaydi.', kalit: ['ombor'], manba_url: null, versiya: 2 },
+  ] } });
 });
 afterEach(cleanup);
 
@@ -54,6 +58,25 @@ describe('AgentKompaniyaSozlama', () => {
     expect(screen.queryByRole('button', { name: 'Saqlash' })).toBeNull();
     expect((screen.getByLabelText(/Oylik token limiti/) as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByText(/admin, boss yoki direktor/)).toBeTruthy();
+  });
+
+  it('kompaniya bilimi: faqat o‘z kompaniya yozuvlari ko‘rinadi; admin yangisini yozadi (vergul bilan kalit)', async () => {
+    m.bilimYoz.mockResolvedValue({ ok: true, natija: { taklif_id: 9, qabul: true, kutilmoqda: false } });
+    render(<AgentKompaniyaSozlama kompaniyaId={5} />);
+    expect(await screen.findByText('Ombor tartibi')).toBeTruthy();
+    expect(screen.queryByText('Umumiy yozuv')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Sarlavha'), { target: { value: 'Tasdiq tartibi' } });
+    fireEvent.change(screen.getByLabelText('Matn'), { target: { value: 'Bizda hujjatni avval PTO keyin direktor tasdiqlaydi.' } });
+    fireEvent.change(screen.getByLabelText('Kalit so‘zlar (vergul bilan)'), { target: { value: 'tasdiq, tartib' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Bilimni saqlash' }));
+    await waitFor(() => expect(m.bilimYoz).toHaveBeenCalledWith(5, { sarlavha: 'Tasdiq tartibi', matn: 'Bizda hujjatni avval PTO keyin direktor tasdiqlaydi.', kalit: 'tasdiq, tartib' }));
+  });
+
+  it('huquqsiz a‘zo bilimni ko‘radi, lekin yoza olmaydi', async () => {
+    m.kompaniyaSozlamaOl.mockResolvedValue(soz({ tahrir_mumkin: false }));
+    render(<AgentKompaniyaSozlama kompaniyaId={5} />);
+    expect(await screen.findByText('Ombor tartibi')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Bilimni saqlash' })).toBeNull();
   });
 
   it('balans 0 bo‘lsa — AI ishlamasligi aniq aytiladi', async () => {

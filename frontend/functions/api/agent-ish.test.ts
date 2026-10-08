@@ -405,13 +405,14 @@ describe('agent-ish shlyuzi', () => {
     });
 
     it('tizim_yordam: kompaniyasiz va TOKENSIZ (model/baza chaqirilmaydi); mos qo‘llanma yo‘q bo‘lsa halol aytadi', async () => {
-      const f = vi.fn(async () => new Response('{}', { status: 500 })); vi.stubGlobal('fetch', f);
+      const f = vi.fn(async (_u: string) => new Response('{}', { status: 500 })); vi.stubGlobal('fetch', f);
       const j = await (await post({ amal: 'tizim_yordam', savol: 'F2 nima?' })).json() as { ok: boolean; javob: string; topildi: boolean; model: string };
       expect(j).toMatchObject({ ok: true, topildi: true, model: 'local' }); expect(j.javob).toContain('Акт приёмки');
       const bos = await (await post({ amal: 'tizim_yordam', savol: 'qwertyuiop' })).json() as { topildi: boolean; javob: string };
       expect(bos.topildi).toBe(false); expect(bos.javob).toContain('topilmadi');
       expect((await post({ amal: 'tizim_yordam' })).status).toBe(400);
-      expect(f.mock.calls.length).toBe(0);
+      // faqat umumiy (global) bilimni o'qiydi; model ham, kompaniya RPC si ham chaqirilmaydi
+      expect(f.mock.calls.every(([u]) => String(u).includes('t2_agent_bilim_umumiy_v1'))).toBe(true);
     });
 
     it('uslub va shaxsiy model amallari faqat sessiyadagi foydalanuvchi nomidan; GET uslub odam o‘qiydigan xulosa qaytaradi', async () => {
@@ -424,6 +425,109 @@ describe('agent-ish shlyuzi', () => {
       for (const c of f.mock.calls) expect(JSON.parse(String((c as unknown as [string, RequestInit])[1].body)).p_actor_id).toBe(7);
       const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=uslub'), env: env() } as never);
       expect((await g.json() as { xulosa: string[] }).xulosa.join(' ')).toContain('ruscha');
+    });
+
+    it('bazadagi tasdiqlangan bilim savolga mos bo‘lsa promptga kiradi (kompaniya bilimi ham)', async () => {
+      const asos = toliq('{"javob":"Xo‘sh","harakatlar":[]}');
+      const f = vi.fn(async (u: string, init?: RequestInit) => (String(u).includes('t2_agent_bilim_v1')
+        ? rpcJavob({ ok: true, natija: [{ kod: 'bizning_tartib', doira: 'company', sarlavha: 'Ombor chiqim tartibi', matn: 'Bizda chiqimni faqat omborchi va prorab birgalikda tasdiqlaydi.', kalit: ['chiqim tartibi'] }] })
+        : asos(u, init)));
+      vi.stubGlobal('fetch', f);
+      await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Ombor chiqim tartibi qanday?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const p = JSON.stringify(JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('openrouter.ai')) as unknown as [string, RequestInit])[1].body)).messages);
+      expect(p).toContain('faqat omborchi va prorab'); expect(p).toContain('kompaniya bilimi');
+      const bl = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_bilim_v1')) as unknown as [string, RequestInit])[1].body));
+      expect(bl).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5 });
+    });
+
+    describe('boshqaruvchi agent — bilim yig‘ish', () => {
+      const SAHIFA = '<html><body><p>ShNQ 3.01.01-22 band 6: yashirin ishlar dalolatnomasi talablari.</p></body></html>';
+      const kuz = (sha: string | null, o: { royxatXato?: boolean; modelMatni?: string } = {}) => vi.fn(async (u: string, init?: RequestInit) => {
+        const url = String(u);
+        if (url.includes('t2_agent_kuzatuv_royxat_v1')) return o.royxatXato ? rpcJavob({ ok: false, code: 'GLOBAL_SCOPE_DENIED' }) : rpcJavob({ ok: true, natija: [{ id: 3, url: 'https://norma.uz/x', nom: 'Norma ShNQ', maqsad: 'ShNQ', faol: true, oxirgi_sha256: sha }] });
+        if (url.includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'global', qoidalar: [], xotira: [], manbalar: [], model: 'google/gemini-2.5-flash-lite' });
+        if (url.includes('t2_agent_veb_ruxsat_v1')) return rpcJavob({ ok: true });
+        if (url.includes('t2_agent_veb_log_v1') || url.includes('t2_agent_kuzatuv_belgila_v1') || url.includes('t2_agent_sarf_')) return rpcJavob({ ok: true });
+        if (url.includes('t2_agent_taklif_yarat_v1')) return rpcJavob({ ok: true, id: 41 });
+        if (url.startsWith('https://norma.uz/')) return new Response(SAHIFA, { status: 200, headers: { 'content-type': 'text/html' } });
+        if (url.includes('openrouter.ai')) return new Response(JSON.stringify({ choices: [{ message: { content: o.modelMatni ?? JSON.stringify({ takliflar: [{ kod: 'shnq_3_01_01_22_aosr', sarlavha: 'ShNQ 3.01.01-22 АОСР', matn: 'Yashirin ishlar dalolatnomasi 6-bandga muvofiq rasmiylashtiriladi.', kalit: ['aosr', 'dalolatnoma'] }] }) } }], usage: { prompt_tokens: 700, completion_tokens: 80, cost: 0.0003 } }), { status: 200 });
+        void init; return new Response('{}', { status: 500 });
+      });
+      const yuboring = (f: ReturnType<typeof vi.fn>) => { vi.stubGlobal('fetch', f); return post({ amal: 'bilim_yigish' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined })); };
+
+      it('sahifa o‘zgargan: model chaqiriladi, bilim TAKLIFI yaratiladi (dalil: url+sha256), hech narsa to‘g‘ridan-to‘g‘ri kuchga kirmaydi', async () => {
+        const f = kuz('eski-sha');
+        const j = await (await yuboring(f)).json() as { ok: boolean; korildi: number; ozgardi: number; takliflar: number[] };
+        expect(j).toMatchObject({ ok: true, korildi: 1, ozgardi: 1, takliflar: [41] });
+        const t = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_taklif_yarat_v1')) as unknown as [string, RequestInit])[1].body));
+        expect(t).toMatchObject({ p_actor_id: 7, p_kompaniya_id: null, p_tur: 'bilim', p_doira: 'global' });
+        expect(t.p_mazmun.kod).toBe('shnq_3_01_01_22_aosr'); expect(t.p_dalil[0].url).toBe('https://norma.uz/x'); expect(t.p_dalil[0].sha256).toMatch(/^[0-9a-f]{64}$/);
+        expect(f.mock.calls.some(([u]) => /t2_agent_(bilim|qoida)\b|t2_agent_taklif_qaror/.test(String(u)))).toBe(false);
+        const belgi = JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('t2_agent_kuzatuv_belgila_v1')) as unknown as [string, RequestInit])[1].body));
+        expect(belgi).toMatchObject({ p_id: 3, p_holat: 'ozgardi' });
+        const model = JSON.stringify(JSON.parse(String((f.mock.calls.find(([u]) => String(u).includes('openrouter.ai')) as unknown as [string, RequestInit])[1].body)).messages);
+        expect(model).toContain('TASHQI_MANBA'); expect(model).toContain('bilim yig‘ish');
+      });
+
+      it('sahifa o‘zgarmagan: model CHAQIRILMAYDI (token sarflanmaydi), holat «ozgarmadi»', async () => {
+        const sha = await (async () => { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SAHIFA)); return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, '0')).join(''); })();
+        const f = kuz(sha);
+        const j = await (await yuboring(f)).json() as { ozgardi: number; natija: Array<{ holat: string }> };
+        expect(j.ozgardi).toBe(0); expect(j.natija[0].holat).toBe('ozgarmadi');
+        expect(f.mock.calls.some(([u]) => /openrouter\.ai|t2_agent_sarf_/.test(String(u)))).toBe(false);
+      });
+
+      it('birinchi olish «yangi»; model yaroqsiz javob bersa taklif yaratilmaydi, xato yutilmaydi', async () => {
+        const f = kuz(null, { modelMatni: 'bu json emas' });
+        const j = await (await yuboring(f)).json() as { takliflar: number[]; natija: Array<{ holat: string }> };
+        expect(j.takliflar).toEqual([]); expect(j.natija[0].holat).toBe('yangi');
+        expect(f.mock.calls.some(([u]) => String(u).includes('t2_agent_taklif_yarat_v1'))).toBe(false);
+      });
+
+      it('superadmin bo‘lmasa (baza rad etadi) hech narsa olinmaydi; kompaniya doirasida rad', async () => {
+        const f = kuz('x', { royxatXato: true });
+        const r = await yuboring(f);
+        expect((await r.json() as { code: string }).code).toBe('GLOBAL_SCOPE_DENIED');
+        expect(f.mock.calls.some(([u]) => /openrouter\.ai|norma\.uz/.test(String(u)))).toBe(false);
+        vi.stubGlobal('fetch', kuz('x'));
+        expect((await post({ amal: 'bilim_yigish', kompaniya_id: 5 }, env({ OPENROUTER_API_KEY: 'k' }))).status).toBe(403);
+      });
+
+      it('manba olinmasa (tasdiqlanmagan domen) sahifa «xato» deb belgilanadi, model chaqirilmaydi', async () => {
+        const f = vi.fn(async (u: string) => { const url = String(u);
+          if (url.includes('t2_agent_kuzatuv_royxat_v1')) return rpcJavob({ ok: true, natija: [{ id: 3, url: 'https://norma.uz/x', nom: 'N', maqsad: null, faol: true, oxirgi_sha256: null }] });
+          if (url.includes('t2_agent_muhit_v1')) return rpcJavob({ ok: true, scope: 'global', qoidalar: [], xotira: [], manbalar: [] });
+          if (url.includes('t2_agent_veb_ruxsat_v1')) return rpcJavob({ ok: false, code: 'MANBA_TASDIQLANMAGAN' });
+          return rpcJavob({ ok: true }); });
+        const j = await (await yuboring(f)).json() as { xatolar: number; natija: Array<{ holat: string }> };
+        expect(j.xatolar).toBe(1); expect(j.natija[0].holat).toBe('xato');
+        expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai'))).toBe(false);
+      });
+    });
+
+    it('bilim_yoz: inson yozgan bilim taklif sifatida yaratiladi va vakolat bo‘lsa darhol tasdiqlanadi; kalit/kod tozalanadi', async () => {
+      const f = vi.fn(async (u: string) => (String(u).includes('t2_agent_taklif_yarat_v1') ? rpcJavob({ ok: true, id: 77 }) : rpcJavob({ ok: true, holat: 'qollandi' })));
+      vi.stubGlobal('fetch', f);
+      const j = await (await post({ amal: 'bilim_yoz', kompaniya_id: 5, sarlavha: 'Bizning ombor tartibi', matn: 'Chiqimni omborchi va prorab birga tasdiqlaydi.', kalit: 'chiqim tartibi, ombor , x' })).json() as { ok: boolean; taklif_id: number; qabul: boolean };
+      expect(j).toMatchObject({ ok: true, taklif_id: 77, qabul: true });
+      const c = JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+      expect(c).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_tur: 'bilim', p_doira: 'company' });
+      expect(c.p_mazmun.kalit).toEqual(['chiqim tartibi', 'ombor']); expect(c.p_mazmun.kod).toBe('bizning_ombor_tartibi');
+      // vakolat yo'q: taklif qoladi (kutilmoqda), xato emas
+      vi.stubGlobal('fetch', vi.fn(async (u: string) => (String(u).includes('t2_agent_taklif_yarat_v1') ? rpcJavob({ ok: true, id: 78 }) : rpcJavob({ ok: false, code: 'WRITE_ROLE_REQUIRED' }))));
+      const j2 = await (await post({ amal: 'bilim_yoz', kompaniya_id: 5, sarlavha: 'Qoida', matn: 'Yetarlicha uzun matn bo‘lishi kerak', kalit: ['atama'] })).json() as { qabul: boolean; kutilmoqda: boolean };
+      expect(j2).toMatchObject({ qabul: false, kutilmoqda: true });
+      expect((await post({ amal: 'bilim_yoz', kompaniya_id: 5, sarlavha: 'Faqat sarlavha' })).status).toBe(400);
+    });
+
+    it('kuzatuv_saqla va bilim GET yo‘llari sessiya foydalanuvchisi nomidan', async () => {
+      const f = vi.fn(async () => rpcJavob({ ok: true, natija: [] })); vi.stubGlobal('fetch', f);
+      expect((await post({ amal: 'kuzatuv_saqla', url: 'https://norma.uz/a', nom: 'Norma', p_actor_id: 999 })).status).toBe(200);
+      expect((await post({ amal: 'kuzatuv_saqla', kompaniya_id: 5, url: 'https://norma.uz/a', nom: 'Norma' })).status).toBe(403);
+      for (const b of ['bilim', 'kuzatuv', 'bilim_holat']) {
+        expect((await onRequestGet({ request: new Request(`https://t/api/agent-ish?bolim=${b}&kompaniya_id=5`), env: env() } as never)).status).toBe(200);
+      }
+      for (const c of f.mock.calls) expect(JSON.parse(String((c as unknown as [string, RequestInit])[1].body)).p_actor_id).toBe(7);
     });
 
     it('kompaniyasiz so‘rov 422; ruxsatsiz kompaniya bazada rad (model yo‘q)', async () => {
