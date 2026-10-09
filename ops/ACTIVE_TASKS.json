@@ -2001,8 +2001,6 @@
       "status": "in_progress",
       "owns": [
         "frontend/src/lib/catalog-extraction/",
-        "frontend/src/lib/smeta-studio/abc-hujjat.test.ts",
-        "frontend/src/lib/smeta-studio/abc-hujjat.ts",
         "frontend/src/lib/smeta-studio/calc.ts",
         "frontend/src/lib/smeta-studio/catalog-bridge.ts",
         "frontend/src/lib/smeta-studio/commands.ts",
@@ -2052,7 +2050,7 @@
       ],
       "production_write_allowed": false,
       "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi. 2026-10-06: t2_smeta_studio_qoralama_v1 production ga qo‘llandi (shadow 11/11).",
-      "note": "2026-10-09 owner: Claude weekly limit exhausted; resource-match.ts/test.ts and SmetaStudioNarxlash.tsx delegated to T2-SMETACHI-RELIABILITY-20261009 for candidate pagination/pricing diagnostics only. Remaining Studio/backend paths stay in this task."
+      "note": "2026-10-09 owner: Claude weekly limit exhausted; resource-match.ts/test.ts, abc-hujjat.ts/test.ts and SmetaStudioNarxlash.tsx delegated to T2-SMETACHI-RELIABILITY-20261009 for candidate pagination/pricing diagnostics and honest partial export only. Remaining Studio/backend paths stay in this task."
     },
     {
       "id": "T2-NARX-KATALOG-R2-001",
@@ -2281,6 +2279,8 @@
     "frontend/src/admin/sahifalar/SmetaStudioNarxlash.tsx",
     "frontend/src/lib/smeta-studio/resource-match.ts",
     "frontend/src/lib/smeta-studio/resource-match.test.ts",
+    "frontend/src/lib/smeta-studio/abc-hujjat.ts",
+    "frontend/src/lib/smeta-studio/abc-hujjat.test.ts",
     "ops/handoff/T2_SMETACHI_RELIABILITY_20261009.md"
   ],
   "depends_on": [],

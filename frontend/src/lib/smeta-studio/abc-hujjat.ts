@@ -124,7 +124,7 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
 }
 const sumOf = (xs: ResLine[]) => xs.reduce<number>((s, x) => (x.amount == null ? s : Math.round((s + x.amount) * 100) / 100), 0);
 
-function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVaraq {
+function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved: number): RasmiyVaraq {
   const U: RasmiyUstun[] = [
     { sarlavha: '№№', kenglik: 6, tur: 'tartib' }, { sarlavha: 'РЕСУРС', kenglik: 10, tur: 'kod' }, { sarlavha: 'ОБОСНОВАНИЕ', kenglik: 14, tur: 'kod' },
     { sarlavha: 'НАИМЕНОВАНИЕ РЕСУРСА', kenglik: 56, tur: 'matn' }, { sarlavha: 'ЕД.ИЗМ', kenglik: 9, tur: 'birlik' },
@@ -136,7 +136,8 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVar
   const direct = [sumOf(g.labour), sumOf(g.machines), sumOf(mats), sumOf(g.equipment)];
   const total = Math.round(direct.reduce((a, b) => a + b, 0) * 100) / 100;
   const v = new RasmiyVaraq({ nom: 'RES', sarlavha: 'ЛОКАЛЬНАЯ РЕСУРСНАЯ СМЕТА', ostSarlavha: [doc.context.title || ''].filter(Boolean),
-    titul: [...titul(o, doc), ['ПРЯМЫЕ ЗАТРАТЫ', val(total)], ['в том числе: ЗАРАБОТНАЯ ПЛАТА', val(direct[0])],
+    titul: [...titul(o, doc), ...(unresolved ? [['СТАТУС РАСЧЁТА', `НЕПОЛНЫЙ: ${unresolved} ресурсных строк требуют уточнения. Итоги содержат только известную часть стоимости.`] as const] : []),
+      [unresolved ? 'ПРЯМЫЕ ЗАТРАТЫ (ИЗВЕСТНАЯ ЧАСТЬ)' : 'ПРЯМЫЕ ЗАТРАТЫ', val(total)], ['в том числе: ЗАРАБОТНАЯ ПЛАТА', val(direct[0])],
       ['ЭКСПЛУАТАЦИЯ МАШИН И МЕХАНИЗМОВ', val(direct[1])], ['СТОИМОСТЬ СТРОИТЕЛЬНЫХ МАТЕРИАЛОВ', val(direct[2])],
       ['ПЕРЕВОЗКА', 'учтена в материалах / отдельными работами'], ['ОБОРУДОВАНИЕ', val(direct[3])], ['ОСНОВАНИЕ:', o.asos ?? '']],
     ustunlar: U, yonalish: 'portrait', muzlatUstun: 4 });
@@ -177,6 +178,6 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya): RasmiyVar
 export function abcHujjat(doc: EstimateDoc, calc: DocCalc, unitText: Units, o: AbcHujjatOpsiya = {}) {
   if (!Object.keys(doc.occurrences).length) throw new Error('LRV_BOSH');
   const g = resGroups(doc, calc, unitText);
-  const kitob = rasmiyKitob([lrvVaraq(doc, calc, unitText, o), resVaraq(doc, g, o)], { tur: 'lrv' });
+  const kitob = rasmiyKitob([lrvVaraq(doc, calc, unitText, o), resVaraq(doc, g, o, calc.total.unresolved)], { tur: 'lrv' });
   return { bytes: kitob.bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyekt ?? doc.context.objectLabel ?? 'Smeta', hujjat: 'ЛРВ_RES', davr: new Date().toISOString().slice(0, 10) }), groups: g };
 }

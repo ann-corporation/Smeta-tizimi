@@ -65,3 +65,11 @@ UNKNOWN/NOT_DONE: полная проверка текущих цен на вс�
 Канонический reader остаётся единственным parser; R2 хранит immutable оригинал,
 AI получает источники конкретной редакции/page/cell через retrieval. Fine-tuning
 не заменяет источник, актуальность и детерминированный финансовый расчёт.
+
+RES follow-up: неизвестные значения не скрываются за титулом полных прямых
+затрат. Экспорт сохраняет известные суммы (правило владельца2026-10-08), но
+в начале RES показывает НЕПОЛНЫЙ, число unresolved resource lines и
+ПРЯМЫЕ ЗАТРАТЫ (ИЗВЕСТНАЯ ЧАСТЬ).4 workbook tests PASS; final app TSC exit0.
+Live second chat reply returned grounded proposals/questions, but norm-selection
+stage reported BYUDJET_TUGADI (AI monthly limit). No budget increase/bypass,
+no further provider calls, no ADD/save. This is a concrete runtime limitation.

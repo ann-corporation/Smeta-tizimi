@@ -71,6 +71,8 @@ describe('ABC-shaped LRV + RES', () => {
     const flat = sheet(r.bytes, 'RES').map(x => x.join('|'));
     expect(flat.filter(x => x.includes('|ВСЕГО|')).pop()!.split('|').pop()).not.toBe('');
     expect(flat.some(x => x.includes('цена не указана'))).toBe(true);
+    expect(flat.some(x => x.includes('СТАТУС РАСЧЁТА') && x.includes('НЕПОЛНЫЙ'))).toBe(true);
+    expect(flat.some(x => x.includes('ПРЯМЫЕ ЗАТРАТЫ (ИЗВЕСТНАЯ ЧАСТЬ)'))).toBe(true);
     expect(flat.some(x => x.includes('не определено'))).toBe(false);
   });
 });
