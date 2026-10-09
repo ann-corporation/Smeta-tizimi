@@ -47,6 +47,8 @@ describe('smetachi AI — catalogue grounding and batch', () => {
     expect(tanlovSorovi(foundation, [foundation, armature]).tavsif).toContain('Armatura A3');
     expect(tanlovZidmi(foundation, { id: 'x', kod: 'E6', nom: 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ БЕТОННЫХ', birlik: '100М3' }, [armature])).toBe(true);
     expect(tanlovZidmi(foundation, { id: 'y', kod: 'E6', nom: 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ ЖЕЛЕЗОБЕТОННЫХ', birlik: '100М3' }, [armature])).toBe(false);
+    const previous = { ...foundation, tanlangan: { workId: 'x', kod: 'E6', nom: 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ БЕТОННЫХ', birlik: '100М3', sabab: 'old' } };
+    expect(birlashtir([previous, armature], [foundation, armature])[0].tanlangan).toBeNull();
   });
   it('material changes invalidate even manual choices; quantity-only edits preserve them', () => {
     const [a] = birlashtir([], niyat());

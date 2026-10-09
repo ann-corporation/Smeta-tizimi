@@ -81,13 +81,14 @@ export function tanlovZidmi(ish: AiIsh, n: TanlovNomzodi, related: AiIsh[]): boo
 /** Merge the model's updated intents with what the user already decided (chosen work, manual edits). */
 export function birlashtir(eski: AiIsh[], yangi: IshNiyati[]): AiIsh[] {
   const by = new Map(eski.map(i => [i.id, i]));
-  return yangi.map(n => {
+  const merged = yangi.map(n => {
     const o = by.get(n.id);
     const same = o && o.tavsif === n.tavsif && o.birlik === n.birlik && o.material === n.material && JSON.stringify(o.qidiruv) === JSON.stringify(n.qidiruv);
     let hajm: AiIsh['hajm'] = null, hajmXato: string | null = null;
     if (n.hajmIfoda) { try { hajm = ifodaHisobla(n.hajmIfoda); } catch (e) { hajmXato = e instanceof Error ? e.message : 'IFODA_NOTOGRI'; } }
     return { ...n, nomzodlar: same ? o!.nomzodlar : [], tanlangan: same ? o!.tanlangan : null, hajm, hajmXato };
   });
+  return merged.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, merged) ? { ...i, tanlangan: null } : i);
 }
 
 export type QoshishNatija = { commands: StudioCommand[]; qoshildi: string[]; otkazildi: Array<{ id: string; sabab: string }> };
