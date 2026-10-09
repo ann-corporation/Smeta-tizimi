@@ -6,7 +6,7 @@
  * Amallar: ko'rish (Excel — saytda aynan hujjatdagiday; PDF/rasm — yangi oynada), yuklab olish, joriy papkaga yuklash,
  * papkani ZIP, "hammasi + ma'lumotlar" ZIP (fayllar papkalari bilan + jadvallar CSV/JSON + manifest).
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Download, Eye, FileArchive, FileSpreadsheet, FileText, Folder, FolderOpen, RefreshCw, Search, Upload } from 'lucide-react';
 import { zipSync, strToU8, type Zippable } from 'fflate';
 import { useTil } from '../../i18n/til';
@@ -21,8 +21,16 @@ const EXCEL = /spreadsheet|excel|\.xlsx?$/i;
 const sanaMatni = (s: string) => (s ? new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
 export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
+  return <CompanyFileManager key={kompaniyaId} kompaniyaId={kompaniyaId} />;
+}
+
+function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
   const { t } = useTil();
-  const [data, setData] = useState<FaylExplorer | null>(null);
+  const [storedData, setData] = useState<FaylExplorer | null>(null);
+  const data = storedData?.kompaniya_id === kompaniyaId ? storedData : null;
+  const companyRef = useRef(kompaniyaId);
+  companyRef.current = kompaniyaId;
+  const requestRef = useRef(0);
   const [xato, setXato] = useState<string | null>(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [joriyKalit, setJoriyKalit] = useState('');
@@ -32,12 +40,18 @@ export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
   const [korinish, setKorinish] = useState<{ bytes: Uint8Array; nom: string } | null>(null);
 
   const yukla = useCallback(async () => {
+    const request = ++requestRef.current;
     setYuklanmoqda(true); setXato(null);
-    try { setData(await faylExplorerOl(kompaniyaId)); }
-    catch (e) { setXato(e instanceof Error ? e.message : String(e)); }
-    finally { setYuklanmoqda(false); }
+    try { const result = await faylExplorerOl(kompaniyaId); if (request === requestRef.current && companyRef.current === kompaniyaId) setData(result); }
+    catch (e) { if (request === requestRef.current && companyRef.current === kompaniyaId) setXato(e instanceof Error ? e.message : String(e)); }
+    finally { if (request === requestRef.current && companyRef.current === kompaniyaId) setYuklanmoqda(false); }
   }, [kompaniyaId]);
-  useEffect(() => { setJoriyKalit(''); void yukla(); }, [yukla]);
+  useEffect(() => {
+    const requests = requestRef;
+    setJoriyKalit(''); setKorinish(null); setOchiq(new Set()); setQidiruv(''); setBand(null);
+    void yukla();
+    return () => { requests.current++; };
+  }, [yukla]);
 
   const ildiz = useMemo(() => faylDaraxti(data?.fayllar ?? []), [data]);
   const joriy = useMemo(() => papkaTop(ildiz, joriyKalit) ?? ildiz, [ildiz, joriyKalit]);
@@ -55,29 +69,37 @@ export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
   };
 
   const korish = async (f: Fayl) => {
+    const company = kompaniyaId;
+    const generation = requestRef.current;
     setBand(t('Ochilmoqda…'));
     try {
       const b = await faylBaytlari(f.id);
+      if (companyRef.current !== company || requestRef.current !== generation) return;
       if (EXCEL.test(f.mime) || EXCEL.test(f.nom)) setKorinish({ bytes: b, nom: f.nom });
       else window.open(URL.createObjectURL(new Blob([b.slice()], { type: f.mime })), '_blank', 'noopener');
-    } catch { toast(t('Faylni ochib bo‘lmadi'), 'danger'); }
-    finally { setBand(null); }
+    } catch { if (companyRef.current === company && requestRef.current === generation) toast(t('Faylni ochib bo‘lmadi'), 'danger'); }
+    finally { if (companyRef.current === company && requestRef.current === generation) setBand(null); }
   };
   const yuklabOl = async (f: Fayl) => {
+    const company = kompaniyaId, generation = requestRef.current;
+    const current = () => companyRef.current === company && requestRef.current === generation;
     setBand(t('Yuklanmoqda…'));
-    try { downloadBlob(await faylBaytlari(f.id), f.nom, f.mime); }
-    catch { toast(t('Faylni yuklab bo‘lmadi'), 'danger'); }
-    finally { setBand(null); }
+    try { const bytes = await faylBaytlari(f.id); if (current()) downloadBlob(bytes, f.nom, f.mime); }
+    catch { if (current()) toast(t('Faylni yuklab bo‘lmadi'), 'danger'); }
+    finally { if (current()) setBand(null); }
   };
 
   /** ZIP: tanlangan fayllar papkalari bilan (+ ixtiyoriy ma'lumotlar jadvallari). */
   const zip = async (fayllar: Fayl[], malumot: boolean, nom: string) => {
+    const company = kompaniyaId, generation = requestRef.current;
+    const current = () => companyRef.current === company && requestRef.current === generation;
     if (!fayllar.length && !malumot) { toast(t('Bu papkada fayl yo‘q'), 'warn'); return; }
     const z: Zippable = {};
     const yollar = zipYollari(fayllar);
     const xatolar: string[] = [];
     try {
       for (let i = 0; i < fayllar.length; i++) {
+        if (!current()) return;
         const f = fayllar[i];
         setBand(t('ZIP: {i} / {n} fayl', { i: i + 1, n: fayllar.length }));
         try { z[yollar.get(f.id)!] = [await faylBaytlari(f.id), { level: 0 }]; }
@@ -85,6 +107,7 @@ export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
       }
       if (malumot) {
         for (const j of EKSPORT_JADVALLARI) {
+          if (!current()) return;
           setBand(t('Ma’lumotlar: {nom}', { nom: j.nom }));
           try {
             const q = await jadvalHammasi(j.jadval, kompaniyaId, j.ustunlar);
@@ -93,6 +116,7 @@ export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
           } catch { xatolar.push(j.nom); }
         }
       }
+      if (!current()) return;
       const manifest = {
         kompaniya_id: kompaniyaId, kompaniya: data?.kompaniya ?? null, yaratildi: new Date().toISOString(),
         fayllar: fayllar.map((f) => ({ id: f.id, yol: yollar.get(f.id), nom: f.nom, tur: f.tur, versiya: f.versiya, hajm: f.hajm, sha256: f.sha256, sana: f.sana, kim: f.kim, loyiha: f.loyiha, obyekt: f.obyekt })),
@@ -105,20 +129,27 @@ export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
       downloadBlob(bytes, `${xavfsizNom(nom)}_${new Date().toISOString().slice(0, 10)}.zip`, 'application/zip');
       if (xatolar.length) toast(t('ZIP tayyor, lekin {n} ta element olinmadi — manifest.json da ro‘yxat', { n: xatolar.length }), 'warn');
       else toast(t('ZIP tayyor: {n} fayl', { n: fayllar.length }), 'ok');
-    } catch { toast(t('ZIP yaratib bo‘lmadi'), 'danger'); }
-    finally { setBand(null); }
+    } catch { if (current()) toast(t('ZIP yaratib bo‘lmadi'), 'danger'); }
+    finally { if (current()) setBand(null); }
   };
 
   const faylYuklash = async (fl: FileList | null) => {
     if (!fl?.length) return;
+    const company = kompaniyaId, generation = requestRef.current;
+    const current = () => companyRef.current === company && requestRef.current === generation;
     let ok = 0;
+    try {
     for (const file of Array.from(fl)) {
+      if (!current()) return;
       setBand(t('Yuklanmoqda: {nom}', { nom: file.name }));
       const r = await hujjatYukla({ file, kompaniyaId, loyihaId: joriy.loyiha_id, obyektId: joriy.obyekt_id, documentType: joriy.tur ?? 'hujjat' });
+      if (!current()) return;
       if (r.ok) ok++; else toast(t('{nom} yuklanmadi', { nom: file.name }), 'danger');
     }
     setBand(null);
     if (ok) { toast(t('{n} ta fayl yuklandi', { n: ok }), 'ok'); void yukla(); }
+    } catch { if (current()) toast(t('Faylni yuklab bo‘lmadi'), 'danger'); }
+    finally { if (current()) setBand(null); }
   };
 
   const papkaQatori = (p: Papka) => {
@@ -179,7 +210,7 @@ export function FaylMenejer({ kompaniyaId }: { kompaniyaId: number }) {
             <button type="button" onClick={() => tanla('')} className="text-accent hover:underline">{data?.kompaniya ?? t('Kompaniya')}</button>
             {yolQismlari.map((q, i) => (
               <span key={i} className="flex items-center gap-1 text-text-dim"><ChevronRight size={12} />
-                <button type="button" onClick={() => tanla(yolQismlari.slice(0, i + 1).join('/'))} className="hover:underline">{q}</button>
+                <button type="button" onClick={() => tanla(yolQismlari.slice(0, i + 1).join('/'))} className="hover:underline">{papkaTop(ildiz, yolQismlari.slice(0, i + 1).join('/'))?.nom ?? q}</button>
               </span>
             ))}
             {qidiruvNatija && <span className="ml-2 text-text-mute">{t('Qidiruv: {n} ta', { n: qidiruvNatija.length })}</span>}

@@ -60,7 +60,8 @@ export function faylDaraxti(fayllar: readonly Fayl[]): Papka {
     let p = ildiz;
     p.soni++; p.hajm += f.hajm || 0;
     yol.forEach((qism, i) => {
-      const kalit = yol.slice(0, i + 1).join('/');
+      const identity = [`loyiha:${f.loyiha_id ?? 'none'}`, `obyekt:${f.obyekt_id ?? 'none'}`, `tur:${encodeURIComponent(f.tur)}`, `oy:${yol[3]}`];
+      const kalit = identity.slice(0, i + 1).join('/');
       let b = p.bolalar.find((x) => x.kalit === kalit);
       if (!b) {
         b = { kalit, nom: qism, daraja: i, bolalar: [], fayllar: [], soni: 0, hajm: 0,
@@ -106,6 +107,10 @@ export function zipYollari(fayllar: readonly Fayl[]): Map<number, string> {
       const asos = n > 0 ? nom.slice(0, n) : nom;
       const ext = n > 0 ? nom.slice(n) : '';
       yol = `fayllar/${papka}/${asos} (v${f.versiya}, #${f.id})${ext}`;
+      let takror = 2;
+      while (band.has(yol.toLowerCase())) {
+        yol = `fayllar/${papka}/${asos} (v${f.versiya}, #${f.id}, ${takror++})${ext}`;
+      }
     }
     band.add(yol.toLowerCase());
     natija.set(f.id, yol);

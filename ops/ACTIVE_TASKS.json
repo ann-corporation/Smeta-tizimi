@@ -2240,5 +2240,28 @@
       ],
       "production_write_allowed": false
     }
-  ]
+  ,
+{
+  "base_sha": "39749d3536632893d2e1b11099f6840ec59f7754",
+"id": "T2-R2-FILE-MANAGER-20261009",
+  "title": "Owner night request: safe R2 file manager integrity and company-context isolation",
+  "owner": "codex",
+  "machine": "noutbuk",
+  "branch": "codex/document-understanding-v1",
+  "status": "ready_for_review",
+  "owns": [
+    "frontend/src/lib/fayl-daraxt.ts",
+    "frontend/src/lib/fayl-daraxt.test.ts",
+    "frontend/src/admin/sahifalar/FaylMenejer.test.tsx",
+"frontend/src/admin/sahifalar/FaylMenejer.tsx",
+    "ops/handoff/T2_R2_FILE_MANAGER_20261009.md"
+  ],
+  "depends_on": [],
+  "must_read": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md"
+  ],
+  "production_write_allowed": false
+}
+]
 }
