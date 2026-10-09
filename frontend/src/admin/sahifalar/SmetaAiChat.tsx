@@ -219,7 +219,7 @@ function NormaTarkibi({ code }: { code: string }) {
 
 function KatalogQidiruv({ katalog, onPick }: { katalog: AiKatalog; onPick: (n: TanlovNomzodi) => void }) {
   const [query, setQuery] = useState('');
-  const [result, setResult] = useState<{ query: string; page: number; rows: TanlovNomzodi[]; total: number } | null>(null);
+  const [result, setResult] = useState<{ query: string; page: number; rows: TanlovNomzodi[]; total: number; hasNext: boolean } | null>(null);
   const search = (q: string, page: number) => setResult({ query: q, page, ...katalogSahifasi(katalog, q, page) });
   return <details className="text-[11px] text-text-dim">
     <summary>{t('Boshqa normani katalogdan qidirish')}</summary>
@@ -235,7 +235,7 @@ function KatalogQidiruv({ katalog, onPick }: { katalog: AiKatalog; onPick: (n: T
       </button>)}
       <div className="flex gap-1">
         <button type="button" className="tugma" disabled={result.page === 0} onClick={() => search(result.query, result.page - 1)}>{t('Oldingi')}</button>
-        <button type="button" className="tugma" disabled={!result.rows.length} onClick={() => search(result.query, result.page + 1)}>{t('Keyingi')}</button>
+        <button type="button" className="tugma" disabled={!result.hasNext} onClick={() => search(result.query, result.page + 1)}>{t('Keyingi')}</button>
       </div>
     </div>}
   </details>;

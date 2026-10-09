@@ -48,6 +48,8 @@ describe('smetachi AI — catalogue grounding and batch', () => {
     expect(page.total).toBe(60);
     expect(page.rows.map(n => n.id)).toEqual(many.slice(50).map(w => w.id));
     expect(page.rows[0].birlik).toBe('100 М3');
+    expect(page.hasNext).toBe(false);
+    expect(katalogSahifasi(paged, 'БЕТОН', 0).hasNext).toBe(true);
   });
   it('passes reinforcement context and rejects plain-concrete foundation selection', () => {
     const [foundation] = birlashtir([], niyat({ tavsif: 'Lentali fundament betonlash', material: 'Бетон B20' }));

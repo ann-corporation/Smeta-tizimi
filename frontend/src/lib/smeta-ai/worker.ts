@@ -26,9 +26,10 @@ export type AiIsh = IshNiyati & { nomzodlar: TanlovNomzodi[]; tanlangan: Tanlang
 
 const BIRLIK_KALIT: Record<Birlik, string> = { м3: 'М3', м2: 'М2', м: 'М', т: 'Т', кг: 'КГ', шт: 'ШТ', компл: 'КОМПЛ' };
 /** Explicit operator search over the catalogue's paginated index, independent of the AI shortlist. */
-export function katalogSahifasi(k: AiKatalog, query: string, page: number): { rows: TanlovNomzodi[]; total: number } {
+export function katalogSahifasi(k: AiKatalog, query: string, page: number): { rows: TanlovNomzodi[]; total: number; hasNext: boolean } {
   const result = k.search(query.trim(), page);
-  return { total: result.total, rows: result.rows.map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null })) };
+  return { total: result.total, hasNext: result.rows.length > 0 && k.search(query.trim(), page + 1).rows.length > 0,
+    rows: result.rows.map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null })) };
 }
 /** Base unit of a normative work unit ("100 М3" → "М3"), or null if the catalogue did not observe it. */
 export function ishAsosBirligi(k: Pick<AiKatalog, 'unit'>, unitCode: string | null): string | null {

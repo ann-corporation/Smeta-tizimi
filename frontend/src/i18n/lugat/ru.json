@@ -1344,5 +1344,19 @@
   "Qiymat bo‘yicha mos kelmagan qatorlar": "Строки, не совпавшие по значениям",
   "RES (resurslar)": "RES (ресурсы)",
   "LRV (ishlar)": "ЛРВ (работы)",
-  "E’tiborsiz / svod": "Игнорировать / свод"
+  "E’tiborsiz / svod": "Игнорировать / свод",
+  "Normaning ish tarkibi (manba bo‘yicha)": "Состав работ нормы (по источнику)",
+  "Boshqa normani katalogdan qidirish": "Найти другую норму в каталоге",
+  "Norma kodi yoki nomi": "Шифр или наименование нормы",
+  "Sahifa": "Страница",
+  "Kompaniya narxlarini olishda xato. Qayta urinib ko‘ring; boshqa kataloglar tekshiriladi.": "Ошибка получения цен компании. Повторите запрос; другие каталоги будут проверены.",
+  "Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.": "Черновик скачан. В некоторых строках не определены цена, объём или норма; итоговая стоимость сметы ещё не рассчитана.",
+  "Qoralama LRV + RES (Excel)": "Черновик ЛРВ + РЕС (Excel)",
+  "Hisob tugallanmagan: {n} ta resurs qatorida narx, hajm, norma yoki birlik asosi yetishmaydi. Eksport qoralama bo‘ladi.": "Расчёт не завершён: в {n} ресурсных строках отсутствуют цена, объём, норма или основание единицы. Экспорт будет черновиком.",
+  "Ko‘proq nomzodlar": "Больше вариантов",
+  "Tayyorlangan taxtalarni kesish va o‘rnatish": "Раскрой и установка досок",
+  "Qolip panellarini o‘rnatish va mahkamlash": "Установка и крепление щитов опалубки",
+  "Armaturani o‘rnatish": "Установка арматуры",
+  "Beton qorishmasini yotqizish": "Укладка бетонной смеси",
+  "Bu manba jadvalning ish tarkibini ko‘rsatadi. Katalog nashri bilan mosligi va texnik qism hali tasdiqlanmagan. Armatura/qolipni alohida qo‘shishdan oldin takroriy hisobni tekshiring. Qolipni yechish yoki armatura tayyorlash ushbu ro‘yxatdan avtomatik isbotlanmaydi.": "Источник показывает состав работ таблицы. Соответствие редакции каталога и техническая часть ещё не подтверждены. Перед добавлением арматуры/опалубки отдельно проверьте двойной учёт. Снятие опалубки или изготовление арматуры этим перечнем автоматически не доказываются."
 }

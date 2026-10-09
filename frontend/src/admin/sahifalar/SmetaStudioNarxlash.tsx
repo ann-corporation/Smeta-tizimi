@@ -261,6 +261,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
         <table className="w-full text-[11.5px]"><tbody>
           {openReview.map(r => {
             const ai = agent.natija.find(a => a.key === key(r));
+            const hasMore = r.result.candidateTotal > r.result.candidates.length;
             return <tr key={key(r)} className="border-t border-border/40 align-top">
               <td className="w-[38%] px-2 py-1"><span className="text-text">{r.name}</span>{r.unit && <span className="text-text-mute">, {r.unit}</span>}</td>
               <td className="px-2 py-1">
@@ -270,7 +271,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
                     <option value="" disabled>{t('— nomzod tanlang ({n}) —', { n: r.result.candidates.length })}</option>
                     {r.result.candidates.map(c => <option key={c.row.id} value={c.row.id}>{fmt(c.row.narx)} · {c.row.nom}{c.row.birlik ? `, ${c.row.birlik}` : ''} · {c.row.hudud ?? ''} · {Math.round(c.score * 100)}%</option>)}
                   </select>}
-                {r.result.candidateTotal > r.result.candidates.length && <button type="button" className="tugma mt-1 h-6 px-2" onClick={() => koproq(r)}>
+                {hasMore && <button type="button" className="tugma mt-1 h-6 px-2" onClick={() => koproq(r)}>
                   {t('Ko‘proq nomzodlar')} ({r.result.candidates.length}/{r.result.candidateTotal})
                 </button>}
                 {ai && <p className={`mt-0.5 ${ai.tanlov ? 'text-ok' : 'text-text-mute'}`}>{t('AI')}: {ai.tanlov ? `${ai.tanlov.nom} — ${fmt(ai.tanlov.narx)}` : t('mos emas')} · {ai.sabab}

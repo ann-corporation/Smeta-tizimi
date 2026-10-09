@@ -2223,8 +2223,6 @@
         "frontend/src/lib/catalog-release/",
         "frontend/src/admin/catalog-release/",
         "frontend/src/admin/sahifalar/BoshqaruvPanel.tsx",
-        "frontend/src/i18n/lugat/ru.json",
-        "frontend/src/i18n/lugat/en.json",
         "frontend/src/lib/sayt-xaritasi/generated.ts",
         "ops/handoff/T2_CATALOG_UPLOAD_SCOPES_001.md"
       ],
@@ -2281,6 +2279,8 @@
     "frontend/src/lib/smeta-studio/resource-match.test.ts",
     "frontend/src/lib/smeta-studio/abc-hujjat.ts",
     "frontend/src/lib/smeta-studio/abc-hujjat.test.ts",
+    "frontend/src/i18n/lugat/ru.json",
+    "frontend/src/i18n/lugat/en.json",
     "ops/handoff/T2_SMETACHI_RELIABILITY_20261009.md"
   ],
   "depends_on": [],

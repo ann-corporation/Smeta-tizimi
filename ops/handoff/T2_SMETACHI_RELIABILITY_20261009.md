@@ -82,3 +82,11 @@ fundament AI не выбирает мост/котёл/трубопровод, �
 16 worker tests PASS final; app TSC exit0. Старый пользовательский draft не
 переписывается; отдельное исправление resource armature quantity/recipe ещё
 требует доказанного проекта и проверки included-work scope.
+
+CI35c7/b97 обнаружил пропущенные RU/EN переводы9 новых UI ключей и false
+positive JSX text-ratchet на inline comparison. Исправлены словари (передача
+этих2 путей из предыдущего Codex catalog task), условие вынесено в hasMore.
+Добавлены переводы source operations/caution; guard не ослаблен.26 tests,
+включая i18n ratchet PASS; final build/app+Functions TS PASS. Пагинация не
+предлагает пустую страницу после последнего результата. Итоговый CI требует
+повторной проверки exact SHA; предыдущий failure нельзя назвать success.

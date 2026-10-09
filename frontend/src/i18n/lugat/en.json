@@ -1344,5 +1344,19 @@
   "Qiymat bo‘yicha mos kelmagan qatorlar": "Rows that do not match by value",
   "RES (resurslar)": "RES (resources)",
   "LRV (ishlar)": "LRV (works)",
-  "E’tiborsiz / svod": "Ignore / summary"
+  "E’tiborsiz / svod": "Ignore / summary",
+  "Normaning ish tarkibi (manba bo‘yicha)": "Work composition of the norm (from source)",
+  "Boshqa normani katalogdan qidirish": "Find another norm in the catalogue",
+  "Norma kodi yoki nomi": "Norm code or name",
+  "Sahifa": "Page",
+  "Kompaniya narxlarini olishda xato. Qayta urinib ko‘ring; boshqa kataloglar tekshiriladi.": "Could not retrieve company prices. Retry; other catalogues will be checked.",
+  "Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.": "Draft downloaded. Some lines have an unknown price, quantity or norm; the final estimate total has not been calculated.",
+  "Qoralama LRV + RES (Excel)": "Draft LRV + RES (Excel)",
+  "Hisob tugallanmagan: {n} ta resurs qatorida narx, hajm, norma yoki birlik asosi yetishmaydi. Eksport qoralama bo‘ladi.": "Calculation incomplete: {n} resource lines lack a price, quantity, norm or unit basis. The export will be a draft.",
+  "Ko‘proq nomzodlar": "More candidates",
+  "Tayyorlangan taxtalarni kesish va o‘rnatish": "Cutting and installing boards",
+  "Qolip panellarini o‘rnatish va mahkamlash": "Installing and securing formwork panels",
+  "Armaturani o‘rnatish": "Installing reinforcement",
+  "Beton qorishmasini yotqizish": "Placing concrete mix",
+  "Bu manba jadvalning ish tarkibini ko‘rsatadi. Katalog nashri bilan mosligi va texnik qism hali tasdiqlanmagan. Armatura/qolipni alohida qo‘shishdan oldin takroriy hisobni tekshiring. Qolipni yechish yoki armatura tayyorlash ushbu ro‘yxatdan avtomatik isbotlanmaydi.": "This source shows the table's work composition. Compatibility with the catalogue edition and the technical section has not yet been confirmed. Check for double counting before adding reinforcement/formwork separately. This list alone does not establish formwork removal or reinforcement fabrication."
 }
