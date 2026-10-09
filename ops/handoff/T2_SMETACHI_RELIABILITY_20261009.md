@@ -27,3 +27,5 @@ UI показывает ревизию каталога, код, единицу,
 не должны автоматически считаться доказанными. Нормы/цены не выдумываются.
 
 Final gates: full Vitest maxWorkers=2 238 files passed / 1690 tests passed / 17 skipped (435.94s); focused AI+UI 49 passed; final app TSC exit0; Functions TSC/lint/tekshir/build/governance/diff PASS. Initial unlimited-worker timeouts were reproduced as green in bounded full run. Release candidate includes follow-up list preservation and formula edits preserving unresolved conditions. Authenticated provider smoke remains UNKNOWN.
+
+Live Gemini 3.5 Flash smoke on production 42bc95eb: 5 proposals visible, add button visible; model invented B7.5/conditional width and selected plain-concrete foundation despite reinforcement. These are NOT accepted successes. Follow-up guards mark conditional quantities/unprovided A/B material grades as review; same-section reinforcement context is supplied and contradictory plain-concrete AI picks are blocked. 51 focused tests PASS; new full build incl both TS gates PASS; oxlint/governance/diff PASS. Norm search quality/complete recipe coverage and final saved priced estimate remain unproven.

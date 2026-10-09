@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { jsonAjrat, suhbatJavobiniTekshir } from './protokol';
+import { jsonAjrat, manbaMaterialiniTekshir, suhbatJavobiniTekshir } from './protokol';
 
 const JAVOB = { javob: 'Tushunarli. Fundament o‘lchamlarini ayting.', savollar: ['Uzunligi qancha?'], ishlar: [{ id: 'w1', bolim: 'Fundament', tavsif: 'Beton tayyorlov B7,5', qidiruv: ['Устройство бетонной подготовки'], birlik: 'м3', hajmIfoda: null, hajmIzoh: null, material: 'Бетон B7,5', holat: 'HAJM_KERAK' }] };
+
+it('blocks a conditional quantity and an invented concrete class from the live owner example', () => {
+  const parsed = suhbatJavobiniTekshir({ ...JAVOB, ishlar: [{ ...JAVOB.ishlar[0], hajmIfoda: '48*0.6*0.1', hajmIzoh: 'agar kengligi fundament bilan bir xil bo‘lsa', holat: 'TAYYOR' }] });
+  expect(parsed.ishlar[0].holat).toBe('ANIQLASH_KERAK');
+  const grounded = manbaMaterialiniTekshir(parsed, 'Beton B20; podbetonka 10 sm; 1.2 tonna A3; 0.6 tonna A1');
+  expect(grounded.ishlar[0].material).toBeNull();
+  expect(grounded.savollar.join(' ')).toContain('ko‘rsatilmagan');
+  expect(manbaMaterialiniTekshir(suhbatJavobiniTekshir(JAVOB), 'Beton В7.5').ishlar[0].material).toBe('Бетон B7,5');
+});
 
 describe('jsonAjrat — har qanday model javobi shakli', () => {
   it('toza JSON', () => expect(jsonAjrat(JSON.stringify(JAVOB))).toEqual(JAVOB));

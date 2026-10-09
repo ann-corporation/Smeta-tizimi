@@ -10,7 +10,7 @@ import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import type { SuhbatXabari } from '../../lib/smeta-ai/protokol';
-import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { smetachiSuhbat, smetachiTanla } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
@@ -62,7 +62,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
   async function asosla(list: AiIsh[]): Promise<AiIsh[]> {
     if (!katalog || kompaniyaId == null) return list;
     let next = list.map(i => (i.nomzodlar.length ? i : { ...i, nomzodlar: nomzodlarTop(katalog, i) }));
-    const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && i.nomzodlar.length).map(tanlovSorovi);
+    next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
+    const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && i.nomzodlar.length).map(i => tanlovSorovi(i, next));
     if (sor.length) {
       setBand('tanlash');
       const r = await smetachiTanla(kompaniyaId, sor.slice(0, 40));
@@ -71,7 +72,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
         const by = new Map(r.tanlovlar.map(x => [x.id, x]));
         next = next.map(i => {
           const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
-          return n ? { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab } } : i;
+          return n && !tanlovZidmi(i, n, next) ? { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab } } : i;
         });
       } else setHolat(xato(r.code, r.message));
     }

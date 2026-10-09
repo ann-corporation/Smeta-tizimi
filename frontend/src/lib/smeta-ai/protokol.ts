@@ -105,7 +105,8 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
     for (const q of Array.isArray(r.savollar) ? r.savollar : []) { const t = str(q, 300); if (t && !extraQ.includes(t)) extraQ.push(t); }
     if (!tavsif || !qidiruv.length) continue;
     const h = str(r.holat, 20).toUpperCase();
-    const holat = (['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] as const).includes(h as IshHolati) ? h as IshHolati : 'ANIQLASH_KERAK';
+    let holat = (['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] as const).includes(h as IshHolati) ? h as IshHolati : 'ANIQLASH_KERAK';
+    if (/\b(?:agar|taxmin|if|assuming)\b|если|предполож/i.test(str(r.hajmIzoh, 300))) holat = 'ANIQLASH_KERAK';
     const ifoda = str(r.hajmIfoda, 200) || null;
     seen.add(id);
     ishlar.push({ id, bolim: str(r.bolim, 120) || 'Asosiy', tavsif, qidiruv, birlik, hajmIfoda: ifoda,
@@ -116,6 +117,19 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
 }
 
 /** A choice survives only if it names one of the candidates the browser sent for that intent. */
+export function manbaMaterialiniTekshir(out: SuhbatJavobi, userText: string): SuhbatJavobi {
+  const grades = (text: string) => [...text.toUpperCase().matchAll(/(?:^|[^A-ZА-ЯЁ0-9])([ABАВ]\s*\d+(?:[.,]\d+)?)(?=$|[^0-9])/g)]
+    .map(m => m[1].replace(/\s/g, '').replace(/А/g, 'A').replace(/В/g, 'B').replace(',', '.'));
+  const source = new Set(grades(userText));
+  const savollar = [...out.savollar];
+  const ishlar = out.ishlar.map(i => {
+    if (!i.material || grades(i.material).every(g => source.has(g))) return i;
+    savollar.push(`${i.tavsif}: material klassini manbadan aniqlashtiring (${i.material} ko‘rsatilmagan).`);
+    return { ...i, material: null, holat: 'ANIQLASH_KERAK' as const };
+  });
+  return { ...out, ishlar, savollar: [...new Set(savollar)].slice(0, 8) };
+}
+
 export function tanlovlarniTekshir(raw: unknown, sorovlar: TanlovSorovi[]): Tanlov[] {
   // Accept the shapes real models produce: { tanlovlar }, { results }, { choices }, a bare array, or nested under javob.
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
-import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovDalili, tizimTanlovi, type AiKatalog } from './worker';
+import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -41,6 +41,13 @@ describe('smetachi AI — contract validation', () => {
 });
 
 describe('smetachi AI — catalogue grounding and batch', () => {
+  it('passes reinforcement context and rejects plain-concrete foundation selection', () => {
+    const [foundation] = birlashtir([], niyat({ tavsif: 'Lentali fundament betonlash', material: 'Бетон B20' }));
+    const [armature] = birlashtir([], niyat({ id: 'w2', tavsif: 'Armatura A3', material: 'Арматура A3 Ø12', birlik: 'т', hajmIfoda: '1.2' }));
+    expect(tanlovSorovi(foundation, [foundation, armature]).tavsif).toContain('Armatura A3');
+    expect(tanlovZidmi(foundation, { id: 'x', kod: 'E6', nom: 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ БЕТОННЫХ', birlik: '100М3' }, [armature])).toBe(true);
+    expect(tanlovZidmi(foundation, { id: 'y', kod: 'E6', nom: 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ ЖЕЛЕЗОБЕТОННЫХ', birlik: '100М3' }, [armature])).toBe(false);
+  });
   it('material changes invalidate even manual choices; quantity-only edits preserve them', () => {
     const [a] = birlashtir([], niyat());
     const old = { ...a, tanlangan: { workId: '1', kod: 'E6', nom: 'n', birlik: '100 М3', sabab: 'mos', qolda: true } };

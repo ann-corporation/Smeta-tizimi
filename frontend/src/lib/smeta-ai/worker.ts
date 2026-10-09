@@ -67,8 +67,15 @@ export function tizimTanlovi(ish: Pick<AiIsh, 'qidiruv' | 'nomzodlar'>): Tanlang
   return stems.length && name.startsWith(stems[0]) && stems.every(st => name.includes(st)) ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: 'tizim tanlovi (nom bo‘yicha eng yaqin) — tekshiring' } : null;
 }
 
-export function tanlovSorovi(ish: AiIsh): TanlovSorovi {
-  return { id: ish.id, tavsif: ish.tavsif + (ish.material ? ` (${ish.material})` : ''), birlik: ish.birlik, material: ish.material, nomzodlar: ish.nomzodlar };
+export function tanlovSorovi(ish: AiIsh, related: AiIsh[] = []): TanlovSorovi {
+  const context = related.filter(i => i.id !== ish.id && i.bolim === ish.bolim).map(i => `${i.tavsif}${i.material ? ` (${i.material})` : ''}`).join('; ');
+  return { id: ish.id, tavsif: `${ish.tavsif}${ish.material ? ` (${ish.material})` : ''}${context ? `; Shu bo‘limdagi ishlar: ${context}` : ''}`.slice(0, 1200), birlik: ish.birlik, material: ish.material, nomzodlar: ish.nomzodlar };
+}
+
+/** Explicit reinforcement in the same section contradicts a plain-concrete foundation pick. */
+export function tanlovZidmi(ish: AiIsh, n: TanlovNomzodi, related: AiIsh[]): boolean {
+  return /фундамент|fundament/i.test(ish.tavsif) && /ФУНДАМЕНТОВ БЕТОННЫХ/i.test(n.nom)
+    && related.some(i => i.bolim === ish.bolim && /арматур|armatur/i.test(`${i.tavsif} ${i.material ?? ''}`));
 }
 
 /** Merge the model's updated intents with what the user already decided (chosen work, manual edits). */
@@ -103,6 +110,7 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
   for (const s of Object.values(doc.sections)) sectionByName.set(s.name.trim().toLowerCase(), s.id);
   for (const ish of ishlar) {
     if (!ish.tanlangan) { otkazildi.push({ id: ish.id, sabab: 'Normativ ish tanlanmagan' }); continue; }
+    if (!ish.tanlangan.qolda && tanlovZidmi(ish, { ...ish.tanlangan, id: ish.tanlangan.workId }, ishlar)) { otkazildi.push({ id: ish.id, sabab: 'Beton normasi armatura haqidagi ma’lumotga zid — temirbeton ishini tekshiring' }); continue; }
     if (ish.holat === 'ANIQLASH_KERAK') { otkazildi.push({ id: ish.id, sabab: 'Ish sharoiti aniqlashtirilmagan' }); continue; }
     if (!ish.hajm) { otkazildi.push({ id: ish.id, sabab: ish.hajmXato ? 'Hajm formulasi noto‘g‘ri' : 'Hajm aniqlanmagan' }); continue; }
     try {

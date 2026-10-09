@@ -14,7 +14,7 @@ import { tekshir } from '../_shared/auth';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
-import { SUHBAT_SXEMA, TANLOV_SXEMA, jsonAjrat, suhbatJavobiniTekshir, tanlovlarniTekshir, type IshNiyati, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
+import { SUHBAT_SXEMA, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir, type IshNiyati, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
 /** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
 export const ZAXIRA_MODEL = 'google/gemini-2.5-flash-lite';
@@ -77,7 +77,7 @@ export function sorovlarniTayyorla(raw: unknown): TanlovSorovi[] | null {
     }).filter(n => /^[A-Za-z0-9_:.-]{1,40}$/.test(n.id));
     const id = clip(s?.id, 40);
     if (!/^[A-Za-z0-9_-]{1,40}$/.test(id) || !nomzodlar.length) return null;
-    out.push({ id, tavsif: clip(s.tavsif, 300), birlik: clip(s.birlik, 10) as TanlovSorovi['birlik'], material: s.material == null ? null : clip(s.material, 120), nomzodlar });
+    out.push({ id, tavsif: clip(s.tavsif, 1200), birlik: clip(s.birlik, 10) as TanlovSorovi['birlik'], material: s.material == null ? null : clip(s.material, 120), nomzodlar });
   }
   return out;
 }
@@ -105,7 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
         { system: SMETACHI_TIZIM, text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA },
         ['javob', 'ishlar', 'savollar', 'works', 'items']);
-      const out = suhbatJavobiniTekshir(obj);
+      const out = manbaMaterialiniTekshir(suhbatJavobiniTekshir(obj), xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n'));
       // Javob o'qildi (savol/izoh bo'lsa ham) — tushunildi. Faqat hech narsa o'qilmasa xom (diagnostika).
       const xom = obj ? undefined : r.text.slice(0, 3000);
       return Response.json({ ok: true, ...out, tushunildi: !!obj, model: r.model, versiya: SMETACHI_VERSIYA, ...(ogohlantirish ? { ogohlantirish } : {}), ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
