@@ -8,6 +8,7 @@ import { kompaniyaSozlamaOl, kompaniyaSozlamaSaqla, sarfHisobotiOl, type Kompani
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { AgentKompaniyaBilimi } from './AgentKompaniyaBilimi';
+import { AgentModelSiyosati } from './AgentModelSiyosati';
 
 const son = (n: number) => Math.round(n).toLocaleString('ru-RU');
 const LIMIT_NAMUNA = 'Cheklovsiz';
@@ -75,6 +76,7 @@ export function AgentKompaniyaSozlama({ kompaniyaId }: { kompaniyaId: number }) 
           : <p className="text-[12px] text-text-mute">{t('Sozlamalarni admin, boss yoki direktor o‘zgartira oladi.')}</p>}
       </div>
 
+      <AgentModelSiyosati kompaniyaId={kompaniyaId} />
       <AgentKompaniyaBilimi kompaniyaId={kompaniyaId} tahrir={tahrir} />
 
       {h && h.agentlar.length > 0 && (

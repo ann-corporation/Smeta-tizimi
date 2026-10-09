@@ -578,6 +578,15 @@ describe('agent-ish shlyuzi', () => {
       await post({ amal: 'javob_baho', kompaniya_id: 5, baho: 'batafsilroq' });
       expect(g.mock.calls.some(([u]) => String(u).includes('t2_agent_uslub_yangila_v1'))).toBe(false);
     });
+    it('model siyosati: kompaniya talab qilinadi; actor sessiyadan; GET va POST bazaga to‘g‘ri uzatiladi', async () => {
+      const f = vi.fn(async () => rpcJavob({ ok: true, model_erkin: false, tahrir_mumkin: true })); vi.stubGlobal('fetch', f);
+      expect((await post({ amal: 'model_siyosat_saqla', model_erkin: false })).status).toBe(400);
+      expect((await post({ amal: 'model_siyosat_saqla', kompaniya_id: 5, model_erkin: false, p_actor_id: 99 })).status).toBe(200);
+      expect(JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body))).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 5, p_model_erkin: false });
+      const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=model_siyosat&kompaniya_id=5'), env: env() } as never);
+      expect(g.status).toBe(200); expect((await g.json() as { model_erkin: boolean }).model_erkin).toBe(false);
+      expect((await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=model_siyosat'), env: env() } as never)).status).toBe(400);
+    });
     it('kuzatuv_saqla va bilim GET yo‘llari sessiya foydalanuvchisi nomidan', async () => {
       const f = vi.fn(async () => rpcJavob({ ok: true, natija: [] })); vi.stubGlobal('fetch', f);
       expect((await post({ amal: 'kuzatuv_saqla', url: 'https://norma.uz/a', nom: 'Norma', p_actor_id: 999 })).status).toBe(200);

@@ -6,6 +6,8 @@ import { useFakturalarOl, useFakturaYoz, useFakturaFaylYoz, useFakturaAiParse, u
      faylda tekshirish uchun */
   useFakturaBittaSinov } from '../../api/hooks';
 import { Sahifa, Holatlar, Tugma } from '../../umumiy/ui/Sahifa';
+import { ModelChip } from '../../umumiy/ui/ModelChip';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { IlgorJadval, type IlgorUstun } from '../../umumiy/ui/IlgorJadval';
 import { toast } from '../../umumiy/ui/Toast';
 import { FileUp, Save, X, RefreshCw, FolderOpen, FolderArchive, FolderX, ExternalLink, FileText, Wrench } from 'lucide-react';
@@ -32,6 +34,7 @@ export function Fakturalar() {
   const yoz = useFakturaYoz();
   const faylYoz = useFakturaFaylYoz();
   const aiParse = useFakturaAiParse();
+  const { joriyId: aiKompaniyaId } = useKompaniya();
   const drvHolat = useFakturaDriveHolat();
   const drvSinx = useFakturaAvtoSinx();
   const drvSinxFonda = useFakturaSinxFonda();
@@ -647,6 +650,7 @@ export function Fakturalar() {
                     <RefreshCw size={18} className={`text-accent ${isSyncingLoop ? 'animate-spin' : ''}`} /> Avto-Sinxronizatsiya (Google Drive)
                   </h3>
                   <p className="text-sm text-text-dim">Papka ichidagi hamma hujjatlar yig'iladi va AI tahlilidan o'tkaziladi.</p>
+                  <div className="mt-2 max-w-sm"><ModelChip profil="document_control" kompaniyaId={aiKompaniyaId} /></div>
                 </div>
                 <div className="flex gap-2 items-center">
                   <Tugma 

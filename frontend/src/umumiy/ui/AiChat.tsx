@@ -96,7 +96,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
             <div className="flex items-center gap-2 font-semibold text-text"><Bot size={16} className="text-accent" /> {t('Tizim yordamchisi')}</div>
             <p className="mt-1 text-xs text-text-dim">{t('Kompaniya tanlanmagan: men tizim haqida (atamalar, sahifalar, hisob mantig‘i) javob beraman. Kompaniyani tanlasangiz — lavozimingizga mos AI ishchi sizning ma‘lumotlaringiz bo‘yicha ishlaydi.')}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {['F2 nima?', 'Nakopitelniy qayerda?', 'NULL va 0 farqi nima?', ...UMUMIY_SAVOLLAR].map((x) => (
+              {['F2 nima?', 'Nakopitelniy qayerda?', 'Narxsiz qator jamiga qanday kiradi?', ...UMUMIY_SAVOLLAR].map((x) => (
                 <button key={x} type="button" onClick={() => void yubor(t(x))} className="rounded-full border border-accent/40 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{t(x)}</button>
               ))}
             </div>

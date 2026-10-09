@@ -1316,5 +1316,11 @@
   "QQS holati": "Статус НДС",
   "QQS siz": "Без НДС",
   "QQS bilan": "С НДС",
-  "qator": "строк"
+  "qator": "строк",
+  "Narxsiz qator jamiga qanday kiradi?": "Как попадает в итог строка без цены?",
+  "A’zolar AI modelini o‘zi tanlay olsin": "Участники могут сами выбирать модель ИИ",
+  "O‘chirsangiz, hamma uchun admin belgilagan (yoki platforma) model ishlaydi — qimmat model tanlanishi oldi olinadi. Shaxsiy tanlovlar saqlanadi, lekin hisobga olinmaydi.": "Если отключить, для всех работает модель, назначенная администратором (или платформой) — выбор дорогой модели исключён. Личные выборы сохраняются, но не учитываются.",
+  "A’zolar AI modelini o‘zi tanlay oladi": "Участники могут сами выбирать модель ИИ",
+  "Endi hamma uchun kompaniya/platforma modeli ishlaydi": "Теперь для всех работает модель компании/платформы",
+  "kompaniya admini model tanlashni cheklagan": "администратор компании ограничил выбор модели"
 }

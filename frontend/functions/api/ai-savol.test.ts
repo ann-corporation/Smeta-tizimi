@@ -1,11 +1,13 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-const m = vi.hoisted(() => ({ auth: vi.fn(), ai: vi.fn() }));
+const m = vi.hoisted(() => ({ auth: vi.fn(), ai: vi.fn(), Xato: class extends Error { constructor(readonly kod: string, readonly xabar: string) { super(kod); } } }));
+const ByudjetXato = m.Xato;
 vi.mock('../_shared/auth', () => ({ tekshir: m.auth }));
-vi.mock('../_shared/ai', () => ({ aiCall: m.ai, aiPublicError: () => ({ code: 'provider_unavailable', message: 'AI hozir javob bera olmadi' }) }));
+vi.mock('../_shared/ai', () => ({ aiPublicError: () => ({ code: 'provider_unavailable', message: 'AI hozir javob bera olmadi' }) }));
+vi.mock('../_shared/ai-hisobli', () => ({ aiHisobli: m.ai, AiByudjetXatosi: m.Xato }));
 import { onRequestPost } from './ai-savol';
 const data = { ok: true, izoh: '', obyektlar: [{ id: 79, nom: 'Fast Food 1-etaj', smeta: 10, fakt: 20, f2: 241983934.96, narxsiz: 0, toliq: true }] };
 const run = (savol: string, kompaniya_id = 17, extra = {}) => onRequestPost({ request: new Request('https://x/api/ai-savol', { method: 'POST', body: JSON.stringify({ savol, kompaniya_id }) }), env: { SESSIYA_KALIT: 'test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_KEY: 'test', ...extra } } as never);
-beforeEach(() => { m.auth.mockResolvedValue({ kompaniyalar: [{ kompaniya_id: 17 }] }); m.ai.mockReset(); vi.stubGlobal('fetch', vi.fn(async () => Response.json(data))); });
+beforeEach(() => { m.auth.mockResolvedValue({ foydalanuvchi_id: 7, kompaniyalar: [{ kompaniya_id: 17 }] }); m.ai.mockReset(); vi.stubGlobal('fetch', vi.fn(async () => Response.json(data))); });
 afterEach(() => vi.unstubAllGlobals());
 it('salom va help pullik model yoki DB chaqirmaydi', async () => {
   for (const q of ['salom', 'nimalar qila olasan']) expect((await run(q)).status).toBe(200);
@@ -24,7 +26,13 @@ it('OpenRouter configured bo‘lsa Workers AI binding uni chetlab o‘tmaydi', a
   const r = await (await run('Narxlar haqida tushuntir', 17, { OPENROUTER_API_KEY: 'test', AI: { run: worker } })).json() as { provider: string };
   expect(r.provider).toBe('openrouter'); expect(worker).not.toHaveBeenCalled();
   expect(m.ai.mock.calls[0][0].AI_PRIMARY_PROVIDER).toBe('openrouter');
-  expect(m.ai.mock.calls[0][1].text.replace(/\s/g, '')).toContain('241983934,96');
+  expect(m.ai.mock.calls[0][5].text.replace(/\s/g, '')).toContain('241983934,96');
+  expect(m.ai.mock.calls[0].slice(1, 5)).toEqual([7, 17, 'company_access', 'jarvis_eski']);   // HISOBLI: actor + kompaniya + profil + amal
+});
+it('limit yo‘q/tugagan bo‘lsa 402 va tushunarli xabar (model hisobsiz chaqirilmaydi)', async () => {
+  m.ai.mockRejectedValue(new ByudjetXato('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
+  const r = await run('Narxlar haqida tushuntir', 17, { OPENROUTER_API_KEY: 'test' });
+  expect(r.status).toBe(402); expect(await r.json()).toMatchObject({ ok: false, code: 'BYUDJET_YOQ' });
 });
 it('sessiyasiz help ham yopiq', async () => {
   m.auth.mockResolvedValue(null); expect((await run('nimalar qila olasan')).status).toBe(401);

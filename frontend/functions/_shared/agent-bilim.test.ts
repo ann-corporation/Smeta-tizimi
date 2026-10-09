@@ -18,9 +18,10 @@ describe('tizim bilimi', () => {
     expect(t.length).toBeLessThanOrEqual(3);
     expect(t.reduce((a, x) => a + x.matn.length + x.sarlavha.length, 0)).toBeLessThanOrEqual(1200);
   });
-  it('lug‘atdagi ishonch qonunlari: NULL ≠ 0, NDS siz, tasdiqlangan F2 muzlaydi', () => {
+  it('lug‘atdagi qonunlar: jamilar doim ko‘rinadi (egasi qarori), narx 0 = haqiqiy 0, NDS siz, tasdiqlangan F2 muzlaydi; eski «jami bo‘sh» qoidasi YO‘Q', () => {
     const hammasi = BILIM.map((x) => x.matn).join(' ');
-    expect(hammasi).toMatch(/NULL — «noma‘lum», 0 EMAS/);
+    expect(hammasi).toMatch(/jamilar HAR DOIM ko‘rinadi/); expect(hammasi).toMatch(/haqiqiy 0/);
+    expect(hammasi).not.toMatch(/NULL — «noma‘lum», 0 EMAS|jami bo‘sh qoladi(?!,)/i);
     expect(hammasi).toMatch(/НДС siz/);
     expect(hammasi).toMatch(/tasdiqlangan F2 muzlaydi/);
   });
