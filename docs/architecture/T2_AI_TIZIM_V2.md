@@ -22,5 +22,15 @@ Prod'ga faqat egasi roziligi bilan. Qo'llanmaguncha: uslub/shaxsiy model jim o'c
 - **Kompaniyasiz tizim yordamchisi** global bilimdan ham javob beradi (`t2_agent_bilim_umumiy_v1`), tokensiz.
 - **Chegara:** deploy, migratsiya va yangi me'yor kuchga kirishi har doim inson tasdig'i bilan; ijrochi workflow (`agent-task.yml`) egasi yoqmaguncha o'chiq. Davriy (cron) tekshirish hali yo'q: Pages'da cron yo'q, GitHub Actions schedule + himoyalangan endpoint egasi roziligi va sir (secret) talab qiladi.
 
+## Keyingi qadamlar (2026-10-09 tun): integratsiya va nazorat
+- **Hamma model chaqiruvi hisobli:** `ai-parse` (faktura AI) va eski `ai-savol` (Jarvis) limit/hamyonsiz edi — endi `aiHisobli` (sessiyadan kompaniya: `ai-kompaniya.ts`; limit yo'q/tugagan/token yo'q = 402). `src/api/ai-hisob-qoidasi.test.ts` yangi `aiCall(` ni hisobsiz qo'shishni taqiqlaydi. Faqat bepul Workers AI binding hisobsiz.
+- **Javob bahosi** (`AiBaho`, `javob_baho`): 👍/👎/«qisqaroq»/«batafsilroq»/«tushunarsiz». Qisqaroq/batafsilroq uslubni siljitadi (`uslubBaho`); yomon/noaniq — matnsiz signal (`ai_javob_yomon`), tizim agenti sahifa/profil bo'yicha yig'adi.
+- **«AI: tushuntir»** (`AiSelektsiya`): admin sahifalarida belgilangan matn/raqam yonida; kiritish maydonlari, `contenteditable`, `[data-ai-yashir]` HECH QACHON.
+- **Kengaytirilgan bilim:** SoD rollari, zamena/qo'shimcha, holatlar, F2=slichitelniy=nakopitelniy=F3, PTO zanjiri, xavf signallari, xarid zanjiri, M-29 qoidalari, tomonlar ko'rinishi, hujjat standarti. **Egasi qoidasi (2026-10-08):** jamilar HAR DOIM ko'rinadi, narxsiz qator faqat o'zi bo'sh, narx 0 = haqiqiy 0 — lug'atda shunday (eski «jami bo'sh» yozuvi olib tashlandi).
+- **Davriy me'yor tekshiruvi:** `X-Kuzatuv-Kalit` (Cloudflare `KUZATUV_KALIT` ≥24 belgi) + `KUZATUV_ACTOR_ID` (superadmin) — FAQAT `bilim_yigish`, GET va boshqa amal yo'q; `.github/workflows/bilim-kuzatuv.yml` (har kuni 03:17 UTC; GitHub sir `KUZATUV_KALIT` + o'zgaruvchi `PROD_URL` bo'lmasa jim o'tkazadi). Sozlash — egasi.
+- **`zayavka_yarat` harakati** (migratsiya 390000): prorab, usta, omborchi, ta'minotchi, PTO, admin/boss/direktor; obyekt egaligi va qiymat chegaralari bazada, bajarish foydalanuvchi sessiyasi bilan `erp_amal`. Xavf «o'rta».
+- **Kompaniya model siyosati** (migratsiya 400000): admin/boss/direktor a'zolarning shaxsiy model tanlashini o'chira oladi (`model_erkin`); muhit shaxsiy tanlovni e'tiborga olmaydi, `ModelChip` qulflangan satr ko'rsatadi.
+- **Migratsiya raqamlari:** 350 (uslub/model), 360 (bilim), 390 (zayavka), 400 (model siyosati) — AI; 340/370/380 — boshqa agentlar. Keyingi bo'sh: 410000+.
+
 ## Navbat
 Harakat katalogini kengaytirish; fikr (👍/👎) → uslub; bilim bazasi DBda (superadmin tasdiqlagan, internetdan o'rganilgan me'yorlar/qonunlar) va kompaniya agentlariga uzatish; boshqaruvchi agent davriyligi; kompaniya siyosati (model narx chegarasi).
