@@ -11,10 +11,40 @@
  * can never be chosen. No database or R2 writes.
  */
 import { tekshir } from '../_shared/auth';
-import { aiPublicError, type AiTier } from '../_shared/ai';
+import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
-import { SUHBAT_SXEMA, TANLOV_SXEMA, suhbatJavobiniTekshir, tanlovlarniTekshir, type IshNiyati, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
+import { SUHBAT_SXEMA, TANLOV_SXEMA, jsonAjrat, suhbatJavobiniTekshir, tanlovlarniTekshir, type IshNiyati, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
+
+/** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
+export const ZAXIRA_MODEL = 'google/gemini-2.5-flash-lite';
+
+/**
+ * Har qanday model bilan ishonchli chaqiruv (egasi 2026-10-09: "nima yozsam ham tushunilmadi deyapdi — professional
+ * ishlasin"): 1) javobdan JSON mustahkam ajratiladi; 2) o'qilmasa — o'sha model "faqat JSON" ko'rsatmasi bilan bir
+ * marta qayta; 3) yana o'qilmasa — zaxira model. Har chaqiruv kompaniya byudjeti/hisobidan o'tadi.
+ */
+export async function ishonchliChaqir(chaqir: (req: AiRequest) => Promise<AiResponse>, req: AiRequest, kalitlar: readonly string[]):
+  Promise<{ r: AiResponse; obj: Record<string, unknown> | null; ogohlantirish?: string }> {
+  let r = await chaqir(req);
+  let obj = jsonAjrat(r.text, kalitlar);
+  if (obj) return { r, obj };
+  const tanlangan = r.model;
+  const tuzatish: AiRequest = {
+    ...req,
+    system: `${req.system ?? ''}\n\nMUHIM: javob FAQAT bitta JSON obyekt bo'lsin — izoh, markdown va \`\`\` belgilarisiz.`,
+    text: `${req.text}\n\nOldingi javobingiz o'qib bo'lmaydigan shaklda edi. Endi FAQAT sxemaga mos bitta JSON obyektini qaytaring.`,
+  };
+  r = await chaqir(tuzatish);
+  obj = jsonAjrat(r.text, kalitlar);
+  if (obj) return { r, obj };
+  if (tanlangan !== ZAXIRA_MODEL) {
+    r = await chaqir({ ...tuzatish, model: ZAXIRA_MODEL });
+    obj = jsonAjrat(r.text, kalitlar);
+    if (obj) return { r, obj, ogohlantirish: `Tanlangan model (${tanlangan}) javob formatiga amal qilmadi — bu safar tekshirilgan model (${ZAXIRA_MODEL}) ishlatildi.` };
+  }
+  return { r, obj: null };
+}
 
 type Env = HisobEnv & { SESSIYA_KALIT: string };
 const fail = (code: string, status = 400, message?: string) => Response.json({ ok: false, code, message }, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -41,7 +71,6 @@ export function sorovlarniTayyorla(raw: unknown): TanlovSorovi[] | null {
   }
   return out;
 }
-const parse = (t: string) => { try { return JSON.parse(t); } catch { const m = t.match(/\{[\s\S]*\}/); try { return m ? JSON.parse(m[0]) : null; } catch { return null; } } };
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
@@ -62,20 +91,23 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const text = [`Obyekt: ${clip(so.obyekt, 200) || 'ko‘rsatilmagan'}`,
         `Hozirgi ishlar ro'yxati (yangilang yoki to'ldiring):\n${JSON.stringify(joriy satisfies IshNiyati[])}`,
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
-      const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat',
-        { system: SMETACHI_TIZIM, text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA });
-      const parsed = parse(r.text);
-      const out = suhbatJavobiniTekshir(parsed);
-      // When nothing usable came back, the caller gets the raw model output of THEIR OWN request (format diagnostics).
-      const xom = (!parsed || !out.ishlar.length) ? r.text.slice(0, 3000) : undefined;
-      return Response.json({ ok: true, ...out, model: r.model, versiya: SMETACHI_VERSIYA, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat', req);
+      const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
+        { system: SMETACHI_TIZIM, text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA },
+        ['javob', 'ishlar', 'savollar', 'works', 'items']);
+      const out = suhbatJavobiniTekshir(obj);
+      // Javob o'qildi (savol/izoh bo'lsa ham) — tushunildi. Faqat hech narsa o'qilmasa xom (diagnostika).
+      const xom = obj ? undefined : r.text.slice(0, 3000);
+      return Response.json({ ok: true, ...out, tushunildi: !!obj, model: r.model, versiya: SMETACHI_VERSIYA, ...(ogohlantirish ? { ogohlantirish } : {}), ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'tanla') {
       const sorovlar = sorovlarniTayyorla(so.sorovlar);
       if (!sorovlar) return fail('SOROV_INVALID');
-      const r = await aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash',
-        { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA });
-      const tanlovlar = tanlovlarniTekshir(parse(r.text), sorovlar);
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash', req);
+      const { r, obj } = await ishonchliChaqir(chaqir,
+        { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA },
+        ['tanlovlar', 'choices']);
+      const tanlovlar = tanlovlarniTekshir(obj, sorovlar);
       const xom = tanlovlar.every(x => !x.ishId) ? r.text.slice(0, 2000) : undefined;
       return Response.json({ ok: true, tanlovlar, model: r.model, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }

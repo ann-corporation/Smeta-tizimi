@@ -81,12 +81,14 @@ export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title);
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.
-      if ('xom' in r && r.xom && !r.ishlar.length) {
+      // Faqat javob haqiqatan o'qilmaganda (savol/izoh bilan javob — bu tushunilgan javob, xato emas).
+      if (r.tushunildi === false || ('xom' in r && r.xom && r.tushunildi == null && !r.ishlar.length)) {
         setXabarlar(x => [...x, { rol: 'assistant', matn: t('Javobni to‘liq tushunib bo‘lmadi — ishlar ro‘yxati o‘zgarmadi. Iltimos, aniqroq yozing yoki qayta yuboring.') }]);
         return;
       }
       const javob = [r.javob, ...r.savollar.map(s => '• ' + s)].join('\n');
       setXabarlar(x => [...x, { rol: 'assistant', matn: javob }]);
+      if (r.ogohlantirish) setHolat(r.ogohlantirish);
       setIshlar(await asosla(birlashtir(ishlar, r.ishlar)));
     } finally { setBand(''); }
   }

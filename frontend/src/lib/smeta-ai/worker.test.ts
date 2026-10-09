@@ -24,12 +24,14 @@ const niyat = (over: Record<string, unknown> = {}) => suhbatJavobiniTekshir({ ja
   hajmIfoda: '12*0,6*0,1', hajmIzoh: '12×0,6×0,1', material: 'Бетон B7,5', holat: 'TAYYOR', ...over }] }).ishlar;
 
 describe('smetachi AI — contract validation', () => {
-  it('drops malformed intents and forces HAJM_KERAK without a formula', () => {
+  it('unknown unit is dropped; a bad id gets a generated one (model differences); no formula → HAJM_KERAK', () => {
     const r = suhbatJavobiniTekshir({ javob: 'x', savollar: ['a', 'b'], ishlar: [
       { id: 'bad id!', bolim: '', tavsif: 'x', qidiruv: ['abc'], birlik: 'м3', holat: 'TAYYOR' },
       { id: 'w2', tavsif: 'y', qidiruv: ['Бетонирование'], birlik: 'литр', holat: 'TAYYOR' },
       { id: 'w3', tavsif: 'z', qidiruv: ['Армирование'], birlik: 'т', hajmIfoda: null, holat: 'TAYYOR' }] });
-    expect(r.ishlar.map(i => [i.id, i.holat])).toEqual([['w3', 'HAJM_KERAK']]);
+    expect(r.ishlar.map(i => i.holat)).toEqual(['HAJM_KERAK', 'HAJM_KERAK']);
+    expect(r.ishlar.map(i => i.tavsif)).toEqual(['x', 'z']);
+    expect(r.ishlar[0].id).not.toBe('bad id!');
   });
   it('a catalogue choice the model was not given is discarded', () => {
     const s = [{ id: 'w1', tavsif: 't', birlik: 'м3' as const, material: null, nomzodlar: [{ id: '1', kod: 'E6', nom: 'n', birlik: null }] }];

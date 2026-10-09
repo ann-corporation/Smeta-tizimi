@@ -43,6 +43,43 @@ export function birlikNormal(v: unknown): Birlik | null {
 }
 const ID = /^[A-Za-z0-9_-]{1,40}$/;
 
+/** Matn ichidan birlik: "100 м3", "м³ (куб)" — birinchi tanilgan token. */
+function birlikTop(v: unknown): Birlik | null {
+  const to = birlikNormal(v);
+  if (to) return to;
+  for (const t of String(v ?? '').split(/[\s,;()/]+/)) { const b = birlikNormal(t); if (b) return b; }
+  return null;
+}
+
+/**
+ * Har qanday model javobidan JSON obyektini ajratadi: <think>…</think>, ```json bloklari, oldin/keyin izoh matni,
+ * bir nechta obyekt. Qavs balansi (satr ichidagi qavslar hisobga olinadi) bilan nomzodlar yig'iladi; kerakli kalitli
+ * oxirgisi, bo'lmasa eng kattasi olinadi. Hech narsa topilmasa — null.
+ */
+export function jsonAjrat(matn: string, kalitlar: readonly string[] = []): Record<string, unknown> | null {
+  const t = String(matn ?? '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```(?:json)?/gi, '').trim();
+  try { const v: unknown = JSON.parse(t); if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>; } catch { /* nomzodlar */ }
+  const nomzodlar: Record<string, unknown>[] = [];
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] !== '{') continue;
+    let d = 0, ichida = false, esc = false;
+    for (let j = i; j < t.length; j++) {
+      const ch = t[j];
+      if (ichida) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') ichida = false; continue; }
+      if (ch === '"') ichida = true;
+      else if (ch === '{') d++;
+      else if (ch === '}' && --d === 0) {
+        try { const v: unknown = JSON.parse(t.slice(i, j + 1)); if (v && typeof v === 'object' && !Array.isArray(v)) { nomzodlar.push(v as Record<string, unknown>); i = j; } } catch { /* keyingi */ }
+        break;
+      }
+    }
+  }
+  if (!nomzodlar.length) return null;
+  const mos = nomzodlar.filter((o) => kalitlar.some((k) => k in o));
+  if (mos.length) return mos[mos.length - 1];
+  return nomzodlar.reduce((a, b) => (JSON.stringify(b).length > JSON.stringify(a).length ? b : a));
+}
+
 /** Keep only well-formed intents; never trust lengths, ids or units from the model. */
 export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
   // Real models nest the reply ({ javob: { matn, ishlar } }), rename fields (nom/name for tavsif, works/items for ishlar)
@@ -56,10 +93,15 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
   const seen = new Set<string>();
   for (const x of (list ?? []).slice(0, 60)) {
     const r = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
-    const id = str(r.id, 40), birlik = birlikNormal(r.birlik);
-    if (!ID.test(id) || seen.has(id) || !birlik) continue;
-    const qidiruv = (Array.isArray(r.qidiruv) ? r.qidiruv : typeof r.qidiruv === 'string' ? r.qidiruv.split(/[;|]/) : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
+    // Model farqlari: id yo'q/noto'g'ri bo'lsa — avtomatik; birlik matn ichida bo'lishi mumkin ("100 м3").
+    let id = str(r.id, 40);
+    if (!ID.test(id) || seen.has(id)) id = `w${ishlar.length + 1}_${seen.size + 1}`;
+    const birlik = birlikTop(r.birlik ?? r.unit ?? r.olchov);
+    if (!birlik) continue;
     const tavsif = str(r.tavsif ?? r.nom ?? r.name ?? r.description, 300);
+    const qXom = r.qidiruv ?? r.search ?? r.qidiruv_iboralari;
+    let qidiruv = (Array.isArray(qXom) ? qXom : typeof qXom === 'string' ? qXom.split(/[;|]/) : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
+    if (!qidiruv.length && tavsif.length >= 3) qidiruv = [tavsif.slice(0, 120)];
     for (const q of Array.isArray(r.savollar) ? r.savollar : []) { const t = str(q, 300); if (t && !extraQ.includes(t)) extraQ.push(t); }
     if (!tavsif || !qidiruv.length) continue;
     const h = str(r.holat, 20).toUpperCase();
