@@ -5,6 +5,16 @@ import type { AiRequest, AiResponse } from '../_shared/ai';
 const javob = (text: string, model: string) => ({ text, model, provider: 'openrouter' }) as unknown as AiResponse;
 
 describe('Smetachi AI — har qanday model bilan ishonchli', () => {
+  it('repairs an audited source contradiction even when valid JSON contains work rows', async () => {
+    let calls = 0;
+    const work = { id: 'w1', bolim: 'Fundament', tavsif: 'Beton quyish', qidiruv: 'lentali fundament', birlik: 'm3', hajmIfoda: '34.56', hajmIzoh: '48 × 0.6 × 1.2', material: 'B20', holat: 'TAYYOR' };
+    const result = await ishonchliChaqir(async () => javob(JSON.stringify({
+      javob: ++calls === 1 ? 'Lentali fundament normasida armatura o‘rnatish odatda kirmaydi' : 'Jadval 6-01-001, sahifa 12: armatura o‘rnatish tarkibda bor',
+      ishlar: [work], savollar: [],
+    }), 'm'), { text: 'Lentali fundament', system: 'TEKSHIRILGAN MANBA:' } as AiRequest, ['javob', 'ishlar']);
+    expect(calls).toBe(2);
+    expect(result.obj?.javob).toContain('tarkibda bor');
+  });
   it('repairs a ready-estimate claim without actual work rows', async () => {
     let calls = 0;
     const r = await ishonchliChaqir(async () => javob(++calls === 1 ? '{"javob":"Smeta tayyor. Fundament hisoblandi","ishlar":[]}' : '{"javob":"O‘lchamni aniqlashtiring","savollar":["Chuqurlik?"],"ishlar":[]}', 'm'), { text: 'fundament' } as AiRequest, ['javob', 'ishlar']);

@@ -14,6 +14,7 @@ import { tekshir } from '../_shared/auth';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
+import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
 import { SUHBAT_SXEMA, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir, type IshNiyati, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
 /** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
@@ -32,6 +33,7 @@ export async function ishonchliChaqir(chaqir: (req: AiRequest) => Promise<AiResp
     if (!v || !kalitlar.some(k => k in v)) return null;
     if (kalitlar.includes('ishlar')) {
       const parsed = suhbatJavobiniTekshir(v);
+      if (req.system?.includes('TEKSHIRILGAN MANBA:') && contradictsFoundationSource(parsed.javob)) return null;
       // A prose promise of a completed estimate is not a structured estimate.
       if (!parsed.ishlar.length && /(?:smeta|смет|hisob|рассчит|fundament|фундамент|kotlovan|котлован|armatura|арматур)/i.test(parsed.javob)) return null;
     }
@@ -42,7 +44,7 @@ export async function ishonchliChaqir(chaqir: (req: AiRequest) => Promise<AiResp
   const tanlangan = r.model;
   const tuzatish: AiRequest = {
     ...req,
-    system: `${req.system ?? ''}\n\nMUHIM: javob FAQAT bitta JSON obyekt bo'lsin — izoh, markdown va \`\`\` belgilarisiz.`,
+    system: `${req.system ?? ''}\n\nMUHIM: javobdagi normativ da’volar yuqoridagi tekshirilgan manbaga zid bo‘lmasin. Javob FAQAT bitta JSON obyekt bo'lsin — izoh, markdown va \`\`\` belgilarisiz.`,
     text: `${req.text}\n\nOldingi javob strukturasi yetarli emas. FAQAT sxemaga mos JSON qaytaring. Hisoblangan/taklif qilingan har bir ish ishlar massivida bo'lsin; faqat javob matnida ro'yxat yozmang. Oldingi ishlar ro'yxatini to'liq yangilang. Smeta tayyor yoki yozildi demang — bu faqat taklif.`,
   };
   r = await chaqir(tuzatish);
@@ -103,7 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat', req);
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
-        { system: SMETACHI_TIZIM, text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA },
+        { system: SMETACHI_TIZIM + foundationSourceContext(xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n')), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA },
         ['javob', 'ishlar', 'savollar', 'works', 'items']);
       const out = manbaMaterialiniTekshir(suhbatJavobiniTekshir(obj), xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n'));
       // Javob o'qildi (savol/izoh bo'lsa ham) — tushunildi. Faqat hech narsa o'qilmasa xom (diagnostika).

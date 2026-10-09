@@ -90,3 +90,13 @@ positive JSX text-ratchet на inline comparison. Исправлены слов�
 включая i18n ratchet PASS; final build/app+Functions TS PASS. Пагинация не
 предлагает пустую страницу после последнего результата. Итоговый CI требует
 повторной проверки exact SHA; предыдущий failure нельзя назвать success.
+
+Повторный реальный Gemini smoke после увеличения лимита владельцем выявил
+ложное утверждение: armatura якобы обычно не входит в норму ленточного
+фундамента. UI ссылка сама по себе не попадала в server prompt. Исправлено:
+server добавляет проверенный ШНК 4.02.06-04, таблица 6-01-001, PDF12 для
+контекста ленточного фундамента. Узкий semantic guard отклоняет наблюдавшееся
+противоречие и запускает существующий budget-accounted repair. Это не общий
+валидатор всех ШНК.9 targeted tests PASS; build/app+Functions TS PASS;
+governance77 PASS (stale CURRENT_STATE warning). Новый live smoke после
+production deployment ещё требуется. Цена и пользовательский draft не менялись.
