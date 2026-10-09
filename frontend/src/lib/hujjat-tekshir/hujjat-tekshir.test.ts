@@ -81,3 +81,31 @@ describe('hujjatni o‘zi tekshirish', () => {
     expect(t.toliqMos).toBe(false);
   });
 });
+
+describe('qiymat bo‘yicha isbot (formulasiz hujjat)', () => {
+  it('qator, ish, jami (oraliq, foiz, keng oraliq) isbotlanadi; buzilgan summa topiladi', async () => {
+    const { kitobQiymatTekshir } = await import('./index');
+    const rows: Array<Array<string | number | null>> = [
+      ['№', 'КОД', 'НАИМЕНОВАНИЕ РЕСУРСА', 'ЕД.ИЗМ', 'КОЛ-ВО', 'ЦЕНА', 'СУММА'],
+      [null, null, 'ТРУДОВЫЕ РЕСУРСЫ', null, null, null, null],
+      [1, '1-100', 'ЗАТРАТЫ ТРУДА РАБОЧИХ', 'ЧЕЛ-Ч', 10, 20000, 200000],
+      [null, null, 'ИТОГО ПО ТРУДОВЫМ РЕСУРСАМ:', 'СУМ', null, null, 200000],
+      [null, null, 'СТРОИТЕЛЬНЫЕ МАТЕРИАЛЫ', null, null, null, null],
+      [2, 'С401', 'БЕТОН В25', 'М3', 4, 500000, 2000000],
+      [3, 'С402', 'ПЕСОК', 'М3', 2, 100000, 200000],
+      [null, null, 'ИТОГО', 'СУМ', null, null, 2200000],
+      [null, null, 'ИТОГО ТРАНСПОРТНЫ РАСХОДЫ ПО СТРОИТЕЛЬНЫМ МАТЕРИАЛАМ:', 'СУМ', null, null, 132000],
+      [null, null, 'ИТОГО ПО СТРОИТЕЛЬНЫМ МАТЕРИАЛАМ:', 'СУМ', null, null, 2332000],
+      [null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, 2532000],
+    ];
+    const t = kitobQiymatTekshir({ fayl: 'res.xlsx', varaqlar: [{ nom: 'RES', rows }] });
+    expect(t.length).toBe(1);
+    const r = t[0];
+    expect(r.qatorlar).toMatchObject({ farq: 0 });
+    expect(r.foizlar.some((f) => f.foiz === 6)).toBe(true);
+    const buzuq = rows.map((x) => [...x]);
+    buzuq[6][6] = 210000; // ПЕСОК summasi qo'lda o'zgargan
+    const b = kitobQiymatTekshir({ fayl: 'res.xlsx', varaqlar: [{ nom: 'RES', rows: buzuq }] })[0];
+    expect(b.qatorlar.farq).toBe(1);
+  });
+});

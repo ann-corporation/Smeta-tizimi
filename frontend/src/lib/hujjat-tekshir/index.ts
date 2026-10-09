@@ -140,3 +140,19 @@ export function kitobniTekshir(kitob: KirishKitob): KitobTekshiruv {
   const asosiyMos = jami.formulalar > 0 && jami.farq === 0 && jami.tushunilmadi === 0;
   return { varaqlar, jami, toliqMos: asosiyMos && jami.yaxlitlash === 0, deyarliMos: asosiyMos };
 }
+
+export { qiymatTekshir, type QiymatNatija, type QiymatTekshiruv } from './qiymat';
+import { varaqniTahlilQil } from '../smeta-anatomiya/varaq';
+import { qiymatTekshir as qiymatTekshirV, type QiymatNatija as QN } from './qiymat';
+
+/** Kitobning LRV/RES varaqlari bo'yicha qiymat isboti (formulasiz eksportlar uchun asosiy dalil). */
+export function kitobQiymatTekshir(kitob: KirishKitob): QN[] {
+  const out: QN[] = [];
+  for (const v of kitob.varaqlar) {
+    const a = varaqniTahlilQil(kitob.fayl, v);
+    if (a.rol !== 'lrv' && a.rol !== 'res') continue;
+    const t = qiymatTekshirV(a);
+    if (t.qatorlar.jami || t.ishlar.jami || t.jamilar.jami) out.push(t);
+  }
+  return out;
+}
