@@ -54,3 +54,17 @@ it('editing the formula recomputes the quantity; an invalid formula blocks addin
   expect(screen.getByText('formula noto‘g‘ri')).toBeTruthy();
   expect((screen.getByRole('button', { name: /Tayyorlarini smetaga qo‘shish \(0\)/ }) as HTMLButtonElement).disabled).toBe(true);
 });
+
+it('a follow-up prose-only reply does not erase previously grounded works', async () => {
+  render(<SmetaAiChat doc={emptyDoc('d')} katalog={katalog} kompaniyaId={7} command={() => true} newId={() => 'x'} />);
+  fireEvent.change(screen.getByLabelText('Smetachiga xabar'), { target: { value: 'podbetonka 48×0,6×0,1' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Yuborish' }));
+  await screen.findByDisplayValue('48*0,6*0,1');
+  await waitFor(() => expect((screen.getByRole('button', { name: 'Yuborish' }) as HTMLButtonElement).disabled).toBe(true));
+  vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, tushunildi: true, javob: 'Takliflar saqlangan', savollar: [], ishlar: [] })));
+  fireEvent.change(screen.getByLabelText('Smetachiga xabar'), { target: { value: 'Qani smetani ber' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Yuborish' }));
+  await screen.findByText('Takliflar saqlangan');
+  expect(screen.getByDisplayValue('48*0,6*0,1')).toBeTruthy();
+  expect(screen.getByRole('button', { name: /Tayyorlarini smetaga qo‘shish \(1\)/ })).toBeTruthy();
+});

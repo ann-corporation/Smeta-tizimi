@@ -2251,7 +2251,7 @@
   "machine": "noutbuk",
   "branch": "codex/smeta-ai-reliability-v2",
   "base_sha": "bfe6d13369583667bb9d261cf3eb2037a45c7819",
-  "status": "in_progress",
+  "status": "ready_for_review",
   "owns": [
     "frontend/src/lib/smeta-ai/",
     "frontend/functions/api/smeta-ai.ts",

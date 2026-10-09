@@ -25,3 +25,5 @@ UI показывает ревизию каталога, код, единицу,
 48×0.6×1.2=34.56 м3, арматура 1.2+0.6=1.8 т. Ширина/длина подготовки
 и факт выполнения опалубки отдельно не подтверждены — 2.88 м3/115.2 м2
 не должны автоматически считаться доказанными. Нормы/цены не выдумываются.
+
+Final gates: full Vitest maxWorkers=2 238 files passed / 1690 tests passed / 17 skipped (435.94s); focused AI+UI 49 passed; final app TSC exit0; Functions TSC/lint/tekshir/build/governance/diff PASS. Initial unlimited-worker timeouts were reproduced as green in bounded full run. Release candidate includes follow-up list preservation and formula edits preserving unresolved conditions. Authenticated provider smoke remains UNKNOWN.

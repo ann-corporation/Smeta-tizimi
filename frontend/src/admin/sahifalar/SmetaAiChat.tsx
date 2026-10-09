@@ -122,7 +122,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
   function formula(id: string, v: string) {
     let hajm: AiIsh['hajm'] = null, hajmXato: string | null = null;
     if (v.trim()) { try { hajm = ifodaHisobla(v); } catch { hajmXato = 'IFODA_NOTOGRI'; } }
-    ishniYangila(id, { hajmIfoda: v || null, hajm, hajmXato, holat: hajm ? 'TAYYOR' : 'HAJM_KERAK' });
+    const aniqlashKerak = ishlar.find(i => i.id === id)?.holat === 'ANIQLASH_KERAK';
+    ishniYangila(id, { hajmIfoda: v || null, hajm, hajmXato, holat: aniqlashKerak ? 'ANIQLASH_KERAK' : hajm ? 'TAYYOR' : 'HAJM_KERAK' });
   }
   function ovoz() {
     const C = SpeechCtor();
