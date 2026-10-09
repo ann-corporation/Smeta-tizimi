@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
-import type { SuhbatXabari } from '../../lib/smeta-ai/protokol';
+import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari } from '../../lib/smeta-ai/protokol';
 import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { smetachiSuhbat, smetachiTanla } from '../../api/smeta-ai';
@@ -44,7 +44,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     catch { return null; }
   });
   const [xabarlar, setXabarlar] = useState<SuhbatXabari[]>(Array.isArray(saqlangan?.xabarlar) ? saqlangan.xabarlar : []);
-  const [ishlar, setIshlar] = useState<AiIsh[]>(Array.isArray(saqlangan?.ishlar) ? saqlangan.ishlar : []);
+  const [ishlar, setIshlar] = useState<AiIsh[]>(() => {
+    if (!Array.isArray(saqlangan?.ishlar)) return [];
+    const source = (saqlangan?.xabarlar ?? []).filter(x => x.rol === 'user').map(x => x.matn).join('\n');
+    const validated = manbaMaterialiniTekshir(suhbatJavobiniTekshir({ ishlar: saqlangan.ishlar }), source);
+    return birlashtir(saqlangan.ishlar, validated.ishlar);
+  });
   const [matn, setMatn] = useState('');
   const [band, setBand] = useState<'' | 'suhbat' | 'tanlash' | 'qoshish'>('');
   const [holat, setHolat] = useState('');
@@ -63,6 +68,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     if (!katalog || kompaniyaId == null) return list;
     let next = list.map(i => (i.nomzodlar.length ? i : { ...i, nomzodlar: nomzodlarTop(katalog, i) }));
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
+    if (tirik.current) setIshlar(next);
     const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && i.nomzodlar.length).map(i => tanlovSorovi(i, next));
     if (sor.length) {
       setBand('tanlash');

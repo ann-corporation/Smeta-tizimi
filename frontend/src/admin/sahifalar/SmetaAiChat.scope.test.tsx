@@ -29,3 +29,12 @@ it('restored company-scoped conversation survives the initial save effect', () =
   expect(screen.getByText('Saved work')).toBeTruthy();
   expect(localStorage.getItem('smeta-ai:1:same')).toContain('Saved work');
 });
+
+it('restored conditional and unprovided material proposals cannot remain ready', () => {
+  localStorage.setItem('smeta-ai:1:same', JSON.stringify({ xabarlar: [{ rol: 'user', matn: 'Podbetonka qalinligi 10 sm' }], ishlar: [{
+    id: 'w1', bolim: 'Fundament', tavsif: 'Podbetonka', qidiruv: ['Бетонная подготовка'], birlik: 'м3', hajmIfoda: '48*0.6*0.1',
+    hajmIzoh: 'agar kengligi fundamentga teng bo‘lsa', material: 'Бетон B7.5', holat: 'TAYYOR', nomzodlar: [],
+    tanlangan: { workId: '1', kod: 'E6', nom: 'n', birlik: '100М3', sabab: 'mos' } }] }));
+  render(<SmetaAiChat doc={emptyDoc('same')} katalog={null} kompaniyaId={1} command={() => true} newId={() => 'id'} />);
+  expect((screen.getByRole('button', { name: 'Tayyorlarini smetaga qo‘shish ({n})' }) as HTMLButtonElement).disabled).toBe(true);
+});
