@@ -9,6 +9,7 @@ import { smetaPaketQatorlariniYoy, smetaPaketRejasiniTekshir, type SmetaPaketMan
 import { lrvVaIchkiResniAjrat } from '../../lib/smeta-lrv-boundary';
 import type { SverkaManba } from '../../lib/smeta-anatomiya/sverka';
 import { LrvResSverkaPanel } from './LrvResSverkaPanel';
+import { HujjatTekshiruvPanel } from './HujjatTekshiruvPanel';
 import {
   smetaPaketTasdiqImzosi, smetaPaketTanloviniTekshir, smetaVaraqniTahlilQil,
   smetaPaketResTargetlariniTaklifQil, type SmetaPackageSheetChoice, type SmetaSheetAnalysis,
@@ -1877,6 +1878,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
               </div>
             )}
 
+            <HujjatTekshiruvPanel book={book} faylNomi={rawFile.current?.name ?? ''} />
             <LrvResSverkaPanel lrvlar={sverkaLrvlar} reslar={sverkaReslar} obyektNomi={selectedObject?.nom ?? ''} />
 
             {/* Owner (2026-09-10): "narxlanmagan rs mat ob kabi har bir
