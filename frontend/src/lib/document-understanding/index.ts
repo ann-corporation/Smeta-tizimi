@@ -3,6 +3,7 @@ import { f2AktlarniOqi, type F2Akt } from '../smeta-anatomiya/f2';
 import type { KirishKitob } from '../smeta-anatomiya/turlar';
 import type { WorkbookEvidence } from './evidence';
 import { triageUnassignedRows, type SourceRowCandidate } from './triage';
+import { analyzeRateDependencies } from './rate-dependencies';
 
 export * from './evidence';
 export interface DocumentUnderstanding extends WorkbookEvidence {
@@ -10,6 +11,7 @@ export interface DocumentUnderstanding extends WorkbookEvidence {
   anatomy: KitobAnatomiyasi;
   f2: F2Akt[];
   unassignedCandidates: SourceRowCandidate[];
+  rateDependencies: ReturnType<typeof analyzeRateDependencies>;
 }
 
 /** Lossless snapshot and existing canonical parsers; never a business write. */
@@ -17,5 +19,5 @@ export function understandWorkbook(input: KirishKitob): DocumentUnderstanding {
   const source = structuredClone(input);
   const anatomy = kitobAnatomiyasi(source);
   const f2 = f2AktlarniOqi(source);
-  return { ...anatomy.sourceEvidence, source, anatomy, f2, unassignedCandidates: triageUnassignedRows(anatomy.sourceEvidence) };
+  return { ...anatomy.sourceEvidence, source, anatomy, f2, unassignedCandidates: triageUnassignedRows(anatomy.sourceEvidence), rateDependencies: analyzeRateDependencies(anatomy.sourceEvidence) };
 }

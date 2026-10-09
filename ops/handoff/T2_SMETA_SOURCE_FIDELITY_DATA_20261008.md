@@ -51,3 +51,5 @@ Drive sample имеет 4546 review issues; нельзя считать прои
 
 ## Интернет-корпус и нормативные ссылки
 В text evidence добавлены normReferences (literal code + page/line/raw/origin) и publicationMarkers (standalone draft/official_edition). Все ссылки, включая заменённую редакцию, сохраняются без автоматического выбора актуальной нормы; normativeActivationAllowed=false. OCR-искажённые коды не исправляются догадкой. Словосочетание LOYIHA NOMI не считается статусом draft. 44 focused tests PASS; исходные issues сохранены. Локальный официальный PDF-корпус: 3 файла/154 страницы, original SHA до/после совпали, SOURCE_TRANSPORT_VERIFIED, semanticAcceptance NOT_PROVEN. URL/edition/status/hash в official-web/provenance.json вне repo. Production retrieval/fine-tuning/активация норм не выполнены.
+
+Final percentage dependency port: rates -> literal formula referenced source cells; ranges/missing references remain review, calculationBaseApproved=false. Full gate packet COMPLETE,101 regression tests and real5-source corpus PASS.
