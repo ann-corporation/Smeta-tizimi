@@ -76,7 +76,7 @@ export function characteristics(nameRaw: string | null | undefined): Characteris
 
 export type MatchConfidence = 'EXACT' | 'HIGH' | 'REVIEW';
 export type MatchCandidate = { index: number; row: KatalogQatori; score: number; regional: boolean; reasons: string[]; extraSpecs: number };
-export type MatchResult = { confidence: MatchConfidence | 'NONE'; best: MatchCandidate | null; candidates: MatchCandidate[]; gateRejected: number };
+export type MatchResult = { confidence: MatchConfidence | 'NONE'; best: MatchCandidate | null; candidates: MatchCandidate[]; gateRejected: number; candidateTotal: number };
 
 /** Why a candidate fails the hard gates (null = passes). */
 /** Unit key with common synonyms (т = тн = тонна, м3 = куб.м, п.м = м, шт = штука). */
@@ -120,7 +120,7 @@ function indexOf(cat: MatchCatalog): Index {
 export function matchResource(cat: MatchCatalog, name: string | null, unit: string | null, region?: string | null, limit = 8): MatchResult {
   const ix = indexOf(cat);
   const src = characteristics(name), srcNorm = normName(name);
-  if (!src.words.length && !src.specs.length) return { confidence: 'NONE', best: null, candidates: [], gateRejected: 0 };
+  if (!src.words.length && !src.specs.length) return { confidence: 'NONE', best: null, candidates: [], gateRejected: 0, candidateTotal: 0 };
   // Candidate pool: rows sharing the rarest stems (bounded), so 200k rows are never fully scanned.
   const lists = src.words.map(w => ix.stems.get(w) ?? []).filter(l => l.length).sort((a, b) => a.length - b.length);
   const pool = new Map<number, number>();
@@ -147,17 +147,17 @@ export function matchResource(cat: MatchCatalog, name: string | null, unit: stri
   scored.sort((a, b) => b.score - a.score || Number(b.regional) - Number(a.regional) || (a.row.narx ?? 0) - (b.row.narx ?? 0) || a.index - b.index);
   const candidates = scored.slice(0, limit);
   const best = candidates[0] ?? null;
-  if (!best) return { confidence: 'NONE', best: null, candidates, gateRejected };
+  if (!best) return { confidence: 'NONE', best: null, candidates, gateRejected, candidateTotal: scored.length };
   // Ties are already ordered object-region first. A rival is a DIFFERENT product (another normalised name).
-  const rival = candidates.find(c => ix.norm[c.index] !== ix.norm[best.index]);
+  const rival = scored.find(c => ix.norm[c.index] !== ix.norm[best.index]);
   const margin = rival ? best.score - rival.score : 1;
   // Strong identity: the decisive characteristics were stated and verified by the gates, and only ONE
   // product survives them (e.g. "АВВГ 4х2,5") — then a long official name vs a short catalogue name is fine.
   const strong = !!(src.grade || (src.section && src.brand) || (src.rebar && src.diameter));
   const uniqueProduct = !rival || rival.score < 0.35;
-  const confidence: MatchConfidence = best.score === 1 ? 'EXACT'
+  const confidence: MatchConfidence = unit != null && best.score === 1 ? 'EXACT'
     : unit != null && ((best.score >= 0.85 && margin >= 0.1 && src.words.length >= 2 && best.extraSpecs === 0) || (strong && uniqueProduct && best.score >= 0.35)) ? 'HIGH' : 'REVIEW';
-  return { confidence, best, candidates, gateRejected };
+  return { confidence, best, candidates, gateRejected, candidateTotal: scored.length };
 }
 
 export type AutoPriceLine = { occurrenceId: string; recipeId: string; name: string; unit: string | null; result: MatchResult };

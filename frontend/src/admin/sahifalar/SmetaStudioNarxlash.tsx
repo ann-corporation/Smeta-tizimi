@@ -160,6 +160,10 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       if (r.commands.length) command({ type: 'BATCH', label: 'Kompaniya smetalaridagi narx', commands: r.commands });
       if (r.commands.length || majburiy) setXabar(t('Kompaniya smetalaridan: {n} ta resursga aynan shu kod bo‘yicha narx qo‘yildi{b}.',
         { n: r.topildi, b: r.birlikMosEmas ? t(' ({b} tasida birlik mos emas)', { b: r.birlikMosEmas }) : '' }));
+    } catch {
+      // A failed lookup must be retryable; it is not evidence that the company has no prices.
+      for (const kod of kodlar) sorlangan.current.delete(kod);
+      setXabar(t('Kompaniya narxlarini olishda xato. Qayta urinib ko‘ring; boshqa kataloglar tekshiriladi.'));
     } finally { setKompTayyor(true); }
   }
   useEffect(() => {
@@ -171,6 +175,11 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
   const agentTaklifBor = agent.natija.some(a => a.tanlov);
   const openReview = review.filter(r => pending.some(p => key(p) === key(r)));
   function qoy(line: AutoPriceLine, row: KatalogQatori) { command(priceCommand(line.occurrenceId, line.recipeId, row)); }
+  function koproq(line: AutoPriceLine) {
+    if (!cat) return;
+    const result = matchResource(cat.matchView(), line.name, line.unit, hudud || null, line.result.candidates.length + 25);
+    setReview(old => old.map(r => key(r) === key(line) ? { ...r, result } : r));
+  }
 
   async function agentgaYubor() {
     if (kompaniyaId == null) { setAgent({ holat: 'xato', matn: t('Avval yuqorida kompaniyani tanlang.'), natija: [] }); return; }
@@ -201,7 +210,8 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       const { abcHujjat } = await import('../../lib/smeta-studio/abc-hujjat');
       const r = abcHujjat(doc, hisob, { resource: unitText, work: workUnit }, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null });
       const url = URL.createObjectURL(new Blob([r.bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      const a = document.createElement('a'); a.href = url; a.download = r.faylNomi; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      const a = document.createElement('a'); a.href = url; a.download = hisob.total.unresolved ? `DRAFT_${r.faylNomi}` : r.faylNomi; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      if (hisob.total.unresolved) setXabar(t('Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.'));
     } catch (e) {
       setXabar(e instanceof Error && e.message === 'LRV_BOSH' ? t('Hujjat uchun avval smetaga ish qo‘shing.') : t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.'));
     }
@@ -222,9 +232,10 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={holat !== 'tayyor' || !pending.length} onClick={() => narxla(pending, t('Qayta tekshiruv'))}>
         {t('Narxsizlarni katalogdan topish ({n})', { n: pending.length })}</button>
       <span className="flex-1" />
-      <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!Object.keys(doc.occurrences).length} onClick={() => void lrvYukla()}>{t('LRV + RES (Excel)')}</button>
+      <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!Object.keys(doc.occurrences).length} onClick={() => void lrvYukla()}>{hisob.total.unresolved ? t('Qoralama LRV + RES (Excel)') : t('LRV + RES (Excel)')}</button>
     </div>
     {xabar && <p role="status" className="text-xs text-accent">{xabar}</p>}
+    {hisob.total.unresolved > 0 && <p className="text-xs text-warn">{t('Hisob tugallanmagan: {n} ta resurs qatorida narx, hajm, norma yoki birlik asosi yetishmaydi. Eksport qoralama bo‘ladi.', { n: hisob.total.unresolved })}</p>}
     {ishMashina > 0 && <div className="flex flex-wrap items-center gap-2 text-xs text-text-mute">
       <span>{t('Mehnat va mashina resurslari ({n}) material katalogidan narxlanmaydi — ular hudud chel.-soat / mash.-soat stavkasidan olinadi.', { n: ishMashina })}</span>
       {soat && <label className="flex items-center gap-1">{t('Davr')}
@@ -259,6 +270,9 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
                     <option value="" disabled>{t('— nomzod tanlang ({n}) —', { n: r.result.candidates.length })}</option>
                     {r.result.candidates.map(c => <option key={c.row.id} value={c.row.id}>{fmt(c.row.narx)} · {c.row.nom}{c.row.birlik ? `, ${c.row.birlik}` : ''} · {c.row.hudud ?? ''} · {Math.round(c.score * 100)}%</option>)}
                   </select>}
+                {r.result.candidateTotal > r.result.candidates.length && <button type="button" className="tugma mt-1 h-6 px-2" onClick={() => koproq(r)}>
+                  {t('Ko‘proq nomzodlar')} ({r.result.candidates.length}/{r.result.candidateTotal})
+                </button>}
                 {ai && <p className={`mt-0.5 ${ai.tanlov ? 'text-ok' : 'text-text-mute'}`}>{t('AI')}: {ai.tanlov ? `${ai.tanlov.nom} — ${fmt(ai.tanlov.narx)}` : t('mos emas')} · {ai.sabab}
                   {ai.tanlov && <button type="button" className="tugma ml-1 h-6 px-1.5 text-[10.5px]" onClick={() => agentQabul([ai])}>{t('Qabul')}</button>}</p>}
               </td>

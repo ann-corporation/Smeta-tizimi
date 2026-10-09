@@ -83,10 +83,22 @@ describe('matchResource — strong identity', () => {
   });
   it('without a known unit nothing is auto-applied', () => {
     expect(matchResource(cat, 'Кабели силовые марки АВВГ 4X2,5', null).confidence).toBe('REVIEW');
+    expect(matchResource(cat, cat.name(0), null).confidence).toBe('REVIEW');
   });
 });
 
 describe('matchResource — no auto-apply for generic names or extra characteristics', () => {
+  it('can reveal more than eight offers without changing automatic confidence', () => {
+    const many: MatchCatalog = { size: 40, name: i => `БЕТОН ТЯЖЕЛЫЙ B${i + 1}`, unit: () => 'м3', region: () => 'toshkent',
+      price: () => 1000, row: i => ({ ...row(0), id: i + 1, nom: `БЕТОН ТЯЖЕЛЫЙ B${i + 1}` }) };
+    const short = matchResource(many, 'Бетон', 'м3');
+    const more = matchResource(many, 'Бетон', 'м3', null, 33);
+    expect(short.candidates).toHaveLength(8);
+    expect(short.candidateTotal).toBe(40);
+    expect(more.candidates).toHaveLength(33);
+    expect(more.confidence).toBe(short.confidence);
+    expect(matchResource(many, 'Бетон', 'м3', null, 1).confidence).toBe('REVIEW');
+  });
   const extra: MatchCatalog = { size: 2, name: i => ['ПРОВОД КРОССОВЫЙ ПКСВ 2Х0,4', 'ГРУНТОВКА БИТУМНАЯ'][i], unit: i => ['м', 'т'][i],
     region: () => 'toshkent', price: () => 1000, row: i => row(i) };
   it('one-word "ПРОВОД" never auto-binds to a specific branded wire', () => {

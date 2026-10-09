@@ -25,6 +25,23 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it('the operator can search and select a norm outside the AI shortlist without changing the estimate', async () => {
+  const commands = vi.fn(() => true);
+  const extra = { ...work, id: 'outside', code: 'E6-1-1-22', name: 'BOSHQA NORMA' };
+  const searchable = { ...katalog, search: (q: string, page: number) => q === 'E6-1-1-22'
+    ? { rows: page === 0 ? [extra] : [], total: 1 } : katalog.search(q, page) };
+  render(<SmetaAiChat doc={emptyDoc('d')} katalog={searchable} kompaniyaId={7} command={commands} newId={() => 'x'} />);
+  fireEvent.change(screen.getByLabelText('Smetachiga xabar'), { target: { value: 'podbetonka B7.5' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Yuborish' }));
+  await screen.findByDisplayValue('48*0,6*0,1');
+  fireEvent.change(screen.getByLabelText('Norma kodi yoki nomi'), { target: { value: 'E6-1-1-22' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Qidirish' }));
+  fireEvent.click(screen.getByRole('button', { name: /BOSHQA NORMA/ }));
+  expect(screen.getByDisplayValue(/E6-1-1-22.*BOSHQA NORMA/)).toBeTruthy();
+  expect(screen.getByText('Normaning ish tarkibi (manba bo‘yicha)')).toBeTruthy();
+  expect(commands).not.toHaveBeenCalled();
+});
+
 it('describes work in words → grounded normative work, quantity computed by code → one batch into the estimate', async () => {
   const cmds: StudioCommand[] = [];
   let n = 0;

@@ -31,3 +31,37 @@ Final gates: full Vitest maxWorkers=2 238 files passed / 1690 tests passed / 17 
 Live Gemini 3.5 Flash smoke on production 42bc95eb: 5 proposals visible, add button visible; model invented B7.5/conditional width and selected plain-concrete foundation despite reinforcement. These are NOT accepted successes. Follow-up guards mark conditional quantities/unprovided A/B material grades as review; same-section reinforcement context is supplied and contradictory plain-concrete AI picks are blocked. 51 focused tests PASS; new full build incl both TS gates PASS; oxlint/governance/diff PASS. Norm search quality/complete recipe coverage and final saved priced estimate remain unproven.
 
 Final hydration/UI guard: restored proposals revalidated against stored user messages; conditional/invented material proposals lose ready status and stale choice. Proposed work cards are shown before slow norm-selection completion. 52 focused tests PASS, final UI 6 PASS, build app/functions PASS, lint/governance/diff PASS. Final production/provider receipt will be recorded in Obsidian with exact SHA.
+
+## 2026-10-09 — пределы выдачи и нормативные источники
+
+Прямое поручение владельца после weekly-limit Claude: продолжить Studio. Точная
+передача resource-match.ts/test.ts и SmetaStudioNarxlash.tsx отражена в registry;
+остальные пути прежнего task сохранены отдельными locks. Governance77 PASS.
+
+Локальный XLSX владельца проверен read-only, SHA256
+11f24e80ec827171b77a85b549b9b375e5b9e149a0844f8042c922cd9b6e5e50:
+RES26 ресурсных строк, одна цена G21=148613,25 неизвестных. Это не полностью
+оценённая смета. Нельзя исправлять отсутствующие цены нулями/догадками.
+
+CODE: ручной постраничный поиск норм независимо от AI shortlist12; расширение
+ресурсных предложений8→33→58 и далее до найденного пула; confidence считается
+по всему проверенному пулу, а не видимому срезу. Неизвестная единица не даёт
+EXACT автоцену даже при совпавшем названии. Ошибка company-price lookup явно
+показана и доступна повтору; unresolved экспорт обозначен DRAFT/«qoralama».
+Для E6-1-1-22/23 UI показывает source reference ШНК4.02.06-04 таблица6-01-001,
+PDFстр12, состав работ и предупреждение о повторном учёте армирования/опалубки.
+Это ссылка на конкретное старое издание, не юридическая активация базы.
+
+TESTED:120 тестов/16files AI+Studio+provider PASS; Studio UI6 PASS отдельно.
+Текущий build/CI/release status фиксируется отдельным checkpoint. При изменении
+числа visible candidates автоматическая confidence не повышается. Оригиналы
+в git не добавлены, бизнес DB/R2 writes не выполнялись.
+
+UNKNOWN/NOT_DONE: полная проверка текущих цен на все26 ресурсов; технические
+коэффициенты как отдельные scoped commands; универсальная included-work dedup;
+полный поиск материалов вне bounded matcher pool; upload/OCR/review/index/RAG
+для190 PDF/Word. Владелец подтвердил, что файлы пока только в Telegram.
+Контракт/acceptance записан в private Obsidian SHNQ_KNOWLEDGE_V1_2026-10-09.md.
+Канонический reader остаётся единственным parser; R2 хранит immutable оригинал,
+AI получает источники конкретной редакции/page/cell через retrieval. Fine-tuning
+не заменяет источник, актуальность и детерминированный финансовый расчёт.

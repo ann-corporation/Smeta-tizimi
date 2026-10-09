@@ -9,9 +9,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
-import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari } from '../../lib/smeta-ai/protokol';
-import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi } from '../../lib/smeta-ai/protokol';
+import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
+import { foundationReference } from '../../lib/smeta-ai/normative-reference';
 import { smetachiSuhbat, smetachiTanla } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
 
@@ -187,7 +188,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
               <option value="">{i.nomzodlar.length ? t('— tanlang ({n} nomzod) —', { n: i.nomzodlar.length }) : t('— katalogda topilmadi —')}</option>
               {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}</option>)}
             </select></label>
+          {katalog && <KatalogQidiruv katalog={katalog} onPick={n => ishniYangila(i.id, {
+            nomzodlar: [...i.nomzodlar.filter(x => x.id !== n.id), n],
+            tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: t('qo‘lda tanlandi'), qolda: true },
+          })} />}
           {i.tanlangan && katalog && <p className="whitespace-pre-line text-[11px] text-text-mute">{tanlovDalili(i, katalog)}</p>}
+          {i.tanlangan && <NormaTarkibi code={i.tanlangan.kod} />}
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-[11px] text-text-dim">{t('Hajm formulasi')}
               <input className="input h-7 w-40 text-[12px]" value={i.hajmIfoda ?? ''} placeholder="12*0,6*0,1" onChange={e => formula(i.id, e.target.value)} /></label>
@@ -198,4 +204,39 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
       </ul>
     </div>}
   </section>;
+}
+
+function NormaTarkibi({ code }: { code: string }) {
+  const ref = foundationReference(code);
+  if (!ref) return null;
+  return <details className="text-[11px] text-text-dim">
+    <summary>{t('Normaning ish tarkibi (manba bo‘yicha)')}</summary>
+    <ol className="ml-4 list-decimal">{ref.operations.map(op => <li key={op}>{t(op)}</li>)}</ol>
+    <a className="text-accent underline" href={`${ref.url}#page=${ref.pdfPage}`} target="_blank" rel="noreferrer">{ref.document} · {ref.table} · {ref.printedPage}</a>
+    <p className="text-warn">{t(ref.caution)}</p>
+  </details>;
+}
+
+function KatalogQidiruv({ katalog, onPick }: { katalog: AiKatalog; onPick: (n: TanlovNomzodi) => void }) {
+  const [query, setQuery] = useState('');
+  const [result, setResult] = useState<{ query: string; page: number; rows: TanlovNomzodi[]; total: number } | null>(null);
+  const search = (q: string, page: number) => setResult({ query: q, page, ...katalogSahifasi(katalog, q, page) });
+  return <details className="text-[11px] text-text-dim">
+    <summary>{t('Boshqa normani katalogdan qidirish')}</summary>
+    <div className="mt-1 flex gap-1">
+      <input aria-label={t('Norma kodi yoki nomi')} className="input h-7 flex-1" value={query} onChange={e => setQuery(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); search(query, 0); } }} />
+      <button type="button" className="tugma h-7" onClick={() => search(query, 0)}>{t('Qidirish')}</button>
+    </div>
+    {result && <div className="space-y-1">
+      <p>{t('Topildi')}: {result.total} · {t('Sahifa')}: {result.page + 1}</p>
+      {result.rows.map(n => <button key={n.id} type="button" className="block w-full rounded border border-border p-1 text-left" onClick={() => onPick(n)}>
+        {n.kod} · {n.nom} · {n.birlik ?? '—'}
+      </button>)}
+      <div className="flex gap-1">
+        <button type="button" className="tugma" disabled={result.page === 0} onClick={() => search(result.query, result.page - 1)}>{t('Oldingi')}</button>
+        <button type="button" className="tugma" disabled={!result.rows.length} onClick={() => search(result.query, result.page + 1)}>{t('Keyingi')}</button>
+      </div>
+    </div>}
+  </details>;
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
-import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
+import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -41,6 +41,14 @@ describe('smetachi AI — contract validation', () => {
 });
 
 describe('smetachi AI — catalogue grounding and batch', () => {
+  it('manual catalogue search reaches later pages beyond the twelve AI proposals', () => {
+    const many = Array.from({ length: 60 }, (_, i) => W(String(i), `E6-${i}`, 'БЕТОН', 'u100m3'));
+    const paged = { ...k, search: (_q: string, page: number) => ({ rows: many.slice(page * 25, (page + 1) * 25), total: many.length }) };
+    const page = katalogSahifasi(paged, 'БЕТОН', 2);
+    expect(page.total).toBe(60);
+    expect(page.rows.map(n => n.id)).toEqual(many.slice(50).map(w => w.id));
+    expect(page.rows[0].birlik).toBe('100 М3');
+  });
   it('passes reinforcement context and rejects plain-concrete foundation selection', () => {
     const [foundation] = birlashtir([], niyat({ tavsif: 'Lentali fundament betonlash', material: 'Бетон B20' }));
     const [armature] = birlashtir([], niyat({ id: 'w2', tavsif: 'Armatura A3', material: 'Арматура A3 Ø12', birlik: 'т', hajmIfoda: '1.2' }));
