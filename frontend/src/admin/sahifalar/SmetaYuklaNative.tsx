@@ -9,6 +9,7 @@ import { smetaPaketQatorlariniYoy, smetaPaketRejasiniTekshir, type SmetaPaketMan
 import { lrvVaIchkiResniAjrat } from '../../lib/smeta-lrv-boundary';
 import type { SverkaManba } from '../../lib/smeta-anatomiya/sverka';
 import { LrvResSverkaPanel } from './LrvResSverkaPanel';
+import { varaqRoliniAniqla } from '../../lib/smeta-anatomiya/rol';
 import { HujjatTekshiruvPanel } from './HujjatTekshiruvPanel';
 import {
   smetaPaketTasdiqImzosi, smetaPaketTanloviniTekshir, smetaVaraqniTahlilQil,
@@ -385,6 +386,10 @@ export function varaqTuriTaxmin(rows: SheetGrid | null | undefined, nom = ''): '
      quyidagi eski mazmun evristikasi. */
   let anatLrv = true;
   try {
+    // SMETA YADROSI: aniq nom (LRV/ЛРВ/RES/РС/Ведомость…) birinchi.
+    const yadro = varaqRoliniAniqla(nom, grid);
+    if (yadro.manba !== 'tuzilma' && (yadro.rol === 'lrv' || yadro.rol === 'res')) return yadro.rol;
+    if (yadro.manba !== 'yoq' && (yadro.rol === 'svod' || yadro.rol === 'transport')) return 'nomalum';
     const x = varaqRoli(nom, grid);
     if (x.aniq) return x.rol === 'lrv' ? 'lrv' : x.rol === 'res' ? 'res' : 'nomalum';
     // Ish daraxti topilmagan varaq (1C hisobot, katalog, grafik, ostatka) avtomatik LRV bo'lmaydi.

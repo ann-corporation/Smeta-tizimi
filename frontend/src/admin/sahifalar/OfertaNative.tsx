@@ -14,6 +14,7 @@ import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl, type Nakrut
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { t } from '../../i18n/til';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import type { SheetGrid } from '../../lib/f2-import-parse/types';
 import { ofertaLrvHujjati } from '../../lib/tender-oferta-lrv';
@@ -34,7 +35,7 @@ function parseInput(value: string): number | null {
 function roleText(role: OfertaSheetTahlili['role']): string {
   if (role === 'res') return 'RES';
   if (role === 'transport') return 'TRANSPORT XARAJATI';
-  if (role === 'lrv') return 'LRV — oferta LRV (F2 shakli) shundan';
+  if (role === 'lrv') return 'LRV (ishlar) — oferta LRV (F2 shakli) shundan';
   return 'Noma’lum — tekshirish kerak';
 }
 
@@ -52,7 +53,7 @@ const KASKAD_QADAMLARI: Array<[keyof NakrutkaQadamlar, string]> = [
 
 type Koef = { qiymatlar: NakrutkaKoeffitsientlar; manba: 'kompaniya' | 'standart' | 'tahrirlangan' | 'fayl' };
 /** `lrv` — fayldagi LRV varag'i (oferta LRV'si F2 shaklida shundan quriladi; egasi talabi 2026-10-08). */
-type PaketFayl = OfertaPaketFayl & { bytes: Uint8Array; lrv?: { nom: string; rows: SheetGrid } };
+type PaketFayl = OfertaPaketFayl & { bytes: Uint8Array; lrv?: { nom: string; rows: SheetGrid }; varaqRows: Record<string, SheetGrid> };
 
 /** Sukut tanlov: RES/transport, alternativ ko'rinish va YASHIRIN (eski qoralama) emas. */
 function sukutTanlov(t: OfertaSheetTahlili[]): string[] {
@@ -172,8 +173,9 @@ function Sessiya() {
           const tahlillar = ofertaResursVaraqlariniAniqla(wb);
           const lrvVaraq = tahlillar.find((s) => s.role === 'lrv' && !s.yashirin);
           const lrvRows = lrvVaraq ? wb.sheet(lrvVaraq.nom)?.rows : undefined;
-          if (!tahlillar.some((s) => s.qatorlar.length > 0)) { xatolar.push(`${file.name}: resurs jadvali topilmadi`); continue; }
-          yangi.push({ id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, nom: file.name.replace(/\.(xlsx|xlsm|xls)$/i, ''), faylNomi: file.name, bytes, tahlillar, tanlanganVaraqlar: sukutTanlov(tahlillar), ...(lrvVaraq && lrvRows ? { lrv: { nom: lrvVaraq.nom, rows: lrvRows } } : {}) });
+          const varaqRows = Object.fromEntries(wb.sheets.map((s) => [s.name, s.rows]));
+          if (!tahlillar.some((s) => s.qatorlar.length > 0 || s.role === 'lrv')) { xatolar.push(`${file.name}: RES/LRV varag‘i yo‘q (faqat svod/hisobot) — oferta uchun kerak emas`); continue; }
+          yangi.push({ id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, nom: file.name.replace(/\.(xlsx|xlsm|xls)$/i, ''), faylNomi: file.name, bytes, tahlillar, tanlanganVaraqlar: sukutTanlov(tahlillar), ...(lrvVaraq && lrvRows ? { lrv: { nom: lrvVaraq.nom, rows: lrvRows } } : {}), varaqRows });
         } catch (e) { xatolar.push(`${file.name}: ${e instanceof Error ? e.message : 'o‘qilmadi'}`); }
       }
       if (yangi.length) setFayllar((old) => [...old, ...yangi]);
@@ -186,6 +188,21 @@ function Sessiya() {
     setFayllar((old) => old.filter((f) => f.id !== id));
     const tozala = <T,>(m: Record<string, T>) => Object.fromEntries(Object.entries(m).filter(([k]) => !k.startsWith(`${id}|`)));
     setQatorNarx(tozala); setQatorHajm(tozala); setQatorKat(tozala);
+  }
+
+  /** Rolni qo'lda o'zgartirish (yadro adashsa): RES/transport — oferta qatorlariga, LRV — oferta LRV (F2) manbasiga. */
+  function rolniOzgartir(faylId: string, name: string, role: OfertaSheetTahlili['role']) {
+    setFayllar((old) => old.map((f) => {
+      if (f.id !== faylId) return f;
+      const tahlillar = f.tahlillar.map((s) => (s.nom !== name ? s : { ...s, role, confidence: 'yuqori' as const, evidence: [`qo‘lda tanlandi: ${roleText(role)}`, ...s.evidence.filter((e) => !e.startsWith('qo‘lda tanlandi'))] }));
+      const sheet = tahlillar.find((s) => s.nom === name);
+      const tanlanadi = (role === 'res' || role === 'transport') && !!sheet?.qatorlar.length;
+      const tanlangan = f.tanlanganVaraqlar.filter((x) => x !== name);
+      let lrv = f.lrv;
+      if (role === 'lrv') lrv = { nom: name, rows: f.varaqRows[name] ?? [] };
+      else if (lrv?.nom === name) lrv = undefined;
+      return { ...f, tahlillar, tanlanganVaraqlar: tanlanadi ? [...tanlangan, name] : tanlangan, lrv };
+    }));
   }
 
   function varaqniTanlash(faylId: string, name: string, checked: boolean) {
@@ -359,7 +376,15 @@ function Sessiya() {
           <tbody>{f.tahlillar.map((sheet) => <tr key={sheet.nom} className={`border-b border-border/50 align-top ${sheet.yashirin ? 'opacity-60' : ''}`}>
             <td className="py-2">{sheet.role === 'lrv' ? <span className="text-text-mute">—</span> : <input aria-label={`${sheet.nom} varag‘ini tanlash`} type="checkbox" checked={f.tanlanganVaraqlar.includes(sheet.nom)} onChange={(e) => varaqniTanlash(f.id, sheet.nom, e.target.checked)} />}</td>
             <td className="py-2 font-medium text-text">{sheet.nom}{sheet.yashirin && <span className="ml-1 rounded bg-surface-2 px-1 text-[10px] text-text-mute">yashirin</span>}</td>
-            <td className={sheet.role === 'res' ? 'py-2 font-semibold text-ok' : 'py-2 text-warn'}>{roleText(sheet.role)}</td>
+            <td className="py-2">
+              <select aria-label={`${sheet.nom} varag‘i roli`} value={sheet.role} onChange={(e) => rolniOzgartir(f.id, sheet.nom, e.target.value as OfertaSheetTahlili['role'])}
+                className={`input h-8 px-1 text-[12px] ${sheet.role === 'res' ? 'font-semibold text-ok' : sheet.role === 'lrv' ? 'font-semibold text-accent' : 'text-warn'}`}>
+                <option value="res">{t('RES (resurslar)')}</option>
+                <option value="lrv">{t('LRV (ishlar)')}</option>
+                <option value="transport">{t('Transport')}</option>
+                <option value="unknown">{t('E’tiborsiz / svod')}</option>
+              </select>
+            </td>
             <td className="py-2 text-text-dim">{sheet.format.toUpperCase()}</td>
             <td className="py-2 text-text-dim">{sheet.confidence}</td>
             <td className="max-w-[460px] py-2 text-text-dim">{sheet.evidence.join(' · ')}{sheet.alternativVaraq && <span className="ml-1 font-semibold text-warn">(alternativ: {sheet.alternativVaraq})</span>}</td>

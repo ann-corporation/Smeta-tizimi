@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { kitobniTekshir, kitobQiymatTekshir, type KitobTekshiruv, type QiymatNatija } from '../../lib/hujjat-tekshir';
 import type { XlsxWorkbook } from '../../lib/f2-import-parse/xlsxReader';
 import type { KirishKitob } from '../../lib/smeta-anatomiya/turlar';
+import { t as tr } from '../../i18n/til';
 
 const fmt = (x: number | null | undefined) => (x == null ? '—' : x.toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const son = (x: number) => x.toLocaleString('ru-RU');
@@ -26,7 +27,7 @@ export function HujjatTekshiruvPanel({ book, faylNomi }: { book: XlsxWorkbook | 
   }), { qator: 0, qatorFarq: 0, ish: 0, ishFarq: 0, jami: 0, jamiYoq: 0 });
   if (!t.jami.formulalar && !qq.qator && !qq.jami) return null;
   const formulaFoizlar = t.varaqlar.flatMap((v) => v.foizlar.map((x) => ({ k: `${v.varaq}!${x.manzil}`, joy: `${v.varaq}!${x.manzil}`, yorliq: x.yorliq, foiz: x.foiz, baza: x.baza, bazaQiymat: x.bazaQiymat, natija: x.natija })));
-  const qiymatFoizlar = q.flatMap((v) => v.foizlar.map((x) => ({ k: `${v.varaq}:${x.qator}`, joy: `${v.varaq}, ${x.qator}-qator`, yorliq: x.yorliq, foiz: x.foiz, baza: x.baza, bazaQiymat: x.bazaQiymat as number | null, natija: x.natija as number | null })));
+  const qiymatFoizlar = q.flatMap((v) => v.foizlar.map((x) => ({ k: `${v.varaq}:${x.qator}`, joy: `${v.varaq}, ${x.qator}`, yorliq: x.yorliq, foiz: x.foiz, baza: x.baza, bazaQiymat: x.bazaQiymat as number | null, natija: x.natija as number | null })));
   const foizlar = t.jami.formulalar ? formulaFoizlar : qiymatFoizlar;
   const formulaMuammo = t.varaqlar.flatMap((v) => v.muammolar);
   const qiymatMuammo = q.flatMap((v) => v.muammolar.map((m) => ({ ...m, varaq: v.varaq })));
@@ -34,34 +35,34 @@ export function HujjatTekshiruvPanel({ book, faylNomi }: { book: XlsxWorkbook | 
   const rang = hammasiMos ? 'border-success/40' : t.deyarliMos && qq.qatorFarq === 0 ? 'border-amber-500/40' : 'border-danger/40';
   return <div className={`karta p-2 space-y-1.5 text-xs ${rang}`} data-testid="hujjat-tekshiruv">
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <b>Hujjat o‘zini tekshirish:</b>
+      <b>{tr('Hujjat o‘zini tekshirish')}:</b>
       {t.jami.formulalar > 0 && <span>
-        {son(t.jami.formulalar)} formula qayta hisoblandi —{' '}
-        {t.toliqMos ? <span className="font-semibold text-success">hammasi tiyingacha mos ✓</span>
-          : <span className="font-semibold">{son(t.jami.mos)} mos{t.jami.yaxlitlash ? `, ${t.jami.yaxlitlash} yaxlitlash (≤ 0,05)` : ''}{t.jami.farq ? <span className="text-danger">, {t.jami.farq} farq</span> : ''}{t.jami.tushunilmadi ? `, ${t.jami.tushunilmadi} tushunilmadi` : ''}</span>}
+        {son(t.jami.formulalar)} {tr('formula qayta hisoblandi')} —{' '}
+        {t.toliqMos ? <span className="font-semibold text-success">{tr('hammasi tiyingacha mos')} ✓</span>
+          : <span className="font-semibold">{son(t.jami.mos)} {tr('mos')}{t.jami.yaxlitlash ? `, ${t.jami.yaxlitlash} ${tr('yaxlitlash')} (≤ 0,05)` : ''}{t.jami.farq ? <span className="text-danger">, {t.jami.farq} {tr('farq')}</span> : ''}{t.jami.tushunilmadi ? `, ${t.jami.tushunilmadi} ${tr('tushunilmadi')}` : ''}</span>}
       </span>}
-      {qq.qator > 0 && <span>· {son(qq.qator)} qator hajm × narx = summa{qq.qatorFarq ? <span className="text-danger"> ({qq.qatorFarq} farq)</span> : ' ✓'}</span>}
-      {qq.ish > 0 && <span>· {son(qq.ish)} ish = Σ resurs{qq.ishFarq ? <span className="text-danger"> ({qq.ishFarq} farq)</span> : ' ✓'}</span>}
-      {qq.jami > 0 && !t.jami.formulalar && <span>· {son(qq.jami - qq.jamiYoq)}/{son(qq.jami)} jami isbotlandi</span>}
-      {foizlar.length > 0 && <span className="text-text-mute">· {foizlar.length} ta foiz aniqlandi</span>}
-      <button type="button" className="underline" onClick={() => setOchiq((x) => !x)}>{ochiq ? 'yopish' : 'batafsil'}</button>
+      {qq.qator > 0 && <span>· {son(qq.qator)} {tr('qator: hajm × narx = summa')}{qq.qatorFarq ? <span className="text-danger"> ({qq.qatorFarq} {tr('farq')})</span> : ' ✓'}</span>}
+      {qq.ish > 0 && <span>· {son(qq.ish)} {tr('ish = resurslar yig‘indisi')}{qq.ishFarq ? <span className="text-danger"> ({qq.ishFarq} {tr('farq')})</span> : ' ✓'}</span>}
+      {qq.jami !== 0 && !t.jami.formulalar && <span>· {son(qq.jami - qq.jamiYoq)}/{son(qq.jami)} {tr('jami isbotlandi')}</span>}
+      {foizlar.length > 0 && <span className="text-text-mute">· {foizlar.length} {tr('ta foiz aniqlandi')}</span>}
+      <button type="button" className="underline" onClick={() => setOchiq((x) => !x)}>{ochiq ? tr('yopish') : tr('batafsil')}</button>
     </div>
     {ochiq && foizlar.length > 0 && <div>
-      <div className="font-semibold">Summalarga ta’sir qiladigan foizlar</div>
+      <div className="font-semibold">{tr('Summalarga ta’sir qiladigan foizlar')}</div>
       <ul className="space-y-0.5">{foizlar.slice(0, 200).map((f) => <li key={f.k}>
         <span className="font-mono">{f.joy}</span> {f.yorliq || '—'} = <b>{f.foiz}%</b> × {f.baza} [{fmt(f.bazaQiymat)}] → <b>{fmt(f.natija)}</b>
       </li>)}</ul>
     </div>}
     {ochiq && formulaMuammo.length > 0 && <div>
-      <div className="font-semibold">Formulasi mos kelmagan yoki tushunilmagan kataklar</div>
+      <div className="font-semibold">{tr('Formulasi mos kelmagan yoki tushunilmagan kataklar')}</div>
       <ul className="space-y-0.5">{formulaMuammo.slice(0, 300).map((m) => <li key={`${m.varaq}!${m.manzil}`} className={m.holat === 'farq' ? 'text-danger' : ''}>
-        <span className="font-mono">{m.varaq}!{m.manzil}</span> {m.yorliq || '—'}: hujjatda {fmt(m.hujjatda)}, hisob {fmt(m.hisoblandi)} — {m.holat === 'tushunilmadi' ? 'formula hali tushunilmadi' : m.izoh}
+        <span className="font-mono">{m.varaq}!{m.manzil}</span> {m.yorliq || '—'}: {tr('hujjatda')} {fmt(m.hujjatda)}, {tr('hisob')} {fmt(m.hisoblandi)} — {m.holat === 'tushunilmadi' ? tr('formula hali tushunilmadi') : m.izoh}
       </li>)}</ul>
     </div>}
     {ochiq && qiymatMuammo.length > 0 && <div>
-      <div className="font-semibold">Qiymat bo‘yicha mos kelmagan qatorlar</div>
+      <div className="font-semibold">{tr('Qiymat bo‘yicha mos kelmagan qatorlar')}</div>
       <ul className="space-y-0.5">{qiymatMuammo.slice(0, 300).map((m) => <li key={`${m.varaq}:${m.tur}:${m.qator}`} className={m.holat === 'farq' ? 'text-danger' : ''}>
-        <span className="font-mono">{m.varaq}, {m.qator}-qator</span> {m.yorliq.slice(0, 80)}: hujjatda {fmt(m.hujjatda)}, hisob {fmt(m.hisoblandi)} ({m.isbot})
+        <span className="font-mono">{m.varaq}, {m.qator}</span> {m.yorliq.slice(0, 80)}: {tr('hujjatda')} {fmt(m.hujjatda)}, {tr('hisob')} {fmt(m.hisoblandi)} ({m.isbot})
       </li>)}</ul>
     </div>}
   </div>;

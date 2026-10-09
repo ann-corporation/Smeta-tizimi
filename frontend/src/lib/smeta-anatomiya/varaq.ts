@@ -1,4 +1,5 @@
 import { IerarxiyaQuruvchi } from './ierarxiya';
+import { varaqNomiRoli } from './nom-rol';
 import { bosh, kalit, son, toliqUstunlar, xom } from './matn';
 import { sarlavhaBlokiniTop, tartibRaqamlariQatorimi, ustunXaritasi, type SarlavhaBloki } from './ustun';
 import { qoshimchaUstunlar, uchlikniMoslashtir } from './ustun-dalil';
@@ -142,8 +143,10 @@ function rolAniqla(nom: string, blok: SarlavhaBloki | null, rows: readonly Katak
   if (lrvPlusTurUstuniniTop(rows, blok) >= 0) {
     return { rol: 'lrv', dalil: [...dalil, { qoida: 'lrv_plus:tip_va_qator_turlari', ishonch: 'yuqori', izoh: 'ТИП ustuni BL hamda RZ/resurs turlarini qatorlardan tasdiqladi' }] };
   }
-  const nomLrv = /(^|_)(LRV|БВ|ЛРВ|F5)/.test(n);
-  const nomRes = /(^|_)(RES|БР|РС)(_A)?$/.test(n);
+  // Yagona nom qoidasi (nom-rol.ts) + ABC4 maxsus belgilari (БВ/БР/F5 — shaklni ma'lumot hal qiladi).
+  const nomRol = varaqNomiRoli(nom)?.rol;
+  const nomLrv = nomRol === 'lrv' || /(^|_)(LRV|БВ|ЛРВ|F5)/.test(n);
+  const nomRes = nomRol === 'res' || /(^|_)(RES|БР|РС)(_A)?$/.test(n);
   if (nomLrv) dalil.push({ qoida: 'varaq_nomi', ishonch: 'orta', izoh: `nomi "${nom}" — LRV belgisi` });
   if (nomRes) dalil.push({ qoida: 'varaq_nomi', ishonch: 'orta', izoh: `nomi "${nom}" — RES belgisi` });
 

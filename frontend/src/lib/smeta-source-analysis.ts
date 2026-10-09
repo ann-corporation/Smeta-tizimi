@@ -1,5 +1,6 @@
 import type { SheetGrid } from './f2-import-parse';
 import { varaqRoli } from './smeta-anatomiya/yuklash';
+import { varaqRoliniAniqla } from './smeta-anatomiya/rol';
 
 /**
  * Paket importi uchun varaq roli faqat mazmunidan aniqlanadi. Fayl/papka
@@ -98,6 +99,14 @@ export function smetaVaraqniTahlilQil(rows: SheetGrid | null | undefined, nom = 
   /* C4: rolni yagona anatomiya aytadi (ish daraxti/resurs ro'yxati/svod/katalog).
      Aniq xulosa bo'lmasa — quyidagi ball evristikasi o'zgarishsiz qoladi. */
   try {
+    // SMETA YADROSI: nom (LRV/ЛРВ/RES/РС/Ведомость…) → tuzilma.
+    const yadro = varaqRoliniAniqla(nom, grid);
+    if (yadro.manba !== 'tuzilma' && (yadro.rol === 'lrv' || yadro.rol === 'res')) {
+      return { ...natija, detectedRole: yadro.rol, suggestedIgnore: false, ignoreReason: undefined, confidence: yadro.ishonch === 'yuqori' ? 'high' : 'medium', evidence: [...yadro.dalil.slice(0, 3), ...natija.evidence] };
+    }
+    if (yadro.manba === 'nom' && yadro.rol === 'svod') {
+      return { ...natija, detectedRole: 'unknown', suggestedIgnore: true, ignoreReason: yadro.dalil[0], confidence: 'medium', evidence: [...yadro.dalil.slice(0, 2), ...natija.evidence] };
+    }
     const x = varaqRoli(nom, grid);
     if (x.aniq) {
       const etiborsiz = x.rol === 'etiborsiz';

@@ -4,6 +4,7 @@ import type { OfertaKategoriya, OfertaKategoriyaManbasi, OfertaMalumKategoriya, 
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from './res-kategoriya';
 import { sarlavhaBlokiniTop, uchlikniMoslashtir, ustunXaritasi, type Katak, type UstunXaritasi } from './smeta-anatomiya';
 import { varaqniTahlilQil } from './smeta-anatomiya/varaq';
+import { varaqRoliniAniqla } from './smeta-anatomiya/rol';
 
 export type OfertaSheetRole = 'res' | 'lrv' | 'transport' | 'unknown';
 export type OfertaSheetConfidence = 'yuqori' | 'o‘rta' | 'past';
@@ -597,16 +598,21 @@ export function ofertaResursVaraqlariniAniqla(workbook: XlsxWorkbook): OfertaShe
     const hasResourceShape = Boolean(ustunlar && parsed.qatorlar.some((qator) => qator.rol === 'RESOURCE' || qator.rol === 'TRANSPORT'));
     const namedLrv = /LRV|СМЕТА|СМЕТНЫЙ/.test(normal(sheet.name));
     const namedRes = /RES|РЕСУРС/.test(normal(sheet.name));
+    // SMETA YADROSI: rolni yagona `varaqRoliniAniqla` (nom → tuzilma) aytadi; eski ball faqat yadro aniqlamasa.
+    const yadro = varaqRoliniAniqla(sheet.name, rows);
     let role: OfertaSheetRole = 'unknown';
-    if (hasResourceShape && namedLrv && !namedRes) role = 'lrv';
-    else if (hasResourceShape && evidenceData.roleHint === 'transport') role = 'transport';
-    else if (hasResourceShape && (evidenceData.resScore >= evidenceData.lrvScore || evidenceData.lrvScore < 5)) role = 'res';
-    if (evidenceData.lrvScore >= evidenceData.resScore + 3) role = 'lrv';
-    const confidence: OfertaSheetConfidence = role === 'lrv' ? 'yuqori'
-      : (role === 'res' || role === 'transport') && evidenceData.resScore >= 7 && evidenceData.resScore >= evidenceData.lrvScore + 2
-        ? 'yuqori'
-        : role === 'res' || role === 'transport' ? 'o‘rta' : 'past';
-    const evidence = [...evidenceData.evidence];
+    let confidence: OfertaSheetConfidence = 'past';
+    if (yadro.rol === 'lrv') { role = 'lrv'; confidence = yadro.ishonch === 'yuqori' ? 'yuqori' : 'o‘rta'; }
+    else if ((yadro.rol === 'res' || yadro.rol === 'transport') && hasResourceShape) { role = yadro.rol; confidence = yadro.ishonch === 'yuqori' ? 'yuqori' : 'o‘rta'; }
+    else if (yadro.rol === 'nomalum') {
+      if (hasResourceShape && namedLrv && !namedRes) role = 'lrv';
+      else if (hasResourceShape && evidenceData.roleHint === 'transport') role = 'transport';
+      else if (hasResourceShape && (evidenceData.resScore >= evidenceData.lrvScore || evidenceData.lrvScore < 5)) role = 'res';
+      if (evidenceData.lrvScore >= evidenceData.resScore + 3) role = 'lrv';
+      confidence = role === 'res' || role === 'transport' ? 'o‘rta' : role === 'lrv' ? 'o‘rta' : 'past';
+    }
+    const evidence = [...yadro.dalil.slice(0, 2), ...evidenceData.evidence];
+    if ((yadro.rol === 'res' || yadro.rol === 'transport') && !hasResourceShape) evidence.push(`${yadro.rol.toUpperCase()} deb aniqlandi, lekin resurs jadvali (nom/birlik/narx ustunlari) topilmadi`);
     if (!ustunlar) evidence.push('RES ustunlari to‘liq aniqlanmadi');
     else if (!parsed.qatorlar.length) evidence.push('sarlavha topildi, lekin resurs satrlari topilmadi');
     else evidence.push(`${parsed.qatorlar.filter((qator) => qator.rol === 'RESOURCE').length} ta resurs, ${parsed.qatorlar.filter((qator) => qator.rol !== 'RESOURCE').length} ta hisob/bo‘lim satri`);
