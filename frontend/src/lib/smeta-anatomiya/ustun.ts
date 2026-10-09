@@ -102,7 +102,9 @@ export function ustunXaritasi(blok: SarlavhaBloki): UstunXaritasi {
   const tartib = ol(birinchi(s, /^(№|N П|NN|№№)|^N$/, undefined, band));
   const shifr = ol(birinchi(s, /ШИФР|ОБОСНОВ|ASOS|^РЕСУРС$|^КОД|^KOD$/, undefined, band));
   const birlik = ol(birinchi(s, /ЕД\.? ?ИЗМ|ЕДИНИЦА ИЗМ|O.?LCHOV|BIRLIK/, /КОЛИЧ|КОЛ-?ВО|MIQDOR|BO.?YICHA/, band));
-  const narx = ol(birinchi(s, /ЦЕНА|НАРХ|БАҲО|NARX|СТОИМОСТЬ ЕД|ЕДИНИЦЫ$|СТОИМ.*НА\.? ?ЕД/, /ВСЕГО|ОБЩ|ВЕСЬ/, band));
+  const narx0 = ol(birinchi(s, /ЦЕНА|НАРХ|БАҲО|NARX|СТОИМОСТЬ ЕД|ЕДИНИЦЫ$|СТОИМ.*НА\.? ?ЕД/, /ВСЕГО|ОБЩ|ВЕСЬ/, band));
+  // F2 akt / ABC bir qatorli sarlavha: "НА ЕДИНИЦУ" (norma) dan keyin alohida "НА.ЕД.ИЗМ" — bu birlik NARXI ustuni.
+  const narx = narx0 >= 0 ? narx0 : ol(birinchi(s, /^НА\.? ?ЕД\.? ?ИЗМ/, undefined, band));
   const summa = ol(birinchi(s, /СУММА|SUMMA|ВСЕГО|НА ВЕСЬ|СТОИМ|ОБЩАЯ/, undefined, band));
   return {
     tartib, shifr, nom, birlik, hajmBirlikka,

@@ -16,6 +16,9 @@
  */
 import type { AktNode, F2NodeType } from '../f2-match-engine';
 import { f2UstunAniqla } from './columnDetect';
+import { lrvDaraxti, ustunXaritasigaQayt } from '../smeta-anatomiya/yuklash';
+import { varaqniTahlilQil } from '../smeta-anatomiya/varaq';
+import type { Katak } from '../smeta-anatomiya/turlar';
 import type { CellValue, F2FaylOqiCoreResult, F2ColumnConfig, SheetGrid } from './types';
 
 function cell(v: CellValue): string {
@@ -95,6 +98,16 @@ export function f2FaylOqiCore(data: SheetGrid | null | undefined, colConfig?: Pa
       ...(det.qoshimcha?.length ? { qoshimchaUstunlar: det.qoshimcha } : {}),
     };
   }
+
+  // SMETA YADROSI: ichma-ich bo'limli daraxtni anatomiya quradi (eski quruvchi ketma-ket sarlavhalardan faqat oxirgisini
+  // qoldirardi — 09-23 gacha tekis saqlangan smetalar shu sababli). Eski quruvchi faqat yadro LRV daraxtini bermasa.
+  try {
+    const v = varaqniTahlilQil('', { nom: '', rows: grid as Katak[][] }, 1, {
+      ustunlar: ustunXaritasigaQayt({ kod: cKod, nom: cNom, bir: cBir, norma: cNorma, obyom: cObyom, narx: cNarx, sum: cSum }),
+    });
+    const d = lrvDaraxti('', grid as Katak[][], v);
+    if (d.anatomiya && d.tree.length) return { ok: true, tree: d.tree };
+  } catch { /* eski quruvchi */ }
 
   const result: AktNode[] = [];
   let rzSeq = 0;

@@ -9,6 +9,9 @@
  */
 import type { F2ColumnConfig, SheetGrid } from './types';
 import { qoshimchaUstunlar, uchlikniMoslashtir } from '../smeta-anatomiya/ustun-dalil';
+import { varaqniTahlilQil } from '../smeta-anatomiya/varaq';
+import { sarlavhaBlokiniTop } from '../smeta-anatomiya/ustun';
+import type { Katak } from '../smeta-anatomiya/turlar';
 
 function up(v: unknown): string {
   return String(v == null ? '' : v).toUpperCase();
@@ -79,8 +82,38 @@ export type F2UstunAniqlash = F2ColumnConfig & {
   qoshimcha?: Array<{ ustun: number; sarlavha: string }>;
 };
 
+/**
+ * SMETA YADROSI kirish nuqtasi (egasi 2026-10-09: "hamma joyda anatomiya chaqirilsin"): ustunlarni avval yagona smeta
+ * anatomiyasi aniqlaydi — uni chaqiradigan barcha joy (smeta yuklash, F2 import, preview) bir xil o'qiydi. Eski
+ * sarlavha-so'z detektori faqat anatomiya ustun xaritasini umuman bermasa (masalan sarlavhasiz parcha).
+ */
 export function f2UstunAniqla(data: SheetGrid | null | undefined): F2UstunAniqlash {
   const grid = safeGrid(data);
+  try {
+    const a = varaqniTahlilQil('', { nom: '', rows: grid as Katak[][] });
+    const u = a.ustunlar;
+    if (u && u.nom >= 0 && u.birlik >= 0 && (a.rol === 'lrv' || a.rol === 'res')) {
+      // Hajm/narx/summa uchligi ma'lumot qatorlarida isbotlanadi (hajm × narx ≈ summa) — dalil operatorga ko'rsatiladi.
+      const matnlar = sarlavhaBlokiniTop(grid as Katak[][])?.sarlavhalar ?? [];
+      const band = new Set([u.shifr, u.nom, u.birlik, u.tartib, u.hajmBirlikka].filter((i) => i >= 0));
+      const m = uchlikniMoslashtir(matnlar, grid.slice(u.malumotBoshi, u.malumotBoshi + 2000), { hajm: u.hajmLoyiha, narx: u.narx, summa: u.summa }, band);
+      const uch = m.qoida === 'arifmetika' ? m.uchlik : { hajm: u.hajmLoyiha, narx: u.narx, summa: u.summa };
+      // Anatomiya o'zi ustunlarni arifmetika bilan isbotlab tanlagan bo'lsa — o'sha dalil (qayta tekshiruv uni sarlavha deb ko'radi).
+      const anatDalil = a.rolDalil.find((d) => d.qoida === 'ustunlar:arifmetika');
+      if (anatDalil && m.qoida !== 'arifmetika') { m.qoida = 'arifmetika'; m.ishonch = 'yuqori'; m.izoh = anatDalil.izoh; }
+      return {
+        kod: u.shifr, nom: u.nom, bir: u.birlik, norma: u.hajmBirlikka, obyom: uch.hajm, narx: uch.narx, sum: uch.summa,
+        hdrRow: u.sarlavhaQatori,
+        dalil: { qoida: m.qoida, ishonch: m.ishonch, izoh: m.qoida === 'arifmetika' ? m.izoh : `smeta yadrosi (anatomiya, ${a.rol.toUpperCase()}): ${m.izoh}` },
+        ...(a.qoshimchaUstunlar?.length ? { qoshimcha: a.qoshimchaUstunlar } : {}),
+      };
+    }
+  } catch { /* yadro o'qiy olmadi — eski detektor */ }
+  return eskiF2UstunAniqla(grid);
+}
+
+/** Eski (GAS dan ko'chirilgan) sarlavha-so'z detektori — faqat yadro zaxirasi. */
+function eskiF2UstunAniqla(grid: SheetGrid): F2UstunAniqlash {
   const d: F2UstunAniqlash = { kod: 1, nom: 2, bir: 3, norma: 4, obyom: 5, narx: 6, sum: 7, hdrRow: -1 };
 
   for (let r = 0; r < Math.min(60, grid.length); r++) {

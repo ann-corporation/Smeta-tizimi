@@ -548,7 +548,7 @@ function anatomiyaResUstunlari(nom: string, rows: SheetGrid): OfertaResursUstunl
   try {
     const v = varaqniTahlilQil(nom, { nom, rows: rows as Katak[][] });
     const u = v.ustunlar;
-    if (v.rol !== 'res' || !u || u.nom < 0 || u.birlik < 0 || (u.narx < 0 && u.summa < 0)) return null;
+    if (!u || u.nom < 0 || u.birlik < 0 || (u.narx < 0 && u.summa < 0)) return null;
     return {
       tartib: u.tartib, shifr: u.shifr, nom: u.nom, birlik: u.birlik,
       hajm: u.hajmLoyiha >= 0 ? u.hajmLoyiha : u.hajmBirlikka,

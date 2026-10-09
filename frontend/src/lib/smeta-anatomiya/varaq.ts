@@ -585,6 +585,14 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       continue;
     }
 
+    // Asl F2 akt (TN/ABC4): resurs satrida tartib bo'sh, lekin "НА ЕДИНИЦУ" (norma) ustunida son bor — joriy ishning
+    // resursi (eski f2-import treeBuild qoidasi yagona yadroga ko'chirildi, 2026-10-09).
+    if (joriyIsh && bosh(tartibKatak) && nomBor && !bosh(ol(row, u.birlik)) && u.hajmBirlikka >= 0 && son(ol(row, u.hajmBirlikka)) != null) {
+      iq.ishKeldi();
+      joriyIsh.resurslar.push(resursOl(row, r, false));
+      continue;
+    }
+
     if (butunTartib(tartibKatak) && (nomBor || !bosh(ol(row, u.shifr)))) {
       joriyIsh = ishYarat(row, r);
       continue;
