@@ -2243,5 +2243,31 @@
       ],
       "production_write_allowed": false
     }
+  ,
+{
+  "id": "T2-SMETACHI-RELIABILITY-20261009",
+  "title": "Smetachi: reply integrity, norm evidence and safe readiness",
+  "owner": "codex",
+  "machine": "noutbuk",
+  "branch": "codex/smeta-ai-reliability-v2",
+  "base_sha": "bfe6d13369583667bb9d261cf3eb2037a45c7819",
+  "status": "in_progress",
+  "owns": [
+    "frontend/src/lib/smeta-ai/",
+    "frontend/functions/api/smeta-ai.ts",
+    "frontend/functions/api/smeta-ai-ishonchli.test.ts",
+    "frontend/src/admin/sahifalar/SmetaAiChat.tsx",
+    "frontend/src/admin/sahifalar/SmetaAiChat.test.tsx",
+    "frontend/src/admin/sahifalar/SmetaAiChat.scope.test.tsx",
+    "ops/handoff/T2_SMETACHI_RELIABILITY_20261009.md"
+  ],
+  "depends_on": [],
+  "must_read": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md",
+    "docs/architecture/SMETA_ANATOMIYA_V1.md"
+  ],
+  "production_write_allowed": false
+}
   ]
 }

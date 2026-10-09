@@ -28,7 +28,7 @@ const BIRLIK_KALIT: Record<Birlik, string> = { м3: 'М3', м2: 'М2', м: 'М',
 /** Base unit of a normative work unit ("100 М3" → "М3"), or null if the catalogue did not observe it. */
 export function ishAsosBirligi(k: Pick<AiKatalog, 'unit'>, unitCode: string | null): string | null {
   const u = k.unit(unitCode);
-  return u?.base ? unitKey(u.base) : null;
+  return u?.status === 'OBSERVED' && u.base && u.scale && Number(u.scale) > 0 ? unitKey(u.base) : null;
 }
 export function birlikMos(k: Pick<AiKatalog, 'unit'>, w: NormWork, b: Birlik): boolean | null {
   const base = ishAsosBirligi(k, w.unitCode);
@@ -76,14 +76,25 @@ export function birlashtir(eski: AiIsh[], yangi: IshNiyati[]): AiIsh[] {
   const by = new Map(eski.map(i => [i.id, i]));
   return yangi.map(n => {
     const o = by.get(n.id);
-    const same = o && o.tavsif === n.tavsif && o.birlik === n.birlik && JSON.stringify(o.qidiruv) === JSON.stringify(n.qidiruv);
+    const same = o && o.tavsif === n.tavsif && o.birlik === n.birlik && o.material === n.material && JSON.stringify(o.qidiruv) === JSON.stringify(n.qidiruv);
     let hajm: AiIsh['hajm'] = null, hajmXato: string | null = null;
     if (n.hajmIfoda) { try { hajm = ifodaHisobla(n.hajmIfoda); } catch (e) { hajmXato = e instanceof Error ? e.message : 'IFODA_NOTOGRI'; } }
-    return { ...n, nomzodlar: same ? o!.nomzodlar : [], tanlangan: same || o?.tanlangan?.qolda ? o!.tanlangan : null, hajm, hajmXato };
+    return { ...n, nomzodlar: same ? o!.nomzodlar : [], tanlangan: same ? o!.tanlangan : null, hajm, hajmXato };
   });
 }
 
 export type QoshishNatija = { commands: StudioCommand[]; qoshildi: string[]; otkazildi: Array<{ id: string; sabab: string }> };
+
+/** Source facts and model reasoning stay distinct; legal validity requires a reviewed edition. */
+export function tanlovDalili(ish: AiIsh, k: AiKatalog): string | null {
+  const n = ish.tanlangan;
+  if (!n) return null;
+  return [`Katalog: ${k.manifest.revision}; norma: ${n.kod}; birlik: ${n.birlik ?? 'noma’lum'}.`,
+    `Ish: ${n.nom}. Qidiruv: ${ish.qidiruv.join('; ')}.`,
+    ish.material ? `Talab qilingan material: ${ish.material}.` : 'Material xarakteristikasi ko‘rsatilmagan.',
+    n.sabab ? `Tanlash sababi: ${n.sabab}.` : 'Tanlash sababi berilmagan — qo‘lda tekshiring.',
+    'Nashr amaldaligi va ish sharoitlari alohida tekshiriladi.'].join('\n');
+}
 
 /** Build ONE batch: missing sections, then every ready work with a frozen catalogue snapshot. */
 export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKatalog, newId: () => string): Promise<QoshishNatija> {
@@ -92,10 +103,12 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
   for (const s of Object.values(doc.sections)) sectionByName.set(s.name.trim().toLowerCase(), s.id);
   for (const ish of ishlar) {
     if (!ish.tanlangan) { otkazildi.push({ id: ish.id, sabab: 'Normativ ish tanlanmagan' }); continue; }
+    if (ish.holat === 'ANIQLASH_KERAK') { otkazildi.push({ id: ish.id, sabab: 'Ish sharoiti aniqlashtirilmagan' }); continue; }
     if (!ish.hajm) { otkazildi.push({ id: ish.id, sabab: ish.hajmXato ? 'Hajm formulasi noto‘g‘ri' : 'Hajm aniqlanmagan' }); continue; }
     try {
       await k.load(ish.tanlangan.workId);
       const snap = snapshotWork(k, ish.tanlangan.workId, k.manifest.revision, k.tableLabel(ish.tanlangan.workId));
+      if (ishAsosBirligi(k, snap.source.unitCode) == null) { otkazildi.push({ id: ish.id, sabab: 'Norma birligi yoki masshtabi isbotlanmagan' }); continue; }
       const basis = suggestedBasis(snap.source.unitCode, k.unit(snap.source.unitCode));
       // Physical quantity must be in the work's base unit (м3 for a "100 м3" norm); otherwise ask, never convert silently.
       if (basis.unitLabel && unitKey(basis.unitLabel) !== BIRLIK_KALIT[ish.birlik]) { otkazildi.push({ id: ish.id, sabab: `Birlik mos emas: hajm ${ish.birlik}, norma ${basis.unitLabel}` }); continue; }

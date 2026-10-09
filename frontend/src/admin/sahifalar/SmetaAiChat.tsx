@@ -10,7 +10,7 @@ import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import type { SuhbatXabari } from '../../lib/smeta-ai/protokol';
-import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tizimTanlovi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { smetachiSuhbat, smetachiTanla } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
@@ -31,34 +31,42 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 };
 
-export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
+export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
+  return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
+}
+
+function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
   doc: EstimateDoc; katalog: AiKatalog | null; kompaniyaId: number | null; command: (c: StudioCommand) => boolean; newId: () => string;
 }) {
-  const [xabarlar, setXabarlar] = useState<SuhbatXabari[]>([]);
-  const [ishlar, setIshlar] = useState<AiIsh[]>([]);
+  const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}`);
+  const [saqlangan] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(kalit) ?? 'null') as { xabarlar?: SuhbatXabari[]; ishlar?: AiIsh[] } | null; }
+    catch { return null; }
+  });
+  const [xabarlar, setXabarlar] = useState<SuhbatXabari[]>(Array.isArray(saqlangan?.xabarlar) ? saqlangan.xabarlar : []);
+  const [ishlar, setIshlar] = useState<AiIsh[]>(Array.isArray(saqlangan?.ishlar) ? saqlangan.ishlar : []);
   const [matn, setMatn] = useState('');
   const [band, setBand] = useState<'' | 'suhbat' | 'tanlash' | 'qoshish'>('');
   const [holat, setHolat] = useState('');
   const [tinglash, setTinglash] = useState(false);
   const rec = useRef<SpeechRec | null>(null);
   const oxir = useRef<HTMLDivElement>(null);
+  const tirik = useRef(true);
+  useEffect(() => { tirik.current = true; return () => { tirik.current = false; rec.current?.stop(); }; }, []);
 
   // Per-draft conversation memory (convenience only; the estimate itself lives in the studio draft).
-  useEffect(() => {
-    try { const v = JSON.parse(localStorage.getItem(saqlashKalit(doc.draftId)) ?? 'null'); setXabarlar(v?.xabarlar ?? []); setIshlar(v?.ishlar ?? []); }
-    catch { setXabarlar([]); setIshlar([]); }
-  }, [doc.draftId]);
-  useEffect(() => { try { localStorage.setItem(saqlashKalit(doc.draftId), JSON.stringify({ xabarlar: xabarlar.slice(-30), ishlar })); } catch { /* storage off */ } }, [xabarlar, ishlar, doc.draftId]);
+  useEffect(() => { try { localStorage.setItem(kalit, JSON.stringify({ xabarlar: xabarlar.slice(-30), ishlar })); } catch { /* storage off */ } }, [xabarlar, ishlar, kalit]);
   useEffect(() => { oxir.current?.scrollIntoView?.({ block: 'nearest' }); }, [xabarlar.length, band]);
 
   /** Ground intents in the catalogue: candidates by search, then the cheap model picks among them. */
   async function asosla(list: AiIsh[]): Promise<AiIsh[]> {
     if (!katalog || kompaniyaId == null) return list;
     let next = list.map(i => (i.nomzodlar.length ? i : { ...i, nomzodlar: nomzodlarTop(katalog, i) }));
-    const sor = next.filter(i => !i.tanlangan && i.nomzodlar.length).map(tanlovSorovi);
+    const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && i.nomzodlar.length).map(tanlovSorovi);
     if (sor.length) {
       setBand('tanlash');
       const r = await smetachiTanla(kompaniyaId, sor.slice(0, 40));
+      if (!tirik.current) return list;
       if (r.ok) {
         const by = new Map(r.tanlovlar.map(x => [x.id, x]));
         next = next.map(i => {
@@ -67,8 +75,8 @@ export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
         });
       } else setHolat(xato(r.code, r.message));
     }
-    // Where the model declined, the system pre-selects the obvious best match (visibly marked for review).
-    return next.map(i => (i.tanlangan || !i.nomzodlar.length ? i : { ...i, tanlangan: tizimTanlovi(i) }));
+    // A declined or ambiguous choice stays unresolved until the user clarifies it.
+    return next;
   }
 
   async function yubor(txt?: string) {
@@ -79,6 +87,7 @@ export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
     setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat');
     try {
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title);
+      if (!tirik.current) return;
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.
       // Faqat javob haqiqatan o'qilmaganda (savol/izoh bilan javob — bu tushunilgan javob, xato emas).
@@ -89,16 +98,19 @@ export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
       const javob = [r.javob, ...r.savollar.map(s => '• ' + s)].join('\n');
       setXabarlar(x => [...x, { rol: 'assistant', matn: javob }]);
       if (r.ogohlantirish) setHolat(r.ogohlantirish);
-      setIshlar(await asosla(birlashtir(ishlar, r.ishlar)));
+      // A conversational-only response must not erase the user's existing proposals.
+      const asoslangan = r.ishlar.length ? await asosla(birlashtir(ishlar, r.ishlar)) : ishlar;
+      if (tirik.current) setIshlar(asoslangan);
     } finally { setBand(''); }
   }
 
-  const tayyor = useMemo(() => ishlar.filter(i => i.tanlangan && i.hajm), [ishlar]);
+  const tayyor = useMemo(() => ishlar.filter(i => i.holat !== 'ANIQLASH_KERAK' && i.tanlangan && i.hajm), [ishlar]);
   async function qosh() {
     if (!katalog || !tayyor.length) return;
     setBand('qoshish');
     try {
       const r = await smetagaQoshish(doc, tayyor, katalog, newId);
+      if (!tirik.current) return;
       if (r.commands.length && command({ type: 'BATCH', label: 'Smetachi AI', commands: r.commands })) {
         setIshlar(list => list.filter(i => !r.qoshildi.includes(i.id)));
         setXabarlar(x => [...x, { rol: 'assistant', matn: t('{n} ta ish smetaga qo‘shildi (bitta “Bekor qilish” bilan qaytariladi).', { n: r.qoshildi.length }) }]);
@@ -167,7 +179,7 @@ export function SmetaAiChat({ doc, katalog, kompaniyaId, command, newId }: {
               <option value="">{i.nomzodlar.length ? t('— tanlang ({n} nomzod) —', { n: i.nomzodlar.length }) : t('— katalogda topilmadi —')}</option>
               {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}</option>)}
             </select></label>
-          {i.tanlangan?.sabab && <p className="text-[11px] text-text-mute">{t('AI')}: {i.tanlangan.sabab}</p>}
+          {i.tanlangan && katalog && <p className="whitespace-pre-line text-[11px] text-text-mute">{tanlovDalili(i, katalog)}</p>}
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-[11px] text-text-dim">{t('Hajm formulasi')}
               <input className="input h-7 w-40 text-[12px]" value={i.hajmIfoda ?? ''} placeholder="12*0,6*0,1" onChange={e => formula(i.id, e.target.value)} /></label>

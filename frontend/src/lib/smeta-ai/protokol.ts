@@ -133,7 +133,9 @@ export function tanlovlarniTekshir(raw: unknown, sorovlar: TanlovSorovi[]): Tanl
     const r = by.get(s.id);
     const v = r ? str(r.ishId ?? r.tanlov_id ?? r.workId ?? r.tanlov ?? r.chosen, 60) : '';
     // A model may answer with the normative CODE instead of our id — map it, but only within the given candidates.
-    const ishId = v ? (s.nomzodlar.find(n => n.id === v) ?? s.nomzodlar.find(n => n.kod === v))?.id ?? null : null;
+    const exact = s.nomzodlar.find(n => n.id === v);
+    const byCode = s.nomzodlar.filter(n => n.kod === v);
+    const ishId = v ? (exact ?? (byCode.length === 1 ? byCode[0] : undefined))?.id ?? null : null;
     return { id: s.id, ishId, sabab: str(r?.sabab, 300) || (ishId ? '' : 'Mos normativ ish tanlanmadi') };
   });
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
-import { birlashtir, nomzodlarTop, smetagaQoshish, tizimTanlovi, type AiKatalog } from './worker';
+import { birlashtir, nomzodlarTop, smetagaQoshish, tanlovDalili, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -41,6 +41,25 @@ describe('smetachi AI — contract validation', () => {
 });
 
 describe('smetachi AI — catalogue grounding and batch', () => {
+  it('material changes invalidate even manual choices; quantity-only edits preserve them', () => {
+    const [a] = birlashtir([], niyat());
+    const old = { ...a, tanlangan: { workId: '1', kod: 'E6', nom: 'n', birlik: '100 М3', sabab: 'mos', qolda: true } };
+    expect(birlashtir([old], niyat({ material: 'Бетон B25' }))[0].tanlangan).toBeNull();
+    expect(birlashtir([old], niyat({ hajmIfoda: '2' }))[0].tanlangan?.workId).toBe('1');
+    expect(tanlovDalili(old, k)).toContain('Katalog: rev');
+  });
+  it('does not pick an ambiguous normative code', () => {
+    const req = [{ id: 'w1', tavsif: 'x', birlik: 'м3' as const, material: null, nomzodlar: [
+      { id: 'a', kod: 'E6', nom: 'n', birlik: '100 М3' }, { id: 'b', kod: 'E6', nom: 'n2', birlik: '100 М3' }] }];
+    expect(tanlovlarniTekshir({ tanlovlar: [{ id: 'w1', ishId: 'E6' }] }, req)[0].ishId).toBeNull();
+  });
+  it('blocks unresolved conditions and conflicting catalogue units', async () => {
+    const [a] = birlashtir([], niyat());
+    const ready = { ...a, tanlangan: { workId: '1', kod: 'E6', nom: 'n', birlik: '100 М3', sabab: 'mos' } };
+    const conflict = { ...k, unit: () => ({ ...k.unit('u100m3')!, status: 'CONFLICT' as const }) };
+    expect((await smetagaQoshish(emptyDoc('d'), [ready], conflict, () => 'x')).commands).toEqual([]);
+    expect((await smetagaQoshish(emptyDoc('d'), [{ ...ready, holat: 'ANIQLASH_KERAK' }], k, () => 'x')).commands).toEqual([]);
+  });
   it('finds candidates by phrase or stems; a different known unit is never offered', () => {
     const c = nomzodlarTop(k, { qidiruv: ['Устройство бетонная подготовка'], birlik: 'м3' });
     expect(c[0].id).toBe('1');                         // best stem coverage first

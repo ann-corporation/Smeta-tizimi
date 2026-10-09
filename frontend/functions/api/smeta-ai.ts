@@ -27,20 +27,30 @@ export const ZAXIRA_MODEL = 'google/gemini-2.5-flash-lite';
 export async function ishonchliChaqir(chaqir: (req: AiRequest) => Promise<AiResponse>, req: AiRequest, kalitlar: readonly string[]):
   Promise<{ r: AiResponse; obj: Record<string, unknown> | null; ogohlantirish?: string }> {
   let r = await chaqir(req);
-  let obj = jsonAjrat(r.text, kalitlar);
+  const oquv = (text: string) => {
+    const v = jsonAjrat(text, kalitlar);
+    if (!v || !kalitlar.some(k => k in v)) return null;
+    if (kalitlar.includes('ishlar')) {
+      const parsed = suhbatJavobiniTekshir(v);
+      // A prose promise of a completed estimate is not a structured estimate.
+      if (!parsed.ishlar.length && /(?:smeta|смет|hisob|рассчит|fundament|фундамент|kotlovan|котлован|armatura|арматур)/i.test(parsed.javob)) return null;
+    }
+    return v;
+  };
+  let obj = oquv(r.text);
   if (obj) return { r, obj };
   const tanlangan = r.model;
   const tuzatish: AiRequest = {
     ...req,
     system: `${req.system ?? ''}\n\nMUHIM: javob FAQAT bitta JSON obyekt bo'lsin — izoh, markdown va \`\`\` belgilarisiz.`,
-    text: `${req.text}\n\nOldingi javobingiz o'qib bo'lmaydigan shaklda edi. Endi FAQAT sxemaga mos bitta JSON obyektini qaytaring.`,
+    text: `${req.text}\n\nOldingi javob strukturasi yetarli emas. FAQAT sxemaga mos JSON qaytaring. Hisoblangan/taklif qilingan har bir ish ishlar massivida bo'lsin; faqat javob matnida ro'yxat yozmang. Oldingi ishlar ro'yxatini to'liq yangilang. Smeta tayyor yoki yozildi demang — bu faqat taklif.`,
   };
   r = await chaqir(tuzatish);
-  obj = jsonAjrat(r.text, kalitlar);
+  obj = oquv(r.text);
   if (obj) return { r, obj };
   if (tanlangan !== ZAXIRA_MODEL) {
     r = await chaqir({ ...tuzatish, model: ZAXIRA_MODEL });
-    obj = jsonAjrat(r.text, kalitlar);
+    obj = oquv(r.text);
     if (obj) return { r, obj, ogohlantirish: `Tanlangan model (${tanlangan}) javob formatiga amal qilmadi — bu safar tekshirilgan model (${ZAXIRA_MODEL}) ishlatildi.` };
   }
   return { r, obj: null };
