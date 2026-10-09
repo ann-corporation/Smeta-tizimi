@@ -73,3 +73,12 @@ RES follow-up: неизвестные значения не скрываются
 Live second chat reply returned grounded proposals/questions, but norm-selection
 stage reported BYUDJET_TUGADI (AI monthly limit). No budget increase/bypass,
 no further provider calls, no ADD/save. This is a concrete runtime limitation.
+
+Владелец затем сам увеличил AI limit и разрешил повторный provider smoke.
+В исходном LRV обнаружен E30-1-11-1 (арматурные сетки мостовых опор/труб),
+а E6-1-1-22 уже имеет ресурс арматуры. Добавлен context gate: для обычного
+fundament AI не выбирает мост/котёл/трубопровод, если такой объект не указан.
+Реальный мост разрешён; «котлован» не спутан с «котлами».50 AI/UI tests PASS,
+16 worker tests PASS final; app TSC exit0. Старый пользовательский draft не
+переписывается; отдельное исправление resource armature quantity/recipe ещё
+требует доказанного проекта и проверки included-work scope.

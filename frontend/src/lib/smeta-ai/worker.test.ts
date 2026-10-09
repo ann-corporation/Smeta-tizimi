@@ -57,6 +57,11 @@ describe('smetachi AI — catalogue grounding and batch', () => {
     expect(tanlovZidmi(foundation, { id: 'y', kod: 'E6', nom: 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ ЖЕЛЕЗОБЕТОННЫХ', birlik: '100М3' }, [armature])).toBe(false);
     const previous = { ...foundation, tanlangan: { workId: 'x', kod: 'E6', nom: 'УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ БЕТОННЫХ', birlik: '100М3', sabab: 'old' } };
     expect(birlashtir([previous, armature], [foundation, armature])[0].tanlangan).toBeNull();
+    const bridge = { id: 'b', kod: 'E30-1-11-1', nom: 'УСТАНОВКА АРМАТУРНЫХ СЕТОК В МОНОЛИТНЫХ ФУНДАМЕНТАХ ТРУБ И ОПОР МОСТОВ', birlik: 'Т' };
+    expect(tanlovZidmi(armature, bridge, [foundation])).toBe(true);
+    expect(tanlovZidmi(armature, bridge, [{ ...foundation, tavsif: 'Ko‘prik tayanchi fundamenti' }])).toBe(false);
+    expect(tanlovZidmi(armature, { ...bridge, nom: 'ТРУБОПРОВОДЫ В ПРЕДЕЛАХ КОТЛОВ' }, [foundation])).toBe(true);
+    expect(tanlovZidmi(armature, { ...bridge, nom: 'РАЗРАБОТКА ГРУНТА В КОТЛОВАНАХ' }, [foundation])).toBe(false);
   });
   it('material changes invalidate even manual choices; quantity-only edits preserve them', () => {
     const [a] = birlashtir([], niyat());

@@ -77,8 +77,14 @@ export function tanlovSorovi(ish: AiIsh, related: AiIsh[] = []): TanlovSorovi {
   return { id: ish.id, tavsif: `${ish.tavsif}${ish.material ? ` (${ish.material})` : ''}${context ? `; Shu bo‘limdagi ishlar: ${context}` : ''}`.slice(0, 1200), birlik: ish.birlik, material: ish.material, nomzodlar: ish.nomzodlar };
 }
 
-/** Explicit reinforcement in the same section contradicts a plain-concrete foundation pick. */
+/** Reject explicit construction/context contradictions, even when the units happen to match. */
 export function tanlovZidmi(ish: AiIsh, n: TanlovNomzodi, related: AiIsh[]): boolean {
+  const section = [ish, ...related.filter(i => i.bolim === ish.bolim)];
+  const context = section.map(i => `${i.tavsif} ${i.material ?? ''}`).join(' ');
+  if (/fundament|фундамент/i.test(context)) {
+    if (/МОСТ|МОСТОВ/i.test(n.nom) && !/ko[‘'’]?prik|bridge|мост/i.test(context)) return true;
+    if (/КОТЛОВ(?:[^А-ЯЁ]|$)|ТРУБОПРОВОД/i.test(n.nom) && !/qozon|boiler|кот[её]л|truboprovod|трубопровод|quvur/i.test(context)) return true;
+  }
   return /фундамент|fundament/i.test(ish.tavsif) && /ФУНДАМЕНТОВ БЕТОННЫХ/i.test(n.nom)
     && related.some(i => i.bolim === ish.bolim && /арматур|armatur/i.test(`${i.tavsif} ${i.material ?? ''}`));
 }
@@ -116,7 +122,7 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
   for (const s of Object.values(doc.sections)) sectionByName.set(s.name.trim().toLowerCase(), s.id);
   for (const ish of ishlar) {
     if (!ish.tanlangan) { otkazildi.push({ id: ish.id, sabab: 'Normativ ish tanlanmagan' }); continue; }
-    if (!ish.tanlangan.qolda && tanlovZidmi(ish, { ...ish.tanlangan, id: ish.tanlangan.workId }, ishlar)) { otkazildi.push({ id: ish.id, sabab: 'Beton normasi armatura haqidagi ma’lumotga zid — temirbeton ishini tekshiring' }); continue; }
+    if (!ish.tanlangan.qolda && tanlovZidmi(ish, { ...ish.tanlangan, id: ish.tanlangan.workId }, ishlar)) { otkazildi.push({ id: ish.id, sabab: 'Norma konstruksiya yoki shu bo‘limdagi ishlarga zid — normaning qo‘llanishini tekshiring' }); continue; }
     if (ish.holat === 'ANIQLASH_KERAK') { otkazildi.push({ id: ish.id, sabab: 'Ish sharoiti aniqlashtirilmagan' }); continue; }
     if (!ish.hajm) { otkazildi.push({ id: ish.id, sabab: ish.hajmXato ? 'Hajm formulasi noto‘g‘ri' : 'Hajm aniqlanmagan' }); continue; }
     try {
