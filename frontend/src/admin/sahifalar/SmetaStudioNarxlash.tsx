@@ -1,3 +1,4 @@
+import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 /**
  * Smeta studiyasi — avtomatik narxlash va hujjatlar.
  *
@@ -24,8 +25,7 @@ import { resourceUnitText } from '../../lib/smeta-studio/resource-units';
 import { narxAgentSora, type AgentResult } from '../../api/smeta-narx-agent';
 import { loadHourCatalog, type HourCatalog } from '../../lib/hour-price-catalog';
 import { hourPrices, labourPeriods, type HourPeriod } from '../../lib/smeta-studio/hour-pricing';
-import { kompaniyaKuzatuvlari, kompaniyaNarxlari, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
-import type { KatalogSnapshot } from '../../../functions/_shared/narx-katalog-snapshot';
+import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
 
 export const HUDUD_KALIT = 'smeta-studio:hudud';
 const AVTO_KALIT = 'smeta-studio:avto-narx';
@@ -42,7 +42,6 @@ export function unitTextOf(_katalog?: RemoteNormCatalog | null) {
 export function workUnitOf(katalog: RemoteNormCatalog | null) {
   return (code: string | null) => { if (!code || !katalog) return null; const u = katalog.unit(code); return u ? u.text : null; };
 }
-const snapToRow = (s: KatalogSnapshot): KatalogQatori => ({ ...s, narx: s.narx == null ? null : Number(s.narx), hudud_kalit: null });
 type Pending = { occurrenceId: string; recipeId: string; name: string | null; unit: string | null };
 
 export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud, setHudud }: {
@@ -62,15 +61,23 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
   const [soat, setSoat] = useState<HourCatalog | null>(null);
   const [davr, setDavr] = useState<HourPeriod | null>(null);
   const triedHour = useRef(new Set<string>());
-  // Source #1: the company's own estimates, exact resource code. Other sources wait for it, so a weaker
-  // match never pre-empts an exact-code price.
-  const kuzatuv = useRef(new Map<string, KuzatilganNarx[]>());
+  // Secondary observations: names + characteristics + units; no code-based identity.
+  const kuzatuv = useRef<KuzatilganNarx[]>([]);
+  const [companyReview, setCompanyReview] = useState<AutoPriceLine[]>([]);
+  const scopeEpoch = useRef(0);
+  const live = useRef({ doc, hisob, kompaniyaId, hudud, davr });
+  live.current = { doc, hisob, kompaniyaId, hudud, davr };
+  const companyBusy = useRef(false);
+  const companyQueued = useRef(false);
+  const [companyTick, setCompanyTick] = useState(0);
+  const [hourError, setHourError] = useState(false);
   const sorlangan = useRef(new Set<string>());
   const triedKomp = useRef(new Set<string>());
   const [kompTayyor, setKompTayyor] = useState(false);
+  const agentRequest = useRef(0);
   useEffect(() => {
     let alive = true;
-    loadHourCatalog().then(c => { if (!alive) return; setSoat(c); setDavr(labourPeriods(c)[0] ?? null); }).catch(() => {});
+    loadHourCatalog().then(c => { if (!alive) return; setSoat(c); setDavr(labourPeriods(c)[0] ?? null); }).catch(() => { if (alive) setHourError(true); });
     return () => { alive = false; };
   }, []);
 
@@ -85,7 +92,8 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
     return () => { alive = false; };
   }, []);
   // A new draft starts with a clean "already tried" memory.
-  useEffect(() => { tried.current = new Set(); triedHour.current = new Set(); triedKomp.current = new Set(); setReview([]); setAgent({ holat: 'tayyor', matn: '', natija: [] }); }, [doc.draftId]);
+  useEffect(() => { scopeEpoch.current++; companyBusy.current = false; companyQueued.current = false; kuzatuv.current = []; sorlangan.current = new Set(); tried.current = new Set(); triedHour.current = new Set(); triedKomp.current = new Set(); setReview([]); setCompanyReview([]); setKompTayyor(false); setAgent({ holat: 'tayyor', matn: '', natija: [] }); }, [doc.draftId, kompaniyaId]);
+  useEffect(() => { tried.current = new Set(); triedHour.current = new Set(); triedKomp.current = new Set(); }, [hudud, davr]);
 
   const regions = useMemo(() => {
     if (!cat) return [] as Array<[string, string]>;
@@ -106,75 +114,144 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
     }
     return { pending: out, ishMashina: im };
   }, [doc.occurrences, hisob, unitText]);
-  const key = (p: { occurrenceId: string; recipeId: string }) => `${p.occurrenceId}:${p.recipeId}`;
+  const marketLines = useMemo(() => Object.values(hisob.occurrences).flatMap(o => o.lines
+    .filter(l => l.resource && l.price != null).map(l => ({ id:`${o.id}:${l.recipeId}`, name:l.resource!.name,
+      unit:unitText(l.resource!.unitCode), price:l.price == null ? null : Number(l.price) }))), [hisob, unitText]);
+  const key = (p: { occurrenceId: string; recipeId: string; name?: string | null; unit?: string | null }) => JSON.stringify([p.occurrenceId, p.recipeId, p.name ?? null, p.unit ?? null]);
 
   function narxla(lines: Pending[], izoh: string) {
     if (!cat || holat !== 'tayyor' || !lines.length) return;
-    for (const l of lines) tried.current.add(key(l));
     const r = autoPrice(lines, cat.matchView(), hudud || null);
-    const commands = r.applied.map(a => priceCommand(a.occurrenceId, a.recipeId, a.result.best!.row));
-    if (commands.length) command({ type: 'BATCH', label: 'Avto-narx (katalog)', commands });
+    const commands = r.applied.map(a => candidateCommand(a, a.result.best!));
+    if (commands.length && !command({ type: 'BATCH', label: 'Avto-narx (katalog)', commands })) {
+      setXabar(t('Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.')); return;
+    }
+    for (const l of lines) tried.current.add(key(l));
     setReview(old => [...old.filter(x => !lines.some(l => key(l) === key(x))), ...r.review]);
     setXabar(t('{izoh}: {a} ta resursga katalogdan narx qo‘yildi, {r} tasi ko‘rib chiqishda.', { izoh, a: commands.length, r: r.review.length }));
   }
   // System does it: every newly appearing priceless resource is matched once (an operator's later
   // removal of a price is respected — the same line is not re-filled automatically).
   useEffect(() => {
-    if (!avto || holat !== 'tayyor' || !kompTayyor) return;
+    if (!avto || holat !== 'tayyor') return;
     const fresh = pending.filter(p => !tried.current.has(key(p)));
     if (fresh.length) narxla(fresh, t('Avto-narx'));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avto, holat, pending, kompTayyor]);
+  }, [avto, holat, pending, hudud]);
   /** Labour / machine-hours from the hour catalogue (region + period); each line is tried once. */
   function soatNarxla(majburiy: boolean) {
     if (!soat) return;
     const r = hourPrices(doc, hisob, soat, unitText, hudud || null, davr);
-    const commands = r.commands.filter(c => c.type === 'SET_PRICE' && (majburiy || !triedHour.current.has(`${c.occurrenceId}:${c.recipeId}`)));
-    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) if (l.price == null) triedHour.current.add(`${o.id}:${l.recipeId}`);
-    if (commands.length) command({ type: 'BATCH', label: 'Chel.-soat / mash.-soat narxi', commands });
+    const hourKey = (c: Extract<StudioCommand, { type: 'SET_PRICE' }>) => { const l = hisob.occurrences[c.occurrenceId]?.lines.find(l => l.recipeId === c.recipeId); return key({ occurrenceId:c.occurrenceId, recipeId:c.recipeId, name:l?.resource?.name, unit:l?.resource ? unitText(l.resource.unitCode) : null }); };
+    const commands = r.commands.filter(c => c.type === 'SET_PRICE' && (majburiy || !triedHour.current.has(hourKey(c))));
+    if (commands.length && !command({ type: 'BATCH', label: 'Chel.-soat / mash.-soat narxi', commands })) {
+      setXabar(t('Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.')); return;
+    }
+    for (const c of commands) if (c.type === 'SET_PRICE') triedHour.current.add(hourKey(c));
     if (commands.length || majburiy) setXabar(t('Mehnat: {l}, mashina: {m} ta narx qo‘yildi; mashinistlar: {o} (alohida stavka kerak); topilmadi: {f}.',
       { l: r.labour, m: r.machines, o: r.operatorsLeft, f: r.notFound }));
   }
   useEffect(() => {
-    if (avto && soat && kompTayyor && ishMashina > 0) soatNarxla(false);
+    if (avto && soat && ishMashina > 0) soatNarxla(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avto, soat, ishMashina, hudud, davr, kompTayyor]);
+  }, [avto, soat, ishMashina, hudud, davr, hisob]);
 
-  /** Every priceless line (any category) → exact-code price from the company's own estimates. */
+  /** Secondary company observations use name, characteristics and unit only. */
   const narxsizKalitlar = useMemo(() => {
     const out: string[] = [];
-    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) if (l.price == null && l.resource) out.push(`${o.id}:${l.recipeId}`);
+    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) if (l.price == null && l.resource) out.push(key({ occurrenceId:o.id, recipeId:l.recipeId, name:l.resource.name, unit:unitText(l.resource.unitCode) }));
     return out.join('|');
-  }, [doc.occurrences, hisob]);
+  }, [doc.occurrences, hisob, unitText]);
   async function kompNarxla(majburiy: boolean) {
     if (kompaniyaId == null) { setKompTayyor(true); return; }
-    const kodlar: string[] = [];
-    for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) {
-      if (l.price != null || !l.resource) continue;
-      for (const k of [l.resource.resourceIdCode, l.resource.code]) if (k && !sorlangan.current.has(k)) { kodlar.push(k); sorlangan.current.add(k); }
-    }
+    if (!((holat === 'tayyor' || holat === 'xato') && (soat || hourError))) return;
+    if (companyBusy.current) { companyQueued.current = true; return; }
+    const epoch = scopeEpoch.current;
+    const company = kompaniyaId, draft = doc.draftId;
+    const names = [...new Set(Object.values(doc.occurrences).flatMap(o => (hisob.occurrences[o.id]?.lines ?? [])
+      .filter(l => l.price == null && l.resource?.name).map(l => l.resource!.name!)))];
+    const fresh = names.filter(n => majburiy || !sorlangan.current.has(n));
+    companyBusy.current = true;
     try {
-      if (kodlar.length) for (const [k, v] of await kompaniyaKuzatuvlari(kompaniyaId, kodlar)) kuzatuv.current.set(k, v);
-      const r = kompaniyaNarxlari(doc, hisob, kuzatuv.current, unitText, k => !majburiy && triedKomp.current.has(k));
-      for (const k of narxsizKalitlar.split('|')) if (k) triedKomp.current.add(k);
-      if (r.commands.length) command({ type: 'BATCH', label: 'Kompaniya smetalaridagi narx', commands: r.commands });
-      if (r.commands.length || majburiy) setXabar(t('Kompaniya smetalaridan: {n} ta resursga aynan shu kod bo‘yicha narx qo‘yildi{b}.',
-        { n: r.topildi, b: r.birlikMosEmas ? t(' ({b} tasida birlik mos emas)', { b: r.birlikMosEmas }) : '' }));
+      const fetched = fresh.length ? await kompaniyaKuzatuvlari(company, fresh) : [];
+      if (epoch !== scopeEpoch.current || live.current.kompaniyaId !== company || live.current.doc.draftId !== draft) return;
+      const merged = new Map((majburiy ? [] : kuzatuv.current).map(r => [r.id, r]));
+      for (const r of fetched) merged.set(r.id, r);
+      kuzatuv.current = [...merged.values()];
+      for (const n of fresh) sorlangan.current.add(n);
+      const current = live.current;
+      const commands: StudioCommand[] = [], offers: AutoPriceLine[] = [];
+      const primaryHours = new Set(soat ? hourPrices(current.doc, current.hisob, soat, unitText, current.hudud || null, current.davr).commands
+        .filter(c => c.type === 'SET_PRICE').map(c => `${c.occurrenceId}:${c.recipeId}`) : []);
+      for (const o of Object.values(current.doc.occurrences)) for (const l of current.hisob.occurrences[o.id]?.lines ?? []) {
+        if (l.price != null || !l.resource) continue;
+        const unit = unitText(l.resource.unitCode), name = l.resource.name;
+        if (!unit) continue;
+        const machine = unit.toLowerCase() === 'маш-ч';
+        const hour = machine || unit.toLowerCase() === 'чел-ч';
+        // The primary source always wins. Historical observations are never applied ahead of it.
+        const primaryMaterial = !hour && cat && holat === 'tayyor' ? matchResource(cat.matchView(), name, unit, current.hudud || null) : null;
+        if (primaryMaterial?.confidence === 'EXACT' || primaryMaterial?.confidence === 'HIGH') continue;
+        if (hour && primaryHours.has(`${o.id}:${l.recipeId}`)) continue;
+        const result = kompaniyaMoslik(kuzatuv.current, name, unit, machine);
+        const line = { occurrenceId: o.id, recipeId: l.recipeId, name: name ?? '', unit, result };
+        if (!result.best) continue;
+        const strong = result.confidence === 'EXACT' || result.confidence === 'HIGH';
+        const mayAuto = strong && (!hour || machine || !!current.hudud) && (hour || primaryMaterial?.confidence === 'NONE' || holat === 'xato') && (majburiy || !triedKomp.current.has(key(line)));
+        if (mayAuto) {
+          commands.push(candidateCommand(line, result.best));
+        } else offers.push(line);
+      }
+      if (commands.length && !command({ type: 'BATCH', label: 'Nom va birlik bo‘yicha kompaniya narxlari', commands })) {
+        setXabar(t('Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.')); return;
+      }
+      for (const c of commands) if (c.type === 'SET_PRICE') {
+        const l = current.hisob.occurrences[c.occurrenceId]?.lines.find(l => l.recipeId === c.recipeId);
+        if (l?.resource) triedKomp.current.add(key({ occurrenceId:c.occurrenceId, recipeId:c.recipeId, name:l.resource.name, unit:unitText(l.resource.unitCode) }));
+      }
+      setCompanyReview(offers);
+      if (commands.length || majburiy) setXabar(t('Kompaniya smetalari: {n} ta aniq narx qo‘yildi, {r} ta manbali taklif ko‘rib chiqishda.', { n: commands.length, r: offers.length }));
     } catch {
-      // A failed lookup must be retryable; it is not evidence that the company has no prices.
-      for (const kod of kodlar) sorlangan.current.delete(kod);
-      setXabar(t('Kompaniya narxlarini olishda xato. Qayta urinib ko‘ring; boshqa kataloglar tekshiriladi.'));
-    } finally { setKompTayyor(true); }
+      if (epoch === scopeEpoch.current && live.current.kompaniyaId === company && live.current.doc.draftId === draft)
+        setXabar(t('Kompaniya narxlarini olishda xato. Qayta urinib ko‘ring; boshqa kataloglar tekshiriladi.'));
+    } finally {
+      if (epoch === scopeEpoch.current) { companyBusy.current = false; setKompTayyor(true); if (companyQueued.current) { companyQueued.current = false; setCompanyTick(v => v + 1); } }
+    }
   }
   useEffect(() => {
-    if (avto && narxsizKalitlar) void kompNarxla(false);
-    else setKompTayyor(true);
+    if (avto && narxsizKalitlar && (holat === 'tayyor' || holat === 'xato') && (soat || hourError)) void kompNarxla(false);
+    else if (!narxsizKalitlar) setKompTayyor(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avto, narxsizKalitlar, kompaniyaId]);
+  }, [avto, narxsizKalitlar, kompaniyaId, holat, soat, hourError, hudud, davr, companyTick]);
 
   const agentTaklifBor = agent.natija.some(a => a.tanlov);
   const openReview = review.filter(r => pending.some(p => key(p) === key(r)));
-  function qoy(line: AutoPriceLine, row: KatalogQatori) { command(priceCommand(line.occurrenceId, line.recipeId, row)); }
+  const openCompanyReview = companyReview.filter(r => hisob.occurrences[r.occurrenceId]?.lines.some(l => l.recipeId === r.recipeId && l.price == null && l.resource && key(r) === key({ occurrenceId:r.occurrenceId, recipeId:l.recipeId, name:l.resource.name, unit:unitText(l.resource.unitCode) })));
+  function compactEvidence(candidate: AutoPriceLine['result']['candidates'][number], reason = '') {
+    const r = candidate.row;
+    const required = [r.manba_tur === 'kompaniya-smeta' ? 'Kompaniya smetasi' : 'Katalog', `#${r.id}`,
+      r.yil ? `${r.yil}${r.kvartal ? ` Q${r.kvartal}` : ''}` : '', candidate.unitConversion?.evidence,
+      reason ? `AI: ${reason.slice(0, 50)}` : ''].filter(Boolean).join(' · ');
+    // The immutable source row ID and exact conversion are retained; display labels are bounded
+    // to the existing 300-character command contract. Full offers remain visible in the UI.
+    const labels = [r.manba_nom, r.hudud, r.ishlab_chiqaruvchi].filter(Boolean).join(' · ');
+    const room = Math.max(0, 300 - required.length - 3);
+    return required + (room ? ' · ' + (labels.length > room ? labels.slice(0, Math.max(0, room - 1)) + '…' : labels) : '');
+  }
+  function candidateCommand(line: AutoPriceLine, candidate: AutoPriceLine['result']['candidates'][number], reason = '') {
+    const current = live.current.hisob.occurrences[line.occurrenceId]?.lines.find(l => l.recipeId === line.recipeId);
+    if (!current?.resource || current.price != null || !line.unit || !candidate.row.birlik || key(line) !== key({ occurrenceId:line.occurrenceId, recipeId:line.recipeId, name:current.resource.name, unit:unitText(current.resource.unitCode) })) throw new Error('PRICE_OFFER_STALE');
+    const c = priceCommand(line.occurrenceId, line.recipeId, candidate.row);
+    return c.type === 'SET_PRICE' && c.price ? { ...c, price: { ...c.price,
+      basis: candidate.row.manba_tur === 'kompaniya-smeta' ? 'CONTRACT_DRAFT' as const : c.price.basis,
+      evidence: compactEvidence(candidate, reason),
+      sourcePriceId: candidate.row.manba_tur === 'kompaniya-smeta' ? `kompaniya-smeta-qator:${candidate.row.id}` : c.price.sourcePriceId } } : c;
+  }
+  function qoy(line: AutoPriceLine, row: KatalogQatori) {
+    const candidate = line.result.candidates.find(c => c.row.id === row.id);
+    try { if (candidate && !command(candidateCommand(line, candidate))) setXabar(t('Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.')); }
+    catch { setXabar(t('Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.')); }
+  }
   function koproq(line: AutoPriceLine) {
     if (!cat) return;
     const result = matchResource(cat.matchView(), line.name, line.unit, hudud || null, line.result.candidates.length + 25);
@@ -183,25 +260,34 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
 
   async function agentgaYubor() {
     if (kompaniyaId == null) { setAgent({ holat: 'xato', matn: t('Avval yuqorida kompaniyani tanlang.'), natija: [] }); return; }
-    const items = openReview.filter(r => r.result.candidates.length).slice(0, 40).map(r => ({ key: key(r), nom: r.name, birlik: r.unit,
+    const selected = openReview.filter(r => r.unit && r.result.candidates.some(c => !!c.row.birlik)).slice(0, 40);
+    const transport = new Map(selected.map((r, i) => [`p_${i}`, key(r)]));
+    const items = selected.map((r, i) => ({ key: `p_${i}`, nom: r.name, birlik: r.unit,
       nomzodlar: r.result.candidates.slice(0, 8).map(c => c.row.id) }));
     if (!items.length) { setAgent({ holat: 'xato', matn: t('Agentga yuboradigan nomzodli resurs yo‘q.'), natija: [] }); return; }
+    const epoch = scopeEpoch.current, request = ++agentRequest.current;
     setAgent({ holat: 'ishlayapti', matn: t('AI agent {n} ta resursni tahlil qilmoqda...', { n: items.length }), natija: [] });
     const r = await narxAgentSora(kompaniyaId, regions.find(([k]) => k === hudud)?.[1] ?? null, items);
+    if (epoch !== scopeEpoch.current || request !== agentRequest.current) return;
     if (!r.ok) {
       setAgent({ holat: 'xato', natija: [], matn: r.code === 'AI_NOT_CONFIGURED' ? t('AI agent hali sozlanmagan (Cloudflare’da AI kaliti yo‘q). Deterministik moslik ishlayveradi.')
         : r.code === 'FORBIDDEN' ? t('Bu kompaniyaga ruxsat yo‘q.') : t('AI agent hozir javob bermadi. Keyinroq qayta urinib ko‘ring.') });
       return;
     }
-    setAgent({ holat: 'tayyor', matn: t('AI agent {n} ta taklif berdi — tekshirib qabul qiling.', { n: r.items.filter(x => x.tanlov).length }), natija: r.items });
+    const results = r.items.filter(x => transport.has(x.key)).map(x => ({ ...x, key: transport.get(x.key)! }));
+    setAgent({ holat: 'tayyor', matn: t('AI agent {n} ta taklif berdi — tekshirib qabul qiling.', { n: results.filter(x => x.tanlov).length }), natija: results });
   }
   function agentQabul(list: AgentResult[]) {
     const commands = list.filter(a => a.tanlov && pending.some(p => key(p) === a.key)).map(a => {
-      const [occurrenceId, recipeId] = a.key.split(':');
-      const c = priceCommand(occurrenceId, recipeId, snapToRow(a.tanlov!));
-      return c.type === 'SET_PRICE' && c.price ? { ...c, price: { ...c.price, evidence: `${c.price.evidence} · AI agent: ${a.sabab}`.slice(0, 300) } } : c;
+      const line = openReview.find(r => key(r) === a.key);
+      if (!line) return null;
+      const candidate = line.result.candidates.find(c => c.row.id === a.tanlov!.id);
+      if (!candidate) return null;
+      return candidateCommand(line, candidate, a.sabab);
     });
-    if (commands.length) command(commands.length === 1 ? commands[0] : { type: 'BATCH', label: 'AI agent narxlari', commands });
+    const valid = commands.filter((c): c is StudioCommand => c != null);
+    if (valid.length && !command(valid.length === 1 ? valid[0] : { type: 'BATCH', label: 'AI agent narxlari', commands: valid }))
+      setXabar(t('Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.'));
   }
 
   async function lrvYukla() {
@@ -228,7 +314,7 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
           {regions.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select></label>
       <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={avto} onChange={e => { setAvto(e.target.checked); lsSet(AVTO_KALIT, e.target.checked ? '1' : '0'); }} />{t('Avto-narx')}</label>
-      <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={kompaniyaId == null} onClick={() => void kompNarxla(true)}>{t('Kompaniya smetalaridan narx')}</button>
+      <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={kompaniyaId == null || (!kompTayyor && companyBusy.current) || !((holat === 'tayyor' || holat === 'xato') && (soat || hourError))} onClick={() => void kompNarxla(true)}>{t('Kompaniya smetalaridan takliflar')}</button>
       <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={holat !== 'tayyor' || !pending.length} onClick={() => narxla(pending, t('Qayta tekshiruv'))}>
         {t('Narxsizlarni katalogdan topish ({n})', { n: pending.length })}</button>
       <span className="flex-1" />
@@ -246,6 +332,17 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
       {soat && <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => soatNarxla(true)}>{t('Mehnat va mashina narxini qo‘yish')}</button>}
       {!hudud && <span className="text-warn">{t('Mehnat stavkasi uchun hududni tanlang.')}</span>}
     </div>}
+    {marketLines.length > 0 && <MarketPriceComparison lines={marketLines} companyId={kompaniyaId} />}
+    {hourError && <p role="status" className="text-xs text-warn">{t('Mehnat va mashina katalogi ochilmadi. Manbali kompaniya takliflari tekshiriladi; stavka taxmin qilinmaydi.')}</p>}
+    {openCompanyReview.length > 0 && <details className="rounded border border-border/60 p-2">
+      <summary>{t('Kompaniya smetalaridan muqobil narxlar')}</summary>
+      {openCompanyReview.map(r => <div key={key(r)} className="border-t border-border/40 py-1">
+        <span>{r.name}, {r.unit}</span>
+        {r.result.candidates.map(c => <button type="button" key={c.row.id} disabled={!c.row.birlik || !r.unit} className="tugma m-1 text-xs" onClick={() => command(candidateCommand(r, c))}>
+          {c.row.nom} · {fmt(c.row.narx)} / {c.row.birlik} · {c.row.manba_nom}
+        </button>)}
+      </div>)}
+    </details>}
     {openReview.length > 0 && <div className="rounded border border-border/60">
       <button type="button" className="flex w-full items-center gap-2 px-2 py-1 text-left text-xs" aria-expanded={ochiq} onClick={() => setOchiq(v => !v)}>
         <span>{ochiq ? '▾' : '▸'}</span><span className="font-medium">{t('Ko‘rib chiqish kerak: {n} ta resurs', { n: openReview.length })}</span>
@@ -266,10 +363,10 @@ export function SmetaNarxlash({ doc, hisob, katalog, command, kompaniyaId, hudud
               <td className="w-[38%] px-2 py-1"><span className="text-text">{r.name}</span>{r.unit && <span className="text-text-mute">, {r.unit}</span>}</td>
               <td className="px-2 py-1">
                 {!r.result.candidates.length ? <span className="text-text-mute">{t('Xarakteristikasi mos nomzod topilmadi')}{r.result.gateRejected ? ` (${t('{n} ta rad etildi', { n: r.result.gateRejected })})` : ''}</span>
-                  : <select aria-label={t('Katalog nomzodi')} className="input h-7 w-full text-[11.5px]" defaultValue=""
+                  : <select aria-label={t('Katalog nomzodi')} disabled={!r.unit} className="input h-7 w-full text-[11.5px]" defaultValue=""
                     onChange={e => { const c = r.result.candidates.find(x => String(x.row.id) === e.target.value); if (c) qoy(r, c.row); }}>
                     <option value="" disabled>{t('— nomzod tanlang ({n}) —', { n: r.result.candidates.length })}</option>
-                    {r.result.candidates.map(c => <option key={c.row.id} value={c.row.id}>{fmt(c.row.narx)} · {c.row.nom}{c.row.birlik ? `, ${c.row.birlik}` : ''} · {c.row.hudud ?? ''} · {Math.round(c.score * 100)}%</option>)}
+                    {r.result.candidates.map(c => <option key={c.row.id} value={c.row.id} disabled={!c.row.birlik}>{fmt(c.row.narx)} · {c.row.nom}{c.row.birlik ? `, ${c.row.birlik}` : ''} · {c.row.hudud ?? ''} · {Math.round(c.score * 100)}%</option>)}
                   </select>}
                 {hasMore && <button type="button" className="tugma mt-1 h-6 px-2" onClick={() => koproq(r)}>
                   {t('Ko‘proq nomzodlar')} ({r.result.candidates.length}/{r.result.candidateTotal})

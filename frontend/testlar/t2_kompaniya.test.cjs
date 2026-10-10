@@ -107,7 +107,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_catalog_observation_yoz_v1',
                       /* RES narxlash: faqat server tekshirgan, exact-match-only
                          narx kiritish; mavjud narxlar va F2 tarixi o'zgarmaydi. */
-                      't2_smeta_narxla_res_v1',
+                      't2_smeta_narxla_res_v2',
                       /* ⚠️ 2026-09-08 (Claude): bu uchtasi 2026-09-07 dagi
                          commitlarimda `AMALLAR` ga qo'shilgan, lekin SHU
                          ro'yxatga kiritilmagan edi — natijada bu tekshiruv

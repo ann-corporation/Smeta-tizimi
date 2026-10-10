@@ -1,3 +1,4 @@
+import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 /**
  * NarxlarNative — Narxlar markazining Supabase-only ko‘rinishi.
  *
@@ -275,6 +276,7 @@ export default function NarxlarNative() {
     >
       <div className="space-y-3">
         <KatalogManbaImport />
+        <MarketPriceComparison objectId={obyektId} companyId={kompaniyaId} />
         <div className="karta p-3 flex flex-wrap items-end gap-2">
           <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text">Obyekt
             <select value={obyektId ?? ''} onChange={e => { const id = Number(e.target.value); setObyektId(Number.isSafeInteger(id) && id > 0 ? id : null); workspace.setObjectId(Number.isSafeInteger(id) && id > 0 ? id : null); }}

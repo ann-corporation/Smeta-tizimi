@@ -292,7 +292,7 @@ export const GENERATED_SITE_MAP = {
     },
     {
       "amal": "smeta_narxla_res",
-      "rpc": "t2_smeta_narxla_res_v1"
+      "rpc": "t2_smeta_narxla_res_v2"
     },
     {
       "amal": "qator_tahrir",

@@ -53,7 +53,7 @@ const AMALLAR = {
   /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
   ish_resurslar_bilan_yarat_v1: { rpc: 't2_ish_resurslar_bilan_yarat_v1' },
   catalog_observation_yoz_v1: { rpc: 't2_catalog_observation_yoz_v1' },
-  smeta_narxla_res: { rpc: 't2_smeta_narxla_res_v1' },
+  smeta_narxla_res: { rpc: 't2_smeta_narxla_res_v2' },
   qator_tahrir:   { rpc: 't2_qator_tahrir' },
   qator_qosh:     { rpc: 't2_qator_qosh' },
   akt_yarat:      { rpc: 't2_akt_yarat' },
@@ -373,12 +373,12 @@ export const onRequestPost: PagesFunction<{
           kod: q.kod == null ? null : String(q.kod).slice(0, 160),
           nom: q.nom == null ? null : String(q.nom).slice(0, 1500),
           birlik: q.birlik == null ? null : String(q.birlik).slice(0, 80),
-          narx: Number(q.narx),
+          narx: typeof q.narx === 'number' || (typeof q.narx === 'string' && q.narx.trim()) ? Number(q.narx) : Number.NaN,
         };
       });
       if (narxlar.some((q) =>
-        !String(q.nom ?? '').trim() || !String(q.birlik ?? '').trim() || !Number.isFinite(q.narx) || q.narx <= 0)) {
-        return Response.json({ ok: false, error: 'Har RES qatorida nom, birlik va musbat narx bo\'lishi shart' });
+        !String(q.nom ?? '').trim() || !String(q.birlik ?? '').trim() || !Number.isFinite(q.narx) || q.narx < 0)) {
+        return Response.json({ ok: false, error: 'Har RES qatorida nom, birlik va aniq nomanfiy narx bo\'lishi shart' });
       }
       yuk = {
         p_kompaniya_id: Number(so.kompaniya_id), p_actor_id: sess.foydalanuvchi_id,

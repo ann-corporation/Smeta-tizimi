@@ -1,5 +1,54 @@
 # Smetachi AI: корректность ответа и выбора нормы
 
+## 2026-10-10 — цена по названию/единице и сравнение рынка
+
+Прямое решение Anvar: исключить шифр из идентификации цены. Код остаётся
+метаданными источника. Каталог — первичный источник; сметы компании —
+вторичные наблюдения с именем объекта/файла. Нельзя объявлять все позиции
+оценёнными, если класс/диаметр/единица или реальная цена неизвестны.
+
+CODE: matcher проверяет семейство, класс, диаметр, фракцию, электроды,
+машины/мощность и рабочий/машинист. Только точные переводы цены kg↔t и m↔km;
+объём и исходный каталог не меняются. Исправлена неверная колонка `obyekt`
+в company lookup: используется `obyekt_id`, tenant scope и canonical registry
+filename. Ошибка/неполный ответ не кешируются как успешное отсутствие цены.
+Сохраняется первенство каталога, повтор после выбора региона/смены ресурса,
+игнорирование старого tenant/draft ответа. Компания индексируется один раз
+на неизменную ревизию. AI transport ID отделён от локального fingerprint;
+evidence <=300 содержит ID источника и доказанный перевод единицы.
+
+Read-only панель Studio, Oferta, NarxNazorat, Narxlar, Holat: реальный квартал
+и регион, среднее предложений одного продукта, минимум/максимум, разница и
+процент от цены сметы. Известные нули сохранены; неизвестные/включающие НДС
+предложения не попадают в среднее без НДС. Это среднее каталога, не индекс
+всего рынка. Часовые строки пока сравниваются своим существующим слоем,
+не материалами. Pagination/progress, immutable baseline и stale-response guards.
+
+DB DEPLOYED: additive `t2_smeta_narxla_res_v2`, SHA256 migration source
+4e01fd449fbb0be623454efd56f34f7672290b60da56e04d1c895a138d5294f1.
+V1 сохранён для rollback. V2 заполняет только NULL по nom+birlik; разные
+цены одного продукта с разными шифрами создают конфликт. Явный 0 не теряется.
+Tenant/actor, audit, operation id + advisory lock сохранены/усилены.
+Перед apply выполнен trial со всеми assertions и намеренным RAISE EXCEPTION
+T2_SMETA_PRICE_NAME_UNIT_V2_ALL_ASSERTIONS_PASS_ROLLBACK; rollback подтверждён.
+После apply acceptance PASS и точное prosrc совпадение true. Grants:
+anon_execute=false, service_execute=true, fixed search_path public,pg_temp.
+До/после: qator140600, companies4, objects37, test residue0.
+Реальные позиции не нарховались через RPC; тестовые fixtures откатились.
+Rollback сначала возвращает gateway на V1, затем .rollback.sql (только V2).
+
+TESTED: focused matcher/company/comparison/semantic tests PASS; full suite
+первый проход1824 PASS/4 FAIL выявил i18n false positives, источник региональных
+worker rates, старое source-only guard assertion и alert scope. Исправления
+проверены47 targeted tests PASS. Финальный full suite и build receipt будут
+добавлены ниже; frontend production этой версии пока NOT_DEPLOYED.
+
+UNKNOWN: весь исходный RES не доказан оценённым. В локальном verified snapshot
+44173 строк ни одна из15 нечасовых исходных строк пока не имеет уверенного
+автоподбора: отсутствуют/неуточнены характеристики. Компания имеет74308
+положительных наблюдений, не уникальных товаров; наличие одинакового кода
+больше не доказательство совпадения. General ShNQ190 ingestion/RAG — отдельная lane.
+
 Owner: Codex@nоutbuk. Branch: codex/smeta-ai-reliability-v2.
 Base: bfe6d13369583667bb9d261cf3eb2037a45c7819.
 
@@ -127,3 +176,12 @@ build/app+Functions TS/tekshir8/8/lint/governance PASS. General ShNQ retrieval,
 reviewed element scope, resource actual quantities→overrides and complete
 pricing remain NOT_DONE. This receipt-only follow-up is branch documentation;
 it does not change production code or deployment SHA.
+
+### FINAL LOCAL GATES
+1829 tests PASS,17 intentionally skipped,244 suites PASS/8 skipped.
+Последующие3 focused suites20 tests PASS после последней unit/AI guard правки.
+App TS и Functions TS PASS; build PASS; tekshir PASS (site-map rebuilt),
+oxlint exit0 с существующими warnings; governance77 PASS с историческим stale
+CURRENT_STATE предупреждением. Evidence: C:/Temp/pricing-vitest-final-20261010.txt,
+pricing-build-final-20261010.txt, pricing-all-gates-20261010.txt вне git.
+DB acceptance/source/grants verified; frontend branch/main/release ждут push/CI.

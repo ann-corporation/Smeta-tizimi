@@ -1,3 +1,4 @@
+import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 /**
  * NarxNazoratNative.tsx — NARX NAZORATI (Price Control), Holat.tsx ichiga
  * ulangan real ekran (T2-PTO-DAILY-FINAL-CUTOVER-008 P0.9). Adapted from
@@ -78,6 +79,7 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
 
   return (
     <div className="p-4 flex flex-col gap-4">
+      <MarketPriceComparison objectId={obyektId} companyId={joriy?.id ?? null} />
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-sm font-semibold flex items-center gap-2"><ShieldAlert size={15} className="text-accent" /> Narx nazorati</h2>
         {!fixedObjectId && <select className="input py-1 text-[12px]" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value) || null)}>

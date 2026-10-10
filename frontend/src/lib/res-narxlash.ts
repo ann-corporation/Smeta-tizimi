@@ -31,10 +31,6 @@ export function resBirlikKalit(v: unknown): string {
   return up(v).replace(/³/g, '3').replace(/²/g, '2').replace(/[\s\p{P}]/gu, '');
 }
 
-function resKodKalit(v: unknown): string {
-  return up(v).replace(/[\s\p{P}]/gu, '');
-}
-
 function son(v: unknown): number | undefined {
   const raw = plain(v).replace(/[\s ]/g, '').replace(',', '.');
   if (!raw) return undefined;
@@ -100,7 +96,7 @@ export function resQatorlariniOl(rows: SheetGrid, cols: ResUstunlar): ResNarx[] 
     const nom = plain(row[cols.nom]);
     const birlik = plain(row[cols.birlik]);
     const narx = son(row[cols.narx]);
-    if (!nom || !birlik || narx == null || narx <= 0) continue;
+    if (!nom || !birlik || narx == null || narx < 0) continue;
     out.push({ kod: plain(cols.kod >= 0 ? row[cols.kod] : '') || undefined, nom, birlik, narx });
   }
   return out;
@@ -114,8 +110,8 @@ export function resVaraqlariniTop(workbook: XlsxWorkbook): Array<{ nom: string; 
   });
 }
 
-function sourceKaliti(code: string, nom: string, birlik: string): string {
-  return `${code}|${nom}|${birlik}`;
+function sourceKaliti(nom: string, birlik: string): string {
+  return `${nom}|${birlik}`;
 }
 
 function sourceQur(rows: ResNarx[]): {
@@ -127,9 +123,8 @@ function sourceQur(rows: ResNarx[]): {
   for (const row of rows) {
     const nom = resNomKalit(row.nom);
     const birlik = resBirlikKalit(row.birlik);
-    const code = resKodKalit(row.kod);
-    if (!nom || !birlik || !Number.isFinite(row.narx) || row.narx <= 0) continue;
-    const key = sourceKaliti(code, nom, birlik);
+    if (!nom || !birlik || !Number.isFinite(row.narx) || row.narx < 0) continue;
+    const key = sourceKaliti(nom, birlik);
     const prices = grouped.get(key) ?? new Set<number>();
     prices.add(row.narx);
     grouped.set(key, prices);
@@ -148,8 +143,8 @@ function sourceQur(rows: ResNarx[]): {
 }
 
 /**
- * Server bilan bir xil, fail-closed preview. Kod bo'lsa aynan u ham mos
- * bo'lishi shart; kod yo'q manba faqat nom+birlik orqali ishlaydi.
+ * v2 server bilan bir xil, fail-closed preview: faqat nom+birlik identifikatsiyasi.
+ * Kod manba ma'lumoti bo'lib qoladi; aniq nol mavjud narx, faqat NULL to'ldiriladi.
  */
 export function resNarxlashPreview(qatorlar: NarxsizQator[], reslar: ResNarx[]): ResPreview {
   const { ziddiyatli, ziddiyatliKalitlar, narxlarByKalit } = sourceQur(reslar);
@@ -162,30 +157,22 @@ export function resNarxlashPreview(qatorlar: NarxsizQator[], reslar: ResNarx[]):
   };
   let narxsiz = 0;
   for (const q of qatorlar) {
-    if (!['rs', 'mat', 'ob'].includes(q.tur ?? '') || !(q.narx == null || q.narx === 0)) continue;
+    if (!['rs', 'mat', 'ob'].includes(q.tur ?? '') || q.narx != null) continue;
     narxsiz++;
     const tur = q.tur as 'rs' | 'mat' | 'ob';
     turBoyicha[tur].narxsiz++;
     const nom = resNomKalit(q.nom);
     const birlik = resBirlikKalit(q.birlik);
-    const code = resKodKalit(q.kod);
     if (!nom || !birlik) {
       moslashmagan.push({ tur, kod: q.kod, nom: q.nom, birlik: q.birlik, sabab: 'QATOR_IDENTIYASI_YOQ' });
       continue;
     }
 
-    // Kodli manba aynan shu kodli qatorga, kodsiz manba esa nom+birlikka
-    // tushadi. Indeks ishlatilgani uchun har bir qator uchun butun RES fayli
-    // qayta aylanilmaydi; moslashuv natijasi hanuz qat'iy va taxminsiz.
-    const keys = code
-      ? [sourceKaliti(code, nom, birlik), sourceKaliti('', nom, birlik)]
-      : [sourceKaliti('', nom, birlik)];
-    const candidates = new Set<number>();
-    let ziddiyatliMoslik = false;
-    for (const key of keys) {
-      if (ziddiyatliKalitlar.has(key)) ziddiyatliMoslik = true;
-      for (const narx of narxlarByKalit.get(key) ?? []) candidates.add(narx);
-    }
+    // Bir xil mahsulot boshqa shifr bilan kelsa ham bitta guruhga tushadi;
+    // turli narxlarni kod bilan ajratib ziddiyatni yashirish mumkin emas.
+    const key = sourceKaliti(nom, birlik);
+    const candidates = narxlarByKalit.get(key) ?? new Set<number>();
+    const ziddiyatliMoslik = ziddiyatliKalitlar.has(key);
     if (candidates.size === 1 && !ziddiyatliMoslik) {
       qatorNarxlari.set(q.id, [...candidates][0]);
       turBoyicha[tur].mos++;

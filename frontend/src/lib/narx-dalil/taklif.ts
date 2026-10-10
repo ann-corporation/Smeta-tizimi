@@ -5,9 +5,11 @@
  *   - МАШ (mashina-mexanizm): bazadagi mos kalkulyatsiyalar ichidan ENG QIMMATI taklif qilinadi;
  *   - ЧЕЛ (чел-час): eng yangi e'lon (yil, kvartal); obyekt regioni berilsa — shu region ustun;
  *   - МАТ va boshqalar: eng yangi katalog kvartali; katalog bo'lmasa — eng yangi faktura/КП.
- * Umumiy: kod bo'yicha moslik nom+birlik mosligidan ustun. Taklif AVTOMATIK YOZILMAYDI —
+ * Egasi 2026-10-10: kod narx identitysi emas; nom, xarakteristika va birlik tekshiriladi. Taklif AVTOMATIK YOZILMAYDI —
  * operator ko'rib, tanlab tasdiqlaydi (`sbNarxDalilBogla`). Narxsiz pozitsiya taklif qilinmaydi.
  */
+import { characteristics, gateFailure, normName } from '../smeta-studio/resource-match';
+import { birlikKalit } from './semantik';
 import type { NarxTaklif, NarxManbaTur } from '../../api/t2-narx-dalil';
 
 export type TaklifNatija = {
@@ -28,8 +30,8 @@ const katNorm = (k: string | null) => (k ?? '').trim().toUpperCase();
 const MAT_MANBA_TARTIB: Record<NarxManbaTur, number> = { katalog: 0, faktura: 1, kp: 2, kalkulyatsiya_mash: 3, chel_chas: 4, boshqa: 5 };
 
 function solishtirgich(kat: string, region: string | null): (a: NarxTaklif, b: NarxTaklif) => number {
-  const DARAJA: Record<string, number> = { kod: 0, hudud: 1, nom_birlik: 2 };
-  const moslik = (a: NarxTaklif, b: NarxTaklif) => (DARAJA[a.moslik] ?? 3) - (DARAJA[b.moslik] ?? 3);
+  // Historical `moslik: kod` is not a matching proof and receives no priority.
+  const moslik = (a: NarxTaklif, b: NarxTaklif) => Number(normName(b.nom) === normName(b.manba_nom_qator)) - Number(normName(a.nom) === normName(a.manba_nom_qator));
   const yangi = (a: NarxTaklif, b: NarxTaklif) => davr(b) - davr(a) || sana(b).localeCompare(sana(a));
   if (kat === 'МАШ') return (a, b) => moslik(a, b) || b.manba_narx - a.manba_narx || yangi(a, b);
   if (kat === 'ЧЕЛ') {
@@ -51,6 +53,13 @@ export function narxTakliflari(takliflar: readonly NarxTaklif[], opts: { region?
   const guruh = new Map<number, NarxTaklif[]>();
   for (const t of takliflar) {
     if (t.manba_narx == null || !Number.isFinite(Number(t.manba_narx))) continue;
+    if (!t.nom || !t.manba_nom_qator || !t.birlik || !t.manba_birlik || birlikKalit(t.birlik) !== birlikKalit(t.manba_birlik)) continue;
+    const src = characteristics(t.nom), cand = characteristics(t.manba_nom_qator);
+    // Published worker-hour tables name rows by region, rather than by a material product.
+    // This explicit source kind/unit/worker/region proof never covers machine operators.
+    const regionalWorkers = t.manba_tur === 'chel_chas' && t.moslik === 'hudud' && src.family === 'worker-labour'
+      && !!t.region && normName(t.manba_nom_qator) === normName(t.region) && birlikKalit(t.birlik) === birlikKalit('чел-ч');
+    if (!regionalWorkers && (gateFailure(src, cand, null, null, normName(t.manba_nom_qator)) || !src.words.some(w => cand.words.includes(w)))) continue;
     const g = guruh.get(t.qator_id);
     if (g) g.push(t); else guruh.set(t.qator_id, [t]);
   }

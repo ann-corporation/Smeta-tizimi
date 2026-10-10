@@ -12,6 +12,14 @@ const T = (p: Partial<NarxTaklif>): NarxTaklif => ({
 });
 
 describe('Narx takliflari (egasi qoidalari)', () => {
+  it('published regional worker rates cannot price operators or a different region label',()=>{
+    const worker=T({nom:'Затраты труда рабочих',birlik:'чел-ч',manba_birlik:'ЧЕЛ.-Ч',manba_tur:'chel_chas',
+      manba_nom_qator:'Навоийская область',region:'Навоийская область',moslik:'hudud'});
+    expect(narxTakliflari([worker])).toHaveLength(1);
+    expect(narxTakliflari([{...worker,nom:'Затраты труда машинистов'}])).toHaveLength(0);
+    expect(narxTakliflari([{...worker,manba_nom_qator:'Ташкент'}])).toHaveLength(0);
+    expect(narxTakliflari([{...worker,manba_birlik:'маш-ч'}])).toHaveLength(0);
+  });
   it('МАШ — eng qimmat kalkulyatsiya', () => {
     const n = narxTakliflari([
       T({ qator_id: 5, kat: 'МАШ', manba_qator_id: 1, manba_tur: 'kalkulyatsiya_mash', manba_narx: 150_000 }),
@@ -32,7 +40,7 @@ describe('Narx takliflari (egasi qoidalari)', () => {
     expect(narxTakliflari(q, { region: 'навоийская обл.' })[0].tavsiya.manba_qator_id).toBe(2);
   });
 
-  it('МАТ — katalog, eng yangi kvartal; kod mosligi ustun; og‘ish foizi; narxsiz nomzod tashlanadi', () => {
+  it('МАТ — katalog, eng yangi kvartal; kod ustunlik bermaydi; og‘ish foizi; narxsiz nomzod tashlanadi', () => {
     const n = narxTakliflari([
       T({ qator_id: 9, manba_qator_id: 1, manba_tur: 'faktura', manba_sana: '2026-09-01', manba_narx: 900 }),
       T({ qator_id: 9, manba_qator_id: 2, yil: 2026, kvartal: 3, manba_narx: 1100 }),
@@ -43,7 +51,7 @@ describe('Narx takliflari (egasi qoidalari)', () => {
     expect(n[0].farqFoiz).toBe(10);
     expect(n[0].boshqalar).toHaveLength(2);
     const k = narxTakliflari([T({ qator_id: 1, manba_qator_id: 1, kvartal: 3 }), T({ qator_id: 1, manba_qator_id: 2, kvartal: 1, moslik: 'kod' })]);
-    expect(k[0].tavsiya.manba_qator_id).toBe(2);
+    expect(k[0].tavsiya.manba_qator_id).toBe(1);
   });
 });
 
@@ -107,4 +115,9 @@ describe('Обоснование цен — hujjat', () => {
     expect(r.dalilsiz).toBe(1);
     expect(t.matnlar.some((m) => m.includes('Всего ресурсов: 3 (позиций в смете: 5)'))).toBe(true);
   });
+});
+
+it('historical code-match metadata cannot propose an incompatible product',()=>{
+ expect(narxTakliflari([T({kod:'SAME',manba_kod:'SAME',moslik:'kod',nom:'Бетон B20',manba_nom_qator:'Бетон B25'})])).toEqual([]);
+ expect(narxTakliflari([T({kod:'A',manba_kod:'B',nom:'Бетон B25',manba_nom_qator:'Бетон B25'})])).toHaveLength(1);
 });

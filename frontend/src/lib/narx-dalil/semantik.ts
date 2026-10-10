@@ -1,4 +1,5 @@
 import type { NarxManbaTur } from '../../api/t2-narx-dalil';
+import { characteristics, gateFailure, normName } from '../smeta-studio/resource-match';
 
 export type NarxQidiruvResurs = {
   id: number;
@@ -72,7 +73,15 @@ function tokenIldizi(token: string) {
 
 function sameUnit(a: unknown, b: unknown) {
   const x = birlikKalit(a); const y = birlikKalit(b);
-  return !x || !y || x === y;
+  return !!x && !!y && x === y;
+}
+
+/** Keep this pipeline's aliases, but pass actual units to the shared identity gates.
+ * Binding uses the original source price: unlike Studio, kg/t conversion is forbidden here. */
+function gateUnit(v: string | null): string {
+  const key = birlikKalit(v);
+  const canonical: Record<string, string> = { mashch: 'маш-ч', chelch: 'чел-ч', m3: 'м3', m2: 'м2', t: 'т', kg: 'кг', pcs: 'шт' };
+  return canonical[key] ?? key;
 }
 
 function compatibleCategory(q: NarxQidiruvResurs, m: NarxQidiruvManba & { manbaTur?: NarxManbaTur }) {
@@ -85,34 +94,31 @@ function compatibleCategory(q: NarxQidiruvResurs, m: NarxQidiruvManba & { manbaT
 
 function candidateScore(q: NarxQidiruvResurs, m: NarxQidiruvManba & { manbaTur?: NarxManbaTur }) {
   if (m.narx == null || !Number.isFinite(m.narx) || !sameUnit(q.birlik, m.birlik) || !compatibleCategory(q, m)) return null;
+  const source = characteristics(q.nom), candidate = characteristics(m.nom);
+  if (gateFailure(source, candidate, gateUnit(q.birlik), gateUnit(m.birlik), normName(m.nom))) return null;
+  // Some machine names have no recognised family (e.g. автопогрузчик).
+  // Their stated model/capacity tokens must still agree before offering a price.
+  if ((q.kat === 'МАШ' || birlikKalit(q.birlik) === 'mashch') && source.specs.some(s => !candidate.specs.includes(s))) return null;
   const reasons: string[] = [];
-  const qCode = nomKalit(q.kod); const mCode = nomKalit(m.kod);
   const qName = nomKalit(q.nom); const mName = nomKalit(m.nom);
-  let score = 0;
-  let moslik: NarxSemantikNomzod['moslik'] = 'semantik';
-  if (qCode && mCode && qCode === mCode) {
-    score = 100; moslik = 'kod'; reasons.push('shifr bir xil');
-  } else {
-    const qt = new Set(tokens(q.nom)); const mt = new Set(tokens(m.nom));
-    const common = [...qt].filter(t => mt.has(t));
-    if (!common.length && !(qName && mName && (qName.includes(mName) || mName.includes(qName)))) return null;
-    const union = new Set([...qt, ...mt]).size || 1;
-    const overlap = common.length / union;
-    const contains = qName && mName && (qName.includes(mName) || mName.includes(qName));
-    score = Math.min(94, 35 + Math.round(overlap * 55) + (contains ? 8 : 0));
-    moslik = score >= 72 ? 'nom_birlik' : 'semantik';
-    reasons.push(contains ? 'nom mazmuni bir-birini qamraydi' : `${common.length} ta asosiy nom belgisi mos`);
-  }
+  const qt = new Set(tokens(q.nom)); const mt = new Set(tokens(m.nom));
+  const common = [...qt].filter(t => mt.has(t));
+  if (!common.length && !(qName && mName && (qName.includes(mName) || mName.includes(qName)))) return null;
+  const union = new Set([...qt, ...mt]).size || 1;
+  const overlap = common.length / union;
+  const contains = qName && mName && (qName.includes(mName) || mName.includes(qName));
+  let score = Math.min(94, 35 + Math.round(overlap * 55) + (contains ? 8 : 0));
+  const moslik: NarxSemantikNomzod['moslik'] = score >= 72 ? 'nom_birlik' : 'semantik';
+  reasons.push(contains ? 'nom mazmuni bir-birini qamraydi' : `${common.length} ta asosiy nom belgisi mos`);
   const qUnit = birlikKalit(q.birlik); const mUnit = birlikKalit(m.birlik);
-  if (qUnit && mUnit && qUnit === mUnit) { score = Math.min(100, score + (moslik === 'kod' ? 0 : 5)); reasons.push('birlik mos'); }
-  else if (!mUnit) reasons.push('manba birligi ko‘rsatilmagan — qo‘lda tekshirish kerak');
+  if (qUnit && mUnit && qUnit === mUnit) { score = Math.min(100, score + 5); reasons.push('birlik mos'); }
   if (m.manbaTur) reasons.push(`manba turi: ${m.manbaTur}`);
   return { score: Math.max(0, Math.min(100, score)), moslik, reasons };
 }
 
 /**
  * Barcha qatorlarni barcha manbalar bilan O(n²) solishtirmaydi.
- * Nom tokenlari, shifr va birlik indekslari orqali kichik nomzodlar to‘plami
+ * Faqat nom tokenlari orqali kichik nomzodlar to‘plami
  * quradi. Natija faqat taklif; canonical narxga yozmaydi.
  */
 export function narxSemantikNomzodlari(
@@ -121,20 +127,15 @@ export function narxSemantikNomzodlari(
   limit = 5,
 ): NarxSemantikNomzod[] {
   type IndexedSource = NarxQidiruvManba & { manbaTur?: NarxManbaTur };
-  const byCode = new Map<string, IndexedSource[]>();
   const byToken = new Map<string, IndexedSource[]>();
   const MAX_POSTING_LIST = 3000;
   for (const s of sources) {
     if (s.narx == null) continue;
-    const code = nomKalit(s.kod);
-    if (code) byCode.set(code, [...(byCode.get(code) ?? []), s]);
     for (const token of new Set(tokens(s.nom))) byToken.set(token, [...(byToken.get(token) ?? []), s]);
   }
   const out: NarxSemantikNomzod[] = [];
   for (const q of resources) {
     const pool = new Map<number, IndexedSource>();
-    const code = nomKalit(q.kod);
-    for (const s of (code ? byCode.get(code) ?? [] : [])) pool.set(s.id, s);
     const qTokens = [...new Set(tokens(q.nom))]
       .sort((a, b) => (byToken.get(a)?.length ?? Number.MAX_SAFE_INTEGER) - (byToken.get(b)?.length ?? Number.MAX_SAFE_INTEGER))
       .slice(0, 4);

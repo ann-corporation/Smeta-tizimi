@@ -1,3 +1,4 @@
+import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Database, Eye, FileSpreadsheet, RefreshCw } from 'lucide-react';
@@ -337,6 +338,7 @@ export function HolatNative() {
           </section>
         )}
         {error && <section className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} />{error}</section>}
+        {validId && !loading && !error && <MarketPriceComparison objectId={obyektId} companyId={joriy?.id ?? null} />}
         {loading && tree.length === 0 && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
         {selected && !loading && !error && (
           <section className="karta flex flex-wrap gap-x-6 gap-y-1 p-3 text-[12px]">

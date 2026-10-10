@@ -1,3 +1,4 @@
+import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { CheckCheck, Download, FileSpreadsheet, FolderOpen, Info, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import {
@@ -114,6 +115,7 @@ function Sessiya() {
   }, [joriy?.id]);
 
   const qatorlar = useMemo(() => paketQatorlari(fayllar), [fayllar]);
+  const marketLines = useMemo(() => qatorlar.filter(q => q.rol === 'RESOURCE').map(q => ({ id: q.sourceId, name: q.nom, unit: q.birlik, price: q.smetaBirlikNarx })), [qatorlar]);
   const kalitlar = useMemo(() => new Map(qatorlar.map((q) => [q.sourceId, ofertaResursKaliti(q)])), [qatorlar]);
 
   /* Qo'lda kiritilganlar: qator darajasidagi (batafsil ko'rinish) guruhnikidan
@@ -323,6 +325,7 @@ function Sessiya() {
   const holatRangi = (m: readonly string[]) => (m.some((x) => x !== 'SMETA_NARXI_NOL' && x !== 'NARX_HAR_XIL') ? 'font-semibold text-danger' : m.length ? 'text-warn' : 'text-ok');
 
   return <div className="space-y-3">
+    {marketLines.length > 0 && <MarketPriceComparison lines={marketLines} companyId={joriy?.id ?? null} />}
     <div className="karta grid gap-3 p-3 lg:grid-cols-[1.2fr_1fr_1fr]">
       <div className="space-y-2">
         <div className="text-[12px] font-medium text-text">RES fayllari — bitta obyekt yoki tender paketi (bir nechta obyekt)</div>
