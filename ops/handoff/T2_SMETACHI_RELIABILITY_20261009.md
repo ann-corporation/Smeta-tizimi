@@ -225,3 +225,24 @@ card radius21.6px,visual verified. На390px выявлено обрезание
 последующий CSS fix делает scope отдельной двухколоночной строкой,
 не меняет PTOWorkspaceContext/его lock. Local app/functions TS+build PASS.
 Последующий mobile fix ожидает release и повторного screenshot.
+
+## 2026-10-10 — Codex/noutbuk: LIQUID GLASS VERIFIED RELEASE
+CODE/PUSHED/main:193058dbcb40fee45e6e0cf1e220df99e1cf97a6 (pricing ee44cef9,
+glass3cc4e1e6, mobile193058db). DEPLOYED canonical Cloudflare production:
+https://f448ad8f.smeta-tizimi.pages.dev, deploy success.
+TESTED: app/functions TS+build,tekshir,governance77 PASS; для pricing1829 tests
+PASS17 skipped,244 suites; для3cc4e1e6 GitHub frontend+Pages conclusion success.
+Для финального193058db frontend/Pages/tekshir conclusions success проверены.
+Authenticated /admin/narxlar:1280px viewport=scrollWidth; blur24px/saturate145%,
+card radius21.6px. Mobile390px viewport=scrollWidth; все5 PTO select границы
+left15.2/199,right191/374.8 внутри390px. Меню открывается,aria-expanded=false
+после закрытия. Temporary viewport reset; финальная страница /admin/narxlar.
+Screenshots вне git:C:/Temp/smeta-liquid-glass-desktop-20261010.png и
+C:/Temp/smeta-liquid-glass-mobile-20261010.png. Реальные данные/draft не записаны.
+Визуальный scope: authenticated os-app-shell,общие карты,поля,кнопки,навигация,
+контекст. Не индивидуальная переработка каждого компонента/всех экранов.
+UNKNOWN: полная автоматическая цена исходного RES не подтверждена;15 нечасовых
+ресурсов локального audit без уверенного match. В live9488 строк обработаны,
+4659 material exceptions включают UNKNOWN,это НЕ число найденных цен.
+190 ShNQ ingestion,расширение фактических catalog/hour sources остаются открыты.
+Task status ready_for_review; это release receipt,не объявление всей программы DONE.
