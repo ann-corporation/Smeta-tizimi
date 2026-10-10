@@ -13,6 +13,7 @@ import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type
 import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
+import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
 import { smetachiSuhbat, smetachiTanla } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
 
@@ -112,12 +113,13 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     } finally { setBand(''); }
   }
 
-  const tayyor = useMemo(() => ishlar.filter(i => i.holat !== 'ANIQLASH_KERAK' && i.tanlangan && i.hajm), [ishlar]);
+  const overlaps = useMemo(() => includedWorkReviews(ishlar, doc), [ishlar, doc]);
+  const tayyor = useMemo(() => ishlar.filter(i => i.holat !== 'ANIQLASH_KERAK' && i.tanlangan && i.hajm && !overlaps.has(i.id)), [ishlar, overlaps]);
   async function qosh() {
     if (!katalog || !tayyor.length) return;
     setBand('qoshish');
     try {
-      const r = await smetagaQoshish(doc, tayyor, katalog, newId);
+      const r = await smetagaQoshish(doc, ishlar, katalog, newId);
       if (!tirik.current) return;
       if (r.commands.length && command({ type: 'BATCH', label: 'Smetachi AI', commands: r.commands })) {
         setIshlar(list => list.filter(i => !r.qoshildi.includes(i.id)));
@@ -175,7 +177,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
       <ul className="divide-y divide-border/60">
         {ishlar.map(i => <li key={i.id} className="space-y-1 px-2 py-1.5 text-[12.5px]">
           <div className="flex items-start gap-2">
-            <span className={`shrink-0 text-[10.5px] font-semibold ${HOLAT_RANG[i.holat]}`}>{i.tanlangan && i.hajm ? '✓' : '•'}</span>
+            <span className={`shrink-0 text-[10.5px] font-semibold ${HOLAT_RANG[i.holat]}`}>{tayyor.includes(i) ? '✓' : '•'}</span>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-text">{i.tavsif}{i.material && <span className="text-text-mute"> · {i.material}</span>}</p>
               <p className="text-[11px] text-text-mute">{t('Bo‘lim')}: {i.bolim}</p>
@@ -194,6 +196,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
           })} />}
           {i.tanlangan && katalog && <p className="whitespace-pre-line text-[11px] text-text-mute">{tanlovDalili(i, katalog)}</p>}
           {i.tanlangan && <NormaTarkibi code={i.tanlangan.kod} />}
+          {overlaps.has(i.id) && <p role="status" className="text-[11px] text-warn">
+            {t('Norma tarkibi bilan takrorlanish xavfi — alohida ish hajmi va qo‘llanishini tekshiring.')}{' '}
+            <a className="underline" href={`${overlaps.get(i.id)!.url}#page=${overlaps.get(i.id)!.page}`} target="_blank" rel="noreferrer">{overlaps.get(i.id)!.code} · {overlaps.get(i.id)!.document} · {overlaps.get(i.id)!.page}</a>
+          </p>}
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-[11px] text-text-dim">{t('Hajm formulasi')}
               <input className="input h-7 w-40 text-[12px]" value={i.hajmIfoda ?? ''} placeholder="12*0,6*0,1" onChange={e => formula(i.id, e.target.value)} /></label>

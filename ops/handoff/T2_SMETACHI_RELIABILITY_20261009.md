@@ -100,3 +100,17 @@ server добавляет проверенный ШНК 4.02.06-04, таблиц
 валидатор всех ШНК.9 targeted tests PASS; build/app+Functions TS PASS;
 governance77 PASS (stale CURRENT_STATE warning). Новый live smoke после
 production deployment ещё требуется. Цена и пользовательский draft не менялись.
+
+## 2026-10-10 — included-work review
+Предыдущий4cc55c35: frontend+CF CI success, реальный provider smoke подтверждён.
+Новый deterministic gate проверяет отдельные установки арматуры/опалубки
+рядом с E6-1-1-22/23 в одном разделе, включая existing draft placements.
+Блокируются обе конфликтующие позиции до review; ADD повторяет проверку,
+ручной выбор и порядок предложений не обходят её. UI показывает источник
+и убирает ложный ready tick. Изготовление/демонтаж alone не обобщаются.
+Значения и snapshot не удаляются.97 tests/10files PASS (AI/UI/i18n),
+app+Functions TS/build, tekshir8/8, oxlint src exit0, governance77 PASS;
+stale CURRENT_STATE SHA warning остаётся. Boundary: same-section potential
+conflict, edition/element scope requires review; general ShNQ ingestion,
+resource-fact→override и полный pricing ещё NOT_DONE. Live новый UI требует
+production deployment и повторной проверки; ADD/save в smoke не выполнять.

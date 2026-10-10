@@ -41,6 +41,18 @@ describe('smetachi AI — contract validation', () => {
 });
 
 describe('smetachi AI — catalogue grounding and batch', () => {
+  it('ADD cannot bypass included-work review with a manual selection or reordered proposals', async () => {
+    const [foundation] = birlashtir([], niyat({ tavsif: 'Lentali fundament', material: 'Бетон B20' }));
+    foundation.tanlangan = { workId: '1', kod: 'E6-1-1-22', nom: 'ФУНДАМЕНТ', birlik: '100 М3', sabab: 'manual', qolda: true };
+    const [armature] = birlashtir([], niyat({ id: 'a', tavsif: 'Armatura o‘rnatish', material: 'Арматура A3', birlik: 'т', hajmIfoda: '1.2' }));
+    armature.tanlangan = { workId: '2', kod: 'ARM', nom: 'УСТАНОВКА АРМАТУРЫ', birlik: 'Т', sabab: 'manual', qolda: true };
+    for (const rows of [[foundation, armature], [armature, foundation]]) {
+      const result = await smetagaQoshish(emptyDoc('d'), rows, k, () => 'unused');
+      expect(result.commands).toEqual([]);
+      expect(result.otkazildi).toHaveLength(2);
+      expect(result.otkazildi.every(x => x.sabab.includes('takrorlanish'))).toBe(true);
+    }
+  });
   it('manual catalogue search reaches later pages beyond the twelve AI proposals', () => {
     const many = Array.from({ length: 60 }, (_, i) => W(String(i), `E6-${i}`, 'БЕТОН', 'u100m3'));
     const paged = { ...k, search: (_q: string, page: number) => ({ rows: many.slice(page * 25, (page + 1) * 25), total: many.length }) };

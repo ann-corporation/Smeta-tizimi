@@ -10,6 +10,7 @@ import { snapshotWork, suggestedBasis } from '../smeta-studio/catalog-bridge';
 import type { StudioCommand } from '../smeta-studio/commands';
 import type { EstimateDoc } from '../smeta-studio/model';
 import { ifodaHisobla } from './ifoda';
+import { includedWorkReviews } from './included-work';
 import type { Birlik, IshNiyati, TanlovNomzodi, TanlovSorovi } from './protokol';
 
 export type AiKatalog = NormDetailSource & {
@@ -119,9 +120,12 @@ export function tanlovDalili(ish: AiIsh, k: AiKatalog): string | null {
 /** Build ONE batch: missing sections, then every ready work with a frozen catalogue snapshot. */
 export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKatalog, newId: () => string): Promise<QoshishNatija> {
   const commands: StudioCommand[] = [], qoshildi: string[] = [], otkazildi: QoshishNatija['otkazildi'] = [];
+  const overlaps = includedWorkReviews(ishlar, doc);
   const sectionByName = new Map<string, string>();
   for (const s of Object.values(doc.sections)) sectionByName.set(s.name.trim().toLowerCase(), s.id);
   for (const ish of ishlar) {
+    const overlap = overlaps.get(ish.id);
+    if (overlap) { otkazildi.push({ id: ish.id, sabab: `Norma tarkibi bilan takrorlanish xavfi: ${overlap.code}; ${overlap.document}, ${overlap.page}-sahifa — alohida ish hajmi va qo‘llanishini tekshiring` }); continue; }
     if (!ish.tanlangan) { otkazildi.push({ id: ish.id, sabab: 'Normativ ish tanlanmagan' }); continue; }
     if (!ish.tanlangan.qolda && tanlovZidmi(ish, { ...ish.tanlangan, id: ish.tanlangan.workId }, ishlar)) { otkazildi.push({ id: ish.id, sabab: 'Norma konstruksiya yoki shu bo‘limdagi ishlarga zid — normaning qo‘llanishini tekshiring' }); continue; }
     if (ish.holat === 'ANIQLASH_KERAK') { otkazildi.push({ id: ish.id, sabab: 'Ish sharoiti aniqlashtirilmagan' }); continue; }
