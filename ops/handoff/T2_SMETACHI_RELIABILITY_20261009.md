@@ -114,3 +114,16 @@ stale CURRENT_STATE SHA warning остаётся. Boundary: same-section potenti
 conflict, edition/element scope requires review; general ShNQ ingestion,
 resource-fact→override и полный pricing ещё NOT_DONE. Live новый UI требует
 production deployment и повторной проверки; ADD/save в smoke не выполнять.
+
+### 2026-10-10 — VERIFIED PRODUCTION
+CODE/main ff1a2fdae0cbeddc2f8bf88030e5c022ea2fad6b; canonical production
+https://e0ff8ea7.smeta-tizimi.pages.dev deploy success. GitHub frontend and
+Cloudflare Pages conclusion success. Authenticated NEW TIMES BUILDINGS:
+existing test proposals restored;3 source-linked warnings (foundation+A3+A1),
+ADD(0) disabled; quantity34.56m3 preserved. Existing draft unchanged; no
+ADD/save/provider call in this smoke. Screenshot outside git:
+C:/Temp/smeta-included-work-live-20261010.jpg.97 focused tests/10files plus
+build/app+Functions TS/tekshir8/8/lint/governance PASS. General ShNQ retrieval,
+reviewed element scope, resource actual quantities→overrides and complete
+pricing remain NOT_DONE. This receipt-only follow-up is branch documentation;
+it does not change production code or deployment SHA.
