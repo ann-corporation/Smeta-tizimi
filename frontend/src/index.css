@@ -347,3 +347,114 @@ html, body, #root { height: 100%; min-height: 100%; }
     transition-duration: .01ms !important;
   }
 }
+
+/* Owner 2026-10-10: Liquid Glass for the authenticated workspace.
+   Opaque defaults remain usable without blur; data cells never use blur. */
+.os-app-shell {
+  --text-dim: #b4bfd5;
+  --color-text-dim: #b4bfd5;
+  --border: rgba(211, 228, 255, .17);
+  --color-border: rgba(211, 228, 255, .17);
+  --radius-lg: 1.4rem;
+  background:
+    radial-gradient(ellipse at 8% 5%, rgba(67, 114, 204, .34), transparent 52%),
+    radial-gradient(ellipse at 94% 22%, rgba(134, 93, 195, .25), transparent 48%),
+    radial-gradient(ellipse at 70% 100%, rgba(35, 143, 160, .16), transparent 48%),
+    #0c1221;
+}
+.os-app-shell::before { opacity: .08; }
+.os-app-shell .os-workspace { background: transparent; }
+.os-app-shell :is(.os-sidebar, .os-context-bar) {
+  background: linear-gradient(145deg, #24314a, #121b2d);
+  border-color: rgba(224, 236, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 10px 36px rgba(0, 0, 0, .18);
+}
+.os-app-shell .os-context-bar {
+  margin: .65rem .85rem 0;
+  border: 1px solid rgba(224, 236, 255, .18);
+  border-radius: 1.2rem;
+  padding: .65rem .85rem;
+}
+.os-app-shell .karta {
+  background: linear-gradient(150deg, rgba(42, 55, 80, .96), rgba(19, 29, 48, .96));
+  border-color: rgba(221, 234, 255, .2);
+  border-radius: 1.35rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .17), inset 0 -1px 0 rgba(255, 255, 255, .025), 0 12px 32px rgba(2, 7, 20, .18);
+}
+.os-app-shell .karta .karta {
+  background: rgba(15, 25, 44, .65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.os-app-shell :is(.input, select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="file"])) {
+  border-radius: .85rem;
+  background-color: rgba(12, 22, 40, .8);
+  border-color: rgba(213, 230, 255, .22);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18), 0 1px 0 rgba(255, 255, 255, .06);
+}
+.os-app-shell select option { background: #17243b; color: #e6eaf2; }
+.os-app-shell :is(.tugma, .os-menu-button) {
+  border-radius: 999px;
+  background: linear-gradient(155deg, rgba(114, 140, 183, .24), rgba(59, 78, 112, .25));
+  border-color: rgba(226, 237, 255, .25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 3px 10px rgba(0, 0, 0, .12);
+}
+.os-app-shell .tugma-asosiy {
+  border-radius: 999px;
+  background: linear-gradient(145deg, #668eff, #4267e7);
+  border-color: rgba(213, 228, 255, .35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 5px 16px rgba(58, 95, 229, .23);
+}
+.os-app-shell .os-nav-link { border-radius: 1rem; }
+.os-app-shell .os-nav-link:hover {
+  background: rgba(199, 222, 255, .09);
+  border-color: rgba(219, 235, 255, .12);
+}
+.os-app-shell .os-nav-link--active {
+  background: linear-gradient(140deg, rgba(109, 156, 255, .3), rgba(91, 125, 220, .15));
+  border-color: rgba(169, 201, 255, .42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 4px 16px rgba(18, 38, 89, .2);
+}
+.os-app-shell :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid #b2d1ff;
+  outline-offset: 3px;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .os-app-shell :is(.os-sidebar, .os-context-bar) {
+    background: linear-gradient(145deg, rgba(58, 77, 113, .62), rgba(17, 28, 49, .76));
+    -webkit-backdrop-filter: blur(24px) saturate(145%);
+    backdrop-filter: blur(24px) saturate(145%);
+  }
+  .os-app-shell .karta {
+    background: linear-gradient(150deg, rgba(58, 75, 110, .52), rgba(20, 32, 54, .75));
+  }
+}
+@media (max-width: 640px) {
+  .os-app-shell .os-context-bar { margin: .4rem .4rem 0; padding: .5rem; border-radius: 1rem; }
+  .os-app-shell .karta { border-radius: 1.05rem; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .os-app-shell :is(.karta, .os-sidebar, .os-context-bar) {
+    background: #17243b;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .os-app-shell :is(.karta, .os-sidebar, .os-context-bar, .input, .tugma, .tugma-asosiy, .os-nav-link) {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media print {
+  .os-app-shell, .os-app-shell .karta, .os-app-shell .os-workspace {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}

@@ -185,3 +185,30 @@ oxlint exit0 с существующими warnings; governance77 PASS с ист
 CURRENT_STATE предупреждением. Evidence: C:/Temp/pricing-vitest-final-20261010.txt,
 pricing-build-final-20261010.txt, pricing-all-gates-20261010.txt вне git.
 DB acceptance/source/grants verified; frontend branch/main/release ждут push/CI.
+
+## 2026-10-10 — Codex/noutbuk: PRICING VERIFIED RELEASE; GLASS IN_PROGRESS
+CODE/PUSHED/main: ee44cef94b1b19fc8686c95e1f42493ecdf7ed81.
+TESTED: 244 suites,1829 tests PASS,17 skipped; последующие20 focused PASS.
+App/functions TS,build,tekshir,lint,governance77 PASS (старый stale main_sha warning).
+GitHub frontend и Cloudflare Pages check-runs: conclusion success для ee44cef9.
+DEPLOYED: https://1491b318.smeta-tizimi.pages.dev; canonical deploy success.
+RES RPC v2 в Supabase проверена в rollback-транзакции, применена, acceptance PASS,
+точное тело и grants verified;140600 qator/4 компании/37 объектов, fixture residue0.
+Подбор Studio/RES использует название+характеристики+единицу; каталог первичен,
+цены компании вторичны с источником. Устаревшие ответы не применяются к новому scope.
+Readonly сравнение добавлено Studio/Oferta/NarxNazorat/Narxlar/Holat.
+Authenticated smoke /admin/narxlar,NEW TIMES BUILDINGS,Amfiteatr:
+2026Q1 и13 регионов;9488 исходных строк полностью обработаны,
+4659 материалов имеют отклонение ИЛИ неизвестный результат,4829 часовых строк
+вне material comparison. Эти4659 НЕ означают4659 найденных цен!
+Первые50 строк содержали UNKNOWN/REVIEW; actual numeric delta на live пока не доказан.
+Смена региона сбрасывает старый результат; existing draft/сметные цены не изменялись.
+Screenshot C:/Temp/smeta-pricing-live-20261010.png вне git.
+UNKNOWN: исходный RES27 ресурсов1 цена26 missing; повторный локальный snapshot
+44173 строки не дал уверенного авто-match15 нечасовых ресурсов. Исправлены
+ложные семейства известь→растворитель и арматурная сетка→СеткаДыня.
+Общая полнота каталога/всех машин и190 ShNQ ingestion остаются открыты.
+GitHub PR connector403; branch иmain опубликованы обычным git,CI success.
+Новый прямой запрос владельца: iOS Liquid Glass. Свободный index.css взят
+в owns этого task; только оболочка admin, без изменения бизнес-логики.
+Статус IN_PROGRESS для визуального follow-up; pricing release выше завершён.
