@@ -212,3 +212,16 @@ GitHub PR connector403; branch иmain опубликованы обычным gi
 Новый прямой запрос владельца: iOS Liquid Glass. Свободный index.css взят
 в owns этого task; только оболочка admin, без изменения бизнес-логики.
 Статус IN_PROGRESS для визуального follow-up; pricing release выше завершён.
+
+### Liquid Glass 2026-10-10
+Owner direct request: iOS-style Liquid Glass. Index.css ранее не был занят;
+scope добавлен в owns. CSS только внутри os-app-shell: градиентный фон,
+translucent панели,rounded controls,blur24px только sidebar/context bar;
+числовые ячейки без blur. Reduced-transparency/forced-colors/keyboard focus
+и opaque fallback сохранены. CODE/main3cc4e1e6e248cef4dd18a3dc402d494992d77391;
+GitHub frontend+Cloudflare Pages success,production aa8af8f1 success.
+Desktop authenticated1280px: scrollWidth1280,header computed blur24px,
+card radius21.6px,visual verified. На390px выявлено обрезание PTO selects:
+последующий CSS fix делает scope отдельной двухколоночной строкой,
+не меняет PTOWorkspaceContext/его lock. Local app/functions TS+build PASS.
+Последующий mobile fix ожидает release и повторного screenshot.

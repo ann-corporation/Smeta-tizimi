@@ -431,6 +431,19 @@ html, body, #root { height: 100%; min-height: 100%; }
 @media (max-width: 640px) {
   .os-app-shell .os-context-bar { margin: .4rem .4rem 0; padding: .5rem; border-radius: 1rem; }
   .os-app-shell .karta { border-radius: 1.05rem; }
+  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] {
+    flex-basis: 100%;
+    order: 3;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] > span { grid-column: 1 / -1; }
+  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] select {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
 }
 @media (prefers-reduced-transparency: reduce) {
   .os-app-shell :is(.karta, .os-sidebar, .os-context-bar) {
