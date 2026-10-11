@@ -1404,5 +1404,16 @@
   "Kompaniya smetalaridan takliflar": "Offers from company estimates",
   "Mehnat va mashina katalogi ochilmadi. Manbali kompaniya takliflari tekshiriladi; stavka taxmin qilinmaydi.": "Could not open the labour and machine-hour catalogue. Company offers with source references are being checked; no rate is assumed.",
   "Kompaniya smetalaridan muqobil narxlar": "Alternative prices from company estimates",
-  "Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.": "Prices were not applied. Check the draft state and try again."
+  "Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.": "Prices were not applied. Check the draft state and try again.",
+  "Ish holati": "Working draft",
+  "Ish holatini saqlash (davom ettirish uchun)": "Save working state",
+  "Server qoralamasi raqami": "Server draft number",
+  "Serverdagi qoralamani davom ettirish": "Resume server draft",
+  "F2 qoralamasini saqlash": "Save F2 draft",
+  "Tekshirilgan F2 aktini yaratish": "Create validated F2 act",
+  "Minus qatorlarga bog‘lanish taklif qilish": "Suggest links for negative rows",
+  "F2 aktini yozish uchun quyidagi qatorlarni hal qiling. Ish holatini saqlash esa yuqorida alohida mavjud. Minus qatorlar oldingi hajmlarni kamaytiradi — ularni sababsiz chiqarib yubormang.": "Resolve the rows below before writing the act. Save the working draft separately above. Negative rows reduce previous quantities; do not exclude them without a reason.",
+  "Bog‘lash jarayoni avtomatik shu kompyuter va brauzerda saqlanadi. Brauzer ma’lumotlarini tozalamang.": "Links are automatically saved on this computer in this browser. Do not clear browser data.",
+  "Saqlanganini tasdiqlamaguncha sahifani yopmang.": "Do not close the page until saving is confirmed.",
+  "Saqlangan ishni davom ettirish:": "Resume saved work:"
 }

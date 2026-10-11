@@ -1404,5 +1404,16 @@
   "Kompaniya smetalaridan takliflar": "Предложения из смет компании",
   "Mehnat va mashina katalogi ochilmadi. Manbali kompaniya takliflari tekshiriladi; stavka taxmin qilinmaydi.": "Не удалось открыть каталог трудозатрат и машино-часов. Проверяются предложения компании с указанием источника; ставка не подставляется предположительно.",
   "Kompaniya smetalaridan muqobil narxlar": "Альтернативные цены из смет компании",
-  "Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.": "Цены не применены. Проверьте состояние черновика и повторите попытку."
+  "Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.": "Цены не применены. Проверьте состояние черновика и повторите попытку.",
+  "Ish holati": "Рабочий черновик",
+  "Ish holatini saqlash (davom ettirish uchun)": "Сохранить рабочее состояние",
+  "Server qoralamasi raqami": "Номер серверного черновика",
+  "Serverdagi qoralamani davom ettirish": "Продолжить серверный черновик",
+  "F2 qoralamasini saqlash": "Сохранить черновик Ф2",
+  "Tekshirilgan F2 aktini yaratish": "Создать проверенный акт Ф2",
+  "Minus qatorlarga bog‘lanish taklif qilish": "Предложить связи для отрицательных строк",
+  "F2 aktini yozish uchun quyidagi qatorlarni hal qiling. Ish holatini saqlash esa yuqorida alohida mavjud. Minus qatorlar oldingi hajmlarni kamaytiradi — ularni sababsiz chiqarib yubormang.": "Для записи акта разрешите строки ниже. Рабочий черновик можно сохранить отдельно выше. Отрицательные строки уменьшают прошлые объёмы — не исключайте их без основания.",
+  "Bog‘lash jarayoni avtomatik shu kompyuter va brauzerda saqlanadi. Brauzer ma’lumotlarini tozalamang.": "Связи автоматически сохраняются на этом компьютере в этом браузере. Не очищайте данные браузера.",
+  "Saqlanganini tasdiqlamaguncha sahifani yopmang.": "Не закрывайте страницу до подтверждения сохранения.",
+  "Saqlangan ishni davom ettirish:": "Продолжить сохранённую работу:"
 }

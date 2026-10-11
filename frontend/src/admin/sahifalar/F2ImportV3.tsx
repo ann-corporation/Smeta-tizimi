@@ -16,6 +16,7 @@ import { F2V3Workbench } from './F2V3Workbench';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
+import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
 
 /**
  * F2 IMPORT V3 (docs/architecture/F2_IMPORT_V3.md): fayl → akt (davr, jami, ogohlantirishlar
@@ -57,12 +58,92 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [done, setDone] = useState<string | null>(null);
   const [tizimFayllar, setTizimFayllar] = useState<Fayl[]>([]);
   const [tizimTanlov, setTizimTanlov] = useState('');
+  const [saqlanganIsh, setSaqlanganIsh] = useState<F2IshchiQoralama | null>(null);
+  const [ishSaqlandi, setIshSaqlandi] = useState('');
+  const [ishXato, setIshXato] = useState('');
+  const saveGeneration = useRef(0);
+  const unsaved = useRef(false);
+  const lastWorkingDraft = useRef<F2IshchiQoralama | null>(null);
+  const serverDraft = useRef<F2ServerQoralama | undefined>(undefined);
+  const [serverId, setServerId] = useState('');
+  const [serverHolat, setServerHolat] = useState('');
   const rawFile = useRef<File | null>(null);
   const operation = useRef('');
   const sourceOp = useRef('');
   const sourceDoc = useRef<number | undefined>(undefined);
   const ijRef = useRef<IshJoyi | null>(null);
   ijRef.current = ij;
+
+  useEffect(() => {
+    let active = true;
+    void f2IshchiOl(companyId, objectId ? Number(objectId) : undefined)
+      .then((d) => { if (active) setSaqlanganIsh(d); })
+      .catch((e) => { if (active) setIshXato(e instanceof Error ? e.message : 'Qoralama o‘qilmadi.'); });
+    return () => { active = false; };
+  }, [companyId, objectId]);
+
+  function ishSnapshot(): F2IshchiQoralama | null {
+    const file = rawFile.current;
+    if (!file || !ij || !natija || !aktlar[aktIdx] || !objectId) return null;
+    return { version: 1, companyId, objectId: Number(objectId), savedAt: Date.now(), aktlar, aktIdx, davr,
+      ij, natija, rzBog, source: { blob: file, name: file.name, lastModified: file.lastModified, documentId: sourceDoc.current },
+      operationId: operation.current, sourceOperationId: sourceOp.current, server: serverDraft.current };
+  }
+
+  async function ishniSaqla(draft = ishSnapshot(), generation = ++saveGeneration.current) {
+    if (!draft) return;
+    try {
+      await f2IshchiSaqla(draft);
+      if (generation !== saveGeneration.current) return;
+      unsaved.current = false; setIshXato(''); setSaqlanganIsh(draft);
+      setIshSaqlandi(`Ish holati shu brauzerda saqlandi (${new Date(draft.savedAt).toLocaleTimeString()}). Bog‘lanmagan qatorlar ham saqlangan. Bu hali F2 akti emas.`);
+    } catch (e) {
+      if (generation !== saveGeneration.current) return;
+      setIshXato(e instanceof Error ? e.message : 'Ish holati saqlanmadi. Sahifani yopmang.');
+    }
+  }
+
+  useEffect(() => {
+    if (!ij || !natija || busy || done) return;
+    const scope = `${objectId}|${aktIdx}|${davr}|${aktlar[aktIdx]?.fayl}`;
+    if (scope !== oxirgiKalit.current) return;
+    unsaved.current = true;
+    setIshSaqlandi('Ish holati saqlanmoqda…');
+    const generation = ++saveGeneration.current;
+    const draft = ishSnapshot();
+    lastWorkingDraft.current = draft;
+    const timer = window.setTimeout(() => { void ishniSaqla(draft, generation); }, 300);
+    return () => window.clearTimeout(timer);
+  // Snapshot includes all operator decisions and original file; never gated on resolved rows.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ij, natija, rzBog, aktlar, aktIdx, davr, objectId, busy, done]);
+
+  useEffect(() => {
+    const protect = (e: BeforeUnloadEvent) => { if (unsaved.current) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, []);
+
+  async function ishniTikla() {
+    const d = saqlanganIsh;
+    if (!d || d.companyId !== companyId || !objects.some((o) => o.id === d.objectId) || busy) return;
+    setBusy(true); setXato('');
+    try {
+      const { r } = await malumotYukla(d.objectId, d.davr);
+      const restored = f2QoralamaBogTekshir(d.ij, new Set(r.map((q) => q.id)));
+      // No auto-match effect may reset recovered manual decisions.
+      oxirgiKalit.current = `${d.objectId}|${d.aktIdx}|${d.davr}|${d.aktlar[d.aktIdx].fayl}`;
+      rawFile.current = new File([d.source.blob], d.source.name, { type: d.source.blob.type, lastModified: d.source.lastModified });
+      sourceDoc.current = d.source.documentId; sourceOp.current = d.sourceOperationId; operation.current = d.operationId;
+      serverDraft.current = d.server;
+      setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
+      setAktlar(d.aktlar); setAktIdx(d.aktIdx); setDavr(d.davr); setRzBog(d.rzBog);
+      setNatija(d.natija); setIj(restored); setDone(null);
+      setHolat('Saqlangan ish tiklandi. Smeta va oldingi F2 qayta o‘qildi.');
+      if (restored.bog.size !== d.ij.bog.size) setXato('Ayrim smeta qatorlari o‘chirilgan: ularga bog‘lanish qayta tekshirilishi kerak.');
+    } catch (e) { setXato(e instanceof Error ? e.message : 'Ish tiklanmadi; zaxira saqlanib turibdi.'); }
+    finally { setBusy(false); }
+  }
 
   useEffect(() => {
     let active = true;
@@ -90,7 +171,13 @@ function Sessiya({ companyId }: { companyId: number }) {
   const S = useMemo(() => smetaIndeks(smetaQatorlari(rows)), [rows]);
   const raw = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
 
-  function tozala() { setNatija(null); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = ''; }
+  function tozala() {
+    // Scope/file switch must flush pending decisions before clearing in-memory state.
+    const draft = lastWorkingDraft.current;
+    if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
+    ++saveGeneration.current; setIshSaqlandi(''); setServerHolat(''); serverDraft.current = undefined;
+    setNatija(null); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
+  }
 
   /** `mavjudHujjatId` berilsa — fayl tizimdagi R2 hujjatidan olingan: yozishda QAYTA yuklanmaydi, o'sha hujjat manba bo'ladi. */
   async function faylTanla(file: File, mavjudHujjatId?: number) {
@@ -251,6 +338,57 @@ function Sessiya({ companyId }: { companyId: number }) {
     return id;
   }
 
+  async function servergaSaqla() {
+    const draft = ishSnapshot();
+    if (!draft || busy) return;
+    setBusy(true); setXato(''); setServerHolat('');
+    try {
+      const docId = await r2gaYukla();
+      draft.source.documentId = docId;
+      await f2ServerSaqla(draft, docId, serverDraft.current);
+      serverDraft.current = draft.server; setServerId(String(draft.server!.jobId));
+      await ishniSaqla(draft);
+      setServerHolat(`F2 ish qoralamasi serverda saqlandi: #${draft.server!.jobId}. Bog‘lanmagan va minus qatorlar ham saqlangan. Boshqa kompyuterda shu raqam orqali davom ettirish mumkin. Akt va Nakopitelniy o‘zgarmadi.`);
+    } catch (e) {
+      serverDraft.current = draft.server;
+      // Preserve acknowledged batch versions even when a later request fails.
+      await ishniSaqla(draft);
+      setXato(e instanceof Error ? e.message : 'Server qoralamasi to‘liq saqlanmadi.');
+    } finally { setBusy(false); }
+  }
+
+  async function serverdanTikla() {
+    const id = Number(serverId);
+    if (!Number.isSafeInteger(id) || id <= 0 || busy || ij) return;
+    setBusy(true); setXato('');
+    try {
+      const d = await f2ServerOl(id);
+      if (!objects.some((o) => o.id === d.objectId)) throw new Error('Qoralama tanlangan kompaniya obyektiga tegishli emas.');
+      const c = d.cursor;
+      const docId = Number(c.sourceDocumentId), idx = Number(c.actIdx), month = String(c.month ?? '');
+      if (!Number.isSafeInteger(docId) || docId <= 0 || !Number.isSafeInteger(idx) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('Qoralama manbasi yoki davri noaniq.');
+      const bytes = await faylBaytlari(docId);
+      const file = new File([bytes.slice()], String(c.file), { type: XLSX_MIME });
+      const acts = await f2AktlarniOqiFonda(file.name, file);
+      const a = acts[idx];
+      if (!a) throw new Error('Qoralamadagi akt varag‘i manba faylida topilmadi.');
+      const byUid = f2Indeks(a.daraxt).byUid;
+      if (f2Indeks(a.daraxt).qatorlar.length !== d.sourceRows.length || d.sourceRows.some((s) => {
+        const n = byUid.get(s.uid); return !n || n.hajm !== s.hajm || n.narx !== s.narx || n.summa !== s.summa;
+      })) throw new Error('Manba qatorlari saqlangan qoralamaga mos emas. Bog‘lanishlar taxmin bilan tiklanmaydi.');
+      const { r, qol, x } = await malumotYukla(d.objectId, month);
+      const rb = new Map(c.rzBog as Array<[string, number]>);
+      const result = await f2MoslashV3Fonda(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
+      oxirgiKalit.current = `${d.objectId}|${idx}|${month}|${a.fayl}`;
+      rawFile.current = file; sourceDoc.current = docId; sourceOp.current = String(c.sourceOperationId); operation.current = String(c.writeOperationId);
+      serverDraft.current = d.state; setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
+      setAktlar(acts); setAktIdx(idx); setDavr(month); setRzBog(rb); setNatija(result);
+      setIj(f2QoralamaBogTekshir(d.ij, new Set(r.map((q) => q.id)))); setDone(null);
+      setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`);
+    } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); }
+    finally { setBusy(false); }
+  }
+
   async function saqla() {
     if (!akt || !ind || !yozish || !payload || payload.error || busy || done) return;
     setBusy(true); setXato(''); setHolat('Manba fayl saqlanmoqda…');
@@ -289,6 +427,20 @@ function Sessiya({ companyId }: { companyId: number }) {
         <h1 className="text-lg font-semibold sm:text-xl">F2 import</h1>
         <p role="status" className="text-[13px] text-text-dim">{holat}</p>
       </div>
+      <section className="karta space-y-2 p-3" aria-label={t('Ish holati')}>
+        <p className="text-[12px]">{ishSaqlandi || t('Bog‘lash jarayoni avtomatik shu kompyuter va brauzerda saqlanadi. Brauzer ma’lumotlarini tozalamang.')}</p>
+        {ishXato && <p role="alert" className="text-danger">{ishXato} {t('Saqlanganini tasdiqlamaguncha sahifani yopmang.')}</p>}
+        {ij && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniSaqla()}>{t('Ish holatini saqlash (davom ettirish uchun)')}</button>}
+        {ij && !done && <button type="button" className="tugma tugma-asosiy" disabled={busy} onClick={() => void servergaSaqla()}>{t('F2 qoralamasini saqlash')}</button>}
+        {serverHolat && <p role="status">{serverHolat}</p>}
+        {!ij && <label className="block text-[12px]">{t('Server qoralamasi raqami')}
+          <input aria-label={t('Server qoralamasi raqami')} type="number" min="1" value={serverId} onChange={(e) => setServerId(e.target.value)} className="input mx-2" />
+          <button type="button" className="tugma" disabled={busy || !serverId} onClick={() => void serverdanTikla()}>{t('Serverdagi qoralamani davom ettirish')}</button>
+        </label>}
+        {!ij && saqlanganIsh && objects.some((o) => o.id === saqlanganIsh.objectId) && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniTikla()}>
+          {t('Saqlangan ishni davom ettirish:')} {saqlanganIsh.source.name} · {saqlanganIsh.davr}
+        </button>}
+      </section>
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block text-[12px] font-medium text-text">Obyekt
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { oxirgiKalit.current = ''; tozala(); setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
@@ -368,12 +520,17 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {yozish && (
         <section className="karta space-y-2 p-3" aria-label="Saqlash">
+          {!!yozish.toxtatish.length && <p className="text-[12px]">{t('F2 aktini yozish uchun quyidagi qatorlarni hal qiling. Ish holatini saqlash esa yuqorida alohida mavjud. Minus qatorlar oldingi hajmlarni kamaytiradi — ularni sababsiz chiqarib yubormang.')}</p>}
+          {akt && ij && ind?.qatorlar.some((q) => q.hajm != null && q.hajm < 0 && !ij.bog.has(q.uid) && !ij.otkaz.has(q.uid)) && <button type="button" className="tugma" disabled={busy || !!done} onClick={() => {
+            const result = f2MinusTaklif(akt, ij); setIj(result.ij);
+            setHolat(`${result.soni} ta minus qator uchun ayni aktdagi aniq bog‘lanish asosida taklif berildi. Har birini tekshirib tasdiqlang; boshqa qatorlarni qo‘lda bog‘lang.`);
+          }}>{t('Minus qatorlarga bog‘lanish taklif qilish')}</button>}
           {yozish.toxtatish.map((t, i) => <p key={i} className="text-[12px] text-warn">{t}</p>)}
           {payload?.error && <p role="alert" className="text-[12px] text-danger">{payload.error}</p>}
           {done ? <p className="text-[13px] text-ok">{done}</p> : (
             <button type="button" className="tugma tugma-asosiy" disabled={busy || !payload || !!payload.error}
               onClick={() => void saqla()}>
-              F2 qoralamasini saqlash{payload && !payload.error ? ` (${payload.rows.length} qator)` : ''}
+              {t('Tekshirilgan F2 aktini yaratish')}{payload && !payload.error ? ` (${payload.rows.length} qator)` : ''}
             </button>
           )}
         </section>
