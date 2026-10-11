@@ -9,14 +9,14 @@ import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anato
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
-  bogla, boshlangich, f2Indeks, smetaIndeks, yozishManbasi, type IshJoyi,
+  bogla, boshlangich, f2Indeks, smetaIndeks, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { exactWrite } from '../../lib/f2-exact-write';
 import { F2V3Workbench } from './F2V3Workbench';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
-import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
+import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
 
 /**
  * F2 IMPORT V3 (docs/architecture/F2_IMPORT_V3.md): fayl → akt (davr, jami, ogohlantirishlar
@@ -312,7 +312,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     finally { setBusy(false); }
   }
 
-  const yozish = useMemo(() => (ind && ij ? yozishManbasi(ind, ij) : null), [ind, ij]);
+  const yozish = useMemo(() => (ind && ij ? f2QoralamaYozish(ind, ij) : null), [ind, ij]);
   const payload = useMemo(() => {
     if (!yozish || yozish.toxtatish.length) return null;
     try { return { rows: exactWrite(yozish.nodes, yozish.mapping), error: '' }; }
@@ -394,6 +394,13 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato(''); setHolat('Manba fayl saqlanmoqda…');
     try {
       const docId = await r2gaYukla();
+      // До финансового черновика сохраняем ВСЕ строки/решения, включая неразрешённые минусы.
+      const draft = ishSnapshot();
+      if (!draft) throw new Error('F2 ish holati topilmadi.');
+      draft.source.documentId = docId;
+      try { await f2ServerSaqla(draft, docId, serverDraft.current); }
+      finally { serverDraft.current = draft.server; await ishniSaqla(draft); }
+      setServerId(String(draft.server!.jobId));
       setHolat('F2 qoralamasi yozilmoqda…');
       const manba = new Map<number, Array<Record<string, unknown>>>();
       for (const n of yozish.nodes) {
@@ -406,11 +413,14 @@ function Sessiya({ companyId }: { companyId: number }) {
       const r = await sbT2AktYaratV2({
         obyektId: Number(objectId), oy: davr + '-01', operationId: operation.current,
         qatorlar: payload.rows.map((q) => ({
-          ...q, rawSnapshot: { manba: 'f2_v3', hujjat_id: docId, fayl: akt.fayl, varaq: akt.varaq, davr, qatorlar: manba.get(q.qatorId) },
+          ...q, rawSnapshot: { manba: 'f2_v3', hujjat_id: docId, fayl: akt.fayl, varaq: akt.varaq, davr, qatorlar: manba.get(q.qatorId),
+            import_job_id: draft.server!.jobId, partial: yozish.qolgan.length > 0,
+            unresolved_count: yozish.qolgan.length },
         })),
       });
       if (!r.ok) { setXato(`Hujjat saqlanmadi: ${r.xabar || r.error || r.sabab || 'xato'}. Tanlovni o‘zgartirmasdan qayta urinish mumkin.`); return; }
       setDone(`F2 qoralamasi saqlandi (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.`);
+      if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida va server ish qoralamasi #${draft.server!.jobId} da saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
       setHolat('Tayyor.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Yozish javobi olinmadi — qayta urinish ayni operatsiyani tekshiradi.'); }
     finally { setBusy(false); }
@@ -431,7 +441,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         <p className="text-[12px]">{ishSaqlandi || t('Bog‘lash jarayoni avtomatik shu kompyuter va brauzerda saqlanadi. Brauzer ma’lumotlarini tozalamang.')}</p>
         {ishXato && <p role="alert" className="text-danger">{ishXato} {t('Saqlanganini tasdiqlamaguncha sahifani yopmang.')}</p>}
         {ij && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniSaqla()}>{t('Ish holatini saqlash (davom ettirish uchun)')}</button>}
-        {ij && !done && <button type="button" className="tugma tugma-asosiy" disabled={busy} onClick={() => void servergaSaqla()}>{t('F2 qoralamasini saqlash')}</button>}
+        {ij && !done && <button type="button" className="tugma" disabled={busy} onClick={() => void servergaSaqla()}>{t('Server ish holatini saqlash')}</button>}
         {serverHolat && <p role="status">{serverHolat}</p>}
         {!ij && <label className="block text-[12px]">{t('Server qoralamasi raqami')}
           <input aria-label={t('Server qoralamasi raqami')} type="number" min="1" value={serverId} onChange={(e) => setServerId(e.target.value)} className="input mx-2" />
@@ -520,7 +530,10 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {yozish && (
         <section className="karta space-y-2 p-3" aria-label="Saqlash">
-          {!!yozish.toxtatish.length && <p className="text-[12px]">{t('F2 aktini yozish uchun quyidagi qatorlarni hal qiling. Ish holatini saqlash esa yuqorida alohida mavjud. Minus qatorlar oldingi hajmlarni kamaytiradi — ularni sababsiz chiqarib yubormang.')}</p>}
+          {!!yozish.qolgan.length && <p role="alert" className="text-[12px] text-warn">{t('Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.')} ({yozish.qolgan.length})</p>}
+          {!!yozish.qolgan.length && <details className="text-[12px] text-warn"><summary>{t('Aktga kiritilmaydigan qatorlar')}</summary>
+            <ul>{yozish.qolgan.map((n) => <li key={n.uid}>{n.manzil.varaq}!{n.manzil.qator} · {n.nom} · {fmt(n.hajm)} {n.birlik}</li>)}</ul>
+          </details>}
           {akt && ij && ind?.qatorlar.some((q) => q.hajm != null && q.hajm < 0 && !ij.bog.has(q.uid) && !ij.otkaz.has(q.uid)) && <button type="button" className="tugma" disabled={busy || !!done} onClick={() => {
             const result = f2MinusTaklif(akt, ij); setIj(result.ij);
             setHolat(`${result.soni} ta minus qator uchun ayni aktdagi aniq bog‘lanish asosida taklif berildi. Har birini tekshirib tasdiqlang; boshqa qatorlarni qo‘lda bog‘lang.`);
@@ -530,7 +543,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           {done ? <p className="text-[13px] text-ok">{done}</p> : (
             <button type="button" className="tugma tugma-asosiy" disabled={busy || !payload || !!payload.error}
               onClick={() => void saqla()}>
-              {t('Tekshirilgan F2 aktini yaratish')}{payload && !payload.error ? ` (${payload.rows.length} qator)` : ''}
+              {t('F2 qoralama aktini saqlash')}{payload && !payload.error ? ` (${payload.rows.length} qator)` : ''}
             </button>
           )}
         </section>

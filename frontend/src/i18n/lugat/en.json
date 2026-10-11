@@ -1415,5 +1415,9 @@
   "F2 aktini yozish uchun quyidagi qatorlarni hal qiling. Ish holatini saqlash esa yuqorida alohida mavjud. Minus qatorlar oldingi hajmlarni kamaytiradi — ularni sababsiz chiqarib yubormang.": "Resolve the rows below before writing the act. Save the working draft separately above. Negative rows reduce previous quantities; do not exclude them without a reason.",
   "Bog‘lash jarayoni avtomatik shu kompyuter va brauzerda saqlanadi. Brauzer ma’lumotlarini tozalamang.": "Links are automatically saved on this computer in this browser. Do not clear browser data.",
   "Saqlanganini tasdiqlamaguncha sahifani yopmang.": "Do not close the page until saving is confirmed.",
-  "Saqlangan ishni davom ettirish:": "Resume saved work:"
+  "Saqlangan ishni davom ettirish:": "Resume saved work:",
+  "Server ish holatini saqlash": "Save working state to server",
+  "F2 qoralama aktini saqlash": "Save F2 draft act",
+  "Aktga kiritilmaydigan qatorlar": "Rows not included in the act",
+  "Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.": "Unlinked or unconfirmed rows are not included in the act and remain in the original and server working draft. You can save the draft act. Omitted negative rows do not reduce previously recorded quantities."
 }

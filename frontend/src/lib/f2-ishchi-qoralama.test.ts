@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from './smeta-anatomiya/f2';
-import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama } from './f2-ishchi-qoralama';
+import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama } from './f2-ishchi-qoralama';
 import { f2Indeks, yozishManbasi, type IshJoyi } from './f2-moslash-v3/ishJoyi';
 import { exactWrite } from './f2-exact-write';
 
@@ -20,6 +20,29 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('F2 corrective rows and working draft safety', () => {
+  it('projects confirmed rows only without excluding unresolved negatives or mutating decisions', () => {
+    const a = akt([node('minus', -10), node('plus', 12), node('proposal', 5)]);
+    const state = ij([['plus', 7]]);
+    (state.bog as Map<string, import('./f2-moslash-v3/ishJoyi').Bog>).set('proposal', { qatorId: 8, holat: 'taklif', usul: 'tartib' });
+    const p = f2QoralamaYozish(f2Indeks(a.daraxt), state);
+    expect(p.toxtatish).toEqual([]);
+    expect(p.qolgan.map((n) => n.uid)).toEqual(['minus', 'proposal']);
+    expect(exactWrite(p.nodes, p.mapping)).toEqual([expect.objectContaining({ qatorId: 7, certifiedQuantity: 12, certifiedAmount: 1200 })]);
+    expect(state.otkaz.size).toBe(0); expect(state.bog.size).toBe(2); expect(a.daraxt[0].hajm).toBe(-10);
+    const both = f2QoralamaYozish(f2Indeks(a.daraxt), ij([['minus', 7], ['plus', 7]]));
+    expect(exactWrite(both.nodes, both.mapping)[0]).toMatchObject({ certifiedQuantity: 2, certifiedAmount: 200 });
+  });
+
+  it('still blocks empty, unknown or conflicting confirmed financial rows', () => {
+    const a = akt([node('minus', -10), node('plus', 12)]);
+    expect(f2QoralamaYozish(f2Indeks(a.daraxt), ij([])).toxtatish).toContain('Aktga kiradigan qator yo‘q.');
+    a.daraxt[1].hajm = null;
+    expect(f2QoralamaYozish(f2Indeks(a.daraxt), ij([['plus', 7]])).toxtatish[0]).toContain('qiymat noma');
+    a.daraxt[1] = { ...node('plus', 12), narx: 200, summa: 2400 };
+    const p = f2QoralamaYozish(f2Indeks(a.daraxt), ij([['minus', 7], ['plus', 7]]));
+    expect(() => exactWrite(p.nodes, p.mapping)).toThrow('turli narxlar');
+  });
+
   it('suggests an unresolved minus only, requires confirmation and preserves signed source totals', () => {
     const a = akt([node('minus', -10), node('plus', 12)]);
     const result = f2MinusTaklif(a, ij([['plus', 7]]));

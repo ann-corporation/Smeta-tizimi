@@ -41,9 +41,46 @@ async function start() {
   fireEvent.click(await screen.findByText('Plusni bog‘lash'));
 }
 describe('F2 independent working draft', () => {
+  async function restored() {
+    await start();
+    fireEvent.click(screen.getByRole('button', { name: 'Ish holatini saqlash (davom ettirish uchun)' }));
+    await screen.findByText(/Ish holati shu brauzerda saqlandi/);
+    saved!.source.documentId = 42;
+    cleanup(); render(<F2ImportV3 />);
+    fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
+    await screen.findByText('Qo‘lda bog‘lanish: 7');
+    m.cloudSave.mockImplementation(async (d: F2IshchiQoralama) => { d.server = { jobId: 11, versiya: 3, rows: new Map([['minus', 1], ['plus', 1]]) }; return d.server; });
+  }
+
+  it('saves a real draft act with confirmed positives while preserving unresolved negatives on server', async () => {
+    await restored();
+    m.create.mockResolvedValue({ ok: true, akt_id: 99 });
+    fireEvent.click(screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }));
+    await screen.findByText(/F2 qoralamasi saqlandi \(akt #99, 1 qator\)/);
+    expect(m.cloudSave).toHaveBeenCalledTimes(1);
+    const draft = m.cloudSave.mock.calls[0][0] as F2IshchiQoralama;
+    expect(draft.ij.otkaz.size).toBe(0); expect(draft.aktlar[0].daraxt[0].hajm).toBe(-10);
+    expect(m.create.mock.calls[0][0]).toMatchObject({ obyektId: 3, oy: '2026-10-01', qatorlar: [{
+      qatorId: 7, certifiedQuantity: 12, certifiedUnitPrice: 100, certifiedAmount: 1200,
+      rawSnapshot: { import_job_id: 11, partial: true, unresolved_count: 1, hujjat_id: 42 },
+    }] });
+    expect(m.cloudSave.mock.invocationCallOrder[0]).toBeLessThan(m.create.mock.invocationCallOrder[0]);
+    await screen.findByText(/1 ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi/);
+  });
+
+  it('does not write an act or claim success if the complete working backup fails', async () => {
+    await restored();
+    m.cloudSave.mockRejectedValue(new Error('STALE_DRAFT_VERSION'));
+    fireEvent.click(screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }));
+    await screen.findByText('STALE_DRAFT_VERSION');
+    expect(m.create).not.toHaveBeenCalled();
+    expect(screen.queryByText(/F2 qoralamasi saqlandi/)).toBeNull();
+    expect(saved!.ij.bog.get('plus')?.qatorId).toBe(7);
+  });
+
   it('saves unresolved minus, original file and manual links; remount restores without parsing/resetting decisions', async () => {
     await start();
-    expect((screen.getByRole('button', { name: 'Tekshirilgan F2 aktini yaratish' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Ish holatini saqlash (davom ettirish uchun)' }));
     await screen.findByText(/Ish holati shu brauzerda saqlandi/);
     expect(saved!.ij.bog.get('plus')?.qatorId).toBe(7);
@@ -53,7 +90,7 @@ describe('F2 independent working draft', () => {
     cleanup(); render(<F2ImportV3 />);
     fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Tekshirilgan F2 aktini yaratish' }) as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false));
     expect(m.parse).toHaveBeenCalledTimes(1); expect(m.match).toHaveBeenCalledTimes(1);
     expect(m.tree).toHaveBeenCalledTimes(2);
   });
@@ -76,8 +113,8 @@ describe('F2 independent working draft', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
     m.cloudSave.mockImplementation(async (d: F2IshchiQoralama) => { d.server = { jobId: 11, versiya: 3, rows: new Map([['minus', 1], ['plus', 1]]) }; return d.server; });
-    await waitFor(() => expect((screen.getByRole('button', { name: 'F2 qoralamasini saqlash' }) as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole('button', { name: 'F2 qoralamasini saqlash' }));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Server ish holatini saqlash' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Server ish holatini saqlash' }));
     await screen.findByText(/F2 ish qoralamasi serverda saqlandi: #11/);
     const d = m.cloudSave.mock.calls[0][0] as F2IshchiQoralama;
     expect(d.aktlar[0].daraxt[0].hajm).toBe(-10); expect(d.ij.bog.has('minus')).toBe(false);
@@ -91,6 +128,6 @@ describe('F2 independent working draft', () => {
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Obyekt' }).textContent).toContain('Amfiteatr'));
     fireEvent.click(screen.getByRole('button', { name: 'Serverdagi qoralamani davom ettirish' }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
-    expect((screen.getByRole('button', { name: 'Tekshirilgan F2 aktini yaratish' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

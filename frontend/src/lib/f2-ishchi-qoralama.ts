@@ -1,6 +1,6 @@
 import type { F2Akt } from './smeta-anatomiya/f2';
 import { f2Imzo, rzKalit, type F2MoslashNatija } from './f2-moslash-v3';
-import { f2Indeks, type IshJoyi } from './f2-moslash-v3/ishJoyi';
+import { f2Indeks, yozishManbasi, type F2Indeks, type IshJoyi } from './f2-moslash-v3/ishJoyi';
 import { sbT2F2ImportDraftRoyxat, sbT2F2ImportDraftSaqla, sbT2F2ImportJobHolat, sbT2F2ImportJobIlgarilash, sbT2F2ImportJobYarat } from '../api/supabase';
 
 /** Рабочее состояние, не акт и не финансовая запись. IndexedDB сохраняет Map/Set и исходный Blob. */
@@ -22,6 +22,16 @@ export interface F2IshchiQoralama {
 }
 
 export interface F2ServerQoralama { jobId: number; versiya: number; rows: Map<string, number> }
+
+/** Проекция чернового акта: только подтверждённые связи. Исходник и решения не изменяются. */
+export function f2QoralamaYozish(ind: F2Indeks, ij: IshJoyi) {
+  const qolgan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) &&
+    (!ij.bog.has(n.uid) || ij.bog.get(n.uid)!.holat === 'taklif'));
+  const tanlangan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) &&
+    ij.bog.has(n.uid) && ij.bog.get(n.uid)!.holat !== 'taklif');
+  // Сохраняем полный индекс родителей: ресурс остаётся ресурсом даже без связи его работы.
+  return { ...yozishManbasi({ ...ind, qatorlar: tanlangan }, ij), qolgan };
+}
 
 /** Сохраняет ВСЕ исходные строки, включая неразрешённые/отрицательные. Не создаёт акт. */
 export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, state?: F2ServerQoralama): Promise<F2ServerQoralama> {
