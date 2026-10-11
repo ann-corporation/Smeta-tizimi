@@ -22,6 +22,8 @@
  * xato turi.
  */
 
+import { t2ToliqOqi } from './t2-toliq-oqish';
+
 export type SbJavob<T> = {
   ok: boolean;
   qatorlar?: T[];
@@ -339,12 +341,12 @@ export type T2Qator = {
 };
 
 export function sbT2QatorHolatOl(obyektId: number, ustunlar?: string) {
-  return sbOqi<T2QatorHolat>({
+  return t2ToliqOqi<T2QatorHolat>(sbOqi, {
     jadval: 't2_qator_holat',
     filtr: 'obyekt_id=eq.' + obyektId,
     limit: 200000,
     ...(ustunlar ? { ustunlar } : {}),
-  });
+  }, 'qator_id');
 }
 
 /** `t2_akt_reestr` — «qancha kirdi = qancha tushdi» kafolat reestri
@@ -368,15 +370,19 @@ export function sbT2AktReestrOl(obyektId: number) {
     limit: 500,
   });
 }
-export function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
-  return sbOqi<T2Qator>({
+export async function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
+  const result = await t2ToliqOqi<T2Qator>(sbOqi, {
     jadval: 't2_daraxt',
     filtr: 'obyekt_id=eq.' + obyektId,
     // Teng tartibda id: qo'shimcha/zamena langar qatoridan keyin (t2_addrepl joylash qoidasi).
     tartib: 'tartib.asc,id.asc',
     limit: 200000,
     ...(ustunlar ? { ustunlar } : {}),
-  });
+  }, 'id');
+  // Keyset uchun ID; chizish/eksport uchun original tartib va langar ID.
+  result.qatorlar?.sort((a, b) =>
+    ((a.tartib ?? Infinity) - (b.tartib ?? Infinity)) || a.id - b.id);
+  return result;
 }
 
 /**

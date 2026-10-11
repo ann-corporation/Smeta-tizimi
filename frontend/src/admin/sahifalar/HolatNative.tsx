@@ -1,4 +1,5 @@
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
+import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Database, Eye, FileSpreadsheet, RefreshCw } from 'lucide-react';
@@ -58,6 +59,10 @@ export function HolatNative() {
     loading, yangilanmoqda, error: daraxtXato, yuklash, holatniYangila,
   } = useT2Daraxt(validId ? obyektId : null);
   const error = sahifaXato || daraxtXato;
+  // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
+  const marketLines = useMemo(() => daraxtXom
+    .filter(r => r.tur === 'rs' || r.tur === 'mat' || r.tur === 'ob')
+    .map(r => ({ id: String(r.id), name: r.nom, unit: r.birlik, price: marketReadPrice(r.narx) })), [daraxtXom]);
   const istisno = useOstatkaIstisnolari(validId ? obyektId : null);
   const selected = obyektlar.find((o) => o.id === obyektId) ?? null;
   const workspace = usePTOWorkspace();
@@ -338,7 +343,7 @@ export function HolatNative() {
           </section>
         )}
         {error && <section className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} />{error}</section>}
-        {validId && !loading && !error && <MarketPriceComparison objectId={obyektId} companyId={joriy?.id ?? null} />}
+        {validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
         {loading && tree.length === 0 && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
         {selected && !loading && !error && (
           <section className="karta flex flex-wrap gap-x-6 gap-y-1 p-3 text-[12px]">
