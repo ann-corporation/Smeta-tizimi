@@ -2267,6 +2267,11 @@
   "status": "ready_for_review",
   "owns": [
     "frontend/src/admin/sahifalar/F2ImportV3.tsx (working-draft persistence/resume and confirmed-row draft-act save; T2-ZAKAZCHIK-TOMON-001 system file picker unchanged)",
+    "frontend/functions/api/sb.ts (pagination count policy only; active IJRO read whitelist unchanged)",
+    "frontend/functions/api/sb-sahifalash.test.ts",
+    "supabase/migrations/20261106430000_t2_object_cursor_read_index_v1.sql",
+    "supabase/migrations/20261106430000_t2_object_cursor_read_index_v1.rollback.sql",
+    "supabase/migrations/20261106430000_t2_object_cursor_read_index_v1.acceptance.sql",
     "frontend/src/lib/f2-ishchi-qoralama.ts",
     "frontend/src/lib/f2-ishchi-qoralama.test.ts",
     "frontend/src/admin/sahifalar/F2ImportV3.qoralama.test.tsx",
@@ -2322,7 +2327,7 @@
     "docs/architecture/SMETA_ANATOMIYA_V1.md"
   ],
   "production_write_allowed": false,
-  "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained. Owner 2026-10-11 correction: unresolved rows including negatives must WARN, not block saving a canonical draft act from confirmed bindings. All original rows preserved in server working draft before act creation; no automatic approval."
+  "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained. Owner 2026-10-11 correction: unresolved rows including negatives must WARN, not block saving a canonical draft act from confirmed bindings. All original rows preserved in server working draft before act creation; no automatic approval. Owner urgent 2026-10-11: Amfiteatr/Suniy page latency; narrow read-pagination COUNT policy and additive object/id cursor index. No business values or tenant policy changes."
 }
   ]
 }

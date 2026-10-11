@@ -437,7 +437,6 @@ export const onRequestPost: PagesFunction<{
     const boshHeaders = {
       apikey: ctx.env.SUPABASE_KEY,
       Authorization: 'Bearer ' + ctx.env.SUPABASE_KEY,
-      Prefer: 'count=exact',
     };
 
     type SahifaNatija =
@@ -457,7 +456,9 @@ export const onRequestPost: PagesFunction<{
       // aks holda so'rov Supabase ga yetmasdan yiqilardi (katalog qidiruvi "keyinroq urinib ko'ring").
       const filtrUrl = (so.filtr || '').replace(/[^\x20-\x7e]+/g, (m) => encodeURIComponent(m));
       const url = baza + '?' + p.toString() + (filtrUrl ? '&' + filtrUrl : '') + (majburiyFiltr ? '&' + majburiyFiltr : '');
-      const r = await fetch(url, { headers: boshHeaders });
+      // Точное количество нужно один раз. Повторный COUNT над финансовым view
+      // на каждой параллельной странице нагружал БД без новой информации.
+      const r = await fetch(url, { headers: offset === 0 ? { ...boshHeaders, Prefer: 'count=exact' } : boshHeaders });
       const matn = await r.text();
       if (!r.ok) return { failed: true, status: r.status, detail: matn.slice(0, 500) };
       let bolak: unknown[];
