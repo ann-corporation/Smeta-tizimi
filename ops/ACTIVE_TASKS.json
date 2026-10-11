@@ -2323,6 +2323,29 @@
   ],
   "production_write_allowed": false,
   "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained."
-}
+},
+    {
+      "id": "T2-F2-PC-RESCUE-20261011",
+      "title": "Verified office Chrome F2 work rescue and server draft roundtrip",
+      "owner": "codex",
+      "machine": "pc-ishxona",
+      "branch": "codex/f2-rescue-pc-20261011",
+      "base_sha": "bf1057a98f5add4a6dbb7f67920da935a7ac4616",
+      "status": "completed",
+      "owns": [
+        "ops/mailbox/T2-F2-PC-RESCUE-20261011/",
+        "ops/ACTIVE_TASKS.json (append this receipt task only)"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/CURRENT_STATE.md",
+        "docs/governance/AGENT_COMMS_PROTOCOL.md",
+        "ops/handoff/T2_SMETACHI_RELIABILITY_20261009.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Owner explicitly authorized working-draft rescue only. Verified server draft8 roundtrip, original tab untouched, no financial act write. Receipt: ops/mailbox/T2-F2-PC-RESCUE-20261011/01-codex@pc-ishxona.md"
+    }
   ]
 }
