@@ -246,3 +246,13 @@ UNKNOWN: полная автоматическая цена исходного R
 4659 material exceptions включают UNKNOWN,это НЕ число найденных цен.
 190 ShNQ ingestion,расширение фактических catalog/hour sources остаются открыты.
 Task status ready_for_review; это release receipt,не объявление всей программы DONE.
+
+## 2026-10-11 — Codex/noutbuk: восстановлено открытие Amfiteatr va sahna
+Запрос владельца: NEW TIMES BUILDINGS после повторного импорта; объект127 не открывался,128 Stella открывался.
+DB project tuoyrzadkgoltpqkdiyx:127 содержит10537 строк (220 rz);128 содержит1360 строк. После обслуживания количества повторно проверены:10537/1360.
+До обслуживания: authenticated /api/sb при открытии127 возвращал502 для чтения состояния; в pg_stat_activity чтение t2_qator_holat работало28.01с. EXPLAIN оценивал новый объект в1 строку и выбирал Nested Loop с повторным агрегированием родителя. Статистика t2_qator не обновлялась после нового импорта (last_autoanalyze2026-10-08T22:57:28Z).
+APPLIED, production DB maintenance: ANALYZE public.t2_qator; ANALYZE public.t2_akt_qator; ANALYZE public.t2_akt;. Бизнес-строки, цены, исходники, RLS и схема не изменялись этим обслуживанием.
+После: Hash Join, оценка10390 против фактических10537; EXPLAIN ANALYZE SELECT из t2_qator_holat WHERE obyekt_id=127 LIMIT10000 — Execution Time475.701ms, Planning48.956ms. Это время SQL, не полное время браузера.
+TESTED authenticated production:127 открылся после reload и повторного входа,26 корневых ветвей видимы;128 открыт через список объектов,6 ветвей видимы. Сообщение ошибки отсутствует в обоих случаях. Screenshot вне git:C:/Temp/smeta-amfiteatr-reload-fixed-20261011.png.
+CODE_UNCHANGED / NO_NEW_DEPLOY: main193058dbcb40fee45e6e0cf1e220df99e1cf97a6; исправление применено обслуживанием DB, не новым frontend release.
+OPEN recurrence: автоматическое обновление статистики после bulk-import либо устойчивый план чтения t2_qator_holat требует отдельного owned backend scope и проверки финансовой семантики. Текущий инцидент устранён; постоянная защита от повторения не объявлена готовой. Не ослаблять tenant/RLS и не подменять NULL/0. Другие agent locks не затронуты.
