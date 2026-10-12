@@ -227,6 +227,9 @@ export function nakopitelniyVedomostHujjat(
     const i = reja.length;
     const row: Rej = { tur: node.tur, q: node.q, bolalar: [], daraja: node.daraja, ota };
     reja.push(row);
+    if (node.tur === 'bl' && node.q.smeta_hajm != null && node.q.smeta_hajm >= 0 && jamiH(node.q) > node.q.smeta_hajm + 1e-9) {
+      diqqat.push({ nom: nomi(node.q), sabab: `объем по утвержденным Ф-2 (${fmt(jamiH(node.q))}) превышает объем сметы (${fmt(node.q.smeta_hajm)} ${node.q.birlik ?? ''}); проверьте привязку, единицы и корректировочные акты` });
+    }
     if (node.tur === 'barg') {
       bargRows.push(i);
       const q = node.q;
@@ -311,7 +314,17 @@ export function nakopitelniyVedomostHujjat(
   reja.forEach((x, i) => {
     let r = 0;
     const q = x.q;
-    if (x.tur === 'rz') r = v.bolim(nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh), { daraja: x.daraja ?? 0 });
+    if (x.tur === 'rz') r = v.qator('jami', () => {
+      const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
+      c[2] = nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh);
+      for (const p of U.pul) {
+        if (p === U.ostS) { c[col(p)] = ostatok(x.bolalar); continue; }
+        c[col(p)] = pulYig(p, x.bolalar);
+      }
+      c[col(U.koPer)] = koSum(x.bolalar, 'per');
+      c[col(U.koJami)] = koSum(x.bolalar, 'jami');
+      return c;
+    }, { daraja: x.daraja ?? 0 });
     else if (x.tur === 'barg' || x.tur === 'bl') {
       const barg = x.tur === 'barg';
       const tartib = barg ? '' : String(++no);

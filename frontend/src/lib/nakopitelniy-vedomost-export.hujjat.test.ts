@@ -167,3 +167,23 @@ describe('Накопительная ведомость — tirik smeta (egasi 2
     expect(v.kataklar.find((k) => k.ref === `G${blR}`)?.f).toMatch(/SUMIF/);
   });
 });
+
+it('section headers show descendant money in each period instead of a merged empty money row', () => {
+  const rows = [
+    q({ tur: 'rz', qator_id: 910, ota_id: null, daraja: 0, nom: 'ВЕРХНИЙ РАЗДЕЛ' }),
+    q({ tur: 'rz', qator_id: 911, ota_id: 910, daraja: 1, nom: 'ВЛОЖЕННЫЙ РАЗДЕЛ' }),
+    q({ tur: 'bl', qator_id: 912, ota_id: 911, daraja: 2, nom: 'РАБОТА', smeta_hajm: 1 }),
+    q({ tur: 'mat', qator_id: 913, ota_id: 912, daraja: 3, nom: 'РЕСУРС', kat: 'МАТ', smeta_hajm: 1, smeta_summa: 15000000, oldingi_summa: 100000000, joriy_summa: 100000000 }),
+    q({ tur: 'rs', qator_id: 914, ota_id: 912, daraja: 3, nom: 'НЕИЗВЕСТНЫЙ', kat: 'МАШ', smeta_summa: null }),
+  ];
+  const h = nakopitelniyVedomostHujjat(rows, { obyektNom: 'О', davr: '2026-09' });
+  namunaSaqla('nakop-nested-null.xlsx', h.bytes);
+  const cells = hujjatTekshir(h.bytes, {}).varaqlar[0].kataklar;
+  for (const name of ['ВЕРХНИЙ РАЗДЕЛ','ВЛОЖЕННЫЙ РАЗДЕЛ','РАБОТА']) {
+    const row = cells.find(c => c.matn === name)!.ref.replace(/^[A-Z]+/,'');
+    const amount = cells.find(c => c.ref === `G${row}`)!;
+    expect(Number(amount.v)).toBe(15000000); expect(amount.f).toMatch(/^SUMIF/);
+  }
+  expect(h.jamilar.smeta).toBe(15000000); expect(h.jamilar.jami).toBe(200000000);
+  expect(rows[4].smeta_summa).toBeNull();
+});

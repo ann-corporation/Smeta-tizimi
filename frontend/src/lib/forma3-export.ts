@@ -164,7 +164,7 @@ export interface F3Qiymat {
 }
 /** Bolalari bor ish (tur, qiymatlari barglardan). */
 export interface F3Ish { obyekt_id: number; q: NakopitelniyQator; bolalar: F3Qiymat[]; f2H: F3LeafF2 }
-export interface F3Razdel { obyekt_id: number; nom: string; ishlar: Array<F3Ish | F3Qiymat> }
+export interface F3Razdel { obyekt_id: number; nom: string; q?: NakopitelniyQator; ishlar: Array<F3Ish | F3Qiymat> }
 export interface F3Guruh { obyekt_id: number; nom: string; asosiy: boolean }
 
 export interface F3Model {
@@ -200,7 +200,7 @@ export function f3Model(m: Forma3Manba, o: Pick<Forma3ExportOptions, 'davr' | 'o
     for (const q of ob.qatorlar) {
       if (q.tur === 'rz') {
         ish = null;
-        rz = { obyekt_id: ob.obyekt_id, nom: q.nom ?? 'БЕЗ РАЗДЕЛА', ishlar: [] };
+        rz = { obyekt_id: ob.obyekt_id, nom: q.nom ?? 'БЕЗ РАЗДЕЛА', q, ishlar: [] };
         razdellar.push(rz);
         continue;
       }
@@ -262,6 +262,12 @@ export function f3Model(m: Forma3Manba, o: Pick<Forma3ExportOptions, 'davr' | 'o
     if (r.oy < o.davr) t.boshidan += r.hajm;
     if (r.oy < o.davr && r.oy.startsWith(yil)) t.yildan += r.hajm;
     if (r.oy === o.davr) t.davr += r.hajm;
+  }
+  for (const rz of razdellar) for (const x of rz.ishlar) {
+    const base = x.q.smeta_hajm, accepted = x.f2H.boshidan + x.f2H.davr;
+    if (base != null && base >= 0 && accepted > base + 1e-9) diqqat.push({
+      nom: nomOf(x.q), sabab: `объем по утвержденным Ф-2 (${accepted} ${x.q.birlik ?? ''}) превышает объем сметы (${base}); проверьте привязку, единицы и корректировочные акты — процент не ограничен искусственно`,
+    });
   }
   if (yetim.length) {
     const nam = yetim.slice(0, 3).map((x) => `«${x.akt_raqam ?? 'akt'}» ${x.oy}: ${x.summa.toFixed(2)}`).join('; ');
@@ -550,10 +556,10 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
 
   const qiymatlar = (x: F3Qiymat): QatorMalumot => ({ smeta: x.smetnaya, b: x.f2.boshidan, y: x.f2.yildan, d: x.f2.davr });
   const ishYig = (x: F3Ish): QatorMalumot => {
-    let smeta: number | null = 0;
+    let smeta: number | null = null;
     const s = { b: 0, y: 0, d: 0 };
     for (const c of x.bolalar) {
-      if (c.smetnaya == null) smeta = null; else if (smeta != null) smeta += c.smetnaya;
+      if (c.smetnaya != null) smeta = (smeta ?? 0) + c.smetnaya;
       s.b += c.f2.boshidan; s.y += c.f2.yildan; s.d += c.f2.davr;
     }
     return { smeta, ...s };
@@ -573,25 +579,46 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   const oyNum = (oy: string) => Number(oy.slice(0, 7).replace('-', ''));
   const davrNum = oyNum(o.davr);
   const yilBoshNum = Number(o.davr.slice(0, 4) + '01');
+  const rzById = new Map(model.razdellar.filter(r => r.q).map(r => [`${r.obyekt_id}:${r.q!.qator_id}`, r]));
+  const parentOf = (r: F3Razdel) => r.q?.ota_id == null ? undefined : rzById.get(`${r.obyekt_id}:${r.q.ota_id}`);
+  const under = (child: F3Razdel, ancestor: F3Razdel) => {
+    const seen = new Set<F3Razdel>();
+    for (let r: F3Razdel | undefined = child; r && !seen.has(r); r = parentOf(r)) {
+      if (r === ancestor) return true;
+      seen.add(r);
+    }
+    return false;
+  };
+  const descendants = (r: F3Razdel) => model.razdellar.filter(child => under(child, r));
+  const visibleSections = model.razdellar.filter(r => descendants(r).some(c => c.ishlar.length));
+  // План адресов включает вложенные разделы; итог объекта складывает только корни.
+  const plannedRows = new Map<F3Razdel, number>();
+  let plannedRow = v.r, plannedObject: number | null = null;
+  for (const r of visibleSections) {
+    if (r.obyekt_id !== plannedObject) { plannedRow += plannedObject == null ? 2 : 1; plannedObject = r.obyekt_id; }
+    plannedRows.set(r, plannedRow); plannedRow += 1 + r.ishlar.length;
+  }
   let oldingiObyekt: number | null = null;
-  for (const rz of model.razdellar) {
-    if (!rz.ishlar.length) continue; // bo'sh (fayl nomi/guruh) razdel — hujjatga kirmaydi
+  for (const rz of visibleSections) {
     if (rz.obyekt_id !== oldingiObyekt) {
       const g = model.guruhlar.find((x) => x.obyekt_id === rz.obyekt_id);
       bolimYoz(g?.asosiy === false ? `в том числе — ${g.nom}` : (g?.nom ?? o.obyektNom));
       if (oldingiObyekt == null) bolimYoz('I. СТРОИТЕЛЬНО-МОНТАЖНЫЕ РАБОТЫ');
       oldingiObyekt = rz.obyekt_id;
     }
+    // Известная сумма не исчезает из-за неизвестного ресурса: он остаётся в diqqat.
     // Razdel qatori — o'z ishlari yig'indisi (jonli SUM) va % (pul bo'yicha).
     const ishQatorlar: number[] = [];
     const rzQ = v.r;
-    let rzS: number | null = 0, rzB = 0, rzY = 0, rzD = 0;
-    for (const x of rz.ishlar) {
+    let rzS: number | null = null, rzB = 0, rzY = 0, rzD = 0;
+    for (const x of descendants(rz).flatMap(r => r.ishlar)) {
       const d = 'bolalar' in x ? ishYig(x) : qiymatlar(x);
-      if (d.smeta == null) rzS = null; else if (rzS != null) rzS += d.smeta;
+      if (d.smeta != null) rzS = (rzS ?? 0) + d.smeta;
       rzB += d.b; rzY += d.y; rzD += d.d;
     }
-    const rzSatr = (c: string) => (rz.ishlar.length ? `SUM(${c}${rzQ + 1}:${c}${rzQ + rz.ishlar.length})` : '0');
+    const ranges = descendants(rz).filter(r => r.ishlar.length).map(r => ({ start: plannedRows.get(r)! + 1, end: plannedRows.get(r)! + r.ishlar.length }));
+    const rzSatr = (c: string) => ranges.map(r => `SUM(${c}${r.start}:${c}${r.end})`).join('+') || '0';
+    if (plannedRows.get(rz) !== rzQ) throw new Error('F3_SECTION_ROW_MISMATCH');
     v.qator('jami', (r) => {
       const c: Qiymat[] = Array(USTUNLAR.length).fill(null);
       c[1] = rz.nom; c[2] = 'сум';
@@ -601,7 +628,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
       c[15] = { f: rzSatr('P'), v: r2(rzD) }; c[14] = foizF('P', 'G', r, ulush(rzD, rzS));
       return c;
     }, { daraja: 1 });
-    razdelQatorlari.push(rzQ);
+    if (!parentOf(rz)) razdelQatorlari.push(rzQ);
     for (const x of rz.ishlar) {
       const q = x.q;
       const d = 'bolalar' in x ? ishYig(x) : qiymatlar(x);

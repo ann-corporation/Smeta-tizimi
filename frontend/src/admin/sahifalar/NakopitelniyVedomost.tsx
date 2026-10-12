@@ -208,13 +208,13 @@ function Sessiya({ companyId }: { companyId: number }) {
     const otaBor = new Set<number>();
     for (const q of qatorlar) if (q.ota_id != null) otaBor.add(q.ota_id);
     const byId = new Map(qatorlar.map((q) => [q.qator_id, q]));
-    const m = new Map<number, { smeta: number; oldingi: number; joriy: number; jami: number; oy: Map<string, number> }>();
+    const m = new Map<number, { smeta: number | null; oldingi: number; joriy: number; jami: number; oy: Map<string, number> }>();
     for (const q of qatorlar) {
       if (q.tur === 'rz' || otaBor.has(q.qator_id)) continue;
       for (let o = q.ota_id != null ? byId.get(q.ota_id) : undefined; o; o = o.ota_id != null ? byId.get(o.ota_id) : undefined) {
-        if (o.tur !== 'rz') continue;
-        const x = m.get(o.qator_id) ?? { smeta: 0, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
-        x.smeta += q.smeta_summa ?? 0; x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
+        if (o.tur !== 'rz' && o.tur !== 'bl') continue;
+        const x = m.get(o.qator_id) ?? { smeta: null, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
+        if (q.smeta_summa != null) x.smeta = (x.smeta ?? 0) + q.smeta_summa; x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
         for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, (x.oy.get(oy) ?? 0) + v.summa);
         m.set(o.qator_id, x);
       }
@@ -223,7 +223,11 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [qatorlar, oyKesim]);
   /** Ko'rinadigan davr ustunlari: oylar (bor bo'lsa) yoki eski "oldingi / joriy". */
   const oyUstunlar = oyKesim && oyKesim.oylar.length ? oyKesim.oylar : null;
-  const oyQ = (id: number, oy: string) => oyKesim?.qiymat.get(id)?.get(oy);
+  const oyQ = (id: number, oy: string) => {
+    const source = oyKesim?.qiymat.get(id)?.get(oy);
+    const sum = rzJami.get(id)?.oy.get(oy);
+    return sum == null ? source : { hajm: source?.hajm ?? 0, summa: sum };
+  };
   const sahifa = gorunumRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   const sahifaSoni = Math.max(1, Math.ceil(gorunumRows.length / PAGE_SIZE));
 
@@ -524,7 +528,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                 {sahifa.map(q => q.tur === 'rz' ? (
                   <tr key={q.qator_id} className="bg-surface-2/70 text-right font-semibold text-text">
                     <td colSpan={2} className="px-2 py-1.5 text-left sticky left-0 bg-surface-2/70" style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }}>{q.nom}</td>
-                    <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id) ? <FmtN val={rzJami.get(q.qator_id)!.smeta} /> : ''}</td>
+                    <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.smeta != null ? <FmtN val={rzJami.get(q.qator_id)!.smeta!} /> : ''}</td>
                     <td className="border-l border-border" />
                     {oyUstunlar ? oyUstunlar.map((oy) => <Fragment key={oy}><td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oy.get(oy) ? <FmtN val={rzJami.get(q.qator_id)!.oy.get(oy)!} /> : '—'}</td></Fragment>) : <>
                       <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oldingi ? <FmtN val={rzJami.get(q.qator_id)!.oldingi} /> : '—'}</td>
@@ -535,39 +539,41 @@ function Sessiya({ companyId }: { companyId: number }) {
                   </tr>
                 ) : (
                   (() => {
+                    const sum = q.tur === 'bl' ? rzJami.get(q.qator_id) : undefined;
+                    const amount = sum ? { smeta: sum.smeta, oldingi: sum.oldingi, joriy: sum.joriy, jami: sum.jami } : { smeta: q.smeta_summa, oldingi: q.oldingi_summa, joriy: q.joriy_summa, jami: q.jami_summa };
                     const ledger = buildPtoLineLedger({
                       lineId: q.qator_id,
                       baselineQuantity: q.smeta_hajm,
                       baselineUnitPrice: q.smeta_narx,
-                      baselineAmount: q.smeta_summa,
+                      baselineAmount: amount.smeta,
                       factQuantity: q.fakt_hajm,
                       factAmount: q.fakt_summa,
                       previousApprovedQuantity: q.oldingi_hajm,
-                      previousApprovedAmount: q.oldingi_summa,
+                      previousApprovedAmount: amount.oldingi,
                       currentApprovedQuantity: q.joriy_hajm,
-                      currentApprovedAmount: q.joriy_summa,
+                      currentApprovedAmount: amount.joriy,
                       approvedF2Quantity: q.jami_hajm,
-                      approvedF2Amount: q.jami_summa,
+                      approvedF2Amount: amount.jami,
                     });
                     return <tr key={q.qator_id} className="border-t border-border/60 hover:bg-surface-2/40 text-right">
                     <td className={'text-left px-2 py-1 sticky left-0 bg-surface ' + (q.tur === 'bl' ? 'font-medium' : '')} style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }} title={q.ozgarish_izoh || q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}{q.ozgarish_izoh && <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent">{q.zamena ? 'zamena' : 'qo‘shimcha'}</span>}</td>
                     <td className="text-center px-2 py-1">{q.birlik || '—'}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums"><FmtN val={jamiHajmSafe(q)} kasr={3} /></td>
                     <td className="px-2 py-1 tabular-nums">{q.smeta_narx == null ? '—' : <FmtN val={q.smeta_narx} />}</td>
-                    <td className="px-2 py-1 tabular-nums"><FmtN val={q.smeta_summa ?? 0} /></td>
+                    <td className="px-2 py-1 tabular-nums">{amount.smeta == null ? '—' : <FmtN val={amount.smeta} />}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.fakt_hajm ? <FmtN val={q.fakt_hajm} kasr={3} /> : '—'}</td>
                     {oyUstunlar ? oyUstunlar.map((oy) => { const x = oyQ(q.qator_id, oy); return <Fragment key={oy}>
                       <td className="px-2 py-1 border-l border-border tabular-nums">{x?.hajm ? <FmtN val={x.hajm} kasr={3} /> : '—'}</td>
                       <td className="px-2 py-1 tabular-nums">{x?.summa ? <FmtN val={x.summa} /> : '—'}</td>
                     </Fragment>; }) : <>
                       <td className="px-2 py-1 border-l border-border tabular-nums">{q.oldingi_hajm ? <FmtN val={q.oldingi_hajm} kasr={3} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{q.oldingi_summa ? <FmtN val={q.oldingi_summa} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{amount.oldingi ? <FmtN val={amount.oldingi} /> : '—'}</td>
                       <td className="px-2 py-1 border-l border-border tabular-nums">{q.joriy_hajm ? <FmtN val={q.joriy_hajm} kasr={3} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{q.joriy_hajm ? <FmtN val={Math.round((q.joriy_summa / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{q.joriy_summa ? <FmtN val={q.joriy_summa} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{q.joriy_hajm ? <FmtN val={Math.round((amount.joriy / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
+                      <td className="px-2 py-1 tabular-nums">{amount.joriy ? <FmtN val={amount.joriy} /> : '—'}</td>
                     </>}
                     <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.jami_hajm ? <FmtN val={q.jami_hajm} kasr={3} /> : '—'}</td>
-                    <td className="px-2 py-1 tabular-nums">{q.jami_summa ? <FmtN val={q.jami_summa} /> : '—'}</td>
+                    <td className="px-2 py-1 tabular-nums">{amount.jami ? <FmtN val={amount.jami} /> : '—'}</td>
                     <td className="px-2 py-1 border-l border-border tabular-nums">{ledger.smetaRemainingQuantity == null ? '—' : <FmtN val={ledger.smetaRemainingQuantity} kasr={3} />}</td>
                     <td className={'px-2 py-1 tabular-nums font-medium ' + (ledger.overCertified ? 'text-danger' : '')}>{ledger.f2AvailableQuantity == null ? '—' : <FmtN val={ledger.f2AvailableQuantity} kasr={3} />}</td>
                     <td className="px-2 py-1 tabular-nums">{ledger.contractualRemainingQuantity == null ? '—' : <FmtN val={ledger.contractualRemainingQuantity} kasr={3} />}</td>

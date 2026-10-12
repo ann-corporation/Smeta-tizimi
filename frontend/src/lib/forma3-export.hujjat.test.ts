@@ -10,6 +10,7 @@ import {
   forma3Hujjat, f3Model, f3ModelQatorlar, f3QiymatIndekslar, f3UstunlarNatijasi,
   olibTashlanganlar, f3DavrMatni, type Forma3Manba,
 } from './forma3-export';
+import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 import { kategoriyaKf } from './nakrutka-podval';
 import { hujjatTekshir, type HujjatHisobot } from './hujjat-yozuvchi';
 
@@ -291,4 +292,29 @@ describe('F3 — manba varag‘i va SUMIFS (egasi 2026-09-30: "qayerdan olingani
     const m = t.varaqlar.find((x) => x.nom === 'Ф-2 (источник)')!;
     expect(m.kataklar.filter((k) => k.matn === 'сумма').length).toBe(4);
   });
+});
+
+it('nested sections retain known money with NULL resources, without double counting or hiding physical overruns', () => {
+  const r = q({ tur: 'rz', qator_id: 910, ota_id: null, daraja: 0, nom: 'ВЕРХНИЙ РАЗДЕЛ' });
+  const sub = q({ tur: 'rz', qator_id: 911, ota_id: 910, daraja: 1, nom: 'ВЛОЖЕННЫЙ РАЗДЕЛ' });
+  const work = q({ tur: 'bl', qator_id: 912, ota_id: 911, daraja: 2, nom: 'РАБОТА С НЕПОЛНОЙ ЦЕНОЙ', birlik: '100М3', smeta_hajm: 0.1, smeta_summa: 15000000 });
+  const known = q({ tur: 'mat', qator_id: 913, ota_id: 912, daraja: 3, nom: 'ИЗВЕСТНЫЙ РЕСУРС', kat: 'МАТ', smeta_summa: 15000000 });
+  const unknown = q({ tur: 'rs', qator_id: 914, ota_id: 912, daraja: 3, nom: 'НЕИЗВЕСТНЫЙ РЕСУРС', kat: 'МАШ', smeta_summa: null });
+  const m: Forma3Manba = { nakopitelniy: [{ obyekt_id: 1, obyektNom: 'О', qatorlar: [r,sub,work,known,unknown] }],
+    f2Oylik: [{ obyekt_id: 1, qator_id: 913, oy: '2026-09', summa: 200000000 }],
+    f2Hajm: [{ obyekt_id: 1, qator_id: 912, oy: '2026-09', hajm: 2 }] };
+  const h = forma3Hujjat(m, { obyektNom: 'О', davr: '2026-09', nakrutka: NK });
+  namunaSaqla('f3-nested-null.xlsx', h.bytes);
+  const cells = hisobotVaraq(hujjatTekshir(h.bytes, {})).kataklar;
+  const row = (text: string) => cells.find(c => c.matn === text)!.ref.replace(/^[A-Z]+/,'');
+  for (const name of [r.nom!,sub.nom!,work.nom!]) {
+    expect(Number(cells.find(c => c.ref === `F${row(name)}`)!.v)).toBe(15000000);
+    expect(Number(cells.find(c => c.ref === `P${row(name)}`)!.v)).toBe(200000000);
+  }
+  const total = row('ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО ОБЪЕКТУ');
+  expect(cells.find(c => c.ref === `F${total}`)!.f).toBe(`F${row(r.nom!)}`);
+  expect(Number(cells.find(c => c.ref === `O${row(work.nom!)}`)!.v)).toBe(2000);
+  expect(h.diqqat.some(d => d.nom.includes(unknown.nom!))).toBe(true);
+  expect(h.diqqat.some(d => d.sabab.includes('превышает объем сметы'))).toBe(true);
+  expect(unknown.smeta_summa).toBeNull();
 });
