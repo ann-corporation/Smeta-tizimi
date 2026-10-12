@@ -308,6 +308,8 @@ export function nakopitelniyVedomostHujjat(
     return bl.reduce((s, k) => s + (reja[k].q!.smeta_summa ?? 0) - jamiS(reja[k].q!), 0);
   };
   const n = (x: number | null | undefined): Qiymat => (x == null ? null : x);
+  // Excel читает числа с 15 значащими цифрами; сравнение должно использовать ту же точность.
+  const excelSource = (x: number) => Number(x.toPrecision(15));
   const col = (h: string) => U.idx(h);
   const jamiHF = (rr: number) => U.davrH.map((h) => `${h}${rr}`).join('+');
   const jamiSF = (rr: number) => U.davrS.map((h) => `${h}${rr}`).join('+');
@@ -336,12 +338,11 @@ export function nakopitelniyVedomostHujjat(
         const ota = barg && x.ota != null ? reja[x.ota] : undefined;
         const normaF = barg && q!.norma != null && ota?.tur === 'bl' && ota.q?.smeta_hajm != null && q!.smeta_hajm != null;
         const normFormula = `ROUND(${q!.norma}*E${rowOf(x.ota ?? 0)},6)`;
-        const normDrift = normaF && Math.abs(Math.round(q!.norma! * ota!.q!.smeta_hajm! * 1e6) / 1e6 - q!.smeta_hajm!) > 1e-10;
         // Сохранённый источник важнее округлённой нормы. При изменении работы формула остаётся живой.
-        c[4] = normaF ? { f: normDrift ? `IF(E${rowOf(x.ota!)}=${ota!.q!.smeta_hajm},${q!.smeta_hajm},${normFormula})` : normFormula, v: q!.smeta_hajm! } : n(q!.smeta_hajm);
+        c[4] = normaF ? { f: `IF(E${rowOf(x.ota!)}=${excelSource(ota!.q!.smeta_hajm!)},${excelSource(q!.smeta_hajm!)},${normFormula})`, v: q!.smeta_hajm! } : n(q!.smeta_hajm);
         c[5] = barg ? n(q!.smeta_narx) : null;
         c[6] = barg
-          ? (q!.smeta_narx != null && q!.smeta_hajm != null && q!.smeta_summa != null ? { f: `IF(OR(E${rr}="",F${rr}=""),"",${Math.round(q!.smeta_hajm * q!.smeta_narx * 100) / 100 !== q!.smeta_summa ? `IF(AND(E${rr}=${q!.smeta_hajm},F${rr}=${q!.smeta_narx}),${q!.smeta_summa},ROUND(E${rr}*F${rr},2))` : `ROUND(E${rr}*F${rr},2)`})`, v: q!.smeta_summa } : n(q!.smeta_summa))
+          ? (q!.smeta_narx != null && q!.smeta_hajm != null && q!.smeta_summa != null ? { f: `IF(OR(E${rr}="",F${rr}=""),"",IF(AND(E${rr}=${excelSource(q!.smeta_hajm)},F${rr}=${excelSource(q!.smeta_narx)}),${q!.smeta_summa},ROUND(E${rr}*F${rr},2)))`, v: q!.smeta_summa } : n(q!.smeta_summa))
           : pulYig('G', x.bolalar);
         c[7] = q!.fakt_hajm;
         davrlar.forEach((d, k) => {

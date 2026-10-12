@@ -162,8 +162,8 @@ describe('Накопительная ведомость — tirik smeta (egasi 2
     const v = hujjatTekshir(bytes, { ruxsat: [/^O$/] }).varaqlar[0];
     const r = (m: string) => v.kataklar.find((k) => k.matn === m)!.ref.replace(/^[A-Z]+/, '');
     const blR = r('ИШ'), rsR = r('ТРУД');
-    expect(v.kataklar.find((k) => k.ref === `E${rsR}`)?.f).toBe(`ROUND(2*E${blR},6)`);
-    expect(v.kataklar.find((k) => k.ref === `G${rsR}`)?.f).toBe(`IF(OR(E${rsR}="",F${rsR}=""),"",ROUND(E${rsR}*F${rsR},2))`);
+    expect(v.kataklar.find((k) => k.ref === `E${rsR}`)?.f).toBe(`IF(E${blR}=100,200,ROUND(2*E${blR},6))`);
+    expect(v.kataklar.find((k) => k.ref === `G${rsR}`)?.f).toBe(`IF(OR(E${rsR}="",F${rsR}=""),"",IF(AND(E${rsR}=200,F${rsR}=5000),1000000,ROUND(E${rsR}*F${rsR},2)))`);
     expect(v.kataklar.find((k) => k.ref === `G${blR}`)?.f).toMatch(/SUMIF/);
   });
 });
@@ -199,4 +199,14 @@ it('unchanged source survives rounded norm/price drift; manual edits still recal
   expect(c.find(k=>k.ref===`E${row('РЕСУРС')}`)!.f).toBe(`IF(E${row('РАБОТА')}=3,1.0000001,ROUND(0.3333333*E${row('РАБОТА')},6))`);
   expect(c.find(k=>k.ref===`G${row('РЕСУРС')}`)!.f).toContain('10.07,ROUND(');
   expect(resource.smeta_summa).toBe(10.07);
+});
+
+it('source comparisons respect Excel 15-digit numbers rather than binary tails', () => {
+  const resource=q({tur:'mat',nom:'ДОСКА',kat:'МАТ',smeta_hajm:0.089012,smeta_narx:4156249.9999999995,smeta_summa:369956.12});
+  const h=nakopitelniyVedomostHujjat([resource],{obyektNom:'О',davr:'2026-09'});
+  namunaSaqla('nakop-excel-precision.xlsx',h.bytes);
+  const c=hujjatTekshir(h.bytes,{}).varaqlar[0].kataklar;
+  const row=c.find(k=>k.matn==='ДОСКА')!.ref.replace(/^[A-Z]+/,'');
+  expect(c.find(k=>k.ref===`G${row}`)!.f).toContain(`F${row}=4156250`);
+  expect(resource.smeta_narx).toBe(4156249.9999999995);
 });
