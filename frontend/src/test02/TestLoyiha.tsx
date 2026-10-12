@@ -152,7 +152,7 @@ export default function TestLoyiha() {
                 <tr key={l.id} className="hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
                     <FolderKanban size={16} className="text-indigo-400" />
-                    {l.nom}
+                    <button type="button" className="text-left hover:text-accent" onClick={() => navigate(`/admin/obyektlar?loyiha=${l.id}`)}>{l.nom}</button>
                   </td>
                   <td className="px-6 py-4 text-xs font-mono text-zinc-500 truncate max-w-[150px]" title={l.id.toString()}>
                     <ShieldCheck size={12} className="inline mr-1 text-emerald-500/50" />

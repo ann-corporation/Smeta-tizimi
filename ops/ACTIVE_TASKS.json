@@ -2262,8 +2262,12 @@
   "machine": "noutbuk",
   "branch": "codex/smeta-ai-reliability-v2",
   "base_sha": "bfe6d13369583667bb9d261cf3eb2037a45c7819",
-  "status": "ready_for_review",
+  "status": "in_progress",
   "owns": [
+    "frontend/src/components/pto-workspace/",
+    "frontend/src/test02/TestObyektlar.tsx",
+    "frontend/src/test02/TestLoyiha.tsx",
+    "frontend/src/admin/sahifalar/HolatNative.workspace.test.tsx",
     "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
     "frontend/src/lib/forma3-export.ts",
     "frontend/src/lib/forma3-export.hujjat.test.ts",

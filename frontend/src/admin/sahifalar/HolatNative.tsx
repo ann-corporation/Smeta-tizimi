@@ -1,7 +1,8 @@
+import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Database, Eye, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -39,6 +40,9 @@ import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPane
 export function HolatNative() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedPanel = searchParams.get('panel');
+  const [activeTab, setActiveTab] = useState(requestedPanel === 'smeta' ? 'yuklash' : 'smeta');
   const { joriy } = useKompaniya();
   const [tomonlar, setTomonlar] = useHujjatTomonlari(joriy?.id);
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
@@ -58,13 +62,14 @@ export function HolatNative() {
     rows: daraxtXom, states: holatXom, tree, price: priceControlLines,
     loading, yangilanmoqda, error: daraxtXato, yuklash, holatniYangila,
   } = useT2Daraxt(validId ? obyektId : null);
+  useEffect(() => { setOchiqPanel(null); setActiveTab(requestedPanel === 'smeta' ? 'yuklash' : 'smeta'); }, [obyektId, joriy?.id, requestedPanel]);
   const error = sahifaXato || daraxtXato;
   // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
-  const marketLines = useMemo(() => daraxtXom
+  const marketLines = useMemo(() => activeTab === 'narx' ? daraxtXom
     .filter(r => r.tur === 'rs' || r.tur === 'mat' || r.tur === 'ob')
-    .map(r => ({ id: String(r.id), name: r.nom, unit: r.birlik, price: marketReadPrice(r.narx) })), [daraxtXom]);
+    .map(r => ({ id: String(r.id), name: r.nom, unit: r.birlik, price: marketReadPrice(r.narx) })) : [], [daraxtXom, activeTab]);
   const istisno = useOstatkaIstisnolari(validId ? obyektId : null);
-  const selected = obyektlar.find((o) => o.id === obyektId) ?? null;
+  const selected = obyektlar.find((o) => o.id === obyektId && o.kompaniya_id === joriy?.id) ?? null;
   const workspace = usePTOWorkspace();
   /* 2026-09-11 (egasi: "shu tepadagi belgilanadigan joy naxxuy kerak o'zi?"):
      eksport konteksti endi TEPADAGI PTO scope'ga emas, SAHIFA ochgan obyektga
@@ -88,7 +93,8 @@ export function HolatNative() {
 
   useEffect(() => {
     let active = true;
-    if (!joriy?.id) { setObyektlar([]); return; }
+    setObyektlar([]);
+    if (!joriy?.id) return;
     void sbT2ObyektlarOlKomp(joriy.id).then((r) => {
       if (!active) return;
       if (!r.ok) { setError('Obyektlar kanonik ro‘yxatdan o‘qilmadi.'); return; }
@@ -289,19 +295,58 @@ export function HolatNative() {
   }, [obyektId, validId, holatniYangila]);
 
   return (
-    <Sahifa sarlavha="Ishchi smeta / LRV" tavsif="Supabase kanonik qatorlari va tasdiqlangan F2 tarixi">
+    <Sahifa sarlavha="Obyekt ish joyi" tavsif="Smeta, bajarilgan ishlar va hujjatlar bir joyda">
       {korinish.oyna}
-      <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="flex min-h-0 flex-col gap-3">
+        {validId && <ObjectTrail companyId={joriy?.id ?? null} objectId={obyektId} />}
         <section className="karta flex flex-wrap items-end gap-3 p-3">
           <button onClick={() => navigate('/admin/obyektlar')} className="rounded-lg border border-border p-2 text-text-dim hover:text-text" aria-label="Obyektlarga qaytish"><ArrowLeft size={17} /></button>
           <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text">
-            Kanonik obyekt
+            {t('Obyekt')}
             <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const object = obyektlar.find((item) => item.id === nextId); if (Number.isSafeInteger(nextId) && nextId > 0) { workspace.setObjectId(nextId); navigate(`/admin/holat/${nextId}?obyekt=${nextId}&obyekt_nomi=${encodeURIComponent(object?.nom || '')}`); } else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-text outline-none focus:border-accent">
               <option value="">-- obyektni tanlang --</option>
               {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
             </select>
           </label>
           <button onClick={() => void yuklash()} disabled={!validId || loading || yangilanmoqda} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] font-medium hover:bg-surface-2 disabled:opacity-40"><RefreshCw size={14} className={yangilanmoqda ? 'animate-spin' : undefined} /> Yangilash</button>
+          {validId && tree.length > 0 && !exportGate.ok && (
+            <span role="status" className="max-w-[280px] text-[11px] text-warn">
+              Excel eksporti bloklangan: {exportBlockReason}. PTO scope’da loyiha, davr, source hujjat va revisionni tanlang.
+            </span>
+          )}
+          {validId && <button onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white">Fakt kiritish</button>}
+
+        </section>
+
+        {!validId && (
+          <section className="karta border-warn/40 bg-warn/5 p-4 text-[13px] text-text-dim">
+            Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.
+          </section>
+        )}
+        {error && <section className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} />{error}</section>}
+
+        {loading && tree.length === 0 && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
+        {selected && !loading && !error && (
+          <section className="karta flex flex-wrap gap-x-6 gap-y-1 p-3 text-[12px]">
+            <span><Database size={13} className="mr-1 inline text-accent" />{selected.nom}</span>
+            <span className="text-text-dim">Smeta: <b className="text-text"><FmtN val={smetaJami} /></b></span>
+            <span className="text-text-dim">Fakt: <b className="text-text"><FmtN val={faktJami} /></b></span>
+            <span className="text-text-dim">Tasdiqlangan F2: <b className="text-text"><FmtN val={f2Jami} /></b></span>
+          </section>
+        )}
+        {validId && !loading && !error && tree.length === 0 && <section className="karta p-5 text-[13px] text-text-dim">Bu obyektda kanonik smeta qatorlari yo‘q.</section>}
+        {/* Ikki xil tahrir bir-birini to'ldiradi: `onFaktSave` — bajarilgan
+            hajm (Fakt) uchun, `onQatorTahrirlandi` — smeta qatorining o'z
+            maydonlari (nom/hajm/narx/birlik/kat) tahriridan keyin daraxtni
+            qayta yuklash uchun. */}
+        {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="karta flex flex-wrap gap-2 p-2">
+          {(['smeta', 'resurs', 'narx', 'hujjat', 'yuklash'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',hujjat:'Hujjatlar va eksport',yuklash:'Smeta yuklash'})[tab])}</button>)}
+          <button className="tugma ml-auto" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
+          <button className="tugma" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
+        </nav>}
+        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash} /></div>}
+        {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
+        {activeTab === 'hujjat' && selected && <section className="karta flex flex-wrap items-center gap-2 p-3" aria-label={t('Hujjatlar va eksport')}>
           {validId && tree.length > 0 && (<>
             <button onClick={() => void eksportQil(false)} disabled={eksportBolmoqda || !exportGate.ok}
               title={exportGate.ok ? t('ЛРВ: butun smeta Ф-2 shaklida — guruhlash, filtr, fakt / F2 / ostatka, resurs vedomosti va svod formulalarda') : `Eksport bloklangan: ${exportBlockReason}`}
@@ -328,52 +373,24 @@ export function HolatNative() {
               <input type="checkbox" checked={slichFaqatFarq} onChange={(e) => setSlichFaqatFarq(e.target.checked)} /> faqat farqi borlar
             </label>
           </>)}
-          {validId && tree.length > 0 && !exportGate.ok && (
-            <span role="status" className="max-w-[280px] text-[11px] text-warn">
-              Excel eksporti bloklangan: {exportBlockReason}. PTO scope’da loyiha, davr, source hujjat va revisionni tanlang.
-            </span>
-          )}
-          {validId && <button onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white">Fakt kiritish</button>}
           {validId && tree.length > 0 && <div className="basis-full"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>}
-        </section>
+        </section>}
 
-        {!validId && (
-          <section className="karta border-warn/40 bg-warn/5 p-4 text-[13px] text-text-dim">
-            Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.
-          </section>
-        )}
-        {error && <section className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} />{error}</section>}
-        {validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
-        {loading && tree.length === 0 && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
         {selected && !loading && !error && (
-          <section className="karta flex flex-wrap gap-x-6 gap-y-1 p-3 text-[12px]">
-            <span><Database size={13} className="mr-1 inline text-accent" />{selected.nom}</span>
-            <span className="text-text-dim">Smeta: <b className="text-text"><FmtN val={smetaJami} /></b></span>
-            <span className="text-text-dim">Fakt: <b className="text-text"><FmtN val={faktJami} /></b></span>
-            <span className="text-text-dim">Tasdiqlangan F2: <b className="text-text"><FmtN val={f2Jami} /></b></span>
-          </section>
-        )}
-        {validId && !loading && !error && tree.length === 0 && <section className="karta p-5 text-[13px] text-text-dim">Bu obyektda kanonik smeta qatorlari yo‘q.</section>}
-        {/* Ikki xil tahrir bir-birini to'ldiradi: `onFaktSave` — bajarilgan
-            hajm (Fakt) uchun, `onQatorTahrirlandi` — smeta qatorining o'z
-            maydonlari (nom/hajm/narx/birlik/kat) tahriridan keyin daraxtni
-            qayta yuklash uchun. */}
-        {tree.length > 0 && <div className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash} /></div>}
-        {selected && !loading && !error && (
-          <div className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">
-            <details className="karta group p-3" open={ochiqPanel === 'smeta'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'smeta' : null)}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
-                <span>Smeta XLSX yuklash</span><span className="text-[11px] font-normal text-text-mute group-open:hidden">ochish ▾</span><span className="hidden text-[11px] font-normal text-text-mute group-open:inline">yopish ▴</span>
-              </summary>
-              {ochiqPanel === 'smeta' && <div className="mt-3 max-h-[360px] overflow-auto"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
-            </details>
-            <details className="karta group p-3" open={ochiqPanel === 'resurs'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'resurs' : null)}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
-                <span>Resurs vedomosti</span><span className="text-[11px] font-normal text-text-mute group-open:hidden">ochish ▾</span><span className="hidden text-[11px] font-normal text-text-mute group-open:inline">yopish ▴</span>
-              </summary>
-              {ochiqPanel === 'resurs' && <div className="mt-3 max-h-[520px] overflow-auto"><ResursVedomostNative obyektId={obyektId} /></div>}
-            </details>
-            <details className="karta group p-3" open={ochiqPanel === 'istisno'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'istisno' : null)}>
+          <div key={`${joriy?.id}|${obyektId}`} className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">
+            <section hidden={activeTab !== 'yuklash'} className="karta group p-3">
+              <h3 className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
+                <span>Smeta XLSX yuklash</span>
+              </h3>
+              {activeTab === 'yuklash' && <div className="mt-3 "><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
+            </section>
+            <section hidden={activeTab !== 'resurs'} className="karta group p-3">
+              <h3 className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
+                <span>Resurs vedomosti</span>
+              </h3>
+              {activeTab === 'resurs' && <div className="mt-3 "><ResursVedomostNative obyektId={obyektId} /></div>}
+            </section>
+            <details hidden={activeTab !== 'smeta'} className="karta group p-3" open={ochiqPanel === 'istisno'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'istisno' : null)}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
                 <span>Bajarilmaydigan / bekor qilingan ishlar{istisno.royxat.some((o) => o.holat === 'qoralama') ? ' • tasdiq kutilmoqda' : ''}</span><span className="text-[11px] font-normal text-text-mute group-open:hidden">ochish ▾</span><span className="hidden text-[11px] font-normal text-text-mute group-open:inline">yopish ▴</span>
               </summary>
@@ -382,12 +399,12 @@ export function HolatNative() {
                 <OstatkaIstisnoPanel obyektId={obyektId} qatorlar={daraxtXom} holatlar={holatXom} royxat={istisno.royxat} yangila={istisno.yangila} onSmetaOzgardi={() => void yuklash()} />
               </div>}
             </details>
-            <details className="karta group p-3" open={ochiqPanel === 'narx'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'narx' : null)}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
-                <span>Narx nazorati</span><span className="text-[11px] font-normal text-text-mute group-open:hidden">ochish ▾</span><span className="hidden text-[11px] font-normal text-text-mute group-open:inline">yopish ▴</span>
-              </summary>
-              {ochiqPanel === 'narx' && <div className="mt-3 max-h-[520px] overflow-auto"><NarxNazoratNative obyektId={obyektId} /></div>}
-            </details>
+            <section hidden={activeTab !== 'narx'} className="karta group p-3">
+              <h3 className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
+                <span>Narx nazorati</span>
+              </h3>
+              {activeTab === 'narx' && <div className="mt-3 "><NarxNazoratNative obyektId={obyektId} /></div>}
+            </section>
           </div>
         )}
       </div>
