@@ -12,7 +12,7 @@
 import { kodKanon, normBir, normKod, normNom } from '../f2-match-engine';
 import type { F2Akt, F2Tugun } from '../smeta-anatomiya/f2';
 import type { F2ExactManbaTugun } from '../../test02/f2-exact-payload';
-import { f2Imzo, gradeFarq, rzKalit, type F2MoslashNatija, type SmetaQator } from './index';
+import { f2Imzo, gradeFarq, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
 
 export type BogHolat = 'aniq' | 'xotira' | 'taklif' | 'qolda';
 export interface Bog { qatorId: number; holat: BogHolat; usul: string }
@@ -77,7 +77,7 @@ export function boshlangich(n: F2MoslashNatija, avvalgi?: IshJoyi): IshJoyi {
     bog.set(uid, { qatorId: r.qatorId, holat: r.holat, usul: r.usul ?? r.holat });
   }
   // Operator qarorlari qayta hisoblashda (masalan razdel o'rgatilganda) yo'qolmaydi.
-  if (avvalgi) for (const [uid, b] of avvalgi.bog) if (b.holat === 'qolda') bog.set(uid, b);
+  if (avvalgi) for (const [uid, b] of avvalgi.bog) if (b.holat !== 'taklif') bog.set(uid, b);
   return { bog, otkaz: new Set(avvalgi?.otkaz ?? []) };
 }
 
@@ -125,7 +125,11 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
       rk ? bosh.filter((x) => normKod(x.kod) === rk) : [],
       rkan ? bosh.filter((x) => kodKanon(x.kod) === rkan) : [],
       bosh.filter((x) => nb(x.nom, x.birlik) === rnb),
-    ]) if (c.length === 1) { t = c[0]; break; }
+      bosh.filter((x) => resursNomKalit(x.nom, x.birlik) === resursNomKalit(r.nom, r.birlik)),
+    ]) {
+      const selected = yagonaResursMos(c, r);
+      if (selected) { t = selected; break; }
+    }
     if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) {
       bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' });
       band.add(t.id);

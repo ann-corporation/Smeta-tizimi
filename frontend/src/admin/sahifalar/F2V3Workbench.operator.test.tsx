@@ -68,6 +68,20 @@ function renderWorkbench(rowCount = 2, specialTypes: F2Tugun['tur'][] = [], revi
 afterEach(cleanup);
 
 describe('F2 workbench operator controls', () => {
+  it('changes pane proportions and exposes detail columns without changing links', () => {
+    const { onIj } = renderWorkbench();
+    const wide = screen.getByRole('button', { name: 'F2 kengroq' });
+    fireEvent.click(wide);
+    expect(wide.getAttribute('aria-pressed')).toBe('true');
+    const detail = screen.getByRole('button', { name: 'Norma va narx tafsilotlari' });
+    expect(detail.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(detail);
+    expect(detail.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Ustma-ust' }));
+    expect(screen.getByRole('region', { name: 'F2 akt' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Smeta' })).toBeTruthy();
+    expect(onIj).not.toHaveBeenCalled();
+  });
   it('keeps both trees visible, exposes whole-tree and per-depth controls, and shows exact amount reconciliation', () => {
     renderWorkbench();
     expect(screen.getByRole('region', { name: 'F2 akt' })).toBeTruthy();

@@ -77,6 +77,8 @@ export interface F2QatorNatija {
 export interface RzDiag { f2Uid: string; nom: string; smetaRzIdlar: number[]; ok: boolean; usul: string }
 
 export interface F2MoslashOpts {
+  /** Existing confirmed decisions, including manually selected parent works. */
+  ishBog?: ReadonlyMap<string, number>;
   /** F2 imzosi → smeta qator id (o'tgan oylarda tasdiqlangan). */
   xotira?: ReadonlyMap<string, number>;
   /** F2 razdel uid → smeta razdel id (operator o'rgatgan). */
@@ -174,7 +176,42 @@ export function texnikTafsilotFarqlari(a: unknown, b: unknown): string[] {
 
 /** Marka/klass farqi — bir xil kod ham bu to'siqni chetlab o'tmaydi. */
 export function gradeFarq(a: unknown, b: unknown): boolean {
-  return harfliMarkaFarq(a, b) || texnikTafsilotFarqlari(a, b).length > 0;
+  return harfliMarkaFarq(a, b) || texnikTafsilotFarqlari(a, b).length > 0 || kranFarq(a, b);
+}
+
+function kranFarq(a: unknown, b: unknown): boolean {
+  const crane = (s: unknown) => {
+    const text = String(s ?? '').toUpperCase().replace(/Ё/g, 'Е');
+    if (!/КРАН/.test(text)) return null;
+    return {
+      capacity: text.match(/(\d+(?:[.,]\d+)?(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?)\s*[-–]?\s*(?:Т(?:ОНН)?)(?=$|[^А-ЯA-Z])/u)?.[1]?.replace(/\s+/g, '').replace(',', '.'),
+      chassis: text.match(/АВТОМОБИЛЬН|ГУСЕНИЧН|БАШЕНН|ПНЕВМОКОЛЕСН/)?.[0],
+      use: /ТЕХНОЛОГИЧЕСК/.test(text) ? 'technology' : /ДРУГИХ ВИДАХ СТРОИТЕЛЬСТВА/.test(text) ? 'construction' : null,
+    };
+  };
+  const A = crane(a), B = crane(b);
+  return !!A && !!B && (['capacity', 'chassis', 'use'] as const).some((key) => A[key] && B[key] && A[key] !== B[key]);
+}
+
+/** Only the observed full construction-crane spelling has an optional exclusion clause.
+ * Short names without a documented use/type remain for review, not inferred identity. */
+export function resursNomKalit(nom: unknown, bir: unknown): string {
+  const text = String(nom ?? '').toUpperCase();
+  const canonical = /КРАНЫ НА (?:АВТОМОБИЛЬНОМ|ГУСЕНИЧНОМ) ХОДУ ПРИ РАБОТЕ НА ДРУГИХ ВИДАХ СТРОИТЕЛЬСТВА/.test(text)
+    ? text.replace(/\(\s*КРОМЕ МАГИСТРАЛЬНЫХ ТРУБОПРОВОДОВ\s*\)/g, '').replace(/(\d)\s*[-–]\s*Т(?=\s|$)/g, '$1 Т') : text;
+  return nb(canonical, bir);
+}
+
+/** Duplicate resources under one work can have different explicit consumption norms.
+ * Use the source norm only to distinguish otherwise identical identities; missing
+ * norms, equal norms and prices/partial quantities never break the tie. */
+export function yagonaResursMos<T extends Pick<SmetaQator, 'nom' | 'birlik' | 'norma'>>(candidates: readonly T[], source: Pick<F2Tugun, 'nom' | 'birlik' | 'norma'>): T | null {
+  const safe = candidates.filter((t) => birMos(source.birlik, t.birlik) && !gradeFarq(source.nom, t.nom));
+  if (safe.length === 1) return safe[0];
+  if (safe.length < 2 || source.norma == null || !Number.isFinite(source.norma)) return null;
+  const exact = safe.filter((t) => t.norma != null && Number.isFinite(t.norma)
+    && Math.abs(t.norma - source.norma!) <= 1e-8 * Math.max(1, Math.abs(source.norma!), Math.abs(t.norma)));
+  return exact.length === 1 ? exact[0] : null;
 }
 
 function resKalit(kod: unknown, nom: unknown, bir: unknown): string {
@@ -602,6 +639,12 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         (t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob')
         && (!markerTuri || t.tur === markerTuri)
         && !lokalBand.has(t.id)); // takror qism uchun: faqat shu F2 ishi ichida band
+      const confirmed = opts.ishBog?.get(r.uid);
+      if (confirmed != null && ichki.some((t) => t.id === confirmed)) {
+        lokalBand.add(confirmed);
+        yoz(r.uid, { uid: r.uid, holat: 'aniq', qatorId: confirmed, usul: 'tasdiqlangan', nomzodlar: [], sabab: 'mavjud tasdiqlangan bog‘lanish saqlandi' });
+        continue;
+      }
       const x = opts.xotira?.get(f2Imzo(r, otaImzo));
       if (x != null && ichki.some((t) => t.id === x)) {
         lokalBand.add(x);
@@ -615,8 +658,10 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         ['kod', rk ? ichki.filter((t) => t.kKod === rk) : []],
         ['kanon', rkan ? ichki.filter((t) => t.kKanon === rkan) : []],
         ['nomBir', ichki.filter((t) => t.kNb === rnb)],
+        ['nomBir:kran', ichki.filter((t) => resursNomKalit(t.nom, t.birlik) === resursNomKalit(r.nom, r.birlik))],
       ] as Array<[string, STugun[]]>) {
-        if (c.length === 1) { topildi = c[0]; usul = u; break; }
+        const selected = yagonaResursMos(c, r);
+        if (selected) { topildi = selected; usul = c.length > 1 ? `${u}+norma` : u; break; }
       }
       if (topildi && birMos(r.birlik, topildi.birlik) && !gradeFarq(r.nom, topildi.nom)) {
         lokalBand.add(topildi.id);
@@ -690,7 +735,13 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   function yur(tugunlar: readonly F2Tugun[], d: Doira) {
     for (const t of tugunlar) {
       if (t.tur === 'rz') { yur(t.bolalar, doiraTop(t, d)); continue; }
-      const s = ishniMosla(t, d, t.yol.map(rzKalit).join('/'));
+      const confirmedId = opts.ishBog?.get(t.uid);
+      const confirmed = confirmedId != null ? S.byId.get(confirmedId) : undefined;
+      const s = confirmed ?? ishniMosla(t, d, t.yol.map(rzKalit).join('/'));
+      if (confirmed) {
+        band.add(confirmed.id);
+        yoz(t.uid, { uid: t.uid, holat: 'aniq', qatorId: confirmed.id, usul: 'tasdiqlangan', nomzodlar: [], sabab: 'mavjud tasdiqlangan bog‘lanish saqlandi' });
+      }
       if (s) ishHajm.set(s.id, (ishHajm.get(s.id) ?? 0) + (t.hajm ?? 0));
       if (t.tur === 'bl') resurslarniMosla(t, s, f2Imzo(t));
     }

@@ -13,6 +13,7 @@ import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
 import { expandableDepths, expandableIdsAtDepth, flattenVisibleTree } from '../../lib/f2-link-review/tree';
 import { saqlanmaganIsh } from '../../_shared/versiya';
+import { t } from '../../i18n/til';
 
 /**
  * F2 V3 — ikki oynali moslashtirish (docs/architecture/F2_IMPORT_V3.md §3).
@@ -116,8 +117,8 @@ function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: {
  * sig'sin". Jadval: har ustun alohida katak (chegara bilan), nom o'raladi (qisqartirilmaydi),
  * tor oynada gorizontal aylantiriladi (Excel kabi), sarlavha yopishqoq.
  */
-const F2_GRID = 'grid grid-cols-[26px_88px_minmax(180px,1fr)_56px_72px_52px_76px_96px_96px]';
-const S_GRID = 'grid grid-cols-[88px_minmax(180px,1fr)_56px_72px_52px_76px_80px_88px]';
+const F2_GRID = 'f2-grid grid grid-cols-[26px_88px_minmax(180px,1fr)_56px_72px_52px_76px_96px_96px]';
+const S_GRID = 'smeta-grid grid grid-cols-[88px_minmax(180px,1fr)_56px_72px_52px_76px_80px_100px]';
 const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
 /** Amal ustuni gorizontal aylantirishda ham o'ngda ko'rinib turadi (egasi sinovi: tugmalar kesilib qolardi). */
 /** Egasi 2026-10-06: har bir ish va uning resurslari massivi alohida chegarada ko'rinsin (ikkala panelda bir xil).
@@ -161,6 +162,8 @@ const nomKalit = (x: string | null | undefined) => (x ?? '').toUpperCase().repla
 export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const { ind, S, ij } = p;
   const [tanlangan, setTanlangan] = useState<string | null>(null);
+  const [tafsilot, setTafsilot] = useState(false);
+  const [panellar, setPanellar] = useState<'teng' | 'f2' | 'smeta' | 'ustma'>('teng');
   const [ochiqS, setOchiqS] = useState<Set<number>>(new Set());
   const [yopiqF, setYopiqF] = useState<Set<string>>(new Set());
   // PTO birinchi kirganda butun manba daraxtini ko'radi. Virtualizatsiya katta
@@ -328,12 +331,15 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   }, [nomzodlar, tTugun]);
 
   // Tanlanganda: bog'langan qator (yoki eng yaxshi nomzodlar) o'ngda ochiladi va ko'rinadi.
+  const selectedTarget = tanlangan ? ij.bog.get(tanlangan)?.qatorId : undefined;
   useEffect(() => {
     if (!tTugun) return;
     if (sudrabTanlandi.current) { sudrabTanlandi.current = false; return; }
     const b = ij.bog.get(tTugun.uid);
     const ids = [b?.qatorId, ...nomzodlar.slice(0, 3).map((n) => n.qatorId)].filter((x): x is number => x != null);
     if (!ids.length) return;
+    // A previous search/filter must not hide the linked row the operator is reviewing.
+    setQ(''); setSFiltr('hammasi');
     setOchiqS((old) => {
       const s = new Set(old);
       for (const id of ids) for (let t = S.byId.get(id); t && t.otaId != null; t = S.byId.get(t.otaId)) s.add(t.otaId);
@@ -341,7 +347,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     });
     smetaFokus.current = ids[0];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tanlangan]);
+  }, [tanlangan, selectedTarget]);
 
   // ── Amallar ──
   function xab(m: string) { setXabar(m); }
@@ -462,11 +468,11 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const sNom = d?.smetaRzIdlar.map((id) => S.byId.get(id)?.nom).filter(Boolean).join(' | ');
       const ishliRz = t.bolalar.some((c) => c.tur !== 'rz');
       return (
-        <div data-fuid={t.uid} className={`${F2_GRID} bg-surface-2/80 text-[12px] font-semibold text-text`}>
+        <div data-fuid={t.uid} className="grid grid-cols-[minmax(180px,1fr)_85px_160px] bg-surface-2/80 text-[12px] font-semibold text-text">
           <button type="button" draggable={!p.disabled}
             onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
             onClick={() => scrollTanlanganPanelga(t.uid)}
-            className={`${KATAK} col-span-7 flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
+            className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             title="Razdelni o‘ngdagi smeta razdeliga tortsangiz — shu razdel ichidan qidiriladi">
             {chevron}<span className="min-w-0 flex-1 break-words">{t.nom}</span>
           </button>
@@ -535,7 +541,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         </button>
         <span className={`${SON} text-text-mute`}>{t.norma == null ? '' : fmt(t.norma, 6)}</span>
         <span className={`${SON} text-text`}>{fmt(t.hajm)}</span>
-        <span className={`${KATAK} break-words text-[11px]`}>{t.birlik ?? ''}</span>
+        <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{t.birlik ?? ''}</span>
         <span className={SON}>{t.barg && t.narx != null ? fmt(t.narx, 2) : ''}</span>
         <span className={`${SON} ${ish ? 'font-semibold text-text' : 'text-text'}`} title={t.barg ? undefined : 'Resurslari yig‘indisi'}>
           {t.barg ? fmt(t.summa, 2) : bolaSumma(t) != null ? fmt(bolaSumma(t), 2) : ''}
@@ -701,8 +707,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     if (s.tur === 'rz') {
       return (
-        <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}${oraliq}`}>
-          <button type="button" className={`${KATAK} col-span-7 flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
+        <div data-sid={s.id} {...dropProps(s)} className={`grid grid-cols-[minmax(180px,1fr)_88px] text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}${oraliq}`}>
+          <button type="button" className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             onClick={() => tTugun ? tashla(tTugun.uid, s.id) : toggle()} title={tTugun ? 'Tanlangan F2 qatorini shu smeta razdeliga bog‘lash/qo‘shimcha qilish' : undefined}>
             {chevron}<span className="min-w-0 flex-1 break-words">{s.nom}</span>
             <span className="ml-2 shrink-0 text-[10px] font-normal normal-case text-text-mute">{bolalar.length} ichki qator</span>
@@ -720,7 +726,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const ish = s.tur === 'bl';
     return (
       <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} `
-        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : tBog ? 'bg-accent/15 outline outline-1 outline-accent' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
+        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
         + (oraliq || ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA))}>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <button type="button" className={`${KATAK} text-left`} style={{ paddingLeft: 6 + depth * 14 }} onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
@@ -736,7 +742,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         </button>
         <span className={`${SON} text-text-mute`}>{s.norma == null ? '' : fmt(s.norma, 6)}</span>
         <span className={`${SON} text-text`}>{fmt(s.hajm)}</span>
-        <span className={`${KATAK} break-words text-[11px]`}>{s.birlik ?? ''}</span>
+        <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{s.birlik ?? ''}</span>
         <span className={SON}>{s.narx ? fmt(s.narx, 2) : ''}</span>
         <span className={`${SON} ${qoldiq != null && qoldiq < -1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
@@ -776,6 +782,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               {' · '}{tTugun.manzil.varaq}!{tTugun.manzil.qator}
             </p>
             {s && <p className="text-[11px] text-accent">→ {s.kod ? s.kod + ' ' : ''}{s.nom} ({s.birlik ?? '—'}) <span className="text-text-mute">[{b!.usul}]</span></p>}
+            {s && <p className="text-[11px] text-text-dim">{t('Smetadagi joyi')}: {yolMatn(s) || '—'}</p>}
             {r?.sabab && k !== 'qolda' && <p className="text-[11px] text-text-mute">{r.sabab}</p>}
           </div>
           <div className="flex flex-wrap gap-1">
@@ -970,7 +977,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       )}
       {/* Tanlangan qator paneli va xabar — daraxtlar ustida, DOIMIY balandlikda: tanlash/bog'lash pastdagi
           daraxtlarni surmaydi (egasi sinovi 2026-10-06: tanlashda ~130 px, bog'lashda ~26 px sakrash). */}
-      <div className="karta flex h-[164px] flex-col overflow-hidden p-2" ref={panelRef}>
+      <div className="karta sticky top-2 z-20 flex h-[164px] flex-col overflow-hidden p-2 backdrop-blur-xl" ref={panelRef}>
         <div className="min-h-0 flex-1 overflow-auto"><Panel /></div>
         <p role={xabar ? 'status' : undefined} className="mt-1 flex h-5 shrink-0 items-center gap-2 border-t border-border/50 pt-1 text-[12px] text-text-dim">
           {xabar ? <>
@@ -980,9 +987,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+      <div className="karta flex flex-wrap items-center gap-2 p-2" aria-label={t('Panel ko‘rinishi')}>
+        <span className="text-[12px] text-text-dim">{t('1. F2 qatorini tanlang → 2. Smetadan mos qatorni tanlang → 3. Bog‘lanishni tekshiring.')}</span>
+        <div role="group" aria-label={t('Panel kengligi')} className="ml-auto flex flex-wrap gap-1">
+          {([['teng', t('Teng panellar')], ['f2', t('F2 kengroq')], ['smeta', t('Smeta kengroq')], ['ustma', t('Ustma-ust')]] as const).map(([value, label]) => <button key={value} type="button" className={`tugma text-[11px] ${panellar === value ? 'tugma-asosiy' : ''}`} aria-pressed={panellar === value} onClick={() => setPanellar(value)}>{label}</button>)}
+          <button type="button" className="tugma text-[11px]" aria-pressed={tafsilot} onClick={() => setTafsilot(!tafsilot)}>{t('Norma va narx tafsilotlari')}</button>
+        </div>
+      </div>
+      <div className={`grid grid-cols-1 gap-2 ${panellar === 'teng' ? 'lg:grid-cols-2' : panellar === 'f2' ? 'lg:grid-cols-[3fr_2fr]' : panellar === 'smeta' ? 'lg:grid-cols-[2fr_3fr]' : ''} ${tafsilot ? '' : '[&_.f2-grid]:grid-cols-[26px_72px_minmax(160px,1fr)_70px_45px_85px_64px] [&_.f2-grid>*:nth-child(4)]:hidden [&_.f2-grid>*:nth-child(7)]:hidden [&_.smeta-grid]:grid-cols-[72px_minmax(180px,1fr)_70px_45px_75px_100px] [&_.smeta-grid>*:nth-child(3)]:hidden [&_.smeta-grid>*:nth-child(6)]:hidden'}`}>
         <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="F2 akt">
-          <header className="flex items-center gap-2 border-b border-border bg-surface-2/60 px-2 py-1.5">
+          <header className="flex flex-wrap items-center gap-2 border-b border-border bg-sky-500/10 px-2 py-2">
             <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-text-dim">F2 akt — {p.akt.varaq} {filtr === 'hal' && halSoni === 0 ? '· hal qilindi' : ''}</span>
             <div className="relative flex-1">
               <Search size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-mute" />
@@ -994,7 +1008,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <PanelFiltr label="F2 filtri" value={filtr} onChange={setFiltr} options={[['hammasi', 'Hammasi'], ['hal', `Tekshirilmagan (${halSoni})`], ['boglanmagan', 'Bog‘lanmagan'], ['muammo', 'Muammoli']]}
             izoh={`${f2VisibleRows.length.toLocaleString('ru-RU')} qator ko‘rinmoqda`} />
           <div ref={f2Quti} className="h-[66vh] overflow-auto">
-            <div className="min-w-[742px] border-l border-t border-border/70">
+            <div className={`${tafsilot ? 'min-w-[742px]' : 'min-w-[560px]'} border-l border-t border-border/70`}>
             <JadvalSarlavha tur="f2" />
             <div style={{ height: f2Virtual.getTotalSize(), position: 'relative', width: '100%' }}>
               {f2Virtual.getVirtualItems().map((virtualRow) => {
@@ -1011,7 +1025,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           </div>
         </section>
         <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Smeta">
-          <header className="flex items-center gap-2 border-b border-border bg-surface-2/60 px-2 py-1.5">
+          <header className="flex flex-wrap items-center gap-2 border-b border-border bg-emerald-500/10 px-2 py-2">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">Smeta (LRV)</span>
             <div className="relative flex-1">
               <Search size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-mute" />
@@ -1028,7 +1042,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 : 'smeta RESURSIGA (bog‘lash/zamena) yoki ISHIGA (qo‘shimcha resurs) tashlang'}. Punktir ramka — mos joylar.
           </div>}
           <div ref={smetaQuti} className="h-[66vh] overflow-auto" onDragOver={avtoAylantir}>
-            <div className="min-w-[692px] border-l border-t border-border/70">
+            <div className={`${tafsilot ? 'min-w-[704px]' : 'min-w-[560px]'} border-l border-t border-border/70`}>
             <JadvalSarlavha tur="smeta" />
             {qidiruvNatija && !qidiruvNatija.length
               ? <p className="p-2 text-[12px] text-text-mute">Topilmadi.</p>

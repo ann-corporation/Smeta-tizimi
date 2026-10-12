@@ -1419,5 +1419,17 @@
   "Server ish holatini saqlash": "Save working state to server",
   "F2 qoralama aktini saqlash": "Save F2 draft act",
   "Aktga kiritilmaydigan qatorlar": "Rows not included in the act",
-  "Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.": "Unlinked or unconfirmed rows are not included in the act and remain in the original and server working draft. You can save the draft act. Omitted negative rows do not reduce previously recorded quantities."
+  "Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.": "Unlinked or unconfirmed rows are not included in the act and remain in the original and server working draft. You can save the draft act. Omitted negative rows do not reduce previously recorded quantities.",
+  "Mos qatorlarni bog‘lash": "Link all matching rows",
+  "Faqat ishonchli mosliklar bog‘lanadi. Noaniq variantlarni siz tasdiqlaysiz. Qo‘lda tasdiqlangan bog‘lanishlar saqlanadi.": "Only reliable matches are linked. You confirm ambiguous candidates. Confirmed manual links are preserved.",
+  "Moslashtirish": "Matching",
+  "Panel ko‘rinishi": "Panel view",
+  "Panel kengligi": "Panel width",
+  "1. F2 qatorini tanlang → 2. Smetadan mos qatorni tanlang → 3. Bog‘lanishni tekshiring.": "1. Select an F2 row → 2. Select a matching estimate row → 3. Review the link.",
+  "Norma va narx tafsilotlari": "Show norms and prices",
+  "Teng panellar": "Equal panels",
+  "F2 kengroq": "Wider F2",
+  "Smeta kengroq": "Wider estimate",
+  "Ustma-ust": "Stacked panels",
+  "Smetadagi joyi": "Location in estimate"
 }

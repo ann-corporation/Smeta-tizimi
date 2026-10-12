@@ -1419,5 +1419,17 @@
   "Server ish holatini saqlash": "Сохранить рабочее состояние на сервере",
   "F2 qoralama aktini saqlash": "Сохранить черновик акта Ф2",
   "Aktga kiritilmaydigan qatorlar": "Строки, не включаемые в акт",
-  "Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.": "Несвязанные или неподтверждённые строки не включаются в акт и сохраняются в исходнике и рабочем черновике на сервере. Черновик акта можно сохранить. Невключённые отрицательные строки не уменьшают ранее учтённые объёмы."
+  "Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.": "Несвязанные или неподтверждённые строки не включаются в акт и сохраняются в исходнике и рабочем черновике на сервере. Черновик акта можно сохранить. Невключённые отрицательные строки не уменьшают ранее учтённые объёмы.",
+  "Mos qatorlarni bog‘lash": "Связать все подходящие строки",
+  "Faqat ishonchli mosliklar bog‘lanadi. Noaniq variantlarni siz tasdiqlaysiz. Qo‘lda tasdiqlangan bog‘lanishlar saqlanadi.": "Связываются только надёжные совпадения. Неоднозначные варианты подтверждаете вы. Ручные подтверждённые связи сохраняются.",
+  "Moslashtirish": "Сопоставление",
+  "Panel ko‘rinishi": "Вид панелей",
+  "Panel kengligi": "Ширина панелей",
+  "1. F2 qatorini tanlang → 2. Smetadan mos qatorni tanlang → 3. Bog‘lanishni tekshiring.": "1. Выберите строку Ф2 → 2. Выберите подходящую строку сметы → 3. Проверьте связь.",
+  "Norma va narx tafsilotlari": "Показать нормы и цены",
+  "Teng panellar": "Панели поровну",
+  "F2 kengroq": "Ф2 шире",
+  "Smeta kengroq": "Смета шире",
+  "Ustma-ust": "Друг под другом",
+  "Smetadagi joyi": "Место в смете"
 }

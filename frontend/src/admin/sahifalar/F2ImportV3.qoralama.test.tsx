@@ -41,6 +41,16 @@ async function start() {
   fireEvent.click(await screen.findByText('Plusni bog‘lash'));
 }
 describe('F2 independent working draft', () => {
+  it('selection never links; explicit button preserves manual decisions', async () => {
+    await start();
+    expect(m.match).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Mos qatorlarni bog‘lash' }));
+    await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1));
+    expect(m.match.mock.calls[0][2].ishBog.get('plus')).toBe(7);
+    expect(await screen.findByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
+    expect(m.create).not.toHaveBeenCalled();
+  });
+
   async function restored() {
     await start();
     fireEvent.click(screen.getByRole('button', { name: 'Ish holatini saqlash (davom ettirish uchun)' }));
@@ -91,7 +101,7 @@ describe('F2 independent working draft', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
     await waitFor(() => expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false));
-    expect(m.parse).toHaveBeenCalledTimes(1); expect(m.match).toHaveBeenCalledTimes(1);
+    expect(m.parse).toHaveBeenCalledTimes(1); expect(m.match).not.toHaveBeenCalled();
     expect(m.tree).toHaveBeenCalledTimes(2);
   });
 

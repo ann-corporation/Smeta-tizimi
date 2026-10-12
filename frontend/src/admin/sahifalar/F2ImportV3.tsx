@@ -20,9 +20,9 @@ import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2Qoral
 
 /**
  * F2 IMPORT V3 (docs/architecture/F2_IMPORT_V3.md): fayl → akt (davr, jami, ogohlantirishlar
- * fayldan, ustun raqamlari so'ralmaydi) → qavatma-qavat avto-moslash → ikki oynali drag-drop
+ * fayldan, ustun raqamlari so'ralmaydi) → operator tugmasi bilan moslash → ikki oynali drag-drop
  * ish joyi → F2 qoralamasi (`t2_akt_yarat_v2`), manba fayl R2 da.
- * Yozish faqat barcha qatorlar hal qilinganda (✓ yoki ongli "aktga kiritmaslik").
+ * Qoralama aktga faqat tasdiqlangan bog'lanishlar yoziladi; qolganlari ish qoralamasida saqlanadi.
  */
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -181,6 +181,7 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   /** `mavjudHujjatId` berilsa — fayl tizimdagi R2 hujjatidan olingan: yozishda QAYTA yuklanmaydi, o'sha hujjat manba bo'ladi. */
   async function faylTanla(file: File, mavjudHujjatId?: number) {
+    oxirgiKalit.current = '';
     tozala(); setAktlar([]); setBusy(true); setHolat('Fayl o‘qilmoqda…');
     rawFile.current = file; sourceDoc.current = mavjudHujjatId; sourceOp.current = yangiOperationId();
     try {
@@ -189,7 +190,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const a = await f2AktlarniOqiFonda(file.name, file);
       if (!a.length) throw new Error('Faylda F2 akt varag‘i topilmadi (ishlar ro‘yxati bor LRV shaklidagi varaq kerak).');
       setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? '');
-      setHolat(a[0].davr ? 'Akt o‘qildi. Moslashtirilmoqda…' : 'Akt o‘qildi. Hisobot davrini tanlang.');
+      setHolat(a[0].davr ? 'Akt o‘qildi. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.' : 'Akt o‘qildi. Hisobot davrini tanlang.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Fayl o‘qilmadi.'); setHolat('Fayl o‘qilmadi.'); }
     finally { setBusy(false); }
   }
@@ -206,7 +207,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }
 
   /** Smeta, oldingi F2 (Nakopitelniy) va xotira (o'tgan F2 larning imzolari). */
-  async function malumotYukla(oid: number, oy: string) {
+  async function malumotYukla(oid: number, oy: string, joriymi = () => true) {
     const [d, nak, xot] = await Promise.all([
       sbT2DaraxtOl(oid),
       t2NakopitelniyToliq(oid, oy + '-01').catch(() => null),
@@ -218,6 +219,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     const r = (d.qatorlar || []) as T2Qator[];
     if (!r.length) throw new Error('Bu obyektda smeta yo‘q — avval smetani import qiling.');
     const old = new Map<number, number>(), qol = new Map<number, number>();
+    if (!joriymi()) return { r, qol, x: new Map<string, number>() };
     if (nak && nak.ok) {
       for (const q of nak.qatorlar) {
         old.set(q.qator_id, q.oldingi_hajm ?? 0);
@@ -237,29 +239,43 @@ function Sessiya({ companyId }: { companyId: number }) {
   async function moslash(a: F2Akt, r: T2Qator[], qol: Map<number, number>, x: Map<string, number>, rb: Map<string, number>, avvalgi?: IshJoyi | null) {
     setHolat('Moslashtirilmoqda (fonda)…');
     // Moslashtirish FONDA (Web Worker) — 30 ming qatorli smetada ham sahifa javob beradi.
-    const n = await f2MoslashV3Fonda(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
+    const ishBog = new Map([...avvalgi?.bog ?? []].filter(([, b]) => b.holat !== 'taklif').map(([uid, b]) => [uid, b.qatorId]));
+    const n = await f2MoslashV3Fonda(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb, ishBog });
     setNatija(n); setIj(boshlangich(n, avvalgi ?? undefined));
     const { aniq, xotira: xt, taklif, topilmadi } = n.stat;
     setHolat(`Moslashtirildi: ✓ ${aniq + xt} · ◐ ${taklif} · ✕ ${topilmadi}. ◐ larni tasdiqlang, ✕ larni torting.`);
   }
 
-  // Obyekt + akt + davr tayyor bo'lsa — avtomatik moslashtirish.
+  // Selection only loads source/estimate. Linking requires an explicit operator action.
   const kalit = objectId && akt && /^\d{4}-(0[1-9]|1[0-2])$/.test(davr) ? `${objectId}|${aktIdx}|${davr}|${akt.fayl}` : '';
   const oxirgiKalit = useRef('');
   useEffect(() => {
     if (!kalit || !akt || kalit === oxirgiKalit.current) return;
     oxirgiKalit.current = kalit;
+    let active = true;
     tozala(); setBusy(true); setHolat('Smeta, Nakopitelniy va xotira o‘qilmoqda…');
     void (async () => {
       try {
-        const { r, qol, x } = await malumotYukla(Number(objectId), davr);
-        await moslash(akt, r, qol, x, new Map());
+        const { r } = await malumotYukla(Number(objectId), davr, () => active);
+        if (!active) return;
+        setNatija({ natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: f2Indeks(akt.daraxt).qatorlar.length } });
+        setIj({ bog: new Map(), otkaz: new Set() });
+        setHolat('F2 va smeta tayyor. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.');
         operation.current = yangiOperationId();
-      } catch (e) { setXato(e instanceof Error ? e.message : 'Moslashtirish bajarilmadi.'); }
-      finally { setBusy(false); }
+      } catch (e) { if (active) setXato(e instanceof Error ? e.message : 'Smeta yuklanmadi.'); }
+      finally { if (active) setBusy(false); }
     })();
+    return () => { active = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kalit]);
+  }, [kalit, akt]);
+
+  async function aniqBogla() {
+    if (!akt || !ij || busy || done) return;
+    setBusy(true); setXato('');
+    try { await moslash(akt, rows, qoldiq, xotira, rzBog, ijRef.current); }
+    catch (e) { setXato(e instanceof Error ? e.message : 'Moslashtirish bajarilmadi.'); }
+    finally { setBusy(false); }
+  }
 
   function rzOrgat(f2Uid: string, sRz: number) {
     if (!akt) return;
@@ -521,6 +537,11 @@ function Sessiya({ companyId }: { companyId: number }) {
       )}
       {ogoh && <p className="text-[12px] text-warn">{ogoh}</p>}
       {xato && <p role="alert" className="text-[13px] text-danger">{xato}</p>}
+
+      {akt && ij && <section className="karta flex flex-wrap items-center gap-3 border border-accent/30 p-3" aria-label={t('Moslashtirish')}>
+        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+        <p className="min-w-0 flex-1 text-[12px] text-text-dim">{t('Faqat ishonchli mosliklar bog‘lanadi. Noaniq variantlarni siz tasdiqlaysiz. Qo‘lda tasdiqlangan bog‘lanishlar saqlanadi.')}</p>
+      </section>}
 
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
