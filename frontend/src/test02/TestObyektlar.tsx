@@ -146,6 +146,8 @@ export default function TestObyektlar() {
     await yukla();
     qc.invalidateQueries({ queryKey: ['obyektlar'] });
     qc.invalidateQueries({ queryKey: ['pto-company-lineage', joriy?.id] });
+    qc.invalidateQueries({ queryKey: ['pto-markup', joriy?.id] });
+    qc.invalidateQueries({ queryKey: ['pto-markup-podvals', joriy?.id] });
     workspace.refresh();
   };
 

@@ -1,10 +1,11 @@
+import { t } from '../../i18n/til';
 import { useState, useMemo, useRef, useEffect, useDeferredValue } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TreeNode } from '../../api/types';
 import { flattenTree, getAllKeys } from './utils';
 import { FmtN } from '../../lib/format';
 import { Badge } from '../ui/Badge';
-import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package, Pickaxe, Box, Pencil } from 'lucide-react';
+import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package, Pickaxe, Box, Pencil, Info } from 'lucide-react';
 import { PRICE_STATE_BADGE, type PriceControlLine } from '../../api/t2-price-control';
 import { QatorTahrirModal } from '../ui/QatorTahrirModal';
 
@@ -23,6 +24,7 @@ interface SmetaTreeProps {
    *  ko'rinadi — GAS-nom asosidagi eski daraxtda bu maydonlar yo'q. */
   onQatorTahrirlandi?: () => void;
   /** LRV ichidagi kichik, canonical Fakt yozish porti. Backend qoidalari parentda qoladi. */
+  onFaktOpen?: () => void;
   onFaktSave?: (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => Promise<{
     ok: boolean;
     message?: string;
@@ -37,7 +39,7 @@ function TreeTypeIcon({ type }: { type: TreeNode['type'] }) {
   return <Pickaxe size={14} aria-hidden="true" />;
 }
 
-export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave }: SmetaTreeProps) {
+export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen }: SmetaTreeProps) {
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
   const [expandedDetailId, setExpandedDetailId] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<TreeNode | null>(null);
@@ -52,13 +54,26 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
   const [preset, setPreset] = useState<'ASOSIY' | 'F2' | 'NARX' | 'TOLIQ'>('TOLIQ');
   const [quickFilter, setQuickFilter] = useState<'all' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis'>('all');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'umumiy' | 'fakt' | 'f2' | 'narx' | 'audit'>('umumiy');
+  useEffect(() => {
+    if(!drawerOpen) return;
+    const close=(event:KeyboardEvent)=>{if(event.key==='Escape') setDrawerOpen(false);};
+    window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);
+  },[drawerOpen]);
   const [faktMode, setFaktMode] = useState<'qoshish' | 'jami'>('jami');
   const [faktValue, setFaktValue] = useState('');
   const [faktSaving, setFaktSaving] = useState(false);
   const [faktStatus, setFaktStatus] = useState<{ tone: 'ok' | 'warn' | 'danger'; text: string } | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   /** Ustun sarlavhalari — tana bilan birga gorizontal suriladi. */
+  const [bodyWidth,setBodyWidth] = useState<number>();
+  useEffect(() => {
+    const body=parentRef.current; if(!body) return;
+    const resize=()=>setBodyWidth(body.clientWidth);resize();
+    if(typeof ResizeObserver === 'undefined') return;
+    const observer=new ResizeObserver(resize);observer.observe(body);return()=>observer.disconnect();
+  }, []);
   const sarlavhaRef = useRef<HTMLDivElement>(null);
   const priceControlByQatorId = useMemo(
     () => new Map((priceControlLines || []).map((line) => [line.qator_id, line])),
@@ -141,6 +156,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
   };
   const showMoney = preset === 'TOLIQ' || preset === 'NARX';
   const showSmetaAndFakt = preset !== 'F2';
+  const columnCount = 4 + (showSmetaAndFakt ? 2 : 0) + (showMoney ? 6 : 0);
+  const minimumWidth = 400 + (showSmetaAndFakt ? 176 : 0) + 352 + (showMoney ? 512 : 0) + (columnCount - 1) * 16 + 16;
   const selected = flatNodes.find((row) => row.key === selectedKey);
   const selectedFakt = selected?.node.fakt;
 
@@ -218,11 +235,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           joyida qolib, raqamlar boshqa ustun tagiga tushib ketardi. Endi
           sarlavha tananing scrollLeft'iga ergashadi (pastdagi onScroll). */}
       <div ref={sarlavhaRef} className="overflow-x-hidden">
-      <div className="min-w-[930px] h-5 border-b border-white/5 bg-black/40 flex items-center px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-        <div className="flex-1 sticky left-0 z-20 bg-black/40">ISH</div><div className="w-20 text-center">SMETA</div><div className="w-24 text-center">FAKT</div><div className="w-24 text-center">F2</div><div className="w-24 text-center">NAZORAT</div><div className="w-20 text-center">HOLAT</div>{showMoney && <div className="w-[390px] text-center">QIYMATLAR</div>}
-      </div>
-      <div className="min-w-[930px] h-8 border-b border-white/5 bg-black/40 flex items-center px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-        <div className="flex-1">Nom / Birlik</div>
+      <div style={{ minWidth: minimumWidth, width:bodyWidth }} className="h-8 border-b border-white/5 bg-black/40 flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="flex-1 min-w-0 px-4">Nom / Birlik</div>
         <div className="flex items-center h-full pr-4 flex-shrink-0 gap-4">
           {showSmetaAndFakt && <div className="w-20 text-right text-blue-400/70" title="Smeta Hajm">Sm. Vol</div>}
           {showSmetaAndFakt && <div className="w-24 text-right text-emerald-400/70" title="Fakt Hajm">Fakt Vol</div>}
@@ -300,22 +314,22 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                   if (onNodeDrop) onNodeDrop(draggedNode, node);
                   setDraggedNode(null);
                 }}
-                className={`absolute top-0 left-0 min-w-[930px] w-full flex items-center border-b border-border/50 hover:bg-surface-2/30 transition-colors text-sm group ${isEdited ? 'shadow-[inset_3px_0_0_var(--warn)] bg-warn/5' : ''} ${selectedKey === key ? 'bg-accent/10' : ''}`}
+                className={`absolute top-0 left-0 w-full flex items-center border-b border-border/50 hover:bg-surface-2/30 transition-colors text-sm group ${isEdited ? 'shadow-[inset_3px_0_0_var(--warn)] bg-warn/5' : ''} ${selectedKey === key ? 'bg-accent/10' : ''}`}
                 style={{
+                  minWidth: minimumWidth,
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                   cursor: (row.hasChildren || (isEditMode && (node.type === 'bl' || node.type === 'rs'))) ? 'pointer' : 'default'
                 }}
                 onClick={() => {
-                  setSelectedKey(key);
+                  setSelectedKey(key); setDrawerOpen(false);
                   if (row.hasChildren) toggleExpand(key);
                   if ((node.type === 'bl' || node.type === 'rs') && isEditMode) {
                     setExpandedDetailId(prev => prev === key ? null : key);
                   }
                 }}
                 onDoubleClick={() => {
-                  setSelectedKey(key);
-                  setDrawerTab('fakt');
+                  if (onFaktSave) { setSelectedKey(key); setDrawerTab('fakt'); setDrawerOpen(true); }
                 }}
               >
                 {row.depth > 0 && <span aria-hidden="true" className="absolute top-0 bottom-0 border-l border-border/70" style={{ left: `${row.depth * 24 + 23}px` }} />}
@@ -355,6 +369,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     {/* Birlik */}
                     <span className="text-text-dim w-12 text-center flex-shrink-0">{node.birlik}</span>
 
+                    {!isEditMode && <button type="button" aria-label="Qator tafsilotlarini ochish" title="Qator tafsilotlari" onClick={(e) => { e.stopPropagation(); setSelectedKey(key); setDrawerTab('umumiy'); setDrawerOpen(true); }} className="shrink-0 rounded p-1 text-text-dim hover:bg-surface-2 hover:text-accent"><Info size={14}/></button>}
                     {/* Kanonik qatorni to'g'ridan-to'g'ri tahrirlash. GAS-nom
                         asosidagi eski daraxtda `id`/`versiya` yo'q — u yerda
                         tugma ko'rinmaydi (Drive orqali emas, saytning o'zida
@@ -497,13 +512,13 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           })}
         </div>
       </div>
-      {selected && !isEditMode && (
+      {drawerOpen && selected && !isEditMode && (
         <aside className="absolute inset-y-0 right-0 z-40 w-[min(460px,90vw)] overflow-auto border-l border-border bg-surface p-4 shadow-2xl" aria-label="Qator tafsilotlari">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs text-text-mute">{selected.lineage.join(' › ')}</p>
+              <p className="text-xs text-text-mute">{selected.lineage.slice(0,-1).join(' › ')}</p>
               <h3 className="mt-2 truncate font-semibold" title={selected.node.nom || 'Nomsiz'}>{selected.node.nom || 'Nomsiz'}</h3>
-              <p className="mt-1 text-[11px] text-text-mute">{selected.node.kod || 'Kod yo‘q'} · {selected.node.birlik || 'Birlik yo‘q'}</p>
+              {selected.node.type !== 'rz' && <p className="mt-1 text-[11px] text-text-mute">{selected.node.kod || 'Kod yo‘q'} · {selected.node.birlik || 'Birlik yo‘q'}</p>}
               {/* Qator maydonlarini (nom/hajm/narx/birlik/kat) to'g'ridan-to'g'ri
                   tahrirlash — Fakt tahriridan alohida: u bajarilgan hajmni
                   yozadi, bu esa smeta qatorining o'zini o'zgartiradi. */}
@@ -517,20 +532,25 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                 </button>
               )}
             </div>
-            <button onClick={() => setSelectedKey(null)} className="shrink-0 rounded p-1 text-text-dim hover:bg-surface-2 hover:text-text" aria-label="Qator tafsilotlarini yopish"><X size={18}/></button>
+            <button onClick={() => setDrawerOpen(false)} className="shrink-0 rounded p-1 text-text-dim hover:bg-surface-2 hover:text-text" aria-label="Qator tafsilotlarini yopish"><X size={18}/></button>
           </div>
           <div className="mt-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label="Qator tafsilotlari bo‘limlari">
             {([['umumiy', 'Umumiy'], ['fakt', 'Fakt'], ['f2', 'F2 tarixi'], ['narx', 'Narx'], ['audit', 'Audit']] as const).map(([id, label]) => <button key={id} role="tab" aria-selected={drawerTab === id} onClick={() => setDrawerTab(id)} className={`whitespace-nowrap border-b-2 px-2 py-2 text-xs font-medium ${drawerTab === id ? 'border-accent text-text' : 'border-transparent text-text-dim hover:text-text'}`}>{label}</button>)}
           </div>
           {drawerTab === 'umumiy' && <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-            {[
+            {(selected.node.type === 'rz' ? [
+              ['Smeta summasi', <FmtN key="sm" val={selected.node.smeta}/>],
+              ['Fakt summasi', <FmtN key="fk" val={selected.node.stFakt}/>],
+              ['F2 summasi', <FmtN key="f2sum" val={selected.node.stF2}/>],
+              ['Qoldiq summasi', <FmtN key="ost" val={selected.node.stOst}/>],
+            ] : [
               ['Smeta hajmi', <FmtN key="smeta" val={selected.node.smetaHajm} />],
               ['Fakt hajmi', <FmtN key="fakt" val={selected.node.fakt} />],
               ['F2 hajmi', <FmtN key="f2" val={selected.node.f2ol} />],
               ['F2 mumkin', <FmtN key="mumkin" val={selected.node.f2mum} />],
               ['Resurslar', 'Qator zanjiri orqali'],
               ['O‘zgarish', selected.node.isZamena ? 'Zamena aloqasi mavjud' : selected.node.isQosh ? 'Qo‘shimcha ish' : 'Oddiy qator'],
-            ].map(([title, value]) => <div key={String(title)} className="rounded border border-border p-3"><b>{title}</b><p className="mt-1 text-text-dim">{value}</p></div>)}
+            ]).map(([title, value]) => <div key={String(title)} className="rounded border border-border p-3"><b>{title}</b><p className="mt-1 text-text-dim">{value}</p></div>)}
           </div>}
           {drawerTab === 'fakt' && <div className="mt-4 space-y-4">
             {onFaktSave ? <>
@@ -552,7 +572,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                 <button type="button" onClick={() => void faktniSaqlash()} disabled={faktSaving || selected.node.id == null || !faktValue.trim()} className="inline-flex items-center justify-center rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{faktSaving ? 'Saqlanmoqda…' : 'Faktni saqlash'}</button>
                 {faktStatus && <p role={faktStatus.tone === 'danger' ? 'alert' : undefined} className={`text-xs ${faktStatus.tone === 'ok' ? 'text-ok' : faktStatus.tone === 'warn' ? 'text-warn' : 'text-danger'}`}>{faktStatus.text}</p>}
               </fieldset>
-            </> : <p className="rounded border border-border p-3 text-xs text-text-dim">Fakt yozish porti bu ko‘rinishda ulanmagan.</p>}
+            </> : <div className="rounded border border-border p-3 text-xs"><b>Fakt hajmi</b><p className="mt-1"><FmtN val={selected.node.fakt}/></p>{onFaktOpen && <button type="button" className="tugma mt-3" onClick={onFaktOpen}>{t('Fakt kiritish oynasini ochish')}</button>}</div>}
           </div>}
           {drawerTab === 'f2' && <div className="mt-4 space-y-2 text-xs"><div className="rounded border border-border p-3"><b>F2 tarixi</b><p className="mt-1 text-text-dim">{oylar.length ? `${oylar.length} oy — obyom, narx va summa` : 'Ma’lumot ulanmagan'}</p></div><div className="rounded border border-border p-3"><b>F2 mumkin</b><p className="mt-1 text-text-dim"><FmtN val={selected.node.f2mum} /></p></div></div>}
           {drawerTab === 'narx' && <div className="mt-4 rounded border border-border p-3 text-xs"><b>Narx nazorati</b><p className="mt-1 text-text-dim">{selected.node.id != null && priceControlByQatorId.get(selected.node.id) ? PRICE_STATE_BADGE[priceControlByQatorId.get(selected.node.id)!.price_state].label : 'Ma’lumot ulanmagan'}</p></div>}

@@ -111,8 +111,9 @@ const f2Prep = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'F2Tayyor
 /* 2026-09-30: yagona F2 import — /admin/f2 (F2ImportV3 + F2V3Workbench). Eski F2ImportNative va
    F2TwoPaneWorkbench olib tashlandi (egasi: "bitta manba"); talablar o'zgarmadi — tekshiruv V3 ga qaratildi. */
 const f2Import = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'F2ImportV3.tsx'));
-must('LRV exposes canonical Fakt save port', /onFaktSave\?/.test(lrv) && /sbFaktBelgilaV2/.test(holat) && /sbFaktYoz/.test(holat),
-  'Fakt LRV ichidan typed canonical adapter orqali yozilishi kerak');
+const fakt = noComment(read('frontend', 'src', 'admin', 'sahifalar', 'FaktNative.tsx'));
+must('Fakt has one dedicated canonical editor and LRV only navigates to it', /onFaktSave\?/.test(lrv) && /sbFaktBelgilaV2/.test(fakt) && /sbFaktYoz/.test(fakt) && /onFaktOpen=/.test(holat) && !/onFaktSave=/.test(holat),
+  'LRV faqat Fakt oynasini ochadi; alohida editor typed canonical adapter, delta va conflictni saqlaydi');
 must('LRV distinguishes total and delta Fakt', /Jami Faktni o‘rnatish/.test(lrv) && /Faktga qo‘shish/.test(lrv),
   'operator jami qiymat va qo‘shiladigan qiymatni adashtirmasligi kerak');
 must('LRV has save/conflict state', /Saqlanmoqda/.test(lrv) && /conflict|serverda o‘zgargan/.test(lrv),

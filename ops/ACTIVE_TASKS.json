@@ -2264,6 +2264,9 @@
   "base_sha": "bfe6d13369583667bb9d261cf3eb2037a45c7819",
   "status": "in_progress",
   "owns": [
+      "frontend/src/umumiy/daraxt/SmetaTree.tsx",
+      "frontend/src/umumiy/daraxt/SmetaTree.interaction.test.tsx",
+      "frontend/testlar/t2_pto_visible_surface.test.cjs",
     "frontend/src/components/pto-workspace/",
     "frontend/src/test02/TestObyektlar.tsx",
     "frontend/src/test02/TestLoyiha.tsx",

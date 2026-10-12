@@ -5,6 +5,7 @@ import type { T2Obyekt } from '../../api/supabase';
 import { ProjectNavigator } from './ProjectNavigator';
 const m = vi.hoisted(() => ({ line: {} as unknown, open: vi.fn() }));
 vi.mock('./useLineage', () => ({useCompanyLineage: () => ({data:m.line,isPending:false,error:null,refetch:vi.fn()})}));
+vi.mock('./useMarkupTotals',()=>({useMarkupTotals:()=>({loading:false,failed:false,sum:()=>({known:150,present:1,unknown:1,total:2})})}));
 const objects = [{id:10,nom:'Obyekt A',loyiha_id:1,jami:100,qator_soni:20,razdel:2,ish:5,resurs:13,narxsiz:0},{id:11,nom:'Obyekt B',loyiha_id:1,jami:null,qator_soni:10,razdel:1,ish:2,resurs:7,narxsiz:3}] as T2Obyekt[];
 beforeEach(() => { m.open.mockReset(); m.line={loyihalar:[{id:1,nom:'Bog‘'}],shartnomalar:[{id:100,loyiha_id:1,raqam:'1',nom:'Asosiy',obyektlar:[10,11],tomonlar:[]}],obyektlar:objects}; });
 afterEach(cleanup);

@@ -1462,5 +1462,11 @@
   "Obyekt ish bo‘limlari": "Object workspace sections",
   "Smeta va bajarilish": "Estimate and progress",
   "Hujjatlar va eksport": "Documents and exports",
-  "Smeta yuklash": "Upload estimate"
+  "Smeta yuklash": "Upload estimate",
+  "Nakrutkasiz summa": "Amount without markups",
+  "Nakrutkalar bilan (QQS bilan)": "With markups (including VAT)",
+  "Hisoblanmoqda…": "Calculating…",
+  "Nakrutka hisobi o‘qilmadi. Qayta yangilang.": "Could not load markups. Refresh.",
+  "Smeta va nakrutka summalari": "Estimate and markup totals",
+  "Fakt kiritish oynasini ochish": "Open actual quantity entry"
 }

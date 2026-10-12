@@ -1,3 +1,4 @@
+import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySummary';
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
@@ -8,7 +9,7 @@ import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
-import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
+import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import { useT2Daraxt } from '../../umumiy/daraxt/useT2Daraxt';
 import { lrvPlusEksportGate, type LrvPlusExportContext } from '../../lib/lrv-plus-export';
 import { lrvHujjat } from '../../lib/lrv-hujjat';
@@ -17,10 +18,8 @@ import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
-import { sbFaktBelgilaV2, sbFaktYoz } from '../../api/t2-fakt';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
-import type { TreeNode } from '../../api/types';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ostatkaHujjatModeli, ostatkaHujjatXlsx } from '../../lib/ostatka-export';
 import { slichitelniyHujjatXlsx, slichitelniyModeli } from '../../lib/slichitelniy-vedomost';
@@ -42,6 +41,7 @@ export function HolatNative() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedPanel = searchParams.get('panel');
+  const [exportsOpen,setExportsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(requestedPanel === 'smeta' ? 'yuklash' : 'smeta');
   const { joriy } = useKompaniya();
   const [tomonlar, setTomonlar] = useHujjatTomonlari(joriy?.id);
@@ -60,9 +60,9 @@ export function HolatNative() {
      uchun allaqachon o'qilyapti, qayta so'rov yo'q. */
   const {
     rows: daraxtXom, states: holatXom, tree, price: priceControlLines,
-    loading, yangilanmoqda, error: daraxtXato, yuklash, holatniYangila,
+    loading, yangilanmoqda, error: daraxtXato, yuklash,
   } = useT2Daraxt(validId ? obyektId : null);
-  useEffect(() => { setOchiqPanel(null); setActiveTab(requestedPanel === 'smeta' ? 'yuklash' : 'smeta'); }, [obyektId, joriy?.id, requestedPanel]);
+  useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(requestedPanel === 'smeta' ? 'yuklash' : 'smeta'); }, [obyektId, joriy?.id, requestedPanel]);
   const error = sahifaXato || daraxtXato;
   // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
   const marketLines = useMemo(() => activeTab === 'narx' ? daraxtXom
@@ -261,38 +261,6 @@ export function HolatNative() {
   const faktJami = tree.reduce((sum, n) => sum + (n.stFakt || 0), 0);
   const f2Jami = tree.reduce((sum, n) => sum + (n.stF2 || 0), 0);
 
-  const faktSaqlash = useCallback(async (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => {
-    if (!validId || node.id == null) return { ok: false, message: 'Kanonik qator ID topilmadi.' };
-    const sana = new Date().toISOString().slice(0, 10);
-    const operationId = yangiOperationId();
-    if (mode === 'qoshish') {
-      const result = await sbFaktYoz({
-        obyektId,
-        sana,
-        operationId,
-        qatorlar: [{ qator_id: node.id, hajm: value }],
-        izoh: 'LRV ichidan kanonik Fakt qo‘shish',
-      });
-      if (!result.ok) return { ok: false, message: result.error || result.xabar || 'Fakt qo‘shilmadi.' };
-    } else {
-      const result = await sbFaktBelgilaV2({
-        obyektId,
-        qatorId: node.id,
-        expectedFaktHajm: Number(node.fakt || 0),
-        yangiFaktHajm: value,
-        sana,
-        operationId,
-        izoh: 'LRV ichidan kanonik Fakt jami tahriri',
-      });
-      if (!result.ok) {
-        const conflict = result.code === 'FAKT_CONFLICT';
-        return { ok: false, conflict, message: conflict ? 'Qator serverda o‘zgargan. Yangilang va qayta urinib ko‘ring.' : (result.error || result.xabar || 'Fakt saqlanmadi.') };
-      }
-    }
-    // Faqat shu qator, ota-bobolari va bolalari qayta o'qiladi; daraxt ekranda qoladi.
-    await holatniYangila(node.id);
-    return { ok: true };
-  }, [obyektId, validId, holatniYangila]);
 
   return (
     <Sahifa sarlavha="Obyekt ish joyi" tavsif="Smeta, bajarilgan ishlar va hujjatlar bir joyda">
@@ -314,39 +282,12 @@ export function HolatNative() {
               Excel eksporti bloklangan: {exportBlockReason}. PTO scope’da loyiha, davr, source hujjat va revisionni tanlang.
             </span>
           )}
+          {selected && <button type="button" className="tugma" aria-expanded={exportsOpen} onClick={() => setExportsOpen(v => !v)}><FileSpreadsheet size={14}/>{t('Hujjatlar va eksport')}</button>}
           {validId && <button onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white">Fakt kiritish</button>}
 
         </section>
 
-        {!validId && (
-          <section className="karta border-warn/40 bg-warn/5 p-4 text-[13px] text-text-dim">
-            Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.
-          </section>
-        )}
-        {error && <section className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} />{error}</section>}
-
-        {loading && tree.length === 0 && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
-        {selected && !loading && !error && (
-          <section className="karta flex flex-wrap gap-x-6 gap-y-1 p-3 text-[12px]">
-            <span><Database size={13} className="mr-1 inline text-accent" />{selected.nom}</span>
-            <span className="text-text-dim">Smeta: <b className="text-text"><FmtN val={smetaJami} /></b></span>
-            <span className="text-text-dim">Fakt: <b className="text-text"><FmtN val={faktJami} /></b></span>
-            <span className="text-text-dim">Tasdiqlangan F2: <b className="text-text"><FmtN val={f2Jami} /></b></span>
-          </section>
-        )}
-        {validId && !loading && !error && tree.length === 0 && <section className="karta p-5 text-[13px] text-text-dim">Bu obyektda kanonik smeta qatorlari yo‘q.</section>}
-        {/* Ikki xil tahrir bir-birini to'ldiradi: `onFaktSave` — bajarilgan
-            hajm (Fakt) uchun, `onQatorTahrirlandi` — smeta qatorining o'z
-            maydonlari (nom/hajm/narx/birlik/kat) tahriridan keyin daraxtni
-            qayta yuklash uchun. */}
-        {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="karta flex flex-wrap gap-2 p-2">
-          {(['smeta', 'resurs', 'narx', 'hujjat', 'yuklash'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',hujjat:'Hujjatlar va eksport',yuklash:'Smeta yuklash'})[tab])}</button>)}
-          <button className="tugma ml-auto" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
-          <button className="tugma" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
-        </nav>}
-        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash} /></div>}
-        {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
-        {activeTab === 'hujjat' && selected && <section className="karta flex flex-wrap items-center gap-2 p-3" aria-label={t('Hujjatlar va eksport')}>
+        {exportsOpen && selected && <section className="karta flex flex-wrap items-center gap-2 p-3" aria-label={t('Hujjatlar va eksport')}>
           {validId && tree.length > 0 && (<>
             <button onClick={() => void eksportQil(false)} disabled={eksportBolmoqda || !exportGate.ok}
               title={exportGate.ok ? t('ЛРВ: butun smeta Ф-2 shaklida — guruhlash, filtr, fakt / F2 / ostatka, resurs vedomosti va svod formulalarda') : `Eksport bloklangan: ${exportBlockReason}`}
@@ -375,6 +316,33 @@ export function HolatNative() {
           </>)}
           {validId && tree.length > 0 && <div className="basis-full"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>}
         </section>}
+
+        {!validId && (
+          <section className="karta border-warn/40 bg-warn/5 p-4 text-[13px] text-text-dim">
+            Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.
+          </section>
+        )}
+        {error && <section className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} />{error}</section>}
+
+        {loading && tree.length === 0 && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
+        {selected && !loading && !error && (
+          <section className="karta flex flex-wrap gap-x-6 gap-y-1 p-3 text-[12px]">
+            <span><Database size={13} className="mr-1 inline text-accent" />{selected.nom}</span>
+            <span className="text-text-dim">Smeta: <b className="text-text"><FmtN val={smetaJami} /></b></span>
+            <span className="text-text-dim">Fakt: <b className="text-text"><FmtN val={faktJami} /></b></span>
+            <span className="text-text-dim">Tasdiqlangan F2: <b className="text-text"><FmtN val={f2Jami} /></b></span>
+          </section>
+        )}
+        {validId && !loading && !error && tree.length === 0 && <section className="karta p-5 text-[13px] text-text-dim">Bu obyektda kanonik smeta qatorlari yo‘q.</section>}
+        {selected && <ObjectMoneySummary object={selected} />}
+        {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="karta flex flex-wrap gap-2 p-2">
+          {(['smeta', 'resurs', 'narx', 'yuklash'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',yuklash:'Smeta yuklash'})[tab])}</button>)}
+          <button className="tugma ml-auto" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
+          <button className="tugma" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
+        </nav>}
+        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
+        {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
+
 
         {selected && !loading && !error && (
           <div key={`${joriy?.id}|${obyektId}`} className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">

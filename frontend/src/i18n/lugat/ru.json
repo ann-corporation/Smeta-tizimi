@@ -1462,5 +1462,11 @@
   "Obyekt ish bo‘limlari": "Разделы работы с объектом",
   "Smeta va bajarilish": "Смета и выполнение",
   "Hujjatlar va eksport": "Документы и экспорт",
-  "Smeta yuklash": "Загрузить смету"
+  "Smeta yuklash": "Загрузить смету",
+  "Nakrutkasiz summa": "Сумма без накруток",
+  "Nakrutkalar bilan (QQS bilan)": "С накрутками (включая НДС)",
+  "Hisoblanmoqda…": "Рассчитывается…",
+  "Nakrutka hisobi o‘qilmadi. Qayta yangilang.": "Не удалось получить расчёт накруток. Обновите.",
+  "Smeta va nakrutka summalari": "Суммы сметы и накруток",
+  "Fakt kiritish oynasini ochish": "Открыть ввод фактических объёмов"
 }
