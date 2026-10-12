@@ -182,8 +182,21 @@ it('section headers show descendant money in each period instead of a merged emp
   for (const name of ['ВЕРХНИЙ РАЗДЕЛ','ВЛОЖЕННЫЙ РАЗДЕЛ','РАБОТА']) {
     const row = cells.find(c => c.matn === name)!.ref.replace(/^[A-Z]+/,'');
     const amount = cells.find(c => c.ref === `G${row}`)!;
-    expect(Number(amount.v)).toBe(15000000); expect(amount.f).toMatch(/^SUMIF/);
+    expect(Number(amount.v)).toBe(15000000); expect(amount.f).toMatch(/^ROUND\(SUMIF\(.+\),2\)$/);
   }
   expect(h.jamilar.smeta).toBe(15000000); expect(h.jamilar.jami).toBe(200000000);
   expect(rows[4].smeta_summa).toBeNull();
+});
+
+it('unchanged source survives rounded norm/price drift; manual edits still recalculate', () => {
+  const root=q({tur:'rz',qator_id:920,ota_id:null,nom:'РАЗДЕЛ'});
+  const work=q({tur:'bl',qator_id:921,ota_id:920,nom:'РАБОТА',smeta_hajm:3});
+  const resource=q({tur:'mat',qator_id:922,ota_id:921,nom:'РЕСУРС',kat:'МАТ',norma:0.3333333,smeta_hajm:1.0000001,smeta_narx:10,smeta_summa:10.07});
+  const h=nakopitelniyVedomostHujjat([root,work,resource],{obyektNom:'О',davr:'2026-09'});
+  namunaSaqla('nakop-source-drift.xlsx',h.bytes);
+  const c=hujjatTekshir(h.bytes,{}).varaqlar[0].kataklar;
+  const row=(name:string)=>c.find(k=>k.matn===name)!.ref.replace(/^[A-Z]+/,'');
+  expect(c.find(k=>k.ref===`E${row('РЕСУРС')}`)!.f).toBe(`IF(E${row('РАБОТА')}=3,1.0000001,ROUND(0.3333333*E${row('РАБОТА')},6))`);
+  expect(c.find(k=>k.ref===`G${row('РЕСУРС')}`)!.f).toContain('10.07,ROUND(');
+  expect(resource.smeta_summa).toBe(10.07);
 });

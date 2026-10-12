@@ -274,7 +274,7 @@ export function nakopitelniyVedomostHujjat(
     if (!idx.length) return null;
     const a = rowOf(Math.min(...idx)), b = rowOf(Math.max(...idx));
     const rng = `${c}${a}:${c}${b}`, m = `${U.belgi}${a}:${U.belgi}${b}`;
-    return { f: `SUMIF(${m},1,${rng})`, v: yaxlit2(val ?? 0) };
+    return { f: `ROUND(SUMIF(${m},1,${rng}),2)`, v: yaxlit2(val ?? 0) };
   };
   const bargIdx = (idx: readonly number[]): number[] => {
     const out: number[] = [];
@@ -335,10 +335,13 @@ export function nakopitelniyVedomostHujjat(
         // resurs summasi = hajm × narx (F2 ustunlari esa hujjatdagidek, qiymat).
         const ota = barg && x.ota != null ? reja[x.ota] : undefined;
         const normaF = barg && q!.norma != null && ota?.tur === 'bl' && ota.q?.smeta_hajm != null && q!.smeta_hajm != null;
-        c[4] = normaF ? { f: `ROUND(${q!.norma}*E${rowOf(x.ota!)},6)`, v: q!.smeta_hajm! } : n(q!.smeta_hajm);
+        const normFormula = `ROUND(${q!.norma}*E${rowOf(x.ota ?? 0)},6)`;
+        const normDrift = normaF && Math.abs(Math.round(q!.norma! * ota!.q!.smeta_hajm! * 1e6) / 1e6 - q!.smeta_hajm!) > 1e-10;
+        // Сохранённый источник важнее округлённой нормы. При изменении работы формула остаётся живой.
+        c[4] = normaF ? { f: normDrift ? `IF(E${rowOf(x.ota!)}=${ota!.q!.smeta_hajm},${q!.smeta_hajm},${normFormula})` : normFormula, v: q!.smeta_hajm! } : n(q!.smeta_hajm);
         c[5] = barg ? n(q!.smeta_narx) : null;
         c[6] = barg
-          ? (q!.smeta_narx != null && q!.smeta_hajm != null && q!.smeta_summa != null ? { f: `IF(OR(E${rr}="",F${rr}=""),"",ROUND(E${rr}*F${rr},2))`, v: q!.smeta_summa } : n(q!.smeta_summa))
+          ? (q!.smeta_narx != null && q!.smeta_hajm != null && q!.smeta_summa != null ? { f: `IF(OR(E${rr}="",F${rr}=""),"",${Math.round(q!.smeta_hajm * q!.smeta_narx * 100) / 100 !== q!.smeta_summa ? `IF(AND(E${rr}=${q!.smeta_hajm},F${rr}=${q!.smeta_narx}),${q!.smeta_summa},ROUND(E${rr}*F${rr},2))` : `ROUND(E${rr}*F${rr},2)`})`, v: q!.smeta_summa } : n(q!.smeta_summa))
           : pulYig('G', x.bolalar);
         c[7] = q!.fakt_hajm;
         davrlar.forEach((d, k) => {
