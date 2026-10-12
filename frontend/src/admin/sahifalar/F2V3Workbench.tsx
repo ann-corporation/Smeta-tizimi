@@ -469,13 +469,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const ishliRz = t.bolalar.some((c) => c.tur !== 'rz');
       return (
         <div data-fuid={t.uid} className="grid grid-cols-[minmax(180px,1fr)_85px_160px] bg-surface-2/80 text-[12px] font-semibold text-text">
-          <button type="button" draggable={!p.disabled}
+          <div draggable={!p.disabled}
             onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
-            onClick={() => scrollTanlanganPanelga(t.uid)}
             className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             title="Razdelni o‘ngdagi smeta razdeliga tortsangiz — shu razdel ichidan qidiriladi">
-            {chevron}<span className="min-w-0 flex-1 break-words">{t.nom}</span>
-          </button>
+            {chevron}<button type="button" className="min-w-0 flex-1 break-words text-left" onClick={() => scrollTanlanganPanelga(t.uid)}>{t.nom}</button>
+          </div>
           <span className={`${SON} font-semibold`}>{fmt(rzSumma.get(t.uid) ?? null, 2)}</span>
           <span className={`${KATAK} text-[10.5px] font-normal normal-case ${d?.ok || !ishliRz ? 'text-text-mute' : 'text-warn'}`} title={sNom || undefined}>
             {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : ishliRz ? 'bo‘lim ulanmagan — mos smeta bo‘limiga torting' : 'guruh'}
@@ -525,12 +524,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? `font-medium text-text ${ISH_CHEGARA}` : `text-text-dim ${RESURS_CHEGARA}`}`}>
         <span className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${HOLAT_KATAK[k]}`} title={B.t}>{B.b}</span>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
+        <div className={`${KATAK} flex items-start text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
+          {chevron}
         <button type="button"
           onClick={tanla}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tanla(); } }}
           aria-pressed={sel}
-          className={`${KATAK} cursor-grab text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
-          {chevron}
+          className="min-w-0 flex-1 cursor-grab text-left">
           {t.belgi && <span className={`mr-1 rounded px-1 text-[10px] font-semibold ${t.belgi === 'zamena' ? 'bg-warn/20 text-warn' : 'bg-accent/20 text-accent'}`}
             title={t.belgi === 'zamena' ? 'Hujjatda zamena (~) deb belgilangan' : 'Hujjatda qo‘shimcha ish (+) deb belgilangan'}>{t.belgi === 'zamena' ? '~ zamena' : '+ qo‘shimcha'}</span>}
           <span className="break-words">{t.nom}</span>
@@ -539,6 +539,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {!s && tavsiya && <span className="mt-0.5 block text-[10.5px] font-normal text-warn">{tavsiya.tur === 'zamena' ? `⇄ zamena taklifi: «${tavsiyaS?.nom ?? ''}» o‘rniga` : '＋ smeta ishida mos resurs yo‘q — qo‘shimcha resurs'}</span>}
           {t.ogohlantirish?.length ? <span className="mt-0.5 block text-[10.5px] font-normal text-danger">{t.ogohlantirish.join('; ')}</span> : null}
         </button>
+        </div>
         <span className={`${SON} text-text-mute`}>{t.norma == null ? '' : fmt(t.norma, 6)}</span>
         <span className={`${SON} text-text`}>{fmt(t.hajm)}</span>
         <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{t.birlik ?? ''}</span>
@@ -708,11 +709,14 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (s.tur === 'rz') {
       return (
         <div data-sid={s.id} {...dropProps(s)} className={`grid grid-cols-[minmax(180px,1fr)_88px] text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}${oraliq}`}>
-          <button type="button" className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
+          <div className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}>
+            {chevron}
+          <button type="button" className="flex min-w-0 flex-1 items-center text-left"
             onClick={() => tTugun ? tashla(tTugun.uid, s.id) : toggle()} title={tTugun ? 'Tanlangan F2 qatorini shu smeta razdeliga bog‘lash/qo‘shimcha qilish' : undefined}>
-            {chevron}<span className="min-w-0 flex-1 break-words">{s.nom}</span>
+            <span className="min-w-0 flex-1 break-words">{s.nom}</span>
             <span className="ml-2 shrink-0 text-[10px] font-normal normal-case text-text-mute">{bolalar.length} ichki qator</span>
           </button>
+          </div>
           <span className={`${KATAK} font-normal`}>
             {tTugun?.tur === 'bl' && <button type="button" className={tugma} disabled={p.disabled}
               onClick={() => tashla(tTugun.uid, s.id)} title="Tanlangan F2 ishini shu razdelga qo‘shimcha ish sifatida qo‘shish">＋ Qo‘shimcha</button>}
@@ -729,9 +733,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
         + (oraliq || ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA))}>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
-        <button type="button" className={`${KATAK} text-left`} style={{ paddingLeft: 6 + depth * 14 }} onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
-          title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
+        <div className={`${KATAK} flex items-start text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
           {chevron}
+        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
+          title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
           {percent != null && <span className="mr-1 rounded bg-warn/20 px-1 text-[10px] font-semibold text-warn" title="Moslik indeksi — ehtimollik emas">{percent}%</span>}
           <span className="break-words">{s.nom}</span>
           {(yangi?.qoshimcha || yangi?.zamena) && <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent">{yangi.zamena ? 'zamena' : 'qo‘shimcha'}</span>}
@@ -740,6 +745,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             oldin F2 {fmt(old)}{band && <span className="ml-1 text-ok">· shu F2 {fmt(band.hajm)}{band.uidlar.length > 1 ? ` (${band.uidlar.length} qism)` : ''}</span>}
           </span>}
         </button>
+        </div>
         <span className={`${SON} text-text-mute`}>{s.norma == null ? '' : fmt(s.norma, 6)}</span>
         <span className={`${SON} text-text`}>{fmt(s.hajm)}</span>
         <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{s.birlik ?? ''}</span>

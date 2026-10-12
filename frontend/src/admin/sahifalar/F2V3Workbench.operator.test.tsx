@@ -68,6 +68,14 @@ function renderWorkbench(rowCount = 2, specialTypes: F2Tugun['tur'][] = [], revi
 afterEach(cleanup);
 
 describe('F2 workbench operator controls', () => {
+  it('tree expand buttons are separate from selection/link actions', () => {
+    const { onIj } = renderWorkbench();
+    expect(document.querySelector('button button')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'F2 qatorni yopish: KONSTRUKSIYA' }));
+    expect(onIj).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'F2 qatorni ochish: KONSTRUKSIYA' })).toBeTruthy();
+    expect(document.querySelector('button button')).toBeNull();
+  });
   it('changes pane proportions and exposes detail columns without changing links', () => {
     const { onIj } = renderWorkbench();
     const wide = screen.getByRole('button', { name: 'F2 kengroq' });
