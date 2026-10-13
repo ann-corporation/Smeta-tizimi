@@ -29,7 +29,9 @@ describe('Public intro mahsulot qamrovi', () => {
     render(<PublicEntry onChooseAuth={vi.fn()}>Form</PublicEntry>);
     expect(screen.getByText(/To‘liq buxgalteriya/)).toBeTruthy();
     expect(screen.getByText(/avtomatik yakuniy tasdiq va’da qilinmaydi/)).toBeTruthy();
-    expect(screen.getByText(/koeffitsient tavsiyalari takomillashtirilmoqda/)).toBeTruthy();
+    expect(screen.getByText(/yakuniy qarorni smetachi qabul qiladi/)).toBeTruthy();
+    // Hero shows the real studio workflow as a labelled sample (LRV → pricing → RES).
+    expect(screen.getAllByRole("tab").map(x => x.textContent)).toEqual(["1 · LRV", "2 · Narxlash", "3 · RES"]);
     expect(document.querySelectorAll('.entry-chain li').length).toBe(5);
   });
   it.each(['ru', 'en'] as const)('%s da yo‘nalishlar va lavozimlar tarjima qilinadi', lang => {
