@@ -4,7 +4,10 @@
  *   POST { amal: 'suhbat', kompaniya_id, xabarlar: [{rol, matn}], ishlar: IshNiyati[], obyekt?: string }
  *        → { ok, javob, savollar, ishlar }            (reasoning tier: decomposition, questions, formulas)
  *   POST { amal: 'tanla', kompaniya_id, sorovlar: TanlovSorovi[] }
- *        → { ok, tanlovlar }                           (fast tier: pick a catalogue work among candidates)
+ *        → { ok, tanlovlar }                           (fast tier: pick a catalogue work among candidates; may return
+ *                                                       new normative phrasings for a second search round)
+ *   POST { amal: 'narx_tanla', kompaniya_id, sorovlar: NarxSorovi[], hudud? }
+ *        → { ok, tanlovlar }                           (fast tier: pick a price candidate per resource by MEANING)
  *
  * Session actor + company membership; company AI budget checked before every model call and usage
  * recorded (agent platform accounting). Output is schema-validated; candidates the model did not receive
@@ -13,9 +16,10 @@
 import { tekshir } from '../_shared/auth';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
-import { SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
+import { NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
 import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
-import { SUHBAT_SXEMA, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir, type IshNiyati, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
+import { NARX_TANLOV_SXEMA, SUHBAT_SXEMA, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
+  type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
 /** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
 export const ZAXIRA_MODEL = 'google/gemini-2.5-flash-lite';
@@ -34,8 +38,9 @@ export async function ishonchliChaqir(chaqir: (req: AiRequest) => Promise<AiResp
     if (kalitlar.includes('ishlar')) {
       const parsed = suhbatJavobiniTekshir(v);
       if (req.system?.includes('TEKSHIRILGAN MANBA:') && contradictsFoundationSource(parsed.javob)) return null;
-      // A prose promise of a completed estimate is not a structured estimate.
-      if (!parsed.ishlar.length && /(?:smeta|смет|hisob|рассчит|fundament|фундамент|kotlovan|котлован|armatura|арматур)/i.test(parsed.javob)) return null;
+      // A prose promise of a completed estimate is not a structured estimate. A question about the work
+      // ("Fundament o'lchami qancha?") IS a valid reply — only claims of a finished/computed result are rejected.
+      if (!parsed.ishlar.length && /(?:smeta\s+tayyor|tayyorladim|hisobladim|hisoblab\s+chiqdim|yozib\s+qo['‘’]?ydim|смета\s+готова|рассчитал|составил\s+смет)/i.test(parsed.javob)) return null;
     }
     return v;
   };
@@ -75,11 +80,27 @@ export function sorovlarniTayyorla(raw: unknown): TanlovSorovi[] | null {
   for (const s of raw as Array<Record<string, unknown>>) {
     const nomzodlar = (Array.isArray(s?.nomzodlar) ? s.nomzodlar : []).slice(0, 15).map(n => {
       const r = (n ?? {}) as Record<string, unknown>;
-      return { id: clip(r.id, 40), kod: clip(r.kod, 60), nom: clip(r.nom, 400), birlik: r.birlik == null ? null : clip(r.birlik, 30) };
+      return { id: clip(r.id, 40), kod: clip(r.kod, 60), nom: clip(r.nom, 400), birlik: r.birlik == null ? null : clip(r.birlik, 30),
+        jadval: r.jadval == null ? null : clip(r.jadval, 200), toplam: r.toplam == null ? null : clip(r.toplam, 120) };
     }).filter(n => /^[A-Za-z0-9_:.-]{1,40}$/.test(n.id));
     const id = clip(s?.id, 40);
     if (!/^[A-Za-z0-9_-]{1,40}$/.test(id) || !nomzodlar.length) return null;
     out.push({ id, tavsif: clip(s.tavsif, 1200), birlik: clip(s.birlik, 10) as TanlovSorovi['birlik'], material: s.material == null ? null : clip(s.material, 120), nomzodlar });
+  }
+  return out;
+}
+/** Price requests: ≤40 resources × ≤15 candidates the browser found (catalogue rows / company estimate rows). */
+export function narxSorovlariniTayyorla(raw: unknown): NarxSorovi[] | null {
+  if (!Array.isArray(raw) || !raw.length || raw.length > 40) return null;
+  const out: NarxSorovi[] = [];
+  for (const s of raw as Array<Record<string, unknown>>) {
+    const nomzodlar = (Array.isArray(s?.nomzodlar) ? s.nomzodlar : []).slice(0, 15).map(n => {
+      const r = (n ?? {}) as Record<string, unknown>;
+      return { id: clip(r.id, 60), nom: clip(r.nom, 300), birlik: r.birlik == null ? null : clip(r.birlik, 30), narx: Number(r.narx), manba: clip(r.manba, 160) };
+    }).filter(n => /^[A-Za-z0-9_:.-]{1,60}$/.test(n.id) && n.nom && Number.isFinite(n.narx) && n.narx >= 0);
+    const id = clip(s?.id, 60);
+    if (!/^[A-Za-z0-9_:.-]{1,60}$/.test(id) || !nomzodlar.length) return null;
+    out.push({ id, nom: clip(s.nom, 400), birlik: s.birlik == null ? null : clip(s.birlik, 30), kat: s.kat == null ? null : clip(s.kat, 20), nomzodlar });
   }
   return out;
 }
@@ -122,6 +143,16 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const tanlovlar = tanlovlarniTekshir(obj, sorovlar);
       const xom = tanlovlar.every(x => !x.ishId) ? r.text.slice(0, 2000) : undefined;
       return Response.json({ ok: true, tanlovlar, model: r.model, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (so.amal === 'narx_tanla') {
+      const sorovlar = narxSorovlariniTayyorla(so.sorovlar);
+      if (!sorovlar) return fail('SOROV_INVALID');
+      const hudud = clip(so.hudud, 80);
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_narx_tanlash', req);
+      const { r, obj } = await ishonchliChaqir(chaqir,
+        { system: NARX_TANLOV_TIZIM, text: `${hudud ? `Obyekt hududi: ${hudud}\n` : ''}<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 5000, jsonSchema: NARX_TANLOV_SXEMA },
+        ['tanlovlar', 'choices', 'results']);
+      return Response.json({ ok: true, tanlovlar: narxTanlovlariniTekshir(obj, sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
     }
     return fail('AMAL_INVALID');
   } catch (e) {

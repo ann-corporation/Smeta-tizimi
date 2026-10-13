@@ -63,6 +63,21 @@ export class RemoteNormCatalog implements NormDetailSource {
     return new RemoteNormCatalog(manifest, tree.nodes, index.works, index.units ?? {}, fetcher, base);
   }
 
+  /** Every work of the revision (for ranked retrieval indexes); order is stable. */
+  allWorks(): NormWork[] { return [...this.worksById.values()].map(w => w.work); }
+  private collections: Map<string, string> | null = null;
+  /** Collection title by code ("E06" → "Бетонные и железобетонные конструкции монолитные"); null if unnamed. */
+  collectionTitle(code: string | null): string | null {
+    if (!code) return null;
+    if (!this.collections) {
+      this.collections = new Map();
+      for (const n of this.nodes) {
+        const m = /^([ЕEЦУ])(\d{1,2})-(.+)$/.exec(n[2] ?? '');
+        if (m && n[5] === 'BOOK') { const k = `${m[1] === 'Е' ? 'E' : m[1]}${m[2].padStart(2, '0')}`; if (!this.collections.has(k)) this.collections.set(k, m[3].trim()); }
+      }
+    }
+    return this.collections.get(code.replace(/^Е/, 'E')) ?? null;
+  }
   /** Observed physical unit for a source KodI; null = unknown (manual basis + evidence). */
   unit(code: string | null): UnitEntry | null { const u = code == null ? null : this.units[code]; return u && u.status === 'OBSERVED' ? u : null; }
   /** Human table name from the named tree (BOOK label or code-only node); null if unknown. */

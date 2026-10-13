@@ -12,6 +12,7 @@ import type { EstimateDoc } from '../smeta-studio/model';
 import { ifodaHisobla } from './ifoda';
 import { includedWorkReviews } from './included-work';
 import type { Birlik, IshNiyati, TanlovNomzodi, TanlovSorovi } from './protokol';
+import { MatnIndeks } from './matn-qidiruv';
 
 export type AiKatalog = NormDetailSource & {
   search(q: string, page: number): { rows: NormWork[]; total: number };
@@ -21,7 +22,47 @@ export type AiKatalog = NormDetailSource & {
   load(workId: string): Promise<void>;
   tableLabel(workId: string): string | null;
   manifest: { revision: string };
+  /** Optional full work list for ranked (BM25) retrieval — RemoteNormCatalog provides it. */
+  allWorks?(): NormWork[];
+  collectionTitle?(code: string | null): string | null;
 };
+
+type IshIndeksi = { idx: MatnIndeks; works: NormWork[]; byId: Map<string, number> };
+const ISH_INDEKS = new WeakMap<object, IshIndeksi>();
+/** One BM25 index per catalogue revision: work name + its table title (what kind of work it is). */
+export function ishIndeksi(k: AiKatalog): IshIndeksi | null {
+  if (!k.allWorks) return null;
+  let x = ISH_INDEKS.get(k);
+  if (!x) {
+    const works = k.allWorks();
+    const idx = new MatnIndeks(works.map((w, i) => ({ id: i, matn: w.name ?? '', kontekst: k.tableLabel(w.id) })));
+    x = { idx, works, byId: new Map(works.map((w, i) => [w.id, i])) };
+    ISH_INDEKS.set(k, x);
+  }
+  return x;
+}
+const KOD = /^[EЕЦУCС]\d{1,3}(?:-\d+){1,4}$/i;
+/** Ranked retrieval: every phrasing, collection hint as a boost, unit-incompatible works dropped, ≤3 variants per table. */
+function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'>, limit: number): TanlovNomzodi[] {
+  const hint = new Set(ish.toplam ?? []);
+  const direct = ish.qidiruv.filter(q => KOD.test(q.trim())).flatMap(q => k.search(q.trim(), 0).rows.slice(0, 3));
+  const scored = x.idx.qidir(ish.qidiruv.filter(q => !KOD.test(q.trim())), 150).map(h => {
+    const w = x.works[h.id];
+    const mos = birlikMos(k, w, ish.birlik);
+    return { w, mos, s: h.ball * (mos === true ? 1.15 : 1) * (w.collection && hint.has(w.collection.replace(/^Е/, 'E')) ? 1.3 : 1) };
+  }).filter(r => r.mos !== false).sort((a, b) => b.s - a.s);
+  const perTable = new Map<string, number>(), out: NormWork[] = [...direct];
+  for (const r of scored) {
+    if (out.length >= limit) break;
+    if (out.some(w => w.id === r.w.id)) continue;
+    const t = r.w.tableCode ?? r.w.id;
+    const n = perTable.get(t) ?? 0;
+    if (n >= 3) continue;
+    perTable.set(t, n + 1); out.push(r.w);
+  }
+  return out.slice(0, limit).map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null,
+    jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null }));
+}
 export type TanlanganIsh = { workId: string; kod: string; nom: string; birlik: string | null; sabab: string; qolda?: boolean };
 export type AiIsh = IshNiyati & { nomzodlar: TanlovNomzodi[]; tanlangan: TanlanganIsh | null; hajm: { qiymat: string; ifoda: string } | null; hajmXato: string | null };
 
@@ -43,7 +84,9 @@ export function birlikMos(k: Pick<AiKatalog, 'unit'>, w: NormWork, b: Birlik): b
 }
 
 /** Search with the model's normative phrases; fall back to word stems (Russian endings vary). */
-export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik'>, limit = 12): TanlovNomzodi[] {
+export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'>, limit = 15): TanlovNomzodi[] {
+  const x = ishIndeksi(k);
+  if (x) return bm25Nomzodlar(k, x, ish, limit);
   const found = new Map<string, NormWork>();
   const tryQ = (q: string) => { if (found.size >= 40) return; for (const w of k.search(q, 0).rows.slice(0, 15)) if (!found.has(w.id)) found.set(w.id, w); };
   for (const q of ish.qidiruv) {
@@ -140,7 +183,11 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
       const nomi = ish.bolim.trim() || 'Asosiy';
       let sectionId = sectionByName.get(nomi.toLowerCase());
       if (!sectionId) { sectionId = newId(); sectionByName.set(nomi.toLowerCase(), sectionId); commands.push({ type: 'ADD_SECTION', sectionId, parentId: null, name: nomi }); }
-      commands.push({ type: 'ADD_OCCURRENCE', occurrenceId: newId(), sectionId, source: snap.source, recipe: snap.recipe, quantity: ish.hajm.qiymat, basis });
+      const occurrenceId = newId();
+      commands.push({ type: 'ADD_OCCURRENCE', occurrenceId, sectionId, source: snap.source, recipe: snap.recipe, quantity: ish.hajm.qiymat, basis });
+      // Coefficients travel as PROPOSALS: visible on the work, applied only when the operator accepts them.
+      if (ish.koeffitsientlar?.length) commands.push({ type: 'SET_COEFFICIENTS', occurrenceId, coefficients: ish.koeffitsientlar.map((k, i) => ({
+        id: `ai${i + 1}`, name: k.nom, value: k.qiymat, scope: k.qollanish, evidence: k.asos, origin: 'AI' as const, accepted: false })) });
       qoshildi.push(ish.id);
     } catch (e) {
       otkazildi.push({ id: ish.id, sabab: e instanceof Error && e.message === 'WORK_AMBIGUOUS' ? 'Bir shifrga ikki ish mos — qo‘lda tanlang' : 'Katalog ishi yuklanmadi' });

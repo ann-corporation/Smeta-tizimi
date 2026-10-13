@@ -71,18 +71,30 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     let next = list.map(i => (i.nomzodlar.length ? i : { ...i, nomzodlar: nomzodlarTop(katalog, i) }));
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
-    const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && i.nomzodlar.length).map(i => tanlovSorovi(i, next));
-    if (sor.length) {
+    // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
+    let qaytaIds: Set<string> | null = null;
+    for (let round = 0; round < 2; round++) {
+      const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && i.nomzodlar.length && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
+      if (!sor.length) break;
       setBand('tanlash');
       const r = await smetachiTanla(kompaniyaId, sor.slice(0, 40));
       if (!tirik.current) return list;
-      if (r.ok) {
-        const by = new Map(r.tanlovlar.map(x => [x.id, x]));
-        next = next.map(i => {
-          const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
-          return n && !tanlovZidmi(i, n, next) ? { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab } } : i;
-        });
-      } else setHolat(xato(r.code, r.message));
+      if (!r.ok) { setHolat(xato(r.code, r.message)); break; }
+      const by = new Map(r.tanlovlar.map(x => [x.id, x]));
+      const qayta = new Set<string>();
+      next = next.map(i => {
+        const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
+        if (n && !tanlovZidmi(i, n, next)) return { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab } };
+        if (round === 0 && c?.qidiruv?.length) {
+          const extra = nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
+          const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
+          if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 15) }; }
+        }
+        return i;
+      });
+      if (tirik.current) setIshlar(next);
+      if (!qayta.size) break;
+      qaytaIds = qayta;
     }
     // A declined or ambiguous choice stays unresolved until the user clarifies it.
     return next;
@@ -181,6 +193,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
             <div className="min-w-0 flex-1">
               <p className="font-medium text-text">{i.tavsif}{i.material && <span className="text-text-mute"> · {i.material}</span>}</p>
               <p className="text-[11px] text-text-mute">{t('Bo‘lim')}: {i.bolim}</p>
+              {i.koeffitsientlar?.map(k => <p key={k.nom} className="text-[11px] text-warn">{t('Koeffitsient taklifi')}: {k.nom} × {k.qiymat.replace('.', ',')} ({k.qollanish}) — {k.asos}</p>)}
             </div>
             <button type="button" aria-label={t('Ishni olib tashlash')} className="text-xs text-text-mute hover:text-danger" onClick={() => setIshlar(l => l.filter(x => x.id !== i.id))}>✕</button>
           </div>
@@ -188,7 +201,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
             <select className="input mt-0.5 h-7 w-full text-[11.5px]" value={i.tanlangan?.workId ?? ''}
               onChange={e => { const n = i.nomzodlar.find(x => x.id === e.target.value); ishniYangila(i.id, { tanlangan: n ? { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: t('qo‘lda tanlandi'), qolda: true } : null }); }}>
               <option value="">{i.nomzodlar.length ? t('— tanlang ({n} nomzod) —', { n: i.nomzodlar.length }) : t('— katalogda topilmadi —')}</option>
-              {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}</option>)}
+              {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}{n.toplam ? ` — ${n.toplam}` : ''}</option>)}
             </select></label>
           {katalog && <KatalogQidiruv katalog={katalog} onPick={n => ishniYangila(i.id, {
             nomzodlar: [...i.nomzodlar.filter(x => x.id !== n.id), n],

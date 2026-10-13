@@ -6,13 +6,16 @@
  * `unresolved` count, so the operator always sees what is missing instead of a fake total.
  */
 import { previewResourceAmount, previewResourceQuantity } from '../catalog-extraction/norm-catalog';
-import type { CatalogResource, EstimateDoc, Occurrence, PriceBasis } from './model';
+import type { CatalogResource, CoefScope, EstimateDoc, Occurrence, PriceBasis } from './model';
+import { resourceFacts } from '../resource-semantics';
 
 export type LineIssue = 'RESOURCE_UNRESOLVED' | 'NORM_UNKNOWN' | 'PRICE_MISSING' | 'QUANTITY_MISSING' | 'BASIS_UNCONFIRMED';
 export type LineCalc = {
   recipeId: string; resource: CatalogResource | null; original: CatalogResource | null; substituted: boolean;
   norm: string | null; normOverridden: boolean; quantity: string | null;
   price: string | null; priceBasis: PriceBasis | null; amount: string | null; issues: LineIssue[];
+  /** Product of the accepted work coefficients that apply to this resource (null = none). */
+  coefficient?: string | null;
 };
 export type Totals = { amount: string | null; knownAmount: string; unresolved: number };
 export type OccurrenceCalc = Totals & { id: string; lines: LineCalc[]; issues: LineIssue[] };
@@ -39,6 +42,23 @@ function sum(parts: Totals[] | Array<string | null>): Totals {
   return { amount: unresolved ? null : money(known), knownAmount: money(known), unresolved };
 }
 
+const SCOPE_CATS: Record<CoefScope, ReadonlySet<string> | null> = {
+  ALL: null, ЧЕЛ: new Set(['ЧЕЛ']), МАШ: new Set(['МАШ']), 'ЧЕЛ+МАШ': new Set(['ЧЕЛ', 'МАШ']), МАТ: new Set(['МАТ', 'КАБ', 'М/К', 'БЕЗ СКЛАД']),
+};
+/** Exact product of the ACCEPTED coefficients whose scope covers this resource's cost category. */
+export function coefficientFor(o: Occurrence, resource: CatalogResource | null): string | null {
+  const list = (o.coefficients ?? []).filter(c => c.accepted);
+  if (!list.length || !resource) return null;
+  const cat = resourceFacts(resource).costCategory;
+  let k: string | null = null;
+  for (const c of list) {
+    const cats = SCOPE_CATS[c.scope];
+    if (cats && (!cat || !cats.has(cat))) continue;
+    k = k == null ? c.value : mulDec(k, c.value);
+  }
+  return k;
+}
+
 export function calcOccurrence(o: Occurrence): OccurrenceCalc {
   const issues: LineIssue[] = [];
   if (o.quantity == null) issues.push('QUANTITY_MISSING');
@@ -51,12 +71,15 @@ export function calcOccurrence(o: Occurrence): OccurrenceCalc {
     const norm = sub?.normOverride?.value ?? r.norm;
     if (norm == null) lineIssues.push('NORM_UNKNOWN');
     let quantity: string | null = null;
-    if (resource && norm != null && o.quantity != null && o.basis.scale != null)
-      quantity = previewResourceQuantity(o.quantity, sub ? mulDec(norm, sub.conversion) : norm, o.basis.scale, o.basis.evidence ?? '');
+    const coefficient = coefficientFor(o, resource);
+    if (resource && norm != null && o.quantity != null && o.basis.scale != null) {
+      const base = sub ? mulDec(norm, sub.conversion) : norm;
+      quantity = previewResourceQuantity(o.quantity, coefficient ? mulDec(base, coefficient) : base, o.basis.scale, o.basis.evidence ?? '');
+    }
     const price = ov.price?.value ?? null;
     if (price == null) lineIssues.push('PRICE_MISSING');
     return { recipeId: r.recipeId, resource, original: r.resource, substituted: !!sub, norm, normOverridden: !!sub?.normOverride,
-      quantity, price, priceBasis: ov.price?.basis ?? null, amount: previewResourceAmount(quantity, price), issues: lineIssues };
+      quantity, price, priceBasis: ov.price?.basis ?? null, amount: previewResourceAmount(quantity, price), issues: lineIssues, coefficient };
   });
   // A work without any recipe line has no computable cost: unknown, not zero.
   const t = lines.length ? sum(lines.map(l => l.amount)) : { amount: null, knownAmount: '0.00', unresolved: 1 };

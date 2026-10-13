@@ -3,8 +3,8 @@
  * draft only through `applyCommand`; invalid commands throw a stable error code and leave
  * the previous document untouched.
  */
-import { normDec, type EstimateContext, type EstimateDoc, type Occurrence, type PriceChoice, type RecipeSnapshot,
-  type Section, type Substitution, type UnitBasis, type WorkSource } from './model';
+import { normDec, type EstimateContext, type EstimateDoc, type EstimateRates, type Occurrence, type PriceChoice, type RecipeSnapshot,
+  type Section, type Substitution, type UnitBasis, type WorkCoefficient, type WorkSource } from './model';
 
 export type StudioCommand =
   | { type: 'SET_CONTEXT'; context: Partial<EstimateContext>; currency?: string }
@@ -19,6 +19,8 @@ export type StudioCommand =
   | { type: 'REMOVE_OCCURRENCE'; occurrenceId: string }
   | { type: 'SET_PRICE'; occurrenceId: string; recipeId: string; price: PriceChoice | null }
   | { type: 'SUBSTITUTE_RESOURCE'; occurrenceId: string; recipeId: string; substitution: Substitution | null }
+  | { type: 'SET_COEFFICIENTS'; occurrenceId: string; coefficients: WorkCoefficient[] }
+  | { type: 'SET_RATES'; rates: EstimateRates | null }
   /** Several commands as ONE undo step (e.g. bulk catalogue pricing); all-or-nothing, no nesting. */
   | { type: 'BATCH'; label: string; commands: StudioCommand[] };
 
@@ -29,6 +31,28 @@ const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const fail = (code: string): never => { throw new Error(code); };
 const name = (v: string, code: string) => { const s = String(v ?? '').trim(); if (!s || s.length > 300) fail(code); return s; };
 const clone = <T,>(v: T): T => structuredClone(v);
+
+const COEF_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'];
+/** A coefficient needs a positive value (≤ 10), a known scope, a name and its normative basis. */
+function coefficientOf(c: WorkCoefficient): WorkCoefficient {
+  if (!ID.test(String(c?.id ?? ''))) fail('COEFFICIENT_INVALID');
+  const value = normDec(c.value, 'COEFFICIENT_INVALID');
+  if (value === '0' || Number(value) > 10) fail('COEFFICIENT_INVALID');
+  if (!COEF_SCOPES.includes(c.scope)) fail('COEFFICIENT_INVALID');
+  if (c.origin !== 'AI' && c.origin !== 'OPERATOR') fail('COEFFICIENT_INVALID');
+  return { id: c.id, name: name(c.name, 'COEFFICIENT_NAME_REQUIRED'), value, scope: c.scope,
+    evidence: name(c.evidence, 'COEFFICIENT_EVIDENCE_REQUIRED'), origin: c.origin, accepted: c.accepted === true };
+}
+/** Rates are percents 0..100 under known cascade codes; the source (company settings, operator) is mandatory. */
+function ratesOf(r: EstimateRates | null): EstimateRates | null {
+  if (r == null) return null;
+  const values: Record<string, number> = {};
+  for (const [k, v] of Object.entries(r.values ?? {})) {
+    if (!/^[A-ZА-ЯЁ_/]{2,40}$/.test(k) || typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 100) fail('RATE_INVALID');
+    values[k] = v;
+  }
+  return { values, source: name(r.source, 'RATE_SOURCE_REQUIRED') };
+}
 
 function basisOf(b: UnitBasis): UnitBasis {
   const scale = b.scale == null ? null : normDec(b.scale, 'BASIS_INVALID');
@@ -218,6 +242,14 @@ export function applyCommand(input: EstimateDoc, cmd: StudioCommand): EstimateDo
       w.occ(cmd.occurrenceId).overrides[cmd.recipeId] = ov;
       break;
     }
+    case 'SET_COEFFICIENTS': {
+      if (!Array.isArray(cmd.coefficients) || cmd.coefficients.length > 20) fail('COEFFICIENT_INVALID');
+      const list = cmd.coefficients.map(coefficientOf);
+      if (new Set(list.map(c => c.id)).size !== list.length) fail('COEFFICIENT_INVALID');
+      w.occ(cmd.occurrenceId).coefficients = list;
+      break;
+    }
+    case 'SET_RATES': { doc.rates = ratesOf(cmd.rates); break; }
     default: fail('COMMAND_INVALID');
   }
   doc.edits = input.edits + 1;

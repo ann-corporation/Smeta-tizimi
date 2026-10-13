@@ -22,6 +22,8 @@ import type { DocCalc, LineCalc } from './calc';
 import type { CatalogResource, EstimateDoc } from './model';
 import { resourceCategory } from './export-adapter';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from '../narx-bildirishnoma';
+import { NAKRUTKA_KATLAR, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from '../nakrutka-podval';
+import { nakrutkaKategoriyasi } from './narx-yigish';
 
 export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null };
 type UnitText = (code: string | null) => string | null;
@@ -93,7 +95,8 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, units: Units, o: AbcHujjatOps
 }
 
 /* ───────────────────────────── RES ───────────────────────────── */
-type ResLine = { code: string; price: string; name: string; unit: string; qty: number; unitPrice: number | null; amount: number | null };
+type ResLine = { code: string; price: string; name: string; unit: string; qty: number; unitPrice: number | null; amount: number | null;
+  /** Markup cascade category (hidden column, drives the podval SUMIF). */ kat?: NakrutkaKat | null };
 type ResGroups = { labour: ResLine[]; machines: ResLine[]; materials: Map<string, ResLine[]>; equipment: ResLine[] };
 
 export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGroups {
@@ -107,7 +110,8 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
     // One RES line per resource and price (two different prices are never silently averaged).
     const key = [bucket, l.resource.code, l.resource.name, l.resource.unitCode, unitPrice ?? 'null'].join('\u0001');
     const cur = acc.get(key) ?? { bucket, code: idCode(l.resource) ?? '', price: l.resource.code ?? '', name: l.resource.name ?? '',
-      unit: unitText(l.resource.unitCode) ?? '', qty: 0, unitPrice, amount: 0 };
+      unit: unitText(l.resource.unitCode) ?? '', qty: 0, unitPrice, amount: 0,
+      kat: bucket === 'machines' ? 'МАШ' as const : nakrutkaKategoriyasi(l.resource, unitText) };
     cur.qty = Math.round((cur.qty + (n(l.quantity) ?? 0)) * 1e7) / 1e7;
     // Narxsiz qism qatorning o'zini bo'sh qiladi (bildirishnoma), lekin guruh/jami ma'lum summalardan yig'iladi.
     cur.amount = cur.amount == null || l.amount == null ? null : Math.round((cur.amount + Number(l.amount)) * 100) / 100;
@@ -129,6 +133,8 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
     { sarlavha: '№№', kenglik: 6, tur: 'tartib' }, { sarlavha: 'РЕСУРС', kenglik: 10, tur: 'kod' }, { sarlavha: 'ОБОСНОВАНИЕ', kenglik: 14, tur: 'kod' },
     { sarlavha: 'НАИМЕНОВАНИЕ РЕСУРСА', kenglik: 56, tur: 'matn' }, { sarlavha: 'ЕД.ИЗМ', kenglik: 9, tur: 'birlik' },
     { sarlavha: 'КОЛ-ВО', kenglik: 14, tur: 'hajm' }, { sarlavha: 'ЦЕНА', kenglik: 14, tur: 'narx' }, { sarlavha: 'СУММА', kenglik: 16, tur: 'pul' },
+    /* I — cost category (ЧЕЛ/МАШ/МАТ/…): the markup podval sums by it (SUMIF); not printed. */
+    { sarlavha: 'Кат.', kenglik: 8, tur: 'texnik', yashirin: true },
   ];
   const Q = 'F', P = 'G', S = 'H';
   const mats = [...g.materials.values()].flat();
@@ -142,9 +148,10 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
       ['ПЕРЕВОЗКА', 'учтена в материалах / отдельными работами'], ['ОБОРУДОВАНИЕ', val(direct[3])], ['ОСНОВАНИЕ:', o.asos ?? '']],
     ustunlar: U, yonalish: 'portrait', muzlatUstun: 4 });
   const row = (i: number, x: ResLine) => v.qator('oddiy', (r): Qiymat[] =>
-    [i, x.code, x.price, x.name, x.unit, x.qty, x.unitPrice, { f: `IF(${P}${r}="","",ROUND(${Q}${r}*${P}${r},2))`, v: x.amount ?? '' }], { rang: null });
+    [i, x.code, x.price, x.name, x.unit, x.qty, x.unitPrice, { f: `IF(${P}${r}="","",ROUND(${Q}${r}*${P}${r},2))`, v: x.amount ?? '' }, x.kat ?? null], { rang: null });
   const label = (t: string, sum: { f: string; v: number | string }, tur: 'jami' | 'vsego' = 'jami') => v.qator(tur, (): Qiymat[] =>
-    ['', '', '', t, 'СУМ', null, null, sum]);
+    ['', '', '', t, 'СУМ', null, null, sum, null]);
+  const firstData = v.r;
   const group = (title: string, xs: ResLine[], withVsego = false) => {
     if (!xs.length) return null;
     v.bolim(title);
@@ -169,7 +176,16 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
   }
   const t4 = group('ОБОРУДОВАНИЕ', g.equipment); if (t4) totals.push(t4);
   if (totals.length) label('ВСЕГО', { f: `SUM(${totals.map(r => `${S}${r}`).join(',')})`, v: total }, 'vsego');
-  const narxsiz = [...g.labour, ...g.machines, ...mats, ...g.equipment].filter((x) => x.amount == null && narxBildirishnomaKerak({ nom: x.name }, null));
+  const lastData = v.r - 1;
+  // Confirmed pricing-step rates → the company markup cascade under the RES, every step a live formula.
+  if (doc.rates && totals.length) {
+    const ks = Object.fromEntries(NAKRUTKA_KATLAR.map(k => [k, 0])) as KatSummalar;
+    for (const x of [...g.labour, ...g.machines, ...mats, ...g.equipment]) if (x.kat && x.amount != null) ks[x.kat] = Math.round((ks[x.kat] + x.amount) * 100) / 100;
+    v.bosh();
+    nakrutkaPodvaliYoz(v, { katUstun: 'I', oraliq: [firstData, lastData], pulUstunlar: [S], foizUstun: P, nk: doc.rates.values, katSummalar: { [S]: ks },
+      kfJadval: false, sarlavha: `РАСЧЕТ СТОИМОСТИ (ставки: ${doc.rates.source})` });
+  }
+  const narxsiz =[...g.labour, ...g.machines, ...mats, ...g.equipment].filter((x) => x.amount == null && narxBildirishnomaKerak({ nom: x.name }, null));
   if (narxsiz.length) v.diqqat(narxsiz.map((x) => ({ nom: `${x.price ? `${x.price} ` : ''}${x.name}`, sabab: NARX_YOQ_SABAB })));
   return v;
 }

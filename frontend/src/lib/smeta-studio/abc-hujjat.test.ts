@@ -63,13 +63,13 @@ describe('ABC-shaped LRV + RES', () => {
     expect(r.groups.labour.map(x => x.code)).toEqual(['000001']);
     expect(r.groups.machines.map(x => x.code).sort()).toEqual(['000003', '001942']);
     const total = flat.filter(x => x.includes('|ВСЕГО|')).pop()!;
-    expect(Number(total.split('|').pop()!.replace(/[\s,]/g, ''))).toBeCloseTo(Number(c.total.amount), 2);
+    expect(Number(total.split('|')[7].replace(/[\s,]/g, ''))).toBeCloseTo(Number(c.total.amount), 2);
   });
 
   it('missing prices: only those lines are blank, totals stay visible, each line is listed (owner rule 2026-10-08)', () => {
     const d = draft(false), r = abcHujjat(d, calcDoc(d), unitText);
     const flat = sheet(r.bytes, 'RES').map(x => x.join('|'));
-    expect(flat.filter(x => x.includes('|ВСЕГО|')).pop()!.split('|').pop()).not.toBe('');
+    expect(flat.filter(x => x.includes('|ВСЕГО|')).pop()!.split('|')[7]).not.toBe('');
     expect(flat.some(x => x.includes('цена не указана'))).toBe(true);
     expect(flat.some(x => x.includes('СТАТУС РАСЧЁТА') && x.includes('НЕПОЛНЫЙ'))).toBe(true);
     expect(flat.some(x => x.includes('ПРЯМЫЕ ЗАТРАТЫ (ИЗВЕСТНАЯ ЧАСТЬ)'))).toBe(true);

@@ -25,13 +25,28 @@ export type IshNiyati = {
   /** Material characteristic that matters for the resource (e.g. "Бетон B7,5"), optional. */
   material: string | null;
   holat: IshHolati;
+  /** Normative collections to search first (e.g. ["E06"]); a hint, never a filter that hides other results. */
+  toplam?: string[];
+  /** Coefficient PROPOSALS (technical part of the norm book); applied only after the operator accepts them. */
+  koeffitsientlar?: KoefTaklif[];
 };
+/** What a coefficient multiplies: all resources, labour, machines, labour+machines or materials. */
+export const KOEF_QOLLANISH = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
+export type KoefQollanish = typeof KOEF_QOLLANISH[number];
+export type KoefTaklif = { nom: string; qiymat: string; qollanish: KoefQollanish; asos: string };
 export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyati[] };
 export type SuhbatXabari = { rol: 'user' | 'assistant'; matn: string };
 
-export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: string | null };
+export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: string | null;
+  /** Normative table title and collection — tell the model WHAT KIND of work a variant belongs to. */
+  jadval?: string | null; toplam?: string | null };
 export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; material: string | null; nomzodlar: TanlovNomzodi[] };
-export type Tanlov = { id: string; ishId: string | null; sabab: string };
+export type Tanlov = { id: string; ishId: string | null; sabab: string; /** New normative phrasings when no candidate fits (second search round). */ qidiruv?: string[] };
+
+/** Price choice for one estimate resource among candidates the BROWSER found (catalogue / company estimates). */
+export type NarxNomzodi = { id: string; nom: string; birlik: string | null; narx: number; manba: string };
+export type NarxSorovi = { id: string; nom: string; birlik: string | null; kat: string | null; nomzodlar: NarxNomzodi[] };
+export type NarxTanlov = { id: string; tanlov: string | null; ishonch: 'yuqori' | 'orta' | 'past'; sabab: string; qidiruv?: string[] };
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : typeof v === 'number' && Number.isFinite(v) ? String(v) : '');
 /** "m3", "м³", "куб.м", "m^3" → "м3"; "t", "тн", "тонна" → "т"; "dona", "sht" → "шт"; unknown → null. */
@@ -80,6 +95,27 @@ export function jsonAjrat(matn: string, kalitlar: readonly string[] = []): Recor
   return nomzodlar.reduce((a, b) => (JSON.stringify(b).length > JSON.stringify(a).length ? b : a));
 }
 
+/** "Е06", "E6", "e-06", "Сборник 6" → "E06" (Latin E, two digits); anything else → null. */
+export function toplamKodi(v: unknown): string | null {
+  const m = ` ${String(v ?? '').toUpperCase().replace(/Е/g, 'E')}`.match(/[^A-ZА-Я](?:E|СБОРНИК|SBORNIK)\s*-?\s*(\d{1,2})(?!\d)/);
+  return m ? `E${m[1].padStart(2, '0')}` : null;
+}
+
+/** Coefficient proposals: a value within 0.1–5 (not 1), a known scope and a stated basis; anything else is dropped. */
+export function koefTakliflari(raw: unknown): KoefTaklif[] {
+  const out: KoefTaklif[] = [];
+  for (const x of Array.isArray(raw) ? raw.slice(0, 6) : []) {
+    const r = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
+    const v = Number(String(r.qiymat ?? r.value ?? '').replace(',', '.'));
+    const q = str(r.qollanish ?? r.scope, 10).toUpperCase().replace(/\s/g, '');
+    const qollanish = (KOEF_QOLLANISH as readonly string[]).includes(q) ? q as KoefQollanish : 'ALL';
+    const nom = str(r.nom ?? r.name, 160), asos = str(r.asos ?? r.basis ?? r.manba, 300);
+    if (!nom || !asos || !Number.isFinite(v) || v < 0.1 || v > 5 || v === 1) continue;
+    out.push({ nom, qiymat: String(Math.round(v * 10000) / 10000), qollanish, asos });
+  }
+  return out;
+}
+
 /** Keep only well-formed intents; never trust lengths, ids or units from the model. */
 export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
   // Real models nest the reply ({ javob: { matn, ishlar } }), rename fields (nom/name for tavsif, works/items for ishlar)
@@ -109,8 +145,11 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
     if (/\b(?:agar|taxmin|if|assuming)\b|если|предполож/i.test(str(r.hajmIzoh, 300))) holat = 'ANIQLASH_KERAK';
     const ifoda = str(r.hajmIfoda, 200) || null;
     seen.add(id);
+    const toplam = [...new Set((Array.isArray(r.toplam) ? r.toplam : typeof r.toplam === 'string' ? [r.toplam] : []).map(x => toplamKodi(x)).filter((x): x is string => !!x))].slice(0, 4);
+    const koeffitsientlar = koefTakliflari(r.koeffitsientlar ?? r.koef ?? r.coefficients);
     ishlar.push({ id, bolim: str(r.bolim, 120) || 'Asosiy', tavsif, qidiruv, birlik, hajmIfoda: ifoda,
-      hajmIzoh: str(r.hajmIzoh, 300) || null, material: str(r.material, 120) || null, holat: ifoda ? holat : holat === 'TAYYOR' ? 'HAJM_KERAK' : holat });
+      hajmIzoh: str(r.hajmIzoh, 300) || null, material: str(r.material, 120) || null, holat: ifoda ? holat : holat === 'TAYYOR' ? 'HAJM_KERAK' : holat,
+      ...(toplam.length ? { toplam } : {}), ...(koeffitsientlar.length ? { koeffitsientlar } : {}) });
   }
   const savollar = [...(Array.isArray(o.savollar) ? o.savollar : []).map(q => str(q, 300)).filter(Boolean), ...extraQ];
   return { javob: str(o.javob, 2000) || 'Tushunarli.', savollar: [...new Set(savollar)].slice(0, 5), ishlar };
@@ -150,18 +189,45 @@ export function tanlovlarniTekshir(raw: unknown, sorovlar: TanlovSorovi[]): Tanl
     const exact = s.nomzodlar.find(n => n.id === v);
     const byCode = s.nomzodlar.filter(n => n.kod === v);
     const ishId = v ? (exact ?? (byCode.length === 1 ? byCode[0] : undefined))?.id ?? null : null;
-    return { id: s.id, ishId, sabab: str(r?.sabab, 300) || (ishId ? '' : 'Mos normativ ish tanlanmadi') };
+    const qXom = r?.qidiruv ?? r?.search;
+    const qidiruv = ishId ? [] : (Array.isArray(qXom) ? qXom : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
+    return { id: s.id, ishId, sabab: str(r?.sabab, 300) || (ishId ? '' : 'Mos normativ ish tanlanmadi'), ...(qidiruv.length ? { qidiruv } : {}) };
+  });
+}
+
+/** Price choices: only a candidate id that was sent for that resource survives; confidence is normalised. */
+export function narxTanlovlariniTekshir(raw: unknown, sorovlar: NarxSorovi[]): NarxTanlov[] {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const list = (Array.isArray(raw) ? raw : [o.tanlovlar, o.results, o.choices].find(Array.isArray) ?? []) as unknown[];
+  const by = new Map(list.map(x => { const r = (x ?? {}) as Record<string, unknown>; return [str(r.id ?? r.key, 60), r] as const; }));
+  return sorovlar.map(s => {
+    const r = by.get(s.id);
+    const v = r ? str(r.tanlov ?? r.tanlov_id ?? r.nomzod ?? r.choice, 60) : '';
+    const tanlov = s.nomzodlar.some(n => n.id === v) ? v : null;
+    const i = str(r?.ishonch, 10).toLowerCase();
+    const qXom = r?.qidiruv ?? r?.search;
+    const qidiruv = tanlov ? [] : (Array.isArray(qXom) ? qXom : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
+    return { id: s.id, tanlov, ishonch: tanlov && (i === 'yuqori' || i === 'orta') ? i : 'past',
+      sabab: str(r?.sabab, 300) || (tanlov ? '' : 'Mos nomzod tanlanmadi'), ...(qidiruv.length ? { qidiruv } : {}) };
   });
 }
 
 export const SUHBAT_SXEMA = { name: 'smetachi_suhbat', schema: { type: 'object', additionalProperties: false, required: ['javob', 'savollar', 'ishlar'], properties: {
   javob: { type: 'string' }, savollar: { type: 'array', items: { type: 'string' } },
   ishlar: { type: 'array', items: { type: 'object', additionalProperties: false,
-    required: ['id', 'bolim', 'tavsif', 'qidiruv', 'birlik', 'hajmIfoda', 'hajmIzoh', 'material', 'holat'], properties: {
+    required: ['id', 'bolim', 'tavsif', 'qidiruv', 'birlik', 'hajmIfoda', 'hajmIzoh', 'material', 'holat', 'toplam', 'koeffitsientlar'], properties: {
       id: { type: 'string' }, bolim: { type: 'string' }, tavsif: { type: 'string' }, qidiruv: { type: 'array', items: { type: 'string' } },
       birlik: { type: 'string', enum: [...BIRLIKLAR] }, hajmIfoda: { type: ['string', 'null'] }, hajmIzoh: { type: ['string', 'null'] },
-      material: { type: ['string', 'null'] }, holat: { type: 'string', enum: ['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] } } } } } } };
+      material: { type: ['string', 'null'] }, holat: { type: 'string', enum: ['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] },
+      toplam: { type: 'array', items: { type: 'string' } },
+      koeffitsientlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['nom', 'qiymat', 'qollanish', 'asos'], properties: {
+        nom: { type: 'string' }, qiymat: { type: 'string' }, qollanish: { type: 'string', enum: [...KOEF_QOLLANISH] }, asos: { type: 'string' } } } } } } } } } };
 
 export const TANLOV_SXEMA = { name: 'smetachi_tanlov', schema: { type: 'object', additionalProperties: false, required: ['tanlovlar'], properties: {
-  tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'ishId', 'sabab'], properties: {
-    id: { type: 'string' }, ishId: { type: ['string', 'null'] }, sabab: { type: 'string' } } } } } } };
+  tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'ishId', 'sabab', 'qidiruv'], properties: {
+    id: { type: 'string' }, ishId: { type: ['string', 'null'] }, sabab: { type: 'string' }, qidiruv: { type: 'array', items: { type: 'string' } } } } } } } };
+
+export const NARX_TANLOV_SXEMA = { name: 'smetachi_narx_tanlov', schema: { type: 'object', additionalProperties: false, required: ['tanlovlar'], properties: {
+  tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'tanlov', 'ishonch', 'sabab', 'qidiruv'], properties: {
+    id: { type: 'string' }, tanlov: { type: ['string', 'null'] }, ishonch: { type: 'string', enum: ['yuqori', 'orta', 'past'] }, sabab: { type: 'string' },
+    qidiruv: { type: 'array', items: { type: 'string' } } } } } } } };

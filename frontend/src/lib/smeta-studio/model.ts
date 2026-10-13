@@ -41,8 +41,17 @@ export type Occurrence = {
   /** Physical work quantity in basis units (e.g. 4 for 4 m3). */
   quantity: Dec | null; basis: UnitBasis; recipe: RecipeSnapshot[];
   overrides: Record<string, ResourceOverride>;
+  /** Work-condition coefficients (norm book technical part). Only `accepted` ones change quantities. */
+  coefficients?: WorkCoefficient[];
 };
-export type Section = { id: string; name: string; parentId: string | null; children: string[]; items: string[] };
+/** Which resource quantities a coefficient multiplies. МАТ = every material category (МАТ/КАБ/М/К/БЕЗ СКЛАД). */
+export type CoefScope = 'ALL' | 'ЧЕЛ' | 'МАШ' | 'ЧЕЛ+МАШ' | 'МАТ';
+export type WorkCoefficient = { id: string; name: string; value: Dec; scope: CoefScope; evidence: string;
+  /** AI = proposed by the smeta AI (never applied until accepted); OPERATOR = entered by a person. */
+  origin: 'AI' | 'OPERATOR'; accepted: boolean };
+/** Markup rates (percent) of the pricing step; codes are the company cascade codes (t2_nakrutka). */
+export type EstimateRates = { values: Record<string, number>; source: string };
+export type Section ={ id: string; name: string; parentId: string | null; children: string[]; items: string[] };
 export type EstimateContext = { companyId: number | null; projectId: number | null; objectId: number | null; objectLabel: string; title: string };
 export type EstimateDoc = {
   schema: typeof STUDIO_SCHEMA; draftId: string; currency: string;
@@ -50,6 +59,8 @@ export type EstimateDoc = {
   sections: Record<string, Section>; occurrences: Record<string, Occurrence>;
   /** Local edit counter (not the canonical optimistic-lock version). */
   edits: number;
+  /** Pricing-step markup rates; absent until the operator confirms them (then the RES carries the cascade). */
+  rates?: EstimateRates | null;
 };
 
 export function emptyDoc(draftId: string, currency = 'UZS'): EstimateDoc {

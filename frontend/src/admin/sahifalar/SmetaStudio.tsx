@@ -19,10 +19,13 @@ import { SmetaDocumentPanel } from '../../components/smeta-studio-pro/SmetaDocum
 import { studioPanelLabels } from '../../components/smeta-studio-pro/studioPanelLabels';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
-import { HUDUD_KALIT, SmetaNarxlash, lsGet, lsSet, unitTextOf } from './SmetaStudioNarxlash';
+import { HUDUD_KALIT, lsGet, lsSet, unitTextOf } from './SmetaStudioNarxlash';
+import { KoeffitsientlarPaneli, NarxlashBosqichi, ResBosqichi } from './StudioBosqichlar';
 import { SmetaAiChat } from './SmetaAiChat';
 
 const CHAP_TAB_KALIT = 'smeta-studio:chap-tab';
+const BOSQICH_KALIT = 'smeta-studio:bosqich';
+type Bosqich = 'lrv' | 'narx' | 'res';
 
 const uid = () => crypto.randomUUID();
 
@@ -63,6 +66,11 @@ export default function SmetaStudio() {
   const [hudud, setHududState] = useState<string>(() => lsGet(HUDUD_KALIT) ?? '');
   const setHudud = (v: string) => { setHududState(v); lsSet(HUDUD_KALIT, v); };
   const unitText = useMemo(() => unitTextOf(katalog), [katalog]);
+  // Owner workflow (2026-10-13): build the LRV first, then go to pricing (rates + sourced prices), then the RES.
+  const [bosqich, setBosqichState] = useState<Bosqich>(() => { const v = lsGet(BOSQICH_KALIT); return v === 'narx' || v === 'res' ? v : 'lrv'; });
+  const setBosqich = (b: Bosqich) => { setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
+  const ishlarSoni = Object.keys(doc.occurrences).length;
+  const hajmsiz = Object.values(doc.occurrences).filter(o => o.quantity == null).length;
   useEffect(() => { let alive = true; narxKatalogi().then(c => { if (alive) setNarxKat(c); }).catch(() => {}); return () => { alive = false; }; }, []);
 
   useEffect(() => {
@@ -138,7 +146,15 @@ export default function SmetaStudio() {
     {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && saqlash.edits !== doc.edits ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
     {tiklandi && <p role="status" className="text-sm text-accent">{t('Oxirgi qoralama tiklandi.')}</p>}
     {xato && <p role="alert" className="text-sm text-danger">{xato}</p>}
-    <div className="grid xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-3 items-start">
+    <nav aria-label={t('Smeta bosqichlari')} className="flex flex-wrap items-center gap-1">
+      {([['lrv', t('1. LRV — ishlar va resurslar')], ['narx', t('2. Narxlash — stavkalar va narxlar')], ['res', t('3. RES va hujjatlar')]] as const).map(([k, l], i) =>
+        <span key={k} className="flex items-center gap-1">{i > 0 && <span className="text-text-mute">→</span>}
+          <button type="button" aria-current={bosqich === k ? 'step' : undefined} disabled={k !== 'lrv' && !ishlarSoni}
+            className={`tugma h-8 px-3 text-[12.5px] ${bosqich === k ? 'tugma-asosiy' : ''}`} onClick={() => setBosqich(k)}>{l}</button></span>)}
+    </nav>
+    {bosqich === 'narx' && <NarxlashBosqichi doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} />}
+    {bosqich === 'res' && <ResBosqichi doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} onBack={() => setBosqich('narx')} />}
+    {bosqich === 'lrv' && <div className="grid xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-3 items-start">
       <section aria-label={t('Normativ katalog')} className="border border-border rounded-lg p-3 bg-surface-1 min-w-0">
         <div role="tablist" aria-label={t('Chap panel')} className="mb-2 flex gap-1 border-b border-border pb-2">
           {([['ai', t('Smetachi AI')], ['katalog', t('Normativ katalog')]] as const).map(([k, l]) =>
@@ -162,12 +178,17 @@ export default function SmetaStudio() {
           }} />}
       </section>
       <div className="min-w-0 space-y-3">
-        <SmetaNarxlash doc={doc} hisob={hisob} katalog={katalog} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} />
         <SmetaDocumentPanel doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
+        <KoeffitsientlarPaneli doc={doc} command={amal} />
+        {ishlarSoni > 0 && <div className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
+          <span>{t('LRV: {n} ta ish', { n: ishlarSoni })}{hajmsiz ? <span className="text-warn"> · {t('hajmi kiritilmagan: {n}', { n: hajmsiz })}</span> : null}</span>
+          <span className="flex-1" />
+          <button type="button" className="tugma tugma-asosiy h-9 px-4" onClick={() => setBosqich('narx')}>{t('Narxlashga o‘tish')} →</button>
+        </div>}
       </div>
-    </div>
+    </div>}
   </div>;
 }
 

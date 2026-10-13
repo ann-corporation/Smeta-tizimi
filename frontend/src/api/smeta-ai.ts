@@ -1,5 +1,5 @@
 /** Client for /api/smeta-ai (Smetachi AI worker — proposals only). */
-import type { IshNiyati, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
+import type { IshNiyati, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
 
 export type AiXato = { ok: false; code: string; message?: string };
 async function post<T>(body: unknown): Promise<T | AiXato> {
@@ -13,3 +13,6 @@ export const smetachiSuhbat = (kompaniyaId: number, xabarlar: SuhbatXabari[], is
   post<{ ok: true; model: string; xom?: string; tushunildi?: boolean; ogohlantirish?: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt });
 export const smetachiTanla = (kompaniyaId: number, sorovlar: TanlovSorovi[]) =>
   post<{ ok: true; tanlovlar: Tanlov[] }>({ amal: 'tanla', kompaniya_id: kompaniyaId, sorovlar });
+/** AI picks a price candidate per resource among the ones the browser found (catalogue / company estimates). */
+export const smetachiNarxTanla = (kompaniyaId: number, sorovlar: NarxSorovi[], hudud: string | null) =>
+  post<{ ok: true; tanlovlar: NarxTanlov[] }>({ amal: 'narx_tanla', kompaniya_id: kompaniyaId, sorovlar, hudud });

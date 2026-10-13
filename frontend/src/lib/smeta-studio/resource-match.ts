@@ -139,7 +139,7 @@ export function unitKey(v: string | null | undefined): string {
 }
 
 /** Only exact dimensional factors, with no density, package or machine-hour assumptions. */
-function priceUnitFactor(source: string | null, target: string | null): number | null {
+export function priceUnitFactor(source: string | null, target: string | null): number | null {
   const from = unitKey(source), to = unitKey(target);
   if (!from || !to) return null;
   if (from === to) return 1;
