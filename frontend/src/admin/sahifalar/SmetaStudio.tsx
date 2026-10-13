@@ -19,9 +19,10 @@ import { SmetaDocumentPanel } from '../../components/smeta-studio-pro/SmetaDocum
 import { studioPanelLabels } from '../../components/smeta-studio-pro/studioPanelLabels';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
-import { HUDUD_KALIT, lsGet, lsSet, unitTextOf } from './SmetaStudioNarxlash';
+import { HUDUD_KALIT, lsGet, lsSet, unitTextOf } from './studio-sozlama';
 import { KoeffitsientlarPaneli, NarxlashBosqichi, ResBosqichi } from './StudioBosqichlar';
 import { SmetaAiChat } from './SmetaAiChat';
+import { ishIndeksi } from '../../lib/smeta-ai/worker';
 
 const CHAP_TAB_KALIT = 'smeta-studio:chap-tab';
 const BOSQICH_KALIT = 'smeta-studio:bosqich';
@@ -208,7 +209,15 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Remot
   const bolalar = useMemo(() => katalog.childNodes(tugun, tugunSahifa), [katalog, tugun, tugunSahifa]);
   const yolak = useMemo(() => tugun >= 0 ? katalog.breadcrumb(tugun) : [], [katalog, tugun]);
   const jadvalmi = tugun >= 0 && katalog.node(tugun).isTable;
-  const ishlar = useMemo(() => (qidiruv.trim() || jadvalmi) ? katalog.search(qidiruv, sahifa, tugun) : null, [katalog, qidiruv, sahifa, tugun, jadvalmi]);
+  const ishlar = useMemo(() => {
+    if (!(qidiruv.trim() || jadvalmi)) return null;
+    const r = katalog.search(qidiruv, sahifa, tugun);
+    if (r.total || !qidiruv.trim() || tugun >= 0) return { ...r, mano: false };
+    // No literal match: closest works by meaning (estimate wording differs from normative wording).
+    const x = ishIndeksi(katalog);
+    const rows = x ? x.idx.qidir([qidiruv], 75).map(h => x.works[h.id]) : [];
+    return { rows: rows.slice(sahifa * 25, (sahifa + 1) * 25), total: rows.length, mano: true };
+  }, [katalog, qidiruv, sahifa, tugun, jadvalmi]);
   const nom = (n: RemoteTreeNode) => n.name || (n.status === 'GROUP' ? t('Katalog bo‘limi aniqlanmagan yozuvlar (shifr bo‘yicha)') : '—');
   const ochish = (i: number) => { setTugun(i); setTugunSahifa(0); setSahifa(0); };
   async function tanla(w: NormWork) {
@@ -240,7 +249,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Remot
       </div>}
     </div>}
     {ishlar && <div className="border border-border rounded">
-      <p className="text-xs text-text-mute px-2 py-1">{t('Topildi')}: {ishlar.total.toLocaleString('ru')}</p>
+      <p className="text-xs text-text-mute px-2 py-1">{ishlar.mano ? t('Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar') : <>{t('Topildi')}: {ishlar.total.toLocaleString('ru')}</>}</p>
       {ishlar.rows.map(w => <button key={w.id} className={`block w-full text-left px-2 py-1.5 border-b border-border hover:bg-surface-2 ${tanlangan?.id === w.id ? 'bg-surface-2' : ''}`} onClick={() => void tanla(w)}>
         <span className="font-mono text-xs text-accent">{w.code}</span> <span>{w.name ?? t('Nom noma’lum')}</span>
       </button>)}

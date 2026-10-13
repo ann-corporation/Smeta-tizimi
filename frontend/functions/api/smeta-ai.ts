@@ -84,7 +84,8 @@ export function sorovlarniTayyorla(raw: unknown): TanlovSorovi[] | null {
         jadval: r.jadval == null ? null : clip(r.jadval, 200), toplam: r.toplam == null ? null : clip(r.toplam, 120) };
     }).filter(n => /^[A-Za-z0-9_:.-]{1,40}$/.test(n.id));
     const id = clip(s?.id, 40);
-    if (!/^[A-Za-z0-9_-]{1,40}$/.test(id) || !nomzodlar.length) return null;
+    // No candidates yet → the model may only answer with new normative phrasings (second search round).
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) return null;
     out.push({ id, tavsif: clip(s.tavsif, 1200), birlik: clip(s.birlik, 10) as TanlovSorovi['birlik'], material: s.material == null ? null : clip(s.material, 120), nomzodlar });
   }
   return out;
@@ -99,7 +100,8 @@ export function narxSorovlariniTayyorla(raw: unknown): NarxSorovi[] | null {
       return { id: clip(r.id, 60), nom: clip(r.nom, 300), birlik: r.birlik == null ? null : clip(r.birlik, 30), narx: Number(r.narx), manba: clip(r.manba, 160) };
     }).filter(n => /^[A-Za-z0-9_:.-]{1,60}$/.test(n.id) && n.nom && Number.isFinite(n.narx) && n.narx >= 0);
     const id = clip(s?.id, 60);
-    if (!/^[A-Za-z0-9_:.-]{1,60}$/.test(id) || !nomzodlar.length) return null;
+    // An empty candidate list is allowed: the model then only proposes catalogue phrasings for a new search.
+    if (!/^[A-Za-z0-9_:.-]{1,60}$/.test(id) || !clip(s.nom, 400).trim()) return null;
     out.push({ id, nom: clip(s.nom, 400), birlik: s.birlik == null ? null : clip(s.birlik, 30), kat: s.kat == null ? null : clip(s.kat, 20), nomzodlar });
   }
   return out;

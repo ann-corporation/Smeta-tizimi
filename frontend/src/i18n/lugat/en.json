@@ -1561,5 +1561,6 @@
   "Uskunalar (ОБ)": "Equipment (ОБ)",
   "Kategoriyasi aniqlanmagan": "Category not determined",
   "AI hozir javob bermadi. Keyinroq qayta urinib ko‘ring.": "AI did not respond. Please try again later.",
-  "Admin": "Admin"
+  "Admin": "Admin",
+  "Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar": "No exact match — closest works by meaning"
 }

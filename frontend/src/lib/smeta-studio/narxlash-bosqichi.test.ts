@@ -75,6 +75,21 @@ describe('Narxlash bosqichi: RES kabi resurslar, manbali nomzodlar, AI 2 bosqich
   });
 });
 
+describe('AI narx qidiruvi: birinchi qidiruvda nomzod yo‘q resurs ham AI iborasi bilan qayta qidiriladi', () => {
+  it('bo‘sh nomzodli resurs 1-bosqichda AI ga boradi, 2-bosqichda topilgan nomzoddan tanlanadi', async () => {
+    const d = draft(false), g = resursGuruhlari(d, calcDoc(d), unitText).filter(x => x.kat === 'МАТ');
+    const found: NarxNomzod = { id: 'k5', nom: 'Песок природный', birlik: 'м3', narx: 90000, manba: 'katalog', tur: 'katalog', row: row(5, 'Песок природный', 'м3', 90000), konversiya: null };
+    const sent: number[] = [];
+    const out = await aiNarxlash(g, (_g, ib) => (ib.length ? [found] : []), async s => {
+      sent.push(s[0].nomzodlar.length);
+      return sent.length === 1 ? [{ id: s[0].id, tanlov: null, ishonch: 'past', sabab: 'nomzod yo‘q', qidiruv: ['Песок природный'] }]
+        : [{ id: s[0].id, tanlov: 'k5', ishonch: 'yuqori', sabab: 'mos' }];
+    });
+    expect(sent).toEqual([0, 1]);
+    expect(out[0]).toMatchObject({ nomzod: { id: 'k5' }, ishonch: 'yuqori' });
+  });
+});
+
 describe('RES: tasdiqlangan stavkalar va koeffitsientlar', () => {
   it('stavkalar tasdiqlansa RES ostida tirik nakrutka podvali; ВСЕГО К ОПЛАТЕ JS kaskadiga teng', () => {
     const d = applyCommand(draft(), { type: 'SET_RATES', rates: { values: { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, ПРОЧИЕ_ПОДРЯДЧИК: 18, СТРАХОВАНИЕ: 0.32, НДС: 12 }, source: 'Kompaniya sozlamasi' } });

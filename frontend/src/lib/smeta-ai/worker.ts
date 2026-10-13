@@ -68,10 +68,23 @@ export type AiIsh = IshNiyati & { nomzodlar: TanlovNomzodi[]; tanlangan: Tanlang
 
 const BIRLIK_KALIT: Record<Birlik, string> = { м3: 'М3', м2: 'М2', м: 'М', т: 'Т', кг: 'КГ', шт: 'ШТ', компл: 'КОМПЛ' };
 /** Explicit operator search over the catalogue's paginated index, independent of the AI shortlist. */
-export function katalogSahifasi(k: AiKatalog, query: string, page: number): { rows: TanlovNomzodi[]; total: number; hasNext: boolean } {
+export function katalogSahifasi(k: AiKatalog, query: string, page: number): { rows: TanlovNomzodi[]; total: number; hasNext: boolean; manoBoyicha?: boolean } {
   const result = k.search(query.trim(), page);
+  if (!result.total && query.trim()) {
+    // No literal match ("бетонирование ленточного фундамента" vs "УСТРОЙСТВО ЛЕНТОЧНЫХ ФУНДАМЕНТОВ") → closest by meaning.
+    const rows = manoBoyichaIshlar(k, query, 75);
+    const part = rows.slice(page * 25, (page + 1) * 25);
+    return { rows: part, total: rows.length, hasNext: rows.length > (page + 1) * 25, manoBoyicha: true };
+  }
   return { total: result.total, hasNext: result.rows.length > 0 && k.search(query.trim(), page + 1).rows.length > 0,
     rows: result.rows.map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null })) };
+}
+/** Ranked (BM25) works for free text; empty when the catalogue has no full work list. */
+export function manoBoyichaIshlar(k: AiKatalog, query: string, limit = 25): TanlovNomzodi[] {
+  const x = ishIndeksi(k);
+  if (!x) return [];
+  return x.idx.qidir([query], limit).map(h => x.works[h.id]).map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null,
+    jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null }));
 }
 /** Base unit of a normative work unit ("100 М3" → "М3"), or null if the catalogue did not observe it. */
 export function ishAsosBirligi(k: Pick<AiKatalog, 'unit'>, unitCode: string | null): string | null {

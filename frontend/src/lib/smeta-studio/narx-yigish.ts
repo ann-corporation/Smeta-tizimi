@@ -153,16 +153,19 @@ export async function aiNarxlash(guruhlar: ResursGuruh[], nomzodlar: (g: ResursG
     const keyingi: typeof navbat = [];
     for (let i = 0; i < navbat.length; i += 40) {
       const part = navbat.slice(i, i + 40).map(x => ({ ...x, n: nomzodlar(x.g, x.iboralar) }));
-      const sorov = part.filter(x => x.n.length).map((x, j): NarxSorovi => ({ id: `r${i + j}`, nom: x.g.nom, birlik: x.g.birlik, kat: x.g.kat,
+      // First round: a resource with NO candidate is still sent — the model then writes how the catalogue may name it,
+      // and the second round searches with those words. (Without this the hardest resources never got a second chance.)
+      const yuborish = part.filter(x => x.n.length || round === 0);
+      const sorov = yuborish.map((x, j): NarxSorovi => ({ id: `r${i + j}`, nom: x.g.nom, birlik: x.g.birlik, kat: x.g.kat,
         nomzodlar: x.n.map(({ id, nom, birlik, narx, manba }) => ({ id, nom, birlik, narx, manba })) }));
-      const byId = new Map(sorov.map((s, j) => [s.id, part.filter(x => x.n.length)[j]]));
+      const byId = new Map(sorov.map((s, j) => [s.id, yuborish[j]]));
+      for (const x of part) if (!x.n.length) natija.set(x.g.key, { key: x.g.key, nomzod: null, ishonch: 'past', sabab: 'Manbalarda xarakteristikasi mos nomzod topilmadi', nomzodlar: [] });
       const javob = sorov.length ? await tanla(sorov) : [];
       if (javob == null) throw new Error('AI_UNAVAILABLE');
-      for (const x of part) if (!x.n.length) natija.set(x.g.key, { key: x.g.key, nomzod: null, ishonch: 'past', sabab: 'Manbalarda xarakteristikasi mos nomzod topilmadi', nomzodlar: [] });
       for (const t of javob) {
         const x = byId.get(t.id); if (!x) continue;
         const nomzod = t.tanlov ? x.n.find(n => n.id === t.tanlov) ?? null : null;
-        natija.set(x.g.key, { key: x.g.key, nomzod, ishonch: t.ishonch, sabab: t.sabab, nomzodlar: x.n });
+        if (x.n.length || !natija.has(x.g.key)) natija.set(x.g.key, { key: x.g.key, nomzod, ishonch: t.ishonch, sabab: t.sabab, nomzodlar: x.n });
         if (!nomzod && t.qidiruv?.length && round === 0) keyingi.push({ g: x.g, iboralar: t.qidiruv });
       }
       onProgress?.(Math.min(i + 40, navbat.length), navbat.length);

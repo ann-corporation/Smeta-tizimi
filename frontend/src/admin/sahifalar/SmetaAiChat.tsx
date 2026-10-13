@@ -74,7 +74,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
     for (let round = 0; round < 2; round++) {
-      const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && i.nomzodlar.length && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
+      const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
       if (!sor.length) break;
       setBand('tanlash');
       const r = await smetachiTanla(kompaniyaId, sor.slice(0, 40));
@@ -238,7 +238,7 @@ function NormaTarkibi({ code }: { code: string }) {
 
 function KatalogQidiruv({ katalog, onPick }: { katalog: AiKatalog; onPick: (n: TanlovNomzodi) => void }) {
   const [query, setQuery] = useState('');
-  const [result, setResult] = useState<{ query: string; page: number; rows: TanlovNomzodi[]; total: number; hasNext: boolean } | null>(null);
+  const [result, setResult] = useState<{ query: string; page: number; rows: TanlovNomzodi[]; total: number; hasNext: boolean; manoBoyicha?: boolean } | null>(null);
   const search = (q: string, page: number) => setResult({ query: q, page, ...katalogSahifasi(katalog, q, page) });
   return <details className="text-[11px] text-text-dim">
     <summary>{t('Boshqa normani katalogdan qidirish')}</summary>
@@ -248,7 +248,7 @@ function KatalogQidiruv({ katalog, onPick }: { katalog: AiKatalog; onPick: (n: T
       <button type="button" className="tugma h-7" onClick={() => search(query, 0)}>{t('Qidirish')}</button>
     </div>
     {result && <div className="space-y-1">
-      <p>{t('Topildi')}: {result.total} · {t('Sahifa')}: {result.page + 1}</p>
+      <p>{result.manoBoyicha ? t('Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar') : <>{t('Topildi')}: {result.total}</>} · {t('Sahifa')}: {result.page + 1}</p>
       {result.rows.map(n => <button key={n.id} type="button" className="block w-full rounded border border-border p-1 text-left" onClick={() => onPick(n)}>
         {n.kod} · {n.nom} · {n.birlik ?? '—'}
       </button>)}

@@ -22,6 +22,7 @@ import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl } from '../.
 import { NAKRUTKA_STANDART } from '../../lib/nakrutka-kaskad';
 import { NAKRUTKA_KATLAR, nakrutkaKaskadJS, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
 import { smetachiNarxTanla } from '../../api/smeta-ai';
+import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 
 type UnitText = (code: string | null) => string | null;
 const fmt = (n: number | string | null | undefined, d = 2) => n == null || n === '' ? '—' : Number(n).toLocaleString('ru-RU', { maximumFractionDigits: d });
@@ -108,6 +109,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   }, [cat]);
   const guruhlar = useMemo(() => resursGuruhlari(doc, hisob, unitText), [doc, hisob, unitText]);
   const narxsizSoni = guruhlar.filter(g => g.narxsiz > 0).length;
+  // Applied prices against the catalogue market (same products, period, region) — a sanity check, not a price source.
+  const bozorQatorlari = useMemo(() => guruhlar.filter(g => g.narx != null && katalogdanNarxlanadi(g)).map(g => ({ id: g.key, name: g.nom, unit: g.birlik, price: Number(g.narx) })), [guruhlar]);
   const korinadi = guruhlar.filter(g => filtr === 'hammasi' || (filtr === 'narxsiz' ? g.narxsiz > 0 : takliflar.has(g.key)));
 
   function qoy(commands: StudioCommand[], label: string): boolean {
@@ -251,6 +254,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         </table>
       </div>
     </section>
+    {bozorQatorlari.length > 0 && <MarketPriceComparison lines={bozorQatorlari} companyId={kompaniyaId} />}
     <JamiSatri doc={doc} hisob={hisob} unitText={unitText} />
     <div className="flex justify-end"><button type="button" className="tugma tugma-asosiy h-9 px-4" onClick={onNext}>{t('RES ga o‘tish')} →</button></div>
   </div>;
