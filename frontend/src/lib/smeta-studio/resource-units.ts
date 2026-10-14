@@ -13,6 +13,8 @@ export const RESOURCE_UNITS: Readonly<Record<string, { text: string; n: number; 
   '005': { text: 'кг', n: 248, codes: 6 },
   '006': { text: 'т', n: 937, codes: 7 },
   '010': { text: 'маш-ч', n: 100, codes: 3 },
+  // 2026-10-14: all 1332 catalogue resources with KodI 015 checked against production t2_qator — 2001 rows, 60 codes, 0 conflicts.
+  '015': { text: 'шт', n: 2001, codes: 60 },
   '011': { text: 'маш-ч', n: 16291, codes: 15 },
   '021': { text: 'м2', n: 779, codes: 5 },
   '023': { text: 'м', n: 22, codes: 4 },
@@ -26,6 +28,8 @@ export const RESOURCE_UNITS: Readonly<Record<string, { text: string; n: number; 
   '041': { text: 'л', n: 61, codes: 5 },
   '042': { text: '1000 м', n: 12, codes: 2 },
   '046': { text: '10 м', n: 8, codes: 1 },
+  // 2026-10-14: KodI 050 (69 catalogue resources) — 5 rows, 1 code, 0 conflicts (weak evidence, same bar as 028).
+  '050': { text: 'компл', n: 5, codes: 1 },
   '064': { text: '100 шт', n: 8, codes: 1 },
   '070': { text: 'компл', n: 8, codes: 1 },
   '088': { text: '10 шт', n: 114, codes: 4 },
