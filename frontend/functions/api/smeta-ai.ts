@@ -97,7 +97,7 @@ export function narxSorovlariniTayyorla(raw: unknown): NarxSorovi[] | null {
   for (const s of raw as Array<Record<string, unknown>>) {
     const nomzodlar = (Array.isArray(s?.nomzodlar) ? s.nomzodlar : []).slice(0, 15).map(n => {
       const r = (n ?? {}) as Record<string, unknown>;
-      return { id: clip(r.id, 60), nom: clip(r.nom, 300), birlik: r.birlik == null ? null : clip(r.birlik, 30), narx: Number(r.narx), manba: clip(r.manba, 160) };
+      return { id: clip(r.id, 60), nom: clip(r.nom, 300), birlik: r.birlik == null ? null : clip(r.birlik, 30), narx: Number(r.narx), manba: clip(r.manba, 160), ...(r.birlikBoshqa === true ? { birlikBoshqa: true } : {}) };
     }).filter(n => /^[A-Za-z0-9_:.-]{1,60}$/.test(n.id) && n.nom && Number.isFinite(n.narx) && n.narx >= 0);
     const id = clip(s?.id, 60);
     // An empty candidate list is allowed: the model then only proposes catalogue phrasings for a new search.

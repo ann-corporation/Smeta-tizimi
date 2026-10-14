@@ -11,9 +11,9 @@ import type { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
 import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
-import type { EstimateDoc, WorkCoefficient } from '../../lib/smeta-studio/model';
+import type { EstimateDoc, PriceJustification, WorkCoefficient } from '../../lib/smeta-studio/model';
 import { matchResource } from '../../lib/smeta-studio/resource-match';
-import { aiNarxlash, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomzodlari, qatorNomzodi, resursGuruhlari,
+import { aiNarxlash, qaytaHisobla, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomzodlari, qatorNomzodi, resursGuruhlari,
   type AiNarxNatija, type NarxNomzod, type ResursGuruh } from '../../lib/smeta-studio/narx-yigish';
 import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
 import { loadHourCatalog, type HourCatalog } from '../../lib/hour-price-catalog';
@@ -22,6 +22,7 @@ import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl } from '../.
 import { NAKRUTKA_STANDART } from '../../lib/nakrutka-kaskad';
 import { NAKRUTKA_KATLAR, nakrutkaKaskadJS, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
 import { smetachiNarxTanla } from '../../api/smeta-ai';
+import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 
 type UnitText = (code: string | null) => string | null;
@@ -208,7 +209,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     if (!qolda) return;
     const g = guruhlar.find(x => x.key === qolda.key); if (!g) return;
     const commands = g.qatorlar.map(q => ({ type: 'SET_PRICE' as const, occurrenceId: q.occurrenceId, recipeId: q.recipeId,
-      price: { value: qolda.narx.trim(), basis: 'OPERATOR_MANUAL' as const, evidence: qolda.dalil.trim(), sourcePriceId: null } }));
+      price: { value: qolda.narx.trim(), basis: 'OPERATOR_MANUAL' as const, evidence: qolda.dalil.trim().slice(0, 300), sourcePriceId: null,
+        justification: { docType: 'MANUAL' as const, document: qolda.dalil.trim(), sourceName: null, sourceUnit: g.birlik, sourcePrice: qolda.narx.trim().replace(',', '.'), conversion: null, reason: null } } }));
     if (qoy(commands, t('Qo‘lda narx'))) setQolda(null);
   }
 
@@ -262,7 +264,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
                   <td className="px-1 py-1 text-right tabular-nums">{g.narx != null ? fmt(g.narx) : g.aralash ? <span className="text-warn">{t('aralash')}</span> : <span className="text-warn">{t('narx yo‘q')}</span>}</td>
                   <td className="px-1 py-1 text-right tabular-nums">{fmt(summa)}</td>
                   <td className="px-2 py-1">
-                    {g.dalil && <p className="text-[11px] text-text-mute">{g.dalil.slice(0, 220)}</p>}
+                    <NarxAsosi g={g} />
                     {taklif && <AiTaklif g={g} taklif={taklif} onQabul={qabul} />}
                     {qolda?.key === g.key
                       ? <form className="mt-1 flex flex-wrap gap-1" onSubmit={e => { e.preventDefault(); qoldaSaqla(); }}>
@@ -290,16 +292,45 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
 
 function AiTaklif({ g, taklif, onQabul }: { g: ResursGuruh; taklif: AiNarxNatija; onQabul: (g: ResursGuruh, n: NarxNomzod, sabab: string) => void }) {
   const [tanlov, setTanlov] = useState(taklif.nomzod?.id ?? '');
-  const n = taklif.nomzodlar.find(x => x.id === tanlov) ?? null;
+  const [formula, setFormula] = useState(''), [izoh, setIzoh] = useState('');
+  // The AI's own choice may already be recalculated into the estimate unit; any other pick of a unit-different row needs a formula.
+  const tanlangan = taklif.nomzod && taklif.nomzod.id === tanlov ? taklif.nomzod : taklif.nomzodlar.find(x => x.id === tanlov) ?? null;
+  const hisob = tanlangan?.birlikBoshqa && formula.trim() ? qaytaHisobla(tanlangan, g.nom, g.birlik, formula, izoh) : null;
+  const n = !tanlangan ? null : !tanlangan.birlikBoshqa ? tanlangan : hisob && !('xato' in hisob) ? hisob : null;
   return <div className="mt-1 rounded border border-warn/50 bg-warn/5 p-1.5 text-[11.5px]">
     <p><b>{t('AI')}</b> ({taklif.ishonch === 'orta' ? t('o‘rta ishonch') : t('past ishonch')}): {taklif.sabab}</p>
     {taklif.nomzodlar.length > 0 && <div className="mt-1 flex flex-wrap items-center gap-1">
-      <select aria-label={t('Narx nomzodi')} className="input h-7 max-w-full flex-1 text-[11px]" value={tanlov} onChange={e => setTanlov(e.target.value)}>
+      <select aria-label={t('Narx nomzodi')} className="input h-7 max-w-full flex-1 text-[11px]" value={tanlov} onChange={e => { setTanlov(e.target.value); setFormula(''); setIzoh(''); }}>
         <option value="">{t('— nomzodni tanlang —')}</option>
-        {taklif.nomzodlar.map(x => <option key={x.id} value={x.id}>{x.nom.slice(0, 80)} · {x.birlik ?? '—'} · {fmt(x.narx)} · {x.manba.slice(0, 40)}</option>)}
+        {taklif.nomzodlar.map(x => <option key={x.id} value={x.id}>{x.nom.slice(0, 80)} · {x.birlik ?? '—'} · {fmt(x.narx)}{x.birlikBoshqa ? ` · ${t('boshqa birlik — qayta hisob kerak')}` : ''} · {x.manba.slice(0, 40)}</option>)}
       </select>
-      <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={!n} onClick={() => n && onQabul(g, n, n.id === taklif.nomzod?.id ? taklif.sabab : 'operator tanladi')}>{t('Qabul qilish')}</button>
+      <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={!n} onClick={() => n && onQabul(g, n, tanlangan?.id === taklif.nomzod?.id ? taklif.sabab : 'operator tanladi')}>{t('Qabul qilish')}</button>
     </div>}
+    {tanlangan?.birlikBoshqa && <div className="mt-1 space-y-1">
+      <p className="text-[11px] text-text-dim">{t('Narx {a} uchun, smetada {b}. O‘lchamlar nomdan olinadi: smeta narxi = narx × formula.', { a: tanlangan.birlik ?? '—', b: g.birlik ?? '—' })}</p>
+      <div className="flex flex-wrap gap-1">
+        <input aria-label={t('Qayta hisob formulasi')} className="input h-7 w-44 text-[11px]" placeholder="1/(2500/1000*1200/1000)" value={formula} onChange={e => setFormula(e.target.value)} />
+        <input aria-label={t('Qayta hisob izohi')} className="input h-7 flex-1 text-[11px]" placeholder={t('Nima hisoblandi')} value={izoh} onChange={e => setIzoh(e.target.value)} />
+      </div>
+      {hisob && ('xato' in hisob ? <p role="alert" className="text-[11px] text-danger">{hisob.xato}</p>
+        : <p className="text-[11px] text-ok">{fmt(tanlangan.narx)} × {hisob.qayta?.factor} = <b>{fmt(hisob.narx)}</b> / {g.birlik}</p>)}
+    </div>}
+  </div>;
+}
+
+/** Justification of a group: the structured one, else the evidence line of an older price. */
+function NarxAsosi({ g }: { g: ResursGuruh }) {
+  if (g.asos) return <Asos a={g.asos} />;
+  return g.dalil ? <p className="text-[11px] text-text-mute">{g.dalil.slice(0, 220)}</p> : null;
+}
+
+/** «Обоснование цены» of an applied price: document, source row, recalculation, reason. */
+function Asos({ a }: { a: PriceJustification }) {
+  return <div className="text-[11px] text-text-mute">
+    <p>{a.document}</p>
+    {a.sourceName && <p>{t('Manbada')}: {a.sourceName}{a.sourcePrice ? ` — ${fmt(a.sourcePrice)} / ${a.sourceUnit ?? '—'}` : ''}</p>}
+    {a.conversion && <p className="text-text-dim">{t('Qayta hisob')}: {a.conversion.formula} = {a.conversion.factor}{a.conversion.note ? ` (${a.conversion.note})` : ''}</p>}
+    {a.reason && <p>{t('Sabab')}: {a.reason}</p>}
   </div>;
 }
 
@@ -374,17 +405,36 @@ function JamiSatri({ doc, hisob, unitText }: { doc: EstimateDoc; hisob: DocCalc;
   </div>;
 }
 
-export function ResBosqichi({ doc, hisob, unitText, katalog, onBack }: { doc: EstimateDoc; hisob: DocCalc; unitText: UnitText; katalog: RemoteNormCatalog | null; onBack: () => void }) {
+export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack }: { doc: EstimateDoc; hisob: DocCalc; unitText: UnitText;
+  katalog: RemoteNormCatalog | null; kompaniyaId: number | null; onBack: () => void }) {
   const [xabar, setXabar] = useState('');
+  const [tomonlar, setTomonlar] = useHujjatTomonlari(kompaniyaId);
+  const [protokol, setProtokol] = useState({ raqam: '1', sana: new Date().toISOString().slice(0, 10) });
+  const yuklabBer = (bytes: Uint8Array, nom: string) => {
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const a = document.createElement('a'); a.href = url; a.download = nom; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+  /** «ПРОТОКОЛ СОГЛАСОВАНИЯ ЦЕН» between the client and the contractor for the estimate's own prices. */
+  async function protokolYukla() {
+    try {
+      const [{ studioProtokolQatorlari, STUDIO_PROTOKOL_USTUNLARI, STUDIO_PROTOKOL_MAQSADI }, { narxProtokolXlsx }] = await Promise.all([
+        import('../../lib/smeta-studio/abc-hujjat'), import('../../lib/narx-protokol-hujjat')]);
+      const qatorlar = studioProtokolQatorlari(doc, hisob, unitText);
+      if (!qatorlar.length) { setXabar(t('Protokol uchun narxlangan resurs yo‘q — avval narxlang.')); return; }
+      const r = narxProtokolXlsx(qatorlar, { obyektNomi: doc.context.objectLabel || doc.context.title || 'Smeta', raqam: protokol.raqam.trim() || '1', sana: protokol.sana,
+        imzo: tomonlar, ustunNomlari: STUDIO_PROTOKOL_USTUNLARI, maqsad: STUDIO_PROTOKOL_MAQSADI });
+      yuklabBer(r.bytes, r.faylNomi);
+      setXabar(t('Narxlarni kelishish protokoli yuklandi: {n} pozitsiya. Ikki tomon imzosidan keyin kuchga kiradi.', { n: r.soni }));
+    } catch { setXabar(t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.')); }
+  }
   const { ks, narxsiz, aniqlanmagan } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
   const kaskad = doc.rates ? nakrutkaKaskadJS(ks, doc.rates.values) : null;
   const workUnit = (code: string | null) => (code && katalog ? katalog.unit(code)?.text ?? null : null);
   async function yukla() {
     try {
       const { abcHujjat } = await import('../../lib/smeta-studio/abc-hujjat');
-      const r = abcHujjat(doc, hisob, { resource: unitText, work: workUnit }, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null });
-      const url = URL.createObjectURL(new Blob([r.bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      const a = document.createElement('a'); a.href = url; a.download = hisob.total.unresolved ? `DRAFT_${r.faylNomi}` : r.faylNomi; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      const r = abcHujjat(doc, hisob, { resource: unitText, work: workUnit }, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null, imzo: tomonlar });
+      yuklabBer(r.bytes, hisob.total.unresolved ? `DRAFT_${r.faylNomi}` : r.faylNomi);
       setXabar(hisob.total.unresolved ? t('Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.') : t('LRV va RES yuklandi (tirik formulalar).'));
     } catch (e) {
       setXabar(e instanceof Error && e.message === 'LRV_BOSH' ? t('Hujjat uchun avval smetaga ish qo‘shing.') : t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.'));
@@ -411,9 +461,19 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, onBack }: { doc: Es
       </tbody></table>
       <div className="flex flex-wrap gap-2">
         <button type="button" className="tugma h-9 px-3" onClick={onBack}>← {t('Narxlashga qaytish')}</button>
-        <button type="button" className="tugma tugma-asosiy h-9 px-4" onClick={() => void yukla()}>{t('LRV + RES Excel yuklab olish')}</button>
+        <button type="button" className="tugma tugma-asosiy h-9 px-4" onClick={() => void yukla()}>{t('LRV + RES + обоснование цен (Excel)')}</button>
       </div>
       {xabar && <p role="status" className="text-xs text-accent">{xabar}</p>}
+    </section>
+    <section aria-label={t('Narxlarni kelishish protokoli')} className="karta space-y-2 p-3 text-[12.5px]">
+      <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Narxlarni kelishish protokoli (buyurtmachi — pudratchi)')}</strong>
+      <p className="text-xs text-text-mute">{t('Har resurs: asos hujjatdagi narx (smeta birligida), smetaga qo‘yilgan kelishiladigan narx, og‘ish va obosnovaniye. Ikki tomon imzosi bilan.')}</p>
+      <HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} />
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-xs">{t('Protokol raqami')}<input aria-label={t('Protokol raqami')} className="input mt-0.5 block h-8 w-24" value={protokol.raqam} onChange={e => setProtokol({ ...protokol, raqam: e.target.value })} /></label>
+        <label className="text-xs">{t('Sana')}<input aria-label={t('Protokol sanasi')} type="date" className="input mt-0.5 block h-8" value={protokol.sana} onChange={e => setProtokol({ ...protokol, sana: e.target.value || protokol.sana })} /></label>
+        <button type="button" className="tugma h-9 px-4" onClick={() => void protokolYukla()}>{t('Протокол согласования цен (Excel)')}</button>
+      </div>
     </section>
   </div>;
 }

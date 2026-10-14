@@ -1574,5 +1574,22 @@
   "Narxlar qidirilmoqda...": "Searching prices...",
   "Barcha narxlarni topish": "Find all prices",
   "AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang": "AI did not respond — source candidates for {n} resources are listed, choose",
-  "AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang": "No company selected for AI — catalogue candidates for {n} resources are listed, choose"
+  "AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang": "No company selected for AI — catalogue candidates for {n} resources are listed, choose",
+  "boshqa birlik — qayta hisob kerak": "other unit — recalculation needed",
+  "Narx {a} uchun, smetada {b}. O‘lchamlar nomdan olinadi: smeta narxi = narx × formula.": "Price is per {a}, the estimate uses {b}. Sizes come from the name: estimate price = price × formula.",
+  "Qayta hisob formulasi": "Recalculation formula",
+  "Qayta hisob izohi": "Recalculation note",
+  "Nima hisoblandi": "What was recalculated",
+  "Manbada": "In the source",
+  "Qayta hisob": "Recalculation",
+  "Sabab": "Reason",
+  "Protokol uchun narxlangan resurs yo‘q — avval narxlang.": "No priced resources for the protocol — price them first.",
+  "Narxlarni kelishish protokoli yuklandi: {n} pozitsiya. Ikki tomon imzosidan keyin kuchga kiradi.": "Price agreement protocol downloaded: {n} positions. Effective once signed by both parties.",
+  "LRV + RES + обоснование цен (Excel)": "LRV + RES + price justification (Excel)",
+  "Narxlarni kelishish protokoli": "Price agreement protocol",
+  "Narxlarni kelishish protokoli (buyurtmachi — pudratchi)": "Price agreement protocol (client — contractor)",
+  "Har resurs: asos hujjatdagi narx (smeta birligida), smetaga qo‘yilgan kelishiladigan narx, og‘ish va obosnovaniye. Ikki tomon imzosi bilan.": "For each resource: the document price (per estimate unit), the agreed price taken into the estimate, the deviation and the justification. Signed by both parties.",
+  "Protokol raqami": "Protocol number",
+  "Protokol sanasi": "Protocol date",
+  "Протокол согласования цен (Excel)": "Price agreement protocol (Excel)"
 }

@@ -46,14 +46,18 @@ export function hourPrices(doc: EstimateDoc, calc: DocCalc, c: HourCatalog, unit
       out.labour++;
       out.commands.push({ type: 'SET_PRICE', occurrenceId: o.id, recipeId: l.recipeId, price: { value: r.price, basis: 'CATALOG_CANDIDATE',
         evidence: `Chel.-soat stavkasi · ${r.region} · ${r.year} y. ${r.quarter}-kv. · ${r.sheet} ${r.baseCell} · ijtimoiy sug‘urtasiz · NDS siz`,
-        sourcePriceId: `hour-labour:${r.id}` } });
+        sourcePriceId: `hour-labour:${r.id}`,
+        justification: { docType: 'LABOUR_HOUR', document: `Стоимость 1 чел.-часа рабочих-строителей, ${r.region}, ${r.quarter} кв. ${r.year} г., лист «${r.sheet}» ${r.baseCell}, без отчислений на соцстрах, без НДС`,
+          sourceName: 'Затраты труда рабочих-строителей', sourceUnit: 'чел-ч', sourcePrice: r.price, conversion: null, reason: null } } });
     } else if (f.pricingSource === 'MACHINE_HOUR') {
       const m = machinePrice(c, l.resource.name ?? '', 'маш-ч');
       if (!m) { out.notFound++; continue; }
       out.machines++;
       out.commands.push({ type: 'SET_PRICE', occurrenceId: o.id, recipeId: l.recipeId, price: { value: m.price, basis: 'CATALOG_CANDIDATE',
         evidence: `Mash.-soat katalogi · ${m.name} · ${m.sourceDate} · sah. ${m.page} · eng yuqori narx (MAX) · NDS siz`,
-        sourcePriceId: `hour-machine:${m.machineKey}` } });
+        sourcePriceId: `hour-machine:${m.machineKey}`,
+        justification: { docType: 'MACHINE_HOUR', document: `Калькуляция стоимости маш.-часа, ${m.sourceDate}, стр. ${m.page}; принята наибольшая стоимость (MAX), без НДС`,
+          sourceName: m.name, sourceUnit: 'маш-ч', sourcePrice: m.price, conversion: null, reason: null } } });
     }
   }
   return out;

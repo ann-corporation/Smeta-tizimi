@@ -14,15 +14,18 @@ export type ProtokolQator = {
   kat: string | null; kod: string | null; nom: string | null; birlik: string | null;
   eski_narx: number | null; yangi_narx: number; izoh: string | null;
 };
-export type ProtokolOpsiya = { obyektNomi: string; raqam: string; sana: string; imzo?: ImzoNomlar };
+export type ProtokolOpsiya = { obyektNomi: string; raqam: string; sana: string; imzo?: ImzoNomlar;
+  /** Column titles of the two prices and the purpose line. Defaults = F2 protocol (estimate price → agreed price). A new
+   *  estimate (studio) agrees its own prices: document price (estimate unit) → agreed contract price. */
+  ustunNomlari?: { eski: string; yangi: string }; maqsad?: string };
 
-const USTUNLAR: RasmiyUstun[] = [
+const ustunlar = (o: ProtokolOpsiya): RasmiyUstun[] => [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
   { sarlavha: 'Код', kenglik: 12, tur: 'kod' },
   { sarlavha: 'Наименование ресурса', kenglik: 42, tur: 'matn' },
   { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
-  { sarlavha: 'Цена в смете', kenglik: 14, tur: 'narx' },
-  { sarlavha: 'Согласованная цена', kenglik: 14, tur: 'narx' },
+  { sarlavha: o.ustunNomlari?.eski ?? 'Цена в смете', kenglik: 14, tur: 'narx' },
+  { sarlavha: o.ustunNomlari?.yangi ?? 'Согласованная цена', kenglik: 14, tur: 'narx' },
   { sarlavha: 'Отклонение, %', kenglik: 11, tur: 'foiz' },
   { sarlavha: 'Обоснование (документ, поставщик / период)', kenglik: 40, tur: 'matn' },
 ];
@@ -67,9 +70,9 @@ export function narxProtokolXlsx(qatorlar: readonly ProtokolQator[], o: Protokol
   const v = new RasmiyVaraq({
     nom: 'Протокол цен',
     sarlavha: `ПРОТОКОЛ СОГЛАСОВАНИЯ ЦЕН № ${o.raqam}`,
-    ostSarlavha: [`от ${sanaMatn(o.sana)}`, 'на ресурсы, применяемые при расчетах за выполненные работы (форма № 2)'],
+    ostSarlavha: [`от ${sanaMatn(o.sana)}`, o.maqsad ?? 'на ресурсы, применяемые при расчетах за выполненные работы (форма № 2)'],
     titul: [['Объект:', o.obyektNomi], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi]],
-    ustunlar: USTUNLAR,
+    ustunlar: ustunlar(o),
     yonalish: 'landscape',
   });
   /* Bir xil resurs (kat | kod | nom | birlik | smeta narxi | yangi narx) — bitta pozitsiya. */
@@ -97,7 +100,7 @@ export function narxProtokolXlsx(qatorlar: readonly ProtokolQator[], o: Protokol
     }
   }
   v.bosh();
-  v.izoh(`Всего позиций: ${hammasi.length}. Отклонение = (согласованная цена − цена в смете) / цена в смете × 100.`);
+  v.izoh(`Всего позиций: ${hammasi.length}. Отклонение = (${(o.ustunNomlari?.yangi ?? 'согласованная цена').toLowerCase()} − ${(o.ustunNomlari?.eski ?? 'цена в смете').toLowerCase()}) / ${(o.ustunNomlari?.eski ?? 'цена в смете').toLowerCase()} × 100.`);
   v.izoh('Протокол вступает в силу после подписания обеими сторонами. Копии документов-оснований цен прилагаются.');
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
   const { bytes } = rasmiyKitob([v], { tur: 'narx_protokol' });

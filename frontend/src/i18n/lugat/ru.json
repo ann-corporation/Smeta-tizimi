@@ -1574,5 +1574,22 @@
   "Narxlar qidirilmoqda...": "Идёт поиск цен...",
   "Barcha narxlarni topish": "Найти все цены",
   "AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang": "AI не ответил — для {n} ресурсов кандидаты из источников в списке, выберите",
-  "AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang": "Для AI не выбрана компания — для {n} ресурсов кандидаты каталога в списке, выберите"
+  "AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang": "Для AI не выбрана компания — для {n} ресурсов кандидаты каталога в списке, выберите",
+  "boshqa birlik — qayta hisob kerak": "другая единица — нужен пересчёт",
+  "Narx {a} uchun, smetada {b}. O‘lchamlar nomdan olinadi: smeta narxi = narx × formula.": "Цена за {a}, в смете {b}. Размеры берутся из наименования: цена сметы = цена × формула.",
+  "Qayta hisob formulasi": "Формула пересчёта",
+  "Qayta hisob izohi": "Пояснение пересчёта",
+  "Nima hisoblandi": "Что пересчитано",
+  "Manbada": "В документе",
+  "Qayta hisob": "Пересчёт",
+  "Sabab": "Причина",
+  "Protokol uchun narxlangan resurs yo‘q — avval narxlang.": "Для протокола нет расценённых ресурсов — сначала выполните расценку.",
+  "Narxlarni kelishish protokoli yuklandi: {n} pozitsiya. Ikki tomon imzosidan keyin kuchga kiradi.": "Протокол согласования цен выгружен: позиций — {n}. Вступает в силу после подписания обеими сторонами.",
+  "LRV + RES + обоснование цен (Excel)": "ЛРВ + РЕС + обоснование цен (Excel)",
+  "Narxlarni kelishish protokoli": "Протокол согласования цен",
+  "Narxlarni kelishish protokoli (buyurtmachi — pudratchi)": "Протокол согласования цен (заказчик — подрядчик)",
+  "Har resurs: asos hujjatdagi narx (smeta birligida), smetaga qo‘yilgan kelishiladigan narx, og‘ish va obosnovaniye. Ikki tomon imzosi bilan.": "По каждому ресурсу: цена документа-основания (на ед. сметы), принятая в смете согласуемая цена, отклонение и обоснование. С подписями обеих сторон.",
+  "Protokol raqami": "Номер протокола",
+  "Protokol sanasi": "Дата протокола",
+  "Протокол согласования цен (Excel)": "Протокол согласования цен (Excel)"
 }

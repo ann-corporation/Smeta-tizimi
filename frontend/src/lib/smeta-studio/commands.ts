@@ -3,8 +3,23 @@
  * draft only through `applyCommand`; invalid commands throw a stable error code and leave
  * the previous document untouched.
  */
-import { normDec, type EstimateContext, type EstimateDoc, type EstimateRates, type Occurrence, type PriceChoice, type RecipeSnapshot,
+import { normDec, type EstimateContext, type EstimateDoc, type EstimateRates, type Occurrence, type PriceChoice, type PriceJustification, type RecipeSnapshot,
   type Section, type Substitution, type UnitBasis, type WorkCoefficient, type WorkSource } from './model';
+
+const DOC_TYPES = ['CATALOG', 'COMPANY_ESTIMATE', 'LABOUR_HOUR', 'MACHINE_HOUR', 'MANUAL'];
+const matn = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+/** A justification is optional for old drafts, but when present it must name its document type and document. */
+function justificationOf(j: PriceJustification | null | undefined): PriceJustification | null {
+  if (j == null) return null;
+  if (!DOC_TYPES.includes(j.docType)) throw new Error('PRICE_JUSTIFICATION_INVALID');
+  const document = matn(j.document, 400);
+  if (!document) throw new Error('PRICE_JUSTIFICATION_INVALID');
+  const c = j.conversion;
+  const conversion = c ? { formula: matn(c.formula, 120) ?? '', factor: normDec(String(c.factor), 'PRICE_JUSTIFICATION_INVALID'), note: matn(c.note, 300) ?? '' } : null;
+  if (conversion && (!conversion.formula || conversion.factor === '0')) throw new Error('PRICE_JUSTIFICATION_INVALID');
+  return { docType: j.docType, document, sourceName: matn(j.sourceName, 400), sourceUnit: matn(j.sourceUnit, 30),
+    sourcePrice: j.sourcePrice == null ? null : normDec(String(j.sourcePrice), 'PRICE_JUSTIFICATION_INVALID'), conversion, reason: matn(j.reason, 400) };
+}
 
 export type StudioCommand =
   | { type: 'SET_CONTEXT'; context: Partial<EstimateContext>; currency?: string }
@@ -217,7 +232,8 @@ export function applyCommand(input: EstimateDoc, cmd: StudioCommand): EstimateDo
       else {
         if (!['CATALOG_CANDIDATE', 'CONTRACT_DRAFT', 'PROCUREMENT_ACTUAL', 'OPERATOR_MANUAL'].includes(cmd.price.basis)) fail('PRICE_BASIS_INVALID');
         ov.price = { value: normDec(cmd.price.value, 'PRICE_INVALID'), basis: cmd.price.basis,
-          evidence: name(cmd.price.evidence, 'PRICE_EVIDENCE_REQUIRED'), sourcePriceId: cmd.price.sourcePriceId ?? null };
+          evidence: name(cmd.price.evidence, 'PRICE_EVIDENCE_REQUIRED'), sourcePriceId: cmd.price.sourcePriceId ?? null,
+          ...(cmd.price.justification ? { justification: justificationOf(cmd.price.justification) } : {}) };
       }
       w.occ(cmd.occurrenceId).overrides[cmd.recipeId] = ov;
       break;

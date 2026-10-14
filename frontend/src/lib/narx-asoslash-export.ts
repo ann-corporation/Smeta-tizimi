@@ -20,6 +20,8 @@ export type AsoslashResurs = {
 
 export type AsoslashOpsiya = { obyektNomi: string; sana?: string; imzo?: ImzoNomlar };
 
+/* Egasi (2026-10-14): har narxda обоснование — manbadagi nom, birlik va narx, birlik qayta hisobi (formula) ko'rinsin.
+ * A–F smeta pozitsiyasi; G–M asos: hujjat, manba qatori, qayta hisob, smeta birligidagi narx (tirik formula); N og'ish. */
 const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
   { sarlavha: 'Код', kenglik: 12, tur: 'kod' },
@@ -27,11 +29,72 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
   { sarlavha: 'Кол-во', kenglik: 11, tur: 'hajm' },
   { sarlavha: 'Цена в смете', kenglik: 14, tur: 'narx' },
-  { sarlavha: 'Вид документа', kenglik: 20, tur: 'matn', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
-  { sarlavha: 'Документ (№, дата, поставщик / период)', kenglik: 36, tur: 'matn', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
+  { sarlavha: 'Вид документа', kenglik: 18, tur: 'matn', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
+  { sarlavha: 'Документ (№, дата, поставщик / период)', kenglik: 32, tur: 'matn', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
+  { sarlavha: 'Наименование в документе', kenglik: 32, tur: 'matn', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
+  { sarlavha: 'Ед. изм. в документе', kenglik: 9, tur: 'birlik', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
   { sarlavha: 'Цена по документу', kenglik: 14, tur: 'narx', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
+  { sarlavha: 'Пересчёт на ед. сметы', kenglik: 26, tur: 'matn', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
+  { sarlavha: 'Цена по документу на ед. сметы', kenglik: 14, tur: 'narx', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
   { sarlavha: 'Отклонение, %', kenglik: 11, tur: 'foiz', guruh: 'ОБОСНОВАНИЕ ЦЕНЫ' },
 ];
+
+/** One justified position (a resource at one estimate price) — the same sheet serves imported estimates and the studio. */
+export type AsoslashBand = {
+  kat: string; kod: string | null; nom: string | null; birlik: string | null; hajm: number | null; narx: number | null;
+  /** Document type, details, the source row as written there (name/unit/price). */
+  hujjatTuri: string | null; rekvizit: string | null; manbaNom: string | null; manbaBirlik: string | null; manbaNarx: number | null;
+  /** Recalculation into the estimate unit: estimate-unit price = document price × koef; formula text for the reader. */
+  qaytaHisob: { formula: string; koef: number; izoh: string } | null;
+  /** Set when the position is not (fully) justified — listed under «ПОЗИЦИИ БЕЗ ДОКУМЕНТА-ОСНОВАНИЯ ЦЕНЫ». */
+  dalilsizSabab: string | null;
+  /** How many estimate lines the position covers (summary only). */
+  qatorlar?: number;
+};
+
+/**
+ * «ОБОСНОВАНИЕ ЦЕН» sheet: every position with its document, the source row, the unit recalculation (live formula) and the
+ * deviation (live formula). Unjustified positions are listed openly. Returns the sheet for any workbook.
+ */
+export function narxAsoslashVaraq(bandlar: readonly AsoslashBand[], o: AsoslashOpsiya & { pozitsiyalar?: number }): { varaq: RasmiyVaraq; tasdiqlangan: number; dalilsiz: number } {
+  const sana = o.sana ?? bugunSana();
+  const v = new RasmiyVaraq({
+    nom: 'Обоснование цен',
+    sarlavha: 'ОБОСНОВАНИЕ СТОИМОСТИ РЕСУРСОВ, ПРИНЯТЫХ В СМЕТНОЙ ДОКУМЕНТАЦИИ',
+    ostSarlavha: [`по состоянию на ${sana.split('-').reverse().join('.')}`],
+    titul: [['Объект:', o.obyektNomi], ['Подрядчик:', o.imzo?.pudratchi], ['Заказчик:', o.imzo?.zakazchik]],
+    ustunlar: USTUNLAR,
+    yonalish: 'landscape',
+  });
+  let no = 0, tasdiqlangan = 0;
+  const dalilsiz: { nom: string; sabab: string }[] = [];
+  const katlar = [...KAT_TARTIB, ...new Set(bandlar.map((b) => b.kat).filter((k) => k && !KAT_TARTIB.includes(k)))];
+  for (const kat of [...katlar, '']) {
+    const guruh = bandlar.filter((b) => b.kat === kat).sort((a, b) => (a.nom ?? '').localeCompare(b.nom ?? '', 'ru') || (a.kod ?? '').localeCompare(b.kod ?? ''));
+    if (!guruh.length) continue;
+    v.bolim(KAT_NOMI[kat] ?? (kat || 'ПРОЧИЕ РЕСУРСЫ (категория не указана)'));
+    for (const b of guruh) {
+      if (b.dalilsizSabab) dalilsiz.push({ nom: `${b.nom ?? '—'}${b.birlik ? `, ${b.birlik}` : ''}`, sabab: b.dalilsizSabab });
+      else tasdiqlangan++;
+      const q = b.qaytaHisob;
+      const birlikNarx = b.manbaNarx == null ? null : Math.round(b.manbaNarx * (q?.koef ?? 1) * 100) / 100;
+      v.qator('oddiy', (n) => [
+        ++no, b.kod, b.nom, b.birlik, b.hajm, b.narx,
+        b.hujjatTuri, b.rekvizit, b.manbaNom, b.manbaBirlik, b.manbaNarx,
+        q ? `${q.formula}${q.izoh ? ` (${q.izoh})` : ''}` : null,
+        b.manbaNarx == null ? null : { f: q ? `ROUND(K${n}*${q.koef},2)` : `K${n}`, v: birlikNarx ?? '' },
+        b.manbaNarx == null ? null : { f: `IF(OR(F${n}="",M${n}="",F${n}=0),"",ROUND((M${n}-F${n})/F${n}*100,2))`,
+          v: b.narx && birlikNarx != null ? Math.round(((birlikNarx - b.narx) / b.narx) * 10000) / 100 : '' },
+      ], { rang: (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
+    }
+  }
+  v.bosh();
+  v.izoh(`Всего ресурсов: ${bandlar.length}${o.pozitsiyalar != null ? ` (позиций в смете: ${o.pozitsiyalar})` : ''}; цена подтверждена документом — ${tasdiqlangan}; без полного подтверждения — ${dalilsiz.length}.`);
+  v.izoh('Цена по документу на ед. сметы = цена по документу × коэффициент пересчёта (размеры — из наименования изделия). Отклонение = (цена по документу на ед. сметы − цена в смете) / цена в смете × 100. Для машин и механизмов принята наибольшая стоимость маш.-часа по подтвержденным калькуляциям; для материалов — цены последнего квартала каталога либо документов поставщиков. Копии документов-оснований прилагаются.');
+  if (dalilsiz.length) v.diqqat(dalilsiz, 'ПОЗИЦИИ БЕЗ ДОКУМЕНТА-ОСНОВАНИЯ ЦЕНЫ');
+  v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ', 'ПРОВЕРИЛ'], o.imzo));
+  return { varaq: v, tasdiqlangan, dalilsiz: dalilsiz.length };
+}
 
 const KAT_TARTIB = ['ЧЕЛ', 'МАШ', 'МАТ', 'М/К', 'КАБ', 'БЕЗ СКЛАД', 'ОБ'];
 const KAT_NOMI: Record<string, string> = {
@@ -64,16 +127,7 @@ export function narxAsoslashXlsx(resurslar: readonly AsoslashResurs[], dalillar:
 } {
   const sana = o.sana ?? bugunSana();
   const dalil = new Map(dalillar.map((d) => [d.qator_id, d]));
-  const v = new RasmiyVaraq({
-    nom: 'Обоснование цен',
-    sarlavha: 'ОБОСНОВАНИЕ СТОИМОСТИ РЕСУРСОВ, ПРИНЯТЫХ В СМЕТНОЙ ДОКУМЕНТАЦИИ',
-    ostSarlavha: [`по состоянию на ${sana.split('-').reverse().join('.')}`],
-    titul: [['Объект:', o.obyektNomi], ['Подрядчик:', o.imzo?.pudratchi], ['Заказчик:', o.imzo?.zakazchik]],
-    ustunlar: USTUNLAR,
-    yonalish: 'landscape',
-  });
-  /* Egasi (2026-10-02): "smetadagi bir xil pozitsiyalar qayta-qayta kelavergan — resurs vedomostidek kategoriyaga
-   * ajratilgan holatda bo'lsin". Bir xil resurs (tur | kod | nom | birlik | smeta narxi) — BITTA qator, miqdori jamlanadi.
+  /* Egasi (2026-10-02): bir xil resurs (tur | kod | nom | birlik | smeta narxi) — BITTA qator, miqdori jamlanadi.
    * Smeta narxi farqli bo'lsa — alohida pozitsiya (har narx o'z asosini talab qiladi). */
   type Band = { kat: string; kod: string | null; nom: string | null; birlik: string | null; narx: number | null; hajm: number | null; qatorlar: number; dalillar: NarxDalilHolat[]; dalilsizQator: number };
   const bandlar = new Map<string, Band>();
@@ -87,35 +141,16 @@ export function narxAsoslashXlsx(resurslar: readonly AsoslashResurs[], dalillar:
     if (d) { const dk = (x: NarxDalilHolat) => `${x.manba_id}|${x.manba_kod ?? ""}|${x.manba_nom_qator ?? ""}|${x.manba_narx ?? ""}`; if (!b.dalillar.some((x) => dk(x) === dk(d))) b.dalillar.push(d); } else b.dalilsizQator++;
     bandlar.set(k, b);
   }
-  let no = 0;
-  let tasdiqlangan = 0;
-  const dalilsiz: { nom: string; sabab: string }[] = [];
-  const hammasi = [...bandlar.values()];
-  const katlar = [...KAT_TARTIB, ...new Set(hammasi.map((b) => b.kat).filter((k) => k && !KAT_TARTIB.includes(k)))];
-  for (const kat of [...katlar, '']) {
-    const guruh = hammasi.filter((b) => b.kat === kat).sort((a, b) => (a.nom ?? '').localeCompare(b.nom ?? '', 'ru') || (a.kod ?? '').localeCompare(b.kod ?? ''));
-    if (!guruh.length) continue;
-    v.bolim(KAT_NOMI[kat] ?? (kat || 'ПРОЧИЕ РЕСУРСЫ (категория не указана)'));
-    for (const b of guruh) {
-      const d = b.dalillar[0];
-      if (d && !b.dalilsizQator) tasdiqlangan++;
-      else if (!d) dalilsiz.push({ nom: `${b.nom ?? '—'}${b.birlik ? `, ${b.birlik}` : ''}`, sabab: b.narx == null ? 'цена в смете не указана' : 'документ-основание цены не приложен' });
-      else dalilsiz.push({ nom: `${b.nom ?? '—'}${b.birlik ? `, ${b.birlik}` : ''}`, sabab: `основание приложено не ко всем позициям сметы (без документа: ${b.dalilsizQator} из ${b.qatorlar})` });
-      const rekvizit = d ? manbaRekviziti(d) + (b.dalillar.length > 1 ? `; ещё документов: ${b.dalillar.length - 1}` : '') : null;
-      v.qator('oddiy', (n) => [
-        ++no, b.kod, b.nom, b.birlik, b.hajm, b.narx,
-        d ? NARX_MANBA_TUR_NOMI[d.manba_tur] : null,
-        rekvizit,
-        d ? d.manba_narx : null,
-        d ? { f: `IF(OR(F${n}="",I${n}="",F${n}=0),"",ROUND((I${n}-F${n})/F${n}*100,2))`, v: b.narx && d.manba_narx != null ? Math.round(((Number(d.manba_narx) - b.narx) / b.narx) * 10000) / 100 : '' } : null,
-      ], { rang: (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
-    }
-  }
-  v.bosh();
-  v.izoh(`Всего ресурсов: ${hammasi.length} (позиций в смете: ${resurslar.length}); цена подтверждена документом — ${tasdiqlangan}; без полного подтверждения — ${dalilsiz.length}.`);
-  v.izoh('Отклонение = (цена по документу − цена в смете) / цена в смете × 100. Для машин и механизмов принята наибольшая стоимость маш.-часа по подтвержденным калькуляциям; для материалов — цены последнего квартала каталога либо документов поставщиков. Копии документов-оснований прилагаются.');
-  if (dalilsiz.length) v.diqqat(dalilsiz, 'ПОЗИЦИИ БЕЗ ДОКУМЕНТА-ОСНОВАНИЯ ЦЕНЫ');
-  v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ', 'ПРОВЕРИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v], { tur: 'narx_asoslash' });
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ОБОСНОВАНИЕ_ЦЕН', davr: sana }), tasdiqlangan, dalilsiz: dalilsiz.length };
+  const umumiy: AsoslashBand[] = [...bandlar.values()].map((b) => {
+    const d = b.dalillar[0];
+    return { kat: b.kat, kod: b.kod, nom: b.nom, birlik: b.birlik, hajm: b.hajm, narx: b.narx, qatorlar: b.qatorlar,
+      hujjatTuri: d ? NARX_MANBA_TUR_NOMI[d.manba_tur] : null,
+      rekvizit: d ? manbaRekviziti(d) + (b.dalillar.length > 1 ? `; ещё документов: ${b.dalillar.length - 1}` : '') : null,
+      manbaNom: d?.manba_nom_qator ?? null, manbaBirlik: d?.manba_birlik ?? null, manbaNarx: d?.manba_narx ?? null, qaytaHisob: null,
+      dalilsizSabab: !d ? (b.narx == null ? 'цена в смете не указана' : 'документ-основание цены не приложен')
+        : b.dalilsizQator ? `основание приложено не ко всем позициям сметы (без документа: ${b.dalilsizQator} из ${b.qatorlar})` : null };
+  });
+  const { varaq, tasdiqlangan, dalilsiz } = narxAsoslashVaraq(umumiy, { ...o, sana, pozitsiyalar: resurslar.length });
+  const { bytes } = rasmiyKitob([varaq], { tur: 'narx_asoslash' });
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ОБОСНОВАНИЕ_ЦЕН', davr: sana }), tasdiqlangan, dalilsiz };
 }

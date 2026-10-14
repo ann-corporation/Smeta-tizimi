@@ -24,8 +24,12 @@ import { resourceCategory } from './export-adapter';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from '../narx-bildirishnoma';
 import { NAKRUTKA_KATLAR, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from '../nakrutka-podval';
 import { nakrutkaKategoriyasi } from './narx-yigish';
+import { narxAsoslashVaraq, type AsoslashBand } from '../narx-asoslash-export';
+import type { ProtokolQator } from '../narx-protokol-hujjat';
+import type { ImzoNomlar } from '../hujjat-yozuvchi';
+import type { PriceJustification } from './model';
 
-export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null };
+export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null; imzo?: ImzoNomlar };
 type UnitText = (code: string | null) => string | null;
 /** Resource units and work units live in different code spaces; one function may serve both in tests. */
 export type Units = UnitText | { resource: UnitText; work: UnitText };
@@ -191,9 +195,62 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
 }
 
 /** One workbook: LRV + RES — the resource documents an ABC/TN smeta is delivered with. */
+/* ───────────────────────────── ОБОСНОВАНИЕ ЦЕН ───────────────────────────── */
+const HUJJAT_TURI: Record<PriceJustification['docType'], string> = {
+  CATALOG: 'Каталог (текущие цены)', COMPANY_ESTIMATE: 'Смета компании (принятая ранее цена)',
+  LABOUR_HOUR: 'Стоимость чел.-часа (публикация)', MACHINE_HOUR: 'Калькуляция стоимости маш.-часа', MANUAL: 'Иной документ',
+};
+/** Studio prices → «ОБОСНОВАНИЕ ЦЕН» positions (one per resource and price, like the RES): document, source row, recalculation. */
+export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units): { bandlar: AsoslashBand[]; pozitsiyalar: number } {
+  const unitText = unitsOf(units).resource;
+  const by = new Map<string, AsoslashBand>();
+  let pozitsiyalar = 0;
+  for (const o of Object.values(doc.occurrences)) for (const l of calc.occurrences[o.id]?.lines ?? []) {
+    if (!l.resource) continue;
+    pozitsiyalar++;
+    const kat = isOperator(l.resource) ? 'МАШ' : nakrutkaKategoriyasi(l.resource, unitText) ?? '';
+    const unit = unitText(l.resource.unitCode);
+    const narx = n(l.price);
+    const key = [kat, l.resource.code, l.resource.name, unit, narx ?? 'null'].join('\u0001');
+    const qty = n(l.quantity);
+    const prev = by.get(key);
+    if (prev) { prev.hajm = prev.hajm == null || qty == null ? null : Math.round((prev.hajm + qty) * 1e6) / 1e6; prev.qatorlar = (prev.qatorlar ?? 1) + 1; continue; }
+    const p = o.overrides[l.recipeId]?.price ?? null, j = p?.justification ?? null;
+    const dalilsizSabab = narx == null ? (narxBildirishnomaKerak({ nom: l.resource.name ?? '' }, null) ? 'цена в смете не указана' : null)
+      : !j && !p?.evidence?.trim() ? 'документ-основание цены не приложен' : null;
+    if (narx == null && !dalilsizSabab) continue;   // machine operators' labour is priced inside the machine-hour (owner rule)
+    by.set(key, { kat, kod: idCode(l.resource), nom: l.resource.name, birlik: unit, hajm: qty, narx, qatorlar: 1,
+      hujjatTuri: j ? HUJJAT_TURI[j.docType] : p ? HUJJAT_TURI.MANUAL : null,
+      rekvizit: j?.document ?? p?.evidence ?? null,
+      manbaNom: j?.sourceName ?? null, manbaBirlik: j?.sourceUnit ?? null, manbaNarx: j?.sourcePrice == null ? null : Number(j.sourcePrice),
+      qaytaHisob: j?.conversion ? { formula: j.conversion.formula, koef: Number(j.conversion.factor), izoh: j.conversion.note } : null,
+      dalilsizSabab });
+  }
+  return { bandlar: [...by.values()], pozitsiyalar };
+}
+
+/**
+ * «ПРОТОКОЛ СОГЛАСОВАНИЯ ЦЕН» of a new estimate (owner 2026-10-14: client and contractor agree the prices): every priced
+ * position with its document price brought to the estimate unit, the price taken into the estimate and the justification.
+ */
+export function studioProtokolQatorlari(doc: EstimateDoc, calc: DocCalc, units: Units): ProtokolQator[] {
+  return asoslashBandlari(doc, calc, units).bandlar.filter(b => b.narx != null).map(b => ({
+    kat: b.kat || null, kod: b.kod, nom: b.nom, birlik: b.birlik,
+    eski_narx: b.manbaNarx == null ? null : Math.round(b.manbaNarx * (b.qaytaHisob?.koef ?? 1) * 100) / 100,
+    yangi_narx: b.narx as number,
+    izoh: [b.hujjatTuri, b.rekvizit, b.manbaNom && b.manbaNom !== b.nom ? `в документе: ${b.manbaNom}${b.manbaBirlik ? `, ${b.manbaBirlik}` : ''}` : null,
+      b.qaytaHisob ? `пересчёт: ${b.qaytaHisob.formula}${b.qaytaHisob.izoh ? ` (${b.qaytaHisob.izoh})` : ''}` : null].filter(Boolean).join('; ') || null,
+  }));
+}
+export const STUDIO_PROTOKOL_USTUNLARI = { eski: 'Цена по документу-основанию (на ед. сметы)', yangi: 'Согласованная договорная цена' };
+export const STUDIO_PROTOKOL_MAQSADI = 'на материальные и технические ресурсы, принятые в локальной ресурсной смете';
+
+/** One workbook: LRV + RES + «ОБОСНОВАНИЕ ЦЕН» — every price with its document and recalculation. */
 export function abcHujjat(doc: EstimateDoc, calc: DocCalc, unitText: Units, o: AbcHujjatOpsiya = {}) {
   if (!Object.keys(doc.occurrences).length) throw new Error('LRV_BOSH');
   const g = resGroups(doc, calc, unitText);
-  const kitob = rasmiyKitob([lrvVaraq(doc, calc, unitText, o), resVaraq(doc, g, o, calc.total.unresolved)], { tur: 'lrv' });
+  const asos = asoslashBandlari(doc, calc, unitText);
+  const asosVaraq = narxAsoslashVaraq(asos.bandlar, { obyektNomi: o.obyekt ?? doc.context.objectLabel ?? '', pozitsiyalar: asos.pozitsiyalar, imzo: o.imzo }).varaq;
+  const kitob = rasmiyKitob([lrvVaraq(doc, calc, unitText, o), resVaraq(doc, g, o, calc.total.unresolved), asosVaraq], { tur: 'lrv' });
   return { bytes: kitob.bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyekt ?? doc.context.objectLabel ?? 'Smeta', hujjat: 'ЛРВ_RES', davr: new Date().toISOString().slice(0, 10) }), groups: g };
 }

@@ -38,7 +38,7 @@ describe('ABC-shaped LRV + RES', () => {
 
   it('LRV: РАЗДЕЛ rows, work «1» in normative units, resources «1.1…» with KodR, norm and project quantity', () => {
     const d = draft(), r = abcHujjat(d, calcDoc(d), unitText);
-    expect(XLSX.read(r.bytes).SheetNames).toEqual(['LRV', 'RES']);
+    expect(XLSX.read(r.bytes).SheetNames).toEqual(['LRV', 'RES', 'Обоснование цен']);
     const rows = sheet(r.bytes, 'LRV');
     const flat = rows.map(x => x.join('|'));
     expect(flat.some(x => x.includes('ЛОКАЛЬНАЯ РЕСУРСНАЯ ВЕДОМОСТЬ'))).toBe(true);

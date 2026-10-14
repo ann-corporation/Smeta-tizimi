@@ -27,7 +27,21 @@ export type UnitBasis = {
 };
 /** Distinct price meanings are never mixed. CERTIFIED_F2 is read-only history, not a draft basis. */
 export type PriceBasis = 'CATALOG_CANDIDATE' | 'CONTRACT_DRAFT' | 'PROCUREMENT_ACTUAL' | 'OPERATOR_MANUAL';
-export type PriceChoice = { value: Dec; basis: PriceBasis; evidence: string; sourcePriceId: string | null };
+export type PriceChoice = { value: Dec; basis: PriceBasis; evidence: string; sourcePriceId: string | null;
+  /** Structured «обоснование цены» (owner 2026-10-14: every price carries its basis); older drafts have only `evidence`. */
+  justification?: PriceJustification | null };
+/** Where a price comes from and how it was derived — printed in the «ОБОСНОВАНИЕ ЦЕН» sheet. */
+export type PriceJustification = {
+  docType: 'CATALOG' | 'COMPANY_ESTIMATE' | 'LABOUR_HOUR' | 'MACHINE_HOUR' | 'MANUAL';
+  /** Document details: catalogue edition/period/region/VAT, estimate file/object, invoice No and date… */
+  document: string;
+  /** The source row as written there, its unit and price (in that unit). */
+  sourceName: string | null; sourceUnit: string | null; sourcePrice: Dec | null;
+  /** Unit recalculation: estimate price = source price × factor; formula uses only numbers stated in the names. */
+  conversion: { formula: string; factor: Dec; note: string } | null;
+  /** Why this source was chosen (AI or operator). */
+  reason: string | null;
+};
 export type Substitution = {
   resource: CatalogResource; reason: string;
   /** Selected-resource units per one original unit (1 when units match). */

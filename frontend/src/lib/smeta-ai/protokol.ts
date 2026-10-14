@@ -44,9 +44,13 @@ export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; materia
 export type Tanlov = { id: string; ishId: string | null; sabab: string; /** New normative phrasings when no candidate fits (second search round). */ qidiruv?: string[] };
 
 /** Price choice for one estimate resource among candidates the BROWSER found (catalogue / company estimates). */
-export type NarxNomzodi = { id: string; nom: string; birlik: string | null; narx: number; manba: string };
+export type NarxNomzodi = { id: string; nom: string; birlik: string | null; narx: number; manba: string;
+  /** Price is in ANOTHER unit than the resource: choosing it requires a dimensional recalculation formula. */
+  birlikBoshqa?: boolean };
 export type NarxSorovi = { id: string; nom: string; birlik: string | null; kat: string | null; nomzodlar: NarxNomzodi[] };
-export type NarxTanlov = { id: string; tanlov: string | null; ishonch: 'yuqori' | 'orta' | 'past'; sabab: string; qidiruv?: string[] };
+export type NarxTanlov = { id: string; tanlov: string | null; ishonch: 'yuqori' | 'orta' | 'past'; sabab: string; qidiruv?: string[];
+  /** For a unit-different candidate: estimate price = candidate price × ifoda (numbers only from the names). */
+  qayta_hisob?: { ifoda: string; izoh: string } };
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : typeof v === 'number' && Number.isFinite(v) ? String(v) : '');
 /** "m3", "м³", "куб.м", "m^3" → "м3"; "t", "тн", "тонна" → "т"; "dona", "sht" → "шт"; unknown → null. */
@@ -207,8 +211,10 @@ export function narxTanlovlariniTekshir(raw: unknown, sorovlar: NarxSorovi[]): N
     const i = str(r?.ishonch, 10).toLowerCase();
     const qXom = r?.qidiruv ?? r?.search;
     const qidiruv = tanlov ? [] : (Array.isArray(qXom) ? qXom : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
+    const qh = (r?.qayta_hisob && typeof r.qayta_hisob === 'object' ? r.qayta_hisob : null) as Record<string, unknown> | null;
+    const qayta_hisob = tanlov && qh && str(qh.ifoda, 120) ? { ifoda: str(qh.ifoda, 120), izoh: str(qh.izoh, 300) } : null;
     return { id: s.id, tanlov, ishonch: tanlov && (i === 'yuqori' || i === 'orta') ? i : 'past',
-      sabab: str(r?.sabab, 300) || (tanlov ? '' : 'Mos nomzod tanlanmadi'), ...(qidiruv.length ? { qidiruv } : {}) };
+      sabab: str(r?.sabab, 300) || (tanlov ? '' : 'Mos nomzod tanlanmadi'), ...(qidiruv.length ? { qidiruv } : {}), ...(qayta_hisob ? { qayta_hisob } : {}) };
   });
 }
 
@@ -228,6 +234,7 @@ export const TANLOV_SXEMA = { name: 'smetachi_tanlov', schema: { type: 'object',
     id: { type: 'string' }, ishId: { type: ['string', 'null'] }, sabab: { type: 'string' }, qidiruv: { type: 'array', items: { type: 'string' } } } } } } } };
 
 export const NARX_TANLOV_SXEMA = { name: 'smetachi_narx_tanlov', schema: { type: 'object', additionalProperties: false, required: ['tanlovlar'], properties: {
-  tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'tanlov', 'ishonch', 'sabab', 'qidiruv'], properties: {
+  tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'tanlov', 'ishonch', 'sabab', 'qidiruv', 'qayta_hisob'], properties: {
     id: { type: 'string' }, tanlov: { type: ['string', 'null'] }, ishonch: { type: 'string', enum: ['yuqori', 'orta', 'past'] }, sabab: { type: 'string' },
-    qidiruv: { type: 'array', items: { type: 'string' } } } } } } } };
+    qidiruv: { type: 'array', items: { type: 'string' } },
+    qayta_hisob: { type: ['object', 'null'], additionalProperties: false, required: ['ifoda', 'izoh'], properties: { ifoda: { type: 'string' }, izoh: { type: 'string' } } } } } } } } };

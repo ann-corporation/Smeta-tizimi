@@ -154,7 +154,7 @@ export default function SmetaStudio() {
             className={`tugma h-8 px-3 text-[12.5px] ${bosqich === k ? 'tugma-asosiy' : ''}`} onClick={() => setBosqich(k)}>{l}</button></span>)}
     </nav>
     {bosqich === 'narx' && <NarxlashBosqichi doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} />}
-    {bosqich === 'res' && <ResBosqichi doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} onBack={() => setBosqich('narx')} />}
+    {bosqich === 'res' && <ResBosqichi doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} />}
     {bosqich === 'lrv' && <div className="grid xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-3 items-start">
       <section aria-label={t('Normativ katalog')} className="border border-border rounded-lg p-3 bg-surface-1 min-w-0">
         <div role="tablist" aria-label={t('Chap panel')} className="mb-2 flex gap-1 border-b border-border pb-2">

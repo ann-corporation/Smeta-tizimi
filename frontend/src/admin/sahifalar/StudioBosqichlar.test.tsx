@@ -40,7 +40,7 @@ describe('Narxlash bosqichi (UI)', () => {
     await waitFor(() => expect(command).toHaveBeenCalled());
     const c = command.mock.calls[0][0];
     expect(c).toMatchObject({ type: 'SET_PRICE', occurrenceId: 'o1', recipeId: 'r1', price: { value: '90000', basis: 'CATALOG_CANDIDATE', sourcePriceId: 'narx-katalog:11' } });
-    expect((c as { price: { evidence: string } }).price.evidence).toContain('Tanlash sababi: ma’nosi mos');
+    expect((c as { price: { justification: { reason: string; document: string } } }).price.justification).toMatchObject({ reason: 'ma’nosi mos', document: expect.stringContaining('Каталог 1 кв. 2026') });
     expect(tanla).toHaveBeenCalledTimes(1);
 
     await waitFor(() => expect((screen.getByLabelText('ПРОЧИЕ_ПОДРЯДЧИК') as HTMLInputElement).value).toBe('18'));

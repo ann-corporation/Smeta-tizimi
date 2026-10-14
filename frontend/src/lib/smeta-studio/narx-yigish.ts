@@ -19,7 +19,8 @@ import { isBezSkladNom } from '../resurs-kategoriyasi/bez-sklad';
 import { resourceFacts } from '../resource-semantics';
 import type { DocCalc } from './calc';
 import type { StudioCommand } from './commands';
-import type { CatalogResource, EstimateDoc, PriceBasis } from './model';
+import type { CatalogResource, EstimateDoc, PriceBasis, PriceJustification } from './model';
+import { BIRLIK_HISOB_XATO_MATNI, olchamliHisob, olchamliOtkazishMumkin, type BirlikHisob } from './birlik-hisob';
 import { characteristics, gateFailure, matchResource, normName, priceUnitFactor, type MatchCatalog, type MatchResult } from './resource-match';
 import { catalogEvidence } from './price-lookup';
 
@@ -30,6 +31,8 @@ export type ResursGuruh = {
   qatorlar: ResursQatori[]; miqdor: number | null;
   /** Price when every line has the same one; null if none or mixed. */
   narx: string | null; narxsiz: number; aralash: boolean; basis: PriceBasis | null; dalil: string | null;
+  /** Structured «обоснование цены» of the price (when the price has one). */
+  asos: PriceJustification | null;
 };
 
 /** Cost category for the markup cascade: ЧЕЛ/МАШ/ОБ from resource semantics, materials split into КАБ, М/К, БЕЗ СКЛАД, МАТ. */
@@ -55,7 +58,7 @@ export function resursGuruhlari(doc: EstimateDoc, calc: DocCalc, unitText: UnitT
     let g = by.get(key);
     if (!g) {
       g = { key, nom: l.resource.name ?? '', birlik, kat, resurs: l.resource, qatorlar: [], miqdor: 0, narx: null, narxsiz: 0, aralash: false,
-        basis: null, dalil: null, narxlar: new Set() };
+        basis: null, dalil: null, asos: null, narxlar: new Set() };
       by.set(key, g);
     }
     g.qatorlar.push({ occurrenceId: o.id, recipeId: l.recipeId });
@@ -65,6 +68,7 @@ export function resursGuruhlari(doc: EstimateDoc, calc: DocCalc, unitText: UnitT
       g.narxlar.add(l.price);
       g.basis = l.priceBasis;
       g.dalil = o.overrides[l.recipeId]?.price?.evidence ?? g.dalil;
+      g.asos = o.overrides[l.recipeId]?.price?.justification ?? g.asos;
     }
   }
   const KAT_TARTIB: Array<NakrutkaKat | null> = ['ЧЕЛ', 'МАШ', 'МАТ', 'БЕЗ СКЛАД', 'М/К', 'КАБ', 'ОБ', null];
@@ -76,7 +80,11 @@ export function resursGuruhlari(doc: EstimateDoc, calc: DocCalc, unitText: UnitT
 export const katalogdanNarxlanadi = (g: Pick<ResursGuruh, 'kat'>) => g.kat !== 'ЧЕЛ' && g.kat !== 'МАШ';
 
 /** A candidate with its source row (price already in the resource's unit). */
-export type NarxNomzod = NarxNomzodi & { tur: 'katalog' | 'kompaniya'; row: KatalogQatori; konversiya: string | null };
+export type NarxNomzod = NarxNomzodi & { tur: 'katalog' | 'kompaniya'; row: KatalogQatori;
+  /** Recalculation applied to the source price (exact unit factor, or a verified dimensional formula). */
+  qayta: BirlikHisob | null;
+  /** Source unit differs and only a dimensional recalculation (from sizes in the names) can make it usable. */
+  birlikBoshqa?: boolean };
 
 const PRICE_INDEX = new WeakMap<MatchCatalog, MatnIndeks>();
 /** BM25 over catalogue names (+ group title as context), built once per catalogue view. */
@@ -91,15 +99,28 @@ export function narxIndeksi(cat: MatchCatalog): MatnIndeks {
 }
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
-export function qatorNomzodi(row: KatalogQatori, unit: string | null, tur: NarxNomzod['tur']): NarxNomzod | null {
+export function qatorNomzodi(row: KatalogQatori, unit: string | null, tur: NarxNomzod['tur'], olchamli = false): NarxNomzod | null {
   if (row.narx == null || row.nds_holati === 'nds_bilan') return null;
   const factor = priceUnitFactor(row.birlik, unit);
-  if (unit && row.birlik && factor == null) return null;
-  const narx = round2(row.narx * (factor ?? 1));
-  const konversiya = factor != null && factor !== 1 ? `${row.narx}/${row.birlik} × ${factor} = ${narx}/${unit}` : null;
   const davr = row.yil ? `${row.yil}${row.kvartal ? `-${row.kvartal}kv` : ''}` : null;
-  const manba = tur === 'katalog' ? ['katalog', row.manba_nom, davr, row.hudud].filter(Boolean).join(', ') : `kompaniya smetasi: ${row.manba_nom}`;
-  return { id: `${tur === 'katalog' ? 'k' : 's'}${row.id}`, nom: row.nom, birlik: unit ?? row.birlik, narx, manba: manba.slice(0, 160), tur, row, konversiya };
+  const manba = (tur === 'katalog' ? ['katalog', row.manba_nom, davr, row.hudud].filter(Boolean).join(', ') : `kompaniya smetasi: ${row.manba_nom}`).slice(0, 160);
+  const id = `${tur === 'katalog' ? 'k' : 's'}${row.id}`;
+  if (unit && row.birlik && factor == null) {
+    // Different physical unit: offered only for a dimensional recalculation; the price stays in the SOURCE unit until then.
+    if (!olchamli || !olchamliOtkazishMumkin(unit, row.birlik)) return null;
+    return { id, nom: row.nom, birlik: row.birlik, narx: round2(row.narx), manba, tur, row, qayta: null, birlikBoshqa: true };
+  }
+  const narx = round2(row.narx * (factor ?? 1));
+  const qayta = factor != null && factor !== 1 ? { formula: String(factor), factor: String(factor), note: `${row.birlik} → ${unit}` } : null;
+  return { id, nom: row.nom, birlik: unit ?? row.birlik, narx, manba, tur, row, qayta };
+}
+
+/** Applies a verified dimensional recalculation to a unit-different candidate → a candidate priced in the estimate unit. */
+export function qaytaHisobla(n: NarxNomzod, resursNom: string, smetaBirlik: string | null, formula: string, izoh: string): NarxNomzod | { xato: string } {
+  if (!n.birlikBoshqa) return n;
+  const h = olchamliHisob(formula, izoh, smetaBirlik, n.birlik, [resursNom, n.nom]);
+  if ('xato' in h) return { xato: BIRLIK_HISOB_XATO_MATNI[h.xato] };
+  return { ...n, birlik: smetaBirlik, narx: round2(n.narx * Number(h.factor)), qayta: h, birlikBoshqa: false };
 }
 
 /**
@@ -118,25 +139,52 @@ export function narxNomzodlari(g: Pick<ResursGuruh, 'nom' | 'birlik'>, cat: Matc
   if (cat) {
     const src = characteristics(g.nom);
     for (const c of matchResource(cat, g.nom, g.birlik, hudud, 8).candidates) add(qatorNomzodi({ ...c.row, narx: c.row.unitConversion?.sourcePrice ?? c.row.narx, birlik: c.row.unitConversion?.sourceUnit ?? c.row.birlik }, g.birlik, 'katalog'), c.regional);
+    let boshqaBirlik = 0;
     for (const h of narxIndeksi(cat).qidir([g.nom, ...iboralar], 80)) {
       if (cat.price(h.id) == null) continue;
-      if (gateFailure(src, characteristics(cat.name(h.id)), g.birlik, cat.unit(h.id), normName(cat.name(h.id)))) continue;
+      const c = characteristics(cat.name(h.id)), cn = normName(cat.name(h.id));
+      const sabab = gateFailure(src, c, g.birlik, cat.unit(h.id), cn);
+      if (sabab === 'UNIT') {
+        // Same product in another unit (m² vs m, sheet vs m²): kept for a dimensional recalculation if every other gate passes.
+        if (boshqaBirlik >= 4 || gateFailure(src, c, null, null, cn)) continue;
+        const n = qatorNomzodi(cat.row(h.id), g.birlik, 'katalog', true);
+        if (n) { boshqaBirlik++; add(n, !!hudud && cat.region(h.id) === hudud); }
+        continue;
+      }
+      if (sabab) continue;
       add(qatorNomzodi(cat.row(h.id), g.birlik, 'katalog'), !!hudud && cat.region(h.id) === hudud);
       if (out.size >= limit * 2) break;
     }
   }
   for (const c of kompaniya?.candidates.slice(0, 5) ?? []) add(qatorNomzodi({ ...c.row, narx: c.row.unitConversion?.sourcePrice ?? c.row.narx, birlik: c.row.unitConversion?.sourceUnit ?? c.row.birlik }, g.birlik, 'kompaniya'), false);
-  return [...out.values()].slice(0, limit);
+  // Same-unit candidates first; unit-different ones are the fallback that needs a recalculation.
+  return [...out.values()].sort((a, b) => Number(!!a.birlikBoshqa) - Number(!!b.birlikBoshqa)).slice(0, limit);
 }
 
 /** SET_PRICE for every line of the group, with full provenance (+ the AI's reason when it chose). */
+/** «Обоснование цены» of a candidate: document details, the source row as written there, the recalculation and the reason. */
+export function narxAsosi(n: NarxNomzod, sabab = ''): PriceJustification {
+  const r = n.row;
+  const davr = r.yil ? `${r.kvartal ? `${r.kvartal} кв. ` : ''}${r.yil} г.` : null;
+  const document = n.tur === 'katalog'
+    ? [r.manba_nom, davr, r.hudud, r.ishlab_chiqaruvchi ? `производитель: ${r.ishlab_chiqaruvchi}` : null, 'без НДС'].filter(Boolean).join(', ')
+    : `Смета компании: ${r.manba_nom}`;
+  // The source row exactly as published: its own unit and price (the estimate price may be recalculated from it).
+  const sourcePrice = r.narx == null ? null : String(r.narx);
+  return { docType: n.tur === 'katalog' ? 'CATALOG' : 'COMPANY_ESTIMATE', document: document.slice(0, 400), sourceName: r.nom,
+    sourceUnit: r.birlik, sourcePrice, conversion: n.qayta, reason: sabab ? sabab.slice(0, 400) : null };
+}
+
+/** SET_PRICE for every line of the group, with the structured justification (+ a short evidence line for older readers). */
 export function narxBuyruqlari(g: Pick<ResursGuruh, 'qatorlar'>, n: NarxNomzod, sabab = ''): StudioCommand[] {
-  const evidence = [n.tur === 'katalog' ? catalogEvidence(n.row) : `Kompaniya smetasi · ${n.row.manba_nom} · ${n.row.nom}${n.row.birlik ? `, ${n.row.birlik}` : ''}`,
-    n.konversiya ? `birlik konversiyasi: ${n.konversiya}` : null, 'NDS siz', sabab ? `Tanlash sababi: ${sabab}` : null].filter(Boolean).join(' · ').slice(0, 600);
+  if (n.birlikBoshqa) throw new Error('PRICE_UNIT_RECALCULATION_REQUIRED');
+  const justification = narxAsosi(n, sabab);
+  const evidence = [n.tur === 'katalog' ? catalogEvidence(n.row) : `Kompaniya smetasi · ${n.row.manba_nom} · ${n.row.nom}`,
+    n.qayta ? `qayta hisob: ${n.qayta.formula} (${n.qayta.note})` : null, 'NDS siz'].filter(Boolean).join(' · ').slice(0, 300);
   const basis: PriceBasis = n.tur === 'katalog' ? 'CATALOG_CANDIDATE' : 'CONTRACT_DRAFT';
   const sourcePriceId = n.tur === 'katalog' ? `narx-katalog:${n.row.id}` : `kompaniya-smeta-qator:${n.row.id}`;
   return g.qatorlar.map(q => ({ type: 'SET_PRICE' as const, occurrenceId: q.occurrenceId, recipeId: q.recipeId,
-    price: { value: String(n.narx), basis, evidence, sourcePriceId } }));
+    price: { value: String(n.narx), basis, evidence, sourcePriceId, justification } }));
 }
 
 export type AiNarxNatija = { key: string; nomzod: NarxNomzod | null; ishonch: NarxTanlov['ishonch']; sabab: string; nomzodlar: NarxNomzod[] };
@@ -157,15 +205,22 @@ export async function aiNarxlash(guruhlar: ResursGuruh[], nomzodlar: (g: ResursG
       // and the second round searches with those words. (Without this the hardest resources never got a second chance.)
       const yuborish = part.filter(x => x.n.length || round === 0);
       const sorov = yuborish.map((x, j): NarxSorovi => ({ id: `r${i + j}`, nom: x.g.nom, birlik: x.g.birlik, kat: x.g.kat,
-        nomzodlar: x.n.map(({ id, nom, birlik, narx, manba }) => ({ id, nom, birlik, narx, manba })) }));
+        nomzodlar: x.n.map(({ id, nom, birlik, narx, manba, birlikBoshqa }) => ({ id, nom, birlik, narx, manba, ...(birlikBoshqa ? { birlikBoshqa: true } : {}) })) }));
       const byId = new Map(sorov.map((s, j) => [s.id, yuborish[j]]));
       for (const x of part) if (!x.n.length) natija.set(x.g.key, { key: x.g.key, nomzod: null, ishonch: 'past', sabab: 'Manbalarda xarakteristikasi mos nomzod topilmadi', nomzodlar: [] });
       const javob = sorov.length ? await tanla(sorov) : [];
       if (javob == null) throw new Error('AI_UNAVAILABLE');
       for (const t of javob) {
         const x = byId.get(t.id); if (!x) continue;
-        const nomzod = t.tanlov ? x.n.find(n => n.id === t.tanlov) ?? null : null;
-        if (x.n.length || !natija.has(x.g.key)) natija.set(x.g.key, { key: x.g.key, nomzod, ishonch: t.ishonch, sabab: t.sabab, nomzodlar: x.n });
+        let nomzod = t.tanlov ? x.n.find(n => n.id === t.tanlov) ?? null : null;
+        let sabab = t.sabab, ishonch = t.ishonch;
+        if (nomzod?.birlikBoshqa) {
+          // The model chose a product in another unit: its formula is verified and computed here, never trusted as a number.
+          const q = t.qayta_hisob ? qaytaHisobla(nomzod, x.g.nom, x.g.birlik, t.qayta_hisob.ifoda, t.qayta_hisob.izoh) : { xato: 'qayta hisob formulasi berilmagan' };
+          if ('xato' in q) { sabab = `${sabab} — qayta hisob rad etildi: ${q.xato}`; nomzod = null; ishonch = 'past'; }
+          else nomzod = q;
+        }
+        if (x.n.length || !natija.has(x.g.key)) natija.set(x.g.key, { key: x.g.key, nomzod, ishonch, sabab, nomzodlar: x.n });
         if (!nomzod && t.qidiruv?.length && round === 0) keyingi.push({ g: x.g, iboralar: t.qidiruv });
       }
       onProgress?.(Math.min(i + 40, navbat.length), navbat.length);

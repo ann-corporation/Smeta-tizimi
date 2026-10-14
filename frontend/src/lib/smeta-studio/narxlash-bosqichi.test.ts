@@ -55,15 +55,15 @@ describe('Narxlash bosqichi: RES kabi resurslar, manbali nomzodlar, AI 2 bosqich
 
   it('birlik konversiyasi faqat aniq (т ↔ кг) va dalilda yoziladi', () => {
     const n = narxNomzodlari({ nom: 'ГВОЗДИ СТРОИТЕЛЬНЫЕ', birlik: 'кг' }, katalog([row(7, 'Гвозди строительные', 'т', 10_000_000)]), null, null);
-    expect(n[0]).toMatchObject({ narx: 10000, konversiya: '10000000/т × 0.001 = 10000/кг' });
+    expect(n[0]).toMatchObject({ narx: 10000, qayta: { factor: '0.001', note: 'т → кг' } });
     const [c] = narxBuyruqlari({ qatorlar: [{ occurrenceId: 'o1', recipeId: 'r4' }] }, n[0], 'mos');
     expect(c).toMatchObject({ type: 'SET_PRICE', price: { value: '10000', basis: 'CATALOG_CANDIDATE', sourcePriceId: 'narx-katalog:7' } });
-    expect((c as { price: { evidence: string } }).price.evidence).toContain('Tanlash sababi: mos');
+    expect((c as { price: { justification: unknown } }).price.justification).toMatchObject({ docType: 'CATALOG', sourceName: 'Гвозди строительные', sourceUnit: 'т', sourcePrice: '10000000', conversion: { factor: '0.001' }, reason: 'mos' });
   });
 
   it('AI topa olmasa o‘z iborasi bilan 2-bosqichda qayta qidiriladi; yuborilmagan nomzod tanlanmaydi', async () => {
     const d = draft(false), g = resursGuruhlari(d, calcDoc(d), unitText).filter(x => x.kat === 'МАТ');
-    const fake = (id: string): NarxNomzod => ({ id, nom: id === 'k2' ? 'Песок природный' : 'Плита', birlik: 'м3', narx: 1, manba: 'katalog', tur: 'katalog', row: row(Number(id.slice(1)), 'x', 'м3', 1), konversiya: null });
+    const fake = (id: string): NarxNomzod => ({ id, nom: id === 'k2' ? 'Песок природный' : 'Плита', birlik: 'м3', narx: 1, manba: 'katalog', tur: 'katalog', row: row(Number(id.slice(1)), 'x', 'м3', 1), qayta: null });
     const calls: string[][] = [];
     const out = await aiNarxlash(g, (_g, ib) => (ib.length ? [fake('k2')] : [fake('k1')]), async s => {
       calls.push(s.flatMap(x => x.nomzodlar.map(n => n.id)));
@@ -78,7 +78,7 @@ describe('Narxlash bosqichi: RES kabi resurslar, manbali nomzodlar, AI 2 bosqich
 describe('AI narx qidiruvi: birinchi qidiruvda nomzod yo‘q resurs ham AI iborasi bilan qayta qidiriladi', () => {
   it('bo‘sh nomzodli resurs 1-bosqichda AI ga boradi, 2-bosqichda topilgan nomzoddan tanlanadi', async () => {
     const d = draft(false), g = resursGuruhlari(d, calcDoc(d), unitText).filter(x => x.kat === 'МАТ');
-    const found: NarxNomzod = { id: 'k5', nom: 'Песок природный', birlik: 'м3', narx: 90000, manba: 'katalog', tur: 'katalog', row: row(5, 'Песок природный', 'м3', 90000), konversiya: null };
+    const found: NarxNomzod = { id: 'k5', nom: 'Песок природный', birlik: 'м3', narx: 90000, manba: 'katalog', tur: 'katalog', row: row(5, 'Песок природный', 'м3', 90000), qayta: null };
     const sent: number[] = [];
     const out = await aiNarxlash(g, (_g, ib) => (ib.length ? [found] : []), async s => {
       sent.push(s[0].nomzodlar.length);
