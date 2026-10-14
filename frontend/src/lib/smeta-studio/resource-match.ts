@@ -106,9 +106,10 @@ export function characteristics(nameRaw: string | null | undefined): Characteris
   if (r && /АРМАТУР|СТАЛЬ|ПРОКАТ|СЕТК|КАРКАС/.test(n)) rebar = 'А' + r[1].replace(/\s/g, '');
   if (!family && rebar && /СТАЛЬ|ПРОКАТ/.test(n)) family = 'rebar';
   // JS \w and \b are ASCII-only, so Cyrillic word edges are spelled out explicitly.
-  const d = n.match(/(?:^|[^А-Я])(?:Д|Ø|ДИАМ[А-Я]*|ДУ)\s?=?\s?(\d+(?:\.\d+)?)/)
-    ?? (rebar || /ТРУБ|АРМАТУР|КАБЕЛ|ПРОВОД/.test(n) ? n.match(/(\d+(?:\.\d+)?)\s?ММ(?![А-Я])/) : null);
-  if (d) diameter = String(Number(d[1]));
+  // A stated range ("ДИАМЕТРОМ 6,3-6,5 ММ") stays a range; "ДИАМ. 5,5" (abbreviated with a dot) is a diameter too.
+  const d = n.match(/(?:^|[^А-Я])(?:Д|Ø|ДИАМ[А-Я]*\.?|ДУ)\s?=?\s?(\d+(?:\.\d+)?)(?:\s*[-–—]\s*(\d+(?:\.\d+)?))?/)
+    ?? (rebar || /ТРУБ|АРМАТУР|КАБЕЛ|ПРОВОД|КАТАНК/.test(n) ? n.match(/(\d+(?:\.\d+)?)(?:\s*[-–—]\s*(\d+(?:\.\d+)?))?\s?ММ(?![А-Я])/) : null);
+  if (d) diameter = d[2] ? `${Number(d[1])}-${Number(d[2])}` : String(Number(d[1]));
   const sec = n.match(/(\d+(?:\.\d+)?\s?Х\s?\d+(?:\.\d+)?(?:\s?\+\s?\d+(?:\.\d+)?\s?Х\s?\d+(?:\.\d+)?)?)/);
   const section = sec && /КАБЕЛ|ПРОВОД|ПРОВОЛОК|ШНУР/.test(n) ? sec[1].replace(/\s/g, '') : null;
   const br = n.match(/МАРК[АИ]\s+([А-ЯA-Z][А-ЯA-Z0-9.-]{1,15})/);
@@ -148,6 +149,20 @@ export function priceUnitFactor(source: string | null, target: string | null): n
   return null;
 }
 
+/** "6.3-6.5" → [6.3, 6.5]; "12" → [12, 12]; anything else → null. */
+function oraliq(v: string): [number, number] | null {
+  const m = /^(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))?$/.exec(v);
+  if (!m) return null;
+  const a = Number(m[1]), b = m[2] == null ? a : Number(m[2]);
+  return a <= b ? [a, b] : [b, a];
+}
+/** Diameters agree when equal or when a stated range contains / overlaps the other value (6.3–6.5 ∋ 6.5). */
+export function diametrMos(a: string, b: string): boolean {
+  if (a === b) return true;
+  const x = oraliq(a), y = oraliq(b);
+  return !!x && !!y && (x[0] !== x[1] || y[0] !== y[1]) && x[0] <= y[1] && y[0] <= x[1];
+}
+
 export function gateFailure(src: Characteristics, cand: Characteristics, srcUnit: string | null, candUnit: string | null, candNorm = ''): string | null {
   if (unitKey(srcUnit) && unitKey(candUnit) && priceUnitFactor(candUnit, srcUnit) == null) return 'UNIT';
   if (src.family && cand.family !== src.family) return 'FAMILY';
@@ -161,8 +176,8 @@ export function gateFailure(src: Characteristics, cand: Characteristics, srcUnit
   if (src.brand && (cand.brand ? !cand.brand.startsWith(src.brand) : !candNorm.split(' ').some(t => t.startsWith(src.brand!)))) return 'BRAND';
   if (src.grade && cand.grade !== src.grade) return 'GRADE';
   if (src.rebar && cand.rebar !== src.rebar) return 'REBAR_CLASS';
-  if (src.diameter && cand.diameter && cand.diameter !== src.diameter) return 'DIAMETER';
-  if (src.diameter && !cand.diameter && !cand.specs.some(t => t === src.diameter || t.startsWith(src.diameter + '.'))) return 'DIAMETER';
+  if (src.diameter && cand.diameter && !diametrMos(src.diameter, cand.diameter)) return 'DIAMETER';
+  if (src.diameter && !cand.diameter && !cand.specs.some(t => t === src.diameter || t.startsWith(src.diameter + '.') || diametrMos(src.diameter!, t))) return 'DIAMETER';
   return null;
 }
 

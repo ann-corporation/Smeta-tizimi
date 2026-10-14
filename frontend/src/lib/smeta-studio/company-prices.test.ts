@@ -17,14 +17,26 @@ describe('company pricing by names and units, not codes',()=>{
   const q=read.mock.calls[0][0];
   expect(q.ustunlar).toContain('id,nom,birlik,narx,obyekt_id,manba_id,yangilandi');
   expect(q.ustunlar).toContain('source_document:t2_document_registry!source_document_id');
-  expect(q.filtr).toContain('nom.ilike.*ПЕСОК*'); expect(q.filtr).not.toMatch(/(?:^|&)kod=/);
+  // Exact names first; the name found exactly needs no broad root query.
+  expect(decodeURIComponent(q.filtr!)).toContain('nom=in.("ПЕСОК")'); expect(q.filtr).not.toMatch(/(?:^|&)kod=/);
+  expect(read.mock.calls.some(c => String(c[0].filtr).includes('ilike'))).toBe(false);
+ });
+ it('names without an exact observation fall back to broad name roots', async () => {
+  read.mockResolvedValueOnce({ ok: true, toliq: true, qatorlar: [] })
+   .mockResolvedValueOnce({ ok: true, toliq: true, qatorlar: [{ id: 5, nom: 'ПЕСОК ПРИРОДНЫЙ', birlik: 'М3', narx: 90000, obyekt_id: 7, manba_id: 3, yangilandi: null }] })
+   .mockResolvedValueOnce({ ok: true, qatorlar: [{ id: 7, nom: 'Obyekt A' }] })
+   .mockResolvedValueOnce({ ok: true, qatorlar: [{ id: 3, fayl_nom: 'Smeta A.xlsx', varaq: 'LRV' }] });
+  const r = await kompaniyaKuzatuvlari(17, ['ПЕСОК ДЛЯ СТРОИТЕЛЬНЫХ РАБОТ']);
+  expect(r.map(x => x.id)).toEqual([5]);
+  expect(read.mock.calls[1][0].filtr).toContain('nom.ilike.*ПЕСОК*');
  });
  it('does not interpret a failed or truncated query as missing prices',async()=>{
   read.mockResolvedValueOnce({ok:false}); await expect(kompaniyaKuzatuvlari(17,['ПЕСОК'])).rejects.toThrow('COMPANY_PRICES_UNAVAILABLE');
   read.mockResolvedValueOnce({ok:true,toliq:false,qatorlar:[]}); await expect(kompaniyaKuzatuvlari(17,['ПЕСОК'])).rejects.toThrow('COMPANY_PRICES_INCOMPLETE');
+  read.mockResolvedValueOnce({ok:true,toliq:true,qatorlar:[]}).mockResolvedValueOnce({ok:true,toliq:false,qatorlar:[]}); await expect(kompaniyaKuzatuvlari(17,['ПЕСОК'])).rejects.toThrow('COMPANY_PRICES_INCOMPLETE');
  });
  it('successful empty search is distinct from error',async()=>{
-  read.mockResolvedValueOnce({ok:true,toliq:true,qatorlar:[]}); expect(await kompaniyaKuzatuvlari(17,['ПЕСОК'])).toEqual([]);
+  read.mockResolvedValueOnce({ok:true,toliq:true,qatorlar:[]}).mockResolvedValueOnce({ok:true,toliq:true,qatorlar:[]}); expect(await kompaniyaKuzatuvlari(17,['ПЕСОК'])).toEqual([]);
  });
  it('matches renamed-code-independent names, rejects different physical units',()=>{
   const r=kompaniyaMoslik([obs(1,'ПЕСОК ДЛЯ СТРОИТЕЛЬНЫХ РАБОТ','м3',100000),obs(2,'ПЕСОК ДЛЯ СТРОИТЕЛЬНЫХ РАБОТ','т',90000)],'ПЕСОК ДЛЯ СТРОИТЕЛЬНЫХ РАБОТ','м3');
@@ -98,6 +110,6 @@ it('resolves canonical native document provenance separately from legacy manba',
   .mockResolvedValueOnce({ok:true,qatorlar:[{id:7,nom:'Obyekt A'}]});
  const r=await kompaniyaKuzatuvlari(17,['BETON B20']);
  expect(r[0]).toMatchObject({smeta:'Native.xlsx',documentId:44});
- expect(read.mock.calls[0][0].filtr).toContain('nom.ilike.*BETON*');
+ expect(decodeURIComponent(read.mock.calls[0][0].filtr!)).toContain('nom=in.("BETON B20")');
  expect(read.mock.calls[0][0].filtr).toContain('source_document.kompaniya_id=eq.17');
 });
