@@ -63,6 +63,8 @@ type PtoWorkspaceValue = {
   setRevisionId: (id: string | null) => void;
   clearScope: () => void;
   refresh: () => void;
+  /** Query string for another route: current scope with the given object (and that object's project). */
+  scopeSearch: (objectId: number | null) => string;
 };
 
 const SCOPE_PARAMS = {
@@ -181,6 +183,7 @@ const PTO_FALLBACK: PtoWorkspaceValue = {
   setRevisionId: () => undefined,
   clearScope: () => undefined,
   refresh: () => undefined,
+  scopeSearch: () => '',
 };
 
 const PtoWorkspaceContext = createContext<PtoWorkspaceValue>(PTO_FALLBACK);
@@ -189,68 +192,125 @@ function withoutScopeAliases(params: URLSearchParams) {
   Object.values(SCOPE_PARAMS).flat().forEach((name) => params.delete(name));
 }
 
-function scopeWithOnlyProject(scope: PtoScope, projectId: number | null): PtoScope {
-  return { ...scope, projectId, objectId: null, periodId: null, sourceDocumentId: null, revisionId: null };
+/** True when the URL carries any PTO scope parameter (canonical or legacy alias). */
+export function hasScopeParams(params: URLSearchParams): boolean {
+  return Object.values(SCOPE_PARAMS).some((names) => names.some((name) => params.has(name)));
 }
 
+/** Canonical URL for a scope; every non-scope parameter (panel, tab, …) is preserved. */
+export function scopeToParams(base: URLSearchParams, next: PtoScope): URLSearchParams {
+  const params = new URLSearchParams(base);
+  withoutScopeAliases(params);
+  if (next.projectId != null) params.set('loyiha', String(next.projectId));
+  if (next.objectId != null) params.set('obyekt', String(next.objectId));
+  if (next.periodId != null) params.set('davr', next.periodId);
+  if (next.sourceDocumentId != null) params.set('hujjat', next.sourceDocumentId);
+  if (next.revisionId != null) params.set('revision', next.revisionId);
+  return params;
+}
+
+const sameScope = (a: PtoScope, b: PtoScope) => a.projectId === b.projectId && a.objectId === b.objectId
+  && a.periodId === b.periodId && a.sourceDocumentId === b.sourceDocumentId && a.revisionId === b.revisionId;
+
+/** Changing the object resets everything that belongs to the previous object. */
+function withObject(cur: PtoScope, objectId: number | null, projectId: number | null): PtoScope {
+  return cur.objectId === objectId ? { ...cur, projectId, objectId }
+    : { projectId, objectId, periodId: null, sourceDocumentId: null, revisionId: null };
+}
+
+/**
+ * Project/object ids are accepted only if the server lists of the ACTIVE company contain them. A valid object
+ * decides its project (an object is more specific than a project filter), an unknown id is cleared, never guessed.
+ */
+export function validateHierarchy(cur: PtoScope, companyId: number, projects: readonly Loyiha[], objects: readonly T2Obyekt[]): PtoScope {
+  const object = cur.objectId == null ? null : objects.find((row) => row.id === cur.objectId && row.kompaniya_id === companyId) ?? null;
+  if (object) return withObject(cur, object.id, object.loyiha_id ?? null);
+  const project = cur.projectId == null ? null : projects.find((row) => row.id === cur.projectId && row.kompaniya_id === companyId) ?? null;
+  return withObject(cur, null, project?.id ?? null);
+}
+
+/** Lists that were loaded FOR one object. They never validate another object's scope. */
+export type PtoObjectDetail = { objectId: number; periods: PtoPeriod[]; documents: CenterDocument[]; revisions: PtoRevision[] };
+
+/**
+ * Period / source document / revision must exist in the object's own lists. With exactly one source document
+ * (and one revision of it) the choice is not a choice, so it is filled in; with several, the user decides.
+ */
+export function validateDetail(cur: PtoScope, d: PtoObjectDetail): PtoScope {
+  if (cur.objectId !== d.objectId) return cur;
+  const periodId = cur.periodId && d.periods.some((row) => row.id === cur.periodId) ? cur.periodId : null;
+  const chosenDoc = cur.sourceDocumentId && d.documents.some((row) => row.id === cur.sourceDocumentId) ? cur.sourceDocumentId : null;
+  const sourceDocumentId = chosenDoc ?? (d.documents.length === 1 ? d.documents[0].id : null);
+  const docRevisions = sourceDocumentId == null ? [] : d.revisions.filter((row) => row.documentId === sourceDocumentId);
+  const chosenRev = cur.revisionId && docRevisions.some((row) => row.id === cur.revisionId) ? cur.revisionId : null;
+  const revisionId = chosenRev ?? (docRevisions.length === 1 ? docRevisions[0].id : null);
+  return { ...cur, periodId, sourceDocumentId, revisionId };
+}
+
+/**
+ * ONE source of truth: the URL. There is no second copy of the scope in React state, so a page, the scope bar
+ * and the validation rules can never overwrite each other with a stale value. Every change is computed against
+ * the LATEST parameters (including a write made earlier in the same tick) and written with replace.
+ * Opening a PTO route without scope parameters restores the last scope of this tab.
+ */
 export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   const kompaniya = useKompaniya();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const companyId = kompaniya.globalRejim ? null : kompaniya.joriyId;
-  const [scope, setScope] = useState<PtoScope>(() => readPtoScope(searchParams));
+
+  const latest = useRef(searchParams);
+  const rendered = useRef(searchParams);
+  if (rendered.current !== searchParams) { rendered.current = searchParams; latest.current = searchParams; }
+  const remembered = useRef<PtoScope>(EMPTY_SCOPE);
+  const urlScope = useMemo(() => readPtoScope(searchParams), [searchParams]);
+  const urlHasScope = hasScopeParams(searchParams);
+  if (urlHasScope) remembered.current = urlScope;
+  const scope = urlHasScope ? urlScope : remembered.current;
+
   const [projects, setProjects] = useState<Loyiha[]>([]);
   const [objects, setObjects] = useState<T2Obyekt[]>([]);
-  const [periods, setPeriods] = useState<PtoPeriod[]>([]);
-  const [sourceDocuments, setSourceDocuments] = useState<CenterDocument[]>([]);
+  const [detail, setDetail] = useState<PtoObjectDetail | null>(null);
   const [loading, setLoading] = useState<LoadingState>({ hierarchy: false, periods: false, documents: false });
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
-  /** Iyerarxiya qaysi kompaniya uchun HAQIQATAN yuklangan — undan oldin URL dagi obyekt tekshirilmaydi
-   *  (egasi 2026-09-29: ?obyekt=78 bo'sh ro'yxatda 'topilmadi' deb o'chib ketardi). */
-  const [yuklanganKompaniya, setYuklanganKompaniya] = useState<number | null>(null);
+  /** Company whose project/object lists are really loaded — before that a URL object is not judged
+   *  (owner 2026-09-29: ?obyekt=78 used to vanish against an empty list). */
+  const [loadedCompany, setLoadedCompany] = useState<number | null>(null);
+  const loadedCompanyRef = useRef<number | null>(null);
+  loadedCompanyRef.current = loadedCompany;
   const readyCompany = useRef<number | null>(null);
 
-  const writeScope = useCallback((next: PtoScope) => {
-    setScope(next);
-    const params = new URLSearchParams(searchParams);
-    withoutScopeAliases(params);
-    if (next.projectId != null) params.set('loyiha', String(next.projectId));
-    if (next.objectId != null) params.set('obyekt', String(next.objectId));
-    if (next.periodId != null) params.set('davr', next.periodId);
-    if (next.sourceDocumentId != null) params.set('hujjat', next.sourceDocumentId);
-    if (next.revisionId != null) params.set('revision', next.revisionId);
+  const updateScope = useCallback((fn: (cur: PtoScope) => PtoScope, force = false) => {
+    const base = latest.current;
+    const cur = hasScopeParams(base) ? readPtoScope(base) : remembered.current;
+    const next = fn(cur);
+    if (!force && sameScope(next, cur) && (hasScopeParams(base) || sameScope(next, EMPTY_SCOPE))) return;
+    const params = scopeToParams(base, next);
+    latest.current = params;
+    remembered.current = next;
     setSearchParams(params, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [setSearchParams]);
 
-  // Route navigation without scope params should not silently discard the
-  // current tenant/project/object selection. Direct links with params remain
-  // authoritative and replace the in-memory selection.
+  // A PTO route opened without scope parameters continues the tab's last scope (written back into the URL).
   useEffect(() => {
-    const parsed = readPtoScope(searchParams);
-    const hasScopeParam = Object.values(SCOPE_PARAMS).some((names) => names.some((name) => searchParams.has(name)));
-    if (hasScopeParam) setScope(parsed);
-  }, [location.pathname, location.search, searchParams]);
+    if (!isPtoRoute(location.pathname) || hasScopeParams(latest.current) || sameScope(remembered.current, EMPTY_SCOPE)) return;
+    updateScope((cur) => cur, true);
+  }, [location.pathname, location.search, updateScope]);
 
-  // Company switch is a hard security boundary. Do not allow any downstream
-  // identifier from the previous tenant to survive it.
+  // Company switch is a hard security boundary: no identifier of the previous tenant survives it.
   useEffect(() => {
     if (kompaniya.yuklanmoqda) return;
     if (readyCompany.current !== null && readyCompany.current !== companyId) {
-      writeScope(EMPTY_SCOPE);
-      setProjects([]);
-      setObjects([]);
-      setPeriods([]);
-      setSourceDocuments([]);
-      setError(null);
+      updateScope(() => EMPTY_SCOPE, true);
+      setProjects([]); setObjects([]); setDetail(null); setError(null); setLoadedCompany(null);
     }
     readyCompany.current = companyId;
-  }, [companyId, kompaniya.yuklanmoqda, writeScope]);
+  }, [companyId, kompaniya.yuklanmoqda, updateScope]);
 
   useEffect(() => {
     if (companyId == null) {
-      setProjects([]);
-      setObjects([]);
+      setProjects([]); setObjects([]);
       setLoading((old) => ({ ...old, hierarchy: false }));
       return;
     }
@@ -261,44 +321,28 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
         if (!alive) return;
         if (!projectResult.ok || !objectResult.ok) {
           setError(projectResult.error || objectResult.error || 'PTO iyerarxiyasini yuklab bo‘lmadi.');
-          setProjects([]);
-          setObjects([]);
+          setProjects([]); setObjects([]);
           return;
         }
+        setError(null);
         setProjects((projectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
         setObjects((objectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
-        setYuklanganKompaniya(companyId);
+        setLoadedCompany(companyId);
       })
-      .catch(() => {
-        if (alive) setError('PTO iyerarxiyasini yuklab bo‘lmadi.');
-      })
+      .catch(() => { if (alive) setError('PTO iyerarxiyasini yuklab bo‘lmadi.'); })
       .finally(() => { if (alive) setLoading((old) => ({ ...old, hierarchy: false })); });
     return () => { alive = false; };
   }, [companyId, refreshToken]);
 
-  // URL IDs are accepted only after server lists prove they belong to the
-  // active company/project. An invalid deep link is cleared, never guessed.
   useEffect(() => {
-    if (companyId == null || loading.hierarchy || yuklanganKompaniya !== companyId) return;
-    const project = scope.projectId == null ? null : projects.find((row) => row.id === scope.projectId && row.kompaniya_id === companyId);
-    const object = scope.objectId == null ? null : objects.find((row) => row.id === scope.objectId && row.kompaniya_id === companyId);
-    const projectId = project?.id ?? null;
-    const objectId = object && (projectId == null || object.loyiha_id === projectId) ? object.id : null;
-    const next: PtoScope = {
-      ...scope,
-      projectId,
-      objectId,
-      periodId: objectId === scope.objectId ? scope.periodId : null,
-      sourceDocumentId: objectId === scope.objectId ? scope.sourceDocumentId : null,
-      revisionId: objectId === scope.objectId ? scope.revisionId : null,
-    };
-    if (JSON.stringify(next) !== JSON.stringify(scope)) writeScope(next);
-  }, [companyId, loading.hierarchy, objects, projects, scope, writeScope, yuklanganKompaniya]);
+    if (companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
+    updateScope((cur) => validateHierarchy(cur, companyId, projects, objects));
+  }, [companyId, loading.hierarchy, loadedCompany, objects, projects, scope.objectId, scope.projectId, updateScope]);
 
+  // Periods and source documents are loaded per object and tagged with it.
   useEffect(() => {
     if (companyId == null || scope.objectId == null) {
-      setPeriods([]);
-      setSourceDocuments([]);
+      setDetail(null);
       setLoading((old) => ({ ...old, periods: false, documents: false }));
       return;
     }
@@ -311,104 +355,82 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
     ])
       .then(([periodResult, documentResult]: [{ ok: boolean; qatorlar?: T2AktReestr[]; error?: string }, DocRegistry]) => {
         if (!alive) return;
-        if (!periodResult.ok) {
-          setPeriods([]);
-          setError(periodResult.error || 'PTO davrlarini yuklab bo‘lmadi.');
-        } else {
-          setPeriods(periodsFromAktRows(periodResult.qatorlar ?? [], objectId));
-        }
-        setSourceDocuments(documentResult.documents ?? []);
+        if (!periodResult.ok) setError(periodResult.error || 'PTO davrlarini yuklab bo‘lmadi.');
+        const documents = documentResult.documents ?? [];
+        setDetail({ objectId, periods: periodResult.ok ? periodsFromAktRows(periodResult.qatorlar ?? [], objectId) : [], documents, revisions: revisionsFromDocuments(documents) });
       })
       .catch(() => {
         if (!alive) return;
-        setPeriods([]);
-        setSourceDocuments([]);
+        setDetail({ objectId, periods: [], documents: [], revisions: [] });
         setError('PTO davr yoki source document ma’lumotini yuklab bo‘lmadi.');
       })
-      .finally(() => {
-        if (!alive) return;
-        setLoading((old) => ({ ...old, periods: false, documents: false }));
-      });
+      .finally(() => { if (alive) setLoading((old) => ({ ...old, periods: false, documents: false })); });
     return () => { alive = false; };
   }, [companyId, refreshToken, scope.objectId, scope.projectId]);
 
-  const revisions = useMemo(() => revisionsFromDocuments(sourceDocuments), [sourceDocuments]);
-
+  // Only the CURRENT object's lists validate period/document/revision.
+  const current = detail && detail.objectId === scope.objectId ? detail : null;
   useEffect(() => {
-    if (loading.periods || loading.documents) return;
-    const periodId = scope.periodId && periods.some((row) => row.id === scope.periodId) ? scope.periodId : null;
-    const sourceDocumentId = scope.sourceDocumentId && sourceDocuments.some((row) => row.id === scope.sourceDocumentId)
-      ? scope.sourceDocumentId
-      : null;
-    const revisionId = scope.revisionId && sourceDocumentId && revisions.some((row) => row.id === scope.revisionId && row.documentId === sourceDocumentId)
-      ? scope.revisionId
-      : null;
-    /* Owner (2026-09-10): "tepadagi davr balo battarlar nima uchun kerak
-       bilmadimu". Tanlov haqiqatan ham bo'lmaganda -- ya'ni nomzod BITTA
-       bo'lganda -- foydalanuvchini qo'lda tanlashga majburlashning ma'nosi
-       yo'q: u faqat eksportni bloklaydi. Bir nechta nomzod bo'lsa tanlov
-       baribir foydalanuvchida qoladi, hech narsa taxmin qilinmaydi. */
-    const yagonaHujjat = sourceDocumentId ?? (sourceDocuments.length === 1 ? sourceDocuments[0].id : null);
-    const hujjatRevisions = yagonaHujjat == null ? [] : revisions.filter((row) => row.documentId === yagonaHujjat);
-    const yagonaRevision = revisionId
-      ?? (yagonaHujjat != null && hujjatRevisions.length === 1 ? hujjatRevisions[0].id : null);
-    const next = { ...scope, periodId, sourceDocumentId: yagonaHujjat, revisionId: yagonaRevision };
-    if (JSON.stringify(next) !== JSON.stringify(scope)) writeScope(next);
-  }, [loading.documents, loading.periods, periods, revisions, scope, sourceDocuments, writeScope]);
+    if (!current) return;
+    updateScope((cur) => validateDetail(cur, current));
+  }, [current, scope.periodId, scope.sourceDocumentId, scope.revisionId, updateScope]);
+
+  const periods = useMemo(() => current?.periods ?? [], [current]);
+  const sourceDocuments = useMemo(() => current?.documents ?? [], [current]);
+  const revisions = useMemo(() => current?.revisions ?? [], [current]);
 
   const setProjectId = useCallback((id: number | null) => {
     if (id != null && !projects.some((row) => row.id === id && row.kompaniya_id === companyId)) return;
-    writeScope(scopeWithOnlyProject(scope, id));
-  }, [companyId, projects, scope, writeScope]);
+    updateScope((cur) => {
+      // An object of the chosen project stays selected; any other object is dropped with its details.
+      const object = cur.objectId == null ? null : objects.find((row) => row.id === cur.objectId);
+      return object && (id == null || object.loyiha_id === id) ? { ...cur, projectId: id } : withObject(cur, null, id);
+    });
+  }, [companyId, objects, projects, updateScope]);
 
+  /** Choosing an object also selects ITS project — a project filter never silently rejects the choice. */
   const setObjectId = useCallback((id: number | null) => {
-    if (id == null) {
-      writeScope({ ...scope, objectId: null, periodId: null, sourceDocumentId: null, revisionId: null });
-      return;
-    }
-    const object = objects.find((row) => row.id === id && row.kompaniya_id === companyId);
-    if (!object || (scope.projectId != null && object.loyiha_id !== scope.projectId)) return;
-    writeScope({ ...scope, objectId: id, periodId: null, sourceDocumentId: null, revisionId: null });
-  }, [companyId, objects, scope, writeScope]);
+    updateScope((cur) => {
+      if (id == null) return withObject(cur, null, cur.projectId);
+      const object = objects.find((row) => row.id === id && row.kompaniya_id === companyId);
+      if (object) return withObject(cur, id, object.loyiha_id ?? null);
+      // Lists not loaded yet: keep the id; validation decides once the company's lists arrive.
+      return loadedCompanyRef.current === companyId ? cur : withObject(cur, id, cur.projectId);
+    });
+  }, [companyId, objects, updateScope]);
 
   const setPeriodId = useCallback((id: string | null) => {
     if (id != null && !periods.some((row) => row.id === id)) return;
-    writeScope({ ...scope, periodId: id });
-  }, [periods, scope, writeScope]);
+    updateScope((cur) => ({ ...cur, periodId: id }));
+  }, [periods, updateScope]);
 
   const setSourceDocumentId = useCallback((id: string | null) => {
     if (id != null && !sourceDocuments.some((row) => row.id === id)) return;
-    const revisionId = id == null || !revisions.some((row) => row.documentId === id && row.id === scope.revisionId) ? null : scope.revisionId;
-    writeScope({ ...scope, sourceDocumentId: id, revisionId });
-  }, [revisions, scope, sourceDocuments, writeScope]);
+    updateScope((cur) => ({ ...cur, sourceDocumentId: id,
+      revisionId: id != null && revisions.some((row) => row.documentId === id && row.id === cur.revisionId) ? cur.revisionId : null }));
+  }, [revisions, sourceDocuments, updateScope]);
 
   const setRevisionId = useCallback((id: string | null) => {
     if (id != null && !revisions.some((row) => row.id === id)) return;
-    writeScope({ ...scope, revisionId: id });
-  }, [revisions, scope, writeScope]);
+    updateScope((cur) => ({ ...cur, revisionId: id }));
+  }, [revisions, updateScope]);
 
-  const clearScope = useCallback(() => writeScope(EMPTY_SCOPE), [writeScope]);
+  const clearScope = useCallback(() => updateScope(() => EMPTY_SCOPE, true), [updateScope]);
   const refresh = useCallback(() => setRefreshToken((value) => value + 1), []);
+  /** Query string for navigating to another route with the current scope and a different object. */
+  const scopeSearch = useCallback((objectId: number | null) => {
+    const base = latest.current;
+    const cur = hasScopeParams(base) ? readPtoScope(base) : remembered.current;
+    const object = objectId == null ? null : objects.find((row) => row.id === objectId);
+    const params = scopeToParams(new URLSearchParams(), withObject(cur, objectId, object ? object.loyiha_id ?? null : cur.projectId));
+    const s = params.toString();
+    return s ? `?${s}` : '';
+  }, [objects]);
 
   const value = useMemo<PtoWorkspaceValue>(() => ({
-    isProvider: true,
-    companyId,
-    scope,
-    projects,
-    objects,
-    periods,
-    sourceDocuments,
-    revisions,
-    loading,
-    error,
-    setProjectId,
-    setObjectId,
-    setPeriodId,
-    setSourceDocumentId,
-    setRevisionId,
-    clearScope,
-    refresh,
-  }), [companyId, scope, projects, objects, periods, sourceDocuments, revisions, loading, error, setProjectId, setObjectId, setPeriodId, setSourceDocumentId, setRevisionId, clearScope, refresh]);
+    isProvider: true, companyId, scope, projects, objects, periods, sourceDocuments, revisions, loading, error,
+    setProjectId, setObjectId, setPeriodId, setSourceDocumentId, setRevisionId, clearScope, refresh, scopeSearch,
+  }), [companyId, scope, projects, objects, periods, sourceDocuments, revisions, loading, error, setProjectId, setObjectId, setPeriodId, setSourceDocumentId, setRevisionId, clearScope, refresh, scopeSearch]);
 
   return <PtoWorkspaceContext.Provider value={value}>{children}</PtoWorkspaceContext.Provider>;
 }

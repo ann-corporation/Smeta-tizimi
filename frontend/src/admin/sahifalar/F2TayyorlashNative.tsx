@@ -72,26 +72,25 @@ export function F2TayyorlashNative() {
     void sbT2ObyektlarOlKomp(joriy.id).then((result) => setObyektlar((result.ok ? result.qatorlar : []) as T2Obyekt[]));
   }, [joriy?.id]);
 
-  useEffect(() => {
-    if (workspace.scope.objectId == null || !obyektlar.some((object) => object.id === workspace.scope.objectId)) return;
-    if (workspace.scope.objectId !== obyektId) {
-      setParams((old) => { const next = new URLSearchParams(old); next.set('obyekt', String(workspace.scope.objectId)); next.delete('obyekt_nomi'); return next; });
-    }
-  }, [obyektId, obyektlar, setParams, workspace.scope.objectId]);
 
+  /** Loads are numbered: rows of an object the user already left must never stay under the new object (an F2 act is written from them). */
+  const sorov = useRef(0);
   const yuklash = useCallback(async () => {
-    if (!validId) { setRows([]); setHolat([]); return; }
-    setLoading(true); setError('');
+    const raqam = ++sorov.current;
+    const dolzarb = () => raqam === sorov.current;
+    if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); return; }
+    setLoading(true); setError(''); setRows([]); setHolat([]);
     try {
-      void Promise.resolve().then(() => narxProtokolQatorlariOl(obyektId)).then((r) => setProtokolQ(r.ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : [])).catch(() => setProtokolQ([]));
-      void sbAosrCoverageOl(obyektId).then((c) => setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : [])).catch(() => setAosrsiz([]));
+      void Promise.resolve().then(() => narxProtokolQatorlariOl(obyektId)).then((r) => { if (dolzarb()) setProtokolQ(r.ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : []); }).catch(() => { if (dolzarb()) setProtokolQ([]); });
+      void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); }).catch(() => { if (dolzarb()) setAosrsiz([]); });
       const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]);
+      if (!dolzarb()) return;
       if (!d.ok || !h.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
       setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
       setK(bosKiritma()); setBolimId(undefined);
       operationId.current = yangiOperationId();
-    } catch { setRows([]); setHolat([]); setError('F2 uchun ma’lumotlar o‘qilmadi. Qayta urinib ko‘ring.'); }
-    finally { setLoading(false); }
+    } catch { if (dolzarb()) { setRows([]); setHolat([]); setError('F2 uchun ma’lumotlar o‘qilmadi. Qayta urinib ko‘ring.'); } }
+    finally { if (dolzarb()) setLoading(false); }
   }, [obyektId, validId]);
   useEffect(() => { void yuklash(); }, [yuklash]);
 
@@ -282,7 +281,7 @@ export function F2TayyorlashNative() {
     <div className="flex h-full min-h-0 flex-col gap-3">
       <section className="karta flex flex-wrap items-end gap-3 p-3">
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text">Obyekt
-          <select aria-label="Obyekt" value={validId ? obyektId : ''} onChange={(event) => { const object = obyektlar.find((item) => item.id === Number(event.target.value)); workspace.setObjectId(object?.id ?? null); setParams({ obyekt: event.target.value, obyekt_nomi: object?.nom || '' }); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">
+          <select aria-label="Obyekt" value={validId ? obyektId : ''} onChange={(event) => { const object = obyektlar.find((item) => item.id === Number(event.target.value)); if (workspace.isProvider) workspace.setObjectId(object?.id ?? null); else setParams(object ? { obyekt: String(object.id) } : {}); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">
             <option value="">-- obyektni tanlang --</option>{obyektlar.map((object) => <option key={object.id} value={object.id}>{object.nom}</option>)}
           </select>
         </label>

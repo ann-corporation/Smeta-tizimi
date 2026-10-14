@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Eye, FileText, RefreshCw, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -99,8 +99,11 @@ export function F2TarixNative() {
     });
   }, [joriy?.id]);
 
+  /** Each load is numbered; a response for an object the user already left is discarded, never shown under the new one. */
+  const sorov = useRef(0);
   const yuklash = useCallback(async () => {
-    if (!validId) { setReestr([]); setTafsilot([]); setSelectedAktId(null); return; }
+    const raqam = ++sorov.current;
+    if (!validId) { setReestr([]); setTafsilot([]); setSmeta([]); setSmetaRows([]); setSelectedAktId(null); return; }
     setLoading(true); setError('');
     try {
       const [r, d, t] = await Promise.all([
@@ -108,6 +111,7 @@ export function F2TarixNative() {
         sbT2F2TafsilotOl({ obyektId, tur: 'f2' }),
         sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI),
       ]);
+      if (raqam !== sorov.current) return;
       setSmeta(t.ok ? ((t.qatorlar || []) as unknown as F2IerSmeta[]) : []);
       setSmetaRows(t.ok ? ((t.qatorlar || []) as unknown as T2Qator[]) : []);
       if (!r.ok) throw new Error(xavfsizXato());
@@ -119,9 +123,10 @@ export function F2TarixNative() {
         return old && available.some((a) => a.id === old) ? old : (available[0]?.id ?? null);
       });
     } catch (e) {
+      if (raqam !== sorov.current) return;
       setReestr([]); setTafsilot([]); setSelectedAktId(null);
       setError(e instanceof Error && e.message === xavfsizXato() ? e.message : xavfsizXato());
-    } finally { setLoading(false); }
+    } finally { if (raqam === sorov.current) setLoading(false); }
   }, [obyektId, validId]);
 
   useEffect(() => { void yuklash(); }, [yuklash]);
@@ -218,7 +223,7 @@ export function F2TarixNative() {
       <div className="flex h-full min-h-0 flex-col gap-3">
         <section className="karta flex flex-wrap items-end gap-3 p-3">
           <label className="min-w-[280px] flex-1 text-[12px] font-medium text-text">Kanonik obyekt
-            <select aria-label="Kanonik obyekt" value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const object = obyektlar.find((item) => item.id === nextId); workspace.setObjectId(Number.isSafeInteger(nextId) && nextId > 0 ? nextId : null); setParams({ obyekt: e.target.value, obyekt_nomi: object?.nom || '' }); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">
+            <select aria-label="Kanonik obyekt" value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const id = Number.isSafeInteger(nextId) && nextId > 0 ? nextId : null; if (workspace.isProvider) workspace.setObjectId(id); else setParams(id ? { obyekt: String(id) } : {}); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">
               <option value="">-- obyektni tanlang --</option>
               {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
             </select>

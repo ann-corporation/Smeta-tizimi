@@ -131,11 +131,6 @@ export function HolatNative() {
       }
       return;
     }
-    const objectProject = object.loyiha_id ?? null;
-    if (workspace.scope.projectId !== objectProject) {
-      workspace.setProjectId(objectProject);
-      return;
-    }
     workspace.setObjectId(obyektId);
   }, [obyektId, validId, workspace]);
 
@@ -271,7 +266,7 @@ export function HolatNative() {
           <button onClick={() => navigate('/admin/obyektlar')} className="rounded-lg border border-border p-2 text-text-dim hover:text-text" aria-label="Obyektlarga qaytish"><ArrowLeft size={17} /></button>
           <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text">
             {t('Obyekt')}
-            <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const object = obyektlar.find((item) => item.id === nextId); if (Number.isSafeInteger(nextId) && nextId > 0) { workspace.setObjectId(nextId); navigate(`/admin/holat/${nextId}?obyekt=${nextId}&obyekt_nomi=${encodeURIComponent(object?.nom || '')}`); } else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-text outline-none focus:border-accent">
+            <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); if (Number.isSafeInteger(nextId) && nextId > 0) navigate(`/admin/holat/${nextId}${workspace.scopeSearch(nextId)}`); else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-text outline-none focus:border-accent">
               <option value="">-- obyektni tanlang --</option>
               {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
             </select>
