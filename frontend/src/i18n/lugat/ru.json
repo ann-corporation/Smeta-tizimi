@@ -1572,5 +1572,7 @@
   "AI javob bermadi — {n} resurs narxsiz qoldi": "AI не ответил — {n} ресурсов без цены",
   "AI uchun kompaniya tanlanmagan — {n} resurs narxsiz qoldi": "Для AI не выбрана компания — {n} ресурсов без цены",
   "Narxlar qidirilmoqda...": "Идёт поиск цен...",
-  "Barcha narxlarni topish": "Найти все цены"
+  "Barcha narxlarni topish": "Найти все цены",
+  "AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang": "AI не ответил — для {n} ресурсов кандидаты из источников в списке, выберите",
+  "AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang": "Для AI не выбрана компания — для {n} ресурсов кандидаты каталога в списке, выберите"
 }

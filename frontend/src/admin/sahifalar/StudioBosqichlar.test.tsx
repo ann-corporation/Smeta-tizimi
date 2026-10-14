@@ -47,4 +47,16 @@ describe('Narxlash bosqichi (UI)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stavkalarni tasdiqlash' }));
     expect(command).toHaveBeenLastCalledWith({ type: 'SET_RATES', rates: expect.objectContaining({ source: 'Kompaniya nakrutka sozlamasi', values: expect.objectContaining({ НДС: 12, ПРОЧИЕ_ПОДРЯДЧИК: 18 }) }) });
   });
+
+  it('AI ishlamasa ham: narx o‘zi qo‘yilmaydi, manba nomzodlari tanlash uchun ko‘rsatiladi', async () => {
+    tanla.mockImplementationOnce(async () => ({ ok: false, code: 'AI_UNAVAILABLE' }) as never);
+    const command = vi.fn((_c: StudioCommand) => true);
+    render(<NarxlashBosqichi doc={doc} hisob={calcDoc(doc)} command={command} kompaniyaId={17} hudud="" setHudud={() => {}} unitText={unitText} onNext={() => {}} />);
+    await screen.findByText(/Narx katalogi: 1 qator/);
+    fireEvent.click(screen.getByRole('button', { name: 'Barcha narxlarni topish' }));
+    const select = await screen.findByLabelText('Narx nomzodi');
+    expect(select.textContent).toContain('Песок природный');
+    expect(command).not.toHaveBeenCalled();
+    expect(screen.getByText(/AI javob bermadi/)).toBeTruthy();
+  });
 });

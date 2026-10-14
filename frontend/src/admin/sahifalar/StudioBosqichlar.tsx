@@ -143,13 +143,19 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   }
 
   /** AI understands each remaining resource by MEANING and picks among source candidates (two search rounds). */
-  async function aiBuyruqlar(kerak: ResursGuruh[]) {
-    setAi({ ish: true, matn: t('Kompaniya smetalaridagi narxlar o‘qilmoqda...') });
+  /** Source candidates for a resource: price catalogue (meaning + gates) and the company's own estimates. */
+  async function nomzodManbasi(kerak: ResursGuruh[]) {
     let kuzatuv: KuzatilganNarx[] = [];
-    try { kuzatuv = await kompaniyaKuzatuvlari(kompaniyaId!, kerak.map(g => g.nom)); } catch { /* catalogue still works without company history */ }
+    if (kompaniyaId != null) {
+      setAi({ ish: true, matn: t('Kompaniya smetalaridagi narxlar o‘qilmoqda...') });
+      try { kuzatuv = await kompaniyaKuzatuvlari(kompaniyaId, kerak.map(g => g.nom)); } catch { /* catalogue still works without company history */ }
+    }
     const view = cat?.matchView() ?? null;
-    const natija = await aiNarxlash(kerak,
-      (g, iboralar) => narxNomzodlari(g, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, g.nom, g.birlik, false) : null, hudud || null, iboralar),
+    return (g: ResursGuruh, iboralar: string[]) => narxNomzodlari(g, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, g.nom, g.birlik, false) : null, hudud || null, iboralar);
+  }
+
+  async function aiBuyruqlar(kerak: ResursGuruh[], nomzodlar: (g: ResursGuruh, iboralar: string[]) => NarxNomzod[]) {
+    const natija = await aiNarxlash(kerak, nomzodlar,
       async sorov => { const r = await smetachiNarxTanla(kompaniyaId!, sorov, regions.find(([k]) => k === hudud)?.[1] ?? null); return r.ok ? r.tanlovlar : null; },
       (x, y) => setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a: x, b: y }) }));
     const commands: StudioCommand[] = [];
@@ -172,15 +178,26 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const avto = avtoBuyruqlar();
     const kerak = guruhlar.filter(g => g.narxsiz > 0 && katalogdanNarxlanadi(g) && !avto.narxlangan.has(g.key));
     let ai: Awaited<ReturnType<typeof aiBuyruqlar>> | null = null, aiXato = false;
-    if (kerak.length && kompaniyaId != null) {
-      try { ai = await aiBuyruqlar(kerak); } catch { aiXato = true; } finally { setAi({ ish: false, matn: '' }); }
+    let zaxira = new Map<string, AiNarxNatija>();
+    if (kerak.length) {
+      try {
+        const nomzodlar = await nomzodManbasi(kerak);
+        if (kompaniyaId != null) {
+          try { ai = await aiBuyruqlar(kerak, nomzodlar); } catch { aiXato = true; }
+        }
+        // Without AI the candidates are still shown — the estimator picks; nothing is applied silently.
+        if (!ai) zaxira = new Map(kerak.map(g => [g.key, { key: g.key, nomzod: null, ishonch: 'past' as const, nomzodlar: nomzodlar(g, []),
+          sabab: 'AI ishlamadi — manbadagi nomzodlardan o‘zingiz tanlang' }]));
+      } finally { setAi({ ish: false, matn: '' }); }
     }
     if (!qoy([...avto.commands, ...(ai?.commands ?? [])], t('Narxlash: stavkalar, katalog va AI'))) return;
-    setTakliflar(ai?.qoldi ?? new Map());
-    if (ai?.qoldi.size) setFiltr('taklif');
+    const takliflarYangi = ai?.qoldi ?? zaxira;
+    setTakliflar(takliflarYangi);
+    if (takliflarYangi.size) setFiltr('taklif');
     const qism = [t('mehnat/mashina-soat: {n} qator', { n: avto.soatSoni }), t('katalogdan aniq: {n}', { n: avto.narxlangan.size })];
     if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
-    else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs narxsiz qoldi', { n: kerak.length }) : t('AI uchun kompaniya tanlanmagan — {n} resurs narxsiz qoldi', { n: kerak.length }));
+    else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
+      : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
     setXabar(qism.join(' · '));
   }
   function qabul(g: ResursGuruh, n: NarxNomzod, sabab: string) {
