@@ -14,7 +14,7 @@ const recipe: RecipeSnapshot[] = [
   { recipeId: 'r4', status: 'EXACT', resource: res('4', '012303', 'С140-12303', 'СМЕСЬ ПЕСЧАНО-ГРАВИЙНАЯ ПРИРОДНАЯ', 'M', '003'), norm: '120', candidates: [], candidateCount: 1, prices: [], priceCount: 0 },
   { recipeId: 'r5', status: 'EXACT', resource: res('5', '035377', 'С111-9004', 'ЭЛЕКТРОДЫ ДИАМЕТРОМ 4 ММ Э42А', 'M', '005'), norm: '2', candidates: [], candidateCount: 1, prices: [], priceCount: 0 },
 ];
-const units: Record<string, string> = { '001': 'чел-ч', '011': 'маш-ч', '003': 'м3', '005': 'кг', '015': '1000 м3' };
+const units: Record<string, string> = { '001': 'ЧЕЛ-Ч', '011': 'маш-ч', '003': 'м3', '005': 'кг', '015': '1000 М3' };
 const unitText = (c: string | null) => units[c ?? ''] ?? null;
 const source: WorkSource = { catalogRevision: 'rev', workId: 'w', code: 'E1-1-195-20', name: 'РАЗРАБОТКА ГРУНТА В ОТВАЛ ЭКСКАВАТОРАМИ', unitCode: '015', tableLabel: null };
 const basis: UnitBasis = { scale: '1000', unitLabel: 'м3', evidence: 'KodI 015 = 1000 м3', origin: 'OBSERVED' };
@@ -47,10 +47,10 @@ describe('ABC-shaped LRV + RES', () => {
     expect(flat.some(x => /СТОИМОСТЬ|ЦЕНА|СУММА|ИТОГО/.test(x))).toBe(false);
     expect(Math.max(...rows.map(x => x.length))).toBeLessThanOrEqual(6);
     const w = rows.find(x => x[1] === 'E1-1-195-20')!;
-    expect([w[0], w[3]]).toEqual(['1', '1000 м3']);
+    expect([w[0], w[3]]).toEqual(['1', '1000 М3']);
     expect(Number(String(w[4]).replace(',', '.'))).toBeCloseTo(2.5299, 6);
     const r1 = rows.find(x => x[0] === '1.1')!;
-    expect([r1[1], r1[2], r1[3]]).toEqual(['000001', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'чел-ч']);
+    expect([r1[1], r1[2], r1[3]]).toEqual(['000001', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'ЧЕЛ-Ч']);
     expect(Number(String(r1[5]).replace(/\s/g, '').replace(',', '.'))).toBeCloseTo(12.700098, 5);
   });
 

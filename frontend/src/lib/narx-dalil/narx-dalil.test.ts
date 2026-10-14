@@ -13,7 +13,7 @@ const T = (p: Partial<NarxTaklif>): NarxTaklif => ({
 
 describe('Narx takliflari (egasi qoidalari)', () => {
   it('published regional worker rates cannot price operators or a different region label',()=>{
-    const worker=T({nom:'Затраты труда рабочих',birlik:'чел-ч',manba_birlik:'ЧЕЛ.-Ч',manba_tur:'chel_chas',
+    const worker=T({nom:'ЗАТРАТЫ ТРУДА РАБОЧИХ',birlik:'чел-ч',manba_birlik:'ЧЕЛ.-Ч',manba_tur:'chel_chas',
       manba_nom_qator:'Навоийская область',region:'Навоийская область',moslik:'hudud'});
     expect(narxTakliflari([worker])).toHaveLength(1);
     expect(narxTakliflari([{...worker,nom:'Затраты труда машинистов'}])).toHaveLength(0);
@@ -95,9 +95,9 @@ describe('Обоснование цен — hujjat', () => {
   it('dublikatsiz: bir xil resurs bitta qator, miqdor jami; narxi farqli — alohida; qisman dalil — diqqatda', () => {
     const r = narxAsoslashXlsx(
       [
-        { qator_id: 1, kat: 'ЧЕЛ', kod: '1', nom: 'Затраты труда рабочих', birlik: 'чел.-ч', hajm: 10, narx: 29421 },
-        { qator_id: 2, kat: 'ЧЕЛ', kod: '1', nom: 'Затраты труда рабочих', birlik: 'чел.-ч', hajm: 5.5, narx: 29421 },
-        { qator_id: 3, kat: 'ЧЕЛ', kod: '1', nom: 'Затраты труда рабочих', birlik: 'чел.-ч', hajm: 4.5, narx: 29421 },
+        { qator_id: 1, kat: 'ЧЕЛ', kod: '1', nom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ', birlik: 'чел.-ч', hajm: 10, narx: 29421 },
+        { qator_id: 2, kat: 'ЧЕЛ', kod: '1', nom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ', birlik: 'чел.-ч', hajm: 5.5, narx: 29421 },
+        { qator_id: 3, kat: 'ЧЕЛ', kod: '1', nom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ', birlik: 'чел.-ч', hajm: 4.5, narx: 29421 },
         { qator_id: 4, kat: 'МАТ', kod: 'C101', nom: 'Бетон B25', birlik: 'м3', hajm: 2, narx: 1000 },
         { qator_id: 5, kat: 'МАТ', kod: 'C101', nom: 'Бетон B25', birlik: 'м3', hajm: 3, narx: 1200 },
       ],
@@ -106,11 +106,11 @@ describe('Обоснование цен — hujjat', () => {
     );
     const t = hujjatTekshir(r.bytes, { ruxsat: [/.*/] });
     const v = t.varaqlar[0];
-    const trud = v.kataklar.filter((k) => k.matn === 'Затраты труда рабочих');
+    const trud = v.kataklar.filter((k) => k.matn === 'ЗАТРАТЫ ТРУДА РАБОЧИХ');
     expect(trud).toHaveLength(1);
     const row = trud[0].ref.replace(/^[A-Z]+/, '');
     expect(Number(v.kataklar.find((k) => k.ref === `E${row}`)?.v)).toBe(20);
-    expect(v.kataklar.filter((k) => k.matn === 'Бетон B25')).toHaveLength(2);
+    expect(v.kataklar.filter((k) => k.matn === 'БЕТОН B25')).toHaveLength(2);
     expect(r.tasdiqlangan).toBe(2);
     expect(r.dalilsiz).toBe(1);
     expect(t.matnlar.some((m) => m.includes('Всего ресурсов: 3 (позиций в смете: 5)'))).toBe(true);

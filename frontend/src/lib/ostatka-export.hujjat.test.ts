@@ -67,7 +67,7 @@ it('maxsus nakrutka podvali (konstruktor): qo‘shilgan statya hujjatda, к оп
     const t = hujjatTekshir(maxsus.bytes);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
-    expect(t.matnlar.some((x) => x.includes('Временные здания и сооружения') && x.includes('п. 4.3'))).toBe(true);
+    expect(t.matnlar.some((x) => x.includes('ВРЕМЕННЫЕ ЗДАНИЯ И СООРУЖЕНИЯ') && x.includes('П. 4.3'))).toBe(true);
     // standart nusxasi — hujjat ВСЕГО oddiy bilan bir xil
     const nusxa = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, podval: standartPodval(NK) });
     expect(nusxa.kOplataVsego).toBe(oddiy.kOplataVsego);
@@ -159,7 +159,7 @@ describe('Ostatka — bajarilmaydigan / bekor qilingan ishlar (egasi 2026-09-25)
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
     expect(t.matnlar.some((s) => s.startsWith('ИСКЛЮЧЕНО ИЗ ОСТАТКА'))).toBe(true);
-    expect(t.matnlar).toContain('ИТОГО ИСКЛЮЧЕНО ИЗ ОСТАТКА (в остаток не включено)');
+    expect(t.matnlar).toContain('ИТОГО ИСКЛЮЧЕНО ИЗ ОСТАТКА (В ОСТАТОК НЕ ВКЛЮЧЕНО)');
     expect(t.matnlar.some((s) => s.startsWith('ОСНОВАНИЯ ИСКЛЮЧЕНИЯ ИЗ ОСТАТКА (1)'))).toBe(true);
     expect(t.matnlar.some((s) => s.includes('изменение № ИЗМ-3 от 21.09.2026') && s.includes('причина: заказчик исключил из проекта'))).toBe(true);
     // ВСЕГО ОСТАТОК keshi = 300 000 (chiqarilgan kirmagan).
@@ -184,6 +184,6 @@ describe('Ostatka — ikki narx (прямые va к оплате) + nakrutka pod
     expect(t.keshsizFormulalar).toEqual([]);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.taqiqlangan).toEqual([]);
-    expect(t.matnlar).toContain('ВСЕГО К ОПЛАТЕ (с накладными расходами и НДС)');
+    expect(t.matnlar).toContain('ВСЕГО К ОПЛАТЕ (С НАКЛАДНЫМИ РАСХОДАМИ И НДС)');
   });
 });

@@ -47,6 +47,7 @@ import {
   type VaraqPatch, type VaraqXarita, type YangiHujayra, type ZaxiraStillar,
 } from './hujjat-yozuvchi';
 
+import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
 // Oferta V3 API si o'zgarmaydi: umumiy qismlar hujjat-yozuvchi modulidan qayta eksport.
 export { ustunHarfi, engOngUstun, formulaKochir } from './hujjat-yozuvchi';
 
@@ -305,12 +306,12 @@ function jamiVaraqXml(
     : '0';
   const qator = (n: number | string, nom: string, oferta: YangiHujayra | null, manba: number | null, izoh = '', jami = false) => put([
     typeof n === 'number' ? numCell(0, jami ? st.jamiMatn : st.matn, n) : strCell(0, jami ? st.jamiMatn : st.matn, n),
-    strCell(1, jami ? st.jamiMatn : st.matn, nom),
+    strCell(1, jami ? st.jamiMatn : st.matn, kattaHarfga(nom)),
     oferta ?? bosCell(2, jami ? st.jamiSon : st.son),
     manba == null ? bosCell(3, jami ? st.jamiSon : st.son) : numCell(3, jami ? st.jamiSon : st.son, manba),
     strCell(4, jami ? st.jamiMatn : st.matn, izoh),
   ]);
-  const bolim = (nom: string) => put([bosCell(0, st.bolim), strCell(1, st.bolim, nom), bosCell(2, st.bolim), bosCell(3, st.bolim), bosCell(4, st.bolim)]);
+  const bolim = (nom: string) => put([bosCell(0, st.bolim), strCell(1, st.bolim, kattaHarfga(nom)), bosCell(2, st.bolim), bosCell(3, st.bolim), bosCell(4, st.bolim)]);
 
   put([strCell(1, st.jamiMatn, 'СВОДНЫЙ РАСЧЕТ ОФЕРТЫ ПОДРЯДЧИКА')]);
   put([strCell(1, st.oddiy, input.obyektNomi || '')]);

@@ -32,11 +32,11 @@ const doc = ([{ type: 'ADD_SECTION', sectionId: 's', parentId: null, name: 'Fund
 const unitText = (c: string | null) => (c === '003' ? 'м3' : null);
 
 describe('Narxlash bosqichi (UI)', () => {
-  it('AI bilan narxlash: katalogdan ma’nosi mos narx dalil bilan bitta BATCH da qo‘yiladi; stavkalar tasdiqlanadi', async () => {
+  it('Barcha narxlarni topish (bitta tugma): katalogdan ma’nosi mos narx dalil bilan bitta BATCH da qo‘yiladi; stavkalar tasdiqlanadi', async () => {
     const command = vi.fn((_c: StudioCommand) => true);
     render(<NarxlashBosqichi doc={doc} hisob={calcDoc(doc)} command={command} kompaniyaId={17} hudud="" setHudud={() => {}} unitText={unitText} onNext={() => {}} />);
     await screen.findByText(/Narx katalogi: 1 qator/);
-    fireEvent.click(screen.getByRole('button', { name: 'AI bilan narxlash' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Barcha narxlarni topish' }));
     await waitFor(() => expect(command).toHaveBeenCalled());
     const c = command.mock.calls[0][0];
     expect(c).toMatchObject({ type: 'SET_PRICE', occurrenceId: 'o1', recipeId: 'r1', price: { value: '90000', basis: 'CATALOG_CANDIDATE', sourcePriceId: 'narx-katalog:11' } });

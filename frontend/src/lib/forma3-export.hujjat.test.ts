@@ -34,7 +34,7 @@ const NK = { 'ТРАНСПОРТ_МАТЕРИАЛ': 5, 'СКЛАДСКИЕ_МА�
 const ROWS: NakopitelniyQator[] = [
   q({ tur: 'rz', nom: 'РАЗДЕЛ 1. ЗЕМЛЯНЫЕ РАБОТЫ' }),
   q({ tur: 'bl', kod: 'Е01-01', nom: 'РАЗРАБОТКА ГРУНТА', birlik: 'м3', smeta_hajm: 100, smeta_narx: 16_000, smeta_summa: 1_600_000 }),
-  q({ tur: 'rs', kat: 'ЧЕЛ', kod: '1-100', nom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ', birlik: 'чел.-ч', smeta_hajm: 200, smeta_narx: 5000, smeta_summa: 1_000_000 }),
+  q({ tur: 'rs', kat: 'ЧЕЛ', kod: '1-100', nom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ', birlik: 'ЧЕЛ.-Ч', smeta_hajm: 200, smeta_narx: 5000, smeta_summa: 1_000_000 }),
   q({ tur: 'mat', kat: 'МАТ', kod: 'С101', nom: 'ПЕСОК', birlik: 'м3', smeta_hajm: 50, smeta_narx: 12_000, smeta_summa: 600_000 }),
   q({ tur: 'rz', nom: 'РАЗДЕЛ 2. БЕТОННЫЕ РАБОТЫ' }),
   q({ tur: 'bl', kod: 'Е06-01', nom: 'БЕТОНИРОВАНИЕ', birlik: 'м3', smeta_hajm: 10, smeta_narx: 918_000, smeta_summa: 9_180_000 }),
@@ -185,7 +185,7 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
 
   it('H2–H9: rasmiy shakl, formulalar $ siz, imzo, chop, fayl nomi', () => {
     const h = forma3Hujjat(MANBA, { obyektNom: 'Сунъий кўл', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK, imzo: { zakazchik: 'Дирекция', pudratchi: 'Pudratchi MChJ' }, raqam: '12' });
-    const hisobot = hujjatTekshir(h.bytes, { ruxsat: [/Сунъий кўл/] });
+    const hisobot = hujjatTekshir(h.bytes, { ruxsat: [/Сунъий кўл/i] });
     const v = hisobotVaraq(hisobot);
     expect(hisobot.dollarFormulalar).toEqual([]);
     expect(hisobot.keshsizFormulalar).toEqual([]);
@@ -214,7 +214,7 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
         hisobRaqam: '4600 1086 0124 0117 0139 9001 8001', bank: 'Марказий банк', mfo: '00014', inn: '311311785', oked: '84130',
       },
     });
-    const hisobot = hujjatTekshir(h.bytes, { ruxsat: [/Сунъий кўл/, /Навои/] });
+    const hisobot = hujjatTekshir(h.bytes, { ruxsat: [/Сунъий кўл/i, /Навои/i] });
     const matn = hisobot.matnlar.join(' | ');
     // Sarlavha — F2 paketining o'z СЧЁТ-ФАКТ varag'i nomi bilan bir xil.
     expect(matn).toContain('СПРАВКА-СЧЕТ-ФАКТУРА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ (ПОНЕСЕННЫХ ЗАТРАТ)');
@@ -246,7 +246,7 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
     const h = forma3Hujjat(MANBA, { obyektNom: 'X', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK });
     const matn = hujjatTekshir(h.bytes, { ruxsat: [] }).matnlar.join(' | ');
     for (const k of ['в % к объему всего работ (гр.8:гр.4)×100', 'с начала строительства (до отчетного месяца)', 'в том числе текущего года (до отчетного месяца)', 'за отчетный месяц',
-      'I. СТРОИТЕЛЬНО-МОНТАЖНЫЕ РАБОТЫ', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО ОБЪЕКТУ', 'чел.-ч', 'ИТОГО К ОПЛАТЕ (с учетом НДС)']) expect(matn).toContain(k);
+      'I. СТРОИТЕЛЬНО-МОНТАЖНЫЕ РАБОТЫ', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО ОБЪЕКТУ', 'ЧЕЛ.-Ч', 'ИТОГО К ОПЛАТЕ (С УЧЕТОМ НДС)']) expect(matn).toContain(k);
     expect(matn).toMatch(/сум \d\d тийин с НДС/);
     expect(h.soatlar.ЧЕЛ).toBeDefined();
   });
@@ -277,7 +277,7 @@ describe('F3 — NULL, bekor, hujjat standarti', () => {
 describe('F3 — manba varag‘i va SUMIFS (egasi 2026-09-30: "qayerdan olinganini bilish uchun formula")', () => {
   it('ish qatorida F2 summalari «Ф-2 (источник)» varag‘idan SUMIFS bilan; manba satrlari to‘liq', () => {
     const h = forma3Hujjat(MANBA, { obyektNom: 'Сунъий кўл', davr: '2026-09', asosiyObyektId: 1, nakrutka: NK });
-    const t = hujjatTekshir(h.bytes, { ruxsat: [/^Сунъий кўл$/] });
+    const t = hujjatTekshir(h.bytes, { ruxsat: [/^Сунъий кўл$/i] });
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
     expect(t.varaqlar.map((v) => v.nom)).toEqual(expect.arrayContaining(['Ф-2 (источник)']));
@@ -290,7 +290,7 @@ describe('F3 — manba varag‘i va SUMIFS (egasi 2026-09-30: "qayerdan olingani
     const P = v.kataklar.find((k) => k.ref === `P${row}`)!;
     expect(P.f).toMatch(/'Ф-2 \(источник\)'!D:D,202609\)$/);
     const m = t.varaqlar.find((x) => x.nom === 'Ф-2 (источник)')!;
-    expect(m.kataklar.filter((k) => k.matn === 'сумма').length).toBe(4);
+    expect(m.kataklar.filter((k) => k.matn === 'СУММА').length).toBe(4);
   });
 });
 

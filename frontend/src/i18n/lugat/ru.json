@@ -1562,5 +1562,15 @@
   "Kategoriyasi aniqlanmagan": "Категория не определена",
   "AI hozir javob bermadi. Keyinroq qayta urinib ko‘ring.": "AI сейчас не ответил. Попробуйте позже.",
   "Admin": "Админ",
-  "Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar": "Точного совпадения нет — ближайшие по смыслу работы"
+  "Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar": "Точного совпадения нет — ближайшие по смыслу работы",
+  "Narxlash: stavkalar, katalog va AI": "Расценка: ставки, каталог и AI",
+  "mehnat/mashina-soat: {n} qator": "труд/маш.-часы: {n} строк",
+  "katalogdan aniq: {n}": "точно по каталогу: {n}",
+  "AI topdi: {n}": "найдено AI: {n}",
+  "tekshiruvingizda: {n}": "на вашей проверке: {n}",
+  "manbalarda yo‘q: {n}": "нет в источниках: {n}",
+  "AI javob bermadi — {n} resurs narxsiz qoldi": "AI не ответил — {n} ресурсов без цены",
+  "AI uchun kompaniya tanlanmagan — {n} resurs narxsiz qoldi": "Для AI не выбрана компания — {n} ресурсов без цены",
+  "Narxlar qidirilmoqda...": "Идёт поиск цен...",
+  "Barcha narxlarni topish": "Найти все цены"
 }

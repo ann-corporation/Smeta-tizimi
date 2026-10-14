@@ -100,7 +100,7 @@ describe('Накопительная ведомость — hujjat standarti', (
     expect(t.taqiqlangan).toEqual([]);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
-    expect(t.matnlar).toEqual(expect.arrayContaining(['К ОПЛАТЕ (с накладными расходами и НДС)', 'ВСЕГО К ОПЛАТЕ (с накладными расходами и НДС)', 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', 'ИТОГО-4 (без НДС)']));
+    expect(t.matnlar).toEqual(expect.arrayContaining(['К ОПЛАТЕ (с накладными расходами и НДС)', 'ВСЕГО К ОПЛАТЕ (С НАКЛАДНЫМИ РАСХОДАМИ И НДС)', 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', 'ИТОГО-4 (БЕЗ НДС)']));
     // Kaskad (за период, L): ЧЕЛ 200 000,50; МАТ 180 000 + 4 590 000.
     const L = r.kaskad!.L;
     expect(L.pryamye).toBe(4_970_000.5);

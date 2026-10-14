@@ -95,7 +95,7 @@ describe('RES: tasdiqlangan stavkalar va koeffitsientlar', () => {
     const d = applyCommand(draft(), { type: 'SET_RATES', rates: { values: { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, ПРОЧИЕ_ПОДРЯДЧИК: 18, СТРАХОВАНИЕ: 0.32, НДС: 12 }, source: 'Kompaniya sozlamasi' } });
     const r = abcHujjat(d, calcDoc(d), unitText);
     const rows = sheet(r.bytes, 'RES');
-    expect(rows.some(x => x.join('|').includes('РАСЧЕТ СТОИМОСТИ (ставки: Kompaniya sozlamasi)'))).toBe(true);
+    expect(rows.some(x => x.join('|').includes('РАСЧЕТ СТОИМОСТИ (СТАВКИ: KOMPANIYA SOZLAMASI)'))).toBe(true);
     const ks = Object.fromEntries(NAKRUTKA_KATLAR.map(k => [k, 0])) as Record<(typeof NAKRUTKA_KATLAR)[number], number>;
     for (const x of [...r.groups.labour, ...r.groups.machines, ...[...r.groups.materials.values()].flat()]) if (x.kat && x.amount != null) ks[x.kat] += x.amount;
     const vsego = rows.find(x => x.join('|').includes('ВСЕГО К ОПЛАТЕ'))!;

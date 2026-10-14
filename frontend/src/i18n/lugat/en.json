@@ -1562,5 +1562,15 @@
   "Kategoriyasi aniqlanmagan": "Category not determined",
   "AI hozir javob bermadi. Keyinroq qayta urinib ko‘ring.": "AI did not respond. Please try again later.",
   "Admin": "Admin",
-  "Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar": "No exact match — closest works by meaning"
+  "Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar": "No exact match — closest works by meaning",
+  "Narxlash: stavkalar, katalog va AI": "Pricing: rates, catalogue and AI",
+  "mehnat/mashina-soat: {n} qator": "labour/machine hours: {n} lines",
+  "katalogdan aniq: {n}": "exact catalogue match: {n}",
+  "AI topdi: {n}": "found by AI: {n}",
+  "tekshiruvingizda: {n}": "awaiting your review: {n}",
+  "manbalarda yo‘q: {n}": "not in sources: {n}",
+  "AI javob bermadi — {n} resurs narxsiz qoldi": "AI did not respond — {n} resources left unpriced",
+  "AI uchun kompaniya tanlanmagan — {n} resurs narxsiz qoldi": "No company selected for AI — {n} resources left unpriced",
+  "Narxlar qidirilmoqda...": "Searching prices...",
+  "Barcha narxlarni topish": "Find all prices"
 }

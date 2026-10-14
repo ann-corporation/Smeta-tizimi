@@ -49,6 +49,8 @@ import { resursVedomostAoa } from './resurs-vedomost';
 import { boshKeshQoy, chopNomlariAbsolyut, ogohlantirishlarniOchir, bugunSana, hujjatFaylNomi, imzoMatni, imzoMuhrli, imzoTomonlari, IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, type ImzoNomlar } from './hujjat-yozuvchi';
 import { narxBildirishnomaKerak } from './narx-bildirishnoma';
 
+import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
+const katta = <T,>(v: T): T => (typeof v === 'string' ? kattaHarfga(v) as T : v);
 /**
  * `toliq` — butun LRV_PLUS (A..W + yashirin Даража).
  * `forma2` — egasining talabi (2026-09-09): «forma 2 xuddi lrv plusni O
@@ -737,8 +739,9 @@ export async function lrvPlusFaylBaytlari(
       const idx = KAT_INDEX.get(q.kat) ?? -1;
       if (idx >= 0) kat[idx] = q.summaQiymat ?? null;
     }
+    // Egasi (2026-10-14): smeta qatorlari to'liq KATTA HARFDA (qayta-import kaliti katta-kichik harfni farqlamaydi).
     const asosiy = [
-      q.no, q.kod, q.nom, q.birlik,
+      q.no, katta(q.kod), katta(q.nom), katta(q.birlik),
       q.birlikHajm ?? null, q.obyomQiymat ?? null, q.narx ?? null, q.summaQiymat ?? null,
       q.tur,
       ...kat,

@@ -36,7 +36,7 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     expect(k.find((x) => x.ref === `H${ishQ + 1}`)?.f).toBe(`ROUND(F${ishQ + 1}*G${ishQ + 1},2)`);
     expect(k.find((x) => x.ref === `H${ishQ}`)?.f).toMatch(/^SUM\(H\d+:H\d+\)$/);
     expect(k.some((x) => x.f?.startsWith('SUMIF(J'))).toBe(true);                 // podval — xarajat turi bo'yicha
-    expect(t.matnlar.some((s) => s.includes('Итого по разделу «НАРУЖНАЯ ОТДЕЛКА»'))).toBe(true);
+    expect(t.matnlar.some((s) => s.includes('ИТОГО ПО РАЗДЕЛУ «НАРУЖНАЯ ОТДЕЛКА»'))).toBe(true);
     expect(t.matnlar).toContain('АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ № 1 (ФОРМА № 2)');
     expect(k.some((x) => /^[K-Z]\d/.test(x.ref))).toBe(false);                     // ko'rinadigan A–I + yashirin J, boshqa yo'q
   });

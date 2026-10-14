@@ -120,10 +120,11 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     return ok;
   }
 
-  /** Deterministic sources first: hour catalogue for labour/machines, exact catalogue identity for materials. */
-  function avtoNarxla() {
+  /** Deterministic sources: hour catalogue for labour/machines, exact catalogue identity for materials. Nothing applied here. */
+  function avtoBuyruqlar() {
     const commands: StudioCommand[] = [];
-    let soatSoni = 0, katSoni = 0;
+    const narxlangan = new Set<string>();
+    let soatSoni = 0;
     if (soat) {
       const r = hourPrices(doc, hisob, soat, unitText, hudud || null, davr);
       commands.push(...r.commands); soatSoni = r.commands.length;
@@ -136,40 +137,51 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       const n = qatorNomzodi(src, g.birlik, 'katalog');
       if (!n) continue;
       commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n, m.confidence === 'EXACT' ? 'nomi va birligi aynan mos' : 'xarakteristikasi mos, yagona mahsulot'));
-      katSoni++;
+      narxlangan.add(g.key);
     }
-    if (qoy(commands, t('Avto-narx: katalog va soat stavkalari')))
-      setXabar(t('Mehnat va mashina-soat: {s} qator; katalogdan aniq moslik: {k} resurs. Qolganini «AI bilan narxlash» topadi.', { s: soatSoni, k: katSoni }));
+    return { commands, soatSoni, narxlangan };
   }
 
   /** AI understands each remaining resource by MEANING and picks among source candidates (two search rounds). */
-  async function aiNarxla() {
-    if (kompaniyaId == null) { setXabar(t('Avval yuqorida kompaniyani tanlang.')); return; }
-    const kerak = guruhlar.filter(g => g.narxsiz > 0 && katalogdanNarxlanadi(g));
-    if (!kerak.length) { setXabar(t('Katalogdan narxlanadigan narxsiz resurs qolmadi.')); return; }
+  async function aiBuyruqlar(kerak: ResursGuruh[]) {
     setAi({ ish: true, matn: t('Kompaniya smetalaridagi narxlar o‘qilmoqda...') });
     let kuzatuv: KuzatilganNarx[] = [];
-    try { kuzatuv = await kompaniyaKuzatuvlari(kompaniyaId, kerak.map(g => g.nom)); } catch { /* catalogue still works without company history */ }
+    try { kuzatuv = await kompaniyaKuzatuvlari(kompaniyaId!, kerak.map(g => g.nom)); } catch { /* catalogue still works without company history */ }
     const view = cat?.matchView() ?? null;
-    try {
-      const natija = await aiNarxlash(kerak,
-        (g, iboralar) => narxNomzodlari(g, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, g.nom, g.birlik, false) : null, hudud || null, iboralar),
-        async sorov => { const r = await smetachiNarxTanla(kompaniyaId, sorov, regions.find(([k]) => k === hudud)?.[1] ?? null); return r.ok ? r.tanlovlar : null; },
-        (a, b) => setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a, b }) }));
-      const commands: StudioCommand[] = [];
-      const qoldi = new Map<string, AiNarxNatija>();
-      for (const n of natija) {
-        const g = kerak.find(x => x.key === n.key)!;
-        if (n.nomzod && n.ishonch === 'yuqori') commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
-        else qoldi.set(n.key, n);
-      }
-      qoy(commands, t('AI narxlari (yuqori ishonch)'));
-      setTakliflar(qoldi);
-      if (qoldi.size) setFiltr('taklif');
-      setXabar(t('AI: {a} resursga ishonchli narx qo‘ydi; {b} tasi tekshiruvingizni kutmoqda (taklif yoki manbada yo‘q).', { a: natija.length - qoldi.size, b: qoldi.size }));
-    } catch {
-      setXabar(t('AI hozir javob bermadi. Keyinroq qayta urinib ko‘ring.'));
-    } finally { setAi({ ish: false, matn: '' }); }
+    const natija = await aiNarxlash(kerak,
+      (g, iboralar) => narxNomzodlari(g, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, g.nom, g.birlik, false) : null, hudud || null, iboralar),
+      async sorov => { const r = await smetachiNarxTanla(kompaniyaId!, sorov, regions.find(([k]) => k === hudud)?.[1] ?? null); return r.ok ? r.tanlovlar : null; },
+      (x, y) => setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a: x, b: y }) }));
+    const commands: StudioCommand[] = [];
+    const qoldi = new Map<string, AiNarxNatija>();
+    for (const n of natija) {
+      const g = kerak.find(x => x.key === n.key)!;
+      if (n.nomzod && n.ishonch === 'yuqori') commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
+      else qoldi.set(n.key, n);
+    }
+    return { commands, qoldi, topildi: natija.length - qoldi.size, manbadaYoq: [...qoldi.values()].filter(x => !x.nomzodlar.length).length };
+  }
+
+  /**
+   * ONE action (owner 2026-10-14: "narxlar bittada topiladimi?"): every source in order — hour rates, exact catalogue
+   * identity, then AI by meaning for the rest — applied as ONE batch (one undo). Without AI (no company/budget)
+   * the deterministic part still runs and says so.
+   */
+  async function hammasiniNarxla() {
+    setXabar('');
+    const avto = avtoBuyruqlar();
+    const kerak = guruhlar.filter(g => g.narxsiz > 0 && katalogdanNarxlanadi(g) && !avto.narxlangan.has(g.key));
+    let ai: Awaited<ReturnType<typeof aiBuyruqlar>> | null = null, aiXato = false;
+    if (kerak.length && kompaniyaId != null) {
+      try { ai = await aiBuyruqlar(kerak); } catch { aiXato = true; } finally { setAi({ ish: false, matn: '' }); }
+    }
+    if (!qoy([...avto.commands, ...(ai?.commands ?? [])], t('Narxlash: stavkalar, katalog va AI'))) return;
+    setTakliflar(ai?.qoldi ?? new Map());
+    if (ai?.qoldi.size) setFiltr('taklif');
+    const qism = [t('mehnat/mashina-soat: {n} qator', { n: avto.soatSoni }), t('katalogdan aniq: {n}', { n: avto.narxlangan.size })];
+    if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
+    else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs narxsiz qoldi', { n: kerak.length }) : t('AI uchun kompaniya tanlanmagan — {n} resurs narxsiz qoldi', { n: kerak.length }));
+    setXabar(qism.join(' · '));
   }
   function qabul(g: ResursGuruh, n: NarxNomzod, sabab: string) {
     if (qoy(narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob).length ? narxsizQatorlar(g, hisob) : g.qatorlar }, n, sabab), t('Narx tanlandi')))
@@ -207,9 +219,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Resurslar narxi')}</strong>
         <span className="text-xs text-text-mute">{t('{a} resurs, narxsiz: {b}', { a: guruhlar.length, b: narxsizSoni })}</span>
         <span className="flex-1" />
-        <button type="button" className="tugma h-7 px-2 text-[11.5px]" disabled={(!cat && !soat) || !narxsizSoni} onClick={avtoNarxla}>{t('Avtomatik narxlash')}</button>
-        <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={ai.ish || !narxsizSoni || catHolat === 'yuklanmoqda'} onClick={() => void aiNarxla()}>
-          {ai.ish ? t('AI ishlayapti...') : t('AI bilan narxlash')}</button>
+        <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={ai.ish || !narxsizSoni || catHolat === 'yuklanmoqda'} onClick={() => void hammasiniNarxla()}>
+          {ai.ish ? t('Narxlar qidirilmoqda...') : t('Barcha narxlarni topish')}</button>
         <select aria-label={t('Ko‘rinish')} className="input h-7 text-[11.5px]" value={filtr} onChange={e => setFiltr(e.target.value as typeof filtr)}>
           <option value="hammasi">{t('Hammasi')}</option><option value="narxsiz">{t('Faqat narxsiz')}</option><option value="taklif">{t('AI takliflari ({n})', { n: takliflar.size })}</option>
         </select>

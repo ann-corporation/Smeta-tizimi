@@ -59,6 +59,12 @@ export type KatakUslub = 'norma' | 'foiz';
 export type RasmiyVaraqSozlama = {
   /** Varaq (list) nomi — Excel cheklovi 31 belgi. */
   nom: string;
+  /**
+   * Egasi (2026-10-14): smeta hujjatlarining asosiy qatorlari — smetaga taalluqli hamma narsa — TO'LIQ KATTA HARFDA.
+   * Jadval qatorlari va bo'lim sarlavhalaridagi nom/kod/birlik matnlari katta harfga o'tadi (sonlar, formulalar o'zgarmaydi).
+   * Sukut true; smeta bo'lmagan varaq (masalan erkin matnli xat) false bilan o'chiradi.
+   */
+  kattaHarf?: boolean;
   /** Hujjat nomi, masalan "АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2)". */
   sarlavha: string;
   ostSarlavha?: readonly string[];
@@ -324,6 +330,11 @@ function balandlik(matn: string, kenglik: number, ptQator = 13): number | undefi
 
 // ───────────────────────── varaq quruvchi ─────────────────────────
 
+/** Smeta matni katta harfga (kirill va lotin); bo'sh joylar va raqamlar o'zgarmaydi. */
+export const kattaHarfga = (v: string) => v.toLocaleUpperCase('ru-RU');
+/** Katta harfga o'tadigan ustunlar: nom, shifr/kod, o'lchov birligi. */
+const MATN_TURLARI: ReadonlySet<RasmiyUstun['tur'] | undefined> = new Set(['matn', 'kod', 'birlik']);
+
 export class RasmiyVaraq {
   readonly nom: string;
   readonly ustunlar: readonly RasmiyUstun[];
@@ -336,10 +347,12 @@ export class RasmiyVaraq {
   private readonly muzlatUstun: number;
   private readonly filtrBor: boolean;
   private filtrOxir: number | null = null;
+  private readonly kattaHarf: boolean;
 
   constructor(o: RasmiyVaraqSozlama) {
     this.nom = o.nom.replace(/[\\/?*[\]:]/g, '_').slice(0, 31);
     this.muzlatUstun = Math.max(0, o.muzlatUstun ?? 0);
+    this.kattaHarf = o.kattaHarf !== false;
     this.filtrBor = !!o.filtr;
     this.ustunlar = o.ustunlar;
     this.yonalish = o.yonalish ?? 'landscape';
@@ -479,7 +492,8 @@ export class RasmiyVaraq {
    * raqamini oladi (nisbiy formulalar o'z qatoriga havola qilishi uchun). */
   qator(tur: RasmiyQatorTuri, qiymatlar: readonly Qiymat[] | ((r: number) => readonly Qiymat[]), o?: { daraja?: number; rang?: QatorRangi | null }): number {
     const r = this.r;
-    const q = typeof qiymatlar === 'function' ? qiymatlar(r) : qiymatlar;
+    const xom = typeof qiymatlar === 'function' ? qiymatlar(r) : qiymatlar;
+    const q = this.kattaHarf ? xom.map((v, i) => (typeof v === 'string' && MATN_TURLARI.has(this.ustunlar[i]?.tur) ? kattaHarfga(v) : v)) : xom;
     const rang = o?.rang !== undefined ? o.rang : TUR_RANGI[tur];
     const cells = this.ustunlar.map((u, i) => {
       const v = q[i];
@@ -500,7 +514,8 @@ export class RasmiyVaraq {
   }
 
   /** Bo'lim (РАЗДЕЛ) sarlavhasi — butun jadval eni bo'ylab birlashtirilgan. */
-  bolim(matn: string, o?: { daraja?: number }): number {
+  bolim(matnXom: string, o?: { daraja?: number }): number {
+    const matn = this.kattaHarf ? kattaHarfga(matnXom) : matnXom;
     const oxir = this.oxirgiUstun;
     const cells = this.ustunlar.map((_u, i) => katakXml(i, rangli(RS.bolimMatn, 'bolim'), i === 0 ? matn : null));
     const r = this.put(cells, balandlik(matn, this.kenglikJami(0, oxir)), o?.daraja);

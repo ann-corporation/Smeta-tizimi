@@ -73,7 +73,7 @@ describe('LRV — yangi shakl (butun smeta, Ф-2 bilan bir xil yozuvchi)', () =>
     const f = ved.kataklar.map((k) => k.f ?? '').filter(Boolean);
     expect(f.some((x) => /^ROUND\(SUMIF\('LRV'!S\d+:S\d+,"Р\d+",'LRV'!F\d+:F\d+\),6\)$/.test(x))).toBe(true);
     expect(Math.max(...f.map((x) => x.length))).toBeLessThan(400);
-    const sR = ved.kataklar.find((k) => (k.matn ?? '').startsWith('Сверка с ЛРВ'))!.ref.replace(/^[A-Z]+/, '');
+    const sR = ved.kataklar.find((k) => (k.matn ?? '').startsWith('СВЕРКА С ЛРВ'))!.ref.replace(/^[A-Z]+/, '');
     const sverka = ved.kataklar.find((k) => k.ref === `G${sR}`);
     expect(Number(sverka?.v ?? 0)).toBe(0);
     const svod = t.varaqlar[2];
