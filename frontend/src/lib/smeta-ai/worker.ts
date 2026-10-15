@@ -43,6 +43,8 @@ export function ishIndeksi(k: AiKatalog): IshIndeksi | null {
 }
 const KOD = /^[EЕЦУCС]\d{1,3}(?:-\d+){1,4}$/i;
 /** Ranked retrieval: every phrasing, collection hint as a boost, unit-incompatible works dropped, ≤3 variants per table. */
+/** Collections for special structures; a building work never lands there unless the estimator asked for it. */
+export const MAXSUS_TOPLAM = new Set(['E29', 'E30', 'E31', 'E35', 'E37', 'E42']);
 /** Numbers that distinguish norms (bucket 0,5 м3, soil group 2, 380 мм) taken from the user's own description. */
 export function tavsifSonlari(tavsif: string | null | undefined): string[] {
   return [...new Set((tavsif ?? '').match(/\d+(?:[.,]\d+)?/g) ?? [])].map(s => s.replace('.', ',')).slice(0, 6);
@@ -54,7 +56,9 @@ function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiru
   // The model's phrase plus the description's numbers: "…экскаваторами" + "0,5 2" reaches "КОВШОМ 0,5 … ГРУППА ГРУНТОВ 2".
   const sonlar = tavsifSonlari(ish.tavsif);
   const iboralar = sonlar.length && matnli[0] ? [...matnli, `${matnli[0]} ${sonlar.join(' ')}`] : matnli;
-  const scored = x.idx.qidir(iboralar, 150).map(h => {
+  // Special-purpose collections (tunnels, bridges, airfields, mining, hydro, shore protection) only when the model named them.
+  const maxsusRuxsat = (c: string | null | undefined) => !c || !MAXSUS_TOPLAM.has(c.replace(/^Е/, 'E')) || hint.has(c.replace(/^Е/, 'E'));
+  const scored = x.idx.qidir(iboralar, 150).filter(h => maxsusRuxsat(x.works[h.id].collection)).map(h => {
     const w = x.works[h.id];
     const mos = birlikMos(k, w, ish.birlik);
     return { w, mos, s: h.ball * (mos === true ? 1.15 : 1) * (w.collection && hint.has(w.collection.replace(/^Е/, 'E')) ? 1.3 : 1) };

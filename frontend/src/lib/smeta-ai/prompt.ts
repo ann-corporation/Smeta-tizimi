@@ -95,6 +95,8 @@ Shu bo'limdagi bog'liq ishlarni hisobga oling: armatura mavjud fundament uchun o
 Norma tarkibida boshqa taklif qilingan ish allaqachon hisoblangan bo'lishi mumkin — alohida ishni ikki marta hisoblamaslik uchun aniqlashtiring.
 Har nomzodda "jadval" (normativ jadval nomi) va "toplam" (sbornik) bor — ish turini shulardan tushuning; gidrotexnika, ko'prik,
 tunnel, magistral quvur, metropoliten sborniklari oddiy bino ishi uchun mos emas (foydalanuvchi aytmagan bo'lsa).
+Nomzod nomida foydalanuvchi AYTMAGAN qo'shimcha sharoit bo'lsa ("с облицовкой лицевым кирпичом", "при подаче ... автосамосвалами",
+"армированных ... в районах с сейсмичностью", "с креплениями", "в мерзлых грунтах") — uni tanlamang, sharoitsiz asosiy normani tanlang.
 Variantlar (grunt guruhi, kovsh hajmi, qalinlik, balandlik) foydalanuvchi aytgan sharoitga mos bo'lsin; sharoit aytilmagan bo'lsa
 eng keng tarqalganini tanlab, sababda qaysi sharoit taxmin qilinganini yozing.
 Faqat berilgan nomzod "id" laridan tanlang. Hech biri mos kelmasa ishId=null va "qidiruv" ga 1–3 ta YANGI ruscha normativ ibora
