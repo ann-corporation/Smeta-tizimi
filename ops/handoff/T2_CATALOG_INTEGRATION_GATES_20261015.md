@@ -11,3 +11,10 @@ INVARIANTS: source immutable; nashr/dop tengligi taxmin qilinmaydi; kod crosswal
 TESTS/ACCEPTANCE: node --test ops/catalog-integration/*.test.mjs; real old+new source reconciliation; hash checks; bounded report; gate unsafe release fail-closed; governance/diff. Source report != deployed runtime.
 FORBIDDEN: main/prod write, destructive cleanup, invented coefficients/approval.
 OUTPUT: tool+tests+machine report lokal; narrow branch pushed; Claude uchun Obsidian ulash kontrakti.
+
+## Natija
+
+SOURCE_READY: ops/catalog-integration/{coefficient-gate,audit-local}.mjs +19tests +README.
+TESTED:19new+13existing actualpack/suggestions =32PASS; node --check,focusedoxlint,governance79task,diffPASS. Product TypeScript/frontend/functions o'zgarmadi; full build/tsc bu taskda qayta bajarilmadi.
+REAL_AUDIT: source1438/95704, runtime1703/5259;gateBLOCKED(exit2 kutilgan).83additive/22zero review;full issue ledger va SHA. README chegaralarini o'qing: non-E56980link tashlab yuborilmagan, source field count95698 semantic approval emas.
+INTEGRATION: Claude builderga gate'ni ulash so'rovi mailbox01. API/Studio/publication/DB/R2 hali bu branch tomonidan o'zgartirilmagan;deployed readiness emas.

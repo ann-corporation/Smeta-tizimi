@@ -2363,7 +2363,7 @@
       "machine": "noutbuk-catalog-integration",
       "branch": "codex/catalog-integration-gates-20261015",
       "base_sha": "4a76f572f6d0c6bb75e3764b80903be7a977825e",
-      "status": "active",
+      "status": "ready_for_review",
       "owns": ["ops/catalog-integration/", "ops/handoff/T2_CATALOG_INTEGRATION_GATES_20261015.md", "ops/mailbox/T2-CATALOG-INTEGRATION-GATES-20261015/"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md"],
