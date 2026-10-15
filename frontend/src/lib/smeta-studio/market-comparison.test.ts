@@ -54,7 +54,7 @@ describe('read-only material market comparison', () => {
     expect(r).toMatchObject({ status: 'compared', average: 8300000, min: 8200000, max: 8400000, delta: 800000 });
     expect(r.percent).toBeCloseTo(10.6666667, 6);
     expect(r.offers).toHaveLength(2);
-    expect(r.offers[1].conversion).toMatchObject({ sourcePrice: 8400, priceFactor: 1000, sourceUnit: 'кг', targetUnit: 'т' });
+    expect(r.offers.find(o => o.conversion)?.conversion).toMatchObject({ sourcePrice: 8400, priceFactor: 1000, sourceUnit: 'кг', targetUnit: 'т' });
     expect(input[0].price).toBe(7500000);
     expect(compareMarket(input, cat, { year: 2026, quarter: 1 }, 'tashkent')[0].average).toBe(1);
   });

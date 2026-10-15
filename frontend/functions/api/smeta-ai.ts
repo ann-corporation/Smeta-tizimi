@@ -8,6 +8,10 @@
  *                                                       new normative phrasings for a second search round)
  *   POST { amal: 'narx_tanla', kompaniya_id, sorovlar: NarxSorovi[], hudud? }
  *        → { ok, tanlovlar }                           (fast tier: pick a price candidate per resource by MEANING)
+ *   POST { amal: 'koef_tanla', kompaniya_id, sharoit, sorovlar: KoefSorovi[] }
+ *        → { ok, tanlovlar, savol }                    (picks normative coefficients for the stated conditions, only from the list)
+ *   POST { amal: 'kp_oqi', kompaniya_id, fayl?: {mimeType, data(base64)}, matn? }
+ *        → { ok, kp }                                  (reads a КП / price list: rows, supplier, VAT state; nothing stored)
  *
  * Session actor + company membership; company AI budget checked before every model call and usage
  * recorded (agent platform accounting). Output is schema-validated; candidates the model did not receive
@@ -16,9 +20,9 @@
 import { tekshir } from '../_shared/auth';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
-import { NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
+import { KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
 import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
-import { NARX_TANLOV_SXEMA, SUHBAT_SXEMA, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
+import { KOEF_TANLOV_SXEMA, KP_SXEMA, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
   type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
 /** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
@@ -111,9 +115,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   if (!sess || !posInt(sess.foydalanuvchi_id)) return fail('AUTH_REQUIRED', 401);
   const raw = await ctx.request.text();
-  if (raw.length > 300_000) return fail('BODY_TOO_LARGE', 413);
+  // A КП file (PDF/image, base64) may be up to ~7 MB; every other request stays small.
+  if (raw.length > 10_000_000) return fail('BODY_TOO_LARGE', 413);
   let so: Record<string, unknown>;
   try { so = JSON.parse(raw); } catch { return fail('BODY_INVALID'); }
+  if (so.amal !== 'kp_oqi' && raw.length > 300_000) return fail('BODY_TOO_LARGE', 413);
   const kompaniyaId = Number(so.kompaniya_id);
   if (!posInt(kompaniyaId)) return fail('CONTEXT_REQUIRED');
   if (Array.isArray(sess.kompaniyalar) && !sess.kompaniyalar.some(a => a.kompaniya_id === kompaniyaId) && sess.rol !== 'superadmin') return fail('FORBIDDEN', 403);
@@ -123,7 +129,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const xabarlar = xabarlarniTayyorla(so.xabarlar);
       if (!xabarlar) return fail('XABAR_INVALID');
       const joriy = suhbatJavobiniTekshir({ ishlar: so.ishlar }).ishlar;
+      // The estimate the user is building (owner 2026-10-15: "butun yasalayotgan smetani AI o'qib tura olishi kerak").
+      const smeta = clip(so.smeta, 16000).trim();
       const text = [`Obyekt: ${clip(so.obyekt, 200) || 'ko‘rsatilmagan'}`,
+        ...(smeta ? [`Foydalanuvchi qurayotgan smeta (Studio holati — bo'limlar, ishlar, hajmlar, koeffitsientlar, narxlar):\n<SMETA>\n${smeta}\n</SMETA>`] : []),
         `Hozirgi ishlar ro'yxati (yangilang yoki to'ldiring):\n${JSON.stringify(joriy satisfies IshNiyati[])}`,
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat', req);
@@ -155,6 +164,32 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { system: NARX_TANLOV_TIZIM, text: `${hudud ? `Obyekt hududi: ${hudud}\n` : ''}<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 5000, jsonSchema: NARX_TANLOV_SXEMA },
         ['tanlovlar', 'choices', 'results']);
       return Response.json({ ok: true, tanlovlar: narxTanlovlariniTekshir(obj, sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (so.amal === 'koef_tanla') {
+      const sharoit = clip(so.sharoit, 2000).trim();
+      const raw = Array.isArray(so.sorovlar) ? so.sorovlar.slice(0, 40) as Array<Record<string, unknown>> : [];
+      const sorovlar: KoefSorovi[] = raw.map(s => ({ id: clip(s?.id, 60), ish: clip(s?.ish, 400),
+        nomzodlar: (Array.isArray(s?.nomzodlar) ? s.nomzodlar : []).slice(0, 40).map(n => ({ kod: clip((n as Record<string, unknown>)?.kod, 40), shart: clip((n as Record<string, unknown>)?.shart, 700) })).filter(n => n.kod) }))
+        .filter(s => /^[A-Za-z0-9_-]{1,60}$/.test(s.id) && s.nomzodlar.length);
+      if (!sharoit || !sorovlar.length) return fail('SOROV_INVALID');
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_koef_tanlash', req);
+      const { r, obj } = await ishonchliChaqir(chaqir,
+        { system: KOEF_TANLOV_TIZIM, text: `Ish sharoiti (foydalanuvchi): ${sharoit}\n<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 4000, jsonSchema: KOEF_TANLOV_SXEMA },
+        ['tanlovlar', 'savol']);
+      return Response.json({ ok: true, ...koefTanlovlariniTekshir(obj, sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (so.amal === 'kp_oqi') {
+      const f = (so.fayl ?? null) as { mimeType?: unknown; data?: unknown } | null;
+      const matn = clip(so.matn, 120_000).trim();
+      const fayl = f && typeof f.mimeType === 'string' && typeof f.data === 'string' && /^(image\/(png|jpeg|webp)|application\/pdf)$/.test(f.mimeType) && /^[A-Za-z0-9+/=]+$/.test(f.data.slice(0, 200))
+        ? { mimeType: f.mimeType, data: f.data } : null;
+      if (!fayl && !matn) return fail('KP_FAYL_INVALID');
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_kp_oqish', req);
+      const { r, obj } = await ishonchliChaqir(chaqir,
+        { system: KP_OQISH_TIZIM, text: matn ? `<HUJJAT>\n${matn}\n</HUJJAT>` : 'Ilova qilingan hujjatni o‘qing.', ...(fayl ? { attachment: fayl } : {}),
+          tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 16000, jsonSchema: KP_SXEMA },
+        ['qatorlar', 'nds_holati']);
+      return Response.json({ ok: true, kp: kpJavobiniTekshir(obj), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
     }
     return fail('AMAL_INVALID');
   } catch (e) {

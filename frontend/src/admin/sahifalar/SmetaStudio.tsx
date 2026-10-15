@@ -182,7 +182,7 @@ export default function SmetaStudio() {
         <SmetaDocumentPanel doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
-        <KoeffitsientlarPaneli doc={doc} command={amal} />
+        <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} />
         {ishlarSoni > 0 && <div className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
           <span>{t('LRV: {n} ta ish', { n: ishlarSoni })}{hajmsiz ? <span className="text-warn"> · {t('hajmi kiritilmagan: {n}', { n: hajmsiz })}</span> : null}</span>
           <span className="flex-1" />

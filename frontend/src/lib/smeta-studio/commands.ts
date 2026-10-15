@@ -6,7 +6,7 @@
 import { normDec, type EstimateContext, type EstimateDoc, type EstimateRates, type Occurrence, type PriceChoice, type PriceJustification, type RecipeSnapshot,
   type Section, type Substitution, type UnitBasis, type WorkCoefficient, type WorkSource } from './model';
 
-const DOC_TYPES = ['CATALOG', 'COMPANY_ESTIMATE', 'LABOUR_HOUR', 'MACHINE_HOUR', 'MANUAL'];
+const DOC_TYPES = ['CATALOG', 'EXCHANGE', 'PRICE_LIST', 'COMMERCIAL_OFFER', 'COMPANY_ESTIMATE', 'LABOUR_HOUR', 'MACHINE_HOUR', 'MANUAL'];
 const matn = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
 /** A justification is optional for old drafts, but when present it must name its document type and document. */
 function justificationOf(j: PriceJustification | null | undefined): PriceJustification | null {
@@ -52,9 +52,10 @@ const COEF_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'];
 function coefficientOf(c: WorkCoefficient): WorkCoefficient {
   if (!ID.test(String(c?.id ?? ''))) fail('COEFFICIENT_INVALID');
   const value = normDec(c.value, 'COEFFICIENT_INVALID');
-  if (value === '0' || Number(value) > 10) fail('COEFFICIENT_INVALID');
+  if (c.origin !== 'NORM' && c.origin !== 'AI' && c.origin !== 'OPERATOR') fail('COEFFICIENT_INVALID');
+  // Zero only from the normative reference (Кмр = 0: materials are not counted, e.g. dismantling).
+  if ((value === '0' && !(c.origin === 'NORM' && c.scope === 'МАТ')) || Number(value) > 10) fail('COEFFICIENT_INVALID');
   if (!COEF_SCOPES.includes(c.scope)) fail('COEFFICIENT_INVALID');
-  if (c.origin !== 'AI' && c.origin !== 'OPERATOR') fail('COEFFICIENT_INVALID');
   return { id: c.id, name: name(c.name, 'COEFFICIENT_NAME_REQUIRED'), value, scope: c.scope,
     evidence: name(c.evidence, 'COEFFICIENT_EVIDENCE_REQUIRED'), origin: c.origin, accepted: c.accepted === true };
 }

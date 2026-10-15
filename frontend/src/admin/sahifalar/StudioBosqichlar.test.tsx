@@ -13,12 +13,14 @@ const view = { size: rows.length, name: (i: number) => rows[i].nom, unit: (i: nu
 vi.mock('../../lib/narx-katalog/price-remote', () => ({ narxKatalogi: async () => ({ rows, dict: { hudud: [], hududKalit: [] }, matchView: () => view }) }));
 vi.mock('../../lib/hour-price-catalog', () => ({ loadHourCatalog: async () => { throw new Error('offline'); } }));
 vi.mock('../../lib/smeta-studio/company-prices', () => ({ kompaniyaKuzatuvlari: async () => [], kompaniyaMoslik: () => null }));
+vi.mock('../../lib/smeta-studio/kompaniya-manbalari', () => ({ kompaniyaManbalariniOl: async () => ({ view: { size: 0 }, manbalar: 0, qatorlar: 0, qqsNomalum: 0, qqsChiqarildi: 0 }), qqsHolatiniAniqla: () => 'nomalum' }));
 vi.mock('../../api/t2-nakrutka', async (orig) => ({ ...(await orig<typeof import('../../api/t2-nakrutka')>()),
   t2NakrutkaKoefOl: async () => ({ ok: true, shartnoma_id: null, koeffitsientlar: { ЗТР_СОЦСТРАХ: 12, ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, СКЛАДСКИЕ_МК: 0.75,
     ТРАНСПОРТ_КАБЕЛЬ: 1.5, ПРОЧИЕ_ПОДРЯДЧИК: 18, ТРАНСПОРТ_ОБОРУД: 2, ЗАГОТ_СКЛАД_ОБОРУД: 1.2, СТРАХОВАНИЕ: 0.32, РИСК: 0, НДС: 12 }, jadval: {} }) }));
 const tanla = vi.fn(async (_k: number, s: Array<{ id: string; nomzodlar: Array<{ id: string }> }>) =>
   ({ ok: true as const, tanlovlar: s.map(x => ({ id: x.id, tanlov: x.nomzodlar[0]?.id ?? null, ishonch: 'yuqori' as const, sabab: 'ma’nosi mos' })) }));
 vi.mock('../../api/smeta-ai', () => ({ smetachiNarxTanla: (...a: unknown[]) => tanla(...(a as [number, never])) }));
+vi.mock('./StudioKpYuklash', () => ({ StudioKpYuklash: () => null }));
 vi.mock('../../components/smeta-studio-pro/MarketPriceComparison', () => ({ MarketPriceComparison: () => null }));
 
 const { NarxlashBosqichi } = await import('./StudioBosqichlar');
@@ -35,7 +37,7 @@ describe('Narxlash bosqichi (UI)', () => {
   it('Barcha narxlarni topish (bitta tugma): katalogdan ma’nosi mos narx dalil bilan bitta BATCH da qo‘yiladi; stavkalar tasdiqlanadi', async () => {
     const command = vi.fn((_c: StudioCommand) => true);
     render(<NarxlashBosqichi doc={doc} hisob={calcDoc(doc)} command={command} kompaniyaId={17} hudud="" setHudud={() => {}} unitText={unitText} onNext={() => {}} />);
-    await screen.findByText(/Narx katalogi: 1 qator/);
+    await screen.findByText(/Narx manbalari: 1 qator/);
     fireEvent.click(screen.getByRole('button', { name: 'Barcha narxlarni topish' }));
     await waitFor(() => expect(command).toHaveBeenCalled());
     const c = command.mock.calls[0][0];
@@ -52,7 +54,7 @@ describe('Narxlash bosqichi (UI)', () => {
     tanla.mockImplementationOnce(async () => ({ ok: false, code: 'AI_UNAVAILABLE' }) as never);
     const command = vi.fn((_c: StudioCommand) => true);
     render(<NarxlashBosqichi doc={doc} hisob={calcDoc(doc)} command={command} kompaniyaId={17} hudud="" setHudud={() => {}} unitText={unitText} onNext={() => {}} />);
-    await screen.findByText(/Narx katalogi: 1 qator/);
+    await screen.findByText(/Narx manbalari: 1 qator/);
     fireEvent.click(screen.getByRole('button', { name: 'Barcha narxlarni topish' }));
     const select = await screen.findByLabelText('Narx nomzodi');
     expect(select.textContent).toContain('Песок природный');

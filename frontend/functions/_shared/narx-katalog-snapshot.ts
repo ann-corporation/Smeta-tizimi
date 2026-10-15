@@ -7,9 +7,10 @@
 type R2 = { get(key: string): Promise<{ text(): Promise<string>; arrayBuffer(): Promise<ArrayBuffer>; httpMetadata?: { contentEncoding?: string } } | null> };
 type Lookup = { path: string; from: number; to: number };
 type Manifest = { revision: string; files: { dict: { path: string }; lookup?: Lookup[] } };
-type Dict = { birlik: string[]; hudud: string[]; zavod: string[]; ndsHolati: string[]; ndsIzoh: string[]; variant: string[]; guruh: string[];
+type Manba = { id: number; nom: string; tur: string; sana: string | null; yil: number | null; kvartal: number | null; region: string | null; nds_holati: string | null };
+type Dict = { birlik: string[]; hudud: string[]; zavod: string[]; ndsHolati: string[]; ndsIzoh: string[]; variant: string[]; guruh: string[]; manbalar?: Manba[];
   manba: { id: number; nom: string; tur: string; sana: string | null; yil: number | null; kvartal: number | null; region: string | null; nds_holati: string | null } };
-type Row = [number, number | null, string | null, string, number, string | null, number, number, number, number, number | null, number | null, number, number];
+type Row = [number, number | null, string | null, string, number, string | null, number, number, number, number, number | null, number | null, number, number, number?];
 
 export type KatalogSnapshot = {
   revision: string; id: number; manba_id: number; manba_nom: string; manba_tur: string; manba_sana: string | null;
@@ -48,12 +49,12 @@ export async function katalogSnapshotlari(r2: R2, ids: number[]): Promise<Map<nu
   for (const [path, idsInFile] of byFile) {
     const { rows } = await json<{ rows: Row[] }>(r2, `narx-katalog/${revision}/${path}`);
     const set = new Set(idsInFile);
-    for (const r of rows) if (set.has(r[0])) out.set(r[0], {
-      revision, id: r[0], manba_id: dict.manba.id, manba_nom: dict.manba.nom, manba_tur: dict.manba.tur, manba_sana: dict.manba.sana,
-      kod: r[2], nom: r[3], birlik: at(dict.birlik, r[4]), narx: r[5], hudud: at(dict.hudud, r[6]) ?? dict.manba.region,
-      ishlab_chiqaruvchi: at(dict.zavod, r[7]), nds_holati: at(dict.ndsHolati, r[8]) ?? dict.manba.nds_holati, nds_izoh: at(dict.ndsIzoh, r[9]),
-      yil: r[10] ?? dict.manba.yil, kvartal: r[11] ?? dict.manba.kvartal, narx_varianti: at(dict.variant, r[12]), guruh: at(dict.guruh, r[13]),
-    });
+    for (const r of rows) if (set.has(r[0])) { const m: Manba = (r[14] != null ? dict.manbalar?.[r[14]] : null) ?? dict.manba; out.set(r[0], {
+      revision, id: r[0], manba_id: m.id, manba_nom: m.nom, manba_tur: m.tur, manba_sana: m.sana,
+      kod: r[2], nom: r[3], birlik: at(dict.birlik, r[4]), narx: r[5], hudud: at(dict.hudud, r[6]) ?? m.region,
+      ishlab_chiqaruvchi: at(dict.zavod, r[7]), nds_holati: at(dict.ndsHolati, r[8]) ?? m.nds_holati, nds_izoh: at(dict.ndsIzoh, r[9]),
+      yil: r[10] ?? m.yil, kvartal: r[11] ?? m.kvartal, narx_varianti: at(dict.variant, r[12]), guruh: at(dict.guruh, r[13]),
+    }); }
   }
   return out;
 }

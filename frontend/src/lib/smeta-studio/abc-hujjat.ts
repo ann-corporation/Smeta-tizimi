@@ -197,7 +197,8 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
 /** One workbook: LRV + RES — the resource documents an ABC/TN smeta is delivered with. */
 /* ───────────────────────────── ОБОСНОВАНИЕ ЦЕН ───────────────────────────── */
 const HUJJAT_TURI: Record<PriceJustification['docType'], string> = {
-  CATALOG: 'Каталог (текущие цены)', COMPANY_ESTIMATE: 'Смета компании (принятая ранее цена)',
+  CATALOG: 'Каталог (текущие цены)', EXCHANGE: 'Биржевая котировка (УзРТСБ)', PRICE_LIST: 'Прайс-лист производителя',
+  COMMERCIAL_OFFER: 'Коммерческое предложение поставщика', COMPANY_ESTIMATE: 'Смета компании (принятая ранее цена)',
   LABOUR_HOUR: 'Стоимость чел.-часа (публикация)', MACHINE_HOUR: 'Калькуляция стоимости маш.-часа', MANUAL: 'Иной документ',
 };
 /** Studio prices → «ОБОСНОВАНИЕ ЦЕН» positions (one per resource and price, like the RES): document, source row, recalculation. */
@@ -217,7 +218,9 @@ export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units):
     if (prev) { prev.hajm = prev.hajm == null || qty == null ? null : Math.round((prev.hajm + qty) * 1e6) / 1e6; prev.qatorlar = (prev.qatorlar ?? 1) + 1; continue; }
     const p = o.overrides[l.recipeId]?.price ?? null, j = p?.justification ?? null;
     const dalilsizSabab = narx == null ? (narxBildirishnomaKerak({ nom: l.resource.name ?? '' }, null) ? 'цена в смете не указана' : null)
-      : !j && !p?.evidence?.trim() ? 'документ-основание цены не приложен' : null;
+      : !j && !p?.evidence?.trim() ? 'документ-основание цены не приложен'
+      // Owner rule (2026-10-15): an earlier estimate of the company is a hint, never a price justification.
+      : j?.docType === 'COMPANY_ESTIMATE' ? 'цена из ранее принятой сметы — не является документом-основанием, требуется каталог, биржа, прайс-лист или КП' : null;
     if (narx == null && !dalilsizSabab) continue;   // machine operators' labour is priced inside the machine-hour (owner rule)
     by.set(key, { kat, kod: idCode(l.resource), nom: l.resource.name, birlik: unit, hajm: qty, narx, qatorlar: 1,
       hujjatTuri: j ? HUJJAT_TURI[j.docType] : p ? HUJJAT_TURI.MANUAL : null,

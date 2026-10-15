@@ -32,7 +32,9 @@ export type PriceChoice = { value: Dec; basis: PriceBasis; evidence: string; sou
   justification?: PriceJustification | null };
 /** Where a price comes from and how it was derived — printed in the «ОБОСНОВАНИЕ ЦЕН» sheet. */
 export type PriceJustification = {
-  docType: 'CATALOG' | 'COMPANY_ESTIMATE' | 'LABOUR_HOUR' | 'MACHINE_HOUR' | 'MANUAL';
+  /** CATALOG — «Каталог цен РУз» / main materials list; EXCHANGE — UzRTSB quotes; PRICE_LIST — a manufacturer's price list;
+   *  COMMERCIAL_OFFER — a supplier's КП; COMPANY_ESTIMATE — a price from the company's earlier estimate (NOT a justification). */
+  docType: 'CATALOG' | 'EXCHANGE' | 'PRICE_LIST' | 'COMMERCIAL_OFFER' | 'COMPANY_ESTIMATE' | 'LABOUR_HOUR' | 'MACHINE_HOUR' | 'MANUAL';
   /** Document details: catalogue edition/period/region/VAT, estimate file/object, invoice No and date… */
   document: string;
   /** The source row as written there, its unit and price (in that unit). */
@@ -61,8 +63,9 @@ export type Occurrence = {
 /** Which resource quantities a coefficient multiplies. МАТ = every material category (МАТ/КАБ/М/К/БЕЗ СКЛАД). */
 export type CoefScope = 'ALL' | 'ЧЕЛ' | 'МАШ' | 'ЧЕЛ+МАШ' | 'МАТ';
 export type WorkCoefficient = { id: string; name: string; value: Dec; scope: CoefScope; evidence: string;
-  /** AI = proposed by the smeta AI (never applied until accepted); OPERATOR = entered by a person. */
-  origin: 'AI' | 'OPERATOR'; accepted: boolean };
+  /** NORM = from the normative reference (ШНК technical part), AI = proposed by the smeta AI — neither is applied until accepted;
+   *  OPERATOR = entered by a person. */
+  origin: 'NORM' | 'AI' | 'OPERATOR'; accepted: boolean };
 /** Markup rates (percent) of the pricing step; codes are the company cascade codes (t2_nakrutka). */
 export type EstimateRates = { values: Record<string, number>; source: string };
 export type Section ={ id: string; name: string; parentId: string | null; children: string[]; items: string[] };

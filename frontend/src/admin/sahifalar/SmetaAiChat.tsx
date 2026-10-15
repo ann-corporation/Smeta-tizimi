@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
+import { smetaXulosasi } from '../../lib/smeta-studio/ai-kontekst';
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi } from '../../lib/smeta-ai/protokol';
 import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
@@ -107,7 +108,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     const yangi = [...xabarlar, { rol: 'user' as const, matn: m }];
     setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat');
     try {
-      const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title);
+      const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title, smetaXulosasi(doc));
       if (!tirik.current) return;
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.

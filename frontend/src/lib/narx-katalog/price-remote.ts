@@ -64,12 +64,15 @@ export class PriceCatalog {
   }
 
   qator(i: number): KatalogQatori {
-    const r = this.rows[i], d = this.dict, m = d.manba;
+    const r = this.rows[i], d = this.dict, m = this.manbasi(i);
     return { id: r[0], manba_id: m.id, kod: r[2], nom: r[3], birlik: at(d.birlik, r[4]), narx: r[5] == null ? null : Number(r[5]),
       hudud: at(d.hudud, r[6]), ishlab_chiqaruvchi: at(d.zavod, r[7]), nds_holati: at(d.ndsHolati, r[8]), nds_izoh: at(d.ndsIzoh, r[9]),
       yil: r[10], kvartal: r[11], narx_varianti: at(d.variant, r[12]), guruh: at(d.guruh, r[13]), hudud_kalit: at(d.hududKalit, r[6]),
-      manba_nom: m.nom, manba_tur: m.tur };
+      manba_nom: m.nom, manba_tur: m.tur, manba_sana: m.sana, manba_yetkazuvchi: m.yetkazuvchi };
   }
+
+  /** Edition of a row (multi-edition index: the row's 15th field; single-source index: dict.manba). */
+  manbasi(i: number) { const k = this.rows[i][14]; return (k != null ? this.dict.manbalar?.[k] : null) ?? this.dict.manba; }
 
   /** Every word must occur in the name (former ilike semantics); optional region; sorted by name; ≤ limit. */
   qidir(matn: string, hudud?: string | null, limit = 200): KatalogQatori[] {
@@ -105,10 +108,9 @@ export class PriceCatalog {
 
   /** Offers for smeta resources by exact name+unit key (former t2_narx_taklif platform branch). Rows without price are skipped. */
   takliflar(resurslar: SmetaResurs[]) {
-    const m = this.dict.manba;
     return resurslar.filter(q => ['rs', 'mat', 'ob'].includes(q.tur) && q.nom_key != null).flatMap(q =>
       (this.byKey.get(q.nom_key + '\u0001' + (q.birlik_key ?? '')) ?? []).filter(i => this.rows[i][5] != null).map(i => {
-        const k = this.qator(i);
+        const k = this.qator(i), m = this.manbasi(i);
         return { kompaniya_id: q.kompaniya_id, obyekt_id: q.obyekt_id, qator_id: q.id, tur: q.tur, kat: q.kat, kod: q.kod, nom: q.nom, birlik: q.birlik,
           smeta_narx: q.narx, manba_qator_id: k.id, manba_id: m.id, manba_tur: m.tur, manba_nom: m.nom, manba_raqam: m.raqam, manba_sana: m.sana,
           yil: k.yil ?? m.yil, kvartal: k.kvartal ?? m.kvartal, region: k.hudud ?? m.region, yetkazuvchi: m.yetkazuvchi,

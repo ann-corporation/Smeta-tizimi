@@ -240,7 +240,8 @@ export function matchResource(cat: MatchCatalog, name: string | null, unit: stri
     }
     scored.push({ index: i, row, score, regional, reasons, extraSpecs, ...(unitConversion ? { unitConversion } : {}) });
   }
-  scored.sort((a, b) => b.score - a.score || Number(b.regional) - Number(a.regional) || (a.row.narx ?? 0) - (b.row.narx ?? 0) || a.index - b.index);
+  // Equal scores: the object's region first, then the most expensive price (owner 2026-10-15: "narxni eng qimmatiga").
+  scored.sort((a, b) => b.score - a.score || Number(b.regional) - Number(a.regional) || (b.row.narx ?? 0) - (a.row.narx ?? 0) || a.index - b.index);
   const candidates = scored.slice(0, limit);
   const best = scored[0] ?? null;
   if (!best) return { confidence: 'NONE', best: null, candidates, gateRejected, candidateTotal: scored.length };

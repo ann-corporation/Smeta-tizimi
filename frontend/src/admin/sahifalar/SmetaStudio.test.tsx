@@ -86,7 +86,7 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
   fireEvent.change(within(panel).getByLabelText('Narx manbasi'), { target: { value: 'Sinov taklifi, 2026-10-06' } });
   fireEvent.submit(within(panel).getByLabelText('Birlik narxi').closest('form')!);
   await waitFor(() => expect(within(panel).getAllByText(/2040/).length).toBeGreaterThan(0));
-  expect(requests.every(r => /^GET \/api\/(norm-katalog|narx-katalog|hour-price-catalog)/.test(r))).toBe(true);
+  expect(requests.every(r => /^GET \/api\/(norm-katalog|narx-katalog|hour-price-catalog|koef-katalog)/.test(r))).toBe(true);
   // Narxni bekor qilish noma'lum summani qaytaradi, retsept o'zgarmaydi.
   fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
   await waitFor(() => expect((within(panel).getByLabelText('Birlik narxi') as HTMLInputElement).value).toBe(''));

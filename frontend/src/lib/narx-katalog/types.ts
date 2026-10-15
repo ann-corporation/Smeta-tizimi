@@ -4,4 +4,6 @@ export type KatalogQatori = {
   id: number; manba_id: number; kod: string | null; nom: string; birlik: string | null; narx: number | null; hudud: string | null;
   ishlab_chiqaruvchi: string | null; nds_holati: string | null; nds_izoh: string | null; yil: number | null; kvartal: number | null;
   narx_varianti: string | null; guruh: string | null; hudud_kalit: string | null; manba_nom: string; manba_tur: string;
+  /** Edition date (ISO) and supplier of a multi-edition index row (absent in older readers). */
+  manba_sana?: string | null; manba_yetkazuvchi?: string | null;
 };

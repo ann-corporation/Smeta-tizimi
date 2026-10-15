@@ -1,5 +1,5 @@
 /** Client for /api/smeta-ai (Smetachi AI worker — proposals only). */
-import type { IshNiyati, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
+import type { IshNiyati, KoefSorovi, KoefTanlov, KpOqish, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
 
 export type AiXato = { ok: false; code: string; message?: string };
 async function post<T>(body: unknown): Promise<T | AiXato> {
@@ -9,8 +9,15 @@ async function post<T>(body: unknown): Promise<T | AiXato> {
     return j ?? { ok: false, code: 'NETWORK' };
   } catch { return { ok: false, code: 'NETWORK' }; }
 }
-export const smetachiSuhbat = (kompaniyaId: number, xabarlar: SuhbatXabari[], ishlar: IshNiyati[], obyekt: string) =>
-  post<{ ok: true; model: string; xom?: string; tushunildi?: boolean; ogohlantirish?: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt });
+/** `smeta` — the estimate being built as text (lib/smeta-studio/ai-kontekst), so the model reads the whole draft. */
+export const smetachiSuhbat = (kompaniyaId: number, xabarlar: SuhbatXabari[], ishlar: IshNiyati[], obyekt: string, smeta?: string) =>
+  post<{ ok: true; model: string; xom?: string; tushunildi?: boolean; ogohlantirish?: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt, smeta });
+/** AI picks normative coefficients that match the stated work conditions (codes only from the list sent). */
+export const smetachiKoefTanla = (kompaniyaId: number, sharoit: string, sorovlar: KoefSorovi[]) =>
+  post<{ ok: true; tanlovlar: KoefTanlov[]; savol: string | null }>({ amal: 'koef_tanla', kompaniya_id: kompaniyaId, sharoit, sorovlar });
+/** AI reads a КП / price list (PDF or image as base64, or table text). Nothing is stored by this call. */
+export const smetachiKpOqi = (kompaniyaId: number, p: { fayl?: { mimeType: string; data: string }; matn?: string }) =>
+  post<{ ok: true; kp: KpOqish; model: string }>({ amal: 'kp_oqi', kompaniya_id: kompaniyaId, ...p });
 export const smetachiTanla = (kompaniyaId: number, sorovlar: TanlovSorovi[]) =>
   post<{ ok: true; tanlovlar: Tanlov[] }>({ amal: 'tanla', kompaniya_id: kompaniyaId, sorovlar });
 /** AI picks a price candidate per resource among the ones the browser found (catalogue / company estimates). */

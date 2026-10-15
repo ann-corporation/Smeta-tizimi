@@ -11,11 +11,13 @@ import type { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
 import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
-import type { EstimateDoc, PriceJustification, WorkCoefficient } from '../../lib/smeta-studio/model';
+import type { EstimateDoc, PriceJustification } from '../../lib/smeta-studio/model';
 import { matchResource } from '../../lib/smeta-studio/resource-match';
 import { aiNarxlash, qaytaHisobla, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomzodlari, qatorNomzodi, resursGuruhlari,
   type AiNarxNatija, type NarxNomzod, type ResursGuruh } from '../../lib/smeta-studio/narx-yigish';
 import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
+import { kompaniyaManbalariniOl, type KompaniyaManbalari } from '../../lib/smeta-studio/kompaniya-manbalari';
+import { StudioKpYuklash } from './StudioKpYuklash';
 import { loadHourCatalog, type HourCatalog } from '../../lib/hour-price-catalog';
 import { hourPrices, labourPeriods, type HourPeriod } from '../../lib/smeta-studio/hour-pricing';
 import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl } from '../../api/t2-nakrutka';
@@ -36,51 +38,7 @@ function narxsizQatorlar(g: ResursGuruh, hisob: DocCalc) {
 }
 
 /* ───────────────────────── LRV: koeffitsientlar ───────────────────────── */
-export function KoeffitsientlarPaneli({ doc, command }: { doc: EstimateDoc; command: (c: StudioCommand) => boolean }) {
-  const list = Object.values(doc.occurrences).filter(o => o.coefficients?.length);
-  const [yangi, setYangi] = useState<{ occ: string; nom: string; qiymat: string; scope: WorkCoefficient['scope']; asos: string }>({ occ: '', nom: '', qiymat: '', scope: 'ALL', asos: '' });
-  const set = (occ: string, coefficients: WorkCoefficient[]) => command({ type: 'SET_COEFFICIENTS', occurrenceId: occ, coefficients });
-  const works = Object.values(doc.occurrences);
-  if (!works.length) return null;
-  return <section aria-label={t('Ish koeffitsientlari')} className="karta space-y-2 p-2 text-[12.5px]">
-    <div className="flex items-center gap-2">
-      <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Ish koeffitsientlari')}</strong>
-      <span className="text-xs text-text-mute">{t('AI taklifi qabul qilinmaguncha hisobga kirmaydi')}</span>
-    </div>
-    {!list.length && <p className="text-xs text-text-mute">{t('Hozircha koeffitsient yo‘q. Ish sharoitini (ta’mir, tor joy, balandlik, qish) Smetachi AI ga yozing — u ShNQ texnik qismidan taklif qiladi.')}</p>}
-    {list.map(o => <div key={o.id} className="rounded border border-border p-1.5">
-      <p className="font-medium"><span className="font-mono text-accent">{o.source.code}</span> {o.source.name}</p>
-      {o.coefficients!.map(k => <div key={k.id} className="mt-1 flex flex-wrap items-center gap-2">
-        <span className={k.accepted ? 'text-ok' : 'text-warn'}>{k.accepted ? '✓' : '•'}</span>
-        <span>{k.name} × <b>{k.value.replace('.', ',')}</b> ({k.scope})</span>
-        <span className="text-[11px] text-text-mute">{k.evidence}{k.origin === 'AI' ? ` · ${t('AI taklifi')}` : ''}</span>
-        <span className="flex-1" />
-        <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => set(o.id, o.coefficients!.map(x => x.id === k.id ? { ...x, accepted: !x.accepted } : x))}>
-          {k.accepted ? t('Bekor qilish') : t('Qabul qilish')}</button>
-        <button type="button" aria-label={t('Koeffitsientni olib tashlash')} className="text-xs text-text-mute hover:text-danger" onClick={() => set(o.id, o.coefficients!.filter(x => x.id !== k.id))}>✕</button>
-      </div>)}
-    </div>)}
-    <form className="flex flex-wrap items-end gap-1" onSubmit={e => {
-      e.preventDefault();
-      const o = doc.occurrences[yangi.occ]; if (!o) return;
-      const id = `op${Date.now().toString(36)}`;
-      if (set(o.id, [...(o.coefficients ?? []), { id, name: yangi.nom, value: yangi.qiymat, scope: yangi.scope, evidence: yangi.asos, origin: 'OPERATOR', accepted: true }]))
-        setYangi({ occ: yangi.occ, nom: '', qiymat: '', scope: 'ALL', asos: '' });
-    }}>
-      <select aria-label={t('Ish')} className="input h-7 max-w-[220px] text-[11.5px]" value={yangi.occ} onChange={e => setYangi({ ...yangi, occ: e.target.value })}>
-        <option value="">{t('— ishni tanlang —')}</option>
-        {works.map(o => <option key={o.id} value={o.id}>{o.source.code} · {(o.source.name ?? '').slice(0, 60)}</option>)}
-      </select>
-      <input aria-label={t('Koeffitsient nomi')} className="input h-7 w-36 text-[11.5px]" placeholder={t('Nomi')} value={yangi.nom} onChange={e => setYangi({ ...yangi, nom: e.target.value })} />
-      <input aria-label={t('Koeffitsient qiymati')} className="input h-7 w-16 text-[11.5px]" inputMode="decimal" placeholder="1,15" value={yangi.qiymat} onChange={e => setYangi({ ...yangi, qiymat: e.target.value })} />
-      <select aria-label={t('Qo‘llanish')} className="input h-7 text-[11.5px]" value={yangi.scope} onChange={e => setYangi({ ...yangi, scope: e.target.value as WorkCoefficient['scope'] })}>
-        {(['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const).map(s => <option key={s} value={s}>{s === 'ALL' ? t('barcha resurslar') : s}</option>)}
-      </select>
-      <input aria-label={t('Koeffitsient asosi')} className="input h-7 flex-1 min-w-[160px] text-[11.5px]" placeholder={t('Asos: hujjat va band')} value={yangi.asos} onChange={e => setYangi({ ...yangi, asos: e.target.value })} />
-      <button type="submit" className="tugma h-7 px-2 text-[11.5px]" disabled={!yangi.occ || !yangi.nom.trim() || !yangi.qiymat.trim() || !yangi.asos.trim()}>{t('Qo‘shish')}</button>
-    </form>
-  </section>;
-}
+export { KoeffitsientlarPaneli } from './StudioKoeffitsientlar';
 
 /* ───────────────────────── ② Narxlash ───────────────────────── */
 export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setHudud, unitText, onNext }: {
@@ -96,6 +54,15 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   const [takliflar, setTakliflar] = useState<Map<string, AiNarxNatija>>(new Map());
   const [filtr, setFiltr] = useState<'hammasi' | 'narxsiz' | 'taklif'>('hammasi');
   const [qolda, setQolda] = useState<{ key: string; narx: string; dalil: string } | null>(null);
+  // The company's own documents (КП, invoices, price lists) — justified sources, offered before the platform index.
+  const [kpm, setKpm] = useState<KompaniyaManbalari | null>(null);
+  const [kpmVersiya, setKpmVersiya] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    if (kompaniyaId == null) { setKpm(null); return; }
+    kompaniyaManbalariniOl(kompaniyaId).then(m => { if (alive) setKpm(m); }).catch(() => { if (alive) setKpm(null); });
+    return () => { alive = false; };
+  }, [kompaniyaId, kpmVersiya]);
   useEffect(() => {
     let alive = true;
     narxKatalogi().then(c => { if (alive) { setCat(c); setCatHolat('tayyor'); } }).catch(() => { if (alive) setCatHolat('xato'); });
@@ -125,13 +92,22 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   function avtoBuyruqlar() {
     const commands: StudioCommand[] = [];
     const narxlangan = new Set<string>();
-    let soatSoni = 0;
+    let soatSoni = 0, kpSoni = 0;
     if (soat) {
       const r = hourPrices(doc, hisob, soat, unitText, hudud || null, davr);
       commands.push(...r.commands); soatSoni = r.commands.length;
     }
-    if (cat) for (const g of guruhlar) {
+    for (const g of guruhlar) {
       if (!katalogdanNarxlanadi(g) || !g.narxsiz) continue;
+      // A supplier's КП for exactly this product is the real price → first; then the platform index (catalogue, birja, price lists).
+      const kpMos = kpm?.qatorlar ? matchResource(kpm.view, g.nom, g.birlik, null) : null;
+      const kpTop = kpMos && (kpMos.confidence === 'EXACT' || kpMos.confidence === 'HIGH') && kpMos.best ? kpMos : null;
+      if (kpTop) {
+        const src = kpTop.best!.row.unitConversion ? { ...kpTop.best!.row, narx: kpTop.best!.row.unitConversion.sourcePrice, birlik: kpTop.best!.row.unitConversion.sourceUnit } : kpTop.best!.row;
+        const n = qatorNomzodi(src, g.birlik, 'kp');
+        if (n) { commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n, 'yetkazuvchi KP si, nomi va xarakteristikasi mos')); narxlangan.add(g.key); kpSoni++; continue; }
+      }
+      if (!cat) continue;
       const m = matchResource(cat.matchView(), g.nom, g.birlik, hudud || null);
       if ((m.confidence !== 'EXACT' && m.confidence !== 'HIGH') || !m.best) continue;
       const src = m.best.row.unitConversion ? { ...m.best.row, narx: m.best.row.unitConversion.sourcePrice, birlik: m.best.row.unitConversion.sourceUnit } : m.best.row;
@@ -140,7 +116,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n, m.confidence === 'EXACT' ? 'nomi va birligi aynan mos' : 'xarakteristikasi mos, yagona mahsulot'));
       narxlangan.add(g.key);
     }
-    return { commands, soatSoni, narxlangan };
+    return { commands, soatSoni, kpSoni, narxlangan };
   }
 
   /** AI understands each remaining resource by MEANING and picks among source candidates (two search rounds). */
@@ -152,7 +128,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       try { kuzatuv = await kompaniyaKuzatuvlari(kompaniyaId, kerak.map(g => g.nom)); } catch { /* catalogue still works without company history */ }
     }
     const view = cat?.matchView() ?? null;
-    return (g: ResursGuruh, iboralar: string[]) => narxNomzodlari(g, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, g.nom, g.birlik, false) : null, hudud || null, iboralar);
+    return (g: ResursGuruh, iboralar: string[]) => narxNomzodlari(g, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, g.nom, g.birlik, false) : null, hudud || null, iboralar, 12,
+      kpm?.qatorlar ? matchResource(kpm.view, g.nom, g.birlik, null, 5) : null);
   }
 
   async function aiBuyruqlar(kerak: ResursGuruh[], nomzodlar: (g: ResursGuruh, iboralar: string[]) => NarxNomzod[]) {
@@ -163,7 +140,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const qoldi = new Map<string, AiNarxNatija>();
     for (const n of natija) {
       const g = kerak.find(x => x.key === n.key)!;
-      if (n.nomzod && n.ishonch === 'yuqori') commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
+      // An earlier estimate's price is never applied automatically and never becomes a justification (owner 2026-10-15).
+      if (n.nomzod && n.ishonch === 'yuqori' && n.nomzod.tur !== 'kompaniya') commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
       else qoldi.set(n.key, n);
     }
     return { commands, qoldi, topildi: natija.length - qoldi.size, manbadaYoq: [...qoldi.values()].filter(x => !x.nomzodlar.length).length };
@@ -195,7 +173,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const takliflarYangi = ai?.qoldi ?? zaxira;
     setTakliflar(takliflarYangi);
     if (takliflarYangi.size) setFiltr('taklif');
-    const qism = [t('mehnat/mashina-soat: {n} qator', { n: avto.soatSoni }), t('katalogdan aniq: {n}', { n: avto.narxlangan.size })];
+    const qism = [t('mehnat/mashina-soat: {n} qator', { n: avto.soatSoni }), ...(avto.kpSoni ? [t('KP dan: {n}', { n: avto.kpSoni })] : []),
+      t('katalogdan aniq: {n}', { n: avto.narxlangan.size - avto.kpSoni })];
     if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
     else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
       : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
@@ -228,8 +207,11 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
           {labourPeriods(soat).map(p => <option key={`${p.year}-${p.quarter}`} value={`${p.year}-${p.quarter}`}>{t('{y} yil {q}-chorak', { y: p.year, q: p.quarter })}</option>)}
         </select></label>}
       <span className="text-xs text-text-mute">{catHolat === 'yuklanmoqda' ? t('Narx katalogi yuklanmoqda...') : catHolat === 'xato' ? t('Narx katalogi ochilmadi')
-        : t('Narx katalogi: {n} qator, NDS siz', { n: cat?.rows.length.toLocaleString('ru-RU') ?? '0' })}</span>
+        : t('Narx manbalari: {n} qator ({m} nashr: katalog, birja, prays-list), NDS siz', { n: cat?.rows.length.toLocaleString('ru-RU') ?? '0', m: cat?.dict.manbalar?.length ?? 1 })}</span>
+      {kpm && (kpm.qatorlar > 0 || kpm.qqsNomalum > 0) && <span className="text-xs text-text-mute">{t('Kompaniya KP/prays: {n} narx', { n: kpm.qatorlar })}
+        {kpm.qqsNomalum > 0 && <span className="text-warn"> · {t('QQS holati noma’lum {n} narx ishlatilmaydi', { n: kpm.qqsNomalum })}</span>}</span>}
     </section>
+    <StudioKpYuklash kompaniyaId={kompaniyaId} onSaqlandi={() => setKpmVersiya(v => v + 1)} />
 
     <StavkalarKartasi doc={doc} command={command} kompaniyaId={kompaniyaId} />
 

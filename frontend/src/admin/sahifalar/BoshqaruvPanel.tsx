@@ -17,6 +17,7 @@ import { boshqaruvOqi, boshqaruvYoz, type BAudit, type BFoydalanuvchi, type BKom
 const SystemControlPage = lazy(() => import('../pages/SystemControlPage'));
 const AiMarkaz = lazy(() => import('../ai-markaz/AiMarkaz').then((m) => ({ default: m.AiMarkaz })));
 const CatalogReleasePanel = lazy(() => import('../catalog-release/CatalogReleasePanel'));
+const NarxIndeksPaneli = lazy(() => import('../catalog-release/NarxIndeksPaneli'));
 
 const son = (x: number | null | undefined) => (x == null ? '—' : Number(x).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const vaqt = (s: string) => new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
@@ -523,7 +524,7 @@ export default function BoshqaruvPanel() {
       {bolim === 'token' && <TokenHisobi kompaniyalar={komp.d ?? []} />}
       {bolim === 'audit' && <Audit kompaniyalar={komp.d ?? []} />}
       {bolim === 'sozlamalar' && <Sozlamalar kompaniyaId={joriy?.id ?? null} />}
-      {bolim === 'katalog' && <Suspense fallback={<Yuklanmoqda />}><CatalogReleasePanel /></Suspense>}
+      {bolim === 'katalog' && <Suspense fallback={<Yuklanmoqda />}><div className="space-y-4"><NarxIndeksPaneli /><CatalogReleasePanel /></div></Suspense>}
       {bolim === 'ai' && <Suspense fallback={<Yuklanmoqda />}><AiMarkaz kompaniyalar={(komp.d ?? []).map((k) => ({ id: k.id, nom: k.nom }))} /></Suspense>}
       {bolim === 'funksiyalar' && <Funksiyalar />}
     </Sahifa>

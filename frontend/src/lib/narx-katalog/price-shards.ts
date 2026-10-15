@@ -21,11 +21,15 @@ export type ExportRow = [number, number, number | null, string | null, string, s
 
 /** Shard row: id, tartib, kod, nom, birlik#, narx(text|null), hudud#, zavod#, nds_holati#, nds_izoh#, yil, kvartal, variant#, guruh#
  *  (# = index into the dictionary, -1 = NULL). */
-export type PriceRow = [number, number | null, string | null, string, number, string | null, number, number, number, number, number | null, number | null, number, number];
+export type PriceRow = [number, number | null, string | null, string, number, string | null, number, number, number, number, number | null, number | null, number, number,
+  /** Multi-edition index (format 4): index into dict.manbalar; absent = the single dict.manba. */
+  number?];
 export type PriceManba = { id: number; tur: string; nom: string; raqam: string | null; sana: string | null; yil: number | null; kvartal: number | null;
   region: string | null; yetkazuvchi: string | null; nds_holati: string | null; fayl_document_id: string | null };
 export type PriceDict = { birlik: string[]; hudud: string[]; hududKalit: Array<string | null>; zavod: string[]; ndsHolati: string[]; ndsIzoh: string[];
-  variant: string[]; guruh: string[]; manba: PriceManba; keyOverrides: Record<string, [string, string]> };
+  variant: string[]; guruh: string[]; manba: PriceManba; keyOverrides: Record<string, [string, string]>;
+  /** Every edition of a multi-edition index (format 4); rows point here by their 15th field. */
+  manbalar?: PriceManba[] };
 
 class Dict {
   values: string[] = []; private idx = new Map<string, number>();

@@ -146,12 +146,13 @@ describe('matchResource — price-only dimensional conversion', () => {
     expect(best.unitConversion?.evidence).toBe(best.row.nds_izoh);
   });
 
-  it('ranks competing source units by the target-unit price', () => {
+  // Owner rule 2026-10-15 ("narxni eng qimmatiga"): among equal matches the MOST EXPENSIVE target-unit price leads.
+  it('ranks competing source units by the target-unit price, most expensive first', () => {
     const nom = 'Арматура A500C Ø12';
     const c = catalogue([{ nom, birlik: 'т', narx: 9000000 }, { nom, birlik: 'кг', narx: 10000 }]);
     const r = matchResource(c, nom, 'кг');
-    expect(r.best?.row).toMatchObject({ id: 1, birlik: 'кг', narx: 9000 });
-    expect(r.candidates.map(x => x.row.narx)).toEqual([9000, 10000]);
+    expect(r.best?.row).toMatchObject({ id: 2, birlik: 'кг', narx: 10000 });
+    expect(r.candidates.map(x => x.row.narx)).toEqual([10000, 9000]);
   });
 
   it.each([['м3', 'т'], ['м2', 'м'], ['шт', 'тыс. шт'], ['100 м', 'м'], ['маш-ч', 'ч']])(

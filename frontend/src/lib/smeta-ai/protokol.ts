@@ -233,6 +233,49 @@ export const TANLOV_SXEMA = { name: 'smetachi_tanlov', schema: { type: 'object',
   tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'ishId', 'sabab', 'qidiruv'], properties: {
     id: { type: 'string' }, ishId: { type: ['string', 'null'] }, sabab: { type: 'string' }, qidiruv: { type: 'array', items: { type: 'string' } } } } } } } };
 
+/** Normative coefficient choice: per work, codes from the list it was sent (anything else is dropped). */
+export type KoefSorovi = { id: string; ish: string; nomzodlar: Array<{ kod: string; shart: string }> };
+export type KoefTanlov = { ish: string; kodlar: string[]; sabab: string };
+export const KOEF_TANLOV_SXEMA = { name: 'smetachi_koef_tanlov', schema: { type: 'object', additionalProperties: false, required: ['tanlovlar', 'savol'], properties: {
+  tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ish', 'kodlar', 'sabab'], properties: {
+    ish: { type: 'string' }, kodlar: { type: 'array', items: { type: 'string' } }, sabab: { type: 'string' } } } },
+  savol: { type: ['string', 'null'] } } } };
+export function koefTanlovlariniTekshir(v: Record<string, unknown> | null, sorovlar: KoefSorovi[]): { tanlovlar: KoefTanlov[]; savol: string | null } {
+  const by = new Map(sorovlar.map(s => [s.id, new Set(s.nomzodlar.map(n => n.kod))]));
+  const tanlovlar = (Array.isArray(v?.tanlovlar) ? v!.tanlovlar as unknown[] : []).flatMap(x => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    const ish = typeof r.ish === 'string' ? r.ish : '', ruxsat = by.get(ish);
+    if (!ruxsat) return [];
+    const kodlar = [...new Set((Array.isArray(r.kodlar) ? r.kodlar : []).filter((k): k is string => typeof k === 'string' && ruxsat.has(k)))];
+    return kodlar.length ? [{ ish, kodlar, sabab: typeof r.sabab === 'string' ? r.sabab.slice(0, 300) : '' }] : [];
+  });
+  return { tanlovlar, savol: typeof v?.savol === 'string' && v.savol.trim() ? v.savol.trim().slice(0, 500) : null };
+}
+
+/** Commercial offer / price list read by the model (rows are re-validated here, prices never invented). */
+export type KpOqish = { yetkazuvchi: string | null; inn: string | null; raqam: string | null; sana: string | null;
+  nds_holati: 'nds_bilan' | 'nds_siz' | 'nomalum'; nds_dalil: string | null; qatorlar: Array<{ nom: string; birlik: string | null; narx: number | null }> };
+export const KP_SXEMA = { name: 'smetachi_kp_oqish', schema: { type: 'object', additionalProperties: false,
+  required: ['yetkazuvchi', 'inn', 'raqam', 'sana', 'nds_holati', 'nds_dalil', 'qatorlar'], properties: {
+    yetkazuvchi: { type: ['string', 'null'] }, inn: { type: ['string', 'null'] }, raqam: { type: ['string', 'null'] }, sana: { type: ['string', 'null'] },
+    nds_holati: { type: 'string', enum: ['nds_bilan', 'nds_siz', 'nomalum'] }, nds_dalil: { type: ['string', 'null'] },
+    qatorlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['nom', 'birlik', 'narx'], properties: {
+      nom: { type: 'string' }, birlik: { type: ['string', 'null'] }, narx: { type: ['number', 'null'] } } } } } } };
+const kpMatn = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+export function kpJavobiniTekshir(v: Record<string, unknown> | null): KpOqish {
+  const o = v ?? {};
+  const nds = o.nds_holati === 'nds_bilan' || o.nds_holati === 'nds_siz' ? o.nds_holati : 'nomalum';
+  const sana = kpMatn(o.sana, 10);
+  const qatorlar = (Array.isArray(o.qatorlar) ? o.qatorlar : []).slice(0, 2000).flatMap((q: unknown) => {
+    const r = (q ?? {}) as Record<string, unknown>;
+    const nom = kpMatn(r.nom, 600);
+    const narx = typeof r.narx === 'number' && Number.isFinite(r.narx) && r.narx > 0 ? Math.round(r.narx * 100) / 100 : null;
+    return nom ? [{ nom, birlik: kpMatn(r.birlik, 30), narx }] : [];
+  });
+  return { yetkazuvchi: kpMatn(o.yetkazuvchi, 200), inn: kpMatn(o.inn, 20)?.replace(/\D/g, '') || null, raqam: kpMatn(o.raqam, 60),
+    sana: sana && /^\d{4}-\d{2}-\d{2}$/.test(sana) ? sana : null, nds_holati: nds, nds_dalil: kpMatn(o.nds_dalil, 200), qatorlar };
+}
+
 export const NARX_TANLOV_SXEMA = { name: 'smetachi_narx_tanlov', schema: { type: 'object', additionalProperties: false, required: ['tanlovlar'], properties: {
   tanlovlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'tanlov', 'ishonch', 'sabab', 'qidiruv', 'qayta_hisob'], properties: {
     id: { type: 'string' }, tanlov: { type: ['string', 'null'] }, ishonch: { type: 'string', enum: ['yuqori', 'orta', 'past'] }, sabab: { type: 'string' },

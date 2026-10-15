@@ -80,7 +80,7 @@ export function resursGuruhlari(doc: EstimateDoc, calc: DocCalc, unitText: UnitT
 export const katalogdanNarxlanadi = (g: Pick<ResursGuruh, 'kat'>) => g.kat !== 'ЧЕЛ' && g.kat !== 'МАШ';
 
 /** A candidate with its source row (price already in the resource's unit). */
-export type NarxNomzod = NarxNomzodi & { tur: 'katalog' | 'kompaniya'; row: KatalogQatori;
+export type NarxNomzod = NarxNomzodi & { tur: 'katalog' | 'kompaniya' | 'kp'; row: KatalogQatori;
   /** Recalculation applied to the source price (exact unit factor, or a verified dimensional formula). */
   qayta: BirlikHisob | null;
   /** Source unit differs and only a dimensional recalculation (from sizes in the names) can make it usable. */
@@ -99,12 +99,26 @@ export function narxIndeksi(cat: MatchCatalog): MatnIndeks {
 }
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
+const manbaTuriMatni = (t: string) => (t === 'birja' ? 'birja' : t === 'prays' ? 'prays-list' : t === 'asosiy_material' ? 'asosiy materiallar' : 'katalog');
+
+/**
+ * Which of two rows of the SAME product (name + unit) is offered (owner 2026-10-15: region, the most expensive price,
+ * the source): the object's region → a republic-wide quote (birja) → another region; then the newer edition; then MAX price.
+ */
+export function ustunNomzod(a: KatalogQatori, b: KatalogQatori, hudud: string | null): KatalogQatori {
+  const hd = (r: KatalogQatori) => (hudud && r.hudud_kalit === hudud ? 2 : r.hudud_kalit == null ? 1 : 0);
+  const davr = (r: KatalogQatori) => `${r.yil ?? 0}-${r.kvartal ?? 0}-${r.manba_sana ?? ''}`;
+  if (hd(a) !== hd(b)) return hd(a) > hd(b) ? a : b;
+  if (davr(a) !== davr(b)) return davr(a) > davr(b) ? a : b;
+  return (b.narx ?? 0) > (a.narx ?? 0) ? b : a;
+}
 export function qatorNomzodi(row: KatalogQatori, unit: string | null, tur: NarxNomzod['tur'], olchamli = false): NarxNomzod | null {
   if (row.narx == null || row.nds_holati === 'nds_bilan') return null;
   const factor = priceUnitFactor(row.birlik, unit);
-  const davr = row.yil ? `${row.yil}${row.kvartal ? `-${row.kvartal}kv` : ''}` : null;
-  const manba = (tur === 'katalog' ? ['katalog', row.manba_nom, davr, row.hudud].filter(Boolean).join(', ') : `kompaniya smetasi: ${row.manba_nom}`).slice(0, 160);
-  const id = `${tur === 'katalog' ? 'k' : 's'}${row.id}`;
+  const davr = row.manba_sana !== undefined ? null : row.yil ? `${row.yil}${row.kvartal ? `-${row.kvartal}kv` : ''}` : null;
+  const manba = (tur === 'katalog' ? [manbaTuriMatni(row.manba_tur), row.manba_nom, davr, row.hudud, row.ishlab_chiqaruvchi].filter(Boolean).join(', ')
+    : tur === 'kp' ? `KP: ${row.manba_nom}` : `kompaniya smetasi (obosnovaniya emas): ${row.manba_nom}`).slice(0, 160);
+  const id = `${tur === 'katalog' ? 'k' : tur === 'kp' ? 'p' : 's'}${row.id}`;
   if (unit && row.birlik && factor == null) {
     // Different physical unit: offered only for a dimensional recalculation; the price stays in the SOURCE unit until then.
     if (!olchamli || !olchamliOtkazishMumkin(unit, row.birlik)) return null;
@@ -124,18 +138,21 @@ export function qaytaHisobla(n: NarxNomzod, resursNom: string, smetaBirlik: stri
 }
 
 /**
- * Candidate pool for one resource: characteristic-gated catalogue rows (deterministic matcher + BM25 meaning search with
- * the resource name and any extra phrasings), and the company's own estimate prices. Region-specific rows win duplicates.
+ * Candidate pool for one resource: characteristic-gated rows of the platform index (catalogues, birja, price lists — the
+ * deterministic matcher + BM25 meaning search with the resource name and any extra phrasings), the company's own КП/price
+ * lists, and — ONLY when no justified source has a same-unit candidate — the company's earlier estimate prices (a hint,
+ * never a justification; owner 2026-10-15). The same product appears once: region → newer edition → most expensive.
  */
 export function narxNomzodlari(g: Pick<ResursGuruh, 'nom' | 'birlik'>, cat: MatchCatalog | null, kompaniya: MatchResult | null,
-  hudud: string | null, iboralar: string[] = [], limit = 12): NarxNomzod[] {
+  hudud: string | null, iboralar: string[] = [], limit = 12, kp: MatchResult | null = null): NarxNomzod[] {
   const out = new Map<string, NarxNomzod>();
-  const add = (n: NarxNomzod | null, regional: boolean) => {
+  const add = (n: NarxNomzod | null, _regional?: boolean) => {
     if (!n) return;
     const k = `${n.tur}\u0001${normName(n.nom)}\u0001${normName(n.birlik)}`;
     const prev = out.get(k);
-    if (!prev || (regional && prev.row.hudud_kalit !== hudud)) out.set(k, n);
+    if (!prev || (prev.row !== n.row && ustunNomzod(prev.row, n.row, hudud) === n.row)) out.set(k, n);
   };
+  for (const c of kp?.candidates.slice(0, 5) ?? []) add(qatorNomzodi({ ...c.row, narx: c.row.unitConversion?.sourcePrice ?? c.row.narx, birlik: c.row.unitConversion?.sourceUnit ?? c.row.birlik }, g.birlik, 'kp'));
   if (cat) {
     const src = characteristics(g.nom);
     for (const c of matchResource(cat, g.nom, g.birlik, hudud, 8).candidates) add(qatorNomzodi({ ...c.row, narx: c.row.unitConversion?.sourcePrice ?? c.row.narx, birlik: c.row.unitConversion?.sourceUnit ?? c.row.birlik }, g.birlik, 'katalog'), c.regional);
@@ -156,22 +173,28 @@ export function narxNomzodlari(g: Pick<ResursGuruh, 'nom' | 'birlik'>, cat: Matc
       if (out.size >= limit * 2) break;
     }
   }
-  for (const c of kompaniya?.candidates.slice(0, 5) ?? []) add(qatorNomzodi({ ...c.row, narx: c.row.unitConversion?.sourcePrice ?? c.row.narx, birlik: c.row.unitConversion?.sourceUnit ?? c.row.birlik }, g.birlik, 'kompaniya'), false);
-  // Same-unit candidates first; unit-different ones are the fallback that needs a recalculation.
-  return [...out.values()].sort((a, b) => Number(!!a.birlikBoshqa) - Number(!!b.birlikBoshqa)).slice(0, limit);
+  // Last resort: an earlier estimate's price is offered only when no justified source has a same-unit candidate.
+  if (![...out.values()].some(n => !n.birlikBoshqa))
+    for (const c of kompaniya?.candidates.slice(0, 5) ?? []) add(qatorNomzodi({ ...c.row, narx: c.row.unitConversion?.sourcePrice ?? c.row.narx, birlik: c.row.unitConversion?.sourceUnit ?? c.row.birlik }, g.birlik, 'kompaniya'));
+  // Same-unit candidates first (КП, then the platform index); unit-different ones need a recalculation; estimates last.
+  const rank = (n: NarxNomzod) => (n.birlikBoshqa ? 10 : 0) + (n.tur === 'kp' ? 0 : n.tur === 'katalog' ? 1 : 5);
+  return [...out.values()].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
 }
 
 /** SET_PRICE for every line of the group, with full provenance (+ the AI's reason when it chose). */
 /** «Обоснование цены» of a candidate: document details, the source row as written there, the recalculation and the reason. */
 export function narxAsosi(n: NarxNomzod, sabab = ''): PriceJustification {
   const r = n.row;
-  const davr = r.yil ? `${r.kvartal ? `${r.kvartal} кв. ` : ''}${r.yil} г.` : null;
-  const document = n.tur === 'katalog'
-    ? [r.manba_nom, davr, r.hudud, r.ishlab_chiqaruvchi ? `производитель: ${r.ishlab_chiqaruvchi}` : null, 'без НДС'].filter(Boolean).join(', ')
-    : `Смета компании: ${r.manba_nom}`;
+  // Multi-edition rows carry the period in the edition title already (manba_sana present).
+  const davr = r.manba_sana !== undefined ? null : r.yil ? `${r.kvartal ? `${r.kvartal} кв. ` : ''}${r.yil} г.` : null;
+  const narxSanasi = r.manba_tur === 'katalog' || r.manba_tur === 'asosiy_material' ? r.narx_varianti && /^\d{4}-\d{2}-\d{2}$/.test(r.narx_varianti) ? `цена на ${r.narx_varianti.split('-').reverse().join('.')}` : null : null;
+  const document = n.tur === 'kompaniya' ? `Смета компании: ${r.manba_nom}`
+    : [r.manba_nom, davr, narxSanasi, r.hudud, r.ishlab_chiqaruvchi ? `производитель: ${r.ishlab_chiqaruvchi}` : null, r.nds_izoh, 'без НДС'].filter(Boolean).join(', ');
   // The source row exactly as published: its own unit and price (the estimate price may be recalculated from it).
   const sourcePrice = r.narx == null ? null : String(r.narx);
-  return { docType: n.tur === 'katalog' ? 'CATALOG' : 'COMPANY_ESTIMATE', document: document.slice(0, 400), sourceName: r.nom,
+  const docType: PriceJustification['docType'] = n.tur === 'kompaniya' ? 'COMPANY_ESTIMATE' : n.tur === 'kp' ? (r.manba_tur === 'prays' ? 'PRICE_LIST' : 'COMMERCIAL_OFFER')
+    : r.manba_tur === 'birja' ? 'EXCHANGE' : r.manba_tur === 'prays' ? 'PRICE_LIST' : 'CATALOG';
+  return { docType, document: document.slice(0, 400), sourceName: r.nom,
     sourceUnit: r.birlik, sourcePrice, conversion: n.qayta, reason: sabab ? sabab.slice(0, 400) : null };
 }
 
@@ -179,10 +202,10 @@ export function narxAsosi(n: NarxNomzod, sabab = ''): PriceJustification {
 export function narxBuyruqlari(g: Pick<ResursGuruh, 'qatorlar'>, n: NarxNomzod, sabab = ''): StudioCommand[] {
   if (n.birlikBoshqa) throw new Error('PRICE_UNIT_RECALCULATION_REQUIRED');
   const justification = narxAsosi(n, sabab);
-  const evidence = [n.tur === 'katalog' ? catalogEvidence(n.row) : `Kompaniya smetasi · ${n.row.manba_nom} · ${n.row.nom}`,
+  const evidence = [n.tur === 'katalog' ? catalogEvidence(n.row) : n.tur === 'kp' ? `KP · ${n.row.manba_nom} · ${n.row.nom}` : `Kompaniya smetasi · ${n.row.manba_nom} · ${n.row.nom}`,
     n.qayta ? `qayta hisob: ${n.qayta.formula} (${n.qayta.note})` : null, 'NDS siz'].filter(Boolean).join(' · ').slice(0, 300);
   const basis: PriceBasis = n.tur === 'katalog' ? 'CATALOG_CANDIDATE' : 'CONTRACT_DRAFT';
-  const sourcePriceId = n.tur === 'katalog' ? `narx-katalog:${n.row.id}` : `kompaniya-smeta-qator:${n.row.id}`;
+  const sourcePriceId = n.tur === 'katalog' ? `narx-katalog:${n.row.id}` : n.tur === 'kp' ? `narx-manba-qator:${n.row.id}` : `kompaniya-smeta-qator:${n.row.id}`;
   return g.qatorlar.map(q => ({ type: 'SET_PRICE' as const, occurrenceId: q.occurrenceId, recipeId: q.recipeId,
     price: { value: String(n.narx), basis, evidence, sourcePriceId, justification } }));
 }
