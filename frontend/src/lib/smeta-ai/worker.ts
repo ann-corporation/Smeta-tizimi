@@ -43,10 +43,18 @@ export function ishIndeksi(k: AiKatalog): IshIndeksi | null {
 }
 const KOD = /^[EЕЦУCС]\d{1,3}(?:-\d+){1,4}$/i;
 /** Ranked retrieval: every phrasing, collection hint as a boost, unit-incompatible works dropped, ≤3 variants per table. */
-function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'>, limit: number): TanlovNomzodi[] {
+/** Numbers that distinguish norms (bucket 0,5 м3, soil group 2, 380 мм) taken from the user's own description. */
+export function tavsifSonlari(tavsif: string | null | undefined): string[] {
+  return [...new Set((tavsif ?? '').match(/\d+(?:[.,]\d+)?/g) ?? [])].map(s => s.replace('.', ',')).slice(0, 6);
+}
+function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string }, limit: number): TanlovNomzodi[] {
   const hint = new Set(ish.toplam ?? []);
   const direct = ish.qidiruv.filter(q => KOD.test(q.trim())).flatMap(q => k.search(q.trim(), 0).rows.slice(0, 3));
-  const scored = x.idx.qidir(ish.qidiruv.filter(q => !KOD.test(q.trim())), 150).map(h => {
+  const matnli = ish.qidiruv.filter(q => !KOD.test(q.trim()));
+  // The model's phrase plus the description's numbers: "…экскаваторами" + "0,5 2" reaches "КОВШОМ 0,5 … ГРУППА ГРУНТОВ 2".
+  const sonlar = tavsifSonlari(ish.tavsif);
+  const iboralar = sonlar.length && matnli[0] ? [...matnli, `${matnli[0]} ${sonlar.join(' ')}`] : matnli;
+  const scored = x.idx.qidir(iboralar, 150).map(h => {
     const w = x.works[h.id];
     const mos = birlikMos(k, w, ish.birlik);
     return { w, mos, s: h.ball * (mos === true ? 1.15 : 1) * (w.collection && hint.has(w.collection.replace(/^Е/, 'E')) ? 1.3 : 1) };
@@ -97,7 +105,7 @@ export function birlikMos(k: Pick<AiKatalog, 'unit'>, w: NormWork, b: Birlik): b
 }
 
 /** Search with the model's normative phrases; fall back to word stems (Russian endings vary). */
-export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'>, limit = 15): TanlovNomzodi[] {
+export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string }, limit = 15): TanlovNomzodi[] {
   const x = ishIndeksi(k);
   if (x) return bm25Nomzodlar(k, x, ish, limit);
   const found = new Map<string, NormWork>();

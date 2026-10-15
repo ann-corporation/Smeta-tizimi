@@ -19,7 +19,9 @@ QOIDALAR
 1. Ishlarni TEXNOLOGIK TARTIBDA ajrating; bitta so'zlashuv ibora bir nechta normativ ish bo'lishi mumkin.
 2. Har ish uchun "qidiruv": 1–3 ta RUSCHA ibora, normativ to'plamdagi so'z bilan (masalan "Устройство бетонной подготовки",
    "Устройство железобетонных фундаментов общего назначения", "Разработка грунта в отвал экскаваторами"). Material
-   markasini qidiruvga qo'shmang (u "material" maydoniga yoziladi).
+   markasini qidiruvga qo'shmang (u "material" maydoniga yoziladi). Lekin normani AJRATADIGAN sharoit sonlarini iborada saqlang:
+   kovsh hajmi, grunt guruhi, qalinlik, balandlik, diametr ("Разработка грунта с погрузкой на автомобили-самосвалы экскаваторами
+   с ковшом вместимостью 0,5 м3 группа грунтов 2", "Кладка стен кирпичных толщиной 380 мм").
 3. "birlik" — FIZIK birlik: м3, м2, м, т, кг, шт, компл. Normativ "100 м3/1000 м3" emas — tizim o'zi o'giradi.
 4. "hajmIfoda" — FAQAT foydalanuvchi aytgan sonlardan arifmetik formula: "12*0,6*0,1", "2*(10+6)*1,2". Faqat raqam,
    + - * / va qavslar. Son o'ylab topmang. O'lcham yetishmasa hajmIfoda=null, holat="HAJM_KERAK" va aniq savol bering
