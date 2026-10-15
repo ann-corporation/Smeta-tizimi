@@ -2355,6 +2355,37 @@
   ],
   "production_write_allowed": false,
   "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained. Owner 2026-10-11 correction: unresolved rows including negatives must WARN, not block saving a canonical draft act from confirmed bindings. All original rows preserved in server working draft before act creation; no automatic approval. Owner urgent 2026-10-11: Amfiteatr/Suniy page latency; narrow read-pagination COUNT policy and additive object/id cursor index. No business values or tenant policy changes."
+},
+{
+  "id": "T2-RAHBAR-DECISION-20261015",
+  "title": "Owner: decision-first executive dashboard; Claude integrates and deploys",
+  "owner": "codex",
+  "machine": "noutbuk-rahbar",
+  "branch": "codex/rahbar-decision-v1",
+  "base_sha": "4a76f572f6d0c6bb75e3764b80903be7a977825e",
+  "status": "in_progress",
+  "owns": [
+    "frontend/src/admin/sahifalar/BossDashboard.tsx",
+    "frontend/src/admin/sahifalar/BossDashboard.test.tsx",
+    "frontend/src/components/boss-decision/",
+    "frontend/src/api/t2-boss.ts",
+    "frontend/src/api/t2-boss.test.ts",
+    "frontend/functions/api/boss-dashboard.ts",
+    "frontend/functions/api/boss-dashboard.test.ts",
+    "frontend/testlar/t2_boss_panel.test.cjs",
+    "supabase/tests/t2_boss_decision_contract.sql",
+    "ops/handoff/T2_RAHBAR_DECISION_20261015.md",
+    "ops/mailbox/T2-RAHBAR-DECISION-20261015/"
+  ],
+  "depends_on": [],
+  "must_read": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md",
+    "docs/governance/AGENT_COMMS_PROTOCOL.md",
+    "docs/architecture/SMETA_F2_NAKOPITELNIY_CHANGE_CONTROL_V1.md"
+  ],
+  "production_write_allowed": false,
+  "note": "Direct owner: parallel work with Claude and Codex, no main/deploy by this lane. Frontend/API/read-model changes only inside lease; Studio/catalog/Jarvis and F2 lanes untouched. Russian evidence + exact pushed SHA to Claude. i18n keys remain additive under existing own T2-SMETACHI lease; no other task lock removed."
 }
   ]
 }
