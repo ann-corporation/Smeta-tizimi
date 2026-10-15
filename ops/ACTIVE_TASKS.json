@@ -2355,6 +2355,20 @@
   ],
   "production_write_allowed": false,
   "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained. Owner 2026-10-11 correction: unresolved rows including negatives must WARN, not block saving a canonical draft act from confirmed bindings. All original rows preserved in server working draft before act creation; no automatic approval. Owner urgent 2026-10-11: Amfiteatr/Suniy page latency; narrow read-pagination COUNT policy and additive object/id cursor index. No business values or tenant policy changes."
-}
+},
+    {
+      "id": "T2-CATALOG-INTEGRATION-GATES-20261015",
+      "title": "Owner: existing catalog data integration coverage and coefficient publication gates",
+      "owner": "codex",
+      "machine": "noutbuk-catalog-integration",
+      "branch": "codex/catalog-integration-gates-20261015",
+      "base_sha": "4a76f572f6d0c6bb75e3764b80903be7a977825e",
+      "status": "active",
+      "owns": ["ops/catalog-integration/", "ops/handoff/T2_CATALOG_INTEGRATION_GATES_20261015.md", "ops/mailbox/T2-CATALOG-INTEGRATION-GATES-20261015/"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md"],
+      "production_write_allowed": false,
+      "note": "Isolated source/release gate and tests only; Claude owns Studio, coefficient API/builder, pricing bindings. No copied business engine, no source archive changes."
+    }
   ]
 }
