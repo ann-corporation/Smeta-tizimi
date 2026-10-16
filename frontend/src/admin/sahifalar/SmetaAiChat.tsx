@@ -62,7 +62,7 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
 const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha materiali', hajm: 'Hajm', ochir: 'Ishni o‘chirish', kochir: 'Bo‘limga ko‘chirish',
   bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
   narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash',
-  qosh: 'Ishlarni smetaga qo‘shish' };
+  qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash' };
 
 export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
   return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
@@ -229,9 +229,16 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     const tanlangan = amallar.filter(a => a.tanlangan);
     const natija: string[] = [], buyruqlar: StudioCommand[] = [], keyin: AgentAmal[] = [];
     // «qosh» first: the proposed works must be in the estimate before pricing and documents run on it.
+    // The estimator's "count it separately" for works that overlap a composite norm (armature/formwork inside reinforced concrete).
+    if (tanlangan.some(a => a.tur === 'takror_tasdiq')) {
+      const ids = new Set(overlaps.keys());
+      setIshlar(list => list.map(i => (ids.has(i.id) ? { ...i, takrorTasdiq: true } : i)));
+      natija.push(`✓ ${t('Alohida hisoblash tasdiqlandi: {n} ish', { n: ids.size })}`);
+      await new Promise(r => setTimeout(r, 300));
+    }
     if (tanlangan.some(a => a.tur === 'qosh')) { await qosh(); await new Promise(r => setTimeout(r, 300)); }
     for (const a of tanlangan) {
-      if (a.tur === 'qosh') continue;
+      if (a.tur === 'qosh' || a.tur === 'takror_tasdiq') continue;
       try {
         if (a.tur === 'bosqich') { if (a.qiymat === 'lrv' || a.qiymat === 'narx' || a.qiymat === 'res') onBosqich?.(a.qiymat); continue; }
         const c = amalBuyruqlari(doc, a, newId);

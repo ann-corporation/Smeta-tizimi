@@ -1745,5 +1745,7 @@
   "Butun tizim uchun": "Для всей системы",
   "tizim": "система",
   "men": "я",
-  "Ishlarni smetaga qo‘shish": "Добавить работы в смету"
+  "Ishlarni smetaga qo‘shish": "Добавить работы в смету",
+  "Alohida hisoblashni tasdiqlash": "Подтвердить отдельный расчёт",
+  "Alohida hisoblash tasdiqlandi: {n} ish": "Отдельный расчёт подтверждён: {n} работ"
 }

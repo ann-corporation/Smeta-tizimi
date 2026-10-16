@@ -44,7 +44,7 @@ export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyat
  * The model only PROPOSES; the user runs them (one click, one undo step). "ish" is a work reference from the estimate
  * summary ([i3]) or a section/resource name; "qiymat" the value; "manba" the source document for a manual price.
  */
-export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'stavka', 'resurs_kat', 'bosqich', 'hujjat', 'qosh'] as const;
+export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'stavka', 'resurs_kat', 'bosqich', 'hujjat', 'qosh', 'takror_tasdiq'] as const;
 export type AgentAmal = { tur: typeof AMAL_TURLARI[number]; ish: string | null; qiymat: string | null; manba: string | null; izoh: string };
 export function agentAmallariniTekshir(raw: unknown): AgentAmal[] {
   const s = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);

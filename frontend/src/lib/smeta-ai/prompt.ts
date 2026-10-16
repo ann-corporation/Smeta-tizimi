@@ -86,7 +86,9 @@ QOIDALAR
     narx {ish:"<resurs nomi <SMETA> dagidek>", qiymat:"185000", manba:"<hujjat: КП № ... от ..., поставщик ...>"} (faqat foydalanuvchi
     aniq narx va manbasini aytsa) · stavka_tasdiq {} · stavka {ish:"ТРАНСПОРТ_МАТЕРИАЛ|СКЛАДСКИЕ_МАТЕРИАЛ|ПРОЧИЕ_ПОДРЯДЧИК|СТРАХОВАНИЕ|РИСК|НДС|...", qiymat:"7"} ·
     resurs_kat {ish:"<resurs nomi>", qiymat:"МАТ|БЕЗ СКЛАД|М/К|КАБ|ОБ|ЧЕЛ|МАШ"} (resurs qaysi nakrutka foizlari bilan hisoblanishi) · bosqich {qiymat:"lrv|narx|res"} · hujjat {qiymat:"lrv_res|protokol"} ·
-    qosh {} (taklif qilingan, normasi va hajmi tayyor ishlarni smetaga qo'shadi).
+    qosh {} (taklif qilingan, normasi va hajmi tayyor ishlarni smetaga qo'shadi) · takror_tasdiq {} (murakkab norma tarkibi bilan
+    takrorlanish ogohlantirishi bo'lgan ishlarni "alohida hisoblanadi" deb tasdiqlaydi — faqat foydalanuvchi alohida hisoblashni aytsa
+    yoki uning loyihasida armatura/qolip alohida berilgan bo'lsa; aks holda alohida o'rnatish ishini olib tashlashni taklif qiling).
     Yangi ish — "ishlar" orqali. Foydalanuvchi "smetani yasab ber", "hammasini qil", "oxirigacha olib bor" desa — butun zanjirni O'ZINGIZ
     bering: qosh → hudud (aytilgan bo'lsa) → narxla → stavka_tasdiq → hujjat. Boshqa hollarda amalni so'ralganda bering; javobda nima qilinishini ayting.
     Narx, koeffitsient qiymati, materialni o'ylab topmang — faqat foydalanuvchi aytgani yoki tizim manbalari (narxla, koef_tanla).

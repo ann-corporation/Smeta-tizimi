@@ -1745,5 +1745,7 @@
   "Butun tizim uchun": "For the whole system",
   "tizim": "system",
   "men": "me",
-  "Ishlarni smetaga qo‘shish": "Add works to the estimate"
+  "Ishlarni smetaga qo‘shish": "Add works to the estimate",
+  "Alohida hisoblashni tasdiqlash": "Confirm separate count",
+  "Alohida hisoblash tasdiqlandi: {n} ish": "Separate count confirmed: {n} works"
 }
