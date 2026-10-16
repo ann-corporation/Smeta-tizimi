@@ -35,7 +35,7 @@ async function ilovaTayyorla(f: File): Promise<Ilova> {
   for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
   return { nom: f.name, mimeType, data: btoa(s) };
 }
-import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi } from '../../lib/smeta-ai/protokol';
+import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi, type TanlovSorovi } from '../../lib/smeta-ai/protokol';
 import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
@@ -130,11 +130,14 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       // Small batches: a bill of quantities easily has dozens of works × 15 long norm names (one request hit the size limit).
       const tanlovlar: Array<{ id: string; ishId: string | null; sabab: string; qidiruv?: string[] }> = [];
       let xatoBor = false;
-      for (let b = 0; b < Math.min(sor.length, 40); b += 8) {
-        const r = await smetachiTanla(kompaniyaId, sor.slice(b, Math.min(b + 8, 40)));
+      // Batches of 3 sent four at a time: 8 works × 15 long norms ran past the 20 s model limit (production 2026-10-16),
+      // one work answers in ≈ 9 s. A failed batch does not stop the others.
+      const toplar: TanlovSorovi[][] = [];
+      for (let b = 0; b < Math.min(sor.length, 40); b += 3) toplar.push(sor.slice(b, Math.min(b + 3, 40)));
+      for (let b = 0; b < toplar.length; b += 4) {
+        const javoblar = await Promise.all(toplar.slice(b, b + 4).map(t => smetachiTanla(kompaniyaId, t)));
         if (!tirik.current) return list;
-        if (!r.ok) { setHolat(xato(r.code, r.message)); xatoBor = true; break; }
-        tanlovlar.push(...r.tanlovlar);
+        for (const r of javoblar) { if (r.ok) tanlovlar.push(...r.tanlovlar); else { setHolat(xato(r.code, r.message)); xatoBor = true; } }
       }
       if (xatoBor && !tanlovlar.length) break;
       const by = new Map(tanlovlar.map(x => [x.id, x]));

@@ -198,7 +198,9 @@ export function hajmSonlariniTekshir(out: SuhbatJavobi, manba: string): SuhbatJa
   const savollar = [...out.savollar];
   const ishlar = out.ishlar.map(i => {
     if (!i.hajmIfoda) return i;
-    const yoq = [...i.hajmIfoda.matchAll(/\d+(?:[.,]\d+)?/g)].map(m => norm(m[0])).filter(n => !bor.has(n) && !['10', '100', '1000'].includes(n));
+    // Geometry multipliers (2 × perimeter, 4 sides) and unit conversions (10 sm → 0,1 m; 1500 kg → 1,5 t) are not assumptions.
+    const birlikda = (n: string) => [10, 100, 1000].some(k => bor.has(norm(String(Number(n) * k))) || bor.has(norm(String(Number(n) / k))));
+    const yoq = [...i.hajmIfoda.matchAll(/\d+(?:[.,]\d+)?/g)].map(m => norm(m[0])).filter(n => !bor.has(n) && !['2', '3', '4', '10', '100', '1000'].includes(n) && !birlikda(n));
     if (!yoq.length) return i;
     // Owner 2026-10-16 ("AI juda qo'rqayapti — erkinlik ber"): the formula stays, the assumption is shown and asked, never hidden.
     savollar.push(`${i.tavsif}: hajmda ${yoq.join(', ')} soni TAXMIN (manbada yo‘q) — to‘g‘rimi?`);
