@@ -11,6 +11,20 @@ function mount(initial='/admin/dashboard',data=dashboardFixture()) {const report
 afterEach(()=>{cleanup();mocks.graph.mockReset();mocks.slice.mockReset();});
 const resolveGraph=()=>mocks.graph.mockResolvedValue({graph,omittedEdges:0,readAt:'2026-10-16T10:00:00Z'});
 describe('executive cockpit drilldown',()=>{
+ it('shows eight attention objects first, with review before unpriced counts and explicit expansion',()=>{
+   const d=dashboardFixture();const base=d.executive!.objects[0];
+   d.executive!.objects=Array.from({length:10},(_,i)=>({...base,object_id:i+1,name:`Scope item ${i+1}`,review_count:i===9?1:0,unpriced_rows:10-i}));
+   d.executive!.totals.object_count=10;
+   mount('/admin/dashboard',d);
+   const heading=screen.getByRole('heading',{name:'Bugun nimaga e’tibor berish kerak?'});
+   const list=heading.parentElement!;
+   const names=Array.from(list.querySelectorAll('button')).map(b=>b.textContent);
+   expect(names[0]).toContain('Scope item 10');
+   expect(screen.queryByRole('button',{name:/Scope item 9/})).toBeNull();
+   fireEvent.click(screen.getByRole('button',{name:'Barcha yozuvlar (10)'}));
+   expect(screen.getByRole('button',{name:/Scope item 9/})).toBeTruthy();
+   expect(screen.getByRole('button',{name:'Yig‘ish (10)'}).getAttribute('aria-expanded')).toBe('true');
+ });
  it('keeps object document access through the graph when the new money model is not installed',async()=>{resolveGraph();mocks.slice.mockResolvedValue({rows:[],complete:true,total:0});const d=dashboardFixture();delete d.executive;mount('/admin/dashboard?tugun=obyekt:127',d);fireEvent.click(screen.getByRole('tab',{name:'Ijro hujjatlari'}));await waitFor(()=>expect(mocks.slice).toHaveBeenCalledWith('quality',17,[127],expect.any(AbortSignal)));});
 
  it('company report never silently narrows to its only object',()=>{const r=mount();fireEvent.click(screen.getByRole('button',{name:'Hisobot va asl hujjatlar'}));expect(r.reports).toHaveBeenCalledWith(undefined,undefined);});
