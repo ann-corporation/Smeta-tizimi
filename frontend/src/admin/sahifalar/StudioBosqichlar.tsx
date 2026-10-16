@@ -6,7 +6,7 @@
  * (BATCH = bitta «Bekor qilish») orqali; narx/stavka/koeffitsient o'ylab topilmaydi — har biri manba yoki operator qarori.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { agentRegister } from './studioAgent';
+import { agentRegister, jarayonYoz } from './studioAgent';
 import { t } from '../../i18n/til';
 import type { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
@@ -179,17 +179,21 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   async function aiBuyruqlar(kerak: ResursGuruh[], nomzodlar: (g: ResursGuruh, iboralar: string[]) => NarxNomzod[]) {
     const natija = await aiNarxlash(kerak, nomzodlar,
       async sorov => { const r = await smetachiNarxTanla(kompaniyaId!, sorov, regions.find(([k]) => k === hudud)?.[1] ?? null); return r.ok ? r.tanlovlar : null; },
-      (x, y) => setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a: x, b: y }) }));
+      (x, y) => { setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a: x, b: y }) }); jarayonYoz(t('AI resurslarni ma’nosi bo‘yicha solishtirmoqda: {a} / {b}', { a: x, b: y })); });
     const commands: StudioCommand[] = [];
     const qoldi = new Map<string, AiNarxNatija>();
     for (const n of natija) {
       const g = kerak.find(x => x.key === n.key)!;
       // An earlier estimate's price is never applied automatically and never becomes a justification (owner 2026-10-15).
-      // Owner 2026-10-16 ("narxlarni tanlamaydi — erkinlik ber"): high and medium confidence from a documented source are applied;
-      // the reason says which (one undo reverts all). A company's earlier estimate still never becomes the price document.
-      if (n.nomzod && (n.ishonch === 'yuqori' || n.ishonch === 'orta') && n.nomzod.tur !== 'kompaniya')
-        commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.ishonch === 'orta' ? `AI (o‘rta ishonch, tekshiring): ${n.sabab}` : n.sabab));
-      else qoldi.set(n.key, n);
+      // High confidence from a documented source is applied; a medium pick is PRE-SELECTED and waits for the user's yes
+      // (owner 2026-10-16: "mujmal bo'lsa so'rab tasdiqlatib olsin") — one «AI tanlagan narxlarni tasdiqlash» applies them all.
+      if (n.nomzod && n.ishonch === 'yuqori' && n.nomzod.tur !== 'kompaniya') {
+        commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
+        jarayonYoz(`${g.talab ?? g.nom}: ${n.nomzod.narx} — ${n.sabab}`.slice(0, 220), 'ok');
+      } else {
+        qoldi.set(n.key, n);
+        if (n.nomzod && n.ishonch === 'orta') jarayonYoz(`${g.talab ?? g.nom}: ${n.nomzod.narx} taklif (o‘rta ishonch) — tasdiqingizni kutadi`.slice(0, 220), 'savol');
+      }
     }
     return { commands, qoldi, topildi: natija.length - qoldi.size, manbadaYoq: [...qoldi.values()].filter(x => !x.nomzodlar.length).length };
   }
@@ -201,7 +205,9 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
    */
   async function hammasiniNarxla(): Promise<string> {
     setXabar('');
+    jarayonYoz(t('Narxlash: {n} resurs; manbalar — mash-soat ro‘yxati 01.01.2026, narx indeksi, kompaniya KP', { n: guruhlar.filter(narxKerak).length }));
     const avto = avtoBuyruqlar();
+    jarayonYoz(t('Aniq mos topildi: {n} (mehnat/mash-soat {s}, KP {k})', { n: avto.narxlangan.size, s: avto.soatSoni, k: avto.kpSoni }), 'ok');
     // Machines without an exact list match also go to the AI (candidates from the machine-hour list); operators' labour never.
     const kerak = guruhlar.filter(g => narxKerak(g) && !avto.narxlangan.has(g.key) && !materialKerak(g)
       && (katalogdanNarxlanadi(g) || (!!mash && g.kat === 'МАШ' && !/МАШИНИСТ/.test(g.nom.toUpperCase()))));
@@ -222,19 +228,31 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const takliflarYangi = ai?.qoldi ?? zaxira;
     setTakliflar(takliflarYangi);
     if (takliflarYangi.size) setFiltr('taklif');
+    const kutadi = [...takliflarYangi.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya');
     const qism = [t('mehnat/mashina-soat: {n} qator', { n: avto.soatSoni }), ...(avto.kpSoni ? [t('KP dan: {n}', { n: avto.kpSoni })] : []),
       t('katalogdan aniq: {n}', { n: avto.narxlangan.size - avto.kpSoni })];
     if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
     else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
       : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
+    if (kutadi.length) qism.push(t('AI tanlagan {n} ta narx tasdiqingizni kutmoqda — «AI tanlagan narxlarni tasdiqlash» yoki chatda «tasdiqlayman» deng', { n: kutadi.length }));
     setXabar(qism.join(' · '));
     return qism.join(' · ');
   }
+  /** Applies every pre-selected medium-confidence AI pick (documented sources only) as one batch. */
+  function aiNarxlariniTasdiqla(): string {
+    const ok = [...takliflar.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya');
+    const commands = ok.flatMap(n => { const g = guruhlar.find(x => x.key === n.key); return g ? narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod!, `AI taklifi, foydalanuvchi tasdiqladi: ${n.sabab}`) : []; });
+    if (!commands.length) return t('Tasdiq kutayotgan AI narxi yo‘q.');
+    if (!qoy(commands, t('AI narxlari tasdiqlandi'))) return t('Narxlar qo‘llanmadi.');
+    setTakliflar(m => { const x = new Map(m); ok.forEach(n => x.delete(n.key)); return x; });
+    return t('{n} ta AI narxi tasdiqlandi va qo‘yildi', { n: ok.length });
+  }
   // Studio agent (chat): pricing, region, a manual price with its document — the same functions as the buttons.
-  const agent = useRef({ hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor });
-  agent.current = { hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor };
+  const agent = useRef({ hammasiniNarxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor });
+  agent.current = { hammasiniNarxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor };
   useEffect(() => {
     const off = [
+      agentRegister('narx_tasdiq', async () => agent.current.aiNarxlariniTasdiqla()),
       agentRegister('narxla', async () => {
         await kut(() => agent.current.manbalarTayyor);
         if (!agent.current.manbalarTayyor) throw new Error(t('Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.'));
@@ -308,6 +326,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         <span className="flex-1" />
         <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={ai.ish || !narxsizSoni || catHolat === 'yuklanmoqda'} onClick={() => void hammasiniNarxla()}>
           {ai.ish ? t('Narxlar qidirilmoqda...') : t('Barcha narxlarni topish')}</button>
+        {[...takliflar.values()].some(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya') && <button type="button" className="tugma h-8 px-3 text-[12px]" onClick={() => setXabar(aiNarxlariniTasdiqla())}>
+          {t('AI tanlagan narxlarni tasdiqlash ({n})', { n: [...takliflar.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya').length })}</button>}
         <select aria-label={t('Ko‘rinish')} className="input h-7 text-[11.5px]" value={filtr} onChange={e => setFiltr(e.target.value as typeof filtr)}>
           <option value="hammasi">{t('Hammasi')}</option><option value="narxsiz">{t('Faqat narxsiz')}</option><option value="taklif">{t('AI takliflari ({n})', { n: takliflar.size })}</option>
         </select>

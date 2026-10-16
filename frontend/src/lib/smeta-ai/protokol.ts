@@ -22,6 +22,8 @@ export type IshNiyati = {
   hajmIfoda: string | null;
   /** Where the numbers came from / assumptions, shown to the user. */
   hajmIzoh: string | null;
+  /** What the model ASSUMED (condition, helper number) — the work waits for the user's confirmation (owner 2026-10-16). */
+  taxmin?: string | null;
   /** Material characteristic that matters for the resource (e.g. "Бетон B7,5"), optional. */
   material: string | null;
   /** «исключать» position (thickness/size below the norm): counted negative. */
@@ -44,7 +46,7 @@ export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyat
  * The model only PROPOSES; the user runs them (one click, one undo step). "ish" is a work reference from the estimate
  * summary ([i3]) or a section/resource name; "qiymat" the value; "manba" the source document for a manual price.
  */
-export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'stavka', 'resurs_kat', 'bosqich', 'hujjat', 'qosh', 'takror_tasdiq'] as const;
+export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'stavka', 'resurs_kat', 'bosqich', 'hujjat', 'qosh', 'takror_tasdiq', 'narx_tasdiq'] as const;
 export type AgentAmal = { tur: typeof AMAL_TURLARI[number]; ish: string | null; qiymat: string | null; manba: string | null; izoh: string };
 export function agentAmallariniTekshir(raw: unknown): AgentAmal[] {
   const s = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
@@ -177,7 +179,8 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
     seen.add(id);
     const toplam = [...new Set((Array.isArray(r.toplam) ? r.toplam : typeof r.toplam === 'string' ? [r.toplam] : []).map(x => toplamKodi(x)).filter((x): x is string => !!x))].slice(0, 4);
     const koeffitsientlar = koefTakliflari(r.koeffitsientlar ?? r.koef ?? r.coefficients);
-    ishlar.push({ id, bolim: str(r.bolim, 120) || 'Asosiy', tavsif, qidiruv, birlik, hajmIfoda: ifoda,
+    const taxmin = str(r.taxmin, 300) || (/TAXMIN/i.test(str(r.hajmIzoh, 300)) ? str(r.hajmIzoh, 300) : '') || null;
+    ishlar.push({ id, bolim: str(r.bolim, 120) || 'Asosiy', tavsif, qidiruv, birlik, hajmIfoda: ifoda, ...(taxmin ? { taxmin } : {}),
       hajmIzoh: str(r.hajmIzoh, 300) || null, material: str(r.material, 120) || null, holat: ifoda ? holat : holat === 'TAYYOR' ? 'HAJM_KERAK' : holat,
       ...(r.minus === true ? { minus: true } : {}),
       ...(toplam.length ? { toplam } : {}), ...(koeffitsientlar.length ? { koeffitsientlar } : {}) });
@@ -204,8 +207,8 @@ export function hajmSonlariniTekshir(out: SuhbatJavobi, manba: string): SuhbatJa
     if (!yoq.length) return i;
     // Owner 2026-10-16 ("AI juda qo'rqayapti — erkinlik ber"): the formula stays, the assumption is shown and asked, never hidden.
     savollar.push(`${i.tavsif}: hajmda ${yoq.join(', ')} soni TAXMIN (manbada yo‘q) — to‘g‘rimi?`);
-    const izoh = `TAXMIN: ${yoq.join(', ')} manbada yo‘q`;
-    return { ...i, hajmIzoh: i.hajmIzoh?.includes('TAXMIN') ? i.hajmIzoh : [i.hajmIzoh, izoh].filter(Boolean).join(' · ').slice(0, 300) };
+    const izoh = `TAXMIN: hajmdagi ${yoq.join(', ')} manbada yo‘q`;
+    return { ...i, taxmin: [i.taxmin, izoh].filter(Boolean).join(' · ').slice(0, 300) };
   });
   return { ...out, ishlar, savollar: [...new Set(savollar)].slice(0, 8) };
 }
@@ -273,7 +276,8 @@ export const SUHBAT_SXEMA = { name: 'smetachi_suhbat', schema: { type: 'object',
   amallar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tur', 'ish', 'qiymat', 'manba', 'izoh'], properties: {
     tur: { type: 'string', enum: [...AMAL_TURLARI] }, ish: { type: ['string', 'null'] }, qiymat: { type: ['string', 'null'] }, manba: { type: ['string', 'null'] }, izoh: { type: 'string' } } } },
   ishlar: { type: 'array', items: { type: 'object', additionalProperties: false,
-    required: ['id', 'bolim', 'tavsif', 'qidiruv', 'birlik', 'hajmIfoda', 'hajmIzoh', 'material', 'minus', 'holat', 'toplam', 'koeffitsientlar'], properties: {
+    required: ['id', 'bolim', 'tavsif', 'qidiruv', 'birlik', 'hajmIfoda', 'hajmIzoh', 'taxmin', 'material', 'minus', 'holat', 'toplam', 'koeffitsientlar'], properties: {
+      taxmin: { type: ['string', 'null'] },
       minus: { type: 'boolean' },
       id: { type: 'string' }, bolim: { type: 'string' }, tavsif: { type: 'string' }, qidiruv: { type: 'array', items: { type: 'string' } },
       birlik: { type: 'string', enum: [...BIRLIKLAR] }, hajmIfoda: { type: ['string', 'null'] }, hajmIzoh: { type: ['string', 'null'] },

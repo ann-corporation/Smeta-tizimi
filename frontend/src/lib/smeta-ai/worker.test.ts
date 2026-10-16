@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
-import { aytilmaganShart, birlashtir, masofaOraligi, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
+import { aytilmaganShart, birlashtir, masofaOraligi, tasdiqKerak, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -121,6 +121,22 @@ describe('smetachi AI — catalogue grounding and batch', () => {
     const occ = Object.values(d.occurrences)[0];
     expect(d.sections[d.rootOrder[0]].name).toBe('Fundament');
     expect([occ.quantity, occ.basis.scale, occ.basis.unitLabel, occ.source.code]).toEqual(['0.72', '100', 'м3', 'E6-1-1']);
+  });
+  it('an AI assumption waits for the user: not added until confirmed (owner 2026-10-16)', async () => {
+    const [a] = birlashtir([], niyat({ taxmin: 'grunt 2-guruh' }));
+    const ready = { ...a, tanlangan: { workId: '1', kod: 'E6-1-1', nom: 'n', birlik: '100 М3', sabab: '' } };
+    expect(tasdiqKerak(ready)).toBe(true);
+    const r1 = await smetagaQoshish(emptyDoc('d'), [ready], k, () => 'x');
+    expect(r1.qoshildi).toEqual([]);
+    expect(r1.otkazildi[0].sabab).toContain('taxmini');
+    expect((await smetagaQoshish(emptyDoc('d'), [{ ...ready, tasdiqlandi: true }], k, () => 'y')).qoshildi).toEqual(['w1']);
+    // An assumed norm variant also waits; the user's own pick does not.
+    const variant = { ...birlashtir([], niyat())[0], tanlangan: { workId: '1', kod: 'E6-1-1', nom: 'n', birlik: '100 М3', sabab: 'TAXMIN: guruh 2', taxmin: true } };
+    expect(tasdiqKerak(variant)).toBe(true);
+    expect(tasdiqKerak({ ...variant, tanlangan: { ...variant.tanlangan, qolda: true } })).toBe(false);
+    // A confirmation survives a re-merge only while the assumption is unchanged.
+    expect(birlashtir([{ ...ready, tasdiqlandi: true }], niyat({ taxmin: 'grunt 2-guruh' }))[0].tasdiqlandi).toBe(true);
+    expect(birlashtir([{ ...ready, tasdiqlandi: true }], niyat({ taxmin: 'grunt 3-guruh' }))[0].tasdiqlandi).toBeUndefined();
   });
 });
 

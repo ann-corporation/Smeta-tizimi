@@ -13,7 +13,7 @@ import { smetaXulosasi } from '../../lib/smeta-studio/ai-kontekst';
 import { calcDoc } from '../../lib/smeta-studio/calc';
 import { loyihaBoyicha, talabMateriali } from '../../lib/smeta-studio/loyiha-material';
 import type { AgentAmal } from '../../lib/smeta-ai/protokol';
-import { AMAL_BOSQICH, agentChaqir, amalBuyruqlari, materialManbadami } from './studioAgent';
+import { AMAL_BOSQICH, agentChaqir, amalBuyruqlari, materialManbadami, jarayonTingla, type Qadam } from './studioAgent';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { docxMatni } from '../../lib/narx-dalil/docx-matn';
 
@@ -36,7 +36,7 @@ async function ilovaTayyorla(f: File): Promise<Ilova> {
   return { nom: f.name, mimeType, data: btoa(s) };
 }
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi, type TanlovSorovi } from '../../lib/smeta-ai/protokol';
-import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
@@ -62,7 +62,7 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
 const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha materiali', hajm: 'Hajm', ochir: 'Ishni o‘chirish', kochir: 'Bo‘limga ko‘chirish',
   bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
   narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash',
-  qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash' };
+  qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash', narx_tasdiq: 'AI narxlarini tasdiqlash' };
 
 export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
   return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
@@ -104,6 +104,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   });
   const [matn, setMatn] = useState('');
   const [band, setBand] = useState<'' | 'suhbat' | 'tanlash' | 'qoshish' | 'amal'>('');
+  // What the estimator is doing, step by step (owner 2026-10-16: "shunchaki «o'ylayapti» emas — Claude Code'dagidek izohlab borsin").
+  const [qadamlar, setQadamlar] = useState<Qadam[]>([]);
+  const qadam = useCallback((matn: string, holat: Qadam['holat'] = 'ishda') => setQadamlar(l => [...l.map(x => (x.holat === 'ishda' ? { ...x, holat: 'ok' as const } : x)), { matn, holat }].slice(-40)), []);
+  useEffect(() => jarayonTingla(q => qadam(q.matn, q.holat)), [qadam]);
   const [holat, setHolat] = useState('');
   const [tinglash, setTinglash] = useState(false);
   const rec = useRef<SpeechRec | null>(null);
@@ -119,6 +123,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   async function asosla(list: AiIsh[]): Promise<AiIsh[]> {
     if (!katalog || kompaniyaId == null) return list;
     let next = list.map(i => (i.nomzodlar.length ? i : { ...i, nomzodlar: nomzodlarTop(katalog, i) }));
+    for (const i of next.filter(x => !x.tanlangan)) qadam(t('Katalogdan qidiryapman «{q}» — {n} ta nomzod', { q: i.qidiruv[0] ?? i.tavsif, n: i.nomzodlar.length }));
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
@@ -134,6 +139,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       // one work answers in ≈ 9 s. A failed batch does not stop the others.
       const toplar: TanlovSorovi[][] = [];
       for (let b = 0; b < Math.min(sor.length, 40); b += 3) toplar.push(sor.slice(b, Math.min(b + 3, 40)));
+      qadam(t('AI {n} ta ish uchun nomzodlarni solishtirmoqda (tizim tajribasi va yuklangan smetalar amaliyoti bilan)…', { n: sor.length }));
       for (let b = 0; b < toplar.length; b += 4) {
         const javoblar = await Promise.all(toplar.slice(b, b + 4).map(t => smetachiTanla(kompaniyaId, t)));
         if (!tirik.current) return list;
@@ -144,7 +150,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       const qayta = new Set<string>();
       next = next.map(i => {
         const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
-        if (n && !tanlovZidmi(i, n, next)) return { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab } };
+        if (n && !tanlovZidmi(i, n, next)) {
+          const taxmin = /TAXMIN|taxmin|предполож|assum/.test(c!.sabab);
+          qadam(t('«{i}» → {k} {n} — {s}', { i: i.tavsif, k: n.kod, n: n.nom.slice(0, 70), s: c!.sabab }), taxmin ? 'savol' : 'ok');
+          return { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab, ...(taxmin ? { taxmin: true } : {}) } };
+        }
+        if (c && !c.ishId) qadam(t('«{i}»: mos norma topilmadi{q}', { i: i.tavsif, q: c.qidiruv?.length ? t(' — qayta qidiraman: {q}', { q: c.qidiruv.join('; ') }) : '' }), c.qidiruv?.length ? 'ishda' : 'savol');
         if (round === 0 && c?.qidiruv?.length) {
           const extra = nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
           const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
@@ -168,7 +179,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     setIlova(null);
     if (kompaniyaId == null) { setHolat(t('Avval yuqorida kompaniyani tanlang.')); return; }
     const yangi = [...xabarlar, { rol: 'user' as const, matn: ilova ? `📎 ${ilova.nom}\n${m}` : m }];
-    setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat');
+    setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat'); setQadamlar([]);
+    qadam(t('Xabaringizni o‘qiyapman; smetadagi {n} ish{h} bilan solishtiraman', { n: Object.keys(doc.occurrences).length, h: yuborilganIlova ? t(' va biriktirilgan «{f}»', { f: yuborilganIlova.nom }) : '' }));
     try {
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title,
         smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)), yuborilganIlova);
@@ -180,6 +192,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
         setXabarlar(x => [...x, { rol: 'assistant', matn: t('Javobni to‘liq tushunib bo‘lmadi — ishlar ro‘yxati o‘zgarmadi. Iltimos, aniqroq yozing yoki qayta yuboring.') }]);
         return;
       }
+      qadam(t('Tushundim: {i} ta ish, {s} ta savol, {a} ta amal taklifi', { i: r.ishlar.length, s: r.savollar.length, a: (r.amallar ?? []).length }), 'ok');
+      for (const ish of r.ishlar.filter(x => x.taxmin)) qadam(t('TAXMIN — «{i}»: {x}. Tasdiqlamaguningizcha smetaga qo‘shilmaydi.', { i: ish.tavsif, x: ish.taxmin! }), 'savol');
       const javob = [r.javob, ...r.savollar.map(s => '• ' + s)].join('\n');
       setXabarlar(x => [...x, { rol: 'assistant', matn: javob }]);
       const userText = yangi.filter(x => x.rol === 'user').map(x => x.matn).join('\n');
@@ -199,9 +213,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   }
 
   const overlaps = useMemo(() => includedWorkReviews(ishlar, doc), [ishlar, doc]);
-  const tayyor = useMemo(() => ishlar.filter(i => i.tanlangan && i.hajm && !overlaps.has(i.id)), [ishlar, overlaps]);
+  const tayyor = useMemo(() => ishlar.filter(i => i.tanlangan && i.hajm && !overlaps.has(i.id) && !tasdiqKerak(i)), [ishlar, overlaps]);
+  const tasdiqKutadi = ishlar.filter(i => tasdiqKerak(i));
   async function qosh() {
+    if (tasdiqKutadi.length) qadam(t('{n} ta ishda AI taxmini tasdiqlanmagan — ular qo‘shilmaydi: {l}', { n: tasdiqKutadi.length, l: tasdiqKutadi.map(i => i.tavsif).join('; ') }), 'savol');
     if (!katalog || !tayyor.length) return;
+    qadam(t('Smetaga qo‘shyapman: {n} ta ish', { n: tayyor.length }));
     setBand('qoshish');
     try {
       const r = await smetagaQoshish(doc, ishlar, katalog, newId);
@@ -251,6 +268,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       // Step actions run after the edits are in the document (the next render), one by one.
       if (keyin.length) await new Promise(r => setTimeout(r, 300));
       for (const a of keyin) {
+        qadam(t('Bajaryapman: {a}', { a: t(AMAL_NOMI[a.tur]) + (a.qiymat ? ' · ' + a.qiymat : '') }));
         try {
           const nom = a.tur === 'hujjat' ? 'hujjat' : a.tur;
           natija.push(`✓ ${await agentChaqir(nom, a, () => { const b = AMAL_BOSQICH[a.tur]; if (b) onBosqich?.(b); })}`);
@@ -286,7 +304,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
           {t('Lentali fundament qilindi: kotlovan qazildi, podbetonka quyildi, armatura to‘qildi, beton B20 quyildi. Uzunligi 48 m, kengligi 0,6 m, balandligi 1,2 m.')}</button></p>
       </div>}
       {xabarlar.map((x, i) => <div key={i} className={x.rol === 'user' ? 'ml-8 rounded-lg bg-accent/10 px-2 py-1.5' : 'mr-8 whitespace-pre-line rounded-lg bg-surface-2 px-2 py-1.5'}>{x.matn}</div>)}
-      {band && <p className="text-xs text-text-mute">{band === 'suhbat' ? t('Smetachi o‘ylayapti...') : band === 'tanlash' ? t('Normativ katalogdan mos ishlar tanlanmoqda...') : t('Smetaga qo‘shilmoqda...')}</p>}
+      {qadamlar.length > 0 && <details open={!!band} className="mr-8 rounded-lg border border-border/70 bg-surface-1 px-2 py-1 text-[11.5px]">
+        <summary className="cursor-pointer text-text-dim">{band ? t('Smetachi ishlayapti — {n} qadam', { n: qadamlar.length }) : t('Smetachi nima qildi ({n} qadam)', { n: qadamlar.length })}</summary>
+        <ol className="mt-1 space-y-0.5">{qadamlar.map((q, i) => <li key={i} className={`flex gap-1.5 ${q.holat === 'xato' ? 'text-danger' : q.holat === 'savol' ? 'text-warn' : 'text-text-dim'}`}>
+          <span className="shrink-0 w-3">{q.holat === 'ishda' && band ? '⏳' : q.holat === 'xato' ? '✗' : q.holat === 'savol' ? '?' : '✓'}</span><span>{q.matn}</span></li>)}</ol>
+      </details>}
       <div ref={oxir} />
     </div>
     <form className="flex items-end gap-1" onSubmit={e => { e.preventDefault(); void yubor(); }}>
@@ -350,6 +372,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
         <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Taklif qilingan ishlar')}</strong>
         <span className="text-xs text-text-mute">{t('{a} / {b} tayyor', { a: tayyor.length, b: ishlar.length })}</span>
         <span className="flex-1" />
+        {tasdiqKutadi.length > 0 && <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => setIshlar(l => l.map(x => (tasdiqKerak(x) ? { ...x, tasdiqlandi: true } : x)))}>
+          {t('Barcha taxminlarni tasdiqlash ({n})', { n: tasdiqKutadi.length })}</button>}
         <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!tayyor.length || !!band} onClick={() => void qosh()}>
           {t('Tayyorlarini smetaga qo‘shish ({n})', { n: tayyor.length })}</button>
       </div>
@@ -388,6 +412,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
             <span className="tabular-nums font-medium">{i.hajm ? `= ${i.hajm.qiymat.replace('.', ',')} ${i.birlik}` : <span className="text-warn">{i.hajmXato ? t('formula noto‘g‘ri') : t('hajm kerak')}</span>}</span>
           </div>
           {i.hajmIzoh && <p className="text-[11px] text-text-mute">{i.hajmIzoh}</p>}
+          {tasdiqKerak(i) && <div role="status" className="rounded border border-warn/40 bg-warn/10 px-2 py-1 text-[11.5px]">
+            <p><b>{t('AI taxmini — to‘g‘rimi?')}</b> {[i.taxmin, i.tanlangan?.taxmin && !i.tanlangan.qolda ? t('Norma varianti: {s}', { s: i.tanlangan.sabab }) : null].filter(Boolean).join(' · ')}</p>
+            <div className="mt-1 flex gap-2">
+              <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => ishniYangila(i.id, { tasdiqlandi: true })}>{t('Ha, to‘g‘ri')}</button>
+              <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => setMatn(`«${i.tavsif}»: `)}>{t('Yo‘q, to‘g‘risini yozaman')}</button>
+            </div></div>}
         </li>)}
       </ul>
     </div>}

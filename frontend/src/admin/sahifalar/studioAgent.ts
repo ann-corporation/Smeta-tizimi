@@ -10,6 +10,12 @@ import { ishHavolalari } from '../../lib/smeta-studio/ai-kontekst';
 import { resursNomi } from '../../lib/smeta-studio/loyiha-material';
 import { NAKRUTKA_KATLAR } from '../../lib/nakrutka-podval';
 
+/** One line of what the estimator is doing right now (owner 2026-10-16: "Claude Code'dagidek izohlab borsin"). */
+export type Qadam = { matn: string; holat: 'ishda' | 'ok' | 'xato' | 'savol' };
+const tinglovchilar = new Set<(q: Qadam) => void>();
+export function jarayonYoz(matn: string, holat: Qadam['holat'] = 'ishda') { tinglovchilar.forEach(f => f({ matn, holat })); }
+export function jarayonTingla(fn: (q: Qadam) => void): () => void { tinglovchilar.add(fn); return () => { tinglovchilar.delete(fn); }; }
+
 type Handler = (arg: string | null, amal: AgentAmal) => Promise<string>;
 const handlers = new Map<string, Handler>();
 /** A studio step registers what it can do (pricing, documents, coefficients) while it is mounted. */
@@ -29,7 +35,7 @@ export async function agentChaqir(nom: string, amal: AgentAmal, ochish: () => vo
 }
 
 /** Which step runs an action that is not a plain document edit. */
-export const AMAL_BOSQICH: Partial<Record<AgentAmal['tur'], 'lrv' | 'narx' | 'res'>> = { narxla: 'narx', hudud: 'narx', narx: 'narx', stavka_tasdiq: 'narx', stavka: 'narx', hujjat: 'res', koef_tanla: 'lrv' };
+export const AMAL_BOSQICH: Partial<Record<AgentAmal['tur'], 'lrv' | 'narx' | 'res'>> = { narxla: 'narx', hudud: 'narx', narx: 'narx', stavka_tasdiq: 'narx', stavka: 'narx', hujjat: 'res', koef_tanla: 'lrv', narx_tasdiq: 'narx' };
 
 const grades = (text: string) => [...text.toUpperCase().matchAll(/(?:^|[^A-ZА-ЯЁ0-9])([ABАВМM]\s*\d+(?:[.,]\d+)?)(?=$|[^0-9])/g)]
   .map(m => m[1].replace(/\s/g, '').replace(/А/g, 'A').replace(/В/g, 'B').replace(/М/g, 'M').replace(',', '.'));
