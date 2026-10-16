@@ -53,6 +53,16 @@ export function scopedObjects(e:BossExecutive|null,graph:MindmapGraf|undefined,k
   const ids=new Set(graph?neighbours(graph,key).filter(n=>n.tur==='obyekt').map(n=>Number(n.id.split(':')[1])):[]);
   return e.objects.filter(o=>ids.has(o.object_id));
 }
+/** Documents/history can use validated graph identities even before the optional executive money RPC is installed. */
+export function scopeObjectIds(e:BossExecutive|null,graph:MindmapGraf|undefined,key:string):number[] {
+  const ids=new Set(scopedObjects(e,graph,key).map(o=>o.object_id));
+  if(graph) {
+    const candidates=key.startsWith('kompaniya:')?graph.tugunlar:key.startsWith('obyekt:')?graph.tugunlar.filter(n=>n.id===key):key==='unassigned'?[]:neighbours(graph,key);
+    // Absence of an edge is not proof of an unassigned project; that scope uses the explicit executive roster only.
+    for(const n of candidates) if(n.tur==='obyekt')ids.add(Number(n.id.split(':')[1]));
+  }
+  return [...ids].sort((a,b)=>a-b);
+}
 export function knownSum(values:unknown[]) {
   const nums=values.map(amount);return {known:nums.every(n=>n===null)?null:nums.reduce<number>((s,n)=>s+(n??0),0),missing:nums.filter(n=>n===null).length};
 }

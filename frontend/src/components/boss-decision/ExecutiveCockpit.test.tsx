@@ -11,6 +11,8 @@ function mount(initial='/admin/dashboard',data=dashboardFixture()) {const report
 afterEach(()=>{cleanup();mocks.graph.mockReset();mocks.slice.mockReset();});
 const resolveGraph=()=>mocks.graph.mockResolvedValue({graph,omittedEdges:0,readAt:'2026-10-16T10:00:00Z'});
 describe('executive cockpit drilldown',()=>{
+ it('keeps object document access through the graph when the new money model is not installed',async()=>{resolveGraph();mocks.slice.mockResolvedValue({rows:[],complete:true,total:0});const d=dashboardFixture();delete d.executive;mount('/admin/dashboard?tugun=obyekt:127',d);fireEvent.click(screen.getByRole('tab',{name:'Ijro hujjatlari'}));await waitFor(()=>expect(mocks.slice).toHaveBeenCalledWith('quality',17,[127],expect.any(AbortSignal)));});
+
  it('company report never silently narrows to its only object',()=>{const r=mount();fireEvent.click(screen.getByRole('button',{name:'Hisobot va asl hujjatlar'}));expect(r.reports).toHaveBeenCalledWith(undefined,undefined);});
  it('financial displays preserve kopecks rather than rounding them to whole som',()=>{const d=dashboardFixture();d.executive!.totals.estimate_known=100.25;mount('/admin/dashboard',d);expect(screen.getByText('100,25 UZS')).toBeTruthy();});
 
