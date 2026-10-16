@@ -15,6 +15,7 @@ import { lrvPlusEksportGate, type LrvPlusExportContext } from '../../lib/lrv-plu
 import { lrvHujjat } from '../../lib/lrv-hujjat';
 import { f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
@@ -189,7 +190,7 @@ export function HolatNative() {
      "ВЕДОМОСТЬ ОСТАТКА РАБОТ" (hujjat standarti H1–H9): ichma-ich RZ, ИТОГО,
      oshib ketgan va noma'lum pozitsiyalar hujjatda ochiq ro'yxatda. */
   const ostatkaEksport = useCallback(async (korish = false) => {
-    if (!selected || !daraxtXom.length) return;
+    if (!selected || !daraxtXom.length || !joriy?.id) return;
     if (!exportGate.ok) {
       setError(`Excel eksporti bloklandi: ${exportBlockReason || 'provenance/context yetarli emas'}.`);
       return;
@@ -210,17 +211,19 @@ export function HolatNative() {
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
       const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval });
-      if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi);
+      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'OSTATKA', sabab: `Ведомость остатка · ${selected.nom}`, obyekt: obyektId },
+        () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
+      if (!t.ok) { toast(t.xabar, 'danger'); return; }
       const izoh = [
         model.oshibKetgan.length ? `${model.oshibKetgan.length} ta qatorda fakt smetadan oshgan — alohida ro‘yxatda` : '',
         model.diqqat.length ? `${model.diqqat.length} ta pozitsiya diqqat ro‘yxatida` : '',
         model.chiqarilgan.length ? `${model.chiqarilgan.length} ta ish ostatkadan chiqarilgan (asosi bilan alohida bo‘limda)` : '',
       ].filter(Boolean).join('; ');
-      toast(`Ostatka: ${model.barglar} ta pozitsiya${model.jami != null ? `, jami ${model.jami.toLocaleString('ru-RU')} so‘m` : ''}.${izoh ? ' ' + izoh + '.' : ''}`, izoh ? 'warn' : 'ok');
+      toast(`Ostatka: ${model.barglar} ta pozitsiya${model.jami != null ? `, jami ${model.jami.toLocaleString('ru-RU')} so‘m` : ''}.${izoh ? ' ' + izoh + '.' : ''}${t.xabar ? ' ' + t.xabar : ''}`, izoh ? 'warn' : 'ok');
     } catch {
       setError('Ostatka Excel fayli tuzilmadi. Qayta urinib ko‘ring.');
     } finally { setEksportBolmoqda(false); }
-  }, [selected, daraxtXom, holatXom, exportGate.ok, exportBlockReason, tomonlar, istisno, obyektId, korinish]);
+  }, [selected, daraxtXom, holatXom, exportGate.ok, exportBlockReason, tomonlar, istisno, obyektId, korinish, joriy?.id]);
 
 
   /* Egasi (2026-09-25): "slichitelniy vedomost ham yasay oladigan bo'lishi
@@ -228,7 +231,7 @@ export function HolatNative() {
      pozitsiya bo'yicha, farq (+ ortiq / − kam) summasi bilan. Farqni faqat
      ko'rsatadi — hech narsani o'zgartirmaydi. */
   const slichitelniyEksport = useCallback(async (korish = false) => {
-    if (!selected || !daraxtXom.length) return;
+    if (!selected || !daraxtXom.length || !joriy?.id) return;
     if (!exportGate.ok) {
       setError(`Excel eksporti bloklandi: ${exportBlockReason || 'provenance/context yetarli emas'}.`);
       return;
@@ -245,12 +248,14 @@ export function HolatNative() {
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
       const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval });
-      if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi);
-      toast(`Slichitelniy: ${model.barglar} ta pozitsiya, ${model.ortiq} tasida smetadan ortiq, ${model.kam} tasida kam bajarilgan${model.diqqat.length ? `; ${model.diqqat.length} ta pozitsiyada ma’lumot yetishmaydi — jami bo‘sh qoldirildi` : ''}.`, model.diqqat.length ? 'warn' : 'ok');
+      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${selected.nom}`, obyekt: obyektId },
+        () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
+      if (!t.ok) { toast(t.xabar, 'danger'); return; }
+      toast(`Slichitelniy: ${model.barglar} ta pozitsiya, ${model.ortiq} tasida smetadan ortiq, ${model.kam} tasida kam bajarilgan${model.diqqat.length ? `; ${model.diqqat.length} ta pozitsiyada ma’lumot yetishmaydi — jami bo‘sh qoldirildi` : ''}.${t.xabar ? ' ' + t.xabar : ''}`, model.diqqat.length ? 'warn' : 'ok');
     } catch {
       setError('Slichitelniy Excel fayli tuzilmadi. Qayta urinib ko‘ring.');
     } finally { setEksportBolmoqda(false); }
-  }, [selected, daraxtXom, holatXom, exportGate.ok, exportBlockReason, tomonlar, istisno, slichFaqatFarq, obyektId, korinish]);
+  }, [selected, daraxtXom, holatXom, exportGate.ok, exportBlockReason, tomonlar, istisno, slichFaqatFarq, obyektId, korinish, joriy?.id]);
 
   const smetaJami = tree.reduce((sum, n) => sum + (n.smeta || 0), 0);
   const faktJami = tree.reduce((sum, n) => sum + (n.stFakt || 0), 0);

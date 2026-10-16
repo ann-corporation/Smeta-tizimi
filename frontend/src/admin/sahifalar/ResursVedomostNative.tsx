@@ -6,6 +6,8 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { FmtN } from '../../lib/format';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { toast } from '../../umumiy/ui/Toast';
 
 // T2-PTO-CLOSURE-007 (Claude lane): egasining so'rovi bo'yicha — butun
 // smeta+F2'dan kategoriya (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М-К) kesimida resurs
@@ -58,6 +60,13 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   })).filter(k => k.qatorlar.length > 0);
 
   const korinish = useHujjatKorinish();
+  async function hujjat(korish: boolean) {
+    const nom = objects.find((o) => String(o.id) === objectId)?.nom || `Obyekt ${objectId}`;
+    const h = resursVedomostHujjat(holatlar, { obyektNomi: nom, imzo: tomonlar });
+    const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'RESURS_VEDOMOST', sabab: `Ресурсная ведомость · ${nom}`, obyekt: objectId },
+      () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
+    if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
+  }
   return (
     <div className="space-y-3 p-1">
       {korinish.oyna}
@@ -74,17 +83,9 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
         <>
           <div className="flex flex-wrap items-start gap-3">
             <button type="button" className="h-8 rounded-lg border px-3 text-sm hover:border-accent/50"
-              onClick={() => {
-                const nom = objects.find((o) => String(o.id) === objectId)?.nom || `Obyekt ${objectId}`;
-                const h = resursVedomostHujjat(holatlar, { obyektNomi: nom, imzo: tomonlar });
-                downloadBlob(h.bytes, h.faylNomi);
-              }}>Ресурсная ведомость (Excel)</button>
+              onClick={() => void hujjat(false)}>Ресурсная ведомость (Excel)</button>
             <button type="button" className="h-8 rounded-lg border px-3 text-sm hover:border-accent/50" title="Saytda hujjatdagiday ko‘rish"
-              onClick={() => {
-                const nom = objects.find((o) => String(o.id) === objectId)?.nom || `Obyekt ${objectId}`;
-                const h = resursVedomostHujjat(holatlar, { obyektNomi: nom, imzo: tomonlar });
-                korinish.ochish(h.bytes, h.faylNomi);
-              }}>Ko‘rish</button>
+              onClick={() => void hujjat(true)}>Ko‘rish</button>
             <div className="min-w-[260px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
           </div>
           <label className="block text-sm">Resurs qidirish

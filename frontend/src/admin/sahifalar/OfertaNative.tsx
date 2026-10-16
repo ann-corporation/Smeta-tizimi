@@ -13,6 +13,7 @@ import { paketFaylHisobi, paketQatorlari, paketSvodXlsx, paketZip, type OfertaPa
 import { NAKRUTKA_STANDART, type NakrutkaQadamlar } from '../../lib/nakrutka-kaskad';
 import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl, type NakrutkaKoefKod, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
@@ -302,19 +303,26 @@ function Sessiya() {
         }
       }
       if (!natijalar.length) { setError('Eksport uchun tanlangan varaq yo‘q.'); return; }
+      if (!joriy?.id) { setError('Oferta uchun kompaniyani tanlang.'); return; }
       const qisman = natijalar.some((n) => n.saqlanish !== 'toliq') ? ' .xls fayllar .xlsx ga o‘girildi — ba’zi format qisman o‘zgargan bo‘lishi mumkin.' : '';
+      let fayl: { bytes: Uint8Array; nom: string; mime?: string };
+      let xabar: string;
       if (natijalar.length === 1 && fayllar.length === 1) {
-        downloadBlob(natijalar[0].bytes, natijalar[0].nom);
-        setMessage(`Oferta tayyor: ${natijalar[0].nom}.${qisman}${hisob.halQilinmagan ? ` ${hisob.halQilinmagan} ta resurs narxsiz/kategoriyasiz — yakuniyga kirmadi (ro‘yxat hujjatda).` : ''}`);
+        fayl = { bytes: natijalar[0].bytes, nom: natijalar[0].nom };
+        xabar = `Oferta tayyor: ${natijalar[0].nom}.${qisman}${hisob.halQilinmagan ? ` ${hisob.halQilinmagan} ta resurs narxsiz/kategoriyasiz — yakuniyga kirmadi (ro‘yxat hujjatda).` : ''}`;
       } else {
         const svod = paketSvodXlsx(obyektHisoblari.map((o) => ({ nom: o.fayl.nom, faylNomi: o.fayl.faylNomi, hisob: o.hisob })), imzo,
           paketNomi.trim() ? `СВОДНЫЙ РАСЧЕТ ОФЕРТЫ — ${paketNomi.trim()}` : undefined);
         const nom = paketNomi.trim() || 'ПАКЕТ';
         const svodNomi = hujjatFaylNomi({ obyekt: nom, hujjat: 'СВОД_ОФЕРТЫ', davr: bugunSana() });
         const zipNomi = hujjatFaylNomi({ obyekt: nom, hujjat: 'ОФЕРТА', davr: bugunSana(), kengaytma: 'zip' });
-        downloadBlob(paketZip([...natijalar, { nom: svodNomi, bytes: svod }]), zipNomi, 'application/zip');
-        setMessage(`Paket tayyor: ${natijalar.length} ta hujjat + svod (${zipNomi}).${qisman}${lrvIzoh.length ? ' ' + lrvIzoh.join(' ') : ''}`);
+        fayl = { bytes: paketZip([...natijalar, { nom: svodNomi, bytes: svod }]), nom: zipNomi, mime: 'application/zip' };
+        xabar = `Paket tayyor: ${natijalar.length} ta hujjat + svod (${zipNomi}).${qisman}${lrvIzoh.length ? ' ' + lrvIzoh.join(' ') : ''}`;
       }
+      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: fayl.bytes, hujjat: 'OFERTA', sabab: `Оферта · ${fayl.nom}` },
+        () => downloadBlob(fayl.bytes, fayl.nom, fayl.mime));
+      if (!t.ok) { setError(t.xabar); return; }
+      setMessage(xabar + (t.xabar ? ' ' + t.xabar : ''));
     } catch (e) { setError(e instanceof Error ? e.message : 'Oferta fayli yaratilmadi.'); }
     finally { setBusy(false); }
   }

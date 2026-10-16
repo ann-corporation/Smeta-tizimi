@@ -9,6 +9,8 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { m29Hisobla, type M29Kirish, type M29Material, type M29Natija, type M29SmetaQator, type M29SkladQator } from '../../lib/m29';
 import { m29DavrMatni, m29Hujjat } from '../../lib/m29/export';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { toast } from '../../umumiy/ui/Toast';
 
 /**
  * М-29 — материалы: расход по норме ↔ фактически (egasi 2026-09-28).
@@ -100,13 +102,15 @@ function Sessiya({ companyId }: { companyId: number }) {
   useEffect(() => { if (natija) setOchiq(new Set(natija.guruhlar.map((g) => 'g:' + g.kat))); }, [natija]);
   const obyektNom = objects.find((o) => String(o.id) === objectId)?.nom ?? '';
 
-  function eksport(korish: boolean) {
+  async function eksport(korish: boolean) {
     if (!natija) return;
     try {
       // Egasi 2026-09-30: hisobot oyidan oldingi har oy — alohida ustun (bitta M-29 hisobi har oy uchun).
       const oldingiOylar = kirish ? [...oylar].filter((m) => m < davr).sort().map((oy) => ({ oy, natija: m29Hisobla(kirish, oy) })) : [];
       const h = m29Hujjat(natija, { obyektNom, pudratchi, imzo: tomonlar, oldingiOylar });
-      if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
+      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'M-29', sabab: `М-29 · ${obyektNom} · ${davr}`, obyekt: objectId },
+        () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
+      if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
     } catch (e) { setXato(e instanceof Error ? `M-29 tuzilmadi: ${e.message}` : 'M-29 tuzilmadi.'); }
   }
   const almashtir = (k: string) => setOchiq((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });

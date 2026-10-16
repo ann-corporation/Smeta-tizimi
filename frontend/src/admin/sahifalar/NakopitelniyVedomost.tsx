@@ -20,6 +20,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { toast } from '../../umumiy/ui/Toast';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { FmtN } from '../../lib/format';
 import { ozgarishIzohi, smetaModeliniYukla, tartibla, type SmetaModel } from '../../lib/smeta-model';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
@@ -361,7 +362,10 @@ function Sessiya({ companyId }: { companyId: number }) {
         },
       );
       setForma3Diqqat([...h.diqqat, ...(context.warning ? [{ nom: 'Rekvizitlar', sabab: context.warning }] : []), ...(!f2Oylik.length ? [{ nom: 'F2 manbasi', sabab: 'Bu davrgacha tasdiqlangan F2 yo‘q; bajarilgan ish qiymatlari bo‘sh hisobot sifatida beriladi.' }] : [])]);
-      if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
+      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 · ${obyektNom} · ${davr.slice(0, 7)}`, obyekt: objectId },
+        () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
+      if (!t.ok) { toast(t.xabar, 'danger'); return; }
+      if (t.xabar) toast(t.xabar, 'ok');
       // F3 — rasmiy hujjat: R2 arxivga o'zgarmas versiya (davr bo'yicha; aynan bir xil mazmun qayta saqlanmaydi).
       if (f2Oylik.length) {
         void hujjatArxivla({ kompaniyaId: companyId, loyihaId: loyihaId ?? null, obyektId: Number(objectId), turi: 'f3', faylNomi: h.faylNomi, bytes: h.bytes, davr: davr.slice(0, 7) })
@@ -384,7 +388,9 @@ function Sessiya({ companyId }: { companyId: number }) {
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
       const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
       const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar });
-      if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
+      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
+        () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
+      if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
     } catch (e) { setXato(e instanceof HujjatToliqEmasXato ? 'Hujjat to‘liq emas — eksport bloklandi.' : 'Excel fayli tuzilmadi.'); }
   };
 

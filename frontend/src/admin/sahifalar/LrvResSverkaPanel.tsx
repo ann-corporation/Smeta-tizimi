@@ -3,6 +3,9 @@ import { sverkaManbalardan, SVERKA_KAT_NOMI, type SverkaManba, type SverkaNatija
 import { SVERKA_HOLAT_NOMI, sverkaHujjatXlsx } from '../../lib/lrv-res-sverka-export';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { toast } from '../../umumiy/ui/Toast';
 
 /**
  * Smeta yuklanganda LRV ↔ RES farqlari (egasi, C5). Avtomatik hisoblanadi,
@@ -25,6 +28,7 @@ export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi }: {
   const [xato, setXato] = useState('');
   const [faqatFarq, setFaqatFarq] = useState(true);
   const korinish = useHujjatKorinish();
+  const { joriy } = useKompaniya();
   const kalit = useMemo(() => [...lrvlar, ...reslar].map((m) => `${m.nom}:${m.rows.length}`).join('|'), [lrvlar, reslar]);
 
   useEffect(() => {
@@ -44,9 +48,12 @@ export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi }: {
 
   const lrvManba = lrvlar.map((m) => m.nom).join('; ');
   const resManba = reslar.length ? reslar.map((m) => m.nom).join('; ') : 'ресурсная ведомость в составе ЛРВ';
-  const hujjat = (korish: boolean) => {
+  const hujjat = async (korish: boolean) => {
+    if (!joriy?.id) { toast('Hujjat uchun kompaniyani tanlang.', 'danger'); return; }
     const { bytes, faylNomi } = sverkaHujjatXlsx(natija, { obyektNomi: obyektNomi || 'Объект', lrvManba, resManba, faqatFarq });
-    if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi);
+    const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SVERKA_LRV_RES', sabab: `Сверка ЛРВ и РС · ${obyektNomi || 'Объект'}` },
+      () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
+    if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
   };
   const c = natija.soni;
   const korinadi = natija.pozitsiyalar.filter((p) => !faqatFarq || (p.holat !== 'mos' && p.holat !== 'mashinist'));

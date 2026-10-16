@@ -27,6 +27,7 @@ import { aosrExcel, aosrFaylNomi, aosrKomissiyaTartibi } from '../lib/aosr-expor
 import { qoralamaTanlangandan } from '../lib/aosr-qoralama';
 import { aosrReestrXlsx, labReestrXlsx } from '../lib/ijro-reestr-export';
 import { toast } from '../umumiy/ui/Toast';
+import { hujjatTokenBilan } from '../lib/token-hujjat';
 import { useKompaniya } from './KompaniyaTanlov';
 
 const ROL_NOMI: Record<string, string> = {
@@ -135,25 +136,33 @@ export default function TestAosr() {
         })),
         logo: logo ? { base64: logo.data_b64, ext: logo.mime === 'image/png' ? 'png' : 'jpeg' } : null,
       });
-      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      const el = document.createElement('a');
-      el.href = url; el.download = aosrFaylNomi(a.obyekt, a.raqam, a.sana); el.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      if (!kompaniyaId) { toast('Kompaniyani tanlang', 'warn'); return; }
+      const t = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `АОСР № ${a.raqam ?? ''} · ${a.obyekt ?? ''}` }, () => {
+        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        const el = document.createElement('a');
+        el.href = url; el.download = aosrFaylNomi(a.obyekt, a.raqam, a.sana); el.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      });
+      if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
     } catch (e) {
       toast('Excel yasalmadi: ' + (e instanceof Error ? e.message : String(e)), 'danger');
     }
   };
 
   /** Reestr Excel (РЕЕСТР АОСР / РЕЕСТР ПРОТОКОЛОВ) — joriy obyekt bo'yicha. */
-  const reestr = (tur: 'aosr' | 'lab') => {
+  const reestr = async (tur: 'aosr' | 'lab') => {
     try {
+      if (!kompaniyaId) { toast('Kompaniyani tanlang', 'warn'); return; }
       const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
       const imzo = { pudratchi: joriy?.nom };
       const { bytes, faylNomi } = tur === 'aosr' ? aosrReestrXlsx(aktlar, { obyektNomi, imzo }) : labReestrXlsx(protokollar, { obyektNomi, imzo });
-      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      const el = document.createElement('a');
-      el.href = url; el.download = faylNomi; el.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      const t = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: tur === 'aosr' ? 'REESTR_AOSR' : 'REESTR_LAB', sabab: `${tur === 'aosr' ? 'Реестр АОСР' : 'Реестр протоколов'} · ${obyektNomi}`, obyekt: obyektId }, () => {
+        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        const el = document.createElement('a');
+        el.href = url; el.download = faylNomi; el.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      });
+      if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
     } catch (e) {
       toast('Reestr yasalmadi: ' + (e instanceof Error ? e.message : String(e)), 'danger');
     }
