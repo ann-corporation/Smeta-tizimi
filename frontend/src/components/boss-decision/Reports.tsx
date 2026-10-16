@@ -56,7 +56,7 @@ export default function Reports({data,initialObjectId}:{data:BossDashboard;initi
       <Link className="underline" to={objectUrl(scopedObject.object_id,scopedObject.project_id,'nakopitelniy')}>{t('Nakopitelniy va F3')}</Link>
       <Link className="underline" to={objectUrl(scopedObject.object_id,scopedObject.project_id)}>{t('LRV va qoldiq hujjatlari')}</Link>
     </div>}
-    {scopedObject&&rows.data&&!rows.isFetching&&!rows.isError&&(kind!=='section'||sectionExists)&&<CostEvidence key={`${scopedObject.object_id}-${kind==='section'?section:'all'}`} evidence={rows.data} sectionId={kind==='section'?Number(section):undefined}/>}
+    {scopedObject&&rows.data&&!rows.isFetching&&!rows.isError&&(kind!=='section'||sectionExists)&&<CostEvidence key={`${scopedObject.object_id}-${kind==='section'?section:'all'}`} evidence={rows.data} portfolioEstimate={scopedObject.estimate_known} sectionId={kind==='section'?Number(section):undefined}/>}
     <h3 className="font-semibold">{t('Saqlangan asl hujjatlar')}</h3>
     {kind==='section' && <p className="text-xs text-text-dim">{t('Asl hujjatlar obyekt darajasida ko‘rsatiladi; razdel kesimi boshqaruv hisobotida ajratiladi.')}</p>}
     {docs.isFetching && <p role="status">{t('Hujjatlar yuklanmoqda…')}</p>}

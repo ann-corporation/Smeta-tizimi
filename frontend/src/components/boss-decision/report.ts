@@ -1,3 +1,4 @@
+import {costComposition,russianCategory} from './composition';
 import type { BossDashboard } from '../../api/t2-boss';
 import { sbT2DaraxtOl, sbT2QatorHolatOl, type T2Qator, type T2QatorHolat } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
@@ -87,11 +88,22 @@ export async function managementWorkbook(data:BossDashboard,scope:ReportScope,ev
   if(evidence && (scope.kind==='object'||scope.kind==='section')) {
     const rows=scopeRows(evidence,scope.kind==='section'?scope.sectionId:undefined);const map=new Map(evidence.states.map(s=>[s.qator_id,s]));
     const summary=leafSummary(rows,evidence.states);
+    const composition=costComposition(rows,evidence.states);
+    const c=new RasmiyVaraq({nom:'Структура затрат',sarlavha:'СТРУКТУРА ПРЯМЫХ ЗАТРАТ',kattaHarf:false,ostSarlavha:['Только конечные строки выбранного охвата. Категория взята из сметы, не угадана по названию.','Неизвестные суммы остаются пустыми. Процент физического выполнения не рассчитывается.'],ustunlar:[{sarlavha:'Категория',kenglik:34,tur:'matn'},{sarlavha:'Известный подытог, сум',kenglik:25,tur:'pul'},{sarlavha:'Строк',kenglik:12,tur:'tartib'},{sarlavha:'Без суммы',kenglik:14,tur:'tartib'},{sarlavha:'Без цены',kenglik:14,tur:'tartib'},{sarlavha:'Отрицательных строк',kenglik:20,tur:'tartib'}]});
+    composition.groups.forEach(g=>c.qator('oddiy',[russianCategory(g.key),g.known,g.rows,g.missing,g.unpriced,g.negativeRows]));
+    c.qator('jami',['Известный подытог',composition.known,composition.rows,composition.missing,composition.unpriced,composition.negativeRows]);
+    sheets.push(c);
     a.qator('oddiy',['Чтение строк, начало / конец',`${evidence.startedAt} / ${evidence.readAt}`]);
     a.qator('oddiy',['Согласованность','Два полных чтения, не транзакционный снимок; оригиналы не изменены.']);
     a.qator('oddiy',['Ф2 в строках','t2_qator_holat.f2_summa — накопленная прямая сумма; не итог утверждённых документов с накрутками.']);
     a.qator('oddiy',['Раздел ID',scope.kind==='section'?String(scope.sectionId):'Весь объект']);
     a.qator('oddiy',['Известный подытог выбранных листьев',String(summary.estimate??'Неизвестно')]);
+    if(scope.kind==='object'){
+      const expected=objects[0].estimate_known;
+      a.qator('oddiy',['Прямая сумма портфеля',finite(expected)?String(expected):'Неизвестно']);
+      a.qator('oddiy',['Разница портфель минус листья',finite(expected)&&finite(summary.estimate)?String(expected-summary.estimate):'Неизвестно']);
+      a.qator('oddiy',['Сверка','Разница требует проверки: портфель и строки прочитаны в разное время; совпадение известных сумм не доказывает полноту цен.']);
+    }
     a.qator('oddiy',['Листья без суммы / Ф2',`${summary.missing} / ${summary.f2Missing}`]);
     const d=new RasmiyVaraq({nom:'Строки',sarlavha:scope.kind==='section'?'СТРОКИ ВЫБРАННОГО РАЗДЕЛА':'СТРОКИ ОБЪЕКТА',kattaHarf:false,ostSarlavha:['Строки родителей не складываются с дочерними. Объёмы разных единиц не суммируются.'],yonalish:'landscape',ustunlar:[
       {sarlavha:'ID / родитель',kenglik:19,tur:'matn'},{sarlavha:'Тип',kenglik:8,tur:'matn'},{sarlavha:'Наименование',kenglik:70,tur:'matn'},

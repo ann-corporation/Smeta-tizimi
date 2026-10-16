@@ -1676,5 +1676,21 @@
   "Kompaniya yozuvi": "Company record",
   "qayd": "records",
   "Platforma roli": "Platform role",
-  "Kompaniyadagi rol": "Company role"
+  "Kompaniyadagi rol": "Company role",
+  "Xarajatlar tarkibi": "Cost composition",
+  "Ishchi kuchi": "Labour",
+  "Mashina va mexanizmlar": "Machinery",
+  "Kabellar": "Cables",
+  "Metall konstruksiyalar": "Steel structures",
+  "Toifasi ko‘rsatilmagan": "Category not recorded",
+  "Barcha toifalar": "All categories",
+  "Ulush faqat ma’lum to‘g‘ridan-to‘g‘ri summalar ichida hisoblangan. Bu bajarilish foizi emas.": "Share is calculated only within known direct amounts. This is not completion progress.",
+  "Manfiy tuzatishlar mavjud. Summalar saqlangan, ulush diagrammasi chiqarilmaydi.": "Negative adjustments are present. Amounts are preserved; no share chart is shown.",
+  "Tarkib qisman: summasi noma’lum qatorlar umumiy qiymatga taxminan qo‘shilmagan.": "Composition is partial: unknown amounts have not been estimated into the total.",
+  "Materiallar": "Materials",
+  "Uskunalar": "Equipment",
+  "Narxsiz": "Unpriced",
+  "Kesim bo‘yicha ma’lum summa": "Known amount for the selected scope",
+  "Portfel va qatorlar summasi farq qiladi. Ma’lumotlar turli vaqtda o‘qilgan bo‘lishi mumkin — qayta yangilang.": "Portfolio and row totals differ. They may have been read at different times; please refresh.",
+  "Portfel summasi": "Portfolio amount"
 }

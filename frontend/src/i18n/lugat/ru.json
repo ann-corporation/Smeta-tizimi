@@ -1676,5 +1676,21 @@
   "Kompaniya yozuvi": "Запись компании",
   "qayd": "записей",
   "Platforma roli": "Роль платформы",
-  "Kompaniyadagi rol": "Роль в компании"
+  "Kompaniyadagi rol": "Роль в компании",
+  "Xarajatlar tarkibi": "Структура затрат",
+  "Ishchi kuchi": "Труд рабочих",
+  "Mashina va mexanizmlar": "Машины и механизмы",
+  "Kabellar": "Кабели",
+  "Metall konstruksiyalar": "Металлоконструкции",
+  "Toifasi ko‘rsatilmagan": "Категория не указана",
+  "Barcha toifalar": "Все категории",
+  "Ulush faqat ma’lum to‘g‘ridan-to‘g‘ri summalar ichida hisoblangan. Bu bajarilish foizi emas.": "Доля рассчитана только среди известных прямых сумм. Это не процент выполнения.",
+  "Manfiy tuzatishlar mavjud. Summalar saqlangan, ulush diagrammasi chiqarilmaydi.": "Есть отрицательные корректировки. Суммы сохранены, диаграмма долей не строится.",
+  "Tarkib qisman: summasi noma’lum qatorlar umumiy qiymatga taxminan qo‘shilmagan.": "Структура частичная: строки с неизвестной суммой не добавлены в итог предположительно.",
+  "Materiallar": "Материалы",
+  "Uskunalar": "Оборудование",
+  "Narxsiz": "Без цены",
+  "Kesim bo‘yicha ma’lum summa": "Известная сумма выбранного охвата",
+  "Portfel va qatorlar summasi farq qiladi. Ma’lumotlar turli vaqtda o‘qilgan bo‘lishi mumkin — qayta yangilang.": "Сумма портфеля отличается от суммы строк. Возможно, данные прочитаны в разное время — обновите.",
+  "Portfel summasi": "Сумма портфеля"
 }
