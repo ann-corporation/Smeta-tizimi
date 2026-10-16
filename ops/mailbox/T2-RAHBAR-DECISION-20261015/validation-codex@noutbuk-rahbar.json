@@ -1,0 +1,1781 @@
+{
+  "task": "T2-RAHBAR-DECISION-20261015",
+  "agent": "codex",
+  "machine": "noutbuk-rahbar",
+  "branch": "codex/rahbar-decision-v1",
+  "code_sha": "a12da375efd53cc1503caa9ed40878741698bad3",
+  "created_at": "2026-10-16T10:58:30.618141+00:00",
+  "production": "NOT_DEPLOYED_BY_THIS_LANE",
+  "commands": {
+    "npx vitest run --maxWorkers=2": {
+      "passed": 2050,
+      "failed": 0,
+      "skipped": 17,
+      "total": 2067,
+      "receipt_sha256": "10895cbee09767ac01a218c8cb8a3841f24c871008ebeb0b8a55a394555c9c02"
+    },
+    "npx tsc -b": "PASS via npm run build",
+    "npx tsc -p tsconfig.functions.json --noEmit": "PASS; build repeats functions gate",
+    "npm run build": "PASS; existing large-chunk warnings",
+    "npm run tekshir": "PASS",
+    "npx oxlint src": "PASS exit 0 with existing warnings outside owned components",
+    "npx oxlint owned components": "PASS, no warnings",
+    "node ops/governance-check.cjs": "PASS 79 tasks; existing stale CURRENT_STATE main_sha warning"
+  },
+  "sources": {
+    "financial_model": "c800b464 frozen packet, integration by Claude",
+    "relationships": "existing mindmap_grafi read RPC",
+    "contracts": "existing t2_bux_dashboard view",
+    "quality": "existing t2_aosr_reestr view",
+    "activity": "existing t2_hodisa_lenta view"
+  },
+  "limits": [
+    "No production authenticated smoke",
+    "Local preview uses synthetic data only",
+    "Native UI click in embedded browser exceeded app window bounds; no full visual E2E claim",
+    "Bounded reads at 200 rows require completeness receipts; partial states are visible",
+    "No invented physical progress, profit, schedule, equipment utilization or safety score"
+  ],
+  "suites": [
+    {
+      "file": "src/App.daily-native-routes.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/agent-ish.test.ts",
+      "status": "passed",
+      "passed": 49,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/ai-parse.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/ai-savol.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/boshqaruv.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/boss-dashboard.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/boss-documents.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/catalog-release.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/company.test.ts",
+      "status": "passed",
+      "passed": 18,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/f2-moslash.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/hour-price-catalog.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/kirish-google-origin.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/kirish-google.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/kirish.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/narx-katalog.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/norm-katalog.test.ts",
+      "status": "passed",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/royxat-email-kod.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/sb-katalog-qidiruv.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/sb-sahifalash.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/smeta-ai-ishonchli.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/smeta-narx-agent.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/smeta-studio.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/t2-bridge.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/tomon-murojaat.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "functions/api/tomon.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/AdminShell.platform-role.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/agent-bilim-yigish.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/agent-bilim.test.ts",
+      "status": "passed",
+      "passed": 15,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/agent-kasb.test.ts",
+      "status": "passed",
+      "passed": 27,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/agent-modellar.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/agent-veb.test.ts",
+      "status": "passed",
+      "passed": 21,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/ai-kompaniya.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/ai-openrouter.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/narx-katalog-snapshot.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/tenant-oqish.test.ts",
+      "status": "passed",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/tenant-yozish.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "functions/_shared/xato.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/ai-contract.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/ai-hisob-qoidasi.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/ai-savol-contract.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/api-shartnoma.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/entity-consistency.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/hooks.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/katalog-qidiruv.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/sb-tezlik-byudjeti.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/supabase.t2-tree.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-additional-replacement.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-agent-ish-oqim.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-boss.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-daraxt-ustunlar.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-document-control.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-hujjat-arxiv.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-nakopitelniy.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-shartnoma-qamrov.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-shartnoma-rekvizit.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-storage.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/api/t2-toliq-oqish.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/kirish/GoogleKirish.origin.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/kirish/KirishSahifa.public.test.tsx",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/kirish/KirishSahifa.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/i18n/lotin-kirill.test.ts",
+      "status": "passed",
+      "passed": 34,
+      "skipped": 0
+    },
+    {
+      "file": "src/i18n/qorovul.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/i18n/til.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/tests/api-shartnoma.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/test02/f2-exact-payload.test.ts",
+      "status": "passed",
+      "passed": 26,
+      "skipped": 0
+    },
+    {
+      "file": "src/test02/mindmap-create-ux.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/test02/TestSaqlash.test.tsx",
+      "status": "passed",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "src/_shared/versiya.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/agent-control-plane.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/agent-faoliyat.test.ts",
+      "status": "passed",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/aosr-export.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/daraxt-tartibi.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-akt-hujjat.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-exact-write.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-hujjat.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-ierarxiya.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-ishchi-qoralama.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-lifecycle-workflow.test.ts",
+      "status": "passed",
+      "passed": 14,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-native-preparation.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-tayyor.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-yacheyka.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/fakt-input-policy.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/fakt-jurnal.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/fakt-yangilash.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/fayl-daraxt.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/forma3-export.hujjat.test.ts",
+      "status": "passed",
+      "passed": 17,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/hudud.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/ijro-reestr-export.bo-sh.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/ijro-reestr-export.hujjat.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/ish-abc.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/lrv-hujjat.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/lrv-plus-export.hujjat.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/lrv-plus-export.test.ts",
+      "status": "passed",
+      "passed": 35,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/lrv-qayta-import.test.ts",
+      "status": "passed",
+      "passed": 15,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/lrv-res-sverka-export.hujjat.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/nakopitelniy-vedomost-export.hujjat.test.ts",
+      "status": "passed",
+      "passed": 12,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/nakrutka-kaskad.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/nakrutka-konstruktor.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-bildirishnoma.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-protokol.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/ostatka-export.hujjat.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/ostatka-export.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/pageTitle.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/res-narxlash.test.ts",
+      "status": "passed",
+      "passed": 16,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/resurs-vedomost.hujjat.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/resurs-vedomost.test.ts",
+      "status": "passed",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/shartnoma-liniya.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/slichitelniy-vedomost.hujjat.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-flatten.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-ierarxiya-tiklash.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-lrv-boundary.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-model.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-package-import.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-reimport-diff.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-source-analysis.test.ts",
+      "status": "passed",
+      "passed": 18,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/tender-oferta-export.hujjat.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/tender-oferta-export.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/tender-oferta-parser.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/tender-oferta-v3.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/tender-oferta.test.ts",
+      "status": "passed",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/ai-markaz/ai-boshqaruvchi.test.tsx",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/ai-markaz/ai-markaz.test.tsx",
+      "status": "passed",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/catalog-release/CatalogReleasePanel.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/participants/ParticipantNetworkPage.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/system-control/SystemControlCenter.test.tsx",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/zakazchik/murojaatlar.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/zakazchik/zakazchik.test.tsx",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/agent-control/AgentControlCenter.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/AdditionalReplacementNative.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/agent-ish-ui.test.tsx",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/agent-kompaniya-sozlama.test.tsx",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/BoshqaruvPanel.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/BossDashboard.test.tsx",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/F2ImportV3.qoralama.test.tsx",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/F2ImportV3.tizim.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/F2TayyorlashNative.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/F2V3Workbench.operator.test.tsx",
+      "status": "passed",
+      "passed": 15,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/FaktJurnal.test.tsx",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/FaktNative.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/FaylMenejer.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/HolatNative.integration.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/HolatNative.workspace.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/HujjatDizayni.test.tsx",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/IshAbcModal.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/KatalogExtractionReview.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/LrvResSverkaPanel.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/NormSmetaWorkbench.test.tsx",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/OstatkaIstisnoPanel.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/ResursVedomostNative.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/ShartnomaLiniya.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/SmetaAiChat.scope.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/SmetaAiChat.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/SmetaStudio.test.tsx",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/SmetaYuklaNative.ierarxiya.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/SmetaYuklaNative.test.ts",
+      "status": "passed",
+      "passed": 53,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/StudioBosqichlar.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/admin/sahifalar/Tokenlar.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/construction-document-control/ExportPreview.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/boss-decision/cockpit-data.test.ts",
+      "status": "passed",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/boss-decision/composition.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/boss-decision/CostEvidence.test.tsx",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/boss-decision/documents.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/boss-decision/ExecutiveCockpit.test.tsx",
+      "status": "passed",
+      "passed": 12,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/boss-decision/report.test.ts",
+      "status": "passed",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/boss-decision/Reports.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/document-center/DocumentCenter.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/public-entry/ProductShowcase.test.tsx",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/public-entry/PublicEntry.scope.test.tsx",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/public-entry/support-port.test.ts",
+      "status": "passed",
+      "passed": 12,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/public-entry/SupportConversation.test.tsx",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/pto-workspace/hierarchy.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/pto-workspace/markup.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/pto-workspace/ProjectNavigator.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/pto-workspace/useLineage.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/pto-workspace/useMarkupTotals.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/storage/storage-components.test.tsx",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/smeta-studio-pro/EstimateEditingWorkspace.test.tsx",
+      "status": "passed",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/smeta-studio-pro/EstimateOutline.test.tsx",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/smeta-studio-pro/hierarchy.test.ts",
+      "status": "passed",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/smeta-studio-pro/MarketPriceComparison.test.tsx",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/smeta-studio-pro/SmetaDocumentPanel.test.tsx",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/components/smeta-studio-pro/substitution-review.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/kontekst/navigation-role.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/kontekst/PTOWorkspaceContext.test.tsx",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/kontekst/PTOWorkspaceProvider.test.tsx",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/hujjat/HujjatKorinish.test.tsx",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/daraxt/SmetaTree.compat.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/daraxt/SmetaTree.interaction.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/daraxt/useT2Daraxt.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/daraxt/utils.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-ingest/index.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-release/client.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/ui/ai-harakat.test.tsx",
+      "status": "passed",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/ui/ai-kuzatuv.test.tsx",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/ui/AiHelper.context.test.tsx",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/ui/AiHelper.v2.test.tsx",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/ui/AiSelektsiya.test.tsx",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/umumiy/ui/PTOUi.test.tsx",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-extraction/conversation-estimate.test.ts",
+      "status": "passed",
+      "passed": 17,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-extraction/index.test.ts",
+      "status": "passed",
+      "passed": 29,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-extraction/norm-catalog.test.ts",
+      "status": "passed",
+      "passed": 30,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-extraction/norm-corpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-extraction/norm-draft.test.ts",
+      "status": "passed",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-extraction/norm-shards.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/company-authorization/effective-authorization.test.ts",
+      "status": "passed",
+      "passed": 16,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/construction-document-control/adversarial-release.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/construction-document-control/document-fidelity.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/construction-document-control/large-data.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/construction-document-control/nakopitelniy-holat.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/construction-document-control/workbench.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-manba-import/ikki-daraja.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/catalog-manba-import/parse.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-import-parse/treeBuild.test.ts",
+      "status": "passed",
+      "passed": 13,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-import-parse/ustun-moslashuv.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-import-parse/xlsxFonda.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-import-parse/xlsxReader.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-link-review/compatibility.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-link-review/reconciliation.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-link-review/tree.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-moslash-v3/fonda.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-moslash-v3/index.test.ts",
+      "status": "passed",
+      "passed": 24,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-moslash-v3/ishJoyi.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-moslash-v3/kran.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/document-understanding/corpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/document-understanding/file.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/document-understanding/index.test.ts",
+      "status": "passed",
+      "passed": 21,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/document-understanding/rate-dependencies.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/document-understanding/reader.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/document-understanding/text-evidence.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/document-understanding/triage.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/hour-price-catalog/index.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/f2-match-engine/engine.test.ts",
+      "status": "passed",
+      "passed": 18,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/hujjat-tekshir/hujjat-tekshir.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/jarvis/answers.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-dalil/izoh.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-dalil/katalog-oqish.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-dalil/narx-dalil.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-dalil/semantik.test.ts",
+      "status": "passed",
+      "passed": 23,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/m29/m29.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-katalog/narx-katalog.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/narx-katalog/smeta-narxlari.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/hujjat-yozuvchi/hujjat-yozuvchi.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/hujjat-yozuvchi/katta-harf.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/hujjat-yozuvchi/korinish.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/hujjat-yozuvchi/propis.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/park-closeout/validate.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/park-document-control/calculation.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/resource-semantics/index.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/resource-semantics/source-corpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/sayt-xaritasi/tree.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/resurs-kategoriyasi/bez-sklad.sql-egizak.test.ts",
+      "status": "passed",
+      "passed": 24,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/resurs-kategoriyasi/bez-sklad.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/pto-document-lineage/f3-sources.test.ts",
+      "status": "passed",
+      "passed": 21,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/pto-document-lineage/index.test.ts",
+      "status": "passed",
+      "passed": 18,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/pto-document-lineage/ledger.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-ai/ifoda.test.ts",
+      "status": "passed",
+      "passed": 17,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-ai/included-work.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-ai/matn-qidiruv.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-ai/normative-reference.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-ai/protokol.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-ai/worker.test.ts",
+      "status": "passed",
+      "passed": 17,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/akt-daraxt.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/erkin.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/f2.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/ierarxiya.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/paket.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/profil.test.ts",
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/rol.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/sverka.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/varaq.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/yuklash-operator.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/abc-hujjat.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/company-prices.test.ts",
+      "status": "passed",
+      "passed": 12,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/conversation-commands.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/export-adapter.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/hour-pricing.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/market-comparison.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/narxlash-bosqichi.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/obosnovaniye.test.ts",
+      "status": "passed",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/price-lookup.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/resource-match-diametr.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/resource-match.test.ts",
+      "status": "passed",
+      "passed": 65,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/server-save.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-studio/smeta-studio.test.ts",
+      "status": "passed",
+      "passed": 25,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/korpus/f2.korpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/korpus/korpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/korpus/manifest.korpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/korpus/paket.korpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/smeta-anatomiya/korpus/tenglik.korpus.test.ts",
+      "status": "passed",
+      "passed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "src/lib/park-document-control/legacy-compat/legacy-compat.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0
+    }
+  ]
+}
