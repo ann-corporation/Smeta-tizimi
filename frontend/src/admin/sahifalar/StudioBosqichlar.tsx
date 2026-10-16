@@ -5,7 +5,8 @@
  * Bu fayl ②/③ va LRV dagi koeffitsientlar panelini beradi. Hamma o'zgarish studiyaning yagona buyruq qatlami
  * (BATCH = bitta «Bekor qilish») orqali; narx/stavka/koeffitsient o'ylab topilmaydi — har biri manba yoki operator qarori.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { agentRegister } from './studioAgent';
 import { t } from '../../i18n/til';
 import type { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
@@ -13,7 +14,7 @@ import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, PriceJustification } from '../../lib/smeta-studio/model';
 import { matchResource, type MatchCatalog } from '../../lib/smeta-studio/resource-match';
-import { aiNarxlash, qaytaHisobla, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomi, narxNomzodlari, qatorNomzodi, resursGuruhlari,
+import { aiNarxlash, loyihaBoyicha, qaytaHisobla, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomi, narxNomzodlari, qatorNomzodi, resursGuruhlari,
   type AiNarxNatija, type NarxNomzod, type ResursGuruh } from '../../lib/smeta-studio/narx-yigish';
 import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
 import { kompaniyaManbalariniOl, type KompaniyaManbalari } from '../../lib/smeta-studio/kompaniya-manbalari';
@@ -29,14 +30,19 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 
 type UnitText = (code: string | null) => string | null;
+/** «… ПО ПРОЕКТУ» without the project's material is never priced by a guess. */
+const materialKerak = (g: ResursGuruh) => loyihaBoyicha(g.nom) && !g.talab;
 const fmt = (n: number | string | null | undefined, d = 2) => n == null || n === '' ? '—' : Number(n).toLocaleString('ru-RU', { maximumFractionDigits: d });
 const KAT_NOMI: Record<string, string> = { ЧЕЛ: 'Mehnat (ЧЕЛ)', МАШ: 'Mashina va mexanizmlar (МАШ)', МАТ: 'Materiallar (МАТ)', 'БЕЗ СКЛАД': 'Omborsiz materiallar (БЕЗ СКЛАД)',
   'М/К': 'Metall konstruksiyalar (М/К)', КАБ: 'Kabel mahsulotlari (КАБ)', ОБ: 'Uskunalar (ОБ)', '': 'Kategoriyasi aniqlanmagan' };
 
 /** Lines of a group that still have no price (an operator's existing choice is never overwritten silently). */
+/** Lines to price now: without a price, or priced earlier without the document requisites (re-priced with a full justification). */
 function narxsizQatorlar(g: ResursGuruh, hisob: DocCalc) {
-  return g.qatorlar.filter(q => hisob.occurrences[q.occurrenceId]?.lines.find(l => l.recipeId === q.recipeId)?.price == null);
+  const eski = new Set((g.eskiQatorlar ?? []).map(q => q.occurrenceId + '\u0001' + q.recipeId));
+  return g.qatorlar.filter(q => eski.has(q.occurrenceId + '\u0001' + q.recipeId) || hisob.occurrences[q.occurrenceId]?.lines.find(l => l.recipeId === q.recipeId)?.price == null);
 }
+const narxKerak = (g: ResursGuruh) => g.narxsiz > 0 || !!g.eskiQatorlar?.length;
 
 /* ───────────────────────── LRV: koeffitsientlar ───────────────────────── */
 export { KoeffitsientlarPaneli } from './StudioKoeffitsientlar';
@@ -80,7 +86,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [cat]);
   const guruhlar = useMemo(() => resursGuruhlari(doc, hisob, unitText), [doc, hisob, unitText]);
-  const narxsizSoni = guruhlar.filter(g => g.narxsiz > 0).length;
+  const narxsizSoni = guruhlar.filter(narxKerak).length;
   // Applied prices against the catalogue market (same products, period, region) — a sanity check, not a price source.
   const bozorQatorlari = useMemo(() => guruhlar.filter(g => g.narx != null && katalogdanNarxlanadi(g)).map(g => ({ id: g.key, name: g.nom, unit: g.birlik, price: Number(g.narx) })), [guruhlar]);
   const korinadi = guruhlar.filter(g => filtr === 'hammasi' || (filtr === 'narxsiz' ? g.narxsiz > 0 : takliflar.has(g.key)));
@@ -99,7 +105,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     let soatSoni = 0, kpSoni = 0;
     const qoplangan = new Set<string>();
     if (mash) for (const g of guruhlar) {
-      if (g.kat !== 'МАШ' || !g.narxsiz || /МАШИНИСТ/.test(g.nom.toUpperCase())) continue;
+      if (g.kat !== 'МАШ' || !narxKerak(g) || /МАШИНИСТ/.test(g.nom.toUpperCase())) continue;
       const m = matchResource(mash, g.nom, 'маш-ч', null);
       if ((m.confidence !== 'EXACT' && m.confidence !== 'HIGH') || !m.best) continue;
       const justification = mashAsosi(m.best.row, m.confidence === 'EXACT' ? 'nomi aynan mos' : 'mashina va quvvati/sig‘imi mos');
@@ -116,7 +122,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       commands.push(...qolgan); soatSoni += qolgan.length;
     }
     for (const g of guruhlar) {
-      if (!katalogdanNarxlanadi(g) || !g.narxsiz) continue;
+      if (!katalogdanNarxlanadi(g) || !narxKerak(g) || materialKerak(g)) continue;
       // A supplier's КП for exactly this product is the real price → first; then the platform index (catalogue, birja, price lists).
       const kpMos = kpm?.qatorlar ? matchResource(kpm.view, narxNomi(g), g.birlik, null) : null;
       const kpTop = kpMos && (kpMos.confidence === 'EXACT' || kpMos.confidence === 'HIGH') && kpMos.best ? kpMos : null;
@@ -170,11 +176,11 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
    * identity, then AI by meaning for the rest — applied as ONE batch (one undo). Without AI (no company/budget)
    * the deterministic part still runs and says so.
    */
-  async function hammasiniNarxla() {
+  async function hammasiniNarxla(): Promise<string> {
     setXabar('');
     const avto = avtoBuyruqlar();
     // Machines without an exact list match also go to the AI (candidates from the machine-hour list); operators' labour never.
-    const kerak = guruhlar.filter(g => g.narxsiz > 0 && !avto.narxlangan.has(g.key)
+    const kerak = guruhlar.filter(g => narxKerak(g) && !avto.narxlangan.has(g.key) && !materialKerak(g)
       && (katalogdanNarxlanadi(g) || (!!mash && g.kat === 'МАШ' && !/МАШИНИСТ/.test(g.nom.toUpperCase()))));
     let ai: Awaited<ReturnType<typeof aiBuyruqlar>> | null = null, aiXato = false;
     let zaxira = new Map<string, AiNarxNatija>();
@@ -189,7 +195,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
           sabab: 'AI ishlamadi — manbadagi nomzodlardan o‘zingiz tanlang' }]));
       } finally { setAi({ ish: false, matn: '' }); }
     }
-    if (!qoy([...avto.commands, ...(ai?.commands ?? [])], t('Narxlash: stavkalar, katalog va AI'))) return;
+    if (!qoy([...avto.commands, ...(ai?.commands ?? [])], t('Narxlash: stavkalar, katalog va AI'))) return t('Narxlar qo‘llanmadi.');
     const takliflarYangi = ai?.qoldi ?? zaxira;
     setTakliflar(takliflarYangi);
     if (takliflarYangi.size) setFiltr('taklif');
@@ -199,7 +205,37 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
       : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
     setXabar(qism.join(' · '));
+    return qism.join(' · ');
   }
+  // Studio agent (chat): pricing, region, a manual price with its document — the same functions as the buttons.
+  const agent = useRef({ hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob });
+  agent.current = { hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob };
+  useEffect(() => {
+    const off = [
+      agentRegister('narxla', () => agent.current.hammasiniNarxla()),
+      agentRegister('hudud', async v => {
+        const q = (v ?? '').toLowerCase();
+        const r = agent.current.regions.find(([k, n]) => k === q || n.toLowerCase().includes(q));
+        if (!r) throw new Error(t('Hudud topilmadi: {h}', { h: v ?? '—' }));
+        agent.current.setHudud(r[0]);
+        return t('Obyekt hududi: {h}', { h: r[1] });
+      }),
+      agentRegister('narx', async (v, a) => {
+        const narx = (v ?? '').replace(/\s/g, '').replace(',', '.');
+        if (!/^\d+(\.\d+)?$/.test(narx)) throw new Error(t('Narx son emas: {v}', { v: v ?? '—' }));
+        if (!a.manba?.trim()) throw new Error(t('Narx manbasi (hujjat) ko‘rsatilmagan — narx qo‘yilmaydi.'));
+        const q = (a.ish ?? '').trim().toUpperCase();
+        const g = agent.current.guruhlar.find(x => (x.talab ?? x.nom).toUpperCase() === q) ?? agent.current.guruhlar.find(x => (x.talab ?? x.nom).toUpperCase().includes(q));
+        if (!g || !q) throw new Error(t('Resurs topilmadi: {r}', { r: a.ish ?? '—' }));
+        const commands = g.qatorlar.map(x => ({ type: 'SET_PRICE' as const, occurrenceId: x.occurrenceId, recipeId: x.recipeId,
+          price: { value: narx, basis: 'OPERATOR_MANUAL' as const, evidence: a.manba!.slice(0, 300), sourcePriceId: null,
+            justification: { docType: 'MANUAL' as const, document: a.manba!.slice(0, 400), sourceName: null, sourceUnit: g.birlik, sourcePrice: narx, conversion: null, reason: a.izoh || null } } }));
+        if (!agent.current.qoy(commands, t('AI: narx qo‘yildi'))) throw new Error(t('Narx qo‘yilmadi.'));
+        return t('{r}: {n} (manba: {m})', { r: g.talab ?? g.nom, n: narx, m: a.manba });
+      }),
+    ];
+    return () => off.forEach(f => f());
+  }, []);
   function qabul(g: ResursGuruh, n: NarxNomzod, sabab: string) {
     if (qoy(narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob).length ? narxsizQatorlar(g, hisob) : g.qatorlar }, n, sabab), t('Narx tanlandi')))
       setTakliflar(m => { const x = new Map(m); x.delete(g.key); return x; });
@@ -260,7 +296,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
               const summa = g.narx != null && g.miqdor != null ? Math.round(Number(g.narx) * g.miqdor * 100) / 100 : null;
               return [bosh && <tr key={`h-${g.key}`}><td colSpan={6} className="bg-surface-2/50 px-2 py-1 text-[11px] font-semibold uppercase text-text-dim">{t(KAT_NOMI[g.kat ?? ''])}</td></tr>,
                 <tr key={g.key} className="border-t border-border/60 align-top">
-                  <td className="px-2 py-1">{g.nom}{g.talab && <span className="text-accent"> — {g.talab}</span>}{g.qatorlar.length > 1 && <span className="text-[11px] text-text-mute"> · {t('{n} ishda', { n: g.qatorlar.length })}</span>}</td>
+                  <td className="px-2 py-1">{g.talab ? <>{g.talab.toUpperCase()} <span className="text-[11px] text-text-mute">({g.nom})</span></> : g.nom}
+                    {materialKerak(g) && <span className="block text-[11px] text-danger">{t('Loyiha materiali ko‘rsatilmagan — LRV dagi «Loyiha materiallari» da kiriting (sinf/marka). Shungacha narxlanmaydi.')}</span>}{g.qatorlar.length > 1 && <span className="text-[11px] text-text-mute"> · {t('{n} ishda', { n: g.qatorlar.length })}</span>}</td>
                   <td className="px-1 py-1">{g.birlik ?? '—'}</td>
                   <td className="px-1 py-1 text-right tabular-nums">{fmt(g.miqdor, 4)}</td>
                   <td className="px-1 py-1 text-right tabular-nums">{g.narx != null ? fmt(g.narx) : g.aralash ? <span className="text-warn">{t('aralash')}</span> : <span className="text-warn">{t('narx yo‘q')}</span>}</td>
@@ -362,6 +399,9 @@ function StavkalarKartasi({ doc, command, kompaniyaId }: { doc: EstimateDoc; com
     }
     if (command({ type: 'SET_RATES', rates: { values, source: manba.trim() || t('Operator') } })) setHolat(t('Stavkalar tasdiqlandi — RES ostida nakrutka kaskadi chiqadi.'));
   }
+  const tasdiqRef = useRef(tasdiqla);
+  tasdiqRef.current = tasdiqla;
+  useEffect(() => agentRegister('stavka_tasdiq', async () => { tasdiqRef.current(); return t('Stavkalar tasdiqlandi.'); }), []);
   return <section aria-label={t('Foiz stavkalari')} className="karta space-y-2 p-2 text-[12.5px]">
     <div className="flex flex-wrap items-center gap-2">
       <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Foiz stavkalari (nakrutka)')}</strong>
@@ -442,6 +482,12 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
       setXabar(e instanceof Error && e.message === 'LRV_BOSH' ? t('Hujjat uchun avval smetaga ish qo‘shing.') : t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.'));
     }
   }
+  const hujjatRef = useRef({ yukla, protokolYukla });
+  hujjatRef.current = { yukla, protokolYukla };
+  useEffect(() => agentRegister('hujjat', async v => {
+    if (v === 'protokol') { await hujjatRef.current.protokolYukla(); return t('Narxlarni kelishish protokoli yuklandi.'); }
+    await hujjatRef.current.yukla(); return t('LRV + RES + обоснование yuklandi.');
+  }), []);
   const qator = (nom: string, v: number, jami = false) => <tr key={nom} className={jami ? 'font-semibold' : ''}><td className="px-2 py-0.5">{nom}</td><td className="px-2 py-0.5 text-right tabular-nums">{fmt(v)}</td></tr>;
   return <div className="space-y-3">
     <section aria-label={t('Resurs smeta (RES)')} className="karta space-y-2 p-3 text-[12.5px]">

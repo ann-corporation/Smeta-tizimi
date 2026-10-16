@@ -6,11 +6,12 @@
  *   • foydalanuvchi sharoitni yozadi → AI faqat shu ro'yxatdan mosini tanlaydi (taklif, qabul qilinmaguncha hisobga kirmaydi);
  *   • qo'lda qo'shish — faqat manba (hujjat va band) bilan. Boshqaruv to'liq foydalanuvchida.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { agentRegister } from './studioAgent';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, Occurrence, WorkCoefficient } from '../../lib/smeta-studio/model';
-import { ishKoeffitsientlari, koefgaAylantir, koefKatalogi, type KoefKatalog, type KoefNomzod } from '../../lib/smeta-studio/koef-katalog';
+import { ishKoeffitsientlari, koefgaAylantir, koefKatalogi, qollanadi, type KoefKatalog, type KoefNomzod } from '../../lib/smeta-studio/koef-katalog';
 import { smetachiKoefTanla } from '../../api/smeta-ai';
 
 const OP_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
@@ -34,15 +35,16 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
     const ids = new Set(add.map(c => c.id));
     return set(o.id, [...(o.coefficients ?? []).filter(c => !ids.has(c.id)), ...add]);
   };
-  async function aiTanla() {
-    if (kompaniyaId == null || !sharoit.trim()) return;
+  async function aiTanla(sharoitMatn = sharoit): Promise<string> {
+    if (kompaniyaId == null || !sharoitMatn.trim()) return t('Ish sharoiti yozilmagan.');
     const sorovlar = works.filter(o => normativ.get(o.id)?.length).slice(0, 40)
-      .map(o => ({ id: o.id, ish: `${o.source.code} ${o.source.name}`, nomzodlar: normativ.get(o.id)!.map(n => ({ kod: n.kod, shart: `${n.yozuv.t}. ${n.yozuv.s || n.yozuv.q}` })) }));
-    if (!sorovlar.length) { setXabar(t('Smetadagi ishlar uchun normativ koeffitsient topilmadi.')); return; }
+      .map(o => ({ id: o.id, ish: `${o.source.code} ${o.source.name}`, nomzodlar: normativ.get(o.id)!.filter(qollanadi).map(n => ({ kod: n.kod, shart: `${n.yozuv.t}. ${n.yozuv.s || n.yozuv.q}` })) }))
+      .filter(x => x.nomzodlar.length);
+    if (!sorovlar.length) { setXabar(t('Smetadagi ishlar uchun normativ koeffitsient topilmadi.')); return t('Smetadagi ishlar uchun normativ koeffitsient topilmadi.'); }
     setBand(true); setXabar('');
     try {
-      const r = await smetachiKoefTanla(kompaniyaId, sharoit.trim(), sorovlar);
-      if (!r.ok) { setXabar(t('AI javob bermadi. Qayta urinib ko‘ring.')); return; }
+      const r = await smetachiKoefTanla(kompaniyaId, sharoitMatn.trim(), sorovlar);
+      if (!r.ok) { setXabar(t('AI javob bermadi. Qayta urinib ko‘ring.')); return t('AI javob bermadi. Qayta urinib ko‘ring.'); }
       const commands: StudioCommand[] = [];
       for (const x of r.tanlovlar) {
         const o = doc.occurrences[x.ish]; if (!o) continue;
@@ -56,9 +58,14 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
         commands.push({ type: 'SET_COEFFICIENTS', occurrenceId: o.id, coefficients: list });
       }
       if (commands.length) command({ type: 'BATCH', label: t('AI: normativ koeffitsientlar'), commands });
-      setXabar([t('AI {n} ish uchun koeffitsient taklif qildi — tekshirib qabul qiling.', { n: commands.length }), r.savol ? `${t('Aniqlashtiring')}: ${r.savol}` : ''].filter(Boolean).join(' '));
+      const natija = [t('AI {n} ish uchun koeffitsient taklif qildi — tekshirib qabul qiling.', { n: commands.length }), r.savol ? `${t('Aniqlashtiring')}: ${r.savol}` : ''].filter(Boolean).join(' ');
+      setXabar(natija);
+      return natija;
     } finally { setBand(false); }
   }
+  const aiRef = useRef(aiTanla);
+  aiRef.current = aiTanla;
+  useEffect(() => agentRegister('koef_tanla', async v => { setSharoit(v ?? ''); return aiRef.current(v ?? ''); }), []);
 
   if (!works.length) return null;
   const jamiNormativ = works.reduce((s, o) => s + (normativ.get(o.id)?.length ?? 0), 0);
@@ -68,7 +75,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
       <span className="text-xs text-text-mute">{kat ? t('ШНК texnik qismidan {n} ta normativ koeffitsient shu smeta ishlariga tegishli. Qabul qilinmaguncha hisobga kirmaydi.', { n: jamiNormativ })
         : katXato ? t('Normativ koeffitsientlar ma’lumotnomasi ochilmadi.') : t('Normativ koeffitsientlar yuklanmoqda...')}</span>
     </div>
-    {kat && jamiNormativ > 0 && kompaniyaId != null && <form className="flex flex-wrap gap-1" onSubmit={e => { e.preventDefault(); void aiTanla(); }}>
+    {kat && jamiNormativ > 0 && kompaniyaId != null && <form className="flex flex-wrap gap-1" onSubmit={e => { e.preventDefault(); void aiTanla(sharoit); }}>
       <input aria-label={t('Ish sharoiti')} className="input h-7 flex-1 min-w-[240px] text-[11.5px]" value={sharoit} onChange={e => setSharoit(e.target.value)}
         placeholder={t('Sharoit: masalan kotlovan hajmi 250 m³, mavjud bino ichida ta’mir, tor joy, qish')} />
       <button type="submit" className="tugma h-7 px-2 text-[11.5px]" disabled={band || !sharoit.trim()}>{band ? t('AI tanlamoqda...') : t('AI sharoit bo‘yicha tanlasin')}</button>
@@ -97,7 +104,8 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
           {norm.map(n => <li key={n.kod} className="flex flex-wrap items-start gap-2 text-[11.5px]">
             <span className="font-mono text-text-dim">{n.kod}</span>
             <span className="flex-1 min-w-[240px]"><b>{kStr(n.yozuv.k)}</b> — {n.yozuv.s || n.yozuv.q} <span className="text-text-mute">({n.yozuv.a})</span></span>
-            <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => qosh(o, n, true)}>{t('Qo‘llash')}</button>
+            {qollanadi(n) ? <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => qosh(o, n, true)}>{t('Qo‘llash')}</button>
+              : <span className="text-[11px] text-warn">{t('Parametrli qoida (har metr/har 100 mm) — avtomatik qo‘llanmaydi; kerak bo‘lsa hisoblab «Qo‘lda qo‘shish» bilan kiriting')}</span>}
           </li>)}
         </ul>}
       </div>;

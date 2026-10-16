@@ -19,7 +19,7 @@ export function mashView(k: MashKatalog): MatchCatalog {
 
 /** «Обоснование» of a machine-hour price from the list: document, position number and page. */
 export function mashAsosi(r: KatalogQatori, sabab: string | null): PriceJustification {
-  return { docType: 'MACHINE_HOUR', document: `${r.manba_nom}, № ${r.kod}, ${r.narx_varianti}, без НДС`.slice(0, 400), sourceName: r.nom, sourceUnit: 'маш-ч',
+  return { docType: 'MACHINE_HOUR', document: `${r.manba_nom}, ${r.narx_varianti}, поз. № ${r.kod}, цена без НДС`.slice(0, 400), sourceName: r.nom, sourceUnit: 'маш-ч',
     sourcePrice: r.narx == null ? null : String(r.narx), conversion: null, reason: sabab };
 }
 

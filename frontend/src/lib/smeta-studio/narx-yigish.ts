@@ -20,6 +20,7 @@ import { resourceFacts } from '../resource-semantics';
 import type { DocCalc } from './calc';
 import type { StudioCommand } from './commands';
 import type { CatalogResource, EstimateDoc, PriceBasis, PriceJustification } from './model';
+import { loyihaBoyicha, talabMateriali } from './loyiha-material';
 import { BIRLIK_HISOB_XATO_MATNI, olchamliHisob, olchamliOtkazishMumkin, type BirlikHisob } from './birlik-hisob';
 import { characteristics, gateFailure, matchResource, normName, priceUnitFactor, type MatchCatalog, type MatchResult } from './resource-match';
 import { catalogEvidence } from './price-lookup';
@@ -35,21 +36,11 @@ export type ResursGuruh = {
   asos: PriceJustification | null;
   /** The work's stated material for a «по проекту» resource ("Бетон B20") — what is actually priced. */
   talab?: string | null;
+  /** Lines priced automatically before structured justifications existed — re-priced so the documents carry requisites. */
+  eskiQatorlar?: ResursQatori[];
 };
 
-/** «БЕТОН (КЛАСС ПО ПРОЕКТУ)», «АРМАТУРА ... ПО ПРОЕКТУ», «РАЗМЕР И МАРКА ПО ПРОЕКТУ». */
-const LOYIHA_BOYICHA = /ПО\s+ПРОЕКТ|КЛАСС\s+ПО|МАРК[АИ]\s+ПО/;
-/**
- * The part of the work's material that belongs to this «по проекту» resource: "Раствор цементный М100, кирпич глиняный"
- * → for «КИРПИЧ ... ПО ПРОЕКТУ» the brick part. Same product word = same resource; one stated part applies to the only one.
- */
-export function talabMateriali(material: string | null | undefined, resursNom: string | null | undefined): string | null {
-  if (!material?.trim() || !LOYIHA_BOYICHA.test(normName(resursNom))) return null;
-  // A comma separates materials only before a word ("B7,5" keeps its decimal comma).
-  const parts = material.split(/;|,(?=\s*[A-Za-zА-Яа-яЁё])/).map(s => s.trim()).filter(Boolean);
-  const bosh = characteristics(resursNom).words[0]?.slice(0, 4);
-  return parts.find(p => characteristics(p).words.some(w => w.slice(0, 4) === bosh)) ?? null;
-}
+export { loyihaBoyicha, talabMateriali } from './loyiha-material';
 /** Name used to find a price: the stated material when the norm leaves it «по проекту». */
 export const narxNomi = (g: Pick<ResursGuruh, 'nom' | 'talab'>) => g.talab ?? g.nom;
 
@@ -83,8 +74,10 @@ export function resursGuruhlari(doc: EstimateDoc, calc: DocCalc, unitText: UnitT
     }
     g.qatorlar.push({ occurrenceId: o.id, recipeId: l.recipeId });
     g.miqdor = g.miqdor == null || l.quantity == null ? null : Math.round((g.miqdor + Number(l.quantity)) * 1e6) / 1e6;
+    const ov = o.overrides[l.recipeId]?.price;
     if (l.price == null) g.narxsiz++;
-    else {
+    else if (ov && !ov.justification && ov.basis !== 'OPERATOR_MANUAL') (g.eskiQatorlar ??= []).push({ occurrenceId: o.id, recipeId: l.recipeId });
+    if (l.price != null) {
       g.narxlar.add(l.price);
       g.basis = l.priceBasis;
       g.dalil = o.overrides[l.recipeId]?.price?.evidence ?? g.dalil;
@@ -203,13 +196,27 @@ export function narxNomzodlari(g: Pick<ResursGuruh, 'nom' | 'birlik'>, cat: Matc
 
 /** SET_PRICE for every line of the group, with full provenance (+ the AI's reason when it chose). */
 /** «Обоснование цены» of a candidate: document details, the source row as written there, the recalculation and the reason. */
+/**
+ * Requisites of the source document as an expert reads them (owner 2026-10-16: "NAPU yoki ekspertiza qaytarolmasligi uchun manbani
+ * aniq tiniq izohlashimiz kerak"): the document, its period, the sheet/region, the section (manufacturer), the position number and
+ * the price date; how a VAT-free price was obtained when the document gives it with VAT. No internal wording ("MAX", Uzbek notes).
+ */
+export function manbaRekviziti(r: KatalogQatori, tur: NarxNomzod['tur'] = 'katalog'): string {
+  const sana = (v: string | null | undefined) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v.split('-').reverse().join('.') : null);
+  const davr = r.manba_sana !== undefined ? null : r.yil ? `${r.kvartal ? `${r.kvartal} кв. ` : ''}${r.yil} г.` : null;
+  const poz = r.kod ? `поз. № ${r.kod}` : null;
+  if (tur === 'kompaniya') return `Смета компании «${r.manba_nom}» — не является документом-основанием цены`;
+  if (tur === 'kp') return [r.manba_nom, r.nds_izoh ?? 'цена без НДС'].filter(Boolean).join('; ');
+  if (r.manba_tur === 'birja') return [`${r.manba_nom} (средневзвешенные недельные цены)`, poz, r.nds_izoh].filter(Boolean).join('; ');
+  if (r.manba_tur === 'mash_soat') return [r.manba_nom, r.narx_varianti, poz, 'цена без НДС'].filter(Boolean).join(', ');
+  const narxSana = sana(r.narx_varianti);
+  return [[r.manba_nom, davr].filter(Boolean).join(', '), r.hudud ? `лист «${r.hudud}»` : null, r.ishlab_chiqaruvchi ? `раздел (производитель): ${r.ishlab_chiqaruvchi}` : null,
+    poz, narxSana ? `отпускная цена без НДС на ${narxSana}` : 'цена без НДС', r.nds_izoh && /НДС/.test(r.nds_izoh) ? r.nds_izoh : null].filter(Boolean).join('; ');
+}
+
 export function narxAsosi(n: NarxNomzod, sabab = ''): PriceJustification {
   const r = n.row;
-  // Multi-edition rows carry the period in the edition title already (manba_sana present).
-  const davr = r.manba_sana !== undefined ? null : r.yil ? `${r.kvartal ? `${r.kvartal} кв. ` : ''}${r.yil} г.` : null;
-  const narxSanasi = r.manba_tur === 'katalog' || r.manba_tur === 'asosiy_material' ? r.narx_varianti && /^\d{4}-\d{2}-\d{2}$/.test(r.narx_varianti) ? `цена на ${r.narx_varianti.split('-').reverse().join('.')}` : null : null;
-  const document = n.tur === 'kompaniya' ? `Смета компании: ${r.manba_nom}`
-    : [r.manba_nom, davr, narxSanasi, r.hudud, r.ishlab_chiqaruvchi ? `производитель: ${r.ishlab_chiqaruvchi}` : null, r.nds_izoh, 'без НДС'].filter(Boolean).join(', ');
+  const document = manbaRekviziti(r, n.tur);
   // The source row exactly as published: its own unit and price (the estimate price may be recalculated from it).
   const sourcePrice = r.narx == null ? null : String(r.narx);
   const docType: PriceJustification['docType'] = n.tur === 'kompaniya' ? 'COMPANY_ESTIMATE' : n.tur === 'kp' ? (r.manba_tur === 'prays' ? 'PRICE_LIST' : 'COMMERCIAL_OFFER')

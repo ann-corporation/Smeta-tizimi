@@ -10,6 +10,10 @@ import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { smetaXulosasi } from '../../lib/smeta-studio/ai-kontekst';
+import { calcDoc } from '../../lib/smeta-studio/calc';
+import { loyihaBoyicha, talabMateriali } from '../../lib/smeta-studio/loyiha-material';
+import type { AgentAmal } from '../../lib/smeta-ai/protokol';
+import { AMAL_BOSQICH, agentChaqir, amalBuyruqlari, materialManbadami } from './studioAgent';
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi } from '../../lib/smeta-ai/protokol';
 import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
@@ -34,13 +38,21 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 };
 
+const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha materiali', hajm: 'Hajm', ochir: 'Ishni o‘chirish', kochir: 'Bo‘limga ko‘chirish',
+  bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
+  narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash' };
+
 export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
   return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
 }
 
-function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
+function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich }: {
   doc: EstimateDoc; katalog: AiKatalog | null; kompaniyaId: number | null; command: (c: StudioCommand) => boolean; newId: () => string;
+  /** Opens a studio step (pricing / documents) so the agent can run that step's action. */
+  onBosqich?: (b: 'lrv' | 'narx' | 'res') => void;
 }) {
+  // Studio agent: actions the model proposed for this turn; the user runs them (one undo step for document edits).
+  const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
   const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}`);
   const [saqlangan] = useState(() => {
     try { return JSON.parse(localStorage.getItem(kalit) ?? 'null') as { xabarlar?: SuhbatXabari[]; ishlar?: AiIsh[] } | null; }
@@ -54,7 +66,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     return birlashtir(saqlangan.ishlar, validated.ishlar);
   });
   const [matn, setMatn] = useState('');
-  const [band, setBand] = useState<'' | 'suhbat' | 'tanlash' | 'qoshish'>('');
+  const [band, setBand] = useState<'' | 'suhbat' | 'tanlash' | 'qoshish' | 'amal'>('');
   const [holat, setHolat] = useState('');
   const [tinglash, setTinglash] = useState(false);
   const rec = useRef<SpeechRec | null>(null);
@@ -108,7 +120,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
     const yangi = [...xabarlar, { rol: 'user' as const, matn: m }];
     setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat');
     try {
-      const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title, smetaXulosasi(doc));
+      const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title,
+        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)));
       if (!tirik.current) return;
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.
@@ -119,6 +132,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
       }
       const javob = [r.javob, ...r.savollar.map(s => '• ' + s)].join('\n');
       setXabarlar(x => [...x, { rol: 'assistant', matn: javob }]);
+      const userText = yangi.filter(x => x.rol === 'user').map(x => x.matn).join('\n');
+      setAmallar((r.amallar ?? []).map(a => {
+        // A class/mark the user never stated is not written silently (the model must ask).
+        const ogoh = a.tur === 'material' && a.qiymat && !materialManbadami(a.qiymat, userText) ? t('Bu material sinfi/markasi suhbatda aytilmagan — tekshiring') : null;
+        return { ...a, tanlangan: !ogoh, ogoh };
+      }));
       if (r.ogohlantirish) setHolat(r.ogohlantirish);
       // A conversational-only response must not erase the user's existing proposals.
       const asoslangan = r.ishlar.length ? await asosla(birlashtir(ishlar, r.ishlar)) : ishlar;
@@ -137,9 +156,41 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
       if (r.commands.length && command({ type: 'BATCH', label: 'Smetachi AI', commands: r.commands })) {
         setIshlar(list => list.filter(i => !r.qoshildi.includes(i.id)));
         setXabarlar(x => [...x, { rol: 'assistant', matn: t('{n} ta ish smetaga qo‘shildi (bitta “Bekor qilish” bilan qaytariladi).', { n: r.qoshildi.length }) }]);
+        const minuslar = r.commands.filter(c => c.type === 'ADD_OCCURRENCE' && c.minus).length;
+        if (minuslar) setXabarlar(x => [...x, { rol: 'assistant', matn: t('{n} ta «исключать» pozitsiya manfiy hisoblanadi.', { n: minuslar }) }]);
+        // «… ПО ПРОЕКТУ» resources of the added works without a material → ask right here (owner 2026-10-16).
+        const savol = r.commands.flatMap(c => c.type === 'ADD_OCCURRENCE' ? c.recipe.filter(x => x.resource && loyihaBoyicha(x.resource.name) && !talabMateriali(c.material, x.resource.name))
+          .map(x => `${c.source.code}: ${x.resource!.name}`) : []);
+        if (savol.length) setXabarlar(x => [...x, { rol: 'assistant', matn: [t('Normada loyiha bo‘yicha belgilanadigan resurslar bor. Loyihadagi aniq materialni yozing (sinf/marka/diametr):'), ...[...new Set(savol)].map(s => '• ' + s)].join('\n') }]);
       }
       if (r.otkazildi.length) setHolat(r.otkazildi.map(o => `${ishlar.find(i => i.id === o.id)?.tavsif ?? o.id}: ${o.sabab}`).join(' · '));
     } finally { setBand(''); }
+  }
+  /** Runs the selected actions: document edits as ONE batch, then step actions (pricing, documents …) in order. */
+  async function bajar() {
+    const tanlangan = amallar.filter(a => a.tanlangan);
+    const natija: string[] = [], buyruqlar: StudioCommand[] = [], keyin: AgentAmal[] = [];
+    for (const a of tanlangan) {
+      try {
+        if (a.tur === 'bosqich') { if (a.qiymat === 'lrv' || a.qiymat === 'narx' || a.qiymat === 'res') onBosqich?.(a.qiymat); continue; }
+        const c = amalBuyruqlari(doc, a, newId);
+        if (c) buyruqlar.push(...c); else keyin.push(a);
+      } catch (e) { natija.push(`✗ ${t(AMAL_NOMI[a.tur])}: ${e instanceof Error ? e.message : String(e)}`); }
+    }
+    setBand('amal');
+    try {
+      if (buyruqlar.length) natija.push(command({ type: 'BATCH', label: t('Smetachi AI: amallar'), commands: buyruqlar }) ? `✓ ${t('Smeta o‘zgartirildi: {n} amal', { n: buyruqlar.length })}` : `✗ ${t('Smeta o‘zgarmadi — qiymatlarni tekshiring')}`);
+      // Step actions run after the edits are in the document (the next render), one by one.
+      if (keyin.length) await new Promise(r => setTimeout(r, 300));
+      for (const a of keyin) {
+        try {
+          const nom = a.tur === 'hujjat' ? 'hujjat' : a.tur;
+          natija.push(`✓ ${await agentChaqir(nom, a, () => { const b = AMAL_BOSQICH[a.tur]; if (b) onBosqich?.(b); })}`);
+        } catch (e) { natija.push(`✗ ${t(AMAL_NOMI[a.tur])}: ${e instanceof Error && e.message !== 'AGENT_STEP_UNAVAILABLE' ? e.message : t('bosqich ochilmadi')}`); }
+      }
+    } finally { setBand(''); }
+    setAmallar([]);
+    if (natija.length) setXabarlar(x => [...x, { rol: 'assistant', matn: natija.join('\n') }]);
   }
   function ishniYangila(id: string, o: Partial<AiIsh>) { setIshlar(list => list.map(i => (i.id === id ? { ...i, ...o } : i))); }
   function formula(id: string, v: string) {
@@ -178,6 +229,19 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
       <button type="submit" className="tugma tugma-asosiy h-9 px-3" disabled={!!band || !matn.trim()}>{t('Yuborish')}</button>
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}
+    {amallar.length > 0 && <div className="karta space-y-1 p-2 text-[12px]">
+      <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI taklif qilgan amallar')}</strong>
+      {amallar.map((a, i) => <label key={i} className="flex items-start gap-2">
+        <input type="checkbox" className="mt-0.5" checked={a.tanlangan} onChange={e => setAmallar(l => l.map((x, j) => (j === i ? { ...x, tanlangan: e.target.checked } : x)))} />
+        <span><b>{t(AMAL_NOMI[a.tur])}</b>{a.ish ? ` · ${a.ish}` : ''}{a.qiymat ? ` · ${a.qiymat}` : ''}{a.manba ? ` · ${a.manba}` : ''}
+          {a.izoh && <span className="block text-[11px] text-text-mute">{a.izoh}</span>}
+          {a.ogoh && <span className="block text-[11px] text-warn">{a.ogoh}</span>}</span>
+      </label>)}
+      <div className="flex gap-2">
+        <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={!!band || !amallar.some(a => a.tanlangan)} onClick={() => void bajar()}>{t('Bajarish')}</button>
+        <button type="button" className="tugma h-8 px-3 text-[12px]" onClick={() => setAmallar([])}>{t('Bekor qilish')}</button>
+      </div>
+    </div>}
 
     {ishlar.length > 0 && <div className="karta overflow-hidden p-0">
       <div className="flex items-center gap-2 border-b border-border bg-surface-2/60 px-2 py-1.5">
@@ -192,7 +256,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
           <div className="flex items-start gap-2">
             <span className={`shrink-0 text-[10.5px] font-semibold ${HOLAT_RANG[i.holat]}`}>{tayyor.includes(i) ? '✓' : '•'}</span>
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-text">{i.tavsif}{i.material && <span className="text-text-mute"> · {i.material}</span>}</p>
+              <p className="font-medium text-text">{i.minus && <span className="text-danger">(−) {t('исключать')} </span>}{i.tavsif}{i.material && <span className="text-text-mute"> · {i.material}</span>}</p>
               <p className="text-[11px] text-text-mute">{t('Bo‘lim')}: {i.bolim}</p>
               {i.koeffitsientlar?.map(k => <p key={k.nom} className="text-[11px] text-warn">{t('Koeffitsient taklifi')}: {k.nom} × {k.qiymat.replace('.', ',')} ({k.qollanish}) — {k.asos}</p>)}
             </div>

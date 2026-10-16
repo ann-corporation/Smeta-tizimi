@@ -5,7 +5,13 @@
  */
 import type { CoefScope, WorkCoefficient } from './model';
 
-export type KoefYozuv = { a: string; t: string; s: string; q: string; k: Partial<Record<'ЧЕЛ' | 'МАШ' | 'МАТ', number>> };
+/**
+ * op: MUL — a plain multiplier of the stated norms; SHART — needs a parameter ("на каждые 100 мм", "добавлять 0,5 % на каждый
+ * метр сверх 15 м"): never converted to a multiplier (Codex audit 2026-10-15: 0,005 as a multiplier would cut labour 200×).
+ * jt: the tables (and rows) the condition text itself names — the rule applies only there.
+ */
+export type KoefYozuv = { a: string; t: string; s: string; q: string; k: Partial<Record<'ЧЕЛ' | 'МАШ' | 'МАТ', number>>; op?: 'MUL' | 'SHART';
+  jt?: Array<{ s: number; t1: number; t2: number; r?: Array<[number, number]> }> };
 export type KoefKatalog = { schema: string; manba: string; koef: Record<string, KoefYozuv>; jadval: Record<string, string[]> };
 export type KoefNomzod = { kod: string; yozuv: KoefYozuv };
 
@@ -17,16 +23,27 @@ export function jadvalKalitlari(code: string | null | undefined): string[] {
   return m[4] ? [t, `${t}-${Number(m[4])}`] : [t];
 }
 
-/** Every normative coefficient applicable to a work (table-level ∪ row-level), in reference order. */
+/** The work lies inside the tables/rows the condition text names (no list = the reference link decides). */
+export function jadvalIchida(y: KoefYozuv, code: string | null | undefined): boolean {
+  if (!y.jt?.length) return true;
+  const m = /^[EЕ](\d+)-(\d+)-(\d+)(?:-(\d+))?/.exec((code ?? '').trim());
+  if (!m) return false;
+  const s = Number(m[2]), t = Number(m[3]), r = m[4] == null ? null : Number(m[4]);
+  return y.jt.some(j => j.s === s && t >= j.t1 && t <= j.t2 && (!j.r || r == null || j.r.some(([a, b]) => r >= a && r <= b)));
+}
+
+/** Every normative coefficient applicable to a work (table-level ∪ row-level, limited by the condition's own table list). */
 export function ishKoeffitsientlari(kat: KoefKatalog, code: string | null | undefined): KoefNomzod[] {
   const seen = new Set<string>();
   const out: KoefNomzod[] = [];
   for (const key of jadvalKalitlari(code)) for (const kod of kat.jadval[key] ?? []) {
     const yozuv = kat.koef[kod];
-    if (yozuv && !seen.has(kod)) { seen.add(kod); out.push({ kod, yozuv }); }
+    if (yozuv && !seen.has(kod) && jadvalIchida(yozuv, code)) { seen.add(kod); out.push({ kod, yozuv }); }
   }
   return out;
 }
+/** A rule that needs a parameter is shown, never applied as a number. */
+export const qollanadi = (n: KoefNomzod) => (n.yozuv.op ?? 'MUL') === 'MUL';
 
 const idOf = (kod: string, scope: string) => `n${[...`${kod}|${scope}`].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0, 7).toString(36)}`;
 /**
@@ -34,6 +51,7 @@ const idOf = (kod: string, scope: string) => `n${[...`${kod}|${scope}`].reduce((
  * different values → one per resource kind. Кмр = 0 (materials not counted, e.g. demolition) is kept as МАТ × 0.
  */
 export function koefgaAylantir(n: KoefNomzod, accepted = false): WorkCoefficient[] {
+  if (!qollanadi(n)) return [];
   const { k } = n.yozuv;
   const evidence = `${n.kod} · ${n.yozuv.a}: ${n.yozuv.s || n.yozuv.q}`.slice(0, 300);
   const name = (n.yozuv.t || n.kod).slice(0, 300);

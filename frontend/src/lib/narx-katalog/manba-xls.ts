@@ -14,6 +14,8 @@
 export type ManbaTuri = 'katalog' | 'asosiy_material' | 'birja' | 'prays';
 export type SheetRows = unknown[][];
 export type NashrQatori = { nom: string; birlik: string; narx: number; hudud: string | null; zavod: string | null; guruh: string | null;
+  /** Position number in the source document (its own «№ п/п») — cited in the price justification. */
+  raqam?: string | null;
   /** Price date (ISO) of the month column the price came from. */
   sana: string | null; izoh: string | null };
 export type Nashr = { tur: ManbaTuri; nom: string; yil: number | null; kvartal: number | null; oy: number | null;
@@ -120,8 +122,9 @@ function katalogVaraq(nom: string, rows: SheetRows, out: NashrQatori[], c: Nashr
       continue;
     }
     if (asosiy && u.zavod != null && str(r[u.zavod])) zavod = str(r[u.zavod]).slice(0, 200);
+    const no = str(r[0]);
     out.push({ nom: nomi.slice(0, 1500), birlik: str(r[u.birlik]).slice(0, 40), narx: round2(narx.narx), hudud, zavod, guruh, sana: narx.sana,
-      izoh: narx.hisoblangan ? 'hisoblangan: QQS 12% chiqarildi' : null });
+      raqam: /^\d{1,6}$/.test(no) ? no : null, izoh: narx.hisoblangan ? 'цена с НДС, НДС 12 % исключён' : null });
     if (narx.hisoblangan) c.hisoblanganQqs++;
   }
 }
@@ -134,6 +137,7 @@ function birjaVaraq(nom: string, rows: SheetRows, out: NashrQatori[], c: Nashr['
   const ni = r0.findIndex(v => /наименование/i.test(v)), bi = r0.findIndex(v => /^ед/i.test(v)), pi = r0.findIndex(v => /котировк|цен/i.test(v) && !/наименование/i.test(v));
   if (ni < 0 || bi < 0 || pi < 0) { c.olinmaganVaraqlar.push(`${nom}: ustunlar topilmadi`); return; }
   const sana = sanaOl(rows[h + 1]?.[pi]);
+  const hafta = [...str(rows[h + 1]?.[pi]).matchAll(/(\d{2}\.\d{2}\.\d{4})/g)].map(m => m[1]);
   for (const r of rows.slice(h + 2)) {
     const nomi = str(r[ni]), birlik = str(r[bi]), q = num(r[pi]);
     if (!nomi || !birlik || !/[А-Яа-яA-Za-z]/.test(nomi)) continue;
@@ -143,8 +147,9 @@ function birjaVaraq(nom: string, rows: SheetRows, out: NashrQatori[], c: Nashr['
     const tayyor = yon != null && Math.abs(yon * QQS - q) <= Math.max(1, q * 0.002);
     const narx = tayyor ? round2(yon) : round2(q / QQS);
     if (!tayyor) c.hisoblanganQqs++;
-    out.push({ nom: nomi.slice(0, 1500), birlik: birlik.slice(0, 40), narx, hudud: null, zavod: null, guruh: null, sana,
-      izoh: `kotirovka ${q} (с НДС)${tayyor ? '' : ' ÷ 1,12'}` });
+    const no = str(r[0]);
+    out.push({ nom: nomi.slice(0, 1500), birlik: birlik.slice(0, 40), narx, hudud: null, zavod: null, guruh: null, sana, raqam: /^\d{1,6}$/.test(no) ? no : null,
+      izoh: `котировка ${q.toLocaleString('ru-RU')} сум с НДС${hafta.length === 2 ? `, неделя ${hafta[0]}–${hafta[1]}` : ''}; без НДС = котировка ÷ 1,12` });
   }
 }
 

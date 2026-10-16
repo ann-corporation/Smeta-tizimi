@@ -37,7 +37,10 @@ export function hourPrices(doc: EstimateDoc, calc: DocCalc, c: HourCatalog, unit
   const out: HourResult = { commands: [], labour: 0, machines: 0, operatorsLeft: 0, notFound: 0 };
   const region = regionKey ? HOUR_REGION[regionKey] ?? null : null;
   for (const o of Object.values(doc.occurrences)) for (const l of calc.occurrences[o.id]?.lines ?? []) {
-    if (l.price != null || !l.resource) continue;
+    if (!l.resource) continue;
+    // A price set earlier without the document requisites is refreshed; operator prices and justified ones stay.
+    const ov = o.overrides[l.recipeId]?.price;
+    if (l.price != null && (!ov || ov.justification || ov.basis === 'OPERATOR_MANUAL')) continue;
     const f = resourceFacts(l.resource, unitText);
     if (f.pricingSource === 'LABOUR_HOUR') {
       if (/ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ/i.test(l.resource.name ?? '')) { out.operatorsLeft++; continue; }
@@ -56,7 +59,7 @@ export function hourPrices(doc: EstimateDoc, calc: DocCalc, c: HourCatalog, unit
       out.commands.push({ type: 'SET_PRICE', occurrenceId: o.id, recipeId: l.recipeId, price: { value: m.price, basis: 'CATALOG_CANDIDATE',
         evidence: `Mash.-soat katalogi · ${m.name} · ${m.sourceDate} · sah. ${m.page} · eng yuqori narx (MAX) · NDS siz`,
         sourcePriceId: `hour-machine:${m.machineKey}`,
-        justification: { docType: 'MACHINE_HOUR', document: `Калькуляция стоимости маш.-часа, ${m.sourceDate}, стр. ${m.page}; принята наибольшая стоимость (MAX), без НДС`,
+        justification: { docType: 'MACHINE_HOUR', document: `Калькуляция стоимости маш.-часа по состоянию на ${m.sourceDate.split('-').reverse().join('.')}, стр. ${m.page}, цена без НДС`,
           sourceName: m.name, sourceUnit: 'маш-ч', sourcePrice: m.price, conversion: null, reason: null } } });
     }
   }

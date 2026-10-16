@@ -24,6 +24,8 @@ export type IshNiyati = {
   hajmIzoh: string | null;
   /** Material characteristic that matters for the resource (e.g. "Бетон B7,5"), optional. */
   material: string | null;
+  /** «исключать» position (thickness/size below the norm): counted negative. */
+  minus?: boolean;
   holat: IshHolati;
   /** Normative collections to search first (e.g. ["E06"]); a hint, never a filter that hides other results. */
   toplam?: string[];
@@ -34,7 +36,22 @@ export type IshNiyati = {
 export const KOEF_QOLLANISH = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
 export type KoefQollanish = typeof KOEF_QOLLANISH[number];
 export type KoefTaklif = { nom: string; qiymat: string; qollanish: KoefQollanish; asos: string };
-export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyati[] };
+export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyati[]; amallar?: AgentAmal[] };
+/**
+ * Studio agent actions (owner 2026-10-16: "AI boshidan oxirigacha ishlay olishi kerak — narxlashdan hujjat tartibigacha").
+ * The model only PROPOSES; the user runs them (one click, one undo step). "ish" is a work reference from the estimate
+ * summary ([i3]) or a section/resource name; "qiymat" the value; "manba" the source document for a manual price.
+ */
+export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'bosqich', 'hujjat'] as const;
+export type AgentAmal = { tur: typeof AMAL_TURLARI[number]; ish: string | null; qiymat: string | null; manba: string | null; izoh: string };
+export function agentAmallariniTekshir(raw: unknown): AgentAmal[] {
+  const s = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+  return (Array.isArray(raw) ? raw : []).slice(0, 30).flatMap((x: unknown) => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    const tur = AMAL_TURLARI.find(t => t === r.tur);
+    return tur ? [{ tur, ish: s(r.ish, 200), qiymat: s(r.qiymat, 400), manba: s(r.manba, 400), izoh: s(r.izoh, 300) ?? '' }] : [];
+  });
+}
 export type SuhbatXabari = { rol: 'user' | 'assistant'; matn: string };
 
 export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: string | null;
@@ -153,10 +170,11 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
     const koeffitsientlar = koefTakliflari(r.koeffitsientlar ?? r.koef ?? r.coefficients);
     ishlar.push({ id, bolim: str(r.bolim, 120) || 'Asosiy', tavsif, qidiruv, birlik, hajmIfoda: ifoda,
       hajmIzoh: str(r.hajmIzoh, 300) || null, material: str(r.material, 120) || null, holat: ifoda ? holat : holat === 'TAYYOR' ? 'HAJM_KERAK' : holat,
+      ...(r.minus === true ? { minus: true } : {}),
       ...(toplam.length ? { toplam } : {}), ...(koeffitsientlar.length ? { koeffitsientlar } : {}) });
   }
   const savollar = [...(Array.isArray(o.savollar) ? o.savollar : []).map(q => str(q, 300)).filter(Boolean), ...extraQ];
-  return { javob: str(o.javob, 2000) || 'Tushunarli.', savollar: [...new Set(savollar)].slice(0, 5), ishlar };
+  return { amallar: agentAmallariniTekshir(o.amallar ?? top.amallar), javob: str(o.javob, 2000) || 'Tushunarli.', savollar: [...new Set(savollar)].slice(0, 5), ishlar };
 }
 
 /** A choice survives only if it names one of the candidates the browser sent for that intent. */
@@ -218,10 +236,13 @@ export function narxTanlovlariniTekshir(raw: unknown, sorovlar: NarxSorovi[]): N
   });
 }
 
-export const SUHBAT_SXEMA = { name: 'smetachi_suhbat', schema: { type: 'object', additionalProperties: false, required: ['javob', 'savollar', 'ishlar'], properties: {
+export const SUHBAT_SXEMA = { name: 'smetachi_suhbat', schema: { type: 'object', additionalProperties: false, required: ['javob', 'savollar', 'ishlar', 'amallar'], properties: {
   javob: { type: 'string' }, savollar: { type: 'array', items: { type: 'string' } },
+  amallar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tur', 'ish', 'qiymat', 'manba', 'izoh'], properties: {
+    tur: { type: 'string', enum: [...AMAL_TURLARI] }, ish: { type: ['string', 'null'] }, qiymat: { type: ['string', 'null'] }, manba: { type: ['string', 'null'] }, izoh: { type: 'string' } } } },
   ishlar: { type: 'array', items: { type: 'object', additionalProperties: false,
-    required: ['id', 'bolim', 'tavsif', 'qidiruv', 'birlik', 'hajmIfoda', 'hajmIzoh', 'material', 'holat', 'toplam', 'koeffitsientlar'], properties: {
+    required: ['id', 'bolim', 'tavsif', 'qidiruv', 'birlik', 'hajmIfoda', 'hajmIzoh', 'material', 'minus', 'holat', 'toplam', 'koeffitsientlar'], properties: {
+      minus: { type: 'boolean' },
       id: { type: 'string' }, bolim: { type: 'string' }, tavsif: { type: 'string' }, qidiruv: { type: 'array', items: { type: 'string' } },
       birlik: { type: 'string', enum: [...BIRLIKLAR] }, hajmIfoda: { type: ['string', 'null'] }, hajmIzoh: { type: ['string', 'null'] },
       material: { type: ['string', 'null'] }, holat: { type: 'string', enum: ['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] },

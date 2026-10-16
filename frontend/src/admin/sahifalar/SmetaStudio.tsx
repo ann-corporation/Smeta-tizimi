@@ -21,6 +21,7 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
 import { HUDUD_KALIT, lsGet, lsSet, unitTextOf } from './studio-sozlama';
 import { KoeffitsientlarPaneli, NarxlashBosqichi, ResBosqichi } from './StudioBosqichlar';
+import { MateriallarPaneli } from './StudioMateriallar';
 import { SmetaAiChat } from './SmetaAiChat';
 import { ishIndeksi } from '../../lib/smeta-ai/worker';
 
@@ -168,21 +169,20 @@ export default function SmetaStudio() {
           <button type="button" aria-current={bosqich === k ? 'step' : undefined} disabled={k !== 'lrv' && !ishlarSoni}
             className={`tugma h-8 px-3 text-[12.5px] ${bosqich === k ? 'tugma-asosiy' : ''}`} onClick={() => setBosqich(k)}>{l}</button></span>)}
     </nav>
-    {bosqich === 'narx' && <NarxlashBosqichi doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} />}
-    {bosqich === 'res' && <ResBosqichi doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} />}
-    {bosqich === 'lrv' && <div className="grid xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-3 items-start">
+    {/* The AI estimator stays in the same place on every step (owner 2026-10-16: the chat runs the estimate end to end). */}
+    <div className={`grid gap-3 items-start ${bosqich === 'lrv' ? 'xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]' : 'xl:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]'}`}>
       <section aria-label={t('Normativ katalog')} className="border border-border rounded-lg p-3 bg-surface-1 min-w-0">
-        <div role="tablist" aria-label={t('Chap panel')} className="mb-2 flex gap-1 border-b border-border pb-2">
+        {bosqich === 'lrv' && <div role="tablist" aria-label={t('Chap panel')} className="mb-2 flex gap-1 border-b border-border pb-2">
           {([['ai', t('Smetachi AI')], ['katalog', t('Normativ katalog')]] as const).map(([k, l]) =>
             <button key={k} type="button" role="tab" aria-selected={chapTab === k} className={`tugma h-8 px-3 text-[12.5px] ${chapTab === k ? 'tugma-asosiy' : ''}`}
               onClick={() => { setChapTab(k); lsSet(CHAP_TAB_KALIT, k); }}>{l}</button>)}
-        </div>
-        {chapTab === 'ai' && <SmetaAiChat doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={amal} newId={uid} />}
+        </div>}
+        {(chapTab === 'ai' || bosqich !== 'lrv') && <SmetaAiChat doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={amal} newId={uid} onBosqich={setBosqich} />}
         {chapTab === 'ai' && !katalog && katalogHolat === 'yuklanmoqda' && <p className="text-xs text-text-mute">{t('Normativ katalog yuklanmoqda...')}</p>}
-        {chapTab === 'katalog' && katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
-        {chapTab === 'katalog' && katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
-        {chapTab === 'katalog' && katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
-        {chapTab === 'katalog' && katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
+        {bosqich === 'lrv' && chapTab === 'katalog' && katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
+        {bosqich === 'lrv' && chapTab === 'katalog' && katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
+        {bosqich === 'lrv' && chapTab === 'katalog' && katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
+        {bosqich === 'lrv' && chapTab === 'katalog' && katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
           onAdd={(work, detail, quantity) => {
             if (!nishon || !doc.sections[nishon]) { setXato(t(XATOLAR.TARGET_REQUIRED)); return false; }
             try {
@@ -194,17 +194,22 @@ export default function SmetaStudio() {
           }} />}
       </section>
       <div className="min-w-0 space-y-3">
+        {bosqich === 'narx' && <NarxlashBosqichi doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} />}
+        {bosqich === 'res' && <ResBosqichi doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} />}
+        {bosqich === 'lrv' && <>
         <SmetaDocumentPanel doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
+        <MateriallarPaneli doc={doc} command={amal} />
         <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} />
         {ishlarSoni > 0 && <div className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
           <span>{t('LRV: {n} ta ish', { n: ishlarSoni })}{hajmsiz ? <span className="text-warn"> · {t('hajmi kiritilmagan: {n}', { n: hajmsiz })}</span> : null}</span>
           <span className="flex-1" />
           <button type="button" className="tugma tugma-asosiy h-9 px-4" onClick={() => setBosqich('narx')}>{t('Narxlashga o‘tish')} →</button>
         </div>}
+        </>}
       </div>
-    </div>}
+    </div>
   </div>;
 }
 

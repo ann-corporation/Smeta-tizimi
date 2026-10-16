@@ -22,8 +22,10 @@ export type OccurrenceCalc = Totals & { id: string; lines: LineCalc[]; issues: L
 export type SectionCalc = Totals & { id: string };
 export type DocCalc = { occurrences: Record<string, OccurrenceCalc>; sections: Record<string, SectionCalc>; total: Totals };
 
-const cents = (v: string) => { if (!/^\d+\.\d{2}$/.test(v)) throw new Error('MONEY_INVALID'); return BigInt(v.replace('.', '')); };
-const money = (c: bigint) => { const t = c.toString().padStart(3, '0'); return t.slice(0, -2) + '.' + t.slice(-2); };
+const cents = (v: string) => { if (!/^-?\d+\.\d{2}$/.test(v)) throw new Error('MONEY_INVALID'); return BigInt(v.replace('.', '')); };
+const money = (c: bigint) => { const neg = c < 0n, t = (neg ? -c : c).toString().padStart(3, '0'); return (neg ? '-' : '') + t.slice(0, -2) + '.' + t.slice(-2); };
+/** «исключать» positions: the same computation, negative sign. */
+const manfiy = (v: string | null) => (v == null || /^0(\.0+)?$/.test(v) ? v : v.startsWith('-') ? v.slice(1) : '-' + v);
 
 /** Exact decimal product of two canonical non-negative decimals. */
 export function mulDec(a: string, b: string): string {
@@ -78,8 +80,10 @@ export function calcOccurrence(o: Occurrence): OccurrenceCalc {
     }
     const price = ov.price?.value ?? null;
     if (price == null) lineIssues.push('PRICE_MISSING');
+    const amount = previewResourceAmount(quantity, price);
+    const minus = o.ishora === -1;
     return { recipeId: r.recipeId, resource, original: r.resource, substituted: !!sub, norm, normOverridden: !!sub?.normOverride,
-      quantity, price, priceBasis: ov.price?.basis ?? null, amount: previewResourceAmount(quantity, price), issues: lineIssues, coefficient };
+      quantity: minus ? manfiy(quantity) : quantity, price, priceBasis: ov.price?.basis ?? null, amount: minus ? manfiy(amount) : amount, issues: lineIssues, coefficient };
   });
   // A work without any recipe line has no computable cost: unknown, not zero.
   const t = lines.length ? sum(lines.map(l => l.amount)) : { amount: null, knownAmount: '0.00', unresolved: 1 };

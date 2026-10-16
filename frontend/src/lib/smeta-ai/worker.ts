@@ -216,10 +216,12 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
       let sectionId = sectionByName.get(nomi.toLowerCase());
       if (!sectionId) { sectionId = newId(); sectionByName.set(nomi.toLowerCase(), sectionId); commands.push({ type: 'ADD_SECTION', sectionId, parentId: null, name: nomi }); }
       const occurrenceId = newId();
-      commands.push({ type: 'ADD_OCCURRENCE', occurrenceId, sectionId, source: snap.source, recipe: snap.recipe, quantity: ish.hajm.qiymat, basis, material: ish.material ?? null });
+      commands.push({ type: 'ADD_OCCURRENCE', occurrenceId, sectionId, source: snap.source, recipe: snap.recipe, quantity: ish.hajm.qiymat, basis, material: ish.material ?? null, ...(ish.minus ? { minus: true } : {}) });
+      // A thickness-change position: the difference is the coefficient the model computed from the user's numbers (accepted).
+      const tuzatish = /ИЗМЕНЕНИ\S*\s+ТОЛЩИН/i.test(snap.source.name ?? '');
       // Coefficients travel as PROPOSALS: visible on the work, applied only when the operator accepts them.
       if (ish.koeffitsientlar?.length) commands.push({ type: 'SET_COEFFICIENTS', occurrenceId, coefficients: ish.koeffitsientlar.map((k, i) => ({
-        id: `ai${i + 1}`, name: k.nom, value: k.qiymat, scope: k.qollanish, evidence: k.asos, origin: 'AI' as const, accepted: false })) });
+        id: `ai${i + 1}`, name: k.nom, value: k.qiymat, scope: k.qollanish, evidence: k.asos, origin: 'AI' as const, accepted: tuzatish && /толщин/i.test(k.nom) })) });
       qoshildi.push(ish.id);
     } catch (e) {
       otkazildi.push({ id: ish.id, sabab: e instanceof Error && e.message === 'WORK_AMBIGUOUS' ? 'Bir shifrga ikki ish mos — qo‘lda tanlang' : 'Katalog ishi yuklanmadi' });

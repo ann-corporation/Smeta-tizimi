@@ -23,12 +23,8 @@ import type { CatalogResource, EstimateDoc } from './model';
 import { resourceCategory } from './export-adapter';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from '../narx-bildirishnoma';
 import { NAKRUTKA_KATLAR, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from '../nakrutka-podval';
-import { nakrutkaKategoriyasi, talabMateriali } from './narx-yigish';
-/** «БЕТОН (КЛАСС ПО ПРОЕКТУ)» shows the work's stated material: «… — БЕТОН B20». */
-const nomi = (name: string | null | undefined, material: string | null | undefined) => {
-  const t = talabMateriali(material, name);
-  return t ? `${name ?? ''} — ${t}` : name ?? '';
-};
+import { nakrutkaKategoriyasi } from './narx-yigish';
+import { resursNomi as nomi } from './loyiha-material';
 import { narxAsoslashVaraq, type AsoslashBand } from '../narx-asoslash-export';
 import type { ProtokolQator } from '../narx-protokol-hujjat';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
@@ -81,7 +77,8 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, units: Units, o: AbcHujjatOps
     for (const oid of s.items) {
       const occ = doc.occurrences[oid], c = calc.occurrences[oid];
       work++;
-      const scale = n(occ.basis.scale), qty = n(occ.quantity);
+      // «исключать» positions carry a negative work quantity, so every resource formula comes out negative too.
+      const scale = n(occ.basis.scale), qty0 = n(occ.quantity), qty = qty0 == null ? null : occ.ishora === -1 ? -qty0 : qty0;
       const normQty = qty != null && scale ? Math.round((qty / scale) * 1e9) / 1e9 : null;
       const unit = workUnit(occ.source.unitCode) ?? occ.basis.unitLabel ?? '';
       const wr = v.r;

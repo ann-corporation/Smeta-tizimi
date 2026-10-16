@@ -27,8 +27,10 @@ export type StudioCommand =
   | { type: 'RENAME_SECTION'; sectionId: string; name: string }
   | { type: 'MOVE_SECTION'; sectionId: string; parentId: string | null; index?: number }
   | { type: 'REMOVE_SECTION'; sectionId: string }
-  | { type: 'ADD_OCCURRENCE'; occurrenceId: string; sectionId: string; source: WorkSource; recipe: RecipeSnapshot[]; quantity: string | null; basis: UnitBasis; material?: string | null }
+  | { type: 'ADD_OCCURRENCE'; occurrenceId: string; sectionId: string; source: WorkSource; recipe: RecipeSnapshot[]; quantity: string | null; basis: UnitBasis; material?: string | null; minus?: boolean }
   | { type: 'SET_MATERIAL'; occurrenceId: string; material: string | null }
+  /** «добавлять» (plus, default) or «исключать» (minus) position. */
+  | { type: 'SET_SIGN'; occurrenceId: string; minus: boolean }
   | { type: 'SET_QUANTITY'; occurrenceId: string; quantity: string | null }
   | { type: 'SET_BASIS'; occurrenceId: string; basis: UnitBasis }
   | { type: 'MOVE_OCCURRENCE'; occurrenceId: string; sectionId: string; index?: number }
@@ -56,7 +58,8 @@ function coefficientOf(c: WorkCoefficient): WorkCoefficient {
   const value = normDec(c.value, 'COEFFICIENT_INVALID');
   if (c.origin !== 'NORM' && c.origin !== 'AI' && c.origin !== 'OPERATOR') fail('COEFFICIENT_INVALID');
   // Zero only from the normative reference (Кмр = 0: materials are not counted, e.g. dismantling).
-  if ((value === '0' && !(c.origin === 'NORM' && c.scope === 'МАТ')) || Number(value) > 10) fail('COEFFICIENT_INVALID');
+  // ≤ 100: a size-change position multiplies by the difference (15 mm on a «per 1 mm» norm = 15).
+  if ((value === '0' && !(c.origin === 'NORM' && c.scope === 'МАТ')) || Number(value) > 100) fail('COEFFICIENT_INVALID');
   if (!COEF_SCOPES.includes(c.scope)) fail('COEFFICIENT_INVALID');
   return { id: c.id, name: name(c.name, 'COEFFICIENT_NAME_REQUIRED'), value, scope: c.scope,
     evidence: name(c.evidence, 'COEFFICIENT_EVIDENCE_REQUIRED'), origin: c.origin, accepted: c.accepted === true };
@@ -206,8 +209,14 @@ export function applyCommand(input: EstimateDoc, cmd: StudioCommand): EstimateDo
         basis: basisOf(cmd.basis), recipe: clone(cmd.recipe), overrides: {} };
       const mat = materialOf(cmd.material);
       if (mat) o.material = mat;
+      if (cmd.minus) o.ishora = -1;
       w.sec(cmd.sectionId).items.push(cmd.occurrenceId);
       w.putOcc(o);
+      break;
+    }
+    case 'SET_SIGN': {
+      const o = w.occ(cmd.occurrenceId);
+      if (cmd.minus) o.ishora = -1; else delete o.ishora;
       break;
     }
     case 'SET_MATERIAL': {

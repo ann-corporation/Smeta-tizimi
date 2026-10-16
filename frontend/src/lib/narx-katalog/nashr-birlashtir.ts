@@ -71,7 +71,7 @@ export function nashrlarniBirlashtir(nashrlar: Array<Nashr & { sha256?: string |
       }
       egallangan.set(key, i);
       if (seq >= ID_QADAM) throw new Error('NASHR_JUDA_KATTA ' + n.nom);
-      const row: PriceRow = [(i + 1) * ID_QADAM + seq, seq, null, q.nom, d.birlik.add(q.birlik), narx, d.hudud.add(hk ? hududAniqla(q.hudud)!.nom : q.hudud),
+      const row: PriceRow = [(i + 1) * ID_QADAM + seq, seq, q.raqam ?? null, q.nom, d.birlik.add(q.birlik), narx, d.hudud.add(hk ? hududAniqla(q.hudud)!.nom : q.hudud),
         d.zavod.add(q.zavod), d.ndsHolati.add('nds_siz'), d.ndsIzoh.add(q.izoh), n.yil, n.kvartal, d.variant.add(q.sana), d.guruh.add(q.guruh), i];
       nashrIchida.set(key, out.length);
       out.push({ manba: i, seq, r: row });
@@ -124,7 +124,7 @@ export function indeksdanNashrlar(dict: PriceDict, rows: PriceRow[]): Nashr[] {
   for (const r of rows) {
     const n = by.get(r[14] ?? manbalar.length - 1);
     if (!n || r[5] == null) continue;
-    n.qatorlar.push({ nom: r[3], birlik: at(dict.birlik, r[4]) ?? '', narx: Number(r[5]), hudud: at(dict.hudud, r[6]), zavod: at(dict.zavod, r[7]),
+    n.qatorlar.push({ nom: r[3], raqam: r[2], birlik: at(dict.birlik, r[4]) ?? '', narx: Number(r[5]), hudud: at(dict.hudud, r[6]), zavod: at(dict.zavod, r[7]),
       guruh: at(dict.guruh, r[13]), sana: at(dict.variant, r[12]), izoh: at(dict.ndsIzoh, r[9]) });
   }
   return [...by.values()];

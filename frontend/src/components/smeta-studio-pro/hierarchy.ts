@@ -1,5 +1,6 @@
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
+import { resursNomi } from '../../lib/smeta-studio/loyiha-material';
 
 /** Presentation index only: never a second editable estimate or source of quantity/price. */
 export type OutlineRow = {
@@ -42,7 +43,7 @@ export function indexEstimate(doc: EstimateDoc): OutlineIndex {
       for (const recipe of work.recipe) {
         const selected = work.overrides[recipe.recipeId]?.substitution?.resource ?? recipe.resource;
         add({ key: key('resource', work.id, recipe.recipeId), parentKey: workKey, kind: 'resource',
-          label: selected?.name ?? '', code: selected?.code ?? null, depth: visit.depth + 1,
+          label: resursNomi(selected?.name, work.material), code: selected?.code ?? null, depth: visit.depth + 1,
           expandable: false, sectionId: visit.sectionId, occurrenceId: work.id, recipeId: recipe.recipeId });
       }
       continue;

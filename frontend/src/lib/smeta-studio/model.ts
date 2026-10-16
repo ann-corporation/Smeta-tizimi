@@ -61,6 +61,8 @@ export type Occurrence = {
   coefficients?: WorkCoefficient[];
   /** Material stated for the work ("Бетон B20", "Раствор цементный М100") — prices the norm's «по проекту» resources. */
   material?: string | null;
+  /** -1: an «исключать» position (e.g. «на каждый 1 мм изменения толщины … исключать») — its quantities and costs count negative. */
+  ishora?: -1;
 };
 /** Which resource quantities a coefficient multiplies. МАТ = every material category (МАТ/КАБ/М/К/БЕЗ СКЛАД). */
 export type CoefScope = 'ALL' | 'ЧЕЛ' | 'МАШ' | 'ЧЕЛ+МАШ' | 'МАТ';
