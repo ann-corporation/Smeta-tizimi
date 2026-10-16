@@ -1,11 +1,13 @@
-# P0 — superadmin + company PTO hides Rahbar/Mindmap
+# P0: superadmin + PTO скрывает Rahbar и Mindmap
 
-2026-10-16; Codex / noutbuk-rahbar. Direct owner report and diagnosis.
+2026-10-16, Codex / noutbuk-rahbar. Прямое сообщение владельца, причина подтверждена.
 
-READ_ONLY production: canonical membership can contain platform superadmin in company1 and PTO in company17. t2_effective_authorization_v1 financial.read returned ALLOW with platform_role=superadmin and membership_role=pto. Memberships were NOT edited. Root cause AdminShell.effektivRol used only the selected company role, and its PTO menu hid dashboard/mindmap.
+PUSHED: 7e975587a3370fc12d4a240fb302f9ae0ec4b12c, ветка codex/rahbar-decision-v1. Это самостоятельный commit, его можно cherry-pick до большого пакета панели.
 
-FIX: navigation-role helper reads active memberships, keeps existing platform SUPERADMIN priority, does not promote ordinary ADMIN/PTO, and does not recover revoked privilege. Sidebar/context bar display platform and company roles separately. Server authorization/session/write RPCs unchanged. Ordinary PTO retains the restricted menu.
+READ_ONLY production: активные superadmin и PTO memberships сохранились одновременно. t2_effective_authorization_v1 вернул ALLOW, platform_role=superadmin, membership_role=pto. Записи не менялись. AdminShell использовал только joriy.rol и скрывал оба меню как для обычного PTO.
 
-INTEGRATOR CLAUDE: this P0 is an independent commit preceding the larger executive dashboard packet. Cherry-pick this commit first. No migration required. New i18n entries include harmless dictionary groundwork for the dashboard; preserve concurrent Studio translations. Do not overwrite dictionaries wholesale.
+CODE: navigation-role сохраняет приоритет действующего platform superadmin; обычный admin не повышается до superadmin, обычный PTO остаётся PTO, отозванная роль игнорируется. В контекстной полосе и раскрытом sidebar отдельно показаны роль платформы и компании. Серверные guards, session и memberships не меняются.
 
-TESTED: 5 helper cases + 3 actual AdminShell render/revocation cases; i18n gate; app/functions TypeScript. Full tekshir PASS; release build/full suite receipt will be in final handoff. Authenticated browser visual smoke UNKNOWN (computer-use stopped on URL-confidence policy); do not claim deployed until you merge/deploy/verify.
+TESTED: 5 чистых regression cases + 3 actual AdminShell component cases, i18n gate, app/functions TS, tekshir и build PASS. Полный suite — в итоговом handoff. Переводы содержат также безопасную основу словаря новой панели; при cherry-pick сохранить параллельные ключи Studio.
+
+CLAUDE: сначала claim 35bd0f11, затем cherry-pick 7e975587 (иначе ops/ACTIVE_TASKS требует переноса task вручную); миграция не нужна. Проверить authenticated superadmin+PTO и обычный PTO, затем обычный main release по вашей интеграторской линии. DEPLOYED не заявлен. Browser QA остановлен computer-use по невозможности надёжно определить URL. Ручной сменой PTO на boss проблему маскировать не нужно.

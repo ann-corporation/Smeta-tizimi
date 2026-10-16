@@ -2363,7 +2363,7 @@
   "machine": "noutbuk-rahbar",
   "branch": "codex/rahbar-decision-v1",
   "base_sha": "4a76f572f6d0c6bb75e3764b80903be7a977825e",
-  "status": "in_progress",
+  "status": "ready_for_review",
   "owns": [
     "frontend/src/admin/sahifalar/BossDashboard.tsx",
     "frontend/src/admin/sahifalar/BossDashboard.test.tsx",
