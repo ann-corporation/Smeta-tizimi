@@ -45,6 +45,8 @@ function narxsizQatorlar(g: ResursGuruh, hisob: DocCalc) {
   return g.qatorlar.filter(q => eski.has(q.occurrenceId + '\u0001' + q.recipeId) || hisob.occurrences[q.occurrenceId]?.lines.find(l => l.recipeId === q.recipeId)?.price == null);
 }
 const narxKerak = (g: ResursGuruh) => g.narxsiz > 0 || !!g.eskiQatorlar?.length;
+/** Waits (≤ 30 s) until a condition on the latest render holds — sources loaded, a just-set region applied. */
+async function kut(shart: () => boolean) { for (let i = 0; i < 150 && !shart(); i++) await new Promise(r => setTimeout(r, 200)); }
 
 /* ───────────────────────── LRV: koeffitsientlar ───────────────────────── */
 export { KoeffitsientlarPaneli } from './StudioKoeffitsientlar';
@@ -68,19 +70,27 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   const [kpmVersiya, setKpmVersiya] = useState(0);
   // Official machine-hour list (01.01.2026, 710 machines) — the first source for МАШ lines.
   const [mash, setMash] = useState<MatchCatalog | null>(null);
-  useEffect(() => { let alive = true; mashKatalogi().then(k => { if (alive) setMash(mashView(k)); }).catch(() => {}); return () => { alive = false; }; }, []);
+  // Every source has settled (loaded or failed). The chat agent opens this step and prices at once — production run
+  // 2026-10-16 priced before the machine-hour list arrived (1 of 11 machines, from the old 2023 calculation).
+  const [yuklandi, setYuklandi] = useState({ mash: false, soat: false, kpm: kompaniyaId == null });
+  useEffect(() => { let alive = true; mashKatalogi().then(k => { if (alive) setMash(mashView(k)); }).catch(() => {})
+    .finally(() => { if (alive) setYuklandi(y => ({ ...y, mash: true })); }); return () => { alive = false; }; }, []);
   useEffect(() => {
     let alive = true;
-    if (kompaniyaId == null) { setKpm(null); return; }
-    kompaniyaManbalariniOl(kompaniyaId).then(m => { if (alive) setKpm(m); }).catch(() => { if (alive) setKpm(null); });
+    if (kompaniyaId == null) { setKpm(null); setYuklandi(y => ({ ...y, kpm: true })); return; }
+    setYuklandi(y => ({ ...y, kpm: false }));
+    kompaniyaManbalariniOl(kompaniyaId).then(m => { if (alive) setKpm(m); }).catch(() => { if (alive) setKpm(null); })
+      .finally(() => { if (alive) setYuklandi(y => ({ ...y, kpm: true })); });
     return () => { alive = false; };
   }, [kompaniyaId, kpmVersiya]);
   useEffect(() => {
     let alive = true;
     narxKatalogi().then(c => { if (alive) { setCat(c); setCatHolat('tayyor'); } }).catch(() => { if (alive) setCatHolat('xato'); });
-    loadHourCatalog().then(c => { if (alive) { setSoat(c); setDavr(labourPeriods(c)[0] ?? null); } }).catch(() => {});
+    loadHourCatalog().then(c => { if (alive) { setSoat(c); setDavr(labourPeriods(c)[0] ?? null); } }).catch(() => {})
+      .finally(() => { if (alive) setYuklandi(y => ({ ...y, soat: true })); });
     return () => { alive = false; };
   }, []);
+  const manbalarTayyor = catHolat !== 'yuklanmoqda' && yuklandi.mash && yuklandi.soat && yuklandi.kpm;
   const regions = useMemo(() => {
     if (!cat) return [] as Array<[string, string]>;
     const seen = new Map<string, string>();
@@ -210,16 +220,23 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     return qism.join(' · ');
   }
   // Studio agent (chat): pricing, region, a manual price with its document — the same functions as the buttons.
-  const agent = useRef({ hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob });
-  agent.current = { hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob };
+  const agent = useRef({ hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor });
+  agent.current = { hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor };
   useEffect(() => {
     const off = [
-      agentRegister('narxla', () => agent.current.hammasiniNarxla()),
+      agentRegister('narxla', async () => {
+        await kut(() => agent.current.manbalarTayyor);
+        if (!agent.current.manbalarTayyor) throw new Error(t('Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.'));
+        return agent.current.hammasiniNarxla();
+      }),
       agentRegister('hudud', async v => {
         const q = (v ?? '').toLowerCase();
+        await kut(() => agent.current.regions.length > 0);
         const r = agent.current.regions.find(([k, n]) => k === q || n.toLowerCase().includes(q));
         if (!r) throw new Error(t('Hudud topilmadi: {h}', { h: v ?? '—' }));
         agent.current.setHudud(r[0]);
+        // The next action (usually «narxla») must price for this region, not the previous one.
+        await kut(() => agent.current.hudud === r[0]);
         return t('Obyekt hududi: {h}', { h: r[1] });
       }),
       agentRegister('narx', async (v, a) => {

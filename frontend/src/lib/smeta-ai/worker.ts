@@ -54,6 +54,12 @@ const AYTILMAGAN_SHART: Array<[RegExp, RegExp]> = [
   [/С\s+КРЕПЛЕНИ/i, /крепл|krepl|mahkamla/i],
   [/ТЕПЛОИЗОЛЯЦ|УТЕПЛ/i, /тепло|утепл|issiqlik|izolyats/i],
   [/ВОЗДУШН\S*\s+ПРОСЛОЙК|КОЛОДЦЕВ/i, /прослой|колодц|bo['‘’]?shliq/i],
+  // Production run 2026-10-16 (Amfiteatr): hand excavation got the conveyor norm E1-2-64, soil haulage the embankment norm E1-2-19.
+  [/ТРАНСПОРТЕР|КОНВЕЙЕР/i, /транспортер|конвейер|transporter|konveyer/i],
+  [/С\s+ПОДЪЕМОМ\s+КРАН/i, /кран|kran/i],
+  [/ОТБОЙН\S*\s+МОЛОТК/i, /отбойн|молотк|bolg['‘’]?a/i],
+  [/ДЕЙСТВУЮЩ\S*\s+ЖЕЛЕЗН/i, /железн|temir\s*yo/i],
+  [/ОТСЫПК\S*\s+НАСЫП/i, /насып|отсып|nasip|ko['‘’]?tarma/i],
 ];
 export function aytilmaganShart(nom: string, tavsif: string): boolean {
   return AYTILMAGAN_SHART.some(([n, t]) => n.test(nom) && !t.test(tavsif));

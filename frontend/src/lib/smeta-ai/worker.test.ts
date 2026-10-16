@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
-import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
+import { aytilmaganShart, birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -165,5 +165,14 @@ describe('smetachi AI — stricter system pick and swapped keys', () => {
   it('reads the swapped shape { ishId: "w1", tanlov: "<candidate>" }', () => {
     const s = [{ id: 'w1', tavsif: 't', birlik: 'м3' as const, material: null, nomzodlar: [{ id: '3236270', kod: 'E6-1-1-1', nom: 'n', birlik: '100М3' }] }];
     expect(tanlovlarniTekshir([{ ishId: 'w1', tanlov: '3236270', sabab: 'ok' }], s)[0].ishId).toBe('3236270');
+  });
+});
+
+describe('aytilmaganShart — extra means only when the description names them (Amfiteatr 2026-10-16)', () => {
+  it('hand excavation is not offered the conveyor norm, soil haulage not the embankment norm', () => {
+    expect(aytilmaganShart('РАЗРАБОТКА ГРУНТА ВРУЧНУЮ В КОТЛОВАНАХ С ПЕРЕМЕЩЕНИЕМ ПЕРЕДВИЖНЫМИ ТРАНСПОРТЕРАМИ', 'доработка грунта вручную в котловане')).toBe(true);
+    expect(aytilmaganShart('РАЗРАБОТКА ГРУНТА ВРУЧНУЮ В КОТЛОВАНАХ С ПЕРЕМЕЩЕНИЕМ ПЕРЕДВИЖНЫМИ ТРАНСПОРТЕРАМИ', 'вручную с ленточным транспортером')).toBe(false);
+    expect(aytilmaganShart('ПЕРЕМЕЩЕНИЕ ГРУНТА АВТОМОБИЛЯМИ-САМОСВАЛАМИ ДЛЯ ОТСЫПКИ НАСЫПЕЙ', 'вывоз излишков грунта самосвалами')).toBe(true);
+    expect(aytilmaganShart('РАЗРАБОТКА ГРУНТА ВРУЧНУЮ В ТРАНШЕЯХ ГЛУБИНОЙ ДО 2 М БЕЗ КРЕПЛЕНИЙ С ОТКОСАМИ', 'разработка грунта вручную')).toBe(false);
   });
 });

@@ -1737,5 +1737,6 @@
   "standart kaskad": "стандартный каскад",
   "{k} = {n}%": "{k} = {n}%",
   "Foiz stavkasi": "Процентная ставка",
-  "suhbatga biriktirilgan, har xabarda AI ga beriladi": "прикреплён к диалогу, передаётся ИИ в каждом сообщении"
+  "suhbatga biriktirilgan, har xabarda AI ga beriladi": "прикреплён к диалогу, передаётся ИИ в каждом сообщении",
+  "Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.": "Источники цен не загрузились — обновите страницу и повторите."
 }
