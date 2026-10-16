@@ -1,0 +1,18 @@
+import {cleanup,render,screen,fireEvent} from '@testing-library/react';
+import {afterEach,it,expect,vi} from 'vitest';
+import {MemoryRouter} from 'react-router-dom';
+const m=vi.hoisted(()=>({elevated:true,role:'pto'}));
+vi.mock('../api/hooks',()=>({useSessiya:()=>({data:{rol:'pto'},isLoading:false,isError:false})}));
+vi.mock('../umumiy/kontekst/KompaniyaKontekst',()=>({KompaniyaProvider:({children}:any)=>children,useKompaniya:()=>({globalRejim:false,joriy:{id:17,nom:'DEMO',rol:m.role},joriyId:17,superadmin:m.elevated,yuklanmoqda:false,kompaniyalar:[...(m.elevated?[{id:1,rol:'superadmin'}]:[]),{id:17,rol:m.role}]})}));
+vi.mock('../umumiy/kontekst/PTOWorkspaceContext',()=>({PTOWorkspaceProvider:({children}:any)=>children,PTOWorkspaceBar:()=>null}));
+vi.mock('../umumiy/kontekst/KompaniyaTanlagich',()=>({KompaniyaTanlagich:()=>null}));
+vi.mock('../umumiy/kontekst/RuxsatGuard',()=>({RuxsatGuard:()=>null}));
+vi.mock('../umumiy/hujjat/KompaniyaLogo',()=>({KompaniyaLogoRasm:()=>null}));
+vi.mock('../umumiy/ui/AiHelper',()=>({AiHelper:()=>null}));
+vi.mock('../umumiy/ui/F2NavbatChip',()=>({default:()=>null}));
+vi.mock('../umumiy/marshrutTekshir',()=>({menyuTekshirDev:()=>{}}));
+import AdminShell from './AdminShell';
+afterEach(()=>{cleanup();m.elevated=true;m.role='pto';});
+it('shows executive dashboard and Mindmap for existing platform superadmin with company PTO role',()=>{render(<MemoryRouter initialEntries={['/admin/smeta-studio']}><AdminShell/></MemoryRouter>);expect(document.querySelector('a[href="/admin/dashboard"]')).toBeTruthy();expect(document.querySelector('a[href="/admin/mindmap"]')).toBeTruthy();expect(screen.getByText('Platforma roli: superadmin')).toBeTruthy();expect(screen.getByText('Kompaniyadagi rol: pto')).toBeTruthy();});
+it('retains the ordinary PTO menu and updates after elevated membership is revoked',()=>{const view=render(<MemoryRouter><AdminShell/></MemoryRouter>);m.elevated=false;view.rerender(<MemoryRouter><AdminShell/></MemoryRouter>);expect(document.querySelector('a[href="/admin/dashboard"]')).toBeNull();expect(document.querySelector('a[href="/admin/mindmap"]')).toBeNull();expect(screen.queryByText('Platforma roli: superadmin')).toBeNull();});
+it('displays both roles in the expanded sidebar without changing membership',()=>{render(<MemoryRouter><AdminShell/></MemoryRouter>);fireEvent.mouseEnter(screen.getByLabelText('Asosiy navigatsiya'));expect(screen.getAllByText(/Kompaniyadagi rol/)).toHaveLength(2);expect(m.role).toBe('pto');});

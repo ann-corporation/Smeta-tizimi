@@ -12,6 +12,7 @@ import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWor
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
+import { navigationRole } from '../umumiy/kontekst/navigation-role';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 
@@ -180,9 +181,10 @@ function AdminShellInner() {
   const k = useKompaniya();
   const joy = useLocation();
   // Effective role for THIS render: the active company's own membership
-  // role, or a platform-level label when no company is selected. Never the
-  // stale global session role.
-  const effektivRol: string = k.globalRejim ? 'superadmin' : (k.joriy?.rol ?? '');
+  // work role together with active platform authority from the canonical
+  // membership read. Never use a stale session/global-role label.
+  const roles = navigationRole({global:k.globalRejim,companyRole:k.joriy?.rol,memberships:k.kompaniyalar});
+  const effektivRol: string = roles.effective;
 
   // Avtomatik ochish logikasi -- standart YOPIQ (2026-09-07: bu bo'lim
   // hamma vaqt ochiq turgani "sayt eski/chalkash ko'rinadi" shikoyatining
@@ -325,7 +327,8 @@ function AdminShellInner() {
             <div className="min-w-0">
               <h1 className="text-[15px] font-bold text-text leading-tight tracking-wider whitespace-nowrap truncate" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'SMETA TIZIM 02'}</h1>
               <p className="text-[11px] text-text-dim uppercase tracking-wider font-medium mt-0.5 text-accent/80 whitespace-nowrap">
-                👑 {k.globalRejim ? 'Global (superadmin)' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan'))}
+                👑 {roles.platform ? `${t('Platforma roli')}: ${roles.platform}` : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan'))}
+                {roles.platform && k.joriy && <span className="block mt-1 normal-case text-text-dim">{t('Kompaniyadagi rol')}: {k.joriy.rol}</span>}
               </p>
             </div>
           )}
@@ -450,6 +453,8 @@ function AdminShellInner() {
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
           <KompaniyaTanlagich />
+          {roles.platform && <span className="rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent">{t('Platforma roli')}: {roles.platform}</span>}
+          {roles.platform && k.joriy && <span className="text-[10px] text-text-dim">{t('Kompaniyadagi rol')}: {k.joriy.rol}</span>}
           <PTOWorkspaceBar />
           <div className="ml-auto"><TilTanlagich ixcham /></div>
         </div>
