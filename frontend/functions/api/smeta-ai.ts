@@ -92,7 +92,8 @@ export function sorovlarniTayyorla(raw: unknown): TanlovSorovi[] | null {
     const id = clip(s?.id, 40);
     // No candidates yet → the model may only answer with new normative phrasings (second search round).
     if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) return null;
-    out.push({ id, tavsif: clip(s.tavsif, 1200), birlik: clip(s.birlik, 10) as TanlovSorovi['birlik'], material: s.material == null ? null : clip(s.material, 120), nomzodlar });
+    const qidiruv = (Array.isArray(s.qidiruv) ? s.qidiruv : []).slice(0, 3).map(q => clip(q, 160)).filter(Boolean);
+    out.push({ id, tavsif: clip(s.tavsif, 1200), birlik: clip(s.birlik, 10) as TanlovSorovi['birlik'], material: s.material == null ? null : clip(s.material, 120), nomzodlar, ...(qidiruv.length ? { qidiruv } : {}) });
   }
   return out;
 }
@@ -121,6 +122,12 @@ async function xotiraOqi(env: Env, actor: number, kompaniyaId: number, superadmi
   if (r?.ok) return { tizim: toza(r.data.tizim), kompaniya: toza(r.data.kompaniya), foydalanuvchi: toza(r.data.foydalanuvchi), ...(superadmin ? { superadmin: r.data.superadmin === true } : {}) };
   const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: null }).catch(() => null);
   return m?.ok ? { ...bosh, kompaniya: toza(m.data.xotira).filter(x => x.kalit.startsWith('smeta.')) } : bosh;
+}
+/** Per work: the norms estimators put for similarly described works in uploaded estimates; empty when unavailable. */
+async function amaliyotOqi(env: Env, actor: number, kompaniyaId: number, matnlar: string[]): Promise<Array<Array<{ kod: string; nom: string; soni: number; koef: string | null }>>> {
+  if (!matnlar.length) return [];
+  const r = await rpcData(env, 't2_ish_tajriba_qidir_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_matnlar: matnlar.slice(0, 40) }).catch(() => null);
+  return r?.ok && Array.isArray(r.data.natijalar) ? r.data.natijalar as Array<Array<{ kod: string; nom: string; soni: number; koef: string | null }>> : [];
 }
 /** Platform practice for the candidate norms (keyed by normaKalit); empty when unavailable — the choice still works. */
 async function tajribaOqi(env: Env, actor: number, kompaniyaId: number, kodlar: string[]): Promise<Record<string, NormaTajriba>> {
@@ -187,7 +194,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash', req);
       // Practice of all estimators on the platform: how often each candidate norm was used and with which coefficient.
       const tajriba = await tajribaOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, sorovlar.flatMap(x => x.nomzodlar.map(n => n.kod)));
-      const malumot = sorovlar.map(x => ({ ...x, nomzodlar: x.nomzodlar.map(n => { const t = tajribaMatni(tajriba[normaKalit(n.kod) ?? '']); return t ? { ...n, tajriba: t } : n; }) }));
+      // Uploaded estimates as a dictionary: how practitioners normed works described like this one (grows with every estimate).
+      const amaliyot = await amaliyotOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, sorovlar.map(x => (x.qidiruv ?? []).join(' ') || x.tavsif.slice(0, 200)));
+      const malumot = sorovlar.map((x, i) => ({ ...x, nomzodlar: x.nomzodlar.map(n => { const t = tajribaMatni(tajriba[normaKalit(n.kod) ?? '']); return t ? { ...n, tajriba: t } : n; }),
+        ...(amaliyot[i]?.length ? { amaliyot: amaliyot[i].map(a => `${a.kod} — ${a.nom} (${a.soni} smeta qatori${a.koef ? `, ${a.koef}` : ''})`) } : {}) }));
       const { r, obj } = await ishonchliChaqir(chaqir,
         { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(malumot)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA },
         ['tanlovlar', 'choices']);

@@ -185,7 +185,10 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     for (const n of natija) {
       const g = kerak.find(x => x.key === n.key)!;
       // An earlier estimate's price is never applied automatically and never becomes a justification (owner 2026-10-15).
-      if (n.nomzod && n.ishonch === 'yuqori' && n.nomzod.tur !== 'kompaniya') commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
+      // Owner 2026-10-16 ("narxlarni tanlamaydi — erkinlik ber"): high and medium confidence from a documented source are applied;
+      // the reason says which (one undo reverts all). A company's earlier estimate still never becomes the price document.
+      if (n.nomzod && (n.ishonch === 'yuqori' || n.ishonch === 'orta') && n.nomzod.tur !== 'kompaniya')
+        commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.ishonch === 'orta' ? `AI (o‘rta ishonch, tekshiring): ${n.sabab}` : n.sabab));
       else qoldi.set(n.key, n);
     }
     return { commands, qoldi, topildi: natija.length - qoldi.size, manbadaYoq: [...qoldi.values()].filter(x => !x.nomzodlar.length).length };

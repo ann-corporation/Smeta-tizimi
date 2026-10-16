@@ -89,12 +89,12 @@ describe('smetachi AI — catalogue grounding and batch', () => {
       { id: 'a', kod: 'E6', nom: 'n', birlik: '100 М3' }, { id: 'b', kod: 'E6', nom: 'n2', birlik: '100 М3' }] }];
     expect(tanlovlarniTekshir({ tanlovlar: [{ id: 'w1', ishId: 'E6' }] }, req)[0].ishId).toBeNull();
   });
-  it('blocks unresolved conditions and conflicting catalogue units', async () => {
+  it('conflicting catalogue units still block; an open question does not', async () => {
     const [a] = birlashtir([], niyat());
     const ready = { ...a, tanlangan: { workId: '1', kod: 'E6', nom: 'n', birlik: '100 М3', sabab: 'mos' } };
     const conflict = { ...k, unit: () => ({ ...k.unit('u100m3')!, status: 'CONFLICT' as const }) };
     expect((await smetagaQoshish(emptyDoc('d'), [ready], conflict, () => 'x')).commands).toEqual([]);
-    expect((await smetagaQoshish(emptyDoc('d'), [{ ...ready, holat: 'ANIQLASH_KERAK' }], k, () => 'x')).commands).toEqual([]);
+    expect((await smetagaQoshish(emptyDoc('d'), [{ ...ready, holat: 'ANIQLASH_KERAK' }], k, () => 'x')).commands.length).toBeGreaterThan(0);
   });
   it('finds candidates by phrase or stems; a different known unit is never offered', () => {
     const c = nomzodlarTop(k, { qidiruv: ['Устройство бетонная подготовка'], birlik: 'м3' });

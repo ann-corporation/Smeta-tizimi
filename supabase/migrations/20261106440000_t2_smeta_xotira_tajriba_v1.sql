@@ -133,6 +133,34 @@ begin
   return jsonb_build_object('ok', true, 'normalar', v);
 end $$;
 
+-- 6b) Ish tavsifidan amaliyot: yuklangan barcha smetalardagi ish nomlari (har yangi smeta yuklansa ko'payadi) bo'yicha
+-- "shunga o'xshash ishga smetachilar qaysi normani qo'ygan". Har ibora uchun eng mos 5 ta norma, soni va odatiy koeffitsienti.
+create index if not exists t2_qator_bl_nom_fts on public.t2_qator using gin (to_tsvector('russian', coalesce(nom, ''))) where tur = 'bl';
+create or replace function public.t2_ish_tajriba_qidir_v1(p_actor_id bigint, p_kompaniya_id bigint, p_matnlar text[])
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare g jsonb; v jsonb := '[]'::jsonb; m text; q tsquery; r jsonb;
+begin
+  g := public.t2_agent_scope_guard_v1(p_actor_id, p_kompaniya_id);
+  if not (g->>'ok')::boolean then return g; end if;
+  if p_matnlar is null or cardinality(p_matnlar) > 40 then return jsonb_build_object('ok', false, 'code', 'SOROV_INVALID'); end if;
+  foreach m in array p_matnlar loop
+    select to_tsquery('russian', string_agg(x, ' | ')) into q
+      from (select distinct x from regexp_split_to_table(lower(left(coalesce(m, ''), 300)), '[^а-яёa-z0-9]+') x where length(x) >= 4 limit 12) z;
+    if q is null then v := v || jsonb_build_array('[]'::jsonb); continue; end if;
+    select coalesce(jsonb_agg(t order by (t->>'ball')::numeric desc), '[]'::jsonb) into r from (
+      select jsonb_build_object('kalit', k, 'kod', kod, 'nom', left(nom, 160), 'soni', n, 'ball', round(ball::numeric, 3),
+             'koef', (select (regexp_matches(kod || ' ' || nom, '(К[А-Яа-яЭэA-Za-z]{0,3}\s*=\s*[0-9]+[,.][0-9]+)'))[1])) t
+      from (select public.t2_norma_kalit(kod) k, mode() within group (order by kod) kod, mode() within group (order by nom) nom, count(*) n,
+                   sum(ts_rank(to_tsvector('russian', coalesce(nom, '')), q)) ball
+              from t2_qator where tur = 'bl' and kod is not null and to_tsvector('russian', coalesce(nom, '')) @@ q
+             group by 1 having public.t2_norma_kalit(min(kod)) is not null order by ball desc limit 5) z) y;
+    v := v || jsonb_build_array(r);
+  end loop;
+  return jsonb_build_object('ok', true, 'natijalar', v);
+end $$;
+revoke all on function public.t2_ish_tajriba_qidir_v1(bigint, bigint, text[]) from public, anon, authenticated;
+grant execute on function public.t2_ish_tajriba_qidir_v1(bigint, bigint, text[]) to service_role;
+
 revoke all on function public.t2_smeta_xotira_v1(bigint, bigint) from public, anon, authenticated;
 revoke all on function public.t2_smeta_xotira_yoz_v1(bigint, bigint, text, text, text) from public, anon, authenticated;
 revoke all on function public.t2_smeta_tajriba_yoz_v1(bigint, bigint, jsonb) from public, anon, authenticated;

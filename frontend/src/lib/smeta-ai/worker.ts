@@ -186,12 +186,14 @@ export function tizimTanlovi(ish: Pick<AiIsh, 'qidiruv' | 'nomzodlar'>): Tanlang
   const stems = ish.qidiruv[0].toLowerCase().split(/\s+/).filter(x => x.length >= 4).map(x => x.slice(0, Math.max(4, x.length - 3)));
   const name = top.nom.toLowerCase();
   // The action must lead the name ("армирование колонн" ≠ "монтаж анкерных колонн ... армирования"; бетонирование ≠ обетонирование).
-  return stems.length && name.startsWith(stems[0]) && stems.every(st => name.includes(st)) ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: 'tizim tanlovi (nom bo‘yicha eng yaqin) — tekshiring' } : null;
+  // The leading action must match; most of the other stems are enough (every stem rejected good variants with other wording).
+  return stems.length && name.startsWith(stems[0]) && stems.filter(st => name.includes(st)).length * 2 >= stems.length ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: 'tizim tanlovi (nom bo‘yicha eng yaqin) — tekshiring' } : null;
 }
 
 export function tanlovSorovi(ish: AiIsh, related: AiIsh[] = []): TanlovSorovi {
   const context = related.filter(i => i.id !== ish.id && i.bolim === ish.bolim).map(i => `${i.tavsif}${i.material ? ` (${i.material})` : ''}`).join('; ');
-  return { id: ish.id, tavsif: `${ish.tavsif}${ish.material ? ` (${ish.material})` : ''}${context ? `; Shu bo‘limdagi ishlar: ${context}` : ''}`.slice(0, 1200), birlik: ish.birlik, material: ish.material, nomzodlar: ish.nomzodlar };
+  return { id: ish.id, tavsif: `${ish.tavsif}${ish.material ? ` (${ish.material})` : ''}${context ? `; Shu bo‘limdagi ishlar: ${context}` : ''}`.slice(0, 1200), birlik: ish.birlik, material: ish.material, nomzodlar: ish.nomzodlar,
+    qidiruv: ish.qidiruv.slice(0, 3) };
 }
 
 /** Reject explicit construction/context contradictions, even when the units happen to match. */
@@ -243,7 +245,6 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
     if (overlap) { otkazildi.push({ id: ish.id, sabab: `Norma tarkibi bilan takrorlanish xavfi: ${overlap.code}; ${overlap.document}, ${overlap.page}-sahifa — alohida ish hajmi va qo‘llanishini tekshiring` }); continue; }
     if (!ish.tanlangan) { otkazildi.push({ id: ish.id, sabab: 'Normativ ish tanlanmagan' }); continue; }
     if (!ish.tanlangan.qolda && tanlovZidmi(ish, { ...ish.tanlangan, id: ish.tanlangan.workId }, ishlar)) { otkazildi.push({ id: ish.id, sabab: 'Norma konstruksiya yoki shu bo‘limdagi ishlarga zid — normaning qo‘llanishini tekshiring' }); continue; }
-    if (ish.holat === 'ANIQLASH_KERAK') { otkazildi.push({ id: ish.id, sabab: 'Ish sharoiti aniqlashtirilmagan' }); continue; }
     if (!ish.hajm) { otkazildi.push({ id: ish.id, sabab: ish.hajmXato ? 'Hajm formulasi noto‘g‘ri' : 'Hajm aniqlanmagan' }); continue; }
     try {
       await k.load(ish.tanlangan.workId);
