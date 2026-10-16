@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
-import { aytilmaganShart, birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
+import { aytilmaganShart, birlashtir, masofaOraligi, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
 const W = (id: string, code: string, name: string, unitCode: string): NormWork =>
@@ -174,5 +174,17 @@ describe('aytilmaganShart — extra means only when the description names them (
     expect(aytilmaganShart('РАЗРАБОТКА ГРУНТА ВРУЧНУЮ В КОТЛОВАНАХ С ПЕРЕМЕЩЕНИЕМ ПЕРЕДВИЖНЫМИ ТРАНСПОРТЕРАМИ', 'вручную с ленточным транспортером')).toBe(false);
     expect(aytilmaganShart('ПЕРЕМЕЩЕНИЕ ГРУНТА АВТОМОБИЛЯМИ-САМОСВАЛАМИ ДЛЯ ОТСЫПКИ НАСЫПЕЙ', 'вывоз излишков грунта самосвалами')).toBe(true);
     expect(aytilmaganShart('РАЗРАБОТКА ГРУНТА ВРУЧНУЮ В ТРАНШЕЯХ ГЛУБИНОЙ ДО 2 М БЕЗ КРЕПЛЕНИЙ С ОТКОСАМИ', 'разработка грунта вручную')).toBe(false);
+  });
+});
+
+describe('masofaOraligi — transport distance bands', () => {
+  it('"5 км" is the 4,5–5,0 км band, not 9,5–10 км', () => {
+    const n = (b: string) => `ПЕРЕВОЗКА ГРУЗОВ АВТОМОБИЛЯМИ-САМОСВАЛАМИ ИЗ КАРЬЕРОВ (ЩЕБЕНЬ, ПЕСОК, ГРАВИЙ И ДР.) ${b}`;
+    expect(masofaOraligi(n('СВ. 4,5 ДО 5,0 КМ'), 'грунт вывозится на 5 км')).toBe(true);
+    expect(masofaOraligi(n('СВ. 9,5 ДО 10 КМ'), 'грунт вывозится на 5 км')).toBe(false);
+    expect(masofaOraligi(n('СВ. 5,0 ДО 5,5 КМ'), '5 km')).toBe(false);
+    expect(masofaOraligi(n('ДО 0,1 КМ'), '0,05 км')).toBe(true);
+    expect(masofaOraligi(n('СВ. 4,5 ДО 5,0 КМ'), 'tashish')).toBeNull();
+    expect(masofaOraligi('РАЗРАБОТКА ГРУНТА', '5 км')).toBeNull();
   });
 });

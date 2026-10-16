@@ -70,6 +70,19 @@ export const MAXSUS_TOPLAM = new Set(['E29', 'E30', 'E31', 'E35', 'E37', 'E42'])
 export function tavsifSonlari(tavsif: string | null | undefined): string[] {
   return [...new Set((tavsif ?? '').match(/\d+(?:[.,]\d+)?/g) ?? [])].map(s => s.replace('.', ',')).slice(0, 6);
 }
+const son = (s: string) => Number(s.replace(',', '.'));
+/**
+ * Distance bands of transport norms («СВ. 4,5 ДО 5,0 КМ»): true when the band holds the distance the user stated ("5 км"),
+ * false for another band, null when the norm or the description has no distance. Production run 2026-10-16: "5 км" got
+ * С310-2023 (9,5–10 км) — "5" never matched "5,0" and the per-table cap hid the right band.
+ */
+export function masofaOraligi(nom: string, izoh: string): boolean | null {
+  const d = /(\d+(?:[.,]\d+)?)\s*(?:км|km)(?![a-zа-я])/i.exec(izoh);
+  const r = /(?:СВ\.?\s*(\d+(?:[.,]\d+)?)\s*)?ДО\s*(\d+(?:[.,]\d+)?)\s*КМ/i.exec(nom);
+  if (!d || !r) return null;
+  const x = son(d[1]), a = r[1] ? son(r[1]) : 0, b = son(r[2]);
+  return x > a && x <= b;
+}
 function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string }, limit: number): TanlovNomzodi[] {
   const hint = new Set(ish.toplam ?? []);
   const direct = ish.qidiruv.filter(q => KOD.test(q.trim())).flatMap(q => k.search(q.trim(), 0).rows.slice(0, 3));
@@ -90,10 +103,15 @@ function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiru
     const mos = birlikMos(k, w, ish.birlik);
     return { w, mos, s: h.ball * (mos === true ? 1.15 : 1) * (w.collection && hint.has(w.collection.replace(/^Е/, 'E')) ? 1.3 : 1) };
   }).filter(r => r.mos !== false).sort((a, b) => b.s - a.s);
-  const perTable = new Map<string, number>(), out: NormWork[] = [...direct];
+  // A stated distance picks its band of every transport table found, even when the band itself was not among the hits.
+  const bandJadval = new Set(scored.filter(r => masofaOraligi(r.w.name ?? '', izoh) !== null).map(r => r.w.tableCode).filter(Boolean));
+  const bandlar = bandJadval.size ? x.works.filter(w => w.tableCode && bandJadval.has(w.tableCode) && masofaOraligi(w.name ?? '', izoh) === true) : [];
+  const perTable = new Map<string, number>(), out: NormWork[] = [...direct, ...bandlar.filter(w => !direct.some(d => d.id === w.id))];
+  for (const w of bandlar) perTable.set(w.tableCode!, (perTable.get(w.tableCode!) ?? 0) + 1);
   for (const r of scored) {
     if (out.length >= limit) break;
     if (out.some(w => w.id === r.w.id)) continue;
+    if (bandlar.length && masofaOraligi(r.w.name ?? '', izoh) === false) continue;
     const t = r.w.tableCode ?? r.w.id;
     const n = perTable.get(t) ?? 0;
     if (n >= 3) continue;

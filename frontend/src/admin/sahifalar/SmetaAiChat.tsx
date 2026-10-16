@@ -175,7 +175,9 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       const javob = [r.javob, ...r.savollar.map(s => '• ' + s)].join('\n');
       setXabarlar(x => [...x, { rol: 'assistant', matn: javob }]);
       const userText = yangi.filter(x => x.rol === 'user').map(x => x.matn).join('\n');
-      setEslash(r.xotira ?? []);
+      // A rule the company already keeps is not proposed again (production: the same backfill rule came back next turn).
+      const bor = new Set((xotira ?? []).map(x => x.mazmun.trim().toLowerCase()));
+      setEslash((r.xotira ?? []).filter(x => !bor.has(x.trim().toLowerCase())));
       setAmallar((r.amallar ?? []).map(a => {
         // A class/mark the user never stated is not written silently (the model must ask).
         const ogoh = a.tur === 'material' && a.qiymat && !materialManbadami(a.qiymat, userText) ? t('Bu material sinfi/markasi suhbatda aytilmagan — tekshiring') : null;
