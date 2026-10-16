@@ -55,10 +55,15 @@ function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiru
   const matnli = ish.qidiruv.filter(q => !KOD.test(q.trim()));
   // The model's phrase plus the description's numbers: "…экскаваторами" + "0,5 2" reaches "КОВШОМ 0,5 … ГРУППА ГРУНТОВ 2".
   const sonlar = tavsifSonlari(ish.tavsif);
-  const iboralar = sonlar.length && matnli[0] ? [...matnli, `${matnli[0]} ${sonlar.join(' ')}`] : matnli;
+  // Two rankings merged by turns — the plain phrases (the base norm) and phrase + numbers (the exact variant) — so the numbers
+  // never crowd out the base norm ("380" alone pulled only facing-brick walls).
+  const asosiy = x.idx.qidir(matnli, 150), sonli = sonlar.length && matnli[0] ? x.idx.qidir([`${matnli[0]} ${sonlar.join(' ')}`], 150) : [];
+  const birga: typeof asosiy = [], korilgan = new Set<number>();
+  for (let i = 0; i < Math.max(asosiy.length, sonli.length); i++)
+    for (const h of [sonli[i], asosiy[i]]) if (h && !korilgan.has(h.id)) { korilgan.add(h.id); birga.push({ ...h, ball: 1000 - birga.length }); }
   // Special-purpose collections (tunnels, bridges, airfields, mining, hydro, shore protection) only when the model named them.
   const maxsusRuxsat = (c: string | null | undefined) => !c || !MAXSUS_TOPLAM.has(c.replace(/^Е/, 'E')) || hint.has(c.replace(/^Е/, 'E'));
-  const scored = x.idx.qidir(iboralar, 150).filter(h => maxsusRuxsat(x.works[h.id].collection)).map(h => {
+  const scored = birga.filter(h => maxsusRuxsat(x.works[h.id].collection)).map(h => {
     const w = x.works[h.id];
     const mos = birlikMos(k, w, ish.birlik);
     return { w, mos, s: h.ball * (mos === true ? 1.15 : 1) * (w.collection && hint.has(w.collection.replace(/^Е/, 'E')) ? 1.3 : 1) };
@@ -76,7 +81,9 @@ function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiru
     jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null }));
 }
 export type TanlanganIsh = { workId: string; kod: string; nom: string; birlik: string | null; sabab: string; qolda?: boolean };
-export type AiIsh = IshNiyati & { nomzodlar: TanlovNomzodi[]; tanlangan: TanlanganIsh | null; hajm: { qiymat: string; ifoda: string } | null; hajmXato: string | null };
+export type AiIsh = IshNiyati & { nomzodlar: TanlovNomzodi[]; tanlangan: TanlanganIsh | null; hajm: { qiymat: string; ifoda: string } | null; hajmXato: string | null;
+  /** The estimator confirmed this installation is a separate position (not inside the composite norm). */
+  takrorTasdiq?: boolean };
 
 const BIRLIK_KALIT: Record<Birlik, string> = { м3: 'М3', м2: 'М2', м: 'М', т: 'Т', кг: 'КГ', шт: 'ШТ', компл: 'КОМПЛ' };
 /** Explicit operator search over the catalogue's paginated index, independent of the AI shortlist. */
@@ -209,7 +216,7 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
       let sectionId = sectionByName.get(nomi.toLowerCase());
       if (!sectionId) { sectionId = newId(); sectionByName.set(nomi.toLowerCase(), sectionId); commands.push({ type: 'ADD_SECTION', sectionId, parentId: null, name: nomi }); }
       const occurrenceId = newId();
-      commands.push({ type: 'ADD_OCCURRENCE', occurrenceId, sectionId, source: snap.source, recipe: snap.recipe, quantity: ish.hajm.qiymat, basis });
+      commands.push({ type: 'ADD_OCCURRENCE', occurrenceId, sectionId, source: snap.source, recipe: snap.recipe, quantity: ish.hajm.qiymat, basis, material: ish.material ?? null });
       // Coefficients travel as PROPOSALS: visible on the work, applied only when the operator accepts them.
       if (ish.koeffitsientlar?.length) commands.push({ type: 'SET_COEFFICIENTS', occurrenceId, coefficients: ish.koeffitsientlar.map((k, i) => ({
         id: `ai${i + 1}`, name: k.nom, value: k.qiymat, scope: k.qollanish, evidence: k.asos, origin: 'AI' as const, accepted: false })) });

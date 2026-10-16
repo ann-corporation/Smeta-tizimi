@@ -213,6 +213,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId }: {
           {overlaps.has(i.id) && <p role="status" className="text-[11px] text-warn">
             {t('Norma tarkibi bilan takrorlanish xavfi — alohida ish hajmi va qo‘llanishini tekshiring.')}{' '}
             <a className="underline" href={`${overlaps.get(i.id)!.url}#page=${overlaps.get(i.id)!.page}`} target="_blank" rel="noreferrer">{overlaps.get(i.id)!.code} · {overlaps.get(i.id)!.document} · {overlaps.get(i.id)!.page}</a>
+            <br />{t('Murakkab normada (masalan temirbeton poydevor) armatura va qolip resurslari bor. Ikki yo‘l: alohida o‘rnatish ishini olib tashlang (✕) va armatura miqdorini LRV da normadagi «АРМАТУРА» qatoriga kiriting, yoki norma tarkibini tekshirib, alohida hisoblanishini tasdiqlang.')}
+            {/(?:armatur|арматур|qolip|opalub|опалуб)/i.test(`${i.tavsif} ${i.tanlangan?.nom ?? ''}`) && <button type="button" className="ml-1 underline" onClick={() => ishniYangila(i.id, { takrorTasdiq: true })}>{t('Alohida hisoblashni tasdiqlayman')}</button>}
           </p>}
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1 text-[11px] text-text-dim">{t('Hajm formulasi')}

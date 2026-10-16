@@ -59,6 +59,8 @@ export type Occurrence = {
   overrides: Record<string, ResourceOverride>;
   /** Work-condition coefficients (norm book technical part). Only `accepted` ones change quantities. */
   coefficients?: WorkCoefficient[];
+  /** Material stated for the work ("Бетон B20", "Раствор цементный М100") — prices the norm's «по проекту» resources. */
+  material?: string | null;
 };
 /** Which resource quantities a coefficient multiplies. МАТ = every material category (МАТ/КАБ/М/К/БЕЗ СКЛАД). */
 export type CoefScope = 'ALL' | 'ЧЕЛ' | 'МАШ' | 'ЧЕЛ+МАШ' | 'МАТ';

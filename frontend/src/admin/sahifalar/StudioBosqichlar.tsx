@@ -12,12 +12,13 @@ import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-re
 import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, PriceJustification } from '../../lib/smeta-studio/model';
-import { matchResource } from '../../lib/smeta-studio/resource-match';
-import { aiNarxlash, qaytaHisobla, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomzodlari, qatorNomzodi, resursGuruhlari,
+import { matchResource, type MatchCatalog } from '../../lib/smeta-studio/resource-match';
+import { aiNarxlash, qaytaHisobla, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomi, narxNomzodlari, qatorNomzodi, resursGuruhlari,
   type AiNarxNatija, type NarxNomzod, type ResursGuruh } from '../../lib/smeta-studio/narx-yigish';
 import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
 import { kompaniyaManbalariniOl, type KompaniyaManbalari } from '../../lib/smeta-studio/kompaniya-manbalari';
 import { StudioKpYuklash } from './StudioKpYuklash';
+import { mashAsosi, mashKatalogi, mashView } from '../../lib/smeta-studio/mash-katalog';
 import { loadHourCatalog, type HourCatalog } from '../../lib/hour-price-catalog';
 import { hourPrices, labourPeriods, type HourPeriod } from '../../lib/smeta-studio/hour-pricing';
 import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl } from '../../api/t2-nakrutka';
@@ -57,6 +58,9 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   // The company's own documents (КП, invoices, price lists) — justified sources, offered before the platform index.
   const [kpm, setKpm] = useState<KompaniyaManbalari | null>(null);
   const [kpmVersiya, setKpmVersiya] = useState(0);
+  // Official machine-hour list (01.01.2026, 710 machines) — the first source for МАШ lines.
+  const [mash, setMash] = useState<MatchCatalog | null>(null);
+  useEffect(() => { let alive = true; mashKatalogi().then(k => { if (alive) setMash(mashView(k)); }).catch(() => {}); return () => { alive = false; }; }, []);
   useEffect(() => {
     let alive = true;
     if (kompaniyaId == null) { setKpm(null); return; }
@@ -93,14 +97,28 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const commands: StudioCommand[] = [];
     const narxlangan = new Set<string>();
     let soatSoni = 0, kpSoni = 0;
+    const qoplangan = new Set<string>();
+    if (mash) for (const g of guruhlar) {
+      if (g.kat !== 'МАШ' || !g.narxsiz || /МАШИНИСТ/.test(g.nom.toUpperCase())) continue;
+      const m = matchResource(mash, g.nom, 'маш-ч', null);
+      if ((m.confidence !== 'EXACT' && m.confidence !== 'HIGH') || !m.best) continue;
+      const justification = mashAsosi(m.best.row, m.confidence === 'EXACT' ? 'nomi aynan mos' : 'mashina va quvvati/sig‘imi mos');
+      for (const q of narxsizQatorlar(g, hisob)) {
+        commands.push({ type: 'SET_PRICE', occurrenceId: q.occurrenceId, recipeId: q.recipeId, price: { value: String(m.best.row.narx), basis: 'CATALOG_CANDIDATE',
+          evidence: `Mash.-soat ro‘yxati 01.01.2026 · № ${m.best.row.kod} · ${m.best.row.nom}`.slice(0, 300), sourcePriceId: `mash-katalog:${m.best.row.kod}`, justification } });
+        qoplangan.add(q.occurrenceId + '\u0001' + q.recipeId);
+      }
+      narxlangan.add(g.key); soatSoni++;
+    }
     if (soat) {
       const r = hourPrices(doc, hisob, soat, unitText, hudud || null, davr);
-      commands.push(...r.commands); soatSoni = r.commands.length;
+      const qolgan = r.commands.filter(c => c.type !== 'SET_PRICE' || !qoplangan.has(c.occurrenceId + '\u0001' + c.recipeId));
+      commands.push(...qolgan); soatSoni += qolgan.length;
     }
     for (const g of guruhlar) {
       if (!katalogdanNarxlanadi(g) || !g.narxsiz) continue;
       // A supplier's КП for exactly this product is the real price → first; then the platform index (catalogue, birja, price lists).
-      const kpMos = kpm?.qatorlar ? matchResource(kpm.view, g.nom, g.birlik, null) : null;
+      const kpMos = kpm?.qatorlar ? matchResource(kpm.view, narxNomi(g), g.birlik, null) : null;
       const kpTop = kpMos && (kpMos.confidence === 'EXACT' || kpMos.confidence === 'HIGH') && kpMos.best ? kpMos : null;
       if (kpTop) {
         const src = kpTop.best!.row.unitConversion ? { ...kpTop.best!.row, narx: kpTop.best!.row.unitConversion.sourcePrice, birlik: kpTop.best!.row.unitConversion.sourceUnit } : kpTop.best!.row;
@@ -108,7 +126,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         if (n) { commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n, 'yetkazuvchi KP si, nomi va xarakteristikasi mos')); narxlangan.add(g.key); kpSoni++; continue; }
       }
       if (!cat) continue;
-      const m = matchResource(cat.matchView(), g.nom, g.birlik, hudud || null);
+      const m = matchResource(cat.matchView(), narxNomi(g), g.birlik, hudud || null);
       if ((m.confidence !== 'EXACT' && m.confidence !== 'HIGH') || !m.best) continue;
       const src = m.best.row.unitConversion ? { ...m.best.row, narx: m.best.row.unitConversion.sourcePrice, birlik: m.best.row.unitConversion.sourceUnit } : m.best.row;
       const n = qatorNomzodi(src, g.birlik, 'katalog');
@@ -125,11 +143,11 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     let kuzatuv: KuzatilganNarx[] = [];
     if (kompaniyaId != null) {
       setAi({ ish: true, matn: t('Kompaniya smetalaridagi narxlar o‘qilmoqda...') });
-      try { kuzatuv = await kompaniyaKuzatuvlari(kompaniyaId, kerak.map(g => g.nom)); } catch { /* catalogue still works without company history */ }
+      try { kuzatuv = await kompaniyaKuzatuvlari(kompaniyaId, kerak.map(g => narxNomi(g))); } catch { /* catalogue still works without company history */ }
     }
     const view = cat?.matchView() ?? null;
-    return (g: ResursGuruh, iboralar: string[]) => narxNomzodlari(g, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, g.nom, g.birlik, false) : null, hudud || null, iboralar, 12,
-      kpm?.qatorlar ? matchResource(kpm.view, g.nom, g.birlik, null, 5) : null);
+    return (g: ResursGuruh, iboralar: string[]) => g.kat === 'МАШ' ? narxNomzodlari({ nom: g.nom, birlik: 'маш-ч' }, mash, null, null, iboralar) : narxNomzodlari({ nom: narxNomi(g), birlik: g.birlik }, view, kuzatuv.length ? kompaniyaMoslik(kuzatuv, narxNomi(g), g.birlik, false) : null, hudud || null, iboralar, 12,
+      kpm?.qatorlar ? matchResource(kpm.view, narxNomi(g), g.birlik, null, 5) : null);
   }
 
   async function aiBuyruqlar(kerak: ResursGuruh[], nomzodlar: (g: ResursGuruh, iboralar: string[]) => NarxNomzod[]) {
@@ -155,7 +173,9 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   async function hammasiniNarxla() {
     setXabar('');
     const avto = avtoBuyruqlar();
-    const kerak = guruhlar.filter(g => g.narxsiz > 0 && katalogdanNarxlanadi(g) && !avto.narxlangan.has(g.key));
+    // Machines without an exact list match also go to the AI (candidates from the machine-hour list); operators' labour never.
+    const kerak = guruhlar.filter(g => g.narxsiz > 0 && !avto.narxlangan.has(g.key)
+      && (katalogdanNarxlanadi(g) || (!!mash && g.kat === 'МАШ' && !/МАШИНИСТ/.test(g.nom.toUpperCase()))));
     let ai: Awaited<ReturnType<typeof aiBuyruqlar>> | null = null, aiXato = false;
     let zaxira = new Map<string, AiNarxNatija>();
     if (kerak.length) {
@@ -240,7 +260,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
               const summa = g.narx != null && g.miqdor != null ? Math.round(Number(g.narx) * g.miqdor * 100) / 100 : null;
               return [bosh && <tr key={`h-${g.key}`}><td colSpan={6} className="bg-surface-2/50 px-2 py-1 text-[11px] font-semibold uppercase text-text-dim">{t(KAT_NOMI[g.kat ?? ''])}</td></tr>,
                 <tr key={g.key} className="border-t border-border/60 align-top">
-                  <td className="px-2 py-1">{g.nom}{g.qatorlar.length > 1 && <span className="text-[11px] text-text-mute"> · {t('{n} ishda', { n: g.qatorlar.length })}</span>}</td>
+                  <td className="px-2 py-1">{g.nom}{g.talab && <span className="text-accent"> — {g.talab}</span>}{g.qatorlar.length > 1 && <span className="text-[11px] text-text-mute"> · {t('{n} ishda', { n: g.qatorlar.length })}</span>}</td>
                   <td className="px-1 py-1">{g.birlik ?? '—'}</td>
                   <td className="px-1 py-1 text-right tabular-nums">{fmt(g.miqdor, 4)}</td>
                   <td className="px-1 py-1 text-right tabular-nums">{g.narx != null ? fmt(g.narx) : g.aralash ? <span className="text-warn">{t('aralash')}</span> : <span className="text-warn">{t('narx yo‘q')}</span>}</td>

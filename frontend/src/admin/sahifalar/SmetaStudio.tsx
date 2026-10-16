@@ -73,6 +73,20 @@ export default function SmetaStudio() {
   const ishlarSoni = Object.keys(doc.occurrences).length;
   const hajmsiz = Object.values(doc.occurrences).filter(o => o.quantity == null).length;
   useEffect(() => { let alive = true; narxKatalogi().then(c => { if (alive) setNarxKat(c); }).catch(() => {}); return () => { alive = false; }; }, []);
+  // One local draft per browser: a second open studio tab would overwrite it (seen in a real run) — say so plainly.
+  const [boshqaTab, setBoshqaTab] = useState(false);
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const ch = new BroadcastChannel('smeta-studio-tab');
+    const men = Math.random().toString(36).slice(2);
+    ch.onmessage = (e: MessageEvent<{ tur: string; kim: string }>) => {
+      if (!e.data || e.data.kim === men) return;
+      setBoshqaTab(true);
+      if (e.data.tur === 'salom') ch.postMessage({ tur: 'shu-yerda', kim: men });
+    };
+    ch.postMessage({ tur: 'salom', kim: men });
+    return () => ch.close();
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -146,6 +160,7 @@ export default function SmetaStudio() {
     </header>
     {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && saqlash.edits !== doc.edits ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
     {tiklandi && <p role="status" className="text-sm text-accent">{t('Oxirgi qoralama tiklandi.')}</p>}
+    {boshqaTab && <p role="alert" className="text-sm text-warn">{t('Smeta studiyasi boshqa tabda ham ochiq. Lokal qoralama bitta — tablar bir-birining o‘zgarishini almashtiradi. Bitta tabda ishlang yoki qoralamani serverga saqlang.')}</p>}
     {xato && <p role="alert" className="text-sm text-danger">{xato}</p>}
     <nav aria-label={t('Smeta bosqichlari')} className="flex flex-wrap items-center gap-1">
       {([['lrv', t('1. LRV — ishlar va resurslar')], ['narx', t('2. Narxlash — stavkalar va narxlar')], ['res', t('3. RES va hujjatlar')]] as const).map(([k, l], i) =>

@@ -155,7 +155,12 @@ describe('matchResource — price-only dimensional conversion', () => {
     expect(r.candidates.map(x => x.row.narx)).toEqual([10000, 9000]);
   });
 
-  it.each([['м3', 'т'], ['м2', 'м'], ['шт', 'тыс. шт'], ['100 м', 'м'], ['маш-ч', 'ч']])(
+  // шт ↔ 1000 шт is an exact count (1000 pieces), not a package assumption.
+  it('converts шт ↔ 1000 шт exactly', () => {
+    const c = catalogue([{ nom: 'Кирпич керамический', birlik: 'шт', narx: 1500 }]);
+    expect(matchResource(c, c.name(0), '1000 шт').best?.row).toMatchObject({ narx: 1500000 });
+  });
+  it.each([['м3', 'т'], ['м2', 'м'], ['100 м', 'м'], ['маш-ч', 'ч']])(
     'does not invent a %s → %s conversion', (from, to) => {
       const c = catalogue([{ nom: 'Песок для строительных работ', birlik: from }]);
       expect(matchResource(c, c.name(0), to).confidence).toBe('NONE');

@@ -1663,5 +1663,8 @@
   "QQS bilan (÷ 1,12 bilan QQSsizga o‘tkaziladi)": "With VAT (converted to VAT-free ÷ 1.12)",
   "Hujjatda": "In the document",
   "Smeta narxi QQSsiz bo‘lishi shart — hujjatdagi narx QQS bilanmi, QQSsizmi, tanlang.": "Estimate prices must be VAT-free — specify whether the document's prices include VAT.",
-  "Saqlash va narxlashda ishlatish ({n})": "Save and use in pricing ({n})"
+  "Saqlash va narxlashda ishlatish ({n})": "Save and use in pricing ({n})",
+  "Alohida hisoblashni tasdiqlayman": "I confirm it is counted separately",
+  "Murakkab normada (masalan temirbeton poydevor) armatura va qolip resurslari bor. Ikki yo‘l: alohida o‘rnatish ishini olib tashlang (✕) va armatura miqdorini LRV da normadagi «АРМАТУРА» qatoriga kiriting, yoki norma tarkibini tekshirib, alohida hisoblanishini tasdiqlang.": "A composite norm (e.g. a reinforced-concrete foundation) already contains reinforcement and formwork resources. Either remove the separate installation work (✕) and enter the rebar quantity in the norm's «АРМАТУРА» line in the LRV, or check the norm composition and confirm separate counting.",
+  "Smeta studiyasi boshqa tabda ham ochiq. Lokal qoralama bitta — tablar bir-birining o‘zgarishini almashtiradi. Bitta tabda ishlang yoki qoralamani serverga saqlang.": "The estimate studio is also open in another tab. There is one local draft — tabs overwrite each other's changes. Work in one tab or save the draft to the server."
 }

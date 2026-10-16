@@ -23,7 +23,12 @@ import type { CatalogResource, EstimateDoc } from './model';
 import { resourceCategory } from './export-adapter';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from '../narx-bildirishnoma';
 import { NAKRUTKA_KATLAR, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from '../nakrutka-podval';
-import { nakrutkaKategoriyasi } from './narx-yigish';
+import { nakrutkaKategoriyasi, talabMateriali } from './narx-yigish';
+/** «БЕТОН (КЛАСС ПО ПРОЕКТУ)» shows the work's stated material: «… — БЕТОН B20». */
+const nomi = (name: string | null | undefined, material: string | null | undefined) => {
+  const t = talabMateriali(material, name);
+  return t ? `${name ?? ''} — ${t}` : name ?? '';
+};
 import { narxAsoslashVaraq, type AsoslashBand } from '../narx-asoslash-export';
 import type { ProtokolQator } from '../narx-protokol-hujjat';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
@@ -86,7 +91,7 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, units: Units, o: AbcHujjatOps
         const sub = occ.overrides[l.recipeId]?.substitution;
         const perUnit = l.norm == null ? null : Number(l.norm) * Number(sub?.conversion ?? '1');
         v.qator('oddiy', (r): Qiymat[] => [`${work}.${j + 1}`, idCode(l.resource) ?? l.resource?.code ?? '',
-          l.resource?.name ?? 'НЕ ОПРЕДЕЛЁН РЕСУРС (ТРЕБУЕТ ВЫБОРА)', unitText(l.resource?.unitCode ?? null) ?? '',
+          l.resource ? nomi(l.resource.name, occ.material) : 'НЕ ОПРЕДЕЛЁН РЕСУРС (ТРЕБУЕТ ВЫБОРА)', unitText(l.resource?.unitCode ?? null) ?? '',
           perUnit == null ? null : { n: perUnit, uslub: 'norma' },
           l.quantity == null ? null : (normQty != null && perUnit != null ? { f: `ROUND(E${r}*E${wr},6)`, v: n(l.quantity) } : n(l.quantity))],
           { daraja: depth + 2, rang: null });
@@ -112,8 +117,9 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
     const bucket = isOperator(l.resource) || kat === 'МАШ' ? 'machines' : kat === 'ЧЕЛ' ? 'labour' : kat === 'ОБ' ? 'equipment' : 'm:' + materialGroup(l.resource);
     const unitPrice = n(l.price);
     // One RES line per resource and price (two different prices are never silently averaged).
-    const key = [bucket, l.resource.code, l.resource.name, l.resource.unitCode, unitPrice ?? 'null'].join('\u0001');
-    const cur = acc.get(key) ?? { bucket, code: idCode(l.resource) ?? '', price: l.resource.code ?? '', name: l.resource.name ?? '',
+    const name = nomi(l.resource.name, o.material);
+    const key = [bucket, l.resource.code, name, l.resource.unitCode, unitPrice ?? 'null'].join('\u0001');
+    const cur = acc.get(key) ?? { bucket, code: idCode(l.resource) ?? '', price: l.resource.code ?? '', name,
       unit: unitText(l.resource.unitCode) ?? '', qty: 0, unitPrice, amount: 0,
       kat: bucket === 'machines' ? 'МАШ' as const : nakrutkaKategoriyasi(l.resource, unitText) };
     cur.qty = Math.round((cur.qty + (n(l.quantity) ?? 0)) * 1e7) / 1e7;
@@ -212,7 +218,8 @@ export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units):
     const kat = isOperator(l.resource) ? 'МАШ' : nakrutkaKategoriyasi(l.resource, unitText) ?? '';
     const unit = unitText(l.resource.unitCode);
     const narx = n(l.price);
-    const key = [kat, l.resource.code, l.resource.name, unit, narx ?? 'null'].join('\u0001');
+    const name = nomi(l.resource.name, o.material);
+    const key = [kat, l.resource.code, name, unit, narx ?? 'null'].join('\u0001');
     const qty = n(l.quantity);
     const prev = by.get(key);
     if (prev) { prev.hajm = prev.hajm == null || qty == null ? null : Math.round((prev.hajm + qty) * 1e6) / 1e6; prev.qatorlar = (prev.qatorlar ?? 1) + 1; continue; }
@@ -222,7 +229,7 @@ export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units):
       // Owner rule (2026-10-15): an earlier estimate of the company is a hint, never a price justification.
       : j?.docType === 'COMPANY_ESTIMATE' ? 'цена из ранее принятой сметы — не является документом-основанием, требуется каталог, биржа, прайс-лист или КП' : null;
     if (narx == null && !dalilsizSabab) continue;   // machine operators' labour is priced inside the machine-hour (owner rule)
-    by.set(key, { kat, kod: idCode(l.resource), nom: l.resource.name, birlik: unit, hajm: qty, narx, qatorlar: 1,
+    by.set(key, { kat, kod: idCode(l.resource), nom: name, birlik: unit, hajm: qty, narx, qatorlar: 1,
       hujjatTuri: j ? HUJJAT_TURI[j.docType] : p ? HUJJAT_TURI.MANUAL : null,
       rekvizit: j?.document ?? p?.evidence ?? null,
       manbaNom: j?.sourceName ?? null, manbaBirlik: j?.sourceUnit ?? null, manbaNarx: j?.sourcePrice == null ? null : Number(j.sourcePrice),

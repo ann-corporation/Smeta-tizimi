@@ -1663,5 +1663,8 @@
   "QQS bilan (÷ 1,12 bilan QQSsizga o‘tkaziladi)": "С НДС (переводится без НДС ÷ 1,12)",
   "Hujjatda": "В документе",
   "Smeta narxi QQSsiz bo‘lishi shart — hujjatdagi narx QQS bilanmi, QQSsizmi, tanlang.": "Цена в смете должна быть без НДС — укажите, с НДС или без НДС цены в документе.",
-  "Saqlash va narxlashda ishlatish ({n})": "Сохранить и использовать в расценке ({n})"
+  "Saqlash va narxlashda ishlatish ({n})": "Сохранить и использовать в расценке ({n})",
+  "Alohida hisoblashni tasdiqlayman": "Подтверждаю отдельный учёт",
+  "Murakkab normada (masalan temirbeton poydevor) armatura va qolip resurslari bor. Ikki yo‘l: alohida o‘rnatish ishini olib tashlang (✕) va armatura miqdorini LRV da normadagi «АРМАТУРА» qatoriga kiriting, yoki norma tarkibini tekshirib, alohida hisoblanishini tasdiqlang.": "В составной норме (например, ж/б фундамент) уже есть ресурсы арматуры и опалубки. Два пути: удалите отдельную работу по установке (✕) и укажите количество арматуры в строке «АРМАТУРА» нормы в ЛРВ, либо проверьте состав нормы и подтвердите отдельный учёт.",
+  "Smeta studiyasi boshqa tabda ham ochiq. Lokal qoralama bitta — tablar bir-birining o‘zgarishini almashtiradi. Bitta tabda ishlang yoki qoralamani serverga saqlang.": "Студия смет открыта и в другой вкладке. Локальный черновик один — вкладки перезаписывают изменения друг друга. Работайте в одной вкладке или сохраните черновик на сервер."
 }

@@ -33,7 +33,25 @@ export type ResursGuruh = {
   narx: string | null; narxsiz: number; aralash: boolean; basis: PriceBasis | null; dalil: string | null;
   /** Structured «обоснование цены» of the price (when the price has one). */
   asos: PriceJustification | null;
+  /** The work's stated material for a «по проекту» resource ("Бетон B20") — what is actually priced. */
+  talab?: string | null;
 };
+
+/** «БЕТОН (КЛАСС ПО ПРОЕКТУ)», «АРМАТУРА ... ПО ПРОЕКТУ», «РАЗМЕР И МАРКА ПО ПРОЕКТУ». */
+const LOYIHA_BOYICHA = /ПО\s+ПРОЕКТ|КЛАСС\s+ПО|МАРК[АИ]\s+ПО/;
+/**
+ * The part of the work's material that belongs to this «по проекту» resource: "Раствор цементный М100, кирпич глиняный"
+ * → for «КИРПИЧ ... ПО ПРОЕКТУ» the brick part. Same product word = same resource; one stated part applies to the only one.
+ */
+export function talabMateriali(material: string | null | undefined, resursNom: string | null | undefined): string | null {
+  if (!material?.trim() || !LOYIHA_BOYICHA.test(normName(resursNom))) return null;
+  // A comma separates materials only before a word ("B7,5" keeps its decimal comma).
+  const parts = material.split(/;|,(?=\s*[A-Za-zА-Яа-яЁё])/).map(s => s.trim()).filter(Boolean);
+  const bosh = characteristics(resursNom).words[0]?.slice(0, 4);
+  return parts.find(p => characteristics(p).words.some(w => w.slice(0, 4) === bosh)) ?? null;
+}
+/** Name used to find a price: the stated material when the norm leaves it «по проекту». */
+export const narxNomi = (g: Pick<ResursGuruh, 'nom' | 'talab'>) => g.talab ?? g.nom;
 
 /** Cost category for the markup cascade: ЧЕЛ/МАШ/ОБ from resource semantics, materials split into КАБ, М/К, БЕЗ СКЛАД, МАТ. */
 export function nakrutkaKategoriyasi(r: CatalogResource | null, unitText?: UnitText): NakrutkaKat | null {
@@ -54,11 +72,13 @@ export function resursGuruhlari(doc: EstimateDoc, calc: DocCalc, unitText: UnitT
     if (!l.resource) continue;
     const birlik = unitText(l.resource.unitCode);
     const kat = nakrutkaKategoriyasi(l.resource, unitText);
-    const key = [normName(l.resource.name), normName(birlik), kat ?? ''].join('\u0001');
+    // A «по проекту» resource is one product per stated material: B7,5 and B20 concrete are never one price.
+    const talab = talabMateriali(o.material, l.resource.name);
+    const key = [normName(l.resource.name), normName(birlik), kat ?? '', normName(talab)].join('\u0001');
     let g = by.get(key);
     if (!g) {
       g = { key, nom: l.resource.name ?? '', birlik, kat, resurs: l.resource, qatorlar: [], miqdor: 0, narx: null, narxsiz: 0, aralash: false,
-        basis: null, dalil: null, asos: null, narxlar: new Set() };
+        basis: null, dalil: null, asos: null, talab, narxlar: new Set() };
       by.set(key, g);
     }
     g.qatorlar.push({ occurrenceId: o.id, recipeId: l.recipeId });
@@ -99,7 +119,7 @@ export function narxIndeksi(cat: MatchCatalog): MatnIndeks {
 }
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
-const manbaTuriMatni = (t: string) => (t === 'birja' ? 'birja' : t === 'prays' ? 'prays-list' : t === 'asosiy_material' ? 'asosiy materiallar' : 'katalog');
+const manbaTuriMatni = (t: string) => (t === 'birja' ? 'birja' : t === 'prays' ? 'prays-list' : t === 'asosiy_material' ? 'asosiy materiallar' : t === 'mash_soat' ? 'mash.-soat ro‘yxati' : 'katalog');
 
 /**
  * Which of two rows of the SAME product (name + unit) is offered (owner 2026-10-15: region, the most expensive price,
@@ -193,7 +213,7 @@ export function narxAsosi(n: NarxNomzod, sabab = ''): PriceJustification {
   // The source row exactly as published: its own unit and price (the estimate price may be recalculated from it).
   const sourcePrice = r.narx == null ? null : String(r.narx);
   const docType: PriceJustification['docType'] = n.tur === 'kompaniya' ? 'COMPANY_ESTIMATE' : n.tur === 'kp' ? (r.manba_tur === 'prays' ? 'PRICE_LIST' : 'COMMERCIAL_OFFER')
-    : r.manba_tur === 'birja' ? 'EXCHANGE' : r.manba_tur === 'prays' ? 'PRICE_LIST' : 'CATALOG';
+    : r.manba_tur === 'birja' ? 'EXCHANGE' : r.manba_tur === 'prays' ? 'PRICE_LIST' : r.manba_tur === 'mash_soat' ? 'MACHINE_HOUR' : 'CATALOG';
   return { docType, document: document.slice(0, 400), sourceName: r.nom,
     sourceUnit: r.birlik, sourcePrice, conversion: n.qayta, reason: sabab ? sabab.slice(0, 400) : null };
 }
@@ -227,7 +247,7 @@ export async function aiNarxlash(guruhlar: ResursGuruh[], nomzodlar: (g: ResursG
       // First round: a resource with NO candidate is still sent — the model then writes how the catalogue may name it,
       // and the second round searches with those words. (Without this the hardest resources never got a second chance.)
       const yuborish = part.filter(x => x.n.length || round === 0);
-      const sorov = yuborish.map((x, j): NarxSorovi => ({ id: `r${i + j}`, nom: x.g.nom, birlik: x.g.birlik, kat: x.g.kat,
+      const sorov = yuborish.map((x, j): NarxSorovi => ({ id: `r${i + j}`, nom: x.g.talab ? `${x.g.nom}: ${x.g.talab}` : x.g.nom, birlik: x.g.birlik, kat: x.g.kat,
         nomzodlar: x.n.map(({ id, nom, birlik, narx, manba, birlikBoshqa }) => ({ id, nom, birlik, narx, manba, ...(birlikBoshqa ? { birlikBoshqa: true } : {}) })) }));
       const byId = new Map(sorov.map((s, j) => [s.id, yuborish[j]]));
       for (const x of part) if (!x.n.length) natija.set(x.g.key, { key: x.g.key, nomzod: null, ishonch: 'past', sabab: 'Manbalarda xarakteristikasi mos nomzod topilmadi', nomzodlar: [] });
@@ -239,7 +259,7 @@ export async function aiNarxlash(guruhlar: ResursGuruh[], nomzodlar: (g: ResursG
         let sabab = t.sabab, ishonch = t.ishonch;
         if (nomzod?.birlikBoshqa) {
           // The model chose a product in another unit: its formula is verified and computed here, never trusted as a number.
-          const q = t.qayta_hisob ? qaytaHisobla(nomzod, x.g.nom, x.g.birlik, t.qayta_hisob.ifoda, t.qayta_hisob.izoh) : { xato: 'qayta hisob formulasi berilmagan' };
+          const q = t.qayta_hisob ? qaytaHisobla(nomzod, narxNomi(x.g), x.g.birlik, t.qayta_hisob.ifoda, t.qayta_hisob.izoh) : { xato: 'qayta hisob formulasi berilmagan' };
           if ('xato' in q) { sabab = `${sabab} — qayta hisob rad etildi: ${q.xato}`; nomzod = null; ishonch = 'past'; }
           else nomzod = q;
         }

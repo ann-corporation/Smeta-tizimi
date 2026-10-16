@@ -37,7 +37,7 @@ export function ildiz(w: string): string | null {
   if (!/[а-я]/.test(w)) return w.length >= 2 ? w : null;
   let s = w;
   for (const e of ENDINGS) if (s.length - e.length >= 4 && s.endsWith(e)) { s = s.slice(0, -e.length); break; }
-  return s.slice(0, 7);
+  return s.slice(0, 6);
 }
 
 export function ildizlar(matn: string): string[] {

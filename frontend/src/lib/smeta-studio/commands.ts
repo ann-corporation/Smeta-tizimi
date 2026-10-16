@@ -27,7 +27,8 @@ export type StudioCommand =
   | { type: 'RENAME_SECTION'; sectionId: string; name: string }
   | { type: 'MOVE_SECTION'; sectionId: string; parentId: string | null; index?: number }
   | { type: 'REMOVE_SECTION'; sectionId: string }
-  | { type: 'ADD_OCCURRENCE'; occurrenceId: string; sectionId: string; source: WorkSource; recipe: RecipeSnapshot[]; quantity: string | null; basis: UnitBasis }
+  | { type: 'ADD_OCCURRENCE'; occurrenceId: string; sectionId: string; source: WorkSource; recipe: RecipeSnapshot[]; quantity: string | null; basis: UnitBasis; material?: string | null }
+  | { type: 'SET_MATERIAL'; occurrenceId: string; material: string | null }
   | { type: 'SET_QUANTITY'; occurrenceId: string; quantity: string | null }
   | { type: 'SET_BASIS'; occurrenceId: string; basis: UnitBasis }
   | { type: 'MOVE_OCCURRENCE'; occurrenceId: string; sectionId: string; index?: number }
@@ -47,6 +48,7 @@ const fail = (code: string): never => { throw new Error(code); };
 const name = (v: string, code: string) => { const s = String(v ?? '').trim(); if (!s || s.length > 300) fail(code); return s; };
 const clone = <T,>(v: T): T => structuredClone(v);
 
+const materialOf = (v: string | null | undefined) => { const s = String(v ?? '').trim(); return s ? s.slice(0, 300) : null; };
 const COEF_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'];
 /** A coefficient needs a positive value (≤ 10), a known scope, a name and its normative basis. */
 function coefficientOf(c: WorkCoefficient): WorkCoefficient {
@@ -202,8 +204,16 @@ export function applyCommand(input: EstimateDoc, cmd: StudioCommand): EstimateDo
       const o: Occurrence = { id: cmd.occurrenceId, sectionId: cmd.sectionId, source: clone(cmd.source),
         quantity: cmd.quantity == null || cmd.quantity === '' ? null : normDec(cmd.quantity, 'QUANTITY_INVALID'),
         basis: basisOf(cmd.basis), recipe: clone(cmd.recipe), overrides: {} };
+      const mat = materialOf(cmd.material);
+      if (mat) o.material = mat;
       w.sec(cmd.sectionId).items.push(cmd.occurrenceId);
       w.putOcc(o);
+      break;
+    }
+    case 'SET_MATERIAL': {
+      const o = w.occ(cmd.occurrenceId);
+      const mat = materialOf(cmd.material);
+      if (mat) o.material = mat; else delete o.material;
       break;
     }
     case 'SET_QUANTITY': {

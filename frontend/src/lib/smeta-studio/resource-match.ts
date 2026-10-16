@@ -48,6 +48,8 @@ export type Characteristics = {
   electrodeGrade: string | null;
   /** Stated machine capacity/power with its dimension, not bare model digits. */
   machineRatings: string[];
+  /** Stated thickness in mm ("ТОЛЩИНОЙ 25 ММ", "ТОЛЩ. 0,5 ММ"). */
+  thickness: string | null;
   /** Every digit-bearing token (spec tokens) — must be covered by a good candidate. */
   specs: string[];
   /** Content words (stems) for similarity. */
@@ -63,12 +65,12 @@ function productFamily(n: string): string | null {
   // Explicit mesh material/use precedes generic mesh and loose reinforcing bar.
   // Unknown trade names (e.g. "Сетка Дыня") never imply a reinforcing mesh.
   if (/(?:^|\s)СЕТК/.test(n)) {
-    if (/СТЕКЛОВОЛОК|СТЕКЛОПЛАСТ|СТЕКЛОТКАН|СТЕКЛОСЕТК/.test(n)) return 'fiberglass-mesh';
+    if (/СТЕКЛОВОЛОК|СТЕКЛОПЛАСТ|СТЕКЛОТКАН|СТЕКЛОСЕТК|СТЕКЛОКОМПОЗ|КОМПОЗИТ|БАЗАЛЬТ/.test(n)) return 'fiberglass-mesh';
     if (/ПЛАСТИК|ПЛАСТМАСС|ПОЛИМЕР|ПОЛИПРОПИЛЕН|ПОЛИЭТИЛЕН/.test(n)) return 'plastic-mesh';
     if (/ДЕКОРАТИВ/.test(n)) return 'decorative-mesh';
     if (/АРМАТУР/.test(n)) return 'reinforcing-mesh';
     if (/СВАРН/.test(n)) return 'welded-mesh';
-    if (/СТАЛЬН|МЕТАЛЛИЧ/.test(n)) return 'metal-mesh';
+    if (/СТАЛЬН|МЕТАЛЛИЧ|ПРОВОЛОЧН|ОЦИНКОВ|РАБИЦ/.test(n)) return 'metal-mesh';
     return 'mesh';
   }
   const families: Array<[string, RegExp]> = [
@@ -117,11 +119,13 @@ export function characteristics(nameRaw: string | null | undefined): Characteris
   const electrode = family === 'electrode' ? n.match(/(?:^|[^А-ЯA-Z0-9])Э\s*(\d+А?)(?![А-ЯA-Z0-9])/): null;
   const electrodeGrade = electrode ? 'Э' + electrode[1] : null;
   const machineRatings = family && MACHINE_FAMILIES.has(family)
-    ? [...n.matchAll(/(?:^|[\s=])(\d+(?:\.\d+)?)\s*(М3|КГ|КВТ|Т)(?=$|[^А-Я0-9])/g)].map(m => `${Number(m[1])}:${m[2]}`) : [];
+    ? [...n.matchAll(/(?:^|[\s=])(\d+(?:\.\d+)?)\s*(М3|КГ|КВТ|ТН|Т)(?=$|[^А-Я0-9])/g)].map(m => `${Number(m[1])}:${m[2] === 'ТН' ? 'Т' : m[2]}`) : [];
+  const th = n.match(/ТОЛЩ[А-Я]*\.?\s*(?:ДО\s*)?(\d+(?:\.\d+)?)\s*(ММ|СМ|М)(?![А-Я])/);
+  const thickness = th ? String(Math.round(Number(th[1]) * (th[2] === 'СМ' ? 10 : th[2] === 'М' ? 1000 : 1) * 1000) / 1000) : null;
   const tokens = n.split(' ').filter(Boolean);
   const specs = [...new Set(tokens.filter(t => /\d/.test(t)).map(t => t.replace(/^[-=]+|[-=.]+$/g, '')).filter(Boolean))];
   const words = [...new Set(tokens.filter(t => !/\d/.test(t) && t.length >= 3 && !STOP.has(t)).map(stem))];
-  return { family, fraction, grade, rebar, diameter, section, brand, electrodeGrade, machineRatings, specs, words };
+  return { family, fraction, grade, rebar, diameter, section, brand, electrodeGrade, machineRatings, thickness, specs, words };
 }
 
 export type MatchConfidence = 'EXACT' | 'HIGH' | 'REVIEW';
@@ -135,7 +139,7 @@ export type MatchResult = { confidence: MatchConfidence | 'NONE'; best: MatchCan
 /** Unit key with common synonyms (т = тн = тонна, м3 = куб.м, п.м = м, шт = штука). */
 export function unitKey(v: string | null | undefined): string {
   const k = birlikKalit(normName(v));
-  const SYN: Record<string, string> = { 'КG': 'КГ', ТН: 'Т', ТОННА: 'Т', ТОНН: 'Т', КУБМ: 'М3', М3: 'М3', ПМ: 'М', ПОГМ: 'М', МП: 'М', ШТУК: 'ШТ', ШТУКА: 'ШТ', КВМ: 'М2', '1000ШТ': 'ТЫСШТ' };
+  const SYN: Record<string, string> = { 'КG': 'КГ', ТН: 'Т', ТОННА: 'Т', ТОНН: 'Т', КУБМ: 'М3', М3: 'М3', ПМ: 'М', ПОГМ: 'М', МП: 'М', ШТУК: 'ШТ', ШТУКА: 'ШТ', КВМ: 'М2', '1000ШТ': 'ТЫСШТ', ТЫСШТ: 'ТЫСШТ' };
   return SYN[k] ?? k;
 }
 
@@ -145,7 +149,8 @@ export function priceUnitFactor(source: string | null, target: string | null): n
   if (!from || !to) return null;
   if (from === to) return 1;
   if ((from === 'Т' && to === 'КГ') || (from === 'КМ' && to === 'М')) return 0.001;
-  if ((from === 'КГ' && to === 'Т') || (from === 'М' && to === 'КМ')) return 1000;
+  if ((from === 'КГ' && to === 'Т') || (from === 'М' && to === 'КМ') || (from === 'ШТ' && to === 'ТЫСШТ')) return 1000;
+  if (from === 'ТЫСШТ' && to === 'ШТ') return 0.001;
   return null;
 }
 
@@ -176,6 +181,7 @@ export function gateFailure(src: Characteristics, cand: Characteristics, srcUnit
   if (src.brand && (cand.brand ? !cand.brand.startsWith(src.brand) : !candNorm.split(' ').some(t => t.startsWith(src.brand!)))) return 'BRAND';
   if (src.grade && cand.grade !== src.grade) return 'GRADE';
   if (src.rebar && cand.rebar !== src.rebar) return 'REBAR_CLASS';
+  if (src.thickness && cand.thickness && src.thickness !== cand.thickness) return 'THICKNESS';
   if (src.diameter && cand.diameter && !diametrMos(src.diameter, cand.diameter)) return 'DIAMETER';
   if (src.diameter && !cand.diameter && !cand.specs.some(t => t === src.diameter || t.startsWith(src.diameter + '.') || diametrMos(src.diameter!, t))) return 'DIAMETER';
   return null;

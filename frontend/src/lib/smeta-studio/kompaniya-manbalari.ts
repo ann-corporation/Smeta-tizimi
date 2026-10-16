@@ -52,3 +52,13 @@ export function qqsHolatiniAniqla(matn: string): 'nds_bilan' | 'nds_siz' | 'noma
   const bilan = /с\s*(учетом\s*)?ндс|в\s*т\.?\s*ч\.?\s*ндс|включая\s*ндс|ндс\s*\(?\s*1[25]\s*%|qqs\s*bilan/.test(s);
   return siz === bilan ? 'nomalum' : siz ? 'nds_siz' : 'nds_bilan';
 }
+
+/** Supplier, number, date and TIN from a document's own header text ("Коммерческое предложение ООО «Строй Снаб» № 45 от 10.10.2026"). */
+export function kpSarlavhasi(matn: string): { yetkazuvchi: string; raqam: string; sana: string; inn: string } {
+  const s = matn.replace(/\s+/g, ' ');
+  const yet = s.match(/((?:ООО|OOO|MChJ|МЧЖ|АО|AJ|ЧП|XK|ИП|ЧФ|ООО\s*СП|СП\s*ООО)\s*[«"“']?[^«»"“”'№,\n]{2,60}[»"”']?)/i)?.[1]?.trim() ?? '';
+  const raqam = s.match(/№\s*([\w/-]{1,20})/)?.[1] ?? '';
+  const d = s.match(/(?:от|dan|sana)?\s*(\d{2})\.(\d{2})\.(\d{4})/i);
+  const inn = s.match(/(?:ИНН|INN|STIR)\s*:?\s*(\d{9})/i)?.[1] ?? '';
+  return { yetkazuvchi: yet, raqam, sana: d ? `${d[3]}-${d[2]}-${d[1]}` : '', inn };
+}

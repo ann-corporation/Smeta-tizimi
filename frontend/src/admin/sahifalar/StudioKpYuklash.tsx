@@ -11,7 +11,7 @@ import { narxManbaniYukla, type NarxManbaQatorKirish } from '../../api/t2-narx-d
 import { yangiOperationId } from '../../api/supabase';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { katalogniOqi } from '../../lib/narx-dalil/katalog-oqish';
-import { qqsHolatiniAniqla } from '../../lib/smeta-studio/kompaniya-manbalari';
+import { kpSarlavhasi, qqsHolatiniAniqla } from '../../lib/smeta-studio/kompaniya-manbalari';
 import { docxMatni } from '../../lib/narx-dalil/docx-matn';
 
 type Nds = 'nds_bilan' | 'nds_siz' | 'nomalum';
@@ -48,7 +48,8 @@ export function StudioKpYuklash({ kompaniyaId, onSaqlandi }: { kompaniyaId: numb
         const narxli = det?.qatorlar.filter(q => q.narx != null) ?? [];
         if (narxli.length) {
           // Columns found deterministically (large price lists too); the VAT state comes from the document's own words.
-          setK({ tur: narxli.length > 200 ? 'katalog' : 'kp', yetkazuvchi: '', inn: '', raqam: '', sana: '', nds: qqsHolatiniAniqla(matn), ndsDalil: '', qatorlar: narxli,
+          const h = kpSarlavhasi(rows.slice(0, 8).map(r => r.map(cell).join(' ')).join(' '));
+          setK({ tur: narxli.length > 200 ? 'katalog' : 'kp', yetkazuvchi: h.yetkazuvchi, inn: h.inn, raqam: h.raqam, sana: h.sana, nds: qqsHolatiniAniqla(matn), ndsDalil: '', qatorlar: narxli,
             usul: t('Excel ustunlari aniqlandi: {n} pozitsiya', { n: narxli.length }) });
           return;
         }

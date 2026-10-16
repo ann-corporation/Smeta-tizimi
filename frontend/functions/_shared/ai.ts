@@ -159,6 +159,8 @@ function supportsAttachment(provider: AiProvider, attachment?: AiAttachment): bo
   if (!attachment) return true;
   if (provider === 'gemini') return IMAGE_TYPES.has(attachment.mimeType) || attachment.mimeType === 'application/pdf';
   if (provider === 'openai' || provider === 'anthropic') return IMAGE_TYPES.has(attachment.mimeType);
+  /* OpenRouter (OpenAI-mos chat): rasm — image_url, PDF — file qismi (model o'zi yoki OpenRouter fayl tahlilchisi o'qiydi). */
+  if (provider === 'openrouter') return IMAGE_TYPES.has(attachment.mimeType) || attachment.mimeType === 'application/pdf';
   /* Groq modeli bu gateway'da matn uchun ishlatiladi. Vision faylni
      noto'g'ri fallback qilib yubormaslik uchun ataylab o'tkazib yuboriladi. */
   return false;
@@ -332,7 +334,12 @@ function providerPayload(provider: AiProvider, model: string, request: AiRequest
     max_tokens: maxTokens,
     messages: [
       ...(request.system ? [{ role: 'system', content: request.system }] : []),
-      { role: 'user', content: request.text + jsonInstruction },
+      { role: 'user', content: provider === 'openrouter' && request.attachment ? [
+        { type: 'text', text: request.text + jsonInstruction },
+        request.attachment.mimeType === 'application/pdf'
+          ? { type: 'file', file: { filename: 'document.pdf', file_data: `data:application/pdf;base64,${request.attachment.data}` } }
+          : { type: 'image_url', image_url: { url: `data:${request.attachment.mimeType};base64,${request.attachment.data}` } },
+      ] : request.text + jsonInstruction },
     ],
     ...(request.jsonSchema ? { response_format: { type: 'json_object' } } : {}),
     /* OpenRouter: javobda haqiqiy narx (usage.cost) — xarajat hisobi uchun. */
