@@ -144,7 +144,13 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
   const top = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const inner = top.javob && typeof top.javob === 'object' && !Array.isArray(top.javob) ? top.javob as Record<string, unknown> : null;
   const o: Record<string, unknown> = inner ? { ...top, ...inner, javob: inner.matn ?? inner.javob ?? inner.text ?? '' } : top;
-  const list = [o.ishlar, o.works, o.items, o.ishlar_royxati].find(Array.isArray) as unknown[] | undefined;
+  // Works sometimes arrive inside "amallar" (an unknown action type carrying a work description) — they are works, not actions.
+  const amalIshlar = (Array.isArray(o.amallar) ? o.amallar as unknown[] : []).filter(x => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    return !AMAL_TURLARI.some(t => t === r.tur) && (typeof r.tavsif === 'string' || Array.isArray(r.qidiruv));
+  });
+  const asosiy = [o.ishlar, o.works, o.items, o.ishlar_royxati].find(x => Array.isArray(x) && x.length) as unknown[] | undefined;
+  const list = asosiy ?? (amalIshlar.length ? amalIshlar : undefined);
   const extraQ: string[] = [];
   const ishlar: IshNiyati[] = [];
   const seen = new Set<string>();

@@ -238,6 +238,13 @@ async function providerFetch(
 
     if (response.ok) return { body, headers: response.headers };
     lastStatus = response.status;
+    // A model without structured-output support rejects json_schema (400): retry once with plain json_object.
+    if (response.status === 400 && provider === 'openrouter' && (payload.response_format as JsonObject | undefined)?.type === 'json_schema') {
+      const fallback = providerInit(provider, key, model, { ...payload, response_format: { type: 'json_object' } });
+      const r2 = await fetchWithTimeout(fallback.url, fallback.init, timeoutMs);
+      const raw2 = await r2.text();
+      if (r2.ok) { try { return { body: JSON.parse(raw2) as JsonObject, headers: r2.headers }; } catch { return { body: { raw: raw2 }, headers: r2.headers }; } }
+    }
     if (!retryableStatus(response.status) || attempt === maxRetries) {
       throw new AiGatewayError('provider_unavailable', 'AI provider so\'rovni qabul qilmadi', response.status);
     }
@@ -341,7 +348,11 @@ function providerPayload(provider: AiProvider, model: string, request: AiRequest
           : { type: 'image_url', image_url: { url: `data:${request.attachment.mimeType};base64,${request.attachment.data}` } },
       ] : request.text + jsonInstruction },
     ],
-    ...(request.jsonSchema ? { response_format: { type: 'json_object' } } : {}),
+    /* OpenRouter: the actual JSON schema (structured output) — with json_object only the model guessed the shape and put works
+       into the wrong array (production run 2026-10-16). Other OpenAI-compatible providers keep json_object. */
+    ...(request.jsonSchema ? { response_format: provider === 'openrouter'
+      ? { type: 'json_schema', json_schema: { name: request.jsonSchema.name, strict: true, schema: request.jsonSchema.schema } }
+      : { type: 'json_object' } } : {}),
     /* OpenRouter: javobda haqiqiy narx (usage.cost) — xarajat hisobi uchun. */
     ...(provider === 'openrouter' ? { usage: { include: true } } : {}),
   };
