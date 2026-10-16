@@ -33,8 +33,8 @@ must('RPC guards optional FILE-TRUTH tables', /to_regclass\('public\.t2_document
 must('RPC is service_role only', /revoke all on function public\.t2_boss_dashboard_v1\(bigint,bigint\) from public, anon, authenticated/.test(mig));
 
 console.log('\n── Honest product states, canonical route ──');
-must('no fake numbers: honest "not connected" placeholder', /Ma.?lumot modeli hali ulanmagan/.test(comp));
-must('unconnected domains listed, not faked', /ulanmagan_modullar/.test(comp) && /ulanmagan_modullar/.test(mig));
+must('legacy combined act amounts never become approved completion', /Eski umumiy akt summasi/.test(comp) && !/q\.data\.f2\.jami/.test(comp));
+must('manager sees source coverage rather than internal module enums', /Hisob asoslari/.test(comp) && !/ulanmagan_modullar/.test(comp));
 must('loading / error / no-company states', /q\.isLoading/.test(comp) && /q\.isError/.test(comp) && /KompaniyaKerak/.test(comp));
 must('canonical route /admin/dashboard registered', /path="dashboard" element=/.test(app));
 must('/boss index redirects to canonical dashboard', /Route index element=\{<Navigate to="\/admin\/dashboard" replace/.test(app));

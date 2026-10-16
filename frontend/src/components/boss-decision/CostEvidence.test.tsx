@@ -1,0 +1,10 @@
+import {cleanup,fireEvent,render,screen} from '@testing-library/react';
+import {afterEach,it,expect} from 'vitest';
+import CostEvidence from './CostEvidence';
+import {rowArithmetic} from './model';
+import {evidenceFixture} from './fixtures.fixture';
+afterEach(cleanup);
+it('drills into source amounts without changing a price',()=>{const e=evidenceFixture();const before=JSON.stringify(e);render(<CostEvidence evidence={e} sectionId={1}/>);expect(screen.queryByText('Другая работа')).toBeNull();fireEvent.click(screen.getByRole('button',{name:'Материал'}));expect(screen.getByText(/t2_qator #3/)).toBeTruthy();expect(screen.getByText(/Ko‘rsatilgan aniqlikda/)).toBeTruthy();expect(JSON.stringify(e)).toBe(before);});
+it('shows unknown quantities and a source difference instead of fixing amounts',()=>{const e=evidenceFixture();e.rows[2].hajm=3;e.rows[2].narx=10;render(<CostEvidence evidence={e} sectionId={1}/>);fireEvent.click(screen.getByRole('button',{name:'Материал'}));expect(screen.getByText(/Manba summasi bilan farq bor/)).toBeTruthy();expect(rowArithmetic(null,10,0)).toBeNull();expect(rowArithmetic(0,10,0)?.matches).toBe(true);expect(rowArithmetic(-2,10,-20)?.matches).toBe(true);});
+it('keeps high precision quantities visible',()=>{const e=evidenceFixture();e.rows[2].hajm=0.00001;render(<CostEvidence evidence={e} sectionId={1}/>);expect(document.body.textContent).toContain('0,00001');});
+it('paginates all source rows rather than silently taking the first candidates',()=>{const e=evidenceFixture();for(let i=10;i<55;i++)e.rows.push({...e.rows[2],id:i,nom:'Resource '+i});render(<CostEvidence evidence={e} sectionId={1}/>);fireEvent.click(screen.getByRole('button',{name:'Keyingi'}));expect(screen.getByText('2 / 3')).toBeTruthy();fireEvent.change(screen.getByRole('textbox'),{target:{value:'Resource 54'}});expect(screen.getByRole('button',{name:'Resource 54'})).toBeTruthy();});

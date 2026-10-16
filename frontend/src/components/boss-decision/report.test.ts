@@ -1,0 +1,25 @@
+import { describe,it,expect,vi } from 'vitest';
+import { unzipSync,strFromU8 } from 'fflate';
+import { leafSummary,managementWorkbook,scopeRows,readObjectEvidence } from './report';
+import { completePortfolio,filteredObjects,signalUrl,sortedSignals,trustedExecutive } from './model';
+import { dashboardFixture,evidenceFixture } from './fixtures.fixture';
+const m=vi.hoisted(()=>({rows:vi.fn(),states:vi.fn()}));
+vi.mock('../../api/supabase',()=>({sbT2DaraxtOl:m.rows,sbT2QatorHolatOl:m.states}));
+const sheets=(bytes:Uint8Array)=>Object.entries(unzipSync(bytes)).filter(([n])=>n.startsWith('xl/worksheets/')).map(([,b])=>strFromU8(b)).join('');
+describe('management source fidelity',()=>{
+ it('excludes duplicate parent sums, preserves zero and unknown',()=>{const e=evidenceFixture();expect(leafSummary(scopeRows(e,1),e.states)).toEqual({estimate:100,f2:60,missing:1,f2Missing:1,leaves:3});});
+ it('requires a real section and keeps descendants within it',()=>{const e=evidenceFixture();expect(scopeRows(e,1).map(r=>r.id)).toEqual([1,2,3,4,5]);expect(()=>scopeRows(e,2)).toThrow('SECTION');});
+ it('rejects orphan rows and disconnected cycles',()=>{const e=evidenceFixture();e.rows[0].ota_id=999;expect(()=>scopeRows(e)).toThrow('ORPHAN');e.rows[0].ota_id=3;expect(()=>scopeRows(e)).toThrow('CYCLE');});
+ it('rejects duplicate row IDs',()=>{const e=evidenceFixture();e.rows.push(e.rows[0]);expect(()=>scopeRows(e)).toThrow('DUPLICATE');});
+ it('makes company workbook with sources and no legacy mixed-act total or fake profit',async()=>{const xml=sheets(await managementWorkbook(dashboardFixture(),{kind:'company'}));expect(xml).toContain('ИСТОЧНИКИ');expect(xml).toContain('t2_obyekt_jami');expect(xml).toContain('127 / 7');expect(xml).not.toContain('999999');expect(xml).not.toContain('987654');expect(xml).not.toContain('<f>');});
+ it('exports only requested project and rejects a foreign one',async()=>{expect((await managementWorkbook(dashboardFixture(),{kind:'project',id:7})).length).toBeGreaterThan(100);await expect(managementWorkbook(dashboardFixture(),{kind:'project',id:99})).rejects.toThrow('SCOPE');});
+ it('exports full object rows and source versions',async()=>{const xml=sheets(await managementWorkbook(dashboardFixture(),{kind:'object',id:127},evidenceFixture()));expect(xml).toContain('Другая работа');expect(xml).toContain('t2_qator #3; v1');expect(xml).toContain('не транзакционный');});
+ it('exports section without sibling rows and without whole-object approved total in section overview',async()=>{const xml=sheets(await managementWorkbook(dashboardFixture(),{kind:'section',id:127,sectionId:1},evidenceFixture()));expect(xml).toContain('Раздел А');expect(xml).not.toContain('Другая работа');expect(xml).toContain('Накопленная прямая Ф2');expect(xml).toContain('Листья без суммы');});
+ it('blocks incomplete portfolio, missing evidence, foreign company evidence',async()=>{const d=dashboardFixture();d.executive!.totals.object_count=2;await expect(managementWorkbook(d,{kind:'company'})).rejects.toThrow('INCOMPLETE');d.executive!.totals.object_count=1;await expect(managementWorkbook(d,{kind:'object',id:127})).rejects.toThrow('SCOPE');const e=evidenceFixture();e.companyId=99;await expect(managementWorkbook(d,{kind:'object',id:127},e)).rejects.toThrow('SCOPE');});
+ it('reads full object on demand and rejects scope mix or partial pages',async()=>{const e=evidenceFixture();m.rows.mockResolvedValue({ok:true,toliq:true,qatorlar:e.rows});m.states.mockResolvedValue({ok:true,toliq:true,qatorlar:e.states.map(s=>({...s,obyekt_id:127}))});expect((await readObjectEvidence(17,127)).rows.length).toBe(7);m.rows.mockResolvedValue({ok:true,toliq:false,qatorlar:e.rows});await expect(readObjectEvidence(17,127)).rejects.toThrow('INCOMPLETE');m.rows.mockResolvedValue({ok:true,toliq:true,qatorlar:[{...e.rows[0],kompaniya_id:99}]});await expect(readObjectEvidence(17,127)).rejects.toThrow('SCOPE');});
+});
+describe('executive selection',()=>{
+ it('validates shapes and rejects invalid totals',()=>{const d=dashboardFixture();expect(trustedExecutive(d)).toBeTruthy();expect(completePortfolio(d.executive!)).toBe(true);d.executive!.totals.estimate_known=NaN;expect(trustedExecutive(d)).toBeNull();});
+ it('filters without mutating portfolio totals; searches Cyrillic',()=>{const d=dashboardFixture();expect(filteredObjects(d.executive!.objects,'7','Amfiteatr',true)).toHaveLength(1);expect(filteredObjects(d.executive!.objects,'8','',false)).toHaveLength(0);expect(d.executive!.totals.estimate_known).toBe(100);});
+ it('prioritizes actual signal severity and never guesses a cross-company object URL',()=>{const base={id:1,severity:'low',signal_type:null,title:null,entity_type:'obyekt',entity_id:'999',detected_at:null,due_at:null};expect(sortedSignals([base,{...base,id:2,severity:'critical'}])[0].id).toBe(2);expect(signalUrl(base,dashboardFixture().executive!.objects)).toBe('/admin/obyektlar');expect(signalUrl({...base,entity_id:'127'},dashboardFixture().executive!.objects)).toContain('/holat/127?');});
+});

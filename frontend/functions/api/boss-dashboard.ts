@@ -4,6 +4,7 @@
  *
  *   GET /api/boss-dashboard?kompaniya_id=<n>   (session cookie)
  */
+import {boundedText} from '../_shared/boss-read';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream, xavfsizXato } from '../_shared/xato';
@@ -19,22 +20,29 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) return Response.json({ ok: false, code: 'CONFIG' }, { status: 500 });
 
     const kompaniyaId = Number(new URL(ctx.request.url).searchParams.get('kompaniya_id'));
-    if (!kompaniyaId) return Response.json({ ok: false, code: 'COMPANY_CONTEXT_REQUIRED' }, { status: 400 });
+    if (!Number.isSafeInteger(kompaniyaId) || kompaniyaId<=0) return Response.json({ ok: false, code: 'COMPANY_CONTEXT_REQUIRED' }, { status: 400 });
 
-    const r = await fetch(supabaseBaseUrl(ctx.env.SUPABASE_URL) + '/rest/v1/rpc/t2_boss_dashboard_v1', {
-      method: 'POST',
+    const requestRpc = (path:string) => fetch(supabaseBaseUrl(ctx.env.SUPABASE_URL) + path, {
+      method: 'POST', signal:AbortSignal.timeout(30000),
       headers: { apikey: ctx.env.SUPABASE_KEY, Authorization: 'Bearer ' + ctx.env.SUPABASE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ p_kompaniya_id: kompaniyaId, p_actor_id: actorId }),
     });
-    const text = await r.text();
+    let r = await requestRpc('/rest/v1/rpc/t2_boss_decision_v1');
+    let text = await boundedText(r);
     let j: any = null;
-    try { j = JSON.parse(text); } catch { /* keep raw */ }
+    try { j = JSON.parse(text); } catch { /* upstream is not JSON */ }
+    // Integrator may deploy the UI before the additive read RPC. Never fall back on auth/DB failures.
+    if (!r.ok && j?.code === 'PGRST202') {
+      r = await requestRpc('/rest/v1/rpc/t2_boss_dashboard_v1');
+      text = await boundedText(r);
+      try { j = JSON.parse(text); } catch { j = null; }
+    }
     if (!r.ok || !j || j.ok !== true) {
       const code = (j && j.code) || 'BOSS_DASHBOARD_FAILED';
       const status = code === 'COMPANY_NOT_FOUND' ? 404 : /actor|a'zo|azo|membership/i.test(code + text) ? 403 : 502;
       return xavfsizUpstream(r.status, j || text, status);
     }
-    return Response.json(j);
+    return Response.json(j,{headers:{'Cache-Control':'no-store'}});
   } catch (err: any) {
     return xavfsizXato('BOSS_DASHBOARD_FAILED', 500, err?.message || String(err));
   }
