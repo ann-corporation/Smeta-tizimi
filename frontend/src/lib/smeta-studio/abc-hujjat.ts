@@ -23,7 +23,7 @@ import type { CatalogResource, EstimateDoc } from './model';
 import { resourceCategory } from './export-adapter';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from '../narx-bildirishnoma';
 import { NAKRUTKA_KATLAR, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from '../nakrutka-podval';
-import { nakrutkaKategoriyasi } from './narx-yigish';
+import { nakrutkaKategoriyasi, qatorKategoriyasi } from './narx-yigish';
 import { resursNomi as nomi } from './loyiha-material';
 import { narxAsoslashVaraq, type AsoslashBand } from '../narx-asoslash-export';
 import type { ProtokolQator } from '../narx-protokol-hujjat';
@@ -118,7 +118,7 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
     const key = [bucket, l.resource.code, name, l.resource.unitCode, unitPrice ?? 'null'].join('\u0001');
     const cur = acc.get(key) ?? { bucket, code: idCode(l.resource) ?? '', price: l.resource.code ?? '', name,
       unit: unitText(l.resource.unitCode) ?? '', qty: 0, unitPrice, amount: 0,
-      kat: bucket === 'machines' ? 'МАШ' as const : nakrutkaKategoriyasi(l.resource, unitText) };
+      kat: o.overrides[l.recipeId]?.kat ? qatorKategoriyasi(o, l.recipeId, l.resource, unitText) : bucket === 'machines' ? 'МАШ' as const : nakrutkaKategoriyasi(l.resource, unitText) };
     cur.qty = Math.round((cur.qty + (n(l.quantity) ?? 0)) * 1e7) / 1e7;
     // Narxsiz qism qatorning o'zini bo'sh qiladi (bildirishnoma), lekin guruh/jami ma'lum summalardan yig'iladi.
     cur.amount = cur.amount == null || l.amount == null ? null : Math.round((cur.amount + Number(l.amount)) * 100) / 100;
@@ -190,7 +190,7 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
     for (const x of [...g.labour, ...g.machines, ...mats, ...g.equipment]) if (x.kat && x.amount != null) ks[x.kat] = Math.round((ks[x.kat] + x.amount) * 100) / 100;
     v.bosh();
     nakrutkaPodvaliYoz(v, { katUstun: 'I', oraliq: [firstData, lastData], pulUstunlar: [S], foizUstun: P, nk: doc.rates.values, katSummalar: { [S]: ks },
-      kfJadval: false, sarlavha: `РАСЧЕТ СТОИМОСТИ (ставки: ${doc.rates.source})` });
+      kfJadval: false, sarlavha: `РАСЧЕТ СТОИМОСТИ (ставки: ${doc.rates.source})`, podval: doc.rates.podval ?? null });
   }
   const narxsiz =[...g.labour, ...g.machines, ...mats, ...g.equipment].filter((x) => x.amount == null && narxBildirishnomaKerak({ nom: x.name }, null));
   if (narxsiz.length) v.diqqat(narxsiz.map((x) => ({ nom: `${x.price ? `${x.price} ` : ''}${x.name}`, sabab: NARX_YOQ_SABAB })));

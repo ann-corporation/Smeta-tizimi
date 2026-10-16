@@ -7,6 +7,8 @@ import type { AgentAmal } from '../../lib/smeta-ai/protokol';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { ishHavolalari } from '../../lib/smeta-studio/ai-kontekst';
+import { resursNomi } from '../../lib/smeta-studio/loyiha-material';
+import { NAKRUTKA_KATLAR } from '../../lib/nakrutka-podval';
 
 type Handler = (arg: string | null, amal: AgentAmal) => Promise<string>;
 const handlers = new Map<string, Handler>();
@@ -27,7 +29,7 @@ export async function agentChaqir(nom: string, amal: AgentAmal, ochish: () => vo
 }
 
 /** Which step runs an action that is not a plain document edit. */
-export const AMAL_BOSQICH: Partial<Record<AgentAmal['tur'], 'lrv' | 'narx' | 'res'>> = { narxla: 'narx', hudud: 'narx', narx: 'narx', stavka_tasdiq: 'narx', hujjat: 'res', koef_tanla: 'lrv' };
+export const AMAL_BOSQICH: Partial<Record<AgentAmal['tur'], 'lrv' | 'narx' | 'res'>> = { narxla: 'narx', hudud: 'narx', narx: 'narx', stavka_tasdiq: 'narx', stavka: 'narx', hujjat: 'res', koef_tanla: 'lrv' };
 
 const grades = (text: string) => [...text.toUpperCase().matchAll(/(?:^|[^A-ZА-ЯЁ0-9])([ABАВМM]\s*\d+(?:[.,]\d+)?)(?=$|[^0-9])/g)]
   .map(m => m[1].replace(/\s/g, '').replace(/А/g, 'A').replace(/В/g, 'B').replace(/М/g, 'M').replace(',', '.'));
@@ -75,6 +77,18 @@ export function amalBuyruqlari(doc: EstimateDoc, a: AgentAmal, newId: () => stri
       const i = qardosh.indexOf(sid), j = a.qiymat === 'yuqori' ? i - 1 : i + 1;
       if (j < 0 || j >= qardosh.length) return [];
       return [{ type: 'MOVE_SECTION', sectionId: sid, parentId: s.parentId, index: j }];
+    }
+    case 'resurs_kat': {
+      const kat = (a.qiymat ?? '').trim().toUpperCase();
+      if (!(NAKRUTKA_KATLAR as readonly string[]).includes(kat)) throw new Error(`Kategoriya noma’lum: ${a.qiymat ?? '—'}`);
+      const q = (a.ish ?? '').trim().toUpperCase();
+      const out: StudioCommand[] = [];
+      if (q) for (const o of Object.values(doc.occurrences)) for (const r of o.recipe) {
+        const res = o.overrides[r.recipeId]?.substitution?.resource ?? r.resource;
+        if (res && resursNomi(res.name, o.material).toUpperCase().includes(q)) out.push({ type: 'SET_RESOURCE_KAT', occurrenceId: o.id, recipeId: r.recipeId, kat });
+      }
+      if (!out.length) throw new Error(`Resurs topilmadi: ${a.ish ?? '—'}`);
+      return out;
     }
     default: return null;
   }

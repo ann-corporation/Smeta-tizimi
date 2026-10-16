@@ -36,13 +36,15 @@ export type IshNiyati = {
 export const KOEF_QOLLANISH = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
 export type KoefQollanish = typeof KOEF_QOLLANISH[number];
 export type KoefTaklif = { nom: string; qiymat: string; qollanish: KoefQollanish; asos: string };
-export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyati[]; amallar?: AgentAmal[] };
+export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyati[]; amallar?: AgentAmal[];
+  /** Lasting lessons the model proposes to remember for this company (only after a correction or a stated rule). */
+  xotira?: string[] };
 /**
  * Studio agent actions (owner 2026-10-16: "AI boshidan oxirigacha ishlay olishi kerak — narxlashdan hujjat tartibigacha").
  * The model only PROPOSES; the user runs them (one click, one undo step). "ish" is a work reference from the estimate
  * summary ([i3]) or a section/resource name; "qiymat" the value; "manba" the source document for a manual price.
  */
-export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'bosqich', 'hujjat'] as const;
+export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'stavka', 'resurs_kat', 'bosqich', 'hujjat'] as const;
 export type AgentAmal = { tur: typeof AMAL_TURLARI[number]; ish: string | null; qiymat: string | null; manba: string | null; izoh: string };
 export function agentAmallariniTekshir(raw: unknown): AgentAmal[] {
   const s = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
@@ -180,7 +182,8 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
       ...(toplam.length ? { toplam } : {}), ...(koeffitsientlar.length ? { koeffitsientlar } : {}) });
   }
   const savollar = [...(Array.isArray(o.savollar) ? o.savollar : []).map(q => str(q, 300)).filter(Boolean), ...extraQ];
-  return { amallar: agentAmallariniTekshir(o.amallar ?? top.amallar), javob: str(o.javob, 2000) || 'Tushunarli.', savollar: [...new Set(savollar)].slice(0, 5), ishlar };
+  const xotira = (Array.isArray(o.xotira) ? o.xotira : Array.isArray(top.xotira) ? top.xotira : []).map(x => str(x, 400)).filter(x => x.length >= 10).slice(0, 3);
+  return { ...(xotira.length ? { xotira } : {}), amallar: agentAmallariniTekshir(o.amallar ?? top.amallar), javob: str(o.javob, 2000) || 'Tushunarli.', savollar: [...new Set(savollar)].slice(0, 5), ishlar };
 }
 
 /** A choice survives only if it names one of the candidates the browser sent for that intent. */
@@ -242,8 +245,8 @@ export function narxTanlovlariniTekshir(raw: unknown, sorovlar: NarxSorovi[]): N
   });
 }
 
-export const SUHBAT_SXEMA = { name: 'smetachi_suhbat', schema: { type: 'object', additionalProperties: false, required: ['javob', 'savollar', 'ishlar', 'amallar'], properties: {
-  javob: { type: 'string' }, savollar: { type: 'array', items: { type: 'string' } },
+export const SUHBAT_SXEMA = { name: 'smetachi_suhbat', schema: { type: 'object', additionalProperties: false, required: ['javob', 'savollar', 'ishlar', 'amallar', 'xotira'], properties: {
+  javob: { type: 'string' }, savollar: { type: 'array', items: { type: 'string' } }, xotira: { type: 'array', items: { type: 'string' } },
   amallar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tur', 'ish', 'qiymat', 'manba', 'izoh'], properties: {
     tur: { type: 'string', enum: [...AMAL_TURLARI] }, ish: { type: ['string', 'null'] }, qiymat: { type: ['string', 'null'] }, manba: { type: ['string', 'null'] }, izoh: { type: 'string' } } } },
   ishlar: { type: 'array', items: { type: 'object', additionalProperties: false,

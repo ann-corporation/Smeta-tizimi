@@ -14,6 +14,27 @@ export const smetachiSuhbat = (kompaniyaId: number, xabarlar: SuhbatXabari[], is
   fayl?: { mimeType?: string; data?: string; nom: string; matn?: string } | null) =>
   post<{ ok: true; model: string; xom?: string; tushunildi?: boolean; ogohlantirish?: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt, smeta,
     ...(fayl?.matn ? { hujjat_matn: fayl.matn, hujjat_nom: fayl.nom } : fayl?.data ? { fayl: { mimeType: fayl.mimeType, data: fayl.data, nom: fayl.nom } } : {}) });
+/**
+ * Company memory of the estimator (owner 2026-10-16: "xato qilsa foydalanuvchi bilan gaplashib, shu foydalanuvchi uchun context yig'ib
+ * borsin"): lessons are stored in the existing agent memory (t2_agent_xotira, key "smeta.*", shared with the company's other agents).
+ */
+export type XotiraYozuv = { kalit: string; mazmun: string; yangilandi?: string };
+export async function smetaXotirasi(kompaniyaId: number): Promise<XotiraYozuv[]> {
+  try {
+    const r = await fetch(`/api/agent-ish?bolim=muhit&kompaniya_id=${kompaniyaId}`, { credentials: 'same-origin' });
+    const j = await r.json().catch(() => null) as { xotira?: XotiraYozuv[] } | null;
+    return (j?.xotira ?? []).filter(x => x.kalit.startsWith('smeta.') && x.mazmun && x.mazmun !== '-');
+  } catch { return []; }
+}
+export async function smetaXotiraYoz(kompaniyaId: number, mazmun: string, kalit?: string): Promise<boolean> {
+  const k = kalit ?? `smeta.${[...mazmun].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0, 7).toString(36)}`;
+  try {
+    const r = await fetch('/api/agent-ish', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amal: 'xotira_yoz', kompaniya_id: kompaniyaId, kalit: k, mazmun: mazmun.slice(0, 1500) }) });
+    const j = await r.json().catch(() => null) as { ok?: boolean } | null;
+    return !!j?.ok;
+  } catch { return false; }
+}
 /** AI picks normative coefficients that match the stated work conditions (codes only from the list sent). */
 export const smetachiKoefTanla = (kompaniyaId: number, sharoit: string, sorovlar: KoefSorovi[]) =>
   post<{ ok: true; tanlovlar: KoefTanlov[]; savol: string | null }>({ amal: 'koef_tanla', kompaniya_id: kompaniyaId, sharoit, sorovlar });

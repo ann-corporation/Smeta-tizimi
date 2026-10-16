@@ -56,13 +56,19 @@ export function nakrutkaKategoriyasi(r: CatalogResource | null, unitText?: UnitT
   return 'МАТ';
 }
 
+/** The category a resource line counts in: the operator's choice for that line, else the automatic one. */
+export function qatorKategoriyasi(o: { overrides: Record<string, { kat?: string | null } | undefined> }, recipeId: string, r: CatalogResource | null, unitText?: UnitText): NakrutkaKat | null {
+  const k = o.overrides[recipeId]?.kat;
+  return (k as NakrutkaKat | null | undefined) ?? nakrutkaKategoriyasi(r, unitText);
+}
+
 /** LRV → unique resources (name + unit + category), the way an RES lists them. */
 export function resursGuruhlari(doc: EstimateDoc, calc: DocCalc, unitText: UnitText): ResursGuruh[] {
   const by = new Map<string, ResursGuruh & { narxlar: Set<string> }>();
   for (const o of Object.values(doc.occurrences)) for (const l of calc.occurrences[o.id]?.lines ?? []) {
     if (!l.resource) continue;
     const birlik = unitText(l.resource.unitCode);
-    const kat = nakrutkaKategoriyasi(l.resource, unitText);
+    const kat = qatorKategoriyasi(o, l.recipeId, l.resource, unitText);
     // A «по проекту» resource is one product per stated material: B7,5 and B20 concrete are never one price.
     const talab = talabMateriali(o.material, l.resource.name);
     const key = [normName(l.resource.name), normName(birlik), kat ?? '', normName(talab)].join('\u0001');

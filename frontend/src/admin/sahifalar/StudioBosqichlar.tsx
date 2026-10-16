@@ -14,7 +14,7 @@ import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, PriceJustification } from '../../lib/smeta-studio/model';
 import { matchResource, type MatchCatalog } from '../../lib/smeta-studio/resource-match';
-import { aiNarxlash, loyihaBoyicha, qaytaHisobla, katalogdanNarxlanadi, nakrutkaKategoriyasi, narxBuyruqlari, narxNomi, narxNomzodlari, qatorNomzodi, resursGuruhlari,
+import { aiNarxlash, loyihaBoyicha, qatorKategoriyasi, qaytaHisobla, katalogdanNarxlanadi, narxBuyruqlari, narxNomi, narxNomzodlari, qatorNomzodi, resursGuruhlari,
   type AiNarxNatija, type NarxNomzod, type ResursGuruh } from '../../lib/smeta-studio/narx-yigish';
 import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
 import { kompaniyaManbalariniOl, type KompaniyaManbalari } from '../../lib/smeta-studio/kompaniya-manbalari';
@@ -25,6 +25,8 @@ import { hourPrices, labourPeriods, type HourPeriod } from '../../lib/smeta-stud
 import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl } from '../../api/t2-nakrutka';
 import { NAKRUTKA_STANDART } from '../../lib/nakrutka-kaskad';
 import { NAKRUTKA_KATLAR, nakrutkaKaskadJS, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
+import { podvalHisobla, standartPodval, type Podval } from '../../lib/nakrutka-konstruktor';
+import { amaldagiPodval } from '../../api/t2-nakrutka-podval';
 import { smetachiNarxTanla } from '../../api/smeta-ai';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
@@ -298,7 +300,12 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
                 <tr key={g.key} className="border-t border-border/60 align-top">
                   <td className="px-2 py-1">{g.talab ? <>{g.talab.toUpperCase()} <span className="text-[11px] text-text-mute">({g.nom})</span></> : g.nom}
                     {materialKerak(g) && <span className="block text-[11px] text-danger">{t('Loyiha materiali ko‘rsatilmagan — LRV dagi «Loyiha materiallari» da kiriting (sinf/marka). Shungacha narxlanmaydi.')}</span>}{g.qatorlar.length > 1 && <span className="text-[11px] text-text-mute"> · {t('{n} ishda', { n: g.qatorlar.length })}</span>}</td>
-                  <td className="px-1 py-1">{g.birlik ?? '—'}</td>
+                  <td className="px-1 py-1">{g.birlik ?? '—'}
+                    <select aria-label={t('Nakrutka kategoriyasi')} title={t('Qaysi foizlar qo‘llanadi')} className="input mt-0.5 block h-6 text-[10.5px]" value={g.kat ?? ''}
+                      onChange={e => qoy(g.qatorlar.map(q => ({ type: 'SET_RESOURCE_KAT' as const, occurrenceId: q.occurrenceId, recipeId: q.recipeId, kat: e.target.value || null })), t('Nakrutka kategoriyasi'))}>
+                      <option value="">{t('Kat.')}</option>
+                      {NAKRUTKA_KATLAR.map(k => <option key={k} value={k}>{k}</option>)}
+                    </select></td>
                   <td className="px-1 py-1 text-right tabular-nums">{fmt(g.miqdor, 4)}</td>
                   <td className="px-1 py-1 text-right tabular-nums">{g.narx != null ? fmt(g.narx) : g.aralash ? <span className="text-warn">{t('aralash')}</span> : <span className="text-warn">{t('narx yo‘q')}</span>}</td>
                   <td className="px-1 py-1 text-right tabular-nums">{fmt(summa)}</td>
@@ -399,9 +406,41 @@ function StavkalarKartasi({ doc, command, kompaniyaId }: { doc: EstimateDoc; com
     }
     if (command({ type: 'SET_RATES', rates: { values, source: manba.trim() || t('Operator') } })) setHolat(t('Stavkalar tasdiqlandi — RES ostida nakrutka kaskadi chiqadi.'));
   }
+  /** Custom markup structure: the company/contract/object podval from the constructor, or the standard one to edit here. */
+  async function podvalOl() {
+    if (kompaniyaId == null) return;
+    try {
+      const p = await amaldagiPodval(kompaniyaId, { obyektId: doc.context.objectId ?? null });
+      const values = Object.fromEntries(NAKRUTKA_KOEF_KODLAR.map(k => [k, Number(String(qiymat[k] ?? '0').replace(',', '.')) || 0]));
+      const podval: Podval = p ?? standartPodval(values);
+      if (command({ type: 'SET_RATES', rates: { values, source: manba.trim() || t('Operator'), podval } }))
+        setHolat(p ? t('Maxsus podval qo‘llandi: {n} qator. Foizlarni shu yerda o‘zgartirish mumkin.', { n: p.qatorlar.length }) : t('Saqlangan maxsus podval yo‘q — standart tuzilma tahrirlash uchun ochildi.'));
+    } catch { setHolat(t('Podval o‘qilmadi.')); }
+  }
+  function podvalFoiz(kod: string, v: string) {
+    const p = doc.rates?.podval; if (!p || !doc.rates) return;
+    const n = Number(v.replace(',', '.'));
+    if (v.trim() && (!Number.isFinite(n) || n < 0 || n > 100)) return;
+    command({ type: 'SET_RATES', rates: { ...doc.rates, podval: { ...p, qatorlar: p.qatorlar.map(q => q.kod === kod ? { ...q, foiz: v.trim() ? n : null } : q) } } });
+  }
   const tasdiqRef = useRef(tasdiqla);
   tasdiqRef.current = tasdiqla;
   useEffect(() => agentRegister('stavka_tasdiq', async () => { tasdiqRef.current(); return t('Stavkalar tasdiqlandi.'); }), []);
+  // Agent: one rate (code + percent) → confirmed at once so the RES cascade follows.
+  const stavkaRef = useRef({ qiymat, manba, rates: doc.rates, command });
+  stavkaRef.current = { qiymat, manba, rates: doc.rates, command };
+  useEffect(() => agentRegister('stavka', async (v, a) => {
+    const kod = (a.ish ?? '').trim().toUpperCase();
+    if (!(NAKRUTKA_KOEF_KODLAR as readonly string[]).includes(kod)) throw new Error(t('Stavka kodi noma’lum: {k}', { k: a.ish ?? '—' }));
+    const n = Number((v ?? '').replace(',', '.'));
+    if (!Number.isFinite(n) || n < 0 || n > 100) throw new Error(t('Foiz 0 dan 100 gacha bo‘lishi kerak: {k}', { k: kod }));
+    const cur = stavkaRef.current;
+    const values = Object.fromEntries(NAKRUTKA_KOEF_KODLAR.map(k => [k, Number(String(cur.qiymat[k] ?? '0').replace(',', '.')) || 0]));
+    values[kod] = n;
+    setQiymat(Object.fromEntries(Object.entries(values).map(([k, x]) => [k, String(x)])));
+    if (!cur.command({ type: 'SET_RATES', rates: { values, source: cur.manba.trim() || t('Operator'), ...(cur.rates?.podval ? { podval: cur.rates.podval } : {}) } })) throw new Error(t('Stavka qo‘yilmadi.'));
+    return t('{k} = {n}%', { k: kod, n });
+  }), []);
   return <section aria-label={t('Foiz stavkalari')} className="karta space-y-2 p-2 text-[12.5px]">
     <div className="flex flex-wrap items-center gap-2">
       <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Foiz stavkalari (nakrutka)')}</strong>
@@ -418,6 +457,20 @@ function StavkalarKartasi({ doc, command, kompaniyaId }: { doc: EstimateDoc; com
       <input aria-label={t('Stavkalar manbasi')} className="input h-7 flex-1 min-w-[200px] text-[11.5px]" placeholder={t('Manba: kompaniya sozlamasi, shartnoma, buyurtmachi talabi')} value={manba} onChange={e => setManba(e.target.value)} />
       <button type="button" className="tugma tugma-asosiy h-7 px-3 text-[11.5px]" onClick={tasdiqla}>{t('Stavkalarni tasdiqlash')}</button>
     </div>
+    <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
+      <span className="text-[11.5px] text-text-dim">{t('Nakrutka tuzilmasi')}: <b>{doc.rates?.podval ? t('maxsus podval') : t('standart kaskad')}</b></span>
+      {kompaniyaId != null && <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => void podvalOl()}>{t('Maxsus podvalni qo‘llash / tahrirlash')}</button>}
+      {doc.rates?.podval && <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => command({ type: 'SET_RATES', rates: { values: doc.rates!.values, source: doc.rates!.source } })}>{t('Standart kaskadga qaytish')}</button>}
+      <a className="text-[11.5px] underline" href="/admin/nakrutka" target="_blank" rel="noreferrer">{t('Podval konstruktori (qator qo‘shish, baza tanlash)')}</a>
+    </div>
+    {doc.rates?.podval && <div className="grid gap-1 sm:grid-cols-2">
+      {doc.rates.podval.qatorlar.filter(q => q.tur === 'foiz').map(q => <label key={q.kod} className="flex items-center gap-2 text-[11.5px]">
+        <span className="flex-1 text-text-dim">{q.nom}</span>
+        <input aria-label={q.nom} className="input h-7 w-20 text-right text-[12px]" inputMode="decimal" defaultValue={q.foiz == null ? '' : String(q.foiz)} onBlur={e => podvalFoiz(q.kod, e.target.value)} />
+        <span>%</span>
+      </label>)}
+    </div>}
+    <p className="text-[11px] text-text-mute">{t('Har resurs qaysi foizlar bilan hisoblanishini narxlash jadvalidagi «Kat.» ustunida alohida tanlash mumkin.')}</p>
     {holat && <p role="status" className="text-xs text-accent">{holat}</p>}
   </section>;
 }
@@ -428,7 +481,7 @@ function katSummalari(doc: EstimateDoc, hisob: DocCalc, unitText: UnitText): { k
   let narxsiz = 0, aniqlanmagan = 0;
   for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) {
     if (!l.resource) continue;
-    const kat: NakrutkaKat | null = nakrutkaKategoriyasi(l.resource, unitText);
+    const kat: NakrutkaKat | null = qatorKategoriyasi(o, l.recipeId, l.resource, unitText);
     if (l.amount == null) { if (l.price == null) narxsiz++; continue; }
     if (!kat) { aniqlanmagan++; continue; }
     ks[kat] = Math.round((ks[kat] + Number(l.amount)) * 100) / 100;
@@ -439,7 +492,7 @@ function katSummalari(doc: EstimateDoc, hisob: DocCalc, unitText: UnitText): { k
 function JamiSatri({ doc, hisob, unitText }: { doc: EstimateDoc; hisob: DocCalc; unitText: UnitText }) {
   const { ks, narxsiz } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
   const pryamye = NAKRUTKA_KATLAR.reduce((s, k) => s + ks[k], 0);
-  const vsego = doc.rates ? nakrutkaKaskadJS(ks, doc.rates.values).vsego : null;
+  const vsego = doc.rates ? (doc.rates.podval ? podvalHisobla(doc.rates.podval, ks).vsego : nakrutkaKaskadJS(ks, doc.rates.values).vsego) : null;
   return <div className="karta flex flex-wrap items-center gap-4 p-2 text-[12.5px]">
     <span>{t('To‘g‘ri xarajatlar')}: <b className="tabular-nums">{fmt(pryamye)}</b></span>
     {vsego != null && <span>{t('Jami to‘lovga (nakrutka va QQS bilan)')}: <b className="tabular-nums">{fmt(vsego)}</b></span>}
@@ -470,7 +523,11 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
     } catch { setXabar(t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.')); }
   }
   const { ks, narxsiz, aniqlanmagan } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
-  const kaskad = doc.rates ? nakrutkaKaskadJS(ks, doc.rates.values) : null;
+  const kaskad = doc.rates && !doc.rates.podval ? nakrutkaKaskadJS(ks, doc.rates.values) : null;
+  const maxsus = doc.rates?.podval ? { p: doc.rates.podval, h: podvalHisobla(doc.rates.podval, ks) } : null;
+  const tasdiqsizQator = <tr><td colSpan={2} className="px-2 py-1 text-warn">{t('Foiz stavkalari tasdiqlanmagan — faqat to‘g‘ri xarajatlar. «Narxlash» bosqichida stavkalarni tasdiqlang.')}</td></tr>;
+  const maxsusQatorlar = maxsus ? maxsus.p.qatorlar.map(q => <tr key={q.kod} className={q.tur === 'jami' ? 'font-semibold' : ''}><td className="px-2 py-0.5">{q.nom}{q.tur === 'foiz' && q.foiz != null ? ` (${String(q.foiz).replace('.', ',')}%)` : ''}</td>
+            <td className="px-2 py-0.5 text-right tabular-nums">{maxsus.h.qiymat[q.kod] == null ? '—' : fmt(maxsus.h.qiymat[q.kod]!)}</td></tr>) : null;
   const workUnit = (code: string | null) => (code && katalog ? katalog.unit(code)?.text ?? null : null);
   async function yukla() {
     try {
@@ -505,7 +562,7 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
           {qator(t('QQS siz jami'), kaskad.itogo4, true)}
           {qator(t('QQS'), kaskad.nds)}
           {qator(t('Jami to‘lovga'), kaskad.vsego, true)}
-        </> : <tr><td colSpan={2} className="px-2 py-1 text-warn">{t('Foiz stavkalari tasdiqlanmagan — faqat to‘g‘ri xarajatlar. «Narxlash» bosqichida stavkalarni tasdiqlang.')}</td></tr>}
+        </> : maxsusQatorlar ?? tasdiqsizQator}
       </tbody></table>
       <div className="flex flex-wrap gap-2">
         <button type="button" className="tugma h-9 px-3" onClick={onBack}>← {t('Narxlashga qaytish')}</button>

@@ -18,6 +18,7 @@
  * can never be chosen. No database or R2 writes.
  */
 import { tekshir } from '../_shared/auth';
+import { rpcData } from '../_shared/agent-rpc';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
@@ -146,8 +147,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         ...(joriy.length ? [] : ["DIQQAT: taklif qilingan ishlar ro'yxati BO'SH — oldingi javoblarda tasvirlangan bo'lsa ham hech biri smetaga yetmagan. Foydalanuvchi aytgan barcha ishlarni \"ishlar\" massivida to'liq bering."]),
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat', req);
+      // Company memory (what this company's users taught the estimator) — read on every turn; a failed read never blocks the chat.
+      const muhit = await rpcData(ctx.env, 't2_agent_muhit_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_profil: null }).catch(() => null);
+      const xotiraMatn = ((muhit?.ok ? muhit.data.xotira : []) as Array<{ kalit: string; mazmun: string }> | undefined ?? [])
+        .filter(x => x.kalit.startsWith('smeta.') && x.mazmun.trim() && x.mazmun !== '-').slice(0, 40).map(x => `- ${x.mazmun.slice(0, 400)}`).join('\n');
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
-        { system: SMETACHI_TIZIM + foundationSourceContext(xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n')),
+        { system: SMETACHI_TIZIM + (xotiraMatn ? `\n\n<KOMPANIYA XOTIRASI>\n${xotiraMatn}\n</KOMPANIYA XOTIRASI>` : '') + foundationSourceContext(xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n')),
           text: hujjatMatn ? `${text}\n\n<HUJJAT nom="${clip(so.hujjat_nom, 120)}">\n${hujjatMatn}\n</HUJJAT>\nILOVA: foydalanuvchi yuborgan loyiha hujjati yuqorida. Har pozitsiyani ishga aylantiring, hajmni hujjatdagi sondan oling, hajmIzoh da pozitsiya №/qatorni ko'rsating; noaniq joyni so'rang.`
             : loyihaFayl ? `${text}\n\nILOVA: foydalanuvchi loyiha hujjatini yubordi (${clip(sf?.nom, 120) || 'fayl'}). Uni o'qing: har pozitsiyani ishga aylantiring, hajmni hujjatdagi sondan oling, hajmIzoh da pozitsiya №/qator va sahifani ko'rsating; o'qib bo'lmagan joyni so'rang.` : text,
           ...(loyihaFayl ? { attachment: loyihaFayl } : {}), tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: loyihaFayl || hujjatMatn ? 12000 : 6000, jsonSchema: SUHBAT_SXEMA },

@@ -29,6 +29,8 @@ export type StudioCommand =
   | { type: 'REMOVE_SECTION'; sectionId: string }
   | { type: 'ADD_OCCURRENCE'; occurrenceId: string; sectionId: string; source: WorkSource; recipe: RecipeSnapshot[]; quantity: string | null; basis: UnitBasis; material?: string | null; minus?: boolean }
   | { type: 'SET_MATERIAL'; occurrenceId: string; material: string | null }
+  /** Markup category of one resource line (null = automatic). */
+  | { type: 'SET_RESOURCE_KAT'; occurrenceId: string; recipeId: string; kat: string | null }
   /** «добавлять» (plus, default) or «исключать» (minus) position. */
   | { type: 'SET_SIGN'; occurrenceId: string; minus: boolean }
   | { type: 'SET_QUANTITY'; occurrenceId: string; quantity: string | null }
@@ -50,6 +52,8 @@ const fail = (code: string): never => { throw new Error(code); };
 const name = (v: string, code: string) => { const s = String(v ?? '').trim(); if (!s || s.length > 300) fail(code); return s; };
 const clone = <T,>(v: T): T => structuredClone(v);
 
+import { NAKRUTKA_KATLAR } from '../nakrutka-podval';
+import { podvalTekshir } from '../nakrutka-konstruktor';
 const materialOf = (v: string | null | undefined) => { const s = String(v ?? '').trim(); return s ? s.slice(0, 300) : null; };
 const COEF_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'];
 /** A coefficient needs a positive value (≤ 10), a known scope, a name and its normative basis. */
@@ -72,7 +76,9 @@ function ratesOf(r: EstimateRates | null): EstimateRates | null {
     if (!/^[A-ZА-ЯЁ_/]{2,40}$/.test(k) || typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 100) fail('RATE_INVALID');
     values[k] = v;
   }
-  return { values, source: name(r.source, 'RATE_SOURCE_REQUIRED') };
+  // A custom structure is kept only when it is valid (every row has a known base, no cycles, a final total).
+  const podval = r.podval ? (podvalTekshir(r.podval).length ? fail('PODVAL_INVALID') : clone(r.podval)) : null;
+  return { values, source: name(r.source, 'RATE_SOURCE_REQUIRED'), ...(podval ? { podval } : {}) };
 }
 
 function basisOf(b: UnitBasis): UnitBasis {
@@ -217,6 +223,15 @@ export function applyCommand(input: EstimateDoc, cmd: StudioCommand): EstimateDo
     case 'SET_SIGN': {
       const o = w.occ(cmd.occurrenceId);
       if (cmd.minus) o.ishora = -1; else delete o.ishora;
+      break;
+    }
+    case 'SET_RESOURCE_KAT': {
+      const o = w.occ(cmd.occurrenceId);
+      if (!o.recipe.some(r => r.recipeId === cmd.recipeId)) fail('RECIPE_NOT_FOUND');
+      if (cmd.kat != null && !(NAKRUTKA_KATLAR as readonly string[]).includes(cmd.kat)) fail('KAT_INVALID');
+      const ov = { ...(o.overrides[cmd.recipeId] ?? {}) };
+      if (cmd.kat == null) delete ov.kat; else ov.kat = cmd.kat;
+      o.overrides = { ...o.overrides, [cmd.recipeId]: ov };
       break;
     }
     case 'SET_MATERIAL': {

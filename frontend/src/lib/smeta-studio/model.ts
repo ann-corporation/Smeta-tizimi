@@ -51,7 +51,8 @@ export type Substitution = {
   /** Optional override of the normative consumption, with its own evidence. */
   normOverride: { value: Dec; evidence: string } | null;
 };
-export type ResourceOverride = { price?: PriceChoice | null; substitution?: Substitution | null };
+/** `kat`: the markup category chosen for this resource (which percentages apply), overriding the automatic one. */
+export type ResourceOverride = { price?: PriceChoice | null; substitution?: Substitution | null; kat?: string | null };
 export type Occurrence = {
   id: string; sectionId: string; source: WorkSource;
   /** Physical work quantity in basis units (e.g. 4 for 4 m3). */
@@ -71,7 +72,9 @@ export type WorkCoefficient = { id: string; name: string; value: Dec; scope: Coe
    *  OPERATOR = entered by a person. */
   origin: 'NORM' | 'AI' | 'OPERATOR'; accepted: boolean };
 /** Markup rates (percent) of the pricing step; codes are the company cascade codes (t2_nakrutka). */
-export type EstimateRates = { values: Record<string, number>; source: string };
+/** `podval`: a custom markup structure (rows: percent of chosen bases / fixed sum / total) instead of the standard cascade. */
+export type EstimateRates = { values: Record<string, number>; source: string; podval?: Podval | null };
+import type { Podval } from '../nakrutka-konstruktor';
 export type Section ={ id: string; name: string; parentId: string | null; children: string[]; items: string[] };
 export type EstimateContext = { companyId: number | null; projectId: number | null; objectId: number | null; objectLabel: string; title: string };
 export type EstimateDoc = {
