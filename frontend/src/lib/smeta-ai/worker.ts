@@ -198,7 +198,7 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
   const overlaps = includedWorkReviews(ishlar, doc);
   const sectionByName = new Map<string, string>();
   for (const s of Object.values(doc.sections)) sectionByName.set(s.name.trim().toLowerCase(), s.id);
-  for (const ish of ishlar) {
+  for (let ish of ishlar) {
     const overlap = overlaps.get(ish.id);
     if (overlap) { otkazildi.push({ id: ish.id, sabab: `Norma tarkibi bilan takrorlanish xavfi: ${overlap.code}; ${overlap.document}, ${overlap.page}-sahifa — alohida ish hajmi va qo‘llanishini tekshiring` }); continue; }
     if (!ish.tanlangan) { otkazildi.push({ id: ish.id, sabab: 'Normativ ish tanlanmagan' }); continue; }
@@ -220,6 +220,14 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
       // A thickness-change position: the difference is the coefficient the model computed from the user's numbers (accepted).
       const tuzatish = /ИЗМЕНЕНИ\S*\s+ТОЛЩИН/i.test(snap.source.name ?? '');
       // Coefficients travel as PROPOSALS: visible on the work, applied only when the operator accepts them.
+      // Thickness-change position without the difference coefficient: computed from the user's numbers and the norm's step
+      // ("на каждый 1 мм" / "на каждые 5 мм"); never invented — both numbers must be stated.
+      if (tuzatish && !ish.koeffitsientlar?.some(k => /толщин/i.test(k.nom))) {
+        const qadam = Number((/НА\s+КАЖД\S*\s+(\d+(?:[.,]\d+)?)\s*ММ/i.exec(snap.source.name ?? '')?.[1] ?? '').replace(',', '.'));
+        const farq = Number((/(\d+(?:[.,]\d+)?)\s*(?:мм|mm)/i.exec(ish.tavsif)?.[1] ?? '').replace(',', '.'));
+        if (qadam > 0 && farq > 0 && farq / qadam <= 100) ish = { ...ish, koeffitsientlar: [...(ish.koeffitsientlar ?? []), { nom: `Изменение толщины на ${String(farq).replace('.', ',')} мм`,
+          qiymat: String(Math.round((farq / qadam) * 1e6) / 1e6), qollanish: 'ALL', asos: `норма на каждые ${qadam} мм; изменение толщины ${farq} мм (по описанию работы)` }] };
+      }
       if (ish.koeffitsientlar?.length) commands.push({ type: 'SET_COEFFICIENTS', occurrenceId, coefficients: ish.koeffitsientlar.map((k, i) => ({
         id: `ai${i + 1}`, name: k.nom, value: k.qiymat, scope: k.qollanish, evidence: k.asos, origin: 'AI' as const, accepted: tuzatish && /толщин/i.test(k.nom) })) });
       qoshildi.push(ish.id);

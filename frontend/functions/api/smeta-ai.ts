@@ -134,6 +134,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const text = [`Obyekt: ${clip(so.obyekt, 200) || 'ko‘rsatilmagan'}`,
         ...(smeta ? [`Foydalanuvchi qurayotgan smeta (Studio holati — bo'limlar, ishlar, hajmlar, koeffitsientlar, narxlar):\n<SMETA>\n${smeta}\n</SMETA>`] : []),
         `Hozirgi ishlar ro'yxati (yangilang yoki to'ldiring):\n${JSON.stringify(joriy satisfies IshNiyati[])}`,
+        // An empty list after earlier replies means nothing reached the studio: the works must be (re)stated in "ishlar".
+        ...(joriy.length ? [] : ["DIQQAT: taklif qilingan ishlar ro'yxati BO'SH — oldingi javoblarda tasvirlangan bo'lsa ham hech biri smetaga yetmagan. Foydalanuvchi aytgan barcha ishlarni \"ishlar\" massivida to'liq bering."]),
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat', req);
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
