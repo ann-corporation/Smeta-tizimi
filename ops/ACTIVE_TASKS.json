@@ -2393,7 +2393,7 @@
     "docs/architecture/SMETA_F2_NAKOPITELNIY_CHANGE_CONTROL_V1.md"
   ],
   "production_write_allowed": false,
-  "note": "Direct owner: parallel work with Claude and Codex, no main/deploy by this lane. Frontend/API/read-model changes only inside lease; Studio/catalog/Jarvis and F2 lanes untouched. Russian evidence + exact pushed SHA to Claude. 2026-10-16 owner continuation: frontend cost composition and evidence UX only; SQL/API contracts frozen at c800b464 for Claude integration. Shared vault updates use own machine-named file and append-only journal. i18n keys remain additive under existing own T2-SMETACHI lease; no other task lock removed."
+  "note": "Direct owner: parallel work with Claude and Codex, no main/deploy by this lane. Frontend/API/read-model changes only inside lease; Studio/catalog/Jarvis and F2 lanes untouched. Russian evidence + exact pushed SHA to Claude. 2026-10-16 owner continuation: frontend cost composition and evidence UX only; SQL/API contracts frozen at c800b464 for Claude integration. Shared vault updates use own machine-named file and append-only journal. i18n keys remain additive under existing own T2-SMETACHI lease; no other task lock removed. 2026-10-16 Claude ACK received: frontend only. Owner expanded executive cockpit with read-only Mindmap, scoped dossiers, finance, activity and charts. SQL/functions remain frozen. No TestXarita changes."
 }
   ]
 }

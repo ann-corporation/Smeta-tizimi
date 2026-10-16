@@ -9,9 +9,9 @@ import { completePortfolio, objectUrl, trustedExecutive } from './model';
 import { managementWorkbook, readObjectEvidence, type ReportScope } from './report';
 import CostEvidence from './CostEvidence';
 const input='rounded-xl border border-border bg-surface px-3 py-2 min-w-0';
-export default function Reports({data,initialObjectId}:{data:BossDashboard;initialObjectId?:number}) {
-  const e=trustedExecutive(data);const [kind,setKind]=useState<ReportScope['kind']>(initialObjectId?'object':'company');
-  const [project,setProject]=useState('');const [objectId,setObject]=useState(initialObjectId?String(initialObjectId):'');const [section,setSection]=useState('');
+export default function Reports({data,initialObjectId,initialProjectId}:{data:BossDashboard;initialObjectId?:number;initialProjectId?:number|null}) {
+  const e=trustedExecutive(data);const [kind,setKind]=useState<ReportScope['kind']>(initialObjectId?'object':initialProjectId!==undefined?'project':'company');
+  const [project,setProject]=useState(initialProjectId===undefined?'':String(initialProjectId??'none'));const [objectId,setObject]=useState(initialObjectId?String(initialObjectId):'');const [section,setSection]=useState('');
   const [busy,setBusy]=useState(false);const [error,setError]=useState(false);
   const generation=useRef<AbortController|null>(null);
   useEffect(()=>{const controller=new AbortController();generation.current=controller;setError(false);setBusy(false);return ()=>{controller.abort();};},[data.kompaniya.kompaniya_id,data.generated_at,kind,project,objectId,section]);
