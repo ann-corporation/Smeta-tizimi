@@ -61,7 +61,8 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
 
 const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha materiali', hajm: 'Hajm', ochir: 'Ishni o‘chirish', kochir: 'Bo‘limga ko‘chirish',
   bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
-  narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash' };
+  narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash',
+  qosh: 'Ishlarni smetaga qo‘shish' };
 
 export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
   return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
@@ -123,7 +124,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
     for (let round = 0; round < 2; round++) {
-      const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
+      const sor = next.filter(i => !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
       if (!sor.length) break;
       setBand('tanlash');
       // Small batches: a bill of quantities easily has dozens of works × 15 long norm names (one request hit the size limit).
@@ -195,7 +196,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   }
 
   const overlaps = useMemo(() => includedWorkReviews(ishlar, doc), [ishlar, doc]);
-  const tayyor = useMemo(() => ishlar.filter(i => i.holat !== 'ANIQLASH_KERAK' && i.tanlangan && i.hajm && !overlaps.has(i.id)), [ishlar, overlaps]);
+  const tayyor = useMemo(() => ishlar.filter(i => i.tanlangan && i.hajm && !overlaps.has(i.id)), [ishlar, overlaps]);
   async function qosh() {
     if (!katalog || !tayyor.length) return;
     setBand('qoshish');
@@ -224,7 +225,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   async function bajar() {
     const tanlangan = amallar.filter(a => a.tanlangan);
     const natija: string[] = [], buyruqlar: StudioCommand[] = [], keyin: AgentAmal[] = [];
+    // «qosh» first: the proposed works must be in the estimate before pricing and documents run on it.
+    if (tanlangan.some(a => a.tur === 'qosh')) { await qosh(); await new Promise(r => setTimeout(r, 300)); }
     for (const a of tanlangan) {
+      if (a.tur === 'qosh') continue;
       try {
         if (a.tur === 'bosqich') { if (a.qiymat === 'lrv' || a.qiymat === 'narx' || a.qiymat === 'res') onBosqich?.(a.qiymat); continue; }
         const c = amalBuyruqlari(doc, a, newId);

@@ -44,7 +44,7 @@ export type SuhbatJavobi = { javob: string; savollar: string[]; ishlar: IshNiyat
  * The model only PROPOSES; the user runs them (one click, one undo step). "ish" is a work reference from the estimate
  * summary ([i3]) or a section/resource name; "qiymat" the value; "manba" the source document for a manual price.
  */
-export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'stavka', 'resurs_kat', 'bosqich', 'hujjat'] as const;
+export const AMAL_TURLARI = ['material', 'hajm', 'ochir', 'kochir', 'bolim', 'bolim_tartib', 'koef_tanla', 'hudud', 'narxla', 'narx', 'stavka_tasdiq', 'stavka', 'resurs_kat', 'bosqich', 'hujjat', 'qosh'] as const;
 export type AgentAmal = { tur: typeof AMAL_TURLARI[number]; ish: string | null; qiymat: string | null; manba: string | null; izoh: string };
 export function agentAmallariniTekshir(raw: unknown): AgentAmal[] {
   const s = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
@@ -59,7 +59,9 @@ export type SuhbatXabari = { rol: 'user' | 'assistant'; matn: string };
 export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: string | null;
   /** Normative table title and collection — tell the model WHAT KIND of work a variant belongs to. */
   jadval?: string | null; toplam?: string | null };
-export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; material: string | null; nomzodlar: TanlovNomzodi[] };
+export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; material: string | null; nomzodlar: TanlovNomzodi[];
+  /** Normative phrases of the work — the server looks up how estimators normed similar works in uploaded estimates. */
+  qidiruv?: string[] };
 export type Tanlov = { id: string; ishId: string | null; sabab: string; /** New normative phrasings when no candidate fits (second search round). */ qidiruv?: string[] };
 
 /** Price choice for one estimate resource among candidates the BROWSER found (catalogue / company estimates). */
@@ -171,7 +173,6 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
     if (!tavsif || !qidiruv.length) continue;
     const h = str(r.holat, 20).toUpperCase();
     let holat = (['TAYYOR', 'HAJM_KERAK', 'ANIQLASH_KERAK'] as const).includes(h as IshHolati) ? h as IshHolati : 'ANIQLASH_KERAK';
-    if (/\b(?:agar|taxmin|if|assuming)\b|если|предполож/i.test(str(r.hajmIzoh, 300))) holat = 'ANIQLASH_KERAK';
     const ifoda = str(r.hajmIfoda, 200) || null;
     seen.add(id);
     const toplam = [...new Set((Array.isArray(r.toplam) ? r.toplam : typeof r.toplam === 'string' ? [r.toplam] : []).map(x => toplamKodi(x)).filter((x): x is string => !!x))].slice(0, 4);
@@ -199,8 +200,10 @@ export function hajmSonlariniTekshir(out: SuhbatJavobi, manba: string): SuhbatJa
     if (!i.hajmIfoda) return i;
     const yoq = [...i.hajmIfoda.matchAll(/\d+(?:[.,]\d+)?/g)].map(m => norm(m[0])).filter(n => !bor.has(n) && !['10', '100', '1000'].includes(n));
     if (!yoq.length) return i;
-    savollar.push(`${i.tavsif}: hajm formulasidagi ${yoq.join(', ')} soni manbada yo‘q — aniq sonni yozing (zichlik, koeffitsient taxmin qilinmaydi).`);
-    return { ...i, hajmIfoda: null, holat: 'HAJM_KERAK' as const };
+    // Owner 2026-10-16 ("AI juda qo'rqayapti — erkinlik ber"): the formula stays, the assumption is shown and asked, never hidden.
+    savollar.push(`${i.tavsif}: hajmda ${yoq.join(', ')} soni TAXMIN (manbada yo‘q) — to‘g‘rimi?`);
+    const izoh = `TAXMIN: ${yoq.join(', ')} manbada yo‘q`;
+    return { ...i, hajmIzoh: i.hajmIzoh?.includes('TAXMIN') ? i.hajmIzoh : [i.hajmIzoh, izoh].filter(Boolean).join(' · ').slice(0, 300) };
   });
   return { ...out, ishlar, savollar: [...new Set(savollar)].slice(0, 8) };
 }
@@ -213,7 +216,7 @@ export function manbaMaterialiniTekshir(out: SuhbatJavobi, userText: string): Su
   const ishlar = out.ishlar.map(i => {
     if (!i.material || grades(i.material).every(g => source.has(g))) return i;
     savollar.push(`${i.tavsif}: material klassini manbadan aniqlashtiring (${i.material} ko‘rsatilmagan).`);
-    return { ...i, material: null, holat: 'ANIQLASH_KERAK' as const };
+    return { ...i, material: null };
   });
   return { ...out, ishlar, savollar: [...new Set(savollar)].slice(0, 8) };
 }

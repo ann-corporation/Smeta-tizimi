@@ -1,5 +1,7 @@
 -- Rollback: yangi funksiyalar va tajriba jadvali olib tashlanadi; foydalanuvchi/tizim darajasidagi xotira yozuvlari
 -- o'chiriladi (kompaniya darajasi saqlanadi), indeks avvalgi shakliga qaytadi.
+drop function if exists public.t2_ish_tajriba_qidir_v1(bigint, bigint, text[]);
+drop index if exists public.t2_qator_bl_nom_fts;
 drop function if exists public.t2_norma_tajriba_v1(bigint, bigint, text[]);
 drop function if exists public.t2_smeta_tajriba_yoz_v1(bigint, bigint, jsonb);
 drop function if exists public.t2_smeta_xotira_yoz_v1(bigint, bigint, text, text, text);
