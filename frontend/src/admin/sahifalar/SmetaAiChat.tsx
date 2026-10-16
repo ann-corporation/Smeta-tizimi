@@ -5,7 +5,7 @@
  * (the model only chooses among found candidates), the CODE computes quantities from the formula, and the
  * user adds the ready works to the estimate in one undoable step.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
@@ -40,7 +40,7 @@ import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
-import { smetachiSuhbat, smetachiTanla, smetaXotirasi, smetaXotiraYoz, type XotiraYozuv } from '../../api/smeta-ai';
+import { smetachiSuhbat, smetachiTanla, smetaTajribaYoz, smetaXotirasi, smetaXotiraYoz, type XotiraDaraja, type XotiraYozuv } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
 
 const XATO: Record<string, string> = {
@@ -77,8 +77,12 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   // Company memory: lessons the model proposes after a correction; the user decides what is remembered.
   const [eslash, setEslash] = useState<string[]>([]);
   const [xotira, setXotira] = useState<XotiraYozuv[] | null>(null);
+  const [superadmin, setSuperadmin] = useState(false);
+  // Where a new lesson goes: this user (default — personal style), the company, or the whole platform (superadmin only).
+  const [daraja, setDaraja] = useState<XotiraDaraja>('foydalanuvchi');
   const [xotiraOchiq, setXotiraOchiq] = useState(false);
-  useEffect(() => { if (kompaniyaId != null) void smetaXotirasi(kompaniyaId).then(setXotira); }, [kompaniyaId]);
+  const xotiraYangila = useCallback((kid: number) => smetaXotirasi(kid).then(x => { if (tirik.current) { setXotira(x.yozuvlar); setSuperadmin(x.superadmin); } }), []);
+  useEffect(() => { if (kompaniyaId != null) void xotiraYangila(kompaniyaId); }, [kompaniyaId, xotiraYangila]);
   const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
   const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}`);
   // The project document stays attached to the conversation and goes with every turn (production run: on the second turn
@@ -200,6 +204,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       if (!tirik.current) return;
       if (r.commands.length && command({ type: 'BATCH', label: 'Smetachi AI', commands: r.commands })) {
         setIshlar(list => list.filter(i => !r.qoshildi.includes(i.id)));
+        // The platform learns from every estimator: which norm was put for which described work (AI's pick or the person's own).
+        if (kompaniyaId != null) {
+          const tanlovlar = ishlar.filter(i => r.qoshildi.includes(i.id) && i.tanlangan).map(i => ({ kod: i.tanlangan!.kod, tavsif: i.tavsif.slice(0, 400), birlik: i.birlik, manba: i.tanlangan!.qolda ? 'qolda' as const : 'ai' as const }));
+          if (tanlovlar.length) void smetaTajribaYoz(kompaniyaId, tanlovlar);
+        }
         setXabarlar(x => [...x, { rol: 'assistant', matn: t('{n} ta ish smetaga qo‘shildi (bitta “Bekor qilish” bilan qaytariladi).', { n: r.qoshildi.length }) }]);
         const minuslar = r.commands.filter(c => c.type === 'ADD_OCCURRENCE' && c.minus).length;
         if (minuslar) setXabarlar(x => [...x, { rol: 'assistant', matn: t('{n} ta «исключать» pozitsiya manfiy hisoblanadi.', { n: minuslar }) }]);
@@ -278,22 +287,30 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}
     {eslash.length > 0 && kompaniyaId != null && <div className="karta space-y-1 p-2 text-[12px]">
-      <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI eslab qolishni taklif qiladi')}</strong>
+      <div className="flex flex-wrap items-center gap-2">
+        <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI eslab qolishni taklif qiladi')}</strong>
+        <select aria-label={t('Xotira darajasi')} className="input h-7 py-0 text-[11px]" value={daraja} onChange={e => setDaraja(e.target.value as XotiraDaraja)}>
+          <option value="foydalanuvchi">{t('Faqat men uchun')}</option>
+          <option value="kompaniya">{t('Butun kompaniya uchun')}</option>
+          {superadmin && <option value="tizim">{t('Butun tizim uchun')}</option>}
+        </select>
+      </div>
       {eslash.map((x, i) => <div key={i} className="flex items-start gap-2">
         <span className="flex-1">{x}</span>
-        <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => void smetaXotiraYoz(kompaniyaId, x).then(ok => {
+        <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => void smetaXotiraYoz(kompaniyaId, x, daraja).then(ok => {
           setEslash(l => l.filter((_, j) => j !== i));
           setHolat(ok ? t('Eslab qolindi — keyingi suhbatlarda AI shunga amal qiladi.') : t('Xotiraga yozilmadi (ruxsat yoki limit).'));
-          if (ok) void smetaXotirasi(kompaniyaId).then(setXotira);
+          if (ok) void xotiraYangila(kompaniyaId);
         })}>{t('Eslab qolish')}</button>
         <button type="button" className="text-[11px] text-text-mute underline" onClick={() => setEslash(l => l.filter((_, j) => j !== i))}>{t('Kerak emas')}</button>
       </div>)}
     </div>}
     {kompaniyaId != null && <div className="text-[11.5px]">
       <button type="button" className="underline text-text-dim" onClick={() => setXotiraOchiq(!xotiraOchiq)}>{t('AI xotirasi ({n})', { n: xotira?.length ?? 0 })}</button>
-      {xotiraOchiq && <ul className="mt-1 space-y-1">{(xotira ?? []).map(x => <li key={x.kalit} className="flex items-start gap-2">
+      {xotiraOchiq && <ul className="mt-1 space-y-1">{(xotira ?? []).map(x => <li key={x.daraja + x.kalit} className="flex items-start gap-2">
+        <span className="shrink-0 rounded bg-surface-2 px-1 text-[10px] text-text-mute">{x.daraja === 'tizim' ? t('tizim') : x.daraja === 'kompaniya' ? t('kompaniya') : t('men')}</span>
         <span className="flex-1">{x.mazmun}</span>
-        <button type="button" aria-label={t('Xotiradan o‘chirish')} className="text-text-mute hover:text-danger" onClick={() => void smetaXotiraYoz(kompaniyaId, '-', x.kalit).then(() => smetaXotirasi(kompaniyaId).then(setXotira))}>✕</button>
+        <button type="button" aria-label={t('Xotiradan o‘chirish')} className="text-text-mute hover:text-danger" onClick={() => void smetaXotiraYoz(kompaniyaId, '-', x.daraja, x.kalit).then(() => xotiraYangila(kompaniyaId))}>✕</button>
       </li>)}
         {!xotira?.length && <li className="text-text-mute">{t('Hozircha bo‘sh. AI ni tuzatsangiz, u qoidani eslab qolishni taklif qiladi.')}</li>}</ul>}
     </div>}

@@ -4,7 +4,7 @@ import { SmetaAiChat } from './SmetaAiChat';
 import { emptyDoc } from '../../lib/smeta-studio/model';
 
 const api = vi.hoisted(() => ({ chat: vi.fn(), pick: vi.fn() }));
-vi.mock('../../api/smeta-ai', () => ({ smetachiSuhbat: api.chat, smetachiTanla: api.pick, smetaXotirasi: async () => [], smetaXotiraYoz: async () => true }));
+vi.mock('../../api/smeta-ai', () => ({ smetachiSuhbat: api.chat, smetachiTanla: api.pick, smetaXotirasi: async () => ({ yozuvlar: [], superadmin: false }), smetaXotiraYoz: async () => true, smetaTajribaYoz: async () => ({ ok: true, yozildi: 0 }) }));
 vi.mock('../../i18n/til', () => ({ t: (s: string) => s }));
 vi.mock('../../umumiy/ui/ModelChip', () => ({ ModelChip: () => null }));
 afterEach(() => { cleanup(); localStorage.clear(); vi.resetAllMocks(); });

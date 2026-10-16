@@ -1738,5 +1738,11 @@
   "{k} = {n}%": "{k} = {n}%",
   "Foiz stavkasi": "Rate",
   "suhbatga biriktirilgan, har xabarda AI ga beriladi": "attached to the conversation, sent to the AI with every message",
-  "Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.": "Price sources did not load — reload the page and try again."
+  "Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.": "Price sources did not load — reload the page and try again.",
+  "Xotira darajasi": "Memory level",
+  "Faqat men uchun": "Only for me",
+  "Butun kompaniya uchun": "For the whole company",
+  "Butun tizim uchun": "For the whole system",
+  "tizim": "system",
+  "men": "me"
 }

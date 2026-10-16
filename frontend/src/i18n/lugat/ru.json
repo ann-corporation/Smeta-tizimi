@@ -1738,5 +1738,11 @@
   "{k} = {n}%": "{k} = {n}%",
   "Foiz stavkasi": "Процентная ставка",
   "suhbatga biriktirilgan, har xabarda AI ga beriladi": "прикреплён к диалогу, передаётся ИИ в каждом сообщении",
-  "Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.": "Источники цен не загрузились — обновите страницу и повторите."
+  "Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.": "Источники цен не загрузились — обновите страницу и повторите.",
+  "Xotira darajasi": "Уровень памяти",
+  "Faqat men uchun": "Только для меня",
+  "Butun kompaniya uchun": "Для всей компании",
+  "Butun tizim uchun": "Для всей системы",
+  "tizim": "система",
+  "men": "я"
 }

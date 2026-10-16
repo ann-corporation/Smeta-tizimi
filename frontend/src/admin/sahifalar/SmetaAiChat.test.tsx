@@ -51,7 +51,7 @@ it('describes work in words → grounded normative work, quantity computed by co
   await screen.findByText(/Fundamentni 3 ishga ajratdim/);
   expect(screen.getByText(/Armatura necha tonna\?/)).toBeTruthy();
   await waitFor(() => expect(screen.getByText('= 2,88 м3')).toBeTruthy());
-  expect(calls.map(c => c.amal)).toEqual(['suhbat', 'tanla']);
+  expect(calls.map(c => c.amal).filter(a => a !== 'xotira' && a !== 'tajriba_yoz')).toEqual(['suhbat', 'tanla']);
   fireEvent.click(screen.getByRole('button', { name: /Tayyorlarini smetaga qo‘shish \(1\)/ }));
   await waitFor(() => expect(cmds).toHaveLength(1));
   const batch = cmds[0] as Extract<StudioCommand, { type: 'BATCH' }>;

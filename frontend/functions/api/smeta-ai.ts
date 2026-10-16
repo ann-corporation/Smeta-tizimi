@@ -19,6 +19,7 @@
  */
 import { tekshir } from '../_shared/auth';
 import { rpcData } from '../_shared/agent-rpc';
+import { normaKalit, tajribaMatni, xotiraBloklari, type NormaTajriba, type XotiraDarajalari } from '../../src/lib/smeta-ai/tajriba';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
@@ -112,6 +113,23 @@ export function narxSorovlariniTayyorla(raw: unknown): NarxSorovi[] | null {
   return out;
 }
 
+/** System, company and personal memory; before the three-level RPC exists, the company memory from the agent environment. */
+async function xotiraOqi(env: Env, actor: number, kompaniyaId: number, superadmin = false): Promise<XotiraDarajalari & { superadmin?: boolean }> {
+  const bosh: XotiraDarajalari = { tizim: [], kompaniya: [], foydalanuvchi: [] };
+  const r = await rpcData(env, 't2_smeta_xotira_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId }).catch(() => null);
+  const toza = (l: unknown) => (Array.isArray(l) ? l as Array<{ kalit: string; mazmun: string }> : []).filter(x => typeof x?.mazmun === 'string' && x.mazmun.trim() && x.mazmun !== '-');
+  if (r?.ok) return { tizim: toza(r.data.tizim), kompaniya: toza(r.data.kompaniya), foydalanuvchi: toza(r.data.foydalanuvchi), ...(superadmin ? { superadmin: r.data.superadmin === true } : {}) };
+  const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: null }).catch(() => null);
+  return m?.ok ? { ...bosh, kompaniya: toza(m.data.xotira).filter(x => x.kalit.startsWith('smeta.')) } : bosh;
+}
+/** Platform practice for the candidate norms (keyed by normaKalit); empty when unavailable — the choice still works. */
+async function tajribaOqi(env: Env, actor: number, kompaniyaId: number, kodlar: string[]): Promise<Record<string, NormaTajriba>> {
+  const k = [...new Set(kodlar.filter(Boolean))].slice(0, 200);
+  if (!k.length) return {};
+  const r = await rpcData(env, 't2_norma_tajriba_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_kodlar: k }).catch(() => null);
+  return r?.ok && r.data.normalar && typeof r.data.normalar === 'object' ? r.data.normalar as Record<string, NormaTajriba> : {};
+}
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   if (!sess || !posInt(sess.foydalanuvchi_id)) return fail('AUTH_REQUIRED', 401);
@@ -147,12 +165,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         ...(joriy.length ? [] : ["DIQQAT: taklif qilingan ishlar ro'yxati BO'SH — oldingi javoblarda tasvirlangan bo'lsa ham hech biri smetaga yetmagan. Foydalanuvchi aytgan barcha ishlarni \"ishlar\" massivida to'liq bering."]),
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat', req);
-      // Company memory (what this company's users taught the estimator) — read on every turn; a failed read never blocks the chat.
-      const muhit = await rpcData(ctx.env, 't2_agent_muhit_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_profil: null }).catch(() => null);
-      const xotiraMatn = ((muhit?.ok ? muhit.data.xotira : []) as Array<{ kalit: string; mazmun: string }> | undefined ?? [])
-        .filter(x => x.kalit.startsWith('smeta.') && x.mazmun.trim() && x.mazmun !== '-').slice(0, 40).map(x => `- ${x.mazmun.slice(0, 400)}`).join('\n');
+      // Memory on three levels (system, company, this user) — read on every turn; a failed read never blocks the chat.
+      const xotira = await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId);
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
-        { system: SMETACHI_TIZIM + (xotiraMatn ? `\n\n<KOMPANIYA XOTIRASI>\n${xotiraMatn}\n</KOMPANIYA XOTIRASI>` : '') + foundationSourceContext(xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n')),
+        { system: SMETACHI_TIZIM + xotiraBloklari(xotira) + foundationSourceContext(xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n')),
           text: hujjatMatn ? `${text}\n\n<HUJJAT nom="${clip(so.hujjat_nom, 120)}">\n${hujjatMatn}\n</HUJJAT>\nILOVA: foydalanuvchi yuborgan loyiha hujjati yuqorida. Har pozitsiyani ishga aylantiring, hajmni hujjatdagi sondan oling, hajmIzoh da pozitsiya №/qatorni ko'rsating; noaniq joyni so'rang.`
             : loyihaFayl ? `${text}\n\nILOVA: foydalanuvchi loyiha hujjatini yubordi (${clip(sf?.nom, 120) || 'fayl'}). Uni o'qing: har pozitsiyani ishga aylantiring, hajmni hujjatdagi sondan oling, hajmIzoh da pozitsiya №/qator va sahifani ko'rsating; o'qib bo'lmagan joyni so'rang.` : text,
           ...(loyihaFayl ? { attachment: loyihaFayl } : {}), tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: loyihaFayl || hujjatMatn ? 12000 : 6000, jsonSchema: SUHBAT_SXEMA },
@@ -169,12 +185,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const sorovlar = sorovlarniTayyorla(so.sorovlar);
       if (!sorovlar) return fail('SOROV_INVALID');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash', req);
+      // Practice of all estimators on the platform: how often each candidate norm was used and with which coefficient.
+      const tajriba = await tajribaOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, sorovlar.flatMap(x => x.nomzodlar.map(n => n.kod)));
+      const malumot = sorovlar.map(x => ({ ...x, nomzodlar: x.nomzodlar.map(n => { const t = tajribaMatni(tajriba[normaKalit(n.kod) ?? '']); return t ? { ...n, tajriba: t } : n; }) }));
       const { r, obj } = await ishonchliChaqir(chaqir,
-        { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA },
+        { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(malumot)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA },
         ['tanlovlar', 'choices']);
       const tanlovlar = tanlovlarniTekshir(obj, sorovlar);
       const xom = tanlovlar.every(x => !x.ishId) ? r.text.slice(0, 2000) : undefined;
-      return Response.json({ ok: true, tanlovlar, model: r.model, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
+      return Response.json({ ok: true, tanlovlar, tajriba, model: r.model, ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'narx_tanla') {
       const sorovlar = narxSorovlariniTayyorla(so.sorovlar);
@@ -198,6 +217,23 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { system: KOEF_TANLOV_TIZIM, text: `Ish sharoiti (foydalanuvchi): ${sharoit}\n<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 4000, jsonSchema: KOEF_TANLOV_SXEMA },
         ['tanlovlar', 'savol']);
       return Response.json({ ok: true, ...koefTanlovlariniTekshir(obj, sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (so.amal === 'xotira') return Response.json({ ok: true, ...(await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, true)) }, { headers: { 'Cache-Control': 'no-store' } });
+    if (so.amal === 'xotira_yoz') {
+      const daraja = String(so.daraja ?? '');
+      if (!['foydalanuvchi', 'kompaniya', 'tizim'].includes(daraja)) return fail('DARAJA_INVALID');
+      const r = await rpcData(ctx.env, 't2_smeta_xotira_yoz_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_daraja: daraja, p_kalit: clip(so.kalit, 80), p_mazmun: clip(so.mazmun, 1500) });
+      // Before the three-level memory exists in the database, a company-level lesson still goes to the shared agent memory.
+      if (!r.ok && r.status === 502 && daraja === 'kompaniya')
+        return Response.json(await rpcData(ctx.env, 't2_agent_xotira_yoz_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_profil: null, p_kalit: clip(so.kalit, 80), p_mazmun: clip(so.mazmun, 1500) }).then(x => x.data));
+      return Response.json(r.data, { status: r.ok ? 200 : r.status });
+    }
+    if (so.amal === 'tajriba_yoz') {
+      const tanlovlar = (Array.isArray(so.tanlovlar) ? so.tanlovlar.slice(0, 60) : []).map(t => { const x = (t ?? {}) as Record<string, unknown>;
+        return { kod: clip(x.kod, 80), tavsif: clip(x.tavsif, 400), birlik: clip(x.birlik, 40), koef: clip(x.koef, 200), manba: x.manba === 'qolda' ? 'qolda' : 'ai' }; }).filter(t => t.kod.length >= 2);
+      if (!tanlovlar.length) return fail('SOROV_INVALID');
+      const r = await rpcData(ctx.env, 't2_smeta_tajriba_yoz_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_tanlovlar: tanlovlar });
+      return Response.json(r.data, { status: r.ok ? 200 : r.status });
     }
     if (so.amal === 'kp_oqi') {
       const f = (so.fayl ?? null) as { mimeType?: unknown; data?: unknown } | null;
