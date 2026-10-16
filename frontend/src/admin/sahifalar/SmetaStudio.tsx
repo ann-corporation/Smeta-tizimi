@@ -56,6 +56,7 @@ export default function SmetaStudio() {
   const [xato, setXato] = useState('');
   const [nishon, setNishon] = useState<string | null>(null);
   const restored = useRef(false);
+  const [yuklandi, setYuklandi] = useState(false);
   const { joriyId } = useKompaniya();
   const [serverVersiya, setServerVersiya] = useState(0);
   const [saqlash, setSaqlash] = useState<{ holat: 'tayyor' | 'saqlanmoqda' | 'saqlandi' | 'xato'; matn: string; edits: number | null }>({ holat: 'tayyor', matn: '', edits: null });
@@ -96,6 +97,7 @@ export default function SmetaStudio() {
     loadLastDraft().then(d => {
       if (!alive || restored.current) return;
       restored.current = true;
+      setYuklandi(true);
       // An empty draft is restored too: its id keys the AI conversation, which must survive a reload before the first work.
       if (d) {
         const bor = !!(d.doc.rootOrder.length || Object.keys(d.doc.occurrences).length);
@@ -105,11 +107,12 @@ export default function SmetaStudio() {
     });
     return () => { alive = false; };
   }, []);
+  // Saved as soon as the stored draft is read — a brand-new draft too (its id keys the AI conversation across reloads).
   useEffect(() => {
-    if (!restored.current) return;
+    if (!yuklandi) return;
     const timer = setTimeout(() => { void saveDraft(doc, serverVersiya); }, 600);
     return () => clearTimeout(timer);
-  }, [doc, serverVersiya]);
+  }, [doc, serverVersiya, yuklandi]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || (e.target as HTMLElement)?.tagName === 'INPUT') return;
