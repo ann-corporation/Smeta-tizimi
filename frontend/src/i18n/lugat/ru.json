@@ -1736,5 +1736,6 @@
   "maxsus podval": "особый подвал",
   "standart kaskad": "стандартный каскад",
   "{k} = {n}%": "{k} = {n}%",
-  "Foiz stavkasi": "Процентная ставка"
+  "Foiz stavkasi": "Процентная ставка",
+  "suhbatga biriktirilgan, har xabarda AI ga beriladi": "прикреплён к диалогу, передаётся ИИ в каждом сообщении"
 }

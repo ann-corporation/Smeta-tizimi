@@ -74,6 +74,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
 }) {
   // Studio agent: actions the model proposed for this turn; the user runs them (one undo step for document edits).
   const [ilova, setIlova] = useState<Ilova | null>(null);
+  // The project document stays attached to the conversation and goes with every turn (production run: on the second turn
+  // the model had lost the bill of quantities). Text documents survive a reload; images/PDF stay for this session.
+  const hujjatKalit = `${kalit}:hujjat`;
+  const [doimiy, setDoimiy] = useState<Ilova | null>(() => { try { return JSON.parse(localStorage.getItem(hujjatKalit) ?? 'null') as Ilova | null; } catch { return null; } });
+  useEffect(() => { try { if (doimiy?.matn) localStorage.setItem(hujjatKalit, JSON.stringify(doimiy)); else if (!doimiy) localStorage.removeItem(hujjatKalit); } catch { /* storage off */ } }, [doimiy, hujjatKalit]);
   // Company memory: lessons the model proposes after a correction; the user decides what is remembered.
   const [eslash, setEslash] = useState<string[]>([]);
   const [xotira, setXotira] = useState<XotiraYozuv[] | null>(null);
@@ -143,10 +148,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   async function yubor(txt?: string) {
     const m = (txt ?? matn).trim() || (ilova ? t('Ushbu loyiha hujjati bo‘yicha smeta ishlarini tuzing.') : '');
     if (!m || band) return;
-    const yuborilganIlova = ilova;
+    const yuborilganIlova = ilova ?? doimiy;
+    if (ilova) setDoimiy(ilova);
     setIlova(null);
     if (kompaniyaId == null) { setHolat(t('Avval yuqorida kompaniyani tanlang.')); return; }
-    const yangi = [...xabarlar, { rol: 'user' as const, matn: yuborilganIlova ? `📎 ${yuborilganIlova.nom}\n${m}` : m }];
+    const yangi = [...xabarlar, { rol: 'user' as const, matn: ilova ? `📎 ${ilova.nom}\n${m}` : m }];
     setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat');
     try {
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title,
@@ -282,6 +288,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       </li>)}
         {!xotira?.length && <li className="text-text-mute">{t('Hozircha bo‘sh. AI ni tuzatsangiz, u qoidani eslab qolishni taklif qiladi.')}</li>}</ul>}
     </div>}
+    {!ilova && doimiy && <p className="text-xs text-text-dim">📎 {doimiy.nom} — {t('suhbatga biriktirilgan, har xabarda AI ga beriladi')}
+      <button type="button" className="ml-1 underline text-text-mute" onClick={() => setDoimiy(null)}>{t('olib tashlash')}</button></p>}
     {ilova && <p className="text-xs text-accent">📎 {ilova.nom} <button type="button" className="ml-1 underline text-text-mute" onClick={() => setIlova(null)}>{t('olib tashlash')}</button></p>}
     {amallar.length > 0 && <div className="karta space-y-1 p-2 text-[12px]">
       <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI taklif qilgan amallar')}</strong>

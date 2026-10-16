@@ -1736,5 +1736,6 @@
   "maxsus podval": "custom footer",
   "standart kaskad": "standard cascade",
   "{k} = {n}%": "{k} = {n}%",
-  "Foiz stavkasi": "Rate"
+  "Foiz stavkasi": "Rate",
+  "suhbatga biriktirilgan, har xabarda AI ga beriladi": "attached to the conversation, sent to the AI with every message"
 }
