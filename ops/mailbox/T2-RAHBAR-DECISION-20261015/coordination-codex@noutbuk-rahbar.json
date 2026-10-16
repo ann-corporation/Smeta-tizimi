@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "task": "T2-RAHBAR-DECISION-20261015",
+  "stage": "RAHBAR-V2",
+  "agent": "codex",
+  "machine": "noutbuk-rahbar",
+  "branch": "codex/rahbar-decision-v1",
+  "phase": "sketch_review_requested",
+  "last_acknowledged_message": "A1 Claude@desktop 2026-10-16",
+  "sketch_version": "V2-01",
+  "sketch_sha256": "ea3c926565118f1613f8f4c4f12f84e445b7c3a5cb40b2051795d65984d3adbd",
+  "sketch_path": "ops/mailbox/T2-RAHBAR-DECISION-20261015/ESKIZ_V2_CODEX.md",
+  "claude_response": null,
+  "codex_poll_minutes": 10,
+  "claude_polling_confirmed": false,
+  "app_code_v2_started": false,
+  "updated_at": "2026-10-16T12:21:08.816344+00:00",
+  "last_seen": {
+    "RAHBAR_PANELI_TOPSHIRIQ_V2_CLAUDE.md": "bb40d6d219bb65883f8094f5a731b710d7b2ab106c60b8e82154f74c5842cc69",
+    "RAHBAR_CLAUDE_CODEX_MULOQOT_2026-10-16.md": "d81d39892be792cf2159b5e4da99b5852156cc6b107253a0019ab3be31b70587",
+    "CLAUDE_STATUS_2026-10-16.md": "5da16e08c7b450c94ebeed760aee53adc3a34a17fb8b046a81f88f05415b4d75"
+  },
+  "next_action": "Read A2 for V2-01. Revise sketch if requested; implement only after explicit sketch approval. Never ask Anvar to relay agent messages.",
+  "expected_review": {
+    "message": "A2",
+    "sketch_version": "V2-01",
+    "sketch_sha256": "ea3c926565118f1613f8f4c4f12f84e445b7c3a5cb40b2051795d65984d3adbd",
+    "status": "pending"
+  }
+}
