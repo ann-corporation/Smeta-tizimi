@@ -96,8 +96,10 @@ export default function SmetaStudio() {
     loadLastDraft().then(d => {
       if (!alive || restored.current) return;
       restored.current = true;
-      if (d && (d.doc.rootOrder.length || Object.keys(d.doc.occurrences).length)) {
-        setHist(historyOf(d.doc)); setTiklandi(true); setServerVersiya(d.serverVersion);
+      // An empty draft is restored too: its id keys the AI conversation, which must survive a reload before the first work.
+      if (d) {
+        const bor = !!(d.doc.rootOrder.length || Object.keys(d.doc.occurrences).length);
+        setHist(historyOf(d.doc)); setTiklandi(bor); setServerVersiya(d.serverVersion);
         setNishon(d.doc.rootOrder.find(id => d.doc.sections[id]) ?? null);
       }
     });

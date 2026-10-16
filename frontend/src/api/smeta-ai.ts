@@ -10,8 +10,10 @@ async function post<T>(body: unknown): Promise<T | AiXato> {
   } catch { return { ok: false, code: 'NETWORK' }; }
 }
 /** `smeta` — the estimate being built as text (lib/smeta-studio/ai-kontekst), so the model reads the whole draft. */
-export const smetachiSuhbat = (kompaniyaId: number, xabarlar: SuhbatXabari[], ishlar: IshNiyati[], obyekt: string, smeta?: string) =>
-  post<{ ok: true; model: string; xom?: string; tushunildi?: boolean; ogohlantirish?: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt, smeta });
+export const smetachiSuhbat = (kompaniyaId: number, xabarlar: SuhbatXabari[], ishlar: IshNiyati[], obyekt: string, smeta?: string,
+  fayl?: { mimeType?: string; data?: string; nom: string; matn?: string } | null) =>
+  post<{ ok: true; model: string; xom?: string; tushunildi?: boolean; ogohlantirish?: string } & SuhbatJavobi>({ amal: 'suhbat', kompaniya_id: kompaniyaId, xabarlar, ishlar, obyekt, smeta,
+    ...(fayl?.matn ? { hujjat_matn: fayl.matn, hujjat_nom: fayl.nom } : fayl?.data ? { fayl: { mimeType: fayl.mimeType, data: fayl.data, nom: fayl.nom } } : {}) });
 /** AI picks normative coefficients that match the stated work conditions (codes only from the list sent). */
 export const smetachiKoefTanla = (kompaniyaId: number, sharoit: string, sorovlar: KoefSorovi[]) =>
   post<{ ok: true; tanlovlar: KoefTanlov[]; savol: string | null }>({ amal: 'koef_tanla', kompaniya_id: kompaniyaId, sharoit, sorovlar });

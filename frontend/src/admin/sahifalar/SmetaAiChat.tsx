@@ -14,6 +14,27 @@ import { calcDoc } from '../../lib/smeta-studio/calc';
 import { loyihaBoyicha, talabMateriali } from '../../lib/smeta-studio/loyiha-material';
 import type { AgentAmal } from '../../lib/smeta-ai/protokol';
 import { AMAL_BOSQICH, agentChaqir, amalBuyruqlari, materialManbadami } from './studioAgent';
+import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
+import { docxMatni } from '../../lib/narx-dalil/docx-matn';
+
+type Ilova = { nom: string; mimeType?: string; data?: string; matn?: string };
+/** Project document for the chat: image/PDF as base64 (the model reads it), Excel/Word as text. */
+async function ilovaTayyorla(f: File): Promise<Ilova> {
+  const nom = f.name.toLowerCase();
+  if (f.size > 7 * 1024 * 1024) throw new Error('FAYL_KATTA');
+  if (/\.(xlsx|xls|xlsm)$/.test(nom)) {
+    const wb = await readXlsxFonda(await f.arrayBuffer());
+    const matn = wb.sheets.map(s => `# ${s.name}\n` + s.rows.slice(0, 600).map(r => r.map(c => (c == null ? '' : String(c).trim())).filter(Boolean).join(' | ')).filter(Boolean).join('\n')).join('\n\n');
+    return { nom: f.name, matn: matn.slice(0, 110_000) };
+  }
+  if (nom.endsWith('.docx')) return { nom: f.name, matn: docxMatni(new Uint8Array(await f.arrayBuffer())).slice(0, 110_000) };
+  const mimeType = nom.endsWith('.pdf') ? 'application/pdf' : nom.endsWith('.png') ? 'image/png' : nom.endsWith('.webp') ? 'image/webp' : /\.(jpe?g)$/.test(nom) ? 'image/jpeg' : '';
+  if (!mimeType) throw new Error('FAYL_TURI');
+  const b = new Uint8Array(await f.arrayBuffer());
+  let s = '';
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  return { nom: f.name, mimeType, data: btoa(s) };
+}
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi } from '../../lib/smeta-ai/protokol';
 import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
@@ -52,6 +73,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   onBosqich?: (b: 'lrv' | 'narx' | 'res') => void;
 }) {
   // Studio agent: actions the model proposed for this turn; the user runs them (one undo step for document edits).
+  const [ilova, setIlova] = useState<Ilova | null>(null);
   const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
   const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}`);
   const [saqlangan] = useState(() => {
@@ -114,14 +136,16 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   }
 
   async function yubor(txt?: string) {
-    const m = (txt ?? matn).trim();
+    const m = (txt ?? matn).trim() || (ilova ? t('Ushbu loyiha hujjati bo‘yicha smeta ishlarini tuzing.') : '');
     if (!m || band) return;
+    const yuborilganIlova = ilova;
+    setIlova(null);
     if (kompaniyaId == null) { setHolat(t('Avval yuqorida kompaniyani tanlang.')); return; }
-    const yangi = [...xabarlar, { rol: 'user' as const, matn: m }];
+    const yangi = [...xabarlar, { rol: 'user' as const, matn: yuborilganIlova ? `📎 ${yuborilganIlova.nom}\n${m}` : m }];
     setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat');
     try {
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title,
-        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)));
+        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)), yuborilganIlova);
       if (!tirik.current) return;
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.
@@ -226,9 +250,13 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
         placeholder={t('Masalan: plita quyildi 12×8 m, qalinligi 0,2 m, beton B25...')} onChange={e => setMatn(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(); } }} />
       <button type="button" aria-label={tinglash ? t('Ovozni to‘xtatish') : t('Ovoz bilan aytish')} className={`tugma h-9 px-2 ${tinglash ? 'tugma-asosiy' : ''}`} onClick={ovoz}>🎤</button>
-      <button type="submit" className="tugma tugma-asosiy h-9 px-3" disabled={!!band || !matn.trim()}>{t('Yuborish')}</button>
+      <label className="tugma h-9 cursor-pointer px-2" title={t('Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)')}>📎
+        <input aria-label={t('Loyiha hujjati')} type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls,.xlsm,.docx"
+          onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
+      <button type="submit" className="tugma tugma-asosiy h-9 px-3" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}
+    {ilova && <p className="text-xs text-accent">📎 {ilova.nom} <button type="button" className="ml-1 underline text-text-mute" onClick={() => setIlova(null)}>{t('olib tashlash')}</button></p>}
     {amallar.length > 0 && <div className="karta space-y-1 p-2 text-[12px]">
       <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI taklif qilgan amallar')}</strong>
       {amallar.map((a, i) => <label key={i} className="flex items-start gap-2">

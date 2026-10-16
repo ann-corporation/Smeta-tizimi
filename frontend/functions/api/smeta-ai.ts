@@ -119,7 +119,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (raw.length > 10_000_000) return fail('BODY_TOO_LARGE', 413);
   let so: Record<string, unknown>;
   try { so = JSON.parse(raw); } catch { return fail('BODY_INVALID'); }
-  if (so.amal !== 'kp_oqi' && raw.length > 300_000) return fail('BODY_TOO_LARGE', 413);
+  // A КП or a project document (image/PDF) travels as base64; other requests stay small.
+  if (so.amal !== 'kp_oqi' && !(so.amal === 'suhbat' && (so.fayl || so.hujjat_matn)) && raw.length > 300_000) return fail('BODY_TOO_LARGE', 413);
   const kompaniyaId = Number(so.kompaniya_id);
   if (!posInt(kompaniyaId)) return fail('CONTEXT_REQUIRED');
   if (Array.isArray(sess.kompaniyalar) && !sess.kompaniyalar.some(a => a.kompaniya_id === kompaniyaId) && sess.rol !== 'superadmin') return fail('FORBIDDEN', 403);
@@ -127,6 +128,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   try {
     if (so.amal === 'suhbat') {
       const xabarlar = xabarlarniTayyorla(so.xabarlar);
+      // Owner 2026-10-16: "spetsifikatsiya yoki loyihani tashlab bersam AI o'zi tushunib smetani hal qilsin" — the drawing,
+      // specification or bill of quantities (image / PDF) goes to the model with this turn.
+      const sf = (so.fayl ?? null) as { mimeType?: unknown; data?: unknown; nom?: unknown } | null;
+      const loyihaFayl = sf && typeof sf.mimeType === 'string' && typeof sf.data === 'string' && /^(image\/(png|jpeg|webp)|application\/pdf)$/.test(sf.mimeType) && /^[A-Za-z0-9+/=]+$/.test(sf.data.slice(0, 200))
+        ? { mimeType: sf.mimeType, data: sf.data } : null;
+      // Excel / Word documents arrive as their text (read in the browser).
+      const hujjatMatn = clip(so.hujjat_matn, 110_000).trim();
       if (!xabarlar) return fail('XABAR_INVALID');
       const joriy = suhbatJavobiniTekshir({ ishlar: so.ishlar }).ishlar;
       // The estimate the user is building (owner 2026-10-15: "butun yasalayotgan smetani AI o'qib tura olishi kerak").
@@ -139,7 +147,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Smetachi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_suhbat', req);
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
-        { system: SMETACHI_TIZIM + foundationSourceContext(xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n')), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 6000, jsonSchema: SUHBAT_SXEMA },
+        { system: SMETACHI_TIZIM + foundationSourceContext(xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n')),
+          text: hujjatMatn ? `${text}\n\n<HUJJAT nom="${clip(so.hujjat_nom, 120)}">\n${hujjatMatn}\n</HUJJAT>\nILOVA: foydalanuvchi yuborgan loyiha hujjati yuqorida. Har pozitsiyani ishga aylantiring, hajmni hujjatdagi sondan oling, hajmIzoh da pozitsiya №/qatorni ko'rsating; noaniq joyni so'rang.`
+            : loyihaFayl ? `${text}\n\nILOVA: foydalanuvchi loyiha hujjatini yubordi (${clip(sf?.nom, 120) || 'fayl'}). Uni o'qing: har pozitsiyani ishga aylantiring, hajmni hujjatdagi sondan oling, hajmIzoh da pozitsiya №/qator va sahifani ko'rsating; o'qib bo'lmagan joyni so'rang.` : text,
+          ...(loyihaFayl ? { attachment: loyihaFayl } : {}), tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: loyihaFayl || hujjatMatn ? 12000 : 6000, jsonSchema: SUHBAT_SXEMA },
         ['javob', 'ishlar', 'savollar', 'works', 'items']);
       const out = manbaMaterialiniTekshir(suhbatJavobiniTekshir(obj), xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n'));
       // Javob o'qildi (savol/izoh bo'lsa ham) — tushunildi. Faqat hech narsa o'qilmasa xom (diagnostika).

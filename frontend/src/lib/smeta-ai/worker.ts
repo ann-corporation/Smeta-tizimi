@@ -43,6 +43,21 @@ export function ishIndeksi(k: AiKatalog): IshIndeksi | null {
 }
 const KOD = /^[EЕЦУCС]\d{1,3}(?:-\d+){1,4}$/i;
 /** Ranked retrieval: every phrasing, collection hint as a boost, unit-incompatible works dropped, ≤3 variants per table. */
+/**
+ * Norm variants carrying a condition the user never stated (production run: a plain brick wall became «с облицовкой лицевым
+ * кирпичом»). A candidate with such a condition is offered only when the description mentions it.
+ */
+const AYTILMAGAN_SHART: Array<[RegExp, RegExp]> = [
+  [/ОБЛИЦОВК|ЛИЦЕВ/i, /облиц|лицев|lits|fasad|qoplama/i],
+  [/СЕЙСМИЧ/i, /сейсм|seysm/i],
+  [/МЕРЗЛ/i, /мерзл|muzla/i],
+  [/С\s+КРЕПЛЕНИ/i, /крепл|krepl|mahkamla/i],
+  [/ТЕПЛОИЗОЛЯЦ|УТЕПЛ/i, /тепло|утепл|issiqlik|izolyats/i],
+  [/ВОЗДУШН\S*\s+ПРОСЛОЙК|КОЛОДЦЕВ/i, /прослой|колодц|bo['‘’]?shliq/i],
+];
+export function aytilmaganShart(nom: string, tavsif: string): boolean {
+  return AYTILMAGAN_SHART.some(([n, t]) => n.test(nom) && !t.test(tavsif));
+}
 /** Collections for special structures; a building work never lands there unless the estimator asked for it. */
 export const MAXSUS_TOPLAM = new Set(['E29', 'E30', 'E31', 'E35', 'E37', 'E42']);
 /** Numbers that distinguish norms (bucket 0,5 м3, soil group 2, 380 мм) taken from the user's own description. */
@@ -63,7 +78,8 @@ function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiru
     for (const h of [sonli[i], asosiy[i]]) if (h && !korilgan.has(h.id)) { korilgan.add(h.id); birga.push({ ...h, ball: 1000 - birga.length }); }
   // Special-purpose collections (tunnels, bridges, airfields, mining, hydro, shore protection) only when the model named them.
   const maxsusRuxsat = (c: string | null | undefined) => !c || !MAXSUS_TOPLAM.has(c.replace(/^Е/, 'E')) || hint.has(c.replace(/^Е/, 'E'));
-  const scored = birga.filter(h => maxsusRuxsat(x.works[h.id].collection)).map(h => {
+  const izoh = `${ish.tavsif ?? ''} ${ish.qidiruv.join(' ')}`;
+  const scored = birga.filter(h => maxsusRuxsat(x.works[h.id].collection) && !aytilmaganShart(x.works[h.id].name ?? '', izoh)).map(h => {
     const w = x.works[h.id];
     const mos = birlikMos(k, w, ish.birlik);
     return { w, mos, s: h.ball * (mos === true ? 1.15 : 1) * (w.collection && hint.has(w.collection.replace(/^Е/, 'E')) ? 1.3 : 1) };
@@ -223,7 +239,8 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
       // Thickness-change position without the difference coefficient: computed from the user's numbers and the norm's step
       // ("на каждый 1 мм" / "на каждые 5 мм"); never invented — both numbers must be stated.
       if (tuzatish && !ish.koeffitsientlar?.some(k => /толщин/i.test(k.nom))) {
-        const qadam = Number((/НА\s+КАЖД\S*\s+(\d+(?:[.,]\d+)?)\s*ММ/i.exec(snap.source.name ?? '')?.[1] ?? '').replace(',', '.'));
+        const qm = /НА\s+КАЖД\S*\s+(?:(\d+(?:[.,]\d+)?)\s*)?ММ/i.exec(snap.source.name ?? '');
+        const qadam = qm ? Number((qm[1] ?? '1').replace(',', '.')) : 0;
         const farq = Number((/(\d+(?:[.,]\d+)?)\s*(?:мм|mm)/i.exec(ish.tavsif)?.[1] ?? '').replace(',', '.'));
         if (qadam > 0 && farq > 0 && farq / qadam <= 100) ish = { ...ish, koeffitsientlar: [...(ish.koeffitsientlar ?? []), { nom: `Изменение толщины на ${String(farq).replace('.', ',')} мм`,
           qiymat: String(Math.round((farq / qadam) * 1e6) / 1e6), qollanish: 'ALL', asos: `норма на каждые ${qadam} мм; изменение толщины ${farq} мм (по описанию работы)` }] };

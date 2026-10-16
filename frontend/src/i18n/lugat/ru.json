@@ -1706,5 +1706,10 @@
   "Koeffitsient tanlash": "Подбор коэффициентов",
   "Narx qo‘yish": "Установить цену",
   "Bosqichga o‘tish": "Перейти к этапу",
-  "Hujjat yuklash": "Выгрузить документ"
+  "Hujjat yuklash": "Выгрузить документ",
+  "Ushbu loyiha hujjati bo‘yicha smeta ishlarini tuzing.": "Составьте работы сметы по этому проектному документу.",
+  "Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)": "Проект, спецификация или ведомость объёмов (изображение, PDF, Excel, Word)",
+  "Loyiha hujjati": "Проектный документ",
+  "Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).": "Этот тип файла не читается (изображение, PDF, Excel, Word).",
+  "olib tashlash": "удалить"
 }

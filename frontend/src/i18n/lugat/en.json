@@ -1706,5 +1706,10 @@
   "Koeffitsient tanlash": "Pick coefficients",
   "Narx qo‘yish": "Set price",
   "Bosqichga o‘tish": "Go to step",
-  "Hujjat yuklash": "Download document"
+  "Hujjat yuklash": "Download document",
+  "Ushbu loyiha hujjati bo‘yicha smeta ishlarini tuzing.": "Build the estimate works from this project document.",
+  "Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)": "Project, specification or bill of quantities (image, PDF, Excel, Word)",
+  "Loyiha hujjati": "Project document",
+  "Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).": "This file type cannot be read (image, PDF, Excel, Word).",
+  "olib tashlash": "remove"
 }
