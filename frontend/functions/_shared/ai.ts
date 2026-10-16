@@ -487,7 +487,8 @@ export function aiPublicError(error: unknown): { code: AiErrorCode; message: str
 
 export async function aiCall(env: AiEnv, request: AiRequest): Promise<AiResponse> {
   const text = String(request.text || '').trim();
-  if (!text || text.length > 50000) {
+  // ≤ 200k characters: an attached bill of quantities (≤ 110k) plus the estimate summary still fits the models' context.
+  if (!text || text.length > 200000) {
     throw new AiGatewayError('request_invalid', 'AI matni bo\'sh yoki juda uzun');
   }
   if (request.attachment && (!IMAGE_TYPES.has(request.attachment.mimeType) && request.attachment.mimeType !== 'application/pdf')) {

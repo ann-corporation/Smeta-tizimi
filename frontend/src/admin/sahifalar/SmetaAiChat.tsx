@@ -122,10 +122,17 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       const sor = next.filter(i => i.holat !== 'ANIQLASH_KERAK' && !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
       if (!sor.length) break;
       setBand('tanlash');
-      const r = await smetachiTanla(kompaniyaId, sor.slice(0, 40));
-      if (!tirik.current) return list;
-      if (!r.ok) { setHolat(xato(r.code, r.message)); break; }
-      const by = new Map(r.tanlovlar.map(x => [x.id, x]));
+      // Small batches: a bill of quantities easily has dozens of works × 15 long norm names (one request hit the size limit).
+      const tanlovlar: Array<{ id: string; ishId: string | null; sabab: string; qidiruv?: string[] }> = [];
+      let xatoBor = false;
+      for (let b = 0; b < Math.min(sor.length, 40); b += 8) {
+        const r = await smetachiTanla(kompaniyaId, sor.slice(b, Math.min(b + 8, 40)));
+        if (!tirik.current) return list;
+        if (!r.ok) { setHolat(xato(r.code, r.message)); xatoBor = true; break; }
+        tanlovlar.push(...r.tanlovlar);
+      }
+      if (xatoBor && !tanlovlar.length) break;
+      const by = new Map(tanlovlar.map(x => [x.id, x]));
       const qayta = new Set<string>();
       next = next.map(i => {
         const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
