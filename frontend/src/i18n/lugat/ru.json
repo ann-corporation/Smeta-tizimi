@@ -1794,5 +1794,14 @@
   "Hodisalar yo‘nalishlar bo‘yicha": "События по направлениям",
   "Qog‘ozdagi akt": "Акт на бумаге",
   "F2 / akt": "Ф2 / акт",
-  "Tayyor Mindmapni ochish": "Открыть существующий Mindmap"
+  "Tayyor Mindmapni ochish": "Открыть существующий Mindmap",
+  "F2 / smeta, pul bo‘yicha": "Ф2 / смета, по сумме",
+  "Hisob asosi": "Основание расчёта",
+  "Hisob asoslari farq qilishi mumkin": "Базы расчёта могут различаться",
+  "Manba": "Источник",
+  "Ma’lumotlar yuklanmoqda…": "Загрузка данных…",
+  "Summa qisman": "Сумма неполная",
+  "Summalar hali yuklanmagan. Asl hujjatlarni ochish mumkin.": "Суммы ещё не загружены. Можно открыть исходные документы.",
+  "To‘lovlar tizimga kiritilmagan. Qarz tasdiqlanmagan.": "Платежи в систему не внесены. Задолженность не подтверждена.",
+  "Umumiy shartnoma obyektlarga avtomatik taqsimlanmaydi.": "Общий договор не распределяется по объектам автоматически."
 }

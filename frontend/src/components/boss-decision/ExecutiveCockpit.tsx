@@ -6,7 +6,8 @@ import type {BossDashboard} from '../../api/t2-boss';
 import {t} from '../../i18n/til';
 import {amount,objectUrl,trustedExecutive} from './model';
 import {attentionObjects,compactMoney} from './decision-v2';
-import {entityKey,entityLabels,knownSum,neighbours,readGraph,readSlice,scopedObjects,scopeObjectIds} from './cockpit-data';
+import TugunDosye from './TugunDosye';
+import {entityKey,entityLabels,knownSum,readGraph,readSlice,scopedObjects,scopeObjectIds} from './cockpit-data';
 import type {ContractBalance} from './cockpit-data';
 const money=(v:unknown)=>amount(v)===null?'—':new Intl.NumberFormat('uz-UZ',{maximumFractionDigits:2}).format(v as number)+' UZS';
 const compact=(v:unknown)=>compactMoney(v)??'—';
@@ -59,7 +60,7 @@ export default function ExecutiveCockpit({data,onReports}:{data:BossDashboard;on
       <nav aria-label={t('Tanlangan qamrov')} className="flex items-center gap-2 text-xs mt-5 flex-wrap"><button type="button" className="underline" onClick={()=>select(root)}>{data.kompaniya.nom}</button>{object?.project_id&&<><ChevronRight size={12}/><button type="button" className="underline" onClick={()=>select(`loyiha:${object.project_id}`)}>{object.project_name}</button></>}{selectedKey!==root&&<><ChevronRight size={12}/><span>{title}</span></>}</nav>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3"><Link className="inline-flex items-center gap-2 rounded-xl border border-accent/40 px-4 py-3 text-sm hover:bg-accent/10" to={`/admin/mindmap?tugun=${encodeURIComponent(entityKey(selectedKey)?selectedKey:root)}`}><Network size={16}/>{t('Tayyor Mindmapni ochish')}</Link></div>
-    {node&&selectedKey!==root&&<Dossier node={node} onTab={setTab} onReports={openReports} objectCount={e?objects.length:null}/>}
+    {node&&graph&&selectedKey!==root&&<TugunDosye tugun={node} graf={graph} kompaniyaId={company} data={data} onReports={openReports}/>}
     <div className="flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label={t('Boshqaruv yo‘nalishlari')}>{tabs.map(x=><button type="button" key={x.key} role="tab" aria-selected={tab===x.key} aria-controls="boss-cockpit-content" id={`boss-tab-${x.key}`} onClick={()=>setTab(x.key)} className={`shrink-0 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm border ${tab===x.key?'border-accent/70 bg-accent/15 text-text':'border-white/10 text-text-dim hover:bg-white/5'}`}><x.icon size={16}/>{t(x.label)}</button>)}</div>
     <div id="boss-cockpit-content" role="tabpanel" aria-labelledby={`boss-tab-${tab}`} className="space-y-5">
       {!selectionKnown&&<p role="alert" className="karta p-4 text-warn">{t('Tanlangan tugun joriy kompaniya ma’lumotida topilmadi. Kompaniya darajasiga qayting.')}</p>}
@@ -82,8 +83,3 @@ export default function ExecutiveCockpit({data,onReports}:{data:BossDashboard;on
 }
 function Retry({onClick}:{onClick:()=>void}){return <div role="alert" className="p-4 rounded-xl border border-warn/30"><p>{t('Ma’lumot yuklanmadi. Noma’lum qiymat nol deb olinmaydi.')}</p><button type="button" onClick={onClick} className="underline mt-2">{t('Qayta urinish')}</button></div>;}
 function SliceNote({complete,count,total}:{complete:boolean;count:number;total:number|null}){return <p role="status" className="text-xs text-text-dim">{t('Ko‘rsatilgan yozuvlar')}: {count} · {t('Registrdagi jami')}: {total??'—'} · {complete?t('To‘liq o‘qilgan registr'):t('Qisman ro‘yxat; summalar faqat ko‘rsatilgan yozuvlar uchun')}{count===0?` · ${t('Yozuv qayd etilmagan; bu ish bajarilmaganini isbotlamaydi.')}`:''}</p>;}
-function Dossier({node,onTab,onReports,objectCount}:{node:ReturnType<typeof neighbours>[number]|undefined;onTab:(t:Tab)=>void;onReports:()=>void;objectCount:number|null}) {
-  if(!node)return null;
-  const fields:Record<string,string>={nom:'Nomi',taraf:'Shartnoma tomoni',summa:'Shartnoma summasi, QQS bilan',lavozim:'Lavozim',davlat_raqami:'Davlat raqami',manzil:'Manzil',masul:'Mas’ul',holat:'Holat',zayavka:'Kutilayotgan so‘rovlar',narxsiz:'Narxsiz qatorlar',resurs_qatori:'Resurs qatorlari',signal_count:'Ochiq signallar',critical_count:'Muhim signallar'};
-  return <section className="rounded-2xl border border-white/10 p-5 space-y-4"><div className="flex justify-between gap-4"><div><h3 className="font-semibold">{t('Tanlangan joyning izohi')}</h3><p className="text-sm text-text-dim mt-1">{t(entityLabels[node.tur])} · {node.nom}</p></div><Link className="text-xs underline shrink-0" to={`/admin/mindmap?tugun=${encodeURIComponent(node.id)}`}>{t('To‘liq mindmapda ochish')}</Link></div><dl className="grid gap-3 sm:grid-cols-2">{Object.entries(node.meta??{}).filter(([k])=>fields[k]).map(([k,v])=><div key={k}><dt className="text-xs text-text-dim">{t(fields[k])}</dt><dd className="text-sm mt-1 break-words">{v===null?'—':k==='summa'?money(v):String(v)}</dd></div>)}</dl><Caption>{t('Bog‘langan smetali obyektlar')}: {objectCount??'—'}. {t('Aloqa yo‘qligi ma’lumot yo‘qligini isbotlamaydi.')}</Caption><div className="flex gap-2 flex-wrap text-xs">{tabs.filter(x=>!['map','overview'].includes(x.key)).map(x=><button type="button" className="rounded-lg bg-white/5 border border-white/10 px-3 py-2" key={x.key} onClick={()=>onTab(x.key)}>{t(x.label)}</button>)}<button type="button" className="rounded-lg bg-accent/15 border border-accent/30 px-3 py-2" onClick={onReports}>{t('Hujjat va hisob asoslari')}</button></div></section>;
-}

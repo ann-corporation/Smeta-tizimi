@@ -1794,5 +1794,14 @@
   "Hodisalar yo‘nalishlar bo‘yicha": "Events by category",
   "Qog‘ozdagi akt": "Paper act",
   "F2 / akt": "F2 / act",
-  "Tayyor Mindmapni ochish": "Open existing Mindmap"
+  "Tayyor Mindmapni ochish": "Open existing Mindmap",
+  "F2 / smeta, pul bo‘yicha": "F2 / estimate, by monetary amount",
+  "Hisob asosi": "Calculation basis",
+  "Hisob asoslari farq qilishi mumkin": "Calculation bases may differ",
+  "Manba": "Source",
+  "Ma’lumotlar yuklanmoqda…": "Loading data…",
+  "Summa qisman": "Partial amount",
+  "Summalar hali yuklanmagan. Asl hujjatlarni ochish mumkin.": "Amounts have not loaded yet. Original documents can be opened.",
+  "To‘lovlar tizimga kiritilmagan. Qarz tasdiqlanmagan.": "Payments have not been entered. Receivables are unconfirmed.",
+  "Umumiy shartnoma obyektlarga avtomatik taqsimlanmaydi.": "A shared contract is not automatically allocated to objects."
 }
