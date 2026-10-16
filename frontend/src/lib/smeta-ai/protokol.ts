@@ -187,6 +187,24 @@ export function suhbatJavobiniTekshir(raw: unknown): SuhbatJavobi {
 }
 
 /** A choice survives only if it names one of the candidates the browser sent for that intent. */
+/**
+ * Every number of a quantity formula must come from the user or the document (production run 2026-10-16: m³ were turned into
+ * tonnes with an invented density 1,6 t/m³). Unit-scale constants 10/100/1000 are allowed. An unproven formula is dropped and asked.
+ */
+export function hajmSonlariniTekshir(out: SuhbatJavobi, manba: string): SuhbatJavobi {
+  const norm = (v: string) => { const n = Number(v.replace(',', '.')); return Number.isFinite(n) ? String(n) : v; };
+  const bor = new Set([...manba.matchAll(/\d+(?:[.,]\d+)?/g)].map(m => norm(m[0])));
+  const savollar = [...out.savollar];
+  const ishlar = out.ishlar.map(i => {
+    if (!i.hajmIfoda) return i;
+    const yoq = [...i.hajmIfoda.matchAll(/\d+(?:[.,]\d+)?/g)].map(m => norm(m[0])).filter(n => !bor.has(n) && !['10', '100', '1000'].includes(n));
+    if (!yoq.length) return i;
+    savollar.push(`${i.tavsif}: hajm formulasidagi ${yoq.join(', ')} soni manbada yo‘q — aniq sonni yozing (zichlik, koeffitsient taxmin qilinmaydi).`);
+    return { ...i, hajmIfoda: null, holat: 'HAJM_KERAK' as const };
+  });
+  return { ...out, ishlar, savollar: [...new Set(savollar)].slice(0, 8) };
+}
+
 export function manbaMaterialiniTekshir(out: SuhbatJavobi, userText: string): SuhbatJavobi {
   const grades = (text: string) => [...text.toUpperCase().matchAll(/(?:^|[^A-ZА-ЯЁ0-9])([ABАВ]\s*\d+(?:[.,]\d+)?)(?=$|[^0-9])/g)]
     .map(m => m[1].replace(/\s/g, '').replace(/А/g, 'A').replace(/В/g, 'B').replace(',', '.'));

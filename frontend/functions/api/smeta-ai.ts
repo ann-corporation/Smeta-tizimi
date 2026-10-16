@@ -23,7 +23,7 @@ import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
 import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
-import { KOEF_TANLOV_SXEMA, KP_SXEMA, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
+import { KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
   type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
 /** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
@@ -157,7 +157,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
             : loyihaFayl ? `${text}\n\nILOVA: foydalanuvchi loyiha hujjatini yubordi (${clip(sf?.nom, 120) || 'fayl'}). Uni o'qing: har pozitsiyani ishga aylantiring, hajmni hujjatdagi sondan oling, hajmIzoh da pozitsiya №/qator va sahifani ko'rsating; o'qib bo'lmagan joyni so'rang.` : text,
           ...(loyihaFayl ? { attachment: loyihaFayl } : {}), tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: loyihaFayl || hujjatMatn ? 12000 : 6000, jsonSchema: SUHBAT_SXEMA },
         ['javob', 'ishlar', 'savollar', 'works', 'items']);
-      const out = manbaMaterialiniTekshir(suhbatJavobiniTekshir(obj), xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n'));
+      const userText = xabarlar.filter(x => x.rol === 'user').map(x => x.matn).join('\n');
+      const material = manbaMaterialiniTekshir(suhbatJavobiniTekshir(obj), userText);
+      // Numbers are checkable against text sources; a drawing/PDF image is read by the model only, so it is not checked here.
+      const out = loyihaFayl ? material : hajmSonlariniTekshir(material, [userText, hujjatMatn, smeta, JSON.stringify(joriy)].join('\n'));
       // Javob o'qildi (savol/izoh bo'lsa ham) — tushunildi. Faqat hech narsa o'qilmasa xom (diagnostika).
       const xom = obj ? undefined : r.text.slice(0, 3000);
       return Response.json({ ok: true, ...out, tushunildi: !!obj, model: r.model, versiya: SMETACHI_VERSIYA, ...(ogohlantirish ? { ogohlantirish } : {}), ...(xom ? { xom } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
