@@ -45,6 +45,11 @@ function narxsizQatorlar(g: ResursGuruh, hisob: DocCalc) {
   return g.qatorlar.filter(q => eski.has(q.occurrenceId + '\u0001' + q.recipeId) || hisob.occurrences[q.occurrenceId]?.lines.find(l => l.recipeId === q.recipeId)?.price == null);
 }
 const narxKerak = (g: ResursGuruh) => g.narxsiz > 0 || !!g.eskiQatorlar?.length;
+/** Machine lines priced automatically from an older source (2023 calculation) — the official 01.01.2026 list replaces them. */
+function eskiMashQatorlari(g: ResursGuruh, doc: EstimateDoc) {
+  return g.qatorlar.filter(q => { const p = doc.occurrences[q.occurrenceId]?.overrides[q.recipeId]?.price;
+    return !!p && p.basis !== 'OPERATOR_MANUAL' && !(p.sourcePriceId ?? '').startsWith('mash-katalog:'); });
+}
 /** Waits (≤ 30 s) until a condition on the latest render holds — sources loaded, a just-set region applied. */
 async function kut(shart: () => boolean) { for (let i = 0; i < 150 && !shart(); i++) await new Promise(r => setTimeout(r, 200)); }
 
@@ -117,11 +122,14 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     let soatSoni = 0, kpSoni = 0;
     const qoplangan = new Set<string>();
     if (mash) for (const g of guruhlar) {
-      if (g.kat !== 'МАШ' || !narxKerak(g) || /МАШИНИСТ/.test(g.nom.toUpperCase())) continue;
+      if (g.kat !== 'МАШ' || /МАШИНИСТ/.test(g.nom.toUpperCase())) continue;
+      const eski = eskiMashQatorlari(g, doc);
+      if (!narxKerak(g) && !eski.length) continue;
       const m = matchResource(mash, g.nom, 'маш-ч', null);
       if ((m.confidence !== 'EXACT' && m.confidence !== 'HIGH') || !m.best) continue;
       const justification = mashAsosi(m.best.row, m.confidence === 'EXACT' ? 'nomi aynan mos' : 'mashina va quvvati/sig‘imi mos');
-      for (const q of narxsizQatorlar(g, hisob)) {
+      const qatorlar = new Map([...narxsizQatorlar(g, hisob), ...eski].map(q => [q.occurrenceId + '\u0001' + q.recipeId, q]));
+      for (const q of qatorlar.values()) {
         commands.push({ type: 'SET_PRICE', occurrenceId: q.occurrenceId, recipeId: q.recipeId, price: { value: String(m.best.row.narx), basis: 'CATALOG_CANDIDATE',
           evidence: `Mash.-soat ro‘yxati 01.01.2026 · № ${m.best.row.kod} · ${m.best.row.nom}`.slice(0, 300), sourcePriceId: `mash-katalog:${m.best.row.kod}`, justification } });
         qoplangan.add(q.occurrenceId + '\u0001' + q.recipeId);
