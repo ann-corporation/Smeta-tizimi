@@ -35,7 +35,7 @@ async function ilovaTayyorla(f: File): Promise<Ilova> {
   for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
   return { nom: f.name, mimeType, data: btoa(s) };
 }
-import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi } from '../../lib/smeta-ai/protokol';
+import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi, type TanlovSorovi } from '../../lib/smeta-ai/protokol';
 import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
@@ -62,7 +62,7 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
 const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha materiali', hajm: 'Hajm', ochir: 'Ishni o‘chirish', kochir: 'Bo‘limga ko‘chirish',
   bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
   narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash',
-  qosh: 'Ishlarni smetaga qo‘shish' };
+  qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash' };
 
 export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
   return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
@@ -130,11 +130,14 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       // Small batches: a bill of quantities easily has dozens of works × 15 long norm names (one request hit the size limit).
       const tanlovlar: Array<{ id: string; ishId: string | null; sabab: string; qidiruv?: string[] }> = [];
       let xatoBor = false;
-      for (let b = 0; b < Math.min(sor.length, 40); b += 8) {
-        const r = await smetachiTanla(kompaniyaId, sor.slice(b, Math.min(b + 8, 40)));
+      // Batches of 3 sent four at a time: 8 works × 15 long norms ran past the 20 s model limit (production 2026-10-16),
+      // one work answers in ≈ 9 s. A failed batch does not stop the others.
+      const toplar: TanlovSorovi[][] = [];
+      for (let b = 0; b < Math.min(sor.length, 40); b += 3) toplar.push(sor.slice(b, Math.min(b + 3, 40)));
+      for (let b = 0; b < toplar.length; b += 4) {
+        const javoblar = await Promise.all(toplar.slice(b, b + 4).map(t => smetachiTanla(kompaniyaId, t)));
         if (!tirik.current) return list;
-        if (!r.ok) { setHolat(xato(r.code, r.message)); xatoBor = true; break; }
-        tanlovlar.push(...r.tanlovlar);
+        for (const r of javoblar) { if (r.ok) tanlovlar.push(...r.tanlovlar); else { setHolat(xato(r.code, r.message)); xatoBor = true; } }
       }
       if (xatoBor && !tanlovlar.length) break;
       const by = new Map(tanlovlar.map(x => [x.id, x]));
@@ -226,9 +229,16 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     const tanlangan = amallar.filter(a => a.tanlangan);
     const natija: string[] = [], buyruqlar: StudioCommand[] = [], keyin: AgentAmal[] = [];
     // «qosh» first: the proposed works must be in the estimate before pricing and documents run on it.
+    // The estimator's "count it separately" for works that overlap a composite norm (armature/formwork inside reinforced concrete).
+    if (tanlangan.some(a => a.tur === 'takror_tasdiq')) {
+      const ids = new Set(overlaps.keys());
+      setIshlar(list => list.map(i => (ids.has(i.id) ? { ...i, takrorTasdiq: true } : i)));
+      natija.push(`✓ ${t('Alohida hisoblash tasdiqlandi: {n} ish', { n: ids.size })}`);
+      await new Promise(r => setTimeout(r, 300));
+    }
     if (tanlangan.some(a => a.tur === 'qosh')) { await qosh(); await new Promise(r => setTimeout(r, 300)); }
     for (const a of tanlangan) {
-      if (a.tur === 'qosh') continue;
+      if (a.tur === 'qosh' || a.tur === 'takror_tasdiq') continue;
       try {
         if (a.tur === 'bosqich') { if (a.qiymat === 'lrv' || a.qiymat === 'narx' || a.qiymat === 'res') onBosqich?.(a.qiymat); continue; }
         const c = amalBuyruqlari(doc, a, newId);
