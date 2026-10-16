@@ -74,11 +74,6 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
 }) {
   // Studio agent: actions the model proposed for this turn; the user runs them (one undo step for document edits).
   const [ilova, setIlova] = useState<Ilova | null>(null);
-  // The project document stays attached to the conversation and goes with every turn (production run: on the second turn
-  // the model had lost the bill of quantities). Text documents survive a reload; images/PDF stay for this session.
-  const hujjatKalit = `${kalit}:hujjat`;
-  const [doimiy, setDoimiy] = useState<Ilova | null>(() => { try { return JSON.parse(localStorage.getItem(hujjatKalit) ?? 'null') as Ilova | null; } catch { return null; } });
-  useEffect(() => { try { if (doimiy?.matn) localStorage.setItem(hujjatKalit, JSON.stringify(doimiy)); else if (!doimiy) localStorage.removeItem(hujjatKalit); } catch { /* storage off */ } }, [doimiy, hujjatKalit]);
   // Company memory: lessons the model proposes after a correction; the user decides what is remembered.
   const [eslash, setEslash] = useState<string[]>([]);
   const [xotira, setXotira] = useState<XotiraYozuv[] | null>(null);
@@ -86,6 +81,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   useEffect(() => { if (kompaniyaId != null) void smetaXotirasi(kompaniyaId).then(setXotira); }, [kompaniyaId]);
   const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
   const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}`);
+  // The project document stays attached to the conversation and goes with every turn (production run: on the second turn
+  // the model had lost the bill of quantities). Text documents survive a reload; images/PDF stay for this session.
+  const hujjatKalit = `${kalit}:hujjat`;
+  const [doimiy, setDoimiy] = useState<Ilova | null>(() => { try { return JSON.parse(localStorage.getItem(hujjatKalit) ?? 'null') as Ilova | null; } catch { return null; } });
+  useEffect(() => { try { if (doimiy?.matn) localStorage.setItem(hujjatKalit, JSON.stringify(doimiy)); else if (!doimiy) localStorage.removeItem(hujjatKalit); } catch { /* storage off */ } }, [doimiy, hujjatKalit]);
   const [saqlangan] = useState(() => {
     try { return JSON.parse(localStorage.getItem(kalit) ?? 'null') as { xabarlar?: SuhbatXabari[]; ishlar?: AiIsh[] } | null; }
     catch { return null; }
