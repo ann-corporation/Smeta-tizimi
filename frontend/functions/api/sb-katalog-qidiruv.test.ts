@@ -11,6 +11,7 @@ describe('/api/sb — platforma katalogi qidiruvi', () => {
   it('kirillcha so‘zlar va * bilan filtr Supabase ga yetadi va javob qaytadi', async () => {
     const urls: string[] = [];
     vi.stubGlobal('fetch', vi.fn(async (u: string) => {
+      if (String(u).endsWith('/rpc/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' }, azoliklar: [{ kompaniya_id: 17, rol: 'pto', faol: true }] });
       urls.push(String(u));
       return new Response(JSON.stringify([{ id: 1, nom: 'Труба 57х3,5' }]), { status: 200, headers: { 'content-range': '0-0/1' } });
     }));

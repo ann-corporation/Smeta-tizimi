@@ -20,6 +20,7 @@
  *      the object already has any t2_qator rows — this is a first-import-only
  *      path, never a silent replace (see the RPC's own migration comment).
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import type { AktNode } from '../../src/lib/f2-match-engine';
 import { handleFaylOqi } from './f2-moslash';
 import type { F2ColumnConfig } from '../../src/lib/f2-import-parse';
@@ -332,7 +333,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY || !ctx.env.SESSIYA_KALIT) {
     return Response.json({ ok: false, code: 'CONFIG' }, { status: 500 });
   }
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actorId = sess && (sess as any).foydalanuvchi_id;
   if (actorId == null) return Response.json({ ok: false, code: 'AUTH_REQUIRED' }, { status: 401 });

@@ -29,6 +29,30 @@ async function getCtxOf(qs: string, actorId = 3) {
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
+describe('company — versioned individual permission constructor',()=>{
+  it('uses session actor and sends explicit complete policy/version/operation to the named RPC',async()=>{
+    const f=vi.fn(async (_u:string,init:RequestInit)=>{
+      expect(_u).toContain('/rpc/t2_azolik_ruxsat_set_v2');
+      expect(JSON.parse(init.body as string)).toMatchObject({p_actor_id:3,p_kompaniya_id:17,p_azolik_id:12,p_expected_version:4,p_permissions:{'f2.approve':false}});
+      return Response.json({ok:true,versiya:5});
+    });vi.stubGlobal('fetch',f);
+    const r=await onRequestPost(await ctxOf({action:'azolik_ruxsat_set',kompaniya_id:17,azolik_id:12,expected_version:4,permissions:{'f2.approve':false},p_actor_id:999}));
+    expect(r.status).toBe(200);expect(f).toHaveBeenCalledTimes(1);
+  });
+  it.each(['STALE_VERSION','OPERATION_CONFLICT'])('%s is a conflict, not success',async code=>{
+    vi.stubGlobal('fetch',vi.fn(async()=>Response.json({ok:false,code})));
+    const r=await onRequestPost(await ctxOf({action:'azolik_ruxsat_set',kompaniya_id:17,azolik_id:12,expected_version:4,permissions:{}}));expect(r.status).toBe(409);
+  });
+  it.each(['PROTECTED_AUTHORITY','MANAGEMENT_ROLE_REQUIRED'])('%s cannot alter protected management authority',async code=>{
+    vi.stubGlobal('fetch',vi.fn(async()=>Response.json({ok:false,code})));
+    const r=await onRequestPost(await ctxOf({action:'azolik_ruxsat_set',kompaniya_id:17,azolik_id:12,expected_version:4,permissions:{}}));expect(r.status).toBe(403);
+  });
+  it('missing version is refused before RPC',async()=>{
+    const f=vi.fn();vi.stubGlobal('fetch',f);
+    const r=await onRequestPost(await ctxOf({action:'azolik_ruxsat_set',kompaniya_id:17,azolik_id:12,permissions:{}}));expect(r.status).toBe(400);expect(f).not.toHaveBeenCalled();
+  });
+});
+
 describe('company -- member_password_set', () => {
   it('actor sessiyadan olinadi (so\'rov tanasidan EMAS), to\'g\'ri RPC chaqiriladi', async () => {
     const fetchSpy = vi.fn(async (url: string, init: { body: string }) => {

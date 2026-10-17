@@ -20,10 +20,12 @@
  * Ikkisini bir faylda saqlash — kelajakda tasodifan yozishga ruxsat
  * berib qo'yishning eng qisqa yo'li.
  */
+import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar } from '../_shared/tenant-oqish';
+import { roleAuthority, mayWriteCompanies } from '../_shared/role-authority';
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 
@@ -231,7 +233,7 @@ async function aktTasdiqlashRuxsati(
     if (!memberResponse.ok) return { ok: false, status: 403 };
     const rolePayload = await memberResponse.json() as unknown;
     const rol = typeof rolePayload === 'string' ? rolePayload : '';
-    if (!rol || rol === 'boss' || rol === 'rahbar') return { ok: false, status: 403 };
+    if (!['superadmin','admin','boss','pto','prorab','bugalter'].includes(rol)) return { ok: false, status: 403 };
     return { ok: true, kompaniyaId, rol };
   } catch {
     return { ok: false, status: 503 };
@@ -244,7 +246,7 @@ export const onRequestPost: PagesFunction<{
   const t0 = Date.now();
   try {
     const secret = ctx.env.SESSIYA_KALIT;
-    const sess = await tekshir(ctx.request.headers.get('Cookie'), secret);
+    let sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), secret);
     if (!sess) {
       return Response.json({ ok: false, error: 'Кириш талаб қилинади' }, { status: 401 });
     }
@@ -258,14 +260,13 @@ export const onRequestPost: PagesFunction<{
      * `rahbar` haqiqatan o'quvchi-nazoratchi). Bu global tekshiruv
      * ENDI faqat `rahbar`ni to'sadi; kompaniyaga xos aniq tekshiruv
      * pastda (`azolik.rol`) davom etadi. */
-    if (sess.rol === 'rahbar') {
-      return Response.json({ ok: false, error: 'Раҳбар режимида ёзиш мумкин эмас' },
-                           { status: 403 });
-    }
     if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) {
       return Response.json({ ok: false, sozlanmagan: true,
         error: 'Supabase sozlanmagan (SUPABASE_URL / SUPABASE_KEY)' });
     }
+
+    sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
+    if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE', error: 'Joriy ruxsatlarni tekshirib bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
 
     const so = await ctx.request.json<any>();
     /* Eski klientlar `amal` yubormaydi — ular qator tahriri qiladi. */
@@ -352,7 +353,7 @@ export const onRequestPost: PagesFunction<{
          * huquqiga ega, faqat `rahbar` emas). Shu kompaniyaga xos rol
          * `rahbar` bo'lsa, global rol boshqacha bo'lsa ham bu YOZUV
          * rad etiladi. */
-        if (azolik.rol === 'rahbar') {
+        if (!sess.permissionsByCompany && ['rahbar','buyurtmachi','pudratchi','kuzatuvchi'].includes(azolik.rol)) {
           return Response.json({ ok: false,
             error: 'Bu kompaniyada rahbar rolida yozish mumkin emas' },
             { status: 403 });
@@ -2511,6 +2512,9 @@ export const onRequestPost: PagesFunction<{
       if (!topilgan) return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED', error: 'Yozuv egasini tekshirib bo\'lmadi' }, { status: 502 });
       const ega = egaQarori(azoKompaniyalar(sess), talab, topilgan);
       if (!ega.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: ega.error }, { status: ega.status });
+      const targets = new Set(talab.kompaniyalar);
+      for (const rows of topilgan.values()) for (const companyId of rows.values()) if (companyId != null) targets.add(companyId);
+      if (!mayWriteCompanies(sess, [...targets], dataPermission(amal,true,so))) return Response.json({ ok: false, code: 'PERMISSION_DENIED', error: 'Bu kompaniyada yozish huquqingiz yo‘q.' }, { status: 403 });
     }
 
     /* Keep the public action names stable for old clients/tests, while

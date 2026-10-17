@@ -1,3 +1,4 @@
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { aiPublicError, parseJsonText } from '../_shared/ai';
 import { AiByudjetXatosi, aiHisobli } from '../_shared/ai-hisobli';
@@ -49,7 +50,7 @@ function approxBytes(base64: string): number {
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const started = Date.now();
   try {
-    const session = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+    const session = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
     if (!session) return jsonError('Кириш талаб қилинади', 401);
 
     let body: { base64?: string; mimeType?: string; nomi?: string; text?: string; kompaniya_id?: unknown };

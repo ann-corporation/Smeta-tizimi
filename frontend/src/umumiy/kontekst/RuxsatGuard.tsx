@@ -16,6 +16,7 @@
  * their own authorization and already fail closed.
  */
 import { Outlet, useLocation } from 'react-router-dom';
+import { routePermission } from '../../lib/company-authorization/route-permission';
 import { ShieldAlert, LogOut, RefreshCw, Loader2 } from 'lucide-react';
 import { useKompaniya } from './KompaniyaKontekst';
 import { KompaniyaKerak } from './KompaniyaKerak';
@@ -62,6 +63,7 @@ export function RuxsatGuard() {
   // No selected company (global rejim, no membership, or unselected) ->
   // existing professional empty state; nothing protected renders.
   if (!k.joriyId) return <KompaniyaKerak />;
+  if(!k.superadmin && k.joriy?.permissions && !k.joriy.permissions.includes(routePermission(pathname))) return <RuxsatYoq reason="PERMISSION_DENIED"/>;
 
   return <ServerAuthGate kompaniyaId={k.joriyId} />;
 }

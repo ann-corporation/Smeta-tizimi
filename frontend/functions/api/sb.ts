@@ -25,10 +25,12 @@
  *   { ok: true, qatorlar: [...], soni: 1234, ms: 87 }
  *   { ok: false, error: "..." }
  */
+import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
+import { roleAuthority } from '../_shared/role-authority';
 
 /* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA va `_shared/tenant-oqish.ts` dagi
    OQISH_SIYOSATI ga (aniq izolyatsiya siyosati bilan) qo'shiladi — ikkalasi bir xil bo'lishi testda majburiy.
@@ -146,7 +148,7 @@ export const onRequestPost: PagesFunction<{
   const t0 = Date.now();
   try {
     const secret = ctx.env.SESSIYA_KALIT;
-    const sess = await tekshir(ctx.request.headers.get('Cookie'), secret);
+    let sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), secret);
     if (!sess) {
       return Response.json({ ok: false, error: 'Кириш талаб қилинади' }, { status: 401 });
     }
@@ -160,6 +162,9 @@ export const onRequestPost: PagesFunction<{
       });
     }
 
+    sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
+    if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE', error: 'Joriy ruxsatlarni tekshirib bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
+
     const so = await ctx.request.json<{
       jadval?: string; filtr?: string; ustunlar?: string;
       tartib?: string; limit?: number;
@@ -168,6 +173,11 @@ export const onRequestPost: PagesFunction<{
       /* ABC kutubxona qidiruvi (2026-10-01). */
       q?: string; kat?: string; items?: Array<{ nom?: string; birlik?: string }>;
     }>();
+
+    if (sess.permissionsByCompany && sess.rol!=='superadmin') {
+      const permission=dataPermission(String(so.jadval||so.soro||''),false);
+      sess={...sess,kompaniyalar:sess.kompaniyalar?.filter(a=>sess!.permissionsByCompany![a.kompaniya_id]?.includes(permission))};
+    }
 
     /* ══════════ O'QISH-RPC (AI konteksti) ══════════════════════════════
      * ⚠️ ATAYLAB O'TA TOR: bu yerda faqat SANAB O'TILGAN, FAQAT O'QIYDIGAN

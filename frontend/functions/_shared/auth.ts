@@ -16,6 +16,9 @@ export type Rol = 'superadmin' | 'admin' | 'boss' | 'rahbar' | 'bugalter' | 'pto
  * qo'llanmaydi" deb talqin qiladi — YANGI kirishlar esa to'liq
  * tekshiriladi. */
 export type Sess = {
+  /** Server-request-only DB snapshot. Never accepted as caller authority. */
+  permissionsByCompany?: Record<number, string[]>;
+  explicitDenialsByCompany?: Record<number, string[]>;
   rol: Rol;
   email?: string;
   exp: number;

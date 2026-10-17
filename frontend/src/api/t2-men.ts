@@ -10,6 +10,8 @@ export type Azolik = {
   rol: string; is_director: boolean; holat: string; faol: boolean;
 };
 export type Men = {
+  platform_role?: 'superadmin' | 'none';
+  context_kompaniyalar?: { kompaniya_id: number; nom: string; kod: string; faol: boolean; membership_role: string | null; effective_role: string; is_director: boolean; permissions?:string[] }[];
   ok: true;
   foydalanuvchi: { id: number; login: string; ism: string | null; email: string | null; holat: string };
   azoliklar: Azolik[];
@@ -159,11 +161,7 @@ export type MemberPasswordSetInput = { kompaniya_id: number; foydalanuvchi_id: n
  * tekshiruvlarga (hozircha ko'pchilik yozish RPC'lari emas) ta'sir
  * qiladi — UI shuni ochiq ko'rsatishi kerak.
  */
-export type QoshimchaRuxsat =
-  | 'company.read' | 'company.profile.update' | 'company.member.manage'
-  | 'control.company.read' | 'control.company.write'
-  | 'project.read' | 'project.write' | 'object.read' | 'object.write'
-  | 'document.read' | 'document.write' | 'financial.read' | 'financial.write';
+export type QoshimchaRuxsat = Exclude<import('../lib/company-authorization/effective-authorization').PermissionCode,'control.global.read'|'control.global.write'>;
 export const QOSHIMCHA_RUXSATLAR: QoshimchaRuxsat[] = [
   'company.read', 'company.profile.update', 'company.member.manage',
   'control.company.read', 'control.company.write',
@@ -171,10 +169,12 @@ export const QOSHIMCHA_RUXSATLAR: QoshimchaRuxsat[] = [
   'document.read', 'document.write', 'financial.read', 'financial.write',
 ];
 export type AzolikRuxsat = {
+  ruxsat_versiya?:number; protected?:boolean; base_permissions?:QoshimchaRuxsat[]; effective_permissions?:QoshimchaRuxsat[];
   azolik_id: number; foydalanuvchi_id: number; login: string; ism: string | null;
   rol: string; qoshimcha_ruxsatlar: QoshimchaRuxsat[];
 };
 export type AzolikRuxsatBerInput = { kompaniya_id: number; azolik_id: number; ruxsat: QoshimchaRuxsat; operation_id?: string };
+export type AzolikRuxsatSetInput = { kompaniya_id:number; azolik_id:number; permissions:Record<string,boolean>; expected_version:number; operation_id?:string };
 
 export async function azolikRuxsatlariOl(kompaniyaId: number): Promise<{ azolar: AzolikRuxsat[] }> {
   const r = await fetch('/api/company?azolik_ruxsatlari=' + Number(kompaniyaId));
@@ -202,11 +202,14 @@ export const azoOchir = (i: MemberRemoveInput) => post('member_remove', i);
 export const azoParolBelgila = (i: MemberPasswordSetInput) => post('member_password_set', i);
 export const azolikRuxsatBer = (i: AzolikRuxsatBerInput) => post('azolik_ruxsat_ber', i);
 export const azolikRuxsatOlibTashla = (i: AzolikRuxsatBerInput) => post('azolik_ruxsat_olib_tashla', i);
+export const azolikRuxsatSet = (i: AzolikRuxsatSetInput) => post('azolik_ruxsat_set',i);
 
 export function useOnboardingCommands() {
   const qc = useQueryClient();
   const done = () => {
     qc.invalidateQueries({ queryKey: ['men'] });
+    qc.invalidateQueries({ queryKey: ['authz'] });
+    qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] });
     qc.invalidateQueries({ queryKey: ['kompaniyaAzolari'] });
   };
   const royxatDone = () => {
@@ -214,6 +217,7 @@ export function useOnboardingCommands() {
     qc.invalidateQueries({ queryKey: ['kompaniyaRoyxatlar'] });
   };
   return {
+    azolikRuxsatSet:useMutation({mutationFn:azolikRuxsatSet,onSuccess:done}),
     yarat: useMutation({ mutationFn: kompaniyaYarat, onSuccess: done }),
     royxatSoraw: useMutation({ mutationFn: kompaniyaRoyxatSoraw, onSuccess: () => qc.invalidateQueries({ queryKey: ['kompaniyaRoyxatlar'] }) }),
     royxatTasdiqla: useMutation({ mutationFn: kompaniyaRoyxatTasdiqla, onSuccess: royxatDone }),
@@ -225,11 +229,11 @@ export function useOnboardingCommands() {
     azoParolBelgila: useMutation({ mutationFn: azoParolBelgila }),
     azolikRuxsatBer: useMutation({
       mutationFn: azolikRuxsatBer,
-      onSuccess: () => qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }),
+      onSuccess: () => { qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }); qc.invalidateQueries({ queryKey: ['authz'] }); },
     }),
     azolikRuxsatOlibTashla: useMutation({
       mutationFn: azolikRuxsatOlibTashla,
-      onSuccess: () => qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }),
+      onSuccess: () => { qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }); qc.invalidateQueries({ queryKey: ['authz'] }); },
     }),
   };
 }
