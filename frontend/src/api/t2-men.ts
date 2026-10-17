@@ -10,6 +10,8 @@ export type Azolik = {
   rol: string; is_director: boolean; holat: string; faol: boolean;
 };
 export type Men = {
+  platform_role?: 'superadmin' | 'none';
+  context_kompaniyalar?: { kompaniya_id: number; nom: string; kod: string; faol: boolean; membership_role: string | null; effective_role: string; is_director: boolean }[];
   ok: true;
   foydalanuvchi: { id: number; login: string; ism: string | null; email: string | null; holat: string };
   azoliklar: Azolik[];
@@ -207,6 +209,8 @@ export function useOnboardingCommands() {
   const qc = useQueryClient();
   const done = () => {
     qc.invalidateQueries({ queryKey: ['men'] });
+    qc.invalidateQueries({ queryKey: ['authz'] });
+    qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] });
     qc.invalidateQueries({ queryKey: ['kompaniyaAzolari'] });
   };
   const royxatDone = () => {
@@ -225,11 +229,11 @@ export function useOnboardingCommands() {
     azoParolBelgila: useMutation({ mutationFn: azoParolBelgila }),
     azolikRuxsatBer: useMutation({
       mutationFn: azolikRuxsatBer,
-      onSuccess: () => qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }),
+      onSuccess: () => { qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }); qc.invalidateQueries({ queryKey: ['authz'] }); },
     }),
     azolikRuxsatOlibTashla: useMutation({
       mutationFn: azolikRuxsatOlibTashla,
-      onSuccess: () => qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }),
+      onSuccess: () => { qc.invalidateQueries({ queryKey: ['azolikRuxsatlari'] }); qc.invalidateQueries({ queryKey: ['authz'] }); },
     }),
   };
 }

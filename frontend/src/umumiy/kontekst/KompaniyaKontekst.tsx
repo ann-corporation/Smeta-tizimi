@@ -35,6 +35,7 @@ export type KompaniyaQisqa = {
   nom: string;
   kod: string;
   rol: string;
+  membershipRole?: string | null;
   is_director: boolean;
   /** Eski UI mosli­gi uchun — `t2_men_v1` bermaydi, hozircha null. */
   mavqe: KompaniyaMavqe | null;
@@ -137,13 +138,13 @@ export function KompaniyaProvider({ children }: { children: ReactNode }) {
   }, [uid]);
 
   const kompaniyalar = useMemo<KompaniyaQisqa[]>(
-    () => (men?.azoliklar ?? [])
+    () => men?.context_kompaniyalar ? men.context_kompaniyalar.filter(a => a.faol).map(a => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.effective_role, membershipRole: a.membership_role, is_director: a.is_director, mavqe: null })) : (men?.azoliklar ?? [])
       .filter((a) => a.faol !== false)
       .map((a) => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.rol, is_director: a.is_director, mavqe: null })),
     [men],
   );
   const superadmin = useMemo(
-    () => (men?.azoliklar ?? []).some((a) => a.rol === 'superadmin' || a.rol === 'admin'),
+    () => men?.platform_role === 'superadmin' || (men?.platform_role == null && (men?.azoliklar ?? []).some((a) => a.rol === 'superadmin')),
     [men],
   );
 
@@ -160,7 +161,7 @@ export function KompaniyaProvider({ children }: { children: ReactNode }) {
     const valid = kompaniyalar.find((k) => k.id === wantId);
     if (valid) { setJoriyId(valid.id); setGlobalRejim(false); yoz(valid.id, false); return; }
     if (kompaniyalar.length === 1) { setJoriyId(kompaniyalar[0].id); setGlobalRejim(false); yoz(kompaniyalar[0].id, false); return; }
-    if (kompaniyalar.length === 0 && superadmin) { setGlobalRejim(true); yoz(null, true); return; }
+    if (superadmin) { setJoriyId(null); setGlobalRejim(true); yoz(null, true); return; }
     setJoriyId(null); setGlobalRejim(false); yoz(null, false); // ko'p kompaniya, tanlov yo'q -> selector
   }, [men]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -7,6 +7,16 @@ const facts = (patch: Partial<AuthorizationFacts> = {}): AuthorizationFacts =>
   ({ platformRole: 'none', membershipRole: 'pto', projectScope: 'write', objectScope: 'write', targetScopeValid: true, ...patch });
 
 describe('T2 Company Control effective authorization', () => {
+  it('platform superadmin company PTO rolidan ustun', () => {
+    expect(effectiveAuthorization(ctx('company.member.manage'), facts({ platformRole: 'superadmin', platformCompanyContext: true, membershipRole: 'pto' })).allowed).toBe(true);
+  });
+  it('boss o‘z kompaniyasining barcha loyihalarini boshqaradi', () => {
+    expect(effectiveAuthorization(ctx('object.write'), facts({ membershipRole: 'boss', projectScope: 'none', objectScope: 'none' })).allowed).toBe(true);
+  });
+  it('boss boshqa kompaniya yoki global boshqaruvga o‘tmaydi', () => {
+    expect(effectiveAuthorization(ctx('object.write'), facts({ membershipRole: 'boss', targetScopeValid: false })).allowed).toBe(false);
+    expect(effectiveAuthorization(ctx('control.global.write', { companyId: null }), facts({ membershipRole: 'boss' })).allowed).toBe(false);
+  });
   it('A=boss, B=pto: role company context bilan almashadi', () => {
     expect(effectiveAuthorization(ctx('company.profile.update'), facts({ membershipRole: 'boss' })).allowed).toBe(true);
     expect(effectiveAuthorization(ctx('company.profile.update'), facts({ membershipRole: 'pto' })).allowed).toBe(false);

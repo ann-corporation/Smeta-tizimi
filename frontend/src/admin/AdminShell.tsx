@@ -182,7 +182,7 @@ function AdminShellInner() {
   // Effective role for THIS render: the active company's own membership
   // role, or a platform-level label when no company is selected. Never the
   // stale global session role.
-  const effektivRol: string = k.globalRejim ? 'superadmin' : (k.joriy?.rol ?? '');
+  const effektivRol: string = k.superadmin ? 'superadmin' : (k.joriy?.rol ?? '');
 
   // Avtomatik ochish logikasi -- standart YOPIQ (2026-09-07: bu bo'lim
   // hamma vaqt ochiq turgani "sayt eski/chalkash ko'rinadi" shikoyatining
@@ -325,7 +325,8 @@ function AdminShellInner() {
             <div className="min-w-0">
               <h1 className="text-[15px] font-bold text-text leading-tight tracking-wider whitespace-nowrap truncate" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'SMETA TIZIM 02'}</h1>
               <p className="text-[11px] text-text-dim uppercase tracking-wider font-medium mt-0.5 text-accent/80 whitespace-nowrap">
-                👑 {k.globalRejim ? 'Global (superadmin)' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan'))}
+                👑 {k.superadmin ? 'Superadmin · platforma' : (k.joriy?.rol === 'boss' ? 'Kompaniya rahbari' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan')))}
+                {k.superadmin && k.joriy?.membershipRole && <span className="block text-[11px] font-normal">Kompaniyadagi vazifa: {k.joriy.membershipRole}</span>}
               </p>
             </div>
           )}

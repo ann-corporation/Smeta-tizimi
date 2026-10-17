@@ -141,7 +141,7 @@ export function effectiveAuthorization(ctx: AuthorizationContext, facts: Authori
   if (!permissions.includes(ctx.permission)) return denied(ctx, facts, 'COMPANY_MEMBERSHIP_REQUIRED', membership ?? null);
   if (ctx.capability && facts.capabilities?.[ctx.capability] === false) return denied(ctx, facts, 'CAPABILITY_DISABLED', membership ?? null);
 
-  if (scopeNeeded(ctx.permission) && !platformInCompany) {
+  if (scopeNeeded(ctx.permission) && !platformInCompany && membership !== 'boss' && membership !== 'admin') {
     if (ctx.projectId == null) return denied(ctx, facts, 'TARGET_SCOPE_INVALID', membership ?? null);
     const needed = LEVEL[scopeLevelNeeded(ctx.permission)];
     const projectAllowed = LEVEL[facts.projectScope ?? 'none'] >= needed;

@@ -9,6 +9,7 @@ async function read(total: number, failOffset?: number, objectCompany = 17, tabl
   const pages: Array<{ offset: number; count: string | null; url: string }> = [];
   vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
     const url = new URL(String(u));
+    if (url.pathname === '/rest/v1/rpc/t2_men_v1') return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' }, azoliklar: [{ kompaniya_id: 17, rol: 'pto', faol: true }] });
     if (url.pathname === '/rest/v1/t2_obyekt') return Response.json([{ kompaniya_id: objectCompany }]);
     const offset = Number(url.searchParams.get('offset'));
     pages.push({ offset, count: new Headers(init?.headers).get('Prefer'), url: url.toString() });

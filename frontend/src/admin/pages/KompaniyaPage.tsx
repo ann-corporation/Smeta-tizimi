@@ -25,6 +25,7 @@ import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { tizimdanChiq } from '../../umumiy/kontekst/chiqish';
 import { KompaniyaLogoYuklash } from '../../umumiy/hujjat/KompaniyaLogo';
 import { PERMISSIONS, ROLE_PERMISSIONS, MEMBERSHIP_ROLES } from '../../lib/company-authorization/effective-authorization';
+import { PERMISSION_LABELS, ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
 
 const AZO_ROLLAR = ['boss', 'rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'] as const;
 const MAVQE_VARIANTLAR = ['zakazchik', 'pudratchi', 'loyihachi'] as const;
@@ -244,7 +245,8 @@ function ProfilTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirecto
 function RollarTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirector: boolean }) {
   return (
     <div className="space-y-4">
-      <div className="karta p-4 overflow-x-auto">
+      <details className="karta p-4 overflow-x-auto">
+        <summary className="cursor-pointer font-medium text-sm">Standart lavozimlar va ularning ruxsatlari</summary>
         <p className="text-[12px] text-text-dim mb-3">
           Bu — tizimning haqiqiy ruxsat qonuni (<code>t2_effective_authorization_v1</code> /
           <code> effective-authorization.ts</code> bilan bir xil manba). Rolning o‘zi shu yerdan
@@ -263,7 +265,7 @@ function RollarTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirecto
           <tbody>
             {MEMBERSHIP_ROLES.filter((r) => r !== 'superadmin' && r !== 'admin').map((rol) => (
               <tr key={rol} className="border-b border-border/40">
-                <td className="py-1.5 pr-3 font-medium">{rol}</td>
+                  <td className="py-1.5 pr-3 font-medium">{ROLE_LABELS[rol] || rol}</td>
                 {PERMISSIONS.filter((p) => !p.startsWith('control.global')).map((p) => (
                   <td key={p} className="py-1.5 px-1.5 text-center">
                     {ROLE_PERMISSIONS[rol].includes(p) ? <span className="text-emerald-400">✓</span> : <span className="text-text-mute/40">·</span>}
@@ -273,7 +275,7 @@ function RollarTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirecto
             ))}
           </tbody>
         </table>
-      </div>
+      </details>
       <QoshimchaRuxsatlarBoshqaruv kompaniyaId={kompaniyaId} isDirector={isDirector} />
     </div>
   );
@@ -303,11 +305,13 @@ function QoshimchaRuxsatlarBoshqaruv({ kompaniyaId, isDirector }: { kompaniyaId:
   }
   return (
     <div className="karta p-4">
-      <div className="text-[13px] font-semibold mb-1">A‘zolarga qo‘shimcha ruxsat</div>
+      <div className="text-[13px] font-semibold mb-1">A’zo ruxsatlari konstruktori</div>
       <p className="text-[11px] text-text-mute mb-3">
-        Masalan: bir prorabga rolini o‘zgartirmasdan <code>financial.read</code> ko‘rish huquqini
-        qo‘shish. Bu — rol tayinlash emas, faqat qo‘shimcha huquq.
+        A’zoni oching va kerakli qo‘shimcha huquqni belgilang. «Lavozimdan» berilgan huquqni
+        kamaytirish uchun A’zolar bo‘limida boshqa lavozim tanlang. Superadmin — platforma,
+        rahbar esa faqat o‘z kompaniyasi doirasida to‘liq boshqaruvga ega.
       </p>
+      <p className="text-[11px] text-amber-300 mb-3">Qo‘shimcha belgilar umumiy ruxsat tekshiruvlarida ishlaydi. Fakt, F2 tasdig‘i va boshqa maxsus amallarda serverning alohida lavozim talablari ham saqlanadi.</p>
       {q.isLoading && <div className="text-[12px] text-text-dim flex items-center gap-2"><Loader2 className="animate-spin" size={13} /> yuklanmoqda…</div>}
       {q.isError && <div className="text-[12px] text-rose-300">A‘zolar ro‘yxati o‘qilmadi.</div>}
       {q.data && (
@@ -326,16 +330,17 @@ function QoshimchaRuxsatlarBoshqaruv({ kompaniyaId, isDirector }: { kompaniyaId:
               </button>
               {ochiqAzolikId === a.azolik_id && (
                 <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                  {QOSHIMCHA_RUXSATLAR.filter((r) => !ROLE_PERMISSIONS[a.rol as keyof typeof ROLE_PERMISSIONS]?.includes(r)).map((r) => {
-                    const bor = a.qoshimcha_ruxsatlar.includes(r);
+                  {QOSHIMCHA_RUXSATLAR.map((r) => {
+                    const lavozimdan = !!ROLE_PERMISSIONS[a.rol as keyof typeof ROLE_PERMISSIONS]?.includes(r);
+                    const bor = lavozimdan || a.qoshimcha_ruxsatlar.includes(r);
                     return (
                       <label key={r} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
-                        <input type="checkbox" checked={bor} disabled={cmd.azolikRuxsatBer.isPending || cmd.azolikRuxsatOlibTashla.isPending}
+                        <input type="checkbox" checked={bor} disabled={lavozimdan || cmd.azolikRuxsatBer.isPending || cmd.azolikRuxsatOlibTashla.isPending}
                           onChange={() => {
                             if (bor) cmd.azolikRuxsatOlibTashla.mutate({ kompaniya_id: kompaniyaId, azolik_id: a.azolik_id, ruxsat: r });
                             else cmd.azolikRuxsatBer.mutate({ kompaniya_id: kompaniyaId, azolik_id: a.azolik_id, ruxsat: r });
                           }} />
-                        {r}
+                        <span>{PERMISSION_LABELS[r]}<span className="block text-text-mute">{lavozimdan ? 'Lavozimdan' : bor ? 'Individual qo‘shimcha' : 'Berilmagan'}</span></span>
                       </label>
                     );
                   })}
@@ -571,8 +576,8 @@ export default function KompaniyaPage() {
      superadmin`) — bu yerdagi tekshiruv faqat UI uchun, xavfsizlik
      RPC darajasida. */
   const menSuperadmin = useMemo(
-    () => (q.data?.azoliklar ?? []).some((a) => a.rol === 'superadmin'),
-    [q.data],
+    () => k.superadmin,
+    [q.data, k.superadmin],
   );
 
   if (q.isLoading) return <div className="p-6 text-sm text-text-dim flex items-center gap-2"><Loader2 className="animate-spin" size={16} /> Yuklanmoqda…</div>;
@@ -698,7 +703,7 @@ export default function KompaniyaPage() {
           <ControlCenterTabs
             kompaniyaId={k.joriyId}
             kompaniyaNom={k.joriy?.nom ?? ''}
-            isDirector={direktorKompaniyalar.some((d) => d.kompaniya_id === k.joriyId)}
+            isDirector={k.superadmin || direktorKompaniyalar.some((d) => d.kompaniya_id === k.joriyId)}
           />
         )}
       </section>

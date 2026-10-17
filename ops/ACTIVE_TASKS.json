@@ -3,6 +3,15 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "T2-ROLES-CONTROL-20261017",
+      "title": "Platforma vakolati va kompaniya vazifasini ajratish, boss va ruxsat konstruktori",
+      "owner": "codex", "machine": "noutbuk-roles", "branch": "codex/roles-control-20261017",
+      "base_sha": "cded626d8aacd5e468b6ac224fb5f318f1113b43", "status": "in_progress",
+      "owns": ["frontend/src/lib/company-authorization/", "frontend/src/umumiy/kontekst/KompaniyaKontekst.tsx", "frontend/src/admin/AdminShell.tsx", "frontend/src/admin/pages/KompaniyaPage.tsx", "frontend/src/api/t2-men.ts", "frontend/functions/_shared/role-authority.ts", "frontend/functions/api/company.ts", "frontend/functions/api/sessiya.ts"],
+      "depends_on": [], "must_read": [], "production_write_allowed": false,
+      "_izoh": "Egasi 2026-10-17 rol tizimini tuzatish va main/deployni bevosita topshirdi. Alohida worktree; boshqa lane/billing/Studio o'zgarmaydi."
+    },
+    {
       "id": "T2-PUBLIC-ENTRY-UI-20261008",
       "title": "Egasi bevosita topshirig'i: public intro va mavjud login/signup presentation",
       "owner": "codex",
