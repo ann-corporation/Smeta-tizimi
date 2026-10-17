@@ -14,7 +14,7 @@ import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-re
 import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, PriceJustification } from '../../lib/smeta-studio/model';
-import { matchResource, type MatchCatalog, type MatchPriceRow } from '../../lib/smeta-studio/resource-match';
+import { indeksniTayyorla, matchResource, type MatchCatalog, type MatchPriceRow } from '../../lib/smeta-studio/resource-match';
 import { aiNarxlash, loyihaBoyicha, qatorKategoriyasi, qaytaHisobla, katalogdanNarxlanadi, narxBuyruqlari, narxNomi, narxNomzodlari, ortachaQil, qatorNomzodi, resursGuruhlari,
   type AiNarxNatija, type NarxNomzod, type ResursGuruh } from '../../lib/smeta-studio/narx-yigish';
 import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
@@ -99,7 +99,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   }, [kompaniyaId, kpmVersiya]);
   useEffect(() => {
     let alive = true;
-    narxKatalogi().then(c => { if (alive) { setCat(c); setCatHolat('tayyor'); } }).catch(() => { if (alive) setCatHolat('xato'); });
+    // The matcher index is built in slices before pricing may start (one-shot build froze the page ≈ 6 s).
+    narxKatalogi().then(async c => { await indeksniTayyorla(c.matchView()); if (alive) { setCat(c); setCatHolat('tayyor'); } }).catch(() => { if (alive) setCatHolat('xato'); });
     loadHourCatalog().then(c => { if (alive) { setSoat(c); setDavr(labourPeriods(c)[0] ?? null); } }).catch(() => {})
       .finally(() => { if (alive) setYuklandi(y => ({ ...y, soat: true })); });
     return () => { alive = false; };

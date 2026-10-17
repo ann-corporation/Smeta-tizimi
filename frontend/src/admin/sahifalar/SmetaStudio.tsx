@@ -19,6 +19,7 @@ import { SmetaDocumentPanel } from '../../components/smeta-studio-pro/SmetaDocum
 import { studioPanelLabels } from '../../components/smeta-studio-pro/studioPanelLabels';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
+import { indeksniTayyorla } from '../../lib/smeta-studio/resource-match';
 import { HUDUD_KALIT, lsGet, lsSet, unitTextOf } from './studio-sozlama';
 import { KoeffitsientlarPaneli, NarxlashBosqichi, ResBosqichi } from './StudioBosqichlar';
 import { MateriallarPaneli } from './StudioMateriallar';
@@ -74,7 +75,8 @@ export default function SmetaStudio() {
   const setBosqich = (b: Bosqich) => { setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
   const ishlarSoni = Object.keys(doc.occurrences).length;
   const hajmsiz = Object.values(doc.occurrences).filter(o => o.quantity == null).length;
-  useEffect(() => { let alive = true; narxKatalogi().then(c => { if (alive) setNarxKat(c); }).catch(() => {}); return () => { alive = false; }; }, []);
+  // Warm the price matcher index in the background while the user works on the LRV — pricing then starts at once.
+  useEffect(() => { let alive = true; narxKatalogi().then(c => { if (alive) setNarxKat(c); void indeksniTayyorla(c.matchView()); }).catch(() => {}); return () => { alive = false; }; }, []);
   // One local draft per browser: a second open studio tab would overwrite it (seen in a real run) — say so plainly.
   const [boshqaTab, setBoshqaTab] = useState(false);
   useEffect(() => {

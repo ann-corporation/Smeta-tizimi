@@ -189,18 +189,43 @@ export function gateFailure(src: Characteristics, cand: Characteristics, srcUnit
 
 type Index = { stems: Map<string, number[]>; chars: Characteristics[]; norm: string[] };
 const cache = new WeakMap<MatchCatalog, Index>();
+function bosIndeks(size: number): Index { return { stems: new Map(), chars: new Array(size), norm: new Array(size) }; }
+function indeksQadami(cat: MatchCatalog, ix: Index, from: number, to: number) {
+  for (let i = from; i < to; i++) {
+    if (cat.price(i) == null) continue;
+    const c = characteristics(cat.name(i));
+    ix.chars[i] = c; ix.norm[i] = normName(cat.name(i));
+    for (const w of c.words) { const l = ix.stems.get(w); if (l) l.push(i); else ix.stems.set(w, [i]); }
+  }
+}
+const tayyorlanmoqda = new WeakMap<MatchCatalog, Promise<void>>();
+/**
+ * Builds the index in slices, yielding to the page between them. On the 132 856-row price index the one-shot build froze
+ * the Studio for ≈ 6 s at the first pricing (production 2026-10-17); call this as soon as the catalogue arrives.
+ */
+export function indeksniTayyorla(cat: MatchCatalog, bolak = 4000): Promise<void> {
+  if (cache.has(cat)) return Promise.resolve();
+  let p = tayyorlanmoqda.get(cat);
+  if (!p) {
+    p = (async () => {
+      const ix = bosIndeks(cat.size);
+      for (let i = 0; i < cat.size; i += bolak) {
+        if (cache.has(cat)) return; // a synchronous build won meanwhile
+        indeksQadami(cat, ix, i, Math.min(i + bolak, cat.size));
+        await new Promise(r => setTimeout(r, 0));
+      }
+      if (!cache.has(cat)) cache.set(cat, ix);
+    })();
+    tayyorlanmoqda.set(cat, p);
+  }
+  return p;
+}
 /** Built once per catalogue revision: stem → row indices (only priced rows). */
 function indexOf(cat: MatchCatalog): Index {
   let ix = cache.get(cat);
   if (ix) return ix;
-  const stems = new Map<string, number[]>(), chars: Characteristics[] = new Array(cat.size), norm: string[] = new Array(cat.size);
-  for (let i = 0; i < cat.size; i++) {
-    if (cat.price(i) == null) continue;
-    const c = characteristics(cat.name(i));
-    chars[i] = c; norm[i] = normName(cat.name(i));
-    for (const w of c.words) { const l = stems.get(w); if (l) l.push(i); else stems.set(w, [i]); }
-  }
-  ix = { stems, chars, norm };
+  ix = bosIndeks(cat.size);
+  indeksQadami(cat, ix, 0, cat.size);
   cache.set(cat, ix);
   return ix;
 }
