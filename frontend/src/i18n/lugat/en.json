@@ -1775,5 +1775,7 @@
   "AI taxmini — to‘g‘rimi?": "AI assumption — correct?",
   "Norma varianti: {s}": "Norm variant: {s}",
   "Ha, to‘g‘ri": "Yes, correct",
-  "Yo‘q, to‘g‘risini yozaman": "No, I will write the right one"
+  "Yo‘q, to‘g‘risini yozaman": "No, I will write the right one",
+  "Hujjat uchun avval kompaniyani tanlang.": "Select a company first to get the document.",
+  "Hujjat berilmadi — sababi narxlash/RES bosqichida ko‘rsatildi.": "Document not issued — the reason is shown on the RES step."
 }

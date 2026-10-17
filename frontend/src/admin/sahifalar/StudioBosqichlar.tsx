@@ -7,6 +7,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { agentRegister, jarayonYoz } from './studioAgent';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { t } from '../../i18n/til';
 import type { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
@@ -557,18 +558,27 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
     const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a'); a.href = url; a.download = nom; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
+  /** Official documents are billed by filled cells like every other document (token session 2026-10-16); the file is given only after payment. */
+  async function tokenBilanBer(bytes: Uint8Array, nom: string, hujjat: string, sabab: string): Promise<string | null> {
+    if (kompaniyaId == null) { setXabar(t('Hujjat uchun avval kompaniyani tanlang.')); return null; }
+    const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat, sabab: `${sabab} · ${doc.context.objectLabel || doc.context.title || 'Smeta'}` }, () => yuklabBer(bytes, nom));
+    if (!r.ok) { setXabar(r.xabar); return null; }
+    return r.xabar;
+  }
   /** «ПРОТОКОЛ СОГЛАСОВАНИЯ ЦЕН» between the client and the contractor for the estimate's own prices. */
-  async function protokolYukla() {
+  async function protokolYukla(): Promise<string | null> {
     try {
       const [{ studioProtokolQatorlari, STUDIO_PROTOKOL_USTUNLARI, STUDIO_PROTOKOL_MAQSADI }, { narxProtokolXlsx }] = await Promise.all([
         import('../../lib/smeta-studio/abc-hujjat'), import('../../lib/narx-protokol-hujjat')]);
       const qatorlar = studioProtokolQatorlari(doc, hisob, unitText);
-      if (!qatorlar.length) { setXabar(t('Protokol uchun narxlangan resurs yo‘q — avval narxlang.')); return; }
+      if (!qatorlar.length) { setXabar(t('Protokol uchun narxlangan resurs yo‘q — avval narxlang.')); return null; }
       const r = narxProtokolXlsx(qatorlar, { obyektNomi: doc.context.objectLabel || doc.context.title || 'Smeta', raqam: protokol.raqam.trim() || '1', sana: protokol.sana,
         imzo: tomonlar, ustunNomlari: STUDIO_PROTOKOL_USTUNLARI, maqsad: STUDIO_PROTOKOL_MAQSADI });
-      yuklabBer(r.bytes, r.faylNomi);
-      setXabar(t('Narxlarni kelishish protokoli yuklandi: {n} pozitsiya. Ikki tomon imzosidan keyin kuchga kiradi.', { n: r.soni }));
-    } catch { setXabar(t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.')); }
+      const tx = await tokenBilanBer(r.bytes, r.faylNomi, 'PROTOKOL_NARX', 'Протокол согласования цен');
+      if (tx == null) return null;
+      const m = t('Narxlarni kelishish protokoli yuklandi: {n} pozitsiya. Ikki tomon imzosidan keyin kuchga kiradi.', { n: r.soni }) + (tx ? ` · ${tx}` : '');
+      setXabar(m); return m;
+    } catch { setXabar(t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.')); return null; }
   }
   const { ks, narxsiz, aniqlanmagan } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
   const kaskad = doc.rates && !doc.rates.podval ? nakrutkaKaskadJS(ks, doc.rates.values) : null;
@@ -577,21 +587,26 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
   const maxsusQatorlar = maxsus ? maxsus.p.qatorlar.map(q => <tr key={q.kod} className={q.tur === 'jami' ? 'font-semibold' : ''}><td className="px-2 py-0.5">{q.nom}{q.tur === 'foiz' && q.foiz != null ? ` (${String(q.foiz).replace('.', ',')}%)` : ''}</td>
             <td className="px-2 py-0.5 text-right tabular-nums">{maxsus.h.qiymat[q.kod] == null ? '—' : fmt(maxsus.h.qiymat[q.kod]!)}</td></tr>) : null;
   const workUnit = (code: string | null) => (code && katalog ? katalog.unit(code)?.text ?? null : null);
-  async function yukla() {
+  async function yukla(): Promise<string | null> {
     try {
       const { abcHujjat } = await import('../../lib/smeta-studio/abc-hujjat');
       const r = abcHujjat(doc, hisob, { resource: unitText, work: workUnit }, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null, imzo: tomonlar });
-      yuklabBer(r.bytes, hisob.total.unresolved ? `DRAFT_${r.faylNomi}` : r.faylNomi);
-      setXabar(hisob.total.unresolved ? t('Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.') : t('LRV va RES yuklandi (tirik formulalar).'));
+      const tx = await tokenBilanBer(r.bytes, hisob.total.unresolved ? `DRAFT_${r.faylNomi}` : r.faylNomi, 'LRV_RES', 'ЛРВ + РС + обоснование цен');
+      if (tx == null) return null;
+      const m = (hisob.total.unresolved ? t('Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.') : t('LRV va RES yuklandi (tirik formulalar).')) + (tx ? ` · ${tx}` : '');
+      setXabar(m); return m;
     } catch (e) {
       setXabar(e instanceof Error && e.message === 'LRV_BOSH' ? t('Hujjat uchun avval smetaga ish qo‘shing.') : t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.'));
+      return null;
     }
   }
   const hujjatRef = useRef({ yukla, protokolYukla });
   hujjatRef.current = { yukla, protokolYukla };
   useEffect(() => agentRegister('hujjat', async v => {
-    if (v === 'protokol') { await hujjatRef.current.protokolYukla(); return t('Narxlarni kelishish protokoli yuklandi.'); }
-    await hujjatRef.current.yukla(); return t('LRV + RES + обоснование yuklandi.');
+    // The agent reports what really happened (paid and given, or why not) — never a success it did not see.
+    const m = v === 'protokol' ? await hujjatRef.current.protokolYukla() : await hujjatRef.current.yukla();
+    if (m == null) throw new Error(t('Hujjat berilmadi — sababi narxlash/RES bosqichida ko‘rsatildi.'));
+    return m;
   }), []);
   const qator = (nom: string, v: number, jami = false) => <tr key={nom} className={jami ? 'font-semibold' : ''}><td className="px-2 py-0.5">{nom}</td><td className="px-2 py-0.5 text-right tabular-nums">{fmt(v)}</td></tr>;
   return <div className="space-y-3">
