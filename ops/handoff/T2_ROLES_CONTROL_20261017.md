@@ -27,7 +27,7 @@ Har birining `.acceptance.sql` va `.rollback.sql` yonida. Acceptance synthetic y
 
 ## Tekshiruv (source kandidat)
 
-- Focused Vitest: 43 file / 390 test PASS. Full `npx vitest run --maxWorkers=4`: 284 file / 2075 test PASS, 17 test skip (mavjud).
+- Full `npx vitest run --maxWorkers=4`: 285 file / 2079 test PASS, 17 test skip (mavjud). Keyin main `fb295552` qo‘shildi (Studio narx o‘rtachasi, billing panel testi/translation, rollback comment). Final integration focused: 46 file / 403 test PASS; app/functions TS + build yana PASS.
 - Dastlabki full-run yangi UI translation guardini ushladi; konstruktor va barcha 25 labelga RU/EN tarjimalar qo‘shildi. MarketPriceComparison test default katta parallel load paytida timeout bo‘ldi; alohida va 4 workerli full-run PASS, assertionlar yumshatilmadi.
 - App TS + Functions TS + build PASS.
 - `npm run lint`: exit 0; mavjud warninglar bor.
@@ -41,4 +41,4 @@ Har birining `.acceptance.sql` va `.rollback.sql` yonida. Acceptance synthetic y
 - Individual read-deny mavjudida umumiy AI agregatsiya fail-closed; write-deny bo‘lsa read-only Jarvis ishlashi mumkin, umumiy agent action cheklanadi. Domain-granular AI tool-scoping alohida keyingi ish.
 - Oxirgi platforma superadmini sanog‘i real 4 ta hisobni o‘chirib sinovdan o‘tkazilmadi. Guard source mavjud; real hisoblar test uchun o‘zgartirilmaydi.
 - Authenticated constructor write testi synthetic DB/component orqali isbotlangan; haqiqiy xodimni tasodifan cheklash yoki parolini almashtirish qilinmagan.
-- Authenticated Preview `ec28c196` / `e77f2e89`: owner login; global rejim → NEW TIMES; kompaniya konteksti refreshdan keyin tiklandi; profil editable; sidebar `Superadmin · platforma` va kompaniya `PTO` vazifasi alohida; prorab konstruktori 25 checkbox; protected hisoblar belgisi PASS. Real ruxsat o‘zgartirilmadi. Keyingi commit faqat translation/whitespace/release record; main/deploy yakuniy isboti Obsidian release yozuvida. Bu owner login ishtiroki butun mahsulotning ideal darajada qabul qilinganini anglatmaydi.
+- Authenticated Preview `ec28c196` / `e77f2e89`: owner login; global rejim → NEW TIMES; kompaniya konteksti refreshdan keyin tiklandi; profil editable; sidebar `Superadmin · platforma` va kompaniya `PTO` vazifasi alohida; prorab konstruktori 25 checkbox; protected hisoblar belgisi PASS. Real ruxsat o‘zgartirilmadi. `b824ffb2` / `f5d97a3a` Cloudflare SUCCESS; ayni authenticated sahifa reloadidan keyin kontekst/profil tiklanishi PASS. Main/deploy yakuniy isboti Obsidian release yozuvida. Bu owner login ishtiroki butun mahsulotning ideal darajada qabul qilinganini anglatmaydi.
