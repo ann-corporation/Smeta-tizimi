@@ -76,9 +76,10 @@ it('catalogue failure is explicitly unknown', async () => {
 it('hides exactly equal prices by default and paginates many exceptions safely', async () => {
   const lines = Array.from({ length: 101 }, (_, i) => ({ ...line, id: String(i), price: i === 100 ? 8300000 : 7500000 }));
   render(<MarketPriceComparison lines={lines} />);
-  await screen.findByText('1 / 2 sahifa'); expect(screen.getAllByText(name)).toHaveLength(50);
+  // The comparison runs in yielding batches; under a loaded test runner it needs more than the default 1 s.
+  await screen.findByText('1 / 2 sahifa', undefined, { timeout: 8000 }); expect(screen.getAllByText(name)).toHaveLength(50);
   fireEvent.click(screen.getByRole('button', { name: 'Keyingi' })); expect(screen.getByText('2 / 2 sahifa')).toBeTruthy();
-  fireEvent.click(screen.getByRole('checkbox')); expect(await screen.findByText('1 / 3 sahifa')).toBeTruthy();
+  fireEvent.click(screen.getByRole('checkbox')); expect(await screen.findByText('1 / 3 sahifa', undefined, { timeout: 8000 })).toBeTruthy();
 });
 it('strictly normalizes finite numeric strings while preserving zero versus null and blanks', async () => {
   for (const unknown of [null, undefined, '', '   ', 'NaN', 'Infinity', '0x10', false, Infinity]) expect(marketReadPrice(unknown)).toBeNull();

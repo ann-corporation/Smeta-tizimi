@@ -13,9 +13,14 @@
  *   POST { amal: 'kp_oqi', kompaniya_id, fayl?: {mimeType, data(base64)}, matn? }
  *        → { ok, kp }                                  (reads a КП / price list: rows, supplier, VAT state; nothing stored)
  *
+ *   POST { amal: 'narx_internet', kompaniya_id, sorovlar: [{id, nom, birlik, kat}] (≤ 8), hudud? }
+ *        → { ok, natijalar }                           (web-search model claims seller pages; every page is opened here and
+ *                                                       the price + product marks must be on it — else "not verified")
+ *   POST { amal: 'narx_tajriba' | 'narx_tajriba_yoz' } (platform price experience: accepted/rejected sources, practice check)
+ *
  * Session actor + company membership; company AI budget checked before every model call and usage
  * recorded (agent platform accounting). Output is schema-validated; candidates the model did not receive
- * can never be chosen. No database or R2 writes.
+ * can never be chosen. Writes only the experience tables (memory, norm and price choices) via RPC.
  */
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
@@ -25,9 +30,15 @@ import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
 import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
+import { INTERNET_NARX_SXEMA, INTERNET_NARX_TIZIM, internetJavobiniTekshir, internetNarxi, qqsSiz, sahifadaMahsulotBor, sahifadaNarxBor,
+  type InternetManba, type InternetNatija, type InternetSorov } from '../../src/lib/smeta-ai/internet-narx';
+import { priceUnitFactor } from '../../src/lib/smeta-studio/resource-match';
+import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
 import { KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
   type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
+/** Veb-qidiruvli model (OpenRouter `:online` — sahifalarni qidirib o'qiydi) — faqat internet narx agenti uchun. */
+export const INTERNET_MODEL = 'google/gemini-2.5-flash:online';
 /** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
 export const ZAXIRA_MODEL = 'google/gemini-2.5-flash-lite';
 
@@ -264,6 +275,38 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (!yozuvlar.length) return fail('SOROV_INVALID');
       const r = await rpcData(ctx.env, 't2_narx_tajriba_yoz_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_yozuvlar: yozuvlar });
       return Response.json(r.data, { status: r.ok ? 200 : r.status });
+    }
+    // Internet price agent (owner 2026-10-17): the last resort for resources no source priced. The model (web search) only
+    // CLAIMS a link and a price; every link is opened here and the price/product must be written on the page.
+    if (so.amal === 'narx_internet') {
+      const sorovlar: InternetSorov[] = (Array.isArray(so.sorovlar) ? so.sorovlar.slice(0, 8) : []).map(t => { const x = (t ?? {}) as Record<string, unknown>;
+        return { id: clip(x.id, 60), nom: clip(x.nom, 300), birlik: clip(x.birlik, 30) || null, kat: clip(x.kat, 20) || null }; })
+        .filter(s => /^[A-Za-z0-9_-]{1,60}$/.test(s.id) && s.nom.length >= 3 && s.kat !== 'ЧЕЛ');
+      if (!sorovlar.length) return fail('SOROV_INVALID');
+      const hudud = clip(so.hudud, 80);
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_narx_internet', { ...req, model: INTERNET_MODEL });
+      const { r, obj } = await ishonchliChaqir(chaqir,
+        { system: INTERNET_NARX_TIZIM, text: `${hudud ? `Obyekt hududi: ${hudud}\n` : ''}<RESURSLAR>\n${JSON.stringify(sorovlar)}\n</RESURSLAR>`,
+          tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 4000, jsonSchema: INTERNET_NARX_SXEMA }, ['natijalar']);
+      const davolar = internetJavobiniTekshir(obj, sorovlar);
+      const natijalar: InternetNatija[] = await Promise.all(sorovlar.map(async s => {
+        const d = davolar.get(s.id) ?? { davolar: [], izoh: 'model javob bermadi' };
+        const manbalar: InternetManba[] = await Promise.all(d.davolar.map(async (v): Promise<InternetManba> => {
+          const u = vebUrlTekshir(v.url);
+          const koef = priceUnitFactor(v.birlik, s.birlik);
+          const asos = { ...v, domen: u.ok ? u.domen : '', koef, smetaNarx: koef == null ? null : Math.round(qqsSiz(v) * koef * 100) / 100 };
+          if (!u.ok) return { ...asos, tekshirildi: false, sabab: u.xato };
+          if (koef == null) return { ...asos, tekshirildi: false, sabab: `birlik mos emas (${v.birlik ?? '—'} → ${s.birlik ?? '—'})` };
+          // Any public https page (SSRF-checked, text only, 1 MB, 8 s); its text is scanned by code only, never sent to a model.
+          const p = await vebOl(v.url, async () => true);
+          if (!p.ok) return { ...asos, tekshirildi: false, sabab: p.xato };
+          if (!sahifadaNarxBor(p.matn, v.narx)) return { ...asos, url: p.url, tekshirildi: false, sabab: 'sahifada bu narx topilmadi' };
+          if (!sahifadaMahsulotBor(p.matn, s.nom)) return { ...asos, url: p.url, tekshirildi: false, sabab: 'sahifada mahsulot belgilari (marka/o‘lcham) topilmadi' };
+          return { ...asos, url: p.url, tekshirildi: true, sabab: null };
+        }));
+        return { id: s.id, narx: internetNarxi(manbalar), manbalar, izoh: d.izoh };
+      }));
+      return Response.json({ ok: true, natijalar, model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'kp_oqi') {
       const f = (so.fayl ?? null) as { mimeType?: unknown; data?: unknown } | null;

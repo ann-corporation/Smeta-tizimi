@@ -6,7 +6,7 @@
 import { normDec, type EstimateContext, type EstimateDoc, type EstimateRates, type Occurrence, type PriceChoice, type PriceJustification, type RecipeSnapshot,
   type Section, type Substitution, type UnitBasis, type WorkCoefficient, type WorkSource } from './model';
 
-const DOC_TYPES = ['CATALOG', 'EXCHANGE', 'PRICE_LIST', 'COMMERCIAL_OFFER', 'COMPANY_ESTIMATE', 'LABOUR_HOUR', 'MACHINE_HOUR', 'MANUAL'];
+const DOC_TYPES = ['CATALOG', 'EXCHANGE', 'PRICE_LIST', 'COMMERCIAL_OFFER', 'COMPANY_ESTIMATE', 'LABOUR_HOUR', 'MACHINE_HOUR', 'MANUAL', 'INTERNET'];
 const matn = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
 /** A justification is optional for old drafts, but when present it must name its document type and document. */
 export function justificationOf(j: PriceJustification | null | undefined): PriceJustification | null {
@@ -22,9 +22,16 @@ export function justificationOf(j: PriceJustification | null | undefined): Price
   const offers = a ? (Array.isArray(a.offers) ? a.offers : []).slice(0, 30).map(x => ({ supplier: matn(x?.supplier, 120) ?? '—', code: matn(x?.code, 40), price: dec(x?.price) })) : [];
   // An average must list at least two offers it was computed from.
   if (a && (offers.length < 2 || a.count !== offers.length)) throw new Error('PRICE_JUSTIFICATION_INVALID');
+  // Web sources: https links only; an INTERNET price must name at least one page.
+  const sources = (Array.isArray(j.sources) ? j.sources : []).slice(0, 10).map(x => {
+    const url = matn(x?.url, 600);
+    if (!url || !/^https:\/\/[^\s]+$/i.test(url)) throw new Error('PRICE_JUSTIFICATION_INVALID');
+    return { url, name: matn(x?.name, 160) ?? '—', price: dec(x?.price), unit: matn(x?.unit, 30), vat: typeof x?.vat === 'boolean' ? x.vat : null };
+  });
+  if (j.docType === 'INTERNET' && !sources.length) throw new Error('PRICE_JUSTIFICATION_INVALID');
   return { docType: j.docType, document, sourceName: matn(j.sourceName, 400), sourceUnit: matn(j.sourceUnit, 30),
     sourcePrice: j.sourcePrice == null ? null : normDec(String(j.sourcePrice), 'PRICE_JUSTIFICATION_INVALID'), conversion, reason: matn(j.reason, 400),
-    ...(a ? { average: { count: offers.length, min: dec(a.min), max: dec(a.max), offers } } : {}) };
+    ...(a ? { average: { count: offers.length, min: dec(a.min), max: dec(a.max), offers } } : {}), ...(sources.length ? { sources } : {}) };
 }
 
 export type StudioCommand =

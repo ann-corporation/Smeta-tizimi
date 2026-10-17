@@ -202,7 +202,7 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
 const HUJJAT_TURI: Record<PriceJustification['docType'], string> = {
   CATALOG: 'Каталог (текущие цены)', EXCHANGE: 'Биржевая котировка (УзРТСБ)', PRICE_LIST: 'Прайс-лист производителя',
   COMMERCIAL_OFFER: 'Коммерческое предложение поставщика', COMPANY_ESTIMATE: 'Смета компании (принятая ранее цена)',
-  LABOUR_HOUR: 'Стоимость чел.-часа (публикация)', MACHINE_HOUR: 'Калькуляция стоимости маш.-часа', MANUAL: 'Иной документ',
+  LABOUR_HOUR: 'Стоимость чел.-часа (публикация)', MACHINE_HOUR: 'Калькуляция стоимости маш.-часа', MANUAL: 'Иной документ', INTERNET: 'Цена поставщика (интернет-источник)',
 };
 /** Studio prices → «ОБОСНОВАНИЕ ЦЕН» positions (one per resource and price, like the RES): document, source row, recalculation. */
 export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units): { bandlar: AsoslashBand[]; pozitsiyalar: number } {
@@ -229,7 +229,9 @@ export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units):
     by.set(key, { kat, kod: idCode(l.resource), nom: name, birlik: unit, hajm: qty, narx, qatorlar: 1,
       hujjatTuri: j ? HUJJAT_TURI[j.docType] : p ? HUJJAT_TURI.MANUAL : null,
       // An averaged price names every supplier's offer it was computed from (owner 2026-10-17).
-      rekvizit: j ? [j.document, j.average ? `предложения: ${j.average.offers.map(x => `${x.supplier}${x.code ? ` (поз. № ${x.code})` : ''} — ${x.price}`).join('; ')}` : null].filter(Boolean).join('; ')
+      rekvizit: j ? [j.document, j.average ? `предложения: ${j.average.offers.map(x => `${x.supplier}${x.code ? ` (поз. № ${x.code})` : ''} — ${x.price}`).join('; ')}` : null,
+        // Web sources with their full links — an expert can open every page (owner 2026-10-17).
+        j.sources?.length ? `источники: ${j.sources.map(x => `${x.name} — ${x.price}${x.unit ? ` за ${x.unit}` : ''}${x.vat === true ? ' с НДС' : x.vat === false ? ' без НДС' : ''}, ${x.url}`).join('; ')}` : null].filter(Boolean).join('; ')
         : p?.evidence ?? null,
       manbaNom: j?.sourceName ?? null, manbaBirlik: j?.sourceUnit ?? null, manbaNarx: j?.sourcePrice == null ? null : Number(j.sourcePrice),
       qaytaHisob: j?.conversion ? { formula: j.conversion.formula, koef: Number(j.conversion.factor), izoh: j.conversion.note } : null,

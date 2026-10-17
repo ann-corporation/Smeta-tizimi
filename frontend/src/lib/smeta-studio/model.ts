@@ -34,7 +34,9 @@ export type PriceChoice = { value: Dec; basis: PriceBasis; evidence: string; sou
 export type PriceJustification = {
   /** CATALOG — «Каталог цен РУз» / main materials list; EXCHANGE — UzRTSB quotes; PRICE_LIST — a manufacturer's price list;
    *  COMMERCIAL_OFFER — a supplier's КП; COMPANY_ESTIMATE — a price from the company's earlier estimate (NOT a justification). */
-  docType: 'CATALOG' | 'EXCHANGE' | 'PRICE_LIST' | 'COMMERCIAL_OFFER' | 'COMPANY_ESTIMATE' | 'LABOUR_HOUR' | 'MACHINE_HOUR' | 'MANUAL';
+  docType: 'CATALOG' | 'EXCHANGE' | 'PRICE_LIST' | 'COMMERCIAL_OFFER' | 'COMPANY_ESTIMATE' | 'LABOUR_HOUR' | 'MACHINE_HOUR' | 'MANUAL'
+    /** A seller's web page found by the internet price agent; the page was opened and price/product verified on it (owner 2026-10-17). */
+    | 'INTERNET';
   /** Document details: catalogue edition/period/region/VAT, estimate file/object, invoice No and date… */
   document: string;
   /** The source row as written there, its unit and price (in that unit). */
@@ -45,6 +47,8 @@ export type PriceJustification = {
   reason: string | null;
   /** Several suppliers offer the same product (owner 2026-10-17): sourcePrice is their arithmetic mean; prices in the source unit. */
   average?: { count: number; min: Dec; max: Dec; offers: Array<{ supplier: string; code: string | null; price: Dec }> } | null;
+  /** INTERNET: the verified web pages (link, seller, price as written there, its unit and whether it includes VAT). */
+  sources?: Array<{ url: string; name: string; price: Dec; unit: string | null; vat: boolean | null }> | null;
 };
 export type Substitution = {
   resource: CatalogResource; reason: string;

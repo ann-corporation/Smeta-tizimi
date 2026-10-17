@@ -1828,5 +1828,9 @@
   "{nom}: {s} ta yetkazuvchi narxi turlicha ({min}–{max}) — o‘rtachasi {narx} olindi": "{nom}: {s} suppliers' prices differ ({min}–{max}) — the average {narx} was taken",
   "{n} ta resursda bir nechta yetkazuvchi narxi turlicha — o‘rtacha narx olindi (Обоснование цен da har bir taklif ko‘rsatilgan)": "{n} resources have differing prices from several suppliers — the average price was taken (each offer is listed in the price justification)",
   "O‘rtacha {n} ta yetkazuvchi narxidan": "Average of {n} suppliers' prices",
-  "{n} ta narx tizim tajribasi tasdiqlagani uchun so‘ralmasdan qo‘yildi": "{n} prices were applied without asking — the system's experience confirms them"
+  "{n} ta narx tizim tajribasi tasdiqlagani uchun so‘ralmasdan qo‘yildi": "{n} prices were applied without asking — the system's experience confirms them",
+  "Internetdan narx qidirilmoqda: {a} / {b}": "Searching prices on the internet: {a} / {b}",
+  "Internet qidiruvi javob bermadi — qolgan resurslar ro‘yxatda": "The internet search did not respond — the remaining resources are listed",
+  "internetdan havola bilan: {n}": "from the internet with links: {n}",
+  "{n} ta resursga internetda havola topildi, lekin sahifada narx tasdiqlanmadi — havolalar ro‘yxatda": "Links were found for {n} resources but the price was not confirmed on the page — the links are listed"
 }

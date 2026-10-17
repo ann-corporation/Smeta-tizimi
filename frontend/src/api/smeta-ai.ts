@@ -1,6 +1,7 @@
 /** Client for /api/smeta-ai (Smetachi AI worker — proposals only). */
 import type { NormaTajriba } from '../lib/smeta-ai/tajriba';
 import type { NarxTajriba } from '../lib/smeta-studio/narx-ishonch';
+import type { InternetNatija, InternetSorov } from '../lib/smeta-ai/internet-narx';
 import type { IshNiyati, KoefSorovi, KoefTanlov, KpOqish, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
 
 export type AiXato = { ok: false; code: string; message?: string };
@@ -53,6 +54,9 @@ export async function narxTajribasi(kompaniyaId: number, sorovlar: Array<{ resur
 /** Accepted / rejected price sources — every estimator's decision teaches the whole platform. Fire-and-forget. */
 export const narxTajribaYoz = (kompaniyaId: number, yozuvlar: Array<{ resurs: string; manba: string; tur: 'katalog' | 'kp' | 'internet' | 'qolda'; narx?: number; holat: 'qabul' | 'rad' }>) =>
   yozuvlar.length ? post<{ ok: true; yozildi: number }>({ amal: 'narx_tajriba_yoz', kompaniya_id: kompaniyaId, yozuvlar: yozuvlar.slice(0, 200) }) : Promise.resolve({ ok: true as const, yozildi: 0 });
+/** Internet price agent: ≤ 8 resources per call; every returned source says whether its page was opened and the price verified. */
+export const smetachiNarxInternet = (kompaniyaId: number, sorovlar: InternetSorov[], hudud: string | null) =>
+  post<{ ok: true; natijalar: InternetNatija[]; model: string }>({ amal: 'narx_internet', kompaniya_id: kompaniyaId, sorovlar: sorovlar.slice(0, 8), hudud });
 /** AI picks a price candidate per resource among the ones the browser found (catalogue / company estimates). */
 export const smetachiNarxTanla = (kompaniyaId: number, sorovlar: NarxSorovi[], hudud: string | null) =>
   post<{ ok: true; tanlovlar: NarxTanlov[] }>({ amal: 'narx_tanla', kompaniya_id: kompaniyaId, sorovlar, hudud });

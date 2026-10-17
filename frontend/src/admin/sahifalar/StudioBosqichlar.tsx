@@ -28,7 +28,8 @@ import { NAKRUTKA_STANDART } from '../../lib/nakrutka-kaskad';
 import { NAKRUTKA_KATLAR, nakrutkaKaskadJS, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
 import { podvalHisobla, standartPodval, type Podval } from '../../lib/nakrutka-konstruktor';
 import { amaldagiPodval } from '../../api/t2-nakrutka-podval';
-import { narxTajribasi, narxTajribaYoz, smetachiNarxTanla } from '../../api/smeta-ai';
+import { narxTajribasi, narxTajribaYoz, smetachiNarxInternet, smetachiNarxTanla } from '../../api/smeta-ai';
+import { internetBuyruqlari } from '../../lib/smeta-studio/narx-internet';
 import { ishonchniKuchaytir, manbaKaliti, resursKaliti, type NarxTajriba } from '../../lib/smeta-studio/narx-ishonch';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
@@ -223,6 +224,39 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   }
 
   /**
+   * Last step (owner 2026-10-17: "narxsiz smeta qatori qolmasin — internetdan havolalar bilan obosnovat qilsin; mashinist 0"):
+   * materials no source priced go to the internet agent; only prices VERIFIED on the opened page are applied, with the links.
+   */
+  async function internetBosqichi(qoldi: Map<string, AiNarxNatija>) {
+    const kerak = [...qoldi.values()].filter(x => !x.nomzod).map(x => guruhlar.find(g => g.key === x.key))
+      .filter((g): g is ResursGuruh => !!g && katalogdanNarxlanadi(g) && !materialKerak(g)).slice(0, 60);
+    const commands: StudioCommand[] = [];
+    let topildi = 0, tekshirilmadi = 0;
+    if (!kerak.length || kompaniyaId == null) return { commands, topildi, tekshirilmadi };
+    const hududNomi = regions.find(([k]) => k === hudud)?.[1] ?? null;
+    for (let i = 0; i < kerak.length; i += 8) {
+      const part = kerak.slice(i, i + 8);
+      setAi({ ish: true, matn: t('Internetdan narx qidirilmoqda: {a} / {b}', { a: Math.min(i + 8, kerak.length), b: kerak.length }) });
+      const r = await Promise.resolve().then(() => smetachiNarxInternet(kompaniyaId, part.map((g, j) => ({ id: `r${i + j}`, nom: narxNomi(g), birlik: g.birlik, kat: g.kat })), hududNomi)).catch(() => null);
+      if (!r?.ok) { jarayonYoz(t('Internet qidiruvi javob bermadi — qolgan resurslar ro‘yxatda'), 'savol'); break; }
+      for (const n of r.natijalar) {
+        const g = part[Number(n.id.slice(1)) - i]; if (!g) continue;
+        const b = internetBuyruqlari(narxsizQatorlar(g, hisob), n);
+        if (b.length) {
+          commands.push(...b); topildi++; qoldi.delete(g.key);
+          jarayonYoz(`${g.talab ?? g.nom}: ${n.narx} — internet (${n.manbalar.filter(m => m.tekshirildi).map(m => m.domen).join(', ')})`.slice(0, 220), 'ok');
+        } else if (n.manbalar.length) {
+          // Links exist but the page did not show the price/product — the estimator opens them; nothing is applied silently.
+          tekshirilmadi++;
+          const prev = qoldi.get(g.key);
+          if (prev) qoldi.set(g.key, { ...prev, sabab: `${prev.sabab} · internetda topildi, sahifada tasdiqlanmadi: ${n.manbalar.map(m => `${m.url} (${m.narx}${m.sabab ? `, ${m.sabab}` : ''})`).join('; ')}`.slice(0, 600) });
+        }
+      }
+    }
+    return { commands, topildi, tekshirilmadi };
+  }
+
+  /**
    * ONE action (owner 2026-10-14: "narxlar bittada topiladimi?"): every source in order — hour rates, exact catalogue
    * identity, then AI by meaning for the rest — applied as ONE batch (one undo). Without AI (no company/budget)
    * the deterministic part still runs and says so.
@@ -236,12 +270,14 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const kerak = guruhlar.filter(g => narxKerak(g) && !avto.narxlangan.has(g.key) && !materialKerak(g)
       && (katalogdanNarxlanadi(g) || (!!mash && g.kat === 'МАШ' && !/МАШИНИСТ/.test(g.nom.toUpperCase()))));
     let ai: Awaited<ReturnType<typeof aiBuyruqlar>> | null = null, aiXato = false;
+    let internet = { topildi: 0, tekshirilmadi: 0 };
     let zaxira = new Map<string, AiNarxNatija>();
     if (kerak.length) {
       try {
         const nomzodlar = await nomzodManbasi(kerak);
         if (kompaniyaId != null) {
           try { ai = await aiBuyruqlar(kerak, nomzodlar); } catch { aiXato = true; }
+          if (ai) { const net = await internetBosqichi(ai.qoldi); ai.commands.push(...net.commands); internet = net; }
         }
         // Without AI the candidates are still shown — the estimator picks; nothing is applied silently.
         if (!ai) zaxira = new Map(kerak.map(g => [g.key, { key: g.key, nomzod: null, ishonch: 'past' as const, nomzodlar: nomzodlar(g, []),
@@ -259,7 +295,12 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const ortachalar = new Set([...avto.commands, ...(ai?.commands ?? [])].flatMap(c => (c.type === 'SET_PRICE' && c.price?.justification?.average ? [c.price.justification] : [])));
     if (ortachalar.size) qism.push(t('{n} ta resursda bir nechta yetkazuvchi narxi turlicha — o‘rtacha narx olindi (Обоснование цен da har bir taklif ko‘rsatilgan)', { n: ortachalar.size }));
     if (ai?.kotarildi) qism.push(t('{n} ta narx tizim tajribasi tasdiqlagani uchun so‘ralmasdan qo‘yildi', { n: ai.kotarildi }));
-    if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
+    if (ai) {
+      const yoq = [...ai.qoldi.values()].filter(x => !x.nomzodlar.length).length;
+      qism.push(t('AI topdi: {n}', { n: ai.topildi }), ...(internet.topildi ? [t('internetdan havola bilan: {n}', { n: internet.topildi })] : []),
+        t('tekshiruvingizda: {n}', { n: ai.qoldi.size - yoq }), t('manbalarda yo‘q: {n}', { n: yoq }));
+      if (internet.tekshirilmadi) qism.push(t('{n} ta resursga internetda havola topildi, lekin sahifada narx tasdiqlanmadi — havolalar ro‘yxatda', { n: internet.tekshirilmadi }));
+    }
     else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
       : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
     if (kutadi.length) qism.push(t('AI tanlagan {n} ta narx tasdiqingizni kutmoqda — «AI tanlagan narxlarni tasdiqlash» yoki chatda «tasdiqlayman» deng', { n: kutadi.length }));
@@ -463,7 +504,9 @@ function Asos({ a }: { a: PriceJustification }) {
     <p>{a.document}</p>
     {a.sourceName && <p>{t('Manbada')}: {a.sourceName}{a.sourcePrice ? ` — ${fmt(a.sourcePrice)} / ${a.sourceUnit ?? '—'}` : ''}</p>}
     {a.average && <p data-testid="narx-ortacha">{t('O‘rtacha {n} ta yetkazuvchi narxidan', { n: a.average.count })}: {a.average.offers.map(o => `${o.supplier} — ${fmt(o.price)}`).join('; ')}</p>}
-    {a.conversion && <p className="text-text-dim">{t('Qayta hisob')}:{a.conversion.formula} = {a.conversion.factor}{a.conversion.note ? ` (${a.conversion.note})` : ''}</p>}
+    {a.sources?.map(s => <p key={s.url} data-testid="narx-internet-manba">{s.name} — {fmt(s.price)}{s.unit ? ` / ${s.unit}` : ''}{s.vat === true ? ` (${t('QQS bilan')})` : ''}:{' '}
+      <a href={s.url} target="_blank" rel="noopener noreferrer nofollow" className="underline break-all">{s.url}</a></p>)}
+    {a.conversion &&<p className="text-text-dim">{t('Qayta hisob')}:{a.conversion.formula} = {a.conversion.factor}{a.conversion.note ? ` (${a.conversion.note})` : ''}</p>}
     {a.reason && <p>{t('Sabab')}: {a.reason}</p>}
   </div>;
 }
