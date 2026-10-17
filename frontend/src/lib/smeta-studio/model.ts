@@ -43,6 +43,8 @@ export type PriceJustification = {
   conversion: { formula: string; factor: Dec; note: string } | null;
   /** Why this source was chosen (AI or operator). */
   reason: string | null;
+  /** Several suppliers offer the same product (owner 2026-10-17): sourcePrice is their arithmetic mean; prices in the source unit. */
+  average?: { count: number; min: Dec; max: Dec; offers: Array<{ supplier: string; code: string | null; price: Dec }> } | null;
 };
 export type Substitution = {
   resource: CatalogResource; reason: string;

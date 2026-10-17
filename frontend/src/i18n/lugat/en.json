@@ -1817,5 +1817,8 @@
   "Ha, to‘g‘ri": "Yes, correct",
   "Yo‘q, to‘g‘risini yozaman": "No, I will write the right one",
   "Hujjat uchun avval kompaniyani tanlang.": "Select a company first to get the document.",
-  "Hujjat berilmadi — sababi narxlash/RES bosqichida ko‘rsatildi.": "Document not issued — the reason is shown on the RES step."
+  "Hujjat berilmadi — sababi narxlash/RES bosqichida ko‘rsatildi.": "Document not issued — the reason is shown on the RES step.",
+  "{nom}: {s} ta yetkazuvchi narxi turlicha ({min}–{max}) — o‘rtachasi {narx} olindi": "{nom}: {s} suppliers' prices differ ({min}–{max}) — the average {narx} was taken",
+  "{n} ta resursda bir nechta yetkazuvchi narxi turlicha — o‘rtacha narx olindi (Обоснование цен da har bir taklif ko‘rsatilgan)": "{n} resources have differing prices from several suppliers — the average price was taken (each offer is listed in the price justification)",
+  "O‘rtacha {n} ta yetkazuvchi narxidan": "Average of {n} suppliers' prices"
 }

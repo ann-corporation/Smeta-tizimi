@@ -14,8 +14,8 @@ import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-re
 import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, PriceJustification } from '../../lib/smeta-studio/model';
-import { matchResource, type MatchCatalog } from '../../lib/smeta-studio/resource-match';
-import { aiNarxlash, loyihaBoyicha, qatorKategoriyasi, qaytaHisobla, katalogdanNarxlanadi, narxBuyruqlari, narxNomi, narxNomzodlari, qatorNomzodi, resursGuruhlari,
+import { matchResource, type MatchCatalog, type MatchPriceRow } from '../../lib/smeta-studio/resource-match';
+import { aiNarxlash, loyihaBoyicha, qatorKategoriyasi, qaytaHisobla, katalogdanNarxlanadi, narxBuyruqlari, narxNomi, narxNomzodlari, ortachaQil, qatorNomzodi, resursGuruhlari,
   type AiNarxNatija, type NarxNomzod, type ResursGuruh } from '../../lib/smeta-studio/narx-yigish';
 import { kompaniyaKuzatuvlari, kompaniyaMoslik, type KuzatilganNarx } from '../../lib/smeta-studio/company-prices';
 import { kompaniyaManbalariniOl, type KompaniyaManbalari } from '../../lib/smeta-studio/kompaniya-manbalari';
@@ -46,6 +46,14 @@ function narxsizQatorlar(g: ResursGuruh, hisob: DocCalc) {
   return g.qatorlar.filter(q => eski.has(q.occurrenceId + '\u0001' + q.recipeId) || hisob.occurrences[q.occurrenceId]?.lines.find(l => l.recipeId === q.recipeId)?.price == null);
 }
 const narxKerak = (g: ResursGuruh) => g.narxsiz > 0 || !!g.eskiQatorlar?.length;
+/** A matched row with its price and unit as the source document states them (before the matcher's unit conversion). */
+const manbaQatori = (r: MatchPriceRow) => (r.unitConversion ? { ...r, narx: r.unitConversion.sourcePrice, birlik: r.unitConversion.sourceUnit } : r);
+/** The estimator is told whenever a price is the mean of several suppliers' offers (owner 2026-10-17). */
+function ortachaYoz(g: ResursGuruh, n: NarxNomzod) {
+  if (!n.ortacha) return;
+  jarayonYoz(t('{nom}: {s} ta yetkazuvchi narxi turlicha ({min}–{max}) — o‘rtachasi {narx} olindi', { nom: g.talab ?? g.nom, s: n.ortacha.soni,
+    min: fmt(n.ortacha.min), max: fmt(n.ortacha.max), narx: fmt(n.narx) }).slice(0, 220), 'ok');
+}
 /** Machine lines priced automatically from an older source (2023 calculation) — the official 01.01.2026 list replaces them. */
 function eskiMashQatorlari(g: ResursGuruh, doc: EstimateDoc) {
   return g.qatorlar.filter(q => { const p = doc.occurrences[q.occurrenceId]?.overrides[q.recipeId]?.price;
@@ -145,21 +153,23 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     for (const g of guruhlar) {
       if (!katalogdanNarxlanadi(g) || !narxKerak(g) || materialKerak(g)) continue;
       // A supplier's КП for exactly this product is the real price → first; then the platform index (catalogue, birja, price lists).
-      const kpMos = kpm?.qatorlar ? matchResource(kpm.view, narxNomi(g), g.birlik, null) : null;
+      const kpMos = kpm?.qatorlar ? matchResource(kpm.view, narxNomi(g), g.birlik, null, 40) : null;
       const kpTop = kpMos && (kpMos.confidence === 'EXACT' || kpMos.confidence === 'HIGH') && kpMos.best ? kpMos : null;
       if (kpTop) {
-        const src = kpTop.best!.row.unitConversion ? { ...kpTop.best!.row, narx: kpTop.best!.row.unitConversion.sourcePrice, birlik: kpTop.best!.row.unitConversion.sourceUnit } : kpTop.best!.row;
-        const n = qatorNomzodi(src, g.birlik, 'kp');
-        if (n) { commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n, 'yetkazuvchi KP si, nomi va xarakteristikasi mos')); narxlangan.add(g.key); kpSoni++; continue; }
+        const n0 = qatorNomzodi(manbaQatori(kpTop.best!.row), g.birlik, 'kp');
+        // Several suppliers' КП for the same product → their average (owner 2026-10-17).
+        const n = n0 && ortachaQil(n0, kpTop.candidates.map(c => manbaQatori(c.row)), null);
+        if (n) { commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n, 'yetkazuvchi KP si, nomi va xarakteristikasi mos')); narxlangan.add(g.key); kpSoni++; if (n.ortacha) ortachaYoz(g, n); continue; }
       }
       if (!cat) continue;
-      const m = matchResource(cat.matchView(), narxNomi(g), g.birlik, hudud || null);
+      const m = matchResource(cat.matchView(), narxNomi(g), g.birlik, hudud || null, 40);
       if ((m.confidence !== 'EXACT' && m.confidence !== 'HIGH') || !m.best) continue;
-      const src = m.best.row.unitConversion ? { ...m.best.row, narx: m.best.row.unitConversion.sourcePrice, birlik: m.best.row.unitConversion.sourceUnit } : m.best.row;
-      const n = qatorNomzodi(src, g.birlik, 'katalog');
-      if (!n) continue;
+      const n0 = qatorNomzodi(manbaQatori(m.best.row), g.birlik, 'katalog');
+      if (!n0) continue;
+      const n = ortachaQil(n0, m.candidates.map(c => manbaQatori(c.row)), hudud || null);
       commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n, m.confidence === 'EXACT' ? 'nomi va birligi aynan mos' : 'xarakteristikasi mos, yagona mahsulot'));
       narxlangan.add(g.key);
+      if (n.ortacha) ortachaYoz(g, n);
     }
     return { commands, soatSoni, kpSoni, narxlangan };
   }
@@ -191,6 +201,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       if (n.nomzod && n.ishonch === 'yuqori' && n.nomzod.tur !== 'kompaniya') {
         commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
         jarayonYoz(`${g.talab ?? g.nom}: ${n.nomzod.narx} — ${n.sabab}`.slice(0, 220), 'ok');
+        ortachaYoz(g, n.nomzod);
       } else {
         qoldi.set(n.key, n);
         if (n.nomzod && n.ishonch === 'orta') jarayonYoz(`${g.talab ?? g.nom}: ${n.nomzod.narx} taklif (o‘rta ishonch) — tasdiqingizni kutadi`.slice(0, 220), 'savol');
@@ -232,6 +243,9 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const kutadi = [...takliflarYangi.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya');
     const qism = [t('mehnat/mashina-soat: {n} qator', { n: avto.soatSoni }), ...(avto.kpSoni ? [t('KP dan: {n}', { n: avto.kpSoni })] : []),
       t('katalogdan aniq: {n}', { n: avto.narxlangan.size - avto.kpSoni })];
+    // How many resources took the mean of several suppliers' offers — the estimator must know (owner 2026-10-17).
+    const ortachalar = new Set([...avto.commands, ...(ai?.commands ?? [])].flatMap(c => (c.type === 'SET_PRICE' && c.price?.justification?.average ? [c.price.justification] : [])));
+    if (ortachalar.size) qism.push(t('{n} ta resursda bir nechta yetkazuvchi narxi turlicha — o‘rtacha narx olindi (Обоснование цен da har bir taklif ko‘rsatilgan)', { n: ortachalar.size }));
     if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
     else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
       : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
@@ -424,7 +438,8 @@ function Asos({ a }: { a: PriceJustification }) {
   return <div className="text-[11px] text-text-mute">
     <p>{a.document}</p>
     {a.sourceName && <p>{t('Manbada')}: {a.sourceName}{a.sourcePrice ? ` — ${fmt(a.sourcePrice)} / ${a.sourceUnit ?? '—'}` : ''}</p>}
-    {a.conversion && <p className="text-text-dim">{t('Qayta hisob')}: {a.conversion.formula} = {a.conversion.factor}{a.conversion.note ? ` (${a.conversion.note})` : ''}</p>}
+    {a.average && <p data-testid="narx-ortacha">{t('O‘rtacha {n} ta yetkazuvchi narxidan', { n: a.average.count })}: {a.average.offers.map(o => `${o.supplier} — ${fmt(o.price)}`).join('; ')}</p>}
+    {a.conversion && <p className="text-text-dim">{t('Qayta hisob')}:{a.conversion.formula} = {a.conversion.factor}{a.conversion.note ? ` (${a.conversion.note})` : ''}</p>}
     {a.reason && <p>{t('Sabab')}: {a.reason}</p>}
   </div>;
 }

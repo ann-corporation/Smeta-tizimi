@@ -9,7 +9,7 @@ import { normDec, type EstimateContext, type EstimateDoc, type EstimateRates, ty
 const DOC_TYPES = ['CATALOG', 'EXCHANGE', 'PRICE_LIST', 'COMMERCIAL_OFFER', 'COMPANY_ESTIMATE', 'LABOUR_HOUR', 'MACHINE_HOUR', 'MANUAL'];
 const matn = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
 /** A justification is optional for old drafts, but when present it must name its document type and document. */
-function justificationOf(j: PriceJustification | null | undefined): PriceJustification | null {
+export function justificationOf(j: PriceJustification | null | undefined): PriceJustification | null {
   if (j == null) return null;
   if (!DOC_TYPES.includes(j.docType)) throw new Error('PRICE_JUSTIFICATION_INVALID');
   const document = matn(j.document, 400);
@@ -17,8 +17,14 @@ function justificationOf(j: PriceJustification | null | undefined): PriceJustifi
   const c = j.conversion;
   const conversion = c ? { formula: matn(c.formula, 120) ?? '', factor: normDec(String(c.factor), 'PRICE_JUSTIFICATION_INVALID'), note: matn(c.note, 300) ?? '' } : null;
   if (conversion && (!conversion.formula || conversion.factor === '0')) throw new Error('PRICE_JUSTIFICATION_INVALID');
+  const dec = (v: unknown) => normDec(String(v), 'PRICE_JUSTIFICATION_INVALID');
+  const a = j.average;
+  const offers = a ? (Array.isArray(a.offers) ? a.offers : []).slice(0, 30).map(x => ({ supplier: matn(x?.supplier, 120) ?? '—', code: matn(x?.code, 40), price: dec(x?.price) })) : [];
+  // An average must list at least two offers it was computed from.
+  if (a && (offers.length < 2 || a.count !== offers.length)) throw new Error('PRICE_JUSTIFICATION_INVALID');
   return { docType: j.docType, document, sourceName: matn(j.sourceName, 400), sourceUnit: matn(j.sourceUnit, 30),
-    sourcePrice: j.sourcePrice == null ? null : normDec(String(j.sourcePrice), 'PRICE_JUSTIFICATION_INVALID'), conversion, reason: matn(j.reason, 400) };
+    sourcePrice: j.sourcePrice == null ? null : normDec(String(j.sourcePrice), 'PRICE_JUSTIFICATION_INVALID'), conversion, reason: matn(j.reason, 400),
+    ...(a ? { average: { count: offers.length, min: dec(a.min), max: dec(a.max), offers } } : {}) };
 }
 
 export type StudioCommand =
