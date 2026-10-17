@@ -1,4 +1,4 @@
--- ROLLBACK for 20261106460000_t2_token_hisoblangan_katak_izoh.sql — 20261106450000 dagi izohlar qaytadi.
+-- ROLLBACK for 20261106470000_t2_token_hisoblangan_katak_izoh.sql — 20261106450000 dagi izohlar qaytadi.
 begin;
 
 update public.t2_token_narx
