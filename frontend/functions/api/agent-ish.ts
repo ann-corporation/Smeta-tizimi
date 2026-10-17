@@ -20,6 +20,7 @@ import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, tizim
 import { BILIM_SXEMA, BILIM_VAZIFA, bilimKodi, bilimTakliflariniAjrat } from '../_shared/agent-bilim-yigish';
 import { BAHO_TURLARI, BOSH_USLUB, uslubBaho, type Baho, uslubBolimi, uslubXulosasi, uslubYangila, type UslubXususiyat } from '../_shared/agent-uslub';
 import { jarvisSalommi } from '../../src/lib/jarvis/intent';
+import { qidiruvSozlari } from '../_shared/agent-qidiruv';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
 
 type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
@@ -274,6 +275,19 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   const taqiqlangan = (fk.data.taqiqlangan ?? []) as string[];
   const faktJson = faktMatni(fk.data.fakt);
   qd('✅', `Olindi: ${(faktJson.length / 1024).toFixed(1)} KB (${nomlar(ishlatilgan)})${taqiqlangan.length ? ` · yopiq: ${nomlar(taqiqlangan)}` : ''}`);
+  /* Aniq qidiruv (egasi 2026-10-15: "Amfiteatrda M200 beton smetada qanchadan?" → javob ma'lumotdan bo'lsin): savoldagi obyekt va
+     resurs belgilari bo'yicha smeta qatorlari, lavozim ruxsati bazada tekshiriladi (narx faqat smeta_pul). Model chaqirilmaydi. */
+  const sz = qidiruvSozlari(savol);
+  let aniq: Record<string, unknown> | null = null;
+  if (sz.resurs.length) {
+    const qr = await rpcData(env, 't2_agent_qidiruv_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_obyekt_sozlar: sz.obyekt, p_resurs_sozlar: sz.resurs,
+      p_obyekt_id: !sz.obyekt.length && sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null }).catch(() => null);
+    const n = qr?.ok && Array.isArray(qr.data.qatorlar) ? qr.data.qatorlar.length : 0;
+    if (qr?.ok) {
+      aniq = { soralgan: sz.resurs, obyektlar: qr.data.obyektlar, qatorlar: qr.data.qatorlar, narx_ruxsat: qr.data.narx_ruxsat, smeta_ruxsat: qr.data.ruxsat };
+      qd('🔎', n ? `Aniq qidiruv: ${n} ta smeta pozitsiyasi topildi (${sz.resurs.join(', ')})` : `Aniq qidiruv: «${sz.resurs.join(', ')}» smetalarda topilmadi`);
+    }
+  }
   const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: kasb.profil });
   if (!m.ok) return { status: m.status, body: m.data };
   const qoidalar = (m.data.qoidalar as Array<{ doira: string }> | undefined) ?? [];
@@ -295,7 +309,8 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
     '\nJAVOB FORMATI: faqat JSON: {"javob": "<markdown matn>", "harakatlar": [ ... ], "otish": "<ixtiyoriy: TIZIM BILIMIdagi mavjud sahifa yo‘li>"}. Harakat kerak bo‘lmasa "harakatlar": []. "otish" ni faqat foydalanuvchi sahifani so‘rasa yoki aniq shu sahifa kerak bo‘lsa yoz, yo‘li o‘ylab topma.';
   qd('✍️', 'Javob yozilmoqda…');
   const r = await aiHisobli(env, actor, kid, kasb.profil, 'kasb_savol', {
-    system, text: tashqiMatnOra('tizim-faktlari', faktJson) + '\n\nFOYDALANUVCHI SAVOLI: ' + savol,
+    system: aniq ? system + '\nANIQ QIDIRUV: "aniq-qidiruv" blokida savoldagi obyekt/resurs bo‘yicha smeta pozitsiyalari bor (hajm, narx_min/narx_max — NDS siz, summa). Javobni AYNAN shu raqamlardan ber, obyekt va pozitsiya nomini ayt; narx 0 — haqiqiy 0; bir nechta obyekt bo‘lsa har birini ko‘rsat. Blok bo‘sh bo‘lsa — topilmaganini va qaysi so‘z bilan qidirilganini ayt, "ma’lumot yo‘q" deb umumiy javob berma. narx_ruxsat=false bo‘lsa narxni aytma.' : system,
+    text: tashqiMatnOra('tizim-faktlari', faktJson) + (aniq ? '\n\n' + tashqiMatnOra('aniq-qidiruv', JSON.stringify(aniq)) : '') + '\n\nFOYDALANUVCHI SAVOLI: ' + savol,
     tier: profilDarajasi(kasb.profil), model, maxOutputTokens: 1200, temperature: 0.1, jsonSchema: KASB_SXEMA,
   });
   const ajr = javobniAjrat(r.text);
