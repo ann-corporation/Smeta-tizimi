@@ -120,10 +120,16 @@ function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiru
   return out.slice(0, limit).map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null,
     jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null }));
 }
-export type TanlanganIsh = { workId: string; kod: string; nom: string; birlik: string | null; sabab: string; qolda?: boolean };
+export type TanlanganIsh = { workId: string; kod: string; nom: string; birlik: string | null; sabab: string; qolda?: boolean;
+  /** The norm variant rests on an assumed condition (soil group, bucket, distance …) — needs the user's yes. */
+  taxmin?: boolean };
+/** Owner 2026-10-16: "nimadir mujmal bo'lsa hammasini foydalanuvchidan so'rab tasdiqlatib olishi kerak". */
+export const tasdiqKerak = (i: Pick<AiIsh, 'taxmin' | 'tanlangan' | 'tasdiqlandi'>) => !i.tasdiqlandi && !!(i.taxmin || (i.tanlangan?.taxmin && !i.tanlangan.qolda));
 export type AiIsh = IshNiyati & { nomzodlar: TanlovNomzodi[]; tanlangan: TanlanganIsh | null; hajm: { qiymat: string; ifoda: string } | null; hajmXato: string | null;
   /** The estimator confirmed this installation is a separate position (not inside the composite norm). */
-  takrorTasdiq?: boolean };
+  takrorTasdiq?: boolean;
+  /** The user confirmed the model's assumptions (condition, helper numbers, norm variant). */
+  tasdiqlandi?: boolean };
 
 const BIRLIK_KALIT: Record<Birlik, string> = { м3: 'М3', м2: 'М2', м: 'М', т: 'Т', кг: 'КГ', шт: 'ШТ', компл: 'КОМПЛ' };
 /** Explicit operator search over the catalogue's paginated index, independent of the AI shortlist. */
@@ -216,7 +222,9 @@ export function birlashtir(eski: AiIsh[], yangi: IshNiyati[]): AiIsh[] {
     const same = o && o.tavsif === n.tavsif && o.birlik === n.birlik && o.material === n.material && JSON.stringify(o.qidiruv) === JSON.stringify(n.qidiruv);
     let hajm: AiIsh['hajm'] = null, hajmXato: string | null = null;
     if (n.hajmIfoda) { try { hajm = ifodaHisobla(n.hajmIfoda); } catch (e) { hajmXato = e instanceof Error ? e.message : 'IFODA_NOTOGRI'; } }
-    return { ...n, nomzodlar: same ? o!.nomzodlar : [], tanlangan: same ? o!.tanlangan : null, hajm, hajmXato };
+    // A confirmation survives only while the assumption itself is unchanged.
+    return { ...n, nomzodlar: same ? o!.nomzodlar : [], tanlangan: same ? o!.tanlangan : null, hajm, hajmXato,
+      ...(o?.tasdiqlandi && same && (o.taxmin ?? null) === (n.taxmin ?? null) ? { tasdiqlandi: true } : {}) };
   });
   return merged.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, merged) ? { ...i, tanlangan: null } : i);
 }
@@ -246,6 +254,7 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
     if (!ish.tanlangan) { otkazildi.push({ id: ish.id, sabab: 'Normativ ish tanlanmagan' }); continue; }
     if (!ish.tanlangan.qolda && tanlovZidmi(ish, { ...ish.tanlangan, id: ish.tanlangan.workId }, ishlar)) { otkazildi.push({ id: ish.id, sabab: 'Norma konstruksiya yoki shu bo‘limdagi ishlarga zid — normaning qo‘llanishini tekshiring' }); continue; }
     if (!ish.hajm) { otkazildi.push({ id: ish.id, sabab: ish.hajmXato ? 'Hajm formulasi noto‘g‘ri' : 'Hajm aniqlanmagan' }); continue; }
+    if (tasdiqKerak(ish)) { otkazildi.push({ id: ish.id, sabab: 'AI taxmini tasdiqlanmagan — «Ha, to‘g‘ri» ni bosing yoki to‘g‘risini yozing' }); continue; }
     try {
       await k.load(ish.tanlangan.workId);
       const snap = snapshotWork(k, ish.tanlangan.workId, k.manifest.revision, k.tableLabel(ish.tanlangan.workId));

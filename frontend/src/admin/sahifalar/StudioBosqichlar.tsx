@@ -6,7 +6,8 @@
  * (BATCH = bitta «Bekor qilish») orqali; narx/stavka/koeffitsient o'ylab topilmaydi — har biri manba yoki operator qarori.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { agentRegister } from './studioAgent';
+import { agentRegister, jarayonYoz } from './studioAgent';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { t } from '../../i18n/til';
 import type { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
@@ -179,17 +180,21 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   async function aiBuyruqlar(kerak: ResursGuruh[], nomzodlar: (g: ResursGuruh, iboralar: string[]) => NarxNomzod[]) {
     const natija = await aiNarxlash(kerak, nomzodlar,
       async sorov => { const r = await smetachiNarxTanla(kompaniyaId!, sorov, regions.find(([k]) => k === hudud)?.[1] ?? null); return r.ok ? r.tanlovlar : null; },
-      (x, y) => setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a: x, b: y }) }));
+      (x, y) => { setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a: x, b: y }) }); jarayonYoz(t('AI resurslarni ma’nosi bo‘yicha solishtirmoqda: {a} / {b}', { a: x, b: y })); });
     const commands: StudioCommand[] = [];
     const qoldi = new Map<string, AiNarxNatija>();
     for (const n of natija) {
       const g = kerak.find(x => x.key === n.key)!;
       // An earlier estimate's price is never applied automatically and never becomes a justification (owner 2026-10-15).
-      // Owner 2026-10-16 ("narxlarni tanlamaydi — erkinlik ber"): high and medium confidence from a documented source are applied;
-      // the reason says which (one undo reverts all). A company's earlier estimate still never becomes the price document.
-      if (n.nomzod && (n.ishonch === 'yuqori' || n.ishonch === 'orta') && n.nomzod.tur !== 'kompaniya')
-        commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.ishonch === 'orta' ? `AI (o‘rta ishonch, tekshiring): ${n.sabab}` : n.sabab));
-      else qoldi.set(n.key, n);
+      // High confidence from a documented source is applied; a medium pick is PRE-SELECTED and waits for the user's yes
+      // (owner 2026-10-16: "mujmal bo'lsa so'rab tasdiqlatib olsin") — one «AI tanlagan narxlarni tasdiqlash» applies them all.
+      if (n.nomzod && n.ishonch === 'yuqori' && n.nomzod.tur !== 'kompaniya') {
+        commands.push(...narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod, n.sabab));
+        jarayonYoz(`${g.talab ?? g.nom}: ${n.nomzod.narx} — ${n.sabab}`.slice(0, 220), 'ok');
+      } else {
+        qoldi.set(n.key, n);
+        if (n.nomzod && n.ishonch === 'orta') jarayonYoz(`${g.talab ?? g.nom}: ${n.nomzod.narx} taklif (o‘rta ishonch) — tasdiqingizni kutadi`.slice(0, 220), 'savol');
+      }
     }
     return { commands, qoldi, topildi: natija.length - qoldi.size, manbadaYoq: [...qoldi.values()].filter(x => !x.nomzodlar.length).length };
   }
@@ -201,7 +206,9 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
    */
   async function hammasiniNarxla(): Promise<string> {
     setXabar('');
+    jarayonYoz(t('Narxlash: {n} resurs; manbalar — mash-soat ro‘yxati 01.01.2026, narx indeksi, kompaniya KP', { n: guruhlar.filter(narxKerak).length }));
     const avto = avtoBuyruqlar();
+    jarayonYoz(t('Aniq mos topildi: {n} (mehnat/mash-soat {s}, KP {k})', { n: avto.narxlangan.size, s: avto.soatSoni, k: avto.kpSoni }), 'ok');
     // Machines without an exact list match also go to the AI (candidates from the machine-hour list); operators' labour never.
     const kerak = guruhlar.filter(g => narxKerak(g) && !avto.narxlangan.has(g.key) && !materialKerak(g)
       && (katalogdanNarxlanadi(g) || (!!mash && g.kat === 'МАШ' && !/МАШИНИСТ/.test(g.nom.toUpperCase()))));
@@ -222,19 +229,31 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const takliflarYangi = ai?.qoldi ?? zaxira;
     setTakliflar(takliflarYangi);
     if (takliflarYangi.size) setFiltr('taklif');
+    const kutadi = [...takliflarYangi.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya');
     const qism = [t('mehnat/mashina-soat: {n} qator', { n: avto.soatSoni }), ...(avto.kpSoni ? [t('KP dan: {n}', { n: avto.kpSoni })] : []),
       t('katalogdan aniq: {n}', { n: avto.narxlangan.size - avto.kpSoni })];
     if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
     else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
       : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
+    if (kutadi.length) qism.push(t('AI tanlagan {n} ta narx tasdiqingizni kutmoqda — «AI tanlagan narxlarni tasdiqlash» yoki chatda «tasdiqlayman» deng', { n: kutadi.length }));
     setXabar(qism.join(' · '));
     return qism.join(' · ');
   }
+  /** Applies every pre-selected medium-confidence AI pick (documented sources only) as one batch. */
+  function aiNarxlariniTasdiqla(): string {
+    const ok = [...takliflar.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya');
+    const commands = ok.flatMap(n => { const g = guruhlar.find(x => x.key === n.key); return g ? narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod!, `AI taklifi, foydalanuvchi tasdiqladi: ${n.sabab}`) : []; });
+    if (!commands.length) return t('Tasdiq kutayotgan AI narxi yo‘q.');
+    if (!qoy(commands, t('AI narxlari tasdiqlandi'))) return t('Narxlar qo‘llanmadi.');
+    setTakliflar(m => { const x = new Map(m); ok.forEach(n => x.delete(n.key)); return x; });
+    return t('{n} ta AI narxi tasdiqlandi va qo‘yildi', { n: ok.length });
+  }
   // Studio agent (chat): pricing, region, a manual price with its document — the same functions as the buttons.
-  const agent = useRef({ hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor });
-  agent.current = { hammasiniNarxla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor };
+  const agent = useRef({ hammasiniNarxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor });
+  agent.current = { hammasiniNarxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor };
   useEffect(() => {
     const off = [
+      agentRegister('narx_tasdiq', async () => agent.current.aiNarxlariniTasdiqla()),
       agentRegister('narxla', async () => {
         await kut(() => agent.current.manbalarTayyor);
         if (!agent.current.manbalarTayyor) throw new Error(t('Narx manbalari yuklanmadi — sahifani yangilab, qayta urinib ko‘ring.'));
@@ -308,6 +327,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         <span className="flex-1" />
         <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={ai.ish || !narxsizSoni || catHolat === 'yuklanmoqda'} onClick={() => void hammasiniNarxla()}>
           {ai.ish ? t('Narxlar qidirilmoqda...') : t('Barcha narxlarni topish')}</button>
+        {[...takliflar.values()].some(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya') && <button type="button" className="tugma h-8 px-3 text-[12px]" onClick={() => setXabar(aiNarxlariniTasdiqla())}>
+          {t('AI tanlagan narxlarni tasdiqlash ({n})', { n: [...takliflar.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya').length })}</button>}
         <select aria-label={t('Ko‘rinish')} className="input h-7 text-[11.5px]" value={filtr} onChange={e => setFiltr(e.target.value as typeof filtr)}>
           <option value="hammasi">{t('Hammasi')}</option><option value="narxsiz">{t('Faqat narxsiz')}</option><option value="taklif">{t('AI takliflari ({n})', { n: takliflar.size })}</option>
         </select>
@@ -537,18 +558,27 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
     const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a'); a.href = url; a.download = nom; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
+  /** Official documents are billed by filled cells like every other document (token session 2026-10-16); the file is given only after payment. */
+  async function tokenBilanBer(bytes: Uint8Array, nom: string, hujjat: string, sabab: string): Promise<string | null> {
+    if (kompaniyaId == null) { setXabar(t('Hujjat uchun avval kompaniyani tanlang.')); return null; }
+    const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat, sabab: `${sabab} · ${doc.context.objectLabel || doc.context.title || 'Smeta'}` }, () => yuklabBer(bytes, nom));
+    if (!r.ok) { setXabar(r.xabar); return null; }
+    return r.xabar;
+  }
   /** «ПРОТОКОЛ СОГЛАСОВАНИЯ ЦЕН» between the client and the contractor for the estimate's own prices. */
-  async function protokolYukla() {
+  async function protokolYukla(): Promise<string | null> {
     try {
       const [{ studioProtokolQatorlari, STUDIO_PROTOKOL_USTUNLARI, STUDIO_PROTOKOL_MAQSADI }, { narxProtokolXlsx }] = await Promise.all([
         import('../../lib/smeta-studio/abc-hujjat'), import('../../lib/narx-protokol-hujjat')]);
       const qatorlar = studioProtokolQatorlari(doc, hisob, unitText);
-      if (!qatorlar.length) { setXabar(t('Protokol uchun narxlangan resurs yo‘q — avval narxlang.')); return; }
+      if (!qatorlar.length) { setXabar(t('Protokol uchun narxlangan resurs yo‘q — avval narxlang.')); return null; }
       const r = narxProtokolXlsx(qatorlar, { obyektNomi: doc.context.objectLabel || doc.context.title || 'Smeta', raqam: protokol.raqam.trim() || '1', sana: protokol.sana,
         imzo: tomonlar, ustunNomlari: STUDIO_PROTOKOL_USTUNLARI, maqsad: STUDIO_PROTOKOL_MAQSADI });
-      yuklabBer(r.bytes, r.faylNomi);
-      setXabar(t('Narxlarni kelishish protokoli yuklandi: {n} pozitsiya. Ikki tomon imzosidan keyin kuchga kiradi.', { n: r.soni }));
-    } catch { setXabar(t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.')); }
+      const tx = await tokenBilanBer(r.bytes, r.faylNomi, 'PROTOKOL_NARX', 'Протокол согласования цен');
+      if (tx == null) return null;
+      const m = t('Narxlarni kelishish protokoli yuklandi: {n} pozitsiya. Ikki tomon imzosidan keyin kuchga kiradi.', { n: r.soni }) + (tx ? ` · ${tx}` : '');
+      setXabar(m); return m;
+    } catch { setXabar(t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.')); return null; }
   }
   const { ks, narxsiz, aniqlanmagan } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
   const kaskad = doc.rates && !doc.rates.podval ? nakrutkaKaskadJS(ks, doc.rates.values) : null;
@@ -557,21 +587,26 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
   const maxsusQatorlar = maxsus ? maxsus.p.qatorlar.map(q => <tr key={q.kod} className={q.tur === 'jami' ? 'font-semibold' : ''}><td className="px-2 py-0.5">{q.nom}{q.tur === 'foiz' && q.foiz != null ? ` (${String(q.foiz).replace('.', ',')}%)` : ''}</td>
             <td className="px-2 py-0.5 text-right tabular-nums">{maxsus.h.qiymat[q.kod] == null ? '—' : fmt(maxsus.h.qiymat[q.kod]!)}</td></tr>) : null;
   const workUnit = (code: string | null) => (code && katalog ? katalog.unit(code)?.text ?? null : null);
-  async function yukla() {
+  async function yukla(): Promise<string | null> {
     try {
       const { abcHujjat } = await import('../../lib/smeta-studio/abc-hujjat');
       const r = abcHujjat(doc, hisob, { resource: unitText, work: workUnit }, { obyekt: doc.context.objectLabel || null, qurilish: doc.context.title || null, imzo: tomonlar });
-      yuklabBer(r.bytes, hisob.total.unresolved ? `DRAFT_${r.faylNomi}` : r.faylNomi);
-      setXabar(hisob.total.unresolved ? t('Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.') : t('LRV va RES yuklandi (tirik formulalar).'));
+      const tx = await tokenBilanBer(r.bytes, hisob.total.unresolved ? `DRAFT_${r.faylNomi}` : r.faylNomi, 'LRV_RES', 'ЛРВ + РС + обоснование цен');
+      if (tx == null) return null;
+      const m = (hisob.total.unresolved ? t('Qoralama yuklandi. Narx, hajm yoki norma aniqlanmagan qatorlar bor; yakuniy smeta summasi hali hisoblanmagan.') : t('LRV va RES yuklandi (tirik formulalar).')) + (tx ? ` · ${tx}` : '');
+      setXabar(m); return m;
     } catch (e) {
       setXabar(e instanceof Error && e.message === 'LRV_BOSH' ? t('Hujjat uchun avval smetaga ish qo‘shing.') : t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.'));
+      return null;
     }
   }
   const hujjatRef = useRef({ yukla, protokolYukla });
   hujjatRef.current = { yukla, protokolYukla };
   useEffect(() => agentRegister('hujjat', async v => {
-    if (v === 'protokol') { await hujjatRef.current.protokolYukla(); return t('Narxlarni kelishish protokoli yuklandi.'); }
-    await hujjatRef.current.yukla(); return t('LRV + RES + обоснование yuklandi.');
+    // The agent reports what really happened (paid and given, or why not) — never a success it did not see.
+    const m = v === 'protokol' ? await hujjatRef.current.protokolYukla() : await hujjatRef.current.yukla();
+    if (m == null) throw new Error(t('Hujjat berilmadi — sababi narxlash/RES bosqichida ko‘rsatildi.'));
+    return m;
   }), []);
   const qator = (nom: string, v: number, jami = false) => <tr key={nom} className={jami ? 'font-semibold' : ''}><td className="px-2 py-0.5">{nom}</td><td className="px-2 py-0.5 text-right tabular-nums">{fmt(v)}</td></tr>;
   return <div className="space-y-3">

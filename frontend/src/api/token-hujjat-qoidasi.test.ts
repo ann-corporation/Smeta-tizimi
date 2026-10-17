@@ -22,7 +22,6 @@ const BEPUL: Record<string, string> = {
 
 /** Boshqa agent lane'ida — ulanishi kutilmoqda (KOORDINATSIYA 2026-10-16). Ulangach shu ro'yxatdan o'chiring. */
 const KUTILMOQDA: Record<string, string> = {
-  'admin/sahifalar/StudioBosqichlar.tsx': 'Studio LRV/RES/obosnovaniya — Claude(Studio) lease',
   'admin/sahifalar/NarxDalil.tsx': 'narx dalili Excel — Claude(Studio/narx) lease',
   'admin/sahifalar/NarxProtokolPanel.tsx': 'narx protokoli — Claude(Studio/narx) lease',
 };
