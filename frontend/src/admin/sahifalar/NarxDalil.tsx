@@ -21,6 +21,7 @@ import { t } from '../../i18n/til';
 import { useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
 import { NarxProtokolPanel } from './NarxProtokolPanel';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 
 const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 
@@ -96,13 +97,17 @@ export default function NarxDalil() {
     if (r.ok) { toast('Dalil olib tashlandi', 'ok'); await yukla(); } else toast(r.error || 'Xato', 'danger');
   };
 
-  const excel = () => {
-    if (!obyekt) return;
+  // An official document — billed by filled cells like every other one; the file is given only after payment.
+  const excel = async () => {
+    if (!obyekt || !kompaniyaId) return;
     const { bytes, faylNomi, tasdiqlangan, dalilsiz } = narxAsoslashXlsx(resurslar, dalillar, { obyektNomi: obyekt.nom, imzo: tomonlar });
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    const a = document.createElement('a'); a.href = url; a.download = faylNomi; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    toast(`«Обоснование цен»: ${tasdiqlangan} tasdiqlangan, ${dalilsiz} dalilsiz`, 'ok');
+    const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OBOSNOVANIE_NARX', sabab: `Обоснование цен · ${obyekt.nom}`, obyekt: obyekt.id }, () => {
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a'); a.href = url; a.download = faylNomi; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+    if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
+    toast(`«Обоснование цен»: ${tasdiqlangan} tasdiqlangan, ${dalilsiz} dalilsiz${tk.xabar ? ' · ' + tk.xabar : ''}`, 'ok');
   };
 
   return (
@@ -114,7 +119,7 @@ export default function NarxDalil() {
         </div>
         <div className="flex items-center gap-2">
           <select className="border rounded px-2 py-1 text-sm max-w-xs" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>{obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select>
-          <button type="button" onClick={excel} disabled={!obyekt || !resurslar.length} className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-sm disabled:opacity-40"><FileSpreadsheet size={14} /> Обоснование цен</button>
+          <button type="button" onClick={() => void excel()} disabled={!obyekt || !resurslar.length} className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-sm disabled:opacity-40"><FileSpreadsheet size={14} /> Обоснование цен</button>
         </div>
       </div>
 

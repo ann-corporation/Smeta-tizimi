@@ -14,6 +14,7 @@ import { hujjatYukla, hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical
 import { NARX_MANBA_TUR_NOMI, type NarxDalilHolat } from '../../api/t2-narx-dalil';
 import type { TaklifNatija } from '../../lib/narx-dalil/taklif';
 import { manbaRekviziti } from '../../lib/narx-asoslash-export';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { narxProtokolXlsx, protokolNomzodlari } from '../../lib/narx-protokol-hujjat';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { t } from '../../i18n/til';
@@ -60,7 +61,10 @@ export function NarxProtokolPanel(p: { kompaniyaId: number; obyektId: number; ob
     if (!q.ok) { toast(t('Protokol qatorlari o‘qilmadi'), 'danger'); return; }
     const r = narxProtokolXlsx((q.qatorlar ?? []).map((x) => ({ kat: x.kat, kod: x.kod, nom: x.nom, birlik: x.birlik, eski_narx: x.eski_narx, yangi_narx: x.yangi_narx, izoh: x.izoh })),
       { obyektNomi: p.obyektNomi, raqam: pr.raqam, sana: pr.sana, imzo: p.imzo });
-    yuklabBer(r.bytes, r.faylNomi);
+    const tk = await hujjatTokenBilan({ kompaniyaId: p.kompaniyaId, bytes: r.bytes, hujjat: 'PROTOKOL_NARX', sabab: `Протокол согласования цен № ${pr.raqam} · ${p.obyektNomi}`, obyekt: p.obyektId },
+      () => yuklabBer(r.bytes, r.faylNomi));
+    if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
+    if (tk.xabar) toast(tk.xabar, 'ok');
   };
 
   const yarat = async () => {
