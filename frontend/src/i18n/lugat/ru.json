@@ -1778,5 +1778,8 @@
   "Ha, to‘g‘ri": "Да, верно",
   "Yo‘q, to‘g‘risini yozaman": "Нет, напишу как правильно",
   "Hujjat uchun avval kompaniyani tanlang.": "Для документа сначала выберите компанию.",
-  "Hujjat berilmadi — sababi narxlash/RES bosqichida ko‘rsatildi.": "Документ не выдан — причина показана на шаге РС."
+  "Hujjat berilmadi — sababi narxlash/RES bosqichida ko‘rsatildi.": "Документ не выдан — причина показана на шаге РС.",
+  "{nom}: {s} ta yetkazuvchi narxi turlicha ({min}–{max}) — o‘rtachasi {narx} olindi": "{nom}: цены {s} поставщиков различаются ({min}–{max}) — принято среднее {narx}",
+  "{n} ta resursda bir nechta yetkazuvchi narxi turlicha — o‘rtacha narx olindi (Обоснование цен da har bir taklif ko‘rsatilgan)": "У {n} ресурсов цены нескольких поставщиков различаются — принята средняя цена (каждое предложение указано в «Обоснование цен»)",
+  "O‘rtacha {n} ta yetkazuvchi narxidan": "Среднее из цен {n} поставщиков"
 }

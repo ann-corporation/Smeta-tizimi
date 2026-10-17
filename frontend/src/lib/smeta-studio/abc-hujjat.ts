@@ -228,7 +228,9 @@ export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units):
     if (narx == null && !dalilsizSabab) continue;   // machine operators' labour is priced inside the machine-hour (owner rule)
     by.set(key, { kat, kod: idCode(l.resource), nom: name, birlik: unit, hajm: qty, narx, qatorlar: 1,
       hujjatTuri: j ? HUJJAT_TURI[j.docType] : p ? HUJJAT_TURI.MANUAL : null,
-      rekvizit: j?.document ?? p?.evidence ?? null,
+      // An averaged price names every supplier's offer it was computed from (owner 2026-10-17).
+      rekvizit: j ? [j.document, j.average ? `предложения: ${j.average.offers.map(x => `${x.supplier}${x.code ? ` (поз. № ${x.code})` : ''} — ${x.price}`).join('; ')}` : null].filter(Boolean).join('; ')
+        : p?.evidence ?? null,
       manbaNom: j?.sourceName ?? null, manbaBirlik: j?.sourceUnit ?? null, manbaNarx: j?.sourcePrice == null ? null : Number(j.sourcePrice),
       qaytaHisob: j?.conversion ? { formula: j.conversion.formula, koef: Number(j.conversion.factor), izoh: j.conversion.note } : null,
       dalilsizSabab });
