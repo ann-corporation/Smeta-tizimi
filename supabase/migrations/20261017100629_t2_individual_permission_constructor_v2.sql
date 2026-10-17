@@ -319,7 +319,7 @@ begin
   if p_resurslar is not null and (jsonb_typeof(p_resurslar) <> 'array' or jsonb_array_length(p_resurslar) > 50) then
     return jsonb_build_object('ok', false, 'code', 'RESURSLAR_0_50');
   end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'fakt.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'fakt.write') then
     return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED');
@@ -436,7 +436,7 @@ begin
   if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_REQUIRED'); end if;
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED'); end if;
   perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:' || p_obyekt_id, 0));
@@ -472,7 +472,7 @@ begin
   if p_resurslar is not null and (jsonb_typeof(p_resurslar) <> 'array' or jsonb_array_length(p_resurslar) > 60) then
     return jsonb_build_object('ok', false, 'code', 'RESURSLAR_0_60');
   end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED'); end if;
   select response into v_prev from public.t2_addrepl_command where operation_id = p_operation_id;
@@ -594,7 +594,7 @@ begin
   if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_REQUIRED'); end if;
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED'); end if;
   perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:' || p_obyekt_id, 0));
@@ -630,7 +630,7 @@ DO $bind$ BEGIN
 AS $function$
 declare v_rol text; v_row public.t2_ish_turi%rowtype;
 begin
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then
     return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED');
@@ -676,7 +676,7 @@ begin
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
 
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'narx.write');
   if v_rol not in ('admin','superadmin','boss','director','pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'narx.write') then
     raise exception 'WRITE_ROLE_REQUIRED' using errcode='42501';
@@ -730,7 +730,7 @@ begin
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
 
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'object.write');
   if v_rol not in ('admin','superadmin','boss','director','pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'object.write') then
     raise exception 'WRITE_ROLE_REQUIRED' using errcode='42501';
@@ -790,7 +790,7 @@ begin
   if p_operation_id is null then return jsonb_build_object('ok',false,'code','OPERATION_ID_REQUIRED'); end if;
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin','superadmin','boss','director','pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then
     raise exception 'WRITE_ROLE_REQUIRED' using errcode='42501';
@@ -834,7 +834,7 @@ begin
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
 
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin','superadmin','boss','director','pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then
     raise exception 'WRITE_ROLE_REQUIRED' using errcode='42501';
@@ -934,7 +934,7 @@ DO $bind$ BEGIN
 AS $function$
 declare v_rol text;
 begin
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin','superadmin','boss','director','pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then
     raise exception 'WRITE_ROLE_REQUIRED' using errcode='42501';
@@ -986,7 +986,7 @@ begin
     raise exception 'obyekt boshqa tenantga tegishli yoki faol emas' using errcode = '42501';
   end if;
 
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'narx.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'narx.write') then
     raise exception 'bu rol RES narxlashga ruxsatli emas' using errcode = '42501';
@@ -1163,7 +1163,7 @@ begin
     raise exception 'obyekt boshqa tenantga tegishli yoki faol emas' using errcode = '42501';
   end if;
 
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'narx.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'narx.write') then
     raise exception 'bu rol RES narxlashga ruxsatli emas' using errcode = '42501';
@@ -1326,7 +1326,7 @@ begin
     end if;
     return v_prev.natija;
   end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol = 'rahbar' then return jsonb_build_object('ok', false, 'code', 'FORBIDDEN'); end if;
   if p_obyekt_id is not null and not exists (select 1 from public.t2_obyekt where id = p_obyekt_id and kompaniya_id = p_kompaniya_id) then
@@ -1382,7 +1382,7 @@ declare v_komp bigint; v_loyiha bigint; v_job_id bigint; v_bor bigint;
 begin
   select kompaniya_id, loyiha_id into v_komp, v_loyiha from public.t2_obyekt where id = p_obyekt_id;
   if v_komp is null then return jsonb_build_object('ok',false,'code','OBYEKT_NOT_FOUND'); end if;
-  perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id); 
+  perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id);
   perform public.t2_require_permission_v2(v_komp,p_actor_id,'f2.import');
 
   if p_operation_id is null then
@@ -1435,7 +1435,7 @@ declare v_komp bigint; v_obyekt bigint; v_new_versiya integer; v_status text;
 begin
   select kompaniya_id, obyekt_id, status into v_komp, v_obyekt, v_status from public.t2_f2_import_job where id = p_job_id;
   if v_komp is null then return jsonb_build_object('ok',false,'code','JOB_NOT_FOUND'); end if;
-  perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id); 
+  perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id);
   perform public.t2_require_permission_v2(v_komp,p_actor_id,'f2.import');
 
   if p_processed_delta is null or p_matched_delta is null or p_unmatched_delta is null
@@ -1512,7 +1512,7 @@ begin
 
   select * into v_recovery from public.t2_f2_import_job_recovery where operation_id = p_operation_id;
   if found then
-    perform public.t2_actor_kompaniya_azo_tekshir(v_recovery.kompaniya_id, p_actor_id); 
+    perform public.t2_actor_kompaniya_azo_tekshir(v_recovery.kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(v_recovery.kompaniya_id,p_actor_id,'f2.import');
     if v_recovery.job_id <> p_job_id then
       return jsonb_build_object('ok', false, 'code', 'OPERATION_REPLAY_CONFLICT');
@@ -1602,7 +1602,7 @@ begin
   perform pg_advisory_xact_lock(hashtextextended(p_operation_id::text, 0));
   select * into v_event from public.t2_f2_import_job_cancel_event where operation_id = p_operation_id;
   if found then
-    perform public.t2_actor_kompaniya_azo_tekshir(v_event.kompaniya_id, p_actor_id); 
+    perform public.t2_actor_kompaniya_azo_tekshir(v_event.kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(v_event.kompaniya_id,p_actor_id,'f2.import');
     if v_event.job_id <> p_job_id then
       return jsonb_build_object('ok', false, 'code', 'OPERATION_REPLAY_CONFLICT');
@@ -1653,7 +1653,7 @@ declare v_komp bigint; v_obyekt bigint; v_soni integer;
 begin
   select kompaniya_id, obyekt_id into v_komp, v_obyekt from public.t2_f2_import_job where id = p_job_id;
   if v_komp is null then return jsonb_build_object('ok',false,'code','JOB_NOT_FOUND'); end if;
-  perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id); 
+  perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id);
   perform public.t2_require_permission_v2(v_komp,p_actor_id,'f2.import');
 
   if p_qatorlar is null or jsonb_typeof(p_qatorlar) <> 'array'
@@ -1741,7 +1741,7 @@ begin
   if p_expected_source_version is null then return jsonb_build_object('ok', false, 'code', 'EXPECTED_VERSION_REQUIRED'); end if;
   if v_reason is not null and length(v_reason) > 2000 then return jsonb_build_object('ok', false, 'code', 'REASON_TOO_LONG'); end if;
   perform pg_advisory_xact_lock(hashtextextended(p_operation_id::text, 0));
-  perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'f2.correct');
 
   select * into v_link from public.t2_akt_correction_link where operation_id = p_operation_id;
@@ -1840,7 +1840,7 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(hashtextextended(p_operation_id::text, 0));
-  perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,CASE WHEN p_to_status='cancelled' THEN 'f2.cancel' WHEN p_to_status='superseded' THEN 'f2.correct' WHEN p_to_status IN ('draft','submitted') THEN 'f2.prepare' ELSE 'f2.approve' END);
 
   if exists (
