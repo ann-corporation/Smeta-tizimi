@@ -7,21 +7,23 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
-import * as XLSX from 'xlsx';
+import { readXlsx } from '../../src/lib/f2-import-parse/xlsxReader';
 import { nashrniOqi } from '../../src/lib/narx-katalog/manba-xls';
 import { nashrlarniBirlashtir, reviziyaQur } from '../../src/lib/narx-katalog/nashr-birlashtir';
 
 const [outDir, ...inputs] = process.argv.slice(2);
 if (!outDir || !inputs.length) throw new Error('usage: <out-dir> <file.xls> [...]');
 if (existsSync(outDir)) throw new Error('OUTPUT_EXISTS ' + outDir);
-const nashrlar = inputs.map(f => {
+// Excel FAQAT loyihaning yagona o'quvchisi orqali (.oxlintrc no-restricted-imports: xlsx) — .xls (BIFF8) ham qo'llanadi.
+const nashrlar = [];
+for (const f of inputs) {
   const bytes = readFileSync(f);
-  const wb = XLSX.read(bytes, { type: 'buffer' });
-  const sheets = wb.SheetNames.map(nom => ({ nom, rows: XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[nom], { header: 1, defval: null, raw: true }) }));
+  const wb = await readXlsx(new Uint8Array(bytes));
+  const sheets = wb.sheets.map((s) => ({ nom: s.name, rows: s.rows as unknown[][] }));
   const n = nashrniOqi(basename(f), sheets);
   console.info(JSON.stringify({ fayl: basename(f), tur: n.tur, yil: n.yil, kvartal: n.kvartal, oy: n.oy, sana: n.sana, ...n.hisob, olinmaganVaraqlar: n.hisob.olinmaganVaraqlar.length }));
-  return { ...n, sha256: createHash('sha256').update(bytes).digest('hex') };
-});
+  nashrlar.push({ ...n, sha256: createHash('sha256').update(bytes).digest('hex') });
+}
 const b = nashrlarniBirlashtir(nashrlar);
 const r = await reviziyaQur(b, nashrlar.map(({ qatorlar: _q, ...m }) => m), new Date().toISOString());
 for (const f of r.files) {
