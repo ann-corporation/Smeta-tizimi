@@ -643,7 +643,9 @@ export class RasmiyVaraq {
 
 // ───────────────────────── kitob ─────────────────────────
 
-/** yacheykalar — to'ldirilgan (qiymat yoki formula) kataklar soni; token hisobi shundan (egasi 2026-10-02). */
+/** yacheykalar — tizim HISOBLAGAN (formula bor) kataklar soni; token hisobi shundan. Matn va ko'chirilgan sonlar
+ * sanalmaydi (egasi 2026-10-17: "faqat o'zi hisob qilib yozganini"). Formulasiz rejimda ham formulalar qiymatga
+ * aylantirilishidan OLDIN sanaladi — hisobni tizim baribir bajargan. Qoida `lib/token-hujjat.ts` bilan bir xil. */
 export type RasmiyKitobNatija = { bytes: Uint8Array; varaqlar: RasmiyVaraqMeta[]; yacheykalar: number };
 
 /** Bir yoki bir nechta rasmiy varaqdan .xlsx yasaydi (Print_Area, Print_Titles,
@@ -688,9 +690,10 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
   };
   let yacheykalar = 0;
   varaqlar.forEach((v, i) => {
-    const x = o?.formulasiz ? formulalarniQiymatga(v.xml()) : v.xml();
-    // Bo'sh (faqat uslubli) `<c .../>` sanalmaydi — faqat qiymat/formula bor kataklar.
-    yacheykalar += x.match(/<c [^>]*[^/]>/g)?.length ?? 0;
+    const xom = v.xml();
+    const x = o?.formulasiz ? formulalarniQiymatga(xom) : xom;
+    // Faqat formula bor kataklar — tizim hisoblaganlari (qiymatga aylantirishdan oldin).
+    yacheykalar += xom.match(/<c [^>]*[^/]><f\b/g)?.length ?? 0;
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(x);
   });
   return { bytes: zipSync(files, { level: 6, mtime: BARQAROR_VAQT }), varaqlar: metas, yacheykalar };

@@ -13,7 +13,9 @@ import { paketFaylHisobi, paketQatorlari, paketSvodXlsx, paketZip, type OfertaPa
 import { NAKRUTKA_STANDART, type NakrutkaQadamlar } from '../../lib/nakrutka-kaskad';
 import { NAKRUTKA_KOEF_IZOH, NAKRUTKA_KOEF_KODLAR, t2NakrutkaKoefOl, type NakrutkaKoefKod, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { hujjatTokenBilan, xlsxYacheykaSoni } from '../../lib/token-hujjat';
+import { isZip } from '../../lib/hujjat-yozuvchi/ooxml';
+import { xlsdanXlsx } from '../../lib/hujjat-yozuvchi/kitob';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
@@ -285,6 +287,8 @@ function Sessiya() {
       const koeffitsientManbasi = koef.manba === 'kompaniya' ? 'kompaniya koeffitsientlari' : koef.manba === 'tahrirlangan' ? 'qo‘lda tahrirlangan' : koef.manba === 'fayl' ? 'fayldagi foizlar' : 'T1 standarti';
       const natijalar: Array<{ nom: string; bytes: Uint8Array; saqlanish: string }> = [];
       const lrvIzoh: string[] = [];
+      // Token: faqat tizim hisoblagan kataklar — foydalanuvchining asl smetasidagi o'zgarmagan kataklar sanalmaydi.
+      let hisoblangan = 0;
       for (const o of obyektHisoblari) {
         if (!o.fayl.tanlanganVaraqlar.length || !o.hisob.qatorlar.length) continue;
         const n = await tenderOfertaXlsx({
@@ -292,11 +296,13 @@ function Sessiya() {
           tanlanganVaraqlar: o.fayl.tanlanganVaraqlar, tahlillar: o.fayl.tahlillar, hisob: o.hisob, koeffitsientManbasi, imzo,
         });
         natijalar.push({ nom: n.faylNomi, bytes: n.bytes, saqlanish: n.saqlanish });
+        hisoblangan += xlsxYacheykaSoni(n.bytes, isZip(o.fayl.bytes) ? o.fayl.bytes : await xlsdanXlsx(o.fayl.bytes));
         // Oferta LRV — F2 shaklida (to'liq bo'lim ierarxiyasi, oferta narxlari, jonli formulalar, nakrutka jadvali).
         if (o.fayl.lrv) {
           const l = await ofertaLrvHujjati({ lrvVaraqNomi: o.fayl.lrv.nom, rows: o.fayl.lrv.rows, natijalar: o.hisob.qatorlar, obyektNomi: o.fayl.nom, nk: o.hisob.koeffitsientlar, imzo });
           if (l) {
             natijalar.push({ nom: l.faylNomi, bytes: l.bytes, saqlanish: 'toliq' });
+            hisoblangan += xlsxYacheykaSoni(l.bytes);
             const farq = Math.round((l.togridanJami - o.hisob.togridanJami) * 100) / 100;
             lrvIzoh.push(`${o.fayl.nom}: LRV (F2) — ${l.narxlandi}/${l.resurslar} resurs narxlandi${l.topilmadi.length ? `, ${l.topilmadi.length} tasining narxi RES da topilmadi (ro‘yxat hujjatda)` : ''}; to‘g‘ridan-to‘g‘ri xarajat LRV ${fmt(l.togridanJami)} / RES ${fmt(o.hisob.togridanJami)}${farq ? ` (farq ${fmt(farq)} — manbadagi RES hajmlari yaxlitlangan)` : ' — mos'}${l.bezSkladBor ? '; БЕЗСКЛАД resurs bor — nakrutka jadvali LRV da berilmadi, yakuniy summa oferta svodida' : ''}.`);
           }
@@ -317,9 +323,10 @@ function Sessiya() {
         const svodNomi = hujjatFaylNomi({ obyekt: nom, hujjat: 'СВОД_ОФЕРТЫ', davr: bugunSana() });
         const zipNomi = hujjatFaylNomi({ obyekt: nom, hujjat: 'ОФЕРТА', davr: bugunSana(), kengaytma: 'zip' });
         fayl = { bytes: paketZip([...natijalar, { nom: svodNomi, bytes: svod }]), nom: zipNomi, mime: 'application/zip' };
+        hisoblangan += xlsxYacheykaSoni(svod);
         xabar = `Paket tayyor: ${natijalar.length} ta hujjat + svod (${zipNomi}).${qisman}${lrvIzoh.length ? ' ' + lrvIzoh.join(' ') : ''}`;
       }
-      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: fayl.bytes, hujjat: 'OFERTA', sabab: `Оферта · ${fayl.nom}` },
+      const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: fayl.bytes, hujjat: 'OFERTA', sabab: `Оферта · ${fayl.nom}`, yacheykalar: hisoblangan },
         () => downloadBlob(fayl.bytes, fayl.nom, fayl.mime));
       if (!t.ok) { setError(t.xabar); return; }
       setMessage(xabar + (t.xabar ? ' ' + t.xabar : ''));

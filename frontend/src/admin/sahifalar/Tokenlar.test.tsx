@@ -23,9 +23,11 @@ const HOLAT = {
 describe('Tokenlar (narx v2, sotib olish, nima uchun)', () => {
   beforeEach(() => { m.holat.mockReset(); m.sorov.mockReset(); m.toast.mockReset(); m.holat.mockResolvedValue({ ok: true, natija: HOLAT }); });
 
-  it('F2 misoli server formulasi bilan bir xil: 36 400 so‘m = 364 token', async () => {
+  it('F2 misoli server formulasi bilan bir xil: faqat tizim hisoblagan 213 katak → minimum 30 000 so‘m = 300 token', async () => {
     render(<MemoryRouter><Tokenlar /></MemoryRouter>);
-    expect(await screen.findByText(/F2 \(792 yacheyka\) = 36\s400 soʻm = 364 token/)).toBeTruthy();
+    // (20 000 + ceil(213/100) × 1 000) × 1,3 = 29 900 → minimum 30 000
+    expect(await screen.findByText(/F2 \(213 hisoblangan katak\) = 30\s000 soʻm = 300 token/)).toBeTruthy();
+    expect(screen.getByText(/Matn, ish nomlari va hujjatdan koʻchirilgan sonlar sanalmaydi/)).toBeTruthy();
   });
 
   it('sarfning to‘liq hisobi ochiladi (sabab, tannarx, foyda, yakuniy narx)', async () => {

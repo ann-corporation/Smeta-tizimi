@@ -55,7 +55,8 @@ export function Tokenlar() {
   useEffect(() => { if (h?.paketlar?.length && !paket) setPaket(h.paketlar[1]?.kod ?? h.paketlar[0].kod); }, [h, paket]);
 
   const sarfJami = useMemo(() => (h?.harakatlar ?? []).filter((x) => x.tur === 'sarf').reduce((s, x) => s - x.miqdor, 0), [h]);
-  const f2Misol = useMemo(() => narxHisob(h?.narxlar.find((n) => n.amal === 'f2_hujjat'), 792, h?.sozlama), [h]);
+  // Real 43 qatorli F2: 792 to'ldirilgan katakdan 213 tasini tizim hisoblagan (formula) — faqat shular sanaladi.
+  const f2Misol = useMemo(() => narxHisob(h?.narxlar.find((n) => n.amal === 'f2_hujjat'), 213, h?.sozlama), [h]);
 
   async function sotibOl() {
     if (!kid || !paket || band) return;
@@ -92,8 +93,9 @@ export function Tokenlar() {
             </div>
             <div className="karta p-4 text-[12px] text-text-dim">
               <div className="mb-1 text-[12px] uppercase tracking-wide text-text-mute">{t('Qanday hisoblanadi')}</div>
-              {t('Narx = tannarx (hujjat hajmi boʻyicha) + foyda. Har sarfning toʻliq hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.')}
-              {f2Misol && <div className="mt-1 text-text">{t('Masalan: F2 (792 yacheyka) = {s} soʻm = {n} token', { s: son(f2Misol.yakuniy_som), n: son(f2Misol.token) })}</div>}
+              {t('Narx = tannarx (tizim hisoblagan kataklar soni boʻyicha) + foyda. Har sarfning toʻliq hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.')}
+              <div className="mt-1">{t('Faqat tizim oʻzi hisoblab yozgan katak sanaladi (summa, jami, nakrutka — formula). Matn, ish nomlari va hujjatdan koʻchirilgan sonlar sanalmaydi. Tekshirish: Excel → «Выделить группу ячеек» → «Формулы».')}</div>
+              {f2Misol && <div className="mt-1 text-text">{t('Masalan: F2 (213 hisoblangan katak) = {s} soʻm = {n} token', { s: son(f2Misol.yakuniy_som), n: son(f2Misol.token) })}</div>}
             </div>
           </section>
 
