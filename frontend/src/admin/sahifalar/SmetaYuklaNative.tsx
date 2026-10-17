@@ -1010,12 +1010,14 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       const j: any = await r.json().catch(() => null);
       const documentId = j && j.ok ? Number(j.document_id) : NaN;
       if (!r.ok || !Number.isSafeInteger(documentId) || documentId <= 0) {
-        throw new Error('Manba fayli kanonik R2 saqlashga qabul qilinmadi.');
+        // Sabab ko'rinsin (masalan tenant/loyiha mosligi) — «qabul qilinmadi» yolg'iz o'zi foydalanuvchiga hech narsa demaydi.
+        const sabab = j?.xato || j?.code || `HTTP ${r.status}`;
+        throw new Error(`Manba fayli kanonik R2 saqlashga qabul qilinmadi (${sabab}).`);
       }
       sourceDocumentId.current = documentId;
       return documentId;
     } catch (e) {
-      if (e instanceof Error && e.message === 'Manba fayli kanonik R2 saqlashga qabul qilinmadi.') throw e;
+      if (e instanceof Error && e.message.startsWith('Manba fayli kanonik R2 saqlashga qabul qilinmadi')) throw e;
       throw new Error('Manba fayli kanonik R2 ga yuklanmadi. Import to‘xtatildi.');
     }
   }
