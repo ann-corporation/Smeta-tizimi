@@ -13,6 +13,7 @@ import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import { demoManbaBelgila, narxHisob, obunaBelgila, tokenHolatOl, tokenToldir, tokenXato, type TokenNarx, type TokenSozlama, type TokenTarif } from '../../api/t2-token';
 import { t } from '../../i18n/til';
 import { boshqaruvOqi, boshqaruvYoz, type BAudit, type BFoydalanuvchi, type BKompaniya, type BTokenDaftar, type BTolov, type BUmumiy } from '../../api/t2-boshqaruv';
+import { markazOl, ustamaBelgila } from '../../api/t2-agent-ish';
 
 const SystemControlPage = lazy(() => import('../pages/SystemControlPage'));
 const AiMarkaz = lazy(() => import('../ai-markaz/AiMarkaz').then((m) => ({ default: m.AiMarkaz })));
@@ -366,14 +367,35 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
   const [soz, setSoz] = useState<TokenSozlama | null>(null);
   const [demo, setDemo] = useState<number | null>(null);
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
+  // Narxni sinab ko'rish (egasi 2026-10-17: "har bir yacheyka yoki AI ustamasini o'zim belgilay olay, kerakli narxni sinab ko'rib").
+  const [misolKatak, setMisolKatak] = useState('213');
+  const [ustama, setUstama] = useState('');
+  const [misolUsd, setMisolUsd] = useState('0.03');
   const yukla = useCallback(async () => {
     if (!kompaniyaId) return;
     const h = await tokenHolatOl(kompaniyaId);
     if (h.ok) { setNarxlar(h.natija.narxlar); setTariflar(h.natija.tariflar); setSoz(h.natija.sozlama); setDemo(h.natija.demo_obyekt_id); }
     const o = await sbT2ObyektlarOlKomp(kompaniyaId);
     if (o.ok) setObyektlar(o.qatorlar ?? []);
+    const mk = await markazOl();
+    if (mk.ok) setUstama(String(mk.natija.ustama_foiz));
   }, [kompaniyaId]);
   useEffect(() => { void yukla(); }, [yukla]);
+  const ustamaSaqla = async () => {
+    const v = Number(ustama);
+    if (ustama.trim() === '' || !Number.isFinite(v) || v < 0 || v > 1000) { toast(t('Ustama 0 dan 1000 gacha bo‘lishi kerak'), 'warn'); return; }
+    const r = await ustamaBelgila(null, v);
+    if (r.ok) { toast(t('Ustama saqlandi'), 'ok'); void yukla(); } else toast(r.error, 'danger');
+  };
+  /** AI chaqiruvi mijozga: tannarx $ × (1 + ustama%) × kurs ÷ 1 token narxi, kamida 1 token (server t2_agent_sarf_yoz_v1 bilan bir xil). */
+  const aiMisol = (() => {
+    const usd = Number(misolUsd); const u = Number(ustama);
+    if (!soz || !Number.isFinite(usd) || usd <= 0 || !Number.isFinite(u)) return null;
+    const mijozUsd = usd * (1 + u / 100);
+    const tok = Math.max(Math.ceil((mijozUsd * soz.usd_kurs) / soz.token_som), 1);
+    return { mijozUsd, tok, som: tok * soz.token_som, foydaSom: Math.round((mijozUsd - usd) * soz.usd_kurs) };
+  })();
+  const katakSoni = Math.max(0, Number(misolKatak) || 0);
 
   const sozSaqla = async () => {
     if (!soz) return;
@@ -417,10 +439,15 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
       <section className="karta overflow-x-auto p-4">
         <h2 className="mb-1 text-[14px] font-semibold text-text">{t('Amallar narxi: tannarx + foyda')}</h2>
         <p className="mb-2 text-[12px] text-text-mute">{t('Yakuniy = (asosiy + har birlik boʻlagi × narx) × (1 + foyda%), keyin min/max. Foyda boʻsh — umumiy foiz. Oʻzgarish faqat keyingi sarflarga taʼsir qiladi.')}</p>
+        <p className="mb-2 text-[12px] text-text-mute">{t('Hujjatlarda birlik — tizim oʻzi hisoblagan katak (formula). Matn va hujjatdan koʻchirilgan sonlar sanalmaydi. Masalan, 43 qatorli F2 da 213 ta hisoblangan katak bor.')}</p>
+        <label className="mb-2 flex items-center gap-2 text-[12px] text-text-dim">{t('Sinov: hujjatdagi hisoblangan kataklar soni')}
+          <input type="number" min={0} className={`${kir} w-28`} value={misolKatak} onChange={(e) => setMisolKatak(e.target.value)} aria-label={t('Sinov: hujjatdagi hisoblangan kataklar soni')} />
+          <span className="text-text-mute">{t('— qiymatlarni oʻzgartiring, «Misol» ustuni darhol yangilanadi (saqlamaguncha hech narsa oʻzgarmaydi)')}</span>
+        </label>
         <table className="w-full text-[12px]">
           <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Amal')}</th><th>{t('Asosiy (soʻm)')}</th><th>{t('Birlik')}</th><th>{t('Har birlik (soʻm)')}</th><th>{t('Min')}</th><th>{t('Max')}</th><th>{t('Foyda %')}</th><th>{t('Misol')}</th><th /></tr></thead>
           <tbody>{narxlar.map((n, i) => {
-            const misolN = n.tur === 'ai' ? 10000 : n.amal === 'f2_hujjat' || n.amal === 'hujjat' ? 792 : 20000;
+            const misolN = n.tur === 'ai' ? 10000 : katakSoni;
             const m = soz ? narxHisob({ ...n, faol: true }, misolN, soz) : null;
             return (
               <tr key={n.amal} className="border-t border-border/60">
@@ -440,6 +467,16 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
             );
           })}</tbody>
         </table>
+      </section>
+      <section className="karta p-4" aria-label={t('AI ustamasi')}>
+        <h2 className="mb-1 text-[14px] font-semibold text-text">{t('AI ustamasi')}</h2>
+        <p className="mb-2 text-[12px] text-text-mute">{t('Mijozdan olinadigan AI narxi = provayder haqiqiy sarfi × (1 + ustama%) → soʻm → token (kamida 1 token). Kompaniyaga alohida ustama — AI markazi → Xarajat.')}</p>
+        <div className="flex flex-wrap items-end gap-3 text-[12px] text-text-dim">
+          <label className="flex flex-col gap-1">{t('Standart ustama (%)')}<input type="number" min={0} max={1000} className={`${kir} w-28`} value={ustama} onChange={(e) => setUstama(e.target.value)} /></label>
+          <label className="flex flex-col gap-1">{t('Sinov: bitta AI javob tannarxi ($)')}<input type="number" min={0} step="0.001" className={`${kir} w-28`} value={misolUsd} onChange={(e) => setMisolUsd(e.target.value)} /></label>
+          <button type="button" className="tugma-asosiy h-7 px-3 text-[12px]" onClick={() => void ustamaSaqla()}>{t('Saqlash')}</button>
+        </div>
+        {aiMisol && <p className="mt-2 text-[12px] tabular-nums text-text" data-testid="ai-misol">{t('Misol: ${u} tannarx → mijozga ${m} = {s} soʻm = {n} token (foyda ≈ {f} soʻm)', { u: misolUsd, m: aiMisol.mijozUsd.toFixed(4), s: son(aiMisol.som), n: son(aiMisol.tok), f: son(aiMisol.foydaSom) })}</p>}
       </section>
       <section className="karta p-4">
         <div className="mb-2 flex items-center justify-between"><h2 className="text-[14px] font-semibold text-text">{t('Tariflar')}</h2><button type="button" className="tugma h-7 px-2 text-[12px]" onClick={yangiTarif}>{t('+ Yangi tarif')}</button></div>
