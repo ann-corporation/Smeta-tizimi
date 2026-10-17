@@ -24,7 +24,8 @@ const BEPUL: Record<string, string> = {
 const KUTILMOQDA: Record<string, string> = {
 };
 
-const FAYL_BERISH = /downloadBlob\(|\.download\s*=|setAttribute\(\s*['"]download['"]/;
+// Fayl berish = yuklab berish YOKI saytda to'liq ko'rsatish (ko'rish oynasida yuklab olish tugmasi bor).
+const FAYL_BERISH = /downloadBlob\(|\.download\s*=|setAttribute\(\s*['"]download['"]|\bkorinish\.ochish\(|window\.open\(\s*URL\.createObjectURL/;
 const TOKEN = /\b(hujjatTokenBilan|tokenBilan)\(/;
 const izohsiz = (s: string) => s.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
 function fayllar(d: string): string[] {
