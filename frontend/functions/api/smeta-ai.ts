@@ -246,6 +246,25 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const r = await rpcData(ctx.env, 't2_smeta_tajriba_yoz_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_tanlovlar: tanlovlar });
       return Response.json(r.data, { status: r.ok ? 200 : r.status });
     }
+    // Platform price experience (owner 2026-10-17): accepted/rejected sources and the uploaded estimates' practice per resource.
+    if (so.amal === 'narx_tajriba') {
+      const sorovlar = (Array.isArray(so.sorovlar) ? so.sorovlar.slice(0, 300) : []).map(t => { const x = (t ?? {}) as Record<string, unknown>;
+        const narx = Number(x.narx);
+        return { resurs: clip(x.resurs, 300), ...(Number.isFinite(narx) && narx >= 0 ? { narx: String(Math.round(narx * 100) / 100) } : {}) }; }).filter(t => t.resurs.includes('|'));
+      if (!sorovlar.length) return Response.json({ ok: true, resurslar: {} });
+      const r = await rpcData(ctx.env, 't2_narx_tajriba_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_sorovlar: sorovlar });
+      return Response.json(r.data, { status: r.ok ? 200 : r.status, headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (so.amal === 'narx_tajriba_yoz') {
+      const yozuvlar = (Array.isArray(so.yozuvlar) ? so.yozuvlar.slice(0, 200) : []).map(t => { const x = (t ?? {}) as Record<string, unknown>;
+        const narx = Number(x.narx);
+        return { resurs: clip(x.resurs, 300), manba: clip(x.manba, 300), tur: clip(x.tur, 20), holat: clip(x.holat, 10),
+          ...(Number.isFinite(narx) && narx >= 0 ? { narx: String(Math.round(narx * 100) / 100) } : {}) }; })
+        .filter(t => t.resurs.includes('|') && t.manba.length >= 2 && ['katalog', 'kp', 'internet', 'qolda'].includes(t.tur) && ['qabul', 'rad'].includes(t.holat));
+      if (!yozuvlar.length) return fail('SOROV_INVALID');
+      const r = await rpcData(ctx.env, 't2_narx_tajriba_yoz_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_yozuvlar: yozuvlar });
+      return Response.json(r.data, { status: r.ok ? 200 : r.status });
+    }
     if (so.amal === 'kp_oqi') {
       const f = (so.fayl ?? null) as { mimeType?: unknown; data?: unknown } | null;
       const matn = clip(so.matn, 120_000).trim();

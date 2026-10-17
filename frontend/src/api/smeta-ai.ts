@@ -1,5 +1,6 @@
 /** Client for /api/smeta-ai (Smetachi AI worker — proposals only). */
 import type { NormaTajriba } from '../lib/smeta-ai/tajriba';
+import type { NarxTajriba } from '../lib/smeta-studio/narx-ishonch';
 import type { IshNiyati, KoefSorovi, KoefTanlov, KpOqish, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
 
 export type AiXato = { ok: false; code: string; message?: string };
@@ -43,6 +44,15 @@ export const smetachiKpOqi = (kompaniyaId: number, p: { fayl?: { mimeType: strin
   post<{ ok: true; kp: KpOqish; model: string }>({ amal: 'kp_oqi', kompaniya_id: kompaniyaId, ...p });
 export const smetachiTanla = (kompaniyaId: number, sorovlar: TanlovSorovi[]) =>
   post<{ ok: true; tanlovlar: Tanlov[]; tajriba?: Record<string, NormaTajriba> }>({ amal: 'tanla', kompaniya_id: kompaniyaId, sorovlar });
+/** Platform price experience per resource key (owner 2026-10-17); `{}` when unavailable — pricing still works. */
+export async function narxTajribasi(kompaniyaId: number, sorovlar: Array<{ resurs: string; narx?: number }>): Promise<Record<string, NarxTajriba>> {
+  if (!sorovlar.length) return {};
+  const j = await post<{ ok: true; resurslar: Record<string, NarxTajriba> }>({ amal: 'narx_tajriba', kompaniya_id: kompaniyaId, sorovlar: sorovlar.slice(0, 300) });
+  return j.ok && j.resurslar && typeof j.resurslar === 'object' ? j.resurslar : {};
+}
+/** Accepted / rejected price sources — every estimator's decision teaches the whole platform. Fire-and-forget. */
+export const narxTajribaYoz = (kompaniyaId: number, yozuvlar: Array<{ resurs: string; manba: string; tur: 'katalog' | 'kp' | 'internet' | 'qolda'; narx?: number; holat: 'qabul' | 'rad' }>) =>
+  yozuvlar.length ? post<{ ok: true; yozildi: number }>({ amal: 'narx_tajriba_yoz', kompaniya_id: kompaniyaId, yozuvlar: yozuvlar.slice(0, 200) }) : Promise.resolve({ ok: true as const, yozildi: 0 });
 /** AI picks a price candidate per resource among the ones the browser found (catalogue / company estimates). */
 export const smetachiNarxTanla = (kompaniyaId: number, sorovlar: NarxSorovi[], hudud: string | null) =>
   post<{ ok: true; tanlovlar: NarxTanlov[] }>({ amal: 'narx_tanla', kompaniya_id: kompaniyaId, sorovlar, hudud });

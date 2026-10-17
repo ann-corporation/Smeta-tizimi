@@ -28,7 +28,8 @@ import { NAKRUTKA_STANDART } from '../../lib/nakrutka-kaskad';
 import { NAKRUTKA_KATLAR, nakrutkaKaskadJS, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
 import { podvalHisobla, standartPodval, type Podval } from '../../lib/nakrutka-konstruktor';
 import { amaldagiPodval } from '../../api/t2-nakrutka-podval';
-import { smetachiNarxTanla } from '../../api/smeta-ai';
+import { narxTajribasi, narxTajribaYoz, smetachiNarxTanla } from '../../api/smeta-ai';
+import { ishonchniKuchaytir, manbaKaliti, resursKaliti, type NarxTajriba } from '../../lib/smeta-studio/narx-ishonch';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 
@@ -194,8 +195,18 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       (x, y) => { setAi({ ish: true, matn: t('AI resurslarni tahlil qilmoqda: {a} / {b}', { a: x, b: y }) }); jarayonYoz(t('AI resurslarni ma’nosi bo‘yicha solishtirmoqda: {a} / {b}', { a: x, b: y })); });
     const commands: StudioCommand[] = [];
     const qoldi = new Map<string, AiNarxNatija>();
-    for (const n of natija) {
-      const g = kerak.find(x => x.key === n.key)!;
+    // Platform experience (owner 2026-10-17: "to'g'ri topganini ham tasdiqla deydi … tizim darajasida o'rgansin"): what estimators
+    // accepted/rejected for this resource and whether the price fits the practice of every uploaded estimate.
+    const kalit = (g: ResursGuruh) => resursKaliti(narxNomi(g), g.birlik);
+    const tajriba = await Promise.resolve().then(() => narxTajribasi(kompaniyaId!, natija.flatMap(n => { const g = kerak.find(x => x.key === n.key);
+      return g && n.nomzod ? [{ resurs: kalit(g), narx: n.nomzod.narx }] : []; }))).catch(() => ({} as Record<string, NarxTajriba>));
+    let kotarildi = 0;
+    for (const n0 of natija) {
+      const g = kerak.find(x => x.key === n0.key)!;
+      const k = ishonchniKuchaytir(n0.nomzod, n0.ishonch, tajriba[kalit(g)]);
+      const n = k.ishonch === n0.ishonch ? n0 : { ...n0, ishonch: k.ishonch, sabab: `${n0.sabab} · ${k.dalil}`.slice(0, 400) };
+      if (k.ishonch === 'yuqori' && n0.ishonch !== 'yuqori') kotarildi++;
+      if (k.dalil && k.ishonch !== n0.ishonch) jarayonYoz(`${g.talab ?? g.nom}: ${k.dalil}`.slice(0, 220), k.ishonch === 'yuqori' ? 'ok' : 'savol');
       // An earlier estimate's price is never applied automatically and never becomes a justification (owner 2026-10-15).
       // High confidence from a documented source is applied; a medium pick is PRE-SELECTED and waits for the user's yes
       // (owner 2026-10-16: "mujmal bo'lsa so'rab tasdiqlatib olsin") — one «AI tanlagan narxlarni tasdiqlash» applies them all.
@@ -208,7 +219,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         if (n.nomzod && n.ishonch === 'orta') jarayonYoz(`${g.talab ?? g.nom}: ${n.nomzod.narx} taklif (o‘rta ishonch) — tasdiqingizni kutadi`.slice(0, 220), 'savol');
       }
     }
-    return { commands, qoldi, topildi: natija.length - qoldi.size, manbadaYoq: [...qoldi.values()].filter(x => !x.nomzodlar.length).length };
+    return { commands, qoldi, kotarildi, topildi: natija.length - qoldi.size, manbadaYoq: [...qoldi.values()].filter(x => !x.nomzodlar.length).length };
   }
 
   /**
@@ -247,6 +258,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     // How many resources took the mean of several suppliers' offers — the estimator must know (owner 2026-10-17).
     const ortachalar = new Set([...avto.commands, ...(ai?.commands ?? [])].flatMap(c => (c.type === 'SET_PRICE' && c.price?.justification?.average ? [c.price.justification] : [])));
     if (ortachalar.size) qism.push(t('{n} ta resursda bir nechta yetkazuvchi narxi turlicha — o‘rtacha narx olindi (Обоснование цен da har bir taklif ko‘rsatilgan)', { n: ortachalar.size }));
+    if (ai?.kotarildi) qism.push(t('{n} ta narx tizim tajribasi tasdiqlagani uchun so‘ralmasdan qo‘yildi', { n: ai.kotarildi }));
     if (ai) qism.push(t('AI topdi: {n}', { n: ai.topildi }), t('tekshiruvingizda: {n}', { n: ai.qoldi.size - ai.manbadaYoq }), t('manbalarda yo‘q: {n}', { n: ai.manbadaYoq }));
     else if (kerak.length) qism.push(aiXato ? t('AI javob bermadi — {n} resurs uchun manba nomzodlari ro‘yxatda, tanlang', { n: kerak.length })
       : t('AI uchun kompaniya tanlanmagan — {n} resurs uchun katalog nomzodlari ro‘yxatda, tanlang', { n: kerak.length }));
@@ -260,6 +272,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     const commands = ok.flatMap(n => { const g = guruhlar.find(x => x.key === n.key); return g ? narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob) }, n.nomzod!, `AI taklifi, foydalanuvchi tasdiqladi: ${n.sabab}`) : []; });
     if (!commands.length) return t('Tasdiq kutayotgan AI narxi yo‘q.');
     if (!qoy(commands, t('AI narxlari tasdiqlandi'))) return t('Narxlar qo‘llanmadi.');
+    tajribaYoz(ok.flatMap(n => { const g = guruhlar.find(x => x.key === n.key); return g ? [{ g, n: n.nomzod!, holat: 'qabul' as const }] : []; }));
     setTakliflar(m => { const x = new Map(m); ok.forEach(n => x.delete(n.key)); return x; });
     return t('{n} ta AI narxi tasdiqlandi va qo‘yildi', { n: ok.length });
   }
@@ -300,9 +313,19 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     ];
     return () => off.forEach(f => f());
   }, []);
+  /** Every estimator's decision teaches the platform (owner 2026-10-17); a failed write never blocks pricing. */
+  function tajribaYoz(l: Array<{ g: ResursGuruh; n: NarxNomzod; holat: 'qabul' | 'rad' }>) {
+    if (kompaniyaId == null) return;
+    void Promise.resolve().then(() => narxTajribaYoz(kompaniyaId, l.filter(x => x.n.tur !== 'kompaniya').map(x => ({ resurs: resursKaliti(narxNomi(x.g), x.g.birlik), manba: manbaKaliti(x.n),
+      tur: x.n.tur === 'kp' ? 'kp' as const : 'katalog' as const, narx: x.n.narx, holat: x.holat })))).catch(() => {});
+  }
   function qabul(g: ResursGuruh, n: NarxNomzod, sabab: string) {
-    if (qoy(narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob).length ? narxsizQatorlar(g, hisob) : g.qatorlar }, n, sabab), t('Narx tanlandi')))
+    if (qoy(narxBuyruqlari({ qatorlar: narxsizQatorlar(g, hisob).length ? narxsizQatorlar(g, hisob) : g.qatorlar }, n, sabab), t('Narx tanlandi'))) {
+      // The estimator chose a different source than the AI → the AI's pick is a rejection for this resource.
+      const ai = takliflar.get(g.key)?.nomzod;
+      tajribaYoz([{ g, n, holat: 'qabul' }, ...(ai && manbaKaliti(ai) !== manbaKaliti(n) ? [{ g, n: ai, holat: 'rad' as const }] : [])]);
       setTakliflar(m => { const x = new Map(m); x.delete(g.key); return x; });
+    }
   }
   function qoldaSaqla() {
     if (!qolda) return;
