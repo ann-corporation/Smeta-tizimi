@@ -103,7 +103,10 @@ export type NarxNomzod = NarxNomzodi & { tur: 'katalog' | 'kompaniya' | 'kp'; ro
   /** Recalculation applied to the source price (exact unit factor, or a verified dimensional formula). */
   qayta: BirlikHisob | null;
   /** Source unit differs and only a dimensional recalculation (from sizes in the names) can make it usable. */
-  birlikBoshqa?: boolean };
+  birlikBoshqa?: boolean;
+  /** Several suppliers offer the same product (owner 2026-10-17): `narx` is their arithmetic mean; prices in the source unit. */
+  ortacha?: NarxOrtacha };
+export type NarxOrtacha = { soni: number; min: number; max: number; takliflar: Array<{ yetkazuvchi: string; kod: string | null; narx: number; hujjat: string }> };
 
 const PRICE_INDEX = new WeakMap<MatchCatalog, MatnIndeks>();
 /** BM25 over catalogue names (+ group title as context), built once per catalogue view. */
@@ -148,6 +151,61 @@ export function qatorNomzodi(row: KatalogQatori, unit: string | null, tur: NarxN
   return { id, nom: row.nom, birlik: unit ?? row.birlik, narx, manba, tur, row, qayta };
 }
 
+/** Who offers the row: the supplier of a price list, else the catalogue section (manufacturer), else the document. */
+const yetkazuvchiNomi = (r: KatalogQatori) => (r.manba_yetkazuvchi || r.ishlab_chiqaruvchi || r.manba_nom || '').trim();
+const chorak = (r: KatalogQatori) => {
+  const d = r.manba_sana && /^\d{4}-\d{2}/.test(r.manba_sana) ? r.manba_sana : null;
+  return d ? `${d.slice(0, 4)}-${Math.ceil(Number(d.slice(5, 7)) / 3)}` : `${r.yil ?? 0}-${r.kvartal ?? 0}`;
+};
+/** Identity of a product across suppliers' wording: family + every stated characteristic (never just the family). */
+function mahsulotImzosi(nom: string): string | null {
+  const c = characteristics(nom);
+  const xos = [c.grade, c.rebar, c.diameter, c.section, c.brand, c.thickness, c.fraction, c.electrodeGrade];
+  if (!c.family || xos.every(v => v == null)) return null;
+  // Spec tokens without a trailing unit (Д10ММ = Д10), so the same size written two ways stays one product.
+  const specs = [...new Set(c.specs.map(s => s.replace(/(?<=\d)(ММ|СМ|М|КГ)$/, '')))].sort();
+  return JSON.stringify([c.family, ...xos, specs]);
+}
+const sozlar = (nom: string) => new Set(characteristics(nom).words);
+function birXilMahsulot(a: KatalogQatori, b: KatalogQatori): boolean {
+  if (normName(a.nom) === normName(b.nom)) return true;
+  const ia = mahsulotImzosi(a.nom);
+  if (!ia || ia !== mahsulotImzosi(b.nom)) return false;
+  // Same characteristics AND mostly the same words (АРМАТУРА А500С Д10 ≈ АРМАТУРНАЯ СТАЛЬ А500С Ø10, not a different product).
+  const wa = sozlar(a.nom), wb = sozlar(b.nom);
+  const umumiy = [...wa].filter(w => wb.has(w)).length;
+  return umumiy / Math.max(1, Math.min(wa.size, wb.size)) >= 0.5;
+}
+
+/**
+ * Owner 2026-10-17: «katalogda 10 lik armaturadan 6 ta postavshik taklif qilsa … eng o'rtacha narxini hisoblab qo'ysin va
+ * foydalanuvchini bildirsin». Among the rows already found for this resource, the same product in the same unit, region tier
+ * and quarter offered by DIFFERENT suppliers → the candidate's price becomes their arithmetic mean (each supplier counted once,
+ * its newest/highest row). One supplier → the candidate is returned unchanged.
+ */
+export function ortachaQil(n: NarxNomzod, pool: KatalogQatori[], hudud: string | null): NarxNomzod {
+  if (n.tur === 'kompaniya' || n.birlikBoshqa || n.row.narx == null) return n;
+  const hd = (r: KatalogQatori) => (hudud && r.hudud_kalit === hudud ? 2 : r.hudud_kalit == null ? 1 : 0);
+  const bir = new Map<string, KatalogQatori>();
+  for (const r of [n.row, ...pool]) {
+    if (r.narx == null || !(r.narx > 0) || r.nds_holati === 'nds_bilan') continue;
+    if (hd(r) !== hd(n.row) || chorak(r) !== chorak(n.row) || priceUnitFactor(r.birlik, n.row.birlik) !== 1) continue;
+    if (r !== n.row && !birXilMahsulot(n.row, r)) continue;
+    const k = normName(yetkazuvchiNomi(r));
+    const prev = bir.get(k);
+    if (!prev || ustunNomzod(prev, r, hudud) === r) bir.set(k, r);
+  }
+  if (bir.size < 2) return n;
+  const qatorlar = [...bir.values()];
+  const narxlar = qatorlar.map(r => r.narx as number);
+  const ort = narxlar.reduce((s, v) => s + v, 0) / narxlar.length;
+  const factor = n.qayta ? Number(n.qayta.factor) : 1;
+  const ortacha: NarxOrtacha = { soni: qatorlar.length, min: round2(Math.min(...narxlar)), max: round2(Math.max(...narxlar)),
+    takliflar: qatorlar.map(r => ({ yetkazuvchi: yetkazuvchiNomi(r).slice(0, 120), kod: r.kod, narx: round2(r.narx as number), hujjat: r.manba_nom.slice(0, 160) })) };
+  return { ...n, narx: round2(ort * factor), ortacha,
+    manba: `o‘rtacha ${ortacha.soni} ta yetkazuvchi (${ortacha.min}–${ortacha.max}) · ${n.manba}`.slice(0, 160) };
+}
+
 /** Applies a verified dimensional recalculation to a unit-different candidate → a candidate priced in the estimate unit. */
 export function qaytaHisobla(n: NarxNomzod, resursNom: string, smetaBirlik: string | null, formula: string, izoh: string): NarxNomzod | { xato: string } {
   if (!n.birlikBoshqa) return n;
@@ -165,8 +223,11 @@ export function qaytaHisobla(n: NarxNomzod, resursNom: string, smetaBirlik: stri
 export function narxNomzodlari(g: Pick<ResursGuruh, 'nom' | 'birlik'>, cat: MatchCatalog | null, kompaniya: MatchResult | null,
   hudud: string | null, iboralar: string[] = [], limit = 12, kp: MatchResult | null = null): NarxNomzod[] {
   const out = new Map<string, NarxNomzod>();
+  // Every gated row seen per source: the same product from several suppliers is averaged, not reduced to one (owner 2026-10-17).
+  const korilgan: Record<'katalog' | 'kp', KatalogQatori[]> = { katalog: [], kp: [] };
   const add = (n: NarxNomzod | null, _regional?: boolean) => {
     if (!n) return;
+    if (n.tur !== 'kompaniya' && !n.birlikBoshqa) korilgan[n.tur].push(n.row);
     const k = `${n.tur}\u0001${normName(n.nom)}\u0001${normName(n.birlik)}`;
     const prev = out.get(k);
     if (!prev || (prev.row !== n.row && ustunNomzod(prev.row, n.row, hudud) === n.row)) out.set(k, n);
@@ -197,7 +258,11 @@ export function narxNomzodlari(g: Pick<ResursGuruh, 'nom' | 'birlik'>, cat: Matc
     for (const c of kompaniya?.candidates.slice(0, 5) ?? []) add(qatorNomzodi({ ...c.row, narx: c.row.unitConversion?.sourcePrice ?? c.row.narx, birlik: c.row.unitConversion?.sourceUnit ?? c.row.birlik }, g.birlik, 'kompaniya'));
   // Same-unit candidates first (КП, then the platform index); unit-different ones need a recalculation; estimates last.
   const rank = (n: NarxNomzod) => (n.birlikBoshqa ? 10 : 0) + (n.tur === 'kp' ? 0 : n.tur === 'katalog' ? 1 : 5);
-  return [...out.values()].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
+  const bitta = new Set<string>();
+  return [...out.values()].sort((a, b) => rank(a) - rank(b)).slice(0, limit)
+    .map(n => (n.tur === 'kompaniya' ? n : ortachaQil(n, korilgan[n.tur], hudud)))
+    // Differently worded rows of the same suppliers' average are one offer, not several.
+    .filter(n => { if (!n.ortacha) return true; const k = `${n.tur}|${n.narx}|${n.ortacha.takliflar.map(t => t.yetkazuvchi).sort().join('|')}`; return !bitta.has(k) && !!bitta.add(k); });
 }
 
 /** SET_PRICE for every line of the group, with full provenance (+ the AI's reason when it chose). */
@@ -227,6 +292,16 @@ export function narxAsosi(n: NarxNomzod, sabab = ''): PriceJustification {
   const sourcePrice = r.narx == null ? null : String(r.narx);
   const docType: PriceJustification['docType'] = n.tur === 'kompaniya' ? 'COMPANY_ESTIMATE' : n.tur === 'kp' ? (r.manba_tur === 'prays' ? 'PRICE_LIST' : 'COMMERCIAL_OFFER')
     : r.manba_tur === 'birja' ? 'EXCHANGE' : r.manba_tur === 'prays' ? 'PRICE_LIST' : r.manba_tur === 'mash_soat' ? 'MACHINE_HOUR' : 'CATALOG';
+  const o = n.ortacha;
+  if (o) {
+    // Several suppliers: the document is the set of offers, the source price their mean (in the source unit).
+    const ort = round2(o.takliflar.reduce((s, t) => s + t.narx, 0) / o.takliflar.length);
+    const hujjatlar = [...new Set(o.takliflar.map(t => t.hujjat))].join('; ');
+    return { docType, document: `${hujjatlar} — среднее арифметическое цен ${o.soni} поставщиков (от ${o.min} до ${o.max} за ${r.birlik ?? 'ед.'}), цена без НДС`.slice(0, 400),
+      sourceName: r.nom, sourceUnit: r.birlik, sourcePrice: String(ort), conversion: n.qayta, reason: sabab ? sabab.slice(0, 400) : null,
+      average: { count: o.soni, min: String(o.min), max: String(o.max),
+        offers: o.takliflar.map(t => ({ supplier: t.yetkazuvchi, code: t.kod, price: String(t.narx) })) } };
+  }
   return { docType, document: document.slice(0, 400), sourceName: r.nom,
     sourceUnit: r.birlik, sourcePrice, conversion: n.qayta, reason: sabab ? sabab.slice(0, 400) : null };
 }
@@ -236,6 +311,7 @@ export function narxBuyruqlari(g: Pick<ResursGuruh, 'qatorlar'>, n: NarxNomzod, 
   if (n.birlikBoshqa) throw new Error('PRICE_UNIT_RECALCULATION_REQUIRED');
   const justification = narxAsosi(n, sabab);
   const evidence = [n.tur === 'katalog' ? catalogEvidence(n.row) : n.tur === 'kp' ? `KP · ${n.row.manba_nom} · ${n.row.nom}` : `Kompaniya smetasi · ${n.row.manba_nom} · ${n.row.nom}`,
+    n.ortacha ? `o‘rtacha ${n.ortacha.soni} ta yetkazuvchi (${n.ortacha.min}–${n.ortacha.max})` : null,
     n.qayta ? `qayta hisob: ${n.qayta.formula} (${n.qayta.note})` : null, 'NDS siz'].filter(Boolean).join(' · ').slice(0, 300);
   const basis: PriceBasis = n.tur === 'katalog' ? 'CATALOG_CANDIDATE' : 'CONTRACT_DRAFT';
   const sourcePriceId = n.tur === 'katalog' ? `narx-katalog:${n.row.id}` : n.tur === 'kp' ? `narx-manba-qator:${n.row.id}` : `kompaniya-smeta-qator:${n.row.id}`;
