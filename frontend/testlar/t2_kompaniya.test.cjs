@@ -154,7 +154,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
      ega, faqat rahbar emas). Endi to'g'ri qonunga mos: faqat `rahbar`
      bloklanadi. */
   T('rahbar roli yoza olmaydi (boss EMAS)',
-    /roleAuthority\(sess, ctx\.env\)/.test(s) && /mayWriteCompanies\(sess, \[\.\.\.targets\]\)/.test(s) &&
+    /roleAuthority\(sess, ctx\.env\)/.test(s) && /mayWriteCompanies\(sess, \[\.\.\.targets\], dataPermission\(amal,true,so\)\)/.test(s) &&
     /if \(!mayWriteCompanies[\s\S]{0,200}status: 403/.test(s) &&
     !/if \(sess\.rol === '(boss|rahbar)'\)/.test(s));
   T('maydon oq ro\'yxati bor',

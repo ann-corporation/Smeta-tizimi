@@ -8,6 +8,7 @@
  * Actor = session foydalanuvchi_id (never from the body). Company membership is checked here
  * against the session AND again inside the SECURITY DEFINER RPC. Draft only: t2_qator/F2 untouched.
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
@@ -20,9 +21,9 @@ const fail = (code: string, status = 400) => Response.json({ ok: false, code }, 
 const posInt = (v: unknown) => Number.isSafeInteger(v) && (v as number) > 0;
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   if (!sess || !posInt(sess.foydalanuvchi_id)) return fail('AUTH_REQUIRED', 401);
-  if (sess.rol === 'rahbar') return fail('FORBIDDEN', 403);
+  if (!cachedAuthority(ctx) && sess.rol === 'rahbar') return fail('FORBIDDEN', 403);
   const raw = await ctx.request.text();
   if (raw.length > MAX_BYTES) return fail('DOCUMENT_TOO_LARGE', 413);
   let so: Record<string, unknown>;

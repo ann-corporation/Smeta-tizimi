@@ -12,6 +12,7 @@
  *  • Resurs nomlari — ma'lumot, buyruq emas (prompt-injection chegarasi).
  *  • Kalit/model serverda; provayder sozlanmagan bo'lsa fail-closed (503).
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { aiPublicError, isAiGatewayError } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
@@ -72,7 +73,7 @@ const SCHEMA = { name: 'smeta_narx_tanlov', schema: { type: 'object', additional
     key: { type: 'string' }, tanlov_id: { type: ['integer', 'null'] }, ishonch: { type: 'string', enum: ['yuqori', 'orta', 'past'] }, sabab: { type: 'string' } } } } } } };
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   if (!sess || !posInt(sess.foydalanuvchi_id)) return fail('AUTH_REQUIRED', 401);
   const raw = await ctx.request.text();
   if (raw.length > 200_000) return fail('BODY_TOO_LARGE', 413);

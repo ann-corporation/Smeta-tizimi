@@ -1,3 +1,4 @@
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir, kalitBormi } from '../_shared/auth';
 import { roleAuthority } from '../_shared/role-authority';
 
@@ -8,14 +9,14 @@ import { roleAuthority } from '../_shared/role-authority';
  */
 export const onRequestGet: PagesFunction<{ SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string }> = async (ctx) => {
   const secret = ctx.env.SESSIYA_KALIT;
-  let sess = await tekshir(ctx.request.headers.get('Cookie'), secret);
+  let sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), secret);
   if (!sess) return Response.json({ ok: false }, { status: 401 });
-  sess = await roleAuthority(sess, ctx.env);
+  sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
   if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE' }, { status: 503 });
 
   /* gas.ts dagi bilan BIR XIL ro'yxat bo'lishi shart — aks holda UI bir narsa
    * ko'rsatib, server boshqacha qaror qiladi. */
-  const yozaOladi = sess.rol !== 'rahbar'; // Affordance only; tenant command uses fresh DB authority.
+  const yozaOladi = sess.permissionsByCompany?Object.values(sess.permissionsByCompany).some(ps=>ps.some(p=>/\.write$|f2\.(import|prepare|approve|cancel|correct)$/.test(p))):sess.rol !== 'rahbar'; // Affordance only; tenant command uses fresh DB authority.
 
   return Response.json({
     ok: true,

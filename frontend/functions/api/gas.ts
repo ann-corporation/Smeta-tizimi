@@ -1,3 +1,4 @@
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 
 export const onRequestPost: PagesFunction<{
@@ -7,7 +8,7 @@ export const onRequestPost: PagesFunction<{
     const { fn, args } = await ctx.request.json<{ fn: string; args?: unknown[] }>();
 
     const secret = ctx.env.SESSIYA_KALIT;
-    const sess = await tekshir(ctx.request.headers.get('Cookie'), secret);
+    const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), secret);
     if (!sess) {
       return Response.json({ ok: false, error: 'Кириш талаб қилинади' }, { status: 401 });
     }

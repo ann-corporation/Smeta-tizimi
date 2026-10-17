@@ -6,6 +6,7 @@
  *
  *   GET /api/hujjat-ol?id=<document_id>     (session cookie)
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
@@ -25,7 +26,7 @@ async function rpc(env: Env, name: string, args: Record<string, unknown>) {
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   try {
-    const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+    const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
     if (!sess) return Response.json({ ok: false, code: 'AUTH_REQUIRED' }, { status: 401 });
     const actorId = (sess as any).foydalanuvchi_id;
     if (actorId == null) return Response.json({ ok: false, code: 'AUTH_REQUIRED' }, { status: 401 });

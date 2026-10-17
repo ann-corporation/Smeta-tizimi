@@ -1,3 +1,4 @@
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { aiPublicError, type AiEnv } from '../_shared/ai';
 import { AI_KORSATMA, type AiUmumiy } from '../../src/api/t2-ai';
@@ -109,7 +110,7 @@ async function jarvisJavobi(env: Env, system: string, text: string, actor: numbe
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const boshlandi = Date.now();
   try {
-    const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+    const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
     if (!sess) return xato('Kirish talab qilinadi', 401);
     if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) return xato('Supabase AI konteksti sozlanmagan', 503);
 

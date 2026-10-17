@@ -58,7 +58,9 @@ function xavfsizXato() {
  * olinadi; bu komponentda qty*price hisoblanmaydi.
  */
 export function F2TarixNative() {
-  const { joriy } = useKompaniya();
+  const { joriy, superadmin } = useKompaniya();
+  const mayApprove=superadmin||!!joriy?.permissions?.includes('f2.approve');
+  const mayCancel=superadmin||!!joriy?.permissions?.includes('f2.cancel');
   const workspace = usePTOWorkspace();
   const [params, setParams] = useSearchParams();
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
@@ -133,6 +135,7 @@ export function F2TarixNative() {
 
   async function holatniOzgartir(akt: T2AktReestr, statuses: readonly ('submitted' | 'checked' | 'approved' | 'rejected' | 'cancelled')[], reason?: string) {
     if (akt.holat !== 'qoralama' || savingId != null) return;
+    if ((statuses.includes('cancelled')&&!mayCancel)||(statuses.some(s=>s==='checked'||s==='approved'||s==='rejected')&&!mayApprove)) {toast('Bu amal uchun individual ruxsatingiz yo‘q.','danger');return;}
     const sabab = reason?.trim() || null;
     if (statuses.includes('rejected') || statuses.includes('cancelled')) {
       if (!sabab) { toast('Rad etish/bekor qilish sababi majburiy.', 'danger'); return; }
@@ -247,7 +250,7 @@ export function F2TarixNative() {
                       <td className="p-3"><button className="text-left" onClick={() => setSelectedAktId(akt.id)}><div className="font-medium text-text">{akt.oy?.slice(0, 7) || 'Davr noma’lum'}</div><div className="text-text-dim">{akt.raqam || 'F2 hujjati'}</div></button></td>
                       <td><PtoStatusChip label={(akt.lifecycle_status ? f2LifecycleLabels[akt.lifecycle_status] : holatMatni[akt.holat]) || 'Noma’lum holat'} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-[10px] text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
                       <td className="text-right tabular-nums"><FmtN val={akt.hujjat_jami} /><div className="text-[10px] text-text-mute">{akt.qator_soni ?? '—'} qator</div></td>
-                      <td className="p-3 text-right">{akt.holat === 'qoralama' && <button onClick={() => void tasdiqlash(akt)} disabled={savingId != null} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : 'Tasdiqlash'}</button>}</td>
+                      <td className="p-3 text-right">{akt.holat === 'qoralama' && <button title={mayApprove?'':'F2 tasdiqlash ruxsati berilmagan'} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!mayApprove} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : 'Tasdiqlash'}</button>}</td>
                     </tr>;
                   })}
                 </tbody>
@@ -282,8 +285,8 @@ export function F2TarixNative() {
                     <label className="min-w-[260px] flex-1 text-[11px] text-text-dim">Rad etish yoki bekor qilish sababi
                       <input aria-label="F2 lifecycle sababi" value={actionReason} onChange={(event) => setActionReason(event.target.value)} placeholder="Sababni yozing" className="mt-1 block w-full rounded-md border border-border bg-surface-2 px-2 py-1.5 text-[12px] text-text" />
                     </label>
-                    <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['submitted', 'checked', 'rejected'], actionReason)} disabled={savingId != null} className="rounded-md border border-danger/40 px-2.5 py-1.5 text-[11px] text-danger disabled:opacity-50">Rad etish</button>
-                    <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['cancelled'], actionReason)} disabled={savingId != null} className="rounded-md border border-warn/40 px-2.5 py-1.5 text-[11px] text-warn disabled:opacity-50">Bekor qilish</button>
+                    <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['submitted', 'checked', 'rejected'], actionReason)} disabled={savingId != null||!mayApprove} className="rounded-md border border-danger/40 px-2.5 py-1.5 text-[11px] text-danger disabled:opacity-50">Rad etish</button>
+                    <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['cancelled'], actionReason)} disabled={savingId != null||!mayCancel} className="rounded-md border border-warn/40 px-2.5 py-1.5 text-[11px] text-warn disabled:opacity-50">Bekor qilish</button>
                   </div>
                 </>}
               </> : <div className="p-5 text-[13px] text-text-dim">Tafsilotlarni ko‘rish uchun F2 hujjatini tanlang.</div>}

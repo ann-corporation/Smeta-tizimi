@@ -36,6 +36,7 @@ export type KompaniyaQisqa = {
   kod: string;
   rol: string;
   membershipRole?: string | null;
+  permissions?: string[];
   is_director: boolean;
   /** Eski UI mosli­gi uchun — `t2_men_v1` bermaydi, hozircha null. */
   mavqe: KompaniyaMavqe | null;
@@ -138,7 +139,7 @@ export function KompaniyaProvider({ children }: { children: ReactNode }) {
   }, [uid]);
 
   const kompaniyalar = useMemo<KompaniyaQisqa[]>(
-    () => men?.context_kompaniyalar ? men.context_kompaniyalar.filter(a => a.faol).map(a => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.effective_role, membershipRole: a.membership_role, is_director: a.is_director, mavqe: null })) : (men?.azoliklar ?? [])
+    () => men?.context_kompaniyalar ? men.context_kompaniyalar.filter(a => a.faol).map(a => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.effective_role, membershipRole: a.membership_role, permissions:a.permissions, is_director: a.is_director, mavqe: null })) : (men?.azoliklar ?? [])
       .filter((a) => a.faol !== false)
       .map((a) => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.rol, is_director: a.is_director, mavqe: null })),
     [men],

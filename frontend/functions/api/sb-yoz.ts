@@ -20,6 +20,7 @@
  * Ikkisini bir faylda saqlash — kelajakda tasodifan yozishga ruxsat
  * berib qo'yishning eng qisqa yo'li.
  */
+import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
@@ -245,7 +246,7 @@ export const onRequestPost: PagesFunction<{
   const t0 = Date.now();
   try {
     const secret = ctx.env.SESSIYA_KALIT;
-    let sess = await tekshir(ctx.request.headers.get('Cookie'), secret);
+    let sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), secret);
     if (!sess) {
       return Response.json({ ok: false, error: 'Кириш талаб қилинади' }, { status: 401 });
     }
@@ -264,7 +265,7 @@ export const onRequestPost: PagesFunction<{
         error: 'Supabase sozlanmagan (SUPABASE_URL / SUPABASE_KEY)' });
     }
 
-    sess = await roleAuthority(sess, ctx.env);
+    sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
     if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE', error: 'Joriy ruxsatlarni tekshirib bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
 
     const so = await ctx.request.json<any>();
@@ -352,7 +353,7 @@ export const onRequestPost: PagesFunction<{
          * huquqiga ega, faqat `rahbar` emas). Shu kompaniyaga xos rol
          * `rahbar` bo'lsa, global rol boshqacha bo'lsa ham bu YOZUV
          * rad etiladi. */
-        if (['rahbar','buyurtmachi','pudratchi','kuzatuvchi'].includes(azolik.rol)) {
+        if (!sess.permissionsByCompany && ['rahbar','buyurtmachi','pudratchi','kuzatuvchi'].includes(azolik.rol)) {
           return Response.json({ ok: false,
             error: 'Bu kompaniyada rahbar rolida yozish mumkin emas' },
             { status: 403 });
@@ -2513,7 +2514,7 @@ export const onRequestPost: PagesFunction<{
       if (!ega.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: ega.error }, { status: ega.status });
       const targets = new Set(talab.kompaniyalar);
       for (const rows of topilgan.values()) for (const companyId of rows.values()) if (companyId != null) targets.add(companyId);
-      if (!mayWriteCompanies(sess, [...targets])) return Response.json({ ok: false, code: 'PERMISSION_DENIED', error: 'Bu kompaniyada yozish huquqingiz yo‘q.' }, { status: 403 });
+      if (!mayWriteCompanies(sess, [...targets], dataPermission(amal,true,so))) return Response.json({ ok: false, code: 'PERMISSION_DENIED', error: 'Bu kompaniyada yozish huquqingiz yo‘q.' }, { status: 403 });
     }
 
     /* Keep the public action names stable for old clients/tests, while

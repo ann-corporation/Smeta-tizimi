@@ -11,6 +11,8 @@ export const PERMISSIONS = [
   'control.global.read', 'control.global.write',
   'project.read', 'project.write', 'object.read', 'object.write',
   'document.read', 'document.write', 'financial.read', 'financial.write',
+  'f2.read','f2.import','f2.prepare','f2.approve','f2.cancel','f2.correct',
+  'smeta.read','smeta.write','fakt.read','fakt.write','narx.read','narx.write',
 ] as const;
 export type PermissionCode = typeof PERMISSIONS[number];
 
@@ -42,6 +44,7 @@ export type AuthorizationContext = {
 };
 
 export type AuthorizationFacts = {
+  permissions?: PermissionCode[];
   platformRole: PlatformRole;
   /** Faqat DBdan olingan, joriy kompaniyadagi faol a'zolik roli. */
   membershipRole: string | null;
@@ -95,9 +98,18 @@ export const ROLE_PERMISSIONS: Record<CompanyMembershipRole, PermissionCode[]> =
   kuzatuvchi: ['company.read', 'project.read', 'object.read', 'document.read'],
 };
 
+// Compatibility mirror of t2_role_permissions_v2. Individual decisions come from DB snapshots.
+for (const role of MEMBERSHIP_ROLES) {
+  if (['superadmin','admin','boss'].includes(role)) continue;
+  const p=ROLE_PERMISSIONS[role];
+  if(p.includes('document.read')) p.push('f2.read','smeta.read','fakt.read','narx.read');
+  if(['pto','prorab','bugalter'].includes(role)) p.push('f2.import','f2.prepare','f2.approve','f2.cancel','f2.correct');
+  if(p.includes('object.write')) p.push('smeta.write','fakt.write','narx.write');
+}
+
 const PLATFORM_PERMISSIONS: Record<Exclude<PlatformRole, 'none'>, PermissionCode[]> = {
   superadmin: [...PERMISSIONS],
-  admin: ['control.global.read'],
+  admin: [],
 };
 
 const LEVEL: Record<ScopeLevel, number> = { none: 0, read: 1, write: 2, manage: 3 };
@@ -137,7 +149,7 @@ export function effectiveAuthorization(ctx: AuthorizationContext, facts: Authori
   // company operationni bajarishi mumkin; domain command esa actor+targetni audit qiladi.
   const platformInCompany = facts.platformRole === 'superadmin' && facts.platformCompanyContext === true;
   if (!membership && !platformInCompany) return denied(ctx, facts, 'COMPANY_MEMBERSHIP_REQUIRED');
-  const permissions = platformInCompany ? PLATFORM_PERMISSIONS.superadmin : ROLE_PERMISSIONS[membership!];
+  const permissions = platformInCompany ? PLATFORM_PERMISSIONS.superadmin : (facts.permissions ?? ROLE_PERMISSIONS[membership!]);
   if (!permissions.includes(ctx.permission)) return denied(ctx, facts, 'COMPANY_MEMBERSHIP_REQUIRED', membership ?? null);
   if (ctx.capability && facts.capabilities?.[ctx.capability] === false) return denied(ctx, facts, 'CAPABILITY_DISABLED', membership ?? null);
 

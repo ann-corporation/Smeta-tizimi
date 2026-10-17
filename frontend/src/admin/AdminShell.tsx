@@ -14,6 +14,7 @@ import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AiHelper } from '../umumiy/ui/AiHelper';
+import { routePermission } from '../lib/company-authorization/route-permission';
 
 /* 2026-10-02 (egasi): menyu product relsi bo'yicha qayta tuzildi — "oddiy PTO ham, o'zim ham
  * adashmasin". Tartib = ish ketma-ketligi: PTO ish yo'li → narx → loyiha/shartnoma → kompaniya
@@ -280,6 +281,8 @@ function AdminShellInner() {
   // qo'riqchi — bu yerdagi filtr faqat menyu tuzilishi, xavfsizlik chegarasi
   // EMAS.
   const filtrKilinganGuruhlar = TIZIM_02_GURUHLAR.map(g => {
+    if (k.superadmin) return g;
+    if (k.joriy?.permissions) return {...g,menyular:g.menyular.filter(m=>k.joriy!.permissions!.includes(routePermission(m.yol)))};
     const rol = effektivRol;
     const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
     let allowed = g.menyular;
@@ -469,11 +472,11 @@ function AdminShellInner() {
          * core_v1`ning o'z ruxsat jadvaliga ko'ra faqat `rahbar`/
          * `buyurtmachi`/`pudratchi`/`kuzatuvchi` HAQIQATAN yozish huquqiga
          * ega emas — `boss` esa TO'LIQ yozish huquqiga ega. */}
-        {!k.globalRejim && k.joriy && YOZA_OLMAYDIGAN_ROLLAR.has(effektivRol) && (
+        {!k.globalRejim && k.joriy && (k.joriy.permissions?!k.joriy.permissions.some(p=>/\.write$|f2\.(import|prepare|approve|cancel|correct)$/.test(p)):YOZA_OLMAYDIGAN_ROLLAR.has(effektivRol)) && (
           <div className="flex-shrink-0 z-20 bg-warn/15 border-b border-warn/30 px-6 py-2 flex items-center gap-2 text-sm text-text backdrop-blur-sm">
             <AlertTriangle size={16} className="text-warn flex-shrink-0" />
             <span className="flex-1">
-              Siz <strong>«{k.joriy.nom}»</strong>da <strong>{effektivRol}</strong> rolidasiz — bu rol shu kompaniyada faqat ko'rish uchun.
+              <strong>«{k.joriy.nom}»</strong> kompaniyasida sizga hozir faqat ko‘rish huquqlari berilgan.
             </span>
           </div>
         )}

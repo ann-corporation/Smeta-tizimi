@@ -39,6 +39,7 @@
  * and reviewed — this file is evidence the ported logic works end-to-end
  * behind Cloudflare, not a cutover.
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { f2MatchEngine } from '../../src/lib/f2-match-engine';
 import type { AktNode, F2MatchOptions, LrvNode } from '../../src/lib/f2-match-engine';
 import { f2FaylOqiCore, readXlsx } from '../../src/lib/f2-import-parse';
@@ -132,7 +133,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!ctx.env.SESSIYA_KALIT) {
     return Response.json({ ok: false, code: 'CONFIG' }, { status: 500 });
   }
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   const actorId = sess && (sess as unknown as { foydalanuvchi_id?: unknown }).foydalanuvchi_id;
   if (actorId == null) {
     return Response.json({ ok: false, code: 'AUTH_REQUIRED' }, { status: 401 });

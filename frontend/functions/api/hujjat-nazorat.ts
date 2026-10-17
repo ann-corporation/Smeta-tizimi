@@ -15,6 +15,7 @@
  * Every RPC is membership-checked server-side (t2_actor_kompaniya_azo_tekshir);
  * this gateway only resolves the actor from the session and forwards.
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream, xavfsizXato } from '../_shared/xato';
@@ -52,7 +53,7 @@ async function actorFrom(ctx: Parameters<PagesFunction<Env>>[0]) {
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY || !ctx.env.SESSIYA_KALIT) {
     return { err: Response.json({ ok: false, code: 'CONFIG' }, { status: 500 }) };
   }
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   const actorId = sess && (sess as any).foydalanuvchi_id;
   if (actorId == null) return { err: Response.json({ ok: false, code: 'AUTH_REQUIRED' }, { status: 401 }) };
   return { actorId: Number(actorId) };

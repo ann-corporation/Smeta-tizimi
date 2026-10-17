@@ -17,6 +17,7 @@
  * recorded (agent platform accounting). Output is schema-validated; candidates the model did not receive
  * can never be chosen. No database or R2 writes.
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { rpcData } from '../_shared/agent-rpc';
 import { normaKalit, tajribaMatni, xotiraBloklari, type NormaTajriba, type XotiraDarajalari } from '../../src/lib/smeta-ai/tajriba';
@@ -138,7 +139,7 @@ async function tajribaOqi(env: Env, actor: number, kompaniyaId: number, kodlar: 
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   if (!sess || !posInt(sess.foydalanuvchi_id)) return fail('AUTH_REQUIRED', 401);
   const raw = await ctx.request.text();
   // A КП file (PDF/image, base64) may be up to ~7 MB; every other request stays small.

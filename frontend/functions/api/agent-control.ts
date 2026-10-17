@@ -1,3 +1,4 @@
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream, xavfsizXato } from '../_shared/xato';
@@ -22,7 +23,7 @@ const ISHCHILAR: Record<string, string> = {
 };
 
 async function actor(ctx: any): Promise<{ actorId: number } | Response> {
-  const session = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const session = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   if (!session?.foydalanuvchi_id) return Response.json({ ok: false, code: 'AUTH_REQUIRED' }, { status: 401 });
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) return Response.json({ ok: false, code: 'CONFIG' }, { status: 500 });
   return { actorId: Number(session.foydalanuvchi_id) };

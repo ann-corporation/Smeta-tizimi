@@ -6,6 +6,7 @@
  * (`_t2_boshqaruv_tekshir`) — shlyuz ruxsat bermaydi, faqat uzatadi. Token to'ldirish / obuna / demo — mavjud
  * /api/sb-yoz amallari orqali (ular ham superadminni bazada tekshiradi).
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
@@ -83,7 +84,7 @@ async function rpc(env: Env, nom: string, yuk: Record<string, unknown>): Promise
 
 async function actor(ctx: EventContext<Env, string, unknown>): Promise<number | Response> {
   if (!ctx.env.SUPABASE_URL || !ctx.env.SUPABASE_KEY) return Response.json({ ok: false, error: 'Server sozlanmagan' }, { status: 503 });
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT).catch(() => null);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT).catch(() => null);
   if (!sess) return Response.json({ ok: false, error: 'Kirish talab qilinadi' }, { status: 401 });
   if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo‘q' }, { status: 401 });
   return sess.foydalanuvchi_id as number;

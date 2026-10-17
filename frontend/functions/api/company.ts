@@ -16,6 +16,7 @@
  *
  * No Drive/Sheets/GAS. No fake subscription/payment.
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizXato } from '../_shared/xato';
@@ -24,6 +25,7 @@ type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string }
 
 const RPC = {
   me: 't2_men_v1',
+  azolik_ruxsat_set:'t2_azolik_ruxsat_set_v2',
   /* T2-COMPANY-CREATE-GATE-001: to'g'ridan-to'g'ri yaratish endi FAQAT
      platforma superadmini uchun (RPC o'zi tekshiradi). Oddiy foydalanuvchi
      `royxat_soraw` orqali so'rov yuboradi -- kompaniya/a'zolik superadmin
@@ -51,6 +53,7 @@ const RPC = {
 } as const;
 
 const AUTHZ_PERMISSIONS = new Set([
+  'f2.read','f2.import','f2.prepare','f2.approve','f2.cancel','f2.correct','smeta.read','smeta.write','fakt.read','fakt.write','narx.read','narx.write',
   'company.read', 'company.profile.update', 'company.member.manage',
   'control.company.read', 'control.company.write', 'control.global.read', 'control.global.write',
   'project.read', 'project.write', 'object.read', 'object.write',
@@ -72,15 +75,18 @@ async function callRpc(env: Env, name: string, body: unknown) {
 function statusFor(code: string, raw: string): number {
   if (code === 'ACTOR_NOT_FOUND' || code === 'COMPANY_NOT_FOUND' || code === 'MEMBERSHIP_NOT_FOUND' || code === 'REQUEST_NOT_FOUND' || code === 'AZOLIK_TOPILMADI') return 404;
   if (code === 'AUTHORIZATION_DENIED' || code === 'SUPERADMIN_REQUIRED' || code === 'MANAGE_ROLE_REQUIRED' || /42501|direktor|a'zo|azo|membership|PERMISSION/i.test(code + raw)) return 403;
+  if (['PROTECTED_AUTHORITY','MANAGEMENT_ROLE_REQUIRED','ACCOUNT_OWNER_REQUIRED'].includes(code)) return 403;
   if (code === 'OPERATION_ID_REQUIRED' || code === 'PAROL_QISQA' || code === 'RUXSAT_NOTOGRI' || /INVALID|REQUIRED/.test(code)) return 400;
   if (code === 'ALREADY_MEMBER' || code === 'LAST_DIRECTOR' || code === 'STALE_VERSION') return 409;
+  if(code==='OPERATION_CONFLICT') return 409;
+  if(code==='LAST_SUPERADMIN') return 409;
   // T2-COMPANY-CREATE-GATE-001: so'rov allaqachon ko'rib chiqilgan (qayta tasdiqlash/rad etish).
   if (code === 'REQUEST_NOT_PENDING') return 409;
   return 502;
 }
 
 async function actor(ctx: any): Promise<{ id: number } | Response> {
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
   if (!sess) return Response.json({ ok: false, code: 'AUTH_REQUIRED' }, { status: 401 });
   const id = (sess as any).foydalanuvchi_id;
   if (id == null) return Response.json({ ok: false, code: 'AUTH_REQUIRED', xato: 'Sessiyada foydalanuvchi yo‘q — qayta kiring' }, { status: 401 });
@@ -202,7 +208,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const opId: string = typeof b.operation_id === 'string' && b.operation_id ? b.operation_id : crypto.randomUUID();
 
     let body: Record<string, unknown>;
-    if (action === 'create' || action === 'royxat_soraw') {
+    if(action==='azolik_ruxsat_set') {
+      if (!Number.isSafeInteger(b.expected_version) || b.expected_version<0 || !b.permissions || typeof b.permissions!=='object' || Array.isArray(b.permissions)) return Response.json({ok:false,code:'REQUEST_INVALID'},{status:400});
+      body={p_actor_id:a.id,p_kompaniya_id:Number(b.kompaniya_id),p_azolik_id:Number(b.azolik_id),p_permissions:b.permissions,p_expected_version:b.expected_version,p_operation_id:opId};
+    } else if (action === 'create' || action === 'royxat_soraw') {
       body = { p_actor_id: a.id, p_nom: String(b.nom ?? ''), p_inn: b.inn == null ? null : String(b.inn), p_telefon: b.telefon == null ? null : String(b.telefon), p_operation_id: opId };
     } else if (action === 'royxat_tasdiqla') {
       body = { p_actor_id: a.id, p_royxat_id: Number(b.royxat_id), p_operation_id: opId };

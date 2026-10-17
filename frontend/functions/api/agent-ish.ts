@@ -8,6 +8,7 @@
  * bo'lgandagina ishlaydi (token hisobi tayyor bo'lgach egasi yoqadi). Boshqaruv amallari (modellar, takliflar, buyruqlar, qoidalar, xotira, fikrni SAQLASH)
  * model chaqirmaydi — doim ochiq; ruxsatni baza tekshiradi.
  */
+import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { aiPublicError, parseJsonText, type AiEnv } from '../_shared/ai';
 import { rpcData, type RpcNatija, type Yuk } from '../_shared/agent-rpc';
@@ -57,7 +58,7 @@ async function kirish(ctx: EventContext<Env, string, unknown>): Promise<{ actor:
     if (!teng(kalit, sir)) return xato('Kalit noto‘g‘ri', 401);
     return { actor: aid, kalit: true };
   }
-  const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT).catch(() => null);
+  const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT).catch(() => null);
   if (!sess) return xato('Kirish talab qilinadi', 401);
   if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return xato('Sessiyada foydalanuvchi yo‘q', 401);
   return { actor: sess.foydalanuvchi_id as number };
