@@ -1834,5 +1834,17 @@
   "internetdan havola bilan: {n}": "из Интернета со ссылками: {n}",
   "{n} ta resursga internetda havola topildi, lekin sahifada narx tasdiqlanmadi — havolalar ro‘yxatda": "Для {n} ресурсов найдены ссылки, но цена на странице не подтвердилась — ссылки в списке",
   "Platforma narx indeksidan {n} ta mos qator olindi": "Из ценового индекса платформы взято подходящих строк: {n}",
-  "Narxlash avtomatik boshlandi: {n} ta resurs narxsiz": "Расценка запущена автоматически: без цены {n} ресурсов"
+  "Narxlash avtomatik boshlandi: {n} ta resurs narxsiz": "Расценка запущена автоматически: без цены {n} ресурсов",
+  "Hammasini ochish": "Развернуть всё",
+  "Shifr / kod": "Шифр / код",
+  "Qator ranglari izohi": "Обозначения строк",
+  "Siz qo‘shgan qatorni tahrirlash (nom, hajm, resurslar, narx)": "Изменить добавленную строку: название, объём, ресурсы и цену",
+  "Siz qo‘shgan qatorni o‘chirish (arxivda qoladi; smeta qatori o‘zgarmaydi)": "Отменить добавленную строку с сохранением в архиве; исходная смета не меняется",
+  "Mavjud F2 tarixini boshqa oynada ochish": "Открыть существующие Ф2 в другом окне",
+  "Kutubxonadan qidirilmoqda…": "Поиск в библиотеке…",
+  "Avval kiritilgan F2 tekshirilmoqda…": "Проверяем ранее загруженные Ф2…",
+  "Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.": "Не удалось проверить существующие Ф2. Повторите проверку, чтобы не создать дубликат. Привязки сохранены.",
+  "Qayta tekshirish": "Проверить снова",
+  "Bu obyekt va davr uchun F2 avval kiritilgan. Qayta bog‘lash shart emas.": "Для этого объекта и периода Ф2 уже загружена. Повторная привязка не нужна.",
+  "Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.": "Откройте существующий акт. Исправления оформляются отдельно; действующий акт не изменён."
 }

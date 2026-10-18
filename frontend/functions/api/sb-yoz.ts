@@ -2549,6 +2549,10 @@ export const onRequestPost: PagesFunction<{
     if (!r.ok && amal === 'catalog_observation_yoz_v1') {
       return Response.json({ ok: false, error: 'Katalog kuzatuvlari yozilmadi. Ruxsat va manba doirasini tekshiring.' }, { status: 409 });
     }
+    if (!r.ok && f2AktRaqamZiddiyati(amal, matn)) {
+      return Response.json({ ok: false, code: 'F2_ACT_NUMBER_CONFLICT',
+        error: 'Shu obyekt, oy va raqam bilan F2 allaqachon mavjud. Bog‘lanishlaringiz ish qoralamasida saqlangan; mavjud aktni tekshiring. Tasdiqlangan akt oddiy import bilan almashtirilmaydi.' }, { status: 409 });
+    }
     if (!r.ok) {
       return xavfsizUpstream(r.status, matn);
     }
@@ -2565,3 +2569,12 @@ export const onRequestPost: PagesFunction<{
     return xavfsizUpstream(502, err);
   }
 };
+
+/** A duplicate act number is a business conflict, not a stale-version instruction. */
+export function f2AktRaqamZiddiyati(amal: string, matn: string): boolean {
+  if (amal !== 'akt_yarat_v2') return false;
+  try {
+    const j = JSON.parse(matn) as { code?: string; message?: string };
+    return j.code === '23505' && typeof j.message === 'string' && /\bt2_akt_kalit_uniq\b/.test(j.message);
+  } catch { return false; }
+}
