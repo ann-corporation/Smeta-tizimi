@@ -84,7 +84,8 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     setBand(true);
     busy.current = true;
     const ctrl = new AbortController(); abort.current = ctrl;
-    const studio = kasb?.kategoriyalar.includes('smeta_pul') ? studioKontekstOl(kompaniyaId, sahifa) : null;
+    // The role label may still be loading; the server always decides whether the model may receive this draft.
+    const studio = (!kasb || kasb.kategoriyalar.includes('smeta_pul')) ? studioKontekstOl(kompaniyaId, sahifa) : null;
     // Price question → the platform price index (R2) is searched here and sent as context (owner 2026-10-15).
     const katalog = narxSavolimi(s) ? await vaqtBilan(katalogKonteksti(s).catch(() => [] as KatalogKontekst[]), 4000, [] as KatalogKontekst[]) : [];
     if (ctrl.signal.aborted || gen.current !== boshlangich) {

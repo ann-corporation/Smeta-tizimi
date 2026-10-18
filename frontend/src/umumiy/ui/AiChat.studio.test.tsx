@@ -19,6 +19,11 @@ it('explicit question carries the latest current-company draft, without automati
   stop=studioKontekstUla({companyId:17,draftId:'a',read:()=>dto});render(view());expect(m.savol).not.toHaveBeenCalled();send('Qoralamada nima bor?');
   await waitFor(()=>expect(m.savol).toHaveBeenCalledTimes(1));expect(m.savol.mock.calls[0][2].studio).toEqual(dto);
 });
+it('a still-loading role label does not lose an explicitly shared draft; server remains the authority',async()=>{
+  stop=studioKontekstUla({companyId:17,draftId:'a',read:()=>dto});
+  render(<MemoryRouter><AiChat kompaniyaId={17} kasb={null} sahifa={page} generatsiya={0}/></MemoryRouter>);send('Shu qoralamada nima bor?');
+  await waitFor(()=>expect(m.savol).toHaveBeenCalledTimes(1));expect(m.savol.mock.calls[0][2].studio).toEqual(dto);
+});
 it('switching company while the price catalogue is loading prevents the old paid request',async()=>{
   let done!:(r:unknown[])=>void;m.katalog.mockReturnValue(new Promise(r=>{done=r;}));
   stop=studioKontekstUla({companyId:17,draftId:'a',read:()=>dto});const v=render(view());send('Beton narxi?');

@@ -299,6 +299,16 @@ describe('agent-ish shlyuzi', () => {
       await post(studioPost(studio),env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));
       const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);expect(String(calls[0][1]?.body)).not.toContain('DRAFT_ONLY_4_M3');
     });
+    it.each([null,'',false,'  '])('unknown catalogue price %j is not silently converted into a zero quote',async value=>{
+      const f=mock(['obyektlar','smeta_pul']);vi.stubGlobal('fetch',f);
+      await post({...studioPost(null),katalog:[{nom:'INVALID_PRICE_MARKER',narx:value}]},env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));
+      const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);expect(String(calls[0][1]?.body)).not.toContain('INVALID_PRICE_MARKER');
+    });
+    it('an explicitly numeric zero catalogue price remains a real zero',async()=>{
+      const f=mock(['obyektlar','smeta_pul']);vi.stubGlobal('fetch',f);
+      await post({...studioPost(null),katalog:[{nom:'VALID_ZERO_MARKER',narx:0}]},env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));
+      const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);expect(String(calls[0][1]?.body)).toContain('VALID_ZERO_MARKER');
+    });
     const toliq = (modelMatni: string, o: { til?: string; ishonch?: string } = {}) => vi.fn(async (u: string, init?: RequestInit) => {
       const url = String(u);
       if (url.includes('t2_agent_kasb_v1')) return rpcJavob({ ...kasb('prorab', PROR), harakatlar: ['ombor_kirim', 'ombor_chiqim', 'eslatma'] });

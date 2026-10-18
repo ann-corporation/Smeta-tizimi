@@ -287,7 +287,7 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   /* Platforma narx indeksi (R2, ochiq ma'lumotnoma): brauzer topgan ≤ 6 qator; har maydon tekshiriladi va qisqartiriladi. */
   const katalog = (Array.isArray(so.katalog) ? so.katalog.slice(0, 6) : []).flatMap((x: unknown) => {
     const r = (x ?? {}) as Record<string, unknown>;
-    const narx = Number(r.narx);
+    const narx = typeof r.narx === 'number' ? r.narx : NaN;
     const nom = matn(r.nom, 200);
     return nom && Number.isFinite(narx) && narx >= 0 ? [{ nom, birlik: matn(r.birlik, 30), narx, manba: matn(r.manba, 160), hudud: matn(r.hudud, 80) }] : [];
   });
