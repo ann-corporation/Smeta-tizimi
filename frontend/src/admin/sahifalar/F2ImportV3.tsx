@@ -584,7 +584,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
           ij={ij} onIj={setIj} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
-          onYaratildi={yaratildi} disabled={busy || !!done} />
+          onYaratildi={yaratildi} disabled={busy || !!done || takrorBlok} />
       )}
 
       {yozish && (
