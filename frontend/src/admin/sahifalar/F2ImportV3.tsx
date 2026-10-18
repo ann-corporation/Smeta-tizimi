@@ -1,3 +1,4 @@
+import { avvalgiF2Ol, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   sbOqi, sbT2AktYaratV2, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator,
@@ -54,6 +55,9 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [busy, setBusy] = useState(false);
   const [holat, setHolat] = useState('Obyekt va F2 faylni tanlang.');
   const [xato, setXato] = useState('');
+  const [aktZiddiyat, setAktZiddiyat] = useState(false);
+  const [avvalgi, setAvvalgi] = useState<{ key: string; akt: AvvalgiF2 | null; error: boolean } | null>(null);
+  const [tekshiruv, setTekshiruv] = useState(0);
   const [ogoh, setOgoh] = useState('');
   const [done, setDone] = useState<string | null>(null);
   const [tizimFayllar, setTizimFayllar] = useState<Fayl[]>([]);
@@ -168,6 +172,20 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   const akt = aktlar[aktIdx] ?? null;
   const ind = useMemo(() => (akt ? f2Indeks(akt.daraxt) : null), [akt]);
+  const avvalgiKalit = akt && objectId && /^\d{4}-(0[1-9]|1[0-2])$/.test(davr) ? `${companyId}:${objectId}:${davr}` : '';
+  const joriyAvvalgi = avvalgi?.key === avvalgiKalit ? avvalgi : null;
+  const takrorTekshirilmoqda = !!avvalgiKalit && !joriyAvvalgi;
+  const takrorBlok = takrorTekshirilmoqda || !!joriyAvvalgi?.akt || !!joriyAvvalgi?.error;
+  useEffect(() => {
+    if (!avvalgiKalit) return;
+    let active = true;
+    setAvvalgi(null);
+    void avvalgiF2Ol(sbOqi, companyId, Number(objectId), davr)
+      .then((a) => { if (active) setAvvalgi({ key: avvalgiKalit, akt: a, error: false }); })
+      .catch(() => { if (active) setAvvalgi({ key: avvalgiKalit, akt: null, error: true }); });
+    return () => { active = false; };
+  }, [avvalgiKalit, tekshiruv, companyId, objectId, davr, akt]);
+
   const S = useMemo(() => smetaIndeks(smetaQatorlari(rows)), [rows]);
   const raw = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
 
@@ -270,7 +288,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [kalit, akt]);
 
   async function aniqBogla() {
-    if (!akt || !ij || busy || done) return;
+    if (!akt || !ij || busy || done || takrorBlok) return;
     setBusy(true); setXato('');
     try { await moslash(akt, rows, qoldiq, xotira, rzBog, ijRef.current); }
     catch (e) { setXato(e instanceof Error ? e.message : 'Moslashtirish bajarilmadi.'); }
@@ -406,8 +424,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   }
 
   async function saqla() {
-    if (!akt || !ind || !yozish || !payload || payload.error || busy || done) return;
-    setBusy(true); setXato(''); setHolat('Manba fayl saqlanmoqda…');
+    if (!akt || !ind || !yozish || !payload || payload.error || busy || done || takrorBlok) return;
+    setBusy(true); setXato(''); setAktZiddiyat(false); setHolat('Manba fayl saqlanmoqda…');
     try {
       const docId = await r2gaYukla();
       // До финансового черновика сохраняем ВСЕ строки/решения, включая неразрешённые минусы.
@@ -434,7 +452,13 @@ function Sessiya({ companyId }: { companyId: number }) {
             unresolved_count: yozish.qolgan.length },
         })),
       });
-      if (!r.ok) { setXato(`Hujjat saqlanmadi: ${r.xabar || r.error || r.sabab || 'xato'}. Tanlovni o‘zgartirmasdan qayta urinish mumkin.`); return; }
+      if (!r.ok) {
+        if ((r as { code?: string }).code === 'F2_ACT_NUMBER_CONFLICT') {
+          setAktZiddiyat(true);
+          setXato('Shu obyekt va oy uchun bu raqamdagi F2 allaqachon mavjud. Tanlovlaringiz ish qoralamasida saqlangan. Tasdiqlangan aktni qayta import bilan almashtirib bo‘lmaydi.');
+        } else setXato(`Hujjat saqlanmadi: ${r.xabar || r.error || r.sabab || 'xato'}. Tanlovni o‘zgartirmasdan qayta urinish mumkin.`);
+        return;
+      }
       setDone(`F2 qoralamasi saqlandi (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.`);
       if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida va server ish qoralamasi #${draft.server!.jobId} da saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
       setHolat('Tayyor.');
@@ -450,7 +474,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   return (
     <section className="w-full space-y-3 p-3 sm:p-4">
       <div className="flex flex-wrap items-baseline gap-2">
-        <h1 className="text-lg font-semibold sm:text-xl">F2 import</h1>
+        <h1 className="text-lg font-semibold sm:text-xl">{t('F2 import')}</h1>
         <p role="status" className="text-[13px] text-text-dim">{holat}</p>
       </div>
       <section className="karta space-y-2 p-3" aria-label={t('Ish holati')}>
@@ -468,7 +492,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </button>}
       </section>
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
-        <label className="block text-[12px] font-medium text-text">Obyekt
+        <label className="block text-[12px] font-medium text-text">{t('Obyekt')}
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { oxirgiKalit.current = ''; tozala(); setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
             className="input mt-1.5 block h-9 w-full px-2 text-[13px]">
             <option value="">Tanlang</option>{objects.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
@@ -535,11 +559,25 @@ function Sessiya({ companyId }: { companyId: number }) {
           )}
         </section>
       )}
+      {akt && avvalgiKalit && (takrorTekshirilmoqda || joriyAvvalgi?.error || joriyAvvalgi?.akt) && <section
+        role={joriyAvvalgi?.akt || joriyAvvalgi?.error ? 'alert' : 'status'} className="karta border border-warn/50 bg-warn/10 p-3 text-[13px] text-warn">
+        {takrorTekshirilmoqda ? <p>{t('Avval kiritilgan F2 tekshirilmoqda…')}</p> : joriyAvvalgi?.error ? <>
+          <p>{t('Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.')}</p>
+          <button type="button" className="tugma mt-2" onClick={() => setTekshiruv((v) => v + 1)}>{t('Qayta tekshirish')}</button>
+        </> : joriyAvvalgi?.akt && <>
+          <p className="font-semibold">{t('Bu obyekt va davr uchun F2 avval kiritilgan. Qayta bog‘lash shart emas.')}</p>
+          <p>#{joriyAvvalgi.akt.id} · {joriyAvvalgi.akt.oy.slice(0, 7)} · {joriyAvvalgi.akt.lifecycle_status ?? joriyAvvalgi.akt.holat}</p>
+          <p>{t('Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.')}</p>
+          <a href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>
+        </>}
+      </section>}
       {ogoh && <p className="text-[12px] text-warn">{ogoh}</p>}
-      {xato && <p role="alert" className="text-[13px] text-danger">{xato}</p>}
+      {xato && <div role="alert" className="text-[13px] text-danger"><p>{xato}</p>{aktZiddiyat && <a
+        href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
+        className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
       {akt && ij && <section className="karta flex flex-wrap items-center gap-3 border border-accent/30 p-3" aria-label={t('Moslashtirish')}>
-        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done || takrorBlok} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
         <p className="min-w-0 flex-1 text-[12px] text-text-dim">{t('Faqat ishonchli mosliklar bog‘lanadi. Noaniq variantlarni siz tasdiqlaysiz. Qo‘lda tasdiqlangan bog‘lanishlar saqlanadi.')}</p>
       </section>}
 
@@ -562,7 +600,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           {yozish.toxtatish.map((t, i) => <p key={i} className="text-[12px] text-warn">{t}</p>)}
           {payload?.error && <p role="alert" className="text-[12px] text-danger">{payload.error}</p>}
           {done ? <p className="text-[13px] text-ok">{done}</p> : (
-            <button type="button" className="tugma tugma-asosiy" disabled={busy || !payload || !!payload.error}
+            <button type="button" className="tugma tugma-asosiy" disabled={busy || !payload || !!payload.error || takrorBlok}
               onClick={() => void saqla()}>
               {t('F2 qoralama aktini saqlash')}{payload && !payload.error ? ` (${payload.rows.length} qator)` : ''}
             </button>

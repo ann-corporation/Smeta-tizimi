@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import type { F2IshchiQoralama } from '../../lib/f2-ishchi-qoralama';
 
-const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn() }));
+const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn(), preflight: vi.fn() }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: { id: 5 }, yuklanmoqda: false }) }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => ({ scope: { objectId: null }, setObjectId: vi.fn() }) }));
 vi.mock('../../api/supabase', () => ({
   sbT2ObyektlarOlKomp: async () => ({ ok: true, qatorlar: [{ id: 3, nom: 'Amfiteatr', loyiha_id: 1 }] }),
-  sbT2DaraxtOl: m.tree, sbOqi: async () => ({ ok: true, qatorlar: [] }), sbT2AktYaratV2: m.create, yangiOperationId: () => 'op',
+  sbT2DaraxtOl: m.tree, sbOqi: (s: {jadval: string}) => s.jadval === 't2_akt' ? m.preflight(s) : Promise.resolve({ ok: true, qatorlar: [] }), sbT2AktYaratV2: m.create, yangiOperationId: () => 'op',
 }));
 vi.mock('../../api/t2-nakopitelniy', () => ({ t2NakopitelniyToliq: async () => ({ ok: true, qatorlar: [] }) }));
 vi.mock('../../api/t2-fayl', () => ({ faylExplorerOl: async () => ({ fayllar: [] }), faylBaytlari: async () => new Uint8Array([1]) }));
@@ -30,6 +30,7 @@ beforeEach(() => {
   Object.values(m).forEach((fn) => fn.mockReset()); saved = null;
   m.read.mockImplementation(async () => saved); m.save.mockImplementation(async (d: F2IshchiQoralama) => { saved = d; });
   m.parse.mockResolvedValue([act]);
+  m.preflight.mockResolvedValue({ok:true,qatorlar:[]});
   m.match.mockResolvedValue({ natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: 2 } });
   m.tree.mockResolvedValue({ ok: true, qatorlar: [{ id: 7, ota_id: null, tur: 'mat', nom: 'БЕТОН B20', kod: 'x', birlik: 'м3', hajm: 20, narx: 100 }] });
 });
@@ -41,6 +42,29 @@ async function start() {
   fireEvent.click(await screen.findByText('Plusni bog‘lash'));
 }
 describe('F2 independent working draft', () => {
+  it('warns before matching when the object/month already has an F2 and never creates a duplicate', async () => {
+    m.preflight.mockResolvedValue({ok:true,qatorlar:[{id:99,oy:'2026-10-01',raqam:null,holat:'tasdiqlangan',lifecycle_status:'approved'}]});
+    await start();
+    await screen.findByText('Bu obyekt va davr uchun F2 avval kiritilgan. Qayta bog‘lash shart emas.');
+    expect(screen.getByRole('link',{name:'Mavjud F2 tarixini boshqa oynada ochish'}).getAttribute('target')).toBe('_blank');
+    const button=screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement;
+    expect(button.disabled).toBe(true); fireEvent.click(button);
+    expect((screen.getByRole('button',{name:/F2 qoralama aktini saqlash/}) as HTMLButtonElement).disabled).toBe(true);
+    expect(m.match).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
+    expect(screen.getByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
+  });
+
+  it('does not report no duplicate on a failed check, and supports retry without resetting decisions', async () => {
+    m.preflight.mockResolvedValueOnce({ok:false}).mockResolvedValue({ok:true,qatorlar:[]});
+    await start();
+    await screen.findByText(/Avvalgi F2 tekshirilmadi/);
+    expect((screen.getByRole('button',{name:/F2 qoralama aktini saqlash/}) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button',{name:'Qayta tekshirish'}));
+    await waitFor(()=>expect((screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
+    expect(m.match).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
+  });
+
   it('selection never links; explicit button preserves manual decisions', async () => {
     await start();
     expect(m.match).not.toHaveBeenCalled();
@@ -59,6 +83,7 @@ describe('F2 independent working draft', () => {
     cleanup(); render(<F2ImportV3 />);
     fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
+    await waitFor(()=>expect((screen.getByRole('button',{name:/F2 qoralama aktini saqlash/}) as HTMLButtonElement).disabled).toBe(false));
     m.cloudSave.mockImplementation(async (d: F2IshchiQoralama) => { d.server = { jobId: 11, versiya: 3, rows: new Map([['minus', 1], ['plus', 1]]) }; return d.server; });
   }
 
@@ -78,6 +103,19 @@ describe('F2 independent working draft', () => {
     await screen.findByText(/1 ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi/);
   });
 
+  it('explains an existing act conflict, preserves decisions and opens history without abandoning the working tab', async () => {
+    await restored();
+    m.create.mockResolvedValue({ok:false,code:'F2_ACT_NUMBER_CONFLICT'});
+    fireEvent.click(screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }));
+    await screen.findByText(/bu raqamdagi F2 allaqachon mavjud/);
+    const link=screen.getByRole('link',{name:'Mavjud F2 tarixini boshqa oynada ochish'});
+    expect(link.getAttribute('href')).toBe('/admin/f2-tarix?obyekt=3');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(saved!.ij.bog.get('plus')?.qatorId).toBe(7);
+    expect(screen.queryByText(/F2 qoralamasi saqlandi \(akt/)).toBeNull();
+    expect(m.create).toHaveBeenCalledTimes(1);
+  });
+
   it('does not write an act or claim success if the complete working backup fails', async () => {
     await restored();
     m.cloudSave.mockRejectedValue(new Error('STALE_DRAFT_VERSION'));
@@ -90,7 +128,7 @@ describe('F2 independent working draft', () => {
 
   it('saves unresolved minus, original file and manual links; remount restores without parsing/resetting decisions', async () => {
     await start();
-    expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false);
+    await waitFor(()=>expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole('button', { name: 'Ish holatini saqlash (davom ettirish uchun)' }));
     await screen.findByText(/Ish holati shu brauzerda saqlandi/);
     expect(saved!.ij.bog.get('plus')?.qatorId).toBe(7);
@@ -138,6 +176,6 @@ describe('F2 independent working draft', () => {
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Obyekt' }).textContent).toContain('Amfiteatr'));
     fireEvent.click(screen.getByRole('button', { name: 'Serverdagi qoralamani davom ettirish' }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
-    expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false);
+    await waitFor(()=>expect((screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }) as HTMLButtonElement).disabled).toBe(false));
   });
 });
