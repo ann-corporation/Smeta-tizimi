@@ -39,7 +39,12 @@ const AMALLAR = {
   ish_abc_saqla_v1: { rpc: 't2_ish_abc_saqla_v1' },
   /* Qo'shilgan qatorlarni o'chirish/asliga qaytarish va tahrirlash — smeta qatorlari o'zgarmas (server tekshiradi). */
   ish_abc_ochir_v1: { rpc: 't2_ish_abc_ochir_v1' },
+  qator_ish_abc_ochir_v1: { rpc: 't2_ish_abc_ochir_v1' },
   ish_abc_tahrir_v1: { rpc: 't2_ish_abc_tahrir_v1' },
+  qator_ish_abc_tahrir_v1: { rpc: 't2_ish_abc_tahrir_v1' },
+  /* Egasi 2026-10-18: smeta resursi o'rniga ish(lar) (ГПС → qazib olish + tashish) va qo'shilgan qatorni ko'chirish. */
+  qator_resurs_ish_zamena_v1: { rpc: 't2_resurs_ish_zamena_v1' },
+  qator_qoshilgan_kochir_v1: { rpc: 't2_qoshilgan_kochir_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
@@ -535,7 +540,28 @@ export const onRequestPost: PagesFunction<{
         p_sana: so.sana ?? null, p_sabab: String(so.sabab).slice(0, 500),
         p_operation_id: so.operation_id, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
       };
-    } else if (amal === 'ish_abc_ochir_v1') {
+    } else if (amal === 'qator_resurs_ish_zamena_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.resurs_qator_id))
+          || !Array.isArray(so.ishlar) || so.ishlar.length < 1 || so.ishlar.length > 10 || !String(so.sabab || '').trim()
+          || (so.eski_qator_id != null && !Number.isSafeInteger(Number(so.eski_qator_id)))) {
+        return Response.json({ ok: false, error: 'Resurs, 1–10 ta ish, sabab va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_obyekt_id: so.obyekt_id,
+        p_resurs_qator_id: Number(so.resurs_qator_id), p_ishlar: so.ishlar, p_sabab: String(so.sabab).slice(0, 500),
+        p_operation_id: so.operation_id, p_eski_qator_id: so.eski_qator_id == null ? null : Number(so.eski_qator_id),
+      };
+    } else if (amal === 'qator_qoshilgan_kochir_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.qator_id))
+          || !Number.isSafeInteger(Number(so.yangi_ota_id)) || (so.keyin_qator_id != null && !Number.isSafeInteger(Number(so.keyin_qator_id)))) {
+        return Response.json({ ok: false, error: 'Qator, yangi joy va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_obyekt_id: so.obyekt_id, p_qator_id: Number(so.qator_id),
+        p_yangi_ota_id: Number(so.yangi_ota_id), p_keyin_qator_id: so.keyin_qator_id == null ? null : Number(so.keyin_qator_id),
+        p_operation_id: so.operation_id,
+      };
+    } else if ((amal === 'ish_abc_ochir_v1' || amal === 'qator_ish_abc_ochir_v1')) {
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.qator_id))) {
         return Response.json({ ok: false, error: 'Qator va operatsiya talab qilinadi.' }, { status: 400 });
       }
@@ -543,7 +569,7 @@ export const onRequestPost: PagesFunction<{
         p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_obyekt_id: so.obyekt_id,
         p_qator_id: Number(so.qator_id), p_sabab: so.sabab ? String(so.sabab).slice(0, 500) : null, p_operation_id: so.operation_id,
       };
-    } else if (amal === 'ish_abc_tahrir_v1') {
+    } else if ((amal === 'ish_abc_tahrir_v1' || amal === 'qator_ish_abc_tahrir_v1')) {
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.qator_id))
           || !String(so.sabab || '').trim() || (so.resurslar != null && (!Array.isArray(so.resurslar) || so.resurslar.length > 60))
           || (so.sana != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana)))) {

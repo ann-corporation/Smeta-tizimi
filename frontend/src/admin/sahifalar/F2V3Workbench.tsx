@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, ArrowDownToLine, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, ArrowDownToLine, X, Pencil, Trash2, MoveVertical } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { T2Qator } from '../../api/supabase';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
@@ -9,6 +9,11 @@ import {
   type F2Indeks, type IshJoyi, type KorinishHolat, type SmetaIndeks,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { F2AddReplModal, type DropAction } from './F2AddReplModal';
+import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
+import { abcXato, ishAbcOchir, qoshilganKochir, resursIshZamena, type NarxManba } from '../../api/t2-ish-abc';
+import { yangiOperationId } from '../../api/supabase';
+import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
+import { qoshilganmi, smetaQatorTuri, type SmetaQatorTuri } from '../../lib/f2-moslash-v3/qoshilgan';
 import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
 import { expandableDepths, expandableIdsAtDepth, flattenVisibleTree } from '../../lib/f2-link-review/tree';
@@ -50,7 +55,7 @@ const QATOR_FON: Record<KorinishHolat, string> = {
   taklif: 'bg-warn/[0.09]', topilmadi: 'bg-danger/[0.08]', otkazildi: 'opacity-60',
 };
 
-type Tanlov = { f: F2Tugun; s: SmetaQator; tur: 'ish' | 'resurs' };
+type Tanlov = { f: F2Tugun; s: SmetaQator; tur: 'ish' | 'resurs' | 'ish_resurs' };
 
 function TreeControls(props: {
   depths: number[];
@@ -59,8 +64,8 @@ function TreeControls(props: {
   onToggleDepth: (depth: number) => void;
 }) {
   return <div className="flex flex-wrap items-center gap-1 border-b border-border/50 px-2 py-1" aria-label="Daraxt ko‘rinishini boshqarish">
-    <button type="button" className="tugma h-6 px-1.5 text-[10px]" onClick={props.onOpenAll}>Hammasini ochish</button>
-    <button type="button" className="tugma h-6 px-1.5 text-[10px]" onClick={props.onCloseAll}>Hammasini yopish</button>
+    <button type="button" className="tugma h-6 px-1.5 text-[10px]" onClick={props.onOpenAll}>{t('Hammasini ochish')}</button>
+    <button type="button" className="tugma h-6 px-1.5 text-[10px]" onClick={props.onCloseAll}>{t('Hammasini yopish')}</button>
     {props.depths.map((depth) => <button key={depth} type="button" className="tugma h-6 px-1.5 text-[10px]"
       aria-label={`${depth + 1}-qavatdagi barcha bo‘limlarni ochish/yopish`} onClick={() => props.onToggleDepth(depth)}>
       {depth + 1}-qavat
@@ -83,7 +88,33 @@ export interface F2V3WorkbenchProps {
   objectId: number;
   /** Qo'shimcha/zamena qator yaratilgach: sahifa smetani yangilaydi, ish bo'lsa resurslarini yaratadi va bog'laydi. */
   onYaratildi: (f: F2Tugun, qatorId: number, resursQatorIdlar?: number[]) => Promise<void>;
+  /** Zamena qatori id → u almashtirgan ASL smeta qatori id (asl qator o'zi o'zgarmaydi). */
+  zamenaAsl?: ReadonlyMap<number, number>;
+  /** Qo'shilgan qator tahrirlandi (yangiId) yoki o'chirildi: sahifa smetani yangilaydi va F2 bog'lanishlarini to'g'rilaydi. */
+  onQoshilganOzgardi?: (eskiIdlar: number[], yangiId?: number | null) => Promise<void>;
   disabled?: boolean;
+}
+
+const BOSH_XARITA: ReadonlyMap<number, number> = new Map();
+const NARX_MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'];
+
+/** Egasi 2026-10-18: "vizual tushunarsiz — ranglarni yaxshiroq ko'rinadigan qil". Qator manbasi bir qarashda. */
+const QATOR_RANG: Record<SmetaQatorTuri, { fon: string; chegara: string; belgi: string; yorliq: string }> = {
+  asl: { fon: '', chegara: 'border-l-4 border-l-transparent', belgi: '🔒', yorliq: 'Smetadan — o‘zgarmas' },
+  qoshimcha: { fon: 'bg-emerald-500/15', chegara: 'border-l-4 border-l-emerald-500', belgi: '＋', yorliq: 'Qo‘shimcha — siz qo‘shgansiz (tahrirlanadi)' },
+  zamena: { fon: 'bg-amber-500/15', chegara: 'border-l-4 border-l-amber-500', belgi: '⇄', yorliq: 'Zamena — siz qo‘shgansiz (tahrirlanadi)' },
+  almashtirilgan: { fon: 'bg-rose-500/10', chegara: 'border-l-4 border-l-rose-500', belgi: '↷', yorliq: 'Smeta qatori, o‘rniga zamena kiritilgan' },
+};
+
+/** Smeta paneli tepasidagi rang izohi. */
+export function QatorRangIzohi() {
+  return <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/50 px-2 py-1 text-[10.5px] text-text-dim" aria-label={t('Qator ranglari izohi')}>
+    {(Object.keys(QATOR_RANG) as SmetaQatorTuri[]).map((k) => (
+      <span key={k} className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${QATOR_RANG[k].fon} ${QATOR_RANG[k].chegara}`}>
+        <span aria-hidden>{QATOR_RANG[k].belgi}</span>{QATOR_RANG[k].yorliq}
+      </span>
+    ))}
+  </div>;
 }
 
 /** Resurs turi birlikdan: ЧЕЛ/МАШ — rs, qolgani material (kategoriyani server birlik/nom bo'yicha aniqlaydi). */
@@ -148,8 +179,8 @@ function JadvalSarlavha({ tur }: { tur: 'f2' | 'smeta' }) {
   return (
     <div className={`${tur === 'f2' ? F2_GRID : S_GRID} sticky top-0 z-10 bg-surface-2 text-[10.5px] font-semibold uppercase tracking-wide text-text-dim`}>
       {tur === 'f2' && <span className={`${u} text-center`} title="Holat">●</span>}
-      <span className={u}>Shifr / kod</span><span className={u}>Nomi</span>
-      <span className={`${u} text-right`}>Norma</span><span className={`${u} text-right`}>Miqdor</span><span className={u}>Birlik</span>
+      <span className={u}>{t('Shifr / kod')}</span><span className={u}>{t('Nomi')}</span>
+      <span className={`${u} text-right`}>{t('Norma')}</span><span className={`${u} text-right`}>{t('Miqdor')}</span><span className={u}>{t('Birlik')}</span>
       <span className={`${u} text-right`}>Narx</span><span className={`${u} text-right`}>{tur === 'f2' ? 'Summa' : 'Qoldiq'}</span>
       <span className={`${u} ${AMAL_YOPISHQOQ} bg-surface-2`}>Amal</span>
     </div>
@@ -179,6 +210,96 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const [tanlov, setTanlov] = useState<Tanlov | null>(null);
   const [modal, setModal] = useState<{ f: F2Tugun; action: DropAction } | null>(null);
   const [xabar, setXabar] = useState<string | null>(null);
+  // ── Qo'shilgan qatorlar (qo'shimcha/zamena): TAHRIRLASH va O'CHIRISH. Asl smeta qatorlari — o'zgarmas (server ham rad etadi). ──
+  const [abc, setAbc] = useState<{ rejim: AbcRejim; tahrir: AbcTahrir; eskiIdlar: number[]; saqlash?: Parameters<typeof IshAbcModal>[0]['saqlash'] } | null>(null);
+  const mutationLock = useRef(false);
+  const mutationOps = useRef(new Map<string, string>());
+  const [mutationBusy, setMutationBusy] = useState(false);
+  /** «Ko'chirish» rejimi: tanlangan qo'shilgan qator id — keyingi bosilgan smeta qatori yangi joyni bildiradi. */
+  const [kochirish, setKochirish] = useState<number | null>(null);
+  const zamenaAsl = p.zamenaAsl ?? BOSH_XARITA;
+  const almashtirilgan = useMemo(() => new Set(zamenaAsl.values()), [zamenaAsl]);
+  const qatorTuri = (id: number): SmetaQatorTuri => { const r = p.raw.get(id); return r ? smetaQatorTuri(r, almashtirilgan) : 'asl'; };
+  const pastdagiIdlar = (id: number): number[] => {
+    const out = [id];
+    for (let i = 0; i < out.length; i++) for (const b of S.bolalar.get(out[i]) ?? []) out.push(b.id);
+    return out;
+  };
+  const resursPrefill = (c: T2Qator): AbcResurs => {
+    const norma = Number(c.norma ?? 0);
+    const usul = String(c.narx_usul ?? '').toLowerCase() as NarxManba;
+    return { kat: katAniqla(c.kat, c.tur, c.birlik), kod: c.kod ?? '', nom: c.nom ?? '', birlik: c.birlik ?? '',
+      norma: norma > 0 ? String(norma) : '', hajm: norma > 0 ? '' : String(c.hajm ?? ''),
+      narx: c.narx != null ? String(c.narx) : '', manba: NARX_MANBALAR.includes(usul) ? usul : 'qolda' };
+  };
+  function qoshilganTahrir(id: number) {
+    const r = p.raw.get(id);
+    if (!r || !qoshilganmi(r)) { xab('Bu qator smetadan — o‘zgarmaydi. Faqat siz qo‘shgan qatorlar tahrirlanadi.'); return; }
+    const ota = r.ota_id != null ? p.raw.get(r.ota_id) : undefined;
+    if (r.tur === 'bl') {
+      const bolalar = [...p.raw.values()].filter((c) => c.ota_id === r.id && (c.tur === 'rs' || c.tur === 'mat' || c.tur === 'ob'));
+      const eskiAsl = r.zamena && zamenaAsl.has(r.id) ? p.raw.get(zamenaAsl.get(r.id)!) : undefined;
+      const tahrir: AbcTahrir = { qatorId: r.id, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' };
+      if (eskiAsl && eskiAsl.tur !== 'bl' && eskiAsl.tur !== 'rz') {
+        // Resurs o'rnidagi ish (ГПС → qazib olish): tahrir = eskisini arxivlab shu resurs o'rniga yangi ish (bitta tranzaksiya).
+        setAbc({ rejim: { tur: 'additional' }, tahrir, eskiIdlar: pastdagiIdlar(r.id),
+          saqlash: (d) => resursIshZamena({ kompaniyaId: p.companyId, obyektId: p.objectId, resursQatorId: eskiAsl.id, sabab: d.sabab, operationId: d.operationId,
+            eskiQatorId: r.id, ishlar: [{ ish: d.ish!, resurslar: d.resurslar }] }) });
+        return;
+      }
+      setAbc({
+        rejim: r.zamena && eskiAsl
+          ? { tur: 'replacement', eski: { id: eskiAsl.id, kod: eskiAsl.kod ?? null, nom: eskiAsl.nom ?? '', birlik: eskiAsl.birlik ?? null, otaId: eskiAsl.ota_id ?? null, otaVersiya: ota?.versiya ?? null } }
+          : { tur: 'additional' },
+        tahrir: { qatorId: r.id, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' },
+        eskiIdlar: pastdagiIdlar(r.id),
+      });
+    } else if (r.zamena && zamenaAsl.has(r.id)) {
+      const aslId = zamenaAsl.get(r.id)!; const eskiAsl = p.raw.get(aslId);
+      setAbc({ rejim: { tur: 'resurs_zamena', eski: { id: aslId, nom: eskiAsl?.nom ?? r.nom ?? '', birlik: eskiAsl?.birlik ?? r.birlik ?? null, kat: eskiAsl?.kat ?? r.kat ?? null, norma: eskiAsl?.norma ?? null }, ishHajm: ota?.hajm ?? null },
+        tahrir: { qatorId: r.id, resurslar: [resursPrefill(r)] }, eskiIdlar: [r.id] });
+    } else xab('Bu resurs siz qo‘shgan ish ichida — ishning o‘zini tahrirlang.');
+  }
+  /** Ko'chirish rejimida bosilgan smeta qatori — yangi joy. Ish: bo'lim ustiga — bo'lim boshiga; ish ustiga — o'sha
+   *  ishdan keyin. Resurs: ish/bo'lim ustiga — uning ichiga (boshiga); resurs ustiga — o'sha resursdan keyin. */
+  async function joyTanla(target: SmetaQator) {
+    const id = kochirish; setKochirish(null);
+    const r = id != null ? S.byId.get(id) : undefined;
+    if (id == null || !r) return;
+    if (target.id === id) { xab('Ko‘chirish bekor qilindi.'); return; }
+    let yangiOta: number | null; let keyin: number | null;
+    if (r.tur === 'bl') {
+      if (target.tur === 'rz') { yangiOta = target.id; keyin = null; }
+      else if (target.tur === 'bl') { yangiOta = target.otaId ?? null; keyin = target.id; }
+      else { xab('Ishni bo‘lim yoki boshqa ish ustiga ko‘chiring.'); return; }
+    } else if (target.tur === 'bl' || target.tur === 'rz') { yangiOta = target.id; keyin = null; }
+    else { yangiOta = target.otaId ?? null; keyin = target.id; }
+    if (yangiOta == null) { xab('Bu joyga ko‘chirib bo‘lmaydi.'); return; }
+    const res = await qoshilganKochir({ kompaniyaId: p.companyId, obyektId: p.objectId, qatorId: id, yangiOtaId: yangiOta, keyinQatorId: keyin, operationId: yangiOperationId() });
+    if (!res.ok) { xab(abcXato(res)); return; }
+    xab(`«${(r.nom ?? '').slice(0, 50)}» ko‘chirildi.`);
+    await p.onQoshilganOzgardi?.([], null);
+  }
+  async function qoshilganOchir(id: number) {
+    if (p.disabled || mutationLock.current) return;
+    const r = p.raw.get(id);
+    if (!r || !qoshilganmi(r)) { xab('Bu qator smetadan — o‘chirilmaydi. Faqat siz qo‘shgan qatorlar o‘chiriladi.'); return; }
+    const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi.\nSabab (ixtiyoriy):`, '');
+    if (sabab === null) return;
+    const eskiIdlar = pastdagiIdlar(id);
+    const opKey = `${p.companyId}:${p.objectId}:${id}:${sabab}`;
+    const operationId = mutationOps.current.get(opKey) ?? yangiOperationId();
+    mutationOps.current.set(opKey, operationId);
+    mutationLock.current = true; setMutationBusy(true);
+    try {
+    const res = await ishAbcOchir({ kompaniyaId: p.companyId, obyektId: p.objectId, qatorId: id, sabab: sabab || 'F2 import: xato qo‘shilgan', operationId });
+    if (!res.ok) { xab(abcXato(res)); return; }
+    xab(r.zamena ? 'Zamena bekor qilindi — asl smeta qatori o‘z joyida.' : `O‘chirildi: ${res.ochirildi ?? 1} ta qator. Bo‘shagan F2 qatorlarini qayta bog‘lang.`);
+    await p.onQoshilganOzgardi?.(eskiIdlar, null);
+    mutationOps.current.delete(opKey);
+    } catch { xab('Javob olinmadi. Bog‘lanishlar saqlangan — qayta urinib ko‘ring.'); }
+    finally { mutationLock.current = false; setMutationBusy(false); }
+  }
   const smetaQuti = useRef<HTMLDivElement>(null);
   const f2Quti = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -280,7 +401,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   // Virtual ro'yxatda maqsad qator DOM'da bo'lmasligi mumkin — querySelector+scrollIntoView ishlamaydi. Aylantirish
   // indeks orqali; daraxt ochilishi (state) render bo'lgach bajariladi.
   // Moslashtirish ish joyi ochiq — deploy/yangilash ishni so'ramasdan o'chirmasin (versiya.ts).
-  useEffect(() => { saqlanmaganIsh('f2-import', !p.disabled); return () => saqlanmaganIsh('f2-import', false); }, [p.disabled]);
+  useEffect(() => { saqlanmaganIsh('f2-import', !(p.disabled || mutationBusy)); return () => saqlanmaganIsh('f2-import', false); }, [(p.disabled || mutationBusy)]);
   const f2RowsRef = useRef(f2VisibleRows); f2RowsRef.current = f2VisibleRows;
   const smetaRowsRef = useRef(smetaVisibleRows); smetaRowsRef.current = smetaVisibleRows;
   const f2Fokus = useRef<string | null>(null), smetaFokus = useRef<number | null>(null);
@@ -360,7 +481,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   }
   /** Tashlash (yoki tanlab bosish) — Tizim1 qoidalari. */
   function tashla(fUid: string, sId: number) {
-    if (p.disabled) return;
+    if ((p.disabled || mutationBusy)) return;
     const f = ind.byUid.get(fUid);
     const s = S.byId.get(sId);
     if (!f || !s) return;
@@ -373,7 +494,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     }
     if (f.tur === 'bl') {
       if (s.tur === 'rz') { ochModal(f, { kind: 'additional', parent: p.raw.get(s.id)!, keyinId: s.id }); return; }
-      if (sRes) { xab('Ishni smeta ISHIGA (bog‘lash/zamena) yoki RAZDELGA (qo‘shimcha ish) torting.'); return; }
+      if (sRes) {
+        // Egasi 2026-10-18: ish smeta RESURSIGA tashlansa — "shu resurs o'rniga ish" (masalan ГПС ni buyurtmachi bergan:
+        // material olinmaydi, qazib olish va tashish ishlari olinadi).
+        if (qoshilganmi(p.raw.get(s.id))) { xab('Bu resursni o‘zingiz qo‘shgansiz — uni tahrirlang yoki o‘chiring.'); return; }
+        setTanlov({ f, s, tur: 'ish_resurs' });
+        return;
+      }
       // Egasi 2026-09-30: nomida bitta nuqta farq bo'lsa ham so'ralsin (bog'lash / zamena / qo'shimcha).
       if (aynanBirXil(f, s)) { ishBogla(f, s.id); return; }
       setTanlov({ f, s, tur: 'ish' });
@@ -394,6 +521,23 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   function ochModal(f: F2Tugun, action: DropAction) {
     if (!action.parent) { xab('Smeta qatori topilmadi — sahifani yangilang.'); return; }
     setModal({ f, action });
+  }
+  /** F2 ishi (resurslari bilan) smeta RESURSI o'rniga: server o'sha bo'limda, resursning ishidan keyin yangi ish yaratadi;
+   *  asl resurs o'zgarmaydi. Bir resurs o'rniga bir nechta ish — har birini shu resursga tashlang. */
+  async function resursOrnigaIsh(f: F2Tugun, s: SmetaQator) {
+    const hajm = Number(f.hajm);
+    if (!(hajm > 0)) { xab('F2 ishining hajmi bo‘sh yoki 0 — avval hujjatdagi hajmni tekshiring.'); return; }
+    const sabab = window.prompt(`«${s.nom ?? ''}» o‘rniga «${f.nom}» ishi yoziladi (resurs o‘zi o‘zgarmaydi).\nSabab:`, 'Material buyurtmachidan (masalan karyer) — o‘rniga ish bajarilgan');
+    if (sabab === null || !sabab.trim()) return;
+    const resurslar = f.bolalar.filter((r) => Number(r.hajm) > 0).map((r) => ({
+      kat: katAniqla(null, r.tur, r.birlik), kod: r.kod ?? null, nom: r.nom, birlik: r.birlik || 'шт',
+      norma: null, hajm: Number(r.hajm), narx: r.narx != null && r.narx > 0 ? r.narx : null, narx_manba: 'qolda' as const,
+    }));
+    const res = await resursIshZamena({ kompaniyaId: p.companyId, obyektId: p.objectId, resursQatorId: s.id, sabab: sabab.trim(), operationId: yangiOperationId(),
+      ishlar: [{ ish: { kod: f.kod ?? null, nom: f.nom, birlik: f.birlik || 'шт', hajm }, resurslar }] });
+    if (!res.ok || res.qator_id == null) { xab(abcXato(res)); return; }
+    xab(`«${f.nom.slice(0, 50)}» — «${(s.nom ?? '').slice(0, 40)}» o‘rniga yozildi.`);
+    await p.onYaratildi(f, res.qator_id, res.resurs_idlar?.[0] ?? []);
   }
   function zamena(f: F2Tugun, s: SmetaQator) {
     const oldRow = p.raw.get(s.id);
@@ -469,7 +613,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const ishliRz = t.bolalar.some((c) => c.tur !== 'rz');
       return (
         <div data-fuid={t.uid} className="grid grid-cols-[minmax(180px,1fr)_85px_160px] bg-surface-2/80 text-[12px] font-semibold text-text">
-          <div draggable={!p.disabled}
+          <div draggable={!(p.disabled || mutationBusy)}
             onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
             className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             title="Razdelni o‘ngdagi smeta razdeliga tortsangiz — shu razdel ichidan qidiriladi">
@@ -519,8 +663,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     return (
       <div data-fuid={t.uid} role="group" aria-label={`F2 qatori (${f2QatorTuriYorlig(t.tur)}): ${t.nom}`}
-        draggable={!p.disabled} onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
-        title={p.disabled ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
+        draggable={!(p.disabled || mutationBusy)} onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
+        title={(p.disabled || mutationBusy) ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
         className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? `font-medium text-text ${ISH_CHEGARA}` : `text-text-dim ${RESURS_CHEGARA}`}`}>
         <span className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${HOLAT_KATAK[k]}`} title={B.t}>{B.b}</span>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
@@ -548,21 +692,21 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {t.barg ? fmt(t.summa, 2) : bolaSumma(t) != null ? fmt(bolaSumma(t), 2) : ''}
         </span>
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
-          {k === 'taklif' && <button type="button" className={`${tugma} tugma-asosiy`} disabled={p.disabled}
+          {k === 'taklif' && <button type="button" className={`${tugma} tugma-asosiy`} disabled={(p.disabled || mutationBusy)}
             onClick={() => p.onIj(tasdiqla(ij, [t.uid]))} title="Tizim taklifini tasdiqlash"><Check size={11} /> Tasdiqlash</button>}
-          {k === 'topilmadi' && ish && <button type="button" className={tugma} disabled={p.disabled}
+          {k === 'topilmadi' && ish && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Smeta razdelidagi qaysi ish o‘rniga bajarilganini tanlang">⇄ Zamena</button>}
-          {k === 'topilmadi' && ish && rzId != null && p.raw.get(rzId) && <button type="button" className={tugma} disabled={p.disabled}
+          {k === 'topilmadi' && ish && rzId != null && p.raw.get(rzId) && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => ochModal(t, { kind: 'additional', parent: p.raw.get(rzId)!, keyinId: oldingiKeyin() })} title="Smetaga qo‘shimcha ish (resurslari bilan) — F2 dagi tartibda, oldingi bog‘langan ishdan keyin">＋ Qo‘shimcha</button>}
-          <button type="button" className={tugma} disabled={p.disabled}
+          <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             aria-label={`Bog‘lash variantlari: ${t.nom}`} onClick={() => scrollTanlanganPanelga(t.uid)} title={candidateCount ? `Mos smeta qatorlari va dalillari (${candidateCount} ta variant)` : 'Mos smeta qatorlari va dalillari'}><Link2 size={11} /> {candidateCount || ''}</button>
-          {k === 'topilmadi' && !ish && tavsiyaS && <button type="button" className={`${tugma} tugma-asosiy`} disabled={p.disabled}
+          {k === 'topilmadi' && !ish && tavsiyaS && <button type="button" className={`${tugma} tugma-asosiy`} disabled={(p.disabled || mutationBusy)}
             onClick={() => zamena(t, tavsiyaS)} title={`Smetadagi «${tavsiyaS.nom ?? ''}» o‘rniga (zamena resurs) — aynan uning ortidan joylashadi`}>⇄ Zamena</button>}
-          {k === 'topilmadi' && !ish && otaSmetaIsh != null && p.raw.get(otaSmetaIsh) && <button type="button" className={`${tugma} ${tavsiya?.tur === 'qoshimcha' ? 'tugma-asosiy' : ''}`} disabled={p.disabled}
+          {k === 'topilmadi' && !ish && otaSmetaIsh != null && p.raw.get(otaSmetaIsh) && <button type="button" className={`${tugma} ${tavsiya?.tur === 'qoshimcha' ? 'tugma-asosiy' : ''}`} disabled={(p.disabled || mutationBusy)}
             onClick={() => ochModal(t, { kind: 'resource', parent: p.raw.get(otaSmetaIsh)!, keyinId: resursKeyin() })} title="Smeta ishiga qo‘shimcha resurs — F2 dagi tartibda">＋ Resurs</button>}
-          {k === 'topilmadi' && !ish && otaSmetaIsh == null && <button type="button" className={tugma} disabled={p.disabled}
+          {k === 'topilmadi' && !ish && otaSmetaIsh == null && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Avval ishini bog‘lang">Tanlash</button>}
-          {b && <button type="button" className={tugma} disabled={p.disabled}
+          {b && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             aria-label={`Bog‘lanishni uzish: ${t.nom}`} onClick={() => p.onIj(uz(ij, t))} title="Bog‘lanishni bekor qilish"><Unlink size={11} /></button>}
         </span>
       </div>
@@ -638,7 +782,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   function dropProps(s: SmetaQator) {
     return {
       onDragOver: (e: React.DragEvent) => {
-        if (p.disabled) return;
+        if ((p.disabled || mutationBusy)) return;
         e.preventDefault(); e.dataTransfer.dropEffect = 'link';
         const key = `s${s.id}:${zonaOl(e)}`;
         if (dropKey !== key) setDropKey(key);
@@ -659,7 +803,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   }
   /** Oraliqqa tashlash: qo'shimcha ish / resurs aynan shu ikki qator orasiga (langar = yuqoridagi qator). */
   function oraliqqaTashla(fUid: string, s: SmetaQator, zona: 'oldin' | 'keyin') {
-    if (p.disabled) return;
+    if ((p.disabled || mutationBusy)) return;
     const f = ind.byUid.get(fUid);
     if (!f) return;
     // Langar: "keyin" — shu qator; "oldin" — ekranda undan oldingi qator (yo'q bo'lsa — ota boshiga).
@@ -718,7 +862,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           </button>
           </div>
           <span className={`${KATAK} font-normal`}>
-            {tTugun?.tur === 'bl' && <button type="button" className={tugma} disabled={p.disabled}
+            {tTugun?.tur === 'bl' && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
               onClick={() => tashla(tTugun.uid, s.id)} title="Tanlangan F2 ishini shu razdelga qo‘shimcha ish sifatida qo‘shish">＋ Qo‘shimcha</button>}
           </span>
         </div>
@@ -726,11 +870,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     }
     const old = p.oldingi.get(s.id) ?? 0;
     const qoldiq = s.hajm != null ? s.hajm - old - (band?.hajm ?? 0) : null;
-    const yangi = p.raw.get(s.id);
     const ish = s.tur === 'bl';
+    const tur = qatorTuri(s.id);
+    const rang = QATOR_RANG[tur];
+    const qoshilgan = tur === 'qoshimcha' || tur === 'zamena';
     return (
-      <div data-sid={s.id} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} `
-        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
+      <div data-sid={s.id} data-qator-turi={tur} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} ${rang.chegara} `
+        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : rang.fon ? `${rang.fon} hover:brightness-110` : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
         + (oraliq || ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA))}>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <div className={`${KATAK} flex items-start text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
@@ -738,8 +884,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
           {percent != null && <span className="mr-1 rounded bg-warn/20 px-1 text-[10px] font-semibold text-warn" title="Moslik indeksi — ehtimollik emas">{percent}%</span>}
-          <span className="break-words">{s.nom}</span>
-          {(yangi?.qoshimcha || yangi?.zamena) && <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent">{yangi.zamena ? 'zamena' : 'qo‘shimcha'}</span>}
+          <span className={`break-words ${tur === 'almashtirilgan' ? 'line-through decoration-rose-500/70' : ''}`}>{s.nom}</span>
+          {tur !== 'asl' && <span title={rang.yorliq} className={`ml-1 rounded px-1 text-[10px] font-semibold ${tur === 'qoshimcha' ? 'bg-emerald-500/25 text-emerald-700 dark:text-emerald-300' : tur === 'zamena' ? 'bg-amber-500/25 text-amber-700 dark:text-amber-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'}`}>
+            {rang.belgi} {tur === 'qoshimcha' ? 'qo‘shimcha' : tur === 'zamena' ? 'zamena' : 'almashtirilgan'}</span>}
           {tekis && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">{yolMatn(s)}</span>}
           {(old > 0 || band) && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">
             oldin F2 {fmt(old)}{band && <span className="ml-1 text-ok">· shu F2 {fmt(band.hajm)}{band.uidlar.length > 1 ? ` (${band.uidlar.length} qism)` : ''}</span>}
@@ -753,8 +900,14 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${SON} ${qoldiq != null && qoldiq < -1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {tTugun && (tBog
-            ? <button type="button" className={tugma} disabled={p.disabled} onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={11} /> Uzish</button>
-            : <button type="button" className={tugma} disabled={p.disabled} onClick={() => tashla(tTugun.uid, s.id)}><Link2 size={11} /> Bog‘lash</button>)}
+            ? <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={11} /> Uzish</button>
+            : <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => tashla(tTugun.uid, s.id)}><Link2 size={11} /> Bog‘lash</button>)}
+          {qoshilgan && p.onQoshilganOzgardi && <>
+            <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => qoshilganTahrir(s.id)}
+              aria-label={`Tahrirlash: ${s.nom}`} title={t('Siz qo‘shgan qatorni tahrirlash (nom, hajm, resurslar, narx)')}><Pencil size={11} /></button>
+            <button type="button" className={`${tugma} text-danger`} disabled={(p.disabled || mutationBusy)} onClick={() => void qoshilganOchir(s.id)}
+              aria-label={`O‘chirish: ${s.nom}`} title={t('Siz qo‘shgan qatorni o‘chirish (arxivda qoladi; smeta qatori o‘zgarmaydi)')}><Trash2 size={11} /></button>
+          </>}
         </span>
       </div>
     );
@@ -889,7 +1042,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <div key={rzId} className="rounded border border-border/60">
                 <div className="flex items-center gap-2 border-b border-border/60 bg-surface-2/50 px-2 py-1 text-[11.5px]">
                   <span className="min-w-0 flex-1 truncate">Smetaning <b>«{rzS?.nom}»</b> razdelida ({ishlar.length} ta qator) — qaysi ish o‘rniga bajarilgan?</span>
-                  <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" disabled={p.disabled || !p.raw.get(rzId)}
+                  <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" disabled={(p.disabled || mutationBusy) || !p.raw.get(rzId)}
                     onClick={() => ochModal(tTugun, { kind: 'additional', parent: p.raw.get(rzId)! })}>＋ Qo‘shimcha ish</button>
                 </div>
                 <div className="max-h-56 overflow-auto">
@@ -897,7 +1050,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                     <div key={x.id} className="flex items-center gap-2 border-b border-border/30 px-2 py-1 text-[11.5px] last:border-0">
                       <span className="min-w-0 flex-1 truncate" title={x.nom ?? ''}>{x.kod && x.kod.length > 2 && <span className="mr-1 font-mono text-text-mute">{x.kod.split(/\s+/)[0]}</span>}{x.nom}</span>
                       <SonUstunlari norma={x.norma} miqdor={x.hajm} birlik={x.birlik} narx={x.narx} oxirgi="" />
-                      <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" disabled={p.disabled} onClick={() => zamena(tTugun, x)} title="F2 ishi smetadagi shu ish o‘rniga bajarilgan">⇄ Zamena</button>
+                      <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" disabled={(p.disabled || mutationBusy)} onClick={() => zamena(tTugun, x)} title="F2 ishi smetadagi shu ish o‘rniga bajarilgan">⇄ Zamena</button>
                     </div>
                   ))}
                 </div>
@@ -1039,6 +1192,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 className="input h-7 w-full pl-5 pr-1.5 text-[12px]" />
             </div>
           </header>
+          <QatorRangIzohi />
           <TreeControls depths={qidiruvNatija ? [] : smetaExpandableDepths} onOpenAll={smetaBarchasiniOch} onCloseAll={smetaBarchasiniYop} onToggleDepth={smetaSath} />
           <PanelFiltr label="Smeta filtri" value={sFiltr} onChange={setSFiltr} options={[['hammasi', 'Hammasi'], ['boglangan', 'Shu F2 da bog‘langan'], ['boglanmagan', 'Bog‘lanmagan']]}
             izoh={`${smetaVisibleRows.length.toLocaleString('ru-RU')} qator ko‘rinmoqda`} />
@@ -1074,7 +1228,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <p><span className="text-text-mute">F2:</span> {tanlov.f.kod} {tanlov.f.nom} <span className="text-text-mute">({tanlov.f.birlik ?? '—'}, {fmt(tanlov.f.hajm)})</span></p>
               <p><span className="text-text-mute">Smeta:</span> {tanlov.s.kod} {tanlov.s.nom} <span className="text-text-mute">({tanlov.s.birlik ?? '—'}, {fmt(tanlov.s.hajm)})</span></p>
             </div>
-            <div className="grid gap-2">
+            {tanlov.tur === 'ish_resurs' ? <div className="grid gap-2">
+              <button type="button" className="tugma tugma-asosiy justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); void resursOrnigaIsh(f, s); }}>
+                <span>⇄</span> <span><b>Shu resurs o‘rniga ish</b> — masalan ГПС ni buyurtmachi bergan: material olinmaydi, uning o‘rniga qazib olish / tashish ishi yoziladi. Resursning o‘zi o‘zgarmaydi.</span>
+              </button>
+              <button type="button" className="tugma" onClick={() => setTanlov(null)}>Bekor qilish</button>
+            </div> : <div className="grid gap-2">
               <button type="button" className="tugma justify-start text-left" onClick={() => {
                 const { f, s } = tanlov; setTanlov(null);
                 if (f.tur === 'bl') ishBogla(f, s.id); else { p.onIj(bogla(ij, f.uid, s.id)); xab('Bog‘landi.'); }
@@ -1093,7 +1252,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 </button>
               )}
               <button type="button" className="tugma" onClick={() => setTanlov(null)}>Bekor qilish</button>
-            </div>
+            </div>}
           </div>
         </div>
       )}
@@ -1112,6 +1271,15 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           resurslar={modal.f.tur === 'bl' ? modal.f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })) : undefined}
           onCreated={(id, resIdlar) => { const f = modal.f; setModal(null); void p.onYaratildi(f, id, resIdlar); }}
         />
+      )}
+
+      {abc && (
+        <IshAbcModal kompaniyaId={p.companyId} obyektId={p.objectId} sana={new Date().toISOString().slice(0, 10)} bolimlar={[]}
+          rejim={abc.rejim} tahrir={abc.tahrir} saqlash={abc.saqlash} onYop={() => setAbc(null)}
+          onSaqlandi={(matn, yangiId) => {
+            const eski = abc.eskiIdlar; setAbc(null); xab(`${matn} F2 bog‘lanishi yangi qatorga o‘tkazildi.`);
+            void p.onQoshilganOzgardi?.(eski, yangiId ?? null);
+          }} />
       )}
     </div>
   );

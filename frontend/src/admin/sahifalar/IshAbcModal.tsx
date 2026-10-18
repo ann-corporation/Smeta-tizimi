@@ -1,7 +1,8 @@
+import { t } from '../../i18n/til';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { BookOpen, Plus, Repeat2, Trash2, X } from 'lucide-react';
-import { yangiOperationId } from '../../api/supabase';
-import { abcXato, ishAbcSaqla, ishAbcTahrir, ishTuriQidir, narxTakliflari, resursQidir, type IshTuriVariant, type Kat, type NarxManba, type ResursVariant } from '../../api/t2-ish-abc';
+import { yangiOperationId, type AktNatija } from '../../api/supabase';
+import { abcXato, ishAbcSaqla, ishAbcTahrir, ishTuriQidir, narxTakliflari, resursQidir, type AbcSaqlaInput, type IshTuriVariant, type Kat, type NarxManba, type ResursVariant } from '../../api/t2-ish-abc';
 import { KATLAR, KAT_NOMI, MANBA_NOMI, abcHisobla, abcTekshir, engYaxshiNarx, katAniqla, son, type AbcResurs } from '../../lib/ish-abc';
 
 export type AbcRejim =
@@ -42,7 +43,7 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
     <input value={qiymat} onChange={(e) => { onChange(e.target.value); setOchiq(true); }} onFocus={() => setOchiq(true)} onBlur={() => setTimeout(() => setOchiq(false), 150)} onKeyDown={klav}
       placeholder={placeholder} aria-label={ariaLabel} aria-autocomplete="list" className={className} />
     {ochiq && (yuklanmoqda || variantlar.length > 0) && <div role="listbox" className="absolute left-0 top-full z-50 mt-1 max-h-80 w-[min(720px,80vw)] overflow-auto rounded-lg border border-border bg-surface shadow-2xl">
-      {yuklanmoqda && !variantlar.length && <div className="px-3 py-2 text-[12px] text-text-mute">Kutubxonadan qidirilmoqda…</div>}
+      {yuklanmoqda && !variantlar.length && <div className="px-3 py-2 text-[12px] text-text-mute">{t('Kutubxonadan qidirilmoqda…')}</div>}
       {variantlar.map((v, i) => <button key={i} type="button" role="option" aria-selected={i === faol} onMouseDown={(e) => { e.preventDefault(); tanla(v); setOchiq(false); }} onMouseEnter={() => setFaol(i)}
         className={`block w-full border-b border-border/50 px-3 py-2 text-left text-[12px] ${i === faol ? 'bg-accent/10' : 'hover:bg-surface-2'}`}>{render(v)}</button>)}
     </div>}
@@ -56,13 +57,16 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
  */
 export type AbcTahrir = { qatorId: number; ish?: { kod: string; nom: string; birlik: string; hajm: string }; resurslar: AbcResurs[]; fakt?: string };
 
-export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, onYop, onSaqlandi }: {
+export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, onYop, onSaqlandi, saqlash }: {
   kompaniyaId: number; obyektId: number; sana: string;
   bolimlar: Array<{ id: number; nom: string; versiya: number }>;
   rejim: AbcRejim;
   /** Berilsa — mavjud qo'shilgan ish/zamenani tahrirlash (shu joyda almashtirish). */
   tahrir?: AbcTahrir | null;
-  onYop: () => void; onSaqlandi: (xabar: string) => void;
+  /** `yangiQatorId` — saqlangan (tahrirda — qayta yaratilgan) qator id; F2 import bog'lanishni unga o'tkazadi. */
+  onYop: () => void; onSaqlandi: (xabar: string, yangiQatorId?: number | null) => void;
+  /** Berilsa — standart saqlash o'rniga (masalan resurs o'rnidagi ish zamenasini tahrirlash `resursIshZamena` bilan). */
+  saqlash?: (d: { ish: AbcSaqlaInput['ish']; resurslar: AbcSaqlaInput['resurslar']; sabab: string; operationId: string }) => Promise<AktNatija & { code?: string; qator_id?: number }>;
 }) {
   const resursRejim = rejim.tur === 'resurs_zamena';
   const [bolimId, setBolimId] = useState(rejim.tur === 'additional' && rejim.bolimId ? String(rejim.bolimId) : '');
@@ -119,7 +123,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
       const bolim = bolimlar.find((b) => String(b.id) === bolimId);
       const ishP = resursRejim ? null : { kod: ish.kod.trim() || null, nom: ish.nom.trim(), birlik: ish.birlik.trim(), hajm: son(ish.hajm)! };
       const resP = resurslar.map((r) => { const n = son(r.norma); return { kat: r.kat, kod: r.kod.trim() || null, nom: r.nom.trim(), birlik: r.birlik.trim(), norma: n != null && n > 0 ? n : null, hajm: n != null && n > 0 ? null : son(r.hajm ?? ''), narx: son(r.narx), narx_manba: r.manba }; });
-      const res = tahrir
+      const res = saqlash
+        ? await saqlash({ ish: ishP, resurslar: resP, sabab: sabab.trim(), operationId: operationId.current })
+        : tahrir
         ? await ishAbcTahrir({ kompaniyaId, obyektId, qatorId: tahrir.qatorId, sana, sabab: sabab.trim(), operationId: operationId.current, ish: ishP, resurslar: resP, faktHajm: resursRejim ? null : son(fakt) })
         : await ishAbcSaqla({
         kompaniyaId, obyektId, command: rejim.tur, sana, sabab: sabab.trim(), operationId: operationId.current,
@@ -130,7 +136,8 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
       });
       if (!res.ok) { setXato(abcXato(res)); return; }
       onSaqlandi(tahrir ? 'O‘zgartirishlar saqlandi.' : rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».`
-        : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.`);
+        : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.`,
+        Number.isSafeInteger(Number((res as { qator_id?: unknown }).qator_id)) ? Number((res as { qator_id?: unknown }).qator_id) : null);
     } catch { setXato('Javob olinmadi. Qayta bosing — takroriy saqlash xavfsiz.'); }
     finally { setBand(false); }
   };
