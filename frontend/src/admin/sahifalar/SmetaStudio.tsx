@@ -25,6 +25,7 @@ import { KoeffitsientlarPaneli, NarxlashBosqichi, ResBosqichi } from './StudioBo
 import { MateriallarPaneli } from './StudioMateriallar';
 import { SmetaAiChat } from './SmetaAiChat';
 import { ishIndeksi } from '../../lib/smeta-ai/worker';
+import { useStudioKontekst } from '../../lib/jarvis/useStudioKontekst';
 
 const CHAP_TAB_KALIT = 'smeta-studio:chap-tab';
 const BOSQICH_KALIT = 'smeta-studio:bosqich';
@@ -70,6 +71,7 @@ export default function SmetaStudio() {
   const [hudud, setHududState] = useState<string>(() => lsGet(HUDUD_KALIT) ?? '');
   const setHudud = (v: string) => { setHududState(v); lsSet(HUDUD_KALIT, v); };
   const unitText = useMemo(() => unitTextOf(katalog), [katalog]);
+  useStudioKontekst(doc, hisob, unitText, joriyId ?? null);
   // Owner workflow (2026-10-13): build the LRV first, then go to pricing (rates + sourced prices), then the RES.
   const [bosqich, setBosqichState] = useState<Bosqich>(() => { const v = lsGet(BOSQICH_KALIT); return v === 'narx' || v === 'res' ? v : 'lrv'; });
   const setBosqich = (b: Bosqich) => { setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
@@ -164,6 +166,14 @@ export default function SmetaStudio() {
       <button className="px-2 py-1 border border-border rounded disabled:opacity-40" disabled={!hist.past.length} onClick={() => setHist(undo)} title={"Ctrl+Z"}>{t('Bekor qilish')}</button>
       <button className="px-2 py-1 border border-border rounded disabled:opacity-40" disabled={!hist.future.length} onClick={() => setHist(redo)} title={"Ctrl+Y"}>{t('Qaytarish')}</button>
       <button className="px-2 py-1 border border-border rounded" onClick={yangiQoralama}>{t('Yangi qoralama')}</button>
+      <button type="button" className="px-2 py-1 border border-border rounded disabled:opacity-40"
+        disabled={!joriyId || !yuklandi || (!!doc.context.companyId && doc.context.companyId !== joriyId)}
+        title={doc.context.companyId && doc.context.companyId !== joriyId ? t('Bu qoralama boshqa kompaniyaga bog‘langan. Avval o‘sha kompaniyani tanlang.') : undefined}
+        onClick={() => {
+          if (!joriyId || (doc.context.companyId && doc.context.companyId !== joriyId)) return;
+          if (doc.context.companyId == null) run({ type: 'SET_CONTEXT', context: { companyId: joriyId } });
+          window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} }));
+        }}>{t('Qoralamani Jarvis bilan muhokama qilish')}</button>
       <button className="px-3 py-1 rounded bg-accent text-white disabled:opacity-40" disabled={saqlash.holat === 'saqlanmoqda' || !doc.rootOrder.length} onClick={() => void serverga()}>{t('Serverga saqlash')}</button>
     </header>
     {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && saqlash.edits !== doc.edits ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}

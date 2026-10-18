@@ -1,4 +1,8 @@
 {
+  "Bu qoralama boshqa kompaniyaga bog‘langan. Avval o‘sha kompaniyani tanlang.": "Этот черновик привязан к другой компании. Сначала выберите её.",
+  "So‘rov to‘xtatildi — yangi AI chaqiruvi yuborilmadi.": "Запрос остановлен — новый вызов ИИ не отправлен.",
+  "Jarvis joriy qoralamani o‘qiydi; u hali tasdiqlangan hujjat emas.": "Jarvis читает текущий черновик; это ещё не утверждённый документ.",
+  "Qoralamani Jarvis bilan muhokama qilish": "Обсудить черновик с Jarvis",
   "Bu hisobning boshqaruv vakolati himoyalangan. Superadmin — platforma bo‘yicha, rahbar — kompaniya bo‘yicha to‘liq vakolatga ega.": "Полномочия этой учётной записи защищены. Суперадминистратор управляет платформой, руководитель — своей компанией.",
   "Yangi ruxsat modeli yuklanmadi. Sahifani yangilang.": "Новая модель разрешений не загружена. Обновите страницу.",
   "Boshqa boshqaruvchi ruxsatlarni yangilagan. Saqlanmagan belgilaringiz saqlanib turibdi; «Bekor qilish» orqali joriy holatni yuklang.": "Другой администратор изменил разрешения. Ваши несохранённые изменения сохранены на экране; нажмите «Отмена», чтобы загрузить актуальное состояние.",

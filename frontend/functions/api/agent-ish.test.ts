@@ -274,6 +274,31 @@ describe('agent-ish shlyuzi', () => {
       expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai'))).toBe(false);
     });
 
+    const studio={schema:1,companyId:5,draftId:'draft-a',title:'Ishchi smeta',summary:'DRAFT_ONLY_4_M3'};
+    const studioPost=(value:unknown)=>({amal:'kasb_savol',kompaniya_id:5,savol:'Shu qoralamada nima bor?',sahifa:'/admin/smeta-studio',studio:value});
+    it('current draft goes to one authorized model call as untrusted data; cannot create actions',async()=>{
+      const f=mock(['obyektlar','smeta_pul'],JSON.stringify({javob:'Qoralama manbasi',harakatlar:[{amal:'eslatma',parametrlar:{matn:'x'},tushuntirish:'x',aniq:true}]}));vi.stubGlobal('fetch',f);
+      const r=await post(studioPost(studio),env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));expect(r.status).toBe(200);
+      const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);
+      const payload=String(calls[0][1]?.body);expect(payload).toContain('DRAFT_ONLY_4_M3');expect(payload).toContain('kanonik DB dalili emas');expect(payload).not.toContain('draft-a');
+      expect(f.mock.calls.some(([u])=>String(u).includes('t2_agent_harakat_taklif_v1'))).toBe(false);
+    });
+    it.each([{...studio,companyId:39},{...studio,summary:'x'.repeat(6001)}])('wrong company/oversized draft is rejected before paid model call',async value=>{
+      const f=mock(['obyektlar','smeta_pul']);vi.stubGlobal('fetch',f);
+      const r=await post(studioPost(value),env({OPENROUTER_API_KEY:'fake-test-key'}));expect(r.status).toBe(400);
+      expect(f.mock.calls.some(([u])=>String(u).includes('openrouter.ai'))).toBe(false);
+    });
+    it('a role without monetary estimate access never sends the browser draft to the model',async()=>{
+      const f=mock(PROR);vi.stubGlobal('fetch',f);
+      await post(studioPost(studio),env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));
+      const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);
+      for(const [u,init]of calls) {void u;expect(String(init?.body)).not.toContain('DRAFT_ONLY_4_M3');}
+    });
+    it('DB category denial wins over a role allowing prices',async()=>{
+      const base=mock(['obyektlar','smeta_pul']);const f=vi.fn(async(u:string,init?:RequestInit)=>String(u).includes('t2_agent_fakt_v1')?rpcJavob({ok:true,ishlatilgan:['obyektlar'],taqiqlangan:['smeta_pul'],fakt:{}}):base(u,init));vi.stubGlobal('fetch',f);
+      await post(studioPost(studio),env({OPENROUTER_API_KEY:'fake-test-key',GROQ_API_KEY:undefined}));
+      const calls=f.mock.calls.filter(([u])=>String(u).includes('openrouter.ai'));expect(calls).toHaveLength(1);expect(String(calls[0][1]?.body)).not.toContain('DRAFT_ONLY_4_M3');
+    });
     const toliq = (modelMatni: string, o: { til?: string; ishonch?: string } = {}) => vi.fn(async (u: string, init?: RequestInit) => {
       const url = String(u);
       if (url.includes('t2_agent_kasb_v1')) return rpcJavob({ ...kasb('prorab', PROR), harakatlar: ['ombor_kirim', 'ombor_chiqim', 'eslatma'] });
