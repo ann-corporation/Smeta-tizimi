@@ -173,7 +173,9 @@ function rolAniqla(nom: string, blok: SarlavhaBloki | null, rows: readonly Katak
 
 // ─── Titul ───────────────────────────────────────────────────────────────────
 
-interface Titul { qurilish?: TitulQism; obyekt?: TitulQism; lokal?: TitulQism; yigma: boolean }
+interface Titul { qurilish?: TitulQism; obyekt?: TitulQism; lokal?: TitulQism; yigma: boolean;
+  /** Lokal nomi «на …» qatoridan olingan — varaq ichidagi xuddi shunday «на …» sarlavha yangi lokal smeta. */
+  lokalNa?: boolean }
 interface TitulQism { xom: string; qator: number; belgi: string | null }
 
 /** Katak matnining "PREFIKS:" dan keyingi qismi — asl satrdan kesib olinadi, o'zgartirilmaydi. */
@@ -214,6 +216,9 @@ function titulOqi(rows: readonly Katak[][], oxir: number): Titul {
       if (/^\(НАИМЕНОВАНИЕ РАБОТ/.test(k) && r > 0) {
         const yuqori = engUzunMatn(rows[r - 1] ?? []);
         if (yuqori) t.lokal = { xom: yuqori, qator: r - 1, belgi: t.lokal?.belgi ?? null };
+        // ABC4: ["на", "<nom>"] — the local estimate is named by an «на …» line.
+        const birinchi = (rows[r - 1] ?? []).map((x) => xom(x).trim()).find(Boolean) ?? '';
+        if (yuqori && /^на(\s|$)/i.test(birinchi)) t.lokalNa = true;
       }
       if (/^(СВОДНАЯ|ОБЪЕКТНАЯ) ЛОКАЛЬНАЯ/.test(k)) {
         t.yigma = true;
@@ -225,7 +230,9 @@ function titulOqi(rows: readonly Katak[][], oxir: number): Titul {
         const belgi = raqam ? `№ ${raqam[1]}` : null;
         const keyingi = engUzunMatn(rows[r + 1] ?? []);
         if (keyingi && !/^\(/.test(keyingi) && !t.lokal) {
-          t.lokal = { xom: prefiksdanKeyin(keyingi, /^НА\s+/i) ?? keyingi, qator: r + 1, belgi };
+          const na = prefiksdanKeyin(keyingi, /^НА\s+/i);
+          t.lokal = { xom: na ?? keyingi, qator: r + 1, belgi };
+          if (na) t.lokalNa = true;
         } else if (t.lokal) {
           t.lokal.belgi = belgi;
         } else if (belgi) {
@@ -323,6 +330,15 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     }
   }
 
+  /** Several local estimates on one sheet (Prime Towers: КЖ, АР, ВК, ОВ): when the title named the local estimate with an
+   *  «на …» line, the same «на …» header inside the sheet starts the next local estimate — never a section of the previous one. */
+  const lokalSarlavhasi = (row: readonly Katak[], toliq: number[]): string | null => {
+    if (rol !== 'lrv' || !titul.lokalNa || titul.yigma || toliq.length > 2 || toliq.some((i) => typeof row[i] === 'number')) return null;
+    const m = toliq.map((i) => xom(row[i]).trim());
+    // ABC4: "на" in its own cell, the name in the next one; or one cell "на …".
+    const nom = m.length === 2 ? (/^на$/i.test(m[0]) ? m[1] : null) : prefiksdanKeyin(m[0], /^НА\s+/i);
+    return nom && nom.length >= 6 && !/^(ЕДИНИЦ|ПРОЕКТ|ОДНУ|1\s)/i.test(nom) ? nom : null;
+  };
   const review = (kod: string, izoh: string, r?: number) => natija.review.push({ kod, izoh, ...(r != null ? { manzil: manzil(r) } : {}) });
   const jamiQiymatiniOl = (row: readonly Katak[], r: number): { qiymat: number | null; ustun: number } => {
     const belgilangan = son(ol(row, u.summa));
@@ -469,6 +485,13 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     if (toliq.length <= 2 && AKT_IMZO.test(bk) && !toliq.some((i) => typeof row[i] === 'number')) break;
     // Ma'lumot ichida takrorlangan "1 | 2 | 3 | 4 …" ustun raqamlari qatori — ma'lumot emas.
     if (tartibRaqamlariQatorimi(row)) continue;
+    // «на …» header of the next local estimate on the same sheet (Prime Towers: КЖ → АР → ВК → ОВ) — a sibling, not a section.
+    const yangiLokal = lokalSarlavhasi(row, toliq);
+    if (yangiLokal) {
+      iq.lokalQosh(yangiLokal, manzil(r, toliq[toliq.length - 1]), 'varaq ichida yangi lokal smeta: tituldagi kabi «на …» sarlavhasi');
+      joriyIsh = null;
+      continue;
+    }
 
     const nomK = kalit(ol(row, u.nom));
     if (JAMI.test(bk) || JAMI.test(nomK) || HISOB_QATORI.test(bk)) {
