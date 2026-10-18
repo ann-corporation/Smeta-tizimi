@@ -4,6 +4,7 @@ import { ArrowRight, Bot, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
 import { jarvisSalommi } from '../../lib/jarvis/intent';
+import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
 import { AiBaho } from './AiBaho';
 import { AiHarakatKarta } from './AiHarakatKarta';
@@ -75,8 +76,12 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, qadamlar: [] }]);
     setBand(true);
     const ctrl = new AbortController(); abort.current = ctrl;
+    // Price question → the platform price index (R2) is searched here and sent as context (owner 2026-10-15).
+    const katalog = narxSavolimi(s) ? await vaqtBilan(katalogKonteksti(s).catch(() => [] as KatalogKontekst[]), 4000, [] as KatalogKontekst[]) : [];
+    if (katalog.length && gen.current === boshlangich)
+      setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: '📚', matn: t('Platforma narx indeksidan {n} ta mos qator olindi', { n: katalog.length }) }] } : x)));
     const yakun = await kasbSavolOqim(kompaniyaId, s, {
-      sahifa, signal: ctrl.signal,
+      sahifa, signal: ctrl.signal, katalog,
       qadam: (q) => { if (gen.current === boshlangich) setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), q] } : x))); },
     });
     if (gen.current !== boshlangich) return;   // kompaniya almashdi — eski javob ko'rsatilmaydi

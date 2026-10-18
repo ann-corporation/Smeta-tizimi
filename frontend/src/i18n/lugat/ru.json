@@ -1832,5 +1832,6 @@
   "Internetdan narx qidirilmoqda: {a} / {b}": "Поиск цен в Интернете: {a} / {b}",
   "Internet qidiruvi javob bermadi — qolgan resurslar ro‘yxatda": "Поиск в Интернете не ответил — остальные ресурсы в списке",
   "internetdan havola bilan: {n}": "из Интернета со ссылками: {n}",
-  "{n} ta resursga internetda havola topildi, lekin sahifada narx tasdiqlanmadi — havolalar ro‘yxatda": "Для {n} ресурсов найдены ссылки, но цена на странице не подтвердилась — ссылки в списке"
+  "{n} ta resursga internetda havola topildi, lekin sahifada narx tasdiqlanmadi — havolalar ro‘yxatda": "Для {n} ресурсов найдены ссылки, но цена на странице не подтвердилась — ссылки в списке",
+  "Platforma narx indeksidan {n} ta mos qator olindi": "Из ценового индекса платформы взято подходящих строк: {n}"
 }

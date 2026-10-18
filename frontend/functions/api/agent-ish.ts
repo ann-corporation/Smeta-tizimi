@@ -20,7 +20,7 @@ import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, tizim
 import { BILIM_SXEMA, BILIM_VAZIFA, bilimKodi, bilimTakliflariniAjrat } from '../_shared/agent-bilim-yigish';
 import { BAHO_TURLARI, BOSH_USLUB, uslubBaho, type Baho, uslubBolimi, uslubXulosasi, uslubYangila, type UslubXususiyat } from '../_shared/agent-uslub';
 import { jarvisSalommi } from '../../src/lib/jarvis/intent';
-import { qidiruvSozlari } from '../_shared/agent-qidiruv';
+import { qidiruvSozlari } from '../../src/lib/jarvis/qidiruv-sozlari';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
 
 type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
@@ -279,6 +279,14 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
      resurs belgilari bo'yicha smeta qatorlari, lavozim ruxsati bazada tekshiriladi (narx faqat smeta_pul). Model chaqirilmaydi. */
   const sz = qidiruvSozlari(savol);
   let aniq: Record<string, unknown> | null = null;
+  /* Platforma narx indeksi (R2, ochiq ma'lumotnoma): brauzer topgan ≤ 6 qator; har maydon tekshiriladi va qisqartiriladi. */
+  const katalog = (Array.isArray(so.katalog) ? so.katalog.slice(0, 6) : []).flatMap((x: unknown) => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    const narx = Number(r.narx);
+    const nom = matn(r.nom, 200);
+    return nom && Number.isFinite(narx) && narx >= 0 ? [{ nom, birlik: matn(r.birlik, 30), narx, manba: matn(r.manba, 160), hudud: matn(r.hudud, 80) }] : [];
+  });
+  if (katalog.length) qd('📚', `Platforma narx indeksi: ${katalog.length} ta mos qator (katalog/birja/prays, NDS siz)`);
   if (sz.resurs.length) {
     const qr = await rpcData(env, 't2_agent_qidiruv_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_obyekt_sozlar: sz.obyekt, p_resurs_sozlar: sz.resurs,
       p_obyekt_id: !sz.obyekt.length && sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null }).catch(() => null);
@@ -309,8 +317,8 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
     '\nJAVOB FORMATI: faqat JSON: {"javob": "<markdown matn>", "harakatlar": [ ... ], "otish": "<ixtiyoriy: TIZIM BILIMIdagi mavjud sahifa yo‘li>"}. Harakat kerak bo‘lmasa "harakatlar": []. "otish" ni faqat foydalanuvchi sahifani so‘rasa yoki aniq shu sahifa kerak bo‘lsa yoz, yo‘li o‘ylab topma.';
   qd('✍️', 'Javob yozilmoqda…');
   const r = await aiHisobli(env, actor, kid, kasb.profil, 'kasb_savol', {
-    system: aniq ? system + '\nANIQ QIDIRUV: "aniq-qidiruv" blokida savoldagi obyekt/resurs bo‘yicha smeta pozitsiyalari bor (hajm, narx_min/narx_max — NDS siz, summa). Javobni AYNAN shu raqamlardan ber, obyekt va pozitsiya nomini ayt; narx 0 — haqiqiy 0; bir nechta obyekt bo‘lsa har birini ko‘rsat. Blok bo‘sh bo‘lsa — topilmaganini va qaysi so‘z bilan qidirilganini ayt, "ma’lumot yo‘q" deb umumiy javob berma. narx_ruxsat=false bo‘lsa narxni aytma.' : system,
-    text: tashqiMatnOra('tizim-faktlari', faktJson) + (aniq ? '\n\n' + tashqiMatnOra('aniq-qidiruv', JSON.stringify(aniq)) : '') + '\n\nFOYDALANUVCHI SAVOLI: ' + savol,
+    system: (aniq ? system +'\nANIQ QIDIRUV: "aniq-qidiruv" blokida savoldagi obyekt/resurs bo‘yicha smeta pozitsiyalari bor (hajm, narx_min/narx_max — NDS siz, summa). Javobni AYNAN shu raqamlardan ber, obyekt va pozitsiya nomini ayt; narx 0 — haqiqiy 0; bir nechta obyekt bo‘lsa har birini ko‘rsat. Blok bo‘sh bo‘lsa — topilmaganini va qaysi so‘z bilan qidirilganini ayt, "ma’lumot yo‘q" deb umumiy javob berma. narx_ruxsat=false bo‘lsa narxni aytma.' : system) + (katalog.length ? '\nNARX INDEKSI: "narx-indeksi" blokida platformaning rasmiy narx manbalari (katalog, birja, prays-list; NDS siz). Kompaniya smetasidagi narxdan alohida, manbasi bilan ayt.' : ''),
+    text: tashqiMatnOra('tizim-faktlari', faktJson) + (aniq ? '\n\n' + tashqiMatnOra('aniq-qidiruv', JSON.stringify(aniq)) : '') + (katalog.length ? '\n\n' + tashqiMatnOra('narx-indeksi', JSON.stringify(katalog)) : '') + '\n\nFOYDALANUVCHI SAVOLI: ' + savol,
     tier: profilDarajasi(kasb.profil), model, maxOutputTokens: 1200, temperature: 0.1, jsonSchema: KASB_SXEMA,
   });
   const ajr = javobniAjrat(r.text);

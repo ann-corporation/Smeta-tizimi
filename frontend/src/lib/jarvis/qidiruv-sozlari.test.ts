@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { qidiruvSozlari } from './agent-qidiruv';
+import { qidiruvSozlari } from './qidiruv-sozlari';
 
 describe('Jarvis aniq qidiruvi — savoldan obyekt va resurs so‘zlari (egasi 2026-10-15)', () => {
   it('«Amfiteatrda M200 beton smetada qanchadan berilgan?» → obyekt amfit, resurs БЕТОН + М200', () => {
