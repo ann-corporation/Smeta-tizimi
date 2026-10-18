@@ -317,9 +317,25 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
     setTakliflar(m => { const x = new Map(m); ok.forEach(n => x.delete(n.key)); return x; });
     return t('{n} ta AI narxi tasdiqlandi va qo‘yildi', { n: ok.length });
   }
+  /** One pricing run at a time: the button, the chat agent and the automatic start share it (no double AI spend). */
+  const joriyNarxlash = useRef<Promise<string> | null>(null);
+  function narxla(): Promise<string> {
+    if (!joriyNarxlash.current) joriyNarxlash.current = hammasiniNarxla().finally(() => { joriyNarxlash.current = null; });
+    return joriyNarxlash.current;
+  }
   // Studio agent (chat): pricing, region, a manual price with its document — the same functions as the buttons.
-  const agent = useRef({ hammasiniNarxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor });
-  agent.current = { hammasiniNarxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor };
+  const agent = useRef({ hammasiniNarxla: narxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor });
+  agent.current = { hammasiniNarxla: narxla, aiNarxlariniTasdiqla, setHudud, regions, guruhlar, qoy, hisob, hudud, manbalarTayyor };
+  // Owner 2026-10-17 ("maksimal sodda, maksimal AI boshqaruvi"): opening this step with unpriced resources starts pricing by
+  // itself, once per visit — every source in order, then the internet agent; one undo step.
+  const avtoBoshlandi = useRef(false);
+  useEffect(() => {
+    if (avtoBoshlandi.current || !manbalarTayyor || !narxsizSoni || kompaniyaId == null) return;
+    avtoBoshlandi.current = true;
+    jarayonYoz(t('Narxlash avtomatik boshlandi: {n} ta resurs narxsiz', { n: narxsizSoni }));
+    void narxla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manbalarTayyor, narxsizSoni, kompaniyaId]);
   useEffect(() => {
     const off = [
       agentRegister('narx_tasdiq', async () => agent.current.aiNarxlariniTasdiqla()),
@@ -404,7 +420,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Resurslar narxi')}</strong>
         <span className="text-xs text-text-mute">{t('{a} resurs, narxsiz: {b}', { a: guruhlar.length, b: narxsizSoni })}</span>
         <span className="flex-1" />
-        <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={ai.ish || !narxsizSoni || catHolat === 'yuklanmoqda'} onClick={() => void hammasiniNarxla()}>
+        <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={ai.ish || !narxsizSoni || catHolat === 'yuklanmoqda'} onClick={() => void narxla()}>
           {ai.ish ? t('Narxlar qidirilmoqda...') : t('Barcha narxlarni topish')}</button>
         {[...takliflar.values()].some(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya') && <button type="button" className="tugma h-8 px-3 text-[12px]" onClick={() => setXabar(aiNarxlariniTasdiqla())}>
           {t('AI tanlagan narxlarni tasdiqlash ({n})', { n: [...takliflar.values()].filter(x => x.nomzod && x.ishonch === 'orta' && x.nomzod.tur !== 'kompaniya').length })}</button>}
