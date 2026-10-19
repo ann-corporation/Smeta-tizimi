@@ -94,6 +94,17 @@ export class IerarxiyaQuruvchi {
     return this.joyla(xomMatn, tur, null, manzil, { tur: 'kalit', rang, segs: [] }, [dalil('titul', 'yuqori', izoh)]);
   }
 
+  /**
+   * Varaq ichida yangi lokal smeta boshlandi (bitta varaqda КЖ, АР, ВК, ОВ ketma-ket — Prime Towers 2026-10-17):
+   * oldingi lokal va uning bo'limlari yopiladi, yangisi u bilan bir darajada (obyekt bo'lsa — uning ostida).
+   */
+  lokalQosh(xomMatn: string, manzil: Manzil, izoh: string): Sarlavha {
+    while (this.stek.length && this.tepa().rang >= 2) this.stek.pop();
+    const s = this.joyla(xomMatn, 'lokal', null, manzil, { tur: 'kalit', rang: 2, segs: [] }, [dalil('D1', 'yuqori', izoh)]);
+    this.oxirgiQatorSarlavha = true;
+    return s;
+  }
+
   /** Ish yoki resurs qatori o'tdi — D4 (ketma-ketlik) uzildi. */
   ishKeldi(): void {
     this.oxirgiQatorSarlavha = false;

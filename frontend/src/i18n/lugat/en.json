@@ -1833,6 +1833,8 @@
   "Internet qidiruvi javob bermadi — qolgan resurslar ro‘yxatda": "The internet search did not respond — the remaining resources are listed",
   "internetdan havola bilan: {n}": "from the internet with links: {n}",
   "{n} ta resursga internetda havola topildi, lekin sahifada narx tasdiqlanmadi — havolalar ro‘yxatda": "Links were found for {n} resources but the price was not confirmed on the page — the links are listed",
+  "Platforma narx indeksidan {n} ta mos qator olindi": "{n} matching rows taken from the platform price index",
+  "Narxlash avtomatik boshlandi: {n} ta resurs narxsiz": "Pricing started automatically: {n} resources without a price",
   "Hammasini ochish": "Expand all",
   "Shifr / kod": "Code",
   "Qator ranglari izohi": "Row legend",
