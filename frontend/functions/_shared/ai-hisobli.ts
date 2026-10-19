@@ -5,8 +5,9 @@
  */
 import { supabaseBaseUrl } from './supabase-url';
 import { aiCall, type AiEnv, type AiRequest, type AiResponse } from './ai';
+import { studioModelRequest, type StudioRoutingEnv } from './smeta-ai-routing';
 
-export type HisobEnv = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string };
+export type HisobEnv = AiEnv & StudioRoutingEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string };
 export class AiByudjetXatosi extends Error { constructor(readonly kod: string, readonly xabar: string) { super(kod); } }
 const XABAR: Record<string, string> = {
   BYUDJET_YOQ: 'AI uchun oylik limit belgilanmagan — Boshqaruv → AI markazi → Xarajat bo‘limida limit qo‘ying',
@@ -33,7 +34,13 @@ export async function aiHisobli(env: HisobEnv, actor: number, kompaniyaId: numbe
   const m = req.model ? null : await rpc(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: profil });
   const model = req.model ?? (m && typeof m.data.model === 'string' && m.data.model ? m.data.model : undefined);
   try {
-    const r = await aiCall(env, { ...req, model });
+    const r = await aiCall(env, studioModelRequest(env, profil, amal, req, model));
+    // Provider-generation attribution without prompts, keys, files or user text.
+    // Reasoning is INCLUDED in output tokens; never add it a second time to billing.
+    console.info('AI_USAGE', JSON.stringify({ generation_id: r.generationId ?? null, actor_id: actor, company_id: kompaniyaId,
+      profil, amal, workload: req.workload ?? 'primary', model: r.model, provider: r.provider,
+      input_tokens: r.usage?.inputTokens ?? null, output_tokens: r.usage?.outputTokens ?? null,
+      reasoning_tokens: r.usage?.reasoningTokens ?? null, cost_usd: r.usage?.cost ?? null, finish_reason: r.finishReason ?? null }));
     await rpc(env, 't2_agent_sarf_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: profil, p_amal: amal, p_model: r.model,
       p_kirish: r.usage?.inputTokens ?? 0, p_chiqish: r.usage?.outputTokens ?? 0, p_narx_usd: (r.usage as { cost?: number } | undefined)?.cost ?? null, p_muvaffaqiyat: true });
     return r;

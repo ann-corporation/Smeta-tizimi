@@ -8,6 +8,19 @@ const javob = (extra: Record<string, unknown> = {}) => new Response(JSON.stringi
 afterEach(() => vi.unstubAllGlobals());
 
 describe('AI shlyuzi — OpenRouter', () => {
+  it('empty billed Studio length result is metered, not silently retried at another provider', async () => {
+    const f=vi.fn(async()=>javob({id:'gen-billed',choices:[{finish_reason:'length',message:{content:''}}],usage:{prompt_tokens:20,completion_tokens:100,cost:0.003}}));vi.stubGlobal('fetch',f);
+    const r=await aiCall({OPENROUTER_API_KEY:'fake',GROQ_API_KEY:'fake'},{text:'x',tier:'fast',workload:'primary'});
+    expect(f).toHaveBeenCalledTimes(1);expect(r).toMatchObject({text:'',finishReason:'length',generationId:'gen-billed',usage:{cost:0.003}});
+  });
+  it('thinking effort is separate from answer limit; generation and reasoning usage preserved', async () => {
+    const f=vi.fn(async()=>javob({id:'gen-test',choices:[{finish_reason:'length',message:{content:'{}'}}],usage:{prompt_tokens:20,completion_tokens:100,total_tokens:120,cost:0.003,completion_tokens_details:{reasoning_tokens:95}}}));
+    vi.stubGlobal('fetch',f);
+    const r=await aiCall({OPENROUTER_API_KEY:'fake-test'},{text:'x',tier:'fast',reasoning:{effort:'minimal'},maxOutputTokens:100,workload:'utility'});
+    const payload=JSON.parse(String((f.mock.calls[0] as unknown as [string,RequestInit])[1].body));
+    expect(payload).toMatchObject({reasoning:{effort:'minimal'},max_tokens:100});expect(payload.workload).toBeUndefined();
+    expect(r).toMatchObject({generationId:'gen-test',finishReason:'length',usage:{outputTokens:100,reasoningTokens:95,cost:0.003}});
+  });
   it('tier berilganda daraja modeli tanlanadi, kalit faqat Authorization headerda, usage o‘qiladi', async () => {
     const f = vi.fn(async () => javob());
     vi.stubGlobal('fetch', f);

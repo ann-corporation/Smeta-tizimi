@@ -2173,6 +2173,7 @@
       "branch": "codex/smeta-ai-cost-routing-20261019",
       "base_sha": "3de1db1",
       "continuation": { "id": "JARVIS-STUDIO-CONTEXT-20261018", "base_sha": "90a36f53fdf578ea2c65cff694fb9a14bcece530", "source": "TESTED", "release": "PREVIEW_OWNER_SMOKE_PENDING", "note": "Egasi Claude limitidan keyin bevosita continuation berdi. Studio read-only context; 2131 full + 106 final focused PASS. No new paid model call, migration, secret rotation or main push. F2 dirty worktrees retained. Dictionary lease: four additive keys only." },
+      "cost_routing": { "id": "SMETA-AI-COST-ROUTING-20261019", "source": "TESTED", "release": "PREVIEW_EVAL_PENDING", "note": "Direct owner: preserve expert planner, cheap bounded helper. Full2189PASS17skip, build/TS/lint/tekshir/governance/diff PASS. Conservative exact local references, helper search/equivalent same-price references, complex/uncertain primary, length metering. No paid model eval, DB/config mutation or main integration. API and reliability test lease transferred from same Codex reliability lane; no other Studio engine files touched." },
       "status": "in_progress",
       "owns": [
         "supabase/migrations/20261106260000_t2_agent_ish_muhiti_v1*.sql",

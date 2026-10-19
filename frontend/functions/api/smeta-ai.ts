@@ -28,6 +28,7 @@ import { rpcData } from '../_shared/agent-rpc';
 import { normaKalit, tajribaMatni, xotiraBloklari, type NormaTajriba, type XotiraDarajalari } from '../../src/lib/smeta-ai/tajriba';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
+import { exactPriceChoice, priceLane, utilityPriceAccepted, type RoutedPriceRequest } from '../_shared/smeta-ai-routing';
 import { KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
 import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
 import { INTERNET_NARX_SXEMA, INTERNET_NARX_TIZIM, internetJavobiniTekshir, internetNarxi, qqsSiz, sahifadaMahsulotBor, sahifadaNarxBor,
@@ -39,13 +40,12 @@ import { KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTeks
 
 /** Veb-qidiruvli model (OpenRouter `:online` — sahifalarni qidirib o'qiydi) — faqat internet narx agenti uchun. */
 export const INTERNET_MODEL = 'google/gemini-2.5-flash:online';
-/** Javob formatiga ishonchli amal qiladigan, tekshirilgan platforma modeli (tanlangan model formatni buzsa zaxira). */
-export const ZAXIRA_MODEL = 'google/gemini-2.5-flash-lite';
 
 /**
  * Har qanday model bilan ishonchli chaqiruv (egasi 2026-10-09: "nima yozsam ham tushunilmadi deyapdi — professional
  * ishlasin"): 1) javobdan JSON mustahkam ajratiladi; 2) o'qilmasa — o'sha model "faqat JSON" ko'rsatmasi bilan bir
- * marta qayta; 3) yana o'qilmasa — zaxira model. Har chaqiruv kompaniya byudjeti/hisobidan o'tadi.
+ * marta qayta; utility buzilsa primary ekspertga o'tadi. Uchinchi urinish ham ekspertda, arzon modelga tushirilmaydi.
+ * Har chaqiruv kompaniya byudjeti/hisobidan o'tadi. length bilan kesilgan JSON muvaffaqiyat emas.
  */
 export async function ishonchliChaqir(chaqir: (req: AiRequest) => Promise<AiResponse>, req: AiRequest, kalitlar: readonly string[]):
   Promise<{ r: AiResponse; obj: Record<string, unknown> | null; ogohlantirish?: string }> {
@@ -62,22 +62,24 @@ export async function ishonchliChaqir(chaqir: (req: AiRequest) => Promise<AiResp
     }
     return v;
   };
-  let obj = oquv(r.text);
+  let obj = r.finishReason === 'length' ? null : oquv(r.text);
   if (obj) return { r, obj };
   const tanlangan = r.model;
   const tuzatish: AiRequest = {
     ...req,
+    workload: 'primary',
+    ...(req.workload === 'utility' ? { model: undefined } : {}),
+    ...(r.finishReason === 'length' ? { reasoning: { effort: 'low' as const } } : {}),
     system: `${req.system ?? ''}\n\nMUHIM: javobdagi normativ da’volar yuqoridagi tekshirilgan manbaga zid bo‘lmasin. Javob FAQAT bitta JSON obyekt bo'lsin — izoh, markdown va \`\`\` belgilarisiz.`,
     text: `${req.text}\n\nOldingi javob strukturasi yetarli emas. FAQAT sxemaga mos JSON qaytaring. Hisoblangan/taklif qilingan har bir ish ishlar massivida bo'lsin; faqat javob matnida ro'yxat yozmang. Oldingi ishlar ro'yxatini to'liq yangilang. Smeta tayyor yoki yozildi demang — bu faqat taklif.`,
   };
   r = await chaqir(tuzatish);
-  obj = oquv(r.text);
+  obj = r.finishReason === 'length' ? null : oquv(r.text);
   if (obj) return { r, obj };
-  if (tanlangan !== ZAXIRA_MODEL) {
-    r = await chaqir({ ...tuzatish, model: ZAXIRA_MODEL });
-    obj = oquv(r.text);
-    if (obj) return { r, obj, ogohlantirish: `Tanlangan model (${tanlangan}) javob formatiga amal qilmadi — bu safar tekshirilgan model (${ZAXIRA_MODEL}) ishlatildi.` };
-  }
+  // Never downgrade an expert/planner to a cheap model merely because JSON was malformed.
+  r = await chaqir({ ...tuzatish, model: r.model, ...(r.finishReason === 'length' ? { reasoning: { effort: 'low' as const } } : {}) });
+  obj = r.finishReason === 'length' ? null : oquv(r.text);
+  if (obj) return { r, obj, ogohlantirish: `Javob qayta tekshirildi (${tanlangan} → ${r.model}).` };
   return { r, obj: null };
 }
 
@@ -110,18 +112,25 @@ export function sorovlarniTayyorla(raw: unknown): TanlovSorovi[] | null {
   return out;
 }
 /** Price requests: ≤40 resources × ≤15 candidates the browser found (catalogue rows / company estimate rows). */
-export function narxSorovlariniTayyorla(raw: unknown): NarxSorovi[] | null {
+export function narxSorovlariniTayyorla(raw: unknown): RoutedPriceRequest[] | null {
   if (!Array.isArray(raw) || !raw.length || raw.length > 40) return null;
-  const out: NarxSorovi[] = [];
+  const out: RoutedPriceRequest[] = [];
   for (const s of raw as Array<Record<string, unknown>>) {
-    const nomzodlar = (Array.isArray(s?.nomzodlar) ? s.nomzodlar : []).slice(0, 15).map(n => {
+    if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
+    const sourceRows = Array.isArray(s?.nomzodlar) ? s.nomzodlar : [];
+    const sourceComplete = sourceRows.length <= 15 && clip(s.nom, 400) === s.nom && clip(s.birlik ?? '', 30) === (s.birlik ?? '') &&
+      sourceRows.every(n => { const r = (n ?? {}) as Record<string, unknown>; return clip(r.nom, 300) === r.nom &&
+        clip(r.birlik ?? '', 30) === (r.birlik ?? '') && clip(r.manba, 160) === r.manba && clip(r.id, 60) === r.id; });
+    const nomzodlar = sourceRows.slice(0, 15).map(n => {
       const r = (n ?? {}) as Record<string, unknown>;
-      return { id: clip(r.id, 60), nom: clip(r.nom, 300), birlik: r.birlik == null ? null : clip(r.birlik, 30), narx: Number(r.narx), manba: clip(r.manba, 160), ...(r.birlikBoshqa === true ? { birlikBoshqa: true } : {}) };
+      return { id: clip(r.id, 60), nom: clip(r.nom, 300), birlik: r.birlik == null ? null : clip(r.birlik, 30), narx: typeof r.narx === 'number' ? r.narx : NaN, manba: clip(r.manba, 160), ...(r.birlikBoshqa === true ? { birlikBoshqa: true } : {}) };
     }).filter(n => /^[A-Za-z0-9_:.-]{1,60}$/.test(n.id) && n.nom && Number.isFinite(n.narx) && n.narx >= 0);
     const id = clip(s?.id, 60);
     // An empty candidate list is allowed: the model then only proposes catalogue phrasings for a new search.
-    if (!/^[A-Za-z0-9_:.-]{1,60}$/.test(id) || !clip(s.nom, 400).trim()) return null;
-    out.push({ id, nom: clip(s.nom, 400), birlik: s.birlik == null ? null : clip(s.birlik, 30), kat: s.kat == null ? null : clip(s.kat, 20), nomzodlar });
+    if (id !== s.id || !/^[A-Za-z0-9_:.-]{1,60}$/.test(id) || !clip(s.nom, 400).trim() || out.some(x => x.id === id) ||
+      new Set(nomzodlar.map(n => n.id)).size !== nomzodlar.length) return null;
+    out.push({ id, nom: clip(s.nom, 400), birlik: s.birlik == null ? null : clip(s.birlik, 30), kat: s.kat == null ? null : clip(s.kat, 20), nomzodlar,
+      ...(sourceComplete ? {} : { sourceComplete: false }) });
   }
   return out;
 }
@@ -222,10 +231,44 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (!sorovlar) return fail('SOROV_INVALID');
       const hudud = clip(so.hudud, 80);
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_narx_tanlash', req);
-      const { r, obj } = await ishonchliChaqir(chaqir,
-        { system: NARX_TANLOV_TIZIM, text: `${hudud ? `Obyekt hududi: ${hudud}\n` : ''}<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 5000, jsonSchema: NARX_TANLOV_SXEMA },
-        ['tanlovlar', 'choices', 'results']);
-      return Response.json({ ok: true, tanlovlar: narxTanlovlariniTekshir(obj, sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+      const by = new Map<string, ReturnType<typeof exactPriceChoice>>();
+      const primary: NarxSorovi[] = [], utility: NarxSorovi[] = [];
+      for (const s of sorovlar) {
+        const lane = ctx.env.SMETA_AI_UTILITY_ENABLED === '0' ? 'primary' : priceLane(s);
+        if (lane === 'local') by.set(s.id, exactPriceChoice(s));
+        else (lane === 'utility' ? utility : primary).push(s);
+      }
+      const models: string[] = [];
+      const localCount = by.size;
+      const primaryCount = primary.length;
+      const choose = async (rows: NarxSorovi[], workload: 'utility' | 'primary') => {
+        const req: AiRequest = { system: NARX_TANLOV_TIZIM, text: `${hudud ? `Obyekt hududi: ${hudud}\n` : ''}<MALUMOT>\n${JSON.stringify(rows)}\n</MALUMOT>`,
+          tier: 'fast', workload, temperature: 0, maxOutputTokens: 5000, jsonSchema: NARX_TANLOV_SXEMA };
+        // One helper generation only. Don't pay for repairing a helper before paying for the expert again.
+        if (workload === 'utility') {
+          try {
+            const r = await chaqir(req); models.push(r.model);
+            return narxTanlovlariniTekshir(r.finishReason === 'length' ? null : jsonAjrat(r.text, ['tanlovlar', 'choices', 'results']), rows);
+          } catch (e) {
+            if (e instanceof AiByudjetXatosi) throw e; // No paid escalation past a denied wallet.
+            return narxTanlovlariniTekshir(null, rows); // Service failure → same expert path as before.
+          }
+        }
+        const { r, obj } = await ishonchliChaqir(chaqir, req, ['tanlovlar', 'choices', 'results']);
+        models.push(r.model);
+        return narxTanlovlariniTekshir(obj, rows);
+      };
+      if (utility.length) {
+        const result = await choose(utility, 'utility');
+        utility.forEach((s, i) => {
+          if (utilityPriceAccepted(s, result[i])) by.set(s.id, result[i]);
+          else primary.push(s);
+        });
+      }
+      const escalated = primary.length - primaryCount;
+      if (primary.length) for (const t of await choose(primary, 'primary')) by.set(t.id, t);
+      return Response.json({ ok: true, tanlovlar: sorovlar.map(s => by.get(s.id)), model: models.at(-1) ?? 'local',
+        routing: { local: localCount, utility: utility.length, primary: primary.length, escalated, models } }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'koef_tanla') {
       const sharoit = clip(so.sharoit, 2000).trim();

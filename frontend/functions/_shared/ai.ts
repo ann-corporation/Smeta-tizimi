@@ -40,6 +40,10 @@ export type AiRequest = {
   tier?: AiTier;
   /** Admin katalogidan tanlangan aniq OpenRouter modeli (faqat openrouter provayderiga ta'sir qiladi; tier dan ustun). */
   model?: string;
+  /** Server-only task routing. Never copied from a browser model selector. */
+  workload?: 'utility' | 'primary';
+  /** Independent thinking budget; a short answer limit alone can starve the final JSON. */
+  reasoning?: { effort: 'none' | 'minimal' | 'low' | 'medium' | 'high' };
 };
 
 export type AiUsage = {
@@ -48,6 +52,8 @@ export type AiUsage = {
   totalTokens?: number;
   /** Provayder qaytargan haqiqiy narx (USD) — OpenRouter `usage.cost`. */
   cost?: number;
+  /** Included in outputTokens, not an additional chargeable token count. */
+  reasoningTokens?: number;
 };
 
 export type AiResponse = {
@@ -55,6 +61,8 @@ export type AiResponse = {
   provider: AiProvider;
   model: string;
   usage?: AiUsage;
+  finishReason?: string;
+  generationId?: string;
 };
 
 export type AiEnv = {
@@ -355,6 +363,7 @@ function providerPayload(provider: AiProvider, model: string, request: AiRequest
       : { type: 'json_object' } } : {}),
     /* OpenRouter: javobda haqiqiy narx (usage.cost) — xarajat hisobi uchun. */
     ...(provider === 'openrouter' ? { usage: { include: true } } : {}),
+    ...(provider === 'openrouter' && request.reasoning ? { reasoning: request.reasoning } : {}),
   };
 }
 
@@ -427,6 +436,7 @@ function usageFrom(usage: JsonObject | undefined, provider: AiProvider): AiUsage
     outputTokens: Number.isFinite(Number(output)) ? Number(output) : undefined,
     totalTokens: Number.isFinite(Number(total)) ? Number(total) : undefined,
     cost: provider === 'openrouter' && usage.cost != null && Number.isFinite(Number(usage.cost)) && Number(usage.cost) >= 0 ? Number(usage.cost) : undefined,
+    ...(Number.isFinite(usage.completion_tokens_details?.reasoning_tokens) ? { reasoningTokens: usage.completion_tokens_details.reasoning_tokens } : {}),
   };
 }
 
@@ -508,8 +518,13 @@ export async function aiCall(env: AiEnv, request: AiRequest): Promise<AiResponse
       const model = modelFor(env, provider, request.tier, request.model);
       const { body } = await providerFetch(provider, env, { ...request, text }, timeoutMs, maxRetries, maxRetryDelayMs);
       const parsed = textFromProvider(provider, body);
-      if (!parsed.text) throw new AiGatewayError('invalid_response', 'AI bo\'sh javob qaytardi');
-      return { text: parsed.text, provider, model, usage: parsed.usage };
+      // Studio validates finishReason itself. Return a billed-but-truncated result for metering instead
+      // of silently paying another provider and losing the first generation's usage.
+      const studioTruncated = request.workload && provider === 'openrouter' && body.choices?.[0]?.finish_reason === 'length';
+      if (!parsed.text && !studioTruncated) throw new AiGatewayError('invalid_response', 'AI bo\'sh javob qaytardi');
+      return { text: parsed.text, provider, model, usage: parsed.usage,
+        ...(provider === 'openrouter' && typeof body.choices?.[0]?.finish_reason === 'string' ? { finishReason: body.choices[0].finish_reason } : {}),
+        ...(provider === 'openrouter' && typeof body.id === 'string' ? { generationId: body.id } : {}) };
     } catch (error) {
       lastError = error;
       /* Timeout/format xatosi ham boshqa provider bilan sinab ko'riladi;

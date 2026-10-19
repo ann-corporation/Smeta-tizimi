@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ishonchliChaqir, ZAXIRA_MODEL } from './smeta-ai';
+import { ishonchliChaqir } from './smeta-ai';
 import type { AiRequest, AiResponse } from '../_shared/ai';
 
 const javob = (text: string, model: string) => ({ text, model, provider: 'openrouter' }) as unknown as AiResponse;
@@ -41,12 +41,27 @@ describe('Smetachi AI — har qanday model bilan ishonchli', () => {
     expect(sorovlar).toHaveLength(2);
     expect(sorovlar[1].system).toContain('FAQAT bitta JSON');
   });
-  it('tanlangan model ikki marta buzsa — zaxira model, ogohlantirish bilan', async () => {
+  it('tanlangan model ikki marta buzsa — ekspert saqlanadi, arzon modelga tushmaydi', async () => {
     const modellar: Array<string | undefined> = [];
-    const chaqir = async (q: AiRequest) => { modellar.push(q.model); return q.model === ZAXIRA_MODEL ? javob('{"javob":"ok"}', ZAXIRA_MODEL) : javob('...', 'google/gemini-3.5-flash'); };
+    const chaqir = async (q: AiRequest) => { modellar.push(q.model); return javob(modellar.length === 3 ? '{"javob":"ok"}' : '...', 'google/gemini-3.5-flash'); };
     const r = await ishonchliChaqir(chaqir, { text: 'x' } as AiRequest, ['javob']);
-    expect(modellar).toEqual([undefined, undefined, ZAXIRA_MODEL]);
+    expect(modellar).toEqual([undefined, undefined, 'google/gemini-3.5-flash']);
     expect(r.obj).toEqual({ javob: 'ok' });
     expect(r.ogohlantirish).toContain('google/gemini-3.5-flash');
+  });
+  it('length bilan tugagan valid JSON qabul qilinmaydi; primary va low reasoning bilan tuzatiladi', async () => {
+    const qs: AiRequest[] = [];
+    const r = await ishonchliChaqir(async q => {
+      qs.push(q); return { ...javob('{"javob":"ok"}', qs.length === 1 ? 'cheap' : 'expert'), finishReason: qs.length === 1 ? 'length' : 'stop' };
+    }, { text: 'x', workload: 'utility' }, ['javob']);
+    expect(qs).toHaveLength(2);
+    expect(qs[1]).toMatchObject({ workload: 'primary', reasoning: { effort: 'low' } });
+    expect(qs[1].model).toBeUndefined();
+    expect(r.r.model).toBe('expert');
+  });
+  it('uch urinish ham length bo‘lsa muvaffaqiyat uydirilmaydi', async () => {
+    let count=0;
+    const r=await ishonchliChaqir(async()=>{count++;return {...javob('{"javob":"ok"}','expert'),finishReason:'length'};},{text:'x'},['javob']);
+    expect(count).toBe(3); expect(r.obj).toBeNull();
   });
 });
