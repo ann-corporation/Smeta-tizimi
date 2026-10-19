@@ -1,0 +1,25 @@
+{
+  "task": "T2-CONTRACT-SCOPE-20261019",
+  "agent": "codex",
+  "machine": "noutbuk-contract-scope",
+  "status": "implemented_partial",
+  "branch": "codex/contract-scope-v1",
+  "base_sha": "139d4ffdd11a9fe43646213d3fa07543a726362e",
+  "tests": {
+    "full_pass": 2150,
+    "full_skip": 17,
+    "after_pagination_targeted_pass": 31,
+    "sql_acceptance": "CONTRACT_SCOPE_ACCEPTANCE_PASS, final RAISE rollback",
+    "sql_roundtrip": "CONTRACT_SCOPE_ROUNDTRIP_PASS, final RAISE rollback"
+  },
+  "production_migration_applied": false,
+  "deployed": false,
+  "remaining": [
+    "Create/import canonical non-ShNQ contractual items without fake resources",
+    "Individual price/FX/VAT/markup snapshots through Fakt/F2/cumulative/F3 and Excel",
+    "Scope breakdown in manager/read models",
+    "Authenticated real mixed-scope multi-period E2E"
+  ],
+  "integration_note": "Classification only. Do not present as completed contractual closing. New independent scope category must not masquerade as МАТ/ОБ/М/К.",
+  "handoff": "ops/handoff/T2_CONTRACT_SCOPE_20261019.md"
+}

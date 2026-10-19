@@ -1,3 +1,4 @@
+import { ContractScopePanel } from '../../components/contract-scope/ContractScopePanel';
 import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySummary';
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
@@ -336,11 +337,12 @@ export function HolatNative() {
         {validId && !loading && !error && tree.length === 0 && <section className="karta p-5 text-[13px] text-text-dim">Bu obyektda kanonik smeta qatorlari yo‘q.</section>}
         {selected && <ObjectMoneySummary object={selected} />}
         {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="karta flex flex-wrap gap-2 p-2">
-          {(['smeta', 'resurs', 'narx', 'yuklash'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',yuklash:'Smeta yuklash'})[tab])}</button>)}
+          {(['smeta', 'resurs', 'narx', 'yuklash', 'shartnoma'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',yuklash:'Smeta yuklash',shartnoma:'Shartnoma doirasi'})[tab])}</button>)}
           <button className="tugma ml-auto" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
           <button className="tugma" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
         </nav>}
         {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
+        {activeTab === 'shartnoma' && selected && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 
 
