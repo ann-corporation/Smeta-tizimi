@@ -13,7 +13,22 @@ describe('Norm source catalog', () => {
   it('duplicate resource code does not choose first', () => { const c = make(); c.add('material', { Kod: 4, KodM: 'C1', NameP: blob('Другой цемент') }); expect(c.detail('1').recipes[0].resourceStatus).toBe('AMBIGUOUS'); });
   it('duplicate work code flagged', () => { const c = make(); c.add('basis', { Kod: 4, KodE: 'E1', NameP: blob('Другая работа') }); expect(c.detail('1').workCodeAmbiguous).toBe(true); });
   it('missing KodM uses exact unique KodR, not name', () => { const c=make(); c.add('material',{Kod:4,KodR:'004',NameP:blob('Ресурс')}); c.add('basisres',{Kod:5,KodE:'E1',KodR:'004',NormaR:2}); expect(c.detail('1').recipes[1].resourceStatus).toBe('EXACT'); expect(c.detail('1').recipes[1].matchBasis).toBe('KodR'); });
-  it('conflicting material and resource keys fail closed', () => { const c=make(); c.add('basisres',{Kod:5,KodE:'E1',KodM:'C1',KodR:'wrong',NormaR:2}); expect(c.detail('1').recipes[1].resourceStatus).toBe('MISSING'); });
+  it('conflicting material and resource keys fail closed when KodR names no resource', () => { const c=make(); c.add('basisres',{Kod:5,KodE:'E1',KodM:'C1',KodR:'wrong',NormaR:2}); expect(c.detail('1').recipes[1].resourceStatus).toBe('MISSING'); });
+  it('KodM/KodR conflict: a «по проекту» KodR resource is the norm resource (E8-2-1-1 mortar)', () => {
+    const c=make(); c.add('material',{Kod:6,KodR:'045033',NameP:blob('РАСТВОР ГОТОВЫЙ КЛАДОЧНЫЙ (СОСТАВ И МАРКА ПО ПРОЕКТУ)'),KodI:'003'});
+    c.add('basisres',{Kod:5,KodE:'E1',KodM:'C1',KodR:'045033',NormaR:0.24});
+    const r = c.detail('1').recipes[1];
+    expect(r).toMatchObject({ resourceStatus: 'EXACT', matchBasis: 'KodR(KodM zid)', candidateCount: 1 });
+    expect(r.candidates[0].id).toBe('6');
+  });
+  it('KodM/KodR conflict between two real products: both offered, never one chosen silently', () => {
+    const c=make(); c.add('material',{Kod:6,KodR:'001035',NameP:blob('ПЛАТФОРМЫ ШИРОКОЙ КОЛЕИ 63 Т')});
+    c.add('basisres',{Kod:5,KodE:'E1',KodM:'C1',KodR:'001035',NormaR:1});
+    const r = c.detail('1').recipes[1];
+    expect(r.resourceStatus).toBe('AMBIGUOUS');
+    expect(r.candidates.map(x => x.id)).toEqual(['6', '2']);
+    expect(r.priceCount).toBe(0);
+  });
   it('NULL remains unknown', () => { const c = make(); c.add('basisres', { Kod: 5, KodE: 'E1', KodM: null, NormaR: null }); expect(c.detail('1').recipes[1].norm).toBeNull(); expect(c.detail('1').recipes[1].resourceStatus).toBe('MISSING'); });
   it('source IDs never row numbers', () => { expect(make().detail('1').recipes[0].id).toBe('3'); });
   it('unknown work throws', () => { expect(() => make().detail('999')).toThrow('WORK_NOT_FOUND'); });

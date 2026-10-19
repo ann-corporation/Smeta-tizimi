@@ -83,12 +83,23 @@ export class NormCatalog {
         const byMaterial = recipe.resourceCode == null ? null : this.resources.get(recipe.resourceCode) ?? [];
         // KodR is an explicit source resource code, not fuzzy name/row identity.
         // Where both keys exist require their conjunction. Never ignore conflicting KodM.
-        const candidates = byMaterial == null ? (recipe.resourceIdCode == null ? [] : this.resourcesByIdCode.get(recipe.resourceIdCode) ?? [])
+        let candidates = byMaterial == null ? (recipe.resourceIdCode == null ? [] : this.resourcesByIdCode.get(recipe.resourceIdCode) ?? [])
           : recipe.resourceIdCode == null ? byMaterial : byMaterial.filter(r => r.resourceIdCode === recipe.resourceIdCode);
-        const resolvedCode = recipe.resourceCode ?? (candidates.length === 1 ? candidates[0].code : null);
+        // KodM and KodR disagree (e.g. E8-2-1-1: KodR 045033 «РАСТВОР … ПО ПРОЕКТУ», KodM С140-12121 = a sample М-50): the
+        // norm's own resource is KodR. A «по проекту» resource is taken (the project material is asked later); otherwise
+        // both resources are offered — choosing between two real products is the estimator's decision, never ours.
+        let conflict = false;
+        if (!candidates.length && byMaterial?.length && recipe.resourceIdCode != null) {
+          const byR = this.resourcesByIdCode.get(recipe.resourceIdCode) ?? [];
+          if (byR.length === 1) {
+            conflict = true;
+            candidates = /ПО ПРОЕКТУ/i.test(byR[0].name ?? '') ? byR : [...byR, ...byMaterial.filter(r => r.id !== byR[0].id)];
+          }
+        }
+        const resolvedCode = conflict ? (candidates.length === 1 ? candidates[0].code : null) : recipe.resourceCode ?? (candidates.length === 1 ? candidates[0].code : null);
         const prices = resolvedCode == null ? [] : this.prices.get(resolvedCode) ?? [];
         return { ...recipe, resourceStatus: candidates.length === 1 ? 'EXACT' : candidates.length ? 'AMBIGUOUS' : 'MISSING',
-          matchBasis: recipe.resourceCode == null ? 'KodR' : recipe.resourceIdCode == null ? 'KodM' : 'KodM+KodR',
+          matchBasis: conflict ? 'KodR(KodM zid)' : recipe.resourceCode == null ? 'KodR' : recipe.resourceIdCode == null ? 'KodM' : 'KodM+KodR',
           candidates: candidates.slice(0, 25), candidateCount: candidates.length,
           prices: prices.slice(0, 25), priceCount: prices.length };
       }) };
