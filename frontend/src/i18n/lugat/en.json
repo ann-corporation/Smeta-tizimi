@@ -1,4 +1,8 @@
 {
+  "Bu qoralama boshqa kompaniyaga bog‘langan. Avval o‘sha kompaniyani tanlang.": "This draft belongs to another company. Select that company first.",
+  "So‘rov to‘xtatildi — yangi AI chaqiruvi yuborilmadi.": "Request stopped — no new AI call was sent.",
+  "Jarvis joriy qoralamani o‘qiydi; u hali tasdiqlangan hujjat emas.": "Jarvis can read the current draft; it is not an approved document.",
+  "Qoralamani Jarvis bilan muhokama qilish": "Discuss this draft with Jarvis",
   "Bu hisobning boshqaruv vakolati himoyalangan. Superadmin — platforma bo‘yicha, rahbar — kompaniya bo‘yicha to‘liq vakolatga ega.": "This account’s management authority is protected. The superadmin manages the platform; the director manages their company.",
   "Yangi ruxsat modeli yuklanmadi. Sahifani yangilang.": "The new permission model could not be loaded. Refresh the page.",
   "Boshqa boshqaruvchi ruxsatlarni yangilagan. Saqlanmagan belgilaringiz saqlanib turibdi; «Bekor qilish» orqali joriy holatni yuklang.": "Another administrator changed the permissions. Your unsaved selections remain on screen; use Cancel to load the current state.",

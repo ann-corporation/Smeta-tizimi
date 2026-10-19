@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ArrowRight, Bot, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import { AiBaho } from './AiBaho';
 import { AiHarakatKarta } from './AiHarakatKarta';
 import { AiQadamlar } from './AiQadamlar';
 import { TOIFA_NOMI } from './ai-harakat';
+import { studioKontekstObuna, studioKontekstOl, studioKontekstScope } from '../../lib/jarvis/studio-kontekst';
 
 type Xabar = { id: string; rol: 'user' | 'ai'; matn: string; yakun?: KasbYakun; qadamlar?: Qadam[]; jonli?: boolean; xato?: boolean; sahifalar?: SahifaIshora[]; yordam?: boolean };
 /** Istalgan joydan chatni tayyor savol bilan ochish: AiHelper `ai:ochish` hodisasini (detail: { savol }) eshitadi. */
@@ -45,10 +46,15 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [band, setBand] = useState(false);
   const oxir = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
-  const gen = useRef(generatsiya);
-  gen.current = generatsiya;
+  const busy = useRef(false);
+  const studioScope = useSyncExternalStore(studioKontekstObuna, () => studioKontekstScope(kompaniyaId, sahifa), () => '');
+  const scope = `${generatsiya}|${kompaniyaId}|${sahifa}|${studioScope}`;
+  const gen = useRef(scope);
+  gen.current = scope;
 
-  useEffect(() => { setXabarlar([]); setMatn(''); setBand(false); abort.current?.abort(); }, [generatsiya, kompaniyaId]);
+  useEffect(() => { setXabarlar([]); setMatn(''); setBand(false); busy.current = false; abort.current?.abort();
+    return () => { abort.current?.abort(); };
+  }, [scope]);
   useEffect(() => { oxir.current?.scrollIntoView?.({ behavior: 'smooth' }); }, [xabarlar]);
 
   useEffect(() => { if (tayyorSavol?.matn) { void yubor(tayyorSavol.matn); onOqildi?.(); } /* faqat yangi hodisada */ // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,13 +64,14 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
 
   const yubor = async (savol: string) => {
     const s = savol.trim();
-    if (!s || band) return;
+    if (!s || busy.current) return;
     const boshlangich = gen.current;
     const id = Date.now().toString();
     setMatn('');
     if (!kompaniyaId) {   // kompaniya/lavozim yo'q: tokensiz «Tizim yordamchisi» (lug'at + sahifa katalogi), kompaniya ma'lumotisiz
       setXabarlar((p) => [...p, { id, rol: 'user', matn: s }]);
       const y = await tizimYordamSavol(s, sahifa);
+      if (gen.current !== boshlangich) return;
       setXabarlar((p) => [...p, { id: id + 'a', rol: 'ai', yordam: true, xato: !y.ok, matn: y.ok ? y.natija.javob : y.error, sahifalar: y.ok ? y.natija.sahifalar : [] }]);
       return;
     }
@@ -75,17 +82,27 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     }
     setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, qadamlar: [] }]);
     setBand(true);
+    busy.current = true;
     const ctrl = new AbortController(); abort.current = ctrl;
+    // The role label may still be loading; the server always decides whether the model may receive this draft.
+    const studio = (!kasb || kasb.kategoriyalar.includes('smeta_pul')) ? studioKontekstOl(kompaniyaId, sahifa) : null;
     // Price question → the platform price index (R2) is searched here and sent as context (owner 2026-10-15).
     const katalog = narxSavolimi(s) ? await vaqtBilan(katalogKonteksti(s).catch(() => [] as KatalogKontekst[]), 4000, [] as KatalogKontekst[]) : [];
+    if (ctrl.signal.aborted || gen.current !== boshlangich) {
+      if (gen.current === boshlangich) { busy.current = false; setBand(false);
+        setXabarlar(p => p.map(x => x.id === id + 'a' ? {...x,jonli:false,matn:t('So‘rov to‘xtatildi — yangi AI chaqiruvi yuborilmadi.')} : x));
+      }
+      return;
+    }
     if (katalog.length && gen.current === boshlangich)
       setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: '📚', matn: t('Platforma narx indeksidan {n} ta mos qator olindi', { n: katalog.length }) }] } : x)));
     const yakun = await kasbSavolOqim(kompaniyaId, s, {
-      sahifa, signal: ctrl.signal, katalog,
+      sahifa, signal: ctrl.signal, katalog, studio,
       qadam: (q) => { if (gen.current === boshlangich) setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), q] } : x))); },
     });
     if (gen.current !== boshlangich) return;   // kompaniya almashdi — eski javob ko'rsatilmaydi
     setBand(false);
+    busy.current = false;
     setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? {
       ...x, jonli: false, yakun, xato: !yakun.ok, qadamlar: yakun.qadamlar ?? x.qadamlar,
       matn: yakun.ok ? (yakun.javob ?? '') : t(XATO_MATNI[yakun.code ?? ''] ?? yakun.error ?? 'AI javob bera olmadi'),
@@ -96,6 +113,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   return (
     <>
       <div className="flex-1 space-y-4 overflow-y-auto p-4" aria-live="polite">
+        {studioScope && kasb?.kategoriyalar.includes('smeta_pul') && <p className="rounded-lg border border-border p-2 text-xs text-text-dim">{t('Jarvis joriy qoralamani o‘qiydi; u hali tasdiqlangan hujjat emas.')}</p>}
         {xabarlar.length === 0 && !kompaniyaId && (
           <div className="rounded-xl border border-border bg-surface-2 p-3 text-sm">
             <div className="flex items-center gap-2 font-semibold text-text"><Bot size={16} className="text-accent" /> {t('Tizim yordamchisi')}</div>
