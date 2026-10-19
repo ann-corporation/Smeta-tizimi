@@ -23,6 +23,7 @@ import { jarvisSalommi } from '../../src/lib/jarvis/intent';
 import { qidiruvSozlari } from '../../src/lib/jarvis/qidiruv-sozlari';
 import { studioKontekstTekshir } from '../../src/lib/jarvis/studio-kontekst';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
+import { openrouterBalans } from '../_shared/openrouter-balans';
 
 type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
 
@@ -94,7 +95,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const m = await rpcData(ctx.env, 't2_agent_markaz_v1', { p_actor_id: k.actor });
     if (!m.ok) return chiqar(m);
     /* Sozlama holati — faqat mavjudligi (true/false); kalit qiymatlari HECH QACHON qaytmaydi. */
-    return Response.json({ ...m.data, sozlama: { ai_yoqilgan: ctx.env.AGENT_ISH_YOQILGAN !== '0', openrouter: !!ctx.env.OPENROUTER_API_KEY, github: !!(ctx.env.GITHUB_AGENT_TOKEN && ctx.env.GITHUB_REPO) } }, JAVOB);
+    const openrouter_balans = await openrouterBalans(ctx.env.OPENROUTER_API_KEY);
+    return Response.json({ ...m.data, openrouter_balans, sozlama: { ai_yoqilgan: ctx.env.AGENT_ISH_YOQILGAN !== '0', openrouter: !!ctx.env.OPENROUTER_API_KEY?.trim(), github: !!(ctx.env.GITHUB_AGENT_TOKEN && ctx.env.GITHUB_REPO) } }, JAVOB);
   }
   if (bolim === 'kasb') {
     if (kid == null) return xato('kompaniya_id kerak');

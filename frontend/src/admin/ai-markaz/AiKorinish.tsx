@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Circle } from 'lucide-react';
 import type { Markaz } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { foiz, usd, ustunBalandligi } from './ai-markaz-yordam';
+import { orBand } from './or-band';
 
 type Holat = 'ok' | 'ogoh' | 'kerak';
 type Band = { holat: Holat; nom: string; izoh: string; amal?: string; bolim?: string };
@@ -10,7 +11,7 @@ function tayyorlik(m: Markaz): Band[] {
   const limitBor = m.limit_usd != null && m.limit_faol;
   return [
     { holat: limitBor ? 'ok' : 'kerak', nom: 'Oylik xarajat limiti', izoh: limitBor ? `${t('Limit')}: ${usd(m.limit_usd)} / ${t('oy')}` : 'Limit belgilanmagan — shuning uchun AI ISHLAMAYDI (xavfsiz standart).', amal: 'Limit belgilash', bolim: 'xarajat' },
-    { holat: m.sozlama.openrouter ? 'ok' : 'kerak', nom: 'OpenRouter ulanishi', izoh: m.sozlama.openrouter ? 'Kalit serverda sozlangan (qiymati hech qayerda ko‘rinmaydi).' : 'Cloudflare sozlamalarida OPENROUTER_API_KEY yo‘q.' },
+    orBand(m),
     { holat: m.sonlar.model_soni >= 2 ? 'ok' : 'ogoh', nom: 'Modellar galereyasi', izoh: m.sonlar.model_soni >= 2 ? `${m.sonlar.model_soni} ${t('ta model katalogda')}` : 'Katalogda faqat avto-tanlov bor. Modellarni narxi bilan qo‘shing.', amal: 'Modellarni sozlash', bolim: 'agentlar' },
     { holat: m.sozlama.ai_yoqilgan ? 'ok' : 'ogoh', nom: 'AI holati', izoh: m.sozlama.ai_yoqilgan ? 'Yoqilgan.' : 'Hozircha o‘chiq (AGENT_ISH_YOQILGAN). Yuqoridagilar tayyor bo‘lgach yoqing.' },
     { holat: m.sozlama.github ? 'ok' : 'ogoh', nom: 'Ijrochi (GitHub)', izoh: m.sozlama.github ? 'Ulangan: tasdiqlangan ishlar issue sifatida ijrochiga yuboriladi.' : 'Ulanmagan: tasdiqlangan ishlarni ijrochiga yuborib bo‘lmaydi.' },

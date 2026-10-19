@@ -77,6 +77,7 @@ export type Markaz = {
   kompaniyalar: Array<{ kompaniya_id: number | null; nom: string | null; narx_usd: number; mijoz_usd: number; token: number; chaqiruv: number; limit_usd: number | null; ustama_foiz: number }>;
   ustama_foiz: number; mijoz_oy_usd: number; foyda_oy_usd: number;
   sonlar: MarkazSonlar; sozlama: { ai_yoqilgan: boolean; openrouter: boolean; github: boolean };
+  openrouter_balans?: { holat: 'ok' | 'kalit_yoq' | 'rad_etildi' | 'xato'; qoldiq_usd: number | null; sarflangan_usd: number | null; kalit_qoldiq_usd: number | null };
 };
 /** Kompaniya faqat TOKEN sarfini ko'radi (tannarx va ustama yo'q). */
 export type SarfHisoboti = { oy_token: number; balans: number; agentlar: Array<{ profil: string; chaqiruv: number; token: number }>; kunlar: Array<{ kun: string; token: number; chaqiruv: number }> };

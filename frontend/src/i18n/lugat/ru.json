@@ -1857,5 +1857,10 @@
   "Oldingi summa": "Сумма до исправления",
   "Yangi summa": "Новая сумма",
   "Summa farqi": "Разница сумм",
-  "Narxlar to‘liq bo‘lmasa, summa farqi hisoblanmaydi.": "Если цены неполные, разница сумм не рассчитывается."
+  "Narxlar to‘liq bo‘lmasa, summa farqi hisoblanmaydi.": "Если цены неполные, разница сумм не рассчитывается.",
+  "OpenRouter kalitni rad etdi (bekor qilingan yoki noto‘g‘ri) — yangi kalitni Cloudflare’ga kiriting.": "OpenRouter отклонил ключ (отозван или неверный) — введите новый ключ в Cloudflare.",
+  "Kalit sozlangan, lekin balansni hozir o‘qib bo‘lmadi.": "Ключ настроен, но баланс сейчас прочитать не удалось.",
+  "jami sarflangan": "всего потрачено",
+  "Kredit tugagan — AI ishlamaydi. OpenRouter’da hisobni to‘ldiring.": "Кредит исчерпан — ИИ не работает. Пополните счёт в OpenRouter.",
+  "Kredit kam qoldi — to‘ldiring.": "Кредита осталось мало — пополните."
 }

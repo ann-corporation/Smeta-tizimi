@@ -1857,5 +1857,10 @@
   "Oldingi summa": "Previous amount",
   "Yangi summa": "New amount",
   "Summa farqi": "Amount difference",
-  "Narxlar to‘liq bo‘lmasa, summa farqi hisoblanmaydi.": "The amount difference is not calculated when prices are incomplete."
+  "Narxlar to‘liq bo‘lmasa, summa farqi hisoblanmaydi.": "The amount difference is not calculated when prices are incomplete.",
+  "OpenRouter kalitni rad etdi (bekor qilingan yoki noto‘g‘ri) — yangi kalitni Cloudflare’ga kiriting.": "OpenRouter rejected the key (revoked or invalid) — enter a new key in Cloudflare.",
+  "Kalit sozlangan, lekin balansni hozir o‘qib bo‘lmadi.": "The key is set, but the balance could not be read right now.",
+  "jami sarflangan": "total spent",
+  "Kredit tugagan — AI ishlamaydi. OpenRouter’da hisobni to‘ldiring.": "Credit exhausted — AI does not work. Top up the OpenRouter account.",
+  "Kredit kam qoldi — to‘ldiring.": "Credit is low — top up."
 }
