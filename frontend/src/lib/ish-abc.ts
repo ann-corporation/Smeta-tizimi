@@ -55,12 +55,12 @@ export function abcHisobla(ishHajm: string | number | null, resurslar: readonly 
   const qatorlar = resurslar.map((r) => {
     const n = son(r.norma); const p = son(r.narx);
     const hajm = n != null && n > 0 ? (h != null ? y6(n * h) : null) : son(r.hajm ?? '');
-    const summa = hajm != null && p != null && p > 0 ? pulYaxlit(hajm * p) : null;
+    const summa = hajm != null && p != null && p >= 0 ? pulYaxlit(hajm * p) : null;
     if (summa == null) narxsiz += 1; else { jamiKat[r.kat] += summa; jami += summa; }
     return { hajm, summa };
   });
   jami = pulYaxlit(jami);
-  return { qatorlar, jamiKat, jami, narxsiz, ishNarxi: h && h > 0 && jami > 0 ? pulYaxlit(jami / h) : null };
+  return { qatorlar, jamiKat, jami, narxsiz, ishNarxi: h != null && h > 0 && resurslar.length > 0 && narxsiz === 0 ? pulYaxlit(jami / h) : null };
 }
 
 export type AbcXato = { joy: string; matn: string };

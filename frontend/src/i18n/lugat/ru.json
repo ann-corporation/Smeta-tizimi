@@ -1844,5 +1844,12 @@
   "Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.": "Не удалось проверить существующие Ф2. Повторите проверку, чтобы не создать дубликат. Привязки сохранены.",
   "Qayta tekshirish": "Проверить снова",
   "Bu obyekt va davr uchun F2 avval kiritilgan. Qayta bog‘lash shart emas.": "Для этого объекта и периода Ф2 уже загружена. Повторная привязка не нужна.",
-  "Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.": "Откройте существующий акт. Исправления оформляются отдельно; действующий акт не изменён."
+  "Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.": "Откройте существующий акт. Исправления оформляются отдельно; действующий акт не изменён.",
+  "Qator saqlandi, lekin bog‘lanishlar yangilanmadi. Qayta yangilang — yangi qator yaratilmaydi.": "Строка сохранена, но привязки не обновлены. Повторите обновление — новая строка создана не будет.",
+  "Bog‘lanishlarni yangilash": "Обновить привязки",
+  "Tuzatish ta’siri": "Влияние исправления",
+  "Oldingi summa": "Сумма до исправления",
+  "Yangi summa": "Новая сумма",
+  "Summa farqi": "Разница сумм",
+  "Narxlar to‘liq bo‘lmasa, summa farqi hisoblanmaydi.": "Если цены неполные, разница сумм не рассчитывается."
 }

@@ -15,7 +15,7 @@ describe('ish ABC hisobi (ШНК)', () => {
     expect(h.jami).toBe(5142229.79);              // bazadagi sinov natijasi bilan aynan bir xil
     expect(h.jamiKat).toMatchObject({ ЧЕЛ: 2503285.79, МАТ: 2638944, МАШ: 0 });
     expect(h.narxsiz).toBe(1);
-    expect(h.ishNarxi).toBe(10284459.58);
+    expect(h.ishNarxi).toBeNull(); // One resource price is unknown: known partial sum is not the full unit price.
   });
 
   it('tekshiruv: ish nomi/birlik/hajm, resurs norma, sabab', () => {
@@ -46,4 +46,13 @@ describe('ish ABC hisobi (ШНК)', () => {
     expect(katAniqla(null, 'rs', 'МАШ.-Ч')).toBe('МАШ');
     expect(katAniqla(null, 'rs', 'м3')).toBe('МАТ');
   });
+  it('explicit zero price is known; missing or negative prices stay unknown', () => {
+    const known=abcHisobla('2',[r({norma:'1',narx:'0'})]);
+    expect(known.qatorlar[0].summa).toBe(0); expect(known.narxsiz).toBe(0); expect(known.ishNarxi).toBe(0);
+    for(const price of ['', '-1']) {
+      const unknown=abcHisobla('2',[r({norma:'1',narx:price})]);
+      expect(unknown.qatorlar[0].summa).toBeNull(); expect(unknown.narxsiz).toBe(1); expect(unknown.ishNarxi).toBeNull();
+    }
+  });
+
 });

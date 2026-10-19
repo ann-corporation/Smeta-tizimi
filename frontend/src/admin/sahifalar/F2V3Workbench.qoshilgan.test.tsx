@@ -94,4 +94,30 @@ describe('F2 import — siz qo‘shgan qatorlar boshqariladi, smeta qatorlari o�
     expect(await screen.findByText(/F2 aktida/)).toBeTruthy();
     expect(onQoshilganOzgardi).not.toHaveBeenCalled();
   });
+  it('rapid repeat cancellation cannot create concurrent writes', async () => {
+    vi.spyOn(window, 'prompt').mockReturnValue('xato');
+    let finish!: (v: {ok:boolean;ochirildi:number}) => void;
+    m.ochir.mockImplementation(()=>new Promise((resolve)=>{finish=resolve;}));
+    const {onQoshilganOzgardi}=chiz();
+    const button=screen.getByRole('button',{name:'O‘chirish: Qazib olish (karyer)'});
+    fireEvent.click(button); fireEvent.click(button);
+    expect(m.ochir).toHaveBeenCalledTimes(1);
+    finish({ok:true,ochirildi:1});
+    await waitFor(()=>expect(onQoshilganOzgardi).toHaveBeenCalledTimes(1));
+  });
+  it('network retry preserves the exact cancellation operation ID', async () => {
+    vi.spyOn(window, 'prompt').mockReturnValue('xato');
+    m.ochir.mockRejectedValueOnce(new Error('network')).mockResolvedValue({ok:true,ochirildi:1});
+    const {onQoshilganOzgardi}=chiz();
+    const name='O‘chirish: Qazib olish (karyer)';
+    fireEvent.click(screen.getByRole('button',{name}));
+    await screen.findByText('Javob olinmadi. Bog‘lanishlar saqlangan — qayta urinib ko‘ring.');
+    expect(onQoshilganOzgardi).not.toHaveBeenCalled();
+    const first=m.ochir.mock.calls[0][0].operationId;
+    expect(first).toBeTruthy();
+    fireEvent.click(screen.getByRole('button',{name}));
+    await waitFor(()=>expect(onQoshilganOzgardi).toHaveBeenCalledTimes(1));
+    expect(m.ochir.mock.calls[1][0].operationId).toBe(first);
+  });
+
 });

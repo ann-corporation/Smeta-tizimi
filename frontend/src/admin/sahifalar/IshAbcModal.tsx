@@ -55,7 +55,7 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
  * Ish turi nomini yozganda — kompaniyaning yuklangan smetalaridan variantlar (resurs tarkibi va
  * normalari bilan); resurs narxi — shu smeta (RES) → boshqa smetalar → katalog → qo'lda.
  */
-export type AbcTahrir = { qatorId: number; ish?: { kod: string; nom: string; birlik: string; hajm: string }; resurslar: AbcResurs[]; fakt?: string };
+export type AbcTahrir = { qatorId: number; kutilganVersiya?: number; oldAmount?: number | null; ish?: { kod: string; nom: string; birlik: string; hajm: string }; resurslar: AbcResurs[]; fakt?: string };
 
 export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, onYop, onSaqlandi, saqlash }: {
   kompaniyaId: number; obyektId: number; sana: string;
@@ -64,7 +64,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
   /** Berilsa — mavjud qo'shilgan ish/zamenani tahrirlash (shu joyda almashtirish). */
   tahrir?: AbcTahrir | null;
   /** `yangiQatorId` — saqlangan (tahrirda — qayta yaratilgan) qator id; F2 import bog'lanishni unga o'tkazadi. */
-  onYop: () => void; onSaqlandi: (xabar: string, yangiQatorId?: number | null) => void;
+  onYop: () => void; onSaqlandi: (xabar: string, yangiQatorId?: number | null) => void | Promise<void>;
   /** Berilsa — standart saqlash o'rniga (masalan resurs o'rnidagi ish zamenasini tahrirlash `resursIshZamena` bilan). */
   saqlash?: (d: { ish: AbcSaqlaInput['ish']; resurslar: AbcSaqlaInput['resurslar']; sabab: string; operationId: string }) => Promise<AktNatija & { code?: string; qator_id?: number }>;
 }) {
@@ -80,6 +80,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
   const [xato, setXato] = useState('');
   const [koldaXato, setKoldaXato] = useState(false);
   const operationId = useRef(yangiOperationId());
+  const submitLock = useRef(false);
+  const savedResult = useRef<{message:string;id:number|null}|null>(null);
+  const [written,setWritten]=useState(false);
 
   const ishHajm = rejim.tur === 'resurs_zamena' ? (rejim.ishHajm != null ? String(rejim.ishHajm) : '') : ish.hajm;
   const hisob = useMemo(() => abcHisobla(ishHajm, resurslar), [ishHajm, resurslar]);
@@ -96,7 +99,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
       const k = ind.indexOf(i); if (k < 0) return r;
       const variantlar = v[k] ?? [];
       const eng = engYaxshiNarx(variantlar);
-      return r.manba === 'qolda' && r.narx.trim() ? { ...r, variantlar } : eng ? { ...r, variantlar, narx: String(eng.narx), manba: eng.manba } : { ...r, variantlar };
+      return (r.manba === 'qolda' && r.narx.trim()) || son(r.narx) === 0 ? { ...r, variantlar } : eng ? { ...r, variantlar, narx: String(eng.narx), manba: eng.manba } : { ...r, variantlar };
     }));
   };
 
@@ -104,29 +107,30 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
     setIsh((o) => ({ ...o, kod: v.kod ?? '', nom: v.nom, birlik: v.birlik ?? o.birlik }));
     const rs: AbcResurs[] = v.sostav.map((c) => ({
       kat: katAniqla(c.kat, c.tur, c.birlik), kod: c.kod ?? '', nom: c.nom, birlik: c.birlik ?? '', norma: c.norma != null && c.norma > 0 ? String(c.norma) : '', hajm: '',
-      narx: c.narx ? String(c.narx) : '', manba: c.narx ? 'smeta' : 'qolda',
+      narx: c.narx != null ? String(c.narx) : '', manba: c.narx != null ? 'smeta' : 'qolda',
     }));
     setResurslar(rs);
     void narxlarniOl(rs);
   };
   const resursTanla = (i: number, v: ResursVariant) => {
-    const n = resurslar.map((r, j) => j === i ? { ...r, kat: v.kat ? katAniqla(v.kat) : r.kat, kod: v.kod ?? '', nom: v.nom, birlik: v.birlik ?? r.birlik, narx: v.narx ? String(v.narx) : r.narx, manba: v.narx ? v.narx_manba : r.manba } : r);
+    const n = resurslar.map((r, j) => j === i ? { ...r, kat: v.kat ? katAniqla(v.kat) : r.kat, kod: v.kod ?? '', nom: v.nom, birlik: v.birlik ?? r.birlik, narx: v.narx != null ? String(v.narx) : r.narx, manba: v.narx != null ? v.narx_manba : r.manba } : r);
     setResurslar(n);
     void narxlarniOl(n, i);
   };
   const yangila = (i: number, patch: Partial<AbcResurs>) => setResurslar((o) => o.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const saqla = async () => {
-    if (xatolar.length || band) { setKoldaXato(true); return; }
-    setBand(true); setXato('');
+    if (xatolar.length || band || submitLock.current) { setKoldaXato(true); return; }
+    submitLock.current = true; setBand(true); setXato('');
     try {
+      if (savedResult.current) { await onSaqlandi(savedResult.current.message,savedResult.current.id); return; }
       const bolim = bolimlar.find((b) => String(b.id) === bolimId);
       const ishP = resursRejim ? null : { kod: ish.kod.trim() || null, nom: ish.nom.trim(), birlik: ish.birlik.trim(), hajm: son(ish.hajm)! };
       const resP = resurslar.map((r) => { const n = son(r.norma); return { kat: r.kat, kod: r.kod.trim() || null, nom: r.nom.trim(), birlik: r.birlik.trim(), norma: n != null && n > 0 ? n : null, hajm: n != null && n > 0 ? null : son(r.hajm ?? ''), narx: son(r.narx), narx_manba: r.manba }; });
       const res = saqlash
         ? await saqlash({ ish: ishP, resurslar: resP, sabab: sabab.trim(), operationId: operationId.current })
         : tahrir
-        ? await ishAbcTahrir({ kompaniyaId, obyektId, qatorId: tahrir.qatorId, sana, sabab: sabab.trim(), operationId: operationId.current, ish: ishP, resurslar: resP, faktHajm: resursRejim ? null : son(fakt) })
+        ? await ishAbcTahrir({ kompaniyaId, obyektId, qatorId: tahrir.qatorId, kutilganVersiya: tahrir.kutilganVersiya, sana, sabab: sabab.trim(), operationId: operationId.current, ish: ishP, resurslar: resP, faktHajm: resursRejim ? null : son(fakt) })
         : await ishAbcSaqla({
         kompaniyaId, obyektId, command: rejim.tur, sana, sabab: sabab.trim(), operationId: operationId.current,
         otaQatorId: rejim.tur === 'additional' ? bolim?.id ?? null : rejim.tur === 'replacement' ? rejim.eski.otaId : null,
@@ -135,11 +139,13 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
         ish: ishP, resurslar: resP, faktHajm: resursRejim ? null : son(fakt),
       });
       if (!res.ok) { setXato(abcXato(res)); return; }
-      onSaqlandi(tahrir ? 'O‘zgartirishlar saqlandi.' : rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».`
-        : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.`,
-        Number.isSafeInteger(Number((res as { qator_id?: unknown }).qator_id)) ? Number((res as { qator_id?: unknown }).qator_id) : null);
-    } catch { setXato('Javob olinmadi. Qayta bosing — takroriy saqlash xavfsiz.'); }
-    finally { setBand(false); }
+      const message=tahrir ? 'O‘zgartirishlar saqlandi.' : rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».`
+        : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.`;
+      const id=Number.isSafeInteger(Number((res as { qator_id?: unknown }).qator_id)) ? Number((res as { qator_id?: unknown }).qator_id) : null;
+      savedResult.current={message,id}; setWritten(true);
+      await onSaqlandi(message,id);
+    } catch { setXato(savedResult.current ? t('Qator saqlandi, lekin bog‘lanishlar yangilanmadi. Qayta yangilang — yangi qator yaratilmaydi.') : 'Javob olinmadi. Qayta bosing — takroriy saqlash xavfsiz.'); }
+    finally { submitLock.current = false; setBand(false); }
   };
 
   const inp = 'w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text outline-none focus:border-accent';
@@ -155,9 +161,10 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
             <p className="mt-1 flex items-center gap-1 text-[12px] text-text-dim"><BookOpen size={12} /> Nom yozishni boshlang (3+ harf) — yuklangan smetalardagi ish turlari va resurslar taklif qilinadi.</p>
             {rejim.tur !== 'additional' && <p className="mt-1 text-[12px] text-text-dim">Almashtiriladi: <b className="text-text">{rejim.eski.nom}</b>{rejim.eski.birlik ? `, ${rejim.eski.birlik}` : ''} — eski qator o‘zgarmaydi, yangisi unga ishora qiladi.</p>}
           </div>
-          <button onClick={onYop} className="rounded p-1 text-text-dim hover:bg-surface-2" aria-label="Yopish"><X size={18} /></button>
+          <button disabled={band} onClick={onYop} className="rounded p-1 text-text-dim hover:bg-surface-2" aria-label={t('Yopish')}><X size={18} /></button>
         </div>
 
+        <fieldset disabled={band || written} className="space-y-3">
         {rejim.tur === 'additional' && !tahrir && <label className="block max-w-xl text-[12px] font-medium">Bo‘lim
           <select value={bolimId} onChange={(e) => setBolimId(e.target.value)} className={`${inp} mt-1`} aria-label="Bo‘lim">
             <option value="">«СМЕТАДАН ТАШҚАРИ ИШЛАР» (avtomatik bo‘lim)</option>
@@ -217,11 +224,18 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
           <label className={`text-[12px] font-medium ${resursRejim ? 'sm:col-span-2' : ''}`}>Sabab (majburiy)<input value={sabab} onChange={(e) => setSabab(e.target.value)} placeholder="masalan: loyihachi xati № …, buyurtmachi topshirig‘i" className={`${inp} mt-1`} aria-label="Sabab" /></label>
         </div>
 
+        </fieldset>
+        {tahrir && <section className="grid gap-2 rounded border border-border bg-surface-2 p-3 text-[12px] sm:grid-cols-3" aria-label={t('Tuzatish ta’siri')}>
+          <div>{t('Oldingi summa')}<b className="block tabular-nums">{fmt(tahrir.oldAmount)}</b></div>
+          <div>{t('Yangi summa')}<b className="block tabular-nums">{fmt(resurslar.length && !hisob.narxsiz ? hisob.jami : null)}</b></div>
+          <div>{t('Summa farqi')}<b className="block tabular-nums">{fmt(tahrir.oldAmount!=null && resurslar.length && !hisob.narxsiz ? hisob.jami-tahrir.oldAmount : null)}</b></div>
+          {(tahrir.oldAmount==null || !resurslar.length || hisob.narxsiz>0) && <p className="sm:col-span-3 text-warn">{t('Narxlar to‘liq bo‘lmasa, summa farqi hisoblanmaydi.')}</p>}
+        </section>}
         {koldaXato && xatolar.length > 0 && <ul role="alert" className="list-disc rounded border border-warn/40 bg-warn/5 py-2 pl-6 pr-3 text-[12px] text-warn">{xatolar.map((x, i) => <li key={i}>{x.matn}</li>)}</ul>}
         {xato && <p role="alert" className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-[12px] text-danger">{xato}</p>}
         <div className="flex justify-end gap-2">
-          <button onClick={onYop} className="rounded-lg border border-border px-3 py-2 text-[12px]">Bekor qilish</button>
-          <button onClick={() => void saqla()} disabled={band} className="rounded-lg bg-accent px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50">{band ? 'Saqlanmoqda…' : 'Saqlash'}</button>
+          <button disabled={band} onClick={onYop} className="rounded-lg border border-border px-3 py-2 text-[12px]">Bekor qilish</button>
+          <button onClick={() => void saqla()} disabled={band} className="rounded-lg bg-accent px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50">{band ? 'Saqlanmoqda…' : written ? t('Bog‘lanishlarni yangilash') : 'Saqlash'}</button>
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ import { F2V3Workbench } from './F2V3Workbench';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
-import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
+import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
 
 /**
  * F2 IMPORT V3 (docs/architecture/F2_IMPORT_V3.md): fayl → akt (davr, jami, ogohlantirishlar
@@ -76,8 +76,11 @@ function Sessiya({ companyId }: { companyId: number }) {
   const operation = useRef('');
   const sourceOp = useRef('');
   const sourceDoc = useRef<number | undefined>(undefined);
+  const pendingCorrection = useRef<F2PendingCorrection | undefined>(undefined);
   const ijRef = useRef<IshJoyi | null>(null);
   ijRef.current = ij;
+  const scopeRef = useRef(`${companyId}:${objectId}`);
+  scopeRef.current = `${companyId}:${objectId}`;
 
   useEffect(() => {
     let active = true;
@@ -92,7 +95,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!file || !ij || !natija || !aktlar[aktIdx] || !objectId) return null;
     return { version: 1, companyId, objectId: Number(objectId), savedAt: Date.now(), aktlar, aktIdx, davr,
       ij, natija, rzBog, source: { blob: file, name: file.name, lastModified: file.lastModified, documentId: sourceDoc.current },
-      operationId: operation.current, sourceOperationId: sourceOp.current, server: serverDraft.current };
+      operationId: operation.current, sourceOperationId: sourceOp.current, server: serverDraft.current, correction: pendingCorrection.current };
   }
 
   async function ishniSaqla(draft = ishSnapshot(), generation = ++saveGeneration.current) {
@@ -135,7 +138,11 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato('');
     try {
       const { r } = await malumotYukla(d.objectId, d.davr);
-      const restored = f2QoralamaBogTekshir(d.ij, new Set(r.map((q) => q.id)));
+      const correction = f2PendingCorrectionOl(d.correction);
+      const restored = correction ? qoshilganOzgardiLib(d.ij, f2Indeks(d.aktlar[d.aktIdx].daraxt), {
+        eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
+        : f2QoralamaBogTekshir(d.ij, new Set(r.map((q) => q.id)));
+      pendingCorrection.current=undefined;
       // No auto-match effect may reset recovered manual decisions.
       oxirgiKalit.current = `${d.objectId}|${d.aktIdx}|${d.davr}|${d.aktlar[d.aktIdx].fayl}`;
       rawFile.current = new File([d.source.blob], d.source.name, { type: d.source.blob.type, lastModified: d.source.lastModified });
@@ -208,6 +215,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     // Scope/file switch must flush pending decisions before clearing in-memory state.
     const draft = lastWorkingDraft.current;
     if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
+    pendingCorrection.current = undefined;
     ++saveGeneration.current; setIshSaqlandi(''); setServerHolat(''); serverDraft.current = undefined;
     setNatija(null); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
   }
@@ -320,7 +328,9 @@ function Sessiya({ companyId }: { companyId: number }) {
   }
 
   async function smetaYangila(): Promise<T2Qator[]> {
+    const scope=`${companyId}:${objectId}`;
     const d = await sbT2DaraxtOl(Number(objectId));
+    if (scopeRef.current!==scope) throw new Error('F2_SCOPE_CHANGED');
     if (!d.ok || d.toliq === false) throw new Error('Smeta to‘liq yangilanmadi. Bog‘lanishlar saqlangan — qayta urinib ko‘ring.');
     const r = (d.qatorlar || []) as T2Qator[];
     setRows(r);
@@ -363,15 +373,26 @@ function Sessiya({ companyId }: { companyId: number }) {
   /** Siz qo'shgan qator tahrirlandi (server eskisini arxivlab yangisini yaratdi → yangiId) yoki o'chirildi.
    *  Smeta yangilanadi; eskisiga bog'langan F2 qatori yangisiga o'tadi yoki ✕ ga qaytadi (qayta bog'lash uchun). */
   async function qoshilganOzgardi(eskiIdlar: number[], yangiId?: number | null) {
-    if (!ind || !ijRef.current) return;
+    if (!ind || !ijRef.current) throw new Error('F2 ish holati topilmadi.');
+    const scope=`${companyId}:${objectId}`;
     setBusy(true); setXato('');
+    pendingCorrection.current = {oldIds:[...eskiIdlar],newId:yangiId??null};
+    const draft=ishSnapshot();
     try {
+      if (!draft) throw new Error('F2 ish holati topilmadi.');
+      await f2IshchiSaqla(draft);
+      await f2ServerCorrectionSaqla(draft);
       const r = await smetaYangila();
       const t2 = qoshilganOzgardiLib(ijRef.current, ind, { eskiIdlar: new Set(eskiIdlar), yangiId, mavjud: new Set(r.map((q) => q.id)), S: smetaIndeks(smetaQatorlari(r)) });
-      setIj(t2.ij);
+      const finalDraft={...draft,ij:t2.ij,correction:undefined,savedAt:Date.now()};
+      if (draft.server && draft.source.documentId) await f2ServerSaqla(finalDraft,draft.source.documentId,draft.server);
+      await f2IshchiSaqla(finalDraft);
+      if (scopeRef.current!==scope) throw new Error('F2_SCOPE_CHANGED');
+      pendingCorrection.current=undefined;
+      setIj(t2.ij); setSaqlanganIsh(finalDraft); lastWorkingDraft.current=finalDraft;
       setHolat(t2.uzildi ? `${t2.uzildi} ta F2 qatori bo‘shadi — ✕ belgili qatorlarni qayta bog‘lang.` : t2.qaytaBoglandi ? 'Yangi qatorga qayta bog‘landi.' : 'Smeta yangilandi.');
-    } catch (e) { setXato(e instanceof Error ? e.message : 'Smeta yangilanmadi.'); }
-    finally { setBusy(false); }
+    } catch (e) { if (scopeRef.current===scope) setXato(e instanceof Error ? e.message : 'Smeta yangilanmadi.'); throw e; }
+    finally { if (scopeRef.current===scope) setBusy(false); }
   }
 
   const yozish = useMemo(() => (ind && ij ? f2QoralamaYozish(ind, ij) : null), [ind, ij]);
@@ -445,7 +466,12 @@ function Sessiya({ companyId }: { companyId: number }) {
       rawFile.current = file; sourceDoc.current = docId; sourceOp.current = String(c.sourceOperationId); operation.current = String(c.writeOperationId);
       serverDraft.current = d.state; setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
       setAktlar(acts); setAktIdx(idx); setDavr(month); setRzBog(rb); setNatija(result);
-      setIj(f2QoralamaBogTekshir(d.ij, new Set(r.map((q) => q.id)))); setDone(null);
+      const correction=f2PendingCorrectionOl(c.correction);
+      const restored=correction ? qoshilganOzgardiLib(d.ij,f2Indeks(a.daraxt),{
+        eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
+        : f2QoralamaBogTekshir(d.ij,new Set(r.map((q)=>q.id)));
+      pendingCorrection.current=undefined;
+      setIj(restored); setDone(null);
       setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`);
     } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); }
     finally { setBusy(false); }

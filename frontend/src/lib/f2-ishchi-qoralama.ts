@@ -19,7 +19,10 @@ export interface F2IshchiQoralama {
   operationId: string;
   sourceOperationId: string;
   server?: F2ServerQoralama;
+  correction?: F2PendingCorrection;
 }
+
+export type F2PendingCorrection = { oldIds: number[]; newId: number | null };
 
 export interface F2ServerQoralama { jobId: number; versiya: number; rows: Map<string, number> }
 
@@ -44,7 +47,7 @@ export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, sta
     d.server = state; // Idempotent retry after later network/batch failure.
   }
   const cursor = { phase: 'f2_v3_review', sourceDocumentId: documentId, month: d.davr, actIdx: d.aktIdx,
-    file: d.source.name, sourceOperationId: d.sourceOperationId, writeOperationId: d.operationId, rzBog: [...d.rzBog], savedRows: state.rows.size };
+    correction: d.correction ?? null, file: d.source.name, sourceOperationId: d.sourceOperationId, writeOperationId: d.operationId, rzBog: [...d.rzBog], savedRows: state.rows.size };
   const checkpoint = async (complete: boolean) => {
     const r = await sbT2F2ImportJobIlgarilash({ jobId: state!.jobId, expectedVersiya: state!.versiya,
       processedDelta: 0, matchedDelta: 0, unmatchedDelta: 0, cursor: { ...cursor, savedRows: state!.rows.size, complete } });
@@ -66,6 +69,29 @@ export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, sta
   }
   await checkpoint(true);
   return state;
+}
+
+/** Checkpoint a known canonical result before refreshing the tree. No source rows are rewritten. */
+export async function f2ServerCorrectionSaqla(d: F2IshchiQoralama): Promise<void> {
+  const state = d.server;
+  if (!state) return;
+  if (!Number.isSafeInteger(d.source.documentId) || Number(d.source.documentId)<=0) throw new Error('F2_SOURCE_REQUIRED');
+  const count = f2Indeks(d.aktlar[d.aktIdx].daraxt).qatorlar.length;
+  const r = await sbT2F2ImportJobIlgarilash({jobId:state.jobId,expectedVersiya:state.versiya,
+    processedDelta:0,matchedDelta:0,unmatchedDelta:0,cursor:{phase:'f2_v3_review',
+      sourceDocumentId:d.source.documentId,month:d.davr,actIdx:d.aktIdx,file:d.source.name,
+      sourceOperationId:d.sourceOperationId,writeOperationId:d.operationId,rzBog:[...d.rzBog],
+      savedRows:state.rows.size,complete:state.rows.size===count,correction:d.correction??null}});
+  if (!r.ok || r.versiya == null) throw new Error(r.code || r.error || 'Tuzatish belgisi saqlanmadi. Qayta urinib ko‘ring.');
+  state.versiya=r.versiya;
+}
+
+export function f2PendingCorrectionOl(value: unknown): F2PendingCorrection | undefined {
+  if (value == null) return undefined;
+  const v=value as F2PendingCorrection;
+  if (!Array.isArray(v.oldIds) || !v.oldIds.every((id)=>Number.isSafeInteger(id)&&id>0)
+      || (v.newId!==null && (!Number.isSafeInteger(v.newId)||v.newId<=0))) throw new Error('F2_CORRECTION_INVALID');
+  return {oldIds:[...v.oldIds],newId:v.newId};
 }
 
 export async function f2ServerOl(jobId: number) {

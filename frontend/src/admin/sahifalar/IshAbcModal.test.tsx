@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-const m = vi.hoisted(() => ({ ishTuri: vi.fn(), resurs: vi.fn(), narx: vi.fn(), saqla: vi.fn() }));
-vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: m.ishTuri, resursQidir: m.resurs, narxTakliflari: m.narx, ishAbcSaqla: m.saqla, abcXato: (r: { error?: string }) => r?.error ?? 'xato' }));
+const m = vi.hoisted(() => ({ ishTuri: vi.fn(), resurs: vi.fn(), narx: vi.fn(), saqla: vi.fn(), edit: vi.fn() }));
+vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: m.ishTuri, resursQidir: m.resurs, narxTakliflari: m.narx, ishAbcSaqla: m.saqla, ishAbcTahrir:m.edit, abcXato: (r: { error?: string }) => r?.error ?? 'xato' }));
 
 import { IshAbcModal } from './IshAbcModal';
 
@@ -74,4 +74,23 @@ describe('IshAbcModal (kichik ABC)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
     await waitFor(() => expect(m.saqla).toHaveBeenCalledWith(expect.objectContaining({ command: 'resurs_zamena', almashtirilayotganQatorId: 605428, ish: null })));
   });
+  it('retries binding refresh after a saved edit without writing another row', async () => {
+    m.edit.mockResolvedValue({ok:true,qator_id:8});
+    const onSaqlandi=vi.fn().mockRejectedValueOnce(new Error('refresh')).mockResolvedValue(undefined);
+    render(<IshAbcModal kompaniyaId={1} obyektId={7} sana="2026-10-01" bolimlar={[]} rejim={{tur:'additional'}}
+      tahrir={{qatorId:9,kutilganVersiya:3,oldAmount:10,ish:{kod:'',nom:'ТЕСТ',birlik:'М3',hajm:'2'},resurslar:[{kat:'МАТ',kod:'',nom:'ТЕСТ',birlik:'М3',hajm:'2',norma:'',narx:'0',manba:'qolda'}]}}
+      onYop={vi.fn()} onSaqlandi={onSaqlandi}/>);
+    expect(screen.getByLabelText('Tuzatish ta’siri').textContent).toContain('-10');
+    fireEvent.change(screen.getByLabelText('Sabab'),{target:{value:'fix'}});
+    fireEvent.click(screen.getByRole('button',{name:'Saqlash'}));
+    await screen.findByText('Qator saqlandi, lekin bog‘lanishlar yangilanmadi. Qayta yangilang — yangi qator yaratilmaydi.');
+    expect(m.edit).toHaveBeenCalledWith(expect.objectContaining({qatorId:9,kutilganVersiya:3,resurslar:[expect.objectContaining({narx:0})]}));
+    expect((screen.getByLabelText('Ish hajmi') as HTMLInputElement).closest('fieldset')?.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button',{name:'Bog‘lanishlarni yangilash'}));
+    await waitFor(()=>expect(onSaqlandi).toHaveBeenCalledTimes(2));
+    expect(m.edit).toHaveBeenCalledTimes(1);
+    expect(onSaqlandi.mock.calls[0][1]).toBe(8);
+    expect(onSaqlandi.mock.calls[1][1]).toBe(8);
+  });
+
 });

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import type { F2IshchiQoralama } from '../../lib/f2-ishchi-qoralama';
 
-const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn(), preflight: vi.fn() }));
+const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn(), preflight: vi.fn(), correction: vi.fn() }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: { id: 5 }, yuklanmoqda: false }) }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => ({ scope: { objectId: null }, setObjectId: vi.fn() }) }));
 vi.mock('../../api/supabase', () => ({
@@ -13,9 +13,9 @@ vi.mock('../../api/supabase', () => ({
 vi.mock('../../api/t2-nakopitelniy', () => ({ t2NakopitelniyToliq: async () => ({ ok: true, qatorlar: [] }) }));
 vi.mock('../../api/t2-fayl', () => ({ faylExplorerOl: async () => ({ fayllar: [] }), faylBaytlari: async () => new Uint8Array([1]) }));
 vi.mock('../../lib/f2-moslash-v3/fonda', () => ({ f2AktlarniOqiFonda: m.parse, f2MoslashV3Fonda: m.match }));
-vi.mock('../../lib/f2-ishchi-qoralama', async (original) => ({ ...(await original<typeof import('../../lib/f2-ishchi-qoralama')>()), f2IshchiOl: m.read, f2IshchiSaqla: m.save, f2ServerSaqla: m.cloudSave, f2ServerOl: m.cloudRead }));
-vi.mock('./F2V3Workbench', () => ({ F2V3Workbench: ({ ij, onIj }: { ij: F2IshchiQoralama['ij']; onIj: (i: F2IshchiQoralama['ij']) => void }) => (
-  <div><span>Qo‘lda bog‘lanish: {ij.bog.get('plus')?.qatorId ?? 'yo‘q'}</span>
+vi.mock('../../lib/f2-ishchi-qoralama', async (original) => ({ ...(await original<typeof import('../../lib/f2-ishchi-qoralama')>()), f2IshchiOl: m.read, f2IshchiSaqla: m.save, f2ServerSaqla: m.cloudSave, f2ServerCorrectionSaqla: m.correction, f2ServerOl: m.cloudRead }));
+vi.mock('./F2V3Workbench', () => ({ F2V3Workbench: ({ ij, onIj, onQoshilganOzgardi }: { onQoshilganOzgardi?: (oldIds:number[],newId:number)=>Promise<void>; ij: F2IshchiQoralama['ij']; onIj: (i: F2IshchiQoralama['ij']) => void }) => (
+  <div><button onClick={()=>void onQoshilganOzgardi?.([7],8).catch(()=>undefined)}>Tuzatish natijasini qo‘llash</button><span>Qo‘lda bog‘lanish: {ij.bog.get('plus')?.qatorId ?? 'yo‘q'}</span>
     <button onClick={() => onIj({ bog: new Map([['plus', { qatorId: 7, holat: 'qolda', usul: 'qolda' }]]), otkaz: new Set() })}>Plusni bog‘lash</button>
   </div>
 ) }));
@@ -30,6 +30,7 @@ beforeEach(() => {
   Object.values(m).forEach((fn) => fn.mockReset()); saved = null;
   m.read.mockImplementation(async () => saved); m.save.mockImplementation(async (d: F2IshchiQoralama) => { saved = d; });
   m.parse.mockResolvedValue([act]);
+  m.correction.mockResolvedValue(undefined);
   m.preflight.mockResolvedValue({ok:true,qatorlar:[]});
   m.match.mockResolvedValue({ natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: 2 } });
   m.tree.mockResolvedValue({ ok: true, qatorlar: [{ id: 7, ota_id: null, tur: 'mat', nom: 'БЕТОН B20', kod: 'x', birlik: 'м3', hajm: 20, narx: 100 }] });
@@ -42,6 +43,21 @@ async function start() {
   fireEvent.click(await screen.findByText('Plusni bog‘lash'));
 }
 describe('F2 independent working draft', () => {
+  it('restores a committed correction after tree refresh failure without losing source or other decisions', async () => {
+    await start();
+    m.tree.mockRejectedValueOnce(new Error('refresh failed'));
+    fireEvent.click(screen.getByRole('button',{name:'Tuzatish natijasini qo‘llash'}));
+    await screen.findByText('refresh failed');
+    expect(saved!.correction).toEqual({oldIds:[7],newId:8});
+    expect(saved!.ij.bog.get('plus')?.qatorId).toBe(7);
+    expect(saved!.aktlar[0].daraxt[0].hajm).toBe(-10);
+    m.tree.mockResolvedValue({ok:true,qatorlar:[{id:8,ota_id:null,tur:'mat',nom:'БЕТОН B20',kod:'x',birlik:'м3',hajm:20,narx:100}]});
+    cleanup();render(<F2ImportV3/>);
+    fireEvent.click(await screen.findByRole('button',{name:/Saqlangan ishni davom ettirish/}));
+    await screen.findByText('Qo‘lda bog‘lanish: 8');
+    expect(m.create).not.toHaveBeenCalled(); expect(m.match).not.toHaveBeenCalled();
+  });
+
   it('warns before matching when the object/month already has an F2 and never creates a duplicate', async () => {
     m.preflight.mockResolvedValue({ok:true,qatorlar:[{id:99,oy:'2026-10-01',raqam:null,holat:'tasdiqlangan',lifecycle_status:'approved'}]});
     await start();

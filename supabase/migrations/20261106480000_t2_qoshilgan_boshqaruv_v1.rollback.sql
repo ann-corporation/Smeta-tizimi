@@ -1,11 +1,15 @@
--- ROLLBACK for 20261106480000_t2_qoshilgan_boshqaruv_v1.sql — faqat yangi funksiyalar olib tashlanadi.
--- Ular yaratgan qatorlar oddiy qo'shilgan qatorlar (t2_ish_abc_ochir_v1 bilan o'chiriladi); ma'lumot o'chirilmaydi.
+-- Exact pre-migration definitions captured read-only from the current baseline.
 begin;
-drop function if exists public.t2_resurs_ish_zamena_v1(bigint, bigint, bigint, bigint, jsonb, text, uuid, bigint);
-drop function if exists public.t2_qoshilgan_kochir_v1(bigint, bigint, bigint, bigint, bigint, bigint, uuid);
-create or replace function public.t2_ish_abc_ochir_ichki(p_kompaniya_id bigint, p_obyekt_id bigint, p_qator_id bigint,
-  p_actor_id bigint, p_sabab text, p_operation_id uuid)
-returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+drop function if exists public.t2_ish_abc_ochir_v2(bigint,bigint,bigint,bigint,integer,text,uuid);
+drop function if exists public.t2_ish_abc_tahrir_v2(bigint,bigint,bigint,bigint,integer,jsonb,jsonb,numeric,date,text,uuid);
+drop function if exists public.t2_resurs_ish_zamena_v1(bigint,bigint,bigint,bigint,jsonb,text,uuid,bigint,integer);
+drop function if exists public.t2_qoshilgan_kochir_v1(bigint,bigint,bigint,bigint,bigint,bigint,uuid);
+CREATE OR REPLACE FUNCTION public.t2_ish_abc_ochir_ichki(p_kompaniya_id bigint, p_obyekt_id bigint, p_qator_id bigint, p_actor_id bigint, p_sabab text, p_operation_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare v_r public.t2_qator%rowtype; v_ids bigint[]; v_n int; v_smeta int; v_f2 int; v_bog int; v_ota bigint; v_qj jsonb; v_fj jsonb;
 begin
   select * into v_r from public.t2_qator where id = p_qator_id and obyekt_id = p_obyekt_id and kompaniya_id = p_kompaniya_id for update;
@@ -42,8 +46,7 @@ begin
    where z.id in (select change_id from public.t2_qator where id = any(v_ids) and change_id is not null)
      and not exists (select 1 from public.t2_qator q where q.change_id = z.id and not (q.id = any(v_ids)));
   v_ota := v_r.ota_id;
-  delete from public.t2_qator where id = p_qator_id;            -- ota_id ON DELETE CASCADE — bolalar ham
-  -- Ota ish (bl) bo'lsa — uning summasi resurslardan qayta hisoblanadi.
+  delete from public.t2_qator where id = p_qator_id;
   if v_ota is not null and exists (select 1 from public.t2_qator where id = v_ota and tur = 'bl') then
     update public.t2_qator set summa = (select sum(summa) from public.t2_qator where ota_id = v_ota and tur in ('rs', 'mat', 'ob'))
      where id = v_ota and coalesce(qoshimcha, false);
@@ -52,7 +55,7 @@ begin
     format('ildiz=%s qatorlar=%s fakt=%s sabab=%s', p_qator_id, v_n, jsonb_array_length(v_fj), coalesce(p_sabab, '-')), 'actor:' || p_actor_id, null);
   return jsonb_build_object('ok', true, 'ochirildi', v_n, 'fakt_ochirildi', jsonb_array_length(v_fj), 'ota_id', v_ota,
     'tur', v_r.tur, 'zamena', coalesce(v_r.zamena, false), 'replaces_line_id', v_r.replaces_line_id);
-end $$;
+end $function$;
 
 CREATE OR REPLACE FUNCTION public.t2_ish_abc_ochir_v1(p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_qator_id bigint, p_sabab text, p_operation_id uuid)
  RETURNS jsonb
@@ -65,7 +68,7 @@ begin
   if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_REQUIRED'); end if;
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED'); end if;
   perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:' || p_obyekt_id, 0));
@@ -74,41 +77,8 @@ begin
     insert into public.t2_onboarding_command_log(operation_id, actor_id, command, natija) values (p_operation_id, p_actor_id, 'ish_abc_ochir', v_res);
   end if;
   return v_res;
-end $function$
-;
+end $function$;
 
-CREATE OR REPLACE FUNCTION public.t2_ish_abc_tahrir_v1(p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_qator_id bigint, p_ish jsonb, p_resurslar jsonb, p_fakt_hajm numeric, p_sana date, p_sabab text, p_operation_id uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_rol text; v_prev jsonb; v_o jsonb; v_cmd text; v_ota bigint; v_old bigint; v_ver integer; v_new jsonb;
-begin
-  if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_REQUIRED'); end if;
-  select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
-  if found then return v_prev; end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
-  perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
-  if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED'); end if;
-  perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:' || p_obyekt_id, 0));
-  v_o := public.t2_ish_abc_ochir_ichki(p_kompaniya_id, p_obyekt_id, p_qator_id, p_actor_id, 'tahrir: ' || coalesce(p_sabab, ''), p_operation_id);
-  if not coalesce((v_o->>'ok')::boolean, false) then return v_o; end if;
-  v_ota := (v_o->>'ota_id')::bigint; v_old := nullif(v_o->>'replaces_line_id', '')::bigint;
-  v_cmd := case when (v_o->>'tur') in ('rs', 'mat', 'ob') and v_old is not null then 'resurs_zamena'
-                when coalesce((v_o->>'zamena')::boolean, false) and v_old is not null then 'replacement'
-                when (v_o->>'tur') = 'bl' then 'additional' else null end;
-  if v_cmd is null then raise exception 'TAHRIR_ISH_ORQALI: resursni o''z ishi orqali tahrirlang'; end if;
-  select versiya into v_ver from public.t2_qator where id = v_ota;
-  v_new := public.t2_ish_abc_saqla_v1(p_actor_id, p_kompaniya_id, p_obyekt_id, v_cmd,
-    case when v_cmd = 'resurs_zamena' then null else v_ota end, v_old, p_ish, p_resurslar, p_fakt_hajm, p_sana, p_sabab,
-    md5(p_operation_id::text || ':tahrir:yangi')::uuid, v_ver);
-  if not coalesce((v_new->>'ok')::boolean, false) then raise exception 'TAHRIR_YIQILDI: %', coalesce(v_new->>'code', v_new::text); end if;
-  v_new := v_new || jsonb_build_object('eski_ochirildi', v_o->'ochirildi');
-  insert into public.t2_onboarding_command_log(operation_id, actor_id, command, natija) values (p_operation_id, p_actor_id, 'ish_abc_tahrir', v_new);
-  return v_new;
-end $function$
-;
 CREATE OR REPLACE FUNCTION public.t2_ish_abc_saqla_v1(p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_command text, p_ota_qator_id bigint, p_almashtirilayotgan_qator_id bigint, p_ish jsonb, p_resurslar jsonb, p_fakt_hajm numeric, p_sana date, p_sabab text, p_operation_id uuid, p_kutilgan_versiya integer)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -127,7 +97,7 @@ begin
   if p_resurslar is not null and (jsonb_typeof(p_resurslar) <> 'array' or jsonb_array_length(p_resurslar) > 60) then
     return jsonb_build_object('ok', false, 'code', 'RESURSLAR_0_60');
   end if;
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
   perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
   if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED'); end if;
   select response into v_prev from public.t2_addrepl_command where operation_id = p_operation_id;
@@ -229,6 +199,38 @@ begin
   perform public.t2_audit_yoz(p_kompaniya_id, 'ish_abc_' || p_command, 'smeta', p_obyekt_id,
     format('qator=%s resurs=%s fakt=%s', v_id, cardinality(v_ids), coalesce(p_fakt_hajm, 0)), 'actor:' || p_actor_id, null);
   return jsonb_build_object('ok', true, 'qator_id', v_id, 'resurs_ids', to_jsonb(v_ids), 'bolim_id', v_ota, 'change_id', v_add->'change_id');
-end $function$
-;
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.t2_ish_abc_tahrir_v1(p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_qator_id bigint, p_ish jsonb, p_resurslar jsonb, p_fakt_hajm numeric, p_sana date, p_sabab text, p_operation_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_rol text; v_prev jsonb; v_o jsonb; v_cmd text; v_ota bigint; v_old bigint; v_ver integer; v_new jsonb;
+begin
+  if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_REQUIRED'); end if;
+  select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
+  if found then return v_prev; end if;
+  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id); 
+  perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
+  if v_rol not in ('admin', 'superadmin', 'boss', 'director', 'pto') and not public.t2_permission_allowed_v2(p_kompaniya_id,p_actor_id,'smeta.write') then return jsonb_build_object('ok', false, 'code', 'WRITE_ROLE_REQUIRED'); end if;
+  perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:' || p_obyekt_id, 0));
+  v_o := public.t2_ish_abc_ochir_ichki(p_kompaniya_id, p_obyekt_id, p_qator_id, p_actor_id, 'tahrir: ' || coalesce(p_sabab, ''), p_operation_id);
+  if not coalesce((v_o->>'ok')::boolean, false) then return v_o; end if;
+  v_ota := (v_o->>'ota_id')::bigint; v_old := nullif(v_o->>'replaces_line_id', '')::bigint;
+  v_cmd := case when (v_o->>'tur') in ('rs', 'mat', 'ob') and v_old is not null then 'resurs_zamena'
+                when coalesce((v_o->>'zamena')::boolean, false) and v_old is not null then 'replacement'
+                when (v_o->>'tur') = 'bl' then 'additional' else null end;
+  if v_cmd is null then raise exception 'TAHRIR_ISH_ORQALI: resursni o''z ishi orqali tahrirlang'; end if;
+  select versiya into v_ver from public.t2_qator where id = v_ota;
+  v_new := public.t2_ish_abc_saqla_v1(p_actor_id, p_kompaniya_id, p_obyekt_id, v_cmd,
+    case when v_cmd = 'resurs_zamena' then null else v_ota end, v_old, p_ish, p_resurslar, p_fakt_hajm, p_sana, p_sabab,
+    md5(p_operation_id::text || ':tahrir:yangi')::uuid, v_ver);
+  if not coalesce((v_new->>'ok')::boolean, false) then raise exception 'TAHRIR_YIQILDI: %', coalesce(v_new->>'code', v_new::text); end if;
+  v_new := v_new || jsonb_build_object('eski_ochirildi', v_o->'ochirildi');
+  insert into public.t2_onboarding_command_log(operation_id, actor_id, command, natija) values (p_operation_id, p_actor_id, 'ish_abc_tahrir', v_new);
+  return v_new;
+end $function$;
+
 commit;

@@ -67,14 +67,14 @@ export function ishAbcSaqla(p: AbcSaqlaInput): Promise<AktNatija & { resurs_ids?
 }
 
 /** Qo'shilgan ish/zamenani o'chirish (asliga qaytarish). Smeta qatorlari — o'zgarmas (server rad etadi). */
-export function ishAbcOchir(p: { kompaniyaId: number; obyektId: number; qatorId: number; sabab?: string; operationId: string }): Promise<AktNatija & { code?: string; ochirildi?: number }> {
-  return yozAmali({ amal: 'qator_ish_abc_ochir_v1', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, qator_id: p.qatorId, sabab: p.sabab ?? null, operation_id: p.operationId });
+export function ishAbcOchir(p: { kompaniyaId: number; obyektId: number; qatorId: number; kutilganVersiya?: number; sabab?: string; operationId: string }): Promise<AktNatija & { code?: string; ochirildi?: number }> {
+  return yozAmali({ amal: p.kutilganVersiya != null ? 'qator_ish_abc_ochir_v2' : 'qator_ish_abc_ochir_v1', kutilgan_versiya: p.kutilganVersiya, kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, qator_id: p.qatorId, sabab: p.sabab ?? null, operation_id: p.operationId });
 }
 
 /** Tahrirlash = shu joyda almashtirish (bitta tranzaksiya). */
-export function ishAbcTahrir(p: Omit<AbcSaqlaInput, 'command' | 'otaQatorId' | 'almashtirilayotganQatorId' | 'kutilganVersiya'> & { qatorId: number }): Promise<AktNatija & { code?: string }> {
+export function ishAbcTahrir(p: Omit<AbcSaqlaInput, 'command' | 'otaQatorId' | 'almashtirilayotganQatorId' | 'kutilganVersiya'> & { qatorId: number; kutilganVersiya?: number }): Promise<AktNatija & { code?: string }> {
   return yozAmali({
-    amal: 'qator_ish_abc_tahrir_v1', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, qator_id: p.qatorId,
+    amal: p.kutilganVersiya != null ? 'qator_ish_abc_tahrir_v2' : 'qator_ish_abc_tahrir_v1', kutilgan_versiya: p.kutilganVersiya, kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, qator_id: p.qatorId,
     ish: p.ish ?? null, resurslar: p.resurslar, fakt_hajm: p.faktHajm ?? null, sana: p.sana ?? null, sabab: p.sabab, operation_id: p.operationId,
   });
 }
@@ -82,16 +82,10 @@ export function ishAbcTahrir(p: Omit<AbcSaqlaInput, 'command' | 'otaQatorId' | '
 /** Smeta RESURSI o'rniga ish(lar) — masalan ГПС ni buyurtmachi bergan: material emas, qazib olish va tashish ishlari.
  *  `eskiQatorId` — shu resursning oldingi ish zamenasini almashtirish (tahrirlash). Asl resurs o'zgarmaydi. */
 export type ResursIshInput = { ish: { kod?: string | null; nom: string; birlik: string; hajm: number }; resurslar: AbcSaqlaInput['resurslar'] };
-export function resursIshZamena(p: { kompaniyaId: number; obyektId: number; resursQatorId: number; ishlar: ResursIshInput[]; sabab: string; operationId: string; eskiQatorId?: number | null }):
+export function resursIshZamena(p: { kompaniyaId: number; obyektId: number; resursQatorId: number; ishlar: ResursIshInput[]; sabab: string; operationId: string; eskiQatorId?: number | null; kutilganVersiya?: number }):
   Promise<AktNatija & { code?: string; qator_id?: number; qator_idlar?: number[]; resurs_idlar?: number[][] }> {
   return yozAmali({ amal: 'qator_resurs_ish_zamena_v1', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, resurs_qator_id: p.resursQatorId,
-    ishlar: p.ishlar, sabab: p.sabab, operation_id: p.operationId, eski_qator_id: p.eskiQatorId ?? null });
-}
-
-/** Qo'shilgan qatorni (bolalari bilan) boshqa joyga ko'chirish: `yangiOtaId` ichiga, `keyinQatorId` dan keyin (yo'q — boshiga). */
-export function qoshilganKochir(p: { kompaniyaId: number; obyektId: number; qatorId: number; yangiOtaId: number; keyinQatorId?: number | null; operationId: string }): Promise<AktNatija & { code?: string }> {
-  return yozAmali({ amal: 'qator_qoshilgan_kochir_v1', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, qator_id: p.qatorId,
-    yangi_ota_id: p.yangiOtaId, keyin_qator_id: p.keyinQatorId ?? null, operation_id: p.operationId });
+    ishlar: p.ishlar, sabab: p.sabab, operation_id: p.operationId, eski_qator_id: p.eskiQatorId ?? null, kutilgan_versiya: p.kutilganVersiya ?? null });
 }
 
 export function abcXato(r: { error?: string; xabar?: string; code?: string } | null | undefined): string {

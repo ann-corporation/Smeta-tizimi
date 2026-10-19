@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, ArrowDownToLine, X, Pencil, Trash2, MoveVertical } from 'lucide-react';
+import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, ArrowDownToLine, X, Pencil, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { T2Qator } from '../../api/supabase';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
@@ -10,7 +10,7 @@ import {
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { F2AddReplModal, type DropAction } from './F2AddReplModal';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
-import { abcXato, ishAbcOchir, qoshilganKochir, resursIshZamena, type NarxManba } from '../../api/t2-ish-abc';
+import { abcXato, ishAbcOchir, resursIshZamena, type NarxManba } from '../../api/t2-ish-abc';
 import { yangiOperationId } from '../../api/supabase';
 import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
 import { qoshilganmi, smetaQatorTuri, type SmetaQatorTuri } from '../../lib/f2-moslash-v3/qoshilgan';
@@ -215,8 +215,6 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const mutationLock = useRef(false);
   const mutationOps = useRef(new Map<string, string>());
   const [mutationBusy, setMutationBusy] = useState(false);
-  /** «Ko'chirish» rejimi: tanlangan qo'shilgan qator id — keyingi bosilgan smeta qatori yangi joyni bildiradi. */
-  const [kochirish, setKochirish] = useState<number | null>(null);
   const zamenaAsl = p.zamenaAsl ?? BOSH_XARITA;
   const almashtirilgan = useMemo(() => new Set(zamenaAsl.values()), [zamenaAsl]);
   const qatorTuri = (id: number): SmetaQatorTuri => { const r = p.raw.get(id); return r ? smetaQatorTuri(r, almashtirilgan) : 'asl'; };
@@ -239,52 +237,32 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (r.tur === 'bl') {
       const bolalar = [...p.raw.values()].filter((c) => c.ota_id === r.id && (c.tur === 'rs' || c.tur === 'mat' || c.tur === 'ob'));
       const eskiAsl = r.zamena && zamenaAsl.has(r.id) ? p.raw.get(zamenaAsl.get(r.id)!) : undefined;
-      const tahrir: AbcTahrir = { qatorId: r.id, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' };
+      const tahrir: AbcTahrir = { qatorId: r.id, kutilganVersiya: r.versiya, oldAmount: [...p.raw.values()].some((c)=>c.ota_id===r.id && c.narx==null) ? null : r.summa, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' };
       if (eskiAsl && eskiAsl.tur !== 'bl' && eskiAsl.tur !== 'rz') {
         // Resurs o'rnidagi ish (ГПС → qazib olish): tahrir = eskisini arxivlab shu resurs o'rniga yangi ish (bitta tranzaksiya).
         setAbc({ rejim: { tur: 'additional' }, tahrir, eskiIdlar: pastdagiIdlar(r.id),
           saqlash: (d) => resursIshZamena({ kompaniyaId: p.companyId, obyektId: p.objectId, resursQatorId: eskiAsl.id, sabab: d.sabab, operationId: d.operationId,
-            eskiQatorId: r.id, ishlar: [{ ish: d.ish!, resurslar: d.resurslar }] }) });
+            eskiQatorId: r.id, kutilganVersiya: r.versiya, ishlar: [{ ish: d.ish!, resurslar: d.resurslar }] }) });
         return;
       }
       setAbc({
         rejim: r.zamena && eskiAsl
           ? { tur: 'replacement', eski: { id: eskiAsl.id, kod: eskiAsl.kod ?? null, nom: eskiAsl.nom ?? '', birlik: eskiAsl.birlik ?? null, otaId: eskiAsl.ota_id ?? null, otaVersiya: ota?.versiya ?? null } }
           : { tur: 'additional' },
-        tahrir: { qatorId: r.id, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' },
+        tahrir: { qatorId: r.id, kutilganVersiya: r.versiya, oldAmount: [...p.raw.values()].some((c)=>c.ota_id===r.id && c.narx==null) ? null : r.summa, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' },
         eskiIdlar: pastdagiIdlar(r.id),
       });
     } else if (r.zamena && zamenaAsl.has(r.id)) {
       const aslId = zamenaAsl.get(r.id)!; const eskiAsl = p.raw.get(aslId);
       setAbc({ rejim: { tur: 'resurs_zamena', eski: { id: aslId, nom: eskiAsl?.nom ?? r.nom ?? '', birlik: eskiAsl?.birlik ?? r.birlik ?? null, kat: eskiAsl?.kat ?? r.kat ?? null, norma: eskiAsl?.norma ?? null }, ishHajm: ota?.hajm ?? null },
-        tahrir: { qatorId: r.id, resurslar: [resursPrefill(r)] }, eskiIdlar: [r.id] });
+        tahrir: { qatorId: r.id, kutilganVersiya: r.versiya, oldAmount:r.summa, resurslar: [resursPrefill(r)] }, eskiIdlar: [r.id] });
     } else xab('Bu resurs siz qo‘shgan ish ichida — ishning o‘zini tahrirlang.');
-  }
-  /** Ko'chirish rejimida bosilgan smeta qatori — yangi joy. Ish: bo'lim ustiga — bo'lim boshiga; ish ustiga — o'sha
-   *  ishdan keyin. Resurs: ish/bo'lim ustiga — uning ichiga (boshiga); resurs ustiga — o'sha resursdan keyin. */
-  async function joyTanla(target: SmetaQator) {
-    const id = kochirish; setKochirish(null);
-    const r = id != null ? S.byId.get(id) : undefined;
-    if (id == null || !r) return;
-    if (target.id === id) { xab('Ko‘chirish bekor qilindi.'); return; }
-    let yangiOta: number | null; let keyin: number | null;
-    if (r.tur === 'bl') {
-      if (target.tur === 'rz') { yangiOta = target.id; keyin = null; }
-      else if (target.tur === 'bl') { yangiOta = target.otaId ?? null; keyin = target.id; }
-      else { xab('Ishni bo‘lim yoki boshqa ish ustiga ko‘chiring.'); return; }
-    } else if (target.tur === 'bl' || target.tur === 'rz') { yangiOta = target.id; keyin = null; }
-    else { yangiOta = target.otaId ?? null; keyin = target.id; }
-    if (yangiOta == null) { xab('Bu joyga ko‘chirib bo‘lmaydi.'); return; }
-    const res = await qoshilganKochir({ kompaniyaId: p.companyId, obyektId: p.objectId, qatorId: id, yangiOtaId: yangiOta, keyinQatorId: keyin, operationId: yangiOperationId() });
-    if (!res.ok) { xab(abcXato(res)); return; }
-    xab(`«${(r.nom ?? '').slice(0, 50)}» ko‘chirildi.`);
-    await p.onQoshilganOzgardi?.([], null);
   }
   async function qoshilganOchir(id: number) {
     if (p.disabled || mutationLock.current) return;
     const r = p.raw.get(id);
     if (!r || !qoshilganmi(r)) { xab('Bu qator smetadan — o‘chirilmaydi. Faqat siz qo‘shgan qatorlar o‘chiriladi.'); return; }
-    const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi.\nSabab (ixtiyoriy):`, '');
+    const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi. Smetadagi qator summasi: ${r.summa == null ? 'noma’lum' : fmt(r.summa, 2)}.\nSabab (ixtiyoriy):`, '');
     if (sabab === null) return;
     const eskiIdlar = pastdagiIdlar(id);
     const opKey = `${p.companyId}:${p.objectId}:${id}:${sabab}`;
@@ -292,7 +270,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     mutationOps.current.set(opKey, operationId);
     mutationLock.current = true; setMutationBusy(true);
     try {
-    const res = await ishAbcOchir({ kompaniyaId: p.companyId, obyektId: p.objectId, qatorId: id, sabab: sabab || 'F2 import: xato qo‘shilgan', operationId });
+    const res = await ishAbcOchir({ kompaniyaId: p.companyId, obyektId: p.objectId, qatorId: id, kutilganVersiya: r.versiya, sabab: sabab || 'F2 import: xato qo‘shilgan', operationId });
     if (!res.ok) { xab(abcXato(res)); return; }
     xab(r.zamena ? 'Zamena bekor qilindi — asl smeta qatori o‘z joyida.' : `O‘chirildi: ${res.ochirildi ?? 1} ta qator. Bo‘shagan F2 qatorlarini qayta bog‘lang.`);
     await p.onQoshilganOzgardi?.(eskiIdlar, null);
@@ -1276,9 +1254,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       {abc && (
         <IshAbcModal kompaniyaId={p.companyId} obyektId={p.objectId} sana={new Date().toISOString().slice(0, 10)} bolimlar={[]}
           rejim={abc.rejim} tahrir={abc.tahrir} saqlash={abc.saqlash} onYop={() => setAbc(null)}
-          onSaqlandi={(matn, yangiId) => {
-            const eski = abc.eskiIdlar; setAbc(null); xab(`${matn} F2 bog‘lanishi yangi qatorga o‘tkazildi.`);
-            void p.onQoshilganOzgardi?.(eski, yangiId ?? null);
+          onSaqlandi={async (matn, yangiId) => {
+            await p.onQoshilganOzgardi?.(abc.eskiIdlar, yangiId ?? null);
+            setAbc(null); xab(`${matn} F2 bog‘lanishi yangi qatorga o‘tkazildi.`);
           }} />
       )}
     </div>

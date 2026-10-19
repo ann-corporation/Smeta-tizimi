@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from './smeta-anatomiya/f2';
-import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama } from './f2-ishchi-qoralama';
+import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2IshchiQoralama } from './f2-ishchi-qoralama';
 import { f2Indeks, yozishManbasi, type IshJoyi } from './f2-moslash-v3/ishJoyi';
 import { exactWrite } from './f2-exact-write';
 
@@ -125,4 +125,20 @@ describe('F2 corrective rows and working draft safety', () => {
     api.rows.mockResolvedValue({ ok: true, qatorlar: [{ uid: 'm', holat: 'hal_qilinmagan', versiya: 1 }] });
     await expect(f2ServerOl(11)).rejects.toThrow('to‘liq emas');
   });
+  it('checkpoints a pending correction without rewriting source rows and preserves its exact version', async () => {
+    const a=akt([node('p',2)]);
+    const d={companyId:5,objectId:7,source:{documentId:42,name:'F2.xlsx'},aktlar:[a],aktIdx:0,davr:'2026-10',
+      rzBog:new Map(),sourceOperationId:'source',operationId:'write',server:{jobId:11,versiya:3,rows:new Map([['p',1]])},
+      correction:{oldIds:[7],newId:8}} as unknown as F2IshchiQoralama;
+    await f2ServerCorrectionSaqla(d);
+    expect(api.advance).toHaveBeenCalledWith(expect.objectContaining({expectedVersiya:3,cursor:expect.objectContaining({
+      sourceDocumentId:42,complete:true,correction:{oldIds:[7],newId:8}})}));
+    expect(d.server!.versiya).toBe(4); expect(api.save).not.toHaveBeenCalled();
+    api.advance.mockResolvedValueOnce({ok:false,code:'STALE_DRAFT_VERSION'});
+    await expect(f2ServerCorrectionSaqla(d)).rejects.toThrow('STALE_DRAFT_VERSION');
+    expect(d.server!.versiya).toBe(4);
+    expect(f2PendingCorrectionOl({oldIds:[7],newId:8})).toEqual({oldIds:[7],newId:8});
+    expect(()=>f2PendingCorrectionOl({oldIds:[-1],newId:8})).toThrow('F2_CORRECTION_INVALID');
+  });
+
 });

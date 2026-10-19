@@ -1844,5 +1844,12 @@
   "Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.": "Could not check existing F2 acts. Retry to avoid duplicates. Bindings are preserved.",
   "Qayta tekshirish": "Check again",
   "Bu obyekt va davr uchun F2 avval kiritilgan. Qayta bog‘lash shart emas.": "An F2 already exists for this object and period. No need to link it again.",
-  "Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.": "Open the existing act. Corrections require a separate correction workflow; the current act is unchanged."
+  "Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.": "Open the existing act. Corrections require a separate correction workflow; the current act is unchanged.",
+  "Qator saqlandi, lekin bog‘lanishlar yangilanmadi. Qayta yangilang — yangi qator yaratilmaydi.": "The row was saved but bindings were not updated. Retry the update; no new row will be created.",
+  "Bog‘lanishlarni yangilash": "Update bindings",
+  "Tuzatish ta’siri": "Correction impact",
+  "Oldingi summa": "Previous amount",
+  "Yangi summa": "New amount",
+  "Summa farqi": "Amount difference",
+  "Narxlar to‘liq bo‘lmasa, summa farqi hisoblanmaydi.": "The amount difference is not calculated when prices are incomplete."
 }

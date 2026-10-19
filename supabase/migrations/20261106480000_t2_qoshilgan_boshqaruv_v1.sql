@@ -6,7 +6,8 @@
 --   1) t2_resurs_ish_zamena_v1 — smeta RESURSI o'rniga bir yoki bir nechta ISH (o'z resurslari bilan), o'sha bo'limda,
 --      resursning ishidan keyin; asl resurs o'zgarmaydi; yangi ishlar `zamena=true`, `replaces_line_id = resurs`.
 --      `p_eski_qator_id` berilsa — oldingi shunday zamenani arxivlab almashtiradi (tahrirlash).
---   2) t2_qoshilgan_kochir_v1 — qo'shilgan qatorni (bolalari bilan) boshqa joyga ko'chirish.
+--   2) t2_ish_abc_ochir_v2 / t2_ish_abc_tahrir_v2 — versiyali bekor qilish/tahrirlash.
+-- Joylashtirish prototipi ca263ee7 checkpointida saqlangan, bu paketga kiritilmagan.
 -- Qonunlar: faqat `qoshimcha=true` qatorlar; asl smeta qatori rad; F2 aktidagi qator ko'chirilmaydi; ruxsat
 -- `smeta.write` (rollar konstruktori); idempotent `operation_id`; har amal auditda. Additiv: jadval yo'q, faqat funksiyalar.
 
@@ -277,7 +278,7 @@ end $function$
 
 create or replace function public.t2_resurs_ish_zamena_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_resurs_qator_id bigint,
-  p_ishlar jsonb, p_sabab text, p_operation_id uuid, p_eski_qator_id bigint default null)
+  p_ishlar jsonb, p_sabab text, p_operation_id uuid, p_eski_qator_id bigint default null, p_kutilgan_versiya integer default null)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_prev jsonb; v_request text; v_r public.t2_qator%rowtype; v_w public.t2_qator%rowtype; v_z public.t2_qator%rowtype;
@@ -294,7 +295,7 @@ begin
   perform 1 from public.t2_obyekt where id=p_obyekt_id and kompaniya_id=p_kompaniya_id;
   if not found then return jsonb_build_object('ok',false,'code','OBJECT_SCOPE_INVALID'); end if;
   perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:op:' || p_operation_id,0));
-  v_request := md5(jsonb_build_array(p_actor_id,p_kompaniya_id,p_obyekt_id,p_resurs_qator_id,p_ishlar,p_sabab,p_eski_qator_id,'resurs_ish_zamena')::text);
+  v_request := md5(jsonb_build_array(p_actor_id,p_kompaniya_id,p_obyekt_id,p_resurs_qator_id,p_ishlar,p_sabab,p_eski_qator_id,p_kutilgan_versiya,'resurs_ish_zamena')::text);
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then
     if v_prev->>'_request' is distinct from v_request then return jsonb_build_object('ok',false,'code','OPERATION_SCOPE_MISMATCH'); end if;
@@ -313,10 +314,12 @@ begin
   if not found or v_z.tur <> 'rz' then return jsonb_build_object('ok', false, 'code', 'BOLIM_NOT_FOUND'); end if;
 
   if p_eski_qator_id is not null then
-    select * into v_eski from public.t2_qator where id = p_eski_qator_id and obyekt_id = p_obyekt_id and kompaniya_id = p_kompaniya_id;
+    select * into v_eski from public.t2_qator where id = p_eski_qator_id and obyekt_id = p_obyekt_id and kompaniya_id = p_kompaniya_id for update;
     if not found or not coalesce(v_eski.zamena, false) or v_eski.replaces_line_id is distinct from v_r.id then
       return jsonb_build_object('ok', false, 'code', 'ESKI_ZAMENA_NOTOGRI', 'xabar', 'Almashtiriladigan eski qator shu resursning ish zamenasi emas.');
     end if;
+    if p_kutilgan_versiya is null then return jsonb_build_object('ok',false,'code','VERSION_REQUIRED'); end if;
+    if v_eski.versiya is distinct from p_kutilgan_versiya then return jsonb_build_object('ok',false,'code','STALE_VERSION'); end if;
     v_o := public.t2_ish_abc_ochir_ichki(p_kompaniya_id, p_obyekt_id, p_eski_qator_id, p_actor_id, 'tahrir: ' || p_sabab, p_operation_id);
     if not coalesce((v_o->>'ok')::boolean, false) then return v_o; end if;
   end if;
@@ -354,72 +357,74 @@ begin
   return v_natija;
 end $$;
 
-create or replace function public.t2_qoshilgan_kochir_v1(
-  p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_qator_id bigint,
-  p_yangi_ota_id bigint, p_keyin_qator_id bigint, p_operation_id uuid)
-returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare
-  v_prev jsonb; v_request text; v_r public.t2_qator%rowtype; v_p public.t2_qator%rowtype; v_ids bigint[]; v_tartib int; v_delta int; v_natija jsonb;
+
+
+revoke all on function public.t2_resurs_ish_zamena_v1(bigint, bigint, bigint, bigint, jsonb, text, uuid, bigint, integer) from public, anon, authenticated;
+grant execute on function public.t2_resurs_ish_zamena_v1(bigint, bigint, bigint, bigint, jsonb, text, uuid, bigint, integer) to service_role;
+
+
+-- Versioned F2 correction entry; old callers retain their named v1 command.
+create or replace function public.t2_ish_abc_ochir_v2(
+ p_actor_id bigint,p_kompaniya_id bigint,p_obyekt_id bigint,p_qator_id bigint,p_kutilgan_versiya integer,p_sabab text,p_operation_id uuid)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $v2$
+declare v_prev jsonb; v_request text; v_version integer; v_result jsonb;
 begin
-  if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_REQUIRED'); end if;
-  perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
-  perform public.t2_require_permission_v2(p_kompaniya_id, p_actor_id, 'smeta.write');
-  perform 1 from public.t2_obyekt where id=p_obyekt_id and kompaniya_id=p_kompaniya_id;
-  if not found then return jsonb_build_object('ok',false,'code','OBJECT_SCOPE_INVALID'); end if;
-  perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:op:' || p_operation_id,0));
-  v_request := md5(jsonb_build_array(p_actor_id,p_kompaniya_id,p_obyekt_id,p_qator_id,p_yangi_ota_id,p_keyin_qator_id,'qoshilgan_kochir')::text);
-  select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
-  if found then
-    if v_prev->>'_request' is distinct from v_request then return jsonb_build_object('ok',false,'code','OPERATION_SCOPE_MISMATCH'); end if;
-    return (v_prev - '_request') || jsonb_build_object('takror',true);
-  end if;
-  perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:' || p_obyekt_id, 0));
+ if p_operation_id is null then return jsonb_build_object('ok',false,'code','OPERATION_ID_REQUIRED'); end if;
+ perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id,p_actor_id);
+ perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
+ if not exists(select 1 from public.t2_obyekt where id=p_obyekt_id and kompaniya_id=p_kompaniya_id) then
+  return jsonb_build_object('ok',false,'code','OBJECT_SCOPE_INVALID'); end if;
+ if p_kutilgan_versiya is null or p_kutilgan_versiya<0 then return jsonb_build_object('ok',false,'code','VERSION_REQUIRED'); end if;
+ perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:op:'||p_operation_id,0));
+ v_request:=md5(jsonb_build_array(p_actor_id,p_kompaniya_id,p_obyekt_id,p_qator_id,p_kutilgan_versiya,p_sabab,'ish_abc_ochir_v2')::text);
+ select natija into v_prev from public.t2_onboarding_command_log where operation_id=p_operation_id;
+ if found then
+  if v_prev->>'_v2_request' is distinct from v_request then return jsonb_build_object('ok',false,'code','OPERATION_SCOPE_MISMATCH'); end if;
+  return (v_prev-'_request'-'_v2_request')||jsonb_build_object('takror',true);
+ end if;
+ perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:'||p_obyekt_id,0));
+ select versiya into v_version from public.t2_qator where id=p_qator_id and obyekt_id=p_obyekt_id and kompaniya_id=p_kompaniya_id for update;
+ if not found then return jsonb_build_object('ok',false,'code','QATOR_NOT_FOUND'); end if;
+ if v_version is distinct from p_kutilgan_versiya then return jsonb_build_object('ok',false,'code','STALE_VERSION'); end if;
+ v_result:=public.t2_ish_abc_ochir_v1(p_actor_id,p_kompaniya_id,p_obyekt_id,p_qator_id,p_sabab,p_operation_id);
+ if coalesce((v_result->>'ok')::boolean,false) then
+  update public.t2_onboarding_command_log set natija=natija||jsonb_build_object('_v2_request',v_request) where operation_id=p_operation_id;
+ end if;
+ return v_result-'_request'-'_v2_request';
+end $v2$;
+revoke all on function public.t2_ish_abc_ochir_v2(bigint, bigint, bigint, bigint, integer, text, uuid) from public,anon,authenticated;
+grant execute on function public.t2_ish_abc_ochir_v2(bigint, bigint, bigint, bigint, integer, text, uuid) to service_role;
 
-  select * into v_r from public.t2_qator where id = p_qator_id and obyekt_id = p_obyekt_id and kompaniya_id = p_kompaniya_id for update;
-  if not found then return jsonb_build_object('ok', false, 'code', 'QATOR_NOT_FOUND'); end if;
-  if not coalesce(v_r.qoshimcha, false) then
-    return jsonb_build_object('ok', false, 'code', 'SMETA_QATORI_OZGARMAS', 'xabar', 'Smetaning asl qatori ko''chirilmaydi.');
-  end if;
-  select * into v_p from public.t2_qator where id = p_yangi_ota_id and obyekt_id = p_obyekt_id and kompaniya_id = p_kompaniya_id for update;
-  if not found then return jsonb_build_object('ok', false, 'code', 'OTA_NOT_FOUND'); end if;
-  if (v_r.tur = 'bl' and v_p.tur <> 'rz') or (v_r.tur in ('rs', 'mat', 'ob') and v_p.tur not in ('rz', 'bl')) or v_r.tur = 'rz' then
-    return jsonb_build_object('ok', false, 'code', 'TUZILMA_NOTOGRI', 'xabar', 'Ish faqat bo''limga, resurs — ishga yoki bo''limga ko''chiriladi.');
-  end if;
-  with recursive t(id) as (select p_qator_id union select q.id from public.t2_qator q join t on q.ota_id = t.id)
-  select array_agg(id) into v_ids from t;
-  if p_yangi_ota_id = any(v_ids) then return jsonb_build_object('ok', false, 'code', 'TUZILMA_NOTOGRI', 'xabar', 'Qator o''z ichiga ko''chirilmaydi.'); end if;
-  if coalesce(v_r.zamena, false) and p_yangi_ota_id is distinct from v_r.ota_id then
-    return jsonb_build_object('ok', false, 'code', 'ZAMENA_JOYI', 'xabar', 'Zamena o''zi almashtirgan qator yonida turadi — faqat shu bo''lim ichida tartibini o''zgartirish mumkin.');
-  end if;
-  if exists (select 1 from public.t2_akt_qator where qator_id=any(v_ids)) then
-    return jsonb_build_object('ok', false, 'code', 'QATOR_TARIXDA', 'xabar', 'Qator F2 aktida — ko''chirilmaydi (tasdiqlangan hujjat o''zgarmaydi).');
-  end if;
-
-  if p_keyin_qator_id is null or p_keyin_qator_id = p_yangi_ota_id then
-    v_tartib := v_p.tartib;
-  else
-    perform 1 from public.t2_qator where id = p_keyin_qator_id and ota_id = p_yangi_ota_id and not (id = any(v_ids));
-    if not found then return jsonb_build_object('ok', false, 'code', 'JOY_NOTOGRI', 'xabar', 'Tanlangan joy shu bo''lim/ish ichida emas.'); end if;
-    with recursive t(id, tartib) as (
-      select q0.id, q0.tartib from public.t2_qator q0 where q0.id = p_keyin_qator_id
-      union all select q1.id, q1.tartib from public.t2_qator q1 join t on q1.ota_id = t.id)
-    select max(t.tartib) into v_tartib from t;
-  end if;
-  v_delta := coalesce(v_p.daraja, 0) + 1 - coalesce(v_r.daraja, 0);
-  update public.t2_qator set ota_id = p_yangi_ota_id where id = p_qator_id;
-  update public.t2_qator set daraja = coalesce(daraja, 0) + v_delta, tartib = v_tartib where id = any(v_ids);
-  update public.t2_qator set yangilandi = clock_timestamp() where id in (p_yangi_ota_id, v_r.ota_id);
-  perform public.t2_audit_yoz(p_kompaniya_id, 'qoshilgan_kochir', 'smeta', p_obyekt_id,
-    format('qator=%s ota %s->%s keyin=%s', p_qator_id, coalesce(v_r.ota_id::text, '-'), p_yangi_ota_id, coalesce(p_keyin_qator_id::text, '-')),
-    'actor:' || p_actor_id, null);
-  v_natija := jsonb_build_object('ok', true, 'qator_id', p_qator_id, 'kochdi', cardinality(v_ids), 'ota_id', p_yangi_ota_id);
-  insert into public.t2_onboarding_command_log(operation_id, actor_id, command, natija) values (p_operation_id, p_actor_id, 'qoshilgan_kochir', v_natija || jsonb_build_object('_request',v_request));
-  return v_natija;
-end $$;
-
-revoke all on function public.t2_resurs_ish_zamena_v1(bigint, bigint, bigint, bigint, jsonb, text, uuid, bigint) from public, anon, authenticated;
-revoke all on function public.t2_qoshilgan_kochir_v1(bigint, bigint, bigint, bigint, bigint, bigint, uuid) from public, anon, authenticated;
-grant execute on function public.t2_resurs_ish_zamena_v1(bigint, bigint, bigint, bigint, jsonb, text, uuid, bigint) to service_role;
-grant execute on function public.t2_qoshilgan_kochir_v1(bigint, bigint, bigint, bigint, bigint, bigint, uuid) to service_role;
+-- Versioned F2 correction entry; old callers retain their named v1 command.
+create or replace function public.t2_ish_abc_tahrir_v2(
+ p_actor_id bigint,p_kompaniya_id bigint,p_obyekt_id bigint,p_qator_id bigint,p_kutilgan_versiya integer, p_ish jsonb, p_resurslar jsonb, p_fakt_hajm numeric, p_sana date,p_sabab text,p_operation_id uuid)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $v2$
+declare v_prev jsonb; v_request text; v_version integer; v_result jsonb;
+begin
+ if p_operation_id is null then return jsonb_build_object('ok',false,'code','OPERATION_ID_REQUIRED'); end if;
+ perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id,p_actor_id);
+ perform public.t2_require_permission_v2(p_kompaniya_id,p_actor_id,'smeta.write');
+ if not exists(select 1 from public.t2_obyekt where id=p_obyekt_id and kompaniya_id=p_kompaniya_id) then
+  return jsonb_build_object('ok',false,'code','OBJECT_SCOPE_INVALID'); end if;
+ if p_kutilgan_versiya is null or p_kutilgan_versiya<0 then return jsonb_build_object('ok',false,'code','VERSION_REQUIRED'); end if;
+ perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:op:'||p_operation_id,0));
+ v_request:=md5(jsonb_build_array(p_actor_id,p_kompaniya_id,p_obyekt_id,p_qator_id,p_kutilgan_versiya,p_sabab,p_ish,p_resurslar,p_fakt_hajm,p_sana,'ish_abc_tahrir_v2')::text);
+ select natija into v_prev from public.t2_onboarding_command_log where operation_id=p_operation_id;
+ if found then
+  if v_prev->>'_v2_request' is distinct from v_request then return jsonb_build_object('ok',false,'code','OPERATION_SCOPE_MISMATCH'); end if;
+  return (v_prev-'_request'-'_v2_request')||jsonb_build_object('takror',true);
+ end if;
+ perform pg_advisory_xact_lock(hashtextextended('t2_ish_abc:'||p_obyekt_id,0));
+ select versiya into v_version from public.t2_qator where id=p_qator_id and obyekt_id=p_obyekt_id and kompaniya_id=p_kompaniya_id for update;
+ if not found then return jsonb_build_object('ok',false,'code','QATOR_NOT_FOUND'); end if;
+ if v_version is distinct from p_kutilgan_versiya then return jsonb_build_object('ok',false,'code','STALE_VERSION'); end if;
+ v_result:=public.t2_ish_abc_tahrir_v1(p_actor_id,p_kompaniya_id,p_obyekt_id,p_qator_id,p_ish,p_resurslar,p_fakt_hajm,p_sana,p_sabab,p_operation_id);
+ if coalesce((v_result->>'ok')::boolean,false) then
+  update public.t2_onboarding_command_log set natija=natija||jsonb_build_object('_v2_request',v_request) where operation_id=p_operation_id;
+ end if;
+ return v_result-'_request'-'_v2_request';
+end $v2$;
+revoke all on function public.t2_ish_abc_tahrir_v2(bigint, bigint, bigint, bigint, integer, jsonb, jsonb, numeric, date, text, uuid) from public,anon,authenticated;
+grant execute on function public.t2_ish_abc_tahrir_v2(bigint, bigint, bigint, bigint, integer, jsonb, jsonb, numeric, date, text, uuid) to service_role;
 
 commit;
