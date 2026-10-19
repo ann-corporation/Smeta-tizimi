@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({auth:vi.fn(),ai:vi.fn(),Xato:class extends Error{}}));
 vi.mock('../_shared/auth',()=>({tekshir:m.auth}));
 vi.mock('../_shared/ai-hisobli',()=>({aiHisobli:m.ai,AiByudjetXatosi:m.Xato}));
-import { onRequestPost, narxSorovlariniTayyorla } from './smeta-ai';
+import { onRequestPost, narxSorovlariniTayyorla, ishonchliChaqir, TANLOV_FIKR } from './smeta-ai';
 import type { NarxSorovi } from '../../src/lib/smeta-ai/protokol';
 type Result = { tanlovlar: Array<{id:string;tanlov:string|null}>; routing:{local:number;utility:number;primary:number;escalated:number} };
 const body = async (r: Response) => await r.json() as Result;
@@ -70,5 +70,14 @@ describe('Price route integration',()=>{
  });
  it('40 exact references cost zero model calls, responses remain one-to-one',async()=>{
   const rows=Array.from({length:40},(_,i)=>row('r'+i));const j=await body(await run(rows));expect(j.routing.local).toBe(40);expect(j.tanlovlar).toHaveLength(40);expect(m.ai).not.toHaveBeenCalled();
+ });
+});
+
+describe('tanlash chaqiruvlarida fikrlash cheklovi (OpenRouter 2026-10-19: chiqishning ~80% reasoning edi)',()=>{
+ it('tanlash so‘rovi past reasoning bilan modelga yetib boradi',async()=>{
+  const sent:unknown[]=[];
+  await ishonchliChaqir(async req=>{sent.push(req);return {provider:'openrouter',model:'x',text:'{"tanlovlar":[]}'} as never;},
+   {text:'x',tier:'fast',temperature:0,reasoning:TANLOV_FIKR,maxOutputTokens:3000},['tanlovlar']);
+  expect(TANLOV_FIKR).toEqual({effort:'low'});expect(sent[0]).toMatchObject({reasoning:{effort:'low'}});
  });
 });

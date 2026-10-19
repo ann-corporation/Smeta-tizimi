@@ -48,3 +48,4 @@ describe('Conservative price gates, not AI self-confidence',()=>{
  });
  it('unsafe local gate cannot be invoked directly',()=>{const s=q();s.nomzodlar=[];expect(()=>exactPriceChoice(s)).toThrow('EXACT_PRICE_GATE_REQUIRED');});
 });
+it('primary (non-utility) tanlash keeps the caller-chosen low reasoning',()=>expect(studioModelRequest({},'smeta_ai','smeta_ish_tanlash',{text:'x',tier:'fast',reasoning:{effort:'low'}},'owner/strong')).toMatchObject({model:'owner/strong',reasoning:{effort:'low'}}));

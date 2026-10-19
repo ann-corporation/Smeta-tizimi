@@ -39,6 +39,9 @@ import { KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTeks
   type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
 /** Veb-qidiruvli model (OpenRouter `:online` — sahifalarni qidirib o'qiydi) — faqat internet narx agenti uchun. */
+/** Tanlash/moslash vazifalari: OpenRouter tahlili (2026-10-19) — chiqishning ~80% ko'rinmas fikrlash edi; past daraja yetarli. */
+export const TANLOV_FIKR = { effort: 'low' } as const;
+
 export const INTERNET_MODEL = 'google/gemini-2.5-flash:online';
 
 /**
@@ -220,7 +223,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const malumot = sorovlar.map((x, i) => ({ ...x, nomzodlar: x.nomzodlar.map(n => { const t = tajribaMatni(tajriba[normaKalit(n.kod) ?? '']); return t ? { ...n, tajriba: t } : n; }),
         ...(amaliyot[i]?.length ? { amaliyot: amaliyot[i].map(a => `${a.kod} — ${a.nom} (${a.soni} smeta qatori${a.koef ? `, ${a.koef}` : ''})`) } : {}) }));
       const { r, obj } = await ishonchliChaqir(chaqir,
-        { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(malumot)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA },
+        { system: TANLOV_TIZIM, text: `<MALUMOT>\n${JSON.stringify(malumot)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 3000, jsonSchema: TANLOV_SXEMA },
         ['tanlovlar', 'choices']);
       const tanlovlar = tanlovlarniTekshir(obj, sorovlar);
       const xom = tanlovlar.every(x => !x.ishId) ? r.text.slice(0, 2000) : undefined;
@@ -279,7 +282,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (!sharoit || !sorovlar.length) return fail('SOROV_INVALID');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_koef_tanlash', req);
       const { r, obj } = await ishonchliChaqir(chaqir,
-        { system: KOEF_TANLOV_TIZIM, text: `Ish sharoiti (foydalanuvchi): ${sharoit}\n<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 4000, jsonSchema: KOEF_TANLOV_SXEMA },
+        { system: KOEF_TANLOV_TIZIM, text: `Ish sharoiti (foydalanuvchi): ${sharoit}\n<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 4000, jsonSchema: KOEF_TANLOV_SXEMA },
         ['tanlovlar', 'savol']);
       return Response.json({ ok: true, ...koefTanlovlariniTekshir(obj, sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
     }
@@ -330,7 +333,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_narx_internet', { ...req, model: INTERNET_MODEL });
       const { r, obj } = await ishonchliChaqir(chaqir,
         { system: INTERNET_NARX_TIZIM, text: `${hudud ? `Obyekt hududi: ${hudud}\n` : ''}<RESURSLAR>\n${JSON.stringify(sorovlar)}\n</RESURSLAR>`,
-          tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 4000, jsonSchema: INTERNET_NARX_SXEMA }, ['natijalar']);
+          tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 4000, jsonSchema: INTERNET_NARX_SXEMA }, ['natijalar']);
       const davolar = internetJavobiniTekshir(obj, sorovlar);
       const natijalar: InternetNatija[] = await Promise.all(sorovlar.map(async s => {
         const d = davolar.get(s.id) ?? { davolar: [], izoh: 'model javob bermadi' };
@@ -360,7 +363,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_kp_oqish', req);
       const { r, obj } = await ishonchliChaqir(chaqir,
         { system: KP_OQISH_TIZIM, text: matn ? `<HUJJAT>\n${matn}\n</HUJJAT>` : 'Ilova qilingan hujjatni o‘qing.', ...(fayl ? { attachment: fayl } : {}),
-          tier: 'fast' as AiTier, temperature: 0, maxOutputTokens: 16000, jsonSchema: KP_SXEMA },
+          tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 16000, jsonSchema: KP_SXEMA },
         ['qatorlar', 'nds_holati']);
       return Response.json({ ok: true, kp: kpJavobiniTekshir(obj), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
     }
