@@ -12,7 +12,7 @@ Codex@noutbuk-f2-recovery, 2026-10-18. Прямое поручение влад�
 
 ## Проверки
 
-Изолированный worktree `C:/Temp/GAS-f2-duplicate-warning-v1`: 81 targeted Vitest PASS; `npm run build` PASS (оба TypeScript-проекта); `npm run tekshir` PASS; oxlint exit 0 с существующими предупреждениями; governance PASS с предупреждением stale CURRENT_STATE main_sha. Общий Vitest запускается, итог будет в mailbox. Подтверждение authenticated UI/production deploy отсутствует.
+Изолированный worktree `C:/Temp/GAS-f2-duplicate-warning-v1`: 81 targeted Vitest PASS; `npm run build` PASS (оба TypeScript-проекта); `npm run tekshir` PASS; oxlint exit 0 с существующими предупреждениями; governance PASS с предупреждением stale CURRENT_STATE main_sha. Общий Vitest: 2112 PASS / 17 skipped, 293 PASS / 8 skipped suites; финальный receipt в mailbox 03. Подтверждение authenticated UI/production deploy отсутствует.
 
 ## Незавершённый пакет Claude
 
@@ -22,4 +22,4 @@ Codex@noutbuk-f2-recovery, 2026-10-18. Прямое поручение влад�
 
 Реальные акты не заменены/не отменены; предполагаемые orphan rows не удалены. OpenRouter §2 остаётся следующей работой; платных диагностических вызовов нет.
 
-CODE / TESTED: предупреждение готово. PUSHED: проверяется отдельно. DEPLOYED: нет. UNKNOWN: authenticated browser smoke и production CI.
+CODE / TESTED: предупреждение готово. PUSHED: remote 572e6f0a проверен. DEPLOYED: нет. UNKNOWN: authenticated browser smoke и production CI.
