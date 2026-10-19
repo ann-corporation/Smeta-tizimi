@@ -4,6 +4,7 @@ drop function if exists public.t2_ish_abc_ochir_v2(bigint,bigint,bigint,bigint,i
 drop function if exists public.t2_ish_abc_tahrir_v2(bigint,bigint,bigint,bigint,integer,jsonb,jsonb,numeric,date,text,uuid);
 drop function if exists public.t2_resurs_ish_zamena_v1(bigint,bigint,bigint,bigint,jsonb,text,uuid,bigint,integer);
 drop function if exists public.t2_qoshilgan_kochir_v1(bigint,bigint,bigint,bigint,bigint,bigint,uuid);
+drop function if exists public.t2_qoshilgan_tarixda(bigint);
 CREATE OR REPLACE FUNCTION public.t2_ish_abc_ochir_ichki(p_kompaniya_id bigint, p_obyekt_id bigint, p_qator_id bigint, p_actor_id bigint, p_sabab text, p_operation_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql

@@ -155,10 +155,9 @@ begin
     (kompaniya_id is distinct from p_kompaniya_id or obyekt_id is distinct from p_obyekt_id)) then
     return jsonb_build_object('ok',false,'code','SCOPE_INVALID');
   end if;
-  -- Never archive away Fakt/F2 history as an importer correction.
-  if exists(select 1 from public.t2_akt_qator where qator_id=any(v_ids)) then
-    return jsonb_build_object('ok',false,'code','QATOR_TARIXDA','xabar','Qator Fakt/F2 hujjatida ishlatilgan. Tarix saqlanadi; tuzatish hujjati kerak.');
-  end if;
+  -- Fakt tarixi himoyasi F2-import kirish nuqtalarida (t2_qoshilgan_tarixda — ochir_v2 / tahrir_v2 / resurs_ish_zamena
+  -- tahriri). Bu umumiy ichki funksiya Fakt jurnalining v1 xatti-harakatini saqlaydi: qo'shilgan ishning fakti arxivlanib
+  -- o'chiriladi (aks holda Fakt jurnalida kiritilgan har qo'shimcha ish tahrirlanmay/o'chirilmay qolardi). F2 — har doim rad.
   if exists(select 1 from public.t2_qator where replaces_line_id=any(v_ids) and not(id=any(v_ids))) then
     return jsonb_build_object('ok',false,'code','BOGLANGAN');
   end if;
@@ -275,6 +274,15 @@ begin
 end $function$
 ;
 
+-- F2 import tuzatishi Fakt/F2 tarixini arxivga o'chirmaydi: qator yoki uning bolalari biror aktda ishlatilgan bo'lsa — rad.
+create or replace function public.t2_qoshilgan_tarixda(p_qator_id bigint)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  with recursive t(id) as (select p_qator_id union select q.id from public.t2_qator q join t on q.ota_id = t.id)
+  select exists (select 1 from public.t2_akt_qator aq where aq.qator_id in (select id from t))
+$$;
+revoke all on function public.t2_qoshilgan_tarixda(bigint) from public, anon, authenticated;
+grant execute on function public.t2_qoshilgan_tarixda(bigint) to service_role;
+
 
 create or replace function public.t2_resurs_ish_zamena_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_resurs_qator_id bigint,
@@ -320,6 +328,7 @@ begin
     end if;
     if p_kutilgan_versiya is null then return jsonb_build_object('ok',false,'code','VERSION_REQUIRED'); end if;
     if v_eski.versiya is distinct from p_kutilgan_versiya then return jsonb_build_object('ok',false,'code','STALE_VERSION'); end if;
+    if public.t2_qoshilgan_tarixda(p_eski_qator_id) then return jsonb_build_object('ok',false,'code','QATOR_TARIXDA','xabar','Qator Fakt/F2 hujjatida ishlatilgan. Tarix saqlanadi; tuzatish hujjati kerak.'); end if;
     v_o := public.t2_ish_abc_ochir_ichki(p_kompaniya_id, p_obyekt_id, p_eski_qator_id, p_actor_id, 'tahrir: ' || p_sabab, p_operation_id);
     if not coalesce((v_o->>'ok')::boolean, false) then return v_o; end if;
   end if;
@@ -386,6 +395,7 @@ begin
  select versiya into v_version from public.t2_qator where id=p_qator_id and obyekt_id=p_obyekt_id and kompaniya_id=p_kompaniya_id for update;
  if not found then return jsonb_build_object('ok',false,'code','QATOR_NOT_FOUND'); end if;
  if v_version is distinct from p_kutilgan_versiya then return jsonb_build_object('ok',false,'code','STALE_VERSION'); end if;
+ if public.t2_qoshilgan_tarixda(p_qator_id) then return jsonb_build_object('ok',false,'code','QATOR_TARIXDA','xabar','Qator Fakt/F2 hujjatida ishlatilgan. Tarix saqlanadi; tuzatish hujjati kerak.'); end if;
  v_result:=public.t2_ish_abc_ochir_v1(p_actor_id,p_kompaniya_id,p_obyekt_id,p_qator_id,p_sabab,p_operation_id);
  if coalesce((v_result->>'ok')::boolean,false) then
   update public.t2_onboarding_command_log set natija=natija||jsonb_build_object('_v2_request',v_request) where operation_id=p_operation_id;
@@ -418,6 +428,7 @@ begin
  select versiya into v_version from public.t2_qator where id=p_qator_id and obyekt_id=p_obyekt_id and kompaniya_id=p_kompaniya_id for update;
  if not found then return jsonb_build_object('ok',false,'code','QATOR_NOT_FOUND'); end if;
  if v_version is distinct from p_kutilgan_versiya then return jsonb_build_object('ok',false,'code','STALE_VERSION'); end if;
+ if public.t2_qoshilgan_tarixda(p_qator_id) then return jsonb_build_object('ok',false,'code','QATOR_TARIXDA','xabar','Qator Fakt/F2 hujjatida ishlatilgan. Tarix saqlanadi; tuzatish hujjati kerak.'); end if;
  v_result:=public.t2_ish_abc_tahrir_v1(p_actor_id,p_kompaniya_id,p_obyekt_id,p_qator_id,p_ish,p_resurslar,p_fakt_hajm,p_sana,p_sabab,p_operation_id);
  if coalesce((v_result->>'ok')::boolean,false) then
   update public.t2_onboarding_command_log set natija=natija||jsonb_build_object('_v2_request',v_request) where operation_id=p_operation_id;

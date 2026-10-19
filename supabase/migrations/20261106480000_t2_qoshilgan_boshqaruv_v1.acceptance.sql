@@ -41,12 +41,17 @@ begin
  created:=(v->>'qator_id')::bigint;
  replay:=public.t2_resurs_ish_zamena_v1(a,c,o,r,items,'ТЕСТ RESOURCE EDIT',edit_op,second_id,ver);
  if replay->>'takror' is distinct from 'true' or replay->>'qator_id' is distinct from v->>'qator_id' then raise exception 'RESOURCE_EDIT_REPLAY_FAILED'; end if;
- -- A Fakt reference must block deletion instead of being silently archived away.
+ -- F2 import yo'li (v2): Fakt havolasi bo'lsa — rad, fakt joyida qoladi (importer tuzatishi tarixni o'chirmaydi).
  insert into public.t2_akt(obyekt_id,kompaniya_id,tur,oy) values(o,c,'fakt',date '2026-01-01') returning id into act;
  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,kompaniya_id,hajm) values(act,created,o,c,1);
- v:=public.t2_ish_abc_ochir_v1(a,c,o,created,'ТЕСТ',gen_random_uuid());
+ select versiya into ver from public.t2_qator where id=created;
+ v:=public.t2_ish_abc_ochir_v2(a,c,o,created,ver,'ТЕСТ',gen_random_uuid());
  if v->>'code' is distinct from 'QATOR_TARIXDA' then raise exception 'FAKT_HISTORY_UNPROTECTED %',v; end if;
  if not exists(select 1 from public.t2_akt_qator where akt_id=act) then raise exception 'FAKT_DELETED'; end if;
+ -- Fakt jurnali (v1, egasi: qo'shilgan qatorlar to'liq boshqariladi): fakti ARXIVLANIB o'chiriladi — regressiya yo'q.
+ v:=public.t2_ish_abc_ochir_v1(a,c,o,created,'ТЕСТ ФАКТ ЖУРНАЛИ',gen_random_uuid());
+ if not coalesce((v->>'ok')::boolean,false) or (v->>'fakt_ochirildi')::int <> 1 then raise exception 'FAKT_JURNAL_V1_BROKEN %',v; end if;
+ if not exists(select 1 from public.t2_qator_ochirilgan where ildiz_qator_id=created and jsonb_array_length(fakt_qatorlari)=1) then raise exception 'FAKT_ARCHIVE_MISSING'; end if;
  -- Create an independent added row, cancel it, then replay the same cancellation.
  v:=public.t2_resurs_ish_zamena_v1(a,c,o,r,items,'ТЕСТ ВТОРОЙ',gen_random_uuid());
  second_id:=(v->>'qator_id')::bigint; op:=gen_random_uuid();
