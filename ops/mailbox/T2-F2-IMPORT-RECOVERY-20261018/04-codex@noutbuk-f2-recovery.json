@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-19",
+  "agent": "codex",
+  "machine": "noutbuk-f2-recovery",
+  "branch": "codex/f2-import-recovery-v1",
+  "codeSha": "b7093a16c01887085f69e3ce2b476b0372334283",
+  "mainBase": "90a36f53fdf578ea2c65cff694fb9a14bcece530",
+  "status": "ready_for_review_core_edit_cancel_resume",
+  "fullVitest": {
+    "passed": 2130,
+    "skipped": 17,
+    "suitesPassed": 296,
+    "suitesSkipped": 8,
+    "exit": 0
+  },
+  "postSuiteTargeted": {
+    "workbench": 21,
+    "draftResume": 20
+  },
+  "sqlAcceptance": "F2_RECOVERY_ACCEPTANCE_PASS (final RAISE, rolled back)",
+  "sqlRoundtrip": "F2_RECOVERY_ROUNDTRIP_PASS (only CRLF/LF normalized; function bodies/ACL/security config matched; final RAISE, rolled back)",
+  "sqlSha256": {
+    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.sql": "81a690aa9f0ba23b11b3cb379cb518e3c0e54a353eafc46ebedfb78cf9de954d",
+    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.rollback.sql": "598596677b248d51041f80399add2e3d24607997e203737c71c54e23d264874c",
+    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.acceptance.sql": "8f02be80bd558d2aac225e80cb1519e290f4a8bc65af87b89ff6ba589e4ef903"
+  },
+  "migrationApplied": false,
+  "mainUpdated": false,
+  "deployed": false,
+  "authenticatedSmoke": "UNKNOWN",
+  "excluded": [
+    "arbitrary row reordering; prototype preserved in ca263ee7",
+    "resource-to-many-work creation UI",
+    "automatic restore of archived rows",
+    "OpenRouter audit"
+  ],
+  "logs": [
+    "C:/Temp/f2-correction-release-vitest.log",
+    "C:/Temp/f2-correction-release-tekshir-complete.log",
+    "C:/Temp/f2-correction-release-build-final.log",
+    "C:/Temp/f2-correction-release-oxlint-complete.log"
+  ]
+}

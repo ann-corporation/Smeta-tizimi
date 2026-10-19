@@ -2365,7 +2365,7 @@
       "machine": "noutbuk-f2-recovery",
       "branch": "codex/f2-import-recovery-v1",
       "base_sha": "ee2a7028",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": [
         "frontend/src/admin/sahifalar/F2ImportV3.tsx",
         "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
@@ -2397,7 +2397,7 @@
         "docs/architecture/SMETA_F2_NAKOPITELNIY_CHANGE_CONTROL_V1.md"
       ],
       "production_write_allowed": false,
-      "note": "Direct owner takeover from Claude, 2026-10-18. Eleven uncommitted Claude files copied byte-for-byte to isolated worktree; original C:/Temp/GAS-token-mon remains untouched. No automatic removal of the claimed 47 rows. DB safety tests rollback; release state must be explicit."
+      "note": "Direct owner takeover from Claude, 2026-10-18. Eleven uncommitted Claude files copied byte-for-byte to isolated worktree; original C:/Temp/GAS-token-mon remains untouched. No automatic removal of the claimed 47 rows. Core edit/cancel/resume ready for review on 2026-10-19. SQL acceptance and normalized-newline rollback roundtrip PASS; migration NOT applied. Arbitrary move prototype excluded (preserved in ca263ee7); position metadata and resource-to-many-work creation UI remain follow-up. Production/main remain integrator lane."
     }
   ]
 }

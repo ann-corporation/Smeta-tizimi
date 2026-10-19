@@ -1,25 +1,33 @@
-# F2 import: раннее предупреждение о существующем акте
+# F2: исправление добавленных строк без потери привязок
 
-Codex@noutbuk-f2-recovery, 2026-10-18. Прямое поручение владельца продолжить Claude после лимита. Последнее решение владельца: уже импортированный акт повторно не нужен; предупреждать до повторной привязки.
+Codex@noutbuk-f2-recovery · 2026-10-19 · READY_FOR_REVIEW: основной edit/cancel/resume пакет.
 
-## Пакет для интегратора
+Ветка `codex/f2-import-recovery-v1`, база origin/main `90a36f53`. Включён отдельный проверенный пакет предупреждения `codex/f2-import-duplicate-warning-v1`. Машинный receipt с SHA и хешами SQL: `ops/mailbox/T2-F2-IMPORT-RECOVERY-20261018/04-codex@noutbuk-f2-recovery.json`.
 
-Изолированная ветка `codex/f2-import-duplicate-warning-v1`, база `90a36f53fdf578ea2c65cff694fb9a14bcece530`, коммит кода `e9cd7d13`. Только ранняя проверка существующего F2 и точное сообщение 409. Миграция НЕ нужна. Редактирование/удаление/перемещение добавленных строк сюда НЕ включены.
+## Поведение
 
-После выбора файла/объекта/месяца проверяется канонический ключ, который пишет импорт: компания + объект + f2 + месяц + пустой номер. Показываются ID, месяц и статус существующего акта, ссылка на историю в новой вкладке. Автоматическая привязка и повторная запись блокируются; рабочие решения/локальная и серверная копии сохраняются. Ошибка проверки не считается отсутствием акта; есть повтор проверки. Поздний ответ старой области игнорируется. Уникальность на сервере сохраняется и ловит параллельное создание после проверки.
-
-Проверка совпадения ключа НЕ является доказательством побайтового совпадения файлов: интерфейс сообщает именно о существующем акте объекта/месяца. При замене содержимого нужен штатный correction workflow, который этот пакет не создаёт и не выполняет.
+- До повторной привязки проверяется ключ объекта/F2/месяца/пустого номера. Существующий ID, период, статус и история доступны сразу; ошибка проверки требует retry. Это проверка ключа, не доказательство равенства файлов. Exact unique conflict объясняется, вместо ложного «обновите страницу».
+- У добавленных строк есть edit/cancel. Исходная смета не удаляется; отмена сохраняет архив. Любая ссылка Fakt/F2 или утверждённое изменение блокирует удаление; нужен отдельный governed workflow. Нет автоматической очистки orphan rows.
+- Версионированные команды edit/cancel проверяют actor/company/object до idempotent replay. Изменённый запрос с прежним operation ID отклоняется. При edit сохраняются независимые ручные привязки ресурсов; negative/unresolved исходные строки остаются в рабочем черновике.
+- Канонический результат checkpoint-ится локально и в cursor серверного черновика перед refresh. При неудачном refresh pending correction применяется при local/server resume. Успех показывается после обновления и сохранения связей. После подтверждённой записи повтор кнопки обновляет связи, не создаёт ещё одну строку.
+- Диалог показывает предыдущую/новую суммы и разницу. Неполные цены не дают ложную полную разницу/единичную цену. Explicit price 0 остаётся 0; NULL остаётся неизвестным.
 
 ## Проверки
 
-Изолированный worktree `C:/Temp/GAS-f2-duplicate-warning-v1`: 81 targeted Vitest PASS; `npm run build` PASS (оба TypeScript-проекта); `npm run tekshir` PASS; oxlint exit 0 с существующими предупреждениями; governance PASS с предупреждением stale CURRENT_STATE main_sha. Общий Vitest: 2112 PASS / 17 skipped, 293 PASS / 8 skipped suites; финальный receipt в mailbox 03. Подтверждение authenticated UI/production deploy отсутствует.
+Полный Vitest: 2130 PASS / 17 skipped; 296 PASS / 8 skipped suites. После небольшого scope/refresh follow-up: Workbench 21 PASS, local/server draft 20 PASS. Build покрывает оба TS-проекта; tekshir и oxlint проверяются финальными receipts. Governance PASS (существующее предупреждение stale CURRENT_STATE SHA). Сайт-карта сгенерирована после добавления именованных команд.
 
-## Незавершённый пакет Claude
+SQL acceptance в одной транзакции достигает `F2_RECOVERY_ACCEPTANCE_PASS` и полностью откатывается через RAISE: source values unchanged, explicit zero, unauthorized/cache replay, stale edit/delete, failed edit atomicity, archive, Fakt protection, resource→work edit/replay. Roundtrip достигает `F2_RECOVERY_ROUNDTRIP_PASS`: четыре старые функции восстановлены (нормализуются только CRLF/LF), ACL/security config сохранены, новые функции отсутствуют после rollback.
 
-`C:/Temp/GAS-f2-import-recovery-v1`, ветка `codex/f2-import-recovery-v1`: сохранены 11 исходных незакоммиченных файлов Claude; исходный `C:/Temp/GAS-token-mon` не изменён (SHA256 сверены). Резервная копия `C:/Temp/f2-claude-recovery-20261018`.
+## Выпуск — integrator lane
 
-Усилены сохранение независимых ручных привязок, retry operation ID, защита Fakt/F2 и авторизация перед idempotent replay. Синтетический rollback acceptance достиг `F2_RECOVERY_ACCEPTANCE_PASS`; миграция НЕ применена. Полный пакет НЕ готов к интеграции: UI перемещения не подключён, нужны проверки сортировки/версий и resource→work editing, полный отдельный gate packet. Нельзя смешивать его с готовым предупреждением.
+Миграция `20261106480000_t2_qoshilgan_boshqaruv_v1` НЕ ПРИМЕНЕНА. Сначала повторить rollback acceptance/проверку baseline drift, применить migration, затем развернуть frontend/API из ветки. При откате сначала вернуть frontend/API, затем rollback SQL. Иначе новый frontend вызовет отсутствующие v2 RPC. Бизнес-данные не переписывать. Для завершения product release требуется authenticated owner vertical smoke (add/edit/cancel/relink/save/resume/company switch).
 
-Реальные акты не заменены/не отменены; предполагаемые orphan rows не удалены. OpenRouter §2 остаётся следующей работой; платных диагностических вызовов нет.
+DEPLOYED: нет. MAIN UPDATED: нет. Authenticated UI smoke: UNKNOWN. До этих шагов не называть задачу выпущенной.
 
-CODE / TESTED: предупреждение готово. PUSHED: remote 572e6f0a проверен. DEPLOYED: нет. UNKNOWN: authenticated browser smoke и production CI.
+## Ограничения / следующий пакет
+
+Произвольное перемещение исключено из выпуска: прототип сохранён в `ca263ee7`. Нынешний integer tartib + ID не обеспечивает точную вставку старого ID между строками без изменения исходного порядка. Нужен согласованный display-order metadata across projections, не подмена source tartib. Создание нескольких работ вместо ресурса протестировано как RPC, отдельный UI создания ещё не предоставлен; автоматическое восстановление архива тоже не входит. Нельзя заявлять, что эти возможности уже доступны оператору.
+
+Checkpoint защищает уже полученный канонический результат; browser crash до первого ACK/checkpoint не является общей DB+browser атомарной транзакцией и остаётся отдельным E2E recovery сценарием. Исходник и остальные решения не удаляются.
+
+Оригинальные 11 файлов `C:/Temp/GAS-token-mon` сохранены и проверены по SHA256; backup `C:/Temp/f2-claude-recovery-20261018`. OpenRouter §2 ещё не выполнен. Исторические сообщения mailbox 01–03 не переписывать; текущее состояние — этот handoff и receipt 04.
