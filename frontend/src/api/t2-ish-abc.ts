@@ -79,8 +79,27 @@ export function ishAbcTahrir(p: Omit<AbcSaqlaInput, 'command' | 'otaQatorId' | '
   });
 }
 
+/** Smeta RESURSI o'rniga ish(lar) — masalan ГПС ni buyurtmachi bergan: material emas, qazib olish va tashish ishlari.
+ *  `eskiQatorId` — shu resursning oldingi ish zamenasini almashtirish (tahrirlash). Asl resurs o'zgarmaydi. */
+export type ResursIshInput = { ish: { kod?: string | null; nom: string; birlik: string; hajm: number }; resurslar: AbcSaqlaInput['resurslar'] };
+export function resursIshZamena(p: { kompaniyaId: number; obyektId: number; resursQatorId: number; ishlar: ResursIshInput[]; sabab: string; operationId: string; eskiQatorId?: number | null }):
+  Promise<AktNatija & { code?: string; qator_id?: number; qator_idlar?: number[]; resurs_idlar?: number[][] }> {
+  return yozAmali({ amal: 'resurs_ish_zamena_v1', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, resurs_qator_id: p.resursQatorId,
+    ishlar: p.ishlar, sabab: p.sabab, operation_id: p.operationId, eski_qator_id: p.eskiQatorId ?? null });
+}
+
+/** Qo'shilgan qatorni (bolalari bilan) boshqa joyga ko'chirish: `yangiOtaId` ichiga, `keyinQatorId` dan keyin (yo'q — boshiga). */
+export function qoshilganKochir(p: { kompaniyaId: number; obyektId: number; qatorId: number; yangiOtaId: number; keyinQatorId?: number | null; operationId: string }): Promise<AktNatija & { code?: string }> {
+  return yozAmali({ amal: 'qoshilgan_kochir_v1', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, qator_id: p.qatorId,
+    yangi_ota_id: p.yangiOtaId, keyin_qator_id: p.keyinQatorId ?? null, operation_id: p.operationId });
+}
+
 export function abcXato(r: { error?: string; xabar?: string; code?: string } | null | undefined): string {
   const m = `${r?.code ?? ''} ${r?.error ?? ''} ${r?.xabar ?? ''}`;
+  if (/ZAMENA_JOYI/.test(m)) return 'Zamena o‘zi almashtirgan qator yonida turadi — faqat shu bo‘lim ichida tartibini o‘zgartirish mumkin.';
+  if (/TUZILMA_NOTOGRI|JOY_NOTOGRI/.test(m)) return 'Bu joyga ko‘chirib bo‘lmaydi: ish — faqat bo‘limga, resurs — ishga yoki bo‘limga.';
+  if (/RESURS_QOSHILGAN/.test(m)) return 'Bu resursni o‘zingiz qo‘shgansiz — uni tahrirlang yoki o‘chiring.';
+  if (/RESURS_ISHSIZ|BOLIM_NOT_FOUND/.test(m)) return 'Resursning ishi yoki bo‘limi topilmadi — ish zamenasi uchun joy aniqlanmadi.';
   if (/SMETA_QATORI_OZGARMAS/.test(m)) return 'Smetaning asl qatori o‘chirilmaydi va o‘zgartirilmaydi.';
   if (/F2_DA/.test(m)) return 'Bu qator F2 aktida — avval F2 ni bekor qiling.';
   if (/BOGLANGAN/.test(m)) return 'Qatorga АОСР / laboratoriya / narx dalili bog‘langan — avval ularni yeching.';
@@ -91,3 +110,6 @@ export function abcXato(r: { error?: string; xabar?: string; code?: string } | n
   if (/WRITE_ROLE_REQUIRED/.test(m)) return 'Bu amal uchun PTO, rahbar yoki admin roli kerak.';
   return r?.error || r?.xabar || r?.code || 'Saqlab bo‘lmadi.';
 }
+
+/** IshAbcModal uchun standart saqlash o'rniga ishlatiladigan funksiya (masalan resurs o'rnidagi ish zamenasini tahrirlash). */
+export type AbcSaqlashFn = (d: { ish: AbcSaqlaInput['ish']; resurslar: AbcSaqlaInput['resurslar']; sabab: string; operationId: string }) => Promise<AktNatija & { code?: string; qator_id?: number }>;

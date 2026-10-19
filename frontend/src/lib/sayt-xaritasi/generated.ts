@@ -247,6 +247,14 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_ish_abc_tahrir_v1"
     },
     {
+      "amal": "resurs_ish_zamena_v1",
+      "rpc": "t2_resurs_ish_zamena_v1"
+    },
+    {
+      "amal": "qoshilgan_kochir_v1",
+      "rpc": "t2_qoshilgan_kochir_v1"
+    },
+    {
       "amal": "shartnoma_saqla_v2",
       "rpc": "t2_shartnoma_saqla_v2"
     },

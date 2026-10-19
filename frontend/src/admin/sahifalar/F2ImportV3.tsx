@@ -12,6 +12,7 @@ import {
   bogla, boshlangich, f2Indeks, smetaIndeks, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { exactWrite } from '../../lib/f2-exact-write';
+import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import type { Fayl } from '../../lib/fayl-daraxt';
@@ -170,6 +171,20 @@ function Sessiya({ companyId }: { companyId: number }) {
   const ind = useMemo(() => (akt ? f2Indeks(akt.daraxt) : null), [akt]);
   const S = useMemo(() => smetaIndeks(smetaQatorlari(rows)), [rows]);
   const raw = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
+  // Zamena qatori → u almashtirgan ASL smeta qatori (t2_daraxt da yo'q — alohida, faqat zamena qatorlari uchun).
+  const [zamenaAsl, setZamenaAsl] = useState<ReadonlyMap<number, number>>(new Map());
+  const zamenaKalit = useMemo(() => rows.filter((r) => r.zamena).map((r) => r.id).join(','), [rows]);
+  useEffect(() => {
+    const idlar = zamenaKalit ? zamenaKalit.split(',') : [];
+    if (!idlar.length || !objectId) { setZamenaAsl(new Map()); return; }
+    let active = true;
+    void sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objectId}&id=in.(${idlar.slice(0, 2000).join(',')})`, ustunlar: 'id,replaces_line_id', limit: 2000 })
+      .then((d) => {
+        if (!active || !d.ok) return;
+        setZamenaAsl(new Map((d.qatorlar ?? []).filter((x) => x.replaces_line_id != null).map((x) => [Number(x.id), Number(x.replaces_line_id)])));
+      }).catch(() => undefined);
+    return () => { active = false; };
+  }, [zamenaKalit, objectId]);
 
   function tozala() {
     // Scope/file switch must flush pending decisions before clearing in-memory state.
@@ -325,6 +340,19 @@ function Sessiya({ companyId }: { companyId: number }) {
       const bogsiz = f.tur === 'bl' ? f.bolalar.length - resIdlar.length : 0;
       setHolat(bogsiz > 0 ? `Smetaga qo‘shildi; ${bogsiz} ta resurs bog‘lanmadi — qo‘lda bog‘lang.` : 'Smetaga qo‘shildi va bog‘landi.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Yaratish bajarilmadi.'); await smetaYangila().catch(() => undefined); }
+    finally { setBusy(false); }
+  }
+  /** Siz qo'shgan qator tahrirlandi (server eskisini arxivlab yangisini yaratdi → yangiId) yoki o'chirildi.
+   *  Smeta yangilanadi; eskisiga bog'langan F2 qatori yangisiga o'tadi yoki ✕ ga qaytadi (qayta bog'lash uchun). */
+  async function qoshilganOzgardi(eskiIdlar: number[], yangiId?: number | null) {
+    if (!ind || !ijRef.current) return;
+    setBusy(true); setXato('');
+    try {
+      const r = await smetaYangila();
+      const t2 = qoshilganOzgardiLib(ijRef.current, ind, { eskiIdlar: new Set(eskiIdlar), yangiId, mavjud: new Set(r.map((q) => q.id)), S: smetaIndeks(smetaQatorlari(r)) });
+      setIj(t2.ij);
+      setHolat(t2.uzildi ? `${t2.uzildi} ta F2 qatori bo‘shadi — ✕ belgili qatorlarni qayta bog‘lang.` : t2.qaytaBoglandi ? 'Yangi qatorga qayta bog‘landi.' : 'Smeta yangilandi.');
+    } catch (e) { setXato(e instanceof Error ? e.message : 'Smeta yangilanmadi.'); }
     finally { setBusy(false); }
   }
 
@@ -546,7 +574,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
           ij={ij} onIj={setIj} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
-          onYaratildi={yaratildi} disabled={busy || !!done} />
+          onYaratildi={yaratildi} zamenaAsl={zamenaAsl} onQoshilganOzgardi={qoshilganOzgardi} disabled={busy || !!done} />
       )}
 
       {yozish && (
