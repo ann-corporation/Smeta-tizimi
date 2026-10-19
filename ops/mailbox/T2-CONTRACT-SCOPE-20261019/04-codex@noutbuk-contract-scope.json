@@ -1,0 +1,33 @@
+{
+  "task": "T2-CONTRACT-SCOPE-20261019",
+  "agent": "codex",
+  "machine": "noutbuk-contract-scope",
+  "code_sha": "e825476644248f0c5d5aad239c71f1b759e1392f",
+  "status": "implemented_partial",
+  "branch": "codex/contract-scope-v1",
+  "gates": {
+    "full_vitest": "2150 PASS / 17 skip; before pagination follow-up",
+    "final_targeted": "31 PASS / 7 files; includes pagination and i18n/permission guards",
+    "build": "PASS (both TS projects)",
+    "tekshir": "PASS",
+    "new_module_oxlint": "PASS",
+    "governance": "PASS; pre-existing stale main_sha warning",
+    "diff_check": "PASS"
+  },
+  "sql_tests": {
+    "acceptance": "CONTRACT_SCOPE_ACCEPTANCE_PASS; deliberate final RAISE; rollback",
+    "roundtrip": "CONTRACT_SCOPE_ROUNDTRIP_PASS; deliberate final RAISE; rollback"
+  },
+  "git_blob_sha256": {
+    "supabase/migrations/20261106490000_t2_contract_scope_v1.sql": "337a069ebfe25ad35dda6e8751c7b7e18433f50426f7215d6b8078f5d4f96e5e",
+    "supabase/migrations/20261106490000_t2_contract_scope_v1.rollback.sql": "37a8ba3ff56070002bb41eb6b9590e2c7d6409ec5b61a4b9e8f9c979be81ce3d",
+    "supabase/migrations/20261106490000_t2_contract_scope_v1.acceptance.sql": "05f672a2d74ae4cf97298c153747bb0cd073ad145581d92e7f1179732a66283e"
+  },
+  "not_done": [
+    "Production migration/main/deploy",
+    "Creation/import of non-ShNQ contract lines",
+    "Integration of individual pricing into Fakt/F2/F3/cumulative/exports",
+    "Authenticated owner smoke and rendered UI QA"
+  ],
+  "review_request": "Need coordinated next package for shared per-line valuation policy and immutable F2 snapshots; no fake resource/category as workaround."
+}
