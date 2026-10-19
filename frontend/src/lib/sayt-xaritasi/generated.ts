@@ -243,8 +243,28 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_ish_abc_ochir_v1"
     },
     {
+      "amal": "qator_ish_abc_ochir_v1",
+      "rpc": "t2_ish_abc_ochir_v1"
+    },
+    {
+      "amal": "qator_ish_abc_ochir_v2",
+      "rpc": "t2_ish_abc_ochir_v2"
+    },
+    {
       "amal": "ish_abc_tahrir_v1",
       "rpc": "t2_ish_abc_tahrir_v1"
+    },
+    {
+      "amal": "qator_ish_abc_tahrir_v1",
+      "rpc": "t2_ish_abc_tahrir_v1"
+    },
+    {
+      "amal": "qator_ish_abc_tahrir_v2",
+      "rpc": "t2_ish_abc_tahrir_v2"
+    },
+    {
+      "amal": "qator_resurs_ish_zamena_v1",
+      "rpc": "t2_resurs_ish_zamena_v1"
     },
     {
       "amal": "shartnoma_saqla_v2",

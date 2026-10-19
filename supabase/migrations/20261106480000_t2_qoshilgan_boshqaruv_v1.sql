@@ -308,9 +308,9 @@ begin
   if coalesce(v_r.qoshimcha, false) then
     return jsonb_build_object('ok', false, 'code', 'RESURS_QOSHILGAN', 'xabar', 'Bu resursni o''zingiz qo''shgansiz — uni tahrirlang yoki o''chiring.');
   end if;
-  select * into v_w from public.t2_qator where id = v_r.ota_id;
+  select * into v_w from public.t2_qator where id = v_r.ota_id and obyekt_id=p_obyekt_id and kompaniya_id=p_kompaniya_id;
   if not found or v_w.tur <> 'bl' then return jsonb_build_object('ok', false, 'code', 'RESURS_ISHSIZ', 'xabar', 'Resurs ish ichida emas — ish zamenasi uchun bo''lim aniqlanmadi.'); end if;
-  select * into v_z from public.t2_qator where id = v_w.ota_id;
+  select * into v_z from public.t2_qator where id = v_w.ota_id and obyekt_id=p_obyekt_id and kompaniya_id=p_kompaniya_id;
   if not found or v_z.tur <> 'rz' then return jsonb_build_object('ok', false, 'code', 'BOLIM_NOT_FOUND'); end if;
 
   if p_eski_qator_id is not null then

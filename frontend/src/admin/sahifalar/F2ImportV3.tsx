@@ -378,6 +378,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato('');
     pendingCorrection.current = {oldIds:[...eskiIdlar],newId:yangiId??null};
     const draft=ishSnapshot();
+    if (draft) lastWorkingDraft.current=draft;
     try {
       if (!draft) throw new Error('F2 ish holati topilmadi.');
       await f2IshchiSaqla(draft);

@@ -379,7 +379,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   // Virtual ro'yxatda maqsad qator DOM'da bo'lmasligi mumkin — querySelector+scrollIntoView ishlamaydi. Aylantirish
   // indeks orqali; daraxt ochilishi (state) render bo'lgach bajariladi.
   // Moslashtirish ish joyi ochiq — deploy/yangilash ishni so'ramasdan o'chirmasin (versiya.ts).
-  useEffect(() => { saqlanmaganIsh('f2-import', !(p.disabled || mutationBusy)); return () => saqlanmaganIsh('f2-import', false); }, [(p.disabled || mutationBusy)]);
+  const workbenchEditable = !p.disabled && !mutationBusy;
+  useEffect(() => { saqlanmaganIsh('f2-import', workbenchEditable); return () => saqlanmaganIsh('f2-import', false); }, [workbenchEditable]);
   const f2RowsRef = useRef(f2VisibleRows); f2RowsRef.current = f2VisibleRows;
   const smetaRowsRef = useRef(smetaVisibleRows); smetaRowsRef.current = smetaVisibleRows;
   const f2Fokus = useRef<string | null>(null), smetaFokus = useRef<number | null>(null);
