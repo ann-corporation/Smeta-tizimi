@@ -2377,6 +2377,26 @@
   ],
   "production_write_allowed": false,
   "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained. Owner 2026-10-11 correction: unresolved rows including negatives must WARN, not block saving a canonical draft act from confirmed bindings. All original rows preserved in server working draft before act creation; no automatic approval. Owner urgent 2026-10-11: Amfiteatr/Suniy page latency; narrow read-pagination COUNT policy and additive object/id cursor index. No business values or tenant policy changes."
-}
+},
+    {
+      "id": "T2-NARX-ISHONCH-001",
+      "title": "Studio narxlash: tizim tajribasi (kam tasdiq), yetkazuvchilar o'rtachasi, internet narx agenti, Jarvis aniq qidiruv + R2 narx indeksi, avtomatik narxlash, bitta varaqda ko'p lokal smeta (egasi 2026-10-17)",
+      "owner": "claude",
+      "machine": "desktop",
+      "branch": "main",
+      "base_sha": "90a36f5",
+      "status": "released_main_owner_e2e_open",
+      "owns": [
+        "frontend/src/lib/smeta-studio/narx-ishonch.ts",
+        "frontend/src/lib/smeta-studio/narx-internet.ts",
+        "frontend/src/lib/smeta-ai/internet-narx.ts",
+        "frontend/src/lib/jarvis/qidiruv-sozlari.ts",
+        "frontend/src/lib/jarvis/katalog-kontekst.ts",
+        "supabase/migrations/20261106500000_t2_narx_tajriba_v1*.sql",
+        "supabase/migrations/20261106510000_t2_agent_qidiruv_v1*.sql"
+      ],
+      "production_write_allowed": true,
+      "_izoh": "Studio sessiyasi egasi tomonidan to'xtatildi (2026-10-17) — Studio/narx-katalog/smeta-ai lane Claude(AI)da. Migratsiyalar 500000/510000 prod'da. Ochiq: egasi kirgan brauzerda production E2E."
+    }
   ]
 }
