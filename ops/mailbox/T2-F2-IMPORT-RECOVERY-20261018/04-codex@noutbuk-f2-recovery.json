@@ -20,9 +20,9 @@
   "sqlAcceptance": "F2_RECOVERY_ACCEPTANCE_PASS (final RAISE, rolled back)",
   "sqlRoundtrip": "F2_RECOVERY_ROUNDTRIP_PASS (only CRLF/LF normalized; function bodies/ACL/security config matched; final RAISE, rolled back)",
   "sqlSha256": {
-    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.sql": "81a690aa9f0ba23b11b3cb379cb518e3c0e54a353eafc46ebedfb78cf9de954d",
-    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.rollback.sql": "598596677b248d51041f80399add2e3d24607997e203737c71c54e23d264874c",
-    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.acceptance.sql": "8f02be80bd558d2aac225e80cb1519e290f4a8bc65af87b89ff6ba589e4ef903"
+    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.sql": "1e14731792e6ac44df0f74ca4c46c557e24fb5440fe0b85be1dc668ad0675634",
+    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.rollback.sql": "e669deb6b0dd4959669f5977a501be30fea682e5844116265a4c043459debe86",
+    "supabase/migrations/20261106480000_t2_qoshilgan_boshqaruv_v1.acceptance.sql": "162a8fd1c6708d39504fb01fa286e4efe7b880fc084aada4cd07218af7b91211"
   },
   "migrationApplied": false,
   "mainUpdated": false,
@@ -39,5 +39,12 @@
     "C:/Temp/f2-correction-release-tekshir-complete.log",
     "C:/Temp/f2-correction-release-build-final.log",
     "C:/Temp/f2-correction-release-oxlint-complete.log"
-  ]
+  ],
+  "sqlHashEncoding": "canonical git blob bytes (LF); rollback source comparisons normalize CRLF/LF only",
+  "gates": {
+    "build": 0,
+    "tekshir": 0,
+    "oxlint": 0,
+    "governance": "PASS; existing CURRENT_STATE main_sha warning"
+  }
 }
