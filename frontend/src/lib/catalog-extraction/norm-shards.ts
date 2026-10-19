@@ -15,7 +15,8 @@ import type { NormCatalog, NormWork } from './norm-catalog';
 
 export const NORM_SHARD_SCHEMA = 'norm-catalog-shards-v1';
 /** Bump whenever file layout changes: it is part of the revision hash (immutable caching). */
-export const NORM_BUILD_FORMAT = 2;
+/** 3: KodM/KodR conflict resolves through KodR («по проекту» → EXACT, two real products → AMBIGUOUS) — 2026-10-19. */
+export const NORM_BUILD_FORMAT = 3;
 
 export type BookRow = { ID: string; IDPARENT: string | null; NAME: string | null; TIPBOOK: string | null;
   KODA: string | null; KODTAB: string | null; OLITEM?: string | null };
