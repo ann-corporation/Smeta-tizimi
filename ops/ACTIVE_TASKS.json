@@ -2476,6 +2476,45 @@
       ],
       "production_write_allowed": false,
       "_izoh": "User direct 19-Oct: universal mixed contractual/non-ShNQ scope. Existing canonical IDs/F2/F3 reused. No invented norms or inferred contract remainder. Holat insertion sublease from own reliability task; other functions untouched. Integrator owns release."
+    },
+    {
+      "id": "T2-RAHBAR-DECISION-20261015",
+      "title": "Owner: decision-first executive dashboard; Claude integrates and deploys",
+      "owner": "codex",
+      "machine": "noutbuk-rahbar",
+      "branch": "codex/rahbar-decision-v1",
+      "base_sha": "4a76f572f6d0c6bb75e3764b80903be7a977825e",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/admin/sahifalar/BossDashboard.tsx",
+        "frontend/src/admin/sahifalar/BossDashboard.test.tsx",
+        "frontend/src/admin/AdminShell.tsx",
+        "frontend/src/admin/AdminShell.platform-role.test.tsx",
+        "frontend/src/umumiy/kontekst/navigation-role.ts",
+        "frontend/src/umumiy/kontekst/navigation-role.test.ts",
+        "frontend/src/components/boss-decision/",
+        "frontend/src/api/t2-boss.ts",
+        "frontend/src/api/t2-boss.test.ts",
+        "frontend/functions/api/boss-dashboard.ts",
+        "frontend/functions/api/boss-dashboard.test.ts",
+        "frontend/functions/api/boss-documents.ts",
+        "frontend/functions/api/boss-documents.test.ts",
+        "frontend/functions/_shared/boss-read.ts",
+        "frontend/testlar/t2_boss_panel.test.cjs",
+        "supabase/tests/t2_boss_decision_contract.sql",
+        "ops/sql/rahbar-decision/",
+        "ops/handoff/T2_RAHBAR_DECISION_20261015.md",
+        "ops/mailbox/T2-RAHBAR-DECISION-20261015/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/AGENT_COMMS_PROTOCOL.md",
+        "docs/architecture/SMETA_F2_NAKOPITELNIY_CHANGE_CONTROL_V1.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Direct owner: parallel work with Claude and Codex, no main/deploy by this lane. Frontend/API/read-model changes only inside lease; Studio/catalog/Jarvis and F2 lanes untouched. Russian evidence + exact pushed SHA to Claude. 2026-10-16 owner continuation: frontend cost composition and evidence UX only; SQL/API contracts frozen at c800b464 for Claude integration. Shared vault updates use own machine-named file and append-only journal. i18n keys remain additive under existing own T2-SMETACHI lease; no other task lock removed. 2026-10-16 Claude ACK received: frontend only. Owner expanded executive cockpit with read-only Mindmap, scoped dossiers, finance, activity and charts. SQL/functions remain frozen. No TestXarita changes. V2: Claude A1 acknowledged; A2 approved sketch V2-01 with six mandatory conditions; implementation queued. Current change is docs/coordination only. One shared TugunDosye, exact TestXarita insertion only after approved sketch; no second graph. Agent communication via append-only Obsidian/git mailbox and machine JSON; Codex heartbeat every 10 minutes."
     }
   ]
 }

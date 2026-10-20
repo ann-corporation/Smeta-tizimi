@@ -1,0 +1,31 @@
+{
+  "stage": "RAHBAR-V2-dosye",
+  "agent": "codex",
+  "machine": "noutbuk-rahbar",
+  "verified_at": "2026-10-16T13:02:07.793136+00:00",
+  "base_sha": "adbf754803ce0d6df780a24cea0b52fd03c7eb5b",
+  "targeted_vitest": {
+    "passed": 120,
+    "files": 13,
+    "failed": 0,
+    "command": "npx vitest run src/components/boss-decision src/admin/sahifalar/BossDashboard.test.tsx src/i18n --maxWorkers=2",
+    "cwd": "frontend"
+  },
+  "app_tsc": "PASS",
+  "functions_tsc": "PASS via build/tekshir",
+  "build": "PASS",
+  "tekshir": "PASS",
+  "focused_oxlint": "PASS",
+  "governance": "PASS (79 tasks; stale main_sha warning)",
+  "production": "NOT_DEPLOYED",
+  "full_vitest": "NOT_RUN",
+  "visual_smoke": "NOT_RUN",
+  "testxarita_insertion": "PENDING_FALLBACK_SOURCE_ADAPTER",
+  "source_hashes": {
+    "frontend/src/components/boss-decision/TugunDosye.tsx": "5843d6b1db26241cb3b9e2358261e01022fe4235a0c9e269e2178f12f5d45322",
+    "frontend/src/components/boss-decision/TugunDosye.test.tsx": "1569203b9529397ccf48b85e36968b80742f8d3a264bc50abca1d5ddcb5481db",
+    "frontend/src/components/boss-decision/ExecutiveCockpit.tsx": "1f4f48cef3923501d6f2206f732ed782c167a2fdcdc0251d1adcc02da690cd1f",
+    "frontend/src/i18n/lugat/en.json": "e549e8df622af46fdc5a6e5b3cc6843cb1e181d19341bde712afc290e2b0d4ca",
+    "frontend/src/i18n/lugat/ru.json": "31b103e1d2d8731d74e8d27d245d2fd71597413679b74f7fb9cfa5da175656f5"
+  }
+}

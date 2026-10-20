@@ -1,0 +1,10 @@
+import {afterEach,beforeEach,it,expect,vi} from 'vitest';
+const m=vi.hoisted(()=>({session:{foydalanuvchi_id:42} as any}));
+vi.mock('../_shared/auth',()=>({tekshir:async()=>m.session}));
+import {onRequestGet} from './boss-documents';
+const env={SUPABASE_URL:'https://test.supabase.co',SUPABASE_KEY:'test',SESSIYA_KALIT:'test'};
+const request=(q='kompaniya_id=17')=>onRequestGet({request:new Request('https://example.test/api/boss-documents?'+q),env} as any);
+beforeEach(()=>{m.session={foydalanuvchi_id:42};});afterEach(()=>vi.unstubAllGlobals());
+it('requires session and validates IDs before upstream access',async()=>{const f=vi.fn();vi.stubGlobal('fetch',f);m.session=null;expect((await request()).status).toBe(401);m.session={foydalanuvchi_id:42};expect((await request('kompaniya_id=17&before=-1')).status).toBe(400);expect((await request('kompaniya_id=17&without_project=true&loyiha_id=7')).status).toBe(400);expect(f).not.toHaveBeenCalled();});
+it('uses only the named read RPC, a fixed bounded page and session actor',async()=>{const f=vi.fn().mockResolvedValue(Response.json({ok:true}));vi.stubGlobal('fetch',f);const r=await request('kompaniya_id=17&before=123');expect(r.status).toBe(200);expect(r.headers.get('cache-control')).toBe('no-store');expect(f.mock.calls[0][0]).toContain('/rpc/t2_boss_documents_v1');expect(JSON.parse(f.mock.calls[0][1].body)).toMatchObject({p_actor_id:42,p_kompaniya_id:17,p_limit:50,p_before_id:123});});
+it('does not fake a complete list from the legacy truncated registry if RPC is missing',async()=>{const f=vi.fn().mockResolvedValue(Response.json({code:'PGRST202'},{status:404}));vi.stubGlobal('fetch',f);expect((await request()).status).toBe(503);expect(f).toHaveBeenCalledTimes(1);});

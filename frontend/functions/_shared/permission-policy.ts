@@ -30,7 +30,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
 export const SCOPED_APIS = new Set(['contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
-  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','system-control','tomon','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control']);
+  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
@@ -52,6 +52,7 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'smeta-narx-agent') return 'narx.read';
   if (api === 'smeta-ai') return 'smeta.read';
   if (api === 'boss-dashboard') return 'financial.read';
+  if (api === 'boss-documents') return 'document.read';
   if (api === 'gas') return 'control.global.read'; // T1 emergency adapter is not a tenant permission bypass.
   if (api === 'hujjat-yukla') return 'document.write';
   if (api.startsWith('hujjat')) return method === 'GET' || b.amal === 'royxat' ? 'document.read' : 'document.write';

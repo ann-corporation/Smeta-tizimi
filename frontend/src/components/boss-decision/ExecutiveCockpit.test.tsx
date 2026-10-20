@@ -1,0 +1,42 @@
+import {afterEach,describe,expect,it,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {MemoryRouter} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {dashboardFixture} from './fixtures.fixture';
+const mocks=vi.hoisted(()=>({graph:vi.fn(),slice:vi.fn()}));
+vi.mock('./cockpit-data',async importOriginal=>({...await importOriginal<typeof import('./cockpit-data')>(),readGraph:mocks.graph,readSlice:mocks.slice}));
+import ExecutiveCockpit from './ExecutiveCockpit';
+const graph={tugunlar:[{id:'kompaniya:17',tur:'kompaniya',nom:'DEMO company',meta:null},{id:'loyiha:7',tur:'loyiha',nom:'Park DEMO',meta:null},{id:'obyekt:127',tur:'obyekt',nom:'Amfiteatr DEMO',meta:{zayavka:2}},{id:'shartnoma:9',tur:'shartnoma',nom:'C-9',meta:{summa:120}},{id:'texnika:3',tur:'texnika',nom:'Kran DEMO',meta:{davlat_raqami:'TEST'}}],bogichlar:[{manba:'kompaniya:17',maqsad:'loyiha:7',tur:'loyiha_kompaniya'},{manba:'loyiha:7',maqsad:'obyekt:127',tur:'obyekt_loyiha'},{manba:'shartnoma:9',maqsad:'obyekt:127',tur:'shartnoma_obyekt'},{manba:'texnika:3',maqsad:'obyekt:127',tur:'texnika_obyekt'}]};
+function mount(initial='/admin/dashboard',data=dashboardFixture()) {const reports=vi.fn();const client=new QueryClient({defaultOptions:{queries:{retry:false}}});const view=render(<MemoryRouter initialEntries={[initial]}><QueryClientProvider client={client}><ExecutiveCockpit key={data.kompaniya.kompaniya_id} data={data} onReports={reports}/></QueryClientProvider></MemoryRouter>);return {...view,reports,client};}
+afterEach(()=>{cleanup();mocks.graph.mockReset();mocks.slice.mockReset();});
+const resolveGraph=()=>mocks.graph.mockResolvedValue({graph,omittedEdges:0,readAt:'2026-10-16T10:00:00Z'});
+describe('executive cockpit drilldown',()=>{
+ it('shows eight attention objects first, with review before unpriced counts and explicit expansion',()=>{
+   const d=dashboardFixture();const base=d.executive!.objects[0];
+   d.executive!.objects=Array.from({length:10},(_,i)=>({...base,object_id:i+1,name:`Scope item ${i+1}`,review_count:i===9?1:0,unpriced_rows:10-i}));
+   d.executive!.totals.object_count=10;
+   mount('/admin/dashboard',d);
+   const heading=screen.getByRole('heading',{name:'Bugun nimaga e’tibor berish kerak?'});
+   const list=heading.parentElement!;
+   const names=Array.from(list.querySelectorAll('button')).map(b=>b.textContent);
+   expect(names[0]).toContain('Scope item 10');
+   expect(screen.queryByRole('button',{name:/Scope item 9/})).toBeNull();
+   fireEvent.click(screen.getByRole('button',{name:'Barcha yozuvlar (10)'}));
+   expect(screen.getByRole('button',{name:/Scope item 9/})).toBeTruthy();
+   expect(screen.getByRole('button',{name:'Yig‘ish (10)'}).getAttribute('aria-expanded')).toBe('true');
+ });
+ it('keeps object document access through the graph when the new money model is not installed',async()=>{resolveGraph();mocks.slice.mockResolvedValue({rows:[],complete:true,total:0});const d=dashboardFixture();delete d.executive;mount('/admin/dashboard?tugun=obyekt:127',d);fireEvent.click(screen.getByRole('tab',{name:'Ijro hujjatlari'}));await waitFor(()=>expect(mocks.slice).toHaveBeenCalledWith('quality',17,[127],expect.any(AbortSignal)));});
+
+ it('company report never silently narrows to its only object',()=>{const r=mount();fireEvent.click(screen.getByRole('button',{name:'Hisobot va asl hujjatlar'}));expect(r.reports).toHaveBeenCalledWith(undefined,undefined);});
+ it('financial displays preserve kopecks rather than rounding them to whole som',()=>{const d=dashboardFixture();d.executive!.totals.estimate_known=100.25;mount('/admin/dashboard',d);expect(screen.getByText('100,25 UZS')).toBeTruthy();});
+
+ it('initial overview does not load graph, accounting or full object rows',()=>{mount();expect(screen.getByText('Smeta pulining taqsimlanishi')).toBeTruthy();expect(mocks.graph).not.toHaveBeenCalled();expect(mocks.slice).not.toHaveBeenCalled();});
+ it('uses the existing Mindmap instead of another graph or map tab',async()=>{resolveGraph();mount();expect(screen.queryByRole('tab',{name:'Tashkilot xaritasi'})).toBeNull();expect(screen.queryByRole('region',{name:'Bog‘lanishlar diagrammasi'})).toBeNull();fireEvent.click(screen.getByRole('button',{name:/Park DEMO.*100/}));expect(screen.getByRole('heading',{name:'Park DEMO',level:2})).toBeTruthy();expect(screen.getByRole('link',{name:'Tayyor Mindmapni ochish'}).getAttribute('href')).toBe('/admin/mindmap?tugun=loyiha%3A7');await screen.findByRole('heading',{name:'Tanlangan joyning izohi'});});
+ it('report action keeps selected object scope',()=>{const r=mount('/admin/dashboard?tugun=obyekt:127');fireEvent.click(screen.getByRole('button',{name:'Hisobot va asl hujjatlar'}));expect(r.reports).toHaveBeenCalledWith(127,undefined);});
+ it('project report retains project scope even when the project contains one object',()=>{const r=mount('/admin/dashboard?tugun=loyiha:7');fireEvent.click(screen.getByRole('button',{name:'Hisobot va asl hujjatlar'}));expect(r.reports).toHaveBeenCalledWith(undefined,7);});
+ it('unassigned project chart is a real scope, not a link back to all company objects',()=>{const d=dashboardFixture();d.executive!.projects[0].project_id=null;d.executive!.objects[0].project_id=null;mount('/admin/dashboard?tugun=unassigned',d);expect(screen.getByRole('heading',{name:'Park DEMO',level:2})).toBeTruthy();});
+ it('document-status chart filters the underlying documents without pretending it is money',async()=>{resolveGraph();mocks.slice.mockResolvedValue({rows:[{id:1,obyekt_id:127,raqam:'A1',ish_nomi:'Hidden foundation',holat:'yangi',boglangan_ish_soni:1},{id:2,obyekt_id:127,raqam:'A2',ish_nomi:'Hidden pipe',holat:'tasdiqlangan',boglangan_ish_soni:2}],complete:true,total:2});mount();fireEvent.click(screen.getByRole('tab',{name:'Ijro hujjatlari'}));const heading=await screen.findByRole('heading',{name:'Hujjatlar holati bo‘yicha'});expect(heading.parentElement!.textContent).not.toContain('UZS');fireEvent.click(screen.getByRole('button',{name:/Yangi.*1/}));expect(screen.getByText(/A1 · Hidden foundation/)).toBeTruthy();expect(screen.queryByText(/A2 · Hidden pipe/)).toBeNull();});
+ it('object quality read never broadens into company-wide scope',async()=>{resolveGraph();mocks.slice.mockResolvedValue({rows:[],complete:true,total:0,readAt:'2026-10-16T10:00:00Z'});mount('/admin/dashboard?tugun=obyekt:127');fireEvent.click(screen.getByRole('tab',{name:'Ijro hujjatlari'}));await waitFor(()=>expect(mocks.slice).toHaveBeenCalledWith('quality',17,[127],expect.any(AbortSignal)));expect(await screen.findByText(/Yozuv qayd etilmagan; bu ish bajarilmaganini isbotlamaydi/)).toBeTruthy();});
+ it('failed accounting never shows previously cached financial amounts',async()=>{resolveGraph();mocks.slice.mockRejectedValue(Error('network'));const r=mount();r.client.setQueryData(['boss-finance',17],{rows:[{kompaniya_id:17,shartnoma_id:9,raqam:'C-9',dog_summa:982345,tolangan:0,debitor:0,avans:0}],complete:true,total:1},{updatedAt:0});fireEvent.click(screen.getByRole('tab',{name:'Pul va shartnomalar'}));await screen.findByRole('alert',undefined,{timeout:3000});expect(document.body.textContent).not.toContain('982');});
+ it('foreign entity URL never queries broad quality records',async()=>{resolveGraph();mount('/admin/dashboard?tugun=obyekt:999');fireEvent.click(screen.getByRole('tab',{name:'Ijro hujjatlari'}));await screen.findByRole('alert');expect(mocks.slice).not.toHaveBeenCalled();});
+});

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "stage": "RAHBAR-V2-foundation",
+  "agent": "codex",
+  "machine": "noutbuk-rahbar",
+  "verified_at": "2026-10-16T12:45:14.530276+00:00",
+  "base_sha": "5b64047ee2c3035e7d2e56a21924282f7d0a01e5",
+  "targeted_vitest": {
+    "files": 9,
+    "passed": 67,
+    "failed": 0,
+    "command": "npx vitest run src/components/boss-decision src/admin/sahifalar/BossDashboard.test.tsx --maxWorkers=2"
+  },
+  "app_tsc": "PASS",
+  "functions_tsc": "PASS via build and tekshir",
+  "build": "PASS",
+  "tekshir": "PASS",
+  "focused_oxlint": "PASS",
+  "governance": "PASS (79 tasks; pre-existing stale main_sha warning)",
+  "full_vitest": "NOT_RUN_THIS_CHECKPOINT",
+  "production": "NOT_DEPLOYED",
+  "visual_runtime": "NOT_VERIFIED",
+  "limitations": [
+    "Contract anomaly/payment helpers tested with synthetic fixtures; not yet wired to production contract sources.",
+    "Shared TugunDosye, five-stage chain, charts, source fallback and TestXarita insertion still pending.",
+    "Not READY_FOR_INTEGRATION."
+  ],
+  "source_hashes": {
+    "frontend/src/components/boss-decision/decision-v2.ts": "dcc8a957dc3a84ceaba8a420ffdb272fc2fe3e96302c514cb4c74befa62882bc",
+    "frontend/src/components/boss-decision/decision-v2.test.ts": "6290b23a82d7214883e9598b5d711330b9d9815df206465b2f43d771f75dd9a7",
+    "frontend/src/components/boss-decision/ExecutiveCockpit.tsx": "90d49835802c3e0aa4a1fd1064d8b4fcd25b7b615e334b2dee58d9d33b26effb",
+    "frontend/src/components/boss-decision/ExecutiveCockpit.test.tsx": "57f662776eff019d410f38ebadebaa191e3479cf6f64511481e4c83008375d09"
+  }
+}

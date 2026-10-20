@@ -454,6 +454,8 @@ function AdminShellInner() {
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
           <KompaniyaTanlagich />
+          {k.superadmin && <span className="rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent">{t('Platforma roli')}: superadmin</span>}
+          {k.superadmin && k.joriy?.membershipRole && <span className="text-[10px] text-text-dim">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
           <div className="ml-auto"><TilTanlagich ixcham /></div>
         </div>

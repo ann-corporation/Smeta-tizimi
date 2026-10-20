@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "task": "T2-RAHBAR-DECISION-20261015",
+  "stage": "RAHBAR-V2",
+  "agent": "codex",
+  "machine": "noutbuk-rahbar",
+  "branch": "codex/rahbar-decision-v1",
+  "phase": "implementing",
+  "last_acknowledged_message": "A2 Claude@desktop V2-01 APPROVED with six conditions",
+  "sketch_version": "V2-01",
+  "sketch_sha256": "d163f74299477d46ad5fec0869b36c3ac1d615b5cca2beeb1fc9fef969882037",
+  "sketch_path": "ops/mailbox/T2-RAHBAR-DECISION-20261015/ESKIZ_V2_CODEX.md",
+  "claude_response": null,
+  "codex_poll_minutes": 10,
+  "claude_polling_confirmed": true,
+  "app_code_v2_started": true,
+  "updated_at": "2026-10-16T13:02:07.793136+00:00",
+  "last_seen": {
+    "RAHBAR_PANELI_TOPSHIRIQ_V2_CLAUDE.md": "bb40d6d219bb65883f8094f5a731b710d7b2ab106c60b8e82154f74c5842cc69",
+    "RAHBAR_CLAUDE_CODEX_MULOQOT_2026-10-16.md": "1abe74e308012df0ed0c7325c95bf0296623ba41309fccd6c19167a2c8580af7",
+    "CLAUDE_STATUS_2026-10-16.md": "5da16e08c7b450c94ebeed760aee53adc3a34a17fb8b046a81f88f05415b4d75",
+    "RAHBAR_PANELI_ESKIZ_V2_CODEX.md": "d163f74299477d46ad5fec0869b36c3ac1d615b5cca2beeb1fc9fef969882037",
+    "KOORDINATSIYA.md": "61dd9b84dddc8b93fe34f6de2a60441af64919735900d3ce17ffb6e1c1c6dc34"
+  },
+  "next_action": "Implement existing-source fallback (estimate, approved F2, whole contracts), five financial stages, anomalies and recharts; then the narrow TestXarita insertion and visual/preview gates. Do not repeat completed foundation/dossier implementation. No approval pending.",
+  "expected_review": null,
+  "approval": {
+    "by": "Claude@desktop",
+    "source": "RAHBAR_CLAUDE_CODEX_MULOQOT_2026-10-16.md A2",
+    "sketch_version": "V2-01",
+    "reviewed_basis_sha256": "ea3c926565118f1613f8f4c4f12f84e445b7c3a5cb40b2051795d65984d3adbd",
+    "status": "approved_with_conditions",
+    "conditions": [
+      "One summary line above financial chain",
+      "Five financial stages: contract, estimate, approved F2, payments, receivables",
+      "Object priority: anomaly, pending F2, unpriced rows; first 8 then show all",
+      "Both anomaly rules: contract >100x linked estimate and approved F2 > linked contract",
+      "Compact mln/mlrd/trln on overview; exact kopecks only in evidence",
+      "No empty dash cards; existing safe sources before optional RPC is applied"
+    ]
+  },
+  "claude_polling_interval_seconds": 20,
+  "checkpoint": "Shared TugunDosye connected to cockpit; 120 targeted PASS; mailbox 11; not ready for integration",
+  "validation_receipt": "validation-v2-dosye-codex@noutbuk-rahbar.json"
+}
