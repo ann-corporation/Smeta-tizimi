@@ -19,7 +19,7 @@ import { faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakat
 import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, tizimYordamJavobi, yolTekshir } from '../_shared/agent-bilim';
 import { BILIM_SXEMA, BILIM_VAZIFA, bilimKodi, bilimTakliflariniAjrat } from '../_shared/agent-bilim-yigish';
 import { BAHO_TURLARI, BOSH_USLUB, uslubBaho, type Baho, uslubBolimi, uslubXulosasi, uslubYangila, type UslubXususiyat } from '../_shared/agent-uslub';
-import { jarvisSalommi } from '../../src/lib/jarvis/intent';
+import { jarvisKichikGap, jarvisRahmatJavobi } from '../../src/lib/jarvis/intent';
 import { qidiruvSozlari } from '../../src/lib/jarvis/qidiruv-sozlari';
 import { studioKontekstTekshir } from '../../src/lib/jarvis/studio-kontekst';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
@@ -238,15 +238,19 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   const savol = matn(so.savol, 2000) ?? '';
   const sessiya = crypto.randomUUID();
   log('🔐', 'Lavozimingiz aniqlanmoqda…');
-  const kr = await rpcData(env, 't2_agent_kasb_v1', { p_actor_id: actor, p_kompaniya_id: kid });
+  /* 2026-10-20 (tezlik): baza uzoqda (~0.3 s har borib-kelish) — bir-biriga bog'liq bo'lmagan chaqiruvlar PARALLEL.
+     Avval ~9 ta ketma-ket chaqiruv edi; endi to'lqinlar: (lavozim, sozlama, uslub) → (ma'lumot, qidiruv, qoidalar, bilim). */
+  const [kr, sh, us] = await Promise.all([
+    rpcData(env, 't2_agent_kasb_v1', { p_actor_id: actor, p_kompaniya_id: kid }),
+    rpcData(env, 't2_agent_shaxsiy_v1', { p_actor_id: actor }),
+    /* O'rganilgan uslub (migratsiya qo'llanmagan bo'lsa yoki xato bo'lsa — jim o'tkazib yuboriladi, chat ishlayveradi). */
+    rpcData(env, 't2_agent_uslub_v1', { p_actor_id: actor }).catch(() => null),
+  ]);
   if (!kr.ok) return { status: kr.status, body: kr.data };
   const kasb = kr.data as unknown as KasbMalumoti;
   const ish = { nom: kasb.nom, rol: kasb.rol, profil: kasb.profil };
   log('👤', `Lavozim: ${kasb.rol} → «${kasb.nom}» ishchisi ulandi`);
-  const sh = await rpcData(env, 't2_agent_shaxsiy_v1', { p_actor_id: actor });
   const til = String(sh.data.til ?? 'auto'); const uslub = String(sh.data.uslub ?? 'qisqa');
-  /* O'rganilgan uslub (migratsiya qo'llanmagan bo'lsa yoki xato bo'lsa — jim o'tkazib yuboriladi, chat ishlayveradi). */
-  const us = await rpcData(env, 't2_agent_uslub_v1', { p_actor_id: actor }).catch(() => null);
   const uslubOchiq = !!us?.ok && us.data.yoqilgan !== false;
   const uslubXus = us?.ok ? (us.data.xususiyat as Partial<UslubXususiyat> | undefined) : undefined;
   const uslubKorsatma = us?.ok && typeof us.data.korsatma === 'string' ? us.data.korsatma : null;
@@ -256,8 +260,10 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   const qadamlar: Qadam[] = [];
   const qd = (b: string, m: string) => { qadamlar.push({ ms: Date.now() - t0, belgi: b, matn: m }); log(b, m); };
 
-  if (jarvisSalommi(savol)) {
-    const javob = `Salom! Men — **${kasb.nom}**. ${kasb.vazifa}\n\nMasalan: ${kasb.namuna_savollar.slice(0, 3).map((x) => '«' + x + '»').join(' · ')}`;
+  const kichik = jarvisKichikGap(savol);
+  if (kichik) {
+    const javob = kichik === 'rahmat' ? jarvisRahmatJavobi()
+      : `Salom! Men — **${kasb.nom}**. ${kasb.vazifa}\n\nMasalan: ${kasb.namuna_savollar.slice(0, 3).map((x) => '«' + x + '»').join(' · ')}`;
     qd('👋', 'Salomlashuv — model kerak emas, token sarflanmadi');
     await yozJurnal('salom', javob, qadamlar, {});
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', javob } };
@@ -272,7 +278,19 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   const toifalar = toifalarniTanla(savol, kasb.kategoriyalar, matn(so.sahifa, 160));
   qd('🧭', `Savol tahlil qilindi — kerakli ma’lumot: ${nomlar(toifalar)}`);
   qd('🗄️', 'Tizimdan ma’lumot olinmoqda (faqat lavozimingizga ruxsat etilgan)…');
-  const fk = await rpcData(env, 't2_agent_fakt_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_kategoriyalar: toifalar, p_obyekt_id: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null });
+  /* Aniq qidiruv (egasi 2026-10-15: "Amfiteatrda M200 beton smetada qanchadan?" → javob ma'lumotdan bo'lsin): savoldagi obyekt va
+     resurs belgilari bo'yicha smeta qatorlari, lavozim ruxsati bazada tekshiriladi (narx faqat smeta_pul). Model chaqirilmaydi.
+     Ma'lumot, aniq qidiruv, qoidalar va bilim bir-biriga bog'liq emas — bitta to'lqinda parallel. */
+  const sz = qidiruvSozlari(savol);
+  const [fk, qr, m, blr] = await Promise.all([
+    rpcData(env, 't2_agent_fakt_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_kategoriyalar: toifalar, p_obyekt_id: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null }),
+    sz.resurs.length
+      ? rpcData(env, 't2_agent_qidiruv_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_obyekt_sozlar: sz.obyekt, p_resurs_sozlar: sz.resurs,
+          p_obyekt_id: !sz.obyekt.length && sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null }).catch(() => null)
+      : Promise.resolve(null),
+    rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: kasb.profil }),
+    rpcData(env, 't2_agent_bilim_v1', { p_actor_id: actor, p_kompaniya_id: kid }).catch(() => null),
+  ]);
   if (!fk.ok) return { status: fk.status, body: fk.data };
   const ishlatilgan = (fk.data.ishlatilgan ?? []) as string[];
   const taqiqlangan = (fk.data.taqiqlangan ?? []) as string[];
@@ -282,9 +300,6 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   if (studio) qd('📝', 'Ochiq Studio qoralamasi qo‘shildi — brauzer ma’lumoti, kanonik yoki tasdiqlangan hujjat emas; katta smeta qisqartirilishi mumkin.');
   const faktJson = faktMatni(fk.data.fakt);
   qd('✅', `Olindi: ${(faktJson.length / 1024).toFixed(1)} KB (${nomlar(ishlatilgan)})${taqiqlangan.length ? ` · yopiq: ${nomlar(taqiqlangan)}` : ''}`);
-  /* Aniq qidiruv (egasi 2026-10-15: "Amfiteatrda M200 beton smetada qanchadan?" → javob ma'lumotdan bo'lsin): savoldagi obyekt va
-     resurs belgilari bo'yicha smeta qatorlari, lavozim ruxsati bazada tekshiriladi (narx faqat smeta_pul). Model chaqirilmaydi. */
-  const sz = qidiruvSozlari(savol);
   let aniq: Record<string, unknown> | null = null;
   /* Platforma narx indeksi (R2, ochiq ma'lumotnoma): brauzer topgan ≤ 6 qator; har maydon tekshiriladi va qisqartiriladi. */
   const katalog = (Array.isArray(so.katalog) ? so.katalog.slice(0, 6) : []).flatMap((x: unknown) => {
@@ -295,15 +310,12 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   });
   if (katalog.length) qd('📚', `Platforma narx indeksi: ${katalog.length} ta mos qator (katalog/birja/prays, NDS siz)`);
   if (sz.resurs.length) {
-    const qr = await rpcData(env, 't2_agent_qidiruv_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_obyekt_sozlar: sz.obyekt, p_resurs_sozlar: sz.resurs,
-      p_obyekt_id: !sz.obyekt.length && sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null }).catch(() => null);
     const n = qr?.ok && Array.isArray(qr.data.qatorlar) ? qr.data.qatorlar.length : 0;
     if (qr?.ok) {
       aniq = { soralgan: sz.resurs, obyektlar: qr.data.obyektlar, qatorlar: qr.data.qatorlar, narx_ruxsat: qr.data.narx_ruxsat, smeta_ruxsat: qr.data.ruxsat };
       qd('🔎', n ? `Aniq qidiruv: ${n} ta smeta pozitsiyasi topildi (${sz.resurs.join(', ')})` : `Aniq qidiruv: «${sz.resurs.join(', ')}» smetalarda topilmadi`);
     }
   }
-  const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kid, p_profil: kasb.profil });
   if (!m.ok) return { status: m.status, body: m.data };
   const qoidalar = (m.data.qoidalar as Array<{ doira: string }> | undefined) ?? [];
   qd('📜', `Qoidalar yuklandi: ${qoidalar.length} ta (${qoidalar.filter((x) => x.doira === 'yadro').length} ta o‘zgarmas yadro qoida)`);
@@ -312,7 +324,6 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   const tilIshora = til === 'uz' ? 'Javobni DOIM o‘zbek (lotin) tilida yoz.' : til === 'ru' ? 'Javobni DOIM rus tilida yoz.' : '';
   const uslubIshora = uslub === 'batafsil' ? 'Javobni batafsil yoz: sabablari va hisob-kitobini ham ko‘rsat.' : 'Javobni juda qisqa yoz (6 gapdan oshmasin).';
   const sahifaYoli = matn(so.sahifa, 160);
-  const blr = await rpcData(env, 't2_agent_bilim_v1', { p_actor_id: actor, p_kompaniya_id: kid }).catch(() => null);
   const dbBilim = dbBilimYozuvlari(blr?.ok ? blr.data.natija : []);
   const bilim = bilimBolimi(savol, sahifaYoli, 3200, dbBilim);
   if (bilim) qd('📚', 'Tizim bilimi qo‘shildi: savolga tegishli atama va sahifa mantiqi');
@@ -328,10 +339,15 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
     system: (aniq ? draftSystem +'\nANIQ QIDIRUV: "aniq-qidiruv" blokida savoldagi obyekt/resurs bo‘yicha smeta pozitsiyalari bor (hajm, narx_min/narx_max — NDS siz, summa). Javobni AYNAN shu raqamlardan ber, obyekt va pozitsiya nomini ayt; narx 0 — haqiqiy 0; bir nechta obyekt bo‘lsa har birini ko‘rsat. Blok bo‘sh bo‘lsa — topilmaganini va qaysi so‘z bilan qidirilganini ayt, "ma’lumot yo‘q" deb umumiy javob berma. narx_ruxsat=false bo‘lsa narxni aytma.' : draftSystem) + (katalog.length ? '\nNARX INDEKSI: "narx-indeksi" blokida platformaning rasmiy narx manbalari (katalog, birja, prays-list; NDS siz). Kompaniya smetasidagi narxdan alohida, manbasi bilan ayt.' : ''),
     text: tashqiMatnOra('tizim-faktlari', faktJson) + (aniq ? '\n\n' + tashqiMatnOra('aniq-qidiruv', JSON.stringify(aniq)) : '') + (katalog.length ? '\n\n' + tashqiMatnOra('narx-indeksi', JSON.stringify(katalog)) : '') + (studio ? '\n\n' + tashqiMatnOra('studio-qoralama', JSON.stringify({ title: studio.title, summary: studio.summary })) : '') + '\n\nFOYDALANUVCHI SAVOLI: ' + savol,
     tier: profilDarajasi(kasb.profil), model, maxOutputTokens: 1200, temperature: 0.1, jsonSchema: KASB_SXEMA,
+    /* Suhbat — interaktiv: 45 s ichida javob yoki aniq «vaqt tugadi» (avval bir necha daqiqa kutish mumkin edi). */
+    totalTimeoutMs: 45000,
   });
   const ajr = javobniAjrat(r.text);
   const kir = r.usage?.inputTokens ?? 0; const chiq = r.usage?.outputTokens ?? 0;
   qd('📥', `Javob olindi (${r.model}): ${kir + chiq} token`);
+  /* Uslubni o'rganish: faqat savol SHAKLI (til, uzunlik, so'rov turi); matn saqlanmaydi. O'chirib qo'yilgan bo'lsa — saqlanmaydi.
+     Jurnal yozuvi bilan parallel (bir-biriga bog'liq emas). */
+  const uslubP = uslubOchiq ? rpcData(env, 't2_agent_uslub_yangila_v1', { p_actor_id: actor, p_xususiyat: uslubYangila(uslubXus, savol) }).catch(() => null) : null;
   const jr = await yozJurnal('savol', ajr.javob, qadamlar, { toifalar: ishlatilgan, model: r.model, kirish: kir, chiqish: chiq });
   const jid = jr.ok ? Number(jr.data.id) : null;
   const harakatlar: Array<Record<string, unknown>> = [];
@@ -350,8 +366,7 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
     if (!sahifalar.some((x) => x.yol === y.yol)) sahifalar.push(y);
   }
   if (sahifalar.length) qd('🧭', `Tegishli sahifa: ${sahifalar.map((x) => x.nom).join(', ')}`);
-  /* Uslubni o'rganish: faqat savol SHAKLI (til, uzunlik, so'rov turi); matn saqlanmaydi. O'chirib qo'yilgan bo'lsa — saqlanmaydi. */
-  if (uslubOchiq) await rpcData(env, 't2_agent_uslub_yangila_v1', { p_actor_id: actor, p_xususiyat: uslubYangila(uslubXus, savol) }).catch(() => null);
+  if (uslubP) await uslubP;
   qd('🏁', `Tayyor: ${((Date.now() - t0) / 1000).toFixed(1)} s · ${kir + chiq} token`);
   return { status: 200, body: { ok: true, kasb: ish, javob: ajr.javob, harakatlar, sahifalar, toifalar: ishlatilgan, model: r.model, model_manba: m.data.model_manba ?? null, provider: r.provider, ms: Date.now() - t0, jurnal_id: jid } };
 }

@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { ArrowRight, Bot, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
-import { jarvisSalommi } from '../../lib/jarvis/intent';
+import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
 import { AiBaho } from './AiBaho';
@@ -75,8 +75,11 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       setXabarlar((p) => [...p, { id: id + 'a', rol: 'ai', yordam: true, xato: !y.ok, matn: y.ok ? y.natija.javob : y.error, sahifalar: y.ok ? y.natija.sahifalar : [] }]);
       return;
     }
-    if (jarvisSalommi(s) && kasb) {
-      const javob = `${t('Salom! Men —')} **${kasb.nom}**. ${kasb.vazifa}`;
+    /* Kichik suhbat (salom, hol-ahvol, rahmat) — server va model kerak emas, javob bir zumda (lavozim yuklanishini ham kutmaydi). */
+    const kichik = jarvisKichikGap(s);
+    if (kichik) {
+      const javob = kichik === 'rahmat' ? t('Arzimaydi! Yana savol bo‘lsa — yozing.')
+        : kasb ? `${t('Salom! Men —')} **${kasb.nom}**. ${kasb.vazifa}` : t('Salom! Men Jarvis — sizga qanday yordam bera olaman?');
       setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: javob }]);
       return;
     }

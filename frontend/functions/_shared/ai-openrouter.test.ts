@@ -49,3 +49,20 @@ describe('AI shlyuzi — OpenRouter', () => {
     expect(r.provider).toBe('groq');
   });
 });
+
+describe('AI shlyuzi — umumiy muddat (egasi: «oddiy gapga 5 minut»)', () => {
+  it('javob bermaydigan providerlar umumiy muddatdan oshirmaydi va aniq timeout qaytaradi', async () => {
+    const f = vi.fn((_u: string, init?: RequestInit) => new Promise<Response>((_res, rej) => {
+      init?.signal?.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+    }));
+    vi.stubGlobal('fetch', f);
+    const t0 = Date.now();
+    const xato = await aiCall({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: 'g', AI_TIMEOUT_MS: '3000' }, { text: 'savol', totalTimeoutMs: 5000 })
+      .then(() => null, (e: unknown) => e as { code?: string });
+    const ms = Date.now() - t0;
+    expect(xato?.code).toBe('timeout');
+    expect(ms).toBeLessThan(6500);
+    expect(f.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body)).not.toContain('totalTimeoutMs');
+  }, 15000);
+});

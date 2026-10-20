@@ -4,7 +4,7 @@ import { aiPublicError, type AiEnv } from '../_shared/ai';
 import { AI_KORSATMA, type AiUmumiy } from '../../src/api/t2-ai';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { AiByudjetXatosi, aiHisobli } from '../_shared/ai-hisobli';
-import { jarvisSalomJavobi, jarvisSalommi } from '../../src/lib/jarvis/intent';
+import { jarvisKichikGap, jarvisRahmatJavobi, jarvisSalomJavobi } from '../../src/lib/jarvis/intent';
 import { jarvisHelp, jarvisMoney, jarvisEvidenceAnswer } from '../../src/lib/jarvis/answers';
 
 type Env = AiEnv & {
@@ -124,8 +124,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // Oddiy salomlashuv kompaniya dalilini talab qilmaydi. Bu global floating
     // Jarvis oynasi kompaniya tanlanmagan paytda ham foydalanuvchini xom 422
     // bilan qaytarmasligi uchun local, deterministic javobdir.
-    if (jarvisSalommi(savol)) {
-      return Response.json({ ok: true, agent: 'Jarvis', javob: jarvisSalomJavobi(), requires_approval: false, provider: 'local', model: 'greeting', ms: Date.now() - boshlandi });
+    const kichik = jarvisKichikGap(savol);
+    if (kichik) {
+      return Response.json({ ok: true, agent: 'Jarvis', javob: kichik === 'rahmat' ? jarvisRahmatJavobi() : jarvisSalomJavobi(), requires_approval: false, provider: 'local', model: 'greeting', ms: Date.now() - boshlandi });
     }
     const help = jarvisHelp(savol);
     if (help) return Response.json({ ok: true, agent: 'Jarvis', javob: help, requires_approval: false, provider: 'local', model: 'capabilities' });

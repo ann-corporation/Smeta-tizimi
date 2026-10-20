@@ -44,6 +44,8 @@ export type AiRequest = {
   workload?: 'utility' | 'primary';
   /** Independent thinking budget; a short answer limit alone can starve the final JSON. */
   reasoning?: { effort: 'none' | 'minimal' | 'low' | 'medium' | 'high' };
+  /** Butun chaqiruv (barcha provider va urinishlar) uchun umumiy muddat, ms. Berilmasa: workload bo'lsa 180 s, aks holda 60 s. */
+  totalTimeoutMs?: number;
 };
 
 export type AiUsage = {
@@ -227,15 +229,22 @@ async function providerFetch(
   timeoutMs: number,
   maxRetries: number,
   maxRetryDelayMs: number,
+  deadline = Infinity,
 ): Promise<{ body: JsonObject; headers: Headers }> {
   const key = keyFor(env, provider);
   const model = modelFor(env, provider, request.tier, request.model);
   const payload = providerPayload(provider, model, request);
   const prepared = providerInit(provider, key, model, payload);
   let lastStatus = 0;
+  /* Har urinish umumiy muddatdan qolgan vaqtdan oshmaydi; vaqt qolmasa — aniq timeout (keyingi provider ham sinalmaydi). */
+  const qolgan = () => {
+    const q = Math.min(timeoutMs, deadline - Date.now());
+    if (q < 1000) throw new AiGatewayError('timeout', 'AI javobi uchun umumiy vaqt tugadi');
+    return q;
+  };
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-    const response = await fetchWithTimeout(prepared.url, prepared.init, timeoutMs);
+    const response = await fetchWithTimeout(prepared.url, prepared.init, qolgan());
     const raw = await response.text();
     let body: JsonObject = {};
     try {
@@ -249,7 +258,7 @@ async function providerFetch(
     // A model without structured-output support rejects json_schema (400): retry once with plain json_object.
     if (response.status === 400 && provider === 'openrouter' && (payload.response_format as JsonObject | undefined)?.type === 'json_schema') {
       const fallback = providerInit(provider, key, model, { ...payload, response_format: { type: 'json_object' } });
-      const r2 = await fetchWithTimeout(fallback.url, fallback.init, timeoutMs);
+      const r2 = await fetchWithTimeout(fallback.url, fallback.init, qolgan());
       const raw2 = await r2.text();
       if (r2.ok) { try { return { body: JSON.parse(raw2) as JsonObject, headers: r2.headers }; } catch { return { body: { raw: raw2 }, headers: r2.headers }; } }
     }
@@ -512,11 +521,19 @@ export async function aiCall(env: AiEnv, request: AiRequest): Promise<AiResponse
   const maxRetries = numberEnv(env.AI_MAX_RETRIES, 1, 0, 3);
   const maxRetryDelayMs = numberEnv(env.AI_MAX_RETRY_DELAY_MS, 2500, 100, 5000);
   let lastError: unknown = null;
+  /* 2026-10-20 (egasi: «Jarvis oddiy gapga ham 5 minut»): avval umumiy chegara yo'q edi — har provider 20–45 s × urinishlar,
+     3 provider bo'lsa daqiqalar to'planardi. Endi butun chaqiruvga bitta muddat. */
+  const jami = request.totalTimeoutMs ?? (request.workload ? 180000 : 60000);
+  const deadline = Date.now() + Math.min(Math.max(jami, 5000), 300000);
 
   for (const provider of providers) {
+    if (deadline - Date.now() < 3000) {
+      if (!lastError) lastError = new AiGatewayError('timeout', 'AI javobi uchun umumiy vaqt tugadi');
+      break;
+    }
     try {
       const model = modelFor(env, provider, request.tier, request.model);
-      const { body } = await providerFetch(provider, env, { ...request, text }, timeoutMs, maxRetries, maxRetryDelayMs);
+      const { body } = await providerFetch(provider, env, { ...request, text }, timeoutMs, maxRetries, maxRetryDelayMs, deadline);
       const parsed = textFromProvider(provider, body);
       // Studio validates finishReason itself. Return a billed-but-truncated result for metering instead
       // of silently paying another provider and losing the first generation's usage.
