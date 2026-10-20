@@ -870,6 +870,25 @@ function Sessiya({ companyId }: { companyId: number }) {
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
+      {akt && ij && (
+        <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
+          <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+          <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
+          <span className="flex flex-wrap gap-x-3 text-[12px] text-text-dim" aria-label={t('Holat')}>
+            <span className="text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}</span>
+            {taklifSoni > 0 && <span className="text-warn">◐ {taklifSoni} {t('tasdiq kutmoqda')}</span>}
+            {!!yozish?.qolgan.length && <span>✕ {yozish.qolgan.length} {t('kiritilmaydi')}</span>}
+            {rejali.length + ochirish.length > 0 && <span className="text-sky-600 dark:text-sky-300">⏳ {rejali.length + ochirish.length} {t('o‘zgarish qoralamada')}</span>}
+          </span>
+          {done ? (!jarayon && <p className="ml-auto text-[13px] text-ok">{done}</p>) : (
+            <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy || !payload || saqlashBlok}
+              onClick={() => void saqla()}>
+              {t('F2 ni yozish')}{payload && !payload.error ? ` (${payload.rows.length} ${t('qator')}${rejali.length + ochirish.length ? ` + ${rejali.length + ochirish.length} ${t('o‘zgarish')}` : ''})` : ''}
+            </button>
+          )}
+        </section>
+      )}
+
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
           ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
@@ -903,25 +922,6 @@ function Sessiya({ companyId }: { companyId: number }) {
           }}>{t('Minus qatorlarga bog‘lanish taklif qilish')}</button>}
           {yozish.toxtatish.map((m, i) => <p key={i} className="text-[12px] text-warn">{m}</p>)}
           {payload?.error && <p role="alert" className="text-[12px] text-danger">{payload.error}</p>}
-        </section>
-      )}
-
-      {akt && ij && (
-        <section className="karta sticky bottom-0 z-20 flex flex-wrap items-center gap-3 border border-accent/40 p-3 shadow-lg" aria-label={t('Moslashtirish')}>
-          <button type="button" className="tugma" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
-          <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
-          <span className="flex flex-wrap gap-x-3 text-[12px] text-text-dim" aria-label={t('Holat')}>
-            <span className="text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}</span>
-            {taklifSoni > 0 && <span className="text-warn">◐ {taklifSoni} {t('tasdiq kutmoqda')}</span>}
-            {!!yozish?.qolgan.length && <span>✕ {yozish.qolgan.length} {t('kiritilmaydi')}</span>}
-            {rejali.length + ochirish.length > 0 && <span className="text-sky-600 dark:text-sky-300">⏳ {rejali.length + ochirish.length} {t('o‘zgarish qoralamada')}</span>}
-          </span>
-          {done ? (!jarayon && <p className="ml-auto text-[13px] text-ok">{done}</p>) : (
-            <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy || !payload || saqlashBlok}
-              onClick={() => void saqla()}>
-              {t('F2 ni yozish')}{payload && !payload.error ? ` (${payload.rows.length} ${t('qator')}${rejali.length + ochirish.length ? ` + ${rejali.length + ochirish.length} ${t('o‘zgarish')}` : ''})` : ''}
-            </button>
-          )}
         </section>
       )}
 
