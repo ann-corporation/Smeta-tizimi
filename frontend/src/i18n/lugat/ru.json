@@ -2232,5 +2232,19 @@
   "qoralama — avval F2 tarixida tasdiqlang": "черновик — сначала утвердите в истории Ф2",
   "Tasdiqlashga": "К утверждению",
   "Arzimaydi! Yana savol bo‘lsa — yozing.": "Не за что! Если будут вопросы — пишите.",
-  "Salom! Men Jarvis — sizga qanday yordam bera olaman?": "Здравствуйте! Я Jarvis — чем могу помочь?"
+  "Salom! Men Jarvis — sizga qanday yordam bera olaman?": "Здравствуйте! Я Jarvis — чем могу помочь?",
+  "Xato: {x}": "Ошибка: {x}",
+  "Birlashtirilmoqda… {n} ta yozuv": "Объединение… {n} записей",
+  "Birlashtirildi: {n} ta yozuv, {y} ta eski obyekt yetim bo‘ldi.{o}": "Объединено: {n} записей, {y} старых объектов осиротели.{o}",
+  "{k} ta guruh o‘tkazib yuborildi (asosiy obyekt R2 da tasdiqlanmadi).": "Пропущено групп: {k} (основной объект в R2 не подтверждён).",
+  "Hech bir hujjat ishlatmaydigan eski R2 obyektlari butunlay o‘chiriladi. Bu amalni qaytarib bo‘lmaydi. Davom etilsinmi?": "Старые объекты R2, которые не использует ни один документ, будут удалены навсегда. Это действие необратимо. Продолжить?",
+  "O‘chirilmoqda… {n} ta obyekt": "Удаление… {n} объектов",
+  "R2 dan o‘chirildi: {n} ta obyekt, {h} bo‘shadi.": "Удалено из R2: {n} объектов, освобождено {h}.",
+  "R2 dublikatlar": "Дубликаты R2",
+  "R2 dublikatlar (superadmin)": "Дубликаты R2 (суперадмин)",
+  "{g} guruh · {h} tejaladi · yetim: {y}": "{g} групп · экономия {h} · сирот: {y}",
+  "Tekshirish": "Проверить",
+  "Birlashtirish": "Объединить",
+  "Yetimlarni R2 dan o‘chirish": "Удалить сирот из R2",
+  "Hujjat yozuvlari o‘zgarmaydi — faqat bir xil baytlar bitta obyektda saqlanadi. Birlashtirish hech narsani o‘chirmaydi; o‘chirish alohida tugma.": "Записи документов не меняются — одинаковые байты хранятся в одном объекте. Объединение ничего не удаляет; удаление — отдельная кнопка."
 }

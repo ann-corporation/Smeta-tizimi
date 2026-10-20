@@ -16,6 +16,7 @@ import { HujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { hujjatYukla } from '../../api/t2-hujjat-canonical';
 import { EKSPORT_JADVALLARI, faylBaytlari, faylExplorerOl, jadvalHammasi, type FaylExplorer } from '../../api/t2-fayl';
 import { csv, faylDaraxti, hajmMatni, papkaFayllari, papkaTop, turNomi, xavfsizNom, zipYollari, type Fayl, type Papka } from '../../lib/fayl-daraxt';
+import { R2DublikatPanel } from './R2DublikatPanel';
 
 const EXCEL = /spreadsheet|excel|\.xlsx?$/i;
 const sanaMatni = (s: string) => (s ? new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '');
@@ -196,6 +197,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
       </section>
       {band && <div role="status" className="karta px-3 py-2 text-[12px] text-text-dim">{band}</div>}
       {xato && <div role="alert" className="karta border-danger/40 px-3 py-2 text-[12px] text-danger">{xato}</div>}
+      {data?.rol === 'superadmin' && <R2DublikatPanel />}
 
       <div className="flex min-h-0 flex-1 gap-3">
         <nav aria-label={t('Papkalar')} className="karta hidden w-[290px] shrink-0 overflow-auto p-2 md:block">

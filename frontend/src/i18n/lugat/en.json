@@ -2232,5 +2232,19 @@
   "qoralama — avval F2 tarixida tasdiqlang": "draft — approve it in F2 history first",
   "Tasdiqlashga": "To approval",
   "Arzimaydi! Yana savol bo‘lsa — yozing.": "You are welcome! Write if you have more questions.",
-  "Salom! Men Jarvis — sizga qanday yordam bera olaman?": "Hello! I am Jarvis — how can I help you?"
+  "Salom! Men Jarvis — sizga qanday yordam bera olaman?": "Hello! I am Jarvis — how can I help you?",
+  "Xato: {x}": "Error: {x}",
+  "Birlashtirilmoqda… {n} ta yozuv": "Merging… {n} records",
+  "Birlashtirildi: {n} ta yozuv, {y} ta eski obyekt yetim bo‘ldi.{o}": "Merged: {n} records, {y} old objects orphaned.{o}",
+  "{k} ta guruh o‘tkazib yuborildi (asosiy obyekt R2 da tasdiqlanmadi).": "{k} groups skipped (main object not confirmed in R2).",
+  "Hech bir hujjat ishlatmaydigan eski R2 obyektlari butunlay o‘chiriladi. Bu amalni qaytarib bo‘lmaydi. Davom etilsinmi?": "Old R2 objects that no document uses will be permanently deleted. This cannot be undone. Continue?",
+  "O‘chirilmoqda… {n} ta obyekt": "Deleting… {n} objects",
+  "R2 dan o‘chirildi: {n} ta obyekt, {h} bo‘shadi.": "Deleted from R2: {n} objects, {h} freed.",
+  "R2 dublikatlar": "R2 duplicates",
+  "R2 dublikatlar (superadmin)": "R2 duplicates (superadmin)",
+  "{g} guruh · {h} tejaladi · yetim: {y}": "{g} groups · {h} saved · orphans: {y}",
+  "Tekshirish": "Check",
+  "Birlashtirish": "Merge",
+  "Yetimlarni R2 dan o‘chirish": "Delete orphans from R2",
+  "Hujjat yozuvlari o‘zgarmaydi — faqat bir xil baytlar bitta obyektda saqlanadi. Birlashtirish hech narsani o‘chirmaydi; o‘chirish alohida tugma.": "Document records do not change — identical bytes are stored in one object. Merging deletes nothing; deletion is a separate button."
 }
