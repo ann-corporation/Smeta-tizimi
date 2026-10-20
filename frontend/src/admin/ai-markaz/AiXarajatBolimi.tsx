@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useState } from 'react';
 import { byudjetBelgila, ustamaBelgila, type Markaz } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
@@ -65,7 +66,7 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
         <h2 className="mb-1 text-[14px] font-semibold text-text">{t('Platforma oylik limiti')}</h2>
         <p className="mb-2 text-[12px] text-text-mute">{t('Butun AI xizmatining bir oylik umumiy chegarasi (dollarda). Limit tugasa yoki belgilanmagan bo‘lsa, hech bir agent model chaqira olmaydi.')}</p>
         <div className="flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
-          <label className="flex flex-col gap-1">{t('Oylik limit ($)')}<input inputMode="decimal" value={plLimit} onChange={(e) => setPlLimit(e.target.value)} placeholder={LIMIT_NAMUNA} className="input h-8 w-28 px-2 text-[13px]" /></label>
+          <label className="flex flex-col gap-1">{t('Oylik limit ($)')}<MoneyInput inputMode="decimal" value={plLimit} onValueChange={(moneyValue) => setPlLimit(moneyValue)} placeholder={LIMIT_NAMUNA} className="input h-8 w-28 px-2 text-[13px]" /></label>
           <label className="flex flex-col gap-1">{t('Ogohlantirish (%)')}<input inputMode="numeric" value={ogoh} onChange={(e) => setOgoh(e.target.value)} className="input h-8 w-20 px-2 text-[13px]" /></label>
           <button type="button" className="tugma-asosiy h-8 px-3 text-[12px]" onClick={() => void saqla(null, plLimit, Number(ogoh) || 80)}>{t('Saqlash')}</button>
           {m.limit_usd != null && <button type="button" className="tugma h-8 px-3 text-[12px] text-danger" onClick={() => void saqla(null, plLimit || String(m.limit_usd), Number(ogoh) || 80, false)}>{t('AI ni to‘xtatish (kill-switch)')}</button>}
@@ -91,7 +92,7 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
             <select value={kId} onChange={(e) => setKId(e.target.value)} className="input h-8 w-56 px-2 text-[12px]" aria-label={t('Kompaniya')}>
               <option value="">{t('Tanlang…')}</option>{kompaniyalar.map((k) => <option key={k.id} value={k.id}>{k.nom}</option>)}
             </select></label>
-          <label className="flex flex-col gap-1">{t('Oylik limit ($)')}<input inputMode="decimal" value={kLimit} onChange={(e) => setKLimit(e.target.value)} placeholder={LIMIT_NAMUNA} className="input h-8 w-24 px-2 text-[12px]" /></label>
+          <label className="flex flex-col gap-1">{t('Oylik limit ($)')}<MoneyInput inputMode="decimal" value={kLimit} onValueChange={(moneyValue) => setKLimit(moneyValue)} placeholder={LIMIT_NAMUNA} className="input h-8 w-24 px-2 text-[12px]" /></label>
           <button type="button" disabled={!kId} className="tugma h-8 px-3 text-[12px] disabled:opacity-40" onClick={() => void saqla(Number(kId), kLimit, 80)}>{t('Kompaniya limitini saqlash')}</button>
         </div>
       </section>

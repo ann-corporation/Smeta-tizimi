@@ -1,3 +1,4 @@
+import { MoneyInput } from '../umumiy/ui/MoneyInput';
 /**
  * TestAosr.tsx — Ijro hujjatlari: АОСР (ШНК 3.01.01-22 Прил.6) va laboratoriya.
  * ═══════════════════════════════════════════════════════════════════
@@ -416,7 +417,7 @@ export default function TestAosr() {
                   <div><span className={lbl}>Birlik</span><input className={inp} value={pForma.birlik ?? ''} onChange={pf('birlik')} placeholder="м3" /></div>
                   <div><span className={lbl}>Invoys №</span><input className={inp} value={pForma.invoys_raqam ?? ''} onChange={pf('invoys_raqam')} /></div>
                   <div><span className={lbl}>Invoys sanasi</span><input type="date" className={inp} value={pForma.invoys_sana ?? ''} onChange={pf('invoys_sana')} /></div>
-                  <div className="col-span-2"><span className={lbl}>Summa (bo‘sh — noma’lum)</span><input className={inp} inputMode="decimal" value={pForma.summa ?? ''} onChange={(e) => setPForma((x) => (x ? { ...x, summa: e.target.value === '' ? null : (e.target.value.replace(/\s/g, '').replace(',', '.') as unknown as number) } : x))} /></div>
+                  <div className="col-span-2"><span className={lbl}>Summa (bo‘sh — noma’lum)</span><MoneyInput className={inp} inputMode="decimal" value={pForma.summa ?? ''} onValueChange={(moneyValue) => setPForma((x) => (x ? { ...x, summa: moneyValue === '' ? null : (moneyValue.replace(/\s/g, '').replace(',', '.') as unknown as number) } : x))} /></div>
                 </div>
                 <div><span className={lbl}>Izoh</span><input className={inp} value={pForma.izoh ?? ''} onChange={pf('izoh')} /></div>
                 <div><span className={lbl}>Qaysi aktlarga ilova</span>

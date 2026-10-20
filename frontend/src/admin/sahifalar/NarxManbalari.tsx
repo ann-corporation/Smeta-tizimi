@@ -1,3 +1,5 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { reportMoneyValidity } from '../../lib/money-input';
 /**
  * NarxManbalari.tsx — narx manbalari reestri (egasi Q4/Q5, 2026-10-01): kataloglar (kvartal),
  * счет-фактуралар, tijorat takliflari (КП), mash-chas kalkulyatsiyalari, chel-chas e'lonlari.
@@ -5,7 +7,7 @@
  * tanlaydi) yoki qo'lda. Katta katalog bo'laklab yuklanadi. Smeta narxlariga dalil bog'lash —
  * «Narx dalili» sahifasida.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { FileUp, Plus, Trash2 } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { yangiOperationId } from '../../api/supabase';
@@ -23,6 +25,7 @@ const inp = 'w-full border rounded px-2 py-1 text-sm bg-transparent';
 const harf = (i: number) => (i < 0 ? '—' : String.fromCharCode(65 + (i % 26)) + (i >= 26 ? String(Math.floor(i / 26)) : ''));
 
 export default function NarxManbalari() {
+  const moneyScope = useRef<HTMLDivElement>(null);
   const { joriy } = useKompaniya();
   const kompaniyaId = joriy?.id ?? null;
   const [royxat, setRoyxat] = useState<NarxManba[]>([]);
@@ -54,6 +57,7 @@ export default function NarxManbalari() {
   };
 
   const saqla = async () => {
+    if (!reportMoneyValidity(moneyScope.current)) return;
     if (!kompaniyaId || !forma) return;
     if (!forma.nom?.trim() || !forma.tur) { toast('Manba turi va nomi majburiy', 'warn'); return; }
     if (!pozitsiyalar.length) { toast('Pozitsiyalar yo‘q — Excel yuklang yoki qo‘lda kiriting', 'warn'); return; }
@@ -90,7 +94,7 @@ export default function NarxManbalari() {
       <KatalogQidiruv />
 
       {forma && (
-        <div className="rounded-lg border bg-surface p-3 space-y-3">
+        <div ref={moneyScope} className="rounded-lg border bg-surface p-3 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
             <label>Turi<select className={inp} value={forma.tur ?? 'katalog'} onChange={(e) => setForma((x) => ({ ...(x ?? {}), tur: e.target.value as NarxManbaTur }))}>
               {Object.entries(NARX_MANBA_TUR_NOMI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -136,7 +140,7 @@ export default function NarxManbalari() {
                     <input className={inp} placeholder="Kod" value={q.kod ?? ''} onChange={(e) => set({ kod: e.target.value })} />
                     <input className={inp} placeholder="Nomi *" value={q.nom} onChange={(e) => set({ nom: e.target.value })} />
                     <input className={inp} placeholder="Birlik" value={q.birlik ?? ''} onChange={(e) => set({ birlik: e.target.value })} />
-                    <input className={inp} placeholder="Narx" inputMode="decimal" value={q.narx ?? ''} onChange={(e) => set({ narx: e.target.value === '' ? null : Number(e.target.value.replace(/\s/g, '').replace(',', '.')) })} />
+                    <MoneyInput numericValue className={inp} placeholder="Narx" inputMode="decimal" value={q.narx ?? ''} onValueChange={(moneyValue) => set({ narx: moneyValue === '' ? null : Number(moneyValue.replace(/\s/g, '').replace(',', '.')) })} />
                     <button type="button" onClick={() => setQoldaQatorlar((a) => a.filter((_, j) => j !== i))} className="text-text-dim hover:text-danger"><Trash2 size={14} /></button>
                   </div>
                 );

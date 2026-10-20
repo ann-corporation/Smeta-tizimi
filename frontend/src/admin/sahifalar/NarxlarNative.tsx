@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 /**
  * NarxlarNative — Narxlar markazining Supabase-only ko‘rinishi.
@@ -351,7 +352,7 @@ export default function NarxlarNative() {
         {tanlangan && <section className="karta p-4 border-accent/30">
           <div className="flex justify-between gap-3"><div><h2 className="text-[14px] font-semibold text-text">{tanlangan.nom || 'Nomsiz resurs'}</h2><p className="text-[12px] text-text-mute">{tanlangan.birlik || 'Birlik ko‘rsatilmagan'} · {qulfKat || ('kat' in tanlangan ? tanlangan.kat || 'kategoriya yo‘q' : 'kategoriya yo‘q')}</p></div><button onClick={() => setTanlangan(null)} className="text-[12px] text-text-mute">Yopish</button></div>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <label className="text-[12px] text-text-dim">Narx<input type="number" min="0.000001" value={narxKiritma} onChange={e => setNarxKiritma(e.target.value)} className="mt-1 block w-full input" /></label>
+            <label className="text-[12px] text-text-dim">Narx<MoneyInput  min="0.000001" value={narxKiritma} onValueChange={(moneyValue) => setNarxKiritma(moneyValue)} className="mt-1 block w-full input" /></label>
             <label className="text-[12px] text-text-dim">Kategoriya
               {qulfKat ? <span className="mt-1 block h-9 px-3 py-2 rounded input opacity-60">{qulfKat} · birlikdan qulflangan</span> : <select value={kat} onChange={e => setKat(e.target.value)} className="mt-1 w-full input"><option value="">— o‘zgartirmaslik —</option>{ERKIN_KAT.map(x => <option key={x} value={x}>{x}</option>)}</select>}
             </label>

@@ -1,4 +1,5 @@
 import { t } from '../../i18n/til';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { BookOpen, Plus, Repeat2, Trash2, X } from 'lucide-react';
 import { yangiOperationId, type AktNatija } from '../../api/supabase';
@@ -203,7 +204,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
                   : <input value={r.hajm ?? ''} onChange={(e) => yangila(i, { hajm: e.target.value })} inputMode="decimal" placeholder="aniq hajm" title="Normasiz resurs — sarflangan aniq miqdor" className={num} aria-label={`${i + 1}-resurs aniq hajmi`} />}</td>
                 <td className="p-1.5"><div className="flex items-center gap-1">
                   <span className={`shrink-0 rounded px-1 text-[10px] ${MANBA_RANG[r.manba]}`} title="Narx manbasi">{MANBA_NOMI[r.manba]}</span>
-                  <input value={r.narx} onChange={(e) => yangila(i, { narx: e.target.value, manba: 'qolda' })} inputMode="decimal" className={num} aria-label={`${i + 1}-resurs narxi`} />
+                  <MoneyInput value={r.narx} onValueChange={(moneyValue) => yangila(i, { narx: moneyValue, manba: 'qolda' })} inputMode="decimal" className={num} aria-label={`${i + 1}-resurs narxi`} />
                   {!!r.variantlar?.length && <select value="" onChange={(e) => { const v = r.variantlar![Number(e.target.value)]; if (v) yangila(i, { narx: String(v.narx), manba: v.manba }); }} className="w-6 shrink-0 rounded border border-border bg-bg text-[10px]" aria-label={`${i + 1}-resurs narx variantlari`} title="Narx variantlari">
                     <option value="">▾</option>{r.variantlar.map((v, k) => <option key={k} value={k}>{fmt(v.narx)} — {v.izoh}</option>)}</select>}
                 </div></td>

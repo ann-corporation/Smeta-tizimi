@@ -1,3 +1,4 @@
+import { MoneyInput } from '../umumiy/ui/MoneyInput';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +13,7 @@ export default function TestErp() {
   const [params] = useSearchParams();
   const { joriy } = useKompaniya();
   const [modul, setModul] = useState<'kadrlar'|'texnika'|'sifat'>((params.get('modul') as any) || 'kadrlar');
-  
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [fNomi, setFNomi] = useState('');
   const [fToifa, setFToifa] = useState('');
@@ -91,7 +92,7 @@ export default function TestErp() {
 
   return (
     <div className="p-6 bg-bg min-h-screen text-text">
-      
+
       {/* HEADER */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -107,7 +108,7 @@ export default function TestErp() {
           <button onClick={yukla} className="p-2.5 bg-surface border border-border rounded-lg text-text hover:text-white transition-colors">
             <RefreshCw size={18} className={yuklanmoqda ? "animate-spin" : ""} />
           </button>
-          <button 
+          <button
             onClick={() => setIsFormOpen(true)}
             className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-blue-900/20"
           >
@@ -151,11 +152,11 @@ export default function TestErp() {
                 <label className="block text-sm font-medium text-text-dim mb-1">
                   {modul === 'kadrlar' ? 'F.I.Sh' : 'Texnika Nomi / Markasi'}
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={fNomi}
                   onChange={e => setFNomi(e.target.value)}
-                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-accent outline-none" 
+                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-accent outline-none"
                   placeholder={modul === 'kadrlar' ? 'G\'aniyev Zafar' : 'CAT 320 Ekskavator'}
                 />
               </div>
@@ -164,29 +165,29 @@ export default function TestErp() {
                   <label className="block text-sm font-medium text-text-dim mb-1">
                     {modul === 'kadrlar' ? 'Lavozim / Kasb' : 'Davlat Raqami'}
                   </label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={fToifa}
                     onChange={e => setFToifa(e.target.value)}
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-accent outline-none" 
+                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-accent outline-none"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-dim mb-1">
                     {modul === 'kadrlar' ? 'Oylik Maosh' : 'Yoqilg\'i / Motochas'}
                   </label>
-                  <input 
-                    type="text" 
+                  <MoneyInput grouping={modul === 'kadrlar'} ungroupedType="text"
+
                     value={fNarx}
-                    onChange={e => setFNarx(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-accent outline-none" 
+                    onValueChange={(moneyValue) => setFNarx(moneyValue.replace(/[^0-9]/g, ''))}
+                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-accent outline-none"
                   />
                 </div>
               </div>
               <div className="pt-4 flex justify-end gap-3 border-t border-border mt-4">
                 <button onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-text-dim hover:text-white transition-colors">Bekor qilish</button>
-                <button 
-                  onClick={saqlash} 
+                <button
+                  onClick={saqlash}
                   disabled={saqlamoqda}
                   className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-5 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-blue-900/20"
                 >
@@ -205,8 +206,8 @@ export default function TestErp() {
           <div className="p-4 border-b border-border bg-bg/50">
             <div className="relative w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Xodim ishlari, kasb yoki brigada bo'yicha..."
                 className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-accent outline-none"
               />
@@ -254,8 +255,8 @@ export default function TestErp() {
           <div className="p-4 border-b border-border bg-bg/50">
             <div className="relative w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Texnika nomi yoki davlat raqami bo'yicha..."
                 className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-accent outline-none"
               />

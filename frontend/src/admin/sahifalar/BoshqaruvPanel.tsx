@@ -1,3 +1,5 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { reportMoneyValidity } from '../../lib/money-input';
 /**
  * Platforma boshqaruv paneli (egasi, 2026-10-02): "tizimni boshqarish uchun hammasini nazorat qila olishim kerak —
  * foydalanuvchilar, obunalar, hisob, audit, sozlamalar, funksiyalar". Faqat platforma superadmini; server
@@ -425,15 +427,15 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
         <section className="karta p-4">
           <h2 className="mb-2 text-[14px] font-semibold text-text">{t('Asosiy sozlamalar')}</h2>
           <div className="grid gap-2 md:grid-cols-4">
-            <label className="text-[12px] text-text-dim">{t('1 token narxi (soʻm)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.token_som} onChange={(e) => setSoz({ ...soz, token_som: Number(e.target.value) })} /></label>
+            <label className="text-[12px] text-text-dim">{t('1 token narxi (soʻm)')}<MoneyInput numericValue  className={`${kir} mt-1 w-full`} value={soz.token_som} onValueChange={(moneyValue) => setSoz({ ...soz, token_som: Number(moneyValue) })} /></label>
             <label className="text-[12px] text-text-dim">{t('Foyda foizi (umumiy, %)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.foyda_foiz} onChange={(e) => setSoz({ ...soz, foyda_foiz: Number(e.target.value) })} /></label>
             <label className="text-[12px] text-text-dim">{t('Sinov bonusi (bir marta, token)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.royxat_bonus_token} onChange={(e) => setSoz({ ...soz, royxat_bonus_token: Number(e.target.value) })} /></label>
-            <label className="text-[12px] text-text-dim">{t('Dollar kursi (AI tannarxi uchun)')}<input type="number" className={`${kir} mt-1 w-full`} value={soz.usd_kurs} onChange={(e) => setSoz({ ...soz, usd_kurs: Number(e.target.value) })} /></label>
+            <label className="text-[12px] text-text-dim">{t('Dollar kursi (AI tannarxi uchun)')}<MoneyInput numericValue  className={`${kir} mt-1 w-full`} value={soz.usd_kurs} onValueChange={(moneyValue) => setSoz({ ...soz, usd_kurs: Number(moneyValue) })} /></label>
           </div>
           <label className="mt-2 block text-[12px] text-text-dim">{t('Toʻlov rekvizitlari (foydalanuvchilarga koʻrinadi: karta raqami, egasi, bank, hisob raqam)')}
             <textarea rows={3} className="input mt-1 w-full px-2 py-1.5 text-[13px]" value={soz.tolov_rekvizit ?? ''} onChange={(e) => setSoz({ ...soz, tolov_rekvizit: e.target.value })} />
           </label>
-          <button type="button" className="tugma-asosiy mt-2 h-8 px-3 text-[13px]" onClick={() => void sozSaqla()}>{t('Saqlash')}</button>
+          <button type="button" className="tugma-asosiy mt-2 h-8 px-3 text-[13px]" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('section'))) void sozSaqla(); }}>{t('Saqlash')}</button>
         </section>
       )}
       <section className="karta overflow-x-auto p-4">
@@ -452,16 +454,16 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
             return (
               <tr key={n.amal} className="border-t border-border/60">
                 <td className="py-1 pr-2 text-text">{t(n.nom)}</td>
-                <td className="py-1"><input type="number" className={`${kir} w-24`} value={n.asos_som} onChange={(e) => ozgar(setNarxlar, i, { asos_som: Number(e.target.value) })} aria-label={t('Asosiy (soʻm)')} /></td>
+                <td className="py-1"><MoneyInput numericValue  className={`${kir} w-24`} value={n.asos_som} onValueChange={(moneyValue) => ozgar(setNarxlar, i, { asos_som: Number(moneyValue) })} aria-label={t('Asosiy (soʻm)')} /></td>
                 <td className="py-1"><input type="number" className={`${kir} w-20`} value={n.birlik} onChange={(e) => ozgar(setNarxlar, i, { birlik: Number(e.target.value) })} aria-label={t('Birlik')} /></td>
-                <td className="py-1"><input type="number" className={`${kir} w-20`} value={n.birlik_som} onChange={(e) => ozgar(setNarxlar, i, { birlik_som: Number(e.target.value) })} aria-label={t('Har birlik (soʻm)')} /></td>
-                <td className="py-1"><input type="number" className={`${kir} w-24`} value={n.min_som} onChange={(e) => ozgar(setNarxlar, i, { min_som: Number(e.target.value) })} aria-label={t('Min')} /></td>
-                <td className="py-1"><input type="number" className={`${kir} w-24`} value={n.max_som ?? ''} onChange={(e) => ozgar(setNarxlar, i, { max_som: raqam(e.target.value) })} aria-label={t('Max')} /></td>
+                <td className="py-1"><MoneyInput numericValue  className={`${kir} w-20`} value={n.birlik_som} onValueChange={(moneyValue) => ozgar(setNarxlar, i, { birlik_som: Number(moneyValue) })} aria-label={t('Har birlik (soʻm)')} /></td>
+                <td className="py-1"><MoneyInput numericValue  className={`${kir} w-24`} value={n.min_som} onValueChange={(moneyValue) => ozgar(setNarxlar, i, { min_som: Number(moneyValue) })} aria-label={t('Min')} /></td>
+                <td className="py-1"><MoneyInput numericValue  className={`${kir} w-24`} value={n.max_som ?? ''} onValueChange={(moneyValue) => ozgar(setNarxlar, i, { max_som: raqam(moneyValue) })} aria-label={t('Max')} /></td>
                 <td className="py-1"><input type="number" className={`${kir} w-16`} value={n.foyda_foiz ?? ''} placeholder={soz ? String(soz.foyda_foiz) : ''} onChange={(e) => ozgar(setNarxlar, i, { foyda_foiz: raqam(e.target.value) })} aria-label={t('Foyda %')} /></td>
                 <td className="py-1 pr-2 tabular-nums text-text-dim whitespace-nowrap">{m ? `${son(misolN)} → ${son(m.yakuniy_som)} = ${son(m.token)} ${t('token')}` : '—'}</td>
                 <td className="py-1 text-right whitespace-nowrap">
                   <label className="mr-1 text-[11px] text-text-mute"><input type="checkbox" checked={n.faol} onChange={(e) => ozgar(setNarxlar, i, { faol: e.target.checked })} /> {t('faol')}</label>
-                  <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void narxSaqla(n)}>{t('Saqlash')}</button>
+                  <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void narxSaqla(n); }}>{t('Saqlash')}</button>
                 </td>
               </tr>
             );
@@ -473,7 +475,7 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
         <p className="mb-2 text-[12px] text-text-mute">{t('Mijozdan olinadigan AI narxi = provayder haqiqiy sarfi × (1 + ustama%) → soʻm → token (kamida 1 token). Kompaniyaga alohida ustama — AI markazi → Xarajat.')}</p>
         <div className="flex flex-wrap items-end gap-3 text-[12px] text-text-dim">
           <label className="flex flex-col gap-1">{t('Standart ustama (%)')}<input type="number" min={0} max={1000} className={`${kir} w-28`} value={ustama} onChange={(e) => setUstama(e.target.value)} /></label>
-          <label className="flex flex-col gap-1">{t('Sinov: bitta AI javob tannarxi ($)')}<input type="number" min={0} step="0.001" className={`${kir} w-28`} value={misolUsd} onChange={(e) => setMisolUsd(e.target.value)} /></label>
+          <label className="flex flex-col gap-1">{t('Sinov: bitta AI javob tannarxi ($)')}<MoneyInput  min={0} step="0.001" className={`${kir} w-28`} value={misolUsd} onValueChange={(moneyValue) => setMisolUsd(moneyValue)} /></label>
           <button type="button" className="tugma-asosiy h-7 px-3 text-[12px]" onClick={() => void ustamaSaqla()}>{t('Saqlash')}</button>
         </div>
         {aiMisol && <p className="mt-2 text-[12px] tabular-nums text-text" data-testid="ai-misol">{t('Misol: ${u} tannarx → mijozga ${m} = {s} soʻm = {n} token (foyda ≈ {f} soʻm)', { u: misolUsd, m: aiMisol.mijozUsd.toFixed(4), s: son(aiMisol.som), n: son(aiMisol.tok), f: son(aiMisol.foydaSom) })}</p>}
@@ -487,10 +489,10 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
               <td className="py-1 text-text-mute">{tf.kod}</td>
               <td className="py-1"><input className={kir} value={tf.nom} onChange={(e) => ozgar(setTariflar, i, { nom: e.target.value })} aria-label={t('Nomi')} /></td>
               <td className="py-1"><input type="number" className={`${kir} w-28`} value={tf.oylik_token} onChange={(e) => ozgar(setTariflar, i, { oylik_token: Number(e.target.value) })} aria-label={t('Token/oy')} /></td>
-              <td className="py-1"><input type="number" className={`${kir} w-32`} value={tf.narx_som} onChange={(e) => ozgar(setTariflar, i, { narx_som: Number(e.target.value) })} aria-label={t('Narx (soʻm/oy)')} /></td>
+              <td className="py-1"><MoneyInput numericValue  className={`${kir} w-32`} value={tf.narx_som} onValueChange={(moneyValue) => ozgar(setTariflar, i, { narx_som: Number(moneyValue) })} aria-label={t('Narx (soʻm/oy)')} /></td>
               <td className="py-1 text-right whitespace-nowrap">
-                <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void tarifSaqla(tf)}>{t('Saqlash')}</button>
-                {tf.kod !== 'free' && <button type="button" className="tugma ml-1 h-7 px-2 text-[12px] text-danger" onClick={() => void tarifSaqla({ ...tf, faol: false })}>{t('Yashirish')}</button>}
+                <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void tarifSaqla(tf); }}>{t('Saqlash')}</button>
+                {tf.kod !== 'free' && <button type="button" className="tugma ml-1 h-7 px-2 text-[12px] text-danger" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void tarifSaqla({ ...tf, faol: false }); }}>{t('Yashirish')}</button>}
               </td>
             </tr>
           ))}</tbody>

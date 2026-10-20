@@ -2112,5 +2112,12 @@
   "Summa qisman": "Сумма неполная",
   "Summalar hali yuklanmagan. Asl hujjatlarni ochish mumkin.": "Суммы ещё не загружены. Можно открыть исходные документы.",
   "To‘lovlar tizimga kiritilmagan. Qarz tasdiqlanmagan.": "Платежи в систему не внесены. Задолженность не подтверждена.",
-  "Umumiy shartnoma obyektlarga avtomatik taqsimlanmaydi.": "Общий договор не распределяется по объектам автоматически."
+  "Umumiy shartnoma obyektlarga avtomatik taqsimlanmaydi.": "Общий договор не распределяется по объектам автоматически.",
+  "Tarkib va tekshiruv": "Состав и проверка",
+  "Asos: to‘g‘ri xarajatlar, nakrutka va QQSsiz. F2 — faqat tasdiqlangan aktlar.": "Основа: прямые затраты, без накруток и НДС. Ф2 — только утверждённые акты.",
+  "Ostatka — smeta narxida baholangan musbat qolgan ish hajmi; qayd etilgan Fakt hisobga olinadi. Smeta − F2 emas.": "Остаток — положительный оставшийся объём работ по сметной цене; учтён зарегистрированный Факт. Это не Смета − Ф2.",
+  "Eski F2 yozuvlari: manbada tasdiqlangan summa bo‘lmasa, eski summa ishlatilgan.": "Старые записи Ф2: если в источнике нет утверждённой суммы, использована прежняя сумма.",
+  "To‘g‘ri xarajatlar · nakrutka va QQSsiz": "Прямые затраты · без накруток и НДС",
+  "Moliyaviy ko‘rsatkichlar": "Финансовые показатели",
+  "Moliyaviy ko‘rsatkichlar o‘qilmadi.": "Финансовые показатели не прочитаны."
 }

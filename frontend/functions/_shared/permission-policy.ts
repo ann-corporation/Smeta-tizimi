@@ -29,11 +29,12 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 }
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
-export const SCOPED_APIS = new Set(['contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
+export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
   'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
+  if (api === 'object-financials') return 'object.read';
   if (api === 'contract-scope') return method === 'GET' ? 'smeta.read' : 'smeta.write';
   if (api === 'company') {
     if (method === 'GET') return q.has('profile')?'company.read':q.has('azolik_ruxsatlari')?'company.member.manage':null;

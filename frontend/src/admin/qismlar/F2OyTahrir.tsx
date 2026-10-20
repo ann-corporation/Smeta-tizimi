@@ -1,3 +1,5 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { reportMoneyValidity } from '../../lib/money-input';
 /**
  * F2OyTahrir.tsx — KIRITILGAN F2 NI QATOR DARAJASIDA BOSHQARISH
  *
@@ -13,7 +15,7 @@
  * Saqlash → `apiF2QatorTahrir` → LRV_PLUS darhol yangilanadi.
  * Butun oy qayta yozilmaydi — faqat siz tekkan qatorlar.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { X, Save, Trash2, AlertTriangle, Search, MoveRight, Check, Lock, Unlock, Undo2 } from 'lucide-react';
 import { useF2OyTafsilot, useF2QatorTahrir, useF2PriamoyZatrat,
          useF2Undo, useF2Muhr, useF2MuhrHolat, useF2Bosliqlar, type F2OyQator } from '../../api/hooks';
@@ -31,6 +33,7 @@ export default function F2OyTahrir({
   toast: (m: string, t?: string, x?: unknown, ms?: number) => void;
 }) {
   const tafsilot = useF2OyTafsilot(obyekt, oyNom);
+  const moneyScope = useRef<HTMLDivElement>(null);
   const tahrir = useF2QatorTahrir();
   /* ПРЯМЫЕ ЗАТРАТЫ — F2 hujjatidagi raqam bilan to'g'ridan-to'g'ri solishtiriladi */
   const pz = useF2PriamoyZatrat(obyekt, oyNom);
@@ -128,6 +131,7 @@ export default function F2OyTahrir({
   };
 
   const saqla = () => {
+    if (!reportMoneyValidity(moneyScope.current)) return;
     const roy = Object.entries(ozgarishlar).map(([k, v]) => {
       const [sub, varaq, row] = k.split('||');
       return { sub, varaq, row: Number(row), ...v };
@@ -165,7 +169,7 @@ export default function F2OyTahrir({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] border border-border rounded-xl w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl">
+      <div ref={moneyScope} className="bg-[var(--surface)] border border-border rounded-xl w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl">
 
         {/* Sarlavha */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -261,9 +265,9 @@ export default function F2OyTahrir({
             <span className="text-[11px] text-text-mute whitespace-nowrap">
               Hujjat jami (итог):
             </span>
-            <input
+            <MoneyInput
               value={hujJami}
-              onChange={(e) => setHujJami(e.target.value)}
+              onValueChange={(moneyValue) => setHujJami(moneyValue)}
               onKeyDown={(e) => {
                 if (e.key !== 'Enter') return;
                 const v = Number(hujJami.replace(/\s/g, '').replace(',', '.'));
@@ -447,9 +451,9 @@ export default function F2OyTahrir({
                                      disabled:opacity-40" />
                       </td>
                       <td className="px-2 py-1.5 text-right align-top">
-                        <input type="number" step="any" disabled={ochirilgan}
+                        <MoneyInput numericValue  step="any" disabled={ochirilgan}
                           defaultValue={q.narx}
-                          onChange={(e) => yangila(q, 'narx', Number(e.target.value) || 0)}
+                          onValueChange={(moneyValue) => yangila(q, 'narx', Number(moneyValue) || 0)}
                           className="w-28 px-1.5 py-1 rounded bg-white/5 border border-white/10
                                      text-right text-text outline-none focus:border-accent/50
                                      disabled:opacity-40" />

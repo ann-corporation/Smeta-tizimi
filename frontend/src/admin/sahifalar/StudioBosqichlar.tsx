@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 /**
  * Smeta studiyasi bosqichlari (egasi 2026-10-13): ① LRV oynada yasaladi → ② «Narxlashga o'tish»: foiz stavkalari,
  * kataloglar va manbalarga asoslangan narxlar (AI har resursni MA'NOSI bo'yicha topadi) → ③ RES va hujjatlar.
@@ -458,7 +459,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
                     {taklif && <AiTaklif g={g} taklif={taklif} onQabul={qabul} />}
                     {qolda?.key === g.key
                       ? <form className="mt-1 flex flex-wrap gap-1" onSubmit={e => { e.preventDefault(); qoldaSaqla(); }}>
-                          <input aria-label={t('Birlik narxi')} className="input h-7 w-28 text-[11.5px]" inputMode="decimal" value={qolda.narx} onChange={e => setQolda({ ...qolda, narx: e.target.value })} />
+                          <MoneyInput aria-label={t('Birlik narxi')} className="input h-7 w-28 text-[11.5px]" inputMode="decimal" value={qolda.narx} onValueChange={(moneyValue) => setQolda({ ...qolda, narx: moneyValue })} />
                           <input aria-label={t('Narx manbasi')} className="input h-7 flex-1 text-[11.5px]" placeholder={t('Manba: hujjat, sana')} value={qolda.dalil} onChange={e => setQolda({ ...qolda, dalil: e.target.value })} />
                           <button type="submit" className="tugma h-7 px-2 text-[11px]" disabled={!qolda.narx.trim() || !qolda.dalil.trim()}>{t('Saqlash')}</button>
                           <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => setQolda(null)}>{t('Yopish')}</button>

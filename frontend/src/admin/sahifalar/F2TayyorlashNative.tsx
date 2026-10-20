@@ -1,3 +1,6 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { isCompleteMoney, reportMoneyValidity } from '../../lib/money-input';
+import { t } from '../../i18n/til';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ChevronDown, ChevronRight, Download, Eye, Save, Search, Zap } from 'lucide-react';
@@ -40,6 +43,7 @@ const kirit = 'rounded border border-border bg-bg px-2 py-1 text-right tabular-n
  * summa avtomatik; hujjat raqami bir marta. Server qoidasi o'zgarmaydi: har resursda narx yoki ongli "narxsiz".
  */
 export function F2TayyorlashNative() {
+  const moneyScope = useRef<HTMLDivElement>(null);
   const { joriy } = useKompaniya();
   const [tomonlar, setTomonlar] = useHujjatTomonlari(joriy?.id);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
@@ -151,7 +155,17 @@ export function F2TayyorlashNative() {
   const narxsizBelgila = () => setK((o) => ({ ...o, narxsiz: { ...o.narxsiz, ...Object.fromEntries(narxsizlar.map((id) => [id, true])) } }));
 
   const f2Yacheyka = f2Yacheykalar(f2Yuk(qatorlar, raqam));
+  const moneyValid = () => {
+    if (!reportMoneyValidity(moneyScope.current)) return false;
+    // Collapsed/filtered resource editors are unmounted, but their string drafts
+    // still exist. Do not let sonOqi's null fallback silently reuse a source price.
+    const invalid = [...Object.entries(k.narx), ...Object.entries(k.summa)]
+      .some(([id, value]) => !k.narxsiz[Number(id)] && value !== '' && !isCompleteMoney(value));
+    if (invalid) toast(t('Amal bajarilmadi. Kiritilgan qiymatlarni tekshiring.'), 'warn');
+    return !invalid;
+  };
   const saqlash = async () => {
+    if (!moneyValid()) return;
     if (!validId || !tayyor || saving) return;
     if (!joriy?.id) return;
     setSaving(true);
@@ -171,6 +185,7 @@ export function F2TayyorlashNative() {
 
   const korinish = useHujjatKorinish();
   const excelYuklash = async (korish = false) => {
+    if (!moneyValid()) return;
     if (!validId || !tayyor) return;
     const object = obyektlar.find((item) => item.id === obyektId);
     if (!object) { toast('Obyekt topilmadi.', 'danger'); return; }
@@ -219,11 +234,11 @@ export function F2TayyorlashNative() {
           <div className="text-[10px] text-text-mute">mumkin <FmtN val={r.mumkin} /></div>
         </td>
         <td className="px-2 py-1 text-right">
-          <input aria-label={`F2 narxi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.narx[r.id] ?? ''} onChange={(e) => yoz('narx', r.id, e.target.value)} placeholder={taklif || 'narx'} className={`${kirit} w-28 disabled:opacity-40`} />
+          <MoneyInput aria-label={`F2 narxi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.narx[r.id] ?? ''} onValueChange={(moneyValue) => yoz('narx', r.id, moneyValue)} placeholder={taklif || 'narx'} className={`${kirit} w-28 disabled:opacity-40`} />
           {x && <div className={`text-[10px] ${x.manba === 'qolda' ? 'text-text-dim' : x.manba === 'yoq' ? 'text-warn' : 'text-accent'}`}>{NARX_MANBA_NOMI[x.manba]}{x.protokol ? ` ${x.protokol}` : ''}</div>}
         </td>
         <td className="px-2 py-1 text-right">
-          <input aria-label={`F2 summasi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.summa[r.id] ?? ''} onChange={(e) => yoz('summa', r.id, e.target.value)} placeholder={x?.summa != null ? x.summa.toFixed(2) : ''} className={`${kirit} w-32 disabled:opacity-40`} />
+          <MoneyInput aria-label={`F2 summasi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.summa[r.id] ?? ''} onValueChange={(moneyValue) => yoz('summa', r.id, moneyValue)} placeholder={x?.summa != null ? x.summa.toFixed(2) : ''} className={`${kirit} w-32 disabled:opacity-40`} />
         </td>
         <td className="w-24 px-2 py-1">
           <label className="flex items-center gap-1 whitespace-nowrap text-[10px] text-text-dim"><input type="checkbox" aria-label={`Narxsiz: ${r.nom}`} checked={k.narxsiz[r.id] === true} onChange={(e) => yoz('narxsiz', r.id, e.target.checked || undefined)} />narxsiz</label>
@@ -278,7 +293,7 @@ export function F2TayyorlashNative() {
 
   return <Sahifa sarlavha="F2 tayyorlash" tavsif="Ishni tanlang — resurslar, narx va summa avtomatik; har narx manbasi ko‘rinadi">
     {korinish.oyna}
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div ref={moneyScope} className="flex h-full min-h-0 flex-col gap-3">
       <section className="karta flex flex-wrap items-end gap-3 p-3">
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text">Obyekt
           <select aria-label="Obyekt" value={validId ? obyektId : ''} onChange={(event) => { const object = obyektlar.find((item) => item.id === Number(event.target.value)); if (workspace.isProvider) workspace.setObjectId(object?.id ?? null); else setParams(object ? { obyekt: String(object.id) } : {}); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">

@@ -1,3 +1,5 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { reportMoneyValidity } from '../../lib/money-input';
 import React, { useMemo, useState, useRef } from 'react';
 import { useFakturalarOl, useFakturaYoz, useFakturaFaylYoz, useFakturaAiParse, useFakturaDriveHolat, useFakturaAvtoSinx, useFakturaSinxFonda, type FakturaItem,
   useFakturaSinxToxtat, useFakturaSinxDavom, useFakturaOxirgiIjro,
@@ -46,6 +48,7 @@ export function Fakturalar() {
   const [isParsing, setIsParsing] = useState(false);
   const [parsingStatus, setParsingStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const moneyScope = useRef<HTMLDivElement>(null);
 
   const [isSyncingLoop, setIsSyncingLoop] = useState(false);
   const syncToxtatRef = useRef(false);
@@ -348,6 +351,7 @@ export function Fakturalar() {
   void parseFakturaText;
 
   const handleSave = async () => {
+    if (!reportMoneyValidity(moneyScope.current)) return;
     // FAQAT dublikat bo'lmaganlarini saqlash
     const yaroqli = yangiKiritmalar.filter(item => {
       const isDup = item.fakturaRaqami && item.postavshik && hammasi.some(x => x.fakturaRaqami === item.fakturaRaqami && x.postavshik === item.postavshik);
@@ -760,7 +764,7 @@ export function Fakturalar() {
 
       {modalOchiq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="karta flex max-h-full w-full max-w-5xl flex-col shadow-2xl border border-white/10 relative overflow-hidden bg-[var(--surface-1)]">
+          <div ref={moneyScope} className="karta flex max-h-full w-full max-w-5xl flex-col shadow-2xl border border-white/10 relative overflow-hidden bg-[var(--surface-1)]">
             <div className="flex items-center justify-between border-b border-border bg-black/20 p-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <FileUp className="text-accent" size={20} />
@@ -865,13 +869,13 @@ export function Fakturalar() {
                               }}/>
                             </td>
                             <td className="px-3 py-2 text-right w-28">
-                              <input className={`w-full bg-transparent border-b border-transparent focus:border-accent outline-none text-right ${xatoMath ? 'text-warning' : ''}`} type="number" value={t.narxi || ''} onChange={(e) => {
-                                qatorYangila(i, 'narxi', Number(e.target.value));
+                              <MoneyInput numericValue className={`w-full bg-transparent border-b border-transparent focus:border-accent outline-none text-right ${xatoMath ? 'text-warning' : ''}`}  value={t.narxi || ''} onValueChange={(moneyValue) => {
+                                qatorYangila(i, 'narxi', Number(moneyValue));
                               }}/>
                             </td>
                             <td className="px-3 py-2 text-right w-20">
-                              <input className="w-full bg-transparent border-b border-transparent focus:border-accent outline-none text-right text-text-dim" type="number" value={t.aksizSummasi || ''} onChange={(e) => {
-                                qatorYangila(i, 'aksizSummasi', Number(e.target.value));
+                              <MoneyInput numericValue className="w-full bg-transparent border-b border-transparent focus:border-accent outline-none text-right text-text-dim"  value={t.aksizSummasi || ''} onValueChange={(moneyValue) => {
+                                qatorYangila(i, 'aksizSummasi', Number(moneyValue));
                               }}/>
                             </td>
                             <td className="px-3 py-2 text-right w-16">
@@ -880,8 +884,8 @@ export function Fakturalar() {
                               }}/>
                             </td>
                             <td className="px-3 py-2 text-right w-28">
-                              <input className={`w-full bg-transparent border-b border-transparent focus:border-accent outline-none text-right ${xatoMath ? 'text-danger font-bold' : ''}`} type="number" value={t.jamiNdsSiz || ''} onChange={(e) => {
-                                qatorYangila(i, 'jamiNdsSiz', Number(e.target.value));
+                              <MoneyInput numericValue className={`w-full bg-transparent border-b border-transparent focus:border-accent outline-none text-right ${xatoMath ? 'text-danger font-bold' : ''}`}  value={t.jamiNdsSiz || ''} onValueChange={(moneyValue) => {
+                                qatorYangila(i, 'jamiNdsSiz', Number(moneyValue));
                               }}/>
                             </td>
                             <td className="px-3 py-2 text-right font-bold text-ok w-32"><FmtN val={t.jamiNdsBilan} /></td>

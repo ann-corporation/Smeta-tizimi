@@ -475,6 +475,6 @@ export default function ErpTaminot() {
 const POSTAVSHIK_MAYDONLAR: ErpField[] = [
   { key: 'nom', label: 'Nomi', type: 'text', required: true, placeholder: 'MCHJ «Qurilish Servis»' },
   { key: 'telefon', label: 'Telefon', type: 'text', placeholder: '+998 90 123 45 67' },
-  { key: 'yetkazilganSumma', label: 'Yetkazilgan summa (so\'m)', type: 'number' },
-  { key: 'qarzimiz', label: 'Qarzimiz (so\'m)', type: 'number' },
+  { key: 'yetkazilganSumma', label: 'Yetkazilgan summa (so\'m)', type: 'money' },
+  { key: 'qarzimiz', label: 'Qarzimiz (so\'m)', type: 'money' },
 ];

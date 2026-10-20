@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, TrendingUp, HandCoins, Building2, CreditCard, PieChart, Activity, Briefcase, FileSignature, Receipt, Truck, HardHat, ShoppingCart, Info, Search, Trash2 } from 'lucide-react';
@@ -281,8 +282,8 @@ export function Buxgalteriya() {
                     </label>
                     <label className="flex flex-col gap-1">
                       <span className="text-[10px] text-slate-500 uppercase">Summa *</span>
-                      <input type="number" value={yangi.summa}
-                        onChange={(e) => setYangi({ ...yangi, summa: e.target.value })}
+                      <MoneyInput  value={yangi.summa}
+                        onValueChange={(moneyValue) => setYangi({ ...yangi, summa: moneyValue })}
                         className="bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white
                                    text-right focus:outline-none focus:border-emerald-500/50 w-[160px]" />
                     </label>

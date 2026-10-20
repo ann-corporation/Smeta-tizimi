@@ -321,7 +321,7 @@ export default function ErpKadrlar() {
 const ISHCHI_MAYDONLAR: ErpField[] = [
   { key: 'ism', label: 'F.I.O', type: 'text', required: true, placeholder: 'Azizov Bahrom' },
   { key: 'kasb', label: 'Kasbi', type: 'text', placeholder: 'Prorab' },
-  { key: 'stavka', label: 'Kunlik stavka (so\'m)', type: 'number', placeholder: '250000' },
+  { key: 'stavka', label: 'Kunlik stavka (so\'m)', type: 'money', placeholder: '250000' },
   { key: 'brigada', label: 'Brigada', type: 'text', placeholder: 'Brigada-1' },
   { key: 'obyekt', label: 'Obyekt', type: 'text' },
   { key: 'telefon', label: 'Telefon', type: 'text', placeholder: '+998 90 123 45 67' },

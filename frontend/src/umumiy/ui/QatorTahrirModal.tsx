@@ -1,3 +1,4 @@
+import { MoneyInput } from './MoneyInput';
 /**
  * QatorTahrirModal.tsx — TIZIM_02: kanonik qatorni to'g'ridan-to'g'ri
  * saytning o'zida tahrirlash (ziddiyat nazorati bilan)
@@ -112,15 +113,17 @@ export function QatorTahrirModal({
                 <label className="block text-[11px] font-medium text-text-mute mb-1">{MAYDON_NOMI[maydon]}</label>
                 {!konflikt && (
                   <div className="flex items-center gap-2">
+                    {maydon === 'narx' ? <MoneyInput value={qiymatlar[maydon]} onValueChange={(v) => ozgartir(maydon, v)} onKeyDown={(e) => { if (e.key === 'Enter' && ozgargan) void saqla(maydon, versiya); }} className="flex-1 bg-[var(--surface-2)] border border-border rounded-lg px-3 py-1.5 text-[13px] text-text outline-none focus:border-accent/50" /> : (
                     <input
                       value={qiymatlar[maydon]}
                       onChange={(e) => ozgartir(maydon, e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && ozgargan) void saqla(maydon, versiya); }}
-                      type={maydon === 'hajm' || maydon === 'narx' ? 'number' : 'text'}
+                      type={maydon === 'hajm' ? 'number' : 'text'}
                       step="any"
                       className="flex-1 bg-[var(--surface-2)] border border-border rounded-lg
                                  px-3 py-1.5 text-[13px] text-text outline-none focus:border-accent/50"
                     />
+                    )}
                     <button
                       onClick={() => void saqla(maydon, versiya)}
                       disabled={!ozgargan || ketyapti === maydon}

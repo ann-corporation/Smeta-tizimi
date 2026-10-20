@@ -2112,5 +2112,12 @@
   "Summa qisman": "Partial amount",
   "Summalar hali yuklanmagan. Asl hujjatlarni ochish mumkin.": "Amounts have not loaded yet. Original documents can be opened.",
   "To‘lovlar tizimga kiritilmagan. Qarz tasdiqlanmagan.": "Payments have not been entered. Receivables are unconfirmed.",
-  "Umumiy shartnoma obyektlarga avtomatik taqsimlanmaydi.": "A shared contract is not automatically allocated to objects."
+  "Umumiy shartnoma obyektlarga avtomatik taqsimlanmaydi.": "A shared contract is not automatically allocated to objects.",
+  "Tarkib va tekshiruv": "Composition and check",
+  "Asos: to‘g‘ri xarajatlar, nakrutka va QQSsiz. F2 — faqat tasdiqlangan aktlar.": "Basis: direct costs, excluding markups and VAT. F2 — approved acts only.",
+  "Ostatka — smeta narxida baholangan musbat qolgan ish hajmi; qayd etilgan Fakt hisobga olinadi. Smeta − F2 emas.": "Remainder — positive remaining work volume at estimate price; recorded Fact is included. It is not Estimate − F2.",
+  "Eski F2 yozuvlari: manbada tasdiqlangan summa bo‘lmasa, eski summa ishlatilgan.": "Legacy F2 records: where the source has no certified amount, the legacy amount is used.",
+  "To‘g‘ri xarajatlar · nakrutka va QQSsiz": "Direct costs · excluding markups and VAT",
+  "Moliyaviy ko‘rsatkichlar": "Financial indicators",
+  "Moliyaviy ko‘rsatkichlar o‘qilmadi.": "Financial indicators could not be read."
 }

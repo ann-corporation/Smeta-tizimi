@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useEffect, useMemo, useState } from 'react';
 import type { EstimateDoc, PriceBasis, CatalogResource, Substitution } from '../../lib/smeta-studio/model';
 import type { KatalogQatori } from '../../lib/narx-katalog/price-remote';
@@ -139,8 +140,8 @@ function Inspector({ doc, row, labels: l, command, pricing }: {
         <p className="text-[12px] text-text-dim">{l.quantity}: {line?.quantity ?? l.unknown} · {l.amount}: {line?.amount ?? l.unknown}</p>
         <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => { e.preventDefault(); run({ type: 'SET_PRICE', occurrenceId: work.id, recipeId: recipe.recipeId,
           price: price.trim() ? { value: price, basis, evidence, sourcePriceId: priceSource } : null }); }}>
-          <label className="block text-[11.5px] text-text-dim">{l.price}<input className={inputClass} inputMode="decimal" value={price} onChange={e => {
-            setPrice(e.target.value); setPriceSource(null); setBasis('OPERATOR_MANUAL'); setEvidence('');
+          <label className="block text-[11.5px] text-text-dim">{l.price}<MoneyInput className={inputClass} inputMode="decimal" value={price} onValueChange={(moneyValue) => {
+            setPrice(moneyValue); setPriceSource(null); setBasis('OPERATOR_MANUAL'); setEvidence('');
           }} /></label>
           <label className="block text-[11.5px] text-text-dim">{l.basis}<select className={inputClass} value={basis} onChange={e => { setBasis(e.target.value as PriceBasis); setPriceSource(null); }}>
             {Object.entries(l.priceBases).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
