@@ -271,6 +271,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_shartnoma_saqla_v2"
     },
     {
+      "amal": "fayl_amal_v1",
+      "rpc": "t2_fayl_amal_v1"
+    },
+    {
       "amal": "token_sarfla_v1",
       "rpc": "t2_token_sarfla_v1"
     },

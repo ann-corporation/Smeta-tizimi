@@ -48,6 +48,8 @@ const AMALLAR = {
   qator_resurs_ish_zamena_v1: { rpc: 't2_resurs_ish_zamena_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
+  /* Egasi 2026-10-20: fayl menejeri — o'z papkalari, ko'rinadigan nom, ko'chirish, savat (kanonik hujjat o'zgarmaydi). */
+  fayl_amal_v1: { rpc: 't2_fayl_amal_v1' },
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
@@ -592,6 +594,17 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'Paket, usul va operatsiya talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_paket_kod: String(so.paket_kod), p_usul: String(so.usul), p_tolov_malumot: String(so.tolov_malumot || '').slice(0, 300), p_operation_id: so.operation_id };
+    } else if (amal === 'fayl_amal_v1') {
+      const AMALLAR = ['nomla', 'kochir', 'savat', 'tikla', 'papka_yarat', 'papka_nomla', 'papka_kochir', 'papka_ochir'];
+      const ixt = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      const [doc, papka, ota] = [ixt(so.document_id), ixt(so.papka_id), ixt(so.ota_papka_id)];
+      if (!sess.foydalanuvchi_id || !AMALLAR.includes(String(so.fayl_amal))
+          || [doc, papka, ota].some((x) => x != null && (!Number.isSafeInteger(x) || x <= 0))
+          || (so.nom != null && typeof so.nom !== 'string')) {
+        return Response.json({ ok: false, error: 'Fayl amali, ID lar yoki nom noto‘g‘ri.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_amal: String(so.fayl_amal),
+        p_document_id: doc, p_papka_id: papka, p_nom: so.nom == null ? null : String(so.nom).slice(0, 200), p_ota_papka_id: ota };
     } else if (amal === 'token_qaytar_v1') {
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !uuidRe.test(String(so.sarf_operation_id || ''))) {
         return Response.json({ ok: false, error: 'Sarf va operatsiya talab qilinadi.' }, { status: 400 });

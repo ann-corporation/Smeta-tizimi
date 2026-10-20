@@ -3,10 +3,37 @@
  * yuklab olish — /api/hujjat-ol (R2, a'zolik RPC ichida); yuklash — /api/hujjat-yukla (ikki bosqichli).
  * Ma'lumot eksporti — /api/sb jadvallari (server har o'qishga kompaniya filtrini majburan qo'shadi).
  */
-import { sbOqi } from './supabase';
-import type { Fayl } from '../lib/fayl-daraxt';
+import { sbOqi, yozAmali, type AktNatija } from './supabase';
+import type { Fayl, FaylPapka } from '../lib/fayl-daraxt';
 
-export type FaylExplorer = { ok: true; rol: string; kompaniya_id: number; kompaniya: string | null; fayllar: Fayl[] };
+export type FaylExplorer = { ok: true; rol: string; kompaniya_id: number; kompaniya: string | null; fayllar: Fayl[]; papkalar?: FaylPapka[] };
+
+/* ── Fayl menejeri amallari (egasi 2026-10-20: «Drive kabi — ko'chirish, o'chirish, nomini o'zgartirish») ──
+ * /api/sb-yoz `fayl_amal_v1`. Kanonik hujjat o'zgarmaydi — faqat ko'rinadigan nom, o'z papkasi, savat. */
+export type FaylAmali = 'nomla' | 'kochir' | 'savat' | 'tikla' | 'papka_yarat' | 'papka_nomla' | 'papka_kochir' | 'papka_ochir';
+export type FaylAmalNatija = { ok: boolean; papka_id?: number; code?: string; xato?: string };
+
+const AMAL_XATOLARI: Readonly<Record<string, string>> = {
+  NOM_BAND: 'Shu joyda bunday nomli papka bor.',
+  NOM_NOTOGRI: 'Nom 1–120 belgidan iborat bo‘lsin.',
+  NOM_UZUN: 'Nom 200 belgidan oshmasin.',
+  AYLANMA: 'Papkani o‘zining ichiga ko‘chirib bo‘lmaydi.',
+  PAPKA_BOSH_EMAS: 'Papka bo‘sh emas — avval ichidagi papka va fayllarni ko‘chiring.',
+  RUXSAT_YOQ: 'Lavozimingiz fayllarni faqat ko‘rishga ruxsat beradi.',
+  HUJJAT_TOPILMADI: 'Fayl topilmadi.',
+  PAPKA_TOPILMADI: 'Papka topilmadi.',
+};
+
+/** Xato kodi → foydalanuvchi matni (o'zbekcha manba; chaqiruvchi `t()` bilan tarjima qiladi). */
+export const faylAmalXatosi = (code?: string, zaxira = 'Amal bajarilmadi.') => (code && AMAL_XATOLARI[code]) || zaxira;
+
+export async function faylAmal(kompaniyaId: number, amal: FaylAmali,
+  p: { documentId?: number | null; papkaId?: number | null; nom?: string | null; otaPapkaId?: number | null } = {}): Promise<FaylAmalNatija> {
+  const r = await yozAmali({ amal: 'fayl_amal_v1', kompaniya_id: kompaniyaId, fayl_amal: amal,
+    document_id: p.documentId ?? null, papka_id: p.papkaId ?? null, nom: p.nom ?? null, ota_papka_id: p.otaPapkaId ?? null }) as AktNatija & { code?: string; papka_id?: number };
+  if (r.ok) return { ok: true, papka_id: r.papka_id };
+  return { ok: false, code: r.code, xato: r.code && AMAL_XATOLARI[r.code] ? AMAL_XATOLARI[r.code] : (r.error || 'Amal bajarilmadi.') };
+}
 
 export async function faylExplorerOl(kompaniyaId: number): Promise<FaylExplorer> {
   const r = await fetch('/api/sb', {

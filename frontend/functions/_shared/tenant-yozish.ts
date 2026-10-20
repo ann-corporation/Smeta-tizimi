@@ -26,6 +26,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_protokol_id: 't2_lab_protokol',
   p_azolik_id: 't2_azolik',
   p_document_id: 't2_document_registry',
+  /* Fayl menejeri o'z papkalari (p_ota_id emas — u t2_qator uchun band). */
+  p_papka_id: 't2_fayl_papka', p_ota_papka_id: 't2_fayl_papka',
 };
 /** Massiv argumentlar. */
 export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt' };

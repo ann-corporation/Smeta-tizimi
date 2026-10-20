@@ -12,7 +12,51 @@ export type Fayl = {
   slot?: string | null;
   /** Rasmiy hujjatning hisobot oyi (YYYY-MM) — papka shu oy bo'yicha (yuklangan kuni emas). */
   davr?: string | null;
+  /** Yuklangandagi asl nom (`nom` — foydalanuvchi bergan ko'rinadigan nom bo'lishi mumkin). */
+  asl_nom?: string | null;
+  /** Foydalanuvchining o'z papkasi (bo'lsa — fayl tizim papkasida emas, shu yerda ko'rinadi). */
+  papka_id?: number | null;
+  /** Savatga tashlangan vaqt (bo'lsa — faqat «Savat» da ko'rinadi). */
+  savatda?: string | null;
 };
+
+/** Kompaniyaning o'z papkasi (egasi 2026-10-20: Drive / «Мой компьютер» kabi ierarxiya). */
+export type FaylPapka = { id: number; ota_id: number | null; nom: string };
+
+/** Tizim papkalari daraxtiga kiradigan fayllar: o'z papkasiga ko'chirilmagan va savatda emas. */
+export const tizimFayllari = (f: readonly Fayl[]) => f.filter((x) => !x.papka_id && !x.savatda);
+/** Savatdagi fayllar — yangi tashlangani tepada. */
+export const savatFayllari = (f: readonly Fayl[]) => f.filter((x) => !!x.savatda).sort((a, b) => String(b.savatda).localeCompare(String(a.savatda)));
+/** O'z papkasidagi fayllar (savatdagilar emas). */
+export const menPapkaFayllari = (f: readonly Fayl[], papkaId: number) => f.filter((x) => x.papka_id === papkaId && !x.savatda);
+/** Papkaning bevosita bolalari (ota = null — ildiz), nom bo'yicha. */
+export const papkaBolalari = (p: readonly FaylPapka[], otaId: number | null) =>
+  p.filter((x) => (x.ota_id ?? null) === otaId).sort((a, b) => a.nom.localeCompare(b.nom, 'ru'));
+/** Ildizdan shu papkagacha yo'l (aylanma himoyasi bilan). */
+export function papkaYoli(p: readonly FaylPapka[], id: number | null): FaylPapka[] {
+  const yol: FaylPapka[] = [];
+  const kor = new Set<number>();
+  let joriy = id == null ? undefined : p.find((x) => x.id === id);
+  while (joriy && !kor.has(joriy.id)) { kor.add(joriy.id); yol.unshift(joriy); joriy = joriy.ota_id == null ? undefined : p.find((x) => x.id === joriy!.ota_id); }
+  return yol;
+}
+/** Papka va uning barcha avlodlari ID lari. */
+export function papkaAvlodlari(p: readonly FaylPapka[], id: number): Set<number> {
+  const s = new Set<number>([id]);
+  for (let o = true; o;) { o = false; for (const x of p) if (x.ota_id != null && s.has(x.ota_id) && !s.has(x.id)) { s.add(x.id); o = true; } }
+  return s;
+}
+/** Ko'chirish uchun tanlov: «A / B / C» yo'llari; `chiqar` papkasi va uning avlodlari ro'yxatga kirmaydi. */
+export function papkaTanlovlari(p: readonly FaylPapka[], chiqar?: number | null): Array<{ id: number; yol: string }> {
+  const yoq = chiqar == null ? new Set<number>() : papkaAvlodlari(p, chiqar);
+  return p.filter((x) => !yoq.has(x.id)).map((x) => ({ id: x.id, yol: papkaYoli(p, x.id).map((y) => y.nom).join(' / ') }))
+    .sort((a, b) => a.yol.localeCompare(b.yol, 'ru'));
+}
+/** O'z papkasi va avlodlaridagi fayllar soni (savatdagilarsiz). */
+export function menPapkaSoni(p: readonly FaylPapka[], f: readonly Fayl[], id: number): number {
+  const s = papkaAvlodlari(p, id);
+  return f.filter((x) => x.papka_id != null && s.has(x.papka_id) && !x.savatda).length;
+}
 
 export type Papka = {
   kalit: string;            // to'liq yo'l: "Loyiha/Obyekt/Tur/2026-10"

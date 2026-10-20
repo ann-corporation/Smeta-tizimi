@@ -12,7 +12,7 @@ type Holat = { guruh: number; tejash: number; yetim: number };
 
 async function soro(usul: 'GET' | 'POST', tana?: unknown): Promise<Record<string, unknown>> {
   const r = await fetch('/api/r2-dublikat', usul === 'GET' ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tana) });
-  const j = await r.json().catch(() => null) as Record<string, unknown> | null;
+  const j: Record<string, unknown> | null = await r.json().catch(() => null);
   if (!r.ok || !j || j.ok !== true) throw new Error(String(j?.code ?? r.status));
   return j;
 }
