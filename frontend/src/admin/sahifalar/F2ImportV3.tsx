@@ -567,13 +567,13 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (b.resurslar.length && b.kind !== 'resource') {
       const rr = await sbT2IshResurslarBilanYarat({ ...asos, command: b.kind === 'replacement' ? 'replacement' : 'additional',
         almashtirilayotganQatorId: real.almashtirilayotganQatorId, resurslar: b.resurslar });
-      return { qatorId: tekshir(rr), resursIdlar: rr.resurs_qator_idlar ?? [] };
+      return { qatorId: tekshir(rr), resursIdlar: rr.resurs_qator_idlar ?? [], otaVersiya: (rr as { parent_version?: number | null }).parent_version ?? null };
     }
     const r = b.kind === 'replacement'
       ? await sbT2ZamenaIshYarat({ ...asos, almashtirilayotganQatorId: real.almashtirilayotganQatorId as number })
       : b.kind === 'additional' && b.tur === 'bl' ? await sbT2QoshimchaIshYarat(asos)
         : await sbT2ResursBolaQosh({ ...asos, tur: b.tur === 'bl' ? 'rs' : b.tur, hajm: b.hajm });
-    return { qatorId: tekshir(r), resursIdlar: [] };
+    return { qatorId: tekshir(r), resursIdlar: [], otaVersiya: (r as { parent_version?: number | null }).parent_version ?? null };
   };
   async function otaVersiya(id: number): Promise<number> {
     const d = await sbOqi<{ id: number; versiya: number }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objectId}&id=eq.${id}`, ustunlar: 'id,versiya', limit: 1 });

@@ -597,12 +597,21 @@ export type AktNatija = {
  * Mening domenimga tegishli emas, lekin BUTUN qurilishni bloklardi. */
 export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija> {
   const t0 = performance.now();
+  const yubor = () => vaqtliFetch('/api/sb-yoz', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(yuk),
+  }, YOZISH_CHEGARA_MS);
   try {
-    const r = await vaqtliFetch('/api/sb-yoz', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(yuk),
-    }, YOZISH_CHEGARA_MS);
+    let r: Response;
+    try { r = await yubor(); }
+    catch (e) {
+      // Tarmoq bir lahza uzilsa (Suniy Ko'l, 2026-10-19): operation_id bor amal BIR MARTA qayta yuboriladi —
+      // server ayni amalni ikki marta bajarmaydi (idempotent). Vaqt chegarasi o'tgan so'rov qayta yuborilmaydi.
+      if (chegaraOtdimi(e) || typeof yuk.operation_id !== 'string') throw e;
+      await new Promise((ok) => setTimeout(ok, 800));
+      r = await yubor();
+    }
     const matn = await r.text();
     let j: AktNatija;
     try { j = JSON.parse(matn) as AktNatija; }
@@ -615,7 +624,7 @@ export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija>
   } catch (e) {
     return { ok: false, error: chegaraOtdimi(e)
       ? 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin. Sahifani yangilab tekshiring; qayta saqlash xavfsiz (bir xil amal ID, ikkinchi hujjat yaratilmaydi).'
-      : 'O‘zgarishni saqlab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
+      : 'Internet aloqasi uzildi — o‘zgarish serverga yetmadi. Aloqani tekshirib qayta bosing (takror yozilmaydi).',
              ms: Math.round(performance.now() - t0) };
   }
 }

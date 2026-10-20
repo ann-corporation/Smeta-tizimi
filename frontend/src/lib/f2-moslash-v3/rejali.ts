@@ -96,7 +96,7 @@ export function rejaliOchir(buyruqlar: readonly RejaliBuyruq[], ij: IshJoyi, tem
 }
 
 export type RejaliYaratish = (b: RejaliBuyruq, real: { otaQatorId: number; almashtirilayotganQatorId?: number; keyinQatorId?: number; otaVersiya: number })
-  => Promise<{ qatorId: number; resursIdlar: number[] }>;
+  => Promise<{ qatorId: number; resursIdlar: number[]; otaVersiya?: number | null }>;
 
 /**
  * Buyruqlarni ketma-ket yozadi. Xato bo'lsa to'xtaydi: yozilganlari `map` da, qolganlari `qolgan` da (ish yo'qolmaydi).
@@ -108,6 +108,8 @@ export async function rejaliniYoz(
   d: { yarat: RejaliYaratish; versiya: (id: number) => Promise<number>; progress?: (bajarildi: number, jami: number) => void },
 ): Promise<{ map: Map<number, number>; qolgan: RejaliBuyruq[]; xato?: string }> {
   const map = new Map<number, number>();
+  // Server javobida ota versiyasi bo'lsa keyingi buyruq uni qayta o'qimaydi (har buyruqqa bitta so'rov).
+  const versiyalar = new Map<number, number>();
   const real = (id: number | undefined) => (id == null ? undefined : vaqtinchami(id) ? map.get(id) : id);
   for (let i = 0; i < buyruqlar.length; i++) {
     const b = buyruqlar[i];
@@ -116,7 +118,8 @@ export async function rejaliniYoz(
       const ota = real(b.otaQatorId);
       if (ota == null) throw new Error('Ota qator hali yozilmagan.');
       const r = await d.yarat(b, { otaQatorId: ota, almashtirilayotganQatorId: real(b.almashtirilayotganQatorId),
-        keyinQatorId: real(b.keyinQatorId), otaVersiya: await d.versiya(ota) });
+        keyinQatorId: real(b.keyinQatorId), otaVersiya: versiyalar.get(ota) ?? await d.versiya(ota) });
+      if (r.otaVersiya != null) versiyalar.set(ota, r.otaVersiya); else versiyalar.delete(ota);
       map.set(b.tempId, r.qatorId);
       b.resursTempIds.forEach((t, j) => { if (r.resursIdlar[j] != null) map.set(t, r.resursIdlar[j]); });
     } catch (e) {

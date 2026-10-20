@@ -58,3 +58,15 @@ describe('F2 import — rejali (oxirida bittada yoziladigan) o‘zgarishlar', ()
     expect(r.xato).toMatch(/STALE_VERSION/);
   });
 });
+
+describe('rejali yozish — ota versiyasi keshlanadi', () => {
+  it('javobda otaVersiya bo‘lsa keyingi buyruq versiyani qayta o‘qimaydi', async () => {
+    let v = 5;
+    const yarat = vi.fn(async (x: RejaliBuyruq, real: { otaVersiya: number }) => ({ qatorId: 100 - x.tempId + real.otaVersiya * 0, resursIdlar: [], otaVersiya: ++v }));
+    const versiya = vi.fn(async () => 5);
+    const list = [b({ tempId: -1 }), b({ tempId: -2 }), b({ tempId: -3 })];
+    await rejaliniYoz(list, { yarat, versiya });
+    expect(versiya).toHaveBeenCalledTimes(1);
+    expect(yarat.mock.calls.map((c) => c[1].otaVersiya)).toEqual([5, 6, 7]);
+  });
+});
