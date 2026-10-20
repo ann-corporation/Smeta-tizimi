@@ -32,6 +32,7 @@ import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
 import { roleAuthority } from '../_shared/role-authority';
 import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
+import { otaKeshOl, otaKeshYoz } from '../_shared/ota-kesh';
 
 /* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA va `_shared/tenant-oqish.ts` dagi
    OQISH_SIYOSATI ga (aniq izolyatsiya siyosati bilan) qo'shiladi — ikkalasi bir xil bo'lishi testda majburiy.
@@ -132,8 +133,16 @@ const RUXSAT_JADVALLAR = new Set([
 /** Bitta `/api/sb` o'qishining vaqt byudjeti (ms). Oshsa — log + `sekin: true`. */
 const TEZLIK_BYUDJETI_MS = 3000;
 
-/** Ota yozuvning (obyekt / loyiha / viborka) kompaniyasi — service_role bilan, faqat `kompaniya_id` ustuni. */
+/** Ota yozuvning (obyekt / loyiha / viborka) kompaniyasi — 60 s kesh (`_shared/ota-kesh`), keyin baza. */
 async function otaKompaniyasi(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, jadval: string, id: number): Promise<number | null> {
+  const bor = otaKeshOl(jadval, id);
+  if (bor != null) return bor;
+  const k = await otaKompaniyasiBazadan(env, jadval, id);
+  if (k != null) otaKeshYoz(jadval, id, k);
+  return k;
+}
+
+async function otaKompaniyasiBazadan(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, jadval: string, id: number): Promise<number | null> {
   const r = await fetch(
     supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/' + jadval + '?select=kompaniya_id&id=eq.' + id + '&limit=1',
     { headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY } });
@@ -506,11 +515,18 @@ export const onRequestPost: PagesFunction<{
     /* Bosqichma-bosqich vaqt — sekinlik QAYERDA ekanini bilish uchun.
        Taxmin qilmaymiz: birinchi so'rov (aloqa o'rnatish + tarmoq yo'li)
        va qolgan sahifalar (parallel) alohida o'lchanadi. */
+    const kalitM = /^(id|qator_id)\.asc$/.exec(so.tartib || '');
+    const kalit = kalitM ? kalitM[1] : null;
     const tBir = Date.now();
+    /* Baza uzoqda (ap-southeast-2): har ketma-ket borib-kelish ~0.3 s. Eng katta kalit birinchi sahifa bilan
+       PARALLEL so'raladi (arzon: faqat kalit ustuni, indeks bo'yicha teskari) — kerak bo'lmasa e'tiborsiz qoladi. */
+    const maksP = kalit && kerak > 1000 ? sahifaOl(0, 1, { select: kalit, order: kalit + '.desc', sana: false }) : null;
+    void maksP?.catch(() => undefined); // ishlatilmasa ham ushlanmagan rad etish qolmasin
     const birinchi = await sahifaOl(0, SORALADI);
     const msBirinchi = Date.now() - tBir;
     let msQolgan = 0;
     soro++;
+    if (maksP) soro++;
     if ('failed' in birinchi) {
       return xavfsizUpstream(birinchi.status, birinchi.detail);
     }
@@ -527,8 +543,6 @@ export const onRequestPost: PagesFunction<{
        `qator_id.asc`) va hammasi kerak bo'lsa: qolgan qism kalit oraliqlariga bo'linib parallel o'qiladi — har so'rov
        faqat o'z qatorlarini hisoblaydi (OFFSET esa moliyaviy view'da o'tkazib yuborilganlarni ham hisoblardi).
        Natija uzluksiz prefiks; to'liq bo'lmasa `toliq:false` (chaqiruvchi `kalit=gt.oxirgi` bilan davom etadi). */
-    const kalitM = /^(id|qator_id)\.asc$/.exec(so.tartib || '');
-    const kalit = kalitM ? kalitM[1] : null;
     const kalitQiymati = (r: unknown) => {
       const v = Number((r as Record<string, unknown> | null)?.[kalit as string]);
       return Number.isSafeInteger(v) ? v : null;
@@ -536,11 +550,10 @@ export const onRequestPost: PagesFunction<{
     const oxirgiKalit = kalit && qatorlar.length ? kalitQiymati(qatorlar[qatorlar.length - 1]) : null;
     let prefiksToliqEmas = false;
 
-    if (kalit && oxirgiKalit != null && jamiServerda != null && kerak >= jamiServerda
+    if (kalit && maksP && oxirgiKalit != null && jamiServerda != null && kerak >= jamiServerda
         && qatorlar.length >= SAHIFA && qatorlar.length < jamiServerda) {
       const tQol = Date.now();
-      const maksJ = await sahifaOl(0, 1, { select: kalit, order: kalit + '.desc', sana: false });
-      soro++;
+      const maksJ = await maksP;
       if ('failed' in maksJ) return xavfsizUpstream(maksJ.status, maksJ.detail);
       const maks = maksJ.bolak.length ? kalitQiymati(maksJ.bolak[0]) : null;
       if (maks == null) return xavfsizUpstream(502, 'KALIT_MAKS_OQILMADI');

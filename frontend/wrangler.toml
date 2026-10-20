@@ -2,6 +2,13 @@ name = "smeta-frontend"
 compatibility_date = "2024-04-05"
 pages_build_output_dir = "dist"
 
+# 2026-10-20 (tezlik): Supabase bazasi ap-southeast-2 (Sidney) da, foydalanuvchilar O'zbekistonda. Bitta `/api`
+# so'rovi bazaga 3–5 marta ketma-ket boradi (rol, tenant, sahifalar) — har biri ~0.3 s. Smart Placement funksiyani
+# bazaga yaqin joyda ishga tushiradi: ichki murojaatlar millisekundlarda, uzoq yo'l esa bir marta. Middleware faqat
+# functions/api/ da — statik fayllar odatdagidek foydalanuvchiga yaqin joydan beriladi. Qaytarish: shu blokni o'chirish.
+[placement]
+mode = "smart"
+
 # Jarvis Pages Function uchun Cloudflare'ning ichki AI xizmati.
 # API key ishlatilmaydi: ruxsat Pages project binding orqali beriladi.
 [ai]

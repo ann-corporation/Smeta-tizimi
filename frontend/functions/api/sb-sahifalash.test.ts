@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { onRequestPost } from './sb';
 import { imzola } from '../_shared/auth';
+import { otaKeshTozala } from '../_shared/ota-kesh';
 
 const KEY = 'k'.repeat(32);
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); otaKeshTozala(); });
 
-type Sorov = { offset: number; count: string | null; url: string; params: URLSearchParams };
+type Sorov = { offset: number; count: string | null; url: string; params: URLSearchParams; /** shu so'rov kelganda javob kutayotgan boshqa so'rovlar */ parallel: number };
+let obyektSorovlari = 0;
+let faol = 0;
 
 /** PostgREST imitatsiyasi: max-rows 1000, `kalit=gt./lte.` filtrlari, `order=kalit.asc|desc`, count=exact. */
 async function read(opts: { ids: number[]; failWhen?: (s: Sorov) => boolean; objectCompany?: number; table?: string; tartib?: string }) {
@@ -14,10 +17,13 @@ async function read(opts: { ids: number[]; failWhen?: (s: Sorov) => boolean; obj
   vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
     const url = new URL(String(u));
     if (url.pathname === '/rest/v1/rpc/t2_men_v1') return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' }, azoliklar: [{ kompaniya_id: 17, rol: 'pto', faol: true }] });
-    if (url.pathname === '/rest/v1/t2_obyekt') return Response.json([{ kompaniya_id: objectCompany }]);
+    if (url.pathname === '/rest/v1/t2_obyekt') { obyektSorovlari++; return Response.json([{ kompaniya_id: objectCompany }]); }
     const p = url.searchParams;
-    const s: Sorov = { offset: Number(p.get('offset')), count: new Headers(init?.headers).get('Prefer'), url: url.toString(), params: p };
+    const s: Sorov = { offset: Number(p.get('offset')), count: new Headers(init?.headers).get('Prefer'), url: url.toString(), params: p, parallel: faol };
     pages.push(s);
+    faol++;
+    await new Promise((r) => setTimeout(r, 2));
+    faol--;
     if (failWhen?.(s)) return new Response('unavailable', { status: 503 });
     const [kalit, yon] = String(p.get('order')).split('.');
     const k = kalit === 'tartib' ? 'id' : kalit;
@@ -84,5 +90,25 @@ describe('large financial reads count once', () => {
     const { json, pages } = await read({ ids: oraliq(1, 2503), tartib: 'tartib.asc' });
     expect(json).toMatchObject({ ok: true, toliq: true, soni: 2503 });
     expect(pages.map((p) => p.offset)).toEqual([0, 1000, 2000]);
+  });
+});
+
+describe('fewer sequential round trips to the remote database', () => {
+  it('asks for the max key in parallel with the first page, not after it', async () => {
+    const { json, pages } = await read({ ids: oraliq(1, 2503) });
+    expect(json.toliq).toBe(true);
+    const maks = pages.find((p) => p.params.get('order') === 'id.desc');
+    const birinchi = pages.find((p) => p.count);
+    expect(Math.max(maks?.parallel ?? 0, birinchi?.parallel ?? 0)).toBeGreaterThanOrEqual(1);
+  });
+  it('caches the object company for repeated reads (one lookup for two reads)', async () => {
+    obyektSorovlari = 0;
+    expect((await read({ ids: oraliq(1, 10), table: 't2_qator_holat' })).json.ok).toBe(true);
+    expect((await read({ ids: oraliq(1, 10), table: 't2_qator_holat' })).json.ok).toBe(true);
+    expect(obyektSorovlari).toBe(1);
+  });
+  it('a cached company never grants access to a non-member company', async () => {
+    expect((await read({ ids: oraliq(1, 10), objectCompany: 18, table: 't2_qator_holat' })).response.status).toBe(403);
+    expect((await read({ ids: oraliq(1, 10), objectCompany: 18, table: 't2_qator_holat' })).response.status).toBe(403);
   });
 });

@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { onRequestPost } from './sb';
 import { imzola } from '../_shared/auth';
+import { otaKeshTozala } from '../_shared/ota-kesh';
 
 /* Egasi (2026-10-03): katalog qidiruvi "keyinroq urinib ko'ring" deb qoldi, so'rov Supabase ga yetmagan.
  * Shlyuz (sb.ts) ni aynan shu so'rov bilan ishga tushirib, Supabase ga qanday URL ketishini tekshiramiz. */
 const KALIT = 'k'.repeat(32);
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); otaKeshTozala(); });
 
 describe('/api/sb — platforma katalogi qidiruvi', () => {
   it('kirillcha so‘zlar va * bilan filtr Supabase ga yetadi va javob qaytadi', async () => {
