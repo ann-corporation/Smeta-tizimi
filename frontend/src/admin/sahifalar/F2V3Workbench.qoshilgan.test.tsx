@@ -121,3 +121,22 @@ describe('F2 import — siz qo‘shgan qatorlar boshqariladi, smeta qatorlari o�
   });
 
 });
+
+describe('F2 import — siz qo‘shgan qatorni tahrirlash qoralamada (serverga «F2 ni yozish» da)', () => {
+  it('✎ → Saqlash: onTahrirRejali chaqiriladi, server tahriri chaqirilmaydi', async () => {
+    const ij: IshJoyi = { bog: new Map([['fq', { qatorId: 3, holat: 'qolda', usul: 'qolda' }]]), otkaz: new Set() };
+    const natija: F2MoslashNatija = { natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: 0 } };
+    const akt = { fayl: 'f', varaq: 'A', davr: '2026-10', daraxt: [rz], jami: { pryamye: 10, vsego: 10, ranee: null, raznica: null, nds: null }, qatorlarJami: 10, barglarSoni: 1, ishlarSoni: 1, ogohlantirishlar: [], anatomiya: { review: [] } } as unknown as F2Akt;
+    const onTahrirRejali = vi.fn((_b: { command: string }) => -5);
+    render(<F2V3Workbench akt={akt} ind={f2Indeks([rz])} natija={natija} S={smetaIndeks(SMETA)} raw={raw} oldingi={new Map()}
+      ij={ij} onIj={vi.fn()} onRzBog={vi.fn()} companyId={1} objectId={7} onYaratildi={async () => undefined}
+      zamenaAsl={new Map([[4, 2]])} onQoshilganOzgardi={vi.fn()} onTahrirRejali={onTahrirRejali} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tahrirlash: Qazib olish (karyer)' }));
+    fireEvent.change(await screen.findByLabelText('Ish hajmi'), { target: { value: '6' } });
+    fireEvent.change(screen.getByLabelText('Sabab'), { target: { value: 'hajm xato edi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
+    await waitFor(() => expect(onTahrirRejali).toHaveBeenCalledTimes(1));
+    expect(onTahrirRejali.mock.calls[0][0]).toMatchObject({ command: 'additional', otaQatorId: 1, eski: { qatorId: 3 }, ish: { hajm: 6 } });
+    expect(m.ochir).not.toHaveBeenCalled();
+  });
+});

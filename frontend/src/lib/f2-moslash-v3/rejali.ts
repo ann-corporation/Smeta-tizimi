@@ -23,7 +23,8 @@ export interface RejaliBuyruq {
   f2ResursUidlar: string[];
   /** resurs_ish — smeta RESURSI o'rniga ish (masalan ГПС ni buyurtmachi bergan: qazib olish va tashish). */
   /** smetasiz — smetasi yo'q obyekt: ish «СМЕТАДАН ТАШҚАРИ ИШЛАР» bo'limiga qo'shimcha bo'lib yoziladi (server bo'limni o'zi yaratadi). */
-  kind: 'replacement' | 'additional' | 'resource' | 'resurs_ish' | 'smetasiz';
+  /** abc — siz qo'shgan qatorning TAHRIRI: eskisi o'chiriladi (OchirishBuyruq), yangisi ish_abc orqali yoziladi. */
+  kind: 'replacement' | 'additional' | 'resource' | 'resurs_ish' | 'smetasiz' | 'abc';
   /** Qo'shimcha pozitsiya turi (ish yoki razdel ostidagi material/uskuna) yoki resurs turi. */
   tur: 'bl' | 'rs' | 'mat' | 'ob';
   otaQatorId: number;
@@ -36,6 +37,10 @@ export interface RejaliBuyruq {
   /** resurs_ish: almashtirilayotgan smeta resursi va server uchun aynan resurslar ro'yxati. */
   resursQatorId?: number;
   ishResurslari?: unknown[];
+  /** abc: ish_abc buyrug'i va server uchun aynan ish/resurslar. */
+  abcCommand?: 'additional' | 'replacement' | 'resurs_zamena' | 'resurs_ish';
+  abcIsh?: unknown;
+  abcResurslar?: unknown[];
 }
 
 /** Avval saqlangan (siz qo'shgan) qatorni O'CHIRISH — ham qoralamada, «F2 ni yozish» da bajariladi. */
@@ -80,7 +85,7 @@ export function rejaliQatorlar(buyruqlar: readonly RejaliBuyruq[], rows: readonl
       : keyinTartib != null ? Number(keyinTartib) + (vaqtinchami(keyin) ? 0.001 : 0.5)
         : Math.max(0, ...aka.map((r) => Number(r.tartib ?? 0))) + 1;
     const ish = { id: b.tempId, ota_id: b.otaQatorId, tur: b.tur, nom: b.nom, kod: b.kod ?? null, birlik: b.birlik, hajm: b.hajm ?? null,
-      narx: null, summa: null, norma: null, qoshimcha: true, zamena: b.kind === 'replacement' || b.kind === 'resurs_ish', versiya: 0, tartib } as unknown as T2Qator;
+      narx: null, summa: null, norma: null, qoshimcha: true, zamena: b.kind === 'replacement' || b.kind === 'resurs_ish' || (b.kind === 'abc' && b.abcCommand !== 'additional'), versiya: 0, tartib } as unknown as T2Qator;
     out.push(ish); byId.set(ish.id, ish);
     b.resurslar.forEach((r, i) => {
       const rid = b.resursTempIds[i];

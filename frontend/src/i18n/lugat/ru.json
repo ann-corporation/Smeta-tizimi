@@ -2203,5 +2203,8 @@
   "F2 import: smetasi yo‘q obyekt": "Импорт Ф2: объект без сметы",
   "Hajmi yo‘q (minus/0)": "Без объёма (минус/0)",
   "Smetasi yo‘q obyekt": "Объект без сметы",
-  "ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.": "работ добавлено в черновик — запишутся в смету при «Записать Ф2»."
+  "ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.": "работ добавлено в черновик — запишутся в смету при «Записать Ф2».",
+  "Qoralamaga qo‘shilmadi.": "Не добавлено в черновик.",
+  "Tahrir qoralamaga qo‘shildi — «F2 ni yozish» bosilganda yoziladi. F2 bog‘lanishi yangi qatorga o‘tdi.": "Правка добавлена в черновик — запишется при «Записать Ф2». Связь Ф2 перенесена на новую строку.",
+  "tahrir": "правка"
 }

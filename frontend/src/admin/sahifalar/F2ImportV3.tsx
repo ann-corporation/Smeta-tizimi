@@ -590,6 +590,43 @@ function Sessiya({ companyId }: { companyId: number }) {
     }
     setHolat(`${qoshildi} ${t('ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.')}${otkazildi.length ? ` ${t('Hajmi yo‘q (minus/0)')}: ${otkazildi.length}` : ''}`);
   }
+  /** Siz qo'shgan qatorni tahrirlash — qoralamada: eskisi o'chirishga, yangisi rejaliga; eski qatorga bog'langan F2 qatorlari
+   *  yangisiga (resurslar — nomi bo'yicha) o'tadi. Serverga hech narsa yozilmaydi. */
+  function onTahrirRejali(b: { eski: { qatorId: number; versiya: number; eskiIdlar: number[]; nom: string }; command: 'additional' | 'replacement' | 'resurs_zamena' | 'resurs_ish';
+    otaQatorId: number | null; almashtirilayotganQatorId?: number | null; resursQatorId?: number | null; ish: unknown; resurslar: unknown[]; sabab: string; operationId: string }): number | null {
+    if (!ijRef.current) return null;
+    const oldBog = [...ijRef.current.bog].filter(([, v]) => b.eski.eskiIdlar.includes(v.qatorId));
+    const eskiNom = new Map(rows.filter((r) => b.eski.eskiIdlar.includes(r.id)).map((r) => [r.id, (r.nom ?? '').toUpperCase().trim()]));
+    onOchirishRejali({ qatorId: b.eski.qatorId, versiya: b.eski.versiya, eskiIdlar: b.eski.eskiIdlar, nom: b.eski.nom, sabab: `${t('tahrir')}: ${b.sabab}` });
+    const ish = (b.ish ?? null) as { kod?: string | null; nom: string; birlik: string; hajm: number } | null;
+    const resurslar = (b.resurslar as Array<{ nom: string; birlik: string; hajm?: number | null; norma?: number | null; kod?: string | null; kat?: string }>);
+    const ishHajm = ish?.hajm ?? null;
+    const korinish = resurslar.map((r) => ({ tur: (r.kat === 'ОБ' ? 'ob' : r.norma != null ? 'rs' : 'mat') as 'rs' | 'mat' | 'ob', nom: r.nom, birlik: r.birlik,
+      hajm: r.norma != null && ishHajm != null ? r.norma * ishHajm : (r.hajm ?? null), kod: r.kod ?? null }));
+    const ids = yangiTempIdlar(rejaliRef.current.flatMap((x) => [x.tempId, ...x.resursTempIds]), 1 + (ish ? korinish.length : 0));
+    const otaId = b.command === 'resurs_zamena' ? (b.otaQatorId ?? 0) : (b.otaQatorId ?? 0);
+    const r0 = korinish[0];
+    const buyruq: RejaliBuyruq = {
+      kind: 'abc', abcCommand: b.command, abcIsh: b.ish, abcResurslar: b.resurslar, tempId: ids[0], resursTempIds: ish ? ids.slice(1) : [],
+      f2Uid: oldBog.find(([, v]) => v.qatorId === b.eski.qatorId)?.[0] ?? '', f2ResursUidlar: [],
+      tur: ish ? 'bl' : (r0?.tur ?? 'mat'), otaQatorId: otaId, almashtirilayotganQatorId: b.almashtirilayotganQatorId ?? undefined, resursQatorId: b.resursQatorId ?? undefined,
+      nom: ish?.nom ?? r0?.nom ?? b.eski.nom, birlik: ish?.birlik ?? r0?.birlik ?? '', hajm: ish?.hajm ?? r0?.hajm ?? undefined, kod: ish?.kod ?? r0?.kod ?? undefined,
+      sabab: b.sabab, resurslar: ish ? korinish : [], operationId: b.operationId,
+    };
+    // F2 bog'lanishlari: eski ildizga bog'langanlar — yangi ildizga; resurslar — nomi mos yangi resursga.
+    let joriy = ijRef.current;
+    for (const [uid, v] of oldBog) {
+      let yangi: number | undefined;
+      if (v.qatorId === b.eski.qatorId) yangi = buyruq.tempId;
+      else { const n = eskiNom.get(v.qatorId); const i = korinish.findIndex((x) => x.nom.toUpperCase().trim() === n); if (i >= 0) yangi = buyruq.resursTempIds[i]; }
+      if (yangi != null) joriy = bogla(joriy, uid, yangi);
+    }
+    ijRef.current = joriy;
+    const keyingi = [...rejaliRef.current, buyruq];
+    rejaliRef.current = keyingi;
+    setRejali(keyingi); tarixniTozala(); setIj(joriy);
+    return buyruq.tempId;
+  }
   function onOchirishRejali(b: Omit<OchirishBuyruq, 'operationId'>) {
     if (!ijRef.current || ochirishRef.current.some((o) => o.qatorId === b.qatorId)) return;
     const yashir = new Set(b.eskiIdlar);
@@ -617,6 +654,19 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (!r.ok || r.qator_id == null) throw new Error(r.xabar || r.error || t('Saqlanmadi.'));
       return r.qator_id;
     };
+    if (b.kind === 'abc') {
+      const ishInput = b.abcIsh as ResursIshInput['ish'] | null;
+      const res = b.abcCommand === 'resurs_ish'
+        ? await resursIshZamena({ kompaniyaId: companyId, obyektId: Number(objectId), resursQatorId: b.resursQatorId as number, sabab: b.sabab, operationId: b.operationId,
+            ishlar: [{ ish: ishInput!, resurslar: (b.abcResurslar ?? []) as ResursIshInput['resurslar'] }] })
+        : await ishAbcSaqla({ kompaniyaId: companyId, obyektId: Number(objectId), command: b.abcCommand as 'additional' | 'replacement' | 'resurs_zamena',
+            otaQatorId: b.abcCommand === 'resurs_zamena' ? null : real.otaQatorId, almashtirilayotganQatorId: b.almashtirilayotganQatorId ?? null,
+            kutilganVersiya: b.abcCommand === 'resurs_zamena' ? null : real.otaVersiya, ish: ishInput, resurslar: (b.abcResurslar ?? []) as ResursIshInput['resurslar'],
+            sabab: b.sabab, operationId: b.operationId });
+      if (!res.ok || res.qator_id == null) throw new Error(abcXato(res));
+      const r = res as { resurs_ids?: number[]; resurs_idlar?: number[][] };
+      return { qatorId: res.qator_id, resursIdlar: r.resurs_idlar?.[0] ?? r.resurs_ids ?? [] };
+    }
     if (b.kind === 'smetasiz') {
       const res = await ishAbcSaqla({ kompaniyaId: companyId, obyektId: Number(objectId), command: 'additional', otaQatorId: null,
         ish: { kod: b.kod ?? null, nom: b.nom, birlik: b.birlik, hajm: b.hajm as number }, sabab: b.sabab, operationId: b.operationId,
@@ -938,7 +988,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
           ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
-          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
+          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} onTahrirRejali={onTahrirRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
       )}
 
       {ochirish.length > 0 && <section className="karta space-y-1 border border-rose-500/40 bg-rose-500/5 p-3 text-[12px]" aria-label={t('O‘chirishga belgilangan')}>

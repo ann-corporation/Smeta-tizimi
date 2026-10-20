@@ -102,6 +102,9 @@ export interface F2V3WorkbenchProps {
   rejaliIdlar?: () => number[];
   /** Berilsa — siz qo'shgan qatorni o'chirish ham qoralamaga (serverga «F2 ni yozish» da). */
   onOchirishRejali?: (b: { qatorId: number; versiya: number; eskiIdlar: number[]; nom: string; sabab: string }) => void;
+  /** Berilsa — siz qo'shgan qatorni TAHRIRLASH ham qoralamaga: eskisi o'chiriladi, yangisi «F2 ni yozish» da yoziladi. Vaqtinchalik id qaytaradi. */
+  onTahrirRejali?: (b: { eski: { qatorId: number; versiya: number; eskiIdlar: number[]; nom: string }; command: 'additional' | 'replacement' | 'resurs_zamena' | 'resurs_ish';
+    otaQatorId: number | null; almashtirilayotganQatorId?: number | null; resursQatorId?: number | null; ish: unknown; resurslar: unknown[]; sabab: string; operationId: string }) => number | null;
   disabled?: boolean;
 }
 
@@ -225,7 +228,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const [modal, setModal] = useState<{ f: F2Tugun; action: DropAction } | null>(null);
   const [xabar, setXabar] = useState<string | null>(null);
   // ── Qo'shilgan qatorlar (qo'shimcha/zamena): TAHRIRLASH va O'CHIRISH. Asl smeta qatorlari — o'zgarmas (server ham rad etadi). ──
-  const [abc, setAbc] = useState<{ rejim: AbcRejim; tahrir: AbcTahrir; eskiIdlar: number[]; saqlash?: Parameters<typeof IshAbcModal>[0]['saqlash'] } | null>(null);
+  const [abc, setAbc] = useState<{ rejim: AbcRejim; tahrir: AbcTahrir; eskiIdlar: number[]; rejali?: boolean; saqlash?: Parameters<typeof IshAbcModal>[0]['saqlash'] } | null>(null);
   const mutationLock = useRef(false);
   const mutationOps = useRef(new Map<string, string>());
   const [mutationBusy, setMutationBusy] = useState(false);
@@ -244,6 +247,14 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       norma: norma > 0 ? String(norma) : '', hajm: norma > 0 ? '' : String(c.hajm ?? ''),
       narx: c.narx != null ? String(c.narx) : '', manba: NARX_MANBALAR.includes(usul) ? usul : 'qolda' };
   };
+  /** Rejali rejimda modalning «saqlash» i serverga emas, qoralamaga yozadi. */
+  function rejaliSaqlash(r: T2Qator, command: 'additional' | 'replacement' | 'resurs_zamena' | 'resurs_ish', otaQatorId: number | null, almashtirilayotganQatorId?: number | null, resursQatorId?: number | null) {
+    return async (d: { ish: unknown; resurslar: unknown[]; sabab: string; operationId: string }) => {
+      const tempId = p.onTahrirRejali!({ eski: { qatorId: r.id, versiya: r.versiya, eskiIdlar: pastdagiIdlar(r.id), nom: r.nom ?? '' }, command, otaQatorId,
+        almashtirilayotganQatorId, resursQatorId, ish: d.ish, resurslar: d.resurslar, sabab: d.sabab, operationId: d.operationId });
+      return tempId == null ? { ok: false, error: tarj('Qoralamaga qo‘shilmadi.') } : { ok: true, qator_id: tempId };
+    };
+  }
   function qoshilganTahrir(id: number) {
     if (id < 0) { xab('Bu qator hali saqlanmagan (qoralamada). O‘zgartirish uchun uni o‘chirib, qayta qo‘shing.'); return; }
     const r = p.raw.get(id);
@@ -255,8 +266,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const tahrir: AbcTahrir = { qatorId: r.id, kutilganVersiya: r.versiya, oldAmount: [...p.raw.values()].some((c)=>c.ota_id===r.id && c.narx==null) ? null : r.summa, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' };
       if (eskiAsl && eskiAsl.tur !== 'bl' && eskiAsl.tur !== 'rz') {
         // Resurs o'rnidagi ish (ГПС → qazib olish): tahrir = eskisini arxivlab shu resurs o'rniga yangi ish (bitta tranzaksiya).
-        setAbc({ rejim: { tur: 'additional' }, tahrir, eskiIdlar: pastdagiIdlar(r.id),
-          saqlash: (d) => resursIshZamena({ kompaniyaId: p.companyId, obyektId: p.objectId, resursQatorId: eskiAsl.id, sabab: d.sabab, operationId: d.operationId,
+        setAbc({ rejim: { tur: 'additional' }, tahrir, eskiIdlar: pastdagiIdlar(r.id), rejali: !!p.onTahrirRejali,
+          saqlash: p.onTahrirRejali ? rejaliSaqlash(r, 'resurs_ish', eskiAsl.ota_id ?? null, eskiAsl.id, eskiAsl.id) : (d) => resursIshZamena({ kompaniyaId: p.companyId, obyektId: p.objectId, resursQatorId: eskiAsl.id, sabab: d.sabab, operationId: d.operationId,
             eskiQatorId: r.id, kutilganVersiya: r.versiya, ishlar: [{ ish: d.ish!, resurslar: d.resurslar }] }) });
         return;
       }
@@ -265,12 +276,14 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           ? { tur: 'replacement', eski: { id: eskiAsl.id, kod: eskiAsl.kod ?? null, nom: eskiAsl.nom ?? '', birlik: eskiAsl.birlik ?? null, otaId: eskiAsl.ota_id ?? null, otaVersiya: ota?.versiya ?? null } }
           : { tur: 'additional' },
         tahrir: { qatorId: r.id, kutilganVersiya: r.versiya, oldAmount: [...p.raw.values()].some((c)=>c.ota_id===r.id && c.narx==null) ? null : r.summa, ish: { kod: r.kod ?? '', nom: r.nom ?? '', birlik: r.birlik ?? '', hajm: String(r.hajm ?? '') }, resurslar: bolalar.map(resursPrefill), fakt: '' },
-        eskiIdlar: pastdagiIdlar(r.id),
+        eskiIdlar: pastdagiIdlar(r.id), rejali: !!p.onTahrirRejali,
+        saqlash: p.onTahrirRejali ? rejaliSaqlash(r, r.zamena && eskiAsl ? 'replacement' : 'additional', r.ota_id ?? null, r.zamena && eskiAsl ? eskiAsl.id : null) : undefined,
       });
     } else if (r.zamena && zamenaAsl.has(r.id)) {
       const aslId = zamenaAsl.get(r.id)!; const eskiAsl = p.raw.get(aslId);
       setAbc({ rejim: { tur: 'resurs_zamena', eski: { id: aslId, nom: eskiAsl?.nom ?? r.nom ?? '', birlik: eskiAsl?.birlik ?? r.birlik ?? null, kat: eskiAsl?.kat ?? r.kat ?? null, norma: eskiAsl?.norma ?? null }, ishHajm: ota?.hajm ?? null },
-        tahrir: { qatorId: r.id, kutilganVersiya: r.versiya, oldAmount:r.summa, resurslar: [resursPrefill(r)] }, eskiIdlar: [r.id] });
+        tahrir: { qatorId: r.id, kutilganVersiya: r.versiya, oldAmount:r.summa, resurslar: [resursPrefill(r)] }, eskiIdlar: [r.id], rejali: !!p.onTahrirRejali,
+        saqlash: p.onTahrirRejali ? rejaliSaqlash(r, 'resurs_zamena', r.ota_id ?? null, aslId) : undefined });
     } else xab('Bu resurs siz qo‘shgan ish ichida — ishning o‘zini tahrirlang.');
   }
   async function qoshilganOchir(id: number) {
@@ -1420,6 +1433,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <IshAbcModal kompaniyaId={p.companyId} obyektId={p.objectId} sana={new Date().toISOString().slice(0, 10)} bolimlar={[]}
           rejim={abc.rejim} tahrir={abc.tahrir} saqlash={abc.saqlash} onYop={() => setAbc(null)}
           onSaqlandi={async (matn, yangiId) => {
+            if (abc.rejali) { setAbc(null); xab(tarj('Tahrir qoralamaga qo‘shildi — «F2 ni yozish» bosilganda yoziladi. F2 bog‘lanishi yangi qatorga o‘tdi.')); return; }
             await p.onQoshilganOzgardi?.(abc.eskiIdlar, yangiId ?? null);
             setAbc(null); xab(`${matn} F2 bog‘lanishi yangi qatorga o‘tkazildi.`);
           }} />

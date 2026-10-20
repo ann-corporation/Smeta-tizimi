@@ -2203,5 +2203,8 @@
   "F2 import: smetasi yo‘q obyekt": "F2 import: object without estimate",
   "Hajmi yo‘q (minus/0)": "No quantity (minus/0)",
   "Smetasi yo‘q obyekt": "Object without estimate",
-  "ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.": "works added to the draft — written to the estimate on «Write F2»."
+  "ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.": "works added to the draft — written to the estimate on «Write F2».",
+  "Qoralamaga qo‘shilmadi.": "Not added to the draft.",
+  "Tahrir qoralamaga qo‘shildi — «F2 ni yozish» bosilganda yoziladi. F2 bog‘lanishi yangi qatorga o‘tdi.": "The edit is in the draft — written on «Write F2». The F2 link moved to the new row.",
+  "tahrir": "edit"
 }
