@@ -331,6 +331,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_akt_yarat_v2"
     },
     {
+      "amal": "f2_qoralama_yangila_v1",
+      "rpc": "t2_f2_qoralama_yangila_v1"
+    },
+    {
       "amal": "price_basis_yarat",
       "rpc": "t2_price_basis_yarat_v1"
     },

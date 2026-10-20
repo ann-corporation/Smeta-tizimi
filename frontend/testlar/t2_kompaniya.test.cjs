@@ -74,7 +74,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          import job and durable draft writes are explicit
                          named RPCs, so they must remain in the gateway
                          allow-list oracle. */
-                      't2_f2_import_job_yarat_v1', 't2_f2_import_job_ilgarilash_v1',
+                      't2_f2_import_job_yarat_v1', 't2_f2_qoralama_yangila_v1', 't2_f2_import_job_ilgarilash_v1',
                       't2_f2_import_job_recover_v1', 't2_f2_import_job_cancel_v1',
                       't2_f2_import_draft_saqla_v1',
                       /* 2026-09-10, HERM-001: lifecycle transition and

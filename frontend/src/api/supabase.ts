@@ -679,6 +679,22 @@ export function sbT2AktYaratV2(p: {
   });
 }
 
+/** F2 import: shu obyekt/oy uchun allaqachon bor QORALAMA aktning qatorlarini yangi to'plam bilan almashtiradi
+ * (t2_f2_qoralama_yangila_v1). Akt id/raqam/tarix saqlanadi; tasdiqlangan akt server tomonidan rad etiladi. */
+export function sbT2F2QoralamaYangila(p: {
+  kompaniyaId: number; aktId: number; kutilganVersiya: number; operationId: string;
+  qatorlar: Parameters<typeof sbT2AktYaratV2>[0]['qatorlar'];
+}): Promise<AktNatija & { code?: string; versiya?: number; eski_qator_soni?: number }> {
+  return yozAmali({
+    amal: 'f2_qoralama_yangila_v1', kompaniya_id: p.kompaniyaId, akt_id: p.aktId, kutilgan_versiya: p.kutilganVersiya, operation_id: p.operationId,
+    qatorlar: p.qatorlar.map((q) => ({
+      qator_id: q.qatorId, certified_quantity: q.certifiedQuantity, certified_unit_price: q.certifiedUnitPrice,
+      certified_amount: q.certifiedAmount, price_intentionally_absent: q.priceIntentionallyAbsent === true,
+      certified_source_hash: q.certifiedSourceHash, raw_snapshot: q.rawSnapshot, izoh: q.izoh,
+    })),
+  });
+}
+
 /* ── F2 RESUMABLE IMPORT JOB (T2-GAS-EXIT-001 §5/§6) ──────────────────────
  * `t2_f2_import_job` (checkpointed progress) + `t2_f2_import_draft_qator`
  * (durable per-row match/mapping draft) so a crashed tab, refresh, or lost

@@ -1863,5 +1863,6 @@
   "jami sarflangan": "total spent",
   "Kredit tugagan — AI ishlamaydi. OpenRouter’da hisobni to‘ldiring.": "Credit exhausted — AI does not work. Top up the OpenRouter account.",
   "Kredit kam qoldi — to‘ldiring.": "Credit is low — top up.",
-  "Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.": "An F2 act already exists for this object and month. You can keep linking — only a new act is not saved."
+  "Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.": "An F2 act already exists for this object and month. You can keep linking — only a new act is not saved.",
+  "Bu oy uchun F2 qoralama bor. Bog‘lashni davom ettiring — «Saqlash» shu qoralamani yangilaydi.": "A draft F2 exists for this month. Keep linking — «Save» updates that draft."
 }

@@ -73,6 +73,8 @@ const AMALLAR = {
      Legacy akt_yarat above is UNCHANGED -- GAS (Smeta tizimi/
      T2_F2Import.js) still uses it directly, not through this gateway. */
   akt_yarat_v2:   { rpc: 't2_akt_yarat_v2' },
+  // F2 import: mavjud QORALAMA aktning qatorlarini yangilash (tasdiqlangan akt rad etiladi; 2026-10-20).
+  f2_qoralama_yangila_v1: { rpc: 't2_f2_qoralama_yangila_v1' },
   price_basis_yarat: { rpc: 't2_price_basis_yarat_v1' },
   /* T2-GAS-EXIT-001 §5/§6: resumable F2 import job + durable draft mapping.
      Read-only counterparts (f2_import_job_holat_v1/f2_import_draft_royxat_v1)
@@ -667,6 +669,23 @@ export const onRequestPost: PagesFunction<{
       }
       yuk = { p_kompaniya_id: so.kompaniya_id, p_actor_id: sess.foydalanuvchi_id,
         p_scope: so.scope, p_observations: so.observations, p_operation_id: so.operation_id };
+    } else if (amal === 'f2_qoralama_yangila_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.akt_id)) || Number(so.akt_id) <= 0
+          || !Number.isSafeInteger(so.kutilgan_versiya) || !Array.isArray(so.qatorlar) || so.qatorlar.length === 0) {
+        return Response.json({ ok: false, error: 'Akt, versiya, operatsiya va qatorlar talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_akt_id: Number(so.akt_id), p_kutilgan_versiya: Number(so.kutilgan_versiya),
+        p_qatorlar: so.qatorlar.map((q: any) => ({
+          qator_id: Number(q.qator_id), certified_quantity: q.certified_quantity,
+          certified_unit_price: q.price_intentionally_absent === true ? null : q.certified_unit_price,
+          certified_amount: q.price_intentionally_absent === true ? null : q.certified_amount,
+          price_intentionally_absent: q.price_intentionally_absent === true,
+          certified_source_hash: q.certified_source_hash ? String(q.certified_source_hash).slice(0, 200) : null,
+          raw_snapshot: q.raw_snapshot ?? null, izoh: q.izoh ? String(q.izoh).slice(0, 500) : null,
+        })),
+        p_operation_id: so.operation_id, p_manba: 'frontend_v2',
+      };
     } else if (amal === 'akt_yarat_v2') {
       const obyektId = Number(so.obyekt_id);
       if (!Number.isFinite(obyektId) || obyektId <= 0) {

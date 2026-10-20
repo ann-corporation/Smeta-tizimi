@@ -1,7 +1,7 @@
-import { avvalgiF2Ol, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
+import { avvalgiF2Ol, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  sbOqi, sbT2AktYaratV2, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator,
+  sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator,
 } from '../../api/supabase';
 import { t2NakopitelniyToliq } from '../../api/t2-nakopitelniy';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -186,7 +186,9 @@ function Sessiya({ companyId }: { companyId: number }) {
   // Avvalgi F2 faqat YANGI aktni saqlashni to'xtatadi. Bog'lash, zamena va qo'shimcha — mahalliy/qo'shilgan qatorlar ishi,
   // ularni bloklash butun seansni qulflab qo'yardi (egasi 2026-10-20: «hech narsani bog'lab bo'lmay qoldi»).
   // Tekshiruv xatosi saqlashni to'xtatmaydi: takroriy identifikatsiyani server unique-cheklovi baribir rad etadi.
-  const saqlashBlok = takrorTekshirilmoqda || !!joriyAvvalgi?.akt;
+  // Mavjud QORALAMA akt bo'lsa saqlash uni yangilaydi; tasdiqlangan/yuborilgan akt bo'lsa yangi akt saqlanmaydi.
+  const mavjudQoralama = qoralamaAktmi(joriyAvvalgi?.akt) ? joriyAvvalgi!.akt! as AvvalgiF2 & { versiya: number } : null;
+  const saqlashBlok = takrorTekshirilmoqda || (!!joriyAvvalgi?.akt && !mavjudQoralama);
   useEffect(() => {
     if (!avvalgiKalit) return;
     let active = true;
@@ -502,22 +504,26 @@ function Sessiya({ companyId }: { companyId: number }) {
         a.push({ uid: n.uid, imzo: yozish.imzolar.get(n.uid), kod: t.kod, nom: t.nom, birlik: t.birlik, hajm: t.hajm, narx: t.narx, summa: t.summa, bog: ij?.bog.get(n.uid)?.usul });
         manba.set(id, a);
       }
-      const r = await sbT2AktYaratV2({
-        obyektId: Number(objectId), oy: davr + '-01', operationId: operation.current,
-        qatorlar: payload.rows.map((q) => ({
+      const qatorlar = payload.rows.map((q) => ({
           ...q, rawSnapshot: { manba: 'f2_v3', hujjat_id: docId, fayl: akt.fayl, varaq: akt.varaq, davr, qatorlar: manba.get(q.qatorId),
             import_job_id: draft.server!.jobId, partial: yozish.qolgan.length > 0,
             unresolved_count: yozish.qolgan.length },
-        })),
-      });
+        }));
+      const r = mavjudQoralama
+        ? await sbT2F2QoralamaYangila({ kompaniyaId: companyId, aktId: mavjudQoralama.id, kutilganVersiya: mavjudQoralama.versiya, operationId: yangiOperationId(), qatorlar })
+        : await sbT2AktYaratV2({ obyektId: Number(objectId), oy: davr + '-01', operationId: operation.current, qatorlar });
       if (!r.ok) {
         if ((r as { code?: string }).code === 'F2_ACT_NUMBER_CONFLICT') {
           setAktZiddiyat(true);
           setXato('Shu obyekt va oy uchun bu raqamdagi F2 allaqachon mavjud. Tanlovlaringiz ish qoralamasida saqlangan. Tasdiqlangan aktni qayta import bilan almashtirib bo‘lmaydi.');
+        } else if ((r as { code?: string }).code === 'STALE_VERSION') {
+          setTekshiruv((v) => v + 1);
+          setXato('F2 qoralama boshqa joyda o‘zgargan. Yangi holati o‘qildi — «Saqlash»ni yana bosing. Bog‘lanishlar saqlangan.');
         } else setXato(`Hujjat saqlanmadi: ${r.xabar || r.error || r.sabab || 'xato'}. Tanlovni o‘zgartirmasdan qayta urinish mumkin.`);
         return;
       }
-      setDone(`F2 qoralamasi saqlandi (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.`);
+      setTekshiruv((v) => v + 1);
+      setDone(`F2 qoralamasi ${mavjudQoralama ? 'yangilandi' : 'saqlandi'} (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.`);
       if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida va server ish qoralamasi #${draft.server!.jobId} da saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
       setHolat('Tayyor.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Yozish javobi olinmadi — qayta urinish ayni operatsiyani tekshiradi.'); }
@@ -623,7 +629,9 @@ function Sessiya({ companyId }: { companyId: number }) {
           <p>{t('Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.')}</p>
           <button type="button" className="tugma mt-2" onClick={() => setTekshiruv((v) => v + 1)}>{t('Qayta tekshirish')}</button>
         </> : joriyAvvalgi?.akt && <>
-          <p className="font-semibold">{t('Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.')}</p>
+          <p className="font-semibold">{mavjudQoralama
+            ? t('Bu oy uchun F2 qoralama bor. Bog‘lashni davom ettiring — «Saqlash» shu qoralamani yangilaydi.')
+            : t('Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.')}</p>
           <p>#{joriyAvvalgi.akt.id} · {joriyAvvalgi.akt.oy.slice(0, 7)} · {joriyAvvalgi.akt.lifecycle_status ?? joriyAvvalgi.akt.holat}</p>
           <p>{t('Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.')}</p>
           <a href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>
