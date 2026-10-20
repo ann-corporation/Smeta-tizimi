@@ -22,7 +22,8 @@ export interface RejaliBuyruq {
   /** F2 ishining resurslari uid lari (resursTempIds bilan bir tartibda) — bog'lash uchun. */
   f2ResursUidlar: string[];
   /** resurs_ish — smeta RESURSI o'rniga ish (masalan ГПС ni buyurtmachi bergan: qazib olish va tashish). */
-  kind: 'replacement' | 'additional' | 'resource' | 'resurs_ish';
+  /** smetasiz — smetasi yo'q obyekt: ish «СМЕТАДАН ТАШҚАРИ ИШЛАР» bo'limiga qo'shimcha bo'lib yoziladi (server bo'limni o'zi yaratadi). */
+  kind: 'replacement' | 'additional' | 'resource' | 'resurs_ish' | 'smetasiz';
   /** Qo'shimcha pozitsiya turi (ish yoki razdel ostidagi material/uskuna) yoki resurs turi. */
   tur: 'bl' | 'rs' | 'mat' | 'ob';
   otaQatorId: number;
@@ -48,6 +49,10 @@ export interface OchirishBuyruq {
   operationId: string;
 }
 
+/** Smetasiz obyektdagi virtual bo'lim (server «Saqlash»da haqiqiy «СМЕТАДАН ТАШҚАРИ ИШЛАР» ni yaratadi yoki topadi). */
+export const SMETASIZ_RZ = -1_000_000_000;
+export const SMETASIZ_RZ_NOM = 'СМЕТАДАН ТАШҚАРИ ИШЛАР';
+
 export const vaqtinchami = (id: number | null | undefined) => id != null && id < 0;
 
 /** Yangi vaqtinchalik id lar: mavjud eng kichik manfiydan pastga. */
@@ -61,6 +66,11 @@ export function yangiTempIdlar(mavjud: Iterable<number>, soni: number): number[]
 export function rejaliQatorlar(buyruqlar: readonly RejaliBuyruq[], rows: readonly T2Qator[]): T2Qator[] {
   const byId = new Map<number, T2Qator>(rows.map((r) => [r.id, r]));
   const out: T2Qator[] = [];
+  if (buyruqlar.some((b) => b.otaQatorId === SMETASIZ_RZ)) {
+    const rz = { id: SMETASIZ_RZ, ota_id: null, tur: 'rz', nom: SMETASIZ_RZ_NOM, kod: null, birlik: null, hajm: null, narx: null, summa: null,
+      norma: null, qoshimcha: true, zamena: false, versiya: 0, tartib: Math.max(0, ...rows.filter((r) => r.ota_id == null).map((r) => Number(r.tartib ?? 0))) + 1 } as unknown as T2Qator;
+    out.push(rz); byId.set(rz.id, rz);
+  }
   for (const b of buyruqlar) {
     const keyin = b.kind === 'replacement' ? b.almashtirilayotganQatorId : b.keyinQatorId;
     const aka = rows.filter((r) => r.ota_id === b.otaQatorId).concat(out.filter((r) => r.ota_id === b.otaQatorId));
@@ -130,6 +140,12 @@ export async function rejaliniYoz(
     const b = buyruqlar[i];
     d.progress?.(i, buyruqlar.length);
     try {
+      if (b.kind === 'smetasiz') {
+        const r = await d.yarat(b, { otaQatorId: SMETASIZ_RZ, otaVersiya: 0 });
+        map.set(b.tempId, r.qatorId);
+        b.resursTempIds.forEach((t, j) => { if (r.resursIdlar[j] != null) map.set(t, r.resursIdlar[j]); });
+        continue;
+      }
       const ota = real(b.otaQatorId);
       if (ota == null) throw new Error('Ota qator hali yozilmagan.');
       const r = await d.yarat(b, { otaQatorId: ota, almashtirilayotganQatorId: real(b.almashtirilayotganQatorId),

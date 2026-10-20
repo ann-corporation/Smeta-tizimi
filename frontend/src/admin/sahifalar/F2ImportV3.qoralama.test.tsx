@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import type { F2IshchiQoralama } from '../../lib/f2-ishchi-qoralama';
 
-const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn(), preflight: vi.fn(), correction: vi.fn(), update: vi.fn(), resurs: vi.fn(), ochir: vi.fn() }));
-vi.mock('../../api/t2-ish-abc', () => ({ ishAbcOchir: m.ochir, abcXato: () => 'xato' }));
+const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn(), preflight: vi.fn(), correction: vi.fn(), update: vi.fn(), resurs: vi.fn(), ochir: vi.fn(), abcSaqla: vi.fn() }));
+vi.mock('../../api/t2-ish-abc', () => ({ ishAbcOchir: m.ochir, ishAbcSaqla: m.abcSaqla, resursIshZamena: vi.fn(), abcXato: () => 'xato' }));
 vi.mock('../../api/t2-additional-replacement', () => ({ sbT2ResursBolaQosh: m.resurs, sbT2IshResurslarBilanYarat: vi.fn(), sbT2QoshimchaIshYarat: vi.fn(), sbT2ZamenaIshYarat: vi.fn() }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: { id: 5 }, yuklanmoqda: false }) }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => ({ scope: { objectId: null }, setObjectId: vi.fn() }) }));
@@ -184,6 +184,26 @@ describe('F2 independent working draft', () => {
     await screen.findByText(/F2 qoralamasi saqlandi [(]akt #98/);
     expect(fetchMock).toHaveBeenCalledWith('/api/hujjat-yukla', expect.anything());
     expect(m.cloudSave).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it('smetasi yo‘q obyekt: F2 ishlari bitta tugma bilan qoralamaga, «F2 ni yozish» ularni smetadan tashqari ishga yozib aktni bog‘laydi', async () => {
+    m.tree.mockResolvedValue({ ok: true, qatorlar: [] });
+    m.cloudSave.mockImplementation(async (d: F2IshchiQoralama) => { d.server = { jobId: 13, versiya: 1, rows: new Map() }; return d.server; });
+    render(<F2ImportV3 />);
+    fireEvent.change(await screen.findByLabelText('Obyekt'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('F2 fayl (XLSX)'), { target: { files: [new File(['original'], 'F2.xlsx')] } });
+    fireEvent.click(await screen.findByRole('button', { name: 'F2 dagi barcha ishlarni qoralamaga qo‘shish' }));
+    await screen.findByText('Qo‘lda bog‘lanish: -1');
+    expect(m.abcSaqla).not.toHaveBeenCalled();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true, document_id: 61 }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    m.abcSaqla.mockResolvedValue({ ok: true, qator_id: 700, resurs_ids: [] });
+    m.create.mockResolvedValue({ ok: true, akt_id: 71 });
+    fireEvent.click(screen.getByRole('button', { name: /F2 ni yozish/ }));
+    await screen.findByText(/F2 qoralamasi saqlandi [(]akt #71/);
+    expect(m.abcSaqla.mock.calls[0][0]).toMatchObject({ command: 'additional', otaQatorId: null, ish: { nom: 'БЕТОН B20', hajm: 12 } });
+    expect(m.create.mock.calls[0][0].qatorlar[0]).toMatchObject({ qatorId: 700, certifiedQuantity: 12 });
     vi.unstubAllGlobals();
   });
 

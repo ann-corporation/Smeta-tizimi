@@ -2197,5 +2197,11 @@
   "Resurs ish ichida emas — ish zamenasi uchun bo‘lim aniqlanmadi.": "The resource is not inside a work — no section for the replacement.",
   "o‘rniga qoralamaga qo‘shildi.": "instead — added to the draft.",
   "Manba fayl eskirgan — qayta saqlanmoqda…": "Source file is outdated — saving again…",
-  "Manba fayl yangilandi": "Source file updated"
+  "Manba fayl yangilandi": "Source file updated",
+  "Bu obyektda smeta yo‘q. F2 ni baribir kiritish mumkin: F2 dagi ishlar smetaga «СМЕТАДАН ТАШҚАРИ ИШЛАР» bo‘limida qo‘shimcha ish (resurslari bilan) bo‘lib yoziladi va akt shularga bog‘lanadi.": "This object has no estimate. F2 can still be entered: F2 works are written to the estimate as additional works (with resources) in «СМЕТАДАН ТАШҚАРИ ИШЛАР», and the act links to them.",
+  "F2 dagi barcha ishlarni qoralamaga qo‘shish": "Add all F2 works to the draft",
+  "F2 import: smetasi yo‘q obyekt": "F2 import: object without estimate",
+  "Hajmi yo‘q (minus/0)": "No quantity (minus/0)",
+  "Smetasi yo‘q obyekt": "Object without estimate",
+  "ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.": "works added to the draft — written to the estimate on «Write F2»."
 }

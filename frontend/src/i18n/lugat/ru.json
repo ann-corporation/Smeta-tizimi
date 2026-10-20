@@ -2197,5 +2197,11 @@
   "Resurs ish ichida emas — ish zamenasi uchun bo‘lim aniqlanmadi.": "Ресурс не внутри работы — раздел для замены не определён.",
   "o‘rniga qoralamaga qo‘shildi.": "вместо — добавлено в черновик.",
   "Manba fayl eskirgan — qayta saqlanmoqda…": "Исходный файл устарел — сохраняется заново…",
-  "Manba fayl yangilandi": "Исходный файл обновлён"
+  "Manba fayl yangilandi": "Исходный файл обновлён",
+  "Bu obyektda smeta yo‘q. F2 ni baribir kiritish mumkin: F2 dagi ishlar smetaga «СМЕТАДАН ТАШҚАРИ ИШЛАР» bo‘limida qo‘shimcha ish (resurslari bilan) bo‘lib yoziladi va akt shularga bog‘lanadi.": "У этого объекта нет сметы. Ф2 всё равно можно внести: работы из Ф2 запишутся в смету в раздел «СМЕТАДАН ТАШҚАРИ ИШЛАР» как доп. работы (с ресурсами), и акт привяжется к ним.",
+  "F2 dagi barcha ishlarni qoralamaga qo‘shish": "Добавить все работы Ф2 в черновик",
+  "F2 import: smetasi yo‘q obyekt": "Импорт Ф2: объект без сметы",
+  "Hajmi yo‘q (minus/0)": "Без объёма (минус/0)",
+  "Smetasi yo‘q obyekt": "Объект без сметы",
+  "ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.": "работ добавлено в черновик — запишутся в смету при «Записать Ф2»."
 }

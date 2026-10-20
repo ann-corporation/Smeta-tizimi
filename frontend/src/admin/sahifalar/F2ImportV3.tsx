@@ -16,10 +16,11 @@ import {
 import { exactWrite } from '../../lib/f2-exact-write';
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
-import { abcXato, ishAbcOchir, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
+import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
+import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
-import { type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
+import { SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import type { Fayl } from '../../lib/fayl-daraxt';
@@ -336,7 +337,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     ]);
     if (!d.ok) throw new Error('Smeta o‘qilmadi.');
     const r = (d.qatorlar || []) as T2Qator[];
-    if (!r.length) throw new Error('Bu obyektda smeta yo‘q — avval smetani import qiling.');
+    // Smetasi yo'q obyekt ham ochiladi (egasi 2026-10-20): F2 ishlari «Smetadan tashqari ishlar» ga qo'shimcha bo'lib yoziladi.
     const old = new Map<number, number>(), qol = new Map<number, number>();
     if (!joriymi()) return { r, qol, x: new Map<string, number>() };
     if (nak && nak.ok) {
@@ -571,6 +572,24 @@ function Sessiya({ companyId }: { companyId: number }) {
     setRejali(keyingi); tarixniTozala(); setIj(joriy);
     setHolat(`${keyingi.length} ${t('ta o‘zgarish qoralamada — «Saqlash» bosilganda bittada yoziladi.')}`);
   }
+  /** Smetasi yo'q obyekt: F2 dagi har bir ish (va ishga kirmagan material) resurslari bilan qoralamaga — bitta tugma. */
+  function smetasizHammasi() {
+    if (!ind || !ijRef.current) return;
+    const tugunlar = ind.qatorlar.filter((n) => n.tur !== 'rz' && !ijRef.current!.bog.has(n.uid) && !ijRef.current!.otkaz.has(n.uid)
+      && (n.tur === 'bl' || ind.ota.get(n.uid)?.tur !== 'bl'));
+    let qoshildi = 0; const otkazildi: string[] = [];
+    for (const f of tugunlar) {
+      const hajm = Number(f.hajm);
+      if (!(hajm > 0)) { otkazildi.push(f.nom.slice(0, 40)); continue; }
+      const resurslar = f.tur === 'bl' ? f.bolalar.filter((r) => Number(r.hajm) > 0)
+        .map((r) => ({ tur: (/ЧЕЛ|МАШ/i.test(r.birlik ?? '') ? 'rs' : 'mat') as 'rs' | 'mat', nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod, narx: r.narx })) : [];
+      const resursIdx = f.tur === 'bl' ? f.bolalar.filter((r) => Number(r.hajm) > 0) : [];
+      onRejali({ ...f, bolalar: resursIdx }, { kind: 'smetasiz', tur: 'bl', otaQatorId: SMETASIZ_RZ, nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined,
+        sabab: t('F2 import: smetasi yo‘q obyekt'), resurslar, operationId: yangiOperationId() });
+      qoshildi++;
+    }
+    setHolat(`${qoshildi} ${t('ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.')}${otkazildi.length ? ` ${t('Hajmi yo‘q (minus/0)')}: ${otkazildi.length}` : ''}`);
+  }
   function onOchirishRejali(b: Omit<OchirishBuyruq, 'operationId'>) {
     if (!ijRef.current || ochirishRef.current.some((o) => o.qatorId === b.qatorId)) return;
     const yashir = new Set(b.eskiIdlar);
@@ -598,6 +617,14 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (!r.ok || r.qator_id == null) throw new Error(r.xabar || r.error || t('Saqlanmadi.'));
       return r.qator_id;
     };
+    if (b.kind === 'smetasiz') {
+      const res = await ishAbcSaqla({ kompaniyaId: companyId, obyektId: Number(objectId), command: 'additional', otaQatorId: null,
+        ish: { kod: b.kod ?? null, nom: b.nom, birlik: b.birlik, hajm: b.hajm as number }, sabab: b.sabab, operationId: b.operationId,
+        resurslar: b.resurslar.map((r) => ({ kat: katAniqla(null, r.tur, r.birlik), kod: r.kod ?? null, nom: r.nom, birlik: r.birlik, norma: null,
+          hajm: r.hajm ?? null, narx: (r as { narx?: number | null }).narx ?? null, narx_manba: 'qolda' as const })) });
+      if (!res.ok || res.qator_id == null) throw new Error(abcXato(res));
+      return { qatorId: res.qator_id, resursIdlar: res.resurs_ids ?? [] };
+    }
     if (b.kind === 'resurs_ish') {
       const res = await resursIshZamena({ kompaniyaId: companyId, obyektId: Number(objectId), resursQatorId: b.resursQatorId as number, sabab: b.sabab, operationId: b.operationId,
         ishlar: [{ ish: { kod: b.kod ?? null, nom: b.nom, birlik: b.birlik, hajm: b.hajm as number }, resurslar: (b.ishResurslari ?? []) as ResursIshInput['resurslar'] }] });
@@ -883,6 +910,11 @@ function Sessiya({ companyId }: { companyId: number }) {
       {xato && <div role="alert" className="text-[13px] text-danger"><p>{xato}</p>{aktZiddiyat && <a
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
+
+      {akt && ij && rows.length === 0 && <section className="karta space-y-2 border-2 border-sky-500/50 bg-sky-500/5 p-3 text-[13px]" aria-label={t('Smetasi yo‘q obyekt')}>
+        <p className="font-semibold text-text">{t('Bu obyektda smeta yo‘q. F2 ni baribir kiritish mumkin: F2 dagi ishlar smetaga «СМЕТАДАН ТАШҚАРИ ИШЛАР» bo‘limida qo‘shimcha ish (resurslari bilan) bo‘lib yoziladi va akt shularga bog‘lanadi.')}</p>
+        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={smetasizHammasi}>{t('F2 dagi barcha ishlarni qoralamaga qo‘shish')}</button>
+      </section>}
 
       {akt && ij && (
         <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
