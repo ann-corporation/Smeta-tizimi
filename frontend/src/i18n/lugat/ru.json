@@ -2132,5 +2132,17 @@
   "bosing: belgilash (Shift: oraliq)": "нажмите: отметить (Shift: диапазон)",
   "Belgilash": "Отметить",
   "Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)": "Отменить последнее связывание, отвязку или подтверждение (Ctrl+Z)",
-  "Orqaga": "Назад"
+  "Orqaga": "Назад",
+  "ta o‘zgarish qoralamada — «Saqlash» bosilganda bittada yoziladi.": "изменений в черновике — запишутся разом при «Сохранить».",
+  "Saqlanmadi.": "Не сохранено.",
+  "Ota qator versiyasi o‘qilmadi.": "Не прочитана версия родительской строки.",
+  "O‘zgarishlar yozilmoqda": "Запись изменений",
+  "ta o‘zgarish yozildi, keyin to‘xtadi": "изменений записано, затем остановлено",
+  "Qolganlari qoralamada saqlangan — «Saqlash»ni qayta bosing.": "Остальные сохранены в черновике — нажмите «Сохранить» ещё раз.",
+  "ta o‘zgarish yozildi. Akt tuzilmoqda…": "изменений записано. Формируется акт…",
+  "Saqlanmagan o‘zgarishlar": "Несохранённые изменения",
+  "ta qo‘shimcha/zamena qoralamada — «Saqlash» bosilganda hammasi bittada yoziladi.": "доп. работ/замен в черновике — при «Сохранить» всё запишется разом.",
+  "zamena": "замена",
+  "qo‘shimcha": "доп. работа",
+  "o‘zgarish": "изменений"
 }

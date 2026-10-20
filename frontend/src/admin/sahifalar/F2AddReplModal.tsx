@@ -3,6 +3,10 @@ import { X } from 'lucide-react';
 import type { T2Qator } from '../../api/supabase';
 import { yangiOperationId } from '../../api/supabase';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
+import type { RejaliBuyruq } from '../../lib/f2-moslash-v3/rejali';
+
+/** Modal REJALI rejimda serverga yozmaydi — buyruqni sahifaga beradi (oxirida «Saqlash» bilan bittada yoziladi). */
+export type ModalRejali = Omit<RejaliBuyruq, 'tempId' | 'resursTempIds' | 'f2Uid' | 'f2ResursUidlar'>;
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE: the old system's F2-import gesture the
@@ -40,6 +44,8 @@ export interface F2AddReplModalProps {
   /** Qo'shimcha pozitsiya turi (egasi 2026-09-29, Karting АРМАТУРА): resurssiz «С» material ish
    *  (bl) emas — smetadagi kabi material (mat, kategoriya МАТ) bo'lib yaratiladi. */
   initialTur?: 'bl' | 'mat' | 'ob';
+  /** Berilsa — serverga yozilmaydi, qoralamaga qo'shiladi (egasi 2026-10-20: har birida kutmaslik). */
+  onRejali?: (b: ModalRejali) => void;
 }
 
 const TUR_LABEL: Record<string, string> = { rs: 'Resurs (RS)', mat: 'Material (MAT)', ob: 'Uskuna (OB)' };
@@ -75,6 +81,16 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
     const hajmSoni = hajm.trim() === '' ? undefined : Number(hajm.replace(',', '.'));
     if (action.kind !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni <= 0)) {
       setError('Hajm musbat son bo‘lishi shart.'); return;
+    }
+    if (p.onRejali) {
+      p.onRejali({
+        kind: action.kind, tur: action.kind === 'resource' ? resTur : (resurslar.length ? 'bl' : qTur),
+        otaQatorId: action.parent.id, almashtirilayotganQatorId: action.kind === 'replacement' ? action.oldRow.id : undefined,
+        keyinQatorId: action.kind === 'replacement' ? action.oldRow.id : action.keyinId,
+        nom: nom.trim(), birlik: birlik.trim(), hajm: hajmSoni, kod: kod.trim() || undefined, sabab: sabab.trim(),
+        resurslar, operationId: opRef.current,
+      });
+      return;
     }
     setBusy(true); setError('');
     const asos = {

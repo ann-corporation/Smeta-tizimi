@@ -3,19 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import type { F2IshchiQoralama } from '../../lib/f2-ishchi-qoralama';
 
-const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn(), preflight: vi.fn(), correction: vi.fn(), update: vi.fn() }));
+const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), cloudRead: vi.fn(), preflight: vi.fn(), correction: vi.fn(), update: vi.fn(), resurs: vi.fn() }));
+vi.mock('../../api/t2-additional-replacement', () => ({ sbT2ResursBolaQosh: m.resurs, sbT2IshResurslarBilanYarat: vi.fn(), sbT2QoshimchaIshYarat: vi.fn(), sbT2ZamenaIshYarat: vi.fn() }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: { id: 5 }, yuklanmoqda: false }) }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => ({ scope: { objectId: null }, setObjectId: vi.fn() }) }));
 vi.mock('../../api/supabase', () => ({
   sbT2ObyektlarOlKomp: async () => ({ ok: true, qatorlar: [{ id: 3, nom: 'Amfiteatr', loyiha_id: 1 }] }),
-  sbT2DaraxtOl: m.tree, sbOqi: (s: {jadval: string}) => s.jadval === 't2_akt' ? m.preflight(s) : Promise.resolve({ ok: true, qatorlar: [] }), sbT2AktYaratV2: m.create, sbT2F2QoralamaYangila: m.update, yangiOperationId: () => 'op',
+  sbT2DaraxtOl: m.tree, sbOqi: (s: {jadval: string; ustunlar?: string}) => s.jadval === 't2_akt' ? m.preflight(s) : s.jadval === 't2_qator' && s.ustunlar === 'id,versiya' ? Promise.resolve({ ok: true, qatorlar: [{ id: 7, versiya: 3 }] }) : Promise.resolve({ ok: true, qatorlar: [] }), sbT2AktYaratV2: m.create, sbT2F2QoralamaYangila: m.update, yangiOperationId: () => 'op',
 }));
 vi.mock('../../api/t2-nakopitelniy', () => ({ t2NakopitelniyToliq: async () => ({ ok: true, qatorlar: [] }) }));
 vi.mock('../../api/t2-fayl', () => ({ faylExplorerOl: async () => ({ fayllar: [] }), faylBaytlari: async () => new Uint8Array([1]) }));
 vi.mock('../../lib/f2-moslash-v3/fonda', () => ({ f2AktlarniOqiFonda: m.parse, f2MoslashV3Fonda: m.match }));
 vi.mock('../../lib/f2-ishchi-qoralama', async (original) => ({ ...(await original<typeof import('../../lib/f2-ishchi-qoralama')>()), f2IshchiOl: m.read, f2IshchiSaqla: m.save, f2ServerSaqla: m.cloudSave, f2ServerCorrectionSaqla: m.correction, f2ServerOl: m.cloudRead }));
-vi.mock('./F2V3Workbench', () => ({ F2V3Workbench: ({ ij, onIj, onQoshilganOzgardi }: { onQoshilganOzgardi?: (oldIds:number[],newId:number)=>Promise<void>; ij: F2IshchiQoralama['ij']; onIj: (i: F2IshchiQoralama['ij']) => void }) => (
-  <div><button onClick={()=>void onQoshilganOzgardi?.([7],8).catch(()=>undefined)}>Tuzatish natijasini qo‘llash</button><span>Qo‘lda bog‘lanish: {ij.bog.get('plus')?.qatorId ?? 'yo‘q'}</span>
+vi.mock('./F2V3Workbench', () => ({ F2V3Workbench: ({ ij, onIj, onQoshilganOzgardi, onRejali }: { onRejali?: (f: unknown, b: unknown) => void; onQoshilganOzgardi?: (oldIds:number[],newId:number)=>Promise<void>; ij: F2IshchiQoralama['ij']; onIj: (i: F2IshchiQoralama['ij']) => void }) => (
+  <div><button onClick={() => onRejali?.({ uid: 'plus', tur: 'mat', bolalar: [] }, { kind: 'additional', tur: 'mat', otaQatorId: 7, nom: 'QO‘SHIMCHA BETON', birlik: 'м3', hajm: 12, sabab: 'test', resurslar: [], operationId: 'op-r' })}>Rejali qo‘shish</button><button onClick={()=>void onQoshilganOzgardi?.([7],8).catch(()=>undefined)}>Tuzatish natijasini qo‘llash</button><span>Qo‘lda bog‘lanish: {ij.bog.get('plus')?.qatorId ?? 'yo‘q'}</span>
     <button onClick={() => onIj({ bog: new Map([['plus', { qatorId: 7, holat: 'qolda', usul: 'qolda' }]]), otkaz: new Set() })}>Plusni bog‘lash</button>
   </div>
 ) }));
@@ -143,6 +144,22 @@ describe('F2 independent working draft', () => {
     await screen.findByText(/F2 qoralamasi yangilandi \(akt #55, 1 qator\)/);
     expect(m.create).not.toHaveBeenCalled();
     expect(m.update.mock.calls[0][0]).toMatchObject({ kompaniyaId: 5, aktId: 55, kutilganVersiya: 4, qatorlar: [{ qatorId: 7, certifiedQuantity: 12 }] });
+  });
+
+  it('qo‘shimcha darhol qoralamaga qo‘shiladi (serverga yozilmaydi); «Saqlash» avval uni, keyin aktni haqiqiy id bilan yozadi', async () => {
+    await restored();
+    fireEvent.click(screen.getByText('Rejali qo‘shish'));
+    await screen.findByText('Qo‘lda bog‘lanish: -1');
+    expect(m.resurs).not.toHaveBeenCalled();
+    expect(screen.getByText(/1 ta qo‘shimcha\/zamena qoralamada/)).toBeTruthy();
+    m.resurs.mockResolvedValue({ ok: true, qator_id: 900 });
+    m.create.mockResolvedValue({ ok: true, akt_id: 77 });
+    fireEvent.click(screen.getByRole('button', { name: /F2 qoralama aktini saqlash/ }));
+    await screen.findByText(/F2 qoralamasi saqlandi \(akt #77/);
+    expect(m.resurs).toHaveBeenCalledTimes(1);
+    expect(m.resurs.mock.calls[0][0]).toMatchObject({ otaQatorId: 7, expectedVersion: 3, tur: 'mat', operationId: 'op-r' });
+    expect(m.create.mock.calls[0][0].qatorlar[0]).toMatchObject({ qatorId: 900, certifiedQuantity: 12 });
+    expect(m.resurs.mock.invocationCallOrder[0]).toBeLessThan(m.create.mock.invocationCallOrder[0]);
   });
 
   it('an existing APPROVED act still blocks saving a new act', async () => {

@@ -1,3 +1,4 @@
+import type { RejaliBuyruq } from './f2-moslash-v3/rejali';
 import type { F2Akt } from './smeta-anatomiya/f2';
 import { f2Imzo, rzKalit, type F2MoslashNatija } from './f2-moslash-v3';
 import { f2Indeks, yozishManbasi, type F2Indeks, type IshJoyi } from './f2-moslash-v3/ishJoyi';
@@ -20,6 +21,8 @@ export interface F2IshchiQoralama {
   sourceOperationId: string;
   server?: F2ServerQoralama;
   correction?: F2PendingCorrection;
+  /** Hali yozilmagan qo'shimcha/zamena buyruqlari (oxirida «Saqlash» bilan yoziladi). */
+  rejali?: RejaliBuyruq[];
 }
 
 export type F2PendingCorrection = { oldIds: number[]; newId: number | null };
@@ -47,7 +50,7 @@ export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, sta
     d.server = state; // Idempotent retry after later network/batch failure.
   }
   const cursor = { phase: 'f2_v3_review', sourceDocumentId: documentId, month: d.davr, actIdx: d.aktIdx,
-    correction: d.correction ?? null, file: d.source.name, sourceOperationId: d.sourceOperationId, writeOperationId: d.operationId, rzBog: [...d.rzBog], savedRows: state.rows.size };
+    correction: d.correction ?? null, rejali: d.rejali ?? [], file: d.source.name, sourceOperationId: d.sourceOperationId, writeOperationId: d.operationId, rzBog: [...d.rzBog], savedRows: state.rows.size };
   const checkpoint = async (complete: boolean) => {
     const r = await sbT2F2ImportJobIlgarilash({ jobId: state!.jobId, expectedVersiya: state!.versiya,
       processedDelta: 0, matchedDelta: 0, unmatchedDelta: 0, cursor: { ...cursor, savedRows: state!.rows.size, complete } });

@@ -9,7 +9,7 @@ import {
   bogla, hisobla, ishniBogla, korinish, oshaQatormi, otkazibYubor, tasdiqla, uz,
   type F2Indeks, type IshJoyi, type KorinishHolat, type SmetaIndeks,
 } from '../../lib/f2-moslash-v3/ishJoyi';
-import { F2AddReplModal, type DropAction } from './F2AddReplModal';
+import { F2AddReplModal, type DropAction, type ModalRejali } from './F2AddReplModal';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
 import { abcXato, ishAbcOchir, resursIshZamena, type NarxManba } from '../../api/t2-ish-abc';
 import { yangiOperationId } from '../../api/supabase';
@@ -93,6 +93,10 @@ export interface F2V3WorkbenchProps {
   zamenaAsl?: ReadonlyMap<number, number>;
   /** Qo'shilgan qator tahrirlandi (yangiId) yoki o'chirildi: sahifa smetani yangilaydi va F2 bog'lanishlarini to'g'rilaydi. */
   onQoshilganOzgardi?: (eskiIdlar: number[], yangiId?: number | null) => Promise<void>;
+  /** Berilsa — qo'shimcha/zamena/resurs serverga darhol yozilmaydi, qoralamaga (rejali) qo'shiladi. */
+  onRejali?: (f: F2Tugun, b: ModalRejali) => void;
+  /** Rejali (hali yozilmagan) vaqtinchalik qatorni olib tashlash. */
+  onRejaliOchir?: (tempId: number) => void;
   disabled?: boolean;
 }
 
@@ -236,6 +240,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       narx: c.narx != null ? String(c.narx) : '', manba: NARX_MANBALAR.includes(usul) ? usul : 'qolda' };
   };
   function qoshilganTahrir(id: number) {
+    if (id < 0) { xab('Bu qator hali saqlanmagan (qoralamada). O‘zgartirish uchun uni o‘chirib, qayta qo‘shing.'); return; }
     const r = p.raw.get(id);
     if (!r || !qoshilganmi(r)) { xab('Bu qator smetadan — o‘zgarmaydi. Faqat siz qo‘shgan qatorlar tahrirlanadi.'); return; }
     const ota = r.ota_id != null ? p.raw.get(r.ota_id) : undefined;
@@ -265,6 +270,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   }
   async function qoshilganOchir(id: number) {
     if (p.disabled || mutationLock.current) return;
+    if (id < 0) { p.onRejaliOchir?.(id); xab('Saqlanmagan qator qoralamadan olib tashlandi.'); return; }
     const r = p.raw.get(id);
     if (!r || !qoshilganmi(r)) { xab('Bu qator smetadan — o‘chirilmaydi. Faqat siz qo‘shgan qatorlar o‘chiriladi.'); return; }
     const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi. Smetadagi qator summasi: ${r.summa == null ? 'noma’lum' : fmt(r.summa, 2)}.\nSabab (ixtiyoriy):`, '');
@@ -896,6 +902,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
           {percent != null && <span className="mr-1 rounded bg-warn/20 px-1 text-[10px] font-semibold text-warn" title="Moslik indeksi — ehtimollik emas">{percent}%</span>}
           <span className={`break-words ${tur === 'almashtirilgan' ? 'line-through decoration-rose-500/70' : ''}`}>{s.nom}</span>
+          {s.id < 0 && <span title="Hali serverga yozilmagan — «Saqlash» bosilganda yoziladi" className="ml-1 rounded bg-sky-500/20 px-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300">⏳ saqlanmagan</span>}
           {tur !== 'asl' && <span title={rang.yorliq} className={`ml-1 rounded px-1 text-[10px] font-semibold ${tur === 'qoshimcha' ? 'bg-emerald-500/25 text-emerald-700 dark:text-emerald-300' : tur === 'zamena' ? 'bg-amber-500/25 text-amber-700 dark:text-amber-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'}`}>
             {rang.belgi} {tur === 'qoshimcha' ? 'qo‘shimcha' : tur === 'zamena' ? 'zamena' : 'almashtirilgan'}</span>}
           {tekis && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">{yolMatn(s)}</span>}
@@ -1293,6 +1300,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           onClose={() => setModal(null)}
           resurslar={modal.f.tur === 'bl' ? modal.f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })) : undefined}
           onCreated={(id, resIdlar) => { const f = modal.f; setModal(null); void p.onYaratildi(f, id, resIdlar); }}
+          onRejali={p.onRejali ? (b) => { const f = modal.f; setModal(null); p.onRejali!(f, b); xab(`«${b.nom.slice(0, 50)}» qoralamaga qo‘shildi — «Saqlash» bosilganda yoziladi.`); } : undefined}
         />
       )}
 

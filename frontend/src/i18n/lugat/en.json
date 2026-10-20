@@ -2132,5 +2132,17 @@
   "bosing: belgilash (Shift: oraliq)": "click: select (Shift: range)",
   "Belgilash": "Select",
   "Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)": "Undo the last link, unlink or confirmation (Ctrl+Z)",
-  "Orqaga": "Undo"
+  "Orqaga": "Undo",
+  "ta o‘zgarish qoralamada — «Saqlash» bosilganda bittada yoziladi.": "changes in draft — all written at once on «Save».",
+  "Saqlanmadi.": "Not saved.",
+  "Ota qator versiyasi o‘qilmadi.": "Parent row version could not be read.",
+  "O‘zgarishlar yozilmoqda": "Writing changes",
+  "ta o‘zgarish yozildi, keyin to‘xtadi": "changes written, then stopped",
+  "Qolganlari qoralamada saqlangan — «Saqlash»ni qayta bosing.": "The rest are kept in the draft — press «Save» again.",
+  "ta o‘zgarish yozildi. Akt tuzilmoqda…": "changes written. Building the act…",
+  "Saqlanmagan o‘zgarishlar": "Unsaved changes",
+  "ta qo‘shimcha/zamena qoralamada — «Saqlash» bosilganda hammasi bittada yoziladi.": "additions/replacements in draft — all are written at once on «Save».",
+  "zamena": "replacement",
+  "qo‘shimcha": "addition",
+  "o‘zgarish": "changes"
 }
