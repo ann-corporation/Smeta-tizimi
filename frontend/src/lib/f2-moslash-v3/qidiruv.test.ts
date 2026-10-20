@@ -19,3 +19,12 @@ describe('F2 import qidiruvi', () => {
     expect(qidiruvMoslagich('100m2 покр')!(qidiruvMatni(q))).toBe(true);
   });
 });
+
+import { sigadimi } from './index';
+describe('sigadimi — reja ishorasiga nisbatan', () => {
+  it('musbat va manfiy (chegirma) qoldiq', () => {
+    expect(sigadimi(5, 10)).toBe(true); expect(sigadimi(11, 10)).toBe(false); expect(sigadimi(-1, 10)).toBe(false);
+    expect(sigadimi(-3, -4)).toBe(true); expect(sigadimi(-5, -4)).toBe(false); expect(sigadimi(2, -4)).toBe(false);
+    expect(sigadimi(0, 0)).toBe(true);
+  });
+});

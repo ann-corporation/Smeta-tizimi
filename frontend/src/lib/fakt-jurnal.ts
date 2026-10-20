@@ -42,6 +42,8 @@ const son = (v: number | null | undefined) => (v == null || !Number.isFinite(Num
 const yaxlit = (x: number) => Math.round(x * 1e6) / 1e6;
 
 export function holatTur(smeta: number | null, fakt: number): JurnalQator['holat'] {
+  // Chegirma ishi (manfiy reja, masalan «ВЫЧИТАЕТСЯ…», «НА КАЖДЫЕ 5 ММ ИЗМЕНЕНИЯ ТОЛЩИНЫ») — absolyut qiymat bo'yicha.
+  if (smeta != null && smeta < 0) return holatTur(-smeta, -fakt);
   if (smeta == null || smeta <= 0) return fakt > 0 ? 'smetasiz' : 'yangi';
   if (fakt <= 0) return 'yangi';
   if (fakt > smeta + 1e-9) return 'oshdi';
@@ -56,7 +58,7 @@ function qatorQur(r: T2Qator, h: JurnalHolat | undefined, byId: Map<number, T2Qa
   return {
     id: r.id, tur: (r.tur as JurnalQator['tur']), kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik,
     smeta, fakt, qoldiq: smeta == null ? null : yaxlit(smeta - fakt), f2Mumkin: son(h?.f2_mumkin_hajm) ?? 0,
-    ulush: smeta && smeta > 0 ? fakt / smeta : null, holat: holatTur(smeta, fakt),
+    ulush: smeta ? fakt / smeta : null, holat: holatTur(smeta, fakt),
     norma: son((r as T2Qator & { norma?: number | null }).norma),
     qoshimcha: !!r.qoshimcha && !r.zamena, zamena: !!r.zamena,
     otaId: r.ota_id ?? null, otaVersiya: ota?.versiya ?? null,
@@ -143,16 +145,16 @@ export function sonOqi(v: string): number | null {
   return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
 }
 
-export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL';
+export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL' | 'ISHORA';
 export const JURNAL_XATO_MATN: Record<JurnalXato, string> = {
-  SON_EMAS: 'Son emas', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', NOL: '0 qo‘shilmaydi',
+  SON_EMAS: 'Son emas', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
 };
 
 /**
  * Kiritmalarni bitta delta paketiga: "+" → n; "=" → n − joriy fakt (o'zgarish yo'q bo'lsa tashlanadi).
  * `faktlar` — joriy server qiymatlari (qator_id → fakt).
  */
-export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktlar: ReadonlyMap<number, number>) {
+export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktlar: ReadonlyMap<number, number>, smetalar?: ReadonlyMap<number, number | null>) {
   const qatorlar: { qator_id: number; hajm: number }[] = [];
   const xatolar = new Map<number, JurnalXato>();
   for (const [k, v] of Object.entries(kiritmalar)) {
@@ -163,7 +165,10 @@ export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktl
     if (!Number.isFinite(n)) { xatolar.set(id, 'SON_EMAS'); continue; }
     const delta = v.rejim === '+' ? n : yaxlit(n - joriy);
     if (v.rejim === '+' && n === 0) { xatolar.set(id, 'NOL'); continue; }
-    if (joriy + delta < -1e-9) { xatolar.set(id, 'MANFIY'); continue; }
+    // Reja ishorasi: musbat reja — jami fakt manfiy bo'lmaydi; chegirma (manfiy reja) — jami fakt musbat bo'lmaydi.
+    const manfiyReja = (smetalar?.get(id) ?? 0) < 0;
+    if (!manfiyReja && joriy + delta < -1e-9) { xatolar.set(id, 'MANFIY'); continue; }
+    if (manfiyReja && joriy + delta > 1e-9) { xatolar.set(id, 'ISHORA'); continue; }
     if (delta === 0) continue;
     qatorlar.push({ qator_id: id, hajm: delta });
   }
@@ -171,7 +176,7 @@ export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktl
 }
 
 /** Qoldiqning ulushi (25/50/100%) — "+" rejimi uchun qiymat. */
-export function qoldiqUlushi(q: Pick<JurnalQator, 'qoldiq'>, foiz: number): string | null {
-  if (q.qoldiq == null || q.qoldiq <= 0) return null;
+export function qoldiqUlushi(q: Pick<JurnalQator, 'qoldiq'> & { smeta?: number | null }, foiz: number): string | null {
+  if (q.qoldiq == null || q.qoldiq === 0 || ((q.smeta ?? 0) < 0 ? q.qoldiq > 0 : q.qoldiq < 0)) return null;
   return String(yaxlit(q.qoldiq * foiz / 100));
 }

@@ -96,7 +96,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const faktlar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, Number(x.fakt_hajm ?? 0)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? 0])); }, [rows, states]);
   useEffect(() => { if (bolimId == null && bolimlar.length) setBolimId(bolimlar[0].id); }, [bolimId, bolimlar]);
 
-  const paket = useMemo(() => jurnalPaket(kiritmalar, faktlar), [kiritmalar, faktlar]);
+  const smetalar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, x.smeta_hajm == null ? null : Number(x.smeta_hajm)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? (r.hajm == null ? null : Number(r.hajm))])); }, [rows, states]);
+  const paket = useMemo(() => jurnalPaket(kiritmalar, faktlar, smetalar), [kiritmalar, faktlar, smetalar]);
   const ozgarishSoni = Object.values(kiritmalar).filter((k) => k.qiymat.trim()).length;
 
   // Ko'rinadigan ishlar: qidiruv bo'lsa — butun obyekt bo'yicha; aks holda tanlangan bo'lim.

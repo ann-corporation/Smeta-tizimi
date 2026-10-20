@@ -1,3 +1,4 @@
+import { oshibKetdimi } from '../../lib/ostatka-export';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, ArrowDownToLine, X, Pencil, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -362,7 +363,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const previous = binding ? (p.oldingi.get(binding.qatorId) ?? 0) : 0;
       const remaining = target?.hajm == null ? null : target.hajm - previous;
       const used = binding ? (shuF2.get(binding.qatorId)?.hajm ?? 0) : 0;
-      const over = remaining != null && used > remaining + 1e-9;
+      const over = remaining != null && (target!.hajm! >= 0 ? used > remaining + 1e-9 : used < remaining - 1e-9);
       const unbound = state === 'topilmadi' || (!binding && state !== 'otkazildi');
       const unresolved = state === 'topilmadi' || state === 'taklif';
       const missingValue = node.barg && (node.hajm == null || node.summa == null);
@@ -1022,7 +1023,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${SON} text-text`}>{fmt(s.hajm)}</span>
         <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{s.birlik ?? ''}</span>
         <span className={SON}>{s.narx ? fmt(s.narx, 2) : ''}</span>
-        <span className={`${SON} ${qoldiq != null && qoldiq < -1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
+        <span className={`${SON} ${qoldiq != null && s.hajm != null && oshibKetdimi(s.hajm, qoldiq) && Math.abs(qoldiq) > 1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {tTugun && (tBog
             ? <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={11} /> Uzish</button>

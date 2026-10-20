@@ -72,3 +72,25 @@ describe('fakt jurnali', () => {
     expect(sonOqi(' 1 000,5 ')).toBe(1000.5);
   });
 });
+
+describe('Fakt jurnali — chegirma ishi (manfiy reja), 2026-10-20', () => {
+  it('holat va foiz absolyut qiymat bo‘yicha', () => {
+    expect(holatTur(-4, 0)).toBe('yangi');
+    expect(holatTur(-4, -2)).toBe('qisman');
+    expect(holatTur(-4, -4)).toBe('tugadi');
+    expect(holatTur(-4, -5)).toBe('oshdi');
+  });
+  it('manfiy rejaga manfiy fakt yoziladi; musbat jami — ISHORA; musbat rejada manfiy jami — MANFIY', () => {
+    const faktlar = new Map([[1, 0], [2, 0]]);
+    const smetalar = new Map<number, number | null>([[1, -4], [2, 10]]);
+    const ok = jurnalPaket({ 1: { rejim: '=', qiymat: '-3' } }, faktlar, smetalar);
+    expect(ok.ok).toBe(true); expect(ok.qatorlar).toEqual([{ qator_id: 1, hajm: -3 }]);
+    const bad = jurnalPaket({ 1: { rejim: '=', qiymat: '2' }, 2: { rejim: '=', qiymat: '-1' } }, faktlar, smetalar);
+    expect(bad.xatolar.get(1)).toBe('ISHORA'); expect(bad.xatolar.get(2)).toBe('MANFIY');
+  });
+  it('qoldiq ulushi manfiy rejada manfiy qiymat beradi; oshib ketgan qoldiqda tugma yo‘q', () => {
+    expect(qoldiqUlushi({ qoldiq: -4, smeta: -4 }, 50)).toBe('-2');
+    expect(qoldiqUlushi({ qoldiq: 1, smeta: -4 }, 50)).toBeNull();
+    expect(qoldiqUlushi({ qoldiq: -1, smeta: 10 }, 50)).toBeNull();
+  });
+});

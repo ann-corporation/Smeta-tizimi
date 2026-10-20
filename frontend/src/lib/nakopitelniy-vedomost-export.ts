@@ -236,7 +236,8 @@ export function nakopitelniyVedomostHujjat(
       if (q.smeta_hajm == null || (q.smeta_summa == null && narxBildirishnomaKerak(q, null))) diqqat.push({ nom: nomi(q), sabab: 'нет объема или стоимости по смете — строка не включена в сумму' });
       if (!nakrutkaKat(q.kat)) diqqat.push({ nom: nomi(q), sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
       const mozhno = q.fakt_hajm - jamiH(q);
-      if (mozhno < -1e-9) diqqat.push({ nom: nomi(q), sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(-mozhno)})` });
+      // Reja ishorasiga nisbatan: chegirma ishida (manfiy smeta) akt fakt’dan «manfiyroq» bo‘lsa — ortiqcha qabul.
+      if ((q.smeta_hajm ?? 0) < 0 ? mozhno > 1e-9 : mozhno < -1e-9) diqqat.push({ nom: nomi(q), sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(Math.abs(mozhno))})` });
       // Oy kesimi RPC jamisi bilan mos bo'lishi shart — farq bo'lsa ochiq aytiladi (to'qilmaydi).
       if (oyKesimi && Math.abs(jamiS(q) - (q.oldingi_summa + q.joriy_summa)) > 0.01) {
         diqqat.push({ nom: nomi(q), sabab: `сумма по месяцам (${fmt2(jamiS(q))}) не совпадает с итогом ведомости (${fmt2(q.oldingi_summa + q.joriy_summa)})` });

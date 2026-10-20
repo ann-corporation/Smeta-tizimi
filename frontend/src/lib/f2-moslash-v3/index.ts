@@ -29,6 +29,13 @@ import type { F2Tugun } from '../smeta-anatomiya/f2';
 // ─── Kirish/chiqish ──────────────────────────────────────────────────────────
 
 /** Smeta (LRV) qatori — `t2_qator` dan. */
+/** Hajm qoldiqqa sig'adimi — REJA ishorasiga nisbatan (2026-10-20). Chegirma ishi (manfiy qoldiq) uchun F2 hajmi ham manfiy
+ *  bo'lishi va absolyut qiymatda oshmasligi kerak (avval manfiy qatorlar doim «⚠ qoldiqdan oshdi» bo'lib chiqardi). */
+export function sigadimi(hajm: number, chegara: number): boolean {
+  if (chegara === 0) return Math.abs(hajm) <= 1e-9;
+  return Math.sign(hajm) * Math.sign(chegara) >= 0 && Math.abs(hajm) <= Math.abs(chegara) * 1.001 + 1e-9;
+}
+
 export interface SmetaQator {
   id: number;
   otaId: number | null;
@@ -420,7 +427,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     const chegara = opts.qoldiq?.get(t.id) ?? t.hajm;
     if (f.hajm != null && chegara != null) {
       if (t.hajm != null && t.hajm !== 0 && Math.abs(f.hajm - t.hajm) <= Math.abs(t.hajm) * 0.005) { hj = 2; hIzoh = 'hajm = smeta'; }
-      else if (chegara > 0 && f.hajm <= chegara * 1.001) { hj = 1; hIzoh = 'hajm ≤ qoldiq'; }
+      else if (chegara !== 0 && sigadimi(f.hajm, chegara)) { hj = 1; hIzoh = 'hajm ≤ qoldiq'; }
       else { hIzoh = `⚠ hajm > qoldiq (${f.hajm} > ${+chegara.toFixed(4)})`; }
     }
     q.push({ nom: 'hajm', ball: hj, izoh: hIzoh });
@@ -526,7 +533,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
           const t = takror[0];
           const chegara = opts.qoldiq?.get(t.id) ?? t.hajm;
           const jami = (ishHajm.get(t.id) ?? 0) + (f.hajm ?? 0);
-          const sigadi = chegara == null || f.hajm == null || jami <= chegara * 1.001 + 1e-9;
+          const sigadi = chegara == null || f.hajm == null || sigadimi(jami, chegara);
           const fmtH = (n: number) => +n.toFixed(4);
           const holat = takror.length === 1 && sigadi ? 'aniq' as const : 'taklif' as const;
           yoz(f.uid, { uid: f.uid, holat, qatorId: t.id, usul: 'takror', nomzodlar: nz,
