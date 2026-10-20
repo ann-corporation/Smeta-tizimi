@@ -79,6 +79,21 @@ function Sessiya({ companyId }: { companyId: number }) {
   const pendingCorrection = useRef<F2PendingCorrection | undefined>(undefined);
   const ijRef = useRef<IshJoyi | null>(null);
   ijRef.current = ij;
+  // Qaytarish (egasi 2026-10-20: «qulayliklar»): operatorning mahalliy bog'lash/uzish/tasdiq/o'tkazish amallari tarixi.
+  // Server yozuvi (yaratish, tuzatish, tiklash) tarixni tozalaydi — undo hech qachon kanonik qatorni qaytarmaydi.
+  const tarix = useRef<IshJoyi[]>([]);
+  const [tarixSoni, setTarixSoni] = useState(0);
+  function ijOzgar(next: IshJoyi) {
+    const cur = ijRef.current;
+    if (cur && cur !== next) { tarix.current.push(cur); if (tarix.current.length > 200) tarix.current.shift(); setTarixSoni(tarix.current.length); }
+    setIj(next);
+  }
+  function tarixniTozala() { tarix.current = []; setTarixSoni(0); }
+  function orqaga() {
+    const prev = tarix.current.pop();
+    setTarixSoni(tarix.current.length);
+    if (prev) { setIj(prev); setHolat('Oxirgi amal qaytarildi.'); }
+  }
   const scopeRef = useRef(`${companyId}:${objectId}`);
   scopeRef.current = `${companyId}:${objectId}`;
 
@@ -150,7 +165,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       serverDraft.current = d.server;
       setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
       setAktlar(d.aktlar); setAktIdx(d.aktIdx); setDavr(d.davr); setRzBog(d.rzBog);
-      setNatija(d.natija); setIj(restored); setDone(null);
+      setNatija(d.natija); tarixniTozala(); setIj(restored); setDone(null);
       setHolat('Saqlangan ish tiklandi. Smeta va oldingi F2 qayta o‘qildi.');
       if (restored.bog.size !== d.ij.bog.size) setXato('Ayrim smeta qatorlari o‘chirilgan: ularga bog‘lanish qayta tekshirilishi kerak.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Ish tiklanmadi; zaxira saqlanib turibdi.'); }
@@ -177,6 +192,20 @@ function Sessiya({ companyId }: { companyId: number }) {
     }).catch(() => { if (active) setTizimFayllar([]); });
     return () => { active = false; };
   }, [companyId, objectId]);
+
+  const orqagaRef = useRef(orqaga);
+  orqagaRef.current = orqaga;
+  useEffect(() => {
+    function tugma(e: globalThis.KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      if (!tarix.current.length) return;
+      e.preventDefault(); orqagaRef.current();
+    }
+    window.addEventListener('keydown', tugma);
+    return () => window.removeEventListener('keydown', tugma);
+  }, []);
 
   const akt = aktlar[aktIdx] ?? null;
   const ind = useMemo(() => (akt ? f2Indeks(akt.daraxt) : null), [akt]);
@@ -222,7 +251,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
     pendingCorrection.current = undefined;
     ++saveGeneration.current; setIshSaqlandi(''); setServerHolat(''); serverDraft.current = undefined;
-    setNatija(null); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
+    setNatija(null); tarixniTozala(); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
   }
 
   /** `mavjudHujjatId` berilsa — fayl tizimdagi R2 hujjatidan olingan: yozishda QAYTA yuklanmaydi, o'sha hujjat manba bo'ladi. */
@@ -287,7 +316,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     // Moslashtirish FONDA (Web Worker) — 30 ming qatorli smetada ham sahifa javob beradi.
     const ishBog = new Map([...avvalgi?.bog ?? []].filter(([, b]) => b.holat !== 'taklif').map(([uid, b]) => [uid, b.qatorId]));
     const n = await f2MoslashV3Fonda(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb, ishBog });
-    setNatija(n); setIj(boshlangich(n, avvalgi ?? undefined));
+    setNatija(n); ijOzgar(boshlangich(n, avvalgi ?? undefined));
     const { aniq, xotira: xt, taklif, topilmadi } = n.stat;
     setHolat(`Moslashtirildi: ✓ ${aniq + xt} · ◐ ${taklif} · ✕ ${topilmadi}. ◐ larni tasdiqlang, ✕ larni torting.`);
   }
@@ -305,7 +334,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         const { r } = await malumotYukla(Number(objectId), davr, () => active);
         if (!active) return;
         setNatija({ natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: f2Indeks(akt.daraxt).qatorlar.length } });
-        setIj({ bog: new Map(), otkaz: new Set() });
+        tarixniTozala(); setIj({ bog: new Map(), otkaz: new Set() });
         setHolat('F2 va smeta tayyor. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.');
         operation.current = yangiOperationId();
       } catch (e) { if (active) setXato(e instanceof Error ? e.message : 'Smeta yuklanmadi.'); }
@@ -365,7 +394,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       let joriy = bogla(ijRef.current!, f.uid, qatorId);
       const resIdlar = resursIdlar ?? [];
       if (f.tur === 'bl') f.bolalar.forEach((r, i) => { if (resIdlar[i] != null) joriy = bogla(joriy, r.uid, resIdlar[i]); });
-      setIj(joriy);
+      tarixniTozala(); setIj(joriy);
       const kelgan = await qatorlarniYangila([qatorId, ...resIdlar]);
       // Otasi (razdel/ish) versiyasi o'zgardi — keyingi amal eskirgan versiya bilan ketmasin.
       const ota = kelgan.find((q) => q.id === qatorId)?.ota_id;
@@ -395,7 +424,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       await f2IshchiSaqla(finalDraft);
       if (scopeRef.current!==scope) throw new Error('F2_SCOPE_CHANGED');
       pendingCorrection.current=undefined;
-      setIj(t2.ij); setSaqlanganIsh(finalDraft); lastWorkingDraft.current=finalDraft;
+      tarixniTozala(); setIj(t2.ij); setSaqlanganIsh(finalDraft); lastWorkingDraft.current=finalDraft;
       setHolat(t2.uzildi ? `${t2.uzildi} ta F2 qatori bo‘shadi — ✕ belgili qatorlarni qayta bog‘lang.` : t2.qaytaBoglandi ? 'Yangi qatorga qayta bog‘landi.' : 'Smeta yangilandi.');
     } catch (e) { if (scopeRef.current===scope) setXato(e instanceof Error ? e.message : 'Smeta yangilanmadi.'); throw e; }
     finally { if (scopeRef.current===scope) setBusy(false); }
@@ -477,7 +506,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
         : f2QoralamaBogTekshir(d.ij,new Set(r.map((q)=>q.id)));
       pendingCorrection.current=undefined;
-      setIj(restored); setDone(null);
+      tarixniTozala(); setIj(restored); setDone(null);
       setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`);
     } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); }
     finally { setBusy(false); }
@@ -644,12 +673,13 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {akt && ij && <section className="karta flex flex-wrap items-center gap-3 border border-accent/30 p-3" aria-label={t('Moslashtirish')}>
         <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+        <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
         <p className="min-w-0 flex-1 text-[12px] text-text-dim">{t('Faqat ishonchli mosliklar bog‘lanadi. Noaniq variantlarni siz tasdiqlaysiz. Qo‘lda tasdiqlangan bog‘lanishlar saqlanadi.')}</p>
       </section>}
 
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
-          ij={ij} onIj={setIj} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
+          ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
           onYaratildi={yaratildi} zamenaAsl={zamenaAsl} onQoshilganOzgardi={qoshilganOzgardi} disabled={busy || !!done} />
       )}
 
@@ -660,7 +690,7 @@ function Sessiya({ companyId }: { companyId: number }) {
             <ul>{yozish.qolgan.map((n) => <li key={n.uid}>{n.manzil.varaq}!{n.manzil.qator} · {n.nom} · {fmt(n.hajm)} {n.birlik}</li>)}</ul>
           </details>}
           {akt && ij && ind?.qatorlar.some((q) => q.hajm != null && q.hajm < 0 && !ij.bog.has(q.uid) && !ij.otkaz.has(q.uid)) && <button type="button" className="tugma" disabled={busy || !!done} onClick={() => {
-            const result = f2MinusTaklif(akt, ij); setIj(result.ij);
+            const result = f2MinusTaklif(akt, ij); ijOzgar(result.ij);
             setHolat(`${result.soni} ta minus qator uchun ayni aktdagi aniq bog‘lanish asosida taklif berildi. Har birini tekshirib tasdiqlang; boshqa qatorlarni qo‘lda bog‘lang.`);
           }}>{t('Minus qatorlarga bog‘lanish taklif qilish')}</button>}
           {yozish.toxtatish.map((t, i) => <p key={i} className="text-[12px] text-warn">{t}</p>)}

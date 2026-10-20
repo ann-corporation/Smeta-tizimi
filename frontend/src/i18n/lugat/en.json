@@ -2119,5 +2119,18 @@
   "Eski F2 yozuvlari: manbada tasdiqlangan summa bo‘lmasa, eski summa ishlatilgan.": "Legacy F2 records: where the source has no certified amount, the legacy amount is used.",
   "To‘g‘ri xarajatlar · nakrutka va QQSsiz": "Direct costs · excluding markups and VAT",
   "Moliyaviy ko‘rsatkichlar": "Financial indicators",
-  "Moliyaviy ko‘rsatkichlar o‘qilmadi.": "Financial indicators could not be read."
+  "Moliyaviy ko‘rsatkichlar o‘qilmadi.": "Financial indicators could not be read.",
+  "ta belgilandi:": "selected:",
+  "Uzish": "Unlink",
+  "Aktga kiritmaslik": "Exclude from act",
+  "Aktga qaytarish": "Return to act",
+  "Belgini tozalash": "Clear selection",
+  "Holat belgisini (✓ ◐ ✕) bosib qatorlarni belgilang — bir nechtasini birga tasdiqlash, uzish yoki aktdan chiqarish mumkin.": "Click the status mark (✓ ◐ ✕) to select rows — several can be confirmed, unlinked or excluded from the act at once.",
+  "Ko‘rinadiganlarni belgilash": "Select visible",
+  "Belgilangan F2 qatorlari": "Selected F2 rows",
+  "ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.": "rows updated. Use «Undo» to revert if needed.",
+  "bosing: belgilash (Shift: oraliq)": "click: select (Shift: range)",
+  "Belgilash": "Select",
+  "Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)": "Undo the last link, unlink or confirmation (Ctrl+Z)",
+  "Orqaga": "Undo"
 }

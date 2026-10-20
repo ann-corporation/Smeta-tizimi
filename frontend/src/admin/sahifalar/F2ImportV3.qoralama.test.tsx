@@ -83,6 +83,19 @@ describe('F2 independent working draft', () => {
     expect(m.match).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
   });
 
+  it('undo (button and Ctrl+Z) reverts the last local linking decision without any server write', async () => {
+    await start();
+    expect(screen.getByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Orqaga [(]1[)]/ }));
+    expect(await screen.findByText('Qo‘lda bog‘lanish: yo‘q')).toBeTruthy();
+    expect((screen.getByRole('button', { name: /Orqaga/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByText('Plusni bog‘lash'));
+    await screen.findByText('Qo‘lda bog‘lanish: 7');
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
+    expect(await screen.findByText('Qo‘lda bog‘lanish: yo‘q')).toBeTruthy();
+    expect(m.create).not.toHaveBeenCalled(); expect(m.update).not.toHaveBeenCalled();
+  });
+
   it('selection never links; explicit button preserves manual decisions', async () => {
     await start();
     expect(m.match).not.toHaveBeenCalled();

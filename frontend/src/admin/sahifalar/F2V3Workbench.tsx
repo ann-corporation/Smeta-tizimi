@@ -3,6 +3,7 @@ import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, A
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { T2Qator } from '../../api/supabase';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
+import { qidiruvMatni, qidiruvMoslagich } from '../../lib/f2-moslash-v3/qidiruv';
 import type { F2MoslashNatija, Nomzod, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
   bogla, hisobla, ishniBogla, korinish, oshaQatormi, otkazibYubor, tasdiqla, uz,
@@ -18,7 +19,7 @@ import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
 import { expandableDepths, expandableIdsAtDepth, flattenVisibleTree } from '../../lib/f2-link-review/tree';
 import { saqlanmaganIsh } from '../../_shared/versiya';
-import { t } from '../../i18n/til';
+import { t, t as tarj } from '../../i18n/til';
 
 /**
  * F2 V3 — ikki oynali moslashtirish (docs/architecture/F2_IMPORT_V3.md §3).
@@ -193,6 +194,10 @@ const nomKalit = (x: string | null | undefined) => (x ?? '').toUpperCase().repla
 export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const { ind, S, ij } = p;
   const [tanlangan, setTanlangan] = useState<string | null>(null);
+  // Ommaviy belgilash (egasi 2026-10-20): holat belgisini bosish — belgilash, Shift — oraliq. Amallar bitta qaytarish qadami.
+  const [belgi, setBelgi] = useState<ReadonlySet<string>>(new Set());
+  const oxirgiBelgi = useRef<string | null>(null);
+  useEffect(() => { setBelgi(new Set()); oxirgiBelgi.current = null; }, [p.akt]);
   const [tafsilot, setTafsilot] = useState(false);
   const [panellar, setPanellar] = useState<'teng' | 'f2' | 'smeta' | 'ustma'>('teng');
   const [ochiqS, setOchiqS] = useState<Set<number>>(new Set());
@@ -323,12 +328,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const smetaRoots = useMemo(() => S.bolalar.get(null) ?? [], [S]);
   const smetaExpandableDepths = useMemo(() => expandableDepths(smetaRoots, (node) => S.bolalar.get(node.id) ?? []), [S, smetaRoots]);
   const f2VisibleRows = useMemo(() => {
-    const qq = qF.trim().toUpperCase();
-    if (qq.length >= 2) {
+    const mos = qidiruvMoslagich(qF);
+    if (mos) {
       const out: Array<{ node: F2Tugun; depth: number }> = [];
       for (const t of ind.qatorlar) {
         if (t.tur === 'rz') continue;
-        if (((t.kod ?? '') + ' ' + (t.nom ?? '')).toUpperCase().includes(qq)) { out.push({ node: t, depth: 0 }); if (out.length >= 500) break; }
+        if (mos(qidiruvMatni(t))) { out.push({ node: t, depth: 0 }); if (out.length >= 500) break; }
       }
       return out;
     }
@@ -353,16 +358,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     return flattenVisibleTree(p.akt.daraxt, (node) => node.bolalar, (node) => node.uid,
       matches, (uid) => !yopiqF.has(String(uid)));
   }, [p.akt.daraxt, filtr, ij, h.kopBog, S, shuF2, yopiqF, p.oldingi, qF, ind]);
-  const qidir = q.trim().toUpperCase();
   const qidiruvNatija = useMemo(() => {
-    if (qidir.length < 2) return null;
+    const mos = qidiruvMoslagich(q);
+    if (!mos) return null;
     const out: SmetaQator[] = [];
     for (const s of S.byId.values()) {
       if (s.tur === 'rz') continue;
-      if (((s.kod ?? '') + ' ' + (s.nom ?? '')).toUpperCase().includes(qidir)) { out.push(s); if (out.length >= 500) break; }
+      if (mos(qidiruvMatni(s))) { out.push(s); if (out.length >= 500) break; }
     }
     return out;
-  }, [qidir, S]);
+  }, [q, S]);
   const smetaVisibleRows = useMemo(() => qidiruvNatija
     ? qidiruvNatija.map((node) => ({ node, depth: 0 }))
     : flattenVisibleTree(smetaRoots, (node) => S.bolalar.get(node.id) ?? [], (node) => node.id,
@@ -645,7 +650,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         draggable={!(p.disabled || mutationBusy)} onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
         title={(p.disabled || mutationBusy) ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
         className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? `font-medium text-text ${ISH_CHEGARA}` : `text-text-dim ${RESURS_CHEGARA}`}`}>
-        <span className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${HOLAT_KATAK[k]}`} title={B.t}>{B.b}</span>
+        <button type="button" aria-pressed={belgi.has(t.uid)} aria-label={`${tarj('Belgilash')}: ${t.nom}`} onClick={(e) => belgiBos(t.uid, e.shiftKey)}
+          className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${belgi.has(t.uid) ? 'bg-accent text-white' : HOLAT_KATAK[k]}`}
+          title={`${B.t} — ${tarj('bosing: belgilash (Shift: oraliq)')}`}>{belgi.has(t.uid) ? '☑' : B.b}</button>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
         <div className={`${KATAK} flex items-start text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
           {chevron}
@@ -690,6 +697,31 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         </span>
       </div>
     );
+  }
+
+  function belgiBos(uid: string, oraliq: boolean) {
+    setBelgi((old) => {
+      const n = new Set(old);
+      const a = oxirgiBelgi.current;
+      if (oraliq && a && a !== uid) {
+        const uidlar = f2VisibleRows.map((r) => r.node.uid);
+        const [i, j] = [uidlar.indexOf(a), uidlar.indexOf(uid)].sort((x, y) => x - y);
+        if (i >= 0) for (const u of uidlar.slice(i, j + 1)) if (ind.byUid.get(u)?.tur !== 'rz') n.add(u);
+      } else if (n.has(uid)) n.delete(uid); else n.add(uid);
+      return n;
+    });
+    oxirgiBelgi.current = uid;
+  }
+  /** Belgilangan qatorlarga bitta amal — bitta onIj (bitta «Orqaga» qadami). */
+  function ommaviy(amal: 'tasdiq' | 'uz' | 'otkaz' | 'kirit') {
+    const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz');
+    if (!tugunlar.length) return;
+    let next = ij;
+    if (amal === 'tasdiq') next = tasdiqla(ij, tugunlar.map((x) => x.uid));
+    else for (const x of tugunlar) next = amal === 'uz' ? uz(next, x) : otkazibYubor(next, x, amal === 'otkaz');
+    p.onIj(next);
+    xab(`${tugunlar.length} ${tarj('ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}`);
+    setBelgi(new Set());
   }
 
   // ── Daraxt boshqaruvi: butun daraxt yoki aynan bitta chuqurlikni ochish/yopish. ──
@@ -1145,6 +1177,18 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <TreeControls depths={qF.trim().length >= 2 ? [] : f2ExpandableDepths} onOpenAll={f2BarchasiniOch} onCloseAll={f2BarchasiniYop} onToggleDepth={f2Sath} />
           <PanelFiltr label="F2 filtri" value={filtr} onChange={setFiltr} options={[['hammasi', 'Hammasi'], ['hal', `Tekshirilmagan (${halSoni})`], ['boglanmagan', 'Bog‘lanmagan'], ['muammo', 'Muammoli']]}
             izoh={`${f2VisibleRows.length.toLocaleString('ru-RU')} qator ko‘rinmoqda`} />
+          <div role="toolbar" aria-label={tarj('Belgilangan F2 qatorlari')} className="flex flex-wrap items-center gap-1 border-b border-border bg-surface-2/50 px-2 py-1 text-[11px]">
+            {belgi.size ? <>
+              <span className="font-semibold text-text">{belgi.size} {tarj('ta belgilandi:')}</span>
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('tasdiq')}><Check size={11} /> {tarj('Tasdiqlash')}</button>
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('uz')}><Unlink size={11} /> {tarj('Uzish')}</button>
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('otkaz')}>{tarj('Aktga kiritmaslik')}</button>
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('kirit')}>{tarj('Aktga qaytarish')}</button>
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
+            </> : <span className="text-text-mute">{tarj('Holat belgisini (✓ ◐ ✕) bosib qatorlarni belgilang — bir nechtasini birga tasdiqlash, uzish yoki aktdan chiqarish mumkin.')}</span>}
+            <button type="button" className="tugma ml-auto h-6 px-1.5 text-[11px]" disabled={!f2VisibleRows.length}
+              onClick={() => setBelgi(new Set(f2VisibleRows.filter((r) => r.node.tur !== 'rz').map((r) => r.node.uid)))}>{tarj('Ko‘rinadiganlarni belgilash')}</button>
+          </div>
           <div ref={f2Quti} className="h-[66vh] overflow-auto">
             <div className={`${tafsilot ? 'min-w-[742px]' : 'min-w-[560px]'} border-l border-t border-border/70`}>
             <JadvalSarlavha tur="f2" />

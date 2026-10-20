@@ -2119,5 +2119,18 @@
   "Eski F2 yozuvlari: manbada tasdiqlangan summa bo‘lmasa, eski summa ishlatilgan.": "Старые записи Ф2: если в источнике нет утверждённой суммы, использована прежняя сумма.",
   "To‘g‘ri xarajatlar · nakrutka va QQSsiz": "Прямые затраты · без накруток и НДС",
   "Moliyaviy ko‘rsatkichlar": "Финансовые показатели",
-  "Moliyaviy ko‘rsatkichlar o‘qilmadi.": "Финансовые показатели не прочитаны."
+  "Moliyaviy ko‘rsatkichlar o‘qilmadi.": "Финансовые показатели не прочитаны.",
+  "ta belgilandi:": "отмечено:",
+  "Uzish": "Отвязать",
+  "Aktga kiritmaslik": "Не включать в акт",
+  "Aktga qaytarish": "Вернуть в акт",
+  "Belgini tozalash": "Снять отметку",
+  "Holat belgisini (✓ ◐ ✕) bosib qatorlarni belgilang — bir nechtasini birga tasdiqlash, uzish yoki aktdan chiqarish mumkin.": "Нажмите значок статуса (✓ ◐ ✕), чтобы отметить строки — несколько можно сразу подтвердить, отвязать или исключить из акта.",
+  "Ko‘rinadiganlarni belgilash": "Отметить видимые",
+  "Belgilangan F2 qatorlari": "Отмеченные строки Ф2",
+  "ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.": "строк обработано. При необходимости верните кнопкой «Назад».",
+  "bosing: belgilash (Shift: oraliq)": "нажмите: отметить (Shift: диапазон)",
+  "Belgilash": "Отметить",
+  "Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)": "Отменить последнее связывание, отвязку или подтверждение (Ctrl+Z)",
+  "Orqaga": "Назад"
 }
