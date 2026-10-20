@@ -31,6 +31,7 @@ import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
 import { roleAuthority } from '../_shared/role-authority';
+import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
 
 /* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA va `_shared/tenant-oqish.ts` dagi
    OQISH_SIYOSATI ga (aniq izolyatsiya siyosati bilan) qo'shiladi — ikkalasi bir xil bo'lishi testda majburiy.
@@ -455,20 +456,24 @@ export const onRequestPost: PagesFunction<{
 
     /** Bitta sahifani o'qiydi. Upstream tafsiloti faqat keyingi xavfsiz
      * boundaryga beriladi, brauzerga hech qachon qaytarilmaydi. */
-    async function sahifaOl(offset: number, limit: number): Promise<SahifaNatija> {
+    async function sahifaOl(offset: number, limit: number,
+      q: { select?: string; order?: string; qoshimchaFiltr?: string; sana?: boolean } = {}): Promise<SahifaNatija> {
       const p = new URLSearchParams();
-      p.set('select', so.ustunlar || '*');
-      if (so.tartib) p.set('order', so.tartib);
+      p.set('select', q.select || so.ustunlar || '*');
+      const order = q.order || so.tartib;
+      if (order) p.set('order', order);
       p.set('limit', String(limit));
       p.set('offset', String(offset));
       // Majburiy tenant filtri (server qo'shadi) brauzer filtri bilan AND qilinadi.
       // 2026-10-03: filtrdagi kodlanmagan ASCII bo'lmagan belgilar (kirillcha qidiruv) shu yerda percent-kodlanadi —
       // aks holda so'rov Supabase ga yetmasdan yiqilardi (katalog qidiruvi "keyinroq urinib ko'ring").
       const filtrUrl = (so.filtr || '').replace(/[^\x20-\x7e]+/g, (m) => encodeURIComponent(m));
-      const url = baza + '?' + p.toString() + (filtrUrl ? '&' + filtrUrl : '') + (majburiyFiltr ? '&' + majburiyFiltr : '');
+      const url = baza + '?' + p.toString() + (filtrUrl ? '&' + filtrUrl : '') + (q.qoshimchaFiltr ? '&' + q.qoshimchaFiltr : '')
+        + (majburiyFiltr ? '&' + majburiyFiltr : '');
       // Точное количество нужно один раз. Повторный COUNT над финансовым view
       // на каждой параллельной странице нагружал БД без новой информации.
-      const r = await fetch(url, { headers: offset === 0 ? { ...boshHeaders, Prefer: 'count=exact' } : boshHeaders });
+      const sana = q.sana ?? offset === 0;
+      const r = await fetch(url, { headers: sana ? { ...boshHeaders, Prefer: 'count=exact' } : boshHeaders });
       const matn = await r.text();
       if (!r.ok) return { failed: true, status: r.status, detail: matn.slice(0, 500) };
       let bolak: unknown[];
@@ -518,7 +523,45 @@ export const onRequestPost: PagesFunction<{
 
     const olinishiKerak = jamiServerda != null ? Math.min(jamiServerda, kerak) : kerak;
 
-    if (qatorlar.length >= SAHIFA && qatorlar.length < olinishiKerak) {
+    /* 2026-10-20 — KALIT ORALIQLARI (OFFSET o'rniga). Tartib noyob butun kalit bo'yicha o'sishda (`id.asc` /
+       `qator_id.asc`) va hammasi kerak bo'lsa: qolgan qism kalit oraliqlariga bo'linib parallel o'qiladi — har so'rov
+       faqat o'z qatorlarini hisoblaydi (OFFSET esa moliyaviy view'da o'tkazib yuborilganlarni ham hisoblardi).
+       Natija uzluksiz prefiks; to'liq bo'lmasa `toliq:false` (chaqiruvchi `kalit=gt.oxirgi` bilan davom etadi). */
+    const kalitM = /^(id|qator_id)\.asc$/.exec(so.tartib || '');
+    const kalit = kalitM ? kalitM[1] : null;
+    const kalitQiymati = (r: unknown) => {
+      const v = Number((r as Record<string, unknown> | null)?.[kalit as string]);
+      return Number.isSafeInteger(v) ? v : null;
+    };
+    const oxirgiKalit = kalit && qatorlar.length ? kalitQiymati(qatorlar[qatorlar.length - 1]) : null;
+    let prefiksToliqEmas = false;
+
+    if (kalit && oxirgiKalit != null && jamiServerda != null && kerak >= jamiServerda
+        && qatorlar.length >= SAHIFA && qatorlar.length < jamiServerda) {
+      const tQol = Date.now();
+      const maksJ = await sahifaOl(0, 1, { select: kalit, order: kalit + '.desc', sana: false });
+      soro++;
+      if ('failed' in maksJ) return xavfsizUpstream(maksJ.status, maksJ.detail);
+      const maks = maksJ.bolak.length ? kalitQiymati(maksJ.bolak[0]) : null;
+      if (maks == null) return xavfsizUpstream(502, 'KALIT_MAKS_OQILMADI');
+      const reja = oraliqlarniRejala(oxirgiKalit, maks, jamiServerda - qatorlar.length, SAHIFA, MAX_SORO - soro);
+      while (soro < MAX_SORO) {
+        const ochiq = reja.oraliqlar.filter((o) => !o.tugadi).slice(0, MAX_SORO - soro);
+        if (!ochiq.length) break;
+        soro += ochiq.length;
+        const natijalar = await Promise.all(ochiq.map((o) => sahifaOl(0, SAHIFA,
+          { sana: false, qoshimchaFiltr: kalit + '=gt.' + o.kursor + '&' + kalit + '=lte.' + o.yuqori })));
+        for (let i = 0; i < ochiq.length; i++) {
+          const nat = natijalar[i];
+          if ('failed' in nat) return xavfsizUpstream(nat.status, nat.detail);
+          if (!oraliqgaQosh(ochiq[i], nat.bolak, kalit, SAHIFA)) return xavfsizUpstream(502, 'KALIT_TARTIBI_BUZILDI');
+        }
+      }
+      const yig = prefiksYigi(reja);
+      qatorlar = qatorlar.concat(yig.qatorlar);
+      prefiksToliqEmas = !yig.toliq;
+      msQolgan = Date.now() - tQol;
+    } else if (qatorlar.length >= SAHIFA && qatorlar.length < olinishiKerak) {
       /* Qolgan sahifalar ro'yxati — hammasi BIR VAQTDA */
       const vazifalar: Promise<SahifaNatija>[] = [];
       for (let off = qatorlar.length; off < olinishiKerak && vazifalar.length < MAX_SORO - 1;
@@ -539,7 +582,7 @@ export const onRequestPost: PagesFunction<{
     /* HALOL BAYROQ: hammasini oldikmi? Ko'zgu to'liq bo'lmasa
        chaqiruvchi buni bilishi SHART — yarim ma'lumot ustida
        hisob-kitob qilinmasin. */
-    const toliq = jamiServerda === null
+    const toliq = prefiksToliqEmas ? false : jamiServerda === null
       ? soro < MAX_SORO
       : qatorlar.length >= jamiServerda;
 
