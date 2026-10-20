@@ -28,6 +28,7 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 import { ZakazchigaYuborish } from '../zakazchik/ZakazchigaYuborish';
+import { f2ImportQilinganmi } from '../../lib/f2-manba';
 
 type F2Detail = F2Tafsilot;
 
@@ -67,6 +68,8 @@ export function F2TarixNative() {
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [reestr, setReestr] = useState<T2AktReestr[]>([]);
   const [tafsilot, setTafsilot] = useState<F2Detail[]>([]);
+  // Tanlangan akt F2 importdan (o'tgan davr fayli) kelganmi — unda «Zakazchikka yuborish» bo'lmaydi.
+  const [importAkt, setImportAkt] = useState<{ id: number; import: boolean } | null>(null);
   /** Smeta daraxti — F2 qatorlari ierarxiyada (bo'lim → ish → resurs) ko'rsatiladi. */
   const [smeta, setSmeta] = useState<F2IerSmeta[]>([]);
   /** To'liq smeta qatorlari (norma, kat) — Ф-2 hujjatini qayta chiqarish uchun. */
@@ -83,6 +86,13 @@ export function F2TarixNative() {
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
   const f2Reestr = useMemo(() => reestr.filter((a) => a.tur === 'f2'), [reestr]);
   const selectedAkt = f2Reestr.find((a) => a.id === selectedAktId) ?? f2Reestr[0] ?? null;
+  useEffect(() => {
+    const id = selectedAkt?.id;
+    if (id == null) return;
+    let faol = true;
+    void f2ImportQilinganmi(id).then((v) => { if (faol) setImportAkt({ id, import: v }); }).catch(() => { if (faol) setImportAkt({ id, import: false }); });
+    return () => { faol = false; };
+  }, [selectedAkt?.id]);
   const selectedLines = useMemo(
     () => selectedAkt ? tafsilot.filter((line) => line.akt_id === selectedAkt.id) : [],
     [selectedAkt, tafsilot],
@@ -265,8 +275,9 @@ export function F2TarixNative() {
                   {selectedLines.length > 0 && <div className="mt-2 flex justify-end gap-1.5">
                     <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text disabled:opacity-50"><Eye size={13} />{t('Koʻrish')}</button>
                     <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"><Download size={13} />{t('Ф-2 Excel')}</button>
-                    {selectedAkt.lifecycle_status === 'approved' && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
-                  </div>}</div></div>
+                    {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && !importAkt.import && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
+                  </div>}
+                  {importAkt?.id === selectedAkt.id && importAkt.import && <p className="mt-1 max-w-xs text-[11px] text-text-mute">{t('F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.')}</p>}</div></div>
                 <table className="w-full text-left text-[12px]"><thead className="sticky top-0 bg-surface text-text-dim"><tr><th className="py-2">Bo‘lim / ish / resurs</th><th className="text-right">Hajm</th><th className="text-right">Narx</th><th className="text-right">Summa</th></tr></thead><tbody>{ierarxiya.map((q) => {
                   const belgi = q.zamena ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetadagi qator o‘rniga bajarilgan (zamena)">zamena</span> : q.qoshimcha ? <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent" title="Smetada yo‘q, qo‘shimcha kiritilgan">qo‘shimcha</span> : null;
                   const pad = { paddingLeft: 4 + q.daraja * 16 };

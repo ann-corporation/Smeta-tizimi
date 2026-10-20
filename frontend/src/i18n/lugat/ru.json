@@ -2225,5 +2225,10 @@
   "Smeta summasini qo‘yish (+QQS 12%)": "Подставить сумму сметы (+НДС 12%)",
   "QQS 12% hisoblash": "Рассчитать НДС 12%",
   "Jami = Summa + QQS": "Итого = Сумма + НДС",
-  "Summalarni tozalash": "Очистить суммы"
+  "Summalarni tozalash": "Очистить суммы",
+  "F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.": "Внесён через импорт Ф2 (прошлый период) — заказчику не отправляется. Новый Ф2 создайте в «Подготовке Ф2» и отправьте оттуда.",
+  "Tayyorlangan F2 lar": "Подготовленные Ф2",
+  "Shu obyektda tayyorlangan F2 lar": "Ф2, подготовленные для этого объекта",
+  "qoralama — avval F2 tarixida tasdiqlang": "черновик — сначала утвердите в истории Ф2",
+  "Tasdiqlashga": "К утверждению"
 }

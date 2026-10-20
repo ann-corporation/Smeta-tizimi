@@ -1,3 +1,4 @@
+import { TayyorlanganF2lar } from './TayyorlanganF2lar';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { isCompleteMoney, reportMoneyValidity } from '../../lib/money-input';
@@ -295,6 +296,7 @@ export function F2TayyorlashNative() {
   return <Sahifa sarlavha="F2 tayyorlash" tavsif="Ishni tanlang — resurslar, narx va summa avtomatik; har narx manbasi ko‘rinadi">
     {korinish.oyna}
     <div ref={moneyScope} className="flex h-full min-h-0 flex-col gap-3">
+      {validId && <TayyorlanganF2lar kompaniyaId={joriy?.id} obyektId={obyektId} />}
       <section className="karta flex flex-wrap items-end gap-3 p-3">
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text">Obyekt
           <select aria-label="Obyekt" value={validId ? obyektId : ''} onChange={(event) => { const object = obyektlar.find((item) => item.id === Number(event.target.value)); if (workspace.isProvider) workspace.setObjectId(object?.id ?? null); else setParams(object ? { obyekt: String(object.id) } : {}); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">

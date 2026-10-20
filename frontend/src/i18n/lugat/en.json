@@ -2225,5 +2225,10 @@
   "Smeta summasini qo‘yish (+QQS 12%)": "Use the estimate total (+VAT 12%)",
   "QQS 12% hisoblash": "Calculate VAT 12%",
   "Jami = Summa + QQS": "Total = Amount + VAT",
-  "Summalarni tozalash": "Clear amounts"
+  "Summalarni tozalash": "Clear amounts",
+  "F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.": "Entered via F2 import (past period) — not sent to the customer. Create a new F2 in «F2 preparation» and send it from there.",
+  "Tayyorlangan F2 lar": "Prepared F2s",
+  "Shu obyektda tayyorlangan F2 lar": "F2s prepared for this object",
+  "qoralama — avval F2 tarixida tasdiqlang": "draft — approve it in F2 history first",
+  "Tasdiqlashga": "To approval"
 }
