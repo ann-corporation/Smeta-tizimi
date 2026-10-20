@@ -173,6 +173,20 @@ describe('F2 independent working draft', () => {
     expect(screen.queryByText(/o‘chirishga belgilangan/)).toBeNull();
   });
 
+  it('eskirgan manba hujjat (SOURCE_DOCUMENT_SCOPE_MISMATCH) — fayl qayta saqlanadi va qoralama bir marta qayta yuboriladi', async () => {
+    await restored();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true, document_id: 55 }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    m.cloudSave.mockRejectedValueOnce(new Error('SOURCE_DOCUMENT_SCOPE_MISMATCH'))
+      .mockImplementationOnce(async (d: F2IshchiQoralama, docId: number) => { expect(docId).toBe(55); d.server = { jobId: 12, versiya: 1, rows: new Map() }; return d.server; });
+    m.create.mockResolvedValue({ ok: true, akt_id: 98 });
+    fireEvent.click(screen.getByRole('button', { name: /F2 ni yozish/ }));
+    await screen.findByText(/F2 qoralamasi saqlandi [(]akt #98/);
+    expect(fetchMock).toHaveBeenCalledWith('/api/hujjat-yukla', expect.anything());
+    expect(m.cloudSave).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
   it('an existing APPROVED act still blocks saving a new act', async () => {
     m.preflight.mockResolvedValue({ok:true,qatorlar:[{id:56,oy:'2026-10-01',raqam:null,holat:'tasdiqlangan',lifecycle_status:'approved',versiya:9}]});
     await start();

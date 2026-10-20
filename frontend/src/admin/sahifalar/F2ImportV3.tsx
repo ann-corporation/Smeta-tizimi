@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { avvalgiF2Ol, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -705,7 +706,20 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (!draft) { qadam('qoralama', 'xato', t('F2 ish holati topilmadi.')); return; }
       draft.source.documentId = docId;
       try { await f2ServerSaqla(draft, docId, serverDraft.current); }
-      catch (e) { serverDraft.current = draft.server; await ishniSaqla(draft); qadam('qoralama', 'xato', e instanceof Error ? e.message : t('Server qoralamasi saqlanmadi.')); return; }
+      catch (e) {
+        // Manba hujjat eskirgan (fayl qayta yuklanib «superseded» bo'lgan) yoki boshqa obyektga tegishli — brauzerdagi asl
+        // faylni shu obyektga qayta ro'yxatdan o'tkazib, bir marta qayta urinamiz (egasi 2026-10-20: SOURCE_DOCUMENT_SCOPE_MISMATCH).
+        const m = e instanceof Error ? e.message : '';
+        if (/SOURCE_DOCUMENT_SCOPE_MISMATCH/.test(m) && rawFile.current) {
+          try {
+            qadam('fayl', 'ishlayapti', t('Manba fayl eskirgan — qayta saqlanmoqda…'));
+            sourceDoc.current = undefined; sourceOp.current = yangiOperationId(); serverDraft.current = undefined; draft.server = undefined;
+            docId = await r2gaYukla(); draft.source.documentId = docId;
+            qadam('fayl', 'tayyor', t('Manba fayl yangilandi'));
+            await f2ServerSaqla(draft, docId, undefined);
+          } catch (e2) { serverDraft.current = draft.server; await ishniSaqla(draft); qadam('qoralama', 'xato', e2 instanceof Error ? e2.message : t('Server qoralamasi saqlanmadi.')); return; }
+        } else { serverDraft.current = draft.server; await ishniSaqla(draft); qadam('qoralama', 'xato', m || t('Server qoralamasi saqlanmadi.')); return; }
+      }
       serverDraft.current = draft.server; await ishniSaqla(draft);
       setServerId(String(draft.server!.jobId));
       qadam('qoralama', 'tayyor', `#${draft.server!.jobId}`);
@@ -787,7 +801,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         <label className="block text-[12px] font-medium text-text">{t('Obyekt')}
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { oxirgiKalit.current = ''; tozala(); setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
             className="input mt-1.5 block h-9 w-full px-2 text-[13px]">
-            <option value="">Tanlang</option>{objects.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+            <option value="">Tanlang</option><ObyektOptionlari obyektlar={objects} />
           </select>
         </label>
         <label className="block text-[12px] font-medium text-text">F2 fayl (XLSX)
