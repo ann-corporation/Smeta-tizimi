@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { reportMoneyValidity } from '../../lib/money-input';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Settings, Save, Percent, HardHat, Database, FolderOpen, Loader2, PauseCircle, PlayCircle, Tags } from 'lucide-react';
 import { AuroraBackground, GlassCard } from '../../boss/sahifalar/Umumiy';
@@ -263,6 +265,7 @@ function NakrutkaBolimi() {
 
 /* ══════════════ СТАВКА (ЧЕЛ-Ч) ══════════════ */
 function StavkaBolimi() {
+  const moneyScope = useRef<HTMLDivElement>(null);
   const { data: obyektlar, isLoading } = useObyektlar();
   const [tanlangan, setTanlangan] = useState('');
   const { data: stavka } = useStavka(tanlangan);
@@ -285,7 +288,7 @@ function StavkaBolimi() {
           bu yerdagi qiymat e'tiborga olinmaydi.
         </p>
 
-        <div className="space-y-5">
+        <div ref={moneyScope} className="space-y-5">
           <div>
             <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">
               Obyekt
@@ -307,10 +310,9 @@ function StavkaBolimi() {
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">
                 ЧЕЛ-Ч stavkasi (so'm / soat)
               </label>
-              <input
-                type="number"
+              <MoneyInput numericValue
                 value={qiymat}
-                onChange={e => setQiymat(e.target.value === '' ? '' : Number(e.target.value))}
+                onValueChange={value => setQiymat(value === '' ? '' : Number(value))}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-accent/50"
               />
             </div>
@@ -322,6 +324,7 @@ function StavkaBolimi() {
             <button
               onClick={async () => {
                 try {
+                  if (!reportMoneyValidity(moneyScope.current)) return;
                   const r = await saqla.mutateAsync({ obyekt: tanlangan, chel: Number(qiymat) || 0 });
                   toast(r.xabar || 'Saqlandi', 'ok');
                 } catch (e: any) { toast('Xato: ' + e.message, 'danger'); }

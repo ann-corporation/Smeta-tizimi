@@ -1,3 +1,5 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { reportMoneyValidity } from '../../lib/money-input';
 /**
  * PodvalKonstruktor.tsx — nakrutka podvalini qatorma-qator tuzish (egasi Q6, 2026-10-01).
  *
@@ -6,7 +8,7 @@
  * Qator turlari: foiz (baza × %), summa (belgilangan, masalan shartnoma bo'yicha), jami.
  * Oxirgi qator — ВСЕГО. Obyekt tanlansa — uning kategoriya summalarida jonli hisob.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { ArrowDown, ArrowUp, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { t2NakrutkaKoefOl, t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { sbPodvallarOl, sbPodvalSaqla, sbPodvalOchir, podvalTanla, type PodvalYozuv } from '../../api/t2-nakrutka-podval';
@@ -63,6 +65,7 @@ function BazaTanlagich({ qator, oldingilar, podval, onChange }: {
 }
 
 export function PodvalKonstruktor({ companyId, contractId, objectId }: { companyId: number; contractId: number | null; objectId: number | null }) {
+  const moneyScope = useRef<HTMLDivElement>(null);
   const [royxat, setRoyxat] = useState<PodvalYozuv[]>([]);
   const [koef, setKoef] = useState<Partial<NakrutkaKoeffitsientlar>>({});
   const [kat, setKat] = useState<Partial<KatSummalar> | null>(null);
@@ -132,6 +135,7 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   });
 
   const saqla = async () => {
+    if (!reportMoneyValidity(moneyScope.current)) return;
     if (!tahrir) return;
     if (xatolar.length) { setXabar('Avval xatolarni tuzating'); return; }
     setBand(true);
@@ -152,7 +156,7 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
     : 'standart kaskad (koeffitsientlardan)';
 
   return (
-    <div className="border rounded-lg p-3 bg-surface-1 space-y-3">
+    <div ref={moneyScope} className="border rounded-lg p-3 bg-surface-1 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Podval konstruktori</h3>
         <div className="inline-flex overflow-hidden rounded border text-[12px]">
@@ -198,7 +202,7 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
                       ? <input className="w-full border rounded px-1.5 py-0.5 text-right" inputMode="decimal" value={q.foiz ?? ''} onChange={(e) => qatorYangila(i, { foiz: e.target.value === '' ? null : Number(e.target.value.replace(',', '.')) })} />
                       : <span className="tabular-nums" title={q.koefKod ? 'Standart foiz — yuqoridagi koeffitsientlardan' : ''}>{q.foiz == null ? '—' : q.foiz + ' %'}</span>)}
                     {q.tur === 'summa' && (tahrir
-                      ? <input className="w-full border rounded px-1.5 py-0.5 text-right" inputMode="decimal" placeholder="noma’lum" value={q.summa ?? ''} onChange={(e) => qatorYangila(i, { summa: e.target.value === '' ? null : Number(e.target.value.replace(/\s/g, '').replace(',', '.')) })} />
+                      ? <MoneyInput numericValue className="w-full border rounded px-1.5 py-0.5 text-right" inputMode="decimal" placeholder="noma’lum" value={q.summa ?? ''} onValueChange={(moneyValue) => qatorYangila(i, { summa: moneyValue === '' ? null : Number(moneyValue.replace(/\s/g, '').replace(',', '.')) })} />
                       : <span className="tabular-nums">{q.summa == null ? 'noma’lum' : <FmtN val={q.summa} />}</span>)}
                   </td>
                   <td className="px-1 py-1">

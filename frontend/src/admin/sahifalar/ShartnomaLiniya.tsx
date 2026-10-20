@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Building2, FileSignature, Link2, Plus, Save, Trash2, Users, X } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -128,7 +129,7 @@ export function ShartnomaLiniya() {
             </label>
             {(['summa_bez_nds', 'nds', 'jami_nds_bilan'] as const).map((k) => (
               <label key={k}><span className={yorliq}>{k === 'summa_bez_nds' ? 'Summa (QQSsiz)' : k === 'nds' ? 'QQS' : 'Jami (QQS bilan)'}</span>
-                <input aria-label={k} inputMode="decimal" className={`${kirit} tabular-nums`} value={s[k]} onChange={(e) => ozgar({ [k]: e.target.value } as Partial<Shakl>)} />
+                <MoneyInput aria-label={k} inputMode="decimal" className={`${kirit} tabular-nums`} value={s[k]} onValueChange={(value) => ozgar({ [k]: value } as Partial<Shakl>)} />
                 {xatoJoy(k) && <span className="text-[11px] text-danger">{xatoJoy(k)}</span>}
               </label>
             ))}

@@ -1,3 +1,4 @@
+import { MoneyInput } from './MoneyInput';
 /**
  * Sahifa to'plami — HAR admin ekrani shundan quriladi.
  *
@@ -352,10 +353,11 @@ export function Kiritma({
 }: {
   qiymat: string | number;
   ozgardi: (v: string) => void;
-  tur?: 'text' | 'number' | 'date';
+  tur?: 'text' | 'number' | 'date' | 'money';
   placeholder?: string;
   ozgarmas?: boolean;
 }) {
+  if (tur === 'money') return <MoneyInput value={qiymat} onValueChange={ozgardi} disabled={ozgarmas} placeholder={placeholder} className={`input h-9 px-3 text-sm w-full text-right tabular-nums ${ozgarmas ? 'opacity-60 cursor-not-allowed' : ''}`} />;
   return (
     <input
       type={tur}

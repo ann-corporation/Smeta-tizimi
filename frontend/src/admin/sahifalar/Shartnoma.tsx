@@ -412,7 +412,7 @@ export function Shartnoma() {
                     placeholder="masalan: Qo'shimcha drenaj" />
                 </Maydon>
                 <Maydon nom="Smeta summasi">
-                  <Kiritma tur="number" qiymat={yangiQosh.smeta}
+                  <Kiritma tur="money" qiymat={yangiQosh.smeta}
                     ozgardi={(v) => setYangiQosh({ ...yangiQosh, smeta: v })} />
                 </Maydon>
                 <Maydon nom="Izoh">
@@ -433,8 +433,8 @@ export function Shartnoma() {
               <Maydon nom="Nomi"><Kiritma qiymat={shakl.nomi} ozgardi={(v) => setShakl({ ...shakl, nomi: v })} /></Maydon>
               <Maydon nom="Taraf"><Kiritma qiymat={shakl.taraf} ozgardi={(v) => setShakl({ ...shakl, taraf: v })} /></Maydon>
               <div className="grid grid-cols-2 gap-3">
-                <Maydon nom="Summa"><Kiritma tur="number" qiymat={shakl.summa} ozgardi={(v) => { const sm = Number(v) || 0; setShakl({ ...shakl, summa: sm, jami: sm + (Number(shakl.nds) || 0) }); }} /></Maydon>
-                <Maydon nom="NDS"><Kiritma tur="number" qiymat={shakl.nds} ozgardi={(v) => { const nd = Number(v) || 0; setShakl({ ...shakl, nds: nd, jami: (Number(shakl.summa) || 0) + nd }); }} /></Maydon>
+                <Maydon nom="Summa"><Kiritma tur="money" qiymat={shakl.summa} ozgardi={(v) => { const sm = Number(v) || 0; setShakl({ ...shakl, summa: sm, jami: sm + (Number(shakl.nds) || 0) }); }} /></Maydon>
+                <Maydon nom="NDS"><Kiritma tur="money" qiymat={shakl.nds} ozgardi={(v) => { const nd = Number(v) || 0; setShakl({ ...shakl, nds: nd, jami: (Number(shakl.summa) || 0) + nd }); }} /></Maydon>
               </div>
               {/* ⚡⚡⚡ 2026-08-16 (audit H15 — TASDIQLANDI): Summa yoki NDS
                   o'zgarganda JAMI qayta hisoblanmasdi — shartnoma ESKI jami
@@ -442,7 +442,7 @@ export function Shartnoma() {
                   Endi ikkalasi ham Jami ni yangilaydi. Jami qo'lda ham
                   tuzatilishi mumkin (yaxlitlash farqi uchun). */}
               <Maydon nom="Jami" izoh="Summa + NDS (avtomatik, qo'lda ham tuzatsa bo'ladi)">
-                <Kiritma tur="number" qiymat={shakl.jami} ozgardi={(v) => setShakl({ ...shakl, jami: Number(v) || 0 })} />
+                <Kiritma tur="money" qiymat={shakl.jami} ozgardi={(v) => setShakl({ ...shakl, jami: Number(v) || 0 })} />
               </Maydon>
               <Maydon nom="Holat"><Tanlov qiymat={shakl.holat || HOLATLAR[0]} ozgardi={(v) => setShakl({ ...shakl, holat: v })} variantlar={HOLATLAR} /></Maydon>
               <Maydon nom="Izoh"><Kiritma qiymat={shakl.izoh} ozgardi={(v) => setShakl({ ...shakl, izoh: v })} /></Maydon>
@@ -497,7 +497,7 @@ export function Shartnoma() {
                     </Maydon>
                   )}
                   <Maydon nom="Sana"><Kiritma tur="date" qiymat={yangiTolov.sana} ozgardi={(v) => setYangiTolov({ ...yangiTolov, sana: v })} /></Maydon>
-                  <Maydon nom="Summa"><Kiritma tur="number" qiymat={yangiTolov.summa} ozgardi={(v) => setYangiTolov({ ...yangiTolov, summa: v })} /></Maydon>
+                  <Maydon nom="Summa"><Kiritma tur="money" qiymat={yangiTolov.summa} ozgardi={(v) => setYangiTolov({ ...yangiTolov, summa: v })} /></Maydon>
                 </div>
                 <Maydon nom="Izoh"><Kiritma qiymat={yangiTolov.izoh} ozgardi={(v) => setYangiTolov({ ...yangiTolov, izoh: v })} placeholder="ixtiyoriy" /></Maydon>
                 <Tugma onBos={tolovQosh} band={tolovYoz.isPending} ikonka={<Plus size={16} />}>To'lov qo'shish</Tugma>

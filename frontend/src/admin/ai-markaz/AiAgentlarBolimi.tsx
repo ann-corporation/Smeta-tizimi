@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useCallback, useEffect, useState } from 'react';
 import { modelKatalogYoz, modelTanla, modellarOl, type AgentModelQatori, type Markaz, type ModellarJavobi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
@@ -83,8 +84,8 @@ export function AiAgentlarBolimi({ markaz }: { markaz: Markaz | null }) {
         <div className="mt-3 flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
           <label className="flex flex-col gap-1">{t('Model identifikatori')}<input value={yId} onChange={(e) => setYId(e.target.value)} placeholder={MODEL_NAMUNA} className="input h-8 w-64 px-2 text-[12px]" /></label>
           <label className="flex flex-col gap-1">{t('Nomi')}<input value={yNom} onChange={(e) => setYNom(e.target.value)} placeholder={t(NOM_NAMUNA)} className="input h-8 w-44 px-2 text-[12px]" /></label>
-          <label className="flex flex-col gap-1">{t('Kirish $/1M')}<input inputMode="decimal" value={yKir} onChange={(e) => setYKir(e.target.value)} placeholder={NARX_NAMUNA} className="input h-8 w-20 px-2 text-[12px]" /></label>
-          <label className="flex flex-col gap-1">{t('Chiqish $/1M')}<input inputMode="decimal" value={yChiq} onChange={(e) => setYChiq(e.target.value)} placeholder={NARX_NAMUNA} className="input h-8 w-20 px-2 text-[12px]" /></label>
+          <label className="flex flex-col gap-1">{t('Kirish $/1M')}<MoneyInput inputMode="decimal" value={yKir} onValueChange={(moneyValue) => setYKir(moneyValue)} placeholder={NARX_NAMUNA} className="input h-8 w-20 px-2 text-[12px]" /></label>
+          <label className="flex flex-col gap-1">{t('Chiqish $/1M')}<MoneyInput inputMode="decimal" value={yChiq} onValueChange={(moneyValue) => setYChiq(moneyValue)} placeholder={NARX_NAMUNA} className="input h-8 w-20 px-2 text-[12px]" /></label>
           <label className="flex items-center gap-1 pb-1.5"><input type="checkbox" checked={yVis} onChange={(e) => setYVis(e.target.checked)} />{t('Rasm ko‘ra oladi')}</label>
           <button type="button" disabled={!yId.trim() || yNom.trim().length < 2} onClick={() => void qosh()} className="tugma-asosiy h-8 px-3 text-[12px] disabled:opacity-40">{t('Katalogga qo‘shish')}</button>
         </div>

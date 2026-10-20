@@ -34,7 +34,7 @@ describe('IshAbcModal (kichik ABC)', () => {
 
     expect((screen.getByLabelText('Ish shifri') as HTMLInputElement).value).toBe('Е0802-002-03');
     expect((screen.getByLabelText('1-resurs normasi') as HTMLInputElement).value).toBe('170.17');
-    await waitFor(() => expect((screen.getByLabelText('2-resurs narxi') as HTMLInputElement).value).toBe('1360000'));
+    await waitFor(() => expect((screen.getByLabelText('2-resurs narxi') as HTMLInputElement).value).toBe('1 360 000'));
 
     fireEvent.change(screen.getByLabelText('Ish hajmi'), { target: { value: '0,5' } });
     expect(screen.getAllByText('5 142 229,79').length).toBeGreaterThan(0);   // ish summasi = resurslar yig'indisi

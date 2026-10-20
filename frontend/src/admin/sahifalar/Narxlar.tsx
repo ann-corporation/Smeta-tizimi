@@ -356,7 +356,7 @@ function NarxlarLegacy() {
 
             <section className="space-y-3">
               <Maydon nom="Qo'lda belgilangan narx" izoh="Bo'sh qoldirilsa — smetadagi narx ishlatiladi">
-                <Kiritma tur="number" qiymat={narxKiritma} ozgardi={setNarxKiritma} placeholder="masalan 24 517" />
+                <Kiritma tur="money" qiymat={narxKiritma} ozgardi={setNarxKiritma} placeholder="masalan 24 517" />
               </Maydon>
               {narxKiritma !== '' && (
                 <Tugma onBos={() => setNarxKiritma('')} ikonka={<RotateCcw size={14} />}>

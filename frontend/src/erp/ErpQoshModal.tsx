@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { MoneyInput } from '../umumiy/ui/MoneyInput';
+import { reportMoneyValidity } from '../lib/money-input';
+import { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 
 export type ErpOption = string | { value: string; label: string };
@@ -6,7 +8,7 @@ export type ErpOption = string | { value: string; label: string };
 export type ErpField = {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'textarea' | 'date';
+  type: 'text' | 'number' | 'select' | 'textarea' | 'date' | 'money';
   options?: ErpOption[];
   required?: boolean;
   placeholder?: string;
@@ -24,6 +26,7 @@ interface ErpQoshModalProps {
 }
 
 export function ErpQoshModal({ isOpen, title, fields, onClose, onSubmit, isSaving, initial }: ErpQoshModalProps) {
+  const moneyScope = useRef<HTMLDivElement>(null);
   const [qiymatlar, setQiymatlar] = useState<Record<string, any>>(initial || {});
   // Modal har ochilganda initial qiymatlarni qayta o'rnatamiz (eski kiritilgan qiymat qolib ketmasin)
   const [ochiqEdi, setOchiqEdi] = useState(false);
@@ -35,6 +38,7 @@ export function ErpQoshModal({ isOpen, title, fields, onClose, onSubmit, isSavin
   const set = (key: string, val: any) => setQiymatlar(prev => ({ ...prev, [key]: val }));
 
   const yuborish = async () => {
+    if (!reportMoneyValidity(moneyScope.current)) return;
     for (const f of fields) {
       /* ⚡ 2026-08-16 (audit H14): `!qiymatlar[key]` da `!0 === true` —
          majburiy RAQAM maydoniga 0 kiritilsa forma yuborilmasdi va
@@ -49,7 +53,7 @@ export function ErpQoshModal({ isOpen, title, fields, onClose, onSubmit, isSavin
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="karta w-full max-w-[520px] max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div ref={moneyScope} className="karta w-full max-w-[520px] max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold text-white">{title}</h2>
           <button onClick={onClose} disabled={isSaving} className="text-text-dim hover:text-white transition-colors">
@@ -63,7 +67,7 @@ export function ErpQoshModal({ isOpen, title, fields, onClose, onSubmit, isSavin
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">
                 {f.label}{f.required && <span className="text-rose-400 ml-0.5">*</span>}
               </label>
-              {f.type === 'select' ? (
+              {f.type === 'money' ? <MoneyInput numericValue value={qiymatlar[f.key] ?? ''} onValueChange={v => set(f.key, v === '' ? '' : Number(v))} placeholder={f.placeholder} required={f.required} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent/50" /> : f.type === 'select' ? (
                 <select
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent/50"
                   value={qiymatlar[f.key] ?? ''}

@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Local money input check</title></head><body style="background:#101827;color:#e5e7eb;font:18px system-ui;padding:32px"><h1>LOCAL SYNTHETIC TEST</h1><div id="root"></div><script type="module">
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MoneyInput} from '/src/umumiy/ui/MoneyInput.tsx';
+function App(){const [raw,setRaw]=React.useState('120256205845.50');const [num,setNum]=React.useState('');return React.createElement('main',{style:{display:'grid',gap:24,maxWidth:800}},React.createElement('label',{},'Pul ',React.createElement(MoneyInput,{'aria-label':'Pul',value:raw,onValueChange:setRaw,style:{fontSize:24,width:'100%'}})),React.createElement('output',{'aria-label':'Raw'},raw),React.createElement('label',{},'Son sifatida narx ',React.createElement(MoneyInput,{'aria-label':'Numeric money',numericValue:true,value:num,onValueChange:v=>setNum(v===''?'':Number(v)),style:{fontSize:24,width:'100%'}})),React.createElement('output',{'aria-label':'Numeric raw'},String(num)),React.createElement('label',{},'Hajm ',React.createElement('input',{'aria-label':'Hajm',type:'number',defaultValue:12.5})));}createRoot(document.getElementById('root')).render(React.createElement(App));
+</script></body></html>

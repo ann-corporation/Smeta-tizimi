@@ -1,12 +1,13 @@
+import { MoneyInput } from '../umumiy/ui/MoneyInput';
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Gavel, PackageSearch, Plus, TrendingDown, Clock, ChevronRight, X, Save, RefreshCw, Handshake, CheckCircle2 } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import { FmtN } from '../lib/format';
 import { useKompaniya } from './KompaniyaTanlov';
-import { 
-  sbBirjaSorovOl, 
-  sbBirjaTakliflarOl, 
-  sbBirjaRfqYarat, 
+import {
+  sbBirjaSorovOl,
+  sbBirjaTakliflarOl,
+  sbBirjaRfqYarat,
   sbBirjaTaklifBer,
   type BirjaRfq,
   type BirjaTaklif
@@ -135,7 +136,7 @@ export default function TestBirja() {
         <div>
           <h3 className="text-sm font-bold text-cyan-300 mb-1">AI Bozor Tahlili</h3>
           <p className="text-sm text-text-dim leading-relaxed">
-            Siz izlayotgan <strong className="text-white">Sement</strong> o'rtacha bozor narxi joriy haftada pasaydi. 
+            Siz izlayotgan <strong className="text-white">Sement</strong> o'rtacha bozor narxi joriy haftada pasaydi.
             Xaridni hozir amalga oshirish orqali 4% gacha tejamkorlikka erishish mumkin. Tizim eng yaxshi takliflarni avtomatik saralaydi.
           </p>
         </div>
@@ -170,32 +171,32 @@ export default function TestBirja() {
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-text-dim hover:text-white"><X size={20}/></button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-text-dim mb-1">Tovarning to'liq nomi</label>
-                <input 
-                  value={yangiRfq.nom} 
+                <input
+                  value={yangiRfq.nom}
                   onChange={e => setYangiRfq({...yangiRfq, nom: e.target.value})}
-                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none" 
+                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none"
                   placeholder="masalan: M400 Sement"
                 />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-text-dim mb-1">Hajm</label>
-                  <input 
+                  <input
                     type="number"
-                    value={yangiRfq.hajm} 
+                    value={yangiRfq.hajm}
                     onChange={e => setYangiRfq({...yangiRfq, hajm: e.target.value})}
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-cyan-500 outline-none" 
+                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-cyan-500 outline-none"
                     placeholder="100"
                   />
                 </div>
                 <div className="w-1/3">
                   <label className="block text-sm font-medium text-text-dim mb-1">O'lchov birligi</label>
-                  <select 
-                    value={yangiRfq.birlik} 
+                  <select
+                    value={yangiRfq.birlik}
                     onChange={e => setYangiRfq({...yangiRfq, birlik: e.target.value})}
                     className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none appearance-none"
                   >
@@ -210,15 +211,15 @@ export default function TestBirja() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-dim mb-1">Qo'shimcha izoh</label>
-                <textarea 
-                  value={yangiRfq.izoh} 
+                <textarea
+                  value={yangiRfq.izoh}
                   onChange={e => setYangiRfq({...yangiRfq, izoh: e.target.value})}
-                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none min-h-[80px]" 
+                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none min-h-[80px]"
                   placeholder="Zavodga qo'shimcha talablar..."
                 />
               </div>
 
-              <button 
+              <button
                 onClick={handleYaratRfq}
                 disabled={saqlamoqda}
                 className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-2.5 rounded-lg font-medium mt-2 flex items-center justify-center gap-2"
@@ -240,7 +241,7 @@ export default function TestBirja() {
                 Hali hech qanday RFQ e'lon qilinmagan.
               </div>
             )}
-            
+
             {rfqList.map(rfq => (
               <div key={rfq.id} className="bg-surface border border-border hover:border-cyan-500/50 transition-colors rounded-xl p-5 shadow-lg flex flex-col group">
                 <div className="flex justify-between items-start mb-4">
@@ -249,9 +250,9 @@ export default function TestBirja() {
                     {rfq.holat}
                   </span>
                 </div>
-                
+
                 <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-cyan-300 transition-colors">{rfq.nom}</h3>
-                
+
                 <div className="flex gap-4 mb-4 pb-4 border-b border-border/50">
                   <div>
                     <p className="text-[10px] uppercase text-text-dim mb-0.5">Talab Hajmi</p>
@@ -263,7 +264,7 @@ export default function TestBirja() {
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={() => korishRfq(rfq)}
                   className="w-full mt-auto bg-surface-2 hover:bg-cyan-900/30 hover:text-cyan-300 text-white py-2 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-cyan-500/30 flex items-center justify-center gap-2"
                 >
@@ -279,7 +280,7 @@ export default function TestBirja() {
               <button onClick={() => setTanlanganRfq(null)} className="text-cyan-400 hover:text-cyan-300 text-sm font-medium flex items-center gap-1 mb-6">
                 <ChevronRight size={16} className="rotate-180" /> Orqaga
               </button>
-              
+
               <div className="mb-6">
                 <div className="text-xs font-mono text-text-dim mb-1">RFQ #{tanlanganRfq.id}</div>
                 <h2 className="text-xl font-bold text-white leading-tight mb-2">{tanlanganRfq.nom}</h2>
@@ -299,17 +300,17 @@ export default function TestBirja() {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs text-text-dim mb-1">Sizning narxingiz (so'm/{tanlanganRfq.birlik})</label>
-                      <input 
-                        type="number"
+                      <MoneyInput
+
                         value={yangiTaklif.narx}
-                        onChange={e => setYangiTaklif({...yangiTaklif, narx: e.target.value})}
+                        onValueChange={(moneyValue) => setYangiTaklif({...yangiTaklif, narx: moneyValue})}
                         className="w-full bg-bg border border-border rounded p-2 text-emerald-400 font-bold font-mono outline-none focus:border-emerald-500"
                         placeholder="masalan: 1200000"
                       />
                     </div>
                     <div>
                       <label className="block text-xs text-text-dim mb-1">Izoh / Muddat</label>
-                      <input 
+                      <input
                         type="text"
                         value={yangiTaklif.izoh}
                         onChange={e => setYangiTaklif({...yangiTaklif, izoh: e.target.value})}
@@ -317,7 +318,7 @@ export default function TestBirja() {
                         placeholder="3 kunda yetkazib beramiz"
                       />
                     </div>
-                    <button 
+                    <button
                       onClick={handleTaklifBer}
                       disabled={saqlamoqda}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded font-medium flex items-center justify-center gap-2"

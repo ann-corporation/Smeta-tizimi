@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 /**
  * ShaxsiySmeta.tsx — SHAXSIY SMETA (eski GAS paneldagi «📝 Шахсий смета»)
  *
@@ -238,8 +239,8 @@ export default function ShaxsiySmeta() {
                 placeholder="Smeta nomi (masalan: Ofis ta'mirlash)"
                 className="flex-1 min-w-[220px] bg-[var(--surface-2)] border border-border rounded
                            px-3 py-2 text-[13px] text-text outline-none focus:border-accent/50" />
-              <input value={chelStavka} onChange={(e) => setChelStavka(e.target.value)}
-                type="number" step="any" min="0"
+              <MoneyInput value={chelStavka} onValueChange={(moneyValue) => setChelStavka(moneyValue)}
+                 step="any" min="0"
                 placeholder="Ishchi-soat stavkasi (ixtiyoriy)"
                 title="Kiritilsa ЧЕЛ resurslari shu stavkada narxlanadi. Bo'sh bo'lsa narx bazasidan olinadi."
                 className="w-[230px] bg-[var(--surface-2)] border border-border rounded

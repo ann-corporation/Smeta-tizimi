@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 /**
  * F2Kafolat.tsx — «171 MLRD KIRDI = 171 MLRD TUSHDI» ISBOTI
  *
@@ -304,7 +305,7 @@ export default function F2Kafolat({
                       <td className="px-2 py-2 text-right align-top whitespace-nowrap">
                         {tahrirId === y.f2Id ? (
                           <div className="flex items-center gap-1 justify-end">
-                            <input autoFocus value={qiymat} onChange={(e) => setQiymat(e.target.value)}
+                            <MoneyInput autoFocus value={qiymat} onValueChange={(moneyValue) => setQiymat(moneyValue)}
                               onKeyDown={(e) => { if (e.key === 'Enter') saqlaJami(y.f2Id);
                                                   if (e.key === 'Escape') setTahrirId(null); }}
                               placeholder="8277622548.30602"

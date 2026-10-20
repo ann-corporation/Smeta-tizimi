@@ -1,8 +1,9 @@
+import { MoneyInput } from '../MoneyInput';
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { t } from '../../../i18n/til';
 
-export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'date';
+export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'date' | 'money';
 
 export interface FieldConfig {
   key: string;
@@ -27,7 +28,7 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
     fields: [
       { key: 'nom', label: 'Loyiha nomi', required: true, placeholder: 'Masalan, Tashkent City Mall' },
       { key: 'hudud', label: 'Hudud / Manzil', placeholder: 'Toshkent sh.' },
-      { key: 'byudjet', label: "Byudjet (Mo'ljal)", type: 'number' },
+      { key: 'byudjet', label: "Byudjet (Mo'ljal)", type: 'money' },
     ]
   },
   shartnoma: {
@@ -37,7 +38,7 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
       { key: 'raqam', label: 'Shartnoma raqami', required: true },
       { key: 'nom', label: 'Shartnoma nomi / predmeti', required: true },
       { key: 'taraf', label: 'Taraf (kim bilan)' },
-      { key: 'summaBezNds', label: 'Summa (QQS siz)', type: 'number' },
+      { key: 'summaBezNds', label: 'Summa (QQS siz)', type: 'money' },
       { key: 'nds', label: 'QQS (%)', type: 'number', defaultValue: '12' },
       { key: 'izoh', label: 'Izoh', type: 'textarea' },
     ]
@@ -141,7 +142,7 @@ export function SharedEntityForm({ entityType, initialData = {}, dynamicOptions,
             <label className="block text-[12px] font-medium text-zinc-400 mb-1">
               {t(field.label)} {field.required && <span className="text-rose-400">*</span>}
             </label>
-            {field.type === 'textarea' ? (
+            {field.type === 'money' ? <MoneyInput value={value} onValueChange={v => handleChange(field.key, v)} placeholder={field.placeholder ? t(field.placeholder) : undefined} required={field.required} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" /> : field.type === 'textarea' ? (
               <textarea
                 value={value}
                 onChange={e => handleChange(field.key, e.target.value)}

@@ -1,3 +1,4 @@
+import { MoneyInput } from '../umumiy/ui/MoneyInput';
 /**
  * TestNarxlar.tsx — TIZIM_02: NARX BAZASI VA NARXLANMAGANLAR
  * ═══════════════════════════════════════════════════════════════════
@@ -181,7 +182,7 @@ export default function TestNarxlar() {
                     <span className="text-text-mute w-12">{r.tur}</span>
                     {narxQoyish === r.id ? (
                       <div className="flex items-center gap-1">
-                        <input type="number" autoFocus value={yangiNarx} onChange={e => setYangiNarx(e.target.value)} className="w-20 px-1 py-0.5 bg-black border border-zinc-700 text-white rounded outline-none" />
+                        <MoneyInput  autoFocus value={yangiNarx} onValueChange={(moneyValue) => setYangiNarx(moneyValue)} className="w-20 px-1 py-0.5 bg-black border border-zinc-700 text-white rounded outline-none" />
                         <button onClick={() => belgilash(r)} className="text-accent font-bold px-2 py-0.5 bg-accent/20 rounded">OK</button>
                       </div>
                     ) : (

@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { CheckCheck, Download, FileSpreadsheet, FolderOpen, Info, Plus, RefreshCw, Trash2 } from 'lucide-react';
@@ -67,12 +68,13 @@ function sukutTanlov(t: OfertaSheetTahlili[]): string[] {
 
 /** Son kiritish maydoni — har klavishda emas, chiqqanda/Enter bilan qo'llanadi
  * (27 ming qatorli paketda har tugmada qayta hisoblash sahifani qotiradi). */
-const SonKiritish = memo(function SonKiritish({ qiymat, onQollash, placeholder, label, className }: {
-  qiymat: string; onQollash: (v: string) => void; placeholder?: string; label: string; className?: string;
+const SonKiritish = memo(function SonKiritish({ qiymat, onQollash, placeholder, label, className, money = false }: {
+  qiymat: string; onQollash: (v: string) => void; placeholder?: string; label: string; className?: string; money?: boolean;
 }) {
   const [v, setV] = useState(qiymat);
   useEffect(() => setV(qiymat), [qiymat]);
   const qolla = () => { if (v !== qiymat) onQollash(v); };
+  if (money) return <MoneyInput aria-label={label} value={v} placeholder={placeholder} onValueChange={setV} onBlur={qolla} onKeyDown={(e) => { if (e.key === 'Enter') qolla(); }} className={className ?? 'w-32 rounded border border-border bg-surface-2 px-1.5 py-1 text-right tabular-nums'} />;
   return <input aria-label={label} inputMode="decimal" value={v} placeholder={placeholder}
     onChange={(e) => setV(e.target.value)} onBlur={qolla} onKeyDown={(e) => { if (e.key === 'Enter') qolla(); }}
     className={className ?? 'w-32 rounded border border-border bg-surface-2 px-1.5 py-1 text-right tabular-nums'} />;
@@ -562,9 +564,9 @@ function Sessiya() {
                 <td className="px-2 py-1.5 text-right tabular-nums text-text-dim">{fmt(g.jamiHajm)}</td>
                 <td className={`px-2 py-1.5 text-right tabular-nums ${g.smetaNarxlar.length > 1 ? 'text-warn' : 'text-text-dim'}`}>{guruhSmetaNarx(g)}</td>
                 <td className="bg-surface-2 px-2 py-1">{yakka
-                  ? <SonKiritish label={`${g.nom} pudratchi ${g.hisobTuri === 'manba_jami' ? 'summasi' : 'narxi'}`} qiymat={qatorNarx[g.sourceIds[0]] ?? ''} onQollash={(v) => qatorNarxYoz(g.sourceIds[0], v)}
+                  ? <SonKiritish money label={`${g.nom} pudratchi ${g.hisobTuri === 'manba_jami' ? 'summasi' : 'narxi'}`} qiymat={qatorNarx[g.sourceIds[0]] ?? ''} onQollash={(v) => qatorNarxYoz(g.sourceIds[0], v)}
                       placeholder={g.hisobTuri === 'manba_jami' ? 'Taklif summasi' : fmt(g.pudratchiNarxlar[0])} />
-                  : <SonKiritish label={`${g.nom} pudratchi narxi`} qiymat={guruhNarx[g.kalit] ?? ''} onQollash={(v) => guruhNarxYoz(g.kalit, v)}
+                  : <SonKiritish money label={`${g.nom} pudratchi narxi`} qiymat={guruhNarx[g.kalit] ?? ''} onQollash={(v) => guruhNarxYoz(g.kalit, v)}
                       placeholder={g.pudratchiNarxlar.length === 1 ? fmt(g.pudratchiNarxlar[0]) : g.pudratchiNarxlar.length ? 'har xil' : '—'} />}</td>
                 <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-ok">{fmt(g.jamiTaklifSumma)}</td>
                 <td className={`px-2 py-1.5 ${holatRangi(g.muammolar)}`}>{g.muammolar.length ? g.muammolar.map(ofertaMuammoMatni).join('; ') : 'TAYYOR'}</td>
@@ -597,7 +599,7 @@ function Sessiya() {
               <td className="px-2 py-1.5 text-right tabular-nums text-text-dim">{fmt(q.smetaBirlikNarx)}</td>
               <td className="px-2 py-1.5 text-right tabular-nums text-text-dim">{fmt(q.smetaSumma)}</td>
               <td className="bg-surface-2 px-2 py-1">{tahrirlanadi(q)
-                ? <SonKiritish label={`${q.nom} pudratchi ${q.hisobTuri === 'manba_jami' ? 'summasi' : 'narxi'} (faqat shu qator)`} qiymat={qatorNarx[q.sourceId] ?? ''} onQollash={(v) => qatorNarxYoz(q.sourceId, v)}
+                ? <SonKiritish money label={`${q.nom} pudratchi ${q.hisobTuri === 'manba_jami' ? 'summasi' : 'narxi'} (faqat shu qator)`} qiymat={qatorNarx[q.sourceId] ?? ''} onQollash={(v) => qatorNarxYoz(q.sourceId, v)}
                     placeholder={q.hisobTuri === 'manba_jami' ? 'Taklif summasi' : fmt(q.pudratchiBirlikNarx)} />
                 : '—'}</td>
               <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-ok">{fmt(q.pudratchiSumma)}</td>

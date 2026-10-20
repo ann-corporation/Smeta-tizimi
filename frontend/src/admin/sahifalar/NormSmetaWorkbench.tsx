@@ -1,3 +1,4 @@
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import { previewResourceQuantity, previewResourceAmount, type NormCatalog, type NormWork, type NormPath } from '../../lib/catalog-extraction/norm-catalog';
@@ -130,7 +131,7 @@ export default function NormSmetaWorkbench() {
             {r.resourceStatus === 'EXACT' ? <p>{r.candidates[0]?.name ?? t('Nom noma’lum')} · {t('Birlik kodi')}: {r.candidates[0]?.unitCode ?? '—'}</p> : <p className="text-warn">{t('Resursni aniqlash kerak')}: {r.candidateCount} {t('nomzod')}. {r.candidates.slice(0, 3).map(c => c.name ?? '—').join(' / ')}</p>}
             <p>{t('Manbadagi sarf normasi')}: {r.norm ?? t('Noma’lum')} · {t('Hisoblangan talab')}: {result.qty ?? '—'}</p>
             <details><summary>{t('Katalog narxi nomzodlari — avtomatik qo‘llanmaydi')} ({r.priceCount})</summary>{r.prices.map(p => <p key={p.id}>{t('Hudud kodi')}: {p.regionCode ?? '—'} · {p.price ?? '—'} · {t('Transport')}: {p.transport ?? '—'}</p>)}</details>
-            <label>{t('Qoralama uchun alohida birlik narxi')}<input value={prices[r.id] ?? ''} onChange={e => setPrices(v => ({ ...v, [r.id]: e.target.value }))} /></label>
+            <label>{t('Qoralama uchun alohida birlik narxi')}<MoneyInput value={prices[r.id] ?? ''} onValueChange={(moneyValue) => setPrices(v => ({ ...v, [r.id]: moneyValue }))} /></label>
             <p>{t('Qoralama summa')}: {r.resourceStatus === 'EXACT' ? result.amount ?? '—' : t('Resurs mosligi hal qilinmaguncha tasdiqlanmaydi')}</p>
           </div>;
         })}</div>
