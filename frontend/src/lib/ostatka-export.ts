@@ -35,6 +35,11 @@ export interface OstatkaNatija {
 const EPS = 1e-9;
 const BARG = new Set(['rs', 'mat', 'ob']);
 
+/** «Fakt smetadan oshib ketdi» — REJA ishorasiga nisbatan (2026-10-20). Musbat reja: qoldiq < 0. Manfiy reja (chegirma,
+ *  qaytariladigan material): qoldiq > 0 (fakt rejadan «manfiyroq»). Fakt yo'q manfiy qator oshib ketish EMAS — u qoldiqda
+ *  manfiy bo'lib qoladi va jamini kamaytiradi (aks holda Amfiteatrda ostatka smetadan 510,7 mln ga oshib ko'rinardi). */
+export const oshibKetdimi = (smeta: number, qoldiq: number): boolean => (smeta >= 0 ? qoldiq < 0 : qoldiq > 0);
+
 export function ostatkaQatorlari(qatorlar: readonly T2Qator[], holatlar: readonly T2QatorHolat[]): OstatkaNatija {
   const faktOf = new Map(holatlar.map((h) => [h.qator_id, h.fakt_hajm ?? 0]));
   const bolalar = new Map<number, T2Qator[]>();
@@ -65,7 +70,7 @@ export function ostatkaQatorlari(qatorlar: readonly T2Qator[], holatlar: readonl
     if (!bargmi && tur !== 'bl') continue;
     const o = ostHisobla(q);
     if (o == null) { if (bargmi) nomalum++; continue; }
-    if (o < 0) { if (bargmi) oshibKetgan++; continue; }
+    if (oshibKetdimi(q.hajm ?? 0, o)) { if (bargmi) oshibKetgan++; continue; }
     if (o === 0) continue;
     ost.set(q.id, o);
     if (bargmi) { barglar++; qolsin.add(q.id); otalarniQoldir(q); }
@@ -241,7 +246,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
     const kids = bolalar.get(q.id) ?? [];
     if (OST_BARG.has(tur) || (tur === 'bl' && !kids.length)) {
       const { smeta, fakt, o } = bargHisob(q);
-      if (o != null && o < 0) { oshib.push({ nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta!, faktHajm: fakt!, yol: yolOf(q) }); return null; }
+      if (o != null && smeta != null && oshibKetdimi(smeta, o)) { oshib.push({ nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta!, faktHajm: fakt!, yol: yolOf(q) }); return null; }
       if (o === 0) return null;
       const narx = q.narx ?? null;
       const summa = o != null && narx != null ? yaxlit2(o * narx) : null;

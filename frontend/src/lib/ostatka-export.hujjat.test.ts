@@ -187,3 +187,15 @@ describe('Ostatka — ikki narx (прямые va к оплате) + nakrutka pod
     expect(t.matnlar).toContain('ВСЕГО К ОПЛАТЕ (С НАКЛАДНЫМИ РАСХОДАМИ И НДС)');
   });
 });
+
+describe('Ostatka — manfiy smeta qatorlari (chegirma/qaytariladigan material), 2026-10-20', () => {
+  it('fakt yo‘q manfiy qator qoldiqda manfiy bo‘lib qoladi (oshib ketgan emas); fakt rejadan manfiyroq — oshib ketgan', () => {
+    const rows = [q(1, null, 'rz', null, { nom: 'РАЗДЕЛ' }), q(2, 1, 'mat', 10, { nom: 'ПЕСОК' }),
+      q(3, 1, 'mat', -4, { nom: 'ВОЗВРАТНЫЕ МАТЕРИАЛЫ' }), q(4, 1, 'mat', -2, { nom: 'ВОЗВРАТ 2' })];
+    const m = ostatkaHujjatModeli(rows, [h(2, 0), h(3, 0), h(4, -3)]);
+    const v = m.qatorlar.find((x) => x.id === 3)!;
+    expect(v.ostatkaHajm).toBe(-4);
+    expect(v.summa).toBe(-4000);
+    expect(m.oshibKetgan.map((x) => x.nom)).toEqual(['ВОЗВРАТ 2']);
+  });
+});
