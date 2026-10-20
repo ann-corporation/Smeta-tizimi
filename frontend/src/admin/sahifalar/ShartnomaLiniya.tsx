@@ -1,3 +1,4 @@
+import { t as tr } from '../../i18n/til';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Building2, FileSignature, Link2, Plus, Save, Trash2, Users, X } from 'lucide-react';
@@ -5,7 +6,8 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
-import { yangiOperationId } from '../../api/supabase';
+import { sbT2ObyektlarOlKomp, yangiOperationId } from '../../api/supabase';
+import { QQS_STAVKA, farq, smetaAloqa, yaxlit2, type ObyektSmeta } from '../../lib/shartnoma-smeta';
 import { liniyaXato, shartnomaLiniyaOl, shartnomaSaqlaV2, type Liniya, type LiniyaShartnoma } from '../../api/t2-shartnoma-liniya';
 import {
   ROL_TAKLIF, TUR_TAKLIF, liniyaDaraxt, shaklQur, shaklTekshir, shaklYuk, shartnomasizObyektlar, takliflar, tanlashMumkin, type Shakl,
@@ -28,6 +30,17 @@ export function ShartnomaLiniya() {
   const [shakl, setShakl] = useState<Shakl | null>(null);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [obQidir, setObQidir] = useState('');
+  // Obyektlarning smeta summasi (nakrutkasiz) — shartnoma summasi bilan solishtirish uchun.
+  const [smetalar, setSmetalar] = useState<ReadonlyMap<number, ObyektSmeta>>(new Map());
+  useEffect(() => {
+    if (!kid) return;
+    let faol = true;
+    void (async () => {
+      try { const r = await sbT2ObyektlarOlKomp(kid); if (faol && r.ok) setSmetalar(new Map((r.qatorlar ?? []).map((o) => [o.id, { id: o.id, nom: o.nom, jami: o.jami }]))); }
+      catch { /* smeta summasi ko'rsatilmaydi — tahrir ishlayveradi */ }
+    })();
+    return () => { faol = false; };
+  }, [kid]);
 
   const yukla = useCallback(async () => {
     if (!kid) return;
@@ -82,7 +95,8 @@ export function ShartnomaLiniya() {
             <span className="truncate text-[13px] font-semibold text-text">№ {s.raqam}</span>
             <span className={`shrink-0 rounded px-1 text-[10px] ${s.asosiy ? 'bg-accent/10 text-accent' : 'bg-surface-2 text-text-dim'}`}>{s.asosiy ? 'asosiy' : (s.turi || 'qo‘shimcha')}</span>
             {s.asosiy && s.turi && <span className="shrink-0 truncate text-[10px] text-text-mute">{s.turi}</span>}
-            <span className="ml-auto shrink-0 text-[11px] tabular-nums text-text-dim">{s.jami_nds_bilan != null ? <FmtN val={s.jami_nds_bilan} /> : null}</span>
+            <span className="ml-auto shrink-0 text-right text-[11px] tabular-nums text-text-dim">{s.jami_nds_bilan != null ? <FmtN val={s.jami_nds_bilan} /> : <span className="text-text-mute">{tr('summa kiritilmagan')}</span>}
+              {(() => { const a = smetaAloqa(s.obyektlar, smetalar); return a.smeta != null ? <span className="block text-[10px] text-text-mute">{tr('smeta:')} <FmtN val={a.smeta} /></span> : null; })()}</span>
           </div>
           {s.nom && <div className="mt-0.5 truncate text-[12px] text-text-dim">{s.nom}</div>}
           {s.tomonlar.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{s.tomonlar.map((t, i) => <span key={i} className="rounded bg-surface-2 px-1.5 text-[10px] text-text-dim"><span className="text-text-mute">{t.rol}:</span> {t.nom}</span>)}</div>}
@@ -134,6 +148,35 @@ export function ShartnomaLiniya() {
               </label>
             ))}
           </div>
+          {(() => {
+            const a = smetaAloqa(s.obyektlar, smetalar);
+            const sonOl = (v: string) => { const n = Number(String(v).replace(/\s/g, '').replace(',', '.')); return v.trim() && Number.isFinite(n) ? n : null; };
+            const shSumma = sonOl(s.summa_bez_nds);
+            const f = farq(shSumma, a.smeta);
+            const nds = sonOl(s.nds);
+            return (
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-[12px]" aria-label={tr('Smeta bilan aloqa')}>
+                <p className="mb-1 font-semibold text-text">{tr('Smeta bilan aloqa')}</p>
+                {a.qatorlar.length === 0 ? <p className="text-text-mute">{tr('Obyekt bog‘lanmagan — pastda obyektlarni tanlang.')}</p> : <>
+                  <ul className="space-y-0.5">{a.qatorlar.map((q) => <li key={q.id} className="flex justify-between gap-2"><span className="truncate">{q.nom}</span><span className="tabular-nums">{q.bor ? <FmtN val={q.jami} /> : <span className="text-text-mute">{tr('smeta yo‘q')}</span>}</span></li>)}</ul>
+                  <p className="mt-1 flex justify-between border-t border-border/50 pt-1"><span>{tr('Smeta summasi (nakrutkasiz, QQSsiz)')}</span><b className="tabular-nums">{a.smeta == null ? '—' : <FmtN val={a.smeta} />}</b></p>
+                  <p className="flex justify-between"><span>{tr('Shartnoma summasi (QQSsiz)')}</span><b className="tabular-nums">{shSumma == null ? <span className="font-normal text-text-mute">{tr('kiritilmagan')}</span> : <FmtN val={shSumma} />}</b></p>
+                  {f != null && <p className="flex justify-between"><span>{tr('Farq (shartnoma − smeta)')}</span><b className={`tabular-nums ${Math.abs(f) < 0.01 ? 'text-ok' : 'text-text'}`}><FmtN val={f} /></b></p>}
+                  {a.nomalum > 0 && <p className="text-text-mute">{a.nomalum} {tr('ta obyektda smeta yo‘q — summaga kirmagan.')}</p>}
+                  <p className="mt-0.5 text-[11px] text-text-mute">{tr('Smeta summasi nakrutkasiz to‘g‘ri xarajat. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.')}</p>
+                </>}
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={a.smeta == null}
+                    onClick={() => { const sm = yaxlit2(a.smeta as number); const q = yaxlit2(sm * QQS_STAVKA); ozgar({ summa_bez_nds: String(sm), nds: String(q), jami_nds_bilan: String(yaxlit2(sm + q)) }); }}>{tr('Smeta summasini qo‘yish (+QQS 12%)')}</button>
+                  <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={shSumma == null}
+                    onClick={() => { const q = yaxlit2((shSumma as number) * QQS_STAVKA); ozgar({ nds: String(q), jami_nds_bilan: String(yaxlit2((shSumma as number) + q)) }); }}>{tr('QQS 12% hisoblash')}</button>
+                  <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={shSumma == null}
+                    onClick={() => ozgar({ jami_nds_bilan: String(yaxlit2((shSumma as number) + (nds ?? 0))) })}>{tr('Jami = Summa + QQS')}</button>
+                  <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => ozgar({ summa_bez_nds: '', nds: '', jami_nds_bilan: '' })}>{tr('Summalarni tozalash')}</button>
+                </div>
+              </div>
+            );
+          })()}
 
           <div>
             <div className="mb-1.5 flex items-center gap-2"><Users size={14} className="text-text-mute" /><span className="text-[13px] font-semibold text-text">Tomonlar</span>

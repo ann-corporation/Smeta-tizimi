@@ -2210,5 +2210,20 @@
   "Mos smeta qatorlari — bog‘lang yoki zamena qiling": "Подходящие строки сметы — свяжите или замените",
   "Variantlar": "Варианты",
   "narxsiz resurslar summaga kirmagan — Narxlar bo‘limida": "ресурсы без цены не вошли в сумму — в разделе «Цены»",
-  "Narxsiz resurslar": "Ресурсы без цены"
+  "Narxsiz resurslar": "Ресурсы без цены",
+  "summa kiritilmagan": "сумма не введена",
+  "smeta:": "смета:",
+  "Smeta bilan aloqa": "Связь со сметой",
+  "Obyekt bog‘lanmagan — pastda obyektlarni tanlang.": "Объект не привязан — выберите объекты ниже.",
+  "smeta yo‘q": "сметы нет",
+  "Smeta summasi (nakrutkasiz, QQSsiz)": "Сумма сметы (без накруток, без НДС)",
+  "Shartnoma summasi (QQSsiz)": "Сумма договора (без НДС)",
+  "kiritilmagan": "не введено",
+  "Farq (shartnoma − smeta)": "Разница (договор − смета)",
+  "ta obyektda smeta yo‘q — summaga kirmagan.": "объектов без сметы — не вошли в сумму.",
+  "Smeta summasi nakrutkasiz to‘g‘ri xarajat. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.": "Сумма сметы — прямые затраты без накруток. Система сама не меняет сумму договора — при необходимости заполните кнопкой и отредактируйте.",
+  "Smeta summasini qo‘yish (+QQS 12%)": "Подставить сумму сметы (+НДС 12%)",
+  "QQS 12% hisoblash": "Рассчитать НДС 12%",
+  "Jami = Summa + QQS": "Итого = Сумма + НДС",
+  "Summalarni tozalash": "Очистить суммы"
 }

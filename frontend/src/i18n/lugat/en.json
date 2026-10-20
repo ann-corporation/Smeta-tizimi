@@ -2210,5 +2210,20 @@
   "Mos smeta qatorlari — bog‘lang yoki zamena qiling": "Matching estimate rows — link or replace",
   "Variantlar": "Options",
   "narxsiz resurslar summaga kirmagan — Narxlar bo‘limida": "unpriced resources are not in the total — see Prices",
-  "Narxsiz resurslar": "Unpriced resources"
+  "Narxsiz resurslar": "Unpriced resources",
+  "summa kiritilmagan": "amount not entered",
+  "smeta:": "estimate:",
+  "Smeta bilan aloqa": "Link to the estimate",
+  "Obyekt bog‘lanmagan — pastda obyektlarni tanlang.": "No object linked — choose objects below.",
+  "smeta yo‘q": "no estimate",
+  "Smeta summasi (nakrutkasiz, QQSsiz)": "Estimate total (no markup, no VAT)",
+  "Shartnoma summasi (QQSsiz)": "Contract amount (no VAT)",
+  "kiritilmagan": "not entered",
+  "Farq (shartnoma − smeta)": "Difference (contract − estimate)",
+  "ta obyektda smeta yo‘q — summaga kirmagan.": "objects have no estimate — not in the total.",
+  "Smeta summasi nakrutkasiz to‘g‘ri xarajat. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.": "The estimate total is direct cost without markup. The system never changes the contract amount itself — fill it with a button and edit if needed.",
+  "Smeta summasini qo‘yish (+QQS 12%)": "Use the estimate total (+VAT 12%)",
+  "QQS 12% hisoblash": "Calculate VAT 12%",
+  "Jami = Summa + QQS": "Total = Amount + VAT",
+  "Summalarni tozalash": "Clear amounts"
 }
