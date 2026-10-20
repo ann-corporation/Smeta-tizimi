@@ -115,7 +115,7 @@ describe('F2 workbench operator controls', () => {
     const review = screen.getByRole('alert', { name: 'F2 faylini o‘qish tekshiruvi' });
     expect(review.textContent).toContain('1 ta qator yoki sarlavha');
     expect(review.textContent).toContain('fayldagi har bir qator to‘liq o‘qildi degani emas');
-    fireEvent.click(screen.getByText('Tekshiruv qatorlarini ko‘rish (birinchi 1 ta)'));
+    // Ro'yxat endi doim ochiq (yig'ma «▸» yo'q) — bosish shart emas.
     expect(review.textContent).toContain('Manba qatori 284');
     expect(review.textContent).toContain('tanilmagan qator');
     expect(screen.queryByText(/hammasi tekshirilgan/i)).toBeNull();

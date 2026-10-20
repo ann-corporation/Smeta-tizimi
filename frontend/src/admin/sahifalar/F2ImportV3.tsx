@@ -861,9 +861,9 @@ function Sessiya({ companyId }: { companyId: number }) {
         {!ij && saqlanganIsh && objects.some((o) => o.id === saqlanganIsh.objectId) && <button type="button" className="tugma tugma-asosiy" disabled={busy} onClick={() => void ishniTikla()}>
           {t('Saqlangan ishni davom ettirish:')} {saqlanganIsh.source.name} · {saqlanganIsh.davr}
         </button>}
-        <details className="w-full">
-          <summary className="cursor-pointer text-text-dim">{t('Boshqa kompyuterda davom ettirish')}</summary>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 border-t border-border/50 pt-2">
+          <span className="text-text-dim">{t('Boshqa kompyuterda davom ettirish')}:</span>
+          <div className="flex flex-wrap items-center gap-2">
             {ij && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniSaqla()}>{t('Ish holatini saqlash (davom ettirish uchun)')}</button>}
             {ij && !done && <button type="button" className="tugma" disabled={busy} onClick={() => void servergaSaqla()}>{t('Server ish holatini saqlash')}</button>}
             {!ij && <label className="block text-[12px]">{t('Server qoralamasi raqami')}
@@ -871,7 +871,7 @@ function Sessiya({ companyId }: { companyId: number }) {
               <button type="button" className="tugma" disabled={busy || !serverId} onClick={() => void serverdanTikla()}>{t('Serverdagi qoralamani davom ettirish')}</button>
             </label>}
           </div>
-        </details>
+        </div>
         {serverHolat && <p role="status" className="w-full">{serverHolat}</p>}
       </section>
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -933,12 +933,12 @@ function Sessiya({ companyId }: { companyId: number }) {
             </p>
           )}
           {akt.ogohlantirishlar.length > 0 && (
-            <details>
-              <summary className="cursor-pointer text-warn">Hujjat bo‘yicha {akt.ogohlantirishlar.length} ta ogohlantirish</summary>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-text-dim">
+            <div>
+              <p className="text-warn">Hujjat bo‘yicha {akt.ogohlantirishlar.length} ta ogohlantirish:</p>
+              <ul className="mt-1 max-h-24 list-disc space-y-0.5 overflow-auto pl-5 text-text-dim">
                 {akt.ogohlantirishlar.map((o, i) => <li key={i}><b className="text-text">{o.kod}</b> — {o.izoh}</li>)}
               </ul>
-            </details>
+            </div>
           )}
         </section>
       )}
@@ -1009,9 +1009,9 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {yozish && (yozish.qolgan.length > 0 || yozish.toxtatish.length > 0 || payload?.error) && (
         <section className="karta space-y-2 p-3" aria-label={t('Aktga kirmaydiganlar')}>
-          {!!yozish.qolgan.length && <details className="text-[12px] text-warn"><summary>{t('Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.')} ({yozish.qolgan.length})</summary>
-            <ul>{yozish.qolgan.map((n) => <li key={n.uid}>{n.manzil.varaq}!{n.manzil.qator} · {n.nom} · {fmt(n.hajm)} {n.birlik}</li>)}</ul>
-          </details>}
+          {!!yozish.qolgan.length && <div className="text-[12px] text-warn"><p>{t('Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.')} ({yozish.qolgan.length})</p>
+            <ul className="mt-1 max-h-24 overflow-auto pl-4 text-text-dim">{yozish.qolgan.map((n) => <li key={n.uid}>{n.manzil.varaq}!{n.manzil.qator} · {n.nom} · {fmt(n.hajm)} {n.birlik}</li>)}</ul>
+          </div>}
           {akt && ij && ind?.qatorlar.some((q) => q.hajm != null && q.hajm < 0 && !ij.bog.has(q.uid) && !ij.otkaz.has(q.uid)) && <button type="button" className="tugma" disabled={busy || !!done} onClick={() => {
             const result = f2MinusTaklif(akt, ij); ijOzgar(result.ij);
             setHolat(`${result.soni} ta minus qator uchun ayni aktdagi aniq bog‘lanish asosida taklif berildi. Har birini tekshirib tasdiqlang; boshqa qatorlarni qo‘lda bog‘lang.`);

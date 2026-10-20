@@ -725,7 +725,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {k === 'topilmadi' && ish && rzId != null && p.raw.get(rzId) && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => ochModal(t, { kind: 'additional', parent: p.raw.get(rzId)!, keyinId: oldingiKeyin() })} title="Smetaga qo‘shimcha ish (resurslari bilan) — F2 dagi tartibda, oldingi bog‘langan ishdan keyin">＋ Qo‘shimcha</button>}
           <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
-            aria-label={`Bog‘lash variantlari: ${t.nom}`} onClick={() => scrollTanlanganPanelga(t.uid)} title={candidateCount ? `Mos smeta qatorlari va dalillari (${candidateCount} ta variant)` : 'Mos smeta qatorlari va dalillari'}><Link2 size={11} /> {candidateCount || ''}</button>
+            aria-label={`Bog‘lash variantlari: ${t.nom}`} onClick={() => scrollTanlanganPanelga(t.uid)} title={candidateCount ? `Mos smeta qatorlari va dalillari (${candidateCount} ta variant)` : 'Mos smeta qatorlari va dalillari'}><Link2 size={11} /> {tarj('Variantlar')}{candidateCount ? ` (${candidateCount})` : ''}</button>
           {k === 'topilmadi' && !ish && tavsiyaS && <button type="button" className={`${tugma} tugma-asosiy`} disabled={(p.disabled || mutationBusy)}
             onClick={() => zamena(t, tavsiyaS)} title={`Smetadagi «${tavsiyaS.nom ?? ''}» o‘rniga (zamena resurs) — aynan uning ortidan joylashadi`}>⇄ Zamena</button>}
           {k === 'topilmadi' && !ish && otaSmetaIsh != null && p.raw.get(otaSmetaIsh) && <button type="button" className={`${tugma} ${tavsiya?.tur === 'qoshimcha' ? 'tugma-asosiy' : ''}`} disabled={(p.disabled || mutationBusy)}
@@ -1139,7 +1139,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           );
         })()}
         {nomzodlar.length > 0 && (
-          <div className="max-h-48 overflow-auto rounded border border-border/60">
+          <div className="rounded border border-border/60">
+            <p className="border-b border-border/60 bg-surface-2/50 px-2 py-1 text-[11px] font-semibold text-text-dim">{tarj('Mos smeta qatorlari — bog‘lang yoki zamena qiling')}</p>
             {nomzodlar.slice(0, 20).map((n) => {
               const ns = S.byId.get(n.qatorId);
               if (!ns) return null;
@@ -1184,7 +1185,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                   <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" disabled={(p.disabled || mutationBusy) || !p.raw.get(rzId)}
                     onClick={() => ochModal(tTugun, { kind: 'additional', parent: p.raw.get(rzId)! })}>＋ Qo‘shimcha ish</button>
                 </div>
-                <div className="max-h-56 overflow-auto">
+                <div>
                   {ishlar.map((x) => (
                     <div key={x.id} className="flex items-center gap-2 border-b border-border/30 px-2 py-1 text-[11.5px] last:border-0">
                       <span className="min-w-0 flex-1 truncate" title={x.nom ?? ''}>{x.kod && x.kod.length > 2 && <span className="mr-1 font-mono text-text-mute">{x.kod.split(/\s+/)[0]}</span>}{x.nom}</span>
@@ -1253,9 +1254,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <section role="alert" aria-label="F2 faylini o‘qish tekshiruvi" className="karta space-y-1.5 border border-warn/50 p-3 text-[12px]">
           <p className="font-semibold text-warn">F2 faylida {manbaTekshiruvi.length} ta qator yoki sarlavha qo‘lda tekshirilishi kerak.</p>
           <p className="text-text-dim">Bu ro‘yxat bog‘lash holatidan alohida. “Bog‘lanishlar hal qilindi” degani fayldagi har bir qator to‘liq o‘qildi degani emas.</p>
-          <details>
-            <summary className="cursor-pointer text-text">Tekshiruv qatorlarini ko‘rish (birinchi {Math.min(20, manbaTekshiruvi.length)} ta)</summary>
-            <ul className="mt-1 max-h-48 space-y-1 overflow-auto pl-4 text-text-dim">
+          <div>
+            <ul className="mt-1 max-h-28 space-y-0.5 overflow-auto pl-4 text-text-dim">
               {manbaTekshiruvi.slice(0, 20).map((review, index) => (
                 <li key={`${review.manzil?.qator ?? 'no-row'}-${review.kod}-${index}`}>
                   {review.manzil?.qator != null && <b className="text-text">Manba qatori {review.manzil.qator}: </b>}
@@ -1264,7 +1264,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               ))}
               {manbaTekshiruvi.length > 20 && <li>Yana {manbaTekshiruvi.length - 20} ta tekshiruv bandi mavjud.</li>}
             </ul>
-          </details>
+          </div>
         </section>
       )}
       {manbaPodvalQatorlari.length > 0 && (
@@ -1275,7 +1275,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       )}
       {/* Tanlangan qator paneli va xabar — daraxtlar ustida, DOIMIY balandlikda: tanlash/bog'lash pastdagi
           daraxtlarni surmaydi (egasi sinovi 2026-10-06: tanlashda ~130 px, bog'lashda ~26 px sakrash). */}
-      <div className="karta sticky top-2 z-20 flex h-[164px] flex-col overflow-hidden p-2 backdrop-blur-xl" ref={panelRef}>
+      <div className="karta sticky top-2 z-20 flex min-h-[120px] max-h-[45vh] flex-col overflow-hidden p-2 backdrop-blur-xl" ref={panelRef}>
         <div className="min-h-0 flex-1 overflow-auto"><Panel /></div>
         <p role={xabar ? 'status' : undefined} className="mt-1 flex h-5 shrink-0 items-center gap-2 border-t border-border/50 pt-1 text-[12px] text-text-dim">
           {xabar ? <>

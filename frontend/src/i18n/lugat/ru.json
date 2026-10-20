@@ -2206,5 +2206,7 @@
   "ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.": "работ добавлено в черновик — запишутся в смету при «Записать Ф2».",
   "Qoralamaga qo‘shilmadi.": "Не добавлено в черновик.",
   "Tahrir qoralamaga qo‘shildi — «F2 ni yozish» bosilganda yoziladi. F2 bog‘lanishi yangi qatorga o‘tdi.": "Правка добавлена в черновик — запишется при «Записать Ф2». Связь Ф2 перенесена на новую строку.",
-  "tahrir": "правка"
+  "tahrir": "правка",
+  "Mos smeta qatorlari — bog‘lang yoki zamena qiling": "Подходящие строки сметы — свяжите или замените",
+  "Variantlar": "Варианты"
 }
