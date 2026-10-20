@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
     const r = await fetch(supabaseBaseUrl(ctx.env.SUPABASE_URL) +
       '/rest/v1/t2_document_registry?id=eq.' + documentId + '&kompaniya_id=eq.' + kompaniyaId +
-      '&canonical_storage_status=eq.stored&select=r2_key,mime_type,original_filename,sha256,size_bytes&limit=1', {
+      '&canonical_storage_status=eq.stored&select=r2_key,blob_key,mime_type,original_filename,sha256,size_bytes&limit=1', {
       headers: { apikey: ctx.env.SUPABASE_KEY, Authorization: 'Bearer ' + ctx.env.SUPABASE_KEY },
     });
     const rows = await r.json().catch(() => []);
@@ -38,7 +38,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return Response.json({ ok: false, code: 'DOCUMENT_NOT_FOUND' }, { status: 404 });
     }
     const row = rows[0];
-    const obj = await ctx.env.R2_CANONICAL.get(row.r2_key);
+    // blob_key — jismoniy obyekt (mazmun boshqa hujjat bilan baham ko'rilgan bo'lsa); aks holda r2_key ning o'zi.
+    const obj = await ctx.env.R2_CANONICAL.get(row.blob_key || row.r2_key);
     if (!obj) return Response.json({ ok: false, code: 'CANONICAL_BINARY_MISSING', r2_key: row.r2_key }, { status: 502 });
 
     const headers = new Headers();

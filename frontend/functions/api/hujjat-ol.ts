@@ -49,7 +49,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     }
 
     const row = res.body;
-    const obj = await ctx.env.R2_CANONICAL.get(row.r2_key);
+    // blob_key — jismoniy obyekt (mazmun boshqa hujjat bilan baham ko'rilgan bo'lsa); aks holda r2_key ning o'zi.
+    const obj = await ctx.env.R2_CANONICAL.get(row.blob_key || row.r2_key);
     if (!obj) {
       // Never fall back to Drive silently.
       return Response.json({ ok: false, code: 'CANONICAL_BINARY_MISSING', document_id: id, r2_key: row.r2_key }, { status: 502 });

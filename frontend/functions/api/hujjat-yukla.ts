@@ -151,6 +151,20 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         await rpc(ctx.env, 't2_document_canonical_reconcile_v1', { p_document_id: documentId, p_r2_key_exists: false });
         return Response.json({ ok: false, code: 'CANONICAL_HASH_MISMATCH', xato: 'Fayl butunligi tekshiruvi o‘tmadi' }, { status: 400 });
       }
+      /* Dublikat oldini olish (egasi 2026-10-20: «R2 axlatxona bo'lyapti»): shu kompaniyada aynan shu mazmun (server
+         tekshirgan sha256 + hajm) allaqachon saqlangan bo'lsa — baytlar qayta yozilmaydi, yozuv o'sha obyektga bog'lanadi.
+         Faqat server hash'lagan (≤ inline chegara) fayllar. Mos manba yo'q yoki xato — odatdagidek yuklanadi. */
+      const share = await rpc(ctx.env, 't2_document_canonical_share_v1', {
+        p_kompaniya_id: kompaniyaId, p_actor_id: actorId, p_document_id: documentId, p_operation_id: operationId,
+        p_sha256: serverSha, p_size_bytes: declaredSize,
+      }).catch(() => null);
+      if (share?.httpOk && share.body?.ok === true) {
+        return Response.json({
+          ok: true, document_id: documentId, revision_seq: share.body.revision_seq,
+          r2_key: r2Key, sha256: share.body.sha256, sha256_verified: true,
+          size_bytes: declaredSize, versiya: share.body.versiya, drive_sync: 'pending', shared_from: share.body.shared_from,
+        });
+      }
       await ctx.env.R2_CANONICAL.put(r2Key, buf, meta);
       verified = true; hashSource = 'server';
     } else {
