@@ -2432,6 +2432,20 @@
       ],
       "production_write_allowed": false,
       "note": "Direct owner takeover from Claude, 2026-10-18. Eleven uncommitted Claude files copied byte-for-byte to isolated worktree; original C:/Temp/GAS-token-mon remains untouched. No automatic removal of the claimed 47 rows. Core edit/cancel/resume ready for review on 2026-10-19. SQL acceptance and normalized-newline rollback roundtrip PASS; migration NOT applied. Arbitrary move prototype excluded (preserved in ca263ee7); position metadata and resource-to-many-work creation UI remain follow-up. Production/main remain integrator lane."
+    },
+    {
+      "id": "T2-CATALOG-INTEGRATION-GATES-20261015",
+      "title": "Owner: existing catalog data integration coverage and coefficient publication gates",
+      "owner": "codex",
+      "machine": "noutbuk-catalog-integration",
+      "branch": "codex/catalog-integration-gates-20261015",
+      "base_sha": "4a76f572f6d0c6bb75e3764b80903be7a977825e",
+      "status": "ready_for_review",
+      "owns": ["ops/catalog-integration/", "ops/handoff/T2_CATALOG_INTEGRATION_GATES_20261015.md", "ops/mailbox/T2-CATALOG-INTEGRATION-GATES-20261015/"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md"],
+      "production_write_allowed": false,
+      "note": "Isolated source/release gate and tests only; Claude owns Studio, coefficient API/builder, pricing bindings. No copied business engine, no source archive changes."
     }
   ]
 }
