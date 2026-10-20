@@ -13,10 +13,10 @@ import { FINANCIAL_METRICS, type FinancialMetric } from './financials';
 const financialLabels: Record<FinancialMetric, string> = { smeta: 'Smeta', fakt: 'Fakt', f2: 'Tasdiqlangan F2', ostatka: 'Ostatka' };
 const technicalMetrics = ['razdel', 'ish', 'resurs', 'narxsiz', 'qator_soni'] as const;
 const contractBasis = 'Shartnoma summalari — bog‘langan obyektlarning to‘liq ko‘rsatkichlari; aktlar shartnomalar bo‘yicha taqsimlanmagan. Umumiy obyekt har shartnoma qatorida ko‘rinadi, loyiha va kompaniya jamida bir marta hisoblanadi.';
-const labels: Record<Metric, string> = { jami: 'Nakrutkasiz summa', qator_soni: 'Qatorlar', razdel: 'Bo‘limlar', ish: 'Ishlar', resurs: 'Resurslar', narxsiz: 'Narxsiz qatorlar' };
+const labels: Record<Metric, string> = { jami: 'Nakrutkasiz summa', qator_soni: 'Qatorlar', razdel: 'Bo‘limlar', ish: 'Ishlar', resurs: 'Resurslar', narxsiz: 'Narxsiz resurslar' };
 function Value({ value, money = false }: { value: Aggregate; money?: boolean }) {
   return <span className="tabular-nums">{value.present === 0 && (money || value.total !== 0) ? t('Noma’lum') : money ? <FmtN val={value.known} /> : value.known.toLocaleString('ru-RU')}
-    {value.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-warn">{t('Jami to‘liq emas')}</span>}</span>;
+    {value.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-text-mute">{t('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida')}</span>}</span>;
 }
 export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive }: {
   companyId: number; objects: T2Obyekt[]; onOpen: (o: T2Obyekt, contractId?: number) => void;
@@ -61,7 +61,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
     const financial = financials.sum(objectIds);
     return <details className="text-[12px] text-text-dim" aria-label={`${t('Tarkib va tekshiruv')}: ${name}`}>
       <summary className="cursor-pointer">{t('Tarkib va tekshiruv')}</summary>
-      <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1"><div><dt className="inline">{t('Obyektlar')}: </dt><dd className="inline">{new Set(objectIds).size}</dd></div>{technicalMetrics.map(key => <div key={key}><dt className="inline">{t(labels[key])}: </dt><dd className={`inline ${key === 'narxsiz' && counts[key].known > 0 ? 'text-warn' : ''}`}><Value value={counts[key]} /></dd></div>)}</dl>
+      <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1"><div><dt className="inline">{t('Obyektlar')}: </dt><dd className="inline">{new Set(objectIds).size}</dd></div>{technicalMetrics.map(key => <div key={key}><dt className="inline">{t(labels[key])}: </dt><dd className="inline"><Value value={counts[key]} /></dd></div>)}</dl>
       <p className="mt-2">{t('Asos: to‘g‘ri xarajatlar, nakrutka va QQSsiz. F2 — faqat tasdiqlangan aktlar.')}</p>
       <p>{t('Ostatka — smeta narxida baholangan musbat qolgan ish hajmi; qayd etilgan Fakt hisobga olinadi. Smeta − F2 emas.')}</p>
       <p className="mt-1">{t(contractBasis)}</p>

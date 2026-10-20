@@ -17,7 +17,7 @@ describe('project → contract → object navigator', () => {
   it('drills through canonical levels, shows aggregated columns and opens the exact object ID', () => {
     start(); expect(screen.queryByText('Smetani ochish')).toBeNull();
     fireEvent.click(screen.getByRole('button',{name:/Bog‘/}));
-    const row=screen.getByRole('row',{name:/№ 1 · Asosiy/}); expect(row.textContent).toContain('100'); expect(row.textContent).toContain('Jami to‘liq emas');
+    const row=screen.getByRole('row',{name:/№ 1 · Asosiy/}); expect(row.textContent).toContain('100'); expect(row.textContent).toContain('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida');
     fireEvent.click(within(row).getByRole('button'));
     fireEvent.click(screen.getAllByRole('button',{name:'Smetani ochish'})[0]);
     expect(m.open).toHaveBeenCalledWith(objects[0],100);
@@ -32,7 +32,7 @@ describe('project → contract → object navigator', () => {
     start('/admin/obyektlar?loyiha=1&shartnoma=100');
     fireEvent.change(screen.getByLabelText('Navigator qidiruvi'),{target:{value:'Obyekt B'}});
     expect(screen.queryByText('Obyekt A')).toBeNull(); expect(screen.getByText('Obyekt B')).toBeTruthy();
-    expect(screen.getAllByText(/Jami to‘liq emas/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/narxsiz resurslar summaga kirmagan — Narxlar bo‘limida/).length).toBeGreaterThan(0);
   });
 });
 
@@ -42,7 +42,7 @@ describe('owner financial overview acceptance', () => {
     const cards=screen.getByLabelText('Moliyaviy ko‘rsatkichlar');
     expect(cards.children).toHaveLength(4);
     for(const label of ['Smeta','Fakt','Tasdiqlangan F2','Ostatka']) expect(within(cards).getByText(label)).toBeTruthy();
-    for(const label of ['Qatorlar','Bo‘limlar','Ishlar','Resurslar','Narxsiz qatorlar']) expect(within(cards).queryByText(label)).toBeNull();
+    for(const label of ['Qatorlar','Bo‘limlar','Ishlar','Resurslar','Narxsiz resurslar']) expect(within(cards).queryByText(label)).toBeNull();
     expect(screen.getAllByRole('columnheader').map(h=>h.textContent)).toEqual(['Loyiha','Smeta','Fakt','Tasdiqlangan F2','Ostatka']);
     expect(within(cards).getByText('25')).toBeTruthy(); // supplied approved F2, not 65 Fakt or raw smeta
     expect(within(cards).getByText('42')).toBeTruthy(); // supplied remaining work, not smeta minus F2
@@ -62,7 +62,7 @@ describe('owner financial overview acceptance', () => {
     const card=screen.getByText('Obyekt B').closest('article')!;
     expect(within(card).getAllByText('Noma’lum').length).toBeGreaterThan(0);
     expect(within(card).getAllByText('0')).toHaveLength(2);
-    expect(within(card).getAllByText('Jami to‘liq emas').length).toBeGreaterThan(0);
+    expect(within(card).getAllByText('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida').length).toBeGreaterThan(0);
   });
   it('deduplicates company/project scope while showing the whole shared object in each contract row', () => {
     (m.line as any).shartnomalar.push({id:101,loyiha_id:1,raqam:'2',nom:'Ikkinchi',obyektlar:[10,10],tomonlar:[]});

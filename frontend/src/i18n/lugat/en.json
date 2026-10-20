@@ -2208,5 +2208,7 @@
   "Tahrir qoralamaga qo‘shildi — «F2 ni yozish» bosilganda yoziladi. F2 bog‘lanishi yangi qatorga o‘tdi.": "The edit is in the draft — written on «Write F2». The F2 link moved to the new row.",
   "tahrir": "edit",
   "Mos smeta qatorlari — bog‘lang yoki zamena qiling": "Matching estimate rows — link or replace",
-  "Variantlar": "Options"
+  "Variantlar": "Options",
+  "narxsiz resurslar summaga kirmagan — Narxlar bo‘limida": "unpriced resources are not in the total — see Prices",
+  "Narxsiz resurslar": "Unpriced resources"
 }
