@@ -2446,6 +2446,36 @@
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_COMMS_PROTOCOL.md"],
       "production_write_allowed": false,
       "note": "Isolated source/release gate and tests only; Claude owns Studio, coefficient API/builder, pricing bindings. No copied business engine, no source archive changes."
+    },
+    {
+      "id": "T2-CONTRACT-SCOPE-20261019",
+      "title": "ShNQdan tashqari shartnoma doirasi: tasnif, dalil va takrorsiz hisob",
+      "owner": "codex",
+      "machine": "noutbuk-contract-scope",
+      "branch": "codex/contract-scope-v1",
+      "base_sha": "139d4ffdd11a9fe43646213d3fa07543a726362e",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/lib/contract-scope/",
+        "frontend/src/components/contract-scope/",
+        "frontend/src/api/t2-contract-scope.ts",
+        "frontend/functions/api/contract-scope.ts",
+        "frontend/functions/api/contract-scope.test.ts",
+        "frontend/functions/_shared/permission-policy.ts (contract-scope API registration and permission only; sublease from own roles task)",
+        "supabase/migrations/20261106490000_t2_contract_scope_v1*.sql",
+        "docs/architecture/CONTRACT_SCOPE_V1.md",
+        "ops/mailbox/T2-CONTRACT-SCOPE-20261019/",
+        "ops/handoff/T2_CONTRACT_SCOPE_20261019.md",
+        "frontend/src/admin/sahifalar/HolatNative.tsx (ContractScopePanel insertion only)",
+        "frontend/src/i18n/lugat/ru.json (contract scope additive keys only)",
+        "frontend/src/i18n/lugat/en.json (contract scope additive keys only)"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/architecture/SMETA_F2_NAKOPITELNIY_CHANGE_CONTROL_V1.md"
+      ],
+      "production_write_allowed": false,
+      "_izoh": "User direct 19-Oct: universal mixed contractual/non-ShNQ scope. Existing canonical IDs/F2/F3 reused. No invented norms or inferred contract remainder. Holat insertion sublease from own reliability task; other functions untouched. Integrator owns release."
     }
   ]
 }
