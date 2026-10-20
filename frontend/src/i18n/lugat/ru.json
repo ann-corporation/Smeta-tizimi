@@ -2195,5 +2195,7 @@
   "ta qator o‘chirishga belgilangan — «F2 ni yozish» bosilganda o‘chiriladi.": "строк отмечено к удалению — удалятся при «Записать Ф2».",
   "O‘chirishga belgilandi — «F2 ni yozish» bosilganda o‘chiriladi. Bo‘shagan F2 qatorlarini qayta bog‘lang.": "Отмечено к удалению — удалится при «Записать Ф2». Свяжите освободившиеся строки Ф2 заново.",
   "Resurs ish ichida emas — ish zamenasi uchun bo‘lim aniqlanmadi.": "Ресурс не внутри работы — раздел для замены не определён.",
-  "o‘rniga qoralamaga qo‘shildi.": "вместо — добавлено в черновик."
+  "o‘rniga qoralamaga qo‘shildi.": "вместо — добавлено в черновик.",
+  "Manba fayl eskirgan — qayta saqlanmoqda…": "Исходный файл устарел — сохраняется заново…",
+  "Manba fayl yangilandi": "Исходный файл обновлён"
 }

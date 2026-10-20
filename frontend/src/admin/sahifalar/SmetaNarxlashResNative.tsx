@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useRef, useState } from 'react';
 import { type SheetGrid, type XlsxWorkbook } from '../../lib/f2-import-parse';
 import { resNarxlashPreview, resQatorlariniOl, resVaraqlariniTop, type ResNarx, type ResPreview, type ResUstunlar } from '../../lib/res-narxlash';
@@ -190,7 +191,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
       {!fixedObjectId && <label className="block text-[12px] font-medium text-text">Obyekt
         <select aria-label="Narxlash obyekti" value={objectId} onChange={(e) => void obyektniYukla(e.target.value)}
           className="input mt-1.5 block h-9 w-full px-2 text-[13px]">
-          <option value="">Tanlang</option>{objects.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+          <option value="">Tanlang</option><ObyektOptionlari obyektlar={objects} />
         </select>
       </label>}
       {objectId && <label className="block text-[12px] font-medium text-text">RES fayli (XLSX/XLS)

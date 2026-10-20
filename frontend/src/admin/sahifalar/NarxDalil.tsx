@@ -5,6 +5,7 @@
  * Avtomatik yozilmaydi; smeta narxi o'zgarmaydi (faqat dalil yoziladi).
  * «Обоснование цен» Excel — barcha resurslar, dalilsizlar ochiq ro'yxatda (H7).
  */
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useState } from 'react';
 import { FileSpreadsheet, Link2, Unlink } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -118,7 +119,7 @@ export default function NarxDalil() {
           <p className="text-xs text-text-dim">Har resurs narxi katalog / счет-фактура / КП / kalkulyatsiya bilan tasdiqlanadi. Taklifni siz tanlaysiz — smeta narxi o‘zgarmaydi.</p>
         </div>
         <div className="flex items-center gap-2">
-          <select className="border rounded px-2 py-1 text-sm max-w-xs" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>{obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select>
+          <select className="border rounded px-2 py-1 text-sm max-w-xs" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}><ObyektOptionlari obyektlar={obyektlar} /></select>
           <button type="button" onClick={() => void excel()} disabled={!obyekt || !resurslar.length} className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-sm disabled:opacity-40"><FileSpreadsheet size={14} /> Обоснование цен</button>
         </div>
       </div>

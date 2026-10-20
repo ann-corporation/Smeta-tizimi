@@ -7,6 +7,7 @@
  * har ishga tushirish — run; ruxsat etilgan buyruq/tool ro'yxati; inson tasdig'i; audit.
  * Agent biznes hisobini o'zi qilmaydi — faqat kanonik buyruqlarni tayyorlaydi.
  */
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useState } from 'react';
 import { AgentControlCenter } from '../../components/agent-control/AgentControlCenter';
 import { agentApprovalDecide, agentControlOl, agentRunStart, agentRunTransition, agentWorkerRun } from '../../api/t2-agent-control';
@@ -65,7 +66,7 @@ export default function AiAgentlar() {
           {Object.entries(ISHCHILAR).map(([k, v]) => <option key={k} value={k}>{v.nom}</option>)}
         </select>
         <select className="border rounded px-2 py-1 text-sm" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>
-          {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+          <ObyektOptionlari obyektlar={obyektlar} />
         </select>
         <button type="button" disabled={!obyektId || !joriy?.id} className="rounded-md border border-accent/40 px-3 py-1 text-accent hover:bg-accent/10 disabled:opacity-40"
           onClick={() => {

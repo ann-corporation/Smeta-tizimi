@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Eye, FileText, RefreshCw, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -228,7 +229,7 @@ export function F2TarixNative() {
           <label className="min-w-[280px] flex-1 text-[12px] font-medium text-text">Kanonik obyekt
             <select aria-label="Kanonik obyekt" value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const id = Number.isSafeInteger(nextId) && nextId > 0 ? nextId : null; if (workspace.isProvider) workspace.setObjectId(id); else setParams(id ? { obyekt: String(id) } : {}); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">
               <option value="">-- obyektni tanlang --</option>
-              {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+              <ObyektOptionlari obyektlar={obyektlar} />
             </select>
           </label>
           <div className="text-[12px] text-text-dim">{f2Reestr.length} ta F2 hujjati · {f2Reestr.filter((a) => a.holat === 'tasdiqlangan').length} tasi tasdiqlangan</div>

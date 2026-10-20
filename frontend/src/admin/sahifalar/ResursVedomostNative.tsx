@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useState } from 'react';
 import { sbT2ObyektlarOlKomp, sbT2QatorHolatOl, type T2Obyekt, type T2QatorHolat } from '../../api/supabase';
 import { resursVedomostHujjat, resursVedomostKategoriyalarga, type ResursVedomostKategoriya } from '../../lib/resurs-vedomost';
@@ -74,7 +75,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
         <select aria-label="Obyekt" className="ml-2 border rounded px-2 py-1"
           value={objectId} onChange={e => void obyektTanla(e.target.value)}>
           <option value="">Tanlang</option>
-          {objects.map(o => <option key={o.id} value={o.id}>{o.nom}</option>)}
+          <ObyektOptionlari obyektlar={objects} />
         </select>
       </label>}
       {loading && <p role="status">Yuklanmoqda…</p>}

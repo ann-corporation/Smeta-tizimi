@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../ui/ObyektOptionlari';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaKontekst';
@@ -463,7 +464,7 @@ export function PTOWorkspaceBar() {
       <label className="sr-only" htmlFor="pto-object-select">Obyekt</label>
       <select id="pto-object-select" aria-label="PTO obyekt" value={workspace.scope.objectId ?? ''} onChange={(event) => workspace.setObjectId(event.target.value ? Number(event.target.value) : null)} disabled={!objects.length} className="min-w-[150px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text disabled:cursor-not-allowed disabled:opacity-50">
         <option value="">Obyekt tanlang</option>
-        {objects.map((row) => <option key={row.id} value={row.id}>{row.nom}</option>)}
+        <ObyektOptionlari obyektlar={objects} kompaniyaId={workspace.companyId} />
       </select>
       <label className="sr-only" htmlFor="pto-period-select">Davr</label>
       <select id="pto-period-select" aria-label="PTO davr" value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} disabled={!workspace.periods.length} className="min-w-[106px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text disabled:cursor-not-allowed disabled:opacity-50">

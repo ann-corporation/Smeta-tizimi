@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 /**
@@ -283,7 +284,7 @@ export default function NarxlarNative() {
             <select value={obyektId ?? ''} onChange={e => { const id = Number(e.target.value); setObyektId(Number.isSafeInteger(id) && id > 0 ? id : null); workspace.setObjectId(Number.isSafeInteger(id) && id > 0 ? id : null); }}
               className="mt-1.5 w-full bg-[var(--surface-2)] border border-border rounded-lg px-3 py-2 text-[13px] text-text">
               {!obyektlar.length && <option value="">— obyekt yo‘q —</option>}
-              {obyektlar.map(o => <option key={o.id} value={o.id}>{o.nom}</option>)}
+              <ObyektOptionlari obyektlar={obyektlar} />
             </select>
           </label>
           <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text">Qidiruv

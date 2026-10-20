@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useState } from 'react';
 import { RefreshCw, Save } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -380,7 +381,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           <select aria-label="Obyekt" className="ml-2 border rounded px-2 py-1"
             value={objectId} onChange={e => setObjectId(e.target.value)}>
             <option value="">Tanlang</option>
-            {visibleObjects.map(o => <option key={o.id} value={o.id}>{o.nom}</option>)}
+            <ObyektOptionlari obyektlar={visibleObjects} />
           </select>
         </label>
         {objectId && <ObyektKaskad key={`${objectId}:${contractId ?? 'default'}`} obyektId={Number(objectId)} contractId={contractId} />}

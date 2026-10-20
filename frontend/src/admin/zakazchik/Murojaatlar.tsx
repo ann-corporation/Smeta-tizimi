@@ -3,6 +3,7 @@
  * savol / sinov so'rovi / yetkazish talabi: yozildi → ijrochi BAJARDI (dalil bilan) → yozgan tomon YOPDI yoki QAYTA OCHDI
  * (raund oshadi). Asl murojaat va jurnal o'zgarmaydi. Dalil fayllari R2 reyestridan (nusxalanmaydi). Ruxsat serverda.
  */
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Paperclip } from 'lucide-react';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
@@ -70,7 +71,7 @@ function Yaratish({ kompaniyaId, aloqalar, turlar, onYaratildi }: { kompaniyaId:
       <label className="text-xs text-text-dim md:col-span-2">{t('Sarlavha')}<input className={`${inp} mt-1 block w-full`} value={sarlavha} onChange={(e) => setSarlavha(e.target.value)} placeholder={t('masalan: Poydevor betoni sinfi mos emas')} /></label>
       <label className="text-xs text-text-dim">{t('Obyekt')}
         <select className={`${inp} mt-1 block w-full`} value={obyektId} onChange={(e) => setObyektId(e.target.value ? Number(e.target.value) : '')}>
-          <option value="">{t('— obyektsiz —')}</option>{obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select></label>
+          <option value="">{t('— obyektsiz —')}</option><ObyektOptionlari obyektlar={obyektlar} /></select></label>
       <label className="text-xs text-text-dim">{t('Joy (qavat, o‘q, uchastka)')}<input className={`${inp} mt-1 block w-full`} value={joy} onChange={(e) => setJoy(e.target.value)} /></label>
       <label className="text-xs text-text-dim md:col-span-3">{t('Tavsif')}<textarea className={`${inp} mt-1 block h-16 w-full`} value={matn} onChange={(e) => setMatn(e.target.value)} /></label>
       <div className="flex items-end"><button type="button" className={tugmaAsosiy} disabled={band || aloqaId === '' || sarlavha.trim().length < 3} onClick={() => void yubor()}>{t('Murojaat yuborish')}</button></div>

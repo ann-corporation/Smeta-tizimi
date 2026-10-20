@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Download, Eye, RefreshCw, AlertTriangle } from 'lucide-react';
 import { sbOqi, sbT2DaraxtOl, sbT2KompaniyalarOl, sbT2ObyektlarOlKomp, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
@@ -148,7 +149,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         <label className="text-[12px] font-medium text-text-dim">Obyekt
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
             className="input mt-1 block h-9 w-full px-2 text-[13px] text-text">
-            <option value="">Tanlang</option>{objects.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+            <option value="">Tanlang</option><ObyektOptionlari obyektlar={objects} />
           </select>
         </label>
         <label className="text-[12px] font-medium text-text-dim">Hisobot oyi

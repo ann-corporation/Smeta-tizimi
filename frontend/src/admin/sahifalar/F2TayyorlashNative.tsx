@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { isCompleteMoney, reportMoneyValidity } from '../../lib/money-input';
 import { t } from '../../i18n/til';
@@ -297,7 +298,7 @@ export function F2TayyorlashNative() {
       <section className="karta flex flex-wrap items-end gap-3 p-3">
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text">Obyekt
           <select aria-label="Obyekt" value={validId ? obyektId : ''} onChange={(event) => { const object = obyektlar.find((item) => item.id === Number(event.target.value)); if (workspace.isProvider) workspace.setObjectId(object?.id ?? null); else setParams(object ? { obyekt: String(object.id) } : {}); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">
-            <option value="">-- obyektni tanlang --</option>{obyektlar.map((object) => <option key={object.id} value={object.id}>{object.nom}</option>)}
+            <option value="">-- obyektni tanlang --</option><ObyektOptionlari obyektlar={obyektlar} />
           </select>
         </label>
         <label className="text-[12px] font-medium text-text">Davr<input aria-label="F2 davri" type="month" value={oy.slice(0, 7)} onChange={(event) => setOy(`${event.target.value}-01`)} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>

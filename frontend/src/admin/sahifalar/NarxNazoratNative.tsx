@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 /**
  * NarxNazoratNative.tsx — NARX NAZORATI (Price Control), Holat.tsx ichiga
@@ -84,7 +85,7 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
         <h2 className="text-sm font-semibold flex items-center gap-2"><ShieldAlert size={15} className="text-accent" /> Narx nazorati</h2>
         {!fixedObjectId && <select className="input py-1 text-[12px]" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value) || null)}>
           <option value="">— obyekt tanlang —</option>
-          {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+          <ObyektOptionlari obyektlar={obyektlar} kompaniyaId={joriy?.id} />
         </select>}
         {obyektId && <button className="text-[12px] text-text-dim hover:text-text flex items-center gap-1" onClick={yukla} disabled={yuk}>
           <RefreshCw size={12} className={yuk ? 'animate-spin' : ''} /> yangilash

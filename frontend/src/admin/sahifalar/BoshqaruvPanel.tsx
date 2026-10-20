@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { reportMoneyValidity } from '../../lib/money-input';
 /**
@@ -504,7 +505,7 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
         <select className="input max-w-md px-2 py-1.5 text-[13px]" value={demo ?? ''} aria-label={t('Demo obyekt')}
           onChange={async (e) => { const v = e.target.value ? Number(e.target.value) : null; const r = await demoManbaBelgila(v); toast(r.ok ? 'Demo manba saqlandi' : tokenXato(r), r.ok ? 'ok' : 'danger'); if (r.ok) setDemo(v); }}>
           <option value="">{t('Demo yoʻq')}</option>
-          {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+          <ObyektOptionlari obyektlar={obyektlar} />
           {demo != null && !obyektlar.some((o) => o.id === demo) && <option value={demo}>#{demo}</option>}
         </select>
       </section>

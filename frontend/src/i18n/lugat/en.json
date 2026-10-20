@@ -2195,5 +2195,7 @@
   "ta qator o‘chirishga belgilangan — «F2 ni yozish» bosilganda o‘chiriladi.": "rows marked for deletion — deleted on «Write F2».",
   "O‘chirishga belgilandi — «F2 ni yozish» bosilganda o‘chiriladi. Bo‘shagan F2 qatorlarini qayta bog‘lang.": "Marked for deletion — deleted on «Write F2». Re-link the freed F2 rows.",
   "Resurs ish ichida emas — ish zamenasi uchun bo‘lim aniqlanmadi.": "The resource is not inside a work — no section for the replacement.",
-  "o‘rniga qoralamaga qo‘shildi.": "instead — added to the draft."
+  "o‘rniga qoralamaga qo‘shildi.": "instead — added to the draft.",
+  "Manba fayl eskirgan — qayta saqlanmoqda…": "Source file is outdated — saving again…",
+  "Manba fayl yangilandi": "Source file updated"
 }

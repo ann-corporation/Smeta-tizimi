@@ -1,3 +1,4 @@
+import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
@@ -402,7 +403,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           <select aria-label="Obyekt" className="ml-2 border rounded px-2 py-1"
             value={objectId} onChange={e => setObjectId(e.target.value)}>
             <option value="">Tanlang</option>
-            {objects.map(o => <option key={o.id} value={o.id}>{o.nom}</option>)}
+            <ObyektOptionlari obyektlar={objects} />
           </select>
         </label>
         {!!davrlar.length && (
