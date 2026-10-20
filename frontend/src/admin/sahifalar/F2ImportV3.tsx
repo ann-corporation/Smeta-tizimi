@@ -183,7 +183,10 @@ function Sessiya({ companyId }: { companyId: number }) {
   const avvalgiKalit = akt && objectId && /^\d{4}-(0[1-9]|1[0-2])$/.test(davr) ? `${companyId}:${objectId}:${davr}` : '';
   const joriyAvvalgi = avvalgi?.key === avvalgiKalit ? avvalgi : null;
   const takrorTekshirilmoqda = !!avvalgiKalit && !joriyAvvalgi;
-  const takrorBlok = takrorTekshirilmoqda || !!joriyAvvalgi?.akt || !!joriyAvvalgi?.error;
+  // Avvalgi F2 faqat YANGI aktni saqlashni to'xtatadi. Bog'lash, zamena va qo'shimcha — mahalliy/qo'shilgan qatorlar ishi,
+  // ularni bloklash butun seansni qulflab qo'yardi (egasi 2026-10-20: «hech narsani bog'lab bo'lmay qoldi»).
+  // Tekshiruv xatosi saqlashni to'xtatmaydi: takroriy identifikatsiyani server unique-cheklovi baribir rad etadi.
+  const saqlashBlok = takrorTekshirilmoqda || !!joriyAvvalgi?.akt;
   useEffect(() => {
     if (!avvalgiKalit) return;
     let active = true;
@@ -311,7 +314,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [kalit, akt]);
 
   async function aniqBogla() {
-    if (!akt || !ij || busy || done || takrorBlok) return;
+    if (!akt || !ij || busy || done) return;
     setBusy(true); setXato('');
     try { await moslash(akt, rows, qoldiq, xotira, rzBog, ijRef.current); }
     catch (e) { setXato(e instanceof Error ? e.message : 'Moslashtirish bajarilmadi.'); }
@@ -479,7 +482,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }
 
   async function saqla() {
-    if (!akt || !ind || !yozish || !payload || payload.error || busy || done || takrorBlok) return;
+    if (!akt || !ind || !yozish || !payload || payload.error || busy || done || saqlashBlok) return;
     setBusy(true); setXato(''); setAktZiddiyat(false); setHolat('Manba fayl saqlanmoqda…');
     try {
       const docId = await r2gaYukla();
@@ -620,7 +623,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           <p>{t('Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.')}</p>
           <button type="button" className="tugma mt-2" onClick={() => setTekshiruv((v) => v + 1)}>{t('Qayta tekshirish')}</button>
         </> : joriyAvvalgi?.akt && <>
-          <p className="font-semibold">{t('Bu obyekt va davr uchun F2 avval kiritilgan. Qayta bog‘lash shart emas.')}</p>
+          <p className="font-semibold">{t('Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.')}</p>
           <p>#{joriyAvvalgi.akt.id} · {joriyAvvalgi.akt.oy.slice(0, 7)} · {joriyAvvalgi.akt.lifecycle_status ?? joriyAvvalgi.akt.holat}</p>
           <p>{t('Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.')}</p>
           <a href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>
@@ -632,14 +635,14 @@ function Sessiya({ companyId }: { companyId: number }) {
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
       {akt && ij && <section className="karta flex flex-wrap items-center gap-3 border border-accent/30 p-3" aria-label={t('Moslashtirish')}>
-        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done || takrorBlok} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
         <p className="min-w-0 flex-1 text-[12px] text-text-dim">{t('Faqat ishonchli mosliklar bog‘lanadi. Noaniq variantlarni siz tasdiqlaysiz. Qo‘lda tasdiqlangan bog‘lanishlar saqlanadi.')}</p>
       </section>}
 
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
           ij={ij} onIj={setIj} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
-          onYaratildi={yaratildi} zamenaAsl={zamenaAsl} onQoshilganOzgardi={qoshilganOzgardi} disabled={busy || !!done || takrorBlok} />
+          onYaratildi={yaratildi} zamenaAsl={zamenaAsl} onQoshilganOzgardi={qoshilganOzgardi} disabled={busy || !!done} />
       )}
 
       {yozish && (
@@ -655,7 +658,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           {yozish.toxtatish.map((t, i) => <p key={i} className="text-[12px] text-warn">{t}</p>)}
           {payload?.error && <p role="alert" className="text-[12px] text-danger">{payload.error}</p>}
           {done ? <p className="text-[13px] text-ok">{done}</p> : (
-            <button type="button" className="tugma tugma-asosiy" disabled={busy || !payload || !!payload.error || takrorBlok}
+            <button type="button" className="tugma tugma-asosiy" disabled={busy || !payload || !!payload.error || saqlashBlok}
               onClick={() => void saqla()}>
               {t('F2 qoralama aktini saqlash')}{payload && !payload.error ? ` (${payload.rows.length} qator)` : ''}
             </button>

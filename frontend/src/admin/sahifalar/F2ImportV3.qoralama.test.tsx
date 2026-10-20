@@ -58,15 +58,16 @@ describe('F2 independent working draft', () => {
     expect(m.create).not.toHaveBeenCalled(); expect(m.match).not.toHaveBeenCalled();
   });
 
-  it('warns before matching when the object/month already has an F2 and never creates a duplicate', async () => {
+  it('existing F2 for the object/month warns and blocks only a NEW act save — linking stays available', async () => {
     m.preflight.mockResolvedValue({ok:true,qatorlar:[{id:99,oy:'2026-10-01',raqam:null,holat:'tasdiqlangan',lifecycle_status:'approved'}]});
     await start();
-    await screen.findByText('Bu obyekt va davr uchun F2 avval kiritilgan. Qayta bog‘lash shart emas.');
+    await screen.findByText('Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.');
     expect(screen.getByRole('link',{name:'Mavjud F2 tarixini boshqa oynada ochish'}).getAttribute('target')).toBe('_blank');
     const button=screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement;
-    expect(button.disabled).toBe(true); fireEvent.click(button);
+    expect(button.disabled).toBe(false); fireEvent.click(button);
+    await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1));
     expect((screen.getByRole('button',{name:/F2 qoralama aktini saqlash/}) as HTMLButtonElement).disabled).toBe(true);
-    expect(m.match).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
+    expect(m.create).not.toHaveBeenCalled();
     expect(screen.getByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
   });
 
@@ -74,7 +75,8 @@ describe('F2 independent working draft', () => {
     m.preflight.mockResolvedValueOnce({ok:false}).mockResolvedValue({ok:true,qatorlar:[]});
     await start();
     await screen.findByText(/Avvalgi F2 tekshirilmadi/);
-    expect((screen.getByRole('button',{name:/F2 qoralama aktini saqlash/}) as HTMLButtonElement).disabled).toBe(true);
+    // Tekshiruv xatosi bog'lashni ham, saqlashni ham qulflamaydi (server unique-cheklovi takrorni baribir rad etadi).
+    expect((screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByRole('button',{name:'Qayta tekshirish'}));
     await waitFor(()=>expect((screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement).disabled).toBe(false));
     expect(screen.getByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
