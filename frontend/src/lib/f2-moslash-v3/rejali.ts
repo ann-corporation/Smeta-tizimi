@@ -52,7 +52,7 @@ export function rejaliQatorlar(buyruqlar: readonly RejaliBuyruq[], rows: readonl
     const keyinTartib = keyin != null && keyin !== b.otaQatorId ? (byId.get(keyin)?.tartib ?? null) : null;
     const tartib = keyin === b.otaQatorId
       ? Math.min(0, ...aka.map((r) => Number(r.tartib ?? 0))) - 0.5
-      : keyinTartib != null ? Number(keyinTartib) + 0.5
+      : keyinTartib != null ? Number(keyinTartib) + (vaqtinchami(keyin) ? 0.001 : 0.5)
         : Math.max(0, ...aka.map((r) => Number(r.tartib ?? 0))) + 1;
     const ish = { id: b.tempId, ota_id: b.otaQatorId, tur: b.tur, nom: b.nom, kod: b.kod ?? null, birlik: b.birlik, hajm: b.hajm ?? null,
       narx: null, summa: null, norma: null, qoshimcha: true, zamena: b.kind === 'replacement', versiya: 0, tartib } as unknown as T2Qator;

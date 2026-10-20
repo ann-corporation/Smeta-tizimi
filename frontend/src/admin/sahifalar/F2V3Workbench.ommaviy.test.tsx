@@ -67,3 +67,22 @@ describe('F2 import — ommaviy belgilash', () => {
     expect(next.bog.size).toBe(0);
   });
 });
+
+describe('F2 import — belgilanganlarni bittada qo‘shimcha qilish', () => {
+  it('bog‘lanmagan ishlar o‘z razdeliga qo‘shimcha bo‘lib qoralamaga ketadi; bog‘langani o‘tkazib yuboriladi', () => {
+    const ij = { bog: new Map([['c', { qatorId: 4, holat: 'qolda', usul: 'qolda' }]]), otkaz: new Set() } as unknown as IshJoyi;
+    const natija = { natijalar: new Map(), rzDiag: [{ f2Uid: 'frz', smetaRzIdlar: [1] }], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: 2 } } as unknown as F2MoslashNatija;
+    const akt = { fayl: 'f', varaq: 'A', davr: '2026-10', daraxt: [rz], jami: { pryamye: 30, vsego: 30, ranee: null, raznica: null, nds: null },
+      qatorlarJami: 30, barglarSoni: 3, ishlarSoni: 3, ogohlantirishlar: [], anatomiya: { review: [] } } as unknown as F2Akt;
+    const onRejali = vi.fn();
+    render(<F2V3Workbench akt={akt} ind={f2Indeks([rz])} natija={natija} S={smetaIndeks(SMETA)} raw={raw} oldingi={new Map()}
+      ij={ij} onIj={vi.fn()} onRzBog={vi.fn()} companyId={1} objectId={7} onYaratildi={async () => undefined} zamenaAsl={new Map()}
+      onQoshilganOzgardi={vi.fn()} onRejali={onRejali} />);
+    const tb = within(screen.getByRole('toolbar', { name: 'Belgilangan F2 qatorlari' }));
+    fireEvent.click(tb.getByRole('button', { name: 'Ko‘rinadiganlarni belgilash' }));
+    fireEvent.click(tb.getByRole('button', { name: /Hammasi qo‘shimcha/ }));
+    expect(onRejali).toHaveBeenCalledTimes(2);
+    expect(onRejali.mock.calls.map((c) => c[0].uid)).toEqual(['a', 'b']);
+    expect(onRejali.mock.calls[0][1]).toMatchObject({ kind: 'additional', otaQatorId: 1, nom: 'Beton', hajm: 1 });
+  });
+});

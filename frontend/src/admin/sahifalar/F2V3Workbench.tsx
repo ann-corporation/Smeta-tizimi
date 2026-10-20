@@ -97,6 +97,8 @@ export interface F2V3WorkbenchProps {
   onRejali?: (f: F2Tugun, b: ModalRejali) => void;
   /** Rejali (hali yozilmagan) vaqtinchalik qatorni olib tashlash. */
   onRejaliOchir?: (tempId: number) => void;
+  /** Joriy rejali ish qatorlarining vaqtinchalik id lari (guruhni zanjir qilib joylashtirish uchun). */
+  rejaliIdlar?: () => number[];
   disabled?: boolean;
 }
 
@@ -718,6 +720,91 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     });
     oxirgiBelgi.current = uid;
   }
+  /** Belgilangan bog'lanmagan qatorlarni bittada QORALAMAGA qo'shish (egasi 2026-10-20: «hammasi qo'shimcha ish bo'lsa»).
+   *  Ish → o'z razdeliga qo'shimcha ish (F2 resurslari bilan); resurs → bog'langan ishiga qo'shimcha resurs.
+   *  'taklif': tizim zamena taklif qilgan qatorlar zamena bo'ladi. Serverga hech narsa yozilmaydi — «Saqlash»da bittada. */
+  function ommaviyQoralama(rejim: 'qoshimcha' | 'taklif') {
+    if (!p.onRejali) return;
+    const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz');
+    const ishlar = new Set(tugunlar.filter((x) => x.tur === 'bl').map((x) => x.uid));
+    let qoshildi = 0; const otkazildi: string[] = [];
+    for (const f of tugunlar) {
+      if (ij.bog.has(f.uid) || ij.otkaz.has(f.uid)) { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('allaqachon bog‘langan')})`); continue; }
+      const ish = f.tur === 'bl';
+      const ota = ind.ota.get(f.uid);
+      if (!ish && ota && ishlar.has(ota.uid)) continue; // ishi bilan birga yaratiladi
+      const tavsiya = p.natija.natijalar.get(f.uid)?.tavsiya;
+      const eski = rejim === 'taklif' && tavsiya?.tur === 'zamena' ? p.raw.get(tavsiya.qatorId) : undefined;
+      const eskiOta = eski?.ota_id != null ? p.raw.get(eski.ota_id) : undefined;
+      const hajm = Number(f.hajm);
+      if (!(hajm > 0)) { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('hajm yo‘q')})`); continue; }
+      const resurslar = ish ? f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })) : [];
+      const umumiy = { nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined, resurslar, operationId: yangiOperationId(),
+        sabab: rejim === 'taklif' ? 'F2 import: tizim taklifi (ommaviy)' : 'F2 import: qo‘shimcha (ommaviy)' };
+      if (eski && eskiOta) {
+        p.onRejali(f, { ...umumiy, kind: 'replacement', tur: ish ? 'bl' : resTuri(f.birlik), otaQatorId: eskiOta.id, almashtirilayotganQatorId: eski.id, keyinQatorId: eski.id });
+        qoshildi++; continue;
+      }
+      if (ish) {
+        const rzId = ota ? rzDiag.get(ota.uid)?.smetaRzIdlar[0] : undefined;
+        if (rzId == null || !p.raw.get(rzId)) { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('razdeli smetaga bog‘lanmagan')})`); continue; }
+        const mat = !f.bolalar.length && /^С(\s|$|\d)/.test((f.kod ?? '').trim());
+        p.onRejali(f, { ...umumiy, kind: 'additional', tur: f.bolalar.length ? 'bl' : mat ? 'mat' : 'bl', otaQatorId: rzId });
+        qoshildi++; continue;
+      }
+      const otaIsh = ota ? ij.bog.get(ota.uid)?.qatorId : undefined;
+      if (otaIsh == null || !p.raw.get(otaIsh)) { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('ishi bog‘lanmagan')})`); continue; }
+      p.onRejali(f, { ...umumiy, kind: 'resource', tur: resTuri(f.birlik), otaQatorId: otaIsh });
+      qoshildi++;
+    }
+    setBelgi(new Set());
+    xab(`${qoshildi} ${tarj('ta qator qoralamaga qo‘shildi — «Saqlash» bosilganda bittada yoziladi.')}${otkazildi.length ? ` ${tarj('Qo‘shilmadi')}: ${otkazildi.slice(0, 5).join('; ')}${otkazildi.length > 5 ? '…' : ''}` : ''}`);
+  }
+  /** Belgilangan guruhni smetadagi tanlangan JOYGA tashlash (egasi 2026-10-20: «tortib olib smeta tarafga kerakli joyga»).
+   *  Ishlar — shu razdelga, tashlangan joydan keyin, F2 dagi tartibda ketma-ket qo'shimcha; resurslar — ishga tashlansa
+   *  o'sha ishga qo'shimcha resurs. Hammasi qoralamaga (serverga «Saqlash» da). */
+  function guruhniTashla(s: SmetaQator, zona: 'oldin' | 'ustiga' | 'keyin') {
+    if (!p.onRejali || p.disabled || mutationBusy) return;
+    const ota = (x: SmetaQator | undefined) => (x?.otaId != null ? S.byId.get(x.otaId) : undefined);
+    let langar: SmetaQator | undefined = s;
+    if (zona === 'oldin') { const i = smetaVisibleRows.findIndex((r) => r.node.id === s.id); langar = i > 0 ? smetaVisibleRows[i - 1].node : undefined; }
+    // Razdel va undan keyingi joy (oraliqqaTashla bilan bir xil qoida).
+    let rz: SmetaQator | undefined; let keyin: number | undefined;
+    if (!langar) { rz = s.tur === 'rz' ? s : ota(s); keyin = rz?.id; }
+    else if (langar.tur === 'rz') { rz = langar; keyin = zona === 'ustiga' ? undefined : langar.id; }
+    else { const ish = ota(langar)?.tur === 'rz' ? langar : ota(langar); rz = ish ? ota(ish) : undefined; keyin = ish?.id; }
+    const resursOta = zona === 'ustiga' && s.tur === 'bl' ? s : undefined;
+    const tartib = new Map(ind.qatorlar.map((x, i) => [x.uid, i]));
+    const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz')
+      .sort((a, b) => (tartib.get(a.uid) ?? 0) - (tartib.get(b.uid) ?? 0));
+    const ishlar = new Set(tugunlar.filter((x) => x.tur === 'bl').map((x) => x.uid));
+    let qoshildi = 0; const otkazildi: string[] = [];
+    let oldingiTemp: number | undefined;
+    const temp = () => { const id = oldingiTemp; return id; };
+    for (const f of tugunlar) {
+      if (ij.bog.has(f.uid) || ij.otkaz.has(f.uid)) { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('allaqachon bog‘langan')})`); continue; }
+      const fOta = ind.ota.get(f.uid);
+      if (f.tur !== 'bl' && fOta && ishlar.has(fOta.uid)) continue;
+      const hajm = Number(f.hajm);
+      if (!(hajm > 0)) { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('hajm yo‘q')})`); continue; }
+      const resurslar = f.tur === 'bl' ? f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })) : [];
+      const umumiy = { nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined, resurslar, operationId: yangiOperationId(), sabab: 'F2 import: qo‘shimcha (guruh, sudrab)' };
+      if (f.tur !== 'bl' && resursOta) {
+        p.onRejali(f, { ...umumiy, kind: 'resource', tur: resTuri(f.birlik), otaQatorId: resursOta.id });
+        qoshildi++; continue;
+      }
+      if (!rz || rz.tur !== 'rz') { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('bu joyda razdel topilmadi')})`); continue; }
+      const mat = f.tur !== 'bl' || (!f.bolalar.length && /^С(\s|$|\d)/.test((f.kod ?? '').trim()));
+      // Zanjir: birinchisi tanlangan joydan keyin, keyingilari — oldingi qo'shilgandan keyin (F2 tartibi saqlanadi).
+      const keyinId = temp() ?? keyin;
+      const oldin = new Set(p.rejaliIdlar?.() ?? []);
+      p.onRejali(f, { ...umumiy, kind: 'additional', tur: f.bolalar.length ? 'bl' : mat ? (f.tur === 'ob' ? 'ob' : 'mat') : 'bl', otaQatorId: rz.id, keyinQatorId: keyinId });
+      oldingiTemp = (p.rejaliIdlar?.() ?? []).find((id) => !oldin.has(id)) ?? oldingiTemp;
+      qoshildi++;
+    }
+    setBelgi(new Set());
+    xab(`${qoshildi} ${tarj('ta qator qoralamaga qo‘shildi — «Saqlash» bosilganda bittada yoziladi.')}${otkazildi.length ? ` ${tarj('Qo‘shilmadi')}: ${otkazildi.slice(0, 5).join('; ')}${otkazildi.length > 5 ? '…' : ''}` : ''}`);
+  }
   /** Belgilangan qatorlarga bitta amal — bitta onIj (bitta «Orqaga» qadami). */
   function ommaviy(amal: 'tasdiq' | 'uz' | 'otkaz' | 'kirit') {
     const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz');
@@ -813,6 +900,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         if (!uid) return;
         // Sudrab tashlanganda smeta oynasi O'Z JOYIDA qoladi (egasi: "boshqa joyga ketib qoladi").
         sudrabTanlandi.current = true;
+        // Belgilangan bir nechta qatordan biri sudralsa — butun guruh shu joyga (qoralamaga) qo'shiladi.
+        if (p.onRejali && belgi.size > 1 && belgi.has(uid)) { guruhniTashla(s, zona); return; }
         setTanlangan(uid);
         if (zona === 'ustiga') tashla(uid, s.id); else oraliqqaTashla(uid, s, zona);
       },
@@ -1191,6 +1280,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('uz')}><Unlink size={11} /> {tarj('Uzish')}</button>
               <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('otkaz')}>{tarj('Aktga kiritmaslik')}</button>
               <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('kirit')}>{tarj('Aktga qaytarish')}</button>
+              {p.onRejali && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
+                onClick={() => ommaviyQoralama('qoshimcha')} title={tarj('Belgilangan bog‘lanmagan ishlar o‘z razdeliga qo‘shimcha ish (resurslari bilan), resurslar o‘z ishiga qo‘shimcha resurs bo‘lib qoralamaga qo‘shiladi')}>＋ {tarj('Hammasi qo‘shimcha')}</button>}
+              {p.onRejali && <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
+                onClick={() => ommaviyQoralama('taklif')} title={tarj('Tizim zamena taklif qilgan qatorlar — zamena, qolganlari — qo‘shimcha')}>⇄ {tarj('Takliflar bo‘yicha')}</button>}
               <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
             </> : <span className="text-text-mute">{tarj('Holat belgisini (✓ ◐ ✕) bosib qatorlarni belgilang — bir nechtasini birga tasdiqlash, uzish yoki aktdan chiqarish mumkin.')}</span>}
             <button type="button" className="tugma ml-auto h-6 px-1.5 text-[11px]" disabled={!f2VisibleRows.length}

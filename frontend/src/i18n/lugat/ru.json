@@ -2144,5 +2144,16 @@
   "ta qo‘shimcha/zamena qoralamada — «Saqlash» bosilganda hammasi bittada yoziladi.": "доп. работ/замен в черновике — при «Сохранить» всё запишется разом.",
   "zamena": "замена",
   "qo‘shimcha": "доп. работа",
-  "o‘zgarish": "изменений"
+  "o‘zgarish": "изменений",
+  "Belgilangan bog‘lanmagan ishlar o‘z razdeliga qo‘shimcha ish (resurslari bilan), resurslar o‘z ishiga qo‘shimcha resurs bo‘lib qoralamaga qo‘shiladi": "Отмеченные несвязанные работы добавляются в черновик как доп. работы своего раздела (с ресурсами), ресурсы — как доп. ресурсы своей работы",
+  "Hammasi qo‘shimcha": "Все как доп. работы",
+  "Tizim zamena taklif qilgan qatorlar — zamena, qolganlari — qo‘shimcha": "Где система предлагает замену — замена, остальные — доп. работы",
+  "Takliflar bo‘yicha": "По предложениям",
+  "allaqachon bog‘langan": "уже связана",
+  "hajm yo‘q": "нет объёма",
+  "razdeli smetaga bog‘lanmagan": "раздел не связан со сметой",
+  "ishi bog‘lanmagan": "работа не связана",
+  "ta qator qoralamaga qo‘shildi — «Saqlash» bosilganda bittada yoziladi.": "строк добавлено в черновик — запишутся разом при «Сохранить».",
+  "Qo‘shilmadi": "Не добавлено",
+  "bu joyda razdel topilmadi": "в этом месте раздел не найден"
 }

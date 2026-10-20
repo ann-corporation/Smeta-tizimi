@@ -2144,5 +2144,16 @@
   "ta qo‘shimcha/zamena qoralamada — «Saqlash» bosilganda hammasi bittada yoziladi.": "additions/replacements in draft — all are written at once on «Save».",
   "zamena": "replacement",
   "qo‘shimcha": "addition",
-  "o‘zgarish": "changes"
+  "o‘zgarish": "changes",
+  "Belgilangan bog‘lanmagan ishlar o‘z razdeliga qo‘shimcha ish (resurslari bilan), resurslar o‘z ishiga qo‘shimcha resurs bo‘lib qoralamaga qo‘shiladi": "Selected unlinked works go to the draft as additional works in their section (with resources); resources as additional resources of their work",
+  "Hammasi qo‘shimcha": "All as additions",
+  "Tizim zamena taklif qilgan qatorlar — zamena, qolganlari — qo‘shimcha": "Rows with a suggested replacement become replacements, the rest additions",
+  "Takliflar bo‘yicha": "By suggestions",
+  "allaqachon bog‘langan": "already linked",
+  "hajm yo‘q": "no quantity",
+  "razdeli smetaga bog‘lanmagan": "section not linked to the estimate",
+  "ishi bog‘lanmagan": "work not linked",
+  "ta qator qoralamaga qo‘shildi — «Saqlash» bosilganda bittada yoziladi.": "rows added to the draft — written at once on «Save».",
+  "Qo‘shilmadi": "Not added",
+  "bu joyda razdel topilmadi": "no section at this place"
 }
