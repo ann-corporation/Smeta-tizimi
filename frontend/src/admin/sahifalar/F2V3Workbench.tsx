@@ -99,6 +99,8 @@ export interface F2V3WorkbenchProps {
   onRejaliOchir?: (tempId: number) => void;
   /** Joriy rejali ish qatorlarining vaqtinchalik id lari (guruhni zanjir qilib joylashtirish uchun). */
   rejaliIdlar?: () => number[];
+  /** Berilsa — siz qo'shgan qatorni o'chirish ham qoralamaga (serverga «F2 ni yozish» da). */
+  onOchirishRejali?: (b: { qatorId: number; versiya: number; eskiIdlar: number[]; nom: string; sabab: string }) => void;
   disabled?: boolean;
 }
 
@@ -278,6 +280,11 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi. Smetadagi qator summasi: ${r.summa == null ? 'noma’lum' : fmt(r.summa, 2)}.\nSabab (ixtiyoriy):`, '');
     if (sabab === null) return;
     const eskiIdlar = pastdagiIdlar(id);
+    if (p.onOchirishRejali) {
+      p.onOchirishRejali({ qatorId: id, versiya: r.versiya, eskiIdlar, nom: r.nom ?? '', sabab: sabab || 'F2 import: xato qo‘shilgan' });
+      xab(tarj('O‘chirishga belgilandi — «F2 ni yozish» bosilganda o‘chiriladi. Bo‘shagan F2 qatorlarini qayta bog‘lang.'));
+      return;
+    }
     const opKey = `${p.companyId}:${p.objectId}:${id}:${sabab}`;
     const operationId = mutationOps.current.get(opKey) ?? yangiOperationId();
     mutationOps.current.set(opKey, operationId);
@@ -525,6 +532,17 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       kat: katAniqla(null, r.tur, r.birlik), kod: r.kod ?? null, nom: r.nom, birlik: r.birlik || 'шт',
       norma: null, hajm: Number(r.hajm), narx: r.narx != null && r.narx > 0 ? r.narx : null, narx_manba: 'qolda' as const,
     }));
+    // Qoralama rejimi: serverga «F2 ni yozish» da. Ish resursning bo'limiga, resursning ishidan keyin qo'yiladi.
+    if (p.onRejali) {
+      const ishQ = s.otaId != null ? S.byId.get(s.otaId) : undefined;
+      const rzId = ishQ?.otaId ?? undefined;
+      if (!ishQ || rzId == null) { xab(tarj('Resurs ish ichida emas — ish zamenasi uchun bo‘lim aniqlanmadi.')); return; }
+      p.onRejali(f, { kind: 'resurs_ish', tur: 'bl', otaQatorId: rzId, keyinQatorId: ishQ.id, almashtirilayotganQatorId: s.id, resursQatorId: s.id,
+        nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined, sabab: sabab.trim(), operationId: yangiOperationId(),
+        resurslar: f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })), ishResurslari: resurslar });
+      xab(`«${f.nom.slice(0, 50)}» — «${(s.nom ?? '').slice(0, 40)}» ${tarj('o‘rniga qoralamaga qo‘shildi.')}`);
+      return;
+    }
     const res = await resursIshZamena({ kompaniyaId: p.companyId, obyektId: p.objectId, resursQatorId: s.id, sabab: sabab.trim(), operationId: yangiOperationId(),
       ishlar: [{ ish: { kod: f.kod ?? null, nom: f.nom, birlik: f.birlik || 'шт', hajm }, resurslar }] });
     if (!res.ok || res.qator_id == null) { xab(abcXato(res)); return; }

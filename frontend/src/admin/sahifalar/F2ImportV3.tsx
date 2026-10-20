@@ -15,8 +15,10 @@ import {
 import { exactWrite } from '../../lib/f2-exact-write';
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
+import { abcXato, ishAbcOchir, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
+import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
-import { ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
+import { type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import type { Fayl } from '../../lib/fayl-daraxt';
@@ -43,6 +45,10 @@ function smetaQatorlari(rows: T2Qator[]): SmetaQator[] {
 type SnapQator = { uid: string; imzo?: string };
 
 /** Server ish qoralamasi kursoridagi rejali buyruqlar (eski qoralamada yo'q bo'lishi mumkin). */
+const serverOchirish = (c: unknown): OchirishBuyruq[] => {
+  const r = (c as { ochirishlar?: unknown } | null)?.ochirishlar;
+  return Array.isArray(r) ? (r as OchirishBuyruq[]) : [];
+};
 const serverRejali = (c: unknown): RejaliBuyruq[] => {
   const r = (c as { rejali?: unknown } | null)?.rejali;
   return Array.isArray(r) ? (r as RejaliBuyruq[]) : [];
@@ -61,6 +67,14 @@ function Sessiya({ companyId }: { companyId: number }) {
   const rejaliRef = useRef(rejali);
   rejaliRef.current = rejali;
   const [davomEt, setDavomEt] = useState(false);
+  // O'chirishga belgilangan (avval saqlangan) qo'shilgan qatorlar — «F2 ni yozish» da o'chiriladi.
+  const [ochirish, setOchirish] = useState<OchirishBuyruq[]>([]);
+  const ochirishRef = useRef(ochirish);
+  ochirishRef.current = ochirish;
+  // «F2 ni yozish» jarayoni — har qadam foydalanuvchiga ko'rinadi.
+  const [jarayon, setJarayon] = useState<Qadam[] | null>(null);
+  const qadam = (id: QadamId, holat: QadamHolat, izoh?: string) =>
+    setJarayon((old) => (old ?? BOSH_QADAMLAR()).map((q) => (q.id === id ? { ...q, holat, izoh } : q)));
   const [oldingi, setOldingi] = useState(new Map<number, number>());
   const [qoldiq, setQoldiq] = useState(new Map<number, number>());
   const [xotira, setXotira] = useState(new Map<string, number>());
@@ -124,7 +138,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!file || !ij || !natija || !aktlar[aktIdx] || !objectId) return null;
     return { version: 1, companyId, objectId: Number(objectId), savedAt: Date.now(), aktlar, aktIdx, davr,
       ij, natija, rzBog, source: { blob: file, name: file.name, lastModified: file.lastModified, documentId: sourceDoc.current },
-      operationId: operation.current, sourceOperationId: sourceOp.current, server: serverDraft.current, correction: pendingCorrection.current, rejali: rejaliRef.current };
+      operationId: operation.current, sourceOperationId: sourceOp.current, server: serverDraft.current, correction: pendingCorrection.current, rejali: rejaliRef.current, ochirishlar: ochirishRef.current };
   }
 
   async function ishniSaqla(draft = ishSnapshot(), generation = ++saveGeneration.current) {
@@ -153,7 +167,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     return () => window.clearTimeout(timer);
   // Snapshot includes all operator decisions and original file; never gated on resolved rows.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ij, natija, rzBog, aktlar, aktIdx, davr, objectId, busy, done, rejali]);
+  }, [ij, natija, rzBog, aktlar, aktIdx, davr, objectId, busy, done, rejali, ochirish]);
 
   useEffect(() => {
     const protect = (e: BeforeUnloadEvent) => { if (unsaved.current) { e.preventDefault(); e.returnValue = ''; } };
@@ -172,7 +186,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
         : f2QoralamaBogTekshir(d.ij, new Set([...r.map((q) => q.id), ...(d.rejali ?? []).flatMap((b) => [b.tempId, ...b.resursTempIds])]));
       pendingCorrection.current=undefined;
-      setRejali(d.rejali ?? []);
+      setRejali(d.rejali ?? []); setOchirish(d.ochirishlar ?? []);
       // No auto-match effect may reset recovered manual decisions.
       oxirgiKalit.current = `${d.objectId}|${d.aktIdx}|${d.davr}|${d.aktlar[d.aktIdx].fayl}`;
       rawFile.current = new File([d.source.blob], d.source.name, { type: d.source.blob.type, lastModified: d.source.lastModified });
@@ -244,7 +258,11 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [avvalgiKalit, tekshiruv, companyId, objectId, davr, akt]);
 
   // Daraxtda haqiqiy qatorlar + rejali (vaqtinchalik, manfiy id) qatorlar.
-  const rowsK = useMemo(() => (rejali.length ? [...rows, ...rejaliQatorlar(rejali, rows)] : rows), [rows, rejali]);
+  const rowsK = useMemo(() => {
+    const yashir = new Set(ochirish.flatMap((o) => o.eskiIdlar));
+    const asos = yashir.size ? rows.filter((r) => !yashir.has(r.id)) : rows;
+    return rejali.length ? [...asos, ...rejaliQatorlar(rejali, asos)] : asos;
+  }, [rows, rejali, ochirish]);
   const S = useMemo(() => smetaIndeks(smetaQatorlari(rowsK)), [rowsK]);
   const raw = useMemo(() => new Map(rowsK.map((r) => [r.id, r])), [rowsK]);
   // Zamena qatori → u almashtirgan ASL smeta qatori (t2_daraxt da yo'q — alohida, faqat zamena qatorlari uchun).
@@ -263,7 +281,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [zamenaKalit, objectId]);
 
   const zamenaAslK = useMemo(() => {
-    const qosh = rejali.filter((b) => b.kind === 'replacement' && b.almashtirilayotganQatorId != null);
+    const qosh = rejali.filter((b) => (b.kind === 'replacement' || b.kind === 'resurs_ish') && b.almashtirilayotganQatorId != null);
     if (!qosh.length) return zamenaAsl;
     const m = new Map(zamenaAsl);
     for (const b of qosh) m.set(b.tempId, b.almashtirilayotganQatorId as number);
@@ -276,7 +294,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
     pendingCorrection.current = undefined;
     ++saveGeneration.current; setIshSaqlandi(''); setServerHolat(''); serverDraft.current = undefined;
-    setNatija(null); tarixniTozala(); setRejali([]); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
+    setNatija(null); tarixniTozala(); setRejali([]); setOchirish([]); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
   }
 
   /** `mavjudHujjatId` berilsa — fayl tizimdagi R2 hujjatidan olingan: yozishda QAYTA yuklanmaydi, o'sha hujjat manba bo'ladi. */
@@ -455,6 +473,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     finally { if (scopeRef.current===scope) setBusy(false); }
   }
 
+  const taklifSoni = useMemo(() => (ij ? [...ij.bog.values()].filter((b) => b.holat === 'taklif').length : 0), [ij]);
   const yozish = useMemo(() => (ind && ij ? f2QoralamaYozish(ind, ij) : null), [ind, ij]);
   const payload = useMemo(() => {
     if (!yozish || yozish.toxtatish.length) return null;
@@ -531,7 +550,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
         : f2QoralamaBogTekshir(d.ij,new Set([...r.map((q)=>q.id), ...serverRejali(c).flatMap((b) => [b.tempId, ...b.resursTempIds])]));
       pendingCorrection.current=undefined;
-      setRejali(serverRejali(c));
+      setRejali(serverRejali(c)); setOchirish(serverOchirish(c));
       tarixniTozala(); setIj(restored); setDone(null);
       setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`);
     } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); }
@@ -551,6 +570,20 @@ function Sessiya({ companyId }: { companyId: number }) {
     setRejali(keyingi); tarixniTozala(); setIj(joriy);
     setHolat(`${keyingi.length} ${t('ta o‘zgarish qoralamada — «Saqlash» bosilganda bittada yoziladi.')}`);
   }
+  function onOchirishRejali(b: Omit<OchirishBuyruq, 'operationId'>) {
+    if (!ijRef.current || ochirishRef.current.some((o) => o.qatorId === b.qatorId)) return;
+    const yashir = new Set(b.eskiIdlar);
+    const bog = new Map([...ijRef.current.bog].filter(([, v]) => !yashir.has(v.qatorId)));
+    const joriy = { bog, otkaz: ijRef.current.otkaz };
+    ijRef.current = joriy;
+    const keyingi = [...ochirishRef.current, { ...b, operationId: yangiOperationId() }];
+    ochirishRef.current = keyingi;
+    setOchirish(keyingi); tarixniTozala(); setIj(joriy);
+  }
+  function ochirishniBekor(qatorId: number) {
+    const keyingi = ochirishRef.current.filter((o) => o.qatorId !== qatorId);
+    ochirishRef.current = keyingi; setOchirish(keyingi);
+  }
   function onRejaliOchir(tempId: number) {
     if (!ijRef.current) return;
     const r = rejaliOchir(rejaliRef.current, ijRef.current, tempId);
@@ -564,6 +597,12 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (!r.ok || r.qator_id == null) throw new Error(r.xabar || r.error || t('Saqlanmadi.'));
       return r.qator_id;
     };
+    if (b.kind === 'resurs_ish') {
+      const res = await resursIshZamena({ kompaniyaId: companyId, obyektId: Number(objectId), resursQatorId: b.resursQatorId as number, sabab: b.sabab, operationId: b.operationId,
+        ishlar: [{ ish: { kod: b.kod ?? null, nom: b.nom, birlik: b.birlik, hajm: b.hajm as number }, resurslar: (b.ishResurslari ?? []) as ResursIshInput['resurslar'] }] });
+      if (!res.ok || res.qator_id == null) throw new Error(abcXato(res));
+      return { qatorId: res.qator_id, resursIdlar: res.resurs_idlar?.[0] ?? [] };
+    }
     if (b.resurslar.length && b.kind !== 'resource') {
       const rr = await sbT2IshResurslarBilanYarat({ ...asos, command: b.kind === 'replacement' ? 'replacement' : 'additional',
         almashtirilayotganQatorId: real.almashtirilayotganQatorId, resurslar: b.resurslar });
@@ -582,12 +621,12 @@ function Sessiya({ companyId }: { companyId: number }) {
     return Number(v);
   }
   /** Rejali buyruqlarni yozadi; muvaffaqiyatda true. Xatoda yozilganlari bog'lanadi, qolganlari qoralamada qoladi. */
-  async function rejaliniQolla(): Promise<boolean> {
+  async function rejaliniQolla(): Promise<{ ok: boolean; xato?: string; yozildi: number }> {
     const jami = rejaliRef.current.length;
     setBusy(true); setXato('');
     try {
       const r = await rejaliniYoz(rejaliRef.current, { yarat: rejaliYarat, versiya: otaVersiya,
-        progress: (i, n) => setHolat(`${t('O‘zgarishlar yozilmoqda')}: ${i}/${n}…`) });
+        progress: (i, n) => qadam('ozgarish', 'ishlayapti', `${i}/${n}`) });
       if (r.map.size && ijRef.current) {
         const yangiIj = ijniAlmashtir(ijRef.current, r.map);
         const otalar = rejaliRef.current.filter((b) => r.map.has(b.tempId)).map((b) => (vaqtinchami(b.otaQatorId) ? r.map.get(b.otaQatorId) : b.otaQatorId)).filter((x): x is number => x != null);
@@ -595,12 +634,9 @@ function Sessiya({ companyId }: { companyId: number }) {
         setRejali(r.qolgan); tarixniTozala(); setIj(yangiIj);
         await qatorlarniYangila([...r.map.values(), ...otalar]).catch(() => smetaYangila());
       } else { rejaliRef.current = r.qolgan; setRejali(r.qolgan); }
-      if (r.xato) {
-        setXato(`${jami - r.qolgan.length}/${jami} ${t('ta o‘zgarish yozildi, keyin to‘xtadi')}: ${r.xato}. ${t('Qolganlari qoralamada saqlangan — «Saqlash»ni qayta bosing.')}`);
-        return false;
-      }
-      setHolat(`${jami} ${t('ta o‘zgarish yozildi. Akt tuzilmoqda…')}`);
-      return true;
+      const yozildi = jami - r.qolgan.length;
+      if (r.xato) return { ok: false, yozildi, xato: `${yozildi}/${jami} ${t('ta o‘zgarish yozildi, keyin to‘xtadi')}: ${r.xato}. ${t('Qolganlari qoralamada saqlangan.')}` };
+      return { ok: true, yozildi };
     } finally { setBusy(false); }
   }
   // Rejali yozilgach state yangilanadi (haqiqiy id lar) — shundan keyin akt avtomatik saqlanadi.
@@ -611,26 +647,76 @@ function Sessiya({ companyId }: { companyId: number }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [davomEt, busy, rejali]);
 
+  /** «F2 ni yozish»: ish davomidagi barcha qoralama amallari shu yerda, qadam-baqadam, ko'rinib turgan holda yoziladi. */
   async function saqla() {
-    if (!akt || !ind || !yozish || !payload || payload.error || busy || done || saqlashBlok) return;
-    if (rejaliRef.current.length) { if (await rejaliniQolla()) setDavomEt(true); return; }
-    setBusy(true); setXato(''); setAktZiddiyat(false); setHolat('Manba fayl saqlanmoqda…');
+    if (!akt || !ind || !yozish || !payload || busy || done) return;
+    setJarayon((old) => old ?? BOSH_QADAMLAR());
+    setXato(''); setAktZiddiyat(false);
+    // 1. Tekshiruv
+    qadam('tekshiruv', 'ishlayapti');
+    if (payload.error) { qadam('tekshiruv', 'xato', payload.error); return; }
+    if (saqlashBlok) {
+      qadam('tekshiruv', 'xato', takrorTekshirilmoqda ? t('Avvalgi F2 tekshirilmoqda — bir lahzadan so‘ng qayta urinib ko‘ring.')
+        : t('Bu obyekt va oy uchun tasdiqlangan F2 bor — yangi akt yozilmaydi. F2 tarixini oching.'));
+      return;
+    }
+    qadam('tekshiruv', 'tayyor', `${payload.rows.length} ${t('qator aktga kiradi')}${yozish.qolgan.length ? `; ${yozish.qolgan.length} ${t('tasi kiritilmaydi (bog‘lanmagan)')}` : ''}`);
+    // 2. Qo'shimcha/zamenalar (qoralamadagi) — avval ular, chunki akt ularning haqiqiy id lariga bog'lanadi.
+    let ochirildi = 0;
+    if (ochirishRef.current.length) {
+      const jami = ochirishRef.current.length;
+      qadam('ozgarish', 'ishlayapti', `${t('O‘chirish')} 0/${jami}`);
+      setBusy(true);
+      try {
+        let i = 0;
+        for (const o of [...ochirishRef.current]) {
+          const res = await ishAbcOchir({ kompaniyaId: companyId, obyektId: Number(objectId), qatorId: o.qatorId, kutilganVersiya: o.versiya, sabab: o.sabab, operationId: o.operationId });
+          if (!res.ok) { qadam('ozgarish', 'xato', `«${o.nom.slice(0, 60)}»: ${abcXato(res)}`); return; }
+          const yashir = new Set(o.eskiIdlar);
+          setRows((old) => old.filter((r) => !yashir.has(r.id)));
+          ochirishRef.current = ochirishRef.current.filter((x) => x.qatorId !== o.qatorId);
+          setOchirish(ochirishRef.current);
+          qadam('ozgarish', 'ishlayapti', `${t('O‘chirish')} ${++i}/${jami}`);
+        }
+        ochirildi = jami;
+      } catch (e) { qadam('ozgarish', 'xato', e instanceof Error ? e.message : t('Javob olinmadi.')); return; }
+      finally { setBusy(false); }
+    }
+    if (rejaliRef.current.length) {
+      const n = rejaliRef.current.length;
+      qadam('ozgarish', 'ishlayapti', `0/${n}`);
+      const r = await rejaliniQolla();
+      if (!r.ok) { qadam('ozgarish', 'xato', r.xato); return; }
+      qadam('ozgarish', 'tayyor', `${r.yozildi} ${t('ta yozildi')}`);
+      setDavomEt(true); // smeta yangilangach akt davom etadi
+      return;
+    }
+    setJarayon((old) => (old ?? BOSH_QADAMLAR()).map((q) => (q.id === 'ozgarish' && (q.holat === 'kutish' || q.holat === 'ishlayapti') ? (ochirildi ? { ...q, holat: 'tayyor', izoh: `${ochirildi} ${t('ta qator o‘chirildi')}` } : { ...q, holat: 'otkazildi', izoh: t('Qo‘shimcha/zamena yo‘q') }) : q)));
+    setBusy(true);
     try {
-      const docId = await r2gaYukla();
-      // До финансового черновика сохраняем ВСЕ строки/решения, включая неразрешённые минусы.
+      // 3. Manba fayl
+      qadam('fayl', 'ishlayapti');
+      let docId: number;
+      try { docId = await r2gaYukla(); qadam('fayl', 'tayyor'); }
+      catch (e) { qadam('fayl', 'xato', e instanceof Error ? e.message : t('Fayl saqlanmadi.')); return; }
+      // 4. Ish qoralamasi (bog'lanmagan va minus qatorlar ham) — aktdan OLDIN.
+      qadam('qoralama', 'ishlayapti');
       const draft = ishSnapshot();
-      if (!draft) throw new Error('F2 ish holati topilmadi.');
+      if (!draft) { qadam('qoralama', 'xato', t('F2 ish holati topilmadi.')); return; }
       draft.source.documentId = docId;
       try { await f2ServerSaqla(draft, docId, serverDraft.current); }
-      finally { serverDraft.current = draft.server; await ishniSaqla(draft); }
+      catch (e) { serverDraft.current = draft.server; await ishniSaqla(draft); qadam('qoralama', 'xato', e instanceof Error ? e.message : t('Server qoralamasi saqlanmadi.')); return; }
+      serverDraft.current = draft.server; await ishniSaqla(draft);
       setServerId(String(draft.server!.jobId));
-      setHolat('F2 qoralamasi yozilmoqda…');
+      qadam('qoralama', 'tayyor', `#${draft.server!.jobId}`);
+      // 5. Akt
+      qadam('akt', 'ishlayapti', mavjudQoralama ? `${t('Mavjud qoralama yangilanmoqda')} #${mavjudQoralama.id}` : undefined);
       const manba = new Map<number, Array<Record<string, unknown>>>();
       for (const n of yozish.nodes) {
         const id = yozish.mapping.get(n.uid)!;
-        const t = ind.byUid.get(n.uid)!;
+        const tg = ind.byUid.get(n.uid)!;
         const a = manba.get(id) ?? [];
-        a.push({ uid: n.uid, imzo: yozish.imzolar.get(n.uid), kod: t.kod, nom: t.nom, birlik: t.birlik, hajm: t.hajm, narx: t.narx, summa: t.summa, bog: ij?.bog.get(n.uid)?.usul });
+        a.push({ uid: n.uid, imzo: yozish.imzolar.get(n.uid), kod: tg.kod, nom: tg.nom, birlik: tg.birlik, hajm: tg.hajm, narx: tg.narx, summa: tg.summa, bog: ij?.bog.get(n.uid)?.usul });
         manba.set(id, a);
       }
       const qatorlar = payload.rows.map((q) => ({
@@ -642,23 +728,24 @@ function Sessiya({ companyId }: { companyId: number }) {
         ? await sbT2F2QoralamaYangila({ kompaniyaId: companyId, aktId: mavjudQoralama.id, kutilganVersiya: mavjudQoralama.versiya, operationId: yangiOperationId(), qatorlar })
         : await sbT2AktYaratV2({ obyektId: Number(objectId), oy: davr + '-01', operationId: operation.current, qatorlar });
       if (!r.ok) {
-        if ((r as { code?: string }).code === 'F2_ACT_NUMBER_CONFLICT') {
-          setAktZiddiyat(true);
-          setXato('Shu obyekt va oy uchun bu raqamdagi F2 allaqachon mavjud. Tanlovlaringiz ish qoralamasida saqlangan. Tasdiqlangan aktni qayta import bilan almashtirib bo‘lmaydi.');
-        } else if ((r as { code?: string }).code === 'STALE_VERSION') {
-          setTekshiruv((v) => v + 1);
-          setXato('F2 qoralama boshqa joyda o‘zgargan. Yangi holati o‘qildi — «Saqlash»ni yana bosing. Bog‘lanishlar saqlangan.');
-        } else setXato(`Hujjat saqlanmadi: ${r.xabar || r.error || r.sabab || 'xato'}. Tanlovni o‘zgartirmasdan qayta urinish mumkin.`);
+        const code = (r as { code?: string }).code;
+        if (code === 'F2_ACT_NUMBER_CONFLICT') {
+          const m = t('Shu obyekt va oy uchun bu raqamdagi F2 allaqachon mavjud. Tasdiqlangan aktni qayta import bilan almashtirib bo‘lmaydi.');
+          setAktZiddiyat(true); setXato(m); qadam('akt', 'xato', m);
+        }
+        else if (code === 'STALE_VERSION') { setTekshiruv((v) => v + 1); qadam('akt', 'xato', t('F2 qoralama boshqa joyda o‘zgargan — yangi holati o‘qildi, «Qayta urinish»ni bosing.')); }
+        else qadam('akt', 'xato', `${r.xabar || r.error || r.sabab || t('xato')}`);
         return;
       }
       setTekshiruv((v) => v + 1);
+      qadam('akt', 'tayyor', `#${r.akt_id ?? '?'} · ${payload.rows.length} ${t('qator')}`);
       setDone(`F2 qoralamasi ${mavjudQoralama ? 'yangilandi' : 'saqlandi'} (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.`);
       if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida va server ish qoralamasi #${draft.server!.jobId} da saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
       setHolat('Tayyor.');
-    } catch (e) { setXato(e instanceof Error ? e.message : 'Yozish javobi olinmadi — qayta urinish ayni operatsiyani tekshiradi.'); }
-    finally { setBusy(false); }
+    } catch (e) {
+      setJarayon((old) => (old ?? BOSH_QADAMLAR()).map((q) => (q.holat === 'ishlayapti' ? { ...q, holat: 'xato', izoh: e instanceof Error ? e.message : t('Yozish javobi olinmadi — qayta urinish ayni operatsiyani tekshiradi.') } : q)));
+    } finally { setBusy(false); }
   }
-
   const jamiFarq = akt && akt.jami.pryamye != null ? akt.qatorlarJami - akt.jami.pryamye : null;
   const jamiFarqFoiz = jamiFarq != null && akt?.jami.pryamye != null && Math.abs(akt.jami.pryamye) > 0.005
     ? jamiFarq / Math.abs(akt.jami.pryamye) * 100
@@ -670,19 +757,31 @@ function Sessiya({ companyId }: { companyId: number }) {
         <h1 className="text-lg font-semibold sm:text-xl">{t('F2 import')}</h1>
         <p role="status" className="text-[13px] text-text-dim">{holat}</p>
       </div>
-      <section className="karta space-y-2 p-3" aria-label={t('Ish holati')}>
-        <p className="text-[12px]">{ishSaqlandi || t('Bog‘lash jarayoni avtomatik shu kompyuter va brauzerda saqlanadi. Brauzer ma’lumotlarini tozalamang.')}</p>
-        {ishXato && <p role="alert" className="text-danger">{ishXato} {t('Saqlanganini tasdiqlamaguncha sahifani yopmang.')}</p>}
-        {ij && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniSaqla()}>{t('Ish holatini saqlash (davom ettirish uchun)')}</button>}
-        {ij && !done && <button type="button" className="tugma" disabled={busy} onClick={() => void servergaSaqla()}>{t('Server ish holatini saqlash')}</button>}
-        {serverHolat && <p role="status">{serverHolat}</p>}
-        {!ij && <label className="block text-[12px]">{t('Server qoralamasi raqami')}
-          <input aria-label={t('Server qoralamasi raqami')} type="number" min="1" value={serverId} onChange={(e) => setServerId(e.target.value)} className="input mx-2" />
-          <button type="button" className="tugma" disabled={busy || !serverId} onClick={() => void serverdanTikla()}>{t('Serverdagi qoralamani davom ettirish')}</button>
-        </label>}
-        {!ij && saqlanganIsh && objects.some((o) => o.id === saqlanganIsh.objectId) && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniTikla()}>
+      <section className="karta flex flex-wrap items-center gap-2 p-2 text-[12px]" aria-label={t('Ish holati')}>
+        <ol className="flex flex-wrap items-center gap-1" aria-label={t('Qadamlar')}>
+          {[t('1. Obyekt va F2 fayl'), t('2. Bog‘lash (hammasi qoralamada)'), t('3. F2 ni yozish')].map((nom, i) => {
+            const joriy = !akt || !ij ? 0 : done ? 2 : 1;
+            return <li key={nom} aria-current={i === joriy ? 'step' : undefined}
+              className={`rounded-full px-2 py-0.5 ${i === joriy ? 'bg-accent text-white' : i < joriy ? 'bg-ok/15 text-ok' : 'bg-surface-2 text-text-dim'}`}>{i < joriy ? '✓ ' : ''}{nom}</li>;
+          })}
+        </ol>
+        <span className="ml-auto text-text-dim">{ishSaqlandi || t('Ish shu brauzerda avtomatik saqlanadi.')}</span>
+        {ishXato && <p role="alert" className="w-full text-danger">{ishXato} {t('Saqlanganini tasdiqlamaguncha sahifani yopmang.')}</p>}
+        {!ij && saqlanganIsh && objects.some((o) => o.id === saqlanganIsh.objectId) && <button type="button" className="tugma tugma-asosiy" disabled={busy} onClick={() => void ishniTikla()}>
           {t('Saqlangan ishni davom ettirish:')} {saqlanganIsh.source.name} · {saqlanganIsh.davr}
         </button>}
+        <details className="w-full">
+          <summary className="cursor-pointer text-text-dim">{t('Boshqa kompyuterda davom ettirish')}</summary>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {ij && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniSaqla()}>{t('Ish holatini saqlash (davom ettirish uchun)')}</button>}
+            {ij && !done && <button type="button" className="tugma" disabled={busy} onClick={() => void servergaSaqla()}>{t('Server ish holatini saqlash')}</button>}
+            {!ij && <label className="block text-[12px]">{t('Server qoralamasi raqami')}
+              <input aria-label={t('Server qoralamasi raqami')} type="number" min="1" value={serverId} onChange={(e) => setServerId(e.target.value)} className="input mx-2" />
+              <button type="button" className="tugma" disabled={busy || !serverId} onClick={() => void serverdanTikla()}>{t('Serverdagi qoralamani davom ettirish')}</button>
+            </label>}
+          </div>
+        </details>
+        {serverHolat && <p role="status" className="w-full">{serverHolat}</p>}
       </section>
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block text-[12px] font-medium text-text">{t('Obyekt')}
@@ -771,47 +870,63 @@ function Sessiya({ companyId }: { companyId: number }) {
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
-      {akt && ij && <section className="karta flex flex-wrap items-center gap-3 border border-accent/30 p-3" aria-label={t('Moslashtirish')}>
-        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
-        <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
-        <p className="min-w-0 flex-1 text-[12px] text-text-dim">{t('Faqat ishonchli mosliklar bog‘lanadi. Noaniq variantlarni siz tasdiqlaysiz. Qo‘lda tasdiqlangan bog‘lanishlar saqlanadi.')}</p>
-      </section>}
-
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
           ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
-          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
+          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
       )}
 
+      {ochirish.length > 0 && <section className="karta space-y-1 border border-rose-500/40 bg-rose-500/5 p-3 text-[12px]" aria-label={t('O‘chirishga belgilangan')}>
+        <p className="font-semibold text-text">🗑 {ochirish.length} {t('ta qator o‘chirishga belgilangan — «F2 ni yozish» bosilganda o‘chiriladi.')}</p>
+        <ul className="max-h-32 space-y-0.5 overflow-auto">{ochirish.map((o) => <li key={o.qatorId} className="flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate line-through decoration-rose-500/70">{o.nom}</span>
+          <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy} onClick={() => ochirishniBekor(o.qatorId)}>{t('Bekor qilish')}</button>
+        </li>)}</ul>
+      </section>}
       {rejali.length > 0 && <section className="karta space-y-1 border border-sky-500/40 bg-sky-500/5 p-3 text-[12px]" aria-label={t('Saqlanmagan o‘zgarishlar')}>
         <p className="font-semibold text-text">⏳ {rejali.length} {t('ta qo‘shimcha/zamena qoralamada — «Saqlash» bosilganda hammasi bittada yoziladi.')}</p>
         <ul className="max-h-40 space-y-0.5 overflow-auto">{rejali.map((b) => <li key={b.tempId} className="flex items-center gap-2">
-          <span className={`rounded px-1 text-[10px] font-semibold ${b.kind === 'replacement' ? 'bg-amber-500/25' : 'bg-emerald-500/25'}`}>{b.kind === 'replacement' ? t('zamena') : b.kind === 'resource' ? t('resurs') : t('qo‘shimcha')}</span>
+          <span className={`rounded px-1 text-[10px] font-semibold ${b.kind === 'replacement' || b.kind === 'resurs_ish' ? 'bg-amber-500/25' : 'bg-emerald-500/25'}`}>{b.kind === 'replacement' || b.kind === 'resurs_ish' ? t('zamena') : b.kind === 'resource' ? t('resurs') : t('qo‘shimcha')}</span>
           <span className="min-w-0 flex-1 truncate">{b.nom} · {b.hajm ?? '—'} {b.birlik}{b.resurslar.length ? ` · ${b.resurslar.length} ${t('resurs')}` : ''}</span>
           <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy} onClick={() => onRejaliOchir(b.tempId)} aria-label={`${t('Olib tashlash')}: ${b.nom}`}>✕</button>
         </li>)}</ul>
       </section>}
 
-      {yozish && (
-        <section className="karta space-y-2 p-3" aria-label="Saqlash">
-          {!!yozish.qolgan.length && <p role="alert" className="text-[12px] text-warn">{t('Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.')} ({yozish.qolgan.length})</p>}
-          {!!yozish.qolgan.length && <details className="text-[12px] text-warn"><summary>{t('Aktga kiritilmaydigan qatorlar')}</summary>
+      {yozish && (yozish.qolgan.length > 0 || yozish.toxtatish.length > 0 || payload?.error) && (
+        <section className="karta space-y-2 p-3" aria-label={t('Aktga kirmaydiganlar')}>
+          {!!yozish.qolgan.length && <details className="text-[12px] text-warn"><summary>{t('Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.')} ({yozish.qolgan.length})</summary>
             <ul>{yozish.qolgan.map((n) => <li key={n.uid}>{n.manzil.varaq}!{n.manzil.qator} · {n.nom} · {fmt(n.hajm)} {n.birlik}</li>)}</ul>
           </details>}
           {akt && ij && ind?.qatorlar.some((q) => q.hajm != null && q.hajm < 0 && !ij.bog.has(q.uid) && !ij.otkaz.has(q.uid)) && <button type="button" className="tugma" disabled={busy || !!done} onClick={() => {
             const result = f2MinusTaklif(akt, ij); ijOzgar(result.ij);
             setHolat(`${result.soni} ta minus qator uchun ayni aktdagi aniq bog‘lanish asosida taklif berildi. Har birini tekshirib tasdiqlang; boshqa qatorlarni qo‘lda bog‘lang.`);
           }}>{t('Minus qatorlarga bog‘lanish taklif qilish')}</button>}
-          {yozish.toxtatish.map((t, i) => <p key={i} className="text-[12px] text-warn">{t}</p>)}
+          {yozish.toxtatish.map((m, i) => <p key={i} className="text-[12px] text-warn">{m}</p>)}
           {payload?.error && <p role="alert" className="text-[12px] text-danger">{payload.error}</p>}
-          {done ? <p className="text-[13px] text-ok">{done}</p> : (
-            <button type="button" className="tugma tugma-asosiy" disabled={busy || !payload || !!payload.error || saqlashBlok}
+        </section>
+      )}
+
+      {akt && ij && (
+        <section className="karta sticky bottom-0 z-20 flex flex-wrap items-center gap-3 border border-accent/40 p-3 shadow-lg" aria-label={t('Moslashtirish')}>
+          <button type="button" className="tugma" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+          <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
+          <span className="flex flex-wrap gap-x-3 text-[12px] text-text-dim" aria-label={t('Holat')}>
+            <span className="text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}</span>
+            {taklifSoni > 0 && <span className="text-warn">◐ {taklifSoni} {t('tasdiq kutmoqda')}</span>}
+            {!!yozish?.qolgan.length && <span>✕ {yozish.qolgan.length} {t('kiritilmaydi')}</span>}
+            {rejali.length + ochirish.length > 0 && <span className="text-sky-600 dark:text-sky-300">⏳ {rejali.length + ochirish.length} {t('o‘zgarish qoralamada')}</span>}
+          </span>
+          {done ? (!jarayon && <p className="ml-auto text-[13px] text-ok">{done}</p>) : (
+            <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy || !payload || saqlashBlok}
               onClick={() => void saqla()}>
-              {t('F2 qoralama aktini saqlash')}{payload && !payload.error ? ` (${payload.rows.length} qator)` : ''}{rejali.length ? ` + ${rejali.length} ${t('o‘zgarish')}` : ''}
+              {t('F2 ni yozish')}{payload && !payload.error ? ` (${payload.rows.length} ${t('qator')}${rejali.length + ochirish.length ? ` + ${rejali.length + ochirish.length} ${t('o‘zgarish')}` : ''})` : ''}
             </button>
           )}
         </section>
       )}
+
+      {jarayon && <F2YozishOynasi qadamlar={jarayon} natija={done} band={busy || davomEt}
+        onQayta={() => void saqla()} onYop={() => setJarayon(null)} />}
     </section>
   );
 }
