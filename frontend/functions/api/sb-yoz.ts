@@ -46,6 +46,8 @@ const AMALLAR = {
   qator_ish_abc_tahrir_v2: { rpc: 't2_ish_abc_tahrir_v2' },
   /* Egasi 2026-10-18: smeta resursi o'rniga ish(lar) (ГПС → qazib olish + tashish) — asl resurs o‘zgarmaydi. */
   qator_resurs_ish_zamena_v1: { rpc: 't2_resurs_ish_zamena_v1' },
+  /* Egasi 2026-10-21: smetaga bo'lim (razdel) yaratish; o'chirish — qator_ish_abc_ochir_v2 (qo'shilgan qator). */
+  smeta_bolim_yarat_v1: { rpc: 't2_smeta_bolim_yarat_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-10-20: fayl menejeri — o'z papkalari, ko'rinadigan nom, ko'chirish, savat (kanonik hujjat o'zgarmaydi). */
@@ -597,6 +599,16 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'Paket, usul va operatsiya talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_paket_kod: String(so.paket_kod), p_usul: String(so.usul), p_tolov_malumot: String(so.tolov_malumot || '').slice(0, 300), p_operation_id: so.operation_id };
+    } else if (amal === 'smeta_bolim_yarat_v1') {
+      const ixt = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      const nom = typeof so.nom === 'string' ? so.nom.replace(/\s+/g, ' ').trim() : '';
+      const ota = ixt(so.ota_qator_id), keyin = ixt(so.keyin_qator_id);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.obyekt_id))
+          || !nom || nom.length > 300 || (ota != null && !Number.isSafeInteger(ota)) || (keyin != null && !Number.isSafeInteger(keyin))) {
+        return Response.json({ ok: false, code: 'NOM_REQUIRED', error: 'Bo‘lim: obyekt, nom (1–300 belgi) va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_nom: nom,
+        p_ota_qator_id: ota, p_keyin_qator_id: keyin, p_sabab: so.sabab ? String(so.sabab).slice(0, 500) : null, p_operation_id: so.operation_id };
     } else if (amal === 'm29_bajar_v1') {
       const q = so.qatorlar;
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.obyekt_id))

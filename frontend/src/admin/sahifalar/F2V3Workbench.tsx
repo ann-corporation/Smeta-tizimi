@@ -105,6 +105,8 @@ export interface F2V3WorkbenchProps {
   /** Berilsa — siz qo'shgan qatorni TAHRIRLASH ham qoralamaga: eskisi o'chiriladi, yangisi «F2 ni yozish» da yoziladi. Vaqtinchalik id qaytaradi. */
   onTahrirRejali?: (b: { eski: { qatorId: number; versiya: number; eskiIdlar: number[]; nom: string }; command: 'additional' | 'replacement' | 'resurs_zamena' | 'resurs_ish';
     otaQatorId: number | null; almashtirilayotganQatorId?: number | null; resursQatorId?: number | null; ish: unknown; resurslar: unknown[]; sabab: string; operationId: string }) => number | null;
+  /** Smetaga yangi bo'lim (qoralamaga). otaQatorId null — yuqori daraja. Vaqtinchalik id yoki null (nom noto'g'ri). */
+  onBolimRejali?: (nom: string, otaQatorId: number | null, keyinQatorId?: number) => number | null;
   disabled?: boolean;
 }
 
@@ -162,7 +164,9 @@ function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: {
  * tor oynada gorizontal aylantiriladi (Excel kabi), sarlavha yopishqoq.
  */
 const F2_GRID = 'f2-grid grid grid-cols-[26px_88px_minmax(180px,1fr)_56px_72px_52px_76px_96px_96px]';
-const S_GRID = 'smeta-grid grid grid-cols-[88px_minmax(180px,1fr)_56px_72px_52px_76px_80px_100px]';
+const S_GRID = 'smeta-grid grid grid-cols-[22px_88px_minmax(180px,1fr)_56px_72px_52px_76px_80px_100px]';
+/** Smeta bo'limi qatori: belgi · nom · amallar. */
+const S_RZ_GRID = 'grid grid-cols-[22px_minmax(180px,1fr)_auto]';
 const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
 /** Amal ustuni gorizontal aylantirishda ham o'ngda ko'rinib turadi (egasi sinovi: tugmalar kesilib qolardi). */
 /** Egasi 2026-10-06: har bir ish va uning resurslari massivi alohida chegarada ko'rinsin (ikkala panelda bir xil).
@@ -191,7 +195,7 @@ function JadvalSarlavha({ tur }: { tur: 'f2' | 'smeta' }) {
   const u = 'border-b border-r border-border px-1.5 py-1.5';
   return (
     <div className={`${tur === 'f2' ? F2_GRID : S_GRID} sticky top-0 z-10 bg-surface-2 text-[10.5px] font-semibold uppercase tracking-wide text-text-dim`}>
-      {tur === 'f2' && <span className={`${u} text-center`} title="Holat">●</span>}
+      {tur === 'f2' ? <span className={`${u} text-center`} title="Holat">●</span> : <span className={`${u} text-center`} title={tarj('Belgilash')}>☐</span>}
       <span className={u}>{t('Shifr / kod')}</span><span className={u}>{t('Nomi')}</span>
       <span className={`${u} text-right`}>{t('Norma')}</span><span className={`${u} text-right`}>{t('Miqdor')}</span><span className={u}>{t('Birlik')}</span>
       <span className={`${u} text-right`}>Narx</span><span className={`${u} text-right`}>{tur === 'f2' ? 'Summa' : 'Qoldiq'}</span>
@@ -210,6 +214,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const [belgi, setBelgi] = useState<ReadonlySet<string>>(new Set());
   const oxirgiBelgi = useRef<string | null>(null);
   useEffect(() => { setBelgi(new Set()); oxirgiBelgi.current = null; }, [p.akt]);
+  // Egasi 2026-10-21: «smeta va F2 tarafda bir xil funksiyalar kerak — qatorlarni smeta tarafda tanlab bo'lmaydi».
+  const [sBelgi, setSBelgi] = useState<ReadonlySet<number>>(new Set());
+  const oxirgiSBelgi = useRef<number | null>(null);
   const [tafsilot, setTafsilot] = useState(false);
   const [panellar, setPanellar] = useState<'teng' | 'f2' | 'smeta' | 'ustma'>('teng');
   const [ochiqS, setOchiqS] = useState<Set<number>>(new Set());
@@ -291,7 +298,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (id < 0) { p.onRejaliOchir?.(id); xab('Saqlanmagan qator qoralamadan olib tashlandi.'); return; }
     const r = p.raw.get(id);
     if (!r || !qoshilganmi(r)) { xab('Bu qator smetadan — o‘chirilmaydi. Faqat siz qo‘shgan qatorlar o‘chiriladi.'); return; }
-    const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi. Smetadagi qator summasi: ${r.summa == null ? 'noma’lum' : fmt(r.summa, 2)}.\nSabab (ixtiyoriy):`, '');
+    const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : r.tur === 'rz' ? 'Bo‘lim va uning ichidagi barcha qatorlar o‘chiriladi (arxivda saqlanadi).' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi. Smetadagi qator summasi: ${r.summa == null ? 'noma’lum' : fmt(r.summa, 2)}.\nSabab (ixtiyoriy):`, '');
     if (sabab === null) return;
     const eskiIdlar = pastdagiIdlar(id);
     if (p.onOchirishRejali) {
@@ -511,6 +518,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         // Egasi 2026-10-18: ish smeta RESURSIGA tashlansa — "shu resurs o'rniga ish" (masalan ГПС ni buyurtmachi bergan:
         // material olinmaydi, qazib olish va tashish ishlari olinadi).
         if (qoshilganmi(p.raw.get(s.id))) { xab('Bu resursni o‘zingiz qo‘shgansiz — uni tahrirlang yoki o‘chiring.'); return; }
+        // Egasi 2026-10-21: F2 da resurssiz «ish» qatori aslida material (masalan ПК → ПБ plita). Uni smeta resursiga
+        // tashlash — material bog'lash/zamenasi; «resurs o'rniga ish» (karyer) faqat resurslari bor ish uchun.
+        if (!f.bolalar.length) {
+          if (aynanBirXil(f, s)) { p.onIj(bogla(ij, f.uid, s.id)); xab(`«${f.nom.slice(0, 50)}» bog‘landi.`); return; }
+          setTanlov({ f, s, tur: 'resurs' });
+          return;
+        }
         setTanlov({ f, s, tur: 'ish_resurs' });
         return;
       }
@@ -739,10 +753,73 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     );
   }
 
+  /** Smeta tomonda belgilash — F2 dagi bilan bir xil: bosish — belgilash, Shift — oraliq. */
+  function sBelgiBos(id: number, oraliq: boolean) {
+    const a = oxirgiSBelgi.current; // setState yangilovchisi kechikib ishlashi mumkin — oldingi belgi hozir olinadi
+    setSBelgi((old) => {
+      const n = new Set(old);
+      if (oraliq && a != null && a !== id) {
+        const idlar = smetaVisibleRows.map((r) => r.node.id);
+        const [i, j] = [idlar.indexOf(a), idlar.indexOf(id)].sort((x, y) => x - y);
+        if (i >= 0) for (const x of idlar.slice(i, j + 1)) n.add(x);
+      } else if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+    oxirgiSBelgi.current = id;
+  }
+  /** Yangi bo'lim (qoralamaga): ota null — smetaning yuqori darajasi; keyin — shu darajadagi bo'limdan keyin. */
+  function yangiBolim(ota: SmetaQator | null, keyin?: SmetaQator) {
+    if (!p.onBolimRejali || p.disabled || mutationBusy) return;
+    const nom = window.prompt(ota ? `«${(ota.nom ?? '').slice(0, 60)}» ${tarj('ichida yangi bo‘lim nomi:')}` : tarj('Yangi bo‘lim nomi:'), '');
+    if (nom == null) return;
+    const id = p.onBolimRejali(nom, ota?.id ?? null, keyin?.id);
+    if (id == null) { xab(tarj('Bo‘lim nomini yozing (1–300 belgi).')); return; }
+    if (ota) setOchiqS((o) => new Set(o).add(ota.id));
+    smetaFokus.current = id;
+    xab(`«${nom.trim().slice(0, 50)}» ${tarj('bo‘limi qoralamaga qo‘shildi — «F2 ni yozish» bosilganda yoziladi.')}`);
+  }
+  /** Belgilangan smeta qatorlari ichida otasi ham belgilanganlar alohida hisoblanmaydi (ota bilan birga ketadi). */
+  function sBelgiIldizlar(): number[] {
+    const ichida = (id: number) => { for (let t = S.byId.get(id)?.otaId ?? null; t != null; t = S.byId.get(t)?.otaId ?? null) if (sBelgi.has(t)) return true; return false; };
+    return [...sBelgi].filter((id) => S.byId.has(id) && !ichida(id));
+  }
+  /** Belgilangan QO'SHILGAN qatorlar (bo'limlar ham) — o'chirishga (qoralamaga). Asl smeta qatorlari o'zgarmaydi. */
+  function sOmmaviyOchir() {
+    if (p.disabled || mutationBusy) return;
+    const ildiz = sBelgiIldizlar();
+    const asl = ildiz.filter((id) => id > 0 && !qoshilganmi(p.raw.get(id)));
+    const olinadi = ildiz.filter((id) => !asl.includes(id));
+    if (!olinadi.length) { xab(tarj('Belgilanganlar orasida siz qo‘shgan qator yo‘q — smetaning asl qatorlari o‘chirilmaydi.')); return; }
+    if (!window.confirm(`${olinadi.length} ${tarj('ta qo‘shilgan qator (ichidagilari bilan) o‘chirishga belgilansinmi? «F2 ni yozish» bosilganda o‘chiriladi, arxivda qoladi.')}${asl.length ? ` ${asl.length} ${tarj('ta asl smeta qatori o‘tkazib yuboriladi.')}` : ''}`)) return;
+    let n = 0;
+    for (const id of olinadi) {
+      if (id < 0) { if (p.onRejaliOchir) { p.onRejaliOchir(id); n++; } continue; }
+      const r = p.raw.get(id);
+      if (!r || !p.onOchirishRejali) continue;
+      p.onOchirishRejali({ qatorId: id, versiya: r.versiya, eskiIdlar: pastdagiIdlar(id), nom: r.nom ?? '', sabab: 'F2 import: ommaviy o‘chirish' });
+      n++;
+    }
+    setSBelgi(new Set());
+    xab(`${n} ${tarj('ta qator o‘chirishga belgilandi. Bo‘shagan F2 qatorlarini qayta bog‘lang.')}${asl.length ? ` ${asl.length} ${tarj('ta asl smeta qatori o‘tkazib yuborildi.')}` : ''}`);
+  }
+  /** Belgilangan smeta qatorlariga (va ichidagilariga) bog'langan barcha F2 qatorlarini uzish — bitta «Orqaga» qadami. */
+  function sOmmaviyUz() {
+    const idlar = new Set<number>();
+    for (const id of sBelgi) for (const x of pastdagiIdlar(id)) idlar.add(x);
+    let next = ij; let n = 0;
+    for (const [uid, b] of ij.bog) {
+      if (!idlar.has(b.qatorId)) continue;
+      const tg = ind.byUid.get(uid);
+      if (tg && next.bog.has(uid)) { next = uz(next, tg); n++; }
+    }
+    if (n) p.onIj(next);
+    setSBelgi(new Set());
+    xab(n ? `${n} ${tarj('ta F2 qatorining bog‘lanishi uzildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}` : tarj('Belgilangan smeta qatorlariga bog‘langan F2 qatori yo‘q.'));
+  }
   function belgiBos(uid: string, oraliq: boolean) {
+    const a = oxirgiBelgi.current; // setState yangilovchisi kechikib ishlashi mumkin — oldingi belgi hozir olinadi
     setBelgi((old) => {
       const n = new Set(old);
-      const a = oxirgiBelgi.current;
       if (oraliq && a && a !== uid) {
         const uidlar = f2VisibleRows.map((r) => r.node.uid);
         const [i, j] = [uidlar.indexOf(a), uidlar.indexOf(uid)].sort((x, y) => x - y);
@@ -971,6 +1048,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (!ish) { xab('Qo‘shimcha resursni smeta ISHI ichiga (resurslari orasiga) torting.'); return; }
     ochModal(f, { kind: 'resource', parent: p.raw.get(ish.id)!, keyinId: langar!.id });
   }
+  function sBelgiKatak(s: SmetaQator) {
+    const on = sBelgi.has(s.id);
+    return <button type="button" aria-pressed={on} aria-label={`${tarj('Smetada belgilash')}: ${s.nom ?? ''}`} onClick={(e) => { e.stopPropagation(); sBelgiBos(s.id, e.shiftKey); }}
+      className={`${KATAK} flex items-start justify-center text-[12px] ${on ? 'bg-accent text-white' : 'text-text-mute hover:bg-surface-2'}`}
+      title={tarj('bosing: belgilash (Shift: oraliq)')}>{on ? '☑' : '☐'}</button>;
+  }
   function smetaQator(s: SmetaQator, depth: number, tekis = false): React.ReactNode {
     const bolalar = S.bolalar.get(s.id) ?? [];
     const ochiq = !tekis && ochiqS.has(s.id);
@@ -990,7 +1073,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     if (s.tur === 'rz') {
       return (
-        <div data-sid={s.id} {...dropProps(s)} className={`grid grid-cols-[minmax(180px,1fr)_88px] text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}${oraliq}`}>
+        <div data-sid={s.id} {...dropProps(s)} className={`${S_RZ_GRID} text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}${oraliq}`}>
+          {sBelgiKatak(s)}
           <div className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}>
             {chevron}
           <button type="button" className="flex min-w-0 flex-1 items-center text-left"
@@ -999,9 +1083,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             <span className="ml-2 shrink-0 text-[10px] font-normal normal-case text-text-mute">{bolalar.length} ichki qator</span>
           </button>
           </div>
-          <span className={`${KATAK} font-normal`}>
+          <span className={`${KATAK} flex flex-wrap items-center justify-end gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
             {tTugun?.tur === 'bl' && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
               onClick={() => tashla(tTugun.uid, s.id)} title="Tanlangan F2 ishini shu razdelga qo‘shimcha ish sifatida qo‘shish">＋ Qo‘shimcha</button>}
+            {p.onBolimRejali && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => yangiBolim(s)}
+              aria-label={`${tarj('Ichida yangi bo‘lim')}: ${s.nom}`} title={tarj('Shu bo‘lim ichida yangi bo‘lim')}>＋ {tarj('Ichki bo‘lim')}</button>}
+            {p.onBolimRejali && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => yangiBolim(s.otaId != null ? S.byId.get(s.otaId) ?? null : null, s)}
+              aria-label={`${tarj('Keyin yangi bo‘lim')}: ${s.nom}`} title={tarj('Shu bo‘limdan keyin, xuddi shu darajada yangi bo‘lim')}>＋ {tarj('Bo‘lim')}</button>}
+            {(s.id < 0 || qoshilganmi(p.raw.get(s.id))) && <button type="button" className={`${tugma} text-danger`} disabled={(p.disabled || mutationBusy)}
+              onClick={() => void qoshilganOchir(s.id)} aria-label={`${tarj('Bo‘limni o‘chirish')}: ${s.nom}`}
+              title={tarj('Siz qo‘shgan bo‘limni ichidagilari bilan o‘chirish (asl smeta bo‘limlari o‘chirilmaydi)')}><Trash2 size={11} /></button>}
           </span>
         </div>
       );
@@ -1016,6 +1107,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       <div data-sid={s.id} data-qator-turi={tur} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} ${rang.chegara} `
         + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : rang.fon ? `${rang.fon} hover:brightness-110` : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
         + (oraliq || ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA))}>
+        {sBelgiKatak(s)}
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <div className={`${KATAK} flex items-start text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
           {chevron}
@@ -1292,7 +1384,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <button type="button" className="tugma text-[11px]" aria-pressed={tafsilot} onClick={() => setTafsilot(!tafsilot)}>{t('Norma va narx tafsilotlari')}</button>
         </div>
       </div>
-      <div className={`grid grid-cols-1 gap-2 ${panellar === 'teng' ? 'lg:grid-cols-2' : panellar === 'f2' ? 'lg:grid-cols-[3fr_2fr]' : panellar === 'smeta' ? 'lg:grid-cols-[2fr_3fr]' : ''} ${tafsilot ? '' : '[&_.f2-grid]:grid-cols-[26px_72px_minmax(160px,1fr)_70px_45px_85px_64px] [&_.f2-grid>*:nth-child(4)]:hidden [&_.f2-grid>*:nth-child(7)]:hidden [&_.smeta-grid]:grid-cols-[72px_minmax(180px,1fr)_70px_45px_75px_100px] [&_.smeta-grid>*:nth-child(3)]:hidden [&_.smeta-grid>*:nth-child(6)]:hidden'}`}>
+      <div className={`grid grid-cols-1 gap-2 ${panellar === 'teng' ? 'lg:grid-cols-2' : panellar === 'f2' ? 'lg:grid-cols-[3fr_2fr]' : panellar === 'smeta' ? 'lg:grid-cols-[2fr_3fr]' : ''} ${tafsilot ? '' : '[&_.f2-grid]:grid-cols-[26px_72px_minmax(160px,1fr)_70px_45px_85px_64px] [&_.f2-grid>*:nth-child(4)]:hidden [&_.f2-grid>*:nth-child(7)]:hidden [&_.smeta-grid]:grid-cols-[22px_72px_minmax(180px,1fr)_70px_45px_75px_100px] [&_.smeta-grid>*:nth-child(4)]:hidden [&_.smeta-grid>*:nth-child(7)]:hidden'}`}>
         <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="F2 akt">
           <header className="flex flex-wrap items-center gap-2 border-b border-border bg-sky-500/10 px-2 py-2">
             <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-text-dim">F2 akt — {p.akt.varaq} {filtr === 'hal' && halSoni === 0 ? '· hal qilindi' : ''}</span>
@@ -1346,11 +1438,24 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <input aria-label="Smetadan qidirish" value={q} onChange={(e) => setQ(e.target.value)} placeholder="shifr yoki nom…"
                 className="input h-7 w-full pl-5 pr-1.5 text-[12px]" />
             </div>
+            {p.onBolimRejali && <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => yangiBolim(null)}
+              title={tarj('Smetaning yuqori darajasiga yangi bo‘lim (oxiriga)')}>＋ {tarj('Bo‘lim')}</button>}
           </header>
           <QatorRangIzohi />
           <TreeControls depths={qidiruvNatija ? [] : smetaExpandableDepths} onOpenAll={smetaBarchasiniOch} onCloseAll={smetaBarchasiniYop} onToggleDepth={smetaSath} />
           <PanelFiltr label="Smeta filtri" value={sFiltr} onChange={setSFiltr} options={[['hammasi', 'Hammasi'], ['boglangan', 'Shu F2 da bog‘langan'], ['boglanmagan', 'Bog‘lanmagan']]}
             izoh={`${smetaVisibleRows.length.toLocaleString('ru-RU')} qator ko‘rinmoqda`} />
+          <div role="toolbar" aria-label={tarj('Belgilangan smeta qatorlari')} className="flex flex-wrap items-center gap-1 border-b border-border bg-surface-2/50 px-2 py-1 text-[11px]">
+            {sBelgi.size ? <>
+              <span className="font-semibold text-text">{sBelgi.size} {tarj('ta belgilandi:')}</span>
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={sOmmaviyUz}><Unlink size={11} /> {tarj('F2 bog‘lanishlarini uzish')}</button>
+              {(p.onOchirishRejali || p.onRejaliOchir) && <button type="button" className="tugma h-6 px-1.5 text-[11px] text-danger" disabled={p.disabled || mutationBusy} onClick={sOmmaviyOchir}
+                title={tarj('Faqat siz qo‘shgan qatorlar va bo‘limlar o‘chiriladi; asl smeta qatorlari o‘zgarmaydi')}><Trash2 size={11} /> {tarj('Qo‘shilganlarni o‘chirish')}</button>}
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setSBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
+            </> : <span className="text-text-mute">{tarj('☐ ni bosib smeta qatorlarini belgilang (Shift — oraliq): bir nechtasining F2 bog‘lanishini uzish yoki siz qo‘shganlarini o‘chirish mumkin.')}</span>}
+            <button type="button" className="tugma ml-auto h-6 px-1.5 text-[11px]" disabled={!smetaVisibleRows.length}
+              onClick={() => setSBelgi(new Set(smetaVisibleRows.map((r) => r.node.id)))}>{tarj('Ko‘rinadiganlarni belgilash')}</button>
+          </div>
           {sudrash && <div className="border-b border-accent/40 bg-accent/15 px-2 py-1 text-[11.5px] text-text" role="status">
             <b>«{sudrash.nom.slice(0, 60)}»</b> — {sudrash.tur === 'rz' ? 'smeta RAZDELIGA tashlang (razdel o‘rgatiladi)'
               : sudrash.tur === 'bl' ? 'smeta ISHIGA tashlang (bog‘lash yoki zamena) yoki RAZDELGA (qo‘shimcha ish)'
@@ -1387,6 +1492,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <button type="button" className="tugma tugma-asosiy justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); void resursOrnigaIsh(f, s); }}>
                 <span>⇄</span> <span><b>Shu resurs o‘rniga ish</b> — masalan ГПС ni buyurtmachi bergan: material olinmaydi, uning o‘rniga qazib olish / tashish ishi yoziladi. Resursning o‘zi o‘zgarmaydi.</span>
               </button>
+              <button type="button" className="tugma justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); zamena(f, s); }}>
+                <span>⇄</span> <span><b>{tarj('Zamena material')}</b> — {tarj('faqat material almashgan (masalan ПК o‘rniga ПБ): smetadagi resurs o‘rniga F2 dagisi, yangi qator, eskisi o‘zgarmaydi')}</span>
+              </button>
               <button type="button" className="tugma" onClick={() => setTanlov(null)}>Bekor qilish</button>
             </div> : <div className="grid gap-2">
               <button type="button" className="tugma justify-start text-left" onClick={() => {
@@ -1421,7 +1529,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           initialKod={modal.f.kod ?? undefined}
           initialBirlik={modal.f.birlik ?? undefined}
           initialHajm={modal.f.hajm ?? undefined}
-          initialTur={modal.f.tur === 'bl' && !modal.f.bolalar.length && /^С(\s|$|\d)/.test((modal.f.kod ?? '').trim()) ? 'mat' : 'bl'}
+          initialTur={modal.action.kind === 'replacement' && (modal.action.oldRow?.tur === 'mat' || modal.action.oldRow?.tur === 'ob') ? modal.action.oldRow.tur
+            : modal.f.tur === 'bl' && !modal.f.bolalar.length && /^С(\s|$|\d)/.test((modal.f.kod ?? '').trim()) ? 'mat' : 'bl'}
           onClose={() => setModal(null)}
           resurslar={modal.f.tur === 'bl' ? modal.f.bolalar.map((r) => ({ tur: resTuri(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod })) : undefined}
           onCreated={(id, resIdlar) => { const f = modal.f; setModal(null); void p.onYaratildi(f, id, resIdlar); }}

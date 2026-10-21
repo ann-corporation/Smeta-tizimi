@@ -6,7 +6,7 @@ describe('F2 identity preflight', () => {
     const oqi = vi.fn().mockResolvedValue({ok:true,qatorlar:[{id:9,oy:'2026-07-01',raqam:null,holat:'tasdiqlangan'}]});
     expect((await avvalgiF2Ol(oqi,5,8,'2026-07'))?.id).toBe(9);
     expect(oqi).toHaveBeenCalledWith(expect.objectContaining({jadval:'t2_akt',limit:1,
-      filtr:'kompaniya_id=eq.5&obyekt_id=eq.8&tur=eq.f2&oy=eq.2026-07-01&or=(raqam.is.null,raqam.eq.)'}));
+      filtr:'kompaniya_id=eq.5&obyekt_id=eq.8&tur=eq.f2&holat=neq.bekor&oy=eq.2026-07-01&or=(raqam.is.null,raqam.eq.)'}));
   });
   it('empty history is distinct from unavailable/incomplete history', async () => {
     expect(await avvalgiF2Ol(vi.fn().mockResolvedValue({ok:true,qatorlar:[]}),5,8,'2026-07')).toBeNull();

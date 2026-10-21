@@ -11,7 +11,8 @@ export const qoralamaAktmi = (a: AvvalgiF2 | null | undefined): a is AvvalgiF2 &
 export async function avvalgiF2Ol(oqi: (s: SbSoro) => Promise<SbJavob<AvvalgiF2>>, companyId: number, objectId: number, month: string): Promise<AvvalgiF2 | null> {
   if (!Number.isSafeInteger(companyId) || companyId <= 0 || !Number.isSafeInteger(objectId) || objectId <= 0 || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('F2_SCOPE_INVALID');
   const r = await oqi({ jadval: 't2_akt',
-    filtr: `kompaniya_id=eq.${companyId}&obyekt_id=eq.${objectId}&tur=eq.f2&oy=eq.${month}-01&or=(raqam.is.null,raqam.eq.)`,
+    // Bekor qilingan akt hisobga olinmaydi (egasi 2026-10-21): u tarixda qoladi, shu davr uchun yangi F2 kiritiladi.
+    filtr: `kompaniya_id=eq.${companyId}&obyekt_id=eq.${objectId}&tur=eq.f2&holat=neq.bekor&oy=eq.${month}-01&or=(raqam.is.null,raqam.eq.)`,
     ustunlar: 'id,oy,raqam,holat,lifecycle_status,versiya', tartib: 'id.desc', limit: 1 });
   if (!r.ok || r.toliq === false) throw new Error('F2_DUPLICATE_CHECK_FAILED');
   return r.qatorlar?.[0] ?? null;

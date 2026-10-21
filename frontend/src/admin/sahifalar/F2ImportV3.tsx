@@ -20,9 +20,10 @@ import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
-import { SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
+import { BOLIM_ILDIZ, SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
+import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
 import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
@@ -572,23 +573,84 @@ function Sessiya({ companyId }: { companyId: number }) {
     setRejali(keyingi); tarixniTozala(); setIj(joriy);
     setHolat(`${keyingi.length} ${t('ta o‘zgarish qoralamada — «Saqlash» bosilganda bittada yoziladi.')}`);
   }
-  /** Smetasi yo'q obyekt: F2 dagi har bir ish (va ishga kirmagan material) resurslari bilan qoralamaga — bitta tugma. */
-  function smetasizHammasi() {
-    if (!ind || !ijRef.current) return;
-    const tugunlar = ind.qatorlar.filter((n) => n.tur !== 'rz' && !ijRef.current!.bog.has(n.uid) && !ijRef.current!.otkaz.has(n.uid)
-      && (n.tur === 'bl' || ind.ota.get(n.uid)?.tur !== 'bl'));
-    let qoshildi = 0; const otkazildi: string[] = [];
-    for (const f of tugunlar) {
-      const hajm = Number(f.hajm);
-      if (!(hajm > 0)) { otkazildi.push(f.nom.slice(0, 40)); continue; }
-      const resurslar = f.tur === 'bl' ? f.bolalar.filter((r) => Number(r.hajm) > 0)
-        .map((r) => ({ tur: (/ЧЕЛ|МАШ/i.test(r.birlik ?? '') ? 'rs' : 'mat') as 'rs' | 'mat', nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod, narx: r.narx })) : [];
-      const resursIdx = f.tur === 'bl' ? f.bolalar.filter((r) => Number(r.hajm) > 0) : [];
-      onRejali({ ...f, bolalar: resursIdx }, { kind: 'smetasiz', tur: 'bl', otaQatorId: SMETASIZ_RZ, nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined,
-        sabab: t('F2 import: smetasi yo‘q obyekt'), resurslar, operationId: yangiOperationId() });
-      qoshildi++;
-    }
-    setHolat(`${qoshildi} ${t('ta ish qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.')}${otkazildi.length ? ` ${t('Hajmi yo‘q (minus/0)')}: ${otkazildi.length}` : ''}`);
+  /** Yangi smeta bo'limi — qoralamaga (serverga «F2 ni yozish» da). Vaqtinchalik id qaytaradi.
+   *  otaQatorId null — smetaning yuqori darajasi; keyinQatorId — shu darajadagi bo'limdan keyin. */
+  function bolimRejali(nom: string, otaQatorId: number | null, keyinQatorId?: number): number | null {
+    const toza = nom.replace(/\s+/g, ' ').trim();
+    if (!toza || toza.length > 300) return null;
+    const [tempId] = yangiTempIdlar(rejaliRef.current.flatMap((x) => [x.tempId, ...x.resursTempIds]), 1);
+    const buyruq: RejaliBuyruq = { kind: 'bolim', tur: 'rz', tempId, resursTempIds: [], f2Uid: '', f2ResursUidlar: [],
+      otaQatorId: otaQatorId ?? BOLIM_ILDIZ, keyinQatorId, nom: toza, birlik: '', sabab: t('Smetaga yangi bo‘lim'), resurslar: [], operationId: yangiOperationId() };
+    const keyingi = [...rejaliRef.current, buyruq];
+    rejaliRef.current = keyingi;
+    setRejali(keyingi);
+    return tempId;
+  }
+  /** Egasi 2026-10-21: «hamma F2 ni o'tkazish degan narsani o'zi yo'q». Bog'lanmagan F2 ishlari (va ishga kirmagan
+   *  material/uskunalar) BO'LIMLARI bilan smetaga — qoralamaga: F2 bo'limi smetadagi bo'limga bog'langan bo'lsa o'sha
+   *  bo'limga, bo'lmasa shu nomli bo'lim topiladi yoki yangisi yaratiladi (F2 tartibida). Bog'langan ishning bog'lanmagan
+   *  resurslari — o'sha ishga qo'shimcha resurs. Bo'limsiz qatorlar — «СМЕТАДАН ТАШҚАРИ ИШЛАР». Serverga hech narsa
+   *  yozilmaydi — «F2 ni yozish» da bittada. */
+  function f2ToliqOtkaz() {
+    if (!akt || !ind || !ijRef.current) return;
+    const diag = new Map((natija?.rzDiag ?? []).map((d) => [d.f2Uid, d]));
+    const nomK = (x: string | null | undefined) => (x ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, ' ').trim();
+    const resTur = (birlik: string | null | undefined): 'rs' | 'mat' => (/ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
+    const bolimlar = new Map<string, number>();
+    for (const r of rowsK) if (r.tur === 'rz') bolimlar.set(`${r.ota_id ?? 0}|${nomK(r.nom)}`, r.id);
+    const oxirgiBolim = new Map<number, number>();
+    let qoshildi = 0, bolimSoni = 0; const otkazildi: string[] = [];
+    const oxirgiTemp = () => rejaliRef.current[rejaliRef.current.length - 1]?.tempId;
+    const rzOl = (f: F2Tugun, ota: number | null): number | null => {
+      const d = diag.get(f.uid);
+      if (d?.ok && d.smetaRzIdlar[0] != null) return d.smetaRzIdlar[0];
+      const kalit = `${ota ?? 0}|${nomK(f.nom)}`;
+      const bor = bolimlar.get(kalit);
+      if (bor != null) return bor;
+      const id = bolimRejali(f.nom || t('Nomsiz bo‘lim'), ota, oxirgiBolim.get(ota ?? 0));
+      if (id == null) return null;
+      bolimlar.set(kalit, id); oxirgiBolim.set(ota ?? 0, id); bolimSoni++;
+      return id;
+    };
+    const yur = (nodes: readonly F2Tugun[], smetaRz: number | null) => {
+      let oldingi: number | undefined;
+      for (const f of nodes) {
+        if (f.tur === 'rz') { const rz = rzOl(f, smetaRz); if (rz == null) { otkazildi.push(f.nom.slice(0, 40)); continue; } yur(f.bolalar, rz); continue; }
+        const ij0 = ijRef.current!;
+        if (ij0.otkaz.has(f.uid)) continue;
+        const ishmi = f.tur === 'bl';
+        const bogl = ij0.bog.get(f.uid);
+        if (bogl) {
+          // Bog'langan ish: faqat bog'lanmagan resurslari — o'sha smeta ishiga qo'shimcha resurs.
+          if (ishmi && !vaqtinchami(bogl.qatorId)) for (const r of f.bolalar) {
+            const ijR = ijRef.current!;
+            if (ijR.bog.has(r.uid) || ijR.otkaz.has(r.uid)) continue;
+            const rh = Number(r.hajm);
+            if (!(rh > 0)) { otkazildi.push(r.nom.slice(0, 40)); continue; }
+            onRejali(r, { kind: 'resource', tur: resTur(r.birlik), otaQatorId: bogl.qatorId, nom: r.nom, birlik: r.birlik || 'шт', hajm: rh, kod: r.kod ?? undefined,
+              sabab: t('F2 import: qo‘shimcha resurs (to‘liq o‘tkazish)'), resurslar: [], operationId: yangiOperationId() });
+            qoshildi++;
+          }
+          continue;
+        }
+        const hajm = Number(f.hajm);
+        if (!(hajm > 0)) { otkazildi.push(f.nom.slice(0, 40)); continue; }
+        const resIdx = ishmi ? f.bolalar.filter((r) => Number(r.hajm) > 0) : [];
+        const resurslar = resIdx.map((r) => ({ tur: resTur(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod, narx: r.narx }));
+        if (smetaRz == null) {
+          onRejali({ ...f, bolalar: resIdx }, { kind: 'smetasiz', tur: 'bl', otaQatorId: SMETASIZ_RZ, nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined,
+            sabab: t('F2 import: smetasi yo‘q obyekt'), resurslar, operationId: yangiOperationId() });
+        } else {
+          const tur: 'bl' | 'mat' | 'ob' = ishmi ? 'bl' : f.tur === 'ob' ? 'ob' : 'mat';
+          onRejali({ ...f, bolalar: resIdx }, { kind: 'additional', tur, otaQatorId: smetaRz, keyinQatorId: oldingi, nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined,
+            sabab: t('F2 import: qo‘shimcha (to‘liq o‘tkazish)'), resurslar: tur === 'bl' ? resurslar : [], operationId: yangiOperationId() });
+          oldingi = oxirgiTemp();
+        }
+        qoshildi++;
+      }
+    };
+    yur(akt.daraxt, null);
+    setHolat(`${qoshildi} ${t('ta qator')}${bolimSoni ? `, ${bolimSoni} ${t('ta yangi bo‘lim')}` : ''} ${t('qoralamaga qo‘shildi — «F2 ni yozish» bosilganda smetaga yoziladi.')}${otkazildi.length ? ` ${t('Hajmi yo‘q (minus/0)')}: ${otkazildi.length}` : ''}`);
   }
   /** Siz qo'shgan qatorni tahrirlash — qoralamada: eskisi o'chirishga, yangisi rejaliga; eski qatorga bog'langan F2 qatorlari
    *  yangisiga (resurslar — nomi bo'yicha) o'tadi. Serverga hech narsa yozilmaydi. */
@@ -667,6 +729,12 @@ function Sessiya({ companyId }: { companyId: number }) {
       const r = res as { resurs_ids?: number[]; resurs_idlar?: number[][] };
       return { qatorId: res.qator_id, resursIdlar: r.resurs_idlar?.[0] ?? r.resurs_ids ?? [] };
     }
+    if (b.kind === 'bolim') {
+      const res = await smetaBolimYarat({ kompaniyaId: companyId, obyektId: Number(objectId), nom: b.nom,
+        otaQatorId: real.otaQatorId === BOLIM_ILDIZ ? null : real.otaQatorId, keyinQatorId: real.keyinQatorId ?? null, sabab: b.sabab, operationId: b.operationId });
+      if (!res.ok || res.qator_id == null) throw new Error(bolimXato(res));
+      return { qatorId: res.qator_id, resursIdlar: [] };
+    }
     if (b.kind === 'smetasiz') {
       const res = await ishAbcSaqla({ kompaniyaId: companyId, obyektId: Number(objectId), command: 'additional', otaQatorId: null,
         ish: { kod: b.kod ?? null, nom: b.nom, birlik: b.birlik, hajm: b.hajm as number }, sabab: b.sabab, operationId: b.operationId,
@@ -689,7 +757,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     const r = b.kind === 'replacement'
       ? await sbT2ZamenaIshYarat({ ...asos, almashtirilayotganQatorId: real.almashtirilayotganQatorId as number })
       : b.kind === 'additional' && b.tur === 'bl' ? await sbT2QoshimchaIshYarat(asos)
-        : await sbT2ResursBolaQosh({ ...asos, tur: b.tur === 'bl' ? 'rs' : b.tur, hajm: b.hajm });
+        : await sbT2ResursBolaQosh({ ...asos, tur: b.tur === 'bl' || b.tur === 'rz' ? 'rs' : b.tur, hajm: b.hajm });
     return { qatorId: tekshir(r), resursIdlar: [], otaVersiya: (r as { parent_version?: number | null }).parent_version ?? null };
   };
   async function otaVersiya(id: number): Promise<number> {
@@ -707,7 +775,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         progress: (i, n) => qadam('ozgarish', 'ishlayapti', `${i}/${n}`) });
       if (r.map.size && ijRef.current) {
         const yangiIj = ijniAlmashtir(ijRef.current, r.map);
-        const otalar = rejaliRef.current.filter((b) => r.map.has(b.tempId)).map((b) => (vaqtinchami(b.otaQatorId) ? r.map.get(b.otaQatorId) : b.otaQatorId)).filter((x): x is number => x != null);
+        const otalar = rejaliRef.current.filter((b) => r.map.has(b.tempId)).map((b) => (vaqtinchami(b.otaQatorId) ? r.map.get(b.otaQatorId) : b.otaQatorId)).filter((x): x is number => x != null && x !== BOLIM_ILDIZ);
         rejaliRef.current = r.qolgan;
         setRejali(r.qolgan); tarixniTozala(); setIj(yangiIj);
         await qatorlarniYangila([...r.map.values(), ...otalar]).catch(() => smetaYangila());
@@ -961,10 +1029,13 @@ function Sessiya({ companyId }: { companyId: number }) {
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
-      {akt && ij && rows.length === 0 && <section className="karta space-y-2 border-2 border-sky-500/50 bg-sky-500/5 p-3 text-[13px]" aria-label={t('Smetasi yo‘q obyekt')}>
-        <p className="font-semibold text-text">{t('Bu obyektda smeta yo‘q. F2 ni baribir kiritish mumkin: F2 dagi ishlar smetaga «СМЕТАДАН ТАШҚАРИ ИШЛАР» bo‘limida qo‘shimcha ish (resurslari bilan) bo‘lib yoziladi va akt shularga bog‘lanadi.')}</p>
-        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={smetasizHammasi}>{t('F2 dagi barcha ishlarni qoralamaga qo‘shish')}</button>
-      </section>}
+      {akt && ij && (rows.length === 0 ? <section className="karta space-y-2 border-2 border-sky-500/50 bg-sky-500/5 p-3 text-[13px]" aria-label={t('Smetasi yo‘q obyekt')}>
+        <p className="font-semibold text-text">{t('Bu obyektda smeta yo‘q. F2 ni baribir kiritish mumkin: F2 dagi ishlar smetaga o‘z bo‘limlari bilan qo‘shimcha ish (resurslari bilan) bo‘lib yoziladi va akt shularga bog‘lanadi.')}</p>
+        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={f2ToliqOtkaz}>{t('F2 dagi barcha ishlarni qoralamaga qo‘shish')}</button>
+      </section> : <section className="karta flex flex-wrap items-center gap-2 border border-sky-500/40 bg-sky-500/5 p-2 text-[12px]" aria-label={t('F2 ni to‘liq o‘tkazish')}>
+        <span className="min-w-0 flex-1 text-text-dim">{t('Smetada yo‘q ishlar ko‘pmi? Bog‘lanmagan barcha F2 ishlarini bo‘limlari bilan smetaga qo‘shimcha qilib qoralamaga qo‘shing (bog‘langanlari tegilmaydi).')}</span>
+        <button type="button" className="tugma" disabled={busy || !!done} onClick={f2ToliqOtkaz}>{t('Bog‘lanmagan F2 ni smetaga o‘tkazish')}</button>
+      </section>)}
 
       {akt && ij && (
         <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
@@ -988,7 +1059,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi}
           ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
-          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} onTahrirRejali={onTahrirRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
+          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} onTahrirRejali={onTahrirRejali} onBolimRejali={bolimRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
       )}
 
       {ochirish.length > 0 && <section className="karta space-y-1 border border-rose-500/40 bg-rose-500/5 p-3 text-[12px]" aria-label={t('O‘chirishga belgilangan')}>
@@ -1001,7 +1072,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       {rejali.length > 0 && <section className="karta space-y-1 border border-sky-500/40 bg-sky-500/5 p-3 text-[12px]" aria-label={t('Saqlanmagan o‘zgarishlar')}>
         <p className="font-semibold text-text">⏳ {rejali.length} {t('ta qo‘shimcha/zamena qoralamada — «Saqlash» bosilganda hammasi bittada yoziladi.')}</p>
         <ul className="max-h-40 space-y-0.5 overflow-auto">{rejali.map((b) => <li key={b.tempId} className="flex items-center gap-2">
-          <span className={`rounded px-1 text-[10px] font-semibold ${b.kind === 'replacement' || b.kind === 'resurs_ish' ? 'bg-amber-500/25' : 'bg-emerald-500/25'}`}>{b.kind === 'replacement' || b.kind === 'resurs_ish' ? t('zamena') : b.kind === 'resource' ? t('resurs') : t('qo‘shimcha')}</span>
+          <span className={`rounded px-1 text-[10px] font-semibold ${b.kind === 'replacement' || b.kind === 'resurs_ish' ? 'bg-amber-500/25' : 'bg-emerald-500/25'}`}>{b.kind === 'replacement' || b.kind === 'resurs_ish' ? t('zamena') : b.kind === 'resource' ? t('resurs') : b.kind === 'bolim' ? t('bo‘lim') : t('qo‘shimcha')}</span>
           <span className="min-w-0 flex-1 truncate">{b.nom} · {b.hajm ?? '—'} {b.birlik}{b.resurslar.length ? ` · ${b.resurslar.length} ${t('resurs')}` : ''}</span>
           <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy} onClick={() => onRejaliOchir(b.tempId)} aria-label={`${t('Olib tashlash')}: ${b.nom}`}>✕</button>
         </li>)}</ul>
