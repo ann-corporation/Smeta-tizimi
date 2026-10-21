@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { roleAuthority, mayWriteCompanies } from './role-authority';
+import { roleAuthority, mayWriteCompanies, vakolatKeshTozala, VAKOLAT_KESH_MS } from './role-authority';
 import type { Sess } from './auth';
 
 const env = { SUPABASE_URL: 'https://test.supabase.co', SUPABASE_KEY: 'server-only' };
@@ -8,7 +8,22 @@ const sess: Sess = { rol: 'superadmin', foydalanuvchi_id: 7, jti: 'test', exp: D
 const model = (platform_role = 'none', role = 'pto') => ({ ok: true, platform_role,
   foydalanuvchi: { holat: 'faol' }, azoliklar: [{ kompaniya_id: 17, rol: role, faol: true }],
   context_kompaniyalar: [{ kompaniya_id: 17, effective_role: role }] });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); vakolatKeshTozala(); });
+describe('vakolat keshi (egasi 2026-10-21: har so‘rovda qayta tekshirish ortiqcha)', () => {
+  it('60 s ichida DB ga qayta bormaydi, keyin yangilaydi; xato javob keshlanmaydi', async () => {
+    vi.useFakeTimers();
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(model('none', 'pto')), { status: 200 }));
+    vi.stubGlobal('fetch', fetcher);
+    expect((await roleAuthority(sess, env))?.rol).toBe('pto');
+    expect((await roleAuthority({ ...sess, rol: 'superadmin' }, env))?.rol).toBe('pto'); // cookie roliga ishonilmaydi
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(VAKOLAT_KESH_MS + 1);
+    fetcher.mockImplementation(async () => new Response('{}', { status: 500 }));
+    expect(await roleAuthority(sess, env)).toBeNull();
+    expect(await roleAuthority(sess, env)).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+});
 describe('fresh server authority', () => {
   it('mixed boss A / reader B cannot write B through an entity ID', () => {
     const s = { ...sess, kompaniyalar: [{ kompaniya_id: 1, rol: 'boss' }, { kompaniya_id: 17, rol: 'rahbar' }] };

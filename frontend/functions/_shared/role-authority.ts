@@ -9,9 +9,29 @@ export function mayWriteCompanies(sess: Sess, companyIds: readonly number[], per
   return companyIds.every(id => sess.kompaniyalar!.some(a => a.kompaniya_id === id && (permission && sess.permissionsByCompany ? sess.permissionsByCompany[id]?.includes(permission) : WRITERS.has(a.rol))));
 }
 
-/** Fresh DB authority per request; signed login role is not a live permission. */
+/** Egasi 2026-10-21: «PTO bo'lib kirgan bo'lsam tizim eslab qolishi yetarli — Jarvis'ga har so'rovda qayta tekshirish
+ *  ortiqcha». DB vakolati (t2_men_v1) shu isolate xotirasida qisqa muddat saqlanadi. Cookie'dagi rolga ishonilmaydi —
+ *  kesh faqat DB javobidan; rol olib tashlansa ko'pi bilan VAKOLAT_KESH_MS ichida kuchga kiradi. Xato javob keshlanmaydi. */
+export const VAKOLAT_KESH_MS = 60_000;
+type Vakolat = Pick<Sess, 'rol' | 'kompaniyalar' | 'permissionsByCompany' | 'explicitDenialsByCompany'>;
+const vakolatKesh = new Map<number, { vaqt: number; qiymat: Vakolat }>();
+export function vakolatKeshTozala(foydalanuvchiId?: number) { if (foydalanuvchiId == null) vakolatKesh.clear(); else vakolatKesh.delete(foydalanuvchiId); }
+
+/** DB authority (keshlangan, ≤60 s); signed login role is not a live permission. */
 export async function roleAuthority(sess: Sess, env: { SUPABASE_URL: string; SUPABASE_KEY: string }): Promise<Sess | null> {
   if (!Number.isSafeInteger(sess.foydalanuvchi_id) || !sess.foydalanuvchi_id) return null;
+  const id = sess.foydalanuvchi_id as number;
+  const k = vakolatKesh.get(id);
+  if (k && Date.now() - k.vaqt < VAKOLAT_KESH_MS) return { ...sess, ...k.qiymat };
+  const yangi = await roleAuthorityDb(sess, env);
+  if (yangi) {
+    if (vakolatKesh.size > 5000) vakolatKesh.clear();
+    vakolatKesh.set(id, { vaqt: Date.now(), qiymat: { rol: yangi.rol, kompaniyalar: yangi.kompaniyalar, permissionsByCompany: yangi.permissionsByCompany, explicitDenialsByCompany: yangi.explicitDenialsByCompany } });
+  } else vakolatKesh.delete(id);
+  return yangi;
+}
+
+async function roleAuthorityDb(sess: Sess, env: { SUPABASE_URL: string; SUPABASE_KEY: string }): Promise<Sess | null> {
   try {
     const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/t2_men_v1', {
       method: 'POST', headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' },
