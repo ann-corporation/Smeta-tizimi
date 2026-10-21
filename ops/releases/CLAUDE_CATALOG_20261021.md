@@ -20,10 +20,18 @@ Rollback приложения: deploy предыдущего зелёного ma
 
 ## Проверки перед push
 
-App tsc -b PASS; functions tsc --noEmit PASS; oxlint src PASS (существующие warnings); npm run tekshir PASS; site-map generated обновлён; npm run build PASS (chunk-size warning). Full Vitest: **356 passed / 8 skipped files; 2647 passed / 17 skipped tests**. Последующая небольшая правка operation_id проверена целевыми тестами модулей (3 PASS), company route guard добавлен. Governance PASS, 85 tasks. Исторические конфликтующие leases сверены с реально merged SHA; не удалены остальные задачи.
+App tsc -b PASS; functions tsc --noEmit PASS; oxlint src PASS (существующие warnings); npm run tekshir PASS; site-map generated обновлён; npm run build PASS (chunk-size warning). Full Vitest: **356 passed / 8 skipped files; 2648 passed / 17 skipped tests**. Последующая небольшая правка operation_id проверена целевыми тестами модулей (3 PASS), company route guard добавлен. Governance PASS, 85 tasks. Исторические конфликтующие leases сверены с реально merged SHA; не удалены остальные задачи.
 
 Security advisors: 163 INFO rls_enabled_no_policy и 62 WARN function_search_path_mutable в существующей базе. Новая module RPC задаёт search_path и доступна только service_role; новые таблицы не созданы. Этот выпуск не является аттестацией всех исторических предупреждений.
 
 ## Граница доказательств
 
 До green CI, fast-forward main и подтверждённого Pages deployment статус — проверенный release candidate. Authenticated production smoke и exact deployed SHA записываются в Obsidian CURRENT_STATE/HANDOFF и следующем machine mailbox после выпуска. Реальные F2 не создавались/не утверждались, модульные настройки клиентов не переключались. Logout/login без ввода credentials, полный импорт/export владельца и исторические 116 coefficient findings не закрыты этим выпуском.
+
+## Подтверждённая интеграция main
+
+Функциональный HEAD **8a8a6162cc76515a85d981287fec0809a0260fa9**: exact-SHA frontend CI SUCCESS — https://github.com/ann-corporation/Smeta-tizimi/actions/runs/39591352350 . Main fast-forward b979e114→8a8a6162 подтверждён git ls-remote 2026-10-21. Дополнительно закрыта race: старый ответ реестра/файлов не записывается после смены компании; rendered regression PASS. Full final local2648PASS17skip, build PASS.
+
+Cloudflare production deployment для этого SHA запущен: `5c00d330-9b2b-4905-a622-7b9c4498ad53`; на момент этой записи build ещё выполняется, а не принят как LIVE. Итоговые production source/bundle и authenticated read-only smoke подтверждаются отдельными receipts в CatalogMigration и каноническом Obsidian; не считать HTTP200 или marker Active достаточным доказательством. Следующий документационный commit не меняет frontend/functions/SQL.
+
+Советы по историческим DB предупреждениям: [RLS без policy](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy), [mutable search_path](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable).

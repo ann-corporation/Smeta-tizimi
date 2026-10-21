@@ -2648,7 +2648,7 @@
       "machine": "Anvar",
       "branch": "codex/release-claude-catalog-20261021",
       "base_sha": "b979e114421467a163ee32eb24227e5f8b6ffa70",
-      "status": "in_progress",
+      "status": "merged",
       "owns": [
         "docs/governance/CURRENT_STATE.md",
         "frontend/functions/_shared/construct-koef.ts",
@@ -2715,7 +2715,9 @@
         "docs/governance/OWNER_AUTHORIZATION.md",
         "docs/governance/AGENT_COMMS_PROTOCOL.md"
       ],
-      "production_write_allowed": false
+      "production_write_allowed": false,
+      "release_sha": "8a8a6162cc76515a85d981287fec0809a0260fa9",
+      "verification": "Exact branch SHA frontend CI success before fast-forward main; remote main verified 2026-10-21. Full local2648PASS17skip; TS/functions/build/tekshir/map/lint/governance PASS. Pages production and authenticated smoke receipts are tracked in Obsidian CURRENT_STATE/HANDOFF and D:/CatalogMigration/coefficient-foundation-20261021-v1/runtime-reference/. Final documentation commit is code-identical to this release."
     }
   ]
 }
