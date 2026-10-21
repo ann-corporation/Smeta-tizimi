@@ -1,0 +1,31 @@
+{
+  "status": "SOURCE_TESTED_READY_FOR_L0_REVIEW",
+  "full_vitest": {
+    "passed": 2621,
+    "skipped": 17,
+    "failed": 0,
+    "files_passed": 351
+  },
+  "focused_ui_api": {
+    "passed": 42
+  },
+  "L3_oracle": {
+    "passed": 46,
+    "sha": "9542336e1440452750ef6c4f34269a1b18b6abe9"
+  },
+  "app_typecheck": true,
+  "functions_typecheck": true,
+  "build": true,
+  "oxlint_errors": 0,
+  "site_map_check": true,
+  "tekshir": true,
+  "diff_check": true,
+  "runtime_source_parity": {
+    "works": 42608,
+    "mismatches": 0
+  },
+  "production_db_write": false,
+  "main_push": false,
+  "authenticated_production_browser_smoke": "UNPROVEN",
+  "governance": "BASELINE_FAIL: old task schema and AdminShell locks; registry untouched"
+}
