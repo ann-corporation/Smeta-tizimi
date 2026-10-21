@@ -5,7 +5,6 @@ import { applyCommand, dispatch, historyOf, redo, undo } from '../smeta-studio/c
 import { calcDoc, calcOccurrence } from '../smeta-studio/calc';
 import { studioToRows } from '../smeta-studio/export-adapter';
 import { koefgaAylantir } from '../smeta-studio/koef-katalog';
-import { onRequestPost } from '../../../functions/api/smeta-studio';
 import { imzola } from '../../../functions/_shared/auth';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -70,6 +69,10 @@ describe('Catalog adoption acceptance against current Studio engine', () => {
     expect(d.occurrences.o1.recipe[0].norm).toBe('4');expect(d.occurrences.o2.recipe[0].norm).toBe('8');
   });
   it('cross-company draft save is refused before any RPC (synthetic session; no live database)', async () => {
+    // Keep the Pages handler out of the browser TypeScript project. Its own functions
+    // project supplies PagesFunction types; Vitest still executes the real source here.
+    const handlerPath = '../../../functions/api/smeta-studio.ts';
+    const { onRequestPost } = await import(/* @vite-ignore */ handlerPath);
     const network = vi.fn(() => { throw new Error('NETWORK_MUST_NOT_BE_USED'); });
     vi.stubGlobal('fetch', network);
     const testSigningKey = 'synthetic-fixture-only-signing-key';
