@@ -72,6 +72,7 @@ const TomonlarAloqa = lazy(() => import('./admin/zakazchik/TomonlarAloqa'));
 const TaqdimlarInbox = lazy(() => import('./admin/zakazchik/TaqdimlarInbox'));
 const Murojaatlar = lazy(() => import('./admin/zakazchik/Murojaatlar'));
 const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
+const F2Reestr = lazy(() => import('./admin/sahifalar/F2Reestr'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
 const ParticipantNetworkDemo = lazy(() => import('./admin/participants/ParticipantNetworkDemo'));
 const SystemControlDemo = lazy(() => import('./admin/system-control/SystemControlDemo'));
@@ -161,6 +162,7 @@ export default function App() {
           <Route path="narx-manbalari" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><NarxManbalari /></Suspense>} />
           <Route path="narx-dalil" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><NarxDalil /></Suspense>} />
           <Route path="f2-tarix" element={<F2TarixNative />} />
+          <Route path="f2-reestr" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('Yuklanmoqda...')}</div>}><F2Reestr /></Suspense>} />
           <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
           <Route path="oferta" element={<OfertaNative />} />
           <Route path="buxgalteriya" element={<Buxgalteriya />} />
