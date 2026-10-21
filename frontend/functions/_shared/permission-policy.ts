@@ -1,3 +1,5 @@
+import { writeCommandPermission } from './write-command-policy';
+
 /** Named business permission classification. Neither row order nor caller-supplied permission is trusted. */
 export function dataPermission(name: string, write: boolean, body: Record<string, unknown> = {}): string {
   const n = name.replace(/^t2_/, '');
@@ -45,7 +47,8 @@ export function requestPermission(api: string, method: string, b: Record<string,
     return null; // Company requests / platform approval have their own director/platform guard.
   }
   if (api === 'sb') return dataPermission(String(b.jadval || b.soro || ''),false,b);
-  if (api === 'sb-yoz') return dataPermission(String(b.amal || 'qator_tahrir'),true,b);
+  // Yozish — faqat aniq reyestr orqali (fail-closed): reyestrda yo'q amal hech kimga ruxsat etilmaydi.
+  if (api === 'sb-yoz') return writeCommandPermission(String(b.amal || 'qator_tahrir'),b);
   if (api === 'boshqaruv') return method === 'GET' ? 'control.global.read' : 'control.global.write';
   if (api === 'agent-control') return method === 'GET' ? 'document.read' : 'document.write';
   if (api === 'system-control') return (b.kompaniya_id || q.get('kompaniya_id')) ? (method === 'GET' ? 'control.company.read' : 'control.company.write') : (method === 'GET' ? 'control.global.read' : 'control.global.write');

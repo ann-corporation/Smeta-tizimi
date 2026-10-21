@@ -6,6 +6,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // Vakolat keshi (role-authority, 60 s) testlar orasida oqib o'tmasin — har test toza DB javobini ko'radi.
+    setupFiles: ['./vitest.setup.ts'],
     // These are standalone Node gate scripts.  `npm run tekshir` executes
     // them as child processes; loading them in Vitest makes their intentional
     // `process.exit()` calls look like failing test suites.

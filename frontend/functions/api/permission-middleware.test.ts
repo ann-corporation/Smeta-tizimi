@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { imzola } from '../_shared/auth';
+import { vakolatKeshTozala } from '../_shared/role-authority';
 import { onRequest } from './_middleware';
 import { PERMISSIONS } from '../../src/lib/company-authorization/effective-authorization';
 const env={SUPABASE_URL:'https://test.supabase.co',SUPABASE_KEY:'server-only',SESSIYA_KALIT:'k'.repeat(32)};
 const all=PERMISSIONS.filter(p=>!p.startsWith('control.global'));
 async function run({denied=[],company=17,entityCompany=17,cookieRole='superadmin',platform='none',type='application/json',path='/api/sb-yoz',body={amal:'akt_tasdiqlash',akt_id:9},second=false}:any={}) {
+  vakolatKeshTozala(); // har run — yangi DB holati (60 s kesh testda bitta foydalanuvchining turli ruxsatlarini aralashtirmasin)
   const upstream:string[]=[];const next=vi.fn(async()=>Response.json({ok:true,reached:true}));
   vi.stubGlobal('fetch',vi.fn(async(raw:string)=>{
     const url=new URL(raw); upstream.push(url.pathname);
