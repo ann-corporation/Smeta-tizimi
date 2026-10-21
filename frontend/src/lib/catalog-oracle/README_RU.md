@@ -21,8 +21,11 @@
 
 ## Запуск и передача
 
-Из `frontend`: `npx vitest run src/lib/catalog-oracle` — 38 tests. Дополнительно `npx tsc -b` и `npx oxlint src/lib/catalog-oracle`. Commit содержит только `frontend/src/lib/catalog-oracle/**`. До merge L0 выполняет актуальный общий CI и review; нормативное утверждение, production подключение 517 правил и GUI before/after остаются за рамками L3.
+Из `frontend`: `npx vitest run src/lib/catalog-oracle` — 46 tests. Дополнительно `npx tsc -b` и `npx oxlint src/lib/catalog-oracle`. Commit содержит только `frontend/src/lib/catalog-oracle/**`. До merge L0 выполняет актуальный общий CI и review; нормативное утверждение, production подключение 517 правил и GUI before/after остаются за рамками L3.
 
 На исходном base governance-check уже содержит ошибки: у `T2-NARX-ISHONCH-001` отсутствуют depends_on/must_read и production_write_allowed не false; owns AdminShell пересекаются у старых T2-RAHBAR-DECISION-20261015/T2-ROLES-CONTROL-20261017. L3 не редактирует чужие задачи. Это не PASS и требует сверки L0 с актуальным реестром.
 
 Ранее начатый UI/reference WIP сохранён в `D:\CatalogMigration\coefficient-foundation-20261021-v1\integration-wip-before-L3`, исключён из ветки; это непроверенный материал для review, не внедрённая функция. Локальный `runtime-reference` также не опубликован. Общий индекс аудитов и основное задание: Obsidian `CATALOG_ADOPTION_CLAUDE_2026-10-21` и `CATALOG_AUDIT_EXPANSION_2026-10-20`.
+
+Дополнения L0: у каждого fixture/case теперь SHA и edition; synthetic arithmetic SHA относится к явному TEST_ONLY source_text. UNKNOWN_WORK и NO_SOURCE_CANDIDATES различаются. Gate отдельно блокирует неподтверждённое условие, NULL/zero factor и ADDITIVE/UNKNOWN operation; он не изменяет production calculator.
+

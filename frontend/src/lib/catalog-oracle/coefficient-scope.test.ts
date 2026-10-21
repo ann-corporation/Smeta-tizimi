@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fixture from './fixtures/construct-scope.json';
-import { parseWorkKey, scopeCandidates } from './coefficient-scope';
+import { coefficientGate, parseWorkKey, scopeCandidates, sourceLookup } from './coefficient-scope';
 import { ishKoeffitsientlari, jadvalKalitlari, type KoefKatalog } from '../smeta-studio/koef-katalog';
 
 describe('Construct source scope oracle (reference only)', () => {
@@ -18,6 +18,26 @@ describe('Construct source scope oracle (reference only)', () => {
     expect(fixture.core_oracle_sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(fixture.reference_only).toBe(true);
     expect(fixture.rules.every(r => r.calculation_approved === 0)).toBe(true);
+    expect(fixture.cases.every(c => c.source_sha256 === fixture.source_sha256 && c.edition === 'Construct 2.7.3 / audit-20261021')).toBe(true);
+  });
+  it('UNKNOWN_WORK is distinct from NO_SOURCE_CANDIDATES', () => {
+    const known = fixture.cases.map(c => c.work_key), empty = fixture.cases.find(c => !c.rule_ids.length)!;
+    expect(sourceLookup(empty.work_key, known, fixture.rules, fixture.scopes).status).toBe('NO_SOURCE_CANDIDATES');
+    expect(sourceLookup('Е99-99-999-999', known, fixture.rules, fixture.scopes).status).toBe('UNKNOWN_WORK');
+  });
+  it.each([
+    { condition: null, factors: [1.2], operation: 'MUL' as const },
+    { condition: '   ', factors: [1.2], operation: 'MUL' as const },
+    { condition: 'TEST', factors: [0], operation: 'MUL' as const },
+    { condition: 'TEST', factors: [null], operation: 'MUL' as const },
+    { condition: 'TEST', factors: [0.005], operation: 'ADDITIVE' as const },
+    { condition: 'TEST', factors: [1.2], operation: 'UNKNOWN' as const },
+  ])('no multiplication granted for unresolved condition/zero/operation: %o', patch => {
+    expect(coefficientGate({ conditionConfirmed: true, sourceApproved: true, ...patch }).canApply).toBe(false);
+  });
+  it('scope alone is insufficient even for positive multipliers', () => {
+    expect(coefficientGate({ operation: 'MUL', condition: 'TEST', conditionConfirmed: false, sourceApproved: true, factors: [1.2] }).canApply).toBe(false);
+    expect(coefficientGate({ operation: 'MUL', condition: 'TEST', conditionConfirmed: true, sourceApproved: false, factors: [1.2] }).canApply).toBe(false);
   });
   it('inclusive boundaries use original source values; no n_from=0 to coefficient-zero inference', () => {
     const scope = fixture.scopes.find(s => s.n_from > 1 && s.n_to > s.n_from)!;

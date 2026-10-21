@@ -4,10 +4,65 @@
   "currency": "TEST_ONLY",
   "note": "Invented test arithmetic, not market prices, legal norms, or customer documents.",
   "cases": [
-    { "id": "basis-1000-m3", "basis": "1000", "quantity": "250", "norm": "4", "price": "10", "expectedQuantity": "1.000000", "expectedAmount": "10.00" },
-    { "id": "unknown-price", "basis": "1000", "quantity": "250", "norm": "4", "price": null, "expectedQuantity": "1.000000", "expectedAmount": null },
-    { "id": "explicit-zero-price", "basis": "1000", "quantity": "250", "norm": "4", "price": "0", "expectedQuantity": "1.000000", "expectedAmount": "0.00" },
-    { "id": "unknown-norm", "basis": "1000", "quantity": "250", "norm": null, "price": "10", "expectedQuantity": null, "expectedAmount": null },
-    { "id": "explicit-zero-norm", "basis": "1000", "quantity": "250", "norm": "0", "price": "10", "expectedQuantity": "0.000000", "expectedAmount": "0.00" }
+    {
+      "id": "basis-1000-m3",
+      "basis": "1000",
+      "quantity": "250",
+      "norm": "4",
+      "price": "10",
+      "expectedQuantity": "1.000000",
+      "expectedAmount": "10.00",
+      "source_text": "SYNTHETIC ARITHMETIC ONLY: {\"basis\":\"1000\",\"expectedAmount\":\"10.00\",\"expectedQuantity\":\"1.000000\",\"id\":\"basis-1000-m3\",\"norm\":\"4\",\"price\":\"10\",\"quantity\":\"250\"}",
+      "source_sha256": "5263fbc806de9d4d45779263a43df7717fe12b35e589958d6035277620b69550",
+      "edition": "synthetic-arithmetic-v1"
+    },
+    {
+      "id": "unknown-price",
+      "basis": "1000",
+      "quantity": "250",
+      "norm": "4",
+      "price": null,
+      "expectedQuantity": "1.000000",
+      "expectedAmount": null,
+      "source_text": "SYNTHETIC ARITHMETIC ONLY: {\"basis\":\"1000\",\"expectedAmount\":null,\"expectedQuantity\":\"1.000000\",\"id\":\"unknown-price\",\"norm\":\"4\",\"price\":null,\"quantity\":\"250\"}",
+      "source_sha256": "b20dcf26f205fc40491801a98223899a0d92ac1baa01e3f1086559006d7b490a",
+      "edition": "synthetic-arithmetic-v1"
+    },
+    {
+      "id": "explicit-zero-price",
+      "basis": "1000",
+      "quantity": "250",
+      "norm": "4",
+      "price": "0",
+      "expectedQuantity": "1.000000",
+      "expectedAmount": "0.00",
+      "source_text": "SYNTHETIC ARITHMETIC ONLY: {\"basis\":\"1000\",\"expectedAmount\":\"0.00\",\"expectedQuantity\":\"1.000000\",\"id\":\"explicit-zero-price\",\"norm\":\"4\",\"price\":\"0\",\"quantity\":\"250\"}",
+      "source_sha256": "7f1500fa4eb2fb706335b84409e9f189bb2b9586636a3aaeee84cc3cb77f52fe",
+      "edition": "synthetic-arithmetic-v1"
+    },
+    {
+      "id": "unknown-norm",
+      "basis": "1000",
+      "quantity": "250",
+      "norm": null,
+      "price": "10",
+      "expectedQuantity": null,
+      "expectedAmount": null,
+      "source_text": "SYNTHETIC ARITHMETIC ONLY: {\"basis\":\"1000\",\"expectedAmount\":null,\"expectedQuantity\":null,\"id\":\"unknown-norm\",\"norm\":null,\"price\":\"10\",\"quantity\":\"250\"}",
+      "source_sha256": "0068b732579b1f235373c5db0bc2d716bb9a0b267229d597acd01aae5ea2d08e",
+      "edition": "synthetic-arithmetic-v1"
+    },
+    {
+      "id": "explicit-zero-norm",
+      "basis": "1000",
+      "quantity": "250",
+      "norm": "0",
+      "price": "10",
+      "expectedQuantity": "0.000000",
+      "expectedAmount": "0.00",
+      "source_text": "SYNTHETIC ARITHMETIC ONLY: {\"basis\":\"1000\",\"expectedAmount\":\"0.00\",\"expectedQuantity\":\"0.000000\",\"id\":\"explicit-zero-norm\",\"norm\":\"0\",\"price\":\"10\",\"quantity\":\"250\"}",
+      "source_sha256": "bd509ddc1001d0a793954a2ffeaab8f333779ec6b35f8b11249464fe6fbca762",
+      "edition": "synthetic-arithmetic-v1"
+    }
   ]
 }

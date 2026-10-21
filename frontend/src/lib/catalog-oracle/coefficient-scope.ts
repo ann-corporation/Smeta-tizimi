@@ -21,3 +21,21 @@ export function scopeCandidates(key: string, rules: ScopeRule[], scopes: ScopeTa
   }
   return [...out].sort((a, b) => a - b);
 }
+
+/** Known source identity and lack of associations have different meanings. */
+export function sourceLookup(key: string, knownWorks: string[], rules: ScopeRule[], scopes: ScopeTarget[]) {
+  if (!knownWorks.includes(key)) return { status: 'UNKNOWN_WORK', ruleIds: [] };
+  const ruleIds = scopeCandidates(key, rules, scopes);
+  return { status: ruleIds.length ? 'REFERENCE_CANDIDATES' : 'NO_SOURCE_CANDIDATES', ruleIds };
+}
+
+/** Approval oracle only: a source number is not an executable operation. */
+export function coefficientGate(rule: { operation: 'MUL' | 'ADDITIVE' | 'UNKNOWN'; condition: string | null;
+  conditionConfirmed: boolean; sourceApproved: boolean; factors: Array<number | null> }) {
+  const reasons: string[] = [];
+  if (!rule.sourceApproved) reasons.push('SOURCE_NOT_APPROVED');
+  if (!rule.condition?.trim() || !rule.conditionConfirmed) reasons.push('CONDITION_UNCONFIRMED');
+  if (rule.operation !== 'MUL') reasons.push('OPERATION_REQUIRES_MAPPING');
+  if (rule.factors.some(f => f == null || !Number.isFinite(f) || f <= 0)) reasons.push('FACTOR_SEMANTICS_UNRESOLVED');
+  return { canApply: reasons.length === 0, reasons };
+}

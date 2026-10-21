@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fixture from './fixtures/catalog-cases.json';
+import { createHash } from 'node:crypto';
 import { emptyDoc, type Occurrence, type WorkCoefficient } from '../smeta-studio/model';
 import { applyCommand, dispatch, historyOf, redo, undo } from '../smeta-studio/commands';
 import { calcDoc, calcOccurrence } from '../smeta-studio/calc';
@@ -20,6 +21,8 @@ const docFor = (o: Occurrence) => ({ ...emptyDoc('synthetic_draft'), rootOrder: 
 
 describe('Catalog adoption acceptance against current Studio engine', () => {
   it.each(fixture.cases)('$id preserves basis, NULL and explicit zero', c => {
+    expect(c.edition).toBe('synthetic-arithmetic-v1');
+    expect(createHash('sha256').update(c.source_text).digest('hex')).toBe(c.source_sha256);
     const result = calcOccurrence(occurrence(c));
     expect(result.lines[0].quantity).toBe(c.expectedQuantity);
     expect(result.amount).toBe(c.expectedAmount);

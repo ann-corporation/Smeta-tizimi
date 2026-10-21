@@ -5306,7 +5306,9 @@
           "code": "01-3.51",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е01-01-001-10",
@@ -5363,7 +5365,9 @@
           "code": "01-3.51",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е01-01-030-1",
@@ -5420,7 +5424,9 @@
           "code": "01-3.78",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е01-01-030-4",
@@ -5467,7 +5473,9 @@
           "code": "01-3.78",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е01-01-030-5",
@@ -5514,7 +5522,9 @@
           "code": "01-3.78",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е01-01-030-9",
@@ -5561,7 +5571,9 @@
           "code": "01-3.78",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е01-01-030-12",
@@ -5608,7 +5620,9 @@
           "code": "01-3.78",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е01-01-030-13",
@@ -5645,7 +5659,9 @@
           "code": "01-3.78",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е03-01-001-1",
@@ -5752,22 +5768,30 @@
           "code": "03-3.25",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е08-01-001-1",
       "rule_ids": [],
-      "core_records": []
+      "core_records": [],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Е46-01-001-1",
       "rule_ids": [],
-      "core_records": []
+      "core_records": [],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Ц01-01-001-1",
       "rule_ids": [],
-      "core_records": []
+      "core_records": [],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     },
     {
       "work_key": "Ц08-01-001-1",
@@ -5834,7 +5858,9 @@
           "code": "08-общ.",
           "library": true
         }
-      ]
+      ],
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "edition": "Construct 2.7.3 / audit-20261021"
     }
   ]
 }
