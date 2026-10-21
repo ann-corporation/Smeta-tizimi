@@ -30,6 +30,7 @@ export const ROUTE_SCOPE: Record<string, RouteScope> = {
   '/admin/hujjatlar': 'COMPANY_SCOPED',
   '/admin/loyiha': 'COMPANY_SCOPED',
   '/admin/obyektlar': 'COMPANY_SCOPED',
+  '/admin/f2-reestr': 'COMPANY_SCOPED',
   '/admin/mindmap': 'COMPANY_SCOPED',
   '/admin/test/portfel': 'COMPANY_SCOPED',
   '/admin/test/moliya': 'COMPANY_SCOPED',

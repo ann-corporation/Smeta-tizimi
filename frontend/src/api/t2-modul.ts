@@ -32,6 +32,7 @@ export function modulOzgartir(kompaniyaId: number, m: Modul, yoq: boolean) {
     kod: m.kod, scope: 'company', scope_id: kompaniyaId, holat: yoq ? 'on' : 'off',
     sabab: yoq ? 'Modul yoqildi (kompaniya sozlamasi)' : 'Modul o‘chirildi (kompaniya sozlamasi)',
     expected_version: m.manba === 'company' ? m.versiya : 0,
+    operation_id: crypto.randomUUID(),
     // Middleware ruxsatni shu kompaniya bo'yicha tekshirsin (aks holda so'rov global deb qaraladi).
     ...({ kompaniya_id: kompaniyaId } as Record<string, unknown>),
   });

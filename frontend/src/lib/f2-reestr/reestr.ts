@@ -23,7 +23,7 @@ export type ReestrAkt = {
 };
 /** Akt qatoridagi raw_snapshot belgilaridan manba: import ishi yoki 'f2_v3' — import; qator bor-u belgi yo'q — tizimda yasalgan. */
 export function manbaAniqla(q: { import_job_id?: unknown; hujjat_id?: unknown; manba?: unknown } | null): Pick<ReestrAkt, 'manba' | 'import_job_id' | 'hujjat_id'> {
-  if (!q) return { manba: 'tizim', import_job_id: null, hujjat_id: null };
+  if (!q) return { manba: null, import_job_id: null, hujjat_id: null };
   const son = (v: unknown) => (v != null && /^\d+$/.test(String(v)) ? Number(v) : null);
   const job = son(q.import_job_id), hujjat = son(q.hujjat_id);
   return { manba: job != null || q.manba === 'f2_v3' ? 'import' : 'tizim', import_job_id: job, hujjat_id: hujjat };
@@ -77,7 +77,10 @@ export function reestrQur(p: {
 }): { qatorlar: ReestrQator[]; jami: ReestrJami } {
   const byObyekt = new Map<number, ReestrAkt[]>();
   for (const a of p.aktlar) { const l = byObyekt.get(a.obyekt_id); if (l) l.push(a); else byObyekt.set(a.obyekt_id, [a]); }
-  const qatorlar = p.obyektlar.map((o): ReestrQator => {
+  const known = new Set(p.obyektlar.map(o => o.id));
+  const missingObjects: ReestrObyekt[] = [...byObyekt.keys()].filter(id => !known.has(id))
+    .map(id => ({ id, nom: String(id), loyiha_id: null, jami: null, narxsiz: null }));
+  const qatorlar = [...p.obyektlar, ...missingObjects].map((o): ReestrQator => {
     const aktlar = [...(byObyekt.get(o.id) ?? [])].sort((a, b) => b.oy.localeCompare(a.oy) || b.id - a.id);
     const boyicha = bosqichlar();
     let tasdiqImport = bosSumma(), tasdiqTizim = bosSumma();

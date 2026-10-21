@@ -69,16 +69,14 @@ describe('Construct source scope oracle (reference only)', () => {
   });
 });
 
-describe('Existing Studio adapter gaps — regression probes, not fixed by L3', () => {
-  // Deliberately assert the observed defect so baseline stays green. L0 must invert these
-  // assertions when fixing koef-katalog.ts; no production changes are made in this lane.
-  it('GAP-COEF-001: trailing garbage currently matches a valid table', () => {
-    expect(jadvalKalitlari('Е01-01-001-1junk')).toEqual(['1-1-1', '1-1-1-1']);
+describe('Studio adapter gap regressions — fixed in owner-authorized release', () => {
+  it('GAP-COEF-001: trailing garbage cannot match a valid table', () => {
+    expect(jadvalKalitlari('Е01-01-001-1junk')).toEqual([]);
   });
-  it('GAP-COEF-002: a row-limited rule currently leaks onto a table-only code', () => {
+  it('GAP-COEF-002: a row-limited rule cannot match a table-only code', () => {
     const kat: KoefKatalog = { schema: 'koef-katalog-v1', manba: 'SYNTHETIC', jadval: { '1-1-1': ['test'] },
       koef: { test: { a: 'SYNTHETIC', t: '', s: '', q: '', k: { ЧЕЛ: 1.1 }, jt: [{ s: 1, t1: 1, t2: 1, r: [[2, 3]] }] } } };
-    expect(ishKoeffitsientlari(kat, 'Е1-1-1')).toHaveLength(1);
+    expect(ishKoeffitsientlari(kat, 'Е1-1-1')).toHaveLength(0);
     expect(ishKoeffitsientlari(kat, 'Е1-1-1-1')).toHaveLength(0);
   });
 });

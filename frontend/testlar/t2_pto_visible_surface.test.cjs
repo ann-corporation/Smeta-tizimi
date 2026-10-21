@@ -27,8 +27,11 @@ function must(label, condition, reason) {
 }
 
 const shell = noComment(read('frontend', 'src', 'admin', 'AdminShell.tsx'));
-const oldMenu = shell.slice(shell.indexOf('const ESKI_TIZIM_MENYU = ['), shell.indexOf('export default function AdminShell'));
-const t2Menu = shell.slice(shell.indexOf('const TIZIM_02_GURUHLAR = ['), shell.indexOf('const ESKI_TIZIM_MENYU'));
+const oldStart = shell.indexOf('const ESKI_TIZIM_MENYU');
+const oldMenu = oldStart < 0 ? '' : shell.slice(oldStart, shell.indexOf('export default function AdminShell'));
+const t2Start = shell.indexOf('const TIZIM_02_GURUHLAR');
+must('canonical navigation declaration exists', t2Start >= 0);
+const t2Menu = shell.slice(t2Start, oldStart < 0 ? shell.indexOf('export default function AdminShell') : oldStart);
 const exactMenuPath = (source, route) => new RegExp(`yol:\\s*['"]${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`).test(source);
 
 console.log('\n── T2 / legacy navigation boundary ──');

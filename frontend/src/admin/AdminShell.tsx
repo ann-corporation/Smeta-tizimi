@@ -16,7 +16,7 @@ import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { routePermission } from '../lib/company-authorization/route-permission';
 import { useModullar } from '../api/t2-modul';
-import { menyuModulYoqilgan } from '../lib/modullar';
+import { MENYU_MODUL, menyuModulYoqilgan } from '../lib/modullar';
 
 /* 2026-10-02 (egasi): menyu product relsi bo'yicha qayta tuzildi — "oddiy PTO ham, o'zim ham
  * adashmasin". Tartib = ish ketma-ketligi: PTO ish yo'li → narx → loyiha/shartnoma → kompaniya
@@ -137,6 +137,7 @@ export default function AdminShell() {
 function AdminShellInner() {
   const sess = useSessiya();
   const k = useKompaniya();
+  const modulQuery = useModullar(k.globalRejim ? null : k.joriy?.id);
   const joy = useLocation();
   // Effective role for THIS render: the active company's own membership
   // role, or a platform-level label when no company is selected. Never the
@@ -235,7 +236,9 @@ function AdminShellInner() {
   // filtrlanadi. Server tomon (RuxsatGuard, RPC ichidagi tekshiruv) yakuniy
   // qo'riqchi — bu yerdagi filtr faqat menyu tuzilishi, xavfsizlik chegarasi
   // EMAS.
-  const modullar = useModullar(k.globalRejim ? null : k.joriy?.id).data;
+  const modullar = modulQuery.data;
+  const routeModule = MENYU_MODUL[joy.pathname];
+  const moduleOpen = !routeModule || modullar?.some(m => m.kod === routeModule && m.holat === 'on');
   const rol = effektivRol;
   const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
   /** Ruxsatlar katalogi yo'q (eski DB javobi) bo'lsa — avvalgi guruh bo'yicha rol filtri (o'zgarmagan qoida). */
@@ -426,7 +429,9 @@ function AdminShellInner() {
          * shu tashqi scroll konteynerining ICHIDA, hajmi mos kelsa
          * tashqi scroll umuman ko'rinmaydi. */}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-          <RuxsatGuard />
+          {moduleOpen ? <RuxsatGuard /> : <p role="alert" className="karta p-4 text-sm">{modulQuery.isLoading
+            ? t('Modullar yuklanmoqda...') : modulQuery.isError || !modullar?.some(m => m.kod === routeModule)
+              ? t('Modullar holatini o‘qib bo‘lmadi.') : t('Bu modul kompaniyada o‘chirilgan.')}</p>}
         </div>
       </main>
 

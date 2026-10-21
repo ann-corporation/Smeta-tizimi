@@ -36,13 +36,16 @@ export async function f2ReestrOl(kompaniyaId: number): Promise<ReestrMalumot> {
     hujjatRoyxatOl({ kompaniyaId, limit: 1000 }).catch(() => null),
   ]);
   const faylNomlari = new Map((hj?.documents ?? []).filter(d => d.type === 'f2_akt').map(d => [Number(d.id), d.filename]));
-  if (!ob.ok) throw new Error(ob.error || 'OBYEKTLAR_OQILMADI');
-  if (!ak.ok) throw new Error(ak.error || 'F2_OQILMADI');
+  if (!ob.ok || ('toliq' in ob && ob.toliq === false)) throw new Error(ob.error || 'OBYEKTLAR_OQILMADI');
+  if (!ak.ok || ak.toliq === false || (ak.jamiServerda != null && ak.jamiServerda > (ak.qatorlar?.length ?? 0))) throw new Error(ak.error || 'F2_OQILMADI');
+  if (!sh.ok || sh.toliq === false) throw new Error(sh.error || 'SHARTNOMALAR_OQILMADI');
+  if (!ly.ok || ly.toliq === false) throw new Error(ly.error || 'LOYIHALAR_OQILMADI');
   const obyektlar: ReestrObyekt[] = (ob.qatorlar ?? []).map(o => ({ id: o.id, nom: o.nom, loyiha_id: o.loyiha_id, jami: o.jami, narxsiz: o.narxsiz }));
   const shById = new Map((sh.ok ? sh.qatorlar ?? [] : []).map(s => [s.id, { id: s.id, raqam: s.raqam, nom: s.nom, jami_nds_bilan: s.jami_nds_bilan, summa_bez_nds: s.summa_bez_nds }]));
   const loyihalar = new Map((ly.ok ? ly.qatorlar ?? [] : []).map(l => [l.id, l.nom]));
   // Obyekt → faol shartnoma bog'lanishlari (tenant chegarasi obyekt bo'yicha — har obyekt alohida o'qiladi).
   const boglar = await navbat(obyektlar, 6, o => sbT2ShartnomaBogOl(o.id));
+  if (boglar.some(r => !r.ok || r.toliq === false)) throw new Error('SHARTNOMA_BOGLANISHLARI_OQILMADI');
   const shartnomalar = new Map<number, ReestrShartnoma[]>();
   obyektlar.forEach((o, i) => {
     const l = (boglar[i].ok ? boglar[i].qatorlar ?? [] : []).map(b => shById.get(b.shartnoma_id)).filter((x): x is ReestrShartnoma => !!x);

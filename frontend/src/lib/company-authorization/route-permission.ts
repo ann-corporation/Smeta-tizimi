@@ -5,7 +5,7 @@ export function routePermission(path:string):PermissionCode {
   if(p==='system-control') return 'control.company.read';
   if(p==='f2') return 'f2.import';
   if(p==='f2-tayyorlash') return 'f2.prepare';
-  if(['f2-tarix','nakopitelniy'].includes(p)) return 'f2.read';
+  if(['f2-tarix','f2-reestr','nakopitelniy'].includes(p)) return 'f2.read';
   if(['holat','smeta-studio','obyektlar'].includes(p)) return 'smeta.read';
   if(p==='fakt') return 'fakt.read';
   if(['narxlar','narx-dalil','narx-manbalari','narx-katalog','smeta-narxlash','nakrutka'].includes(p)) return 'narx.read';

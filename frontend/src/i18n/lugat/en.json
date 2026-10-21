@@ -2434,5 +2434,18 @@
   "Shartnoma biriktirilmagan": "No contract linked",
   "Tasdiqlangan F2 shartnoma summasidan oshgan": "Approved F2 exceed the contract amount",
   "Bir oyda bir nechta tasdiqlangan F2": "Several approved F2 in one month",
-  "Summasi noma’lum F2": "F2 with unknown amount"
+  "Summasi noma’lum F2": "F2 with unknown amount",
+  "Modullar yuklanmoqda...": "Loading modules...",
+  "Modullar holatini o‘qib bo‘lmadi.": "Unable to read module state.",
+  "Bu modul kompaniyada o‘chirilgan.": "This module is disabled for the company.",
+  "Kompaniya modullari": "Company modules",
+  "Faqat kerakli modullarni yoqing — o‘chirilgan modul menyuda ko‘rinmaydi. Ish (PTO) yadrosi: obyekt, smeta, Fakt, F2, Nakopitelniy, M-29 — doim yoqilgan.": "Enable only the modules you need; disabled modules are hidden. Core PTO—objects, estimates, progress, F2, cumulative records and M-29—is always available.",
+  "yuklanmoqda…": "loading…",
+  "yoqilgan": "enabled",
+  "o‘chirilgan": "disabled",
+  "Modullarni kompaniya rahbari yoki superadmin boshqaradi": "Modules are managed by the company director or superadmin",
+  "O‘zgartirilmadi": "Not changed",
+  "Texnik imkoniyatlar": "Technical capabilities",
+  "Ish (PTO)": "Work (PTO)",
+  "Loyiha va tomonlar": "Projects and parties"
 }

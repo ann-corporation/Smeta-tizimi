@@ -2434,5 +2434,18 @@
   "Shartnoma biriktirilmagan": "Договор не привязан",
   "Tasdiqlangan F2 shartnoma summasidan oshgan": "Утверждённые Ф2 превышают сумму договора",
   "Bir oyda bir nechta tasdiqlangan F2": "Несколько утверждённых Ф2 в одном месяце",
-  "Summasi noma’lum F2": "Ф2 с неизвестной суммой"
+  "Summasi noma’lum F2": "Ф2 с неизвестной суммой",
+  "Modullar yuklanmoqda...": "Загрузка модулей...",
+  "Modullar holatini o‘qib bo‘lmadi.": "Не удалось прочитать состояние модулей.",
+  "Bu modul kompaniyada o‘chirilgan.": "Этот модуль отключён в компании.",
+  "Kompaniya modullari": "Модули компании",
+  "Faqat kerakli modullarni yoqing — o‘chirilgan modul menyuda ko‘rinmaydi. Ish (PTO) yadrosi: obyekt, smeta, Fakt, F2, Nakopitelniy, M-29 — doim yoqilgan.": "Включайте только нужные модули: отключённые скрыты из меню. Ядро ПТО — объект, смета, Факт, Ф2, накопительная и М-29 — доступно всегда.",
+  "yuklanmoqda…": "загрузка…",
+  "yoqilgan": "включён",
+  "o‘chirilgan": "отключён",
+  "Modullarni kompaniya rahbari yoki superadmin boshqaradi": "Модулями управляет руководитель компании или суперадминистратор",
+  "O‘zgartirilmadi": "Не изменено",
+  "Texnik imkoniyatlar": "Технические возможности",
+  "Ish (PTO)": "Работа (ПТО)",
+  "Loyiha va tomonlar": "Проекты и стороны"
 }

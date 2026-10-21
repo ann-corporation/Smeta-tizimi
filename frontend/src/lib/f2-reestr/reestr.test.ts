@@ -5,6 +5,12 @@ const akt = (o: Partial<ReestrAkt>): ReestrAkt => ({ id: 1, obyekt_id: 10, oy: '
   hujjat_jami: 100, farq: 0, qator_soni: 5, narxsiz_qator: 0, manba: 'import', ...o });
 const obyekt = (o: Partial<ReestrObyekt>): ReestrObyekt => ({ id: 10, nom: 'Amfiteatr', loyiha_id: 7, jami: 1000, narxsiz: 0, ...o });
 
+it('an act remains in company totals even when its object reference is absent', () => {
+  const r = reestrQur({ obyektlar: [], aktlar: [akt({ obyekt_id: 900001 })], shartnomalar: new Map(), loyihalar: new Map() });
+  expect(r.qatorlar).toHaveLength(1);expect(r.qatorlar[0].obyekt.id).toBe(900001);
+  expect(r.jami.aktlar).toBe(1);expect(r.jami.boyicha.tasdiqlangan.malum).toBe(100);
+});
+
 describe('F2 reestr', () => {
   it('bosqich: lifecycle birinchi, eski holat zaxira', () => {
     expect(bosqich({ holat: 'qoralama', lifecycle_status: 'approved' })).toBe('tasdiqlangan');
@@ -20,7 +26,7 @@ describe('F2 reestr', () => {
     expect(manbaAniqla({ import_job_id: '31', hujjat_id: '328' })).toEqual({ manba: 'import', import_job_id: 31, hujjat_id: 328 });
     expect(manbaAniqla({ manba: 'f2_v3' })).toEqual({ manba: 'import', import_job_id: null, hujjat_id: null });
     expect(manbaAniqla({ manba: null })).toEqual({ manba: 'tizim', import_job_id: null, hujjat_id: null });
-    expect(manbaAniqla(null).manba).toBe('tizim');
+    expect(manbaAniqla(null).manba).toBeNull();
     // raw_snapshot ichida qiymatlar son bo'lib keladi (production akt 293 → job 31, hujjat 328).
     expect(manbaAniqla({ import_job_id: 31, hujjat_id: 328, manba: 'f2_v3' })).toEqual({ manba: 'import', import_job_id: 31, hujjat_id: 328 });
   });

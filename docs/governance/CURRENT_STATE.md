@@ -7,6 +7,6 @@ git tarixida.
 
 | Field | Current value |
 |---|---|
-| `main_sha` | `fb2955522b75d9ab84441cb2c70cecec5640e589` |
+| `main_sha` | `b979e114421467a163ee32eb24227e5f8b6ffa70` |
 | `prod` | https://smeta-tizimi.pages.dev |
 | `canonical_state` | Obsidian `CURRENT_STATE.md` |

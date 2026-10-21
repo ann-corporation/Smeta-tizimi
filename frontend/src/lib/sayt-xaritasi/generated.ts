@@ -2,7 +2,6 @@
 export const GENERATED_SITE_MAP = {
   "generatedAt": "source",
   "menuRoutes": [
-    "/admin/boshqaruv",
     "/admin/obyektlar",
     "/admin/smeta-studio",
     "/admin/holat",
@@ -35,22 +34,17 @@ export const GENERATED_SITE_MAP = {
     "/admin/zayavka",
     "/admin/erp",
     "/admin/mindmap",
-    "/admin/tokenlar",
     "/admin/kompaniya",
+    "/admin/tokenlar",
     "/admin/hujjat-dizayn",
     "/admin/tizim-sozlama",
+    "/admin/boshqaruv",
     "/admin/system-control",
     "/admin/ai-agentlar",
     "/admin/sayt-xaritasi",
     "/admin/storage",
     "/admin/fayl-boglash",
-    "/admin/korzinka",
-    "/admin/buxgalteriya",
-    "/admin/ierarxiya",
-    "/admin/monitoring",
-    "/admin/shaxsiy-smeta",
-    "/admin/supabase",
-    "/admin/tezlik"
+    "/admin/korzinka"
   ],
   "appRouteSegments": [
     "/",

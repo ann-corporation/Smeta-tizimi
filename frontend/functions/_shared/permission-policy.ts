@@ -46,7 +46,7 @@ export function requestPermission(api: string, method: string, b: Record<string,
     if (String(b.action).startsWith('member_') || String(b.action).startsWith('azolik_ruxsat')) return 'company.member.manage';
     return null; // Company requests / platform approval have their own director/platform guard.
   }
-  if (api === 'sb') return dataPermission(String(b.jadval || b.soro || ''),false,b);
+  if (api === 'sb') return b.soro === 'modul_holat_v1' ? 'company.read' : dataPermission(String(b.jadval || b.soro || ''),false,b);
   // Yozish — faqat aniq reyestr orqali (fail-closed): reyestrda yo'q amal hech kimga ruxsat etilmaydi.
   if (api === 'sb-yoz') return writeCommandPermission(String(b.amal || 'qator_tahrir'),b);
   if (api === 'boshqaruv') return method === 'GET' ? 'control.global.read' : 'control.global.write';

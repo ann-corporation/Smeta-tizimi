@@ -17,7 +17,7 @@ export type KoefNomzod = { kod: string; yozuv: KoefYozuv };
 
 /** "E1-1-3-12" / "Е20-5-2-2" → ["1-1-3", "1-1-3-12"] (table key and row key of the reference). */
 export function jadvalKalitlari(code: string | null | undefined): string[] {
-  const m = /^[EЕ](\d+)-(\d+)-(\d+)(?:-(\d+))?/.exec((code ?? '').trim());
+  const m = /^[EЕ](\d+)-(\d+)-(\d+)(?:-(\d+))?$/.exec((code ?? '').trim());
   if (!m) return [];
   const t = `${Number(m[1])}-${Number(m[2])}-${Number(m[3])}`;
   return m[4] ? [t, `${t}-${Number(m[4])}`] : [t];
@@ -26,10 +26,10 @@ export function jadvalKalitlari(code: string | null | undefined): string[] {
 /** The work lies inside the tables/rows the condition text names (no list = the reference link decides). */
 export function jadvalIchida(y: KoefYozuv, code: string | null | undefined): boolean {
   if (!y.jt?.length) return true;
-  const m = /^[EЕ](\d+)-(\d+)-(\d+)(?:-(\d+))?/.exec((code ?? '').trim());
+  const m = /^[EЕ](\d+)-(\d+)-(\d+)(?:-(\d+))?$/.exec((code ?? '').trim());
   if (!m) return false;
   const s = Number(m[2]), t = Number(m[3]), r = m[4] == null ? null : Number(m[4]);
-  return y.jt.some(j => j.s === s && t >= j.t1 && t <= j.t2 && (!j.r || r == null || j.r.some(([a, b]) => r >= a && r <= b)));
+  return y.jt.some(j => j.s === s && t >= j.t1 && t <= j.t2 && (!j.r || (r != null && j.r.some(([a, b]) => r >= a && r <= b))));
 }
 
 /** Every normative coefficient applicable to a work (table-level ∪ row-level, limited by the condition's own table list). */
