@@ -1,0 +1,13 @@
+{
+  "schema": "catalog-acceptance-fixtures-v1",
+  "synthetic": true,
+  "currency": "TEST_ONLY",
+  "note": "Invented test arithmetic, not market prices, legal norms, or customer documents.",
+  "cases": [
+    { "id": "basis-1000-m3", "basis": "1000", "quantity": "250", "norm": "4", "price": "10", "expectedQuantity": "1.000000", "expectedAmount": "10.00" },
+    { "id": "unknown-price", "basis": "1000", "quantity": "250", "norm": "4", "price": null, "expectedQuantity": "1.000000", "expectedAmount": null },
+    { "id": "explicit-zero-price", "basis": "1000", "quantity": "250", "norm": "4", "price": "0", "expectedQuantity": "1.000000", "expectedAmount": "0.00" },
+    { "id": "unknown-norm", "basis": "1000", "quantity": "250", "norm": null, "price": "10", "expectedQuantity": null, "expectedAmount": null },
+    { "id": "explicit-zero-norm", "basis": "1000", "quantity": "250", "norm": "0", "price": "10", "expectedQuantity": "0.000000", "expectedAmount": "0.00" }
+  ]
+}

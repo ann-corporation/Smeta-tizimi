@@ -1,0 +1,5840 @@
+{
+  "schema": "construct-scope-oracle-v1",
+  "reference_only": true,
+  "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+  "core_oracle_sha256": "9cc6d11c8de8315a0f625c3b7234e69599f230cec110adccda206d273c6259a6",
+  "source": {
+    "product": "Construct",
+    "version": "2.7.3",
+    "method": "NormRepository.Corrections",
+    "all_works_checked": 42608,
+    "full_matching_mismatches": 0
+  },
+  "rules": [
+    {
+      "rule_id": 1,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.4",
+      "title": "на гидроэнергетическом строительстве",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.4",
+      "labour": 1.0,
+      "machines": 0.95,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 38,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.46",
+      "title": "Разработка вязких грунтов повышенной влажности, сильно налипающих на стенки и зубья ковша одноковшовых экскаваторов (кроме грунтов 5-6 группы)",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.46",
+      "labour": 1.1,
+      "machines": 1.1,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 40,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.48",
+      "title": "Разработка грунтов экскаваторами одноковшовыми и многоковшовыми при работе в забоях с мокрой глинистой подошвой, с передвижкой экскаваторов по щитам, автосамосвалов по сланям",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.48",
+      "labour": 1.2,
+      "machines": 1.2,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 41,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.49",
+      "title": "Разработка траншей траншейными роторными экскаваторами глубиной То же, в забоях с мокрой подошвой из прочих грунтов",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.49",
+      "labour": 1.1,
+      "machines": 1.1,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 42,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.50",
+      "title": "Разработка вязких грунтов повышенной влажности, сильно налипающих на стенки и зубья ковша одноковшовых экскаваторов, с одновременным применением щитов под экскаваторы и сланей под автосамосвалы при глинистой подошве",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.50",
+      "labour": 1.32,
+      "machines": 1.32,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 43,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.51",
+      "title": "Разработка траншей траншейными роторными экскаваторами глубиной То же, при подошве из прочих грунтов",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.51",
+      "labour": 1.21,
+      "machines": 1.21,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 67,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.75",
+      "title": "Разработка грунта бульдозерами и скреперами, а также планировка орошаемых площадей и рисовых чеков с устройством валиков в сыпучих, или вязких, переувлажненных грунтах",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.75",
+      "labour": 1.15,
+      "machines": 1.15,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 68,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.76",
+      "title": "При перемещении бульдозерами ранее разрыхленных грунтов, за исключением взорванной скальной породы, сыпучих барханных и дюнных песков",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.76",
+      "labour": 1.0,
+      "machines": 0.85,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 69,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.77",
+      "title": "Перемещение грунта бульдозерами по пути с подъемом от 10 до 20 %",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.77",
+      "labour": 1.0,
+      "machines": 1.2,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 70,
+      "kind": "Е",
+      "collection_code": "01",
+      "code": "3.78",
+      "title": "Примечание: при разработке грунта из-под воды коэффициенты, приведенные в пп. 46 , 50, 51 настоящей таблицы, не должны применяться. То же, при подъемах св. 20 %",
+      "basis": "ШНК 4.02.01-04, ТЧ п. 3.78",
+      "labour": 1.0,
+      "machines": 1.4,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 208,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.1",
+      "title": "по группам 4-7",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.1",
+      "labour": 1.1,
+      "machines": 1.1,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 209,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.2",
+      "title": "по группам 8-9",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.2",
+      "labour": 1.1,
+      "machines": 1.1,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 210,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.3",
+      "title": "10-11",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.3",
+      "labour": 1.1,
+      "machines": 1.1,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 212,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.5",
+      "title": "Взрывание на горных склонах с уклоном более 30 град",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.5",
+      "labour": 1.0,
+      "machines": 1.25,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 215,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.10",
+      "title": "От 7 до 18",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.10",
+      "labour": 1.15,
+      "machines": 1.15,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 216,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.11",
+      "title": "От 19 до 36",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.11",
+      "labour": 1.35,
+      "machines": 1.35,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 217,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.12",
+      "title": "Более 36",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.12",
+      "labour": 1.5,
+      "machines": 1.5,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 218,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.13",
+      "title": "Взрывание на участках уширения полотна автомобильных дорог. Число автомобилей, проходящих в 1 час До 30",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.13",
+      "labour": 1.05,
+      "machines": 1.05,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 219,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.14",
+      "title": "Более 30",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.14",
+      "labour": 1.1,
+      "machines": 1.1,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 231,
+      "kind": "Е",
+      "collection_code": "03",
+      "code": "3.25",
+      "title": "Разрыхление вечномерзлых скальных грунтов",
+      "basis": "ШНК 4.02.03-04, ТЧ п. 3.25",
+      "labour": 1.2,
+      "machines": 1.2,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 490,
+      "kind": "Ц",
+      "collection_code": "08",
+      "code": "общ.",
+      "title": "При высоте свыше 2 до 8 м",
+      "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+      "labour": 1.05,
+      "machines": 1.0,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 491,
+      "kind": "Ц",
+      "collection_code": "08",
+      "code": "общ.",
+      "title": "При высоте свыше 8 до 15 м",
+      "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+      "labour": 1.1,
+      "machines": 1.0,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 492,
+      "kind": "Ц",
+      "collection_code": "08",
+      "code": "общ.",
+      "title": "При высоте свыше 15 до 30 м",
+      "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+      "labour": 1.25,
+      "machines": 1.0,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 493,
+      "kind": "Ц",
+      "collection_code": "08",
+      "code": "общ.",
+      "title": "При высоте свыше 30 до 60 м",
+      "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+      "labour": 1.4,
+      "machines": 1.0,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 494,
+      "kind": "Ц",
+      "collection_code": "08",
+      "code": "общ.",
+      "title": "При высоте свыше 60 до 100 м",
+      "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+      "labour": 1.6,
+      "machines": 1.0,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    },
+    {
+      "rule_id": 495,
+      "kind": "Ц",
+      "collection_code": "08",
+      "code": "общ.",
+      "title": "При высоте свыше 100 м",
+      "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+      "labour": 1.8,
+      "machines": 1.0,
+      "materials": 1.0,
+      "source_sha256": "9837657b6c0bb41980da2b9fc8f86bb88042f522bd88d5617f520a97e42578f6",
+      "calculation_approved": 0,
+      "condition_status": "REQUIRES_CONTEXT_CONFIRMATION"
+    }
+  ],
+  "scopes": [
+    {
+      "scope_id": 1,
+      "rule_id": 1,
+      "otdel": "01",
+      "tbl": "030",
+      "n_from": 1,
+      "n_to": 4
+    },
+    {
+      "scope_id": 2,
+      "rule_id": 1,
+      "otdel": "01",
+      "tbl": "030",
+      "n_from": 9,
+      "n_to": 12
+    },
+    {
+      "scope_id": 3,
+      "rule_id": 1,
+      "otdel": "01",
+      "tbl": "033",
+      "n_from": 1,
+      "n_to": 3
+    },
+    {
+      "scope_id": 4,
+      "rule_id": 1,
+      "otdel": "01",
+      "tbl": "033",
+      "n_from": 7,
+      "n_to": 9
+    },
+    {
+      "scope_id": 5,
+      "rule_id": 1,
+      "otdel": "01",
+      "tbl": "036",
+      "n_from": 1,
+      "n_to": 1
+    },
+    {
+      "scope_id": 85,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 86,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 87,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 88,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 89,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 90,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 91,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 92,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 93,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 94,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 95,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 96,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 97,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 98,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 99,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 100,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 101,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 102,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "042",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 103,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "043",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 104,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "044",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 105,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "156",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 106,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "157",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 107,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "158",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 108,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "159",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 109,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "160",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 110,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "161",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 111,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "162",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 112,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "163",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 113,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "164",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 114,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "165",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 115,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "166",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 116,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "167",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 117,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "168",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 118,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "169",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 119,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 120,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "175",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 121,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "176",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 122,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "177",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 123,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "178",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 124,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "179",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 125,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "180",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 126,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "183",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 127,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "184",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 128,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "185",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 129,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "186",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 130,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "195",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 131,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "196",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 132,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "197",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 133,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "049",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 134,
+      "rule_id": 38,
+      "otdel": "01",
+      "tbl": "093",
+      "n_from": 1,
+      "n_to": 4
+    },
+    {
+      "scope_id": 141,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 142,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 143,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 144,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 145,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 146,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 147,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 148,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 149,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 150,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 151,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 152,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 153,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 154,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 155,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 156,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 157,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 158,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 159,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "042",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 160,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "043",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 161,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "044",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 162,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "156",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 163,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "157",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 164,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "158",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 165,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "159",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 166,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "160",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 167,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "161",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 168,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "162",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 169,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "163",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 170,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "164",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 171,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "165",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 172,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "166",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 173,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "167",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 174,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "168",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 175,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "169",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 176,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 177,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "175",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 178,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "176",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 179,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "177",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 180,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "178",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 181,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "179",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 182,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "180",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 183,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "183",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 184,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "184",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 185,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "185",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 186,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "186",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 187,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "195",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 188,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "196",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 189,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "197",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 190,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "049",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 191,
+      "rule_id": 40,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 192,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 193,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 194,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 195,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 196,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 197,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 198,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 199,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 200,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 201,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 202,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 203,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 204,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 205,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 206,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 207,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 208,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 209,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 210,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "042",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 211,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "043",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 212,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "044",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 213,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 214,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "175",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 215,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "176",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 216,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "177",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 217,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "178",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 218,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "179",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 219,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "180",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 220,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "183",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 221,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "184",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 222,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "185",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 223,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "186",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 224,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "195",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 225,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "196",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 226,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "197",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 227,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "049",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 228,
+      "rule_id": 41,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 229,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 230,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 231,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 232,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 233,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 234,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 235,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 236,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 237,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 238,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 239,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 240,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 241,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 242,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 243,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 244,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 245,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 246,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 247,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "042",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 248,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "043",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 249,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "044",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 250,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "156",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 251,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "157",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 252,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "158",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 253,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "159",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 254,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "160",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 255,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "161",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 256,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "162",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 257,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "163",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 258,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "164",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 259,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "165",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 260,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "166",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 261,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "167",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 262,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "168",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 263,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "169",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 264,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 265,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "175",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 266,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "176",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 267,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "177",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 268,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "178",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 269,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "179",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 270,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "180",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 271,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "183",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 272,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "184",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 273,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "185",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 274,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "186",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 275,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "195",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 276,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "196",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 277,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "197",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 278,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "049",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 279,
+      "rule_id": 42,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 280,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 281,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 282,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 283,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 284,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 285,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 286,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 287,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 288,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 289,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 290,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 291,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 292,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 293,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 294,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 295,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 296,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 297,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 298,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "042",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 299,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "043",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 300,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "044",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 301,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "156",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 302,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "157",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 303,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "158",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 304,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "159",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 305,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "160",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 306,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "161",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 307,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "162",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 308,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "163",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 309,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "164",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 310,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "165",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 311,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "166",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 312,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "167",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 313,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "168",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 314,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "169",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 315,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 316,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "175",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 317,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "176",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 318,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "177",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 319,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "178",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 320,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "179",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 321,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "180",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 322,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "183",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 323,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "184",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 324,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "185",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 325,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "186",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 326,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "195",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 327,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "196",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 328,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "197",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 329,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "049",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 330,
+      "rule_id": 43,
+      "otdel": "01",
+      "tbl": "174",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 667,
+      "rule_id": 67,
+      "otdel": "01",
+      "tbl": "030",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 668,
+      "rule_id": 67,
+      "otdel": "01",
+      "tbl": "031",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 669,
+      "rule_id": 67,
+      "otdel": "01",
+      "tbl": "032",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 670,
+      "rule_id": 67,
+      "otdel": "01",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 671,
+      "rule_id": 67,
+      "otdel": "01",
+      "tbl": "024",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 672,
+      "rule_id": 67,
+      "otdel": "01",
+      "tbl": "046",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 673,
+      "rule_id": 67,
+      "otdel": "01",
+      "tbl": "086",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 674,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "030",
+      "n_from": 1,
+      "n_to": 3
+    },
+    {
+      "scope_id": 675,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "030",
+      "n_from": 5,
+      "n_to": 7
+    },
+    {
+      "scope_id": 676,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "031",
+      "n_from": 1,
+      "n_to": 3
+    },
+    {
+      "scope_id": 677,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "031",
+      "n_from": 5,
+      "n_to": 7
+    },
+    {
+      "scope_id": 678,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "032",
+      "n_from": 1,
+      "n_to": 3
+    },
+    {
+      "scope_id": 679,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "032",
+      "n_from": 5,
+      "n_to": 7
+    },
+    {
+      "scope_id": 680,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "086",
+      "n_from": 1,
+      "n_to": 3
+    },
+    {
+      "scope_id": 681,
+      "rule_id": 68,
+      "otdel": "01",
+      "tbl": "086",
+      "n_from": 5,
+      "n_to": 7
+    },
+    {
+      "scope_id": 682,
+      "rule_id": 69,
+      "otdel": "01",
+      "tbl": "030",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 683,
+      "rule_id": 69,
+      "otdel": "01",
+      "tbl": "031",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 684,
+      "rule_id": 69,
+      "otdel": "01",
+      "tbl": "032",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 685,
+      "rule_id": 69,
+      "otdel": "01",
+      "tbl": "086",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 686,
+      "rule_id": 70,
+      "otdel": "01",
+      "tbl": "030",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 687,
+      "rule_id": 70,
+      "otdel": "01",
+      "tbl": "031",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 688,
+      "rule_id": 70,
+      "otdel": "01",
+      "tbl": "032",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 689,
+      "rule_id": 70,
+      "otdel": "01",
+      "tbl": "086",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1046,
+      "rule_id": 208,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1047,
+      "rule_id": 208,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1048,
+      "rule_id": 208,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1049,
+      "rule_id": 208,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1050,
+      "rule_id": 208,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1051,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1052,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1053,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1054,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1055,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1056,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1057,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1058,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1059,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1060,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1061,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1062,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1063,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1064,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1065,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1066,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1067,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1068,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1069,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1070,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1071,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1072,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1073,
+      "rule_id": 208,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1074,
+      "rule_id": 208,
+      "otdel": "03",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1075,
+      "rule_id": 208,
+      "otdel": "03",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1076,
+      "rule_id": 208,
+      "otdel": "03",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1077,
+      "rule_id": 208,
+      "otdel": "03",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1078,
+      "rule_id": 208,
+      "otdel": "03",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1079,
+      "rule_id": 208,
+      "otdel": "03",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1080,
+      "rule_id": 208,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1081,
+      "rule_id": 209,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1082,
+      "rule_id": 209,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1083,
+      "rule_id": 209,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1084,
+      "rule_id": 209,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1085,
+      "rule_id": 209,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1086,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1087,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1088,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1089,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1090,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1091,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1092,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1093,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1094,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1095,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1096,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1097,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1098,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1099,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1100,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1101,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1102,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1103,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1104,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1105,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1106,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1107,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1108,
+      "rule_id": 209,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1109,
+      "rule_id": 209,
+      "otdel": "03",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1110,
+      "rule_id": 209,
+      "otdel": "03",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1111,
+      "rule_id": 209,
+      "otdel": "03",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1112,
+      "rule_id": 209,
+      "otdel": "03",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1113,
+      "rule_id": 209,
+      "otdel": "03",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1114,
+      "rule_id": 209,
+      "otdel": "03",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1115,
+      "rule_id": 209,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1116,
+      "rule_id": 210,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1117,
+      "rule_id": 210,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1118,
+      "rule_id": 210,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1119,
+      "rule_id": 210,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1120,
+      "rule_id": 210,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1121,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1122,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1123,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1124,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1125,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1126,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1127,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1128,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1129,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1130,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1131,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1132,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1133,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1134,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1135,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1136,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1137,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1138,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1139,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1140,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1141,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1142,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1143,
+      "rule_id": 210,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1144,
+      "rule_id": 210,
+      "otdel": "03",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1145,
+      "rule_id": 210,
+      "otdel": "03",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1146,
+      "rule_id": 210,
+      "otdel": "03",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1147,
+      "rule_id": 210,
+      "otdel": "03",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1148,
+      "rule_id": 210,
+      "otdel": "03",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1149,
+      "rule_id": 210,
+      "otdel": "03",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1150,
+      "rule_id": 210,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1168,
+      "rule_id": 212,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1169,
+      "rule_id": 212,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1170,
+      "rule_id": 212,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1171,
+      "rule_id": 212,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1172,
+      "rule_id": 212,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1173,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1174,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1175,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1176,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1177,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1178,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1179,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1180,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1181,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1182,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1183,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1184,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1185,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1186,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1187,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1188,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1189,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1190,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1191,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1192,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1193,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1194,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1195,
+      "rule_id": 212,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1196,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1197,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1198,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1199,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1200,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1201,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1202,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1203,
+      "rule_id": 212,
+      "otdel": "03",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1204,
+      "rule_id": 212,
+      "otdel": "04",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1205,
+      "rule_id": 212,
+      "otdel": "04",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1206,
+      "rule_id": 212,
+      "otdel": "04",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1207,
+      "rule_id": 212,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1216,
+      "rule_id": 215,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1217,
+      "rule_id": 215,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1218,
+      "rule_id": 215,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1219,
+      "rule_id": 215,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1220,
+      "rule_id": 215,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1221,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1222,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1223,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1224,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1225,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1226,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1227,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1228,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1229,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1230,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1231,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1232,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1233,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1234,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1235,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1236,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1237,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1238,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1239,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1240,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1241,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1242,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1243,
+      "rule_id": 215,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1244,
+      "rule_id": 215,
+      "otdel": "04",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1245,
+      "rule_id": 215,
+      "otdel": "04",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1246,
+      "rule_id": 215,
+      "otdel": "04",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1247,
+      "rule_id": 215,
+      "otdel": "04",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1248,
+      "rule_id": 215,
+      "otdel": "04",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1249,
+      "rule_id": 215,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1250,
+      "rule_id": 216,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1251,
+      "rule_id": 216,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1252,
+      "rule_id": 216,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1253,
+      "rule_id": 216,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1254,
+      "rule_id": 216,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1255,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1256,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1257,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1258,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1259,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1260,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1261,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1262,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1263,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1264,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1265,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1266,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1267,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1268,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1269,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1270,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1271,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1272,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1273,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1274,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1275,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1276,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1277,
+      "rule_id": 216,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1278,
+      "rule_id": 216,
+      "otdel": "04",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1279,
+      "rule_id": 216,
+      "otdel": "04",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1280,
+      "rule_id": 216,
+      "otdel": "04",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1281,
+      "rule_id": 216,
+      "otdel": "04",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1282,
+      "rule_id": 216,
+      "otdel": "04",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1283,
+      "rule_id": 216,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1284,
+      "rule_id": 217,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1285,
+      "rule_id": 217,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1286,
+      "rule_id": 217,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1287,
+      "rule_id": 217,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1288,
+      "rule_id": 217,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1289,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1290,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1291,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1292,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1293,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1294,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1295,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1296,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1297,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1298,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1299,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1300,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1301,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1302,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1303,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1304,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1305,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1306,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1307,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1308,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1309,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1310,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1311,
+      "rule_id": 217,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1312,
+      "rule_id": 217,
+      "otdel": "04",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1313,
+      "rule_id": 217,
+      "otdel": "04",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1314,
+      "rule_id": 217,
+      "otdel": "04",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1315,
+      "rule_id": 217,
+      "otdel": "04",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1316,
+      "rule_id": 217,
+      "otdel": "04",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1317,
+      "rule_id": 218,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1318,
+      "rule_id": 218,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1319,
+      "rule_id": 218,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1320,
+      "rule_id": 218,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1321,
+      "rule_id": 218,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1322,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1323,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1324,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1325,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1326,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1327,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1328,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1329,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1330,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1331,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1332,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1333,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1334,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1335,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1336,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1337,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1338,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1339,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1340,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1341,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1342,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1343,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1344,
+      "rule_id": 218,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1345,
+      "rule_id": 218,
+      "otdel": "04",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1346,
+      "rule_id": 218,
+      "otdel": "04",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1347,
+      "rule_id": 218,
+      "otdel": "04",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1348,
+      "rule_id": 218,
+      "otdel": "04",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1349,
+      "rule_id": 218,
+      "otdel": "04",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1350,
+      "rule_id": 218,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1351,
+      "rule_id": 219,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1352,
+      "rule_id": 219,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1353,
+      "rule_id": 219,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1354,
+      "rule_id": 219,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1355,
+      "rule_id": 219,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1356,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1357,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1358,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1359,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1360,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1361,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1362,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1363,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1364,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1365,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1366,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1367,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1368,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1369,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1370,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1371,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "016",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1372,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "017",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1373,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "018",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1374,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "019",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1375,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "020",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1376,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1377,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "022",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1378,
+      "rule_id": 219,
+      "otdel": "02",
+      "tbl": "023",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1379,
+      "rule_id": 219,
+      "otdel": "04",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1380,
+      "rule_id": 219,
+      "otdel": "04",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1381,
+      "rule_id": 219,
+      "otdel": "04",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1382,
+      "rule_id": 219,
+      "otdel": "04",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1383,
+      "rule_id": 219,
+      "otdel": "04",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1414,
+      "rule_id": 231,
+      "otdel": "01",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1415,
+      "rule_id": 231,
+      "otdel": "01",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1416,
+      "rule_id": 231,
+      "otdel": "01",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1417,
+      "rule_id": 231,
+      "otdel": "01",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1418,
+      "rule_id": 231,
+      "otdel": "01",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1419,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "001",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1420,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "002",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1421,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "003",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1422,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "004",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1423,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "005",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1424,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "006",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1425,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "007",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1426,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "008",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1427,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1428,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "010",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1429,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "011",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1430,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "012",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1431,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "013",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1432,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "014",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1433,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "015",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1434,
+      "rule_id": 231,
+      "otdel": "02",
+      "tbl": "021",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 1435,
+      "rule_id": 231,
+      "otdel": "05",
+      "tbl": "009",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 2633,
+      "rule_id": 490,
+      "otdel": "*",
+      "tbl": "*",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 2634,
+      "rule_id": 491,
+      "otdel": "*",
+      "tbl": "*",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 2635,
+      "rule_id": 492,
+      "otdel": "*",
+      "tbl": "*",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 2636,
+      "rule_id": 493,
+      "otdel": "*",
+      "tbl": "*",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 2637,
+      "rule_id": 494,
+      "otdel": "*",
+      "tbl": "*",
+      "n_from": 0,
+      "n_to": 0
+    },
+    {
+      "scope_id": 2638,
+      "rule_id": 495,
+      "otdel": "*",
+      "tbl": "*",
+      "n_from": 0,
+      "n_to": 0
+    }
+  ],
+  "cases": [
+    {
+      "work_key": "Е01-01-001-1",
+      "rule_ids": [
+        38,
+        40,
+        41,
+        42,
+        43
+      ],
+      "core_records": [
+        {
+          "machines": 1.1,
+          "title": "Разработка вязких грунтов повышенной влажности, сильно налипающих на стенки и зубья ковша одноковшовых экскаваторов (кроме грунтов 5-6 группы)",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.46",
+          "labour": 1.1,
+          "code": "01-3.46",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Разработка грунтов экскаваторами одноковшовыми и многоковшовыми при работе в забоях с мокрой глинистой подошвой, с передвижкой экскаваторов по щитам, автосамосвалов по сланям",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.48",
+          "labour": 1.2,
+          "code": "01-3.48",
+          "library": true
+        },
+        {
+          "machines": 1.1,
+          "title": "Разработка траншей траншейными роторными экскаваторами глубиной То же, в забоях с мокрой подошвой из прочих грунтов",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.49",
+          "labour": 1.1,
+          "code": "01-3.49",
+          "library": true
+        },
+        {
+          "machines": 1.32,
+          "title": "Разработка вязких грунтов повышенной влажности, сильно налипающих на стенки и зубья ковша одноковшовых экскаваторов, с одновременным применением щитов под экскаваторы и сланей под автосамосвалы при глинистой подошве",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.50",
+          "labour": 1.32,
+          "code": "01-3.50",
+          "library": true
+        },
+        {
+          "machines": 1.21,
+          "title": "Разработка траншей траншейными роторными экскаваторами глубиной То же, при подошве из прочих грунтов",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.51",
+          "labour": 1.21,
+          "code": "01-3.51",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е01-01-001-10",
+      "rule_ids": [
+        38,
+        40,
+        41,
+        42,
+        43
+      ],
+      "core_records": [
+        {
+          "machines": 1.1,
+          "title": "Разработка вязких грунтов повышенной влажности, сильно налипающих на стенки и зубья ковша одноковшовых экскаваторов (кроме грунтов 5-6 группы)",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.46",
+          "labour": 1.1,
+          "code": "01-3.46",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Разработка грунтов экскаваторами одноковшовыми и многоковшовыми при работе в забоях с мокрой глинистой подошвой, с передвижкой экскаваторов по щитам, автосамосвалов по сланям",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.48",
+          "labour": 1.2,
+          "code": "01-3.48",
+          "library": true
+        },
+        {
+          "machines": 1.1,
+          "title": "Разработка траншей траншейными роторными экскаваторами глубиной То же, в забоях с мокрой подошвой из прочих грунтов",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.49",
+          "labour": 1.1,
+          "code": "01-3.49",
+          "library": true
+        },
+        {
+          "machines": 1.32,
+          "title": "Разработка вязких грунтов повышенной влажности, сильно налипающих на стенки и зубья ковша одноковшовых экскаваторов, с одновременным применением щитов под экскаваторы и сланей под автосамосвалы при глинистой подошве",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.50",
+          "labour": 1.32,
+          "code": "01-3.50",
+          "library": true
+        },
+        {
+          "machines": 1.21,
+          "title": "Разработка траншей траншейными роторными экскаваторами глубиной То же, при подошве из прочих грунтов",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.51",
+          "labour": 1.21,
+          "code": "01-3.51",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е01-01-030-1",
+      "rule_ids": [
+        1,
+        67,
+        68,
+        69,
+        70
+      ],
+      "core_records": [
+        {
+          "machines": 0.95,
+          "title": "на гидроэнергетическом строительстве",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.4",
+          "labour": 1.0,
+          "code": "01-3.4",
+          "library": true
+        },
+        {
+          "machines": 1.15,
+          "title": "Разработка грунта бульдозерами и скреперами, а также планировка орошаемых площадей и рисовых чеков с устройством валиков в сыпучих, или вязких, переувлажненных грунтах",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.75",
+          "labour": 1.15,
+          "code": "01-3.75",
+          "library": true
+        },
+        {
+          "machines": 0.85,
+          "title": "При перемещении бульдозерами ранее разрыхленных грунтов, за исключением взорванной скальной породы, сыпучих барханных и дюнных песков",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.76",
+          "labour": 1.0,
+          "code": "01-3.76",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Перемещение грунта бульдозерами по пути с подъемом от 10 до 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.77",
+          "labour": 1.0,
+          "code": "01-3.77",
+          "library": true
+        },
+        {
+          "machines": 1.4,
+          "title": "Примечание: при разработке грунта из-под воды коэффициенты, приведенные в пп. 46 , 50, 51 настоящей таблицы, не должны применяться. То же, при подъемах св. 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.78",
+          "labour": 1.0,
+          "code": "01-3.78",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е01-01-030-4",
+      "rule_ids": [
+        1,
+        67,
+        69,
+        70
+      ],
+      "core_records": [
+        {
+          "machines": 0.95,
+          "title": "на гидроэнергетическом строительстве",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.4",
+          "labour": 1.0,
+          "code": "01-3.4",
+          "library": true
+        },
+        {
+          "machines": 1.15,
+          "title": "Разработка грунта бульдозерами и скреперами, а также планировка орошаемых площадей и рисовых чеков с устройством валиков в сыпучих, или вязких, переувлажненных грунтах",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.75",
+          "labour": 1.15,
+          "code": "01-3.75",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Перемещение грунта бульдозерами по пути с подъемом от 10 до 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.77",
+          "labour": 1.0,
+          "code": "01-3.77",
+          "library": true
+        },
+        {
+          "machines": 1.4,
+          "title": "Примечание: при разработке грунта из-под воды коэффициенты, приведенные в пп. 46 , 50, 51 настоящей таблицы, не должны применяться. То же, при подъемах св. 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.78",
+          "labour": 1.0,
+          "code": "01-3.78",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е01-01-030-5",
+      "rule_ids": [
+        67,
+        68,
+        69,
+        70
+      ],
+      "core_records": [
+        {
+          "machines": 1.15,
+          "title": "Разработка грунта бульдозерами и скреперами, а также планировка орошаемых площадей и рисовых чеков с устройством валиков в сыпучих, или вязких, переувлажненных грунтах",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.75",
+          "labour": 1.15,
+          "code": "01-3.75",
+          "library": true
+        },
+        {
+          "machines": 0.85,
+          "title": "При перемещении бульдозерами ранее разрыхленных грунтов, за исключением взорванной скальной породы, сыпучих барханных и дюнных песков",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.76",
+          "labour": 1.0,
+          "code": "01-3.76",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Перемещение грунта бульдозерами по пути с подъемом от 10 до 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.77",
+          "labour": 1.0,
+          "code": "01-3.77",
+          "library": true
+        },
+        {
+          "machines": 1.4,
+          "title": "Примечание: при разработке грунта из-под воды коэффициенты, приведенные в пп. 46 , 50, 51 настоящей таблицы, не должны применяться. То же, при подъемах св. 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.78",
+          "labour": 1.0,
+          "code": "01-3.78",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е01-01-030-9",
+      "rule_ids": [
+        1,
+        67,
+        69,
+        70
+      ],
+      "core_records": [
+        {
+          "machines": 0.95,
+          "title": "на гидроэнергетическом строительстве",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.4",
+          "labour": 1.0,
+          "code": "01-3.4",
+          "library": true
+        },
+        {
+          "machines": 1.15,
+          "title": "Разработка грунта бульдозерами и скреперами, а также планировка орошаемых площадей и рисовых чеков с устройством валиков в сыпучих, или вязких, переувлажненных грунтах",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.75",
+          "labour": 1.15,
+          "code": "01-3.75",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Перемещение грунта бульдозерами по пути с подъемом от 10 до 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.77",
+          "labour": 1.0,
+          "code": "01-3.77",
+          "library": true
+        },
+        {
+          "machines": 1.4,
+          "title": "Примечание: при разработке грунта из-под воды коэффициенты, приведенные в пп. 46 , 50, 51 настоящей таблицы, не должны применяться. То же, при подъемах св. 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.78",
+          "labour": 1.0,
+          "code": "01-3.78",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е01-01-030-12",
+      "rule_ids": [
+        1,
+        67,
+        69,
+        70
+      ],
+      "core_records": [
+        {
+          "machines": 0.95,
+          "title": "на гидроэнергетическом строительстве",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.4",
+          "labour": 1.0,
+          "code": "01-3.4",
+          "library": true
+        },
+        {
+          "machines": 1.15,
+          "title": "Разработка грунта бульдозерами и скреперами, а также планировка орошаемых площадей и рисовых чеков с устройством валиков в сыпучих, или вязких, переувлажненных грунтах",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.75",
+          "labour": 1.15,
+          "code": "01-3.75",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Перемещение грунта бульдозерами по пути с подъемом от 10 до 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.77",
+          "labour": 1.0,
+          "code": "01-3.77",
+          "library": true
+        },
+        {
+          "machines": 1.4,
+          "title": "Примечание: при разработке грунта из-под воды коэффициенты, приведенные в пп. 46 , 50, 51 настоящей таблицы, не должны применяться. То же, при подъемах св. 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.78",
+          "labour": 1.0,
+          "code": "01-3.78",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е01-01-030-13",
+      "rule_ids": [
+        67,
+        69,
+        70
+      ],
+      "core_records": [
+        {
+          "machines": 1.15,
+          "title": "Разработка грунта бульдозерами и скреперами, а также планировка орошаемых площадей и рисовых чеков с устройством валиков в сыпучих, или вязких, переувлажненных грунтах",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.75",
+          "labour": 1.15,
+          "code": "01-3.75",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Перемещение грунта бульдозерами по пути с подъемом от 10 до 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.77",
+          "labour": 1.0,
+          "code": "01-3.77",
+          "library": true
+        },
+        {
+          "machines": 1.4,
+          "title": "Примечание: при разработке грунта из-под воды коэффициенты, приведенные в пп. 46 , 50, 51 настоящей таблицы, не должны применяться. То же, при подъемах св. 20 %",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.01-04, ТЧ п. 3.78",
+          "labour": 1.0,
+          "code": "01-3.78",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е03-01-001-1",
+      "rule_ids": [
+        208,
+        209,
+        210,
+        212,
+        215,
+        216,
+        217,
+        218,
+        219,
+        231
+      ],
+      "core_records": [
+        {
+          "machines": 1.1,
+          "title": "по группам 4-7",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.1",
+          "labour": 1.1,
+          "code": "03-3.1",
+          "library": true
+        },
+        {
+          "machines": 1.1,
+          "title": "по группам 8-9",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.2",
+          "labour": 1.1,
+          "code": "03-3.2",
+          "library": true
+        },
+        {
+          "machines": 1.1,
+          "title": "10-11",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.3",
+          "labour": 1.1,
+          "code": "03-3.3",
+          "library": true
+        },
+        {
+          "machines": 1.25,
+          "title": "Взрывание на горных склонах с уклоном более 30 град",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.5",
+          "labour": 1.0,
+          "code": "03-3.5",
+          "library": true
+        },
+        {
+          "machines": 1.15,
+          "title": "От 7 до 18",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.10",
+          "labour": 1.15,
+          "code": "03-3.10",
+          "library": true
+        },
+        {
+          "machines": 1.35,
+          "title": "От 19 до 36",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.11",
+          "labour": 1.35,
+          "code": "03-3.11",
+          "library": true
+        },
+        {
+          "machines": 1.5,
+          "title": "Более 36",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.12",
+          "labour": 1.5,
+          "code": "03-3.12",
+          "library": true
+        },
+        {
+          "machines": 1.05,
+          "title": "Взрывание на участках уширения полотна автомобильных дорог. Число автомобилей, проходящих в 1 час До 30",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.13",
+          "labour": 1.05,
+          "code": "03-3.13",
+          "library": true
+        },
+        {
+          "machines": 1.1,
+          "title": "Более 30",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.14",
+          "labour": 1.1,
+          "code": "03-3.14",
+          "library": true
+        },
+        {
+          "machines": 1.2,
+          "title": "Разрыхление вечномерзлых скальных грунтов",
+          "materials": 1.0,
+          "basis": "ШНК 4.02.03-04, ТЧ п. 3.25",
+          "labour": 1.2,
+          "code": "03-3.25",
+          "library": true
+        }
+      ]
+    },
+    {
+      "work_key": "Е08-01-001-1",
+      "rule_ids": [],
+      "core_records": []
+    },
+    {
+      "work_key": "Е46-01-001-1",
+      "rule_ids": [],
+      "core_records": []
+    },
+    {
+      "work_key": "Ц01-01-001-1",
+      "rule_ids": [],
+      "core_records": []
+    },
+    {
+      "work_key": "Ц08-01-001-1",
+      "rule_ids": [
+        490,
+        491,
+        492,
+        493,
+        494,
+        495
+      ],
+      "core_records": [
+        {
+          "machines": 1.0,
+          "title": "При высоте свыше 2 до 8 м",
+          "materials": 1.0,
+          "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+          "labour": 1.05,
+          "code": "08-общ.",
+          "library": true
+        },
+        {
+          "machines": 1.0,
+          "title": "При высоте свыше 8 до 15 м",
+          "materials": 1.0,
+          "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+          "labour": 1.1,
+          "code": "08-общ.",
+          "library": true
+        },
+        {
+          "machines": 1.0,
+          "title": "При высоте свыше 15 до 30 м",
+          "materials": 1.0,
+          "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+          "labour": 1.25,
+          "code": "08-общ.",
+          "library": true
+        },
+        {
+          "machines": 1.0,
+          "title": "При высоте свыше 30 до 60 м",
+          "materials": 1.0,
+          "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+          "labour": 1.4,
+          "code": "08-общ.",
+          "library": true
+        },
+        {
+          "machines": 1.0,
+          "title": "При высоте свыше 60 до 100 м",
+          "materials": 1.0,
+          "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+          "labour": 1.6,
+          "code": "08-общ.",
+          "library": true
+        },
+        {
+          "machines": 1.0,
+          "title": "При высоте свыше 100 м",
+          "materials": 1.0,
+          "basis": "ШНК 4.17.08-07, ТЧ п. общ.",
+          "labour": 1.8,
+          "code": "08-общ.",
+          "library": true
+        }
+      ]
+    }
+  ]
+}
