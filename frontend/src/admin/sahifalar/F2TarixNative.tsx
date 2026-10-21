@@ -14,7 +14,7 @@ import {
 } from '../../api/supabase';
 import { sbT2F2TafsilotOl, type F2Tafsilot } from '../../api/t2-narx';
 import { t2AktLifecycleTransition, type PtoLifecycleStatus } from '../../api/t2-akt-lifecycle';
-import { f2LifecyclePlan, f2LifecycleError, f2LifecycleLabels } from '../../lib/f2-lifecycle-workflow';
+import { f2HolatYorligi, f2KeyingiQadam, f2LifecyclePlan, f2LifecycleError, f2QadamTugmasi, f2TasdiqRejimi, type F2TasdiqRejimi } from '../../lib/f2-lifecycle-workflow';
 import { f2Ierarxiya, type F2IerSmeta } from '../../lib/f2-ierarxiya';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import type { T2Qator } from '../../api/supabase';
@@ -64,6 +64,18 @@ export function F2TarixNative() {
   const mayApprove=superadmin||!!joriy?.permissions?.includes('f2.approve');
   const mayCancel=superadmin||!!joriy?.permissions?.includes('f2.cancel');
   const workspace = usePTOWorkspace();
+  /* Tasdiqlash rejimi (ADR-2): shaxsiy — «Yakunlash (shaxsiy)»; korporativ — har bosqich alohida, SoD bazada. */
+  const [rejim, setRejim] = useState<F2TasdiqRejimi>('shaxsiy');
+  const rejimKompaniya = workspace.companyId ?? joriy?.id ?? null;
+  useEffect(() => {
+    let faol = true;
+    if (!rejimKompaniya) return;
+    void (async () => {
+      const r = await sbOqi<{ id: number; f2_tasdiq_rejimi?: string }>({ jadval: 't2_kompaniya', filtr: `id=eq.${rejimKompaniya}`, ustunlar: 'id,f2_tasdiq_rejimi', limit: 1 });
+      if (faol) setRejim(f2TasdiqRejimi(r.ok ? r.qatorlar?.[0]?.f2_tasdiq_rejimi : null));
+    })();
+    return () => { faol = false; };
+  }, [rejimKompaniya]);
   const [params, setParams] = useSearchParams();
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [reestr, setReestr] = useState<T2AktReestr[]>([]);
@@ -144,7 +156,7 @@ export function F2TarixNative() {
 
   useEffect(() => { void yuklash(); }, [yuklash]);
 
-  async function holatniOzgartir(akt: T2AktReestr, statuses: readonly ('submitted' | 'checked' | 'approved' | 'rejected' | 'cancelled')[], reason?: string) {
+  async function holatniOzgartir(akt: T2AktReestr, statuses: readonly ('submitted' | 'checked' | 'approved' | 'rejected' | 'cancelled')[], reason?: string, birQadam = false) {
     if (akt.holat !== 'qoralama' || savingId != null) return;
     if ((statuses.includes('cancelled')&&!mayCancel)||(statuses.some(s=>s==='checked'||s==='approved'||s==='rejected')&&!mayApprove)) {toast('Bu amal uchun individual ruxsatingiz yo‘q.','danger');return;}
     const sabab = reason?.trim() || null;
@@ -162,8 +174,10 @@ export function F2TarixNative() {
       const current = live.ok ? live.qatorlar?.[0] : null;
       if (!current) { toast('Hujjatning joriy holatini tekshirib bo‘lmadi. Sahifani yangilang.', 'danger'); return; }
       const target = statuses.at(-1);
-      if (target !== 'approved' && target !== 'rejected' && target !== 'cancelled') return;
-      const plan = f2LifecyclePlan(current.lifecycle_status, target);
+      /* Korporativ rejim: faqat keyingi BITTA bosqich (yuborish / tekshirish / tasdiqlash) — har birini boshqa xodim bajaradi. */
+      const plan = birQadam
+        ? (target != null && f2KeyingiQadam(current.lifecycle_status) === target ? [target] : null)
+        : (target === 'approved' || target === 'rejected' || target === 'cancelled' ? f2LifecyclePlan(current.lifecycle_status, target) : null);
       if (plan === null) { toast('Bu hujjatning joriy holatida ushbu amal bajarilmaydi.', 'danger'); return; }
       let expectedVersion = current.versiya;
       for (const toStatus of plan) {
@@ -181,7 +195,9 @@ export function F2TarixNative() {
         }
         expectedVersion = result.version ?? expectedVersion + 1;
       }
-      toast(statuses.at(-1) === 'approved' ? 'F2 tasdiqlandi; LRV va Nakopitelniy yangilanadi.' : 'F2 lifecycle holati saqlandi.', 'ok');
+      toast(statuses.at(-1) === 'approved'
+        ? (rejim === 'shaxsiy' ? t('F2 yakunlandi (shaxsiy); LRV va Nakopitelniy yangilanadi.') : t('F2 tasdiqlandi; LRV va Nakopitelniy yangilanadi.'))
+        : t('F2 holati saqlandi.'), 'ok');
       setActionReason('');
     } catch {
       toast('F2 tasdiqlash javobi olinmadi. Shu hujjatni qayta yubormang; avval yangilang.', 'danger', undefined, 9000);
@@ -224,9 +240,16 @@ export function F2TarixNative() {
     finally { setChiqarilmoqda(false); }
   }
 
+  /** Shaxsiy: bitta bosishda yakunlash. Korporativ: faqat keyingi bosqich (SoD bazada tekshiriladi). */
   async function tasdiqlash(akt: T2AktReestr) {
-    await holatniOzgartir(akt, ['submitted', 'checked', 'approved']);
+    if (rejim === 'shaxsiy') { await holatniOzgartir(akt, ['submitted', 'checked', 'approved']); return; }
+    const q = akt.lifecycle_status ? f2KeyingiQadam(akt.lifecycle_status) : null;
+    if (q) await holatniOzgartir(akt, [q], undefined, true);
   }
+  /** Ro'yxatdagi tugma: rejim va joriy bosqichga qarab (yo'q bo'lsa — ko'rsatilmaydi). */
+  const tugmaMatni = (akt: T2AktReestr) => f2QadamTugmasi(rejim, akt.lifecycle_status ?? 'draft');
+  const tugmaRuxsat = (akt: T2AktReestr) => rejim === 'korporativ' && f2KeyingiQadam(akt.lifecycle_status ?? 'draft') === 'submitted' ? true : mayApprove;
+  const holatYorligi = (akt: T2AktReestr) => (akt.lifecycle_status ? f2HolatYorligi(akt.lifecycle_status, rejim) : holatMatni[akt.holat]) || 'Noma’lum holat';
 
   return (
     <>{korinish.oyna}<Sahifa
@@ -259,9 +282,9 @@ export function F2TarixNative() {
                     const active = (selectedAkt?.id ?? null) === akt.id;
                     return <tr key={akt.id} className={`border-t border-border/60 align-top ${active ? 'bg-accent/10' : ''}`}>
                       <td className="p-3"><button className="text-left" onClick={() => setSelectedAktId(akt.id)}><div className="font-medium text-text">{akt.oy?.slice(0, 7) || 'Davr noma’lum'}</div><div className="text-text-dim">{akt.raqam || 'F2 hujjati'}</div></button></td>
-                      <td><PtoStatusChip label={(akt.lifecycle_status ? f2LifecycleLabels[akt.lifecycle_status] : holatMatni[akt.holat]) || 'Noma’lum holat'} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-[10px] text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
+                      <td><PtoStatusChip label={t(holatYorligi(akt))} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-[10px] text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
                       <td className="text-right tabular-nums"><FmtN val={akt.hujjat_jami} /><div className="text-[10px] text-text-mute">{akt.qator_soni ?? '—'} qator</div></td>
-                      <td className="p-3 text-right">{akt.holat === 'qoralama' && <button title={mayApprove?'':'F2 tasdiqlash ruxsati berilmagan'} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!mayApprove} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : 'Tasdiqlash'}</button>}</td>
+                      <td className="p-3 text-right">{akt.holat === 'qoralama' && tugmaMatni(akt) && <button title={tugmaRuxsat(akt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!tugmaRuxsat(akt)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : t(tugmaMatni(akt) ?? '')}</button>}</td>
                     </tr>;
                   })}
                 </tbody>
@@ -271,7 +294,7 @@ export function F2TarixNative() {
 
             <section className="karta min-h-0 overflow-auto p-4">
               {selectedAkt ? <>
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-[11px] text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {(selectedAkt.lifecycle_status ? f2LifecycleLabels[selectedAkt.lifecycle_status] : holatMatni[selectedAkt.holat]) || 'Noma’lum holat'} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-[11px] text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-[11px] text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b>
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-[11px] text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {t(holatYorligi(selectedAkt))} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-[11px] text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-[11px] text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b>
                   {selectedLines.length > 0 && <div className="mt-2 flex justify-end gap-1.5">
                     <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text disabled:opacity-50"><Eye size={13} />{t('Koʻrish')}</button>
                     <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"><Download size={13} />{t('Ф-2 Excel')}</button>

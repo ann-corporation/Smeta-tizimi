@@ -2284,5 +2284,18 @@
   "Papka bo‘sh emas — avval ichidagi papka va fayllarni ko‘chiring.": "The folder is not empty — move its folders and files first.",
   "Lavozimingiz fayllarni faqat ko‘rishga ruxsat beradi.": "Your role only allows viewing files.",
   "Fayl topilmadi.": "File not found.",
-  "Papka topilmadi.": "Folder not found."
+  "Papka topilmadi.": "Folder not found.",
+  "F2 yakunlandi (shaxsiy); LRV va Nakopitelniy yangilanadi.": "F2 finalized (personal); LRV and the cumulative statement will update.",
+  "F2 tasdiqlandi; LRV va Nakopitelniy yangilanadi.": "F2 approved; LRV and the cumulative statement will update.",
+  "F2 holati saqlandi.": "F2 status saved.",
+  "Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)": "Each stage is done by a different person (preparer ≠ checker ≠ approver)",
+  "F2 tasdiqlash ruxsati berilmagan": "No permission to approve F2",
+  "Yakunlash (shaxsiy)": "Finalize (personal)",
+  "Yakunlangan (shaxsiy)": "Finalized (personal)",
+  "Tekshiruvga yuborish": "Send for check",
+  "Qoralama": "Draft",
+  "Tekshirishga yuborilgan": "Sent for check",
+  "Tekshirilgan": "Checked",
+  "Yangi tahrir bilan almashtirilgan": "Superseded by a new revision",
+  "Noma’lum holat": "Unknown status"
 }

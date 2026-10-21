@@ -2284,5 +2284,18 @@
   "Papka bo‘sh emas — avval ichidagi papka va fayllarni ko‘chiring.": "Папка не пуста — сначала переместите вложенные папки и файлы.",
   "Lavozimingiz fayllarni faqat ko‘rishga ruxsat beradi.": "Ваша должность разрешает только просмотр файлов.",
   "Fayl topilmadi.": "Файл не найден.",
-  "Papka topilmadi.": "Папка не найдена."
+  "Papka topilmadi.": "Папка не найдена.",
+  "F2 yakunlandi (shaxsiy); LRV va Nakopitelniy yangilanadi.": "Ф-2 завершён (личный режим); ЛРВ и Накопительная обновятся.",
+  "F2 tasdiqlandi; LRV va Nakopitelniy yangilanadi.": "Ф-2 утверждён; ЛРВ и Накопительная обновятся.",
+  "F2 holati saqlandi.": "Статус Ф-2 сохранён.",
+  "Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)": "Каждый этап выполняет другой сотрудник (составитель ≠ проверяющий ≠ утверждающий)",
+  "F2 tasdiqlash ruxsati berilmagan": "Нет права утверждать Ф-2",
+  "Yakunlash (shaxsiy)": "Завершить (лично)",
+  "Yakunlangan (shaxsiy)": "Завершён (лично)",
+  "Tekshiruvga yuborish": "Отправить на проверку",
+  "Qoralama": "Черновик",
+  "Tekshirishga yuborilgan": "Отправлен на проверку",
+  "Tekshirilgan": "Проверен",
+  "Yangi tahrir bilan almashtirilgan": "Заменён новой редакцией",
+  "Noma’lum holat": "Неизвестный статус"
 }
