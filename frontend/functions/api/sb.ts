@@ -242,6 +242,8 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
+        modul_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: fayl menejeri — kompaniya fayllari loyiha/obyekt/tur bo'yicha (a'zolik ichida). */
         fayl_explorer_v1: 'kompaniya_actor',
       };
