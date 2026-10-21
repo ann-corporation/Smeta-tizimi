@@ -50,6 +50,9 @@ const AMALLAR = {
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-10-20: fayl menejeri — o'z papkalari, ko'rinadigan nom, ko'chirish, savat (kanonik hujjat o'zgarmaydi). */
   fayl_amal_v1: { rpc: 't2_fayl_amal_v1' },
+  /* Egasi 2026-10-21 (ADR-3): ombor Fakt orqali emas — bajarilgan M-29 orqali kamayadi. */
+  m29_bajar_v1: { rpc: 't2_m29_bajar_v1' },
+  m29_bekor_v1: { rpc: 't2_m29_bekor_v1' },
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
@@ -594,6 +597,21 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'Paket, usul va operatsiya talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_paket_kod: String(so.paket_kod), p_usul: String(so.usul), p_tolov_malumot: String(so.tolov_malumot || '').slice(0, 300), p_operation_id: so.operation_id };
+    } else if (amal === 'm29_bajar_v1') {
+      const q = so.qatorlar;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.obyekt_id))
+          || !/^\d{4}-\d{2}$/.test(String(so.davr || '')) || !Array.isArray(q) || !q.length || q.length > 3000
+          || q.some((x: any) => !x || typeof x.nomi !== 'string' || !x.nomi.trim() || !(Number(x.miqdor) > 0))) {
+        return Response.json({ ok: false, error: 'M-29: obyekt, davr (YYYY-MM), material qatorlari (nomi, miqdor > 0) va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_davr: String(so.davr),
+        p_qatorlar: q.map((x: any) => ({ nomi: String(x.nomi).slice(0, 500), birligi: x.birligi == null ? null : String(x.birligi).slice(0, 50), miqdor: Number(x.miqdor) })),
+        p_operation_id: so.operation_id, p_manfiyga_ruxsat: so.manfiyga_ruxsat === true, p_trigger_bekor: so.trigger_bekor === true };
+    } else if (amal === 'm29_bekor_v1') {
+      if (!sess.foydalanuvchi_id || !Number.isSafeInteger(Number(so.hujjat_id)) || typeof so.sabab !== 'string' || !so.sabab.trim()) {
+        return Response.json({ ok: false, error: 'M-29 bekor: hujjat va sabab talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_hujjat_id: Number(so.hujjat_id), p_sabab: String(so.sabab).slice(0, 1000) };
     } else if (amal === 'fayl_amal_v1') {
       const AMALLAR = ['nomla', 'kochir', 'savat', 'tikla', 'papka_yarat', 'papka_nomla', 'papka_kochir', 'papka_ochir'];
       const ixt = (v: unknown) => (v == null || v === '' ? null : Number(v));

@@ -170,6 +170,7 @@ export const GENERATED_SITE_MAP = {
     "t2_birja_taklif",
     "t2_sklad_qoldiq",
     "t2_sklad_harakat",
+    "t2_m29_hujjat",
     "t2_narx_markaz",
     "t2_topilmaganlar",
     "t2_narx_sana",
@@ -273,6 +274,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "fayl_amal_v1",
       "rpc": "t2_fayl_amal_v1"
+    },
+    {
+      "amal": "m29_bajar_v1",
+      "rpc": "t2_m29_bajar_v1"
+    },
+    {
+      "amal": "m29_bekor_v1",
+      "rpc": "t2_m29_bekor_v1"
     },
     {
       "amal": "token_sarfla_v1",

@@ -12,6 +12,7 @@ import { m29Hisobla, type M29Kirish, type M29Material, type M29Natija, type M29S
 import { m29DavrMatni, m29Hujjat } from '../../lib/m29/export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
+import { M29Chiqim } from './M29Chiqim';
 
 /**
  * М-29 — материалы: расход по норме ↔ фактически (egasi 2026-09-28).
@@ -169,6 +170,11 @@ function Sessiya({ companyId }: { companyId: number }) {
       {busy && <p className="text-[13px] text-text-dim">Yuklanmoqda…</p>}
       {xato && <p role="alert" className="karta border-danger/40 p-3 text-[13px] text-danger">{xato}</p>}
       {ogoh && <p className="karta border-warn/40 p-3 text-[12px] text-warn">{ogoh}</p>}
+      {/* Egasi 2026-10-21 (ADR-3): ombor Fakt bilan emas — shu davr uchun bajarilgan M-29 bilan kamayadi. */}
+      {natija && objectId && davr && (
+        <M29Chiqim kompaniyaId={companyId} obyektId={Number(objectId)} davr={davr}
+          materiallar={natija.guruhlar.flatMap((g) => g.materiallar)} onYangilandi={() => void yukla(Number(objectId))} />
+      )}
 
       {natija && (
         <>
