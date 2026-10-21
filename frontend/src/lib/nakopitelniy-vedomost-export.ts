@@ -60,7 +60,8 @@ export interface NakopitelniyVedomostExportOptions {
 /** Tasdiqlangan F2 qatorlari oy bo'yicha: oylar — 'YYYY-MM' o'sish tartibida (oxirgisi — hisobot davri). */
 export interface NakopitelniyOylar {
   oylar: string[];
-  qiymat: ReadonlyMap<number, ReadonlyMap<string, { hajm: number; summa: number }>>;
+  /** summa: null — tasdiqlangan F2 da summa noma'lum (0 emas). */
+  qiymat: ReadonlyMap<number, ReadonlyMap<string, { hajm: number; summa: number | null }>>;
 }
 
 /** НДС stavkasi sukuti (egasi qarori Q2): 12 %, o'zgartiriladi. */
@@ -83,7 +84,7 @@ export function davrMatni(davr: string): string {
 const BARG = new Set(['rs', 'mat', 'ob']);
 
 /** Davr ustun guruhi: har tasdiqlangan F2 oyi (yoki eski ko'rinishda "ранее / за период"). */
-type DavrUstun = { sarlavha: string; hajm: (q: NakopitelniyQator) => number; summa: (q: NakopitelniyQator) => number };
+type DavrUstun = { sarlavha: string; hajm: (q: NakopitelniyQator) => number; summa: (q: NakopitelniyQator) => number | null };
 
 /** Ustunlar va ularning harflari — davrlar soniga qarab (egasi 2026-09-30: har oy alohida ustun + ИТОГО). */
 function ustunRejasi(davrlar: readonly DavrUstun[]) {
@@ -125,7 +126,8 @@ function davrUstunlari(o: NakopitelniyVedomostExportOptions): DavrUstun[] {
     return m.oylar.map((oy, i) => ({
       sarlavha: `${davrMatni(oy).toUpperCase()}${i === m.oylar.length - 1 ? ' — ОТЧЕТНЫЙ ПЕРИОД' : ''}`,
       hajm: (q) => m.qiymat.get(q.qator_id)?.get(oy)?.hajm ?? 0,
-      summa: (q) => m.qiymat.get(q.qator_id)?.get(oy)?.summa ?? 0,
+      /* Oyda F2 yo'q — haqiqiy 0; F2 bor, summa noma'lum — null (bo'sh katak). */
+      summa: (q) => { const v = m.qiymat.get(q.qator_id)?.get(oy); return v ? v.summa : 0; },
     }));
   }
   return [
@@ -215,8 +217,9 @@ export function nakopitelniyVedomostHujjat(
 
   /** Qator bo'yicha: davrlar yig'indisi (с начала) va hisobot davri (oxirgi davr). */
   const jamiH = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + d.hajm(q), 0);
-  const jamiS = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + d.summa(q), 0);
-  const perS = (q: NakopitelniyQator) => davrlar[davrlar.length - 1].summa(q);
+  /* Noma'lum oy summasi (null) jamiga qo'shilmaydi — faqat ma'lum qism (katak bo'sh, diqqat ro'yxatida aytiladi). */
+  const jamiS = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + (d.summa(q) ?? 0), 0);
+  const perS = (q: NakopitelniyQator) => davrlar[davrlar.length - 1].summa(q) ?? 0;
 
   const reja: Rej[] = [];
   const bargRows: number[] = [];
@@ -238,8 +241,11 @@ export function nakopitelniyVedomostHujjat(
       const mozhno = q.fakt_hajm - jamiH(q);
       // Reja ishorasiga nisbatan: chegirma ishida (manfiy smeta) akt fakt’dan «manfiyroq» bo‘lsa — ortiqcha qabul.
       if ((q.smeta_hajm ?? 0) < 0 ? mozhno > 1e-9 : mozhno < -1e-9) diqqat.push({ nom: nomi(q), sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(Math.abs(mozhno))})` });
+      // NULL ≠ 0 (ADR-4): tasdiqlangan F2 da summasi yo'q oy — katak bo'sh, jamiga faqat ma'lum qism; ochiq aytiladi.
+      const nomalumOy = davrlar.filter((d) => d.summa(q) == null).length;
+      if (nomalumOy) diqqat.push({ nom: nomi(q), sabab: `сумма по утвержденным Ф-2 неизвестна за ${nomalumOy} мес. — ячейка пустая, итог только по известным суммам` });
       // Oy kesimi RPC jamisi bilan mos bo'lishi shart — farq bo'lsa ochiq aytiladi (to'qilmaydi).
-      if (oyKesimi && Math.abs(jamiS(q) - (q.oldingi_summa + q.joriy_summa)) > 0.01) {
+      else if (oyKesimi && Math.abs(jamiS(q) - (q.oldingi_summa + q.joriy_summa)) > 0.01) {
         diqqat.push({ nom: nomi(q), sabab: `сумма по месяцам (${fmt2(jamiS(q))}) не совпадает с итогом ведомости (${fmt2(q.oldingi_summa + q.joriy_summa)})` });
       }
       return i;

@@ -59,9 +59,15 @@ export function f3CertifiedHajm(rows: readonly F2Tafsilot[], companyId: number, 
  * har birining ustunlari va barcha oylar ИТОГО"). Faqat tasdiqlangan F2, davrgacha; hujjat
  * qiymatlari (certified_quantity / certified_amount) — qayta hisoblanmaydi.
  */
-export function f2OyKesimi(rows: readonly F2Tafsilot[], period: string): { oylar: string[]; qiymat: Map<number, Map<string, { hajm: number; summa: number }>> } {
+/**
+ * Oylik kesim. Summa: `certified_amount ?? summa` (t2_qator_holat bilan bir xil manba). Ikkalasi ham NULL bo'lsa —
+ * NOMA'LUM (`null`), 0 EMAS (audit 2026-10-21, ADR-4: NULL = noma'lum, 0 = haqiqiy nol). Bir katakka kelgan qatorlardan
+ * birortasi noma'lum bo'lsa — katak summasi noma'lum (qisman summa to'liq deb ko'rsatilmaydi).
+ */
+export type F2OyQiymat = { hajm: number; summa: number | null };
+export function f2OyKesimi(rows: readonly F2Tafsilot[], period: string): { oylar: string[]; qiymat: Map<number, Map<string, F2OyQiymat>> } {
   requirePeriod(period);
-  const qiymat = new Map<number, Map<string, { hajm: number; summa: number }>>();
+  const qiymat = new Map<number, Map<string, F2OyQiymat>>();
   // Hisobot oyida akt bo‘lmasa ham uni saqlash zarur: aks holda exporter
   // oxirgi eski akt oyini «за отчетный период» deb ko‘rsatadi.
   const oylar = new Set<string>([period]);
@@ -75,7 +81,8 @@ export function f2OyKesimi(rows: readonly F2Tafsilot[], period: string): { oylar
     if (!m) { m = new Map(); qiymat.set(row.qator_id, m); }
     const x = m.get(oy) ?? { hajm: 0, summa: 0 };
     x.hajm += Number(row.certified_quantity ?? row.hajm ?? 0);
-    x.summa += Number(row.certified_amount ?? 0);
+    const s = row.certified_amount ?? row.summa;
+    x.summa = s == null || x.summa == null ? null : x.summa + Number(s);
     m.set(oy, x);
   }
   return { oylar: [...oylar].sort(), qiymat };

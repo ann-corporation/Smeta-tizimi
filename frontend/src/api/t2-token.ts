@@ -112,6 +112,7 @@ export function tokenXato(r: { code?: string; error?: string; xabar?: string; ke
  */
 export async function tokenBilan<T>(p: { kompaniyaId: number; amal: TokenAmal; birlikSoni?: number; meta?: Record<string, string | number> }, ish: () => Promise<T>):
   Promise<{ ok: true; natija: T; sarflandi: number; balans?: number; bepulTakror?: boolean; hisob?: NarxTafsilot } | { ok: false; xabar: string }> {
+  void kutilayotganQaytarishlar(); // oldingi muvaffaqiyatsiz qaytarishlar (bo'lsa) — fon rejimida qayta yuboriladi
   const opId = yangiOperationId();
   const s = await tokenSarfla({ ...p, operationId: opId });
   if (!s.ok) return { ok: false, xabar: tokenXato(s) };
@@ -119,7 +120,56 @@ export async function tokenBilan<T>(p: { kompaniyaId: number; amal: TokenAmal; b
     const natija = await ish();
     return { ok: true, natija, sarflandi: s.sarflandi ?? 0, balans: s.balans, bepulTakror: !!s.bepul_takror, hisob: s.hisob };
   } catch (e) {
-    if ((s.sarflandi ?? 0) > 0) await tokenQaytar({ kompaniyaId: p.kompaniyaId, sarfOperationId: opId, sabab: e instanceof Error ? e.message : 'amal xatosi' }).catch(() => undefined);
-    return { ok: false, xabar: e instanceof Error ? e.message : 'Amal bajarilmadi — token qaytarildi.' };
+    const sabab = e instanceof Error ? e.message : 'Amal bajarilmadi.';
+    if ((s.sarflandi ?? 0) <= 0) return { ok: false, xabar: sabab };
+    /* Audit 2026-10-21 (CODE-06): qaytarish natijasi yutilmaydi va «qaytarildi» deb yolg'on aytilmaydi. */
+    const q = await tokenQaytarIshonchli({ kompaniyaId: p.kompaniyaId, sarfOperationId: opId, sabab });
+    return { ok: false, xabar: q ? `${sabab} — token qaytarildi.`
+      : `${sabab} — tokenni hozir qaytarib bo‘lmadi; tizim keyingi amalda avtomatik qayta urinadi. Balansni tekshiring.` };
   }
+}
+
+/* ── Ishonchli qaytarish ─────────────────────────────────────────────────────────────────────────────────────────
+ * Server t2_token_qaytar_v1 sarf operatsiyasi bo'yicha idempotent — qayta yuborish ikki marta qaytarmaydi.
+ * 3 urinishdan keyin ham bo'lmasa — brauzer navbatiga yoziladi va keyingi token amalida qayta yuboriladi.
+ * (To'liq server saga — REFUND_PENDING + operator navbati — release rejasi Faza 1 da.) */
+const NAVBAT_KALIT = 't2_token_qaytar_navbat_v1';
+type KutilayotganQaytarish = { kompaniyaId: number; sarfOperationId: string; sabab: string; vaqt: number };
+
+function navbatOqi(): KutilayotganQaytarish[] {
+  try { const v = JSON.parse(localStorage.getItem(NAVBAT_KALIT) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+function navbatYoz(n: KutilayotganQaytarish[]) {
+  try { if (n.length) localStorage.setItem(NAVBAT_KALIT, JSON.stringify(n.slice(-50))); else localStorage.removeItem(NAVBAT_KALIT); } catch { /* saqlab bo'lmasa — xabar baribir halol */ }
+}
+
+export async function tokenQaytarIshonchli(p: { kompaniyaId: number; sarfOperationId: string; sabab: string }, urinish = 3, kutish = 600): Promise<boolean> {
+  for (let i = 0; i < urinish; i++) {
+    const r = await tokenQaytar(p).catch(() => null);
+    if (r?.ok) return true;
+    if (i < urinish - 1) await new Promise((ok) => setTimeout(ok, kutish * (i + 1)));
+  }
+  const n = navbatOqi().filter((x) => x.sarfOperationId !== p.sarfOperationId);
+  n.push({ ...p, vaqt: Date.now() });
+  navbatYoz(n);
+  return false;
+}
+
+let navbatBand = false;
+/** Navbatdagi qaytarishlarni qayta yuboradi (idempotent). Qaytarilganlar navbatdan chiqadi. */
+export async function kutilayotganQaytarishlar(): Promise<number> {
+  if (navbatBand) return 0;
+  const n = navbatOqi();
+  if (!n.length) return 0;
+  navbatBand = true;
+  try {
+    const qoldi: KutilayotganQaytarish[] = [];
+    let qaytdi = 0;
+    for (const x of n) {
+      const r = await tokenQaytar(x).catch(() => null);
+      if (r?.ok) qaytdi++; else qoldi.push(x);
+    }
+    navbatYoz([...qoldi, ...navbatOqi().filter((y) => !n.some((x) => x.sarfOperationId === y.sarfOperationId))]);
+    return qaytdi;
+  } finally { navbatBand = false; }
 }

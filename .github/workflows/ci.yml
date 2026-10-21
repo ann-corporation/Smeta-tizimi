@@ -4,7 +4,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # 2026-10-21 (audit, egasi ADR-7): ish branch'larida ham CI — main'ga faqat yashil commit o'tadi.
+    branches: ['**']
   pull_request:
 
 concurrency:

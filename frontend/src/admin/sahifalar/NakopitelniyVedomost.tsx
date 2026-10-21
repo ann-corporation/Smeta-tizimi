@@ -217,7 +217,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         if (o.tur !== 'rz' && o.tur !== 'bl') continue;
         const x = m.get(o.qator_id) ?? { smeta: null, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
         if (q.smeta_summa != null) x.smeta = (x.smeta ?? 0) + q.smeta_summa; x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
-        for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, (x.oy.get(oy) ?? 0) + v.summa);
+        for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, (x.oy.get(oy) ?? 0) + (v.summa ?? 0)); // noma'lum (null) — jamiga kirmaydi, qatorning o'zi bo'sh
         m.set(o.qator_id, x);
       }
     }
