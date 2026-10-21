@@ -205,7 +205,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
         : await hujjatYukla({ file, kompaniyaId, loyihaId: joriy.loyiha_id, obyektId: joriy.obyekt_id, documentType: joriy.tur ?? 'hujjat' });
       if (!current()) return;
       if (r.ok && bolim === 'mening' && menJoriy != null) {
-        const k = await faylAmal(kompaniyaId, 'kochir', { documentId: r.document_id, papkaId: menJoriy });
+        const k = await faylAmal(kompaniyaId, 'kochir', { documentId: r.data.document_id, papkaId: menJoriy });
         if (!k.ok) toast(t('{nom} yuklandi, lekin papkaga joylanmadi: {x}', { nom: file.name, x: t(k.xato ?? '') }), 'warn');
       }
       if (r.ok) ok++; else toast(t('{nom} yuklanmadi', { nom: file.name }), 'danger');
