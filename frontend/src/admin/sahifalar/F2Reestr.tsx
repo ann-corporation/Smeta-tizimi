@@ -4,7 +4,7 @@
  * oxirgi oy va ogohlantirishlar. Qator ochilsa — aktlar ro'yxati (qaysi fayldan import qilingan), akt yozilmagan import
  * fayllari va obyektning F2 tarixiga havola. Faqat o'qish.
  */
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -39,6 +39,12 @@ function ManbaBelgi({ a, fayl }: { a: ReestrAkt; fayl: string | null }) {
 export default function F2Reestr() {
   const { joriy } = useKompaniya();
   const kompaniyaId = joriy?.id ?? null;
+  const contextVersion = useRef(0);
+  const requestVersion = useRef(0);
+  useEffect(() => {
+    contextVersion.current++;
+    return () => { contextVersion.current++; requestVersion.current++; };
+  }, [kompaniyaId]);
   const [malumot, setMalumot] = useState<ReestrMalumot | null>(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState('');
@@ -48,10 +54,11 @@ export default function F2Reestr() {
 
   const yukla = useCallback(async () => {
     if (kompaniyaId == null) return;
+    const version = ++requestVersion.current;
     setYuklanmoqda(true); setXato('');
-    try { setMalumot(await f2ReestrOl(kompaniyaId)); }
-    catch (e) { setXato(e instanceof Error ? e.message : String(e)); }
-    finally { setYuklanmoqda(false); }
+    try { const result = await f2ReestrOl(kompaniyaId); if (version === requestVersion.current) setMalumot(result); }
+    catch (e) { if (version === requestVersion.current) setXato(e instanceof Error ? e.message : String(e)); }
+    finally { if (version === requestVersion.current) setYuklanmoqda(false); }
   }, [kompaniyaId]);
   useEffect(() => { setMalumot(null); setOchiq(new Set()); setFayllar(new Map()); void yukla(); }, [yukla]);
 
@@ -61,8 +68,11 @@ export default function F2Reestr() {
   function ochYop(obyektId: number) {
     setOchiq(s => { const x = new Set(s); if (x.has(obyektId)) x.delete(obyektId); else x.add(obyektId); return x; });
     if (kompaniyaId != null && !fayllar.has(obyektId)) {
+      const version = contextVersion.current;
       setFayllar(m => new Map(m).set(obyektId, 'yuklanmoqda'));
-      obyektF2Fayllari(kompaniyaId, obyektId).then(l => setFayllar(m => new Map(m).set(obyektId, l))).catch(() => setFayllar(m => new Map(m).set(obyektId, 'xato')));
+      obyektF2Fayllari(kompaniyaId, obyektId)
+        .then(l => { if (version === contextVersion.current) setFayllar(m => new Map(m).set(obyektId, l)); })
+        .catch(() => { if (version === contextVersion.current) setFayllar(m => new Map(m).set(obyektId, 'xato')); });
     }
   }
 
