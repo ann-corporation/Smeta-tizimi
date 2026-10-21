@@ -37,6 +37,7 @@ const TIZIM_02_GURUHLAR: Array<{ nom: string; Ikonka: typeof Crown; id: string; 
       { yol: '/admin/holat', nom: 'Smeta va Fakt / LRV', Ikonka: FileText },
       { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', Ikonka: FileOutput },
       { yol: '/admin/f2-tarix', nom: 'F2 tarixi va tasdiqlash', Ikonka: ShieldCheck },
+      { yol: '/admin/f2-reestr', nom: 'F2 reestri', Ikonka: FileText },
       { yol: '/admin/nakopitelniy', nom: 'Nakopitelniy va F3', Ikonka: NotebookPen },
       { yol: '/admin/m29', nom: 'M-29 (material sarfi)', Ikonka: Box },
       { yol: '/admin/aosr', nom: 'АОСР va laboratoriya', Ikonka: ShieldCheck },
