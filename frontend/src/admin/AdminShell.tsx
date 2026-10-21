@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSessiya } from '../api/hooks';
-import { AlertTriangle, ChevronDown, ChevronRight, Archive, ShieldCheck, Crown } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
 import { Map, LogOut, Building2, FileInput, Activity, Tags, Network, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, NotebookPen, Database, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
@@ -15,23 +15,20 @@ import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { routePermission } from '../lib/company-authorization/route-permission';
+import { useModullar } from '../api/t2-modul';
+import { menyuModulYoqilgan } from '../lib/modullar';
 
 /* 2026-10-02 (egasi): menyu product relsi bo'yicha qayta tuzildi — "oddiy PTO ham, o'zim ham
  * adashmasin". Tartib = ish ketma-ketligi: PTO ish yo'li → narx → loyiha/shartnoma → kompaniya
  * boshqaruvi → hisob → tizim. Rol faqat KO'RINISHNI qisqartiradi (pastdagi filtr), tuzilma hamma
  * uchun bir xil. Har yo'l faqat BIR joyda (takror yo'q). Server tekshiruvi — yakuniy qo'riqchi. */
-const TIZIM_02_GURUHLAR = [
+/* Egasi 2026-10-21 (BOSH_REJA §3–4, Smeta Network auditi): 8 guruh → 5 asosiy bo'lim; «Tizim 1 (eski)» qoldiqlari
+ * menyudan butunlay olib tashlandi. Modul («Telegram modeli») o'chirilgan bo'lsa uning sahifalari ko'rinmaydi
+ * (lib/modullar.ts). `eski` — avvalgi guruh: rol bo'yicha zaxira filtri o'zgarmasin. Har yo'l faqat BIR joyda. */
+type MenyuQator = { yol: string; nom: string; Ikonka: typeof Crown; eski?: string };
+const TIZIM_02_GURUHLAR: Array<{ nom: string; Ikonka: typeof Crown; id: string; menyular: MenyuQator[] }> = [
   {
-    /* Egasi 2026-10-02: platforma boshqaruv paneli — faqat superadmin ko'radi (server ham tekshiradi). */
-    nom: 'Platforma boshqaruvi',
-    Ikonka: Crown,
-    id: 'boshqaruv',
-    menyular: [
-      { yol: '/admin/boshqaruv', nom: 'Boshqaruv paneli', Ikonka: Crown },
-    ]
-  },
-  {
-    nom: 'PTO ish yo‘li',
+    nom: 'Ish (PTO)',
     Ikonka: FileText,
     id: 'pto',
     menyular: [
@@ -60,7 +57,7 @@ const TIZIM_02_GURUHLAR = [
     ]
   },
   {
-    nom: 'Loyiha va shartnoma',
+    nom: 'Loyiha va tomonlar',
     Ikonka: FolderKanban,
     id: 'loyiha',
     menyular: [
@@ -70,22 +67,15 @@ const TIZIM_02_GURUHLAR = [
       { yol: '/admin/hujjat-nazorat', nom: 'Hujjat nazorati', Ikonka: FileOutput },
       { yol: '/admin/participants', nom: 'Loyiha ishtirokchilari', Ikonka: Users },
       { yol: '/admin/crm', nom: 'Kontragentlar (CRM/EDO)', Ikonka: Users },
+      /* Egasi 2026-10-05: tomonlar (zakazchik ↔ pudratchi …) — handshake, ruxsat (grant), hujjat taqdimi. */
+      { yol: '/admin/zakazchik', nom: 'Buyurtmachi kabineti', Ikonka: Building2, eski: 'tomonlar' },
+      { yol: '/admin/taqdimlar', nom: 'Tomonlar hujjatlari', Ikonka: FileStack, eski: 'tomonlar' },
+      { yol: '/admin/murojaatlar', nom: 'Murojaatlar (remark, so‘rov)', Ikonka: ClipboardList, eski: 'tomonlar' },
+      { yol: '/admin/aloqalar', nom: 'Tomonlar aloqasi', Ikonka: Link2, eski: 'tomonlar' },
     ]
   },
   {
-    /* Egasi 2026-10-05: tomonlar (zakazchik ↔ pudratchi …) — handshake, ruxsat (grant), hujjat taqdimi. T2-ZAKAZCHIK-TOMON-001. */
-    nom: 'Tomonlar',
-    Ikonka: Network,
-    id: 'tomonlar',
-    menyular: [
-      { yol: '/admin/zakazchik', nom: 'Buyurtmachi kabineti', Ikonka: Building2 },
-      { yol: '/admin/taqdimlar', nom: 'Tomonlar hujjatlari', Ikonka: FileStack },
-      { yol: '/admin/murojaatlar', nom: 'Murojaatlar (remark, so‘rov)', Ikonka: ClipboardList },
-      { yol: '/admin/aloqalar', nom: 'Tomonlar aloqasi', Ikonka: Link2 },
-    ]
-  },
-  {
-    nom: 'Kompaniya boshqaruvi',
+    nom: 'Kompaniya',
     Ikonka: LayoutDashboard,
     id: 'kompaniya',
     menyular: [
@@ -95,17 +85,10 @@ const TIZIM_02_GURUHLAR = [
       { yol: '/admin/zayavka', nom: 'Zayavkalar', Ikonka: ClipboardList },
       { yol: '/admin/erp', nom: 'Kadrlar va texnika', Ikonka: Users },
       { yol: '/admin/mindmap', nom: 'Mindmap (xarita)', Ikonka: Map },
-    ]
-  },
-  {
-    nom: 'Hisob',
-    Ikonka: Settings,
-    id: 'hisob',
-    menyular: [
-      { yol: '/admin/tokenlar', nom: 'Tokenlar va obuna', Ikonka: Gauge },
-      { yol: '/admin/kompaniya', nom: 'Kompaniya va a‘zolar', Ikonka: Building2 },
-      { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', Ikonka: FileText },
-      { yol: '/admin/tizim-sozlama', nom: 'Sozlamalar', Ikonka: Settings },
+      { yol: '/admin/kompaniya', nom: 'Kompaniya, a‘zolar va modullar', Ikonka: Building2, eski: 'hisob' },
+      { yol: '/admin/tokenlar', nom: 'Tokenlar va obuna', Ikonka: Gauge, eski: 'hisob' },
+      { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', Ikonka: FileText, eski: 'hisob' },
+      { yol: '/admin/tizim-sozlama', nom: 'Sozlamalar', Ikonka: Settings, eski: 'hisob' },
     ]
   },
   {
@@ -113,6 +96,8 @@ const TIZIM_02_GURUHLAR = [
     Ikonka: ShieldAlert,
     id: 'tizim',
     menyular: [
+      /* Platforma boshqaruvi — faqat superadmin (server ham tekshiradi). */
+      { yol: '/admin/boshqaruv', nom: 'Platforma boshqaruvi', Ikonka: Crown, eski: 'boshqaruv' },
       { yol: '/admin/system-control', nom: 'Tizim boshqaruv markazi', Ikonka: ShieldAlert },
       { yol: '/admin/ai-agentlar', nom: 'AI ishchilar', Ikonka: FlaskConical },
       { yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', Ikonka: Map },
@@ -121,34 +106,6 @@ const TIZIM_02_GURUHLAR = [
       { yol: '/admin/korzinka', nom: 'Korzinka', Ikonka: Trash2 },
     ]
   }
-];
-
-/* 2026-09-07: bu ro'yxat avval 16 ta yozuvdan iborat edi va yarmi
- * `TIZIM_02_GURUHLAR`dagi Wrapper sahifalar (Moliya/Logistika/ERP/AOSR)
- * bilan AYNAN bir xil funksiyani ikkinchi marta ko'rsatardi (Shartnomalar,
- * Fakturalar, Sklad, Kadrlar, Texnika, Ta'minot, Sifat, Hujjatlar,
- * Sozlamalar) -- foydalanuvchi: "bitta funksiya bir nechta joylarga
- * takrorlanganda tushunmayman, odamni chalkashtirib qo'yadi". Aniq
- * dublikatlar OLIB TASHLANDI (marshrutning o'zi App.tsx'da qoldi --
- * eski chuqur havolalar buzilmaydi, faqat menyudan yashirilgan).
- *
- * 2026-09-07 (2): foydalanuvchi -- "eski tizim1ga tegishli hammasini
- * pastdagi tizim1 oilasiga qo'shib tashla, umuman hozirgi aktual ishga
- * aralashmasin". Qolgan yozuvlarning HECH biri T2 native quvuriga
- * (Smeta/F2/Nakopitelniy/Nakrutka/Narx nazorati/Loyihalar/Obyektlar/
- * Hujjat nazorati) tegishli EMAS -- bularning barchasi T1 GAS davridan
- * qolgan mustaqil sahifalar yoki sof dev/diagnostika vositalari. Shu
- * sabab BITTA aniq "Tizim 1 (eski)" oilasiga jamlangan, standart holatda
- * YOPIQ (yuqoridagi `useState(false)`) va faqat shu bo'limda -- yuqoridagi
- * `TIZIM_02_GURUHLAR` (joriy aktual ish) bilan hech qanday umumiy nom,
- * yo'l yoki komponent bo'lishmaydi. */
-const ESKI_TIZIM_MENYU = [
-  { yol: '/admin/buxgalteriya', nom: 'Buxgalteriya', Ikonka: Calculator },
-  { yol: '/admin/ierarxiya',  nom: 'Ierarxiya',    Ikonka: Network },
-  { yol: '/admin/monitoring', nom: 'Monitoring',   Ikonka: Activity },
-  { yol: '/admin/shaxsiy-smeta', nom: 'Shaxsiy smeta', Ikonka: NotebookPen },
-  { yol: '/admin/supabase', nom: 'Supabase', Ikonka: Database },
-  { yol: '/admin/tezlik', nom: 'Tezlik sinovi', Ikonka: Gauge },
 ];
 
 /* T2-PRODUCT-RECOVERY P0: `t2_effective_authorization_core_v1`ning o'z
@@ -188,8 +145,6 @@ function AdminShellInner() {
   // Avtomatik ochish logikasi -- standart YOPIQ (2026-09-07: bu bo'lim
   // hamma vaqt ochiq turgani "sayt eski/chalkash ko'rinadi" shikoyatining
   // asosiy sababi edi -- endi faqat kerak bo'lganda, o'zi ochadi).
-  const eskiIchida = ESKI_TIZIM_MENYU.some((m) => joy.pathname.startsWith(m.yol));
-  const [eskiOchiq, setEskiOchiq] = useState(false);
   // Sidebar sichqoncha kelganda kengayadi, aks holda faqat belgichalar
   // (ikonalar) qatori -- foydalanuvchi: "yon panelni sichqoncha borsa
   // katta ochiladigan bo'lmasa faqat belgichalari ko'rinib turadigan".
@@ -202,19 +157,18 @@ function AdminShellInner() {
     const d: Record<string, boolean> = {};
     TIZIM_02_GURUHLAR.forEach(g => {
       // Agar ochiq sahifa shu guruhga tegishli bo'lsa, uni ochamiz
-      d[g.id] = g.id === 'pto' || g.id === 'boshqaruv' || g.menyular.some(m => joy.pathname.startsWith(m.yol));
+      d[g.id] = g.id === 'pto' || g.menyular.some(m => joy.pathname.startsWith(m.yol));
     });
     return d;
   });
 
-  useEffect(() => { if (eskiIchida) setEskiOchiq(true); }, [eskiIchida]);
   useEffect(() => { setMobilMenyuOchiq(false); }, [joy.pathname]);
 
   const toggleGuruh = (id: string) => {
     setOchiqGuruhlar(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const barchaYollar = TIZIM_02_GURUHLAR.flatMap(g => g.menyular.map(m => m.yol)).concat(ESKI_TIZIM_MENYU.map(m => m.yol));
+  const barchaYollar = TIZIM_02_GURUHLAR.flatMap(g => g.menyular.map(m => m.yol));
   menyuTekshirDev(barchaYollar);
 
   useEffect(() => {
@@ -280,23 +234,30 @@ function AdminShellInner() {
   // filtrlanadi. Server tomon (RuxsatGuard, RPC ichidagi tekshiruv) yakuniy
   // qo'riqchi — bu yerdagi filtr faqat menyu tuzilishi, xavfsizlik chegarasi
   // EMAS.
+  const modullar = useModullar(k.globalRejim ? null : k.joriy?.id).data;
+  const rol = effektivRol;
+  const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
+  /** Ruxsatlar katalogi yo'q (eski DB javobi) bo'lsa — avvalgi guruh bo'yicha rol filtri (o'zgarmagan qoida). */
+  const eskiRolRuxsat = (gid: string, m: MenyuQator): boolean => {
+    if (gid === 'boshqaruv') return !!k.superadmin;
+    if (gid === 'tizim') return rol === 'admin' || rol === 'superadmin' || !!k.superadmin;
+    if (gid === 'hisob') return toliq || rol === 'pto' || rol === 'bugalter' || rol === 'prorab' || m.yol.includes('kompaniya');
+    if (gid === 'tomonlar') return toliq || rol === 'pto' || rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi';
+    if (toliq) return true;
+    if (rol === 'pto') return gid === 'kompaniya' ? (m.yol.includes('zayavka') || m.yol.includes('logistika')) : gid === 'loyiha' ? !m.yol.includes('participants') : true;
+    if (rol === 'prorab') return gid === 'pto' ? (m.yol.includes('fakt') || m.yol.includes('obyekt')) : gid === 'kompaniya' ? (m.yol.includes('logistika') || m.yol.includes('zayavka')) : gid === 'loyiha' ? m.yol.includes('loyiha') : false;
+    if (rol === 'bugalter') return gid === 'kompaniya' ? m.yol.includes('moliya') : gid === 'loyiha' ? (m.yol.includes('crm') || m.yol.includes('shartnoma')) : gid === 'pto' ? (m.yol.includes('f2-tarix') || m.yol.includes('nakopitelniy')) : false;
+    if (rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi') return gid === 'loyiha' ? m.yol.includes('loyiha') : gid === 'pto' ? m.yol.includes('obyekt') : false;
+    return false;
+  };
   const filtrKilinganGuruhlar = TIZIM_02_GURUHLAR.map(g => {
-    if (k.superadmin) return g;
-    if (k.joriy?.permissions) return {...g,menyular:g.menyular.filter(m=>k.joriy!.permissions!.includes(routePermission(m.yol)))};
-    const rol = effektivRol;
-    const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
-    let allowed = g.menyular;
-    if (g.id === 'boshqaruv') allowed = k.superadmin ? allowed : [];
-    else if (g.id === 'tizim') allowed = rol === 'admin' || rol === 'superadmin' || k.superadmin ? allowed : [];
-    else if (g.id === 'hisob') allowed = toliq || rol === 'pto' || rol === 'bugalter' || rol === 'prorab' ? allowed : allowed.filter(m => m.yol.includes('kompaniya'));
-    else if (g.id === 'tomonlar') allowed = toliq || rol === 'pto' || rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi' ? allowed : [];
-    else if (toliq) { /* hammasi */ }
-    else if (rol === 'pto') allowed = g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('zayavka') || m.yol.includes('logistika')) : g.id === 'loyiha' ? allowed.filter(m => !m.yol.includes('participants')) : allowed;
-    else if (rol === 'prorab') allowed = g.id === 'pto' ? allowed.filter(m => m.yol.includes('fakt') || m.yol.includes('obyekt')) : g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('logistika') || m.yol.includes('zayavka')) : g.id === 'loyiha' ? allowed.filter(m => m.yol.includes('loyiha')) : [];
-    else if (rol === 'bugalter') allowed = g.id === 'kompaniya' ? allowed.filter(m => m.yol.includes('moliya')) : g.id === 'loyiha' ? allowed.filter(m => m.yol.includes('crm') || m.yol.includes('shartnoma')) : g.id === 'pto' ? allowed.filter(m => m.yol.includes('f2-tarix') || m.yol.includes('nakopitelniy')) : [];
-    else if (rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi') allowed = g.id === 'loyiha' ? allowed.filter(m => m.yol.includes('loyiha')) : g.id === 'pto' ? allowed.filter(m => m.yol.includes('obyekt')) : [];
-    else allowed = [];
-    return { ...g, menyular: allowed };
+    const korinadi = (m: MenyuQator): boolean => {
+      if (!menyuModulYoqilgan(m.yol, modullar)) return false;
+      if (k.superadmin) return true;
+      if (k.joriy?.permissions) return k.joriy.permissions.includes(routePermission(m.yol));
+      return eskiRolRuxsat(m.eski ?? g.id, m);
+    };
+    return { ...g, menyular: g.menyular.filter(korinadi) };
   }).filter(g => g.menyular.length > 0);
 
   return (
@@ -397,37 +358,6 @@ function AdminShellInner() {
                 </div>
               ))}
 
-              <div className="h-px bg-white/10 my-4 mx-2" />
-
-              {/* Eski Tizim -- ustma-ust tushmaydigan qolgan mustaqil sahifalar */}
-              <div>
-                <button
-                  onClick={() => setEskiOchiq((v) => !v)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] font-bold text-zinc-500 uppercase tracking-wider hover:text-zinc-400 transition-colors"
-                >
-                  <Archive size={14} />
-                  <span className="flex-1 text-left whitespace-nowrap">Tizim 1 (eski) va arxiv</span>
-                  {eskiOchiq ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </button>
-                <div className={`space-y-0.5 pl-2 mt-1 ${eskiOchiq ? 'block' : 'hidden'}`}>
-                  {ESKI_TIZIM_MENYU.map((m) => (
-                    <NavLink
-                      key={m.yol}
-                      to={m.yol}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors duration-[120ms] cursor-pointer ${
-                          isActive
-                            ? 'bg-zinc-800 text-white'
-                            : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'
-                        }`
-                      }
-                    >
-                      <m.Ikonka className="w-[14px] h-[14px] flex-shrink-0" strokeWidth={1.5} />
-                      <span className="truncate">{t(m.nom)}</span>
-                    </NavLink>
-                  ))}
-                </div>
-              </div>
             </>
           )}
         </nav>

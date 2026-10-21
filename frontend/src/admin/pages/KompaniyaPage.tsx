@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useMen, useOnboardingCommands, useKompaniyaAzolari, useKompaniyaProfil, useProfilYangila, useKompaniyaRoyxatlar, useAzolikRuxsatlari, type Azolik, type KompaniyaProfil, type KompaniyaRoyxat } from '../../api/t2-men';
 import { useSystemControl } from '../../api/t2-control';
+import { useModullar, useModulOzgartir } from '../../api/t2-modul';
+import { t } from '../../i18n/til';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { tizimdanChiq } from '../../umumiy/kontekst/chiqish';
@@ -318,14 +320,50 @@ function QoshimchaRuxsatlarBoshqaruv({ kompaniyaId, isDirector }: { kompaniyaId:
   </div>;
 }
 
-function ModullarTab({ kompaniyaId }: { kompaniyaId: number }) {
+/** «Telegram modeli» (egasi 2026-10-21): kompaniya o'ziga kerak modullarni yoqadi, o'chirilgani menyuda ko'rinmaydi.
+ *  PTO yadrosi (obyekt, smeta, Fakt, F2, Nakopitelniy, M-29) — doim yoqilgan, modul emas. O'zgartirish — boss/superadmin. */
+function ModullarTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirector: boolean }) {
+  const q = useModullar(kompaniyaId);
+  const ozgartir = useModulOzgartir(kompaniyaId);
+  return (
+    <div className="space-y-3">
+      <div className="karta p-4 space-y-2">
+        <h3 className="text-sm font-semibold">{t('Kompaniya modullari')}</h3>
+        <p className="text-xs text-text-dim">{t('Faqat kerakli modullarni yoqing — o‘chirilgan modul menyuda ko‘rinmaydi. Ish (PTO) yadrosi: obyekt, smeta, Fakt, F2, Nakopitelniy, M-29 — doim yoqilgan.')}</p>
+        {q.isLoading && <p className="text-[13px] text-text-dim flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> {t('yuklanmoqda…')}</p>}
+        {q.isError && <p role="alert" className="text-[13px] text-rose-300">{t('Modullar holatini o‘qib bo‘lmadi.')}</p>}
+        <div className="divide-y divide-border/60">
+          {(q.data ?? []).map((m) => (
+            <div key={m.kod} className="py-2 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[13px] font-medium">{m.nom}</div>
+                {m.izoh && <div className="text-[11px] text-text-dim">{m.izoh}</div>}
+              </div>
+              <button type="button" role="switch" aria-checked={m.holat === 'on'} aria-label={`${m.nom}: ${m.holat === 'on' ? t('yoqilgan') : t('o‘chirilgan')}`}
+                disabled={!isDirector || ozgartir.isPending} onClick={() => ozgartir.mutate({ m, yoq: m.holat !== 'on' })}
+                title={isDirector ? undefined : t('Modullarni kompaniya rahbari yoki superadmin boshqaradi')}
+                className={`tugma h-7 px-3 text-[12px] ${m.holat === 'on' ? 'tugma-asosiy' : ''}`}>
+                {m.holat === 'on' ? t('Yoqilgan') : t('O‘chirilgan')}
+              </button>
+            </div>
+          ))}
+        </div>
+        {ozgartir.isError && <p role="alert" className="text-[12px] text-rose-300">{t('O‘zgartirilmadi')}: {(ozgartir.error as Error)?.message}</p>}
+      </div>
+      <TexnikImkoniyatlar kompaniyaId={kompaniyaId} />
+    </div>
+  );
+}
+
+function TexnikImkoniyatlar({ kompaniyaId }: { kompaniyaId: number }) {
   const q = useSystemControl(kompaniyaId);
   if (q.isLoading) return <div className="p-4 text-[13px] text-text-dim flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> yuklanmoqda…</div>;
-  if (q.isError) return <div className="p-4 text-[13px] text-rose-300">Modullar ma’lumotini o‘qib bo‘lmadi.</div>;
-  const caps = q.data?.capabilities ?? [];
-  if (!caps.length) return <div className="p-4 text-[13px] text-text-dim">— modul ma’lumoti yo‘q —</div>;
+  if (q.isError) return null;
+  const caps = (q.data?.capabilities ?? []).filter((c: any) => c.turi !== 'module');
+  if (!caps.length) return null;
   return (
     <div className="karta p-4 divide-y divide-border/60">
+      <h4 className="pb-2 text-[12px] font-semibold text-text-dim">{t('Texnik imkoniyatlar')}</h4>
       {caps.map((c: any) => (
         <div key={c.id} className="py-2 flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -505,7 +543,7 @@ function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniy
         {tab === 'profil' && <><ProfilTab kompaniyaId={kompaniyaId} isDirector={isDirector} /><KompaniyaLogoYuklash kompaniyaId={kompaniyaId} isDirector={isDirector} /></>}
         {tab === 'azolar' && <AzolarBoshqaruv kompaniyaId={kompaniyaId} kompaniyaNom={kompaniyaNom} isDirector={isDirector} />}
         {tab === 'rollar' && <RollarTab kompaniyaId={kompaniyaId} isDirector={isDirector} />}
-        {tab === 'modullar' && <ModullarTab kompaniyaId={kompaniyaId} />}
+        {tab === 'modullar' && <ModullarTab kompaniyaId={kompaniyaId} isDirector={isDirector} />}
         {tab === 'loyiha' && <LoyihaObyektTab />}
         {tab === 'integratsiya' && <IntegratsiyalarTab kompaniyaId={kompaniyaId} />}
         {tab === 'audit' && <AuditTab kompaniyaId={kompaniyaId} />}
