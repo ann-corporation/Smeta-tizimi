@@ -6,6 +6,7 @@
 import { Building2, Globe, ChevronDown, RefreshCw } from 'lucide-react';
 import { useKompaniya, type KompaniyaMavqe } from './KompaniyaKontekst';
 import { tizimdanChiq } from './chiqish';
+import { IshJoyiAmallari, IshJoyiBelgi, turiPrefiksi } from './IshJoyiAmallari';
 import { t } from '../../i18n/til';
 
 const MAVQE_BELGI: Record<string, { nom: string; rang: string }> = {
@@ -44,26 +45,27 @@ export function KompaniyaTanlagich() {
 
   const options: { qiymat: string; matn: string }[] = [
     ...(k.superadmin ? [{ qiymat: 'global', matn: `🌐 ${t('Global rejim')}` }] : []),
-    ...k.kompaniyalar.map((c) => ({ qiymat: String(c.id), matn: c.nom })),
+    // «Telegram modeli»: har ish joyi turi bilan (👤 shaxsiy / 🏢 tashkilot).
+    ...k.kompaniyalar.map((c) => ({ qiymat: String(c.id), matn: turiPrefiksi(c.turi) + c.nom })),
   ];
 
   // superadmin, a'zolik yo'q -> faqat global
   if (!k.kompaniyalar.length && k.superadmin) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-accent">
-        <Globe size={12} /> {t('Kontekst: Global rejim')}
+        <Globe size={12} /> {t('Kontekst: Global rejim')} <IshJoyiAmallari />
       </span>
     );
   }
-  // oddiy foydalanuvchi, a'zolik yo'q
+  // oddiy foydalanuvchi, a'zolik yo'q — o'z ish joyini ochadi yoki havola orqali qo'shiladi
   if (!k.kompaniyalar.length) {
-    return <span className="text-[11px] text-warn inline-flex items-center gap-1.5"><Building2 size={12} /> {t('Hech qaysi kompaniyaga a’zo emassiz')}</span>;
+    return <span className="text-[11px] text-warn inline-flex items-center gap-1.5"><Building2 size={12} /> {t('Hali ish joyingiz yo‘q')} <IshJoyiAmallari /></span>;
   }
-  // yagona a'zolik, superadmin emas -> faqat nom (tanlash shart emas)
+  // yagona ish joyi, superadmin emas -> faqat nom (tanlash shart emas)
   if (k.kompaniyalar.length === 1 && !k.superadmin) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-text-dim">
-        <Building2 size={12} className="text-accent" /> {t('Kontekst:')} <b className="text-text">{k.kompaniyalar[0].nom}</b>
+        <IshJoyiBelgi turi={k.kompaniyalar[0].turi} /> {t('Ish joyi:')} <b className="text-text">{k.kompaniyalar[0].nom}</b> <IshJoyiAmallari />
       </span>
     );
   }
@@ -72,8 +74,8 @@ export function KompaniyaTanlagich() {
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      {k.globalRejim ? <Globe size={12} className="text-accent" /> : <Building2 size={12} className="text-accent" />}
-      <span className="text-[11px] text-text-dim">{t('Kontekst:')}</span>
+      {k.globalRejim ? <Globe size={12} className="text-accent" /> : <IshJoyiBelgi turi={k.joriy?.turi} />}
+      <span className="text-[11px] text-text-dim">{t('Ish joyi:')}</span>
       <span className="relative inline-flex items-center">
         <select
           value={joriyQiymat}
@@ -86,6 +88,7 @@ export function KompaniyaTanlagich() {
         </select>
         <ChevronDown size={12} className="absolute right-1.5 pointer-events-none text-text-dim" />
       </span>
+      <IshJoyiAmallari />
     </span>
   );
 }

@@ -40,6 +40,8 @@ export type KompaniyaQisqa = {
   is_director: boolean;
   /** Eski UI mosli­gi uchun — `t2_men_v1` bermaydi, hozircha null. */
   mavqe: KompaniyaMavqe | null;
+  /** «Telegram modeli» (2026-10-22): shaxsiy ish joyi yoki tashkilot. Eski server javobida yo'q bo'lsa — 'tashkilot'. */
+  turi?: 'shaxsiy' | 'tashkilot';
 };
 
 type Holat = {
@@ -139,9 +141,9 @@ export function KompaniyaProvider({ children }: { children: ReactNode }) {
   }, [uid]);
 
   const kompaniyalar = useMemo<KompaniyaQisqa[]>(
-    () => men?.context_kompaniyalar ? men.context_kompaniyalar.filter(a => a.faol).map(a => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.effective_role, membershipRole: a.membership_role, permissions:a.permissions, is_director: a.is_director, mavqe: null })) : (men?.azoliklar ?? [])
+    () => men?.context_kompaniyalar ? men.context_kompaniyalar.filter(a => a.faol).map(a => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.effective_role, membershipRole: a.membership_role, permissions:a.permissions, is_director: a.is_director, mavqe: null, turi: a.turi === 'shaxsiy' ? 'shaxsiy' as const : 'tashkilot' as const })) : (men?.azoliklar ?? [])
       .filter((a) => a.faol !== false)
-      .map((a) => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.rol, is_director: a.is_director, mavqe: null })),
+      .map((a) => ({ id: a.kompaniya_id, nom: a.nom, kod: a.kod, rol: a.rol, is_director: a.is_director, mavqe: null, turi: a.turi === 'shaxsiy' ? 'shaxsiy' as const : 'tashkilot' as const })),
     [men],
   );
   const superadmin = useMemo(

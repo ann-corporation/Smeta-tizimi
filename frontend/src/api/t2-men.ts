@@ -7,11 +7,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type Azolik = {
   azolik_id: number; kompaniya_id: number; nom: string; kod: string;
-  rol: string; is_director: boolean; holat: string; faol: boolean;
+  rol: string; is_director: boolean; holat: string; faol: boolean; turi?: string;
 };
 export type Men = {
   platform_role?: 'superadmin' | 'none';
-  context_kompaniyalar?: { kompaniya_id: number; nom: string; kod: string; faol: boolean; membership_role: string | null; effective_role: string; is_director: boolean; permissions?:string[] }[];
+  context_kompaniyalar?: { kompaniya_id: number; nom: string; kod: string; faol: boolean; membership_role: string | null; effective_role: string; is_director: boolean; permissions?:string[]; turi?: string }[];
   ok: true;
   foydalanuvchi: { id: number; login: string; ism: string | null; email: string | null; holat: string };
   azoliklar: Azolik[];
