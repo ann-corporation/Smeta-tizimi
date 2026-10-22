@@ -38,7 +38,8 @@
         "frontend/src/lib/smeta-ai/protokol.ts",
         "frontend/src/lib/smeta-ai/prompt.ts",
         "frontend/src/i18n/lugat/ru.json",
-        "frontend/src/i18n/lugat/en.json"
+        "frontend/src/i18n/lugat/en.json",
+        "ops/mailbox/INBOX.md"
       ],
       "depends_on": [],
       "must_read": [

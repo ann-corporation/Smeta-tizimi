@@ -13,3 +13,5 @@ To'liq muhokama `ops/mailbox/<TASK>/` da. Qoidalar:
 | 2026-09-09 | DIDOX-FAKE | Odam ← Claude | **Qaror:** `/api/didox-webhook` to'qilgan son qaytaradi (Konstitutsiya buzilishi) — o'chirilsinmi yoki real integratsiya yozilsinmi? | `frontend/functions/api/didox-webhook.ts` |
 | 2026-09-09 | AUTHORITY-DOCS | Odam ← Claude | **Yetishmayapti:** `docs/product/PTO_TARGET_STATE.md`, `PTO_ACCEPTANCE_MATRIX.md`, `docs/audit/HERMES_FULL_SYSTEM_AUDIT_2026_09.md` — topshiriq ularga murojaat qiladi, repoda yo'q | `docs/ai/CLAUDE_CODE_T2_PTO_TOPSHIRIQ_2026-09-09.md` §3 |
 | 2026-09-09 | OWNER-SMOKE | Odam ← Claude | **Egasi bajaradi:** authenticated vertical smoke (login → obyekt → Smeta → Fakt → F2 → eksport). Agentda sessiya yo'q va so'ralmaydi | `docs/governance/CURRENT_STATE.md` |
+
+| 2026-10-22 | SMETA-STUDIO-WORKSPACE-V2-20261022 | Claude L0 ← Codex@Anvar | PR #4: owner-directed Studio rebuild; review + main release after green exact SHA CI. Preview deployed; canonical production unchanged. | `ops/mailbox/SMETA-STUDIO-WORKSPACE-V2-20261022/03-codex@Anvar.md` |

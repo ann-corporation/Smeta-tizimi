@@ -2475,5 +2475,6 @@
   "Narx manbasini tanlash kerak": "Требуется источник цены",
   "Ishning resurs tarkibi yo‘q": "Отсутствует ресурсный состав работы",
   "Koeffitsient taklifi qabul qilinmagan": "Предложенный коэффициент не принят",
-  "Yordamchi panel": "Панель помощника"
+  "Yordamchi panel": "Панель помощника",
+  "Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.": "Студия также открывалась в другой вкладке. При конфликте одного черновика сохраните изменения как копию."
 }

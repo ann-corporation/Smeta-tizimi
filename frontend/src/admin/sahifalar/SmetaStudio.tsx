@@ -32,6 +32,7 @@ import { useStudioKontekst } from '../../lib/jarvis/useStudioKontekst';
 
 const CHAP_TAB_KALIT = 'smeta-studio:chap-tab';
 const BOSQICH_KALIT = 'smeta-studio:bosqich';
+const ACTIVE_DRAFT_KEY = 'smeta-studio:active-draft-v2';
 type Bosqich = 'lrv' | 'narx' | 'res';
 
 const uid = () => crypto.randomUUID();
@@ -90,7 +91,8 @@ export default function SmetaStudio() {
   useStudioKontekst(doc, hisob, unitText, joriyId ?? null);
   // Owner workflow (2026-10-13): build the LRV first, then go to pricing (rates + sourced prices), then the RES.
   const [bosqich, setBosqichState] = useState<Bosqich>(() => { const v = lsGet(BOSQICH_KALIT); return v === 'narx' || v === 'res' ? v : 'lrv'; });
-  const setBosqich = (b: Bosqich) => { setReviewOpen(false); setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
+  const [openedViews,setOpenedViews]=useState<Bosqich[]>(()=>[bosqich]);
+  const setBosqich = (b: Bosqich) => { setOpenedViews(old=>old.includes(b) ? old : [...old,b]); setReviewOpen(false); setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
   const ishlarSoni = Object.keys(doc.occurrences).length;
   const hajmsiz = Object.values(doc.occurrences).filter(o => o.quantity == null).length;
   // Warm the price matcher index in the background while the user works on the LRV — pricing then starts at once.
@@ -110,11 +112,24 @@ export default function SmetaStudio() {
     return () => ch.close();
   }, []);
 
+  function activeDraft(companyId:number | null,draftId:string) {
+    try { sessionStorage.setItem(ACTIVE_DRAFT_KEY,JSON.stringify({companyId,draftId})); } catch { /* library remains recoverable if session storage is unavailable */ }
+  }
+  async function restoreForTab() {
+    try {
+      const pointer=JSON.parse(sessionStorage.getItem(ACTIVE_DRAFT_KEY) ?? 'null');
+      if (pointer && typeof pointer.draftId==='string' && (pointer.companyId===null || Number.isSafeInteger(pointer.companyId))) {
+        const saved=await readLibraryDraft(pointer.companyId,pointer.draftId);
+        if (saved) return {doc:saved.doc,serverVersion:saved.serverVersion};
+      }
+    } catch { /* fall back to the legacy recovery pointer */ }
+    return loadLastDraft();
+  }
   useEffect(() => {
     let alive = true;
     RemoteNormCatalog.open().then(c => { if (alive) { setKatalog(c); setKatalogHolat('tayyor'); } })
       .catch(e => { if (alive) setKatalogHolat(e instanceof Error && e.message === 'NORM_CATALOG_NOT_FOUND' ? 'yoq' : 'xato'); });
-    loadLastDraft().then(async d => {
+    restoreForTab().then(async d => {
       if (!alive || restored.current) return;
       restored.current = true;
       // An empty draft is restored too: its id keys the AI conversation, which must survive a reload before the first work.
@@ -134,6 +149,7 @@ export default function SmetaStudio() {
   // Saved as soon as the stored draft is read — a brand-new draft too (its id keys the AI conversation across reloads).
   useEffect(() => {
     if (!yuklandi) return;
+    setLocalStatus('saving');
     const timer = setTimeout(() => { void persistDraft(doc, serverVersiya); }, 600);
     return () => clearTimeout(timer);
   }, [doc, serverVersiya, yuklandi]);
@@ -168,7 +184,9 @@ export default function SmetaStudio() {
       }
       const saved=await writeLibraryDraft(companyId,snapshot,version,localVersions.current.get(versionKey)!);
       localVersions.current.set(versionKey,saved.revision);
-      const last=currentDraft.current.id===snapshot.draftId ? await saveDraft(snapshot,version) : true;
+      const isCurrent=currentDraft.current.id===snapshot.draftId;
+      if (isCurrent) activeDraft(companyId,snapshot.draftId);
+      const last=isCurrent ? await saveDraft(snapshot,version) : true;
       if (currentDraft.current.id===snapshot.draftId && currentDraft.current.edits===snapshot.edits) setLocalStatus(saved.indexed!==false && last ? 'saved' : 'error');
       return saved.indexed!==false && last;
     }).catch(e=>{
@@ -186,8 +204,10 @@ export default function SmetaStudio() {
   function yangiQoralama() { return draftAction(async()=>{
     if (!await persistDraft(doc,serverVersiya)) return;
     const fresh=emptyDoc(uid()); fresh.context.companyId=joriyId ?? null;
+    if (!await persistDraft(fresh,0)) {setLocalStatus('error');return;}
+    activeDraft(fresh.context.companyId,fresh.draftId);
     setHist(historyOf(fresh)); setNishon(null); setTiklandi(false); setServerVersiya(0); pendingOp.current=null;
-    setFocusWorkId(null); setLibraryOpen(false); setBosqich('lrv'); setLocalStatus('');
+    setFocusWorkId(null); setLibraryOpen(false); setOpenedViews(['lrv']); setBosqich('lrv'); setLocalStatus('');
     setSaqlash({holat:'tayyor',matn:'',edits:null});
   }); }
   function kutubxona() { return draftAction(async()=>{
@@ -201,14 +221,16 @@ export default function SmetaStudio() {
       const saved=await readLibraryDraft(joriyId ?? null,id);
       if (!saved) { setLocalStatus('error'); return; }
       localVersions.current.set(`${saved.companyId}:${id}`,saved.revision);
+      activeDraft(saved.companyId,id);
       setHist(historyOf(saved.doc)); setServerVersiya(saved.serverVersion); pendingOp.current=null;
-      setNishon(saved.doc.rootOrder.find(id=>saved.doc.sections[id]) ?? null); setFocusWorkId(null); setLibraryOpen(false); setTiklandi(true); setBosqich('lrv');
+      setNishon(saved.doc.rootOrder.find(id=>saved.doc.sections[id]) ?? null); setFocusWorkId(null); setLibraryOpen(false); setTiklandi(true); setOpenedViews(['lrv']); setBosqich('lrv');
       setSaqlash({holat:'tayyor',matn:'',edits:null}); setLocalStatus('saved');
     } catch { setLocalStatus('error'); }
   }); }
   function qoralamaNusxa() { return draftAction(async()=>{
     const snapshot={...doc,draftId:uid()};
-    if (!await persistDraft(snapshot,0)) return;
+    if (!await persistDraft(snapshot,0)) {setLocalStatus('error');return;}
+    activeDraft(snapshot.context.companyId ?? joriyId ?? null,snapshot.draftId);
     setHist(historyOf(snapshot)); setServerVersiya(0); pendingOp.current=null; setLocalStatus('saved');
   }); }
   async function serverga() {
@@ -251,7 +273,7 @@ export default function SmetaStudio() {
     </header>
     {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && saqlash.edits !== doc.edits ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
     {tiklandi && <p role="status" className="text-sm text-accent">{t('Oxirgi qoralama tiklandi.')}</p>}
-    {boshqaTab && <p role="alert" className="text-sm text-warn">{t('Smeta studiyasi boshqa tabda ham ochiq. Lokal qoralama bitta — tablar bir-birining o‘zgarishini almashtiradi. Bitta tabda ishlang yoki qoralamani serverga saqlang.')}</p>}
+    {boshqaTab && <p role="alert" className="text-sm text-warn">{t('Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.')}</p>}
     {xato && <p role="alert" className="text-sm text-danger">{xato}</p>}
     <div className="flex flex-wrap items-center gap-3 border-y border-border py-2 text-xs">
       <span className="text-text-dim">{t('AI va qo‘lda — bitta smeta, bir xil hisob.')}</span>
@@ -298,9 +320,9 @@ export default function SmetaStudio() {
       </section>
       <div className="min-w-0 space-y-3">
         {reviewOpen && <WorkspaceReview doc={doc} calculation={hisob} onPrices={()=>setBosqich('narx')} onWork={id=>{setFocusWorkId(id);setBosqich('lrv');}} />}
-        {!reviewOpen && bosqich === 'narx' && <NarxlashBosqichi doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} />}
-        {!reviewOpen && bosqich === 'res' && <ResBosqichi doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} />}
-        {!reviewOpen && bosqich === 'lrv' && <>
+        {openedViews.includes('narx') && <div hidden={reviewOpen || bosqich!=='narx'}><NarxlashBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} /></div>}
+        {openedViews.includes('res') && <div hidden={reviewOpen || bosqich!=='res'}><ResBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></div>}
+        <div hidden={reviewOpen || bosqich!=='lrv'}>
         <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
@@ -310,7 +332,7 @@ export default function SmetaStudio() {
           <span className="flex-1" />
           <button type="button" className="tugma tugma-asosiy h-9 px-4" onClick={() => setBosqich('narx')}>{t('Narxlashga o‘tish')} →</button>
         </div>}
-        </>}
+        </div>
       </div>
     </div>
   </div>;

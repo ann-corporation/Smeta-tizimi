@@ -2475,5 +2475,6 @@
   "Narx manbasini tanlash kerak": "Choose a price source",
   "Ishning resurs tarkibi yo‘q": "Work recipe is missing",
   "Koeffitsient taklifi qabul qilinmagan": "Coefficient proposal is pending",
-  "Yordamchi panel": "Assistant panel"
+  "Yordamchi panel": "Assistant panel",
+  "Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.": "The studio was also opened in another tab. If a draft conflicts, save your edits as a copy."
 }

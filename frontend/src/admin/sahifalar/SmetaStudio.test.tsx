@@ -8,6 +8,8 @@ vi.mock('../../i18n/til', () => ({ t: (s: string, p?: Record<string, string | nu
 const store = new Map<string, unknown>();
 vi.mock('idb-keyval', () => ({ get: async (k: string) => store.get(k), set: async (k: string, v: unknown) => { store.set(k, v); }, update: async (k: string, fn: (v: unknown) => unknown) => { store.set(k,fn(store.get(k))); } }));
 import SmetaStudio from './SmetaStudio';
+import { emptyDoc } from '../../lib/smeta-studio/model';
+import { writeLibraryDraft } from '../../lib/smeta-studio/draft-library';
 
 const REV = 'b'.repeat(16);
 const blob = (s: string) => ({ text_cp1251: s });
@@ -44,7 +46,7 @@ beforeAll(() => {
 });
 afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
-  store.clear(); requests = [];
+  store.clear(); requests = []; sessionStorage.clear();
   // These tests exercise the catalogue tab; the AI estimator tab is the default for new users.
   try { localStorage.setItem('smeta-studio:chap-tab', 'katalog'); } catch { /* jsdom */ }
   const all = await files();
@@ -174,10 +176,12 @@ it('workspace navigation preserves the unsent AI message and manual document cha
  fireEvent.change(screen.getByLabelText('Smetachiga xabar'),{target:{value:'TEST ONLY unsent plan'}});
  const title=screen.getByLabelText('Smeta nomi');fireEvent.change(title,{target:{value:'TEST shared estimate'}});fireEvent.submit(title.closest('form')!);
  const nav=screen.getByRole('navigation',{name:'Smeta ish joyi'});
+ fireEvent.change(screen.getByLabelText('Smeta obyekti'),{target:{value:'TEST unsent manual field'}});
  fireEvent.click(within(nav).getByRole('button',{name:'Tekshiruv'}));
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST ONLY unsent plan');
  fireEvent.click(within(nav).getByRole('button',{name:'Ishlar'}));
  expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST shared estimate');
+ expect((screen.getByLabelText('Smeta obyekti') as HTMLInputElement).value).toBe('TEST unsent manual field');
  fireEvent.click(screen.getByRole('tab',{name:'Normativ katalog'}));fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST ONLY unsent plan');
 });
@@ -191,4 +195,14 @@ it('new estimate archives the previous draft and reopening restores the same doc
  fireEvent.click(within(library).getByRole('button',{name:'TEST recoverable estimate'}));
  await waitFor(()=>expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST recoverable estimate'));
  expect(requests.some(x=>x.startsWith('POST '))).toBe(false);
+});
+
+it('refresh restores this tab’s draft even when another tab saved the global last-draft pointer',async()=>{
+ const own=emptyDoc('own-tab');own.context.title='TEST own tab';
+ const other=emptyDoc('other-tab');other.context.title='TEST other tab';
+ await writeLibraryDraft(null,own,3,0);await writeLibraryDraft(null,other,7,0);
+ store.set('smeta-studio:last-draft',{doc:other,serverVersion:7});
+ sessionStorage.setItem('smeta-studio:active-draft-v2',JSON.stringify({companyId:null,draftId:own.draftId}));
+ render(<SmetaStudio/>);
+ await waitFor(()=>expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST own tab'));
 });
