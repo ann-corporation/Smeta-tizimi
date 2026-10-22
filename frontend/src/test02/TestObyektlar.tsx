@@ -10,6 +10,7 @@ import { sbT2LoyihalarOl, type T2Loyiha } from '../api/t2-loyiha';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
+import { ObyektUlash } from '../components/ulash/ObyektUlash';
 
 const ObjectLocationMap = lazy(() => import('../components/pto-workspace/ObjectLocationMap'));
 
@@ -31,6 +32,7 @@ export default function TestObyektlar() {
 
   // Edit State
   const [editObj, setEditObj] = useState<Qator | null>(null);
+  const [ulashObj, setUlashObj] = useState<Qator | null>(null);
   const [nomi, setNomi] = useState('');
   const [tur, setTur] = useState('');
   const [position, setPosition] = useState<[number, number] | null>(null);
@@ -266,7 +268,9 @@ export default function TestObyektlar() {
             navigate(`/admin/holat/${o.id}?${params}`);
           }}
           onEdit={o => handleTahrir({ stopPropagation() {} }, o)}
-          onArchive={o => void handleOchirish({ stopPropagation() {} }, o)} />}
+          onArchive={o => void handleOchirish({ stopPropagation() {} }, o)}
+          onShare={o => setUlashObj(o)} />}
+        {ulashObj && joriy?.id && <ObyektUlash kompaniyaId={joriy.id} obyekt={ulashObj} yopish={() => setUlashObj(null)} />}
 
       </div>
     </Sahifa>

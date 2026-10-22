@@ -26,6 +26,7 @@ const OQISH: Record<string, string> = {
   murojaatlar: 't2_tomon_murojaat_royxat_v1',
   murojaat: 't2_tomon_murojaat_tafsilot_v1',
   murojaat_turlari: 't2_tomon_murojaat_turlari_v1',
+  ulashlar: 't2_obyekt_ulashlar_v1',
 };
 /** Yozish amallari: amal → RPC. */
 const YOZISH: Record<string, string> = {
@@ -45,7 +46,10 @@ const YOZISH: Record<string, string> = {
   murojaat_qaror: 't2_tomon_murojaat_qaror_v1',
   murojaat_bekor: 't2_tomon_murojaat_bekor_v1',
   loyiha_umumiy: 't2_loyiha_umumiy_v1',
+  ulash: 't2_obyekt_ulash_v1',
 };
+/** T5: obyektni havola bilan ulashishda ochiladigan resurslar (faqat ko'rish). */
+const ULASH_RESURSLARI = ['shartnoma_xulosa', 'f2'];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
@@ -167,6 +171,11 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
     case 'murojaat_bekor':
       if (!sonmi(so.murojaat_id)) return 'murojaat_id kerak';
       return { p_kompaniya_id, p_id: son(so.murojaat_id), p_sabab: matn(so.sabab, 500) };
+    case 'ulash': {
+      if (!sonmi(so.obyekt_id)) return 'obyekt_id kerak';
+      const r = Array.isArray(so.resurslar) ? [...new Set((so.resurslar as unknown[]).map(String))].filter((x) => ULASH_RESURSLARI.includes(x)) : [];
+      return { p_kompaniya_id, p_obyekt_id: son(so.obyekt_id), p_resurslar: r, p_kod_xesh: null, p_izoh: matn(so.izoh, 1000) };
+    }
     default: return 'Amal ochiq emas';
   }
 }
@@ -190,6 +199,7 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
       return { p_kompaniya_id, p_yonalish: y === 'kelgan' || y === 'yuborilgan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null,
                p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
     }
+    case 'ulashlar': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')) } : 'obyekt_id kerak';
     case 'qidir': {
       const inn = (q.get('inn') ?? '').trim();
       return /^[0-9]{9}$/.test(inn) ? { p_kompaniya_id, p_inn: inn } : 'INN 9 raqamdan iborat bo‘lishi kerak';
@@ -255,10 +265,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (typeof yuk === 'string') return Response.json({ ok: false, error: yuk }, { status: 400 });
   // Taklif kodi: ochiq kod bazaga HECH QACHON bormaydi.
   let ochiqKod: string | null = null;
-  if (amal === 'taklif') { ochiqKod = yangiKod(); yuk.p_kod_xesh = await kodXeshi(ochiqKod); }
+  if (amal === 'taklif' || amal === 'ulash') { ochiqKod = yangiKod(); yuk.p_kod_xesh = await kodXeshi(ochiqKod); }
   if (amal === 'kod_qabul') yuk.p_kod_xesh = await kodXeshi(String(yuk.p_kod_xesh));
   const javob = await rpc(ctx.env, nom, { p_actor_id: a, ...yuk });
-  if (amal !== 'taklif' || !ochiqKod || !javob.ok) return javob;
+  if ((amal !== 'taklif' && amal !== 'ulash') || !ochiqKod || !javob.ok) return javob;
   const d = await javob.clone().json() as { ok?: boolean; kod_kerak?: boolean; qayta?: boolean } & Yuk;
   // Kod faqat shu chaqiruv uchun yaratilgan va ishlatilgan bo'lsa qaytariladi (qayta chaqiruvda eski kod ko'rsatilmaydi).
   return Response.json(d.ok && d.kod_kerak && !d.qayta ? { ...d, kod: ochiqKod } : d, JAVOB);

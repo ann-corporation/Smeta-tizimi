@@ -51,6 +51,7 @@ export const GENERATED_SITE_MAP = {
   "appRouteSegments": [
     "/",
     "/qoshil/:kod",
+    "/ulash/:kod",
     "/admin",
     "dashboard",
     "obyektlar",

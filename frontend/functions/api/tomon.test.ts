@@ -102,6 +102,29 @@ describe('tomon shlyuzi — taklif kodi', () => {
   });
 });
 
+describe('tomon shlyuzi — T5 obyekt ulashish', () => {
+  it('ulash yuki: faqat ko‘rish resurslari, begona resurs va actor tashlanadi', () => {
+    const y = yozishYuki('ulash', { kompaniya_id: 3, obyekt_id: 12, resurslar: ['f2', 'f2', 'hujjat', 'shartnoma_xulosa', 'sql'], p_actor_id: 1 }) as Record<string, unknown>;
+    expect(y).toEqual({ p_kompaniya_id: 3, p_obyekt_id: 12, p_resurslar: ['f2', 'shartnoma_xulosa'], p_kod_xesh: null, p_izoh: null });
+    expect(yozishYuki('ulash', { kompaniya_id: 3 })).toMatch(/obyekt_id/);
+    expect(oqishYuki('ulashlar', new URLSearchParams('kompaniya_id=3&obyekt_id=12'))).toEqual({ p_kompaniya_id: 3, p_obyekt_id: 12 });
+    expect(oqishYuki('ulashlar', new URLSearchParams('kompaniya_id=3'))).toMatch(/obyekt_id/);
+  });
+
+  it('POST ulash: bazaga faqat xesh, ochiq kod javobda bir marta', async () => {
+    let yuborilgan = '';
+    vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: { body?: string }) => {
+      yuborilgan = String(init?.body);
+      return new Response(JSON.stringify({ ok: true, id: 6, holat: 'taklif', kod_kerak: true, resurslar: ['f2', 'obyekt_holat'] }), { status: 200 });
+    }));
+    const d = await (await onRequestPost(post({ amal: 'ulash', kompaniya_id: 3, obyekt_id: 12, resurslar: ['f2'] }))).json() as { kod: string };
+    expect(d.kod).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    const body = JSON.parse(yuborilgan) as Record<string, unknown>;
+    expect(body.p_kod_xesh).toBe(await kodXeshi(d.kod));
+    expect(yuborilgan).not.toContain(d.kod);
+  });
+});
+
 describe('tomon shlyuzi — o‘qish va xatolar', () => {
   it('bo‘limlar va parametrlar', () => {
     expect(oqishYuki('aloqalar', new URLSearchParams('kompaniya_id=3'))).toEqual({ p_kompaniya_id: 3 });
