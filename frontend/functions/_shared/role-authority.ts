@@ -13,7 +13,7 @@ export function mayWriteCompanies(sess: Sess, companyIds: readonly number[], per
  *  ortiqcha». DB vakolati (t2_men_v1) shu isolate xotirasida qisqa muddat saqlanadi. Cookie'dagi rolga ishonilmaydi —
  *  kesh faqat DB javobidan; rol olib tashlansa ko'pi bilan VAKOLAT_KESH_MS ichida kuchga kiradi. Xato javob keshlanmaydi. */
 export const VAKOLAT_KESH_MS = 60_000;
-type Vakolat = Pick<Sess, 'rol' | 'kompaniyalar' | 'permissionsByCompany' | 'explicitDenialsByCompany'>;
+type Vakolat = Pick<Sess, 'rol' | 'kompaniyalar' | 'permissionsByCompany' | 'explicitDenialsByCompany' | 'modullarOffByCompany'>;
 const vakolatKesh = new Map<number, { vaqt: number; qiymat: Vakolat }>();
 export function vakolatKeshTozala(foydalanuvchiId?: number) { if (foydalanuvchiId == null) vakolatKesh.clear(); else vakolatKesh.delete(foydalanuvchiId); }
 
@@ -26,7 +26,7 @@ export async function roleAuthority(sess: Sess, env: { SUPABASE_URL: string; SUP
   const yangi = await roleAuthorityDb(sess, env);
   if (yangi) {
     if (vakolatKesh.size > 5000) vakolatKesh.clear();
-    vakolatKesh.set(id, { vaqt: Date.now(), qiymat: { rol: yangi.rol, kompaniyalar: yangi.kompaniyalar, permissionsByCompany: yangi.permissionsByCompany, explicitDenialsByCompany: yangi.explicitDenialsByCompany } });
+    vakolatKesh.set(id, { vaqt: Date.now(), qiymat: { rol: yangi.rol, kompaniyalar: yangi.kompaniyalar, permissionsByCompany: yangi.permissionsByCompany, explicitDenialsByCompany: yangi.explicitDenialsByCompany, modullarOffByCompany: yangi.modullarOffByCompany } });
   } else vakolatKesh.delete(id);
   return yangi;
 }
@@ -38,7 +38,7 @@ async function roleAuthorityDb(sess: Sess, env: { SUPABASE_URL: string; SUPABASE
       body: JSON.stringify({ p_actor_id: sess.foydalanuvchi_id }),
     });
     if (!r.ok) return null;
-    const j = await r.json() as { ok?: boolean; platform_role?: string; foydalanuvchi?: { holat?: string }; context_kompaniyalar?: { kompaniya_id: number; effective_role: string; permissions?: string[]; explicit_denials?: string[] }[]; azoliklar?: { kompaniya_id: number; rol: string; faol?: boolean }[] };
+    const j = await r.json() as { ok?: boolean; platform_role?: string; foydalanuvchi?: { holat?: string }; context_kompaniyalar?: { kompaniya_id: number; effective_role: string; permissions?: string[]; explicit_denials?: string[]; modullar_off?: string[] }[]; azoliklar?: { kompaniya_id: number; rol: string; faol?: boolean }[] };
     if (!j.ok || j.foydalanuvchi?.holat !== 'faol') return null;
     // Older DB response remains least-privilege: never trust cookie superadmin.
     const superadmin = j.platform_role === 'superadmin';
@@ -48,6 +48,8 @@ async function roleAuthorityDb(sess: Sess, env: { SUPABASE_URL: string; SUPABASE
     const contexts = j.context_kompaniyalar;
     return { ...sess, rol: superadmin ? 'superadmin' : (kompaniyalar[0]?.rol as Sess['rol'] ?? 'rahbar'), kompaniyalar,
       permissionsByCompany: contexts?.every(k => Array.isArray(k.permissions)) ? Object.fromEntries(contexts.map(k => [k.kompaniya_id,k.permissions!])) : undefined,
-      explicitDenialsByCompany: contexts ? Object.fromEntries(contexts.map(k=>[k.kompaniya_id,k.explicit_denials ?? []])) : undefined };
+      explicitDenialsByCompany: contexts ? Object.fromEntries(contexts.map(k=>[k.kompaniya_id,k.explicit_denials ?? []])) : undefined,
+      // T4: faqat DB aniq qaytargan bo'lsa (eski javobda maydon yo'q → cheklov yo'q).
+      modullarOffByCompany: contexts?.some(k => Array.isArray(k.modullar_off)) ? Object.fromEntries(contexts.map(k => [k.kompaniya_id, Array.isArray(k.modullar_off) ? k.modullar_off : []])) : undefined };
   } catch { return null; }
 }

@@ -19,6 +19,8 @@ export type Sess = {
   /** Server-request-only DB snapshot. Never accepted as caller authority. */
   permissionsByCompany?: Record<number, string[]>;
   explicitDenialsByCompany?: Record<number, string[]>;
+  /** T4: kompaniyada o'chirilgan modullar (DB t2_men_v1, keshlangan). Yo'q bo'lsa — cheklov yo'q (eski DB javobi). */
+  modullarOffByCompany?: Record<number, string[]>;
   rol: Rol;
   email?: string;
   exp: number;
