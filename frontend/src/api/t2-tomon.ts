@@ -85,7 +85,22 @@ export const taklifYubor = (k: number, p: { qabulKompaniyaId?: number | null; qa
     taklif_rol: p.taklifRol, qabul_rol: p.qabulRol, turi: p.turi || 'shartnoma', nom: p.nom || null, izoh: p.izoh || null, operation_id: yangiOperationId(),
   });
 export const taklifgaJavob = (k: number, aloqaId: number, qaror: 'qabul' | 'rad', izoh?: string) => tomonYoz('javob', k, { aloqa_id: aloqaId, qaror, izoh: izoh || null });
-export const kodBilanQabul = (k: number, kod: string) => tomonYoz<{ id: number; holat: AloqaHolat }>('kod_qabul', k, { kod });
+export const kodBilanQabul = (k: number, kod: string) => tomonYoz<{ id: number; holat: AloqaHolat; ulashish?: boolean; nom?: string | null }>('kod_qabul', k, { kod });
+
+/* ───── T5: obyektni havola bilan ulashish (Telegram modeli) ───── */
+export type UlashResurs = 'shartnoma_xulosa' | 'f2';
+export type Ulash = {
+  aloqa_id: number; holat: 'taklif' | 'faol'; yaratildi: string; kod_muddati: string | null; qabul_vaqti: string | null;
+  oluvchi: { id: number; nom: string; turi: 'shaxsiy' | 'tashkilot' | null } | null; resurslar: string[] | null;
+};
+export const obyektUlashlari = async (k: number, obyektId: number): Promise<TomonJavob<Ulash[]>> => {
+  const r = await tomonOqi<{ ulashlar?: Ulash[] }>('ulashlar', k, { obyekt_id: obyektId });
+  return r.ok ? { ok: true, natija: r.natija.ulashlar ?? [] } : r;
+};
+export const obyektniUlash = (k: number, obyektId: number, resurslar: UlashResurs[], izoh?: string) =>
+  tomonYoz<{ id: number; kod?: string; resurslar: string[] }>('ulash', k, { obyekt_id: obyektId, resurslar, izoh: izoh || null });
+/** Ulashish havolasi: ochiq kod faqat URL ichida, serverga faqat xesh boradi. */
+export const ulashHavolasi = (kod: string, origin = typeof window === 'undefined' ? '' : window.location.origin) => `${origin}/ulash/${encodeURIComponent(kod)}`;
 export const aloqaHolati = (k: number, aloqaId: number, harakat: 'toxtatish' | 'davom' | 'yopish' | 'bekor', sabab?: string) => tomonYoz('holat', k, { aloqa_id: aloqaId, harakat, sabab: sabab || null });
 export type GrantKirish = { resurs: string; amallar: string[]; obyekt_id?: number; loyiha_id?: number; shartnoma_id?: number };
 export const grantSaqla = (k: number, aloqaId: number, grantlar: GrantKirish[]) => tomonYoz<{ saqlandi: number }>('grant_saqla', k, { aloqa_id: aloqaId, grantlar });

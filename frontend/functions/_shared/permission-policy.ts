@@ -65,6 +65,18 @@ export function requestPermission(api: string, method: string, b: Record<string,
   return 'document.read';
 }
 
+/** T4 (egasi 2026-10-21/22): o'chirilgan modul faqat YOZISHNI to'xtatadi. O'qish va PTO yadrosi (obyekt, smeta, Fakt,
+ *  F2, Nakop, M-29) hech qachon modulga bog'lanmaydi — kompaniya o'z ma'lumotini doim ko'radi. */
+export const YOZISH_MODULI: Readonly<Record<string, string>> = {
+  'narx.write': 'module.narx', 'project.write': 'module.loyiha', 'financial.write': 'module.erp',
+};
+/** Nishon kompaniyalardan birida modul o'chirilgan bo'lsa — modul kodi; aks holda null. Holat noma'lum → null (fail-open). */
+export function yopiqModul(permission: string, companyIds: readonly number[], off: Record<number, string[]> | undefined): string | null {
+  const modul = YOZISH_MODULI[permission];
+  if (!modul || !off) return null;
+  return companyIds.some((id) => off[id]?.includes(modul)) ? modul : null;
+}
+
 export function cachedAuthority(ctx: { data?: unknown }) {
   const data = ctx.data as Record<string, unknown> | undefined;
   return data?.roleAuthority as import('./auth').Sess | undefined;

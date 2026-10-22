@@ -8,6 +8,7 @@ import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { PublicEntry } from '../components/public-entry/PublicEntry';
 import { kutilayotganTaklifKodi } from './QoshilSahifa';
+import { kutilayotganUlashKodi } from './UlashSahifa';
 
 export default function KirishSahifa() {
   const [isLogin, setIsLogin] = useState(true);
@@ -32,7 +33,10 @@ export default function KirishSahifa() {
   const [loading, setLoading] = useState(false);
   const navigateAsl = useNavigate();
   /* «Telegram modeli» (2026-10-22): taklif havolasidan kelgan odam kirgach/ro'yxatdan o'tgach o'sha havolaga qaytadi. */
-  const navigate = (yol: string) => { const kod = kutilayotganTaklifKodi(); navigateAsl(kod ? `/qoshil/${encodeURIComponent(kod)}` : yol); };
+  const navigate = (yol: string) => {
+    const kod = kutilayotganTaklifKodi(), ulash = kutilayotganUlashKodi();
+    navigateAsl(kod ? `/qoshil/${encodeURIComponent(kod)}` : ulash ? `/ulash/${encodeURIComponent(ulash)}` : yol);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

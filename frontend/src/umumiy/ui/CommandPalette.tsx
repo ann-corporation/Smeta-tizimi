@@ -71,7 +71,7 @@ export function CommandPalette() {
               <button onClick={() => handleSelect('/admin/obyektlar')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">
                 <Building size={18} className="text-accent" /> {t('Obyektlar')}
               </button>
-              <button onClick={() => handleSelect('/admin/shartnomalar')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">
+              <button onClick={() => handleSelect('/admin/shartnoma-liniya')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">
                 <FileText size={18} className="text-ok" /> {t('Shartnomalar')}
               </button>
               <button onClick={() => handleSelect('/admin/kalkulyator')} className="w-full flex items-center gap-3 px-3 py-2 text-left text-white hover:bg-surface rounded-lg transition-colors">

@@ -778,7 +778,7 @@ export default function TestXarita() {
                           const yol = belgilar[0].tur === 'zayavka'
                             ? '/admin/test/zayavka?obyekt=' + nom
                             : belgilar[0].tur === 'kozgu'
-                              ? '/admin/tezlik'
+                              ? '/admin/system-control'
                               : '/admin/test/smeta?obyekt=' + nom;
                           navigate(yol);
                         }}

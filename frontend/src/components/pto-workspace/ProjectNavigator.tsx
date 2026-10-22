@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Building2, FolderKanban, FileSignature, ChevronRight, Search, Settings, Upload, Edit3, Archive } from 'lucide-react';
+import { Building2, FolderKanban, FileSignature, ChevronRight, Search, Settings, Upload, Edit3, Archive, Share2 } from 'lucide-react';
 import type { T2Obyekt } from '../../api/supabase';
 import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
@@ -18,9 +18,9 @@ function Value({ value, money = false }: { value: Aggregate; money?: boolean }) 
   return <span className="tabular-nums">{value.present === 0 && (money || value.total !== 0) ? t('Noma’lum') : money ? <FmtN val={value.known} /> : value.known.toLocaleString('ru-RU')}
     {value.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-text-mute">{t('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida')}</span>}</span>;
 }
-export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive }: {
+export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive, onShare }: {
   companyId: number; objects: T2Obyekt[]; onOpen: (o: T2Obyekt, contractId?: number) => void;
-  onEdit: (o: T2Obyekt) => void; onArchive: (o: T2Obyekt) => void;
+  onEdit: (o: T2Obyekt) => void; onArchive: (o: T2Obyekt) => void; onShare?: (o: T2Obyekt) => void;
 }) {
   const { data: line, isPending, error, refetch } = useCompanyLineage(companyId);
   const money = useMarkupTotals(companyId,line,objects);
@@ -105,7 +105,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
         <button className="flex items-start gap-2 text-left text-[16px] font-semibold" onClick={() => onOpen(o,contract?.id)}><Building2 size={19} className="mt-0.5 shrink-0 text-accent" /><span className="min-w-0 break-words">{o.nom}</span><ChevronRight size={17} className="ml-auto shrink-0" /></button>
         <div className="grid grid-cols-2 gap-3">{FINANCIAL_METRICS.map(metric => <div key={metric}><span className="block text-[11px] text-text-dim">{t(financialLabels[metric])}</span><b className="text-lg">{amount([o.id],metric,contract?.id)}</b></div>)}</div>
         {technicalDetails([o.id],o.nom)}
-        <div className="mt-auto flex flex-wrap gap-2 border-t border-border/60 pt-3"><button className="tugma tugma-asosiy" onClick={() => onOpen(o,contract?.id)}>{t('Smetani ochish')}</button><Link className="tugma" to={`/admin/holat/${o.id}?panel=smeta`}><Upload size={14} />{t('Smeta yuklash')}</Link><button className="tugma" aria-label={`${t('Obyektni tahrirlash')}: ${o.nom}`} onClick={() => onEdit(o)}><Edit3 size={14} /></button><button className="tugma" aria-label={`${t('Obyektni arxivlash')}: ${o.nom}`} onClick={() => onArchive(o)}><Archive size={14} /></button></div>
+        <div className="mt-auto flex flex-wrap gap-2 border-t border-border/60 pt-3"><button className="tugma tugma-asosiy" onClick={() => onOpen(o,contract?.id)}>{t('Smetani ochish')}</button><Link className="tugma" to={`/admin/holat/${o.id}?panel=smeta`}><Upload size={14} />{t('Smeta yuklash')}</Link><button className="tugma" aria-label={`${t('Obyektni tahrirlash')}: ${o.nom}`} onClick={() => onEdit(o)}><Edit3 size={14} /></button>{onShare && <button className="tugma" aria-label={`${t('Ulashish')}: ${o.nom}`} title={t('Ulashish')} onClick={() => onShare(o)}><Share2 size={14} /></button>}<button className="tugma" aria-label={`${t('Obyektni arxivlash')}: ${o.nom}`} onClick={() => onArchive(o)}><Archive size={14} /></button></div>
       </article>)}
       {!objectList.length && <p className="karta p-5 text-text-dim">{t('Bu tanlov bo‘yicha obyekt topilmadi.')}</p>}
     </div>}

@@ -18,7 +18,7 @@ export const BILIM: readonly BilimYozuv[] = [
   { id: 'fakt', kalit: ['fakt', 'факт', 'bajarilgan hajm', 'bugun', 'delta'], sahifa: ['/admin/fakt', '/admin/holat'],
     sarlavha: 'Fakt (bajarilgan ish)',
     matn: 'Fakt — obyektda haqiqatda bajarilgan hajm. Kiritish ikki xil: «+ bugun» (qo‘shimcha, delta) yoki «= jami» (umumiy). Ish (bl) va mustaqil resurs (mat/ob) uchun kiritiladi; ishning resursi (rs) fakti = ish fakti × norma. Smetadan oshib ketish ruxsat etiladi, lekin ogohlantirish chiqadi. Fakt F2 uchun asos: F2 faqat fakt qoldig‘i doirasida tuziladi.' },
-  { id: 'qator_turlari', kalit: ['rz', 'bl', 'rs', 'mat', 'qator turi', 'bolim', 'razdel', 'раздел', 'daraxt', 'lrv'], sahifa: ['/admin/holat', '/admin/smeta-studio', '/admin/ierarxiya'],
+  { id: 'qator_turlari', kalit: ['rz', 'bl', 'rs', 'mat', 'qator turi', 'bolim', 'razdel', 'раздел', 'daraxt', 'lrv'], sahifa: ['/admin/holat', '/admin/smeta-studio'],
     sarlavha: 'Smeta qator turlari',
     matn: 'Smeta daraxti qator turlari: rz — bo‘lim (РАЗДЕL, ichma-ich bo‘lishi mumkin); bl — ish (ШНК shifri, nomi, birligi, hajmi); rs — ishning resursi (norma × ish hajmi); mat — mustaqil material; ob — uskuna. LRV (локальная ресурсная ведомость) — shu daraxtning hujjati; RES — resurslar jamlanmasi (ВЕДОМОСТЬ РЕСУРСОВ).' },
   { id: 'resurs_kat', kalit: ['chel', 'чел', 'mash', 'маш', 'mat', 'мат', 'resurs kategoriya', 'kategoriya', 'mehnat', 'mashina', 'material', 'kab', 'bez sklad', 'без склад', 'beton', 'rastvor'],

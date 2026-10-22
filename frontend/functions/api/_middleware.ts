@@ -1,6 +1,6 @@
 import { tekshir } from '../_shared/auth';
 import { roleAuthority } from '../_shared/role-authority';
-import { SCOPED_APIS, requestPermission } from '../_shared/permission-policy';
+import { SCOPED_APIS, requestPermission, yopiqModul } from '../_shared/permission-policy';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
 type Env = { SUPABASE_URL:string; SUPABASE_KEY:string; SESSIYA_KALIT:string };
@@ -30,9 +30,8 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   const permission=requestPermission(api,ctx.request.method,b,url.searchParams);
   if (!permission) return ctx.next();
   if (permission==='command.unregistered') return fail('PERMISSION_DENIED');
-  /* L0 2026-10-22: modul («Telegram modeli») hozircha faqat MENYU ko'rinishi. Har so'rovda modul holatini bazadan so'rash
-   * (Codex 17eecd54) olib tashlandi: egasi «har so'rovda qayta tekshirish ortiqcha» degan, va o'qib bo'lmasa narx/loyiha
-   * ishini 503 bilan to'xtatardi. Server entitlement — keyin, keshlangan vakolat ichida (BOSH_REJA Bosqich 3). */
+  /* L0 2026-10-22: modul holati alohida so'rov bilan OLINMAYDI (Codex 17eecd54 qaytarilgan). T4: u t2_men_v1 javobida
+   * (`modullarOffByCompany`), 60 s keshlangan — tekshiruv pastda, ruxsatdan keyin. */
   if (authority.rol==='superadmin') return ctx.next(); // Fresh DB fact, not a cookie role or membership label.
   if (permission.startsWith('control.global')) return fail('PLATFORM_ROLE_REQUIRED');
   if (!authority.permissionsByCompany) return fail('AUTHORITY_SCHEMA_REQUIRED',503);
@@ -59,6 +58,9 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   const candidates=targets.size?[...targets]:(authority.kompaniyalar??[]).map(a=>a.kompaniya_id);
   // Missing scope may never pick a more privileged company. All possible targets must permit it.
   if (!candidates.length || !candidates.every(id=>authority.permissionsByCompany![id]?.includes('company.read')&&authority.permissionsByCompany![id]?.includes(permission))) return fail('PERMISSION_DENIED');
+  // T4: modul holati keshlangan vakolat ichida (qo'shimcha so'rov yo'q). Faqat yozish; o'qish va PTO yadrosi ochiq.
+  const modul=yopiqModul(permission,candidates,authority.modullarOffByCompany);
+  if (modul) return Response.json({ok:false,code:'MODULE_DISABLED',modul,error:'Bu modul ish joyingizda o‘chirilgan. Uni Kompaniya → Modullar bo‘limida yoqish mumkin.'},{status:403});
   // General AI/GAS can aggregate several domains. Explicitly restricted staff cannot use it to bypass a deny.
   if (['agent-ish','agent-control','ai-savol','ai-parse','smeta-ai','smeta-narx-agent'].includes(api)) {
     const readOnly=['savol','kasb_savol','veb_tahlil','veb_ol','rivojlanish_tahlil','qadam_taklif','bilim_yigish','royxat','ol','holat'];

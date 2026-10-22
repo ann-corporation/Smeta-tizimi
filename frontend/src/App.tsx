@@ -7,6 +7,7 @@ import { ToastContainer } from './umumiy/ui/Toast';
 import SahifaTopilmadi from './umumiy/ui/SahifaTopilmadi';
 import KirishSahifa from './kirish/KirishSahifa';
 import QoshilSahifa from './kirish/QoshilSahifa';
+import UlashSahifa from './kirish/UlashSahifa';
 
 const AdminShell = lazy(() => import('./admin/AdminShell'));
 const BossShell = lazy(() => import('./boss/BossShell'));
@@ -14,15 +15,7 @@ const BossShell = lazy(() => import('./boss/BossShell'));
 // Admin pages
 import { HolatNative } from './admin/sahifalar/HolatNative';
 import { FaktNative } from './admin/sahifalar/FaktNative';
-import { Shartnoma } from './admin/sahifalar/Shartnoma';
-import { Sklad } from './admin/sahifalar/Sklad';
-import { Monitoring } from './admin/sahifalar/Monitoring';
-import { Sozlamalar } from './admin/sahifalar/Sozlamalar';
 import FaylBoglash from './admin/sahifalar/FaylBoglash';
-import Hujjatlar from './admin/sahifalar/Hujjatlar';
-import ShaxsiySmeta from './admin/sahifalar/ShaxsiySmeta';
-import SupabaseSozlama from './admin/sahifalar/SupabaseSozlama';
-import TezlikSinovi from './admin/sahifalar/TezlikSinovi';
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
 const TestKorzinka  = lazy(() => import('./test02/TestKorzinka'));
@@ -88,9 +81,6 @@ import F2TarixNative from './admin/sahifalar/F2TarixNative';
 import SmetaNarxlashResNative from './admin/sahifalar/SmetaNarxlashResNative';
 import OfertaNative from './admin/sahifalar/OfertaNative';
 import { Narxlar } from './admin/sahifalar/Narxlar';
-import { Ierarxiya } from './admin/sahifalar/Ierarxiya';
-import { Fakturalar } from './admin/sahifalar/Fakturalar';
-import { Buxgalteriya } from './admin/sahifalar/Buxgalteriya';
 import { CommandPalette } from './umumiy/ui/CommandPalette';
 import { AiHelper } from './umumiy/ui/AiHelper';
 
@@ -118,6 +108,8 @@ export default function App() {
         <Route path="/" element={<KirishSahifa />} />
         {/* «Telegram modeli»: ish joyiga taklif havolasi (kirish talab qilinsa — kirgach shu yerga qaytadi). */}
         <Route path="/qoshil/:kod" element={<QoshilSahifa />} />
+        {/* T5: obyektni ulashish havolasi — qabul qilgan odam obyektni o'z ish joyida faqat ko'radi. */}
+        <Route path="/ulash/:kod" element={<UlashSahifa />} />
 
         {/* Admin shell and routes */}
         <Route path="/admin" element={
@@ -174,20 +166,21 @@ export default function App() {
           <Route path="f2-reestr" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('Yuklanmoqda...')}</div>}><F2Reestr /></Suspense>} />
           <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
           <Route path="oferta" element={<OfertaNative />} />
-          <Route path="buxgalteriya" element={<Buxgalteriya />} />
-          <Route path="shartnomalar" element={<Shartnoma />} />
-          <Route path="fakturalar" element={<Fakturalar />} />
-          <Route path="sklad" element={<Sklad />} />
+          {/* Tizim1 sahifalari olib tashlandi (egasi 2026-10-21/22); eski havolalar zamonaviy sahifaga yo'naltiriladi. */}
+          <Route path="buxgalteriya" element={<Navigate to="/admin/moliya" replace />} />
+          <Route path="shartnomalar" element={<Navigate to="/admin/shartnoma-liniya" replace />} />
+          <Route path="fakturalar" element={<Navigate to="/admin/moliya" replace />} />
+          <Route path="sklad" element={<Navigate to="/admin/logistika" replace />} />
           <Route path="narxlar" element={<Narxlar />} />
-          <Route path="ierarxiya" element={<Ierarxiya />} />
-          <Route path="monitoring" element={<Monitoring />} />
-          <Route path="sozlamalar" element={<Sozlamalar />} />
+          <Route path="ierarxiya" element={<Navigate to="/admin/holat" replace />} />
+          <Route path="monitoring" element={<Navigate to="/admin/system-control" replace />} />
+          <Route path="sozlamalar" element={<Navigate to="/admin/tizim-sozlama" replace />} />
           {/* ⚡ 2026-08-16: eski GAS paneldagi «Файл боғлаш» tabi */}
           <Route path="fayl-boglash" element={<FaylBoglash />} />
-          <Route path="hujjatlar" element={<Hujjatlar />} />
-          <Route path="shaxsiy-smeta" element={<ShaxsiySmeta />} />
-          <Route path="supabase" element={<SupabaseSozlama />} />
-          <Route path="tezlik" element={<TezlikSinovi />} />
+          <Route path="hujjatlar" element={<Navigate to="/admin/documents" replace />} />
+          <Route path="shaxsiy-smeta" element={<Navigate to="/admin/smeta-studio" replace />} />
+          <Route path="supabase" element={<Navigate to="/admin/system-control" replace />} />
+          <Route path="tezlik" element={<Navigate to="/admin/system-control" replace />} />
           {/* Canonical product routes; legacy /admin/test/* remains for compatibility.
               `dashboard` -> BossDashboard (declared above). */}
           <Route path="storage" element={<TestSaqlash />} />
@@ -273,8 +266,8 @@ export default function App() {
               yorliq, boshqaga yuborilgan havola. Ular hammasi eski yo’lga
               boradi. Bitta havolani tuzatish YETMAYDI — eski manzil ham
               ishlashi kerak. */}
-          <Route path="shartnoma" element={<Navigate to="/admin/shartnomalar" replace />} />
-          <Route path="kalkulyator" element={<Navigate to="/admin/shaxsiy-smeta" replace />} />
+          <Route path="shartnoma" element={<Navigate to="/admin/shartnoma-liniya" replace />} />
+          <Route path="kalkulyator" element={<Navigate to="/admin/smeta-studio" replace />} />
 
           {/* WARN 2026-08-17 — ENG MUHIMI: noma’lum `/admin/...` manzil endi
               QOBIQ ICHIDA ochiladi. Avval u pastdagi `path="*"` ga tushib,

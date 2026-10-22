@@ -5,12 +5,12 @@ import { onRequest } from './_middleware';
 import { PERMISSIONS } from '../../src/lib/company-authorization/effective-authorization';
 const env={SUPABASE_URL:'https://test.supabase.co',SUPABASE_KEY:'server-only',SESSIYA_KALIT:'k'.repeat(32)};
 const all=PERMISSIONS.filter(p=>!p.startsWith('control.global'));
-async function run({denied=[],company=17,entityCompany=17,cookieRole='superadmin',platform='none',type='application/json',path='/api/sb-yoz',body={amal:'akt_tasdiqlash',akt_id:9},second=false,moduleState='on'}:any={}) {
+async function run({denied=[],company=17,entityCompany=17,cookieRole='superadmin',platform='none',type='application/json',path='/api/sb-yoz',body={amal:'akt_tasdiqlash',akt_id:9},second=false,moduleState='on',modullarOff}:any={}) {
   vakolatKeshTozala(); // har run — yangi DB holati (60 s kesh testda bitta foydalanuvchining turli ruxsatlarini aralashtirmasin)
   const upstream:string[]=[];const next=vi.fn(async()=>Response.json({ok:true,reached:true}));
   vi.stubGlobal('fetch',vi.fn(async(raw:string)=>{
     const url=new URL(raw); upstream.push(url.pathname);
-    if(url.pathname.endsWith('/rpc/t2_men_v1')) return Response.json({ok:true,platform_role:platform,foydalanuvchi:{holat:'faol'},context_kompaniyalar:[{kompaniya_id:company,effective_role:platform==='superadmin'?'superadmin':'pto',permissions:all.filter(p=>!denied.includes(p)),explicit_denials:denied},...(second?[{kompaniya_id:18,effective_role:'pto',permissions:all,explicit_denials:[]}]:[])]});
+    if(url.pathname.endsWith('/rpc/t2_men_v1')) return Response.json({ok:true,platform_role:platform,foydalanuvchi:{holat:'faol'},context_kompaniyalar:[{kompaniya_id:company,effective_role:platform==='superadmin'?'superadmin':'pto',permissions:all.filter(p=>!denied.includes(p)),explicit_denials:denied,...(modullarOff?{modullar_off:modullarOff}:{})},...(second?[{kompaniya_id:18,effective_role:'pto',permissions:all,explicit_denials:[]}]:[])]});
     if(url.pathname.endsWith('/rpc/t2_modul_holat_v1')) return moduleState==='unavailable' ? Response.json({ok:false},{status:503}) : Response.json({ok:true,modullar:['narx','erp','loyiha','aosr'].map(k=>({kod:'module.'+k,holat:moduleState}))});
     return Response.json([{kompaniya_id:entityCompany}]);
   }));
@@ -30,6 +30,17 @@ describe('individual permission request gate',()=>{
     const a=await run({moduleState:'off',body:{amal:'narx_belgila',kompaniya_id:17}});
     expect(a.response.status).toBe(200);expect(a.upstream.some(p=>p.endsWith('/t2_modul_holat_v1'))).toBe(false);
     expect((await run({denied:['narx.write'],body:{amal:'narx_belgila',kompaniya_id:17}})).response.status).toBe(403);
+  });
+  it('T4: disabled module blocks only its writes, from cached authority (no extra request)',async()=>{
+    const a=await run({modullarOff:['module.narx'],body:{amal:'narx_belgila',kompaniya_id:17}});
+    expect(a.response.status).toBe(403);expect(await a.response.json()).toMatchObject({code:'MODULE_DISABLED',modul:'module.narx'});
+    expect(a.next).not.toHaveBeenCalled();expect(a.upstream.some(p=>p.endsWith('/t2_modul_holat_v1'))).toBe(false);
+    // PTO yadrosi va o'qish modulga bog'lanmaydi.
+    expect((await run({modullarOff:['module.narx','module.loyiha','module.erp']})).response.status).toBe(200);
+    expect((await run({modullarOff:['module.narx'],path:'/api/sb',body:{jadval:'t2_narx',kompaniya_id:17}})).response.status).toBe(200);
+    // Boshqa modul o'chirilgan — narx yozish ochiq; eski DB javobi (maydon yo'q) — cheklov yo'q.
+    expect((await run({modullarOff:['module.erp'],body:{amal:'narx_belgila',kompaniya_id:17}})).response.status).toBe(200);
+    expect((await run({body:{amal:'narx_belgila',kompaniya_id:17}})).response.status).toBe(200);
   });
   it('PTO denied approve is refused before domain execution despite old superadmin cookie',async()=>{
     const {response,next}=await run({denied:['f2.approve']}); expect(response.status).toBe(403);expect(next).not.toHaveBeenCalled();

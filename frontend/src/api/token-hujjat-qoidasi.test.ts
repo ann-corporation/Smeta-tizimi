@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -15,7 +15,6 @@ const BEPUL: Record<string, string> = {
   'lib/construction-document-control/export/download-helper.ts': 'yuklab berish yordamchisining o‘zi',
   'umumiy/hujjat/HujjatKorinish.tsx': 'ko‘rish oynasi — bu baytlar ochilishdan oldin token bilan to‘langan',
   'admin/sahifalar/FaylMenejer.tsx': 'foydalanuvchining o‘zi yuklagan fayllari (uning mulki)',
-  'umumiy/ui/IlgorJadval.tsx': 'ekrandagi jadvalning CSV nusxasi — foydalanuvchi maʼlumoti, rasmiy hujjat emas',
   'admin/sahifalar/NormSmetaWorkbench.tsx': 'ichki review JSON (katalog tekshiruvi), hujjat emas',
   'lib/lrv-plus-export.ts': '`lrvPlusYuklab` — chaqiruvchisi yo‘q (LRV HolatNative orqali token bilan beriladi)',
 };

@@ -92,16 +92,8 @@ console.log('\n── 5. HAR GURUH O\'ZINI OCHADI (aralashmaydi) ──');
     g.every((x) => x.ochishNomi === x.items[0].obyekt));
 }
 
-console.log('\n── 6. MANBADA QOIDA SAQLANGANMI ──');
-{
-  const src = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'admin', 'sahifalar', 'Obyektlar.tsx'), 'utf8');
-  T('`ochishNomi` mavjud', src.indexOf('ochishNomi') >= 0);
-  T('havolada `baseName` EMAS, `ochishNomi` ishlatiladi',
-    src.indexOf('holat/${encodeURIComponent(group.ochishNomi)}') >= 0);
-  T('eski buzuq havola qaytmagan',
-    src.indexOf('holat/${encodeURIComponent(group.baseName)}') < 0);
-}
+/* 6-bo'lim eski Tizim1 `admin/sahifalar/Obyektlar.tsx` manbasini tekshirardi — sahifa olib tashlandi
+   (egasi: «tizim1 dan qolgan sarqitlarni butunlay chiqarib tashla»). Guruhlash qoidasi yuqorida tekshiriladi. */
 
 console.log('\n═══ ' + ok + ' o\'tdi, ' + xato + ' yiqildi ═══');
 process.exit(xato ? 1 : 0);
