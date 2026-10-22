@@ -65,6 +65,7 @@ const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
 const Tokenlar = lazy(() => import('./admin/sahifalar/Tokenlar'));
 const IshJoylarim = lazy(() => import('./admin/sahifalar/IshJoylarim'));
+const Mutaxassis = lazy(() => import('./admin/sahifalar/Mutaxassis'));
 const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
@@ -157,6 +158,8 @@ export default function App() {
           <Route path="tokenlar" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><Tokenlar /></Suspense>} />
           {/* «Telegram modeli» markazi: barcha ish joylari + barcha joylardan «Mening ishlarim». */}
           <Route path="ish-joylarim" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('yuklanmoqda…')}</div>}><IshJoylarim /></Suspense>} />
+          {/* T6: mutaxassis profili va kompaniyalarga xizmat taklifi. */}
+          <Route path="mutaxassis" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('yuklanmoqda…')}</div>}><Mutaxassis /></Suspense>} />
           {/* Egasi 2026-10-02: platforma boshqaruv paneli (faqat superadmin; server tekshiradi). */}
           <Route path="boshqaruv" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><BoshqaruvPanel /></Suspense>} />
           <Route path="hujjat-dizayn" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><HujjatDizayni /></Suspense>} />

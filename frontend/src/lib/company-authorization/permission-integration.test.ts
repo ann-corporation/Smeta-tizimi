@@ -12,7 +12,9 @@ describe('role integration architecture',()=>{
       'r2-dublikat',
       /* «Telegram modeli» (2026-10-22): havola orqali qo'shilayotgan odam hali a'zo emas — middleware ruxsat ro'yxati qo'llanmaydi.
          Actor sessiyadan; a'zolik, company.member.manage, muddat, soni va cheklov — har RPC ichida bazada (ish-joyi.test.ts). */
-      'ish-joyi']);
+      'ish-joyi',
+      /* T6 (2026-10-22): mutaxassis hali a'zo emas — xizmat taklifi, profil. Actor sessiyadan; har RPC bazada tekshiradi (mutaxassis.test.ts). */
+      'mutaxassis']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });
