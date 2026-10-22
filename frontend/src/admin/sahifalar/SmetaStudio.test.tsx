@@ -66,6 +66,11 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 function renderEditor(){render(<SmetaStudio/>);fireEvent.click(within(screen.getByRole('navigation',{name:'Smeta ish joyi'})).getByRole('button',{name:'Ishlar'}));fireEvent.click(screen.getByRole('button',{name:'Tarkib va bo‘limlar'}));}
 
+it('opens the work center without starting a previously selected hidden pricing view',async()=>{
+ localStorage.setItem('smeta-studio:bosqich','narx');
+ try{render(<SmetaStudio/>);await screen.findByText('Shu qurilmada saqlandi');expect(screen.getByRole('heading',{name:'Bugun qanday smeta tayyorlaymiz?'})).toBeTruthy();expect(screen.queryByLabelText('Obyekt hududi')).toBeNull();expect(requests.some(r=>r.startsWith('POST '))).toBe(false);}finally{localStorage.removeItem('smeta-studio:bosqich');}
+});
+
 it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, narxsiz jami noma’lum; faqat GET', async () => {
   renderEditor();
   await screen.findByText('ШНК', undefined, { timeout: 8000 });

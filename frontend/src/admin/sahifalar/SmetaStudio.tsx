@@ -104,7 +104,7 @@ export default function SmetaStudio() {
   useStudioKontekst(doc, hisob, unitText, joriyId ?? null);
   // Owner workflow (2026-10-13): build the LRV first, then go to pricing (rates + sourced prices), then the RES.
   const [bosqich, setBosqichState] = useState<Bosqich>(() => { const v = lsGet(BOSQICH_KALIT); return v === 'narx' || v === 'res' ? v : 'lrv'; });
-  const [openedViews,setOpenedViews]=useState<Bosqich[]>(()=>[bosqich]);
+  const [openedViews,setOpenedViews]=useState<Bosqich[]>([]);
   const setBosqich = (b: Bosqich) => { setWorkspaceView('editor'); setOpenedViews(old=>old.includes(b) ? old : [...old,b]); setReviewOpen(false); setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
   const ishlarSoni = Object.keys(doc.occurrences).length;
   const hajmsiz = Object.values(doc.occurrences).filter(o => o.quantity == null).length;
