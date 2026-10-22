@@ -141,8 +141,8 @@ function ballTahlili(grid: SheetGrid): SmetaSheetAnalysis {
   };
 
   if (/ЛОКАЛЬН.{0,20}(РЕСУРСН.{0,20})?(СМЕТ|ВЕДОМОСТ)/.test(header)) add('lrv', 3, 'lokal smeta/LRV sarlavhasi');
-  if (/\bABC\s*4\b|АВС\s*4/.test(header)) add('lrv', 2, 'ABC4 belgisi');
-  if (/\bТН\b|ТЕРРИТОРИАЛЬН.{0,30}НОРМ/.test(header)) add('lrv', 2, 'TN qurilish normasi belgisi');
+  if (/\bABC\s*4\b|АВС\s*4/.test(header)) add('lrv', 2, 'smeta dasturi eksporti belgisi');
+  if (/\bТН\b|ТЕРРИТОРИАЛЬН.{0,30}НОРМ/.test(header)) add('lrv', 2, 'hududiy qurilish normasi belgisi');
   if (/НАИМЕНОВАНИЕ\s+(РАБОТ|РАБОТ И ЗАТРАТ)|ВИД\s+РАБОТ/.test(header)) add('lrv', 3, 'ish nomi sarlavhasi');
   if (/КОЛИЧЕСТВ|ОБЪ[ЕЁ]М|ОБЬЕМ|ОБЪЁМ/.test(header)) add('lrv', 1, 'hajm/miqdor sarlavhasi');
   if (/ШИФР|НОРМ.{0,20}РАСХОД/.test(header)) add('lrv', 1, 'shifr/norma sarlavhasi');

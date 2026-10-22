@@ -58,7 +58,7 @@ export function validateChoices(choices: unknown, allowed: Map<string, KatalogSn
   });
 }
 
-const SYSTEM = `Siz qurilish smetasi bo'yicha narx mutaxassisisiz (O'zbekiston, ShNQ/ABC/TNQ amaliyoti).
+const SYSTEM = `Siz qurilish smetasi bo'yicha narx mutaxassisisiz (O'zbekiston, ShNQ amaliyoti). Manba haqida faqat «Smeta tizimi» nomi bilan gapiring, boshqa dasturlar nomini aytmang.
 Har bir RESURS uchun berilgan NOMZODLAR ichidan AYNAN o'sha mahsulotni tanlang yoki null qaytaring.
 Qoidalar:
 - Faqat berilgan nomzod ID laridan birini tanlang; yangi narx, ID yoki mahsulot o'ylab topmang.

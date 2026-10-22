@@ -4,6 +4,7 @@
  * jadvaliga tegishli koeffitsientlar TAKLIF sifatida ko'rsatiladi; hech biri qabul qilinmaguncha hisobga kirmaydi.
  */
 import type { CoefScope, WorkCoefficient } from './model';
+import { manbaKorinishi, tashqiNomlarniAlmashtir } from '../manba-nomi';
 
 /**
  * op: MUL — a plain multiplier of the stated norms; SHART — needs a parameter ("на каждые 100 мм", "добавлять 0,5 % на каждый
@@ -53,7 +54,8 @@ const idOf = (kod: string, scope: string) => `n${[...`${kod}|${scope}`].reduce((
 export function koefgaAylantir(n: KoefNomzod, accepted = false): WorkCoefficient[] {
   if (!qollanadi(n)) return [];
   const { k } = n.yozuv;
-  const evidence = `${n.kod} · ${n.yozuv.a}: ${n.yozuv.s || n.yozuv.q}`.slice(0, 300);
+  // Egasi 2026-10-22: dalilda tashqi dastur nomi yo'q — «Smeta tizimi · ШНҚ … asosida».
+  const evidence = tashqiNomlarniAlmashtir(`${n.kod} · ${manbaKorinishi(n.yozuv.a)}: ${n.yozuv.s || n.yozuv.q}`).slice(0, 300);
   const name = (n.yozuv.t || n.kod).slice(0, 300);
   const mk = (scope: CoefScope, v: number): WorkCoefficient => ({ id: idOf(n.kod, scope), name, value: String(v), scope, evidence, origin: 'NORM', accepted });
   const ch = k['ЧЕЛ'], ma = k['МАШ'], mt = k['МАТ'];

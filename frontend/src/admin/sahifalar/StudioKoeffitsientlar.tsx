@@ -13,6 +13,7 @@ import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, Occurrence, WorkCoefficient } from '../../lib/smeta-studio/model';
 import { ishKoeffitsientlari, koefgaAylantir, koefKatalogi, qollanadi, type KoefKatalog, type KoefNomzod } from '../../lib/smeta-studio/koef-katalog';
 import { smetachiKoefTanla } from '../../api/smeta-ai';
+import { manbaKorinishi, tashqiNomlarniAlmashtir } from '../../lib/manba-nomi';
 
 const OP_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
 const kStr = (k: KoefNomzod['yozuv']['k']) => Object.entries(k).map(([s, v]) => `${s === 'ЧЕЛ' ? 'Кзтр' : s === 'МАШ' ? 'Кэм' : 'Кмр'}=${String(v).replace('.', ',')}`).join(', ');
@@ -94,7 +95,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
         {bor.map(k => <div key={k.id} className="mt-1 flex flex-wrap items-center gap-2">
           <span className={k.accepted ? 'text-ok' : 'text-warn'}>{k.accepted ? '✓' : '•'}</span>
           <span>{k.name} × <b>{k.value.replace('.', ',')}</b> ({k.scope})</span>
-          <span className="text-[11px] text-text-mute">{k.evidence}{k.origin === 'AI' ? ` · ${t('AI taklifi')}` : k.origin === 'NORM' ? ` · ${t('normativ')}` : ''}</span>
+          <span className="text-[11px] text-text-mute">{tashqiNomlarniAlmashtir(k.evidence)}{k.origin === 'AI' ? ` · ${t('AI taklifi')}` : k.origin === 'NORM' ? ` · ${t('normativ')}` : ''}</span>
           <span className="flex-1" />
           <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => set(o.id, bor.map(x => x.id === k.id ? { ...x, accepted: !x.accepted } : x))}>
             {k.accepted ? t('Bekor qilish') : t('Qabul qilish')}</button>
@@ -103,7 +104,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
         {ochiq === o.id && <ul className="mt-1 space-y-1 border-t border-border/60 pt-1">
           {norm.map(n => <li key={n.kod} className="flex flex-wrap items-start gap-2 text-[11.5px]">
             <span className="font-mono text-text-dim">{n.kod}</span>
-            <span className="flex-1 min-w-[240px]"><b>{kStr(n.yozuv.k)}</b> — {n.yozuv.s || n.yozuv.q} <span className="text-text-mute">({n.yozuv.a})</span></span>
+            <span className="flex-1 min-w-[240px]"><b>{kStr(n.yozuv.k)}</b> — {n.yozuv.s || n.yozuv.q} <span className="text-text-mute">({manbaKorinishi(n.yozuv.a)})</span></span>
             {qollanadi(n) ? <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => qosh(o, n, true)}>{t('Qo‘llash')}</button>
               : <span className="text-[11px] text-warn">{t('Parametrli qoida (har metr/har 100 mm) — avtomatik qo‘llanmaydi; kerak bo‘lsa hisoblab «Qo‘lda qo‘shish» bilan kiriting')}</span>}
           </li>)}

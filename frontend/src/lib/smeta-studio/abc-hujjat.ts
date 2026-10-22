@@ -29,6 +29,9 @@ import { narxAsoslashVaraq, type AsoslashBand } from '../narx-asoslash-export';
 import type { ProtokolQator } from '../narx-protokol-hujjat';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
 import type { PriceJustification } from './model';
+import { tashqiNomlarniAlmashtir } from '../manba-nomi';
+
+const brend = (x: string | null): string | null => (x == null ? null : tashqiNomlarniAlmashtir(x));
 
 export type AbcHujjatOpsiya = { qurilish?: string | null; obyekt?: string | null; asos?: string | null; imzo?: ImzoNomlar };
 type UnitText = (code: string | null) => string | null;
@@ -229,11 +232,12 @@ export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units):
     by.set(key, { kat, kod: idCode(l.resource), nom: name, birlik: unit, hajm: qty, narx, qatorlar: 1,
       hujjatTuri: j ? HUJJAT_TURI[j.docType] : p ? HUJJAT_TURI.MANUAL : null,
       // An averaged price names every supplier's offer it was computed from (owner 2026-10-17).
-      rekvizit: j ? [j.document, j.average ? `предложения: ${j.average.offers.map(x => `${x.supplier}${x.code ? ` (поз. № ${x.code})` : ''} — ${x.price}`).join('; ')}` : null,
+      // Egasi 2026-10-22: eksport hujjatida ham tashqi dastur nomi yo'q (manba — «Smeta tizimi …»).
+      rekvizit: brend(j ? [j.document, j.average ? `предложения: ${j.average.offers.map(x => `${x.supplier}${x.code ? ` (поз. № ${x.code})` : ''} — ${x.price}`).join('; ')}` : null,
         // Web sources with their full links — an expert can open every page (owner 2026-10-17).
         j.sources?.length ? `источники: ${j.sources.map(x => `${x.name} — ${x.price}${x.unit ? ` за ${x.unit}` : ''}${x.vat === true ? ' с НДС' : x.vat === false ? ' без НДС' : ''}, ${x.url}`).join('; ')}` : null].filter(Boolean).join('; ')
-        : p?.evidence ?? null,
-      manbaNom: j?.sourceName ?? null, manbaBirlik: j?.sourceUnit ?? null, manbaNarx: j?.sourcePrice == null ? null : Number(j.sourcePrice),
+        : p?.evidence ?? null),
+      manbaNom: brend(j?.sourceName ?? null), manbaBirlik: j?.sourceUnit ?? null, manbaNarx: j?.sourcePrice == null ? null : Number(j.sourcePrice),
       qaytaHisob: j?.conversion ? { formula: j.conversion.formula, koef: Number(j.conversion.factor), izoh: j.conversion.note } : null,
       dalilsizSabab });
   }

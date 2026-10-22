@@ -195,8 +195,8 @@ function isOrdinalHeaderRow(row: readonly unknown[]): boolean {
 function formatFor(sheetName: string, head: string): { format: OfertaManbaFormati; evidence: string[] } {
   const evidence: string[] = [];
   const value = `${normal(sheetName)} ${head}`;
-  if (/ABC4|\bABC\b|АВС/.test(value)) { evidence.push('ABC/ABC4 belgisi'); return { format: 'abc', evidence }; }
-  if (/\bТН\b|\bTN\b|ТЕРР|ТЕРРИТОР/.test(value)) { evidence.push('TN/TН belgisi'); return { format: 'tn', evidence }; }
+  if (/ABC4|\bABC\b|АВС/.test(value)) { evidence.push('smeta dasturi eksporti belgisi'); return { format: 'abc', evidence }; }
+  if (/\bТН\b|\bTN\b|ТЕРР|ТЕРРИТОР/.test(value)) { evidence.push('hududiy norma belgisi'); return { format: 'tn', evidence }; }
   return { format: 'noma’lum', evidence };
 }
 

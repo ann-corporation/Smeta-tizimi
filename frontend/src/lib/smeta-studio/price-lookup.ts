@@ -5,6 +5,7 @@
  * proposals, the operator picks; bulk apply only uses EXACT name+unit matches and one candidate.
  */
 import type { KatalogQatori } from '../narx-katalog/price-remote';
+import { manbaKorinishi } from '../manba-nomi';
 import type { DocCalc } from './calc';
 import type { StudioCommand } from './commands';
 import type { EstimateDoc } from './model';
@@ -18,7 +19,8 @@ export type PriceOffer = { row: KatalogQatori; exact: boolean };
 /** Human-readable provenance, stored as the price evidence. */
 export function catalogEvidence(k: KatalogQatori): string {
   const davr = k.yil ? `${k.yil} y.${k.kvartal ? ` ${k.kvartal}-kv.` : ''}` : null;
-  return ['Platforma narx katalogi', k.manba_nom, davr, k.hudud, k.ishlab_chiqaruvchi, k.nds_holati ?? k.nds_izoh,
+  // Egasi 2026-10-22: manba — faqat o'z nomimiz («Smeta tizimi …»), tashqi dastur nomi yo'q.
+  return ['Smeta tizimi narx katalogi', k.manba_nom ? manbaKorinishi(k.manba_nom) : null, davr, k.hudud, k.ishlab_chiqaruvchi, k.nds_holati ?? k.nds_izoh,
     k.kod ? `kod ${k.kod}` : null, `${k.nom}${k.birlik ? `, ${k.birlik}` : ''}`].filter(Boolean).join(' · ');
 }
 
