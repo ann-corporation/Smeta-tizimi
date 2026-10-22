@@ -4,7 +4,7 @@ import { writeCommandPermission } from './write-command-policy';
 export function dataPermission(name: string, write: boolean, body: Record<string, unknown> = {}): string {
   const n = name.replace(/^t2_/, '');
   if (['erp_amal','sozlama_saqla','kirish_amal','taklif_yubor','taklif_qabul'].includes(n)) return 'control.company.write';
-  if (n==='token_sarfla_v1'||n==='token_qaytar_v1') return 'company.read';
+  if (n==='token_sarfla_v1'||n==='token_qaytar_v1'||n==='token_yakunla_v1') return 'company.read';
   /* M-29 bajarish (ombordan chiqim) — bajarish domeni; RPC ham fakt.write talab qiladi (ADR-3, 2026-10-21). */
   if (/^m29_/.test(n)) return write ? 'fakt.write' : 'fakt.read';
   if (/platforma_|token_toldir|obuna_belgila|tizim_amal/.test(n)) return write ? 'control.global.write' : 'control.global.read';

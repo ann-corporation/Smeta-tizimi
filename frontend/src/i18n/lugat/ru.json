@@ -2578,5 +2578,13 @@
   "Obyektni faqat ko‘rasiz: holati va sizga ochilgan hujjatlar. Hech narsani o‘zgartirmaysiz.": "Вы только просматриваете объект: состояние и открытые вам документы. Ничего не изменяете.",
   "Qaysi ish joyida ko‘rasiz": "В каком пространстве смотреть",
   "Sizda boshqaruvchi bo‘lgan ish joyi yo‘q. Avval shaxsiy ish joyingizni oching.": "У вас нет пространства, где вы руководитель. Сначала откройте личное пространство.",
-  "Telegram orqali": "Через Telegram"
+  "Telegram orqali": "Через Telegram",
+  "Qaytarish sababi (audit uchun):": "Причина возврата (для аудита):",
+  "Nega yakunlangan deb belgilanmoqda (audit uchun):": "Почему отмечается как выполненное (для аудита):",
+  "Amal natijasi kelmadi": "Результат операции не получен",
+  "token qaytarildi": "токенов возвращено",
+  "Yakunlangan deb belgilandi": "Отмечено как выполненное",
+  "Qaytarish kutilmoqda": "Ожидают возврата",
+  "Token yechilgan, lekin amal natijasi 30 daqiqadan beri kelmagan (brauzer yopilgan yoki tarmoq uzilgan). Qaytaring yoki amal bajarilgan bo‘lsa — yakunlangan deb belgilang.": "Токены списаны, но результат операции не поступает более 30 минут (браузер закрыт или сеть прервалась). Верните или, если операция выполнена, отметьте как выполненную.",
+  "Bajarilgan": "Выполнено"
 }

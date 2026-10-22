@@ -15,7 +15,7 @@ import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import { demoManbaBelgila, narxHisob, obunaBelgila, tokenHolatOl, tokenToldir, tokenXato, type TokenNarx, type TokenSozlama, type TokenTarif } from '../../api/t2-token';
 import { t } from '../../i18n/til';
-import { boshqaruvOqi, boshqaruvYoz, type BAudit, type BFoydalanuvchi, type BKompaniya, type BTokenDaftar, type BTolov, type BUmumiy } from '../../api/t2-boshqaruv';
+import { boshqaruvOqi, boshqaruvYoz, type BAudit, type BFoydalanuvchi, type BKompaniya, type BSagaKutilmoqda, type BTokenDaftar, type BTolov, type BUmumiy } from '../../api/t2-boshqaruv';
 import { markazOl, ustamaBelgila } from '../../api/t2-agent-ish';
 
 const SystemControlPage = lazy(() => import('../pages/SystemControlPage'));
@@ -236,12 +236,51 @@ function Kompaniyalar({ d, xato, yukla, tariflar }: { d: BKompaniya[] | null; xa
   );
 }
 
+// ─── Billing saga: natijasi noma'lum qolgan sarflar (mijoz yakunlamadi ham, qaytarmadi ham) ───
+function SagaNavbat() {
+  const [yangi, setYangi] = useState(0);
+  const { d, xato } = useOqi<{ kutilmoqda: BSagaKutilmoqda[] }>('token_saga', {}, String(yangi));
+  const [xabar, setXabar] = useState('');
+  async function hal(s: BSagaKutilmoqda, qaror: 'qaytar' | 'yakunlandi') {
+    const sabab = window.prompt(qaror === 'qaytar' ? t('Qaytarish sababi (audit uchun):') : t('Nega yakunlangan deb belgilanmoqda (audit uchun):'), qaror === 'qaytar' ? t('Amal natijasi kelmadi') : '');
+    if (sabab == null) return;
+    const r = await boshqaruvYoz('token_saga_hal', { sarf_operation_id: s.sarf_operation_id, qaror, sabab });
+    setXabar(r.ok ? (qaror === 'qaytar' ? `${son(s.token)} ${t('token qaytarildi')} — ${s.kompaniya}` : t('Yakunlangan deb belgilandi')) : r.xabar);
+    if (r.ok) setYangi((x) => x + 1);
+  }
+  const royxat = d?.kutilmoqda ?? [];
+  if (!xato && !royxat.length && !xabar) return null;
+  return (
+    <section className="karta border-warn/40 p-4">
+      <h2 className="mb-1 text-[14px] font-semibold text-text">{t('Qaytarish kutilmoqda')} {royxat.length ? `(${royxat.length})` : ''}</h2>
+      <p className="mb-2 text-[12px] text-text-mute">{t('Token yechilgan, lekin amal natijasi 30 daqiqadan beri kelmagan (brauzer yopilgan yoki tarmoq uzilgan). Qaytaring yoki amal bajarilgan bo‘lsa — yakunlangan deb belgilang.')}</p>
+      {xato && <Xato x={xato} />}
+      {xabar && <p role="status" className="mb-2 text-[12.5px] text-ok">{xabar}</p>}
+      {!!royxat.length && <table className="w-full text-[12px]"><tbody>
+        {royxat.map((s) => (
+          <tr key={s.sarf_operation_id} className="border-t border-border/60">
+            <td className="py-1 text-text-mute">{vaqt(s.yaratildi)}</td>
+            <td className="py-1 text-text">{s.kompaniya}<div className="text-[11px] text-text-mute">{s.kim ?? ''}</div></td>
+            <td className="py-1 text-text-dim">{s.amal ? (AMAL_NOMI[s.amal] ?? s.amal) : ''}{s.hujjat ? ` · ${s.hujjat}` : ''}</td>
+            <td className="py-1 text-right font-semibold tabular-nums text-danger">−{son(s.token)}</td>
+            <td className="py-1 text-right whitespace-nowrap">
+              <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void hal(s, 'qaytar')}>{t('Qaytarish')}</button>{' '}
+              <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void hal(s, 'yakunlandi')}>{t('Bajarilgan')}</button>
+            </td>
+          </tr>
+        ))}
+      </tbody></table>}
+    </section>
+  );
+}
+
 // ─── Token hisobi ───
 function TokenHisobi({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
   const [kid, setKid] = useState('');
   const { d, xato } = useOqi<BTokenDaftar>('token', { kompaniya_id: kid }, kid);
   return (
     <div className="space-y-3">
+      <SagaNavbat />
       <select className="input px-2 py-1.5 text-[13px] max-w-xs" value={kid} onChange={(e) => setKid(e.target.value)} aria-label="Kompaniya filtri">
         <option value="">Barcha kompaniyalar</option>
         {kompaniyalar.map((k) => <option key={k.id} value={k.id}>{k.nom}</option>)}

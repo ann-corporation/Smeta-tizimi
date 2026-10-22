@@ -31,6 +31,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   m29_bekor_v1: 'fakt.write',
   token_sarfla_v1: 'company.read',
   token_qaytar_v1: 'company.read',
+  token_yakunla_v1: 'company.read',
   tolov_sorov_yarat_v1: 'financial.write',
   token_toldir_v1: 'control.global.write',
   obuna_belgila_v1: 'control.global.write',
