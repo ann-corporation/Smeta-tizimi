@@ -27,7 +27,6 @@ export const ROUTE_SCOPE: Record<string, RouteScope> = {
   // COMPANY_SCOPED
   '/admin/dashboard': 'COMPANY_SCOPED',
   '/admin/documents': 'COMPANY_SCOPED',
-  '/admin/hujjatlar': 'COMPANY_SCOPED',
   '/admin/loyiha': 'COMPANY_SCOPED',
   '/admin/obyektlar': 'COMPANY_SCOPED',
   '/admin/f2-reestr': 'COMPANY_SCOPED',

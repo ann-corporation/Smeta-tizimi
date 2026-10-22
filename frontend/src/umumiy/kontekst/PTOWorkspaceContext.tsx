@@ -95,7 +95,6 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/narxlar',
   '/admin/smeta-narxlash',
   '/admin/documents',
-  '/admin/hujjatlar',
   '/admin/smeta',
 ];
 
