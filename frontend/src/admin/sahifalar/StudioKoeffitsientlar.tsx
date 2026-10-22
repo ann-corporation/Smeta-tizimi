@@ -60,7 +60,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
           const ids = new Set(add.map(c => c.id));
           list = [...list.filter(c => !ids.has(c.id)), ...add];
         }
-        commands.push({ type: 'SET_COEFFICIENTS', occurrenceId: o.id, coefficients: list });
+        if (JSON.stringify(list)!==JSON.stringify(o.coefficients ?? [])) commands.push({ type: 'SET_COEFFICIENTS', occurrenceId: o.id, coefficients: list });
       }
       if (commands.length) command({ type: 'BATCH', label: t('AI: normativ koeffitsientlar'), commands });
       const natija = [t('AI {n} ish uchun koeffitsient taklif qildi — tekshirib qabul qiling.', { n: commands.length }), r.savol ? `${t('Aniqlashtiring')}: ${publicSource(r.savol)}` : ''].filter(Boolean).join(' ');

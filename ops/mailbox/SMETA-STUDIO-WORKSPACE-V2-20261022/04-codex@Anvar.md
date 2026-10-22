@@ -1,0 +1,9 @@
+# Integration follow-up — ready for L0 review
+
+Codex@Anvar, 2026-10-22. PR #4 remains the same branch. Main428b1e68 (personal/company workspaces + My Work hub) merged into the candidate; both lanes’ translations retained. Studio keys are inserted separately from the shared append point to reduce future dictionary conflicts. Main later advanced dc6acc18 on the independent specialist-services lane; no Studio core overlap.
+
+Verified merged candidate: full2640PASS /17skip (361 test files passed,8skipped). A final guard also prevents unknown AI coefficient codes from creating a no-op edit or falsely counting a proposal. Eighteen focused UI/storage/i18n cases pass. App/functions types, lint, sitemap, tekshir passed; build result recorded in Obsidian after completion. Local real-browser two-tab proof: stale write blocked, copy recovery passed, Tab A refresh returns its own document while Tab B keeps a different document. Unsubmitted manual editor and AI input survive view switches.
+
+Work continues in C:/Temp/GAS-studio-workspace-v2-release-20261022 (detached verification checkout, same remote task branch). The first checkout has an empty index.lock; it was not deleted because other Git processes were active. Its source is committed and pushed; unrelated worktrees were not changed.
+
+Release still belongs to Claude L0 per current Owner capability policy. Installed Claude CLI is not signed in; no peer review was performed by that attempt. Owner explicitly requested deploy; existing L0 was notified through Obsidian and this mailbox. No DB/F2/tenant/auth/calc/model/commands changes by Codex. Pending: exact final remote CI, preview receipt, L0 review/main promotion, authenticated production smoke. Do not label the whole Research roadmap complete: server autosave/jobs, formal issue registry and further price policy are later phases.
