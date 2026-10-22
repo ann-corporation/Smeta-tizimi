@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import type { OpenCloudDraft } from './cloud-types';
+import { indexEstimate } from '../smeta-studio-pro/hierarchy';
+import { calcDoc } from '../../lib/smeta-studio/calc';
+import { normDec } from '../../lib/smeta-studio/model';
 
 type Summary={draft_uid:string;nom:string;obyekt:string|null;versiya:number;ish_soni:number;yangilandi:string};
 async function read(company:number,action:'royxat'|'ol',draft?:string):Promise<Record<string,unknown>> {
@@ -13,7 +16,15 @@ async function read(company:number,action:'royxat'|'ol',draft?:string):Promise<R
 function documentValid(value:unknown,id:string,company:number):value is EstimateDoc {
   if(!value || typeof value!=='object') return false;
   const d=value as EstimateDoc;
-  return d.schema==='smeta-studio-v1' && d.draftId===id && Array.isArray(d.rootOrder) && !!d.sections && typeof d.sections==='object' && !!d.occurrences && typeof d.occurrences==='object' && !!d.context && (d.context.companyId==null || d.context.companyId===company) && Number.isSafeInteger(d.edits) && typeof d.currency==='string';
+  if(!(d.schema==='smeta-studio-v1' && d.draftId===id && Array.isArray(d.rootOrder) && !!d.sections && typeof d.sections==='object' && !Array.isArray(d.sections) && !!d.occurrences && typeof d.occurrences==='object' && !Array.isArray(d.occurrences) && !!d.context && (d.context.companyId==null || d.context.companyId===company) && Number.isSafeInteger(d.edits) && d.edits>=0 && typeof d.currency==='string'))return false;
+  try{
+    for(const work of Object.values(d.occurrences)) {
+      if(!Array.isArray(work.recipe) || !work.overrides || !work.source || typeof work.source.code!=='string' || !work.basis)return false;
+      if(work.quantity!=null)normDec(work.quantity);
+      if(work.basis.scale!=null && normDec(work.basis.scale)==='0')return false;
+    }
+    indexEstimate(d);calcDoc(d);return true;
+  }catch{return false;}
 }
 export function CloudDrafts({company,onOpen,onClose}: {company:number|null;onOpen:OpenCloudDraft;onClose:()=>void}) {
   const [rows,setRows]=useState<Summary[]>([]), [status,setStatus]=useState<'loading'|'ready'|'error'>('loading');

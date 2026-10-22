@@ -255,9 +255,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       for (const n of r.natijalar) {
         const g = part[Number(n.id.slice(1)) - i]; if (!g) continue;
         const checked=n.manbalar.filter(m=>m.tekshirildi && m.smetaNarx!=null);
-        if(checked.some(m=>m.nds==='nomalum') || checked.length!==1 || n.narx==null) {
-          try{await retainResearch(researchScope,{key:g.key,name:g.talab ?? g.nom,result:n});setResearchRevision(v=>v+1);}catch{setResearchError(true);}
-        }
+        try{await retainResearch(researchScope,{key:g.key,name:g.talab ?? g.nom,result:n});setResearchRevision(v=>v+1);setResearchError(false);}catch{setResearchError(true);}
         // Unknown tax is not an implicit 12% tax. Multiple suppliers require an
         // operator's equivalence decision before their average becomes a draft price.
         if(checked.some(m=>m.nds==='nomalum') || checked.length>1) {
@@ -423,7 +421,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
 
   return <div className="space-y-3">
     {researchError && <p role="alert" className="text-xs text-danger">{t('Izlanishlar navbati qurilmada saqlanmadi. Oynani yopmang.')}</p>}
-    <PriceResearchQueue scope={researchScope} revision={researchRevision} onApply={(key,result)=>{const group=guruhlar.find(g=>g.key===key);if(!group)return false;const commands=internetBuyruqlari(narxsizQatorlar(group,hisob),result);return commands.length>0 && qoy(commands,t('Smetachi tanlagan internet narxi'));}} />
+    <PriceResearchQueue scope={researchScope} revision={researchRevision} activeKeys={guruhlar.filter(narxKerak).map(g=>g.key)} onApply={(key,result)=>{const group=guruhlar.find(g=>g.key===key);if(!group)return false;const commands=internetBuyruqlari(narxsizQatorlar(group,hisob),result);return commands.length>0 && qoy(commands,t('Smetachi tanlagan internet narxi'));}} />
     <section aria-label={t('Narx sharoiti')} className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
       <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Narx sharoiti')}</strong>
       <label className="flex items-center gap-1">{t('Obyekt hududi')}
