@@ -2447,5 +2447,8 @@
   "O‘zgartirilmadi": "Not changed",
   "Texnik imkoniyatlar": "Technical capabilities",
   "Ish (PTO)": "Work (PTO)",
-  "Loyiha va tomonlar": "Projects and parties"
+  "Loyiha va tomonlar": "Projects and parties",
+  "o‘qilmoqda…": "loading…",
+  "(obyekt faol emas)": "(object inactive)",
+  "Shartnoma bog‘lanishlari va import manbalari o‘qilmoqda: {a} / {b}": "Reading contract links and import sources: {a} / {b}"
 }

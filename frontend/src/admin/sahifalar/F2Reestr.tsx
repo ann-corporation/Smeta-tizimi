@@ -30,7 +30,8 @@ function ogohMatni(o: Ogoh): string {
   if (o.tur === 'summa_nomalum') return t('{n} ta F2 ning summasi noma’lum', { n: o.qiymat ?? 0 });
   return t(o.matn);
 }
-function ManbaBelgi({ a, fayl }: { a: ReestrAkt; fayl: string | null }) {
+function ManbaBelgi({ a, fayl, oqilmoqda }: { a: ReestrAkt; fayl: string | null; oqilmoqda: boolean }) {
+  if (a.manba == null && oqilmoqda) return <span className="text-text-mute">{t('o‘qilmoqda…')}</span>;
   if (a.manba === 'import') return <span className="text-text-dim">{t('Import')}{fayl ? ` · ${fayl}` : a.hujjat_id ? ` · ${t('hujjat №{n}', { n: a.hujjat_id })}` : ''}</span>;
   if (a.manba === 'tizim') return <span className="text-accent">{t('Tizimda yasalgan')}</span>;
   return <span className="text-warn">{t('aniqlanmadi')}</span>;
@@ -56,7 +57,8 @@ export default function F2Reestr() {
     if (kompaniyaId == null) return;
     const version = ++requestVersion.current;
     setYuklanmoqda(true); setXato('');
-    try { const result = await f2ReestrOl(kompaniyaId); if (version === requestVersion.current) setMalumot(result); }
+    // The main table appears at once; contracts and act sources fill in behind it (≈15 s all-at-once before).
+    try { const result = await f2ReestrOl(kompaniyaId, q => { if (version === requestVersion.current) setMalumot(q); }); if (version === requestVersion.current) setMalumot(result); }
     catch (e) { if (version === requestVersion.current) setXato(e instanceof Error ? e.message : String(e)); }
     finally { if (version === requestVersion.current) setYuklanmoqda(false); }
   }, [kompaniyaId]);
@@ -97,6 +99,8 @@ export default function F2Reestr() {
         <div className="karta p-3"><div className="text-[11px] text-text-dim">{t('Rad etilgan / bekor')}</div><div className="text-lg font-semibold">{j.boyicha.rad.soni} / {j.boyicha.bekor.soni}</div></div>
         <div className="karta p-3"><div className="text-[11px] text-text-dim">{t('Shartnomasiz obyekt (F2 bilan)')}</div><div className={`text-lg font-semibold ${j.shartnomasiz ? 'text-warn' : ''}`}>{j.shartnomasiz}</div></div>
       </section>}
+      {malumot && yuklanmoqda && !malumot.tayyor && <p role="status" className="text-[12px] text-text-dim">{t('Shartnoma bog‘lanishlari va import manbalari o‘qilmoqda: {a} / {b}', {
+        a: (malumot.shartnomaOqilgan?.size ?? 0) + (malumot.manbaOqilgan?.size ?? 0) + malumot.manbaXato, b: malumot.obyektlar.length + malumot.aktlar.length })}</p>}
       {malumot && malumot.manbaXato > 0 && <p role="status" className="text-[12px] text-warn">{t('{n} ta aktning manbasi o‘qilmadi — ular «aniqlanmadi» deb ko‘rsatilgan.', { n: malumot.manbaXato })}</p>}
 
       {reestr && <section className="karta flex flex-wrap items-end gap-3 p-3 text-[12px]">
@@ -128,12 +132,12 @@ export default function F2Reestr() {
               return <Fragment key={q.obyekt.id}>
                 <tr className="cursor-pointer border-t border-border/60 align-top hover:bg-surface-2/40" onClick={() => ochYop(q.obyekt.id)}>
                   <td className="px-2 py-2 text-text-mute">{o ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
-                  <td className="px-2 py-2"><div className="font-medium text-text">{q.obyekt.nom}</div>
+                  <td className="px-2 py-2"><div className="font-medium text-text">{q.obyekt.nom}{q.obyekt.faolEmas && <span className="ml-1 text-[11px] font-normal text-text-mute">{t('(obyekt faol emas)')}</span>}</div>
                     {q.loyiha && <div className="text-[11px] text-text-mute">{q.loyiha}</div>}
                     {q.ogohlar.map((g, i) => <div key={i} className="text-[11px] text-warn">{ogohMatni(g)}</div>)}</td>
                   <td className="px-2 py-2">{q.shartnomalar.length ? q.shartnomalar.map(s => <div key={s.id}>№ {s.raqam}{s.nom ? ` · ${s.nom}` : ''}
                     <span className="ml-1 text-[11px] text-text-mute">{s.jami_nds_bilan != null ? pulQisqa(s.jami_nds_bilan) : t('summa yo‘q')}</span></div>)
-                    : <span className="text-text-mute">{t('biriktirilmagan')}</span>}</td>
+                    : <span className="text-text-mute">{q.shartnomaNomalum ? t('o‘qilmoqda…') : t('biriktirilmagan')}</span>}</td>
                   <td className="px-2 py-2 text-right">{q.obyekt.jami != null ? pulQisqa(q.obyekt.jami) : <span className="text-text-mute">—</span>}
                     {(q.obyekt.narxsiz ?? 0) > 0 && <div className="text-[11px] text-warn">{t('{n} narxsiz qator', { n: q.obyekt.narxsiz ?? 0 })}</div>}</td>
                   <td className="px-2 py-2 text-right"><SummaKorinish s={q.boyicha.tasdiqlangan} qisqa />
@@ -148,7 +152,7 @@ export default function F2Reestr() {
                       <th className="text-right">{t('Summa')}</th><th className="text-right">{t('Qatorlar')}</th></tr></thead>
                     <tbody>{q.aktlar.map(a => { const b = bosqich(a); return <tr key={a.id} className="border-t border-border/40">
                       <td className="py-1">{a.oy.slice(0, 7)}</td><td>{a.raqam ?? <span className="text-text-mute">—</span>}</td>
-                      <td><ManbaBelgi a={a} fayl={a.hujjat_id != null ? nomi.get(a.hujjat_id) ?? null : null} /></td>
+                      <td><ManbaBelgi a={a} fayl={a.hujjat_id != null ? nomi.get(a.hujjat_id) ?? null : null} oqilmoqda={yuklanmoqda && !malumot?.manbaOqilgan?.has(a.id)} /></td>
                       <td className={BOSQICH_RANG[b]}>{t(BOSQICH_NOMI[b])}</td>
                       <td className="text-right">{a.hujjat_jami != null ? <FmtN val={a.hujjat_jami} /> : <span className="text-warn">{t('noma’lum')}</span>}</td>
                       <td className="text-right tabular-nums">{a.qator_soni ?? '—'}{(a.narxsiz_qator ?? 0) > 0 && <span className="ml-1 text-warn">{t('({n} narxsiz)', { n: a.narxsiz_qator ?? 0 })}</span>}</td>

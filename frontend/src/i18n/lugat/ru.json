@@ -2447,5 +2447,8 @@
   "O‘zgartirilmadi": "Не изменено",
   "Texnik imkoniyatlar": "Технические возможности",
   "Ish (PTO)": "Работа (ПТО)",
-  "Loyiha va tomonlar": "Проекты и стороны"
+  "Loyiha va tomonlar": "Проекты и стороны",
+  "o‘qilmoqda…": "читается…",
+  "(obyekt faol emas)": "(объект неактивен)",
+  "Shartnoma bog‘lanishlari va import manbalari o‘qilmoqda: {a} / {b}": "Читаются привязки договоров и источники импорта: {a} / {b}"
 }

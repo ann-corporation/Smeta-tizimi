@@ -57,6 +57,18 @@ describe('F2 reestr', () => {
     expect(qatorlar[0].ogohlar[0].tur).toBe('shartnomasiz');
     expect(jami.shartnomasiz).toBe(1);
   });
+  it('faol bo‘lmagan obyekt akt nomi bilan; shartnomasi hali o‘qilmagan obyektga «biriktirilmagan» deyilmaydi', () => {
+    const { qatorlar } = reestrQur({ obyektlar: [obyekt({ id: 10 })],
+      aktlar: [akt({ id: 1, obyekt_id: 10 }), akt({ id: 2, obyekt_id: 79, obyekt_nom: 'Fast Food 1-etaj' })],
+      shartnomalar: new Map(), loyihalar: new Map(), shartnomaOqilgan: new Set() });
+    const faol = qatorlar.find(q => q.obyekt.id === 10)!, bekor = qatorlar.find(q => q.obyekt.id === 79)!;
+    expect(faol.shartnomaNomalum).toBe(true);
+    expect(faol.ogohlar.some(o => o.tur === 'shartnomasiz')).toBe(false);
+    expect([bekor.obyekt.nom, bekor.obyekt.faolEmas]).toEqual(['Fast Food 1-etaj', true]);
+    expect(bekor.shartnomaNomalum).toBe(false);
+    expect(reestrQur({ obyektlar: [obyekt({ id: 10 })], aktlar: [akt({ obyekt_id: 10 })], shartnomalar: new Map(), loyihalar: new Map(), shartnomaOqilgan: new Set([10]) })
+      .qatorlar[0].ogohlar[0].tur).toBe('shartnomasiz');
+  });
   it('akt yozilmagan import fayllari ajratiladi', () => {
     expect(aktsizFayllar([{ id: '328' }, { id: '400' }], [{ hujjat_id: 328 }, { hujjat_id: null }]).map(f => f.id)).toEqual(['400']);
   });

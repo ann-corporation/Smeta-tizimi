@@ -14,6 +14,8 @@ export type F2Bosqich = 'tasdiqlangan' | 'jarayonda' | 'rad' | 'bekor';
 
 export type ReestrAkt = {
   id: number; obyekt_id: number; oy: string; raqam: string | null;
+  /** t2_akt_reestr dagi obyekt nomi — faol ro'yxatda yo'q (bekor qilingan) obyektni nomi bilan ko'rsatish uchun. */
+  obyekt_nom?: string | null;
   holat: string; lifecycle_status?: string | null;
   hujjat_jami: number | null; farq: number | null; qator_soni: number | null; narxsiz_qator: number | null;
   /** null — hali o'qilmagan yoki o'qib bo'lmadi. */
@@ -33,7 +35,9 @@ export function aktsizFayllar<T extends { id: string | number }>(fayllar: T[], a
   const bor = new Set(aktlar.map(a => a.hujjat_id).filter((x): x is number => x != null));
   return fayllar.filter(f => !bor.has(Number(f.id)));
 }
-export type ReestrObyekt = { id: number; nom: string; loyiha_id: number | null; jami: number | null; narxsiz: number | null };
+export type ReestrObyekt = { id: number; nom: string; loyiha_id: number | null; jami: number | null; narxsiz: number | null;
+  /** Faol obyektlar ro'yxatida yo'q (bekor qilingan), lekin F2 aktlari saqlangan. */
+  faolEmas?: boolean };
 export type ReestrShartnoma = { id: number; raqam: string; nom: string | null; jami_nds_bilan: number | null; summa_bez_nds: number | null };
 
 /** Ma'lum summa, summasi noma'lum aktlar soni va jami aktlar soni. */
@@ -60,6 +64,8 @@ export type Ogoh = { tur: 'shartnomasiz' | 'shartnomadan_oshgan' | 'oy_takror' |
 export type ReestrQator = {
   obyekt: ReestrObyekt; loyiha: string | null;
   shartnomalar: ReestrShartnoma[];
+  /** Shartnoma bog'lanishi hali o'qilmagan (fon bosqichi) — «biriktirilmagan» deb aytilmaydi. */
+  shartnomaNomalum?: boolean;
   aktlar: ReestrAkt[];
   boyicha: Record<F2Bosqich, Summa>;
   /** Tasdiqlangan F2 manba bo'yicha: o'tgan davr importi va tizimda tayyorlangan. */
@@ -74,12 +80,14 @@ const bosqichlar = (): Record<F2Bosqich, Summa> => ({ tasdiqlangan: bosSumma(), 
 export function reestrQur(p: {
   obyektlar: ReestrObyekt[]; aktlar: ReestrAkt[];
   shartnomalar: Map<number, ReestrShartnoma[]>; loyihalar: Map<number, string>;
+  /** Berilsa — faqat shu obyektlarning shartnomasi o'qilgan; qolganlari «o'qilmoqda». */
+  shartnomaOqilgan?: Set<number>;
 }): { qatorlar: ReestrQator[]; jami: ReestrJami } {
   const byObyekt = new Map<number, ReestrAkt[]>();
   for (const a of p.aktlar) { const l = byObyekt.get(a.obyekt_id); if (l) l.push(a); else byObyekt.set(a.obyekt_id, [a]); }
   const known = new Set(p.obyektlar.map(o => o.id));
   const missingObjects: ReestrObyekt[] = [...byObyekt.keys()].filter(id => !known.has(id))
-    .map(id => ({ id, nom: String(id), loyiha_id: null, jami: null, narxsiz: null }));
+    .map(id => ({ id, nom: byObyekt.get(id)?.find(a => a.obyekt_nom)?.obyekt_nom ?? String(id), loyiha_id: null, jami: null, narxsiz: null, faolEmas: true }));
   const qatorlar = [...p.obyektlar, ...missingObjects].map((o): ReestrQator => {
     const aktlar = [...(byObyekt.get(o.id) ?? [])].sort((a, b) => b.oy.localeCompare(a.oy) || b.id - a.id);
     const boyicha = bosqichlar();
@@ -91,8 +99,10 @@ export function reestrQur(p: {
       if (b === 'tasdiqlangan' && a.manba === 'tizim') tasdiqTizim = qosh(tasdiqTizim, a.hujjat_jami);
     }
     const shartnomalar = p.shartnomalar.get(o.id) ?? [];
+    // Faol bo'lmagan obyektning bog'lanishi o'qilmaydi (u ro'yxatda yo'q) — u ham «o'qilmagan» emas, shunchaki shartnomasiz ko'rinadi.
+    const shartnomaNomalum = !!p.shartnomaOqilgan && !o.faolEmas && !p.shartnomaOqilgan.has(o.id);
     const ogohlar: Ogoh[] = [];
-    if (aktlar.length && !shartnomalar.length) ogohlar.push({ tur: 'shartnomasiz', matn: 'Shartnoma biriktirilmagan' });
+    if (aktlar.length && !shartnomalar.length && !shartnomaNomalum) ogohlar.push({ tur: 'shartnomasiz', matn: 'Shartnoma biriktirilmagan' });
     const shartnomaJami = shartnomalar.reduce<number | null>((s, x) => (s == null || x.jami_nds_bilan == null ? null : s + Number(x.jami_nds_bilan)), shartnomalar.length ? 0 : null);
     if (shartnomaJami != null && shartnomaJami > 0 && boyicha.tasdiqlangan.malum > shartnomaJami)
       ogohlar.push({ tur: 'shartnomadan_oshgan', matn: 'Tasdiqlangan F2 shartnoma summasidan oshgan', qiymat: Math.round((boyicha.tasdiqlangan.malum / shartnomaJami) * 10) / 10 });
@@ -102,7 +112,7 @@ export function reestrQur(p: {
     if (takror) ogohlar.push({ tur: 'oy_takror', matn: 'Bir oyda bir nechta tasdiqlangan F2', qiymat: takror });
     const nomalum = aktlar.filter(a => a.hujjat_jami == null).length;
     if (nomalum) ogohlar.push({ tur: 'summa_nomalum', matn: 'Summasi noma’lum F2', qiymat: nomalum });
-    return { obyekt: o, loyiha: o.loyiha_id != null ? p.loyihalar.get(o.loyiha_id) ?? null : null, shartnomalar, aktlar, boyicha,
+    return { obyekt: o, loyiha: o.loyiha_id != null ? p.loyihalar.get(o.loyiha_id) ?? null : null, shartnomalar, shartnomaNomalum, aktlar, boyicha,
       tasdiqImport, tasdiqTizim, oxirgiOy: aktlar[0]?.oy ?? null, ogohlar };
   });
   const jami: ReestrJami = { obyekt: qatorlar.length, aktlar: p.aktlar.length, boyicha: bosqichlar(), tasdiqImport: bosSumma(), tasdiqTizim: bosSumma(), smeta: bosSumma(), shartnomasiz: 0 };
