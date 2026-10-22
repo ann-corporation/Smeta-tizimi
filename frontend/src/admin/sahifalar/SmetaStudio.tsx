@@ -92,6 +92,7 @@ export default function SmetaStudio() {
   const [saqlash, setSaqlash] = useState<{ holat: 'tayyor' | 'saqlanmoqda' | 'saqlandi' | 'xato'; matn: string; edits: number | null }>({ holat: 'tayyor', matn: '', edits: null });
   const pendingOp = useRef<{ id: string; edits: number; draftId: string; snapshot:EstimateDoc } | null>(null);
   const doc = hist.present;
+  const saveAction=useRef(serverga);saveAction.current=serverga;
   currentDraft.current = { id: doc.draftId, edits: doc.edits, snapshot:doc };
   const hisob = useMemo(() => calcDoc(doc), [doc]);
   const [narxKat, setNarxKat] = useState<PriceCatalog | null>(null);
@@ -166,10 +167,10 @@ export default function SmetaStudio() {
     return () => clearTimeout(timer);
   }, [doc, serverVersiya, yuklandi]);
   useEffect(()=>{
-    if(!autoSave || autoSave.company!==joriyId || autoSave.draft!==doc.draftId || !doc.rootOrder.length || (doc.context.companyId!=null && doc.context.companyId!==joriyId))return;
+    if(!autoSave || autoSave.company!==joriyId || autoSave.draft!==doc.draftId || (!doc.rootOrder.length && serverVersiya===0) || (doc.context.companyId!=null && doc.context.companyId!==joriyId))return;
     const saved=lastServerSave.current;
     if(saved?.company===joriyId && saved.draft===doc.draftId && saved.snapshot===doc)return;
-    const timer=setTimeout(()=>{if(!serverBusy.current)void serverga();},4000);
+    const timer=setTimeout(()=>{if(!serverBusy.current)void saveAction.current();},4000);
     return()=>clearTimeout(timer);
   },[autoSave,doc,joriyId,serverVersiya]);
   useEffect(() => {
@@ -319,7 +320,7 @@ export default function SmetaStudio() {
           if (doc.context.companyId == null) run({ type: 'SET_CONTEXT', context: { companyId: joriyId } });
           window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} }));
         }}>{t('Qoralamani Jarvis bilan muhokama qilish')}</button>
-      <button className="px-3 py-1 rounded bg-accent text-white disabled:opacity-40" disabled={draftBusy || saqlash.holat === 'saqlanmoqda' || !doc.rootOrder.length} onClick={() => void serverga()}>{t('Serverga saqlash')}</button>
+      <button className="px-3 py-1 rounded bg-accent text-white disabled:opacity-40" disabled={draftBusy || saqlash.holat === 'saqlanmoqda' || (!doc.rootOrder.length && serverVersiya===0)} onClick={() => void serverga()}>{t('Serverga saqlash')}</button>
     </header>
     <ObjectBinding doc={doc} company={joriyId ?? null} command={amal} />
     {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && saqlash.edits !== doc.edits ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
@@ -351,7 +352,7 @@ export default function SmetaStudio() {
       <button className="tugma h-8 px-3 text-[12.5px]" aria-current={workspaceView==='calculator' ? 'page' : undefined} onClick={()=>{setWorkspaceView('calculator');setReviewOpen(false);}}>{t('Kalkulyator')}</button>
     </nav>
     {/* The AI estimator stays in the same place on every step (owner 2026-10-16: the chat runs the estimate end to end). */}
-    <div className={`grid items-start gap-3 ${assistantVisible ? 'xl:grid-cols-[minmax(280px,1fr)_minmax(0,3fr)]' : 'grid-cols-1'}`}>
+    <div className={`grid items-start gap-3 ${assistantVisible && workspaceView!=='overview' ? 'xl:grid-cols-[minmax(280px,1fr)_minmax(0,3fr)]' : 'grid-cols-1'}`}>
       <section hidden={!assistantVisible} aria-label={t('Normativ katalog')} className="border border-border rounded-lg p-3 bg-surface-1 min-w-0">
         {<div role="tablist" aria-label={t('Chap panel')} className="mb-2 flex gap-1 border-b border-border pb-2">
           {([['ai', t('Smetachi AI')], ['katalog', t('Normativ katalog')]] as const).map(([k, l]) =>

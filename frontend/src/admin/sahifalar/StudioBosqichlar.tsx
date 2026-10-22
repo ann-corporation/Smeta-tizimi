@@ -34,7 +34,8 @@ import { internetBuyruqlari } from '../../lib/smeta-studio/narx-internet';
 import { ishonchniKuchaytir, manbaKaliti, resursKaliti, type NarxTajriba } from '../../lib/smeta-studio/narx-ishonch';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
-import { PriceResearchQueue, researchKey, retainResearch } from '../../components/smeta-studio-workspace/PriceResearchQueue';
+import { PriceResearchQueue } from '../../components/smeta-studio-workspace/PriceResearchQueue';
+import { researchKey, retainResearch } from '../../components/smeta-studio-workspace/price-research-store';
 
 type UnitText = (code: string | null) => string | null;
 /** «… ПО ПРОЕКТУ» without the project's material is never priced by a guess. */
@@ -238,7 +239,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
    * materials no source priced go to the internet agent; only prices VERIFIED on the opened page are applied, with the links.
    */
   async function internetBosqichi(qoldi: Map<string, AiNarxNatija>) {
-    const kerak = [...qoldi.values()].filter(x => !x.nomzod).map(x => guruhlar.find(g => g.key === x.key))
+    const kerak = [...qoldi.values()].map(x => guruhlar.find(g => g.key === x.key))
       .filter((g): g is ResursGuruh => !!g && katalogdanNarxlanadi(g) && !materialKerak(g));
     const commands: StudioCommand[] = [];
     let topildi = 0, tekshirilmadi = 0;
@@ -265,7 +266,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
           if(prev)qoldi.set(g.key,{...prev,sabab:`${prev.sabab} · ${t(checked.some(m=>m.nds==='nomalum') ? 'QQS holatini aniqlashtiring; narx avtomatik qo‘llanmadi.' : 'Bir nechta taklif topildi. Komplektatsiya va yetkazish shartlarini solishtirib, narxni tasdiqlang.')} ${checked.map(m=>m.url).join('; ')}`.slice(0,600)});
           continue;
         }
-        const b = internetBuyruqlari(narxsizQatorlar(g, hisob), n);
+        const b = checked.length===1 && n.narx!=null
+          ? internetBuyruqlari(narxsizQatorlar(g, hisob), {...n,narx:checked[0].smetaNarx,manbalar:[checked[0]]}) : [];
         if (b.length) {
           commands.push(...b); topildi++; qoldi.delete(g.key);
           jarayonYoz(`${g.talab ?? g.nom}: ${n.narx} — internet (${n.manbalar.filter(m => m.tekshirildi).map(m => m.domen).join(', ')})`.slice(0, 220), 'ok');

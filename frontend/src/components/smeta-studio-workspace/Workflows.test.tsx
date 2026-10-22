@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { QuantityWorkbench } from './QuantityWorkbench';
 import { WorkSheet } from './WorkSheet';
 import { CloudDrafts } from './CloudDrafts';
-import { PriceResearchQueue, retainResearch } from './PriceResearchQueue';
+import { PriceResearchQueue } from './PriceResearchQueue';
+import { retainResearch } from './price-research-store';
 import { emptyDoc } from '../../lib/smeta-studio/model';
 import { applyCommand, dispatch, historyOf, undo } from '../../lib/smeta-studio/commands';
 import { calcDoc } from '../../lib/smeta-studio/calc';
@@ -35,7 +36,7 @@ it('cloud library rejects a document belonging to another company',async()=>{
  render(<CloudDrafts company={1} onOpen={onOpen} onClose={()=>{}}/>);fireEvent.click(await screen.findByRole('button',{name:'Foreign'}));expect(await screen.findByRole('alert')).toBeTruthy();expect(onOpen).not.toHaveBeenCalled();expect(within(screen.getByRole('region')).getByRole('button',{name:'Qayta urinish'})).toBeTruthy();
 });
 it('retains price observations and applies one verified source only after the estimator confirms terms',async()=>{
- const unknown={url:'https://supplier.example/item',nom:'Concrete',narx:112,birlik:'m3',nds:'nomalum' as const,sotuvchi:'Unknown VAT',domen:'supplier.example',tekshirildi:true,smetaNarx:100,koef:1};
+ const unknown={url:'https://supplier.example/item',nom:'Concrete',narx:112,birlik:'m3',nds:'nomalum' as const,sotuvchi:'Unknown VAT',domen:'supplier.example',tekshirildi:true,smetaNarx:100,koef:1,sabab:null};
  const known={...unknown,url:'https://supplier.example/known',sotuvchi:'Known VAT',nds:'siz' as const,narx:110,smetaNarx:110};
  await retainResearch('scope',{key:'g',name:'Concrete',result:{id:'r0',narx:105,manbalar:[unknown,known],izoh:'Compare'}});
  const apply=vi.fn(()=>true);render(<PriceResearchQueue scope="scope" revision={1} onApply={apply}/>);

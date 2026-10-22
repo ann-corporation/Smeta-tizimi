@@ -10,6 +10,9 @@ vi.mock('idb-keyval', () => ({ get: async (k: string) => store.get(k), set: asyn
 import SmetaStudio from './SmetaStudio';
 import { emptyDoc } from '../../lib/smeta-studio/model';
 import { writeLibraryDraft } from '../../lib/smeta-studio/draft-library';
+import * as serverSave from '../../lib/smeta-studio/server-save';
+const companyScope=vi.hoisted(()=>({id:null as number|null}));
+vi.mock('../../umumiy/kontekst/KompaniyaKontekst',()=>({useKompaniya:()=>({joriyId:companyScope.id})}));
 
 const REV = 'b'.repeat(16);
 const blob = (s: string) => ({ text_cp1251: s });
@@ -46,6 +49,7 @@ beforeAll(() => {
 });
 afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
+  companyScope.id=null;
   store.clear(); requests = []; sessionStorage.clear();
   // These tests exercise the catalogue tab; the AI estimator tab is the default for new users.
   try { localStorage.setItem('smeta-studio:chap-tab', 'katalog'); } catch { /* jsdom */ }
@@ -211,3 +215,27 @@ it('refresh restores this tab’s draft even when another tab saved the global l
  renderEditor();
  await waitFor(()=>expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST own tab'));
 });
+
+it('network retry identity changes for a different edit after undo even when edit counters match',async()=>{
+ companyScope.id=1;const save=vi.spyOn(serverSave,'saveToServer').mockResolvedValue({ok:false,code:'NETWORK'});
+ try{
+  renderEditor();await screen.findByLabelText('Yangi bo‘lim nomi');
+  const field=screen.getByLabelText('Yangi bo‘lim nomi');fireEvent.change(field,{target:{value:'First'}});fireEvent.submit(field.closest('form')!);
+  fireEvent.click(screen.getByRole('button',{name:'Serverga saqlash'}));await waitFor(()=>expect(save).toHaveBeenCalledTimes(1));await screen.findByText('Tarmoq xatosi — qayta bosing, saqlash takrorlanmaydi.');
+  fireEvent.click(screen.getByRole('button',{name:'Bekor qilish'}));fireEvent.change(field,{target:{value:'Different'}});fireEvent.submit(field.closest('form')!);
+  fireEvent.click(screen.getByRole('button',{name:'Serverga saqlash'}));await waitFor(()=>expect(save).toHaveBeenCalledTimes(2));
+  expect(save.mock.calls[0][0].doc.edits).toBe(save.mock.calls[1][0].doc.edits);
+  expect(save.mock.calls[0][0].operationId).not.toBe(save.mock.calls[1][0].operationId);
+ }finally{save.mockRestore();companyScope.id=null;}
+});
+it('opt-in autosave saves the current draft and persists an emptied saved draft with its server version',async()=>{
+ companyScope.id=1;const save=vi.spyOn(serverSave,'saveToServer').mockResolvedValueOnce({ok:true,versiya:7,yangilandi:'2026-10-22'}).mockResolvedValue({ok:true,versiya:8,yangilandi:'2026-10-22'});
+ try{
+  renderEditor();await screen.findByText('Shu qurilmada saqlandi');
+  const field=screen.getByLabelText('Yangi bo‘lim nomi');fireEvent.change(field,{target:{value:'Autosaved'}});fireEvent.submit(field.closest('form')!);
+  expect(save).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('checkbox',{name:'Serverga avtomatik saqlash'}));
+  await waitFor(()=>expect(save).toHaveBeenCalledTimes(1),{timeout:6000});await screen.findByText('Serverga saqlandi (versiya 7).');
+  fireEvent.click(screen.getByRole('button',{name:'Bekor qilish'}));await waitFor(()=>expect(save).toHaveBeenCalledTimes(2),{timeout:6000});
+  expect(save.mock.calls[1][0].expectedVersion).toBe(7);expect(save.mock.calls[1][0].doc.rootOrder).toEqual([]);
+ }finally{save.mockRestore();companyScope.id=null;}
+},15000);
