@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { t } from '../../i18n/til';
-import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
+import { parseQuantityInput } from '../../lib/smeta-studio/quantity-input';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 
@@ -21,8 +21,8 @@ export function QuantityWorkbench({doc, command, onWork}: {doc: EstimateDoc; com
   const template=templates.find(x=>x.id===kind);
   const formula=template ? (template.fields.every((_,i)=>values[i]?.trim()) ? template.formula(values) : '') : custom;
   const resultUnit=template?.unit ?? unit;
-  let result:ReturnType<typeof ifodaHisobla> | null=null;
-  try { if(formula) result=ifodaHisobla(formula); } catch { /* invalid input has no applicable result */ }
+  let result:ReturnType<typeof parseQuantityInput> | null=null;
+  try { if(formula) result=parseQuantityInput(formula); } catch { /* invalid input has no applicable result */ }
   const work=doc.occurrences[target];
   const [confirmed,setConfirmed]=useState(false);
   function change() {setMessage('');setConfirmed(false);}

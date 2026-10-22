@@ -1,0 +1,5 @@
+# Quantity precision closeout — Codex@Anvar
+
+Последний вводной adapter сохраняет явно указанное число через existing normDec (до12 десятичных), а existing ifoda применяет только к формулам. Иначе одна лишь потеря фокуса округляла сохранённый0.123456789012 до0.123457. WorkSheet, QuantityWorkbench и AI hajm теперь используют общий adapter. Valid thousands separators включают обычный/NBSP/narrow-NBSP/tab; ограничения модели не ослаблялись. Core calc/model/ifoda не менялись, новый вычислитель не создан.
+
+Domain subagent подтвердил сохранение literal precision и существующих expression semantics; выявленный grouping regression исправлен, повторный source check — без оставшихся замечаний. Regression14PASS; previous targeted24PASS/buildPASS. Main3256da99 уже включён merge6e3e2752; его remote frontend checks success, Pages c2dff76cSUCCESS. Финальная дочерняя revision проходит обычный CI перед main. GitHub Actions Results incident фиксируется как внешний, success не подделывался. Полный serial command зафиксировал2658PASS17skip; финальный exact remote receipt хранится в Obsidian machine state.

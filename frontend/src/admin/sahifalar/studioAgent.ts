@@ -9,7 +9,7 @@ import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { ishHavolalari } from '../../lib/smeta-studio/ai-kontekst';
 import { resursNomi } from '../../lib/smeta-studio/loyiha-material';
 import { NAKRUTKA_KATLAR } from '../../lib/nakrutka-podval';
-import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
+import { parseQuantityInput } from '../../lib/smeta-studio/quantity-input';
 
 /** One line of what the estimator is doing right now (owner 2026-10-16: "Claude Code'dagidek izohlab borsin"). */
 export type Qadam = { matn: string; holat: 'ishda' | 'ok' | 'xato' | 'savol' };
@@ -59,7 +59,7 @@ export function amalBuyruqlari(doc: EstimateDoc, a: AgentAmal, newId: () => stri
   switch (a.tur) {
     case 'material': return [{ type: 'SET_MATERIAL', occurrenceId: ish(), material: a.qiymat }];
     case 'hajm': {
-      const q = ifodaHisobla(a.qiymat ?? '').qiymat;
+      const q = parseQuantityInput(a.qiymat ?? '').qiymat;
       return [{ type: 'SET_QUANTITY', occurrenceId: ish(), quantity: q }];
     }
     case 'ochir': return [{ type: 'REMOVE_OCCURRENCE', occurrenceId: ish() }];

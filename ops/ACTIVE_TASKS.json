@@ -39,7 +39,9 @@
         "frontend/src/lib/smeta-ai/prompt.ts",
         "frontend/src/i18n/lugat/ru.json",
         "frontend/src/i18n/lugat/en.json",
-        "ops/mailbox/INBOX.md"
+        "ops/mailbox/INBOX.md",
+        "frontend/src/lib/smeta-studio/quantity-input.ts",
+        "frontend/src/lib/smeta-studio/quantity-input.test.ts"
       ],
       "depends_on": [],
       "must_read": [

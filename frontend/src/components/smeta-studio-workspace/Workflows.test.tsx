@@ -27,6 +27,12 @@ it('worksheet formula uses the same quantity command and bulk removal is one und
  const quantity=screen.getByLabelText('Hajm: E06-01');fireEvent.change(quantity,{target:{value:'0.1 + 0.2'}});fireEvent.blur(quantity);expect(history.present.occurrences.w.quantity).toBe('0.3');
  fireEvent.click(screen.getByLabelText('Tanlash: E06-01'));fireEvent.click(screen.getByRole('button',{name:'Tanlangan ishlarni olib tashlash'}));expect(history.present.occurrences.w).toBeUndefined();expect(undo(history).present.occurrences.w.quantity).toBe('0.3');
 });
+it('focusing and leaving an existing precise quantity does not silently round or edit it',()=>{
+ const doc=applyCommand(fixture(),{type:'SET_QUANTITY',occurrenceId:'w',quantity:'0.123456789012'}),command=vi.fn(()=>true);
+ render(<WorkSheet doc={doc} calculation={calcDoc(doc)} command={command} onWork={()=>{}} renderDetails={()=>null}/>);
+ const input=screen.getByLabelText('Hajm: E06-01');fireEvent.focus(input);fireEvent.blur(input);
+ expect(command).not.toHaveBeenCalled();expect((input as HTMLInputElement).value).toBe('0.123456789012');
+});
 it('cloud library uses named reads and opens the actual server version',async()=>{
  const doc=fixture();const onOpen=vi.fn(async()=>{});const fetcher=vi.fn(async(_u:string,init:RequestInit)=>{const data=JSON.parse(String(init.body));return Response.json(data.amal==='royxat'?{ok:true,qoralamalar:[{draft_uid:'draft',nom:'Server estimate',obyekt:null,versiya:7,ish_soni:1,yangilandi:'2026-10-22T00:00:00Z'}]}:{ok:true,versiya:7,hujjat:doc});});vi.stubGlobal('fetch',fetcher);
  render(<CloudDrafts company={1} onOpen={onOpen} onClose={()=>{}}/>);fireEvent.click(await screen.findByRole('button',{name:'Server estimate'}));await vi.waitFor(()=>expect(onOpen).toHaveBeenCalledWith(doc,7));expect(fetcher.mock.calls.map(c=>JSON.parse(String(c[1].body)).amal)).toEqual(['royxat','ol']);
