@@ -170,8 +170,17 @@ export default function SmetaStudio() {
     if(!autoSave || autoSave.company!==joriyId || autoSave.draft!==doc.draftId || (!doc.rootOrder.length && serverVersiya===0) || (doc.context.companyId!=null && doc.context.companyId!==joriyId))return;
     const saved=lastServerSave.current;
     if(saved?.company===joriyId && saved.draft===doc.draftId && saved.snapshot===doc)return;
-    const timer=setTimeout(()=>{if(!serverBusy.current)void saveAction.current();},4000);
-    return()=>clearTimeout(timer);
+    let stopped=false;
+    let timer:ReturnType<typeof setTimeout>;
+    const flush=()=>{
+      if(stopped)return;
+      // Keep the queued edit until the in-flight request settles; do not drop it
+      // merely because its debounce expired while a request was pending.
+      if(serverBusy.current){timer=setTimeout(flush,250);return;}
+      void saveAction.current();
+    };
+    timer=setTimeout(flush,4000);
+    return()=>{stopped=true;clearTimeout(timer);};
   },[autoSave,doc,joriyId,serverVersiya]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -323,7 +332,7 @@ export default function SmetaStudio() {
       <button className="px-3 py-1 rounded bg-accent text-white disabled:opacity-40" disabled={draftBusy || saqlash.holat === 'saqlanmoqda' || (!doc.rootOrder.length && serverVersiya===0)} onClick={() => void serverga()}>{t('Serverga saqlash')}</button>
     </header>
     <ObjectBinding doc={doc} company={joriyId ?? null} command={amal} />
-    {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && saqlash.edits !== doc.edits ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
+    {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && lastServerSave.current?.snapshot !== doc ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
     {tiklandi && <p role="status" className="text-sm text-accent">{t('Oxirgi qoralama tiklandi.')}</p>}
     {boshqaTab && <p role="alert" className="text-sm text-warn">{t('Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.')}</p>}
     {xato && <p role="alert" className="text-sm text-danger">{xato}</p>}

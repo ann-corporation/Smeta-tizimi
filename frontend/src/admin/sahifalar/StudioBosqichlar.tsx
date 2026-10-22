@@ -251,11 +251,17 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
       setAi({ ish: true, matn: t('Internetdan narx qidirilmoqda: {a} / {b}', { a: Math.min(i + 8, kerak.length), b: kerak.length }) });
       const r = await Promise.resolve().then(() => smetachiNarxInternet(kompaniyaId, part.map((g, j) => ({ id: `r${i + j}`, nom: narxNomi(g), birlik: g.birlik, kat: g.kat })), hududNomi)).catch(() => null);
       if (!r?.ok) { jarayonYoz(t('Internet qidiruvi javob bermadi — qolgan resurslar ro‘yxatda'), 'savol'); break; }
+      // Retain returned facts under the captured draft/company even if the user
+      // cancelled while the request was in flight. Cancellation blocks writes
+      // to the estimate, not recovery of observations already obtained.
+      for(const n of r.natijalar){
+        const g=part[Number(n.id.slice(1))-i];if(!g)continue;
+        try{await retainResearch(researchScope,{key:g.key,name:g.talab ?? g.nom,result:n});if(pricingAlive.current){setResearchRevision(v=>v+1);setResearchError(false);}}catch{if(pricingAlive.current)setResearchError(true);}
+      }
       if(!pricingValid())break;
       for (const n of r.natijalar) {
         const g = part[Number(n.id.slice(1)) - i]; if (!g) continue;
         const checked=n.manbalar.filter(m=>m.tekshirildi && m.smetaNarx!=null);
-        try{await retainResearch(researchScope,{key:g.key,name:g.talab ?? g.nom,result:n});setResearchRevision(v=>v+1);setResearchError(false);}catch{setResearchError(true);}
         // Unknown tax is not an implicit 12% tax. Multiple suppliers require an
         // operator's equivalence decision before their average becomes a draft price.
         if(checked.some(m=>m.nds==='nomalum') || checked.length>1) {

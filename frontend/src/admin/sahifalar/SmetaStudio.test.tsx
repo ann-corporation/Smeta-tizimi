@@ -244,3 +244,18 @@ it('opt-in autosave saves the current draft and persists an emptied saved draft 
   expect(save.mock.calls[1][0].expectedVersion).toBe(7);expect(save.mock.calls[1][0].doc.rootOrder).toEqual([]);
  }finally{save.mockRestore();companyScope.id=null;}
 },15000);
+
+it('keeps a newer autosave queued when its debounce expires during a request that returns NETWORK',async()=>{
+ companyScope.id=1;let finish!: (r:serverSave.SaveResult)=>void;
+ const pending=new Promise<serverSave.SaveResult>(resolve=>{finish=resolve;});
+ const save=vi.spyOn(serverSave,'saveToServer').mockReturnValueOnce(pending).mockResolvedValue({ok:true,versiya:1,yangilandi:'2026-10-22'});
+ try{
+  renderEditor();await screen.findByText('Shu qurilmada saqlandi');
+  const section=screen.getByLabelText('Yangi bo‘lim nomi');fireEvent.change(section,{target:{value:'Queued'}});fireEvent.submit(section.closest('form')!);
+  fireEvent.click(screen.getByRole('checkbox',{name:'Serverga avtomatik saqlash'}));await waitFor(()=>expect(save).toHaveBeenCalledTimes(1),{timeout:6000});
+  const title=screen.getByLabelText('Smeta nomi');fireEvent.change(title,{target:{value:'Newer pending edit'}});fireEvent.submit(title.closest('form')!);
+  await new Promise(resolve=>setTimeout(resolve,4400));expect(save).toHaveBeenCalledTimes(1);
+  finish({ok:false,code:'NETWORK'});await waitFor(()=>expect(save).toHaveBeenCalledTimes(2),{timeout:2000});
+  expect(save.mock.calls[1][0].doc.context.title).toBe('Newer pending edit');
+ }finally{finish({ok:false,code:'NETWORK'});save.mockRestore();companyScope.id=null;}
+},20000);

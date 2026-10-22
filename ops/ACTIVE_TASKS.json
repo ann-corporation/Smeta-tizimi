@@ -9,7 +9,7 @@
       "machine": "Anvar",
       "branch": "codex/studio-workspace-v2-20261022",
       "base_sha": "7a734d6c520fa8c1ed8fcd5113cbc1e2eed1ff45",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": [
         "ops/ACTIVE_TASKS.json",
         "ops/mailbox/SMETA-STUDIO-WORKSPACE-V2-20261022/",
@@ -50,7 +50,7 @@
         "docs/architecture/SMETA_STUDIO_WORKSPACE_V2.md"
       ],
       "production_write_allowed": false,
-      "note": "Owner resumed full Studio build 2026-10-22. Product workflow, worksheet, dimension calculators and existing named server draft list/open within own UI scope. Other agent core locks retained. Owner repeated direct build/finish/deploy instruction after rejecting review-only partial handoff; this Studio release is owner-authorized. Coordinate with Claude via mailbox/Obsidian, preserve published main and unrelated WIP; no destructive or secret writes."
+      "note": "Owner resumed full Studio build 2026-10-22. Product workflow, worksheet, dimension calculators and existing named server draft list/open within own UI scope. Other agent core locks retained. Owner repeated direct build/finish/deploy instruction after rejecting review-only partial handoff; this Studio release is owner-authorized. Coordinate with Claude via mailbox/Obsidian, preserve published main and unrelated WIP; no destructive or secret writes. Independent reviewer: no P0/P1; two P2 fixed and re-reviewed PASS. Final candidate awaits exact-SHA CI before owner-authorized main promotion."
     },
     {
       "id": "T2-ROLES-CONTROL-20261017",
