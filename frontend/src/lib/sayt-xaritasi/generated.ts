@@ -2,6 +2,7 @@
 export const GENERATED_SITE_MAP = {
   "generatedAt": "source",
   "menuRoutes": [
+    "/admin/ish-joylarim",
     "/admin/obyektlar",
     "/admin/smeta-studio",
     "/admin/holat",
@@ -60,6 +61,7 @@ export const GENERATED_SITE_MAP = {
     "f2-eski",
     "f2-tayyorlash",
     "tokenlar",
+    "ish-joylarim",
     "boshqaruv",
     "hujjat-dizayn",
     "smeta-studio",

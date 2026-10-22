@@ -47,5 +47,18 @@ export async function takliflar(kompaniyaId: number): Promise<Taklif[]> {
   return j.takliflar;
 }
 
+export type IshJoyiKarta = { kompaniya_id: number; nom: string; turi: IshJoyiTuri; rol: string; obyektlar: number; azolar: number;
+  f2_tasdiq: number; f2_qoralama: number; kutmoqda: number; oxirgi_faollik: string | null };
+export type MeningIshim = { kompaniya_id: number; kompaniya_nom: string; tur: 'f2_tasdiq' | 'f2_qoralama'; akt_id: number; obyekt_id: number;
+  obyekt_nom: string; oy: string; holat: string; summa: number | null; yangilandi: string };
+
+/** Markaz: barcha ish joylari va barcha joylardan yig'ilgan «Mening ishlarim». */
+export async function ishJoylarim(): Promise<{ ishJoylari: IshJoyiKarta[]; ishlarim: MeningIshim[] }> {
+  const r = await fetch('/api/ish-joyi?bolim=joylarim');
+  const j = await r.json().catch(() => null) as (Javob & { ish_joylari?: IshJoyiKarta[]; ishlarim?: MeningIshim[] }) | null;
+  if (!j?.ok || !Array.isArray(j.ish_joylari)) throw new Error(j ? ishJoyiXato(j) : 'Ish joylari o‘qilmadi');
+  return { ishJoylari: j.ish_joylari, ishlarim: j.ishlarim ?? [] };
+}
+
 /** Taklif havolasi — saytning o'z manzili bilan (kod faqat shu yerda, bazada xesh). */
 export const taklifHavolasi = (kod: string, origin = typeof window !== 'undefined' ? window.location.origin : '') => `${origin}/qoshil/${encodeURIComponent(kod)}`;

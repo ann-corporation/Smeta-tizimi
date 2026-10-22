@@ -10,7 +10,8 @@ export function routePermission(path:string):PermissionCode {
   if(p==='fakt') return 'fakt.read';
   if(['narxlar','narx-dalil','narx-manbalari','narx-katalog','smeta-narxlash','nakrutka'].includes(p)) return 'narx.read';
   if(['dashboard','moliya'].includes(p)) return 'financial.read';
-  if(p==='kompaniya'||p==='tokenlar'||p==='tizim-sozlama') return 'company.read';
+  // «Ish joylarim» — har a'zoning o'z ish joylari markazi (ma'lumot faqat o'z a'zoliklaridan, bazada).
+  if(p==='kompaniya'||p==='tokenlar'||p==='tizim-sozlama'||p==='ish-joylarim') return 'company.read';
   if(p==='loyiha'||p==='participants') return 'project.read';
   return 'document.read';
 }

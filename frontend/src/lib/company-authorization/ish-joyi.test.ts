@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { kodXeshi, yangiKod, yozishYuki } from '../../../functions/api/ish-joyi';
-import { kodXeshi as tomonKodXeshi } from '../../../functions/api/tomon';
+import { kodXeshi, yangiKod, yozishYuki } from '../../../functions/_shared/ish-joyi-yuk';
 import { kodniAjrat } from '../../umumiy/kontekst/IshJoyiAmallari';
 import { taklifHavolasi } from '../../api/t2-ish-joyi';
+
+/** Tomon kodi xeshi (tomon.ts bilan bir xil formula) — Pages handlerni brauzer typecheck'iga olib kirmaslik uchun shu yerda. */
+async function tomonKodXeshi(kod: string) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('tomon-taklif:' + kod.toUpperCase().replace(/[^A-Z0-9]/g, '')));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 /* «Telegram modeli» (egasi 2026-10-22): ish joyi darhol ochiladi; havola orqali tasdiqsiz qo'shiladi; boss/admin havola bilan berilmaydi. */
 describe('ish joyi shlyuzi', () => {

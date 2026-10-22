@@ -32,6 +32,8 @@ const TIZIM_02_GURUHLAR: Array<{ nom: string; Ikonka: typeof Crown; id: string; 
     Ikonka: FileText,
     id: 'pto',
     menyular: [
+      /* «Telegram modeli» (2026-10-22): barcha ish joylari va ulardagi navbatingiz — bitta ekranda. */
+      { yol: '/admin/ish-joylarim', nom: 'Ish joylarim', Ikonka: LayoutDashboard },
       { yol: '/admin/obyektlar', nom: 'Obyektlar va smeta yuklash', Ikonka: Building2 },
       { yol: '/admin/smeta-studio', nom: 'Smeta studiyasi', Ikonka: Calculator },
       { yol: '/admin/holat', nom: 'Smeta va Fakt / LRV', Ikonka: FileText },
