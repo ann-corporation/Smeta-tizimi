@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSessiya } from '../api/hooks';
 import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
-import { Map, LogOut, Building2, FileInput, Activity, Tags, Network, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, NotebookPen, Database, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
+import { Map, LogOut, Building2, FileInput, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, NotebookPen, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
 import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
@@ -238,7 +238,9 @@ function AdminShellInner() {
   // EMAS.
   const modullar = modulQuery.data;
   const routeModule = MENYU_MODUL[joy.pathname];
-  const moduleOpen = !routeModule || modullar?.some(m => m.kod === routeModule && m.holat === 'on');
+  // Faqat modul ANIQ o'chirilgan bo'lsa yopiladi. Yuklanayotgan / o'qib bo'lmagan / global rejim — sahifa ochiq
+  // (bu ko'rinish, xavfsizlik emas; L0 2026-10-22: Codex varianti xato bo'lganda ishni to'xtatardi).
+  const moduleOpen = !routeModule || !modullar?.some(m => m.kod === routeModule && m.holat === 'off');
   const rol = effektivRol;
   const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
   /** Ruxsatlar katalogi yo'q (eski DB javobi) bo'lsa — avvalgi guruh bo'yicha rol filtri (o'zgarmagan qoida). */
@@ -429,9 +431,7 @@ function AdminShellInner() {
          * shu tashqi scroll konteynerining ICHIDA, hajmi mos kelsa
          * tashqi scroll umuman ko'rinmaydi. */}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-          {moduleOpen ? <RuxsatGuard /> : <p role="alert" className="karta p-4 text-sm">{modulQuery.isLoading
-            ? t('Modullar yuklanmoqda...') : modulQuery.isError || !modullar?.some(m => m.kod === routeModule)
-              ? t('Modullar holatini o‘qib bo‘lmadi.') : t('Bu modul kompaniyada o‘chirilgan.')}</p>}
+          {moduleOpen ? <RuxsatGuard /> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
         </div>
       </main>
 

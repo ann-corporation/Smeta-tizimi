@@ -3,9 +3,6 @@
  * qo'llanadigan vaziyatlar uchun bo'lishi va taklif qilishi kerak"). GET ?f=current | ?rev=<16 hex> → {koef, jadval}.
  */
 import { malumotnomaGet, malumotnomaKey } from '../_shared/r2-malumotnoma';
-import { constructReferenceGet } from '../_shared/construct-koef';
 
 export const koefKatalogKey = (rev: string | null, f: string | null) => malumotnomaKey('koef-katalog', rev, f);
-const existingCatalog = malumotnomaGet('koef-katalog', 'KOEF_CATALOG');
-export const onRequestGet: typeof existingCatalog = ctx => new URL(ctx.request.url).searchParams.get('f') === 'construct'
-  ? constructReferenceGet(ctx) : existingCatalog(ctx);
+export const onRequestGet = malumotnomaGet('koef-katalog', 'KOEF_CATALOG');

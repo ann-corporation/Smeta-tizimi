@@ -26,17 +26,10 @@ describe('individual permission request gate',()=>{
     const {response,next}=await run({platform:'superadmin',body:{amal:'unregistered_future_command',kompaniya_id:17}});
     expect(response.status).toBe(403);expect(next).not.toHaveBeenCalled();
   });
-  it.each(['none','superadmin'])('disabled company module blocks direct API for platform %s',async platform=>{
-    const {response,next}=await run({platform,moduleState:'off',body:{amal:'narx_belgila',kompaniya_id:17}});
-    expect(response.status).toBe(403);expect(await response.json()).toMatchObject({code:'MODULE_DISABLED'});expect(next).not.toHaveBeenCalled();
-  });
-  it('unknown module state fails closed, while core PTO stays available',async()=>{
-    expect((await run({moduleState:'unavailable',body:{amal:'narx_belgila',kompaniya_id:17}})).response.status).toBe(503);
-    const core=await run({moduleState:'off'});expect(core.response.status).toBe(200);expect(core.upstream.some(p=>p.endsWith('/t2_modul_holat_v1'))).toBe(false);
-  });
-  it('enabled module preserves the existing permission check and fresh read',async()=>{
-    expect((await run({moduleState:'on',body:{amal:'narx_belgila',kompaniya_id:17}})).response.status).toBe(200);
-    expect((await run({moduleState:'on',denied:['narx.write'],body:{amal:'narx_belgila',kompaniya_id:17}})).response.status).toBe(403);
+  it('module state is never fetched per request (menu-only, L0 2026-10-22); permission check unchanged',async()=>{
+    const a=await run({moduleState:'off',body:{amal:'narx_belgila',kompaniya_id:17}});
+    expect(a.response.status).toBe(200);expect(a.upstream.some(p=>p.endsWith('/t2_modul_holat_v1'))).toBe(false);
+    expect((await run({denied:['narx.write'],body:{amal:'narx_belgila',kompaniya_id:17}})).response.status).toBe(403);
   });
   it('PTO denied approve is refused before domain execution despite old superadmin cookie',async()=>{
     const {response,next}=await run({denied:['f2.approve']}); expect(response.status).toBe(403);expect(next).not.toHaveBeenCalled();

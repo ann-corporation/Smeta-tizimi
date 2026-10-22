@@ -2,7 +2,6 @@ import { tekshir } from '../_shared/auth';
 import { roleAuthority } from '../_shared/role-authority';
 import { SCOPED_APIS, requestPermission } from '../_shared/permission-policy';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
-import { moduleAccess, requestModule } from '../_shared/module-policy';
 
 type Env = { SUPABASE_URL:string; SUPABASE_KEY:string; SESSIYA_KALIT:string };
 const positive = (v:unknown) => Number.isSafeInteger(Number(v)) && Number(v)>0 ? Number(v) : null;
@@ -31,8 +30,10 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   const permission=requestPermission(api,ctx.request.method,b,url.searchParams);
   if (!permission) return ctx.next();
   if (permission==='command.unregistered') return fail('PERMISSION_DENIED');
-  const module=requestModule(api,b,permission);
-  if (authority.rol==='superadmin' && !module) return ctx.next(); // Platform authority does not enable a disabled company module.
+  /* L0 2026-10-22: modul («Telegram modeli») hozircha faqat MENYU ko'rinishi. Har so'rovda modul holatini bazadan so'rash
+   * (Codex 17eecd54) olib tashlandi: egasi «har so'rovda qayta tekshirish ortiqcha» degan, va o'qib bo'lmasa narx/loyiha
+   * ishini 503 bilan to'xtatardi. Server entitlement — keyin, keshlangan vakolat ichida (BOSH_REJA Bosqich 3). */
+  if (authority.rol==='superadmin') return ctx.next(); // Fresh DB fact, not a cookie role or membership label.
   if (permission.startsWith('control.global')) return fail('PLATFORM_ROLE_REQUIRED');
   if (!authority.permissionsByCompany) return fail('AUTHORITY_SCHEMA_REQUIRED',503);
   const targets=new Set<number>();
@@ -57,13 +58,7 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   }
   const candidates=targets.size?[...targets]:(authority.kompaniyalar??[]).map(a=>a.kompaniya_id);
   // Missing scope may never pick a more privileged company. All possible targets must permit it.
-  if (!candidates.length || (authority.rol!=='superadmin' && !candidates.every(id=>authority.permissionsByCompany![id]?.includes('company.read')&&authority.permissionsByCompany![id]?.includes(permission)))) return fail('PERMISSION_DENIED');
-  if (module) {
-    if (candidates.length>20) return fail('CONTEXT_REQUIRED',400);
-    const states=await Promise.all(candidates.map(id=>moduleAccess(module,id,authority.foydalanuvchi_id!,ctx.env)));
-    if (states.includes('unavailable')) return fail('MODULE_STATE_UNAVAILABLE',503);
-    if (states.includes('off')) return fail('MODULE_DISABLED');
-  }
+  if (!candidates.length || !candidates.every(id=>authority.permissionsByCompany![id]?.includes('company.read')&&authority.permissionsByCompany![id]?.includes(permission))) return fail('PERMISSION_DENIED');
   // General AI/GAS can aggregate several domains. Explicitly restricted staff cannot use it to bypass a deny.
   if (['agent-ish','agent-control','ai-savol','ai-parse','smeta-ai','smeta-narx-agent'].includes(api)) {
     const readOnly=['savol','kasb_savol','veb_tahlil','veb_ol','rivojlanish_tahlil','qadam_taklif','bilim_yigish','royxat','ol','holat'];
