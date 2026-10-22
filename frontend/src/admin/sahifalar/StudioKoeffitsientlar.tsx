@@ -96,7 +96,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-medium"><span className="font-mono text-accent">{o.source.code}</span> {o.source.name}</p>
           <span className="flex-1" />
-          {norm.length > (workId ? 2 : 0) && <button type="button" className="text-[11px] underline" onClick={() => setOchiq(ochiq === o.id ? null : o.id)}>
+          {(workId ? 2 : 0) < norm.length && <button type="button" className="text-[11px] underline" onClick={() => setOchiq(ochiq === o.id ? null : o.id)}>
             {ochiq === o.id ? t('Yopish') : t('Normativ koeffitsientlar ({n})', { n: norm.length })}</button>}
         </div>
         {bor.map(k => <div key={k.id} className="mt-1 flex flex-wrap items-center gap-2">
