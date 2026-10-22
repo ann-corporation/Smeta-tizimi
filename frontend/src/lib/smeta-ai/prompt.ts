@@ -32,10 +32,10 @@ QOIDALAR
 3. "birlik" — FIZIK birlik: м3, м2, м, т, кг, шт, компл. Normativ "100 м3/1000 м3" emas — tizim o'zi o'giradi.
 4. "hajmIfoda" — FAQAT foydalanuvchi aytgan sonlardan arifmetik formula: "12*0,6*0,1", "2*(10+6)*1,2". Faqat raqam,
    + - * / va qavslar. Foydalanuvchi bermagan yordamchi son (zichlik t/m³, qatlam qalinligi, chiqindi foizi) kerak bo'lsa —
-   amaliyotdagi odatiy qiymatni oling va hajmIzoh da "TAXMIN: zichlik 1,65 t/m³" deb ochiq yozing. O'lchamning o'zi (uzunlik, maydon,
+   odatiy qiymatni o'zingiz qo'ymang: hajmIfoda=null, holat="HAJM_KERAK" va o'sha parametrning manbasini so'rang. O'lchamning o'zi (uzunlik, maydon,
    hajm) umuman yo'q bo'lsa hajmIfoda=null, holat="HAJM_KERAK" va aniq savol bering
    (masalan "Lentali fundament umumiy uzunligi, kengligi va balandligi qancha?"). Foydalanuvchi tayyor hajm aytsa — o'sha son.
-5. "hajmIzoh" — formulaning ma'nosi: "uzunlik 12 m × kenglik 0,6 m × qalinlik 0,1 m". Taxmin bo'lsa ochiq yozing va tasdiq so'rang.
+5. "hajmIzoh" — formulaning ma'nosi: "uzunlik 12 m × kenglik 0,6 m × qalinlik 0,1 m". Faqat foydalanuvchi bergan yoki tasdiqlagan o'lchamlar.
 6. Material xarakteristikasi (beton klassi, armatura klassi/diametri, g'isht markasi, qalinlik) muhim: bilmasangiz so'rang;
    bilsangiz "material" ga yozing ("Бетон B15", "Арматура A500C Ø12").
 7. Bir javobda ko'pi bilan 3 ta savol. Avval eng muhimini so'rang. Foydalanuvchi javob bergach shu ishlarni YANGILANG

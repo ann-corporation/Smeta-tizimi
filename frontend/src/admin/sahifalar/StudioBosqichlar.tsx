@@ -34,6 +34,7 @@ import { internetBuyruqlari } from '../../lib/smeta-studio/narx-internet';
 import { ishonchniKuchaytir, manbaKaliti, resursKaliti, type NarxTajriba } from '../../lib/smeta-studio/narx-ishonch';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
+import { PriceResearchQueue, researchKey, retainResearch } from '../../components/smeta-studio-workspace/PriceResearchQueue';
 
 type UnitText = (code: string | null) => string | null;
 /** «… ПО ПРОЕКТУ» without the project's material is never priced by a guess. */
@@ -80,6 +81,13 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   const [xabar, setXabar] = useState('');
   const [ai, setAi] = useState<{ ish: boolean; matn: string }>({ ish: false, matn: '' });
   const [takliflar, setTakliflar] = useState<Map<string, AiNarxNatija>>(new Map());
+  const [researchRevision,setResearchRevision]=useState(0);
+  const [researchError,setResearchError]=useState(false);
+  const researchScope=researchKey(kompaniyaId,doc.draftId);
+  const latestPricing=useRef({doc,kompaniyaId,hudud});latestPricing.current={doc,kompaniyaId,hudud};
+  const pricingAlive=useRef(true),pricingCancelled=useRef(false);
+  useEffect(()=>{pricingAlive.current=true;return()=>{pricingAlive.current=false;};},[]);
+  const pricingValid=(allowCancelled=false)=>pricingAlive.current && (allowCancelled || !pricingCancelled.current) && latestPricing.current.doc===doc && latestPricing.current.kompaniyaId===kompaniyaId && latestPricing.current.hudud===hudud;
   const [filtr, setFiltr] = useState<'hammasi' | 'narxsiz' | 'taklif'>('hammasi');
   const [qolda, setQolda] = useState<{ key: string; narx: string; dalil: string } | null>(null);
   // The company's own documents (КП, invoices, price lists) — justified sources, offered before the platform index.
@@ -123,6 +131,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
 
   function qoy(commands: StudioCommand[], label: string): boolean {
     if (!commands.length) return true;
+    if(!pricingValid(true)){setXabar(t('Smeta yoki hudud o‘zgardi. Eski narxlash natijasi qo‘llanmadi; qayta boshlang.'));return false;}
     const ok = command(commands.length === 1 ? commands[0] : { type: 'BATCH', label, commands });
     if (!ok) setXabar(t('Narxlar qo‘llanmadi. Qoralama holatini tekshirib, qayta urinib ko‘ring.'));
     return ok;
@@ -230,18 +239,32 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
    */
   async function internetBosqichi(qoldi: Map<string, AiNarxNatija>) {
     const kerak = [...qoldi.values()].filter(x => !x.nomzod).map(x => guruhlar.find(g => g.key === x.key))
-      .filter((g): g is ResursGuruh => !!g && katalogdanNarxlanadi(g) && !materialKerak(g)).slice(0, 60);
+      .filter((g): g is ResursGuruh => !!g && katalogdanNarxlanadi(g) && !materialKerak(g));
     const commands: StudioCommand[] = [];
     let topildi = 0, tekshirilmadi = 0;
     if (!kerak.length || kompaniyaId == null) return { commands, topildi, tekshirilmadi };
     const hududNomi = regions.find(([k]) => k === hudud)?.[1] ?? null;
     for (let i = 0; i < kerak.length; i += 8) {
+      if(!pricingValid())break;
       const part = kerak.slice(i, i + 8);
       setAi({ ish: true, matn: t('Internetdan narx qidirilmoqda: {a} / {b}', { a: Math.min(i + 8, kerak.length), b: kerak.length }) });
       const r = await Promise.resolve().then(() => smetachiNarxInternet(kompaniyaId, part.map((g, j) => ({ id: `r${i + j}`, nom: narxNomi(g), birlik: g.birlik, kat: g.kat })), hududNomi)).catch(() => null);
       if (!r?.ok) { jarayonYoz(t('Internet qidiruvi javob bermadi — qolgan resurslar ro‘yxatda'), 'savol'); break; }
+      if(!pricingValid())break;
       for (const n of r.natijalar) {
         const g = part[Number(n.id.slice(1)) - i]; if (!g) continue;
+        const checked=n.manbalar.filter(m=>m.tekshirildi && m.smetaNarx!=null);
+        if(checked.some(m=>m.nds==='nomalum') || checked.length!==1 || n.narx==null) {
+          try{await retainResearch(researchScope,{key:g.key,name:g.talab ?? g.nom,result:n});setResearchRevision(v=>v+1);}catch{setResearchError(true);}
+        }
+        // Unknown tax is not an implicit 12% tax. Multiple suppliers require an
+        // operator's equivalence decision before their average becomes a draft price.
+        if(checked.some(m=>m.nds==='nomalum') || checked.length>1) {
+          tekshirilmadi++;
+          const prev=qoldi.get(g.key);
+          if(prev)qoldi.set(g.key,{...prev,sabab:`${prev.sabab} · ${t(checked.some(m=>m.nds==='nomalum') ? 'QQS holatini aniqlashtiring; narx avtomatik qo‘llanmadi.' : 'Bir nechta taklif topildi. Komplektatsiya va yetkazish shartlarini solishtirib, narxni tasdiqlang.')} ${checked.map(m=>m.url).join('; ')}`.slice(0,600)});
+          continue;
+        }
         const b = internetBuyruqlari(narxsizQatorlar(g, hisob), n);
         if (b.length) {
           commands.push(...b); topildi++; qoldi.delete(g.key);
@@ -263,6 +286,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
    * the deterministic part still runs and says so.
    */
   async function hammasiniNarxla(): Promise<string> {
+    pricingCancelled.current=false;
     setXabar('');
     jarayonYoz(t('Narxlash: {n} resurs; manbalar — mash-soat ro‘yxati 01.01.2026, narx indeksi, kompaniya KP', { n: guruhlar.filter(narxKerak).length }));
     const avto = avtoBuyruqlar();
@@ -285,6 +309,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
           sabab: 'AI ishlamadi — manbadagi nomzodlardan o‘zingiz tanlang' }]));
       } finally { setAi({ ish: false, matn: '' }); }
     }
+    if(!pricingValid())return t('Narxlash to‘xtadi. Topilgan takliflar izlanishlar navbatida saqlandi.');
     if (!qoy([...avto.commands, ...(ai?.commands ?? [])], t('Narxlash: stavkalar, katalog va AI'))) return t('Narxlar qo‘llanmadi.');
     const takliflarYangi = ai?.qoldi ?? zaxira;
     setTakliflar(takliflarYangi);
@@ -395,6 +420,8 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
   }
 
   return <div className="space-y-3">
+    {researchError && <p role="alert" className="text-xs text-danger">{t('Izlanishlar navbati qurilmada saqlanmadi. Oynani yopmang.')}</p>}
+    <PriceResearchQueue scope={researchScope} revision={researchRevision} onApply={(key,result)=>{const group=guruhlar.find(g=>g.key===key);if(!group)return false;const commands=internetBuyruqlari(narxsizQatorlar(group,hisob),result);return commands.length>0 && qoy(commands,t('Smetachi tanlagan internet narxi'));}} />
     <section aria-label={t('Narx sharoiti')} className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
       <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Narx sharoiti')}</strong>
       <label className="flex items-center gap-1">{t('Obyekt hududi')}
@@ -430,6 +457,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         </select>
       </div>
       {(xabar || ai.matn) && <p role="status" className="px-2 py-1 text-xs text-accent">{ai.matn || xabar}</p>}
+      {ai.ish && <button className="tugma m-2 px-3 py-1" onClick={()=>{pricingCancelled.current=true;setAi({ish:true,matn:t('Narxlash to‘xtatilmoqda...')});}}>{t('Narxlashni to‘xtatish')}</button>}
       <div className="max-h-[560px] overflow-auto">
         <table className="w-full text-[12px]">
           <thead className="sticky top-0 bg-surface-1 text-text-mute"><tr>

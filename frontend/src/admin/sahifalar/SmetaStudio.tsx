@@ -15,6 +15,12 @@ import { calcDoc } from '../../lib/smeta-studio/calc';
 import { snapshotWork, suggestedBasis } from '../../lib/smeta-studio/catalog-bridge';
 import { loadLastDraft, saveDraft } from '../../lib/smeta-studio/draft-store';
 import { WorkspaceReview } from '../../components/smeta-studio-workspace/WorkspaceReview';
+import { WorkSheet } from '../../components/smeta-studio-workspace/WorkSheet';
+import { QuantityWorkbench } from '../../components/smeta-studio-workspace/QuantityWorkbench';
+import { WorkspaceOverview } from '../../components/smeta-studio-workspace/WorkspaceOverview';
+import { CloudDrafts } from '../../components/smeta-studio-workspace/CloudDrafts';
+import { DocumentCenter } from '../../components/smeta-studio-workspace/DocumentCenter';
+import { ObjectBinding } from '../../components/smeta-studio-workspace/ObjectBinding';
 import { listLibraryDrafts, readLibraryDraft, writeLibraryDraft, type DraftSummary, type DraftAction } from '../../lib/smeta-studio/draft-library';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { saveToServer } from '../../lib/smeta-studio/server-save';
@@ -68,6 +74,12 @@ export default function SmetaStudio() {
   const [serverVersiya, setServerVersiya] = useState(0);
   const [assistantVisible,setAssistantVisible]=useState(true);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'>('overview');
+  const [worksheet,setWorksheet]=useState(true);
+  const [cloudOpen,setCloudOpen]=useState(false);
+  const [autoSave,setAutoSave]=useState<{company:number;draft:string}|null>(null);
+  const serverBusy=useRef(false);
+  const lastServerSave=useRef<{company:number;draft:string;snapshot:EstimateDoc}|null>(null);
   const [focusWorkId, setFocusWorkId] = useState<string | null>(null);
   const draftActionLock=useRef(false);
   const [draftBusy,setDraftBusy]=useState(false);
@@ -76,11 +88,11 @@ export default function SmetaStudio() {
   const [localStatus, setLocalStatus] = useState<'saving' | 'saved' | 'error' | 'conflict' | ''>('');
   const localVersions = useRef(new Map<string, number>());
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
-  const currentDraft = useRef({ id: '', edits: 0 });
+  const currentDraft = useRef<{id:string;edits:number;snapshot:EstimateDoc|null}>({ id: '', edits: 0, snapshot:null });
   const [saqlash, setSaqlash] = useState<{ holat: 'tayyor' | 'saqlanmoqda' | 'saqlandi' | 'xato'; matn: string; edits: number | null }>({ holat: 'tayyor', matn: '', edits: null });
-  const pendingOp = useRef<{ id: string; edits: number; draftId: string } | null>(null);
+  const pendingOp = useRef<{ id: string; edits: number; draftId: string; snapshot:EstimateDoc } | null>(null);
   const doc = hist.present;
-  currentDraft.current = { id: doc.draftId, edits: doc.edits };
+  currentDraft.current = { id: doc.draftId, edits: doc.edits, snapshot:doc };
   const hisob = useMemo(() => calcDoc(doc), [doc]);
   const [narxKat, setNarxKat] = useState<PriceCatalog | null>(null);
   // The AI estimator is the default entry: describe the work in words; the catalogue stays one click away.
@@ -92,7 +104,7 @@ export default function SmetaStudio() {
   // Owner workflow (2026-10-13): build the LRV first, then go to pricing (rates + sourced prices), then the RES.
   const [bosqich, setBosqichState] = useState<Bosqich>(() => { const v = lsGet(BOSQICH_KALIT); return v === 'narx' || v === 'res' ? v : 'lrv'; });
   const [openedViews,setOpenedViews]=useState<Bosqich[]>(()=>[bosqich]);
-  const setBosqich = (b: Bosqich) => { setOpenedViews(old=>old.includes(b) ? old : [...old,b]); setReviewOpen(false); setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
+  const setBosqich = (b: Bosqich) => { setWorkspaceView('editor'); setOpenedViews(old=>old.includes(b) ? old : [...old,b]); setReviewOpen(false); setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
   const ishlarSoni = Object.keys(doc.occurrences).length;
   const hajmsiz = Object.values(doc.occurrences).filter(o => o.quantity == null).length;
   // Warm the price matcher index in the background while the user works on the LRV — pricing then starts at once.
@@ -153,6 +165,13 @@ export default function SmetaStudio() {
     const timer = setTimeout(() => { void persistDraft(doc, serverVersiya); }, 600);
     return () => clearTimeout(timer);
   }, [doc, serverVersiya, yuklandi]);
+  useEffect(()=>{
+    if(!autoSave || autoSave.company!==joriyId || autoSave.draft!==doc.draftId || !doc.rootOrder.length || (doc.context.companyId!=null && doc.context.companyId!==joriyId))return;
+    const saved=lastServerSave.current;
+    if(saved?.company===joriyId && saved.draft===doc.draftId && saved.snapshot===doc)return;
+    const timer=setTimeout(()=>{if(!serverBusy.current)void serverga();},4000);
+    return()=>clearTimeout(timer);
+  },[autoSave,doc,joriyId,serverVersiya]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || (e.target as HTMLElement)?.tagName === 'INPUT') return;
@@ -187,7 +206,7 @@ export default function SmetaStudio() {
       const isCurrent=currentDraft.current.id===snapshot.draftId;
       if (isCurrent) activeDraft(companyId,snapshot.draftId);
       const last=isCurrent ? await saveDraft(snapshot,version) : true;
-      if (currentDraft.current.id===snapshot.draftId && currentDraft.current.edits===snapshot.edits) setLocalStatus(saved.indexed!==false && last ? 'saved' : 'error');
+      if (currentDraft.current.id===snapshot.draftId && currentDraft.current.snapshot===snapshot) setLocalStatus(saved.indexed!==false && last ? 'saved' : 'error');
       return saved.indexed!==false && last;
     }).catch(e=>{
       if (currentDraft.current.id===snapshot.draftId) setLocalStatus(e instanceof Error && e.message==='LOCAL_VERSION_CONFLICT' ? 'conflict' : 'error');
@@ -234,14 +253,19 @@ export default function SmetaStudio() {
     setHist(historyOf(snapshot)); setServerVersiya(0); pendingOp.current=null; setLocalStatus('saved');
   }); }
   async function serverga() {
+    if(serverBusy.current)return;
     if (joriyId == null) { setSaqlash({ holat: 'xato', matn: t('Avval yuqorida kompaniyani tanlang.'), edits: null }); return; }
+    if(doc.context.companyId!=null && doc.context.companyId!==joriyId){setSaqlash({holat:'xato',matn:t('Bu qoralama boshqa kompaniyaga bog‘langan. Avval o‘sha kompaniyani tanlang.'),edits:null});return;}
+    serverBusy.current=true;
     // Same logical save (same draft + same edit state) keeps its operation_id across retries.
-    if (!pendingOp.current || pendingOp.current.edits !== doc.edits || pendingOp.current.draftId !== doc.draftId) pendingOp.current = { id: uid(), edits: doc.edits, draftId: doc.draftId };
+    if (!pendingOp.current || pendingOp.current.snapshot !== doc || pendingOp.current.draftId !== doc.draftId) pendingOp.current = { id: uid(), edits: doc.edits, draftId: doc.draftId, snapshot:doc };
     setSaqlash({ holat: 'saqlanmoqda', matn: t('Saqlanmoqda...'), edits: null });
     const r = await saveToServer({ kompaniyaId: joriyId, obyektId: doc.context.objectId, doc, expectedVersion: serverVersiya, operationId: pendingOp.current.id });
+    serverBusy.current=false;
     if (currentDraft.current.id!==doc.draftId || currentCompany.current!==joriyId) { setSaqlash({holat:'xato',matn:t('Saqlash davomida kompaniya yoki qoralama almashdi. Joriy versiya o‘zgartirilmadi.'),edits:null}); return; }
-    if (r.ok) { pendingOp.current = null; setServerVersiya(r.versiya); setSaqlash({ holat: 'saqlandi', matn: t('Serverga saqlandi (versiya {v}).', { v: r.versiya }), edits: doc.edits }); return; }
+    if (r.ok) { pendingOp.current = null; lastServerSave.current={company:joriyId,draft:doc.draftId,snapshot:doc}; setServerVersiya(r.versiya); setSaqlash({ holat: 'saqlandi', matn: t('Serverga saqlandi (versiya {v}).', { v: r.versiya }), edits: doc.edits }); return; }
     if (r.code !== 'NETWORK') pendingOp.current = null;
+    if(r.code==='VERSION_CONFLICT')setAutoSave(null);
     const matn = r.code === 'VERSION_CONFLICT' ? t('Bu qoralamani boshqa oyna yoki foydalanuvchi o‘zgartirgan (server versiyasi {v}). Ustidan yozilmadi.', { v: 'versiya' in r ? r.versiya ?? '—' : '—' })
       : r.code === 'NETWORK' ? t('Tarmoq xatosi — qayta bosing, saqlash takrorlanmaydi.')
       : r.code === 'FORBIDDEN' ? t('Bu kompaniyaga yozish huquqi yo‘q.')
@@ -250,13 +274,39 @@ export default function SmetaStudio() {
     setSaqlash({ holat: 'xato', matn, edits: null });
   }
 
-  return <div className="p-4 space-y-3">
+  function openWork(id:string) {setFocusWorkId(id);setWorksheet(false);setBosqich('lrv');}
+  function openAssistant(tab:'ai'|'katalog') {setAssistantVisible(true);setChapTab(tab);lsSet(CHAP_TAB_KALIT,tab);setBosqich('lrv');}
+  async function openCloud(docFromServer:EstimateDoc,version:number) {
+    const requestedCompany=joriyId;
+    const sameDraft=()=>currentDraft.current.id===doc.draftId && currentDraft.current.snapshot===doc;
+    if(requestedCompany==null || currentCompany.current!==requestedCompany || !sameDraft()) return;
+    await draftAction(async()=>{
+      if(!await persistDraft(doc,serverVersiya)) return;
+      if(currentCompany.current!==requestedCompany || !sameDraft()) return;
+      const local=await readLibraryDraft(requestedCompany,docFromServer.draftId);
+      if(local && JSON.stringify(local.doc)!==JSON.stringify(docFromServer)) {
+        const backup={...local.doc,draftId:uid()};
+        if(!await persistDraft(backup,0)) return;
+      }
+      if(currentCompany.current!==requestedCompany || !sameDraft())return;
+      localVersions.current.set(`${requestedCompany}:${docFromServer.draftId}`,local?.revision ?? 0);
+      const restoredDoc={...docFromServer,context:{...docFromServer.context,companyId:requestedCompany}};
+      if(!await persistDraft(restoredDoc,version))return;
+      if(currentCompany.current!==requestedCompany || !sameDraft())return;
+      activeDraft(requestedCompany,restoredDoc.draftId);
+      lastServerSave.current={company:requestedCompany,draft:restoredDoc.draftId,snapshot:restoredDoc};
+      setHist(historyOf(restoredDoc));setServerVersiya(version);pendingOp.current=null;setNishon(restoredDoc.rootOrder[0] ?? null);setFocusWorkId(null);setCloudOpen(false);setWorkspaceView('overview');setSaqlash({holat:'tayyor',matn:'',edits:null});
+    });
+  }
+  return <div className="p-4 space-y-4">
     <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} agentOnly />
     <header className="flex flex-wrap items-center gap-3">
-      <h1 className="text-xl font-semibold">{t('Smeta studiyasi')}</h1>
+      <div><p className="text-[10px] uppercase tracking-[0.2em] text-accent">{t('SMETA STUDIO')}</p><h1 className="text-xl font-semibold">{t('Smeta studiyasi')}</h1></div>
       <span className="text-xs border border-warn text-warn rounded px-2 py-0.5">{t('Qoralama — tasdiqlanmagan')}</span>
       {katalog && <span className="text-xs text-text-mute">{t('Normativ katalog')}: {katalog.manifest.counts.basis?.toLocaleString('ru')} {t('ish')}</span>}
       <span className="flex-1" />
+      <button className="tugma px-3 py-1" onClick={()=>openAssistant('ai')}>{t('AI ish joyi')}</button>
+      <button className="tugma px-3 py-1" onClick={()=>{setAssistantVisible(false);setWorksheet(true);setBosqich('lrv');}}>{t('Professional jadval')}</button>
       <button className="px-2 py-1 border border-border rounded disabled:opacity-40" disabled={!hist.past.length} onClick={() => setHist(undo)} title={"Ctrl+Z"}>{t('Bekor qilish')}</button>
       <button className="px-2 py-1 border border-border rounded disabled:opacity-40" disabled={!hist.future.length} onClick={() => setHist(redo)} title={"Ctrl+Y"}>{t('Qaytarish')}</button>
       <button className="px-2 py-1 border border-border rounded" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={() => void yangiQoralama()}>{t('Yangi qoralama')}</button>
@@ -271,6 +321,7 @@ export default function SmetaStudio() {
         }}>{t('Qoralamani Jarvis bilan muhokama qilish')}</button>
       <button className="px-3 py-1 rounded bg-accent text-white disabled:opacity-40" disabled={draftBusy || saqlash.holat === 'saqlanmoqda' || !doc.rootOrder.length} onClick={() => void serverga()}>{t('Serverga saqlash')}</button>
     </header>
+    <ObjectBinding doc={doc} company={joriyId ?? null} command={amal} />
     {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && saqlash.edits !== doc.edits ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
     {tiklandi && <p role="status" className="text-sm text-accent">{t('Oxirgi qoralama tiklandi.')}</p>}
     {boshqaTab && <p role="alert" className="text-sm text-warn">{t('Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.')}</p>}
@@ -279,10 +330,14 @@ export default function SmetaStudio() {
       <span className="text-text-dim">{t('AI va qo‘lda — bitta smeta, bir xil hisob.')}</span>
       <button type="button" aria-expanded={assistantVisible} className="tugma h-7 px-2" onClick={()=>setAssistantVisible(v=>!v)}>{t('Yordamchi panel')}</button>
       <span className="ml-auto" role="status">{localStatus==='saved' ? t('Shu qurilmada saqlandi') : localStatus==='saving' ? t('Qurilmada saqlanmoqda...') : ''}</span>
+      <label className="flex items-center gap-2"><input type="checkbox" disabled={!joriyId || (doc.context.companyId!=null && doc.context.companyId!==joriyId)} checked={autoSave?.draft===doc.draftId && autoSave.company===joriyId} onChange={e=>setAutoSave(e.target.checked && joriyId ? {company:joriyId,draft:doc.draftId} : null)} />{t('Serverga avtomatik saqlash')}</label>
     </div>
     {(localStatus==='error' || localStatus==='conflict') && <p role="alert" className="text-sm text-danger">{localStatus==='conflict' ? t('Qoralama boshqa tabda o‘zgargan. Ustidan yozilmadi; o‘zgarishlarni nusxa sifatida saqlang.') : t('Qoralama qurilmada saqlanmadi. Hozirgi oynani yopmang; qayta urinib ko‘ring.')}</p>}
     {localStatus==='error' && <button type="button" className="tugma h-8 px-2" disabled={draftBusy} onClick={()=>void persistDraft(doc,serverVersiya)}>{t('Qayta urinish')}</button>}
     {localStatus==='conflict' && <button type="button" className="tugma h-8 px-2" onClick={()=>void qoralamaNusxa()}>{t('Qoralamani nusxa sifatida saqlash')}</button>}
+    <div className="flex flex-wrap gap-2 text-xs"><button className="tugma px-3 py-1" onClick={()=>setWorkspaceView('overview')}>{t('Ish markazi')}</button><button className="tugma px-3 py-1" onClick={()=>setCloudOpen(v=>!v)}>{t('Serverdagi smetalar')}</button></div>
+    {cloudOpen && <CloudDrafts key={joriyId} company={joriyId ?? null} onOpen={openCloud} onClose={()=>setCloudOpen(false)} />}
+    {workspaceView==='overview' && <WorkspaceOverview doc={doc} calculation={hisob} onAI={()=>openAssistant('ai')} onCatalog={()=>openAssistant('katalog')} onCalculator={()=>{setWorkspaceView('calculator');setReviewOpen(false);}} onPrices={()=>setBosqich('narx')} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}} onDocuments={()=>setBosqich('res')} />}
     {libraryOpen && <section className="karta space-y-2 p-3" aria-label={t('Saqlangan qoralamalar')}>
       <div className="flex items-center justify-between"><h2 className="font-semibold">{t('Saqlangan qoralamalar')}</h2><button type="button" onClick={()=>setLibraryOpen(false)}>{t('Yopish')}</button></div>
       <p className="text-xs text-text-dim">{t('Bu qurilmadagi nusxalar. Serverga saqlash alohida bajariladi.')}</p>
@@ -290,9 +345,10 @@ export default function SmetaStudio() {
     </section>}
     <nav aria-label={t('Smeta ish joyi')} className="flex flex-wrap items-center gap-1">
       {([['lrv',t('Ishlar')],['narx',t('Narxlar')],['review',t('Tekshiruv')],['res',t('Hujjatlar')]] as const).map(([key,label])=>
-        <button key={key} type="button" aria-current={(key==='review' ? reviewOpen : !reviewOpen && bosqich===key) ? 'page' : undefined}
-          className={`tugma h-8 px-3 text-[12.5px] ${(key==='review' ? reviewOpen : !reviewOpen && bosqich===key) ? 'tugma-asosiy' : ''}`}
-          onClick={()=>key==='review' ? setReviewOpen(true) : setBosqich(key)}>{label}</button>)}
+        <button key={key} type="button" aria-current={(workspaceView==='editor' && (key==='review' ? reviewOpen : !reviewOpen && bosqich===key)) ? 'page' : undefined}
+          className={`tugma h-8 px-3 text-[12.5px] ${(workspaceView==='editor' && (key==='review' ? reviewOpen : !reviewOpen && bosqich===key)) ? 'tugma-asosiy' : ''}`}
+          onClick={()=>{setWorkspaceView('editor');if(key==='review')setReviewOpen(true);else setBosqich(key);}}>{label}</button>)}
+      <button className="tugma h-8 px-3 text-[12.5px]" aria-current={workspaceView==='calculator' ? 'page' : undefined} onClick={()=>{setWorkspaceView('calculator');setReviewOpen(false);}}>{t('Kalkulyator')}</button>
     </nav>
     {/* The AI estimator stays in the same place on every step (owner 2026-10-16: the chat runs the estimate end to end). */}
     <div className={`grid items-start gap-3 ${assistantVisible ? 'xl:grid-cols-[minmax(280px,1fr)_minmax(0,3fr)]' : 'grid-cols-1'}`}>
@@ -309,23 +365,32 @@ export default function SmetaStudio() {
         {chapTab === 'katalog' && katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
         {chapTab === 'katalog' && katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
           onAdd={(work, detail, quantity) => {
-            if (!nishon || !doc.sections[nishon]) { setXato(t(XATOLAR.TARGET_REQUIRED)); return false; }
             try {
               const tableLabel = katalog.tableLabel(work.id);
               const snap = snapshotWork(katalog, detail.work.id, katalog.manifest.revision, tableLabel);
-              return amal({ type: 'ADD_OCCURRENCE', occurrenceId: uid(), sectionId: nishon, source: snap.source, recipe: snap.recipe,
-                quantity: quantity.trim() || null, basis: suggestedBasis(work.unitCode, katalog.unit(work.unitCode)) });
+              const target=nishon && doc.sections[nishon] ? nishon : doc.rootOrder.find(id=>doc.sections[id]) ?? null;
+              const sectionId=target ?? uid();
+              const add:StudioCommand={ type: 'ADD_OCCURRENCE', occurrenceId: uid(), sectionId, source: snap.source, recipe: snap.recipe,
+                quantity: quantity.trim() || null, basis: suggestedBasis(work.unitCode, katalog.unit(work.unitCode)) };
+              const ok=amal(target ? add : {type:'BATCH',label:t('Birinchi ishni qo‘shish'),commands:[{type:'ADD_SECTION',sectionId,parentId:null,name:t('Asosiy ishlar')},add]});
+              if(ok) {setNishon(sectionId);setBosqich('lrv');}
+              return ok;
             } catch (e) { setXato(xatoMatni(e)); return false; }
           }} />}
       </section>
       <div className="min-w-0 space-y-3">
-        {reviewOpen && <WorkspaceReview doc={doc} calculation={hisob} onPrices={()=>setBosqich('narx')} onWork={id=>{setFocusWorkId(id);setBosqich('lrv');}} />}
-        {openedViews.includes('narx') && <div hidden={reviewOpen || bosqich!=='narx'}><NarxlashBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} /></div>}
-        {openedViews.includes('res') && <div hidden={reviewOpen || bosqich!=='res'}><ResBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></div>}
-        <div hidden={reviewOpen || bosqich!=='lrv'}>
+        <div hidden={workspaceView!=='calculator'}><QuantityWorkbench key={doc.draftId} doc={doc} command={amal} onWork={openWork} /></div>
+        {workspaceView==='editor' && reviewOpen && <WorkspaceReview doc={doc} calculation={hisob} onPrices={()=>setBosqich('narx')} onWork={openWork} />}
+        {openedViews.includes('narx') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='narx'}><NarxlashBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} /></div>}
+        {openedViews.includes('res') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='res'}><DocumentCenter doc={doc} calculation={hisob} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}}><ResBosqichi key={`${joriyId}:${doc.draftId}`} doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></DocumentCenter></div>}
+        <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='lrv'}>
+        <div className="mb-3 flex gap-2"><button className={`tugma px-3 py-1 ${worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button className={`tugma px-3 py-1 ${!worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button></div>
+        {worksheet && <WorkSheet doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} />}
+        <div hidden={worksheet}>
         <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
+        </div>
         <MateriallarPaneli doc={doc} command={amal} />
         {ishlarSoni > 0 && <div className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
           <span>{t('LRV: {n} ta ish', { n: ishlarSoni })}{hajmsiz ? <span className="text-warn"> · {t('hajmi kiritilmagan: {n}', { n: hajmsiz })}</span> : null}</span>
@@ -431,7 +496,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Remot
             setAddResult(ok ? 'success' : 'failed');
             if (ok) { setAddedSection(nishon ?? ''); setHajm(''); }
           }}>{t('Smetaga qo‘shish')} →</button>
-        <span className="text-xs text-text-mute">{nishon ? t('Bo‘lim: {n}', { n: nishon }) : t('Avval o‘ngda bo‘lim tanlang')}</span>
+        <span className="text-xs text-text-mute">{nishon ? t('Bo‘lim: {n}', { n: nishon }) : t('Ish uchun bo‘lim avtomatik yaratiladi')}</span>
       </div>
       {addResult === 'success' && <p role="status" className="text-sm text-accent">{t('Ish «{nom}» «{bolim}» bo‘limiga qo‘shildi.', { nom: detail.work.name ?? detail.work.code, bolim: addedSection })}</p>}
       {addResult === 'failed' && <p role="alert" className="text-sm text-danger">{commandError || t('Amal bajarilmadi. Kiritilgan qiymatlarni tekshiring.')}</p>}

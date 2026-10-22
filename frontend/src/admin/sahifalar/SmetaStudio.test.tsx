@@ -60,8 +60,10 @@ beforeEach(async () => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+function renderEditor(){render(<SmetaStudio/>);fireEvent.click(within(screen.getByRole('navigation',{name:'Smeta ish joyi'})).getByRole('button',{name:'Ishlar'}));fireEvent.click(screen.getByRole('button',{name:'Tarkib va bo‘limlar'}));}
+
 it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, narxsiz jami noma’lum; faqat GET', async () => {
-  render(<SmetaStudio />);
+  renderEditor();
   await screen.findByText('ШНК', undefined, { timeout: 8000 });
   fireEvent.change(screen.getByLabelText('Yangi bo‘lim nomi'), { target: { value: 'FM-1 fundamenti' } });
   fireEvent.submit(screen.getByLabelText('Yangi bo‘lim nomi').closest('form')!);
@@ -97,17 +99,20 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
   await waitFor(() => expect(within(panel).queryByText('Устройство бетонной подготовки')).toBeNull());
 });
 
-it('bo‘limsiz qo‘shish aniq xato beradi, jim yutilmaydi', async () => {
-  render(<SmetaStudio />);
+it('birinchi katalog ishi bo‘limsiz ham bitta undo bilan qo‘shiladi', async () => {
+  renderEditor();
   fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'), { target: { value: 'beton' } });
   fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
   await screen.findByText('Бетон B7,5', undefined, { timeout: 8000 });
   fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
-  expect((await screen.findAllByRole('alert')).every(el => el.textContent?.includes('bo‘limni tanlang'))).toBe(true);
+  await screen.findByRole('button',{name:'Tanlash: Устройство бетонной подготовки'});
+  expect(screen.getByRole('button',{name:'Tanlash: Asosiy ishlar'})).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Bekor qilish'}));
+  await waitFor(()=>expect(screen.queryByRole('button',{name:'Tanlash: Asosiy ishlar'})).toBeNull());
 });
 
 it('tanlangan podrazdelga vergulli hajm qo‘shiladi; noto‘g‘ri hajm tugma yonida izohlanadi va saqlanadi', async () => {
-  render(<SmetaStudio />);
+  renderEditor();
   await screen.findByText('ШНК', undefined, { timeout: 8000 });
   const sectionInput = screen.getByLabelText('Yangi bo‘lim nomi');
   fireEvent.change(sectionInput, { target: { value: 'Fundament' } });
@@ -135,12 +140,12 @@ it('tanlangan podrazdelga vergulli hajm qo‘shiladi; noto‘g‘ri hajm tugma y
 
 it('katalog yuklanmagan bo‘lsa aniq holat ko‘rsatiladi', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
-  render(<SmetaStudio />);
+  renderEditor();
   expect(await screen.findByText('Platforma normativ katalogi hali yuklanmagan.', undefined, { timeout: 8000 })).toBeTruthy();
 });
 
 it('BOOK bo‘limi topilmagan yozuv ish nomi yo‘q deb ko‘rsatilmaydi', async () => {
-  render(<SmetaStudio />);
+  renderEditor();
   fireEvent.click(await screen.findByText('Katalog bo‘limi aniqlanmagan yozuvlar (shifr bo‘yicha)', undefined, { timeout: 8000 }));
   expect(screen.getByText(/Bu yozuvlarning nomlari saqlangan/)).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Normativ ish qidirish'), { target: { value: 'E99-1-1' } });
@@ -156,7 +161,7 @@ it('sekin A javobi B tanlovining retseptini almashtirmaydi', async () => {
     if (this.works.find(w => w[0] === id)?.[1] === 'E6-1-1') await slow;
   });
   try {
-    render(<SmetaStudio />);
+    renderEditor();
     fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'), { target: { value: 'бетон' } });
     fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
     fireEvent.click(await screen.findByText('Другой бетонный фундамент'));
@@ -170,7 +175,7 @@ it('sekin A javobi B tanlovining retseptini almashtirmaydi', async () => {
 
 
 it('workspace navigation preserves the unsent AI message and manual document changes',async()=>{
- render(<SmetaStudio />);
+ renderEditor();
  await screen.findByLabelText('Smeta nomi');
  fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
  fireEvent.change(screen.getByLabelText('Smetachiga xabar'),{target:{value:'TEST ONLY unsent plan'}});
@@ -186,7 +191,7 @@ it('workspace navigation preserves the unsent AI message and manual document cha
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST ONLY unsent plan');
 });
 it('new estimate archives the previous draft and reopening restores the same document',async()=>{
- render(<SmetaStudio />);const title=await screen.findByLabelText('Smeta nomi');
+ renderEditor();const title=await screen.findByLabelText('Smeta nomi');
  fireEvent.change(title,{target:{value:'TEST recoverable estimate'}});fireEvent.submit(title.closest('form')!);
  fireEvent.click(screen.getByRole('button',{name:'Yangi qoralama'}));
  await waitFor(()=>expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe(''));
@@ -203,6 +208,6 @@ it('refresh restores this tab’s draft even when another tab saved the global l
  await writeLibraryDraft(null,own,3,0);await writeLibraryDraft(null,other,7,0);
  store.set('smeta-studio:last-draft',{doc:other,serverVersion:7});
  sessionStorage.setItem('smeta-studio:active-draft-v2',JSON.stringify({companyId:null,draftId:own.draftId}));
- render(<SmetaStudio/>);
+ renderEditor();
  await waitFor(()=>expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST own tab'));
 });

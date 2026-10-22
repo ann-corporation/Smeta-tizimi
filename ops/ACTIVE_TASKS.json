@@ -9,7 +9,7 @@
       "machine": "Anvar",
       "branch": "codex/studio-workspace-v2-20261022",
       "base_sha": "7a734d6c520fa8c1ed8fcd5113cbc1e2eed1ff45",
-      "status": "ready_for_review",
+      "status": "in_progress",
       "owns": [
         "ops/ACTIVE_TASKS.json",
         "ops/mailbox/SMETA-STUDIO-WORKSPACE-V2-20261022/",
@@ -49,7 +49,8 @@
         "docs/governance/AGENT_CAPABILITY_POLICY.md",
         "docs/architecture/SMETA_STUDIO_WORKSPACE_V2.md"
       ],
-      "production_write_allowed": false
+      "production_write_allowed": false,
+      "note": "Owner resumed full Studio build 2026-10-22. Product workflow, worksheet, dimension calculators and existing named server draft list/open within own UI scope. Other agent core locks retained."
     },
     {
       "id": "T2-ROLES-CONTROL-20261017",
