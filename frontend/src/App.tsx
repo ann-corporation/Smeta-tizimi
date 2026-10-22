@@ -6,6 +6,7 @@ import { titleForPath } from './lib/pageTitle';
 import { ToastContainer } from './umumiy/ui/Toast';
 import SahifaTopilmadi from './umumiy/ui/SahifaTopilmadi';
 import KirishSahifa from './kirish/KirishSahifa';
+import QoshilSahifa from './kirish/QoshilSahifa';
 
 const AdminShell = lazy(() => import('./admin/AdminShell'));
 const BossShell = lazy(() => import('./boss/BossShell'));
@@ -113,7 +114,9 @@ export default function App() {
       <GlobalAiHelper />
       <Routes>
         <Route path="/" element={<KirishSahifa />} />
-        
+        {/* «Telegram modeli»: ish joyiga taklif havolasi (kirish talab qilinsa — kirgach shu yerga qaytadi). */}
+        <Route path="/qoshil/:kod" element={<QoshilSahifa />} />
+
         {/* Admin shell and routes */}
         <Route path="/admin" element={
           <Suspense fallback={<div className="h-screen bg-bg flex items-center justify-center text-text-dim">Yuklanmoqda...</div>}>
