@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useEffect, useMemo, useState } from 'react';
 import type { EstimateDoc, PriceBasis, CatalogResource, Substitution } from '../../lib/smeta-studio/model';
@@ -23,11 +24,11 @@ export type EditingLabels = OutlineLabels & {
 };
 /** Platform price catalogue lookup (optional): offers fill the price form; saving stays explicit. */
 export type PricingProps = { source: PriceSource | null; unitText: (code: string | null) => string | null; region?: string | null };
-export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection, calculation, pricing }: {
+export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection, calculation, pricing, renderWorkDetails }: {
   doc: EstimateDoc; labels: EditingLabels; command: (command: StudioCommand) => boolean;
   onTargetSection?: (sectionId: string) => void;
   calculation?: DocCalc;
-  pricing?: PricingProps;
+  pricing?: PricingProps; renderWorkDetails?: (id: string) => ReactNode;
 }) {
   const [selected, select] = useState<OutlineRow | null>(null);
   // Draft/context switch must unmount the old inspector, not inherit another estimate's edits.
@@ -44,6 +45,7 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
   }, [calculation]);
   return <div className="grid gap-3 2xl:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]">
     <EstimateOutline doc={doc} labels={{ ...labels, title: labels.works }} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
+      renderWorkDetails={renderWorkDetails}
       renderSummary={calculation ? row => {
         if (row.kind === 'section') return calculation.sections[row.sectionId]?.amount ?? labels.unknown;
         const id = row.occurrenceId!;
@@ -60,7 +62,7 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
   </div>;
 }
 function Inspector({ doc, row, labels: l, command, pricing }: {
-  doc: EstimateDoc; row: OutlineRow; labels: EditingLabels; command: (command: StudioCommand) => boolean; pricing?: PricingProps;
+  doc: EstimateDoc; row: OutlineRow; labels: EditingLabels; command: (command: StudioCommand) => boolean; pricing?: PricingProps; renderWorkDetails?: (id: string) => ReactNode;
 }) {
   const work = row.occurrenceId ? doc.occurrences[row.occurrenceId] : null;
   const recipe = work?.recipe.find(r => r.recipeId === row.recipeId);

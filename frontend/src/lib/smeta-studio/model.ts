@@ -73,7 +73,7 @@ export type Occurrence = {
 };
 /** Which resource quantities a coefficient multiplies. МАТ = every material category (МАТ/КАБ/М/К/БЕЗ СКЛАД). */
 export type CoefScope = 'ALL' | 'ЧЕЛ' | 'МАШ' | 'ЧЕЛ+МАШ' | 'МАТ';
-export type WorkCoefficient = { id: string; name: string; value: Dec; scope: CoefScope; evidence: string;
+export type WorkCoefficient = { code?: string; basis?: string; id: string; name: string; value: Dec; scope: CoefScope; evidence: string;
   /** NORM = from the normative reference (ШНК technical part), AI = proposed by the smeta AI — neither is applied until accepted;
    *  OPERATOR = entered by a person. */
   origin: 'NORM' | 'AI' | 'OPERATOR'; accepted: boolean };

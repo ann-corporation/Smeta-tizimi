@@ -78,7 +78,7 @@ function coefficientOf(c: WorkCoefficient): WorkCoefficient {
   // ≤ 100: a size-change position multiplies by the difference (15 mm on a «per 1 mm» norm = 15).
   if ((value === '0' && !(c.origin === 'NORM' && c.scope === 'МАТ')) || Number(value) > 100) fail('COEFFICIENT_INVALID');
   if (!COEF_SCOPES.includes(c.scope)) fail('COEFFICIENT_INVALID');
-  return { id: c.id, name: name(c.name, 'COEFFICIENT_NAME_REQUIRED'), value, scope: c.scope,
+  return { ...(c.basis ? { basis: name(c.basis, 'COEFFICIENT_EVIDENCE_REQUIRED') } : {}), ...(c.code ? { code: name(c.code, 'COEFFICIENT_INVALID') } : {}), id: c.id, name: name(c.name, 'COEFFICIENT_NAME_REQUIRED'), value, scope: c.scope,
     evidence: name(c.evidence, 'COEFFICIENT_EVIDENCE_REQUIRED'), origin: c.origin, accepted: c.accepted === true };
 }
 /** Rates are percents 0..100 under known cascade codes; the source (company settings, operator) is mandatory. */

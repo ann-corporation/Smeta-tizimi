@@ -15,12 +15,13 @@ import { ishKoeffitsientlari, koefgaAylantir, koefKatalogi, qollanadi, type Koef
 import { smetachiKoefTanla } from '../../api/smeta-ai';
 import { CoefficientPreview } from '../../components/coefficient-review/CoefficientPreview';
 import { withNormativeRule } from '../../lib/smeta-studio/koef-review';
+import { coefficientApplyCommand } from '../../lib/smeta-studio/coefficient-agent';
 import { ConstructReference } from '../../components/coefficient-review/ConstructReference';
 
 const OP_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
 const kStr = (k: KoefNomzod['yozuv']['k']) => Object.entries(k).map(([s, v]) => `${s === 'ЧЕЛ' ? 'Кзтр' : s === 'МАШ' ? 'Кэм' : 'Кмр'}=${String(v).replace('.', ',')}`).join(', ');
 
-export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: EstimateDoc; command: (c: StudioCommand) => boolean; kompaniyaId?: number | null }) {
+export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, agentOnly = false }: { workId?: string; agentOnly?: boolean; doc: EstimateDoc; command: (c: StudioCommand) => boolean; kompaniyaId?: number | null }) {
   const [kat, setKat] = useState<KoefKatalog | null>(null);
   const [katXato, setKatXato] = useState(false);
   const [ochiq, setOchiq] = useState<string | null>(null);
@@ -28,9 +29,9 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
   const [band, setBand] = useState(false);
   const [xabar, setXabar] = useState('');
   const [review, setReview] = useState<{ occ: string; rule?: KoefNomzod; coefficient?: WorkCoefficient } | null>(null);
-  const [yangi, setYangi] = useState<{ occ: string; nom: string; qiymat: string; scope: WorkCoefficient['scope']; asos: string }>({ occ: '', nom: '', qiymat: '', scope: 'ALL', asos: '' });
+  const [yangi, setYangi] = useState<{ occ: string; nom: string; qiymat: string; scope: WorkCoefficient['scope']; asos: string }>({ occ: workId ?? '', nom: '', qiymat: '', scope: 'ALL', asos: '' });
   useEffect(() => { let alive = true; koefKatalogi().then(k => { if (alive) setKat(k); }).catch(() => { if (alive) setKatXato(true); }); return () => { alive = false; }; }, []);
-  const works = Object.values(doc.occurrences);
+  const works = useMemo(() => workId ? (doc.occurrences[workId] ? [doc.occurrences[workId]] : []) : Object.values(doc.occurrences), [doc.occurrences, workId]);
   const normativ = useMemo(() => new Map(works.map(o => [o.id, kat ? ishKoeffitsientlari(kat, o.source.code) : []])), [works, kat]);
   const set = (occ: string, coefficients: WorkCoefficient[]) => command({ type: 'SET_COEFFICIENTS', occurrenceId: occ, coefficients });
   /** Adds the coefficients of one normative record (replacing an earlier copy of the same record). */
@@ -64,18 +65,29 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
   }
   const aiRef = useRef(aiTanla);
   aiRef.current = aiTanla;
-  useEffect(() => agentRegister('koef_tanla', async v => { setSharoit(v ?? ''); return aiRef.current(v ?? ''); }), []);
+  useEffect(() => workId ? undefined : agentRegister('koef_tanla', async v => { setSharoit(v ?? ''); return aiRef.current(v ?? ''); }), [workId]);
+  const current = useRef({ doc, kat, command }); current.current = { doc, kat, command };
+  useEffect(() => workId ? undefined : agentRegister('koef_qolla', async (_v, action) => {
+    const catalog = current.current.kat ?? await koefKatalogi();
+    const live = current.current;
+    let cmd: StudioCommand;
+    try { cmd = coefficientApplyCommand(live.doc, catalog, action.ish, action.qiymat, action.manba); }
+    catch { throw new Error(t('Koeffitsient kodi, ish yoki qo‘llash sharti noto‘g‘ri.')); }
+    if (!live.command(cmd)) throw new Error(t('Koeffitsient qo‘llanmadi. Qoralamani tekshiring.'));
+    return t('Koeffitsient qoralamaga qo‘llandi.');
+  }), [workId]);
+  if (agentOnly) return null;
 
   if (!works.length) return null;
   const jamiNormativ = works.reduce((s, o) => s + (normativ.get(o.id)?.length ?? 0), 0);
-  return <section aria-label={t('Ish koeffitsientlari')} className="karta space-y-2 p-2 text-[12.5px]">
-    <ConstructReference works={works.map(o => ({ id: o.id, code: o.source.code, name: o.source.name, edition: o.source.catalogRevision }))} />
-    <div className="flex flex-wrap items-center gap-2">
+  return <section aria-label={t('Ish koeffitsientlari')} className={workId ? "space-y-1 text-[11.5px]" : "karta space-y-2 p-2 text-[12.5px]"}>
+
+    {!workId && <div className="flex flex-wrap items-center gap-2">
       <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Ish koeffitsientlari')}</strong>
       <span className="text-xs text-text-mute">{kat ? t('ШНК texnik qismidan {n} ta normativ koeffitsient shu smeta ishlariga tegishli. Qabul qilinmaguncha hisobga kirmaydi.', { n: jamiNormativ })
         : katXato ? t('Normativ koeffitsientlar ma’lumotnomasi ochilmadi.') : t('Normativ koeffitsientlar yuklanmoqda...')}</span>
-    </div>
-    {kat && jamiNormativ > 0 && kompaniyaId != null && <form className="flex flex-wrap gap-1" onSubmit={e => { e.preventDefault(); void aiTanla(sharoit); }}>
+    </div>}
+    {!workId && kat && jamiNormativ > 0 && kompaniyaId != null && <form className="flex flex-wrap gap-1" onSubmit={e => { e.preventDefault(); void aiTanla(sharoit); }}>
       <input aria-label={t('Ish sharoiti')} className="input h-7 flex-1 min-w-[240px] text-[11.5px]" value={sharoit} onChange={e => setSharoit(e.target.value)}
         placeholder={t('Sharoit: masalan kotlovan hajmi 250 m³, mavjud bino ichida ta’mir, tor joy, qish')} />
       <button type="submit" className="tugma h-7 px-2 text-[11.5px]" disabled={band || !sharoit.trim()}>{band ? t('AI tanlamoqda...') : t('AI sharoit bo‘yicha tanlasin')}</button>
@@ -86,10 +98,10 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
       const selected = review?.occ === o.id ? review : null;
       const proposed = selected?.rule ? withNormativeRule(o, selected.rule) : selected?.coefficient
         ? [...bor.filter(k => k.id !== selected.coefficient!.id), selected.coefficient] : null;
-      if (!norm.length && !bor.length && !selected) return null;
+      if (!norm.length && !bor.length && !selected) return <p key={o.id} className="text-xs text-text-mute">{katXato ? t('Normativ koeffitsientlar ma’lumotnomasi ochilmadi.') : !kat ? t('Normativ koeffitsientlar yuklanmoqda...') : t('Bu ish uchun normativ koeffitsient taklifi yo‘q.')}</p>;
       return <div key={o.id} className="rounded border border-border p-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium"><span className="font-mono text-accent">{o.source.code}</span> {o.source.name}</p>
+          {!workId && <p className="font-medium"><span className="font-mono text-accent">{o.source.code}</span> {o.source.name}</p>}
           <span className="flex-1" />
           {norm.length > 0 && <button type="button" className="text-[11px] underline" onClick={() => setOchiq(ochiq === o.id ? null : o.id)}>
             {ochiq === o.id ? t('Yopish') : t('Normativ koeffitsientlar ({n})', { n: norm.length })}</button>}
@@ -105,10 +117,10 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
             {k.accepted ? t('Bekor qilish') : t('Qabul qilish')}</button>
           <button type="button" aria-label={t('Koeffitsientni olib tashlash')} className="text-xs text-text-mute hover:text-danger" onClick={() => set(o.id, bor.filter(x => x.id !== k.id))}>✕</button>
         </div>)}
-        {ochiq === o.id && <ul className="mt-1 space-y-1 border-t border-border/60 pt-1">
-          {norm.map(n => <li key={n.kod} className="flex flex-wrap items-start gap-2 text-[11.5px]">
+        {(workId || ochiq === o.id) && norm.length > 0 && <ul className="mt-1 max-h-64 overflow-auto space-y-1 border-t border-border/60 pt-1">
+          {(workId && ochiq !== o.id ? norm.slice(0, 2) : norm).map(n => <li key={n.kod} className="flex flex-wrap items-start gap-2 text-[11.5px]">
             <span className="font-mono text-text-dim">{n.kod}</span>
-            <span className="flex-1 min-w-[240px]"><b>{kStr(n.yozuv.k)}</b> — {n.yozuv.s || n.yozuv.q} <span className="text-text-mute">({n.yozuv.a})</span></span>
+            <span className="flex-1 min-w-[120px] line-clamp-2"><b>{kStr(n.yozuv.k)}</b> — <span title={n.yozuv.s || n.yozuv.q}>{ochiq === o.id ? n.yozuv.s || n.yozuv.q : (n.yozuv.s || n.yozuv.q).slice(0, 80) + ((n.yozuv.s || n.yozuv.q).length > 80 ? '…' : '')}</span> <span className="text-text-mute">({n.yozuv.a})</span></span>
             {qollanadi(n) ? <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => setReview({ occ: o.id, rule: n })}>{t('Ta’sirini ko‘rish')}</button>
               : <span className="text-[11px] text-warn">{t('Parametrli qoida (har metr/har 100 mm) — avtomatik qo‘llanmaydi; kerak bo‘lsa hisoblab «Qo‘lda qo‘shish» bilan kiriting')}</span>}
           </li>)}
@@ -120,7 +132,8 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
           onApply={() => { if (set(o.id, proposed)) setReview(null); }} onClose={() => setReview(null)} />}
       </div>;
     })}
-    <form className="flex flex-wrap items-end gap-1" onSubmit={e => {
+    <details><summary className="cursor-pointer text-xs">{t('Qo‘lda koeffitsient')}</summary>
+    <form className="mt-2 flex flex-wrap items-end gap-1" onSubmit={e => {
       e.preventDefault();
       const o = doc.occurrences[yangi.occ]; if (!o) return;
       const id = `op${Date.now().toString(36)}`;
@@ -131,10 +144,10 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
         setXabar('');
       } catch { setXabar(t('Koeffitsient qiymati yoki asosi noto‘g‘ri.')); }
     }}>
-      <select aria-label={t('Ish')} className="input h-7 max-w-[220px] text-[11.5px]" value={yangi.occ} onChange={e => setYangi({ ...yangi, occ: e.target.value })}>
+      {!workId && <select aria-label={t('Ish')} className="input h-7 max-w-[220px] text-[11.5px]" value={yangi.occ} onChange={e => setYangi({ ...yangi, occ: e.target.value })}>
         <option value="">{t('— ishni tanlang —')}</option>
         {works.map(o => <option key={o.id} value={o.id}>{o.source.code} · {(o.source.name ?? '').slice(0, 60)}</option>)}
-      </select>
+      </select>}
       <input aria-label={t('Koeffitsient nomi')} className="input h-7 w-36 text-[11.5px]" placeholder={t('Nomi')} value={yangi.nom} onChange={e => setYangi({ ...yangi, nom: e.target.value })} />
       <input aria-label={t('Koeffitsient qiymati')} className="input h-7 w-16 text-[11.5px]" inputMode="decimal" placeholder="1,15" value={yangi.qiymat} onChange={e => setYangi({ ...yangi, qiymat: e.target.value })} />
       <select aria-label={t('Qo‘llanish')} className="input h-7 text-[11.5px]" value={yangi.scope} onChange={e => setYangi({ ...yangi, scope: e.target.value as WorkCoefficient['scope'] })}>
@@ -142,6 +155,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId }: { doc: Esti
       </select>
       <input aria-label={t('Koeffitsient asosi')} className="input h-7 flex-1 min-w-[160px] text-[11.5px]" placeholder={t('Asos: hujjat va band')} value={yangi.asos} onChange={e => setYangi({ ...yangi, asos: e.target.value })} />
       <button type="submit" className="tugma h-7 px-2 text-[11.5px]" disabled={!yangi.occ || !yangi.nom.trim() || !yangi.qiymat.trim() || !yangi.asos.trim()}>{t('Qo‘lda qo‘shish')}</button>
-    </form>
+    </form></details>
+    {workId && works[0] && <ConstructReference works={[{ id: works[0].id, code: works[0].source.code, name: works[0].source.name, edition: works[0].source.catalogRevision }]} />}
   </section>;
 }

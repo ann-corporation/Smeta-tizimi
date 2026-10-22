@@ -2119,15 +2119,11 @@
         "frontend/src/lib/catalog-extraction/",
         "frontend/src/lib/smeta-studio/calc.ts",
         "frontend/src/lib/smeta-studio/catalog-bridge.ts",
-        "frontend/src/lib/smeta-studio/commands.ts",
         "frontend/src/lib/smeta-studio/conversation-commands.test.ts",
         "frontend/src/lib/smeta-studio/conversation-commands.ts",
         "frontend/src/lib/smeta-studio/draft-store.ts",
-        "frontend/src/lib/smeta-studio/export-adapter.test.ts",
-        "frontend/src/lib/smeta-studio/export-adapter.ts",
         "frontend/src/lib/smeta-studio/hour-pricing.test.ts",
         "frontend/src/lib/smeta-studio/hour-pricing.ts",
-        "frontend/src/lib/smeta-studio/model.ts",
         "frontend/src/lib/smeta-studio/price-lookup.test.ts",
         "frontend/src/lib/smeta-studio/price-lookup.ts",
         "frontend/src/lib/smeta-studio/resource-units.ts",
@@ -2164,7 +2160,8 @@
       ],
       "production_write_allowed": false,
       "_izoh": "R2 private bucket norm-katalog/<rev>/ — additive REVIEW_ONLY reference shards (biznes ma’lumoti emas). Supabase free rejada va 552 MB (>500 MB): 1M qatorli Postgres importi pullik rejani talab qilardi — shu sabab R2 tanlandi. 2026-10-06: t2_smeta_studio_qoralama_v1 production ga qo‘llandi (shadow 11/11).",
-      "note": "2026-10-09 owner: Claude weekly limit exhausted; resource-match.ts/test.ts, abc-hujjat.ts/test.ts and SmetaStudioNarxlash.tsx delegated to T2-SMETACHI-RELIABILITY-20261009 for candidate pagination/pricing diagnostics and honest partial export only. Remaining Studio/backend paths stay in this task."
+      "note": "2026-10-09 owner: Claude weekly limit exhausted; resource-match.ts/test.ts, abc-hujjat.ts/test.ts and SmetaStudioNarxlash.tsx delegated to T2-SMETACHI-RELIABILITY-20261009 for candidate pagination/pricing diagnostics and honest partial export only. Remaining Studio/backend paths stay in this task.",
+      "coefficient_sublease": "2026-10-21 direct owner correction/takeover: only exact coefficient UI/AI/notation files moved to T2-COEFFICIENT-WORK-UX-20261021; remaining paths preserved."
     },
     {
       "id": "T2-NARX-KATALOG-R2-001",
@@ -2305,7 +2302,6 @@
         "frontend/src/lib/jarvis/studio-kontekst.test.ts",
         "frontend/src/lib/jarvis/useStudioKontekst.ts",
         "frontend/src/lib/jarvis/useStudioKontekst.test.tsx",
-        "frontend/src/admin/sahifalar/SmetaStudio.tsx",
         "frontend/src/lib/agent-faoliyat*.ts",
         "frontend/src/umumiy/ui/AiFikrPanel.tsx",
         "frontend/src/umumiy/ui/useAiKuzatuv.ts",
@@ -2353,7 +2349,8 @@
           "frontend/src/i18n/lugat/en.json"
         ],
         "to": "T2-CLAUDE-CATALOG-RELEASE-20261021"
-      }
+      },
+      "coefficient_sublease": "2026-10-21 direct owner correction/takeover: only exact coefficient UI/AI/notation files moved to T2-COEFFICIENT-WORK-UX-20261021; remaining paths preserved."
     },
     {
       "id": "T2-CATALOG-UPLOAD-SCOPES-001",
@@ -2437,8 +2434,21 @@
         "frontend/src/api/t2-toliq-oqish.ts",
         "frontend/src/api/t2-toliq-oqish.test.ts",
         "frontend/src/index.css",
-        "frontend/src/lib/smeta-ai/",
-        "frontend/src/admin/sahifalar/SmetaAiChat.tsx",
+        "frontend/src/lib/smeta-ai/ifoda.test.ts",
+        "frontend/src/lib/smeta-ai/ifoda.ts",
+        "frontend/src/lib/smeta-ai/included-work.test.ts",
+        "frontend/src/lib/smeta-ai/included-work.ts",
+        "frontend/src/lib/smeta-ai/internet-narx.test.ts",
+        "frontend/src/lib/smeta-ai/internet-narx.ts",
+        "frontend/src/lib/smeta-ai/matn-qidiruv.test.ts",
+        "frontend/src/lib/smeta-ai/matn-qidiruv.ts",
+        "frontend/src/lib/smeta-ai/normative-reference.test.ts",
+        "frontend/src/lib/smeta-ai/normative-reference.ts",
+        "frontend/src/lib/smeta-ai/protokol.test.ts",
+        "frontend/src/lib/smeta-ai/tajriba.test.ts",
+        "frontend/src/lib/smeta-ai/tajriba.ts",
+        "frontend/src/lib/smeta-ai/worker.test.ts",
+        "frontend/src/lib/smeta-ai/worker.ts",
         "frontend/src/admin/sahifalar/SmetaAiChat.test.tsx",
         "frontend/src/admin/sahifalar/SmetaAiChat.scope.test.tsx",
         "frontend/src/admin/sahifalar/SmetaStudioNarxlash.tsx",
@@ -2478,7 +2488,8 @@
         "docs/architecture/SMETA_ANATOMIYA_V1.md"
       ],
       "production_write_allowed": false,
-      "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained. Owner 2026-10-11 correction: unresolved rows including negatives must WARN, not block saving a canonical draft act from confirmed bindings. All original rows preserved in server working draft before act creation; no automatic approval. Owner urgent 2026-10-11: Amfiteatr/Suniy page latency; narrow read-pagination COUNT policy and additive object/id cursor index. No business values or tenant policy changes."
+      "note": "2026-10-10 direct owner: remove code-based pricing; materials catalogue-first by resource name/characteristics/unit, company estimates secondary named offers, automatic hours and exception-only review. company-prices.ts/test explicitly transferred from paused Claude Studio lane; unrelated locks retained. Owner expansion: readonly period/region market comparison in Studio, Oferta, NarxNazorat, Narxlar, Holat; RES name/unit-only additive v2 and NULL-only writes. Gateway lease is smeta_narxla_res mapping/validation ONLY; IJRO block stays Claude-owned. Safe migration validation uses rollback transaction, no actual estimate mutation. 2026-10-11 direct owner urgent: corrective F2 negative rows block act save after two hours manual mapping on office Chrome. Add independent local working draft/resume without relaxing canonical act validation; existing system-file picker lease retained. Owner 2026-10-11 correction: unresolved rows including negatives must WARN, not block saving a canonical draft act from confirmed bindings. All original rows preserved in server working draft before act creation; no automatic approval. Owner urgent 2026-10-11: Amfiteatr/Suniy page latency; narrow read-pagination COUNT policy and additive object/id cursor index. No business values or tenant policy changes.",
+      "coefficient_sublease": "2026-10-21 direct owner correction/takeover: only exact coefficient UI/AI/notation files moved to T2-COEFFICIENT-WORK-UX-20261021; remaining paths preserved."
     },
     {
       "id": "T2-NARX-ISHONCH-001",
@@ -2718,6 +2729,49 @@
       "production_write_allowed": false,
       "release_sha": "8a8a6162cc76515a85d981287fec0809a0260fa9",
       "verification": "Exact branch SHA frontend CI success before fast-forward main; remote main verified 2026-10-21. Full local2648PASS17skip; TS/functions/build/tekshir/map/lint/governance PASS. Pages production and authenticated smoke receipts are tracked in Obsidian CURRENT_STATE/HANDOFF and D:/CatalogMigration/coefficient-foundation-20261021-v1/runtime-reference/. Final documentation commit is code-identical to this release."
+    },
+    {
+      "id": "T2-COEFFICIENT-WORK-UX-20261021",
+      "title": "Owner correction: per-work coefficient suggestions, AI apply and estimate notation; normative product language",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/coefficients-per-work-20261021",
+      "base_sha": "d67c86c428fb7dd0bc11c31232cf2ad67bd37903",
+      "status": "in_progress",
+      "owns": [
+        "ops/ACTIVE_TASKS.json",
+        "ops/mailbox/T2-COEFFICIENT-WORK-UX-20261021/",
+        "ops/releases/COEFFICIENT_WORK_UX_20261021.md",
+        "frontend/src/admin/sahifalar/SmetaStudio.tsx",
+        "frontend/src/admin/sahifalar/StudioKoeffitsientlar.tsx",
+        "frontend/src/admin/sahifalar/StudioKoeffitsientlar.test.tsx",
+        "frontend/src/admin/sahifalar/SmetaAiChat.tsx",
+        "frontend/src/admin/sahifalar/studioAgent.ts",
+        "frontend/src/components/smeta-studio-pro/EstimateOutline.tsx",
+        "frontend/src/components/smeta-studio-pro/EstimateEditingWorkspace.tsx",
+        "frontend/src/components/smeta-studio-pro/SmetaDocumentPanel.tsx",
+        "frontend/src/components/coefficient-review/ConstructReference.tsx",
+        "frontend/src/components/coefficient-review/ConstructReference.test.tsx",
+        "frontend/src/lib/smeta-studio/model.ts",
+        "frontend/src/lib/smeta-studio/commands.ts",
+        "frontend/src/lib/smeta-studio/koef-katalog.ts",
+        "frontend/src/lib/smeta-studio/koef-notation.ts",
+        "frontend/src/lib/smeta-studio/koef-notation.test.ts",
+        "frontend/src/lib/smeta-studio/coefficient-agent.ts",
+        "frontend/src/lib/smeta-studio/coefficient-agent.test.ts",
+        "frontend/src/lib/smeta-studio/export-adapter.ts",
+        "frontend/src/lib/smeta-studio/export-adapter.test.ts",
+        "frontend/src/lib/smeta-ai/protokol.ts",
+        "frontend/src/lib/smeta-ai/prompt.ts",
+        "frontend/src/i18n/lugat/ru.json",
+        "frontend/src/i18n/lugat/en.json"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/OWNER_AUTHORIZATION.md"
+      ],
+      "production_write_allowed": false
     }
   ]
 }

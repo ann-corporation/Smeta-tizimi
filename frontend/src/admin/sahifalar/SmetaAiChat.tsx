@@ -9,6 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
+import { coefficientCandidateSummary } from '../../lib/smeta-studio/coefficient-agent';
+import { koefKatalogi, type KoefKatalog } from '../../lib/smeta-studio/koef-katalog';
 import { smetaXulosasi } from '../../lib/smeta-studio/ai-kontekst';
 import { calcDoc } from '../../lib/smeta-studio/calc';
 import { loyihaBoyicha, talabMateriali } from '../../lib/smeta-studio/loyiha-material';
@@ -60,7 +62,7 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
 };
 
 const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha materiali', hajm: 'Hajm', ochir: 'Ishni o‘chirish', kochir: 'Bo‘limga ko‘chirish',
-  bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
+  bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', koef_qolla: 'Koeffitsientni qo‘llash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
   narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash',
   qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash', narx_tasdiq: 'AI narxlarini tasdiqlash' };
 
@@ -84,6 +86,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   const [xotiraOchiq, setXotiraOchiq] = useState(false);
   const xotiraYangila = useCallback((kid: number) => smetaXotirasi(kid).then(x => { if (tirik.current) { setXotira(x.yozuvlar); setSuperadmin(x.superadmin); } }), []);
   useEffect(() => { if (kompaniyaId != null) void xotiraYangila(kompaniyaId); }, [kompaniyaId, xotiraYangila]);
+  const [coefficientCatalog, setCoefficientCatalog] = useState<KoefKatalog | null>(null);
+  useEffect(() => { let alive = true; void koefKatalogi().then(k => { if (alive) setCoefficientCatalog(k); }).catch(() => {}); return () => { alive = false; }; }, []);
   const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
   const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}`);
   // The project document stays attached to the conversation and goes with every turn (production run: on the second turn
@@ -183,7 +187,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     qadam(t('Xabaringizni o‘qiyapman; smetadagi {n} ish{h} bilan solishtiraman', { n: Object.keys(doc.occurrences).length, h: yuborilganIlova ? t(' va biriktirilgan «{f}»', { f: yuborilganIlova.nom }) : '' }));
     try {
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title,
-        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)), yuborilganIlova);
+        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)) + '\n' + (coefficientCatalog ? coefficientCandidateSummary(doc, coefficientCatalog) : ''), yuborilganIlova);
       if (!tirik.current) return;
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.

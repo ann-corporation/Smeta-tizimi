@@ -35,7 +35,7 @@ export async function agentChaqir(nom: string, amal: AgentAmal, ochish: () => vo
 }
 
 /** Which step runs an action that is not a plain document edit. */
-export const AMAL_BOSQICH: Partial<Record<AgentAmal['tur'], 'lrv' | 'narx' | 'res'>> = { narxla: 'narx', hudud: 'narx', narx: 'narx', stavka_tasdiq: 'narx', stavka: 'narx', hujjat: 'res', koef_tanla: 'lrv', narx_tasdiq: 'narx' };
+export const AMAL_BOSQICH: Partial<Record<AgentAmal['tur'], 'lrv' | 'narx' | 'res'>> = { narxla: 'narx', hudud: 'narx', narx: 'narx', stavka_tasdiq: 'narx', stavka: 'narx', hujjat: 'res', koef_tanla: 'lrv', koef_qolla: 'lrv', narx_tasdiq: 'narx' };
 
 const grades = (text: string) => [...text.toUpperCase().matchAll(/(?:^|[^A-ZА-ЯЁ0-9])([ABАВМM]\s*\d+(?:[.,]\d+)?)(?=$|[^0-9])/g)]
   .map(m => m[1].replace(/\s/g, '').replace(/А/g, 'A').replace(/В/g, 'B').replace(/М/g, 'M').replace(',', '.'));

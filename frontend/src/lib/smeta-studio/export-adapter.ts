@@ -10,8 +10,9 @@
  */
 import type { T2Qator } from '../../api/supabase';
 import type { NakrutkaKat } from '../nakrutka-podval';
-import type { DocCalc } from './calc';
+import { mulDec, type DocCalc } from './calc';
 import type { CatalogResource, EstimateDoc } from './model';
+import { coefficientWorkCode } from './koef-notation';
 import { resourceFacts } from '../resource-semantics';
 
 /**
@@ -54,7 +55,7 @@ export function studioToRows(doc: EstimateDoc, calc: DocCalc, unitText: (code: s
     s.items.forEach((oid, i) => {
       const o = doc.occurrences[oid], c = calc.occurrences[oid];
       if (!o || !c) throw new Error('OCCURRENCE_NOT_FOUND');
-      const bl = row({ tur: 'bl', ota_id: rz.id, tartib: i, daraja: v.depth + 1, kod: o.source.code, nom: o.source.name,
+      const bl = row({ tur: 'bl', ota_id: rz.id, tartib: i, daraja: v.depth + 1, kod: coefficientWorkCode(o), nom: o.source.name,
         birlik: o.basis.unitLabel ?? unitText(o.source.unitCode), hajm: num(o.quantity), summa: num(c.amount) });
       c.lines.forEach((l, j) => {
         const kat = resourceCategory(l.resource);
@@ -62,7 +63,7 @@ export function studioToRows(doc: EstimateDoc, calc: DocCalc, unitText: (code: s
         const qty = num(l.quantity);
         row({ tur: kat === 'МАТ' ? 'mat' : kat === 'ОБ' ? 'ob' : 'rs', ota_id: bl.id, tartib: j, daraja: v.depth + 2, kat,
           kod: l.resource?.code ?? null, nom: l.resource?.name ?? 'Не определён ресурс (требует выбора)',
-          birlik: unitText(l.resource?.unitCode ?? null), norma: perUnit(l.norm, sub?.conversion ?? '1', o.basis.scale),
+          birlik: unitText(l.resource?.unitCode ?? null), norma: perUnit(l.norm == null ? null : mulDec(l.norm, l.coefficient ?? '1'), sub?.conversion ?? '1', o.basis.scale),
           hajm: qty, narx: qty == null ? null : num(l.price), summa: num(l.amount), zamena: l.substituted || null,
           narx_usul: l.priceBasis });
       });

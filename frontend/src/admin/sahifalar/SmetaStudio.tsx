@@ -158,6 +158,7 @@ export default function SmetaStudio() {
   }
 
   return <div className="p-4 space-y-3">
+    <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} agentOnly />
     <header className="flex flex-wrap items-center gap-3">
       <h1 className="text-xl font-semibold">{t('Smeta studiyasi')}</h1>
       <span className="text-xs border border-warn text-warn rounded px-2 py-0.5">{t('Qoralama — tasdiqlanmagan')}</span>
@@ -216,9 +217,9 @@ export default function SmetaStudio() {
         {bosqich === 'lrv' && <>
         <SmetaDocumentPanel doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
-          pricing={{ source: narxKat, unitText, region: hudud || null }} />
+          pricing={{ source: narxKat, unitText, region: hudud || null }}
+          renderWorkDetails={id => <KoeffitsientlarPaneli doc={doc} command={amal} workId={id} kompaniyaId={joriyId ?? null} />} />
         <MateriallarPaneli doc={doc} command={amal} />
-        <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} />
         {ishlarSoni > 0 && <div className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
           <span>{t('LRV: {n} ta ish', { n: ishlarSoni })}{hajmsiz ? <span className="text-warn"> · {t('hajmi kiritilmagan: {n}', { n: hajmsiz })}</span> : null}</span>
           <span className="flex-1" />

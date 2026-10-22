@@ -55,7 +55,7 @@ export function koefgaAylantir(n: KoefNomzod, accepted = false): WorkCoefficient
   const { k } = n.yozuv;
   const evidence = `${n.kod} · ${n.yozuv.a}: ${n.yozuv.s || n.yozuv.q}`.slice(0, 300);
   const name = (n.yozuv.t || n.kod).slice(0, 300);
-  const mk = (scope: CoefScope, v: number): WorkCoefficient => ({ id: idOf(n.kod, scope), name, value: String(v), scope, evidence, origin: 'NORM', accepted });
+  const mk = (scope: CoefScope, v: number): WorkCoefficient => ({ code: n.kod, basis: n.yozuv.a, id: idOf(n.kod, scope), name, value: String(v), scope, evidence, origin: 'NORM', accepted });
   const ch = k['ЧЕЛ'], ma = k['МАШ'], mt = k['МАТ'];
   if (ch != null && ch === ma && ch === mt) return [mk('ALL', ch)];
   const out: WorkCoefficient[] = [];

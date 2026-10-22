@@ -2447,5 +2447,15 @@
   "O‘zgartirilmadi": "Not changed",
   "Texnik imkoniyatlar": "Technical capabilities",
   "Ish (PTO)": "Work (PTO)",
-  "Loyiha va tomonlar": "Projects and parties"
+  "Loyiha va tomonlar": "Projects and parties",
+  "Qo‘shimcha normativ shartlar": "Additional normative conditions",
+  "Normativ shartlar ochilmadi.": "Could not load normative conditions.",
+  "Bu ish uchun qo‘shimcha normativ shart topilmadi.": "No additional normative conditions were found for this work.",
+  "Hisobga qo‘llashdan oldin normativ tahriri va sharti tekshirilishi kerak.": "Verify the normative edition and condition before applying.",
+  "Bu ish uchun normativ koeffitsient taklifi yo‘q.": "No matching normative coefficients were found for this work.",
+  "Qo‘lda koeffitsient": "Manual coefficient",
+  "Koeffitsient qoralamaga qo‘llandi.": "Coefficient applied to the draft.",
+  "Koeffitsient kodi, ish yoki qo‘llash sharti noto‘g‘ri.": "Invalid coefficient code, work or application condition.",
+  "Koeffitsient qo‘llanmadi. Qoralamani tekshiring.": "Coefficient was not applied. Check the draft.",
+  "Koeffitsientni qo‘llash": "Apply coefficient"
 }

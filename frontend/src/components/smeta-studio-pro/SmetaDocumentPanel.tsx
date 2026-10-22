@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import type { Totals, DocCalc } from '../../lib/smeta-studio/calc';
@@ -11,12 +12,12 @@ export type DocumentPanelLabels = EditingLabels & {
 
 /** Drop-in right panel. Catalog, autosave, save/undo and authorization remain owned by the parent. */
 export function SmetaDocumentPanel({ doc, total, targetSectionId, setTargetSection, command, labels: l,
-  calculation, pricing, createId = () => crypto.randomUUID() }: {
+  calculation, pricing, renderWorkDetails, createId = () => crypto.randomUUID() }: {
   doc: EstimateDoc; total: Totals; targetSectionId: string | null;
   setTargetSection: (id: string | null) => void;
   command: (command: StudioCommand) => boolean; labels: DocumentPanelLabels; createId?: () => string;
   calculation?: DocCalc;
-  pricing?: PricingProps;
+  pricing?: PricingProps; renderWorkDetails?: (id: string) => ReactNode;
 }) {
   const [sectionName, setSectionName] = useState('');
   const [nested, setNested] = useState(false);
@@ -60,6 +61,6 @@ export function SmetaDocumentPanel({ doc, total, targetSectionId, setTargetSecti
       <label className="block text-[11.5px] text-text-dim"><input type="checkbox" checked={nested} disabled={!target} onChange={e => setNested(e.target.checked)} />{l.subsection}</label>
       <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]" disabled={!sectionName.trim() || (nested && !target)}>{l.save}</button>
     </form>
-    <EstimateEditingWorkspace key={scope} doc={doc} labels={l} command={command} calculation={calculation} pricing={pricing} onTargetSection={setTargetSection} />
+    <EstimateEditingWorkspace key={scope} doc={doc} labels={l} command={command} calculation={calculation} pricing={pricing} renderWorkDetails={renderWorkDetails} onTargetSection={setTargetSection} />
   </section>;
 }

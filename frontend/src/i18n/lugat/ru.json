@@ -2447,5 +2447,15 @@
   "O‘zgartirilmadi": "Не изменено",
   "Texnik imkoniyatlar": "Технические возможности",
   "Ish (PTO)": "Работа (ПТО)",
-  "Loyiha va tomonlar": "Проекты и стороны"
+  "Loyiha va tomonlar": "Проекты и стороны",
+  "Qo‘shimcha normativ shartlar": "Дополнительные нормативные условия",
+  "Normativ shartlar ochilmadi.": "Не удалось открыть нормативные условия.",
+  "Bu ish uchun qo‘shimcha normativ shart topilmadi.": "Для этой работы дополнительные нормативные условия не найдены.",
+  "Hisobga qo‘llashdan oldin normativ tahriri va sharti tekshirilishi kerak.": "Перед применением необходимо проверить редакцию норматива и условие.",
+  "Bu ish uchun normativ koeffitsient taklifi yo‘q.": "Для этой работы подходящие нормативные коэффициенты не найдены.",
+  "Qo‘lda koeffitsient": "Коэффициент вручную",
+  "Koeffitsient qoralamaga qo‘llandi.": "Коэффициент применён к черновику.",
+  "Koeffitsient kodi, ish yoki qo‘llash sharti noto‘g‘ri.": "Неверный код коэффициента, работа или условие применения.",
+  "Koeffitsient qo‘llanmadi. Qoralamani tekshiring.": "Коэффициент не применён. Проверьте черновик.",
+  "Koeffitsientni qo‘llash": "Применить коэффициент"
 }
