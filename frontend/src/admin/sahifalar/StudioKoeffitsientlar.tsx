@@ -12,6 +12,7 @@ import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, Occurrence, WorkCoefficient } from '../../lib/smeta-studio/model';
 import { ishKoeffitsientlari, koefgaAylantir, koefKatalogi, qollanadi, type KoefKatalog, type KoefNomzod } from '../../lib/smeta-studio/koef-katalog';
+import { manbaKorinishi } from '../../lib/manba-nomi';
 import { smetachiKoefTanla } from '../../api/smeta-ai';
 
 const OP_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
@@ -27,8 +28,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
   const [yangi, setYangi] = useState<{ occ: string; nom: string; qiymat: string; scope: WorkCoefficient['scope']; asos: string }>({ occ: '', nom: '', qiymat: '', scope: 'ALL', asos: '' });
   useEffect(() => { let alive = true; koefKatalogi().then(k => { if (alive) setKat(k); }).catch(() => { if (alive) setKatXato(true); }); return () => { alive = false; }; }, []);
   const works = Object.values(doc.occurrences).filter(o => !workId || o.id === workId);
-  // Until L0 wires manbaKorinishi, raw catalog prose must never reach the public UI.
-  const publicSource = sourceLabel ?? (() => 'Smeta tizimi katalogi 2026');
+  const publicSource = sourceLabel ?? manbaKorinishi;
   const normativ = useMemo(() => new Map(works.map(o => [o.id, kat ? ishKoeffitsientlari(kat, o.source.code) : []])), [works, kat]);
   const set = (occ: string, coefficients: WorkCoefficient[]) => command({ type: 'SET_COEFFICIENTS', occurrenceId: occ, coefficients });
   /** Adds the coefficients of one normative record (replacing an earlier copy of the same record). */
@@ -62,7 +62,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
         commands.push({ type: 'SET_COEFFICIENTS', occurrenceId: o.id, coefficients: list });
       }
       if (commands.length) command({ type: 'BATCH', label: t('AI: normativ koeffitsientlar'), commands });
-      const natija = [t('AI {n} ish uchun koeffitsient taklif qildi — tekshirib qabul qiling.', { n: commands.length }), r.savol ? `${t('Aniqlashtiring')}: ${r.savol}` : ''].filter(Boolean).join(' ');
+      const natija = [t('AI {n} ish uchun koeffitsient taklif qildi — tekshirib qabul qiling.', { n: commands.length }), r.savol ? `${t('Aniqlashtiring')}: ${publicSource(r.savol)}` : ''].filter(Boolean).join(' ');
       setXabar(natija);
       return natija;
     } finally { setBand(false); }

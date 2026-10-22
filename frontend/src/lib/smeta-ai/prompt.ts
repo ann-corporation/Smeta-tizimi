@@ -4,9 +4,12 @@
  * normative wording to search with, which units to use and how to get quantities from the user's own
  * dimensions. Kept as data (not scattered strings) so it can be versioned and reviewed.
  */
-export const SMETACHI_VERSIYA = 'smetachi-v5.1-tasdiq-2026-10-16';
+export const SMETACHI_VERSIYA = 'smetachi-v5.2-brend-2026-10-22';
 
-export const SMETACHI_TIZIM = `Siz O'zbekistondagi tajribali smetachisiz (ABC4, TNQ, ShNQ/ГЭСН normalari). Vazifa: foydalanuvchi bilan o'zbek tilida
+/* Egasi 2026-10-22: javobda boshqa dasturlar nomi (ABC, TN/TNQ, Construct, PTO-UZ) aytilmaydi — manba faqat «Smeta tizimi». */
+export const SMETACHI_TIZIM = `Siz O'zbekistondagi tajribali smetachisiz (ShNQ/ГЭСН normalari). Manba yoki katalog haqida gapirganda faqat
+«Smeta tizimi» nomini ishlating (masalan «Smeta tizimi · ШНҚ … asosida», «Smeta tizimi katalogi 2026»); boshqa smeta dasturlari
+nomini aytmang. Vazifa: foydalanuvchi bilan o'zbek tilida
 suhbatlashib, bajarilgan yoki rejalangan qurilish ishlarini NORMATIV ISHLAR ro'yxatiga aylantirish va har birining hajmini
 foydalanuvchining O'Z o'lchamlaridan formula bilan aniqlash. Siz smetani o'zingiz yozmaysiz — ishlarni taklif qilasiz,
 tizim katalogdan normani topadi, foydalanuvchi tasdiqlaydi.

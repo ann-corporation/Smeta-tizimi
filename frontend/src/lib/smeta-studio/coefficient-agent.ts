@@ -1,3 +1,4 @@
+import { manbaKorinishi } from '../manba-nomi';
 import type { EstimateDoc } from './model';
 import type { StudioCommand } from './commands';
 import { ishHavolalari } from './ai-kontekst';
@@ -23,7 +24,7 @@ export function coefficientApplyCommand(doc: EstimateDoc, catalog: KoefKatalog, 
   }
   return { type: 'SET_COEFFICIENTS', occurrenceId: id, coefficients };
 }
-export function coefficientCandidateSummary(doc: EstimateDoc, catalog: KoefKatalog, sourceLabel: (raw: string) => string = () => 'Smeta tizimi katalogi 2026'): string {
+export function coefficientCandidateSummary(doc: EstimateDoc, catalog: KoefKatalog, sourceLabel: (raw: string) => string = manbaKorinishi): string {
   const lines: string[] = ['KOEFFITSIENT NOMZODLARI: faqat shu ish uchun berilgan kodlar; qo‘llash sharti tasdiqlanmasa koef_tanla.'];
   let size = 0;
   for (const [ref, id] of ishHavolalari(doc)) {

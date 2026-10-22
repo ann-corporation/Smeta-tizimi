@@ -1,5 +1,6 @@
 import { t } from '../../i18n/til';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { manbaKorinishi } from '../../lib/manba-nomi';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { BookOpen, Plus, Repeat2, Trash2, X } from 'lucide-react';
 import { yangiOperationId, type AktNatija } from '../../api/supabase';
@@ -196,7 +197,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
                 <td className="p-1.5"><select value={r.kat} onChange={(e) => yangila(i, { kat: e.target.value as Kat })} className={inp} aria-label={`${i + 1}-resurs kategoriyasi`} title={KAT_NOMI[r.kat]}>{KATLAR.map((k) => <option key={k} value={k}>{k}</option>)}</select></td>
                 <td className="p-1.5"><input value={r.kod} onChange={(e) => yangila(i, { kod: e.target.value })} className={inp} aria-label={`${i + 1}-resurs kodi`} /></td>
                 <td className="p-1.5 pl-4"><Taklifli qiymat={r.nom} onChange={(v) => yangila(i, { nom: v })} qidir={resursQ(r.kat)} tanla={(v: ResursVariant) => resursTanla(i, v)} ariaLabel={`${i + 1}-resurs nomi`} placeholder="resurs nomi" className={inp}
-                  render={(v: ResursVariant) => <div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="truncate text-text">{v.nom}</div><div className="text-[10px] text-text-mute">{v.kat ?? '—'} · {v.birlik} {v.kod ? `· ${v.kod}` : ''} {v.manba === 'katalog' ? `· ${v.manba_nom ?? 'katalog'}` : `· ${v.soni} ta smetada`}</div></div>
+                  render={(v: ResursVariant) => <div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="truncate text-text">{v.nom}</div><div className="text-[10px] text-text-mute">{v.kat ?? '—'} · {v.birlik} {v.kod ? `· ${v.kod}` : ''} {v.manba === 'katalog' ? `· ${manbaKorinishi(v.manba_nom)}` : `· ${v.soni} ta smetada`}</div></div>
                     <div className="shrink-0 text-right"><div className="font-mono text-text">{fmt(v.narx)}</div><span className={`rounded px-1 text-[10px] ${MANBA_RANG[v.narx_manba]}`}>{MANBA_NOMI[v.narx_manba]}</span></div></div>} /></td>
                 <td className="p-1.5"><input value={r.birlik} onChange={(e) => yangila(i, { birlik: e.target.value })} className={inp} aria-label={`${i + 1}-resurs birligi`} /></td>
                 <td className="p-1.5"><input value={r.norma} onChange={(e) => yangila(i, { norma: e.target.value })} inputMode="decimal" className={num} aria-label={`${i + 1}-resurs normasi`} /></td>

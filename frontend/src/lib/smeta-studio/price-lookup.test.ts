@@ -40,7 +40,9 @@ describe('catalogue pricing', () => {
   it('chosen row → CATALOG_CANDIDATE price with full provenance as evidence', () => {
     const c = priceCommand('o1', 'r1', ROWS[0]);
     expect(c).toMatchObject({ type: 'SET_PRICE', price: { value: '780000', basis: 'CATALOG_CANDIDATE', sourcePriceId: 'narx-katalog:1' } });
-    expect(catalogEvidence(ROWS[0])).toBe('Platforma narx katalogi · Platforma katalogi 2026-II · 2026 y. 2-kv. · Toshkent sh. · ООО Zavod · NDS siz · kod K1 · БЕТОН ТЯЖЕЛЫЙ B15, м3');
+    // Egasi 2026-10-22: manba — o'z nomimiz; tashqi nom (ABC …) bo'lsa «Smeta tizimi katalogi …» ga almashadi.
+    expect(catalogEvidence({ ...ROWS[0], manba_nom: 'ABC Base 2017' })).toMatch(/^Smeta tizimi narx katalogi · Smeta tizimi katalogi 2017 ·/);
+    expect(catalogEvidence(ROWS[0])).toBe('Smeta tizimi narx katalogi · Platforma katalogi 2026-II · 2026 y. 2-kv. · Toshkent sh. · ООО Zavod · NDS siz · kod K1 · БЕТОН ТЯЖЕЛЫЙ B15, м3');
   });
   it('bulk: one exact (or one in region) is pre-chosen, several left to operator, none listed; applied as ONE undo step', () => {
     const d = doc();

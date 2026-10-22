@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { sbOqi } from '../../api/supabase';
 import { t } from '../../i18n/til';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
+import { manbaKorinishi } from '../../lib/manba-nomi';
 import { compareMarket, marketException, marketPeriods, marketRegions, marketReadPrice, periodKey, type MarketComparison, type MarketLine, type MarketStatus } from '../../lib/smeta-studio/market-comparison';
 
 export type MarketPriceComparisonProps = { lines?: readonly MarketLine[]; objectId?: number | null; companyId?: number | null };
@@ -122,7 +123,7 @@ export function MarketPriceComparison({ lines, objectId, companyId }: MarketPric
           <td className={`text-right tabular-nums ${differenceTone}`}>{fmt(r.delta)} {r.delta != null && 'UZS'}<br />{r.delta != null && r.delta !== 0 && <span className="text-[11px]">{r.delta > 0 ? t('Smeta katalogdan past') : t('Smeta katalogdan yuqori')}</span>}</td>
           <td className={`text-right tabular-nums ${r.percent == null ? 'text-text-dim' : differenceTone}`}>{r.line.price === 0 ? t('Smeta narxi 0 — foiz hisoblanmaydi') : r.percent == null ? t('Noma’lum') : `${fmt(r.percent)}%`}</td>
           <td className="min-w-56 max-w-96 break-words leading-relaxed"><span className="text-[11px] text-text-dim">{statusText(r.status)}</span>{hasOffers && <details className="mt-1 rounded border border-border/70 bg-surface-2/40 p-2"><summary className="cursor-pointer rounded text-xs font-medium text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{t('Takliflar: {son}; min: {min}; max: {max}', { son: r.offers.length, min: fmt(r.min), max: fmt(r.max) })}</summary>
-            <p className="mt-2 break-all text-[11px] text-text-dim">{t('Katalog fayli')}: {cat.manifest.source.manba.nom}</p>
+            <p className="mt-2 break-all text-[11px] text-text-dim">{t('Katalog fayli')}: {manbaKorinishi(cat.manifest.source.manba.nom)}</p>
             <ul className="mt-2 space-y-2">{r.offers.slice(offerPage * PAGE, (offerPage + 1) * PAGE).map(o => <li key={o.row.id} className="space-y-1 rounded border border-border/60 bg-surface p-2 text-[11px] leading-relaxed">
               <p className="break-words font-medium text-text">{o.row.nom} · {o.row.manba_nom}</p>
               <p className="text-text-dim">{t('{yil}-yil, {chorak}-chorak', { yil: o.period.year, chorak: o.period.quarter })} · {t('Qator')}: {o.row.id}</p>
