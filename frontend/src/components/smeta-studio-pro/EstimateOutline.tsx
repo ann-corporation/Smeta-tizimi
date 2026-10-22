@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ReactNode } from 'react';
+import { coefficientWorkCode } from '../../lib/smeta-studio/koef-notation';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { expandThroughDepth, indexEstimate, outlineBreadcrumb, visibleOutline, type OutlineRow } from './hierarchy';
 
@@ -16,9 +17,9 @@ const ROW_TONE: Record<OutlineRow['kind'], string> = {
   work: 'border-t-2 border-t-sky-400/70 font-medium text-text hover:bg-surface-2/60',
   resource: 'shadow-[inset_4px_0_0_0_rgba(56,189,248,0.45)] text-text-dim hover:bg-surface-2/60',
 };
-export function EstimateOutline({ doc, labels, onSelect, renderSummary }: {
+export function EstimateOutline({ doc, labels, onSelect, renderSummary, renderWorkDetails, focusWorkId }: {
   doc: EstimateDoc; labels: OutlineLabels; onSelect: (row: OutlineRow) => void;
-  renderSummary?: (row: OutlineRow) => ReactNode;
+  renderSummary?: (row: OutlineRow) => ReactNode; renderWorkDetails?: (id: string) => ReactNode; focusWorkId?: string | null;
 }) {
   // IDs remain internal; selection reports IDs, while visible names/codes stay professional.
   const parsed = useMemo(() => {
@@ -49,11 +50,20 @@ export function EstimateOutline({ doc, labels, onSelect, renderSummary }: {
     }
     setOpen(old => new Set([...old].filter(k => parsed.index.byKey.has(k)).concat([...reveal])));
   }, [parsed]);
+  useEffect(() => {
+    if (!focusWorkId) return;
+    const row=parsed.index.rows.find(r=>r.kind==='work' && r.occurrenceId===focusWorkId);
+    if (!row) return;
+    const ancestors: string[]=[]; let parentKey=row.parentKey;
+    while (parentKey) { ancestors.push(parentKey); const i=parsed.index.byKey.get(parentKey); parentKey=i==null ? null : parsed.index.rows[i].parentKey; }
+    setQuery(''); setSelected(row.key); setOpen(old=>new Set([...old,...ancestors])); revealKey.current=row.key;
+  }, [focusWorkId, parsed]);
   const deferred = useDeferredValue(query);
   const rows = useMemo(() => visibleOutline(parsed.index, open, deferred), [parsed.index, open, deferred]);
   const parent = useRef<HTMLDivElement>(null);
   const virtual = useVirtualizer({ count: rows.length, getScrollElement: () => parent.current,
-    estimateSize: () => ROW_H, overscan: 8, initialRect: { width: 1000, height: 520 }, getItemKey: i => rows[i].key });
+    measureElement: element => element.getBoundingClientRect().height || (rows[Number(element.getAttribute('data-index'))]?.kind === 'work' && renderWorkDetails ? 160 : ROW_H),
+    estimateSize: i => rows[i]?.kind === 'work' && renderWorkDetails ? 160 : ROW_H, overscan: 8, initialRect: { width: 1000, height: 520 }, getItemKey: i => rows[i].key });
   useEffect(() => {
     if (!revealKey.current) return;
     const index = rows.findIndex(row => row.key === revealKey.current);
@@ -79,20 +89,23 @@ export function EstimateOutline({ doc, labels, onSelect, renderSummary }: {
           <div style={{ height: virtual.getTotalSize(), width: '100%', position: 'relative' }}>
             {virtual.getVirtualItems().map(item => {
               const row = rows[item.index];
-              return <div key={row.key} role="treeitem" aria-level={row.depth + 1} aria-selected={selected === row.key}
+              return <div key={row.key} ref={virtual.measureElement} data-index={item.index} role="treeitem" aria-level={row.depth + 1} aria-selected={selected === row.key}
                 aria-expanded={row.expandable ? open.has(row.key) || Boolean(deferred.trim()) : undefined}
                 title={outlineBreadcrumb(parsed.index, row).join(' → ')}
-                className={`flex items-center gap-1.5 border-b border-border/50 pr-2 text-[12px] ${selected === row.key ? 'bg-accent/15 outline outline-1 -outline-offset-1 outline-accent' : ROW_TONE[row.kind]}`}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: ROW_H,
+                className={`flex flex-col border-b border-border/50 pr-2 text-[12px] ${selected === row.key ? 'bg-accent/15 outline outline-1 -outline-offset-1 outline-accent' : ROW_TONE[row.kind]}`}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: ROW_H,
                   transform: `translateY(${item.start}px)`, paddingLeft: 6 + Math.min(row.depth, 12) * 14 }}>
+                <div className="flex min-h-8 items-center gap-1.5 w-full">
                 {row.expandable ? <button type="button" disabled={Boolean(deferred.trim())} aria-label={open.has(row.key) || Boolean(deferred.trim()) ? labels.close : labels.expand}
                   onClick={() => setOpen(old => { const next = new Set(old); if (next.has(row.key)) next.delete(row.key); else next.add(row.key); return next; })}>
                   {open.has(row.key) || Boolean(deferred.trim()) ? '▾' : '▸'}</button> : <span className="w-3" />}
                 <button type="button" aria-label={`${labels.select}: ${row.label || row.code || ''}`}
                   className="min-w-0 flex-1 truncate text-left" onClick={() => { setSelected(row.key); onSelect(row); }}>
-                  {row.code && <span className="mr-2 font-mono text-[11px] text-accent">{row.code}</span>}{row.label}
+                  {row.code && <span className="mr-2 whitespace-pre-line font-mono text-[11px] text-accent">{row.kind === 'work' && row.occurrenceId ? coefficientWorkCode(doc.occurrences[row.occurrenceId]) : row.code}</span>}{row.label}
                 </button>
                 {renderSummary && <span className="shrink-0 text-right text-[11.5px] tabular-nums text-text-dim">{renderSummary(row)}</span>}
+                </div>
+                {row.kind === 'work' && row.occurrenceId && renderWorkDetails && <div className="w-full min-w-0 pb-2">{renderWorkDetails(row.occurrenceId)}</div>}
               </div>;
             })}
           </div>

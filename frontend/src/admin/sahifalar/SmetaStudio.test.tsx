@@ -6,7 +6,7 @@ import { NORM_SHARD_SCHEMA, buildNormShards, type BookRow } from '../../lib/cata
 
 vi.mock('../../i18n/til', () => ({ t: (s: string, p?: Record<string, string | number>) => p ? s.replace(/\{(\w+)\}/g, (_m, k: string) => String(p[k])) : s }));
 const store = new Map<string, unknown>();
-vi.mock('idb-keyval', () => ({ get: async (k: string) => store.get(k), set: async (k: string, v: unknown) => { store.set(k, v); } }));
+vi.mock('idb-keyval', () => ({ get: async (k: string) => store.get(k), set: async (k: string, v: unknown) => { store.set(k, v); }, update: async (k: string, fn: (v: unknown) => unknown) => { store.set(k,fn(store.get(k))); } }));
 import SmetaStudio from './SmetaStudio';
 
 const REV = 'b'.repeat(16);
@@ -164,4 +164,31 @@ it('sekin A javobi B tanlovining retseptini almashtirmaydi', async () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /Другой бетонный фундамент/ })).toBeTruthy());
     expect(screen.queryByRole('heading', { name: /Устройство бетонной подготовки/ })).toBeNull();
   } finally { release(); spy.mockRestore(); }
+});
+
+
+it('workspace navigation preserves the unsent AI message and manual document changes',async()=>{
+ render(<SmetaStudio />);
+ await screen.findByLabelText('Smeta nomi');
+ fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
+ fireEvent.change(screen.getByLabelText('Smetachiga xabar'),{target:{value:'TEST ONLY unsent plan'}});
+ const title=screen.getByLabelText('Smeta nomi');fireEvent.change(title,{target:{value:'TEST shared estimate'}});fireEvent.submit(title.closest('form')!);
+ const nav=screen.getByRole('navigation',{name:'Smeta ish joyi'});
+ fireEvent.click(within(nav).getByRole('button',{name:'Tekshiruv'}));
+ expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST ONLY unsent plan');
+ fireEvent.click(within(nav).getByRole('button',{name:'Ishlar'}));
+ expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST shared estimate');
+ fireEvent.click(screen.getByRole('tab',{name:'Normativ katalog'}));fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
+ expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST ONLY unsent plan');
+});
+it('new estimate archives the previous draft and reopening restores the same document',async()=>{
+ render(<SmetaStudio />);const title=await screen.findByLabelText('Smeta nomi');
+ fireEvent.change(title,{target:{value:'TEST recoverable estimate'}});fireEvent.submit(title.closest('form')!);
+ fireEvent.click(screen.getByRole('button',{name:'Yangi qoralama'}));
+ await waitFor(()=>expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe(''));
+ fireEvent.click(screen.getByRole('button',{name:'Saqlangan qoralamalar'}));
+ const library=await screen.findByRole('region',{name:'Saqlangan qoralamalar'});
+ fireEvent.click(within(library).getByRole('button',{name:'TEST recoverable estimate'}));
+ await waitFor(()=>expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST recoverable estimate'));
+ expect(requests.some(x=>x.startsWith('POST '))).toBe(false);
 });

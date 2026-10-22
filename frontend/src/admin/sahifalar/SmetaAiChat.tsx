@@ -9,6 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
+import { coefficientCandidateSummary } from '../../lib/smeta-studio/coefficient-agent';
+import { koefKatalogi, type KoefKatalog } from '../../lib/smeta-studio/koef-katalog';
 import { smetaXulosasi } from '../../lib/smeta-studio/ai-kontekst';
 import { calcDoc } from '../../lib/smeta-studio/calc';
 import { loyihaBoyicha, talabMateriali } from '../../lib/smeta-studio/loyiha-material';
@@ -60,7 +62,7 @@ const SpeechCtor = (): (new () => SpeechRec) | null => {
 };
 
 const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha materiali', hajm: 'Hajm', ochir: 'Ishni o‘chirish', kochir: 'Bo‘limga ko‘chirish',
-  bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
+  bolim: 'Yangi bo‘lim', bolim_tartib: 'Bo‘lim tartibi', koef_tanla: 'Koeffitsient tanlash', koef_qolla: 'Normativ koeffitsientni qo‘llash', hudud: 'Obyekt hududi', narxla: 'Barcha narxlarni topish',
   narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash',
   qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash', narx_tasdiq: 'AI narxlarini tasdiqlash' };
 
@@ -74,6 +76,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
   onBosqich?: (b: 'lrv' | 'narx' | 'res') => void;
 }) {
   // Studio agent: actions the model proposed for this turn; the user runs them (one undo step for document edits).
+  const [koefCatalog,setKoefCatalog]=useState<KoefKatalog | null>(null);
+  useEffect(()=>{let alive=true;koefKatalogi().then(k=>{if(alive)setKoefCatalog(k);}).catch(()=>{});return()=>{alive=false;};},[]);
   const [ilova, setIlova] = useState<Ilova | null>(null);
   // Company memory: lessons the model proposes after a correction; the user decides what is remembered.
   const [eslash, setEslash] = useState<string[]>([]);
@@ -183,7 +187,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     qadam(t('Xabaringizni o‘qiyapman; smetadagi {n} ish{h} bilan solishtiraman', { n: Object.keys(doc.occurrences).length, h: yuborilganIlova ? t(' va biriktirilgan «{f}»', { f: yuborilganIlova.nom }) : '' }));
     try {
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title,
-        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)), yuborilganIlova);
+        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)) + (koefCatalog ? '\n' + coefficientCandidateSummary(doc,koefCatalog) : ''), yuborilganIlova);
       if (!tirik.current) return;
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.
@@ -295,7 +299,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     rec.current = r; setTinglash(true); r.start();
   }
 
-  return <section aria-label={t('Smetachi AI')} className="flex min-h-[520px] flex-col gap-2 text-sm">
+  return <section aria-label={t('Smetachi AI')} className="flex min-h-[220px] xl:min-h-[520px] flex-col gap-2 text-sm">
     <ModelChip profil="smeta_ai" kompaniyaId={kompaniyaId} />
     <div className="karta max-h-72 min-h-[140px] flex-1 space-y-2 overflow-auto p-2" role="log" aria-live="polite">
       {!xabarlar.length && <div className="space-y-1 text-[12.5px] text-text-dim">

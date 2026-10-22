@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useEffect, useMemo, useState } from 'react';
 import type { EstimateDoc, PriceBasis, CatalogResource, Substitution } from '../../lib/smeta-studio/model';
@@ -6,8 +7,9 @@ import type { PriceOffer } from '../../lib/smeta-studio/price-lookup';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import { calcOccurrence, type DocCalc } from '../../lib/smeta-studio/calc';
 import { EstimateOutline, type OutlineLabels } from './EstimateOutline';
-import type { OutlineRow } from './hierarchy';
+import { indexEstimate, type OutlineRow } from './hierarchy';
 import { reviewSubstitution } from './substitution-review';
+import { t } from '../../i18n/til';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { catalogEvidence, findOffers, type PriceSource } from '../../lib/smeta-studio/price-lookup';
 
@@ -23,15 +25,19 @@ export type EditingLabels = OutlineLabels & {
 };
 /** Platform price catalogue lookup (optional): offers fill the price form; saving stays explicit. */
 export type PricingProps = { source: PriceSource | null; unitText: (code: string | null) => string | null; region?: string | null };
-export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection, calculation, pricing }: {
+export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection, calculation, pricing, renderWorkDetails, focusWorkId }: {
   doc: EstimateDoc; labels: EditingLabels; command: (command: StudioCommand) => boolean;
   onTargetSection?: (sectionId: string) => void;
   calculation?: DocCalc;
-  pricing?: PricingProps;
+  pricing?: PricingProps; renderWorkDetails?: (id: string) => ReactNode; focusWorkId?: string | null;
 }) {
   const [selected, select] = useState<OutlineRow | null>(null);
   // Draft/context switch must unmount the old inspector, not inherit another estimate's edits.
   useEffect(() => { select(null); }, [doc.draftId, doc.context.companyId, doc.context.projectId, doc.context.objectId]);
+  useEffect(() => {
+    const work = focusWorkId ? doc.occurrences[focusWorkId] : null;
+    if (work) select(indexEstimate(doc).rows.find(row => row.kind === 'work' && row.occurrenceId === work.id) ?? null);
+  }, [focusWorkId, doc.draftId]);
   const work = selected?.occurrenceId ? doc.occurrences[selected.occurrenceId] : null;
   const section = selected ? doc.sections[selected.sectionId] : null;
   // Index the parent's existing result once; visible rows never scan entire recipes to find amounts.
@@ -42,8 +48,8 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
     }
     return result;
   }, [calculation]);
-  return <div className="grid gap-3 2xl:grid-cols-[minmax(0,3fr)_minmax(340px,2fr)]">
-    <EstimateOutline doc={doc} labels={{ ...labels, title: labels.works }} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
+  return <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+    <EstimateOutline renderWorkDetails={renderWorkDetails} focusWorkId={focusWorkId} doc={doc} labels={{ ...labels, title: labels.works }} onSelect={row => { select(row); onTargetSection?.(row.sectionId); }}
       renderSummary={calculation ? row => {
         if (row.kind === 'section') return calculation.sections[row.sectionId]?.amount ?? labels.unknown;
         const id = row.occurrenceId!;
@@ -52,7 +58,7 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
         const amount = row.recipeId ? line?.amount : calculation.occurrences[id]?.amount;
         return `${quantity ?? labels.unknown} · ${amount ?? labels.unknown}`;
       } : undefined} />
-    <aside aria-label={labels.inspector} className="karta min-w-0 space-y-2 p-3 text-sm 2xl:sticky 2xl:top-2 2xl:max-h-[calc(100vh-120px)] 2xl:overflow-auto">
+    <aside aria-label={labels.inspector} className="karta min-w-0 space-y-2 p-3 text-sm xl:sticky xl:top-2 xl:max-h-[calc(100vh-120px)] xl:overflow-auto">
       {!selected || !section || (selected.occurrenceId && !work) ? <p className="text-text-dim">{labels.choose}</p> :
         <Inspector key={JSON.stringify([doc.draftId, doc.context.companyId, selected.key])}
           doc={doc} row={selected} labels={labels} command={command} pricing={pricing} />}
@@ -113,7 +119,14 @@ function Inspector({ doc, row, labels: l, command, pricing }: {
     {!work ? <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => { e.preventDefault(); run({ type: 'RENAME_SECTION', sectionId: row.sectionId, name }); }}>
       <label className="block text-[11.5px] text-text-dim">{l.name}<input className={inputClass} value={name} onChange={e => setName(e.target.value)} /></label>
       <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]">{l.save}</button>
+      <div className="flex gap-1">{[-1, 1].map(direction => {
+        const section=doc.sections[row.sectionId], siblings=section.parentId ? doc.sections[section.parentId].children : doc.rootOrder;
+        const index=siblings.indexOf(section.id)+direction;
+        return <button key={direction} type="button" aria-label={direction < 0 ? l.move + ' ↑' : l.move + ' ↓'} disabled={index < 0 || index >= siblings.length}
+          className="tugma h-7 px-2" onClick={()=>run({type:'MOVE_SECTION',sectionId:section.id,parentId:section.parentId,index})}>{direction < 0 ? '↑' : '↓'}</button>;
+      })}</div>
     </form> : <>
+      <button type="button" className="tugma h-7 px-2 text-danger" onClick={() => run({ type: 'REMOVE_OCCURRENCE', occurrenceId: work.id })}>{t('Ishni olib tashlash')}</button>
       <p className="text-[12px] text-text-dim">{work.source.code} · {work.basis.unitLabel ?? l.unknown}</p>
       <p className="text-[12px] text-text-dim">{l.amount}: {calc?.amount ?? l.unknown}</p>
       <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => { e.preventDefault(); run({ type: 'SET_QUANTITY', occurrenceId: work.id, quantity: quantity.trim() || null }); }}>

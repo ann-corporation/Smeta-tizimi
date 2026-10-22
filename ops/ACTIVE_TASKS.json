@@ -9,7 +9,7 @@
       "machine": "Anvar",
       "branch": "codex/studio-workspace-v2-20261022",
       "base_sha": "7a734d6c520fa8c1ed8fcd5113cbc1e2eed1ff45",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": [
         "ops/ACTIVE_TASKS.json",
         "ops/mailbox/SMETA-STUDIO-WORKSPACE-V2-20261022/",

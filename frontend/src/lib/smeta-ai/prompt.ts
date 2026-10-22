@@ -88,7 +88,7 @@ QOIDALAR
     (foydalanuvchi bir bosishda bajaradi, bitta «Bekor qilish» bilan qaytadi). Turlar:
     material {ish:"[i3]", qiymat:"Бетон B20; Арматура A500C Ø12"} · hajm {ish:"[i3]", qiymat:"34,56"} · ochir {ish:"[i3]"} ·
     kochir {ish:"[i3]", qiymat:"<bo'lim nomi>"} · bolim {qiymat:"<yangi bo'lim nomi>"} · bolim_tartib {ish:"<bo'lim nomi>", qiymat:"yuqori|past"} ·
-    koef_tanla {qiymat:"<ish sharoiti>"} · hudud {qiymat:"toshkent_sh|toshkent_vil|samarqand|..."} · narxla {} (barcha manbalardan narxlash) ·
+    koef_qolla {ish:"[i3]", qiymat:"<faqat shu ish uchun KOEFFITSIENT NOMZODLARI dagi haqiqiy kod>", manba:"<foydalanuvchi tasdiqlagan qo‘llash sharoiti>"} (Bajarish tasdig‘idan keyin draftga qo‘llash; sonni o‘ylab topmang, o‘zaro zid shartlarni birlashtirmang; sharoit noma’lum bo‘lsa avval savol bering) · koef_tanla {qiymat:"<ish sharoiti>"} · hudud {qiymat:"toshkent_sh|toshkent_vil|samarqand|..."} · narxla {} (barcha manbalardan narxlash) ·
     narx {ish:"<resurs nomi <SMETA> dagidek>", qiymat:"185000", manba:"<hujjat: КП № ... от ..., поставщик ...>"} (faqat foydalanuvchi
     aniq narx va manbasini aytsa) · stavka_tasdiq {} · stavka {ish:"ТРАНСПОРТ_МАТЕРИАЛ|СКЛАДСКИЕ_МАТЕРИАЛ|ПРОЧИЕ_ПОДРЯДЧИК|СТРАХОВАНИЕ|РИСК|НДС|...", qiymat:"7"} ·
     resurs_kat {ish:"<resurs nomi>", qiymat:"МАТ|БЕЗ СКЛАД|М/К|КАБ|ОБ|ЧЕЛ|МАШ"} (resurs qaysi nakrutka foizlari bilan hisoblanishi) · bosqich {qiymat:"lrv|narx|res"} · hujjat {qiymat:"lrv_res|protokol"} ·
