@@ -315,15 +315,15 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
       </details>}
       <div ref={oxir} />
     </div>
-    <form className="flex items-end gap-1" onSubmit={e => { e.preventDefault(); void yubor(); }}>
-      <textarea aria-label={t('Smetachiga xabar')} className="input min-h-[44px] flex-1 resize-y py-1.5 text-[13px]" rows={2} value={matn} disabled={!!band}
+    <form className="flex flex-wrap items-end gap-2" onSubmit={e => { e.preventDefault(); void yubor(); }}>
+      <textarea aria-label={t('Smetachiga xabar')} className="input min-h-[96px] w-full min-w-0 basis-full resize-y py-2 text-[13px]" rows={3} value={matn} disabled={!!band}
         placeholder={t('Masalan: plita quyildi 12×8 m, qalinligi 0,2 m, beton B25...')} onChange={e => setMatn(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(); } }} />
       <button type="button" aria-label={tinglash ? t('Ovozni to‘xtatish') : t('Ovoz bilan aytish')} className={`tugma h-9 px-2 ${tinglash ? 'tugma-asosiy' : ''}`} onClick={ovoz}>🎤</button>
       <label className="tugma h-9 cursor-pointer px-2" title={t('Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)')}>📎
         <input aria-label={t('Loyiha hujjati')} type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls,.xlsm,.docx"
           onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
-      <button type="submit" className="tugma tugma-asosiy h-9 px-3" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
+      <button type="submit" className="tugma tugma-asosiy ml-auto h-9 px-3" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}
     {eslash.length > 0 && kompaniyaId != null && <div className="karta space-y-1 p-2 text-[12px]">
