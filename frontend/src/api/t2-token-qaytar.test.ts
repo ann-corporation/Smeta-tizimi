@@ -42,6 +42,23 @@ describe('token qaytarish — ishonchli va halol', () => {
     expect(localStorage.getItem('t2_token_qaytar_navbat_v1')).toBeNull();
   }, 15000);
 
+  it('billing saga: muvaffaqiyatli amaldan keyin sarf «yakunlandi» deb yuboriladi, qaytarish yo‘q', async () => {
+    const amallar = server(() => ({ ok: true }));
+    const r = await tokenBilan({ kompaniyaId: 17, amal: 'hujjat' }, async () => 'fayl');
+    expect(r).toMatchObject({ ok: true, natija: 'fayl', sarflandi: 5 });
+    await vi.waitFor(() => expect(amallar).toContain('token_yakunla_v1'));
+    expect(amallar).not.toContain('token_qaytar_v1');
+  });
+
+  it('billing saga: yakunlash yetib bormasa ham foydalanuvchi natijasi buzilmaydi', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: RequestInit) => {
+      const b = JSON.parse(String(init?.body ?? '{}')) as { amal?: string };
+      if (b.amal === 'token_yakunla_v1') throw new Error('tarmoq');
+      return new Response(JSON.stringify({ ok: true, sarflandi: 5, balans: 95 }), { status: 200 });
+    }));
+    expect(await tokenBilan({ kompaniyaId: 17, amal: 'hujjat' }, async () => 1)).toMatchObject({ ok: true, natija: 1 });
+  });
+
   it('token sarflanmagan bo‘lsa (bepul takror) — qaytarish chaqirilmaydi', async () => {
     const amallar: string[] = [];
     vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: RequestInit) => {

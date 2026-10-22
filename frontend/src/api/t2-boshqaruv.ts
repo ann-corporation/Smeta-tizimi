@@ -28,11 +28,13 @@ export type BTokenDaftar = {
   oylar: { oy: string; berilgan: number; sotilgan: number; sarflangan: number }[];
 };
 export type BTolov = { id: number; vaqt: string; kompaniya_id: number; kompaniya: string; kim: string | null; paket: string | null; token: number; summa_som: number; usul: string; tolov_malumot: string | null; holat: 'kutilmoqda' | 'tasdiqlandi' | 'rad' | 'bekor'; sabab: string | null; hal_qilindi: string | null };
-export type BAudit = { id: number; vaqt: string; kompaniya_id: number; kompaniya: string | null; obyekt_id: number | null; kim: string | null; amal: string; modul: string; tafsilot: string | null };
+/** Billing saga: natijasi 30 daqiqadan beri noma'lum sarf (mijoz yakunlamadi ham, qaytarmadi ham). */
+export type BSagaKutilmoqda = { sarf_operation_id: string; kompaniya_id: number; kompaniya: string; kim: string | null; amal: string | null; token: number; yaratildi: string; hujjat: string | null; obyekt: string | null };
+export type BAudit ={ id: number; vaqt: string; kompaniya_id: number; kompaniya: string | null; obyekt_id: number | null; kim: string | null; amal: string; modul: string; tafsilot: string | null };
 
 type Javob<T> = { ok: true; natija: T } | { ok: false; error: string; code?: string };
 
-export async function boshqaruvOqi<T>(bolim: 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'token' | 'audit' | 'tolovlar', p: Record<string, string | number | null | undefined> = {}): Promise<Javob<T>> {
+export async function boshqaruvOqi<T>(bolim: 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'token' | 'audit' | 'tolovlar' | 'token_saga', p: Record<string, string | number | null | undefined> = {}): Promise<Javob<T>> {
   const q = new URLSearchParams({ bolim });
   for (const [k, v] of Object.entries(p)) if (v != null && v !== '') q.set(k, String(v));
   try {
@@ -42,7 +44,7 @@ export async function boshqaruvOqi<T>(bolim: 'umumiy' | 'foydalanuvchilar' | 'ko
   } catch { return { ok: false, error: 'Tarmoq xatosi' }; }
 }
 
-export async function boshqaruvYoz(amal: 'foydalanuvchi_holat' | 'azolik' | 'narx' | 'tarif' | 'sozlama' | 'tolov_hal', so: Record<string, unknown>): Promise<{ ok: boolean; xabar: string }> {
+export async function boshqaruvYoz(amal: 'foydalanuvchi_holat' | 'azolik' | 'narx' | 'tarif' | 'sozlama' | 'tolov_hal' | 'token_saga_hal', so: Record<string, unknown>): Promise<{ ok: boolean; xabar: string }> {
   try {
     const r = await fetch('/api/boshqaruv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal, ...so }) });
     const j = await r.json();
@@ -59,5 +61,6 @@ const XATO: Record<string, string> = {
   OXIRGI_SUPERADMIN: 'Bu oxirgi superadmin — olib tashlab bo‘lmaydi.',
   ROL_NOTOGRI: 'Rol noto‘g‘ri.', TOPILMADI: 'Topilmadi.', QIYMAT_NOTOGRI: 'Qiymat noto‘g‘ri.',
   ALLAQACHON_HAL_QILINGAN: 'Bu so‘rov allaqachon hal qilingan.', QAROR_NOTOGRI: 'Qaror noto‘g‘ri.',
-  BEPUL_TARIF_KERAK: 'Bepul tarifni o‘chirib bo‘lmaydi — ro‘yxatdan o‘tganlar shu tarifni oladi.',
+  SABAB_KERAK: 'Sababni yozing (kamida 3 belgi).', SARF_TOPILMADI: 'Sarf topilmadi.',
+  BEPUL_TARIF_KERAK:'Bepul tarifni o‘chirib bo‘lmaydi — ro‘yxatdan o‘tganlar shu tarifni oladi.',
 };

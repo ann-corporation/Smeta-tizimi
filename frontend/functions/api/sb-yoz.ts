@@ -58,6 +58,7 @@ const AMALLAR = {
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
+  token_yakunla_v1: { rpc: 't2_token_yakunla_v1' },
   /* Egasi 2026-10-02: token sotib olish so'rovi (o'tkazma; superadmin tasdiqlaydi — /api/boshqaruv). */
   tolov_sorov_yarat_v1: { rpc: 't2_tolov_sorov_yarat_v1' },
   token_toldir_v1: { rpc: 't2_token_toldir_v1' },
@@ -640,6 +641,12 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'Sarf va operatsiya talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_sarf_operation_id: so.sarf_operation_id, p_operation_id: so.operation_id, p_sabab: so.sabab ? String(so.sabab).slice(0, 300) : null };
+    } else if (amal === 'token_yakunla_v1') {
+      // Billing saga: amal muvaffaqiyatli tugadi — sarf «yakunlandi» (operator navbatiga tushmaydi, qaytarilmaydi).
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.sarf_operation_id || ''))) {
+        return Response.json({ ok: false, error: 'Sarf operatsiyasi talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_sarf_operation_id: so.sarf_operation_id };
     } else if (amal === 'token_toldir_v1') {
       const m = Number(so.miqdor);
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isFinite(m) || Math.abs(m) > 10_000_000 || !['toldirish', 'bonus', 'tuzatish'].includes(String(so.tur_harakat))) {

@@ -19,6 +19,7 @@ const OQISH: Record<string, string> = {
   token: 't2_boshqaruv_token_daftar_v1',
   audit: 't2_boshqaruv_audit_v1',
   tolovlar: 't2_boshqaruv_tolovlar_v1',
+  token_saga: 't2_boshqaruv_token_saga_v1',
 };
 const YOZISH: Record<string, string> = {
   foydalanuvchi_holat: 't2_boshqaruv_foydalanuvchi_holat_v1',
@@ -27,7 +28,9 @@ const YOZISH: Record<string, string> = {
   sozlama: 't2_boshqaruv_sozlama_saqla_v1',
   tolov_hal: 't2_tolov_hal_qil_v1',
   tarif: 't2_boshqaruv_tarif_saqla_v1',
+  token_saga_hal: 't2_boshqaruv_token_saga_hal_v1',
 };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
 const matn = (v: unknown, n: number) => (v == null ? null : String(v).slice(0, n));
@@ -62,6 +65,13 @@ export function yozishYuki(amal: string, so: Record<string, unknown>): Record<st
       const [t, s] = [Number(so.oylik_token), Number(so.narx_som)];
       if (!/^[a-z_]{2,30}$/.test(String(so.kod || '')) || !String(so.nom || '').trim() || ![t, s].every(Number.isFinite)) return 'kod, nom, oylik_token, narx_som kerak';
       return { p_kod: String(so.kod), p_nom: String(so.nom).slice(0, 100), p_oylik_token: t, p_narx_som: s, p_faol: so.faol !== false };
+    }
+    case 'token_saga_hal': {
+      const sabab = String(so.sabab ?? '').trim();
+      if (!UUID.test(String(so.sarf_operation_id ?? '')) || !['qaytar', 'yakunlandi'].includes(String(so.qaror)) || sabab.length < 3) {
+        return 'sarf_operation_id, qaror (qaytar/yakunlandi) va sabab (kamida 3 belgi) kerak';
+      }
+      return { p_sarf_operation_id: String(so.sarf_operation_id), p_qaror: String(so.qaror), p_sabab: sabab.slice(0, 500) };
     }
     default: return 'Amal ochiq emas';
   }

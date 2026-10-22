@@ -73,6 +73,11 @@ export function tokenQaytar(p: { kompaniyaId: number; sarfOperationId: string; s
   return yozAmali({ amal: 'token_qaytar_v1', kompaniya_id: p.kompaniyaId, sarf_operation_id: p.sarfOperationId, operation_id: yangiOperationId(), sabab: p.sabab });
 }
 
+/** Billing saga: amal muvaffaqiyatli tugadi (idempotent). */
+export function tokenYakunla(p: { kompaniyaId: number; sarfOperationId: string }): Promise<SarfNatija> {
+  return yozAmali({ amal: 'token_yakunla_v1', kompaniya_id: p.kompaniyaId, sarf_operation_id: p.sarfOperationId });
+}
+
 export function tokenToldir(p: { maqsadKompaniyaId: number; miqdor: number; tur: 'toldirish' | 'bonus' | 'tuzatish'; izoh: string }): Promise<SarfNatija> {
   return yozAmali({ amal: 'token_toldir_v1', maqsad_kompaniya_id: p.maqsadKompaniyaId, miqdor: p.miqdor, tur_harakat: p.tur, izoh: p.izoh, operation_id: yangiOperationId() });
 }
@@ -118,6 +123,9 @@ export async function tokenBilan<T>(p: { kompaniyaId: number; amal: TokenAmal; b
   if (!s.ok) return { ok: false, xabar: tokenXato(s) };
   try {
     const natija = await ish();
+    // Billing saga: sarf «yakunlandi». Fon rejimida — javob kutilmaydi; yetib bormasa sarf 30 daqiqadan keyin operator
+    // navbatida ko'rinadi (u yerda yakunlangan deb belgilanadi), foydalanuvchi ishiga ta'sir qilmaydi.
+    if ((s.sarflandi ?? 0) > 0) void tokenYakunla({ kompaniyaId: p.kompaniyaId, sarfOperationId: opId }).catch(() => null);
     return { ok: true, natija, sarflandi: s.sarflandi ?? 0, balans: s.balans, bepulTakror: !!s.bepul_takror, hisob: s.hisob };
   } catch (e) {
     const sabab = e instanceof Error ? e.message : 'Amal bajarilmadi.';

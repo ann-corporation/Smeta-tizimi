@@ -3,6 +3,15 @@ import { yozishYuki } from './boshqaruv';
 
 // Boshqaruv shlyuzi faqat sanab o'tilgan amallarni va tekshirilgan parametrlarni uzatadi (actor — sessiyadan, alohida).
 describe('boshqaruv shlyuzi — yozish yuki', () => {
+  it('billing saga: operator qarori — uuid, qaror va sabab majburiy', () => {
+    const op = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    expect(yozishYuki('token_saga_hal', { sarf_operation_id: op, qaror: 'qaytar', sabab: '  natija kelmadi ', p_actor_id: 1 }))
+      .toEqual({ p_sarf_operation_id: op, p_qaror: 'qaytar', p_sabab: 'natija kelmadi' });
+    expect(yozishYuki('token_saga_hal', { sarf_operation_id: op, qaror: 'ochir', sabab: 'xxx' })).toMatch(/qaror/);
+    expect(yozishYuki('token_saga_hal', { sarf_operation_id: op, qaror: 'yakunlandi', sabab: 'x' })).toMatch(/sabab/);
+    expect(yozishYuki('token_saga_hal', { sarf_operation_id: '1; drop', qaror: 'qaytar', sabab: 'xxx' })).toMatch(/sarf_operation_id/);
+  });
+
   it('foydalanuvchini bloklash', () => {
     expect(yozishYuki('foydalanuvchi_holat', { foydalanuvchi_id: 5, holat: 'bekor', sabab: 'spam' }))
       .toEqual({ p_foydalanuvchi_id: 5, p_holat: 'bekor', p_sabab: 'spam' });

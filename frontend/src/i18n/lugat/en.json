@@ -2739,5 +2739,13 @@
   "Obyektni faqat ko‘rasiz: holati va sizga ochilgan hujjatlar. Hech narsani o‘zgartirmaysiz.": "You only view the object: its status and the documents opened to you. You change nothing.",
   "Qaysi ish joyida ko‘rasiz": "Which workspace to view in",
   "Sizda boshqaruvchi bo‘lgan ish joyi yo‘q. Avval shaxsiy ish joyingizni oching.": "You have no workspace where you are a manager. Open your personal workspace first.",
-  "Telegram orqali": "Via Telegram"
+  "Telegram orqali": "Via Telegram",
+  "Qaytarish sababi (audit uchun):": "Refund reason (for audit):",
+  "Nega yakunlangan deb belgilanmoqda (audit uchun):": "Why is it being marked as completed (for audit):",
+  "Amal natijasi kelmadi": "Operation result not received",
+  "token qaytarildi": "tokens refunded",
+  "Yakunlangan deb belgilandi": "Marked as completed",
+  "Qaytarish kutilmoqda": "Pending refunds",
+  "Token yechilgan, lekin amal natijasi 30 daqiqadan beri kelmagan (brauzer yopilgan yoki tarmoq uzilgan). Qaytaring yoki amal bajarilgan bo‘lsa — yakunlangan deb belgilang.": "Tokens were charged but the operation result has not arrived for 30+ minutes (browser closed or network lost). Refund, or mark as completed if the operation succeeded.",
+  "Bajarilgan": "Completed"
 }
