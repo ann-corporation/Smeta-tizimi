@@ -26,7 +26,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
   const [sharoit, setSharoit] = useState('');
   const [band, setBand] = useState(false);
   const [xabar, setXabar] = useState('');
-  const [yangi, setYangi] = useState<{ occ: string; nom: string; qiymat: string; scope: WorkCoefficient['scope']; asos: string }>({ occ: '', nom: '', qiymat: '', scope: 'ALL', asos: '' });
+  const [yangi, setYangi] = useState<{ occ: string; nom: string; qiymat: string; scope: WorkCoefficient['scope']; asos: string }>({ occ: workId ?? '', nom: '', qiymat: '', scope: 'ALL', asos: '' });
   useEffect(() => { let alive = true; koefKatalogi().then(k => { if (alive) setKat(k); }).catch(() => { if (alive) setKatXato(true); }); return () => { alive = false; }; }, []);
   const works = Object.values(doc.occurrences).filter(o => !workId || o.id === workId);
   const publicSource = sourceLabel ?? manbaKorinishi;
@@ -132,17 +132,18 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
         </ul>}
       </div>;
     })}
-    <form hidden={Boolean(workId)} className="flex flex-wrap items-end gap-1" onSubmit={e => {
+    <details><summary className="cursor-pointer text-[11.5px] text-text-dim">{t('Koeffitsientni qo‘lda kiritish')}</summary>
+    <form className="flex flex-wrap items-end gap-1" onSubmit={e => {
       e.preventDefault();
-      const o = doc.occurrences[yangi.occ]; if (!o) return;
+      const o = doc.occurrences[workId ?? yangi.occ]; if (!o) return;
       const id = `op${Date.now().toString(36)}`;
       if (set(o.id, [...(o.coefficients ?? []), { id, name: yangi.nom, value: yangi.qiymat, scope: yangi.scope, evidence: yangi.asos, origin: 'OPERATOR', accepted: true }]))
         setYangi({ occ: yangi.occ, nom: '', qiymat: '', scope: 'ALL', asos: '' });
     }}>
-      <select aria-label={t('Ish')} className="input h-7 max-w-[220px] text-[11.5px]" value={yangi.occ} onChange={e => setYangi({ ...yangi, occ: e.target.value })}>
+      {!workId && <select aria-label={t('Ish')} className="input h-7 max-w-[220px] text-[11.5px]" value={yangi.occ} onChange={e => setYangi({ ...yangi, occ: e.target.value })}>
         <option value="">{t('— ishni tanlang —')}</option>
         {works.map(o => <option key={o.id} value={o.id}>{o.source.code} · {(o.source.name ?? '').slice(0, 60)}</option>)}
-      </select>
+      </select>}
       <input aria-label={t('Koeffitsient nomi')} className="input h-7 w-36 text-[11.5px]" placeholder={t('Nomi')} value={yangi.nom} onChange={e => setYangi({ ...yangi, nom: e.target.value })} />
       <input aria-label={t('Koeffitsient qiymati')} className="input h-7 w-16 text-[11.5px]" inputMode="decimal" placeholder="1,15" value={yangi.qiymat} onChange={e => setYangi({ ...yangi, qiymat: e.target.value })} />
       <select aria-label={t('Qo‘llanish')} className="input h-7 text-[11.5px]" value={yangi.scope} onChange={e => setYangi({ ...yangi, scope: e.target.value as WorkCoefficient['scope'] })}>
@@ -150,6 +151,6 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
       </select>
       <input aria-label={t('Koeffitsient asosi')} className="input h-7 flex-1 min-w-[160px] text-[11.5px]" placeholder={t('Asos: hujjat va band')} value={yangi.asos} onChange={e => setYangi({ ...yangi, asos: e.target.value })} />
       <button type="submit" className="tugma h-7 px-2 text-[11.5px]" disabled={!yangi.occ || !yangi.nom.trim() || !yangi.qiymat.trim() || !yangi.asos.trim()}>{t('Qo‘lda qo‘shish')}</button>
-    </form>
+    </form></details>
   </section>;
 }

@@ -46,3 +46,15 @@ it('does not count an AI invented code as a proposal or create a no-op edit',asy
  const result=await agentChaqir('koef_tanla',{tur:'koef_tanla',ish:null,qiymat:'TEST CONDITION',manba:null,izoh:'TEST'},()=>{});
  expect(command).not.toHaveBeenCalled();expect(result).toContain('0');
 });
+
+it('manual coefficient entry is available directly under the work and never targets another work',async()=>{
+ const doc=emptyDoc('test');doc.occurrences.o={id:'o',sectionId:'s',source:{catalogRevision:'test',workId:'n',code:'E1-1-1-1',name:'TEST',unitCode:'m3',tableLabel:null},quantity:'1',basis:{scale:'1',unitLabel:'m3',evidence:'TEST',origin:'OBSERVED'},recipe:[],overrides:{}};
+ const command=vi.fn((_c:StudioCommand)=>true);render(<KoeffitsientlarPaneli doc={doc} command={command} workId="o"/>);
+ fireEvent.click(screen.getByText('Koeffitsientni qo‘lda kiritish',{selector:'summary'}));
+ fireEvent.change(screen.getByLabelText('Koeffitsient nomi'),{target:{value:'TEST manual condition'}});
+ fireEvent.change(screen.getByLabelText('Koeffitsient qiymati'),{target:{value:'1.3'}});
+ const basis=screen.getByLabelText('Koeffitsient asosi');fireEvent.change(basis,{target:{value:'TEST document clause'}});
+ fireEvent.submit(basis.closest('form')!);
+ expect(command).toHaveBeenCalledWith(expect.objectContaining({type:'SET_COEFFICIENTS',occurrenceId:'o',coefficients:[expect.objectContaining({origin:'OPERATOR',accepted:true,value:'1.3',evidence:'TEST document clause'})]}));
+ expect(screen.queryByLabelText('Ish')).toBeNull();
+});
