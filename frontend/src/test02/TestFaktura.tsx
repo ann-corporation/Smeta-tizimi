@@ -1,9 +1,13 @@
+import { moveRow, RowOrderControls } from '../components/row-order/RowOrderControls';
 import { useState, useEffect, useRef } from 'react';
 import { sbFakturalarOl, sbFakturaYoz, sbSkladgaYozish, sbT2ObyektlarOl, yangiOperationId, type T2Faktura, type T2Obyekt } from '../api/supabase';
 import { useFakturaAiParse } from '../api/hooks';
 import { FileText, CheckCircle2, PackagePlus, AlertCircle, Building2, FileUp, X, Save } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
+
+const invoiceRowKeys = new WeakMap<object, string>();
+function invoiceRowKey(row: object) { let key=invoiceRowKeys.get(row); if(!key){key=crypto.randomUUID();invoiceRowKeys.set(row,key);}return key; }
 
 export default function TestFaktura() {
   const { joriy } = useKompaniya();
@@ -325,8 +329,8 @@ export default function TestFaktura() {
                     <h3 className="text-sm font-bold text-zinc-300 mb-2 border-b border-white/10 pb-2">O'qilgan Tovarlar ({yangiFaktura.items?.length})</h3>
                     <div className="max-h-[30vh] overflow-y-auto custom-scrollbar pr-2 space-y-2">
                       {yangiFaktura.items?.map((it, idx) => (
-                        <div key={idx} className="bg-white/5 p-2 rounded flex items-center justify-between gap-4 border border-transparent hover:border-white/10">
-                          <span className="text-sm font-medium flex-1 truncate" title={it.nomi}>{it.nomi}</span>
+                        <div key={invoiceRowKey(it)} className="bg-white/5 p-2 rounded flex items-center justify-between gap-4 border border-transparent hover:border-white/10">
+                          <RowOrderControls index={idx} count={yangiFaktura.items?.length ?? 0} label={it.nomi} onMove={to=>setYangiFaktura(current=>current ? {...current, items:moveRow(current.items ?? [],idx,to)} : current)} /><span className="text-sm font-medium flex-1 truncate" title={it.nomi}>{it.nomi}</span>
                           <span className="text-xs bg-black/40 px-2 py-1 rounded text-sky-300 font-mono">
                             {it.miqdori} {it.birligi} x {it.narxi?.toLocaleString('ru-RU')}
                           </span>

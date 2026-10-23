@@ -41,7 +41,10 @@
         "frontend/src/i18n/lugat/en.json",
         "ops/mailbox/INBOX.md",
         "frontend/src/lib/smeta-studio/quantity-input.ts",
-        "frontend/src/lib/smeta-studio/quantity-input.test.ts"
+        "frontend/src/lib/smeta-studio/quantity-input.test.ts",
+        "frontend/src/components/row-order/",
+        "frontend/src/test02/TestFaktura.tsx",
+        "docs/architecture/ROW_ORDER_CONTROL.md"
       ],
       "depends_on": [],
       "must_read": [
