@@ -146,6 +146,27 @@ describe('varaq anatomiyasi', () => {
     expect(v.review.filter((r) => r.kod === 'noaniq_qator')).toEqual([]);
   });
 
+  it('«РАЗДЕЛ: …» tartib (A) va shifr (B) ustunida ham razdel — ish emas (sintetik, F2 shakli)', () => {
+    const rows: Katak[][] = [
+      ['Подрядчик: ООО "ТЕСТ"'],
+      ['АКТ'],
+      ['№№', 'ОБОСНОВАНИЕ', 'НАИМЕНОВАНИЕ РАБОТ И РЕСУРСОВ', 'ЕД.ИЗМ', 'КОЛ-ВО', null, 'Сметная стоимость', null],
+      [null, null, null, null, 'НА ЕДИНИЦУ', 'ПО ПРОЕКТУ', 'на.ед.изм.', 'общая'],
+      [1, 2, 3, 4, 5, 6, 7, 8],
+      ['РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ТЕСТ)', null, null, null, null, null, null, 0],
+      [1, 'E1-1-195-20', 'РАЗРАБОТКА ГРУНТА', '1000М3', 4.1, null, null, 1000],
+      [1.1, '000001', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'ЧЕЛ-Ч', 5.02, 20.6, 24517.7, 500],
+      [1, 'РАЗДЕЛ: ФУНДАМЕНТЫ (ЛИСТ КР-5)', null, null, null, null, null, null],
+      [11, 'E6-1-1-1', 'УСТРОЙСТВО БЕТОННОЙ ПОДГОТОВКИ', '100М3', 0.041, null, null, 2000],
+      [11.1, '000001', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'ЧЕЛ-Ч', 180, 7.38, 24517.7, 800],
+    ];
+    const v = kitobAnatomiyasi({ fayl: 'f2.xlsx', varaqlar: [{ nom: 'ф2 (ТЕСТ)', rows }] }).varaqlar[0];
+    expect(v.sarlavhalar.map((s) => s.xom)).toEqual(['РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ТЕСТ)', 'РАЗДЕЛ: ФУНДАМЕНТЫ (ЛИСТ КР-5)']);
+    expect(v.ishlar.map((i) => i.xom)).toEqual(['РАЗРАБОТКА ГРУНТА', 'УСТРОЙСТВО БЕТОННОЙ ПОДГОТОВКИ']);
+    expect(v.ishlar.map((i) => i.sarlavha)).toEqual([v.sarlavhalar[0].id, v.sarlavhalar[1].id]);
+    expect(v.review.filter((r) => r.kod === 'noaniq_qator')).toEqual([]);
+  });
+
   it('T1 LRV_PLUS: selected nom ustuni bo\'sh bo\'lsa, aniq RZ markeridan oldingi nomni olib ichma-ich yo\'lni saqlaydi', () => {
     const v = kitobAnatomiyasi({ fayl: 'lrv-plus.xlsx', varaqlar: [{ nom: 'LRV', rows: T1_LRV_PLUS_RZ }] }).varaqlar[0];
     expect(v.ustunlar?.nom).toBe(2);
