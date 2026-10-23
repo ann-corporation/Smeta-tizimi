@@ -34,6 +34,19 @@ function ol(row: readonly Katak[], i: number): Katak {
   return i >= 0 ? row[i] : null;
 }
 
+const RAZDEL_BELGISI = /^\s*РАЗДЕЛ\s*:\s*\S/i;
+/**
+ * «РАЗДЕЛ: …» sarlavhasi turgan ustun (tartib/shifr/nom) yoki -1. Faqat sarlavha qatori: birlik va hajm/narx yo'q,
+ * qatordagi boshqa kataklar faqat sonlar (tartib raqami, 0 summa) — aks holda bu oddiy ish/resurs qatori.
+ */
+function razdelBelgisiUstuni(row: readonly Katak[], u: UstunXaritasi, toliq: readonly number[]): number {
+  const ustun = [u.tartib, u.shifr, u.nom].find((c) => c >= 0 && typeof row[c] === 'string' && RAZDEL_BELGISI.test(row[c] as string));
+  if (ustun == null) return -1;
+  if (!bosh(ol(row, u.birlik))) return -1;
+  if ([u.hajmBirlikka, u.hajmLoyiha, u.narx].some((c) => c >= 0 && son(row[c]) != null)) return -1;
+  return toliq.every((i) => i === ustun || typeof row[i] === 'number' || butunTartib(row[i])) ? ustun : -1;
+}
+
 /** Tizim1/LRV_PLUS texnik "tur" ustuni qiymatlari (rz/bl/rs/mat/ob, "+" qo'shimcha, "~" zamena). */
 const TUR_BELGI = /^(rz|bl|rs|mat|ob)[+~]?$/i;
 type TexnikTur = 'rz' | 'bl' | 'rs' | 'mat' | 'ob';
@@ -539,6 +552,19 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       }
       joriyIsh = null;
       continue;
+    }
+
+    // «РАЗДЕЛ: …» — F2 da razdel sarlavhasi tartib (A), shifr (B) yoki nom ustunida turishi mumkin, tartib raqami (1) yoki
+    // summa (0) bilan birga. Ish emas, razdel (rz): sarlavha sifatida o'qiladi (korpus: Amfiteatr «ф2», 15- va 58-qatorlar).
+    if (rol === 'lrv' && !vedomostRejimi && !texnik) {
+      const rzUstun = razdelBelgisiUstuni(row, u, toliq);
+      if (rzUstun >= 0) {
+        let k = r + 1;
+        while (k < rows.length && !toliqUstunlar(rows[k] ?? []).length) k++;
+        iq.sarlavha(xom(row[rzUstun]), manzil(r, rzUstun), k < rows.length && sarlavhaShakli(rows[k] ?? []));
+        joriyIsh = null;
+        continue;
+      }
     }
 
     const tartibKatak = ol(row, u.tartib);
