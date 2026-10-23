@@ -2868,5 +2868,16 @@
   "Bekor qilib bo‘lmadi ({kod}).": "Could not cancel ({kod}).",
   "Import bekor qilindi.": "Import cancelled.",
   "Jamlar hisoblanmadi ({kod}). Keyinroq qayta urining.": "Totals were not recalculated ({kod}). Retry later.",
-  "Jamlar hisoblandi.": "Totals recalculated."
+  "Jamlar hisoblandi.": "Totals recalculated.",
+  "Boshqa F2 qoralamalarida band": "Reserved in other F-2 drafts",
+  "Boshqa F2 qoralamalarida band hajm (tasdiqlanmagan)": "Volume reserved in other F-2 drafts (not approved)",
+  "Bu varaq allaqachon kiritilgan": "This sheet has already been entered",
+  "Dublikat hajm nazorati": "Duplicate volume control",
+  "Oshdi": "Excess",
+  "Qoralamada": "In drafts",
+  "Qoralamalarda band": "Reserved in drafts",
+  "Shu F2": "This F-2",
+  "Smeta qatori": "Estimate row",
+  "Takror kiritish hajmni ikki marta yopadi.": "Entering it again would close the volume twice.",
+  "{n} ta qator smeta qoldig‘idan oshadi (ma’lumot uchun — yozish to‘xtatilmaydi).": "{n} rows exceed the estimate remainder (for information — writing is not blocked)."
 }

@@ -83,6 +83,8 @@ export interface F2V3WorkbenchProps {
   raw: Map<number, T2Qator>;
   /** smeta qator id → oldingi (tasdiqlangan) F2 hajmi. */
   oldingi: Map<number, number>;
+  /** smeta qator id → BOSHQA bekor qilinmagan F2 qoralamalaridagi hajm (dublikat qo'riqchi). */
+  band?: Map<number, number>;
   ij: IshJoyi;
   onIj: (next: IshJoyi) => void;
   onRzBog: (f2RzUid: string, smetaRzId: number) => void;
@@ -164,7 +166,7 @@ function SonUstunlari({ norma, miqdor, birlik, narx, oxirgi, oxirgiCls = '' }: {
  * tor oynada gorizontal aylantiriladi (Excel kabi), sarlavha yopishqoq.
  */
 const F2_GRID = 'f2-grid grid grid-cols-[26px_88px_minmax(180px,1fr)_56px_72px_52px_76px_96px_96px]';
-const S_GRID = 'smeta-grid grid grid-cols-[22px_88px_minmax(180px,1fr)_56px_72px_52px_76px_80px_100px]';
+const S_GRID = 'smeta-grid grid grid-cols-[22px_88px_minmax(180px,1fr)_56px_72px_52px_76px_76px_80px_100px]';
 /** Smeta bo'limi qatori: belgi · nom · amallar. */
 const S_RZ_GRID = 'grid grid-cols-[22px_minmax(180px,1fr)_auto]';
 const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
@@ -198,7 +200,7 @@ function JadvalSarlavha({ tur }: { tur: 'f2' | 'smeta' }) {
       {tur === 'f2' ? <span className={`${u} text-center`} title="Holat">●</span> : <span className={`${u} text-center`} title={tarj('Belgilash')}>☐</span>}
       <span className={u}>{t('Shifr / kod')}</span><span className={u}>{t('Nomi')}</span>
       <span className={`${u} text-right`}>{t('Norma')}</span><span className={`${u} text-right`}>{t('Miqdor')}</span><span className={u}>{t('Birlik')}</span>
-      <span className={`${u} text-right`}>Narx</span><span className={`${u} text-right`}>{tur === 'f2' ? 'Summa' : 'Qoldiq'}</span>
+      <span className={`${u} text-right`}>Narx</span>{tur === 'smeta' && <span className={`${u} text-right`} title={t('Boshqa F2 qoralamalarida band hajm (tasdiqlanmagan)')}>{t('Qoralamada')}</span>}<span className={`${u} text-right`}>{tur === 'f2' ? 'Summa' : 'Qoldiq'}</span>
       <span className={`${u} ${AMAL_YOPISHQOQ} bg-surface-2`}>Amal</span>
     </div>
   );
@@ -1098,7 +1100,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       );
     }
     const old = p.oldingi.get(s.id) ?? 0;
-    const qoldiq = s.hajm != null ? s.hajm - old - (band?.hajm ?? 0) : null;
+    const qoralamada = p.band?.get(s.id) ?? 0;
+    const qoldiq = s.hajm != null ? s.hajm - old - qoralamada - (band?.hajm ?? 0) : null;
     const ish = s.tur === 'bl';
     const tur = qatorTuri(s.id);
     const rang = QATOR_RANG[tur];
@@ -1128,6 +1131,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${SON} text-text`}>{fmt(s.hajm)}</span>
         <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{s.birlik ?? ''}</span>
         <span className={SON}>{s.narx ? fmt(s.narx, 2) : ''}</span>
+        <span className={`${SON} ${qoralamada ? 'text-warn' : 'text-text-mute'}`} title={qoralamada ? t('Boshqa F2 qoralamalarida band') : undefined}>{qoralamada ? fmt(qoralamada) : ''}</span>
         <span className={`${SON} ${qoldiq != null && s.hajm != null && oshibKetdimi(s.hajm, qoldiq) && Math.abs(qoldiq) > 1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {tTugun && (tBog
