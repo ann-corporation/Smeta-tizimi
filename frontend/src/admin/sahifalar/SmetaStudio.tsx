@@ -483,6 +483,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
   const unit = tanlangan ? katalog.unit(tanlangan.unitCode) : null;
   const sourceMeasure = 'sourceBasis' in katalog;
   const basis = detail ? catalogueBasis(katalog, detail.work.unitCode) : null;
+  const measureLabel = unit?.text ?? (sourceMeasure ? detail?.work.unitCode : null);
   return <div className="space-y-2">
     {tugun >= 0 && katalog.breadcrumb(tugun).some(n => n.status === 'GROUP') && <p role="status" className="text-sm text-warn">{t('Bu yozuvlarning nomlari saqlangan. Katalog bo‘limi topilmagan yoki bir nechta bo‘lim mos kelgan; shifr va manbani tekshiring.')}</p>}
     <nav aria-label={t('Katalog ierarxiyasi')} className="flex flex-wrap gap-1 text-sm">
@@ -518,7 +519,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
     {xato && <p role="alert" className="text-danger text-sm">{xato}</p>}
     {tanlangan && detail && <div className="border border-accent rounded p-2 space-y-2">
       <h3 className="font-semibold"><span className="font-mono text-accent">{detail.work.code}</span> · {detail.work.name}</h3>
-      <p className="text-sm">{t('O‘lchov birligi')}: {unit ? <b>{unit.text}</b> : sourceMeasure && detail.work.unitCode ? <b>{detail.work.unitCode}</b> : <span className="text-warn">{t('manbada aniqlanmagan — qo‘shgandan keyin asosni kiriting')}</span>}
+      <p className="text-sm">{t('O‘lchov birligi')}: {measureLabel ? <b>{measureLabel}</b> : <span className="text-warn">{t('manbada aniqlanmagan — qo‘shgandan keyin asosni kiriting')}</span>}
         {unit && <span className="text-xs text-text-mute"> · {t('real smetalarda {n} marta kuzatilgan', { n: unit.observations })}</span>}</p>
       {sourceMeasure && basis?.scale && basis.unitLabel && <p className="text-sm">{t('Norma masshtabi')}: <b>{basis.scale} {basis.unitLabel}</b></p>}
       {detail.recipeCount === 0 && <p role="status" className="text-sm text-warn">{t('Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.')}</p>}
