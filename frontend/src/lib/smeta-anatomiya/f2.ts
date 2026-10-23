@@ -12,6 +12,7 @@
  *     (ПЕРЕРАСЧЕТ) qatorlar — ochiq ogohlantirish, jim tuzatish YO'Q.
  */
 import { kitobAnatomiyasi } from './index';
+import { yaxlitAkt, yaxlitVaraqmi } from './f2-yaxlit';
 import { sarlavhaYoli } from './ierarxiya';
 import { kalit, son, xom } from './matn';
 import type { KirishKitob, KirishVaraq, Manzil, Resurs, VaraqAnatomiyasi } from './turlar';
@@ -152,11 +153,18 @@ function jamiTop(v: VaraqAnatomiyasi): F2Jami {
 
 /** Kitobdagi F2 akt varaq(lar)i: ishlari bor LRV shaklidagi varaqlar (СЧЁТ-ФАКТ, ОБЛОЖКА emas). */
 export function f2AktlarniOqi(kitob: KirishKitob): F2Akt[] {
-  const anat = kitobAnatomiyasi(kitob);
+  // «СПРАВКА-СЧЕТ-ФАКТУРА» (subpudrat yaxlit akti) varag'i umumiy LRV o'quvchiga berilmaydi — o'z o'quvchisi bor (T3).
+  const yaxlit = new Map<string, F2Akt>();
+  for (const v of kitob.varaqlar) { if (!yaxlitVaraqmi(v)) continue; const a = yaxlitAkt(kitob, v); if (a) yaxlit.set(v.nom, a); }
+  const anat = kitobAnatomiyasi(yaxlit.size ? { ...kitob, varaqlar: kitob.varaqlar.filter((v) => !yaxlit.has(v.nom)) } : kitob);
   // Ishsiz, faqat mustaqil qatorli akt varag'i ham F2 (masalan uskuna/shefmontaj varag'i — egasi 2026-10-23).
   const aktlar = anat.varaqlar.filter((v) => v.rol === 'lrv' && (v.ishlar.length > 0 || (v.mustaqilResurslar?.length ?? 0) > 0));
   // Ishsiz varaq faqat hujjatning o'z jami (ИТОГО ПРЯМЫЕ yoki ВСЕГО) bo'lsa akt — boshqa jadvallar (masalan счёт-фактура) F2 emas.
-  return aktlar.map((v) => aktQur(kitob, v)).filter((a) => a.ishlarSoni > 0 || a.jami.pryamye != null || a.jami.vsego != null);
+  const umumiy = aktlar.map((v) => aktQur(kitob, v)).filter((a) => a.ishlarSoni > 0 || a.jami.pryamye != null || a.jami.vsego != null);
+  if (!yaxlit.size) return umumiy;
+  // Varaq tartibi saqlanadi.
+  const tartib = new Map(kitob.varaqlar.map((v, i) => [v.nom, i]));
+  return [...umumiy, ...yaxlit.values()].sort((x, y) => (tartib.get(x.varaq) ?? 0) - (tartib.get(y.varaq) ?? 0));
 }
 
 function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
