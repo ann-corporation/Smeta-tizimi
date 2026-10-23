@@ -2868,5 +2868,16 @@
   "Bekor qilib bo‘lmadi ({kod}).": "Не удалось отменить ({kod}).",
   "Import bekor qilindi.": "Импорт отменён.",
   "Jamlar hisoblanmadi ({kod}). Keyinroq qayta urining.": "Итоги не пересчитаны ({kod}). Повторите позже.",
-  "Jamlar hisoblandi.": "Итоги пересчитаны."
+  "Jamlar hisoblandi.": "Итоги пересчитаны.",
+  "Boshqa F2 qoralamalarida band": "Занято в других черновиках Ф-2",
+  "Boshqa F2 qoralamalarida band hajm (tasdiqlanmagan)": "Объём, занятый в других черновиках Ф-2 (не утверждены)",
+  "Bu varaq allaqachon kiritilgan": "Этот лист уже внесён",
+  "Dublikat hajm nazorati": "Контроль дублирования объёмов",
+  "Oshdi": "Превышение",
+  "Qoralamada": "В черновиках",
+  "Qoralamalarda band": "Занято в черновиках",
+  "Shu F2": "Эта Ф-2",
+  "Smeta qatori": "Строка сметы",
+  "Takror kiritish hajmni ikki marta yopadi.": "Повторный ввод закроет объём дважды.",
+  "{n} ta qator smeta qoldig‘idan oshadi (ma’lumot uchun — yozish to‘xtatilmaydi).": "{n} строк превышают остаток по смете (для сведения — запись не блокируется)."
 }
