@@ -26,6 +26,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   qator_resurs_ish_zamena_v1: 'smeta.write',
   smeta_bolim_yarat_v1: 'smeta.write',
   shartnoma_saqla_v2: 'document.write',
+  sverka_yozuv_v1: 'financial.write',
   fayl_amal_v1: 'document.write',
   m29_bajar_v1: 'fakt.write',
   m29_bekor_v1: 'fakt.write',

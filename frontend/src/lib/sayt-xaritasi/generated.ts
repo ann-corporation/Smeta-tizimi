@@ -278,6 +278,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_shartnoma_saqla_v2"
     },
     {
+      "amal": "sverka_yozuv_v1",
+      "rpc": "t2_sverka_yozuv_v1"
+    },
+    {
       "amal": "fayl_amal_v1",
       "rpc": "t2_fayl_amal_v1"
     },

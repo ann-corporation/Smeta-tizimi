@@ -25,9 +25,10 @@ import { nomIzohBilan } from './smeta-model';
  */
 import type { NakopitelniyQator, SmetaNakrutka } from '../api/t2-nakopitelniy';
 import {
-  RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, ustunHarfi, yaxlit2,
+  RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, sumFormula, ustunHarfi, yaxlit2,
   type ImzoNomlar, type Qiymat, type RasmiyUstun,
 } from './hujjat-yozuvchi';
+import { shartnomaSvodi, somga, svodJami, sverkaHisobla, tiyin, type SvodShartnoma } from './nakopitelniy-svod';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import {
   NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari,
@@ -447,4 +448,140 @@ function fmt2(x: number): string {
 
 function fmt(x: number): string {
   return x.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
+}
+
+/* ═══════════ SHARTNOMA DARAJASI (2026-10-23, egasi: nakopitelniy va sverka tizimda) ═══════════
+ * Hisob — `nakopitelniy-svod.ts`. Varaqlar: «Свод по договорам», «Ф-2 по месяцам», «Акт сверки».
+ * F2 — tizimdagi tasdiqlangan aktlar (nakrutkasiz прямые затраты); реализация (Ф-3), оплата, договор — с НДС.
+ * Ikkala daraja ayirilmaydi — ustun sarlavhasida daraja yozilgan. */
+
+export type ShartnomaEksportOpsiya = { sana?: string; tashkilot?: string | null; imzo?: ImzoNomlar };
+
+const sanaRuS = (s: string | null | undefined) => (s ? s.slice(0, 10).split('-').reverse().join('.') : null);
+const shNomi = (sh: SvodShartnoma) => `Договор № ${sh.raqam}${sh.nom ? ` (${sh.nom})` : ''}`;
+const pulT = (t: number | null) => (t == null ? null : somga(t));
+
+const SVOD_USTUN: RasmiyUstun[] = [
+  { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+  { sarlavha: 'Договор', kenglik: 30, tur: 'matn' },
+  { sarlavha: 'Объекты', kenglik: 26, tur: 'matn' },
+  { sarlavha: 'Сумма договора с учётом ДС, с НДС', kenglik: 17, tur: 'pul' },
+  { sarlavha: 'Ф-2 утверждено, шт.', kenglik: 9, tur: 'birlik', guruh: 'ВЫПОЛНЕНИЕ (Ф-2)' },
+  { sarlavha: 'Ф-2, прямые затраты (без накруток и НДС)', kenglik: 18, tur: 'pul', guruh: 'ВЫПОЛНЕНИЕ (Ф-2)' },
+  { sarlavha: 'Реализация (Ф-3), с НДС', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: '% от договора', kenglik: 9, tur: 'foiz', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Оплачено заказчиком', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Сальдо (+ долг заказчика)', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Ф-3 сверх договора', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Ф-3 подписано, шт.', kenglik: 9, tur: 'birlik' },
+];
+
+const OY_USTUN: RasmiyUstun[] = [
+  { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+  { sarlavha: 'Договор', kenglik: 30, tur: 'matn' },
+  { sarlavha: 'Отчётный месяц', kenglik: 11, tur: 'birlik' },
+  { sarlavha: 'Ф-2, шт.', kenglik: 8, tur: 'birlik' },
+  { sarlavha: 'Ф-2 за месяц, прямые затраты', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'Нарастающим итогом', kenglik: 18, tur: 'pul' },
+];
+
+/** НАКОПИТЕЛЬНАЯ ВЕДОМОСТЬ ПО ДОГОВОРАМ: svod + Ф-2 oyma-oy. */
+export function shartnomaSvodXlsx(shartnomalar: readonly SvodShartnoma[], o: ShartnomaEksportOpsiya = {}): { bytes: Uint8Array; faylNomi: string } {
+  const sana = o.sana ?? bugunSana();
+  const svodlar = shartnomalar.map(shartnomaSvodi);
+  const v = new RasmiyVaraq({
+    nom: 'Свод по договорам', kattaHarf: false,
+    sarlavha: 'НАКОПИТЕЛЬНАЯ ВЕДОМОСТЬ ВЫПОЛНЕНИЯ И РАСЧЁТОВ ПО ДОГОВОРАМ',
+    ostSarlavha: [`по состоянию на ${sanaRuS(sana)}`, 'сум'],
+    titul: [['Организация:', o.tashkilot ?? null]],
+    ustunlar: SVOD_USTUN, yonalish: 'landscape',
+  });
+  const h = (i: number) => ustunHarfi(i);
+  const qatorlar: number[] = [];
+  svodlar.forEach((s, i) => {
+    const shT = s.joriy.summa == null ? null : tiyin(s.joriy.summa);
+    qatorlar.push(v.qator('oddiy', (r) => [
+      i + 1, shNomi(s.shartnoma), s.shartnoma.obyektlar.map((x) => x.nom).join(', ') || null,
+      pulT(shT), s.f2Soni, somga(s.f2), somga(s.f3),
+      shT ? { f: `IF(${h(3)}${r}=0,"",${h(6)}${r}/${h(3)}${r})`, v: s.f3 / shT, uslub: 'foiz' } : null,
+      somga(s.tolov),
+      { f: `${h(6)}${r}-${h(8)}${r}`, v: somga(s.qoldiq) },
+      s.f3Oshish != null && s.f3Oshish > 0 ? somga(s.f3Oshish) : null,
+      s.f3Imzolangan,
+    ]));
+  });
+  const j = svodJami(svodlar);
+  const jf = (c: number, val: number) => { const f = sumFormula(h(c), qatorlar); return f ? { f, v: yaxlit2(somga(val)) } : null; };
+  v.qator('jami', ['', 'ИТОГО', '', jf(3, j.shartnomaSumma), null, jf(5, j.f2), jf(6, j.f3), null, jf(8, j.tolov), jf(9, j.qoldiq), null, null]);
+  v.bosh();
+  v.izoh('Сальдо = реализация (Ф-3) − оплата; «+» — задолженность заказчика, «−» — неотработанный аванс. Ф-2 — прямые затраты по утверждённым актам системы (без накруток и НДС), с реализацией не сравниваются.');
+  const diqqat = svodlar.flatMap((s) => s.ogohlantirishlar.map((g) => ({ nom: `№ ${s.shartnoma.raqam}`, sabab: g.matn })));
+  if (diqqat.length) v.diqqat(diqqat);
+  v.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
+
+  const m = new RasmiyVaraq({
+    nom: 'Ф-2 по месяцам', kattaHarf: false,
+    sarlavha: 'НАКОПИТЕЛЬНАЯ ВЕДОМОСТЬ АКТОВ Ф-2 ПО МЕСЯЦАМ',
+    ostSarlavha: [`по состоянию на ${sanaRuS(sana)}`, 'прямые затраты, сум'],
+    ustunlar: OY_USTUN, yonalish: 'portrait',
+  });
+  let no = 0;
+  for (const s of svodlar) {
+    if (!s.f2Oylar.length) continue;
+    m.bolim(shNomi(s.shartnoma));
+    const ichki: number[] = [];
+    for (const oy of s.f2Oylar) {
+      const [y, mm] = oy.oy.split('-');
+      ichki.push(m.qator('oddiy', [++no, `№ ${s.shartnoma.raqam}`, mm ? `${mm}.${y}` : oy.oy, oy.soni, somga(oy.summa), somga(oy.nakopitel)]));
+    }
+    const f = sumFormula(ustunHarfi(4), ichki);
+    m.qator('jami', ['', `Итого по № ${s.shartnoma.raqam}`, '', s.f2Soni, f ? { f, v: yaxlit2(somga(s.f2)) } : null, null]);
+  }
+  m.bosh();
+  m.imzo(imzoTomonlari(['ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
+  const { bytes } = rasmiyKitob([v, m], { tur: 'nakopitelniy' });
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.tashkilot ?? 'ДОГОВОРЫ', hujjat: 'НАКОПИТЕЛЬНАЯ_ПО_ДОГОВОРАМ', davr: sana }) };
+}
+
+const SVERKA_USTUN: RasmiyUstun[] = [
+  { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+  { sarlavha: 'Дата', kenglik: 11, tur: 'birlik' },
+  { sarlavha: 'Документ', kenglik: 34, tur: 'matn' },
+  { sarlavha: 'Дебет (реализация)', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'Кредит (оплата)', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'Сальдо', kenglik: 18, tur: 'pul' },
+];
+
+/** АКТ СВЕРКИ ВЗАИМНЫХ РАСЧЁТОВ (сличительная) по одному договору за период. */
+export function sverkaXlsx(sh: SvodShartnoma, o: ShartnomaEksportOpsiya & { dan?: string | null; gacha?: string | null } = {}): { bytes: Uint8Array; faylNomi: string } {
+  const sana = o.sana ?? bugunSana();
+  const s = sverkaHisobla(sh, { dan: o.dan, gacha: o.gacha });
+  const v = new RasmiyVaraq({
+    nom: 'Акт сверки', kattaHarf: false,
+    sarlavha: 'АКТ СВЕРКИ ВЗАИМНЫХ РАСЧЁТОВ',
+    ostSarlavha: [shNomi(sh), `${s.dan ? `с ${sanaRuS(s.dan)}` : 'с начала договора'} по ${sanaRuS(s.gacha ?? sana)}`],
+    titul: [['Организация:', o.tashkilot ?? null], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
+    ustunlar: SVERKA_USTUN, yonalish: 'portrait',
+  });
+  const h = (i: number) => ustunHarfi(i);
+  const bosh = v.qator('jami', ['', '', 'Сальдо начальное', null, null, somga(s.boshlangich)]);
+  const qatorlar: number[] = [];
+  let oldingi = bosh;
+  s.qatorlar.forEach((q, i) => {
+    const prev = oldingi;
+    const r = v.qator('oddiy', (rr) => [i + 1, sanaRuS(q.sana), q.hujjat, q.debet ? somga(q.debet) : null, q.kredit ? somga(q.kredit) : null,
+      { f: `${h(5)}${prev}+N(${h(3)}${rr})-N(${h(4)}${rr})`, v: somga(q.qoldiq) }]);
+    qatorlar.push(r); oldingi = r;
+  });
+  const fd = sumFormula(h(3), qatorlar), fk = sumFormula(h(4), qatorlar);
+  const ob = v.qator('jami', ['', '', 'Обороты за период', fd ? { f: fd, v: somga(s.debetJami) } : 0, fk ? { f: fk, v: somga(s.kreditJami) } : 0, null]);
+  v.qator('vsego', ['', '', 'Сальдо конечное', null, null, { f: `${h(5)}${bosh}+${h(3)}${ob}-${h(4)}${ob}`, v: somga(s.yakuniy) }]);
+  v.bosh();
+  const yak = Math.abs(somga(s.yakuniy)).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+  v.izoh(s.yakuniy >= 0
+    ? `На ${sanaRuS(s.gacha ?? sana)} задолженность заказчика перед подрядчиком: ${yak} сум.`
+    : `На ${sanaRuS(s.gacha ?? sana)} задолженность подрядчика (неотработанный аванс): ${yak} сум.`);
+  v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
+  const { bytes } = rasmiyKitob([v], { tur: 'slichitelniy' });
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: 'АКТ_СВЕРКИ', davr: s.gacha ?? sana }) };
 }
