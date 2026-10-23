@@ -30,7 +30,7 @@ import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
   NARX_MANBA_NOMI, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, narxsizNomzodlar, ulushHajm,
-  type F2Bolim, type F2Ish, type F2Kiritma, type F2Qator, type F2Resurs,
+  type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs,
 } from '../../lib/f2-tayyor';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
@@ -58,6 +58,8 @@ export function F2TayyorlashNative() {
   /** Протокол согласования цен qatorlari (tasdiqlangan — kuchga kirgan oydan narx ustuvor). */
   const [protokolQ, setProtokolQ] = useState<NarxProtokolQator[]>([]);
   const [k, setK] = useState<F2Kiritma>(bosKiritma);
+  /** Hajm manbai: operator tanlamaguncha — obyektda fakt qoldig'i bo'lsa `fakt`, bo'lmasa `smeta` (faktsiz F2). */
+  const [manbaTanlov, setManbaTanlov] = useState<F2Manba | null>(null);
   const [oy, setOy] = useState(oyBoshlanishi());
   const [raqam, setRaqam] = useState('');
   const [qidir, setQidir] = useState('');
@@ -93,7 +95,7 @@ export function F2TayyorlashNative() {
       if (!dolzarb()) return;
       if (!d.ok || !h.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
       setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
-      setK(bosKiritma()); setBolimId(undefined);
+      setK(bosKiritma()); setBolimId(undefined); setManbaTanlov(null);
       operationId.current = yangiOperationId();
     } catch { if (dolzarb()) { setRows([]); setHolat([]); setError('F2 uchun ma’lumotlar o‘qilmadi. Qayta urinib ko‘ring.'); } }
     finally { if (dolzarb()) setLoading(false); }
@@ -116,7 +118,8 @@ export function F2TayyorlashNative() {
   }, [joriy?.id, obyektId, validId]);
 
   const protokolNarx = useMemo(() => amaldagiProtokolNarxlari(protokolQ, oy), [protokolQ, oy]);
-  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx), [rows, holat, protokolNarx]);
+  const manba: F2Manba = manbaTanlov ?? (holat.some((h) => Number(h.f2_mumkin_hajm) > 0) ? 'fakt' : 'smeta');
+  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba), [rows, holat, protokolNarx, manba]);
   const qatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
   const byId = useMemo(() => new Map(qatorlar.map((x) => [x.id, x])), [qatorlar]);
@@ -266,7 +269,7 @@ export function F2TayyorlashNative() {
               {aosrsizId.has(i.id) && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">yashirin · АОСР yo‘q</span>}</div>
             <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · oldin olingan <FmtN val={i.olingan} />{i.smeta != null && <> · smeta <FmtN val={i.smeta} /></>} · {i.resurslar.length} resurs</div>
           </div>
-          {i.mumkin > 0 && <>
+          {(i.erkin || i.mumkin > 0) && <>
             <input aria-label={`F2 hajmi: ${i.nom}`} inputMode="decimal" value={k.hajm[i.id] ?? ''} onChange={(e) => yoz('hajm', i.id, e.target.value)} placeholder="hajm" className={`${kirit} w-24`} />
             {[25, 50, 100].map((f) => <button key={f} type="button" onClick={() => yoz('hajm', i.id, ulushHajm(i.mumkin, f))} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-text-dim hover:border-accent hover:text-text">{f}%</button>)}
           </>}
@@ -305,6 +308,9 @@ export function F2TayyorlashNative() {
         </label>
         <label className="text-[12px] font-medium text-text">Davr<input aria-label="F2 davri" type="month" value={oy.slice(0, 7)} onChange={(event) => setOy(`${event.target.value}-01`)} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
         <label className="text-[12px] font-medium text-text">F2 raqami<input aria-label="F2 raqami" value={raqam} onChange={(e) => setRaqam(e.target.value)} placeholder="masalan 7" className="mt-1.5 block w-28 rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
+        {validId && !loading && holat.length > 0 && <div role="group" aria-label={t('Hajm manbai')} className="text-[12px] font-medium text-text">{t('Hajm manbai')}
+          <div className="mt-1.5 flex overflow-hidden rounded-lg border border-border">{(['fakt', 'smeta'] as const).map((m) => <button key={m} type="button" aria-pressed={manba === m} onClick={() => { setManbaTanlov(m); setK(bosKiritma()); }}
+            className={`px-3 py-2 ${manba === m ? 'bg-accent/15 text-text' : 'bg-surface-2 text-text-dim hover:text-text'}`}>{m === 'fakt' ? t('Fakt') : t('Smeta qoldig‘i')}</button>)}</div></div>}
         {validId && bolimlar.length > 0 && <label className="relative min-w-[200px] text-[12px] font-medium text-text">Qidirish
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder="ish, resurs, kod…" className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}

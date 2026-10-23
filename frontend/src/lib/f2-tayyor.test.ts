@@ -83,6 +83,30 @@ describe('F2 tayyorlash mantig‘i', () => {
     expect(f2Jami(r).xato).toBe(0);
   });
 
+  it('faktsiz rejim: chegara = smeta qoldig‘i; fakt yo‘q bo‘lsa ham F2 yasaladi; oshsa faqat ogohlantirish (blok yo‘q)', () => {
+    // Fakt umuman yo'q: f2_mumkin_hajm 0, lekin smeta hajmi bor.
+    const faktsiz: F2Holat[] = [
+      { qator_id: 2, f2_mumkin_hajm: 0, f2_hajm: 4, smeta_hajm: 10 }, { qator_id: 8, f2_mumkin_hajm: 0, f2_hajm: 0, smeta_hajm: 5 },
+      { qator_id: 6, f2_mumkin_hajm: 0, f2_hajm: 0, smeta_hajm: 1 }, { qator_id: 7, f2_mumkin_hajm: 0, f2_hajm: 0, smeta_hajm: 40 },
+    ];
+    expect(f2Qur(rows, faktsiz)).toEqual([]); // fakt rejimi: hech narsa yo'q
+    const b = f2Qur(rows, faktsiz, undefined, 'smeta');
+    expect(b[0].ishlar.map((x) => [x.id, x.mumkin, x.erkin])).toEqual([[2, 6, true], [8, 5, true]]);
+    expect(b[0].alohida.map((r) => [r.id, r.mumkin])).toEqual([[7, 40]]);
+    const ok = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '6' }, narxsiz: { 4: true } }));
+    expect(ok.find((x) => x.id === 2)?.xato).toBeUndefined();
+    expect(ok.find((x) => x.id === 3)).toMatchObject({ hajm: 12, narx: 25000, summa: 300000 }); // resurs: norma × ish, qirqilmaydi
+    // Smeta qoldig'idan oshirib kiritish — blok emas, ogohlantirish.
+    const osh = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '9' }, narxsiz: { 4: true } }));
+    expect(osh.find((x) => x.id === 2)).toMatchObject({ hajm: 9, ogoh: 'SMETADAN_OSHDI' });
+    expect(osh.find((x) => x.id === 2)?.xato).toBeUndefined();
+    expect(osh.find((x) => x.id === 3)).toMatchObject({ hajm: 18, ogoh: 'SMETADAN_OSHDI' });
+    expect(f2Jami(osh).xato).toBe(0);
+    // Smeta qoldig'i tugagan ish ham ko'rinadi (qo'shimcha hajm kiritish mumkin).
+    const tugagan = f2Qur(rows, faktsiz.map((h) => (h.qator_id === 2 ? { ...h, f2_hajm: 10 } : h)), undefined, 'smeta');
+    expect(tugagan[0].ishlar.find((x) => x.id === 2)).toMatchObject({ mumkin: 0, erkin: true });
+  });
+
   it('server yuki: ish narxsiz, resurs hujjat narxi bilan, manba — hujjat raqami', () => {
     const b = f2Qur(rows, holat);
     const y = f2Yuk(f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '6' }, narxsiz: { 4: true } })), '12');
