@@ -70,7 +70,19 @@ export function normBir(s: unknown): string {
     .replace(/¹/g, '1')
     .replace(/Ё/g, 'Е')
     .replace(/[\s.,\-/]+/g, '');
-  return lat2Cyr(raw);
+  return birSinonim(lat2Cyr(raw));
+}
+
+/**
+ * Birlik sinonimlari (egasi 2026-10-23): «К-Т» ≡ «КОМП-Т» ≡ «КОМПЛ» ≡ «КОМПЛЕКТ» (ko'paytuvchi bilan ham: «100 КОМПЛ»);
+ * hajm birligidagi izoh so'zi tashlanadi: «100 М3 БЕТОНА» ≡ «100М3», «100 М2 ПОВЕРХНОСТИ» ≡ «100М2»
+ * (Tizim1 F2 import qoidasi, F2_IMPORT_V3 §1.2). Kiruvchi qiymat bo'shliq/tinish belgisisiz.
+ */
+function birSinonim(b: string): string {
+  const k = b.match(/^(\d*)(КТ|КОМПТ|КОМПЛ|КОМПЛЕКТ|КОМПЛЕКТА|КОМПЛЕКТОВ)$/);
+  if (k) return k[1] + 'КОМПЛ';
+  const q = b.match(/^(\d*М[23])([А-Я]{3,})$/);
+  return q ? q[1] : b;
 }
 
 /**

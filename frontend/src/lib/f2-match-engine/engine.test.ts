@@ -34,6 +34,14 @@ describe('normalizers (parity with f2MoslashSelfTest normalizer block)', () => {
   test('normBir m3', () => {
     expect(normBir('М³')).toBe('М3');
   });
+  test('normBir sinonimlar: komplekt va hajm birligidagi izoh so‘zi', () => {
+    for (const b of ['К-Т', 'КОМП-Т', 'КОМПЛ', 'КОМПЛЕКТ', 'компл.']) expect(normBir(b)).toBe('КОМПЛ');
+    expect(normBir('100 КОМПЛ')).toBe('100КОМПЛ');
+    expect(normBir('100 М3 БЕТОНА')).toBe(normBir('100М3'));
+    expect(normBir('100 М2 ПОВЕРХНОСТИ')).toBe('100М2');
+    expect(normBir('МАШ.-Ч')).toBe('МАШЧ');
+    expect(normBir('М')).not.toBe(normBir('МАШ-Ч'));
+  });
   test('normRz qavs', () => {
     expect(normRz('РАЗДЕЛ: ФУНДАМЕНТЫ (ЛИСТ КР-5)')).toBe('ФУНДАМЕНТЫ');
   });

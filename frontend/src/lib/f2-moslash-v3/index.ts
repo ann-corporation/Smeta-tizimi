@@ -549,6 +549,24 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     // Egasi sinovi 2026-09-28: F2 razdeli smetadagi razdelga ANIQ bog'langan-u, shu razdel ichida
     // nomzod yo'q — boshqa razdeldan (masalan fasad paroizolyatsiyasiga POL paroizolyatsiyasi)
     // taklif BERILMAYDI: bu zamena yoki qo'shimcha ish. Tashqi nomzodlar faqat variant sifatida.
+    // Bitta istisno (egasi 2026-10-23, prod sinovi): butun smetada shifr-kanoni (E6-1-1-1 ≡ Е0601-001-01) + nomi + birligi
+    // aynan bir xil YAGONA qator bo'lsa — u boshqa razdelda bo'lsa ham ◐ taklif (avto ✓ emas, operator tasdiqlaydi).
+    // Egizak (2+) bo'lsa qaysi ekani ma'lumotdan ajralmaydi — oldingidek ✕ va variantlar.
+    // Faqat F2 razdeli smeta razdeliga ULANGAN holatda; ulanmagan (unresolved) bo'limda — avval bo'limni ulash (kontrakt).
+    if (d.holat === 'scoped' && d.rzlar && !ichida.length) {
+      const fKan = kodKanon(f.kod), fNom = normNom(f.nom);
+      const kuchli = hovuz.filter((t) => !!fKan && t.kKanon === fKan && normNom(t.nom) === fNom && birMos(f.birlik, t.birlik) && f2TuriMos(f, t));
+      // Egizaklar (bir nechta aynan qator): F2 hajmi faqat bittasining qoldig'iga sig'sa — o'sha; aks holda ✕ (variantlar).
+      const sigar = kuchli.length > 1 && f.hajm != null
+        ? kuchli.filter((t) => { const c = opts.qoldiq?.get(t.id) ?? t.hajm; return c != null && sigadimi(f.hajm!, c); }) : kuchli;
+      if (sigar.length === 1) {
+        const t = sigar[0];
+        const rzNomi = t.yol.split(' › ').pop() ?? '';
+        yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: t.id, usul: 'boshqa_razdel', nomzodlar: nz,
+          sabab: `shifr, nom va birlik aynan — lekin smetaning boshqa razdelida («${rzNomi}»)${kuchli.length > 1 ? `; ${kuchli.length} ta aynan qatordan F2 hajmi faqat shunga sig'adi` : '; yagona nomzod'} — tasdiqlang` });
+        return t;
+      }
+    }
     if (d.rzlar && !ichida.length) {
       const rzNom = d.rzlar.map((r) => r.nom).filter(Boolean).join(' / ');
       yoz(f.uid, { uid: f.uid, holat: 'topilmadi', qatorId: null, nomzodlar: nz,
@@ -626,6 +644,20 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const izoh = b2 && b1.ball - b2.ball < AVTO_FARQ ? `2 ta nomzod yaqin (${b1.ball} va ${b2.ball})` : `${b1.ball} ball`;
       yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: b1.qatorId, usul: 'ball', nomzodlar: nz, sabab: `${izoh}: ${b1.sabab.join(', ')} — tasdiqlang` });
       return S.byId.get(b1.qatorId)!;
+    }
+    // ZAMENA NOMZODI (egasi 2026-10-23): o'sha razdelda nomi faqat raqamlarda farq qiladigan (masofa 11 km ↔ 20 km,
+    // o'lcham), birligi va hajmi teng YAGONA qator — parametri o'zgargan o'sha ish. ◐ taklif, ✕ emas.
+    if (ichida.length && f.hajm != null) {
+      const harfsiz = (s: unknown) => normNom(String(s ?? '').replace(/\d+([.,]\d+)?/g, ' '));
+      const fH = harfsiz(f.nom);
+      const z = ichida.filter((t) => fH.length >= 10 && harfsiz(t.nom) === fH && normNom(t.nom) !== normNom(f.nom)
+        && !gradeFarq(f.nom, t.nom) && birMos(f.birlik, t.birlik)
+        && t.hajm != null && Math.abs(t.hajm - f.hajm!) <= Math.max(1e-9, Math.abs(t.hajm) * 0.005));
+      if (z.length === 1) {
+        yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: z[0].id, usul: 'zamena_nomzod', nomzodlar: nz,
+          sabab: `nomi faqat raqamlarda farq qiladi («${String(z[0].nom ?? '').slice(0, 60)}»), birlik va hajm teng — parametr (masofa/o‘lcham) o‘zgargan: zamena sifatida tasdiqlang` });
+        return z[0];
+      }
     }
     const sab = !nz.length ? 'smetada mos shifr/nom yo‘q — qo‘shimcha ish yoki zamena'
       : !toza(nz[0]) ? `eng yaqin nomzod: ${nz[0].sabab.filter((s) => s.includes('✗') || s.includes('farqli')).join(', ')} — qo‘lda tekshiring (zamena bo‘lishi mumkin)`
