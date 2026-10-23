@@ -50,3 +50,23 @@ it('retains price observations and applies one verified source only after the es
  fireEvent.click(radios[1]);const button=screen.getByRole('button',{name:'Tanlangan manba narxini qo‘llash'});expect((button as HTMLButtonElement).disabled).toBe(true);fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(button);
  expect(apply).toHaveBeenCalledWith('g',expect.objectContaining({narx:110,manbalar:[known]}));await vi.waitFor(()=>expect(researchStore.get('scope')).toEqual({}));
 });
+
+it('worksheet order uses full siblings under filtering and undo restores the original sequence',()=>{
+ let doc=fixture();doc=applyCommand(doc,{type:'ADD_OCCURRENCE',occurrenceId:'w2',sectionId:'s',source:{catalogRevision:'r',workId:'b',code:'E06-02',name:'Second',unitCode:'M3',tableLabel:null},recipe:[],basis:{scale:'100',unitLabel:'м3',origin:'OBSERVED',evidence:'norm'},quantity:null});
+ let history=historyOf(doc);const command=vi.fn(c=>{history=dispatch(history,c);return true;});
+ render(<WorkSheet doc={doc} calculation={calcDoc(doc)} command={command} onWork={()=>{}} renderDetails={()=>null}/>);
+ fireEvent.change(screen.getByLabelText('Jadvaldan qidirish'),{target:{value:'E06-02'}});
+ fireEvent.click(screen.getByRole('button',{name:'Yuqoriga: E06-02'}));
+ expect(history.present.sections.s.items).toEqual(['w2','w']);
+ expect(undo(history).present.sections.s.items).toEqual(['w','w2']);
+ expect(history.present.occurrences.w2.source.code).toBe('E06-02');
+});
+
+it('moves selected works together preserving their relative order and supports undo',()=>{
+ let doc=fixture();for(const [id,code] of [['b','B'],['c','C'],['d','D']])doc=applyCommand(doc,{type:'ADD_OCCURRENCE',occurrenceId:id,sectionId:'s',source:{catalogRevision:'r',workId:id,code,name:id,unitCode:'M3',tableLabel:null},recipe:[],basis:{scale:'100',unitLabel:'м3',origin:'OBSERVED',evidence:'norm'},quantity:null});
+ let history=historyOf(doc);const command=vi.fn(c=>{history=dispatch(history,c);return true;});
+ render(<WorkSheet doc={doc} calculation={calcDoc(doc)} command={command} onWork={()=>{}} renderDetails={()=>null}/>);
+ fireEvent.click(screen.getByLabelText('Tanlash: E06-01'));fireEvent.click(screen.getByLabelText('Tanlash: C'));
+ fireEvent.click(screen.getByRole('button',{name:'Tanlanganlarni bo‘lim oxiriga'}));
+ expect(history.present.sections.s.items).toEqual(['b','d','w','c']);expect(undo(history).present.sections.s.items).toEqual(['w','b','c','d']);
+});

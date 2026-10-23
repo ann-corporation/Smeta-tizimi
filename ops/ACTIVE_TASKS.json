@@ -7,7 +7,7 @@
       "title": "Studio workspace: shared AI/manual commands, contextual coefficients, review and recoverable drafts",
       "owner": "codex",
       "machine": "Anvar",
-      "branch": "codex/studio-workspace-v2-20261022",
+      "branch": "codex/row-order-control-20261023",
       "base_sha": "7a734d6c520fa8c1ed8fcd5113cbc1e2eed1ff45",
       "status": "ready_for_review",
       "owns": [
@@ -41,7 +41,10 @@
         "frontend/src/i18n/lugat/en.json",
         "ops/mailbox/INBOX.md",
         "frontend/src/lib/smeta-studio/quantity-input.ts",
-        "frontend/src/lib/smeta-studio/quantity-input.test.ts"
+        "frontend/src/lib/smeta-studio/quantity-input.test.ts",
+        "frontend/src/components/row-order/",
+        "frontend/src/test02/TestFaktura.tsx",
+        "docs/architecture/ROW_ORDER_CONTROL.md"
       ],
       "depends_on": [],
       "must_read": [
@@ -52,7 +55,7 @@
         "docs/architecture/SMETA_STUDIO_WORKSPACE_V2.md"
       ],
       "production_write_allowed": false,
-      "note": "2026-10-23 owner rejected released layout as inconvenient and requested a radical 2/3-panel workbench. Codex owns Studio layout/worksheet/inspector styling within existing leases; no core calculation, DB, billing or other-agent paths changed. Main baseline12a5ce6f. Prior release evidence in mailbox08. Implementation complete. Source reviewer PASS after fixing coefficient scope and two keyboard P2 issues. Focused interactions14PASS, keyboard2PASS, i18n3PASS; final build/full and remote CI recorded separately. Owner release authorization remains active."
+      "note": "2026-10-23 owner rejected released layout as inconvenient and requested a radical 2/3-panel workbench. Codex owns Studio layout/worksheet/inspector styling within existing leases; no core calculation, DB, billing or other-agent paths changed. Main baseline12a5ce6f. Prior release evidence in mailbox08. Implementation complete. Source reviewer PASS after fixing coefficient scope and two keyboard P2 issues. Focused interactions14PASS, keyboard2PASS, i18n3PASS; final build/full and remote CI recorded separately. Owner release authorization remains active. 2026-10-23 owner explicitly requests final main deploy. Row-order controls: Studio works/sections, grouped same-parent move preserving selected order and undo, invoice draft rows, first/last and Alt keyboard, i18n. Other-agent editor leases remain untouched; global rollout is not complete."
     },
     {
       "id": "T2-ROLES-CONTROL-20261017",

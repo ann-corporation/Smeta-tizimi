@@ -2811,5 +2811,15 @@
   "Shu obyekt, oy va raqam uchun F2 qoralama bor. «F2 ni yozish» uning BARCHA qatorlarini shu fayl bilan almashtiradi.": "Для этого объекта, месяца и номера уже есть черновик Ф-2. «Записать Ф-2» заменит ВСЕ его строки этим файлом.",
   "Bu boshqa F2 bo‘lsa — yuqorida uning o‘z raqamini kiriting: yangi akt alohida yaratiladi, mavjud qoralama tegilmaydi.": "Если это другая Ф-2 — укажите выше её номер: будет создан отдельный акт, существующий черновик не изменится.",
   "Ha, qoralama #{id} qatorlarini shu fayl bilan almashtirish": "Да, заменить строки черновика #{id} этим файлом",
-  "Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.": "Замена черновика Ф-2 с этим номером не подтверждена. Если это другая Ф-2, укажите её номер."
+  "Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.": "Замена черновика Ф-2 с этим номером не подтверждена. Если это другая Ф-2, укажите её номер.",
+  "Tanlanganlarni bo‘lim boshiga": "Выбранные в начало раздела",
+  "Tanlanganlarni bo‘lim oxiriga": "Выбранные в конец раздела",
+  "Qator tartibi: {n}": "Порядок строки: {n}",
+  "Boshiga: {n}": "В начало: {n}",
+  "Yuqoriga: {n}": "Выше: {n}",
+  "Tartib raqami: {n}": "Позиция: {n}",
+  "Joyiga ko‘chirish: {n}": "Переместить в позицию: {n}",
+  "Pastga: {n}": "Ниже: {n}",
+  "Oxiriga: {n}": "В конец: {n}",
+  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Порядок внутри списка. Alt+↑/↓; Alt+Home/End"
 }

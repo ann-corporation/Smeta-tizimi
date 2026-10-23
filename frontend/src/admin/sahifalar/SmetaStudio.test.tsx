@@ -271,7 +271,8 @@ it('keeps the worksheet visible while selecting works and preserves an unsaved i
  fireEvent.change(quantity,{target:{value:'4'}});fireEvent.click(screen.getByRole('button',{name:/Smetaga qo‘shish/}));
  const table=screen.getByRole('region',{name:'Smeta ishlar jadvali'});
  const inspector=screen.getByRole('complementary',{name:'Tanlangan ish nazorati'});
- const rows=within(table).getAllByRole('button',{name:/E6-1-1/});
+ const rows=within(table).getAllByRole('button',{name:/^E6-1-1/});
+ expect(rows).toHaveLength(2);
  fireEvent.click(rows[1]);
  await waitFor(()=>expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('4'));
  expect(within(table).getByRole('table')).toBeTruthy();

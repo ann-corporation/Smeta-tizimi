@@ -2811,5 +2811,15 @@
   "Shu obyekt, oy va raqam uchun F2 qoralama bor. «F2 ni yozish» uning BARCHA qatorlarini shu fayl bilan almashtiradi.": "A draft F2 already exists for this object, month and number. “Write F2” will replace ALL of its lines with this file.",
   "Bu boshqa F2 bo‘lsa — yuqorida uning o‘z raqamini kiriting: yangi akt alohida yaratiladi, mavjud qoralama tegilmaydi.": "If this is a different F2, enter its own number above: a separate act is created and the existing draft is untouched.",
   "Ha, qoralama #{id} qatorlarini shu fayl bilan almashtirish": "Yes, replace the lines of draft #{id} with this file",
-  "Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.": "Replacing the F2 draft with this number is not confirmed. If this is a different F2, enter its number."
+  "Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.": "Replacing the F2 draft with this number is not confirmed. If this is a different F2, enter its number.",
+  "Tanlanganlarni bo‘lim boshiga": "Move selected to section start",
+  "Tanlanganlarni bo‘lim oxiriga": "Move selected to section end",
+  "Qator tartibi: {n}": "Row order: {n}",
+  "Boshiga: {n}": "Move to first: {n}",
+  "Yuqoriga: {n}": "Move up: {n}",
+  "Tartib raqami: {n}": "Position: {n}",
+  "Joyiga ko‘chirish: {n}": "Move to position: {n}",
+  "Pastga: {n}": "Move down: {n}",
+  "Oxiriga: {n}": "Move to last: {n}",
+  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Order within list. Alt+↑/↓; Alt+Home/End"
 }
