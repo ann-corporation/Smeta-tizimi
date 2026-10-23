@@ -2903,5 +2903,15 @@
   "Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.": "Ресурсный состав отсутствует — работу нельзя добавить в смету.",
   "Tahririy nom": "Редакционное название",
   "Ish turlari": "Виды работ",
-  "Bo‘lim nomlari ishlar mazmuni asosida tuzilgan.": "Названия разделов составлены по содержанию работ."
+  "Bo‘lim nomlari ishlar mazmuni asosida tuzilgan.": "Названия разделов составлены по содержанию работ.",
+  "F2 qoralamalari o‘qilmadi": "Черновики Ф-2 не прочитаны",
+  "varaq": "лист",
+  "yozilgan": "записан",
+  "Davom ettiriladigan F2 lar": "Незавершённые Ф-2",
+  "Ochiq F2 qoralamasi yo‘q.": "Открытых черновиков Ф-2 нет.",
+  "F2 №": "Ф-2 №",
+  "Bog‘langan": "Сопоставлено",
+  "O‘zgardi": "Изменён",
+  "Yozilganlarni yashirish": "Скрыть записанные",
+  "Yozilganlarni ko‘rsatish": "Показать записанные"
 }

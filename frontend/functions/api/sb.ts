@@ -220,6 +220,9 @@ export const onRequestPost: PagesFunction<{
            the function itself via job_id -> kompaniya_id, same law as above. */
         f2_import_job_holat_v1: 'job_actor',
         f2_import_draft_royxat_v1: 'job_actor',
+        /* Egasi 2026-10-24: «Davom ettiriladigan F2 lar» — kompaniya (ixtiyoriy obyekt) bo'yicha ochiq F2 qoralamalari.
+           `stable`, a'zolik + f2.read ichida. */
+        f2_import_job_royxat_v1: 'kompaniya_actor',
         /* T1->T2 PTO gap-close: NAKRUTKA (markup cascade) reads. Both RPCs
            are `stable`, membership-checked inside via
            t2_actor_kompaniya_azo_tekshir. */
@@ -338,6 +341,11 @@ export const onRequestPost: PagesFunction<{
           }
           q.set('p_shartnoma_id', String(sid));
         }
+      }
+      if (so.soro === 'f2_import_job_royxat_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {
+        const oid = Number(so.obyekt_id);
+        if (!Number.isInteger(oid) || oid <= 0) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
+        q.set('p_obyekt_id', String(oid));
       }
       if (so.soro === 'mindmap_grafi_v2') {
         const mode = String((so as any).mode || 'overview');
