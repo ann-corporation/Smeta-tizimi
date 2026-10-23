@@ -361,3 +361,28 @@ it('bitta F2 da o‘sha ish bir necha qism (smetada bitta qator) — takror qism
     expect(n.natijalar.get(fw.bolalar[2].uid)?.tavsiya).toMatchObject({ tur: 'qoshimcha' });
   });
 });
+
+describe('bir nomli ichma-ich razdellar (prod sinovi 2026-10-23, sun’iy)', () => {
+  it('F2 razdeli eng tashqi bir nomli smeta razdeliga ulanadi — ichki takroriy sarlavha butun F2 ni qamab qo‘ymaydi', () => {
+    const Q: SmetaQator[] = [];
+    let i = 1000;
+    const r = (nom: string, ota: number | null) => { const id = ++i; Q.push({ id, otaId: ota, tur: 'rz', kod: null, nom, birlik: null, hajm: null, tartib: id }); return id; };
+    const w = (ota: number, kod: string, nom: string, birlik: string, hajm: number) => { const id = ++i; Q.push({ id, otaId: ota, tur: 'bl', kod, nom, birlik, hajm, tartib: id }); return id; };
+    const fayl = r('Obyekt LRV.xlsx — LRV', null);
+    const obyekt = r('ОБЪЕКТ-А', fayl);
+    const qism = r('АР И КЖ', obyekt);
+    const zem = r('ЗЕМЛЯНЫЕ РАБОТЫ', qism);
+    const W = w(zem, 'X0101-001', 'РАЗРАБОТКА ГРУНТА', '1000М3', 3);
+    // Import qilingan smetada takroriy jadval sarlavhasi: ichida yana «ОБЪЕКТ-А» (boshqa bo'limlar uchun).
+    const ov = r('ОВ И ВК', obyekt);
+    const ichki = r('ОБЪЕКТ-А', ov);
+    w(r('ОВ', ichki), 'X2001-001', 'МОНТАЖ ТРУБ', 'М', 10);
+    const ns = r('ЭС ЭМ', obyekt);
+    r('ОБЪЕКТ-А', ns);
+    const fw = f('bl', 'X0101-001', 'РАЗРАБОТКА ГРУНТА', '1000М3', 1, ['ОБЪЕКТ-А', 'АР И КЖ', 'ЗЕМЛЯНЫЕ РАБОТЫ']);
+    const daraxt = [rzF('ОБЪЕКТ-А', [], [rzF('АР И КЖ', ['ОБЪЕКТ-А'], [rzF('ЗЕМЛЯНЫЕ РАБОТЫ', ['ОБЪЕКТ-А', 'АР И КЖ'], [fw])])])];
+    const n = f2MoslashV3(daraxt, Q);
+    expect(n.rzDiag.map((d) => d.smetaRzIdlar)).toEqual([[obyekt], [qism], [zem]]);
+    expect(n.natijalar.get(fw.uid)).toMatchObject({ holat: 'aniq', qatorId: W });
+  });
+});

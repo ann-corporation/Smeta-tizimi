@@ -243,6 +243,35 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     expect(act.anatomiya.review.filter((review) => review.kod === 'f2_podval_qatori')).toHaveLength(3);
     expect(act.anatomiya.review.filter((review) => review.kod === 'noaniq_qator')).toEqual([]);
   });
+
+  it('«СУМ» birlikli podval satrlari va nomsiz sonli yig‘indi satri ogohlantirishsiz o‘tadi (sun’iy, 2026-10-23)', () => {
+    const rows: Katak[][] = [
+      ['За май месяц 2026 года'],
+      ['№ п/п', 'Шифр', 'Наименование работ и затрат', 'Ед. изм.', 'Количество', 'Цена', 'Стоимость'],
+      [1, 2, 3, 4, 5, 6, 7],
+      ['ЗЕМЛЯНЫЕ РАБОТЫ'],
+      [1, 'W-1', 'РАЗРАБОТКА ГРУНТА', 'М3', 2, 6, 12],
+      [null, null, null, null, null, null, null, 12, 5, 7],
+      [null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, 12],
+      [null, null, 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ (В Т.Ч. СОЦСТРАХ 12%)', 'СУМ', null, 5],
+      [null, null, 'МАТЕРИАЛЫ', 'СУМ', null, 7],
+      [null, null, 'КАБЕЛИ И ПРОВОДА', 'СУМ', null, 0],
+      [null, null, 'ИТОГО', 'СУМ', null, 12],
+      [null, null, 'ПРОЧИЕ ЗАТРАТЫ И РАСХОДЫ ПОДРЯДЧИКА 18%', 'СУМ', null, 2.16],
+      [null, null, 'ЗАТРАТЫ НА СТРАХОВАНИЕ ОБЪЕКТА 0,32%', 'СУМ', null, 0.05],
+      [null, null, 'КОЭФФИЦЕНТ РИСКА', 'СУМ'],
+      [null, null, 'НДС', 'СУМ', null, 1.46],
+      [null, null, 'ВСЕГО СТОИМОСТЬ СТРОИТЕЛЬСТВА', 'СУМ', null, 15.67],
+    ];
+    const [act] = f2AktlarniOqi({ fayl: 'podval.xlsx', varaqlar: [{ nom: 'LRV', rows }] });
+    expect(act.ishlarSoni).toBe(1);
+    expect(act.jami.pryamye).toBe(12);
+    expect(act.jami.vsego).toBe(15.67);
+    // Faqat hujjat jamilari (ИТОГО ПРЯМЫЕ, ВСЕГО) uchun ustun tekshiruvi qoladi; oraliq podval satrlari jim.
+    expect(act.anatomiya.review.filter((x) => x.kod !== 'f2_podval_qatori').map((x) => [x.kod, x.manzil?.qator]))
+      .toEqual([['jami_summa_ustun_fallback', 7], ['jami_summa_ustun_fallback', 16]]);
+    expect(act.anatomiya.review.filter((x) => x.kod === 'f2_podval_qatori').length).toBeGreaterThanOrEqual(7);
+  });
 });
 
 describe('shifrsiz va ota-ishsiz qatorlar (egasi 2026-10-23)', () => {

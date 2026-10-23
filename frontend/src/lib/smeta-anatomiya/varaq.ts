@@ -340,6 +340,13 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     return nom && nom.length >= 6 && !/^(ЕДИНИЦ|ПРОЕКТ|ОДНУ|1\s)/i.test(nom) ? nom : null;
   };
   const review = (kod: string, izoh: string, r?: number) => natija.review.push({ kod, izoh, ...(r != null ? { manzil: manzil(r) } : {}) });
+  /** F2 podvali (prod sinovi 2026-10-23): birligi «СУМ», № va shifrsiz hisob satri — ЗАТРАТЫ ТРУДА…, МАТЕРИАЛЫ,
+   *  ПРОЧИЕ … 18%, СТРАХОВАНИЕ, КОЭФФИЦИЕНТ РИСКА, НДС. Ish/resurs emas; summasi narx ustunida turadi (format odati). */
+  const sumPodvalmi = (row: readonly Katak[]) => rol === 'lrv' && !vedomostRejimi && /^СУМ\.?$/.test(kalit(ol(row, u.birlik)))
+    && bosh(ol(row, u.tartib)) && bosh(ol(row, u.shifr)) && !bosh(ol(row, u.nom));
+  /** Podvalning oraliq satri (ИТОГО, НДС, ЗАТРАТЫ…) — hujjat jamilari (ИТОГО ПРЯМЫЕ, ВСЕГО) EMAS: ular uchun
+   *  ustun/qiymat tekshiruvi ogohlantirishi saqlanadi, oraliq satrlar jim. */
+  const oraliqPodvalmi = (row: readonly Katak[]) => sumPodvalmi(row) && !/ПРЯМЫЕ|^ВСЕГО/.test(kalit(ol(row, u.nom)));
   const jamiQiymatiniOl = (row: readonly Katak[], r: number): { qiymat: number | null; ustun: number } => {
     const belgilangan = son(ol(row, u.summa));
     if (belgilangan != null) return { qiymat: belgilangan, ustun: u.summa };
@@ -353,12 +360,12 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
         ? [{ qiymat: cell, ustun }]
         : []);
     if (raqamli.length === 1) {
-      review('jami_summa_ustun_fallback', 'Hujjat jami summasi standart summa ustunida emas; yagona sonli qiymat olindi, manbadagi katakni tekshiring', r);
+      if (!oraliqPodvalmi(row)) review('jami_summa_ustun_fallback', 'Hujjat jami summasi standart summa ustunida emas; yagona sonli qiymat olindi, manbadagi katakni tekshiring', r);
       return raqamli[0];
     }
     if (raqamli.length > 1) {
       review('jami_summa_ustun_noaniq', 'Jami qatorida standart summa ustuni bo‘sh va bir nechta sonli qiymat bor; jami taxmin qilinmadi', r);
-    } else {
+    } else if (!oraliqPodvalmi(row)) {
       review('jami_summa_yoq', 'Jami qatorining standart summa katagida qiymat yo‘q; jami boshqa qatorlardan hisoblab to‘ldirilmadi', r);
     }
     return { qiymat: null, ustun: u.summa };
@@ -502,8 +509,14 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
       continue;
     }
 
-    if (F2_PODVAL_QATORI.test(bk)) {
+    if (F2_PODVAL_QATORI.test(bk) || sumPodvalmi(row)) {
       review('f2_podval_qatori', 'F2 hisob/podval satri; ish-resurs moslashiga qo‘shilmadi, manba faylda saqlandi', r);
+      continue;
+    }
+    // Ish ro'yxati tagidagi nomsiz, faqat sonlardan iborat yig'indi satri (ЧЕЛ | МАШ | МАТ | ОБ kategoriya jamlari) —
+    // ma'lumot emas; «tanilmagan qator» ogohlantirishi bermaydi.
+    if (rol === 'lrv' && !vedomostRejimi && bosh(ol(row, u.tartib)) && toliq.every((i) => typeof row[i] === 'number')) {
+      review('f2_podval_qatori', 'nomsiz yig‘indi satri (faqat sonlar) — ish-resurs moslashiga qo‘shilmadi', r);
       continue;
     }
 
