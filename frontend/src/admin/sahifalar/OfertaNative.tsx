@@ -369,7 +369,7 @@ function Sessiya() {
           <input aria-label="Pudratchi nomi" value={pudratchi} onChange={(e) => setPudratchi(e.target.value)} className="input mt-1 block h-8 w-full px-2 text-[12px]" placeholder="tashkilot, lavozim, F.I.O." />
         </label>
       </div>
-      <div className="rounded-lg border border-border/70 bg-surface-2 p-2 text-[11px] text-text-dim">
+      <div className="rounded-lg border border-border/70 bg-surface-2 p-2 text-xs text-text-dim">
         <div className="flex items-center gap-1.5 font-semibold text-text"><Info size={14} /> Ishlash qoidasi</div>
         <p className="mt-1">Asl fayl saqlanadi: tanlangan varaqlarda asl jadval davomida КОЛ-ВО / ЦЕНА / СУММА (оферта), podval foizlari manbadagidek, oxirida imzo. Bir xil material barcha varaq va obyektlarda bitta narx oladi. Yashirin (eski) varaqlar sukut bo‘yicha tanlanmaydi.</p>
       </div>
@@ -383,19 +383,19 @@ function Sessiya() {
       <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2">
         <span className="text-[13px] font-semibold text-text">{f.faylNomi}</span>
         <span className="flex items-center gap-2">
-          <span className="rounded bg-surface-2 px-2 py-1 text-[11px] text-text-dim">{f.tanlanganVaraqlar.length} ta varaq tanlangan</span>
-          <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={(e) => { e.preventDefault(); faylniOchir(f.id); }} aria-label={`${f.faylNomi} faylini olib tashlash`}><Trash2 size={12} /></button>
+          <span className="rounded bg-surface-2 px-2 py-1 text-xs text-text-dim">{f.tanlanganVaraqlar.length} ta varaq tanlangan</span>
+          <button type="button" className="tugma h-7 px-2 text-xs" onClick={(e) => { e.preventDefault(); faylniOchir(f.id); }} aria-label={`${f.faylNomi} faylini olib tashlash`}><Trash2 size={12} /></button>
         </span>
       </summary>
       {fayllar.length > 1 && <label className="mt-2 block text-[12px] font-medium text-text">Obyekt nomi
         <input aria-label={`${f.faylNomi} obyekt nomi`} value={f.nom} onChange={(e) => { const v = e.target.value; setFayllar((old) => old.map((x) => (x.id === f.id ? { ...x, nom: v } : x))); }} className="input mt-1 block h-8 w-full max-w-md px-2 text-[12px]" />
       </label>}
       <div className="mt-2 overflow-x-auto">
-        <table className="w-full min-w-[900px] text-[11px]">
+        <table className="w-full min-w-[900px] text-xs">
           <thead><tr className="border-b border-border text-left text-text-mute"><th className="py-2">Qo‘shish</th><th>Varaq</th><th>Rol</th><th>Format</th><th>Ishonch</th><th>Topilmalar</th><th>Qator</th></tr></thead>
           <tbody>{f.tahlillar.map((sheet) => <tr key={sheet.nom} className={`border-b border-border/50 align-top ${sheet.yashirin ? 'opacity-60' : ''}`}>
             <td className="py-2">{sheet.role === 'lrv' ? <span className="text-text-mute">—</span> : <input aria-label={`${sheet.nom} varag‘ini tanlash`} type="checkbox" checked={f.tanlanganVaraqlar.includes(sheet.nom)} onChange={(e) => varaqniTanlash(f.id, sheet.nom, e.target.checked)} />}</td>
-            <td className="py-2 font-medium text-text">{sheet.nom}{sheet.yashirin && <span className="ml-1 rounded bg-surface-2 px-1 text-[10px] text-text-mute">yashirin</span>}</td>
+            <td className="py-2 font-medium text-text">{sheet.nom}{sheet.yashirin && <span className="ml-1 rounded bg-surface-2 px-1 text-xs text-text-mute">yashirin</span>}</td>
             <td className="py-2">
               <select aria-label={`${sheet.nom} varag‘i roli`} value={sheet.role} onChange={(e) => rolniOzgartir(f.id, sheet.nom, e.target.value as OfertaSheetTahlili['role'])}
                 className={`input h-8 px-1 text-[12px] ${sheet.role === 'res' ? 'font-semibold text-ok' : sheet.role === 'lrv' ? 'font-semibold text-accent' : 'text-warn'}`}>
@@ -440,26 +440,26 @@ function Sessiya() {
           </label>
         </div>
         {rejim === 'foiz' && <div className="flex flex-wrap items-end gap-2">
-          <span className="text-[11px] text-text-mute">Kategoriya foizi (bo‘sh — umumiy foiz; qo‘lda narx ustun):</span>
+          <span className="text-xs text-text-mute">Kategoriya foizi (bo‘sh — umumiy foiz; qo‘lda narx ustun):</span>
           {OFERTA_KATEGORIYALAR.map((kat) => {
             const v = katFoizMatn[kat] ?? { yon, foiz: '' };
-            return <label key={kat} className="flex items-center gap-1 text-[11px] text-text">
+            return <label key={kat} className="flex items-center gap-1 text-xs text-text">
               <span className="w-16 font-semibold">{kat}</span>
-              <select aria-label={`${kat} foiz amali`} value={v.yon} onChange={(e) => setKatFoizMatn((o) => ({ ...o, [kat]: { ...v, yon: e.target.value as OfertaFoizYon } }))} className="input h-8 px-1 text-[11px]"><option value="pasaytirish">−</option><option value="oshirish">+</option></select>
-              <input aria-label={`${kat} foizi`} inputMode="decimal" value={v.foiz} onChange={(e) => setKatFoizMatn((o) => ({ ...o, [kat]: { ...v, foiz: e.target.value } }))} placeholder="%" className="input h-8 w-14 px-1 text-[11px]" />
+              <select aria-label={`${kat} foiz amali`} value={v.yon} onChange={(e) => setKatFoizMatn((o) => ({ ...o, [kat]: { ...v, yon: e.target.value as OfertaFoizYon } }))} className="input h-8 px-1 text-xs"><option value="pasaytirish">−</option><option value="oshirish">+</option></select>
+              <input aria-label={`${kat} foizi`} inputMode="decimal" value={v.foiz} onChange={(e) => setKatFoizMatn((o) => ({ ...o, [kat]: { ...v, foiz: e.target.value } }))} placeholder="%" className="input h-8 w-14 px-1 text-xs" />
             </label>;
           })}
           <button type="button" className="tugma tugma-asosiy h-9" onClick={foizniQollash}><RefreshCw size={14} /> Foizlarni qo‘llash</button>
         </div>}
-        {(fayldagiQollanmagan.length > 0 || fayldagi.ziddiyat.length > 0) && <div role="status" className="rounded-lg border border-accent/40 bg-accent/5 p-2 text-[11px] text-text">
+        {(fayldagiQollanmagan.length > 0 || fayldagi.ziddiyat.length > 0) && <div role="status" className="rounded-lg border border-accent/40 bg-accent/5 p-2 text-xs text-text">
           {fayldagiQollanmagan.length > 0 && <div className="flex flex-wrap items-center gap-2">
             <span><b>Fayldagi foizlar:</b> {fayldagiQollanmagan.map((f) => `${NAKRUTKA_KOEF_IZOH[f.kod]} ${f.foiz}% (${f.varaqlar.join(', ')})`).join('; ')}</span>
-            <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => setKoef((old) => ({ qiymatlar: { ...old.qiymatlar, ...Object.fromEntries(fayldagiQollanmagan.map((f) => [f.kod, f.foiz])) }, manba: 'fayl' }))}>Qo‘llash</button>
+            <button type="button" className="tugma h-7 px-2 text-xs" onClick={() => setKoef((old) => ({ qiymatlar: { ...old.qiymatlar, ...Object.fromEntries(fayldagiQollanmagan.map((f) => [f.kod, f.foiz])) }, manba: 'fayl' }))}>Qo‘llash</button>
             <span className="text-text-dim">avtomatik qo‘llanmaydi — tekshirib qo‘llang</span>
           </div>}
           {fayldagi.ziddiyat.map((z) => <p key={z.kod} className="mt-1 text-warn">{NAKRUTKA_KOEF_IZOH[z.kod]}: varaqlarda har xil — {z.qiymatlar.map((x) => `${x.varaq}: ${x.foiz}%`).join(', ')} (taklif qilinmaydi, qo‘lda kiriting)</p>)}
         </div>}
-        <details className="rounded-lg border border-border/70 p-2 text-[11px]">
+        <details className="rounded-lg border border-border/70 p-2 text-xs">
           <summary className="cursor-pointer font-medium text-text">Nakrutka koeffitsientlari — {koef.manba === 'kompaniya' ? 'kompaniyaniki' : koef.manba === 'tahrirlangan' ? 'qo‘lda tahrirlangan' : koef.manba === 'fayl' ? 'fayldagi foizlar' : 'T1 standarti'}</summary>
           <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
             {NAKRUTKA_KOEF_KODLAR.map((kod) => <label key={kod} className="flex items-center justify-between gap-2 text-text-dim" title={NAKRUTKA_KOEF_IZOH[kod]}>
@@ -478,15 +478,15 @@ function Sessiya() {
       <section className="karta grid gap-3 p-3 lg:grid-cols-[1fr_1.4fr]" aria-label="Oferta jamilari">
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-lg border border-border p-2"><span className="text-[10px] text-text-mute">Smeta bo‘yicha resurslar</span><strong className="mt-1 block text-base text-text">{fmt(hisob.manbaTogridanJami)}</strong></div>
-            <div className="rounded-lg border border-border p-2"><span className="text-[10px] text-text-mute">Pudratchi resurslari</span><strong className="mt-1 block text-base text-text">{fmt(hisob.togridanJami)}</strong></div>
-            <div className="rounded-lg border border-border p-2"><span className="text-[10px] text-text-mute">Noyob material / qator</span><strong className="mt-1 block text-base text-text">{fmt(hisob.guruhlar.length)} / {fmt(hisob.qatorlar.filter(tahrirlanadi).length)}</strong></div>
+            <div className="rounded-lg border border-border p-2"><span className="text-xs text-text-mute">Smeta bo‘yicha resurslar</span><strong className="mt-1 block text-base text-text">{fmt(hisob.manbaTogridanJami)}</strong></div>
+            <div className="rounded-lg border border-border p-2"><span className="text-xs text-text-mute">Pudratchi resurslari</span><strong className="mt-1 block text-base text-text">{fmt(hisob.togridanJami)}</strong></div>
+            <div className="rounded-lg border border-border p-2"><span className="text-xs text-text-mute">Noyob material / qator</span><strong className="mt-1 block text-base text-text">{fmt(hisob.guruhlar.length)} / {fmt(hisob.qatorlar.filter(tahrirlanadi).length)}</strong></div>
             <div className={`rounded-lg border p-2 ${paketJami != null ? 'border-ok/40 bg-ok/5' : 'border-warn/40 bg-warn/5'}`}>
-              <span className="text-[10px] text-text-mute">Yakuniy oferta (QQS bilan){fayllar.length > 1 ? ' — paket' : ''}</span>
+              <span className="text-xs text-text-mute">Yakuniy oferta (QQS bilan){fayllar.length > 1 ? ' — paket' : ''}</span>
               <strong className="mt-1 block text-base text-ok">{paketJami != null ? fmt(paketJami) : `hal qilinmagan: ${hisob.halQilinmagan} ta`}</strong>
             </div>
           </div>
-          {fayllar.length > 1 && <table className="w-full text-[11px]">
+          {fayllar.length > 1 && <table className="w-full text-xs">
             <thead><tr className="text-left text-text-mute"><th>Obyekt</th><th className="text-right">Smeta (QQS bilan)</th><th className="text-right">Oferta (QQS bilan)</th></tr></thead>
             <tbody>{obyektHisoblari.map((o) => <tr key={o.fayl.id} className="border-t border-border/40">
               <td className="py-0.5">{o.fayl.nom}</td>
@@ -494,7 +494,7 @@ function Sessiya() {
               <td className={`text-right tabular-nums ${o.hisob.yakuniyOferta == null ? 'text-warn' : ''}`}>{o.hisob.yakuniyOferta != null ? fmt(o.hisob.yakuniyOferta) : `${o.hisob.halQilinmagan} ta hal qilinmagan`}</td>
             </tr>)}</tbody>
           </table>}
-          <table className="w-full text-[11px]">
+          <table className="w-full text-xs">
             <thead><tr className="text-left text-text-mute"><th>Kategoriya</th><th className="text-right">Manba</th><th className="text-right">Taklif</th></tr></thead>
             <tbody>{[...OFERTA_KATEGORIYALAR, 'UNKNOWN' as const].map((kat) => <tr key={kat} className={`border-t border-border/40 ${kat === 'UNKNOWN' && hisob.kategoriyaJami.UNKNOWN ? 'text-danger' : ''}`}>
               <td className="py-0.5">{kat === 'UNKNOWN' ? 'Noma’lum (kaskadga kirmaydi)' : kat}</td>
@@ -502,9 +502,9 @@ function Sessiya() {
               <td className="text-right tabular-nums">{fmt(hisob.kategoriyaJami[kat])}</td>
             </tr>)}</tbody>
           </table>
-          {hisob.transportVaraqJami > 0 && <p className="text-[11px] text-text-dim">Transport varag‘i (pudratchi): {fmt(hisob.transportVaraqJami)} — {transport === 'varaq' ? 'material transporti o‘rnida ishlatiladi' : 'faqat dalil (kaskad foizi ishlatiladi)'}.</p>}
+          {hisob.transportVaraqJami > 0 && <p className="text-xs text-text-dim">Transport varag‘i (pudratchi): {fmt(hisob.transportVaraqJami)} — {transport === 'varaq' ? 'material transporti o‘rnida ishlatiladi' : 'faqat dalil (kaskad foizi ishlatiladi)'}.</p>}
         </div>
-        <table className="w-full text-[11px]">
+        <table className="w-full text-xs">
           <thead><tr className="text-left text-text-mute"><th>Kaskad qadami{fayllar.length > 1 ? ' (paket bo‘yicha)' : ''}</th><th className="text-right">Manba asosida</th><th className="text-right">Taklif</th></tr></thead>
           <tbody>{KASKAD_QADAMLARI.map(([k, nom]) => <tr key={k} className={`border-t border-border/40 ${k.startsWith('itogo') || k === 'vsego' ? 'font-semibold text-text' : 'text-text-dim'}`}>
             <td className="py-0.5">{nom}</td>
@@ -529,7 +529,7 @@ function Sessiya() {
           </div>
         </div>
         <div className="max-h-[58vh] overflow-auto rounded border border-border/60">
-          {korinish === 'guruh' ? <table className="w-full min-w-[1200px] text-[11px]">
+          {korinish === 'guruh' ? <table className="w-full min-w-[1200px] text-xs">
             <thead className="sticky top-0 z-10 bg-surface-2 text-left text-text-mute"><tr>
               <th className="px-2 py-2">Kategoriya</th><th className="px-2">Nomi</th><th className="px-2">Birlik</th><th className="px-2 text-right">Uchraydi</th>
               <th className="px-2 text-right">Jami hajm</th><th className="px-2 text-right">Smeta narx</th><th className="px-2 text-right">Pudratchi narxi</th>
@@ -554,7 +554,7 @@ function Sessiya() {
                         <span className="tabular-nums">{fmt(narx)}</span>
                         <span>— {joylar.map((q) => `${q.sourceSheet} (${q.sourceRow}-qator)`).join(', ')}</span>
                         {asosiy ? <span className="text-ok">asosiy (tanlangan)</span>
-                          : <button type="button" className="tugma h-6 px-1.5 text-[10px]" onClick={() => setAsosNarx((o) => ({ ...o, [g.kalit]: narx }))}>Shu narxni asosiy qilish</button>}
+                          : <button type="button" className="tugma h-6 px-1.5 text-xs" onClick={() => setAsosNarx((o) => ({ ...o, [g.kalit]: narx }))}>Shu narxni asosiy qilish</button>}
                       </li>;
                     })}</ul>
                   </details>}
@@ -572,7 +572,7 @@ function Sessiya() {
                 <td className={`px-2 py-1.5 ${holatRangi(g.muammolar)}`}>{g.muammolar.length ? g.muammolar.map(ofertaMuammoMatni).join('; ') : 'TAYYOR'}</td>
               </tr>;
             })}</tbody>
-          </table> : <table className="w-full min-w-[1400px] text-[11px]">
+          </table> : <table className="w-full min-w-[1400px] text-xs">
             <thead className="sticky top-0 z-10 bg-surface-2 text-left text-text-mute"><tr>
               <th className="px-2 py-2">Varaq</th><th className="px-2">№</th><th className="px-2">Rol</th><th className="px-2">Kategoriya</th><th className="px-2">Nomi</th><th className="px-2">Birlik</th>
               <th className="px-2 text-right">Manba hajm</th><th className="px-2 text-right">Taklif hajmi</th><th className="px-2 text-right">Smeta narx</th><th className="px-2 text-right">Smeta summa</th>
