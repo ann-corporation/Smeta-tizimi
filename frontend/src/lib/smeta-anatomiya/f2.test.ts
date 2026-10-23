@@ -244,3 +244,30 @@ describe('F2 o‘quvchisi (smeta anatomiyasi ustida)', () => {
     expect(act.anatomiya.review.filter((review) => review.kod === 'noaniq_qator')).toEqual([]);
   });
 });
+
+describe('shifrsiz va ota-ishsiz qatorlar (egasi 2026-10-23)', () => {
+  // Sun'iy uskuna varag'i: «РАЗДЕЛ:» siz sarlavha ostida ota-ishsiz N.M qatorlar; bittasi nomsiz (faqat birlik va sonlar).
+  const QATORLAR: Katak[][] = [
+    ['UСКУНА БЛОКИ (СИНОВ)'],
+    [1.1, null, 'Насос погружной', 'К-Т', 0.9, null, 1000, 900],
+    [1.12, null, 'Шкаф управления', 'К-Т', 1, null, 500, 500],
+    [2.54, null, null, 'К-Т', -0.5, null, 200, -100],
+  ];
+  const PODVAL: Katak[][] = [
+    [null, null, 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', null, null, 1300, null],
+    [null, null, 'ВСЕГО СТОИМОСТЬ СТРОИТЕЛЬСТВА В ТЕКУЩИХ ЦЕНАХ', 'СУМ', null, null, 1456, null],
+  ];
+
+  it('ishsiz varaq ham F2: hamma qator o‘qiladi, qatorlar yig‘indisi = hujjat ИТОГО ПРЯМЫЕ', () => {
+    const [a] = f2AktlarniOqi(kitob(QATORLAR, PODVAL));
+    expect(a).toBeTruthy();
+    expect(a.ishlarSoni).toBe(0);
+    expect(a.barglarSoni).toBe(3);
+    expect(a.qatorlarJami).toBe(1300);
+    expect(a.jami.pryamye).toBe(1300);
+  });
+
+  it('jami yo‘q ishsiz jadval (masalan счёт-фактура) F2 deb olinmaydi', () => {
+    expect(f2AktlarniOqi(kitob(QATORLAR.slice(0, 2), []))).toEqual([]);
+  });
+});
