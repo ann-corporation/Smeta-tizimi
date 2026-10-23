@@ -623,9 +623,17 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
 
     // Resurs nomi bo'sh kelishi mumkin (real F2: formula havolasi uzilgan, "21.10 |
     // 006327 | ' ' | М3 | … | 441 mln") — kod bo'lsa resurs, nomsizligi review'da.
-    if (ichkiTartib(tartibKatak) && (nomBor || !bosh(ol(row, u.shifr)))) {
+    // Egasi (2026-10-23): shifr bo'sh qator ham oddiy ish/resurs qatori — № + birlik + son bo'lsa nom bo'lmasa ham o'qiladi
+    // (nomsizligi review'da). Ota-ishsiz N.M qatorlar (masalan «РАЗДЕЛ:» siz sarlavha ostidagi uskunalar) tashlab yuborilmaydi —
+    // mustaqil resurs sifatida o'qiladi va F2 da nom+birlik bo'yicha moslanadi; topilmasa — smetadan tashqari ish.
+    const raqamli = [u.hajmBirlikka, u.hajmLoyiha, u.narx, u.summa].some((c) => c >= 0 && son(ol(row, c)) != null);
+    if (ichkiTartib(tartibKatak) && (nomBor || !bosh(ol(row, u.shifr)) || (!bosh(ol(row, u.birlik)) && raqamli))) {
       iq.ishKeldi();
-      if (!joriyIsh) { review('resurs_ishsiz', `resurs "${xom(tartibKatak)}" hech bir ishga tegishli emas`, r); continue; }
+      if (!joriyIsh) {
+        mustaqilResurslar().push(resursOl(row, r, false));
+        review('resurs_ishsiz', `qator "${xom(tartibKatak)}" ota-ishsiz — mustaqil qator sifatida o'qildi${nomBor ? '' : ' (nomi bo‘sh)'}`, r);
+        continue;
+      }
       if (!nomBor) review('resurs_nomsiz', `resurs ${xom(tartibKatak)} (kod ${xom(ol(row, u.shifr))}) nomi bo'sh`, r);
       joriyIsh.resurslar.push(resursOl(row, r, false));
       continue;
