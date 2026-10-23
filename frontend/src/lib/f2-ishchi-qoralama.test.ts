@@ -125,6 +125,19 @@ describe('F2 corrective rows and working draft safety', () => {
     api.rows.mockResolvedValue({ ok: true, qatorlar: [{ uid: 'm', holat: 'hal_qilinmagan', versiya: 1 }] });
     await expect(f2ServerOl(11)).rejects.toThrow('to‘liq emas');
   });
+  it('rejali qo‘shimcha/zamenaga (vaqtinchalik id) bog‘lanishlar serverdan tiklanadi; begona manfiy id — yo‘q (T7)', async () => {
+    const bog = (qatorId: number) => JSON.stringify({ qatorId, holat: 'qolda', usul: 'qolda' });
+    api.job.mockResolvedValue({ ok: true, obyekt_id: 3, versiya: 2, total_rows: 4,
+      cursor: { phase: 'f2_v3_review', complete: true, savedRows: 4, rejali: [{ tempId: -5, resursTempIds: [-6] }] } });
+    api.rows.mockResolvedValue({ ok: true, qatorlar: [
+      { uid: 'w', holat: 'qolda_moslashtirildi', sabab: bog(-5), versiya: 1 },
+      { uid: 'r', holat: 'qolda_moslashtirildi', sabab: bog(-6), versiya: 1 },
+      { uid: 'x', holat: 'qolda_moslashtirildi', sabab: bog(-9), versiya: 1 },
+      { uid: 'y', holat: 'qolda_moslashtirildi', sabab: bog(17), versiya: 1 },
+    ] });
+    const d = await f2ServerOl(11);
+    expect([...d.ij.bog.entries()].map(([u, b]) => [u, b.qatorId])).toEqual([['w', -5], ['r', -6], ['y', 17]]);
+  });
   it('checkpoints a pending correction without rewriting source rows and preserves its exact version', async () => {
     const a=akt([node('p',2)]);
     const d={companyId:5,objectId:7,source:{documentId:42,name:'F2.xlsx'},aktlar:[a],aktIdx:0,davr:'2026-10',

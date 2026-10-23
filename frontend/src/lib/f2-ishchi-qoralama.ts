@@ -108,10 +108,19 @@ export async function f2ServerOl(jobId: number) {
   if (job.cursor.complete !== true || draft.qatorlar.length !== job.total_rows || job.cursor.savedRows !== job.total_rows)
     throw new Error('Serverda qoralama bo‘laklari to‘liq emas. Asl ochiq sahifadagi mahalliy ishni saqlab, yana yuboring.');
   const bog: Map<string, import('./f2-moslash-v3/ishJoyi').Bog> = new Map(), otkaz = new Set<string>();
+  // Rejali (hali yozilmagan) qo'shimcha/zamenaga bog'langan qatorlar vaqtinchalik (manfiy) id ga ishora qiladi — ular
+  // cursor dagi rejali buyruqlarda bo'lsa qabul qilinadi (T7, 2026-10-24: aks holda boshqa kompyuterda bog'lanish yo'qolardi).
+  const rejaliIdlar = new Set<number>();
+  const rejali = (job.cursor as { rejali?: unknown }).rejali;
+  if (Array.isArray(rejali)) for (const r of rejali as Array<{ tempId?: unknown; resursTempIds?: unknown }>) {
+    if (Number.isSafeInteger(r?.tempId)) rejaliIdlar.add(r.tempId as number);
+    if (Array.isArray(r?.resursTempIds)) for (const x of r.resursTempIds) if (Number.isSafeInteger(x)) rejaliIdlar.add(x as number);
+  }
   for (const row of draft.qatorlar) {
     if (row.holat === 'otkazib_yuborildi') { otkaz.add(row.uid); continue; }
     const b = row.sabab ? JSON.parse(row.sabab) as import('./f2-moslash-v3/ishJoyi').Bog | null : null;
-    if (b && Number.isSafeInteger(b.qatorId) && b.qatorId > 0 && ['aniq', 'xotira', 'taklif', 'qolda'].includes(b.holat)) bog.set(row.uid, b);
+    if (b && Number.isSafeInteger(b.qatorId) && (b.qatorId > 0 || rejaliIdlar.has(b.qatorId))
+      && ['aniq', 'xotira', 'taklif', 'qolda'].includes(b.holat)) bog.set(row.uid, b);
   }
   return { objectId: job.obyekt_id, cursor: job.cursor, ij: { bog, otkaz }, sourceRows: draft.qatorlar,
     state: { jobId, versiya: job.versiya, rows: new Map(draft.qatorlar.map((r) => [r.uid, r.versiya])) } };
