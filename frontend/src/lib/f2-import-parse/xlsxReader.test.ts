@@ -19,7 +19,25 @@
  */
 import { describe, expect, test } from 'vitest';
 import { readXlsx } from './xlsxReader';
-import { buildMinimalXlsx } from './testFixtures';
+import { buildMinimalXlsx, buildZip } from './testFixtures';
+
+test('reads namespace-qualified OOXML, arbitrary relationship attribute order and absolute package targets without losing source evidence', async () => {
+  const workbook=buildZip({
+    'xl/workbook.xml':'<x:workbook xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:rel="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><x:sheets><x:sheet rel:id="r1" state="hidden" name="ЛРВ" sheetId="1"/></x:sheets></x:workbook>',
+    'xl/_rels/workbook.xml.rels':'<p:Relationships xmlns:p="http://schemas.openxmlformats.org/package/2006/relationships"><p:Relationship Target="/xl/worksheets/sheet1.xml" Type="worksheet" Id="r1"/></p:Relationships>',
+    'xl/sharedStrings.xml':'<x:sst xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:si><x:r><x:t>Ц01-01-001-1</x:t></x:r></x:si><x:si><x:t>&lt;x:row&gt; &amp; source</x:t></x:si></x:sst>',
+    'xl/worksheets/sheet1.xml':'<x:worksheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheetData><x:row r="1" outlineLevel="2"><x:c r="A1" t="s"><x:v>0</x:v></x:c><x:c r="B1"><x:f>1+2</x:f><x:v>3.000</x:v></x:c><x:c r="D1" t="s"><x:v>1</x:v></x:c></x:row></x:sheetData><x:mergeCells><x:mergeCell ref="A2:B2"/></x:mergeCells></x:worksheet>',
+  });
+  const wb=await readXlsx(workbook);expect(wb.sheets).toHaveLength(1);
+  const sheet=wb.sheet('ЛРВ')!;expect(sheet.rows[0]).toEqual(['Ц01-01-001-1',3,null,'<x:row> & source']);
+  expect(sheet.hidden).toBe(true);expect(sheet.formulalar?.[0]?.[1]).toBe('1+2');expect(sheet.numericText?.[0]?.[1]).toBe('3.000');
+  expect(sheet.outline?.[0]).toBe(2);expect(sheet.merges).toEqual([{r1:1,c1:0,r2:1,c2:1}]);
+});
+
+test('rejects unreadable workbook relationships instead of reporting a successful empty estimate', async () => {
+  await expect(readXlsx(buildZip({'xl/workbook.xml':'<workbook><sheets><sheet name="Missing" r:id="absent"/></sheets></workbook>'}))).rejects.toThrow('XLSX_SHEET_TARGET_MISSING');
+  await expect(readXlsx(buildZip({'xl/workbook.xml':'<workbook><sheets/></workbook>'}))).rejects.toThrow('XLSX_NO_SHEETS');
+});
 
 describe('readXlsx', () => {
   test('reads a real, self-built .xlsx: sheet name, shared strings, inline string, numbers, XML entity decoding, and merged cells', async () => {

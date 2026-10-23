@@ -190,10 +190,32 @@ function decodeXmlEntities(s: string): string {
     .replace(/&amp;/g, '&');
 }
 
+/** OOXML prefixes are aliases, not part of the element name (ClosedXML uses x:).
+ * Normalize only element QNames bound to the known spreadsheet/package namespaces;
+ * text, formulas and attribute values remain unchanged. */
+function spreadsheetXml(xml: string): string {
+  const prefixes = new Set<string>();
+  const namespaces = new Set([
+    'http://schemas.openxmlformats.org/spreadsheetml/2006/main',
+    'http://purl.oclc.org/ooxml/spreadsheetml/main',
+    'http://schemas.openxmlformats.org/package/2006/relationships',
+  ]);
+  for (const m of xml.matchAll(/\bxmlns:([\w.-]+)\s*=\s*(["'])(.*?)\2/g))
+    if (namespaces.has(m[3])) prefixes.add(m[1]);
+  return xml.replace(/<(\/?)([\w.-]+):([\w.-]+)(?=[\s/>])/g,
+    (tag, close: string, prefix: string, local: string) => prefixes.has(prefix) ? `<${close}${local}` : tag);
+}
+
+function xmlAttributes(tag: string): Record<string, string> {
+  const attrs: Record<string, string> = {};
+  for (const m of tag.matchAll(/([\w:.-]+)\s*=\s*(["'])(.*?)\2/g)) attrs[m[1]] = decodeXmlEntities(m[3]);
+  return attrs;
+}
+
 function parseSharedStrings(xml: string | undefined): string[] {
   if (!xml) return [];
   const out: string[] = [];
-  for (const m of xml.matchAll(/<si>([\s\S]*?)<\/si>/g)) {
+  for (const m of xml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)) {
     let t = '';
     for (const tm of m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)) t += tm[1];
     out.push(decodeXmlEntities(t));
@@ -255,12 +277,22 @@ function parseSheetXml(xml: string, sharedStrings: string[]): Pick<XlsxSheet, 'r
 function parseWorkbookSheetList(xml: string, relsXml: string | undefined): Array<{ name: string; target: string; hidden: boolean }> {
   const relMap: Record<string, string> = {};
   if (relsXml) {
-    for (const m of relsXml.matchAll(/<Relationship[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"[^>]*\/>/g)) relMap[m[1]] = m[2];
+    for (const m of relsXml.matchAll(/<Relationship\b[^>]*>/g)) {
+      const a = xmlAttributes(m[0]);
+      if (a.Id && a.Target && a.TargetMode !== 'External') relMap[a.Id] = a.Target;
+    }
   }
+  const relationPrefixes = new Set(['r']);
+  for (const m of xml.matchAll(/\bxmlns:([\w.-]+)\s*=\s*(["'])(.*?)\2/g))
+    if (m[3] === 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+      || m[3] === 'http://purl.oclc.org/ooxml/officeDocument/relationships') relationPrefixes.add(m[1]);
   const out: Array<{ name: string; target: string; hidden: boolean }> = [];
-  for (const m of xml.matchAll(/<sheet[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"[^>]*\/>/g)) {
-    const target = (relMap[m[2]] || '').replace(/^\/?xl\//, '');
-    out.push({ name: decodeXmlEntities(m[1]), target, hidden: /\bstate="(?:hidden|veryHidden)"/.test(m[0]) });
+  for (const m of xml.matchAll(/<sheet\b[^>]*>/g)) {
+    const a = xmlAttributes(m[0]);
+    const id = [...relationPrefixes].map(p => a[`${p}:id`]).find(Boolean);
+    const target = (id && relMap[id] || '').replace(/^\/?xl\//, '');
+    if (!a.name || !target) throw new Error('XLSX_SHEET_TARGET_MISSING: worksheet relationship is absent or external');
+    out.push({ name: a.name, target, hidden: a.state === 'hidden' || a.state === 'veryHidden' });
   }
   return out;
 }
@@ -292,16 +324,19 @@ export async function readXlsx(bytes: ArrayBuffer | Uint8Array): Promise<XlsxWor
   }
   const dec = new TextDecoder('utf-8');
 
-  const workbookXml = files['xl/workbook.xml'] ? dec.decode(files['xl/workbook.xml']) : null;
+  const xmlPart = (path: string) => files[path] ? spreadsheetXml(dec.decode(files[path])) : undefined;
+  const workbookXml = xmlPart('xl/workbook.xml');
   if (!workbookXml) throw new Error('XLSX_NO_WORKBOOK: xl/workbook.xml missing — not a valid .xlsx');
-  const relsXml = files['xl/_rels/workbook.xml.rels'] ? dec.decode(files['xl/_rels/workbook.xml.rels']) : undefined;
-  const sharedStrings = parseSharedStrings(files['xl/sharedStrings.xml'] ? dec.decode(files['xl/sharedStrings.xml']) : undefined);
+  const relsXml = xmlPart('xl/_rels/workbook.xml.rels');
+  const sharedStrings = parseSharedStrings(xmlPart('xl/sharedStrings.xml'));
 
   const sheetList = parseWorkbookSheetList(workbookXml, relsXml);
+  if (!sheetList.length) throw new Error('XLSX_NO_SHEETS: workbook contains no readable worksheets');
   const sheets: XlsxSheet[] = sheetList.map(({ name, target, hidden }) => {
     const path = 'xl/' + target;
-    const xml = files[path] ? dec.decode(files[path]) : null;
-    const parsed = xml ? parseSheetXml(xml, sharedStrings) : { rows: [] as SheetGrid, merges: [] };
+    const xml = xmlPart(path);
+    if (!xml) throw new Error('XLSX_SHEET_XML_MISSING: ' + path);
+    const parsed = parseSheetXml(xml, sharedStrings);
     return { name, ...parsed, ...(hidden ? { hidden } : {}) };
   });
 
@@ -312,7 +347,7 @@ export async function readXlsx(bytes: ArrayBuffer | Uint8Array): Promise<XlsxWor
   // to'liq fallback qilamiz. Haqiqatan bo'sh, faqat format saqlaydigan varaqlar
   // fallbackni majburlamaydi.
   const incompleteSheet = sheetList.some(({ target }, index) => {
-    const xml = files['xl/' + target] ? dec.decode(files['xl/' + target]) : '';
+    const xml = xmlPart('xl/' + target) ?? '';
     const hasCellMarkup = /<row\b[\s\S]*?<c\b/.test(xml);
     return hasCellMarkup && !hasMeaningfulCells(sheets[index]?.rows ?? []);
   });

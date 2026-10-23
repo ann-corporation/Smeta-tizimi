@@ -3,6 +3,29 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "CATALOG-IMPORT-AUDIT-20261023",
+      "title": "Current source 2.8.1 catalogue audit and namespace-safe shared XLSX import",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/catalog-import-audit-20261023",
+      "base_sha": "4c53870846fc1bb7933eb814a45ef4ef98ae8e7a",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/lib/f2-import-parse/xlsxReader.ts",
+        "frontend/src/lib/f2-import-parse/xlsxReader.test.ts",
+        "docs/reviews/CATALOG_SOURCE_AUDIT_20261023.md",
+        "ops/mailbox/CATALOG-IMPORT-AUDIT-20261023/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/OWNER_AUTHORIZATION.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Owner requests actual Construct catalogue and import audit, CatalogMigration/R2 enrichment. Identical synthetic export: source core reads3 sheets, old shared reader returned0. Narrow XML QName/attribute-order fix; no business data or source prices changed. Immutable R2 review release stays separate from active catalogue."
+    },
+    {
       "id": "SMETA-STUDIO-WORKSPACE-V2-20261022",
       "title": "Studio workspace: shared AI/manual commands, contextual coefficients, review and recoverable drafts",
       "owner": "codex",
@@ -1352,8 +1375,6 @@
       "owns": [
         "frontend/src/lib/lrv-plus-export.ts",
         "frontend/src/lib/lrv-plus-export.test.ts",
-        "frontend/src/lib/f2-import-parse/xlsxReader.ts",
-        "frontend/src/lib/f2-import-parse/xlsxReader.test.ts",
         "frontend/src/lib/smeta-source-analysis.ts",
         "frontend/src/lib/smeta-source-analysis.test.ts",
         "frontend/src/admin/sahifalar/SmetaYuklaNative.tsx",
@@ -1365,7 +1386,8 @@
         "docs/governance/CONSTITUTION.md"
       ],
       "production_write_allowed": false,
-      "_izoh": "Egasi 2026-09-24: qator ko‘chirilsa $ li formula begona katakni o‘qiydi; ish qatorida H dan oldingi bo‘sh katakda bir birlik narxi kerak."
+      "_izoh": "Egasi 2026-09-24: qator ko‘chirilsa $ li formula begona katakni o‘qiydi; ish qatorida H dan oldingi bo‘sh katakda bir birlik narxi kerak.",
+      "note": " 2026-10-23 owner-directed namespace/relationship reader regression sublease -> CATALOG-IMPORT-AUDIT-20261023; other fidelity paths unchanged."
     },
     {
       "id": "FAKT-TEZLIK-001",
@@ -2446,7 +2468,6 @@
       "owns": [
         "frontend/src/lib/document-understanding/",
         "frontend/src/lib/smeta-anatomiya/index.ts",
-        "frontend/src/lib/f2-import-parse/xlsxReader.ts",
         "frontend/src/lib/smeta-anatomiya/turlar.ts",
         "ops/handoff/T2_SMETA_SOURCE_FIDELITY_DATA_20261008.md"
       ],
@@ -2456,7 +2477,8 @@
         "docs/governance/CONSTITUTION.md",
         "docs/architecture/SMETA_ANATOMIYA_V1.md"
       ],
-      "production_write_allowed": false
+      "production_write_allowed": false,
+      "note": " 2026-10-23 owner-directed namespace/relationship reader regression sublease -> CATALOG-IMPORT-AUDIT-20261023; other fidelity paths unchanged."
     },
     {
       "id": "T2-SMETACHI-RELIABILITY-20261009",
