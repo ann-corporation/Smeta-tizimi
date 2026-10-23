@@ -139,7 +139,7 @@ function NarxlarLegacy() {
     },
     {
       kalit: 'manba', nom: 'Manba', en: '150px',
-      chiz: (r) => <span className="text-[11px] text-text-mute truncate block" title={r.manba}>{r.manba || '—'}</span>,
+      chiz: (r) => <span className="text-xs text-text-mute truncate block" title={r.manba}>{r.manba || '—'}</span>,
     },
   ];
 
@@ -171,12 +171,12 @@ function NarxlarLegacy() {
               <SlidersHorizontal size={16} className="text-accent" />
               Svodka oraliqlari
             </h3>
-            <p className="text-[11px] text-text-mute mt-0.5">
+            <p className="text-xs text-text-mute mt-0.5">
               Qaysi qatordan qaysi kategoriya boshlanadi — narxlash shunga tayanadi
             </p>
           </div>
-          <span className="text-[11px] text-text-mute group-open:hidden">ochish ▾</span>
-          <span className="text-[11px] text-text-mute hidden group-open:inline">yopish ▴</span>
+          <span className="text-xs text-text-mute group-open:hidden">ochish ▾</span>
+          <span className="text-xs text-text-mute hidden group-open:inline">yopish ▴</span>
         </summary>
 
         <div className="mt-3 space-y-3">
@@ -228,7 +228,7 @@ function NarxlarLegacy() {
               <>
                 <div className="max-h-64 overflow-auto scrollbar-thin rounded border border-border">
                   <table className="w-full text-[12px]">
-                    <thead className="text-text-mute text-[11px] sticky top-0 bg-[var(--surface-2)]">
+                    <thead className="text-text-mute text-xs sticky top-0 bg-[var(--surface-2)]">
                       <tr className="text-left">
                         <th className="py-1.5 px-2">Varaq</th>
                         <th className="py-1.5 px-2 text-right">Qator</th>
@@ -248,7 +248,7 @@ function NarxlarLegacy() {
                                 onChange={(e) => setOrTahrir((p) => (p ?? []).map((x, j) =>
                                   j === i ? { ...x, kat: e.target.value } : x))}
                                 className="bg-[var(--surface-3)] border border-border rounded
-                                           px-1.5 py-0.5 text-[11px] text-text">
+                                           px-1.5 py-0.5 text-xs text-text">
                                 {['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К'].map((k) =>
                                   <option key={k} value={k}>{k}</option>)}
                               </select>
@@ -284,7 +284,7 @@ function NarxlarLegacy() {
                                  text-[12px] text-text-mute transition-colors">
                       Bekor qilish
                     </button>
-                    <span className="text-[11px] text-warn">
+                    <span className="text-xs text-warn">
                       Saqlangach obyektni «Ishla» bilan qayta hisoblang
                     </span>
                   </div>
@@ -374,7 +374,7 @@ function NarxlarLegacy() {
             {/* Obyektlar bo'yicha narxlar */}
             {Object.keys(tanlangan.smeta || {}).length > 0 && (
               <section>
-                <h4 className="text-[11px] uppercase tracking-[0.04em] text-text-dim mb-2">Obyektlar bo'yicha</h4>
+                <h4 className="text-xs uppercase tracking-[0.04em] text-text-dim mb-2">Obyektlar bo'yicha</h4>
                 <div className="karta divide-y divide-border max-h-56 overflow-y-auto">
                   {Object.entries(tanlangan.smeta).map(([ob, n]) => (
                     <div key={ob} className="px-3 py-2 flex items-center justify-between gap-3 text-sm">
@@ -389,7 +389,7 @@ function NarxlarLegacy() {
             {/* Sanalar bo'yicha */}
             {Object.keys(tanlangan.sanaLar || {}).length > 0 && (
               <section>
-                <h4 className="text-[11px] uppercase tracking-[0.04em] text-text-dim mb-2">Sanalar bo'yicha</h4>
+                <h4 className="text-xs uppercase tracking-[0.04em] text-text-dim mb-2">Sanalar bo'yicha</h4>
                 <div className="karta divide-y divide-border max-h-56 overflow-y-auto">
                   {Object.entries(tanlangan.sanaLar).map(([s, n]) => (
                     <div key={s} className="px-3 py-2 flex items-center justify-between gap-3 text-sm">

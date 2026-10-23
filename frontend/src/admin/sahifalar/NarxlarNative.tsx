@@ -304,7 +304,7 @@ export default function NarxlarNative() {
         <section className="karta p-3">
           <h2 className="text-[13px] font-semibold text-text flex gap-2 items-center"><AlertTriangle size={15} className={topilmaganSatrlar.length ? 'text-warn' : 'text-ok'} />
             Bog‘lanish topilmagan resurslar ({topilmaganSatrlar.length})</h2>
-          <p className="text-[11px] text-text-mute mt-1">Har bir qator uchun katalogdan birlik va mazmun bo‘yicha taklif qidiriladi. Taklif narxi smeta narxidan alohida ko‘rsatiladi; u smetaga avtomatik yozilmaydi.</p>
+          <p className="text-xs text-text-mute mt-1">Har bir qator uchun katalogdan birlik va mazmun bo‘yicha taklif qidiriladi. Taklif narxi smeta narxidan alohida ko‘rsatiladi; u smetaga avtomatik yozilmaydi.</p>
           <div className="mt-2 max-h-64 overflow-auto divide-y divide-border">
             {topilmaganSatrlar.map(r => {
               const key = `${nomKalit(r.nom)}|${birlikKalit(r.birlik)}`;
@@ -324,14 +324,14 @@ export default function NarxlarNative() {
                   return <div key={`${key}|${candidate.manba_qator_id}`} className="mt-2 ml-3 rounded-lg border border-accent/20 bg-accent/5 p-2 grid gap-1 md:grid-cols-[1fr_auto_auto] md:items-center">
                     <div className="min-w-0">
                       <div className="truncate text-text">Taklif: {manba?.nom || `Manba #${candidate.manba_id}`} · {candidate.manba_narx.toLocaleString('ru-RU')} so‘m/{r.birlik || 'birlik'}</div>
-                      <div className="text-[11px] text-text-mute">Moslik: <b className="text-accent">{candidate.moslikFoiz}%</b> · Smeta: {candidate.smeta_narx == null ? 'narx ko‘rsatilmagan' : `${candidate.smeta_narx.toLocaleString('ru-RU')} so‘m`} · Farq: {candidate.farqFoiz == null ? 'hisoblanmadi' : `${candidate.farqFoiz > 0 ? '+' : ''}${candidate.farqFoiz}%`}</div>
-                      <div className="text-[11px] text-text-mute">{candidate.sabablar.join(' · ')}</div>
+                      <div className="text-xs text-text-mute">Moslik: <b className="text-accent">{candidate.moslikFoiz}%</b> · Smeta: {candidate.smeta_narx == null ? 'narx ko‘rsatilmagan' : `${candidate.smeta_narx.toLocaleString('ru-RU')} so‘m`} · Farq: {candidate.farqFoiz == null ? 'hisoblanmadi' : `${candidate.farqFoiz > 0 ? '+' : ''}${candidate.farqFoiz}%`}</div>
+                      <div className="text-xs text-text-mute">{candidate.sabablar.join(' · ')}</div>
                     </div>
-                    <span className="text-[11px] text-text-mute">{manba?.tur || 'manba'}</span>
-                    <button onClick={() => void dalilniBoglash(group.qatorIds, candidate)} disabled={saqlanmoqda} className="px-2 py-1 rounded bg-accent text-white text-[11px] disabled:opacity-50">Dalilni bog‘lash</button>
+                    <span className="text-xs text-text-mute">{manba?.tur || 'manba'}</span>
+                    <button onClick={() => void dalilniBoglash(group.qatorIds, candidate)} disabled={saqlanmoqda} className="px-2 py-1 rounded bg-accent text-white text-xs disabled:opacity-50">Dalilni bog‘lash</button>
                   </div>;
                 })}
-                {!group?.nomzodlar.length && <div className="mt-1 ml-3 text-[11px] text-warn">Katalogdan birlik va mazmun bo‘yicha ishonchli taklif topilmadi — qo‘lda tanlash kerak.</div>}
+                {!group?.nomzodlar.length && <div className="mt-1 ml-3 text-xs text-warn">Katalogdan birlik va mazmun bo‘yicha ishonchli taklif topilmadi — qo‘lda tanlash kerak.</div>}
               </div>;
             })}
             {!topilmaganSatrlar.length && <p className="py-4 text-center text-[12px] text-ok">Tanlangan obyekt uchun narxi topilmagan resurs yo‘q.</p>}
@@ -359,7 +359,7 @@ export default function NarxlarNative() {
             </label>
             <label className="text-[12px] text-text-dim">Sana narxi uchun sana<input type="date" value={sana} onChange={e => setSana(e.target.value)} className="mt-1 block w-full input" /></label>
           </div>
-          {tanlanganRegistr && <p className="mt-2 text-[11px] text-text-mute">Saqlash paytida mavjud narx qayta tekshiriladi.</p>}
+          {tanlanganRegistr && <p className="mt-2 text-xs text-text-mute">Saqlash paytida mavjud narx qayta tekshiriladi.</p>}
           <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void narxniSaqlash()} disabled={saqlanmoqda} className="px-3 py-2 rounded-lg bg-accent text-white text-[12px] disabled:opacity-50"><Save size={14} className="inline mr-1" />Belgilangan narxni saqlash</button><button onClick={() => void sanaNarxiniQoshish()} disabled={saqlanmoqda} className="px-3 py-2 rounded-lg bg-white/5 text-text text-[12px] disabled:opacity-50">Sana narxini qo‘shish</button></div>
         </section>}
       </div>

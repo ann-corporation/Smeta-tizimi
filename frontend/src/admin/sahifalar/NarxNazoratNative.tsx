@@ -92,7 +92,7 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
         </button>}
       </div>
 
-      <p className="text-[11px] text-text-mute max-w-2xl">
+      <p className="text-xs text-text-mute max-w-2xl">
         BU PROCUREMENT SAVING EMAS. F2 qaysi narxda sertifikatlangani va shu qator uchun
         REFERENCE (smeta baseline, F2 yaratilgan payt muzlagan) narx orasidagi farq —
         past narxda yopilgan qism 🔒 <b>muzlagan</b>, hali tasdiqlanmagan qismi ⚠ <b>xavf ostida</b>.
@@ -106,28 +106,28 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button onClick={() => setFiltr('muzlagan')}
               className={`karta p-3 text-left ${filtr === 'muzlagan' ? 'ring-1 ring-accent' : ''}`}>
-              <div className="text-[11px] text-text-dim flex items-center gap-1"><Lock size={12} /> Jami muzlagan summa</div>
+              <div className="text-xs text-text-dim flex items-center gap-1"><Lock size={12} /> Jami muzlagan summa</div>
               <div className="text-lg font-semibold mt-1">{pul(jami.muzlagan)}</div>
             </button>
             <button onClick={() => setFiltr('xavf_ostida')}
               className={`karta p-3 text-left ${filtr === 'xavf_ostida' ? 'ring-1 ring-accent' : ''}`}>
-              <div className="text-[11px] text-text-dim flex items-center gap-1"><TriangleAlert size={12} /> Hozir xavf ostidagi summa</div>
+              <div className="text-xs text-text-dim flex items-center gap-1"><TriangleAlert size={12} /> Hozir xavf ostidagi summa</div>
               <div className="text-lg font-semibold mt-1">{pul(jami.xavf)}</div>
             </button>
             <button onClick={() => setFiltr('yuqori_narx')}
               className={`karta p-3 text-left ${filtr === 'yuqori_narx' ? 'ring-1 ring-accent' : ''}`}>
-              <div className="text-[11px] text-text-dim flex items-center gap-1"><ShieldAlert size={12} /> Reference'dan yuqori F2</div>
+              <div className="text-xs text-text-dim flex items-center gap-1"><ShieldAlert size={12} /> Reference'dan yuqori F2</div>
               <div className="text-lg font-semibold mt-1">{(qatorlar || []).filter((x) => x.price_state === 'ABOVE_APPROVED_BASIS' || x.price_state === 'ABOVE_REFERENCE_MISSING_BASIS' || x.price_state === 'ABOVE_REFERENCE_JUSTIFIED').length}</div>
             </button>
             <button onClick={() => setFiltr('protokolsiz')}
               className={`karta p-3 text-left ${filtr === 'protokolsiz' ? 'ring-1 ring-accent' : ''}`}>
-              <div className="text-[11px] text-text-dim flex items-center gap-1"><FileWarning size={12} /> Basis/protokolsiz qatorlar</div>
+              <div className="text-xs text-text-dim flex items-center gap-1"><FileWarning size={12} /> Basis/protokolsiz qatorlar</div>
               <div className="text-lg font-semibold mt-1">{jami.protokolsiz}</div>
             </button>
           </div>
 
           {filtr !== 'hammasi' && (
-            <button className="text-[11px] text-accent self-start" onClick={() => setFiltr('hammasi')}>← barcha qatorlarni ko'rsatish</button>
+            <button className="text-xs text-accent self-start" onClick={() => setFiltr('hammasi')}>← barcha qatorlarni ko'rsatish</button>
           )}
 
           {yuk && <div className="text-[12px] text-text-dim flex items-center gap-2"><Loader2 className="animate-spin" size={13} /> yuklanmoqda…</div>}
