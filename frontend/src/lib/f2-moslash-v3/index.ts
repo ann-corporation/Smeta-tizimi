@@ -338,30 +338,50 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [qolda], ok: true, usul: 'qolda' });
       return { rzlar: [S.byId.get(qolda)!], holat: 'scoped' };
     }
-    const nomzod = ota.rzlar ? barchaRz.filter((s) => ota.rzlar!.some((o) => ajdodmi(o, s))) : barchaRz;
-    const k = rzKalit(rz.nom);
-    let mos = k ? nomzod.filter((s) => rzKalit(s.nom) === k) : [];
-    let usul = 'nom';
-    if (!mos.length) {
-      const kodlar = new Set(rzKodlar(rz.nom));
-      if (kodlar.size) { mos = nomzod.filter((s) => rzKodlar(s.nom).some((x) => kodlar.has(x))); usul = 'chizma_kodi'; }
+    const qidir = (nomzod: readonly STugun[]): { mos: STugun[]; usul: string } => {
+      const k = rzKalit(rz.nom);
+      let mos = k ? nomzod.filter((s) => rzKalit(s.nom) === k) : [];
+      let usul = 'nom';
+      if (!mos.length) {
+        const kodlar = new Set(rzKodlar(rz.nom));
+        if (kodlar.size) { mos = nomzod.filter((s) => rzKodlar(s.nom).some((x) => kodlar.has(x))); usul = 'chizma_kodi'; }
+      }
+      if (!mos.length && k) {
+        const ft = tokenlar(rzKalit(rz.nom));
+        const ball = nomzod.map((s) => ({ s, d: dice(ft, tokenlar(rzKalit(s.nom))) })).filter((x) => x.d >= 0.75).sort((a, b) => b.d - a.d);
+        if (ball.length) { mos = ball.filter((x) => x.d >= ball[0].d - 0.01).map((x) => x.s); usul = 'nom_oxshash'; }
+      }
+      if (mos.length > 1) {
+        // F2 razdeli bir nechta varaqni qamrashi mumkin ("ЛИСТ.-8,9,15") — to'plam bo'yicha.
+        const lr = new Set(listRaqamlari(rz.nom).split(',').filter(Boolean));
+        const aniq = lr.size ? mos.filter((s) => listRaqamlari(s.nom).split(',').some((x) => lr.has(x))) : [];
+        if (aniq.length) { mos = aniq; usul += '+list'; }
+      }
+      // Bir nomli razdellar ichma-ich bo'lsa (egasi prod sinovi 2026-10-23: obyekt nomli razdel ichida
+      // «ОВ И ВК / … / <obyekt>» kabi yana o'sha nom — import qilingan smetadagi takroriy jadval sarlavhalari),
+      // ENG TASHQISI olinadi: u ichkilarini ham qamraydi. Eng ichkisini olish butun F2 ni bitta kichik
+      // bo'limga qamab qo'yardi va qolgan barcha bo'limlar «unresolved» bo'lib, 93 ishning hammasi ✕ edi.
+      if (mos.length > 1) mos = mos.filter((s) => !mos.some((b) => b !== s && ajdodmi(b, s)));
+      return { mos, usul };
+    };
+    let { mos, usul } = qidir(ota.rzlar ? barchaRz.filter((s) => ota.rzlar!.some((o) => ajdodmi(o, s))) : barchaRz);
+    // OTA DOIRASI KASKADI (51 F2 quruq sinovi, 2026-10-24): F2 sarlavhalari ichma-ichligi smetanikidan farq qilishi mumkin
+    // (masalan «ОЗЕЛЕНЕНИЕ» ostida ko'rinib qolgan «ЛЕНТОЧНЫЙ ФУНДАМЕНТ»). Ota doirasida topilmasa — butun smetada
+    // qidiriladi, faqat natija YAGONA razdel bo'lsa (bir nechta bo'lsa noaniqlik — oldingidek operator ulaydi).
+    // Xuddi shunday: ota doirasida nomi mos razdel bor-u, F2 dagi chizma varag'i («ЛИСТ КЖ-2») unikiga to'g'ri kelmasa,
+    // butun smetada varag'i ham mos YAGONA razdel bo'lsa — o'sha (masalan ikki xil «ЗЕМЛЯНЫЕ РАБОТЫ»).
+    // Varaq kaliti harfi bilan: «КЖ-2» ≠ «КР-2» (faqat raqam bo'yicha ular to'qnashadi).
+    const listToliq = (s: unknown): string[] => {
+      const m = String(s ?? '').toUpperCase().replace(/Ё/g, 'Е').match(/ЛИСТ[-\s.№]*([А-Я]{1,3})?[-\s.]*([0-9][0-9,\s.-]*)/);
+      return m ? m[2].replace(/[^0-9,]/g, '').split(',').filter(Boolean).map((x) => (m[1] ?? '') + x) : [];
+    };
+    const fList = listToliq(rz.nom);
+    const listMos = (s: STugun) => listToliq(s.nom).some((x) => fList.includes(x));
+    if (ota.rzlar && (!mos.length || (fList.length && !mos.some(listMos)))) {
+      const g = qidir(barchaRz);
+      const gm = mos.length ? g.mos.filter(listMos) : g.mos;
+      if (gm.length === 1) { mos = gm; usul = g.usul + '+global'; }
     }
-    if (!mos.length && k) {
-      const ft = tokenlar(rzKalit(rz.nom));
-      const ball = nomzod.map((s) => ({ s, d: dice(ft, tokenlar(rzKalit(s.nom))) })).filter((x) => x.d >= 0.75).sort((a, b) => b.d - a.d);
-      if (ball.length) { mos = ball.filter((x) => x.d >= ball[0].d - 0.01).map((x) => x.s); usul = 'nom_oxshash'; }
-    }
-    if (mos.length > 1) {
-      // F2 razdeli bir nechta varaqni qamrashi mumkin ("ЛИСТ.-8,9,15") — to'plam bo'yicha.
-      const lr = new Set(listRaqamlari(rz.nom).split(',').filter(Boolean));
-      const aniq = lr.size ? mos.filter((s) => listRaqamlari(s.nom).split(',').some((x) => lr.has(x))) : [];
-      if (aniq.length) { mos = aniq; usul += '+list'; }
-    }
-    // Bir nomli razdellar ichma-ich bo'lsa (egasi prod sinovi 2026-10-23: obyekt nomli razdel ichida
-    // «ОВ И ВК / … / <obyekt>» kabi yana o'sha nom — import qilingan smetadagi takroriy jadval sarlavhalari),
-    // ENG TASHQISI olinadi: u ichkilarini ham qamraydi. Eng ichkisini olish butun F2 ni bitta kichik
-    // bo'limga qamab qo'yardi va qolgan barcha bo'limlar «unresolved» bo'lib, 93 ishning hammasi ✕ edi.
-    if (mos.length > 1) mos = mos.filter((s) => !mos.some((b) => b !== s && ajdodmi(b, s)));
     if (!mos.length) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [], ok: false, usul: 'ota_doirasi' });
       // An unmatched heading is a real scope ambiguity even when its parent
