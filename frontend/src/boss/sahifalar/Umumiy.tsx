@@ -540,7 +540,7 @@ function ObyektRow({ obj }: { obj: any }) {
             {!isSub && <FileText size={14} className="inline mr-2 text-blue-400/50" />}
             {obj.nom} 
             {obj.leaf ? <span className="text-[11px] text-white/30 ml-2 font-mono bg-white/5 px-2 py-0.5 rounded-md">[{obj.leaf}]</span> : ''}
-            {(obj.fakt - obj.f2) > 0 && <span className="text-[10px] ml-3 text-warn/90 bg-warn/10 px-2 py-0.5 rounded-full border border-warn/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]">❄️ Muzlagan: <FmtN val={obj.fakt - obj.f2} qisqa /></span>}
+            {(obj.fakt - obj.f2) > 0 && <span className="text-xs ml-3 text-warn/90 bg-warn/10 px-2 py-0.5 rounded-full border border-warn/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]">❄️ Muzlagan: <FmtN val={obj.fakt - obj.f2} qisqa /></span>}
           </span>
         </td>
         <td className="py-4 px-4 text-right font-mono text-white/70"><FmtN val={obj.smeta} /></td>
@@ -592,8 +592,8 @@ function ShartnomaRow({ shartnoma }: { shartnoma: any }) {
             <span className="font-medium text-[11px] text-blue-300/60 ml-3 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">{shartnoma.subItems?.length || 0} ta OBYEKT</span>
           </span>
           <div className="flex gap-2 ml-4">
-             {shartnoma.tolangan > 0 && <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md border border-emerald-400/20 font-mono shadow-[0_0_10px_rgba(52,211,153,0.1)]">💵 Kesh: <FmtN val={shartnoma.tolangan} qisqa /></span>}
-             {shartnoma.debitor > 0 && <span className="text-[10px] text-red-400 bg-red-400/10 px-2 py-1 rounded-md border border-red-400/20 font-mono shadow-[0_0_10px_rgba(248,113,113,0.1)]">⚠ Debitor: <FmtN val={shartnoma.debitor} qisqa /></span>}
+             {shartnoma.tolangan > 0 && <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md border border-emerald-400/20 font-mono shadow-[0_0_10px_rgba(52,211,153,0.1)]">💵 Kesh: <FmtN val={shartnoma.tolangan} qisqa /></span>}
+             {shartnoma.debitor > 0 && <span className="text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded-md border border-red-400/20 font-mono shadow-[0_0_10px_rgba(248,113,113,0.1)]">⚠ Debitor: <FmtN val={shartnoma.debitor} qisqa /></span>}
           </div>
         </td>
         <td className="py-5 px-4 text-right font-mono font-bold text-accent"><FmtN val={shartnoma.smeta} /></td>
