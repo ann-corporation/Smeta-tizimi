@@ -2894,5 +2894,11 @@
   "ИТОГО ПРЯМЫЕ": "TOTAL DIRECT COSTS",
   "ВСЕГО − ранее (QQS bilan)": "TOTAL − previous (incl. VAT)",
   "(ВСЕГО − ранее) ÷ 1,12": "(TOTAL − previous) ÷ 1.12",
-  "ВСЕГО": "TOTAL"
+  "ВСЕГО": "TOTAL",
+  "Kutubxona manbasi": "Library source",
+  "Amaldagi kutubxona": "Current library",
+  "Nomlangan kutubxona · 2.8.1": "Named library · 2.8.1",
+  "Norma masshtabi": "Norm scale",
+  "Manbadagi o‘lchov birligi": "Source unit of measure",
+  "Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.": "Resource recipe is missing — this work cannot be added to the estimate."
 }

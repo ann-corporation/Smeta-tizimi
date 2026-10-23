@@ -1,6 +1,6 @@
 /** Authenticated, pinned REVIEW_ONLY reference release; contains no tenant rows. */
 import { tekshir } from '../_shared/auth';
-import type { R2Bucket, PagesFunction } from '@cloudflare/workers-types';
+
 
 type Env = { SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket };
 

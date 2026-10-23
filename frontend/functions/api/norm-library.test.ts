@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
-import { gzipSync } from 'node:zlib';
-import { imzola } from '../../../functions/_shared/auth';
-import { normLibraryKey, onRequestGet } from '../../../functions/api/norm-library';
+import { gzipSync, strToU8 } from 'fflate';
+import { imzola } from '../_shared/auth';
+import { normLibraryKey, onRequestGet } from './norm-library';
 
 const REV = '66bb1a23bd18c63006d447b5';
 const PREFIX = `norm-library/review-releases/${REV}`;
@@ -15,7 +15,7 @@ async function request(query: string, cookie?: string, object: object | null = n
       headers: cookie ? { Cookie: cookie } : {},
     }),
     env: { SESSIYA_KALIT: SECRET, R2_CANONICAL: { get } },
-  } as Parameters<typeof onRequestGet>[0]);
+  } as unknown as Parameters<typeof onRequestGet>[0]);
   return { response, get };
 }
 
@@ -70,7 +70,7 @@ describe('norm library authenticated R2 port', () => {
 
   it.each(['works.jsonl.gz', 'collection-000.json.gz', 'collection-111.json.gz'])
   ('preserves raw compressed bytes despite R2 gzip metadata: %s', async f => {
-    const bytes = gzipSync('{"test":true}\n');
+    const bytes = gzipSync(strToU8('{"test":true}\n'));
     const body = new ReadableStream({ start(controller) { controller.enqueue(bytes); controller.close(); } });
     const { response, get } = await request(`rev=${REV}&f=${f}`, await session(), {
       body, httpMetadata: { contentEncoding: 'gzip', contentType: 'application/json' },
