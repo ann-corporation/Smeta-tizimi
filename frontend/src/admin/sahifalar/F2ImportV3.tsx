@@ -81,6 +81,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [almashtirTasdiq, setAlmashtirTasdiq] = useState<number | null>(null);
   /** Kumulyativ varaq rejimi (operator yoqadi): oldingi F2 lar hajmi shu varaqdan ayriladi — faqat yozish proyeksiyasi. */
   const [kumRejim, setKumRejim] = useState(false);
+  /** Faylda transport qatori yo'q: smetadagi ТН·КМ qatoriga bog'langan F2 qatori sifatida qo'shilgan hajm (smeta qatori id -> hajm). */
+  const [tkmQosh, setTkmQosh] = useState<ReadonlyMap<number, number>>(new Map());
   const [rows, setRows] = useState<T2Qator[]>([]);
   // Rejali (hali yozilmagan) qo'shimcha/zamena/resurslar — egasi 2026-10-20: har birida kutmaslik, oxirida bittada yozish.
   const [rejali, setRejali] = useState<RejaliBuyruq[]>([]);
@@ -362,7 +364,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
     pendingCorrection.current = undefined;
     ++saveGeneration.current; setIshSaqlandi(''); setServerHolat(''); serverDraft.current = undefined;
-    setNatija(null); setKumRejim(false); tarixniTozala(); setRejali([]); setOchirish([]); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
+    setNatija(null); setKumRejim(false); setTkmQosh(new Map()); tarixniTozala(); setRejali([]); setOchirish([]); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
   }
 
   /** `mavjudHujjatId` berilsa — fayl tizimdagi R2 hujjatidan olingan: yozishda QAYTA yuklanmaydi, o'sha hujjat manba bo'ladi. */
@@ -572,9 +574,18 @@ function Sessiya({ companyId }: { companyId: number }) {
   const yozish = useMemo(() => (indYoz && ij ? f2QoralamaYozish(indYoz, ij) : null), [indYoz, ij]);
   const payload = useMemo(() => {
     if (!yozish || yozish.toxtatish.length) return null;
-    try { return { rows: exactWrite(yozish.nodes, yozish.mapping), error: '' }; }
+    try {
+      // Qo'shilgan ТН·КМ qatorlari: smetadagi т·км qatoriga bog'langan F2 qatori (hajm = taklif, narx = smeta narxi).
+      const qosh = [...tkmQosh].flatMap(([qid, hajm]) => {
+        const narx = raw.get(qid)?.narx;
+        return hajm > 0 ? [{ uid: `tkm:${qid}`, hajm, narx: narx ?? undefined, summa: narx != null ? Math.round(hajm * narx * 100) / 100 : undefined, tur: 'rs' as const, summaYozilgan: narx != null }] : [];
+      });
+      const mapping = new Map(yozish.mapping);
+      for (const n of qosh) mapping.set(n.uid, Number(n.uid.slice(4)));
+      return { rows: exactWrite([...yozish.nodes, ...qosh], mapping), error: '' };
+    }
     catch (e) { return { rows: [], error: e instanceof Error ? e.message : 'Tekshiruv kerak.' }; }
-  }, [yozish]);
+  }, [yozish, tkmQosh, raw]);
   /** Qoldiqdan oshgan qatorlar — FAQAT KO'RSATISH (egasi 2026-10-23: loyiha hajmlari xato bo'lishi normal, blok yo'q).
    *  smeta − tasdiqlangan − boshqa qoralamalar − shu F2. Qo'shimcha/zamena qatorlari ko'rsatilmaydi. */
   const oshishlar = useMemo(() => {
@@ -596,6 +607,17 @@ function Sessiya({ companyId }: { companyId: number }) {
       return tk ? [{ uid: x.uid, nom: x.nom, hajm: x.hajm, tk }] : [];
     });
   }, [ind, ij, rowsK, raw]);
+
+  /** Faylda transport qatori YO'Q, smetada ТН·КМ qatori bor: F2 qatori sifatida qo'shishni taklif (qo'shimcha ish EMAS, blok yo'q). */
+  const tkmQoshTaklif = useMemo(() => {
+    if (!ind || ind.qatorlar.some((x) => tkmBirlikmi(x.birlik))) return [];
+    const f2 = ind.qatorlar.map((x) => ({ nom: x.nom, birlik: x.birlik, hajm: x.hajm }));
+    const smetaM = rowsK.filter((r) => (r.tur === 'bl' || r.tur === 'rs') && r.hajm != null && !tkmBirlikmi(r.birlik)).map((r) => ({ nom: r.nom ?? '', birlik: r.birlik, hajm: Number(r.hajm) }));
+    return rowsK.filter((r) => (r.tur === 'rs' || r.tur === 'bl') && r.id > 0 && tkmBirlikmi(r.birlik) && r.hajm != null).flatMap((r) => {
+      const tk = tkmTaklif({ nom: r.nom ?? '' }, f2, { materiallar: smetaM, tkmHajm: Number(r.hajm) });
+      return tk ? [{ qatorId: r.id, nom: r.nom ?? '', tk }] : [];
+    });
+  }, [ind, rowsK]);
 
   /** Fayl SHA256 — shu fayl+varaq avval kiritilganini aniqlash uchun (raw_snapshot.fayl_sha256 ga ham yoziladi). */
   async function faylShaHisobla(file: File) {
@@ -1283,6 +1305,19 @@ function Sessiya({ companyId }: { companyId: number }) {
             <b className="text-text">{q.nom.slice(0, 80)}</b> — {t('faylda')}: {q.hajm != null ? fmt(q.hajm) : '—'}
             {q.tk.a && <> · {q.tk.a.izoh} = <b className="tabular-nums text-text">{fmt(q.tk.a.qiymat)}</b></>}
             {q.tk.b && <> · {q.tk.b.izoh} = <b className="tabular-nums text-text">{fmt(q.tk.b.qiymat)}</b></>}
+          </li>)}</ul>
+        </details>
+      )}
+
+      {tkmQoshTaklif.length !== 0 && !done && (
+        <details className="karta p-3 text-[12px]" aria-label={t('ТН·КМ qatori faylda yo‘q')}>
+          <summary className="cursor-pointer font-semibold text-text">{t('ТН·КМ qatori faylda yo‘q')}: {tkmQoshTaklif.length} {t('qator')}</summary>
+          <ul className="mt-1 space-y-1 text-text-dim">{tkmQoshTaklif.map((q) => <li key={q.qatorId} className="flex flex-wrap items-center gap-2">
+            <b className="text-text">{q.nom.slice(0, 80)}</b>
+            {([['A', q.tk.a], ['B', q.tk.b]] as const).map(([k, v]) => v && <button key={k} type="button" className="tugma h-6 px-1.5 text-[11px]" title={v.izoh} disabled={busy} onClick={() => setTkmQosh((o) => new Map(o).set(q.qatorId, v.qiymat))}>{k}: {fmt(v.qiymat)}</button>)}
+            {tkmQosh.has(q.qatorId) && <><span className="text-ok">✓ {fmt(tkmQosh.get(q.qatorId)!)} {t('F2 qatori sifatida qo‘shiladi')}</span>
+              <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setTkmQosh((o) => { const n = new Map(o); n.delete(q.qatorId); return n; })}>{t('Bekor qilish')}</button></>}
+            <span className="w-full text-text-mute">{[q.tk.a?.izoh, q.tk.b?.izoh].filter(Boolean).join(' · ')}</span>
           </li>)}</ul>
         </details>
       )}
