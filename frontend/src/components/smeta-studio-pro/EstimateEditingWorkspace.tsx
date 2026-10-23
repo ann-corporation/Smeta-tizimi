@@ -65,8 +65,8 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
     </aside>
   </div>;
 }
-export function Inspector({ doc, row, labels: l, command, pricing }: {
-  doc: EstimateDoc; row: OutlineRow; labels: EditingLabels; command: (command: StudioCommand) => boolean; pricing?: PricingProps;
+export function Inspector({ doc, row, labels: l, command, pricing, resourceOnly=false }: {
+  doc: EstimateDoc; row: OutlineRow; labels: EditingLabels; command: (command: StudioCommand) => boolean; pricing?: PricingProps; resourceOnly?:boolean;
 }) {
   const work = row.occurrenceId ? doc.occurrences[row.occurrenceId] : null;
   const recipe = work?.recipe.find(r => r.recipeId === row.recipeId);
@@ -126,7 +126,7 @@ export function Inspector({ doc, row, labels: l, command, pricing }: {
           className="tugma h-7 px-2" onClick={()=>run({type:'MOVE_SECTION',sectionId:section.id,parentId:section.parentId,index})}>{direction < 0 ? '↑' : '↓'}</button>;
       })}</div>
     </form> : <>
-      <button type="button" className="tugma h-7 px-2 text-danger" onClick={() => run({ type: 'REMOVE_OCCURRENCE', occurrenceId: work.id })}>{t('Ishni olib tashlash')}</button>
+      {!resourceOnly && <><button type="button" className="tugma h-7 px-2 text-danger" onClick={() => run({ type: 'REMOVE_OCCURRENCE', occurrenceId: work.id })}>{t('Ishni olib tashlash')}</button>
       <p className="text-[12px] text-text-dim">{work.source.code} · {work.basis.unitLabel ?? l.unknown}</p>
       <p className="text-[12px] text-text-dim">{l.amount}: {calc?.amount ?? l.unknown}</p>
       <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => { e.preventDefault(); run({ type: 'SET_QUANTITY', occurrenceId: work.id, quantity: quantity.trim() || null }); }}>
@@ -148,9 +148,9 @@ export function Inspector({ doc, row, labels: l, command, pricing }: {
       <label className="block text-[11.5px] text-text-dim">{l.move}<select className={inputClass} value={work.sectionId} onChange={e => run({ type: 'MOVE_OCCURRENCE', occurrenceId: work.id, sectionId: e.target.value })}>
         <option value={work.sectionId}>{doc.sections[work.sectionId].name}</option>
         {targetSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-      </select></label>
+      </select></label></>}
       {recipe && <>
-        <p className="text-[12px] text-text-dim">{l.quantity}: {line?.quantity ?? l.unknown} · {l.amount}: {line?.amount ?? l.unknown}</p>
+        <p className="text-[12px] text-text-dim">{resourceOnly ? t('Resurs miqdori') : l.quantity}: {line?.quantity ?? l.unknown} · {l.amount}: {line?.amount ?? l.unknown}</p>
         <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => { e.preventDefault(); run({ type: 'SET_PRICE', occurrenceId: work.id, recipeId: recipe.recipeId,
           price: price.trim() ? { value: price, basis, evidence, sourcePriceId: priceSource } : null }); }}>
           <label className="block text-[11.5px] text-text-dim">{l.price}<MoneyInput className={inputClass} inputMode="decimal" value={price} onValueChange={(moneyValue) => {

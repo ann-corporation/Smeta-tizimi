@@ -37,7 +37,7 @@ export function StudioInspector({doc,calculation,workId,onWork,command,pricing,t
       <div hidden={tab!=='work'}>{workRow ? <Inspector key={`${doc.draftId}:${doc.context.companyId}:${workRow.key}`} doc={doc} row={workRow} labels={studioPanelLabels()} command={command} pricing={pricing}/> : <p className="studio-empty">{t('Avval jadvaldan ish tanlang.')}</p>}</div>
       <div hidden={tab!=='resources'}>
         <label className="studio-resource-choice">{t('Ish tarkibidagi resurs')}<select value={resourceRow?.key ?? ''} onChange={e=>setResourceKey(e.target.value)}><option value="" disabled>{t('Resursni tanlang')}</option>{resourceRows.map(r=><option key={r.key} value={r.key}>{r.code} · {r.label}</option>)}</select></label>
-        {resourceRow ? <Inspector key={`${doc.draftId}:${doc.context.companyId}:${resourceRow.key}`} doc={doc} row={resourceRow} labels={studioPanelLabels()} command={command} pricing={pricing}/> : <p className="studio-empty">{t('Bu ishning resurs tarkibi mavjud emas.')}</p>}
+        {resourceRow ? <Inspector resourceOnly key={`${doc.draftId}:${doc.context.companyId}:${resourceRow.key}`} doc={doc} row={resourceRow} labels={studioPanelLabels()} command={command} pricing={pricing}/> : <p className="studio-empty">{t('Bu ishning resurs tarkibi mavjud emas.')}</p>}
       </div>
     </div>
   </aside>;

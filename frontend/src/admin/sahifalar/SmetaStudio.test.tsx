@@ -284,6 +284,10 @@ it('keeps the worksheet visible while selecting works and preserves an unsaved i
  expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('3');
  fireEvent.click(within(inspector).getByRole('tab',{name:'Smetachi AI'}));
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST unsent selected work question');
+ fireEvent.click(within(inspector).getByRole('tab',{name:'Resurs'}));
+ expect(within(inspector).queryByRole('button',{name:'Ishni olib tashlash'})).toBeNull();
+ expect(within(inspector).queryByRole('textbox',{name:'Ish hajmi'})).toBeNull();
+ expect(within(inspector).getByRole('textbox',{name:'Birlik narxi'})).toBeTruthy();
  fireEvent.click(within(inspector).getByRole('tab',{name:'Koeff.'}));
  fireEvent.click(within(inspector).getByText('Koeffitsientni qo‘lda kiritish'));
  fireEvent.change(within(inspector).getByLabelText('Koeffitsient nomi'),{target:{value:'TEST work A only'}});
