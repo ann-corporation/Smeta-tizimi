@@ -143,8 +143,10 @@ function jamiTop(v: VaraqAnatomiyasi): F2Jami {
 /** Kitobdagi F2 akt varaq(lar)i: ishlari bor LRV shaklidagi varaqlar (СЧЁТ-ФАКТ, ОБЛОЖКА emas). */
 export function f2AktlarniOqi(kitob: KirishKitob): F2Akt[] {
   const anat = kitobAnatomiyasi(kitob);
-  const aktlar = anat.varaqlar.filter((v) => v.rol === 'lrv' && v.ishlar.length > 0);
-  return aktlar.map((v) => aktQur(kitob, v));
+  // Ishsiz, faqat mustaqil qatorli akt varag'i ham F2 (masalan uskuna/shefmontaj varag'i — egasi 2026-10-23).
+  const aktlar = anat.varaqlar.filter((v) => v.rol === 'lrv' && (v.ishlar.length > 0 || (v.mustaqilResurslar?.length ?? 0) > 0));
+  // Ishsiz varaq faqat hujjatning o'z jami (ИТОГО ПРЯМЫЕ yoki ВСЕГО) bo'lsa akt — boshqa jadvallar (masalan счёт-фактура) F2 emas.
+  return aktlar.map((v) => aktQur(kitob, v)).filter((a) => a.ishlarSoni > 0 || a.jami.pryamye != null || a.jami.vsego != null);
 }
 
 function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {

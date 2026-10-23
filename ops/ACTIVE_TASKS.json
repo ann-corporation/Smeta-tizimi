@@ -2809,6 +2809,32 @@
       "production_write_allowed": false,
       "release_sha": "8a8a6162cc76515a85d981287fec0809a0260fa9",
       "verification": "Exact branch SHA frontend CI success before fast-forward main; remote main verified 2026-10-21. Full local2648PASS17skip; TS/functions/build/tekshir/map/lint/governance PASS. Pages production and authenticated smoke receipts are tracked in Obsidian CURRENT_STATE/HANDOFF and D:/CatalogMigration/coefficient-foundation-20261021-v1/runtime-reference/. Final documentation commit is code-identical to this release."
+    },
+    {
+      "id": "PTO-KEYS-SHARTNOMA-SVOD-20261023",
+      "title": "Nakopitelniy vedomost kengaytmasi: shartnoma bo‘limi (DS, F3 sotuvdan t2_forma3 da, to‘lov, akt-sverka) — yangi sahifa yo‘q",
+      "owner": "claude",
+      "machine": "Anvar",
+      "branch": "claude/pto-keys-moslash",
+      "base_sha": "8c5974bdf3e8bbd5166b3a7d51444e12bc943d4a",
+      "status": "ready_for_review",
+      "owns": [
+        "supabase/migrations/20261106820000_t2_shartnoma_svod_sverka_v1.sql",
+        "supabase/migrations/20261106820000_t2_shartnoma_svod_sverka_v1.rollback.sql",
+        "supabase/tests/t2_shartnoma_svod_sverka_contract.sql",
+        "frontend/src/lib/nakopitelniy-svod.ts",
+        "frontend/src/lib/nakopitelniy-svod.test.ts",
+        "frontend/src/api/t2-nakopitelniy.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "Additiv o‘zgarish, boshqa task lockida (L0 kelishuvi kerak): frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx, frontend/src/lib/nakopitelniy-vedomost-export.ts, frontend/src/lib/forma3-export.ts"
+      ],
+      "production_write_allowed": false,
+      "release_sha": null,
+      "verification": "vitest src/lib/nakopitelniy-svod.test.ts; npm run tekshir; supabase/tests/t2_shartnoma_svod_sverka_contract.sql (L0, BEGIN…ROLLBACK)"
     }
   ]
 }

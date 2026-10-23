@@ -13,9 +13,11 @@ export type SmetaNarxlashNatija = {
  */
 export function sbT2SmetaNarxlaRes(p: {
   kompaniyaId: number; obyektId: number; operationId: string; narxlar: ResNarxYuk[];
+  /** Foydalanuvchi tanlovi: narxi aniq 0 bo'lgan RS/MAT/OB ham to'ldirilsin (server v3). Sukut — faqat NULL (v2). */
+  nolHam?: boolean;
 }): Promise<SmetaNarxlashNatija> {
   return yozAmali({
-    amal: 'smeta_narxla_res', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId,
-    operation_id: p.operationId, narxlar: p.narxlar,
+    amal: p.nolHam ? 'smeta_narxla_res_v3' : 'smeta_narxla_res', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId,
+    operation_id: p.operationId, narxlar: p.narxlar, ...(p.nolHam ? { nol_ham: true } : {}),
   }) as Promise<SmetaNarxlashNatija>;
 }

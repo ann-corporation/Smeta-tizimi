@@ -191,3 +191,46 @@ describe('RES v2 migration source gates (not database execution)', () => {
     expect(acceptance).not.toMatch(/\bcommit\s*;/i);
   });
 });
+
+describe('0 narxli qatorlar (JONLI_SINOV_TOPILMALARI #14) — faqat foydalanuvchi tanlovi bilan', () => {
+  const qatorlar = [
+    { id: 1, tur: 'mat', kod: 'A', nom: 'Бетон Ё 25', birlik: 'м3', narx: 0 },
+    { id: 2, tur: 'rs', kod: 'B', nom: 'Бетон Ё 25', birlik: 'м3', narx: null },
+    { id: 3, tur: 'mat', kod: 'C', nom: 'Бетон Ё 25', birlik: 'м3', narx: 99 },
+    { id: 4, tur: 'bl', kod: 'D', nom: 'Бетон Ё 25', birlik: 'м3', narx: 0 },
+  ];
+  const res = [{ kod: 'x', nom: 'бетон е 25', birlik: 'м³', narx: 100 }];
+
+  it('sukut bo‘yicha 0 narx — mavjud narx (egasi: narx 0 = 0), lekin soni ko‘rsatiladi', () => {
+    const r = resNarxlashPreview(qatorlar, res);
+    expect(r.narxsiz).toBe(1);
+    expect([...r.qatorNarxlari.keys()]).toEqual([2]);
+    expect(r.nolNarxli).toBe(1);
+  });
+
+  it('nolHam: 0 narxli RS/MAT/OB ham to‘ldiriladi; mavjud narx va bl qatori o‘zgarmaydi', () => {
+    const r = resNarxlashPreview(qatorlar, res, { nolHam: true });
+    expect(r.narxsiz).toBe(2);
+    expect([...r.qatorNarxlari.entries()].sort()).toEqual([[1, 100], [2, 100]]);
+    expect(r.turBoyicha.mat).toEqual({ narxsiz: 1, mos: 1 });
+  });
+
+  const dir = resolve(__dirname, '../../../supabase/migrations');
+  const v3 = readFileSync(resolve(dir, '20261106830000_t2_smeta_narxla_res_v3_nol.sql'), 'utf8');
+  const v3rb = readFileSync(resolve(dir, '20261106830000_t2_smeta_narxla_res_v3_nol.rollback.sql'), 'utf8');
+  const v3acc = readFileSync(resolve(dir, '20261106830000_t2_smeta_narxla_res_v3_nol.acceptance.sql'), 'utf8');
+
+  it('server v3: 0 faqat p_nol_ham bilan, v2 o‘zgarmaydi, audit va javobda nol_ham', () => {
+    expect(v3.match(/\(q\.narx is null or \(p_nol_ham and q\.narx = 0\)\)/g)).toHaveLength(3);
+    expect(v3).not.toMatch(/t2_smeta_narxla_res_v2/);
+    expect(v3).toContain("'nol_ham', coalesce(p_nol_ham, false)");
+    expect(v3).toContain('nol_ham=%s');
+    expect(v3).toContain("if p_nol_ham is null then");
+    expect(v3).toContain('public.t2_actor_kompaniya_azo_tekshir');
+    expect(v3).toContain('grant execute on function public.t2_smeta_narxla_res_v3(bigint, bigint, bigint, uuid, jsonb, boolean) to service_role');
+    expect(v3rb).toContain('drop function if exists public.t2_smeta_narxla_res_v3(bigint, bigint, bigint, uuid, jsonb, boolean)');
+    expect(v3rb).not.toMatch(/(?:drop|delete|update).*\bt2_(?:qator|smeta_narxla_res_v2)\b/i);
+    expect(v3acc).toMatch(/begin;\s+do \$test\$/i);
+    expect(v3acc.trim()).toMatch(/rollback;$/i);
+  });
+});

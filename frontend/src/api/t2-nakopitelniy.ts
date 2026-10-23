@@ -10,6 +10,9 @@
  * engine never modeled Fakt at all.
  */
 
+import { yozAmali, type AktNatija } from './supabase';
+import type { SvodShartnoma, TolovTur } from '../lib/nakopitelniy-svod';
+
 export type NakopitelniyQator = {
   qator_id: number; tartib: number; kod: string | null; nom: string | null; birlik: string | null;
   tur: 'rz' | 'bl' | 'rs' | 'mat' | 'ob'; kat: string | null; qoshimcha: boolean; zamena: boolean;
@@ -111,4 +114,45 @@ export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null
     keyingi = s.keyingi_offset ?? null;
   }
   return { ...birinchi, qatorlar, qatorlar_korsatildi: qatorlar.length, truncated: false, keyingi_offset: null };
+}
+
+/* ═══════════ Shartnoma darajasi (2026-10-23): svod, akt-sverka, F3 sotuvdan, DS ═══════════
+ * O'qish: /api/sb `shartnoma_svod_v1` (stable, a'zolik + f2.read). Yozish: /api/sb-yoz `sverka_yozuv_v1` (DS | F3 sotuvdan,
+ * t2_forma3.manba='sotuv'); to'lov — mavjud `tolov_yoz`. Hisob — lib/nakopitelniy-svod.ts. */
+
+export type ShartnomaSvodJavob = { ok: true; generated_at: string; shartnomalar: SvodShartnoma[] };
+
+export async function shartnomaSvodOl(kompaniyaId: number): Promise<{ ok: true; natija: ShartnomaSvodJavob } | { ok: false; error: string }> {
+  try {
+    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_svod_v1', kompaniya_id: kompaniyaId }) });
+    const j = await r.json() as { ok: boolean; natija?: ShartnomaSvodJavob; error?: string };
+    if (!j.ok || !j.natija || !Array.isArray(j.natija.shartnomalar)) return { ok: false, error: j.error || 'Svodni o‘qib bo‘lmadi.' };
+    return { ok: true, natija: j.natija };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Tarmoq xatosi' }; }
+}
+
+export type SverkaYozuvTur = 'ds' | 'f3_sotuv';
+
+export function sverkaYozuvYoz(p: {
+  kompaniyaId: number; shartnomaId: number; tur: SverkaYozuvTur; yozuvId?: number | null; kutilganVersiya?: number | null;
+  malumot: Record<string, string | number | null>; operationId: string;
+}): Promise<AktNatija & { id?: number; versiya?: number; code?: string; xabar?: string }> {
+  return yozAmali({
+    amal: 'sverka_yozuv_v1', kompaniya_id: p.kompaniyaId, shartnoma_id: p.shartnomaId, tur: p.tur,
+    yozuv_id: p.yozuvId ?? null, kutilgan_versiya: p.kutilganVersiya ?? null, malumot: p.malumot, operation_id: p.operationId,
+  });
+}
+
+export function tolovYoz(p: { kompaniyaId: number; shartnomaId: number; summa: number; tur: TolovTur; sana: string; izoh?: string | null; operationId: string }) {
+  return yozAmali({ amal: 'tolov_yoz', kompaniya_id: p.kompaniyaId, shartnoma_id: p.shartnomaId, summa: p.summa, tur: p.tur, sana: p.sana, izoh: p.izoh ?? null, operation_id: p.operationId });
+}
+
+export function sverkaXato(r: { error?: string; xabar?: string; code?: string } | null | undefined): string {
+  const m = `${r?.code ?? ''} ${r?.error ?? ''}`;
+  if (r?.xabar) return r.xabar;
+  if (/STALE_VERSION/.test(m)) return 'Yozuv shu orada o‘zgargan — yangilab qayta urinib ko‘ring.';
+  if (/F3_TAKROR/.test(m)) return 'Shu sana, raqam va summali F3 allaqachon bor.';
+  if (/PERMISSION_DENIED/.test(m)) return 'Bu amal uchun moliya yozish ruxsati kerak.';
+  if (/SHARTNOMA_NOT_FOUND/.test(m)) return 'Shartnoma topilmadi.';
+  return r?.error || r?.code || 'Saqlab bo‘lmadi.';
 }

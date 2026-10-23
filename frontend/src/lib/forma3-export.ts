@@ -36,9 +36,10 @@ import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import type { PtoF3LineageInput } from './pto-document-lineage';
 import { assertF3Lineage } from './pto-document-lineage';
 import {
-  RasmiyVaraq, bugunSana, hujjatFaylNomi, rasmiyKitob, yaxlit2,
+  RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2,
   summaSozBilan, type ImzoNomlar, type Qiymat, type RasmiyUstun, type SarlavhaKatak,
 } from './hujjat-yozuvchi';
+import { f3SotuvdanHisobla, somga, type SvodShartnoma } from './nakopitelniy-svod';
 import {
   NAKRUTKA_KATLAR, kategoriyaKf, nakrutkaKaskadJS, nakrutkaKat, nakrutkaPodvaliYoz, podvalliKaskad,
   type KatSummalar, type NakrutkaHisobJS,
@@ -773,4 +774,42 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     },
     diqqat,
   };
+}
+
+/* ═══════════ F3 — SOTUV SUMMASIDAN (egasi qoidasi 2026-10-23) ═══════════
+ * F3 = akt-sverkadagi har «Продажа» summasi (t2_forma3.manba='sotuv'); F2 qatorlari bilan bog'lash talab qilinmaydi.
+ * Summa QQS bilan; QQSsiz = ROUND(summa / (1 + НДС), 2), НДС = summa − QQSsiz. Hisob — `nakopitelniy-svod.ts`. */
+const F3_SOTUV_USTUN: RasmiyUstun[] = [
+  { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+  { sarlavha: 'Наименование', kenglik: 40, tur: 'matn' },
+  { sarlavha: 'Сметная (договорная) стоимость', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'с начала строительства', kenglik: 18, tur: 'pul', guruh: 'СТОИМОСТЬ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ' },
+  { sarlavha: 'с начала года', kenglik: 18, tur: 'pul', guruh: 'СТОИМОСТЬ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ' },
+  { sarlavha: 'за отчётный период', kenglik: 18, tur: 'pul', guruh: 'СТОИМОСТЬ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ' },
+];
+const sanaRuF3 = (s: string | null | undefined) => (s ? s.slice(0, 10).split('-').reverse().join('.') : '—');
+
+export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: { tashkilot?: string | null; imzo?: ImzoNomlar } = {}): { bytes: Uint8Array; faylNomi: string } | null {
+  const h = f3SotuvdanHisobla(sh, f3Id);
+  if (!h) return null;
+  const nds = h.f3.nds_foiz ?? F3_NDS_SUKUT;
+  const v = new RasmiyVaraq({
+    nom: 'Форма 3', kattaHarf: false,
+    sarlavha: 'СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)',
+    ostSarlavha: [`Документ № ${h.f3.raqam ?? '—'} от ${sanaRuF3(h.f3.sotuv_sana)}`, `Отчётный период: с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`],
+    titul: [['Подрядчик:', o.tashkilot ?? null], ['Договор:', `№ ${sh.raqam}${sh.nom ? ` (${sh.nom})` : ''}`], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
+    ustunlar: F3_SOTUV_USTUN, yonalish: 'landscape',
+  });
+  const shT = h.shartnoma;
+  const shSiz = shT == null ? null : Math.round(shT / (1 + nds / 100));
+  const r1 = v.qator('oddiy', [1, 'Стоимость выполненных работ и затрат без НДС', shSiz == null ? null : somga(shSiz), somga(h.boshidan[0]), somga(h.yilBoshidan[0]), somga(h.davr[0])]);
+  const r2 = v.qator('oddiy', [2, `НДС ${nds}%`, shT == null || shSiz == null ? null : somga(shT - shSiz), somga(h.boshidan[1]), somga(h.yilBoshidan[1]), somga(h.davr[1])]);
+  const harf = (i: number) => v.harf(i);
+  const jamiF = (c: number, val: number | null): Qiymat => (val == null ? null : { f: `${harf(c)}${r1}+${harf(c)}${r2}`, v: somga(val) });
+  v.qator('vsego', ['', 'ВСЕГО с НДС', jamiF(2, shT), jamiF(3, h.boshidan[2]), jamiF(4, h.yilBoshidan[2]), jamiF(5, h.davr[2])]);
+  v.bosh();
+  v.izoh(`Сумма за отчётный период равна сумме реализации от ${sanaRuF3(h.f3.sotuv_sana)}; НДС выделен из суммы с НДС (ставка ${nds}%).`);
+  v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
+  const { bytes } = rasmiyKitob([v], { tur: 'f3' });
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: `Ф3_${h.f3.raqam ?? h.f3.id}`, davr: h.f3.sotuv_sana }) };
 }

@@ -278,6 +278,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_shartnoma_saqla_v2"
     },
     {
+      "amal": "sverka_yozuv_v1",
+      "rpc": "t2_sverka_yozuv_v1"
+    },
+    {
       "amal": "fayl_amal_v1",
       "rpc": "t2_fayl_amal_v1"
     },
@@ -336,6 +340,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "smeta_narxla_res",
       "rpc": "t2_smeta_narxla_res_v2"
+    },
+    {
+      "amal": "smeta_narxla_res_v3",
+      "rpc": "t2_smeta_narxla_res_v3"
     },
     {
       "amal": "qator_tahrir",
