@@ -15,6 +15,7 @@ import {
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { exactWrite } from '../../lib/f2-exact-write';
 import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-moslash-v3/band';
+import { kumulyativmi, kumulyativQolla, kumulyativReja } from '../../lib/f2-moslash-v3/kumulyativ';
 import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestrMos } from '../../lib/f2-moslash-v3/varaq-tanlov';
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
@@ -76,6 +77,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const raqamN = f2RaqamNormal(raqam);
   // Aynan shu raqamdagi QORALAMA aktning qatorlarini almashtirishga operatorning aniq roziligi (akt id bo'yicha).
   const [almashtirTasdiq, setAlmashtirTasdiq] = useState<number | null>(null);
+  /** Kumulyativ varaq rejimi (operator yoqadi): oldingi F2 lar hajmi shu varaqdan ayriladi — faqat yozish proyeksiyasi. */
+  const [kumRejim, setKumRejim] = useState(false);
   const [rows, setRows] = useState<T2Qator[]>([]);
   // Rejali (hali yozilmagan) qo'shimcha/zamena/resurslar — egasi 2026-10-20: har birida kutmaslik, oxirida bittada yozish.
   const [rejali, setRejali] = useState<RejaliBuyruq[]>([]);
@@ -357,7 +360,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
     pendingCorrection.current = undefined;
     ++saveGeneration.current; setIshSaqlandi(''); setServerHolat(''); serverDraft.current = undefined;
-    setNatija(null); tarixniTozala(); setRejali([]); setOchirish([]); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
+    setNatija(null); setKumRejim(false); tarixniTozala(); setRejali([]); setOchirish([]); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
   }
 
   /** `mavjudHujjatId` berilsa — fayl tizimdagi R2 hujjatidan olingan: yozishda QAYTA yuklanmaydi, o'sha hujjat manba bo'ladi. */
@@ -558,7 +561,12 @@ function Sessiya({ companyId }: { companyId: number }) {
   }
 
   const taklifSoni = useMemo(() => (ij ? [...ij.bog.values()].filter((b) => b.holat === 'taklif').length : 0), [ij]);
-  const yozish = useMemo(() => (ind && ij ? f2QoralamaYozish(ind, ij) : null), [ind, ij]);
+  /** Kumulyativ reja: faqat hujjatda «ранее» > 0 bo'lsa hisoblanadi; rejim yoqilmaguncha yozishga TA'SIR QILMAYDI. */
+  const kumReja = useMemo(() => (akt && ind && ij && kumulyativmi(akt.jami)
+    ? kumulyativReja({ ind, ij, oldingi, band, narx: (id) => raw.get(id)?.narx ?? null, jami: akt.jami })
+    : null), [akt, ind, ij, oldingi, band, raw]);
+  const indYoz = useMemo(() => (ind && kumReja && kumRejim ? kumulyativQolla(ind, kumReja) : ind), [ind, kumReja, kumRejim]);
+  const yozish = useMemo(() => (indYoz && ij ? f2QoralamaYozish(indYoz, ij) : null), [indYoz, ij]);
   const payload = useMemo(() => {
     if (!yozish || yozish.toxtatish.length) return null;
     try { return { rows: exactWrite(yozish.nodes, yozish.mapping), error: '' }; }
@@ -1128,6 +1136,19 @@ function Sessiya({ companyId }: { companyId: number }) {
             <span className="text-text-dim">Qatorlar yig‘indisi: <b className={`tabular-nums ${jamiFarq != null && Math.abs(jamiFarq) > 1 ? 'text-warn' : 'text-ok'}`}>{fmt(akt.qatorlarJami)}</b></span>
             {akt.jami.ranee != null && <span className="text-text-dim">Ранее оформленным: <b className="tabular-nums text-text">{fmt(akt.jami.ranee)}</b></span>}
           </div>
+          {kumReja && !done && (
+            <p className="flex flex-wrap items-center gap-2 rounded border border-border bg-surface-2/40 px-2 py-1.5 text-[12px] text-text-dim" aria-label={t('Kumulyativ varaq')}>
+              <span className="min-w-0 flex-1">{kumRejim
+                ? t('Kumulyativ rejim: oldingi F2 lar hajmi ayirildi ({n} qator, −{pul} so‘m).', { n: kumReja.qatorlar.size, pul: fmt(kumReja.ayirilganPul) })
+                : t('Hujjatda «Ранее оформленным» bor — hajm kumulyativ ko‘rinadi. Oldingi F2 lar ayirilsinmi?')}
+                {kumRejim && kumReja.nazorat && <> {kumReja.nazorat.mos
+                  ? <b className="text-ok">{t('Jami = ВСЕГО − ранее ✓')}</b>
+                  : <b className="text-warn">{t('ВСЕГО − ранее dan farq: {n} so‘m', { n: fmt(kumReja.nazorat.natija - kumReja.nazorat.kutilgan) })}</b>}</>}
+                {kumRejim && kumReja.storno.length > 0 && <> {t('Storno taklifi: {n} qator ({pul} so‘m) — oldingi F2 da bor, bu varaqda yo‘q; minus qator sifatida qo‘lda kiriting.', { n: kumReja.storno.length, pul: fmt(kumReja.storno.reduce((s, x) => s + x.pul, 0)) })}</>}
+              </span>
+              <button type="button" className="tugma" disabled={busy} onClick={() => setKumRejim((v) => !v)}>{kumRejim ? t('Ayirishni bekor qilish') : t('Oldingi F2 larni ayirish')}</button>
+            </p>
+          )}
           {jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0 && (
             <p role="alert" className="rounded border border-warn/40 bg-warn/10 px-2 py-1.5 text-[12px] text-warn">
               Manba jami va qatorlar yig‘indisi mos emas: <b className="tabular-nums">{jamiFarq > 0 ? '+' : ''}{fmt(jamiFarq)} so‘m{jamiFarqFoiz != null ? ` (${jamiFarq > 0 ? '+' : ''}${fmt(jamiFarqFoiz)}%)` : ''}</b>.
