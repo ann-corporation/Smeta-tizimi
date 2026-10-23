@@ -17,6 +17,7 @@ import { exactWrite } from '../../lib/f2-exact-write';
 import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-moslash-v3/band';
 import { kumulyativmi, kumulyativQolla, kumulyativReja } from '../../lib/f2-moslash-v3/kumulyativ';
 import { dvigatelDaraxti, podvalTaklifQosh } from '../../lib/f2-moslash-v3/podval';
+import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
 import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestrMos } from '../../lib/f2-moslash-v3/varaq-tanlov';
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
@@ -582,6 +583,19 @@ function Sessiya({ companyId }: { companyId: number }) {
     const ozgarish = new Set(rowsK.filter((r) => (r as { qoshimcha?: boolean }).qoshimcha || (r as { zamena?: boolean }).zamena).map((r) => r.id));
     return qoldiqOshishlari(payload.rows.map((r) => ({ qatorId: r.qatorId, hajm: r.certifiedQuantity })), smetaH, oldingi, band, ozgarish);
   }, [payload, rowsK, oldingi, band]);
+
+  /** ТН·КМ qatorlari: taklif (blok emas) — A = shu F2 dagi tonnali mos material Σ tonna × km; B = F2/smeta ulushi × smeta т·км. */
+  const tkmQatorlar = useMemo(() => {
+    if (!ind) return [];
+    const boshqa = (uid: string) => ind.qatorlar.filter((x) => x.uid !== uid && !tkmBirlikmi(x.birlik)).map((x) => ({ nom: x.nom, birlik: x.birlik, hajm: x.hajm }));
+    const smetaM = rowsK.filter((r) => (r.tur === 'bl' || r.tur === 'rs') && r.hajm != null && !tkmBirlikmi(r.birlik)).map((r) => ({ nom: r.nom ?? '', birlik: r.birlik, hajm: Number(r.hajm) }));
+    return ind.qatorlar.filter((x) => tkmBirlikmi(x.birlik)).flatMap((x) => {
+      const bog = ij?.bog.get(x.uid);
+      const tkmHajm = bog ? Number(raw.get(bog.qatorId)?.hajm ?? NaN) : NaN;
+      const tk = tkmTaklif({ nom: x.nom }, boshqa(x.uid), { materiallar: smetaM, tkmHajm: Number.isFinite(tkmHajm) ? tkmHajm : null });
+      return tk ? [{ uid: x.uid, nom: x.nom, hajm: x.hajm, tk }] : [];
+    });
+  }, [ind, ij, rowsK, raw]);
 
   /** Fayl SHA256 — shu fayl+varaq avval kiritilganini aniqlash uchun (raw_snapshot.fayl_sha256 ga ham yoziladi). */
   async function faylShaHisobla(file: File) {
@@ -1261,6 +1275,17 @@ function Sessiya({ companyId }: { companyId: number }) {
           <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy} onClick={() => onRejaliOchir(b.tempId)} aria-label={`${t('Olib tashlash')}: ${b.nom}`}>✕</button>
         </li>)}</ul>
       </section>}
+
+      {tkmQatorlar.length !== 0 && !done && (
+        <details className="karta p-3 text-[12px]" aria-label={t('ТН·КМ taklifi')}>
+          <summary className="cursor-pointer font-semibold text-text">{t('ТН·КМ taklifi')}: {tkmQatorlar.length} {t('qator')}</summary>
+          <ul className="mt-1 space-y-1 text-text-dim">{tkmQatorlar.map((q) => <li key={q.uid}>
+            <b className="text-text">{q.nom.slice(0, 80)}</b> — {t('faylda')}: {q.hajm != null ? fmt(q.hajm) : '—'}
+            {q.tk.a && <> · {q.tk.a.izoh} = <b className="tabular-nums text-text">{fmt(q.tk.a.qiymat)}</b></>}
+            {q.tk.b && <> · {q.tk.b.izoh} = <b className="tabular-nums text-text">{fmt(q.tk.b.qiymat)}</b></>}
+          </li>)}</ul>
+        </details>
+      )}
 
       {oshishlar.length !== 0 && !done && (
         <section className="karta space-y-2 border border-warn/50 bg-warn/5 p-3 text-[12px]" aria-label={t('Dublikat hajm nazorati')}>

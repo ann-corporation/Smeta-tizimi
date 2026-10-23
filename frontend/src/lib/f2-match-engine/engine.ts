@@ -69,7 +69,7 @@ export function normBir(s: unknown): string {
     .replace(/²/g, '2')
     .replace(/¹/g, '1')
     .replace(/Ё/g, 'Е')
-    .replace(/[\s.,\-/]+/g, '');
+    .replace(/[\s.,\-/·•]+/g, '');
   return birSinonim(lat2Cyr(raw));
 }
 
@@ -79,6 +79,9 @@ export function normBir(s: unknown): string {
  * (Tizim1 F2 import qoidasi, F2_IMPORT_V3 §1.2). Kiruvchi qiymat bo'shliq/tinish belgisisiz.
  */
 function birSinonim(b: string): string {
+  // Транспорт: «ТН·КМ / Т·КМ / ТКМ / т.км / ТН.КМ / тонно-км» — bitta kalit (T3, 2026-10-24).
+  const tkm = b.match(/^(\d*)(ТНКМ|ТКМ|ТОННОКМ|ТОННОКИЛОМЕТР|ТОННОКИЛОМЕТРЫ)$/);
+  if (tkm) return tkm[1] + 'ТКМ';
   const k = b.match(/^(\d*)(КТ|КОМПТ|КОМПЛ|КОМПЛЕКТ|КОМПЛЕКТА|КОМПЛЕКТОВ)$/);
   if (k) return k[1] + 'КОМПЛ';
   const q = b.match(/^(\d*М[23])([А-Я]{3,})$/);

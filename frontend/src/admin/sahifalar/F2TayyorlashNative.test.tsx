@@ -89,6 +89,20 @@ describe('F2 tayyorlash', () => {
     expect(screen.queryByText('G‘isht terish')).toBeNull();
   });
 
+  it('ТН·КМ qatori yonida taklif: A = tonnali material Σ tonna × km (tugma hajmni to‘ldiradi)', async () => {
+    rows.push(q({ id: 11, tur: 'bl', ota_id: 1, nom: 'Перевозка: песок, 10 км', birlik: 'ТН·КМ', hajm: 10000 }), q({ id: 12, tur: 'bl', ota_id: 1, nom: 'Песок природный', birlik: 'т', hajm: 50 }));
+    holat.push({ qator_id: 11, tur: 'bl', nom: 'x', f2_mumkin_hajm: 10000, f2_hajm: 0, smeta_hajm: 10000 } as never, { qator_id: 12, tur: 'bl', nom: 'y', f2_mumkin_hajm: 50, f2_hajm: 0, smeta_hajm: 50 } as never);
+    try {
+      ochish();
+      const pesok = await screen.findByLabelText('F2 hajmi: Песок природный');
+      expect(screen.getByLabelText('F2 hajmi: Перевозка: песок, 10 км')).toBeTruthy();
+      fireEvent.change(pesok, { target: { value: '30' } });
+      const a = await screen.findByRole('button', { name: /^A:/ });
+      fireEvent.click(a);
+      expect((screen.getByLabelText('F2 hajmi: Перевозка: песок, 10 км') as HTMLInputElement).value).toBe('300');
+    } finally { rows.splice(rows.length - 2, 2); holat.splice(holat.length - 2, 2); }
+  });
+
   it('imzolovchilar va shartnoma raqami shartnoma liniyasidan avtomatik (3 tomonlama — subpudratchi)', async () => {
     ochish();
     expect(await screen.findByText(/№ 45 — Bosh pudrat · Дирекция · ООО «NTB» · ООО «Суб»/)).toBeTruthy();
