@@ -1,16 +1,18 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
-import { Search, Download, RefreshCw, AlertTriangle, Eye } from 'lucide-react';
+import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, ClipboardPaste, FileSpreadsheet } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
-import { t2NakopitelniyToliq, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
-import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, davrMatni } from '../../lib/nakopitelniy-vedomost-export';
+import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
+import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3Holat, type SvodShartnoma, type SverkaImportNatija, type TolovTur } from '../../lib/nakopitelniy-svod';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, davrMatni, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
-import { forma3Hujjat, type Forma3ExportOptions } from '../../lib/forma3-export';
+import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions } from '../../lib/forma3-export';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
@@ -114,15 +116,17 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [kompaniyalar, companyId]);
   const [zakazchikRek, setZakazchikRek] = useState<Forma3Rekvizit | null>(null);
   const [shartnoma, setShartnoma] = useState<{ raqam: string; sana: string | null; summa: number | null } | null>(null);
+  const [shartnomaId, setShartnomaId] = useState<number | null>(null);
   useEffect(() => {
     let active = true;
-    setZakazchikRek(null); setShartnoma(null);
+    setZakazchikRek(null); setShartnoma(null); setShartnomaId(null);
     if (!objectId) return;
     void (async () => {
       const bog = await sbT2ShartnomaBogOl(Number(objectId));
       if (!active || !bog.ok) return;
       const shId = (bog.qatorlar || []).find((x) => x.obyekt_id === Number(objectId))?.shartnoma_id;
       if (shId == null) return;
+      setShartnomaId(shId);
       const sh = await sbT2ShartnomalarOl(companyId, false);
       if (!active || !sh.ok) return;
       const s = (sh.qatorlar || []).find((x) => x.id === shId);
@@ -599,10 +603,202 @@ function Sessiya({ companyId }: { companyId: number }) {
           )}
         </>
       )}
+      {shartnomaId != null && (
+        <ShartnomaSvodBolimi companyId={companyId} shartnomaId={shartnomaId} tashkilot={kompaniyalar.find((x) => x.id === companyId)?.nom ?? null} />
+      )}
       {objectId && !busy && !xato && !qatorlar.length && (
         <p className="text-text-mute text-sm">Bu obyektda smeta qatori topilmadi.</p>
       )}
     </div>
+  );
+}
+
+/* ═══════════ Shartnoma darajasi (egasi 2026-10-23): DS → F2 → F3 (sotuv summasidan) → to'lov → akt-sverka ═══════════
+ * Shu sahifaning bo'limi (alohida sahifa emas). Hisob — lib/nakopitelniy-svod.ts; Excel — nakopitelniy-vedomost-export.ts
+ * (svod, akt-sverka) va forma3-export.ts (F3 sotuvdan). Hujjatlar token orqali beriladi. */
+type SvodKiritishTur = 'f3' | 'tolov' | 'ds';
+type SvodShakl = { tur: SvodKiritishTur; sana: string; raqam: string; summa: string; tolovTur: TolovTur; izoh: string };
+const SVOD_BOSH: SvodShakl = { tur: 'f3', sana: '', raqam: '', summa: '', tolovTur: 'tolov', izoh: '' };
+const svodPul = (x: number | null | undefined) => (x == null ? '—' : somga(x).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const svodSana = (s: string | null | undefined) => (s ? s.slice(0, 10).split('-').reverse().join('.') : '—');
+const SVOD_RANG: Record<string, string> = { '1': 'text-success', '-1': 'text-danger' };
+const svodRang = (x: number) => SVOD_RANG[String(Math.sign(x))] ?? '';
+const svodKirit = 'w-full rounded border border-border bg-surface px-2 py-1 text-[13px]';
+
+function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId: number; shartnomaId: number; tashkilot: string | null }) {
+  const [hammasi, setHammasi] = useState<SvodShartnoma[] | null>(null);
+  const [xato, setXato] = useState<string | null>(null);
+  const [band, setBand] = useState(false);
+  const [dan, setDan] = useState('');
+  const [gacha, setGacha] = useState('');
+  const [shakl, setShakl] = useState<SvodShakl>(SVOD_BOSH);
+  const [joylash, setJoylash] = useState('');
+  const [tahlil, setTahlil] = useState<SverkaImportNatija | null>(null);
+
+  const yukla = async () => {
+    const r = await shartnomaSvodOl(companyId);
+    if (r.ok) { setHammasi(r.natija.shartnomalar); setXato(null); } else setXato(r.error);
+  };
+  useEffect(() => { void yukla(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, shartnomaId]);
+
+  const sh = hammasi?.find((x) => x.id === shartnomaId) ?? null;
+  const sv = useMemo(() => (sh ? shartnomaSvodi(sh) : null), [sh]);
+  const sverka = useMemo(() => (sh ? sverkaHisobla(sh, { dan: dan || null, gacha: gacha || null }) : null), [sh, dan, gacha]);
+
+  async function ber(h: { bytes: Uint8Array; faylNomi: string } | null, hujjat: string, sabab: string) {
+    if (!h) return;
+    const r = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat, sabab }, () => downloadBlob(h.bytes, h.faylNomi));
+    if (!r.ok) { toast(r.xabar, 'danger'); return; }
+    if (r.xabar) toast(r.xabar, 'ok');
+  }
+  async function yoz(tur: SverkaYozuvTur, malumot: Record<string, string | number | null>, yozuvId?: number, versiya?: number) {
+    const r = await sverkaYozuvYoz({ kompaniyaId: companyId, shartnomaId, tur, yozuvId, kutilganVersiya: versiya, malumot, operationId: yangiOperationId() });
+    if (!r.ok) toast(t(sverkaXato(r)), 'danger');
+    return r.ok;
+  }
+  async function qosh() {
+    if (band) return;
+    const summa = Number(shakl.summa);
+    if (!shakl.sana || !Number.isFinite(summa) || summa === 0) { toast(t('Sana va summani kiriting'), 'danger'); return; }
+    setBand(true);
+    let ok: boolean;
+    if (shakl.tur === 'tolov') {
+      const r = await tolovYoz({ kompaniyaId: companyId, shartnomaId, summa: Math.abs(summa), tur: shakl.tolovTur, sana: shakl.sana, izoh: shakl.izoh || null, operationId: yangiOperationId() });
+      ok = r.ok; if (!r.ok) toast(t(sverkaXato(r)), 'danger');
+    } else if (shakl.tur === 'f3') {
+      ok = await yoz('f3_sotuv', { sotuv_sana: shakl.sana, raqam: shakl.raqam || null, sotuv_summa: summa, izoh: shakl.izoh || null });
+    } else {
+      ok = await yoz('ds', { sana: shakl.sana, raqam: shakl.raqam, jami_nds_bilan: summa, izoh: shakl.izoh || null });
+    }
+    setBand(false);
+    if (ok) { toast(t('Saqlandi'), 'ok'); setShakl({ ...SVOD_BOSH, tur: shakl.tur }); void yukla(); }
+  }
+  async function joylashniKirit() {
+    if (!tahlil || band) return;
+    setBand(true);
+    let soni = 0, xatoSoni = 0;
+    for (const q of tahlil.qatorlar) {
+      const r = q.tur === 'sotuv'
+        ? await sverkaYozuvYoz({ kompaniyaId: companyId, shartnomaId, tur: 'f3_sotuv', malumot: { sotuv_sana: q.sana, raqam: q.raqam, sotuv_summa: q.summa }, operationId: yangiOperationId() })
+        : await tolovYoz({ kompaniyaId: companyId, shartnomaId, summa: q.summa, tur: q.tur, sana: q.sana, izoh: t('Akt-sverkadan'), operationId: yangiOperationId() });
+      if (r.ok) soni++; else xatoSoni++;
+    }
+    setBand(false);
+    toast(t('Kiritildi: {soni}; xato yoki takror: {xato}', { soni: String(soni), xato: String(xatoSoni) }), xatoSoni ? 'warn' : 'ok');
+    setJoylash(''); setTahlil(null); void yukla();
+  }
+  async function bekor(tur: SverkaYozuvTur, id: number, versiya: number) {
+    if (!window.confirm(t('Yozuvni bekor qilasizmi?'))) return;
+    if (await yoz(tur, { holat: 'bekor' }, id, versiya)) void yukla();
+  }
+
+  if (xato) return <p className="text-danger text-sm">{t(xato)}</p>;
+  if (!sh || !sv || !sverka) return null;
+  return (
+    <details className="rounded-lg border border-border p-3" open>
+      <summary className="cursor-pointer text-sm font-semibold">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {sh.raqam}</summary>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[13px] md:grid-cols-5">
+        <div><div className="text-text-mute text-[11px]">{t('Shartnoma summasi (DS bilan)')}</div><div className="tabular-nums">{svodPul(sv.joriy.summa == null ? null : tiyin(sv.joriy.summa))}</div></div>
+        <div><div className="text-text-mute text-[11px]">{t('F2 tasdiqlangan (nakrutkasiz)')}</div><div className="tabular-nums">{svodPul(sv.f2)}</div></div>
+        <div><div className="text-text-mute text-[11px]">{t('Sotuv (F3)')}</div><div className="tabular-nums">{svodPul(sv.f3)}</div></div>
+        <div><div className="text-text-mute text-[11px]">{t('To‘lov')}</div><div className="tabular-nums">{svodPul(sv.tolov)}</div></div>
+        <div><div className="text-text-mute text-[11px]">{t('Qoldiq')}</div><div className={`tabular-nums ${svodRang(sv.qoldiq)}`}>{svodPul(sv.qoldiq)}</div></div>
+      </div>
+      {sv.ogohlantirishlar.map((g) => <div key={g.kod} className="mt-1 flex items-start gap-1 text-[12px] text-warning"><AlertTriangle size={13} className="mt-0.5" />{t(g.matn)}</div>)}
+
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="text-[12px]">{t('Dan')}<input type="date" className={svodKirit} value={dan} onChange={(e) => setDan(e.target.value)} /></label>
+        <label className="text-[12px]">{t('Gacha')}<input type="date" className={svodKirit} value={gacha} onChange={(e) => setGacha(e.target.value)} /></label>
+        <button type="button" className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-sm" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${sh.raqam}`)}>
+          <Download size={14} />{t('Akt-sverka (Excel)')}
+        </button>
+        <button type="button" className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-sm" onClick={() => void ber(hammasi ? shartnomaSvodXlsx(hammasi, { tashkilot }) : null, 'NAKOPITELNIY', 'Накопительная по договорам')}>
+          <FileSpreadsheet size={14} />{t('Barcha shartnomalar svodi (Excel)')}
+        </button>
+      </div>
+      <table className="mt-2 w-full text-[12px]">
+        <thead><tr className="border-b text-text-mute">
+          <th className="px-1 text-left">{t('Sana')}</th><th className="px-1 text-left">{t('Hujjat')}</th>
+          <th className="px-1 text-right">{t('Debet (sotuv)')}</th><th className="px-1 text-right">{t('Kredit (to‘lov)')}</th><th className="px-1 text-right">{t('Qoldiq')}</th><th />
+        </tr></thead>
+        <tbody>
+          <tr className="border-b"><td /><td className="px-1">{t('Boshlang‘ich qoldiq')}</td><td /><td /><td className={`px-1 text-right tabular-nums ${svodRang(sverka.boshlangich)}`}>{svodPul(sverka.boshlangich)}</td><td /></tr>
+          {sverka.qatorlar.map((q) => {
+            const f3 = q.tur === 'sotuv' ? sh.f3.find((x) => x.id === q.manbaId) : undefined;
+            return (
+              <tr key={`${q.tur}-${q.manbaId}`} className="border-b border-border/40">
+                <td className="px-1">{svodSana(q.sana)}</td><td className="px-1">{q.hujjat}</td>
+                <td className="px-1 text-right tabular-nums">{q.debet ? svodPul(q.debet) : ''}</td>
+                <td className="px-1 text-right tabular-nums">{q.kredit ? svodPul(q.kredit) : ''}</td>
+                <td className={`px-1 text-right tabular-nums ${svodRang(q.qoldiq)}`}>{svodPul(q.qoldiq)}</td>
+                <td className="px-1 text-right">
+                  {f3 && (
+                    <span className="inline-flex items-center gap-1">
+                      <select aria-label={t('F3 holati')} className="rounded border px-1 text-[12px]" value={f3.holat}
+                        onChange={(e) => void yoz('f3_sotuv', { holat: e.target.value as F3Holat }, f3.id, f3.versiya).then((ok) => { if (ok) void yukla(); })}>
+                        <option value="qoralama">{t('tayyorlanmagan')}</option>
+                        <option value="tayyor">{t('tayyor (yuborildi)')}</option>
+                        <option value="imzolangan">{t('imzolandi')}</option>
+                      </select>
+                      <button type="button" title={t('F3 (Excel)')} className="rounded p-1 hover:bg-surface-2"
+                        onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot }), 'F3', `Форма №3 · № ${sh.raqam} · ${f3.sotuv_sana ?? ''}`)}><Download size={12} /></button>
+                      <button type="button" title={t('Bekor qilish')} className="rounded p-1 text-danger" onClick={() => void bekor('f3_sotuv', f3.id, f3.versiya)}><Trash2 size={12} /></button>
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+          <tr className="font-semibold"><td /><td className="px-1">{t('Aylanma va yakuniy qoldiq')}</td>
+            <td className="px-1 text-right tabular-nums">{svodPul(sverka.debetJami)}</td><td className="px-1 text-right tabular-nums">{svodPul(sverka.kreditJami)}</td>
+            <td className={`px-1 text-right tabular-nums ${svodRang(sverka.yakuniy)}`}>{svodPul(sverka.yakuniy)}</td><td /></tr>
+        </tbody>
+      </table>
+      {sh.ds.length !== 0 && (
+        <div className="mt-2 space-y-0.5 text-[12px]">
+          {sh.ds.map((d) => (
+            <div key={d.id} className="flex items-center gap-2">
+              <span>{t('DS')} № {d.raqam} · {svodSana(d.sana)}</span><span className="ml-auto tabular-nums">{svodPul(tiyin(d.jami_nds_bilan))}</span>
+              <button type="button" title={t('Bekor qilish')} className="rounded p-1 text-danger" onClick={() => void bekor('ds', d.id, d.versiya)}><Trash2 size={12} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-6">
+        <label className="text-[12px]">{t('Yozuv turi')}
+          <select className={svodKirit} value={shakl.tur} onChange={(e) => setShakl({ ...shakl, tur: e.target.value as SvodKiritishTur })}>
+            <option value="f3">{t('Sotuv (F3)')}</option><option value="tolov">{t('To‘lov')}</option><option value="ds">{t('Qo‘shimcha kelishuv (DS)')}</option>
+          </select></label>
+        <label className="text-[12px]">{t('Sana')}<input type="date" className={svodKirit} value={shakl.sana} onChange={(e) => setShakl({ ...shakl, sana: e.target.value })} /></label>
+        {shakl.tur === 'tolov'
+          ? <label className="text-[12px]">{t('To‘lov turi')}
+              <select className={svodKirit} value={shakl.tolovTur} onChange={(e) => setShakl({ ...shakl, tolovTur: e.target.value as TolovTur })}>
+                <option value="tolov">{t('To‘lov')}</option><option value="avans">{t('Avans')}</option><option value="qaytarim">{t('Qaytarim')}</option>
+              </select></label>
+          : <label className="text-[12px]">{t('Raqam')}<input className={svodKirit} value={shakl.raqam} onChange={(e) => setShakl({ ...shakl, raqam: e.target.value })} /></label>}
+        <label className="text-[12px]">{shakl.tur === 'ds' ? t('Yangi shartnoma summasi (QQS bilan)') : t('Summa (QQS bilan)')}
+          <MoneyInput aria-label={t('Summa (QQS bilan)')} inputMode="decimal" className={`${svodKirit} tabular-nums`} value={shakl.summa} onValueChange={(v) => setShakl({ ...shakl, summa: v })} /></label>
+        <label className="text-[12px]">{t('Izoh')}<input className={svodKirit} value={shakl.izoh} onChange={(e) => setShakl({ ...shakl, izoh: e.target.value })} /></label>
+        <button type="button" disabled={band} className="self-end h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-accent text-white text-sm disabled:opacity-50" onClick={() => void qosh()}>
+          <Plus size={14} />{t('Qo‘shish')}
+        </button>
+      </div>
+      <div className="mt-2">
+        <textarea aria-label={t('Akt-sverkadan joylash (Sana · Hujjat · Debet · Kredit)')} placeholder={t('Akt-sverkadan joylash (Sana · Hujjat · Debet · Kredit)')}
+          className={`${svodKirit} h-16 font-mono`} value={joylash} onChange={(e) => { setJoylash(e.target.value); setTahlil(null); }} />
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px]">
+          <button type="button" className="h-7 px-2 inline-flex items-center gap-1 rounded border" onClick={() => setTahlil(sverkaMatniniOqi(joylash))}><ClipboardPaste size={13} />{t('Tekshirish')}</button>
+          {tahlil && (
+            <>
+              <span>{t('Sotuv: {s}, to‘lov: {t}, tushunilmagan: {x}', { s: String(tahlil.qatorlar.filter((q) => q.tur === 'sotuv').length), t: String(tahlil.qatorlar.filter((q) => q.tur !== 'sotuv').length), x: String(tahlil.xatolar.length) })}</span>
+              <button type="button" disabled={band || !tahlil.qatorlar.length} className="h-7 px-2 rounded bg-accent text-white disabled:opacity-50" onClick={() => void joylashniKirit()}>{t('Kiritish')}</button>
+            </>
+          )}
+        </div>
+      </div>
+    </details>
   );
 }
 

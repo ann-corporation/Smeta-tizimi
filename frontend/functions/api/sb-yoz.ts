@@ -50,6 +50,8 @@ const AMALLAR = {
   smeta_bolim_yarat_v1: { rpc: 't2_smeta_bolim_yarat_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
+  /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
+  sverka_yozuv_v1: { rpc: 't2_sverka_yozuv_v1' },
   /* Egasi 2026-10-20: fayl menejeri — o'z papkalari, ko'rinadigan nom, ko'chirish, savat (kanonik hujjat o'zgarmaydi). */
   fayl_amal_v1: { rpc: 't2_fayl_amal_v1' },
   /* Egasi 2026-10-21 (ADR-3): ombor Fakt orqali emas — bajarilgan M-29 orqali kamayadi. */
@@ -666,6 +668,31 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'Obyekt noto\'g\'ri.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: so.obyekt_id == null ? null : Number(so.obyekt_id) };
+    } else if (amal === 'sverka_yozuv_v1') {
+      const m = so.malumot;
+      const yid = so.yozuv_id == null || so.yozuv_id === '' ? null : Number(so.yozuv_id);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !['ds', 'f2_reestr', 'sotuv'].includes(String(so.tur))
+          || !Number.isSafeInteger(Number(so.shartnoma_id)) || Number(so.shartnoma_id) <= 0
+          || (yid != null && (!Number.isSafeInteger(yid) || yid <= 0))
+          || !m || typeof m !== 'object' || Array.isArray(m)) {
+        return Response.json({ ok: false, error: 'Sverka yozuvi: shartnoma, tur (ds | f2_reestr | sotuv), ma\'lumot va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      const mk = ['raqam', 'sana', 'jami_nds_bilan', 'izoh', 'holat', 'reestr_raqam', 'oy', 'obyekt_id', 'summa_nds_siz', 'summa_nds_bilan',
+        'akt_id', 'nom', 'fayl', 'summa', 'nds_foiz', 'davr_boshi', 'davr_oxiri', 'f3_holat', 'manba'];
+      const malumot: Record<string, unknown> = {};
+      for (const k of mk) {
+        const x = m[k];
+        if (x === undefined) continue;
+        if (x !== null && typeof x !== 'string' && typeof x !== 'number') {
+          return Response.json({ ok: false, error: 'Sverka yozuvi: maydon qiymati matn yoki son bo‘lishi kerak.' }, { status: 400 });
+        }
+        malumot[k] = typeof x === 'string' ? x.slice(0, 1000) : x;
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_shartnoma_id: Number(so.shartnoma_id), p_tur: String(so.tur),
+        p_yozuv_id: yid, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
+        p_malumot: malumot, p_operation_id: so.operation_id,
+      };
     } else if (amal === 'shartnoma_saqla_v2') {
       const m = so.malumot;
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !m || typeof m !== 'object' || Array.isArray(m)
@@ -1162,6 +1189,8 @@ export const onRequestPost: PagesFunction<{
         p_obyekt_id: so.obyekt_id == null ? null : Number(so.obyekt_id),
         p_izoh: so.izoh ? String(so.izoh).slice(0, 500) : null,
         p_operation_id: so.operation_id,
+        /* 2026-10-23: kompaniya berilmasa RPC eng birinchi kompaniyani yozardi — endi so'rovdagi (a'zolik tekshirilgan) kompaniya. */
+        p_kompaniya_id: so.kompaniya_id ?? null,
         p_manba: 'frontend',
         p_kim: sess.email || '',
       };
