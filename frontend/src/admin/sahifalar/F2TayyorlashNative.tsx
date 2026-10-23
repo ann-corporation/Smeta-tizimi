@@ -1,4 +1,5 @@
 import { TayyorlanganF2lar } from './TayyorlanganF2lar';
+import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { isCompleteMoney, reportMoneyValidity } from '../../lib/money-input';
@@ -29,7 +30,7 @@ import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  NARX_MANBA_NOMI, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, narxsizNomzodlar, ulushHajm,
+  NARX_MANBA_NOMI, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, narxsizNomzodlar, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs,
 } from '../../lib/f2-tayyor';
 
@@ -254,6 +255,23 @@ export function F2TayyorlashNative() {
     );
   }
 
+  /** ТН·КМ qatori yonida taklif (blok emas): A = shu F2 dagi tonnali mos material Σ tonna × km; B = F2/smeta ulushi × smeta т·км. */
+  function tkmTaklifQator(ish: F2Ish) {
+    const taklif = (() => {
+      const hamma = bolimlar.flatMap((b) => b.ishlar);
+      const f2 = hamma.filter((x) => x.id !== ish.id).map((x) => ({ nom: x.nom, birlik: x.birlik, hajm: sonOqi(k.hajm[x.id]) })).map((x) => ({ ...x, hajm: typeof x.hajm === 'number' ? x.hajm : null }));
+      const smetaM = hamma.filter((x) => x.id !== ish.id).map((x) => ({ nom: x.nom, birlik: x.birlik, hajm: x.smeta }));
+      return tkmTaklif({ nom: ish.nom }, f2, { materiallar: smetaM, tkmHajm: ish.smeta });
+    })();
+    if (!taklif) return null;
+    return <div className="flex flex-wrap items-center gap-2 px-10 pb-2 text-[11px] text-text-dim" aria-label={t('ТН·КМ taklifi')}>
+      <span>{t('Taklif')}:</span>
+      {([['A', taklif.a], ['B', taklif.b]] as const).map(([nom, v]) => v && <button key={nom} type="button" title={v.izoh} onClick={() => yoz('hajm', ish.id, String(v.qiymat))}
+        className="rounded-md border border-border px-1.5 py-0.5 hover:border-accent hover:text-text">{nom}: <FmtN val={v.qiymat} /></button>)}
+      <span className="text-text-mute">{[taklif.a?.izoh, taklif.b?.izoh].filter(Boolean).join(' · ')}</span>
+    </div>;
+  }
+
   function ishKartasi(i: F2Ish) {
     const x = byId.get(i.id);
     const ochilgan = ochiq.has(i.id) || !!qidir.trim();
@@ -277,6 +295,7 @@ export function F2TayyorlashNative() {
         </div>
         {x?.xato && <div className="px-10 pb-1 text-[11px] text-danger">{XATO_MATN[x.xato]}</div>}
         {x?.ogoh && <div className="px-10 pb-1 text-[11px] text-warn">{OGOH_MATN[x.ogoh]}</div>}
+        {tkmBirlikmi(i.birlik) && tkmTaklifQator(i)}
         {ochilgan && i.resurslar.length > 0 && (
           <table className="w-full text-[12px]"><tbody>{i.resurslar.map(resursQatori)}</tbody></table>
         )}
