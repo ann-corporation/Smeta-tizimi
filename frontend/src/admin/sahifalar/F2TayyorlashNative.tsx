@@ -4,7 +4,8 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { isCompleteMoney, reportMoneyValidity } from '../../lib/money-input';
 import { t } from '../../i18n/til';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ChevronDown, ChevronRight, Download, Eye, Save, Search, Zap } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
@@ -64,6 +65,8 @@ export function F2TayyorlashNative() {
   const [oy, setOy] = useState(oyBoshlanishi());
   const [raqam, setRaqam] = useState('');
   const [qidir, setQidir] = useState('');
+  /** Bitta almashtirgich: faqat shu davrda hajmi kiritilgan ishlar (hamma bo'limlardan). */
+  const [faqatKiritilgan, setFaqatKiritilgan] = useState(false);
   const [bolimId, setBolimId] = useState<number | null | undefined>(undefined);
   const [ochiq, setOchiq] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -137,13 +140,21 @@ export function F2TayyorlashNative() {
     return m;
   }, [bolimlar, qatorlar]);
 
+  /** 30k qatorli smetada har tugma bosishda qayta filtrlamaslik: qidiruv matni kechiktirib qo'llanadi. */
+  const qidirKech = useDeferredValue(qidir);
   const korinadi = useMemo((): F2Bolim[] => {
-    const s = qidir.trim().toLocaleLowerCase('ru');
-    if (!s) return bolimlar.filter((b) => b.id === tanlanganBolim);
-    const mos = (nom: string, kod: string | null) => nom.toLocaleLowerCase('ru').includes(s) || (kod ?? '').toLocaleLowerCase('ru').includes(s);
-    return bolimlar.map((b) => ({ ...b, ishlar: b.ishlar.filter((i) => mos(i.nom, i.kod) || i.resurslar.some((r) => mos(r.nom, r.kod))), alohida: b.alohida.filter((r) => mos(r.nom, r.kod)) }))
-      .filter((b) => b.ishlar.length || b.alohida.length);
-  }, [bolimlar, qidir, tanlanganBolim]);
+    const s = qidirKech.trim().toLocaleLowerCase('ru');
+    // «Faqat kiritilganlar»: hamma bo'limlardagi shu davrda hajmi kiritilgan ishlar (bo'lim tanlovi e'tiborga olinmaydi).
+    const kiritilgan = (id: number) => k.hajm[id] !== undefined;
+    if (!s && !faqatKiritilgan) return bolimlar.filter((b) => b.id === tanlanganBolim);
+    const mos = (nom: string, kod: string | null) => !s || nom.toLocaleLowerCase('ru').includes(s) || (kod ?? '').toLocaleLowerCase('ru').includes(s);
+    return bolimlar.map((b) => ({
+      ...b,
+      ishlar: b.ishlar.filter((i) => (!faqatKiritilgan || kiritilgan(i.id) || i.resurslar.some((r) => !r.avto && kiritilgan(r.id))) && (mos(i.nom, i.kod) || i.resurslar.some((r) => mos(r.nom, r.kod)))),
+      alohida: b.alohida.filter((r) => (!faqatKiritilgan || kiritilgan(r.id)) && mos(r.nom, r.kod)),
+    })).filter((b) => b.ishlar.length || b.alohida.length);
+  }, [bolimlar, qidirKech, tanlanganBolim, faqatKiritilgan, k.hajm]);
+  const royxatRejimi = !!qidirKech.trim() || faqatKiritilgan;
 
   const yoz = (maydon: keyof F2Kiritma, id: number, qiymat: string | boolean | undefined) => setK((o) => {
     const m = { ...o[maydon] } as Record<number, string | boolean>;
@@ -158,6 +169,14 @@ export function F2TayyorlashNative() {
     }
     return { ...o, hajm };
   });
+  /** Tez kiritish: Enter — keyingi ishning hajm maydoniga, Esc — shu maydonni tozalaydi. */
+  const hajmKlaviatura = (e: KeyboardEvent<HTMLInputElement>, id: number) => {
+    if (e.key === 'Escape') { yoz('hajm', id, undefined); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const hammasi = [...(moneyScope.current?.querySelectorAll<HTMLInputElement>('input[data-ish-hajm]') ?? [])];
+    hammasi[hammasi.indexOf(e.currentTarget) + 1]?.focus();
+  };
   const narxsizBelgila = () => setK((o) => ({ ...o, narxsiz: { ...o.narxsiz, ...Object.fromEntries(narxsizlar.map((id) => [id, true])) } }));
 
   const f2Yacheyka = f2Yacheykalar(f2Yuk(qatorlar, raqam));
@@ -288,7 +307,7 @@ export function F2TayyorlashNative() {
             <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · oldin olingan <FmtN val={i.olingan} />{i.smeta != null && <> · smeta <FmtN val={i.smeta} /></>} · {i.resurslar.length} resurs</div>
           </div>
           {(i.erkin || i.mumkin > 0) && <>
-            <input aria-label={`F2 hajmi: ${i.nom}`} inputMode="decimal" value={k.hajm[i.id] ?? ''} onChange={(e) => yoz('hajm', i.id, e.target.value)} placeholder="hajm" className={`${kirit} w-24`} />
+            <input aria-label={`F2 hajmi: ${i.nom}`} data-ish-hajm inputMode="decimal" value={k.hajm[i.id] ?? ''} onChange={(e) => yoz('hajm', i.id, e.target.value)} onKeyDown={(e) => hajmKlaviatura(e, i.id)} placeholder="hajm" className={`${kirit} w-24`} />
             {[25, 50, 100].map((f) => <button key={f} type="button" onClick={() => yoz('hajm', i.id, ulushHajm(i.mumkin, f))} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-text-dim hover:border-accent hover:text-text">{f}%</button>)}
           </>}
           <span className="w-28 text-right text-[12px] font-semibold tabular-nums text-text">{resSumma ? <FmtN val={resSumma} /> : ''}</span>
@@ -306,7 +325,7 @@ export function F2TayyorlashNative() {
   const bolimPaneli = bolimlar.length > 0 && <aside className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Bo‘limlar">
     <div className="border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-mute">Bo‘limlar</div>
     <ul className="min-h-0 flex-1 overflow-auto p-1">
-      {bolimlar.map((b) => { const bj = bolimJami.get(b.id); const tanl = b.id === tanlanganBolim && !qidir.trim(); return (
+      {bolimlar.map((b) => { const bj = bolimJami.get(b.id); const tanl = b.id === tanlanganBolim && !royxatRejimi; return (
         <li key={b.id ?? 'yoq'}><button type="button" onClick={() => { setBolimId(b.id); setQidir(''); }} style={{ paddingLeft: 8 + Math.min(b.daraja, 4) * 10 }}
           className={`flex w-full items-center gap-2 rounded-md py-1.5 pr-2 text-left text-[12px] ${tanl ? 'bg-accent/10 text-text' : 'text-text-dim hover:bg-surface-2'}`}>
           <span className="min-w-0 flex-1 truncate">{b.nom}</span>
@@ -330,6 +349,7 @@ export function F2TayyorlashNative() {
         {validId && !loading && holat.length > 0 && <div role="group" aria-label={t('Hajm manbai')} className="text-[12px] font-medium text-text">{t('Hajm manbai')}
           <div className="mt-1.5 flex overflow-hidden rounded-lg border border-border">{(['fakt', 'smeta'] as const).map((m) => <button key={m} type="button" aria-pressed={manba === m} onClick={() => { setManbaTanlov(m); setK(bosKiritma()); }}
             className={`px-3 py-2 ${manba === m ? 'bg-accent/15 text-text' : 'bg-surface-2 text-text-dim hover:text-text'}`}>{m === 'fakt' ? t('Fakt') : t('Smeta qoldig‘i')}</button>)}</div></div>}
+        {validId && bolimlar.length > 0 && <label className="flex items-center gap-1.5 pb-2.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatKiritilgan} onChange={(e) => setFaqatKiritilgan(e.target.checked)} />{t('Faqat kiritilganlar')}</label>}
         {validId && bolimlar.length > 0 && <label className="relative min-w-[200px] text-[12px] font-medium text-text">Qidirish
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder="ish, resurs, kod…" className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}
@@ -347,14 +367,14 @@ export function F2TayyorlashNative() {
           {bolimPaneli}
           <section className="karta flex min-h-0 flex-col overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
-              <span className="text-[13px] font-semibold text-text">{qidir.trim() ? `Qidiruv: ${korinadi.reduce((s, b) => s + b.ishlar.length + b.alohida.length, 0)} ta` : korinadi[0]?.nom}</span>
-              <button type="button" onClick={() => bolimniOl(korinadi)} className="ml-auto inline-flex items-center gap-1 rounded-md border border-accent/40 px-2 py-1 text-[11px] font-semibold text-text hover:bg-accent/10"><Zap size={12} className="text-accent" />{qidir.trim() ? 'Topilganlarni' : 'Bo‘limni'} to‘liq olish</button>
+              <span className="text-[13px] font-semibold text-text">{royxatRejimi ? `${faqatKiritilgan && !qidirKech.trim() ? t('Kiritilganlar') : t('Qidiruv')}: ${korinadi.reduce((s, b) => s + b.ishlar.length + b.alohida.length, 0)} ta` : korinadi[0]?.nom}</span>
+              <button type="button" onClick={() => bolimniOl(korinadi)} className="ml-auto inline-flex items-center gap-1 rounded-md border border-accent/40 px-2 py-1 text-[11px] font-semibold text-text hover:bg-accent/10"><Zap size={12} className="text-accent" />{royxatRejimi ? 'Topilganlarni' : 'Bo‘limni'} to‘liq olish</button>
               <button type="button" onClick={() => bolimniOl(bolimlar)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-dim hover:border-accent hover:text-text">Barcha mumkin hajmni olish</button>
               {Object.keys(k.hajm).length > 0 && <button type="button" onClick={() => setK(bosKiritma())} className="rounded-md border border-border px-2 py-1 text-[11px] text-text-dim hover:border-danger hover:text-danger">Tozalash</button>}
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
               {korinadi.map((b) => <div key={b.id ?? 'yoq'} className="space-y-2">
-                {qidir.trim() && <div className="text-[11px] font-semibold uppercase tracking-wide text-text-mute">{b.nom}</div>}
+                {royxatRejimi && <div className="text-[11px] font-semibold uppercase tracking-wide text-text-mute">{b.nom}</div>}
                 {b.ishlar.map(ishKartasi)}
                 {b.alohida.length > 0 && <div className="rounded-lg border border-border"><div className="px-3 py-1.5 text-[11px] font-semibold text-text-dim">Alohida materiallar</div><table className="w-full text-[12px]"><tbody>{b.alohida.map(resursQatori)}</tbody></table></div>}
               </div>)}
