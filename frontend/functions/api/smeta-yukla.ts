@@ -109,8 +109,19 @@ interface SmetaTozalaBody {
   obyektId: number;
   operationId: string;
 }
+/* JONLI_SINOV_TOPILMALARI #15: katta import rollupi alohida bosqich va ochiq sessiyani bekor qilish. */
+interface ImportRollupBody {
+  amal: 'import_rollup';
+  kompaniyaId: number;
+  obyektId: number;
+}
+interface ImportBekorBody {
+  amal: 'import_bekor';
+  kompaniyaId: number;
+  sessiyaId: number;
+}
 type SmetaYuklaBody = FaylOqiBody | ImportBody | ImportBoshlaBody | ImportBolakBody | ImportYakunlaBody
-  | PaketImportBoshlaBody | PaketImportBolakBody | PaketImportYakunlaBody | SmetaTozalaBody;
+  | PaketImportBoshlaBody | PaketImportBolakBody | PaketImportYakunlaBody | SmetaTozalaBody | ImportRollupBody | ImportBekorBody;
 
 type FlatRow = SmetaFlatQator;
 
@@ -269,9 +280,33 @@ async function handleImportYakunla(env: Env, actorId: number, body: ImportYakunl
   if (!body.kompaniyaId || !body.sessiyaId) {
     return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
   }
-  return bolakliRpc(env, 't2_smeta_import_yakunla_v1', {
-    p_kompaniya_id: body.kompaniyaId, p_actor_id: actorId, p_sessiya_id: body.sessiyaId,
-  });
+  return yakunlaVaRollup(env, actorId, body.kompaniyaId, 't2_smeta_import_yakunla_v1', body.sessiyaId);
+}
+
+/**
+ * JONLI_SINOV_TOPILMALARI #15: yakunlash va katta import rollupi — ikki ALOHIDA chaqiriq (har biri o'z statement_timeout
+ * chegarasida). Yakunla qatorlarni yozib `rollup_kerak` qaytarsa, rollup shu yerda chaqiriladi. Rollup yiqilsa ham qatorlar
+ * saqlangan: javob ok, lekin `rollup_xato` bilan — mijoz «Jamlarni qayta hisoblash» (import_rollup) ni taklif qiladi.
+ */
+async function yakunlaVaRollup(env: Env, actorId: number, kompaniyaId: number, nom: string, sessiyaId: number) {
+  const y = await bolakliRpc(env, nom, { p_kompaniya_id: kompaniyaId, p_actor_id: actorId, p_sessiya_id: sessiyaId });
+  if (y.status !== 200) return y;
+  const yb = await y.clone().json().catch(() => null) as { ok?: boolean; rollup_kerak?: boolean; obyekt_id?: number } | null;
+  if (!yb?.ok || !yb.rollup_kerak || !yb.obyekt_id) return y;
+  const r = await bolakliRpc(env, 't2_smeta_import_rollup_v1', { p_kompaniya_id: kompaniyaId, p_actor_id: actorId, p_obyekt_id: yb.obyekt_id });
+  const rb = await r.json().catch(() => null) as { ok?: boolean; code?: string } | null;
+  if (r.status === 200 && rb?.ok) return Response.json({ ...yb, rollup_kerak: false, rollup: 'bajarildi' });
+  return Response.json({ ...yb, rollup_xato: rb?.code || 'IMPORT_ROLLUP_FAILED' });
+}
+
+async function handleImportRollup(env: Env, actorId: number, body: ImportRollupBody) {
+  if (!body.kompaniyaId || !body.obyektId) return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
+  return bolakliRpc(env, 't2_smeta_import_rollup_v1', { p_kompaniya_id: body.kompaniyaId, p_actor_id: actorId, p_obyekt_id: body.obyektId });
+}
+
+async function handleImportBekor(env: Env, actorId: number, body: ImportBekorBody) {
+  if (!body.kompaniyaId || !body.sessiyaId) return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
+  return bolakliRpc(env, 't2_smeta_import_bekor_v1', { p_kompaniya_id: body.kompaniyaId, p_actor_id: actorId, p_sessiya_id: body.sessiyaId });
 }
 
 async function handlePaketImportBoshla(env: Env, actorId: number, body: PaketImportBoshlaBody) {
@@ -314,9 +349,7 @@ async function handlePaketImportBolak(env: Env, actorId: number, body: PaketImpo
 
 async function handlePaketImportYakunla(env: Env, actorId: number, body: PaketImportYakunlaBody) {
   if (!body.kompaniyaId || !body.sessiyaId) return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
-  return bolakliRpc(env, 't2_smeta_paket_import_yakunla_v1', {
-    p_kompaniya_id: body.kompaniyaId, p_actor_id: actorId, p_sessiya_id: body.sessiyaId,
-  });
+  return yakunlaVaRollup(env, actorId, body.kompaniyaId, 't2_smeta_paket_import_yakunla_v1', body.sessiyaId);
 }
 
 async function handleSmetaTozala(env: Env, actorId: number, body: SmetaTozalaBody) {
@@ -354,5 +387,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (body.amal === 'paket_import_bolak') return handlePaketImportBolak(ctx.env, actorId, body);
   if (body.amal === 'paket_import_yakunla') return handlePaketImportYakunla(ctx.env, actorId, body);
   if (body.amal === 'smeta_tozala') return handleSmetaTozala(ctx.env, actorId, body);
+  if (body.amal === 'import_rollup') return handleImportRollup(ctx.env, actorId, body);
+  if (body.amal === 'import_bekor') return handleImportBekor(ctx.env, actorId, body);
   return Response.json({ ok: false, code: 'BAD_AMAL' }, { status: 400 });
 };

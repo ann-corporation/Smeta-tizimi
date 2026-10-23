@@ -22,6 +22,7 @@ import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } 
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from '../../lib/res-kategoriya';
 import { bezSkladKategoriyaAniqla } from '../../lib/resurs-kategoriyasi/bez-sklad';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
+import { t } from '../../i18n/til';
 
 /**
  * T2-FINAL-CLEAN-CUTOVER P0.2: native Smeta XLSX -> canonical Supabase, off
@@ -47,6 +48,8 @@ type SmetaYuklaJavob = {
   ok: boolean; code?: string; xato?: string; xabar?: string;
   qator_soni?: number; sessiya_id?: number; takror?: boolean;
   bolak?: number; jami?: number; obyekt_id?: number; paket_id?: number;
+  /** #15: katta importda rollup alohida bosqich; yiqilsa qatorlar saqlangan, rollup qayta chaqiriladi. */
+  rollup_kerak?: boolean; rollup_xato?: string;
 };
 
 /**
@@ -809,6 +812,11 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   const [phase, setPhase] = useState('');
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ qator_soni: number } | null>(null);
+  // JONLI_SINOV_TOPILMALARI #15: yakunlash yiqilsa sessiya «ochiq» qoladi (bo'laklar bazada) — qayta yubormasdan
+  // shu sessiyani yakunlash yoki toza bekor qilish; katta importda rollup yiqilsa — faqat rollupni qayta chaqirish.
+  const [ochiqImport, setOchiqImport] = useState<{ sessiyaId: number; paket: boolean; obyektId: number } | null>(null);
+  const [rollupObyekt, setRollupObyekt] = useState<number | null>(null);
+  const [tiklashBand, setTiklashBand] = useState(false);
   const [resBook, setResBook] = useState<XlsxWorkbook | null>(null);
   /** Alohida RES faylida ham bir nechta narx varaqlari bo'lishi mumkin. */
   const [resSheetNames, setResSheetNames] = useState<string[]>([]);
@@ -1241,6 +1249,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         operationId, paketKalit, paketNom, manbalar: plan });
       if (!start.ok || !start.sessiya_id) throw new Error('Paket import sessiyasi ochilmadi (' + (start.code || 'xato') + ').');
       const sessiyaId = Number(start.sessiya_id);
+      setOchiqImport({ sessiyaId, paket: true, obyektId: objId });
       const chunks = bolaklarga(flatRows, BOLAK_HAJMI);
       for (let i = 0; i < chunks.length; i++) {
         setPhase(`Paket qatorlari yuborilmoqda: ${i + 1}/${chunks.length}`);
@@ -1251,6 +1260,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       setPhase('Paket kanonik bazaga yozilmoqda');
       const done = await smetaSorov({ amal: 'paket_import_yakunla', kompaniyaId: companyId, sessiyaId });
       if (!done.ok) throw new Error('Smeta paketi yozilmadi (' + (done.code || 'xato') + ').');
+      setOchiqImport(null);
+      if (done.rollup_xato) setRollupObyekt(objId);
       setResult({ qator_soni: done.qator_soni || 0 });
       setObjects((prev) => prev.map((o) => o.id === objId ? { ...o, qator_soni: done.qator_soni ?? o.qator_soni } : o));
       setPhase('Smeta paketi tayyor'); onImportlandi?.();
@@ -1327,6 +1338,42 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       await Promise.all(nomzodlar.map(k =>
         sbT2ResursKategoriyaBelgila({ kompaniyaId: companyId, nom: k.nom, birlik: k.birlik, kategoriya: k.tanlangan }).catch(() => null)));
     } finally { setKatSaqlanmoqda(false); }
+  }
+
+  async function yakunlashniQaytaUrin() {
+    if (!ochiqImport || tiklashBand) return;
+    setTiklashBand(true); setError(''); setPhase('Kanonik bazaga yozilmoqda (qayta urinish)');
+    try {
+      const j = await smetaSorov({ amal: ochiqImport.paket ? 'paket_import_yakunla' : 'import_yakunla', kompaniyaId: companyId, sessiyaId: ochiqImport.sessiyaId });
+      if (!j.ok) { setError(t('Yakunlash bajarilmadi ({kod}). Keyinroq qayta urining yoki importni bekor qiling.', { kod: j.code || 'xato' })); return; }
+      const objId = ochiqImport.obyektId;
+      setOchiqImport(null);
+      if (j.rollup_xato) setRollupObyekt(objId);
+      setResult({ qator_soni: j.qator_soni || 0 }); setPhase('Tayyor');
+      setObjects((prev) => prev.map((o) => o.id === objId ? { ...o, qator_soni: j.qator_soni ?? o.qator_soni } : o));
+      onImportlandi?.();
+    } finally { setTiklashBand(false); }
+  }
+
+  async function importniBekorQil() {
+    if (!ochiqImport || ochiqImport.paket || tiklashBand) return;
+    if (!window.confirm(t('Ochiq import sessiyasi bekor qilinsinmi? Yuborilgan bo‘laklar o‘chiriladi, smeta yozilmaydi.'))) return;
+    setTiklashBand(true); setError('');
+    try {
+      const j = await smetaSorov({ amal: 'import_bekor', kompaniyaId: companyId, sessiyaId: ochiqImport.sessiyaId });
+      if (!j.ok) { setError(t('Bekor qilib bo‘lmadi ({kod}).', { kod: j.code || 'xato' })); return; }
+      setOchiqImport(null); setPhase(t('Import bekor qilindi.'));
+    } finally { setTiklashBand(false); }
+  }
+
+  async function rollupniQaytaUrin() {
+    if (rollupObyekt == null || tiklashBand) return;
+    setTiklashBand(true); setError('');
+    try {
+      const j = await smetaSorov({ amal: 'import_rollup', kompaniyaId: companyId, obyektId: rollupObyekt });
+      if (!j.ok) { setError(t('Jamlar hisoblanmadi ({kod}). Keyinroq qayta urining.', { kod: j.code || 'xato' })); return; }
+      setRollupObyekt(null); setPhase(t('Jamlar hisoblandi.')); onImportlandi?.();
+    } finally { setTiklashBand(false); }
   }
 
   async function importQil() {
@@ -1445,6 +1492,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         return;
       }
       const sessiyaId = Number(bosh.sessiya_id);
+      setOchiqImport({ sessiyaId, paket: false, obyektId: Number(objectId) });
       yakunla('tayyor', 'sessiya №' + sessiyaId);
 
       const bolaklar = bolaklarga(flatRows, BOLAK_HAJMI);
@@ -1473,7 +1521,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         yakunla('xato', j.xato || j.code || 'noma’lum xato');
         throw new Error('Import bajarilmadi (' + (j.code || 'xato') + ')' + (j.xato ? ': ' + j.xato : '') + '.');
       }
-      yakunla('tayyor', (j.qator_soni || 0) + ' qator yozildi');
+      setOchiqImport(null);
+      if (j.rollup_xato) setRollupObyekt(Number(objectId));
+      yakunla('tayyor', (j.qator_soni || 0) + ' qator yozildi' + (j.rollup_xato ? ' — jamlar hisoblanmadi, «Jamlarni qayta hisoblash» ni bosing' : ''));
       setResult({ qator_soni: j.qator_soni || 0 }); setPhase('Tayyor');
       setObjects(prev => prev.map(o => o.id === Number(objectId) ? { ...o, qator_soni: j.qator_soni ?? o.qator_soni } : o));
       // Bu sahifa ko'pincha boshqa "asosiy" sahifa (masalan HolatNative)
@@ -1658,6 +1708,14 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       {busy && importQadamlari.length === 0 && <p role="status">{phase}…</p>}
       {importQadamlari.length > 0 && <ImportQadamlarPaneli qadamlar={importQadamlari} />}
       {error && <p role="alert" className="text-danger">{error}</p>}
+      {!busy && (ochiqImport || rollupObyekt != null) && (
+        <div className="flex flex-wrap items-center gap-2 text-[13px]">
+          {ochiqImport && <span className="text-text-mute">{t('Import sessiyasi №{id} ochiq qoldi — qatorlar serverda saqlangan, qayta yuborish shart emas.', { id: ochiqImport.sessiyaId })}</span>}
+          {ochiqImport && <button type="button" disabled={tiklashBand} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white disabled:opacity-50" onClick={() => void yakunlashniQaytaUrin()}>{t('Yakunlashni qayta urinish')}</button>}
+          {ochiqImport && !ochiqImport.paket && <button type="button" disabled={tiklashBand} className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-50" onClick={() => void importniBekorQil()}>{t('Importni bekor qilish')}</button>}
+          {rollupObyekt != null && <button type="button" disabled={tiklashBand} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white disabled:opacity-50" onClick={() => void rollupniQaytaUrin()}>{t('Jamlarni qayta hisoblash')}</button>}
+        </div>
+      )}
       {book && cols && !result && (
         <>
           {book.sheets.length > 1 && (
