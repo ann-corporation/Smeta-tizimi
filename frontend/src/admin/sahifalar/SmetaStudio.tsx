@@ -65,7 +65,7 @@ const XATOLAR: Record<string, string> = {
 const xatoMatni = (e: unknown) => { const c = e instanceof Error ? e.message : String(e); return t(XATOLAR[c] ?? 'Amal bajarilmadi. Kiritilgan qiymatlarni tekshiring.'); };
 export default function SmetaStudio() {
   const [katalog, setKatalog] = useState<StudioNormCatalog | null>(null);
-  const [catalogSource, setCatalogSource] = useState<'legacy' | 'library'>(() => lsGet('studio:catalog-source') === 'library' ? 'library' : 'legacy');
+  const [catalogSource, setCatalogSource] = useState<'legacy' | 'library'>(() => lsGet('studio:catalog-source') === 'legacy' ? 'legacy' : 'library');
   const catalogSession = useRef(0);
   const aiSession = catalogSession.current;
   const [katalogHolat, setKatalogHolat] = useState<'yuklanmoqda' | 'tayyor' | 'yoq' | 'xato'>('yuklanmoqda');
@@ -471,7 +471,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
     const rows = x ? x.idx.qidir([qidiruv], 75).map(h => x.works[h.id]) : [];
     return { rows: rows.slice(sahifa * 25, (sahifa + 1) * 25), total: rows.length, mano: true };
   }, [katalog, qidiruv, sahifa, tugun, jadvalmi]);
-  const nom = (n: RemoteTreeNode) => n.name || (n.status === 'GROUP' ? t('Katalog bo‘limi aniqlanmagan yozuvlar (shifr bo‘yicha)') : '—');
+  const nom = (n: RemoteTreeNode) => n.name || t('Ish turlari');
   const ochish = (i: number) => { setTugun(i); setTugunSahifa(0); setSahifa(0); };
   async function tanla(w: NormWork) {
     const request = ++selectionRequest.current;
@@ -485,7 +485,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
   const basis = detail ? catalogueBasis(katalog, detail.work.unitCode) : null;
   const measureLabel = unit?.text ?? (sourceMeasure ? detail?.work.unitCode : null);
   return <div className="space-y-2">
-    {tugun >= 0 && katalog.breadcrumb(tugun).some(n => n.status === 'GROUP') && <p role="status" className="text-sm text-warn">{t('Bu yozuvlarning nomlari saqlangan. Katalog bo‘limi topilmagan yoki bir nechta bo‘lim mos kelgan; shifr va manbani tekshiring.')}</p>}
+    {tugun >= 0 && katalog.breadcrumb(tugun).some(n => n.labelOrigin === 'EDITORIAL') && <p role="status" className="text-sm text-text-dim">{t('Bo‘lim nomlari ishlar mazmuni asosida tuzilgan.')}</p>}
     <nav aria-label={t('Katalog ierarxiyasi')} className="flex flex-wrap gap-1 text-sm">
       <button className="underline" onClick={() => ochish(-1)}>{t('Katalog')}</button>
       {yolak.map(n => <span key={n.index}>/ <button className="underline" onClick={() => ochish(n.index)}>{nom(n)}</button></span>)}
@@ -495,7 +495,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
     {!ishlar && <div className="border border-border rounded">
       {bolalar.nodes.map(n => <button key={n.index} className="flex w-full items-center gap-2 text-left px-2 py-1.5 border-b border-border hover:bg-surface-2" onClick={() => ochish(n.index)}>
         <span className="flex-1 min-w-0 truncate">{nom(n)}</span>
-        {(n.status === 'MISSING' || n.status === 'AMBIGUOUS') && <span className="text-xs text-warn">{n.status === 'MISSING' ? t('nomi yo‘q') : t('nomi noaniq')}</span>}
+        {n.labelOrigin === 'EDITORIAL' && <span className="text-xs text-text-mute">{t('Tahririy nom')}</span>}
         <span className="text-xs text-text-mute tabular-nums">{n.workCount.toLocaleString('ru')}</span>
       </button>)}
       {bolalar.total > 25 && <div className="flex gap-2 items-center p-1 text-sm">

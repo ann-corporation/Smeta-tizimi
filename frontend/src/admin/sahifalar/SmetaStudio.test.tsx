@@ -61,6 +61,7 @@ beforeAll(() => {
 });
 afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
+  vi.mocked(NormLibraryCatalog.open).mockReset();
   localStorage.setItem('studio:catalog-source', 'legacy');
   aiSources.length = 0;
   companyScope.id=null;
@@ -169,8 +170,8 @@ it('katalog yuklanmagan bo‘lsa aniq holat ko‘rsatiladi', async () => {
 
 it('BOOK bo‘limi topilmagan yozuv ish nomi yo‘q deb ko‘rsatilmaydi', async () => {
   renderEditor();
-  fireEvent.click(await screen.findByText('Katalog bo‘limi aniqlanmagan yozuvlar (shifr bo‘yicha)', undefined, { timeout: 8000 }));
-  expect(screen.getByText(/Bu yozuvlarning nomlari saqlangan/)).toBeTruthy();
+  fireEvent.click(await screen.findByText('Работы по сборникам и разделам', undefined, { timeout: 8000 }));
+  expect(screen.getByText('Bo‘lim nomlari ishlar mazmuni asosida tuzilgan.')).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Normativ ish qidirish'), { target: { value: 'E99-1-1' } });
   expect(await screen.findByText('Работа с сохранённым названием', undefined, { timeout: 8000 })).toBeTruthy();
 });
@@ -311,6 +312,16 @@ it('keeps the worksheet visible while selecting works and preserves an unsaved i
  expect(requests.some(r=>r.startsWith('POST '))).toBe(false);
 });
 
+
+it('opens the ready named hierarchy by default for a viewer without an explicit source choice', async () => {
+  const library=await RemoteNormCatalog.open();
+  vi.mocked(NormLibraryCatalog.open).mockResolvedValue(library as never);
+  localStorage.removeItem('studio:catalog-source');
+  renderEditor();
+  await screen.findByText('ШНК');
+  expect((screen.getByLabelText('Kutubxona manbasi') as HTMLSelectElement).value).toBe('library');
+  expect(NormLibraryCatalog.open).toHaveBeenCalled();
+});
 
 it('switches catalogue sources without restoring or remapping the edited draft', async () => {
   const library = await RemoteNormCatalog.open();

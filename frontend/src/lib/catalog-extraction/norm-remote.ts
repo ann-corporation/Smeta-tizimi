@@ -5,12 +5,13 @@
  * verified against the manifest sha256 before use; a mismatch fails closed.
  */
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
+import { nameCatalogTree } from './catalog-display-names';
 import type { NormCatalog, NormPrice, NormResource, NormWork } from './norm-catalog';
 import type { NormManifest, NormShard, ShardFileMeta, TreeNode, TreeStatus, UnitEntry, WorkIndexRow } from './norm-shards';
 
 export type NormDetail = ReturnType<NormCatalog['detail']>;
 export type NormDetailSource = { detail(id: string, page?: number): NormDetail };
-export type RemoteTreeNode = { index: number; name: string; workCount: number; status: TreeStatus; hasChildren: boolean; isTable: boolean };
+export type RemoteTreeNode = { index: number; name: string; workCount: number; status: TreeStatus; hasChildren: boolean; isTable: boolean; labelOrigin?: 'EDITORIAL' };
 type Fetcher = (url: string) => Promise<Response>;
 
 const PAGE = 25;
@@ -33,9 +34,12 @@ export class RemoteNormCatalog implements NormDetailSource {
   private worksById = new Map<string, { work: NormWork; row: WorkIndexRow; key: string }>();
   private shards = new Map<string, NormShard>();
   private tableNode = new Map<string, number>();
+  private editorial = new Set<number>();
   readonly manifest: NormManifest; readonly nodes: TreeNode[]; readonly works: WorkIndexRow[];
   private units: Record<string, UnitEntry>; private fetcher: Fetcher; private base: string;
   private constructor(manifest: NormManifest, nodes: TreeNode[], works: WorkIndexRow[], units: Record<string, UnitEntry>, fetcher: Fetcher, base: string) {
+    const display = nameCatalogTree(nodes, works.map(row => ({tableKey:row[3],code:row[1],name:row[2]})));
+    nodes = display.nodes; this.editorial = display.editorial;
     this.manifest = manifest; this.nodes = nodes; this.works = works; this.units = units; this.fetcher = fetcher; this.base = base;
     nodes.forEach((n, i) => { const l = this.children.get(n[1]) ?? []; l.push(i); this.children.set(n[1], l); if (n[4]) this.tableNode.set(n[4], i); });
     const keys = new Map<string, Array<string | null>>();
@@ -92,7 +96,7 @@ export class RemoteNormCatalog implements NormDetailSource {
   node(i: number): RemoteTreeNode {
     const n = this.nodes[i];
     if (!n) throw new Error('NODE_NOT_FOUND');
-    return { index: i, name: n[2], workCount: n[3], status: n[5], hasChildren: this.children.has(i), isTable: n[4] != null };
+    return { index: i, name: n[2], workCount: n[3], status: n[5], hasChildren: this.children.has(i), isTable: n[4] != null, ...(this.editorial.has(i) ? {labelOrigin:'EDITORIAL' as const} : {}) };
   }
   breadcrumb(i: number): RemoteTreeNode[] {
     const out: RemoteTreeNode[] = [];

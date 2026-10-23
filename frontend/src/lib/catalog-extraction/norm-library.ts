@@ -1,5 +1,6 @@
 /** Immutable REVIEW_ONLY library source. No price or coefficient acceptance. */
 import { sourceMeasureBasis } from '../smeta-studio/source-measure-basis';
+import { nameCatalogTree } from './catalog-display-names';
 import type { UnitBasis } from '../smeta-studio/model';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import type { NormWork } from './norm-catalog';
@@ -46,6 +47,7 @@ export class NormLibraryCatalog {
   private recipes = new Map<string, Recipe[]>();
   private pending = new Map<string, Promise<void>>();
   private loaded = new Set<string>();
+  private editorial = new Set<number>();
   readonly manifest: LibraryManifest;
   private navigation: Navigation;
   private fetcher: Fetcher;
@@ -91,7 +93,8 @@ export class NormLibraryCatalog {
   }
   private buildTree() {
     const n = this.navigation;
-    const rows = [...n.collections.map(c => ({ ...c, parent: null, table: false, kind: 'collection', parent_kind: '' })), ...n.sections.map(s => ({ ...s, table: false, kind: 'section', parent_kind: 'collection' })), ...n.tables.map(t => ({ ...t, table: true, kind: 'table', parent_kind: t.parent_kind ?? 'collection' }))];
+    const collections=[...n.collections].sort((a,b)=>a.key.localeCompare(b.key,'ru',{numeric:true}));
+    const rows = [...collections.map(c => ({ ...c, parent: null, table: false, kind: 'collection', parent_kind: '' })), ...n.sections.map(s => ({ ...s, table: false, kind: 'section', parent_kind: 'collection' })), ...n.tables.map(t => ({ ...t, table: true, kind: 'table', parent_kind: t.parent_kind ?? 'collection' }))];
     for (const r of rows) {
       if (this.nodeIndex.has(r.kind + ':' + r.key)) throw new Error('NORM_NODE_DUPLICATE');
       this.nodeIndex.set(r.kind + ':' + r.key, this.nodes.length);
@@ -111,15 +114,22 @@ export class NormLibraryCatalog {
       if (root !== this.nodeIndex.get('collection:' + source.collection_key)) throw new Error('NORM_TABLE_COLLECTION_MISMATCH');
       for (; i >= 0; i = this.nodes[i][1]) this.nodes[i][3]++;
     }
+    // Source has no official collection title for E40. This separately marked
+    // editorial heading describes its nine actual works, not its file name.
+    const overrides = new Map<number,string>();
+    const e40 = this.nodeIndex.get('collection:Е40');
+    if (e40 != null) overrides.set(e40,'Е40 · Опоры, настилы, ограждения и конструкции коллекторов');
+    const display = nameCatalogTree(this.nodes,[...this.byId.values()].map(v=>({tableKey:v.source.table_key,code:v.source.key,name:v.source.name})),overrides);
+    this.nodes.splice(0,this.nodes.length,...display.nodes); this.editorial=display.editorial;
   }
   allWorks(): NormWork[] { return [...this.byId.values()].map(v => v.work); }
-  collectionTitle(code: string | null): string | null { return this.navigation.collections.find(c => c.key === code)?.title ?? null; }
+  collectionTitle(code: string | null): string | null { const index=code==null ? undefined : this.nodeIndex.get('collection:'+code); return index==null ? null : this.nodes[index][2]; }
   sourceBasis(code: string | null): UnitBasis { return sourceMeasureBasis(code, LIBRARY_REVISION); }
   unit(_code: string | null): UnitEntry | null { return null; }
   tableLabel(id: string): string | null { const w = this.byId.get(id); return w ? this.nodes[this.nodeIndex.get('table:' + w.source.table_key)!][2] : null; }
   node(i: number): RemoteTreeNode {
     const n = this.nodes[i]; if (!n) throw new Error('NODE_NOT_FOUND');
-    return { index: i, name: n[2], workCount: n[3], status: n[5], hasChildren: this.children.has(i), isTable: n[4] != null };
+    return { index: i, name: n[2], workCount: n[3], status: n[5], hasChildren: this.children.has(i), isTable: n[4] != null, ...(this.editorial.has(i) ? {labelOrigin:'EDITORIAL' as const} : {}) };
   }
   childNodes(parent: number, page = 0) { pageCheck(page); const all = this.children.get(parent) ?? []; return { total: all.length, nodes: all.slice(page * 25, (page + 1) * 25).map(i => this.node(i)) }; }
   breadcrumb(i: number): RemoteTreeNode[] {
