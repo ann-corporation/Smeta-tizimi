@@ -41,6 +41,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   ish_resurslar_bilan_yarat_v1: 'smeta.write',
   catalog_observation_yoz_v1: 'document.write',
   smeta_narxla_res: 'narx.write',
+  smeta_narxla_res_v3: 'narx.write',
   qator_tahrir: 'smeta.write',
   qator_qosh: 'smeta.write',
   akt_yarat_v2: 'f2.prepare',

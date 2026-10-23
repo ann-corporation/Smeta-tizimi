@@ -70,6 +70,8 @@ const AMALLAR = {
   ish_resurslar_bilan_yarat_v1: { rpc: 't2_ish_resurslar_bilan_yarat_v1' },
   catalog_observation_yoz_v1: { rpc: 't2_catalog_observation_yoz_v1' },
   smeta_narxla_res: { rpc: 't2_smeta_narxla_res_v2' },
+  /* JONLI_SINOV_TOPILMALARI #14 (2026-10-23): foydalanuvchi tanlovi bilan 0 narxli RS/MAT/OB ham to'ldiriladi. */
+  smeta_narxla_res_v3: { rpc: 't2_smeta_narxla_res_v3' },
   qator_tahrir:   { rpc: 't2_qator_tahrir' },
   qator_qosh:     { rpc: 't2_qator_qosh' },
   akt_yarat:      { rpc: 't2_akt_yarat' },
@@ -315,7 +317,7 @@ export const onRequestPost: PagesFunction<{
 
     /* RES narxlash — yuk shakli shu yerda ham tekshiriladi (RPC ham qayta
        tekshiradi: tenant, faol a'zolik, rol va 1..10000 chegara). */
-    if (amal === 'smeta_narxla_res') {
+    if (amal === 'smeta_narxla_res' || amal === 'smeta_narxla_res_v3') {
       const kompaniyaId = Number(so.kompaniya_id);
       const obyektId = Number(so.obyekt_id);
       if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
@@ -383,7 +385,7 @@ export const onRequestPost: PagesFunction<{
        Allaqachon import qilingan, narxsiz smetani RES katalogi bilan
        narxlaydi. Matn uzunliklari bu yerda kesiladi; moslashtirish va
        "narxi bor qator ustidan yozilmasin" qoidasi RPC ichida. */
-    if (amal === 'smeta_narxla_res') {
+    if (amal === 'smeta_narxla_res' || amal === 'smeta_narxla_res_v3') {
       const narxlar = (so.narxlar as unknown[]).map((raw) => {
         const q = raw as Record<string, unknown>;
         return {
@@ -400,6 +402,7 @@ export const onRequestPost: PagesFunction<{
       yuk = {
         p_kompaniya_id: Number(so.kompaniya_id), p_actor_id: sess.foydalanuvchi_id,
         p_obyekt_id: Number(so.obyekt_id), p_operation_id: operationId, p_narxlar: narxlar,
+        ...(amal === 'smeta_narxla_res_v3' ? { p_nol_ham: so.nol_ham === true } : {}),
       };
 
     /* ══════════ QATOR TAHRIRI ══════════ */

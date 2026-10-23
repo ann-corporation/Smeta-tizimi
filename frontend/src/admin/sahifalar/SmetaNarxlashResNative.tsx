@@ -7,6 +7,7 @@ import { yangiOperationId, sbT2DaraxtOl, sbT2ObyektlarOlKomp, type T2Obyekt, typ
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
+import { t } from '../../i18n/til';
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
@@ -112,6 +113,14 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [natija, setNatija] = useState('');
+  // JONLI_SINOV_TOPILMALARI #14: narxi aniq 0 bo'lgan qatorlarni ham to'ldirish — faqat foydalanuvchi tanlovi (egasi qoidasi «narx 0 = 0»).
+  const [nolHam, setNolHam] = useState(false);
+  useEffect(() => {
+    if (!reslar.length) return;
+    setPreview(resNarxlashPreview(qatorlar, reslar, { nolHam }));
+    operationId.current = yangiOperationId();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nolHam]);
   const operationId = useRef('');
 
   useEffect(() => {
@@ -141,7 +150,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
         return sheet ? resQatorlariniOl(sheet.rows, x.cols) : [];
       });
     setReslar(prices);
-    setPreview(resNarxlashPreview(tree, prices));
+    setPreview(resNarxlashPreview(tree, prices, { nolHam }));
     operationId.current = yangiOperationId();
   }
 
@@ -171,7 +180,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
     if (!preview || !objectId || !reslar.length || preview.mos === 0) return;
     setBusy(true); setError(''); setNatija('');
     try {
-      const r = await sbT2SmetaNarxlaRes({ kompaniyaId: companyId, obyektId: Number(objectId), operationId: operationId.current || yangiOperationId(), narxlar: reslar });
+      const r = await sbT2SmetaNarxlaRes({ kompaniyaId: companyId, obyektId: Number(objectId), operationId: operationId.current || yangiOperationId(), narxlar: reslar, nolHam });
       if (!r.ok) throw new Error(r.error || r.code || 'Narxlash bajarilmadi.');
       await obyektniYukla(objectId);
       setNatija(`${r.yozildi ?? 0} qator narxlandi; ${r.narxsiz_qoldi ?? 0} qator narxsiz qoldi.`);
@@ -182,9 +191,14 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   const topilgan = book ? resVaraqlariniTop(book) : [];
   return <div className="space-y-3">
     <p className="text-[12px] text-text-mute">
-      Bu ekran faqat narxi yo‘q (<code>NULL</code> yoki <code>0</code>) RS/MAT/OB qatorlarini RES bilan to‘ldiradi.
-      Mavjud narx, F2 va tarixiy certified qiymatlar o‘zgarmaydi.
+      {t('Bu ekran narxi yo‘q (NULL) RS/MAT/OB qatorlarini RES bilan to‘ldiradi. Narxi 0 bo‘lgan qatorlar — faqat pastdagi belgini qo‘ysangiz. Mavjud narx, F2 va tarixiy certified qiymatlar o‘zgarmaydi.')}
     </p>
+    <label className="flex items-start gap-2 text-[12px]">
+      <input type="checkbox" className="mt-0.5" checked={nolHam} onChange={(e) => setNolHam(e.target.checked)} />
+      <span>{t('0 narxlarni ham to‘ldirish (dastur eksportida RES narxi 0 bo‘lsa). Amal auditga yoziladi.')}
+        {preview && preview.nolNarxli !== 0 && !nolHam && <b className="ml-1 text-warn">{t('Bu obyektda narxi 0 bo‘lgan {n} ta qator bor.', { n: preview.nolNarxli })}</b>}
+      </span>
+    </label>
 
     {/* Obyekt + fayl bir qatorda (keng ekran), tor ekranda ustma-ust. */}
     <div className="karta grid gap-3 p-3 sm:grid-cols-2">

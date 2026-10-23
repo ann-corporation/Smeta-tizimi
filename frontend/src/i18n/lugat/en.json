@@ -2821,5 +2821,8 @@
   "Joyiga ko‘chirish: {n}": "Move to position: {n}",
   "Pastga: {n}": "Move down: {n}",
   "Oxiriga: {n}": "Move to last: {n}",
-  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Order within list. Alt+↑/↓; Alt+Home/End"
+  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Order within list. Alt+↑/↓; Alt+Home/End",
+  "Bu ekran narxi yo‘q (NULL) RS/MAT/OB qatorlarini RES bilan to‘ldiradi. Narxi 0 bo‘lgan qatorlar — faqat pastdagi belgini qo‘ysangiz. Mavjud narx, F2 va tarixiy certified qiymatlar o‘zgarmaydi.": "This screen fills RS/MAT/OB rows without a price (NULL) from RES. Rows priced 0 are filled only if you tick the box below. Existing prices, F-2 and certified history are not changed.",
+  "0 narxlarni ham to‘ldirish (dastur eksportida RES narxi 0 bo‘lsa). Amal auditga yoziladi.": "Also fill zero prices (when the program export has RES price 0). The action is audited.",
+  "Bu obyektda narxi 0 bo‘lgan {n} ta qator bor.": "This object has {n} rows priced 0."
 }
