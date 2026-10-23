@@ -2879,5 +2879,20 @@
   "Shu F2": "Эта Ф-2",
   "Smeta qatori": "Строка сметы",
   "Takror kiritish hajmni ikki marta yopadi.": "Повторный ввод закроет объём дважды.",
-  "{n} ta qator smeta qoldig‘idan oshadi (ma’lumot uchun — yozish to‘xtatilmaydi).": "{n} строк превышают остаток по смете (для сведения — запись не блокируется)."
+  "{n} ta qator smeta qoldig‘idan oshadi (ma’lumot uchun — yozish to‘xtatilmaydi).": "{n} строк превышают остаток по смете (для сведения — запись не блокируется).",
+  "Bu summaga mos varaq topilmadi.": "Лист с такой суммой не найден.",
+  "Fayldagi F2 varaqlari": "Листы Ф-2 в файле",
+  "Fayldagi F2 varaqlari — har varaq alohida F2": "Листы Ф-2 в файле — каждый лист отдельная Ф-2",
+  "Keyingi varaq → yangi F2": "Следующий лист → новая Ф-2",
+  "manfiy": "отрицательный",
+  "Mos varaqni tanlash": "Выбрать совпавший лист",
+  "Reestr summasi (QQSsiz yoki QQS bilan)": "Сумма по реестру (без НДС или с НДС)",
+  "shu seansda yozildi": "записан в этом сеансе",
+  "Varaq": "Лист",
+  "ВСЕГО (QQS bilan)": "ВСЕГО (с НДС)",
+  "ВСЕГО ÷ 1,12 (QQSsiz)": "ВСЕГО ÷ 1,12 (без НДС)",
+  "ИТОГО ПРЯМЫЕ": "ИТОГО ПРЯМЫЕ",
+  "ВСЕГО − ранее (QQS bilan)": "ВСЕГО − ранее (с НДС)",
+  "(ВСЕГО − ранее) ÷ 1,12": "(ВСЕГО − ранее) ÷ 1,12",
+  "ВСЕГО": "ВСЕГО"
 }
