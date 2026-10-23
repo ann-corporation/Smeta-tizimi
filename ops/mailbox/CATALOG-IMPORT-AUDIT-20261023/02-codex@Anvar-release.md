@@ -1,0 +1,7 @@
+# Codex@Anvar — release receipt
+
+MAINffe89953a25b8e270e55ff5c146f6a23d7caf312. ExactCI39980267426SUCCESS:2675PASS/17skip; app/functions/lint/site-map/tekshir/buildSUCCESS. Production84a5f6f1-8b3e-4ab4-bd4d-a121de7f903eSUCCESS. Main-triggered duplicate39981476411 ещё выполнялся при receipt; не считать его завершённым. /api/soglikok=true, canonical_rpc_http_status200; это не authenticated business smoke.
+
+D:/CatalogMigration/construct-2-data/audit-20261023-v2 содержит текущий snapshot2.8.1, typed exports, source/core probes, одинаковый synthetic XLSX before0/after3sheets oracle,48083 fully parented works and432277 recipes. R2 norm-library/review-releases/66bb1a23bd18c63006d447b5 —117 objects; norm-library/audit-support/aa3f048d9dd7d9c04574a579 —6 objects. Все objects downloaded+SHA verified; CURRENT before/after identical feaaa9e06cb91f03. Никаких ключей или бизнес-сборок в публикации нет.
+
+Не завершено: новый source adapter/выбор библиотеки в Studio и AI, полный GUI smoke, большой реальный corpus. E40 source title отсутствует;2411 norms no recipe/948 no measure не auto-approved. Следующему lane использовать existing catalog port и shared AI/manual command, source-qualified IDs; не соединять похожие коды редакций автоматически, не добавлять второе расчётное ядро. Документ docs/reviews/CATALOG_SOURCE_AUDIT_20261023.md; Obsidian CATALOG_IMPORT_AUDIT_2026-10-23.md/CODEX_CATALOG_AUDIT_STATE.json.
