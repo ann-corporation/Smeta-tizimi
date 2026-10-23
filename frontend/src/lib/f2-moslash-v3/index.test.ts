@@ -414,3 +414,26 @@ describe('F2 → smeta: shifr-kanoni, birlik sinonimi, zamena nomzodi (2026-10-2
     expect(n.natijalar.get(ft.uid)).toMatchObject({ holat: 'taklif', qatorId: tr, usul: 'zamena_nomzod' });
   });
 });
+
+describe('ota doirasi kaskadi (51 F2 quruq sinovi 2026-10-24, sun’iy)', () => {
+  it('ota doirasida topilmagan razdel butun smetada YAGONA bo‘lsa ulanadi; «ЛИСТ КЖ-2» «КР-2» bilan adashmaydi', () => {
+    const Q: SmetaQator[] = [];
+    let i = 9000;
+    const r = (nom: string, ota: number | null) => { const id = ++i; Q.push({ id, otaId: ota, tur: 'rz', kod: null, nom, birlik: null, hajm: null, tartib: id }); return id; };
+    const w = (ota: number, kod: string, nom: string) => { const id = ++i; Q.push({ id, otaId: ota, tur: 'bl', kod, nom, birlik: 'М3', hajm: 10, tartib: id }); return id; };
+    const oz = r('РАЗДЕЛ: ОЗЕЛЕНЕНИЕ', null);
+    r('ЗЕМЛЯНЫЕ РАБОТЫ', oz);
+    const s1 = r('СМЕТА № 01 НА ФИЛЬТРАЦИЯ', null);
+    w(r('РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ КР-2)', s1), 'Y-1', 'РАЗРАБОТКА ГРУНТА');
+    const s2 = r('СМЕТА № 02 НА КОНСТРУКТИВНАЯ ЧАСТЬ', null);
+    const z2 = w(r('РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ КЖ-2)', s2), 'Y-1', 'РАЗРАБОТКА ГРУНТА');
+    const lf = w(r('РАЗДЕЛ: ЛЕНТОЧНЫЙ ФУНДАМЕНТ (ЛИСТ КЖ-3)', s2), 'Y-2', 'УСТРОЙСТВО ФУНДАМЕНТА');
+    const y = ['СМЕТА № 03 НА ОЗЕЛЕНЕНИЕ'];
+    const a = f('bl', 'Y-1', 'РАЗРАБОТКА ГРУНТА', 'М3', 1, [...y, 'РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ КЖ-2)']);
+    const b = f('bl', 'Y-2', 'УСТРОЙСТВО ФУНДАМЕНТА', 'М3', 1, [...y, 'РАЗДЕЛ: ЛЕНТОЧНЫЙ ФУНДАМЕНТ (ЛИСТ КЖ-3)']);
+    const daraxt = [rzF(y[0], [], [rzF('РАЗДЕЛ: ЗЕМЛЯНЫЕ РАБОТЫ (ЛИСТ КЖ-2)', y, [a]), rzF('РАЗДЕЛ: ЛЕНТОЧНЫЙ ФУНДАМЕНТ (ЛИСТ КЖ-3)', y, [b])])];
+    const n = f2MoslashV3(daraxt, Q);
+    expect(n.natijalar.get(a.uid)).toMatchObject({ holat: 'aniq', qatorId: z2 });
+    expect(n.natijalar.get(b.uid)).toMatchObject({ holat: 'aniq', qatorId: lf });
+  });
+});
