@@ -52,7 +52,7 @@
         "docs/architecture/SMETA_STUDIO_WORKSPACE_V2.md"
       ],
       "production_write_allowed": false,
-      "note": "Owner resumed full Studio build 2026-10-22. Product workflow, worksheet, dimension calculators and existing named server draft list/open within own UI scope. Other agent core locks retained. Owner repeated direct build/finish/deploy instruction after rejecting review-only partial handoff; this Studio release is owner-authorized. Coordinate with Claude via mailbox/Obsidian, preserve published main and unrelated WIP; no destructive or secret writes. Independent reviewer: no P0/P1; two P2 fixed and re-reviewed PASS. Final candidate awaits exact-SHA CI before owner-authorized main promotion."
+      "note": "2026-10-23 owner rejected released layout as inconvenient and requested a radical 2/3-panel workbench. Codex owns Studio layout/worksheet/inspector styling within existing leases; no core calculation, DB, billing or other-agent paths changed. Main baseline12a5ce6f. Prior release evidence in mailbox08. Implementation complete. Source reviewer PASS after fixing coefficient scope and two keyboard P2 issues. Focused interactions14PASS, keyboard2PASS, i18n3PASS; final build/full and remote CI recorded separately. Owner release authorization remains active."
     },
     {
       "id": "T2-ROLES-CONTROL-20261017",

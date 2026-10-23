@@ -1,11 +1,11 @@
 /**
- * Smeta studiyasi — ikki panelli professional smeta muharriri.
+ * Smeta studiyasi — ikki yoki uch panelli professional smeta ish joyi.
  * Chap: platforma normativ katalogi (nomli daraxt, qidiruv, ish va resurslar).
- * O'ng: obyekt → bo'lim → podrazdel → ish occurrence → resurslar.
+ * Markaz: smeta jadvali. O'ng: tanlangan ish, koeffitsient, resurs, AI va kalkulyator.
  * Barcha o'zgarish yagona buyruq qatlami (lib/smeta-studio/commands) orqali; chat ham shuni ishlatadi.
  * Hozircha qoralama: brauzerda tiklanadi, canonical saqlash alohida server buyrug'i bilan.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { t } from '../../i18n/til';
 import { RemoteNormCatalog, type NormDetail, type RemoteTreeNode } from '../../lib/catalog-extraction/norm-remote';
 import type { NormWork } from '../../lib/catalog-extraction/norm-catalog';
@@ -17,7 +17,10 @@ import { loadLastDraft, saveDraft } from '../../lib/smeta-studio/draft-store';
 import { WorkspaceReview } from '../../components/smeta-studio-workspace/WorkspaceReview';
 import { WorkSheet } from '../../components/smeta-studio-workspace/WorkSheet';
 import { QuantityWorkbench } from '../../components/smeta-studio-workspace/QuantityWorkbench';
-import { WorkspaceOverview } from '../../components/smeta-studio-workspace/WorkspaceOverview';
+import { StudioInspector, type InspectorTab } from '../../components/smeta-studio-workspace/StudioInspector';
+import { StudioCommandMenu, type DeskAction } from '../../components/smeta-studio-workspace/StudioCommandMenu';
+import { StudioSections } from '../../components/smeta-studio-workspace/StudioSections';
+import '../../components/smeta-studio-workspace/studio-desk.css';
 import { CloudDrafts } from '../../components/smeta-studio-workspace/CloudDrafts';
 import { DocumentCenter } from '../../components/smeta-studio-workspace/DocumentCenter';
 import { ObjectBinding } from '../../components/smeta-studio-workspace/ObjectBinding';
@@ -36,7 +39,6 @@ import { SmetaAiChat } from './SmetaAiChat';
 import { ishIndeksi } from '../../lib/smeta-ai/worker';
 import { useStudioKontekst } from '../../lib/jarvis/useStudioKontekst';
 
-const CHAP_TAB_KALIT = 'smeta-studio:chap-tab';
 const BOSQICH_KALIT = 'smeta-studio:bosqich';
 const ACTIVE_DRAFT_KEY = 'smeta-studio:active-draft-v2';
 type Bosqich = 'lrv' | 'narx' | 'res';
@@ -66,21 +68,28 @@ export default function SmetaStudio() {
   const [hist, setHist] = useState<History>(() => historyOf(emptyDoc(uid())));
   const [tiklandi, setTiklandi] = useState(false);
   const [xato, setXato] = useState('');
+  const [lastAction,setLastAction]=useState('');
   const [nishon, setNishon] = useState<string | null>(null);
   const restored = useRef(false);
   const [yuklandi, setYuklandi] = useState(false);
   const { joriyId } = useKompaniya();
   const currentCompany=useRef(joriyId); currentCompany.current=joriyId;
   const [serverVersiya, setServerVersiya] = useState(0);
-  const [assistantVisible,setAssistantVisible]=useState(true);
+  const [panels,setPanels]=useState<2|3>(()=>lsGet('studio:panels')==='2' ? 2 : 3);
+  const [commandOpen,setCommandOpen]=useState(false);
+  const [leftWidth,setLeftWidth]=useState(()=>Math.max(210,Math.min(340,Number(lsGet('studio:left-width')) || 250))),[rightWidth,setRightWidth]=useState(()=>Math.max(310,Math.min(470,Number(lsGet('studio:right-width')) || 350)));
+  useEffect(()=>{lsSet('studio:panels',String(panels));lsSet('studio:left-width',String(leftWidth));lsSet('studio:right-width',String(rightWidth));},[panels,leftWidth,rightWidth]);
+  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='k'){e.preventDefault();setCommandOpen(v=>!v);}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[]);
+  const [inspectorTab,setInspectorTab]=useState<InspectorTab>('work');
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'>('overview');
+  const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'>('editor');
   const [worksheet,setWorksheet]=useState(true);
   const [cloudOpen,setCloudOpen]=useState(false);
   const [autoSave,setAutoSave]=useState<{company:number;draft:string}|null>(null);
   const serverBusy=useRef(false);
   const lastServerSave=useRef<{company:number;draft:string;snapshot:EstimateDoc}|null>(null);
   const [focusWorkId, setFocusWorkId] = useState<string | null>(null);
+  const [revealToken,setRevealToken]=useState(0);
   const draftActionLock=useRef(false);
   const [draftBusy,setDraftBusy]=useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -97,13 +106,12 @@ export default function SmetaStudio() {
   const hisob = useMemo(() => calcDoc(doc), [doc]);
   const [narxKat, setNarxKat] = useState<PriceCatalog | null>(null);
   // The AI estimator is the default entry: describe the work in words; the catalogue stays one click away.
-  const [chapTab, setChapTab] = useState<'ai' | 'katalog'>(() => (lsGet(CHAP_TAB_KALIT) === 'katalog' ? 'katalog' : 'ai'));
   const [hudud, setHududState] = useState<string>(() => lsGet(HUDUD_KALIT) ?? '');
   const setHudud = (v: string) => { setHududState(v); lsSet(HUDUD_KALIT, v); };
   const unitText = useMemo(() => unitTextOf(katalog), [katalog]);
   useStudioKontekst(doc, hisob, unitText, joriyId ?? null);
   // Owner workflow (2026-10-13): build the LRV first, then go to pricing (rates + sourced prices), then the RES.
-  const [bosqich, setBosqichState] = useState<Bosqich>(() => { const v = lsGet(BOSQICH_KALIT); return v === 'narx' || v === 'res' ? v : 'lrv'; });
+  const [bosqich, setBosqichState] = useState<Bosqich>('lrv');
   const [openedViews,setOpenedViews]=useState<Bosqich[]>([]);
   const setBosqich = (b: Bosqich) => { setWorkspaceView('editor'); setOpenedViews(old=>old.includes(b) ? old : [...old,b]); setReviewOpen(false); setBosqichState(b); lsSet(BOSQICH_KALIT, b); };
   const ishlarSoni = Object.keys(doc.occurrences).length;
@@ -199,7 +207,12 @@ export default function SmetaStudio() {
   /** Validate synchronously against the current document so errors surface immediately. */
   function amal(cmd: StudioCommand): boolean {
     try { dispatch(hist, cmd); } catch (e) { setXato(xatoMatni(e)); return false; }
-    return run(cmd);
+    const ok=run(cmd);
+    if(ok) {
+      const titles:Partial<Record<StudioCommand['type'],string>>={SET_QUANTITY:'Hajm yangilandi',ADD_OCCURRENCE:'Ish qo‘shildi',REMOVE_OCCURRENCE:'Ish olib tashlandi',ADD_SECTION:'Bo‘lim yaratildi',SET_PRICE:'Narx yangilandi',BATCH:'Guruh amali bajarildi',SET_CONTEXT:'Smeta ma’lumoti yangilandi'};
+      setLastAction(t(titles[cmd.type] ?? 'O‘zgarish qo‘llandi'));
+    }
+    return ok;
   }
   function persistDraft(snapshot: EstimateDoc, version: number): Promise<boolean> {
     const companyId=snapshot.context.companyId ?? joriyId ?? null;
@@ -284,8 +297,14 @@ export default function SmetaStudio() {
     setSaqlash({ holat: 'xato', matn, edits: null });
   }
 
-  function openWork(id:string) {setFocusWorkId(id);setWorksheet(false);setBosqich('lrv');}
-  function openAssistant(tab:'ai'|'katalog') {setAssistantVisible(true);setChapTab(tab);lsSet(CHAP_TAB_KALIT,tab);setBosqich('lrv');}
+  function openWork(id:string) {setFocusWorkId(id);setRevealToken(v=>v+1);}
+  const selectedWorkId=focusWorkId && doc.occurrences[focusWorkId] ? focusWorkId : Object.values(doc.occurrences)[0]?.id ?? null;
+  function deskAction(action:DeskAction) {
+    if(action==='save'){void serverga();return;}
+    if(action==='catalog'){setPanels(3);setBosqich('lrv');return;}
+    if(action==='review'){setReviewOpen(true);setWorkspaceView('editor');return;}
+    setInspectorTab(action);
+  }
   async function openCloud(docFromServer:EstimateDoc,version:number) {
     const requestedCompany=joriyId;
     const sameDraft=()=>currentDraft.current.id===doc.draftId && currentDraft.current.snapshot===doc;
@@ -305,75 +324,58 @@ export default function SmetaStudio() {
       if(currentCompany.current!==requestedCompany || !sameDraft())return;
       activeDraft(requestedCompany,restoredDoc.draftId);
       lastServerSave.current={company:requestedCompany,draft:restoredDoc.draftId,snapshot:restoredDoc};
-      setHist(historyOf(restoredDoc));setServerVersiya(version);pendingOp.current=null;setNishon(restoredDoc.rootOrder[0] ?? null);setFocusWorkId(null);setCloudOpen(false);setWorkspaceView('overview');setSaqlash({holat:'tayyor',matn:'',edits:null});
+      setHist(historyOf(restoredDoc));setServerVersiya(version);pendingOp.current=null;setNishon(restoredDoc.rootOrder[0] ?? null);setFocusWorkId(null);setCloudOpen(false);setWorkspaceView('editor');setSaqlash({holat:'tayyor',matn:'',edits:null});
     });
   }
-  return <div className="p-4 space-y-4">
-    <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} agentOnly />
-    <header className="flex flex-wrap items-center gap-3">
-      <div><p className="text-[10px] uppercase tracking-[0.2em] text-accent">{t('SMETA STUDIO')}</p><h1 className="text-xl font-semibold">{t('Smeta studiyasi')}</h1></div>
-      <span className="text-xs border border-warn text-warn rounded px-2 py-0.5">{t('Qoralama — tasdiqlanmagan')}</span>
-      {katalog && <span className="text-xs text-text-mute">{t('Normativ katalog')}: {katalog.manifest.counts.basis?.toLocaleString('ru')} {t('ish')}</span>}
-      <span className="flex-1" />
-      <button className="tugma px-3 py-1" onClick={()=>openAssistant('ai')}>{t('AI ish joyi')}</button>
-      <button className="tugma px-3 py-1" onClick={()=>{setAssistantVisible(false);setWorksheet(true);setBosqich('lrv');}}>{t('Professional jadval')}</button>
-      <button className="px-2 py-1 border border-border rounded disabled:opacity-40" disabled={!hist.past.length} onClick={() => setHist(undo)} title={"Ctrl+Z"}>{t('Bekor qilish')}</button>
-      <button className="px-2 py-1 border border-border rounded disabled:opacity-40" disabled={!hist.future.length} onClick={() => setHist(redo)} title={"Ctrl+Y"}>{t('Qaytarish')}</button>
-      <button className="px-2 py-1 border border-border rounded" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={() => void yangiQoralama()}>{t('Yangi qoralama')}</button>
-      <button type="button" className="tugma h-8 px-2" disabled={draftBusy} onClick={() => void kutubxona()}>{t('Saqlangan qoralamalar')}</button>
-      <button type="button" className="px-2 py-1 border border-border rounded disabled:opacity-40"
-        disabled={!joriyId || !yuklandi || (!!doc.context.companyId && doc.context.companyId !== joriyId)}
-        title={doc.context.companyId && doc.context.companyId !== joriyId ? t('Bu qoralama boshqa kompaniyaga bog‘langan. Avval o‘sha kompaniyani tanlang.') : undefined}
-        onClick={() => {
-          if (!joriyId || (doc.context.companyId && doc.context.companyId !== joriyId)) return;
-          if (doc.context.companyId == null) run({ type: 'SET_CONTEXT', context: { companyId: joriyId } });
-          window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} }));
-        }}>{t('Qoralamani Jarvis bilan muhokama qilish')}</button>
-      <button className="px-3 py-1 rounded bg-accent text-white disabled:opacity-40" disabled={draftBusy || saqlash.holat === 'saqlanmoqda' || (!doc.rootOrder.length && serverVersiya===0)} onClick={() => void serverga()}>{t('Serverga saqlash')}</button>
+  return <div className="studio-desk">
+    <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} agentOnly/>
+    <header className="studio-desk-header">
+      <div className="studio-brand"><span className="studio-brand-icon" aria-hidden="true">S</span><div><h1>{t('Smeta Studio')}</h1><small>{t('LOYIHADAN ANIQ HISOBGACHA')}</small></div></div>
+      <div><strong>{doc.context.title || t('Yangi smeta')}</strong><span className="ml-2 text-[10px] text-text-dim">{t('Qoralama')}</span></div>
+      <div className="studio-desk-actions">
+        <button className="studio-action" aria-label={t('Bekor qilish')} disabled={!hist.past.length} onClick={()=>setHist(undo)} title={t('Ctrl+Z')}>↶ {t('Bekor qilish')}</button>
+        <button className="studio-action" aria-label={t('Qaytarish')} disabled={!hist.future.length} onClick={()=>setHist(redo)} title={t('Ctrl+Y')}>↷ {t('Qaytarish')}</button>
+        <button className="studio-action" onClick={()=>setInspectorTab('ai')}>{t('Smetachi AI')}</button>
+        <details className="studio-popover"><summary className="studio-action">{t('Fayl')} ▾</summary><div>
+          <button className="studio-action" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void yangiQoralama()}>{t('Yangi qoralama')}</button>
+          <button className="studio-action" disabled={draftBusy} onClick={()=>void kutubxona()}>{t('Saqlangan qoralamalar')}</button>
+          <button className="studio-action" onClick={()=>setCloudOpen(v=>!v)}>{t('Serverdagi smetalar')}</button>
+          <label className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={!joriyId || (doc.context.companyId!=null && doc.context.companyId!==joriyId)} checked={autoSave?.draft===doc.draftId && autoSave.company===joriyId} onChange={e=>setAutoSave(e.target.checked && joriyId ? {company:joriyId,draft:doc.draftId} : null)}/>{t('Serverga avtomatik saqlash')}</label>
+        </div></details>
+        <button className="studio-action studio-primary" disabled={draftBusy || saqlash.holat==='saqlanmoqda' || (!doc.rootOrder.length && serverVersiya===0)} onClick={()=>void serverga()}>{saqlash.holat==='saqlanmoqda' ? t('Saqlanmoqda…') : t('Serverga saqlash')}</button>
+      </div>
     </header>
-    <ObjectBinding doc={doc} company={joriyId ?? null} command={amal} />
     {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && lastServerSave.current?.snapshot !== doc ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
-    {tiklandi && <p role="status" className="text-sm text-accent">{t('Oxirgi qoralama tiklandi.')}</p>}
+    {tiklandi && <p role="status" className="sr-only">{t('Oxirgi qoralama tiklandi.')}</p>}
     {boshqaTab && <p role="alert" className="text-sm text-warn">{t('Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.')}</p>}
     {xato && <p role="alert" className="text-sm text-danger">{xato}</p>}
-    <div className="flex flex-wrap items-center gap-3 border-y border-border py-2 text-xs">
-      <span className="text-text-dim">{t('AI va qo‘lda — bitta smeta, bir xil hisob.')}</span>
-      <button type="button" aria-expanded={assistantVisible} className="tugma h-7 px-2" onClick={()=>setAssistantVisible(v=>!v)}>{t('Yordamchi panel')}</button>
-      <span className="ml-auto" role="status">{localStatus==='saved' ? t('Shu qurilmada saqlandi') : localStatus==='saving' ? t('Qurilmada saqlanmoqda...') : ''}</span>
-      <label className="flex items-center gap-2"><input type="checkbox" disabled={!joriyId || (doc.context.companyId!=null && doc.context.companyId!==joriyId)} checked={autoSave?.draft===doc.draftId && autoSave.company===joriyId} onChange={e=>setAutoSave(e.target.checked && joriyId ? {company:joriyId,draft:doc.draftId} : null)} />{t('Serverga avtomatik saqlash')}</label>
-    </div>
+
     {(localStatus==='error' || localStatus==='conflict') && <p role="alert" className="text-sm text-danger">{localStatus==='conflict' ? t('Qoralama boshqa tabda o‘zgargan. Ustidan yozilmadi; o‘zgarishlarni nusxa sifatida saqlang.') : t('Qoralama qurilmada saqlanmadi. Hozirgi oynani yopmang; qayta urinib ko‘ring.')}</p>}
     {localStatus==='error' && <button type="button" className="tugma h-8 px-2" disabled={draftBusy} onClick={()=>void persistDraft(doc,serverVersiya)}>{t('Qayta urinish')}</button>}
     {localStatus==='conflict' && <button type="button" className="tugma h-8 px-2" onClick={()=>void qoralamaNusxa()}>{t('Qoralamani nusxa sifatida saqlash')}</button>}
-    <div className="flex flex-wrap gap-2 text-xs"><button className="tugma px-3 py-1" onClick={()=>setWorkspaceView('overview')}>{t('Ish markazi')}</button><button className="tugma px-3 py-1" onClick={()=>setCloudOpen(v=>!v)}>{t('Serverdagi smetalar')}</button></div>
-    {cloudOpen && <CloudDrafts key={joriyId} company={joriyId ?? null} onOpen={openCloud} onClose={()=>setCloudOpen(false)} />}
-    {workspaceView==='overview' && <WorkspaceOverview doc={doc} calculation={hisob} onAI={()=>openAssistant('ai')} onCatalog={()=>openAssistant('katalog')} onCalculator={()=>{setWorkspaceView('calculator');setReviewOpen(false);}} onPrices={()=>setBosqich('narx')} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}} onDocuments={()=>setBosqich('res')} />}
+
+    {cloudOpen && <CloudDrafts key={joriyId} company={joriyId ?? null} onOpen={openCloud} onClose={()=>setCloudOpen(false)}/>}
     {libraryOpen && <section className="karta space-y-2 p-3" aria-label={t('Saqlangan qoralamalar')}>
       <div className="flex items-center justify-between"><h2 className="font-semibold">{t('Saqlangan qoralamalar')}</h2><button type="button" onClick={()=>setLibraryOpen(false)}>{t('Yopish')}</button></div>
       <p className="text-xs text-text-dim">{t('Bu qurilmadagi nusxalar. Serverga saqlash alohida bajariladi.')}</p>
       <ul className="max-h-64 overflow-auto">{drafts.map(d=><li key={d.draftId} className="border-b border-border py-2 text-sm"><button type="button" className="text-left underline" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void qoralamaOch(d.draftId)}>{d.title || d.objectLabel || t('Nomsiz smeta')}</button><span className="ml-2 text-xs text-text-dim">{t('{n} ta ish',{n:d.works})} · {new Date(d.savedAt).toLocaleString()}</span></li>)}</ul>
     </section>}
-    <nav aria-label={t('Smeta ish joyi')} className="flex flex-wrap items-center gap-1">
-      {([['lrv',t('Ishlar')],['narx',t('Narxlar')],['review',t('Tekshiruv')],['res',t('Hujjatlar')]] as const).map(([key,label])=>
-        <button key={key} type="button" aria-current={(workspaceView==='editor' && (key==='review' ? reviewOpen : !reviewOpen && bosqich===key)) ? 'page' : undefined}
-          className={`tugma h-8 px-3 text-[12.5px] ${(workspaceView==='editor' && (key==='review' ? reviewOpen : !reviewOpen && bosqich===key)) ? 'tugma-asosiy' : ''}`}
-          onClick={()=>{setWorkspaceView('editor');if(key==='review')setReviewOpen(true);else setBosqich(key);}}>{label}</button>)}
-      <button className="tugma h-8 px-3 text-[12.5px]" aria-current={workspaceView==='calculator' ? 'page' : undefined} onClick={()=>{setWorkspaceView('calculator');setReviewOpen(false);}}>{t('Kalkulyator')}</button>
-    </nav>
-    {/* The AI estimator stays in the same place on every step (owner 2026-10-16: the chat runs the estimate end to end). */}
-    <div className={`grid items-start gap-3 ${assistantVisible && workspaceView!=='overview' ? 'xl:grid-cols-[minmax(280px,1fr)_minmax(0,3fr)]' : 'grid-cols-1'}`}>
-      <section hidden={!assistantVisible} aria-label={t('Normativ katalog')} className="border border-border rounded-lg p-3 bg-surface-1 min-w-0">
-        {<div role="tablist" aria-label={t('Chap panel')} className="mb-2 flex gap-1 border-b border-border pb-2">
-          {([['ai', t('Smetachi AI')], ['katalog', t('Normativ katalog')]] as const).map(([k, l]) =>
-            <button key={k} type="button" role="tab" aria-selected={chapTab === k} className={`tugma h-8 px-3 text-[12.5px] ${chapTab === k ? 'tugma-asosiy' : ''}`}
-              onClick={() => { setChapTab(k); lsSet(CHAP_TAB_KALIT, k); }}>{l}</button>)}
-        </div>}
-        {<div hidden={chapTab !== 'ai'}><SmetaAiChat doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={amal} newId={uid} onBosqich={setBosqich} /></div>}
-        {chapTab === 'ai' && !katalog && katalogHolat === 'yuklanmoqda' && <p className="text-xs text-text-mute">{t('Normativ katalog yuklanmoqda...')}</p>}
-        {chapTab === 'katalog' && katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
-        {chapTab === 'katalog' && katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
-        {chapTab === 'katalog' && katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
-        {chapTab === 'katalog' && katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
+
+    <div className="studio-commandbar">
+      <div className="studio-mode-buttons" aria-label={t('Panel tartibi')}><button aria-pressed={panels===2} onClick={()=>setPanels(2)}>{t('2 panel')}</button><button aria-pressed={panels===3} onClick={()=>setPanels(3)}>{t('3 panel')}</button></div>
+      <button className="studio-quick-open" onClick={()=>setCommandOpen(true)}><span aria-hidden="true">⌕</span>{t('Amal yoki ishni topish…')}<kbd>{t('Ctrl K')}</kbd></button>
+      <div className="studio-resize"><label>{t('Katalog')} <input aria-label={t('Katalog paneli kengligi')} type="range" min="210" max="340" value={leftWidth} onChange={e=>setLeftWidth(Number(e.target.value))}/></label><label>{t('Nazoratchi')} <input aria-label={t('Nazorat paneli kengligi')} type="range" min="310" max="470" value={rightWidth} onChange={e=>setRightWidth(Number(e.target.value))}/></label></div>
+    </div>
+    <div className="studio-columns" data-panels={panels} style={{'--studio-left':`${leftWidth}px`,'--studio-right':`${rightWidth}px`} as CSSProperties}>
+      <section hidden={panels===2} aria-label={t('Normativ katalog')} className="studio-library studio-pane">
+        <div className="studio-pane-title"><span className="studio-step">01</span><strong>{t('Katalog va bo‘limlar')}</strong><span className="text-[10px] text-text-dim">{katalog?.manifest.counts.basis?.toLocaleString('ru') ?? '…'}</span></div>
+        <StudioSections doc={doc} target={nishon} onTarget={setNishon} command={amal}/>
+        <div className="studio-pane-scroll">
+          <details className="studio-context"><summary>{t('Smeta va obyekt sozlamalari')}</summary><ObjectBinding doc={doc} company={joriyId ?? null} command={amal}/></details>
+        {katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
+        {katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
+        {katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
+        {katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
           onAdd={(work, detail, quantity) => {
             try {
               const tableLabel = katalog.tableLabel(work.id);
@@ -387,29 +389,38 @@ export default function SmetaStudio() {
               return ok;
             } catch (e) { setXato(xatoMatni(e)); return false; }
           }} />}
+
+        </div>
       </section>
-      <div className="min-w-0 space-y-3">
-        <div hidden={workspaceView!=='calculator'}><QuantityWorkbench key={doc.draftId} doc={doc} command={amal} onWork={openWork} /></div>
+      <main className="studio-workarea studio-pane" aria-label={t('Smeta jadvali')}>
+        <div className="studio-pane-title"><span className="studio-step">02</span><strong>{t('Smeta')}</strong><nav aria-label={t('Smeta ish joyi')} className="studio-center-tabs">
+          {([['lrv','Ishlar'],['narx','Narxlar'],['review','Tekshiruv'],['res','Hujjatlar']] as const).map(([key,label])=><button key={key} aria-current={(key==='review' ? reviewOpen : !reviewOpen && bosqich===key) ? 'page' : undefined} onClick={()=>{setWorkspaceView('editor');if(key==='review')setReviewOpen(true);else setBosqich(key);}}>{t(label)}</button>)}
+        </nav></div>
+        <div className="studio-center-content">
         {workspaceView==='editor' && reviewOpen && <WorkspaceReview doc={doc} calculation={hisob} onPrices={()=>setBosqich('narx')} onWork={openWork} />}
         {openedViews.includes('narx') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='narx'}><NarxlashBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} /></div>}
         {openedViews.includes('res') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='res'}><DocumentCenter doc={doc} calculation={hisob} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}}><ResBosqichi key={`${joriyId}:${doc.draftId}`} doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></DocumentCenter></div>}
-        <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='lrv'}>
-        <div className="mb-3 flex gap-2"><button className={`tugma px-3 py-1 ${worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button className={`tugma px-3 py-1 ${!worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button></div>
-        {worksheet && <WorkSheet doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} />}
+
+          <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='lrv'}>
+            <div className="flex gap-2 border-b border-border px-3 py-2"><button className={`tugma ${worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button className={`tugma ${!worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button><button className="tugma ml-auto" onClick={()=>{setPanels(3);setBosqich('lrv');}}>{t('+ Ish qo‘shish')}</button></div>
+            {worksheet && <WorkSheet docked activeWorkId={selectedWorkId} revealToken={revealToken} doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={()=>null}/>}
         <div hidden={worksheet}>
         <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
         </div>
-        <MateriallarPaneli doc={doc} command={amal} />
-        {ishlarSoni > 0 && <div className="karta flex flex-wrap items-center gap-3 p-2 text-[12.5px]">
-          <span>{t('LRV: {n} ta ish', { n: ishlarSoni })}{hajmsiz ? <span className="text-warn"> · {t('hajmi kiritilmagan: {n}', { n: hajmsiz })}</span> : null}</span>
-          <span className="flex-1" />
-          <button type="button" className="tugma tugma-asosiy h-9 px-4" onClick={() => setBosqich('narx')}>{t('Narxlashga o‘tish')} →</button>
-        </div>}
+
+            <details className="px-3 py-2 text-xs"><summary>{t('Loyiha materiallari')}</summary><MateriallarPaneli doc={doc} command={amal}/></details>
+          </div>
         </div>
-      </div>
+      </main>
+      <StudioInspector doc={doc} calculation={hisob} workId={selectedWorkId} onWork={openWork} command={amal} pricing={{source:narxKat,unitText,region:hudud || null}} tab={inspectorTab} onTab={setInspectorTab}
+        coefficients={selectedWorkId ? <KoeffitsientlarPaneli key={`${joriyId}:${doc.draftId}:${selectedWorkId}`} doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={selectedWorkId}/> : null}
+        ai={<SmetaAiChat selectedWorkId={selectedWorkId} doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={amal} newId={uid} onBosqich={setBosqich}/>}
+        calculator={<QuantityWorkbench key={doc.draftId} doc={doc} command={amal} onWork={openWork}/>}/>
     </div>
+    {commandOpen && <StudioCommandMenu doc={doc} onAction={deskAction} onClose={()=>setCommandOpen(false)} onWork={id=>{openWork(id);setBosqich('lrv');setWorksheet(true);}}/>}
+    <footer className="studio-footer"><span className="studio-live-dot"/><span role="status">{localStatus==='saved' ? t('Shu qurilmada saqlandi') : localStatus==='saving' ? t('Qurilmada saqlanmoqda...') : t('Qoralama')}</span><span role="status" className="text-accent">{lastAction}</span><span><strong>{ishlarSoni}</strong> {t('ish')} · <strong>{hajmsiz}</strong> {t('hajmsiz')}</span><span>{t('Ochiq masalalar')}: <strong>{hisob.total.unresolved}</strong></span><span className="studio-total">{t(hisob.total.amount==null ? 'Ma’lum qism' : 'Jami')}<strong>{Number(hisob.total.amount ?? hisob.total.knownAmount).toLocaleString('ru-RU',{maximumFractionDigits:2})} {doc.currency}</strong></span></footer>
   </div>;
 }
 

@@ -65,7 +65,7 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
     </aside>
   </div>;
 }
-function Inspector({ doc, row, labels: l, command, pricing }: {
+export function Inspector({ doc, row, labels: l, command, pricing }: {
   doc: EstimateDoc; row: OutlineRow; labels: EditingLabels; command: (command: StudioCommand) => boolean; pricing?: PricingProps;
 }) {
   const work = row.occurrenceId ? doc.occurrences[row.occurrenceId] : null;

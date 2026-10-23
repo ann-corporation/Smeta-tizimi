@@ -11,7 +11,7 @@ import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { coefficientCandidateSummary } from '../../lib/smeta-studio/coefficient-agent';
 import { koefKatalogi, type KoefKatalog } from '../../lib/smeta-studio/koef-katalog';
-import { smetaXulosasi } from '../../lib/smeta-studio/ai-kontekst';
+import { smetaXulosasi, ishHavolalari } from '../../lib/smeta-studio/ai-kontekst';
 import { calcDoc } from '../../lib/smeta-studio/calc';
 import { loyihaBoyicha, talabMateriali } from '../../lib/smeta-studio/loyiha-material';
 import type { AgentAmal } from '../../lib/smeta-ai/protokol';
@@ -70,10 +70,11 @@ export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
   return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
 }
 
-function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich }: {
+function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich, selectedWorkId }: {
   doc: EstimateDoc; katalog: AiKatalog | null; kompaniyaId: number | null; command: (c: StudioCommand) => boolean; newId: () => string;
   /** Opens a studio step (pricing / documents) so the agent can run that step's action. */
   onBosqich?: (b: 'lrv' | 'narx' | 'res') => void;
+  selectedWorkId?: string | null;
 }) {
   // Studio agent: actions the model proposed for this turn; the user runs them (one undo step for document edits).
   const [koefCatalog,setKoefCatalog]=useState<KoefKatalog | null>(null);
@@ -186,8 +187,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich 
     setXabarlar(yangi); setMatn(''); setHolat(''); setBand('suhbat'); setQadamlar([]);
     qadam(t('Xabaringizni o‘qiyapman; smetadagi {n} ish{h} bilan solishtiraman', { n: Object.keys(doc.occurrences).length, h: yuborilganIlova ? t(' va biriktirilgan «{f}»', { f: yuborilganIlova.nom }) : '' }));
     try {
+      const focused=[...ishHavolalari(doc)].find(([,id])=>id===selectedWorkId);
+      const selection=focused ? `\nINTERFEYSDA TANLANGAN ISH: [${focused[0]}]. Foydalanuvchi "shu ish" desa shu havola nazarda tutiladi. Tanlashning o‘zi hech qanday o‘zgartirish yoki koeffitsient sharoitini tasdiqlamaydi.` : '';
       const r = await smetachiSuhbat(kompaniyaId, yangi, ishlar, doc.context.objectLabel || doc.context.title,
-        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)) + (koefCatalog ? '\n' + coefficientCandidateSummary(doc,koefCatalog) : ''), yuborilganIlova);
+        smetaXulosasi(doc, calcDoc(doc), c => (c && katalog ? katalog.unit(c)?.text ?? null : null)) + selection + (koefCatalog ? '\n' + coefficientCandidateSummary(doc,koefCatalog) : ''), yuborilganIlova);
       if (!tirik.current) return;
       if (!r.ok) { setHolat(xato(r.code, r.message)); return; }
       // A reply the server could not read (raw output attached) must never wipe the works agreed so far.

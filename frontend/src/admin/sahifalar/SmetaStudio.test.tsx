@@ -66,9 +66,9 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 function renderEditor(){render(<SmetaStudio/>);fireEvent.click(within(screen.getByRole('navigation',{name:'Smeta ish joyi'})).getByRole('button',{name:'Ishlar'}));fireEvent.click(screen.getByRole('button',{name:'Tarkib va bo‘limlar'}));}
 
-it('opens the work center without starting a previously selected hidden pricing view',async()=>{
+it('opens the three-panel workbench without starting a previously selected hidden pricing view',async()=>{
  localStorage.setItem('smeta-studio:bosqich','narx');
- try{render(<SmetaStudio/>);await screen.findByText('Shu qurilmada saqlandi');expect(screen.getByRole('heading',{name:'Bugun qanday smeta tayyorlaymiz?'})).toBeTruthy();expect(screen.queryByLabelText('Obyekt hududi')).toBeNull();expect(requests.some(r=>r.startsWith('POST '))).toBe(false);}finally{localStorage.removeItem('smeta-studio:bosqich');}
+ try{render(<SmetaStudio/>);await screen.findByText('Shu qurilmada saqlandi');expect(screen.getByRole('main',{name:'Smeta jadvali'})).toBeTruthy();expect(screen.getByRole('complementary',{name:'Tanlangan ish nazorati'})).toBeTruthy();expect(screen.queryByLabelText('Obyekt hududi')).toBeNull();expect(requests.some(r=>r.startsWith('POST '))).toBe(false);}finally{localStorage.removeItem('smeta-studio:bosqich');}
 });
 
 it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, narxsiz jami noma’lum; faqat GET', async () => {
@@ -196,7 +196,7 @@ it('workspace navigation preserves the unsent AI message and manual document cha
  fireEvent.click(within(nav).getByRole('button',{name:'Ishlar'}));
  expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST shared estimate');
  expect((screen.getByLabelText('Smeta obyekti') as HTMLInputElement).value).toBe('TEST unsent manual field');
- fireEvent.click(screen.getByRole('tab',{name:'Normativ katalog'}));fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
+ fireEvent.click(screen.getByRole('tab',{name:'Hajm'}));fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST ONLY unsent plan');
 });
 it('new estimate archives the previous draft and reopening restores the same document',async()=>{
@@ -259,3 +259,35 @@ it('keeps a newer autosave queued when its debounce expires during a request tha
   expect(save.mock.calls[1][0].doc.context.title).toBe('Newer pending edit');
  }finally{finish({ok:false,code:'NETWORK'});save.mockRestore();companyScope.id=null;}
 },20000);
+
+
+it('keeps the worksheet visible while selecting works and preserves an unsaved inspector quantity across tabs',async()=>{
+ render(<SmetaStudio/>);
+ fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'),{target:{value:'beton'}});
+ fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
+ await screen.findByText('Бетон B7,5');
+ const quantity=screen.getByPlaceholderText('4,5');
+ fireEvent.change(quantity,{target:{value:'3'}});fireEvent.click(screen.getByRole('button',{name:/Smetaga qo‘shish/}));
+ fireEvent.change(quantity,{target:{value:'4'}});fireEvent.click(screen.getByRole('button',{name:/Smetaga qo‘shish/}));
+ const table=screen.getByRole('region',{name:'Smeta ishlar jadvali'});
+ const inspector=screen.getByRole('complementary',{name:'Tanlangan ish nazorati'});
+ const rows=within(table).getAllByRole('button',{name:/E6-1-1/});
+ fireEvent.click(rows[1]);
+ await waitFor(()=>expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('4'));
+ expect(within(table).getByRole('table')).toBeTruthy();
+ const field=within(inspector).getByRole('textbox',{name:'Ish hajmi'});fireEvent.change(field,{target:{value:'7,5'}});
+ fireEvent.click(within(inspector).getByRole('tab',{name:'Smetachi AI'}));
+ fireEvent.change(screen.getByLabelText('Smetachiga xabar'),{target:{value:'TEST unsent selected work question'}});
+ fireEvent.click(within(inspector).getByRole('tab',{name:'Hajm'}));
+ expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('7,5');
+ fireEvent.click(rows[0]);
+ expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('3');
+ fireEvent.click(within(inspector).getByRole('tab',{name:'Smetachi AI'}));
+ expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST unsent selected work question');
+ fireEvent.click(within(inspector).getByRole('tab',{name:'Koeff.'}));
+ fireEvent.click(within(inspector).getByText('Koeffitsientni qo‘lda kiritish'));
+ fireEvent.change(within(inspector).getByLabelText('Koeffitsient nomi'),{target:{value:'TEST work A only'}});
+ fireEvent.click(rows[1]);fireEvent.click(within(inspector).getByRole('tab',{name:'Koeff.'}));
+ expect((within(inspector).getByLabelText('Koeffitsient nomi') as HTMLInputElement).value).toBe('');
+ expect(requests.some(r=>r.startsWith('POST '))).toBe(false);
+});
