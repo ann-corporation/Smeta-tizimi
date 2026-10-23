@@ -2881,6 +2881,8 @@
   "Storno taklifi: {n} qator ({pul} so‘m) — oldingi F2 da bor, bu varaqda yo‘q; minus qator sifatida qo‘lda kiriting.": "Reversal suggestion: {n} rows ({pul} UZS) — present in earlier F2s, absent from this sheet; enter manually as negative rows.",
   "Ayirishni bekor qilish": "Cancel subtraction",
   "Oldingi F2 larni ayirish": "Subtract earlier F2s",
+  "Yuqoriga": "Move up",
+  "Pastga": "Move down",
   "Dublikat hajm nazorati": "Duplicate volume control",
   "Oshdi": "Excess",
   "Qoralamada": "In drafts",
