@@ -26,11 +26,22 @@ export function WorkSheet({doc,calculation,command,onWork,renderDetails,activeWo
   const selectedUnits=ids.map(id=>unitKey(doc.occurrences[id].basis.unitLabel));
   const sameUnit=selectedUnits.length>0 && selectedUnits.every(u=>!!u && u===selectedUnits[0]);
   function batch(commands:StudioCommand[]) {if(!commands.length) return; if(command({type:'BATCH',label:t('Jadvaldagi guruh tahriri'),commands})){setSelected([]);setMessage(t('O‘zgarishlar qo‘llandi. Barchasini bir marta bekor qilish mumkin.'));}}
+  function reorderSelected(edge:'first'|'last') {
+    const commands:StudioCommand[]=[];
+    for(const section of Object.values(doc.sections)) {
+      const members=section.items.filter(id=>ids.includes(id));
+      for(const id of edge==='first' ? [...members].reverse() : members)
+        commands.push({type:'MOVE_OCCURRENCE',occurrenceId:id,sectionId:section.id,index:edge==='first' ? 0 : section.items.length-1});
+    }
+    batch(commands);
+  }
   return <section ref={keyboardRoot} tabIndex={docked ? 0 : undefined} className={`karta min-w-0 space-y-3 p-3 ${docked ? 'studio-worksheet' : ''}`} aria-label={t('Smeta ishlar jadvali')} onKeyDown={e=>{if(!docked || !(e.target instanceof HTMLElement) || e.target.closest('input,textarea,select') || !['ArrowUp','ArrowDown'].includes(e.key))return;const position=filtered.findIndex(w=>w.id===activeWorkId);const next=filtered[Math.max(0,Math.min(filtered.length-1,position+(e.key==='ArrowDown' ? 1 : -1)))];if(next){e.preventDefault();keyboardRoot.current?.focus({preventScroll:true});onWork(next.id);}}}>
     <div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{t('Ishlar va hajmlar')}</h2><input className="input ml-auto w-64" aria-label={t('Jadvaldan qidirish')} placeholder={t('Shifr, ish yoki bo‘limdan qidirish')} value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} /></div>
     <p className="text-xs text-text-dim">{t('Hajmni satrda tahrirlang. Bir nechta ishni belgilang va bitta amal bilan o‘zgartiring.')}</p>
     {Boolean(ids.length) && <div className="flex flex-wrap items-end gap-2 rounded-lg border border-accent/40 bg-accent/5 p-3 text-xs">
       <span>{t('Tanlangan ishlar')}: {ids.length}</span>
+      <button type="button" className="tugma h-8 px-2" onClick={()=>reorderSelected('first')}>{t('Tanlanganlarni bo‘lim boshiga')}</button>
+      <button type="button" className="tugma h-8 px-2" onClick={()=>reorderSelected('last')}>{t('Tanlanganlarni bo‘lim oxiriga')}</button>
       <label>{t('Yangi hajm yoki formula')}<input className="input mt-1 block w-40" value={quantity} onChange={e=>setQuantity(e.target.value)} placeholder="12 * 0.6 * 0.4" /></label>
       <button className="tugma h-8 px-2" disabled={!quantity.trim() || !sameUnit} onClick={()=>{if(!sameUnit)return;try{const q=parseQuantityInput(quantity).qiymat;batch(ids.map(id=>({type:'SET_QUANTITY',occurrenceId:id,quantity:q})));}catch{setMessage(t('Formulani tekshiring'));}}}>{t('Tanlanganlarga hajm qo‘llash')}</button>
       {!sameUnit && <span className="text-warn">{t('Umumiy hajm uchun birliklari bir xil ishlarni tanlang.')}</span>}

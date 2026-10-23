@@ -24,3 +24,12 @@ it('validates the one-based position and isolates ordering keys from worksheet n
   parentKey.mockClear();fireEvent.keyDown(input,{key:'ArrowDown'});
   expect(parentKey).not.toHaveBeenCalled();
 });
+
+it('supports edge moves and discards a draft when external row position changes',()=>{
+ const move=vi.fn();const view=render(<RowOrderControls index={1} count={4} label="B" onMove={move}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Boshiga: B'}));expect(move).toHaveBeenLastCalledWith(0);
+ fireEvent.keyDown(screen.getByRole('spinbutton'),{key:'End',altKey:true});expect(move).toHaveBeenLastCalledWith(3);
+ fireEvent.change(screen.getByRole('spinbutton'),{target:{value:'4'}});
+ view.rerender(<RowOrderControls index={2} count={4} label="B" onMove={move}/>);
+ expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('3');
+});

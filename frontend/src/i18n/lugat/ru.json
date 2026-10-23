@@ -2804,5 +2804,15 @@
   "O‘zgarish qo‘llandi": "Изменение применено",
   "Ochish →": "Открыть →",
   "Jonli": "В реальном времени",
-  "Resurs miqdori": "Количество ресурса"
+  "Resurs miqdori": "Количество ресурса",
+  "Tanlanganlarni bo‘lim boshiga": "Выбранные в начало раздела",
+  "Tanlanganlarni bo‘lim oxiriga": "Выбранные в конец раздела",
+  "Qator tartibi: {n}": "Порядок строки: {n}",
+  "Boshiga: {n}": "В начало: {n}",
+  "Yuqoriga: {n}": "Выше: {n}",
+  "Tartib raqami: {n}": "Позиция: {n}",
+  "Joyiga ko‘chirish: {n}": "Переместить в позицию: {n}",
+  "Pastga: {n}": "Ниже: {n}",
+  "Oxiriga: {n}": "В конец: {n}",
+  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Порядок внутри списка. Alt+↑/↓; Alt+Home/End"
 }

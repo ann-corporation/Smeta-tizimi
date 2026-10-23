@@ -2804,5 +2804,15 @@
   "O‘zgarish qo‘llandi": "Change applied",
   "Ochish →": "Open →",
   "Jonli": "Live",
-  "Resurs miqdori": "Resource quantity"
+  "Resurs miqdori": "Resource quantity",
+  "Tanlanganlarni bo‘lim boshiga": "Move selected to section start",
+  "Tanlanganlarni bo‘lim oxiriga": "Move selected to section end",
+  "Qator tartibi: {n}": "Row order: {n}",
+  "Boshiga: {n}": "Move to first: {n}",
+  "Yuqoriga: {n}": "Move up: {n}",
+  "Tartib raqami: {n}": "Position: {n}",
+  "Joyiga ko‘chirish: {n}": "Move to position: {n}",
+  "Pastga: {n}": "Move down: {n}",
+  "Oxiriga: {n}": "Move to last: {n}",
+  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Order within list. Alt+↑/↓; Alt+Home/End"
 }
