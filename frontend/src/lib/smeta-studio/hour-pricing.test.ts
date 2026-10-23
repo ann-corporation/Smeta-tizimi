@@ -23,6 +23,13 @@ const doc = () => ([{ type: 'ADD_SECTION', sectionId: 's', parentId: null, name:
     source: { catalogRevision: 'r', workId: 'w', code: 'E1-1', name: 'Разработка грунта', unitCode: '003', tableLabel: null } }] as StudioCommand[]).reduce(applyCommand, emptyDoc('d'));
 
 describe('labour / machine-hour pricing from the hour catalogue', () => {
+  it('never prices source-qualified Uzbek machinist labour as a construction worker', () => {
+    const d = doc();
+    d.occurrences.o.recipe = [r('opUz', 'Машинистларнинг меҳнат харажатлари', 'NORM_MACHINIST',
+      'norm-unit:66bb1a23bd18c63006d447b5:' + encodeURIComponent('чел.-ч'), '000003')];
+    const result = hourPrices(d, calcDoc(d), cat, resourceUnitText, 'navoiy', {year:2026,quarter:2});
+    expect(result).toMatchObject({labour:0,operatorsLeft:1,commands:[]});
+  });
   it('periods newest first, only those that have rates', () => {
     expect(labourPeriods(cat)).toEqual([{ year: 2026, quarter: 2 }, { year: 2026, quarter: 1 }]);
   });

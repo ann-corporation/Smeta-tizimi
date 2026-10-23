@@ -43,7 +43,7 @@ export function hourPrices(doc: EstimateDoc, calc: DocCalc, c: HourCatalog, unit
     if (l.price != null && (!ov || ov.justification || ov.basis === 'OPERATOR_MANUAL')) continue;
     const f = resourceFacts(l.resource, unitText);
     if (f.pricingSource === 'LABOUR_HOUR') {
-      if (/ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ/i.test(l.resource.name ?? '')) { out.operatorsLeft++; continue; }
+      if (f.costCategory === 'МАШ') { out.operatorsLeft++; continue; }
       const r = region && period ? labourPrice(c, { region, ...period, unit: 'чел-ч', scope: 'CONSTRUCTION_WORKER_REFERENCE' }) : null;
       if (!r) { out.notFound++; continue; }
       out.labour++;
