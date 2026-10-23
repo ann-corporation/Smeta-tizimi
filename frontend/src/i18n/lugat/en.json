@@ -2858,5 +2858,15 @@
   "Shartnoma bo‘yicha: F3, to‘lov va akt-sverka": "By contract: F-3, payments and reconciliation",
   "F2 tasdiqlangan (nakrutkasiz)": "Approved F-2 (direct costs)",
   "Barcha shartnomalar svodi (Excel)": "All contracts summary (Excel)",
-  "tayyor (yuborildi)": "ready (sent)"
+  "tayyor (yuborildi)": "ready (sent)",
+  "Import sessiyasi №{id} ochiq qoldi — qatorlar serverda saqlangan, qayta yuborish shart emas.": "Import session #{id} is still open — rows are stored on the server, no need to resend.",
+  "Yakunlashni qayta urinish": "Retry finalising",
+  "Importni bekor qilish": "Cancel import",
+  "Jamlarni qayta hisoblash": "Recalculate totals",
+  "Yakunlash bajarilmadi ({kod}). Keyinroq qayta urining yoki importni bekor qiling.": "Finalising failed ({kod}). Retry later or cancel the import.",
+  "Ochiq import sessiyasi bekor qilinsinmi? Yuborilgan bo‘laklar o‘chiriladi, smeta yozilmaydi.": "Cancel the open import session? Uploaded chunks will be deleted and the estimate will not be written.",
+  "Bekor qilib bo‘lmadi ({kod}).": "Could not cancel ({kod}).",
+  "Import bekor qilindi.": "Import cancelled.",
+  "Jamlar hisoblanmadi ({kod}). Keyinroq qayta urining.": "Totals were not recalculated ({kod}). Retry later.",
+  "Jamlar hisoblandi.": "Totals recalculated."
 }

@@ -2858,5 +2858,15 @@
   "Shartnoma bo‘yicha: F3, to‘lov va akt-sverka": "По договору: Ф-3, оплаты и акт сверки",
   "F2 tasdiqlangan (nakrutkasiz)": "Ф-2 утверждено (прямые затраты)",
   "Barcha shartnomalar svodi (Excel)": "Свод по всем договорам (Excel)",
-  "tayyor (yuborildi)": "готова (отправлена)"
+  "tayyor (yuborildi)": "готова (отправлена)",
+  "Import sessiyasi №{id} ochiq qoldi — qatorlar serverda saqlangan, qayta yuborish shart emas.": "Сессия импорта №{id} осталась открытой — строки сохранены на сервере, повторная отправка не нужна.",
+  "Yakunlashni qayta urinish": "Повторить завершение",
+  "Importni bekor qilish": "Отменить импорт",
+  "Jamlarni qayta hisoblash": "Пересчитать итоги",
+  "Yakunlash bajarilmadi ({kod}). Keyinroq qayta urining yoki importni bekor qiling.": "Завершение не выполнено ({kod}). Повторите позже или отмените импорт.",
+  "Ochiq import sessiyasi bekor qilinsinmi? Yuborilgan bo‘laklar o‘chiriladi, smeta yozilmaydi.": "Отменить открытую сессию импорта? Отправленные части будут удалены, смета не будет записана.",
+  "Bekor qilib bo‘lmadi ({kod}).": "Не удалось отменить ({kod}).",
+  "Import bekor qilindi.": "Импорт отменён.",
+  "Jamlar hisoblanmadi ({kod}). Keyinroq qayta urining.": "Итоги не пересчитаны ({kod}). Повторите позже.",
+  "Jamlar hisoblandi.": "Итоги пересчитаны."
 }
