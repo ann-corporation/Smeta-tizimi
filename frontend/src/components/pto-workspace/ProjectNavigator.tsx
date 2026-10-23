@@ -54,7 +54,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
   const objectList = objects.filter(o => idSet.has(o.id) && matches(o.nom));
   const amount = (objectIds: number[], metric: FinancialMetric, sid?: number) => <>
     <Value value={financials.sum(objectIds)[metric]} money />
-    {metric === 'smeta' && <span className="mt-1 block text-[11px] font-normal text-text-dim">{t('Nakrutkalar bilan (QQS bilan)')}: {money.loading ? t('Hisoblanmoqda…') : <Value value={money.sum(objectIds,sid)} money />}</span>}
+    {metric === 'smeta' && <span className="mt-1 block text-sm font-normal text-text-dim">{t('Nakrutkalar bilan (QQS bilan)')}: {money.loading ? t('Hisoblanmoqda…') : <Value value={money.sum(objectIds,sid)} money />}</span>}
   </>;
   const technicalDetails = (objectIds: number[], name: string) => {
     const counts = summarize(objectIds);

@@ -2914,5 +2914,8 @@
   "Bog‘langan": "Matched",
   "O‘zgardi": "Changed",
   "Yozilganlarni yashirish": "Hide saved",
-  "Yozilganlarni ko‘rsatish": "Show saved"
+  "Yozilganlarni ko‘rsatish": "Show saved",
+  "narxsiz resurslar kirmagan": "resources without price are not included",
+  "Smeta ustama bilan (QQS bilan)": "Estimate with markups (including VAT)",
+  "Ustama bilan (QQS bilan)": "With markups (including VAT)"
 }
