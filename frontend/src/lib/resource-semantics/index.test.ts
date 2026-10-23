@@ -40,6 +40,8 @@ describe('resource category and physical unit', () => {
     expect(resourceFacts({ name: 'Механизм', type: 'NORM_MACHINE', unitCode: unit('т') }).kind).toBe('UNRESOLVED');
     expect(resourceFacts({ name: 'Машинист', type: 'NORM_MACHINIST', unitCode: unit('маш.-ч') }).kind).toBe('UNRESOLVED');
     expect(resourceFacts({ name: 'Материал', type: 'NORM_MATERIAL', unitCode: unit('1000м2') })).toMatchObject({kind:'MATERIAL',unit:'1000м2'});
+    for (const measure of ['маш.-ч','чел.-ч','1000маш.-с'])
+      expect(resourceFacts({name:'Исходная строка',type:'NORM_MATERIAL',unitCode:unit(measure)})).toMatchObject({kind:'UNRESOLVED',unit:measure,pricingSource:null,warnings:['RESOURCE_GROUP_UNIT_CONFLICT']});
   });
 });
 describe('normative work basis is separate from resource units', () => {

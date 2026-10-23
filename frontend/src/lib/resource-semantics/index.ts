@@ -30,9 +30,11 @@ export function resourceFacts(resource: ResourceInput | null,
     if (resource.type === 'NORM_MACHINE')
       return key === 'маш-ч' ? { kind: 'MACHINE', unit, costCategory: 'МАШ', pricingSource: 'MACHINE_HOUR', warnings: [] }
         : unresolved(unit, 'MACHINE_UNIT_CONFLICT');
-    if (resource.type === 'NORM_MATERIAL')
+    if (resource.type === 'NORM_MATERIAL') {
+      if (key && /^(?:\d+)?(?:чел|маш)[.-]*(?:ч|с)$/.test(key)) return unresolved(unit, 'RESOURCE_GROUP_UNIT_CONFLICT');
       return unit ? { kind: 'MATERIAL', unit, costCategory: 'МАТ', pricingSource: 'MATERIAL_CATALOG', warnings: [] }
         : unresolved(null, 'RESOURCE_UNIT_UNRESOLVED');
+    }
   }
   if (key === 'чел-ч') return { kind: 'LABOUR', unit: 'чел-ч',
     // Keep existing cost grouping of operator labour; the price unit remains human-hours.
