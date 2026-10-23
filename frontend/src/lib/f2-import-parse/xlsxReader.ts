@@ -277,7 +277,7 @@ function parseSheetXml(xml: string, sharedStrings: string[]): Pick<XlsxSheet, 'r
 function parseWorkbookSheetList(xml: string, relsXml: string | undefined): Array<{ name: string; target: string; hidden: boolean }> {
   const relMap: Record<string, string> = {};
   if (relsXml) {
-    for (const m of relsXml.matchAll(/<Relationship\b[^>]*>/g)) {
+    for (const m of relsXml.matchAll(/<Relationship\b(?:[^>"']|"[^"]*"|'[^']*')*>/g)) {
       const a = xmlAttributes(m[0]);
       if (a.Id && a.Target && a.TargetMode !== 'External') relMap[a.Id] = a.Target;
     }
@@ -287,7 +287,7 @@ function parseWorkbookSheetList(xml: string, relsXml: string | undefined): Array
     if (m[3] === 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
       || m[3] === 'http://purl.oclc.org/ooxml/officeDocument/relationships') relationPrefixes.add(m[1]);
   const out: Array<{ name: string; target: string; hidden: boolean }> = [];
-  for (const m of xml.matchAll(/<sheet\b[^>]*>/g)) {
+  for (const m of xml.matchAll(/<sheet\b(?:[^>"']|"[^"]*"|'[^']*')*>/g)) {
     const a = xmlAttributes(m[0]);
     const id = [...relationPrefixes].map(p => a[`${p}:id`]).find(Boolean);
     const target = (id && relMap[id] || '').replace(/^\/?xl\//, '');

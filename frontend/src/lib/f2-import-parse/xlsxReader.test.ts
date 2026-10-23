@@ -39,6 +39,15 @@ test('rejects unreadable workbook relationships instead of reporting a successfu
   await expect(readXlsx(buildZip({'xl/workbook.xml':'<workbook><sheets/></workbook>'}))).rejects.toThrow('XLSX_NO_SHEETS');
 });
 
+test('does not truncate XML tags at a greater-than sign inside a quoted attribute', async () => {
+  const wb=await readXlsx(buildZip({
+    'xl/workbook.xml':'<workbook><sheets><sheet name="Costs > 2025" r:id="r1"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels':"<Relationships><Relationship data-note='>' Target='worksheets/sheet1.xml' Id='r1'/></Relationships>",
+    'xl/worksheets/sheet1.xml':'<worksheet><sheetData/></worksheet>',
+  }));
+  expect(wb.sheets).toHaveLength(1);expect(wb.sheet('Costs > 2025')?.rows).toEqual([]);
+});
+
 describe('readXlsx', () => {
   test('reads a real, self-built .xlsx: sheet name, shared strings, inline string, numbers, XML entity decoding, and merged cells', async () => {
     const wb = await readXlsx(buildMinimalXlsx());
