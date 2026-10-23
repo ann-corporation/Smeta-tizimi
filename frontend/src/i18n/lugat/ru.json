@@ -2873,6 +2873,8 @@
   "Boshqa F2 qoralamalarida band hajm (tasdiqlanmagan)": "Объём, занятый в других черновиках Ф-2 (не утверждены)",
   "Bu varaq allaqachon kiritilgan": "Этот лист уже внесён",
   "Allaqachon kiritilgan": "Уже внесено",
+  "ТН·КМ qatori faylda yo‘q": "Строки ТН·КМ в файле нет",
+  "F2 qatori sifatida qo‘shiladi": "будет добавлена как строка Ф2",
   "ТН·КМ taklifi": "Подсказка по ТН·КМ",
   "Taklif": "Подсказка",
   "faylda": "в файле",
