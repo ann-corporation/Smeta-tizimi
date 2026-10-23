@@ -338,6 +338,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_smeta_narxla_res_v2"
     },
     {
+      "amal": "smeta_narxla_res_v3",
+      "rpc": "t2_smeta_narxla_res_v3"
+    },
+    {
       "amal": "qator_tahrir",
       "rpc": "t2_qator_tahrir"
     },

@@ -16,6 +16,8 @@ export type ResPreview = {
   qatorNarxlari: Map<number, number>;
   moslashmagan: ResMoslashmagan[];
   turBoyicha: Record<'rs' | 'mat' | 'ob', { narxsiz: number; mos: number }>;
+  /** Narxi aniq 0 bo'lgan RS/MAT/OB qatorlari soni (rejimdan qat'i nazar) — UI «0 narxlarni ham to'ldirish» taklifi uchun. */
+  nolNarxli: number;
 };
 
 const plain = (v: unknown) => String(v ?? '').trim();
@@ -144,9 +146,11 @@ function sourceQur(rows: ResNarx[]): {
 
 /**
  * v2 server bilan bir xil, fail-closed preview: faqat nom+birlik identifikatsiyasi.
- * Kod manba ma'lumoti bo'lib qoladi; aniq nol mavjud narx, faqat NULL to'ldiriladi.
+ * Kod manba ma'lumoti bo'lib qoladi; aniq nol mavjud narx, sukut bo'yicha faqat NULL to'ldiriladi.
+ * `nolHam` (foydalanuvchi tanlovi, server v3 `p_nol_ham` bilan bir xil): narxi aniq 0 bo'lgan qatorlar ham narxsiz deb olinadi
+ * (dastur eksporti RES НАРХ=0 bilan import qilingan smeta — JONLI_SINOV_TOPILMALARI #14).
  */
-export function resNarxlashPreview(qatorlar: NarxsizQator[], reslar: ResNarx[]): ResPreview {
+export function resNarxlashPreview(qatorlar: NarxsizQator[], reslar: ResNarx[], o?: { nolHam?: boolean }): ResPreview {
   const { ziddiyatli, ziddiyatliKalitlar, narxlarByKalit } = sourceQur(reslar);
   const qatorNarxlari = new Map<number, number>();
   const moslashmagan: ResMoslashmagan[] = [];
@@ -156,8 +160,11 @@ export function resNarxlashPreview(qatorlar: NarxsizQator[], reslar: ResNarx[]):
     ob: { narxsiz: 0, mos: 0 },
   };
   let narxsiz = 0;
+  let nolNarxli = 0;
   for (const q of qatorlar) {
-    if (!['rs', 'mat', 'ob'].includes(q.tur ?? '') || q.narx != null) continue;
+    if (!['rs', 'mat', 'ob'].includes(q.tur ?? '')) continue;
+    if (q.narx === 0) nolNarxli++;
+    if (q.narx != null && !(o?.nolHam && q.narx === 0)) continue;
     narxsiz++;
     const tur = q.tur as 'rs' | 'mat' | 'ob';
     turBoyicha[tur].narxsiz++;
@@ -196,5 +203,6 @@ export function resNarxlashPreview(qatorlar: NarxsizQator[], reslar: ResNarx[]):
     qatorNarxlari,
     moslashmagan,
     turBoyicha,
+    nolNarxli,
   };
 }

@@ -2821,5 +2821,8 @@
   "Joyiga ko‘chirish: {n}": "Переместить в позицию: {n}",
   "Pastga: {n}": "Ниже: {n}",
   "Oxiriga: {n}": "В конец: {n}",
-  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Порядок внутри списка. Alt+↑/↓; Alt+Home/End"
+  "Ro‘yxat ichidagi tartib. Alt+↑/↓; Alt+Home/End": "Порядок внутри списка. Alt+↑/↓; Alt+Home/End",
+  "Bu ekran narxi yo‘q (NULL) RS/MAT/OB qatorlarini RES bilan to‘ldiradi. Narxi 0 bo‘lgan qatorlar — faqat pastdagi belgini qo‘ysangiz. Mavjud narx, F2 va tarixiy certified qiymatlar o‘zgarmaydi.": "Этот экран заполняет из RES строки РС/МАТ/ОБ без цены (NULL). Строки с ценой 0 — только если отметить флажок ниже. Существующие цены, Ф-2 и исторические сертифицированные значения не меняются.",
+  "0 narxlarni ham to‘ldirish (dastur eksportida RES narxi 0 bo‘lsa). Amal auditga yoziladi.": "Заполнять и цены, равные 0 (если в выгрузке программы цена RES равна 0). Действие записывается в аудит.",
+  "Bu obyektda narxi 0 bo‘lgan {n} ta qator bor.": "В этом объекте {n} строк с ценой 0."
 }
