@@ -2873,6 +2873,8 @@
   "Boshqa F2 qoralamalarida band hajm (tasdiqlanmagan)": "Volume reserved in other F-2 drafts (not approved)",
   "Bu varaq allaqachon kiritilgan": "This sheet has already been entered",
   "Allaqachon kiritilgan": "Already entered",
+  "Fayl yangi usulda o‘qildi": "File was read with the new parser",
+  "qator qayta tekshirilsin (fayldagi qiymati o‘zgargan yoki topilmadi)": "rows to recheck (value changed in the file or not found)",
   "Kumulyativ varaq": "Cumulative sheet",
   "Kumulyativ rejim: oldingi F2 lar hajmi ayirildi ({n} qator, −{pul} so‘m).": "Cumulative mode: quantities from earlier F2s subtracted ({n} rows, −{pul} UZS).",
   "Hujjatda «Ранее оформленным» bor — hajm kumulyativ ko‘rinadi. Oldingi F2 lar ayirilsinmi?": "The document has “Ранее оформленным” — quantities look cumulative. Subtract earlier F2s?",

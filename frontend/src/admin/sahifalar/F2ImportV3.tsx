@@ -31,7 +31,7 @@ import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
-import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
+import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ManbaMosla, f2BuzilganniBoshat, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
 
 /**
  * F2 IMPORT V3 (docs/architecture/F2_IMPORT_V3.md): fayl → akt (davr, jami, ogohlantirishlar
@@ -645,10 +645,12 @@ function Sessiya({ companyId }: { companyId: number }) {
       const acts = await f2AktlarniOqiFonda(file.name, file);
       const a = acts[idx];
       if (!a) throw new Error('Qoralamadagi akt varag‘i manba faylida topilmadi.');
-      const byUid = f2Indeks(a.daraxt).byUid;
-      if (f2Indeks(a.daraxt).qatorlar.length !== d.sourceRows.length || d.sourceRows.some((s) => {
-        const n = byUid.get(s.uid); return !n || n.hajm !== s.hajm || n.narx !== s.narx || n.summa !== s.summa;
-      })) throw new Error('Manba qatorlari saqlangan qoralamaga mos emas. Bog‘lanishlar taxmin bilan tiklanmaydi.');
+      // Versiyaga chidamli tiklash: parser yaxshilanganda saqlangan qoralamalar buzilmaydi. Har qator uid bo'yicha alohida
+      // baholanadi: mos — bog'lanish tiklanadi; yangi parse da paydo bo'lgan — bog'lanmagan holda qo'shiladi;
+      // topilmagan/qiymati boshqa — faqat o'sha qatorlar «qayta tekshiring» ga tushadi.
+      const indA = f2Indeks(a.daraxt);
+      const mosla = f2ManbaMosla(d.sourceRows, indA);
+      if (!mosla.mos && d.sourceRows.length) throw new Error('Manba fayli saqlangan qoralamaga umuman mos emas (birorta qator mos kelmadi). Bog‘lanishlar taxmin bilan tiklanmaydi.');
       const { r, qol, x } = await malumotYukla(d.objectId, month);
       const rb = new Map(c.rzBog as Array<[string, number]>);
       const result = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
@@ -663,8 +665,11 @@ function Sessiya({ companyId }: { companyId: number }) {
         : f2QoralamaBogTekshir(d.ij,new Set([...r.map((q)=>q.id), ...serverRejali(c).flatMap((b) => [b.tempId, ...b.resursTempIds])]));
       pendingCorrection.current=undefined;
       setRejali(serverRejali(c)); setOchirish(serverOchirish(c));
-      tarixniTozala(); setIj(restored); setDone(null);
-      setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`);
+      const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat(restored, mosla.buzilgan), indA.qatorlar, r);
+      tarixniTozala(); setIj(tiklangan); setDone(null);
+      setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`
+        + (mosla.yangi.length ? ` ${t('Fayl yangi usulda o‘qildi')}: +${mosla.yangi.length} ${t('qator')}.` : '')
+        + (mosla.buzilgan.size ? ` ${mosla.buzilgan.size} ${t('qator qayta tekshirilsin (fayldagi qiymati o‘zgargan yoki topilmadi)')}.` : ''));
     } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); }
     finally { setBusy(false); }
   }

@@ -33,6 +33,49 @@ export type F2PendingCorrection = { oldIds: number[]; newId: number | null };
 
 export interface F2ServerQoralama { jobId: number; versiya: number; rows: Map<string, number> }
 
+/**
+ * Parser versiyasi: qoralama saqlanganda cursor ga yoziladi (ma'lumot uchun). Parser yaxshilanganda (yangi qatorlar,
+ * float yaxlitlash o'zgarishi) saqlangan qoralamalar BUZILMASLIGI shart — tiklash versiyaga chidamli (f2ManbaMosla).
+ */
+export const F2_PARSER_VERSIYA = 3;
+
+const sonMi = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+/** Ikki qiymat teng: ikkalasi ham bo'sh, yoki sonlar float shovqini (1e-9 nisbiy / 1e-6 mutlaq) ichida. */
+export function qiymatTeng(a: unknown, b: unknown): boolean {
+  const x = a == null || a === '' ? null : Number(a), y = b == null || b === '' ? null : Number(b);
+  if (x == null || y == null) return x == y;
+  if (!sonMi(x) || !sonMi(y)) return false;
+  return Math.abs(x - y) <= Math.max(1e-6, Math.abs(y) * 1e-9);
+}
+
+export interface F2ManbaMosla {
+  /** Qoralamadagi qator yangi parse da topilmadi yoki qiymati boshqa — faqat shular «qayta tekshiring». */
+  buzilgan: Set<string>;
+  /** Yangi parse da paydo bo'lgan (qoralamada yo'q) qatorlar — bog'lanmagan holda qo'shiladi. */
+  yangi: string[];
+  mos: number;
+}
+
+/** Saqlangan qoralama qatorlari ↔ yangi parse (uid bo'yicha). Hech narsa rad etilmaydi: har qator alohida baholanadi. */
+export function f2ManbaMosla(saqlangan: ReadonlyArray<{ uid: string; hajm?: unknown; narx?: unknown; summa?: unknown }>, ind: F2Indeks): F2ManbaMosla {
+  const buzilgan = new Set<string>();
+  const bor = new Set<string>();
+  let mos = 0;
+  for (const s of saqlangan) {
+    bor.add(s.uid);
+    const n = ind.byUid.get(s.uid);
+    if (!n || !qiymatTeng(n.hajm, s.hajm) || !qiymatTeng(n.narx, s.narx) || !qiymatTeng(n.summa, s.summa)) buzilgan.add(s.uid); else mos++;
+  }
+  const yangi = ind.qatorlar.filter((n) => !bor.has(n.uid)).map((n) => n.uid);
+  return { buzilgan, yangi, mos };
+}
+
+/** Buzilgan qatorlarning bog'lanish/o'tkazish qarorlari olib tashlanadi (qayta tekshirish uchun); qolganlari saqlanadi. */
+export function f2BuzilganniBoshat(ij: IshJoyi, buzilgan: ReadonlySet<string>): IshJoyi {
+  if (!buzilgan.size) return ij;
+  return { bog: new Map([...ij.bog].filter(([uid]) => !buzilgan.has(uid))), otkaz: new Set([...ij.otkaz].filter((uid) => !buzilgan.has(uid))) };
+}
+
 /** Проекция чернового акта: только подтверждённые связи. Исходник и решения не изменяются. */
 export function f2QoralamaYozish(ind: F2Indeks, ij: IshJoyi) {
   const qolgan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) && !(n.podval && !ij.bog.has(n.uid)) &&
@@ -53,7 +96,7 @@ export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, sta
     state = { jobId: job.job_id, versiya: job.versiya ?? 1, rows: new Map() };
     d.server = state; // Idempotent retry after later network/batch failure.
   }
-  const cursor = { phase: 'f2_v3_review', sourceDocumentId: documentId, month: d.davr, actIdx: d.aktIdx,
+  const cursor = { phase: 'f2_v3_review', parserVersiya: F2_PARSER_VERSIYA, sourceDocumentId: documentId, month: d.davr, actIdx: d.aktIdx,
     correction: d.correction ?? null, rejali: d.rejali ?? [], ochirishlar: d.ochirishlar ?? [], aktRaqam: d.raqam ?? '', file: d.source.name, sourceOperationId: d.sourceOperationId, writeOperationId: d.operationId, rzBog: [...d.rzBog], savedRows: state.rows.size };
   const checkpoint = async (complete: boolean) => {
     const r = await sbT2F2ImportJobIlgarilash({ jobId: state!.jobId, expectedVersiya: state!.versiya,
@@ -83,12 +126,13 @@ export async function f2ServerCorrectionSaqla(d: F2IshchiQoralama): Promise<void
   const state = d.server;
   if (!state) return;
   if (!Number.isSafeInteger(d.source.documentId) || Number(d.source.documentId)<=0) throw new Error('F2_SOURCE_REQUIRED');
-  const count = f2Indeks(d.aktlar[d.aktIdx].daraxt).qatorlar.length;
+  const nodes = f2Indeks(d.aktlar[d.aktIdx].daraxt).qatorlar;
+  const toliq = nodes.every((n) => state.rows.has(n.uid));
   const r = await sbT2F2ImportJobIlgarilash({jobId:state.jobId,expectedVersiya:state.versiya,
     processedDelta:0,matchedDelta:0,unmatchedDelta:0,cursor:{phase:'f2_v3_review',
       sourceDocumentId:d.source.documentId,month:d.davr,actIdx:d.aktIdx,aktRaqam:d.raqam??'',file:d.source.name,
       sourceOperationId:d.sourceOperationId,writeOperationId:d.operationId,rzBog:[...d.rzBog],
-      savedRows:state.rows.size,complete:state.rows.size===count,correction:d.correction??null}});
+      savedRows:state.rows.size,complete:toliq,correction:d.correction??null}});
   if (!r.ok || r.versiya == null) throw new Error(r.code || r.error || 'Tuzatish belgisi saqlanmadi. Qayta urinib ko‘ring.');
   state.versiya=r.versiya;
 }
@@ -105,7 +149,8 @@ export async function f2ServerOl(jobId: number) {
   const [job, draft] = await Promise.all([sbT2F2ImportJobHolat(jobId), sbT2F2ImportDraftRoyxat(jobId)]);
   if (!job.ok || !draft.ok || job.cursor?.phase !== 'f2_v3_review' || job.versiya == null || job.obyekt_id == null)
     throw new Error(job.error || draft.error || 'Bu F2 V3 ish qoralamasi topilmadi yoki unga ruxsat yo‘q.');
-  if (job.cursor.complete !== true || draft.qatorlar.length !== job.total_rows || job.cursor.savedRows !== job.total_rows)
+  // Parser yaxshilangach qoralamada total_rows dan KO'P qator bo'lishi mumkin (podval va h.k.) — faqat KAM bo'lsa to'liq emas.
+  if (job.cursor.complete !== true || draft.qatorlar.length < Number(job.total_rows) || Number(job.cursor.savedRows) < Number(job.total_rows))
     throw new Error('Serverda qoralama bo‘laklari to‘liq emas. Asl ochiq sahifadagi mahalliy ishni saqlab, yana yuboring.');
   const bog: Map<string, import('./f2-moslash-v3/ishJoyi').Bog> = new Map(), otkaz = new Set<string>();
   // Rejali (hali yozilmagan) qo'shimcha/zamenaga bog'langan qatorlar vaqtinchalik (manfiy) id ga ishora qiladi — ular
