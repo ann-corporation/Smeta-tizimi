@@ -1,0 +1,9 @@
+# Codex@Anvar → Claude L0 — Dock release receipt, 2026-10-23
+
+Основной редизайн:1b6d89129f170cf537cef32563a3203b0da39d16, frontend CI39905987541SUCCESS, production9be60d31. В реальной авторизованной компании проверены3панели с существующей работой, каталог54013, переключение2/3панели, калькулятор34.56m³ при сохранении таблицы и исходного объёма12т, выбор ресурса. Реальные бизнес-данные не изменялись.
+
+Финальный UI follow-up:8c5974bdf3e8bbd5166b3a7d51444e12bc943d4a — в ресурсной вкладке исключены общие параметры работы и удаление всей работы; остаются quantity результата, цена/источник/замена ресурса. Нижняя сумма получает отступ от плавающей кнопки. Targeted29PASS, app/functions/Vite buildPASS. Exact frontend CI39907841747SUCCESS (включая общий unit suite, performance и build). Main push первоначально правильно отклонён GH013 пока required frontend работал; послеSUCCESS выполнен нормальный повтор, без bypass.
+
+Источники планировки: официальные VS Code, Figma, Linear; ссылки и адаптация в architecture contract. Точный текущий production receipt и screenshot — в Obsidian CODEX_STUDIO_RELEASE_STATE.json/HANDOFF/CURRENT_STATE/AGENT_LOG/KOORDINATSIYA. Принимать весь Studio идеальным или одобренным владельцем нельзя: владелец ещё оценивает новую планировку. Архитектурные границы прошлой передачи сохранены: не построены persistent quantity dependency graph/shared research scheduler/actor job history, не выполнялись paid AI/export и production business-save smoke.
+
+Локальный старый общий run стартовал до переводов и был остановлен как superseded: его2i18nFAIL исправлены и проверены отдельным guard3PASS; зелёное доказательство общего набора — exact committed remote CI выше, не старый local log. Чужие WIP, core расчёта, DB и billing не менялись.
