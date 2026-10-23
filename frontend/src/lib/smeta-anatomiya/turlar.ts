@@ -144,6 +144,8 @@ export interface VaraqAnatomiyasi {
   /** Ish daraxtidan keyingi ВЕДОМОСТЬ РЕСУРСОВ yoki RES varag'i qatorlari. */
   vedomost: Resurs[];
   jamilar: JamiQator[];
+  /** F2 podvalidagi СУМ hisob satrlari (nom + summa; № va shifr yo'q) — xom, hech narsa taxmin qilinmaydi. */
+  podvalSatrlar?: JamiQator[];
   review: ReviewBand[];
   /** Xaritaga kirmagan sarlavhali ustunlar (PTO qo'shgan: ПРИМЕЧАНИЕ, ОСТАТОК…) —
    * o'qilmaydi, operatorga ko'rsatiladi. */

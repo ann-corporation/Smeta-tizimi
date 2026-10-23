@@ -523,6 +523,13 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     }
 
     if (F2_PODVAL_QATORI.test(bk) || sumPodvalmi(row)) {
+      if (sumPodvalmi(row)) {
+        // Qiymat jim olinadi (ogohlantirishsiz): summa ustuni, bo'lmasa narx ustunidan o'ngdagi yagona son (format odati).
+        const belgilangan = son(ol(row, u.summa));
+        const raqamli = row.flatMap((cell, ustun) => ustun >= Math.max(0, u.narx) && typeof cell === 'number' && Number.isFinite(cell) ? [{ qiymat: cell, ustun }] : []);
+        const q = belgilangan != null ? { qiymat: belgilangan, ustun: u.summa } : raqamli.length === 1 ? raqamli[0] : { qiymat: null, ustun: u.summa };
+        (natija.podvalSatrlar ??= []).push({ xom: xom(ol(row, u.nom)), qiymat: q.qiymat, manzil: manzil(r, q.ustun) });
+      }
       review('f2_podval_qatori', 'F2 hisob/podval satri; ish-resurs moslashiga qo‘shilmadi, manba faylda saqlandi', r);
       continue;
     }

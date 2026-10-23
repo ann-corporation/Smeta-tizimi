@@ -35,7 +35,7 @@ export interface F2ServerQoralama { jobId: number; versiya: number; rows: Map<st
 
 /** Проекция чернового акта: только подтверждённые связи. Исходник и решения не изменяются. */
 export function f2QoralamaYozish(ind: F2Indeks, ij: IshJoyi) {
-  const qolgan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) &&
+  const qolgan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) && !(n.podval && !ij.bog.has(n.uid)) &&
     (!ij.bog.has(n.uid) || ij.bog.get(n.uid)!.holat === 'taklif'));
   const tanlangan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) &&
     ij.bog.has(n.uid) && ij.bog.get(n.uid)!.holat !== 'taklif');

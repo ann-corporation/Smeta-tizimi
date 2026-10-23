@@ -16,6 +16,7 @@ import {
 import { exactWrite } from '../../lib/f2-exact-write';
 import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-moslash-v3/band';
 import { kumulyativmi, kumulyativQolla, kumulyativReja } from '../../lib/f2-moslash-v3/kumulyativ';
+import { dvigatelDaraxti, podvalTaklifQosh } from '../../lib/f2-moslash-v3/podval';
 import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestrMos } from '../../lib/f2-moslash-v3/varaq-tanlov';
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
@@ -445,8 +446,9 @@ function Sessiya({ companyId }: { companyId: number }) {
     setHolat('Moslashtirilmoqda (fonda)…');
     // Moslashtirish FONDA (Web Worker) — 30 ming qatorli smetada ham sahifa javob beradi.
     const ishBog = new Map([...avvalgi?.bog ?? []].filter(([, b]) => b.holat !== 'taklif').map(([uid, b]) => [uid, b.qatorId]));
-    const n = await f2MoslashV3Fonda(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb, ishBog });
-    setNatija(n); ijOzgar(boshlangich(n, avvalgi ?? undefined));
+    const n = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb, ishBog });
+    // Podval qo'lda qatorlari dvigatelga berilmaydi; smetada nom o'xshash + summa aynan qator bo'lsa ◐ taklif.
+    setNatija(n); ijOzgar(podvalTaklifQosh(boshlangich(n, avvalgi ?? undefined), f2Indeks(a.daraxt).qatorlar, r));
     const { aniq, xotira: xt, taklif, topilmadi } = n.stat;
     setHolat(`Moslashtirildi: ✓ ${aniq + xt} · ◐ ${taklif} · ✕ ${topilmadi}. ◐ larni tasdiqlang, ✕ larni torting.`);
   }
@@ -649,7 +651,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       })) throw new Error('Manba qatorlari saqlangan qoralamaga mos emas. Bog‘lanishlar taxmin bilan tiklanmaydi.');
       const { r, qol, x } = await malumotYukla(d.objectId, month);
       const rb = new Map(c.rzBog as Array<[string, number]>);
-      const result = await f2MoslashV3Fonda(a.daraxt, smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
+      const result = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
       oxirgiKalit.current = `${d.objectId}|${idx}|${month}|${a.fayl}`;
       void faylShaHisobla(rawFile.current = file); sourceDoc.current = docId; sourceOp.current = String(c.sourceOperationId); operation.current = String(c.writeOperationId);
       serverDraft.current = d.state; setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);

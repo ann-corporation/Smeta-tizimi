@@ -236,6 +236,8 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
   for (const t of ind.qatorlar) {
     const k = korinish(ij, t.uid);
     if (k === 'otkazildi') continue;
+    // Podvaldagi qo'lda qator bog'lanmagan bo'lsa — jim o'tkaziladi (blok yo'q); ◐ taklif esa tasdiq/o'tkazishni kutadi.
+    if (t.podval && k === 'topilmadi') continue;
     if (k === 'topilmadi' || k === 'taklif') { hal.push(qisqa(t)); continue; }
     const b = ij.bog.get(t.uid)!;
     if (t.hajm == null || t.ogohlantirish?.length) { qiymatsiz.push(qisqa(t)); continue; }

@@ -42,6 +42,8 @@ export interface F2Tugun {
   /** Hujjatda qo'shimcha ish (+) yoki zamena (~) deb belgilangan. */
   belgi?: 'qoshimcha' | 'zamena';
   ogohlantirish?: string[];
+  /** F2 podvalidagi qo'lda qator (bojxona, shef-montaj...) yoki ularning razdeli — qatorlarJami ga kirmaydi, tegmasa o'tkazib yuboriladi. */
+  podval?: boolean;
 }
 
 export interface F2Ogohlantirish {
@@ -79,6 +81,14 @@ export interface F2Akt {
   /** Anatomiya natijasi (ichki tekshiruv uchun). */
   anatomiya: VaraqAnatomiyasi;
 }
+
+// ─── Podval (qo'lda qatorlar) ─────────────────────────────────────────────────
+
+export const PODVAL_RZ_NOM = 'ПОДВАЛ АКТА (ДОПОЛНИТЕЛЬНЫЕ СТРОКИ)';
+export const PODVAL_BIRLIK = 'КОМПЛ';
+/** Podvaldagi o'tkazma xarajatlari (ustama hisoblanmaydi): bojxona, shef-montaj. Hisob satrlari (ИТОГО, НДС, ТРАНСПОРТ…) EMAS. */
+const PODVAL_QOLDA = /ТАМОЖЕН|ШЕФ[\s-]*МОНТАЖ/i;
+export const podvalQolda = (nom: string): boolean => PODVAL_QOLDA.test(nom);
 
 // ─── Davr ────────────────────────────────────────────────────────────────────
 
@@ -242,6 +252,18 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
       if (!ishXato && ish.summa != null) qatorlarJami += ish.summa;
     }
     if (ota) ota.bolalar.push(bl); else ildiz.push(bl);
+  }
+
+  // Podvaldagi qo'lda qatorlar (bojxona, shef-montaj): hisob satri emas, smetaga bog'lanishi/qo'shilishi mumkin bo'lgan pul.
+  const podvalQatorlar = (v.podvalSatrlar ?? []).filter((s) => s.qiymat != null && s.qiymat > 0 && podvalQolda(s.xom));
+  if (podvalQatorlar.length) {
+    const rzP: F2Tugun = { uid: `${v.varaq}!podval`, tur: 'rz', kod: null, nom: PODVAL_RZ_NOM, birlik: null, hajm: null, narx: null, summa: null,
+      manzil: podvalQatorlar[0].manzil, yol: [], bolalar: [], barg: false, podval: true };
+    for (const s of podvalQatorlar) {
+      rzP.bolalar.push({ uid: uid(s.manzil), tur: 'bl', kod: null, nom: s.xom, birlik: PODVAL_BIRLIK, hajm: 1, narx: s.qiymat, summa: s.qiymat,
+        manzil: s.manzil, yol: [PODVAL_RZ_NOM], bolalar: [], barg: true, podval: true });
+    }
+    ildiz.push(rzP);
   }
 
   const jami = jamiTop(v);
