@@ -2,17 +2,22 @@ import { manbaKorinishi } from '../manba-nomi';
 import type { EstimateDoc } from './model';
 import type { StudioCommand } from './commands';
 import { ishHavolalari } from './ai-kontekst';
-import { ishKoeffitsientlari, koefgaAylantir, qollanadi, type KoefKatalog } from './koef-katalog';
+import { ishKoeffitsientlari, koefgaAylantir, qollanadi, type KoefKatalog, type KoefNomzod } from './koef-katalog';
+
+export function coefficientCandidates(catalog: KoefKatalog | readonly KoefKatalog[], source: EstimateDoc['occurrences'][string]['source']): KoefNomzod[] {
+  const catalogs: readonly KoefKatalog[] = Array.isArray(catalog) ? catalog : [catalog as KoefKatalog];
+  return catalogs.flatMap(k => ishKoeffitsientlari(k, source.code, source));
+}
 
 /** AI names an existing rule, never supplies its numeric value. No cross-work fallback or partial batch. */
-export function coefficientApplyCommand(doc: EstimateDoc, catalog: KoefKatalog, workRef: string | null, codes: string | null, condition: string | null): StudioCommand {
+export function coefficientApplyCommand(doc: EstimateDoc, catalog: KoefKatalog | readonly KoefKatalog[], workRef: string | null, codes: string | null, condition: string | null): StudioCommand {
   const id = ishHavolalari(doc).get((workRef ?? '').replace(/[[\]\s]/g, ''));
   if (!id) throw new Error('COEFFICIENT_WORK_REQUIRED');
   if (!condition?.trim()) throw new Error('COEFFICIENT_CONDITION_REQUIRED');
   const work = doc.occurrences[id];
   const wanted = [...new Set((codes ?? '').split(/[,;\s]+/).filter(Boolean))];
   if (!wanted.length || wanted.length > 10) throw new Error('COEFFICIENT_RULE_REQUIRED');
-  const eligible = ishKoeffitsientlari(catalog, work.source.code);
+  const eligible = coefficientCandidates(catalog, work.source);
   let coefficients = [...(work.coefficients ?? [])];
   for (const code of wanted) {
     const rule = eligible.find(r => r.kod === code);
@@ -24,12 +29,12 @@ export function coefficientApplyCommand(doc: EstimateDoc, catalog: KoefKatalog, 
   }
   return { type: 'SET_COEFFICIENTS', occurrenceId: id, coefficients };
 }
-export function coefficientCandidateSummary(doc: EstimateDoc, catalog: KoefKatalog, sourceLabel: (raw: string) => string = manbaKorinishi): string {
+export function coefficientCandidateSummary(doc: EstimateDoc, catalog: KoefKatalog | readonly KoefKatalog[], sourceLabel: (raw: string) => string = manbaKorinishi): string {
   const lines: string[] = ['KOEFFITSIENT NOMZODLARI: faqat shu ish uchun berilgan kodlar; qo‘llash sharti tasdiqlanmasa koef_tanla.'];
   let size = 0;
   for (const [ref, id] of ishHavolalari(doc)) {
     const work = doc.occurrences[id];
-    for (const n of ishKoeffitsientlari(catalog, work.source.code)) {
+    for (const n of coefficientCandidates(catalog, work.source)) {
       if (!qollanadi(n)) continue;
       const line = `[${ref}] ${n.kod}: ${sourceLabel(n.yozuv.s || n.yozuv.q)}; ${JSON.stringify(n.yozuv.k)}; ${sourceLabel(n.yozuv.a)}`;
       if (size + line.length > 14000) return lines.join('\n') + '\nQolgan ishlar: koef_tanla orqali so‘rang.';

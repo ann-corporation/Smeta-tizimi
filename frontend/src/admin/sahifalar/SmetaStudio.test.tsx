@@ -1,13 +1,25 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NormCatalog } from '../../lib/catalog-extraction/norm-catalog';
+import { NormLibraryCatalog } from '../../lib/catalog-extraction/norm-library';
+vi.mock('../../lib/catalog-extraction/norm-library', () => ({ NormLibraryCatalog: { open: vi.fn() } }));
 import { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote';
 import { NORM_SHARD_SCHEMA, buildNormShards, type BookRow } from '../../lib/catalog-extraction/norm-shards';
 
 vi.mock('../../i18n/til', () => ({ t: (s: string, p?: Record<string, string | number>) => p ? s.replace(/\{(\w+)\}/g, (_m, k: string) => String(p[k])) : s }));
+const aiSources = vi.hoisted(() => [] as Array<{ katalog: unknown; command: (c: import('../../lib/smeta-studio/commands').StudioCommand) => boolean }>);
+vi.mock('./SmetaAiChat', async importOriginal => {
+  const original = await importOriginal<typeof import('./SmetaAiChat')>();
+  const { createElement } = await import('react');
+  return { ...original, SmetaAiChat: (props: Parameters<typeof original.SmetaAiChat>[0]) => {
+    aiSources.push(props);
+    return createElement(original.SmetaAiChat, props);
+  } };
+});
 const store = new Map<string, unknown>();
 vi.mock('idb-keyval', () => ({ get: async (k: string) => store.get(k), set: async (k: string, v: unknown) => { store.set(k, v); }, update: async (k: string, fn: (v: unknown) => unknown) => { store.set(k,fn(store.get(k))); } }));
 import SmetaStudio from './SmetaStudio';
+import { workUnitOf } from './studio-sozlama';
 import { emptyDoc } from '../../lib/smeta-studio/model';
 import { writeLibraryDraft } from '../../lib/smeta-studio/draft-library';
 import * as serverSave from '../../lib/smeta-studio/server-save';
@@ -49,6 +61,8 @@ beforeAll(() => {
 });
 afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
+  localStorage.setItem('studio:catalog-source', 'legacy');
+  aiSources.length = 0;
   companyScope.id=null;
   store.clear(); requests = []; sessionStorage.clear();
   // These tests exercise the catalogue tab; the AI estimator tab is the default for new users.
@@ -295,4 +309,90 @@ it('keeps the worksheet visible while selecting works and preserves an unsaved i
  fireEvent.click(rows[1]);fireEvent.click(within(inspector).getByRole('tab',{name:'Koeff.'}));
  expect((within(inspector).getByLabelText('Koeffitsient nomi') as HTMLInputElement).value).toBe('');
  expect(requests.some(r=>r.startsWith('POST '))).toBe(false);
+});
+
+
+it('switches catalogue sources without restoring or remapping the edited draft', async () => {
+  const library = await RemoteNormCatalog.open();
+  const open = vi.mocked(NormLibraryCatalog.open).mockResolvedValue(library as never);
+  try {
+    renderEditor();
+    await screen.findByText('ШНК');
+    const title = screen.getByLabelText('Smeta nomi');
+    fireEvent.change(title, { target: { value: 'Source switch keeps draft' } });
+    fireEvent.submit(title.closest('form')!);
+    fireEvent.change(screen.getByLabelText('Normativ ish qidirish'), { target: { value: 'бетон' } });
+    fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
+    await screen.findByText('Бетон B7,5');
+    fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
+    await screen.findByRole('button', { name: 'Tanlash: Устройство бетонной подготовки' });
+    const oldAi = aiSources.at(-1)!;
+    fireEvent.change(screen.getByLabelText('Kutubxona manbasi'), { target: { value: 'library' } });
+    await screen.findByText('ШНК');
+    expect(aiSources.at(-1)?.katalog).toBe(library);
+    expect(oldAi.command({ type: 'SET_CONTEXT', context: { title: 'stale AI' } })).toBe(false);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('studio:catalog-source')).toBe('library');
+    expect(within(screen.getByRole('region', { name: 'Normativ katalog' })).queryByRole('heading', { name: /Устройство бетонной подготовки/ })).toBeNull();
+    expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('Source switch keeps draft');
+    expect(screen.getByRole('button', { name: 'Tanlash: Устройство бетонной подготовки' })).toBeTruthy();
+  } finally { open.mockReset(); }
+});
+
+it('clears the old catalogue while loading and rejects a late source response', async () => {
+  const legacy = await RemoteNormCatalog.open();
+  let release!: (c: typeof legacy) => void;
+  const pending = new Promise<typeof legacy>(resolve => { release = resolve; });
+  const open = vi.mocked(NormLibraryCatalog.open).mockReturnValue(pending as never);
+  try {
+    renderEditor(); await screen.findByText('ШНК');
+    fireEvent.change(screen.getByLabelText('Kutubxona manbasi'), { target: { value: 'library' } });
+    expect(screen.queryByLabelText('Normativ ish qidirish')).toBeNull();
+    expect(screen.getByText('Normativ katalog yuklanmoqda...')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Kutubxona manbasi'), { target: { value: 'legacy' } });
+    await screen.findByText('ШНК');
+    const nodes = vi.spyOn(legacy, 'childNodes');
+    release(legacy); await pending;
+    await waitFor(() => expect(screen.getByText('ШНК')).toBeTruthy());
+    expect(nodes).not.toHaveBeenCalled(); nodes.mockRestore();
+  } finally { release(legacy); open.mockReset(); }
+});
+
+it('shows raw source units without observation claims and blocks works without recipes', async () => {
+  const library = await RemoteNormCatalog.open();
+  const open = vi.mocked(NormLibraryCatalog.open).mockResolvedValue(library as never);
+  const unit = vi.spyOn(library, 'unit').mockReturnValue(null);
+  Object.defineProperty(library, 'sourceBasis', { configurable: true, value: () => ({ scale: null, unitLabel: null, evidence: null, origin: null }) });
+  try {
+    renderEditor(); await screen.findByText('ШНК');
+    fireEvent.change(screen.getByLabelText('Kutubxona manbasi'), { target: { value: 'library' } });
+    fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'), { target: { value: 'Другой' } });
+    fireEvent.click(await screen.findByText('Другой бетонный фундамент'));
+    await screen.findByRole('heading', { name: /Другой бетонный фундамент/ });
+    expect(screen.getByText(/^O‘lchov birligi:/).textContent).toContain('003');
+    expect(screen.queryByText(/marta kuzatilgan/)).toBeNull();
+    expect(screen.getByText('Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: /Smetaga qo‘shish/ }) as HTMLButtonElement).disabled).toBe(true);
+  } finally { unit.mockRestore(); open.mockReset(); }
+});
+
+
+it('restores the selected library and displays explicit source scale with a physical quantity unit', async () => {
+  const library = await RemoteNormCatalog.open();
+  const open = vi.mocked(NormLibraryCatalog.open).mockResolvedValue(library as never);
+  const unit = vi.spyOn(library, 'unit').mockReturnValue(null);
+  Object.defineProperty(library, 'sourceBasis', { configurable: true, value: () => ({ scale: '100', unitLabel: 'м3', evidence: 'Source measure', origin: null }) });
+  localStorage.setItem('studio:catalog-source', 'library');
+  try {
+    renderEditor();
+    expect((screen.getByLabelText('Kutubxona manbasi') as HTMLSelectElement).value).toBe('library');
+    fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'), { target: { value: 'бетон' } });
+    fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
+    await screen.findByText('Бетон B7,5');
+    expect(screen.getByText(/^Norma masshtabi:/).textContent).toContain('100 м3');
+    expect(screen.getByLabelText('Hajm (м3)')).toBeTruthy();
+    expect(screen.queryByText(/manbada aniqlanmagan/)).toBeNull();
+    expect(screen.queryByText(/marta kuzatilgan/)).toBeNull();
+    expect(workUnitOf(library)('unparsed source measure')).toBe('unparsed source measure');
+  } finally { unit.mockRestore(); open.mockReset(); }
 });

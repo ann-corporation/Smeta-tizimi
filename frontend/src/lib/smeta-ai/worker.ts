@@ -6,9 +6,9 @@
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import type { NormDetailSource } from '../catalog-extraction/norm-remote';
 import { unitKey, type UnitEntry } from '../catalog-extraction/norm-shards';
-import { snapshotWork, suggestedBasis } from '../smeta-studio/catalog-bridge';
+import { snapshotWork, catalogueBasis } from '../smeta-studio/catalog-bridge';
 import type { StudioCommand } from '../smeta-studio/commands';
-import type { EstimateDoc } from '../smeta-studio/model';
+import type { EstimateDoc, UnitBasis } from '../smeta-studio/model';
 import { ifodaHisobla } from './ifoda';
 import { includedWorkReviews } from './included-work';
 import type { Birlik, IshNiyati, TanlovNomzodi, TanlovSorovi } from './protokol';
@@ -19,6 +19,7 @@ export type AiKatalog = NormDetailSource & {
   /** Optional ranked any-word search (RemoteNormCatalog). */
   searchAny?(stems: string[], limit?: number, minHits?: number): NormWork[];
   unit(code: string | null): UnitEntry | null;
+  sourceBasis?(code: string | null): UnitBasis;
   load(workId: string): Promise<void>;
   tableLabel(workId: string): string | null;
   manifest: { revision: string };
@@ -26,6 +27,8 @@ export type AiKatalog = NormDetailSource & {
   allWorks?(): NormWork[];
   collectionTitle?(code: string | null): string | null;
 };
+
+const workMeasure = (k: AiKatalog, code: string | null) => k.unit(code)?.text ?? (k.sourceBasis ? code : null);
 
 type IshIndeksi = { idx: MatnIndeks; works: NormWork[]; byId: Map<string, number> };
 const ISH_INDEKS = new WeakMap<object, IshIndeksi>();
@@ -117,7 +120,7 @@ function bm25Nomzodlar(k: AiKatalog, x: IshIndeksi, ish: Pick<IshNiyati, 'qidiru
     if (n >= 3) continue;
     perTable.set(t, n + 1); out.push(r.w);
   }
-  return out.slice(0, limit).map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null,
+  return out.slice(0, limit).map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: workMeasure(k, w.unitCode),
     jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null }));
 }
 export type TanlanganIsh = { workId: string; kod: string; nom: string; birlik: string | null; sabab: string; qolda?: boolean;
@@ -142,21 +145,21 @@ export function katalogSahifasi(k: AiKatalog, query: string, page: number): { ro
     return { rows: part, total: rows.length, hasNext: rows.length > (page + 1) * 25, manoBoyicha: true };
   }
   return { total: result.total, hasNext: result.rows.length > 0 && k.search(query.trim(), page + 1).rows.length > 0,
-    rows: result.rows.map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null })) };
+    rows: result.rows.map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: workMeasure(k, w.unitCode) })) };
 }
 /** Ranked (BM25) works for free text; empty when the catalogue has no full work list. */
 export function manoBoyichaIshlar(k: AiKatalog, query: string, limit = 25): TanlovNomzodi[] {
   const x = ishIndeksi(k);
   if (!x) return [];
-  return x.idx.qidir([query], limit).map(h => x.works[h.id]).map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null,
+  return x.idx.qidir([query], limit).map(h => x.works[h.id]).map(w => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: workMeasure(k, w.unitCode),
     jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null }));
 }
 /** Base unit of a normative work unit ("100 М3" → "М3"), or null if the catalogue did not observe it. */
-export function ishAsosBirligi(k: Pick<AiKatalog, 'unit'>, unitCode: string | null): string | null {
-  const u = k.unit(unitCode);
-  return u?.status === 'OBSERVED' && u.base && u.scale && Number(u.scale) > 0 ? unitKey(u.base) : null;
+export function ishAsosBirligi(k: Pick<AiKatalog, 'unit' | 'sourceBasis'>, unitCode: string | null): string | null {
+  const basis = catalogueBasis(k, unitCode);
+  return basis.unitLabel && basis.scale && Number(basis.scale) > 0 ? unitKey(basis.unitLabel) : null;
 }
-export function birlikMos(k: Pick<AiKatalog, 'unit'>, w: NormWork, b: Birlik): boolean | null {
+export function birlikMos(k: Pick<AiKatalog, 'unit' | 'sourceBasis'>, w: NormWork, b: Birlik): boolean | null {
   const base = ishAsosBirligi(k, w.unitCode);
   return base == null ? null : base === BIRLIK_KALIT[b];
 }
@@ -182,7 +185,7 @@ export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'bir
   const ranked = [...found.values()].map(w => ({ w, mos: birlikMos(k, w, ish.birlik), h: hits(w) }))
     .filter(x => x.mos !== false)                     // a known different unit is never offered
     .sort((a, b) => Number(b.mos === true) - Number(a.mos === true) || b.h - a.h);
-  return ranked.slice(0, limit).map(({ w }) => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: k.unit(w.unitCode)?.text ?? null }));
+  return ranked.slice(0, limit).map(({ w }) => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: workMeasure(k, w.unitCode) }));
 }
 
 /** System pick when the model declines: the top candidate only if it covers every stem of the first search phrase. */
@@ -259,7 +262,7 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
       await k.load(ish.tanlangan.workId);
       const snap = snapshotWork(k, ish.tanlangan.workId, k.manifest.revision, k.tableLabel(ish.tanlangan.workId));
       if (ishAsosBirligi(k, snap.source.unitCode) == null) { otkazildi.push({ id: ish.id, sabab: 'Norma birligi yoki masshtabi isbotlanmagan' }); continue; }
-      const basis = suggestedBasis(snap.source.unitCode, k.unit(snap.source.unitCode));
+      const basis = catalogueBasis(k, snap.source.unitCode);
       // Physical quantity must be in the work's base unit (м3 for a "100 м3" norm); otherwise ask, never convert silently.
       if (basis.unitLabel && unitKey(basis.unitLabel) !== BIRLIK_KALIT[ish.birlik]) { otkazildi.push({ id: ish.id, sabab: `Birlik mos emas: hajm ${ish.birlik}, norma ${basis.unitLabel}` }); continue; }
       const nomi = ish.bolim.trim() || 'Asosiy';
@@ -283,7 +286,7 @@ export async function smetagaQoshish(doc: EstimateDoc, ishlar: AiIsh[], k: AiKat
         id: `ai${i + 1}`, name: k.nom, value: k.qiymat, scope: k.qollanish, evidence: k.asos, origin: 'AI' as const, accepted: tuzatish && /толщин/i.test(k.nom) })) });
       qoshildi.push(ish.id);
     } catch (e) {
-      otkazildi.push({ id: ish.id, sabab: e instanceof Error && e.message === 'WORK_AMBIGUOUS' ? 'Bir shifrga ikki ish mos — qo‘lda tanlang' : 'Katalog ishi yuklanmadi' });
+      otkazildi.push({ id: ish.id, sabab: e instanceof Error && e.message === 'WORK_AMBIGUOUS' ? 'Bir shifrga ikki ish mos — qo‘lda tanlang' : e instanceof Error && e.message === 'NORM_RECIPE_MISSING' ? 'Manbada resurs tarkibi yo‘q — bu norma hisobga qo‘shilmadi' : 'Katalog ishi yuklanmadi' });
     }
   }
   return { commands, qoshildi, otkazildi };

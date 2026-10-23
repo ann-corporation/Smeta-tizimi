@@ -9,12 +9,13 @@
       "machine": "Anvar",
       "branch": "codex/catalog-import-audit-20261023",
       "base_sha": "4c53870846fc1bb7933eb814a45ef4ef98ae8e7a",
-      "status": "ready_for_review",
+      "status": "in_progress",
       "owns": [
         "frontend/src/lib/f2-import-parse/xlsxReader.ts",
         "frontend/src/lib/f2-import-parse/xlsxReader.test.ts",
         "docs/reviews/CATALOG_SOURCE_AUDIT_20261023.md",
-        "ops/mailbox/CATALOG-IMPORT-AUDIT-20261023/"
+        "ops/mailbox/CATALOG-IMPORT-AUDIT-20261023/",
+        "frontend/functions/api/norm-library.ts"
       ],
       "depends_on": [],
       "must_read": [
@@ -23,7 +24,7 @@
         "docs/governance/OWNER_AUTHORIZATION.md"
       ],
       "production_write_allowed": false,
-      "note": "Owner requests actual Construct catalogue and import audit, CatalogMigration/R2 enrichment. Identical synthetic export: source core reads3 sheets, old shared reader returned0. Narrow XML QName/attribute-order fix; no business data or source prices changed. Immutable R2 review release stays separate from active catalogue. Code released to mainffe8995; exactCI39980267426 SUCCESS2675PASS/17skip; Production84a5f6f1 SUCCESS. R2 immutable review library117 objects plus6 evidence readback verified. Existing active pointer unchanged. Actual GUI/new-source Studio adapter/real corpus remain explicitly unverified or not implemented; see mailbox02 and Obsidian."
+      "note": "Owner requests actual Construct catalogue and import audit, CatalogMigration/R2 enrichment. Identical synthetic export: source core reads3 sheets, old shared reader returned0. Narrow XML QName/attribute-order fix; no business data or source prices changed. Immutable R2 review release stays separate from active catalogue. Code released to mainffe8995; exactCI39980267426 SUCCESS2675PASS/17skip; Production84a5f6f1 SUCCESS. R2 immutable review library117 objects plus6 evidence readback verified. Existing active pointer unchanged. Actual GUI/new-source Studio adapter/real corpus remain explicitly unverified or not implemented; see mailbox02 and Obsidian. 2026-10-23 owner explicitly authorizes complete source-library integration and main/deploy. Core catalog-extraction and koef-katalog existing ownership retained, Codex narrow source-adapter sublease recorded in coordination; shared calc/model/commands untouched."
     },
     {
       "id": "SMETA-STUDIO-WORKSPACE-V2-20261022",
@@ -32,7 +33,7 @@
       "machine": "Anvar",
       "branch": "codex/row-order-control-20261023",
       "base_sha": "7a734d6c520fa8c1ed8fcd5113cbc1e2eed1ff45",
-      "status": "ready_for_review",
+      "status": "in_progress",
       "owns": [
         "ops/ACTIVE_TASKS.json",
         "ops/mailbox/SMETA-STUDIO-WORKSPACE-V2-20261022/",

@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { agentRegister, jarayonYoz } from './studioAgent';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { t } from '../../i18n/til';
-import type { RemoteNormCatalog } from '../../lib/catalog-extraction/norm-remote';
+import type { StudioNormCatalog } from '../../lib/catalog-extraction/norm-library';
 import { narxKatalogi, type PriceCatalog } from '../../lib/narx-katalog/price-remote';
 import type { DocCalc } from '../../lib/smeta-studio/calc';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
@@ -683,7 +683,7 @@ function JamiSatri({ doc, hisob, unitText }: { doc: EstimateDoc; hisob: DocCalc;
 }
 
 export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack }: { doc: EstimateDoc; hisob: DocCalc; unitText: UnitText;
-  katalog: RemoteNormCatalog | null; kompaniyaId: number | null; onBack: () => void }) {
+  katalog: StudioNormCatalog | null; kompaniyaId: number | null; onBack: () => void }) {
   const [xabar, setXabar] = useState('');
   const [tomonlar, setTomonlar] = useHujjatTomonlari(kompaniyaId);
   const [protokol, setProtokol] = useState({ raqam: '1', sana: new Date().toISOString().slice(0, 10) });

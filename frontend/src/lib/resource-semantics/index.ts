@@ -8,7 +8,7 @@ export type ResourceFacts = {
   warnings: string[];
 };
 export type ResourceInput = { name: string | null; unitCode: string | null; type: string | null };
-const unitKey = (v: string) => v.toLowerCase().replace(/\s+/g, '').replace(/[–—]/g, '-');
+const unitKey = (v: string) => v.toLowerCase().replace(/\s+/g, '').replace(/[–—]/g, '-').replace(/^(чел|маш)\.-?ч$/, '$1-ч');
 const machineryName = /ЭКСКАВАТОР|БУЛЬДОЗЕР|АВТОГРЕЙДЕР|КРАН[ЫА]?\s|АВТОПОГРУЗЧИК|САМОСВАЛ/;
 
 /** KodI observation outranks the broad source Tip=R, which also contains machines. */
@@ -21,6 +21,19 @@ export function resourceFacts(resource: ResourceInput | null,
   const unit = resolveUnit(resource.unitCode);
   const key = unit == null ? null : unitKey(unit);
   const name = (resource.name ?? '').toUpperCase();
+  // Explicit source group outranks language-dependent names. Scope it to the
+  // edition's literal unit namespace; legacy Tip values retain their semantics.
+  if (resource.unitCode?.startsWith('norm-unit:66bb1a23bd18c63006d447b5:') && resource.type?.startsWith('NORM_')) {
+    if (resource.type === 'NORM_LABOUR' || resource.type === 'NORM_MACHINIST')
+      return key === 'чел-ч' ? { kind: 'LABOUR', unit, costCategory: resource.type === 'NORM_MACHINIST' ? 'МАШ' : 'ЧЕЛ', pricingSource: 'LABOUR_HOUR', warnings: [] }
+        : unresolved(unit, 'LABOUR_UNIT_CONFLICT');
+    if (resource.type === 'NORM_MACHINE')
+      return key === 'маш-ч' ? { kind: 'MACHINE', unit, costCategory: 'МАШ', pricingSource: 'MACHINE_HOUR', warnings: [] }
+        : unresolved(unit, 'MACHINE_UNIT_CONFLICT');
+    if (resource.type === 'NORM_MATERIAL')
+      return unit ? { kind: 'MATERIAL', unit, costCategory: 'МАТ', pricingSource: 'MATERIAL_CATALOG', warnings: [] }
+        : unresolved(null, 'RESOURCE_UNIT_UNRESOLVED');
+  }
   if (key === 'чел-ч') return { kind: 'LABOUR', unit: 'чел-ч',
     // Keep existing cost grouping of operator labour; the price unit remains human-hours.
     costCategory: /ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ/.test(name) ? 'МАШ' : 'ЧЕЛ',

@@ -26,6 +26,21 @@ describe('resource category and physical unit', () => {
   it('caller supplies source-proven unit, not work unit fallback', () => {
     expect(resourceFacts({ name: 'Материал', type: 'R', unitCode: 'unknown' }, () => 'л').unit).toBe('л');
   });
+  it('keeps literal source units isolated from legacy numeric codes', () => {
+    const unitCode = 'norm-unit:66bb1a23bd18c63006d447b5:' + encodeURIComponent('маш-ч');
+    expect(resourceFacts({ name: 'Механизм', type: 'X', unitCode })).toMatchObject({ kind: 'MACHINE', unit: 'маш-ч', costCategory: 'МАШ' });
+    expect(resourceFacts({ name: 'Материал', type: 'M', unitCode: 'norm-unit:other:003' }).unit).toBeNull();
+    expect(resourceFacts({ name: 'Материал', type: 'M', unitCode: 'norm-unit:66bb1a23bd18c63006d447b5:%ZZ' }).unit).toBeNull();
+    expect(resourceFacts({ name: 'Материал', type: 'M', unitCode: '003' }).unit).toBe('м3');
+  });
+  it('classifies source groups without rewriting Uzbek machinist names or physical units', () => {
+    const unit = (s: string) => 'norm-unit:66bb1a23bd18c63006d447b5:' + encodeURIComponent(s);
+    expect(resourceFacts({ name: 'Машинистларнинг меҳнат', type: 'NORM_MACHINIST', unitCode: unit('чел.-ч') })).toMatchObject({kind:'LABOUR',costCategory:'МАШ',unit:'чел.-ч'});
+    expect(resourceFacts({ name: 'Механизм', type: 'NORM_MACHINE', unitCode: unit('маш.ч') })).toMatchObject({kind:'MACHINE',costCategory:'МАШ'});
+    expect(resourceFacts({ name: 'Механизм', type: 'NORM_MACHINE', unitCode: unit('т') }).kind).toBe('UNRESOLVED');
+    expect(resourceFacts({ name: 'Машинист', type: 'NORM_MACHINIST', unitCode: unit('маш.-ч') }).kind).toBe('UNRESOLVED');
+    expect(resourceFacts({ name: 'Материал', type: 'NORM_MATERIAL', unitCode: unit('1000м2') })).toMatchObject({kind:'MATERIAL',unit:'1000м2'});
+  });
 });
 describe('normative work basis is separate from resource units', () => {
   it('1000m3 scale displayed without modifying entered physical quantity', () => {

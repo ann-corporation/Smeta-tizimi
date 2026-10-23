@@ -11,8 +11,9 @@ import { agentRegister } from './studioAgent';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc, Occurrence, WorkCoefficient } from '../../lib/smeta-studio/model';
-import { ishKoeffitsientlari, koefgaAylantir, koefKatalogi, qollanadi, type KoefKatalog, type KoefNomzod } from '../../lib/smeta-studio/koef-katalog';
-import { coefficientApplyCommand } from '../../lib/smeta-studio/coefficient-agent';
+import { koefgaAylantir, koefKatalogi, qollanadi, type KoefKatalog, type KoefNomzod } from '../../lib/smeta-studio/koef-katalog';
+import { coefficientCatalogsForDoc, isLibrarySource, libraryCoefficientKey } from '../../lib/smeta-studio/norm-library-coefficients';
+import { coefficientApplyCommand, coefficientCandidates } from '../../lib/smeta-studio/coefficient-agent';
 import { manbaKorinishi } from '../../lib/manba-nomi';
 import { smetachiKoefTanla } from '../../api/smeta-ai';
 
@@ -20,17 +21,20 @@ const OP_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as cons
 const kStr = (k: KoefNomzod['yozuv']['k']) => Object.entries(k).map(([s, v]) => `${s === 'ЧЕЛ' ? 'Кзтр' : s === 'МАШ' ? 'Кэм' : 'Кмр'}=${String(v).replace('.', ',')}`).join(', ');
 
 export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourceLabel, agentOnly = false }: { agentOnly?: boolean; workId?: string; sourceLabel?: (raw: string) => string; doc: EstimateDoc; command: (c: StudioCommand) => boolean; kompaniyaId?: number | null }) {
-  const [kat, setKat] = useState<KoefKatalog | null>(null);
+  const [kat, setKat] = useState<readonly KoefKatalog[] | null>(null);
   const [katXato, setKatXato] = useState(false);
   const [ochiq, setOchiq] = useState<string | null>(null);
   const [sharoit, setSharoit] = useState('');
   const [band, setBand] = useState(false);
   const [xabar, setXabar] = useState('');
   const [yangi, setYangi] = useState<{ occ: string; nom: string; qiymat: string; scope: WorkCoefficient['scope']; asos: string }>({ occ: workId ?? '', nom: '', qiymat: '', scope: 'ALL', asos: '' });
-  useEffect(() => { let alive = true; koefKatalogi().then(k => { if (alive) setKat(k); }).catch(() => { if (alive) setKatXato(true); }); return () => { alive = false; }; }, []);
+  const sources = Object.values(doc.occurrences).map(o => o.source);
+  const needsLegacy = sources.some(s => !isLibrarySource(s));
+  const needsLibrary = sources.some(s => libraryCoefficientKey(s) !== null);
+  useEffect(() => { let alive = true; setKat(null); setKatXato(false); coefficientCatalogsForDoc(doc, koefKatalogi).then(k => { if (alive) setKat(k); }).catch(() => { if (alive) setKatXato(true); }); return () => { alive = false; }; }, [needsLegacy, needsLibrary]);
   const works = Object.values(doc.occurrences).filter(o => !workId || o.id === workId);
   const publicSource = sourceLabel ?? manbaKorinishi;
-  const normativ = useMemo(() => new Map(works.map(o => [o.id, kat ? ishKoeffitsientlari(kat, o.source.code) : []])), [works, kat]);
+  const normativ = useMemo(() => new Map(works.map(o => [o.id, kat ? coefficientCandidates(kat, o.source) : []])), [works, kat]);
   const set = (occ: string, coefficients: WorkCoefficient[]) => command({ type: 'SET_COEFFICIENTS', occurrenceId: occ, coefficients });
   /** Adds the coefficients of one normative record (replacing an earlier copy of the same record). */
   const qosh = (o: Occurrence, n: KoefNomzod, accepted: boolean, sabab?: string) => {
@@ -82,7 +86,7 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
     if (workId) return;
     return agentRegister('koef_qolla',async (_value,action)=>{
       const context=current.current;
-      const catalog=await koefKatalogi();
+      const catalog=await coefficientCatalogsForDoc(context.doc, koefKatalogi);
       if (current.current.doc!==context.doc || current.current.kompaniyaId!==context.kompaniyaId) throw new Error('COEFFICIENT_CONTEXT_CHANGED');
       const cmd=coefficientApplyCommand(context.doc,catalog,action.ish,action.qiymat,action.manba);
       if (!context.command(cmd)) throw new Error('COEFFICIENT_COMMAND_FAILED');

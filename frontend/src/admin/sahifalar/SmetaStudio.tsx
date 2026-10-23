@@ -8,11 +8,12 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { t } from '../../i18n/til';
 import { RemoteNormCatalog, type NormDetail, type RemoteTreeNode } from '../../lib/catalog-extraction/norm-remote';
+import { NormLibraryCatalog, type StudioNormCatalog } from '../../lib/catalog-extraction/norm-library';
 import type { NormWork } from '../../lib/catalog-extraction/norm-catalog';
 import { emptyDoc } from '../../lib/smeta-studio/model';
 import { dispatch, historyOf, redo, undo, type History, type StudioCommand } from '../../lib/smeta-studio/commands';
 import { calcDoc } from '../../lib/smeta-studio/calc';
-import { snapshotWork, suggestedBasis } from '../../lib/smeta-studio/catalog-bridge';
+import { snapshotWork, catalogueBasis } from '../../lib/smeta-studio/catalog-bridge';
 import { loadLastDraft, saveDraft } from '../../lib/smeta-studio/draft-store';
 import { WorkspaceReview } from '../../components/smeta-studio-workspace/WorkspaceReview';
 import { WorkSheet } from '../../components/smeta-studio-workspace/WorkSheet';
@@ -63,7 +64,10 @@ const XATOLAR: Record<string, string> = {
 };
 const xatoMatni = (e: unknown) => { const c = e instanceof Error ? e.message : String(e); return t(XATOLAR[c] ?? 'Amal bajarilmadi. Kiritilgan qiymatlarni tekshiring.'); };
 export default function SmetaStudio() {
-  const [katalog, setKatalog] = useState<RemoteNormCatalog | null>(null);
+  const [katalog, setKatalog] = useState<StudioNormCatalog | null>(null);
+  const [catalogSource, setCatalogSource] = useState<'legacy' | 'library'>(() => lsGet('studio:catalog-source') === 'library' ? 'library' : 'legacy');
+  const catalogSession = useRef(0);
+  const aiSession = catalogSession.current;
   const [katalogHolat, setKatalogHolat] = useState<'yuklanmoqda' | 'tayyor' | 'yoq' | 'xato'>('yuklanmoqda');
   const [hist, setHist] = useState<History>(() => historyOf(emptyDoc(uid())));
   const [tiklandi, setTiklandi] = useState(false);
@@ -148,8 +152,14 @@ export default function SmetaStudio() {
   }
   useEffect(() => {
     let alive = true;
-    RemoteNormCatalog.open().then(c => { if (alive) { setKatalog(c); setKatalogHolat('tayyor'); } })
+    setKatalog(null);
+    setKatalogHolat('yuklanmoqda');
+    (catalogSource === 'legacy' ? RemoteNormCatalog.open() : NormLibraryCatalog.open()).then(c => { if (alive) { setKatalog(c); setKatalogHolat('tayyor'); } })
       .catch(e => { if (alive) setKatalogHolat(e instanceof Error && e.message === 'NORM_CATALOG_NOT_FOUND' ? 'yoq' : 'xato'); });
+    return () => { alive = false; };
+  }, [catalogSource]);
+  useEffect(() => {
+    let alive = true;
     restoreForTab().then(async d => {
       if (!alive || restored.current) return;
       restored.current = true;
@@ -368,22 +378,34 @@ export default function SmetaStudio() {
     </div>
     <div className="studio-columns" data-panels={panels} style={{'--studio-left':`${leftWidth}px`,'--studio-right':`${rightWidth}px`} as CSSProperties}>
       <section hidden={panels===2} aria-label={t('Normativ katalog')} className="studio-library studio-pane">
-        <div className="studio-pane-title"><span className="studio-step">01</span><strong>{t('Katalog va bo‘limlar')}</strong><span className="text-[10px] text-text-dim">{katalog?.manifest.counts.basis?.toLocaleString('ru') ?? '…'}</span></div>
+        <div className="studio-pane-title"><span className="studio-step">01</span><strong>{t('Katalog va bo‘limlar')}</strong><span className="text-[10px] text-text-dim">{(katalog?.manifest.counts.basis ?? katalog?.manifest.counts.works)?.toLocaleString('ru') ?? '…'}</span></div>
+        <label className="px-2 text-sm">{t('Kutubxona manbasi')}
+          <select className="block w-full min-w-0 p-2 border border-border rounded bg-bg text-sm" aria-label={t('Kutubxona manbasi')} value={catalogSource} onChange={e => {
+            lsSet('studio:catalog-source', e.target.value);
+            catalogSession.current++;
+            setKatalog(null); setKatalogHolat('yuklanmoqda');
+            setCatalogSource(e.target.value as 'legacy' | 'library');
+          }}>
+            <option value="legacy">{t('Amaldagi kutubxona')}</option>
+            <option value="library">{t('Nomlangan kutubxona · 2.8.1')}</option>
+          </select>
+        </label>
         <StudioSections doc={doc} target={nishon} onTarget={setNishon} command={amal}/>
         <div className="studio-pane-scroll">
           <details className="studio-context"><summary>{t('Smeta va obyekt sozlamalari')}</summary><ObjectBinding doc={doc} company={joriyId ?? null} command={amal}/></details>
         {katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
         {katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
         {katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
-        {katalog && <KatalogPanel katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
+        {katalog && <KatalogPanel key={`${catalogSource}:${katalog.manifest.revision}`} katalog={katalog} commandError={xato} nishon={nishon ? doc.sections[nishon]?.name ?? null : null}
           onAdd={(work, detail, quantity) => {
             try {
+              if (!detail.recipeCount) throw new Error('Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.');
               const tableLabel = katalog.tableLabel(work.id);
               const snap = snapshotWork(katalog, detail.work.id, katalog.manifest.revision, tableLabel);
               const target=nishon && doc.sections[nishon] ? nishon : doc.rootOrder.find(id=>doc.sections[id]) ?? null;
               const sectionId=target ?? uid();
               const add:StudioCommand={ type: 'ADD_OCCURRENCE', occurrenceId: uid(), sectionId, source: snap.source, recipe: snap.recipe,
-                quantity: quantity.trim() || null, basis: suggestedBasis(work.unitCode, katalog.unit(work.unitCode)) };
+                quantity: quantity.trim() || null, basis: catalogueBasis(katalog, work.unitCode) };
               const ok=amal(target ? add : {type:'BATCH',label:t('Birinchi ishni qo‘shish'),commands:[{type:'ADD_SECTION',sectionId,parentId:null,name:t('Asosiy ishlar')},add]});
               if(ok) {setNishon(sectionId);setBosqich('lrv');}
               return ok;
@@ -416,7 +438,7 @@ export default function SmetaStudio() {
       </main>
       <StudioInspector doc={doc} calculation={hisob} workId={selectedWorkId} onWork={openWork} command={amal} pricing={{source:narxKat,unitText,region:hudud || null}} tab={inspectorTab} onTab={setInspectorTab}
         coefficients={selectedWorkId ? <KoeffitsientlarPaneli key={`${joriyId}:${doc.draftId}:${selectedWorkId}`} doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={selectedWorkId}/> : null}
-        ai={<SmetaAiChat selectedWorkId={selectedWorkId} doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={amal} newId={uid} onBosqich={setBosqich}/>}
+        ai={<SmetaAiChat key={`${catalogSource}:${katalog?.manifest.revision ?? "loading"}`} selectedWorkId={selectedWorkId} doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={c => aiSession === catalogSession.current && !!katalog ? amal(c) : false} newId={uid} onBosqich={b => { if (aiSession === catalogSession.current) setBosqich(b); }}/>}
         calculator={<QuantityWorkbench key={doc.draftId} doc={doc} command={amal} onWork={openWork}/>}/>
     </div>
     {commandOpen && <StudioCommandMenu doc={doc} onAction={deskAction} onClose={()=>setCommandOpen(false)} onWork={id=>{openWork(id);setBosqich('lrv');setWorksheet(true);}}/>}
@@ -425,7 +447,7 @@ export default function SmetaStudio() {
 }
 
 /* ─────────────── Chap panel: katalog ─────────────── */
-function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: RemoteNormCatalog; nishon: string | null; commandError: string;
+function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: StudioNormCatalog; nishon: string | null; commandError: string;
   onAdd: (work: NormWork, detail: NormDetail, quantity: string) => boolean }) {
   const [tugun, setTugun] = useState(-1), [tugunSahifa, setTugunSahifa] = useState(0);
   const [soz, setSoz] = useState(''), [qidiruv, setQidiruv] = useState(''), [sahifa, setSahifa] = useState(0);
@@ -459,6 +481,8 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Remot
     finally { if (request === selectionRequest.current) setYuklash(false); }
   }
   const unit = tanlangan ? katalog.unit(tanlangan.unitCode) : null;
+  const sourceMeasure = 'sourceBasis' in katalog;
+  const basis = detail ? catalogueBasis(katalog, detail.work.unitCode) : null;
   return <div className="space-y-2">
     {tugun >= 0 && katalog.breadcrumb(tugun).some(n => n.status === 'GROUP') && <p role="status" className="text-sm text-warn">{t('Bu yozuvlarning nomlari saqlangan. Katalog bo‘limi topilmagan yoki bir nechta bo‘lim mos kelgan; shifr va manbani tekshiring.')}</p>}
     <nav aria-label={t('Katalog ierarxiyasi')} className="flex flex-wrap gap-1 text-sm">
@@ -494,8 +518,10 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Remot
     {xato && <p role="alert" className="text-danger text-sm">{xato}</p>}
     {tanlangan && detail && <div className="border border-accent rounded p-2 space-y-2">
       <h3 className="font-semibold"><span className="font-mono text-accent">{detail.work.code}</span> · {detail.work.name}</h3>
-      <p className="text-sm">{t('O‘lchov birligi')}: {unit ? <b>{unit.text}</b> : <span className="text-warn">{t('manbada aniqlanmagan — qo‘shgandan keyin asosni kiriting')}</span>}
+      <p className="text-sm">{t('O‘lchov birligi')}: {unit ? <b>{unit.text}</b> : sourceMeasure && detail.work.unitCode ? <b>{detail.work.unitCode}</b> : <span className="text-warn">{t('manbada aniqlanmagan — qo‘shgandan keyin asosni kiriting')}</span>}
         {unit && <span className="text-xs text-text-mute"> · {t('real smetalarda {n} marta kuzatilgan', { n: unit.observations })}</span>}</p>
+      {sourceMeasure && basis?.scale && basis.unitLabel && <p className="text-sm">{t('Norma masshtabi')}: <b>{basis.scale} {basis.unitLabel}</b></p>}
+      {detail.recipeCount === 0 && <p role="status" className="text-sm text-warn">{t('Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.')}</p>}
       {detail.workCodeAmbiguous && <p className="text-danger text-sm">{t('Bir shifrga ikki ish yozuvi mos keladi — bu ish hisobga qo‘shilmaydi.')}</p>}
       <table className="w-full text-xs"><thead><tr className="text-text-mute"><th className="text-left">{t('Resurs')}</th><th className="text-right">{t('Norma')}</th><th className="text-left">{t('Holat')}</th></tr></thead>
         <tbody>{detail.recipes.map(r => <tr key={r.id} className="border-t border-border">
@@ -509,9 +535,9 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Remot
         <button disabled={(resSahifa + 1) * 25 >= detail.recipeCount} onClick={() => { setResSahifa(p => p + 1); setDetail(katalog.detail(detail.work.id, resSahifa + 1)); }}>{t('Keyingi')}</button>
       </div>}
       <div className="flex flex-wrap items-end gap-2">
-        <label className="text-sm">{t('Hajm')}{unit?.base ? ` (${unit.base})` : ''}
+        <label className="text-sm">{t('Hajm')}{basis?.unitLabel ? ` (${basis.unitLabel})` : ''}
           <input className="block w-32 p-1 border border-border rounded bg-bg" inputMode="decimal" value={hajm} onChange={e => { setHajm(e.target.value); setAddResult(null); }} placeholder="4,5" /></label>
-        <button className="px-3 py-1.5 rounded bg-accent text-white disabled:opacity-40" disabled={detail.workCodeAmbiguous}
+        <button className="px-3 py-1.5 rounded bg-accent text-white disabled:opacity-40" disabled={detail.workCodeAmbiguous || detail.recipeCount === 0}
           onClick={() => {
             const ok = onAdd(tanlangan, detail, hajm);
             setAddResult(ok ? 'success' : 'failed');

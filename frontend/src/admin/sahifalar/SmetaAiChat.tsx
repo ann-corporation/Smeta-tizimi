@@ -11,6 +11,7 @@ import type { StudioCommand } from '../../lib/smeta-studio/commands';
 import type { EstimateDoc } from '../../lib/smeta-studio/model';
 import { coefficientCandidateSummary } from '../../lib/smeta-studio/coefficient-agent';
 import { koefKatalogi, type KoefKatalog } from '../../lib/smeta-studio/koef-katalog';
+import { coefficientCatalogsForDoc, isLibrarySource, libraryCoefficientKey, COEFFICIENT_SOURCE_REVISION } from '../../lib/smeta-studio/norm-library-coefficients';
 import { smetaXulosasi, ishHavolalari } from '../../lib/smeta-studio/ai-kontekst';
 import { calcDoc } from '../../lib/smeta-studio/calc';
 import { loyihaBoyicha, talabMateriali } from '../../lib/smeta-studio/loyiha-material';
@@ -67,7 +68,7 @@ const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha material
   qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash', narx_tasdiq: 'AI narxlarini tasdiqlash' };
 
 export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
-  return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}`} {...props} />;
+  return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}:${props.katalog?.manifest.revision ?? 'loading'}`} {...props} />;
 }
 
 function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich, selectedWorkId }: {
@@ -77,8 +78,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   selectedWorkId?: string | null;
 }) {
   // Studio agent: actions the model proposed for this turn; the user runs them (one undo step for document edits).
-  const [koefCatalog,setKoefCatalog]=useState<KoefKatalog | null>(null);
-  useEffect(()=>{let alive=true;koefKatalogi().then(k=>{if(alive)setKoefCatalog(k);}).catch(()=>{});return()=>{alive=false;};},[]);
+  const [koefCatalog,setKoefCatalog]=useState<readonly KoefKatalog[] | null>(null);
+  const coefficientSources = Object.values(doc.occurrences).map(o => o.source);
+  const needsLegacy = coefficientSources.some(s => !isLibrarySource(s));
+  const needsLibrary = coefficientSources.some(s => libraryCoefficientKey(s) !== null);
+  useEffect(()=>{let alive=true;setKoefCatalog(null);coefficientCatalogsForDoc(doc,koefKatalogi).then(k=>{if(alive)setKoefCatalog(k);}).catch(()=>{});return()=>{alive=false;};},[needsLegacy,needsLibrary]);
   const [ilova, setIlova] = useState<Ilova | null>(null);
   // Company memory: lessons the model proposes after a correction; the user decides what is remembered.
   const [eslash, setEslash] = useState<string[]>([]);
@@ -90,7 +94,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   const xotiraYangila = useCallback((kid: number) => smetaXotirasi(kid).then(x => { if (tirik.current) { setXotira(x.yozuvlar); setSuperadmin(x.superadmin); } }), []);
   useEffect(() => { if (kompaniyaId != null) void xotiraYangila(kompaniyaId); }, [kompaniyaId, xotiraYangila]);
   const [amallar, setAmallar] = useState<Array<AgentAmal & { tanlangan: boolean; ogoh: string | null }>>([]);
-  const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}`);
+  const sourceScope = katalog?.manifest.revision === COEFFICIENT_SOURCE_REVISION ? `:norm-library:${COEFFICIENT_SOURCE_REVISION}` : '';
+  const kalit = saqlashKalit(`${kompaniyaId}:${doc.draftId}${sourceScope}`);
   // The project document stays attached to the conversation and goes with every turn (production run: on the second turn
   // the model had lost the bill of quantities). Text documents survive a reload; images/PDF stay for this session.
   const hujjatKalit = `${kalit}:hujjat`;

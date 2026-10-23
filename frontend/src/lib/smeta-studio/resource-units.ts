@@ -39,5 +39,14 @@ export const RESOURCE_UNITS: Readonly<Record<string, { text: string; n: number; 
 };
 
 export function resourceUnitText(code: string | null | undefined): string | null {
+  // Literal units from this immutable source are already text, never legacy KodI.
+  // Keep the namespace in snapshots so an edition cannot redefine an old code.
+  const prefix = 'norm-unit:66bb1a23bd18c63006d447b5:';
+  if (code?.startsWith(prefix)) {
+    try {
+      const text = decodeURIComponent(code.slice(prefix.length));
+      return text.trim() && text.length <= 160 && ![...text].some(c => c.charCodeAt(0) < 32) ? text : null;
+    } catch { return null; }
+  }
   return code ? RESOURCE_UNITS[code]?.text ?? null : null;
 }

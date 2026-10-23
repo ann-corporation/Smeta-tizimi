@@ -3,7 +3,7 @@
  * qo'llanish sharti, ТЧ bandi) va 00-amen (qaysi norma jadvaliga qaysi koeffitsient qo'llanadi). Ish qo'shilganda shu ishning
  * jadvaliga tegishli koeffitsientlar TAKLIF sifatida ko'rsatiladi; hech biri qabul qilinmaguncha hisobga kirmaydi.
  */
-import type { CoefScope, WorkCoefficient } from './model';
+import type { CoefScope, WorkCoefficient, WorkSource } from './model';
 import { manbaKorinishi, tashqiNomlarniAlmashtir } from '../manba-nomi';
 
 /**
@@ -13,8 +13,8 @@ import { manbaKorinishi, tashqiNomlarniAlmashtir } from '../manba-nomi';
  */
 export type KoefYozuv = { a: string; t: string; s: string; q: string; k: Partial<Record<'ЧЕЛ' | 'МАШ' | 'МАТ', number>>; op?: 'MUL' | 'SHART';
   jt?: Array<{ s: number; t1: number; t2: number; r?: Array<[number, number]> }> };
-export type KoefKatalog = { schema: string; manba: string; koef: Record<string, KoefYozuv>; jadval: Record<string, string[]> };
-export type KoefNomzod = { kod: string; yozuv: KoefYozuv };
+export type KoefKatalog = { sourceRevision?: string; sourceScopes?: Record<string, Array<{ otdel: string; tbl: string; n_from: number; n_to: number }>>; schema: string; manba: string; koef: Record<string, KoefYozuv>; jadval: Record<string, string[]> };
+export type KoefNomzod = { sourceRevision?: string; kod: string; yozuv: KoefYozuv };
 
 /** "E1-1-3-12" / "Е20-5-2-2" → ["1-1-3", "1-1-3-12"] (table key and row key of the reference). */
 export function jadvalKalitlari(code: string | null | undefined): string[] {
@@ -34,7 +34,19 @@ export function jadvalIchida(y: KoefYozuv, code: string | null | undefined): boo
 }
 
 /** Every normative coefficient applicable to a work (table-level ∪ row-level, limited by the condition's own table list). */
-export function ishKoeffitsientlari(kat: KoefKatalog, code: string | null | undefined): KoefNomzod[] {
+export function ishKoeffitsientlari(kat: KoefKatalog, code: string | null | undefined, source?: WorkSource): KoefNomzod[] {
+  const library = source?.workId.startsWith('norm-library:') || source?.catalogRevision === '66bb1a23bd18c63006d447b5';
+  if (kat.sourceRevision) {
+    if (!source || source.catalogRevision !== kat.sourceRevision || source.workId !== `norm-library:${kat.sourceRevision}:${code}`) return [];
+    const match = /^([ЕЦУ])(\d{2})-(\d{2})-(\d{3})-(\d+)$/.exec(code ?? '');
+    if (!match) return [];
+    const [, kind, cc, section, table, row] = match;
+    return (kat.jadval[`${kind}${cc}`] ?? []).filter(kod =>
+      kat.koef[kod] && kat.sourceScopes?.[kod]?.some(target => target.otdel === '*' ||
+        (target.otdel === section && target.tbl === table && (target.n_from === 0 || (Number(row) >= target.n_from && Number(row) <= target.n_to)))))
+      .map(kod => ({ kod, yozuv: kat.koef[kod], sourceRevision: kat.sourceRevision }));
+  }
+  if (library) return [];
   const seen = new Set<string>();
   const out: KoefNomzod[] = [];
   for (const key of jadvalKalitlari(code)) for (const kod of kat.jadval[key] ?? []) {
@@ -57,7 +69,7 @@ export function koefgaAylantir(n: KoefNomzod, accepted = false): WorkCoefficient
   // Egasi 2026-10-22: dalilda tashqi dastur nomi yo'q — «Smeta tizimi · ШНҚ … asosida».
   const evidence = tashqiNomlarniAlmashtir(`${n.kod} · ${manbaKorinishi(n.yozuv.a)}: ${n.yozuv.s || n.yozuv.q}`).slice(0, 300);
   const name = (n.yozuv.t || n.kod).slice(0, 300);
-  const mk = (scope: CoefScope, v: number): WorkCoefficient => ({ id: idOf(n.kod, scope), name, value: String(v), scope, evidence, origin: 'NORM', accepted });
+  const mk = (scope: CoefScope, v: number): WorkCoefficient => ({ id: idOf(n.sourceRevision ? `${n.sourceRevision}:${n.kod}` : n.kod, scope), name, value: String(v), scope, evidence, origin: 'NORM', accepted });
   const ch = k['ЧЕЛ'], ma = k['МАШ'], mt = k['МАТ'];
   if (ch != null && ch === ma && ch === mt) return [mk('ALL', ch)];
   const out: WorkCoefficient[] = [];

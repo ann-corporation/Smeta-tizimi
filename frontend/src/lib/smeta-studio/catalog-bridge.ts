@@ -7,9 +7,15 @@ import type { NormDetailSource } from '../catalog-extraction/norm-remote';
 import type { UnitEntry } from '../catalog-extraction/norm-shards';
 import type { RecipeSnapshot, UnitBasis, WorkSource } from './model';
 
+/** One basis decision shared by manual addition and AI; source text is separate from KodI observations. */
+export function catalogueBasis(catalog: { unit(code: string | null): UnitEntry | null; sourceBasis?(code: string | null): UnitBasis }, code: string | null): UnitBasis {
+  return catalog.sourceBasis?.(code) ?? suggestedBasis(code, catalog.unit(code));
+}
+
 export function snapshotWork(catalog: NormDetailSource, workId: string, catalogRevision: string, tableLabel: string | null) {
   const first = catalog.detail(workId);
   if (first.workCodeAmbiguous) throw new Error('WORK_AMBIGUOUS');
+  if (workId.startsWith('norm-library:') && first.recipeCount === 0) throw new Error('NORM_RECIPE_MISSING');
   if (first.recipeCount > 1000) throw new Error('RECIPE_LIMIT_REVIEW_REQUIRED');
   const recipe: RecipeSnapshot[] = [];
   for (let page = 0; page * 25 < first.recipeCount; page++) {

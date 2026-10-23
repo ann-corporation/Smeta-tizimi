@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { emptyDoc } from '../smeta-studio/model';
 import { applyCommand } from '../smeta-studio/commands';
+import { sourceMeasureBasis } from '../smeta-studio/source-measure-basis';
+import { calcDoc } from '../smeta-studio/calc';
 import { aytilmaganShart, birlashtir, masofaOraligi, tasdiqKerak, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovDalili, tanlovSorovi, tanlovZidmi, tizimTanlovi, type AiKatalog } from './worker';
 import { suhbatJavobiniTekshir, tanlovlarniTekshir } from './protokol';
 
@@ -41,6 +43,26 @@ describe('smetachi AI — contract validation', () => {
 });
 
 describe('smetachi AI — catalogue grounding and batch', () => {
+  it('uses the same explicit source basis and snapshot for AI addition; absent recipes are blocked', async () => {
+    const revision = '66bb1a23bd18c63006d447b5';
+    const workId = `norm-library:${revision}:Е06-01-001-1`;
+    const work = { ...works[0], id: workId, code: 'Е06-01-001-1', unitCode: '100 м3' };
+    const source: AiKatalog = { ...k, manifest: { revision }, unit: () => null,
+      sourceBasis: code => sourceMeasureBasis(code, revision),
+      detail: () => ({ ...k.detail('1'), work }) };
+    const [intent] = birlashtir([], niyat());
+    const ready = { ...intent, tanlangan: { workId, kod: work.code, nom: work.name!, birlik: '100 м3', sabab: 'mos' } };
+    let id = 0;
+    const result = await smetagaQoshish(emptyDoc('source'), [ready], source, () => `id${++id}`);
+    expect(result.qoshildi).toEqual(['w1']);
+    const doc = applyCommand(emptyDoc('source'), { type:'BATCH', label:'AI', commands:result.commands });
+    const occurrence = Object.values(doc.occurrences)[0];
+    expect(occurrence.basis).toMatchObject({scale:'100',unitLabel:'м3',origin:'OPERATOR'});
+    expect(occurrence.source).toMatchObject({catalogRevision:revision,workId});
+    expect(calcDoc(doc).occurrences[occurrence.id].lines[0]).toMatchObject({quantity:'0.014400',price:null,amount:null});
+    const emptySource = { ...source, detail: () => ({...source.detail(workId),recipeCount:0,recipes:[]}) };
+    expect((await smetagaQoshish(emptyDoc('source'),[ready],emptySource,()=> 'unused')).commands).toEqual([]);
+  });
   it('ADD cannot bypass included-work review with a manual selection or reordered proposals', async () => {
     const [foundation] = birlashtir([], niyat({ tavsif: 'Lentali fundament', material: 'Бетон B20' }));
     foundation.tanlangan = { workId: '1', kod: 'E6-1-1-22', nom: 'ФУНДАМЕНТ', birlik: '100 М3', sabab: 'manual', qolda: true };
