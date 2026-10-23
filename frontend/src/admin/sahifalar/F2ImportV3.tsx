@@ -1,5 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
-import { avvalgiF2Ol, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
+import { avvalgiF2Ol, f2RaqamNormal, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator,
@@ -64,6 +64,11 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [aktlar, setAktlar] = useState<F2Akt[]>([]);
   const [aktIdx, setAktIdx] = useState(0);
   const [davr, setDavr] = useState('');
+  // F2 hujjat raqami (akt №). Kalit: obyekt + oy + raqam — bir oyda bir nechta F2 (masalan Sun'iy ko'l 2025-09 da 7 ta) ajraladi.
+  const [raqam, setRaqam] = useState('');
+  const raqamN = f2RaqamNormal(raqam);
+  // Aynan shu raqamdagi QORALAMA aktning qatorlarini almashtirishga operatorning aniq roziligi (akt id bo'yicha).
+  const [almashtirTasdiq, setAlmashtirTasdiq] = useState<number | null>(null);
   const [rows, setRows] = useState<T2Qator[]>([]);
   // Rejali (hali yozilmagan) qo'shimcha/zamena/resurslar — egasi 2026-10-20: har birida kutmaslik, oxirida bittada yozish.
   const [rejali, setRejali] = useState<RejaliBuyruq[]>([]);
@@ -141,7 +146,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!file || !ij || !natija || !aktlar[aktIdx] || !objectId) return null;
     return { version: 1, companyId, objectId: Number(objectId), savedAt: Date.now(), aktlar, aktIdx, davr,
       ij, natija, rzBog, source: { blob: file, name: file.name, lastModified: file.lastModified, documentId: sourceDoc.current },
-      operationId: operation.current, sourceOperationId: sourceOp.current, server: serverDraft.current, correction: pendingCorrection.current, rejali: rejaliRef.current, ochirishlar: ochirishRef.current };
+      operationId: operation.current, sourceOperationId: sourceOp.current, server: serverDraft.current, correction: pendingCorrection.current, rejali: rejaliRef.current, ochirishlar: ochirishRef.current, raqam: raqamN };
   }
 
   async function ishniSaqla(draft = ishSnapshot(), generation = ++saveGeneration.current) {
@@ -170,7 +175,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     return () => window.clearTimeout(timer);
   // Snapshot includes all operator decisions and original file; never gated on resolved rows.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ij, natija, rzBog, aktlar, aktIdx, davr, objectId, busy, done, rejali, ochirish]);
+  }, [ij, natija, rzBog, aktlar, aktIdx, davr, objectId, busy, done, rejali, ochirish, raqamN]);
 
   useEffect(() => {
     const protect = (e: BeforeUnloadEvent) => { if (unsaved.current) { e.preventDefault(); e.returnValue = ''; } };
@@ -196,7 +201,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       sourceDoc.current = d.source.documentId; sourceOp.current = d.sourceOperationId; operation.current = d.operationId;
       serverDraft.current = d.server;
       setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
-      setAktlar(d.aktlar); setAktIdx(d.aktIdx); setDavr(d.davr); setRzBog(d.rzBog);
+      setAktlar(d.aktlar); setAktIdx(d.aktIdx); setDavr(d.davr); setRzBog(d.rzBog); setRaqam(d.raqam ?? ''); setAlmashtirTasdiq(null);
       setNatija(d.natija); tarixniTozala(); setIj(restored); setDone(null);
       setHolat('Saqlangan ish tiklandi. Smeta va oldingi F2 qayta o‘qildi.');
       if (restored.bog.size !== d.ij.bog.size) setXato('Ayrim smeta qatorlari o‘chirilgan: ularga bog‘lanish qayta tekshirilishi kerak.');
@@ -241,24 +246,27 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   const akt = aktlar[aktIdx] ?? null;
   const ind = useMemo(() => (akt ? f2Indeks(akt.daraxt) : null), [akt]);
-  const avvalgiKalit = akt && objectId && /^\d{4}-(0[1-9]|1[0-2])$/.test(davr) ? `${companyId}:${objectId}:${davr}` : '';
+  const avvalgiKalit = akt && objectId && /^\d{4}-(0[1-9]|1[0-2])$/.test(davr) ? `${companyId}:${objectId}:${davr}:${raqamN}` : '';
   const joriyAvvalgi = avvalgi?.key === avvalgiKalit ? avvalgi : null;
   const takrorTekshirilmoqda = !!avvalgiKalit && !joriyAvvalgi;
   // Avvalgi F2 faqat YANGI aktni saqlashni to'xtatadi. Bog'lash, zamena va qo'shimcha — mahalliy/qo'shilgan qatorlar ishi,
   // ularni bloklash butun seansni qulflab qo'yardi (egasi 2026-10-20: «hech narsani bog'lab bo'lmay qoldi»).
   // Tekshiruv xatosi saqlashni to'xtatmaydi: takroriy identifikatsiyani server unique-cheklovi baribir rad etadi.
-  // Mavjud QORALAMA akt bo'lsa saqlash uni yangilaydi; tasdiqlangan/yuborilgan akt bo'lsa yangi akt saqlanmaydi.
+  // Kalit obyekt + oy + RAQAM: shu oyda boshqa raqamli F2 bo'lsa u tegilmaydi — yangi akt yaratiladi.
+  // Aynan shu raqamdagi QORALAMA akt bo'lsa saqlash uning qatorlarini almashtiradi — faqat operator aniq tasdiqlagach;
+  // tasdiqlangan/yuborilgan akt bo'lsa yangi akt saqlanmaydi.
   const mavjudQoralama = qoralamaAktmi(joriyAvvalgi?.akt) ? joriyAvvalgi!.akt! as AvvalgiF2 & { versiya: number } : null;
-  const saqlashBlok = takrorTekshirilmoqda || (!!joriyAvvalgi?.akt && !mavjudQoralama);
+  const almashtirishKutilmoqda = !!mavjudQoralama && almashtirTasdiq !== mavjudQoralama.id;
+  const saqlashBlok = takrorTekshirilmoqda || (!!joriyAvvalgi?.akt && !mavjudQoralama) || almashtirishKutilmoqda;
   useEffect(() => {
     if (!avvalgiKalit) return;
     let active = true;
     setAvvalgi(null);
-    void avvalgiF2Ol(sbOqi, companyId, Number(objectId), davr)
+    void avvalgiF2Ol(sbOqi, companyId, Number(objectId), davr, raqamN)
       .then((a) => { if (active) setAvvalgi({ key: avvalgiKalit, akt: a, error: false }); })
       .catch(() => { if (active) setAvvalgi({ key: avvalgiKalit, akt: null, error: true }); });
     return () => { active = false; };
-  }, [avvalgiKalit, tekshiruv, companyId, objectId, davr, akt]);
+  }, [avvalgiKalit, tekshiruv, companyId, objectId, davr, akt, raqamN]);
 
   // Daraxtda haqiqiy qatorlar + rejali (vaqtinchalik, manfiy id) qatorlar.
   const rowsK = useMemo(() => {
@@ -305,6 +313,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     oxirgiKalit.current = '';
     tozala(); setAktlar([]); setBusy(true); setHolat('Fayl o‘qilmoqda…');
     rawFile.current = file; sourceDoc.current = mavjudHujjatId; sourceOp.current = yangiOperationId();
+    setRaqam(''); setAlmashtirTasdiq(null); // yangi hujjat — raqami operator tomonidan qayta kiritiladi
     try {
       if (file.size > MAX_FILE_BYTES) throw new Error('Fayl 50 MB dan katta.');
       // Fayl o'qish va akt tahlili FONDA (Web Worker) — katta faylda sahifa qotmaydi.
@@ -548,6 +557,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       rawFile.current = file; sourceDoc.current = docId; sourceOp.current = String(c.sourceOperationId); operation.current = String(c.writeOperationId);
       serverDraft.current = d.state; setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
       setAktlar(acts); setAktIdx(idx); setDavr(month); setRzBog(rb); setNatija(result);
+      setRaqam(typeof c.aktRaqam === 'string' ? c.aktRaqam : ''); setAlmashtirTasdiq(null);
       const correction=f2PendingCorrectionOl(c.correction);
       const restored=correction ? qoshilganOzgardiLib(d.ij,f2Indeks(a.daraxt),{
         eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
@@ -803,6 +813,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (payload.error) { qadam('tekshiruv', 'xato', payload.error); return; }
     if (saqlashBlok) {
       qadam('tekshiruv', 'xato', takrorTekshirilmoqda ? t('Avvalgi F2 tekshirilmoqda — bir lahzadan so‘ng qayta urinib ko‘ring.')
+        : almashtirishKutilmoqda ? t('Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.')
         : t('Bu obyekt va oy uchun tasdiqlangan F2 bor — yangi akt yozilmaydi. F2 tarixini oching.'));
       return;
     }
@@ -885,7 +896,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         }));
       const r = mavjudQoralama
         ? await sbT2F2QoralamaYangila({ kompaniyaId: companyId, aktId: mavjudQoralama.id, kutilganVersiya: mavjudQoralama.versiya, operationId: yangiOperationId(), qatorlar })
-        : await sbT2AktYaratV2({ obyektId: Number(objectId), oy: davr + '-01', operationId: operation.current, qatorlar });
+        : await sbT2AktYaratV2({ obyektId: Number(objectId), oy: davr + '-01', operationId: operation.current, qatorlar, raqam: raqamN || undefined });
       if (!r.ok) {
         const code = (r as { code?: string }).code;
         if (code === 'F2_ACT_NUMBER_CONFLICT') {
@@ -976,6 +987,14 @@ function Sessiya({ companyId }: { companyId: number }) {
               className="input mt-1.5 block h-9 w-full px-2 text-[13px]" />
           </label>
         )}
+        {akt && (
+          <label className="block text-[12px] font-medium text-text">{t('F2 raqami (akt №)')}
+            <input aria-label={t('F2 raqami (akt №)')} value={raqam} maxLength={100} placeholder={t('masalan F2-07')} disabled={!!done}
+              onChange={(e) => { setRaqam(e.target.value); setAlmashtirTasdiq(null); }}
+              className="input mt-1.5 block h-9 w-full px-2 text-[13px]" />
+            <span className="mt-1 block font-normal text-text-mute">{t('Bir oyda bir nechta F2 bo‘lsa, har biriga o‘z raqamini kiriting — aks holda ular bir-birini almashtiradi.')}</span>
+          </label>
+        )}
       </fieldset>
 
       {akt && (
@@ -1017,10 +1036,17 @@ function Sessiya({ companyId }: { companyId: number }) {
           <button type="button" className="tugma mt-2" onClick={() => setTekshiruv((v) => v + 1)}>{t('Qayta tekshirish')}</button>
         </> : joriyAvvalgi?.akt && <>
           <p className="font-semibold">{mavjudQoralama
-            ? t('Bu oy uchun F2 qoralama bor. Bog‘lashni davom ettiring — «Saqlash» shu qoralamani yangilaydi.')
+            ? t('Shu obyekt, oy va raqam uchun F2 qoralama bor. «F2 ni yozish» uning BARCHA qatorlarini shu fayl bilan almashtiradi.')
             : t('Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.')}</p>
-          <p>#{joriyAvvalgi.akt.id} · {joriyAvvalgi.akt.oy.slice(0, 7)} · {joriyAvvalgi.akt.lifecycle_status ?? joriyAvvalgi.akt.holat}</p>
-          <p>{t('Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.')}</p>
+          <p>#{joriyAvvalgi.akt.id} · {joriyAvvalgi.akt.oy.slice(0, 7)} · №{joriyAvvalgi.akt.raqam || '—'} · {joriyAvvalgi.akt.lifecycle_status ?? joriyAvvalgi.akt.holat}</p>
+          {mavjudQoralama ? <>
+            <p>{t('Bu boshqa F2 bo‘lsa — yuqorida uning o‘z raqamini kiriting: yangi akt alohida yaratiladi, mavjud qoralama tegilmaydi.')}</p>
+            <label className="mt-2 flex items-center gap-2 font-semibold text-text">
+              <input type="checkbox" checked={almashtirTasdiq === mavjudQoralama.id} disabled={busy || !!done}
+                onChange={(e) => setAlmashtirTasdiq(e.target.checked ? mavjudQoralama.id : null)} />
+              {t('Ha, qoralama #{id} qatorlarini shu fayl bilan almashtirish', { id: mavjudQoralama.id })}
+            </label>
+          </> : <p>{t('Mavjud aktni oching. Yangi fayl tuzatish bo‘lsa, uni alohida tuzatish tartibida kiriting; amaldagi akt o‘zgartirilmadi.')}</p>}
           <a href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>
         </>}
       </section>}

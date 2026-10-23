@@ -25,6 +25,8 @@ export interface F2IshchiQoralama {
   rejali?: RejaliBuyruq[];
   /** O'chirishga belgilangan (siz avval qo'shgan) qatorlar. */
   ochirishlar?: OchirishBuyruq[];
+  /** F2 hujjat raqami (akt №) — bir obyekt+oyda bir nechta F2 bo'lsa ularni ajratadi. */
+  raqam?: string;
 }
 
 export type F2PendingCorrection = { oldIds: number[]; newId: number | null };
@@ -52,7 +54,7 @@ export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, sta
     d.server = state; // Idempotent retry after later network/batch failure.
   }
   const cursor = { phase: 'f2_v3_review', sourceDocumentId: documentId, month: d.davr, actIdx: d.aktIdx,
-    correction: d.correction ?? null, rejali: d.rejali ?? [], ochirishlar: d.ochirishlar ?? [], file: d.source.name, sourceOperationId: d.sourceOperationId, writeOperationId: d.operationId, rzBog: [...d.rzBog], savedRows: state.rows.size };
+    correction: d.correction ?? null, rejali: d.rejali ?? [], ochirishlar: d.ochirishlar ?? [], aktRaqam: d.raqam ?? '', file: d.source.name, sourceOperationId: d.sourceOperationId, writeOperationId: d.operationId, rzBog: [...d.rzBog], savedRows: state.rows.size };
   const checkpoint = async (complete: boolean) => {
     const r = await sbT2F2ImportJobIlgarilash({ jobId: state!.jobId, expectedVersiya: state!.versiya,
       processedDelta: 0, matchedDelta: 0, unmatchedDelta: 0, cursor: { ...cursor, savedRows: state!.rows.size, complete } });
@@ -84,7 +86,7 @@ export async function f2ServerCorrectionSaqla(d: F2IshchiQoralama): Promise<void
   const count = f2Indeks(d.aktlar[d.aktIdx].daraxt).qatorlar.length;
   const r = await sbT2F2ImportJobIlgarilash({jobId:state.jobId,expectedVersiya:state.versiya,
     processedDelta:0,matchedDelta:0,unmatchedDelta:0,cursor:{phase:'f2_v3_review',
-      sourceDocumentId:d.source.documentId,month:d.davr,actIdx:d.aktIdx,file:d.source.name,
+      sourceDocumentId:d.source.documentId,month:d.davr,actIdx:d.aktIdx,aktRaqam:d.raqam??'',file:d.source.name,
       sourceOperationId:d.sourceOperationId,writeOperationId:d.operationId,rzBog:[...d.rzBog],
       savedRows:state.rows.size,complete:state.rows.size===count,correction:d.correction??null}});
   if (!r.ok || r.versiya == null) throw new Error(r.code || r.error || 'Tuzatish belgisi saqlanmadi. Qayta urinib ko‘ring.');

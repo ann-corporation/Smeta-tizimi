@@ -2804,5 +2804,12 @@
   "O‘zgarish qo‘llandi": "Change applied",
   "Ochish →": "Open →",
   "Jonli": "Live",
-  "Resurs miqdori": "Resource quantity"
+  "Resurs miqdori": "Resource quantity",
+  "F2 raqami (akt №)": "F2 number (act No.)",
+  "masalan F2-07": "e.g. F2-07",
+  "Bir oyda bir nechta F2 bo‘lsa, har biriga o‘z raqamini kiriting — aks holda ular bir-birini almashtiradi.": "If a month has several F2 acts, enter each one’s own number — otherwise they replace each other.",
+  "Shu obyekt, oy va raqam uchun F2 qoralama bor. «F2 ni yozish» uning BARCHA qatorlarini shu fayl bilan almashtiradi.": "A draft F2 already exists for this object, month and number. “Write F2” will replace ALL of its lines with this file.",
+  "Bu boshqa F2 bo‘lsa — yuqorida uning o‘z raqamini kiriting: yangi akt alohida yaratiladi, mavjud qoralama tegilmaydi.": "If this is a different F2, enter its own number above: a separate act is created and the existing draft is untouched.",
+  "Ha, qoralama #{id} qatorlarini shu fayl bilan almashtirish": "Yes, replace the lines of draft #{id} with this file",
+  "Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.": "Replacing the F2 draft with this number is not confirmed. If this is a different F2, enter its number."
 }

@@ -108,7 +108,7 @@ describe('F2 independent working draft', () => {
     expect(m.create).not.toHaveBeenCalled();
   });
 
-  async function restored() {
+  async function restored(yozishOchiq = true) {
     await start();
     fireEvent.click(screen.getByRole('button', { name: 'Ish holatini saqlash (davom ettirish uchun)' }));
     await screen.findByText(/Ish holati shu brauzerda saqlandi/);
@@ -116,7 +116,7 @@ describe('F2 independent working draft', () => {
     cleanup(); render(<F2ImportV3 />);
     fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
-    await waitFor(()=>expect((screen.getByRole('button',{name:/F2 ni yozish/}) as HTMLButtonElement).disabled).toBe(false));
+    if (yozishOchiq) await waitFor(()=>expect((screen.getByRole('button',{name:/F2 ni yozish/}) as HTMLButtonElement).disabled).toBe(false));
     m.cloudSave.mockImplementation(async (d: F2IshchiQoralama) => { d.server = { jobId: 11, versiya: 3, rows: new Map([['minus', 1], ['plus', 1]]) }; return d.server; });
   }
 
@@ -136,15 +136,47 @@ describe('F2 independent working draft', () => {
     await screen.findByText(/1 ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi/);
   });
 
-  it('an existing DRAFT act for the month is updated in place — no duplicate act, decisions kept', async () => {
+  it('an existing DRAFT act with the same object/month/number is replaced only after explicit confirmation', async () => {
     m.preflight.mockResolvedValue({ok:true,qatorlar:[{id:55,oy:'2026-10-01',raqam:null,holat:'qoralama',lifecycle_status:'draft',versiya:4}]});
-    await restored();
-    await screen.findByText('Bu oy uchun F2 qoralama bor. Bog‘lashni davom ettiring — «Saqlash» shu qoralamani yangilaydi.');
+    await start();
+    await screen.findByText('Shu obyekt, oy va raqam uchun F2 qoralama bor. «F2 ni yozish» uning BARCHA qatorlarini shu fayl bilan almashtiradi.');
+    // Tasdiqsiz — yozish tugmasi yopiq, hech narsa almashtirilmaydi.
+    expect((screen.getByRole('button',{name:/F2 ni yozish/}) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Ish holatini saqlash (davom ettirish uchun)' }));
+    await screen.findByText(/Ish holati shu brauzerda saqlandi/);
+    saved!.source.documentId = 42;
+    cleanup(); render(<F2ImportV3 />);
+    fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
+    await screen.findByText('Qo‘lda bog‘lanish: 7');
+    m.cloudSave.mockImplementation(async (d: F2IshchiQoralama) => { d.server = { jobId: 11, versiya: 3, rows: new Map([['minus', 1], ['plus', 1]]) }; return d.server; });
+    const tasdiq = await screen.findByRole('checkbox', { name: 'Ha, qoralama #55 qatorlarini shu fayl bilan almashtirish' });
+    expect((screen.getByRole('button',{name:/F2 ni yozish/}) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(tasdiq);
+    await waitFor(()=>expect((screen.getByRole('button',{name:/F2 ni yozish/}) as HTMLButtonElement).disabled).toBe(false));
     m.update.mockResolvedValue({ ok: true, akt_id: 55 });
     fireEvent.click(screen.getByRole('button', { name: /F2 ni yozish/ }));
     await screen.findByText(/F2 qoralamasi yangilandi \(akt #55, 1 qator\)/);
     expect(m.create).not.toHaveBeenCalled();
     expect(m.update.mock.calls[0][0]).toMatchObject({ kompaniyaId: 5, aktId: 55, kutilganVersiya: 4, qatorlar: [{ qatorId: 7, certifiedQuantity: 12 }] });
+  });
+
+  it('a different F2 number in the same month creates a NEW act and never touches the other draft', async () => {
+    // Raqamsiz qoralama (#55) shu oyda bor; F2-07 raqami uchun esa hech narsa yo'q.
+    m.preflight.mockImplementation(async (s: { filtr: string }) => s.filtr.includes('raqam=eq.F2-07')
+      ? { ok: true, qatorlar: [] }
+      : { ok: true, qatorlar: [{ id: 55, oy: '2026-10-01', raqam: null, holat: 'qoralama', lifecycle_status: 'draft', versiya: 4 }] });
+    await restored(false);
+    await screen.findByText(/Shu obyekt, oy va raqam uchun F2 qoralama bor/);
+    fireEvent.change(screen.getByLabelText('F2 raqami (akt №)'), { target: { value: ' F2-07 ' } });
+    await waitFor(() => expect(screen.queryByText(/Shu obyekt, oy va raqam uchun F2 qoralama bor/)).toBeNull());
+    await waitFor(()=>expect((screen.getByRole('button',{name:/F2 ni yozish/}) as HTMLButtonElement).disabled).toBe(false));
+    m.create.mockResolvedValue({ ok: true, akt_id: 101 });
+    fireEvent.click(screen.getByRole('button', { name: /F2 ni yozish/ }));
+    await screen.findByText(/F2 qoralamasi saqlandi \(akt #101/);
+    expect(m.update).not.toHaveBeenCalled();
+    expect(m.create.mock.calls[0][0]).toMatchObject({ obyektId: 3, oy: '2026-10-01', raqam: 'F2-07' });
+    expect(m.cloudSave.mock.calls[0][0].raqam).toBe('F2-07');
+    expect(saved!.raqam).toBe('F2-07');
   });
 
   it('qo‘shimcha darhol qoralamaga qo‘shiladi (serverga yozilmaydi); «Saqlash» avval uni, keyin aktni haqiqiy id bilan yozadi', async () => {
