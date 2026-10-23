@@ -14,6 +14,8 @@ import { pulYaxlit } from './ish-abc';
 import type { F2NativePayloadRow } from './f2-native-preparation';
 
 export type F2Holat = { qator_id: number; f2_mumkin_hajm?: number | null; f2_hajm?: number | null; fakt_hajm?: number | null; smeta_hajm?: number | null; f2_narx?: number | null };
+/** Hajm manbai: akt — Fakt jurnali qoldig'i (sukut); smeta — faktsiz rejim: chegara = smeta qoldig'i, oshsa faqat ogohlantirish (egasi 2026-10-24: hajm bo'yicha blok yo'q). */
+export type F2Manba = 'fakt' | 'smeta';
 export type NarxManba = 'protokol' | 'oldingi_f2' | 'smeta' | 'qolda' | 'yoq';
 export const NARX_MANBA_NOMI: Record<NarxManba, string> = { protokol: 'protokol', oldingi_f2: 'oldingi F2', smeta: 'smeta', qolda: 'qo‘lda', yoq: 'narxsiz' };
 /** Shu oyda kuchga kirgan Протокол согласования цен narxlari: qator_id → narx va rekvizit (api/t2-narx-protokol). */
@@ -22,11 +24,13 @@ export type ProtokolNarxlari = ReadonlyMap<number, { narx: number; raqam: string
 export type F2Resurs = {
   id: number; tur: 'rs' | 'mat' | 'ob'; kat: string | null; kod: string | null; nom: string; birlik: string | null;
   norma: number | null; mumkin: number; /** avtomatik (rs) — ish hajmi × norma */ avto: boolean;
+  /** Faktsiz rejim: chegara bloklamaydi (mumkin 0 bo'lsa ham kiritiladi, oshsa ogohlantirish). */
+  erkin?: boolean;
   taklifNarx: number | null; taklifManba: NarxManba;
   /** Narx protokoldan olingan bo'lsa — hujjatdagi asos: «№ … от …». */
   protokol?: string;
 };
-export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[] };
+export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[]; erkin?: boolean };
 export type F2Bolim = { id: number | null; nom: string; daraja: number; ishlar: F2Ish[]; alohida: F2Resurs[] };
 
 const son = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -45,16 +49,22 @@ function narxTaklif(f2Narx: number | null, smetaNarx: number | null, protokolNar
 }
 
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
-export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari): F2Bolim[] {
+export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt'): F2Bolim[] {
   const h = new Map(holat.map((x) => [x.qator_id, x]));
+  const erkin = manba === 'smeta';
+  const rowById = new Map(rows.map((r) => [r.id, r]));
   const bolalar = new Map<number | null, T2Qator[]>();
   for (const r of rows) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
   for (const a of bolalar.values()) a.sort((p, q) => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id);
-  const mumkin = (id: number) => Math.max(0, son(h.get(id)?.f2_mumkin_hajm) ?? 0);
+  // Faktsiz rejim: smeta hajmi − shu qatorning barcha F2 lari (RPC o'zgarmaydi: smeta_hajm/f2_hajm bor).
+  const mumkin = (id: number) => erkin
+    ? Math.max(0, (son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm) ?? 0) - (son(h.get(id)?.f2_hajm) ?? 0))
+    : Math.max(0, son(h.get(id)?.f2_mumkin_hajm) ?? 0);
+  const smetaHajm = (id: number) => son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm);
   const resurs = (r: T2Qator, avto: boolean): F2Resurs => {
     const p = protokol?.get(r.id);
     const t = narxTaklif(son(h.get(r.id)?.f2_narx), son(r.narx), p?.narx);
-    const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba };
+    const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba, ...(erkin ? { erkin: true } : {}) };
     if (p && t.manba === 'protokol') x.protokol = `№ ${p.raqam} от ${p.sana.slice(0, 10).split('-').reverse().join('.')}`;
     return x;
   };
@@ -71,10 +81,10 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
       if (r.tur === 'bl') {
         const res = (bolalar.get(r.id) ?? []).filter((x) => x.tur === 'rs' || x.tur === 'mat' || x.tur === 'ob').map((x) => resurs(x, x.tur === 'rs'));
         const hh = h.get(r.id);
-        const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: son(hh?.f2_hajm) ?? 0, resurslar: res };
-        if (ish.mumkin > 0 || res.some((x) => !x.avto && x.mumkin > 0)) b.ishlar.push(ish);
+        const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: son(hh?.f2_hajm) ?? 0, resurslar: res, ...(erkin ? { erkin: true } : {}) };
+        if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : (ish.mumkin > 0 || res.some((x) => !x.avto && x.mumkin > 0))) b.ishlar.push(ish);
       } else if (r.tur === 'mat' || r.tur === 'ob') {
-        const x = resurs(r, false); if (x.mumkin > 0) b.alohida.push(x);
+        const x = resurs(r, false); if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : x.mumkin > 0) b.alohida.push(x);
       }
     }
   };
@@ -129,25 +139,28 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
     const v = sonOqi(k.hajm[r.id]);
     if (v == null) return;
     if (v === 'xato' || v <= 0) { out.push({ id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: false, xato: 'HAJM' }); return; }
-    if (v > r.mumkin + 1e-9) { out.push({ id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: false, xato: 'OSHDI' }); return; }
-    out.push(resursQator(r, v, ishId, k));
+    if (v > r.mumkin + 1e-9 && !r.erkin) { out.push({ id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: false, xato: 'OSHDI' }); return; }
+    const q = resursQator(r, v, ishId, k);
+    if (v > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = 'SMETADAN_OSHDI'; // faktsiz rejim: blok emas, ogohlantirish
+    out.push(q);
   };
   for (const b of bolimlar) {
     for (const ish of b.ishlar) {
       const v = sonOqi(k.hajm[ish.id]);
       if (v != null) {
         if (v === 'xato' || v <= 0) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'HAJM' });
-        else if (v > ish.mumkin + 1e-9) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'OSHDI' });
+        else if (v > ish.mumkin + 1e-9 && !ish.erkin) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'OSHDI' });
         else {
           const bl: F2Qator = { id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true };
           if (ish.smeta != null && ish.olingan + v > ish.smeta + 1e-9) bl.ogoh = 'SMETADAN_OSHDI';
           out.push(bl);
           for (const r of ish.resurslar) {
-            if (!r.avto || r.norma == null || r.norma <= 0 || r.mumkin <= 0) continue;
+            if (!r.avto || r.norma == null || r.norma <= 0 || (r.mumkin <= 0 && !r.erkin)) continue;
             const talab = y6(v * r.norma);
-            const hajm = Math.min(talab, r.mumkin);
+            // Faktsiz rejim: resurs smeta qoldig'i bilan qirqilmaydi (blok yo'q) — oshsa faqat ogohlantirish.
+            const hajm = r.erkin ? talab : Math.min(talab, r.mumkin);
             const q = resursQator(r, hajm, ish.id, k);
-            if (talab > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = 'RESURS_CHEGARA';
+            if (talab > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = r.erkin ? 'SMETADAN_OSHDI' : 'RESURS_CHEGARA';
             out.push(q);
           }
         }
