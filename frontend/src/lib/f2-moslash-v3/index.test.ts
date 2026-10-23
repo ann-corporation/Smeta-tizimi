@@ -386,3 +386,31 @@ describe('bir nomli ichma-ich razdellar (prod sinovi 2026-10-23, sun’iy)', () 
     expect(n.natijalar.get(fw.uid)).toMatchObject({ holat: 'aniq', qatorId: W });
   });
 });
+
+describe('F2 → smeta: shifr-kanoni, birlik sinonimi, zamena nomzodi (2026-10-23, sun’iy)', () => {
+  const Q: SmetaQator[] = [];
+  let i = 5000;
+  const r = (nom: string, ota: number | null) => { const id = ++i; Q.push({ id, otaId: ota, tur: 'rz', kod: null, nom, birlik: null, hajm: null, tartib: id }); return id; };
+  const w = (ota: number, kod: string, nom: string, birlik: string, hajm: number) => { const id = ++i; Q.push({ id, otaId: ota, tur: 'bl', kod, nom, birlik, hajm, tartib: id }); return id; };
+  const ob = r('ОБЪЕКТ-Б', null);
+  const zem = r('ЗЕМЛЯНЫЕ РАБОТЫ', ob);
+  w(zem, 'Х0101-001', 'РАЗРАБОТКА ГРУНТА', '1000М3', 3);
+  const tr = w(zem, 'Х310-1020', 'ПЕРЕВОЗКА ГРУЗОВ, РАССТОЯНИЕ 20 КМ, КЛАСС 1', 'Т', 600.5);
+  const lf1 = r('ЛЕНТОЧНЫЙ ФУНДАМЕНТ', ob);
+  const pod1 = w(lf1, 'Х0601-001-01 ДОП. 3', 'УСТРОЙСТВО ПОДГОТОВКИ', '100 М3 БЕТОНА', 0.2);
+  const lf2 = r('ЛЕНТОЧНЫЙ ФУНДАМЕНТ', ob);
+  w(lf2, 'Х0601-001-01 ДОП. 3', 'УСТРОЙСТВО ПОДГОТОВКИ', '100 М3 БЕТОНА', 0.05);
+  const yol = ['ОБЪЕКТ-Б', 'ЗЕМЛЯНЫЕ РАБОТЫ'];
+
+  it('boshqa razdeldagi kanon-shifr + nom + birlik (sinonim) aynan qator — ◐ taklif; egizaklardan hajm sig‘adigani', () => {
+    const fp = f('bl', 'X6-1-1-1', 'УСТРОЙСТВО ПОДГОТОВКИ', '100М3', 0.18, yol);
+    const n = f2MoslashV3([rzF('ОБЪЕКТ-Б', [], [rzF('ЗЕМЛЯНЫЕ РАБОТЫ', ['ОБЪЕКТ-Б'], [fp])])], Q);
+    expect(n.natijalar.get(fp.uid)).toMatchObject({ holat: 'taklif', qatorId: pod1, usul: 'boshqa_razdel' });
+  });
+
+  it('nomi faqat raqamda farq, birlik va hajm teng — ◐ zamena nomzodi', () => {
+    const ft = f('bl', 'Х310-1011', 'ПЕРЕВОЗКА ГРУЗОВ, РАССТОЯНИЕ 11 КМ, КЛАСС 1', 'Т', 600.5, yol);
+    const n = f2MoslashV3([rzF('ОБЪЕКТ-Б', [], [rzF('ЗЕМЛЯНЫЕ РАБОТЫ', ['ОБЪЕКТ-Б'], [ft])])], Q);
+    expect(n.natijalar.get(ft.uid)).toMatchObject({ holat: 'taklif', qatorId: tr, usul: 'zamena_nomzod' });
+  });
+});
