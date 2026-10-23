@@ -1,4 +1,5 @@
 import { TayyorlanganF2lar } from './TayyorlanganF2lar';
+import { F2AiReja } from './F2AiReja';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { isCompleteMoney, reportMoneyValidity } from '../../lib/money-input';
@@ -63,6 +64,7 @@ export function F2TayyorlashNative() {
   const [oy, setOy] = useState(oyBoshlanishi());
   const [raqam, setRaqam] = useState('');
   const [qidir, setQidir] = useState('');
+  const [aiOchiq, setAiOchiq] = useState(false);
   const [bolimId, setBolimId] = useState<number | null | undefined>(undefined);
   const [ochiq, setOchiq] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -324,6 +326,10 @@ export function F2TayyorlashNative() {
           <AlertTriangle size={15} className="shrink-0 text-warn" /><span className="flex-1"><b>АОСР yo‘q yashirin ishlar: {aosrsiz.length} ta.</b> F2 bloklanmaydi — topshirishda АОСР talab qilinadi.</span>
           <button type="button" onClick={() => navigate('/admin/aosr')} className="rounded-lg border border-warn/40 px-3 py-1 font-semibold hover:bg-warn/10">АОСР yaratish</button>
         </section>}
+        <div className="flex">
+          <button type="button" aria-expanded={aiOchiq} onClick={() => setAiOchiq((v) => !v)} className="rounded-md border border-border px-2 py-1 text-[11px] text-text-dim hover:border-accent hover:text-text">{t('F2 yordamchi')}</button>
+        </div>
+        {aiOchiq && <F2AiReja bolimlar={bolimlar} kompaniyaId={joriy?.id} onQoshish={(hajm) => setK((o) => ({ ...o, hajm: { ...o.hajm, ...hajm } }))} />}
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)]">
           {bolimPaneli}
           <section className="karta flex min-h-0 flex-col overflow-hidden">
