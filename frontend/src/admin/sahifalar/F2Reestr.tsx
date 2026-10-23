@@ -11,6 +11,7 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { FmtN, pulQisqa } from '../../lib/format';
 import { t } from '../../i18n/til';
+import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { f2ReestrOl, obyektF2Fayllari, type ReestrMalumot } from '../../api/t2-f2-reestr';
 import type { CenterDocument } from '../../api/t2-hujjat-canonical';
 import { aktsizFayllar, bosqich, filtrla, reestrQur, tartibla, type F2Bosqich, type Ogoh, type ReestrAkt, type ReestrFiltr, type Summa } from '../../lib/f2-reestr/reestr';
@@ -82,6 +83,8 @@ export default function F2Reestr() {
       <RefreshCw size={14} className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}</button>}>
     <div className="flex flex-col gap-3">
       {kompaniyaId == null && <section className="karta p-4 text-[13px] text-text-dim">{t('Avval kompaniyani tanlang.')}</section>}
+      <F2DavomRoyxat kompaniyaId={kompaniyaId} />
+
       {xato && <section role="alert" className="karta border-danger/40 bg-danger/5 p-4 text-[13px] text-danger">{t('F2 reestri o‘qilmadi: {x}', { x: xato })}</section>}
       {yuklanmoqda && !reestr && <section className="karta p-4 text-[13px] text-text-dim">{t('F2 aktlari, shartnomalar va import manbalari o‘qilmoqda…')}</section>}
 

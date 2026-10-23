@@ -2903,5 +2903,15 @@
   "Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.": "Resource recipe is missing — this work cannot be added to the estimate.",
   "Tahririy nom": "Editorial name",
   "Ish turlari": "Work types",
-  "Bo‘lim nomlari ishlar mazmuni asosida tuzilgan.": "Section names are based on the work descriptions."
+  "Bo‘lim nomlari ishlar mazmuni asosida tuzilgan.": "Section names are based on the work descriptions.",
+  "F2 qoralamalari o‘qilmadi": "F-2 drafts could not be loaded",
+  "varaq": "sheet",
+  "yozilgan": "saved",
+  "Davom ettiriladigan F2 lar": "F-2 drafts to continue",
+  "Ochiq F2 qoralamasi yo‘q.": "No open F-2 drafts.",
+  "F2 №": "F-2 No.",
+  "Bog‘langan": "Matched",
+  "O‘zgardi": "Changed",
+  "Yozilganlarni yashirish": "Hide saved",
+  "Yozilganlarni ko‘rsatish": "Show saved"
 }

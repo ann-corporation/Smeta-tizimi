@@ -18,6 +18,7 @@ import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-mo
 import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestrMos } from '../../lib/f2-moslash-v3/varaq-tanlov';
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
+import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
@@ -231,6 +232,14 @@ function Sessiya({ companyId }: { companyId: number }) {
   useEffect(() => {
     if (workspace.scope.objectId != null && objects.some((o) => o.id === workspace.scope.objectId)) setObjectId(String(workspace.scope.objectId));
   }, [objects, workspace.scope.objectId]);
+  // F2 Reestr dagi «Davom ettiriladigan F2 lar» havolasi: /admin/f2?job=… — obyektlar yuklangach bir marta tiklanadi.
+  const urlJob = useRef<number | null>((() => { const j = Number(new URLSearchParams(window.location.search).get('job')); return Number.isSafeInteger(j) && j > 0 ? j : null; })());
+  useEffect(() => {
+    if (urlJob.current == null || !objects.length || ij || busy) return;
+    const id = urlJob.current; urlJob.current = null;
+    void serverdanTikla(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objects]);
 
   // Tizimdagi F2 fayllar ro'yxati (shu kompaniya, shu obyekt): kompyuterdan qayta yuklamasdan tanlash uchun.
   useEffect(() => {
@@ -610,12 +619,13 @@ function Sessiya({ companyId }: { companyId: number }) {
     } finally { setBusy(false); }
   }
 
-  async function serverdanTikla() {
-    const id = Number(serverId);
+  async function serverdanTikla(jobId?: number) {
+    const id = jobId ?? Number(serverId);
     if (!Number.isSafeInteger(id) || id <= 0 || busy || ij) return;
     setBusy(true); setXato('');
     try {
       const d = await f2ServerOl(id);
+      setServerId(String(id));
       if (!objects.some((o) => o.id === d.objectId)) throw new Error('Qoralama tanlangan kompaniya obyektiga tegishli emas.');
       const c = d.cursor;
       const docId = Number(c.sourceDocumentId), idx = Number(c.actIdx), month = String(c.month ?? '');
@@ -1033,6 +1043,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </div>
         {serverHolat && <p role="status" className="w-full">{serverHolat}</p>}
       </section>
+      {!ij && <F2DavomRoyxat kompaniyaId={companyId} obyektId={objectId ? Number(objectId) : null} band={busy} onOchish={(id) => void serverdanTikla(id)} />}
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block text-[12px] font-medium text-text">{t('Obyekt')}
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { oxirgiKalit.current = ''; tozala(); setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
