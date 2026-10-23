@@ -32,4 +32,6 @@ it('supports edge moves and discards a draft when external row position changes'
  fireEvent.change(screen.getByRole('spinbutton'),{target:{value:'4'}});
  view.rerender(<RowOrderControls index={2} count={4} label="B" onMove={move}/>);
  expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('3');
+ view.rerender(<RowOrderControls index={1} count={4} label="B" onMove={move}/>);
+ expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('2');
 });

@@ -13,9 +13,12 @@ export function moveRow<T>(rows: readonly T[], from: number, to: number): T[] {
 export function RowOrderControls({ index, count, label, onMove, disabled = false }: {
   index: number; count: number; label: string; onMove: (destination: number) => void; disabled?: boolean;
 }) {
-  const [edit, setEdit] = useState<{index:number;count:number;value:string} | null>(null);
-  const draft = edit?.index === index && edit.count === count ? edit.value : null;
-  const setDraft = (value:string|null) => setEdit(value === null ? null : {index,count,value});
+  const [edit, setEdit] = useState<{index:number;count:number;value:string|null}>(()=>({index,count,value:null}));
+  const samePosition = edit.index === index && edit.count === count;
+  // Discard rather than hide the old input: undo must not resurrect it.
+  if (!samePosition) setEdit({index,count,value:null});
+  const draft = samePosition ? edit.value : null;
+  const setDraft = (value:string|null) => setEdit({index,count,value});
   const destination = Number(draft ?? index + 1);
   const valid = /^\d+$/.test(draft ?? String(index + 1)) && Number.isSafeInteger(destination) && destination >= 1 && destination <= count;
   const unavailable = disabled || index < 0 || index >= count;

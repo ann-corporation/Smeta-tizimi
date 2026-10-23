@@ -330,7 +330,7 @@ export default function TestFaktura() {
                     <div className="max-h-[30vh] overflow-y-auto custom-scrollbar pr-2 space-y-2">
                       {yangiFaktura.items?.map((it, idx) => (
                         <div key={invoiceRowKey(it)} className="bg-white/5 p-2 rounded flex items-center justify-between gap-4 border border-transparent hover:border-white/10">
-                          <RowOrderControls index={idx} count={yangiFaktura.items?.length ?? 0} label={it.nomi} onMove={to=>setYangiFaktura(current=>current ? {...current, items:moveRow(current.items ?? [],idx,to)} : current)} /><span className="text-sm font-medium flex-1 truncate" title={it.nomi}>{it.nomi}</span>
+                          <RowOrderControls disabled={yuklanmoqda} index={idx} count={yangiFaktura.items?.length ?? 0} label={it.nomi} onMove={to=>setYangiFaktura(current=>current ? {...current, items:moveRow(current.items ?? [],idx,to)} : current)} /><span className="text-sm font-medium flex-1 truncate" title={it.nomi}>{it.nomi}</span>
                           <span className="text-xs bg-black/40 px-2 py-1 rounded text-sky-300 font-mono">
                             {it.miqdori} {it.birligi} x {it.narxi?.toLocaleString('ru-RU')}
                           </span>
