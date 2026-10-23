@@ -1150,9 +1150,10 @@ function Sessiya({ companyId }: { companyId: number }) {
           )}
         </section>
       )}
-      {akt && avvalgiKalit && (takrorTekshirilmoqda || joriyAvvalgi?.error || joriyAvvalgi?.akt) && <section
-        role={joriyAvvalgi?.akt || joriyAvvalgi?.error ? 'alert' : 'status'} className="karta border border-warn/50 bg-warn/10 p-3 text-[13px] text-warn">
-        {takrorTekshirilmoqda ? <p>{t('Avval kiritilgan F2 tekshirilmoqda…')}</p> : joriyAvvalgi?.error ? <>
+      {akt && !done && ((avvalgiKalit && (takrorTekshirilmoqda || joriyAvvalgi?.error || joriyAvvalgi?.akt)) || avvalgiImport.length !== 0) && <section
+        role={joriyAvvalgi?.akt || joriyAvvalgi?.error || avvalgiImport.length !== 0 ? 'alert' : 'status'} className="karta border border-warn/50 bg-warn/10 p-3 text-[13px] text-warn" aria-label={t('Allaqachon kiritilgan')}>
+        {avvalgiImport.length !== 0 && <p className="font-semibold">⚠ {t('Bu varaq allaqachon kiritilgan')}: {avvalgiImport.map((k) => { const a = aktNomlari.get(k.aktId); return `F2 ${a?.raqam ?? '#' + k.aktId} (${(a?.oy ?? '').slice(0, 7)}, ${a?.holat ?? ''})`; }).join('; ')}. {t('Takror kiritish hajmni ikki marta yopadi.')}</p>}
+        {!avvalgiKalit ? null : takrorTekshirilmoqda ? <p>{t('Avval kiritilgan F2 tekshirilmoqda…')}</p> : joriyAvvalgi?.error ? <>
           <p>{t('Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.')}</p>
           <button type="button" className="tugma mt-2" onClick={() => setTekshiruv((v) => v + 1)}>{t('Qayta tekshirish')}</button>
         </> : joriyAvvalgi?.akt && <>
@@ -1227,9 +1228,8 @@ function Sessiya({ companyId }: { companyId: number }) {
         </li>)}</ul>
       </section>}
 
-      {(oshishlar.length !== 0 || avvalgiImport.length !== 0) && !done && (
+      {oshishlar.length !== 0 && !done && (
         <section className="karta space-y-2 border border-warn/50 bg-warn/5 p-3 text-[12px]" aria-label={t('Dublikat hajm nazorati')}>
-          {avvalgiImport.length !== 0 && <p className="font-semibold text-warn">⚠ {t('Bu varaq allaqachon kiritilgan')}: {avvalgiImport.map((k) => { const a = aktNomlari.get(k.aktId); return `F2 ${a?.raqam ?? '#' + k.aktId} (${(a?.oy ?? '').slice(0, 7)}, ${a?.holat ?? ''})`; }).join('; ')}. {t('Takror kiritish hajmni ikki marta yopadi.')}</p>}
           {oshishlar.length !== 0 && <>
             <p className="font-semibold text-warn">{t('{n} ta qator smeta qoldig‘idan oshadi (ma’lumot uchun — yozish to‘xtatilmaydi).', { n: oshishlar.length })}</p>
             <div className="max-h-48 overflow-auto">
