@@ -66,7 +66,7 @@ describe.skipIf(!root)('actual pinned norm-library release (external fixture)', 
     expect(works).toHaveLength(48083);
     const byId = new Map(works.map(w => [w.id, w]));
     const tables = new Map(catalog.nodes.map((n, i) => [n[4], i]).filter(([k]) => k != null) as [string, number][]);
-    expect(catalog.nodes).toHaveLength(nav.collections.length + nav.sections.length + nav.tables.length);
+    expect(catalog.nodes).toHaveLength(nav.collections.length + nav.sections.length + nav.tables.length + 4);
     // O(works * depth), rather than an O(works squared) scoped search for every row.
     const expectedTableCounts = new Map<string, number>();
     for (const source of index) {
@@ -76,12 +76,13 @@ describe.skipIf(!root)('actual pinned norm-library release (external fixture)', 
       const table = tables.get(source.table_key);
       if (table == null) throw new Error(`WORK_NOT_REACHABLE:${source.key}`);
       const path = catalog.breadcrumb(table);
-      if (catalog.nodes[path[0].index][0] !== `norm-library:${REV}:${source.collection_key}`)
+      if (catalog.nodes[path[1].index][0] !== `norm-library:${REV}:${source.collection_key}`)
         throw new Error(`COLLECTION_PATH_MISMATCH:${source.key}`);
       expectedTableCounts.set(source.table_key, (expectedTableCounts.get(source.table_key) ?? 0) + 1);
     }
     for (const [key, count] of expectedTableCounts) expect(catalog.node(tables.get(key)!).workCount).toBe(count);
-    expect(catalog.childNodes(-1).total).toBe(112);
+    expect(catalog.childNodes(-1).nodes.map(n=>n.name)).toEqual(['Строительные работы','Монтажные работы','Ремонтно-строительные работы','Пусконаладочные работы']);
+    expect(catalog.childNodes(-1).nodes.reduce((sum,n)=>sum+n.workCount,0)).toBe(48083);
     expect(catalog.search('', 0).total).toBe(48083);
     const representative = index.find(w => /[ЕE]51/.test(w.key));
     expect(representative).toBeDefined();

@@ -121,6 +121,31 @@ export class NormLibraryCatalog {
     if (e40 != null) overrides.set(e40,'Е40 · Опоры, настилы, ограждения и конструкции коллекторов');
     const display = nameCatalogTree(this.nodes,[...this.byId.values()].map(v=>({tableKey:v.source.table_key,code:v.source.key,name:v.source.name})),overrides);
     this.nodes.splice(0,this.nodes.length,...display.nodes); this.editorial=display.editorial;
+    // Presentation families sit above native collections. All existing node
+    // indexes and every native edge below a collection remain unchanged.
+    const families = [
+      { key: 'construction', title: 'Строительные работы' },
+      { key: 'installation', title: 'Монтажные работы' },
+      { key: 'repair', title: 'Ремонтно-строительные работы' },
+      { key: 'commissioning', title: 'Пусконаладочные работы' },
+    ];
+    const familyOf = (key: string) => {
+      if (/^У\d+$/.test(key)) return 'commissioning';
+      if (/^Ц\d+$/.test(key)) return 'installation';
+      const e = /^Е(\d+)$/.exec(key);
+      return e ? (Number(e[1]) >= 51 && Number(e[1]) <= 69 ? 'repair' : 'construction') : null;
+    };
+    for (const family of families) {
+      const members = collections.filter(c => familyOf(c.key) === family.key).map(c => this.nodeIndex.get('collection:'+c.key)!);
+      if (!members.length) continue;
+      const index = this.nodes.length;
+      this.nodes.push([prefix+'family:'+family.key,-1,family.title,members.reduce((sum,i)=>sum+this.nodes[i][3],0),null,'BOOK']);
+      for (const member of members) this.nodes[member][1] = index;
+    }
+    this.children.clear();
+    this.nodes.forEach((node,index)=>{
+      const list=this.children.get(node[1])??[]; list.push(index); this.children.set(node[1],list);
+    });
   }
   allWorks(): NormWork[] { return [...this.byId.values()].map(v => v.work); }
   collectionTitle(code: string | null): string | null { const index=code==null ? undefined : this.nodeIndex.get('collection:'+code); return index==null ? null : this.nodes[index][2]; }

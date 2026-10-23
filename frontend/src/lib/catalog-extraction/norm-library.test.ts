@@ -5,18 +5,19 @@ import { createHash } from 'node:crypto';
 import { NormLibraryCatalog, LIBRARY_REVISION as rev } from './norm-library';
 import { resourceFacts } from '../resource-semantics';
 const id = `norm-library:${rev}:R-1`;
-async function fixture(corrupt = '', revision = rev) {
+async function fixture(corrupt = '', revision = rev, collection = 'R') {
  const w = { key: 'R-1', source_id: id, source: 14, kind: 'R', code: '1', name: 'Concrete repair', table_key: 'flat', collection_key: 'R', section_key: null, measure: '100 м2', calculation_approved: false, acceptance_status: 'REVIEW_ONLY' };
+ w.collection_key=collection;
  const recipes = ['labour', 'machinist', 'machine', 'material'].map((grp, pos) => ({ norm_key: w.key, pos, res_code: '1', grp, name: 'Source name', unit: ['чел.-ч','чел.-ч','маш.-ч','т'][pos], qty: pos === 1 ? 1e-7 : pos ? pos : null }));
  const files = new Map([
- ['navigation.json', Buffer.from(JSON.stringify({ revision: rev, collections: [{ key:'R',title:'Repair' }], sections:[], tables:[{key:'flat',title:'Concrete repair',parent:'R'}] }))],
+ ['navigation.json', Buffer.from(JSON.stringify({ revision: rev, collections: [{ key:collection,title:'Repair' }], sections:[], tables:[{key:'flat',title:'Concrete repair',parent:collection}] }))],
  ['works.jsonl.gz', gzipSync(JSON.stringify(w)+'\r\n')],
- ['collection-000.json.gz', gzipSync(JSON.stringify({ revision:rev,key:'R',calculation_approved:false,works:[w],recipes:{[w.key]:recipes} }))]
+ ['collection-000.json.gz', gzipSync(JSON.stringify({ revision:rev,key:collection,calculation_approved:false,works:[w],recipes:{[w.key]:recipes} }))]
  ]);
  const objects = [...files].map(([file,b]) => ({file,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')}));
  if(corrupt==='hash') files.get('works.jsonl.gz')![0]^=1;
  if(corrupt==='bytes') objects[1].bytes++;
- const manifest={schema:'norm-library-release-v1',revision,status:'REVIEW_ONLY',calculation_approved:false,counts:{works:1},objects,collection_shards:{R:{...objects[2],works:1}}};
+ const manifest={schema:'norm-library-release-v1',revision,status:'REVIEW_ONLY',calculation_approved:false,counts:{works:1},objects,collection_shards:{[collection]:{...objects[2],works:1}}};
  const requests:string[]=[];
  const catalog = await NormLibraryCatalog.open(async url => {requests.push(url);const file=new URL(url,'https://local').searchParams.get('f')!;return new Response(file==='manifest.json'?JSON.stringify(manifest):files.get(file));});
  return {catalog,requests};
@@ -46,4 +47,14 @@ it('preserves explicit flat repair tree, revision/source identity, NULL and manu
 });
 it.each(['hash','bytes'])('rejects compressed %s corruption',async kind=>{await expect(fixture(kind)).rejects.toThrow('NORM_INTEGRITY_FAILED');});
 it('rejects mixed revision',async()=>{await expect(fixture('', 'other')).rejects.toThrow('NORM_MANIFEST_INVALID');});
+it.each([['Е06','Строительные работы'],['Ц08','Монтажные работы'],['Е51','Ремонтно-строительные работы'],['У01','Пусконаладочные работы']])('groups %s under its family without changing source identity or table indexes',async(collection,title)=>{
+ const {catalog:c}=await fixture('',rev,collection);
+ const root=c.childNodes(-1).nodes;
+ expect(root.map(n=>n.name)).toEqual([title]);
+ expect(root[0].workCount).toBe(1);
+ expect(c.childNodes(root[0].index).nodes.map(n=>n.index)).toEqual([0]);
+ expect(c.breadcrumb(1).map(n=>n.name)).toEqual([title,'Repair','Concrete repair']);
+ expect(c.search('',0,root[0].index).rows.map(w=>w.id)).toEqual([id]);
+ await c.load(id); expect(c.detail(id).work.collection).toBe(collection);
+});
 

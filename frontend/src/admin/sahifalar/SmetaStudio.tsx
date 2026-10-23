@@ -449,7 +449,7 @@ export default function SmetaStudio() {
 /* ─────────────── Chap panel: katalog ─────────────── */
 function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: StudioNormCatalog; nishon: string | null; commandError: string;
   onAdd: (work: NormWork, detail: NormDetail, quantity: string) => boolean }) {
-  const [tugun, setTugun] = useState(-1), [tugunSahifa, setTugunSahifa] = useState(0);
+  const [tugun, setTugun] = useState(-1);
   const [soz, setSoz] = useState(''), [qidiruv, setQidiruv] = useState(''), [sahifa, setSahifa] = useState(0);
   const [tanlangan, setTanlangan] = useState<NormWork | null>(null), [detail, setDetail] = useState<NormDetail | null>(null);
   const [yuklash, setYuklash] = useState(false), [resSahifa, setResSahifa] = useState(0), [hajm, setHajm] = useState('');
@@ -459,7 +459,12 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
   useEffect(() => { const timer = setTimeout(() => { setQidiruv(soz); setSahifa(0); }, 200); return () => clearTimeout(timer); }, [soz]);
   const selectionRequest = useRef(0);
   useEffect(() => () => { selectionRequest.current++; }, []);
-  const bolalar = useMemo(() => katalog.childNodes(tugun, tugunSahifa), [katalog, tugun, tugunSahifa]);
+  const bolalar = useMemo(() => {
+    const first = katalog.childNodes(tugun, 0);
+    const nodes = [...first.nodes];
+    for (let page=1; page*25<first.total; page++) nodes.push(...katalog.childNodes(tugun,page).nodes);
+    return { total:first.total,nodes };
+  }, [katalog, tugun]);
   const yolak = useMemo(() => tugun >= 0 ? katalog.breadcrumb(tugun) : [], [katalog, tugun]);
   const jadvalmi = tugun >= 0 && katalog.node(tugun).isTable;
   const ishlar = useMemo(() => {
@@ -472,7 +477,7 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
     return { rows: rows.slice(sahifa * 25, (sahifa + 1) * 25), total: rows.length, mano: true };
   }, [katalog, qidiruv, sahifa, tugun, jadvalmi]);
   const nom = (n: RemoteTreeNode) => n.name || t('Ish turlari');
-  const ochish = (i: number) => { setTugun(i); setTugunSahifa(0); setSahifa(0); };
+  const ochish = (i: number) => { setTugun(i); setSahifa(0); };
   async function tanla(w: NormWork) {
     const request = ++selectionRequest.current;
     setTanlangan(w); setDetail(null); setResSahifa(0); setHajm(''); setXato(''); setAddResult(null); setYuklash(true);
@@ -492,17 +497,12 @@ function KatalogPanel({ katalog, nishon, onAdd, commandError }: { katalog: Studi
     </nav>
     <input className="w-full p-2 border border-border rounded bg-bg" aria-label={t('Normativ ish qidirish')}
       placeholder={tugun >= 0 ? t('Shu bo‘lim ichida qidirish: shifr yoki nom') : t('Ish shifri yoki nomi (lotin/kirill)')} value={soz} onChange={e => setSoz(e.target.value)} />
-    {!ishlar && <div className="border border-border rounded">
+    {!ishlar && <div className="border border-border rounded max-h-[55vh] overflow-y-auto">
       {bolalar.nodes.map(n => <button key={n.index} className="flex w-full items-center gap-2 text-left px-2 py-1.5 border-b border-border hover:bg-surface-2" onClick={() => ochish(n.index)}>
         <span className="flex-1 min-w-0 truncate">{nom(n)}</span>
         {n.labelOrigin === 'EDITORIAL' && <span className="text-xs text-text-mute">{t('Tahririy nom')}</span>}
         <span className="text-xs text-text-mute tabular-nums">{n.workCount.toLocaleString('ru')}</span>
       </button>)}
-      {bolalar.total > 25 && <div className="flex gap-2 items-center p-1 text-sm">
-        <button disabled={!tugunSahifa} onClick={() => setTugunSahifa(p => p - 1)}>{t('Oldingi')}</button>
-        <span>{tugunSahifa + 1} / {Math.ceil(bolalar.total / 25)}</span>
-        <button disabled={(tugunSahifa + 1) * 25 >= bolalar.total} onClick={() => setTugunSahifa(p => p + 1)}>{t('Keyingi')}</button>
-      </div>}
     </div>}
     {ishlar && <div className="border border-border rounded">
       <p className="text-xs text-text-mute px-2 py-1">{ishlar.mano ? t('Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar') : <>{t('Topildi')}: {ishlar.total.toLocaleString('ru')}</>}</p>

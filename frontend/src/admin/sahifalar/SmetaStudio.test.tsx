@@ -323,6 +323,21 @@ it('opens the ready named hierarchy by default for a viewer without an explicit 
   expect(NormLibraryCatalog.open).toHaveBeenCalled();
 });
 
+it('shows every sibling section in one scrollable list without page navigation',async()=>{
+ const library=await RemoteNormCatalog.open();
+ const nodes=Array.from({length:32},(_,index)=>({index:100+index,name:`Раздел ${index+1}`,workCount:1,status:'BOOK' as const,hasChildren:true,isTable:false}));
+ const children=vi.spyOn(library,'childNodes').mockImplementation((_parent,page=0)=>({total:nodes.length,nodes:nodes.slice(page*25,(page+1)*25)}));
+ vi.mocked(NormLibraryCatalog.open).mockResolvedValue(library as never);
+ localStorage.setItem('studio:catalog-source','library');
+ try{
+  renderEditor();
+  await screen.findByText('Раздел 32');
+  const region=within(screen.getByRole('region',{name:'Normativ katalog'}));
+  expect(region.getByText('Раздел 1')).toBeTruthy();
+  expect(region.queryByRole('button',{name:'Keyingi'})).toBeNull();
+ }finally{children.mockRestore();}
+});
+
 it('switches catalogue sources without restoring or remapping the edited draft', async () => {
   const library = await RemoteNormCatalog.open();
   const open = vi.mocked(NormLibraryCatalog.open).mockResolvedValue(library as never);

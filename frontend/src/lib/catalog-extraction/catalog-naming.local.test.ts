@@ -18,6 +18,16 @@ describe.skipIf(!root)('complete named hierarchy from actual source libraries',(
   });
   const current=await NormLibraryCatalog.open(async url=>new Response(new Uint8Array(await readFile(resolve(root!,new URL(url,'https://local').searchParams.get('f')!)))));
   expect(legacy.allWorks()).toHaveLength(54013);expect(current.allWorks()).toHaveLength(48083);
+  const roots=current.childNodes(-1).nodes;
+  expect(roots.map(n=>n.name)).toEqual(['Строительные работы','Монтажные работы','Ремонтно-строительные работы','Пусконаладочные работы']);
+  expect(roots.reduce((sum,n)=>sum+n.workCount,0)).toBe(48083);
+  const tables=new Map(current.nodes.map((n,i)=>[n[4],i] as const).filter(([key])=>key!=null));
+  for(const work of current.allWorks()){
+   const path=current.breadcrumb(tables.get(work.tableCode)!);
+   expect(current.nodes[path[1].index][0]).toBe(`norm-library:66bb1a23bd18c63006d447b5:${work.collection}`);
+   const family=work.collection?.startsWith('У')?'Пусконаладочные работы':work.collection?.startsWith('Ц')?'Монтажные работы':Number(work.collection?.slice(1))>=51?'Ремонтно-строительные работы':'Строительные работы';
+   expect(path[0].name).toBe(family);
+  }
   const report=[];
   for(const [source,catalog] of [['feaaa9e06cb91f03',legacy],['66bb1a23bd18c63006d447b5',current]] as const){
    const names=catalog.nodes.map((_,index)=>catalog.node(index));
