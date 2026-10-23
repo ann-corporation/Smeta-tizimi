@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { T2Qator } from '../../api/supabase';
 import type { IshJoyi } from './ishJoyi';
-import { ijniAlmashtir, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq } from './rejali';
+import { ijniAlmashtir, rejaliniYoz, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq } from './rejali';
 
 const q = (id: number, ota: number | null, tartib: number) => ({ id, ota_id: ota, tartib, tur: 'bl', nom: `Q${id}` }) as unknown as T2Qator;
 const ROWS = [q(1, null, 1), q(10, 1, 1), q(11, 1, 2), q(12, 1, 3)];
@@ -68,5 +68,32 @@ describe('rejali yozish — ota versiyasi keshlanadi', () => {
     await rejaliniYoz(list, { yarat, versiya });
     expect(versiya).toHaveBeenCalledTimes(1);
     expect(yarat.mock.calls.map((c) => c[1].otaVersiya)).toEqual([5, 6, 7]);
+  });
+});
+
+describe('F2 import — rejali qatorlarni ▲/▼ (lokal navbat)', () => {
+  const A = b({ tempId: -1, keyinQatorId: 10, nom: 'A' });
+  const B = b({ tempId: -2, keyinQatorId: 10, nom: 'B' });
+  const C = b({ tempId: -3, keyinQatorId: 11, nom: 'C' });
+  const A2 = b({ tempId: -4, keyinQatorId: -1, nom: 'A-keyin' }); // A ga tayangan: A bilan birga ko'chadi
+
+  it('bir langardan keyingi qatorlar o‘rin almashadi; boshqa langar bilan emas', () => {
+    expect(rejaliSurishMumkin([A, B, C], -1, 1)).toBe(true);
+    expect(rejaliSurishMumkin([A, B, C], -1, -1)).toBe(false);
+    expect(rejaliSurishMumkin([A, B, C], -3, -1)).toBe(false);
+    expect(rejaliSurish([A, B, C], -1, 1).map((x) => x.tempId)).toEqual([-2, -1, -3]);
+    expect(rejaliSurish([A, B, C], -2, -1).map((x) => x.tempId)).toEqual([-2, -1, -3]);
+  });
+
+  it('tayangan buyruqlar bilan birga ko‘chadi (yaratilish tartibi buzilmaydi)', () => {
+    const r = rejaliSurish([A, A2, B], -1, 1).map((x) => x.tempId);
+    expect(r).toEqual([-2, -1, -4]);
+    expect(rejaliSurish(r.map((id) => [A, A2, B].find((x) => x.tempId === id)!), -2, 1).map((x) => x.tempId)).toEqual([-1, -4, -2]);
+  });
+
+  it('ko‘rsatish tartibi ham buyruqlar tartibiga mos', () => {
+    const t = (list: RejaliBuyruq[]) => { const m = new Map(rejaliQatorlar(list, ROWS).map((r) => [r.id, Number(r.tartib)])); return m; };
+    const a = t([A, B]); expect(a.get(-1)!).toBeLessThan(a.get(-2)!);
+    const s = t(rejaliSurish([A, B], -1, 1)); expect(s.get(-2)!).toBeLessThan(s.get(-1)!);
   });
 });

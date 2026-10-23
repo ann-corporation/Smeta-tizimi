@@ -24,7 +24,7 @@ import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
-import { BOLIM_ILDIZ, SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
+import { BOLIM_ILDIZ, SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
@@ -816,6 +816,11 @@ function Sessiya({ companyId }: { companyId: number }) {
     rejaliRef.current = r.buyruqlar;
     setRejali(r.buyruqlar); tarixniTozala(); setIj(r.ij);
   }
+  /** Saqlanmagan qatorni ▲/▼ — faqat lokal navbat (RPC yo'q), «Saqlash» shu tartibda yozadi. */
+  function onRejaliSurish(tempId: number, yon: -1 | 1) {
+    const keyingi = rejaliSurish(rejaliRef.current, tempId, yon);
+    rejaliRef.current = keyingi; setRejali(keyingi);
+  }
   const rejaliYarat: RejaliYaratish = async (b, real) => {
     const asos = { kompaniyaId: companyId, obyektId: Number(objectId), otaQatorId: real.otaQatorId, nom: b.nom, birlik: b.birlik,
       hajm: b.hajm as number, kod: b.kod, sabab: b.sabab, operationId: b.operationId, expectedVersion: real.otaVersiya, keyinQatorId: real.keyinQatorId };
@@ -1245,6 +1250,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         <ul className="max-h-40 space-y-0.5 overflow-auto">{rejali.map((b) => <li key={b.tempId} className="flex items-center gap-2">
           <span className={`rounded px-1 text-[10px] font-semibold ${b.kind === 'replacement' || b.kind === 'resurs_ish' ? 'bg-amber-500/25' : 'bg-emerald-500/25'}`}>{b.kind === 'replacement' || b.kind === 'resurs_ish' ? t('zamena') : b.kind === 'resource' ? t('resurs') : b.kind === 'bolim' ? t('bo‘lim') : t('qo‘shimcha')}</span>
           <span className="min-w-0 flex-1 truncate">{b.nom} · {b.hajm ?? '—'} {b.birlik}{b.resurslar.length ? ` · ${b.resurslar.length} ${t('resurs')}` : ''}</span>
+          {([-1, 1] as const).map((yon) => <button key={yon} type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy || !rejaliSurishMumkin(rejali, b.tempId, yon)} onClick={() => onRejaliSurish(b.tempId, yon)} aria-label={`${yon < 0 ? t('Yuqoriga') : t('Pastga')}: ${b.nom}`}>{yon < 0 ? '▲' : '▼'}</button>)}
           <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy} onClick={() => onRejaliOchir(b.tempId)} aria-label={`${t('Olib tashlash')}: ${b.nom}`}>✕</button>
         </li>)}</ul>
       </section>}
