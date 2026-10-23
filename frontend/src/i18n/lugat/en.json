@@ -2879,5 +2879,20 @@
   "Shu F2": "This F-2",
   "Smeta qatori": "Estimate row",
   "Takror kiritish hajmni ikki marta yopadi.": "Entering it again would close the volume twice.",
-  "{n} ta qator smeta qoldig‘idan oshadi (ma’lumot uchun — yozish to‘xtatilmaydi).": "{n} rows exceed the estimate remainder (for information — writing is not blocked)."
+  "{n} ta qator smeta qoldig‘idan oshadi (ma’lumot uchun — yozish to‘xtatilmaydi).": "{n} rows exceed the estimate remainder (for information — writing is not blocked).",
+  "Bu summaga mos varaq topilmadi.": "No sheet matches this amount.",
+  "Fayldagi F2 varaqlari": "F-2 sheets in the file",
+  "Fayldagi F2 varaqlari — har varaq alohida F2": "F-2 sheets in the file — each sheet is a separate F-2",
+  "Keyingi varaq → yangi F2": "Next sheet → new F-2",
+  "manfiy": "negative",
+  "Mos varaqni tanlash": "Select the matching sheet",
+  "Reestr summasi (QQSsiz yoki QQS bilan)": "Register amount (excl. or incl. VAT)",
+  "shu seansda yozildi": "written in this session",
+  "Varaq": "Sheet",
+  "ВСЕГО (QQS bilan)": "TOTAL (incl. VAT)",
+  "ВСЕГО ÷ 1,12 (QQSsiz)": "TOTAL ÷ 1.12 (excl. VAT)",
+  "ИТОГО ПРЯМЫЕ": "TOTAL DIRECT COSTS",
+  "ВСЕГО − ранее (QQS bilan)": "TOTAL − previous (incl. VAT)",
+  "(ВСЕГО − ранее) ÷ 1,12": "(TOTAL − previous) ÷ 1.12",
+  "ВСЕГО": "TOTAL"
 }
