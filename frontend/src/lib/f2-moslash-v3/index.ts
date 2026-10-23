@@ -357,7 +357,11 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const aniq = lr.size ? mos.filter((s) => listRaqamlari(s.nom).split(',').some((x) => lr.has(x))) : [];
       if (aniq.length) { mos = aniq; usul += '+list'; }
     }
-    if (mos.length > 1) mos = mos.filter((s) => !mos.some((b) => b !== s && ajdodmi(s, b)));
+    // Bir nomli razdellar ichma-ich bo'lsa (egasi prod sinovi 2026-10-23: obyekt nomli razdel ichida
+    // «ОВ И ВК / … / <obyekt>» kabi yana o'sha nom — import qilingan smetadagi takroriy jadval sarlavhalari),
+    // ENG TASHQISI olinadi: u ichkilarini ham qamraydi. Eng ichkisini olish butun F2 ni bitta kichik
+    // bo'limga qamab qo'yardi va qolgan barcha bo'limlar «unresolved» bo'lib, 93 ishning hammasi ✕ edi.
+    if (mos.length > 1) mos = mos.filter((s) => !mos.some((b) => b !== s && ajdodmi(b, s)));
     if (!mos.length) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [], ok: false, usul: 'ota_doirasi' });
       // An unmatched heading is a real scope ambiguity even when its parent
