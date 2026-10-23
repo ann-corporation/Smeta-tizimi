@@ -393,6 +393,8 @@ it('restores the selected library and displays explicit source scale with a phys
     expect(screen.getByLabelText('Hajm (м3)')).toBeTruthy();
     expect(screen.queryByText(/manbada aniqlanmagan/)).toBeNull();
     expect(screen.queryByText(/marta kuzatilgan/)).toBeNull();
-    expect(workUnitOf(library)('unparsed source measure')).toBe('unparsed source measure');
+    // A selected catalogue is not the source of every frozen occurrence;
+    // literal measures are resolved from each occurrence during export.
+    expect(workUnitOf(library)('unparsed source measure')).toBeNull();
   } finally { unit.mockRestore(); open.mockReset(); }
 });
