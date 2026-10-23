@@ -20,6 +20,7 @@
 import { RasmiyVaraq, rasmiyKitob, hujjatFaylNomi, type Qiymat, type RasmiyUstun } from '../hujjat-yozuvchi';
 import type { DocCalc, LineCalc } from './calc';
 import type { CatalogResource, EstimateDoc } from './model';
+import { normativeWorkUnit } from '../resource-semantics';
 import { resourceCategory } from './export-adapter';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from '../narx-bildirishnoma';
 import { NAKRUTKA_KATLAR, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from '../nakrutka-podval';
@@ -83,7 +84,11 @@ function lrvVaraq(doc: EstimateDoc, calc: DocCalc, units: Units, o: AbcHujjatOps
       // «исключать» positions carry a negative work quantity, so every resource formula comes out negative too.
       const scale = n(occ.basis.scale), qty0 = n(occ.quantity), qty = qty0 == null ? null : occ.ishora === -1 ? -qty0 : qty0;
       const normQty = qty != null && scale ? Math.round((qty / scale) * 1e9) / 1e9 : null;
-      const unit = workUnit(occ.source.unitCode) ?? occ.basis.unitLabel ?? '';
+      // The selected catalogue may differ from this frozen occurrence's source.
+      // New-source measures are literal; legacy dictionary misses fall back to
+      // the saved normative scale, never a physical unit with the scale lost.
+      const sourceMeasure = occ.source.workId.startsWith('norm-library:') ? occ.source.unitCode : null;
+      const unit = sourceMeasure ?? workUnit(occ.source.unitCode) ?? normativeWorkUnit(occ.basis) ?? '';
       const wr = v.r;
       v.qator('ish', (): Qiymat[] => [String(work), occ.source.code, occ.source.name ?? '', unit,
         normQty == null ? null : { n: normQty, uslub: 'norma' }, null], { daraja: depth + 1 });

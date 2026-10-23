@@ -29,6 +29,18 @@ const draft = (priced = true) => ([
 const sheet = (bytes: Uint8Array, name: string) => XLSX.utils.sheet_to_json<string[]>(XLSX.read(bytes).Sheets[name], { header: 1, raw: false, defval: '' });
 
 describe('ABC-shaped LRV + RES', () => {
+  it('keeps each frozen source normative unit when exporting a mixed-source draft after switching libraries', () => {
+    const revision = '66bb1a23bd18c63006d447b5';
+    const d = applyCommand(draft(false), {type:'ADD_OCCURRENCE',occurrenceId:'new',sectionId:'k',recipe,quantity:'200',
+      basis:{scale:'100',unitLabel:'м3',origin:'OPERATOR',evidence:'source measure'},
+      source:{...source,catalogRevision:revision,workId:`norm-library:${revision}:Е06-01-001-1`,code:'Е06-01-001-1',unitCode:'100 м3 грунта'}});
+    const result = abcHujjat(d,calcDoc(d),{resource:unitText,work:()=>null});
+    const rows=sheet(result.bytes,'LRV');
+    expect(rows.find(row=>row[1]===source.code)?.[3]).toBe('1000 М3');
+    const added=rows.find(row=>row[1]==='Е06-01-001-1')!;
+    expect(added[3]).toBe('100 М3 ГРУНТА');
+    expect(Number(added[4])).toBe(2);
+  });
   it('material sub-groups follow the price-collection code', () => {
     expect(materialGroup(res('1', '', 'С140-12303', '', 'M', ''))).toBe('ИНЕРТНЫЕ МАТЕРИАЛЫ');
     expect(materialGroup(res('1', '', 'С121-1', '', 'M', ''))).toBe('МЕТАЛЛОКОНСТРУКЦИИ');

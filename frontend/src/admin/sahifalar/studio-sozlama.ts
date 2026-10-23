@@ -13,5 +13,5 @@ export function unitTextOf(_katalog?: StudioNormCatalog | null) {
 }
 /** Observed legacy work unit, or the literal measure supplied by a source-basis catalogue. */
 export function workUnitOf(katalog: StudioNormCatalog | null) {
-  return (code: string | null) => { if (!code || !katalog) return null; const u = katalog.unit(code); return u ? u.text : ('sourceBasis' in katalog ? code : null); };
+  return (code: string | null) => { if (!code || !katalog) return null; return katalog.unit(code)?.text ?? null; };
 }
