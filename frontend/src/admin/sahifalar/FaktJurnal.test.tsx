@@ -5,6 +5,8 @@ import type { T2Qator } from '../../api/supabase';
 const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn() }));
 vi.mock('../../api/t2-fakt', () => ({ sbFaktYoz: m.yoz }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
+const baj = vi.hoisted(() => ({ royxat: vi.fn(async () => ({ ok: true, qatorlar: [] as unknown[] })), belgila: vi.fn(), bekor: vi.fn() }));
+vi.mock('../../api/t2-bajarilmadi', async (orig) => ({ ...(await orig<typeof import('../../api/t2-bajarilmadi')>()), bajarilmadiRoyxatOl: baj.royxat, bajarilmadiBelgila: baj.belgila, bajarilmadiBekor: baj.bekor }));
 const abc = vi.hoisted(() => ({ ochir: vi.fn() }));
 vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: vi.fn(async () => []), resursQidir: vi.fn(async () => []), narxTakliflari: vi.fn(async () => []), ishAbcSaqla: vi.fn(), ishAbcTahrir: vi.fn(), ishAbcOchir: abc.ochir, abcXato: () => '' }));
 
@@ -97,5 +99,42 @@ describe('FaktJurnal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'O‘chirish: Qo‘shimcha devor' }));
     await waitFor(() => expect(abc.ochir).toHaveBeenCalledWith(expect.objectContaining({ obyektId: 8, qatorId: 9, sabab: 'xato kiritilgan' })));
     await waitFor(() => expect(p.tuzilmaniYangila).toHaveBeenCalled());
+  });
+
+
+  it('klaviatura: qidiruvdan ↓ — birinchi hajm katagiga; Esc (bo‘sh) — qidiruvga qaytadi; Ctrl+Enter saqlaydi', async () => {
+    m.yoz.mockResolvedValue({ ok: true });
+    render(<FaktJurnal {...props()} />);
+    const qid = screen.getByLabelText('Qidirish') as HTMLInputElement;
+    qid.focus();
+    fireEvent.keyDown(qid, { key: 'ArrowDown' });
+    const grunt = screen.getByLabelText('Bugun bajarildi: Grunt') as HTMLInputElement;
+    expect(document.activeElement).toBe(grunt);
+    fireEvent.keyDown(grunt, { key: 'Escape' });
+    expect(document.activeElement).toBe(qid);
+    grunt.focus();
+    fireEvent.change(grunt, { target: { value: '3' } });
+    fireEvent.keyDown(grunt, { key: 'Enter', ctrlKey: true });
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ qatorlar: [{ qator_id: 2, hajm: 3 }] })));
+  });
+
+  it('«Bajarilmaydi»: tugma modalni ochadi, taklif hajm = smeta - fakt, smeta o‘zgarmaydi', async () => {
+    baj.belgila.mockResolvedValue({ ok: true });
+    render(<FaktJurnal {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Bajarilmaydi: Grunt/ }));
+    const dlg = screen.getByRole('dialog', { name: 'Bajarilmaydi' });
+    expect((screen.getByLabelText('Bajarilmagan hajm') as HTMLInputElement).value).toBe('60');
+    fireEvent.keyDown(dlg, { key: 'Enter' });
+    await waitFor(() => expect(baj.belgila).toHaveBeenCalledWith(expect.objectContaining({ kompaniyaId: 1, obyektId: 8, qatorlar: [{ qator_id: 2, hajm: 60 }], sabab: 'texnik_sabab' })));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Bajarilmaydi' })).toBeNull());
+    expect(m.yoz).not.toHaveBeenCalled();
+  });
+
+  it('Fakt Studio paneli: F2 tayyorlash tugmasi f2Otish ni chaqiradi', () => {
+    const f2 = vi.fn();
+    render(<FaktJurnal {...props()} f2Otish={f2} />);
+    expect(screen.getByTestId('fakt-studio-bar')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /F2 tayyorlash/ }));
+    expect(f2).toHaveBeenCalled();
   });
 });
