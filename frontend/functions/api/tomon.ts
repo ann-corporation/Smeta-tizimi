@@ -27,6 +27,7 @@ const OQISH: Record<string, string> = {
   murojaat: 't2_tomon_murojaat_tafsilot_v1',
   murojaat_turlari: 't2_tomon_murojaat_turlari_v1',
   ulashlar: 't2_obyekt_ulashlar_v1',
+  izohlar: 't2_izohlar_v1',
 };
 /** Yozish amallari: amal → RPC. */
 const YOZISH: Record<string, string> = {
@@ -47,6 +48,8 @@ const YOZISH: Record<string, string> = {
   murojaat_bekor: 't2_tomon_murojaat_bekor_v1',
   loyiha_umumiy: 't2_loyiha_umumiy_v1',
   ulash: 't2_obyekt_ulash_v1',
+  qator_izoh: 't2_izoh_yoz_v1',
+  qator_izoh_hal: 't2_izoh_hal_v1',
 };
 /** T5: obyektni havola bilan ulashishda ochiladigan resurslar (faqat ko'rish). */
 const ULASH_RESURSLARI = ['shartnoma_xulosa', 'f2'];
@@ -166,6 +169,15 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
     case 'murojaat_qaror':
       if (!sonmi(so.murojaat_id) || !['yopish', 'qayta_ochish'].includes(String(so.qaror))) return 'murojaat_id va qaror (yopish/qayta_ochish) kerak';
       return { p_kompaniya_id, p_id: son(so.murojaat_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000) };
+    case 'qator_izoh': {
+      if (so.manba_jadval !== 't2_akt_qator' || !sonmi(so.manba_id)) return 'manba_jadval (t2_akt_qator) va manba_id kerak';
+      const m = matn(so.matn, 4000);
+      if (!m) return 'Izoh matni kerak';
+      return { p_kompaniya_id, p_operation_id: opId(so.operation_id), p_aloqa_id: ixtSon(so.aloqa_id), p_manba_jadval: 't2_akt_qator', p_manba_id: son(so.manba_id), p_matn: m, p_ota_izoh_id: ixtSon(so.ota_izoh_id) };
+    }
+    case 'qator_izoh_hal':
+      if (!sonmi(so.izoh_id) || !sonmi(so.versiya) || typeof so.hal !== 'boolean') return 'izoh_id, versiya va hal (true/false) kerak';
+      return { p_kompaniya_id, p_operation_id: opId(so.operation_id), p_izoh_id: son(so.izoh_id), p_kutilgan_versiya: son(so.versiya), p_hal: so.hal };
     case 'loyiha_umumiy':
       return { p_kompaniya_id };
     case 'murojaat_bekor':
@@ -199,6 +211,7 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
       return { p_kompaniya_id, p_yonalish: y === 'kelgan' || y === 'yuborilgan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null,
                p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
     }
+    case 'izohlar': return sonmi(q.get('akt_id')) ? { p_kompaniya_id, p_akt_id: Number(q.get('akt_id')), p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 500, p_keyin_id: ixtSon(q.get('keyin_id')) ?? 0 } : 'akt_id kerak';
     case 'ulashlar': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')) } : 'obyekt_id kerak';
     case 'qidir': {
       const inn = (q.get('inn') ?? '').trim();

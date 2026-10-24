@@ -3,7 +3,7 @@
  * shartnoma, bajarilish (sertifikatlangan F2 / shartnoma), F2 aktlar ro'yxati va yuborilgan hujjatlar holati
  * (yuborildi -> ko'rib chiqilmoqda -> izoh -> qabul/rad). Yangi hisob YO'Q: raqamlar `zakazchikObyektlarOl` va
  * `taqdimlarOl` javobidan (server grant bo'yicha qirqiydi); ruxsat berilmagan ko'rsatkich bu yerga kelmaydi.
- * Summa — aktdagi sertifikatlangan qiymat (QQSsiz); buyurtmachi pudratchi ustamasini ko'rmaydi, shuning uchun bo'linmaydi.
+ * Summa: har akt uchun ikkita rasmiy raqam (ustamali + ustamasiz, NDS siz) va hujjatdagi podval satrlari; server hisoblaydi,\n * ichki koeffitsient/marja ko'rsatilmaydi. Eski serverda (ustama yo'q) faqat sertifikatlangan jami ko'rinadi.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -12,7 +12,8 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { taqdimlarOl, zakazchikObyektlarOl, type TaqdimQisqa, type ZakazchikObyekt } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
-import { Bolim, HolatBelgi } from './tomon-ui';
+import { Bolim, HolatBelgi, PodvalJadvali, TomonSummaJuft } from './tomon-ui';
+import ObyektSorovlari from './ObyektSorovlari';
 import { bajarilishFoizi, holatYigindisi } from './obyekt-portali-yordam';
 import { oyMatn, pul, sana } from './tomon-yordam';
 
@@ -44,8 +45,8 @@ export default function ObyektPortali() {
     return () => { bekor = true; };
   }, [kompaniyaId, aloqaId, obyektId]);
 
-  // Taqdim ro'yxatida obyekt id yo'q — nom bo'yicha (aloqa doirasida) filtrlanadi.
-  const obyektHujjatlari = useMemo(() => (obyekt ? hujjatlar.filter((x) => x.obyekt_nom === obyekt.obyekt_nom) : []), [hujjatlar, obyekt]);
+  // obyekt_id bo'lsa u bo'yicha (20261108102000 dan keyin), aks holda nom bo'yicha (aloqa doirasida).
+  const obyektHujjatlari = useMemo(() => (obyekt ? hujjatlar.filter((x) => (x.obyekt_id != null ? x.obyekt_id === obyekt.obyekt_id : x.obyekt_nom === obyekt.obyekt_nom)) : []), [hujjatlar, obyekt]);
   const yigindi = useMemo(() => holatYigindisi(obyektHujjatlari), [obyektHujjatlari]);
 
   if (!kompaniyaId) return <KompaniyaKerak nima="Buyurtmachi kabineti" />;
@@ -62,7 +63,11 @@ export default function ObyektPortali() {
           <p className="text-sm text-text-dim">{obyekt.qarshi_nom} — {obyekt.qarshi_rol}</p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Kartochka nom="Shartnoma summasi (QQSsiz)" qiymat={obyekt.shartnoma ? pul(obyekt.shartnoma.summa_bez_nds) : t('ochilmagan')} izoh={obyekt.shartnoma ? `№ ${obyekt.shartnoma.raqam}` : undefined} />
-            <Kartochka nom="Sertifikatlangan F2 jami" qiymat={obyekt.f2 ? pul(obyekt.f2.jami) : t('ochilmagan')} izoh={obyekt.f2 ? `${obyekt.f2.soni} ${t('ta akt')}` : undefined} />
+            {obyekt.f2?.ustama_jami ? (
+              <div className="rounded-lg border border-border px-3 py-2"><div className="text-[11px] uppercase text-text-dim">{t('Sertifikatlangan F2 jami')}</div>
+                <div className="text-xl font-semibold"><TomonSummaJuft u={obyekt.f2.ustama_jami} /></div><div className="text-[11px] text-text-dim">{obyekt.f2.soni} {t('ta akt')}</div></div>
+            ) : (
+              <Kartochka nom="Sertifikatlangan F2 jami" qiymat={obyekt.f2 ? pul(obyekt.f2.jami) : t('ochilmagan')} izoh={obyekt.f2 ? `${obyekt.f2.soni} ${t('ta akt')}` : undefined} />)}
             <Kartochka nom="Bajarilish" qiymat={foiz == null ? '—' : `${foiz} %`} izoh="sertifikatlangan F2 / shartnoma" />
             <Kartochka nom="Qaror kutayotgan hujjat" qiymat={String(kutayotgan)} izoh={qabul ? `${t('Qabul qilingan')}: ${qabul.soni}` : undefined} />
           </div>
@@ -87,8 +92,14 @@ export default function ObyektPortali() {
             {!obyekt.f2 ? <p className="text-sm text-text-dim">{t('Pudratchi F2 ni sizga hali ochmagan.')}</p> : obyekt.f2.royxat.length === 0 ? <p className="text-sm text-text-dim">{t('Hali sertifikatlangan akt yo‘q')}</p> : (
               <table className="w-full min-w-[420px] text-xs"><thead className="text-left text-text-dim"><tr><th className="px-2 py-1">№</th><th className="px-2 py-1">{t('Oy')}</th><th className="px-2 py-1 text-right">{t('Summa (QQSsiz)')}</th></tr></thead>
                 <tbody>{obyekt.f2.royxat.map((a) => (
-                  <tr key={a.akt_id} className="border-t"><td className="px-2 py-1">{a.raqam ?? a.akt_id}</td><td className="px-2 py-1">{oyMatn(a.oy)}</td><td className="px-2 py-1 text-right tabular-nums">{pul(a.jami)}</td></tr>))}</tbody></table>)}
+                  <tr key={a.akt_id} className="border-t align-top"><td className="px-2 py-1">{a.raqam ?? a.akt_id}</td><td className="px-2 py-1">{oyMatn(a.oy)}</td>
+                    <td className="px-2 py-1 text-right">{a.ustama ? (
+                      <div className="flex flex-col items-end gap-1"><TomonSummaJuft u={a.ustama} kichik />
+                        <details className="text-left"><summary className="cursor-pointer text-[11px] text-accent">{t('Hujjatdagi podval')}</summary><PodvalJadvali podval={a.ustama.podval} /></details></div>
+                    ) : <span className="tabular-nums">{pul(a.jami)}</span>}</td></tr>))}</tbody></table>)}
           </Bolim>
+
+          <ObyektSorovlari kompaniyaId={kompaniyaId} aloqaId={aloqaId} obyektId={obyektId} obyektNom={obyekt.obyekt_nom} />
         </>}
       </div>
     </Sahifa>
