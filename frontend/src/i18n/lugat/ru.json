@@ -3173,5 +3173,8 @@
   "МАШ — mash-soat (mashina)": "МАШ — маш-час (машины)",
   "ОБ — uskunalar": "ОБ — оборудование",
   "ЧЕЛ — chel-soat (ishchi kuchi)": "ЧЕЛ — чел-час (рабочая сила)",
-  "JAMI (ustama bilan, QQS siz)": "ИТОГО (с накруткой, без НДС)"
+  "fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)": "превышает фактический остаток (разрешено, предупреждение)",
+  "qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring": "вместе с черновиком Ф-2 берётся дважды — проверьте",
+  "smeta hajmidan oshadi (ruxsat, ogohlantirish)": "превышает объём сметы (разрешено, предупреждение)",
+  "tasdiqlangan F2": "утверждённые Ф-2"
 }
