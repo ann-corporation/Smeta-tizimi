@@ -13,6 +13,7 @@ import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektUlash } from '../components/ulash/ObyektUlash';
 
 const ObjectLocationMap = lazy(() => import('../components/pto-workspace/ObjectLocationMap'));
+const ObyektlarXaritasi = lazy(() => import('../components/pto-workspace/ObyektlarXaritasi'));
 
 type Qator = T2Obyekt;
 
@@ -43,6 +44,9 @@ export default function TestObyektlar() {
   const [yangiNom, setYangiNom] = useState('');
   const [yangiLoyihaId, setYangiLoyihaId] = useState('');
   const [yaratilmoqda, setYaratilmoqda] = useState(false);
+  const [yangiJoy, setYangiJoy] = useState<[number, number] | null>(null);
+  const [yangiJoyOchiq, setYangiJoyOchiq] = useState(false);
+  const [xaritaKorinadi, setXaritaKorinadi] = useState(false);
 
   useEffect(() => {
     if (!joriy?.id) { setLoyihalar([]); return; }
@@ -57,8 +61,18 @@ export default function TestObyektlar() {
     try {
       const r = await sbT2ObyektYarat({ kompaniyaId: joriy.id, loyihaId: yangiLoyihaId ? Number(yangiLoyihaId) : null, nom: yangiNom.trim() });
       if (!r.ok) { toast(r.xato || r.error || r.code || 'Obyekt yaratilmadi', 'danger'); return; }
-      toast('Obyekt yaratildi', 'ok');
-      setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId('');
+      let joyXabari = '';
+      if (yangiJoy && r.obyekt_id) {
+        /* Yaratish RPC'si lat/lng olmaydi: yangi qatorning versiyasini o'qib, lokatsiyani alohida yozamiz. */
+        try {
+          const yangilar = await sbT2ObyektlarOlKomp(joriy.id);
+          const q = (yangilar.qatorlar as Qator[] | undefined)?.find((x) => x.id === r.obyekt_id);
+          const lr = await sbObyektLokatsiyaBelgila(r.obyekt_id, yangiJoy[0], yangiJoy[1], q?.versiya || 1);
+          if (!lr?.ok) joyXabari = ' ' + t('Lokatsiya saqlanmadi - tahrirlashda qayta belgilang.');
+        } catch { joyXabari = ' ' + t('Lokatsiya saqlanmadi - tahrirlashda qayta belgilang.'); }
+      }
+      toast('Obyekt yaratildi.' + joyXabari, joyXabari ? 'danger' : 'ok');
+      setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false);
       sinxronla();
     } catch (e: any) {
       toast('Xatolik: ' + (e?.message || e), 'danger');
@@ -96,14 +110,27 @@ export default function TestObyektlar() {
     try {
       setYuklanmoqda(true);
       
+      const nomTurOzgardi = nomi !== editObj.nom || tur !== (editObj.tur || '');
+      const joyOzgardi = !!position && (editObj.lat == null || editObj.lng == null
+        || Math.abs(Number(editObj.lat) - position[0]) > 1e-7 || Math.abs(Number(editObj.lng) - position[1]) > 1e-7);
+      let versiya = editObj.versiya || 0;
+
       // Agar nom yoki tur o'zgargan bo'lsa
-      if (nomi !== editObj.nom || tur !== (editObj.tur || '')) {
-        await sbObyektTahrirlash(editObj.id, nomi, tur);
+      if (nomTurOzgardi) {
+        const r1 = await sbObyektTahrirlash(editObj.id, nomi, tur);
+        if (r1 && r1.ok === false) throw new Error(r1.error || r1.xato || 'Nom/tur saqlanmadi');
+        /* Birinchi yozuv versiyani oshiradi - lokatsiya uchun yangisini o'qiymiz. */
+        if (joyOzgardi && joriy?.id) {
+          const yangilar = await sbT2ObyektlarOlKomp(joriy.id);
+          const q = (yangilar.qatorlar as Qator[] | undefined)?.find((x) => x.id === editObj.id);
+          if (q?.versiya != null) versiya = q.versiya;
+        }
       }
-      
-      // Agar lokatsiya o'zgargan bo'lsa
-      if (position) {
-        await sbObyektLokatsiyaBelgila(editObj.id, position[0], position[1], editObj.versiya || 0);
+
+      // Agar lokatsiya o'zgargan bo'lsa (faqat o'zgargandagina yoziladi)
+      if (joyOzgardi && position) {
+        const r2 = await sbObyektLokatsiyaBelgila(editObj.id, position[0], position[1], versiya);
+        if (r2 && r2.ok === false) throw new Error(r2.error || r2.xato || 'Lokatsiya saqlanmadi');
       }
 
       toast('Obyekt tahrirlandi', 'ok');
@@ -166,6 +193,12 @@ export default function TestObyektlar() {
             <Plus size={15} />
             Yangi obyekt
           </button>
+          <button onClick={() => setXaritaKorinadi((v) => !v)} aria-pressed={xaritaKorinadi}
+            className={'h-9 px-3 inline-flex items-center gap-2 rounded-[10px] karta text-sm transition-colors ' +
+              (xaritaKorinadi ? 'border-[var(--accent)] text-[var(--accent)]' : 'text-text hover:border-[var(--accent)]/50')}>
+            <MapPin size={15} />
+            {t('Xaritada')}
+          </button>
           <button onClick={() => void sinxronla()} disabled={yuklanmoqda}
             className="h-9 px-3 inline-flex items-center gap-2 rounded-[10px] karta text-sm
                        text-text hover:border-[var(--accent)]/50 transition-colors
@@ -177,9 +210,19 @@ export default function TestObyektlar() {
       }
     >
       <div className="space-y-3">
+        {xaritaKorinadi && currentRows && (
+          <div className="karta p-3">
+            <Suspense fallback={<div className="skel h-[360px] rounded-xl" />}>
+              <ObyektlarXaritasi obyektlar={currentRows}
+                loyihaNomi={(id) => loyihalar.find((l) => l.id === id)?.nom}
+                onOpen={(o) => { workspace.setObjectId(o.id); navigate(`/admin/holat/${o.id}`); }}
+                onBelgila={(o) => { const q = currentRows.find((x) => x.id === o.id); if (q) handleTahrir({ stopPropagation() {} }, q); }} />
+            </Suspense>
+          </div>
+        )}
         {yaratishOchiq && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-surface border border-border p-5 rounded-2xl w-[440px] shadow-2xl">
+            <div className="bg-surface border border-border p-5 rounded-2xl w-full max-w-[520px] max-h-[92vh] overflow-auto shadow-2xl">
               <h3 className="font-bold text-lg mb-4 text-text flex items-center gap-2">
                 <FolderKanban className="text-accent" /> Yangi obyekt
               </h3>
@@ -202,8 +245,20 @@ export default function TestObyektlar() {
                   </span>
                 )}
               </label>
+              <div className="mb-4">
+                <button type="button" onClick={() => setYangiJoyOchiq((v) => !v)}
+                  className="text-[12px] text-accent underline inline-flex items-center gap-1">
+                  <MapPin size={13} /> {yangiJoyOchiq ? t('Lokatsiyani yashirish') : t('Lokatsiyani xaritadan belgilash (ixtiyoriy)')}
+                </button>
+                {yangiJoy && <span className="ml-2 text-[11px] text-text-mute font-mono">{yangiJoy[0].toFixed(5)}, {yangiJoy[1].toFixed(5)}</span>}
+                {yangiJoyOchiq && (
+                  <div className="mt-2 h-[380px] border border-border rounded-xl overflow-hidden">
+                    <Suspense fallback={<div className="skel h-full" />}><ObjectLocationMap position={yangiJoy} onChange={setYangiJoy} /></Suspense>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 justify-end">
-                <button onClick={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); }}
+                <button onClick={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false); }}
                   className="px-5 py-2 rounded-xl text-sm font-medium text-text-dim hover:bg-surface-2 transition-colors">
                   Bekor qilish
                 </button>
@@ -217,7 +272,7 @@ export default function TestObyektlar() {
         )}
         {editObj && editObj.kompaniya_id === joriy?.id && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-surface border border-border p-5 rounded-2xl w-[600px] shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="bg-surface border border-border p-5 rounded-2xl w-full max-w-[640px] shadow-2xl flex flex-col max-h-[92vh] overflow-auto">
               <h3 className="font-bold text-lg mb-4 text-text flex items-center gap-2">
                 <MapPin className="text-accent"/> Obyekt Joylashuvini Belgilash
               </h3>
@@ -227,9 +282,7 @@ export default function TestObyektlar() {
                 <input value={tur} onChange={e=>setTur(e.target.value)} className="w-1/3 bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" placeholder="Turi..." />
               </div>
 
-              <p className="text-[12px] text-text-dim mb-2">Kartadan obyekt joylashgan nuqtani bosing:</p>
-              
-              <div className="flex-1 min-h-[300px] border border-border rounded-xl overflow-hidden mb-4 relative z-0">
+              <div className="h-[420px] border border-border rounded-xl overflow-hidden mb-4 relative z-0">
                 <Suspense fallback={<div className="skel h-full" />}><ObjectLocationMap position={position} onChange={setPosition} /></Suspense>
               </div>
 
