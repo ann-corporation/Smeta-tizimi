@@ -281,7 +281,7 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(taught).toMatchObject({ holat: 'aniq', qatorId: targetId });
   });
 
-  it('unmapped nested F2 subsection cannot fall back to its matched parent scope', () => {
+  it('unmapped nested F2 subsection: parent scope gives only a ◐ proposal, never an automatic link', () => {
     const parentName = 'СМЕТА № 01-01 НА КОНСТРУКТИВНАЯ ЧАСТЬ-ОЗЕРА';
     const childName = 'ВНУТРЕННИЙ РАЗДЕЛ БЕЗ СОВПАДЕНИЯ';
     const targetId = ish(L3a, 'NESTED-SCOPE-001', 'ВНУТРЕННИЙ ТЕСТОВЫЙ РАБОЧИЙ ПРОЦЕСС', 'М2', 1);
@@ -289,9 +289,11 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     const inner = rzF(childName, [parentName], [source]);
     const outer = rzF(parentName, [], [inner]);
 
+    // Egasi 2026-10-24 (stend: kichik bo'lim nomi smetadagidan farq qiladi — «ПОЯС»/«ПОЯСА», «НАРУЖНЫЙ СТОЙКА»): ota bo'lim
+    // doirasida topilgan ish faqat ◐ taklif — operator tasdiqlaydi; avtomatik ✓ hech qachon.
     const automatic = f2MoslashV3([outer], S).natijalar.get(source.uid)!;
-    expect(automatic).toMatchObject({ holat: 'topilmadi', qatorId: null });
-    expect(automatic.sabab).toMatch(/bo‘lim.*hali bog‘lanmagan/);
+    expect(automatic).toMatchObject({ holat: 'taklif', qatorId: targetId });
+    expect(automatic.sabab).toMatch(/kichik bo‘limi.*aniqlanmadi/);
 
     const taught = f2MoslashV3([outer], S, { rzBog: new Map([[inner.uid, L3a]]) }).natijalar.get(source.uid)!;
     expect(taught).toMatchObject({ holat: 'aniq', qatorId: targetId });

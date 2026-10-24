@@ -375,13 +375,37 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   let oxirgiTartib = -1;
 
   // ── Razdel doirasi (ierarxik): bonus uchun, qat'iy cheklov emas ──
-  type Doira = { rzlar: STugun[] | null; holat: 'global' | 'scoped' | 'unresolved' };
+  // 'ota' — F2 bo'limi o'z ota bo'limi ichida aniqlanmadi, qidiruv ota doirasida; bunda avto ✓ YO'Q, eng yaxshisi ◐.
+  type Doira = { rzlar: STugun[] | null; holat: 'global' | 'scoped' | 'unresolved' | 'ota' };
+  // RAZDEL XOTIRASI (tizim tajribasi): o'tgan F2 larda egasi tasdiqlagan ish imzolaridan «F2 bo'lim yo'li → smeta razdeli».
+  // Kalit — F2 bo'limlar yo'li (rzKalit lar, «/»); qiymat — o'sha ishlar turgan eng yaqin smeta razdeli. Faqat bir ma'noli bo'lsa.
+  const rzXotira = new Map<string, Map<number, number>>();
+  if (opts.xotira) for (const [imzo, qid] of opts.xotira) {
+    if (imzo.includes('>')) continue;
+    const yol = imzo.slice(0, imzo.indexOf('|'));
+    if (!yol) continue;
+    let r = S.byId.get(qid)?.ota ?? null;
+    while (r && r.tur !== 'rz') r = r.ota;
+    if (!r) continue;
+    const m = rzXotira.get(yol) ?? new Map<number, number>();
+    m.set(r.id, (m.get(r.id) ?? 0) + 1);
+    rzXotira.set(yol, m);
+  }
+  const rzXotiradan = (rz: F2Tugun): STugun | null => {
+    const m = rzXotira.get([...rz.yol, rz.nom].map(rzKalit).filter(Boolean).join('/'));
+    if (!m) return null;
+    const [eng, ...qolgan] = [...m.entries()].sort((a, b) => b[1] - a[1]);
+    const jami = [eng, ...qolgan].reduce((s, x) => s + x[1], 0);
+    return eng[1] >= 3 && eng[1] / jami >= 0.9 ? S.byId.get(eng[0]) ?? null : null;
+  };
   function doiraTop(rz: F2Tugun, ota: Doira): Doira {
     const qolda = opts.rzBog?.get(rz.uid);
     if (qolda != null && S.byId.get(qolda)) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [qolda], ok: true, usul: 'qolda' });
       return { rzlar: [S.byId.get(qolda)!], holat: 'scoped' };
     }
+    const xot = rzXotiradan(rz);
+
     const qidir = (nomzod: readonly STugun[]): { mos: STugun[]; usul: string } => {
       const k = rzKalit(rz.nom);
       let mos = k ? nomzod.filter((s) => rzKalit(s.nom) === k) : [];
@@ -425,6 +449,26 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const g = qidir(barchaRz);
       const gm = mos.length ? g.mos.filter(listMos) : g.mos;
       if (gm.length === 1) { mos = gm; usul = g.usul + '+global'; }
+    }
+    // Razdel xotirasi faqat noaniqlikni hal qiladi: nom bo'yicha topilmagan, bir nechta topilgan (xotiradagisi ular orasida)
+    // yoki faqat butun smetadan topilgan bo'lsa. Nom bo'yicha yagona topilgan razdelni xotira bekor qilmaydi.
+    if (xot && (!mos.length || (mos.length > 1 && mos.some((s) => s === xot || ajdodmi(s, xot))) || (usul.endsWith('+global') && !mos.includes(xot)))) {
+      // Xotiradagi bo'lim — kuchli ishora, lekin nom bo'yicha tasdiqlanmagan: bu doirada avto ✓ yo'q, faqat ◐.
+      rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [xot.id], ok: true, usul: 'xotira' });
+      return { rzlar: [xot], holat: 'ota' };
+    }
+    if (!mos.length && ota.rzlar) {
+      // Ota bo'lim ichida so'z o'zagi bo'yicha (ПОЯС ↔ ПОЯСА, «НАРУЖНЫЙ СТОЙКА» ↔ «СТОЙКА») YAGONA eng yaqin kichik bo'lim.
+      const ozak = (s: unknown) => tokenlar(rzKalit(s)).map((t) => t.slice(0, 4));
+      const f = ozak(rz.nom);
+      const ball = barchaRz.filter((s) => ota.rzlar!.some((o) => ajdodmi(o, s))).map((s) => ({ s, d: dice(f, ozak(s.nom)) }))
+        .filter((x) => x.d >= 0.6).sort((a, b) => b.d - a.d);
+      if (ball.length && (ball.length === 1 || ball[1].d < ball[0].d - 0.01)) { mos = [ball[0].s]; usul = 'nom_ozak'; }
+    }
+    if (!mos.length && ota.rzlar && ota.holat !== 'unresolved') {
+      // Kichik bo'lim aniqlanmadi — ota bo'lim doirasida qidiriladi, lekin avto ✓ berilmaydi (eng yaxshisi ◐ taklif).
+      rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: ota.rzlar.map((s) => s.id), ok: false, usul: 'ota_doirasida' });
+      return { rzlar: ota.rzlar, holat: 'ota' };
     }
     if (!mos.length) {
       rzDiag.push({ f2Uid: rz.uid, nom: rz.nom, smetaRzIdlar: [], ok: false, usul: 'ota_doirasi' });
@@ -617,7 +661,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     // aynan bir xil YAGONA qator bo'lsa — u boshqa razdelda bo'lsa ham ◐ taklif (avto ✓ emas, operator tasdiqlaydi).
     // Egizak (2+) bo'lsa qaysi ekani ma'lumotdan ajralmaydi — oldingidek ✕ va variantlar.
     // Faqat F2 razdeli smeta razdeliga ULANGAN holatda; ulanmagan (unresolved) bo'limda — avval bo'limni ulash (kontrakt).
-    if (d.holat === 'scoped' && d.rzlar && !ichida.length) {
+    if ((d.holat === 'scoped' || d.holat === 'ota') && d.rzlar && !ichida.length) {
       const fKan = kodKanon(f.kod), fNom = normNom(f.nom);
       const kuchli = hovuz.filter((t) => !!fKan && t.kKanon === fKan && normNom(t.nom) === fNom && birMos(f.birlik, t.birlik) && f2TuriMos(f, t));
       // Egizaklar (bir nechta aynan qator): F2 hajmi faqat bittasining qoldig'iga sig'sa — o'sha; aks holda ✕ (variantlar).
@@ -876,6 +920,11 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const confirmedId = opts.ishBog?.get(t.uid);
       const confirmed = confirmedId != null ? S.byId.get(confirmedId) : undefined;
       const s = confirmed ?? ishniMosla(t, d, t.yol.map(rzKalit).join('/'));
+      if (!confirmed && d.holat === 'ota') {
+        // Kichik bo'lim smetada aniqlanmagan: ota bo'lim ichidagi topilma faqat taklif (egasi qoidasi: ✓ faqat doira mos bo'lsa).
+        const r0 = natijalar.get(t.uid);
+        if (r0?.holat === 'aniq') natijalar.set(t.uid, { ...r0, holat: 'taklif', sabab: `F2 kichik bo‘limi «${t.yol[t.yol.length - 1] ?? ''}» smetada aniqlanmadi — ota bo‘lim ichida: ${r0.sabab} — tasdiqlang` });
+      }
       if (confirmed) {
         band.add(confirmed.id);
         yoz(t.uid, { uid: t.uid, holat: 'aniq', qatorId: confirmed.id, usul: 'tasdiqlangan', nomzodlar: [], sabab: 'mavjud tasdiqlangan bog‘lanish saqlandi' });
