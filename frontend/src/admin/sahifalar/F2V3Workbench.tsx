@@ -1,5 +1,5 @@
 import { oshibKetdimi } from '../../lib/ostatka-export';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, ArrowDownToLine, X, Pencil, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { T2Qator } from '../../api/supabase';
@@ -7,7 +7,7 @@ import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { qidiruvMatni, qidiruvMoslagich } from '../../lib/f2-moslash-v3/qidiruv';
 import type { F2MoslashNatija, Nomzod, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
-  bogla, guruhHisobla, guruhHolati, guruhIldizi, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, tasdiqla, uz,
+  bogla, f2HajmiSmetaBirligida, guruhHisobla, guruhHolati, guruhIldizi, hisobla, ishniBogla, ishniTasdiqla, korinish, narxFarqiFoiz, oshaQatormi, otkazibYubor, rzTaklifHisobla, tasdiqla, TARKIB_USUL, uz,
   type F2Indeks, type IshJoyi, type KorinishHolat, type SmetaIndeks,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { F2AddReplModal, type DropAction, type ModalRejali } from './F2AddReplModal';
@@ -340,13 +340,14 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const m = new Map<number, { hajm: number; uidlar: string[] }>();
     for (const [uid, b] of ij.bog) {
       const t = ind.byUid.get(uid);
-      if (!t || ij.otkaz.has(uid)) continue;
+      if (!t || ij.otkaz.has(uid) || b.usul === TARKIB_USUL) continue;
       const x = m.get(b.qatorId) ?? { hajm: 0, uidlar: [] };
-      x.hajm += t.hajm ?? 0; x.uidlar.push(uid);
+      // Yig'ma summa (birliksiz, narx 1) smeta birligiga o'tkaziladi — qoldiq so'mda emas, smeta birligida hisoblansin.
+      x.hajm += f2HajmiSmetaBirligida(t, S.byId.get(b.qatorId)).hajm ?? 0; x.uidlar.push(uid);
       m.set(b.qatorId, x);
     }
     return m;
-  }, [ij, ind]);
+  }, [ij, ind, S]);
   const rzDiag = useMemo(() => new Map(p.natija.rzDiag.map((d) => [d.f2Uid, d])), [p.natija]);
   const tTugun = tanlangan ? ind.byUid.get(tanlangan) ?? null : null;
 
@@ -360,7 +361,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           : state === 'taklif' ? 'suggested' as const
             : state === 'topilmadi' ? 'unbound' as const : 'confirmed' as const,
         sourceAmount: t.summa,
-        sourceQuantity: t.hajm,
+        sourceQuantity: f2HajmiSmetaBirligida(t, target).hajm,
         referenceUnitPrice: target?.narx ?? null,
       };
     })), [p.akt.jami.pryamye, ind, ij, S]);
@@ -664,6 +665,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const d = rzDiag.get(t.uid);
       const sNom = d?.smetaRzIdlar.map((id) => S.byId.get(id)?.nom).filter(Boolean).join(' | ');
       const ishliRz = t.bolalar.some((c) => c.tur !== 'rz');
+      const rzTaklif = !d?.ok && ishliRz ? rzTaklifHisobla(t, ij, S) : null;
       return (
         <div data-fuid={t.uid} className="grid grid-cols-[minmax(180px,1fr)_85px_160px] bg-surface-2/80 text-[12px] font-semibold text-text">
           <div draggable={!(p.disabled || mutationBusy)}
@@ -674,7 +676,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           </div>
           <span className={`${SON} font-semibold`}>{fmt(rzSumma.get(t.uid) ?? null, 2)}</span>
           <span className={`${KATAK} text-[10.5px] font-normal normal-case ${d?.ok || !ishliRz ? 'text-text-mute' : 'text-warn'}`} title={sNom || undefined}>
-            {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : ishliRz ? 'bo‘lim ulanmagan — mos smeta bo‘limiga torting' : 'guruh'}
+            {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : ishliRz ? (rzTaklif ? '' : 'bo‘lim ulanmagan — mos smeta bo‘limiga torting') : 'guruh'}
+            {!d?.ok && rzTaklif && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
+              title={`${rzTaklif.soni}/${rzTaklif.jami} ${tarj('ish shu bo‘limga bog‘langan')}`}
+              onClick={() => p.onRzBog(t.uid, rzTaklif.smetaRzId)}>
+              <Check size={11} /> {tarj('Bo‘lim')}: {(rzTaklif.nom || '').slice(0, 40)} ({Math.round(rzTaklif.ulush * 100)}%)
+            </button>}
           </span>
         </div>
       );
@@ -684,6 +691,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const b = ij.bog.get(t.uid);
     const s = b ? S.byId.get(b.qatorId) : undefined;
     const sel = tanlangan === t.uid;
+    /** Faqat summa bilan kelgan qator (birliksiz, narx 1): smeta birligida hajm = summa / smeta narx. */
+    const bk = f2HajmiSmetaBirligida(t, s);
+    const farqFoiz = t.barg && b && k !== 'otkazildi' ? bk.summaBoyicha ? null : narxFarqiFoiz(t.narx, s?.narx) : null;
     const candidateCount = p.natija.natijalar.get(t.uid)?.nomzodlar.length ?? 0;
     const ish = t.tur === 'bl';
     // Qo'shimcha ish uchun smeta razdeli: F2 razdeli bog'langan smeta razdeli (bitta bo'lsa).
@@ -734,15 +744,20 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             title={t.belgi === 'zamena' ? 'Hujjatda zamena (~) deb belgilangan' : 'Hujjatda qo‘shimcha ish (+) deb belgilangan'}>{t.belgi === 'zamena' ? '~ zamena' : '+ qo‘shimcha'}</span>}
           <span className="break-words">{t.nom}</span>
           {/* Bog'langan smeta nomi faqat F2 nomidan FARQ qilsa (aks holda ✓ yetarli) va bitta qatorda — qator balandligi ikki baravar oshmaydi. */}
-          {s && k !== 'otkazildi' && nomKalit(s.nom) !== nomKalit(t.nom) && <span className="mt-0.5 block truncate text-[10.5px] font-normal text-accent" title={s.nom ?? ''}>→ {s.nom}</span>}
+          {b?.usul === TARKIB_USUL && k !== 'otkazildi' && <span className="mt-0.5 block text-[10.5px] font-normal text-accent">{tarj('ish narxi tarkibi — ishning o‘z puli, alohida yozilmaydi')}</span>}
+          {b?.usul !== TARKIB_USUL && s && k !== 'otkazildi' && nomKalit(s.nom) !== nomKalit(t.nom) && <span className="mt-0.5 block truncate text-[10.5px] font-normal text-accent" title={s.nom ?? ''}>→ {s.nom}</span>}
           {!s && tavsiya && <span className="mt-0.5 block text-[10.5px] font-normal text-warn">{tavsiya.tur === 'zamena' ? `⇄ zamena taklifi: «${tavsiyaS?.nom ?? ''}» o‘rniga` : '＋ smeta ishida mos resurs yo‘q — qo‘shimcha resurs'}</span>}
           {t.ogohlantirish?.length ? <span className="mt-0.5 block text-[10.5px] font-normal text-danger">{t.ogohlantirish.join('; ')}</span> : null}
+          {bk.summaBoyicha && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">{tarj('summa bo‘yicha hisoblandi')}: {fmt(bk.summa, 2)} / {fmt(bk.smetaNarx, 2)}</span>}
         </button>
         </div>
         <span className={`${SON} text-text-mute`}>{t.norma == null ? '' : fmt(t.norma, 6)}</span>
-        <span className={`${SON} text-text`}>{fmt(t.hajm)}</span>
-        <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{t.birlik ?? ''}</span>
-        <span className={SON}>{t.barg && t.narx != null ? fmt(t.narx, 2) : ''}</span>
+        <span className={`${SON} text-text`} title={bk.summaBoyicha ? `${tarj('summa bo‘yicha hisoblandi')}: ${fmt(bk.summa, 2)} / ${fmt(bk.smetaNarx, 2)}` : undefined}>{fmt(bk.hajm, bk.summaBoyicha ? 6 : undefined)}</span>
+        <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{bk.birlik ?? ''}</span>
+        <span className={SON}>{t.barg && bk.narx != null ? fmt(bk.narx, 2) : ''}
+          {farqFoiz != null && <span className={`block text-[10px] font-semibold ${farqFoiz > 0 ? 'text-warn' : 'text-accent'}`}
+            title={`${tarj('Narx farqi')}: F2 ${fmt(t.narx, 2)} / ${tarj('smeta')} ${fmt(s?.narx ?? null, 2)}`}>{farqFoiz > 0 ? '+' : ''}{farqFoiz.toFixed(2)}%</span>}
+        </span>
         <span className={`${SON} ${ish ? 'font-semibold text-text' : 'text-text'}`} title={t.barg ? undefined : 'Resurslari yig‘indisi'}>
           {t.barg ? fmt(t.summa, 2) : bolaSumma(t) != null ? fmt(bolaSumma(t), 2) : ''}
         </span>
@@ -1152,7 +1167,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${KATAK} whitespace-nowrap text-[11px]`}>{s.birlik ?? ''}</span>
         <span className={SON}>{s.narx ? fmt(s.narx, 2) : ''}</span>
         <span className={`${SON} ${qoralamada ? 'text-warn' : 'text-text-mute'}`} title={qoralamada ? t('Boshqa F2 qoralamalarida band') : undefined}>{qoralamada ? fmt(qoralamada) : ''}</span>
-        <span className={`${SON} ${qoldiq != null && s.hajm != null && oshibKetdimi(s.hajm, qoldiq) && Math.abs(qoldiq) > 1e-9 ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}>{qoldiq == null ? '' : fmt(qoldiq)}</span>
+        {(() => {
+          const oshdi = qoldiq != null && s.hajm != null && oshibKetdimi(s.hajm, qoldiq) && Math.abs(qoldiq) > 1e-9;
+          // Manfiy qoldiq — HAJM oshdi (smeta birligida), pul emas: birlik yonida ko'rsatiladi.
+          return <span className={`${SON} ${oshdi ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}
+            title={oshdi ? `${tarj('hajm oshdi')}: ${fmt(Math.abs(qoldiq!), 6)} ${s.birlik ?? ''}` : undefined}>
+            {qoldiq == null ? '' : <>{fmt(qoldiq)}{oshdi && s.birlik ? <span className="ml-0.5 text-[10px] font-normal">{s.birlik} · {tarj('hajm oshdi')}</span> : null}</>}</span>;
+        })()}
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {tTugun && (tBog
             ? <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={11} /> Uzish</button>
@@ -1191,10 +1212,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <span className={`text-lg font-bold leading-none ${BELGI[k].cls}`}>{BELGI[k].b}</span>
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium text-text">{tTugun.kod && <span className="mr-1 font-mono text-text-mute">{tTugun.kod}</span>}{tTugun.nom}</p>
-            <p className="text-[11px] text-text-dim">
-              {f2QatorTuriYorlig(tTugun.tur)} · {fmt(tTugun.hajm)} {tTugun.birlik ?? ''}{tTugun.narx != null ? ` × ${fmt(tTugun.narx, 2)}` : ''}{tTugun.summa != null ? ` = ${fmt(tTugun.summa, 2)}` : ''}
-              {' · '}{tTugun.manzil.varaq}!{tTugun.manzil.qator}
-            </p>
+            {(() => {
+              const bk = f2HajmiSmetaBirligida(tTugun, s);
+              return <>
+                <p className="text-[11px] text-text-dim">
+                  {f2QatorTuriYorlig(tTugun.tur)} · {fmt(bk.hajm, bk.summaBoyicha ? 6 : undefined)} {bk.birlik ?? ''}{bk.narx != null ? ` × ${fmt(bk.narx, 2)}` : ''}{tTugun.summa != null ? ` = ${fmt(tTugun.summa, 2)}` : ''}
+                  {' · '}{tTugun.manzil.varaq}!{tTugun.manzil.qator}
+                </p>
+                {bk.summaBoyicha && <p className="text-[11px] text-text-mute">{tarj('summa bo‘yicha hisoblandi')}: {fmt(bk.summa, 2)} / {fmt(bk.smetaNarx, 2)}</p>}
+              </>;
+            })()}
             {s && <p className="text-[11px] text-accent">→ {s.kod ? s.kod + ' ' : ''}{s.nom} ({s.birlik ?? '—'}) <span className="text-text-mute">[{b!.usul}]</span></p>}
             {s && <p className="text-[11px] text-text-dim">{t('Smetadagi joyi')}: {yolMatn(s) || '—'}</p>}
             {r?.sabab && k !== 'qolda' && <p className="text-[11px] text-text-mute">{r.sabab}</p>}
@@ -1231,8 +1258,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 const tvS = tv?.tur === 'zamena' ? S.byId.get(tv.qatorId) : undefined;
                 let keyin: number = sIshId;
                 for (let j = i - 1; j >= 0; j--) { const bb = ij.bog.get(tTugun.bolalar[j].uid); if (bb && S.byId.get(bb.qatorId)?.otaId === sIshId) { keyin = bb.qatorId; break; } }
+                const guruhBosh = r.guruh && r.guruhUid !== tTugun.bolalar[i - 1]?.guruhUid;
                 return (
-                  <div key={r.uid} className={`grid min-w-[860px] grid-cols-[28px_minmax(200px,1fr)_110px_minmax(200px,1fr)_110px_170px] text-[11.5px] ${QATOR_FON[rk]}`}>
+                  <Fragment key={r.uid}>
+                  {/* F2 dagi matnli guruh sarlavhasi («ДЕТАЛЬ -1»): resurs emas — keyingi resurslar smetadagi shu nomli razdelga bog‘lanadi. */}
+                  {guruhBosh && <div className="min-w-[860px] border-t border-border/60 bg-surface-2/60 px-2 py-0.5 text-[11px] font-semibold text-text-dim">▸ {r.guruh}</div>}
+                  <div className={`grid min-w-[860px] grid-cols-[28px_minmax(200px,1fr)_110px_minmax(200px,1fr)_110px_170px] text-[11.5px] ${QATOR_FON[rk]}`}>
                     <span className={`${kat} text-center font-bold ${HOLAT_KATAK[rk]}`}>{BELGI[rk].b}</span>
                     <span className={kat}>{r.nom}</span>
                     <span className={`${kat} text-right tabular-nums`}>{fmt(r.hajm)} {r.birlik ?? ''}</span>
@@ -1244,6 +1275,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                       {sr && <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => p.onIj(uz(ij, r))}><Unlink size={11} /> Uzish</button>}
                     </span>
                   </div>
+                  </Fragment>
                 );
               })}
               {juftsiz.length > 0 && (

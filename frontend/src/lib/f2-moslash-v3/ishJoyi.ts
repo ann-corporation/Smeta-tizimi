@@ -12,6 +12,7 @@
 import { kodKanon, normBir, normKod, normNom } from '../f2-match-engine';
 import type { F2Akt, F2Tugun } from '../smeta-anatomiya/f2';
 import type { F2ExactManbaTugun } from '../../test02/f2-exact-payload';
+import { guruhRzTanla } from './guruh';
 import { f2Imzo, gradeFarq, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
 
 export type BogHolat = 'aniq' | 'xotira' | 'taklif' | 'qolda';
@@ -86,6 +87,49 @@ export function korinish(ij: IshJoyi, uid: string): KorinishHolat {
   return ij.bog.get(uid)?.holat ?? 'topilmadi';
 }
 
+// ─── Ish narxi tarkibi (protokol ishlari) ───────────────────────────────────────────────────────────────
+// Egasi 2026-10-24 (Stella, АХ УЗ №94/№95): F2 da ish ostida bitta «ЗАТРАТЫ ТРУДА МАСТЕРОВ» resursi bor, smetada esa shu ish BITTA qator
+// (bolasi yo'q). Resurslar summasi ish summasiga teng bo'lsa — ular «ish narxi tarkibi»: alohida bog'lash talab qilinmaydi (✓),
+// summa ikki marta sanalmaydi — pul ish qatorining o'zi bilan yoziladi.
+export const TARKIB_USUL = 'ish_narxi_tarkibi';
+
+/** Ish ostidagi resurslar summasi ish summasiga teng (±0,5%) va bog'langan smeta qatorida resurs bolalari yo'qmi. */
+export function ishNarxiTarkibimi(f: F2Tugun, s: { id: number } | undefined | null, S: SmetaIndeks): boolean {
+  if (f.tur !== 'bl' || !f.bolalar.length || !s) return false;
+  if ((S.bolalar.get(s.id) ?? []).some((c) => c.tur !== 'rz')) return false;
+  if (f.summa == null || !(Math.abs(f.summa) > 0)) return false;
+  let jami = 0;
+  for (const r of f.bolalar) { if (r.summa == null) return false; jami += r.summa; }
+  return Math.abs(jami - f.summa) <= Math.abs(f.summa) * 0.005 + 0.005;
+}
+
+/**
+ * Tarkib resurslari holatini ish bog'lanishiga moslaydi (idempotent: o'zgarish bo'lmasa AYNAN shu `ij` qaytadi):
+ *  - ish bog'langan va tarkib sharti bajarilsa: bog'lanmagan/◐ resurslar ish qatoriga TARKIB_USUL bilan bog'lanadi (ish ◐ bo'lsa ◐);
+ *  - sharti buzilsa (ish uzildi, boshqa qatorga o'tdi, smeta ishida resurs paydo bo'ldi) — avtomatik tarkib bog'lanishlari olib tashlanadi.
+ * Operator qo'lda qilgan bog'lanish va ongli «kiritmaslik» qarorlariga tegilmaydi.
+ */
+export function tarkibniMosla(ij: IshJoyi, ind: F2Indeks, S: SmetaIndeks): IshJoyi {
+  let ozgardi = false;
+  const bog = new Map(ij.bog);
+  for (const f of ind.qatorlar) {
+    if (f.tur !== 'bl' || !f.bolalar.length) continue;
+    const b = bog.get(f.uid);
+    const tark = !!b && !ij.otkaz.has(f.uid) && ishNarxiTarkibimi(f, S.byId.get(b.qatorId), S);
+    for (const r of f.bolalar) {
+      const rb = bog.get(r.uid);
+      if (tark && b) {
+        if (ij.otkaz.has(r.uid)) continue;
+        if (rb && rb.usul !== TARKIB_USUL && rb.holat !== 'taklif') continue;
+        const holat: BogHolat = b.holat === 'taklif' ? 'taklif' : 'aniq';
+        if (rb?.usul === TARKIB_USUL && rb.qatorId === b.qatorId && rb.holat === holat) continue;
+        bog.set(r.uid, { qatorId: b.qatorId, holat, usul: TARKIB_USUL }); ozgardi = true;
+      } else if (rb?.usul === TARKIB_USUL) { bog.delete(r.uid); ozgardi = true; }
+    }
+  }
+  return ozgardi ? { bog, otkaz: ij.otkaz } : ij;
+}
+
 // ─── Amallar (har biri yangi IshJoyi qaytaradi) ─────────────────────────────
 
 const nb = (nom: unknown, bir: unknown) => normNom(nom) + '||' + normBir(bir);
@@ -96,6 +140,28 @@ export function bogla(ij: IshJoyi, uid: string, qatorId: number): IshJoyi {
   bog.set(uid, { qatorId, holat: 'qolda', usul: 'qolda' });
   const otkaz = new Set(ij.otkaz); otkaz.delete(uid);
   return { bog, otkaz };
+}
+
+/**
+ * Resurs uchun smeta havzasi: guruh sarlavhali («ДЕТАЛЬ -1») resurs — smetadagi shu nomli razdelning ichki qatorlari;
+ * aks holda (yoki razdel topilmasa) — ishning o'z ichki qatorlari.
+ */
+function resursHavzasi(S: SmetaIndeks, sIshId: number, ichki: readonly SmetaQator[]) {
+  const olingan = new Set<number>();
+  const xotira = new Map<string, SmetaQator | null>();
+  return (r: F2Tugun): readonly SmetaQator[] => {
+    if (!r.guruh) return ichki;
+    const ish = S.byId.get(sIshId);
+    if (!ish) return ichki;
+    const kalit = r.guruhUid ?? r.guruh;
+    if (!xotira.has(kalit)) {
+      const rz = guruhRzTanla<SmetaQator>(ish, (x) => (x.otaId != null ? S.byId.get(x.otaId) ?? null : null), (x) => S.bolalar.get(x.id) ?? [], r.guruh, rzKalit, olingan);
+      if (rz) olingan.add(rz.id);
+      xotira.set(kalit, rz);
+    }
+    const rz = xotira.get(kalit);
+    return rz ? (S.bolalar.get(rz.id) ?? []).filter((t) => t.tur !== 'rz') : ichki;
+  };
 }
 
 export interface IshBoglaNatija { ij: IshJoyi; boglandi: number; qoldi: number }
@@ -114,11 +180,13 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
   const band = new Set<number>();
   for (const [uid, b] of bog) if (!bolaUid.has(uid)) band.add(b.qatorId);
   let boglandi = 0, qoldi = 0;
+  const havza = resursHavzasi(S, sIshId, ichki);
   for (const r of fIsh.bolalar) {
     const joriy = bog.get(r.uid);
-    if (joriy?.holat === 'qolda' && ichki.some((t) => t.id === joriy.qatorId)) { band.add(joriy.qatorId); boglandi++; continue; }
+    const hv = havza(r);
+    if (joriy?.holat === 'qolda' && hv.some((t) => t.id === joriy.qatorId)) { band.add(joriy.qatorId); boglandi++; continue; }
     bog.delete(r.uid);
-    const bosh = ichki.filter((t) => !band.has(t.id));
+    const bosh = hv.filter((t) => !band.has(t.id));
     const t = resursMosTop(r, bosh);
     if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) {
       bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' });
@@ -157,17 +225,18 @@ export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdi
   if (!b0 || f.tur !== 'bl') return { ij: tasdiqla(ij, [f.uid]), tasdiqlandi: b0?.holat === 'taklif' ? 1 : 0, boglandi: 0, qoldi: 0 };
   const bog = new Map(ij.bog);
   let tasdiqlandi = 0, boglandi = 0, qoldi = 0;
-  const tasdiq = (uid: string) => { const b = bog.get(uid); if (b?.holat === 'taklif') { bog.set(uid, { ...b, holat: 'qolda', usul: 'taklif_tasdiq' }); tasdiqlandi++; } };
+  const tasdiq = (uid: string) => { const b = bog.get(uid); if (b?.holat === 'taklif') { bog.set(uid, { ...b, holat: 'qolda', usul: b.usul === TARKIB_USUL ? b.usul : 'taklif_tasdiq' }); tasdiqlandi++; } };
   tasdiq(f.uid);
   const ichki = (S.bolalar.get(b0.qatorId) ?? []).filter((t) => t.tur !== 'rz');
   const bolaUid = new Set(f.bolalar.map((r) => r.uid));
   const band = new Set<number>();
   for (const [uid, b] of bog) if (!bolaUid.has(uid)) band.add(b.qatorId);
+  const havza = resursHavzasi(S, b0.qatorId, ichki);
   for (const r of f.bolalar) {
     if (ij.otkaz.has(r.uid)) continue;
     const cb = bog.get(r.uid);
     if (cb) { tasdiq(r.uid); band.add(cb.qatorId); continue; }
-    const t = resursMosTop(r, ichki.filter((x) => !band.has(x.id)));
+    const t = resursMosTop(r, havza(r).filter((x) => !band.has(x.id)));
     if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) { bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' }); band.add(t.id); boglandi++; }
     else qoldi++;
   }
@@ -186,7 +255,7 @@ export function tasdiqla(ij: IshJoyi, uidlar: Iterable<string>): IshJoyi {
   const bog = new Map(ij.bog);
   for (const uid of uidlar) {
     const b = bog.get(uid);
-    if (b?.holat === 'taklif') bog.set(uid, { ...b, holat: 'qolda', usul: 'taklif_tasdiq' });
+    if (b?.holat === 'taklif') bog.set(uid, { ...b, holat: 'qolda', usul: b.usul === TARKIB_USUL ? b.usul : 'taklif_tasdiq' });
   }
   return { bog, otkaz: ij.otkaz };
 }
@@ -259,6 +328,28 @@ export interface IshJoyiHisob {
   kopBog: Map<number, string[]>;
 }
 
+export interface F2Birlikda { hajm: number | null; narx: number | null; birlik: string | null; summaBoyicha: boolean; summa: number | null; smetaNarx: number | null }
+
+/**
+ * Faqat SUMMA bilan kelgan F2 qatori (subpudrat yig'ma summa: birlik yo'q, narx 1, hajm = summa so'mda — masalan
+ * «ПЕРЕВОД В БРОНЗУ…» 5 803 571 428,99) smeta qatoriga boshqa birlikda (компл/шт…) bog'langanda: hajm = F2 summa / smeta narx
+ * (0,356 компл), narx = smeta narx. F2 SUMMA o'zgarmaydi (summa ustun — yagona haqiqat; yaxlitlashda summa ustun). Aks holda — o'zgarishsiz.
+ * Umumiy qoida: faqat shu qator uchun emas.
+ */
+export function f2HajmiSmetaBirligida(t: F2Tugun, s: SmetaQator | undefined | null): F2Birlikda {
+  const asl: F2Birlikda = { hajm: t.hajm, narx: t.narx, birlik: t.birlik, summaBoyicha: false, summa: t.summa, smetaNarx: s?.narx ?? null };
+  if (!s || t.hajm == null || t.summa == null) return asl;
+  const sNarx = Number(s.narx);
+  if (!(sNarx > 0) || !String(s.birlik ?? '').trim()) return asl;
+  if (String(t.birlik ?? '').trim()) return asl;                                  // F2 da birlik bor — oddiy qator
+  if (t.narx != null && Math.abs(t.narx - 1) > 1e-9) return asl;                  // narx 1 (yoki yo'q) — yig'ma summa
+  const tol = Math.max(1, Math.abs(t.summa) * 1e-6);
+  if (Math.abs(t.hajm - t.summa) > tol) return asl;                               // hajm ≈ summa
+  const sb = String(s.birlik ?? '').toUpperCase().replace(/[\s.]/g, '');
+  if (sb === 'СУМ' || sb === 'СЎМ' || sb === 'SUM' || sb === 'СУМЫ') return asl;  // smeta ham pul birligida
+  return { hajm: t.summa / sNarx, narx: sNarx, birlik: s.birlik, summaBoyicha: true, summa: t.summa, smetaNarx: sNarx };
+}
+
 export function hisobla(ind: F2Indeks, ij: IshJoyi): IshJoyiHisob {
   const h: IshJoyiHisob = { jami: 0, tayyor: 0, tizimTopdi: 0, avvalgiQaror: 0, operatorTasdiqladi: 0, taklif: 0, topilmadi: 0, otkazildi: 0, boglanganSumma: 0, hujjatSumma: 0, otkazilganSumma: 0, kopBog: new Map() };
   const qayerga = new Map<number, string[]>();
@@ -275,7 +366,7 @@ export function hisobla(ind: F2Indeks, ij: IshJoyi): IshJoyiHisob {
       else if (k === 'qolda') h.operatorTasdiqladi++;
     }
     const b = ij.bog.get(t.uid);
-    if (b) { const a = qayerga.get(b.qatorId); if (a) a.push(t.uid); else qayerga.set(b.qatorId, [t.uid]); }
+    if (b && b.usul !== TARKIB_USUL) { const a = qayerga.get(b.qatorId); if (a) a.push(t.uid); else qayerga.set(b.qatorId, [t.uid]); }
     if (t.barg && t.summa != null) {
       h.hujjatSumma += t.summa;
       if (k === 'otkazildi') h.otkazilganSumma += t.summa;
@@ -284,6 +375,39 @@ export function hisobla(ind: F2Indeks, ij: IshJoyi): IshJoyiHisob {
   }
   for (const [id, a] of qayerga) if (a.length > 1) h.kopBog.set(id, a);
   return h;
+}
+
+export interface RzTaklif { smetaRzId: number; nom: string; soni: number; jami: number; ulush: number }
+
+/**
+ * F2 bo'limi (sarlavha) hali smeta bo'limiga ulanmagan bo'lsa: uning ishlaridan kamida 60% i (kamida 2 ta) bog'langan
+ * smeta qatorlarining eng yaqin bo'limi BITTA bo'lsa — shu bo'lim taklif qilinadi (bir bosishda tasdiqlanadi). Faqat taklif, majburiy emas.
+ */
+export function rzTaklifHisobla(rz: F2Tugun, ij: IshJoyi, S: SmetaIndeks): RzTaklif | null {
+  const ishlar: F2Tugun[] = [];
+  const yur = (list: readonly F2Tugun[]) => { for (const c of list) { if (c.tur === 'bl') ishlar.push(c); if (c.tur === 'rz') yur(c.bolalar); } };
+  yur(rz.bolalar);
+  const jami = ishlar.length;
+  if (jami < 2) return null;
+  const say = new Map<number, number>();
+  for (const t of ishlar) {
+    const b = ij.bog.get(t.uid);
+    if (!b || ij.otkaz.has(t.uid) || b.holat === 'taklif') continue;
+    let q = S.byId.get(b.qatorId);
+    while (q && q.tur !== 'rz') q = q.otaId == null ? undefined : S.byId.get(q.otaId);
+    if (q) say.set(q.id, (say.get(q.id) ?? 0) + 1);
+  }
+  let eng: [number, number] | null = null;
+  for (const e of say) if (!eng || e[1] > eng[1]) eng = e;
+  if (!eng || eng[1] < 2 || eng[1] / jami < 0.6) return null;
+  return { smetaRzId: eng[0], nom: S.byId.get(eng[0])?.nom ?? '', soni: eng[1], jami, ulush: eng[1] / jami };
+}
+
+/** Narx farqi (%): F2 ish narxi smeta narxidan qancha farq qiladi. Faqat ko'rsatish uchun (bloklamaydi). */
+export function narxFarqiFoiz(f2Narx: number | null | undefined, smetaNarx: number | null | undefined): number | null {
+  if (f2Narx == null || smetaNarx == null || !(f2Narx > 0) || !(smetaNarx > 0)) return null;
+  const f = (f2Narx / smetaNarx - 1) * 100;
+  return Math.abs(f) < 0.5 ? null : f;
 }
 
 export interface YozishManbasi {
@@ -295,7 +419,7 @@ export interface YozishManbasi {
   imzolar: Map<string, string>;
 }
 
-export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
+export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): YozishManbasi {
   const nodes: F2ExactManbaTugun[] = [];
   const mapping = new Map<string, number>();
   const imzolar = new Map<string, string>();
@@ -306,20 +430,30 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
   for (const t of ind.qatorlar) {
     const k = korinish(ij, t.uid);
     if (k === 'otkazildi') continue;
+    // Ish narxi tarkibi: resurslar ishning o'z puli — alohida yozilmaydi (ikki marta sanalmasin).
+    const ota0 = ind.ota.get(t.uid);
+    if (t.tur === 'rs' && ij.bog.get(t.uid)?.usul === TARKIB_USUL && ota0 && ij.bog.get(ota0.uid)?.qatorId === ij.bog.get(t.uid)?.qatorId) continue;
+    const tarkibIsh = t.tur === 'bl' && !t.barg && t.bolalar.length > 0 && k !== 'topilmadi' && k !== 'taklif'
+      && t.bolalar.every((r) => ij.bog.get(r.uid)?.usul === TARKIB_USUL);
     // Podvaldagi qo'lda qator bog'lanmagan bo'lsa — jim o'tkaziladi (blok yo'q); ◐ taklif esa tasdiq/o'tkazishni kutadi.
     if (t.podval && k === 'topilmadi') continue;
     if (k === 'topilmadi' || k === 'taklif') { hal.push(qisqa(t)); continue; }
     const b = ij.bog.get(t.uid)!;
     if (t.hajm == null || t.ogohlantirish?.length) { qiymatsiz.push(qisqa(t)); continue; }
     mapping.set(t.uid, b.qatorId);
+    // Yig'ma summa (birliksiz, narx 1, hajm = so'm) smeta birligiga o'tkaziladi: hajm = summa / smeta narx; summa F2 dagi aniq summa.
+    const bk = S ? f2HajmiSmetaBirligida(t, S.byId.get(b.qatorId)) : null;
     const ota = ind.ota.get(t.uid);
     imzolar.set(t.uid, t.tur === 'rs' && ota ? f2Imzo(t, f2Imzo(ota)) : f2Imzo(t, t.yol.map(rzKalit).join('/')));
     // Resurslari bor ish — faqat hajm; pul uning resurslarida (ikki marta sanalmaydi).
-    if (t.tur === 'bl' && !t.barg) nodes.push({ uid: t.uid, hajm: t.hajm, narx: undefined, summa: undefined, tur: 'bl' });
+    if (tarkibIsh) {
+      const narx = t.narx != null && t.narx > 0 ? t.narx : (t.summa != null && t.hajm > 0 ? t.summa / t.hajm : undefined);
+      nodes.push({ uid: t.uid, hajm: t.hajm, narx, summa: t.summa, tur: 'bl', summaYozilgan: t.summa != null });
+    } else if (t.tur === 'bl' && !t.barg) nodes.push({ uid: t.uid, hajm: t.hajm, narx: undefined, summa: undefined, tur: 'bl' });
     else {
       // Narxi bor-u hujjatda summasi bo'sh — pul to'qilmaydi: aniq qator nomi bilan to'xtatiladi.
       if (t.narx != null && t.narx > 0 && t.summa == null) summasiz.push(qisqa(t));
-      nodes.push({ uid: t.uid, hajm: t.hajm, narx: t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null });
+      nodes.push({ uid: t.uid, hajm: bk?.summaBoyicha ? bk.hajm! : t.hajm, narx: bk?.summaBoyicha ? bk.narx : t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null });
     }
   }
   const toxtatish: string[] = [];
