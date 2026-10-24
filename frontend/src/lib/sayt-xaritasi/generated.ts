@@ -726,6 +726,14 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_bajarilmadi_bekor_v1"
     },
     {
+      "amal": "xarajat_kirit_v1",
+      "rpc": "t2_xarajat_kirit_v1"
+    },
+    {
+      "amal": "xarajat_bekor_v1",
+      "rpc": "t2_xarajat_bekor_v1"
+    },
+    {
       "amal": "fakt_yoz_v2",
       "rpc": "t2_fakt_yoz_v2"
     },

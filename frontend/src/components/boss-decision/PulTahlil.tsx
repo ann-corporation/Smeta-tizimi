@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { t } from '../../i18n/til';
-import { pulTahlilOl, type PulDalilQator, type PulTahlilJavob } from '../../api/t2-pul-tahlil';
+import { pulTahlilOl, pulXarajatBekor, type PulDalilQator, type PulTahlilJavob, type PulXarajatQator } from '../../api/t2-pul-tahlil';
+import { toast } from '../../umumiy/ui/Toast';
+import XarajatKiritish from './XarajatKiritish';
 import { PUL_ZANJIR, pulBannerlar, pulFarq, pulFarqFoiz, pulUmumiyKoef, pulZanjirQiymat, xarajatQamrovFoiz, type PulKesim, type PulUstamali } from '../../lib/pul-tahlil';
 
 /**
@@ -39,7 +41,9 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
   const [xato, setXato] = useState<string | null>(null);
   const [band, setBand] = useState(false);
   const [tanlangan, setTanlangan] = useState<string | null>(null);
-  const [dalil, setDalil] = useState<PulDalilQator[] | null>(null);
+  const [dalil, setDalil] = useState<Array<PulDalilQator | PulXarajatQator> | null>(null);
+  const [dalilTuri, setDalilTuri] = useState<'f2' | 'xarajat'>('f2');
+  const [yangila, setYangila] = useState(0);
   const [ochiq, setOchiq] = useState(false); // МАТ ochiladi
 
   const soro = useMemo(() => ({
@@ -58,13 +62,20 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
       if (r.ok) { setData(r.natija); setXato(null); } else { setData(null); setXato(r.error); }
     });
     return () => { bekor = true; };
-  }, [soro]);
+  }, [soro, yangila]);
 
-  async function dalilOch(kat: string) {
-    if (tanlangan === kat) { setTanlangan(null); setDalil(null); return; }
-    setTanlangan(kat); setDalil(null);
-    const r = await pulTahlilOl({ ...soro, dalilKat: kat });
+  async function dalilOch(kat: string, turi: 'f2' | 'xarajat' = 'f2') {
+    if (tanlangan === kat && dalilTuri === turi) { setTanlangan(null); setDalil(null); return; }
+    setTanlangan(kat); setDalilTuri(turi); setDalil(null);
+    const r = await pulTahlilOl({ ...soro, dalilKat: kat, dalilTuri: turi === 'xarajat' ? 'xarajat' : null });
     if (r.ok) setDalil(r.natija.dalil ?? []);
+  }
+
+  async function xarajatniBekor(q: PulXarajatQator) {
+    if (!window.confirm(t('Xarajatni bekor qilasizmi?'))) return;
+    const r = await pulXarajatBekor({ kompaniyaId: companyId, id: q.id, versiya: q.versiya });
+    if (!r.ok) { toast(t(r.error || 'Bekor qilib bo‘lmadi'), 'danger'); return; }
+    toast(t('Bekor qilindi'), 'ok'); setTanlangan(null); setDalil(null); setYangila((n) => n + 1);
   }
 
   const kesimlar = data?.kesimlar ?? [];
@@ -106,7 +117,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
           <table className="mt-2 w-full text-[12px]">
             <thead><tr className="border-b text-text-mute">
               <th className="px-1 text-left">{t('Kesim')}</th><th className="px-1 text-right">{t('Smeta')}</th><th className="px-1 text-right">{t('F2 yopilgan')}</th>
-              <th className="px-1 text-right">{t('Xarajat')}</th><th className="px-1 text-right">{t('Farq')}</th><th className="px-1 text-right">%</th>
+              <th className="px-1 text-right">{t('Xarajat')}</th><th className="px-1 text-right" title={t('Farq = xarajat − F2 (ustamasiz)')}>{t('Farq = xarajat − F2 (ustamasiz)')}</th><th className="px-1 text-right">%</th>
             </tr></thead>
             <tbody>
               {kesimlar.filter(korinadi).map((k) => {
@@ -121,7 +132,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                     </td>
                     <td className="px-1 text-right tabular-nums">{bosiladi ? <UstamaliKatak ustamali={k.smeta_ustamali} ustamasiz={k.smeta_ustamasiz} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
                     <td className="px-1 text-right tabular-nums">{bosiladi ? <UstamaliKatak ustamali={k.f2_ustamali} ustamasiz={k.f2_yopilgan} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
-                    <td className="px-1 text-right tabular-nums text-text-mute" title={t("Xarajat hali kiritilmagan — noma'lum")}>{k.xarajat == null ? '—' : pul(k.xarajat)}</td>
+                    <td className="px-1 text-right tabular-nums text-text-mute" title={t("Xarajat hali kiritilmagan — noma'lum")}>{k.xarajat == null ? '—' : <button type="button" className="underline decoration-dotted" onClick={() => void dalilOch(k.kat, 'xarajat')}>{pul(k.xarajat)}</button>}</td>
                     <td className={`px-1 text-right tabular-nums ${rang(farq)}`}>{pul(farq)}</td>
                     <td className={`px-1 text-right tabular-nums ${rang(farq)}`}>{foiz(pulFarqFoiz(k.xarajat, k.f2_yopilgan))}</td>
                   </tr>
@@ -131,7 +142,8 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                 <td className="px-1">{t('JAMI (ustama bilan, QQS siz)')}</td>
                 <td className="px-1 text-right tabular-nums"><UstamaliKatak ustamali={data.jami.smeta_ustamali} ustamasiz={data.jami.smeta_ustamasiz} /></td>
                 <td className="px-1 text-right tabular-nums"><UstamaliKatak ustamali={data.jami.f2_ustamali} ustamasiz={data.jami.f2_yopilgan} /></td>
-                <td className="px-1 text-right text-text-mute">—</td><td className="px-1 text-right">—</td><td className="px-1 text-right">—</td>
+                <td className="px-1 text-right tabular-nums">{pul(data.jami.xarajat)}</td>
+                <td className={`px-1 text-right tabular-nums ${rang(data.jami.farq)}`}>{pul(data.jami.farq)}</td><td className={`px-1 text-right tabular-nums ${rang(data.jami.farq)}`}>{foiz(data.jami.farq_foiz)}</td>
               </tr>
             </tbody>
           </table>
@@ -141,10 +153,20 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
               <div className="mb-1 font-semibold">{t('Dalil — manba qatorlar')}: {nom(tanlangan)}</div>
               {dalil == null && <span className="text-text-mute">{t('Yuklanmoqda…')}</span>}
               {dalil != null && !dalil.length && <span className="text-text-mute">{t('Qator yo‘q')}</span>}
-              {dalil != null && dalil.length > 0 && (
+              {dalil != null && dalil.length > 0 && dalilTuri === 'xarajat' && (
+                <div className="max-h-64 overflow-auto">
+                  <table className="w-full"><thead><tr className="text-text-mute"><th className="text-left">{t('Sana')}</th><th className="text-right">{t('Summa')}</th><th className="text-left pl-2">{t('Hujjat')}</th><th className="text-left pl-2">{t('Izoh')}</th><th /></tr></thead>
+                    <tbody>{(dalil as PulXarajatQator[]).map((q) => (
+                      <tr key={q.id} className="border-t border-border/40">
+                        <td>{q.sana}</td><td className="text-right tabular-nums">{pul(q.summa)}</td><td className="pl-2">{q.hujjat_ref ?? '—'}</td><td className="pl-2">{q.izoh ?? ''}</td>
+                        <td className="text-right"><button type="button" className="text-danger underline" onClick={() => void xarajatniBekor(q)}>{t('Bekor qilish')}</button></td>
+                      </tr>))}</tbody></table>
+                </div>
+              )}
+              {dalil != null && dalil.length > 0 && dalilTuri === 'f2' && (
                 <div className="max-h-64 overflow-auto">
                   <table className="w-full"><thead><tr className="text-text-mute"><th className="text-left">{t('Shifr')}</th><th className="text-left">{t('Nomi')}</th><th className="text-right">{t('Smeta')}</th><th className="text-right">F2</th><th className="text-left pl-2">{t('Akt')}</th></tr></thead>
-                    <tbody>{dalil.map((q) => (
+                    <tbody>{(dalil as PulDalilQator[]).map((q) => (
                       <tr key={q.qator_id} className="border-t border-border/40">
                         <td className="pr-1">{q.kod}</td><td className="pr-1">{q.nom}</td>
                         <td className="text-right tabular-nums">{pul(q.smeta_summa)}</td><td className="text-right tabular-nums">{pul(q.f2_summa)}</td>
@@ -155,6 +177,8 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
               )}
             </div>
           )}
+
+          <XarajatKiritish companyId={companyId} shartnomaId={shartnomaId} obyektlar={obyektlar} boshObyektId={qamrov.startsWith('o:') ? Number(qamrov.slice(2)) : null} onSaqlandi={() => setYangila((n) => n + 1)} />
 
           <details className="mt-3">
             <summary className="cursor-pointer text-[13px] font-semibold">{t('Koeffitsient zanjiri (smeta → ustama → QQS)')}</summary>

@@ -126,7 +126,9 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       /* 2026-09-20: contract-specific qator inclusion/
                          exclusion is a named, soft-decision command over
                          canonical t2_qator; it is not a second line writer. */
-                      't2_shartnoma_qamrov_saqla_v1'].sort();
+                      't2_shartnoma_qamrov_saqla_v1',
+                      /* 2026-10-24: pul tahlili P1 - haqiqiy xarajatni kategoriya/obyekt bilan kiritish va bekor qilish (financial.write). */
+                      't2_xarajat_kirit_v1', 't2_xarajat_bekor_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

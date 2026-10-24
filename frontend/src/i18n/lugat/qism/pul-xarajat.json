@@ -1,0 +1,74 @@
+{
+    "Farq = xarajat − F2 (ustamasiz)":  {
+                                            "ru":  "Разница = расход − Ф-2 (без накрутки)",
+                                            "en":  "Difference = expense − F2 (no markup)"
+                                        },
+    "Izoh":  {
+                 "ru":  "Примечание",
+                 "en":  "Note"
+             },
+    "Hujjat":  {
+                   "ru":  "Документ",
+                   "en":  "Document"
+               },
+    "Bekor qilish":  {
+                         "ru":  "Отменить",
+                         "en":  "Cancel"
+                     },
+    "Xarajatni bekor qilasizmi?":  {
+                                       "ru":  "Отменить расход?",
+                                       "en":  "Cancel this expense?"
+                                   },
+    "Bekor qilindi":  {
+                          "ru":  "Отменено",
+                          "en":  "Cancelled"
+                      },
+    "Bekor qilib bo‘lmadi":  {
+                                 "ru":  "Не удалось отменить",
+                                 "en":  "Could not cancel"
+                             },
+    "Xarajat saqlanmadi":  {
+                               "ru":  "Расход не сохранён",
+                               "en":  "Expense was not saved"
+                           },
+    "Bu xarajat avval saqlangan":  {
+                                       "ru":  "Этот расход уже сохранён",
+                                       "en":  "This expense was already saved"
+                                   },
+    "Xarajat saqlandi":  {
+                             "ru":  "Расход сохранён",
+                             "en":  "Expense saved"
+                         },
+    "Xarajat kiritish (qo‘lda)":  {
+                                      "ru":  "Ввод расхода (вручную)",
+                                      "en":  "Enter expense (manual)"
+                                  },
+    "Kategoriya":  {
+                       "ru":  "Категория",
+                       "en":  "Category"
+                   },
+    "Obyekt":  {
+                   "ru":  "Объект",
+                   "en":  "Object"
+               },
+    "Summa (QQS siz)":  {
+                            "ru":  "Сумма (без НДС)",
+                            "en":  "Amount (excl. VAT)"
+                        },
+    "Dalil: hujjat / naryad № / fayl":  {
+                                            "ru":  "Подтверждение: документ / наряд № / файл",
+                                            "en":  "Evidence: document / work order № / file"
+                                        },
+    "Saqlash":  {
+                    "ru":  "Сохранить",
+                    "en":  "Save"
+                },
+    "Sana":  {
+                 "ru":  "Дата",
+                 "en":  "Date"
+             },
+    "Summa":  {
+                  "ru":  "Сумма",
+                  "en":  "Amount"
+              }
+}
