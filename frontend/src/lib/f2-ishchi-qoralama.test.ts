@@ -33,14 +33,18 @@ describe('F2 corrective rows and working draft safety', () => {
     expect(exactWrite(both.nodes, both.mapping)[0]).toMatchObject({ certifiedQuantity: 2, certifiedAmount: 200 });
   });
 
-  it('still blocks empty, unknown or conflicting confirmed financial rows', () => {
+  it('empty act still stops; unknown and conflicting rows are written exactly as the document says', () => {
     const a = akt([node('minus', -10), node('plus', 12)]);
     expect(f2QoralamaYozish(f2Indeks(a.daraxt), ij([])).toxtatish).toContain('Aktga kiradigan qator yo‘q.');
     a.daraxt[1].hajm = null;
-    expect(f2QoralamaYozish(f2Indeks(a.daraxt), ij([['plus', 7]])).toxtatish[0]).toContain('qiymat noma');
+    const h = f2QoralamaYozish(f2Indeks(a.daraxt), ij([['plus', 7]]));
+    expect(h.ogohlantirish[0]).toContain("hajm yo'q");
     a.daraxt[1] = { ...node('plus', 12), narx: 200, summa: 2400 };
     const p = f2QoralamaYozish(f2Indeks(a.daraxt), ij([['minus', 7], ['plus', 7]]));
-    expect(() => exactWrite(p.nodes, p.mapping)).toThrow('turli narxlar');
+    const q = exactWrite(p.nodes, p.mapping)[0];
+    const minus = p.nodes.find((n) => n.uid === 'minus')!;
+    expect(q.certifiedQuantity).toBeCloseTo(-10 + 12, 9);
+    expect(q.certifiedAmount).toBeCloseTo(Number(minus.summa ?? 0) + 2400, 6);
   });
 
   it('suggests an unresolved minus only, requires confirmation and preserves signed source totals', () => {

@@ -13,7 +13,7 @@ import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
   bogla, boshlangich, f2Indeks, smetaIndeks, tarkibniMosla, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
-import { exactWrite } from '../../lib/f2-exact-write';
+import { exactWrite, exactWriteIzohlar } from '../../lib/f2-exact-write';
 import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-moslash-v3/band';
 import { kumulyativmi, kumulyativQolla, kumulyativReja } from '../../lib/f2-moslash-v3/kumulyativ';
 import { dvigatelDaraxti, podvalTaklifQosh } from '../../lib/f2-moslash-v3/podval';
@@ -614,9 +614,10 @@ function Sessiya({ companyId }: { companyId: number }) {
       });
       const mapping = new Map(yozish.mapping);
       for (const n of qosh) mapping.set(n.uid, Number(n.uid.slice(4)));
-      return { rows: exactWrite([...yozish.nodes, ...qosh], mapping), error: '' };
+      const hammasi = [...yozish.nodes, ...qosh];
+      return { rows: exactWrite(hammasi, mapping), izohlar: exactWriteIzohlar(hammasi, mapping), error: '' };
     }
-    catch (e) { return { rows: [], error: e instanceof Error ? e.message : 'Tekshiruv kerak.' }; }
+    catch (e) { return { rows: [], izohlar: [] as string[], error: e instanceof Error ? e.message : 'Tekshiruv kerak.' }; }
   }, [yozish, tkmQosh, raw]);
   /** Qoldiqdan oshgan qatorlar — FAQAT KO'RSATISH (egasi 2026-10-23: loyiha hajmlari xato bo'lishi normal, blok yo'q).
    *  smeta − tasdiqlangan − boshqa qoralamalar − shu F2. Qo'shimcha/zamena qatorlari ko'rsatilmaydi. */
@@ -1404,7 +1405,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </section>
       )}
 
-      {yozish && (yozish.qolgan.length > 0 || yozish.toxtatish.length > 0 || payload?.error) && (
+      {yozish && (yozish.qolgan.length > 0 || yozish.toxtatish.length > 0 || yozish.ogohlantirish.length > 0 || !!payload?.izohlar.length || payload?.error) && (
         <section className="karta space-y-2 p-3" aria-label={t('Aktga kirmaydiganlar')}>
           {!!yozish.qolgan.length && <div className="text-[12px] text-warn"><p>{t('Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.')} ({yozish.qolgan.length})</p>
             <ul className="mt-1 max-h-24 overflow-auto pl-4 text-text-dim">{yozish.qolgan.map((n) => <li key={n.uid}>{n.manzil.varaq}!{n.manzil.qator} · {n.nom} · {fmt(n.hajm)} {n.birlik}</li>)}</ul>
@@ -1414,6 +1415,7 @@ function Sessiya({ companyId }: { companyId: number }) {
             setHolat(`${result.soni} ta minus qator uchun ayni aktdagi aniq bog‘lanish asosida taklif berildi. Har birini tekshirib tasdiqlang; boshqa qatorlarni qo‘lda bog‘lang.`);
           }}>{t('Minus qatorlarga bog‘lanish taklif qilish')}</button>}
           {yozish.toxtatish.map((m, i) => <p key={i} className="text-[12px] text-warn">{m}</p>)}
+          {[...yozish.ogohlantirish, ...(payload?.izohlar ?? [])].map((m, i) => <p key={`o${i}`} className="text-[12px] text-text-dim">ℹ {m}</p>)}
           {payload?.error && <p role="alert" className="text-[12px] text-danger">{payload.error}</p>}
         </section>
       )}
