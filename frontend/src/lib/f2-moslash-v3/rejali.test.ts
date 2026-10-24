@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { T2Qator } from '../../api/supabase';
 import type { IshJoyi } from './ishJoyi';
-import { ijniAlmashtir, rejaliniYoz, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq } from './rejali';
+import { ijniAlmashtir, rejaliniYoz, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, resursTuri, yangiTempIdlar, type RejaliBuyruq } from './rejali';
 
 const q = (id: number, ota: number | null, tartib: number) => ({ id, ota_id: ota, tartib, tur: 'bl', nom: `Q${id}` }) as unknown as T2Qator;
 const ROWS = [q(1, null, 1), q(10, 1, 1), q(11, 1, 2), q(12, 1, 3)];
@@ -95,5 +95,14 @@ describe('F2 import — rejali qatorlarni ▲/▼ (lokal navbat)', () => {
     const t = (list: RejaliBuyruq[]) => { const m = new Map(rejaliQatorlar(list, ROWS).map((r) => [r.id, Number(r.tartib)])); return m; };
     const a = t([A, B]); expect(a.get(-1)!).toBeLessThan(a.get(-2)!);
     const s = t(rejaliSurish([A, B], -1, 1)); expect(s.get(-2)!).toBeLessThan(s.get(-1)!);
+  });
+});
+
+describe('resursTuri', () => {
+  it('ОБОРУДОВАНИЕ bo\u2018limidagi qator ob bo\u2018ladi, qolganlari birlik bo\u2018yicha', () => {
+    expect(resursTuri('шт', 'ob')).toBe('ob');
+    expect(resursTuri('ЧЕЛ-Ч', 'rs')).toBe('rs');
+    expect(resursTuri('МАШ-Ч', 'mat')).toBe('rs');
+    expect(resursTuri('м3', 'mat')).toBe('mat');
   });
 });

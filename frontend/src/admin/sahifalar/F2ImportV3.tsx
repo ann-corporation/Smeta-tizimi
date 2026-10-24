@@ -29,7 +29,7 @@ import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
-import { BOLIM_ILDIZ, SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
+import { BOLIM_ILDIZ, SMETASIZ_RZ, resursTuri, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
@@ -794,8 +794,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!akt || !ind || !ijRef.current) return;
     const diag = new Map((natija?.rzDiag ?? []).map((d) => [d.f2Uid, d]));
     const nomK = (x: string | null | undefined) => (x ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, ' ').trim();
-    const resTur = (birlik: string | null | undefined): 'rs' | 'mat' => (/ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
-    const bolimlar = new Map<string, number>();
+      const bolimlar = new Map<string, number>();
     for (const r of rowsK) if (r.tur === 'rz') bolimlar.set(`${r.ota_id ?? 0}|${nomK(r.nom)}`, r.id);
     const oxirgiBolim = new Map<number, number>();
     let qoshildi = 0, bolimSoni = 0; const otkazildi: string[] = [];
@@ -826,7 +825,7 @@ function Sessiya({ companyId }: { companyId: number }) {
             if (ijR.bog.has(r.uid) || ijR.otkaz.has(r.uid)) continue;
             const rh = Number(r.hajm);
             if (!(rh > 0)) { otkazildi.push(r.nom.slice(0, 40)); continue; }
-            onRejali(r, { kind: 'resource', tur: resTur(r.birlik), otaQatorId: bogl.qatorId, nom: r.nom, birlik: r.birlik || 'шт', hajm: rh, kod: r.kod ?? undefined,
+            onRejali(r, { kind: 'resource', tur: resursTuri(r.birlik, r.tur), otaQatorId: bogl.qatorId, nom: r.nom, birlik: r.birlik || 'шт', hajm: rh, kod: r.kod ?? undefined,
               sabab: t('F2 import: qo‘shimcha resurs (to‘liq o‘tkazish)'), resurslar: [], operationId: yangiOperationId() });
             qoshildi++;
           }
@@ -835,7 +834,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         const hajm = Number(f.hajm);
         if (!(hajm > 0)) { otkazildi.push(f.nom.slice(0, 40)); continue; }
         const resIdx = ishmi ? f.bolalar.filter((r) => Number(r.hajm) > 0) : [];
-        const resurslar = resIdx.map((r) => ({ tur: resTur(r.birlik), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod, narx: r.narx }));
+        const resurslar = resIdx.map((r) => ({ tur: resursTuri(r.birlik, r.tur), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod, narx: r.narx }));
         if (smetaRz == null) {
           onRejali({ ...f, bolalar: resIdx }, { kind: 'smetasiz', tur: 'bl', otaQatorId: SMETASIZ_RZ, nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined,
             sabab: t('F2 import: smetasi yo‘q obyekt'), resurslar, operationId: yangiOperationId() });
