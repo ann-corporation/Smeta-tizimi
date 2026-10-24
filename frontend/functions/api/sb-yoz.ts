@@ -67,6 +67,8 @@ const AMALLAR = {
   obuna_belgila_v1: { rpc: 't2_obuna_belgila_v1' },
   demo_manba_belgila_v1: { rpc: 't2_demo_manba_belgila_v1' },
   zamena_ish_yarat_v1: { rpc: 't2_zamena_ish_yarat_v1' },
+  /* Zamena «aslning qancha hajmini almashtiradi» (birlik farqli) -- t2_qator.almashtirish_hajm, faqat shu ustun. */
+  zamena_almashtirish_belgila_v1: { rpc: 't2_zamena_almashtirish_belgila_v1' },
   resurs_bola_qosh_v1: { rpc: 't2_resurs_bola_qosh_v1' },
   /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
   ish_resurslar_bilan_yarat_v1: { rpc: 't2_ish_resurslar_bilan_yarat_v1' },
@@ -529,6 +531,12 @@ export const onRequestPost: PagesFunction<{
       };
       if (amal === 'zamena_ish_yarat_v1') yuk.p_almashtirilayotgan_qator_id = so.almashtirilayotgan_qator_id;
       if (amal === 'resurs_bola_qosh_v1') yuk.p_tur = so.tur;
+    } else if (amal === 'zamena_almashtirish_belgila_v1') {
+      const miq = so.hajm === null || so.hajm === undefined ? null : Number(so.hajm);
+      if (!sess.foydalanuvchi_id || !Number.isSafeInteger(Number(so.qator_id)) || (miq !== null && (!Number.isFinite(miq) || miq < 0))) {
+        return Response.json({ ok: false, error: 'Zamena qatori va manfiy bo‘lmagan hajm talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_qator_id: so.qator_id, p_hajm: miq };
     } else if (amal === 'fakt_smetadan_tashqari_v1') {
       const buyruq = String(so.command || '');
       const hajm = Number(so.hajm);

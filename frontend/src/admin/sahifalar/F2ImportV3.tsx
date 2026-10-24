@@ -35,7 +35,7 @@ import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
 import { BOLIM_ILDIZ, SMETASIZ_RZ, resursTuri, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
-import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
+import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaAlmashtirishBelgila, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { olchov, type Olchov } from '../../lib/vaqt-olchov';
 import { nakQoldiqXaritalari } from '../../lib/f2-moslash-v3/nakQoldiq';
@@ -133,6 +133,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const qadam = (id: QadamId, holat: QadamHolat, izoh?: string) =>
     setJarayon((old) => (old ?? BOSH_QADAMLAR()).map((q) => (q.id === id ? { ...q, holat, izoh } : q)));
   const [oldingi, setOldingi] = useState(new Map<number, number>());
+  /** Zamena qoplagan hajm (asl qator id -> hajm): asl qoldig'idan ayriladi (lib/zamena-qoldiq). */
+  const [almashtirilgan, setAlmashtirilgan] = useState(new Map<number, number>());
   // Dublikat qo'riqchi: boshqa (bekor qilinmagan) F2 qoralamalaridagi hajmlar va shu faylning avvalgi importlari.
   const [bandLines, setBandLines] = useState<BandManba[]>([]);
   const [avvalKiritilgan, setAvvalKiritilgan] = useState<Array<{ aktId: number; fayl: string; varaq: string; sha?: string }>>([]);
@@ -456,11 +458,11 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!d.ok) throw new Error('Smeta o‘qilmadi.');
     const r = (d.qatorlar || []) as T2Qator[];
     // Smetasi yo'q obyekt ham ochiladi (egasi 2026-10-20): F2 ishlari «Smetadan tashqari ishlar» ga qo'shimcha bo'lib yoziladi.
-    let old = new Map<number, number>(), qol = new Map<number, number>();
+    let old = new Map<number, number>(), qol = new Map<number, number>(), alm = new Map<number, number>();
     if (!joriymi()) return { r, qol, x: new Map<string, number>() };
     if (nak && nak.ok) {
       // Tasdiqlangan F2 — davrgacha VA shu davrdagi (bir oyda bir necha F2 bo'lishi mumkin): jami_hajm.
-      ({ old, qol } = nakQoldiqXaritalari(nak.qatorlar, r));
+      ({ old, qol, alm } = nakQoldiqXaritalari(nak.qatorlar, r));
       setOgoh('');
     } else setOgoh('Nakopitelniy o‘qilmadi — qoldiq ko‘rsatilmaydi, hajm nazorati faqat smeta hajmi bo‘yicha.');
     const x = new Map<string, number>();
@@ -483,7 +485,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     const bandAll = qoralamaBandi(lines, null);
     for (const [id, v] of bandAll) if (qol.has(id)) qol.set(id, qol.get(id)! - v);
     setBandLines(lines); setAvvalKiritilgan([...kiritilgan.values()]); setAktNomlari(aktlarMap);
-    setRows(r); setOldingi(old); setQoldiq(qol); setXotira(x);
+    setRows(r); setOldingi(old); setAlmashtirilgan(alm); setQoldiq(qol); setXotira(x);
     return { r, qol, x };
   }
 
@@ -1067,14 +1069,24 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (b.resurslar.length && b.kind !== 'resource') {
       const rr = await sbT2IshResurslarBilanYarat({ ...asos, command: b.kind === 'replacement' ? 'replacement' : 'additional',
         almashtirilayotganQatorId: real.almashtirilayotganQatorId, resurslar: b.resurslar });
-      return { qatorId: tekshir(rr), resursIdlar: rr.resurs_qator_idlar ?? [], otaVersiya: (rr as { parent_version?: number | null }).parent_version ?? null };
+      const yangiId = tekshir(rr);
+      await zamenaMiqdori(b, yangiId);
+      return { qatorId: yangiId, resursIdlar: rr.resurs_qator_idlar ?? [], otaVersiya: (rr as { parent_version?: number | null }).parent_version ?? null };
     }
     const r = b.kind === 'replacement'
       ? await sbT2ZamenaIshYarat({ ...asos, almashtirilayotganQatorId: real.almashtirilayotganQatorId as number })
       : b.kind === 'additional' && b.tur === 'bl' ? await sbT2QoshimchaIshYarat(asos)
         : await sbT2ResursBolaQosh({ ...asos, tur: b.tur === 'bl' || b.tur === 'rz' ? 'rs' : b.tur, hajm: b.hajm });
-    return { qatorId: tekshir(r), resursIdlar: [], otaVersiya: (r as { parent_version?: number | null }).parent_version ?? null };
+    const yangiQ = tekshir(r);
+    await zamenaMiqdori(b, yangiQ);
+    return { qatorId: yangiQ, resursIdlar: [], otaVersiya: (r as { parent_version?: number | null }).parent_version ?? null };
   };
+  /** Birlik farqli zamena: «aslning qancha hajmini almashtiradi» (ixtiyoriy) -- zamena yaratilgach yoziladi. */
+  async function zamenaMiqdori(b: { kind: string; almashtirishHajm?: number | null }, qatorId: number) {
+    if (b.kind !== 'replacement' || b.almashtirishHajm == null) return;
+    const m = await sbT2ZamenaAlmashtirishBelgila({ kompaniyaId: companyId, qatorId, hajm: b.almashtirishHajm });
+    if (!m.ok) throw new Error(m.xabar || m.error || t('Almashtirish hajmi saqlanmadi.'));
+  }
   async function otaVersiya(id: number): Promise<number> {
     const d = await sbOqi<{ id: number; versiya: number }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objectId}&id=eq.${id}`, ustunlar: 'id,versiya', limit: 1 });
     const v = d.qatorlar?.[0]?.versiya;
@@ -1498,7 +1510,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       )}
 
       {akt && ind && natija && ij && (
-        <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} band={band}
+        <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} almashtirilgan={almashtirilgan} band={band}
           ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
           onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} onTahrirRejali={onTahrirRejali} onBolimRejali={bolimRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
       )}

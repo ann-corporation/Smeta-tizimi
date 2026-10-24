@@ -1,7 +1,8 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useState } from 'react';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
-import { sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
+import { t } from '../../i18n/til';
+import { sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaAlmashtirishBelgila } from '../../api/t2-additional-replacement';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 
 // T2-PTO-CLOSURE-007: qo'shimcha ish / zamena / resurs qo'shish uchun ish
@@ -31,6 +32,8 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   const [nom, setNom] = useState('');
   const [birlik, setBirlik] = useState('');
   const [hajm, setHajm] = useState('');
+  /** Birlik farqli zamena: aslning qancha hajmini almashtiradi (aslning birligida; ixtiyoriy). */
+  const [almHajm, setAlmHajm] = useState('');
   const [sabab, setSabab] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -53,7 +56,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   }, [fixedObjectId]);
 
   function formniTozala() {
-    setKod(''); setNom(''); setBirlik(''); setHajm(''); setSabab(''); setOldId('');
+    setKod(''); setNom(''); setBirlik(''); setHajm(''); setSabab(''); setOldId(''); setAlmHajm('');
   }
 
   async function daraxtniYukla(id: string) {
@@ -85,6 +88,10 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
     if (amal !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni === 0)) {
       setError('Hajm 0 dan farqli son bo‘lishi shart (minus ham mumkin — norma tuzatuvchi ish).'); return;
     }
+    const eskiQator = amal === 'replacement' ? rows.find(r => String(r.id) === oldId) : undefined;
+    const birlikFarqli = !!eskiQator && birlik.trim().toLowerCase() !== (eskiQator.birlik ?? '').trim().toLowerCase();
+    const almSoni = birlikFarqli && almHajm.trim() !== '' ? Number(almHajm.replace(',', '.')) : null;
+    if (almSoni != null && (!Number.isFinite(almSoni) || almSoni < 0)) { setError(t('Almashtiriladigan hajm manfiy bo‘lmagan son bo‘lishi shart.')); return; }
     setBusy(true); setError(''); setDone('');
     const asos = {
       kompaniyaId: companyId, obyektId: Number(objectId), otaQatorId: parent.id,
@@ -97,6 +104,10 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
         : amal === 'replacement' ? await sbT2ZamenaIshYarat({ ...asos, almashtirilayotganQatorId: Number(oldId) })
         : await sbT2ResursBolaQosh({ ...asos, tur: resTur, hajm: hajmSoni });
       if (!r.ok) { setError(r.xabar || r.error || 'Saqlanmadi.'); return; }
+      if (amal === 'replacement' && almSoni != null && r.qator_id != null) {
+        const m = await sbT2ZamenaAlmashtirishBelgila({ kompaniyaId: companyId, qatorId: r.qator_id, hajm: almSoni });
+        if (!m.ok) { setError(m.xabar || m.error || t('Almashtirish hajmi saqlanmadi.')); return; }
+      }
       formniTozala();
       await daraxtniYukla(objectId);
       setDone('O‘zgarish muvaffaqiyatli yaratildi.');
@@ -126,7 +137,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
           </label>
           <label className="block text-sm">Ota qator
             <select aria-label="Ota qator" className="ml-2 border rounded px-2 py-1"
-              value={parentId} onChange={e => { setParentId(e.target.value); setOldId(''); }}>
+              value={parentId} onChange={e => { setParentId(e.target.value); setOldId(''); setAlmHajm(''); }}>
               <option value="">Tanlang</option>
               {rows.map(r => <option key={r.id} value={r.id}>{qatorNomi(r)}</option>)}
             </select>
@@ -160,6 +171,11 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
           {amal !== 'resource' && (
             <label className="block text-sm">Hajm
               <input aria-label="Hajm" type="number" className="ml-2 border rounded px-2 py-1" value={hajm} onChange={e => setHajm(e.target.value)} />
+            </label>
+          )}
+          {amal === 'replacement' && oldId && birlik.trim() !== '' && birlik.trim().toLowerCase() !== (rows.find(r => String(r.id) === oldId)?.birlik ?? '').trim().toLowerCase() && (
+            <label className="block text-sm">{t('Asl qatorning qancha hajmini almashtiradi ({birlik}, ixtiyoriy)', { birlik: rows.find(r => String(r.id) === oldId)?.birlik ?? '' })}
+              <input aria-label={t('Almashtiriladigan hajm')} type="number" min="0" className="ml-2 border rounded px-2 py-1" placeholder={t('Bo‘sh = asl qator to‘liq almashtirilgan')} value={almHajm} onChange={e => setAlmHajm(e.target.value)} />
             </label>
           )}
           <label className="block text-sm">Sabab

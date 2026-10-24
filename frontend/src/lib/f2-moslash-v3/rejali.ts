@@ -33,6 +33,8 @@ export interface RejaliBuyruq {
   tur: 'bl' | 'rs' | 'mat' | 'ob' | 'rz';
   otaQatorId: number;
   almashtirilayotganQatorId?: number;
+  /** Birlik farqli zamena: aslning QANCHA hajmini almashtiradi (aslning birligida; ixtiyoriy -- bo'sh = asl to'liq). */
+  almashtirishHajm?: number | null;
   keyinQatorId?: number;
   nom: string; birlik: string; hajm?: number; kod?: string; sabab: string;
   resurslar: RejaliResurs[];
