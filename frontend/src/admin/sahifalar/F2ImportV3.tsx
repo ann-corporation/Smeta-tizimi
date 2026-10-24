@@ -99,6 +99,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const raqamN = f2RaqamNormal(raqam);
   // Aynan shu raqamdagi QORALAMA aktning qatorlarini almashtirishga operatorning aniq roziligi (akt id bo'yicha).
   const [almashtirTasdiq, setAlmashtirTasdiq] = useState<number | null>(null);
+  /** «✎ Tahrirlash»: shu akt (qoralama) qayta ochilgan - «F2 ni yozish» uning qatorlarini almashtiradi (qo'shimcha tasdiq so'ralmaydi). */
+  const [tahrirAkt, setTahrirAkt] = useState<number | null>(null);
   /** Kumulyativ varaq rejimi (operator yoqadi): oldingi F2 lar hajmi shu varaqdan ayriladi — faqat yozish proyeksiyasi. */
   const [kumRejim, setKumRejim] = useState(false);
   /** Shu obyektning server qoralamalari (ketma-ketlik nazorati: eskiroq yozilmagan F2 bo'lsa ogohlantirish). */
@@ -264,11 +266,24 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (workspace.scope.objectId != null && objects.some((o) => o.id === workspace.scope.objectId)) setObjectId(String(workspace.scope.objectId));
   }, [objects, workspace.scope.objectId]);
   // F2 Reestr dagi «Davom ettiriladigan F2 lar» havolasi: /admin/f2?job=… — obyektlar yuklangach bir marta tiklanadi.
+  const urlAkt = useRef<number | null>((() => { const j = Number(new URLSearchParams(window.location.search).get('akt')); return Number.isSafeInteger(j) && j > 0 ? j : null; })());
   const urlJob = useRef<number | null>((() => { const j = Number(new URLSearchParams(window.location.search).get('job')); return Number.isSafeInteger(j) && j > 0 ? j : null; })());
   useEffect(() => {
-    if (urlJob.current == null || !objects.length || ij || busy) return;
+    if (!objects.length || ij || busy) return;
+    if (urlJob.current == null && urlAkt.current != null) {
+      // F2 tarixidagi «✎ Tahrirlash»: akt -> uning server ish qoralamasi (eng so'nggi yangilangani).
+      const aktId = urlAkt.current; urlAkt.current = null;
+      const oid = Number(new URLSearchParams(window.location.search).get('obyekt'));
+      void f2DavomRoyxatOl(companyId, Number.isSafeInteger(oid) && oid > 0 ? oid : null).then((r) => {
+        const q = (r.ok ? r.qatorlar : []).filter((x) => x.akt_id === aktId).sort((a, b) => String(b.yangilandi).localeCompare(String(a.yangilandi)))[0];
+        void tahrirlash(q?.job_id ?? null, aktId, Number.isSafeInteger(oid) && oid > 0 ? oid : (q?.obyekt_id ?? 0));
+      }).catch(() => setXato(t('F2 qoralamalari o‘qilmadi')));
+      return;
+    }
+    if (urlJob.current == null) return;
     const id = urlJob.current; urlJob.current = null;
-    void serverdanTikla(id);
+    const aktU = urlAkt.current; urlAkt.current = null;
+    if (aktU != null) void tahrirlash(id, aktU, Number(new URLSearchParams(window.location.search).get('obyekt')) || 0); else void serverdanTikla(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects]);
 
@@ -327,6 +342,8 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!akt) return [];
     return avvalKiritilgan.filter((k) => k.aktId !== mavjudQoralama?.id && k.varaq === akt.varaq && (k.sha ? !!faylSha && k.sha === faylSha : k.fayl === akt.fayl));
   }, [avvalKiritilgan, akt, faylSha, mavjudQoralama?.id]);
+  useEffect(() => { if (tahrirAkt != null && mavjudQoralama?.id === tahrirAkt && almashtirTasdiq !== tahrirAkt) setAlmashtirTasdiq(tahrirAkt); }, [tahrirAkt, mavjudQoralama?.id, almashtirTasdiq]);
+  const tahrirdaQoralama = tahrirAkt != null && mavjudQoralama?.id === tahrirAkt ? mavjudQoralama : null;
   const saqlashBlok = takrorTekshirilmoqda || (!!joriyAvvalgi?.akt && !mavjudQoralama) || almashtirishKutilmoqda;
   useEffect(() => {
     if (!avvalgiKalit) return;
@@ -699,9 +716,9 @@ function Sessiya({ companyId }: { companyId: number }) {
     } finally { setBusy(false); }
   }
 
-  async function serverdanTikla(jobId?: number) {
+  async function serverdanTikla(jobId?: number, tahrirAktId?: number): Promise<boolean | undefined> {
     const id = jobId ?? Number(serverId);
-    if (!Number.isSafeInteger(id) || id <= 0 || busy || ij) return;
+    if (!Number.isSafeInteger(id) || id <= 0 || busy || ij) return undefined;
     setBusy(true); setXato('');
     try {
       const d = await f2ServerOl(id);
@@ -738,13 +755,72 @@ function Sessiya({ companyId }: { companyId: number }) {
       const tz = await rejaliniTozala(d.objectId, serverRejali(c), restored);
       setRejali(tz.rejali); setOchirish(serverOchirish(c));
       const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat(tz.ij, mosla.buzilgan), indA.qatorlar, r);
-      tarixniTozala(); setIj(tiklangan); setDone(null);
+      tarixniTozala(); setIj(tiklangan); setDone(null); setTahrirAkt(tahrirAktId ?? null);
       setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`
         + (tz.soni ? ` ${tz.soni} ${t('ta qo‘shimcha qator smetada allaqachon yozilgan — qayta yaratilmaydi')}.` : '')
         + (mosla.yangi.length ? ` ${t('Fayl yangi usulda o‘qildi')}: +${mosla.yangi.length} ${t('qator')}.` : '')
         + (mosla.buzilgan.size ? ` ${mosla.buzilgan.size} ${t('qator qayta tekshirilsin (fayldagi qiymati o‘zgargan yoki topilmadi)')}.` : ''));
-    } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); }
+      return true;
+    } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); return false; }
     finally { setBusy(false); }
+  }
+
+  /**
+   * «✎ Tahrirlash», ish qoralamasi (job) yo'q yoki tiklanmasa: yozilgan akt qatorlaridan tiklash.
+   * Manba hujjat (rawSnapshot.hujjat_id) qayta o'qiladi; bog'lanishlar t2_akt_qator (qator_id <- manba uid) dan olinadi.
+   * Fayldagi qiymati o'zgargan / topilmagan / smetada yo'q qatorlar BOG'LANMAGAN (✕) qoladi - hech narsa taxmin qilinmaydi.
+   */
+  async function aktdanTikla(aktId: number, obyektId: number): Promise<boolean> {
+    if (busy || ij) return false;
+    setBusy(true); setXato('');
+    try {
+      const [qs, ak] = await Promise.all([
+        sbOqi<AktQatorBand>({ jadval: 't2_akt_qator', filtr: `akt_id=eq.${aktId}&obyekt_id=eq.${obyektId}`, ustunlar: 'akt_id,qator_id,hajm,certified_quantity,raw_snapshot', limit: 50000 }),
+        sbOqi<AktQisqa & { versiya: number | null; lifecycle_status: string | null }>({ jadval: 't2_akt', filtr: `id=eq.${aktId}&obyekt_id=eq.${obyektId}`, ustunlar: 'id,raqam,oy,holat,tur,versiya,lifecycle_status', limit: 1 }),
+      ]);
+      const aktQ = ak.ok ? ak.qatorlar?.[0] : null;
+      if (!qs.ok || !aktQ || !aktQ.oy) throw new Error('Akt o‘qilmadi.');
+      const snaps = (qs.qatorlar ?? []).filter((q) => q.raw_snapshot?.manba === 'f2_v3');
+      const s0 = snaps[0]?.raw_snapshot as (AktQatorBand['raw_snapshot'] & { hujjat_id?: number }) | undefined;
+      const docId = Number(s0?.hujjat_id);
+      if (!s0 || !Number.isSafeInteger(docId) || docId <= 0 || !s0.fayl || !s0.varaq) throw new Error('Bu aktning manba hujjati yozilmagan (import orqali yaratilmagan) - uni faylni qayta import qilib almashtiring.');
+      const month = String(aktQ.oy).slice(0, 7);
+      const bytes = await faylBaytlari(docId);
+      const file = new File([bytes.slice()], String(s0.fayl), { type: XLSX_MIME });
+      const acts = await f2AktlarniOqiFonda(file.name, file);
+      const idx = acts.findIndex((a) => a.varaq === s0.varaq);
+      if (idx < 0) throw new Error('Aktning varag‘i manba faylida topilmadi.');
+      const a = acts[idx];
+      const indA = f2Indeks(a.daraxt);
+      const { r, qol, x } = await malumotYukla(obyektId, month);
+      const result = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: new Map() });
+      const mavjud = new Set(r.map((q) => q.id));
+      const bog = new Map<string, import('../../lib/f2-moslash-v3/ishJoyi').Bog>();
+      const yozilgan: Array<{ uid: string; hajm?: unknown; narx?: unknown; summa?: unknown }> = [];
+      for (const q of snaps) for (const m of (q.raw_snapshot?.qatorlar ?? []) as Array<{ uid: string; hajm?: unknown; narx?: unknown; summa?: unknown }>) {
+        if (!m?.uid) continue;
+        yozilgan.push(m);
+        if (indA.byUid.has(m.uid) && mavjud.has(q.qator_id)) bog.set(m.uid, { qatorId: q.qator_id, holat: 'qolda', usul: 'aktdan' });
+      }
+      const mosla = f2ManbaMosla(yozilgan, indA);
+      const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat({ bog, otkaz: new Set() }, mosla.buzilgan), indA.qatorlar, r);
+      tozala();
+      oxirgiKalit.current = `${obyektId}|${idx}|${month}|${a.fayl}`;
+      void faylShaHisobla(rawFile.current = file); sourceDoc.current = docId; sourceOp.current = yangiOperationId(); operation.current = '';
+      setObjectId(String(obyektId)); workspace.setObjectId(obyektId);
+      setAktlar(acts); setAktIdx(idx); setDavr(month); setRzBog(new Map()); setNatija(result);
+      setRaqam(aktQ.raqam ?? ''); setAlmashtirTasdiq(null);
+      setIj(tiklangan); setTahrirAkt(aktId);
+      setServerHolat(t('Akt qatorlaridan tiklandi: {mos} qator bog‘langan, {yangi} qator bog‘lanmagan yoki fayldan farq qiladi - tekshiring.', { mos: tiklangan.bog.size, yangi: Math.max(0, indA.qatorlar.length - tiklangan.bog.size) }));
+      return true;
+    } catch (e) { setXato(e instanceof Error ? e.message : 'Aktdan tiklanmadi.'); return false; }
+    finally { setBusy(false); }
+  }
+
+  /** Tahrirlash: avval server ish qoralamasi, bo'lmasa / tiklanmasa - akt qatorlaridan. */
+  async function tahrirlash(jobId: number | null, aktId: number, obyektId: number) {
+    if (jobId != null && (await serverdanTikla(jobId, aktId)) !== false) return;
+    await aktdanTikla(aktId, obyektId);
   }
 
   /** Modal tasdiqlagan qo'shimcha/zamena/resurs — DARHOL qoralamaga (serverga emas). F2 qatori vaqtinchalik qatorga bog'lanadi. */
@@ -1149,7 +1225,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </div>
         {serverHolat && <p role="status" className="w-full">{serverHolat}</p>}
       </section>
-      {!ij && <F2DavomRoyxat kompaniyaId={companyId} obyektId={objectId ? Number(objectId) : null} band={busy} onOchish={(id) => void serverdanTikla(id)} />}
+      {!ij && <F2DavomRoyxat kompaniyaId={companyId} obyektId={objectId ? Number(objectId) : null} band={busy} onOchish={(id, aktId) => (aktId != null ? void tahrirlash(id, aktId, Number(objectId)) : void serverdanTikla(id))} />}
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block text-[12px] font-medium text-text">{t('Obyekt')}
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { oxirgiKalit.current = ''; tozala(); setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
@@ -1271,6 +1347,9 @@ function Sessiya({ companyId }: { companyId: number }) {
           )}
         </section>
       )}
+      {akt && !done && tahrirdaQoralama && <section role="status" className="karta border border-accent/50 bg-accent/10 p-3 text-[13px] font-semibold text-text" aria-label={t('Tahrirlanmoqda')}>
+        {t('Tahrirlanmoqda: F2 №{raqam}, {oy} - saqlanganda shu akt qatorlari almashtiriladi', { raqam: tahrirdaQoralama.raqam || '-', oy: tahrirdaQoralama.oy.slice(0, 7) })}
+      </section>}
       {akt && !done && ((avvalgiKalit && (takrorTekshirilmoqda || joriyAvvalgi?.error || joriyAvvalgi?.akt)) || avvalgiImport.length !== 0) && <section
         role={joriyAvvalgi?.akt || joriyAvvalgi?.error || avvalgiImport.length !== 0 ? 'alert' : 'status'} className="karta border border-warn/50 bg-warn/10 p-3 text-[13px] text-warn" aria-label={t('Allaqachon kiritilgan')}>
         {avvalgiImport.length !== 0 && <p className="font-semibold">⚠ {t('Bu varaq allaqachon kiritilgan')}: {avvalgiImport.map((k) => { const a = aktNomlari.get(k.aktId); return `F2 ${a?.raqam ?? '#' + k.aktId} (${(a?.oy ?? '').slice(0, 7)}, ${a?.holat ?? ''})`; }).join('; ')}. {t('Takror kiritish hajmni ikki marta yopadi.')}</p>}
