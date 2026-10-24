@@ -3114,5 +3114,19 @@
   "xotiradan (oldingi F2)": "по памяти (прошлые Ф-2)",
   "avto taklif ◐": "авто предложение ◐",
   "avto": "авто",
-  "Oxirgi bog‘lash amalini qaytarish": "Отменить последнее действие связывания"
+  "Oxirgi bog‘lash amalini qaytarish": "Отменить последнее действие связывания",
+  "To‘g‘ridan-to‘g‘ri xarajat": "Прямые затраты",
+  "Transport va ombor (ZSR)": "Транспортные и заготовительно-складские расходы",
+  "Ustamali jami (QQS siz)": "Итого с накладными (без НДС)",
+  "Ustamali summa hisoblanmadi": "Сумма с накладными не рассчитана",
+  "Ustama koeffitsientlari o‘qilmadi — ustamali summa noma’lum": "Коэффициенты накладных не прочитаны — сумма с накладными неизвестна",
+  "Obyekt nakrutka podvali to‘liq emas — ustamali summa noma’lum": "Подвал накрутки объекта заполнен не полностью — сумма с накладными неизвестна",
+  "QQS bilan (alohida)": "С НДС (отдельно)",
+  "Kat noma’lum {pul} so‘m ({n} qator) ustamaga kirmagan": "Категория неизвестна: {pul} сум ({n} строк) не вошли в накладные",
+  "Diqqat: berilgan ustamasiz summa kesim yig‘indisidan farq qiladi": "Внимание: переданная сумма без накладных отличается от суммы по категориям",
+  "Manba qiymati yo‘q": "Нет значения в источнике",
+  "ustamali noma’lum": "с накладными неизвестно",
+  "taxminiy (kat noma’lum: {pul} so‘m)": "примерно (категория неизвестна: {pul} сум)",
+  "kat noma’lum: {pul} so‘m": "категория неизвестна: {pul} сум",
+  "Ustama o‘qilmadi — qayta urinish": "Накладные не прочитаны — повторить"
 }

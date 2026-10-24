@@ -31,6 +31,9 @@ Interfeys 4 tilda: o'zbek lotin (manba), o'zbek kirill, rus, ingliz (`frontend/s
 - Rasmiy hujjatlar (F2, F3, M-29, akt…) RUS tilida qoladi; smeta/obyekt ma'lumotlari tarjima qilinmaydi.
 - Qo'riqchi: `src/i18n/qorovul.test.ts` — t() matnlarida ru/en majburiy; fayldagi t() siz matnlar soni `src/i18n/baza.json` dan oshmaydi (yangi faylda 0). Matnni o'tkazgach: `npm run i18n:baza` (faqat kamaytiradi).
 
+## 2b. Pul summasi qoidasi (egasi, 2026-10-24 - har ishda majburiy)
+Tizimdagi HAR pul summasi: USTAMALI (nakrutka bilan, asosiy/katta) + ustamasiz (yonida kichik), NDS siz; QQS faqat alohida yorliq bilan. Yangi formula yozilmaydi: rontend/src/umumiy/ui/SummaJuft.tsx + useUstamaliSumma + lib/ustamali-summa.ts. Kategoriya noma'lum bo'lsa - 	axminiy (kat noma'lum: N so'm), 0 emas. Joylar ro'yxati - Obsidian CODEMAP.
+
 ## 3. Ish tugagach (majburiy)
 Gate'lar (`CODEMAP.md` oxirida) → commit → push → deploy tekshiruvi → Obsidian: `CURRENT_STATE.md` **qayta yoziladi**, `PRODUCT_ROADMAP.md` da band holati, `AGENT_LOG.md` ga bir qator. Bitta mavzu — bitta kanonik hujjat; takror hujjat yaratmang, eskirganini birlashtirib o'chiring.
 

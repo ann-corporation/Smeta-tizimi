@@ -3114,5 +3114,19 @@
   "xotiradan (oldingi F2)": "from memory (previous F-2)",
   "avto taklif ◐": "auto suggestion ◐",
   "avto": "auto",
-  "Oxirgi bog‘lash amalini qaytarish": "Undo the last linking action"
+  "Oxirgi bog‘lash amalini qaytarish": "Undo the last linking action",
+  "To‘g‘ridan-to‘g‘ri xarajat": "Direct costs",
+  "Transport va ombor (ZSR)": "Transport and warehouse (procurement) costs",
+  "Ustamali jami (QQS siz)": "Total with markup (excl. VAT)",
+  "Ustamali summa hisoblanmadi": "Marked-up amount was not calculated",
+  "Ustama koeffitsientlari o‘qilmadi — ustamali summa noma’lum": "Markup coefficients could not be read — marked-up amount is unknown",
+  "Obyekt nakrutka podvali to‘liq emas — ustamali summa noma’lum": "The object's markup footer is incomplete — marked-up amount is unknown",
+  "QQS bilan (alohida)": "Incl. VAT (separate)",
+  "Kat noma’lum {pul} so‘m ({n} qator) ustamaga kirmagan": "Category unknown: {pul} UZS ({n} rows) not included in markup",
+  "Diqqat: berilgan ustamasiz summa kesim yig‘indisidan farq qiladi": "Warning: the given amount without markup differs from the category total",
+  "Manba qiymati yo‘q": "No value in the source",
+  "ustamali noma’lum": "marked-up unknown",
+  "taxminiy (kat noma’lum: {pul} so‘m)": "approximate (category unknown: {pul} UZS)",
+  "kat noma’lum: {pul} so‘m": "category unknown: {pul} UZS",
+  "Ustama o‘qilmadi — qayta urinish": "Markup not loaded — retry"
 }
