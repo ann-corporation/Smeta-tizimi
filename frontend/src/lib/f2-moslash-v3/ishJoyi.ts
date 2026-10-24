@@ -175,10 +175,10 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
   let yangi = bogla(ij, fIsh.uid, sIshId);
   const bog = new Map(yangi.bog);
   const ichki = (S.bolalar.get(sIshId) ?? []).filter((t) => t.tur !== 'rz');
-  // Shu ish resurslaridan boshqa F2 qatorlari band qilgan smeta qatorlari.
-  const bolaUid = new Set(fIsh.bolalar.map((r) => r.uid));
+  // «Band» — faqat SHU ishning boshqa resurslari egallagan smeta qatorlari (bir ish ichida ikki resurs bitta qatorga tushmasin).
+  // Boshqa F2 qatorlari (masalan pereraschet minuslari, boshqa bo'limdagi takror ishlar) bog'lagan smeta resursi
+  // TO'SIQ EMAS — bir smeta qatoriga bir necha F2 qatori normal (egasi 2026-10-24: «ish turini ulasam ichi qolib ketdi»).
   const band = new Set<number>();
-  for (const [uid, b] of bog) if (!bolaUid.has(uid)) band.add(b.qatorId);
   let boglandi = 0, qoldi = 0;
   const havza = resursHavzasi(S, sIshId, ichki);
   for (const r of fIsh.bolalar) {
@@ -213,6 +213,59 @@ function resursMosTop(r: F2Tugun, bosh: readonly SmetaQator[]): SmetaQator | nul
   return null;
 }
 
+/** Nom so'zlari bo'yicha o'xshashlik (0..1) — faqat ◐ TAKLIF uchun, avtomatik ✓ uchun emas. */
+function nomOxshash(a: string, b: string): number {
+  const soz = (s: string) => new Set(String(s).toUpperCase().replace(/Ё/g, 'Е').split(/[^0-9A-ZА-Я]+/).filter((w) => w.length > 2));
+  const x = soz(a), y = soz(b);
+  if (!x.size || !y.size) return 0;
+  let k = 0;
+  for (const w of x) if (y.has(w)) k++;
+  return (2 * k) / (x.size + y.size); // Dice
+}
+
+export interface IshlarResursNatija { ij: IshJoyi; boglandi: number; taklif: number; qoldi: number }
+
+/**
+ * Bog'langan HAR BIR F2 ishining bog'lanmagan resurslarini o'sha smeta ishi ichidan bog'lash (bitta tugma; egasi 2026-10-24:
+ * «ish turi massiv bo'lib ichidagilarini ham olishi kerak; aynan mos nomlar uchun hech bo'lmasa taklif ham yo'q»).
+ *  - kod → kod-kanon → nom+birlik, yagona va birlik/marka mos bo'lsa — ✓ (usul 'ish_ichida');
+ *  - aks holda shu ish ichida nomi eng o'xshash (≥ 60%) va birligi mos resurs — ◐ taklif (operator tasdiqlaydi);
+ *  - topilmasa — ✕ qoladi (qo'shimcha/zamena). Mavjud bog'lanishlar va aktga kiritilmaganlar o'zgarmaydi.
+ */
+export function ishlarResurslariniBogla(ij: IshJoyi, ind: F2Indeks, S: SmetaIndeks): IshlarResursNatija {
+  const bog = new Map(ij.bog);
+  let boglandi = 0, taklif = 0, qoldi = 0;
+  for (const f of ind.qatorlar) {
+    if (f.tur !== 'bl' || !f.bolalar.length || ij.otkaz.has(f.uid)) continue;
+    const b0 = bog.get(f.uid);
+    if (!b0 || b0.holat === 'taklif') continue;
+    const ichki = (S.bolalar.get(b0.qatorId) ?? []).filter((t) => t.tur !== 'rz');
+    const havza = resursHavzasi(S, b0.qatorId, ichki);
+    const band = new Set<number>();
+    for (const r of f.bolalar) { const rb = bog.get(r.uid); if (rb && rb.holat !== 'taklif') band.add(rb.qatorId); }
+    for (const r of f.bolalar) {
+      if (ij.otkaz.has(r.uid) || r.tur === 'rz') continue;
+      const rb = bog.get(r.uid);
+      if (rb && rb.holat !== 'taklif') continue;
+      const hv = havza(r).filter((x) => !band.has(x.id));
+      const t = resursMosTop(r, hv);
+      if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) {
+        bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' }); band.add(t.id); boglandi++; continue;
+      }
+      if (rb) continue; // mavjud ◐ taklif o'z holicha qoladi
+      let eng: { s: SmetaQator; o: number } | null = null;
+      for (const x of hv) {
+        if (!birMos(r.birlik, x.birlik)) continue;
+        const o = nomOxshash(r.nom, x.nom ?? '');
+        if (o >= 0.6 && (!eng || o > eng.o)) eng = { s: x, o };
+      }
+      if (eng) { bog.set(r.uid, { qatorId: eng.s.id, holat: 'taklif', usul: 'ish_ichida_taklif' }); taklif++; }
+      else qoldi++;
+    }
+  }
+  return { ij: boglandi || taklif ? { bog, otkaz: ij.otkaz } : ij, boglandi, taklif, qoldi };
+}
+
 export interface IshTasdiqNatija { ij: IshJoyi; tasdiqlandi: number; boglandi: number; qoldi: number }
 
 /**
@@ -228,9 +281,8 @@ export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdi
   const tasdiq = (uid: string) => { const b = bog.get(uid); if (b?.holat === 'taklif') { bog.set(uid, { ...b, holat: 'qolda', usul: b.usul === TARKIB_USUL ? b.usul : 'taklif_tasdiq' }); tasdiqlandi++; } };
   tasdiq(f.uid);
   const ichki = (S.bolalar.get(b0.qatorId) ?? []).filter((t) => t.tur !== 'rz');
-  const bolaUid = new Set(f.bolalar.map((r) => r.uid));
+  // «Band» — faqat shu ishning o'z resurslari (ishniBogla dagi bilan bir xil qoida).
   const band = new Set<number>();
-  for (const [uid, b] of bog) if (!bolaUid.has(uid)) band.add(b.qatorId);
   const havza = resursHavzasi(S, b0.qatorId, ichki);
   for (const r of f.bolalar) {
     if (ij.otkaz.has(r.uid)) continue;

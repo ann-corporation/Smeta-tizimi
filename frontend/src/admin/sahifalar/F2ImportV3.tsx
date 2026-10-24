@@ -13,7 +13,7 @@ import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anato
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
-  avtoBogmi, avtoBoglarniUz, bogla, boshlangich, f2Indeks, smetaIndeks, tarkibniMosla, type IshJoyi,
+  avtoBogmi, avtoBoglarniUz, bogla, boshlangich, f2Indeks, ishlarResurslariniBogla, smetaIndeks, tarkibniMosla, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { exactWrite, exactWriteIzohlar } from '../../lib/f2-exact-write';
 import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-moslash-v3/band';
@@ -518,9 +518,24 @@ function Sessiya({ companyId }: { companyId: number }) {
   async function aniqBogla() {
     if (!akt || !ij || busy || done) return;
     setBusy(true); setXato('');
-    try { await moslash(akt, rows, qoldiq, xotira, rzBog, ijRef.current); }
+    try {
+      await moslash(akt, rows, qoldiq, xotira, rzBog, ijRef.current);
+      // Ish va uning resurslari bitta guruh: bog'langan ishlarning resurslari ham shu bosishda bog'lanadi.
+      ishResurslariniBogla(true);
+    }
     catch (e) { setXato(e instanceof Error ? e.message : 'Moslashtirish bajarilmadi.'); }
     finally { setBusy(false); }
+  }
+
+  /** Bog'langan barcha F2 ishlarining bog'lanmagan resurslari — o'z smeta ishi ichidan (✓ yoki ◐ taklif). */
+  function ishResurslariniBogla(jim = false) {
+    const cur = ijRef.current;
+    if (!cur || !ind) return;
+    const r = ishlarResurslariniBogla(cur, ind, S);
+    if (r.ij !== cur) ijOzgar(r.ij);
+    if (!jim || r.boglandi || r.taklif) {
+      setHolat(`${t('Ish resurslari')}: ✓ ${r.boglandi} ${t('bog‘landi')}, ◐ ${r.taklif} ${t('taklif (tasdiqlang)')}, ✕ ${r.qoldi} ${t('smeta ishida mos resurs yo‘q (qo‘shimcha/zamena)')}`);
+    }
   }
 
   function rzOrgat(f2Uid: string, sRz: number) {
@@ -1417,6 +1432,9 @@ function Sessiya({ companyId }: { companyId: number }) {
               const r = avtoBoglarniUz(ij); ijOzgar(r.ij);
               setHolat(`${r.uzildi} ${t('ta avtomatik bog‘lanish uzildi. Qaytarish: «Orqaga» (Ctrl+Z).')}`);
             }}>✕ {t('Avto bog‘lanishlarni uzish')}{avtoSoni ? ` (${avtoSoni})` : ''}</button>
+          <button type="button" className="tugma" disabled={busy || !!done}
+            title={t('Bog‘langan har bir ishning bog‘lanmagan resurslarini o‘sha smeta ishi ichidan bog‘laydi: aniq mosi ✓, o‘xshashi ◐ taklif. Orqaga (Ctrl+Z) bilan qaytariladi.')}
+            onClick={() => ishResurslariniBogla()}>⇣ {t('Ish resurslarini bog‘lash')}</button>
           <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
           <span className="flex flex-wrap gap-x-3 text-[12px] text-text-dim" aria-label={t('Holat')}>
             <span className="inline-flex items-start gap-1 text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}

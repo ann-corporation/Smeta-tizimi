@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 import { f2MoslashV3, type SmetaQator } from './index';
 import {
-  avtoBoglarniUz, bogla, boshlangich, f2Indeks, guruhHisobla, guruhHolati, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
+  avtoBoglarniUz, bogla, boshlangich, f2Indeks, guruhHisobla, ishlarResurslariniBogla, guruhHolati, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
 } from './ishJoyi';
 
 const S: SmetaQator[] = [
@@ -85,6 +85,28 @@ describe('F2 V3 ish joyi holati', () => {
     expect(takliflar.every((u) => korinish(ij, u) === 'qolda')).toBe(true);
     const qayta = boshlangich(f2MoslashV3([rzT], S, { avtoMin: 999 }), ij);
     expect(takliflar.every((u) => korinish(qayta, u) === 'qolda')).toBe(true);
+  });
+
+  it('boshqa F2 qatori (pereraschet minusi) band qilgan smeta resursi to‘siq emas — ish bog‘langanda resursi ham bog‘lanadi', () => {
+    // Boshqa bo'limdagi minus qator allaqachon smeta resursi 3 ga bog'langan.
+    const minus = { bog: new Map([['MINUS!1', { qatorId: 3, holat: 'qolda' as const, usul: 'pereraschet_taklif' }]]), otkaz: new Set<string>() };
+    const r = ishniBogla(minus, ish, 2, SI);
+    expect(r.ij.bog.get(r1.uid)?.qatorId).toBe(3);
+    expect(r.ij.bog.get('MINUS!1')?.qatorId).toBe(3);
+  });
+
+  it('ishlarResurslariniBogla: bog‘langan ishning resurslari — aniq mosi ✓, o‘xshash nomlisi ◐ taklif, mos yo‘g‘i ✕', () => {
+    const SS = smetaIndeks([...S, { id: 6, otaId: 2, tur: 'mat', kod: '12-999-9', nom: 'БЕТОН ТЯЖЕЛЫЙ В15 W6 F150', birlik: 'М3', hajm: 10, tartib: 6 }]);
+    const ij0 = bogla({ bog: new Map([['MINUS!1', { qatorId: 3, holat: 'qolda' as const, usul: 'qolda' }]]), otkaz: new Set<string>() }, ish.uid, 2);
+    const r = ishlarResurslariniBogla(ij0, IND, SS);
+    expect(r.ij.bog.get(r1.uid)).toMatchObject({ qatorId: 3, holat: 'qolda', usul: 'ish_ichida' });
+    // r2 «БЕТОН В15 W6» — kod boshqa, smetada В25 (marka farqli, ✓ emas); «БЕТОН ТЯЖЕЛЫЙ В15 W6 F150» o'xshash → ◐.
+    expect(r.ij.bog.get(r2.uid)).toMatchObject({ qatorId: 6, holat: 'taklif' });
+    expect(r).toMatchObject({ boglandi: 1, taklif: 1, qoldi: 0 });
+    // Ikkinchi marta — o'zgarish yo'q (idempotent).
+    const r2x = ishlarResurslariniBogla(r.ij, IND, SS);
+    expect(r2x).toMatchObject({ boglandi: 0, taklif: 0 });
+    expect(r2x.ij).toBe(r.ij);
   });
 
   it('uzish — ish bilan birga resurslari ham', () => {
