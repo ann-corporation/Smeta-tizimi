@@ -26,7 +26,9 @@ export function SummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniy
   let asosiy: ReactNode;
   if (bilinmaydi) asosiy = <span className="text-text-mute" title={t('Manba qiymati yo‘q')}>—</span>;
   else if (h.holat === 'yuklanmoqda' && katKesim) asosiy = <span className="text-text-mute">{t('Hisoblanmoqda…')}</span>;
-  else if (u?.ustamali != null && !hechBiriYoq) asosiy = <b className="text-text"><FmtN val={u.ustamali} /></b>;
+  // Kat noma'lum qism ustamasiz qiymati bilan QO'SHILADI (ustama o'ylab topilmaydi, lekin pul tushib ham qolmaydi):
+  // aks holda katta raqam faqat ma'lum qismni ko'rsatib, ustamasizdan kichik chiqardi (egasi sinovi 2026-10-24).
+  else if (u?.ustamali != null && !hechBiriYoq) asosiy = <b className="text-text">{taxminiy ? '≈ ' : ''}<FmtN val={taxminiy ? u.ustamali + u.nomalum.summa : u.ustamali} /></b>;
   else asosiy = <span className="text-warn">{t('ustamali noma’lum')}</span>;
   return (
     <span className={`inline-flex flex-col leading-tight tabular-nums ${className}`} title={ustamaIzohi(u, ustamasiz)} data-testid="summa-juft">
