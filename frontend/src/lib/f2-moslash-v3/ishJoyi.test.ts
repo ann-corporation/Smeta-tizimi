@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 import { f2MoslashV3, type SmetaQator } from './index';
 import {
-  bogla, boshlangich, f2Indeks, hisobla, ishniBogla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
+  bogla, boshlangich, f2Indeks, guruhHisobla, guruhHolati, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
 } from './ishJoyi';
 
 const S: SmetaQator[] = [
@@ -105,5 +105,43 @@ describe('F2 V3 ish joyi holati', () => {
     const ij = bogla({ bog: new Map(), otkaz: new Set() }, xato.uid, 5);
     expect(yozishManbasi(ind, ij).toxtatish.join()).toMatch(/qiymat noma'lum/);
     expect(yozishManbasi(ind, otkazibYubor(ij, xato, true)).toxtatish).toEqual(['Aktga kiradigan qator yo‘q.']);
+  });
+});
+
+describe('ish + resurslari BITTA guruh (egasi 2026-10-24)', () => {
+  const ijTaklif = () => ({ bog: new Map([
+    [ish.uid, { qatorId: 2, holat: 'taklif' as const, usul: 'ball' }],
+    [r1.uid, { qatorId: 3, holat: 'taklif' as const, usul: 'ball' }],
+    [sim.uid, { qatorId: 5, holat: 'aniq' as const, usul: 'ball' }],
+  ]), otkaz: new Set<string>() });
+
+  it('ishni tasdiqlash: ish va ◐ resurslari ✓, mos resurs avtomatik bog‘lanadi, mos topilmagani ish ichida qoladi', () => {
+    const r = ishniTasdiqla(ijTaklif(), ish, SI);
+    expect(korinish(r.ij, ish.uid)).toBe('qolda');
+    expect(korinish(r.ij, r1.uid)).toBe('qolda');
+    expect(r.tasdiqlandi).toBe(2);
+    expect(korinish(r.ij, r2.uid)).toBe('topilmadi'); // В15 ≠ В25 — zamena qarori
+    expect(r.qoldi).toBe(1);
+    // Mavjud ✓ (aniq) bog'lanish o'zgarmaydi.
+    expect(r.ij.bog.get(sim.uid)?.holat).toBe('aniq');
+  });
+
+  it('ish tasdiqlangan, resursi bog‘lanmagan — guruh ◐ (bitta ro‘yxatda), hisoblagich ish darajasida; resurslar alohida sanalmaydi', () => {
+    const ij = { bog: new Map([[ish.uid, { qatorId: 2, holat: 'qolda' as const, usul: 'qolda' }], [r1.uid, { qatorId: 3, holat: 'qolda' as const, usul: 'qolda' }], [sim.uid, { qatorId: 5, holat: 'aniq' as const, usul: 'ball' }]]), otkaz: new Set<string>() };
+    expect(guruhHolati(IND, ij, ish)).toBe('taklif'); // r2 yo'q
+    const g = guruhHisobla(IND, ij);
+    expect(g).toMatchObject({ taklif: 1, topilmadi: 0, tizimTopdi: 1 });
+    expect(g.hal).toEqual([ish.uid]);
+    // Hammasi bog'langach guruh ✓.
+    const to = bogla(ij, r2.uid, 4);
+    expect(guruhHolati(IND, to, ish)).toBe('qolda');
+    expect(guruhHisobla(IND, to).hal).toEqual([]);
+  });
+
+  it('ish o‘tkazib yuborilsa resurslari ham; hisoblagichda bitta «ataylab chiqarilgan»', () => {
+    const ij = otkazibYubor({ bog: new Map(), otkaz: new Set() }, ish, true);
+    const g = guruhHisobla(IND, ij);
+    expect(g.otkazildi).toBe(1);
+    expect(g.topilmadi).toBe(1); // faqat «sim» (mustaqil ish)
   });
 });

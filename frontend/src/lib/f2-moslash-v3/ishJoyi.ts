@@ -119,17 +119,7 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
     if (joriy?.holat === 'qolda' && ichki.some((t) => t.id === joriy.qatorId)) { band.add(joriy.qatorId); boglandi++; continue; }
     bog.delete(r.uid);
     const bosh = ichki.filter((t) => !band.has(t.id));
-    const rk = normKod(r.kod), rkan = kodKanon(r.kod), rnb = nb(r.nom, r.birlik);
-    let t: SmetaQator | null = null;
-    for (const c of [
-      rk ? bosh.filter((x) => normKod(x.kod) === rk) : [],
-      rkan ? bosh.filter((x) => kodKanon(x.kod) === rkan) : [],
-      bosh.filter((x) => nb(x.nom, x.birlik) === rnb),
-      bosh.filter((x) => resursNomKalit(x.nom, x.birlik) === resursNomKalit(r.nom, r.birlik)),
-    ]) {
-      const selected = yagonaResursMos(c, r);
-      if (selected) { t = selected; break; }
-    }
+    const t = resursMosTop(r, bosh);
     if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) {
       bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' });
       band.add(t.id);
@@ -138,6 +128,50 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
   }
   yangi = { bog, otkaz: yangi.otkaz };
   return { ij: yangi, boglandi, qoldi };
+}
+
+/** Ish ichidagi bo'sh smeta resurslari orasidan F2 resursiga mosi: kod → kod-kanon → nom+birlik, yagona bo'lsa. */
+function resursMosTop(r: F2Tugun, bosh: readonly SmetaQator[]): SmetaQator | null {
+  const rk = normKod(r.kod), rkan = kodKanon(r.kod), rnb = nb(r.nom, r.birlik);
+  for (const c of [
+    rk ? bosh.filter((x) => normKod(x.kod) === rk) : [],
+    rkan ? bosh.filter((x) => kodKanon(x.kod) === rkan) : [],
+    bosh.filter((x) => nb(x.nom, x.birlik) === rnb),
+    bosh.filter((x) => resursNomKalit(x.nom, x.birlik) === resursNomKalit(r.nom, r.birlik)),
+  ]) {
+    const selected = yagonaResursMos(c, r);
+    if (selected) return selected;
+  }
+  return null;
+}
+
+export interface IshTasdiqNatija { ij: IshJoyi; tasdiqlandi: number; boglandi: number; qoldi: number }
+
+/**
+ * Ishni RESURSLARI BILAN TASDIQLASH (egasi 2026-10-24: «ish va uning resurslari bitta guruh»): ish ◐ → ✓; resurslari — ◐ lari tasdiqlanadi,
+ * bog'lanmaganlari ish ichida avtomatik bog'lanadi (kod → kanon → nom+birlik); mos topilmaganlar `qoldi` — ish ichida zamena/qo'shimcha taklifi bilan.
+ * Mavjud bog'lanishlar (aniq/xotira/qo'lda) O'ZGARMAYDI. Aktga kiritilmagan resurslarga tegilmaydi. Ish bog'lanmagan bo'lsa — hech narsa.
+ */
+export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdiqNatija {
+  const b0 = ij.bog.get(f.uid);
+  if (!b0 || f.tur !== 'bl') return { ij: tasdiqla(ij, [f.uid]), tasdiqlandi: b0?.holat === 'taklif' ? 1 : 0, boglandi: 0, qoldi: 0 };
+  const bog = new Map(ij.bog);
+  let tasdiqlandi = 0, boglandi = 0, qoldi = 0;
+  const tasdiq = (uid: string) => { const b = bog.get(uid); if (b?.holat === 'taklif') { bog.set(uid, { ...b, holat: 'qolda', usul: 'taklif_tasdiq' }); tasdiqlandi++; } };
+  tasdiq(f.uid);
+  const ichki = (S.bolalar.get(b0.qatorId) ?? []).filter((t) => t.tur !== 'rz');
+  const bolaUid = new Set(f.bolalar.map((r) => r.uid));
+  const band = new Set<number>();
+  for (const [uid, b] of bog) if (!bolaUid.has(uid)) band.add(b.qatorId);
+  for (const r of f.bolalar) {
+    if (ij.otkaz.has(r.uid)) continue;
+    const cb = bog.get(r.uid);
+    if (cb) { tasdiq(r.uid); band.add(cb.qatorId); continue; }
+    const t = resursMosTop(r, ichki.filter((x) => !band.has(x.id)));
+    if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) { bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' }); band.add(t.id); boglandi++; }
+    else qoldi++;
+  }
+  return { ij: { bog, otkaz: ij.otkaz }, tasdiqlandi, boglandi, qoldi };
 }
 
 export function uz(ij: IshJoyi, f: F2Tugun): IshJoyi {
@@ -170,6 +204,42 @@ export function otkazibYubor(ij: IshJoyi, f: F2Tugun, on: boolean): IshJoyi {
 }
 
 // ─── Hisob va yozish ─────────────────────────────────────────────────────────
+
+// ─── Guruh (ish + resurslari) darajasidagi holat va hisoblagichlar ─────────
+
+export type GuruhHolat = 'aniq' | 'xotira' | 'qolda' | 'taklif' | 'topilmadi' | 'otkazildi';
+
+/** Ildiz qator: resursi bo'lgan ish ichidagi resurs EMAS (ish yoki mustaqil resurs). */
+export function guruhIldizi(ind: F2Indeks, uid: string): F2Tugun | undefined {
+  const o = ind.ota.get(uid);
+  return o && o.tur === 'bl' ? o : ind.byUid.get(uid);
+}
+
+/**
+ * Guruh holati: ish o'zi hal qilinmagan bo'lsa — o'sha; ish ✓ bo'lsa-yu resurslaridan biri ◐ yoki bog'lanmagan bo'lsa — ◐ (tekshirish kerak,
+ * bitta ro'yxatda); aks holda ishning o'z holati. Resurslar navbatga bitta-bitta chiqmaydi.
+ */
+export function guruhHolati(ind: F2Indeks, ij: IshJoyi, ildiz: F2Tugun): GuruhHolat {
+  const k = korinish(ij, ildiz.uid);
+  if (k === 'otkazildi' || k === 'topilmadi' || k === 'taklif') return k;
+  if (ildiz.tur === 'bl' && ildiz.bolalar.some((r) => { const rk = korinish(ij, r.uid); return rk === 'taklif' || rk === 'topilmadi'; })) return 'taklif';
+  return k;
+}
+
+export interface GuruhHisob { tizimTopdi: number; avvalgiQaror: number; operatorTasdiqladi: number; taklif: number; topilmadi: number; otkazildi: number; hal: string[] }
+
+/** Ish darajasidagi hisoblagichlar (egasi 2026-10-24): ✓/◐/✕ va «Keyingi tekshirilmagan» ildiz (ish/mustaqil resurs) bo'yicha. */
+export function guruhHisobla(ind: F2Indeks, ij: IshJoyi): GuruhHisob {
+  const h: GuruhHisob = { tizimTopdi: 0, avvalgiQaror: 0, operatorTasdiqladi: 0, taklif: 0, topilmadi: 0, otkazildi: 0, hal: [] };
+  for (const t of ind.qatorlar) {
+    const o = ind.ota.get(t.uid);
+    if (o && o.tur === 'bl') continue;
+    const g = guruhHolati(ind, ij, t);
+    if (g === 'aniq') h.tizimTopdi++; else if (g === 'xotira') h.avvalgiQaror++; else if (g === 'qolda') h.operatorTasdiqladi++;
+    else if (g === 'taklif') { h.taklif++; h.hal.push(t.uid); } else if (g === 'topilmadi') { h.topilmadi++; h.hal.push(t.uid); } else h.otkazildi++;
+  }
+  return h;
+}
 
 export interface IshJoyiHisob {
   jami: number;
