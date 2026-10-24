@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { f2Imzo, f2MoslashV3, gradeFarq, rzKalit, texnikTafsilotFarqlari, type SmetaQator } from './index';
+import { BOSHQA_BOLIM_USUL, f2Imzo, f2MoslashV3, gradeFarq, rzKalit, texnikTafsilotFarqlari, type SmetaQator } from './index';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 
 let sid = 0;
@@ -75,16 +75,17 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(n.natijalar.get(b.uid)).toMatchObject({ holat: 'taklif', qatorId: E2, usul: 'tartib' });
   });
 
-  it('F2 razdeli smeta razdeliga bog‘langan, ichida ish yo‘q — boshqa razdeldan TAKLIF yo‘q (egasi sinovi: fasad ↔ pol)', () => {
+  it('F2 razdeli smeta razdeliga bog‘langan, ichida ish yo‘q — boshqa razdelda shifr mos: faqat ◐ (zamena/qo‘shimcha ogohlantirishi bilan), ✓ hech qachon', () => {
     // «ФУНДАМЕНТ (ЛИСТ.-11)» razdelida «УСТРОЙСТВО СТЕН ПОДПОРНЫХ» yo'q (u ПОДПОРНАЯ СТЕНА da).
+    // Egasi 2026-10-24 (koordinator qarori): «aynan mos nomlar uchun hech bo'lmasa taklif» — 09-28 dagi «taklif yo'q» o'rniga.
     const yol = ['РАЗДЕЛ: ФУНДАМЕНТ (ЛИСТ.-11)'];
     const w = f('bl', 'E6-1-24-3', 'УСТРОЙСТВО СТЕН ПОДПОРНЫХ', '100М3', 0.5, yol);
     const n = f2MoslashV3([rzF(yol[0], [], [w])], S);
     const r = n.natijalar.get(w.uid)!;
-    expect(r.holat).toBe('topilmadi');
-    expect(r.qatorId).toBeNull();
-    expect(r.nomzodlar.length).toBeGreaterThan(0); // variant sifatida ko'rsatiladi
-    expect(r.sabab).toMatch(/zamena|qo‘shimcha/);
+    expect(r.holat).toBe('taklif');
+    expect(r.usul).toBe(BOSHQA_BOLIM_USUL);
+    expect(r.nomzodlar.length).toBeGreaterThan(0);
+    expect(r.sabab).toMatch(/boshqa bo‘limda.*zamena\/qo‘shimcha/);
   });
 
   it('razdel ichida nomi va birligi aynan bir xil yagona qator — ✓ (ball chegarasidan qat’i nazar)', () => {
