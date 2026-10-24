@@ -1,0 +1,14 @@
+{
+  "{n} ta qatorda narx yo‘q yoki 0 ({jami} resursdan) — bu LRV smeta, narxlash kerak (RES bilan). Narxsiz qatorlar summaga 0 bo‘lib kiradi. Baribir import qilinsinmi?": {
+    "ru": "В {n} строках цена отсутствует или 0 (из {jami} ресурсов) — это ЛРВ смета, нужно оценить (через РЕС). Строки без цены войдут в сумму как 0. Всё равно импортировать?",
+    "en": "{n} rows have no price or 0 (of {jami} resources) — this is an LRV estimate and needs pricing (via RES). Unpriced rows count as 0 in totals. Import anyway?"
+  },
+  "{n} ta qatorda narx yo‘q — import to‘xtatildi, RES narxlarini ulang": {
+    "ru": "В {n} строках нет цены — импорт остановлен, подключите цены РЕС",
+    "en": "{n} rows have no price — import stopped, attach the RES prices"
+  },
+  "Import to‘xtatildi: narxsiz qatorlar": {
+    "ru": "Импорт остановлен: строки без цены",
+    "en": "Import stopped: unpriced rows"
+  }
+}
