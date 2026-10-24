@@ -162,6 +162,53 @@ export function rejaliSurish(buyruqlar: readonly RejaliBuyruq[], tempId: number,
   return [...rest.slice(0, at + 1), ...mine, ...rest.slice(at + 1)];
 }
 
+/** Smetada allaqachon yozilgan qo'shimcha qator (operation_id bo'yicha) — rejali buyruq bajarilganligini aniqlash uchun. */
+export type YozilganQator = { id: number; ota_id: number | null; operation_id: string | null; tur?: string | null; nom?: string | null; tartib?: number | null };
+
+/**
+ * Qoralama tiklanganda `rejali` ro'yxatida turgan, lekin SMETADA ALLAQACHON YOZILGAN buyruqlarni aniqlaydi (oldingi «F2 ni yozish»
+ * urinishining 2-qadami bajarilgan, 4-qadam yiqilgan bo'lsa). Aniqlash — buyruqning barqaror `operationId` si bo'yicha
+ * (server qatorni shu id bilan yaratgan). Natija: `map` (vaqtinchalik id → haqiqiy id; resurslar ota qatorning bolalari
+ * tartibida) va `qolgan` (hali yozilmagan buyruqlar; ularning ota/langar ko'rsatkichlari haqiqiy id ga o'tkazilgan).
+ * Natijada ko'rinishda dublikat bo'lmaydi va «F2 ni yozish» ularni qayta yaratmaydi.
+ */
+export function rejaliniYozilganlardanTozala(buyruqlar: readonly RejaliBuyruq[], qatorlar: readonly YozilganQator[]):
+  { qolgan: RejaliBuyruq[]; map: Map<number, number> } {
+  const byOp = new Map<string, YozilganQator>();
+  const bolalar = new Map<number, YozilganQator[]>();
+  for (const q of qatorlar) {
+    if (q.operation_id) byOp.set(q.operation_id.toLowerCase(), q);
+    if (q.ota_id != null) { const a = bolalar.get(q.ota_id); if (a) a.push(q); else bolalar.set(q.ota_id, [q]); }
+  }
+  for (const a of bolalar.values()) a.sort((x, y) => (Number(x.tartib ?? 0) - Number(y.tartib ?? 0)) || x.id - y.id);
+  const map = new Map<number, number>();
+  for (const b of buyruqlar) {
+    if (b.kind === 'bolim') continue;
+    const q = byOp.get(b.operationId.toLowerCase());
+    if (!q) continue;
+    map.set(b.tempId, q.id);
+    const kids = bolalar.get(q.id) ?? [];
+    b.resursTempIds.forEach((t, i) => { if (kids[i]) map.set(t, kids[i].id); });
+  }
+  // Bo'lim (razdel) buyrug'i: unga tayangan yozilgan buyruqning haqiqiy otasi; yo'qsa — qo'shimcha razdel nomi bo'yicha.
+  for (let ozgardi = true; ozgardi;) {
+    ozgardi = false;
+    for (const b of buyruqlar) {
+      if (b.kind !== 'bolim' || map.has(b.tempId)) continue;
+      const bola = buyruqlar.find((x) => x.otaQatorId === b.tempId && map.has(x.tempId));
+      const haqiqiyOta = bola ? qatorlar.find((q) => q.id === map.get(bola.tempId))?.ota_id ?? null : null;
+      const nomBilan = haqiqiyOta == null ? qatorlar.find((q) => q.tur === 'rz' && (q.nom ?? '').trim().toLowerCase() === b.nom.trim().toLowerCase()) : undefined;
+      const real = haqiqiyOta ?? nomBilan?.id ?? null;
+      if (real != null) { map.set(b.tempId, real); ozgardi = true; }
+    }
+  }
+  const o = (id: number | undefined) => (id != null && map.has(id) ? map.get(id) : id);
+  const qolgan = buyruqlar.filter((b) => !map.has(b.tempId)).map((b) => ({
+    ...b, otaQatorId: o(b.otaQatorId) as number, keyinQatorId: o(b.keyinQatorId), almashtirilayotganQatorId: o(b.almashtirilayotganQatorId),
+  }));
+  return { qolgan, map };
+}
+
 /** Bog'lanishlardagi vaqtinchalik id larni haqiqiysiga almashtiradi. */
 export function ijniAlmashtir(ij: IshJoyi, map: ReadonlyMap<number, number>): IshJoyi {
   const bog = new Map(ij.bog);
