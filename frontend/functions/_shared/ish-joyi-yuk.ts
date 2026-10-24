@@ -6,7 +6,9 @@ type Yuk = Record<string, unknown>;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteger(Number(v)) && Number(v) > 0;
 const opId = (v: unknown) => (typeof v === 'string' && UUID.test(v) ? v : crypto.randomUUID());
-export const TAKLIF_ROLLARI = ['rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'] as const;
+export const TAKLIF_ROLLARI = ['rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi',
+  /* Ekotizim rollari (E2 §3.2; SQL t2_ish_joyi_taklif_yarat_v1 bilan bir xil) */
+  'omborchi', 'mexanik', 'kadr', 'taminotchi', 'usta', 'brigadir', 'haydovchi', 'inspektor', 'loyihachi'] as const;
 
 /** Ochiq kod alifbosi: o'xshash belgilarsiz (0/O, 1/I/L yo'q). */
 const KOD_ALIFBO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

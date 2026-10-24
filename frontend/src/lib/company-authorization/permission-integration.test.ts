@@ -33,7 +33,12 @@ describe('role integration architecture',()=>{
     expect(dataPermission('t2_akt_reestr',false)).toBe('f2.read');
   });
   it('SQL and UI expose exactly the same company permission catalog',()=>{
-    const sql=read('supabase/migrations/20261017100629_t2_individual_permission_constructor_v2.sql');
+    // Eng oxirgi (rollback emas) t2_permission_catalog_v2 ta'rifi — SQL va UI katalogi har doim bir xil bo'lishi shart.
+    const MARKER='create or replace function public.t2_permission_catalog_v2()';
+    const latest=readdirSync(resolve(root,'supabase/migrations')).filter(n=>n.endsWith('.sql')&&!n.includes('.rollback.')&&!n.includes('.acceptance.')).sort()
+      .filter(n=>read('supabase/migrations/'+n).includes(MARKER)).pop()!;
+    expect(latest).toBeTruthy();
+    const sql=read('supabase/migrations/'+latest);
     const catalog=sql.slice(sql.indexOf('create or replace function public.t2_permission_catalog_v2()'),sql.indexOf('create or replace function public.t2_role_permissions_v2'));
     const codes=[...catalog.matchAll(/'([a-z0-9_.]+)'/g)].map(m=>m[1]);
     expect(codes.sort()).toEqual(PERMISSIONS.filter(p=>!p.startsWith('control.global')).sort());
