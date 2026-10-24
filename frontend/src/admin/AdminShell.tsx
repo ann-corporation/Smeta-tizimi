@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSessiya } from '../api/hooks';
+import { HotkeyYordam } from '../lib/hotkeys/HotkeyYordam';
 import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
 import { Map, LogOut, Building2, FileInput, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, NotebookPen, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
@@ -272,6 +273,7 @@ function AdminShellInner() {
 
   return (
     <div className="os-app-shell flex h-screen overflow-hidden text-white relative font-sans selection:bg-accent/30">
+      <HotkeyYordam />
 
       {/* Sidebar -- 2026-09-07: standart holatda faqat belgichalar (ikonalar)
        * qatori, sichqoncha ustiga borilganda to'liq (nomlar bilan) kengayadi.

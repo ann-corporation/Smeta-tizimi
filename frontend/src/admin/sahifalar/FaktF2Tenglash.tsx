@@ -4,6 +4,7 @@ import { yangiOperationId } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import type { AktBekorFn, TenglashReja } from '../../lib/fakt-f2-tenglash';
 import { t } from '../../i18n/til';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { toast } from '../../umumiy/ui/Toast';
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
@@ -36,6 +37,11 @@ export function FaktF2Tenglash({ sarlavha, reja, obyektId, sana, onYop, onBajari
     } catch { toast(t('Javob olinmadi. Qayta urining — takror xavfsiz (bir xil amal ID).'), 'danger'); }
     finally { setBand(false); }
   };
+
+  useHotkeys('fakt-f2', t('Fakt = F2 oynasi'), [
+    { id: 'fakt-f2.yop', keys: 'esc', nom: t('Yopish'), inInput: true, run: () => { onYop(); } },
+    { id: 'fakt-f2.qollash', keys: ['ctrl+enter', 'enter'], nom: t('Qo‘llash'), inInput: false, run: () => { if (!reja.paket.length) return false; void qollash(); } },
+  ]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={t('Fakt = F2')}>

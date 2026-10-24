@@ -5,6 +5,8 @@ import { sbFaktYoz } from '../../api/t2-fakt';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
 import { t } from '../../i18n/til';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { JURNAL_XATO_MATN, jurnalPaket, jurnalQur, qoldiqUlushi, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim } from '../../lib/fakt-jurnal';
 import { toast } from '../../umumiy/ui/Toast';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
@@ -148,14 +150,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     finally { setBand(false); }
   }, [paket, band, obyektId, sana, holatniYangila]);
 
-  useEffect(() => {
-    const k = (e: globalThis.KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); void saqla(); }
-      if (e.key === '/' && !(e.target instanceof HTMLInputElement)) { e.preventDefault(); qidiruvRef.current?.focus(); }
-    };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [saqla]);
+  // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc — kiritmalarni tozalash.
+  useHotkeys('fakt', t('Fakt jurnali'), [
+    { id: 'fakt.saqla', keys: 'ctrl+s', nom: t('Saqlash'), inInput: true, run: () => { void saqla(); } },
+    { id: 'fakt.qidiruv', keys: '/', nom: t('Qidirish'), run: () => { qidiruvRef.current?.focus(); } },
+    { id: 'fakt.f2', keys: 'f', nom: t('Fakt = F2 (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b) return false; tenglashOch(b.nom, bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true)); } },
+    { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; setKiritmalar({}); } },
+  ], !modal && !tenglash);
   useEffect(() => {
     if (!ozgarishSoni) return;
     const k = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -238,7 +239,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute" aria-label="Qidiruvni tozalash"><X size={14} /></button>}</div>
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> faqat bajarilmaganlar</label>
         {tanlanganBolim && <button type="button" onClick={() => tenglashOch(tanlanganBolim.nom, bolimIshlariYigish(tanlanganBolim.id, bolimIshlari, bolimBolalari, true))}
-          title={t('Shu bo‘lim (ichki bo‘limlari bilan): F2 hajmi fakt dan ko‘p ishlarga farqni yozish')} aria-label={t('Fakt = F2: bo‘lim')}
+          title={sarlavhaBilan(t('Shu bo‘lim (ichki bo‘limlari bilan): F2 hajmi fakt dan ko‘p ishlarga farqni yozish'), 'f')} aria-label={t('Fakt = F2: bo‘lim')}
           className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-[12px] font-semibold text-text hover:bg-surface-2">{t('Fakt = F2')}</button>}
         <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 px-3 text-[12px] font-semibold text-text hover:bg-accent/10"><Plus size={14} className="text-accent" /> Smetadan tashqari ish</button>
       </section>
