@@ -29,6 +29,16 @@ describe('Fakt = F2 oynasi', () => {
     await waitFor(() => expect(bekor).toHaveBeenCalledWith(77));
   });
 
+  it('klaviatura: Ctrl+Enter qo‘llaydi, Esc yopadi', async () => {
+    m.yoz.mockResolvedValue({ ok: true, akt_id: 78 });
+    const yop = vi.fn();
+    render(<FaktF2Tenglash sarlavha="Bo‘lim" reja={reja} obyektId={8} sana="2026-10-24" onYop={yop} onBajarildi={vi.fn()} aktBekor={vi.fn()} />);
+    fireEvent.keyDown(document.body, { key: 'Enter', ctrlKey: true });
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(1));
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(yop).toHaveBeenCalled();
+  });
+
   it('qo‘shiladigan hajm bo‘lmasa — Qo‘llash o‘chiq', () => {
     render(<FaktF2Tenglash sarlavha="x" reja={{ ...reja, qatorlar: [], paket: [], jamiSumma: 0 }} obyektId={8} sana="2026-10-24" onYop={vi.fn()} onBajarildi={vi.fn()} aktBekor={vi.fn()} />);
     expect((screen.getByRole('button', { name: 'Qo‘llash' }) as HTMLButtonElement).disabled).toBe(true);
