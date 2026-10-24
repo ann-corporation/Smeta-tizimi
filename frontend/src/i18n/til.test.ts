@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { _tilniTestdaQoy, raqamFormatla, sanaFormatla, t, tilLocale, tilOl, tilQoy } from './til';
-import ru from './lugat/ru.json';
-import en from './lugat/en.json';
+import { LUGAT_EN as en, LUGAT_RU as ru } from './lugat';
 import { ENTITY_CONFIGS } from '../umumiy/ui/forms/SharedForms';
 
 afterEach(() => _tilniTestdaQoy('uz'));
@@ -12,6 +11,13 @@ describe('interfeys tili', () => {
     expect(t('Saqlash')).toBe('Сохранить');
     expect(t('{n} ta qator', { n: 4 })).toBe('4 ta qator');
     expect(t('Lug‘atda yo‘q')).toBe('Lug‘atda yo‘q');
+  });
+
+  it('lugat/qism/*.json bo‘laklari ham yuklanadi', () => {
+    _tilniTestdaQoy('ru');
+    expect(t('Lug‘at bo‘laklari')).toBe('Части словаря');
+    _tilniTestdaQoy('en');
+    expect(t('Lug‘at bo‘laklari')).toBe('Dictionary parts');
   });
 
   it('tanlovni brauzer xotirasiga saqlaydi va document tilini yangilaydi', () => {

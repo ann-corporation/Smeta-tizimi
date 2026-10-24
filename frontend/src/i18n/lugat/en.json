@@ -3173,5 +3173,8 @@
   "МАШ — mash-soat (mashina)": "МАШ — machine-hours",
   "ОБ — uskunalar": "ОБ — equipment",
   "ЧЕЛ — chel-soat (ishchi kuchi)": "ЧЕЛ — man-hours (labor)",
-  "Buyruqlar paneli": "Command palette"
+  "fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)": "exceeds the actual remainder (allowed, warning)",
+  "qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring": "taken twice together with the draft F2 — please check",
+  "smeta hajmidan oshadi (ruxsat, ogohlantirish)": "exceeds the estimate quantity (allowed, warning)",
+  "tasdiqlangan F2": "approved F2"
 }

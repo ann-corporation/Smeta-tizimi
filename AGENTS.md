@@ -26,7 +26,7 @@ Yangi g'oya → `IDEA_INBOX.md`; egasi qarori → `DECISIONS.md`; risk → `RISK
 ## 2a. Til qoidasi (egasi, 2026-10-02 — har ishda majburiy)
 Interfeys 4 tilda: o'zbek lotin (manba), o'zbek kirill, rus, ingliz (`frontend/src/i18n/`).
 - Interfeysdagi har matn: `t('Oʻzbek lotin matni')` (`import { t } from '…/i18n/til'`). Kalit = o'zbek lotin matnning o'zi; `{nom}` o'rinbosarlar.
-- Yangi matn qo'shsangiz — shu commitda `lugat/ru.json` va `lugat/en.json` ga tarjima. O'zbek kirill QO'LDA yozilmaydi: `lotinKirill()` avtomatik; qoidaga sig'maganlar — `lugat/kirill-istisno.json`.
+- Yangi matn qo'shsangiz — shu commitda tarjimani O'Z YANGI faylingizga yozing: `frontend/src/i18n/lugat/qism/<mavzu>.json` (`{ "kalit": { "ru": "...", "en": "..." } }`). `lugat/ru.json`/`en.json` oxiriga YOZMANG — parallel PR lar ziddiyatga tushadi. O'zbek kirill QO'LDA yozilmaydi: `lotinKirill()` avtomatik; qoidaga sig'maganlar — `lugat/kirill-istisno.json`.
 - Qidiruv/kiritish lotin va kirillni bir xil ko'rishi kerak: `qidiruvKaliti()` / `qidiruvdaBor()`.
 - Rasmiy hujjatlar (F2, F3, M-29, akt…) RUS tilida qoladi; smeta/obyekt ma'lumotlari tarjima qilinmaydi.
 - Qo'riqchi: `src/i18n/qorovul.test.ts` — t() matnlarida ru/en majburiy; fayldagi t() siz matnlar soni `src/i18n/baza.json` dan oshmaydi (yangi faylda 0). Matnni o'tkazgach: `npm run i18n:baza` (faqat kamaytiradi).
