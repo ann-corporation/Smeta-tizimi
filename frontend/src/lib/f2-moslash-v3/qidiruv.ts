@@ -28,6 +28,9 @@ function translit(soz: string): string {
   return out;
 }
 
+/** Lotinda yozilgan so'zni kirillga o'tkazadi (boshqa modullar — «Xotiradan fakt» — qayta ishlatadi). */
+export const qidiruvTranslit = translit;
+
 /** null — qidiruv yoqilmagan (2 belgidan kam). Aks holda matnni tekshiradigan funksiya. */
 export function qidiruvMoslagich(q: string): ((matn: string) => boolean) | null {
   const n = qidiruvNormal(q);
