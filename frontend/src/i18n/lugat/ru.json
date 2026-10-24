@@ -3096,5 +3096,6 @@
   "Sabab (manba qator saqlanadi)": "Причина (исходная строка сохраняется)",
   "Qoʻshimcha qator yaratish va fakt yozish": "Создать дополнительную строку и записать факт",
   "Qoʻshimcha qator yaratildi va fakt yozildi: {nom}": "Дополнительная строка создана, факт записан: {nom}",
-  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "Новые дополнительные строки (факт записан)"
+  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "Новые дополнительные строки (факт записан)",
+  "Smetada yoʻq — katalogdan qoʻshish": "Нет в смете — добавить из каталога"
 }
