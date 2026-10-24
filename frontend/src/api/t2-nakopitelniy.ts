@@ -75,6 +75,8 @@ export type NakopitelniyJavob = {
 export const NAKOPITELNIY_SAHIFA = 5000;
 /** Xavfsizlik chegarasi: 200 sahifa × 5000 = 1 mln qator. */
 const NAKOPITELNIY_MAX_SAHIFA = 200;
+/** Bir vaqtda o'qiladigan sahifalar soni (server/DB yuklamasini cheklash uchun). */
+const NAKOPITELNIY_PARALLEL = 4;
 
 export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, limit?: number, offset?: number): Promise<NakopitelniyJavob> {
   const q = new URLSearchParams({ amal: 'nakopitelniy', obyekt_id: String(obyektId), faqat_faol: '0' });
@@ -105,6 +107,31 @@ export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null
     return { ...birinchi, qatorlar, qatorlar_korsatildi: qatorlar.length, truncated: true };
   }
   const davrQat = davr || birinchi.davr;
+  // Unumdorlik (Sun'iy ko'l 25k qator, prod profil 2026-10-24: 5 sahifa ketma-ket ~3 s dan = ~15 s): jami ma'lum bo'lsa
+  // qolgan sahifalar oldindan rejalanadi va 4 tadan PARALLEL o'qiladi; tartib offset bo'yicha saqlanadi, natija bir xil.
+  const jami = birinchi.qatorlar_jami;
+  // Faqat server sahifa hajmini to'liq bergan bo'lsa (keyingi = 5000) — aks holda eski ketma-ket yo'l.
+  if (keyingi != null && keyingi === NAKOPITELNIY_SAHIFA && Number.isSafeInteger(jami) && jami > keyingi) {
+    const offsetlar: number[] = [];
+    for (let o = keyingi; o < jami; o += NAKOPITELNIY_SAHIFA) offsetlar.push(o);
+    if (offsetlar.length >= NAKOPITELNIY_MAX_SAHIFA) return { ok: false, code: 'NAKOPITELNIY_SAHIFA_CHEGARASI' };
+    const sahifalar: NakopitelniyJavob[] = new Array(offsetlar.length);
+    for (let i = 0; i < offsetlar.length; i += NAKOPITELNIY_PARALLEL) {
+      const bolak = offsetlar.slice(i, i + NAKOPITELNIY_PARALLEL);
+      const javob = await Promise.all(bolak.map((o) => t2NakopitelniyOl(obyektId, davrQat, NAKOPITELNIY_SAHIFA, o)));
+      javob.forEach((s, k) => { sahifalar[i + k] = s; });
+    }
+    for (const s of sahifalar) {
+      if (!s.ok) return s;
+      if (s.qatorlar_jami !== jami) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
+      qatorlar.push(...s.qatorlar);
+    }
+    // Rejadan keyin ham server yana sahifa ko'rsatsa (jami o'zgargan) — chala hujjat yasalmaydi.
+    const oxirgi = sahifalar[sahifalar.length - 1];
+    if (oxirgi.ok && oxirgi.keyingi_offset != null) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
+    if (qatorlar.length !== jami) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
+    return { ...birinchi, qatorlar, qatorlar_korsatildi: qatorlar.length, truncated: false, keyingi_offset: null };
+  }
   for (let n = 0; keyingi != null; n++) {
     if (n >= NAKOPITELNIY_MAX_SAHIFA) return { ok: false, code: 'NAKOPITELNIY_SAHIFA_CHEGARASI' };
     const s = await t2NakopitelniyOl(obyektId, davrQat, NAKOPITELNIY_SAHIFA, keyingi);
