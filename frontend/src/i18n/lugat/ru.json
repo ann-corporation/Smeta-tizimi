@@ -2882,6 +2882,7 @@
   "akt baribir yoziladi, ish holati brauzerda saqlandi": "акт всё равно записывается, состояние работы сохранено в браузере",
   "Bu qoralama bekor qilingan — yangi nusxa saqlandi.": "Этот черновик был отменён — сохранена новая копия.",
   "Qoralama boshqa joyda o‘zgargan edi — yangi holati o‘qilib, qayta saqlandi.": "Черновик был изменён в другом месте — свежее состояние прочитано и сохранено заново.",
+  "ta qo‘shimcha qator smetada allaqachon yozilgan — qayta yaratilmaydi": "доп. строк уже записано в смету — повторно не создаются",
   "Allaqachon kiritilgan": "Уже внесено",
   "Tanlangan qator paneli": "Панель выбранной строки",
   "Tanlangan qator": "Выбранная строка",
