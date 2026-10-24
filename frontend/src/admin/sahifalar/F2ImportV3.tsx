@@ -1108,6 +1108,12 @@ function Sessiya({ companyId }: { companyId: number }) {
         : t('Bu obyekt va oy uchun tasdiqlangan F2 bor — yangi akt yozilmaydi. F2 tarixini oching.'));
       return;
     }
+    // Bog'lanmagan qatorlar bilan yozish — ongli qaror (egasi sinovi 2026-10-24: 76 qator jim tushib qolardi; pul yo'qolmasin).
+    if (yozish.qolgan.length) {
+      const pul = yozish.qolgan.filter((n) => n.barg && n.summa != null).reduce((a, n) => a + Number(n.summa), 0);
+      const ok = window.confirm(`${yozish.qolgan.length} ${t('ta qator')} (${pul.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${t('so‘m, ustamasiz')}) ${t('hali bog‘lanmagan — aktga KIRMAYDI. Baribir yozasizmi? (Keyin «✎ Tahrirlash» bilan qo‘shish mumkin.)')}`);
+      if (!ok) { qadam('tekshiruv', 'xato', t('Yozish bekor qilindi — bog‘lanmagan qatorlarni hal qiling.')); return; }
+    }
     qadam('tekshiruv', 'tayyor', `${payload.rows.length} ${t('qator aktga kiradi')}${yozish.qolgan.length ? `; ${yozish.qolgan.length} ${t('tasi kiritilmaydi (bog‘lanmagan)')}` : ''}`);
     // 2. Qo'shimcha/zamenalar (qoralamadagi) — avval ular, chunki akt ularning haqiqiy id lariga bog'lanadi.
     let ochirildi = 0;
