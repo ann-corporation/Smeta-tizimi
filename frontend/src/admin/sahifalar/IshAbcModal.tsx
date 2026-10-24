@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNod
 import { BookOpen, Plus, Repeat2, Trash2, X } from 'lucide-react';
 import { yangiOperationId, type AktNatija } from '../../api/supabase';
 import { abcXato, ishAbcSaqla, ishAbcTahrir, ishTuriQidir, narxTakliflari, resursQidir, type AbcSaqlaInput, type IshTuriVariant, type Kat, type NarxManba, type ResursVariant } from '../../api/t2-ish-abc';
+import type { AlmashtirishBelgilaFn } from '../../lib/fakt-studio';
 import { KATLAR, KAT_NOMI, MANBA_NOMI, abcHisobla, abcTekshir, engYaxshiNarx, katAniqla, son, type AbcResurs } from '../../lib/ish-abc';
 
 export type AbcRejim =
@@ -59,7 +60,7 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
  */
 export type AbcTahrir = { qatorId: number; kutilganVersiya?: number; oldAmount?: number | null; ish?: { kod: string; nom: string; birlik: string; hajm: string }; resurslar: AbcResurs[]; fakt?: string };
 
-export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, boshlang, onYop, onSaqlandi, saqlash }: {
+export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, boshlang, onYop, onSaqlandi, saqlash, almashtirishBelgila }: {
   kompaniyaId: number; obyektId: number; sana: string;
   bolimlar: Array<{ id: number; nom: string; versiya: number }>;
   rejim: AbcRejim;
@@ -70,6 +71,11 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
   /** `yangiQatorId` — saqlangan (tahrirda — qayta yaratilgan) qator id; F2 import bog'lanishni unga o'tkazadi. */
   onYop: () => void; onSaqlandi: (xabar: string, yangiQatorId?: number | null) => void | Promise<void>;
   /** Berilsa — standart saqlash o'rniga (masalan resurs o'rnidagi ish zamenasini tahrirlash `resursIshZamena` bilan). */
+  /**
+   * Ixtiyoriy (zamena qoldig'i, PR #115 sbT2ZamenaAlmashtirishBelgila): berilsa va yangi ish birligi asl ish birligidan farq qilsa,
+   * «asl ishning qancha hajmini almashtiradi» maydoni chiqadi. Asl qatorga tegilmaydi; xato zamena saqlanganini bekor qilmaydi.
+   */
+  almashtirishBelgila?: AlmashtirishBelgilaFn;
   saqlash?: (d: { ish: AbcSaqlaInput['ish']; resurslar: AbcSaqlaInput['resurslar']; sabab: string; operationId: string }) => Promise<AktNatija & { code?: string; qator_id?: number }>;
 }) {
   const resursRejim = rejim.tur === 'resurs_zamena';
@@ -80,6 +86,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
     : []);
   const [fakt, setFakt] = useState(tahrir?.fakt ?? boshlang?.fakt ?? '');
   const [sabab, setSabab] = useState(boshlang?.sabab ?? '');
+  const [almHajm, setAlmHajm] = useState('');
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
   const [koldaXato, setKoldaXato] = useState(false);
@@ -88,7 +95,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
   const savedResult = useRef<{message:string;id:number|null}|null>(null);
   const [written,setWritten]=useState(false);
 
-  const ishHajm = rejim.tur === 'resurs_zamena' ? (rejim.ishHajm != null ? String(rejim.ishHajm) : '') : ish.hajm;
+  const birlikFarqli = rejim.tur === 'replacement' && !tahrir && !!almashtirishBelgila
+    && !!ish.birlik.trim() && !!rejim.eski.birlik && ish.birlik.trim().toLowerCase() !== rejim.eski.birlik.trim().toLowerCase();
+  const ishHajm = rejim.tur ==='resurs_zamena' ? (rejim.ishHajm != null ? String(rejim.ishHajm) : '') : ish.hajm;
   const hisob = useMemo(() => abcHisobla(ishHajm, resurslar), [ishHajm, resurslar]);
   const xatolar = useMemo(() => abcTekshir({ rejim: resursRejim ? 'resurs' : 'ish', ish, resurslar, sabab, fakt }), [resursRejim, ish, resurslar, sabab, fakt]);
 
@@ -143,8 +152,15 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
         ish: ishP, resurslar: resP, faktHajm: resursRejim ? null : son(fakt),
       });
       if (!res.ok) { setXato(abcXato(res)); return; }
+      let almXabar = '';
+      const almN = birlikFarqli ? son(almHajm) : null;
+      const yangiId = Number((res as { qator_id?: unknown }).qator_id);
+      if (almN != null && almN > 0 && almashtirishBelgila && Number.isSafeInteger(yangiId)) {
+        const m = await almashtirishBelgila(yangiId, almN).catch(() => null);
+        almXabar = m?.ok ? ` ${t('Almashtirilgan hajm: {n} {birlik}.', { n: String(almN), birlik: rejim.tur === 'replacement' ? rejim.eski.birlik ?? '' : '' })}` : ` ${t('Almashtirilgan hajm yozilmadi — keyin belgilang.')}`;
+      }
       const message=tahrir ? 'O‘zgartirishlar saqlandi.' : rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».`
-        : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.`;
+        : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.${almXabar}`;
       const id=Number.isSafeInteger(Number((res as { qator_id?: unknown }).qator_id)) ? Number((res as { qator_id?: unknown }).qator_id) : null;
       savedResult.current={message,id}; setWritten(true);
       await onSaqlandi(message,id);
@@ -223,6 +239,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
           <div className="flex flex-wrap gap-3 text-[11px] text-text-dim">{KATLAR.map((k) => <span key={k}>{KAT_NOMI[k]}: <b className="tabular-nums text-text">{fmt(hisob.jamiKat[k])}</b></span>)}<span>Jami: <b className="tabular-nums text-text">{fmt(hisob.jami)}</b></span>{hisob.narxsiz > 0 && <span className="text-warn">{hisob.narxsiz} ta resurs narxsiz</span>}</div>
         </div>}
 
+        {birlikFarqli && rejim.tur === 'replacement' && <label className="block max-w-md text-[12px] font-medium">{t('Asl ishning qancha hajmini almashtiradi')} ({rejim.eski.birlik})
+          <input value={almHajm} onChange={(e) => setAlmHajm(e.target.value)} inputMode="decimal" placeholder={t('ixtiyoriy')} className={`${num} mt-1`} aria-label={t('Almashtirilgan hajm (asl birlikda)')} />
+          <span className="mt-0.5 block text-[11px] font-normal text-text-mute">{t('Birliklar farqli ({a} → {b}): bo‘sh qoldirsangiz asl qoldiq o‘zgarmaydi.', { a: rejim.eski.birlik ?? '', b: ish.birlik })}</span></label>}
         <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
           {!resursRejim && <label className="text-[12px] font-medium">Bajarilgan hajm (fakt)<input value={fakt} onChange={(e) => setFakt(e.target.value)} inputMode="decimal" placeholder="ixtiyoriy" className={`${num} mt-1`} aria-label="Bajarilgan hajm" /></label>}
           <label className={`text-[12px] font-medium ${resursRejim ? 'sm:col-span-2' : ''}`}>Sabab (majburiy)<input value={sabab} onChange={(e) => setSabab(e.target.value)} placeholder="masalan: loyihachi xati № …, buyurtmachi topshirig‘i" className={`${inp} mt-1`} aria-label="Sabab" /></label>
