@@ -180,6 +180,8 @@ export const onRequestPost: PagesFunction<{
       tartib?: string; limit?: number;
       soro?: string; obyekt_id?: number; kompaniya_id?: number; akt_id?: number; job_id?: number;
       shartnoma_id?: number;
+      /* pul_tahlil_v1 (2026-10-24) */
+      davr_gacha?: string; davr_dan?: string; dalil_kat?: string;
       /* ABC kutubxona qidiruvi (2026-10-01). */
       q?: string; kat?: string; items?: Array<{ nom?: string; birlik?: string }>;
     }>();
@@ -247,6 +249,8 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-24: rahbarlar uchun pul tahlili (P0) — kategoriya × {smeta, F2} + zanjir. `stable`; a'zolik + f2.read + financial.read. */
+        pul_tahlil_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
@@ -348,6 +352,25 @@ export const onRequestPost: PagesFunction<{
         const oid = Number(so.obyekt_id);
         if (!Number.isInteger(oid) || oid <= 0) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
         q.set('p_obyekt_id', String(oid));
+      }
+      if (so.soro === 'pul_tahlil_v1') {
+        for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
+          const v = so[kalit];
+          if (v == null || String(v) === '') continue;
+          const id = Number(v);
+          if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, String(id));
+        }
+        for (const [kalit, param] of [['davr_gacha', 'p_davr_gacha'], ['davr_dan', 'p_davr_dan']] as const) {
+          const v = so[kalit];
+          if (v == null || v === '') continue;
+          if (!/^\d{4}-\d{2}(-\d{2})?$/.test(v)) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, v.length === 7 ? `${v}-01` : v);
+        }
+        if (so.dalil_kat != null && so.dalil_kat !== '') {
+          if (!['ЧЕЛ', 'МАШ', 'МАТ', 'МАТ_ODDIY', 'М/К', 'КАБ', 'БЕЗСКЛАД', 'ОБ', 'KATSIZ'].includes(so.dalil_kat)) return Response.json({ ok: false, error: "dalil_kat noto'g'ri" });
+          q.set('p_dalil_kat', so.dalil_kat);
+        }
       }
       if (so.soro === 'mindmap_grafi_v2') {
         const mode = String((so as any).mode || 'overview');
