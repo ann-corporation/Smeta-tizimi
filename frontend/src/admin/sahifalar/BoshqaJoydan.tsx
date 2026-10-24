@@ -7,6 +7,7 @@ import { abcHisobla, abcTekshir, son, type AbcResurs } from '../../lib/ish-abc';
 import { boshlangichHajm, boshqaJoySabab, variantResurslari } from '../../lib/xotira-fakt/boshqaJoy';
 import type { XotiraQator } from '../../lib/xotira-fakt/parse';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 
@@ -17,11 +18,13 @@ export interface YaratilganQator { id: number | null; nom: string; birlik: strin
  * (resurslari va narxi bilan) shablon, kerakli razdelga QO‘SHIMCHA qator bo‘lib yaratiladi va bajarilgan hajm (fakt) shu amalda
  * yoziladi. Mavjud `ish_abc_saqla_v1` (additional) oqimi; asl smeta qatorlari o‘zgarmaydi; manba qator id sababda saqlanadi.
  */
-export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, onSaqlandi }: {
+export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, onSaqlandi, onKatalog }: {
   kompaniyaId: number; obyektId: number; qator: XotiraQator;
   bolimlar: Array<{ id: number; nom: string; versiya: number; daraja: number }>;
   onYop: () => void;
   onSaqlandi: (q: YaratilganQator) => unknown;
+  /** Smetada umuman yo'q — katalog/resurs qidiruvidan qo'shimcha ish yaratish oynasiga o'tish. */
+  onKatalog?: () => void;
 }) {
   const [q, setQ] = useState(qator.nom);
   const [variantlar, setVariantlar] = useState<IshTuriVariant[]>([]);
@@ -140,7 +143,7 @@ export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, on
                     <td className="p-1.5 text-text-dim">{r.birlik}</td>
                     <td className="p-1"><input value={r.norma} onChange={(e) => yangila(i, { norma: e.target.value })} aria-label={t('{n}-resurs normasi', { n: i + 1 })} className={`${inp} text-right`} /></td>
                     <td className="p-1.5 text-right tabular-nums">{fmt(hisob.qatorlar[i]?.hajm)}</td>
-                    <td className="p-1"><input value={r.narx} onChange={(e) => yangila(i, { narx: e.target.value, manba: e.target.value.trim() ? (r.manba === 'smeta' ? 'smeta' : 'qolda') : 'qolda' })} aria-label={t('{n}-resurs narxi', { n: i + 1 })} className={`${inp} text-right`} /></td>
+                    <td className="p-1"><MoneyInput value={r.narx} onValueChange={(v) => yangila(i, { narx: v, manba: v.trim() && r.manba === 'smeta' ? 'smeta' : 'qolda' })} inputMode="decimal" aria-label={t('{n}-resurs narxi', { n: i + 1 })} className={`${inp} text-right`} /></td>
                     <td className="p-1.5 text-right tabular-nums">{fmt(hisob.qatorlar[i]?.summa)}</td>
                   </tr>
                 ))}
@@ -155,6 +158,7 @@ export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, on
 
         {xato && <div role="alert" className="rounded-lg border border-danger/40 bg-danger/5 px-3 py-2 text-[12px] text-danger">{xato}</div>}
         <div className="flex justify-end gap-2">
+          {onKatalog && !tanlangan && <button type="button" onClick={onKatalog} className="mr-auto rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-text hover:bg-accent/10">{t('Smetada yoʻq — katalogdan qoʻshish')}</button>}
           <button type="button" disabled={band} onClick={onYop} className="rounded-lg border border-border px-3 py-2 text-[12px]">{t('Bekor qilish')}</button>
           {tanlangan && <button type="button" disabled={band} onClick={() => void saqla()} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50">{band ? t('Saqlanmoqda…') : t('Qoʻshimcha qator yaratish va fakt yozish')}</button>}
         </div>

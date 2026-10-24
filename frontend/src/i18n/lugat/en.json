@@ -3096,5 +3096,6 @@
   "Sabab (manba qator saqlanadi)": "Reason (source line is kept)",
   "Qoʻshimcha qator yaratish va fakt yozish": "Create additional line and record actuals",
   "Qoʻshimcha qator yaratildi va fakt yozildi: {nom}": "Additional line created and actuals recorded: {nom}",
-  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "New additional lines (actuals recorded)"
+  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "New additional lines (actuals recorded)",
+  "Smetada yoʻq — katalogdan qoʻshish": "Not in the estimate — add from catalogue"
 }

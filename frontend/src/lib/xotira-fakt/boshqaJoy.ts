@@ -33,3 +33,16 @@ export function boshqaJoySabab(v: Pick<IshTuriVariant, 'qator_id' | 'kod' | 'nom
   const joy = v.shu_obyekt ? 'shu obyekt smetasi' : 'boshqa obyekt smetasi';
   return `Xotiradan fakt: «${xom.trim()}» — boshqa joydan olindi (manba qator #${v.qator_id ?? '?'}, ${joy}${v.kod ? `, ${v.kod}` : ''})`.slice(0, 500);
 }
+
+/**
+ * Smetada umuman yo'q ish (katalog/resurs qidiruvidan qo'shimcha): `IshAbcModal` ni matn bo'yicha oldindan to'ldirish.
+ * Ish nomi — matndagi nom; birlik/hajm — matnda aytilgan bo'lsa (smeta birligi yo'q — operator tanlaydi); fakt = hajm.
+ */
+export function katalogBoshlang(q: XotiraQator): { ish: { kod: string; nom: string; birlik: string; hajm: string }; fakt: string; sabab: string } {
+  const hajm = q.turi === 'son' && q.qiymat != null ? String(q.qiymat) : '';
+  return {
+    ish: { kod: '', nom: q.nom.toUpperCase(), birlik: q.turi === 'son' ? q.birlik ?? '' : '', hajm },
+    fakt: hajm,
+    sabab: `Xotiradan fakt: «${q.xom.trim()}» — smetada yo'q (katalog/resurs qidiruvidan qo'shildi)`.slice(0, 500),
+  };
+}

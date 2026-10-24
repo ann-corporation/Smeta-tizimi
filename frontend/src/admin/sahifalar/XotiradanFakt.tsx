@@ -13,6 +13,8 @@ import { miqdorBoshlang, nomzodHajmi } from '../../lib/xotira-fakt/tanlash';
 import { jurnalQur } from '../../lib/fakt-jurnal';
 import { toast } from '../../umumiy/ui/Toast';
 import { BoshqaJoydan, type YaratilganQator } from './BoshqaJoydan';
+import { IshAbcModal } from './IshAbcModal';
+import { katalogBoshlang } from '../../lib/xotira-fakt/boshqaJoy';
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 0 }));
@@ -48,6 +50,7 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
   const [nk, setNk] = useState<NakrutkaKoeffitsientlar | null>(null);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [boshqa, setBoshqa] = useState<number | null>(null);
+  const [katalog, setKatalog] = useState<number | null>(null);
   const [yaratilgan, setYaratilgan] = useState<YaratilganQator[]>([]);
   const bolimlar = useMemo(() => jurnalQur(rows, states).bolimlar, [rows, states]);
   const matnRef = useRef<HTMLTextAreaElement>(null);
@@ -101,6 +104,19 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
     return true;
   };
 
+  const katalogSaqlandi = async (xabar: string, id?: number | null) => {
+    const x = katalog != null ? natijalar[katalog] : null;
+    if (x) {
+      yangila(x.qator.id, { qoshildi: true });
+      const b = katalogBoshlang(x.qator);
+      setYaratilgan((a) => [...a, { id: id ?? null, nom: b.ish.nom, birlik: b.ish.birlik, hajm: Number(b.ish.hajm) || 0, jami: 0 }]);
+    }
+    if (katalog != null) setAktivQator(keyingiHalQilinmagan(katalog));
+    setKatalog(null);
+    toast(xabar, 'ok');
+    await tuzilmaniYangila(); await holatniYangila();
+  };
+
   const boshqaSaqlandi = async (y: YaratilganQator) => {
     const x = boshqa != null ? natijalar[boshqa] : null;
     if (x) yangila(x.qator.id, { qoshildi: true });
@@ -146,7 +162,7 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
     { id: 'xotira.keyingi', keys: 'n', nom: t('Keyingi hal qilinmagan qator'), run: () => { if (!natijalar.length) return false; setAktivQator(keyingiHalQilinmagan(aktivQator)); } },
     { id: 'xotira.boshqa', keys: 'b', nom: t('Boshqa joydan olish'), run: () => { if (!natijalar[aktivQator]) return false; setBoshqa(aktivQator); } },
     { id: 'xotira.matn', keys: '/', nom: t('Matn maydoniga oʻtish'), run: () => { matnRef.current?.focus(); } },
-  ], boshqa == null);
+  ], boshqa == null && katalog == null);
 
   const maydonKlavisha = (e: KeyboardEvent<HTMLInputElement>, qi: number) => {
     if (e.key === 'Enter') { e.preventDefault(); qosh(qi); }
@@ -250,7 +266,9 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
           <button type="button" onClick={() => navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}`)} className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-text hover:bg-accent/10">{t('F2 tayyorlash →')}</button>
         </div>
       </aside>
-      {boshqa != null && natijalar[boshqa] && <BoshqaJoydan kompaniyaId={kompaniyaId} obyektId={obyektId} qator={natijalar[boshqa].qator} bolimlar={bolimlar} onYop={() => setBoshqa(null)} onSaqlandi={boshqaSaqlandi} />}
+      {boshqa != null && natijalar[boshqa] && <BoshqaJoydan kompaniyaId={kompaniyaId} obyektId={obyektId} qator={natijalar[boshqa].qator} bolimlar={bolimlar} onYop={() => setBoshqa(null)} onSaqlandi={boshqaSaqlandi} onKatalog={() => { setKatalog(boshqa); setBoshqa(null); }} />}
+      {katalog != null && natijalar[katalog] && <IshAbcModal kompaniyaId={kompaniyaId} obyektId={obyektId} sana={new Date().toISOString().slice(0, 10)} rejim={{ tur: 'additional' }}
+        bolimlar={bolimlar.map((b) => ({ id: b.id, versiya: b.versiya, nom: `${'· '.repeat(b.daraja)}${b.nom}` }))} boshlang={katalogBoshlang(natijalar[katalog].qator)} onYop={() => setKatalog(null)} onSaqlandi={katalogSaqlandi} />}
     </div>
   );
 }

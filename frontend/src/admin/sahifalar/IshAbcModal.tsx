@@ -59,12 +59,14 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
  */
 export type AbcTahrir = { qatorId: number; kutilganVersiya?: number; oldAmount?: number | null; ish?: { kod: string; nom: string; birlik: string; hajm: string }; resurslar: AbcResurs[]; fakt?: string };
 
-export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, onYop, onSaqlandi, saqlash }: {
+export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, boshlang, onYop, onSaqlandi, saqlash }: {
   kompaniyaId: number; obyektId: number; sana: string;
   bolimlar: Array<{ id: number; nom: string; versiya: number }>;
   rejim: AbcRejim;
   /** Berilsa — mavjud qo'shilgan ish/zamenani tahrirlash (shu joyda almashtirish). */
   tahrir?: AbcTahrir | null;
+  /** Yangi qo'shimcha ish uchun oldindan to'ldirish (masalan «Xotiradan fakt»: matndagi nom, hajm va fakt). */
+  boshlang?: { ish?: { kod: string; nom: string; birlik: string; hajm: string }; fakt?: string; sabab?: string } | null;
   /** `yangiQatorId` — saqlangan (tahrirda — qayta yaratilgan) qator id; F2 import bog'lanishni unga o'tkazadi. */
   onYop: () => void; onSaqlandi: (xabar: string, yangiQatorId?: number | null) => void | Promise<void>;
   /** Berilsa — standart saqlash o'rniga (masalan resurs o'rnidagi ish zamenasini tahrirlash `resursIshZamena` bilan). */
@@ -72,12 +74,12 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
 }) {
   const resursRejim = rejim.tur === 'resurs_zamena';
   const [bolimId, setBolimId] = useState(rejim.tur === 'additional' && rejim.bolimId ? String(rejim.bolimId) : '');
-  const [ish, setIsh] = useState(tahrir?.ish ?? { kod: '', nom: '', birlik: rejim.tur === 'replacement' ? rejim.eski.birlik ?? '' : '', hajm: '' });
+  const [ish, setIsh] = useState(tahrir?.ish ?? boshlang?.ish ?? { kod: '', nom: '', birlik: rejim.tur === 'replacement' ? rejim.eski.birlik ?? '' : '', hajm: '' });
   const [resurslar, setResurslar] = useState<AbcResurs[]>(() => tahrir ? tahrir.resurslar : rejim.tur === 'resurs_zamena'
     ? [{ kat: katAniqla(rejim.eski.kat, null, rejim.eski.birlik), kod: '', nom: '', birlik: rejim.eski.birlik ?? '', norma: rejim.eski.norma != null ? String(rejim.eski.norma) : '', narx: '', manba: 'qolda' }]
     : []);
-  const [fakt, setFakt] = useState(tahrir?.fakt ?? '');
-  const [sabab, setSabab] = useState('');
+  const [fakt, setFakt] = useState(tahrir?.fakt ?? boshlang?.fakt ?? '');
+  const [sabab, setSabab] = useState(boshlang?.sabab ?? '');
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
   const [koldaXato, setKoldaXato] = useState(false);
