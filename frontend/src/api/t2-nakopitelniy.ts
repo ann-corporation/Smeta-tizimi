@@ -97,6 +97,21 @@ export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, l
  * birinchi sahifadan. Sahifalar orasida qator soni o'zgarsa (parallel import)
  * — xato, chala hujjat yasalmaydi.
  */
+/** Qolgan sahifalarni 4 tadan parallel o'qiydi. Hammasi to'g'ri va to'liq bo'lsa — qatorlar, aks holda null (chaqiruvchi ketma-ket o'qiydi). */
+async function nakopitelniyParallel(obyektId: number, davr: string | null, boshi: number, jami: number): Promise<NakopitelniyQator[] | null> {
+  const offsetlar: number[] = [];
+  for (let o = boshi; o < jami; o += NAKOPITELNIY_SAHIFA) offsetlar.push(o);
+  if (offsetlar.length >= NAKOPITELNIY_MAX_SAHIFA) return null;
+  const qatorlar: NakopitelniyQator[] = [];
+  for (let i = 0; i < offsetlar.length; i += NAKOPITELNIY_PARALLEL) {
+    const javob = await Promise.all(offsetlar.slice(i, i + NAKOPITELNIY_PARALLEL).map((o) => t2NakopitelniyOl(obyektId, davr, NAKOPITELNIY_SAHIFA, o)));
+    for (const s of javob) {
+      if (!s.ok || s.qatorlar_jami !== jami) return null;
+      qatorlar.push(...s.qatorlar);
+    }
+  }
+  return qatorlar.length + boshi === jami ? qatorlar : null;
+}
 export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null): Promise<NakopitelniyJavob> {
   const birinchi = await t2NakopitelniyOl(obyektId, davr, NAKOPITELNIY_SAHIFA, 0);
   if (!birinchi.ok) return birinchi;
@@ -112,27 +127,11 @@ export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null
   const jami = birinchi.qatorlar_jami;
   // Faqat server sahifa hajmini to'liq bergan bo'lsa (keyingi = 5000) — aks holda eski ketma-ket yo'l.
   if (keyingi != null && keyingi === NAKOPITELNIY_SAHIFA && Number.isSafeInteger(jami) && jami > keyingi) {
-    const offsetlar: number[] = [];
-    for (let o = keyingi; o < jami; o += NAKOPITELNIY_SAHIFA) offsetlar.push(o);
-    if (offsetlar.length >= NAKOPITELNIY_MAX_SAHIFA) return { ok: false, code: 'NAKOPITELNIY_SAHIFA_CHEGARASI' };
-    const sahifalar: NakopitelniyJavob[] = new Array(offsetlar.length);
-    for (let i = 0; i < offsetlar.length; i += NAKOPITELNIY_PARALLEL) {
-      const bolak = offsetlar.slice(i, i + NAKOPITELNIY_PARALLEL);
-      const javob = await Promise.all(bolak.map((o) => t2NakopitelniyOl(obyektId, davrQat, NAKOPITELNIY_SAHIFA, o)));
-      javob.forEach((s, k) => { sahifalar[i + k] = s; });
-    }
-    for (const s of sahifalar) {
-      if (!s.ok) return s;
-      if (s.qatorlar_jami !== jami) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
-      qatorlar.push(...s.qatorlar);
-    }
-    // Rejadan keyin ham server yana sahifa ko'rsatsa (jami o'zgargan) — chala hujjat yasalmaydi.
-    const oxirgi = sahifalar[sahifalar.length - 1];
-    if (oxirgi.ok && oxirgi.keyingi_offset != null) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
-    if (qatorlar.length !== jami) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
-    return { ...birinchi, qatorlar, qatorlar_korsatildi: qatorlar.length, truncated: false, keyingi_offset: null };
-  }
-  for (let n = 0; keyingi != null; n++) {
+    // Parallel o'qish faqat TEZLASHTIRISH: biror sahifa xato/tarmoq uzilishi/nomuvofiqlik bersa — jim xato emas,
+    // eski ishonchli ketma-ket yo'lga qaytiladi (regressiya 2026-10-24: Sun'iy ko'l da «Nakopitelniy o'qilmadi»).
+    const parallel = await nakopitelniyParallel(obyektId, davrQat, keyingi, jami).catch(() => null);
+    if (parallel) return { ...birinchi, qatorlar: [...qatorlar, ...parallel], qatorlar_korsatildi: qatorlar.length + parallel.length, truncated: false, keyingi_offset: null };
+  }  for (let n = 0; keyingi != null; n++) {
     if (n >= NAKOPITELNIY_MAX_SAHIFA) return { ok: false, code: 'NAKOPITELNIY_SAHIFA_CHEGARASI' };
     const s = await t2NakopitelniyOl(obyektId, davrQat, NAKOPITELNIY_SAHIFA, keyingi);
     if (!s.ok) return s;

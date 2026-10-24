@@ -62,6 +62,24 @@ describe('t2NakopitelniyToliq — server sahifalari avtomat', () => {
     expect(maks).toBeLessThanOrEqual(4);
   });
 
+  it('parallel sahifalardan biri xato bersa (502/tarmoq) — ketma-ket yo‘lga qaytadi va to‘liq o‘qiydi (regressiya)', async () => {
+    let parallelXato = true;
+    const urls: number[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (u: string) => {
+      const off = Number(new URL(u, 'http://x').searchParams.get('offset') ?? 0);
+      urls.push(off);
+      if (off === 10_000 && parallelXato) { parallelXato = false; throw new TypeError('Failed to fetch'); }
+      const n = Math.min(5000, 25_201 - off);
+      return { json: async () => sahifa(off, n, 25_201, off + n < 25_201 ? off + n : null) } as Response;
+    }));
+    const r = await t2NakopitelniyToliq(84, '2026-09');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.qatorlar).toHaveLength(25_201);
+    expect(r.qatorlar.every((q, i) => q.qator_id === i + 1)).toBe(true);
+    expect(urls.filter((o) => o === 10_000)).toHaveLength(2); // parallel urinish + ketma-ket qayta o'qish
+  });
+
   it('eski server (keyingi_offset yo‘q) qirqqan bo‘lsa — truncated qoladi', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => {
       const j: Record<string, unknown> = sahifa(0, 3000, 27_309, 3000);
