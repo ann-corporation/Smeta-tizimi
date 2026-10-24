@@ -250,7 +250,8 @@ function parseSheetXml(xml: string, sharedStrings: string[]): Pick<XlsxSheet, 'r
       if (fm) (formulalar[rIdx] ??= [])[cIdx] = decodeXmlEntities(fm[1]);
       else if (/<f(?:\s[^>]*)?\s*\/>/.test(body)) (formulalar[rIdx] ??= [])[cIdx] = '#SHARED_FORMULA_UNRESOLVED!';
       let v: CellValue = '';
-      const vm = body.match(/<v>([\s\S]*?)<\/v>/);
+      // <v> atributli bo'lishi mumkin: formula katagining keshlangan matni <v xml:space="preserve">…</v> (t="str").
+      const vm = body.match(/<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/);
       if (vm) v = decodeXmlEntities(vm[1]);
       else { const im = body.match(/<is>[\s\S]*?<t[^>]*>([\s\S]*?)<\/t>/); if (im) v = decodeXmlEntities(im[1]); }
       if (vm && (t === '' || t === 'n')) (numericText[rIdx] ??= [])[cIdx] = decodeXmlEntities(vm[1]);
