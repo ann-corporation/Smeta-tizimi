@@ -81,8 +81,9 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
     if (amal === 'replacement' && !oldId) { setError('Almashtiriladigan qator tanlanmagan.'); return; }
     if (!nom.trim() || !birlik.trim() || !sabab.trim()) { setError('Nom, birlik va sabab majburiy.'); return; }
     const hajmSoni = hajm.trim() === '' ? undefined : Number(hajm.replace(/[^\d.-]/g, ''));
-    if (amal !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni <= 0)) {
-      setError('Hajm musbat son bo‘lishi shart.'); return;
+    // Minus hajm ruxsat: norma tuzatuvchi ishlar (masalan qalinlik farqi K=7) farqni ayiradi. Faqat 0 va bo'sh — yo'q.
+    if (amal !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni === 0)) {
+      setError('Hajm 0 dan farqli son bo‘lishi shart (minus ham mumkin — norma tuzatuvchi ish).'); return;
     }
     setBusy(true); setError(''); setDone('');
     const asos = {

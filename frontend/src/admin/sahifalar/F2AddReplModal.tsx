@@ -79,8 +79,10 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
   async function submit() {
     if (!nom.trim() || !birlik.trim() || !sabab.trim()) { setError('Nom, birlik va sabab majburiy.'); return; }
     const hajmSoni = hajm.trim() === '' ? undefined : Number(hajm.replace(',', '.'));
-    if (action.kind !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni <= 0)) {
-      setError('Hajm musbat son bo‘lishi shart.'); return;
+    // Minus hajm ruxsat (egasi 2026-10-24): norma tuzatuvchi ishlar — «на каждый мм изменения толщины …» K=7 —
+    // loyiha/norma farqini AYIRADI (masalan 10 mm normada, loyihada 7 mm → minus). Faqat 0 va bo'sh — yo'q.
+    if (action.kind !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni === 0)) {
+      setError('Hajm 0 dan farqli son bo‘lishi shart (minus ham mumkin — norma tuzatuvchi ish).'); return;
     }
     if (p.onRejali) {
       p.onRejali({

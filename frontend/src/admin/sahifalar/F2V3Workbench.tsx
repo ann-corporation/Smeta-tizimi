@@ -566,10 +566,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
    *  asl resurs o'zgarmaydi. Bir resurs o'rniga bir nechta ish — har birini shu resursga tashlang. */
   async function resursOrnigaIsh(f: F2Tugun, s: SmetaQator) {
     const hajm = Number(f.hajm);
-    if (!(hajm > 0)) { xab('F2 ishining hajmi bo‘sh yoki 0 — avval hujjatdagi hajmni tekshiring.'); return; }
+    if (!Number.isFinite(hajm) || hajm === 0) { xab('F2 ishining hajmi bo‘sh yoki 0 — avval hujjatdagi hajmni tekshiring.'); return; }
     const sabab = window.prompt(`«${s.nom ?? ''}» o‘rniga «${f.nom}» ishi yoziladi (resurs o‘zi o‘zgarmaydi).\nSabab:`, 'Material buyurtmachidan (masalan karyer) — o‘rniga ish bajarilgan');
     if (sabab === null || !sabab.trim()) return;
-    const resurslar = f.bolalar.filter((r) => Number(r.hajm) > 0).map((r) => ({
+    const resurslar = f.bolalar.filter((r) => Number.isFinite(Number(r.hajm)) && Number(r.hajm) !== 0).map((r) => ({
       kat: katAniqla(null, r.tur, r.birlik), kod: r.kod ?? null, nom: r.nom, birlik: r.birlik || 'шт',
       norma: null, hajm: Number(r.hajm), narx: r.narx != null && r.narx > 0 ? r.narx : null, narx_manba: 'qolda' as const,
     }));
