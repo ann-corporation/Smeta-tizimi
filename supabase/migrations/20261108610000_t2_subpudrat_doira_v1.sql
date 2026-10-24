@@ -86,6 +86,16 @@ returns boolean language sql stable security definer set search_path = public, p
     select 1 from d join public.t2_subpudrat_qator sq on sq.qator_id = d.id and sq.subpudrat_id = p_subpudrat_id and sq.holat = 'faol');
 $$;
 
+-- Asosiy shartnoma qamrovidan 'chiqarilgan' qatormi. t2_shartnoma_qator_qamrov hali bo'lmasa (migratsiya qo'llanmagan) - false (tekshiruv o'tkaziladi).
+create or replace function public._t2_subpudrat_qamrovda_emas(p_shartnoma_id bigint, p_qator_id bigint)
+returns boolean language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare v boolean;
+begin
+  if p_shartnoma_id is null or to_regclass('public.t2_shartnoma_qator_qamrov') is null then return false; end if;
+  execute 'select exists (select 1 from public.t2_shartnoma_qator_qamrov m where m.shartnoma_id = $1 and m.qator_id = $2 and m.holat = ''chiqarilgan'')' into v using p_shartnoma_id, p_qator_id;
+  return coalesce(v, false);
+end $$;
+
 create or replace function public._t2_subpudrat_hodisa(p_kompaniya_id bigint, p_mavzu text, p_id bigint, p_aloqa_id bigint, p_sub_kompaniya_id bigint, p_actor_id bigint, p_op uuid)
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
 begin
@@ -96,7 +106,8 @@ begin
   end if;
 end $$;
 
--- ── SHARTNOMA (sarlavha) saqlash ──create or replace function public.t2_subpudrat_saqla_v1(
+-- ── SHARTNOMA (sarlavha) saqlash ──
+create or replace function public.t2_subpudrat_saqla_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_operation_id uuid, p_kutilgan_versiya integer, p_malumot jsonb)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare
@@ -192,7 +203,7 @@ begin
                            union all select c.id, c.obyekt_id, c.tur, c.hajm from public.t2_qator c join d on c.ota_id = d.id)
       select d.id, d.obyekt_id, d.hajm from d where d.tur = 'bl'
          and not public._t2_subpudrat_ichki_ziddiyat(s.id, d.id)
-         and not exists (select 1 from public.t2_shartnoma_qator_qamrov m where s.asosiy_shartnoma_id is not null and m.shartnoma_id = s.asosiy_shartnoma_id and m.qator_id = d.id and m.holat = 'chiqarilgan')
+         and not public._t2_subpudrat_qamrovda_emas(s.asosiy_shartnoma_id, d.id)
     loop
       insert into public.t2_subpudrat_qator (kompaniya_id, subpudrat_id, obyekt_id, qator_id, hajm, narx)
       values (p_kompaniya_id, s.id, q.obyekt_id, q.id, q.hajm, null)
@@ -213,8 +224,7 @@ begin
     end if;
     if q.tur not in ('bl','mat','ob') then return jsonb_build_object('ok', false, 'code', 'QATOR_TURI', 'qator_id', v_qid); end if;
     if public._t2_subpudrat_ichki_ziddiyat(s.id, v_qid) then return jsonb_build_object('ok', false, 'code', 'QATOR_ICHKI', 'qator_id', v_qid); end if;
-    if s.asosiy_shartnoma_id is not null and exists (select 1 from public.t2_shartnoma_qator_qamrov m
-        where m.shartnoma_id = s.asosiy_shartnoma_id and m.qator_id = v_qid and m.holat = 'chiqarilgan') then
+    if public._t2_subpudrat_qamrovda_emas(s.asosiy_shartnoma_id, v_qid) then
       return jsonb_build_object('ok', false, 'code', 'QAMROVDA_EMAS', 'qator_id', v_qid);
     end if;
     v_hajm := case when e ? 'hajm' then nullif(e->>'hajm', '')::numeric else q.hajm end;
@@ -304,6 +314,8 @@ begin
 end $$;
 
 revoke all on function public._t2_subpudrat_ichki_ziddiyat(bigint,bigint) from public, anon, authenticated;
+revoke all on function public._t2_subpudrat_qamrovda_emas(bigint,bigint) from public, anon, authenticated;
+grant execute on function public._t2_subpudrat_qamrovda_emas(bigint,bigint) to service_role;
 revoke all on function public._t2_subpudrat_hodisa(bigint,text,bigint,bigint,bigint,bigint,uuid) from public, anon, authenticated;
 grant execute on function public._t2_subpudrat_ichki_ziddiyat(bigint,bigint) to service_role;
 grant execute on function public._t2_subpudrat_hodisa(bigint,text,bigint,bigint,bigint,bigint,uuid) to service_role;
