@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
-import { bajarilmadiHajmlar, faktYigindiHisobla } from '../../lib/fakt-studio';
+import { bajarilmadiHajmlar, faktYigindiHisobla, narxlashMumkin } from '../../lib/fakt-studio';
+import { FaktNarxlash, type NarxlashQator } from './FaktNarxlash';
 import { FaktBajarilmadiTez, type BajarilmadiQatorInfo } from './FaktBajarilmadiTez';
 import { FaktStudioBar } from './FaktStudioBar';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
@@ -114,6 +115,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   useEffect(() => { void bajYangila(); }, [bajYangila]);
   const bajHajm = useMemo(() => bajarilmadiHajmlar(bajarilmadi), [bajarilmadi]);
   const yigindi = useMemo(() => faktYigindiHisobla(rows, states, bajarilmadi), [rows, states, bajarilmadi]);
+  const [narxModal, setNarxModal] = useState<NarxlashQator | null>(null);
   const qatorlarRef = useRef(new Map<number, JurnalQator>());
   const bajBekor = async (qatorId: number, nom: string) => {
     const faol = bajarilmadi.filter((b) => b.qator_id === qatorId && b.holat === 'faol').sort((a, b) => b.id - a.id)[0];
@@ -212,7 +214,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     { id: 'fakt.qidiruv', keys: '/', nom: t('Qidirish'), run: () => { qidiruvRef.current?.focus(); } },
     { id: 'fakt.f2', keys: 'f', nom: t('Fakt = F2 (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b) return false; tenglashOch(b.nom, bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true)); } },
     { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; setKiritmalar({}); } },
-  ], !modal && !tenglash && !bajModal);
+  ], !modal && !tenglash && !bajModal && !narxModal);
   useEffect(() => {
     if (!ozgarishSoni) return;
     const k = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -271,6 +273,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           {q.qoshimcha && <span className="shrink-0 rounded bg-accent/10 px-1 text-[10px] text-accent">qo‘shimcha</span>}
           {q.zamena && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">zamena</span>}
           {saqlangan.has(q.id) && <CheckCircle2 size={13} className="shrink-0 text-ok" />}
+          {(() => { const h = holatMap.get(q.id); return h && 'smeta_narx' in h && narxlashMumkin(q.tur, h.smeta_narx)
+            ? <button type="button" tabIndex={-1} onClick={() => setNarxModal({ id: q.id, nom: q.nom, birlik: q.birlik, kat: rowById.get(q.id)?.kat ?? null, fakt: q.fakt, smeta: q.smeta })}
+                className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn hover:bg-warn/20" title={t('Narxi noma‘lum - narxlash')} data-testid="narxsiz-belgi">{t('narxsiz')}</button> : null; })()}
           {(bajHajm.get(q.id) ?? 0) > 0 && <button type="button" tabIndex={-1} onClick={() => void bajBekor(q.id, q.nom)} className="shrink-0 rounded bg-danger/10 px-1 text-[10px] text-danger hover:bg-danger/20" title={t('Bajarilmaydi deb belgilangan hajm (bosing - bekor qilish)')} data-testid="baj-belgi">{t('bajarilmaydi')}: {fmt(bajHajm.get(q.id))}</button>}
         </div>
         {children}
@@ -375,6 +380,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} obyektId={obyektId} sana={sana}
         onYop={() => setTenglash(null)} onBajarildi={() => holatniYangila()}
         aktBekor={faktF2Bekor} />}
+
+      {narxModal && <FaktNarxlash kompaniyaId={kompaniyaId} obyektId={obyektId} qator={narxModal} onYop={() => setNarxModal(null)}
+        onSaqlandi={(xabar) => { setNarxModal(null); toast(xabar, 'ok'); void tuzilmaniYangila(); }} />}
 
       {bajModal && <FaktBajarilmadiTez kompaniyaId={kompaniyaId} obyektId={obyektId} sana={sana} qator={bajModal} onYop={() => setBajModal(null)}
         onSaqlandi={(xabar) => { setBajModal(null); toast(xabar, 'ok'); void bajYangila(); }} />}

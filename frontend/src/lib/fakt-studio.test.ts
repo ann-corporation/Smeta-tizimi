@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bajarilmadiHajmlar, bajarilmadiTaklif, faktYigindiHisobla } from './fakt-studio';
+import { bajarilmadiHajmlar, bajarilmadiTaklif, faktYigindiHisobla, narxVariantlariTartibla, narxlashMumkin, narxsizSummalar } from './fakt-studio';
 
 const r = (id: number, tur: string, ota_id: number | null, extra: Record<string, unknown> = {}) =>
   ({ id, tur, ota_id, kat: 'mat', qoshimcha: false, zamena: false, ...extra }) as never;
@@ -38,5 +38,19 @@ describe('bajarilmadi yordamchilari', () => {
     expect(bajarilmadiTaklif(10, 4, 1)).toBe(5);
     expect(bajarilmadiTaklif(10, 12, 0)).toBe(0);
     expect(bajarilmadiTaklif(null, 1, 0)).toBeNull();
+  });
+});
+
+describe('narx yordamchilari', () => {
+  it('narxVariantlariTartibla: tartib, takror va narxsiz/0 olib tashlanadi', () => {
+    const r = narxVariantlariTartibla([{ manba: 'katalog', narx: 5 }, { manba: 'smeta', narx: 0 }, { manba: 'smeta_obyekt', narx: 7 }, { manba: 'smeta_obyekt', narx: 7 }]);
+    expect(r.map((x) => x.manba)).toEqual(['smeta_obyekt', 'katalog']);
+  });
+  it('narxsizSummalar: smeta noma\'lum bo\'lsa smeta summasi null; narxlashMumkin NULL != 0', () => {
+    expect(narxsizSummalar('mat', 2, null, 10)).toMatchObject({ faktSumma: 20, smetaSumma: null });
+    expect(narxsizSummalar('mat', 2, 5, 10).smetaSumma).toBe(50);
+    expect(narxlashMumkin('mat', null)).toBe(true);
+    expect(narxlashMumkin('mat', 0)).toBe(false);
+    expect(narxlashMumkin('bl', null)).toBe(false);
   });
 });

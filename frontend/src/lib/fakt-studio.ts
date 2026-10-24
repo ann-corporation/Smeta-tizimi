@@ -77,3 +77,26 @@ export function bajarilmadiTaklif(smeta: number | null | undefined, fakt: number
 
 /** Zamena yangi ishi saqlangach asl ishning qancha hajmi almashtirilganini belgilash (PR #115: sbT2ZamenaAlmashtirishBelgila). */
 export type AlmashtirishBelgilaFn = (yangiQatorId: number, hajm: number) => Promise<{ ok: boolean; error?: string }>;
+
+const MANBA_TARTIB = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'] as const;
+/** Narx variantlari: ishonchli manba oldin (shu smeta > shartnoma > boshqa > katalog); bir xil manba+narx takrori olib tashlanadi. Narx to'qilmaydi. */
+export function narxVariantlariTartibla<T extends { manba: string; narx: number }>(v: readonly T[]): T[] {
+  const korilgan = new Set<string>();
+  return [...v]
+    .filter((x) => Number.isFinite(x.narx) && x.narx > 0)
+    .sort((a, b) => MANBA_TARTIB.indexOf(a.manba as never) - MANBA_TARTIB.indexOf(b.manba as never))
+    .filter((x) => { const k = `${x.manba}|${x.narx}`; if (korilgan.has(k)) return false; korilgan.add(k); return true; });
+}
+
+/** Tanlangan narx bo'yicha qator summalari (ustamasiz + kat kesimi ustamali hisob uchun). Smeta hajmi noma'lum bo'lsa smeta summasi null. */
+export function narxsizSummalar(kat: string | null | undefined, fakt: number, smeta: number | null, narx: number) {
+  const faktSumma = fakt * narx; const faktKesim = bosKatKesim(); katKesimgaQosh(faktKesim, kat, faktSumma);
+  if (smeta == null) return { faktSumma, faktKesim, smetaSumma: null, smetaKesim: null };
+  const smetaSumma = smeta * narx; const smetaKesim = bosKatKesim(); katKesimgaQosh(smetaKesim, kat, smetaSumma);
+  return { faktSumma, faktKesim, smetaSumma, smetaKesim };
+}
+
+/** Fakt oynasida narxlash taklif qilinadigan qator: material/uskuna va smeta narxi noma'lum (NULL; 0 emas). */
+export function narxlashMumkin(tur: string, smetaNarx: number | null | undefined): boolean {
+  return (tur === 'mat' || tur === 'ob') && smetaNarx == null;
+}
