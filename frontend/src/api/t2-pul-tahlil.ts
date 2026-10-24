@@ -1,4 +1,4 @@
-import type { PulKesim } from '../lib/pul-tahlil';
+import type { PulKesim, PulUstamali } from '../lib/pul-tahlil';
 
 /** Rahbarlar uchun pul tahlili (egasi 2026-10-24). O'qish: /api/sb `pul_tahlil_v1` (stable, a'zolik + f2.read + financial.read). */
 export type PulDalilQator = {
@@ -10,8 +10,8 @@ export type PulTahlilJavob = {
   ok: true;
   qamrov: { obyekt_id: number | null; shartnoma_id: number | null; obyektlar: number[]; davr_dan: string | null; davr_gacha: string | null };
   kesimlar: PulKesim[];
-  jami: { smeta_ustamasiz: number | null; smeta_nomalum: number; f2_yopilgan: number | null; f2_nomalum: number; xarajat: number | null; farq: number | null; farq_foiz: number | null };
-  zanjir: { obyektlar: PulZanjirObyekt[]; jami: Record<string, number>; koeffitsientlar: Record<string, number> | null; manba: string };
+  jami: { smeta_ustamasiz: number | null; smeta_nomalum: number; f2_yopilgan: number | null; f2_nomalum: number; xarajat: number | null; farq: number | null; farq_foiz: number | null; smeta_ustamali?: PulUstamali | null; f2_ustamali?: PulUstamali | null };
+  zanjir: { obyektlar: PulZanjirObyekt[]; jami: Record<string, number>; koeffitsientlar: Record<string, number> | null; f2_obyektlar?: PulZanjirObyekt[]; f2_jami?: Record<string, number>; manba: string };
   dalil_kat: string | null; dalil: PulDalilQator[] | null;
 };
 export type PulTahlilSoro = { kompaniyaId: number; obyektId?: number | null; shartnomaId?: number | null; davrGacha?: string | null; davrDan?: string | null; dalilKat?: string | null };

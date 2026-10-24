@@ -3172,5 +3172,6 @@
   "МАТ (oddiy)": "МАТ (regular)",
   "МАШ — mash-soat (mashina)": "МАШ — machine-hours",
   "ОБ — uskunalar": "ОБ — equipment",
-  "ЧЕЛ — chel-soat (ishchi kuchi)": "ЧЕЛ — man-hours (labor)"
+  "ЧЕЛ — chel-soat (ishchi kuchi)": "ЧЕЛ — man-hours (labor)",
+  "JAMI (ustama bilan, QQS siz)": "TOTAL (with markup, excl. VAT)"
 }

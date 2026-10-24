@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { pulTahlilOl, type PulDalilQator, type PulTahlilJavob } from '../../api/t2-pul-tahlil';
-import { PUL_ZANJIR, pulBannerlar, pulFarq, pulFarqFoiz, pulUmumiyKoef, pulZanjirQiymat, xarajatQamrovFoiz, type PulKesim } from '../../lib/pul-tahlil';
+import { PUL_ZANJIR, pulBannerlar, pulFarq, pulFarqFoiz, pulUmumiyKoef, pulZanjirQiymat, xarajatQamrovFoiz, type PulKesim, type PulUstamali } from '../../lib/pul-tahlil';
 
 /**
  * Rahbarlar uchun pul tahlili (egasi 2026-10-24, P0): Nakopitelniy → Shartnoma svodi ichidagi rejim (yangi sahifa emas).
@@ -17,6 +17,20 @@ const pul = (x: number | null | undefined) => (x == null ? '—' : x.toLocaleStr
 const foiz = (x: number | null) => (x == null ? '—' : `${x > 0 ? '+' : ''}${x.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} %`);
 const rang = (x: number | null) => (x == null || x === 0 ? '' : x > 0 ? 'text-danger' : 'text-success');
 const nom = (k: string) => t(KAT_NOM[k] ?? k);
+
+/** Summa katagi: ASOSIY = ustamali (QQS siz); kichik: ustamasiz va QQS bilan (egasi qoidasi 2026-10-24). Ustama bazadan keladi — bu yerda hisoblanmaydi. */
+function UstamaliKatak({ ustamali, ustamasiz, bosish }: { ustamali: PulUstamali | null | undefined; ustamasiz: number | null | undefined; bosish?: () => void }) {
+  const asosiy = ustamali ? pul(ustamali.itogo4) : pul(ustamasiz);
+  return (
+    <div>
+      {bosish ? <button type="button" className="underline decoration-dotted" onClick={bosish}>{asosiy}</button> : asosiy}
+      <div className="text-[10px] leading-tight text-text-mute">
+        {t('ustamasiz')}: {pul(ustamasiz)}
+        {ustamali && <> · {t('QQS bilan')}: {pul(ustamali.vsego)}</>}
+      </div>
+    </div>
+  );
+}
 
 export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { companyId: number; shartnomaId: number | null; obyektlar: Array<{ id: number; nom: string }> }) {
   const [qamrov, setQamrov] = useState<string>(shartnomaId ? 'sh' : 'jami'); // 'sh' | 'jami' | 'o:<id>'
@@ -91,7 +105,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
           )}
           <table className="mt-2 w-full text-[12px]">
             <thead><tr className="border-b text-text-mute">
-              <th className="px-1 text-left">{t('Kesim')}</th><th className="px-1 text-right">{t('Smeta (ustamasiz)')}</th><th className="px-1 text-right">{t('F2 yopilgan')}</th>
+              <th className="px-1 text-left">{t('Kesim')}</th><th className="px-1 text-right">{t('Smeta')}</th><th className="px-1 text-right">{t('F2 yopilgan')}</th>
               <th className="px-1 text-right">{t('Xarajat')}</th><th className="px-1 text-right">{t('Farq')}</th><th className="px-1 text-right">%</th>
             </tr></thead>
             <tbody>
@@ -105,8 +119,8 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                       {k.kat === 'МАТ' && <button type="button" className="mr-1 text-accent" aria-expanded={ochiq} onClick={() => setOchiq(!ochiq)}>{ochiq ? '▾' : '▸'}</button>}
                       {nom(k.kat)}{hisoblanmagan && <span className="ml-1 text-warning">· {t('hisoblanmagan')}</span>}
                     </td>
-                    <td className="px-1 text-right tabular-nums">{bosiladi ? <button type="button" className="underline decoration-dotted" onClick={() => void dalilOch(k.kat)}>{pul(k.smeta_ustamasiz)}</button> : '—'}</td>
-                    <td className="px-1 text-right tabular-nums">{bosiladi ? <button type="button" className="underline decoration-dotted" onClick={() => void dalilOch(k.kat)}>{pul(k.f2_yopilgan)}</button> : '—'}</td>
+                    <td className="px-1 text-right tabular-nums">{bosiladi ? <UstamaliKatak ustamali={k.smeta_ustamali} ustamasiz={k.smeta_ustamasiz} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
+                    <td className="px-1 text-right tabular-nums">{bosiladi ? <UstamaliKatak ustamali={k.f2_ustamali} ustamasiz={k.f2_yopilgan} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
                     <td className="px-1 text-right tabular-nums text-text-mute" title={t("Xarajat hali kiritilmagan — noma'lum")}>{k.xarajat == null ? '—' : pul(k.xarajat)}</td>
                     <td className={`px-1 text-right tabular-nums ${rang(farq)}`}>{pul(farq)}</td>
                     <td className={`px-1 text-right tabular-nums ${rang(farq)}`}>{foiz(pulFarqFoiz(k.xarajat, k.f2_yopilgan))}</td>
@@ -114,9 +128,9 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                 );
               })}
               <tr className="font-semibold">
-                <td className="px-1">{t('JAMI (ustamasiz)')}</td>
-                <td className="px-1 text-right tabular-nums">{pul(data.jami.smeta_ustamasiz)}</td>
-                <td className="px-1 text-right tabular-nums">{pul(data.jami.f2_yopilgan)}</td>
+                <td className="px-1">{t('JAMI (ustama bilan, QQS siz)')}</td>
+                <td className="px-1 text-right tabular-nums"><UstamaliKatak ustamali={data.jami.smeta_ustamali} ustamasiz={data.jami.smeta_ustamasiz} /></td>
+                <td className="px-1 text-right tabular-nums"><UstamaliKatak ustamali={data.jami.f2_ustamali} ustamasiz={data.jami.f2_yopilgan} /></td>
                 <td className="px-1 text-right text-text-mute">—</td><td className="px-1 text-right">—</td><td className="px-1 text-right">—</td>
               </tr>
             </tbody>
@@ -151,11 +165,12 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                   {pulUmumiyKoef(jamiZ) != null && <> {t('Umumiy koeffitsient')}: <b>{pulUmumiyKoef(jamiZ)}</b></>}
                 </p>
                 <table className="mt-1 w-full text-[12px]">
-                  <thead><tr className="border-b text-text-mute"><th className="px-1 text-left">{t('Bosqich')}</th><th className="px-1 text-left">{t('Formula')}</th><th className="px-1 text-right">{t('Summa')}</th></tr></thead>
+                  <thead><tr className="border-b text-text-mute"><th className="px-1 text-left">{t('Bosqich')}</th><th className="px-1 text-left">{t('Formula')}</th><th className="px-1 text-right">{t('Smeta')}</th><th className="px-1 text-right">{t('F2 yopilgan')}</th></tr></thead>
                   <tbody>{PUL_ZANJIR.map((b) => (
                     <tr key={b.kalit} className={`border-b border-border/40 ${b.kalit.startsWith('itogo') || b.kalit === 'vsego' || b.kalit === 'pryamye' ? 'font-semibold' : ''}`}>
                       <td className="px-1">{t(b.nom)}</td><td className="px-1 text-text-mute">{b.formula}</td>
                       <td className="px-1 text-right tabular-nums">{pul(pulZanjirQiymat(jamiZ, b.kalit))}</td>
+                      <td className="px-1 text-right tabular-nums">{pul(pulZanjirQiymat(zanjir?.f2_jami ?? null, b.kalit))}</td>
                     </tr>))}</tbody>
                 </table>
               </>
