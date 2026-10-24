@@ -201,7 +201,17 @@ export function F2TayyorlashNative() {
     keyingi?.focus(); keyingi?.select?.();
     return true;
   };
-  const narxsizBelgila = () => setK((o) => ({ ...o, narxsiz: { ...o.narxsiz, ...Object.fromEntries(narxsizlar.map((id) => [id, true])) } }));
+  /** Fakt oynasidan «Fakt bo'yicha F2 qoralama» (?avto=1): yuklangach barcha mumkin hajm bir yo'la olinadi; qoralama yaratish operator tasdig'i (Ctrl+Enter) bilan. */
+  const avtoQollandi = useRef(false);
+  useEffect(() => {
+    if (params.get('avto') !== '1' || avtoQollandi.current || loading || !bolimlar.length) return;
+    avtoQollandi.current = true;
+    bolimniOl(bolimlar);
+    const n = bolimlar.reduce((s, b) => s + b.ishlar.filter((i) => i.mumkin > 0).length + b.alohida.filter((r) => r.mumkin > 0).length, 0);
+    toast(n > 0 ? t('Fakt bo‘yicha {n} ta ish hajmi olindi. Tekshirib, Ctrl+Enter bilan qoralama yarating.', { n: String(n) }) : t('Fakt qoldig‘i yo‘q - olinadigan hajm topilmadi.'), n > 0 ? 'ok' : 'warn');
+    setParams((p) => { const x = new URLSearchParams(p); x.delete('avto'); return x; }, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, bolimlar, params]);  const narxsizBelgila = () => setK((o) => ({ ...o, narxsiz: { ...o.narxsiz, ...Object.fromEntries(narxsizlar.map((id) => [id, true])) } }));
 
   const f2Yacheyka = f2Yacheykalar(f2Yuk(qatorlar, raqam));
   const moneyValid = () => {
