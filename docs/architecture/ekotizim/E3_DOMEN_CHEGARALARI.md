@@ -83,16 +83,20 @@ unit, required_date, priority, note}`. Smeta qatori CONST — zayavka unga faqat
   (RPC ichida `t2_tomon_ruxsat_bor(..., 'buyurtma','bajarish', obyekt_id)`).
 
 ### 4.3 Yetkazuvchi → Logistika (yuklashga_tayyor) — asosiy hand-off
-`yuklashga_tayyor` holatiga o'tishda `t2_buyurtma_holat_v1` **logistika RPC sini chaqiradi**:
+`t2_buyurtma` (P3, `tur='material'`) `bosqich='yuklashga_tayyor'` ga o'tishda `t2_buyurtma_otish_v1` **logistika RPC sini
+chaqiradi** (logistika takliflari 2026-10-24 bilan kelishilgan; «supplier_order_id» = `buyurtma_id`):
 
 ```text
 t2_yuk_yarat_v1(
   p_actor_id bigint, p_kompaniya_id bigint /* yukni boshqaradigan tenant = tolovchi tomon */,
   p_operation_id uuid,
   p_manba jsonb  -- {"tur":"buyurtma","buyurtma_id":..,"xaridor_kompaniya_id":..,"yetkazuvchi_kompaniya_id":..}
-  p_olish jsonb  -- {"manzil":"..","lat":..,"lng":..,"aloqa_tel":"..","oyna_dan":"ts","oyna_gacha":"ts"}
-  p_yetkazish jsonb -- {"obyekt_id":..,"manzil":"..","lat":..,"lng":..,"qabul_qiluvchi_actor_id":..,"oyna_dan":"ts","oyna_gacha":"ts"}
-  p_qatorlar jsonb -- [{"buyurtma_qator_id":..,"nom":"..","birlik":"..","miqdor":..,"vazn_kg":..|null,"hajm_m3":..|null}]
+  p_olish jsonb  -- yetkazuvchi ombori/manbasi: {"ombor_nomi":"..","manzil":"..","lat":..|null,"lng":..|null,"aloqa_tel":"..",
+                 --   "tayyor_dan":"ts","tayyor_gacha":"ts"}   ← tayyor bo'lish vaqt oynasi
+  p_yetkazish jsonb -- {"obyekt_id":.. /* lat/lng/manzil default t2_obyekt dan */,"manzil":"..","lat":..,"lng":..,
+                    --  "qabul_qiluvchi_actor_id":..,"oyna_dan":"ts","oyna_gacha":"ts"}
+  p_qatorlar jsonb -- [{"buyurtma_qator_id":..,"material":"..","resurs_kodi":..|null,"birlik":"..","miqdor":..,
+                   --   "taxminiy_vazn_kg":..|null,"hajm_m3":..|null}]
   p_talab jsonb   -- {"transport_turi":"samosval|bortli|..|null","tolovchi":"yetkazuvchi|xaridor"}
 ) returns jsonb   -- {ok, yuk_id, versiya}
 ```
@@ -119,6 +123,33 @@ stateDiagram-v2
   Tashuvchi (tashkilot yoki shaxsiy haydovchi kompaniyasi) reysni grant `reys` orqali ko'radi.
 - `t2_reys_nuqta(reys_id, vaqt, lat, lng, aniqlik_m, tezlik)` — append-only, partition/oylik tozalash (E5).
 - RPC lar: `t2_reys_taklif_v1`, `t2_reys_qabul_v1`, `t2_reys_holat_v1`, `t2_reys_nuqta_yoz_v1(p_nuqtalar jsonb /*≤200*/)`.
+- Reys = P1 `t2_topshiriq(tur='reys')` haydovchiga + `t2_reys` tafsiloti (`topshiriq_id`); tashuvchi tanlash — P2 tender
+  (`tur='transport'`) yoki to'g'ridan P3 buyurtma (`tur='transport'`).
+
+#### 4.4.1 Jonli joylashuv qoidalari
+- Nuqta faqat reys `yuklanmoqda|yolda|yetib_keldi` holatida qabul qilinadi; boshqa holatda `t2_reys_nuqta_yoz_v1` → `HOLAT`.
+  Klient ham faqat faol reysda GPS yig'adi.
+- **Haydovchi faqat o'z reysini** ko'radi (`self.work.*`, `haydovchi_foydalanuvchi_id = actor`); boshqa reys/buyurtma
+  narxi ko'rinmaydi. Xaridor va yetkazuvchi jonli nuqtani faqat reys faol paytida, grant `yuk` orqali ko'radi; reys
+  tugagach — faqat umumlashgan iz.
+- Saqlash: xom nuqtalar reys tugagach **30 kun**, keyin soddalashtirilgan iz (GeoJSON) R2 ga (`t2_reys.trek_r2_key`), xom
+  qatorlar tozalanadi (E5 §4).
+
+#### 4.4.2 Geokodlash (manzil ↔ koordinata)
+- Klient tashqi geokoderni **to'g'ridan chaqirmaydi**. Yagona yo'l: shlyuz `GET /api/geokod?q=` va
+  `GET /api/geokod?lat&lng` (teskari) — Cloudflare Function proksi.
+- Kesh: normallashtirilgan so'rov xeshi → Cloudflare KV yoki R2 (`geokod/<sha256>.json`), TTL 90 kun; bir xil manzil
+  qayta provayderga bormaydi. Kompaniya bo'yicha limit (masalan 300/soat) + global limit.
+- Provayder sozlamada (`GEOKOD_PROVIDER`): ommaviy Nominatim faqat past yuklamada (1 so'rov/s, User-Agent, atribut);
+  og'ir yuklama — o'z Nominatim instansi yoki pullik provayder (⚠ egasi qarori — yangi xarajat).
+- Natija **bir marta** entity ga yoziladi (obyekt, ombor, yuk nuqtasi: `manzil`, `lat`, `lng`, `geokod_manba`,
+  `geokod_aniqlik`); har render da geokodlash yo'q. Foydalanuvchi xaritada pin ni tuzatsa — `geokod_manba='qolda'`.
+- Topilmasa — NULL (soxta koordinata yo'q).
+
+#### 4.4.3 Obyekt joylashuvi (F1, arxitektura — umumiy jadval)
+`t2_obyekt.lat/lng` mavjud. Additiv: `manzil text`, `geozona_radius_m integer` (yetib_keldi uchun, default NULL → 200 m
+klientda), `chegara_geojson jsonb check (pg_column_size ≤ 8 KB)` (soddalashtirilgan poligon; katta bo'lsa
+`chegara_r2_key`), `geokod_manba text`. Yozuv — mavjud obyekt RPC si orqali (`object.write`); logistika faqat o'qiydi.
 
 ### 4.5 Logistika → Ombor (topshirildi → kirim)
 `t2_ombor_kirim_yuk_v1(p_actor_id, p_kompaniya_id /*xaridor*/, p_operation_id, p_yuk_id, p_qatorlar jsonb
