@@ -70,6 +70,8 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_kontragent_saqla', 't2_kontragent_ochir',
                       't2_azolik_qosh_v1', 't2_azolik_rol_ozgartir_v1', 't2_azolik_ochir_v1',
                       't2_fakt_yoz_v2', 't2_fakt_belgila', 't2_fakt_belgila_v2',
+                      /* 2026-10-24: «Bajarilmadi» qoplamasi — smeta qatoriga tegmaydi; RPC ichida a'zolik + fakt.write. */
+                      't2_bajarilmadi_belgila_v1', 't2_bajarilmadi_bekor_v1',
                       /* 2026-09-06, T2 daily native F2 import: resumable
                          import job and durable draft writes are explicit
                          named RPCs, so they must remain in the gateway
