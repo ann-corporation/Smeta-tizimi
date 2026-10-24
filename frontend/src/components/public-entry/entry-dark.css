@@ -1,0 +1,37 @@
+/* Landing v2: Studio bilan bir xil to'q mavzu (public-entry.css ning och qismlari ustidan) + hero harakati. */
+.public-entry{background:#0a1220;--entry-bg2:#0f1b2e;--entry-card:#111f35;--entry-edge:#22344f}
+.entry-section{--entry-ink:#e8eef8;--entry-muted:#9db0cb;--entry-line:#1f3050;--entry-accent:#a7c7ff;color:var(--entry-ink);border-top-color:var(--entry-line)}
+.entry-showcase{border-top:none}
+.entry-role-options button{background:var(--entry-card);border-color:var(--entry-edge);color:#b9c9e0}
+.entry-role-options button[aria-pressed=true]{background:#a7c7ff;color:#0c172a;border-color:#a7c7ff}
+.entry-role-detail{background:var(--entry-card);border-color:var(--entry-edge)}
+.entry-role-output{background:#14253f;border-left-color:var(--entry-edge)}.entry-role-output>span{color:#8fb0e0}.entry-role-output .entry-secondary{color:#bbd3ff!important}
+.entry-role-detail h3{color:#fff}
+.entry-domain-grid article{background:var(--entry-card);border-color:var(--entry-edge);transition:transform .25s,border-color .25s,box-shadow .25s}
+.entry-domain-grid article:hover{transform:translateY(-4px);border-color:#4a6fa8;box-shadow:0 18px 50px #0007}
+.entry-domain-number{color:#8fb0e0}.entry-domain-items{border-top-color:var(--entry-edge);color:#a9c3ea}.entry-domain-grid small{color:#8b9db8}
+.entry-chain li{background:var(--entry-card);border-color:var(--entry-edge)}.entry-chain li>span{color:#8fb0e0}.entry-chain li>svg{background:#0a1220;color:#6f93c9}
+.entry-trust{background:#13243f;border:1px solid var(--entry-edge)}
+.entry-faq details{border-color:var(--entry-line)}
+.entry-showcase h2,.entry-section h2{color:#f2f6fc}
+.entry-screen-options button{background:var(--entry-card);border-color:var(--entry-edge);color:#b9c9e0}
+.entry-screen-options button[aria-pressed=true]{background:#a7c7ff;color:#0c172a;border-color:#a7c7ff}.entry-screen-options button[aria-pressed=true] span{color:#27406b}
+.entry-screen-stage,.entry-screen-enlarge{background:var(--entry-card);border-color:var(--entry-edge)}.entry-screen-stage figcaption strong{color:#fff}.entry-screen-stage figcaption p,.entry-screen-enlarge p{color:#9db0cb}
+.entry-screen-controls button{background:#16294a;border-color:var(--entry-edge);color:#bbd3ff}.entry-screen-controls{color:#9db0cb}
+.entry-showcase-heading .entry-secondary,.entry-screen-enlarge summary{color:#bbd3ff}
+.entry-footer{color:#8da0bc;border-color:var(--entry-line)}.entry-footer a{color:#bbd3ff}
+.entry-join .entry-hero-contact{color:#bbd3ff!important}
+.entry-header{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:#0c172acc}
+/* hero harakati */
+.entry-hero{position:relative;isolation:isolate;overflow:hidden}
+.entry-hero::before{content:'';position:absolute;inset:-20% -10%;z-index:-1;background:radial-gradient(40% 50% at 20% 30%,#2a5aa955,transparent 70%),radial-gradient(35% 45% at 85% 60%,#3f7a6a44,transparent 70%);animation:lp-drift 18s ease-in-out infinite alternate}
+.entry-hero::after{content:'';position:absolute;inset:0;z-index:-1;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 40%,#000 20%,transparent 75%)}
+.entry-pitch h1,.entry-pitch .entry-eyebrow,.entry-pitch .entry-description,.entry-pitch .entry-actions,.entry-pitch .entry-flow,.entry-pitch .entry-hero-contact{animation:lp-rise .8s cubic-bezier(.2,.7,.2,1) both}
+.entry-pitch h1{animation-delay:.08s}.entry-pitch .entry-description{animation-delay:.2s}.entry-pitch .entry-actions{animation-delay:.3s}.entry-pitch .entry-flow{animation-delay:.42s}.entry-pitch .entry-hero-contact{animation-delay:.5s}
+.entry-system-map{animation:lp-rise .9s .25s cubic-bezier(.2,.7,.2,1) both,lp-float 7s 1.2s ease-in-out infinite}
+.entry-pitch h1>span{background:linear-gradient(90deg,#a7c7ff,#9be3c4,#a7c7ff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:lp-shine 6s linear infinite}
+@keyframes lp-rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes lp-float{50%{transform:translateY(-8px)}}
+@keyframes lp-drift{to{transform:translate3d(3%,4%,0) scale(1.08)}}
+@keyframes lp-shine{to{background-position:200% 0}}
+@media(prefers-reduced-motion:reduce){.entry-hero::before,.entry-system-map,.entry-pitch h1>span{animation:none!important}.entry-pitch h1>span{color:#a7c7ff;background:none}}
