@@ -1,0 +1,12 @@
+{
+  "F2 tayyorlash": { "ru": "Подготовка Ф-2", "en": "F2 preparation" },
+  "Keyingi ish hajmiga": { "ru": "К объёму следующей работы", "en": "To the next work quantity" },
+  "Oldingi ish hajmiga": { "ru": "К объёму предыдущей работы", "en": "To the previous work quantity" },
+  "Tez kiritish": { "ru": "Быстрый ввод", "en": "Quick entry" },
+  "Qidiruvga o‘tish (shifr yoki nom)": { "ru": "К поиску (шифр или название)", "en": "Go to search (code or name)" },
+  "F2 qoralama yaratish": { "ru": "Создать черновик Ф-2", "en": "Create F2 draft" },
+  "Yopish": { "ru": "Закрыть", "en": "Close" },
+  "Ochish": { "ru": "Открыть", "en": "Open" },
+  "narx (1 birlik, NDS siz)": { "ru": "цена (за 1 ед., без НДС)", "en": "price (per unit, excl. VAT)" },
+  "resursda narx yo‘q": { "ru": "ресурсов без цены", "en": "resources without price" }
+}

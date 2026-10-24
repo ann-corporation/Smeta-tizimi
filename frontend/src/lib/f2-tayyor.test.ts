@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, narxsizNomzodlar, ulushHajm, type F2Holat } from './f2-tayyor';
+import { bolimDaraxti, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, type F2Holat } from './f2-tayyor';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
@@ -139,5 +139,20 @@ describe('F2 tayyorlash mantig‘i', () => {
     expect(y[0].rawSnapshot.sourceReference).toBe('Ф-2 № 12');
     expect(y[1].rawSnapshot.sourceReference).toBe('Ф-2 № 12; цена по смете');
     expect(ulushHajm(6, 50)).toBe('3');
+  });
+
+  it('bo‘lim daraxti yig‘iq: ajdodlar ochilmaguncha farzandlar ko‘rinmaydi; tanlangan bo‘lim ajdodlari doim ochiq', () => {
+    const bo = (id: number, daraja: number) => ({ id, nom: `b${id}`, daraja, ishlar: [], alohida: [] });
+    const d = bolimDaraxti([bo(1, 0), bo(2, 1), bo(3, 2), bo(4, 1), bo(5, 0)]);
+    expect(d.map((x) => [x.kalit, x.ota, x.farzand])).toEqual([[1, null, true], [2, 1, true], [3, 2, false], [4, 1, false], [5, null, false]]);
+    expect(korinadiganBolimlar(d, new Set(), null).map((x) => x.kalit)).toEqual([1, 5]);
+    expect(korinadiganBolimlar(d, new Set([1]), null).map((x) => x.kalit)).toEqual([1, 2, 4, 5]);
+    expect(korinadiganBolimlar(d, new Set(), 3).map((x) => x.kalit)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('ishning 1 birlik taklif narxi: Σ norma × narx; narxsiz resurs 0 deb olinmaydi, alohida sanaladi', () => {
+    const b = f2Qur(rows, holat);
+    // Ishchi 2 × 25000 = 50000; Kran narxsiz; Beton 1.02 × 880000 = 897600
+    expect(ishBirlikNarxi(b[0].ishlar[0])).toEqual({ summa: 947600, narxsiz: 1 });
   });
 });

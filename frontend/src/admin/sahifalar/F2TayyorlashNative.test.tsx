@@ -141,6 +141,18 @@ describe('F2 tayyorlash', () => {
     expect(screen.queryByText('Fakt qoldig‘idan oshdi')).toBeNull(); // eski OSHDI xatosi yo'q (1 xato - faqat Kran narxi)
   });
 
+  it('klaviatura: ↑↓ ish hajmi maydonlari orasida; "/" qidiruvga o‘tadi; ish yonida 1 birlik narxi', async () => {
+    holat.forEach((h) => { if (h.f2_mumkin_hajm === 0) h.f2_mumkin_hajm = 5; });
+    ochish();
+    const birinchi = await screen.findByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement;
+    expect(screen.getByText(/narx \(1 birlik, NDS siz\)/)).toBeTruthy();
+    birinchi.focus();
+    fireEvent.keyDown(birinchi, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(birinchi); // bu bo‘limda bitta ish - chegarada qoladi
+    fireEvent.keyDown(document.body, { key: '/' });
+    expect((document.activeElement as HTMLElement).getAttribute('aria-label')).toBe('Qidirish');
+  });
+
   it('imzolovchilar va shartnoma raqami shartnoma liniyasidan avtomatik (3 tomonlama — subpudratchi)', async () => {
     ochish();
     expect(await screen.findByText(/№ 45 — Bosh pudrat · Дирекция · ООО «NTB» · ООО «Суб»/)).toBeTruthy();
