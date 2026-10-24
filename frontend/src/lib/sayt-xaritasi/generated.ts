@@ -718,6 +718,14 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_kontragent_ochir"
     },
     {
+      "amal": "bajarilmadi_belgila",
+      "rpc": "t2_bajarilmadi_belgila_v1"
+    },
+    {
+      "amal": "bajarilmadi_bekor",
+      "rpc": "t2_bajarilmadi_bekor_v1"
+    },
+    {
       "amal": "fakt_yoz_v2",
       "rpc": "t2_fakt_yoz_v2"
     },
