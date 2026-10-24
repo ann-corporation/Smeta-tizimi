@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 import { f2MoslashV3, type SmetaQator } from './index';
 import {
-  bogla, boshlangich, f2Indeks, guruhHisobla, guruhHolati, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
+  avtoBoglarniUz, bogla, boshlangich, f2Indeks, guruhHisobla, guruhHolati, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
 } from './ishJoyi';
 
 const S: SmetaQator[] = [
@@ -96,6 +96,27 @@ describe('F2 V3 ish joyi holati', () => {
     expect(oshaQatormi(ish, S[1])).toBe(true);
     expect(oshaQatormi(r2, S[3])).toBe(false);
     expect(oshaQatormi({ ...sim, birlik: 'КГ' }, S[4])).toBe(false);
+  });
+
+  it('avtoBoglarniUz: aniq/xotira/taklif/tarkib uziladi, qo‘lda va aktga kiritilmaganlar qoladi', () => {
+    const ij = {
+      bog: new Map([
+        ['a', { qatorId: 1, holat: 'aniq' as const, usul: 'kod' }],
+        ['b', { qatorId: 2, holat: 'xotira' as const, usul: 'xotira' }],
+        ['c', { qatorId: 3, holat: 'taklif' as const, usul: 'nom' }],
+        ['d', { qatorId: 4, holat: 'qolda' as const, usul: 'qolda' }],
+        ['e', { qatorId: 5, holat: 'qolda' as const, usul: 'taklif_tasdiq' }],
+        ['f', { qatorId: 6, holat: 'aniq' as const, usul: 'ish_narxi_tarkibi' }],
+      ]),
+      otkaz: new Set(['z']),
+    };
+    const r = avtoBoglarniUz(ij);
+    expect(r.uzildi).toBe(4);
+    expect([...r.ij.bog.keys()]).toEqual(['d', 'e']);
+    expect([...r.ij.otkaz]).toEqual(['z']);
+    const bosh = avtoBoglarniUz(r.ij);
+    expect(bosh.uzildi).toBe(0);
+    expect(bosh.ij).toBe(r.ij);
   });
 
   it('#REF! (hajmsiz) qator yozishni TO‘XTATMAYDI — aktga kirmaydi, faqat eslatma (egasi 2026-10-24)', () => {

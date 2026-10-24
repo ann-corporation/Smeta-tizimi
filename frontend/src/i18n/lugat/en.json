@@ -3096,5 +3096,9 @@
   "Sabab (manba qator saqlanadi)": "Reason (source line is kept)",
   "Qoʻshimcha qator yaratish va fakt yozish": "Create additional line and record actuals",
   "Qoʻshimcha qator yaratildi va fakt yozildi: {nom}": "Additional line created and actuals recorded: {nom}",
-  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "New additional lines (actuals recorded)"
+  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "New additional lines (actuals recorded)",
+  "Dvigatel qilgan barcha bog‘lanishlarni (✓ aniq, xotira, ◐ taklif) uzadi. Qo‘lda bog‘langan va tasdiqlanganlar qoladi. Orqaga (Ctrl+Z) bilan qaytariladi.": "Removes all automatic links (✓ exact, memory, ◐ suggestions). Manual and confirmed links stay. Undo with Back (Ctrl+Z).",
+  "ta avtomatik bog‘lanish uziladi. Qo‘lda bog‘langanlar qoladi. Davom etasizmi?": "automatic links will be removed. Manual links stay. Continue?",
+  "ta avtomatik bog‘lanish uzildi. Qaytarish: «Orqaga» (Ctrl+Z).": "automatic links removed. Undo: Back (Ctrl+Z).",
+  "Avto bog‘lanishlarni uzish": "Remove auto links"
 }

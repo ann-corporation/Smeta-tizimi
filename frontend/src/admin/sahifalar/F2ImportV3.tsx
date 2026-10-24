@@ -11,7 +11,7 @@ import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anato
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
-  bogla, boshlangich, f2Indeks, smetaIndeks, tarkibniMosla, type IshJoyi,
+  avtoBogmi, avtoBoglarniUz, bogla, boshlangich, f2Indeks, smetaIndeks, tarkibniMosla, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { exactWrite, exactWriteIzohlar } from '../../lib/f2-exact-write';
 import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-moslash-v3/band';
@@ -596,6 +596,7 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   // Hisoblagich ISH darajasida (ish + resurslari bitta guruh): ◐ — tasdiq kutayotgan ishlar soni.
   const taklifSoni = useMemo(() => (ij && ind ? guruhHisobla(ind, ij).taklif : 0), [ij, ind]);
+  const avtoSoni = useMemo(() => { let n = 0; if (ij) for (const b of ij.bog.values()) if (avtoBogmi(b)) n++; return n; }, [ij]);
   /** Kumulyativ reja: faqat hujjatda «ранее» > 0 bo'lsa hisoblanadi; rejim yoqilmaguncha yozishga TA'SIR QILMAYDI. */
   const kumReja = useMemo(() => (akt && ind && ij && kumulyativmi(akt.jami)
     ? kumulyativReja({ ind, ij, oldingi, band, narx: (id) => raw.get(id)?.narx ?? null, jami: akt.jami })
@@ -1322,6 +1323,13 @@ function Sessiya({ companyId }: { companyId: number }) {
       {akt && ij && (
         <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
           <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+          <button type="button" className="tugma" disabled={busy || !!done || !avtoSoni}
+            title={t('Dvigatel qilgan barcha bog‘lanishlarni (✓ aniq, xotira, ◐ taklif) uzadi. Qo‘lda bog‘langan va tasdiqlanganlar qoladi. Orqaga (Ctrl+Z) bilan qaytariladi.')}
+            onClick={() => {
+              if (!ij || !window.confirm(`${avtoSoni} ${t('ta avtomatik bog‘lanish uziladi. Qo‘lda bog‘langanlar qoladi. Davom etasizmi?')}`)) return;
+              const r = avtoBoglarniUz(ij); ijOzgar(r.ij);
+              setHolat(`${r.uzildi} ${t('ta avtomatik bog‘lanish uzildi. Qaytarish: «Orqaga» (Ctrl+Z).')}`);
+            }}>✕ {t('Avto bog‘lanishlarni uzish')}{avtoSoni ? ` (${avtoSoni})` : ''}</button>
           <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
           <span className="flex flex-wrap gap-x-3 text-[12px] text-text-dim" aria-label={t('Holat')}>
             <span className="text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}</span>
