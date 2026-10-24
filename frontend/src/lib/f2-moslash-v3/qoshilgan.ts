@@ -8,7 +8,7 @@
  * qator arxivda qoladi. Bu fayl — UI uchun sof mantiq: qator turini aniqlash va o'zgarishdan keyin F2
  * bog'lanishlarini to'g'rilash (o'chirilganga bog'langan F2 qatori ✕ ga qaytadi, tahrirlanganga — yangisiga).
  */
-import { bogla, ishniBogla, type F2Indeks, type IshJoyi, type SmetaIndeks } from './ishJoyi';
+import { bogIdlari, bogla, ishniBogla, type Bog, type F2Indeks, type IshJoyi, type SmetaIndeks } from './ishJoyi';
 
 /** asl — smetadan (o'zgarmas) · qoshimcha / zamena — foydalanuvchi qo'shgan (boshqariladi) ·
  *  almashtirilgan — asl qator, o'rniga zamena kiritilgan (o'zi o'zgarmaydi). */
@@ -44,7 +44,7 @@ export function qoshilganOzgardi(
   if (o.yangiId != null && o.mavjud.has(o.yangiId)) {
     const yangi = o.S.byId.get(o.yangiId);
     for (const [uid, b] of ij.bog) {
-      if (!o.eskiIdlar.has(b.qatorId)) continue;
+      if (!o.eskiIdlar.has(b.qatorId) || b.taqsim) continue; // taqsim avtomatik qayta bog'lanmaydi — operator qayta taqsimlaydi
       const f = ind.byUid.get(uid);
       if (!f) continue;
       const ota = ind.ota.get(uid);
@@ -57,9 +57,11 @@ export function qoshilganOzgardi(
     }
   }
   // Editing a work must not overwrite a child's independent manual decision.
-  const bog = new Map([...joriy.bog].filter(([, b]) => o.mavjud.has(b.qatorId)));
+  // Taqsimlangan bog'lanish: bo'laklaridan biri o'chirilgan/o'zgargan bo'lsa — butunlay uziladi (pul bir qismi yo'qolmasin).
+  const tirik = (b: Bog) => bogIdlari(b).every((id) => o.mavjud.has(id) && (b.taqsim ? !o.eskiIdlar.has(id) : true));
+  const bog = new Map([...joriy.bog].filter(([, b]) => tirik(b)));
   for (const [uid, b] of ij.bog) {
-    if (!o.eskiIdlar.has(b.qatorId) && o.mavjud.has(b.qatorId)) bog.set(uid, b);
+    if (!o.eskiIdlar.has(b.qatorId) && tirik(b)) bog.set(uid, b);
   }
   return { ij: { bog, otkaz: new Set(joriy.otkaz) }, qaytaBoglandi, uzildi: joriy.bog.size - bog.size };
 }

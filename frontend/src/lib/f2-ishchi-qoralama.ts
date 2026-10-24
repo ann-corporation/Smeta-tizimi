@@ -1,7 +1,7 @@
 import type { OchirishBuyruq, RejaliBuyruq } from './f2-moslash-v3/rejali';
 import type { F2Akt } from './smeta-anatomiya/f2';
 import { f2Imzo, rzKalit, type F2MoslashNatija } from './f2-moslash-v3';
-import { f2Indeks, yozishManbasi, type F2Indeks, type IshJoyi, type SmetaIndeks } from './f2-moslash-v3/ishJoyi';
+import { bogIdlari, f2Indeks, taqsimTekshir, yozishManbasi, type F2Indeks, type IshJoyi, type SmetaIndeks } from './f2-moslash-v3/ishJoyi';
 import { sbT2F2ImportDraftRoyxat, sbT2F2ImportDraftSaqla, sbT2F2ImportJobHolat, sbT2F2ImportJobIlgarilash, sbT2F2ImportJobYarat } from '../api/supabase';
 
 /** Рабочее состояние, не акт и не финансовая запись. IndexedDB сохраняет Map/Set и исходный Blob. */
@@ -212,7 +212,12 @@ export async function f2ServerOl(jobId: number) {
     if (row.holat === 'otkazib_yuborildi') { otkaz.add(row.uid); continue; }
     const b = row.sabab ? JSON.parse(row.sabab) as import('./f2-moslash-v3/ishJoyi').Bog | null : null;
     if (b && Number.isSafeInteger(b.qatorId) && (b.qatorId > 0 || rejaliIdlar.has(b.qatorId))
-      && ['aniq', 'xotira', 'taklif', 'qolda'].includes(b.holat)) bog.set(row.uid, b);
+      && ['aniq', 'xotira', 'taklif', 'qolda'].includes(b.holat)) {
+      // Taqsimlab bog'lash (bir F2 qatori → bir necha smeta qatori) shu `sabab` JSON ida saqlanadi; buzilgan bo'lsa — oddiy bog'lanish.
+      const { taqsim, ...asos } = b;
+      const tq = taqsim === undefined ? undefined : taqsimTekshir(taqsim, (id) => id > 0 || rejaliIdlar.has(id));
+      bog.set(row.uid, tq ? { ...asos, qatorId: tq[0].qatorId, taqsim: tq } : asos);
+    }
   }
   return { objectId: job.obyekt_id, cursor: job.cursor, ij: { bog, otkaz }, sourceRows: draft.qatorlar,
     state: { jobId, versiya: job.versiya, rows: new Map(draft.qatorlar.map((r) => [r.uid, r.versiya])) } };
@@ -266,7 +271,7 @@ export async function f2IshchiOl(companyId: number, objectId?: number): Promise<
 
 /** Удалённые канонические строки не восстанавливаются как действующие связи. */
 export function f2QoralamaBogTekshir(ij: IshJoyi, currentIds: ReadonlySet<number>): IshJoyi {
-  return { bog: new Map([...ij.bog].filter(([, b]) => currentIds.has(b.qatorId))), otkaz: new Set(ij.otkaz) };
+  return { bog: new Map([...ij.bog].filter(([, b]) => bogIdlari(b).every((id) => currentIds.has(id)))), otkaz: new Set(ij.otkaz) };
 }
 
 /** Только предложение: знак объёма не доказывает, какую прошлую запись отменили.
