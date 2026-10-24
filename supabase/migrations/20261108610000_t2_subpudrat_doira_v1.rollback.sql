@@ -1,4 +1,6 @@
 -- ROLLBACK: 20261108610000_t2_subpudrat_doira_v1
+drop function if exists public._t2_subpudrat_hodisa(bigint,text,bigint,bigint,bigint,bigint,uuid);
+drop function if exists public._t2_subpudrat_ichki_ziddiyat(bigint,bigint);
 drop function if exists public.t2_subpudrat_qamrov_v1(bigint,bigint,bigint);
 drop function if exists public.t2_subpudrat_royxat_v1(bigint,bigint,text);
 drop function if exists public.t2_subpudrat_qator_saqla_v1(bigint,bigint,uuid,bigint,integer,jsonb,bigint);

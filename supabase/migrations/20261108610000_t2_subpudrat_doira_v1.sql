@@ -1,5 +1,8 @@
 -- T2 SUBPUDRAT DOIRASI (tomon-pudrat, A). Bosh pudratchi (GC) o'z smeta doirasini subpudratchiga bo'ladi.
 -- Asl smeta (t2_qator) O'ZGARMAYDI: subpudrat hajmi va NARXI alohida qatlamda (t2_subpudrat_qator), narx NDS siz.
+-- Qabul qilinadigan turlar: 'bl' (ISH qatori; summa = uning resurslari yig'indisi) va ixtiyoriy alohida 'mat'/'ob' (material yetkazish
+-- subpudratchida bo'lsa). 'rs' (ish ichidagi resurs) QABUL QILINMAYDI (QATOR_TURI); bl tanlangan bo'lsa uning resurslari alohida
+-- qo'shilmaydi (QATOR_ICHKI) - ikki marta sanash yo'q.
 -- Pul faqat hajm x narx; narx NULL = noma'lum (0 emas, to'qib chiqarilmaydi). Ustamali summa bazada HISOBLANMAYDI:
 -- RPC xom (ustamasiz) summalarni qaytaradi, ustamali ko'rinish frontendda lib/ustamali-summa.ts + SummaJuft orqali.
 -- Subpudratchi kirishi: sub_kompaniya_id a'zosi + faol t2_tomon_aloqa(turi='subpudrat') + subpudrat holati faol/yopilgan.
@@ -69,8 +72,31 @@ values ('subpudrat_doira', 'Subpudrat doirasi', 'Объём субподряда
         'Shartnoma-doirali; kirish t2_subpudrat_shartnoma + faol aloqa orqali, umumiy grant emas')
 on conflict (kalit) do nothing;
 
--- ── SHARTNOMA (sarlavha) saqlash ──
-create or replace function public.t2_subpudrat_saqla_v1(
+-- ── yordamchilar ──
+-- bl tanlangan bo'lsa uning bolalari (rs/mat/ob) yoki aksincha - ikki marta sanash ziddiyati.
+create or replace function public._t2_subpudrat_ichki_ziddiyat(p_subpudrat_id bigint, p_qator_id bigint)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select exists (
+    with recursive a as (select r.ota_id as id from public.t2_qator r where r.id = p_qator_id
+                         union all select r.ota_id from public.t2_qator r join a on r.id = a.id where a.id is not null)
+    select 1 from a join public.t2_subpudrat_qator sq on sq.qator_id = a.id and sq.subpudrat_id = p_subpudrat_id and sq.holat = 'faol')
+  or exists (
+    with recursive d as (select r.id from public.t2_qator r where r.ota_id = p_qator_id
+                         union all select r.id from public.t2_qator r join d on r.ota_id = d.id)
+    select 1 from d join public.t2_subpudrat_qator sq on sq.qator_id = d.id and sq.subpudrat_id = p_subpudrat_id and sq.holat = 'faol');
+$$;
+
+create or replace function public._t2_subpudrat_hodisa(p_kompaniya_id bigint, p_mavzu text, p_id bigint, p_aloqa_id bigint, p_sub_kompaniya_id bigint, p_actor_id bigint, p_op uuid)
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if to_regprocedure('public.t2_outbox_yoz(bigint,text,text,bigint,jsonb,bigint,uuid,bigint,bigint,bigint[],bigint[])') is not null then
+    execute 'select public.t2_outbox_yoz($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)'
+      using p_kompaniya_id, p_mavzu, 't2_subpudrat_shartnoma', p_id, jsonb_build_object('subpudrat_id', p_id), p_actor_id, p_op, null::bigint, p_aloqa_id,
+            case when p_sub_kompaniya_id is null then '{}'::bigint[] else array[p_sub_kompaniya_id] end, '{}'::bigint[];
+  end if;
+end $$;
+
+-- ── SHARTNOMA (sarlavha) saqlash ──create or replace function public.t2_subpudrat_saqla_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_operation_id uuid, p_kutilgan_versiya integer, p_malumot jsonb)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare
@@ -110,6 +136,8 @@ begin
         case when v_holat = 'bekor' then 'qoralama' else v_holat end, p_operation_id, p_actor_id)
     returning * into v_row;
     v_res := jsonb_build_object('ok', true, 'id', v_row.id, 'versiya', v_row.versiya);
+    perform public._t2_subpudrat_hodisa(p_kompaniya_id, 'subpudrat.yaratildi', v_row.id, v_row.aloqa_id, v_row.sub_kompaniya_id, p_actor_id, p_operation_id);
+    if v_row.holat = 'faol' then perform public._t2_subpudrat_hodisa(p_kompaniya_id, 'subpudrat.faollashdi', v_row.id, v_row.aloqa_id, v_row.sub_kompaniya_id, p_actor_id, p_operation_id); end if;
   else
     select * into v_old from public.t2_subpudrat_shartnoma where id = v_id and kompaniya_id = p_kompaniya_id for update;
     if not found then return jsonb_build_object('ok', false, 'code', 'TOPILMADI'); end if;
@@ -126,6 +154,7 @@ begin
      where id = v_id and versiya = p_kutilgan_versiya returning versiya into v_yangi;
     if v_yangi is null then return jsonb_build_object('ok', false, 'code', 'VERSIYA_ESKI'); end if;
     v_res := jsonb_build_object('ok', true, 'id', v_id, 'versiya', v_yangi);
+    if v_old.holat <> 'faol' and v_holat = 'faol' then perform public._t2_subpudrat_hodisa(p_kompaniya_id, 'subpudrat.faollashdi', v_id, v_aloqa, v_sub, p_actor_id, p_operation_id); end if;
   end if;
   insert into public.t2_subpudrat_amal (kompaniya_id, operation_id, natija) values (p_kompaniya_id, p_operation_id, v_res);
   return v_res;
@@ -133,7 +162,7 @@ end $$;
 
 -- ── QATORLAR (doira + subpudrat hajm/narx) ──
 -- p_qatorlar: [{qator_id, hajm?, narx?, bekor?}]; hajm kaliti YO'Q bo'lsa asl hajm olinadi; narx kaliti yo'q/null = narxsiz.
--- p_razdel_id: razdel/blok ostidagi barcha hisobga kiruvchi qatorlar (rs, mat, ob) qo'shiladi (asl hajm, narxsiz).
+-- p_razdel_id: razdel ostidagi barcha ISH qatorlari ('bl') qo'shiladi (asl hajm, narxsiz); resurslar (rs/mat/ob) qo'shilmaydi.
 create or replace function public.t2_subpudrat_qator_saqla_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_operation_id uuid, p_subpudrat_id bigint, p_kutilgan_versiya integer,
   p_qatorlar jsonb, p_razdel_id bigint)
@@ -161,7 +190,8 @@ begin
     for q in
       with recursive d as (select id, obyekt_id, tur, hajm from public.t2_qator where ota_id = p_razdel_id
                            union all select c.id, c.obyekt_id, c.tur, c.hajm from public.t2_qator c join d on c.ota_id = d.id)
-      select d.id, d.obyekt_id, d.hajm from d where d.tur in ('rs','mat','ob')
+      select d.id, d.obyekt_id, d.hajm from d where d.tur = 'bl'
+         and not public._t2_subpudrat_ichki_ziddiyat(s.id, d.id)
          and not exists (select 1 from public.t2_shartnoma_qator_qamrov m where s.asosiy_shartnoma_id is not null and m.shartnoma_id = s.asosiy_shartnoma_id and m.qator_id = d.id and m.holat = 'chiqarilgan')
     loop
       insert into public.t2_subpudrat_qator (kompaniya_id, subpudrat_id, obyekt_id, qator_id, hajm, narx)
@@ -181,7 +211,8 @@ begin
        where subpudrat_id = s.id and qator_id = v_qid and holat = 'faol';
       v_bekor := v_bekor + 1; continue;
     end if;
-    if q.tur not in ('rs','mat','ob') then return jsonb_build_object('ok', false, 'code', 'QATOR_TURI', 'qator_id', v_qid); end if;
+    if q.tur not in ('bl','mat','ob') then return jsonb_build_object('ok', false, 'code', 'QATOR_TURI', 'qator_id', v_qid); end if;
+    if public._t2_subpudrat_ichki_ziddiyat(s.id, v_qid) then return jsonb_build_object('ok', false, 'code', 'QATOR_ICHKI', 'qator_id', v_qid); end if;
     if s.asosiy_shartnoma_id is not null and exists (select 1 from public.t2_shartnoma_qator_qamrov m
         where m.shartnoma_id = s.asosiy_shartnoma_id and m.qator_id = v_qid and m.holat = 'chiqarilgan') then
       return jsonb_build_object('ok', false, 'code', 'QAMROVDA_EMAS', 'qator_id', v_qid);
@@ -272,6 +303,10 @@ begin
         from public.t2_subpudrat_qator q join public.t2_qator r on r.id = q.qator_id where q.subpudrat_id = s.id and q.holat = 'faol'));
 end $$;
 
+revoke all on function public._t2_subpudrat_ichki_ziddiyat(bigint,bigint) from public, anon, authenticated;
+revoke all on function public._t2_subpudrat_hodisa(bigint,text,bigint,bigint,bigint,bigint,uuid) from public, anon, authenticated;
+grant execute on function public._t2_subpudrat_ichki_ziddiyat(bigint,bigint) to service_role;
+grant execute on function public._t2_subpudrat_hodisa(bigint,text,bigint,bigint,bigint,bigint,uuid) to service_role;
 revoke all on function public.t2_subpudrat_saqla_v1(bigint,bigint,uuid,integer,jsonb) from public, anon, authenticated;
 revoke all on function public.t2_subpudrat_qator_saqla_v1(bigint,bigint,uuid,bigint,integer,jsonb,bigint) from public, anon, authenticated;
 revoke all on function public.t2_subpudrat_royxat_v1(bigint,bigint,text) from public, anon, authenticated;

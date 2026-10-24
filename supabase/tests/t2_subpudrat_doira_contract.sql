@@ -3,7 +3,7 @@
 do $$
 declare
   p bigint; z bigint; x bigint; ub bigint; uk bigint; uz bigint; ux bigint;
-  o1 bigint; xo bigint; rz bigint; rs1 bigint; rs2 bigint; rs3 bigint; xq bigint; al bigint; al2 bigint; sh bigint; s1 bigint; s2 bigint; s3 bigint;
+  o1 bigint; xo bigint; rz bigint; rr1 bigint; m1 bigint; s3x bigint; rs1 bigint; rs2 bigint; rs3 bigint; xq bigint; al bigint; al2 bigint; sh bigint; s1 bigint; s2 bigint; s3 bigint;
   r jsonb; rep text[] := array[]::text[]; n int; op uuid := gen_random_uuid(); ver int; q jsonb;
 begin
   insert into t2_kompaniya (nom, kod, inn, faol) values ('TEST_SUB_P', 'TSP', '920000001', true) returning id into p;
@@ -17,9 +17,11 @@ begin
   insert into t2_obyekt (nom, kompaniya_id) values ('SUB-obyekt', p) returning id into o1;
   insert into t2_obyekt (nom, kompaniya_id) values ('SUB-begona', x) returning id into xo;
   insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik) values (p, o1, 'rz', 'Razdel', null) returning id into rz;
-  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'rs', 'Devor', 'm3', 100, 50, 5000, rz) returning id into rs1;
-  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'rs', 'Suvoq', 'm2', 10, null, null, rz) returning id into rs2;
-  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'rs', 'Chiqarilgan', 'sht', 5, 10, 50, rz) returning id into rs3;
+  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'bl', 'Devor', 'm3', 100, 50, 5000, rz) returning id into rs1;
+  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'bl', 'Suvoq', 'm2', 10, null, null, rz) returning id into rs2;
+  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'bl', 'Chiqarilgan', 'sht', 5, 10, 50, rz) returning id into rs3;
+  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'rs', 'Mehnat', 'soat', 20, 100, 2000, rs1) returning id into rr1;
+  insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, birlik, hajm, narx, summa, ota_id) values (p, o1, 'mat', 'Gisht', 'sht', 500, 6, 3000, rs1) returning id into m1;
   insert into t2_qator (kompaniya_id, obyekt_id, tur, nom, hajm) values (x, xo, 'rs', 'Begona', 1) returning id into xq;
   insert into t2_shartnoma (kompaniya_id, raqam, nom, holat, kim) values (p, 'TEST-ASOSIY', 'asosiy', 'faol', 'test') returning id into sh;
   insert into t2_shartnoma_qator_qamrov (kompaniya_id, shartnoma_id, obyekt_id, qator_id, holat, sabab, operation_id)
@@ -52,15 +54,19 @@ begin
   rep := rep || (case when r->>'code' = 'QATOR_BEGONA' then 'OK   begona tenant qatori rad' else 'FAIL begona qator: ' || r::text end);
   r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s1, 1, jsonb_build_array(jsonb_build_object('qator_id', rs3)), null);
   rep := rep || (case when r->>'code' = 'QAMROVDA_EMAS' then 'OK   shartnoma qamrovidan chiqarilgan qator rad' else 'FAIL qamrov: ' || r::text end);
+  r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s1, 1, jsonb_build_array(jsonb_build_object('qator_id', rr1, 'narx', 100)), null);
+  rep := rep || (case when r->>'code' = 'QATOR_TURI' then 'OK   rs (resurs) qabul qilinmaydi - QATOR_TURI' else 'FAIL rs turi: ' || r::text end);
   r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s1, 1, jsonb_build_array(jsonb_build_object('qator_id', rs1, 'narx', -1)), null);
   rep := rep || (case when r->>'code' = 'QIYMAT_MANFIY' then 'OK   manfiy narx rad' else 'FAIL manfiy: ' || r::text end);
   r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s1, 1, jsonb_build_array(jsonb_build_object('qator_id', rs1, 'hajm', 60, 'narx', 40), jsonb_build_object('qator_id', rs2)), null);
   rep := rep || (case when (r->>'ok')::boolean and (r->>'saqlandi')::int = 2 then 'OK   2 qator subpudrat hajm/narx bilan saqlandi' else 'FAIL qator saqla: ' || r::text end);
+  r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s1, 2, jsonb_build_array(jsonb_build_object('qator_id', m1, 'narx', 6)), null);
+  rep := rep || (case when r->>'code' = 'QATOR_ICHKI' then 'OK   bl tanlangan - uning materiali alohida qo''shilmaydi (QATOR_ICHKI)' else 'FAIL ichki: ' || r::text end);
   rep := rep || (case when (select hajm = 10 and narx is null from t2_subpudrat_qator where subpudrat_id = s1 and qator_id = rs2) then 'OK   narx kaliti yo''q = NULL (0 emas), hajm asldan' else 'FAIL rs2 narx/hajm' end);
   rep := rep || (case when (select narx = 50 and hajm = 100 and summa = 5000 from t2_qator where id = rs1) then 'OK   asl smeta qatori o''zgarmadi' else 'FAIL asl smeta o''zgardi' end);
   r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s1, 2, '[]'::jsonb, rz);
   select count(*) into n from t2_subpudrat_qator where subpudrat_id = s1 and holat = 'faol';
-  rep := rep || (case when (r->>'ok')::boolean and n = 2 then 'OK   razdel kengaytmasi: chiqarilgan qator qo''shilmadi, mavjudlar o''zgarmadi' else 'FAIL razdel: ' || n || ' ' || r::text end);
+  rep := rep || (case when (r->>'ok')::boolean and n = 2 then 'OK   razdel kengaytmasi: faqat bl, chiqarilgan va resurs qo''shilmadi' else 'FAIL razdel: ' || n || ' ' || r::text end);
 
   -- egasi ko'rinishi: marja
   r := t2_subpudrat_qamrov_v1(ub, p, s1);
@@ -97,6 +103,13 @@ begin
   r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s2, 1, jsonb_build_array(jsonb_build_object('qator_id', rs1, 'hajm', 60, 'narx', 45)), null);
   rep := rep || (case when (r->>'ok')::boolean and jsonb_array_length(r->'ogohlantirish') = 1 then 'OK   yig''indi hajm asldan oshdi - saqlandi, ogohlantirish bor' else 'FAIL ogohlantirish: ' || r::text end);
 
+  r := t2_subpudrat_saqla_v1(ub, p, gen_random_uuid(), null, jsonb_build_object('raqam', 'SUB-M', 'sub_kontragent_id', 888));
+  s3x := (r->>'id')::bigint;
+  r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s3x, 1, jsonb_build_array(jsonb_build_object('qator_id', m1, 'narx', 6)), null);
+  rep := rep || (case when (r->>'ok')::boolean then 'OK   material yetkazish alohida (bl tanlanmagan) qabul' else 'FAIL alohida mat: ' || r::text end);
+  r := t2_subpudrat_qator_saqla_v1(ub, p, gen_random_uuid(), s3x, 2, jsonb_build_array(jsonb_build_object('qator_id', rs1, 'narx', 45)), null);
+  rep := rep || (case when r->>'code' = 'QATOR_ICHKI' then 'OK   materiali bor bl qo''shilmaydi (QATOR_ICHKI)' else 'FAIL teskari ichki: ' || r::text end);
+
   -- yopilish va aloqa
   select versiya into ver from t2_subpudrat_shartnoma where id = s2;
   r := t2_subpudrat_saqla_v1(ub, p, gen_random_uuid(), ver, jsonb_build_object('id', s2, 'raqam', 'SUB-K', 'sub_kontragent_id', 777, 'holat', 'yopilgan'));
@@ -105,6 +118,11 @@ begin
   r := t2_subpudrat_qamrov_v1(uz, z, s1);
   rep := rep || (case when r->>'code' = 'TOPILMADI' then 'OK   aloqa yopilgach subpudratchi ko''rmaydi' else 'FAIL yopiq aloqa: ' || r::text end);
 
+  if to_regclass('public.t2_outbox') is null then rep := rep || 'SKIP outbox jadvali yo''q';
+  else begin execute 'select count(*) from public.t2_outbox where mavzu = ''subpudrat.yaratildi'' and kompaniya_id = $1' into n using p;
+      rep := rep || (case when n >= 3 then 'OK   outbox subpudrat.yaratildi yozilgan' else 'FAIL outbox: ' || n end);
+    exception when others then rep := rep || 'SKIP outbox ustun: ' || sqlerrm; end;
+  end if;
   rep := rep || (case when not has_function_privilege('anon', 'public.t2_subpudrat_qamrov_v1(bigint,bigint,bigint)', 'execute')
                    and not has_function_privilege('authenticated', 'public.t2_subpudrat_qator_saqla_v1(bigint,bigint,uuid,bigint,integer,jsonb,bigint)', 'execute')
                    and not has_table_privilege('authenticated', 'public.t2_subpudrat_qator', 'select')
