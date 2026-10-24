@@ -243,6 +243,17 @@ export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdi
   return { ij: { bog, otkaz: ij.otkaz }, tasdiqlandi, boglandi, qoldi };
 }
 
+/** Avtomatik (dvigatel) bog'lanishmi: ✓ aniq, xotira, ◐ taklif yoki ish narxi tarkibi. Operator qarorlari (qo'lda) — emas. */
+export const avtoBogmi = (b: Bog) => b.holat === 'aniq' || b.holat === 'xotira' || b.holat === 'taklif' || b.usul === TARKIB_USUL;
+
+/** Barcha avtomatik bog'lanishlarni uzish (egasi 2026-10-24). Qo'lda bog'langan/tasdiqlangan va aktga kiritilmaganlarga tegilmaydi. */
+export function avtoBoglarniUz(ij: IshJoyi): { ij: IshJoyi; uzildi: number } {
+  const bog = new Map(ij.bog);
+  let uzildi = 0;
+  for (const [uid, b] of ij.bog) if (avtoBogmi(b)) { bog.delete(uid); uzildi++; }
+  return { ij: uzildi ? { bog, otkaz: ij.otkaz } : ij, uzildi };
+}
+
 export function uz(ij: IshJoyi, f: F2Tugun): IshJoyi {
   const bog = new Map(ij.bog);
   bog.delete(f.uid);
