@@ -97,6 +97,7 @@ export const GENERATED_SITE_MAP = {
     "hujjat-nazorat",
     "participants",
     "zakazchik",
+    "zakazchik/obyekt/:aloqaId/:obyektId",
     "aloqalar",
     "taqdimlar",
     "murojaatlar",
