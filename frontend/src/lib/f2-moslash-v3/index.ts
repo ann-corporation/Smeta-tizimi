@@ -224,6 +224,47 @@ export function yagonaResursMos<T extends Pick<SmetaQator, 'nom' | 'birlik' | 'n
   return exact.length === 1 ? exact[0] : null;
 }
 
+/**
+ * ISHDAN TASHQARIDAGI RESURS (egasi qo'lda bog'lagan F2 lar tahlili, 2026-10-24): ko'p LRV larda ishning materiallari
+ * (armatura С124-…, gazoblok, М/К …) ish OSTIDA emas, o'sha razdelda MUSTAQIL qator bo'lib turadi, F2 da esa ular ish
+ * ostida keladi. Ish ichida topilmasa — faqat SHU ishning razdelidagi (ota-ish doirasi) mustaqil resurs qatorlari orasidan:
+ * kod → kod-kanon → nom+birlik aynan, birlik va marka mos. Yagona bo'lsa — aniq; bir nechta aynan bo'lsa — smeta tartibida
+ * ishga eng yaqini, faqat TAKLIF (qaysi biri ekani ma'lumotdan ajralmaydi). Hajm hech qachon to'siq emas.
+ */
+export function razdelResursiTop<T extends Pick<SmetaQator, 'id' | 'tur' | 'kod' | 'nom' | 'birlik' | 'norma' | 'tartib' | 'hajm'>>(
+  r: Pick<F2Tugun, 'kod' | 'nom' | 'birlik' | 'norma' | 'hajm'>, ish: T,
+  otaOl: (x: T) => T | null | undefined, bolalarOl: (x: T) => readonly T[], mumkinmi: (x: T) => boolean = () => true,
+): { qator: T; aniq: boolean } | null {
+  const rz = otaOl(ish);
+  if (!rz || rz.tur !== 'rz') return null;
+  // F2 qator belgisi (rs/mat) bu yerda hisobga olinmaydi: F2 materialni «rs» deb belgilashi mumkin, smetada u «mat» —
+  // dalil kod/nom + birlik AYNANligi.
+  const havza = bolalarOl(rz).filter((t) => t.id !== ish.id && (t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob')
+    && !bolalarOl(t).some((c) => c.tur !== 'rz') && mumkinmi(t));
+  if (!havza.length) return null;
+  const kodBor = resursKodiIshonchlimi(r.kod);
+  const rk = kodBor ? normKod(r.kod) : '', rkan = kodBor ? kodKanon(r.kod) : '', rnb = nb(r.nom, r.birlik);
+  const ishT = ish.tartib ?? ish.id;
+  for (const c of [
+    rk ? havza.filter((t) => normKod(t.kod) === rk) : [],
+    rkan ? havza.filter((t) => kodKanon(t.kod) === rkan) : [],
+    havza.filter((t) => nb(t.nom, t.birlik) === rnb),
+  ]) {
+    const safe = c.filter((t) => birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom));
+    if (!safe.length) continue;
+    const yagona = yagonaResursMos(safe, r);
+    if (yagona) return { qator: yagona, aniq: true };
+    // Aynan bir xil bir nechta qator: F2 hajmi faqat bittasining smeta hajmiga teng bo'lsa — o'sha (hal qiluvchi dalil).
+    if (r.hajm != null && r.hajm !== 0) {
+      const teng = safe.filter((t) => t.hajm != null && t.hajm !== 0 && Math.abs(Math.abs(t.hajm) - Math.abs(r.hajm!)) <= Math.abs(t.hajm) * 0.005);
+      if (teng.length === 1) return { qator: teng[0], aniq: true };
+    }
+    const eng = [...safe].sort((a, b) => Math.abs((a.tartib ?? a.id) - ishT) - Math.abs((b.tartib ?? b.id) - ishT) || a.id - b.id)[0];
+    return { qator: eng, aniq: false };
+  }
+  return null;
+}
+
 function resKalit(kod: unknown, nom: unknown, bir: unknown): string {
   // LRV_PLUS/F2 can place `С` in the code field for unrelated materials.
   // A one-letter marker is not identity; use name + unit instead.
@@ -694,6 +735,8 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
    * (eng yaqin ota-razdeldagi bir xil nomli rz lar orasida, tartib bo'yicha eng yaqini); har rz bitta guruhga bir marta beriladi.
    */
   const guruhOlingan = new Set<number>();
+  /** Razdel darajasidagi mustaqil resurs qatorlari (ishdan tashqari) — bir necha F2 ishi bo'lishishi mumkin. */
+  const razdelResBand = new Set<number>();
   const guruhXotira = new Map<string, STugun | null>();
   function guruhRzTop(sIsh: STugun, r: F2Tugun): STugun | null {
     const kalit = `${sIsh.id}|${r.guruhUid ?? r.guruh}`;
@@ -750,6 +793,15 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       if (topildi && birMos(r.birlik, topildi.birlik) && !gradeFarq(r.nom, topildi.nom)) {
         lokalBand.add(topildi.id);
         yoz(r.uid, { uid: r.uid, holat: 'aniq', qatorId: topildi.id, usul: `ish_ichida:${usul}`, nomzodlar: [], sabab: 'ish ichida yagona' });
+        continue;
+      }
+      // Ish ichida yo'q — o'sha razdeldagi mustaqil resurs qatori (bir necha F2 ishi bitta shunday qatorni bo'lishishi mumkin).
+      const tashqi = !topildi && !guruhRz ? razdelResursiTop(r, sIsh, (x) => x.ota, (x) => x.bolalar, (x) => !band.has(x.id) || razdelResBand.has(x.id)) : null;
+      if (tashqi) {
+        razdelResBand.add(tashqi.qator.id);
+        yoz(r.uid, { uid: r.uid, holat: tashqi.aniq ? 'aniq' : 'taklif', qatorId: tashqi.qator.id, usul: tashqi.aniq ? 'razdel_ichida' : 'razdel_ichida_taklif', nomzodlar: [],
+          sabab: tashqi.aniq ? 'smetada bu resurs ish ostida emas, shu razdelda mustaqil qator — kod/nom va birlik aynan, yagona'
+            : 'shu razdelda aynan bir xil mustaqil resurs bir nechta — ishga eng yaqini taklif qilindi, tasdiqlang' });
         continue;
       }
       const nz: Nomzod[] = ichki.map((t) => {
