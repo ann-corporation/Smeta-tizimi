@@ -38,6 +38,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   obuna_belgila_v1: 'control.global.write',
   demo_manba_belgila_v1: 'document.write',
   zamena_ish_yarat_v1: 'smeta.write',
+  zamena_almashtirish_belgila_v1: 'smeta.write',
   resurs_bola_qosh_v1: 'smeta.write',
   ish_resurslar_bilan_yarat_v1: 'smeta.write',
   catalog_observation_yoz_v1: 'document.write',

@@ -40,7 +40,10 @@ export function FaktNarxlash({ kompaniyaId, obyektId, qator, onYop, onSaqlandi }
   }, [obyektId, qator.nom, qator.birlik]);
 
   const qoldaNarx = son(qolda);
-  const tanlangan = qoldaNarx != null ? { narx: qoldaNarx, manba: 'qolda' as const } : variantlar[faol] ? { narx: variantlar[faol].narx, manba: variantlar[faol].manba } : null;
+  // Egasi qarori (2026-10-25): bazaga FAQAT qo'lda maydondagi narx yoziladi. Manba taklifi bosilsa
+  // u faqat qo'lda maydonga ko'chiriladi - yozish har doim egasining aniq «Narxni yozish» bosishi bilan.
+  const tanlangan = qoldaNarx != null ? { narx: qoldaNarx, manba: 'qolda' as const } : null;
+  const variantniOl = (i: number) => { const v = variantlar[i]; setFaol(i); if (v) setQolda(String(v.narx)); qoldaRef.current?.focus(); };
   const yaroqli = tanlangan != null && Number.isFinite(tanlangan.narx) && tanlangan.narx > 0;
   const sm = useMemo(() => (yaroqli ? narxsizSummalar(qator.kat, qator.fakt, qator.smeta, tanlangan!.narx) : null), [yaroqli, tanlangan, qator.kat, qator.fakt, qator.smeta]);
 
@@ -56,9 +59,13 @@ export function FaktNarxlash({ kompaniyaId, obyektId, qator, onYop, onSaqlandi }
   };
   const klav = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') { e.preventDefault(); onYop(); }
-    else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(); }
-    else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && variantlar.length) {
-      e.preventDefault(); setQolda('');
+    else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // Ro'yxatda turib Enter - taklifni qo'lda maydonga ko'chiradi (yozmaydi); qo'lda maydonda Enter - yozadi.
+      if (e.target === qoldaRef.current) void yubor(); else variantniOl(faol);
+    }
+    else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && variantlar.length && e.target !== qoldaRef.current) {
+      e.preventDefault();
       setFaol((f) => Math.max(0, Math.min(variantlar.length - 1, f + (e.key === 'ArrowDown' ? 1 : -1))));
     }
   };
@@ -70,12 +77,12 @@ export function FaktNarxlash({ kompaniyaId, obyektId, qator, onYop, onSaqlandi }
           <p className="truncate text-text-dim" title={qator.nom}>{qator.nom} · {qator.birlik ?? '—'}</p></div>
         <button type="button" onClick={onYop} aria-label={t('Yopish')} className="rounded p-1 text-text-mute hover:bg-surface-2"><X size={14} /></button>
       </div>
-      <p className="text-text-mute">{t('Narx NDS siz. Manba ko‘rsatiladi; tanlanmasa hech narsa yozilmaydi.')}</p>
+      <p className="text-text-mute">{t('Narx NDS siz. Taklifni bossangiz qo‘lda maydonga tushadi; faqat «Narxni yozish» bosilganda yoziladi.')}</p>
       <div role="listbox" aria-label={t('Narx manbalari')} className="max-h-48 overflow-auto rounded border border-border">
         {yuk && <p className="p-2 text-text-mute">{t('Qidirilmoqda…')}</p>}
         {!yuk && variantlar.length === 0 && <p className="p-2 text-text-mute">{t('Manbalardan narx topilmadi - qo‘lda yozing.')}</p>}
-        {variantlar.map((v, i) => <button key={i} type="button" role="option" aria-selected={qoldaNarx == null && i === faol} onClick={() => { setQolda(''); setFaol(i); }}
-          className={`flex w-full items-center justify-between gap-3 border-b border-border/50 px-3 py-1.5 text-left ${qoldaNarx == null && i === faol ? 'bg-accent/10' : 'hover:bg-surface-2'}`}>
+        {variantlar.map((v, i) => <button key={i} type="button" role="option" aria-selected={i === faol} onClick={() => variantniOl(i)}
+          className={`flex w-full items-center justify-between gap-3 border-b border-border/50 px-3 py-1.5 text-left ${i === faol ? 'bg-accent/10' : 'hover:bg-surface-2'}`}>
           <span><span className="rounded bg-surface-2 px-1 text-[10px]">{MANBA_NOMI[v.manba]}</span> <span className="text-text-mute">{v.izoh}</span></span>
           <b className="font-mono tabular-nums">{fmt(v.narx)}</b></button>)}
       </div>

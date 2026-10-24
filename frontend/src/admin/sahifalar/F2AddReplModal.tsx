@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import type { T2Qator } from '../../api/supabase';
 import { yangiOperationId } from '../../api/supabase';
-import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
+import { t } from '../../i18n/til';
+import { sbT2ZamenaAlmashtirishBelgila, sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
 import type { RejaliBuyruq } from '../../lib/f2-moslash-v3/rejali';
 
 /** Modal REJALI rejimda serverga yozmaydi — buyruqni sahifaga beradi (oxirida «Saqlash» bilan bittada yoziladi). */
@@ -63,6 +64,10 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
     action.kind === 'replacement' ? 'F2 importda topilgan zamena' : 'F2 importda topilgan qo‘shimcha ish',
   );
   const [busy, setBusy] = useState(false);
+  /** Birlik farqli zamena: aslning qancha hajmini almashtiradi (aslning birligida; ixtiyoriy -- bo'sh = asl to'liq almashtirilgan). */
+  const [almHajm, setAlmHajm] = useState('');
+  const aslBirlik = action.kind === 'replacement' ? (action.oldRow.birlik ?? '') : '';
+  const birlikFarqli = action.kind === 'replacement' && birlik.trim() !== '' && birlik.trim().toLowerCase() !== aslBirlik.trim().toLowerCase();
   /* Qayta urinishda AYNI operatsiya — tarmoq uzilsa ham dublikat yaratilmaydi. */
   const opRef = useRef(yangiOperationId());
   const resurslar = action.kind !== 'resource' ? (p.resurslar ?? []) : [];
@@ -84,13 +89,15 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
     if (action.kind !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni === 0)) {
       setError('Hajm 0 dan farqli son bo‘lishi shart (minus ham mumkin — norma tuzatuvchi ish).'); return;
     }
+    const almSoni = birlikFarqli && almHajm.trim() !== '' ? Number(almHajm.replace(',', '.')) : null;
+    if (almSoni != null && (!Number.isFinite(almSoni) || almSoni < 0)) { setError(t('Almashtiriladigan hajm manfiy bo‘lmagan son bo‘lishi shart.')); return; }
     if (p.onRejali) {
       p.onRejali({
         kind: action.kind, tur: action.kind === 'resource' ? resTur : (resurslar.length ? 'bl' : qTur),
         otaQatorId: action.parent.id, almashtirilayotganQatorId: action.kind === 'replacement' ? action.oldRow.id : undefined,
         keyinQatorId: action.kind === 'replacement' ? action.oldRow.id : action.keyinId,
         nom: nom.trim(), birlik: birlik.trim(), hajm: hajmSoni, kod: kod.trim() || undefined, sabab: sabab.trim(),
-        resurslar, operationId: opRef.current,
+        resurslar, operationId: opRef.current, almashtirishHajm: almSoni,
       });
       return;
     }
@@ -110,6 +117,10 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
           resurslar,
         });
         if (!rr.ok || rr.qator_id == null) { setError(rr.xabar || rr.error || 'Saqlanmadi.'); return; }
+        if (almSoni != null) {
+          const m = await sbT2ZamenaAlmashtirishBelgila({ kompaniyaId: p.companyId, qatorId: rr.qator_id, hajm: almSoni });
+          if (!m.ok) { setError(m.xabar || m.error || t('Almashtirish hajmi saqlanmadi.')); return; }
+        }
         p.onCreated(rr.qator_id, rr.resurs_qator_idlar ?? []);
         return;
       }
@@ -119,6 +130,10 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
           ? (qTur === 'bl' ? await sbT2QoshimchaIshYarat(asos) : await sbT2ResursBolaQosh({ ...asos, tur: qTur, hajm: hajmSoni }))
           : await sbT2ResursBolaQosh({ ...asos, tur: resTur, hajm: hajmSoni });
       if (!r.ok || r.qator_id == null) { setError(r.xabar || r.error || 'Saqlanmadi.'); return; }
+      if (action.kind === 'replacement' && almSoni != null) {
+        const m = await sbT2ZamenaAlmashtirishBelgila({ kompaniyaId: p.companyId, qatorId: r.qator_id, hajm: almSoni });
+        if (!m.ok) { setError(m.xabar || m.error || t('Almashtirish hajmi saqlanmadi.')); return; }
+      }
       p.onCreated(r.qator_id);
     } catch { setError('Tarmoq xatosi — qayta urinib ko‘ring.'); }
     finally { setBusy(false); }
@@ -173,6 +188,14 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
               className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
           </label>
         </div>
+        {birlikFarqli && (
+          <label className="block text-sm mb-3">
+            <span className="text-text-dim text-[12px]">{t('Asl qatorning qancha hajmini almashtiradi ({birlik}, ixtiyoriy)', { birlik: aslBirlik })}</span>
+            <input type="number" min="0" value={almHajm} onChange={e => setAlmHajm(e.target.value)}
+              placeholder={t('Bo‘sh = asl qator to‘liq almashtirilgan')}
+              className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
+          </label>
+        )}
         <label className="block text-sm mb-4">
           <span className="text-text-dim text-[12px]">Sabab</span>
           <input value={sabab} onChange={e => setSabab(e.target.value)}
