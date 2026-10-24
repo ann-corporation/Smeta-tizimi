@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from './smeta-anatomiya/f2';
-import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2IshchiQoralama } from './f2-ishchi-qoralama';
+import { f2IshchiOl, f2IshchiSaqla, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ServerSaqla, f2ServerSaqlaBardoshli, F2ServerZiddiyat, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2IshchiQoralama } from './f2-ishchi-qoralama';
 import { f2Indeks, yozishManbasi, type IshJoyi } from './f2-moslash-v3/ishJoyi';
 import { exactWrite } from './f2-exact-write';
 
@@ -125,6 +125,51 @@ describe('F2 corrective rows and working draft safety', () => {
     api.rows.mockResolvedValue({ ok: true, qatorlar: [{ uid: 'm', holat: 'hal_qilinmagan', versiya: 1 }] });
     await expect(f2ServerOl(11)).rejects.toThrow('to‘liq emas');
   });
+  describe('server qoralamasi — yordamchi qadam bardoshliligi (TERMINAL_JOB / STALE_VERSION)', () => {
+    const mk = (pairs: Array<[string, number]> = [['m', 7]]) => ({ aktlar: [akt([node('m', 5)])], aktIdx: 0, objectId: 3, operationId: 'op', sourceOperationId: 's',
+      davr: '2026-10', source: { name: 'F2.xlsx' }, ij: ij(pairs), rzBog: new Map() } as F2IshchiQoralama);
+    const eski = { jobId: 68, versiya: 3, rows: new Map([['m', 1]]) };
+
+    it('TERMINAL_JOB: bog‘lanishlar lokal holatdan YANGI job ga saqlanadi (yangi operation id), xabar bilan', async () => {
+      api.advance.mockResolvedValueOnce({ ok: false, code: 'TERMINAL_JOB' });
+      api.advance.mockImplementation(async ({ expectedVersiya }: { expectedVersiya: number }) => ({ ok: true, versiya: expectedVersiya + 1 }));
+      api.create.mockResolvedValue({ ok: true, job_id: 99 });
+      const d = mk();
+      const r = await f2ServerSaqlaBardoshli(d, 42, eski, () => 'yangi-op');
+      expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ operationId: 'yangi-op' }));
+      expect(r.state.jobId).toBe(99);
+      expect(r.ogohlantirish).toContain('bekor qilingan');
+      expect(api.save.mock.calls[0][0]).toMatchObject({ jobId: 99 });
+      expect(api.save.mock.calls[0][0].qatorlar[0]).toMatchObject({ uid: 'm', holat: 'qolda_moslashtirildi' });
+    });
+
+    it('STALE_VERSION: job va qator versiyalari qayta o‘qiladi, lokal bog‘lanishlar saqlanadi, BIR marta qayta uriniladi', async () => {
+      api.advance.mockResolvedValueOnce({ ok: false, code: 'STALE_VERSION' });
+      api.advance.mockImplementation(async ({ expectedVersiya }: { expectedVersiya: number }) => ({ ok: true, versiya: expectedVersiya + 1 }));
+      api.job.mockResolvedValue({ ok: true, versiya: 7, status: 'running' });
+      api.rows.mockResolvedValue({ ok: true, qatorlar: [{ uid: 'm', holat: 'qolda_moslashtirildi', sabab: JSON.stringify({ qatorId: 7, holat: 'qolda', usul: 'qolda' }), versiya: 4 }] });
+      const r = await f2ServerSaqlaBardoshli(mk(), 42, eski);
+      expect(api.advance.mock.calls[1][0].expectedVersiya).toBe(7);
+      expect(api.save.mock.calls[0][0].qatorlar[0].expectedVersiya).toBe(4);
+      expect(r.ogohlantirish).toContain('boshqa joyda');
+    });
+
+    it('STALE_VERSION + server qatori BOSHQACHA bog‘langan: qayta urinilmaydi, faqat o‘sha qatorlar ziddiyat sifatida chiqadi', async () => {
+      api.advance.mockResolvedValueOnce({ ok: false, code: 'STALE_VERSION' });
+      api.job.mockResolvedValue({ ok: true, versiya: 7, status: 'running' });
+      api.rows.mockResolvedValue({ ok: true, qatorlar: [{ uid: 'm', holat: 'qolda_moslashtirildi', sabab: JSON.stringify({ qatorId: 99, holat: 'qolda', usul: 'qolda' }), versiya: 4 }] });
+      const x = await f2ServerSaqlaBardoshli(mk(), 42, eski).catch((e) => e);
+      expect(x).toBeInstanceOf(F2ServerZiddiyat);
+      expect((x as F2ServerZiddiyat).uidlar).toEqual(['m']);
+      expect(api.save).not.toHaveBeenCalled();
+    });
+
+    it('boshqa xatolar o‘zgarishsiz tashlanadi', async () => {
+      api.advance.mockResolvedValueOnce({ ok: false, code: 'SOURCE_DOCUMENT_SCOPE_MISMATCH' });
+      await expect(f2ServerSaqlaBardoshli(mk(), 42, eski)).rejects.toThrow('SOURCE_DOCUMENT_SCOPE_MISMATCH');
+    });
+  });
+
   it('rejali qo‘shimcha/zamenaga (vaqtinchalik id) bog‘lanishlar serverdan tiklanadi; begona manfiy id — yo‘q (T7)', async () => {
     const bog = (qatorId: number) => JSON.stringify({ qatorId, holat: 'qolda', usul: 'qolda' });
     api.job.mockResolvedValue({ ok: true, obyekt_id: 3, versiya: 2, total_rows: 4,

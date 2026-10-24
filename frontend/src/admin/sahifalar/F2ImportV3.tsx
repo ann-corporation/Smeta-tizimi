@@ -35,7 +35,7 @@ import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
-import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ManbaMosla, f2BuzilganniBoshat, f2ServerSaqla, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
+import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ManbaMosla, f2BuzilganniBoshat, f2ServerSaqla, f2ServerSaqlaBardoshli, F2ServerZiddiyat, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
 
 /**
  * F2 IMPORT V3 (docs/architecture/F2_IMPORT_V3.md): fayl → akt (davr, jami, ogohlantirishlar
@@ -45,6 +45,14 @@ import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrection
  */
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+/** Server qoralamasi (yordamchi qadam) xatosi — foydalanuvchi tilida; akt yozishni to'xtatmaydi. */
+function serverXatoMatni(e: unknown): string {
+  if (e instanceof F2ServerZiddiyat) return `${e.uidlar.length} ${t('qatorda server qarori boshqacha bog‘langan (boshqa joyda o‘zgartirilgan)')}`;
+  const m = e instanceof Error ? e.message : '';
+  if (/TERMINAL_JOB/.test(m)) return t('Bu qoralama bekor qilingan');
+  if (/STALE/.test(m)) return t('Qoralama boshqa joyda o‘zgargan');
+  return m || t('Server qoralamasi saqlanmadi.');
+}
 /** Tizimda (R2) saqlangan F2 fayllar: avval import qilingan manba va arxivlangan tasdiqlangan F2 — qayta yuklash shart emas. */
 const TIZIM_F2_TURLARI = ['f2_akt', 'f2_hujjat'];
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -1027,7 +1035,10 @@ function Sessiya({ companyId }: { companyId: number }) {
       const draft = ishSnapshot();
       if (!draft) { qadam('qoralama', 'xato', t('F2 ish holati topilmadi.')); return; }
       draft.source.documentId = docId;
-      try { await f2ServerSaqla(draft, docId, serverDraft.current); }
+      // Server qoralamasi — YORDAMCHI qadam: xato bo'lsa ham akt yoziladi (egasi 2026-10-24: TERMINAL_JOB / STALE_VERSION aktni to'xtatmasin).
+      let serverOgoh = '';
+      let serverXato = '';
+      try { const s = await f2ServerSaqlaBardoshli(draft, docId, serverDraft.current); draft.server = s.state; serverOgoh = s.ogohlantirish ? t(s.ogohlantirish) : ''; }
       catch (e) {
         // Manba hujjat eskirgan (fayl qayta yuklanib «superseded» bo'lgan) yoki boshqa obyektga tegishli — brauzerdagi asl
         // faylni shu obyektga qayta ro'yxatdan o'tkazib, bir marta qayta urinamiz (egasi 2026-10-20: SOURCE_DOCUMENT_SCOPE_MISMATCH).
@@ -1039,12 +1050,17 @@ function Sessiya({ companyId }: { companyId: number }) {
             docId = await r2gaYukla(); draft.source.documentId = docId;
             qadam('fayl', 'tayyor', t('Manba fayl yangilandi'));
             await f2ServerSaqla(draft, docId, undefined);
-          } catch (e2) { serverDraft.current = draft.server; await ishniSaqla(draft); qadam('qoralama', 'xato', e2 instanceof Error ? e2.message : t('Server qoralamasi saqlanmadi.')); return; }
-        } else { serverDraft.current = draft.server; await ishniSaqla(draft); qadam('qoralama', 'xato', m || t('Server qoralamasi saqlanmadi.')); return; }
+          } catch (e2) { serverXato = serverXatoMatni(e2); }
+        } else { serverXato = serverXatoMatni(e); }
       }
       serverDraft.current = draft.server; await ishniSaqla(draft);
-      setServerId(String(draft.server!.jobId));
-      qadam('qoralama', 'tayyor', `#${draft.server!.jobId}`);
+      if (draft.server && !serverXato) {
+        setServerId(String(draft.server.jobId));
+        qadam('qoralama', 'tayyor', `#${draft.server.jobId}${serverOgoh ? ` · ${serverOgoh}` : ''}`);
+      } else {
+        // Yordamchi qadam bajarilmadi — akt baribir yoziladi; ish holati brauzerda saqlandi.
+        qadam('qoralama', 'otkazildi', `${t('Server qoralamasi saqlanmadi')}: ${serverXato || t('noma‘lum xato')} — ${t('akt baribir yoziladi, ish holati brauzerda saqlandi')}`);
+      }
       // 5. Akt
       qadam('akt', 'ishlayapti', mavjudQoralama ? `${t('Mavjud qoralama yangilanmoqda')} #${mavjudQoralama.id}` : undefined);
       const manba = new Map<number, Array<Record<string, unknown>>>();
@@ -1057,7 +1073,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       }
       const qatorlar = payload.rows.map((q) => ({
           ...q, rawSnapshot: { manba: 'f2_v3', hujjat_id: docId, fayl: akt.fayl, varaq: akt.varaq, fayl_sha256: faylSha || undefined, davr, qatorlar: manba.get(q.qatorId),
-            import_job_id: draft.server!.jobId, partial: yozish.qolgan.length > 0,
+            import_job_id: draft.server?.jobId, partial: yozish.qolgan.length > 0,
             unresolved_count: yozish.qolgan.length },
         }));
       const r = mavjudQoralama
@@ -1077,7 +1093,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       qadam('akt', 'tayyor', `#${r.akt_id ?? '?'} · ${payload.rows.length} ${t('qator')}`);
       setSessiyaKiritilgan((s) => new Set([...s, akt.varaq]));
       setDone(`F2 qoralamasi ${mavjudQoralama ? 'yangilandi' : 'saqlandi'} (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.`);
-      if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida va server ish qoralamasi #${draft.server!.jobId} da saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
+      if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida ${draft.server ? `va server ish qoralamasi #${draft.server.jobId} da ` : ''}saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
       setHolat('Tayyor.');
     } catch (e) {
       setJarayon((old) => (old ?? BOSH_QADAMLAR()).map((q) => (q.holat === 'ishlayapti' ? { ...q, holat: 'xato', izoh: e instanceof Error ? e.message : t('Yozish javobi olinmadi — qayta urinish ayni operatsiyani tekshiradi.') } : q)));
