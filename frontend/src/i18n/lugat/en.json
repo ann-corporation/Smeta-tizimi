@@ -3096,5 +3096,17 @@
   "Sabab (manba qator saqlanadi)": "Reason (source line is kept)",
   "Qoʻshimcha qator yaratish va fakt yozish": "Create additional line and record actuals",
   "Qoʻshimcha qator yaratildi va fakt yozildi: {nom}": "Additional line created and actuals recorded: {nom}",
-  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "New additional lines (actuals recorded)"
+  "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "New additional lines (actuals recorded)",
+  "Shu smeta qatoriga bog‘langan F2 qatorlari": "F-2 rows linked to this estimate row",
+  "Hammasini uzish": "Unlink all",
+  "F2 da ko‘rsatish": "Show in F-2",
+  "Qaysi F2 qatorlari bog‘langanini ko‘rish va uzish": "See and unlink the linked F-2 rows",
+  "ish narxi tarkibi": "part of work price",
+  "avto: pereraschet/minus taklifi": "auto: recalculation/minus suggestion",
+  "qo‘lda": "manual",
+  "taklif, siz tasdiqlagan": "suggestion you confirmed",
+  "ish bilan birga": "together with the work",
+  "xotiradan (oldingi F2)": "from memory (previous F-2)",
+  "avto taklif ◐": "auto suggestion ◐",
+  "avto": "auto"
 }

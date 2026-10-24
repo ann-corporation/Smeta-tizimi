@@ -212,6 +212,8 @@ const nomKalit = (x: string | null | undefined) => (x ?? '').toUpperCase().repla
 export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const { ind, S, ij } = p;
   const [tanlangan, setTanlangan] = useState<string | null>(null);
+  /** Smeta qatori ostida ochilgan «qaysi F2 qatorlari bog'langan» ro'yxati (egasi 2026-10-24). */
+  const [manbaOchiq, setManbaOchiq] = useState<number | null>(null);
   // Ommaviy belgilash (egasi 2026-10-20): holat belgisini bosish — belgilash, Shift — oraliq. Amallar bitta qaytarish qadami.
   const [belgi, setBelgi] = useState<ReadonlySet<string>>(new Set());
   const oxirgiBelgi = useRef<string | null>(null);
@@ -617,6 +619,53 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       }
     }
     xab('Hal qilinmagan qator qolmadi.');
+  }
+  /** F2 qatorini tanlab, chap daraxtda ko'rinadigan qilish (ota bo'limlari ochiladi). */
+  function f2Korsat(uid: string) {
+    setTanlangan(uid);
+    setYopiqF((old) => {
+      const next = new Set(old);
+      for (let parent = ind.ota.get(uid); parent; parent = ind.ota.get(parent.uid)) next.delete(parent.uid);
+      return next;
+    });
+    f2Fokus.current = uid;
+  }
+  /** Smeta qatoriga bog'langan F2 qatorlari ro'yxati: qayerdan, qancha, qanday usulda — va har birini uzish. */
+  function manbaRoyxati(band: { hajm: number; uidlar: string[] }) {
+    const uzBir = (uid: string) => { const tg = ind.byUid.get(uid); if (tg) p.onIj(uz(ij, tg)); };
+    const uzHammasi = () => {
+      let next = ij;
+      for (const uid of band.uidlar) { const tg = ind.byUid.get(uid); if (tg && next.bog.has(uid)) next = uz(next, tg); }
+      p.onIj(next); setManbaOchiq(null);
+      xab(`${band.uidlar.length} ${tarj('ta F2 qatorining bog‘lanishi uzildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}`);
+    };
+    return (
+      <div className="border-b border-l-4 border-accent/60 bg-surface-2/70 px-3 py-2 text-[11.5px]" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <b className="text-text">{tarj('Shu smeta qatoriga bog‘langan F2 qatorlari')}: {band.uidlar.length}</b>
+          <button type="button" className="tugma h-6 px-1.5 text-[11px] text-danger" disabled={p.disabled} onClick={uzHammasi}><Unlink size={11} /> {tarj('Hammasini uzish')}</button>
+          <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setManbaOchiq(null)}>✕</button>
+        </div>
+        <ul className="space-y-0.5">
+          {band.uidlar.map((uid) => {
+            const f = ind.byUid.get(uid);
+            const b = ij.bog.get(uid);
+            if (!f || !b) return null;
+            const minus = (f.hajm ?? 0) < 0;
+            return (
+              <li key={uid} className={`flex flex-wrap items-center gap-2 rounded px-1 ${minus ? 'bg-danger/10' : ''}`}>
+                <span className="font-mono text-[10.5px] text-text-mute">{f.manzil.varaq}!{f.manzil.qator}</span>
+                <span className="min-w-0 flex-1 truncate text-text" title={f.nom}>{f.kod ? `${f.kod} · ` : ''}{f.nom}</span>
+                <span className={`font-mono ${minus ? 'font-semibold text-danger' : 'text-text'}`}>{fmt(f.hajm ?? 0)} {f.birlik ?? ''}</span>
+                <span className="rounded bg-surface px-1 text-[10px] text-text-dim" title={b.usul}>{usulNomi(b)}</span>
+                <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => f2Korsat(uid)}>{tarj('F2 da ko‘rsatish')}</button>
+                <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled} onClick={() => uzBir(uid)}><Unlink size={11} /> {tarj('Uzish')}</button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
   }
   function f2BarchasiniOch() { setYopiqF(new Set()); }
   function f2BarchasiniYop() { setYopiqF(new Set(collectF2ExpandableIds(p.akt.daraxt))); }
@@ -1141,7 +1190,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tur = qatorTuri(s.id);
     const rang = QATOR_RANG[tur];
     const qoshilgan = tur === 'qoshimcha' || tur === 'zamena';
-    return (
+    return (<>
       <div data-sid={s.id} data-qator-turi={tur} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} ${rang.chegara} `
         + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : rang.fon ? `${rang.fon} hover:brightness-110` : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
         + (oraliq || ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA))}>
@@ -1158,9 +1207,17 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             {rang.belgi} {tur === 'qoshimcha' ? 'qo‘shimcha' : tur === 'zamena' ? 'zamena' : 'almashtirilgan'}</span>}
           {tekis && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">{yolMatn(s)}</span>}
           {(old > 0 || band) && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">
-            oldin F2 {fmt(old)}{band && <span className="ml-1 text-ok">· shu F2 {fmt(band.hajm)}{band.uidlar.length > 1 ? ` (${band.uidlar.length} qism)` : ''}</span>}
+            oldin F2 {fmt(old)}{band && <span className="ml-1 text-ok">· shu F2 {fmt(band.hajm)}</span>}
           </span>}
         </button>
+        {band && (() => {
+          const minuslar = band.uidlar.filter((u) => (ind.byUid.get(u)?.hajm ?? 0) < 0).length;
+          const kop = band.uidlar.length > 1;
+          return <button type="button" onClick={(e) => { e.stopPropagation(); setManbaOchiq(manbaOchiq === s.id ? null : s.id); }}
+            className={`ml-1 mt-0.5 shrink-0 self-start rounded px-1 text-[10px] font-semibold ${kop || minuslar ? 'bg-warn/25 text-warn' : 'bg-ok/15 text-ok'}`}
+            title={tarj('Qaysi F2 qatorlari bog‘langanini ko‘rish va uzish')}>
+            ← {band.uidlar.length} F2{minuslar ? ` · ${minuslar} minus` : ''} {manbaOchiq === s.id ? '▴' : '▾'}</button>;
+        })()}
         </div>
         <span className={`${SON} text-text-mute`}>{s.norma == null ? '' : fmt(s.norma, 6)}</span>
         <span className={`${SON} text-text`}>{fmt(s.hajm)}</span>
@@ -1186,7 +1243,20 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           </>}
         </span>
       </div>
-    );
+      {manbaOchiq === s.id && band && manbaRoyxati(band)}
+    </>);
+  }
+
+  /** Bog'lanish qanday paydo bo'lgani — odam tilida (egasi: «qayerdan bog'langanini bildirib turadigan»). */
+  function usulNomi(b: { holat: string; usul: string }): string {
+    if (b.usul === TARKIB_USUL) return tarj('ish narxi tarkibi');
+    if (b.usul === 'pereraschet_taklif') return tarj('avto: pereraschet/minus taklifi');
+    if (b.usul === 'qolda') return tarj('qo‘lda');
+    if (b.usul === 'taklif_tasdiq') return tarj('taklif, siz tasdiqlagan');
+    if (b.usul === 'ish_ichida') return tarj('ish bilan birga');
+    if (b.usul === 'xotira' || b.usul === 'tasdiqlangan') return tarj('xotiradan (oldingi F2)');
+    if (b.holat === 'taklif') return tarj('avto taklif ◐');
+    return tarj('avto');
   }
 
   function yolMatn(s: SmetaQator) {
