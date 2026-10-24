@@ -9,8 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import ru from './lugat/ru.json';
-import en from './lugat/en.json';
+import { LUGAT_EN as en, LUGAT_RU as ru } from './lugat';
 
 const ILDIZ = join(__dirname, '..', '..');
 const SRC = join(ILDIZ, 'src');
@@ -51,7 +50,7 @@ describe('til qoidasi', () => {
         if (!(k in ru) || !(k in en)) yoq.push(`${yol(p)}: ${k}${k in ru ? '' : ' [ru]'}${k in en ? '' : ' [en]'}`);
       }
     }
-    expect(yoq, `Tarjimasi yo'q matnlar — lugat/ru.json va lugat/en.json ga qo'shing:\n${yoq.join('\n')}`).toEqual([]);
+    expect(yoq, `Tarjimasi yo'q matnlar — YANGI faylga qo'shing: lugat/qism/<mavzu>.json ({ "kalit": { "ru": "...", "en": "..." } }); ru.json/en.json oxiriga YOZMANG (PR ziddiyati):\n${yoq.join('\n')}`).toEqual([]);
   });
 
   it('tarjimaga o‘tmagan matnlar soni oshmaydi (yangi faylda — 0)', () => {
@@ -64,6 +63,16 @@ describe('til qoidasi', () => {
     const oshgan = Object.entries(sanoq).filter(([f, n]) => (n as number) > (baza[f] ?? 0))
       .map(([f, n]) => `${f}: ${n} (ruxsat ${baza[f] ?? 0}) — ${ochiqMatnlar(readFileSync(join(ILDIZ, f), 'utf8')).slice(0, 5).join(' | ')}`);
     expect(oshgan, `Interfeys matni t() siz yozilgan. Matnni t('...') ga o'rang va ru/en tarjimasini qo'shing:\n${oshgan.join('\n')}`).toEqual([]);
+  });
+
+  it('lugat/qism/*.json bo‘laklari to‘g‘ri tuzilgan: har kalitda ru va en matni bor', () => {
+    const dir = join(__dirname, 'lugat', 'qism');
+    const xato: string[] = [];
+    for (const n of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
+      const q = JSON.parse(readFileSync(join(dir, n), 'utf8')) as Record<string, { ru?: unknown; en?: unknown }>;
+      for (const [k, v] of Object.entries(q)) if (typeof v?.ru !== 'string' || typeof v?.en !== 'string') xato.push(`${n}: ${k}`);
+    }
+    expect(xato, `Bo'lakda ru/en yetishmaydi:\n${xato.join('\n')}`).toEqual([]);
   });
 
   it('ru va en lug‘atlari bir xil kalitlarga ega', () => {

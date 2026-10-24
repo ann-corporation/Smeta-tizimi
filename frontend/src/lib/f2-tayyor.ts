@@ -28,11 +28,13 @@ export type F2Resurs = {
   norma: number | null; mumkin: number; /** avtomatik (rs) — ish hajmi × norma */ avto: boolean;
   /** Faktsiz rejim: chegara bloklamaydi (mumkin 0 bo'lsa ham kiritiladi, oshsa ogohlantirish). */
   erkin?: boolean;
+  /** Tasdiqlanmagan (qoralama) F2 dagi hajm - `mumkin` dan allaqachon ayirilgan. */
+  qoralama?: number;
   taklifNarx: number | null; taklifManba: NarxManba;
   /** Narx protokoldan olingan bo'lsa — hujjatdagi asos: «№ … от …». */
   protokol?: string;
 };
-export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[]; erkin?: boolean };
+export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[]; erkin?: boolean; /** qoralamadagi F2 hajmi (mumkin dan ayirilgan) */ qoralama?: number };
 export type F2Bolim = { id: number | null; nom: string; daraja: number; ishlar: F2Ish[]; alohida: F2Resurs[] };
 
 const son = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -51,7 +53,7 @@ function narxTaklif(f2Narx: number | null, smetaNarx: number | null, protokolNar
 }
 
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
-export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt'): F2Bolim[] {
+export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt', qoralama?: ReadonlyMap<number, number>): F2Bolim[] {
   const h = new Map(holat.map((x) => [x.qator_id, x]));
   const erkin = manba === 'smeta';
   const rowById = new Map(rows.map((r) => [r.id, r]));
@@ -59,14 +61,17 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   for (const r of rows) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
   for (const a of bolalar.values()) a.sort((p, q) => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id);
   // Faktsiz rejim: smeta hajmi − shu qatorning barcha F2 lari (RPC o'zgarmaydi: smeta_hajm/f2_hajm bor).
-  const mumkin = (id: number) => erkin
+  const baza = (id: number) => erkin
     ? Math.max(0, (son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm) ?? 0) - (son(h.get(id)?.f2_hajm) ?? 0))
     : Math.max(0, son(h.get(id)?.f2_mumkin_hajm) ?? 0);
+  // Qoralamadagi (tasdiqlanmagan) F2 hajmi qoldiqdan AYIRILADI - bir ishni ikki marta F2 qilish xavfi bo'lmasin.
+  const qor = (id: number) => Math.max(0, qoralama?.get(id) ?? 0);
+  const mumkin = (id: number) => Math.max(0, baza(id) - qor(id));
   const smetaHajm = (id: number) => son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm);
   const resurs = (r: T2Qator, avto: boolean): F2Resurs => {
     const p = protokol?.get(r.id);
     const t = narxTaklif(son(h.get(r.id)?.f2_narx), son(r.narx), p?.narx);
-    const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba, ...(erkin ? { erkin: true } : {}) };
+    const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba, ...(erkin ? { erkin: true } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}) };
     if (p && t.manba === 'protokol') x.protokol = `№ ${p.raqam} от ${p.sana.slice(0, 10).split('-').reverse().join('.')}`;
     return x;
   };
@@ -83,10 +88,11 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
       if (r.tur === 'bl') {
         const res = (bolalar.get(r.id) ?? []).filter((x) => x.tur === 'rs' || x.tur === 'mat' || x.tur === 'ob').map((x) => resurs(x, x.tur === 'rs'));
         const hh = h.get(r.id);
-        const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: son(hh?.f2_hajm) ?? 0, resurslar: res, ...(erkin ? { erkin: true } : {}) };
-        if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : (ish.mumkin > 0 || res.some((x) => !x.avto && x.mumkin > 0))) b.ishlar.push(ish);
+        const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: son(hh?.f2_hajm) ?? 0, resurslar: res, ...(erkin ? { erkin: true } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}) };
+        // Fakt rejimida qoralama qoldiqni 0 ga tushirsa ham ish ro'yxatda qoladi (tasdiqlangan va qoralama alohida ko'rinsin).
+        if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : (baza(r.id) > 0 || res.some((x) => !x.avto && baza(x.id) > 0))) b.ishlar.push(ish);
       } else if (r.tur === 'mat' || r.tur === 'ob') {
-        const x = resurs(r, false); if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : x.mumkin > 0) b.alohida.push(x);
+        const x = resurs(r, false); if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : baza(r.id) > 0) b.alohida.push(x);
       }
     }
   };
@@ -114,8 +120,17 @@ export type F2Qator = {
   id: number; ishId: number | null; tur: 'bl' | 'rs' | 'mat' | 'ob'; kat: string | null; nom: string; birlik: string | null;
   hajm: number; narx: number | null; summa: number | null; manba: NarxManba; narxsiz: boolean;
   protokol?: string;
-  xato?: 'HAJM' | 'OSHDI' | 'NARX' | 'SUMMA'; ogoh?: 'RESURS_CHEGARA' | 'ARIFMETIKA' | 'SMETADAN_OSHDI' | 'AXBOROT_NARXSIZ';
+  /** Hajm hech qachon xato emas (egasi: hajmni bloklama) - oshsa `ogoh`. */
+  xato?: 'HAJM' | 'NARX' | 'SUMMA';
+  ogoh?: 'RESURS_CHEGARA' | 'ARIFMETIKA' | 'SMETADAN_OSHDI' | 'QOLDIQDAN_OSHDI' | 'QORALAMA_TAKROR' | 'AXBOROT_NARXSIZ';
 };
+
+/** Kiritilgan hajm qoldiqdan oshsa - faqat ogohlantirish kodi (blok emas). */
+function oshOgoh(v: number, x: { mumkin: number; qoralama?: number; erkin?: boolean }): F2Qator['ogoh'] {
+  if (v <= x.mumkin + 1e-9) return undefined;
+  if ((x.qoralama ?? 0) > 0 && v <= x.mumkin + (x.qoralama ?? 0) + 1e-9) return 'QORALAMA_TAKROR';
+  return x.erkin ? 'SMETADAN_OSHDI' : 'QOLDIQDAN_OSHDI';
+}
 
 /** Narxi umuman bo'lmagan axborot qatori (masalan ЗАТРАТЫ ТРУДА МАШИНИСТОВ) - xato emas, narxsiz + bildirishnoma. */
 export const axborotResursmi = (nom: string): boolean => /^\s*(ЗАТРАТЫ\s+ТРУДА|ЗП\s+МАШИНИСТ|В\s+Т\.?\s*Ч|ОПЛАТА\s+ТРУДА\s+МАШИНИСТ)/i.test(nom);
@@ -145,9 +160,8 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
     const v = sonOqi(k.hajm[r.id]);
     if (v == null) return;
     if (v === 'xato' || v <= 0) { out.push({ id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: false, xato: 'HAJM' }); return; }
-    if (v > r.mumkin + 1e-9 && !r.erkin) { out.push({ id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: false, xato: 'OSHDI' }); return; }
     const q = resursQator(r, v, ishId, k);
-    if (v > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = 'SMETADAN_OSHDI'; // faktsiz rejim: blok emas, ogohlantirish
+    if (!q.ogoh) q.ogoh = oshOgoh(v, r); // blok emas, ogohlantirish
     out.push(q);
   };
   for (const b of bolimlar) {
@@ -155,18 +169,19 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
       const v = sonOqi(k.hajm[ish.id]);
       if (v != null) {
         if (v === 'xato' || v <= 0) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'HAJM' });
-        else if (v > ish.mumkin + 1e-9 && !ish.erkin) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'OSHDI' });
         else {
           const bl: F2Qator = { id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true };
-          if (ish.smeta != null && ish.olingan + v > ish.smeta + 1e-9) bl.ogoh = 'SMETADAN_OSHDI';
+          if (ish.smeta != null && ish.olingan + (ish.qoralama ?? 0) + v > ish.smeta + 1e-9) bl.ogoh = 'SMETADAN_OSHDI';
+          else bl.ogoh = oshOgoh(v, ish);
           out.push(bl);
+          // Ish hajmi qoldiqdan oshgan bo'lsa (ongli) - resurslar normadan to'liq; aks holda fakt qoldig'i bilan cheklanadi.
+          const ustida = v > ish.mumkin + 1e-9;
           for (const r of ish.resurslar) {
-            if (!r.avto || r.norma == null || r.norma <= 0 || (r.mumkin <= 0 && !r.erkin)) continue;
+            if (!r.avto || r.norma == null || r.norma <= 0 || (r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin)) continue;
             const talab = y6(v * r.norma);
-            // Faktsiz rejim: resurs smeta qoldig'i bilan qirqilmaydi (blok yo'q) — oshsa faqat ogohlantirish.
-            const hajm = r.erkin ? talab : Math.min(talab, r.mumkin);
+            const hajm = r.erkin || ustida ? talab : Math.min(talab, r.mumkin);
             const q = resursQator(r, hajm, ish.id, k);
-            if (talab > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = r.erkin ? 'SMETADAN_OSHDI' : 'RESURS_CHEGARA';
+            if (talab > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = r.erkin || ustida ? oshOgoh(talab, r) : 'RESURS_CHEGARA';
             out.push(q);
           }
         }
