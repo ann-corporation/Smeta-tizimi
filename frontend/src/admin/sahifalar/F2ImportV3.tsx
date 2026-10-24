@@ -7,6 +7,8 @@ import {
 import { t2NakopitelniyToliq } from '../../api/t2-nakopitelniy';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
+import { qolganSummaMatni } from './f2-qolgan-summa';
 import { katKesimNomalumBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
@@ -658,6 +660,8 @@ function Sessiya({ companyId }: { companyId: number }) {
    *  bog'lanmagan/kat'siz qator «kat noma'lum» bo'lib qoladi (taxminiy deb ko'rsatiladi, o'ylab topilmaydi). */
   const yozishKesimi = useMemo(() => (payload && !payload.error
     ? katKesimYigish(payload.rows, (r) => raw.get(r.qatorId)?.kat, (r) => r.certifiedAmount ?? null) : null), [payload, raw]);
+  /** Tasdiq oynalaridagi summalar uchun ustama (SummaJuft bilan bir manba). */
+  const ustama = useUstamaliSumma(objectId ? Number(objectId) : null, { kompaniyaId: companyId });
   const qatorlarKesimi = useMemo(() => {
     if (!ind || !ij) return null;
     return katKesimYigish(ind.qatorlar.filter((q) => q.barg), (q) => {
@@ -1135,7 +1139,9 @@ function Sessiya({ companyId }: { companyId: number }) {
     // Bog'lanmagan qatorlar bilan yozish — ongli qaror (egasi sinovi 2026-10-24: 76 qator jim tushib qolardi; pul yo'qolmasin).
     if (yozish.qolgan.length) {
       const pul = yozish.qolgan.filter((n) => n.barg && n.summa != null).reduce((a, n) => a + Number(n.summa), 0);
-      const ok = window.confirm(`${yozish.qolgan.length} ${t('ta qator')} (${pul.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${t('so‘m, ustamasiz')}) ${t('hali bog‘lanmagan — aktga KIRMAYDI. Baribir yozasizmi? (Keyin «✎ Tahrirlash» bilan qo‘shish mumkin.)')}`);
+      // Ustamali (asosiy) + ustamasiz: kat — taklif qilingan smeta qatoridan; bog'lanmagani kat noma'lum (≈).
+      const kesim = katKesimYigish(yozish.qolgan.filter((n) => n.barg && n.summa != null), (n) => { const b = ij?.bog.get(n.uid); return b ? raw.get(b.qatorId)?.kat : null; }, (n) => Number(n.summa));
+      const ok = window.confirm(`${qolganSummaMatni(yozish.qolgan.length, pul, ustama.hisobla(kesim))} ${t('hali bog‘lanmagan — aktga KIRMAYDI. Baribir yozasizmi? (Keyin «✎ Tahrirlash» bilan qo‘shish mumkin.)')}`);
       if (!ok) { qadam('tekshiruv', 'xato', t('Yozish bekor qilindi — bog‘lanmagan qatorlarni hal qiling.')); return; }
     }
     qadam('tekshiruv', 'tayyor', `${payload.rows.length} ${t('qator aktga kiradi')}${yozish.qolgan.length ? `; ${yozish.qolgan.length} ${t('tasi kiritilmaydi (bog‘lanmagan)')}` : ''}`);
