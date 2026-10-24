@@ -597,7 +597,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   /** Oldingi oylar yozilgan (tasdiqlangan/qoralama aktlarda hajm bor) — kumulyativ varaqda ayirish avtomatik TAVSIYA qilinadi. */
   const oldingiYozilgan = oldingi.size > 0 || band.size > 0;
   const indYoz = useMemo(() => (ind && kumReja && kumRejim ? kumulyativQolla(ind, kumReja) : ind), [ind, kumReja, kumRejim]);
-  const yozish = useMemo(() => (indYoz && ij ? f2QoralamaYozish(indYoz, ij) : null), [indYoz, ij]);
+  const yozish = useMemo(() => (indYoz && ij ? f2QoralamaYozish(indYoz, ij, S) : null), [indYoz, ij, S]);
   const payload = useMemo(() => {
     if (!yozish || yozish.toxtatish.length) return null;
     try {
