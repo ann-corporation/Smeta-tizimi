@@ -234,6 +234,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   /** Sudralayotgan F2 qatori (egasi 2026-09-29: drag-and-drop aniq ko'rinsin). */
   const [sudrash, setSudrash] = useState<F2Tugun | null>(null);
   const [tanlov, setTanlov] = useState<Tanlov | null>(null);
+  /** «Tanlangan qator» bloki yig'iladi (egasi 2026-10-24: ekranning yarmini egallab ikki panelni suradi); holati eslab qolinadi. */
+  const [panelYopiq, setPanelYopiq] = useState(() => { try { return localStorage.getItem('f2v3.panelYopiq') === '1'; } catch { return false; } });
+  useEffect(() => { try { localStorage.setItem('f2v3.panelYopiq', panelYopiq ? '1' : '0'); } catch { /* xotira yo'q */ } }, [panelYopiq]);
   const [modal, setModal] = useState<{ f: F2Tugun; action: DropAction } | null>(null);
   const [xabar, setXabar] = useState<string | null>(null);
   // ── Qo'shilgan qatorlar (qo'shimcha/zamena): TAHRIRLASH va O'CHIRISH. Asl smeta qatorlari — o'zgarmas (server ham rad etadi). ──
@@ -1371,8 +1374,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       )}
       {/* Tanlangan qator paneli va xabar — daraxtlar ustida, DOIMIY balandlikda: tanlash/bog'lash pastdagi
           daraxtlarni surmaydi (egasi sinovi 2026-10-06: tanlashda ~130 px, bog'lashda ~26 px sakrash). */}
-      <div className="karta sticky top-2 z-20 flex min-h-[120px] max-h-[45vh] flex-col overflow-hidden p-2 backdrop-blur-xl" ref={panelRef}>
-        <div className="min-h-0 flex-1 overflow-auto"><Panel /></div>
+      <div className={`karta sticky top-2 z-20 flex flex-col overflow-hidden p-2 backdrop-blur-xl ${panelYopiq ? '' : 'min-h-[120px] max-h-[30vh]'}`} ref={panelRef}>
+        <button type="button" aria-expanded={!panelYopiq} aria-label={t('Tanlangan qator paneli')} onClick={() => setPanelYopiq((v) => !v)}
+          className="mb-1 flex w-full shrink-0 items-center gap-1 text-left text-[11px] font-semibold text-text-dim hover:text-text">
+          <span aria-hidden>{panelYopiq ? '▸' : '▾'}</span><span>{t('Tanlangan qator')}</span>
+          {panelYopiq && tTugun && <span className="min-w-0 flex-1 truncate font-normal text-text">{tTugun.kod ? tTugun.kod + ' ' : ''}{tTugun.nom}</span>}
+        </button>
+        {!panelYopiq && <div className="min-h-0 flex-1 overflow-auto"><Panel /></div>}
         <p role={xabar ? 'status' : undefined} className="mt-1 flex h-5 shrink-0 items-center gap-2 border-t border-border/50 pt-1 text-[12px] text-text-dim">
           {xabar ? <>
             <span className="min-w-0 flex-1 truncate" title={xabar}>{xabar}</span>
