@@ -38,10 +38,13 @@ function Progress({ ulush, holat, ingichka }: { ulush: number | null; holat: Jur
  * saqlash paneli — barcha o'zgarishlar BITTA tranzaksiyada (Ctrl+S). Klaviatura: Enter/↓ keyingi,
  * ↑ oldingi, Esc tozalash, "/" qidiruv.
  */
+export type SaqlashNatija = Promise<boolean>;
+export type SaqlashFn = () => SaqlashNatija;
+type SaqlashVaqda = SaqlashNatija | null;
 export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef }: {
   kompaniyaId: number; obyektId: number;
   /** Tashqi sahifa (F2 tayyorlashga o'tish) saqlanmagan kiritmalarni saqlab, natijasini kutishi uchun. */
-  saqlashRef?: { current: (() => Promise<boolean>) | null };
+  saqlashRef?: { current: SaqlashFn | null };
   rows: readonly T2Qator[]; states: readonly JurnalHolat[];
   /** Faqat fakt/F2 holatini qayta o'qish (tez). */
   holatniYangila: () => Promise<void> | void;
@@ -135,14 +138,14 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     return n;
   });
 
-  const ishdaRef = useRef<Promise<boolean> | null>(null);
-  const saqla = useCallback((): Promise<boolean> => {
+  const ishdaRef = useRef<SaqlashVaqda>(null);
+  const saqla = useCallback((): SaqlashNatija => {
     if (ishdaRef.current) return ishdaRef.current;
     const p = saqlaIchki().finally(() => { ishdaRef.current = null; });
     ishdaRef.current = p; return p;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paket, band, obyektId, sana, holatniYangila]);
-  const saqlaIchki = async (): Promise<boolean> => {
+  const saqlaIchki = async (): SaqlashNatija => {
     if (!paket.ok || band) return false;
     setBand(true);
     try {
