@@ -103,6 +103,34 @@ describe('F2 tayyorlash', () => {
     } finally { rows.splice(rows.length - 2, 2); holat.splice(holat.length - 2, 2); }
   });
 
+  it('«Faqat kiritilganlar» — hamma bo‘limlardan faqat hajmi kiritilgan ishlar; Enter keyingi ish hajmiga o‘tadi', async () => {
+    ochish();
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.change(hajm, { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Devor/ }));
+    expect(screen.getByText('G‘isht terish')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Faqat kiritilganlar'));
+    expect(screen.getByText('Beton quyish')).toBeTruthy();
+    expect(screen.queryByText('G‘isht terish')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Faqat kiritilganlar'));
+    fireEvent.click(screen.getByRole('button', { name: /Poydevor/ }));
+    const birinchi = screen.getByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement;
+    fireEvent.change(screen.getByLabelText('Qidirish'), { target: { value: 'e' } });
+    expect(birinchi.value).toBe('2');
+  });
+
+  it('faktsiz rejim: fakt qoldig‘i yo‘q obyektda ham F2 yasaladi (chegara — smeta qoldig‘i), oshsa blok yo‘q', async () => {
+    holat.forEach((h) => { h.f2_mumkin_hajm = 0; }); // fakt umuman yo'q
+    holat[0].smeta_hajm = 10; (holat as Array<Record<string, unknown>>)[3].smeta_hajm = 4; (holat as Array<Record<string, unknown>>)[3].f2_hajm = 0;
+    m.yarat.mockResolvedValue({ ok: true, akt_id: 2 });
+    ochish();
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish');
+    expect(screen.getByRole('button', { name: 'Smeta qoldig‘i', pressed: true })).toBeTruthy();
+    fireEvent.change(hajm, { target: { value: '12' } }); // smeta qoldig'i 10 dan ko'p — faqat ogohlantirish
+    expect(screen.queryByText('Fakt qoldig‘idan oshdi')).toBeNull();
+    expect(screen.getByText('smeta hajmidan oshadi (ruxsat, ogohlantirish)')).toBeTruthy();
+  });
+
   it('imzolovchilar va shartnoma raqami shartnoma liniyasidan avtomatik (3 tomonlama — subpudratchi)', async () => {
     ochish();
     expect(await screen.findByText(/№ 45 — Bosh pudrat · Дирекция · ООО «NTB» · ООО «Суб»/)).toBeTruthy();
