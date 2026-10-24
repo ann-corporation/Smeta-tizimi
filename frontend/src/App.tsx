@@ -58,6 +58,7 @@ const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
 const Tokenlar = lazy(() => import('./admin/sahifalar/Tokenlar'));
 const IshJoylarim = lazy(() => import('./admin/sahifalar/IshJoylarim'));
+const Topshiriqlar = lazy(() => import('./admin/sahifalar/Topshiriqlar'));
 const Mutaxassis = lazy(() => import('./admin/sahifalar/Mutaxassis'));
 const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
@@ -150,6 +151,7 @@ export default function App() {
           {/* Egasi 2026-10-02: token balansi, obuna, superadmin to'lov tasdig'i. */}
           <Route path="tokenlar" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><Tokenlar /></Suspense>} />
           {/* «Telegram modeli» markazi: barcha ish joylari + barcha joylardan «Mening ishlarim». */}
+          <Route path="topshiriqlar" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('yuklanmoqda…')}</div>}><Topshiriqlar /></Suspense>} />
           <Route path="ish-joylarim" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('yuklanmoqda…')}</div>}><IshJoylarim /></Suspense>} />
           {/* T6: mutaxassis profili va kompaniyalarga xizmat taklifi. */}
           <Route path="mutaxassis" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('yuklanmoqda…')}</div>}><Mutaxassis /></Suspense>} />
