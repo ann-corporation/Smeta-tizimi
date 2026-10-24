@@ -3119,5 +3119,6 @@
   "Import oynasida qayta ochib, xato joylarini tuzatish": "Reopen in the import window and fix mistakes",
   "Tahrirlanmoqda": "Editing",
   "Tahrirlanmoqda: F2 №{raqam}, {oy} - saqlanganda shu akt qatorlari almashtiriladi": "Editing: F2 no. {raqam}, {oy} - saving replaces this act\u0027s rows",
-  "Bu aktning import ish qoralamasi topilmadi (akt import orqali yaratilmagan yoki ish qoralamasi o‘chirilgan). Faylni qayta import qiling - shu obyekt, oy va raqam uchun akt qatorlari almashtiriladi.": "No import working draft was found for this act (not created by import, or the draft was removed). Import the file again - rows of the act for this object, month and number will be replaced."
+  "Bu aktning import ish qoralamasi topilmadi (akt import orqali yaratilmagan yoki ish qoralamasi o‘chirilgan). Faylni qayta import qiling - shu obyekt, oy va raqam uchun akt qatorlari almashtiriladi.": "No import working draft was found for this act (not created by import, or the draft was removed). Import the file again - rows of the act for this object, month and number will be replaced.",
+  "Akt qatorlaridan tiklandi: {mos} qator bog‘langan, {yangi} qator bog‘lanmagan yoki fayldan farq qiladi - tekshiring.": "Restored from act rows: {mos} rows linked, {yangi} rows unlinked or differing from the file - please review."
 }
