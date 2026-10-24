@@ -50,4 +50,16 @@ describe('F2 kanonik manba kontrakti — exactWrite (hujjat summasi aynan, to‘
   it('hajm 0 bo‘lib summasi bor va narxi yo‘q qator — yagona qolgan to‘xtash (narxni chiqarib bo‘lmaydi)', () => {
     expect(() => exactWrite([{ ...n, hajm: 0, narx: undefined }], mapping)).toThrow(/hajm 0/);
   });
+  /* Egasi 2026-10-24 (Fast Food 2-etaj №1): hajmi 0 va summasi 0 bo'lgan resurs qatori bazaga yozilmaydi
+     (t2_akt_qator_hajm_check) va butun akt «Ma'lumotni yuklab bo'lmadi» bilan yiqilardi. */
+  it('hajm 0 va summa 0 qator aktga kiritilmaydi, qolganlari yoziladi, izoh chiqadi', () => {
+    const nodes = [n, { uid: 'nol', hajm: 0, narx: 5, summa: 0 }];
+    const m = new Map([['f2_0', 123], ['nol', 456]]);
+    const q = exactWrite(nodes, m);
+    expect(q.map((x) => x.qatorId)).toEqual([123]);
+    expect(exactWriteIzohlar(nodes, m).join()).toMatch(/hajm 0 va summa yo'q/);
+  });
+  it('hajm 0, summa bor (narx bor) — qaysi qator ekanini aytib to‘xtaydi', () => {
+    expect(() => exactWrite([{ ...n, uid: 'LRV 2!9', hajm: 0 }], new Map([['LRV 2!9', 7]]))).toThrow(/LRV 2!9/);
+  });
 });
