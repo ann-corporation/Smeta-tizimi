@@ -103,12 +103,11 @@ begin
       p_kompaniya_id, p_actor_id, 'izoh', 'Qator izohi: ' || left(v_matn, 300),
       jsonb_build_object('izoh_id', v_row.id, 'manba_jadval', p_manba_jadval, 'manba_id', p_manba_id, 'akt_id', m.akt_id));
   end if;
-  -- Outbox (F1 qo'llangach) - bo'lmasa jim o'tadi
-  if to_regprocedure('public.t2_outbox_yoz(bigint,text,text,bigint,jsonb,bigint,uuid)') is not null then
-    execute 'select public.t2_outbox_yoz($1,$2,$3,$4,$5,$6,$7)'
-      using p_kompaniya_id, 'izoh.yozildi', 't2_izoh', v_row.id,
-            jsonb_build_object('aloqa_id', p_aloqa_id, 'akt_id', m.akt_id, 'obyekt_id', m.obyekt_id, 'manba_jadval', p_manba_jadval, 'manba_id', p_manba_id),
-            p_actor_id, p_operation_id;
+  -- Outbox (F1 yadro): 11 argumentli imzo (prod bilan aynan bir xil)
+  if to_regprocedure('public.t2_outbox_yoz(bigint,text,text,bigint,jsonb,bigint,uuid,bigint,bigint,bigint[],bigint[])') is not null then
+    perform public.t2_outbox_yoz(p_kompaniya_id, 'izoh.yozildi', 't2_izoh', v_row.id,
+      jsonb_build_object('aloqa_id', p_aloqa_id, 'akt_id', m.akt_id, 'manba_jadval', p_manba_jadval, 'manba_id', p_manba_id),
+      p_actor_id, p_operation_id, m.obyekt_id, p_aloqa_id, '{}'::bigint[], '{}'::bigint[]);
   end if;
   return jsonb_build_object('ok', true, 'id', v_row.id, 'versiya', v_row.versiya);
 end $$;
