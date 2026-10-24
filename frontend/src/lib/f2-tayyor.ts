@@ -11,8 +11,7 @@
  */
 import type { T2Qator } from '../api/supabase';
 import { pulYaxlit } from './ish-abc';
-import { nakrutkaKaskad, type NakrutkaAsos } from './nakrutka-kaskad';
-import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
+import { katKesimYigish, type KatKesim } from './ustamali-summa';
 import type { F2NativePayloadRow } from './f2-native-preparation';
 
 export type F2Holat = { qator_id: number; f2_mumkin_hajm?: number | null; f2_hajm?: number | null; fakt_hajm?: number | null; smeta_hajm?: number | null; f2_narx?: number | null };
@@ -242,18 +241,7 @@ export function narxsizNomzodlar(q: F2Qator[]): number[] {
   return q.filter((x) => x.tur !== 'bl' && x.xato === 'NARX').map((x) => x.id);
 }
 
-/** Ustamali jami (egasi 2026-10-24): F2 qatorlari ustamasiz summasidan nakrutka kaskadi (t2_obyekt_nakrutka_v1 koeffitsientlari).
- * M/K, kabel va bezsklad ajratilmaydi (0) - taxminiy; aniq hisob F2 hujjatida. */
-export function f2UstamaliJami(q: F2Qator[], nk: Partial<NakrutkaKoeffitsientlar> | null | undefined): { asos: NakrutkaAsos; ustamasiz: number; ustamali: number; ndsBilan: number } | null {
-  if (!nk || Object.keys(nk).length === 0) return null;
-  const asos: NakrutkaAsos = { chel: 0, mash: 0, mat: 0, ob: 0, mk: 0, kab: 0, bez: 0 };
-  for (const x of q) {
-    if (x.summa == null || x.tur === 'bl') continue;
-    if (x.tur === 'mat') asos.mat += x.summa;
-    else if (x.tur === 'ob') asos.ob += x.summa;
-    else if ((x.kat || '').toUpperCase().startsWith('МАШ')) asos.mash += x.summa;
-    else asos.chel += x.summa;
-  }
-  const r = nakrutkaKaskad(asos, nk);
-  return { asos, ustamasiz: r.pryamye, ustamali: r.itogo4, ndsBilan: r.vsego };
+/** Ustamali jami uchun kategoriya kesimi (egasi 2026-10-24): kat - smeta qatoridan; kat'siz qator "kat noma'lum" bo'lib qoladi (yagona qatlam: lib/ustamali-summa). */
+export function f2KatKesim(q: F2Qator[]): KatKesim {
+  return katKesimYigish(q.filter((x) => x.tur !== 'bl' && x.summa != null), (x) => x.kat, (x) => x.summa);
 }

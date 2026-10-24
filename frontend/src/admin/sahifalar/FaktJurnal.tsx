@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight, Cpu, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../../lib/ustamali-summa';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
 import { t } from '../../i18n/til';
 import { qidiruvTayyorla } from '../../lib/qidiruv-normalizatsiya';
-import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { JURNAL_XATO_MATN, jurnalPaket, jurnalQur, qoldiqUlushi, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim } from '../../lib/fakt-jurnal';
@@ -115,20 +116,16 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   // ── «Fakt = F2»: F2 hajmi fakt dan ko'p bo'lgan ishlarga farqni yozish (oldindan ko'rish + bekor qilish). ──
   const [tenglash, setTenglash] = useState<TenglashOyna | null>(null);
   const holatMap = useMemo(() => new Map(states.map((s) => [s.qator_id, s])), [states]);
-  // Ustama koeffitsienti (egasi 2026-10-24): fakt summasi ≈ ustamali; nakrutka = itogo4 / pryamye (NDS siz).
-  const [ustamaK, setUstamaK] = useState(1);
-  useEffect(() => {
-    let tirik = true; setUstamaK(1);
-    void t2ObyektNakrutka(obyektId).then((r) => { const n = r.ok ? r.nakrutka : undefined; if (tirik && n && n.pryamye > 0) setUstamaK(n.itogo4 / n.pryamye); }).catch(() => undefined);
-    return () => { tirik = false; };
-  }, [obyektId]);
-  /** ≈ ustamali summa: [fakt, smeta]. Ish (bl) o'z narxiga ega emas - resurslar yig'indisi. */
-  const taxminSumma = (q: JurnalQator): [number, number] | null => {
+  /** Ustamali summa (egasi 2026-10-24): resurs kat'i smeta qatoridan (t2_qator.kat) - M/K, КАБ, БЕЗ СКЛАД ham aniq; ish (bl) o'z narxiga ega emas - resurslar yig'indisi. */
+  const taxminKesim = (q: JurnalQator): { fakt: KatKesim; smeta: KatKesim; faktSumma: number; smetaSumma: number } | null => {
     const sm = (x: JurnalQator) => Number(holatMap.get(x.id)?.smeta_summa ?? 0);
     const bolalar = 'resurslar' in q ? [...(q as JurnalIsh).resurslar, ...(q as JurnalIsh).avtomatik] : [];
-    const asos = q.tur === 'bl' ? bolalar.reduce((s, x) => s + sm(x), 0) : sm(q);
+    const qismlar = q.tur === 'bl' ? bolalar : [q];
+    const asos = qismlar.reduce((s, x) => s + sm(x), 0);
     if (!(asos > 0) || q.ulush == null) return null;
-    return [asos * q.ulush * ustamaK, asos * ustamaK];
+    const fakt = bosKatKesim(), smeta = bosKatKesim();
+    for (const x of qismlar) { const kat = rowById.get(x.id)?.kat; katKesimgaQosh(smeta, kat, sm(x)); katKesimgaQosh(fakt, kat, sm(x) * q.ulush); }
+    return { fakt, smeta, faktSumma: asos * q.ulush, smetaSumma: asos };
   };
   const bolimBolalari = useMemo(() => { const m = new Map<number, number[]>(); for (const b of bolimlar) if (b.otaId != null) m.set(b.otaId, [...(m.get(b.otaId) ?? []), b.id]); return m; }, [bolimlar]);
   const tenglashOch = (sarlavha: string, ishlar: JurnalIsh[]) => setTenglash({ sarlavha, reja: faktF2Reja(ishlar, holatMap) });
@@ -248,7 +245,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       <div className="space-y-1">
         <div className="flex items-baseline justify-between gap-2 text-[11px] tabular-nums"><span><b className="text-text">{fmt(q.fakt)}</b><span className="text-text-mute"> / {fmt(q.smeta)} {q.birlik}</span></span><span className="text-text-mute">{foiz(q.ulush)}</span></div>
         <Progress ulush={q.ulush} holat={q.holat} ingichka={resurs} />
-        {(() => { const ts = taxminSumma(q); return ts ? <div className="text-[10px] tabular-nums text-text-mute" title={t('Ustamali summa (taxminiy)')}>≈ {fmt(ts[0])} / {fmt(ts[1])} {t('so‘m')}</div> : null; })()}
+        {(() => { const ts = taxminKesim(q); return ts ? <div className="flex items-start gap-2 text-text-mute"><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ts.faktSumma} katKesim={ts.fakt} /><span>/</span><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ts.smetaSumma} katKesim={ts.smeta} /></div> : null; })()}
       </div>
       <div className="flex items-center gap-1.5">
         {kiritish(q, resurs)}

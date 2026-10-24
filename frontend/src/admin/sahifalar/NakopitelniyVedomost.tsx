@@ -384,6 +384,21 @@ function Sessiya({ companyId }: { companyId: number }) {
     } finally { setForma3Busy(false); }
   };
 
+  /* F2 tarixidan «Форма №3» havolasi (?f3=1&davr=…): barcha manbalar (nakrutka, podval, shartnoma, rekvizit) yuklanib,
+   * 1,5 s o'zgarmay turgach F3 ko'rinishi bir marta o'zi ochiladi. Davr mos kelmasa - noto'g'ri oyga hujjat yasalmaydi. */
+  const f3Avto = useRef<{ davr: string } | null>((() => {
+    const p = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
+    return p.get('f3') === '1' ? { davr: (p.get('davr') ?? '').slice(0, 7) } : null;
+  })());
+  useEffect(() => {
+    const a = f3Avto.current;
+    if (!a || busy || !objectId || !davr || !qatorlar.length) return;
+    if (a.davr && davr.slice(0, 7) !== a.davr) { f3Avto.current = null; toast(t('F3 davri F2 davriga mos kelmadi — kerakli davrni tanlab «Форма № 3» ni bosing.'), 'warn'); return; }
+    const timer = window.setTimeout(() => { if (f3Avto.current) { f3Avto.current = null; void forma3EksportQil(true); } }, 1500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, objectId, davr, qatorlar.length, nakrutka, podval, shartnoma, zakazchikRek, pudratchiRek, tomonlar]);
+
   const korinish = useHujjatKorinish();
   const eksportQil = async (korish = false) => {
     setXato('');
