@@ -88,3 +88,22 @@ it('server xatosini xabar sifatida ko‘rsatadi, forma tozalanmaydi', async () =
   await screen.findByText('Ma’lumot yangilangan.');
   expect((screen.getByLabelText('Nom') as HTMLInputElement).value).toBe('X');
 });
+
+it('norma tuzatuvchi qo‘shimcha ish: MINUS hajm qabul qilinadi, 0 esa yo‘q (egasi 2026-10-24)', async () => {
+  mocks.additional.mockResolvedValue({ ok: true, qator_id: 101 });
+  render(<AdditionalReplacementNative />);
+  fireEvent.change(await screen.findByLabelText('Obyekt'), { target: { value: '8' } });
+  await screen.findByLabelText('Ota qator');
+  fireEvent.change(screen.getByLabelText('Ota qator'), { target: { value: '1' } });
+  fireEvent.change(screen.getByLabelText('Nom'), { target: { value: 'НА КАЖДЫЙ ММ ИЗМЕНЕНИЯ ТОЛЩИНЫ' } });
+  fireEvent.change(screen.getByLabelText('Birlik'), { target: { value: '100М2' } });
+  fireEvent.change(screen.getByLabelText('Sabab'), { target: { value: 'Loyihada 7 mm' } });
+  fireEvent.change(screen.getByLabelText('Hajm'), { target: { value: '0' } });
+  fireEvent.click(screen.getByText('Yaratish'));
+  await screen.findByText(/0 dan farqli son/);
+  expect(mocks.additional).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Hajm'), { target: { value: '-11.16' } });
+  fireEvent.click(screen.getByText('Yaratish'));
+  await screen.findByText('O‘zgarish muvaffaqiyatli yaratildi.');
+  expect(mocks.additional).toHaveBeenCalledWith(expect.objectContaining({ hajm: -11.16 }));
+});
