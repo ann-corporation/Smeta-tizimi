@@ -13,6 +13,8 @@ import type { T2Qator } from '../api/supabase';
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
   smeta_summa?: number | null; fakt_summa?: number | null; f2_mumkin_hajm?: number | null;
+  /** «Fakt = F2» uchun: tasdiqlangan F2 hajmi va narxlar. */
+  f2_hajm?: number | null; smeta_narx?: number | null; f2_narx?: number | null;
 };
 
 export type Rejim = '+' | '=';
