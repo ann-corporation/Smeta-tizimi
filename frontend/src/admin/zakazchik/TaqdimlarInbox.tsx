@@ -4,7 +4,7 @@
  *   Yuborilgan — men yuborganlar: holat, qaror izohi, qaytarib olish (pudratchi tomoni).
  * Zakazchik pudratchi hujjatini TAHRIRLAY OLMAYDI — faqat qaror chiqaradi. Qaror o'zgarmaydi.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -14,6 +14,8 @@ import { hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import { izohYoz, taqdimTafsilotOl, taqdimlarOl, taqdimniQaytar, taqdimQarori, type TaqdimQisqa, type TaqdimTafsilot } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import { QatorIzohMuloqot, QatorIzohTugma } from './QatorIzohlari';
+import { useQatorIzohlari } from './qator-izohlari-hook';
 import { HODISA_NOMI, inp, oyMatn, pul, sana, tugma, tugmaAsosiy } from './tomon-yordam';
 
 const OCHIQ = ['yuborilgan', 'ko_rilmoqda'];
@@ -26,6 +28,9 @@ function Tafsilot({ kompaniyaId, id, yangila }: { kompaniyaId: number; id: numbe
   const [band, setBand] = useState(false);
   const ol = useCallback(async () => { const r = await taqdimTafsilotOl(kompaniyaId, id); if (r.ok) setD(r.natija); else toast(r.error, 'danger'); }, [kompaniyaId, id]);
   useEffect(() => { setD(null); setIzoh(''); void ol(); }, [ol]);
+  const aktId = d && d.taqdim.resurs === 'f2' && d.taqdim.manba_jadval === 't2_akt' ? d.taqdim.manba_id : null;
+  const qIzoh = useQatorIzohlari(kompaniyaId, aktId, d?.taqdim.aloqa_id);
+  const [ochiqQator, setOchiqQator] = useState<number | null>(null);
   if (!d) return <p className="text-xs text-text-dim">{t('Yuklanmoqda…')}</p>;
   const q = d.taqdim;
   const ochiq = OCHIQ.includes(q.holat);
@@ -62,10 +67,15 @@ function Tafsilot({ kompaniyaId, id, yangila }: { kompaniyaId: number; id: numbe
         <div className="max-h-96 overflow-auto rounded border border-border">
           <table className="w-full min-w-[720px] text-xs">
             <thead className="sticky top-0 bg-surface text-left text-text-dim"><tr><th className="px-2 py-1">№</th><th className="px-2 py-1">{t('Kod')}</th><th className="px-2 py-1">{t('Nomi')}</th><th className="px-2 py-1">{t('Birlik')}</th>
-              <th className="px-2 py-1 text-right">{t('Hajm')}</th><th className="px-2 py-1 text-right">{t('Narx')}</th><th className="px-2 py-1 text-right">{t('Summa')}</th></tr></thead>
+              <th className="px-2 py-1 text-right">{t('Hajm')}</th><th className="px-2 py-1 text-right">{t('Narx')}</th><th className="px-2 py-1 text-right">{t('Summa')}</th>{aktId != null && <th className="px-2 py-1">{t('Izoh')}</th>}</tr></thead>
             <tbody>{qatorlar.map((x) => (
-              <tr key={x.qator_id} className="border-t"><td className="px-2 py-1 tabular-nums">{x.tartib}</td><td className="px-2 py-1">{x.kod}</td><td className="px-2 py-1">{x.nom}</td><td className="px-2 py-1">{x.birlik}</td>
-                <td className="px-2 py-1 text-right tabular-nums">{pul(x.hajm)}</td><td className="px-2 py-1 text-right tabular-nums">{pul(x.narx)}</td><td className="px-2 py-1 text-right tabular-nums">{pul(x.summa)}</td></tr>))}</tbody>
+              <Fragment key={x.qator_id}>
+                <tr className="border-t"><td className="px-2 py-1 tabular-nums">{x.tartib}</td><td className="px-2 py-1">{x.kod}</td><td className="px-2 py-1">{x.nom}</td><td className="px-2 py-1">{x.birlik}</td>
+                  <td className="px-2 py-1 text-right tabular-nums">{pul(x.hajm)}</td><td className="px-2 py-1 text-right tabular-nums">{pul(x.narx)}</td><td className="px-2 py-1 text-right tabular-nums">{pul(x.summa)}</td>
+                  {aktId != null && <td className="px-2 py-1">{x.akt_qator_id != null && <QatorIzohTugma soni={qIzoh.ochiqSoni(x.akt_qator_id)} jami={(qIzoh.qator.get(x.akt_qator_id) ?? []).length} ochiq={ochiqQator === x.akt_qator_id} onClick={() => setOchiqQator(ochiqQator === x.akt_qator_id ? null : x.akt_qator_id!)} />}</td>}</tr>
+                {aktId != null && x.akt_qator_id != null && ochiqQator === x.akt_qator_id && (
+                  <tr><td colSpan={8} className="p-0"><QatorIzohMuloqot kompaniyaId={kompaniyaId} aloqaId={q.aloqa_id} aktQatorId={x.akt_qator_id} izohlar={qIzoh.qator.get(x.akt_qator_id) ?? []} ichkiMumkin={!q.kelgan} yangila={() => void qIzoh.yukla()} /></td></tr>)}
+              </Fragment>))}</tbody>
           </table>
           <div className="flex items-center gap-2 px-2 py-1 text-[11px] text-text-dim">{t('Qatorlar')}: {d.qator_jami}{d.qisqartirilgan ? ` (${t('birinchi 5000 ta')})` : ''}
             {yashirinBor && <button type="button" className="text-accent underline" onClick={() => setHammasi(true)}>{t('Hammasini ko‘rsatish')}</button>}</div>
