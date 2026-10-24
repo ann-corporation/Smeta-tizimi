@@ -5,6 +5,9 @@ import {
   type BajarilmadiQator, type BajarilmadiSabab,
 } from '../../api/t2-bajarilmadi';
 import { FmtN } from '../../lib/format';
+import { bajarilmadiXlsx } from '../../lib/bajarilmadi-export';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 
 const BARG = new Set(['bl', 'rs', 'mat', 'ob']);
@@ -16,8 +19,8 @@ const bugun = () => new Date().toISOString().slice(0, 10);
  * ixtiyoriy dalil hujjat bilan alohida yoziladi; «Bajarilmagan hajmlar ro'yxati» hujjati shu yozuvlardan olinadi.
  * Faqat tasdiqlash-talab etilmaydigan KO'RSATKICH: ostatka/F2 hisobi o'zgarmaydi, sabab va dalil saqlanadi.
  */
-export function BajarilmadiPanel({ kompaniyaId, obyektId, qatorlar, holatlar }: {
-  kompaniyaId: number; obyektId: number; qatorlar: readonly T2Qator[]; holatlar: readonly T2QatorHolat[];
+export function BajarilmadiPanel({ kompaniyaId, obyektId, obyektNomi, qatorlar, holatlar }: {
+  kompaniyaId: number; obyektId: number; obyektNomi?: string; qatorlar: readonly T2Qator[]; holatlar: readonly T2QatorHolat[];
 }) {
   const [royxat, setRoyxat] = useState<BajarilmadiQator[]>([]);
   const [qidiruv, setQidiruv] = useState('');
@@ -60,6 +63,19 @@ export function BajarilmadiPanel({ kompaniyaId, obyektId, qatorlar, holatlar }: 
       setTanlangan(null); setQidiruv(''); setIzoh(''); setHajm(''); setHujjat('');
       await yangila();
     } catch (e) { setXabar({ tur: 'xato', matn: e instanceof Error ? e.message : t('Amal bajarilmadi') }); }
+    finally { setBand(false); }
+  };
+
+  /** «Bajarilmagan hajmlar ro'yxati» (Excel) — boshqa hujjatlar kabi token orqali beriladi. */
+  const eksport = async () => {
+    setBand(true); setXabar(null);
+    try {
+      const { bytes, faylNomi, soni } = await bajarilmadiXlsx(royxat, { obyektNomi: obyektNomi ?? `#${obyektId}` });
+      if (!soni) { setXabar({ tur: 'xato', matn: t('Bajarilmadi deb belgilangan ish yo‘q.') }); return; }
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'BAJARILMADI', sabab: `Ведомость невыполненных объёмов · ${obyektNomi ?? obyektId}`, obyekt: obyektId },
+        () => downloadBlob(bytes, faylNomi));
+      if (!r.ok) setXabar({ tur: 'xato', matn: r.xabar }); else setXabar({ tur: 'ok', matn: `${soni} ${t('ta pozitsiya')}${r.xabar ? ' · ' + r.xabar : ''}` });
+    } catch { setXabar({ tur: 'xato', matn: t('Excel fayli tuzilmadi. Qayta urinib ko‘ring.') }); }
     finally { setBand(false); }
   };
 
@@ -110,6 +126,7 @@ export function BajarilmadiPanel({ kompaniyaId, obyektId, qatorlar, holatlar }: 
         </div>
       )}
       {xabar && <p role={xabar.tur === 'xato' ? 'alert' : 'status'} className={xabar.tur === 'xato' ? 'text-danger' : 'text-success'}>{xabar.matn}</p>}
+      {faol.length > 0 && <div><button type="button" disabled={band} onClick={() => void eksport()} className="rounded border border-accent/50 px-3 py-1 text-accent disabled:opacity-40">{t('Bajarilmagan hajmlar ro‘yxati (Excel)')}</button></div>}
       {faol.length > 0 && (
         <table className="w-full border-collapse">
           <thead><tr className="text-left text-text-mute"><th className="py-1">{t('Ish')}</th><th>{t('Bajarilmagan')}</th><th>{t('Sabab')}</th><th>{t('Sana')}</th><th>{t('Kim')}</th><th /></tr></thead>
