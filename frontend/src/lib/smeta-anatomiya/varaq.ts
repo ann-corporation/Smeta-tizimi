@@ -1,4 +1,4 @@
-import { IerarxiyaQuruvchi } from './ierarxiya';
+﻿import { IerarxiyaQuruvchi } from './ierarxiya';
 import { varaqNomiRoli } from './nom-rol';
 import { bosh, kalit, son, toliqUstunlar, xom } from './matn';
 import { sarlavhaBlokiniTop, tartibRaqamlariQatorimi, ustunXaritasi, type SarlavhaBloki } from './ustun';
@@ -8,7 +8,14 @@ import type {
   Dalil, Ish, Katak, KirishVaraq, Manzil, Resurs, UstunXaritasi, VaraqAnatomiyasi, VaraqRoli,
 } from './turlar';
 
-const IMZO = /^(СОСТАВИЛ|ПРОВЕРИЛ|TUZDI|TEKSHIRDI|ИСПОЛНИТЕЛЬ)/;
+/** Ustun-sarlavha katagi so'zlari (faqat to'liq mos): «N п.п.», «на. ед. измерения», «Количество» … */
+const USTUN_SARLAVHA_KATAGI = /^(№|N|NO|№№)\s*(П\.?\s*П\.?)?\.?$|^(НА\.?\s*)?ЕД\.?\s*ИЗМ(ЕРЕНИЯ)?\.?$|^(НА\.?\s*)?ЕДИНИЦ[АУ]\s+ИЗМЕРЕНИЯ$|^НА\.?\s*ЕД\.?$|^ОБЩАЯ$|^КОЛИЧЕСТВО$|^КОЛ-ВО$|^ЦЕНА$|^СУММА$|^ШИФР\b|^НАИМЕНОВАНИЕ РАБОТ|^СМЕТНАЯ СТОИМОСТЬ|^В ТЕКУЩЕМ|^ПРОГНОЗНОМ/;
+/** Qatordagi har bir to'liq katak matn va ustun-sarlavha so'zi bo'lsa — takroriy sarlavha qatori. */
+function takroriySarlavhaQatorimi(row: readonly Katak[], toliq: readonly number[]): boolean {
+  return toliq.length > 0 && toliq.every((i) => typeof row[i] === 'string' && USTUN_SARLAVHA_KATAGI.test(kalit(row[i]).replace(/[()]/g, '').trim()));
+}
+
+const IMZO =/^(СОСТАВИЛ|ПРОВЕРИЛ|TUZDI|TEKSHIRDI|ИСПОЛНИТЕЛЬ)/;
 /** F2/akt imzo bloki (ЗАКАЗЧИК / Представитель Тех.надзора / ПОДРЯДЧИК / Производитель
  *  работ / (Дата.Подп) / Директор / Гл. бухгалтер) — faqat sonsiz, 1–2 katakli qatorda:
  *  bundan keyin ma'lumot yo'q. Sarlavha sifatida o'qilmasin. */
@@ -505,6 +512,11 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     if (toliq.length <= 2 && AKT_IMZO.test(bk) && !toliq.some((i) => typeof row[i] === 'number')) break;
     // Ma'lumot ichida takrorlangan "1 | 2 | 3 | 4 …" ustun raqamlari qatori — ma'lumot emas.
     if (tartibRaqamlariQatorimi(row)) continue;
+    // #25: ma'lumot ichida takrorlangan ustun-sarlavha qatori («N п.п.», «на. ед. измерения»…) — bo'lim emas.
+    if (takroriySarlavhaQatorimi(row, toliq)) continue;
+    // #25: tituldagi obyekt/lokal nomining aynan takrori (yangi sahifa boshi) — yangi bo'lim emas.
+    if (toliq.length === 1 && typeof row[toliq[0]] === 'string'
+      && [titul.obyekt, titul.lokal].some((q) => q && kalit(q.xom) === bk)) continue;
     // «на …» header of the next local estimate on the same sheet (Prime Towers: КЖ → АР → ВК → ОВ) — a sibling, not a section.
     const yangiLokal = lokalSarlavhasi(row, toliq);
     if (yangiLokal) {
