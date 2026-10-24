@@ -12,6 +12,7 @@ import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3H
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, davrMatni, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
+import PulTahlil from '../../components/boss-decision/PulTahlil';
 import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions } from '../../lib/forma3-export';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
@@ -798,6 +799,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
           )}
         </div>
       </div>
+      <div className="mt-3"><PulTahlil companyId={companyId} shartnomaId={shartnomaId} obyektlar={sh.obyektlar.map((o) => ({ id: o.id, nom: o.nom }))} /></div>
     </details>
   );
 }

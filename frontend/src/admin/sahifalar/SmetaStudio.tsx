@@ -5,6 +5,7 @@
  * Barcha o'zgarish yagona buyruq qatlami (lib/smeta-studio/commands) orqali; chat ham shuni ishlatadi.
  * Hozircha qoralama: brauzerda tiklanadi, canonical saqlash alohida server buyrug'i bilan.
  */
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { t } from '../../i18n/til';
 import { RemoteNormCatalog, type NormDetail, type RemoteTreeNode } from '../../lib/catalog-extraction/norm-remote';
@@ -83,7 +84,6 @@ export default function SmetaStudio() {
   const [commandOpen,setCommandOpen]=useState(false);
   const [leftWidth,setLeftWidth]=useState(()=>Math.max(210,Math.min(340,Number(lsGet('studio:left-width')) || 250))),[rightWidth,setRightWidth]=useState(()=>Math.max(310,Math.min(470,Number(lsGet('studio:right-width')) || 350)));
   useEffect(()=>{lsSet('studio:panels',String(panels));lsSet('studio:left-width',String(leftWidth));lsSet('studio:right-width',String(rightWidth));},[panels,leftWidth,rightWidth]);
-  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='k'){e.preventDefault();setCommandOpen(v=>!v);}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[]);
   const [inspectorTab,setInspectorTab]=useState<InspectorTab>('work');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'>('editor');
@@ -200,16 +200,12 @@ export default function SmetaStudio() {
     timer=setTimeout(flush,4000);
     return()=>{stopped=true;clearTimeout(timer);};
   },[autoSave,doc,joriyId,serverVersiya]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || (e.target as HTMLElement)?.tagName === 'INPUT') return;
-      if (e.key.toLowerCase() === 'z') { e.preventDefault(); setHist(h => e.shiftKey ? redo(h) : undo(h)); }
-      if (e.key.toLowerCase() === 'y') { e.preventDefault(); setHist(h => redo(h)); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
+  // Yagona klaviatura moduli (lib/hotkeys, «?» yordam): buyruqlar paneli, bekor qilish / qaytarish.
+  useHotkeys('studio', t('Smeta Studio'), [
+    { id: 'studio.panel', keys: 'ctrl+k', nom: t('Buyruqlar paneli'), inInput: true, run: () => { setCommandOpen(v => !v); } },
+    { id: 'studio.undo', keys: 'ctrl+z', nom: t('Bekor qilish'), run: () => { setHist(h => undo(h)); } },
+    { id: 'studio.redo', keys: ['ctrl+shift+z', 'ctrl+y'], nom: t('Qaytarish'), run: () => { setHist(h => redo(h)); } },
+  ]);
   function run(cmd: StudioCommand): boolean {
     try { setHist(h => dispatch(h, cmd)); setXato(''); return true; }
     catch (e) { setXato(xatoMatni(e)); return false; }

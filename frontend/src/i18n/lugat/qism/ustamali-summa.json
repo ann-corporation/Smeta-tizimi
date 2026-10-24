@@ -1,0 +1,19 @@
+{
+  "To‘g‘ridan-to‘g‘ri xarajat": { "ru": "Прямые затраты", "en": "Direct costs" },
+  "Transport va ombor (ZSR)": { "ru": "Транспортные и заготовительно-складские расходы", "en": "Transport and warehouse (procurement) costs" },
+  "Pudratchining boshqa xarajatlari": { "ru": "Прочие расходы подрядчика", "en": "Contractor's other costs" },
+  "Sug‘urta va risk": { "ru": "Страхование и риск", "en": "Insurance and risk" },
+  "Ustamali jami (QQS siz)": { "ru": "Итого с накладными (без НДС)", "en": "Total with markup (excl. VAT)" },
+  "Ustamali summa hisoblanmadi": { "ru": "Сумма с накладными не рассчитана", "en": "Marked-up amount was not calculated" },
+  "Ustama koeffitsientlari o‘qilmadi — ustamali summa noma’lum": { "ru": "Коэффициенты накладных не прочитаны — сумма с накладными неизвестна", "en": "Markup coefficients could not be read — marked-up amount is unknown" },
+  "Obyekt nakrutka podvali to‘liq emas — ustamali summa noma’lum": { "ru": "Подвал накрутки объекта заполнен не полностью — сумма с накладными неизвестна", "en": "The object's markup footer is incomplete — marked-up amount is unknown" },
+  "QQS bilan (alohida)": { "ru": "С НДС (отдельно)", "en": "Incl. VAT (separate)" },
+  "Kat noma’lum {pul} so‘m ({n} qator) ustamaga kirmagan": { "ru": "Категория неизвестна: {pul} сум ({n} строк) не вошли в накладные", "en": "Category unknown: {pul} UZS ({n} rows) not included in markup" },
+  "Diqqat: berilgan ustamasiz summa kesim yig‘indisidan farq qiladi": { "ru": "Внимание: переданная сумма без накладных отличается от суммы по категориям", "en": "Warning: the given amount without markup differs from the category total" },
+  "Manba qiymati yo‘q": { "ru": "Нет значения в источнике", "en": "No value in the source" },
+  "ustamali noma’lum": { "ru": "с накладными неизвестно", "en": "marked-up unknown" },
+  "ustamasiz": { "ru": "без накладных", "en": "without markup" },
+  "taxminiy (kat noma’lum: {pul} so‘m)": { "ru": "примерно (категория неизвестна: {pul} сум)", "en": "approximate (category unknown: {pul} UZS)" },
+  "kat noma’lum: {pul} so‘m": { "ru": "категория неизвестна: {pul} сум", "en": "category unknown: {pul} UZS" },
+  "Ustama o‘qilmadi — qayta urinish": { "ru": "Накладные не прочитаны — повторить", "en": "Markup not loaded — retry" }
+}
