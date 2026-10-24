@@ -121,3 +121,19 @@ describe('readXlsx', () => {
     expect(sheet!.rows[1]).toEqual(['B25', 'Beton B25', 500000]);
   });
 });
+
+test('formula katagining keshlangan matni <v xml:space="preserve"> bilan ham o‘qiladi (tashqi havolali t="str" formula)', async () => {
+  const wb = await readXlsx(buildZip({
+    'xl/workbook.xml': '<workbook><sheets><sheet name="Лист2" r:id="r1"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels': '<Relationships><Relationship Target="worksheets/sheet1.xml" Id="r1"/></Relationships>',
+    'xl/worksheets/sheet1.xml': '<worksheet><sheetData><row r="1">'
+      + '<c r="A1"><v>2.54</v></c>'
+      + '<c r="C1" s="9" t="str"><f>[1]Основания!$B$60</f><v xml:space="preserve">Стальные трубопроводы  Подающие фланцы</v></c>'
+      + '<c r="D1" t="str"><f>[1]Основания!$B$61</f><v>Погружные насосы</v></c>'
+      + '</row></sheetData></worksheet>',
+  }));
+  const row = wb.sheet('Лист2')!.rows[0];
+  expect(row[0]).toBe(2.54);
+  expect(row[2]).toBe('Стальные трубопроводы  Подающие фланцы'); // oldin bo'sh o'qilardi -> nom yo'qolardi
+  expect(row[3]).toBe('Погружные насосы');
+});
