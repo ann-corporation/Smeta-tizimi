@@ -28,12 +28,13 @@ import { downloadBlob } from '../../lib/construction-document-control/export/dow
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { qidiruvTayyorla } from '../../lib/qidiruv-normalizatsiya';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
-import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
+import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  NARX_MANBA_NOMI, bolimDaraxti, bosKiritma, ishBirlikNarxi, korinadiganBolimlar, f2Jami, f2UstamaliJami, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, narxsizNomzodlar, sonOqi, ulushHajm,
+  NARX_MANBA_NOMI, bolimDaraxti, bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs,
 } from '../../lib/f2-tayyor';
 
@@ -134,13 +135,7 @@ export function F2TayyorlashNative() {
   const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm), [rows, holat, protokolNarx, manba, qoralamaHajm]);
   const qatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
-  const [nkKoef, setNkKoef] = useState<Partial<NakrutkaKoeffitsientlar> | null>(null);
-  useEffect(() => {
-    setNkKoef(null); if (!validId) return; let tirik = true;
-    void t2ObyektNakrutka(obyektId).then((r) => { if (tirik && r.ok) setNkKoef(r.koeffitsientlar ?? null); }).catch(() => undefined);
-    return () => { tirik = false; };
-  }, [obyektId, validId]);
-  const ustamali = useMemo(() => f2UstamaliJami(qatorlar, nkKoef), [qatorlar, nkKoef]);
+  const katKesim = useMemo(() => f2KatKesim(qatorlar), [qatorlar]);
   const byId = useMemo(() => new Map(qatorlar.map((x) => [x.id, x])), [qatorlar]);
   const narxsizlar = useMemo(() => narxsizNomzodlar(qatorlar), [qatorlar]);
   const aosrsizId = useMemo(() => new Set(aosrsiz.map((x) => x.qator_id)), [aosrsiz]);
@@ -426,7 +421,7 @@ export function F2TayyorlashNative() {
         <section aria-label="F2 jami" className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-surface/95 px-4 py-2.5 shadow-2xl backdrop-blur">
           <span className="text-[12px] text-text-dim">Tanlangan qatorlar: <b className="text-text">{jami.qator}</b> ({jami.ish} ish)</span>
           {Object.entries(jami.kat).map(([kat, s]) => <span key={kat} className="text-[11px] text-text-dim">{kat}: <b className="tabular-nums text-text"><FmtN val={s} /></b></span>)}
-          {ustamali ? <><span className="text-[13px] font-semibold text-accent">{t('Ustamali jami')}: <FmtN val={ustamali.ustamali} /></span><span className="text-[11px] text-text-mute">{t('ustamasiz')}: <FmtN val={jami.summa} /></span></> : <span className="text-[13px] font-semibold text-accent">Jami: <FmtN val={jami.summa} /></span>}
+          <span className="text-[13px] font-semibold text-accent">{t('Jami')}: <SummaJuft obyektId={obyektId} kompaniyaId={joriy?.id} ustamasiz={jami.summa} katKesim={katKesim} /></span>
           {jami.manba.smeta + jami.manba.oldingi_f2 + jami.manba.protokol > 0 && <span className="text-[11px] text-text-mute">taklif narx: {jami.manba.protokol ? `protokol ${jami.manba.protokol}, ` : ''}smeta {jami.manba.smeta}, oldingi F2 {jami.manba.oldingi_f2}</span>}
           {jami.narxsiz > 0 && <span className="text-[11px] text-warn">Narx asosi yo‘q: {jami.narxsiz} — ИТОГО bo‘sh chiqadi</span>}
           {jami.ogoh > 0 && <span className="text-[11px] text-warn">Ogohlantirishlar: {jami.ogoh}</span>}
