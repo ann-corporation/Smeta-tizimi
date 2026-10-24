@@ -137,7 +137,8 @@ must('F2 import has exact/unmatched summary', /Aniq bog‘landi/.test(f2Workbenc
   'F2 import operatorga raw JSON o‘rniga tekshiruv xulosasini ko‘rsatishi kerak');
 must('F2 import is a two-pane matching workbench', /F2V3Workbench/.test(f2Import) && /F2 qatori/.test(f2Workbench) && /smeta/i.test(f2Workbench),
   'F2 manbasi va kanonik smeta yonma-yon ko‘rinishi kerak');
-must('F2 matching supports visual rebind', /onDragStart/.test(f2Workbench) && /onDrop/.test(f2Workbench) && /setTanlangan|tanla/.test(f2Workbench),
+// Sudrash 2026-10-24 dan pointer hodisalari bilan (native HTML5 drag nom-tugmadan boshlanmasdi): onPointerDown + tashlashBajar.
+must('F2 matching supports visual rebind', /onPointerDown/.test(f2Workbench) && /tashlashBajar/.test(f2Workbench) && /setTanlangan|tanla/.test(f2Workbench),
   'manba qatorini tanlab yoki sudrab kanonik qatorga bog‘lash mumkin bo‘lishi kerak');
 const nakopPage = noComment(read('frontend', 'src', 'admin', 'pages', 'HujjatNazoratPage.tsx'));
 const nakop = noComment(read('frontend', 'src', 'components', 'construction-document-control', 'NakopitelniyWorkspace.tsx'));
