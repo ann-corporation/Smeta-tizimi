@@ -51,15 +51,39 @@ describe('F2 tayyorlash mantig‘i', () => {
     expect(j.kat).toEqual({ ЧЕЛ: 300000, МАТ: 5385600 });
   });
 
-  it('fakt qoldig‘idan oshgan hajm — xato; smetadan oshgan jami — faqat ogohlantirish', () => {
+  it('fakt qoldig‘idan oshgan hajm — faqat ogohlantirish (blok yo‘q); smetadan oshgan jami — SMETADAN_OSHDI', () => {
     const b = f2Qur(rows, holat);
     const k = bosKiritma(); k.hajm[2] = '7';
-    expect(f2Qatorlar(b, k)[0].xato).toBe('OSHDI');
+    const oshgan = f2Qatorlar(b, Object.assign(k, { narxsiz: { 4: true } }));
+    expect(oshgan[0].xato).toBeUndefined();
+    expect(oshgan[0].ogoh).toBe('SMETADAN_OSHDI'); // 4 + 7 > smeta 10
+    expect(f2Jami(oshgan).xato).toBe(0);
+    // Ish hajmi fakt qoldig'idan oshgan (ongli) - resurslar normadan to'liq, qirqilmaydi.
+    expect(oshgan.find((x) => x.id === 3)).toMatchObject({ hajm: 14, ogoh: 'QOLDIQDAN_OSHDI' });
     const b2 = f2Qur(rows, holat.map((h) => (h.qator_id === 2 ? { ...h, f2_mumkin_hajm: 8 } : h)));
     const r = f2Qatorlar(b2, Object.assign(bosKiritma(), { hajm: { 2: '7' }, narxsiz: { 4: true } }));
     expect(r[0].xato).toBeUndefined();
     expect(r[0].ogoh).toBe('SMETADAN_OSHDI');
-    expect(r.find((x) => x.id === 4)).toMatchObject({ hajm: 3, ogoh: 'RESURS_CHEGARA' });   // 7 × 0.5 = 3.5 > 3 → chegara
+    expect(r.find((x) => x.id === 4)).toMatchObject({ hajm: 3, ogoh: 'RESURS_CHEGARA' });   // ish ichida (7 ≤ 8): 7 × 0.5 = 3.5 > 3 → resurs fakt qoldig'i bilan cheklanadi
+  });
+
+  it('qoralamadagi F2 hajmi qoldiqdan ayriladi; qoralama bilan ikki marta olish - QORALAMA_TAKROR ogohlantirishi', () => {
+    const qor = new Map([[2, 4]]);
+    const holat20 = holat.map((h) => (h.qator_id === 2 ? { ...h, smeta_hajm: 20 } : h)); // smeta katta - faqat qoralama ta'siri sinaladi
+    const b = f2Qur(rows, holat20, undefined, 'fakt', qor);
+    const ish = b[0].ishlar[0];
+    expect(ish).toMatchObject({ id: 2, mumkin: 2, olingan: 4, qoralama: 4 });
+    const r = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '5' }, narxsiz: { 4: true } }));
+    expect(r[0].xato).toBeUndefined();
+    expect(r[0].ogoh).toBe('QORALAMA_TAKROR');
+    const ichida = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '2' }, narxsiz: { 4: true } }));
+    expect(ichida[0].ogoh).toBeUndefined();
+    // Qoralama butun qoldiqni yeb qo'ysa ham ish ro'yxatda qoladi (mumkin 0).
+    const hammasi = f2Qur(rows, holat, undefined, 'fakt', new Map([[2, 6]]));
+    expect(hammasi[0].ishlar[0]).toMatchObject({ id: 2, mumkin: 0 });
+    // Faktsiz rejim: smeta - tasdiqlangan - qoralama.
+    const fs = f2Qur(rows, [{ qator_id: 2, f2_mumkin_hajm: 0, f2_hajm: 4, smeta_hajm: 10 }], undefined, 'smeta', qor);
+    expect(fs[0].ishlar.find((x) => x.id === 2)).toMatchObject({ mumkin: 2, qoralama: 4 });
   });
 
   it('qo‘lda narx/summa, mustaqil material, narxsiz → qayta narx', () => {

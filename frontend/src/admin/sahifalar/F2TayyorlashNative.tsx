@@ -37,8 +37,10 @@ import {
 } from '../../lib/f2-tayyor';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
-const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', OSHDI: 'Fakt qoldig‘idan oshdi', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
-const OGOH_MATN: Record<NonNullable<F2Qator['ogoh']>, string> = { RESURS_CHEGARA: 'resurs fakt qoldig‘i bilan cheklandi', ARIFMETIKA: 'summa hajm × narxdan farq qiladi — hujjat summasi saqlanadi', SMETADAN_OSHDI: 'smeta hajmidan oshadi (ruxsat, ogohlantirish)', AXBOROT_NARXSIZ: 'axborot qatori: narxsiz (smetada narxi yo‘q)' };
+const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
+const OGOH_MATN: Record<NonNullable<F2Qator['ogoh']>, string> = { RESURS_CHEGARA: 'resurs fakt qoldig‘i bilan cheklandi', ARIFMETIKA: 'summa hajm × narxdan farq qiladi — hujjat summasi saqlanadi', SMETADAN_OSHDI: 'smeta hajmidan oshadi (ruxsat, ogohlantirish)', AXBOROT_NARXSIZ: 'axborot qatori: narxsiz (smetada narxi yo‘q)', QOLDIQDAN_OSHDI: 'fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)', QORALAMA_TAKROR: 'qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring' };
+/** Hajm qoldiqdan oshgan ogohlantirishlar - maydon sariq (blok emas). */
+const OSH_OGOH = new Set<F2Qator['ogoh']>(['SMETADAN_OSHDI', 'QOLDIQDAN_OSHDI', 'QORALAMA_TAKROR']);
 const KAT_RANG: Record<string, string> = { ЧЕЛ: 'bg-sky-500/10 text-sky-500', МАШ: 'bg-amber-500/10 text-amber-500', МАТ: 'bg-emerald-500/10 text-emerald-500' };
 const kirit = 'rounded border border-border bg-bg px-2 py-1 text-right tabular-nums outline-none focus:border-accent';
 
@@ -126,7 +128,7 @@ export function F2TayyorlashNative() {
 
   const protokolNarx = useMemo(() => amaldagiProtokolNarxlari(protokolQ, oy), [protokolQ, oy]);
   const manba: F2Manba = manbaTanlov ?? (holat.some((h) => Number(h.f2_mumkin_hajm) > 0) ? 'fakt' : 'smeta');
-  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba), [rows, holat, protokolNarx, manba]);
+  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm), [rows, holat, protokolNarx, manba, qoralamaHajm]);
   const qatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
   const [nkKoef, setNkKoef] = useState<Partial<NakrutkaKoeffitsientlar> | null>(null);
@@ -265,7 +267,7 @@ export function F2TayyorlashNative() {
         <td className="px-2 py-1 text-right text-text-dim">{r.birlik}</td>
         <td className="px-2 py-1 text-right tabular-nums">
           {r.avto ? (x ? <FmtN val={x.hajm} /> : <span className="text-text-mute">—</span>)
-            : <input aria-label={`F2 hajmi: ${r.nom}`} inputMode="decimal" value={k.hajm[r.id] ?? ''} onChange={(e) => yoz('hajm', r.id, e.target.value)} placeholder={String(r.mumkin)} className={`${kirit} w-24`} />}
+            : <input aria-label={`F2 hajmi: ${r.nom}`} inputMode="decimal" value={k.hajm[r.id] ?? ''} onChange={(e) => yoz('hajm', r.id, e.target.value)} placeholder={String(r.mumkin)} className={`${kirit} w-24 ${OSH_OGOH.has(x?.ogoh) ? '!border-warn bg-warn/10' : ''}`} />}
           <div className="text-[10px] text-text-mute">mumkin <FmtN val={r.mumkin} /></div>
         </td>
         <td className="px-2 py-1 text-right">
@@ -278,7 +280,7 @@ export function F2TayyorlashNative() {
         <td className="w-24 px-2 py-1">
           <label className="flex items-center gap-1 whitespace-nowrap text-[10px] text-text-dim"><input type="checkbox" aria-label={`Narxsiz: ${r.nom}`} checked={k.narxsiz[r.id] === true} onChange={(e) => yoz('narxsiz', r.id, e.target.checked || undefined)} />narxsiz</label>
           {x?.xato && <div className="text-[10px] text-danger">{XATO_MATN[x.xato]}</div>}
-          {x?.ogoh && <div className="text-[10px] text-warn">{OGOH_MATN[x.ogoh]}</div>}
+          {x?.ogoh && <div className="text-[10px] text-warn">{OSH_OGOH.has(x.ogoh) ? t(OGOH_MATN[x.ogoh]) : OGOH_MATN[x.ogoh]}</div>}
         </td>
       </tr>
     );
@@ -306,7 +308,7 @@ export function F2TayyorlashNative() {
     const ochilgan = ochiq.has(i.id) || !!qidir.trim();
     const resSumma = i.resurslar.reduce((s, r) => s + (byId.get(r.id)?.summa ?? 0), 0);
     return (
-      <div key={i.id} className={`rounded-lg border ${x && !x.xato ? 'border-accent/50 bg-accent/5' : 'border-border'}`}>
+      <div key={i.id} className={`rounded-lg border ${x && !x.xato ? (OSH_OGOH.has(x.ogoh) ? 'border-warn/60 bg-warn/5' : 'border-accent/50 bg-accent/5') : 'border-border'}`}>
         <div className="flex flex-wrap items-center gap-2 px-3 py-2">
           <button type="button" aria-label={`${ochilgan ? 'Yopish' : 'Resurslarni ko‘rish'}: ${i.nom}`} onClick={() => setOchiq((o) => { const n = new Set(o); if (n.has(i.id)) n.delete(i.id); else n.add(i.id); return n; })} className="rounded p-0.5 text-text-mute hover:text-text">
             {ochilgan ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
@@ -314,16 +316,16 @@ export function F2TayyorlashNative() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-[10px] text-text-mute">{i.kod}</span><span className="truncate text-[13px] font-semibold text-text">{i.nom}</span>
               {aosrsizId.has(i.id) && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">yashirin · АОСР yo‘q</span>}</div>
-            <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · oldin olingan <FmtN val={i.olingan} />{(qoralamaHajm.get(i.id) ?? 0) > 0 && <b className="text-warn"> ({t('tasdiqlangan')} <FmtN val={i.olingan} /> + {t('qoralamada')} <FmtN val={qoralamaHajm.get(i.id) ?? 0} />)</b>}{i.smeta != null && <> · smeta <FmtN val={i.smeta} /></>} · {i.resurslar.length} resurs</div>
+            <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · {t('tasdiqlangan F2')} <FmtN val={i.olingan} />{(i.qoralama ?? 0) > 0 && <b className="text-warn"> · {t('qoralamada')} <FmtN val={i.qoralama ?? 0} /></b>}{i.smeta != null && <> · smeta <FmtN val={i.smeta} /></>} · {i.resurslar.length} resurs</div>
           </div>
-          {(i.erkin || i.mumkin > 0) && <>
-            <input aria-label={`F2 hajmi: ${i.nom}`} data-ish-hajm inputMode="decimal" value={k.hajm[i.id] ?? ''} onChange={(e) => yoz('hajm', i.id, e.target.value)} onKeyDown={(e) => hajmKlaviatura(e, i.id)} placeholder="hajm" className={`${kirit} w-24`} />
-            {[25, 50, 100].map((f) => <button key={f} type="button" onClick={() => yoz('hajm', i.id, ulushHajm(i.mumkin, f))} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-text-dim hover:border-accent hover:text-text">{f}%</button>)}
+          {<>
+            <input aria-label={`F2 hajmi: ${i.nom}`} data-ish-hajm inputMode="decimal" value={k.hajm[i.id] ?? ''} onChange={(e) => yoz('hajm', i.id, e.target.value)} onKeyDown={(e) => hajmKlaviatura(e, i.id)} placeholder="hajm" className={`${kirit} w-24 ${OSH_OGOH.has(x?.ogoh) ? '!border-warn bg-warn/10' : ''}`} />
+            {(i.erkin || i.mumkin > 0) && [25, 50, 100].map((f) => <button key={f} type="button" onClick={() => yoz('hajm', i.id, ulushHajm(i.mumkin, f))} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-text-dim hover:border-accent hover:text-text">{f}%</button>)}
           </>}
           <span className="w-28 text-right text-[12px] font-semibold tabular-nums text-text">{resSumma ? <FmtN val={resSumma} /> : ''}</span>
         </div>
         {x?.xato && <div className="px-10 pb-1 text-[11px] text-danger">{XATO_MATN[x.xato]}</div>}
-        {x?.ogoh && <div className="px-10 pb-1 text-[11px] text-warn">{OGOH_MATN[x.ogoh]}</div>}
+        {x?.ogoh && <div className="px-10 pb-1 text-[11px] text-warn">{OSH_OGOH.has(x.ogoh) ? t(OGOH_MATN[x.ogoh]) : OGOH_MATN[x.ogoh]}</div>}
         {tkmBirlikmi(i.birlik) && tkmTaklifQator(i)}
         {ochilgan && i.resurslar.length > 0 && (
           <table className="w-full text-[12px]"><tbody>{i.resurslar.map(resursQatori)}</tbody></table>
