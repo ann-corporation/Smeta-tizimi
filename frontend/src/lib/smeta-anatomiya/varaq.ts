@@ -9,7 +9,9 @@ import type {
 } from './turlar';
 
 /** Ustun-sarlavha katagi so'zlari (faqat to'liq mos): «N п.п.», «на. ед. измерения», «Количество» … */
-const USTUN_SARLAVHA_KATAGI = /^(№|N|NO|№№)\s*(П\.?\s*П\.?)?\.?$|^(НА\.?\s*)?ЕД\.?\s*ИЗМ(ЕРЕНИЯ)?\.?$|^(НА\.?\s*)?ЕДИНИЦ[АУ]\s+ИЗМЕРЕНИЯ$|^НА\.?\s*ЕД\.?$|^ОБЩАЯ$|^КОЛИЧЕСТВО$|^КОЛ-ВО$|^ЦЕНА$|^СУММА$|^ШИФР\b|^НАИМЕНОВАНИЕ РАБОТ|^СМЕТНАЯ СТОИМОСТЬ|^В ТЕКУЩЕМ|^ПРОГНОЗНОМ/;
+const USTUN_SARLAVHA_KATAGI = /^(№|N|NO|№№)\s*(П\.?\s*П\.?)?\.?$|^(НА\.?\s*)?ЕД\.?\s*ИЗМ(ЕРЕНИЯ)?\.?$|^(НА\.?\s*)?ЕДИНИЦ[АУ]\s+ИЗМЕРЕНИЯ$|^НА\.?\s*ЕД\.?$|^ОБЩАЯ$|^КОЛИЧЕСТВО$|^КОЛ-ВО$|^ЦЕНА$|^СУММА$|^ШИФР(\s|$)|^НАИМЕНОВАНИЕ РАБОТ|^СМЕТНАЯ СТОИМОСТЬ|^В ТЕКУЩЕМ|^ПРОГНОЗНОМ|^ОБОСНОВАНИЕ$|^НА ЕДИНИЦУ$|^ПО ПРОЕКТУ$|^ПО ПРОЕКТНЫМ ДАННЫМ$/;
+/** Titulning yolg'iz yorlig'i (qiymatsiz «Основание:») — 2-lokal titulida ma'lumot ichida takrorlanadi, bo'lim emas. */
+const TITUL_YORLIGI = /^ОСНОВАНИЕ\s*:?$/;
 /** Qatordagi har bir to'liq katak matn va ustun-sarlavha so'zi bo'lsa — takroriy sarlavha qatori. */
 function takroriySarlavhaQatorimi(row: readonly Katak[], toliq: readonly number[]): boolean {
   return toliq.length > 0 && toliq.every((i) => typeof row[i] === 'string' && USTUN_SARLAVHA_KATAGI.test(kalit(row[i]).replace(/[()]/g, '').trim()));
@@ -359,6 +361,19 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     const nom = m.length === 2 ? (/^на$/i.test(m[0]) ? m[1] : null) : prefiksdanKeyin(m[0], /^НА\s+/i);
     return nom && nom.length >= 6 && !/^(ЕДИНИЦ|ПРОЕКТ|ОДНУ|1\s)/i.test(nom) ? nom : null;
   };
+  /** Prime Towers ЭС,СС,ПС (2026-10-24): 3-lokal «на …» qatorisiz — yolg'iz nom («ПОЖАРНАЯ СИГНАЛИЗАЦИЯ»), keyin o'zining
+   *  ustun-sarlavha jadvali («№№ | ОБОСНОВАНИЕ | НАИМЕНОВАНИЕ РАБОТ …»). Faqat varaq ko'p lokalli («на …» titulli) bo'lsa. */
+  const ustunSarlavhaliLokal = (r: number, row: readonly Katak[], toliq: number[]): string | null => {
+    if (rol !== 'lrv' || !titul.lokalNa || titul.yigma || toliq.length !== 1 || typeof row[toliq[0]] !== 'string') return null;
+    const nom = xom(row[toliq[0]]).trim();
+    if (nom.length < 6 || /^(РАЗДЕЛ|БЎЛИМ|BO.?LIM)/i.test(kalit(nom))) return null;
+    for (let k = r + 1; k < Math.min(rows.length, r + 6); k++) {
+      const t = toliqUstunlar(rows[k] ?? []);
+      if (!t.length) continue;
+      return t.length >= 3 && takroriySarlavhaQatorimi(rows[k] ?? [], t) ? nom : null;
+    }
+    return null;
+  };
   const review = (kod: string, izoh: string, r?: number) => natija.review.push({ kod, izoh, ...(r != null ? { manzil: manzil(r) } : {}) });
   /** F2 podvali (prod sinovi 2026-10-23): birligi «СУМ», № va shifrsiz hisob satri — ЗАТРАТЫ ТРУДА…, МАТЕРИАЛЫ,
    *  ПРОЧИЕ … 18%, СТРАХОВАНИЕ, КОЭФФИЦИЕНТ РИСКА, НДС. Ish/resurs emas; summasi narx ustunida turadi (format odati). */
@@ -518,7 +533,8 @@ export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshI
     if (toliq.length === 1 && typeof row[toliq[0]] === 'string'
       && [titul.obyekt, titul.lokal].some((q) => q && kalit(q.xom) === bk)) continue;
     // «на …» header of the next local estimate on the same sheet (Prime Towers: КЖ → АР → ВК → ОВ) — a sibling, not a section.
-    const yangiLokal = lokalSarlavhasi(row, toliq);
+    if (toliq.length === 1 && typeof row[toliq[0]] === 'string' && TITUL_YORLIGI.test(bk)) continue;
+    const yangiLokal = lokalSarlavhasi(row, toliq) ?? ustunSarlavhaliLokal(r, row, toliq);
     if (yangiLokal) {
       iq.lokalQosh(yangiLokal, manzil(r, toliq[toliq.length - 1]), 'varaq ichida yangi lokal smeta: tituldagi kabi «на …» sarlavhasi');
       joriyIsh = null;

@@ -134,6 +134,12 @@ export class IerarxiyaQuruvchi {
       // D1: o'zidan past yoki teng darajalarni yopadi; yuqoriroq (masalan ketma-ket
       // kelgan oddiy sarlavha "КЛ-0,4КВТ, УЧАСТОК №1") ota bo'lib qoladi.
       while (this.stek.length && this.tepa().rang >= t.rang) this.stek.pop();
+      // Prime Towers ЭС (2026-10-24): «ЩК-3» oddiy sarlavhasi ostida ishlar o'tgach kelgan «РАЗДЕЛ 1. …» — ЩК-3 ning
+      // bolasi emas, qo'shnisi. Guruh ochuvchi oddiy sarlavha (darhol ostida sarlavha kelgan: «КЛ-0,4КВТ, УЧАСТОК №1»)
+      // va ketma-ket kelgan sarlavha esa ota bo'lib qoladi (yuqoridagi holat).
+      if (!ketmaKet && t.sarlavhaTuri === 'razdel') {
+        while (this.stek.length && this.tepa().tur === 'oddiy' && !this.tepa().guruh) this.stek.pop();
+      }
       dalillar = [dalil('D1', 'yuqori', `kalit so'z: ${t.sarlavhaTuri}`)];
     } else if (t.tur === 'raqam') {
       dalillar = this.raqamliJoy(t.segs);
