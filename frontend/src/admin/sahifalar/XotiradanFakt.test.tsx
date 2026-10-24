@@ -24,7 +24,7 @@ const states = rows.filter((r) => r.tur === 'bl').map((r) => ({ id: r.id, qator_
 beforeEach(() => { yoz.mockReset(); yoz.mockResolvedValue({ ok: true }); });
 afterEach(() => cleanup());
 
-const ochish = (yangila = vi.fn()) => render(<MemoryRouter><XotiradanFakt obyektId={1} rows={rows} states={states} holatniYangila={yangila} /></MemoryRouter>);
+const ochish = (yangila = vi.fn()) => render(<MemoryRouter><XotiradanFakt kompaniyaId={1} obyektId={1} rows={rows} states={states} holatniYangila={yangila} tuzilmaniYangila={vi.fn()} /></MemoryRouter>);
 const yoz2 = (m: string) => fireEvent.change(screen.getByRole('textbox', { name: /Bajarilgan ishlar/ }), { target: { value: m } });
 
 describe('XotiradanFakt', () => {

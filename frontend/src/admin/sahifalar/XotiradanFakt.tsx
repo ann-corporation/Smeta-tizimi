@@ -10,7 +10,9 @@ import { xotiraIndeks, xotiraMosla, xotiraQidiruv, type XotiraNatija, type Xotir
 import { qatorlarniOqi } from '../../lib/xotira-fakt/parse';
 import { savatHajmi, savatJami, savatPaketi, savatdanOlish, savatgaQosh, type SavatQator } from '../../lib/xotira-fakt/savat';
 import { miqdorBoshlang, nomzodHajmi } from '../../lib/xotira-fakt/tanlash';
+import { jurnalQur } from '../../lib/fakt-jurnal';
 import { toast } from '../../umumiy/ui/Toast';
+import { BoshqaJoydan, type YaratilganQator } from './BoshqaJoydan';
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 0 }));
@@ -34,8 +36,8 @@ const interaktivmi = (e: Event) => { const el = e.target as HTMLElement | null; 
  * har qator bitta ish; tizim obyekt smetasining BARCHA qatorlaridan 3-5 nomzod ko‘rsatadi, egasi tanlaydi, o‘ngda fakt savati.
  * Yozish — mavjud `fakt_yoz_v2` (bitta hujjat); asl smeta qatorlariga tegilmaydi; hajm oshsa faqat belgi (bloklanmaydi).
  */
-export function XotiradanFakt({ obyektId, rows, states, holatniYangila }: {
-  obyektId: number; rows: T2Qator[]; states: T2QatorHolat[]; holatniYangila: () => unknown;
+export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila }: {
+  kompaniyaId: number; obyektId: number; rows: T2Qator[]; states: T2QatorHolat[]; holatniYangila: () => unknown; tuzilmaniYangila: () => unknown;
 }) {
   const navigate = useNavigate();
   const [matn, setMatn] = useState('');
@@ -45,6 +47,9 @@ export function XotiradanFakt({ obyektId, rows, states, holatniYangila }: {
   const [savat, setSavat] = useState<SavatQator[]>([]);
   const [nk, setNk] = useState<NakrutkaKoeffitsientlar | null>(null);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [boshqa, setBoshqa] = useState<number | null>(null);
+  const [yaratilgan, setYaratilgan] = useState<YaratilganQator[]>([]);
+  const bolimlar = useMemo(() => jurnalQur(rows, states).bolimlar, [rows, states]);
   const matnRef = useRef<HTMLTextAreaElement>(null);
   const operationId = useRef(yangiOperationId());
   const ind = useMemo(() => xotiraIndeks(rows, states), [rows, states]);
@@ -96,6 +101,16 @@ export function XotiradanFakt({ obyektId, rows, states, holatniYangila }: {
     return true;
   };
 
+  const boshqaSaqlandi = async (y: YaratilganQator) => {
+    const x = boshqa != null ? natijalar[boshqa] : null;
+    if (x) yangila(x.qator.id, { qoshildi: true });
+    setYaratilgan((a) => [...a, y]);
+    if (boshqa != null) setAktivQator(keyingiHalQilinmagan(boshqa));
+    setBoshqa(null);
+    toast(t('Qoʻshimcha qator yaratildi va fakt yozildi: {nom}', { nom: y.nom }), 'ok');
+    await tuzilmaniYangila(); await holatniYangila();
+  };
+
   const saqla = async () => {
     const paket = savatPaketi(savat);
     if (!paket.length || saqlanmoqda) return;
@@ -129,8 +144,9 @@ export function XotiradanFakt({ obyektId, rows, states, holatniYangila }: {
     { id: 'xotira.qatorTepa', keys: 'ctrl+arrowup', nom: t('Oldingi qator'), inInput: true, run: () => qatorSur(-1) },
     { id: 'xotira.qosh', keys: 'enter', nom: t('Nomzodni savatga qoʻshish'), run: (e) => { if (interaktivmi(e)) return false; return qosh(aktivQator); } },
     { id: 'xotira.keyingi', keys: 'n', nom: t('Keyingi hal qilinmagan qator'), run: () => { if (!natijalar.length) return false; setAktivQator(keyingiHalQilinmagan(aktivQator)); } },
+    { id: 'xotira.boshqa', keys: 'b', nom: t('Boshqa joydan olish'), run: () => { if (!natijalar[aktivQator]) return false; setBoshqa(aktivQator); } },
     { id: 'xotira.matn', keys: '/', nom: t('Matn maydoniga oʻtish'), run: () => { matnRef.current?.focus(); } },
-  ], true);
+  ], boshqa == null);
 
   const maydonKlavisha = (e: KeyboardEvent<HTMLInputElement>, qi: number) => {
     if (e.key === 'Enter') { e.preventDefault(); qosh(qi); }
@@ -167,6 +183,7 @@ export function XotiradanFakt({ obyektId, rows, states, holatniYangila }: {
                     <input aria-label={t('Miqdor')} value={u?.miqdor ?? ''} onChange={(e) => yangila(x.qator.id, { miqdor: e.target.value })} onKeyDown={(e) => maydonKlavisha(e, qi)} onFocus={() => setAktivQator(qi)}
                       placeholder={t('son, % yoki hammasi')} className="input h-8 w-28 px-2 text-right text-[12px]" />
                   </label>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setAktivQator(qi); setBoshqa(qi); }} className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-surface-2">{t('Boshqa joydan olish')}</button>
                   {u?.qoshildi && <span className="rounded bg-ok/15 px-1.5 py-0.5 text-[11px] text-ok">{t('Savatda')}</span>}
                 </header>
                 {(x.holat === 'topilmadi' || (u?.qidiruv ?? '') !== '') && (
@@ -222,6 +239,7 @@ export function XotiradanFakt({ obyektId, rows, states, holatniYangila }: {
           ))}
           {!savat.length && <p className="text-[12px] text-text-mute">{t('Savat boʻsh. Ish tanlansa, uning materiallari ham norma boʻyicha birga qoʻshiladi; mehnat va mashina avtomatik hisoblanadi.')}</p>}
         </div>
+        {yaratilgan.length > 0 && <div className="rounded-lg border border-ok/40 bg-ok/5 p-2 text-[11px] text-text-dim"><div className="font-semibold text-text">{t('Yangi qoʻshimcha qatorlar (fakt yozilgan)')}</div>{yaratilgan.map((y, i) => <div key={i} className="flex justify-between gap-2"><span className="truncate">{y.nom}</span><span className="shrink-0">{fmt(y.hajm)} {y.birlik}</span></div>)}</div>}
         <dl className="space-y-0.5 border-t border-border pt-2 text-[12px]">
           <div className="flex justify-between"><dt className="font-semibold text-text">{t('Ustamali jami')}</dt><dd className="font-semibold text-text">{pul(jami.ustamali)}</dd></div>
           <div className="flex justify-between text-[11px] text-text-mute"><dt>{t('Ustamasiz')}</dt><dd>{pul(jami.asos)}</dd></div>
@@ -232,6 +250,7 @@ export function XotiradanFakt({ obyektId, rows, states, holatniYangila }: {
           <button type="button" onClick={() => navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}`)} className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-text hover:bg-accent/10">{t('F2 tayyorlash →')}</button>
         </div>
       </aside>
+      {boshqa != null && natijalar[boshqa] && <BoshqaJoydan kompaniyaId={kompaniyaId} obyektId={obyektId} qator={natijalar[boshqa].qator} bolimlar={bolimlar} onYop={() => setBoshqa(null)} onSaqlandi={boshqaSaqlandi} />}
     </div>
   );
 }
