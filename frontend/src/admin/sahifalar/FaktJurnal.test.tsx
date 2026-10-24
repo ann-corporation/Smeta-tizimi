@@ -130,11 +130,11 @@ describe('FaktJurnal', () => {
     expect(m.yoz).not.toHaveBeenCalled();
   });
 
-  it('Fakt Studio paneli: F2 tayyorlash tugmasi f2Otish ni chaqiradi', () => {
+  it('Fakt Studio paneli: F2 tayyorlash (fakt bo‘yicha F2 qoralama) tugmasi f2Otish ni chaqiradi', () => {
     const f2 = vi.fn();
     render(<FaktJurnal {...props()} f2Otish={f2} />);
     expect(screen.getByTestId('fakt-studio-bar')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /F2 tayyorlash/ }));
+    fireEvent.click(screen.getByRole('button', { name: /F2 qoralama/ }));
     expect(f2).toHaveBeenCalled();
   });
 });

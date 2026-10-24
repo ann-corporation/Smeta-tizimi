@@ -78,6 +78,13 @@ describe('F2 tayyorlash', () => {
       .toEqual([[2, 6, null, true], [3, 12, 300000, false], [4, 3, null, true]]);
   });
 
+  it('?avto=1 (fakt oynasidan): barcha mumkin hajm bir yo‘la olinadi, qoralama o‘zi yaratilmaydi', async () => {
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&avto=1']}><F2TayyorlashNative /></MemoryRouter>);
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish');
+    await waitFor(() => expect((hajm as HTMLInputElement).value).toBe('6'));
+    expect(m.toast).toHaveBeenCalledWith(expect.stringContaining('Fakt bo‘yicha'), 'ok');
+    expect(m.yarat).not.toHaveBeenCalled();
+  });
   it('bo‘limlar navigatori va qidiruv', async () => {
     ochish();
     await screen.findByLabelText('F2 hajmi: Beton quyish');
