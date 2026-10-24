@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpRight, Building2, Check, ChevronDown, MessageCircle, Phone, X } from 'lucide-react';
 import { useTil } from '../../i18n/til';
 import './public-entry.css';
+import './entry-dark.css';
 import { SupportConversation } from './SupportConversation';
 import type { PublicSupportPort } from './support-port';
 import { chainSteps, productDomains, productRoles, scopeCopy, trustPoints, type EntryCopy } from './product-scope';
@@ -9,6 +10,7 @@ import { productScreens } from './product-screens';
 import { ProductShowcase, type ProductScreenshot } from './ProductShowcase';
 import { StudioPreview } from './StudioPreview';
 export type { ProductScreenshot } from './ProductShowcase';
+const LandingDeep = lazy(() => import('./landing/LandingDeep'));
 
 export const OWNER_PHONE = '+998505012566';
 /** Product name is a brand, not translatable copy. */
@@ -97,6 +99,7 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
           <p className="entry-map-note">{local(scopeCopy.mapNote)}</p>
         </aside>
       </section>
+      <Suspense fallback={<div style={{ minHeight: 900 }} aria-hidden="true" />}><LandingDeep local={local} onStart={() => choose('signup')} startLabel={text(c.start)} /></Suspense>
       <ProductShowcase screens={realScreens} title={screenCopy.title} note={screenCopy.note} expand={screenCopy.expand} close={screenCopy.close} start={text(c.start)} onStart={() => choose('signup')} />
       <section id="entry-roles" className="entry-section entry-roles"><p className="entry-eyebrow">{local(scopeCopy.foundation)}</p><h2>{local(scopeCopy.roles)}</h2><p className="entry-section-description">{local(scopeCopy.rolesNote)}</p>
         <div className="entry-role-options" role="group" aria-label={local(scopeCopy.roles)}>{productRoles.map(r => <button key={r.id} aria-pressed={role === r.id} onClick={() => setRole(r.id)}>{local(r.title)}</button>)}</div>
