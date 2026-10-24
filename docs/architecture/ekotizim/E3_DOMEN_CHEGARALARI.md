@@ -100,6 +100,20 @@ t2_yuk_yarat_v1(
   p_talab jsonb   -- {"transport_turi":"samosval|bortli|..|null","tolovchi":"yetkazuvchi|xaridor"}
 ) returns jsonb   -- {ok, yuk_id, versiya}
 ```
+> **Aniqlik (v1.1, 2026-10-24, PR #105 ko'rigi):** buyurtmadan avtomatik hand-off yuqoridagi tashqi RPC orqali EMAS.
+> Sabab: o'tishni yetkazuvchi actori bajaradi, yuk egasi esa ko'pincha xaridor (tolovchi) — actor u tenantning a'zosi emas.
+> Kanonik hand-off — logistikaning **ichki** funksiyasi (service_role ga ham grant YO'Q, faqat SECURITY DEFINER RPC ichidan):
+> ```text
+> _t2_yuk_buyurtmadan_v1(p_actor_id bigint, p_buyurtma_id bigint, p_operation_id uuid) returns jsonb  -- {ok, yuk_id, versiya, takror?}
+> ```
+> - Logistika ma'lumotni o'zi o'qiydi (domen o'qishi ruxsat, yozish yo'q): `t2_buyurtma.olish/shart/obyekt_id/aloqa_id`,
+>   `t2_buyurtma_qator` (nom→material, birlik, miqdor, resurs_kodi); tekshiradi: `tur='material'`, `bosqich='yuklashga_tayyor'`,
+>   actor — xaridor yoki ijrochi kompaniyaning faol a'zosi, aloqa faol.
+> - Tartib: `t2_buyurtma_otish_v1` AVVAL buyurtmani yangilaydi, KEYIN shu funksiyani chaqiradi; `ok=false` bo'lsa
+>   `raise exception` (butun o'tish bekor bo'ladi — buyurtma «yuklashga_tayyor» bo'lib yuksiz qolmaydi).
+> - Funksiya hali yo'q bo'lsa (`to_regprocedure(...) is null`) — o'tish bajariladi, faqat `buyurtma.yuklashga_tayyor`
+>   outbox hodisasi qoladi; logistika keyin shu hodisadan yukni yaratadi (iste'molchi, idempotent `buyurtma_id` bo'yicha).
+> - Tashqi `t2_yuk_yarat_v1` (8 argument) — dispetcherning qo'lda yuk yaratishi uchun qoladi (actor = egasi tenant a'zosi).
 - `t2_yuk` egasi: `tolovchi` tomonining tenanti; ikkinchi tomon grant `yuk` (`korish`) bilan kuzatadi.
 - NULL ≠ 0: vazn/hajm noma'lum bo'lsa NULL; koordinata noma'lum bo'lsa NULL (soxta koordinata yo'q).
 - Idempotent: `(kompaniya_id, operation_id)`; bitta buyurtma uchun faol yuk — unique `(manba buyurtma_id) where holat<>'bekor'`.
