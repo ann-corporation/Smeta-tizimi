@@ -38,8 +38,13 @@ function Progress({ ulush, holat, ingichka }: { ulush: number | null; holat: Jur
  * saqlash paneli — barcha o'zgarishlar BITTA tranzaksiyada (Ctrl+S). Klaviatura: Enter/↓ keyingi,
  * ↑ oldingi, Esc tozalash, "/" qidiruv.
  */
-export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila }: {
+export type SaqlashNatija = Promise<boolean>;
+export type SaqlashFn = () => SaqlashNatija;
+type SaqlashVaqda = SaqlashNatija | null;
+export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef }: {
   kompaniyaId: number; obyektId: number;
+  /** Tashqi sahifa (F2 tayyorlashga o'tish) saqlanmagan kiritmalarni saqlab, natijasini kutishi uchun. */
+  saqlashRef?: { current: SaqlashFn | null };
   rows: readonly T2Qator[]; states: readonly JurnalHolat[];
   /** Faqat fakt/F2 holatini qayta o'qish (tez). */
   holatniYangila: () => Promise<void> | void;
@@ -133,12 +138,19 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     return n;
   });
 
-  const saqla = useCallback(async () => {
-    if (!paket.ok || band) return;
+  const ishdaRef = useRef<SaqlashVaqda>(null);
+  const saqla = useCallback((): SaqlashNatija => {
+    if (ishdaRef.current) return ishdaRef.current;
+    const p = saqlaIchki().finally(() => { ishdaRef.current = null; });
+    ishdaRef.current = p; return p;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paket, band, obyektId, sana, holatniYangila]);
+  const saqlaIchki = async (): SaqlashNatija => {
+    if (!paket.ok || band) return false;
     setBand(true);
     try {
       const r = await sbFaktYoz({ obyektId, sana, operationId: operationId.current, qatorlar: paket.qatorlar, izoh: `Fakt jurnali: ${paket.qatorlar.length} qator` });
-      if (!r.ok) { toast(r.error || r.xabar || 'Fakt saqlanmadi.', 'danger'); return; }
+      if (!r.ok) { toast(r.error || r.xabar || 'Fakt saqlanmadi.', 'danger'); return false; }
       const ids = new Set(paket.qatorlar.map((x) => x.qator_id));
       setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500);
       setKiritmalar({}); operationId.current = yangiOperationId();
@@ -146,9 +158,16 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       // Saqlash tugadi — tugma darhol bo'shaydi; holat fonda yangilanadi (sekin o'qish tugmani qotirmasin).
       setBand(false);
       void Promise.resolve(holatniYangila()).catch(() => toast('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.', 'warn'));
+      return true;
     } catch { toast('Javob olinmadi. Qayta saqlang — takror xavfsiz (bir xil amal ID).', 'danger'); }
     finally { setBand(false); }
-  }, [paket, band, obyektId, sana, holatniYangila]);
+    return false;
+  };
+  useEffect(() => {
+    if (!saqlashRef) return;
+    saqlashRef.current = async () => (ishdaRef.current ? ishdaRef.current : (ozgarishSoni ? saqla() : true));
+    return () => { saqlashRef.current = null; };
+  });
 
   // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc — kiritmalarni tozalash.
   useHotkeys('fakt', t('Fakt jurnali'), [
