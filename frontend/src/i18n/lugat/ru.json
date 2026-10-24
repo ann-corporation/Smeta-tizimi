@@ -3101,5 +3101,17 @@
   "Dvigatel qilgan barcha bog‘lanishlarni (✓ aniq, xotira, ◐ taklif) uzadi. Qo‘lda bog‘langan va tasdiqlanganlar qoladi. Orqaga (Ctrl+Z) bilan qaytariladi.": "Снимает все привязки, сделанные автоматически (✓ точные, по памяти, ◐ предложения). Ручные и подтверждённые остаются. Отмена — «Назад» (Ctrl+Z).",
   "ta avtomatik bog‘lanish uziladi. Qo‘lda bog‘langanlar qoladi. Davom etasizmi?": "автоматических привязок будет снято. Ручные останутся. Продолжить?",
   "ta avtomatik bog‘lanish uzildi. Qaytarish: «Orqaga» (Ctrl+Z).": "автоматических привязок снято. Отмена: «Назад» (Ctrl+Z).",
-  "Avto bog‘lanishlarni uzish": "Снять автопривязки"
+  "Avto bog‘lanishlarni uzish": "Снять автопривязки",
+  "Shu smeta qatoriga bog‘langan F2 qatorlari": "Строки Ф-2, привязанные к этой строке сметы",
+  "Hammasini uzish": "Отвязать все",
+  "F2 da ko‘rsatish": "Показать в Ф-2",
+  "Qaysi F2 qatorlari bog‘langanini ko‘rish va uzish": "Посмотреть и отвязать привязанные строки Ф-2",
+  "ish narxi tarkibi": "состав цены работы",
+  "avto: pereraschet/minus taklifi": "авто: предложение перерасчёта/минуса",
+  "qo‘lda": "вручную",
+  "taklif, siz tasdiqlagan": "предложение, подтверждено вами",
+  "ish bilan birga": "вместе с работой",
+  "xotiradan (oldingi F2)": "по памяти (прошлые Ф-2)",
+  "avto taklif ◐": "авто предложение ◐",
+  "avto": "авто"
 }
