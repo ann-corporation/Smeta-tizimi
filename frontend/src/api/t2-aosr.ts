@@ -42,6 +42,8 @@ export type AosrCoverage = {
   qator_id: number; obyekt_id: number; nom: string | null; kod: string | null;
   birlik: string | null; kat: string | null; fakt_hajm: number;
   yashirin: boolean; akt_bor: boolean;
+  /** Bog'langan aktlarning eng yaxshi holati; view kengaytirilgach keladi (hozircha yo'q bo'lishi mumkin). */
+  akt_holat?: 'yangi' | 'tasdiqlangan' | 'qogoz' | null;
 };
 
 export function sbAosrCoverageOl(obyektId: number) {

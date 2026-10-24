@@ -44,7 +44,11 @@ export async function t2ToliqOqiParallel<T>(
   opts: { oyna?: number; minQator?: number } = {},
 ): Promise<SbJavob<T>> {
   const oynaSoni = opts.oyna ?? 6;
-  const ketma = () => t2ToliqOqi(oqi, s, kalit);
+  const zaxira = (sabab: string) => {
+    // eslint-disable-next-line no-console
+    console.info('[smeta parallel] zaxira yo‘l:', sabab);
+    return t2ToliqOqi(oqi, s, kalit);
+  };
   try {
     const [boshi, oxiri] = await Promise.all([
       oqi({ ...s, ustunlar: kalit, tartib: kalit + '.asc', limit: 1 }),
@@ -54,17 +58,21 @@ export async function t2ToliqOqiParallel<T>(
     const min = Number((boshi.qatorlar?.[0] as Record<string, unknown> | undefined)?.[kalit]);
     const max = Number((oxiri.qatorlar?.[0] as Record<string, unknown> | undefined)?.[kalit]);
     if (!boshi.ok || !oxiri.ok || jami == null || !Number.isSafeInteger(min) || !Number.isSafeInteger(max) || max < min
-      || jami < (opts.minQator ?? 6000) || jami > (s.limit ?? 200000)) return ketma();
+      || jami < (opts.minQator ?? 6000) || jami > (s.limit ?? 200000)) {
+      if (boshi.ok && oxiri.ok && jami != null && jami < (opts.minQator ?? 6000)) return t2ToliqOqi(oqi, s, kalit);
+      return zaxira(`probe ok=${boshi.ok}/${oxiri.ok} jami=${jami} min=${min} max=${max} xato=${boshi.error ?? oxiri.error ?? ''}`);
+    }
     const kenglik = Math.ceil((max - min + 1) / oynaSoni);
     const oynalar: Array<[number, number]> = [];
     for (let a = min; a <= max; a += kenglik) oynalar.push([a, Math.min(a + kenglik - 1, max)]);
     const natijalar = await Promise.all(oynalar.map(([a, b]) =>
       t2ToliqOqi(oqi, { ...s, filtr: `${s.filtr}&${kalit}=gte.${a}&${kalit}=lte.${b}` }, kalit)));
-    if (natijalar.some((n) => !n.ok)) return ketma();
+    const yomon = natijalar.find((n) => !n.ok);
+    if (yomon) return zaxira(`oyna xato: ${yomon.error ?? ''}`);
     const qatorlar = natijalar.flatMap((n) => n.qatorlar ?? []);
-    if (qatorlar.length !== jami) return ketma();
+    if (qatorlar.length !== jami) return zaxira(`soni ${qatorlar.length} != ${jami}`);
     return { ...natijalar[0], qatorlar, soni: qatorlar.length, jamiServerda: jami, toliq: true };
-  } catch {
-    return ketma();
+  } catch (e) {
+    return zaxira(`istisno: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
