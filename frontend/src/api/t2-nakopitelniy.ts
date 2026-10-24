@@ -29,6 +29,8 @@ export type NakopitelniyQator = {
   jami_hajm: number; jami_summa: number;
   f2_mumkin_hajm: number;
   qoldiq_hajm: number; qoldiq_summa: number;
+  /** Zamena qoplagan qism (t2_almashtirilgan_hajm; qoldiq_* shuni ALLAQACHON ayirgan). Eski RPC da yo'q. */
+  almashtirilgan_hajm?: number; almashtirilgan_summa?: number | null;
   /** Additive v1 ledger wrapper fields; absent until that source migration is applied. */
   smeta_qoldiq_hajm?: number | null;
   smeta_qoldiq_summa?: number | null;

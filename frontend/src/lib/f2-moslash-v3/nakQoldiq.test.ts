@@ -27,3 +27,19 @@ describe('nakQoldiqXaritalari — faqat faol Nakopitelniy + smetadan to‘ldiris
     expect(b.old.size).toBe(faol.length);
   });
 });
+
+describe('nakQoldiqXaritalari - zamena (almashtirilgan_hajm)', () => {
+  it('asl qoldiq = smeta - tasdiqlangan - almashtirilgan; zamenasi yo\'q qatorlar o\'zgarmaydi', () => {
+    const nak: NakQator[] = [
+      { qator_id: 1, oldingi_hajm: 20, joriy_hajm: 0, jami_hajm: 20, smeta_hajm: 100, almashtirilgan_hajm: 30 },
+      { qator_id: 2, jami_hajm: 5, smeta_hajm: 50 },
+      { qator_id: 3, jami_hajm: 0, smeta_hajm: null, almashtirilgan_hajm: 4 },
+    ];
+    const { qol, alm } = nakQoldiqXaritalari(nak, [{ id: 1, hajm: 100 }, { id: 2, hajm: 50 }, { id: 9, hajm: 7 }]);
+    expect(qol.get(1)).toBe(50);
+    expect(qol.get(2)).toBe(45);
+    expect(qol.has(3)).toBe(false); // smeta hajmi NULL -> qoldiq NULL (0 emas)
+    expect(qol.get(9)).toBe(7);
+    expect([...alm.entries()].sort()).toEqual([[1, 30], [3, 4]]);
+  });
+});

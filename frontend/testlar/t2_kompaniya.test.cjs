@@ -97,6 +97,9 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          never mutated; relation is structural (change_type/
                          replaces_line_id), never a name-marker. */
                       't2_qoshimcha_ish_yarat_v1', 't2_zamena_ish_yarat_v1', 't2_resurs_bola_qosh_v1',
+                      /* 2026-10-25: zamena asl qatorning qancha hajmini almashtirishini belgilaydi
+                         (faqat t2_qator.almashtirish_hajm; asl qator o'zgarmaydi). */
+                      't2_zamena_almashtirish_belgila_v1',
                       /* 2026-09-28 (Claude): ish + F2 resurslari BITTA tranzaksiyada —
                          ichida o'sha `t2_addrepl_execute_v1` (rol, versiya, OLD o'zgarmaydi,
                          audit); faqat service_role, actor sessiyadan. */

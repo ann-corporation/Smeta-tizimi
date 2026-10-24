@@ -329,6 +329,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_zamena_ish_yarat_v1"
     },
     {
+      "amal": "zamena_almashtirish_belgila_v1",
+      "rpc": "t2_zamena_almashtirish_belgila_v1"
+    },
+    {
       "amal": "resurs_bola_qosh_v1",
       "rpc": "t2_resurs_bola_qosh_v1"
     },
