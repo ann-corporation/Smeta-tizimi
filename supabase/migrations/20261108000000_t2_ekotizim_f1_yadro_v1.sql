@@ -1,5 +1,5 @@
 -- T2 EKOTIZIM F1 — YADRO (docs/architecture/ekotizim E1, E2, E3 §6, E7).
--- Holat: TAKLIF. Prodga faqat koordinator (parent) orqali. Egasi tasdig'i talab qilinadigan (⚠) narsa YO'Q:
+-- Holat: PRODDA QO'LLANGAN (koordinator, egasi ruxsati bilan, 2026-10-24). Egasi tasdig'i talab qilinadigan (⚠) narsa YO'Q:
 --   capability/rol kengaytmasi alohida faylda — 20261108010000_t2_ekotizim_f1_ruxsat_v1.sql.
 -- Faqat ADDITIV: yangi jadvallar, nullable ustunlar, yangi funksiyalar, AFTER INSERT trigger. DROP/UPDATE yo'q.
 -- Mavjud RPC lar o'zgarmaydi. Barcha yangi jadvallar: RLS on + policy yo'q + anon/authenticated ga ruxsat yo'q.

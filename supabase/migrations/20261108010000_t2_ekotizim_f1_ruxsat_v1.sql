@@ -1,5 +1,5 @@
 -- ⚠ T2 EKOTIZIM F1 — RUXSAT KENGAYTMASI (docs/architecture/ekotizim/E2_TENANCY_RUXSAT.md §3.1–3.2).
--- HOLAT: EGASI TASDIG'I KUTILMOQDA. Tasdiqlanmaguncha QO'LLANMAYDI.
+-- HOLAT: EGASI TASDIQLADI (2026-10-24); prodga koordinator qo'llaydi (frontend PERMISSIONS PR i bilan birga).
 -- Yadro migratsiyasi (20261108000000) bunga bog'liq EMAS — alohida qo'llanadi.
 --
 -- Nima o'zgaradi:
