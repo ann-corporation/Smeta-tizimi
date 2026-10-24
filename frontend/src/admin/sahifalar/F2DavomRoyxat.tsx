@@ -13,7 +13,7 @@ type Props = {
   kompaniyaId: number | null | undefined;
   obyektId?: number | null;
   /** Shu sahifada tiklash (F2 import). Berilmasa — F2 import sahifasiga havola. */
-  onOchish?: (jobId: number) => void;
+  onOchish?: (jobId: number, aktId?: number) => void;
   band?: boolean;
   /** Ro'yxatni qayta o'qish uchun kalit (masalan saqlangandan keyin). */
   yangilash?: number;
@@ -63,7 +63,14 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
   if (!qatorlar.length && !(obyektId && !hamma)) return null;
 
   const amal = (q: T2F2DavomQator) => {
-    if (q.yozilgan) return <span className="text-text-dim">{t('yozilgan')}{q.akt_holat ? ` (${q.akt_holat})` : ''}</span>;
+    if (q.yozilgan) {
+      const holat = <span className="text-text-dim">{t('yozilgan')}{q.akt_holat ? ` (${q.akt_holat})` : ''}</span>;
+      // Yozilgan QORALAMA akt - «✎ Tahrirlash»: import oynasi shu aktning manba hujjati va operator qarorlari bilan qayta ochiladi.
+      if (q.akt_holat !== 'qoralama' || q.akt_id == null) return holat;
+      return <span className="inline-flex items-center gap-2">{holat}{onOchish
+        ? <button type="button" className="tugma h-7 px-2" disabled={band} onClick={() => onOchish(q.job_id, q.akt_id ?? undefined)}>✎ {t('Tahrirlash')}</button>
+        : <a className="tugma h-7 px-2" href={`/admin/f2?obyekt=${q.obyekt_id}&job=${q.job_id}&akt=${q.akt_id}`}>✎ {t('Tahrirlash')}</a>}</span>;
+    }
     if (onOchish) return <button type="button" className="tugma tugma-asosiy h-7 px-2" disabled={band} onClick={() => onOchish(q.job_id)}>{t('Ochish')}</button>;
     return <a className="tugma h-7 px-2" href={`/admin/f2?obyekt=${q.obyekt_id}&job=${q.job_id}`}>{t('Ochish')}</a>;
   };

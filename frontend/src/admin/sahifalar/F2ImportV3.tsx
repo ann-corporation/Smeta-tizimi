@@ -99,6 +99,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const raqamN = f2RaqamNormal(raqam);
   // Aynan shu raqamdagi QORALAMA aktning qatorlarini almashtirishga operatorning aniq roziligi (akt id bo'yicha).
   const [almashtirTasdiq, setAlmashtirTasdiq] = useState<number | null>(null);
+  /** «✎ Tahrirlash»: shu akt (qoralama) qayta ochilgan - «F2 ni yozish» uning qatorlarini almashtiradi (qo'shimcha tasdiq so'ralmaydi). */
+  const [tahrirAkt, setTahrirAkt] = useState<number | null>(null);
   /** Kumulyativ varaq rejimi (operator yoqadi): oldingi F2 lar hajmi shu varaqdan ayriladi — faqat yozish proyeksiyasi. */
   const [kumRejim, setKumRejim] = useState(false);
   /** Shu obyektning server qoralamalari (ketma-ketlik nazorati: eskiroq yozilmagan F2 bo'lsa ogohlantirish). */
@@ -264,11 +266,24 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (workspace.scope.objectId != null && objects.some((o) => o.id === workspace.scope.objectId)) setObjectId(String(workspace.scope.objectId));
   }, [objects, workspace.scope.objectId]);
   // F2 Reestr dagi «Davom ettiriladigan F2 lar» havolasi: /admin/f2?job=… — obyektlar yuklangach bir marta tiklanadi.
+  const urlAkt = useRef<number | null>((() => { const j = Number(new URLSearchParams(window.location.search).get('akt')); return Number.isSafeInteger(j) && j > 0 ? j : null; })());
   const urlJob = useRef<number | null>((() => { const j = Number(new URLSearchParams(window.location.search).get('job')); return Number.isSafeInteger(j) && j > 0 ? j : null; })());
   useEffect(() => {
-    if (urlJob.current == null || !objects.length || ij || busy) return;
+    if (!objects.length || ij || busy) return;
+    if (urlJob.current == null && urlAkt.current != null) {
+      // F2 tarixidagi «✎ Tahrirlash»: akt -> uning server ish qoralamasi (eng so'nggi yangilangani).
+      const aktId = urlAkt.current; urlAkt.current = null;
+      const oid = Number(new URLSearchParams(window.location.search).get('obyekt'));
+      void f2DavomRoyxatOl(companyId, Number.isSafeInteger(oid) && oid > 0 ? oid : null).then((r) => {
+        const q = (r.ok ? r.qatorlar : []).filter((x) => x.akt_id === aktId).sort((a, b) => String(b.yangilandi).localeCompare(String(a.yangilandi)))[0];
+        if (!q) { setXato(t('Bu aktning import ish qoralamasi topilmadi (akt import orqali yaratilmagan yoki ish qoralamasi o‘chirilgan). Faylni qayta import qiling - shu obyekt, oy va raqam uchun akt qatorlari almashtiriladi.')); return; }
+        void serverdanTikla(q.job_id, aktId);
+      }).catch(() => setXato(t('F2 qoralamalari o‘qilmadi')));
+      return;
+    }
+    if (urlJob.current == null) return;
     const id = urlJob.current; urlJob.current = null;
-    void serverdanTikla(id);
+    void serverdanTikla(id, urlAkt.current ?? undefined); urlAkt.current = null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects]);
 
@@ -327,6 +342,8 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!akt) return [];
     return avvalKiritilgan.filter((k) => k.aktId !== mavjudQoralama?.id && k.varaq === akt.varaq && (k.sha ? !!faylSha && k.sha === faylSha : k.fayl === akt.fayl));
   }, [avvalKiritilgan, akt, faylSha, mavjudQoralama?.id]);
+  useEffect(() => { if (tahrirAkt != null && mavjudQoralama?.id === tahrirAkt && almashtirTasdiq !== tahrirAkt) setAlmashtirTasdiq(tahrirAkt); }, [tahrirAkt, mavjudQoralama?.id, almashtirTasdiq]);
+  const tahrirdaQoralama = tahrirAkt != null && mavjudQoralama?.id === tahrirAkt ? mavjudQoralama : null;
   const saqlashBlok = takrorTekshirilmoqda || (!!joriyAvvalgi?.akt && !mavjudQoralama) || almashtirishKutilmoqda;
   useEffect(() => {
     if (!avvalgiKalit) return;
@@ -699,7 +716,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     } finally { setBusy(false); }
   }
 
-  async function serverdanTikla(jobId?: number) {
+  async function serverdanTikla(jobId?: number, tahrirAktId?: number) {
     const id = jobId ?? Number(serverId);
     if (!Number.isSafeInteger(id) || id <= 0 || busy || ij) return;
     setBusy(true); setXato('');
@@ -738,7 +755,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const tz = await rejaliniTozala(d.objectId, serverRejali(c), restored);
       setRejali(tz.rejali); setOchirish(serverOchirish(c));
       const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat(tz.ij, mosla.buzilgan), indA.qatorlar, r);
-      tarixniTozala(); setIj(tiklangan); setDone(null);
+      tarixniTozala(); setIj(tiklangan); setDone(null); setTahrirAkt(tahrirAktId ?? null);
       setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`
         + (tz.soni ? ` ${tz.soni} ${t('ta qo‘shimcha qator smetada allaqachon yozilgan — qayta yaratilmaydi')}.` : '')
         + (mosla.yangi.length ? ` ${t('Fayl yangi usulda o‘qildi')}: +${mosla.yangi.length} ${t('qator')}.` : '')
@@ -1149,7 +1166,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </div>
         {serverHolat && <p role="status" className="w-full">{serverHolat}</p>}
       </section>
-      {!ij && <F2DavomRoyxat kompaniyaId={companyId} obyektId={objectId ? Number(objectId) : null} band={busy} onOchish={(id) => void serverdanTikla(id)} />}
+      {!ij && <F2DavomRoyxat kompaniyaId={companyId} obyektId={objectId ? Number(objectId) : null} band={busy} onOchish={(id, aktId) => void serverdanTikla(id, aktId)} />}
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block text-[12px] font-medium text-text">{t('Obyekt')}
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { oxirgiKalit.current = ''; tozala(); setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}
@@ -1271,6 +1288,9 @@ function Sessiya({ companyId }: { companyId: number }) {
           )}
         </section>
       )}
+      {akt && !done && tahrirdaQoralama && <section role="status" className="karta border border-accent/50 bg-accent/10 p-3 text-[13px] font-semibold text-text" aria-label={t('Tahrirlanmoqda')}>
+        {t('Tahrirlanmoqda: F2 №{raqam}, {oy} - saqlanganda shu akt qatorlari almashtiriladi', { raqam: tahrirdaQoralama.raqam || '-', oy: tahrirdaQoralama.oy.slice(0, 7) })}
+      </section>}
       {akt && !done && ((avvalgiKalit && (takrorTekshirilmoqda || joriyAvvalgi?.error || joriyAvvalgi?.akt)) || avvalgiImport.length !== 0) && <section
         role={joriyAvvalgi?.akt || joriyAvvalgi?.error || avvalgiImport.length !== 0 ? 'alert' : 'status'} className="karta border border-warn/50 bg-warn/10 p-3 text-[13px] text-warn" aria-label={t('Allaqachon kiritilgan')}>
         {avvalgiImport.length !== 0 && <p className="font-semibold">⚠ {t('Bu varaq allaqachon kiritilgan')}: {avvalgiImport.map((k) => { const a = aktNomlari.get(k.aktId); return `F2 ${a?.raqam ?? '#' + k.aktId} (${(a?.oy ?? '').slice(0, 7)}, ${a?.holat ?? ''})`; }).join('; ')}. {t('Takror kiritish hajmni ikki marta yopadi.')}</p>}
