@@ -27,6 +27,7 @@ import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestr
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
+import { F2EgizakNusxa } from './F2EgizakNusxa';
 import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
@@ -1089,6 +1090,14 @@ function Sessiya({ companyId }: { companyId: number }) {
       return { ok: true, yozildi };
     } finally { setBusy(false); }
   }
+  // Egizak obyektdan ko'chirilgan bog'lanishlar state ga tushgach — server ish qoralamasiga saqlanadi (F2 yozilmaydi).
+  const [egizakSaqla, setEgizakSaqla] = useState(false);
+  useEffect(() => {
+    if (!egizakSaqla || busy || !ij) return;
+    setEgizakSaqla(false);
+    void servergaSaqla();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [egizakSaqla, busy, ij]);
   // Rejali yozilgach state yangilanadi (haqiqiy id lar) — shundan keyin akt avtomatik saqlanadi.
   useEffect(() => {
     if (!davomEt || busy || rejali.length) return;
@@ -1439,6 +1448,9 @@ function Sessiya({ companyId }: { companyId: number }) {
         <span className="min-w-0 flex-1 text-text-dim">{t('Smetada yo‘q ishlar ko‘pmi? Bog‘lanmagan barcha F2 ishlarini bo‘limlari bilan smetaga qo‘shimcha qilib qoralamaga qo‘shing (bog‘langanlari tegilmaydi).')}</span>
         <button type="button" className="tugma" disabled={busy || !!done} onClick={f2ToliqOtkaz}>{t('Bog‘lanmagan F2 ni smetaga o‘tkazish')}</button>
       </section>)}
+      {akt && ij && ind && objectId && !done && rows.length > 0 && <F2EgizakNusxa companyId={companyId} objectId={Number(objectId)} objects={objects} ind={ind}
+        jobId={serverDraft.current?.jobId ?? null} busy={busy} yarat={rejaliYarat} versiya={otaVersiya} smetaYangila={smetaYangila}
+        ijQoy={(next, izoh) => { ijOzgar(next); setHolat(izoh); setEgizakSaqla(true); }} />}
 
       {akt && ij && (
         <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
