@@ -35,6 +35,7 @@ import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ManbaMosla, f2BuzilganniBoshat, f2ServerSaqla, f2ServerSaqlaBardoshli, F2ServerZiddiyat, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
 
 /**
@@ -283,19 +284,6 @@ function Sessiya({ companyId }: { companyId: number }) {
     return () => { active = false; };
   }, [companyId, objectId]);
 
-  const orqagaRef = useRef(orqaga);
-  orqagaRef.current = orqaga;
-  useEffect(() => {
-    function tugma(e: globalThis.KeyboardEvent) {
-      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return;
-      const el = e.target as HTMLElement | null;
-      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
-      if (!tarix.current.length) return;
-      e.preventDefault(); orqagaRef.current();
-    }
-    window.addEventListener('keydown', tugma);
-    return () => window.removeEventListener('keydown', tugma);
-  }, []);
 
   const akt = aktlar[aktIdx] ?? null;
   const ind = useMemo(() => (akt ? f2Indeks(akt.daraxt) : null), [akt]);
@@ -996,7 +984,13 @@ function Sessiya({ companyId }: { companyId: number }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [davomEt, busy, rejali]);
 
-  /** «F2 ni yozish»: ish davomidagi barcha qoralama amallari shu yerda, qadam-baqadam, ko'rinib turgan holda yoziladi. */
+  // Yagona klaviatura moduli (lib/hotkeys, «?» yordam): Ctrl+Z - oxirgi lokal amalni qaytarish, Ctrl+Enter - «F2 ni yozish».
+  useHotkeys('f2-import', t('F2 import'), [
+    { id: 'f2import.undo', keys: 'ctrl+z', nom: t('Oxirgi bog‘lash amalini qaytarish'), run: () => { if (!tarix.current.length) return false; orqaga(); } },
+    { id: 'f2import.yoz', keys: 'ctrl+enter', nom: t('F2 ni yozish'), inInput: true,
+      run: () => { if (busy || !payload || saqlashBlok || done) return false; void saqla(); } },
+  ]);
+   /** «F2 ni yozish»: ish davomidagi barcha qoralama amallari shu yerda, qadam-baqadam, ko'rinib turgan holda yoziladi. */
   async function saqla() {
     if (!akt || !ind || !yozish || !payload || busy || done) return;
     setJarayon((old) => old ?? BOSH_QADAMLAR());
@@ -1435,7 +1429,7 @@ function Sessiya({ companyId }: { companyId: number }) {
 
 export default function F2ImportV3() {
   const { joriy, yuklanmoqda } = useKompaniya();
-  if (yuklanmoqda) return <p>Kompaniya yuklanmoqda…</p>;
+ if (yuklanmoqda) return <p>Kompaniya yuklanmoqda…</p>;
   if (!joriy?.id) return <p>Kompaniyani tanlang.</p>;
   return <Sessiya key={joriy.id} companyId={joriy.id} />;
 }
