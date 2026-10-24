@@ -47,8 +47,6 @@ begin
   rep := rep || (case when jsonb_array_length(r->'qatorlar') = 0 then 'OK   usta2 usta1 topshirig''ini ko''rmaydi' else 'FAIL usta2 ko''rdi: ' || r::text end);
   r := t2_topshiriqlar_v1(uu1, p, 'menga', null, null, 30, null);
   rep := rep || (case when jsonb_array_length(r->'qatorlar') = 1 then 'OK   usta1 o''zinikini ko''radi' else 'FAIL usta1 ro''yxat: ' || r::text end);
-  r := t2_topshiriq_otish_v1(ub, p, gen_random_uuid(), t1, 1, 'qabul_qilindi', null, null);
-  rep := rep || (case when r->>'code' = 'TOMON_NOTOGRI' then 'OK   beruvchi ijrochi harakatini qila olmaydi' else 'FAIL tomon: ' || r::text end);
   r := t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 99, 'qabul_qilindi', null, null);
   rep := rep || (case when r->>'code' = 'VERSIYA_ESKI' then 'OK   eski versiya rad' else 'FAIL versiya: ' || r::text end);
   r := t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 1, 'bajarildi', null, null);
@@ -57,15 +55,15 @@ begin
   r := t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 2, 'bajarilmoqda', null, null);
   r := t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 3, 'bajarildi', 'tayyor', array[11,12]::bigint[]);
   rep := rep || (case when (r->>'ok')::boolean and r->>'holat' = 'bajarildi' then 'OK   usta qabul -> bajarilmoqda -> bajarildi' else 'FAIL sikl: ' || r::text end);
-  r := t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 4, 'tasdiqlandi', null, null);
-  rep := rep || (case when r->>'code' = 'TOMON_NOTOGRI' then 'OK   usta o''zi tasdiqlay olmaydi' else 'FAIL o''z tasdiq: ' || r::text end);
+  begin perform t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 4, 'tasdiqlandi', null, null); rep := rep || 'FAIL usta o''zi tasdiqladi';
+  exception when others then rep := rep || (case when sqlstate = '42501' then 'OK   usta o''zi tasdiqlay olmaydi 42501' else 'FAIL usta tasdiq: ' || sqlerrm end); end;
   r := t2_topshiriq_otish_v1(ub, p, gen_random_uuid(), t1, 4, 'qaytarildi', 'qayta', null);
   r := t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 5, 'bajarilmoqda', null, null);
   r := t2_topshiriq_otish_v1(uu1, p, gen_random_uuid(), t1, 6, 'bajarildi', null, null);
   r := t2_topshiriq_otish_v1(ub, p, gen_random_uuid(), t1, 7, 'tasdiqlandi', null, null);
   rep := rep || (case when (r->>'ok')::boolean then 'OK   qaytarildi -> qayta -> tasdiqlandi' else 'FAIL tasdiq: ' || r::text end);
   select count(*) into n from t2_topshiriq_otish where topshiriq_id = t1;
-  rep := rep || (case when n = 9 then 'OK   o''tish jurnali 9 qator' else 'FAIL jurnal: ' || n end);
+  rep := rep || (case when n = 8 then 'OK   o''tish jurnali 8 qator' else 'FAIL jurnal: ' || n end);
   r := t2_topshiriq_otish_v1(ub, p, gen_random_uuid(), t1, 8, 'bekor', null, null);
   rep := rep || (case when r->>'code' = 'OTISH_MUMKIN_EMAS' then 'OK   tasdiqlangan topshiriq yopiq' else 'FAIL yopiq: ' || r::text end);
   begin perform t2_topshiriq_otish_v1(uk, p, gen_random_uuid(), t1, 8, 'bekor', null, null); rep := rep || 'FAIL kuzatuvchi bekor';
@@ -79,6 +77,8 @@ begin
   r := t2_topshiriq_ber_v1(ub, p, gen_random_uuid(), 'ish', z, null, al, o1, 'Sub ish', null, null, null, null);
   t2 := (r->>'id')::bigint;
   rep := rep || (case when (r->>'ok')::boolean then 'OK   faol aloqa bilan sub ijrochiga berildi' else 'FAIL sub ber: ' || r::text end);
+  r := t2_topshiriq_otish_v1(ub, p, gen_random_uuid(), t2, 1, 'qabul_qilindi', null, null);
+  rep := rep || (case when r->>'code' = 'TOMON_NOTOGRI' then 'OK   beruvchi ijrochi harakatini qila olmaydi' else 'FAIL tomon: ' || r::text end);
   r := t2_topshiriqlar_v1(uz, z, 'menga', null, null, 30, null);
   rep := rep || (case when jsonb_array_length(r->'qatorlar') = 1 then 'OK   ijrochi kompaniya o''z topshirig''ini ko''radi' else 'FAIL ijrochi ro''yxat: ' || r::text end);
   r := t2_topshiriqlar_v1(ux, x, 'menga', null, null, 30, null);
