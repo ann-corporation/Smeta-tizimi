@@ -1,0 +1,9 @@
+{
+  "ta qator ketma-ket bog‘landi": { "ru": "строк связано по порядку", "en": "rows linked in sequence" },
+  "ta mos topilmadi": { "ru": "без соответствия", "en": "without a match" },
+  "Kerak bo‘lsa «Orqaga» bilan qaytaring.": { "ru": "При необходимости отмените кнопкой «Назад».", "en": "Use «Undo» to revert if needed." },
+  "Pastda ketma-ket mos qator topilmadi.": { "ru": "Ниже нет подходящих строк по порядку.", "en": "No matching rows found further down in sequence." },
+  "Bog‘langan qatordan keyingi F2 va smeta qatorlari ketma-ket mos tursa, ularni ham bog‘laydi": { "ru": "Если следующие строки F2 и сметы идут в том же порядке и совпадают — связывает и их", "en": "If the following F2 and estimate rows match in the same order, links them too" },
+  "⇊ Pastdagi mos qatorlarni ham bog‘lash": { "ru": "⇊ Связать и совпадающие строки ниже", "en": "⇊ Also link matching rows below" },
+  "Belgilanganlarni smetadagi birinchi mos qator USTIGA torting — pastdagilariga ketma-ket bog‘lanadi.": { "ru": "Перетащите отмеченные НА первую подходящую строку сметы — они свяжутся по порядку со строками ниже.", "en": "Drag the selected rows ONTO the first matching estimate row — they will be linked in order to the rows below." }
+}

@@ -5,6 +5,7 @@
  * Zakazchik pudratchi hujjatini TAHRIRLAY OLMAYDI — faqat qaror chiqaradi. Qaror o'zgarmaydi.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -98,7 +99,8 @@ export default function TaqdimlarInbox() {
   const [yonalish, setYonalish] = useState<'kelgan' | 'yuborilgan'>('kelgan');
   const [holat, setHolat] = useState('');
   const [royxat, setRoyxat] = useState<TaqdimQisqa[]>([]);
-  const [tanlangan, setTanlangan] = useState<number | null>(null);
+  const [qidirParam] = useSearchParams();
+  const [tanlangan, setTanlangan] = useState<number | null>(() => { const v = Number(qidirParam.get('id')); return Number.isFinite(v) && v > 0 ? v : null; });
   const [xato, setXato] = useState('');
 
   const yukla = useCallback(async () => {

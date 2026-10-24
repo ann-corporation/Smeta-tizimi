@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur } from './SmetaYuklaNative';
+import { bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur, lokallarBoyichaNarxla, resLokallargaBol } from './SmetaYuklaNative';
 import type { AktNode } from '../../lib/f2-match-engine';
 import type { F2ColumnConfig } from '../../lib/f2-import-parse';
 
@@ -645,5 +645,45 @@ describe('bolakniQaytaUrinibYubor — katta smeta tarmoq uzilishiga chidamli', (
     const r = await bolakniQaytaUrinibYubor({}, undefined, async () => { n++; return { ok: false, code: 'IMPORT_SESSION_CLOSED' }; }, tez);
     expect(r.code).toBe('IMPORT_SESSION_CLOSED');
     expect(n).toBe(1);
+  });
+});
+
+describe('Prime Towers shakli (2026-10-24, sintetik): RES narxi to‘liq ulanadi', () => {
+  it('«ГОРЯЧЕКАТАННАЯ … А-1, Д 16 ММ» (LRV) = «ГОРЯЧЕКАТАНАЯ … А-I, Д 16-18 ММ» (RES); boshqa diametr/sinf aralashmaydi', () => {
+    const idx = resNarxIndeksiQur([
+      { kod: '3568 С', nom: 'ГОРЯЧЕКАТАНАЯ АРМАТУРНАЯ СТАЛЬ ПЕРИОДИЧЕСКОГО ПРОФИЛЯ КЛАССА А-III ДИАМЕТРОМ 16-18 ММ', birlik: 'Т', narx: 100 },
+      { kod: '3565 С', nom: 'ГОРЯЧЕКАТАНАЯ АРМАТУРНАЯ СТАЛЬ ПЕРИОДИЧЕСКОГО ПРОФИЛЯ КЛАССА А-III ДИАМЕТРОМ 10 ММ', birlik: 'Т', narx: 200 },
+      { kod: '3504 С', nom: 'ГОРЯЧЕКАТАНАЯ АРМАТУРНАЯ СТАЛЬ ГЛАДКАЯ КЛАССА А-I ДИАМЕТРОМ 8 ММ', birlik: 'Т', narx: 300 },
+    ]);
+    const tree: AktNode[] = [
+      { uid: '1', type: 'mat', kod: 'С124-0024', nom: 'ГОРЯЧЕКАТАННАЯ АРМАТУРНАЯ СТАЛЬ ПЕРИОДИЧЕСКОГО ПРОФИЛЯ КЛАССА А-III ДИАМЕТРОМ 16 ММ', bir: 'Т', hajm: 2 },
+      { uid: '2', type: 'mat', kod: 'С124-0021', nom: 'ГОРЯЧЕКАТАННАЯ АРМАТУРНАЯ СТАЛЬ ПЕРИОДИЧЕСКОГО ПРОФИЛЯ КЛАССА А-III ДИАМЕТРОМ 10 ММ', bir: 'Т', hajm: 1 },
+      { uid: '3', type: 'mat', kod: 'С124-0002', nom: 'ГОРЯЧЕКАТАННАЯ АРМАТУРНАЯ СТАЛЬ ГЛАДКАЯ КЛАССА А-1, ДИАМЕТРОМ 8 ММ', bir: 'Т', hajm: 1 },
+      { uid: '4', type: 'mat', kod: 'С124-0026', nom: 'ГОРЯЧЕКАТАННАЯ АРМАТУРНАЯ СТАЛЬ ПЕРИОДИЧЕСКОГО ПРОФИЛЯ КЛАССА А-III ДИАМЕТРОМ 25 ММ', bir: 'Т', hajm: 1 },
+    ];
+    const { tree: out } = narxlarniDaraxtgaQoll(tree, idx);
+    expect(out.map((n) => n.narx)).toEqual([100, 200, 300, undefined]);
+    expect(out[0].summa).toBe(200);
+  });
+
+  it('ko‘p lokalli RES: har LRV lokali o‘z stavkasini oladi (ЧЕЛ 47965.99 va 47965.9936 — kop_nomzod emas)', () => {
+    const resRows = [
+      ['1', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ С УЧЕТОМ СОЦСТРАХА', 'ЧЕЛ.-Ч', '47965.99'],
+      ['', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', ''],
+      ['', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ С УЧЕТОМ СОЦСТРАХА', 'ЧЕЛ.-Ч', '47965.9936'],
+      ['', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', 'СУМ', ''],
+    ];
+    expect(resLokallargaBol(resRows)).toHaveLength(2);
+    const lok = (uid: string, bir: string): AktNode => ({ uid, type: 'rz', nom: 'L' + uid, children: [
+      { uid: uid + 'b', type: 'bl', nom: 'ISH', children: [{ uid: uid + 'r', type: 'rs', kod: '1', nom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', bir, hajm: 10 }] },
+    ] });
+    const tree: AktNode[] = [{ uid: 'f', type: 'rz', nom: 'FAYL', children: [lok('1', 'ЧЕЛ.-Ч'), lok('2', 'чел-ч')] }];
+    const umumiy = resNarxIndeksiQur(resSatrlariniOl(resRows, cols));
+    // butun RES bitta indeksda — ikki xil stavka, moslanmaydi (avvalgi xatti-harakat)
+    expect(narxlarniDaraxtgaQoll(tree, umumiy).tree[0].children![0].children![0].children![0].narx).toBeUndefined();
+    const out = lokallarBoyichaNarxla(tree, [{ rows: resRows, cols }], umumiy);
+    const narx = (i: number) => out[0].children![i].children![0].children![0].narx;
+    expect(narx(0)).toBe(47965.99);
+    expect(narx(1)).toBe(47965.9936);
   });
 });

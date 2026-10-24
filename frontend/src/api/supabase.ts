@@ -22,7 +22,7 @@
  * xato turi.
  */
 
-import { t2ToliqOqi } from './t2-toliq-oqish';
+import { t2ToliqOqi, t2ToliqOqiParallel } from './t2-toliq-oqish';
 
 export type SbJavob<T> = {
   ok: boolean;
@@ -371,7 +371,7 @@ export function sbT2AktReestrOl(obyektId: number) {
   });
 }
 export async function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
-  const result = await t2ToliqOqi<T2Qator>(sbOqi, {
+  const result = await t2ToliqOqiParallel<T2Qator>(sbOqi, {
     jadval: 't2_daraxt',
     filtr: 'obyekt_id=eq.' + obyektId,
     // Teng tartibda id: qo'shimcha/zamena langar qatoridan keyin (t2_addrepl joylash qoidasi).

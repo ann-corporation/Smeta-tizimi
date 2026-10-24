@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
-import { f2MoslashV3, razdelResursiTop, type SmetaQator } from './index';
+import { BOSHQA_BOLIM_USUL, f2MoslashV3, razdelResursiTop, type SmetaQator } from './index';
 import { boshlangich, f2Indeks, ishlarResurslariniBogla, ishniBogla, smetaIndeks, type IshJoyi } from './ishJoyi';
 
 // Sintetik: ishning materiallari smetada ish OSTIDA emas, o'sha razdelda mustaqil qator (LRV tuzilmasi).
@@ -41,10 +41,10 @@ describe('razdel darajasidagi mustaqil resurs (ishdan tashqari)', () => {
     expect(n.natijalar.get('b')).toMatchObject({ holat: 'taklif', usul: 'razdel_ichida_taklif' });
   });
 
-  it('boshqa razdeldagi mustaqil qator olinmaydi (ota-ish doirasi)', () => {
+  it('boshqa razdeldagi mustaqil qator avto ✓ bo‘lmaydi — faqat ◐ (boshqa bo‘lim, #84)', () => {
     const f2 = [tugun({ uid: 'z', tur: 'rz', nom: 'ФУНДАМЕНТ А', bolalar: [ish('w', [res('r', 'М-300', 'ПРОВОЛОКА', 2)])] })];
     const n = f2MoslashV3(f2, smeta);
-    expect(n.natijalar.get('r')?.holat).toBe('topilmadi');
+    expect(n.natijalar.get('r')).toMatchObject({ holat: 'taklif', qatorId: 12, usul: BOSHQA_BOLIM_USUL });
     expect(razdelResursiTop({ kod: 'М-300', nom: 'ПРОВОЛОКА', birlik: 'Т', norma: null, hajm: 2 }, smeta[1], (x) => smeta.find((s) => s.id === x.otaId),
       (x) => smeta.filter((s) => s.otaId === x.id))).toBeNull();
   });
