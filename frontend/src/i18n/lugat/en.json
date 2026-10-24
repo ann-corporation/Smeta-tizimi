@@ -3031,6 +3031,10 @@
   "narxsiz resurslar kirmagan": "resources without price are not included",
   "Smeta ustama bilan (QQS bilan)": "Estimate with markups (including VAT)",
   "Ustama bilan (QQS bilan)": "With markups (including VAT)",
+  "qoralamada": "in draft",
+  "Ustamali jami": "Total with markups",
+  "ustamasiz": "without markups",
+  "Ustamali summa (taxminiy)": "Amount with markups (approx.)",
   "{a} / {b} qator savatda": "{a} / {b} lines in the basket",
   "Aniq moslik": "Exact match",
   "Bajarilgan ishlar (har qator — bitta ish)": "Completed work (one line per job)",
@@ -3068,7 +3072,6 @@
   "Smetaga moslash": "Match to estimate",
   "son, % yoki hammasi": "number, % or all",
   "Taklif: tanlang": "Suggestion: pick one",
-  "Ustamali jami": "Total with markups",
   "Ustamasiz": "Without markups",
   "Xotiradan fakt": "Actuals from memory",
   "Xotiradan": "From memory"

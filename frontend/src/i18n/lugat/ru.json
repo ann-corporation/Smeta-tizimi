@@ -3031,6 +3031,10 @@
   "narxsiz resurslar kirmagan": "ресурсы без цены не включены",
   "Smeta ustama bilan (QQS bilan)": "Смета с накладными (включая НДС)",
   "Ustama bilan (QQS bilan)": "С накладными (включая НДС)",
+  "qoralamada": "в черновике",
+  "Ustamali jami": "Итого с накрутками",
+  "ustamasiz": "без накруток",
+  "Ustamali summa (taxminiy)": "Сумма с накрутками (ориентировочно)",
   "{a} / {b} qator savatda": "{a} / {b} строк в корзине",
   "Aniq moslik": "Точное совпадение",
   "Bajarilgan ishlar (har qator — bitta ish)": "Выполненные работы (каждая строка — одна работа)",
@@ -3068,7 +3072,6 @@
   "Smetaga moslash": "Сопоставить со сметой",
   "son, % yoki hammasi": "число, % или всё",
   "Taklif: tanlang": "Предложение: выберите",
-  "Ustamali jami": "Итого с накрутками",
   "Ustamasiz": "Без накруток",
   "Xotiradan fakt": "Факт по памяти",
   "Xotiradan": "По памяти"

@@ -5,6 +5,8 @@ import { sbFaktYoz } from '../../api/t2-fakt';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
 import { t } from '../../i18n/til';
+import { qidiruvTayyorla } from '../../lib/qidiruv-normalizatsiya';
+import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { JURNAL_XATO_MATN, jurnalPaket, jurnalQur, qoldiqUlushi, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim } from '../../lib/fakt-jurnal';
@@ -38,8 +40,13 @@ function Progress({ ulush, holat, ingichka }: { ulush: number | null; holat: Jur
  * saqlash paneli — barcha o'zgarishlar BITTA tranzaksiyada (Ctrl+S). Klaviatura: Enter/↓ keyingi,
  * ↑ oldingi, Esc tozalash, "/" qidiruv.
  */
-export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila }: {
+export type SaqlashNatija = Promise<boolean>;
+export type SaqlashFn = () => SaqlashNatija;
+type SaqlashVaqda = SaqlashNatija | null;
+export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef }: {
   kompaniyaId: number; obyektId: number;
+  /** Tashqi sahifa (F2 tayyorlashga o'tish) saqlanmagan kiritmalarni saqlab, natijasini kutishi uchun. */
+  saqlashRef?: { current: SaqlashFn | null };
   rows: readonly T2Qator[]; states: readonly JurnalHolat[];
   /** Faqat fakt/F2 holatini qayta o'qish (tez). */
   holatniYangila: () => Promise<void> | void;
@@ -108,6 +115,21 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   // ── «Fakt = F2»: F2 hajmi fakt dan ko'p bo'lgan ishlarga farqni yozish (oldindan ko'rish + bekor qilish). ──
   const [tenglash, setTenglash] = useState<TenglashOyna | null>(null);
   const holatMap = useMemo(() => new Map(states.map((s) => [s.qator_id, s])), [states]);
+  // Ustama koeffitsienti (egasi 2026-10-24): fakt summasi ≈ ustamali; nakrutka = itogo4 / pryamye (NDS siz).
+  const [ustamaK, setUstamaK] = useState(1);
+  useEffect(() => {
+    let tirik = true; setUstamaK(1);
+    void t2ObyektNakrutka(obyektId).then((r) => { const n = r.ok ? r.nakrutka : undefined; if (tirik && n && n.pryamye > 0) setUstamaK(n.itogo4 / n.pryamye); }).catch(() => undefined);
+    return () => { tirik = false; };
+  }, [obyektId]);
+  /** ≈ ustamali summa: [fakt, smeta]. Ish (bl) o'z narxiga ega emas - resurslar yig'indisi. */
+  const taxminSumma = (q: JurnalQator): [number, number] | null => {
+    const sm = (x: JurnalQator) => Number(holatMap.get(x.id)?.smeta_summa ?? 0);
+    const bolalar = 'resurslar' in q ? [...(q as JurnalIsh).resurslar, ...(q as JurnalIsh).avtomatik] : [];
+    const asos = q.tur === 'bl' ? bolalar.reduce((s, x) => s + sm(x), 0) : sm(q);
+    if (!(asos > 0) || q.ulush == null) return null;
+    return [asos * q.ulush * ustamaK, asos * ustamaK];
+  };
   const bolimBolalari = useMemo(() => { const m = new Map<number, number[]>(); for (const b of bolimlar) if (b.otaId != null) m.set(b.otaId, [...(m.get(b.otaId) ?? []), b.id]); return m; }, [bolimlar]);
   const tenglashOch = (sarlavha: string, ishlar: JurnalIsh[]) => setTenglash({ sarlavha, reja: faktF2Reja(ishlar, holatMap) });
 
@@ -133,12 +155,19 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     return n;
   });
 
-  const saqla = useCallback(async () => {
-    if (!paket.ok || band) return;
+  const ishdaRef = useRef<SaqlashVaqda>(null);
+  const saqla = useCallback((): SaqlashNatija => {
+    if (ishdaRef.current) return ishdaRef.current;
+    const p = saqlaIchki().finally(() => { ishdaRef.current = null; });
+    ishdaRef.current = p; return p;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paket, band, obyektId, sana, holatniYangila]);
+  const saqlaIchki = async (): SaqlashNatija => {
+    if (!paket.ok || band) return false;
     setBand(true);
     try {
       const r = await sbFaktYoz({ obyektId, sana, operationId: operationId.current, qatorlar: paket.qatorlar, izoh: `Fakt jurnali: ${paket.qatorlar.length} qator` });
-      if (!r.ok) { toast(r.error || r.xabar || 'Fakt saqlanmadi.', 'danger'); return; }
+      if (!r.ok) { toast(r.error || r.xabar || 'Fakt saqlanmadi.', 'danger'); return false; }
       const ids = new Set(paket.qatorlar.map((x) => x.qator_id));
       setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500);
       setKiritmalar({}); operationId.current = yangiOperationId();
@@ -146,9 +175,16 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       // Saqlash tugadi — tugma darhol bo'shaydi; holat fonda yangilanadi (sekin o'qish tugmani qotirmasin).
       setBand(false);
       void Promise.resolve(holatniYangila()).catch(() => toast('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.', 'warn'));
+      return true;
     } catch { toast('Javob olinmadi. Qayta saqlang — takror xavfsiz (bir xil amal ID).', 'danger'); }
     finally { setBand(false); }
-  }, [paket, band, obyektId, sana, holatniYangila]);
+    return false;
+  };
+  useEffect(() => {
+    if (!saqlashRef) return;
+    saqlashRef.current = async () => (ishdaRef.current ? ishdaRef.current : (ozgarishSoni ? saqla() : true));
+    return () => { saqlashRef.current = null; };
+  });
 
   // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc — kiritmalarni tozalash.
   useHotkeys('fakt', t('Fakt jurnali'), [
@@ -212,6 +248,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       <div className="space-y-1">
         <div className="flex items-baseline justify-between gap-2 text-[11px] tabular-nums"><span><b className="text-text">{fmt(q.fakt)}</b><span className="text-text-mute"> / {fmt(q.smeta)} {q.birlik}</span></span><span className="text-text-mute">{foiz(q.ulush)}</span></div>
         <Progress ulush={q.ulush} holat={q.holat} ingichka={resurs} />
+        {(() => { const ts = taxminSumma(q); return ts ? <div className="text-[10px] tabular-nums text-text-mute" title={t('Ustamali summa (taxminiy)')}>≈ {fmt(ts[0])} / {fmt(ts[1])} {t('so‘m')}</div> : null; })()}
       </div>
       <div className="flex items-center gap-1.5">
         {kiritish(q, resurs)}
