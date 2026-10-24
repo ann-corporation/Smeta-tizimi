@@ -50,7 +50,16 @@ type SmetaYuklaJavob = {
   bolak?: number; jami?: number; obyekt_id?: number; paket_id?: number;
   /** #15: katta importda rollup alohida bosqich; yiqilsa qatorlar saqlangan, rollup qayta chaqiriladi. */
   rollup_kerak?: boolean; rollup_xato?: string;
+  /** #12: smeta_bogliqlik javobi -- qoralama (hech narsa bog'lanmagan) yoki bog'langan. */
+  qoralama?: boolean; bogliq?: Record<string, number>; bogliq_jami?: number;
 };
+
+/** #12: smeta bog'liqligi kalitlari -> foydalanuvchiga ko'rsatiladigan nom. */
+const bogliqNomi = (k: string): string => ({
+  akt: t('F2/fakt aktlari'), akt_qator: t('akt qatorlari'), f2_import: t('ochiq F2 import'), aosr: t('AOSR'),
+  aosr_qator: t('AOSR bog‘lanishi'), laboratoriya: t('laboratoriya bog‘lanishi'), m29: t('M-29'),
+  bajarilmadi: t('bajarilmadi belgisi'), shartnoma_hajm: t('shartnoma hajmi'), narx_asos: t('narx asosi'),
+} as Record<string, string>)[k] ?? k;
 
 /**
  * XLSX ichidagi har bir varaq mustaqil review qilinadi. `sourceKey` tasodifiy
@@ -1586,6 +1595,30 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   const selectedObject = objects.find(o => o.id === Number(objectId));
   const alreadyHasSmeta = !!selectedObject?.qator_soni;
 
+  /* #12: mavjud smeta qoralamami (F2/fakt/hujjat bog'lanmagan) yoki bog'langanmi. Qoralama -- bekor qilib qayta yuklash mumkin. */
+  const [bogliqlik, setBogliqlik] = useState<SmetaYuklaJavob | null>(null);
+  const [tozalashBand, setTozalashBand] = useState(false);
+  useEffect(() => {
+    setBogliqlik(null);
+    if (!alreadyHasSmeta || !objectId) return;
+    let bekor = false;
+    void smetaSorov({ amal: 'smeta_bogliqlik', kompaniyaId: companyId, obyektId: Number(objectId) }).then((j) => { if (!bekor) setBogliqlik(j); });
+    return () => { bekor = true; };
+  }, [alreadyHasSmeta, objectId, companyId]);
+  async function qoralamaniOchir() {
+    if (!objectId || !bogliqlik?.qoralama) return;
+    if (!window.confirm(t('{n} qatorlik qoralama smeta o‘chirilsinmi? F2/fakt bog‘lanmagan, shuning uchun yo‘qotish yo‘q. Keyin to‘g‘rilangan faylni yuklaysiz.', { n: bogliqlik.qator_soni ?? selectedObject?.qator_soni ?? 0 }))) return;
+    setTozalashBand(true); setError('');
+    try {
+      const j = await smetaSorov({ amal: 'smeta_tozala', kompaniyaId: companyId, obyektId: Number(objectId), operationId: yangiOperationId() });
+      if (!j.ok) { setError(j.xato || t('O‘chirib bo‘lmadi ({kod}).', { kod: j.code || 'xato' })); return; }
+      const id = Number(objectId);
+      reset(); rawFile.current = null; sourceDocumentId.current = undefined; sourceOperationId.current = ''; importOperationId.current = '';
+      setObjects(prev => prev.map(o => o.id === id ? { ...o, qator_soni: 0 } : o));
+      setPhase(t('Smeta o‘chirildi — endi yangi faylni yuklang.')); onImportlandi?.();
+    } finally { setTozalashBand(false); }
+  }
+
   /* C5: LRV ↔ RES solishtirish manbalari (bitta fayl oqimi). Belgi qo'yilmagan
      yagona varaqli faylda tanlangan varaq — LRV. */
   const sverkaLrvlar = useMemo<SverkaManba[]>(() => {
@@ -1630,6 +1663,20 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       {objectId && alreadyHasSmeta && (
         <div className="space-y-2">
           <p role="alert" className="text-warn text-sm">Bu obyektda allaqachon {selectedObject?.qator_soni} qatorlik smeta bor. Eski qatorlar o‘zgarmaydi; yangi fayl faqat non-destructive diff preview sifatida tekshiriladi.</p>
+          {bogliqlik?.ok && bogliqlik.qoralama && (
+            <div className="karta space-y-2 p-3 text-sm" data-testid="smeta-qoralama">
+              <p>{t('Qoralama smeta: F2, fakt va hujjatlar bog‘lanmagan. Uni bekor qilib, to‘g‘rilangan faylni qayta yuklash mumkin.')}</p>
+              <button type="button" className="tugma disabled:opacity-50" disabled={tozalashBand || busy} onClick={() => void qoralamaniOchir()}>
+                {t('Qoralama smetani o‘chirib, qayta yuklash')}
+              </button>
+            </div>
+          )}
+          {bogliqlik?.ok && bogliqlik.qoralama === false && (
+            <p className="text-sm text-text-dim" data-testid="smeta-bogliq">
+              {t('Bu smeta bog‘langan, o‘chirib bo‘lmaydi (asl smeta o‘zgarmas). Yangi fayl faqat farq (diff) sifatida ko‘rsatiladi. Bog‘lanishlar:')}{' '}
+              {Object.entries(bogliqlik.bogliq ?? {}).filter(([, n]) => n > 0).map(([k, n]) => `${bogliqNomi(k)}: ${n}`).join(' · ')}
+            </p>
+          )}
           <label className="block text-sm">Smeta yangi revisioni (preview)
             <input aria-label="Smeta revision fayli" type="file" accept=".xlsx,.xlsm,.xls" className="ml-2"
               onChange={e => { const f = e.target.files?.[0]; if (f) void upload(f); }} />
@@ -1642,6 +1689,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
               <span>Yo‘qolgan: <b className={reimportDiff.removed.length ? 'text-danger' : ''}>{reimportDiff.removed.length}</b></span>
               <span>Tarix candidate: <b>{reimportDiff.history.length}</b></span>
             </div>
+            {reimportDiff.removed.length > 0 && <p className="text-text-dim">{t('Yo‘qolgan qatorlar smetadan o‘chirilmaydi (asl smeta o‘zgarmas): F2/fakt bog‘langan qatorlar saqlanadi, faqat sizning qaroringiz bilan tarixga yoziladi.')}</p>}
             {reimportDiff.history.length > 0 && <ul className="list-disc space-y-1 pl-5 text-text-dim">
               {reimportDiff.history.slice(0, 8).map((row) => <li key={`${row.kind}:${row.identity}`}>{row.kind}: {row.reason}</li>)}
             </ul>}

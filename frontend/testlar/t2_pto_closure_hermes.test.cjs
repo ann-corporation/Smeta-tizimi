@@ -18,7 +18,7 @@ const hermes = active.tasks.find((task) => task.id === 'HERM-001');
 must('AdminShell mounts one PTO provider', shell.includes('<PTOWorkspaceProvider>') && shell.includes('<PTOWorkspaceBar />'));
 must('scope URL has tenant hierarchy fields', ['loyiha', 'obyekt', 'davr', 'hujjat', 'revision'].every((name) => context.includes(`'${name}`)));
 must('dynamic PTO paths are company guarded', scope.includes("'/admin/f2': 'OBJECT_SCOPED'") && scope.includes('pathname.startsWith(route + \'/\')'));
-must('Smeta reimport is preview-only', smeta.includes('smetaQaytaImportDiff') && !smeta.includes('smeta_tozala'));
+must('Smeta reimport is preview-only; delete only for draft (no F2/fakt links)', smeta.includes('smetaQaytaImportDiff') && (!smeta.includes('smeta_tozala') || (smeta.includes('smeta_bogliqlik') && smeta.includes('bogliqlik?.qoralama'))));
 /* 2026-09-11 (egasi ko'rsatmasi): manba/checksum endi IXTIYORIY provenance,
    eksportni bloklamaydi. Zaruriy invariant — obyekt konteksti + to'la
    read-model. Provenance berilsa "МАНБА" varag'iga yoziladi. */

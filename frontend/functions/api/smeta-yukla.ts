@@ -103,6 +103,12 @@ interface PaketImportYakunlaBody {
 /* T2-SMETA-RETRY-CLEAR-001: xato/eskirgan importdan keyin obyektni
  * o'chirib-qayta-yaratmasdan, faqat uning smeta qatorlarini tozalab,
  * darhol qayta import qilish imkonini beradi (t2_smeta_tozalash_v1). */
+/* JONLI_SINOV #12: smeta bog'liqligi (qoralama/bog'langan) -- faqat o'qish. */
+interface SmetaBogliqlikBody {
+  amal: 'smeta_bogliqlik';
+  kompaniyaId: number;
+  obyektId: number;
+}
 interface SmetaTozalaBody {
   amal: 'smeta_tozala';
   kompaniyaId: number;
@@ -121,7 +127,7 @@ interface ImportBekorBody {
   sessiyaId: number;
 }
 type SmetaYuklaBody = FaylOqiBody | ImportBody | ImportBoshlaBody | ImportBolakBody | ImportYakunlaBody
-  | PaketImportBoshlaBody | PaketImportBolakBody | PaketImportYakunlaBody | SmetaTozalaBody | ImportRollupBody | ImportBekorBody;
+  | PaketImportBoshlaBody | PaketImportBolakBody | PaketImportYakunlaBody | SmetaTozalaBody | SmetaBogliqlikBody | ImportRollupBody | ImportBekorBody;
 
 type FlatRow = SmetaFlatQator;
 
@@ -352,6 +358,11 @@ async function handlePaketImportYakunla(env: Env, actorId: number, body: PaketIm
   return yakunlaVaRollup(env, actorId, body.kompaniyaId, 't2_smeta_paket_import_yakunla_v1', body.sessiyaId);
 }
 
+async function handleSmetaBogliqlik(env: Env, actorId: number, body: SmetaBogliqlikBody) {
+  if (!body.kompaniyaId || !body.obyektId) return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
+  return bolakliRpc(env, 't2_smeta_bogliqlik_v1', { p_kompaniya_id: body.kompaniyaId, p_actor_id: actorId, p_obyekt_id: body.obyektId });
+}
+
 async function handleSmetaTozala(env: Env, actorId: number, body: SmetaTozalaBody) {
   if (!body.kompaniyaId || !body.obyektId || !body.operationId) {
     return Response.json({ ok: false, code: 'MISSING_CONTEXT' }, { status: 400 });
@@ -386,6 +397,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (body.amal === 'paket_import_boshla') return handlePaketImportBoshla(ctx.env, actorId, body);
   if (body.amal === 'paket_import_bolak') return handlePaketImportBolak(ctx.env, actorId, body);
   if (body.amal === 'paket_import_yakunla') return handlePaketImportYakunla(ctx.env, actorId, body);
+  if (body.amal === 'smeta_bogliqlik') return handleSmetaBogliqlik(ctx.env, actorId, body);
   if (body.amal === 'smeta_tozala') return handleSmetaTozala(ctx.env, actorId, body);
   if (body.amal === 'import_rollup') return handleImportRollup(ctx.env, actorId, body);
   if (body.amal === 'import_bekor') return handleImportBekor(ctx.env, actorId, body);
