@@ -63,6 +63,7 @@ export const GENERATED_SITE_MAP = {
     "f2-eski",
     "f2-tayyorlash",
     "tokenlar",
+    "topshiriqlar",
     "ish-joylarim",
     "mutaxassis",
     "boshqaruv",
