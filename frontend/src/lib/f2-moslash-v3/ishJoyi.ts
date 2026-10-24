@@ -17,7 +17,48 @@ import { mustaqilResurslarniBogla } from './mustaqil';
 import { BOSHQA_BOLIM_USUL, f2Imzo, gradeFarq, razdelResursiTop, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
 
 export type BogHolat = 'aniq' | 'xotira' | 'taklif' | 'qolda';
-export interface Bog { qatorId: number; holat: BogHolat; usul: string }
+/** Taqsimlab bog'lashdagi bitta bo'lak: smeta qatori va unga tushadigan F2 hajmi (F2 birligida). */
+export interface TaqsimQism { qatorId: number; hajm: number }
+/**
+ * `taqsim` — bitta F2 qatori BIR NECHTA smeta qatoriga bo'lib bog'langan (egasi 2026-10-24, Sun'iy ko'l «Канализация»:
+ * F2 da 89 quduq bitta yig'ma qator, smetada har quduq alohida). `qatorId` — birinchi bo'lak (eski kod uchun), bo'laklar
+ * yig'indisi = F2 hajmi. Yozishda har bo'lak alohida akt qatori bo'ladi; pul F2 summasidan shu nisbatda bo'linadi.
+ */
+export interface Bog { qatorId: number; holat: BogHolat; usul: string; taqsim?: readonly TaqsimQism[] }
+export const TAQSIM_USUL = 'taqsim';
+/** Yozish manbasida bo'lak tugunining uid i: `<asl uid>⇶<tartib>`. */
+export const TAQSIM_AJRATGICH = '⇶';
+
+/** Bog'lanishning barcha smeta qatorlari (taqsimda — har bo'lak; aks holda bitta). */
+export function bogIdlari(b: Bog): number[] {
+  return b.taqsim && b.taqsim.length > 1 ? [...new Set(b.taqsim.map((q) => q.qatorId))] : [b.qatorId];
+}
+
+/**
+ * `jami` ni `ulushlar` nisbatida bo'ladi; har bo'lak `xona` kasr xonasigacha yaxlitlanadi, yaxlitlash qoldig'i OXIRGI bo'lakka —
+ * bo'laklar yig'indisi aynan `jami` (pul to'qilmaydi va yo'qolmaydi). `jami` shu aniqlikda yozilgan bo'lsa butun sonlarda hisoblanadi.
+ * Ulushlar yig'indisi 0 bo'lsa — hammasi oxirgi bo'lakka.
+ */
+export function bolakla(jami: number, ulushlar: readonly number[], xona: number): number[] {
+  const n = ulushlar.length;
+  if (!n) return [];
+  const w = ulushlar.map((u) => (Number.isFinite(u) ? Math.abs(u) : 0));
+  const W = w.reduce((a, b) => a + b, 0);
+  const k = 10 ** xona;
+  const J = Math.round(jami * k);
+  const butun = Number.isSafeInteger(J) && Math.abs(J / k - jami) <= 1e-12 * Math.max(1, Math.abs(jami));
+  const out: number[] = [];
+  if (butun) {
+    let yig = 0;
+    for (let i = 0; i < n - 1; i++) { const x = W > 0 ? Math.round((J * w[i]) / W) + 0 : 0; out.push(x / k + 0); yig += x; }
+    out.push((J - yig) / k + 0);
+    return out;
+  }
+  let yig = 0;
+  for (let i = 0; i < n - 1; i++) { const x = W > 0 ? Math.round(((jami * w[i]) / W) * k) / k + 0 : 0; out.push(x); yig += x; }
+  out.push(jami - yig + 0);
+  return out;
+}
 
 /** Ekranda ko'rinadigan holat: ✓ aniq/xotira/qo'lda · ◐ taklif · ✕ topilmadi · – o'tkazildi. */
 export type KorinishHolat = BogHolat | 'topilmadi' | 'otkazildi';
@@ -250,7 +291,7 @@ export function ishlarResurslariniBogla(ij: IshJoyi, ind: F2Indeks, S: SmetaInde
   for (const f of ind.qatorlar) {
     if (f.tur !== 'bl' || !f.bolalar.length || ij.otkaz.has(f.uid)) continue;
     const b0 = bog.get(f.uid);
-    if (!b0 || b0.holat === 'taklif') continue;
+    if (!b0 || b0.holat === 'taklif' || b0.taqsim) continue; // taqsimlangan ishning resurslari taqsimda bog'langan
     const ichki = (S.bolalar.get(b0.qatorId) ?? []).filter((t) => t.tur !== 'rz');
     const havza = resursHavzasi(S, b0.qatorId, ichki);
     const band = new Set<number>();
@@ -309,6 +350,10 @@ export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdi
   let tasdiqlandi = 0, boglandi = 0, qoldi = 0;
   const tasdiq = (uid: string) => { const b = bog.get(uid); if (b?.holat === 'taklif') { bog.set(uid, { ...b, holat: 'qolda', usul: b.usul === TARKIB_USUL ? b.usul : 'taklif_tasdiq' }); tasdiqlandi++; } };
   tasdiq(f.uid);
+  if (b0.taqsim) { // taqsimlangan ish: resurslari taqsimda bog'langan — faqat ◐ lar tasdiqlanadi
+    for (const r of f.bolalar) if (!ij.otkaz.has(r.uid)) tasdiq(r.uid);
+    return { ij: { bog, otkaz: ij.otkaz }, tasdiqlandi, boglandi, qoldi };
+  }
   const ichki = (S.bolalar.get(b0.qatorId) ?? []).filter((t) => t.tur !== 'rz');
   // «Band» — faqat shu ishning o'z resurslari (ishniBogla dagi bilan bir xil qoida).
   const band = new Set<number>();
@@ -325,6 +370,160 @@ export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdi
     else qoldi++;
   }
   return { ij: { bog, otkaz: ij.otkaz }, tasdiqlandi, boglandi, qoldi };
+}
+
+// ─── Taqsimlab bog'lash (bitta F2 ishi → bir xil shifr+birlikdagi bir necha smeta qatori) ─────────────────
+
+const TARTIB_KESH = new WeakMap<SmetaIndeks, Map<number, number>>();
+/** Smeta qatorlarining daraxtdagi (chuqurlik bo'yicha) tartibi — «smeta tartibida» degani shu. */
+function smetaTartibi(S: SmetaIndeks): Map<number, number> {
+  let m = TARTIB_KESH.get(S);
+  if (m) return m;
+  m = new Map();
+  const yur = (ota: number | null) => { for (const c of S.bolalar.get(ota) ?? []) { m!.set(c.id, m!.size); yur(c.id); } };
+  yur(null);
+  for (const id of S.byId.keys()) if (!m.has(id)) m.set(id, m.size); // otasi topilmagan qatorlar oxirida
+  TARTIB_KESH.set(S, m);
+  return m;
+}
+const ichidami = (S: SmetaIndeks, q: SmetaQator, rzId: number) => {
+  for (let x = q.otaId != null ? S.byId.get(q.otaId) : undefined; x; x = x.otaId != null ? S.byId.get(x.otaId) : undefined) if (x.id === rzId) return true;
+  return false;
+};
+
+/**
+ * Taqsim nomzodlari: F2 ishi bilan bir xil shifr (kod yoki kod-kanon) va AYNAN bir xil birlikdagi smeta ishlari, smeta tartibida.
+ * Doira — F2 bo'limi ulangan smeta bo'lim(lar)i; ichida 2 tadan kam bo'lsa bir pog'ona yuqoriga (ota bo'limga) kengayadi,
+ * bo'lim ulanmagan bo'lsa — butun smeta. 2 tadan kam bo'lsa — bo'sh (taqsimlash shart emas).
+ */
+export function taqsimNomzodlari(f: F2Tugun, S: SmetaIndeks, doira: readonly number[] = []): SmetaQator[] {
+  if (f.tur !== 'bl') return [];
+  const k = kodKanon(f.kod) || normKod(f.kod);
+  if (!k) return [];
+  const fb = normBir(f.birlik);
+  const hammasi = (ishKodIndeks(S).get(k) ?? []).filter((q) => q.tur === 'bl' && normBir(q.birlik) === fb);
+  if (hammasi.length < 2) return [];
+  const tartib = smetaTartibi(S);
+  const saralangan = (a: SmetaQator[]) => a.sort((x, y) => (tartib.get(x.id) ?? 0) - (tartib.get(y.id) ?? 0));
+  let rzlar = doira.filter((id) => S.byId.has(id));
+  while (rzlar.length) {
+    const ichida = hammasi.filter((q) => rzlar.some((rz) => ichidami(S, q, rz)));
+    if (ichida.length >= 2) return saralangan(ichida);
+    const otalar = new Set<number>();
+    for (const rz of rzlar) { const o = engYaqinRz(S, S.byId.get(rz)); if (o) otalar.add(o.id); }
+    rzlar = [...otalar];
+  }
+  return saralangan([...hammasi]);
+}
+
+export interface TaqsimNomzod { qatorId: number; qoldiq: number | null; smetaHajm: number | null }
+
+/**
+ * Standart taqsim (egasi qoidasi: hajm bloklanmaydi, oshish faqat ma'lumot):
+ *  - musbat hajm — smeta tartibida har qator QOLDIG'IGACHA to'ldiriladi (quduq/ish yoki bajarilgan, yoki yo'q — pro-rata har
+ *    quduqni «qisman bajarilgan» qilib qo'yardi); jami qoldiqdan ortigi OXIRGI qatorga (oshish jadvalda ko'rinadi);
+ *  - manfiy hajm (pereraschet) — teskari tartibda, bajarilgan (smeta − qoldiq) hajmidan qaytariladi; ortigi BIRINCHI qatorga.
+ * Bo'laklar yig'indisi aynan `jami` (6 xonagacha yaxlitlash, qoldig'i oxirgi bo'lakka). Nol bo'laklar ham qaytadi (oldindan ko'rish uchun).
+ */
+export function taqsimHisobla(jami: number, nomzodlar: readonly TaqsimNomzod[]): TaqsimQism[] {
+  const n = nomzodlar.length;
+  if (!n || !Number.isFinite(jami)) return [];
+  const ulush = new Array<number>(n).fill(0);
+  const EPS = 1e-12;
+  if (jami >= 0) {
+    let qoldi = jami;
+    for (let i = 0; i < n && qoldi > EPS; i++) { const ol = Math.min(qoldi, Math.max(0, nomzodlar[i].qoldiq ?? 0)); ulush[i] = ol; qoldi -= ol; }
+    if (qoldi > EPS) ulush[n - 1] += qoldi;
+  } else {
+    let qoldi = -jami;
+    for (let i = n - 1; i >= 0 && qoldi > EPS; i--) {
+      const s = nomzodlar[i];
+      const bajarilgan = Math.max(0, (s.smetaHajm ?? 0) - (s.qoldiq ?? s.smetaHajm ?? 0));
+      const ol = Math.min(qoldi, bajarilgan); ulush[i] = ol; qoldi -= ol;
+    }
+    if (qoldi > EPS) ulush[0] += qoldi;
+  }
+  const h = bolakla(jami, ulush, 6);
+  return nomzodlar.map((s, i) => ({ qatorId: s.qatorId, hajm: h[i] }));
+}
+
+export interface TaqsimNatija extends IshBoglaNatija { /** Resurslar: necha tasi taqsimlandi (≥2 bo'lak). */ taqsimlandi: number }
+
+/**
+ * Ishni TAQSIMLAB bog'lash: ish bo'laklari `qismlar` (nol bo'laklar tashlanadi; bitta qolsa — oddiy `ishniBogla`).
+ * Har resurs har bo'lak-ishning ichida (kod → kanon → nom+birlik, birlik/marka mos) qidiriladi va xuddi shu NISBATDA bo'linadi.
+ * Biror ishda resurs topilmasa — o'sha bo'lak ulushi qo'shni (oldingi, bo'lmasa keyingi) topilgan bo'lakka qo'shiladi (pul yo'qolmaydi);
+ * hech birida topilmasa — resurs ✕ qoladi. Asl smeta qatorlari o'zgarmaydi.
+ */
+export function taqsimlabBogla(ij: IshJoyi, fIsh: F2Tugun, qismlar: readonly TaqsimQism[], S: SmetaIndeks): TaqsimNatija {
+  let qism = qismlar.filter((q) => q.hajm !== 0 && S.byId.has(q.qatorId));
+  if (!qism.length) qism = qismlar.filter((q) => S.byId.has(q.qatorId)).slice(0, 1);
+  if (qism.length < 2) {
+    if (!qism.length) return { ij, boglandi: 0, qoldi: fIsh.bolalar.length, taqsimlandi: 0 };
+    return { ...ishniBogla(ij, fIsh, qism[0].qatorId, S), taqsimlandi: 0 };
+  }
+  const bog = new Map(ij.bog);
+  bog.set(fIsh.uid, { qatorId: qism[0].qatorId, holat: 'qolda', usul: TAQSIM_USUL, taqsim: qism.map((q) => ({ ...q })) });
+  const otkaz = new Set(ij.otkaz); otkaz.delete(fIsh.uid);
+  const havzalar = qism.map((q) => resursHavzasi(S, q.qatorId, (S.bolalar.get(q.qatorId) ?? []).filter((t) => t.tur !== 'rz')));
+  const bandlar = qism.map(() => new Set<number>());
+  let boglandi = 0, qoldi = 0, taqsimlandi = 0;
+  for (const r of fIsh.bolalar) {
+    if (otkaz.has(r.uid)) continue;
+    bog.delete(r.uid);
+    const topildi: Array<number | null> = qism.map((_, i) => {
+      const t = resursMosTop(r, havzalar[i](r).filter((x) => !bandlar[i].has(x.id)));
+      if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) { bandlar[i].add(t.id); return t.id; }
+      return null;
+    });
+    const idx = topildi.map((id, i) => (id != null ? i : -1)).filter((i) => i >= 0);
+    if (!idx.length) { qoldi++; continue; }
+    // Topilmagan bo'lak ulushi — eng yaqin oldingi (bo'lmasa keyingi) topilgan bo'lakka.
+    const ulush = new Map<number, number>(idx.map((i) => [i, 0]));
+    qism.forEach((q, i) => {
+      let j = i;
+      if (topildi[i] == null) { j = -1; for (let x = i - 1; x >= 0; x--) if (topildi[x] != null) { j = x; break; } if (j < 0) j = idx[0]; }
+      ulush.set(j, (ulush.get(j) ?? 0) + Math.abs(q.hajm));
+    });
+    if (idx.length === 1) { bog.set(r.uid, { qatorId: topildi[idx[0]]!, holat: 'qolda', usul: 'ish_ichida' }); boglandi++; continue; }
+    const h = bolakla(r.hajm ?? 0, idx.map((i) => ulush.get(i) ?? 0), 6);
+    bog.set(r.uid, { qatorId: topildi[idx[0]]!, holat: 'qolda', usul: TAQSIM_USUL, taqsim: idx.map((i, n) => ({ qatorId: topildi[i]!, hajm: h[n] })) });
+    boglandi++; taqsimlandi++;
+  }
+  return { ij: { bog, otkaz }, boglandi, qoldi, taqsimlandi };
+}
+
+/**
+ * Akt qatorlari snapshotidan (`raw_snapshot.qatorlar[]`) bog'lanishlarni tiklash: bir F2 uid bir necha smeta qatorida
+ * uchrasa va har birida yozilgan bo'lak hajmi (`taqsimHajm`) bo'lsa — taqsim sifatida tiklanadi; aks holda oddiy bog'lanish.
+ */
+export function snapshotdanBog(yozuvlar: ReadonlyArray<{ uid: string; qatorId: number; taqsimHajm?: unknown }>): Map<string, Bog> {
+  const guruh = new Map<string, Array<{ qatorId: number; hajm: number | null }>>();
+  for (const y of yozuvlar) {
+    const a = guruh.get(y.uid) ?? [];
+    const h = y.taqsimHajm == null ? null : Number(y.taqsimHajm);
+    a.push({ qatorId: y.qatorId, hajm: h != null && Number.isFinite(h) ? h : null });
+    guruh.set(y.uid, a);
+  }
+  const bog = new Map<string, Bog>();
+  for (const [uid, a] of guruh) {
+    const qism = a.filter((x) => x.hajm != null) as TaqsimQism[];
+    if (qism.length > 1) bog.set(uid, { qatorId: qism[0].qatorId, holat: 'qolda', usul: TAQSIM_USUL, taqsim: qism });
+    else bog.set(uid, { qatorId: a[a.length - 1].qatorId, holat: 'qolda', usul: 'aktdan' });
+  }
+  return bog;
+}
+
+/** Saqlangan (qoralama/brauzer) taqsim to'g'ri tuzilganmi: ≥2 bo'lak, butun id, chekli hajm. Aks holda `undefined`. */
+export function taqsimTekshir(x: unknown, idQabul: (id: number) => boolean = (id) => id > 0): TaqsimQism[] | undefined {
+  if (!Array.isArray(x) || x.length < 2) return undefined;
+  const out: TaqsimQism[] = [];
+  for (const q of x as Array<{ qatorId?: unknown; hajm?: unknown }>) {
+    const id = Number(q?.qatorId), h = Number(q?.hajm);
+    if (!Number.isSafeInteger(id) || !idQabul(id) || !Number.isFinite(h)) return undefined;
+    out.push({ qatorId: id, hajm: h });
+  }
+  return out;
 }
 
 /** Avtomatik (dvigatel) bog'lanishmi: ✓ aniq, xotira, ◐ taklif yoki ish narxi tarkibi. Operator qarorlari (qo'lda) — emas. */
@@ -461,7 +660,7 @@ export function hisobla(ind: F2Indeks, ij: IshJoyi): IshJoyiHisob {
       else if (k === 'qolda') h.operatorTasdiqladi++;
     }
     const b = ij.bog.get(t.uid);
-    if (b && b.usul !== TARKIB_USUL) { const a = qayerga.get(b.qatorId); if (a) a.push(t.uid); else qayerga.set(b.qatorId, [t.uid]); }
+    if (b && b.usul !== TARKIB_USUL) for (const id of bogIdlari(b)) { const a = qayerga.get(id); if (a) a.push(t.uid); else qayerga.set(id, [t.uid]); }
     if (t.barg && t.summa != null) {
       h.hujjatSumma += t.summa;
       if (k === 'otkazildi') h.otkazilganSumma += t.summa;
@@ -494,8 +693,38 @@ export function rzTaklifHisobla(rz: F2Tugun, ij: IshJoyi, S: SmetaIndeks): RzTak
   }
   let eng: [number, number] | null = null;
   for (const e of say) if (!eng || e[1] > eng[1]) eng = e;
-  if (eng && eng[1] >= 2 && eng[1] / jami >= 0.6) return { smetaRzId: eng[0], nom: S.byId.get(eng[0])?.nom ?? '', soni: eng[1], jami, ulush: eng[1] / jami };
-  return rzTaklifShifrdan(rz, ishlar, S);
+  if (eng && eng[1] >= 2 && eng[1] / jami >= 0.6) { const id = rzKengaytir(eng[0], ishlar, S); return { smetaRzId: id, nom: S.byId.get(id)?.nom ?? '', soni: eng[1], jami, ulush: eng[1] / jami }; }
+  const sh = rzTaklifShifrdan(rz, ishlar, S);
+  if (!sh) return null;
+  const id = rzKengaytir(sh.smetaRzId, ishlar, S);
+  return id === sh.smetaRzId ? sh : { ...sh, smetaRzId: id, nom: S.byId.get(id)?.nom ?? '' };
+}
+
+/**
+ * Yig'ma F2 bo'limi (egasi 2026-10-24 sinovi: F2 da 89 quduq bitta «КОЛОДЦЕВ Д 1 М» 5,09 qatori, smetada har quduq o'z bo'limida
+ * 0,09 / 0,018 …): taklif qilingan bo'limdagi shu shifrli ishlar hajmi F2 hajmidan 2 baravardan ko'p kichik bo'lsa va xuddi shu
+ * shifr qo'shni bo'limlarda ham bo'lsa — bitta quduq bo'limi emas, ularning umumiy OTA bo'limi taklif qilinadi
+ * (hajmning yarmidan ko'pini qamragan birinchi ota yoki shu shifrning hammasini qamragan ota). Taqsimlab bog'lash shu doirada ishlaydi.
+ */
+function rzKengaytir(tanlov: number, ishlar: readonly F2Tugun[], S: SmetaIndeks): number {
+  const idx = ishKodIndeks(S);
+  let natija = tanlov;
+  for (const t of ishlar) {
+    const k = kodKanon(t.kod) || normKod(t.kod);
+    const fh = Math.abs(Number(t.hajm ?? 0));
+    if (!k || !(fh > 0)) continue;
+    const qatorlar = (idx.get(k) ?? []).filter((q) => birMos(t.birlik, q.birlik));
+    if (qatorlar.length < 2) continue;
+    const yig = (rzId: number) => qatorlar.reduce((a, q) => a + (ichidami(S, q, rzId) ? Math.abs(Number(q.hajm ?? 0)) : 0), 0);
+    if (!(fh > 2 * yig(natija))) continue;
+    if (qatorlar.every((q) => ichidami(S, q, natija))) continue; // qo'shni bo'limlarda shu shifr yo'q
+    const jamiH = qatorlar.reduce((a, q) => a + Math.abs(Number(q.hajm ?? 0)), 0);
+    for (let o = engYaqinRz(S, S.byId.get(natija)); o; o = engYaqinRz(S, o)) {
+      const ho = yig(o.id);
+      if (2 * ho >= fh || ho >= jamiH - 1e-9 || qatorlar.every((q) => ichidami(S, q, o!.id))) { natija = o.id; break; }
+    }
+  }
+  return natija;
 }
 
 const ISH_KOD_KESH = new WeakMap<SmetaIndeks, Map<string, SmetaQator[]>>();
@@ -590,12 +819,15 @@ export interface YozishManbasi {
   ogohlantirish: string[];
   /** Har manba qatori uchun xotira imzosi (keyingi oylarda avtomatik bog'lash uchun). */
   imzolar: Map<string, string>;
+  /** Taqsim bo'lagi tuguni uid → asl F2 uid (bo'laksiz qatorlar bu yerda yo'q — o'z uid i asl). */
+  aslUid: Map<string, string>;
 }
 
 export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): YozishManbasi {
   const nodes: F2ExactManbaTugun[] = [];
   const mapping = new Map<string, number>();
   const imzolar = new Map<string, string>();
+  const aslUid = new Map<string, string>();
   const hal: string[] = [];
   const qiymatsiz: string[] = [];
   const summasiz: string[] = [];
@@ -614,21 +846,41 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): Yozi
     const b = ij.bog.get(t.uid)!;
     // Hujjatda hajm yo'q (#REF! yoki bo'sh) — yoziladigan son yo'q: qator aktga kirmaydi, faqat eslatma (blok emas).
     if (t.hajm == null) { qiymatsiz.push(qisqa(t)); continue; }
-    mapping.set(t.uid, b.qatorId);
+    const qismlar = b.taqsim && b.taqsim.length > 1 ? b.taqsim : null;
+    if (!qismlar) mapping.set(t.uid, b.qatorId);
     // Yig'ma summa (birliksiz, narx 1, hajm = so'm) smeta birligiga o'tkaziladi: hajm = summa / smeta narx; summa F2 dagi aniq summa.
-    const bk = S ? f2HajmiSmetaBirligida(t, S.byId.get(b.qatorId)) : null;
+    const bk = S && !qismlar ? f2HajmiSmetaBirligida(t, S.byId.get(b.qatorId)) : null;
     const ota = ind.ota.get(t.uid);
-    imzolar.set(t.uid, t.tur === 'rs' && ota ? f2Imzo(t, f2Imzo(ota)) : f2Imzo(t, t.yol.map(rzKalit).join('/')));
+    // Taqsimlangan qator xotiraga yozilmaydi (bitta imzo — bitta smeta qatori; bo'laklar keyingi oyda boshqacha bo'lishi mumkin).
+    if (!qismlar) imzolar.set(t.uid, t.tur === 'rs' && ota ? f2Imzo(t, f2Imzo(ota)) : f2Imzo(t, t.yol.map(rzKalit).join('/')));
+    let nd: F2ExactManbaTugun;
     // Resurslari bor ish — faqat hajm; pul uning resurslarida (ikki marta sanalmaydi).
     if (tarkibIsh) {
       const narx = t.narx != null && t.narx > 0 ? t.narx : (t.summa != null && t.hajm > 0 ? t.summa / t.hajm : undefined);
-      nodes.push({ uid: t.uid, hajm: t.hajm, narx, summa: t.summa, tur: 'bl', summaYozilgan: t.summa != null });
-    } else if (t.tur === 'bl' && !t.barg) nodes.push({ uid: t.uid, hajm: t.hajm, narx: undefined, summa: undefined, tur: 'bl' });
+      nd = { uid: t.uid, hajm: t.hajm, narx, summa: t.summa, tur: 'bl', summaYozilgan: t.summa != null };
+    } else if (t.tur === 'bl' && !t.barg) nd = { uid: t.uid, hajm: t.hajm, narx: undefined, summa: undefined, tur: 'bl' };
     else {
       // Narxi bor-u hujjatda summasi bo'sh — pul to'qilmaydi: hajm yoziladi, summa hujjatdagidek bo'sh qoladi (blok emas).
       if (t.narx != null && t.narx > 0 && t.summa == null) summasiz.push(qisqa(t));
-      nodes.push({ uid: t.uid, hajm: bk?.summaBoyicha ? bk.hajm! : t.hajm, narx: bk?.summaBoyicha ? bk.narx : t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null });
+      nd = { uid: t.uid, hajm: bk?.summaBoyicha ? bk.hajm! : t.hajm, narx: bk?.summaBoyicha ? bk.narx : t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null };
     }
+    if (!qismlar) { nodes.push(nd); continue; }
+    // TAQSIM: har bo'lak — alohida manba tuguni (alohida akt qatori). Hajm va summa F2 dagi sonlardan bo'lak nisbatida;
+    // bo'laklar yig'indisi AYNAN hujjatdagi hajm/summa (qoldiq oxirgi bo'lakka). Narx — hujjatdagi narx.
+    const ulush = qismlar.map((q) => q.hajm);
+    const hj = bolakla(nd.hajm, ulush, 6);
+    const sm = nd.summa != null ? bolakla(Number(nd.summa), ulush, 2) : null;
+    qismlar.forEach((q, i) => {
+      const vuid = `${t.uid}${TAQSIM_AJRATGICH}${i}`;
+      mapping.set(vuid, q.qatorId); aslUid.set(vuid, t.uid);
+      let hajm = hj[i], narx = nd.narx;
+      const summa = sm ? sm[i] : nd.summa;
+      if (S && t.barg && summa != null) {
+        const bq = f2HajmiSmetaBirligida({ ...t, hajm, summa }, S.byId.get(q.qatorId));
+        if (bq.summaBoyicha) { hajm = bq.hajm!; narx = bq.narx; }
+      }
+      nodes.push({ ...nd, uid: vuid, hajm, narx, summa });
+    });
   }
   const toxtatish: string[] = [];
   if (hal.length) toxtatish.push(`${hal.length} ta qator hal qilinmagan (✕ yoki ◐): ${hal.slice(0, 5).join('; ')}${hal.length > 5 ? ' …' : ''}`);
@@ -636,7 +888,7 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): Yozi
   if (qiymatsiz.length) ogohlantirish.push(`${qiymatsiz.length} ta qatorda hujjatda hajm yo'q (#REF! yoki bo'sh) — aktga kirmaydi: ${qiymatsiz.slice(0, 5).join('; ')}${qiymatsiz.length > 5 ? ' …' : ''}`);
   if (summasiz.length) ogohlantirish.push(`${summasiz.length} ta qatorda hujjatda summa bo'sh — hajmi yoziladi, summasi hujjatdagidek bo'sh qoladi (to'qilmaydi): ${summasiz.slice(0, 5).join('; ')}${summasiz.length > 5 ? ' …' : ''}`);
   if (!nodes.length && !toxtatish.length) toxtatish.push('Aktga kiradigan qator yo‘q.');
-  return { nodes, mapping, toxtatish, ogohlantirish, imzolar };
+  return { nodes, mapping, toxtatish, ogohlantirish, imzolar, aslUid };
 }
 
 /** F2 tuguni smeta qatoriga "o'sha ish"mi — tashlaganda to'g'ridan-to'g'ri bog'lash mumkinmi

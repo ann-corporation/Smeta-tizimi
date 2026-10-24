@@ -112,7 +112,7 @@ export interface F2MoslashNatija {
 
 // ─── Normallashtirish ────────────────────────────────────────────────────────
 
-const nb = (nom: unknown, bir: unknown) => normNom(nom) + '||' + normBir(bir);
+const nb = (nom: unknown, bir: unknown) => normNomK(nom) + '||' + normBirK(bir);
 const birMos = (a: unknown, b: unknown) => { const x = normBir(a), y = normBir(b); return !x || !y || x === y; };
 
 /** Razdel/lokal nomi kaliti: "СМЕТА № 01-01 НА X" → X (raqam F2 va smetada farq qiladi). */
@@ -128,6 +128,27 @@ function listRaqamlari(s: unknown): string {
 function tokenlar(s: unknown): string[] {
   return String(s ?? '').toUpperCase().replace(/Ё/g, 'Е').split(/[^0-9A-Za-zА-Яа-я]+/).map(normNom).filter((t) => t.length >= 2);
 }
+/** Unumdorlik (25k qatorli smeta, egasi 2026-10-24: «bog'lash ~18 s»): razdel nomlari har smeta qatori uchun qayta-qayta
+ *  regex bilan normallashtirilardi. Bir xil satr uchun natija keshlanadi (har moslashda tozalanadi, xotira chegaralangan). */
+function keshli<T>(fn: (s: string) => T) {
+  const m = new Map<string, T>();
+  const f = (s: unknown): T => { const k = String(s ?? ''); let v = m.get(k); if (v === undefined) { v = fn(k); m.set(k, v); } return v; };
+  return Object.assign(f, { tozala: () => m.clear() });
+}
+const rzKalitK = keshli(rzKalit);
+const tokenlarK = keshli(tokenlar);
+const listRaqK = keshli(listRaqamlari);
+const rzKodlarK = keshli((s) => rzKodlar(s));
+const normNomK = keshli((s) => normNom(s));
+const normBirK = keshli((s) => normBir(s));
+const normKodK = keshli((s) => normKod(s));
+const kodKanonK = keshli((s) => kodKanon(s));
+const texnikK = keshli((s) => texnikBelgilar(s));
+const resKalitKesh = new Map<string, string>();
+const keshlarniTozala = () => {
+  for (const k of [rzKalitK, tokenlarK, listRaqK, rzKodlarK, normNomK, normBirK, normKodK, kodKanonK, texnikK]) k.tozala();
+  resKalitKesh.clear();
+};
 function raqamlar(s: unknown): string {
   return (String(s ?? '').match(/\d+([.,]\d+)?/g) || []).map((x) => x.replace(',', '.')).sort().join('|');
 }
@@ -179,7 +200,7 @@ function texnikBelgilar(s: unknown): Map<string, string> {
 
 /** Ikki nomda ham mavjud bo'lgan bir xil texnik o'lchovning qiymati farqlimi? */
 export function texnikTafsilotFarqlari(a: unknown, b: unknown): string[] {
-  const A = texnikBelgilar(a), B = texnikBelgilar(b);
+  const A = texnikK(a), B = texnikK(b);
   const labels: Record<string, string> = {
     beton_klass: 'beton klassi', armatura_klass: 'armatura klassi', armatura_roman: 'armatura markasi',
     suv_otkazmaslik: 'suv o‘tkazmaslik markasi', sovuqqa_chidamlilik: 'sovuqqa chidamlilik markasi',
@@ -270,12 +291,17 @@ export function razdelResursiTop<T extends Pick<SmetaQator, 'id' | 'tur' | 'kod'
 }
 
 function resKalit(kod: unknown, nom: unknown, bir: unknown): string {
+  const kk = `${String(kod ?? '')}\u0001${String(nom ?? '')}\u0001${String(bir ?? '')}`;
+  const bor = resKalitKesh.get(kk);
+  if (bor !== undefined) return bor;
   // LRV_PLUS/F2 can place `С` in the code field for unrelated materials.
   // A one-letter marker is not identity; use name + unit instead.
-  const code = resursKodiIshonchlimi(kod) ? normKod(kod) : '';
+  const code = resursKodiIshonchlimi(kod) ? normKodK(kod) : '';
   const base = code || nb(nom, bir);
-  const specs = [...texnikBelgilar(nom)].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}:${v}`).join(',');
-  return specs ? `${base}||${specs}` : base;
+  const specs = [...texnikK(nom)].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}:${v}`).join(',');
+  const v = specs ? `${base}||${specs}` : base;
+  resKalitKesh.set(kk, v);
+  return v;
 }
 function resursKodiIshonchlimi(kod: unknown): boolean {
   const k = normKod(kod);
@@ -321,8 +347,8 @@ function smetaIndeksi(qatorlar: readonly SmetaQator[]) {
   const byId = new Map<number, STugun>();
   for (const q of qatorlar) {
     byId.set(q.id, {
-      ...q, bolalar: [], ota: null, yol: '', kKod: normKod(q.kod), kKanon: kodKanon(q.kod), kNb: nb(q.nom, q.birlik),
-      kTok: tokenlar(q.nom), kRaq: raqamlar(q.nom), rzZanjir: [], rzTok: [], lokalTok: [], rzList: [], rzChizma: [], resKalitlar: [], resNorma: new Map(),
+      ...q, bolalar: [], ota: null, yol: '', kKod: normKodK(q.kod), kKanon: kodKanonK(q.kod), kNb: nb(q.nom, q.birlik),
+      kTok: tokenlarK(q.nom), kRaq: raqamlar(q.nom), rzZanjir: [], rzTok: [], lokalTok: [], rzList: [], rzChizma: [], resKalitlar: [], resNorma: new Map(),
     });
   }
   const tartibli = [...qatorlar].sort((a, b) => (a.tartib ?? a.id) - (b.tartib ?? b.id) || a.id - b.id);
@@ -335,11 +361,11 @@ function smetaIndeksi(qatorlar: readonly SmetaQator[]) {
   const yur = (t: STugun, yol: string, zanjir: STugun[]) => {
     t.yol = yol;
     const rzlar = zanjir;
-    t.rzZanjir = rzlar.map((r) => rzKalit(r.nom));
-    t.rzTok = rzlar.length ? tokenlar(rzKalit(rzlar[rzlar.length - 1].nom)) : [];
-    t.lokalTok = rzlar.length ? tokenlar(rzKalit(rzlar[0].nom)) : [];
-    t.rzList = rzlar.map((r) => listRaqamlari(r.nom)).filter(Boolean);
-    t.rzChizma = rzlar.flatMap((r) => rzKodlar(r.nom));
+    t.rzZanjir = rzlar.map((r) => rzKalitK(r.nom));
+    t.rzTok = rzlar.length ? tokenlarK(rzKalitK(rzlar[rzlar.length - 1].nom)) : [];
+    t.lokalTok = rzlar.length ? tokenlarK(rzKalitK(rzlar[0].nom)) : [];
+    t.rzList = rzlar.map((r) => listRaqK(r.nom)).filter(Boolean);
+    t.rzChizma = rzlar.flatMap((r) => rzKodlarK(r.nom));
     const bu = t.tur === 'rz' ? (yol ? `${yol} › ${t.nom ?? ''}` : String(t.nom ?? '')) : yol;
     const keyingi = t.tur === 'rz' ? [...zanjir, t] : zanjir;
     for (const b of t.bolalar) yur(b, bu, keyingi);
@@ -363,6 +389,7 @@ function smetaIndeksi(qatorlar: readonly SmetaQator[]) {
 // ─── Dvigatel ────────────────────────────────────────────────────────────────
 
 export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[], opts: F2MoslashOpts = {}): F2MoslashNatija {
+  keshlarniTozala();
   const S = smetaIndeksi(smeta);
   const natijalar = new Map<string, F2QatorNatija>();
   const rzDiag: RzDiag[] = [];
@@ -412,21 +439,21 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
 
     const qidir = (nomzod: readonly STugun[]): { mos: STugun[]; usul: string } => {
       const k = rzKalit(rz.nom);
-      let mos = k ? nomzod.filter((s) => rzKalit(s.nom) === k) : [];
+      let mos = k ? nomzod.filter((s) => rzKalitK(s.nom) === k) : [];
       let usul = 'nom';
       if (!mos.length) {
         const kodlar = new Set(rzKodlar(rz.nom));
-        if (kodlar.size) { mos = nomzod.filter((s) => rzKodlar(s.nom).some((x) => kodlar.has(x))); usul = 'chizma_kodi'; }
+        if (kodlar.size) { mos = nomzod.filter((s) => rzKodlarK(s.nom).some((x) => kodlar.has(x))); usul = 'chizma_kodi'; }
       }
       if (!mos.length && k) {
         const ft = tokenlar(rzKalit(rz.nom));
-        const ball = nomzod.map((s) => ({ s, d: dice(ft, tokenlar(rzKalit(s.nom))) })).filter((x) => x.d >= 0.75).sort((a, b) => b.d - a.d);
+        const ball = nomzod.map((s) => ({ s, d: dice(ft, tokenlarK(rzKalitK(s.nom))) })).filter((x) => x.d >= 0.75).sort((a, b) => b.d - a.d);
         if (ball.length) { mos = ball.filter((x) => x.d >= ball[0].d - 0.01).map((x) => x.s); usul = 'nom_oxshash'; }
       }
       if (mos.length > 1) {
         // F2 razdeli bir nechta varaqni qamrashi mumkin ("ЛИСТ.-8,9,15") — to'plam bo'yicha.
         const lr = new Set(listRaqamlari(rz.nom).split(',').filter(Boolean));
-        const aniq = lr.size ? mos.filter((s) => listRaqamlari(s.nom).split(',').some((x) => lr.has(x))) : [];
+        const aniq = lr.size ? mos.filter((s) => listRaqK(s.nom).split(',').some((x) => lr.has(x))) : [];
         if (aniq.length) { mos = aniq; usul += '+list'; }
       }
       // Bir nomli razdellar ichma-ich bo'lsa (egasi prod sinovi 2026-10-23: obyekt nomli razdel ichida
@@ -463,7 +490,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     }
     if (!mos.length && ota.rzlar) {
       // Ota bo'lim ichida so'z o'zagi bo'yicha (ПОЯС ↔ ПОЯСА, «НАРУЖНЫЙ СТОЙКА» ↔ «СТОЙКА») YAGONA eng yaqin kichik bo'lim.
-      const ozak = (s: unknown) => tokenlar(rzKalit(s)).map((t) => t.slice(0, 4));
+      const ozak = (s: unknown) => tokenlarK(rzKalitK(s)).map((t) => t.slice(0, 4));
       const f = ozak(rz.nom);
       const ball = barchaRz.filter((s) => ota.rzlar!.some((o) => ajdodmi(o, s))).map((s) => ({ s, d: dice(f, ozak(s.nom)) }))
         .filter((x) => x.d >= 0.6).sort((a, b) => b.d - a.d);
@@ -499,7 +526,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     if (doiradami(d, t)) rz += 8;
     const dYaqin = dice(fYaqin, t.rzTok);
     rz += Math.round(dYaqin * 8);
-    const dLokal = fLokal.length ? Math.max(...t.rzZanjir.map((z) => dice(fLokal, tokenlar(z))), 0) : 0;
+    const dLokal = fLokal.length ? Math.max(...t.rzZanjir.map((z) => dice(fLokal, tokenlarK(z))), 0) : 0;
     rz += Math.round(dLokal * 5);
     const fList = new Set(f.yol.flatMap((y) => listRaqamlari(y).split(',')).filter(Boolean));
     if (fList.size && t.rzList.some((l) => l.split(',').some((x) => fList.has(x)))) rz += 4;

@@ -1,0 +1,20 @@
+{
+  "Taqsimlab bog‘lash": { "ru": "Распределить по строкам", "en": "Split binding" },
+  "ta qator": { "ru": "строк", "en": "rows" },
+  "F2 hajmini bir xil shifr va birlikdagi smeta qatorlariga bo‘lib bog‘lash: har qator qoldig‘igacha, ortig‘i oxirgisiga": { "ru": "Распределить объём Ф-2 по строкам сметы с тем же шифром и единицей: каждую строку до её остатка, излишек — на последнюю", "en": "Split the F2 quantity across estimate rows with the same code and unit: each row up to its remainder, any excess to the last one" },
+  "Taqsim — oldindan ko‘rish": { "ru": "Распределение — предпросмотр", "en": "Split — preview" },
+  "Har qator qoldig‘igacha smeta tartibida; ortig‘i oxirgi qatorga. Resurslar shu nisbatda bo‘linadi.": { "ru": "Каждая строка до её остатка в порядке сметы; излишек — на последнюю. Ресурсы делятся в той же пропорции.", "en": "Each row up to its remainder in estimate order; any excess goes to the last one. Resources are split in the same proportion." },
+  "Smeta qatori": { "ru": "Строка сметы", "en": "Estimate row" },
+  "Smeta hajmi": { "ru": "Объём по смете", "en": "Estimate quantity" },
+  "Qoldiq": { "ru": "Остаток", "en": "Remainder" },
+  "Bo‘lak": { "ru": "Доля", "en": "Part" },
+  "Bo‘laklar jami": { "ru": "Сумма долей", "en": "Parts total" },
+  "Ortig‘i oxirgi qatorga tushdi — qoldiqdan oshish ko‘rinadi (blok emas).": { "ru": "Излишек отнесён на последнюю строку — превышение остатка будет видно (не блокирует).", "en": "The excess went to the last row — the overrun will be shown (not blocking)." },
+  "Bekor qilish": { "ru": "Отмена", "en": "Cancel" },
+  "taqsimlab bog‘landi": { "ru": "распределено", "en": "split and linked" },
+  "ta smeta qatoriga": { "ru": "строк сметы", "en": "estimate rows" },
+  "resurslar": { "ru": "ресурсы", "en": "resources" },
+  "Kerak bo‘lsa «Orqaga» bilan qaytaring.": { "ru": "При необходимости верните кнопкой «Назад».", "en": "Use «Back» to undo if needed." },
+  "{n} ta smeta qatoriga taqsimlangan": { "ru": "распределено на {n} строк сметы", "en": "split across {n} estimate rows" },
+  "Taqsim bo‘lagi: shu smeta qatoriga tushgan qism / F2 qatorining jami hajmi": { "ru": "Доля распределения: часть на эту строку сметы / общий объём строки Ф-2", "en": "Split part: share on this estimate row / total quantity of the F2 row" }
+}
