@@ -40,3 +40,21 @@ describe('Davom ettiriladigan F2 lar — ketma-ketlik', () => {
     await waitFor(() => expect(screen.getAllByText(/^№ \d+/).length).toBe(3));
   });
 });
+
+describe('Yozilgan F2 - Tahrirlash', () => {
+  it('yozilgan QORALAMA akt uchun Tahrirlash tugmasi job va akt id bilan chaqiradi; tasdiqlangan aktda yo‘q', async () => {
+    m.ol.mockResolvedValue({ ok: true, qatorlar: [
+      q(1, '2026-05', '35', { yozilgan: true, akt_id: 77, akt_holat: 'qoralama' }),
+      q(2, '2026-04', '34', { yozilgan: true, akt_id: 76, akt_holat: 'tasdiqlangan' }),
+      q(3, '2026-06', '36'),
+    ] });
+    const ochish = vi.fn();
+    render(<F2DavomRoyxat kompaniyaId={123} obyektId={153} onOchish={ochish} />);
+    await waitFor(() => screen.getByText(/Yozilganlarni/));
+    fireEvent.click(screen.getByText(/Yozilganlarni/));
+    const tugmalar = screen.getAllByRole('button', { name: /Tahrirlash/ });
+    expect(tugmalar).toHaveLength(1);
+    fireEvent.click(tugmalar[0]);
+    expect(ochish).toHaveBeenCalledWith(1, 77);
+  });
+});
