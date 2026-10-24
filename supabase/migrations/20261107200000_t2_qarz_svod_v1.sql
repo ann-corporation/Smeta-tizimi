@@ -30,9 +30,12 @@ begin
                           where f.shartnoma_id = s.id and f.kompaniya_id = p_kompaniya_id and f.manba = 'sotuv' and f.holat <> 'bekor') end,
         'tolangan', (select coalesce(sum(case when t.tur = 'qaytarim' then -t.summa else t.summa end), 0)
                        from public.t2_tolov t where t.shartnoma_id = s.id and t.holat <> 'bekor'),
+        -- obyektda bir nechta faol bog' bo'lsa ham har akt bir marta sanaladi (join emas, skalyar tanlov)
         'f2_nakrutkasiz', (select sum(a.hujjat_jami) from public.t2_akt a
-                            left join public.t2_shartnoma_bog b on b.obyekt_id = a.obyekt_id and b.holat = 'faol'
-                           where a.tur = 'f2' and a.holat = 'tasdiqlangan' and coalesce(a.shartnoma_id, b.shartnoma_id) = s.id
+                           where a.tur = 'f2' and a.holat = 'tasdiqlangan'
+                             and coalesce(a.shartnoma_id, (select b.shartnoma_id from public.t2_shartnoma_bog b
+                                                            where b.obyekt_id = a.obyekt_id and b.holat = 'faol'
+                                                            order by b.shartnoma_id limit 1)) = s.id
                              and (a.kompaniya_id = p_kompaniya_id or a.kompaniya_id is null)),
         'oxirgi_tolov_sana', (select max(t.sana) from public.t2_tolov t where t.shartnoma_id = s.id and t.holat <> 'bekor')
       ) || jsonb_build_object(
