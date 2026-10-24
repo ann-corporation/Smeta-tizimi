@@ -103,7 +103,8 @@ describe('F2 workbench operator controls', () => {
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
     expect(within(screen.getByRole('group', { name: 'F2 filtri' })).getByRole('button', { name: 'Hammasi' }).getAttribute('aria-pressed')).toBe('true');
     expect(f2Tree.getByText('KONSTRUKSIYA')).toBeTruthy();
-    expect(f2Tree.getByText('bo‘lim ulanmagan — mos smeta bo‘limiga torting')).toBeTruthy();
+    // Ulanmagan F2 bo'limi: ishlar shifri bo'yicha smeta bo'limi TAKLIF qilinadi (2026-10-24) — tugma bor.
+    expect(f2Tree.getAllByRole('button', { name: /Bo‘lim:/ }).length).toBeGreaterThan(0);
     expect(f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Beton B25' }).textContent).toContain('125');
     expect(screen.getByRole('button', { name: 'Bog‘lanishni uzish: Beton B25' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Bog‘lash variantlari: Beton B25' }));
