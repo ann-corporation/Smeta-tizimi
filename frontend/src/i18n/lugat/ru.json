@@ -3173,7 +3173,8 @@
   "МАШ — mash-soat (mashina)": "МАШ — маш-час (машины)",
   "ОБ — uskunalar": "ОБ — оборудование",
   "ЧЕЛ — chel-soat (ishchi kuchi)": "ЧЕЛ — чел-час (рабочая сила)",
-  "{n} ta qatorda narx yo‘q yoki 0 ({jami} resursdan) — bu LRV smeta, narxlash kerak (RES bilan). Narxsiz qatorlar summaga 0 bo‘lib kiradi. Baribir import qilinsinmi?": "В {n} строках цена отсутствует или 0 (из {jami} ресурсов) — это ЛРВ смета, нужно оценить (через РЕС). Строки без цены войдут в сумму как 0. Всё равно импортировать?",
-  "{n} ta qatorda narx yo‘q — import to‘xtatildi, RES narxlarini ulang": "В {n} строках нет цены — импорт остановлен, подключите цены РЕС",
-  "Import to‘xtatildi: narxsiz qatorlar": "Импорт остановлен: строки без цены"
+  "fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)": "превышает фактический остаток (разрешено, предупреждение)",
+  "qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring": "вместе с черновиком Ф-2 берётся дважды — проверьте",
+  "smeta hajmidan oshadi (ruxsat, ogohlantirish)": "превышает объём сметы (разрешено, предупреждение)",
+  "tasdiqlangan F2": "утверждённые Ф-2"
 }
