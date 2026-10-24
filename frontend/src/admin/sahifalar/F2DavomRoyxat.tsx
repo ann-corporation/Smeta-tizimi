@@ -32,17 +32,20 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
   const [qatorlar, setQatorlar] = useState<T2F2DavomQator[] | null>(null);
   const [xato, setXato] = useState('');
   const [yozilganKor, setYozilganKor] = useState(false);
+  // Obyekt tanlangan bo'lsa — faqat o'shaniki; «Hamma obyektlar» bosilsa kompaniyaning barcha ochiq qoralamalari.
+  const [hamma, setHamma] = useState(false);
+  const korObyekt = hamma ? null : (obyektId ?? null);
 
   useEffect(() => {
     if (!kompaniyaId) { setQatorlar(null); return; }
     let faol = true;
     setXato('');
-    void f2DavomRoyxatOl(kompaniyaId, obyektId ?? null).then((r) => {
+    void f2DavomRoyxatOl(kompaniyaId, korObyekt).then((r) => {
       if (!faol) return;
       if (r.ok) setQatorlar(r.qatorlar); else { setQatorlar([]); setXato(r.error ?? ''); }
     }).catch(() => { if (faol) { setQatorlar([]); setXato(t('F2 qoralamalari o‘qilmadi')); } });
     return () => { faol = false; };
-  }, [kompaniyaId, obyektId, yangilash]);
+  }, [kompaniyaId, korObyekt, yangilash]);
 
   // Obyekt ichida eski oydan yangiga, keyin F2 raqami; har obyektda eng eski yozilmagani — «Navbatdagi».
   const ochiq = useMemo(() => tartiblangan((qatorlar ?? []).filter((q) => !q.yozilgan)), [qatorlar]);
@@ -56,7 +59,8 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
 
   if (!kompaniyaId || qatorlar == null) return null;
   // O'qilmasa yoki qoralama yo'q bo'lsa — joy egallamaydi (asosiy oqim «Server qoralamasi raqami» orqali ham ishlaydi).
-  if (!qatorlar.length) return null;
+  // Tanlangan obyektda yo'q bo'lsa ham boshqa obyektlardagilarni ko'rish tugmasi qoladi.
+  if (!qatorlar.length && !(obyektId && !hamma)) return null;
 
   const amal = (q: T2F2DavomQator) => {
     if (q.yozilgan) return <span className="text-text-dim">{t('yozilgan')}{q.akt_holat ? ` (${q.akt_holat})` : ''}</span>;
@@ -79,7 +83,12 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
 
   return (
     <section className="karta space-y-2 p-3 text-[12px]" aria-label={t('Davom ettiriladigan F2 lar')}>
-      <p className="font-semibold text-text">{t('Davom ettiriladigan F2 lar')}{` (${ochiq.length})`}</p>
+      <p className="flex items-center gap-2 font-semibold text-text">
+        <span>{t('Davom ettiriladigan F2 lar')}{` (${ochiq.length})`}</span>
+        {!!obyektId && <button type="button" className="ml-auto font-normal text-text-dim underline" aria-pressed={hamma} onClick={() => setHamma((x) => !x)}>
+          {hamma ? t('Faqat tanlangan obyekt') : t('Hamma obyektlar')}
+        </button>}
+      </p>
       {xato && <p className="text-danger">{xato}</p>}
       {ochiq.length === 0 && <p className="text-text-dim">{t('Ochiq F2 qoralamasi yo‘q.')}</p>}
       {ochiq.length !== 0 && (
@@ -91,7 +100,7 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
             </tr></thead>
             <tbody>{guruhlar.map(([oid, g]) => (
               <Fragment key={oid}>
-                {!obyektId && <tr><td colSpan={6} className="bg-surface-2 px-1 font-semibold">{g.nom}</td></tr>}
+                {!korObyekt && <tr><td colSpan={6} className="bg-surface-2 px-1 font-semibold">{g.nom}</td></tr>}
                 {g.q.map(satr)}
               </Fragment>
             ))}</tbody>
