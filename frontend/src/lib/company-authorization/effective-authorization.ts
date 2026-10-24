@@ -13,12 +13,26 @@ export const PERMISSIONS = [
   'document.read', 'document.write', 'financial.read', 'financial.write',
   'f2.read','f2.import','f2.prepare','f2.approve','f2.cancel','f2.correct',
   'smeta.read','smeta.write','fakt.read','fakt.write','narx.read','narx.write',
+  // Ekotizim (docs/architecture/ekotizim/E2 §3.1; SQL: 20261108010000_t2_ekotizim_f1_ruxsat_v1)
+  'procurement.read','procurement.write','procurement.approve',
+  'supply.offer','supply.fulfil',
+  'logistics.read','logistics.dispatch','logistics.trip',
+  'warehouse.read','warehouse.write','warehouse.receive',
+  'quality.read','quality.inspect','quality.decide',
+  'design.read','design.write','design.issue',
+  'hr.read','hr.write','hr.pii.read','hr.pii.write','hr.tabel.write',
+  'payroll.read','payroll.write',
+  'machinery.read','machinery.write','machinery.log',
+  'accounting.read','accounting.write','accounting.approve',
+  'self.work.read','self.work.write',
 ] as const;
 export type PermissionCode = typeof PERMISSIONS[number];
 
 export const MEMBERSHIP_ROLES = [
   'superadmin', 'admin', 'boss', 'rahbar', 'bugalter', 'pto', 'prorab',
   'buyurtmachi', 'pudratchi', 'kuzatuvchi',
+  // Ekotizim rollari (E2 §3.2)
+  'omborchi', 'mexanik', 'kadr', 'taminotchi', 'usta', 'brigadir', 'haydovchi', 'inspektor', 'loyihachi',
 ] as const;
 export type CompanyMembershipRole = typeof MEMBERSHIP_ROLES[number];
 /**
@@ -96,15 +110,38 @@ export const ROLE_PERMISSIONS: Record<CompanyMembershipRole, PermissionCode[]> =
   buyurtmachi: ['company.read', 'project.read', 'object.read', 'document.read', 'financial.read'],
   pudratchi: ['company.read', 'project.read', 'object.read', 'document.read'],
   kuzatuvchi: ['company.read', 'project.read', 'object.read', 'document.read'],
+  // Ekotizim rollari — ANIQ ro'yxat; pastdagi eski kengaytma ularga qo'llanmaydi.
+  omborchi: ['company.read','object.read','document.read','fakt.read','warehouse.read','warehouse.write','warehouse.receive','procurement.read','logistics.read'],
+  mexanik: ['company.read','object.read','document.read','machinery.read','machinery.write','machinery.log','warehouse.read'],
+  kadr: ['company.read','object.read','document.read','hr.read','hr.write','hr.pii.read','hr.pii.write','hr.tabel.write'],
+  taminotchi: ['company.read','object.read','document.read','procurement.read','procurement.write','procurement.approve','supply.offer','supply.fulfil','logistics.read','logistics.dispatch','warehouse.read'],
+  usta: ['company.read','object.read','document.read','fakt.read','self.work.read','self.work.write'],
+  brigadir: ['company.read','object.read','document.read','fakt.read','self.work.read','self.work.write','hr.tabel.write'],
+  haydovchi: ['company.read','self.work.read','self.work.write','logistics.trip','machinery.log'],
+  inspektor: ['company.read','object.read','document.read','quality.read','quality.inspect','quality.decide'],
+  loyihachi: ['company.read','object.read','document.read','document.write','design.read','design.write','design.issue'],
+};
+
+const EKOTIZIM_ROLLARI = new Set<string>(['omborchi','mexanik','kadr','taminotchi','usta','brigadir','haydovchi','inspektor','loyihachi']);
+/** Mavjud rollarga faqat yangi domen capability lari (SQL bilan bir xil). */
+const ESKI_ROLGA_QOSHIMCHA: Partial<Record<CompanyMembershipRole, PermissionCode[]>> = {
+  rahbar: ['procurement.read','logistics.read','warehouse.read','quality.read','design.read','hr.read','payroll.read','machinery.read'],
+  bugalter: ['accounting.approve','payroll.read','payroll.write','procurement.read','warehouse.read','hr.read'],
+  pto: ['procurement.read','procurement.write','warehouse.read','logistics.read','quality.read','design.read','hr.read','machinery.read'],
+  prorab: ['procurement.read','procurement.write','warehouse.read','warehouse.receive','logistics.read','quality.read','design.read','hr.read','hr.tabel.write','machinery.read'],
 };
 
 // Compatibility mirror of t2_role_permissions_v2. Individual decisions come from DB snapshots.
 for (const role of MEMBERSHIP_ROLES) {
-  if (['superadmin','admin','boss'].includes(role)) continue;
+  if (['superadmin','admin','boss'].includes(role) || EKOTIZIM_ROLLARI.has(role)) continue;
   const p=ROLE_PERMISSIONS[role];
   if(p.includes('document.read')) p.push('f2.read','smeta.read','fakt.read','narx.read');
   if(['pto','prorab','bugalter'].includes(role)) p.push('f2.import','f2.prepare','f2.approve','f2.cancel','f2.correct');
   if(p.includes('object.write')) p.push('smeta.write','fakt.write','narx.write');
+  p.push(...(ESKI_ROLGA_QOSHIMCHA[role] ?? []));
+  if(p.includes('financial.read')) p.push('accounting.read');
+  if(p.includes('financial.write')) p.push('accounting.write');
+  ROLE_PERMISSIONS[role]=[...new Set(p)];
 }
 
 const PLATFORM_PERMISSIONS: Record<Exclude<PlatformRole, 'none'>, PermissionCode[]> = {

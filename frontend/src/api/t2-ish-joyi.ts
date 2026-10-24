@@ -5,8 +5,10 @@
 import { yangiOperationId } from './supabase';
 
 export type IshJoyiTuri = 'shaxsiy' | 'tashkilot';
-export type TaklifRoli = 'rahbar' | 'bugalter' | 'pto' | 'prorab' | 'buyurtmachi' | 'pudratchi' | 'kuzatuvchi';
-export const TAKLIF_ROLLARI: readonly TaklifRoli[] = ['pto', 'prorab', 'bugalter', 'rahbar', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'];
+export type TaklifRoli = 'rahbar' | 'bugalter' | 'pto' | 'prorab' | 'buyurtmachi' | 'pudratchi' | 'kuzatuvchi'
+  | 'omborchi' | 'mexanik' | 'kadr' | 'taminotchi' | 'usta' | 'brigadir' | 'haydovchi' | 'inspektor' | 'loyihachi';
+export const TAKLIF_ROLLARI: readonly TaklifRoli[] = ['pto', 'prorab', 'bugalter', 'rahbar', 'buyurtmachi', 'pudratchi', 'kuzatuvchi',
+  'usta', 'brigadir', 'omborchi', 'mexanik', 'haydovchi', 'kadr', 'taminotchi', 'inspektor', 'loyihachi'];
 export type Taklif = { id: number; rol: TaklifRoli; muddat: string; max_soni: number; foydalanildi: number; izoh: string | null;
   holat: 'faol' | 'bekor' | 'muddati_otgan' | 'toldi'; yaratildi: string };
 type Javob = { ok: boolean; code?: string; xabar?: string; error?: string; [k: string]: unknown };
