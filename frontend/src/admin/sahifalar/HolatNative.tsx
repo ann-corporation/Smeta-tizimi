@@ -33,6 +33,7 @@ import SmetaYuklaNative from './SmetaYuklaNative';
 import ResursVedomostNative from './ResursVedomostNative';
 import NarxNazoratNative from './NarxNazoratNative';
 import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPanel';
+import { BajarilmadiPanel } from './BajarilmadiPanel';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -367,6 +368,7 @@ export function HolatNative() {
               </summary>
               {ochiqPanel === 'istisno' && <div className="mt-3 max-h-[520px] overflow-auto">
                 {istisno.xato && <p role="alert" className="mb-2 text-danger">{istisno.xato}</p>}
+                {joriy?.id != null && <div className="mb-4 border-b border-border pb-3"><BajarilmadiPanel kompaniyaId={joriy.id} obyektId={obyektId} obyektNomi={selected?.nom} qatorlar={daraxtXom} holatlar={holatXom} /></div>}
                 <OstatkaIstisnoPanel obyektId={obyektId} qatorlar={daraxtXom} holatlar={holatXom} royxat={istisno.royxat} yangila={istisno.yangila} onSmetaOzgardi={() => void yuklash()} />
               </div>}
             </details>

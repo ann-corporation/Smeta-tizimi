@@ -42,6 +42,7 @@ export const P_ID_JADVAL: Readonly<Record<string, string>> = {
   loyiha_yangila: 't2_loyiha', loyiha_ochir: 't2_loyiha',
   obyekt_yangila: 't2_obyekt',
   kontragent_ochir: 't2_kontragent',
+  bajarilmadi_bekor: 't2_qator_bajarilmadi',
   material_alias_ochir: 't2_material_alias',
   loyiha_qatnashchi_ochir: 't2_loyiha_qatnashchi',
   faktura_yoz: 't2_faktura',

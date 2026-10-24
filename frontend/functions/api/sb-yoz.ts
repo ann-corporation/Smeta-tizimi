@@ -187,6 +187,8 @@ const AMALLAR = {
   loyiha_qatnashchi_ochir: { rpc: 't2_loyiha_qatnashchi_ochir' },
   kontragent_saqla: { rpc: 't2_kontragent_saqla' },
   kontragent_ochir: { rpc: 't2_kontragent_ochir' },
+  bajarilmadi_belgila: { rpc: 't2_bajarilmadi_belgila_v1' },
+  bajarilmadi_bekor: { rpc: 't2_bajarilmadi_bekor_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
   fakt_belgila_v2: { rpc: 't2_fakt_belgila_v2' },
   fakt_belgila: { rpc: 't2_fakt_belgila' },
@@ -2021,6 +2023,54 @@ export const onRequestPost: PagesFunction<{
         p_qiymat: qiymat,
         p_operation_id: UUID_RE3.test(String(so.operation_id || '')) ? so.operation_id : crypto.randomUUID(),
       };
+
+    /* «Bajarilmadi» qoplamasi (egasi 2026-10-24): asl smeta qatoriga TEGMAYDI; sabab, dalil hujjat, sana alohida jadvalda. */
+    } else if (amal === 'bajarilmadi_belgila') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = Number(so.obyekt_id);
+      if (![kompaniyaId, obyektId].every((n) => Number.isInteger(n) && n > 0)) {
+        return Response.json({ ok: false, error: 'kompaniya_id yoki obyekt_id noto\'g\'ri' });
+      }
+      if (!Array.isArray(so.qatorlar) || so.qatorlar.length === 0 || so.qatorlar.length > 2000) {
+        return Response.json({ ok: false, error: 'qatorlar 1..2000 ta bo\'lishi kerak' });
+      }
+      const SABAB_RUXSAT = ['buyurtmachi_chiqardi', 'loyiha_ozgardi', 'boshqa_pudratchi', 'texnik_sabab', 'zamena', 'material_yoq', 'boshqa'];
+      if (!SABAB_RUXSAT.includes(String(so.sabab_kod))) {
+        return Response.json({ ok: false, error: 'sabab_kod noto\'g\'ri: ' + SABAB_RUXSAT.join('|') });
+      }
+      const sana = so.sana ? String(so.sana) : null;
+      if (sana && !/^\d{4}-\d{2}-\d{2}$/.test(sana)) {
+        return Response.json({ ok: false, error: 'sana YYYY-MM-DD shaklida bo\'lishi kerak' });
+      }
+      const idYoki = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      const hujjatId = idYoki(so.hujjat_id); const zamenaId = idYoki(so.zamena_qator_id);
+      if ((hujjatId != null && !(Number.isInteger(hujjatId) && hujjatId > 0)) || (zamenaId != null && !(Number.isInteger(zamenaId) && zamenaId > 0))) {
+        return Response.json({ ok: false, error: 'hujjat_id yoki zamena_qator_id noto\'g\'ri' });
+      }
+      const UUID_RE4 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!UUID_RE4.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId,
+        p_qatorlar: so.qatorlar, p_sabab_kod: String(so.sabab_kod),
+        p_sabab_izoh: so.sabab_izoh ? String(so.sabab_izoh).slice(0, 1000) : null,
+        p_hujjat_id: hujjatId, p_sana: sana, p_zamena_qator_id: zamenaId, p_operation_id: String(so.operation_id),
+      };
+
+    } else if (amal === 'bajarilmadi_bekor') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const id = Number(so.id);
+      if (![kompaniyaId, id].every((n) => Number.isInteger(n) && n > 0)) {
+        return Response.json({ ok: false, error: 'kompaniya_id yoki id noto\'g\'ri' });
+      }
+      const UUID_RE5 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!UUID_RE5.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      /* Egalik: yozuv shu kompaniyaniki ekani RPC ichida (kompaniya_id sharti) tekshiriladi; p_id shlyuz egalik jadvaliga kirmaydi. */
+      yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_id: id,
+        p_sabab: so.sabab ? String(so.sabab).slice(0, 500) : null, p_operation_id: String(so.operation_id) };
 
     /* Shartnoma qamrovi: canonical t2_qator satrini o'chirmasdan,
        faqat shu shartnoma hisobidan kiritish/chiqarish qarorini saqlaydi. */
