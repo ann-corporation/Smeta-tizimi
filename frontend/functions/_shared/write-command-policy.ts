@@ -136,6 +136,8 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   kontragent_ochir: 'document.write',
   bajarilmadi_belgila: 'fakt.write',
   bajarilmadi_bekor: 'fakt.write',
+  xarajat_kirit_v1: 'financial.write',
+  xarajat_bekor_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
   fakt_belgila_v2: 'fakt.write',
   fakt_belgila: 'fakt.write',

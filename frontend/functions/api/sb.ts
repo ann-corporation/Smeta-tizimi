@@ -181,7 +181,7 @@ export const onRequestPost: PagesFunction<{
       soro?: string; obyekt_id?: number; kompaniya_id?: number; akt_id?: number; job_id?: number;
       shartnoma_id?: number;
       /* pul_tahlil_v1 (2026-10-24) */
-      davr_gacha?: string; davr_dan?: string; dalil_kat?: string;
+      davr_gacha?: string; davr_dan?: string; dalil_kat?: string; dalil_turi?: string;
       /* ABC kutubxona qidiruvi (2026-10-01). */
       q?: string; kat?: string; items?: Array<{ nom?: string; birlik?: string }>;
     }>();
@@ -251,6 +251,7 @@ export const onRequestPost: PagesFunction<{
         shartnoma_svod_v1: 'kompaniya_actor',
         /* Egasi 2026-10-24: rahbarlar uchun pul tahlili (P0) — kategoriya × {smeta, F2} + zanjir. `stable`; a'zolik + f2.read + financial.read. */
         pul_tahlil_v1: 'kompaniya_actor',
+        pul_tahlil_v2: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
@@ -353,7 +354,7 @@ export const onRequestPost: PagesFunction<{
         if (!Number.isInteger(oid) || oid <= 0) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
         q.set('p_obyekt_id', String(oid));
       }
-      if (so.soro === 'pul_tahlil_v1') {
+      if (so.soro === 'pul_tahlil_v1' || so.soro === 'pul_tahlil_v2') {
         for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
           const v = so[kalit];
           if (v == null || String(v) === '') continue;
@@ -370,6 +371,10 @@ export const onRequestPost: PagesFunction<{
         if (so.dalil_kat != null && so.dalil_kat !== '') {
           if (!['ЧЕЛ', 'МАШ', 'МАТ', 'МАТ_ODDIY', 'М/К', 'КАБ', 'БЕЗСКЛАД', 'ОБ', 'KATSIZ'].includes(so.dalil_kat)) return Response.json({ ok: false, error: "dalil_kat noto'g'ri" });
           q.set('p_dalil_kat', so.dalil_kat);
+        }
+        if (so.soro === 'pul_tahlil_v2' && so.dalil_turi != null && so.dalil_turi !== '') {
+          if (so.dalil_turi !== 'xarajat') return Response.json({ ok: false, error: "dalil_turi noto'g'ri" });
+          q.set('p_dalil_turi', 'xarajat');
         }
       }
       if (so.soro === 'mindmap_grafi_v2') {

@@ -189,6 +189,9 @@ const AMALLAR = {
   kontragent_ochir: { rpc: 't2_kontragent_ochir' },
   bajarilmadi_belgila: { rpc: 't2_bajarilmadi_belgila_v1' },
   bajarilmadi_bekor: { rpc: 't2_bajarilmadi_bekor_v1' },
+  /* Egasi 2026-10-24 (pul tahlili P1): haqiqiy xarajatni kategoriya/obyekt bilan qo'lda kiritish (idempotent) va bekor qilish. */
+  xarajat_kirit_v1: { rpc: 't2_xarajat_kirit_v1' },
+  xarajat_bekor_v1: { rpc: 't2_xarajat_bekor_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
   fakt_belgila_v2: { rpc: 't2_fakt_belgila_v2' },
   fakt_belgila: { rpc: 't2_fakt_belgila' },
@@ -2058,6 +2061,36 @@ export const onRequestPost: PagesFunction<{
         p_hujjat_id: hujjatId, p_sana: sana, p_zamena_qator_id: zamenaId, p_operation_id: String(so.operation_id),
       };
 
+    } else if (amal === 'xarajat_kirit_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const idYoki = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      const obyektId = idYoki(so.obyekt_id); const shartnomaId = idYoki(so.shartnoma_id);
+      const summa = Number(so.summa);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0
+        || (obyektId != null && !(Number.isInteger(obyektId) && obyektId > 0)) || (shartnomaId != null && !(Number.isInteger(shartnomaId) && shartnomaId > 0))) {
+        return Response.json({ ok: false, error: 'kompaniya_id, obyekt_id yoki shartnoma_id noto\'g\'ri' });
+      }
+      if (!Number.isFinite(summa) || summa === 0 || Math.abs(summa) > 1e13) return Response.json({ ok: false, error: 'summa noto\'g\'ri' });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana || ''))) return Response.json({ ok: false, error: 'sana YYYY-MM-DD shaklida bo\'lishi kerak' });
+      if (!['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'SUB', 'OTK'].includes(String(so.kat))) return Response.json({ ok: false, error: 'kat noto\'g\'ri' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_shartnoma_id: shartnomaId,
+        p_sana: String(so.sana), p_kat: String(so.kat), p_summa: summa,
+        p_hujjat_ref: so.hujjat_ref ? String(so.hujjat_ref).slice(0, 300) : null, p_izoh: so.izoh ? String(so.izoh).slice(0, 1000) : null,
+        p_operation_id: String(so.operation_id),
+      };
+
+    } else if (amal === 'xarajat_bekor_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const id = Number(so.id);
+      if (![kompaniyaId, id].every((n) => Number.isInteger(n) && n > 0)) {
+        return Response.json({ ok: false, error: 'kompaniya_id yoki id noto\'g\'ri' });
+      }
+      yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_xarajat_id: id,
+        p_kutilgan_versiya: so.versiya == null ? null : Number(so.versiya) };
     } else if (amal === 'bajarilmadi_bekor') {
       const kompaniyaId = Number(so.kompaniya_id);
       const id = Number(so.id);
