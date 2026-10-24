@@ -49,6 +49,8 @@ export interface SmetaQator {
   /** Resurs normasi (ish birligiga) — ko'rsatish uchun. */
   norma?: number | null;
   tartib?: number | null;
+  /** Kategoriya (t2_qator.kat: ЧЕЛ/МАШ/МАТ/ОБ/М/К/КАБ/БЕЗ СКЛАД) — ustamali summa uchun. */
+  kat?: string | null;
 }
 
 export type F2Holat = 'aniq' | 'xotira' | 'taklif' | 'topilmadi';

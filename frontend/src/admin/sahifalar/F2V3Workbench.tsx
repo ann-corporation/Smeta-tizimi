@@ -18,6 +18,8 @@ import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
 import { qoshilganmi, smetaQatorTuri, type SmetaQatorTuri } from '../../lib/f2-moslash-v3/qoshilgan';
 import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
+import type { KatKesim } from '../../lib/ustamali-summa';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { expandableDepths, expandableIdsAtDepth, flattenVisibleTree } from '../../lib/f2-link-review/tree';
 import { saqlanmaganIsh } from '../../_shared/versiya';
 import { t, t as tarj } from '../../i18n/til';
@@ -365,6 +367,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         sourceAmount: t.summa,
         sourceQuantity: f2HajmiSmetaBirligida(t, target).hajm,
         referenceUnitPrice: target?.narx ?? null,
+        kat: target?.kat ?? null,
       };
     })), [p.akt.jami.pryamye, ind, ij, S]);
 
@@ -1447,15 +1450,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             <div className="space-y-1.5 border-t border-border/60 pt-2">
               <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
                 {[
-                  ['F2 hujjat jami', jami, 'text-text', [reconciliation.sourceAmount.complete ? '' : `${reconciliation.sourceAmount.unknownCount} ta qator summasi noma’lum`, reconciliation.declaredDocumentAmount != null ? `hujjat ИТОГО ПРЯМЫЕ: ${fmt(reconciliation.declaredDocumentAmount, 2)}${reconciliation.sourceVsDeclaredDifference != null && Math.abs(reconciliation.sourceVsDeclaredDifference) >= 0.005 ? ` · farq ${fmt(reconciliation.sourceVsDeclaredDifference, 2)}` : ' ✓'}` : ''].filter(Boolean).join(' · ')],
-                  ['✓ Bog‘langan', ok, 'text-ok', `${fmt(ulush(ok), 1)} %`],
-                  ['◐ Tasdiq kutmoqda', taklif, 'text-warn', `${fmt(ulush(taklif), 1)} %`],
-                  ['✕ Bog‘lanmagan', yoq, 'text-danger', `${fmt(ulush(yoq), 1)} % — zamena / qo‘shimcha`],
-                ].map(([t, v, c, iz]) => (
+                  ['F2 hujjat jami', jami, 'text-text', [reconciliation.sourceAmount.complete ? '' : `${reconciliation.sourceAmount.unknownCount} ta qator summasi noma’lum`, reconciliation.declaredDocumentAmount != null ? `hujjat ИТОГО ПРЯМЫЕ: ${fmt(reconciliation.declaredDocumentAmount, 2)}${reconciliation.sourceVsDeclaredDifference != null && Math.abs(reconciliation.sourceVsDeclaredDifference) >= 0.005 ? ` · farq ${fmt(reconciliation.sourceVsDeclaredDifference, 2)}` : ' ✓'}` : ''].filter(Boolean).join(' · '), reconciliation.katKesim.source],
+                  ['✓ Bog‘langan', ok, 'text-ok', `${fmt(ulush(ok), 1)} %`, reconciliation.katKesim.confirmed],
+                  ['◐ Tasdiq kutmoqda', taklif, 'text-warn', `${fmt(ulush(taklif), 1)} %`, reconciliation.katKesim.suggested],
+                  ['✕ Bog‘lanmagan', yoq, 'text-danger', `${fmt(ulush(yoq), 1)} % — zamena / qo‘shimcha`, reconciliation.katKesim.unbound],
+                ].map(([t, v, c, iz, kk]) => (
                   <div key={t as string} className="rounded-md bg-surface-2/50 px-2 py-1.5">
-                    <span className="block text-[10.5px] text-text-mute">{t}</span>
-                    <b className={`block tabular-nums text-[14px] ${c}`}>{fmt(v as number, 2)}</b>
-                    {iz ? <span className="block text-[10px] text-text-mute">{iz}</span> : null}
+                    <span className="block text-[10.5px] text-text-mute">{t as string}</span>
+                    {/* Egasi 2026-10-24: har summa ustamali (asosiy) + ustamasiz (kichik). */}
+                    <SummaJuft className={`block ${c as string}`} obyektId={p.objectId} kompaniyaId={p.companyId} ustamasiz={v as number} katKesim={kk as KatKesim} />
+                    {iz ? <span className="block text-[10px] text-text-mute">{iz as string}</span> : null}
                   </div>
                 ))}
               </div>

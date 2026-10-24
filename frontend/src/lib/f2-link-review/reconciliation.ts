@@ -2,6 +2,8 @@
  * Source certified amounts are copied as-is; reference-price comparison is a separate
  * informational view and never rewrites an F2 amount. */
 
+import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../ustamali-summa';
+
 export type F2LinkState = 'confirmed' | 'suggested' | 'unbound' | 'excluded';
 
 export interface F2MoneyLine {
@@ -11,7 +13,12 @@ export interface F2MoneyLine {
   sourceQuantity: number | null;
   /** Baseline/reference estimate unit price for the bound canonical row. */
   referenceUnitPrice: number | null;
+  /** Bog'langan smeta qatorining kategoriyasi (t2_qator.kat) — ustamali summa uchun. Bog'lanmagan/noma'lum: null. */
+  kat?: string | null;
 }
+
+/** Holatlar bo'yicha kategoriya kesimi (ustamali summa uchun): `source` — hamma qatorlar. */
+export type F2KatKesimlar = Record<F2LinkState | 'source', KatKesim>;
 
 export interface AmountSum {
   knownAmount: number;
@@ -36,6 +43,7 @@ export interface F2LinkReconciliation {
   comparableReferenceAmount: AmountSum;
   f2VsReferenceDifference: number | null;
   f2VsReferencePercent: number | null;
+  katKesim: F2KatKesimlar;
 }
 
 interface AmountAccumulator { sum: AmountSum; correction: number }
@@ -66,9 +74,14 @@ export function reconcileF2Links(
   let referenceCorrection = 0;
   let referenceUnknownCount = 0;
   let confirmedLineCount = 0;
+  const katKesim: F2KatKesimlar = { source: bosKatKesim(), confirmed: bosKatKesim(), suggested: bosKatKesim(), unbound: bosKatKesim(), excluded: bosKatKesim() };
   for (const line of lines) {
     addAmount(sourceAccumulator, line.sourceAmount);
     addAmount(totals[line.state], line.sourceAmount);
+    // Bog'lanmagan qatorning kategoriyasi noma'lum — bog'lanish bo'lmasa smeta kat'i yo'q.
+    const kat = line.state === 'unbound' ? null : line.kat;
+    katKesimgaQosh(katKesim.source, kat, line.sourceAmount);
+    katKesimgaQosh(katKesim[line.state], kat, line.sourceAmount);
     if (line.state !== 'confirmed') continue;
     confirmedLineCount++;
     if (line.sourceQuantity == null || !Number.isFinite(line.sourceQuantity)
@@ -148,5 +161,6 @@ export function reconcileF2Links(
     comparableReferenceAmount,
     f2VsReferenceDifference,
     f2VsReferencePercent,
+    katKesim,
   };
 }

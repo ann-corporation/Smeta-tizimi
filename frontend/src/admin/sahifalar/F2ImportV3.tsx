@@ -6,6 +6,8 @@ import {
 } from '../../api/supabase';
 import { t2NakopitelniyToliq } from '../../api/t2-nakopitelniy';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { katKesimNomalumBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
@@ -72,7 +74,7 @@ type AktQisqa = { id: number; raqam: string | null; oy: string | null; holat: st
 const fmt = (n: number | null | undefined) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n));
 
 function smetaQatorlari(rows: T2Qator[]): SmetaQator[] {
-  return rows.map((q) => ({ id: q.id, otaId: q.ota_id, tur: q.tur ?? 'rs', kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx, norma: (q as T2Qator & { norma?: number | null }).norma ?? null, tartib: q.tartib }));
+  return rows.map((q) => ({ id: q.id, otaId: q.ota_id, tur: q.tur ?? 'rs', kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx, norma: (q as T2Qator & { norma?: number | null }).norma ?? null, tartib: q.tartib, kat: q.kat }));
 }
 
 type SnapQator = { uid: string; imzo?: string };
@@ -633,6 +635,17 @@ function Sessiya({ companyId }: { companyId: number }) {
     const ozgarish = new Set(rowsK.filter((r) => (r as { qoshimcha?: boolean }).qoshimcha || (r as { zamena?: boolean }).zamena).map((r) => r.id));
     return qoldiqOshishlari(payload.rows.map((r) => ({ qatorId: r.qatorId, hajm: r.certifiedQuantity })), smetaH, oldingi, band, ozgarish);
   }, [payload, rowsK, oldingi, band]);
+  /** Ustamali summa uchun kategoriya kesimlari (egasi 2026-10-24): kat — bog'langan smeta qatoridan (t2_qator.kat);
+   *  bog'lanmagan/kat'siz qator «kat noma'lum» bo'lib qoladi (taxminiy deb ko'rsatiladi, o'ylab topilmaydi). */
+  const yozishKesimi = useMemo(() => (payload && !payload.error
+    ? katKesimYigish(payload.rows, (r) => raw.get(r.qatorId)?.kat, (r) => r.certifiedAmount ?? null) : null), [payload, raw]);
+  const qatorlarKesimi = useMemo(() => {
+    if (!ind || !ij) return null;
+    return katKesimYigish(ind.qatorlar.filter((q) => q.barg), (q) => {
+      const b = ij.bog.get(q.uid);
+      return b && !ij.otkaz.has(q.uid) ? raw.get(b.qatorId)?.kat : null;
+    }, (q) => q.summa);
+  }, [ind, ij, raw]);
 
   /** ТН·КМ qatorlari: taklif (blok emas) — A = shu F2 dagi tonnali mos material Σ tonna × km; B = F2/smeta ulushi × smeta т·км. */
   const tkmQatorlar = useMemo(() => {
@@ -1306,8 +1319,10 @@ function Sessiya({ companyId }: { companyId: number }) {
             <span className="font-semibold text-text">{akt.fayl} · {akt.varaq}</span>
             <span className="text-text-dim">Ish: <b className="text-text">{akt.ishlarSoni}</b></span>
             <span className="text-text-dim">Qator (pul): <b className="text-text">{akt.barglarSoni}</b></span>
-            <span className="text-text-dim">Hujjat ИТОГО ПРЯМЫЕ: <b className="text-text tabular-nums">{fmt(akt.jami.pryamye)}</b></span>
-            <span className="text-text-dim">Qatorlar yig‘indisi: <b className={`tabular-nums ${jamiFarq != null && Math.abs(jamiFarq) > 1 ? 'text-warn' : 'text-ok'}`}>{fmt(akt.qatorlarJami)}</b></span>
+            <span className="inline-flex items-start gap-1 text-text-dim">Hujjat ИТОГО ПРЯМЫЕ: <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.jami.pryamye}
+              katKesim={qatorlarKesimi ? katKesimNomalumBilan(qatorlarKesimi, jamiFarq == null ? null : -jamiFarq) : null} /></span>
+            <span className="inline-flex items-start gap-1 text-text-dim">Qatorlar yig‘indisi: <span className={jamiFarq != null && Math.abs(jamiFarq) > 1 ? 'text-warn' : 'text-ok'}>
+              <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.qatorlarJami} katKesim={qatorlarKesimi} /></span></span>
             {akt.jami.ranee != null && <span className="text-text-dim">Ранее оформленным: <b className="tabular-nums text-text">{fmt(akt.jami.ranee)}</b></span>}
           </div>
           {kumReja && !done && (
@@ -1404,7 +1419,9 @@ function Sessiya({ companyId }: { companyId: number }) {
             }}>✕ {t('Avto bog‘lanishlarni uzish')}{avtoSoni ? ` (${avtoSoni})` : ''}</button>
           <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
           <span className="flex flex-wrap gap-x-3 text-[12px] text-text-dim" aria-label={t('Holat')}>
-            <span className="text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}</span>
+            <span className="inline-flex items-start gap-1 text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}
+              {yozishKesimi && payload && !payload.error && <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} kichik
+                ustamasiz={payload.rows.reduce((s, r) => s + (r.certifiedAmount ?? 0), 0)} katKesim={yozishKesimi} />}</span>
             {taklifSoni > 0 && <span className="text-warn">◐ {taklifSoni} {t('tasdiq kutmoqda')}</span>}
             {!!yozish?.qolgan.length && <span>✕ {yozish.qolgan.length} {t('kiritilmaydi')}</span>}
             {rejali.length + ochirish.length > 0 && <span className="text-sky-600 dark:text-sky-300">⏳ {rejali.length + ochirish.length} {t('o‘zgarish qoralamada')}</span>}
