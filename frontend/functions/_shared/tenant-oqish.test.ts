@@ -35,6 +35,11 @@ describe('O‘qish izolyatsiyasi (NTB ↔ Discover Invest)', () => {
     expect(oqishQarori('t2_viborka_qabul', { filtr: 'viborka_id=eq.7' }, pto())).toMatchObject({ ok: true, ota: { jadval: 't2_viborka', id: 7 } });
   });
 
+  it('t2_aosr_qator_holat — obyekt bo‘yicha izolyatsiya (aniq obyekt majburiy)', () => {
+    expect(oqishQarori('t2_aosr_qator_holat', { filtr: '' }, pto())).toMatchObject({ ok: false, code: 'ANCHOR_MAJBURIY' });
+    expect(oqishQarori('t2_aosr_qator_holat', { filtr: 'obyekt_id=eq.80' }, pto())).toEqual({ ok: true, qoshimchaFiltr: [], ota: { jadval: 't2_obyekt', id: 80 } });
+  });
+
   it('t2_kompaniya — faqat o‘zi a‘zo bo‘lganlar', () => {
     expect(oqishQarori('t2_kompaniya', { filtr: 'faol=is.true' }, pto())).toEqual({ ok: true, qoshimchaFiltr: [`id=in.(${NTB})`] });
   });
