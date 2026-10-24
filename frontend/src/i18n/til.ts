@@ -3,14 +3,14 @@
  *
  * QOIDA (docs: AGENTS.md "Til qoidasi"):
  *  • Interfeysdagi har matn `t('Oʻzbekcha lotin matn')` orqali — kalit = o'zbek lotin matnning o'zi.
- *  • Rus/ingliz tarjima — `lugat/ru.json`, `lugat/en.json` (kalit → tarjima). Topilmasa — o'zbekcha ko'rinadi.
+ *  • Rus/ingliz tarjima — `lugat/ru.json`, `lugat/en.json` + YANGI matnlar `lugat/qism/<mavzu>.json` ga
+ *    (`{ "kalit": { "ru": "...", "en": "..." } }`, har ish o'z fayli — PR lar ziddiyatsiz). Topilmasa — o'zbekcha ko'rinadi.
  *  • O'zbek kirill — `lotinKirill()` bilan avtomatik; qoidaga sig'maganlari `lugat/kirill-istisno.json`.
  *  • Rasmiy hujjatlar (F2, F3, M-29, akt…) — RUS tilida qoladi, bu yerga kirmaydi; smeta ma'lumoti tarjima qilinmaydi.
  *  • Til almashganda ilova qayta chiziladi (`TilChegarasi`), shuning uchun `t()` ni render ichida chaqirish kifoya.
  */
 import { useSyncExternalStore } from 'react';
-import ru from './lugat/ru.json';
-import en from './lugat/en.json';
+import { LUGAT_EN, LUGAT_RU, type Lugat } from './lugat';
 import kirillIstisno from './lugat/kirill-istisno.json';
 import { lotinKirill, sozIstisnolariniQoy } from './lotin-kirill';
 
@@ -22,8 +22,7 @@ export const TILLAR: { kod: Til; nom: string; qisqa: string }[] = [
   { kod: 'en', nom: 'English', qisqa: 'EN' },
 ];
 
-type Lugat = Record<string, string>;
-const LUGAT: Record<'ru' | 'en', Lugat> = { ru: ru as Lugat, en: en as Lugat };
+const LUGAT: Record<'ru' | 'en', Lugat> = { ru: LUGAT_RU, en: LUGAT_EN };
 const ISTISNO = kirillIstisno as { sozlar: Record<string, string>; matnlar: Record<string, string> };
 sozIstisnolariniQoy(ISTISNO.sozlar ?? {});
 
