@@ -13,7 +13,7 @@ import { kodKanon, normBir, normKod, normNom } from '../f2-match-engine';
 import type { F2Akt, F2Tugun } from '../smeta-anatomiya/f2';
 import type { F2ExactManbaTugun } from '../../test02/f2-exact-payload';
 import { guruhRzTanla } from './guruh';
-import { f2Imzo, gradeFarq, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
+import { f2Imzo, gradeFarq, razdelResursiTop, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
 
 export type BogHolat = 'aniq' | 'xotira' | 'taklif' | 'qolda';
 export interface Bog { qatorId: number; holat: BogHolat; usul: string }
@@ -192,10 +192,21 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
       bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' });
       band.add(t.id);
       boglandi++;
-    } else qoldi++;
+      continue;
+    }
+    const tashqi = r.guruh ? null : razdelTashqi(r, S, sIshId, band);
+    if (tashqi) { bog.set(r.uid, { qatorId: tashqi.qator.id, holat: tashqi.aniq ? 'qolda' : 'taklif', usul: tashqi.aniq ? 'razdel_ichida' : 'razdel_ichida_taklif' }); band.add(tashqi.qator.id); boglandi++; }
+    else qoldi++;
   }
   yangi = { bog, otkaz: yangi.otkaz };
   return { ij: yangi, boglandi, qoldi };
+}
+
+/** Ish ichida topilmagan resurs — shu ishning razdelidagi mustaqil resurs qatori (`razdelResursiTop`, yagona dvigatel qoidasi). */
+function razdelTashqi(r: F2Tugun, S: SmetaIndeks, sIshId: number, band: ReadonlySet<number>) {
+  const ish = S.byId.get(sIshId);
+  if (!ish) return null;
+  return razdelResursiTop<SmetaQator>(r, ish, (x) => (x.otaId != null ? S.byId.get(x.otaId) : null), (x) => S.bolalar.get(x.id) ?? [], (x) => !band.has(x.id));
 }
 
 /** Ish ichidagi bo'sh smeta resurslari orasidan F2 resursiga mosi: kod → kod-kanon → nom+birlik, yagona bo'lsa. */
@@ -253,6 +264,13 @@ export function ishlarResurslariniBogla(ij: IshJoyi, ind: F2Indeks, S: SmetaInde
         bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' }); band.add(t.id); boglandi++; continue;
       }
       if (rb) continue; // mavjud ◐ taklif o'z holicha qoladi
+      const tashqi = r.guruh ? null : razdelTashqi(r, S, b0.qatorId, band);
+      if (tashqi) {
+        bog.set(r.uid, { qatorId: tashqi.qator.id, holat: tashqi.aniq ? 'qolda' : 'taklif', usul: tashqi.aniq ? 'razdel_ichida' : 'razdel_ichida_taklif' });
+        band.add(tashqi.qator.id);
+        if (tashqi.aniq) boglandi++; else taklif++;
+        continue;
+      }
       let eng: { s: SmetaQator; o: number } | null = null;
       for (const x of hv) {
         if (!birMos(r.birlik, x.birlik)) continue;
@@ -289,7 +307,10 @@ export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdi
     const cb = bog.get(r.uid);
     if (cb) { tasdiq(r.uid); band.add(cb.qatorId); continue; }
     const t = resursMosTop(r, havza(r).filter((x) => !band.has(x.id)));
-    if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) { bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' }); band.add(t.id); boglandi++; }
+    if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) { bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' }); band.add(t.id); boglandi++; continue; }
+    // Operator ishni tasdiqladi — razdeldagi mustaqil resurs aynan yagona bo'lsa bog'lanadi, bir nechta bo'lsa ◐ qoladi.
+    const tashqi = r.guruh ? null : razdelTashqi(r, S, b0.qatorId, band);
+    if (tashqi) { bog.set(r.uid, { qatorId: tashqi.qator.id, holat: tashqi.aniq ? 'qolda' : 'taklif', usul: tashqi.aniq ? 'razdel_ichida' : 'razdel_ichida_taklif' }); band.add(tashqi.qator.id); boglandi++; }
     else qoldi++;
   }
   return { ij: { bog, otkaz: ij.otkaz }, tasdiqlandi, boglandi, qoldi };
