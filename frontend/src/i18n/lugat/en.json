@@ -3114,5 +3114,8 @@
   "xotiradan (oldingi F2)": "from memory (previous F-2)",
   "avto taklif ◐": "auto suggestion ◐",
   "avto": "auto",
-  "Oxirgi bog‘lash amalini qaytarish": "Undo the last linking action"
+  "Oxirgi bog‘lash amalini qaytarish": "Undo the last linking action",
+  "{n} ta qatorda narx yo‘q yoki 0 ({jami} resursdan) — bu LRV smeta, narxlash kerak (RES bilan). Narxsiz qatorlar summaga 0 bo‘lib kiradi. Baribir import qilinsinmi?": "{n} rows have no price or 0 (of {jami} resources) — this is an LRV estimate and needs pricing (via RES). Unpriced rows count as 0 in totals. Import anyway?",
+  "{n} ta qatorda narx yo‘q — import to‘xtatildi, RES narxlarini ulang": "{n} rows have no price — import stopped, attach the RES prices",
+  "Import to‘xtatildi: narxsiz qatorlar": "Import stopped: unpriced rows"
 }

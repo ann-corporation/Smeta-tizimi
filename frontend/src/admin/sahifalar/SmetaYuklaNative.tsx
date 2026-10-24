@@ -648,6 +648,31 @@ export function narxlarniDaraxtgaQoll(
 }
 
 /**
+ * Import oldidan: daraxtdagi narxsiz (narx yo'q yoki 0) rs/mat/ob qatorlari.
+ * Egasi (JONLI_SINOV #11): dastur eksporti narxsiz (LRV) bo'lsa import jim o'tmasin.
+ * Mashinist mehnati normativ bo'yicha 0 (МАШ-Ч ichida) -- xato emas, sanoqqa kirmaydi.
+ * `narx 0 = 0` qoidasi: bu BLOK emas -- faqat ko'rinadigan ogohlantirish, qaror foydalanuvchida.
+ */
+export function narxsizImportHisobi(tree: AktNode[]): { jami: number; narxsiz: number; normativ: number } {
+  let jami = 0, narxsiz = 0, normativ = 0;
+  const walk = (n: AktNode) => {
+    if (n.children && n.children.length) { n.children.forEach(walk); return; }
+    if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return;
+    jami++;
+    if (n.narx != null && n.narx !== 0) return;
+    if (mashinistMehnatimi(n.nom)) { normativ++; return; }
+    narxsiz++;
+  };
+  tree.forEach(walk);
+  return { jami, narxsiz, normativ };
+}
+
+/** Narxsiz import ogohlantirishi matni (foydalanuvchi tasdiqlashi uchun). */
+export function narxsizImportOgohlantirishi(h: { jami: number; narxsiz: number }): string {
+  return t('{n} ta qatorda narx yo‘q yoki 0 ({jami} resursdan) — bu LRV smeta, narxlash kerak (RES bilan). Narxsiz qatorlar summaga 0 bo‘lib kiradi. Baribir import qilinsinmi?', { n: h.narxsiz, jami: h.jami });
+}
+
+/**
  * Bir nechta RES varag'i tanlanganda ular bitta narx manbasi sifatida
  * ishlaydi. Bu yordamchi UI tugmasining holatiga bog'liq emas: import aynan
  * foydalanuvchi tanlagan barcha varaqlardan shu zahoti indeks quradi.
@@ -1207,6 +1232,10 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         pricedTrees.push({ sourceKey: lrv.sourceKey, tree: applied });
         categoryCandidates.push(...resKategoriyaNomzodlariniOl(rows));
       }
+      const paketNarxHisobi = narxsizImportHisobi(pricedTrees.flatMap((p) => p.tree));
+      if (paketNarxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(paketNarxHisobi))) {
+        setPhase(t('Import to‘xtatildi: narxsiz qatorlar')); return;
+      }
       if (categoryCandidates.length) await katNomzodlariniSaqla(categoryCandidates);
 
       const uploadedDocumentIds = new Map<string, number>();
@@ -1450,6 +1479,13 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         importTree = qollangan.tree;
         setNarxsizlar(qollangan.narxsizlar);
         yakunla('tayyor', qollangan.mosSoni + ' ta mos, ' + qollangan.mosEmasSoni + ' ta narxsiz qoldi');
+      }
+
+      // #11: narxsiz smeta jim o'tmasin -- ongli tasdiq (blok emas, lekin ko'rinadigan).
+      const narxHisobi = narxsizImportHisobi(importTree);
+      if (narxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(narxHisobi))) {
+        qadam('Narxsiz smeta'); yakunla('xato', t('{n} ta qatorda narx yo‘q — import to‘xtatildi, RES narxlarini ulang', { n: narxHisobi.narxsiz }));
+        setPhase(t('Import to‘xtatildi: narxsiz qatorlar')); return;
       }
 
       if (!rawFile.current) throw new Error('Smeta manba fayli topilmadi. XLSX faylni qayta tanlang.');
