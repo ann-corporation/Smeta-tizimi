@@ -7,6 +7,7 @@ import { abcHisobla, abcTekshir, son, type AbcResurs } from '../../lib/ish-abc';
 import { boshlangichHajm, boshqaJoySabab, variantResurslari } from '../../lib/xotira-fakt/boshqaJoy';
 import type { XotiraQator } from '../../lib/xotira-fakt/parse';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 
@@ -140,7 +141,7 @@ export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, on
                     <td className="p-1.5 text-text-dim">{r.birlik}</td>
                     <td className="p-1"><input value={r.norma} onChange={(e) => yangila(i, { norma: e.target.value })} aria-label={t('{n}-resurs normasi', { n: i + 1 })} className={`${inp} text-right`} /></td>
                     <td className="p-1.5 text-right tabular-nums">{fmt(hisob.qatorlar[i]?.hajm)}</td>
-                    <td className="p-1"><input value={r.narx} onChange={(e) => yangila(i, { narx: e.target.value, manba: e.target.value.trim() ? (r.manba === 'smeta' ? 'smeta' : 'qolda') : 'qolda' })} aria-label={t('{n}-resurs narxi', { n: i + 1 })} className={`${inp} text-right`} /></td>
+                    <td className="p-1"><MoneyInput value={r.narx} onValueChange={(v) => yangila(i, { narx: v, manba: v.trim() && r.manba === 'smeta' ? 'smeta' : 'qolda' })} inputMode="decimal" aria-label={t('{n}-resurs narxi', { n: i + 1 })} className={`${inp} text-right`} /></td>
                     <td className="p-1.5 text-right tabular-nums">{fmt(hisob.qatorlar[i]?.summa)}</td>
                   </tr>
                 ))}
