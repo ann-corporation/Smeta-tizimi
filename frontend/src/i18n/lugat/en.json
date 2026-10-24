@@ -3030,5 +3030,9 @@
   "Yozilganlarni ko‘rsatish": "Show saved",
   "narxsiz resurslar kirmagan": "resources without price are not included",
   "Smeta ustama bilan (QQS bilan)": "Estimate with markups (including VAT)",
-  "Ustama bilan (QQS bilan)": "With markups (including VAT)"
+  "Ustama bilan (QQS bilan)": "With markups (including VAT)",
+  "qoralamada": "in draft",
+  "Ustamali jami": "Total with markups",
+  "ustamasiz": "without markups",
+  "Ustamali summa (taxminiy)": "Amount with markups (approx.)"
 }

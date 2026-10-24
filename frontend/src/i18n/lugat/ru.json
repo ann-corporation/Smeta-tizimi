@@ -3030,5 +3030,9 @@
   "Yozilganlarni ko‘rsatish": "Показать записанные",
   "narxsiz resurslar kirmagan": "ресурсы без цены не включены",
   "Smeta ustama bilan (QQS bilan)": "Смета с накладными (включая НДС)",
-  "Ustama bilan (QQS bilan)": "С накладными (включая НДС)"
+  "Ustama bilan (QQS bilan)": "С накладными (включая НДС)",
+  "qoralamada": "в черновике",
+  "Ustamali jami": "Итого с накрутками",
+  "ustamasiz": "без накруток",
+  "Ustamali summa (taxminiy)": "Сумма с накрутками (ориентировочно)"
 }

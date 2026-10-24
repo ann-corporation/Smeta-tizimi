@@ -16,7 +16,7 @@ import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbT2AktYaratV2, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
-import { sbQatorHolatOl, type QatorHolat } from '../../api/t2-fakt';
+import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
@@ -26,18 +26,19 @@ import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
-import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
+import { qidiruvTayyorla } from '../../lib/qidiruv-normalizatsiya';
+import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  NARX_MANBA_NOMI, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, narxsizNomzodlar, sonOqi, ulushHajm,
+  NARX_MANBA_NOMI, bosKiritma, f2Jami, f2UstamaliJami, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, narxsizNomzodlar, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs,
 } from '../../lib/f2-tayyor';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
 const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', OSHDI: 'Fakt qoldig‘idan oshdi', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
-const OGOH_MATN: Record<NonNullable<F2Qator['ogoh']>, string> = { RESURS_CHEGARA: 'resurs fakt qoldig‘i bilan cheklandi', ARIFMETIKA: 'summa hajm × narxdan farq qiladi — hujjat summasi saqlanadi', SMETADAN_OSHDI: 'smeta hajmidan oshadi (ruxsat, ogohlantirish)' };
+const OGOH_MATN: Record<NonNullable<F2Qator['ogoh']>, string> = { RESURS_CHEGARA: 'resurs fakt qoldig‘i bilan cheklandi', ARIFMETIKA: 'summa hajm × narxdan farq qiladi — hujjat summasi saqlanadi', SMETADAN_OSHDI: 'smeta hajmidan oshadi (ruxsat, ogohlantirish)', AXBOROT_NARXSIZ: 'axborot qatori: narxsiz (smetada narxi yo‘q)' };
 const KAT_RANG: Record<string, string> = { ЧЕЛ: 'bg-sky-500/10 text-sky-500', МАШ: 'bg-amber-500/10 text-amber-500', МАТ: 'bg-emerald-500/10 text-emerald-500' };
 const kirit = 'rounded border border-border bg-bg px-2 py-1 text-right tabular-nums outline-none focus:border-accent';
 
@@ -57,6 +58,7 @@ export function F2TayyorlashNative() {
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [rows, setRows] = useState<T2Qator[]>([]);
   const [holat, setHolat] = useState<QatorHolat[]>([]);
+  const [qoralamaHajm, setQoralamaHajm] = useState<ReadonlyMap<number, number>>(new Map());
   /** Протокол согласования цен qatorlari (tasdiqlangan — kuchga kirgan oydan narx ustuvor). */
   const [protokolQ, setProtokolQ] = useState<NarxProtokolQator[]>([]);
   const [k, setK] = useState<F2Kiritma>(bosKiritma);
@@ -95,6 +97,7 @@ export function F2TayyorlashNative() {
     try {
       void Promise.resolve().then(() => narxProtokolQatorlariOl(obyektId)).then((r) => { if (dolzarb()) setProtokolQ(r.ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : []); }).catch(() => { if (dolzarb()) setProtokolQ([]); });
       void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); }).catch(() => { if (dolzarb()) setAosrsiz([]); });
+      void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId)).then((qh) => { if (dolzarb()) setQoralamaHajm(qh.ok ? qh.hajm : new Map()); }).catch(() => { if (dolzarb()) setQoralamaHajm(new Map()); });
       const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]);
       if (!dolzarb()) return;
       if (!d.ok || !h.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
@@ -126,6 +129,13 @@ export function F2TayyorlashNative() {
   const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba), [rows, holat, protokolNarx, manba]);
   const qatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
+  const [nkKoef, setNkKoef] = useState<Partial<NakrutkaKoeffitsientlar> | null>(null);
+  useEffect(() => {
+    setNkKoef(null); if (!validId) return; let tirik = true;
+    void t2ObyektNakrutka(obyektId).then((r) => { if (tirik && r.ok) setNkKoef(r.koeffitsientlar ?? null); }).catch(() => undefined);
+    return () => { tirik = false; };
+  }, [obyektId, validId]);
+  const ustamali = useMemo(() => f2UstamaliJami(qatorlar, nkKoef), [qatorlar, nkKoef]);
   const byId = useMemo(() => new Map(qatorlar.map((x) => [x.id, x])), [qatorlar]);
   const narxsizlar = useMemo(() => narxsizNomzodlar(qatorlar), [qatorlar]);
   const aosrsizId = useMemo(() => new Set(aosrsiz.map((x) => x.qator_id)), [aosrsiz]);
@@ -143,11 +153,11 @@ export function F2TayyorlashNative() {
   /** 30k qatorli smetada har tugma bosishda qayta filtrlamaslik: qidiruv matni kechiktirib qo'llanadi. */
   const qidirKech = useDeferredValue(qidir);
   const korinadi = useMemo((): F2Bolim[] => {
-    const s = qidirKech.trim().toLocaleLowerCase('ru');
+    const s = qidirKech.trim().toLocaleLowerCase('ru'); const qMos = qidiruvTayyorla(s);
     // «Faqat kiritilganlar»: hamma bo'limlardagi shu davrda hajmi kiritilgan ishlar (bo'lim tanlovi e'tiborga olinmaydi).
     const kiritilgan = (id: number) => k.hajm[id] !== undefined;
     if (!s && !faqatKiritilgan) return bolimlar.filter((b) => b.id === tanlanganBolim);
-    const mos = (nom: string, kod: string | null) => !s || nom.toLocaleLowerCase('ru').includes(s) || (kod ?? '').toLocaleLowerCase('ru').includes(s);
+    const mos = (nom: string, kod: string | null) => !s || qMos(nom) || (kod ?? '').toLocaleLowerCase('ru').includes(s);
     return bolimlar.map((b) => ({
       ...b,
       ishlar: b.ishlar.filter((i) => (!faqatKiritilgan || kiritilgan(i.id) || i.resurslar.some((r) => !r.avto && kiritilgan(r.id))) && (mos(i.nom, i.kod) || i.resurslar.some((r) => mos(r.nom, r.kod)))),
@@ -304,7 +314,7 @@ export function F2TayyorlashNative() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-[10px] text-text-mute">{i.kod}</span><span className="truncate text-[13px] font-semibold text-text">{i.nom}</span>
               {aosrsizId.has(i.id) && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">yashirin · АОСР yo‘q</span>}</div>
-            <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · oldin olingan <FmtN val={i.olingan} />{i.smeta != null && <> · smeta <FmtN val={i.smeta} /></>} · {i.resurslar.length} resurs</div>
+            <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · oldin olingan <FmtN val={i.olingan} />{(qoralamaHajm.get(i.id) ?? 0) > 0 && <b className="text-warn"> ({t('tasdiqlangan')} <FmtN val={i.olingan} /> + {t('qoralamada')} <FmtN val={qoralamaHajm.get(i.id) ?? 0} />)</b>}{i.smeta != null && <> · smeta <FmtN val={i.smeta} /></>} · {i.resurslar.length} resurs</div>
           </div>
           {(i.erkin || i.mumkin > 0) && <>
             <input aria-label={`F2 hajmi: ${i.nom}`} data-ish-hajm inputMode="decimal" value={k.hajm[i.id] ?? ''} onChange={(e) => yoz('hajm', i.id, e.target.value)} onKeyDown={(e) => hajmKlaviatura(e, i.id)} placeholder="hajm" className={`${kirit} w-24`} />
@@ -388,7 +398,7 @@ export function F2TayyorlashNative() {
         <section aria-label="F2 jami" className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-surface/95 px-4 py-2.5 shadow-2xl backdrop-blur">
           <span className="text-[12px] text-text-dim">Tanlangan qatorlar: <b className="text-text">{jami.qator}</b> ({jami.ish} ish)</span>
           {Object.entries(jami.kat).map(([kat, s]) => <span key={kat} className="text-[11px] text-text-dim">{kat}: <b className="tabular-nums text-text"><FmtN val={s} /></b></span>)}
-          <span className="text-[13px] font-semibold text-accent">Jami: <FmtN val={jami.summa} /></span>
+          {ustamali ? <><span className="text-[13px] font-semibold text-accent">{t('Ustamali jami')}: <FmtN val={ustamali.ustamali} /></span><span className="text-[11px] text-text-mute">{t('ustamasiz')}: <FmtN val={jami.summa} /></span></> : <span className="text-[13px] font-semibold text-accent">Jami: <FmtN val={jami.summa} /></span>}
           {jami.manba.smeta + jami.manba.oldingi_f2 + jami.manba.protokol > 0 && <span className="text-[11px] text-text-mute">taklif narx: {jami.manba.protokol ? `protokol ${jami.manba.protokol}, ` : ''}smeta {jami.manba.smeta}, oldingi F2 {jami.manba.oldingi_f2}</span>}
           {jami.narxsiz > 0 && <span className="text-[11px] text-warn">Narx asosi yo‘q: {jami.narxsiz} — ИТОГО bo‘sh chiqadi</span>}
           {jami.ogoh > 0 && <span className="text-[11px] text-warn">Ogohlantirishlar: {jami.ogoh}</span>}
