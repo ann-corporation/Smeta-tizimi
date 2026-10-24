@@ -4,6 +4,8 @@ import { ShoppingCart, Gavel, PackageSearch, Plus, TrendingDown, Clock, ChevronR
 import { toast } from '../umumiy/ui/Toast';
 import { FmtN } from '../lib/format';
 import { useKompaniya } from './KompaniyaTanlov';
+import { t } from '../i18n/til';
+import { BirjaTaqqoslash } from './BirjaTaqqoslash';
 import {
   sbBirjaSorovOl,
   sbBirjaTakliflarOl,
@@ -146,7 +148,7 @@ export default function TestBirja() {
       <div className="flex gap-1 bg-surface border border-border p-1 rounded-lg w-max mb-6">
         {[
           { id: 'rfq', label: 'Faol So\'rovlar (RFQ)', icon: Gavel },
-          { id: 'taklif', label: 'Kelgan Takliflar', icon: PackageSearch },
+          { id: 'taklif', label: t('Yetkazuvchi kabineti'), icon: PackageSearch },
           { id: 'tarix', label: 'Xarid Tarixi', icon: Clock }
         ].map(tab => (
           <button
@@ -346,6 +348,8 @@ export default function TestBirja() {
                   <p>Hozircha hech qanday zavod taklif bermagan.</p>
                 </div>
               ) : (
+                <>
+                <BirjaTaqqoslash rfq={tanlanganRfq} takliflar={takliflar} />
                 <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
                   {takliflar.map((t, idx) => (
                     <div key={t.id} className={`bg-surface border p-4 rounded-xl flex items-center justify-between ${idx === 0 ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-border'}`}>
@@ -364,6 +368,7 @@ export default function TestBirja() {
                     </div>
                   ))}
                 </div>
+                </>
               )}
             </div>
           </div>
@@ -372,9 +377,24 @@ export default function TestBirja() {
 
       {/* TARIQ / TAKLIF TAB EMPTY STATES */}
       {activeTab === 'taklif' && (
-        <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-xl">
-           <PackageSearch size={32} className="text-cyan-400 mx-auto mb-4" />
-           <p className="text-text-dim">Bu yerda siz tomondan boshqa kompaniyalarga berilgan takliflar (Sotuv) ko'rinadi.</p>
+        <div className="bg-surface border border-border rounded-xl p-6 shadow-xl">
+           <h2 className="text-lg font-bold text-white mb-1 flex items-center gap-2"><PackageSearch size={20} className="text-cyan-400" />{t('Yetkazuvchi kabineti')}</h2>
+           <p className="text-sm text-text-dim mb-4">{t("Narx bera oladigan ochiq so'rovlar (boshqa kompaniyalar e'lon qilgan)")}</p>
+           {(() => {
+             const ochiq = rfqList.filter((r) => r.kompaniya_id !== joriy?.id && !['yopiq', 'yopildi', 'bekor'].includes(r.holat));
+             if (ochiq.length === 0) return <p className="text-sm text-text-dim">{t("Hozircha sizga narx berish uchun ochiq so'rov yo'q.")}</p>;
+             return (
+               <ul className="divide-y divide-border/50">
+                 {ochiq.map((r) => (
+                   <li key={r.id} className="py-2 flex items-center justify-between gap-3">
+                     <span className="text-white">{r.nom} <span className="text-sky-400 font-mono text-sm"><FmtN val={r.hajm} /> {r.birlik}</span></span>
+                     <button onClick={() => { setActiveTab('rfq'); korishRfq(r); }} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-sm">{t('Narx berish')}</button>
+                   </li>
+                 ))}
+               </ul>
+             );
+           })()}
+           <p className="text-xs text-text-mute mt-4">{t("Mahsulot katalogi, ombor joylashuvi va buyurtmalar yetkazuvchi kabinetiga keyingi bosqichda qo'shiladi.")}</p>
         </div>
       )}
       {activeTab === 'tarix' && (
