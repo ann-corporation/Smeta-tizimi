@@ -64,6 +64,7 @@ const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
 const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
 const ZakazchikKabinet = lazy(() => import('./admin/zakazchik/ZakazchikKabinet'));
+const ObyektPortali = lazy(() => import('./admin/zakazchik/ObyektPortali'));
 const TomonlarAloqa = lazy(() => import('./admin/zakazchik/TomonlarAloqa'));
 const TaqdimlarInbox = lazy(() => import('./admin/zakazchik/TaqdimlarInbox'));
 const Murojaatlar = lazy(() => import('./admin/zakazchik/Murojaatlar'));
@@ -189,6 +190,7 @@ export default function App() {
           <Route path="hujjat-nazorat" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><HujjatNazoratPage /></Suspense>} />
           <Route path="participants" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><ParticipantsPage /></Suspense>} />
           <Route path="zakazchik" element={<Suspense fallback={null}><ZakazchikKabinet /></Suspense>} />
+          <Route path="zakazchik/obyekt/:aloqaId/:obyektId" element={<Suspense fallback={null}><ObyektPortali /></Suspense>} />
           <Route path="aloqalar" element={<Suspense fallback={null}><TomonlarAloqa /></Suspense>} />
           <Route path="taqdimlar" element={<Suspense fallback={null}><TaqdimlarInbox /></Suspense>} />
           <Route path="murojaatlar" element={<Suspense fallback={null}><Murojaatlar /></Suspense>} />
