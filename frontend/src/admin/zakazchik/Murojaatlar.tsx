@@ -177,6 +177,8 @@ export default function Murojaatlar() {
   const [turlar, setTurlar] = useState<MurojaatTuri[]>([]);
   const [tanlangan, setTanlangan] = useState<number | null>(null);
   const [xato, setXato] = useState('');
+  const [turFiltr, setTurFiltr] = useState('');
+  const korinadi = turFiltr ? royxat.filter((x) => x.turi === turFiltr) : royxat;
 
   const yukla = useCallback(async () => {
     if (!kompaniyaId) return;
@@ -203,12 +205,14 @@ export default function Murojaatlar() {
           </div>
           <select aria-label={t('Holat')} className={inp} value={holat} onChange={(e) => setHolat(e.target.value)}>
             <option value="">{t('Barcha holatlar')}</option>{Object.keys(HOLAT_NOMI).map((h) => <option key={h} value={h}>{t(HOLAT_NOMI[h])}</option>)}</select>
+          <select aria-label={t('Turi')} className={inp} value={turFiltr} onChange={(e) => setTurFiltr(e.target.value)}>
+            <option value="">{t('Barcha turlar')}</option>{turlar.map((x) => <option key={x.kalit} value={x.kalit}>{turNomi(x.kalit, turlar)}</option>)}</select>
         </div>
         {xato && <div role="alert" className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{xato}</div>}
         <div className="grid gap-3 lg:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
           <Bolim sarlavha="Ro‘yxat">
-            {royxat.length === 0 ? <p className="text-sm text-text-dim">{t('Murojaat yo‘q')}</p> : (
-              <ul className="max-h-[65vh] space-y-1 overflow-auto">{royxat.map((x) => (
+            {korinadi.length === 0 ? <p className="text-sm text-text-dim">{t('Murojaat yo‘q')}</p> : (
+              <ul className="max-h-[65vh] space-y-1 overflow-auto">{korinadi.map((x) => (
                 <li key={x.id}><button type="button" onClick={() => setTanlangan(x.id)} className={`w-full rounded border px-2 py-1.5 text-left text-xs hover:border-accent ${tanlangan === x.id ? 'border-accent bg-accent/5' : 'border-border'}`}>
                   <div className="flex items-center justify-between gap-2"><b>{x.sarlavha}</b>
                     <span className={`rounded px-1.5 py-0.5 text-[10px] ${x.kechikkan ? 'bg-danger/15 text-danger' : x.holat === 'yopildi' ? 'bg-ok/15 text-ok' : 'bg-warn/15 text-warn'}`}>{x.kechikkan ? t('Kechikkan') : t(HOLAT_NOMI[x.holat] ?? x.holat)}</span></div>
