@@ -40,7 +40,7 @@ begin
   if v_xato is not null then return jsonb_build_object('ok', false, 'code', v_xato); end if;
   if p_obyekt_id is not null and not exists (select 1 from public.t2_obyekt o where o.id = p_obyekt_id and o.kompaniya_id = p_kompaniya_id) then
     return jsonb_build_object('ok', false, 'code', 'OBYEKT_BEGONA'); end if;
-  if not public._t2_obyekt_doira_ok_yet(p_actor_id, p_kompaniya_id, p_obyekt_id) then return jsonb_build_object('ok', false, 'code', 'DOIRA_YOQ'); end if;
+  if not (p_obyekt_id is null or public._t2_obyekt_doira_ok(p_actor_id, p_kompaniya_id, p_obyekt_id)) then return jsonb_build_object('ok', false, 'code', 'DOIRA_YOQ'); end if;
   if p_muddat is not null and p_muddat <= now() then return jsonb_build_object('ok', false, 'code', 'MUDDAT_OTGAN'); end if;
   if p_doira = 'taklif' then
     select coalesce(array_agg(distinct x), '{}') into v_rec from unnest(coalesce(p_qabul_kompaniya_idlar, '{}')) x where x is not null;
@@ -76,7 +76,7 @@ begin
     end loop;
   end if;
   perform public._t2_yet_hodisa(p_kompaniya_id, 'tender.elon', 't2_birja_rfq', v_id, jsonb_build_object('tur', p_tur, 'doira', p_doira, 'qator_soni', v_n),
-            p_actor_id, p_operation_id, p_obyekt_id, v_rec);
+            p_actor_id, p_operation_id, p_obyekt_id, null, v_rec);
   return jsonb_build_object('ok', true, 'id', v_id, 'versiya', 1, 'qator_soni', v_n);
 end $$;
 
@@ -133,7 +133,7 @@ begin
             nullif(v_q->>'mavjud_miqdor', '')::numeric, nullif(left(v_q->>'izoh', 500), ''));
   end loop;
   perform public._t2_yet_hodisa(p_kompaniya_id, 'tender.taklif', 't2_birja_taklif', v_tid, jsonb_build_object('rfq_id', v_rfq.id, 'holat', 'berildi', 'qator_soni', jsonb_array_length(p_qatorlar)),
-            p_actor_id, p_operation_id, v_rfq.obyekt_id, array[v_rfq.kompaniya_id]);
+            p_actor_id, p_operation_id, v_rfq.obyekt_id, public._t2_yet_aloqa_faol(p_kompaniya_id, v_rfq.kompaniya_id), array[v_rfq.kompaniya_id]);
   return jsonb_build_object('ok', true, 'id', v_tid, 'versiya', 1);
 end $$;
 
@@ -154,7 +154,7 @@ begin
   if v_n = 0 then return jsonb_build_object('ok', false, 'code', 'VERSIYA_ESKI'); end if;
   select * into v_rfq from public.t2_birja_rfq where id = v_t.rfq_id;
   perform public._t2_yet_hodisa(p_kompaniya_id, 'tender.taklif', 't2_birja_taklif', v_t.id, jsonb_build_object('rfq_id', v_t.rfq_id, 'holat', 'qaytarib_olindi'),
-            p_actor_id, p_operation_id, v_rfq.obyekt_id, array[v_rfq.kompaniya_id]);
+            p_actor_id, p_operation_id, v_rfq.obyekt_id, public._t2_yet_aloqa_faol(p_kompaniya_id, v_rfq.kompaniya_id), array[v_rfq.kompaniya_id]);
   return jsonb_build_object('ok', true, 'id', v_t.id, 'versiya', p_kutilgan_versiya + 1);
 end $$;
 
@@ -175,7 +175,7 @@ begin
   if not found then return jsonb_build_object('ok', false, 'code', 'TOPILMADI'); end if;
   if v_rfq.holat not in ('elon', 'ochiq') then return jsonb_build_object('ok', false, 'code', 'HOLAT', 'holat', v_rfq.holat); end if;
   if v_rfq.versiya <> p_kutilgan_versiya then return jsonb_build_object('ok', false, 'code', 'VERSIYA_ESKI', 'versiya', v_rfq.versiya); end if;
-  select * into v_t from public.t2_birja_taklif where id = p_taklif_id and rfq_id = v_rfq.id and holat in ('berildi', 'faol') for update;
+  select * into v_t from public.t2_birja_taklif where id = p_taklif_id and rfq_id = v_rfq.id and holat in ('berildi', 'faol', 'golib') for update;
   if not found then return jsonb_build_object('ok', false, 'code', 'TAKLIF_YOQ'); end if;
   select array_agg(tq.id order by q.qator_no), array_agg(q.id order by q.qator_no) into v_tqs, v_rqs
     from public.t2_birja_taklif_qator tq join public.t2_birja_rfq_qator q on q.id = tq.rfq_qator_id
@@ -205,7 +205,7 @@ begin
   end if;
   perform public._t2_yet_hodisa(p_kompaniya_id, 'tender.golib', 't2_birja_rfq', v_rfq.id,
             jsonb_build_object('taklif_id', v_t.id, 'buyurtma_id', (v_res->>'id')::bigint, 'qator_soni', cardinality(v_rqs), 'toliq', v_qat_son = v_golib_son),
-            p_actor_id, p_operation_id, v_rfq.obyekt_id, array[v_t.kompaniya_id]);
+            p_actor_id, p_operation_id, v_rfq.obyekt_id, v_aloqa, array[v_t.kompaniya_id]);
   return jsonb_build_object('ok', true, 'buyurtma_id', (v_res->>'id')::bigint, 'rfq_holat', case when v_qat_son = v_golib_son then 'golib_tanlandi' else v_rfq.holat end,
                             'rfq_versiya', v_rfq.versiya + 1);
 end $$;
@@ -224,7 +224,7 @@ begin
   update public.t2_birja_rfq set holat = v_ga, yopilgan_vaqt = now(), versiya = versiya + 1, yangilandi = now() where id = v_rfq.id;
   update public.t2_birja_taklif set holat = 'yutqazdi', versiya = versiya + 1, yangilandi = now() where rfq_id = v_rfq.id and holat in ('berildi', 'faol');
   perform public._t2_yet_hodisa(p_kompaniya_id, 'tender.golib', 't2_birja_rfq', v_rfq.id, jsonb_build_object('holat', v_ga, 'taklif_id', null),
-            p_actor_id, p_operation_id, v_rfq.obyekt_id,
+            p_actor_id, p_operation_id, v_rfq.obyekt_id, null,
             coalesce((select array_agg(distinct t.kompaniya_id) from public.t2_birja_taklif t where t.rfq_id = v_rfq.id), '{}'));
   return jsonb_build_object('ok', true, 'id', v_rfq.id, 'versiya', p_kutilgan_versiya + 1, 'holat', v_ga);
 end $$;

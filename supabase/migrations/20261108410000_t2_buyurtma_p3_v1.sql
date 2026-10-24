@@ -1,7 +1,9 @@
 -- P3 BUYURTMA (E7 §3) — t2_buyurtma + t2_buyurtma_qator + RPC lar. Egasi: tomon-yetkazuvchi.
 -- Kontrakt: E2 §5 (RLS+SECURITY DEFINER), E3 §4.2–4.3 (yuklashga_tayyor -> t2_yuk_yarat_v1), E7 §3.1–3.2.
--- ALDINDAN KERAK: F1 `t2_outbox_yoz` (E3 §6). t2_yuk_yarat_v1 (F3b, logistika) bo'lmasa — hand-off faqat outbox hodisasi
--- `buyurtma.yuklashga_tayyor` bilan bajariladi (E6 F3a mezoni); funksiya paydo bo'lgach o'zi chaqiriladi (dinamik).
+-- ALDINDAN KERAK: F1 (20261108000000, 000100: t2_outbox_yoz, t2_primitiv_tur/_dalil, t2_bosqich_katalog) va ruxsat fayli 20261108010000
+-- (procurement.*/supply.*/warehouse.receive capability) — SHULARDAN KEYIN qo'llang.
+-- Hand-off (E3 §4.3): yuklashga_tayyor da AVVAL buyurtma yangilanadi, KEYIN logistikaning ichki `_t2_yuk_buyurtmadan_v1(actor, buyurtma_id, op)`
+-- (F3b) chaqiriladi; ok=false -> butun o'tish bekor. Funksiya yo'q bo'lsa faqat outbox `buyurtma.yuklashga_tayyor` (E6 F3a mezoni).
 --
 -- Egalik: buyurtma XARIDOR tenantida (kompaniya_id). Yetkazuvchi (ijrochi_kompaniya_id) — faol aloqa (aloqa_id) orqali ko'radi
 -- va faqat o'z bosqichlarini o'tkazadi. Boshqa tenant jadvaliga to'g'ridan UPDATE yo'q: faqat shu RPC lar.
@@ -15,8 +17,11 @@
 --                      qabul qilindi=qabul_qilindi_yakuniy.
 
 do $$ begin
-  if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 't2_outbox_yoz') then
-    raise exception 'F1 kerak: public.t2_outbox_yoz topilmadi (E3 §6). Avval F1 migratsiyasini qo''llang.';
+  if to_regprocedure('public.t2_outbox_yoz(bigint,text,text,bigint,jsonb,bigint,uuid,bigint,bigint,bigint[],bigint[])') is null then
+    raise exception 'F1 kerak: public.t2_outbox_yoz topilmadi (E3 §6). Avval F1 migratsiyasini (20261108000000, 000100) qo''llang.';
+  end if;
+  if to_regprocedure('public.t2_permission_allowed_v2(bigint,bigint,text)') is null or to_regprocedure('public._t2_obyekt_doira_ok(bigint,bigint,bigint)') is null then
+    raise exception 'F1/ruxsat kerak: t2_permission_allowed_v2 yoki _t2_obyekt_doira_ok topilmadi. 20261108010000 (capability katalogi) dan KEYIN qo''llang.';
   end if;
 end $$;
 
@@ -35,9 +40,9 @@ create table if not exists public.t2_buyurtma (
   summa_nds_siz numeric(20,2) check (summa_nds_siz is null or summa_nds_siz >= 0),   -- qatorlar yig'indisi; biror qator narxsiz bo'lsa NULL
   yetkazish_narx numeric(20,2) check (yetkazish_narx is null or yetkazish_narx >= 0),
   qqs_foiz numeric(5,2) check (qqs_foiz is null or qqs_foiz between 0 and 100),
-  shart jsonb not null default '{}'::jsonb check (pg_column_size(shart) <= 4096),   -- yetkazish: manzil, lat, lng, oyna_dan, oyna_gacha, qabul_qiluvchi_actor_id, tolovchi, transport_turi
-  olish jsonb not null default '{}'::jsonb check (pg_column_size(olish) <= 4096),   -- yetkazuvchi ombori: ombor_nomi, manzil, lat, lng, aloqa_tel, tayyor_dan, tayyor_gacha
-  meta jsonb not null default '{}'::jsonb check (pg_column_size(meta) <= 2048),
+  shart jsonb not null default '{}'::jsonb check (octet_length(shart::text) <= 4096),   -- yetkazish: manzil, lat, lng, oyna_dan, oyna_gacha, qabul_qiluvchi_actor_id, tolovchi, transport_turi
+  olish jsonb not null default '{}'::jsonb check (octet_length(olish::text) <= 4096),   -- yetkazuvchi ombori: ombor_nomi, manzil, lat, lng, aloqa_tel, tayyor_dan, tayyor_gacha
+  meta jsonb not null default '{}'::jsonb check (octet_length(meta::text) <= 2048),
   faktura_id bigint,                                                                -- t2_faktura (hisob-faktura bosqichi)
   izoh text check (izoh is null or length(izoh) <= 2000),
   versiya integer not null default 1,
@@ -78,71 +83,55 @@ create index if not exists t2_buyurtma_qator_k_idx on public.t2_buyurtma_qator (
 alter table public.t2_buyurtma_qator enable row level security;
 revoke all on table public.t2_buyurtma_qator from anon, authenticated;
 
--- Bosqich katalogi (F1: t2_bosqich_katalog) bor bo'lsa — material bosqichlari qo'shiladi (yangi bosqich = 1 qator). Ustunlar E7 §3.1.
-do $$ begin
-  if to_regclass('public.t2_bosqich_katalog') is not null then
-    execute $q$insert into public.t2_bosqich_katalog (primitiv, tur, kalit, nom, nom_ru, tartib, kim) values
-      ('buyurtma','material','tayyorlanmoqda','Tayyorlanmoqda','Готовится',10,'ijrochi'),
-      ('buyurtma','material','yuklashga_tayyor','Yuklashga tayyor','Готов к погрузке',20,'ijrochi'),
-      ('buyurtma','material','yolda','Yo''lda','В пути',30,'ijrochi'),
-      ('buyurtma','material','yetkazildi','Yetkazildi','Доставлено',40,'ijrochi'),
-      ('buyurtma','material','hisob_faktura','Hisob-faktura','Счёт-фактура',50,'ijrochi')
-      on conflict do nothing$q$;
-  end if;
-exception when others then
-  raise notice 'bosqich katalogi to''ldirilmadi (%): F1 ustunlari boshqacha bo''lishi mumkin — RPC lar statik xaritadan foydalanadi', sqlerrm;
-end $$;
+-- Bosqich katalogi (F1): material bosqichlari F1 da bor (tayyorlanmoqda, yuklashga_tayyor, yolda, yetkazildi); bu yerdan faqat hisob_faktura qo'shiladi.
+insert into public.t2_bosqich_katalog (primitiv, tur, kalit, nom, nom_ru, kim, tartib, faol)
+values ('buyurtma', 'material', 'hisob_faktura', 'Hisob-faktura', 'Счёт-фактура', 'ijrochi', 50, true)
+on conflict do nothing;
 
 -- ───────────────────────── 2. Yordamchilar ─────────────────────────
--- Rol -> amal. (Capability katalogi `procurement.*`/`supply.*` egasi tasdig'ini kutmoqda (E2 §3.1 ⚠); tasdiqlangach
--- shu funksiya t2_require_permission_v2 ga almashtiriladi — boshqa joy o'zgarmaydi.)
-create or replace function public._t2_yet_azo(p_actor_id bigint, p_kompaniya_id bigint, p_amal text) returns text
-language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_rol text;
+-- Ruxsat (E2 §3.1; 20261108010000 dan KEYIN qo'llanadi): amal -> capability (t2_permission_allowed_v2: a'zolik + rol + qo'shimcha ruxsat).
+--   xarid_yoz -> procurement.write | xarid_tasdiq -> procurement.approve | taklif -> supply.offer | bajarish -> supply.fulfil
+--   qabul -> warehouse.receive YOKI procurement.write | korish -> procurement.read YOKI supply.offer YOKI supply.fulfil
+create or replace function public._t2_yet_azo(p_actor_id bigint, p_kompaniya_id bigint, p_amal text) returns void
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare v_ok boolean;
 begin
-  v_rol := public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
-  if not (case p_amal
-      when 'xarid_yoz'   then v_rol in ('superadmin','admin','boss','rahbar','director','pto','taminotchi')
-      when 'xarid_tasdiq' then v_rol in ('superadmin','admin','boss','rahbar','director','pto')
-      when 'taklif'      then v_rol in ('superadmin','admin','boss','rahbar','director','taminotchi')
-      when 'bajarish'    then v_rol in ('superadmin','admin','boss','rahbar','director','taminotchi')
-      when 'qabul'       then v_rol in ('superadmin','admin','boss','rahbar','director','pto','taminotchi','omborchi','prorab')
-      when 'korish'      then true
-      else false end) then
-    raise exception 'YET_ROL_YETARLI_EMAS: % roli "%" amalini bajara olmaydi', v_rol, p_amal using errcode = '42501';
-  end if;
-  return v_rol;
+  v_ok := case p_amal
+    when 'xarid_yoz'    then public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'procurement.write')
+    when 'xarid_tasdiq' then public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'procurement.approve')
+    when 'taklif'       then public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'supply.offer')
+    when 'bajarish'     then public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'supply.fulfil')
+    when 'qabul'        then public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'warehouse.receive')
+                          or public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'procurement.write')
+    when 'korish'       then public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'procurement.read')
+                          or public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'supply.offer')
+                          or public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'supply.fulfil')
+    else false end;
+  if not coalesce(v_ok, false) then raise exception 'PERMISSION_DENIED' using errcode = '42501'; end if;
 end $$;
 
 -- Ikki kompaniya orasidagi faol aloqa (kontakt yoki shartnoma) id si; yo'q bo'lsa NULL.
+-- 'obyekt:%' turidagi aloqa (havola orqali ulashish, mehmon) buyurtma/tender uchun aloqa EMAS.
 create or replace function public._t2_yet_aloqa_faol(p_a bigint, p_b bigint) returns bigint
 language sql stable security definer set search_path = public, pg_temp as $$
   select a.id from public.t2_tomon_aloqa a
-   where a.holat = 'faol'
+   where a.holat = 'faol' and a.turi not like 'obyekt:%'
      and ((a.taklif_kompaniya_id = p_a and a.qabul_kompaniya_id = p_b) or (a.taklif_kompaniya_id = p_b and a.qabul_kompaniya_id = p_a))
    order by a.id limit 1
 $$;
 
 create or replace function public._t2_yet_hodisa(p_kompaniya_id bigint, p_mavzu text, p_jadval text, p_id bigint, p_payload jsonb,
-                                                 p_actor bigint, p_op uuid, p_obyekt bigint, p_qabul bigint[]) returns void
+                                                 p_actor bigint, p_op uuid, p_obyekt bigint, p_aloqa bigint, p_qabul bigint[]) returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
 begin
-  perform public.t2_outbox_yoz(p_kompaniya_id, p_mavzu, p_jadval, p_id, p_payload, p_actor, p_op, p_obyekt_id => p_obyekt, p_qabul => p_qabul);
+  perform public.t2_outbox_yoz(p_kompaniya_id, p_mavzu, p_jadval, p_id, p_payload, p_actor, p_op, p_obyekt, p_aloqa, coalesce(p_qabul, '{}'), '{}');
 end $$;
 
--- Tur tekshiruvi: F1 katalogi (t2_primitiv_tur) bo'lsa — undan, bo'lmasa E7 ro'yxati.
+-- Tur tekshiruvi: F1 katalogi — AYNAN shu primitiv uchun (topshiriq turi 'ish' buyurtmaga o'tmasin).
 create or replace function public._t2_yet_tur_ok(p_primitiv text, p_tur text) returns boolean
-language plpgsql stable security definer set search_path = public, pg_temp as $$
-declare v boolean;
-begin
-  if to_regclass('public.t2_primitiv_tur') is not null then
-    begin
-      execute 'select exists (select 1 from public.t2_primitiv_tur where kalit = $1 and coalesce(faol, true))' into v using p_tur;
-      return v;
-    exception when others then null; end;
-  end if;
-  return p_tur in ('material','xizmat','subpudrat','transport','texnika_ijara','loyihalash','laboratoriya');
-end $$;
+language sql stable security definer set search_path = public, pg_temp as $$
+  select exists (select 1 from public.t2_primitiv_tur t where t.primitiv = p_primitiv and t.kalit = p_tur and t.faol)
+$$;
 
 -- Bosqich -> holat xaritasi (statik; katalog faqat nom/tartib uchun).
 create or replace function public._t2_buyurtma_bosqich_holat(p_bosqich text) returns text
@@ -170,20 +159,29 @@ language sql immutable as $$
   )
 $$;
 
--- Dalil hujjatlari (foto, TTN, sertifikat) — F1 `t2_primitiv_dalil`. Jadval yo'q bo'lsa dalil qabul QILINMAYDI (jim yo'qolmasin).
-create or replace function public._t2_yet_dalil_yoz(p_primitiv text, p_id bigint, p_hujjatlar bigint[]) returns jsonb
+-- Dalil hujjatlari (foto, TTN, sertifikat) — F1 `t2_primitiv_dalil`. Hujjat AYNAN biriktiruvchi tenantniki bo'lishi shart
+-- (aks holda begona hujjat id sini biriktirib qarshi tomonga ochib yuborish mumkin) -> 'DALIL_BEGONA'.
+create or replace function public._t2_yet_dalil_tekshir(p_kompaniya_id bigint, p_hujjatlar bigint[]) returns boolean
+language sql stable security definer set search_path = public, pg_temp as $$
+  select coalesce(p_hujjatlar, '{}') = '{}' or (
+    select count(*) from public.t2_document_registry d where d.id = any (p_hujjatlar) and d.kompaniya_id = p_kompaniya_id
+  ) = (select count(distinct x) from unnest(p_hujjatlar) x)
+$$;
+
+create or replace function public._t2_yet_dalil_yoz(p_kompaniya_id bigint, p_actor_id bigint, p_primitiv text, p_id bigint, p_hujjatlar bigint[]) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare h bigint; n integer := 0;
 begin
+  if p_primitiv not in ('buyurtma', 'tender', 'tender_taklif') then return jsonb_build_object('ok', false, 'code', 'DALIL_PRIMITIV'); end if;
   if p_hujjatlar is null or cardinality(p_hujjatlar) = 0 then return jsonb_build_object('ok', true, 'soni', 0); end if;
-  if to_regclass('public.t2_primitiv_dalil') is null then return jsonb_build_object('ok', false, 'code', 'DALIL_JADVALI_YOQ'); end if;
+  if not public._t2_yet_dalil_tekshir(p_kompaniya_id, p_hujjatlar) then return jsonb_build_object('ok', false, 'code', 'DALIL_BEGONA'); end if;
   foreach h in array p_hujjatlar loop
-    execute 'insert into public.t2_primitiv_dalil (primitiv, primitiv_id, hujjat_id) values ($1, $2, $3) on conflict do nothing' using p_primitiv, p_id, h;
+    insert into public.t2_primitiv_dalil (kompaniya_id, primitiv, primitiv_id, hujjat_id, biriktirdi_actor_id)
+    values (p_kompaniya_id, p_primitiv, p_id, h, p_actor_id) on conflict do nothing;
     n := n + 1;
   end loop;
   return jsonb_build_object('ok', true, 'soni', n);
 end $$;
-
 -- Buyurtma yaratish yadrosi (kanonik t2_buyurtma_yarat_v1 va t2_tender_golib_v1 ishlatadi). Ruxsat chaqiruvchida tekshirilgan.
 -- p_qatorlar: [{nom, birlik, miqdor, narx|null, muddat_kun|null, resurs_kodi|null, zayavka_id|null, rfq_qator_id|null, taklif_qator_id|null, izoh|null}]
 create or replace function public._t2_buyurtma_yarat_ichki(
@@ -212,7 +210,7 @@ begin
             nullif(v_q->>'rfq_qator_id', '')::bigint, nullif(v_q->>'taklif_qator_id', '')::bigint, nullif(v_q->>'izoh', ''));
   end loop;
   perform public._t2_yet_hodisa(p_kompaniya_id, 'buyurtma.yuborildi', 't2_buyurtma', v_b.id,
-            jsonb_build_object('tur', p_tur, 'ijrochi_kompaniya_id', p_ijrochi, 'qator_soni', v_no), p_actor_id, p_operation_id, p_obyekt_id, array[p_ijrochi]);
+            jsonb_build_object('tur', p_tur, 'ijrochi_kompaniya_id', p_ijrochi, 'qator_soni', v_no), p_actor_id, p_operation_id, p_obyekt_id, p_aloqa_id, array[p_ijrochi]);
   return jsonb_build_object('ok', true, 'id', v_b.id, 'versiya', v_b.versiya, 'holat', v_b.holat);
 end $$;
 revoke all on function public._t2_buyurtma_yarat_ichki(bigint,bigint,uuid,text,bigint,bigint,bigint,bigint,bigint,jsonb,jsonb,numeric,numeric,text) from public, anon, authenticated;
@@ -239,7 +237,7 @@ create or replace function public.t2_buyurtma_yarat_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_operation_id uuid, p_tur text, p_ijrochi_kompaniya_id bigint, p_aloqa_id bigint,
   p_taklif_id bigint, p_obyekt_id bigint, p_qatorlar jsonb, p_shart jsonb)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_old public.t2_buyurtma; v_aloqa bigint; v_tak public.t2_birja_taklif; v_rfq public.t2_birja_rfq; v_xato text;
+declare v_old public.t2_buyurtma; v_aloqa bigint; v_rfq public.t2_birja_rfq; v_xato text; v_g jsonb;
         v_qat jsonb; v_ij bigint := p_ijrochi_kompaniya_id; v_tur text := p_tur; v_obyekt bigint := p_obyekt_id;
 begin
   perform public._t2_yet_azo(p_actor_id, p_kompaniya_id, 'xarid_yoz');
@@ -247,20 +245,14 @@ begin
   select * into v_old from public.t2_buyurtma where kompaniya_id = p_kompaniya_id and operation_id = p_operation_id;
   if found then return jsonb_build_object('ok', true, 'takror', true, 'id', v_old.id, 'versiya', v_old.versiya); end if;
   if p_taklif_id is not null then
-    -- Taklifdan: g'olib taklifning hamma qatorlari (qisman g'olib belgilash — t2_tender_golib_v1).
-    select t.* into v_tak from public.t2_birja_taklif t join public.t2_birja_rfq r on r.id = t.rfq_id
-     where t.id = p_taklif_id and r.kompaniya_id = p_kompaniya_id and t.holat in ('berildi','faol');
+    -- Taklifdan: g'olib belgilash va buyurtma yaratish BITTA yo'l (t2_tender_golib_v1: qator band-lash, RFQ/taklif holati). Hamma qator, PTO ruxsati.
+    select r.* into v_rfq from public.t2_birja_taklif t join public.t2_birja_rfq r on r.id = t.rfq_id where t.id = p_taklif_id and r.kompaniya_id = p_kompaniya_id;
     if not found then return jsonb_build_object('ok', false, 'code', 'TOPILMADI'); end if;
-    select * into v_rfq from public.t2_birja_rfq where id = v_tak.rfq_id;
-    v_ij := v_tak.kompaniya_id; v_tur := v_rfq.tur; v_obyekt := coalesce(p_obyekt_id, v_rfq.obyekt_id);
-    select coalesce(jsonb_agg(jsonb_build_object('nom', q.nom, 'birlik', q.birlik, 'miqdor', coalesce(tq.mavjud_miqdor, q.miqdor), 'narx', tq.narx,
-             'muddat_kun', tq.muddat_kun, 'resurs_kodi', q.resurs_kodi, 'zayavka_id', q.zayavka_id, 'rfq_qator_id', q.id, 'taklif_qator_id', tq.id) order by q.qator_no), '[]'::jsonb)
-      into v_qat
-      from public.t2_birja_taklif_qator tq join public.t2_birja_rfq_qator q on q.id = tq.rfq_qator_id where tq.taklif_id = v_tak.id;
-  else
-    v_qat := p_qatorlar;
+    v_g := public.t2_tender_golib_v1(p_actor_id, p_kompaniya_id, p_operation_id, v_rfq.id, v_rfq.versiya, p_taklif_id, null, p_shart);
+    if not (v_g->>'ok')::boolean then return v_g; end if;
+    return jsonb_build_object('ok', true, 'id', (v_g->>'buyurtma_id')::bigint, 'versiya', 1, 'holat', 'yuborildi', 'takror', coalesce((v_g->>'takror')::boolean, false));
   end if;
-  if v_ij is null or v_ij = p_kompaniya_id then return jsonb_build_object('ok', false, 'code', 'IJROCHI_NOTOGRI'); end if;
+  v_qat := p_qatorlar;  if v_ij is null or v_ij = p_kompaniya_id then return jsonb_build_object('ok', false, 'code', 'IJROCHI_NOTOGRI'); end if;
   if not exists (select 1 from public.t2_kompaniya k where k.id = v_ij and k.faol) then return jsonb_build_object('ok', false, 'code', 'IJROCHI_NOTOGRI'); end if;
   if not public._t2_yet_tur_ok('buyurtma', v_tur) then return jsonb_build_object('ok', false, 'code', 'TUR_NOTOGRI'); end if;
   v_xato := public._t2_yet_qator_xato(v_qat);
@@ -268,30 +260,17 @@ begin
   if v_obyekt is not null and not exists (select 1 from public.t2_obyekt o where o.id = v_obyekt and o.kompaniya_id = p_kompaniya_id) then
     return jsonb_build_object('ok', false, 'code', 'OBYEKT_BEGONA');
   end if;
-  if not public._t2_obyekt_doira_ok_yet(p_actor_id, p_kompaniya_id, v_obyekt) then return jsonb_build_object('ok', false, 'code', 'DOIRA_YOQ'); end if;
+  if not (v_obyekt is null or public._t2_obyekt_doira_ok(p_actor_id, p_kompaniya_id, v_obyekt)) then return jsonb_build_object('ok', false, 'code', 'DOIRA_YOQ'); end if;
   -- Kompaniyalararo yozuv: faol aloqa majburiy (E7 §3.1). p_aloqa_id berilgan bo'lsa aynan shu aloqa faol va shu ikki tomon orasida bo'lishi kerak.
   if p_aloqa_id is not null then
-    select a.id into v_aloqa from public.t2_tomon_aloqa a where a.id = p_aloqa_id and a.holat = 'faol'
+    select a.id into v_aloqa from public.t2_tomon_aloqa a where a.id = p_aloqa_id and a.holat = 'faol' and a.turi not like 'obyekt:%'
        and ((a.taklif_kompaniya_id = p_kompaniya_id and a.qabul_kompaniya_id = v_ij) or (a.taklif_kompaniya_id = v_ij and a.qabul_kompaniya_id = p_kompaniya_id));
   else
     v_aloqa := public._t2_yet_aloqa_faol(p_kompaniya_id, v_ij);
   end if;
   if v_aloqa is null then return jsonb_build_object('ok', false, 'code', 'ALOQA_KERAK'); end if;
-  return public._t2_buyurtma_yarat_ichki(p_actor_id, p_kompaniya_id, p_operation_id, v_tur, v_ij, v_aloqa, v_tak.rfq_id, v_tak.id, v_obyekt, v_qat,
-                                         p_shart, v_tak.yetkazish_narx, v_tak.qqs_foiz, null);
-end $$;
-
--- Obyekt doirasi (E2 §3.4). F1 `_t2_obyekt_doira_ok` paydo bo'lguncha: obyekt NULL yoki tenantniki bo'lsa ruxsat; paydo bo'lsa o'sha chaqiriladi.
-create or replace function public._t2_obyekt_doira_ok_yet(p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint) returns boolean
-language plpgsql stable security definer set search_path = public, pg_temp as $$
-declare v boolean;
-begin
-  if p_obyekt_id is null then return true; end if;
-  if to_regprocedure('public._t2_obyekt_doira_ok(bigint,bigint,bigint)') is not null then
-    execute 'select public._t2_obyekt_doira_ok($1,$2,$3)' into v using p_actor_id, p_kompaniya_id, p_obyekt_id;
-    return coalesce(v, false);
-  end if;
-  return exists (select 1 from public.t2_obyekt o where o.id = p_obyekt_id and o.kompaniya_id = p_kompaniya_id);
+  return public._t2_buyurtma_yarat_ichki(p_actor_id, p_kompaniya_id, p_operation_id, v_tur, v_ij, v_aloqa, null, null, v_obyekt, v_qat,
+                                         p_shart, null, null, null);
 end $$;
 
 -- Yetkazuvchi o'z omborini (olish nuqtasi) yozadi — yuklashga_tayyor dan OLDIN. lat/lng noma'lum bo'lsa NULL (soxta koordinata yo'q).
@@ -329,7 +308,7 @@ create or replace function public._t2_buyurtma_otish_ichki(
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_b public.t2_buyurtma; v_tomon text; v_ga text := p_holat; v_bosqich text := p_bosqich; v_n integer;
-  v_yuk jsonb := null; v_yuk_kerak boolean := false; v_dalil jsonb; v_tolovchi bigint; v_qat jsonb; v_yetkazish jsonb;
+  v_yuk jsonb := null; v_yuk_kerak boolean := false; v_dalil jsonb;
 begin
   if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_KERAK'); end if;
   select * into v_b from public.t2_buyurtma where id = p_buyurtma_id and (kompaniya_id = p_kompaniya_id or ijrochi_kompaniya_id = p_kompaniya_id) for update;
@@ -356,47 +335,35 @@ begin
   -- 'tayyor'->'tayyor' va 'qabul_qilindi_yakuniy'->o'zi faqat bosqich almashtirish: bosqich majburiy va yangi bo'lishi shart
   if v_b.holat = v_ga and (v_bosqich is null or v_bosqich is not distinct from v_b.bosqich) then return jsonb_build_object('ok', false, 'code', 'OTISH_TAQIQ', 'dan', v_b.holat, 'ga', v_ga, 'tomon', v_tomon); end if;
   if v_b.holat = 'qabul_qilindi_yakuniy' and v_bosqich is distinct from 'hisob_faktura' then return jsonb_build_object('ok', false, 'code', 'OTISH_TAQIQ'); end if;
-  -- Dalil jadvali yo'q bo'lsa hech narsa yozilmasdan rad (yozuvlardan OLDIN tekshiriladi)
-  if p_hujjatlar is not null and cardinality(p_hujjatlar) > 0 and to_regclass('public.t2_primitiv_dalil') is null then
-    return jsonb_build_object('ok', false, 'code', 'DALIL_JADVALI_YOQ');
-  end if;
-  -- yuklashga_tayyor: olish nuqtasi shart (hand-off ma'lumoti), keyin logistika
+  -- Dalil: hujjatlar AYNAN shu tenantniki bo'lishi shart (hech narsa yozilmasdan oldin tekshiriladi)
+  if not public._t2_yet_dalil_tekshir(p_kompaniya_id, p_hujjatlar) then return jsonb_build_object('ok', false, 'code', 'DALIL_BEGONA'); end if;
+  -- yuklashga_tayyor: olish nuqtasi shart (hand-off ma'lumoti)
   v_yuk_kerak := (v_bosqich = 'yuklashga_tayyor' and v_b.tur = 'material' and v_b.bosqich is distinct from 'yuklashga_tayyor');
-  if v_yuk_kerak then
-    if v_b.olish = '{}'::jsonb then return jsonb_build_object('ok', false, 'code', 'OLISH_KERAK'); end if;
-    if to_regprocedure('public.t2_yuk_yarat_v1(bigint,bigint,uuid,jsonb,jsonb,jsonb,jsonb,jsonb)') is not null then
-      v_tolovchi := case when v_b.shart->>'tolovchi' = 'yetkazuvchi' then v_b.ijrochi_kompaniya_id else v_b.kompaniya_id end;
-      select coalesce(jsonb_agg(jsonb_build_object('buyurtma_qator_id', q.id, 'material', q.nom, 'resurs_kodi', q.resurs_kodi, 'birlik', q.birlik,
-               'miqdor', q.miqdor, 'taxminiy_vazn_kg', null, 'hajm_m3', null) order by q.qator_no), '[]'::jsonb) into v_qat
-        from public.t2_buyurtma_qator q where q.buyurtma_id = v_b.id;
-      v_yetkazish := jsonb_strip_nulls(jsonb_build_object('obyekt_id', v_b.obyekt_id)) || (v_b.shart - 'tolovchi' - 'transport_turi');
-      execute 'select public.t2_yuk_yarat_v1($1,$2,$3,$4,$5,$6,$7,$8)' into v_yuk
-        using p_actor_id, v_tolovchi, p_operation_id,
-              jsonb_build_object('tur', 'buyurtma', 'buyurtma_id', v_b.id, 'xaridor_kompaniya_id', v_b.kompaniya_id, 'yetkazuvchi_kompaniya_id', v_b.ijrochi_kompaniya_id),
-              v_b.olish, v_yetkazish, v_qat,
-              jsonb_strip_nulls(jsonb_build_object('transport_turi', v_b.shart->>'transport_turi', 'tolovchi', coalesce(v_b.shart->>'tolovchi', 'xaridor')));
-      if coalesce(v_yuk->>'ok', 'false') <> 'true' then return jsonb_build_object('ok', false, 'code', 'YUK_YARATILMADI', 'yuk', v_yuk); end if;
-    end if;
-  end if;
-  v_dalil := public._t2_yet_dalil_yoz('buyurtma', v_b.id, p_hujjatlar);
-  if not (v_dalil->>'ok')::boolean then return v_dalil; end if;
+  if v_yuk_kerak and v_b.olish = '{}'::jsonb then return jsonb_build_object('ok', false, 'code', 'OLISH_KERAK'); end if;
+  -- AVVAL buyurtma yangilanadi, KEYIN logistika (E3 §4.3: logistika buyurtma/qatorlarni o'zi o'qiydi)
   update public.t2_buyurtma set holat = v_ga, bosqich = coalesce(v_bosqich, bosqich), versiya = versiya + 1, yangilandi = now(),
          oxirgi_operation_id = p_operation_id, izoh = coalesce(nullif(btrim(coalesce(p_izoh, '')), ''), izoh)
    where id = v_b.id and versiya = p_kutilgan_versiya;
   get diagnostics v_n = row_count;
   if v_n = 0 then return jsonb_build_object('ok', false, 'code', 'VERSIYA_ESKI'); end if;
+  v_dalil := public._t2_yet_dalil_yoz(p_kompaniya_id, p_actor_id, 'buyurtma', v_b.id, p_hujjatlar);
+  if not (v_dalil->>'ok')::boolean then raise exception 'DALIL_YOZILMADI: %', v_dalil::text using errcode = 'P0001'; end if;
+  if v_yuk_kerak and to_regprocedure('public._t2_yuk_buyurtmadan_v1(bigint,bigint,uuid)') is not null then   -- logistika ichki funksiyasi (F3b); yo'q bo'lsa faqat outbox
+    execute 'select public._t2_yuk_buyurtmadan_v1($1, $2, $3)' into v_yuk using p_actor_id, v_b.id, p_operation_id;
+    if coalesce(v_yuk->>'ok', 'false') <> 'true' then raise exception 'YUK_YARATILMADI: %', coalesce(v_yuk::text, 'null') using errcode = 'P0001'; end if;   -- butun o'tish bekor
+  end if;
   perform public._t2_yet_hodisa(p_kompaniya_id, 'buyurtma.holat', 't2_buyurtma', v_b.id,
             jsonb_build_object('dan', v_b.holat, 'ga', v_ga, 'bosqich', v_bosqich, 'tomon', v_tomon, 'dalil_soni', (v_dalil->>'soni')::integer),
-            p_actor_id, p_operation_id, v_b.obyekt_id,
+            p_actor_id, p_operation_id, v_b.obyekt_id, v_b.aloqa_id,
             array[case when v_tomon = 'xaridor' then v_b.ijrochi_kompaniya_id else v_b.kompaniya_id end]);
   if v_yuk_kerak then
     perform public._t2_yet_hodisa(p_kompaniya_id, 'buyurtma.yuklashga_tayyor', 't2_buyurtma', v_b.id,
               jsonb_build_object('xaridor_kompaniya_id', v_b.kompaniya_id, 'yetkazuvchi_kompaniya_id', v_b.ijrochi_kompaniya_id, 'yuk_id', v_yuk->'yuk_id'),
-              p_actor_id, p_operation_id, v_b.obyekt_id, array[v_b.kompaniya_id, v_b.ijrochi_kompaniya_id]);
+              p_actor_id, p_operation_id, v_b.obyekt_id, v_b.aloqa_id, array[v_b.kompaniya_id, v_b.ijrochi_kompaniya_id]);
   end if;
   if v_ga in ('qabul_qilindi_yakuniy','qisman') and v_b.holat <> v_ga then
     perform public._t2_yet_hodisa(p_kompaniya_id, 'buyurtma.qabul_qilindi', 't2_buyurtma', v_b.id,
-              jsonb_build_object('holat', v_ga, 'dalil_soni', (v_dalil->>'soni')::integer), p_actor_id, p_operation_id, v_b.obyekt_id, array[v_b.ijrochi_kompaniya_id]);
+              jsonb_build_object('holat', v_ga, 'dalil_soni', (v_dalil->>'soni')::integer), p_actor_id, p_operation_id, v_b.obyekt_id, v_b.aloqa_id, array[v_b.ijrochi_kompaniya_id]);
   end if;
   return jsonb_build_object('ok', true, 'id', v_b.id, 'versiya', p_kutilgan_versiya + 1, 'holat', v_ga, 'bosqich', coalesce(v_bosqich, v_b.bosqich),
                             'yuk', case when v_yuk_kerak then coalesce(v_yuk, jsonb_build_object('holat', 'logistika_kutilmoqda')) end);
@@ -492,8 +459,8 @@ end $$;
 
 -- ───────────────────────── 4. Ruxsatlar: faqat service_role ─────────────────────────
 revoke all on function public._t2_yet_azo(bigint,bigint,text), public._t2_yet_aloqa_faol(bigint,bigint),
-  public._t2_yet_hodisa(bigint,text,text,bigint,jsonb,bigint,uuid,bigint,bigint[]), public._t2_yet_tur_ok(text,text),
-  public._t2_yet_dalil_yoz(text,bigint,bigint[]), public._t2_yet_qator_xato(jsonb), public._t2_obyekt_doira_ok_yet(bigint,bigint,bigint)
+  public._t2_yet_hodisa(bigint,text,text,bigint,jsonb,bigint,uuid,bigint,bigint,bigint[]), public._t2_yet_tur_ok(text,text),
+  public._t2_yet_dalil_yoz(bigint,bigint,text,bigint,bigint[]), public._t2_yet_dalil_tekshir(bigint,bigint[]), public._t2_yet_qator_xato(jsonb)
   from public, anon, authenticated;
 revoke all on function public.t2_buyurtma_yarat_v1(bigint,bigint,uuid,text,bigint,bigint,bigint,bigint,jsonb,jsonb),
   public.t2_buyurtma_olish_yoz_v1(bigint,bigint,uuid,bigint,integer,jsonb),

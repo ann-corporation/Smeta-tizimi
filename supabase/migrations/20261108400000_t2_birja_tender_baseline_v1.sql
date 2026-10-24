@@ -51,7 +51,7 @@ alter table public.t2_birja_rfq add column if not exists obyekt_id bigint refere
 alter table public.t2_birja_rfq add column if not exists tur text not null default 'material' check (tur ~ '^[a-z_]{2,40}$');
 alter table public.t2_birja_rfq add column if not exists doira text not null default 'ochiq' check (doira in ('ochiq', 'taklif'));
 alter table public.t2_birja_rfq add column if not exists muddat timestamptz;
-alter table public.t2_birja_rfq add column if not exists shart jsonb not null default '{}'::jsonb check (pg_column_size(shart) <= 4096);
+alter table public.t2_birja_rfq add column if not exists shart jsonb not null default '{}'::jsonb check (octet_length(shart::text) <= 4096);
 alter table public.t2_birja_rfq add column if not exists yaratdi_actor_id bigint references public.t2_foydalanuvchi(id);
 alter table public.t2_birja_rfq add column if not exists yopilgan_vaqt timestamptz;
 alter table public.t2_birja_rfq add column if not exists yangilandi timestamptz not null default now();

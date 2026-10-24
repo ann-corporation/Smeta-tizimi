@@ -11,19 +11,14 @@ drop function if exists public._t2_buyurtma_yarat_ichki(bigint,bigint,uuid,text,
 drop function if exists public._t2_buyurtma_otish_ruxsat(text,text,text);
 drop function if exists public._t2_buyurtma_bosqich_holat(text);
 drop function if exists public._t2_yet_qator_xato(jsonb);
-drop function if exists public._t2_yet_dalil_yoz(text,bigint,bigint[]);
+drop function if exists public._t2_yet_dalil_yoz(bigint,bigint,text,bigint,bigint[]);
+drop function if exists public._t2_yet_dalil_tekshir(bigint,bigint[]);
 drop function if exists public._t2_yet_tur_ok(text,text);
-drop function if exists public._t2_obyekt_doira_ok_yet(bigint,bigint,bigint);
-drop function if exists public._t2_yet_hodisa(bigint,text,text,bigint,jsonb,bigint,uuid,bigint,bigint[]);
+drop function if exists public._t2_yet_hodisa(bigint,text,text,bigint,jsonb,bigint,uuid,bigint,bigint,bigint[]);
 drop function if exists public._t2_yet_aloqa_faol(bigint,bigint);
 drop function if exists public._t2_yet_azo(bigint,bigint,text);
--- Bosqich katalogi qatorlari (F1 jadvali bo'lsa)
-do $$ begin
-  if to_regclass('public.t2_bosqich_katalog') is not null then
-    execute $q$delete from public.t2_bosqich_katalog where primitiv = 'buyurtma' and tur = 'material'
-      and kalit in ('tayyorlanmoqda','yuklashga_tayyor','yolda','yetkazildi','hisob_faktura')$q$;
-  end if;
-exception when others then raise notice 'bosqich katalogi tozalanmadi: %', sqlerrm; end $$;
+-- Bosqich katalogi: faqat bu migratsiya qo'shgan qator (F1 bosqichlari qoladi)
+delete from public.t2_bosqich_katalog where primitiv = 'buyurtma' and tur = 'material' and kalit = 'hisob_faktura';
 drop table if exists public.t2_buyurtma_qator;
 drop table if exists public.t2_buyurtma;
 commit;

@@ -1,10 +1,11 @@
+-- Ruxsat: F1 + 20261108010000 (capability katalogi) dan KEYIN. Fixture rollari 'boss' va 'kuzatuvchi'.
 -- T2_TENDER (P2) contract test — E2 §6 shabloni. Natija: oxirgi exception matni "TEST_TENDER ..." ichida (rollback).
 -- Ishga tushirish: disposable branch / lokal. Talab: 20261108400000 + 20261108410000 + 20261108420000, F1 t2_outbox_yoz.
 do $$
 declare
   x bigint; y bigint; w bigint; z bigint;                          -- xaridor(egasi), yetkazuvchi 1, yetkazuvchi 2, begona
   ux bigint; uxk bigint; uxp bigint; uy bigint; uw bigint; uz bigint;
-  ox bigint; oz bigint; ay bigint; aw bigint;
+  ox bigint; oz bigint; ay bigint; aw bigint; rfq2 bigint; ra bigint; rb bigint;
   r jsonb; rfq bigint; v integer; q1 bigint; q2 bigint; t1 bigint; t2 bigint; t1v integer; n integer; rep text[] := array[]::text[];
   qs jsonb := jsonb_build_array(jsonb_build_object('nom', 'Sement M400', 'birlik', 'tonna', 'miqdor', 10),
                                 jsonb_build_object('nom', 'Armatura d12', 'birlik', 'tonna', 'miqdor', 2));
@@ -20,8 +21,8 @@ begin
   insert into t2_foydalanuvchi (login, ism, holat) values ('tst_ty', 'Y', 'faol') returning id into uy;
   insert into t2_foydalanuvchi (login, ism, holat) values ('tst_tw', 'W', 'faol') returning id into uw;
   insert into t2_foydalanuvchi (login, ism, holat) values ('tst_tz', 'Z', 'faol') returning id into uz;
-  insert into t2_azolik (foydalanuvchi_id, kompaniya_id, rol, holat) values (ux, x, 'boss', 'faol'), (uxk, x, 'kuzatuvchi', 'faol'), (uxp, x, 'pto', 'faol'),
-    (uy, y, 'taminotchi', 'faol'), (uw, w, 'taminotchi', 'faol'), (uz, z, 'taminotchi', 'faol');
+  insert into t2_azolik (foydalanuvchi_id, kompaniya_id, rol, holat) values (ux, x, 'boss', 'faol'), (uxk, x, 'kuzatuvchi', 'faol'), (uxp, x, 'boss', 'faol'),
+    (uy, y, 'boss', 'faol'), (uw, w, 'boss', 'faol'), (uz, z, 'boss', 'faol');
   insert into t2_obyekt (nom, kompaniya_id) values ('X-obyekt', x) returning id into ox;
   insert into t2_obyekt (nom, kompaniya_id) values ('Z-obyekt', z) returning id into oz;
   insert into t2_tomon_aloqa (taklif_kompaniya_id, qabul_kompaniya_id, taklif_rol, qabul_rol, turi, holat, taklif_actor_id) values (x, y, 'xaridor', 'yetkazuvchi', 'kontakt', 'faol', ux) returning id into ay;
@@ -102,6 +103,19 @@ begin
   r := t2_tender_taklif_ber_v1(uy, y, gen_random_uuid(), rfq, jsonb_build_array(jsonb_build_object('rfq_qator_id', q1, 'narx', 1)), null);
   rep := rep || (case when r->>'code' = 'HOLAT' then 'OK   10 yopilgan RFQ ga taklif yo''q' else 'FAIL 10: ' || r::text end);
 
+  -- 10b. tur: topshiriq turi tenderga o'tmaydi
+  r := t2_tender_elon_v1(ux, x, gen_random_uuid(), 'ish', 'ochiq', null, ox, null, qs, null);
+  rep := rep || (case when r->>'code' = 'TUR_NOTOGRI' then 'OK   10b topshiriq turi (ish) tenderda — TUR_NOTOGRI' else 'FAIL 10b: ' || r::text end);
+  -- 10c. qisman g'olibdan keyin o'sha taklifning qolgan qatori ham berilishi mumkin (ataylab)
+  r := t2_tender_elon_v1(ux, x, gen_random_uuid(), 'material', 'taklif', array[y], ox, null, qs, null); rfq2 := (r->>'id')::bigint;
+  select id into ra from t2_birja_rfq_qator where rfq_id = rfq2 and qator_no = 1; select id into rb from t2_birja_rfq_qator where rfq_id = rfq2 and qator_no = 2;
+  r := t2_tender_taklif_ber_v1(uy, y, gen_random_uuid(), rfq2, jsonb_build_array(jsonb_build_object('rfq_qator_id', ra, 'narx', 10), jsonb_build_object('rfq_qator_id', rb, 'narx', 20)), null);
+  t1 := (r->>'id')::bigint;
+  r := t2_tender_golib_v1(ux, x, gen_random_uuid(), rfq2, 1, t1, array[ra]);
+  rep := rep || (case when (r->>'ok')::boolean and r->>'rfq_holat' = 'elon' then 'OK   10c Y ga 1-qator' else 'FAIL 10c: ' || r::text end);
+  select versiya into v from t2_birja_rfq where id = rfq2;
+  r := t2_tender_golib_v1(ux, x, gen_random_uuid(), rfq2, v, t1, array[rb]);
+  rep := rep || (case when (r->>'ok')::boolean and r->>'rfq_holat' = 'golib_tanlandi' and (select count(*) from t2_buyurtma where rfq_id = rfq2) = 2 then 'OK   10d shu taklifning 2-qatori ham berildi -> golib_tanlandi, 2 buyurtma' else 'FAIL 10d: ' || r::text end);
   -- 11. ochiq tender (L3): begona ko'radi, minimal maydon; aloqasiz g'olib -> ALOQA_KERAK
   r := t2_tender_elon_v1(ux, x, gen_random_uuid(), 'material', 'ochiq', null, ox, now() + interval '2 days', jsonb_build_array(jsonb_build_object('nom', 'Qum', 'birlik', 'm3', 'miqdor', 100)), null);
   v := 1; rfq := (r->>'id')::bigint; select id into q1 from t2_birja_rfq_qator where rfq_id = rfq;
@@ -130,7 +144,7 @@ begin
   select count(*) into n from t2_outbox where mavzu = 'tender.elon' and kompaniya_id = x;
   rep := rep || (case when n >= 3 then 'OK   13a outbox tender.elon yozildi' else 'FAIL 13a: ' || n end);
   select count(*) into n from t2_outbox where mavzu = 'tender.golib' and kompaniya_id = x;
-  rep := rep || (case when n = 3 then 'OK   13b outbox tender.golib (2 g''olib + 1 yopish)' else 'FAIL 13b: ' || n end);
+  rep := rep || (case when n = 5 then 'OK   13b outbox tender.golib (4 g''olib + 1 yopish)' else 'FAIL 13b: ' || n end);
   rep := rep || (case when not has_function_privilege('anon', 't2_tender_elon_v1(bigint,bigint,uuid,text,text,bigint[],bigint,timestamptz,jsonb,jsonb)', 'execute')
                        and not has_function_privilege('authenticated', 't2_tender_golib_v1(bigint,bigint,uuid,bigint,integer,bigint,bigint[],jsonb)', 'execute')
                        and has_function_privilege('service_role', 't2_tender_golib_v1(bigint,bigint,uuid,bigint,integer,bigint,bigint[],jsonb)', 'execute')

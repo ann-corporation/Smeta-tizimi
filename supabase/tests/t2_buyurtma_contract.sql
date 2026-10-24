@@ -1,10 +1,11 @@
+-- Ruxsat: F1 + 20261108010000 (capability katalogi) dan KEYIN. Fixture rollari 'boss' (butun katalog) va 'kuzatuvchi' (yozuv yo'q).
 -- T2_BUYURTMA (P3) contract test — E2 §6 shabloni. Natija: oxirgi exception matni "TEST_BUYURTMA ..." ichida (rollback, hech narsa saqlanmaydi).
 -- Ishga tushirish: disposable branch / lokal (prodda emas). Talab: 20261108400000 + 20261108410000 qo'llangan, F1 t2_outbox_yoz bor.
 do $$
 declare
   x bigint; y bigint; z bigint;                                  -- xaridor, yetkazuvchi, begona
   ux bigint; uxk bigint; uy bigint; uz bigint;                   -- X boss, X kuzatuvchi, Y taminotchi, Z boss
-  ox bigint; oz bigint; al bigint;
+  ox bigint; oz bigint; al bigint; al_m bigint; dz bigint; dy bigint; b2 bigint;
   r jsonb; b bigint; v integer; qid bigint[]; rep text[] := array[]::text[]; n integer;
   op1 uuid := gen_random_uuid(); op2 uuid := gen_random_uuid(); op3 uuid := gen_random_uuid(); op4 uuid := gen_random_uuid(); op5 uuid := gen_random_uuid();
   q_ok jsonb := jsonb_build_array(jsonb_build_object('nom', 'Sement M400', 'birlik', 'tonna', 'miqdor', 10, 'narx', 1200000),
@@ -17,7 +18,7 @@ begin
   insert into t2_foydalanuvchi (login, ism, holat) values ('tst_bxk', 'X kuzatuvchi', 'faol') returning id into uxk;
   insert into t2_foydalanuvchi (login, ism, holat) values ('tst_by', 'Y taminotchi', 'faol') returning id into uy;
   insert into t2_foydalanuvchi (login, ism, holat) values ('tst_bz', 'Z boss', 'faol') returning id into uz;
-  insert into t2_azolik (foydalanuvchi_id, kompaniya_id, rol, holat) values (ux, x, 'boss', 'faol'), (uxk, x, 'kuzatuvchi', 'faol'), (uy, y, 'taminotchi', 'faol'), (uz, z, 'boss', 'faol');
+  insert into t2_azolik (foydalanuvchi_id, kompaniya_id, rol, holat) values (ux, x, 'boss', 'faol'), (uxk, x, 'kuzatuvchi', 'faol'), (uy, y, 'boss', 'faol'), (uz, z, 'boss', 'faol');
   insert into t2_obyekt (nom, kompaniya_id) values ('X-obyekt', x) returning id into ox;
   insert into t2_obyekt (nom, kompaniya_id) values ('Z-obyekt', z) returning id into oz;
   insert into t2_tomon_aloqa (taklif_kompaniya_id, qabul_kompaniya_id, taklif_rol, qabul_rol, turi, holat, taklif_actor_id)
@@ -51,6 +52,27 @@ begin
   r := t2_buyurtma_yarat_v1(ux, x, gen_random_uuid(), 'material', y, null, null, ox, jsonb_build_array(jsonb_build_object('nom', 'A', 'birlik', 'kg', 'miqdor', 0)), null);
   rep := rep || (case when r->>'code' = 'QATOR_MIQDOR' then 'OK   7c miqdor 0 — rad' else 'FAIL 7c: ' || r::text end);
 
+  -- 7d. tur: boshqa primitivning turi ('ish' - topshiriq turi) buyurtmaga o'tmaydi
+  r := t2_buyurtma_yarat_v1(ux, x, gen_random_uuid(), 'ish', y, null, null, ox, q_ok, null);
+  rep := rep || (case when r->>'code' = 'TUR_NOTOGRI' then 'OK   7d topshiriq turi (ish) buyurtmada — TUR_NOTOGRI' else 'FAIL 7d: ' || r::text end);
+  -- 7e. mehmon (havola orqali ulashish, turi obyekt:*) aloqasi buyurtma uchun aloqa EMAS
+  insert into t2_tomon_aloqa (taklif_kompaniya_id, qabul_kompaniya_id, taklif_rol, qabul_rol, turi, holat, taklif_actor_id) values (x, z, 'xaridor', 'mehmon', 'obyekt:1', 'faol', ux) returning id into al_m;
+  r := t2_buyurtma_yarat_v1(ux, x, gen_random_uuid(), 'material', z, null, null, ox, q_ok, null);
+  rep := rep || (case when r->>'code' = 'ALOQA_KERAK' then 'OK   7e mehmon aloqasi bilan buyurtma — ALOQA_KERAK' else 'FAIL 7e: ' || r::text end);
+  r := t2_buyurtma_yarat_v1(ux, x, gen_random_uuid(), 'material', z, al_m, null, ox, q_ok, null);
+  rep := rep || (case when r->>'code' = 'ALOQA_KERAK' then 'OK   7f mehmon aloqasi id si bilan ham — ALOQA_KERAK' else 'FAIL 7f: ' || r::text end);
+  -- 7g. dalil: begona tenant hujjati biriktirilmaydi, o'z hujjati biriktiriladi
+  insert into t2_document_registry (kompaniya_id, document_type, status) values (z, 'test', 'active') returning id into dz;
+  insert into t2_document_registry (kompaniya_id, document_type, status) values (y, 'test', 'active') returning id into dy;
+  r := t2_buyurtma_yarat_v1(ux, x, gen_random_uuid(), 'material', y, null, null, ox, q_ok, null); b2 := (r->>'id')::bigint;
+  r := t2_buyurtma_otish_v1(uy, y, gen_random_uuid(), b2, 1, 'qabul_qilindi', null, null, array[dz]);
+  rep := rep || (case when r->>'code' = 'DALIL_BEGONA' and (select holat from t2_buyurtma where id = b2) = 'yuborildi' then 'OK   7g begona hujjat — DALIL_BEGONA, holat o''zgarmadi' else 'FAIL 7g: ' || r::text end);
+  r := t2_buyurtma_otish_v1(uy, y, gen_random_uuid(), b2, 1, 'qabul_qilindi', null, null, array[dy]);
+  rep := rep || (case when (r->>'ok')::boolean and (select count(*) from t2_primitiv_dalil where primitiv = 'buyurtma' and primitiv_id = b2 and kompaniya_id = y and hujjat_id = dy) = 1
+                      then 'OK   7h o''z hujjati biriktirildi (kompaniya = biriktiruvchi)' else 'FAIL 7h: ' || r::text end);
+  -- 7i. ruxsat: kuzatuvchi qabul qila olmaydi
+  begin perform t2_buyurtma_qabul_v1(uxk, x, gen_random_uuid(), b, 1, '[]'::jsonb, null, null); rep := rep || 'FAIL 7i kuzatuvchi qabul qildi';
+  exception when others then rep := rep || (case when sqlstate = '42501' then 'OK   7i kuzatuvchi qabul — 42501' else 'FAIL 7i: ' || sqlerrm end); end;
   -- 8. o'tish: yetkazuvchi qabul qiladi; xaridor ijrochi bosqichini o'tkaza olmaydi; eski versiya
   select versiya into v from t2_buyurtma where id = b;
   r := t2_buyurtma_otish_v1(ux, x, gen_random_uuid(), b, v, 'bajarilmoqda', null, null, null);
