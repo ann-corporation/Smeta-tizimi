@@ -1,5 +1,5 @@
 import { oshibKetdimi } from '../../lib/ostatka-export';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, Search, Link2, Unlink, Check, SkipForward, ArrowDownToLine, X, Pencil, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { T2Qator } from '../../api/supabase';
@@ -1231,8 +1231,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 const tvS = tv?.tur === 'zamena' ? S.byId.get(tv.qatorId) : undefined;
                 let keyin: number = sIshId;
                 for (let j = i - 1; j >= 0; j--) { const bb = ij.bog.get(tTugun.bolalar[j].uid); if (bb && S.byId.get(bb.qatorId)?.otaId === sIshId) { keyin = bb.qatorId; break; } }
+                const guruhBosh = r.guruh && r.guruhUid !== tTugun.bolalar[i - 1]?.guruhUid;
                 return (
-                  <div key={r.uid} className={`grid min-w-[860px] grid-cols-[28px_minmax(200px,1fr)_110px_minmax(200px,1fr)_110px_170px] text-[11.5px] ${QATOR_FON[rk]}`}>
+                  <Fragment key={r.uid}>
+                  {/* F2 dagi matnli guruh sarlavhasi («ДЕТАЛЬ -1»): resurs emas — keyingi resurslar smetadagi shu nomli razdelga bog‘lanadi. */}
+                  {guruhBosh && <div className="min-w-[860px] border-t border-border/60 bg-surface-2/60 px-2 py-0.5 text-[11px] font-semibold text-text-dim">▸ {r.guruh}</div>}
+                  <div className={`grid min-w-[860px] grid-cols-[28px_minmax(200px,1fr)_110px_minmax(200px,1fr)_110px_170px] text-[11.5px] ${QATOR_FON[rk]}`}>
                     <span className={`${kat} text-center font-bold ${HOLAT_KATAK[rk]}`}>{BELGI[rk].b}</span>
                     <span className={kat}>{r.nom}</span>
                     <span className={`${kat} text-right tabular-nums`}>{fmt(r.hajm)} {r.birlik ?? ''}</span>
@@ -1244,6 +1248,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                       {sr && <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => p.onIj(uz(ij, r))}><Unlink size={11} /> Uzish</button>}
                     </span>
                   </div>
+                  </Fragment>
                 );
               })}
               {juftsiz.length > 0 && (

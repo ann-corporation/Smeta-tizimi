@@ -25,6 +25,7 @@
  */
 import { kodKanon, normBir, normKod, normNom, normRz, rzKodlar } from '../f2-match-engine';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
+import { guruhRzTanla } from './guruh';
 
 // ─── Kirish/chiqish ──────────────────────────────────────────────────────────
 
@@ -686,19 +687,37 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     return null;
   }
 
+  /**
+   * F2 ish ichidagi guruh sarlavhasi («ДЕТАЛЬ -1») — smetada shu nomli razdel (rz). Qidiruv smeta ishining razdelidan yuqoriga
+   * (eng yaqin ota-razdeldagi bir xil nomli rz lar orasida, tartib bo'yicha eng yaqini); har rz bitta guruhga bir marta beriladi.
+   */
+  const guruhOlingan = new Set<number>();
+  const guruhXotira = new Map<string, STugun | null>();
+  function guruhRzTop(sIsh: STugun, r: F2Tugun): STugun | null {
+    const kalit = `${sIsh.id}|${r.guruhUid ?? r.guruh}`;
+    if (guruhXotira.has(kalit)) return guruhXotira.get(kalit)!;
+    const topilgan = guruhRzTanla<STugun>(sIsh, (x) => x.ota, (x) => x.bolalar, r.guruh ?? '', rzKalit, guruhOlingan);
+    if (topilgan) guruhOlingan.add(topilgan.id);
+    guruhXotira.set(kalit, topilgan);
+    return topilgan;
+  }
+
   /** Resurslar faqat bog'langan ish ichida (Tizim1). Topilmasa — zamena material/qo'shimcha resurs. */
   function resurslarniMosla(fIsh: F2Tugun, sIsh: STugun | null, otaImzo: string) {
     // Resurs faqat SHU F2 ishi ichida bir marta band: o'sha smeta ishining takror qismi
     // (yuqoridagi 'takror') o'z resurslarini xuddi shu smeta resurslariga bog'laydi.
     const lokalBand = new Set<number>();
-    const qolgan: Array<{ r: F2Tugun; nz: Nomzod[]; topildi: boolean }> = [];
+    const qolgan: Array<{ r: F2Tugun; nz: Nomzod[]; topildi: boolean; havza?: STugun[] }> = [];
     for (const r of fIsh.bolalar) {
       if (!sIsh) {
         yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: [], sabab: 'ishi bog‘lanmagan — ish hal qilinganda resurs ham hal bo‘ladi' });
         continue;
       }
       const markerTuri = r.texnikBelgi?.replace(/[+~]$/, '').toLowerCase();
-      const ichki = sIsh.bolalar.filter((t) =>
+      // Guruh sarlavhali resurs («ДЕТАЛЬ -1» ostidagi): smetadagi shu nomli razdelning ichki qatorlari orasidan qidiriladi.
+      const guruhRz = r.guruh ? guruhRzTop(sIsh, r) : null;
+      const havzaManba = guruhRz ? guruhRz.bolalar : sIsh.bolalar;
+      const ichki = havzaManba.filter((t) =>
         (t.tur === 'rs' || t.tur === 'mat' || t.tur === 'ob')
         && (!markerTuri || t.tur === markerTuri)
         && !lokalBand.has(t.id)); // takror qism uchun: faqat shu F2 ishi ichida band
@@ -747,7 +766,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         .filter((n) => n.qavatlar.some((q) => q.nom === 'shifr' && q.ball > 0)
           || n.qavatlar.some((q) => q.nom === 'nom' && q.ball > 0))
         .sort((a, b) => b.ball - a.ball).slice(0, 8);
-      qolgan.push({ r, nz, topildi: !!topildi });
+      qolgan.push({ r, nz, topildi: !!topildi, ...(guruhRz ? { havza: guruhRz.bolalar } : {}) });
     }
     if (!sIsh || !qolgan.length) return;
     // Ikkinchi o'tish (massivlar): F2 ishining juftlanmagan resurslari ↔ smeta ishining juftlanmagan
@@ -760,7 +779,9 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     const bosh = sIsh.bolalar.filter((t) => t.tur !== 'rz' && !lokalBand.has(t.id));
     const juftlar: Array<{ i: number; t: STugun; ball: number }> = [];
     qolgan.forEach((x, i) => {
-      for (const t of bosh) {
+      // Guruhli resurs uchun zamena faqat o'sha guruh razdelidagi juftlanmagan qatorlardan (ish darajasidagi begona resurslardan emas).
+      const nomzodlar = x.havza ? x.havza.filter((t) => t.tur !== 'rz' && !lokalBand.has(t.id)) : bosh;
+      for (const t of nomzodlar) {
         const sf = sinf(x.r.birlik);
         if (sf !== sinf(t.birlik)) continue;
         if (sf === 'МАТ' && !birMos(x.r.birlik, t.birlik)) continue;
