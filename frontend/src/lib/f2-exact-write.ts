@@ -21,9 +21,20 @@ import { f2AggregatsiyaQator, type F2ExactManbaTugun, type F2ExactPayloadQatori,
 export function exactWrite(nodes: F2ExactManbaTugun[], mapping: Map<string, number>): F2ExactPayloadQatori[] {
   if (!nodes.length || nodes.some(n => !mapping.has(n.uid))) throw new Error('Barcha manba qatorlari moslashtirilishi kerak.');
   const rows = f2AggregatsiyaQator(nodes, uid => mapping.get(uid));
-  const nolHajm = rows.filter((r) => r.summaBor && r.summa !== 0 && r.hajm === 0 && (r.narx == null || r.barchaNarxlar.length > 1));
-  if (nolHajm.length) throw new Error(`${nolHajm.length} ta smeta qatorida hajm 0, lekin summa bor va narx aniq emas — hujjatdagi hajmni tekshiring.`);
-  return rows.map(hujjatdagidek);
+  // Bazada akt qatori hajmi 0 bo'lishi mumkin emas (t2_akt_qator_hajm_check). Hajm 0 va pul yo'q qator — aktga
+  // hech narsa qo'shmaydi, o'tkazib yuboriladi (izohda ko'rsatiladi). Hajm 0, lekin summa bor — yozib bo'lmaydi:
+  // aniq qaysi qatorligini aytamiz (umumiy «server xatosi» o'rniga).
+  const nolHajmPulli = rows.filter((r) => r.hajm === 0 && r.summaBor && r.summa !== 0);
+  if (nolHajmPulli.length) {
+    const kodlar = nolHajmPulli.slice(0, 5).map((r) => nolKod(nodes, mapping, r.qator_id)).join(', ');
+    throw new Error(`${nolHajmPulli.length} ta qatorda hajm 0, lekin summa bor (${kodlar}) — hujjatdagi hajmni tekshiring yoki bu qatorni aktga kiritmang.`);
+  }
+  return rows.filter((r) => r.hajm !== 0).map(hujjatdagidek);
+}
+
+function nolKod(nodes: F2ExactManbaTugun[], mapping: Map<string, number>, qatorId: number): string {
+  const n = nodes.find((x) => mapping.get(x.uid) === qatorId);
+  return n ? String(n.uid) : String(qatorId);
 }
 
 function hujjatdagidek(r: F2ExactQator): F2ExactPayloadQatori {
@@ -43,7 +54,9 @@ export function exactWriteIzohlar(nodes: F2ExactManbaTugun[], mapping: Map<strin
   const turli = rows.filter((r) => r.summaBor && r.barchaNarxlar.length > 1).length;
   const narxsiz = rows.filter((r) => r.summaBor && r.narx == null && r.hajm !== 0).length;
   const qisman = rows.filter((r) => r.summaBor && (r.summasizBolak ?? 0) > 0).length;
-  const summasiz = rows.filter((r) => !r.summaBor && r.narx != null).length;
+  const summasiz = rows.filter((r) => !r.summaBor && r.narx != null && r.hajm !== 0).length;
+  const nol = rows.filter((r) => r.hajm === 0 && !(r.summaBor && r.summa !== 0)).length;
+  if (nol) out.push(`${nol} ta qatorda hajm 0 va summa yo'q — aktga kiritilmadi (pulga ta'siri yo'q).`);
   if (turli) out.push(`${turli} ta smeta qatoriga hujjatda turli narxlar tushdi — hajm va summa yig'ildi, narx = summa / hajm.`);
   if (narxsiz) out.push(`${narxsiz} ta qatorda hujjatda summa bor, narx yo'q — narx = summa / hajm, summa hujjatdagidek.`);
   if (qisman) out.push(`${qisman} ta smeta qatorida summa hujjatda faqat bo'laklarning bir qismida bor — summa hujjatdagi summalar yig'indisi.`);
