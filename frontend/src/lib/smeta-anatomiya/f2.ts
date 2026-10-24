@@ -45,6 +45,15 @@ export interface F2Tugun {
   ogohlantirish?: string[];
   /** F2 podvalidagi qo'lda qator (bojxona, shef-montaj...) yoki ularning razdeli — qatorlarJami ga kirmaydi, tegmasa o'tkazib yuboriladi. */
   podval?: boolean;
+  /** Ish ichidagi guruh sarlavhasi («ДЕТАЛЬ -1»): kodsiz, birliksiz, hajmsiz matn qatori. Resurs EMAS — undan keyingi resurslar shu guruhga tegishli. */
+  guruh?: string;
+  /** Guruh sarlavhasining manzili (`varaq!qator`) — guruhning barqaror kaliti. */
+  guruhUid?: string;
+}
+
+/** Faqat matnli qator (kod, birlik, hajm, narx yo'q; summa yo'q yoki 0) — guruh sarlavhasi, resurs emas. */
+export function guruhSarlavhasimi(r: { kod: string | null; xom: string; birlik: string | null; hajm: number | null; narx: number | null; summa: number | null }): boolean {
+  return !!r.xom?.trim() && !r.kod && !String(r.birlik ?? '').trim() && r.hajm == null && r.narx == null && (r.summa == null || r.summa === 0);
 }
 
 export interface F2Ogohlantirish {
@@ -229,7 +238,7 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
     const bl: F2Tugun = {
       uid: uid(ish.manzil), tur: 'bl', kod: ish.shifr, nom: ish.xom, birlik: ish.birlik,
       hajm: ish.hajm, narx: ish.narx, summa: ish.summa, manzil: ish.manzil, yol, bolalar: [],
-      barg: ish.resurslar.length === 0, texnikBelgi: ish.texnikBelgi,
+      barg: !ish.resurslar.some((r) => !guruhSarlavhasimi(r)), texnikBelgi: ish.texnikBelgi,
       ...(ish.belgi ? { belgi: ish.belgi } : {}),
     };
     if (ish.hajm == null && !ishXato) {
@@ -242,8 +251,12 @@ function aktQur(kitob: KirishKitob, v: VaraqAnatomiyasi): F2Akt {
       ogoh.push({ kod: 'XATO_QIYMAT', izoh: `${ish.tartib}-ish: katakda ${ishXato} (tashqi faylga havola) — qiymat noma'lum`, manzil: ish.manzil });
     }
     if ((ish.hajm ?? 0) < 0) ogoh.push({ kod: 'MANFIY_QATOR', izoh: `${ish.tartib}-ish: manfiy hajm ${ish.hajm} — перерасчет (oldingi F2 kamayadi)`, manzil: ish.manzil });
+    let guruh: { nom: string; uid: string } | null = null;
     for (const r of ish.resurslar) {
+      // Matnli sarlavha qatori («ДЕТАЛЬ -1», «МЕТИЗЫ ДЛЯ КРЕПЛЕНИЯ») resurs emas: undan keyingi resurslar shu guruhga kiradi.
+      if (guruhSarlavhasimi(r)) { guruh = { nom: r.xom.trim(), uid: `${r.manzil.varaq}!${r.manzil.qator}` }; continue; }
       const rt = resursTugun(r, [...yol, ish.xom], 'rs');
+      if (guruh) { rt.guruh = guruh.nom; rt.guruhUid = guruh.uid; }
       const xato = qiymatXatosi(v, k, r.manzil.qator);
       if (xato) {
         (rt.ogohlantirish ??= []).push(`katakda ${xato}`);

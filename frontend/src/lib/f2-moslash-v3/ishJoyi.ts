@@ -12,6 +12,7 @@
 import { kodKanon, normBir, normKod, normNom } from '../f2-match-engine';
 import type { F2Akt, F2Tugun } from '../smeta-anatomiya/f2';
 import type { F2ExactManbaTugun } from '../../test02/f2-exact-payload';
+import { guruhRzTanla } from './guruh';
 import { f2Imzo, gradeFarq, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
 
 export type BogHolat = 'aniq' | 'xotira' | 'taklif' | 'qolda';
@@ -98,6 +99,28 @@ export function bogla(ij: IshJoyi, uid: string, qatorId: number): IshJoyi {
   return { bog, otkaz };
 }
 
+/**
+ * Resurs uchun smeta havzasi: guruh sarlavhali («ДЕТАЛЬ -1») resurs — smetadagi shu nomli razdelning ichki qatorlari;
+ * aks holda (yoki razdel topilmasa) — ishning o'z ichki qatorlari.
+ */
+function resursHavzasi(S: SmetaIndeks, sIshId: number, ichki: readonly SmetaQator[]) {
+  const olingan = new Set<number>();
+  const xotira = new Map<string, SmetaQator | null>();
+  return (r: F2Tugun): readonly SmetaQator[] => {
+    if (!r.guruh) return ichki;
+    const ish = S.byId.get(sIshId);
+    if (!ish) return ichki;
+    const kalit = r.guruhUid ?? r.guruh;
+    if (!xotira.has(kalit)) {
+      const rz = guruhRzTanla<SmetaQator>(ish, (x) => (x.otaId != null ? S.byId.get(x.otaId) ?? null : null), (x) => S.bolalar.get(x.id) ?? [], r.guruh, rzKalit, olingan);
+      if (rz) olingan.add(rz.id);
+      xotira.set(kalit, rz);
+    }
+    const rz = xotira.get(kalit);
+    return rz ? (S.bolalar.get(rz.id) ?? []).filter((t) => t.tur !== 'rz') : ichki;
+  };
+}
+
 export interface IshBoglaNatija { ij: IshJoyi; boglandi: number; qoldi: number }
 
 /**
@@ -114,11 +137,13 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
   const band = new Set<number>();
   for (const [uid, b] of bog) if (!bolaUid.has(uid)) band.add(b.qatorId);
   let boglandi = 0, qoldi = 0;
+  const havza = resursHavzasi(S, sIshId, ichki);
   for (const r of fIsh.bolalar) {
     const joriy = bog.get(r.uid);
-    if (joriy?.holat === 'qolda' && ichki.some((t) => t.id === joriy.qatorId)) { band.add(joriy.qatorId); boglandi++; continue; }
+    const hv = havza(r);
+    if (joriy?.holat === 'qolda' && hv.some((t) => t.id === joriy.qatorId)) { band.add(joriy.qatorId); boglandi++; continue; }
     bog.delete(r.uid);
-    const bosh = ichki.filter((t) => !band.has(t.id));
+    const bosh = hv.filter((t) => !band.has(t.id));
     const t = resursMosTop(r, bosh);
     if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) {
       bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' });
@@ -163,11 +188,12 @@ export function ishniTasdiqla(ij: IshJoyi, f: F2Tugun, S: SmetaIndeks): IshTasdi
   const bolaUid = new Set(f.bolalar.map((r) => r.uid));
   const band = new Set<number>();
   for (const [uid, b] of bog) if (!bolaUid.has(uid)) band.add(b.qatorId);
+  const havza = resursHavzasi(S, b0.qatorId, ichki);
   for (const r of f.bolalar) {
     if (ij.otkaz.has(r.uid)) continue;
     const cb = bog.get(r.uid);
     if (cb) { tasdiq(r.uid); band.add(cb.qatorId); continue; }
-    const t = resursMosTop(r, ichki.filter((x) => !band.has(x.id)));
+    const t = resursMosTop(r, havza(r).filter((x) => !band.has(x.id)));
     if (t && birMos(r.birlik, t.birlik) && !gradeFarq(r.nom, t.nom)) { bog.set(r.uid, { qatorId: t.id, holat: 'qolda', usul: 'ish_ichida' }); band.add(t.id); boglandi++; }
     else qoldi++;
   }
