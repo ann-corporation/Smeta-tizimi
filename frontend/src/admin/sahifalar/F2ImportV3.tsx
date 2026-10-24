@@ -34,6 +34,8 @@ import type { ModalRejali } from './F2AddReplModal';
 import { BOLIM_ILDIZ, SMETASIZ_RZ, resursTuri, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
+import { olchov, type Olchov } from '../../lib/vaqt-olchov';
+import { nakQoldiqXaritalari } from '../../lib/f2-moslash-v3/nakQoldiq';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
@@ -435,29 +437,27 @@ function Sessiya({ companyId }: { companyId: number }) {
   }
 
   /** Smeta, oldingi F2 (Nakopitelniy) va xotira (o'tgan F2 larning imzolari). */
-  async function malumotYukla(oid: number, oy: string, joriymi = () => true) {
+  async function malumotYukla(oid: number, oy: string, joriymi = () => true, o?: Olchov) {
+    const q = <T,>(k: string, p: Promise<T>) => (o ? o.qadam(k, p) : p);
     const [d, nak, xot, aktRoyxat] = await Promise.all([
-      sbT2DaraxtOl(oid, F2_SMETA_USTUNLAR),
-      t2NakopitelniyToliq(oid, oy + '-01').catch(() => null),
-      sbOqi<AktQatorBand>({
+      q('smeta', sbT2DaraxtOl(oid, F2_SMETA_USTUNLAR)),
+      // Faqat faol qatorlar (F2/fakt harakati bor) — qolganlari smetadan to'ldiriladi (nakQoldiqXaritalari), natija bir xil.
+      q('nakopitelniy', t2NakopitelniyToliq(oid, oy + '-01', true).catch(() => null)),
+      q('xotira', sbOqi<AktQatorBand>({
         jadval: 't2_akt_qator', filtr: `obyekt_id=eq.${oid}`, ustunlar: 'akt_id,qator_id,hajm,certified_quantity,raw_snapshot', limit: 50000,
-      }).catch(nullga),
-      sbOqi<AktQisqa>({
+      }).catch(nullga)),
+      q('aktlar', sbOqi<AktQisqa>({
         jadval: 't2_akt', filtr: `obyekt_id=eq.${oid}&tur=eq.f2`, ustunlar: 'id,raqam,oy,holat,tur', limit: 5000,
-      }).catch(() => null),
+      }).catch(() => null)),
     ]);
     if (!d.ok) throw new Error('Smeta o‘qilmadi.');
     const r = (d.qatorlar || []) as T2Qator[];
     // Smetasi yo'q obyekt ham ochiladi (egasi 2026-10-20): F2 ishlari «Smetadan tashqari ishlar» ga qo'shimcha bo'lib yoziladi.
-    const old = new Map<number, number>(), qol = new Map<number, number>();
+    let old = new Map<number, number>(), qol = new Map<number, number>();
     if (!joriymi()) return { r, qol, x: new Map<string, number>() };
     if (nak && nak.ok) {
       // Tasdiqlangan F2 — davrgacha VA shu davrdagi (bir oyda bir necha F2 bo'lishi mumkin): jami_hajm.
-      for (const q of nak.qatorlar) {
-        const tasd = q.jami_hajm ?? ((q.oldingi_hajm ?? 0) + (q.joriy_hajm ?? 0));
-        old.set(q.qator_id, tasd);
-        if (q.smeta_hajm != null) qol.set(q.qator_id, q.smeta_hajm - tasd);
-      }
+      ({ old, qol } = nakQoldiqXaritalari(nak.qatorlar, r));
       setOgoh('');
     } else setOgoh('Nakopitelniy o‘qilmadi — qoldiq ko‘rsatilmaydi, hajm nazorati faqat smeta hajmi bo‘yicha.');
     const x = new Map<string, number>();
@@ -751,19 +751,20 @@ function Sessiya({ companyId }: { companyId: number }) {
     const id = jobId ?? Number(serverId);
     if (!Number.isSafeInteger(id) || id <= 0 || busy || ij) return undefined;
     setBusy(true); setXato('');
+    const o = olchov('F2 ochish');
     try {
-      const d = await f2ServerOl(id);
+      const d = await o.qadam('qoralama', f2ServerOl(id));
       setServerId(String(id));
       if (!objects.some((o) => o.id === d.objectId)) throw new Error('Qoralama tanlangan kompaniya obyektiga tegishli emas.');
       const c = d.cursor;
       const docId = Number(c.sourceDocumentId), idx = Number(c.actIdx), month = String(c.month ?? '');
       if (!Number.isSafeInteger(docId) || docId <= 0 || !Number.isSafeInteger(idx) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('Qoralama manbasi yoki davri noaniq.');
       // Unumdorlik (prod profil 2026-10-24): smeta/Nakopitelniy/xotira yuklash fayl yuklash va o'qish bilan PARALLEL boshlanadi.
-      const malumotP = malumotYukla(d.objectId, month);
+      const malumotP = o.qadam('malumot', malumotYukla(d.objectId, month, undefined, o));
       void malumotP.catch(() => undefined);
-      const bytes = await faylBaytlari(docId);
+      const bytes = await o.qadam('fayl', faylBaytlari(docId));
       const file = new File([bytes.slice()], String(c.file), { type: XLSX_MIME });
-      const acts = await f2AktlarniOqiFonda(file.name, file);
+      const acts = await o.qadam('fayl_oqish', f2AktlarniOqiFonda(file.name, file));
       const a = acts[idx];
       if (!a) throw new Error('Qoralamadagi akt varag‘i manba faylida topilmadi.');
       // Versiyaga chidamli tiklash: parser yaxshilanganda saqlangan qoralamalar buzilmaydi. Har qator uid bo'yicha alohida
@@ -773,8 +774,9 @@ function Sessiya({ companyId }: { companyId: number }) {
       const mosla = f2ManbaMosla(d.sourceRows, indA);
       if (!mosla.mos && d.sourceRows.length) throw new Error('Manba fayli saqlangan qoralamaga umuman mos emas (birorta qator mos kelmadi). Bog‘lanishlar taxmin bilan tiklanmaydi.');
       const { r, qol, x } = await malumotP;
+      o.belgi('malumot_tayyor');
       const rb = new Map(c.rzBog as Array<[string, number]>);
-      const result = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
+      const result = await o.qadam('moslash', f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb }));
       oxirgiKalit.current = `${d.objectId}|${idx}|${month}|${a.fayl}`;
       void faylShaHisobla(rawFile.current = file); sourceDoc.current = docId; sourceOp.current = String(c.sourceOperationId); operation.current = String(c.writeOperationId);
       serverDraft.current = d.state; setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
@@ -786,10 +788,14 @@ function Sessiya({ companyId }: { companyId: number }) {
         : f2QoralamaBogTekshir(d.ij,new Set([...r.map((q)=>q.id), ...serverRejali(c).flatMap((b) => [b.tempId, ...b.resursTempIds])]));
       pendingCorrection.current=undefined;
       // Oldingi «F2 ni yozish» urinishida smetaga allaqachon yozilgan rejali buyruqlar — haqiqiy qatorga o'tkaziladi (dublikat yo'q).
-      const tz = await rejaliniTozala(d.objectId, serverRejali(c), restored);
+      o.belgi('tiklash_oldi');
+      const tz = await o.qadam('rejali', rejaliniTozala(d.objectId, serverRejali(c), restored));
       setRejali(tz.rejali); setOchirish(serverOchirish(c));
       const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat(tz.ij, mosla.buzilgan), indA.qatorlar, r);
       tarixniTozala(); setIj(tiklangan); setDone(null); setTahrirAkt(tahrirAktId ?? null);
+      o.belgi('holat_yozildi');
+      // Birinchi chizishdan keyin (ish oynasi ko'rinadigan payt) umumiy vaqt.
+      requestAnimationFrame(() => setTimeout(() => o.yoz(), 0));
       setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`
         + (tz.soni ? ` ${tz.soni} ${t('ta qo‘shimcha qator smetada allaqachon yozilgan — qayta yaratilmaydi')}.` : '')
         + (mosla.yangi.length ? ` ${t('Fayl yangi usulda o‘qildi')}: +${mosla.yangi.length} ${t('qator')}.` : '')
