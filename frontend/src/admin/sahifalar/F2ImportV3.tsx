@@ -73,6 +73,9 @@ const nullga = () => null;
 type AktQisqa = { id: number; raqam: string | null; oy: string | null; holat: string; tur: string };
 const fmt = (n: number | null | undefined) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n));
 
+/** F2 import uchun kerakli smeta ustunlari (prod profil 2026-10-24: 25k qatorda d1–d3/obyekt nomi har qatorda ~28% hajm). */
+const F2_SMETA_USTUNLAR = 'id,obyekt_id,ota_id,daraja,tartib,tur,kod,nom,birlik,hajm,narx,kat,summa,narx_usul,qoshimcha,zamena,versiya,raqam,norma';
+
 function smetaQatorlari(rows: T2Qator[]): SmetaQator[] {
   return rows.map((q) => ({ id: q.id, otaId: q.ota_id, tur: q.tur ?? 'rs', kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx, norma: (q as T2Qator & { norma?: number | null }).norma ?? null, tartib: q.tartib, kat: q.kat }));
 }
@@ -434,7 +437,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   /** Smeta, oldingi F2 (Nakopitelniy) va xotira (o'tgan F2 larning imzolari). */
   async function malumotYukla(oid: number, oy: string, joriymi = () => true) {
     const [d, nak, xot, aktRoyxat] = await Promise.all([
-      sbT2DaraxtOl(oid),
+      sbT2DaraxtOl(oid, F2_SMETA_USTUNLAR),
       t2NakopitelniyToliq(oid, oy + '-01').catch(() => null),
       sbOqi<AktQatorBand>({
         jadval: 't2_akt_qator', filtr: `obyekt_id=eq.${oid}`, ustunlar: 'akt_id,qator_id,hajm,certified_quantity,raw_snapshot', limit: 50000,
@@ -755,6 +758,9 @@ function Sessiya({ companyId }: { companyId: number }) {
       const c = d.cursor;
       const docId = Number(c.sourceDocumentId), idx = Number(c.actIdx), month = String(c.month ?? '');
       if (!Number.isSafeInteger(docId) || docId <= 0 || !Number.isSafeInteger(idx) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('Qoralama manbasi yoki davri noaniq.');
+      // Unumdorlik (prod profil 2026-10-24): smeta/Nakopitelniy/xotira yuklash fayl yuklash va o'qish bilan PARALLEL boshlanadi.
+      const malumotP = malumotYukla(d.objectId, month);
+      void malumotP.catch(() => undefined);
       const bytes = await faylBaytlari(docId);
       const file = new File([bytes.slice()], String(c.file), { type: XLSX_MIME });
       const acts = await f2AktlarniOqiFonda(file.name, file);
@@ -766,7 +772,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const indA = f2Indeks(a.daraxt);
       const mosla = f2ManbaMosla(d.sourceRows, indA);
       if (!mosla.mos && d.sourceRows.length) throw new Error('Manba fayli saqlangan qoralamaga umuman mos emas (birorta qator mos kelmadi). Bog‘lanishlar taxmin bilan tiklanmaydi.');
-      const { r, qol, x } = await malumotYukla(d.objectId, month);
+      const { r, qol, x } = await malumotP;
       const rb = new Map(c.rzBog as Array<[string, number]>);
       const result = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb });
       oxirgiKalit.current = `${d.objectId}|${idx}|${month}|${a.fayl}`;
@@ -813,6 +819,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       const docId = Number(s0?.hujjat_id);
       if (!s0 || !Number.isSafeInteger(docId) || docId <= 0 || !s0.fayl || !s0.varaq) throw new Error('Bu aktning manba hujjati yozilmagan (import orqali yaratilmagan) - uni faylni qayta import qilib almashtiring.');
       const month = String(aktQ.oy).slice(0, 7);
+      const malumotP = malumotYukla(obyektId, month);
+      void malumotP.catch(() => undefined);
       const bytes = await faylBaytlari(docId);
       const file = new File([bytes.slice()], String(s0.fayl), { type: XLSX_MIME });
       const acts = await f2AktlarniOqiFonda(file.name, file);
@@ -820,7 +828,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (idx < 0) throw new Error('Aktning varag‘i manba faylida topilmadi.');
       const a = acts[idx];
       const indA = f2Indeks(a.daraxt);
-      const { r, qol, x } = await malumotYukla(obyektId, month);
+      const { r, qol, x } = await malumotP;
       const result = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: new Map() });
       const mavjud = new Set(r.map((q) => q.id));
       const bog = new Map<string, import('../../lib/f2-moslash-v3/ishJoyi').Bog>();
