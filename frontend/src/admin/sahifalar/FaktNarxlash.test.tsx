@@ -12,15 +12,19 @@ const qator = { id: 3, nom: 'Qum', birlik: 'м3', kat: 'МАТ', fakt: 2, smeta:
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('FaktNarxlash', () => {
-  it('manbalar tartiblanadi, Enter tanlangan narxni yozadi; summa fakt*narx', async () => {
+  it('manbalar tartiblanadi; taklif faqat qo‘lda maydonga tushadi, yozish faqat tugma bilan', async () => {
     m.takl.mockResolvedValue([[{ manba: 'katalog', narx: 90, izoh: 'k' }, { manba: 'smeta_obyekt', narx: 100, izoh: 's' }, { manba: 'smeta_obyekt', narx: 100, izoh: 's2' }]]);
     m.narxla.mockResolvedValue({ ok: true, yozildi: 2 });
     const saq = vi.fn();
     render(<FaktNarxlash kompaniyaId={1} obyektId={8} qator={qator} onYop={vi.fn()} onSaqlandi={saq} />);
     await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(2));
     expect(screen.getAllByRole('option')[0].textContent).toContain('100');
-    expect(screen.getAllByTestId('summa')[0].textContent).toBe('200');
+    expect((screen.getByRole('button', { name: /Narxni yozish/ }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Enter' });
+    expect(m.narxla).not.toHaveBeenCalled();
+    expect((screen.getByLabelText('Qo‘lda narx') as HTMLInputElement).value).toBe('100');
+    expect(screen.getAllByTestId('summa')[0].textContent).toBe('200');
+    fireEvent.click(screen.getByRole('button', { name: /Narxni yozish/ }));
     await waitFor(() => expect(m.narxla).toHaveBeenCalledWith(expect.objectContaining({ kompaniyaId: 1, obyektId: 8, narxlar: [{ nom: 'Qum', birlik: 'м3', narx: 100 }] })));
     await waitFor(() => expect(saq).toHaveBeenCalled());
   });
