@@ -156,3 +156,17 @@ export function sbQatorHolatOl(obyektId: number) {
     limit: 100000,
   });
 }
+
+/** Tasdiqlanmagan (qoralama) F2 aktlaridagi hajmlar: qator_id -> jami hajm (ikki marta F2 qilish xavfini ko'rsatish uchun). */
+export async function sbF2QoralamaHajmlar(obyektId: number): Promise<{ ok: boolean; hajm: Map<number, number>; aktSoni: number }> {
+  const bosh = { ok: false, hajm: new Map<number, number>(), aktSoni: 0 };
+  const a = await sbOqi<{ id: number }>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&holat=eq.qoralama`, ustunlar: 'id', limit: 500 });
+  if (!a.ok) return bosh;
+  const ids = (a.qatorlar || []).map((x) => x.id).filter((x) => Number.isSafeInteger(x));
+  if (!ids.length) return { ok: true, hajm: new Map(), aktSoni: 0 };
+  const q = await sbOqi<{ qator_id: number; hajm: number | null; certified_quantity: number | null }>({ jadval: 't2_akt_qator', filtr: `akt_id=in.(${ids.join(',')})`, ustunlar: 'qator_id,hajm,certified_quantity', limit: 20000 });
+  if (!q.ok) return bosh;
+  const hajm = new Map<number, number>();
+  for (const x of q.qatorlar || []) hajm.set(x.qator_id, (hajm.get(x.qator_id) ?? 0) + Number(x.certified_quantity ?? x.hajm ?? 0));
+  return { ok: true, hajm, aktSoni: ids.length };
+}

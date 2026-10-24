@@ -32,7 +32,7 @@ vi.mock('../../api/supabase', () => ({
 }));
 // Token daftari: sarf muvaffaqiyatli — amal bajariladi (token mantig'i t2-token/f2-yacheyka testlarida).
 vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(async (_p: unknown, ish: () => Promise<unknown>) => ({ ok: true, natija: await ish(), sarflandi: 1 })) }));
-vi.mock('../../api/t2-fakt', () => ({ sbQatorHolatOl: vi.fn(async () => ({ ok: true, qatorlar: holat })) }));
+vi.mock('../../api/t2-fakt', () => ({ sbQatorHolatOl: vi.fn(async () => ({ ok: true, qatorlar: holat })), sbF2QoralamaHajmlar: vi.fn(async () => ({ ok: true, hajm: new Map(), aktSoni: 0 })) }));
 vi.mock('../../api/t2-narx-protokol', async (asl) => ({ ...(await asl<typeof import('../../api/t2-narx-protokol')>()), narxProtokolQatorlariOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('../../api/t2-aosr', () => ({ sbAosrCoverageOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('../../api/t2-shartnoma-liniya', () => ({ shartnomaLiniyaOl: vi.fn(async () => ({ ok: true, natija: {
