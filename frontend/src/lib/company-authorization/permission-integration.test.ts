@@ -17,7 +17,10 @@ describe('role integration architecture',()=>{
          Actor sessiyadan; a'zolik, company.member.manage, muddat, soni va cheklov — har RPC ichida bazada (ish-joyi.test.ts). */
       'ish-joyi',
       /* T6 (2026-10-22): mutaxassis hali a'zo emas — xizmat taklifi, profil. Actor sessiyadan; har RPC bazada tekshiradi (mutaxassis.test.ts). */
-      'mutaxassis']);
+      'mutaxassis',
+      /* P1 topshiriq (2026-10-24): ijrochi usta fakt.write ga ega emas - bitta middleware ruxsati mos kelmaydi. Actor sessiyadan;
+         a'zolik, rol, tomon, aloqa va o'tish qoidalari har RPC ichida (t2_topshiriq_contract.sql, topshiriq.test.ts). */
+      'topshiriq']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });
