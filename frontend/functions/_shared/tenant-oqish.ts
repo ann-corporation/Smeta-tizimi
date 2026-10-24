@@ -50,7 +50,7 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   t2_material_alias_royxat: { tur: 'platforma' },
   t2_kompaniya: { tur: 'ozi' },
   /* Kompaniya ustuni yo'q — ota orqali. */
-  t2_qator_holat: OBYEKT, t2_aosr_coverage: OBYEKT, t2_lrv: OBYEKT, t2_obyekt_nakrutka: OBYEKT, t2_shartnoma_bog: OBYEKT,
+  t2_qator_holat: OBYEKT, t2_aosr_coverage: OBYEKT, t2_aosr_qator_holat: OBYEKT, t2_lrv: OBYEKT, t2_obyekt_nakrutka: OBYEKT, t2_shartnoma_bog: OBYEKT,
   t2_loyiha_qatnashchilar_royxat: { tur: 'ota', ustun: 'loyiha_id', otaJadval: 't2_loyiha' },
   t2_viborka_qabul: { tur: 'ota', ustun: 'viborka_id', otaJadval: 't2_viborka' },
   t2_hujjat_turi: { tur: 'global' },

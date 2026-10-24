@@ -78,8 +78,8 @@ const NAKOPITELNIY_MAX_SAHIFA = 200;
 /** Bir vaqtda o'qiladigan sahifalar soni (server/DB yuklamasini cheklash uchun). */
 const NAKOPITELNIY_PARALLEL = 4;
 
-export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, limit?: number, offset?: number): Promise<NakopitelniyJavob> {
-  const q = new URLSearchParams({ amal: 'nakopitelniy', obyekt_id: String(obyektId), faqat_faol: '0' });
+export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, limit?: number, offset?: number, faqatFaol = false): Promise<NakopitelniyJavob> {
+  const q = new URLSearchParams({ amal: 'nakopitelniy', obyekt_id: String(obyektId), faqat_faol: faqatFaol ? '1' : '0' });
   // UI month selector uses YYYY-MM; PostgreSQL RPC requires a complete date.
   if (davr) q.set('davr', /^\d{4}-\d{2}$/.test(davr) ? `${davr}-01` : davr);
   if (limit) q.set('limit', String(limit));
@@ -106,14 +106,18 @@ async function nakopitelniyParallel(obyektId: number, davr: string | null, boshi
   for (let i = 0; i < offsetlar.length; i += NAKOPITELNIY_PARALLEL) {
     const javob = await Promise.all(offsetlar.slice(i, i + NAKOPITELNIY_PARALLEL).map((o) => t2NakopitelniyOl(obyektId, davr, NAKOPITELNIY_SAHIFA, o)));
     for (const s of javob) {
-      if (!s.ok || s.qatorlar_jami !== jami) return null;
+      if (!s.ok || s.qatorlar_jami !== jami) {
+        // eslint-disable-next-line no-console
+        console.info('[nakopitelniy parallel] sahifa:', s.ok ? `jami ${s.qatorlar_jami} != ${jami}` : s.code);
+        return null;
+      }
       qatorlar.push(...s.qatorlar);
     }
   }
   return qatorlar.length + boshi === jami ? qatorlar : null;
 }
-export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null): Promise<NakopitelniyJavob> {
-  const birinchi = await t2NakopitelniyOl(obyektId, davr, NAKOPITELNIY_SAHIFA, 0);
+export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null, faqatFaol = false): Promise<NakopitelniyJavob> {
+  const birinchi = await t2NakopitelniyOl(obyektId, davr, NAKOPITELNIY_SAHIFA, 0, faqatFaol);
   if (!birinchi.ok) return birinchi;
   const qatorlar = [...birinchi.qatorlar];
   let keyingi = birinchi.keyingi_offset ?? null;
@@ -126,14 +130,21 @@ export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null
   // qolgan sahifalar oldindan rejalanadi va 4 tadan PARALLEL o'qiladi; tartib offset bo'yicha saqlanadi, natija bir xil.
   const jami = birinchi.qatorlar_jami;
   // Faqat server sahifa hajmini to'liq bergan bo'lsa (keyingi = 5000) — aks holda eski ketma-ket yo'l.
-  if (keyingi != null && keyingi === NAKOPITELNIY_SAHIFA && Number.isSafeInteger(jami) && jami > keyingi) {
+  // Faqat faol qatorlar rejimida qatorlar_jami obyektning BARCHA qatorlari soni — oldindan rejalab bo'lmaydi (ketma-ket).
+  if (!faqatFaol && keyingi != null && keyingi === NAKOPITELNIY_SAHIFA && Number.isSafeInteger(jami) && jami > keyingi) {
     // Parallel o'qish faqat TEZLASHTIRISH: biror sahifa xato/tarmoq uzilishi/nomuvofiqlik bersa — jim xato emas,
     // eski ishonchli ketma-ket yo'lga qaytiladi (regressiya 2026-10-24: Sun'iy ko'l da «Nakopitelniy o'qilmadi»).
-    const parallel = await nakopitelniyParallel(obyektId, davrQat, keyingi, jami).catch(() => null);
+    const parallel = await nakopitelniyParallel(obyektId, davrQat, keyingi, jami).catch((e) => {
+      // eslint-disable-next-line no-console
+      console.info('[nakopitelniy parallel] istisno:', e instanceof Error ? e.message : String(e));
+      return null;
+    });
+    // eslint-disable-next-line no-console
+    if (!parallel) console.info('[nakopitelniy parallel] zaxira (ketma-ket) yo‘l');
     if (parallel) return { ...birinchi, qatorlar: [...qatorlar, ...parallel], qatorlar_korsatildi: qatorlar.length + parallel.length, truncated: false, keyingi_offset: null };
   }  for (let n = 0; keyingi != null; n++) {
     if (n >= NAKOPITELNIY_MAX_SAHIFA) return { ok: false, code: 'NAKOPITELNIY_SAHIFA_CHEGARASI' };
-    const s = await t2NakopitelniyOl(obyektId, davrQat, NAKOPITELNIY_SAHIFA, keyingi);
+    const s = await t2NakopitelniyOl(obyektId, davrQat, NAKOPITELNIY_SAHIFA, keyingi, faqatFaol);
     if (!s.ok) return s;
     if (s.qatorlar_jami !== birinchi.qatorlar_jami) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
     qatorlar.push(...s.qatorlar);
