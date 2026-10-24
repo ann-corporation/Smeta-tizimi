@@ -9,7 +9,7 @@
  * yaratmaydi. Kanonik qonun o'zgarmaydi: zamena eski qatorni o'zgartirmaydi (OLD+NEW).
  */
 import type { T2Qator } from '../../api/supabase';
-import type { IshJoyi } from './ishJoyi';
+import { bogIdlari, type IshJoyi } from './ishJoyi';
 
 export type RejaliResurs = { tur: 'rs' | 'mat' | 'ob'; nom: string; birlik: string; hajm?: number | null; kod?: string | null };
 
@@ -215,7 +215,11 @@ export function rejaliniYozilganlardanTozala(buyruqlar: readonly RejaliBuyruq[],
 /** Bog'lanishlardagi vaqtinchalik id larni haqiqiysiga almashtiradi. */
 export function ijniAlmashtir(ij: IshJoyi, map: ReadonlyMap<number, number>): IshJoyi {
   const bog = new Map(ij.bog);
-  for (const [uid, b] of bog) { const real = map.get(b.qatorId); if (real != null) bog.set(uid, { ...b, qatorId: real }); }
+  for (const [uid, b] of bog) {
+    const real = map.get(b.qatorId);
+    const taqsim = b.taqsim?.some((q) => map.has(q.qatorId)) ? b.taqsim.map((q) => ({ ...q, qatorId: map.get(q.qatorId) ?? q.qatorId })) : b.taqsim;
+    if (real != null || taqsim !== b.taqsim) bog.set(uid, { ...b, qatorId: real ?? b.qatorId, ...(taqsim ? { taqsim } : {}) });
+  }
   return { bog, otkaz: ij.otkaz };
 }
 
@@ -235,7 +239,7 @@ export function rejaliOchir(buyruqlar: readonly RejaliBuyruq[], ij: IshJoyi, tem
       }
     }
   }
-  const bog = new Map([...ij.bog].filter(([, v]) => !olinadi.has(v.qatorId)));
+  const bog = new Map([...ij.bog].filter(([, v]) => !bogIdlari(v).some((id) => olinadi.has(id))));
   return { buyruqlar: buyruqlar.filter((x) => !olinadi.has(x.tempId)), ij: { bog, otkaz: ij.otkaz } };
 }
 
