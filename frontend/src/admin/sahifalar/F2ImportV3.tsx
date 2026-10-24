@@ -18,6 +18,7 @@ import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-mo
 import { kumulyativmi, kumulyativQolla, kumulyativReja } from '../../lib/f2-moslash-v3/kumulyativ';
 import { dvigatelDaraxti, podvalTaklifQosh } from '../../lib/f2-moslash-v3/podval';
 import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
+import { guruhHisobla } from '../../lib/f2-moslash-v3/ishJoyi';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
 import { eskiYozilmagan } from '../../lib/f2-ketma-ketlik';
 import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestrMos } from '../../lib/f2-moslash-v3/varaq-tanlov';
@@ -570,7 +571,8 @@ function Sessiya({ companyId }: { companyId: number }) {
     finally { if (scopeRef.current===scope) setBusy(false); }
   }
 
-  const taklifSoni = useMemo(() => (ij ? [...ij.bog.values()].filter((b) => b.holat === 'taklif').length : 0), [ij]);
+  // Hisoblagich ISH darajasida (ish + resurslari bitta guruh): ◐ — tasdiq kutayotgan ishlar soni.
+  const taklifSoni = useMemo(() => (ij && ind ? guruhHisobla(ind, ij).taklif : 0), [ij, ind]);
   /** Kumulyativ reja: faqat hujjatda «ранее» > 0 bo'lsa hisoblanadi; rejim yoqilmaguncha yozishga TA'SIR QILMAYDI. */
   const kumReja = useMemo(() => (akt && ind && ij && kumulyativmi(akt.jami)
     ? kumulyativReja({ ind, ij, oldingi, band, narx: (id) => raw.get(id)?.narx ?? null, jami: akt.jami })

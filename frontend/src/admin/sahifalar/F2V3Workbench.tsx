@@ -7,7 +7,7 @@ import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { qidiruvMatni, qidiruvMoslagich } from '../../lib/f2-moslash-v3/qidiruv';
 import type { F2MoslashNatija, Nomzod, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
-  bogla, hisobla, ishniBogla, korinish, oshaQatormi, otkazibYubor, tasdiqla, uz,
+  bogla, guruhHisobla, guruhHolati, guruhIldizi, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, tasdiqla, uz,
   type F2Indeks, type IshJoyi, type KorinishHolat, type SmetaIndeks,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { F2AddReplModal, type DropAction, type ModalRejali } from './F2AddReplModal';
@@ -368,6 +368,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   const f2ExpandableDepths = useMemo(() => expandableDepths(p.akt.daraxt, (node) => node.bolalar), [p.akt.daraxt]);
   const smetaRoots = useMemo(() => S.bolalar.get(null) ?? [], [S]);
   const smetaExpandableDepths = useMemo(() => expandableDepths(smetaRoots, (node) => S.bolalar.get(node.id) ?? []), [S, smetaRoots]);
+  const halUidlar = useMemo(() => new Set(guruhHisobla(ind, ij).hal), [ind, ij]);
   const f2VisibleRows = useMemo(() => {
     const mos = qidiruvMoslagich(qF);
     if (mos) {
@@ -390,7 +391,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const used = binding ? (shuF2.get(binding.qatorId)?.hajm ?? 0) : 0;
       const over = remaining != null && (target!.hajm! >= 0 ? used > remaining + 1e-9 : used < remaining - 1e-9);
       const unbound = state === 'topilmadi' || (!binding && state !== 'otkazildi');
-      const unresolved = state === 'topilmadi' || state === 'taklif';
+      const ildiz = guruhIldizi(ind, node.uid);
+      const unresolved = !!ildiz && halUidlar.has(ildiz.uid);
       const missingValue = node.barg && (node.hajm == null || node.summa == null);
       if (filtr === 'hal') return unresolved;
       if (filtr === 'boglanmagan') return unbound;
@@ -398,7 +400,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     };
     return flattenVisibleTree(p.akt.daraxt, (node) => node.bolalar, (node) => node.uid,
       matches, (uid) => !yopiqF.has(String(uid)));
-  }, [p.akt.daraxt, filtr, ij, h.kopBog, S, shuF2, yopiqF, p.oldingi, qF, ind]);
+  }, [p.akt.daraxt, filtr, ij, h.kopBog, S, shuF2, yopiqF, p.oldingi, qF, ind, halUidlar]);
   const qidiruvNatija = useMemo(() => {
     const mos = qidiruvMoslagich(q);
     if (!mos) return null;
@@ -588,12 +590,20 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (!oldRow || !parent) { xab('Zamena uchun smeta qatorining otasi topilmadi.'); return; }
     ochModal(f, { kind: 'replacement', oldRow, parent });
   }
+  /** Ish va uning resurslari — bitta guruh: tasdiqlash ish + barcha resurslari (kod → kanon → nom+birlik ish ichida), mos topilmaganlar ish ichida qoladi. */
+  function ishTasdiq(f: F2Tugun) {
+    const r = ishniTasdiqla(ij, f, S);
+    p.onIj(r.ij);
+    xab(`${tarj('Ish tasdiqlandi')}: ${r.tasdiqlandi} ${tarj('ta taklif tasdiqlandi')}, ${r.boglandi} ${tarj('ta resurs avtomatik bog‘landi')}${r.qoldi ? `; ${r.qoldi} ${tarj('ta resurs uchun smetada mos topilmadi — ish ichida zamena/qo‘shimcha resurs bilan hal qiling')}` : ''}`);
+  }
   function keyingiHal() {
-    const list = ind.qatorlar;
-    const bosh = tanlangan ? list.findIndex((t) => t.uid === tanlangan) + 1 : 0;
+    // Navbat ISH darajasida (ildiz): resurslar bitta-bitta chiqmaydi.
+    const list = ind.qatorlar.filter((t) => guruhIldizi(ind, t.uid)?.uid === t.uid);
+    const tanlanganIldiz = tanlangan ? guruhIldizi(ind, tanlangan)?.uid : undefined;
+    const bosh = tanlanganIldiz ? list.findIndex((t) => t.uid === tanlanganIldiz) + 1 : 0;
     for (let i = 0; i < list.length; i++) {
       const t = list[(bosh + i) % list.length];
-      const k = korinish(ij, t.uid);
+      const k = guruhHolati(ind, ij, t);
       if (k === 'topilmadi' || k === 'taklif') {
         setTanlangan(t.uid);
         setYopiqF((old) => {
@@ -737,8 +747,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {t.barg ? fmt(t.summa, 2) : bolaSumma(t) != null ? fmt(bolaSumma(t), 2) : ''}
         </span>
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
-          {k === 'taklif' && <button type="button" className={`${tugma} tugma-asosiy`} disabled={(p.disabled || mutationBusy)}
-            onClick={() => p.onIj(tasdiqla(ij, [t.uid]))} title="Tizim taklifini tasdiqlash"><Check size={11} /> Tasdiqlash</button>}
+          {(t.tur === 'bl' ? guruhHolati(ind, ij, t) === 'taklif' && ij.bog.has(t.uid) : k === 'taklif' && ind.ota.get(t.uid)?.tur !== 'bl') && <button type="button" className={`${tugma} tugma-asosiy`} disabled={(p.disabled || mutationBusy)}
+            onClick={() => (t.tur === 'bl' ? ishTasdiq(t) : p.onIj(tasdiqla(ij, [t.uid])))} title={t.tur === 'bl' ? tarj('Ishni va uning barcha resurslarini tasdiqlash') : 'Tizim taklifini tasdiqlash'}><Check size={11} /> Tasdiqlash</button>}
           {k === 'topilmadi' && ish && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Smeta razdelidagi qaysi ish o‘rniga bajarilganini tanlang">⇄ Zamena</button>}
           {k === 'topilmadi' && ish && rzId != null && p.raw.get(rzId) && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
@@ -829,7 +839,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         const uidlar = f2VisibleRows.map((r) => r.node.uid);
         const [i, j] = [uidlar.indexOf(a), uidlar.indexOf(uid)].sort((x, y) => x - y);
         if (i >= 0) for (const u of uidlar.slice(i, j + 1)) if (ind.byUid.get(u)?.tur !== 'rz') n.add(u);
-      } else if (n.has(uid)) n.delete(uid); else n.add(uid);
+      } else {
+        // Ish belgilansa resurslari ham belgilanadi (bitta guruh); olib tashlansa ham birga.
+        const f = ind.byUid.get(uid);
+        const guruh = [uid, ...(f?.tur === 'bl' ? f.bolalar.map((r) => r.uid) : [])];
+        if (n.has(uid)) for (const u of guruh) n.delete(u); else for (const u of guruh) n.add(u);
+      }
       return n;
     });
     oxirgiBelgi.current = uid;
@@ -924,8 +939,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz');
     if (!tugunlar.length) return;
     let next = ij;
-    if (amal === 'tasdiq') next = tasdiqla(ij, tugunlar.map((x) => x.uid));
-    else for (const x of tugunlar) next = amal === 'uz' ? uz(next, x) : otkazibYubor(next, x, amal === 'otkaz');
+    if (amal === 'tasdiq') {
+      // Ish tanlansa resurslari ham tasdiqlanadi/bog'lanadi (guruh).
+      for (const x of tugunlar) next = x.tur === 'bl' ? ishniTasdiqla(next, x, S).ij : tasdiqla(next, [x.uid]);
+    } else for (const x of tugunlar) next = amal === 'uz' ? uz(next, x) : otkazibYubor(next, x, amal === 'otkaz');
     p.onIj(next);
     xab(`${tugunlar.length} ${tarj('ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}`);
     setBelgi(new Set());
@@ -1183,7 +1200,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             {r?.sabab && k !== 'qolda' && <p className="text-[11px] text-text-mute">{r.sabab}</p>}
           </div>
           <div className="flex flex-wrap gap-1">
-            {k === 'taklif' && <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[12px]" onClick={() => p.onIj(tasdiqla(ij, [tTugun.uid]))}><Check size={13} /> Tasdiqlash</button>}
+            {(tTugun.tur === 'bl' ? guruhHolati(ind, ij, tTugun) === 'taklif' && !!b : k === 'taklif') && <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[12px]" onClick={() => (tTugun.tur === 'bl' ? ishTasdiq(tTugun) : p.onIj(tasdiqla(ij, [tTugun.uid])))}><Check size={13} /> {tTugun.tur === 'bl' ? tarj('Ish va resurslarini tasdiqlash') : 'Tasdiqlash'}</button>}
             {b && <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={13} /> Uzish</button>}
             <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => p.onIj(otkazibYubor(ij, tTugun, k !== 'otkazildi'))}>
               <SkipForward size={13} /> {k === 'otkazildi' ? 'Aktga qaytarish' : 'Aktga kiritmaslik'}
@@ -1301,17 +1318,18 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     );
   }
 
-  const halSoni = h.topilmadi + h.taklif;
+  const gh = guruhHisobla(ind, ij);
+  const halSoni = gh.hal.length;
   return (
     <div className="space-y-2">
       <div className="karta space-y-2 p-2 text-[12px]">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <span title="Moslik dvigateli dalillar bo‘yicha avtomatik topdi; bu operator tekshiruvi degani emas."><b className="text-ok">✓ {h.tizimTopdi}</b> tizim mos topdi</span>
-          <span title="Avvalgi davrda tasdiqlangan bog‘lanish xotirasidan olindi."><b className="text-ok">↻ {h.avvalgiQaror}</b> oldingi qaror</span>
-          <span title="Bu qatorni operator qo‘lda bog‘ladi yoki taklifni tasdiqladi."><b className="text-ok">✋ {h.operatorTasdiqladi}</b> operator tasdiqladi</span>
-          <span><b className="text-warn">◐ {h.taklif}</b> operator tasdig‘ini kutmoqda</span>
-          <span><b className="text-danger">✕ {h.topilmadi}</b> topilmadi</span>
-          <span><b className="text-text-mute">– {h.otkazildi}</b> ataylab chiqarilgan</span>
+          <span title="Moslik dvigateli dalillar bo‘yicha avtomatik topdi; bu operator tekshiruvi degani emas."><b className="text-ok">✓ {gh.tizimTopdi}</b> tizim mos topdi</span>
+          <span title="Avvalgi davrda tasdiqlangan bog‘lanish xotirasidan olindi."><b className="text-ok">↻ {gh.avvalgiQaror}</b> oldingi qaror</span>
+          <span title="Bu qatorni operator qo‘lda bog‘ladi yoki taklifni tasdiqladi."><b className="text-ok">✋ {gh.operatorTasdiqladi}</b> operator tasdiqladi</span>
+          <span><b className="text-warn">◐ {gh.taklif}</b> operator tasdig‘ini kutmoqda</span>
+          <span><b className="text-danger">✕ {gh.topilmadi}</b> topilmadi</span>
+          <span><b className="text-text-mute">– {gh.otkazildi}</b> ataylab chiqarilgan</span>
           <button type="button" className="tugma tugma-asosiy ml-auto h-7 px-2 text-[12px]" disabled={!halSoni} onClick={keyingiHal}>
             <ArrowDownToLine size={13} /> Keyingi tekshirilmagan
           </button>
