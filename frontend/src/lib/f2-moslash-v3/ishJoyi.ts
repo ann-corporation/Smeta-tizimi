@@ -415,6 +415,8 @@ export interface YozishManbasi {
   mapping: Map<string, number>;
   /** Yozishni to'xtatuvchi sabablar (bo'sh bo'lsa — yozish mumkin). */
   toxtatish: string[];
+  /** Yozishni TO'XTATMAYDIGAN eslatmalar: hujjatda son yo'q qatorlar — hujjatdagidek (bo'sh) yoziladi. */
+  ogohlantirish: string[];
   /** Har manba qatori uchun xotira imzosi (keyingi oylarda avtomatik bog'lash uchun). */
   imzolar: Map<string, string>;
 }
@@ -439,7 +441,8 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): Yozi
     if (t.podval && k === 'topilmadi') continue;
     if (k === 'topilmadi' || k === 'taklif') { hal.push(qisqa(t)); continue; }
     const b = ij.bog.get(t.uid)!;
-    if (t.hajm == null || t.ogohlantirish?.length) { qiymatsiz.push(qisqa(t)); continue; }
+    // Hujjatda hajm yo'q (#REF! yoki bo'sh) — yoziladigan son yo'q: qator aktga kirmaydi, faqat eslatma (blok emas).
+    if (t.hajm == null) { qiymatsiz.push(qisqa(t)); continue; }
     mapping.set(t.uid, b.qatorId);
     // Yig'ma summa (birliksiz, narx 1, hajm = so'm) smeta birligiga o'tkaziladi: hajm = summa / smeta narx; summa F2 dagi aniq summa.
     const bk = S ? f2HajmiSmetaBirligida(t, S.byId.get(b.qatorId)) : null;
@@ -451,17 +454,18 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): Yozi
       nodes.push({ uid: t.uid, hajm: t.hajm, narx, summa: t.summa, tur: 'bl', summaYozilgan: t.summa != null });
     } else if (t.tur === 'bl' && !t.barg) nodes.push({ uid: t.uid, hajm: t.hajm, narx: undefined, summa: undefined, tur: 'bl' });
     else {
-      // Narxi bor-u hujjatda summasi bo'sh — pul to'qilmaydi: aniq qator nomi bilan to'xtatiladi.
+      // Narxi bor-u hujjatda summasi bo'sh — pul to'qilmaydi: hajm yoziladi, summa hujjatdagidek bo'sh qoladi (blok emas).
       if (t.narx != null && t.narx > 0 && t.summa == null) summasiz.push(qisqa(t));
       nodes.push({ uid: t.uid, hajm: bk?.summaBoyicha ? bk.hajm! : t.hajm, narx: bk?.summaBoyicha ? bk.narx : t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null });
     }
   }
   const toxtatish: string[] = [];
   if (hal.length) toxtatish.push(`${hal.length} ta qator hal qilinmagan (✕ yoki ◐): ${hal.slice(0, 5).join('; ')}${hal.length > 5 ? ' …' : ''}`);
-  if (qiymatsiz.length) toxtatish.push(`${qiymatsiz.length} ta qatorda qiymat noma'lum (#REF! yoki bo'sh) — hujjatni tuzating yoki qatorni o'tkazib yuboring: ${qiymatsiz.slice(0, 5).join('; ')}${qiymatsiz.length > 5 ? ' …' : ''}`);
-  if (summasiz.length) toxtatish.push(`${summasiz.length} ta qatorda narx bor, lekin hujjatda summa bo'sh — summa to'qilmaydi, hujjatni tuzating yoki qatorni aktga kiritmang: ${summasiz.slice(0, 5).join('; ')}${summasiz.length > 5 ? ' …' : ''}`);
+  const ogohlantirish: string[] = [];
+  if (qiymatsiz.length) ogohlantirish.push(`${qiymatsiz.length} ta qatorda hujjatda hajm yo'q (#REF! yoki bo'sh) — aktga kirmaydi: ${qiymatsiz.slice(0, 5).join('; ')}${qiymatsiz.length > 5 ? ' …' : ''}`);
+  if (summasiz.length) ogohlantirish.push(`${summasiz.length} ta qatorda hujjatda summa bo'sh — hajmi yoziladi, summasi hujjatdagidek bo'sh qoladi (to'qilmaydi): ${summasiz.slice(0, 5).join('; ')}${summasiz.length > 5 ? ' …' : ''}`);
   if (!nodes.length && !toxtatish.length) toxtatish.push('Aktga kiradigan qator yo‘q.');
-  return { nodes, mapping, toxtatish, imzolar };
+  return { nodes, mapping, toxtatish, ogohlantirish, imzolar };
 }
 
 /** F2 tuguni smeta qatoriga "o'sha ish"mi — tashlaganda to'g'ridan-to'g'ri bog'lash mumkinmi

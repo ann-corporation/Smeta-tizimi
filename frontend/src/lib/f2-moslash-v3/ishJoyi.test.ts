@@ -98,13 +98,23 @@ describe('F2 V3 ish joyi holati', () => {
     expect(oshaQatormi({ ...sim, birlik: 'КГ' }, S[4])).toBe(false);
   });
 
-  it('#REF! katakli qator o‘tkazilmaguncha yozish to‘xtaydi', () => {
+  it('#REF! (hajmsiz) qator yozishni TO‘XTATMAYDI — aktga kirmaydi, faqat eslatma (egasi 2026-10-24)', () => {
     const xato = { ...sim, uid: 'A!x', hajm: null, ogohlantirish: ['katakda #REF!'] };
-    const rz2 = { ...rz, bolalar: [xato] };
+    const rz2 = { ...rz, bolalar: [xato, { ...sim, uid: 'A!y' }] };
     const ind = f2Indeks([rz2]);
-    const ij = bogla({ bog: new Map(), otkaz: new Set() }, xato.uid, 5);
-    expect(yozishManbasi(ind, ij).toxtatish.join()).toMatch(/qiymat noma'lum/);
-    expect(yozishManbasi(ind, otkazibYubor(ij, xato, true)).toxtatish).toEqual(['Aktga kiradigan qator yo‘q.']);
+    const ij = bogla(bogla({ bog: new Map(), otkaz: new Set() }, xato.uid, 5), 'A!y', 6);
+    const y = yozishManbasi(ind, ij);
+    expect(y.toxtatish).toEqual([]);
+    expect(y.nodes.map((n) => n.uid)).toEqual(['A!y']);
+    expect(y.ogohlantirish.join()).toMatch(/hajm yo'q/);
+  });
+  it('narxi bor-u summasi bo‘sh qator yozishni to‘xtatmaydi — hajm yoziladi, eslatma chiqadi', () => {
+    const s = { ...sim, uid: 'A!s', summa: null };
+    const ind = f2Indeks([{ ...rz, bolalar: [s] }]);
+    const y = yozishManbasi(ind, bogla({ bog: new Map(), otkaz: new Set() }, s.uid, 5));
+    expect(y.toxtatish).toEqual([]);
+    expect(y.nodes).toHaveLength(1);
+    expect(y.ogohlantirish.join()).toMatch(/summa bo'sh/);
   });
 });
 
