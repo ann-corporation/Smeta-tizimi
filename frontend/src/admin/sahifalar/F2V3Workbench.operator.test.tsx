@@ -174,23 +174,45 @@ describe('F2 workbench operator controls', () => {
     expect(smetaRegion.querySelectorAll('[data-index]')).toHaveLength(24);
   });
 
-  it('drag-and-drop: butun F2 qatori sudraladi, mos nishonlar belgilanadi, tashlanganda bog‘lanadi', () => {
+  it('sudrash (pointer): butun F2 qatori — nomidan ham — sudraladi, mos nishonlar belgilanadi, tashlanganda bog‘lanadi', () => {
     const { onIj } = renderWorkbench();
     fireEvent.click(within(screen.getByRole('group', { name: 'F2 filtri' })).getByRole('button', { name: 'Hammasi' }));
     const f2Tree = within(screen.getByRole('region', { name: 'F2 akt' }));
     const row = f2Tree.getByRole('group', { name: 'F2 qatori (Ish): Armatura A500' });
-    expect(row.getAttribute('draggable')).toBe('true');
-    const data = new Map<string, string>();
-    const dataTransfer = { setData: (k: string, v: string) => data.set(k, v), getData: (k: string) => data.get(k) ?? '', effectAllowed: '', dropEffect: '' };
-    fireEvent.dragStart(row, { dataTransfer });
-    expect(screen.getByRole('status').textContent).toContain('smeta ISHIGA tashlang');
-    const target = document.querySelector('[data-sid="3"]')!;
-    expect(target.className).toContain('outline-dashed');
-    fireEvent.dragOver(target, { dataTransfer });
-    fireEvent.drop(target, { dataTransfer });
+    expect(row.getAttribute('data-sudrash')).toBe('ha');
+    expect(row.getAttribute('draggable')).toBeNull();
+    const target = document.querySelector('[data-sid="3"]') as HTMLElement;
+    const asl = document.elementFromPoint;
+    document.elementFromPoint = (() => target) as typeof document.elementFromPoint;
+    try {
+      // Nom tugmasi ustidan boshlanadi (native drag bu yerda boshlanmasdi).
+      const nomTugma = row.querySelector('button:not([aria-pressed])') ?? row;
+      fireEvent.pointerDown(nomTugma, { button: 0, clientX: 10, clientY: 10 });
+      fireEvent.pointerMove(document, { clientX: 14, clientY: 11 });
+      expect(screen.queryByRole('status')?.textContent ?? '').not.toContain('smeta ISHIGA tashlang');
+      fireEvent.pointerMove(document, { clientX: 60, clientY: 0 });
+      expect(screen.getByRole('status').textContent).toContain('smeta ISHIGA tashlang');
+      expect(target.className).toContain('outline-dashed');
+      expect(target.getAttribute('data-drop')).toBe('ustiga');
+      fireEvent.pointerUp(document, { clientX: 60, clientY: 0 });
+    } finally {
+      document.elementFromPoint = asl;
+    }
+    expect(target.getAttribute('data-drop')).toBeNull();
     expect(onIj).toHaveBeenCalled();
     const [ij] = onIj.mock.calls.at(-1)!;
     expect(ij.bog.get('f2')?.qatorId).toBe(3);
+  });
+
+  it('sudrash: 6 px dan kam siljish — oddiy bosish, hech narsa bog‘lanmaydi', () => {
+    const { onIj } = renderWorkbench();
+    fireEvent.click(within(screen.getByRole('group', { name: 'F2 filtri' })).getByRole('button', { name: 'Hammasi' }));
+    const row = within(screen.getByRole('region', { name: 'F2 akt' })).getByRole('group', { name: 'F2 qatori (Ish): Armatura A500' });
+    const oldin = onIj.mock.calls.length;
+    fireEvent.pointerDown(row, { button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(document, { clientX: 12, clientY: 11 });
+    fireEvent.pointerUp(document, { clientX: 12, clientY: 11 });
+    expect(onIj.mock.calls.length).toBe(oldin);
   });
 
   // Egasi sinovi 2026-10-06: virtual ro'yxatda maqsad qator DOM'da yo'q — scrollIntoView ishlamasdi.

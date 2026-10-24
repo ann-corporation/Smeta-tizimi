@@ -1,0 +1,8 @@
+{
+  "Ish resurslari": { "ru": "Ресурсы работ", "en": "Work resources" },
+  "bog‘landi": { "ru": "привязано", "en": "linked" },
+  "taklif (tasdiqlang)": { "ru": "предложений (подтвердите)", "en": "suggestions (confirm)" },
+  "smeta ishida mos resurs yo‘q (qo‘shimcha/zamena)": { "ru": "нет подходящего ресурса в работе сметы (дополнительный/замена)", "en": "no matching resource in the estimate work (additional/replacement)" },
+  "Bog‘langan har bir ishning bog‘lanmagan resurslarini o‘sha smeta ishi ichidan bog‘laydi: aniq mosi ✓, o‘xshashi ◐ taklif. Orqaga (Ctrl+Z) bilan qaytariladi.": { "ru": "Привязывает непривязанные ресурсы каждой привязанной работы внутри той же работы сметы: точные ✓, похожие ◐ предложение. Отмена — «Назад» (Ctrl+Z).", "en": "Links unlinked resources of every linked work within the same estimate work: exact ✓, similar ◐ suggestion. Undo with Back (Ctrl+Z)." },
+  "Ish resurslarini bog‘lash": { "ru": "Привязать ресурсы работ", "en": "Link work resources" }
+}
