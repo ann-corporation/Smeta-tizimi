@@ -42,14 +42,22 @@ export type AosrCoverage = {
   qator_id: number; obyekt_id: number; nom: string | null; kod: string | null;
   birlik: string | null; kat: string | null; fakt_hajm: number;
   yashirin: boolean; akt_bor: boolean;
+  /** Bog'langan aktlarning eng yaxshi holati; view kengaytirilgach keladi (hozircha yo'q bo'lishi mumkin). */
+  akt_holat?: 'yangi' | 'tasdiqlangan' | 'qogoz' | null;
 };
 
-export function sbAosrCoverageOl(obyektId: number) {
-  return sbOqi<AosrCoverage>({
-    jadval: 't2_aosr_coverage',
-    filtr: 'obyekt_id=eq.' + obyektId,
-    limit: 20000,
-  });
+/** Qator -> bog'langan aktlarning eng yaxshi holati (view t2_aosr_qator_holat). */
+export type AosrQatorHolat = { qator_id: number; obyekt_id: number; akt_holat: 'yangi' | 'tasdiqlangan' | null; akt_soni: number };
+
+export async function sbAosrCoverageOl(obyektId: number) {
+  const [cov, holat] = await Promise.all([
+    sbOqi<AosrCoverage>({ jadval: 't2_aosr_coverage', filtr: 'obyekt_id=eq.' + obyektId, limit: 20000 }),
+    // View migratsiya qo'llanmaguncha xato qaytaradi - bu holda holat noma'lum ('АОСР bor') qoladi.
+    sbOqi<AosrQatorHolat>({ jadval: 't2_aosr_qator_holat', filtr: 'obyekt_id=eq.' + obyektId, limit: 20000 }).catch(() => null),
+  ]);
+  if (!cov.ok || !holat || !holat.ok) return cov;
+  const xarita = new Map((holat.qatorlar || []).map((h) => [h.qator_id, h.akt_holat] as const));
+  return { ...cov, qatorlar: (cov.qatorlar || []).map((c) => (xarita.has(c.qator_id) ? { ...c, akt_holat: xarita.get(c.qator_id) } : c)) };
 }
 
 /* ══════════════════════════════════════════════════════════════════

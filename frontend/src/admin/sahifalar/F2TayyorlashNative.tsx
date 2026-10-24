@@ -32,6 +32,7 @@ import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
+import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
   NARX_MANBA_NOMI, bolimDaraxti, bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, sonOqi, ulushHajm,
@@ -81,6 +82,7 @@ export function F2TayyorlashNative() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [aosrsiz, setAosrsiz] = useState<AosrCoverage[]>([]);
+  const [aosrKoz, setAosrKoz] = useState<Map<number, AosrIshora>>(new Map());
   /** Shartnoma liniyasidan: imzolovchilar (buyurtmachi, pudratchi, subpudratchi, texnadzor) va shartnoma raqami. */
   const [avto, setAvto] = useState<{ imzo: ImzoNomlar; shartnoma: string | null }>({ imzo: {}, shartnoma: null });
   const operationId = useRef(yangiOperationId());
@@ -98,11 +100,11 @@ export function F2TayyorlashNative() {
   const yuklash = useCallback(async () => {
     const raqam = ++sorov.current;
     const dolzarb = () => raqam === sorov.current;
-    if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); return; }
+    if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); setAosrKoz(new Map()); return; }
     setLoading(true); setError(''); setRows([]); setHolat([]);
     try {
       void Promise.resolve().then(() => narxProtokolQatorlariOl(obyektId)).then((r) => { if (dolzarb()) setProtokolQ(r.ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : []); }).catch(() => { if (dolzarb()) setProtokolQ([]); });
-      void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); }).catch(() => { if (dolzarb()) setAosrsiz([]); });
+      void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) { setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); setAosrKoz(new Map(c.ok ? (c.qatorlar || []).map((x) => [x.qator_id, aosrIshora(x)] as const) : [])); } }).catch(() => { if (dolzarb()) setAosrsiz([]); });
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId)).then((qh) => { if (dolzarb()) setQoralamaHajm(qh.ok ? qh.hajm : new Map()); }).catch(() => { if (dolzarb()) setQoralamaHajm(new Map()); });
       const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]);
       if (!dolzarb()) return;
@@ -332,6 +334,7 @@ export function F2TayyorlashNative() {
           </button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-[10px] text-text-mute">{i.kod}</span><span className="truncate text-[13px] font-semibold text-text">{i.nom}</span>
+              {(() => { const h = aosrKoz.get(i.id); return h && h !== 'yoq' && h !== 'kerak_emas' ? <span className={`shrink-0 rounded px-1 text-[10px] ${h === 'imzolangan' ? 'bg-ok/10 text-ok' : 'bg-warn/10 text-warn'}`}>{t(AOSR_ISHORA_MATNI[h])}</span> : null; })()}
               {aosrsizId.has(i.id) && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">yashirin · АОСР yo‘q</span>}</div>
             <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · {t('tasdiqlangan F2')} <FmtN val={i.olingan} />{(i.qoralama ?? 0) > 0 && <b className="text-warn"> · {t('qoralamada')} <FmtN val={i.qoralama ?? 0} /></b>}{i.smeta != null && <> · {t('smeta')} <FmtN val={i.smeta} /></>}{(() => { const n = ishBirlikNarxi(i); return n.summa > 0 || n.narxsiz > 0 ? <> · {t('narx (1 birlik, NDS siz)')} {n.summa > 0 ? <FmtN val={n.summa} /> : '—'}{n.narxsiz > 0 && <b className="text-warn"> ({n.narxsiz} {t('resursda narx yo‘q')})</b>}</> : null; })()} · {i.resurslar.length} resurs</div>
           </div>
