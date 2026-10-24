@@ -112,6 +112,8 @@ export type F2Qator = {
   id: number; ishId: number | null; tur: 'bl' | 'rs' | 'mat' | 'ob'; kat: string | null; nom: string; birlik: string | null;
   hajm: number; narx: number | null; summa: number | null; manba: NarxManba; narxsiz: boolean;
   protokol?: string;
+  /** Smetada narx yo'q/0 — tizim avtomatik «narxsiz» qildi (xato emas, bildirishnoma). */
+  avtoNarxsiz?: boolean;
   xato?: 'HAJM' | 'OSHDI' | 'NARX' | 'SUMMA'; ogoh?: 'RESURS_CHEGARA' | 'ARIFMETIKA' | 'SMETADAN_OSHDI';
 };
 
@@ -119,10 +121,14 @@ function resursQator(r: F2Resurs, hajm: number, ishId: number | null, k: F2Kirit
   const qolNarx = sonOqi(k.narx[r.id]);
   const qolSumma = sonOqi(k.summa[r.id]);
   // Narxsizlik — faqat operatorning ongli qarori (H7: ИТОГО bo‘sh bo‘ladi); sukut bo‘yicha narx talab qilinadi.
-  const narxsiz = k.narxsiz[r.id] === true;
+  // Smeta qatorining o'zida narx yo'q/0 va boshqa narx manbai ham yo'q (protokol/oldingi F2) — informatsion resurs (masalan
+  // «ЗАТРАТЫ ТРУДА МАШИНИСТОВ»: narx mashina narxi ichida): AVTOMATIK narxsiz, faqat bildirishnoma — xato emas (egasi 2026-10-24).
+  // Operator narx/summa kiritsa — kiritgani ustun.
+  const avtoNarxsiz = k.narxsiz[r.id] !== true && qolNarx == null && qolSumma == null && r.taklifNarx == null;
+  const narxsiz = k.narxsiz[r.id] === true || avtoNarxsiz;
   const narx = narxsiz ? null : qolNarx === 'xato' ? null : (qolNarx ?? r.taklifNarx);
   const manba: NarxManba = narxsiz ? 'yoq' : qolNarx != null ? 'qolda' : r.taklifManba;
-  const q: F2Qator = { id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm, narx, summa: null, manba, narxsiz };
+  const q: F2Qator = { id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm, narx, summa: null, manba, narxsiz, ...(avtoNarxsiz ? { avtoNarxsiz: true } : {}) };
   if (manba === 'protokol' && r.protokol) q.protokol = r.protokol;
   if (narxsiz) return q;
   if (qolNarx === 'xato' || narx == null || narx < 0) { q.xato = 'NARX'; return q; }
