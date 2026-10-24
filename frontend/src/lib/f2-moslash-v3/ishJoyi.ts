@@ -483,8 +483,75 @@ export function rzTaklifHisobla(rz: F2Tugun, ij: IshJoyi, S: SmetaIndeks): RzTak
   }
   let eng: [number, number] | null = null;
   for (const e of say) if (!eng || e[1] > eng[1]) eng = e;
-  if (!eng || eng[1] < 2 || eng[1] / jami < 0.6) return null;
-  return { smetaRzId: eng[0], nom: S.byId.get(eng[0])?.nom ?? '', soni: eng[1], jami, ulush: eng[1] / jami };
+  if (eng && eng[1] >= 2 && eng[1] / jami >= 0.6) return { smetaRzId: eng[0], nom: S.byId.get(eng[0])?.nom ?? '', soni: eng[1], jami, ulush: eng[1] / jami };
+  return rzTaklifShifrdan(rz, ishlar, S);
+}
+
+const ISH_KOD_KESH = new WeakMap<SmetaIndeks, Map<string, SmetaQator[]>>();
+/** Smetaning barcha ishlari shifr (kanon) bo'yicha — bir marta quriladi. */
+function ishKodIndeks(S: SmetaIndeks): Map<string, SmetaQator[]> {
+  let m = ISH_KOD_KESH.get(S);
+  if (m) return m;
+  m = new Map();
+  for (const q of S.byId.values()) {
+    if (q.tur !== 'bl') continue;
+    const k = kodKanon(q.kod) || normKod(q.kod);
+    if (!k) continue;
+    const a = m.get(k);
+    if (a) a.push(q); else m.set(k, [q]);
+  }
+  ISH_KOD_KESH.set(S, m);
+  return m;
+}
+function engYaqinRz(S: SmetaIndeks, q: SmetaQator | undefined): SmetaQator | undefined {
+  let x = q?.otaId != null ? S.byId.get(q.otaId) : undefined;
+  while (x && x.tur !== 'rz') x = x.otaId != null ? S.byId.get(x.otaId) : undefined;
+  return x;
+}
+/** Bo'lim nomlari o'xshashligi (0..1): «РАЗДЕЛ:», nuqta va «(ЛИСТ …)» kabi qo'shimchalarsiz; to'liq tenglik yoki biri ikkinchisining boshi — 1. */
+function rzNomOxshash(a: string, b: string): number {
+  const toza = (s: string) => String(s ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/^\s*РАЗДЕЛ\s*:\s*/, '').replace(/\(.*?\)/g, ' ').replace(/[.\s]+/g, ' ').trim();
+  const x = normNom(toza(a)), y = normNom(toza(b));
+  if (!x || !y) return 0;
+  if (x === y || x.startsWith(y) || y.startsWith(x)) return 1;
+  return nomOxshash(toza(a), toza(b));
+}
+/**
+ * Bo'lim taklifi ISHLAR SHIFRI bo'yicha (egasi 2026-10-24 sinovi: Sun'iy ko'l «Канализация (Перерасчет)» — F2 dagi «КОЛОДЕЦ К-1М»,
+ * «ГИДРОИЗОЛЯЦИЯ» bo'limlari smetaning boshqa joyida («СМЕТА № 01-04 НА КОЛОДЦЕВ → КОЛОДЕЦ К1 / ГИДРОИЗОЛЯЦИЯ»); ishlar bo'lim
+ * ulanmaguncha bog'lanmaydi, bo'lim esa ishlar bog'lanmaguncha taklif qilinmasdi — berk aylana, hammasi ✕ edi).
+ * F2 bo'limidagi ishlar shifrlari (birligi mos) eng ko'p tushadigan smeta bo'limi; teng bo'lsa — nomi o'xshashi; noaniq — taklif yo'q.
+ */
+function rzTaklifShifrdan(rz: F2Tugun, ishlar: readonly F2Tugun[], S: SmetaIndeks): RzTaklif | null {
+  const jami = ishlar.length;
+  if (!jami) return null;
+  const idx = ishKodIndeks(S);
+  const say = new Map<number, number>();
+  for (const t of ishlar) {
+    const k = kodKanon(t.kod) || normKod(t.kod);
+    if (!k) continue;
+    const rzlar = new Set<number>();
+    for (const q of idx.get(k) ?? []) {
+      if (!birMos(t.birlik, q.birlik)) continue;
+      const r = engYaqinRz(S, q);
+      if (r) rzlar.add(r.id);
+    }
+    for (const id of rzlar) say.set(id, (say.get(id) ?? 0) + 1);
+  }
+  let max = 0;
+  for (const n of say.values()) if (n > max) max = n;
+  if (!max) return null;
+  const tenglar = [...say].filter(([, n]) => n === max).map(([id]) => id);
+  let tanlov: number | null = tenglar.length === 1 ? tenglar[0] : null;
+  let nomO = tanlov != null ? rzNomOxshash(rz.nom, S.byId.get(tanlov)?.nom ?? '') : 0;
+  if (tanlov == null) {
+    const baho = tenglar.map((id) => ({ id, o: rzNomOxshash(rz.nom, S.byId.get(id)?.nom ?? '') })).sort((a, b) => b.o - a.o);
+    if (baho[0].o >= 0.6 && (baho.length < 2 || baho[1].o < baho[0].o)) { tanlov = baho[0].id; nomO = baho[0].o; }
+  }
+  if (tanlov == null) return null;
+  const yetarli = (max >= 2 && max / jami >= 0.6) || (jami === 1 && max === 1 && nomO >= 0.6);
+  if (!yetarli) return null;
+  return { smetaRzId: tanlov, nom: S.byId.get(tanlov)?.nom ?? '', soni: max, jami, ulush: max / jami };
 }
 
 /** Narx farqi (%): F2 ish narxi smeta narxidan qancha farq qiladi. Faqat ko'rsatish uchun (bloklamaydi). */

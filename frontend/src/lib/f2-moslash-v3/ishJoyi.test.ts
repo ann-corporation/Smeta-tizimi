@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 import { f2MoslashV3, type SmetaQator } from './index';
 import {
-  avtoBoglarniUz, bogla, boshlangich, f2Indeks, guruhHisobla, ishlarResurslariniBogla, guruhHolati, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
+  avtoBoglarniUz, bogla, boshlangich, f2Indeks, guruhHisobla, ishlarResurslariniBogla, rzTaklifHisobla, guruhHolati, hisobla, ishniBogla, ishniTasdiqla, korinish, oshaQatormi, otkazibYubor, smetaIndeks, tasdiqla, uz, yozishManbasi,
 } from './ishJoyi';
 
 const S: SmetaQator[] = [
@@ -107,6 +107,43 @@ describe('F2 V3 ish joyi holati', () => {
     const r2x = ishlarResurslariniBogla(r.ij, IND, SS);
     expect(r2x).toMatchObject({ boglandi: 0, taklif: 0 });
     expect(r2x.ij).toBe(r.ij);
+  });
+
+  it('rzTaklifHisobla: ishlar hali bog‘lanmagan F2 bo‘limi — ishlar SHIFRI eng ko‘p tushgan smeta bo‘limi taklif qilinadi; teng bo‘lsa nomi bo‘yicha', () => {
+    const SQ: SmetaQator[] = [
+      { id: 100, otaId: null, tur: 'rz', kod: null, nom: 'РАЗДЕЛ: СМЕТА № 02-03 НА КАНАЛИЗАЦИЯ', birlik: null, hajm: null, tartib: 1 },
+      { id: 101, otaId: 100, tur: 'bl', kod: 'E23-1-21-1', nom: 'УКЛАДКА ТРУБ', birlik: '100М', hajm: 1, tartib: 2 },
+      { id: 200, otaId: null, tur: 'rz', kod: null, nom: 'РАЗДЕЛ: СМЕТА № 01-04 НА КОЛОДЦЕВ', birlik: null, hajm: null, tartib: 3 },
+      { id: 210, otaId: 200, tur: 'rz', kod: null, nom: 'КОЛОДЕЦ К1', birlik: null, hajm: null, tartib: 4 },
+      { id: 211, otaId: 210, tur: 'bl', kod: 'E23-3-1-3', nom: 'УСТРОЙСТВО КОЛОДЦЕВ', birlik: '10М3', hajm: 5, tartib: 5 },
+      { id: 212, otaId: 210, tur: 'bl', kod: 'E7-1-44-3', nom: 'УСТАНОВКА МОНТАЖНЫХ ИЗДЕЛИЙ', birlik: 'Т', hajm: 1, tartib: 6 },
+      { id: 220, otaId: 200, tur: 'rz', kod: null, nom: 'ГИДРОИЗОЛЯЦИЯ', birlik: null, hajm: null, tartib: 7 },
+      { id: 221, otaId: 220, tur: 'bl', kod: 'E12-2-2-2', nom: 'ГИДРОИЗОЛЯЦИЯ ОБМАЗОЧНАЯ', birlik: '100М2', hajm: 1, tartib: 8 },
+      { id: 222, otaId: 220, tur: 'bl', kod: 'E12-2-2-3', nom: 'ГИДРОИЗОЛЯЦИЯ НА КАЖДЫЙ СЛОЙ', birlik: '100М2', hajm: 1, tartib: 9 },
+      // Xuddi shu gidroizolyatsiya shifrlari boshqa bo'limda ham bor (teng hisob — nom hal qiladi).
+      { id: 300, otaId: null, tur: 'rz', kod: null, nom: 'ПОДПОРНАЯ СТЕНА', birlik: null, hajm: null, tartib: 10 },
+      { id: 301, otaId: 300, tur: 'bl', kod: 'E12-2-2-2', nom: 'ГИДРОИЗОЛЯЦИЯ ОБМАЗОЧНАЯ', birlik: '100М2', hajm: 1, tartib: 11 },
+      { id: 302, otaId: 300, tur: 'bl', kod: 'E12-2-2-3', nom: 'ГИДРОИЗОЛЯЦИЯ НА КАЖДЫЙ СЛОЙ', birlik: '100М2', hajm: 1, tartib: 12 },
+    ];
+    const SS = smetaIndeks(SQ);
+    const kol = t('rz', null, 'КОЛОДЕЦ К-1М', null, null, null, null, [
+      t('bl', 'E23-3-1-3', 'УСТРОЙСТВО КОЛОДЦЕВ', '10М3', 5, null, 100),
+      t('bl', 'E7-1-44-3', 'УСТАНОВКА МОНТАЖНЫХ ИЗДЕЛИЙ', 'Т', 0.36, null, 10),
+      t('bl', 'Е06-01-082-4', 'ПРИГОТОВЛЕНИЕ РАСТВОРОВ', '100М3', 0.5, null, 5),
+    ]);
+    const gid = t('rz', null, 'ГИДРОИЗОЛЯЦИЯ', null, null, null, null, [
+      t('bl', 'E12-2-2-3', 'ГИДРОИЗОЛЯЦИЯ НА КАЖДЫЙ СЛОЙ', '100М2', 7.8, null, 20),
+      t('bl', 'E12-2-2-2', 'ГИДРОИЗОЛЯЦИЯ ОБМАЗОЧНАЯ', '100М2', 7.8, null, 24),
+    ]);
+    const bosh = { bog: new Map(), otkaz: new Set<string>() };
+    expect(rzTaklifHisobla(kol, bosh, SS)).toMatchObject({ smetaRzId: 210, soni: 2, jami: 3 });
+    expect(rzTaklifHisobla(gid, bosh, SS)).toMatchObject({ smetaRzId: 220, soni: 2, jami: 2 });
+    // Nomi ham, shifri ham hal qila olmasa — taklif YO'Q (jim tanlanmaydi).
+    const noaniq = t('rz', null, 'БОШҚА ИШЛАР', null, null, null, null, [
+      t('bl', 'E12-2-2-3', 'ГИДРОИЗОЛЯЦИЯ НА КАЖДЫЙ СЛОЙ', '100М2', 1, null, 1),
+      t('bl', 'E12-2-2-2', 'ГИДРОИЗОЛЯЦИЯ ОБМАЗОЧНАЯ', '100М2', 1, null, 1),
+    ]);
+    expect(rzTaklifHisobla(noaniq, bosh, SS)).toBeNull();
   });
 
   it('uzish — ish bilan birga resurslari ham', () => {

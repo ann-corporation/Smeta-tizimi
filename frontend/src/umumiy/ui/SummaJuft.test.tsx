@@ -39,7 +39,9 @@ describe('SummaJuft — ustamali (katta) + ustamasiz (kichik)', () => {
     await waitFor(() => expect(screen.getByTestId('summa-taxminiy')).toBeTruthy());
     expect(matn('summa-taxminiy')).toContain('taxminiy');
     expect(matn('summa-taxminiy')).toContain('500');
-    expect(matn('summa-ustamali')).toBe('1 266.64'); // 1000 × МАТ: ИТОГО-4 (QQS siz) = 1420 / 1.12
+    // 1000 × МАТ: ИТОГО-4 (QQS siz) = 1 266.64, + kat noma'lum 500 ustamasiz qo'shiladi (taxminiy) → ≈ 1 766.64;
+    // asosiy raqam hech qachon ustamasizdan kichik chiqmaydi.
+    expect(matn('summa-ustamali')).toBe('≈ 1 766.64');
   });
 
   it('hamma qator kat’siz — ustamali 0 emas, NOMA’LUM', async () => {

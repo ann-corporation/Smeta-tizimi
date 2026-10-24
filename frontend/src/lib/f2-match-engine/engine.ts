@@ -84,6 +84,9 @@ function birSinonim(b: string): string {
   if (tkm) return tkm[1] + 'ТКМ';
   const k = b.match(/^(\d*)(КТ|КОМПТ|КОМПЛ|КОМПЛЕКТ|КОМПЛЕКТА|КОМПЛЕКТОВ)$/);
   if (k) return k[1] + 'КОМПЛ';
+  // Погонный метр (egasi sinovi 2026-10-24: F2 «ПМ» quvurlari smetadagi «М» ga taklif ham bo'lmasdi): «ПМ» ≡ «П.М» ≡ «ПОГ.М» ≡ «М».
+  const pm = b.match(/^(\d*)(ПМ|ПОГМ|ПОГОННЫЙМЕТР|ПОГОННЫХМЕТРОВ|МЕТР|МЕТРА|МЕТРОВ)$/);
+  if (pm) return pm[1] + 'М';
   const q = b.match(/^(\d*М[23])([А-Я]{3,})$/);
   return q ? q[1] : b;
 }

@@ -1,0 +1,5 @@
+{
+  "so‘m, ustamasiz": { "ru": "сум, без накруток", "en": "sum, before markups" },
+  "hali bog‘lanmagan — aktga KIRMAYDI. Baribir yozasizmi? (Keyin «✎ Tahrirlash» bilan qo‘shish mumkin.)": { "ru": "ещё не привязаны — в акт НЕ войдут. Всё равно записать? (Позже можно добавить через «✎ Редактировать».)", "en": "are not linked yet — they will NOT go into the act. Write anyway? (You can add them later via «✎ Edit».)" },
+  "Yozish bekor qilindi — bog‘lanmagan qatorlarni hal qiling.": { "ru": "Запись отменена — разберите непривязанные строки.", "en": "Writing cancelled — resolve the unlinked rows." }
+}

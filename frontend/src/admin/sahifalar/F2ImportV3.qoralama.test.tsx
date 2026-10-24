@@ -36,8 +36,10 @@ beforeEach(() => {
   m.preflight.mockResolvedValue({ok:true,qatorlar:[]});
   m.match.mockResolvedValue({ natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: 2 } });
   m.tree.mockResolvedValue({ ok: true, qatorlar: [{ id: 7, ota_id: null, tur: 'mat', nom: 'БЕТОН B20', kod: 'x', birlik: 'м3', hajm: 20, narx: 100 }] });
+  // Bog'lanmagan qatorlar bilan yozish endi tasdiq so'raydi (2026-10-24) — testlar sukut bo'yicha «ha».
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 async function start() {
   render(<F2ImportV3 />);
   fireEvent.change(await screen.findByLabelText('Obyekt'), { target: { value: '3' } });
@@ -134,6 +136,17 @@ describe('F2 independent working draft', () => {
     }] });
     expect(m.cloudSave.mock.invocationCallOrder[0]).toBeLessThan(m.create.mock.invocationCallOrder[0]);
     await screen.findByText(/1 ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi/);
+  });
+
+  it('bog‘lanmagan qator bor — yozishdan oldin so‘raladi; «yo‘q» desa akt YOZILMAYDI', async () => {
+    await restored();
+    m.create.mockResolvedValue({ ok: true, akt_id: 99 });
+    const savol = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    fireEvent.click(screen.getByRole('button', { name: /F2 ni yozish/ }));
+    await screen.findByText(/Yozish bekor qilindi/);
+    expect(savol).toHaveBeenCalledTimes(1);
+    expect(String(savol.mock.calls[0][0])).toMatch(/aktga KIRMAYDI/);
+    expect(m.create).not.toHaveBeenCalled();
   });
 
   it('an existing DRAFT act with the same object/month/number is replaced only after explicit confirmation', async () => {
