@@ -1,0 +1,15 @@
+{
+  "Hozircha taqqoslash uchun taklif yo'q.": { "ru": "Пока нет предложений для сравнения.", "en": "No offers to compare yet." },
+  "O'rtacha narx (NDS siz)": { "ru": "Средняя цена (без НДС)", "en": "Average price (excl. VAT)" },
+  "Eng arzon": { "ru": "Самая низкая", "en": "Lowest" },
+  "{n} ta yetkazuvchi narxi o'rtachalandi": { "ru": "Усреднены цены {n} поставщиков", "en": "Prices of {n} suppliers were averaged" },
+  "Yetkazuvchi": { "ru": "Поставщик", "en": "Supplier" },
+  "Narx, NDS siz": { "ru": "Цена, без НДС", "en": "Price, excl. VAT" },
+  "O'rtachadan farq": { "ru": "Отклонение от средней", "en": "vs. average" },
+  "Kompaniya": { "ru": "Компания", "en": "Company" },
+  "Yetkazuvchi kabineti": { "ru": "Кабинет поставщика", "en": "Supplier cabinet" },
+  "Narx bera oladigan ochiq so'rovlar (boshqa kompaniyalar e'lon qilgan)": { "ru": "Открытые запросы, на которые можно дать цену (опубликованы другими компаниями)", "en": "Open requests you can quote (posted by other companies)" },
+  "Hozircha sizga narx berish uchun ochiq so'rov yo'q.": { "ru": "Пока нет открытых запросов для вашего предложения.", "en": "No open requests to quote right now." },
+  "Narx berish": { "ru": "Дать цену", "en": "Quote" },
+  "Mahsulot katalogi, ombor joylashuvi va buyurtmalar yetkazuvchi kabinetiga keyingi bosqichda qo'shiladi.": { "ru": "Каталог товаров, расположение склада и заказы будут добавлены в кабинет поставщика на следующем этапе.", "en": "Product catalog, warehouse location and orders will be added to the supplier cabinet in the next stage." }
+}
