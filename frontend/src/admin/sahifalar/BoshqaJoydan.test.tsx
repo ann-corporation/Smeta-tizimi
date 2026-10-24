@@ -48,4 +48,14 @@ describe('BoshqaJoydan', () => {
     expect((await screen.findByRole('alert')).textContent).toMatch(/PTO, rahbar yoki admin/);
     expect(saqlandi).not.toHaveBeenCalled();
   });
+
+  it('hech narsa mos kelmasa: «katalogdan qo‘shish» tugmasi onKatalog ni chaqiradi', async () => {
+    m.qidir.mockResolvedValue([]);
+    const [qator] = qatorlarniOqi('noma‘lum ish 5 m3');
+    const katalog = vi.fn();
+    render(<BoshqaJoydan kompaniyaId={5} obyektId={1} qator={qator} bolimlar={[]} onYop={vi.fn()} onSaqlandi={vi.fn()} onKatalog={katalog} />);
+    await screen.findByText(/mos ish topilmadi/, {}, { timeout: 2000 });
+    fireEvent.click(screen.getByRole('button', { name: /katalogdan qoʻshish/ }));
+    expect(katalog).toHaveBeenCalledTimes(1);
+  });
 });

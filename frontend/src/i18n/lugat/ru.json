@@ -3097,6 +3097,7 @@
   "Qoʻshimcha qator yaratish va fakt yozish": "Создать дополнительную строку и записать факт",
   "Qoʻshimcha qator yaratildi va fakt yozildi: {nom}": "Дополнительная строка создана, факт записан: {nom}",
   "Yangi qoʻshimcha qatorlar (fakt yozilgan)": "Новые дополнительные строки (факт записан)",
+  "Smetada yoʻq — katalogdan qoʻshish": "Нет в смете — добавить из каталога",
   "Dvigatel qilgan barcha bog‘lanishlarni (✓ aniq, xotira, ◐ taklif) uzadi. Qo‘lda bog‘langan va tasdiqlanganlar qoladi. Orqaga (Ctrl+Z) bilan qaytariladi.": "Снимает все привязки, сделанные автоматически (✓ точные, по памяти, ◐ предложения). Ручные и подтверждённые остаются. Отмена — «Назад» (Ctrl+Z).",
   "ta avtomatik bog‘lanish uziladi. Qo‘lda bog‘langanlar qoladi. Davom etasizmi?": "автоматических привязок будет снято. Ручные останутся. Продолжить?",
   "ta avtomatik bog‘lanish uzildi. Qaytarish: «Orqaga» (Ctrl+Z).": "автоматических привязок снято. Отмена: «Назад» (Ctrl+Z).",

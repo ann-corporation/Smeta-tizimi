@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IshTuriVariant } from '../../api/t2-ish-abc';
 import { qatorlarniOqi } from './parse';
-import { boshlangichHajm, boshqaJoySabab, variantResurslari } from './boshqaJoy';
+import { boshlangichHajm, boshqaJoySabab, katalogBoshlang, variantResurslari } from './boshqaJoy';
 
 const v: IshTuriVariant = {
   manba: 'smeta', qator_id: 77, kod: 'E6-1-1', nom: 'УСТРОЙСТВО СТЕН', birlik: '100М3', shu_obyekt: true, soni: 2,
@@ -26,5 +26,11 @@ describe('boshqa joydan olish (sof mantiq)', () => {
     const [a] = qatorlarniOqi('devor 120 m3');
     expect(boshqaJoySabab(v, a.xom)).toContain('#77');
     expect(boshqaJoySabab({ ...v, shu_obyekt: false }, a.xom)).toContain('boshqa obyekt');
+  });
+  it('katalogdan qo‘shish: matndagi nom/hajm/birlik oldindan to‘ldiriladi, fakt = hajm, sababda matn', () => {
+    const [a, b] = qatorlarniOqi('geomembrana 3500 m2\narmatura hammasi');
+    expect(katalogBoshlang(a)).toMatchObject({ ish: { nom: 'GEOMEMBRANA', birlik: 'М2', hajm: '3500' }, fakt: '3500' });
+    expect(katalogBoshlang(a).sabab).toContain('geomembrana 3500 m2');
+    expect(katalogBoshlang(b)).toMatchObject({ ish: { hajm: '', birlik: '' }, fakt: '' });
   });
 });
