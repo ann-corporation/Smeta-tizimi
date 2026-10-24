@@ -187,6 +187,25 @@ describe('F2 corrective rows and working draft safety', () => {
     const d = await f2ServerOl(11);
     expect([...d.ij.bog.entries()].map(([u, b]) => [u, b.qatorId])).toEqual([['w', -5], ['r', -6], ['y', 17]]);
   });
+  it('taqsimlab bog‘lash qoralamada saqlanadi va tiklanadi (migratsiyasiz: `sabab` JSON); buzilgan taqsim — oddiy bog‘lanish', async () => {
+    const taqsimBog = { qatorId: 7, holat: 'qolda' as const, usul: 'taqsim', taqsim: [{ qatorId: 7, hajm: 0.09 }, { qatorId: 8, hajm: 0.11 }] };
+    const d0 = { aktlar: [akt([node('m', 0.2)])], aktIdx: 0, objectId: 3, operationId: 'op', sourceOperationId: 's', davr: '2026-10',
+      source: { name: 'F2.xlsx' }, ij: { bog: new Map([['m', taqsimBog]]), otkaz: new Set() }, rzBog: new Map() } as unknown as F2IshchiQoralama;
+    await f2ServerSaqla(d0, 42);
+    const saqlangan = api.save.mock.calls[0][0].qatorlar[0];
+    expect(JSON.parse(saqlangan.sabab)).toEqual(taqsimBog);
+    api.job.mockResolvedValue({ ok: true, obyekt_id: 3, versiya: 2, total_rows: 2, cursor: { phase: 'f2_v3_review', complete: true, savedRows: 2 } });
+    api.rows.mockResolvedValue({ ok: true, qatorlar: [
+      { uid: 'm', holat: 'qolda_moslashtirildi', sabab: saqlangan.sabab, versiya: 1 },
+      { uid: 'z', holat: 'qolda_moslashtirildi', sabab: JSON.stringify({ ...taqsimBog, taqsim: [{ qatorId: 'x', hajm: 1 }, { qatorId: 8, hajm: 1 }] }), versiya: 1 },
+    ] });
+    const d = await f2ServerOl(11);
+    expect(d.ij.bog.get('m')).toEqual(taqsimBog);
+    expect(d.ij.bog.get('z')).toEqual({ qatorId: 7, holat: 'qolda', usul: 'taqsim' });
+    // Smetadan o'chirilgan bo'lak — taqsim butunlay olib tashlanadi (pulning bir qismi yo'qolmasin).
+    expect(f2QoralamaBogTekshir(d.ij, new Set([7])).bog.has('m')).toBe(false);
+    expect(f2QoralamaBogTekshir(d.ij, new Set([7, 8])).bog.has('m')).toBe(true);
+  });
   it('checkpoints a pending correction without rewriting source rows and preserves its exact version', async () => {
     const a=akt([node('p',2)]);
     const d={companyId:5,objectId:7,source:{documentId:42,name:'F2.xlsx'},aktlar:[a],aktIdx:0,davr:'2026-10',
