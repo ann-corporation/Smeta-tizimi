@@ -732,9 +732,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const rzTaklif = !d?.ok && ishliRz ? rzTaklifHisobla(t, ij, S) : null;
       return (
         <div data-fuid={t.uid} className="grid grid-cols-[minmax(180px,1fr)_85px_160px] bg-surface-2/80 text-[12px] font-semibold text-text">
-          <div draggable={!(p.disabled || mutationBusy)}
-            onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
-            className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
+          <div onPointerDown={(e) => ptrBoshla(e, t)} data-sudrash={(p.disabled || mutationBusy) ? undefined : 'ha'}
+            className={`${KATAK} flex cursor-grab items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}
             title="Razdelni o‘ngdagi smeta razdeliga tortsangiz — shu razdel ichidan qidiriladi">
             {chevron}<button type="button" className="min-w-0 flex-1 break-words text-left" onClick={() => scrollTanlanganPanelga(t.uid)}>{t.nom}</button>
           </div>
@@ -790,7 +789,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     return (
       <div data-fuid={t.uid} role="group" aria-label={`F2 qatori (${f2QatorTuriYorlig(t.tur)}): ${t.nom}`}
-        draggable={!(p.disabled || mutationBusy)} onDragStart={(e) => sudrashBoshla(e, t)} onDragEnd={sudrashTugadi}
+        onPointerDown={(e) => ptrBoshla(e, t)} data-sudrash={(p.disabled || mutationBusy) ? undefined : 'ha'}
         title={(p.disabled || mutationBusy) ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
         className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? `font-medium text-text ${ISH_CHEGARA}` : `text-text-dim ${RESURS_CHEGARA}`}`}>
         <button type="button" aria-pressed={belgi.has(t.uid)} aria-label={`${tarj('Belgilash')}: ${t.nom}`} onClick={(e) => belgiBos(t.uid, e.shiftKey)}
@@ -1061,14 +1060,107 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
 
   // ── O'ng: smeta daraxti ──
 
-  function sudrashBoshla(e: React.DragEvent, t: F2Tugun) {
-    e.dataTransfer.setData('text/plain', t.uid);
-    e.dataTransfer.effectAllowed = 'link';
-    // Tanlov (yuqoridagi panel) sudrash paytida O'ZGARMAYDI — aks holda panel ochilib jadvalni
-    // pastga suradi va nishon qo'l ostidan qochadi (egasi sinovi 2026-09-29). Tashlangach tanlanadi.
-    setSudrash(t);
+  /**
+   * SUDRASH — brauzerning HTML5 drag-and-drop i EMAS, sichqoncha/pointer hodisalari bilan (egasi 2026-10-24: «F2 dan ushlab
+   * smeta ustiga tashlasam hech qanday reaksiya yo'q»). Sabab: qator nomi <button> — Chrome tugma ustidan boshlangan
+   * native sudrashni boshlamaydi; Windows/overlay dasturlar ham OS drag-and-drop ni buzishi mumkin. Pointer usuli
+   * qatorning istalgan joyidan (nomidan ham) ishlaydi; 6 px dan kam siljish — oddiy bosish (tanlash) bo'lib qoladi.
+   * Tanlov (yuqoridagi panel) sudrash paytida O'ZGARMAYDI — tashlangach tanlanadi (egasi sinovi 2026-09-29).
+   */
+  const ptr = useRef<{ t: F2Tugun; x: number; y: number; faol: boolean } | null>(null);
+  const sharpa = useRef<HTMLDivElement | null>(null);
+  const bosishniYut = useRef(false);
+  function ptrBoshla(e: React.PointerEvent, t: F2Tugun) {
+    if (e.button !== 0 || p.disabled || mutationBusy) return;
+    if ((e.target as HTMLElement).closest('input,select,textarea,a,[data-sudrashsiz]')) return;
+    ptr.current = { t, x: e.clientX, y: e.clientY, faol: false };
   }
-  function sudrashTugadi() { setSudrash(null); dropBelgila(null); }
+  function zonaRect(el: HTMLElement, y0: number): 'oldin' | 'ustiga' | 'keyin' {
+    const r = el.getBoundingClientRect();
+    const y = y0 - r.top;
+    if (y < r.height * 0.25) return 'oldin';
+    if (y > r.height * 0.75) return 'keyin';
+    return 'ustiga';
+  }
+  /** Tashlash natijasi — pointer va (zaxira) native drop uchun bitta yo'l. */
+  function tashlashBajar(uid: string, sId: number, zona: 'oldin' | 'ustiga' | 'keyin') {
+    const s = S.byId.get(sId);
+    if (!s || p.disabled || mutationBusy) return;
+    // Sudrab tashlanganda smeta oynasi O'Z JOYIDA qoladi (egasi: "boshqa joyga ketib qoladi").
+    sudrabTanlandi.current = true;
+    // Belgilangan bir nechta qatordan biri sudralsa — butun guruh shu joyga (qoralamaga) qo'shiladi.
+    if (p.onRejali && belgi.size > 1 && belgi.has(uid)) { guruhniTashla(s, zona); return; }
+    setTanlangan(uid);
+    if (zona === 'ustiga') tashla(uid, s.id); else oraliqqaTashla(uid, s, zona);
+  }
+  const tashlashRef = useRef(tashlashBajar);
+  tashlashRef.current = tashlashBajar;
+  useEffect(() => {
+    const tozala = () => {
+      sharpa.current?.remove(); sharpa.current = null;
+      document.body.style.userSelect = ''; document.body.style.cursor = '';
+      dropBelgila(null); setSudrash(null);
+    };
+    const nishon = (x: number, y: number) => (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>('[data-sid]') ?? null;
+    const move = (e: PointerEvent) => {
+      const d = ptr.current;
+      if (!d) return;
+      if (!d.faol) {
+        if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) < 6) return;
+        d.faol = true;
+        setSudrash(d.t);
+        document.body.style.userSelect = 'none'; document.body.style.cursor = 'grabbing';
+        window.getSelection()?.removeAllRanges();
+        const g = document.createElement('div');
+        g.className = 'pointer-events-none fixed z-[1000] max-w-[380px] truncate rounded-md border border-accent bg-surface px-2 py-1 text-[12px] font-medium text-text shadow-lg';
+        g.textContent = `${d.t.kod ? d.t.kod + ' · ' : ''}${d.t.nom}`;
+        document.body.appendChild(g);
+        sharpa.current = g;
+      }
+      if (sharpa.current) { sharpa.current.style.left = `${e.clientX + 14}px`; sharpa.current.style.top = `${e.clientY + 12}px`; }
+      const row = nishon(e.clientX, e.clientY);
+      if (row) dropBelgila(row, zonaRect(row, e.clientY)); else dropBelgila(null);
+      // Smeta oynasi chetiga yaqinlashsa — o'zi aylanadi.
+      const q = smetaQuti.current;
+      if (q) {
+        const r = q.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right) {
+          if (e.clientY < r.top + 60) q.scrollTop -= Math.ceil((r.top + 60 - e.clientY) / 3);
+          else if (e.clientY > r.bottom - 60) q.scrollTop += Math.ceil((e.clientY - (r.bottom - 60)) / 3);
+        }
+      }
+    };
+    const up = (e: PointerEvent) => {
+      const d = ptr.current;
+      ptr.current = null;
+      if (!d?.faol) return;
+      bosishniYut.current = true;
+      window.setTimeout(() => { bosishniYut.current = false; }, 0);
+      const row = nishon(e.clientX, e.clientY);
+      const zona = row ? zonaRect(row, e.clientY) : null;
+      tozala();
+      if (row && zona) tashlashRef.current(d.t.uid, Number(row.dataset.sid), zona);
+    };
+    const bekor = () => { if (ptr.current?.faol) tozala(); ptr.current = null; };
+    const tugma = (e: KeyboardEvent) => { if (e.key === 'Escape' && ptr.current?.faol) { e.preventDefault(); bekor(); } };
+    // Sudrash tugagach qatordagi tugmaning «click» i (tanlash) ishlamasin.
+    const click = (e: MouseEvent) => { if (bosishniYut.current) { e.stopPropagation(); e.preventDefault(); } };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', bekor);
+    document.addEventListener('keydown', tugma);
+    document.addEventListener('click', click, true);
+    return () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', bekor);
+      document.removeEventListener('keydown', tugma);
+      document.removeEventListener('click', click, true);
+      sharpa.current?.remove();
+    };
+  // dropBelgila/setSudrash barqaror; tashlash eng so'nggi holat bilan tashlashRef orqali.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   /** Sudralayotgan F2 qatori shu smeta qatoriga tushishi mumkinmi (Tizim1 qoidalari, tashla() bilan bir xil). */
   function mosNishon(s: SmetaQator): boolean {
     if (!sudrash) return false;
@@ -1111,12 +1203,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         dropBelgila(null); setSudrash(null);
         const uid = e.dataTransfer.getData('text/plain');
         if (!uid) return;
-        // Sudrab tashlanganda smeta oynasi O'Z JOYIDA qoladi (egasi: "boshqa joyga ketib qoladi").
-        sudrabTanlandi.current = true;
-        // Belgilangan bir nechta qatordan biri sudralsa — butun guruh shu joyga (qoralamaga) qo'shiladi.
-        if (p.onRejali && belgi.size > 1 && belgi.has(uid)) { guruhniTashla(s, zona); return; }
-        setTanlangan(uid);
-        if (zona === 'ustiga') tashla(uid, s.id); else oraliqqaTashla(uid, s, zona);
+        tashlashBajar(uid, s.id, zona);
       },
     };
   }
