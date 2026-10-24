@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { T2F2DavomQator } from '../../api/t2-f2-davom';
 
 const m = vi.hoisted(() => ({ ol: vi.fn() }));
@@ -22,5 +22,21 @@ describe('Davom ettiriladigan F2 lar — ketma-ketlik', () => {
     expect(raqamlar).toEqual(['№ 7', '№ 16', '№ 37']);
     expect(screen.getAllByText('Navbatdagi')).toHaveLength(1);
     expect(screen.getByText('Navbatdagi').parentElement?.textContent).toContain('№ 7');
+  });
+
+  it('obyekt tanlanmasa — hamma obyektlar guruhlangan, har birida «Navbatdagi»; tanlansa — faqat o‘sha, «Hamma obyektlar» tugmasi bilan kengayadi', async () => {
+    const hammasi = [q(1, '2026-05', '37', { obyekt_id: 153, obyekt_nom: 'Ko‘l' }), q(2, '2025-12', '16', { obyekt_id: 153, obyekt_nom: 'Ko‘l' }), q(5, '2026-01', '3', { obyekt_id: 151, obyekt_nom: 'Amfi' })];
+    m.ol.mockImplementation(async (_k: number, o: number | null) => ({ ok: true, qatorlar: o ? hammasi.filter((x) => x.obyekt_id === o) : hammasi }));
+    const { unmount } = render(<F2DavomRoyxat kompaniyaId={123} obyektId={null} onOchish={vi.fn()} />);
+    await waitFor(() => expect(screen.getAllByText(/^№ \d+/).length).toBe(3));
+    expect(screen.getByText('Ko‘l')).toBeTruthy();
+    expect(screen.getByText('Amfi')).toBeTruthy();
+    expect(screen.getAllByText('Navbatdagi')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Hamma obyektlar' })).toBeNull();
+    unmount();
+    render(<F2DavomRoyxat kompaniyaId={123} obyektId={151} onOchish={vi.fn()} />);
+    await waitFor(() => expect(screen.getAllByText(/^№ \d+/).length).toBe(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Hamma obyektlar' }));
+    await waitFor(() => expect(screen.getAllByText(/^№ \d+/).length).toBe(3));
   });
 });
