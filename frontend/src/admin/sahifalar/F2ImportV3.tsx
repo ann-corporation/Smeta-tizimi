@@ -11,7 +11,7 @@ import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anato
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
 import {
-  bogla, boshlangich, f2Indeks, smetaIndeks, type IshJoyi,
+  bogla, boshlangich, f2Indeks, smetaIndeks, tarkibniMosla, type IshJoyi,
 } from '../../lib/f2-moslash-v3/ishJoyi';
 import { exactWrite } from '../../lib/f2-exact-write';
 import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-moslash-v3/band';
@@ -357,6 +357,12 @@ function Sessiya({ companyId }: { companyId: number }) {
     return rejali.length ? [...asos, ...rejaliQatorlar(rejali, asos)] : asos;
   }, [rows, rejali, ochirish]);
   const S = useMemo(() => smetaIndeks(smetaQatorlari(rowsK)), [rowsK]);
+  // Ish narxi tarkibi (Stella protokoli): resurslar summasi ish summasiga teng bo'lsa — avtomatik hal; tarixga yozilmaydi.
+  useEffect(() => {
+    if (!ij || !ind) return;
+    const yangi = tarkibniMosla(ij, ind, S);
+    if (yangi !== ij) setIj(yangi);
+  }, [ij, ind, S]);
   const raw = useMemo(() => new Map(rowsK.map((r) => [r.id, r])), [rowsK]);
   // Zamena qatori → u almashtirgan ASL smeta qatori (t2_daraxt da yo'q — alohida, faqat zamena qatorlari uchun).
   const [zamenaAsl, setZamenaAsl] = useState<ReadonlyMap<number, number>>(new Map());
