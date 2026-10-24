@@ -13,6 +13,9 @@ import type { IshJoyi } from './ishJoyi';
 
 export type RejaliResurs = { tur: 'rs' | 'mat' | 'ob'; nom: string; birlik: string; hajm?: number | null; kod?: string | null };
 
+/** Resurs turi: F2 daraxtida «ОБОРУДОВАНИЕ» bo'limidagi qator `ob` (kat=ОБ) bo'lib keladi - uni materialga aylantirmaymiz. */
+export const resursTuri = (birlik: string | null | undefined, tur?: string): 'rs' | 'mat' | 'ob' => (tur === 'ob' ? 'ob' : /ЧЕЛ|МАШ/i.test(birlik ?? '') ? 'rs' : 'mat');
+
 export interface RejaliBuyruq {
   /** Vaqtinchalik smeta qatori id si (manfiy). */
   tempId: number;
