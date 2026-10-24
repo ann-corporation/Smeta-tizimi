@@ -176,6 +176,9 @@ const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
 /** Egasi 2026-10-06: har bir ish va uning resurslari massivi alohida chegarada ko'rinsin (ikkala panelda bir xil).
  *  Ish — ustida qalin chiziq; uning resurslari — chapda shu rangdagi vertikal chiziq. */
 const ISH_CHEGARA = 'border-t-2 border-t-sky-400/70';
+/** Sudrash nishoni — `data-drop` atributi orqali (React qayta chizmaydi): ustiga — sariq fon, oldin/keyin — qatorlar orasida sariq chiziq. */
+const DROP_NISHON = 'data-[drop=ustiga]:bg-amber-500/25 data-[drop=ustiga]:outline data-[drop=ustiga]:outline-2 data-[drop=ustiga]:outline-amber-500 '
+  + 'data-[drop=oldin]:shadow-[inset_0_3px_0_0_rgb(245,158,11)] data-[drop=keyin]:shadow-[inset_0_-3px_0_0_rgb(245,158,11)]';
 const RESURS_CHEGARA = 'shadow-[inset_4px_0_0_0_rgba(56,189,248,0.45)]';
 const AMAL_YOPISHQOQ = 'sticky right-0 z-[1] bg-surface-1 shadow-[-6px_0_6px_-6px_rgba(0,0,0,.6)]';
 const SON = `${KATAK} text-right tabular-nums text-[11.5px]`;
@@ -234,7 +237,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   /** F2 panelidagi qidiruv (smetadagi bilan bir xil) va smeta panelidagi filtr (F2 dagi bilan bir xil). */
   const [qF, setQF] = useState('');
   const [sFiltr, setSFiltr] = useState<'hammasi' | 'boglangan' | 'boglanmagan'>('hammasi');
-  const [dropKey, setDropKey] = useState<string | null>(null);
+  /** Tashlash nishoni (sudrash paytida qaysi smeta qatori/oralig'i yoritilgan). React holati EMAS — DOM atributi
+   *  `data-drop` bilan: har dragover da butun ish oynasi qayta chizilib, katta F2 da sudrash qotib qolardi
+   *  (egasi 2026-10-24, o'lchov: 262 qatorda har harakat 100–760 ms). */
+  const dropEl = useRef<{ el: HTMLElement; zona: string } | null>(null);
+  function dropBelgila(el: HTMLElement | null, zona?: string) {
+    const old = dropEl.current;
+    if (old && old.el === el && old.zona === zona) return;
+    if (old) old.el.removeAttribute('data-drop');
+    if (el && zona) { el.setAttribute('data-drop', zona); dropEl.current = { el, zona }; } else dropEl.current = null;
+  }
   /** Sudralayotgan F2 qatori (egasi 2026-09-29: drag-and-drop aniq ko'rinsin). */
   const [sudrash, setSudrash] = useState<F2Tugun | null>(null);
   const [tanlov, setTanlov] = useState<Tanlov | null>(null);
@@ -1056,7 +1068,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     // pastga suradi va nishon qo'l ostidan qochadi (egasi sinovi 2026-09-29). Tashlangach tanlanadi.
     setSudrash(t);
   }
-  function sudrashTugadi() { setSudrash(null); setDropKey(null); }
+  function sudrashTugadi() { setSudrash(null); dropBelgila(null); }
   /** Sudralayotgan F2 qatori shu smeta qatoriga tushishi mumkinmi (Tizim1 qoidalari, tashla() bilan bir xil). */
   function mosNishon(s: SmetaQator): boolean {
     if (!sudrash) return false;
@@ -1086,14 +1098,17 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       onDragOver: (e: React.DragEvent) => {
         if ((p.disabled || mutationBusy)) return;
         e.preventDefault(); e.dataTransfer.dropEffect = 'link';
-        const key = `s${s.id}:${zonaOl(e)}`;
-        if (dropKey !== key) setDropKey(key);
+        dropBelgila(e.currentTarget as HTMLElement, zonaOl(e));
       },
-      onDragLeave: () => { if (dropKey?.startsWith(`s${s.id}:`)) setDropKey(null); },
+      onDragLeave: (e: React.DragEvent) => {
+        // Qator ichidagi bola elementlarga o'tish «chiqish» emas — faqat qatordan tashqariga chiqqanda tozalanadi.
+        const el = e.currentTarget as HTMLElement;
+        if (dropEl.current?.el === el && !el.contains(e.relatedTarget as Node | null)) dropBelgila(null);
+      },
       onDrop: (e: React.DragEvent) => {
         e.preventDefault();
         const zona = zonaOl(e);
-        setDropKey(null); setSudrash(null);
+        dropBelgila(null); setSudrash(null);
         const uid = e.dataTransfer.getData('text/plain');
         if (!uid) return;
         // Sudrab tashlanganda smeta oynasi O'Z JOYIDA qoladi (egasi: "boshqa joyga ketib qoladi").
@@ -1149,10 +1164,6 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const percent = tTugun ? nomzodFoiz.get(s.id) : undefined;
     const band = shuF2.get(s.id);
     const tBog = tTugun ? ij.bog.get(tTugun.uid)?.qatorId === s.id : false;
-    const drop = dropKey === `s${s.id}:ustiga`;
-    // Oraliq nishoni: qatorlar ORASIDA qalin sariq chiziq (qo'shimcha aynan shu joyga).
-    const oraliq = dropKey === `s${s.id}:oldin` ? ' shadow-[inset_0_3px_0_0_rgb(245,158,11)]'
-      : dropKey === `s${s.id}:keyin` ? ' shadow-[inset_0_-3px_0_0_rgb(245,158,11)]' : '';
     const toggle = () => setOchiqS((x) => { const n = new Set(x); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n; });
     const chevron = bolalar.length > 0
       ? <button type="button" aria-label={ochiq ? `Smeta qatorini yopish: ${s.nom}` : `Smeta qatorini ochish: ${s.nom}`} onClick={(e) => { e.stopPropagation(); toggle(); }} className="mr-1 shrink-0 align-middle text-text-mute">
@@ -1162,7 +1173,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
     if (s.tur === 'rz') {
       return (
-        <div data-sid={s.id} {...dropProps(s)} className={`${S_RZ_GRID} text-[12px] font-semibold text-text ${drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'}${oraliq}`}>
+        <div data-sid={s.id} {...dropProps(s)} className={`${S_RZ_GRID} text-[12px] font-semibold text-text ${mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'} ${DROP_NISHON}`}>
           {sBelgiKatak(s)}
           <div className={`${KATAK} flex items-center text-left uppercase`} style={{ paddingLeft: 6 + depth * 14 }}>
             {chevron}
@@ -1195,8 +1206,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const qoshilgan = tur === 'qoshimcha' || tur === 'zamena';
     return (<>
       <div data-sid={s.id} data-qator-turi={tur} {...dropProps(s)} className={`${S_GRID} text-[12px] ${ish ? 'font-medium text-text' : 'text-text-dim'} ${rang.chegara} `
-        + (drop ? 'bg-amber-500/25 outline outline-2 outline-amber-500' : tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : rang.fon ? `${rang.fon} hover:brightness-110` : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
-        + (oraliq || ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA))}>
+        + (tBog ? 'bg-accent/25 outline outline-2 outline-accent' : mosNishon(s) ? 'outline-dashed outline-1 outline-accent/50 hover:bg-accent/10' : rang.fon ? `${rang.fon} hover:brightness-110` : band ? 'bg-ok/[0.07] hover:bg-surface-2/60' : 'hover:bg-surface-2/60')
+        + ' ' + (ish ? ISH_CHEGARA : RESURS_CHEGARA) + ' ' + DROP_NISHON}>
         {sBelgiKatak(s)}
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={s.kod ?? ''}>{s.kod}</span>
         <div className={`${KATAK} flex items-start text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
