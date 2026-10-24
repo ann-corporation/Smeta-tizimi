@@ -3114,5 +3114,9 @@
   "xotiradan (oldingi F2)": "по памяти (прошлые Ф-2)",
   "avto taklif ◐": "авто предложение ◐",
   "avto": "авто",
-  "Oxirgi bog‘lash amalini qaytarish": "Отменить последнее действие связывания"
+  "Oxirgi bog‘lash amalini qaytarish": "Отменить последнее действие связывания",
+  "fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)": "превышает фактический остаток (разрешено, предупреждение)",
+  "qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring": "вместе с черновиком Ф-2 берётся дважды — проверьте",
+  "smeta hajmidan oshadi (ruxsat, ogohlantirish)": "превышает объём сметы (разрешено, предупреждение)",
+  "tasdiqlangan F2": "утверждённые Ф-2"
 }

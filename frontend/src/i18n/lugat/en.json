@@ -3114,5 +3114,9 @@
   "xotiradan (oldingi F2)": "from memory (previous F-2)",
   "avto taklif ◐": "auto suggestion ◐",
   "avto": "auto",
-  "Oxirgi bog‘lash amalini qaytarish": "Undo the last linking action"
+  "Oxirgi bog‘lash amalini qaytarish": "Undo the last linking action",
+  "fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)": "exceeds the actual remainder (allowed, warning)",
+  "qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring": "taken twice together with the draft F2 — please check",
+  "smeta hajmidan oshadi (ruxsat, ogohlantirish)": "exceeds the estimate quantity (allowed, warning)",
+  "tasdiqlangan F2": "approved F2"
 }
