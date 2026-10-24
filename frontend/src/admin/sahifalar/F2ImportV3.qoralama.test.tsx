@@ -15,7 +15,7 @@ vi.mock('../../api/supabase', () => ({
 vi.mock('../../api/t2-nakopitelniy', () => ({ t2NakopitelniyToliq: async () => ({ ok: true, qatorlar: [] }) }));
 vi.mock('../../api/t2-fayl', () => ({ faylExplorerOl: async () => ({ fayllar: [] }), faylBaytlari: async () => new Uint8Array([1]) }));
 vi.mock('../../lib/f2-moslash-v3/fonda', () => ({ f2AktlarniOqiFonda: m.parse, f2MoslashV3Fonda: m.match }));
-vi.mock('../../lib/f2-ishchi-qoralama', async (original) => ({ ...(await original<typeof import('../../lib/f2-ishchi-qoralama')>()), f2IshchiOl: m.read, f2IshchiSaqla: m.save, f2ServerSaqla: m.cloudSave, f2ServerCorrectionSaqla: m.correction, f2ServerOl: m.cloudRead }));
+vi.mock('../../lib/f2-ishchi-qoralama', async (original) => ({ ...(await original<typeof import('../../lib/f2-ishchi-qoralama')>()), f2IshchiOl: m.read, f2IshchiSaqla: m.save, f2ServerSaqla: m.cloudSave, f2ServerSaqlaBardoshli: async (d: unknown, docId: unknown, state: unknown) => ({ state: await m.cloudSave(d, docId, state) }), f2ServerCorrectionSaqla: m.correction, f2ServerOl: m.cloudRead }));
 vi.mock('./F2V3Workbench', () => ({ F2V3Workbench: ({ ij, onIj, onQoshilganOzgardi, onRejali, onOchirishRejali }: { onOchirishRejali?: (b: unknown) => void; onRejali?: (f: unknown, b: unknown) => void; onQoshilganOzgardi?: (oldIds:number[],newId:number)=>Promise<void>; ij: F2IshchiQoralama['ij']; onIj: (i: F2IshchiQoralama['ij']) => void }) => (
   <div><button onClick={() => onOchirishRejali?.({ qatorId: 7, versiya: 2, eskiIdlar: [7], nom: 'XATO QO‘SHILGAN', sabab: 's' })}>O‘chirishni belgilash</button><button onClick={() => onRejali?.({ uid: 'plus', tur: 'mat', bolalar: [] }, { kind: 'additional', tur: 'mat', otaQatorId: 7, nom: 'QO‘SHIMCHA BETON', birlik: 'м3', hajm: 12, sabab: 'test', resurslar: [], operationId: 'op-r' })}>Rejali qo‘shish</button><button onClick={()=>void onQoshilganOzgardi?.([7],8).catch(()=>undefined)}>Tuzatish natijasini qo‘llash</button><span>Qo‘lda bog‘lanish: {ij.bog.get('plus')?.qatorId ?? 'yo‘q'}</span>
     <button onClick={() => onIj({ bog: new Map([['plus', { qatorId: 7, holat: 'qolda', usul: 'qolda' }]]), otkaz: new Set() })}>Plusni bog‘lash</button>
@@ -259,23 +259,16 @@ describe('F2 independent working draft', () => {
     expect(m.create).toHaveBeenCalledTimes(1);
   });
 
-  it('does not write an act or claim success if the complete working backup fails', async () => {
+  it('server qoralamasi saqlanmasa (STALE/TERMINAL) — yordamchi qadam o‘tkazib yuboriladi, akt BARIBIR yoziladi, ish brauzerda saqlanadi', async () => {
     await restored();
     m.cloudSave.mockRejectedValue(new Error('STALE_DRAFT_VERSION'));
-    fireEvent.click(screen.getByRole('button', { name: /F2 ni yozish/ }));
-    await screen.findByText('STALE_DRAFT_VERSION');
-    expect(m.create).not.toHaveBeenCalled();
-    expect(screen.queryByText(/F2 qoralamasi saqlandi/)).toBeNull();
-    expect(saved!.ij.bog.get('plus')?.qatorId).toBe(7);
-    // Jarayon oynasi: qaysi qadamda to'xtagani ko'rinadi, qolganlari bajarilmagan, qayta urinish mumkin.
-    const holat = (id: string) => document.querySelector(`[data-qadam="${id}"]`)?.getAttribute('data-holat');
-    expect(holat('tekshiruv')).toBe('tayyor'); expect(holat('fayl')).toBe('tayyor');
-    expect(holat('qoralama')).toBe('xato'); expect(holat('akt')).toBe('kutish');
-    m.cloudSave.mockImplementation(async (d: F2IshchiQoralama) => { d.server = { jobId: 11, versiya: 3, rows: new Map() }; return d.server; });
     m.create.mockResolvedValue({ ok: true, akt_id: 99 });
-    fireEvent.click(screen.getByRole('button', { name: 'Qayta urinish' }));
+    fireEvent.click(screen.getByRole('button', { name: /F2 ni yozish/ }));
+    const holat = (id: string) => document.querySelector(`[data-qadam="${id}"]`)?.getAttribute('data-holat');
     await waitFor(() => expect(holat('akt')).toBe('tayyor'));
     expect(m.create).toHaveBeenCalledTimes(1);
+    expect(holat('qoralama')).toBe('otkazildi');
+    expect(saved!.ij.bog.get('plus')?.qatorId).toBe(7);
   });
 
   it('saves unresolved minus, original file and manual links; remount restores without parsing/resetting decisions', async () => {

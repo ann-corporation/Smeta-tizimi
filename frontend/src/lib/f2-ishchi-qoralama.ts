@@ -87,10 +87,10 @@ export function f2QoralamaYozish(ind: F2Indeks, ij: IshJoyi) {
 }
 
 /** Сохраняет ВСЕ исходные строки, включая неразрешённые/отрицательные. Не создаёт акт. */
-export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, state?: F2ServerQoralama): Promise<F2ServerQoralama> {
+export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, state?: F2ServerQoralama, jobOperationId?: string): Promise<F2ServerQoralama> {
   const nodes = f2Indeks(d.aktlar[d.aktIdx].daraxt).qatorlar;
   if (!state) {
-    const job = await sbT2F2ImportJobYarat({ obyektId: d.objectId, operationId: d.operationId, totalRows: nodes.length, sourceDocumentId: documentId });
+    const job = await sbT2F2ImportJobYarat({ obyektId: d.objectId, operationId: jobOperationId ?? d.operationId, totalRows: nodes.length, sourceDocumentId: documentId });
     if (!job.ok || !job.job_id) throw new Error(job.code || job.error || 'F2 qoralama ochilmadi.');
     if (job.takror) throw new Error(`Qoralama #${job.job_id} avval yaratilgan. Uni davom ettirish orqali oching — parallel qarorlar bosib yozilmaydi.`);
     state = { jobId: job.job_id, versiya: job.versiya ?? 1, rows: new Map() };
@@ -119,6 +119,53 @@ export async function f2ServerSaqla(d: F2IshchiQoralama, documentId: number, sta
   }
   await checkpoint(true);
   return state;
+}
+
+/** Serverdagi qoralama qarori mahalliy qaror bilan ZIDDIYATda (bir manba qatori boshqa smeta qatoriga bog'langan). */
+export class F2ServerZiddiyat extends Error {
+  readonly uidlar: string[];
+  constructor(uidlar: string[]) { super(`F2_SERVER_ZIDDIYAT: ${uidlar.length}`); this.uidlar = uidlar; }
+}
+
+export interface F2ServerSaqlaNatija { state: F2ServerQoralama; ogohlantirish?: string }
+
+const TUGAGAN_JOB = /TERMINAL_JOB/;
+const ESKIRGAN = /STALE_VERSION|STALE_DRAFT_VERSION/;
+
+/**
+ * Server qoralamasini saqlash — yozish oqimining YORDAMCHI qadami (asosiy: akt). Bardoshli:
+ *  - TERMINAL_JOB (qoralama bekor qilingan/tugagan): bog'lanishlar lokal holatdan YANGI nusxaga saqlanadi (ogohlantirish bilan);
+ *  - STALE_VERSION: job holati va qator versiyalari serverdan qayta o'qiladi (lokal bog'lanishlar saqlanadi), BIR marta qayta uriniladi;
+ *    server qatori boshqacha bog'langan bo'lsa — qayta urinilmaydi, `F2ServerZiddiyat` (faqat o'sha qatorlar) tashlanadi.
+ */
+export async function f2ServerSaqlaBardoshli(d: F2IshchiQoralama, documentId: number, state?: F2ServerQoralama,
+  yangiJobOperatsiya: () => string = () => crypto.randomUUID()): Promise<F2ServerSaqlaNatija> {
+  const yangiNusxa = async (): Promise<F2ServerSaqlaNatija> => {
+    d.server = undefined;
+    const s = await f2ServerSaqla(d, documentId, undefined, yangiJobOperatsiya());
+    return { state: s, ogohlantirish: 'Bu qoralama bekor qilingan — yangi nusxa saqlandi.' };
+  };
+  try { return { state: await f2ServerSaqla(d, documentId, state) }; }
+  catch (e) {
+    const m = e instanceof Error ? e.message : '';
+    if (!state) throw e;
+    if (TUGAGAN_JOB.test(m)) return yangiNusxa();
+    if (!ESKIRGAN.test(m)) throw e;
+    const [job, draft] = await Promise.all([sbT2F2ImportJobHolat(state.jobId), sbT2F2ImportDraftRoyxat(state.jobId)]);
+    if (!job.ok || !draft.ok || job.versiya == null) throw e;
+    if (job.status === 'cancelled' || job.status === 'failed') return yangiNusxa();
+    const ziddiyat: string[] = [];
+    for (const row of draft.qatorlar) {
+      const mahalliy = d.ij.bog.get(row.uid);
+      if (!mahalliy || !row.sabab) continue;
+      let server: { qatorId?: number } | null = null;
+      try { server = JSON.parse(row.sabab) as { qatorId?: number } | null; } catch { server = null; }
+      if (server && Number.isSafeInteger(server.qatorId) && server.qatorId !== mahalliy.qatorId && row.holat !== 'hal_qilinmagan') ziddiyat.push(row.uid);
+    }
+    if (ziddiyat.length) throw new F2ServerZiddiyat(ziddiyat);
+    const yangi: F2ServerQoralama = { jobId: state.jobId, versiya: job.versiya, rows: new Map(draft.qatorlar.map((r) => [r.uid, r.versiya])) };
+    return { state: await f2ServerSaqla(d, documentId, yangi), ogohlantirish: 'Qoralama boshqa joyda o‘zgargan edi — yangi holati o‘qilib, qayta saqlandi.' };
+  }
 }
 
 /** Checkpoint a known canonical result before refreshing the tree. No source rows are rewritten. */
