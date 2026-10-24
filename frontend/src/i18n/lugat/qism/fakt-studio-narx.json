@@ -1,0 +1,16 @@
+{
+  "Narxlash": { "ru": "Назначение цены", "en": "Pricing" },
+  "Narx tanlang yoki qo‘lda yozing.": { "ru": "Выберите цену или введите вручную.", "en": "Pick a price or type one manually." },
+  "Narx yozildi: {n} ta qator.": { "ru": "Цена записана: строк — {n}.", "en": "Price saved: {n} rows." },
+  "Mos narxsiz qator topilmadi - o‘zgarish yo‘q.": { "ru": "Подходящих строк без цены не найдено — изменений нет.", "en": "No matching unpriced rows - nothing changed." },
+  "Narx NDS siz. Manba ko‘rsatiladi; tanlanmasa hech narsa yozilmaydi.": { "ru": "Цена без НДС. Источник указан; если не выбрано — ничего не записывается.", "en": "Price excludes VAT. The source is shown; nothing is saved unless chosen." },
+  "Narx manbalari": { "ru": "Источники цены", "en": "Price sources" },
+  "Qidirilmoqda…": { "ru": "Поиск…", "en": "Searching…" },
+  "Manbalardan narx topilmadi - qo‘lda yozing.": { "ru": "Цена в источниках не найдена — введите вручную.", "en": "No price found in sources - enter manually." },
+  "Qo‘lda narx": { "ru": "Цена вручную", "en": "Manual price" },
+  "Fakt summasi": { "ru": "Сумма факта", "en": "Actual amount" },
+  "Smeta summasi": { "ru": "Сумма по смете", "en": "Estimate amount" },
+  "Narxni yozish": { "ru": "Записать цену", "en": "Save price" },
+  "narxsiz": { "ru": "без цены", "en": "no price" },
+  "Narxi noma‘lum - narxlash": { "ru": "Цена неизвестна — назначить", "en": "Price unknown - set price" }
+}
