@@ -191,7 +191,9 @@ export type ResNarxYozuv = {
   kat?: T2ResursKategoriya;
 };
 /** Birlik guruhi ichidagi bitta RES yozuvi -- token bo'yicha moslash uchun. */
-export type ResBirlikYozuv = { nk: string; sozlar: string[]; raqamlar: string; narx: number };
+export type ResBirlikYozuv = { nk: string; sozlar: string[]; raqamlar: string; narx: number;
+  /** Sonlar ketma-ketligi; «16-18 ММ» kabi oraliq bitta [16, 18] element (narxTokenlar). */
+  sonlar?: number[][] };
 
 export type ResNarxIndeks = {
   byNomBir: Map<string, number>; byKodNomBir: Map<string, number>;
@@ -485,19 +487,42 @@ export function resKalit(v?: string | null): string {
  * SONLAR alohida saqlanadi va ular TENG bo'lishi SHART: «16 Т» va «10 Т»
  * kranlari bir-biriga aralashib ketmasligi uchun.
  */
-export function narxTokenlar(nom?: string | null): { sozlar: string[]; raqamlar: string } {
-  const s = String(nom ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/³/g, '3').replace(/²/g, '2');
+const RIM: Record<string, string> = { I: '1', II: '2', III: '3', IV: '4', V: '5', VI: '6' };
+
+export function narxTokenlar(nom?: string | null): { sozlar: string[]; raqamlar: string; sonlar: number[][] } {
+  /* Prime Towers (2026-10-24): LRV «ГОРЯЧЕКАТАННАЯ … КЛАССА А-1, ДИАМЕТРОМ 16 ММ», RES «ГОРЯЧЕКАТАНАЯ … КЛАССА А-I
+     ДИАМЕТРОМ 16-18 ММ» — bir resurs. Imlodagi qo'sh «НН» bitta «Н» ga, sinf belgisidagi rim raqami (I/II/III) arab
+     raqamiga keltiriladi (ikki tomonda bir xil); «16-18» oraliq `sonlar` da bitta element bo'lib qoladi. */
+  const s = String(nom ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/³/g, '3').replace(/²/g, '2')
+    // Faqat sinf belgisi: «А-I», «ВР-I», «А-III» (harf + chiziqcha + rim raqami); «220 V» kabi birlikka tegmaydi.
+    .replace(/([A-ZА-Я])-(VI|IV|V|I{1,3})(?![A-ZА-Я0-9])/g, (_m, h: string, r: string) => `${h}-${RIM[r]}`);
+  const sonlar: number[][] = [];
+  for (const m of s.matchAll(/(\d+)(?:\s*-\s*(\d+)(?![\d,.]))?/g)) {
+    const a = Number(m[1]); const b = m[2] != null ? Number(m[2]) : null;
+    if (b != null && b > a) sonlar.push([a, b]);
+    else { sonlar.push([a]); if (b != null) sonlar.push([b]); }
+  }
   const bolaklar = s.split(/[^0-9A-ZА-Я]+/).filter(Boolean);
   const sozlar: string[] = [];
   const raqamlar: string[] = [];
   for (const b of bolaklar) {
     // «16Т» kabi yopishgan bo'lakni ham son va so'zga ajratamiz
-    const sonlar = b.match(/[0-9]+/g);
-    const harflar = b.replace(/[0-9]/g, '');
-    if (sonlar) raqamlar.push(...sonlar);
+    const bSonlar = b.match(/[0-9]+/g);
+    const harflar = b.replace(/[0-9]/g, '').replace(/НН/g, 'Н');
+    if (bSonlar) raqamlar.push(...bSonlar);
     if (harflar) sozlar.push(harflar);
   }
-  return { sozlar, raqamlar: raqamlar.join('.') };
+  return { sozlar, raqamlar: raqamlar.join('.'), sonlar };
+}
+
+/** LRV sonlari RES sonlariga oraliq bilan mosmi: har o'rinda teng yoki RES oralig'i [a, b] ichida. */
+function sonlarOraliqdaMos(lrv: number[][], res: number[][]): boolean {
+  if (lrv.length !== res.length || !res.some((x) => x.length === 2)) return false;
+  return lrv.every((x, i) => {
+    const y = res[i];
+    if (x.length !== 1) return x.length === y.length && x[0] === y[0] && x[1] === y[1];
+    return y.length === 1 ? x[0] === y[0] : x[0] >= y[0] && x[0] <= y[1];
+  });
 }
 
 /** ЧЕЛ-Ч / ЧЕЛ.-Ч / чел-час ... -> 'ЧЕЛЧ'; МАШ-Ч -> 'МАШЧ'. */
@@ -522,16 +547,18 @@ function mashinistMehnatimi(nom?: string | null): boolean {
 export function birlikIchidanTop(
   yozuvlar: ResBirlikYozuv[], nom?: string | null,
 ): { narx: number } | 'kop_nomzod' | null {
-  const { sozlar, raqamlar } = narxTokenlar(nom);
+  const { sozlar, raqamlar, sonlar } = narxTokenlar(nom);
   if (!sozlar.length) return null;
   const qator = new Set(sozlar);
-  const nomzod = yozuvlar.filter((y) => {
-    if (y.raqamlar !== raqamlar) return false;
+  const sozlarMos = (y: ResBirlikYozuv) => {
     const res = new Set(y.sozlar);
     const resQatorda = y.sozlar.every((w) => qator.has(w));
     const qatorResda = sozlar.every((w) => res.has(w));
     return resQatorda || qatorResda;
-  });
+  };
+  let nomzod = yozuvlar.filter((y) => y.raqamlar === raqamlar && sozlarMos(y));
+  // Aniq son mosi yo'q bo'lsa: RES nomidagi oraliq («ДИАМЕТРОМ 16-18 ММ») LRV sonini («16 ММ») qamrab olsa.
+  if (!nomzod.length) nomzod = yozuvlar.filter((y) => y.sonlar && sonlarOraliqdaMos(sonlar, y.sonlar) && sozlarMos(y));
   if (!nomzod.length) return null;
   const narxlar = new Set(nomzod.map((n) => n.narx));
   if (narxlar.size > 1) return 'kop_nomzod';
@@ -550,9 +577,9 @@ export function resNarxIndeksiQur(rows: ResNarxYozuv[]): ResNarxIndeks {
     if (!nk) continue; // `kod` yolg'iz hech narsani aniqlamaydi -- yuqoridagi izohga q.
     nomlar.add(nk);
     const bs = birlikSinfi(r.birlik);
-    const { sozlar, raqamlar } = narxTokenlar(r.nom);
+    const { sozlar, raqamlar, sonlar } = narxTokenlar(r.nom);
     const guruh = byBirlik.get(bs);
-    const yozuv: ResBirlikYozuv = { nk, sozlar, raqamlar, narx: r.narx };
+    const yozuv: ResBirlikYozuv = { nk, sozlar, raqamlar, sonlar, narx: r.narx };
     if (guruh) guruh.push(yozuv); else byBirlik.set(bs, [yozuv]);
     const nb = nk + '|' + resKalit(r.birlik);
     if (!byNomBir.has(nb)) byNomBir.set(nb, r.narx);
@@ -654,6 +681,40 @@ export function narxlarniDaraxtgaQoll(
     return { ...n, narx, summa };
   }
   return { tree: tree.map(walk), mosSoni, mosEmasSoni, narxsizlar };
+}
+
+/** Bitta RES varag'idagi lokal smetalar: har biri «ИТОГО ПРЯМЫЕ ЗАТРАТЫ» bilan yopiladi (ABC4 ra_abc4). */
+export function resLokallargaBol(rows: SheetGrid): SheetGrid[] {
+  const out: SheetGrid[] = [];
+  let joriy: SheetGrid = [];
+  for (const row of rows) {
+    joriy.push(row);
+    if ((row ?? []).some((c) => typeof c === 'string' && /ИТОГО\s+ПРЯМЫЕ\s+ЗАТРАТЫ/i.test(c))) { out.push(joriy); joriy = []; }
+  }
+  return out;
+}
+
+/**
+ * Prime Towers ЭС,СС,ПС (2026-10-24): bitta LRV varag'ida bir necha lokal (ЭС, СС, ПС), RES varag'ida ham xuddi
+ * shuncha lokal — har birining o'z stavkasi (ЧЕЛ 47 965,99 va 47 965,9936). Butun RES bitta indeksda bo'lsa ЧЕЛ-Ч
+ * «kop_nomzod» bo'lib narxsiz qolardi. Lokallar soni teng bo'lsa har LRV lokali avval O'Z RES lokalidan narx oladi;
+ * topilmagani butun RES indeksidan (avvalgi xatti-harakat). Soni teng bo'lmasa — faqat butun RES.
+ */
+export function lokallarBoyichaNarxla(
+  tree: AktNode[], resManbalar: ReadonlyArray<{ rows: SheetGrid; cols: F2ColumnConfig }>, umumiy: ResNarxIndeks,
+): AktNode[] {
+  let t = tree;
+  const lokallar = tree.length === 1 ? tree[0].children ?? [] : [];
+  if (resManbalar.length === 1 && lokallar.length >= 2 && lokallar.every((n) => n.type === 'rz')) {
+    const bolaklar = resLokallargaBol(resManbalar[0].rows);
+    if (bolaklar.length === lokallar.length) {
+      t = [{ ...tree[0], children: lokallar.map((lok, i) => {
+        const yozuvlar = resSatrlariniOl(bolaklar[i], resManbalar[0].cols);
+        return yozuvlar.length ? narxlarniDaraxtgaQoll([lok], resNarxIndeksiQur(yozuvlar)).tree[0] : lok;
+      }) }];
+    }
+  }
+  return narxlarniDaraxtgaQoll(t, umumiy).tree;
 }
 
 /**
@@ -1226,9 +1287,10 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           cols: lrv.lrvCols!,
         }], { harManbagaRz: true });
         if (!tree.length) throw new Error(`«${lrv.file.name} / ${lrv.sheetName}» LRV daraxti bo‘sh chiqdi.`);
-        const tashqiResRows = tanlanganResManbalariniYig(reses
+        const tashqiManbalar = reses
           .filter((res) => res.targetLrvSourceKeys?.includes(lrv.sourceKey))
-          .map((res) => ({ rows: res.rows, cols: res.resCols })));
+          .map((res) => ({ rows: res.rows, cols: res.resCols }));
+        const tashqiResRows = tanlanganResManbalariniYig(tashqiManbalar);
         /* LRV ostidagi RES ilovasi faqat alohida/aniq ulangan RES yo'q bo'lsa
            narx manbasiga aylanadi. Ikkalasi birga bo'lsa ilova ikkinchi
            marta narx yoki miqdor kiritmaydi. */
@@ -1237,7 +1299,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           : [];
         const rows = tashqiResRows.length ? tashqiResRows : ichkiResRows;
         const idx = rows.length ? resNarxIndeksiQur(rows) : null;
-        const applied = idx ? narxlarniDaraxtgaQoll(tree, idx).tree : tree;
+        const resManbalar = tashqiResRows.length ? tashqiManbalar : [{ rows: split.embeddedResRows, cols: lrv.resCols }];
+        const applied = idx ? lokallarBoyichaNarxla(tree, resManbalar, idx) : tree;
         pricedTrees.push({ sourceKey: lrv.sourceKey, tree: applied });
         categoryCandidates.push(...resKategoriyaNomzodlariniOl(rows));
       }
