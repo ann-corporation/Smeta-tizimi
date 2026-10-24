@@ -55,6 +55,9 @@ export interface SmetaQator {
 
 export type F2Holat = 'aniq' | 'xotira' | 'taklif' | 'topilmadi';
 
+/** ◐ boshqa bo'limdagi shifr mos nomzod — ommaviy tasdiqlashda alohida so'raladi (zamena/qo'shimcha bo'lishi mumkin). */
+export const BOSHQA_BOLIM_USUL = 'boshqa_bolim_shifr';
+
 export interface Qavat { nom: 'razdel' | 'shifr' | 'nom' | 'birlik' | 'hajm' | 'resurslar' | 'marka' | 'texnik_tafsilot' | 'tartib'; ball: number; izoh: string }
 
 export interface Nomzod {
@@ -674,6 +677,17 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
           sabab: `shifr, nom va birlik aynan — lekin smetaning boshqa razdelida («${rzNomi}»)${kuchli.length > 1 ? `; ${kuchli.length} ta aynan qatordan F2 hajmi faqat shunga sig'adi` : '; yagona nomzod'} — tasdiqlang` });
         return t;
       }
+    }
+    // BOSHQA BO'LIMDA SHIFR MOS (egasi/koordinator 2026-10-24: «aynan mos nomlar uchun hech bo'lmasa taklif ham yo'q» — 09-28 dagi
+    // «boshqa razdeldan taklif yo'q» qoidasidan ustun). Bo'lim doirasida mos ish yo'q, lekin boshqa bo'limda shifri (kanon) va birligi
+    // aynan nomzod bor — ◐ (avto ✓ hech qachon). Stend: bunday holatlarning ~yarmida egasi zamena/qo'shimcha yaratgan — sababda aytiladi,
+    // ommaviy tasdiqlashda bu ◐ alohida so'raladi (BOSHQA_BOLIM_USUL).
+    if (d.rzlar && !ichida.length && b1 && toza(b1) && b1.qavatlar.some((q) => q.nom === 'shifr' && q.ball >= 18)) {
+      const t = S.byId.get(b1.qatorId)!;
+      const yaqin = nz.filter((x) => x !== b1 && x.ball >= b1.ball - 2).length;
+      yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: t.id, usul: BOSHQA_BOLIM_USUL, nomzodlar: nz,
+        sabab: `boshqa bo‘limda: ${t.yol || '—'} — shifr va birlik mos; zamena/qo‘shimcha ham bo‘lishi mumkin${yaqin ? ` (yana ${yaqin} ta yaqin nomzod)` : ''} — tekshirib tasdiqlang` });
+      return t;
     }
     if (d.rzlar && !ichida.length) {
       const rzNom = d.rzlar.map((r) => r.nom).filter(Boolean).join(' / ');

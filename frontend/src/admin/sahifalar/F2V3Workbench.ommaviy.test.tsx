@@ -27,10 +27,10 @@ const a = f2('a', 'Beton', 2), b = f2('b', 'Armatura', 3), c = f2('c', 'Qum', 4)
 const rz: F2Tugun = { uid: 'frz', tur: 'rz', kod: null, nom: 'KONSTRUKSIYA', birlik: null, hajm: null, narx: null, summa: null,
   manzil: { fayl: 'f', varaq: 'A', qator: 1 }, yol: [], bolalar: [a, b, c], barg: false };
 
-function chiz() {
+function chiz(bUsul = 'taklif') {
   const ij = { bog: new Map([
     ['a', { qatorId: 2, holat: 'taklif', usul: 'taklif' }],
-    ['b', { qatorId: 3, holat: 'taklif', usul: 'taklif' }],
+    ['b', { qatorId: 3, holat: 'taklif', usul: bUsul }],
     ['c', { qatorId: 4, holat: 'qolda', usul: 'qolda' }],
   ]), otkaz: new Set() } as unknown as IshJoyi;
   const natija: F2MoslashNatija = { natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 2, topilmadi: 0 } };
@@ -65,6 +65,26 @@ describe('F2 import — ommaviy belgilash', () => {
     const next = onIj.mock.calls[0][0] as IshJoyi;
     expect([...next.otkaz].sort()).toEqual(['a', 'b', 'c']);
     expect(next.bog.size).toBe(0);
+  });
+});
+
+describe('F2 import — boshqa bo‘limdagi shifr mos ◐ ommaviy tasdiqda alohida so‘raladi', () => {
+  it('«Bekor» — faqat oddiy ◐ tasdiqlanadi; «OK» — hammasi', () => {
+    const conf = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    let { onIj, toolbar } = chiz('boshqa_bolim_shifr');
+    fireEvent.click(toolbar().getByRole('button', { name: 'Ko‘rinadiganlarni belgilash' }));
+    fireEvent.click(toolbar().getByRole('button', { name: /Tasdiqlash/ }));
+    let next = onIj.mock.calls[0][0] as IshJoyi;
+    expect(next.bog.get('a')?.holat).toBe('qolda');
+    expect(next.bog.get('b')?.holat).toBe('taklif');
+    cleanup();
+    ({ onIj, toolbar } = chiz('boshqa_bolim_shifr'));
+    fireEvent.click(toolbar().getByRole('button', { name: 'Ko‘rinadiganlarni belgilash' }));
+    fireEvent.click(toolbar().getByRole('button', { name: /Tasdiqlash/ }));
+    next = onIj.mock.calls[0][0] as IshJoyi;
+    expect(next.bog.get('b')?.holat).toBe('qolda');
+    expect(conf).toHaveBeenCalledTimes(2);
+    conf.mockRestore();
   });
 });
 

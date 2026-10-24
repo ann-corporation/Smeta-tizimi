@@ -5,7 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { T2Qator } from '../../api/supabase';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { qidiruvMatni, qidiruvMoslagich } from '../../lib/f2-moslash-v3/qidiruv';
-import type { F2MoslashNatija, Nomzod, SmetaQator } from '../../lib/f2-moslash-v3';
+import { BOSHQA_BOLIM_USUL, type F2MoslashNatija, type Nomzod, type SmetaQator } from '../../lib/f2-moslash-v3';
 import {
   bogla, f2HajmiSmetaBirligida, guruhHisobla, guruhHolati, guruhIldizi, hisobla, ishniBogla, ishniTasdiqla, korinish, narxFarqiFoiz, oshaQatormi, otkazibYubor, rzTaklifHisobla, tasdiqla, TARKIB_USUL, uz,
   type F2Indeks, type IshJoyi, type KorinishHolat, type SmetaIndeks,
@@ -1017,12 +1017,18 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz');
     if (!tugunlar.length) return;
     let next = ij;
+    let ehtiyotOtkazildi = 0;
     if (amal === 'tasdiq') {
+      // «Boshqa bo'limda shifr mos» ◐ lari jim tasdiqlanmaydi (zamena/qo'shimcha bo'lishi mumkin) — alohida sanaladi va so'raladi.
+      const ehtiyot = tugunlar.filter((x) => { const b = ij.bog.get(x.uid); return b?.holat === 'taklif' && b.usul === BOSHQA_BOLIM_USUL; });
+      const ruxsat = ehtiyot.length > 0 && window.confirm(`${ehtiyot.length} ${tarj('ta ◐ taklif BOSHQA bo‘limdagi shifr mos ish — zamena yoki qo‘shimcha ham bo‘lishi mumkin. Ularni ham tasdiqlaysizmi? «Bekor» — faqat qolganlari tasdiqlanadi.')}`);
+      const olib = new Set(ruxsat ? [] : ehtiyot.map((x) => x.uid));
+      ehtiyotOtkazildi = olib.size;
       // Ish tanlansa resurslari ham tasdiqlanadi/bog'lanadi (guruh).
-      for (const x of tugunlar) next = x.tur === 'bl' ? ishniTasdiqla(next, x, S).ij : tasdiqla(next, [x.uid]);
+      for (const x of tugunlar) if (!olib.has(x.uid)) next = x.tur === 'bl' ? ishniTasdiqla(next, x, S).ij : tasdiqla(next, [x.uid]);
     } else for (const x of tugunlar) next = amal === 'uz' ? uz(next, x) : otkazibYubor(next, x, amal === 'otkaz');
     p.onIj(next);
-    xab(`${tugunlar.length} ${tarj('ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}`);
+    xab(`${tugunlar.length - ehtiyotOtkazildi} ${tarj('ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}${ehtiyotOtkazildi ? ` ${ehtiyotOtkazildi} ${tarj('ta boshqa bo‘limdagi ◐ tasdiqlanmadi — alohida ko‘ring.')}` : ''}`);
     setBelgi(new Set());
   }
 
