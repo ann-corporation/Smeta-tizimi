@@ -2944,6 +2944,8 @@
   "ta pozitsiya": "items",
   "Excel fayli tuzilmadi. Qayta urinib ko‘ring.": "Excel file was not built. Try again.",
   "Bajarilmagan hajmlar ro‘yxati (Excel)": "Not-done volumes list (Excel)",
+  "summa bo‘yicha hisoblandi": "calculated from the amount",
+  "hajm oshdi": "volume exceeded",
   "Allaqachon kiritilgan": "Already entered",
   "Tanlangan qator paneli": "Selected row panel",
   "Tanlangan qator": "Selected row",

@@ -285,6 +285,28 @@ export interface IshJoyiHisob {
   kopBog: Map<number, string[]>;
 }
 
+export interface F2Birlikda { hajm: number | null; narx: number | null; birlik: string | null; summaBoyicha: boolean; summa: number | null; smetaNarx: number | null }
+
+/**
+ * Faqat SUMMA bilan kelgan F2 qatori (subpudrat yig'ma summa: birlik yo'q, narx 1, hajm = summa so'mda — masalan
+ * «ПЕРЕВОД В БРОНЗУ…» 5 803 571 428,99) smeta qatoriga boshqa birlikda (компл/шт…) bog'langanda: hajm = F2 summa / smeta narx
+ * (0,356 компл), narx = smeta narx. F2 SUMMA o'zgarmaydi (summa ustun — yagona haqiqat; yaxlitlashda summa ustun). Aks holda — o'zgarishsiz.
+ * Umumiy qoida: faqat shu qator uchun emas.
+ */
+export function f2HajmiSmetaBirligida(t: F2Tugun, s: SmetaQator | undefined | null): F2Birlikda {
+  const asl: F2Birlikda = { hajm: t.hajm, narx: t.narx, birlik: t.birlik, summaBoyicha: false, summa: t.summa, smetaNarx: s?.narx ?? null };
+  if (!s || t.hajm == null || t.summa == null) return asl;
+  const sNarx = Number(s.narx);
+  if (!(sNarx > 0) || !String(s.birlik ?? '').trim()) return asl;
+  if (String(t.birlik ?? '').trim()) return asl;                                  // F2 da birlik bor — oddiy qator
+  if (t.narx != null && Math.abs(t.narx - 1) > 1e-9) return asl;                  // narx 1 (yoki yo'q) — yig'ma summa
+  const tol = Math.max(1, Math.abs(t.summa) * 1e-6);
+  if (Math.abs(t.hajm - t.summa) > tol) return asl;                               // hajm ≈ summa
+  const sb = String(s.birlik ?? '').toUpperCase().replace(/[\s.]/g, '');
+  if (sb === 'СУМ' || sb === 'СЎМ' || sb === 'SUM' || sb === 'СУМЫ') return asl;  // smeta ham pul birligida
+  return { hajm: t.summa / sNarx, narx: sNarx, birlik: s.birlik, summaBoyicha: true, summa: t.summa, smetaNarx: sNarx };
+}
+
 export function hisobla(ind: F2Indeks, ij: IshJoyi): IshJoyiHisob {
   const h: IshJoyiHisob = { jami: 0, tayyor: 0, tizimTopdi: 0, avvalgiQaror: 0, operatorTasdiqladi: 0, taklif: 0, topilmadi: 0, otkazildi: 0, boglanganSumma: 0, hujjatSumma: 0, otkazilganSumma: 0, kopBog: new Map() };
   const qayerga = new Map<number, string[]>();
@@ -321,7 +343,7 @@ export interface YozishManbasi {
   imzolar: Map<string, string>;
 }
 
-export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
+export function yozishManbasi(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks): YozishManbasi {
   const nodes: F2ExactManbaTugun[] = [];
   const mapping = new Map<string, number>();
   const imzolar = new Map<string, string>();
@@ -338,6 +360,8 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
     const b = ij.bog.get(t.uid)!;
     if (t.hajm == null || t.ogohlantirish?.length) { qiymatsiz.push(qisqa(t)); continue; }
     mapping.set(t.uid, b.qatorId);
+    // Yig'ma summa (birliksiz, narx 1, hajm = so'm) smeta birligiga o'tkaziladi: hajm = summa / smeta narx; summa F2 dagi aniq summa.
+    const bk = S ? f2HajmiSmetaBirligida(t, S.byId.get(b.qatorId)) : null;
     const ota = ind.ota.get(t.uid);
     imzolar.set(t.uid, t.tur === 'rs' && ota ? f2Imzo(t, f2Imzo(ota)) : f2Imzo(t, t.yol.map(rzKalit).join('/')));
     // Resurslari bor ish — faqat hajm; pul uning resurslarida (ikki marta sanalmaydi).
@@ -345,7 +369,7 @@ export function yozishManbasi(ind: F2Indeks, ij: IshJoyi): YozishManbasi {
     else {
       // Narxi bor-u hujjatda summasi bo'sh — pul to'qilmaydi: aniq qator nomi bilan to'xtatiladi.
       if (t.narx != null && t.narx > 0 && t.summa == null) summasiz.push(qisqa(t));
-      nodes.push({ uid: t.uid, hajm: t.hajm, narx: t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null });
+      nodes.push({ uid: t.uid, hajm: bk?.summaBoyicha ? bk.hajm! : t.hajm, narx: bk?.summaBoyicha ? bk.narx : t.narx, summa: t.summa, tur: t.tur, summaYozilgan: t.summa != null });
     }
   }
   const toxtatish: string[] = [];
