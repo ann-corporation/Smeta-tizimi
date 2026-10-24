@@ -18,6 +18,8 @@ import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-mo
 import { kumulyativmi, kumulyativQolla, kumulyativReja } from '../../lib/f2-moslash-v3/kumulyativ';
 import { dvigatelDaraxti, podvalTaklifQosh } from '../../lib/f2-moslash-v3/podval';
 import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
+import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
+import { eskiYozilmagan } from '../../lib/f2-ketma-ketlik';
 import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestrMos } from '../../lib/f2-moslash-v3/varaq-tanlov';
 import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3/qoshilgan';
 import { F2V3Workbench } from './F2V3Workbench';
@@ -81,6 +83,9 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [almashtirTasdiq, setAlmashtirTasdiq] = useState<number | null>(null);
   /** Kumulyativ varaq rejimi (operator yoqadi): oldingi F2 lar hajmi shu varaqdan ayriladi — faqat yozish proyeksiyasi. */
   const [kumRejim, setKumRejim] = useState(false);
+  /** Shu obyektning server qoralamalari (ketma-ketlik nazorati: eskiroq yozilmagan F2 bo'lsa ogohlantirish). */
+  const [davomRoyxat, setDavomRoyxat] = useState<T2F2DavomQator[]>([]);
+  const [ketmaKetBartaraf, setKetmaKetBartaraf] = useState<number | null>(null);
   /** Faylda transport qatori yo'q: smetadagi ТН·КМ qatoriga bog'langan F2 qatori sifatida qo'shilgan hajm (smeta qatori id -> hajm). */
   const [tkmQosh, setTkmQosh] = useState<ReadonlyMap<number, number>>(new Map());
   const [rows, setRows] = useState<T2Qator[]>([]);
@@ -570,6 +575,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const kumReja = useMemo(() => (akt && ind && ij && kumulyativmi(akt.jami)
     ? kumulyativReja({ ind, ij, oldingi, band, narx: (id) => raw.get(id)?.narx ?? null, jami: akt.jami })
     : null), [akt, ind, ij, oldingi, band, raw]);
+  /** Oldingi oylar yozilgan (tasdiqlangan/qoralama aktlarda hajm bor) — kumulyativ varaqda ayirish avtomatik TAVSIYA qilinadi. */
+  const oldingiYozilgan = oldingi.size > 0 || band.size > 0;
   const indYoz = useMemo(() => (ind && kumReja && kumRejim ? kumulyativQolla(ind, kumReja) : ind), [ind, kumReja, kumRejim]);
   const yozish = useMemo(() => (indYoz && ij ? f2QoralamaYozish(indYoz, ij) : null), [indYoz, ij]);
   const payload = useMemo(() => {
@@ -607,6 +614,18 @@ function Sessiya({ companyId }: { companyId: number }) {
       return tk ? [{ uid: x.uid, nom: x.nom, hajm: x.hajm, tk }] : [];
     });
   }, [ind, ij, rowsK, raw]);
+
+  useEffect(() => {
+    if (!companyId || !objectId || !akt) { setDavomRoyxat([]); return; }
+    let faol = true;
+    void f2DavomRoyxatOl(companyId, Number(objectId)).then((r) => { if (faol) setDavomRoyxat(r.ok ? r.qatorlar : []); }).catch(() => { if (faol) setDavomRoyxat([]); });
+    return () => { faol = false; };
+  }, [companyId, objectId, akt, done]);
+  /** Kechroq oyni yozmoqchi bo'lganda shu obyektda eskiroq yozilmagan qoralama bor — bitta banner (blok emas). */
+  const eskiQoralama = useMemo(
+    () => (objectId && /^\d{4}-\d{2}$/.test(davr) ? eskiYozilmagan(davomRoyxat, Number(objectId), davr, serverDraft.current?.jobId ?? null) : null),
+    [davomRoyxat, objectId, davr],
+  );
 
   /** Faylda transport qatori YO'Q, smetada ТН·КМ qatori bor: F2 qatori sifatida qo'shishni taklif (qo'shimcha ish EMAS, blok yo'q). */
   const tkmQoshTaklif = useMemo(() => {
@@ -1188,13 +1207,15 @@ function Sessiya({ companyId }: { companyId: number }) {
             <p className="flex flex-wrap items-center gap-2 rounded border border-border bg-surface-2/40 px-2 py-1.5 text-[12px] text-text-dim" aria-label={t('Kumulyativ varaq')}>
               <span className="min-w-0 flex-1">{kumRejim
                 ? t('Kumulyativ rejim: oldingi F2 lar hajmi ayirildi ({n} qator, −{pul} so‘m).', { n: kumReja.qatorlar.size, pul: fmt(kumReja.ayirilganPul) })
-                : t('Hujjatda «Ранее оформленным» bor — hajm kumulyativ ko‘rinadi. Oldingi F2 lar ayirilsinmi?')}
+                : oldingiYozilgan
+                  ? t('Oldingi oylar F2 si yozilgan, hujjatda «Ранее оформленным» bor — hajm kumulyativ. Oldingi F2 lar ayirilishi tavsiya etiladi.')
+                  : t('Hujjatda «Ранее оформленным» bor — hajm kumulyativ ko‘rinadi. Oldingi F2 lar ayirilsinmi?')}
                 {kumRejim && kumReja.nazorat && <> {kumReja.nazorat.mos
                   ? <b className="text-ok">{t('Jami = ВСЕГО − ранее ✓')}</b>
                   : <b className="text-warn">{t('ВСЕГО − ранее dan farq: {n} so‘m', { n: fmt(kumReja.nazorat.natija - kumReja.nazorat.kutilgan) })}</b>}</>}
                 {kumRejim && kumReja.storno.length > 0 && <> {t('Storno taklifi: {n} qator ({pul} so‘m) — oldingi F2 da bor, bu varaqda yo‘q; minus qator sifatida qo‘lda kiriting.', { n: kumReja.storno.length, pul: fmt(kumReja.storno.reduce((s, x) => s + x.pul, 0)) })}</>}
               </span>
-              <button type="button" className="tugma" disabled={busy} onClick={() => setKumRejim((v) => !v)}>{kumRejim ? t('Ayirishni bekor qilish') : t('Oldingi F2 larni ayirish')}</button>
+              <button type="button" className={oldingiYozilgan && !kumRejim ? 'tugma tugma-asosiy' : 'tugma'} disabled={busy} onClick={() => setKumRejim((v) => !v)}>{kumRejim ? t('Ayirishni bekor qilish') : t('Oldingi F2 larni ayirish')}</button>
             </p>
           )}
           {jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0 && (
@@ -1241,6 +1262,13 @@ function Sessiya({ companyId }: { companyId: number }) {
           <a href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>
         </>}
       </section>}
+      {akt && !done && eskiQoralama && ketmaKetBartaraf !== eskiQoralama.job_id && (
+        <section role="status" className="karta flex flex-wrap items-center gap-2 border border-warn/40 bg-warn/5 p-2 text-[12px] text-warn" aria-label={t('F2 ketma-ketligi')}>
+          <span className="min-w-0 flex-1">{t('Avval {oy} F2 si yozilmagan — ochasizmi?', { oy: (eskiQoralama.oy ?? '').slice(0, 7) + (eskiQoralama.raqam ? ` №${eskiQoralama.raqam}` : '') })}</span>
+          <a className="tugma h-7 px-2" href={`/admin/f2?obyekt=${eskiQoralama.obyekt_id}&job=${eskiQoralama.job_id}`} target="_blank" rel="noopener noreferrer">{t('Ochish')}</a>
+          <button type="button" className="tugma h-7 px-2" onClick={() => setKetmaKetBartaraf(eskiQoralama.job_id)}>{t('Baribir yozish')}</button>
+        </section>
+      )}
       {ogoh && <p className="text-[12px] text-warn">{ogoh}</p>}
       {xato && <div role="alert" className="text-[13px] text-danger"><p>{xato}</p>{aktZiddiyat && <a
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"

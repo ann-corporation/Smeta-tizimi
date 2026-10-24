@@ -7,6 +7,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
 import { t } from '../../i18n/til';
+import { navbatdagilar, tartiblangan } from '../../lib/f2-ketma-ketlik';
 
 type Props = {
   kompaniyaId: number | null | undefined;
@@ -43,8 +44,10 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
     return () => { faol = false; };
   }, [kompaniyaId, obyektId, yangilash]);
 
-  const ochiq = useMemo(() => (qatorlar ?? []).filter((q) => !q.yozilgan), [qatorlar]);
-  const yozilgan = useMemo(() => (qatorlar ?? []).filter((q) => q.yozilgan), [qatorlar]);
+  // Obyekt ichida eski oydan yangiga, keyin F2 raqami; har obyektda eng eski yozilmagani — «Navbatdagi».
+  const ochiq = useMemo(() => tartiblangan((qatorlar ?? []).filter((q) => !q.yozilgan)), [qatorlar]);
+  const yozilgan = useMemo(() => tartiblangan((qatorlar ?? []).filter((q) => q.yozilgan)), [qatorlar]);
+  const navbat = useMemo(() => navbatdagilar(qatorlar ?? []), [qatorlar]);
   const guruhlar = useMemo(() => {
     const m = new Map<number, { nom: string; q: T2F2DavomQator[] }>();
     for (const q of ochiq) { const g = m.get(q.obyekt_id) ?? { nom: q.obyekt_nom ?? '#' + q.obyekt_id, q: [] }; g.q.push(q); m.set(q.obyekt_id, g); }
@@ -61,8 +64,8 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
     return <a className="tugma h-7 px-2" href={`/admin/f2?obyekt=${q.obyekt_id}&job=${q.job_id}`}>{t('Ochish')}</a>;
   };
   const satr = (q: T2F2DavomQator) => (
-    <tr key={q.job_id} className="border-b border-border/40">
-      <td className="px-1 font-semibold">{q.raqam ? `№ ${q.raqam}` : '—'}</td>
+    <tr key={q.job_id} className={`border-b border-border/40 ${navbat.has(q.job_id) ? 'bg-accent/10' : ''}`}>
+      <td className="px-1 font-semibold">{q.raqam ? `№ ${q.raqam}` : '—'}{navbat.has(q.job_id) && <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-text">{t('Navbatdagi')}</span>}</td>
       <td className="px-1 tabular-nums">{q.oy ?? '—'}</td>
       <td className="px-1" title={q.fayl ?? ''}>{faylQisqa(q.fayl)}{q.akt_idx != null && q.akt_idx > 0 ? ` · ${t('varaq')} ${q.akt_idx + 1}` : ''}</td>
       <td className="px-1 text-right tabular-nums">
