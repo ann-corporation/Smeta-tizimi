@@ -232,6 +232,37 @@ export function f2Yuk(q: F2Qator[], hujjatRaqam: string): F2NativePayloadRow[] {
   }));
 }
 
+/** Ishning 1 birlik taklif narxi (NDS siz) = Σ norma × taklif narx avtomatik resurslar bo'yicha; narxi yo'q resurslar soni alohida (0 deb olinmaydi). */
+export function ishBirlikNarxi(i: Pick<F2Ish, 'resurslar'>): { summa: number; narxsiz: number } {
+  let summa = 0; let narxsiz = 0;
+  for (const r of i.resurslar) {
+    if (!r.avto || r.norma == null || r.norma <= 0) continue;
+    if (r.taklifNarx == null) narxsiz++; else summa += r.norma * r.taklifNarx;
+  }
+  return { summa: pulYaxlit(summa), narxsiz };
+}
+
+/** Bo'limlar yig'iq daraxti: har bo'lim uchun ota kaliti va farzandi bor-yo'qligi (`daraja` bo'yicha ketma-ket ro'yxatdan). Kalit: id ?? -1. */
+export type BolimDaraxtGuruh = { b: F2Bolim; kalit: number; ota: number | null; farzand: boolean };
+export function bolimDaraxti(bolimlar: readonly F2Bolim[]): BolimDaraxtGuruh[] {
+  const stek: Array<{ daraja: number; kalit: number }> = [];
+  const out: BolimDaraxtGuruh[] = [];
+  bolimlar.forEach((b, i) => {
+    while (stek.length && stek[stek.length - 1].daraja >= b.daraja) stek.pop();
+    const kalit = b.id ?? -1;
+    out.push({ b, kalit, ota: stek.length ? stek[stek.length - 1].kalit : null, farzand: (bolimlar[i + 1]?.daraja ?? -1) > b.daraja });
+    stek.push({ daraja: b.daraja, kalit });
+  });
+  return out;
+}
+/** Ko'rinadigan bo'limlar: ota-ona zanjiri to'liq kengaytirilgan yoki tanlangan bo'limning ajdodi. */
+export function korinadiganBolimlar(d: readonly BolimDaraxtGuruh[], kengaygan: ReadonlySet<number>, tanlangan: number | null): BolimDaraxtGuruh[] {
+  const ota = new Map(d.map((x) => [x.kalit, x.ota]));
+  const ochiq = new Set(kengaygan);
+  for (let k: number | null | undefined = tanlangan ?? -1; k != null; k = ota.get(k)) if (k !== (tanlangan ?? -1)) ochiq.add(k);
+  return d.filter((x) => { for (let o = x.ota; o != null; o = ota.get(o) ?? null) if (!ochiq.has(o)) return false; return true; });
+}
+
 /** Ish bo'yicha ulush tugmalari (25/50/100% — F2 mumkin hajmdan). */
 export function ulushHajm(mumkin: number, foiz: number): string {
   return String(y6(mumkin * foiz / 100));
