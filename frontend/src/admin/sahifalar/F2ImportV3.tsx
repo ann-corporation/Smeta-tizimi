@@ -29,7 +29,7 @@ import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
-import { BOLIM_ILDIZ, SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
+import { BOLIM_ILDIZ, SMETASIZ_RZ, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
@@ -45,6 +45,14 @@ import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrection
  */
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+/** Smetada allaqachon yozilgan qo'shimcha qatorlar (operation_id bilan) — rejali buyruqlar bajarilganligini aniqlash uchun. */
+async function rejaliniTozala(oid: number, rejali: RejaliBuyruq[], ij: IshJoyi): Promise<{ rejali: RejaliBuyruq[]; ij: IshJoyi; soni: number }> {
+  if (!rejali.length) return { rejali, ij, soni: 0 };
+  const r = await sbOqi<YozilganQator>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${oid}&qoshimcha=eq.true`, ustunlar: 'id,ota_id,operation_id,tur,nom,tartib', limit: 50000 });
+  if (!r.ok) return { rejali, ij, soni: 0 };
+  const { qolgan, map } = rejaliniYozilganlardanTozala(rejali, r.qatorlar ?? []);
+  return { rejali: qolgan, ij: map.size ? ijniAlmashtir(ij, map) : ij, soni: rejali.length - qolgan.length };
+}
 /** Server qoralamasi (yordamchi qadam) xatosi — foydalanuvchi tilida; akt yozishni to'xtatmaydi. */
 function serverXatoMatni(e: unknown): string {
   if (e instanceof F2ServerZiddiyat) return `${e.uidlar.length} ${t('qatorda server qarori boshqacha bog‘langan (boshqa joyda o‘zgartirilgan)')}`;
@@ -230,7 +238,8 @@ function Sessiya({ companyId }: { companyId: number }) {
         eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
         : f2QoralamaBogTekshir(d.ij, new Set([...r.map((q) => q.id), ...(d.rejali ?? []).flatMap((b) => [b.tempId, ...b.resursTempIds])]));
       pendingCorrection.current=undefined;
-      setRejali(d.rejali ?? []); setOchirish(d.ochirishlar ?? []);
+      const tz = await rejaliniTozala(d.objectId, d.rejali ?? [], restored);
+      setRejali(tz.rejali); setOchirish(d.ochirishlar ?? []);
       // No auto-match effect may reset recovered manual decisions.
       oxirgiKalit.current = `${d.objectId}|${d.aktIdx}|${d.davr}|${d.aktlar[d.aktIdx].fayl}`;
       void faylShaHisobla(rawFile.current = new File([d.source.blob], d.source.name, { type: d.source.blob.type, lastModified: d.source.lastModified }));
@@ -238,7 +247,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       serverDraft.current = d.server;
       setObjectId(String(d.objectId)); workspace.setObjectId(d.objectId);
       setAktlar(d.aktlar); setAktIdx(d.aktIdx); setDavr(d.davr); setRzBog(d.rzBog); setRaqam(d.raqam ?? ''); setAlmashtirTasdiq(null);
-      setNatija(d.natija); tarixniTozala(); setIj(restored); setDone(null);
+      setNatija(d.natija); tarixniTozala(); setIj(tz.ij); setDone(null);
       setHolat('Saqlangan ish tiklandi. Smeta va oldingi F2 qayta o‘qildi.');
       if (restored.bog.size !== d.ij.bog.size) setXato('Ayrim smeta qatorlari o‘chirilgan: ularga bog‘lanish qayta tekshirilishi kerak.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Ish tiklanmadi; zaxira saqlanib turibdi.'); }
@@ -729,10 +738,13 @@ function Sessiya({ companyId }: { companyId: number }) {
         eskiIdlar:new Set(correction.oldIds),yangiId:correction.newId,mavjud:new Set(r.map((q)=>q.id)),S:smetaIndeks(smetaQatorlari(r))}).ij
         : f2QoralamaBogTekshir(d.ij,new Set([...r.map((q)=>q.id), ...serverRejali(c).flatMap((b) => [b.tempId, ...b.resursTempIds])]));
       pendingCorrection.current=undefined;
-      setRejali(serverRejali(c)); setOchirish(serverOchirish(c));
-      const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat(restored, mosla.buzilgan), indA.qatorlar, r);
+      // Oldingi «F2 ni yozish» urinishida smetaga allaqachon yozilgan rejali buyruqlar — haqiqiy qatorga o'tkaziladi (dublikat yo'q).
+      const tz = await rejaliniTozala(d.objectId, serverRejali(c), restored);
+      setRejali(tz.rejali); setOchirish(serverOchirish(c));
+      const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat(tz.ij, mosla.buzilgan), indA.qatorlar, r);
       tarixniTozala(); setIj(tiklangan); setDone(null);
       setServerHolat(`Serverdagi F2 ish qoralamasi #${id} tiklandi. Hal qilinmagan qatorlar ham saqlangan.`
+        + (tz.soni ? ` ${tz.soni} ${t('ta qo‘shimcha qator smetada allaqachon yozilgan — qayta yaratilmaydi')}.` : '')
         + (mosla.yangi.length ? ` ${t('Fayl yangi usulda o‘qildi')}: +${mosla.yangi.length} ${t('qator')}.` : '')
         + (mosla.buzilgan.size ? ` ${mosla.buzilgan.size} ${t('qator qayta tekshirilsin (fayldagi qiymati o‘zgargan yoki topilmadi)')}.` : ''));
     } catch (e) { setXato(e instanceof Error ? e.message : 'Server qoralamasi tiklanmadi.'); }
