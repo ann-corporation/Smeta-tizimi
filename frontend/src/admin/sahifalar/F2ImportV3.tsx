@@ -20,7 +20,7 @@ import { qoldiqOshishlari, qoralamaBandi, type BandManba } from '../../lib/f2-mo
 import { kumulyativmi, kumulyativQolla, kumulyativReja } from '../../lib/f2-moslash-v3/kumulyativ';
 import { dvigatelDaraxti, podvalTaklifQosh } from '../../lib/f2-moslash-v3/podval';
 import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
-import { guruhHisobla } from '../../lib/f2-moslash-v3/ishJoyi';
+import { bogIdlari, guruhHisobla, snapshotdanBog } from '../../lib/f2-moslash-v3/ishJoyi';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
 import { eskiYozilmagan } from '../../lib/f2-ketma-ketlik';
 import { VARAQ_MOSLIK_NOMI, keyingiVaraq, manfiyVaraqmi, summaniOqi, varaqReestrMos } from '../../lib/f2-moslash-v3/varaq-tanlov';
@@ -823,13 +823,14 @@ function Sessiya({ companyId }: { companyId: number }) {
       const { r, qol, x } = await malumotYukla(obyektId, month);
       const result = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: new Map() });
       const mavjud = new Set(r.map((q) => q.id));
-      const bog = new Map<string, import('../../lib/f2-moslash-v3/ishJoyi').Bog>();
       const yozilgan: Array<{ uid: string; hajm?: unknown; narx?: unknown; summa?: unknown }> = [];
-      for (const q of snaps) for (const m of (q.raw_snapshot?.qatorlar ?? []) as Array<{ uid: string; hajm?: unknown; narx?: unknown; summa?: unknown }>) {
+      const bogYozuv: Array<{ uid: string; qatorId: number; taqsimHajm?: unknown }> = [];
+      for (const q of snaps) for (const m of (q.raw_snapshot?.qatorlar ?? []) as Array<{ uid: string; hajm?: unknown; narx?: unknown; summa?: unknown; taqsimHajm?: unknown }>) {
         if (!m?.uid) continue;
         yozilgan.push(m);
-        if (indA.byUid.has(m.uid) && mavjud.has(q.qator_id)) bog.set(m.uid, { qatorId: q.qator_id, holat: 'qolda', usul: 'aktdan' });
+        if (indA.byUid.has(m.uid) && mavjud.has(q.qator_id)) bogYozuv.push({ uid: m.uid, qatorId: q.qator_id, taqsimHajm: m.taqsimHajm });
       }
+      const bog = snapshotdanBog(bogYozuv);
       const mosla = f2ManbaMosla(yozilgan, indA);
       const tiklangan = podvalTaklifQosh(f2BuzilganniBoshat({ bog, otkaz: new Set() }, mosla.buzilgan), indA.qatorlar, r);
       tozala();
@@ -982,7 +983,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   function onOchirishRejali(b: Omit<OchirishBuyruq, 'operationId'>) {
     if (!ijRef.current || ochirishRef.current.some((o) => o.qatorId === b.qatorId)) return;
     const yashir = new Set(b.eskiIdlar);
-    const bog = new Map([...ijRef.current.bog].filter(([, v]) => !yashir.has(v.qatorId)));
+    const bog = new Map([...ijRef.current.bog].filter(([, v]) => !bogIdlari(v).some((id) => yashir.has(id))));
     const joriy = { bog, otkaz: ijRef.current.otkaz };
     ijRef.current = joriy;
     const keyingi = [...ochirishRef.current, { ...b, operationId: yangiOperationId() }];
@@ -1189,9 +1190,12 @@ function Sessiya({ companyId }: { companyId: number }) {
       const manba = new Map<number, Array<Record<string, unknown>>>();
       for (const n of yozish.nodes) {
         const id = yozish.mapping.get(n.uid)!;
-        const tg = ind.byUid.get(n.uid)!;
+        // Taqsim bo'lagi: snapshot asl F2 uid i bilan, bo'lak hajmi/summasi alohida (aktdan tiklashda taqsim qayta quriladi).
+        const asl = yozish.aslUid.get(n.uid) ?? n.uid;
+        const tg = ind.byUid.get(asl)!;
         const a = manba.get(id) ?? [];
-        a.push({ uid: n.uid, imzo: yozish.imzolar.get(n.uid), kod: tg.kod, nom: tg.nom, birlik: tg.birlik, hajm: tg.hajm, narx: tg.narx, summa: tg.summa, bog: ij?.bog.get(n.uid)?.usul });
+        a.push({ uid: asl, imzo: yozish.imzolar.get(n.uid), kod: tg.kod, nom: tg.nom, birlik: tg.birlik, hajm: tg.hajm, narx: tg.narx, summa: tg.summa, bog: ij?.bog.get(asl)?.usul,
+          ...(asl !== n.uid ? { taqsimHajm: n.hajm, taqsimSumma: n.summa ?? null } : {}) });
         manba.set(id, a);
       }
       const qatorlar = payload.rows.map((q) => ({
