@@ -1,0 +1,5 @@
+{
+  "ustamasiz": { "ru": "без накрутки", "en": "no markup" },
+  "QQS bilan": { "ru": "с НДС", "en": "incl. VAT" },
+  "JAMI (ustama bilan, QQS siz)": { "ru": "ИТОГО (с накруткой, без НДС)", "en": "TOTAL (with markup, excl. VAT)" }
+}

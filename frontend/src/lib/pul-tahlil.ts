@@ -4,11 +4,15 @@
  * Yangi ustama formulasi YO'Q — zanjir `t2_obyekt_nakrutka_v1` natijasidan olinadi.
  */
 
+/** Ustamali summa (mavjud kaskad natijasi): itogo4 = QQS siz, vsego = QQS bilan. */
+export type PulUstamali = { itogo4: number; nds: number; vsego: number };
+
 export type PulKesim = {
   kat: string; ota: string | null;
   smeta_ustamasiz: number | null; smeta_nomalum?: number;
   f2_yopilgan: number | null; f2_nomalum?: number;
   xarajat: number | null; farq: number | null; farq_foiz: number | null;
+  smeta_ustamali?: PulUstamali | null; f2_ustamali?: PulUstamali | null;
   xarajat_holat?: 'kiritilmagan' | 'hisoblanmagan' | 'malum';
 };
 
