@@ -1,0 +1,5 @@
+{
+  "F3 davri F2 davriga mos kelmadi — kerakli davrni tanlab «Форма № 3» ni bosing.": { "ru": "Период Ф-3 не совпал с периодом Ф-2 — выберите нужный период и нажмите «Форма № 3».", "en": "The F3 period does not match the F2 period — pick the right period and press “Form № 3”." },
+  "Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi": { "ru": "Открывает СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) за этот период", "en": "Opens the invoice statement (Form №3) for this period" },
+  "Форма №3 (счёт-фактура)": { "ru": "Форма №3 (счёт-фактура)", "en": "Form №3 (invoice)" }
+}
