@@ -2,7 +2,8 @@
 -- Zamena (change_type='REPLACEMENT', replaces_line_id -> asl) qatoriga F2/fakt yozilgan sari ASLNING qoldig'i kamayadi.
 --   * birlik bir xil -> 1:1 (zamenaning F2/fakt hajmi aslning qoldig'idan ayriladi);
 --   * birlik farqli  -> t2_qator.almashtirish_hajm (aslning birligida, zamenaning TO'LIQ rejalangan hajmi uchun) kiritilgan bo'lsa
---     proporsional: zamena_progress / zamena_hajm * almashtirish_hajm; kiritilmagan bo'lsa asl TO'LIQ almashtirilgan (butun qoldig'i yopiladi);
+--     proporsional: zamena_progress / zamena_hajm * almashtirish_hajm; kiritilmagan bo'lsa zamenaning bajarilgan ULUSHIDA
+--     (progress / zamena_hajm * asl_hajm; egasi qarori 2026-10-25);
 --   * zamena ISH (bl) bo'lsa, aslning bola resurslari (rs/mat/ob) ham xuddi shu ulushda yopiladi (jami summalar bargdan yig'iladi).
 -- Asl smeta qatorlari O'ZGARMAYDI (ASL SMETA CONST) -- bu hisoblangan qoplash qatlami. Summa to'qilmaydi, hajm bloklanmaydi, NULL != 0.
 -- YAGONA TA'RIF: t2_almashtirilgan_hajm(qator_id) + t2_almashtirilgan_summa_hisob(...); t2_qator_holat va t2_nakopitelniy_v2 shularni ishlatadi.
@@ -16,7 +17,7 @@ alter table public.t2_qator add constraint t2_qator_almashtirish_hajm_chk
   check (almashtirish_hajm is null or (almashtirish_hajm >= 0 and almashtirish_hajm < 'Infinity'::numeric and change_type = 'REPLACEMENT')) not valid;
 alter table public.t2_qator validate constraint t2_qator_almashtirish_hajm_chk;
 comment on column public.t2_qator.almashtirish_hajm is
-  'Zamena qatori uchun: aslning (replaces_line_id) QAYSI birligida, zamenaning TO''LIQ rejalangan hajmi aslning qancha hajmini almashtiradi. NULL = birlik bir xil bo''lsa 1:1, farqli bo''lsa asl to''liq almashtirilgan.';
+  'Zamena qatori uchun: aslning (replaces_line_id) QAYSI birligida, zamenaning TO''LIQ rejalangan hajmi aslning qancha hajmini almashtiradi. NULL = birlik bir xil bo''lsa 1:1, farqli bo''lsa zamenaning bajarilgan ulushida (progress/zamena_hajm*asl_hajm).';
 
 -- 2) Zamena -> asl qoplash (har zamena uchun bitta qator; progress = max(tasdiqlangan F2, fakt)).
 create or replace view public.t2_zamena_qoplash as
@@ -46,16 +47,19 @@ language sql stable set search_path = public, pg_temp as $fn$
               where aq.qator_id = q.id and a.tur = 'f2' and a.holat = 'tasdiqlangan'), 0), 0) as rem
       from public.t2_qator q where q.id = p_qator_id),
   c as (
+    -- Egasi qarori 2026-10-25: birlik farqli va miqdor kiritilmagan bo'lsa asl qator zamenaning BAJARILGAN ULUSHIDA
+    -- yopiladi (progress / zamena_hajm * asl_hajm). Zamena hajmi noma'lum (<=0/NULL) bo'lsa ulushni hisoblab bo'lmaydi -> 0
+    -- (to'qilmaydi). Miqdor kiritilgan bo'lsa: progress / zamena_hajm * almashtirish_hajm.
     select z.*,
-           (z.almashtirish_hajm is null and not z.ayni_birlik)
-             or (z.almashtirish_hajm is not null and coalesce(z.zamena_hajm, 0) <= 0) as toliq,
            case when z.almashtirish_hajm is not null and coalesce(z.zamena_hajm, 0) > 0
                   then z.progress_hajm / z.zamena_hajm * z.almashtirish_hajm
-                when z.almashtirish_hajm is null and z.ayni_birlik then z.progress_hajm end as qoplash
+                when z.almashtirish_hajm is null and z.ayni_birlik then z.progress_hajm
+                when z.almashtirish_hajm is null and coalesce(z.zamena_hajm, 0) > 0
+                  then least(z.progress_hajm / z.zamena_hajm, 1) * coalesce((select q.hajm from public.t2_qator q where q.id = p_qator_id), 0)
+                else 0::numeric end as qoplash
       from public.t2_zamena_qoplash z where z.asl_qator_id = p_qator_id)
   select coalesce(case
            when not exists (select 1 from c) then 0::numeric
-           when exists (select 1 from c where toliq) then (select rem from o)
            else least(coalesce((select sum(qoplash) from c), 0), (select rem from o)) end, 0::numeric)
 $fn$;
 
@@ -125,7 +129,7 @@ begin
   n := replace(n, 'q.hajm - d.f2_hajm AS qoldiq_hajm,', 'q.hajm - d.f2_hajm - al.v AS qoldiq_hajm,');
   n := replace(n, 'q.summa - d.f2_summa_malum AS qoldiq_summa,', 'q.summa - d.f2_summa_malum - COALESCE(public.t2_almashtirilgan_summa_hisob(al.v, q.hajm, q.narx, q.summa), 0::numeric) AS qoldiq_summa,');
   n := replace(n, 'd.f2_summa_nomalum', 'd.f2_summa_nomalum,' || E'\n    al.v AS almashtirilgan_hajm,\n    public.t2_almashtirilgan_summa_hisob(al.v, q.hajm, q.narx, q.summa) AS almashtirilgan_summa');
-  n := replace(n, 'FROM t2_qator q', 'FROM t2_qator q' || E'\n     CROSS JOIN LATERAL ( SELECT CASE WHEN EXISTS (SELECT 1 FROM public.t2_qator zz WHERE zz.replaces_line_id = q.id OR zz.replaces_line_id = q.ota_id) THEN public.t2_almashtirilgan_hajm(q.id) ELSE 0::numeric END AS v) al');
+  n := replace(n, 'FROM t2_qator q', 'FROM t2_qator q' || E'\n     CROSS JOIN LATERAL ( SELECT CASE WHEN EXISTS (SELECT 1 FROM public.t2_qator zz WHERE zz.replaces_line_id = q.id) OR EXISTS (SELECT 1 FROM public.t2_qator zz WHERE zz.replaces_line_id = q.ota_id) THEN public.t2_almashtirilgan_hajm(q.id) ELSE 0::numeric END AS v) al');
   if n = d or position('- al.v AS qoldiq_hajm' in n) = 0
      or position('AS almashtirilgan_summa' in n) = 0 or position('CROSS JOIN LATERAL ( SELECT CASE WHEN EXISTS' in n) = 0
      or position('COALESCE(public.t2_almashtirilgan_summa_hisob(al.v, q.hajm, q.narx, q.summa), 0::numeric) AS qoldiq_summa' in n) = 0 then
@@ -140,7 +144,7 @@ declare d text; n text;
 begin
   d := pg_get_functiondef('public.t2_nakopitelniy_v2(bigint,bigint,date,integer,boolean,integer)'::regprocedure);
   n := d;
-  n := replace(n, ') p on true', ') p on true' || E'\n    left join lateral (select case when exists (select 1 from public.t2_qator zz where zz.replaces_line_id = q.id or zz.replaces_line_id = q.ota_id) then public.t2_almashtirilgan_hajm(q.id) else 0::numeric end as v) al on true');
+  n := replace(n, ') p on true', ') p on true' || E'\n    left join lateral (select case when exists (select 1 from public.t2_qator zz where zz.replaces_line_id = q.id) or exists (select 1 from public.t2_qator zz where zz.replaces_line_id = q.ota_id) then public.t2_almashtirilgan_hajm(q.id) else 0::numeric end as v) al on true');
   n := replace(n, 'where (not v_faol or ', 'where (not v_faol or coalesce(al.v,0) <> 0 or ');
   n := replace(n, $a$'qoldiq_hajm',  coalesce(q.hajm,0) - (coalesce(p.oldingi_hajm,0) + coalesce(p.joriy_hajm,0)),$a$,
     $b$'almashtirilgan_hajm', coalesce(al.v,0),

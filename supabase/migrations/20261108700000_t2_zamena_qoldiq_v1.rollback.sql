@@ -11,7 +11,7 @@ begin
   n := replace(n, 'q.hajm - d.f2_hajm - al.v AS qoldiq_hajm,', 'q.hajm - d.f2_hajm AS qoldiq_hajm,');
   n := replace(n, 'q.summa - d.f2_summa_malum - COALESCE(public.t2_almashtirilgan_summa_hisob(al.v, q.hajm, q.narx, q.summa), 0::numeric) AS qoldiq_summa,', 'q.summa - d.f2_summa_malum AS qoldiq_summa,');
   n := replace(n, E'al.v AS almashtirilgan_hajm,\n    public.t2_almashtirilgan_summa_hisob(al.v, q.hajm, q.narx, q.summa) AS almashtirilgan_summa', 'NULL::numeric AS almashtirilgan_hajm,' || E'\n    NULL::numeric AS almashtirilgan_summa');
-  n := replace(n, E'\n     CROSS JOIN LATERAL ( SELECT CASE WHEN EXISTS (SELECT 1 FROM public.t2_qator zz WHERE zz.replaces_line_id = q.id OR zz.replaces_line_id = q.ota_id) THEN public.t2_almashtirilgan_hajm(q.id) ELSE 0::numeric END AS v) al', '');
+  n := replace(n, E'\n     CROSS JOIN LATERAL ( SELECT CASE WHEN EXISTS (SELECT 1 FROM public.t2_qator zz WHERE zz.replaces_line_id = q.id) OR EXISTS (SELECT 1 FROM public.t2_qator zz WHERE zz.replaces_line_id = q.ota_id) THEN public.t2_almashtirilgan_hajm(q.id) ELSE 0::numeric END AS v) al', '');
   if position('al.v' in n) > 0 then raise exception 'ROLLBACK: t2_qator_holat langari topilmadi'; end if;
   execute 'create or replace view public.t2_qator_holat as ' || rtrim(n, E'; \n');
 end $do$;
@@ -21,7 +21,7 @@ declare d text; n text;
 begin
   d := pg_get_functiondef('public.t2_nakopitelniy_v2(bigint,bigint,date,integer,boolean,integer)'::regprocedure);
   n := d;
-  n := replace(n, E'\n    left join lateral (select case when exists (select 1 from public.t2_qator zz where zz.replaces_line_id = q.id or zz.replaces_line_id = q.ota_id) then public.t2_almashtirilgan_hajm(q.id) else 0::numeric end as v) al on true', '');
+  n := replace(n, E'\n    left join lateral (select case when exists (select 1 from public.t2_qator zz where zz.replaces_line_id = q.id) or exists (select 1 from public.t2_qator zz where zz.replaces_line_id = q.ota_id) then public.t2_almashtirilgan_hajm(q.id) else 0::numeric end as v) al on true', '');
   n := replace(n, 'where (not v_faol or coalesce(al.v,0) <> 0 or ', 'where (not v_faol or ');
   n := replace(n, E'\'almashtirilgan_hajm\', coalesce(al.v,0),\n      \'qoldiq_hajm\',  coalesce(q.hajm,0) - (coalesce(p.oldingi_hajm,0) + coalesce(p.joriy_hajm,0)) - coalesce(al.v,0),',
                   E'\'qoldiq_hajm\',  coalesce(q.hajm,0) - (coalesce(p.oldingi_hajm,0) + coalesce(p.joriy_hajm,0)),');

@@ -4,7 +4,8 @@
  * Egasi qarori (2026-10-24): zamena qatoriga F2/fakt yozilgan sari ASLNING qoldig'i kamayadi.
  *  - birlik bir xil -> 1:1 (zamenaning F2/fakt hajmi aslning qoldig'idan ayriladi);
  *  - birlik farqli  -> `almashtirishHajm` (aslning birligida, zamenaning TO'LIQ rejalangan hajmi uchun) kiritilgan bo'lsa
- *    proporsional: progress / zamenaHajm * almashtirishHajm; kiritilmagan bo'lsa asl TO'LIQ almashtirilgan;
+ *    proporsional: progress / zamenaHajm * almashtirishHajm; kiritilmagan bo'lsa zamenaning bajarilgan
+ *    ulushida (progress / zamenaHajm * aslHajm; egasi qarori 2026-10-25);
  *  - zamena ISH (bl) bo'lsa, aslning bola resurslari (rs/mat/ob) ham xuddi shu ulushda yopiladi.
  * Asl smeta qatorlari O'ZGARMAYDI; hajm bloklanmaydi (ortiqcha aslning qoldig'i bilan cheklanadi); NULL != 0.
  */
@@ -41,8 +42,11 @@ function ozHajm(asl: ZamenaQator, zamenalar: readonly ZamenaQator[]): number {
     const miq = z.almashtirish_hajm;
     const zh = z.hajm ?? 0;
     const ayni = birlikKalit(z) === birlikKalit(asl);
-    if ((miq == null && !ayni) || (miq != null && zh <= 0)) return rem; // TO'LIQ almashtirilgan
-    yigindi += miq != null ? (z.progress ?? 0) / zh * miq : (z.progress ?? 0);
+    const pr = z.progress ?? 0;
+    if (miq != null) { if (zh > 0) yigindi += pr / zh * miq; }
+    else if (ayni) yigindi += pr;
+    // Egasi qarori 2026-10-25: birlik farqli, miqdorsiz -> zamenaning bajarilgan ulushida (zamena hajmi noma'lum -> 0).
+    else if (zh > 0) yigindi += Math.min(pr / zh, 1) * (asl.hajm ?? 0);
   }
   return Math.min(yigindi, rem);
 }

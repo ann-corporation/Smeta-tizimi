@@ -10,10 +10,11 @@ describe('zamena qoldiq (sintetik)', () => {
     expect(m.get(1)).toBe(30);
     expect(qoldiqHajmi(100, 0, m.get(1))).toBe(70);
   });
-  it('birlik farqli, miqdor kiritilmagan: asl to\'liq (o\'z F2 ayriladi)', () => {
-    const m = almashtirilganHajmlar([asl({ id: 1, f2Hajm: 20 }), zam({ id: 2, replaces_line_id: 1, birlik: 'kg', hajm: 500 })]);
-    expect(m.get(1)).toBe(80);
-    expect(qoldiqHajmi(100, 20, m.get(1))).toBe(0);
+  it('birlik farqli, miqdor kiritilmagan: bajarilgan ulushda (boshlanmagan -> 0)', () => {
+    expect(almashtirilganHajmlar([asl({ id: 1, f2Hajm: 20 }), zam({ id: 2, replaces_line_id: 1, birlik: 'kg', hajm: 500 })]).get(1)).toBeUndefined();
+    const m = almashtirilganHajmlar([asl({ id: 1, f2Hajm: 20 }), zam({ id: 2, replaces_line_id: 1, birlik: 'kg', hajm: 500, progress: 200 })]);
+    expect(m.get(1)).toBe(40);
+    expect(qoldiqHajmi(100, 20, m.get(1))).toBe(40);
   });
   it('birlik farqli, miqdor kiritilgan: proporsional', () => {
     const m = almashtirilganHajmlar([asl({ id: 1 }), zam({ id: 2, replaces_line_id: 1, birlik: 'kg', hajm: 500, almashtirish_hajm: 40, progress: 250 })]);
