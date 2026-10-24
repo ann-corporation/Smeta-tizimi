@@ -46,7 +46,7 @@ must('soft cancel is durable and reason-bound', recovery.includes('t2_f2_import_
 must('recovery acceptance is metadata-only', !/\b(insert|update|delete|truncate)\s+/i.test(recoveryAcc) && recoveryAcc.includes('rollback;') && recoveryAcc.includes('T2_F2_IMPORT_JOB_RECOVERY_ACCEPTANCE_PASS'));
 must('recovery rollback keeps job data', !/\bdrop\s+(table|column)\b/i.test(recoveryRoll));
 must('gateway maps recovery and cancel actions', apiGateway.includes("f2_import_job_recover: { rpc: 't2_f2_import_job_recover_v1' }") && apiGateway.includes("f2_import_job_cancel: { rpc: 't2_f2_import_job_cancel_v1' }"));
-must('smeta native reimport is non-destructive', smetaUi.includes('smetaQaytaImportDiff') && !smetaUi.includes('smeta_tozala') && !smetaUi.includes('Smetani tozalab'));
+must('smeta native reimport is non-destructive', smetaUi.includes('smetaQaytaImportDiff') && (!smetaUi.includes('smeta_tozala') || (smetaUi.includes('smeta_bogliqlik') && smetaUi.includes('bogliqlik?.qoralama'))) && !smetaUi.includes('Smetani tozalab'));
 must('F2 approval follows draft-submitted-checked-approved sequence', f2HistoryUi.includes("['submitted', 'checked', 'approved']") && f2HistoryUi.includes('t2AktLifecycleTransition') && !f2HistoryUi.includes('sbT2AktTasdiqlash'));
 must('read gateway exposes tenant+actor-bound lifecycle history (GET-only, no ad-hoc RPC name)', apiReadGateway.includes("akt_lifecycle_history_v1: 'akt_kompaniya_actor'") && apiReadGateway.includes("q.set('p_akt_id', String(id))") && apiReadGateway.includes("tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor'"));
 console.log('  ✅ T2 F2 lifecycle source contract');

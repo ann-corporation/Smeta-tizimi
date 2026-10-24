@@ -1,0 +1,19 @@
+{
+  "{n} qatorlik qoralama smeta o‘chirilsinmi? F2/fakt bog‘lanmagan, shuning uchun yo‘qotish yo‘q. Keyin to‘g‘rilangan faylni yuklaysiz.": { "ru": "Удалить черновик сметы на {n} строк? Ф-2/факт не привязаны, потерь нет. Затем вы загрузите исправленный файл.", "en": "Delete the draft estimate of {n} rows? No F2/fact is linked, so nothing is lost. You will then upload the corrected file." },
+  "O‘chirib bo‘lmadi ({kod}).": { "ru": "Не удалось удалить ({kod}).", "en": "Could not delete ({kod})." },
+  "Smeta o‘chirildi — endi yangi faylni yuklang.": { "ru": "Смета удалена — теперь загрузите новый файл.", "en": "Estimate deleted — now upload the new file." },
+  "Qoralama smeta: F2, fakt va hujjatlar bog‘lanmagan. Uni bekor qilib, to‘g‘rilangan faylni qayta yuklash mumkin.": { "ru": "Черновик сметы: Ф-2, факт и документы не привязаны. Его можно отменить и загрузить исправленный файл заново.", "en": "Draft estimate: no F2, fact or documents are linked. You can cancel it and re-upload the corrected file." },
+  "Qoralama smetani o‘chirib, qayta yuklash": { "ru": "Удалить черновик сметы и загрузить заново", "en": "Delete draft estimate and re-upload" },
+  "Bu smeta bog‘langan, o‘chirib bo‘lmaydi (asl smeta o‘zgarmas). Yangi fayl faqat farq (diff) sifatida ko‘rsatiladi. Bog‘lanishlar:": { "ru": "Эта смета связана, удалить нельзя (исходная смета неизменна). Новый файл показывается только как разница (diff). Связи:", "en": "This estimate is linked and cannot be deleted (the original estimate is immutable). A new file is shown only as a diff. Links:" },
+  "Yo‘qolgan qatorlar smetadan o‘chirilmaydi (asl smeta o‘zgarmas): F2/fakt bog‘langan qatorlar saqlanadi, faqat sizning qaroringiz bilan tarixga yoziladi.": { "ru": "Исчезнувшие строки из сметы не удаляются (исходная смета неизменна): строки со связью Ф-2/факт сохраняются, в историю пишутся только по вашему решению.", "en": "Missing rows are not removed from the estimate (original is immutable): rows linked to F2/fact are kept and recorded in history only by your decision." },
+  "F2/fakt aktlari": { "ru": "акты Ф-2/факт", "en": "F2/fact acts" },
+  "akt qatorlari": { "ru": "строки актов", "en": "act rows" },
+  "ochiq F2 import": { "ru": "открытый импорт Ф-2", "en": "open F2 import" },
+  "AOSR": { "ru": "АООР", "en": "AOSR" },
+  "AOSR bog‘lanishi": { "ru": "связь с АООР", "en": "AOSR link" },
+  "laboratoriya bog‘lanishi": { "ru": "связь с лабораторией", "en": "laboratory link" },
+  "M-29": { "ru": "М-29", "en": "M-29" },
+  "bajarilmadi belgisi": { "ru": "отметка «не выполнено»", "en": "not-done mark" },
+  "shartnoma hajmi": { "ru": "объём по договору", "en": "contract scope" },
+  "narx asosi": { "ru": "основание цены", "en": "price basis" }
+}
