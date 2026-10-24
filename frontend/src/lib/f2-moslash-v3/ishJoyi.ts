@@ -526,22 +526,30 @@ function rzTaklifShifrdan(rz: F2Tugun, ishlar: readonly F2Tugun[], S: SmetaIndek
   const jami = ishlar.length;
   if (!jami) return null;
   const idx = ishKodIndeks(S);
+  // Har ish — uning shifri tushgan smeta qatorlarining BARCHA ota bo'limlariga bittadan ovoz (eng yaqiniga emas:
+  // gidroizolyatsiya kabi shifrlar o'nlab bo'limda takrorlanadi; bir nechta ishni birga qamragan ota bo'lim yutadi).
   const say = new Map<number, number>();
+  const ota = (r: SmetaQator) => engYaqinRz(S, r);
   for (const t of ishlar) {
     const k = kodKanon(t.kod) || normKod(t.kod);
     if (!k) continue;
     const rzlar = new Set<number>();
     for (const q of idx.get(k) ?? []) {
       if (!birMos(t.birlik, q.birlik)) continue;
-      const r = engYaqinRz(S, q);
-      if (r) rzlar.add(r.id);
+      for (let r = engYaqinRz(S, q); r; r = ota(r)) rzlar.add(r.id);
     }
     for (const id of rzlar) say.set(id, (say.get(id) ?? 0) + 1);
   }
   let max = 0;
   for (const n of say.values()) if (n > max) max = n;
   if (!max) return null;
-  const tenglar = [...say].filter(([, n]) => n === max).map(([id]) => id);
+  // Teng ovozli bo'limlardan faqat eng ichkilari (biri ikkinchisining otasi bo'lsa — otasi tashlanadi).
+  const maxlar = new Set([...say].filter(([, n]) => n === max).map(([id]) => id));
+  const tenglar = [...maxlar].filter((id) => ![...maxlar].some((b) => {
+    if (b === id) return false;
+    for (let r = engYaqinRz(S, S.byId.get(b)); r; r = ota(r)) if (r.id === id) return true;
+    return false;
+  }));
   let tanlov: number | null = tenglar.length === 1 ? tenglar[0] : null;
   let nomO = tanlov != null ? rzNomOxshash(rz.nom, S.byId.get(tanlov)?.nom ?? '') : 0;
   if (tanlov == null) {
@@ -549,7 +557,8 @@ function rzTaklifShifrdan(rz: F2Tugun, ishlar: readonly F2Tugun[], S: SmetaIndek
     if (baho[0].o >= 0.6 && (baho.length < 2 || baho[1].o < baho[0].o)) { tanlov = baho[0].id; nomO = baho[0].o; }
   }
   if (tanlov == null) return null;
-  const yetarli = (max >= 2 && max / jami >= 0.6) || (jami === 1 && max === 1 && nomO >= 0.6);
+  // Yetarlilik: ko'pchilik (≥60%) shifr; yoki bo'lim nomi ham mos bo'lsa — yarmi yetadi (qolgani odatda zamena).
+  const yetarli = (max >= 2 && max / jami >= 0.6) || (max >= 2 && max / jami >= 0.5 && nomO >= 0.6) || (jami === 1 && max === 1 && nomO >= 0.6);
   if (!yetarli) return null;
   return { smetaRzId: tanlov, nom: S.byId.get(tanlov)?.nom ?? '', soni: max, jami, ulush: max / jami };
 }

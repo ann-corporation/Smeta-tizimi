@@ -146,6 +146,36 @@ describe('F2 V3 ish joyi holati', () => {
     expect(rzTaklifHisobla(noaniq, bosh, SS)).toBeNull();
   });
 
+  it('rzTaklifHisobla (Sun‘iy ko‘l holati): ichki bo‘limli F2 bo‘limi, shifrlar yarmi mos — ota smeta bo‘limi, tenglikda nom hal qiladi', () => {
+    const SQ: SmetaQator[] = [
+      { id: 1, otaId: null, tur: 'rz', kod: null, nom: 'РАЗДЕЛ: СМЕТА № 01-04 НА КОЛОДЦЕВ', birlik: null, hajm: null, tartib: 1 },
+      { id: 2, otaId: 1, tur: 'rz', kod: null, nom: 'РАЗДЕЛ: КОЛОДЕЦ (ЛИСТ .-39)', birlik: null, hajm: null, tartib: 2 },
+      { id: 3, otaId: 2, tur: 'rz', kod: null, nom: 'КОЛОДЕЦ К1', birlik: null, hajm: null, tartib: 3 },
+      { id: 4, otaId: 3, tur: 'bl', kod: 'E7-1-44-3', nom: 'МОНТАЖ', birlik: 'Т', hajm: 1, tartib: 4 },
+      { id: 5, otaId: 2, tur: 'rz', kod: null, nom: 'ГИДРОИЗОЛЯЦИЯ', birlik: null, hajm: null, tartib: 5 },
+      { id: 6, otaId: 5, tur: 'bl', kod: 'E12-2-2-2', nom: 'ГИДРО', birlik: '100М2', hajm: 1, tartib: 6 },
+      { id: 7, otaId: 5, tur: 'bl', kod: 'E12-2-2-3', nom: 'ГИДРО СЛОЙ', birlik: '100М2', hajm: 1, tartib: 7 },
+      // Boshqa joyda ham xuddi shu uch shifr (sahna quduqlari) — teng ovoz, nom boshqa.
+      { id: 10, otaId: null, tur: 'rz', kod: null, nom: 'РАЗДЕЛ: СМЕТА № 01-10 ПОГЛОЩАЮЩИЙ КОЛОДЕЦ - СЦЕНА', birlik: null, hajm: null, tartib: 10 },
+      { id: 11, otaId: 10, tur: 'rz', kod: null, nom: 'КОЛОДЦЫ', birlik: null, hajm: null, tartib: 11 },
+      { id: 12, otaId: 11, tur: 'bl', kod: 'E7-1-44-3', nom: 'МОНТАЖ', birlik: 'Т', hajm: 1, tartib: 12 },
+      { id: 13, otaId: 11, tur: 'bl', kod: 'E12-2-2-2', nom: 'ГИДРО', birlik: '100М2', hajm: 1, tartib: 13 },
+      { id: 14, otaId: 11, tur: 'bl', kod: 'E12-2-2-3', nom: 'ГИДРО СЛОЙ', birlik: '100М2', hajm: 1, tartib: 14 },
+    ];
+    const SS = smetaIndeks(SQ);
+    const f2 = t('rz', null, 'КОЛОДЕЦ К-1М', null, null, null, null, [
+      t('bl', 'Е1101-002-04', 'ЩЕБЕНЬ', 'М3', 14, null, 1),
+      t('bl', 'E23-3-1-3', 'КОЛОДЦЫ D1М', '10М3', 5, null, 1),
+      t('bl', 'Е06-01-082-4', 'РАСТВОР', '100М3', 0.5, null, 1),
+      t('bl', 'E7-1-44-3', 'МОНТАЖ', 'Т', 0.36, null, 1),
+      t('rz', null, 'ГИДРОИЗОЛЯЦИЯ', null, null, null, null, [
+        t('bl', 'E12-2-2-3', 'ГИДРО СЛОЙ', '100М2', 7.8, null, 1),
+        t('bl', 'E12-2-2-2', 'ГИДРО', '100М2', 7.8, null, 1),
+      ]),
+    ]);
+    expect(rzTaklifHisobla(f2, { bog: new Map(), otkaz: new Set<string>() }, SS)).toMatchObject({ smetaRzId: 2, soni: 3, jami: 6 });
+  });
+
   it('uzish — ish bilan birga resurslari ham', () => {
     const ij = uz(ishniBogla({ bog: new Map(), otkaz: new Set() }, ish, 2, SI).ij, ish);
     expect(ij.bog.size).toBe(0);
