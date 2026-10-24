@@ -26,6 +26,7 @@
 import { kodKanon, normBir, normKod, normNom, normRz, rzKodlar } from '../f2-match-engine';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 import { guruhRzTanla } from './guruh';
+import { mustaqilIndeks, mustaqilQatorlarniTop, type MustaqilIndeks } from './mustaqil';
 
 // ─── Kirish/chiqish ──────────────────────────────────────────────────────────
 
@@ -805,12 +806,34 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     return topilgan;
   }
 
+  /** Mustaqil qatorlar (razdel ostidagi barg qatorlar) — ish ichida topilmagan resurslar uchun (mustaqil.ts). */
+  let mI: MustaqilIndeks<STugun> | null = null;
+  function mustaqildanTop(qatorlar: readonly F2Tugun[], d: Doira | undefined, aniqMumkin: boolean) {
+    if (!qatorlar.length) return [];
+    mI ??= mustaqilIndeks<STugun>(S.byId.values(), (x) => x.ota, (x) => x.bolalar);
+    const topilma = mustaqilQatorlarniTop(mI, qatorlar, {
+      doira: d?.rzlar ?? null, aniqMumkin: aniqMumkin && !!d && (d.holat === 'scoped' || d.holat === 'global'),
+      mumkinmi: (x) => !band.has(x.id) || razdelResBand.has(x.id), farq: gradeFarq, tashqiUsul: BOSHQA_BOLIM_USUL,
+    });
+    for (const x of topilma) {
+      razdelResBand.add(x.qator.id);
+      yoz(x.uid, { uid: x.uid, holat: x.aniq ? 'aniq' : 'taklif', qatorId: x.qator.id, usul: x.usul, nomzodlar: [], sabab: x.sabab });
+    }
+    return topilma;
+  }
+
   /** Resurslar faqat bog'langan ish ichida (Tizim1). Topilmasa — zamena material/qo'shimcha resurs. */
-  function resurslarniMosla(fIsh: F2Tugun, sIsh: STugun | null, otaImzo: string) {
+  function resurslarniMosla(fIsh: F2Tugun, sIsh: STugun | null, otaImzo: string, d?: Doira) {
+    if (!sIsh) {
+      // Ish bog'lanmagan: resurslar razdeldagi mustaqil qator bo'lsa — faqat ◐ (ish hal qilinmagan).
+      for (const r of fIsh.bolalar) yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: [], sabab: 'ishi bog‘lanmagan — ish hal qilinganda resurs ham hal bo‘ladi' });
+      mustaqildanTop(fIsh.bolalar.filter((r) => r.tur !== 'rz'), d, false);
+      return;
+    }
     // Resurs faqat SHU F2 ishi ichida bir marta band: o'sha smeta ishining takror qismi
     // (yuqoridagi 'takror') o'z resurslarini xuddi shu smeta resurslariga bog'laydi.
     const lokalBand = new Set<number>();
-    const qolgan: Array<{ r: F2Tugun; nz: Nomzod[]; topildi: boolean; havza?: STugun[] }> = [];
+    const qolgan: Array<{ r: F2Tugun; nz: Nomzod[]; topildi: boolean; havza?: STugun[]; zaxira?: STugun }> = [];
     for (const r of fIsh.bolalar) {
       if (!sIsh) {
         yoz(r.uid, { uid: r.uid, holat: 'topilmadi', qatorId: null, nomzodlar: [], sabab: 'ishi bog‘lanmagan — ish hal qilinganda resurs ham hal bo‘ladi' });
@@ -854,8 +877,13 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         continue;
       }
       // Ish ichida yo'q — o'sha razdeldagi mustaqil resurs qatori (bir necha F2 ishi bitta shunday qatorni bo'lishishi mumkin).
+      // Ota-ish F2 bo'limi doirasidan TASHQARIDA (boshqa bo'limga ◐) — uning razdelidagi mustaqil qator emas, avval o'z bo'limi
+      // doirasidagisi qidiriladi (pastda, mustaqil.ts): aks holda resurs ham boshqa bo'limga tushadi.
+      // Doira ichida topilmasa — ota-ish razdelidagisi zaxira, faqat ◐ (stend: ba'zan egasi ◐ ota-ish bo'limini qabul qilgan).
+      const ishDoirada = !d?.rzlar || d.holat === 'unresolved' || doiradami(d, sIsh);
       const tashqi = !topildi && !guruhRz ? razdelResursiTop(r, sIsh, (x) => x.ota, (x) => x.bolalar, (x) => !band.has(x.id) || razdelResBand.has(x.id)) : null;
-      if (tashqi) {
+      const zaxira = tashqi && !ishDoirada ? tashqi.qator : undefined;
+      if (tashqi && ishDoirada) {
         razdelResBand.add(tashqi.qator.id);
         yoz(r.uid, { uid: r.uid, holat: tashqi.aniq ? 'aniq' : 'taklif', qatorId: tashqi.qator.id, usul: tashqi.aniq ? 'razdel_ichida' : 'razdel_ichida_taklif', nomzodlar: [],
           sabab: tashqi.aniq ? 'smetada bu resurs ish ostida emas, shu razdelda mustaqil qator — kod/nom va birlik aynan, yagona'
@@ -878,9 +906,23 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         .filter((n) => n.qavatlar.some((q) => q.nom === 'shifr' && q.ball > 0)
           || n.qavatlar.some((q) => q.nom === 'nom' && q.ball > 0))
         .sort((a, b) => b.ball - a.ball).slice(0, 8);
-      qolgan.push({ r, nz, topildi: !!topildi, ...(guruhRz ? { havza: guruhRz.bolalar } : {}) });
+      qolgan.push({ r, nz, topildi: !!topildi, ...(guruhRz ? { havza: guruhRz.bolalar } : {}), ...(zaxira ? { zaxira } : {}) });
     }
     if (!sIsh || !qolgan.length) return;
+    // Ish ichida ham, ishning razdelida ham topilmadi — F2 bo'limi doirasidagi mustaqil qatorlar (ota-ish boshqa bo'limga
+    // ◐ bog'langan bo'lsa ham resurslar o'z bo'limidan topiladi).
+    const mustaqil = new Set(mustaqildanTop(qolgan.filter((x) => !x.havza).map((x) => x.r), d, true).map((x) => x.uid));
+    for (let i = qolgan.length - 1; i >= 0; i--) {
+      const x = qolgan[i];
+      if (mustaqil.has(x.r.uid)) { qolgan.splice(i, 1); continue; }
+      if (x.zaxira && (!band.has(x.zaxira.id) || razdelResBand.has(x.zaxira.id))) {
+        razdelResBand.add(x.zaxira.id);
+        yoz(x.r.uid, { uid: x.r.uid, holat: 'taklif', qatorId: x.zaxira.id, usul: 'razdel_ichida_taklif', nomzodlar: x.nz,
+          sabab: 'F2 bo‘limida topilmadi — ota-ish turgan (boshqa) bo‘limdagi mustaqil qator: kod/nom va birlik aynan — tasdiqlang' });
+        qolgan.splice(i, 1);
+      }
+    }
+    if (!qolgan.length) return;
     // Ikkinchi o'tish (massivlar): F2 ishining juftlanmagan resurslari ↔ smeta ishining juftlanmagan
     // resurslari. Faqat bir xil turdagi resurs (ЧЕЛ ↔ ЧЕЛ, МАШ ↔ МАШ, material ↔ material bir xil
     // birlikda) zamena bo'la oladi — eng yuqori ball birinchi, har smeta resursi bir marta.
@@ -944,7 +986,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
         yoz(t.uid, { uid: t.uid, holat: 'aniq', qatorId: confirmed.id, usul: 'tasdiqlangan', nomzodlar: [], sabab: 'mavjud tasdiqlangan bog‘lanish saqlandi' });
       }
       if (s) ishHajm.set(s.id, (ishHajm.get(s.id) ?? 0) + (t.hajm ?? 0));
-      if (t.tur === 'bl') resurslarniMosla(t, s, f2Imzo(t));
+      if (t.tur === 'bl') resurslarniMosla(t, s, f2Imzo(t), d);
     }
   }
   yur(f2, { rzlar: null, holat: 'global' });

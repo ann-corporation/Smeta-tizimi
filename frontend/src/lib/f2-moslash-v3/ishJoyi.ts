@@ -13,7 +13,8 @@ import { kodKanon, normBir, normKod, normNom } from '../f2-match-engine';
 import type { F2Akt, F2Tugun } from '../smeta-anatomiya/f2';
 import type { F2ExactManbaTugun } from '../../test02/f2-exact-payload';
 import { guruhRzTanla } from './guruh';
-import { f2Imzo, gradeFarq, razdelResursiTop, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
+import { mustaqilResurslarniBogla } from './mustaqil';
+import { BOSHQA_BOLIM_USUL, f2Imzo, gradeFarq, razdelResursiTop, resursNomKalit, rzKalit, yagonaResursMos, type F2MoslashNatija, type SmetaQator } from './index';
 
 export type BogHolat = 'aniq' | 'xotira' | 'taklif' | 'qolda';
 export interface Bog { qatorId: number; holat: BogHolat; usul: string }
@@ -281,7 +282,17 @@ export function ishlarResurslariniBogla(ij: IshJoyi, ind: F2Indeks, S: SmetaInde
       else qoldi++;
     }
   }
-  return { ij: boglandi || taklif ? { bog, otkaz: ij.otkaz } : ij, boglandi, taklif, qoldi };
+  // Ish ichida ham, razdelda ham topilmaganlar — smetada mustaqil qator (mustaqil.ts; ◐ ishlar resurslari ham).
+  const m = mustaqilResurslarniBogla(boglandi || taklif ? { bog, otkaz: ij.otkaz } : ij, ind, S, gradeFarq, BOSHQA_BOLIM_USUL);
+  if (m.ij !== ij && (m.boglandi || m.taklif)) {
+    qoldi = 0;
+    for (const f of ind.qatorlar) {
+      const b0 = m.ij.bog.get(f.uid);
+      if (f.tur !== 'bl' || !b0 || b0.holat === 'taklif' || ij.otkaz.has(f.uid)) continue;
+      for (const r of f.bolalar) if (r.tur !== 'rz' && !ij.otkaz.has(r.uid) && !m.ij.bog.has(r.uid)) qoldi++;
+    }
+  }
+  return { ij: m.ij, boglandi: boglandi + m.boglandi, taklif: taklif + m.taklif, qoldi };
 }
 
 export interface IshTasdiqNatija { ij: IshJoyi; tasdiqlandi: number; boglandi: number; qoldi: number }
