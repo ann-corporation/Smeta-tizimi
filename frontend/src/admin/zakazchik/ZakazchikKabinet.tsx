@@ -85,7 +85,7 @@ export default function ZakazchikKabinet() {
                 <th className="px-2 py-1.5 text-right">{t('Tasdiqlangan F2 (soni / jami)')}</th><th className="px-2 py-1.5">{t('Oxirgi F2 oyi')}</th><th className="px-2 py-1.5 text-right">{t('Kutayotgan')}</th></tr></thead>
               <tbody>{g.obyektlar.map((o) => (
                 <tr key={o.obyekt_id} className="border-t">
-                  <td className="px-2 py-1.5 font-medium">{o.obyekt_nom}</td>
+                  <td className="px-2 py-1.5 font-medium"><Link to={`/admin/zakazchik/obyekt/${o.aloqa_id}/${o.obyekt_id}`} className="text-accent underline">{o.obyekt_nom}</Link></td>
                   <td className="px-2 py-1.5">{o.shartnoma ? `№ ${o.shartnoma.raqam}` : <span className="text-text-dim">{t('ochilmagan')}</span>}</td>
                   <td className="px-2 py-1.5 text-right tabular-nums">{o.shartnoma ? pul(o.shartnoma.jami_nds_bilan) : '—'}</td>
                   <td className="px-2 py-1.5 text-right tabular-nums">{o.f2 ? `${o.f2.soni} / ${pul(o.f2.jami)}` : <span className="text-text-dim">{t('ochilmagan')}</span>}</td>

@@ -178,11 +178,13 @@ export default function Murojaatlar() {
   const [turlar, setTurlar] = useState<MurojaatTuri[]>([]);
   const [tanlangan, setTanlangan] = useState<number | null>(null);
   const [xato, setXato] = useState('');
+  const [turFiltr, setTurFiltr] = useState('');
+  const korinadi = turFiltr ? royxat.filter((x) => x.turi === turFiltr) : royxat;
   const [faqatKechikkan, setFaqatKechikkan] = useState(false);
   const bugun = new Date().toISOString().slice(0, 10);
   const korinadigan = useMemo(() => faqatKechikkan
-    ? royxat.filter((x) => x.kechikkan).sort((a, b) => kechikkanKun(b, bugun) - kechikkanKun(a, bugun) || a.id - b.id)
-    : royxat, [royxat, faqatKechikkan, bugun]);
+    ? korinadi.filter((x) => x.kechikkan).sort((a, b) => kechikkanKun(b, bugun) - kechikkanKun(a, bugun) || a.id - b.id)
+    : korinadi, [korinadi, faqatKechikkan, bugun]);
   const kechikkanSoni = useMemo(() => royxat.filter((x) => x.kechikkan).length, [royxat]);
 
   const yukla = useCallback(async () => {
@@ -210,6 +212,8 @@ export default function Murojaatlar() {
           </div>
           <select aria-label={t('Holat')} className={inp} value={holat} onChange={(e) => setHolat(e.target.value)}>
             <option value="">{t('Barcha holatlar')}</option>{Object.keys(HOLAT_NOMI).map((h) => <option key={h} value={h}>{t(HOLAT_NOMI[h])}</option>)}</select>
+          <select aria-label={t('Turi')} className={inp} value={turFiltr} onChange={(e) => setTurFiltr(e.target.value)}>
+            <option value="">{t('Barcha turlar')}</option>{turlar.map((x) => <option key={x.kalit} value={x.kalit}>{turNomi(x.kalit, turlar)}</option>)}</select>
           <label className="inline-flex items-center gap-1.5 text-xs"><input type="checkbox" checked={faqatKechikkan} onChange={(e) => setFaqatKechikkan(e.target.checked)} />{t('Faqat muddati o‘tganlar')} ({kechikkanSoni})</label>
         </div>
         {xato && <div role="alert" className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{xato}</div>}

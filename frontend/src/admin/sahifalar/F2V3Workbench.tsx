@@ -16,6 +16,7 @@ import { abcXato, ishAbcOchir, resursIshZamena, type NarxManba } from '../../api
 import { yangiOperationId } from '../../api/supabase';
 import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
 import { qoshilganmi, smetaQatorTuri, type SmetaQatorTuri } from '../../lib/f2-moslash-v3/qoshilgan';
+import { ketmaKetBogla, pastdagilarniBogla } from '../../lib/f2-moslash-v3/ketmaKet';
 import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
 import type { KatKesim } from '../../lib/ustamali-summa';
@@ -1052,6 +1053,23 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     setBelgi(new Set());
     xab(`${qoshildi} ${tarj('ta qator qoralamaga qo‘shildi — «Saqlash» bosilganda bittada yoziladi.')}${otkazildi.length ? ` ${tarj('Qo‘shilmadi')}: ${otkazildi.slice(0, 5).join('; ')}${otkazildi.length > 5 ? '…' : ''}` : ''}`);
   }
+  /** Ketma-ket tarqatib bog'lash natijasi: bitta onIj (bitta «Orqaga» qadami) va qisqa xabar. Hech biri juftlanmasa — false. */
+  function ketmaKetXabar(r: { ij: IshJoyi; boglandi: number; topilmadi: F2Tugun[] }): boolean {
+    if (!r.boglandi) return false;
+    p.onIj(r.ij);
+    const nomlar = r.topilmadi.slice(0, 5).map((x) => `${x.kod ? x.kod + ' ' : ''}${x.nom.slice(0, 40)}`).join('; ');
+    xab(`${r.boglandi} ${t('ta qator ketma-ket bog‘landi')}, ${r.topilmadi.length} ${t('ta mos topilmadi')}${nomlar ? `: ${nomlar}${r.topilmadi.length > 5 ? '…' : ''}` : ''}. ${t('Kerak bo‘lsa «Orqaga» bilan qaytaring.')}`);
+    return true;
+  }
+  function ketmaKetTashla(s: SmetaQator): boolean {
+    if (!ketmaKetXabar(ketmaKetBogla(ij, ind, S, belgi, s.id))) return false;
+    setBelgi(new Set());
+    return true;
+  }
+  function pastdagilar(uid: string) {
+    if (p.disabled || mutationBusy) return;
+    if (!ketmaKetXabar(pastdagilarniBogla(ij, ind, S, uid))) xab(t('Pastda ketma-ket mos qator topilmadi.'));
+  }
   /** Belgilangan qatorlarga bitta amal — bitta onIj (bitta «Orqaga» qadami). */
   function ommaviy(amal: 'tasdiq' | 'uz' | 'otkaz' | 'kirit') {
     const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz');
@@ -1134,6 +1152,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (!s || p.disabled || mutationBusy) return;
     // Sudrab tashlanganda smeta oynasi O'Z JOYIDA qoladi (egasi: "boshqa joyga ketib qoladi").
     sudrabTanlandi.current = true;
+    // Belgilangan bir nechta qator smeta QATORI USTIGA tashlansa — shu qatordan boshlab pastga ketma-ket tarqatib bog'lanadi.
+    if (belgi.size > 1 && belgi.has(uid) && zona === 'ustiga' && s.tur !== 'rz' && ketmaKetTashla(s)) return;
     // Belgilangan bir nechta qatordan biri sudralsa — butun guruh shu joyga (qoralamaga) qo'shiladi.
     if (p.onRejali && belgi.size > 1 && belgi.has(uid)) { guruhniTashla(s, zona); return; }
     setTanlangan(uid);
@@ -1449,6 +1469,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <div className="flex flex-wrap gap-1">
             {(tTugun.tur === 'bl' ? guruhHolati(ind, ij, tTugun) === 'taklif' && !!b : k === 'taklif') && <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[12px]" onClick={() => (tTugun.tur === 'bl' ? ishTasdiq(tTugun) : p.onIj(tasdiqla(ij, [tTugun.uid])))}><Check size={13} /> {tTugun.tur === 'bl' ? tarj('Ish va resurslarini tasdiqlash') : 'Tasdiqlash'}</button>}
             {b && <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={13} /> Uzish</button>}
+            {b && k !== 'taklif' && <button type="button" className="tugma h-7 px-2 text-[12px]" disabled={p.disabled || mutationBusy} onClick={() => pastdagilar(tTugun.uid)}
+              title={t('Bog‘langan qatordan keyingi F2 va smeta qatorlari ketma-ket mos tursa, ularni ham bog‘laydi')}>{t('⇊ Pastdagi mos qatorlarni ham bog‘lash')}</button>}
             {reja && <button type="button" className={`tugma h-7 px-2 text-[12px] ${taqsimOchiq === tTugun.uid ? 'tugma-asosiy' : ''}`} disabled={p.disabled || mutationBusy}
               aria-expanded={taqsimOchiq === tTugun.uid} onClick={() => setTaqsimOchiq(taqsimOchiq === tTugun.uid ? null : tTugun.uid)}
               title={t('F2 hajmini bir xil shifr va birlikdagi smeta qatorlariga bo‘lib bog‘lash: har qator qoldig‘igacha, ortig‘i oxirgisiga')}>
@@ -1751,7 +1773,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               {p.onRejali && <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
                 onClick={() => ommaviyQoralama('taklif')} title={tarj('Tizim zamena taklif qilgan qatorlar — zamena, qolganlari — qo‘shimcha')}>⇄ {tarj('Takliflar bo‘yicha')}</button>}
               <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
-            </> : <span className="text-text-mute">{tarj('Holat belgisini (✓ ◐ ✕) bosib qatorlarni belgilang — bir nechtasini birga tasdiqlash, uzish yoki aktdan chiqarish mumkin.')}</span>}
+              {belgi.size > 1 && <span className="text-text-mute">{t('Belgilanganlarni smetadagi birinchi mos qator USTIGA torting — pastdagilariga ketma-ket bog‘lanadi.')}</span>}
+            </> :<span className="text-text-mute">{tarj('Holat belgisini (✓ ◐ ✕) bosib qatorlarni belgilang — bir nechtasini birga tasdiqlash, uzish yoki aktdan chiqarish mumkin.')}</span>}
             <button type="button" className="tugma ml-auto h-6 px-1.5 text-[11px]" disabled={!f2VisibleRows.length}
               onClick={() => setBelgi(new Set(f2VisibleRows.filter((r) => r.node.tur !== 'rz').map((r) => r.node.uid)))}>{tarj('Ko‘rinadiganlarni belgilash')}</button>
           </div>
