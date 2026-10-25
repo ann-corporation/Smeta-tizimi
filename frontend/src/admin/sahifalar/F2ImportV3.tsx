@@ -35,7 +35,7 @@ import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
 import type { ModalRejali } from './F2AddReplModal';
-import { BOLIM_ILDIZ, SMETASIZ_RZ, resursTuri, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
+import { BOLIM_ILDIZ, SMETASIZ_RZ, resursTuri, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliBuyruqQosh, otadiganResurslar, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaAlmashtirishBelgila, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
 import { olchov, type Olchov } from '../../lib/vaqt-olchov';
@@ -912,10 +912,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   /** Modal tasdiqlagan qo'shimcha/zamena/resurs — DARHOL qoralamaga (serverga emas). F2 qatori vaqtinchalik qatorga bog'lanadi. */
   function onRejali(f: F2Tugun, b: ModalRejali) {
     if (!ijRef.current) return;
-    const ids = yangiTempIdlar(rejaliRef.current.flatMap((x) => [x.tempId, ...x.resursTempIds]), 1 + b.resurslar.length);
-    const buyruq: RejaliBuyruq = { ...b, tempId: ids[0], resursTempIds: ids.slice(1), f2Uid: f.uid, f2ResursUidlar: f.tur === 'bl' ? f.bolalar.map((r) => r.uid) : [] };
-    let joriy = bogla(ijRef.current, f.uid, buyruq.tempId);
-    if (f.tur === 'bl') f.bolalar.forEach((r, i) => { const tid = buyruq.resursTempIds[i]; if (tid != null) joriy = bogla(joriy, r.uid, tid); });
+    // Boshqa joyga bog'langan bola qatorlar o'z bog'lanishini saqlaydi (egasi 2026-10-25) — rejaliBuyruqQosh himoyasi.
+    const { buyruq, ij: joriy } = rejaliBuyruqQosh(rejaliRef.current, ijRef.current, f, b, (id) => raw.get(id)?.ota_id);
     const keyingi = [...rejaliRef.current, buyruq];
     rejaliRef.current = keyingi;
     ijRef.current = joriy;
@@ -983,7 +981,8 @@ function Sessiya({ companyId }: { companyId: number }) {
         }
         const hajm = Number(f.hajm);
         if (!(hajm > 0)) { otkazildi.push(f.nom.slice(0, 40)); continue; }
-        const resIdx = ishmi ? f.bolalar.filter((r) => Number(r.hajm) > 0) : [];
+        // Boshqa joyga bog'langan/o'tkazilgan resurslar o'z qarorini saqlaydi — yangi ishga faqat bog'lanmaganlar.
+        const resIdx = ishmi ? otadiganResurslar(f, ij0).filter((r) => Number(r.hajm) > 0) : [];
         const resurslar = resIdx.map((r) => ({ tur: resursTuri(r.birlik, r.tur), nom: r.nom, birlik: r.birlik || 'шт', hajm: r.hajm, kod: r.kod, narx: r.narx }));
         if (smetaRz == null) {
           onRejali({ ...f, bolalar: resIdx }, { kind: 'smetasiz', tur: 'bl', otaQatorId: SMETASIZ_RZ, nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined,
