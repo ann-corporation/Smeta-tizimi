@@ -36,9 +36,10 @@ import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  NARX_MANBA_NOMI, bolimDaraxti, bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, sonOqi, ulushHajm,
+  NARX_MANBA_NOMI, bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, ishBirlikNarxi, narxsizNomzodlar, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs,
 } from '../../lib/f2-tayyor';
+import { avlodKalitlari, bolimTuguni, f2BolimIerarxiya, f2Uchastkalar, korinadiganTugunlar, type IerarxiyaTugun } from '../../lib/f2-bolim-daraxti';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
 const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
@@ -79,7 +80,11 @@ export function F2TayyorlashNative() {
   const [qidir, setQidir] = useState('');
   /** Bitta almashtirgich: faqat shu davrda hajmi kiritilgan ishlar (hamma bo'limlardan). */
   const [faqatKiritilgan, setFaqatKiritilgan] = useState(false);
-  const [bolimId, setBolimId] = useState<number | null | undefined>(undefined);
+  /** Tanlangan razdel kaliti (id; -1 = bo'limsiz). Istalgan daraja: uning barcha avlod ishlari ko'rinadi. */
+  const [bolimId, setBolimId] = useState<number | undefined>(undefined);
+  /** Chap daraxtda faqat F2 ga olish mumkin ishi bor razdellar. */
+  const [faqatMumkin, setFaqatMumkin] = useState(false);
+  const [korsatLimit, setKorsatLimit] = useState(300);
   const [ochiq, setOchiq] = useState<Set<number>>(new Set());
   /** Bo'lim daraxti yig'iq: faqat shu kalitli (id ?? -1) bo'limlarning farzandlari ochilgan; tanlangan bo'lim ajdodlari doim ochiq. */
   const [kengaygan, setKengaygan] = useState<Set<number>>(new Set());
@@ -168,15 +173,14 @@ export function F2TayyorlashNative() {
   const aosrsizId = useMemo(() => new Set(aosrsiz.map((x) => x.qator_id)), [aosrsiz]);
   const tayyor = qatorlar.length > 0 && jami.xato === 0;
   const saqlashMumkin = tayyor && (aktId == null || (!!akt && !aktKorish));
-  const tanlanganBolim = bolimId === undefined ? bolimlar[0]?.id ?? null : bolimId;
+  const bolimIer = useMemo(() => f2BolimIerarxiya(rows, bolimlar), [rows, bolimlar]);
+  const tanlanganBolim: number | null = bolimId !== undefined ? bolimId : bolimlar[0] ? bolimlar[0].id ?? -1 : null;
+  const tanlanganAvlod = useMemo(() => (tanlanganBolim == null ? new Set<number>() : avlodKalitlari(bolimIer, tanlanganBolim)), [bolimIer, tanlanganBolim]);
+  const qatorBolim = useMemo(() => { const m = new Map<number, number | null>(); for (const b of bolimlar) { for (const i of b.ishlar) m.set(i.id, b.id); for (const r of b.alohida) m.set(r.id, b.id); } return m; }, [bolimlar]);
+  const uchastkalar = useMemo(() => f2Uchastkalar(qatorlar, bolimIer, qatorBolim), [qatorlar, bolimIer, qatorBolim]);
+  const tanlanganTugun = tanlanganBolim != null ? bolimIer.byKalit.get(tanlanganBolim) : undefined;
 
-  const bolimJami = useMemo(() => {
-    const ishBolim = new Map<number, F2Bolim['id']>();
-    for (const b of bolimlar) { for (const i of b.ishlar) { ishBolim.set(i.id, b.id); for (const r of i.resurslar) ishBolim.set(r.id, b.id); } for (const r of b.alohida) ishBolim.set(r.id, b.id); }
-    const m = new Map<F2Bolim['id'], { summa: number; ish: number }>();
-    for (const x of qatorlar) { const b = ishBolim.get(x.id) ?? null; const o = m.get(b) ?? { summa: 0, ish: 0 }; if (x.summa != null) o.summa += x.summa; if (x.tur === 'bl' && !x.xato) o.ish++; m.set(b, o); }
-    return m;
-  }, [bolimlar, qatorlar]);
+
 
   /** 30k qatorli smetada har tugma bosishda qayta filtrlamaslik: qidiruv matni kechiktirib qo'llanadi. */
   const qidirKech = useDeferredValue(qidir);
@@ -184,7 +188,7 @@ export function F2TayyorlashNative() {
     const s = qidirKech.trim().toLocaleLowerCase('ru'); const qMos = qidiruvTayyorla(s);
     // «Faqat kiritilganlar»: hamma bo'limlardagi shu davrda hajmi kiritilgan ishlar (bo'lim tanlovi e'tiborga olinmaydi).
     const kiritilgan = (id: number) => k.hajm[id] !== undefined;
-    if (!s && !faqatKiritilgan) return bolimlar.filter((b) => b.id === tanlanganBolim);
+    if (!s && !faqatKiritilgan) return bolimlar.filter((b) => tanlanganAvlod.has(b.id ?? -1));
     // Shifr/nom bo'yicha: lotin va kirill bir xil ko'rinadi (qidiruv-normalizatsiya).
     const mos = (nom: string, kod: string | null) => !s || qMos(nom) || (kod != null && (qMos(kod) || kod.toLocaleLowerCase('ru').includes(s)));
     return bolimlar.map((b) => ({
@@ -192,7 +196,7 @@ export function F2TayyorlashNative() {
       ishlar: b.ishlar.filter((i) => (!faqatKiritilgan || kiritilgan(i.id) || i.resurslar.some((r) => !r.avto && kiritilgan(r.id))) && (mos(i.nom, i.kod) || i.resurslar.some((r) => mos(r.nom, r.kod)))),
       alohida: b.alohida.filter((r) => (!faqatKiritilgan || kiritilgan(r.id)) && mos(r.nom, r.kod)),
     })).filter((b) => b.ishlar.length || b.alohida.length);
-  }, [bolimlar, qidirKech, tanlanganBolim, faqatKiritilgan, k.hajm]);
+  }, [bolimlar, qidirKech, tanlanganAvlod, faqatKiritilgan, k.hajm]);
   const royxatRejimi = !!qidirKech.trim() || faqatKiritilgan;
 
   const yoz = (maydon: keyof F2Kiritma, id: number, qiymat: string | boolean | undefined) => setK((o) => {
@@ -415,6 +419,7 @@ export function F2TayyorlashNative() {
             {ochilgan ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
           </button>
           <div className="min-w-0 flex-1">
+            {(() => { const tg = bolimTuguni(bolimIer, qatorBolim.get(i.id) ?? null); return tg ? <div className="truncate text-[10px] text-text-mute" title={tg.yol.join(' › ')} data-testid="ish-yol">{tg.yol.join(' › ')}</div> : null; })()}
             <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-[10px] text-text-mute">{shifrKorinish(i.kod)}</span><span className="truncate text-[13px] font-semibold text-text">{i.nom}</span>
               {(() => { const h = aosrKoz.get(i.id); return h && h !== 'yoq' && h !== 'kerak_emas' ? <span className={`shrink-0 rounded px-1 text-[10px] ${h === 'imzolangan' ? 'bg-ok/10 text-ok' : 'bg-warn/10 text-warn'}`}>{t(AOSR_ISHORA_MATNI[h])}</span> : null; })()}
               {aosrsizId.has(i.id) && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">yashirin · АОСР yo‘q</span>}</div>
@@ -436,18 +441,21 @@ export function F2TayyorlashNative() {
     );
   }
 
-  const bolimDarax = useMemo(() => bolimDaraxti(bolimlar), [bolimlar]);
-  const bolimKorinadi = useMemo(() => korinadiganBolimlar(bolimDarax, kengaygan, tanlanganBolim), [bolimDarax, kengaygan, tanlanganBolim]);
+  const bolimKorinadi = useMemo(() => korinadiganTugunlar(bolimIer, kengaygan, tanlanganBolim, faqatMumkin), [bolimIer, kengaygan, tanlanganBolim, faqatMumkin]);
   const bolimPaneli = bolimlar.length > 0 && <aside className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Bo‘limlar">
-    <div className="border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-mute">Bo‘limlar</div>
+    <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-mute">
+      <span className="flex-1">{t('Bo‘limlar')}</span>
+      <label className="flex items-center gap-1 font-normal normal-case tracking-normal"><input type="checkbox" checked={faqatMumkin} onChange={(e) => setFaqatMumkin(e.target.checked)} />{t('faqat F2 ga olinadiganlar')}</label>
+    </div>
     <ul className="min-h-0 flex-1 overflow-auto p-1">
-      {bolimKorinadi.map(({ b, kalit, farzand }) => { const bj = bolimJami.get(b.id); const tanl = b.id === tanlanganBolim && !royxatRejimi; const ochiqmi = kengaygan.has(kalit); return (
-        <li key={b.id ?? 'yoq'} className="flex items-center" style={{ paddingLeft: Math.min(b.daraja, 4) * 10 }}>
-          {farzand ? <button type="button" aria-label={`${ochiqmi ? t('Yopish') : t('Ochish')}: ${b.nom}`} aria-expanded={ochiqmi} onClick={() => setKengaygan((o) => { const n = new Set(o); if (n.has(kalit)) n.delete(kalit); else n.add(kalit); return n; })} className="shrink-0 rounded p-0.5 text-text-mute hover:text-text">{ochiqmi ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button> : <span className="w-[17px] shrink-0" />}
-          <button type="button" onClick={() => { setBolimId(b.id); setQidir(''); }}
-            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-[12px] ${tanl ? 'bg-accent/10 text-text' : 'text-text-dim hover:bg-surface-2'}`}>
-            <span className="min-w-0 flex-1 truncate">{b.nom}</span>
-            <span className="shrink-0 text-[10px] tabular-nums text-text-mute">{bj?.ish ? `${bj.ish}/` : ''}{b.ishlar.length + b.alohida.length}</span>
+      {bolimKorinadi.map((tg) => { const kalit = tg.kalit; const tanl = kalit === tanlanganBolim && !royxatRejimi; const ochiqmi = kengaygan.has(kalit); const farzand = tg.farzandlar.length > 0; return (
+        <li key={kalit} className="flex items-start" style={{ paddingLeft: Math.min(tg.daraja, 5) * 10 }}>
+          {farzand ? <button type="button" aria-label={`${ochiqmi ? t('Yopish') : t('Ochish')}: ${tg.nom}`} aria-expanded={ochiqmi} onClick={() => setKengaygan((o) => { const n = new Set(o); if (n.has(kalit)) n.delete(kalit); else n.add(kalit); return n; })} className="mt-1.5 shrink-0 rounded p-0.5 text-text-mute hover:text-text">{ochiqmi ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button> : <span className="w-[17px] shrink-0" />}
+          <button type="button" title={tg.yol.join(' › ')} onClick={() => { setBolimId(kalit); setQidir(''); setKorsatLimit(300); }}
+            className={`flex min-w-0 flex-1 flex-col gap-0.5 rounded-md py-1.5 pl-1 pr-2 text-left text-[12px] ${tanl ? 'bg-accent/10 text-text' : tg.mumkin > 0 ? 'text-text-dim hover:bg-surface-2' : 'text-text-mute hover:bg-surface-2'}`}>
+            <span className="flex min-w-0 items-center gap-2"><span className="min-w-0 flex-1 break-words">{tg.nom}</span>
+              <span className="shrink-0 text-[10px] tabular-nums text-text-mute" title={t('fakt bor / jami')}>{tg.mumkin}/{tg.jami}</span></span>
+            {tg.summa > 0 && <SummaJuft obyektId={obyektId} kompaniyaId={joriy?.id} ustamasiz={tg.summa} katKesim={tg.katKesim} kichik />}
           </button></li>); })}
     </ul>
   </aside>;
@@ -497,17 +505,21 @@ export function F2TayyorlashNative() {
           {bolimPaneli}
           <section className="karta flex min-h-0 flex-col overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
-              <span className="text-[13px] font-semibold text-text">{royxatRejimi ? `${faqatKiritilgan && !qidirKech.trim() ? t('Kiritilganlar') : t('Qidiruv')}: ${korinadi.reduce((s, b) => s + b.ishlar.length + b.alohida.length, 0)} ta` : korinadi[0]?.nom}</span>
+              <span className="text-[13px] font-semibold text-text">{royxatRejimi ? `${faqatKiritilgan && !qidirKech.trim() ? t('Kiritilganlar') : t('Qidiruv')}: ${korinadi.reduce((s, b) => s + b.ishlar.length + b.alohida.length, 0)} ta` : tanlanganTugun ? <>{tanlanganTugun.ildizNom !== tanlanganTugun.nom && <span className="mr-1 font-normal text-text-mute" data-testid="tanlangan-uchastka">{t('Uchastka/fayl')}: {tanlanganTugun.ildizNom} ›</span>}{tanlanganTugun.nom}</> : korinadi[0]?.nom}</span>
               <button type="button" onClick={() => bolimniOl(korinadi)} className="ml-auto inline-flex items-center gap-1 rounded-md border border-accent/40 px-2 py-1 text-[11px] font-semibold text-text hover:bg-accent/10"><Zap size={12} className="text-accent" />{royxatRejimi ? 'Topilganlarni' : 'Bo‘limni'} to‘liq olish</button>
               <button type="button" onClick={() => bolimniOl(bolimlar)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-dim hover:border-accent hover:text-text">Barcha mumkin hajmni olish</button>
               {Object.keys(k.hajm).length > 0 && <button type="button" onClick={() => setK(bosKiritma())} className="rounded-md border border-border px-2 py-1 text-[11px] text-text-dim hover:border-danger hover:text-danger">Tozalash</button>}
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
-              {korinadi.map((b) => <div key={b.id ?? 'yoq'} className="space-y-2">
+              {uchastkalar.length > 1 && <div role="alert" className="rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-[12px] text-text" data-testid="uchastka-ogoh">
+                <b className="text-warn">{t('Bitta F2 da bir nechta uchastka/fayl ishlari aralashgan')}</b>: {uchastkalar.map((u) => `${u.nom} (${u.soni})`).join(' · ')}.
+                {' '}{t('Tavsiya: har uchastka/fayl uchun alohida F2 tayyorlang (bloklanmaydi).')}</div>}
+              {(() => { let qolgan = korsatLimit; return korinadi.map((b) => { const kes = b.ishlar.slice(0, Math.max(0, qolgan)); qolgan -= kes.length; return <div key={b.id ?? 'yoq'} className="space-y-2">
                 {royxatRejimi && <div className="text-[11px] font-semibold uppercase tracking-wide text-text-mute">{b.nom}</div>}
-                {b.ishlar.map(ishKartasi)}
+                {kes.map(ishKartasi)}
                 {b.alohida.length > 0 && <div className="rounded-lg border border-border"><div className="px-3 py-1.5 text-[11px] font-semibold text-text-dim">Alohida materiallar</div><table className="w-full text-[12px]"><tbody>{b.alohida.map(resursQatori)}</tbody></table></div>}
-              </div>)}
+              </div>; }); })()}
+              {korinadi.reduce((s, b) => s + b.ishlar.length, 0) > korsatLimit && <button type="button" onClick={() => setKorsatLimit((n) => n + 500)} className="w-full rounded-lg border border-border py-2 text-[12px] text-text-dim hover:border-accent hover:text-text">{t('Yana ko‘rsatish')}</button>}
             </div>
           </section>
         </div>

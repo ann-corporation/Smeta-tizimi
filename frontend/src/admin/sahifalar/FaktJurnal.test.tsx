@@ -192,6 +192,28 @@ describe('FaktJurnal', () => {
     expect((screen.getByRole('button', { name: /^Saqlash/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it('ishdan keyingi alohida material: xira taklif, «Materiallarni ham olish» kiritmaga oladi (avtomatik saqlamaydi)', async () => {
+    m.yoz.mockResolvedValue({ ok: true });
+    const r2 = [
+      q({ id: 50, tur: 'rz', kod: '7', nom: 'Yo‘l' }),
+      q({ id: 51, tur: 'bl', ota_id: 50, daraja: 1, tartib: 1, nom: 'Asfalt yotqizish', birlik: 'м2', hajm: 1000 }),
+      q({ id: 52, tur: 'mat', ota_id: 50, daraja: 1, tartib: 2, nom: 'Asfaltobeton', birlik: 'т', hajm: 120, kat: 'МАТ' }),
+      q({ id: 53, tur: 'mat', ota_id: 50, daraja: 1, tartib: 3, nom: 'Bitum', birlik: 'т', hajm: 2, kat: 'МАТ' }),
+    ];
+    render(<FaktJurnal {...props()} rows={r2} states={[{ qator_id: 51, smeta_hajm: 1000, fakt_hajm: 0 }, { qator_id: 52, smeta_hajm: 120, fakt_hajm: 0 }, { qator_id: 53, smeta_hajm: 2, fakt_hajm: 0.5 }]} />);
+    expect(screen.queryByTestId('material-taklif')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Bugun bajarildi: Asfalt yotqizish'), { target: { value: '500' } });
+    const takliflar = screen.getAllByTestId('material-taklif').map((x) => x.textContent);
+    expect(takliflar).toEqual(['taklif: +60', 'taklif: +0,5']);
+    expect(m.yoz).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Materiallarni ham olish: Asfalt yotqizish' }));
+    expect((screen.getByLabelText('Bugun bajarildi: Asfaltobeton') as HTMLInputElement).value).toBe('60');
+    expect((screen.getByLabelText('Bugun bajarildi: Bitum') as HTMLInputElement).value).toBe('0.5');
+    expect(m.yoz).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ qatorlar: [{ qator_id: 51, hajm: 500 }, { qator_id: 52, hajm: 60 }, { qator_id: 53, hajm: 0.5 }] })));
+  });
+
   it('Fakt Studio paneli: F2 tayyorlash (fakt bo‘yicha F2 qoralama) tugmasi f2Otish ni chaqiradi', () => {
     const f2 = vi.fn();
     render(<FaktJurnal {...props()} f2Otish={f2} />);

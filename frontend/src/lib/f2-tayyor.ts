@@ -13,6 +13,7 @@ import type { T2Qator } from '../api/supabase';
 import { pulYaxlit } from './ish-abc';
 import { katKesimYigish, type KatKesim } from './ustamali-summa';
 import type { F2NativePayloadRow } from './f2-native-preparation';
+import { mashinistMehnati } from './narx-bildirishnoma';
 
 export type F2Holat = { qator_id: number; f2_mumkin_hajm?: number | null; f2_hajm?: number | null; fakt_hajm?: number | null; smeta_hajm?: number | null; f2_narx?: number | null };
 /** Hajm manbai: akt — Fakt jurnali qoldig'i (sukut); smeta — faktsiz rejim: chegara = smeta qoldig'i, oshsa faqat ogohlantirish (egasi 2026-10-24: hajm bo'yicha blok yo'q). */
@@ -138,7 +139,7 @@ function resursQator(r: F2Resurs, hajm: number, ishId: number | null, k: F2Kirit
   const qolNarx = sonOqi(k.narx[r.id]);
   const qolSumma = sonOqi(k.summa[r.id]);
   // Narxsizlik — faqat operatorning ongli qarori (H7: ИТОГО bo‘sh bo‘ladi); sukut bo‘yicha narx talab qilinadi.
-  const avtoAxborot = k.narxsiz[r.id] == null && qolNarx == null && r.taklifNarx == null && axborotResursmi(r.nom);
+  const avtoAxborot = k.narxsiz[r.id] == null && qolNarx == null && r.taklifNarx == null && (axborotResursmi(r.nom) || mashinistMehnati({ nom: r.nom }));
   const narxsiz = k.narxsiz[r.id] === true || avtoAxborot;
   const narx = narxsiz ? null : qolNarx === 'xato' ? null : (qolNarx ?? r.taklifNarx);
   const manba: NarxManba = narxsiz ? 'yoq' : qolNarx != null ? 'qolda' : r.taklifManba;
@@ -199,8 +200,10 @@ export function f2Jami(q: F2Qator[]): F2Jami {
   for (const x of q) {
     if (x.tur === 'bl') j.ish++;
     if (x.xato) j.xato++;
-    if (x.ogoh) j.ogoh++;
-    if (x.tur !== 'bl') { j.manba[x.manba]++; if (x.narxsiz) j.narxsiz++; }
+    // Mashinistlar mehnati (narxi mashina narxi ichida) - ma'lumot qatori: ogohlantirish va narx-asosi-yo'q hisobiga kirmaydi.
+    const mashinist = x.tur !== 'bl' && x.ogoh === 'AXBOROT_NARXSIZ' && mashinistMehnati({ nom: x.nom });
+    if (x.ogoh && !mashinist) j.ogoh++;
+    if (x.tur !== 'bl') { j.manba[x.manba]++; if (x.narxsiz && !mashinist) j.narxsiz++; }
     if (x.summa != null) {
       j.summa += x.summa;
       const k = x.tur === 'rs' ? (x.kat || 'Boshqa') : 'Materiallar';
@@ -236,7 +239,7 @@ export function ishBirlikNarxi(i: Pick<F2Ish, 'resurslar'>): { summa: number; na
   let summa = 0; let narxsiz = 0;
   for (const r of i.resurslar) {
     if (!r.avto || r.norma == null || r.norma <= 0) continue;
-    if (r.taklifNarx == null) narxsiz++; else summa += r.norma * r.taklifNarx;
+    if (r.taklifNarx == null) { if (!mashinistMehnati({ nom: r.nom })) narxsiz++; } else summa += r.norma * r.taklifNarx;
   }
   return { summa: pulYaxlit(summa), narxsiz };
 }
