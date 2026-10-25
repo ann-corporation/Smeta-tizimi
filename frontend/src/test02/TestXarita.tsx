@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaTanlov';
 import { Graf3D } from './Graf3D';
 import { Graf2D } from './Graf2D';
+import { MindmapXarita, KorinishTanlagich, type MindmapKorinishTuri } from '../components/mindmap';
 import { toast } from '../umumiy/ui/Toast';
 import { pulQisqa } from '../lib/format';
 import { sbObyektHodisalariOl, qachon, MODUL_RANG, type Hodisa } from '../api/t2-hodisa';
@@ -158,7 +159,10 @@ export default function TestXarita() {
   const [tanlangan, setTanlangan] = useState<string | null>(null);
   /** Egasi 2026-09-30: Obsidian grafigi uslubi (sukut) yoki tahrir kanvasi (bog'lash/yaratish/joylash). */
   /** Ko'rinish: 3D graf (sukut), 2D graf (Obsidian uslubi — egasi: "eskisini ham o'chirma") yoki tahrir kanvasi. */
-  const [korinish, setKorinish] = useState<'3d' | '2d' | 'tahrir'>('3d');
+  /** Egasi 2026-10-25: sukut — «Kompaniya xaritasi» (2D ierarxiya, real holat bilan); telefonda — ro'yxat.
+      3D/2D graf va tahrir kanvasi ixtiyoriy ko'rinish sifatida saqlanadi. */
+  const [korinish, setKorinish] = useState<MindmapKorinishTuri>(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches ? 'royxat' : 'xarita');
   const [tanlanganBog, setTanlanganBog] = useState<MindmapGraf['bogichlar'][number] | null>(null);
   const [obyektHodisalari, setObyektHodisalari] = useState<Hodisa[]>([]);
   const [hodisaYuklanmoqda, setHodisaYuklanmoqda] = useState(false);
@@ -565,6 +569,16 @@ export default function TestXarita() {
   const tanlanganBogManba = tanlanganBog ? graf.tugunlar.find((t) => t.id === tanlanganBog.manba) : null;
   const tanlanganBogMaqsad = tanlanganBog ? graf.tugunlar.find((t) => t.id === tanlanganBog.maqsad) : null;
 
+  if (korinish === 'xarita' || korinish === 'royxat') {
+    return (
+      <MindmapXarita graf={graf} yuklanmoqda={yuklanmoqda} xato={xato} oxirgiYangilanish={oxirgiYangilanish} onYangila={yukla}
+        tanlangan={tanlangan} onTanla={(id) => { setTanlangan(id); setTanlanganBog(null); }}
+        korinish={korinish} onKorinish={setKorinish}
+        hodisalar={{ qatorlar: obyektHodisalari, yuklanmoqda: hodisaYuklanmoqda, xato: hodisaXato }}
+        onTahrirdaOch={(id) => { setKorinish('tahrir'); setTanlangan(id); }} />
+    );
+  }
+
   return (
     <div className="h-full flex flex-col bg-[#0a0f1d] text-white overflow-hidden">
       {/* BOSHQARUV */}
@@ -582,11 +596,7 @@ export default function TestXarita() {
           </div>
           <div className="flex items-center gap-1.5">
             {oxirgiYangilanish && <span className="text-[10px] text-zinc-500 inline-flex items-center gap-1 mr-1"><Clock size={11} /> {oxirgiYangilanish.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>}
-            <div className="mr-1 inline-flex overflow-hidden rounded-lg border border-white/10">
-              {([['3d', '3D graf'], ['2d', '2D graf'], ['tahrir', 'Tahrir']] as const).map(([k, nom]) => (
-                <button key={k} onClick={() => setKorinish(k)} className={'px-2.5 py-2 text-[11px] ' + (korinish === k ? 'bg-sky-500/25 text-sky-100' : 'bg-white/5 hover:bg-white/10')}>{nom}</button>
-              ))}
-            </div>
+            <KorinishTanlagich joriy={korinish} onTanla={setKorinish} className="mr-1" />
             <button onClick={hammasiniQaytaTer} title="Hammasini ustunlarga qayta terish"
               className="px-2.5 py-2 bg-white/5 hover:bg-white/10 rounded-lg inline-flex items-center gap-1.5 text-[11px]">
               <LayoutGrid size={14} /> Qayta terish

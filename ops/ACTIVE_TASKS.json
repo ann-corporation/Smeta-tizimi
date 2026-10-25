@@ -2909,7 +2909,14 @@
         "frontend/src/index.css",
         "frontend/src/components/rahbar-panel/",
         "frontend/src/lib/rahbar-panel/",
-        "frontend/src/i18n/lugat/qism/rahbar-panel.json"
+        "frontend/src/i18n/lugat/qism/rahbar-panel.json",
+        "frontend/src/kirish/",
+        "frontend/src/components/public-entry/",
+        "frontend/src/test02/TestXarita.tsx",
+        "frontend/src/components/mindmap/",
+        "frontend/src/lib/mindmap-korinish.ts",
+        "frontend/src/lib/mindmap-korinish.test.ts",
+        "frontend/src/i18n/lugat/qism/mindmap-korinish.json"
       ],
       "depends_on": [],
       "must_read": [
