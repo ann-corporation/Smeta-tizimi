@@ -141,7 +141,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
   if (!nomzodlar.length) return null;
   const band = ish || p.busy;
   return (
-    <section className="karta space-y-2 border border-violet-500/40 bg-violet-500/5 p-2 text-[12px]" aria-label={t('Egizak obyektdan nusxa')}>
+    <section className="karta space-y-2 border border-[var(--info)] bg-[var(--info-soft)] p-2 text-[12px]" aria-label={t('Egizak obyektdan nusxa')}>
       <div className="flex flex-wrap items-center gap-2">
         {nomzodlar.map((n) => (
           <button key={n.job_id} type="button" className="tugma" disabled={band} onClick={() => void tekshir(n)}>

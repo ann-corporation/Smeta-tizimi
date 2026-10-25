@@ -225,7 +225,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
   const sarlavha = (tahrir ? 'Tahrirlash: ' : '') + (rejim.tur === 'additional' ? 'Qo‘shimcha ish (smetadan tashqari)' : rejim.tur === 'replacement' ? 'Ish zamenasi' : 'Resurs zamenasi');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/60 p-4" role="dialog" aria-modal="true" aria-label={sarlavha}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] p-4" role="dialog" aria-modal="true" aria-label={sarlavha}>
       <div className="karta mt-4 w-full max-w-[1180px] space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -343,7 +343,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
         {xato && <p role="alert" className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-[12px] text-danger">{xato}</p>}
         <div className="flex justify-end gap-2">
           <button disabled={band} onClick={onYop} className="rounded-lg border border-border px-3 py-2 text-[12px]">Bekor qilish</button>
-          <button onClick={() => void saqla()} disabled={band} className="rounded-lg bg-accent px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50">{band ? 'Saqlanmoqda…' : written ? t('Bog‘lanishlarni yangilash') : 'Saqlash'}</button>
+          <button onClick={() => void saqla()} disabled={band} className="rounded-lg bg-accent px-4 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50">{band ? 'Saqlanmoqda…' : written ? t('Bog‘lanishlarni yangilash') : 'Saqlash'}</button>
         </div>
       </div>
     </div>

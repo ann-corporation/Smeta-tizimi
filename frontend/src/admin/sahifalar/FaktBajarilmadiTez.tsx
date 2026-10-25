@@ -49,7 +49,7 @@ export function FaktBajarilmadiTez({ kompaniyaId, obyektId, sana, qator, onYop, 
     else if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)) { e.preventDefault(); void yubor(); }
   };
 
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label={t('Bajarilmaydi')} onKeyDown={tugma}>
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] p-4" role="dialog" aria-modal="true" aria-label={t('Bajarilmaydi')} onKeyDown={tugma}>
     <div className="karta w-full max-w-md space-y-3 p-4 text-[12px]">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0"><h3 className="text-[14px] font-semibold text-text">{t('Bajarilmaydi / qilib bo‘lmaydi')}</h3>
@@ -67,7 +67,7 @@ export function FaktBajarilmadiTez({ kompaniyaId, obyektId, sana, qator, onYop, 
       {xato && <p role="alert" className="text-danger">{xato}</p>}
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onYop} className="rounded border border-border px-3 py-1">{t('Bekor')} <kbd className="text-[10px] text-text-mute">{'Esc'}</kbd></button>
-        <button type="button" disabled={band} onClick={() => void yubor()} className="rounded bg-accent px-3 py-1 font-semibold text-white disabled:opacity-50">{band ? t('Saqlanmoqda…') : t('Bajarilmaydi deb belgilash')} <kbd className="text-[10px] opacity-80">{'Enter'}</kbd></button>
+        <button type="button" disabled={band} onClick={() => void yubor()} className="rounded bg-accent px-3 py-1 font-semibold text-[color:var(--on-accent)] disabled:opacity-50">{band ? t('Saqlanmoqda…') : t('Bajarilmaydi deb belgilash')} <kbd className="text-[10px] opacity-80">{'Enter'}</kbd></button>
       </div>
     </div>
   </div>;
