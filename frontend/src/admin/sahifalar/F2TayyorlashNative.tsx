@@ -339,7 +339,7 @@ export function F2TayyorlashNative() {
       const h = f2Hujjat(bolimlar, qatorlar, {
         obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
         ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
-        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
+        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, rows,
       });
       // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.
       // Mazmun xeshi: aynan shu hujjat qayta ochilsa/yuklansa — qayta to'lov yo'q. Sabab daftarda ko'rinadi.

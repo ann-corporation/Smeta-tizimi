@@ -113,3 +113,100 @@ describe('F2 Excel: Ведомость ресурсов', () => {
     expect(bosh).toEqual([]);
   });
 });
+
+// --- Iyerarxiya: uchastka/fayl > razdel > ichki razdel (egasi 2026-10-25, "daraxt saytda bor, hujjatda yo'q") ---
+const irows = [
+  q({ id: 1, tur: 'rz', nom: '1уч-к.xlsx — 4230_БВ' }),
+  q({ id: 2, tur: 'rz', ota_id: 1, nom: 'РАЗДЕЛ 1.ЗЕМЛЯНЫЕ' }),
+  q({ id: 3, tur: 'rz', ota_id: 2, nom: '2.ЗЕМЛЯНЫЕ РАБОТЫ .' }),
+  q({ id: 4, tur: 'bl', ota_id: 3, kod: 'Е1', nom: 'Выемка', hajm: 10 }),
+  q({ id: 5, tur: 'rs', ota_id: 4, kod: '1', kat: 'ЧЕЛ', nom: CHEL, birlik: 'ЧЕЛ-Ч', norma: 2, narx: 1000 }),
+  q({ id: 6, tur: 'rs', ota_id: 4, kod: '3', kat: 'МАШ', nom: 'ЗАТРАТЫ ТРУДА МАШИНИСТОВ', birlik: 'ЧЕЛ-Ч', norma: 1, narx: null }),
+  q({ id: 7, tur: 'bl', ota_id: 2, kod: 'Е2', nom: 'Планировка', hajm: 4 }),
+  q({ id: 8, tur: 'rs', ota_id: 7, kod: '1', kat: 'ЧЕЛ', nom: CHEL, birlik: 'ЧЕЛ.-Ч', norma: 3, narx: 1000 }),
+  q({ id: 9, tur: 'rz', nom: '2уч-к.xlsx — 4240_БВ' }),
+  q({ id: 10, tur: 'rz', ota_id: 9, nom: '2.ЗЕМЛЯНЫЕ РАБОТЫ .' }),
+  q({ id: 11, tur: 'bl', ota_id: 10, kod: 'Е1', nom: 'Выемка', hajm: 5 }),
+  q({ id: 12, tur: 'rs', ota_id: 11, kod: '1', kat: 'ЧЕЛ', nom: CHEL, birlik: 'ЧЕЛ-Ч', norma: 2, narx: 1200 }),
+  q({ id: 13, tur: 'rz', ota_id: 9, nom: 'Пустой раздел' }),
+  q({ id: 14, tur: 'rz', nom: 'Пустой участок' }),
+];
+const iholat: F2Holat[] = [4, 5, 6, 7, 8, 11, 12].map((id) => ({ qator_id: id, f2_mumkin_hajm: 100 }));
+
+/** SUM(H5,H7:H9,SUM(..)) ni katak qiymatlari bo'yicha hisoblaydi. */
+function hisobla(f: string, qiymat: (ref: string) => number | null): number {
+  let s = f;
+  let m = /SUM\(([^()]*)\)/.exec(s);
+  if (!m) throw new Error(`SUM emas: ${f}`);
+  while (m) {
+    const bo = m[1].split(',').reduce((t, qism) => {
+      const r = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(qism.trim());
+      if (!r) return t + Number(qism);
+      let s2 = 0;
+      for (let i = Number(r[2]); i <= Number(r[4] ?? r[2]); i++) s2 += qiymat(`${r[1]}${i}`) ?? 0;
+      return t + s2;
+    }, 0);
+    s = s.replace(m[0], String(bo)); m = /SUM\(([^()]*)\)/.exec(s);
+  }
+  return Number(s);
+}
+
+describe('F2 Excel: iyerarxiya (uchastka > razdel > ichki razdel)', () => {
+  const ihujjat = () => {
+    const b = f2Qur(irows, iholat);
+    const k = bosKiritma(); k.hajm[4] = '10'; k.hajm[7] = '4'; k.hajm[11] = '5';
+    const qs = f2Qatorlar(b, k);
+    const r = f2Hujjat(b, qs, { obyektNom: 'Yo‘l 2,5 km', davr: '2026-10-01', raqam: '1', rows: irows });
+    return { r, t: hujjatTekshir(r.bytes) };
+  };
+
+  it('F-2 varaqda sarlavhalar daraxti va oraliq jamilar; bo‘sh razdellar chiqmaydi; jamilar yig‘indisi = umumiy jami', () => {
+    const { r, t } = ihujjat();
+    const f2 = t.varaqlar.find((v) => v.nom === 'Ф-2')!;
+    const sat = (ref: string) => f2.kataklar.find((k) => k.ref === ref);
+    const matnlar = f2.kataklar.filter((k) => k.ref.startsWith('A') || k.ref.startsWith('C')).map((k) => k.matn ?? '');
+    const bor = (s: string) => matnlar.some((m) => m.includes(s));
+    expect(bor('1УЧ-К.XLSX — 4230_БВ')).toBe(true);
+    expect(bor('2УЧ-К.XLSX — 4240_БВ')).toBe(true);
+    expect(bor('РАЗДЕЛ 1.ЗЕМЛЯНЫЕ')).toBe(true);
+    expect(matnlar.filter((m) => m.includes('2.ЗЕМЛЯНЫЕ РАБОТЫ .') && !m.startsWith('ИТОГО'))).toHaveLength(2);
+    expect(bor('ПУСТОЙ')).toBe(false);
+    expect(matnlar.some((m) => /^ИТОГО ПО «1УЧ-К/.test(m))).toBe(true);
+    expect(matnlar.some((m) => /^ИТОГО ПО РАЗДЕЛУ «РАЗДЕЛ 1\.ЗЕМЛЯНЫЕ»/.test(m))).toBe(true);
+    const qiymat = (ref: string) => { const k = sat(ref); const x = k?.v != null ? Number(k.v) : NaN; return Number.isFinite(x) ? x : null; };
+    const jamilar = f2.kataklar.filter((k) => k.ref.startsWith('C') && /^ИТОГО ПО/.test(k.matn ?? ''));
+    expect(jamilar).toHaveLength(5); // 2 uchastka + 1-uchastkada tashqi va ichki razdel + 2-uchastkada ichki razdel
+    for (const j of jamilar) {
+      const h = sat(`H${j.ref.slice(1)}`)!;
+      expect(h.f).toBeTruthy();
+      expect(hisobla(h.f!, qiymat)).toBeCloseTo(Number(h.v), 2);
+    }
+    const uchJamilar = jamilar.filter((j) => /^ИТОГО ПО «/.test(j.matn ?? '')).map((j) => Number(sat(`H${j.ref.slice(1)}`)!.v));
+    expect(uchJamilar).toHaveLength(2);
+    const vsego = f2.kataklar.find((k) => /ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО АКТУ/.test(k.matn ?? ''))!;
+    const vsegoH = sat(`H${vsego.ref.slice(1)}`)!;
+    expect(uchJamilar.reduce((a, b) => a + b, 0)).toBeCloseTo(Number(vsegoH.v), 2);
+    expect(Number(vsegoH.v)).toBeCloseTo(r.jami!, 2);
+    expect(r.jami).toBeCloseTo(10 * 2 * 1000 + 4 * 3 * 1000 + 5 * 2 * 1200, 2);
+    const ichki = jamilar.find((j) => /РАЗДЕЛУ «2\.ЗЕМЛЯНЫЕ РАБОТЫ \./.test(j.matn ?? '') && Number(sat(`H${j.ref.slice(1)}`)!.v) === 20000);
+    expect(ichki).toBeTruthy();
+    const tashqi = jamilar.find((j) => /РАЗДЕЛУ «РАЗДЕЛ 1/.test(j.matn ?? ''))!;
+    expect(Number(sat(`H${tashqi.ref.slice(1)}`)!.v)).toBeCloseTo(32000, 2);
+  });
+
+  it('Ведомость ресурсов uchastka bo‘yicha bo‘limlangan; jamilar yig‘indisi = ВСЕГО; xato qiymat yo‘q', () => {
+    const { t } = ihujjat();
+    const ved = t.varaqlar.find((v) => v.nom === 'Ведомость ресурсов')!;
+    const sat = (ref: string) => ved.kataklar.find((k) => k.ref === ref);
+    const qiymat = (ref: string) => { const x = Number(sat(ref)?.v); return Number.isFinite(x) ? x : null; };
+    const sec = ved.kataklar.filter((k) => k.ref.startsWith('C') && /^ИТОГО ПО «/.test(k.matn ?? ''));
+    expect(sec).toHaveLength(2);
+    const vsego = ved.kataklar.find((k) => /ВСЕГО ПО ВЕДОМОСТИ/.test(k.matn ?? ''))!;
+    const h = sat(`G${vsego.ref.slice(1)}`)!;
+    expect(hisobla(h.f!, qiymat)).toBeCloseTo(Number(h.v), 2);
+    expect(sec.reduce((s, j) => s + Number(sat(`G${j.ref.slice(1)}`)!.v), 0)).toBeCloseTo(Number(h.v), 2);
+    for (const k of ved.kataklar) { expect(k.v ?? '').not.toMatch(/^#/); expect(k.matn ?? '').not.toMatch(/#(REF|VALUE)/); }
+    // Bir xil resurs ikki uchastkada alohida (uchastka aralashmaydi).
+    expect(ved.kataklar.filter((k) => k.ref.startsWith('C') && (k.matn ?? '').startsWith(CHEL)).length).toBe(2);
+  });
+});
