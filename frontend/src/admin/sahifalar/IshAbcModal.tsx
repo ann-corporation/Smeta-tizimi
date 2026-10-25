@@ -7,6 +7,12 @@ import { yangiOperationId, type AktNatija } from '../../api/supabase';
 import { abcXato, ishAbcSaqla, ishAbcTahrir, ishTuriQidir, narxTakliflari, resursQidir, type AbcSaqlaInput, type IshTuriVariant, type Kat, type NarxManba, type ResursVariant } from '../../api/t2-ish-abc';
 import type { AlmashtirishBelgilaFn } from '../../lib/fakt-studio';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
+import { Sparkles } from 'lucide-react';
+import type { StudioNormCatalog } from '../../lib/catalog-extraction/norm-library';
+import type { NormWork } from '../../lib/catalog-extraction/norm-catalog';
+import { normKatalogOch, normativIshOl, normativResurs } from '../../lib/fakt-normativ';
+import { KatalogPanel, type NormRecipe } from './NormKatalogPanel';
+import { NormativAiQidiruv } from './NormativAiQidiruv';
 import { KATLAR, KAT_NOMI, MANBA_NOMI, abcHisobla, abcTekshir, engYaxshiNarx, katAniqla, son, type AbcResurs } from '../../lib/ish-abc';
 
 export type AbcRejim =
@@ -135,6 +141,37 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
     setResurslar(n);
     void narxlarniOl(n, i);
   };
+  // ── Normativ katalog (to'plam → bo'lim → jadval → pozitsiya) va AI «Tavsiflab qidirish». Faqat o'qish; forma to'ladi, yozuv — «Saqlash». ──
+  const [normOyna, setNormOyna] = useState<'katalog' | 'ai' | null>(null);
+  const [katalog, setKatalog] = useState<StudioNormCatalog | null>(null);
+  const [katalogXato, setKatalogXato] = useState(false);
+  const [aiIsh, setAiIsh] = useState<NormWork | null>(null);
+  const [normIzoh, setNormIzoh] = useState<string[]>([]);
+  const normOch = (o: 'katalog' | 'ai') => {
+    setNormOyna((x) => (x === o ? null : o)); setKatalogXato(false);
+    if (!katalog) void normKatalogOch().then(setKatalog).catch(() => setKatalogXato(true));
+  };
+  const normativIshTanla = async (workId: string) => {
+    if (!katalog) return;
+    try {
+      const n = await normativIshOl(katalog, workId);
+      setIsh((o) => ({ ...o, kod: n.ish.kod, nom: n.ish.nom, birlik: n.ish.birlik || o.birlik }));
+      setResurslar(n.resurslar); void narxlarniOl(n.resurslar);
+      setNormIzoh(n.ogohlantirish); setNormOyna(null); setAiIsh(null);
+    } catch { setXato(t('Normativ resurslar yuklanmadi. Qayta urinib ko‘ring.')); }
+  };
+  const normativResursTanla = (r: NormRecipe) => {
+    if (!katalog) return;
+    const x = normativResurs(katalog, r, null); if (!x) return;
+    // Norma asl qatordan qoladi (boshqa ishning normasi bu ishga ko'chirilmaydi).
+    const n = resurslar.map((o, i) => (i === 0 ? { ...o, kat: x.kat, kod: x.kod, nom: x.nom, birlik: x.birlik || o.birlik, narx: '', manba: 'qolda' as const } : o));
+    setResurslar(n); void narxlarniOl(n, 0); setNormOyna(null); setAiIsh(null);
+  };
+  const izohMatn = (k: string) => k === 'NORMA_MASSHTABI_NOMALUM' ? t('Normativ birlik masshtabi manbada tasdiqlanmagan — normalar bo‘sh qoldirildi, kiriting.')
+    : k === 'NORMASIZ_RESURS' ? t('Ayrim resurslarning normasi manbada yo‘q — normani yoki aniq hajmni kiriting.')
+    : k === 'NOANIQ_RESURS' ? t('Ayrim resurslar katalogda aniq aniqlanmadi — ular qo‘shilmadi, kerak bo‘lsa qo‘lda qo‘shing.')
+    : k.startsWith('n:') ? t('Qo‘shilmagan resurslar: {n} ta', { n: k.slice(2) }) : k;
+
   const yangila = (i: number, patch: Partial<AbcResurs>) => setResurslar((o) => o.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const saqla = async () => {
@@ -199,6 +236,27 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
           </div>
           <button disabled={band} onClick={onYop} className="rounded p-1 text-text-dim hover:bg-surface-2" aria-label={t('Yopish')}><X size={18} /></button>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => normOch('katalog')} aria-pressed={normOyna === 'katalog'} disabled={band || written}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] ${normOyna === 'katalog' ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:bg-surface-2'}`}>
+            <BookOpen size={13} /> {resursRejim ? t('Normativ katalogdan resurs') : t('Normativ katalogdan')}</button>
+          <button type="button" onClick={() => normOch('ai')} aria-pressed={normOyna === 'ai'} disabled={band || written}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] ${normOyna === 'ai' ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:bg-surface-2'}`}>
+            <Sparkles size={13} /> {t('Tavsiflab qidirish (AI)')}</button>
+          {normOyna && <span className="text-[11px] text-text-mute">{resursRejim ? t('Ishni oching va jadvaldan kerakli resursni tanlang — norma asl qatordan qoladi.') : t('Pozitsiyani tanlang — ish normativ resurslari bilan to‘ladi.')}</span>}
+        </div>
+        {normOyna && <section className="max-h-[60vh] overflow-auto rounded-lg border border-accent/30 bg-surface-2/30 p-3" aria-label={t('Normativ katalog')} data-testid="normativ-oyna">
+          {katalogXato ? <p role="alert" className="text-[12px] text-warn">{t('Normativ katalog yuklanmadi. Qayta urinib ko‘ring.')}</p>
+            : !katalog ? <p className="text-[12px] text-text-mute">{t('Normativ katalog yuklanmoqda…')}</p>
+            : normOyna === 'ai'
+              ? <NormativAiQidiruv katalog={katalog} kompaniyaId={kompaniyaId} birlik={resursRejim ? null : (ish.birlik || (rejim.tur === 'replacement' ? rejim.eski.birlik : null))}
+                  boshlangich={ish.nom} onTanla={(w) => { setAiIsh(w); setNormOyna('katalog'); }} />
+              : <KatalogPanel katalog={katalog} boshlangichIsh={aiIsh} hajmYoq amalYoq={resursRejim} izoh={null}
+                  amalMatn={t('Shu ishni tanlash')} onAdd={(w) => { void normativIshTanla(w.id); return true; }}
+                  onResurs={resursRejim ? (r) => normativResursTanla(r) : undefined} />}
+        </section>}
+        {normIzoh.length > 0 && <ul className="list-disc rounded border border-warn/40 bg-warn/5 py-1.5 pl-6 pr-3 text-[11px] text-warn" data-testid="normativ-izoh">{normIzoh.map((k) => <li key={k}>{izohMatn(k)}</li>)}</ul>}
 
         <fieldset disabled={band || written} className="space-y-3">
         {rejim.tur === 'additional' && !tahrir && <label className="block max-w-xl text-[12px] font-medium">Bo‘lim
