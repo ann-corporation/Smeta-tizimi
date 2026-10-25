@@ -2766,7 +2766,7 @@ export const onRequestPost: PagesFunction<{
     }
     if (!r.ok && f2AktRaqamZiddiyati(amal, matn)) {
       return Response.json({ ok: false, code: 'F2_ACT_NUMBER_CONFLICT',
-        error: 'Shu obyekt, oy va raqam bilan F2 allaqachon mavjud. Mavjud aktni tekshiring. Tasdiqlangan akt oddiy import bilan almashtirilmaydi.' }, { status: 409 });
+        error: 'Shu raqam bilan F2 allaqachon mavjud (shu obyekt yoki shartnoma doirasida). Mavjud aktni tekshiring. Tasdiqlangan akt oddiy import bilan almashtirilmaydi.' }, { status: 409 });
     }
     if (!r.ok) {
       return xavfsizUpstream(r.status, matn);
@@ -2790,6 +2790,6 @@ export function f2AktRaqamZiddiyati(amal: string, matn: string): boolean {
   if (amal !== 'akt_yarat_v2') return false;
   try {
     const j = JSON.parse(matn) as { code?: string; message?: string };
-    return j.code === '23505' && typeof j.message === 'string' && /\bt2_akt_kalit_uniq\b/.test(j.message);
+    return j.code === '23505' && typeof j.message === 'string' && /\bt2_akt_(kalit_uniq|raqam_takror)\b/.test(j.message);
   } catch { return false; }
 }

@@ -13,6 +13,7 @@ import { FmtN, pulQisqa } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2OylikPaket } from './F2OylikPaket';
+import { F2Takrorlar } from './F2Takrorlar';
 import { f2ReestrOl, obyektF2Fayllari, type ReestrMalumot } from '../../api/t2-f2-reestr';
 import type { CenterDocument } from '../../api/t2-hujjat-canonical';
 import { aktsizFayllar, bosqich, filtrla, reestrQur, tartibla, type F2Bosqich, type Ogoh, type ReestrAkt, type ReestrFiltr, type Summa } from '../../lib/f2-reestr/reestr';
@@ -101,6 +102,7 @@ export default function F2Reestr() {
         <div className="karta p-3"><div className="text-[11px] text-text-dim">{t('Rad etilgan / bekor')}</div><div className="text-lg font-semibold">{j.boyicha.rad.soni} / {j.boyicha.bekor.soni}</div></div>
         <div className="karta p-3"><div className="text-[11px] text-text-dim">{t('Shartnomasiz obyekt (F2 bilan)')}</div><div className={`text-lg font-semibold ${j.shartnomasiz ? 'text-warn' : ''}`}>{j.shartnomasiz}</div></div>
       </section>}
+      {malumot && <F2Takrorlar malumot={malumot} />}
       {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} />}
       {malumot && malumot.manbaXato > 0 && <p role="status" className="text-[12px] text-warn">{t('{n} ta aktning manbasi o‘qilmadi — ular «aniqlanmadi» deb ko‘rsatilgan.', { n: malumot.manbaXato })}</p>}
 

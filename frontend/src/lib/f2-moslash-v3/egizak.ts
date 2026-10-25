@@ -10,6 +10,8 @@
  *    bilan aniqlanib qayta yaratilmaydi (server ham `t2_addrepl_command` orqali takrorni qaytaradi).
  */
 import type { Bog, F2Indeks, IshJoyi } from './ishJoyi';
+import { t } from '../../i18n/til';
+import { raqamKaliti, type Masala } from '../f2-dublikat/tekshiruv';
 import { BOLIM_ILDIZ, rejaliniYoz, rejaliniYozilganlardanTozala, type RejaliBuyruq, type RejaliResurs, type RejaliYaratish, type YozilganQator } from './rejali';
 
 /** t2_qator dan kerakli ustunlar (asl + qo'shimcha qatorlar). */
@@ -224,4 +226,23 @@ export function boglanishKochir(a: IshJoyi, bInd: F2Indeks, xarita: (aId: number
   }
   const otkaz = new Set([...a.otkaz].filter((uid) => bInd.byUid.has(uid) && !bog.has(uid)));
   return { ij: { bog, otkaz }, kochdi: bog.size, kochmadi };
+}
+
+/** Egizak nusxa ish qoralamasidagi F2 raqamini (cursor.aktRaqam) o‘qiydi — faqat solishtirish uchun; raqam KO‘CHIRILMAYDI. */
+export function egizakAktRaqami(cursor: unknown): string {
+  const r = (cursor as { aktRaqam?: unknown } | null | undefined)?.aktRaqam;
+  return typeof r === 'string' ? r.trim() : '';
+}
+
+/**
+ * Egizak nusxadan keyin F2 raqami ko‘chirilmaydi (egasi 2026-10-25: №49 uch egizak obyektda takrorlangan): raqam bo‘shatiladi va
+ * YANGI raqam so‘raladi. Bo‘sh yoki egizakdagi raqam bilan bir xil bo‘lsa — yozish bloklanadi.
+ */
+export function egizakRaqamMasalasi(kerak: boolean, aRaqam: string | null | undefined, joriy: string): Masala | null {
+  if (!kerak) return null;
+  if (!joriy.trim()) return { daraja: 'blok', kod: 'raqam', aktIdlar: [],
+    matn: t('Egizak obyektdan nusxa olindi: F2 raqami ko‘chirilmaydi. Shu obyekt F2 si uchun YANGI raqamni kiriting.') };
+  if (aRaqam && raqamKaliti(aRaqam) === raqamKaliti(joriy)) return { daraja: 'blok', kod: 'raqam', aktIdlar: [],
+    matn: t('№{raqam} egizak obyektning F2 raqami — takrorlanmaydi. Yangi raqamni kiriting.', { raqam: joriy.trim() }) };
+  return null;
 }

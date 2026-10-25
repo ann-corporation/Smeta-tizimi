@@ -6,6 +6,10 @@ describe('F2 duplicate act identity',()=>{
     expect(f2AktRaqamZiddiyati('akt_yarat_v2',message)).toBe(true);
     expect(f2AktRaqamZiddiyati('ish_abc_ochir_v1',message)).toBe(false);
   });
+  it('recognizes the contract-scope F2 number trigger', () => {
+    const message = JSON.stringify({ code: '23505', message: 'duplicate key value violates unique constraint "t2_akt_raqam_takror": F2 №49 allaqachon mavjud (akt #358)' });
+    expect(f2AktRaqamZiddiyati('akt_yarat_v2', message)).toBe(true);
+  });
   it('never rewrites a stale version, unrelated uniqueness error or network failure as an existing act',()=>{
     for(const j of [{code:'40001',message:'stale'}, {code:'23505',message:'t2_akt_operation_uniq'}, {code:'23505',message:'t2_akt_kalit_uniq_other'}])
       expect(f2AktRaqamZiddiyati('akt_yarat_v2',JSON.stringify(j))).toBe(false);

@@ -31,6 +31,9 @@ import { qoshilganOzgardi as qoshilganOzgardiLib } from '../../lib/f2-moslash-v3
 import { F2V3Workbench } from './F2V3Workbench';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2EgizakNusxa } from './F2EgizakNusxa';
+import { F2DublikatPanel } from './F2DublikatPanel';
+import { bloklarmi, dublikatTekshiruv, pereraschetBelgisi, type DAkt } from '../../lib/f2-dublikat/tekshiruv';
+import { egizakRaqamMasalasi } from '../../lib/f2-moslash-v3/egizak';
 import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
 import { katAniqla } from '../../lib/ish-abc';
 import { BOSH_QADAMLAR, F2YozishOynasi, type Qadam, type QadamHolat, type QadamId } from './F2YozishOynasi';
@@ -82,7 +85,7 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 /** Dublikat qo'riqchi uchun akt qatorlari (band hajm, avvalgi import fayl+varaq). */
 type AktQatorBand = { akt_id: number; qator_id: number; hajm: number | null; certified_quantity: number | null; raw_snapshot: { manba?: string; qatorlar?: SnapQator[]; fayl?: string; varaq?: string; fayl_sha256?: string } | null };
 const nullga = () => null;
-type AktQisqa = { id: number; raqam: string | null; oy: string | null; holat: string; tur: string };
+type AktQisqa = { id: number; raqam: string | null; oy: string | null; holat: string; tur: string; hujjat_jami?: number | null; manba?: string | null };
 const fmt = (n: number | null | undefined) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n));
 
 /** F2 import uchun kerakli smeta ustunlari (prod profil 2026-10-24: 25k qatorda d1–d3/obyekt nomi har qatorda ~28% hajm). */
@@ -116,6 +119,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const raqamN = f2RaqamNormal(raqam);
   // Aynan shu raqamdagi QORALAMA aktning qatorlarini almashtirishga operatorning aniq roziligi (akt id bo'yicha).
   const [almashtirTasdiq, setAlmashtirTasdiq] = useState<number | null>(null);
+  /** Egizak nusxadan keyin F2 raqami ko‘chirilmaydi: yangi raqam so‘raladi (a — egizak F2 ning raqami, takrorlanmasin). */
+  const [egizakRaqam, setEgizakRaqam] = useState<{ a: string } | null>(null);
   /** «✎ Tahrirlash»: shu akt (qoralama) qayta ochilgan - «F2 ni yozish» uning qatorlarini almashtiradi (qo'shimcha tasdiq so'ralmaydi). */
   const [tahrirAkt, setTahrirAkt] = useState<number | null>(null);
   /** Kumulyativ varaq rejimi (operator yoqadi): oldingi F2 lar hajmi shu varaqdan ayriladi — faqat yozish proyeksiyasi. */
@@ -145,6 +150,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   // Dublikat qo'riqchi: boshqa (bekor qilinmagan) F2 qoralamalaridagi hajmlar va shu faylning avvalgi importlari.
   const [bandLines, setBandLines] = useState<BandManba[]>([]);
   const [avvalKiritilgan, setAvvalKiritilgan] = useState<Array<{ aktId: number; fayl: string; varaq: string; sha?: string }>>([]);
+  const [obyektAktlari, setObyektAktlari] = useState<DAkt[]>([]);
   const [aktNomlari, setAktNomlari] = useState(new Map<number, { raqam: string | null; oy: string | null; holat: string }>());
   const [faylSha, setFaylSha] = useState('');
   // Har varaq = alohida F2 (egasi 2026-10-23): reestr summasi bo'yicha varaqni topish va ketma-ket import.
@@ -443,7 +449,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     // Scope/file switch must flush pending decisions before clearing in-memory state.
     const draft = lastWorkingDraft.current;
     if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
-    pendingCorrection.current = undefined;
+    pendingCorrection.current = undefined; setEgizakRaqam(null);
     ++saveGeneration.current; setIshSaqlandi(''); setServerHolat(''); serverDraft.current = undefined;
     setNatija(null); setKumRejim(false); setTkmQosh(new Map()); tarixniTozala(); setRejali([]); setOchirish([]); setIj(null); setDone(null); setXato(''); setRzBog(new Map()); operation.current = '';
   }
@@ -487,7 +493,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         jadval: 't2_akt_qator', filtr: `obyekt_id=eq.${oid}`, ustunlar: 'akt_id,qator_id,hajm,certified_quantity,raw_snapshot', limit: 50000,
       }).catch(nullga)),
       q('aktlar', sbOqi<AktQisqa>({
-        jadval: 't2_akt', filtr: `obyekt_id=eq.${oid}&tur=eq.f2`, ustunlar: 'id,raqam,oy,holat,tur', limit: 5000,
+        jadval: 't2_akt', filtr: `obyekt_id=eq.${oid}&tur=eq.f2`, ustunlar: 'id,raqam,oy,holat,tur,hujjat_jami,manba', limit: 5000,
       }).catch(() => null)),
     ]);
     if (!d.ok) throw new Error('Smeta o‘qilmadi.');
@@ -520,6 +526,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     const bandAll = qoralamaBandi(lines, null);
     for (const [id, v] of bandAll) if (qol.has(id)) qol.set(id, qol.get(id)! - v);
     setBandLines(lines); setAvvalKiritilgan([...kiritilgan.values()]); setAktNomlari(aktlarMap);
+    setObyektAktlari(aktRoyxat && aktRoyxat.ok ? (aktRoyxat.qatorlar ?? []).map((a) => ({ id: a.id, raqam: a.raqam, oy: a.oy, holat: a.holat, hujjat_jami: a.hujjat_jami == null ? null : Number(a.hujjat_jami), manba: a.manba ?? null })) : []);
     setRows(r); setOldingi(old); setAlmashtirilgan(alm); setQoldiq(qol); setXotira(x);
     return { r, qol, x };
   }
@@ -697,6 +704,17 @@ function Sessiya({ companyId }: { companyId: number }) {
     const ozgarish = new Set(rowsK.filter((r) => (r as { qoshimcha?: boolean }).qoshimcha || (r as { zamena?: boolean }).zamena).map((r) => r.id));
     return qoldiqOshishlari(payload.rows.map((r) => ({ qatorId: r.qatorId, hajm: r.certifiedQuantity })), smetaH, oldingi, band, ozgarish);
   }, [payload, rowsK, oldingi, band]);
+  /** DUBLIKAT HIMOYASI (egasi 2026-10-25): yozishdan oldin tekshiruv. Blok — faqat aniq takror (shu fayl varag‘i allaqachon yozilgan,
+   *  shu obyektda shu raqam bor); summa / pereraschet — ogohlantirish. */
+  const dublikatlar = useMemo(() => {
+    if (!akt || !payload || payload.error || !objectId || done) return [];
+    const jami = payload.rows.some((r) => r.certifiedAmount != null) ? payload.rows.reduce((s, r) => s + (r.certifiedAmount ?? 0), 0) : null;
+    return dublikatTekshiruv({ aktlar: obyektAktlari, oy: davr, raqam: raqamN, jami, ozAktId: mavjudQoralama?.id ?? maqsadAkt?.id ?? null,
+      manbaAktIdlar: avvalgiImport.map((k) => k.aktId), pereraschet: pereraschetBelgisi(rows, payload.rows.map((r) => r.qatorId)) });
+  }, [akt, payload, objectId, done, obyektAktlari, davr, raqamN, mavjudQoralama?.id, maqsadAkt?.id, avvalgiImport, rows]);
+  const egizakMasala = egizakRaqamMasalasi(!!egizakRaqam, egizakRaqam?.a, raqam);
+  const dublikatMasalalar = useMemo(() => (egizakMasala ? [egizakMasala, ...dublikatlar] : dublikatlar), [egizakMasala, dublikatlar]);
+  const dublikatBlok = bloklarmi(dublikatMasalalar);
   /** Ustamali summa uchun kategoriya kesimlari (egasi 2026-10-24): kat — bog'langan smeta qatoridan (t2_qator.kat);
    *  bog'lanmagan/kat'siz qator «kat noma'lum» bo'lib qoladi (taxminiy deb ko'rsatiladi, o'ylab topilmaydi). */
   const yozishKesimi = useMemo(() => (payload && !payload.error
@@ -1178,7 +1196,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   useHotkeys('f2-import', t('F2 import'), [
     { id: 'f2import.undo', keys: 'ctrl+z', nom: t('Oxirgi bog‘lash amalini qaytarish'), run: () => { if (!tarix.current.length) return false; orqaga(); } },
     { id: 'f2import.yoz', keys: 'ctrl+enter', nom: t('F2 ni yozish'), inInput: true,
-      run: () => { if (busy || !payload || saqlashBlok || done) return false; void saqla(); } },
+      run: () => { if (busy || !payload || saqlashBlok || dublikatBlok || done) return false; void saqla(); } },
   ]);
    /** «F2 ni yozish»: ish davomidagi barcha qoralama amallari shu yerda, qadam-baqadam, ko'rinib turgan holda yoziladi. */
   async function saqla() {
@@ -1188,6 +1206,12 @@ function Sessiya({ companyId }: { companyId: number }) {
     // 1. Tekshiruv
     qadam('tekshiruv', 'ishlayapti');
     if (payload.error) { qadam('tekshiruv', 'xato', payload.error); return; }
+    if (dublikatBlok) { qadam('tekshiruv', 'xato', dublikatMasalalar.filter((m) => m.daraja === 'blok').map((m) => m.matn).join(' ')); return; }
+    // Ogohlantirishlar (summa takrori, pereraschet) bloklamaydi — lekin operator ko‘rib, ongli tasdiqlaydi.
+    const dublikatOgoh = dublikatlar.filter((m) => m.daraja === 'ogoh');
+    if (dublikatOgoh.length && !window.confirm(`${dublikatOgoh.map((m) => m.matn).join('\n\n')}\n\n${t('Baribir yozasizmi?')}`)) {
+      qadam('tekshiruv', 'xato', t('Yozish bekor qilindi — dublikat ogohlantirishini tekshiring.')); return;
+    }
     if (saqlashBlok) {
       qadam('tekshiruv', 'xato', takrorTekshirilmoqda ? t('Avvalgi F2 tekshirilmoqda — bir lahzadan so‘ng qayta urinib ko‘ring.')
         : almashtirishKutilmoqda ? t('Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.')
@@ -1505,6 +1529,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           <a href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block underline">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>
         </>}
       </section>}
+      {akt && !done && <F2DublikatPanel masalalar={dublikatMasalalar} obyektId={objectId ? Number(objectId) : null} yangilaHref={(id) => `/admin/f2?obyekt=${Number(objectId)}&akt=${id}`} />}
       {akt && !done && eskiQoralama && ketmaKetBartaraf !== eskiQoralama.job_id && (
         <section role="status" className="karta flex flex-wrap items-center gap-2 border border-warn/40 bg-warn/5 p-2 text-[12px] text-warn" aria-label={t('F2 ketma-ketligi')}>
           <span className="min-w-0 flex-1">{t('Avval {oy} F2 si yozilmagan — ochasizmi?', { oy: (eskiQoralama.oy ?? '').slice(0, 7) + (eskiQoralama.raqam ? ` №${eskiQoralama.raqam}` : '') })}</span>
@@ -1526,7 +1551,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       </section>)}
       {akt && ij && ind && objectId && !done && rows.length > 0 && <F2EgizakNusxa companyId={companyId} objectId={Number(objectId)} objects={objects} ind={ind}
         jobId={serverDraft.current?.jobId ?? null} busy={busy} yarat={rejaliYarat} versiya={otaVersiya} smetaYangila={smetaYangila}
-        ijQoy={(next, izoh) => { ijOzgar(next); setHolat(izoh); setEgizakSaqla(true); }} />}
+        ijQoy={(next, izoh, aRaqam) => { ijOzgar(next); setHolat(izoh); setRaqam(''); setAlmashtirTasdiq(null); setEgizakRaqam({ a: aRaqam }); setEgizakSaqla(true); }} />}
 
       {akt && ij && (
         <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
@@ -1553,7 +1578,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           {done && keyingi != null && <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy} onClick={() => varaqniTanla(keyingi)}>
             {t('Keyingi varaq → yangi F2')}: {aktlar[keyingi]?.varaq}</button>}
           {done ? (!jarayon && <p className="ml-auto text-[13px] text-ok">{done}</p>) : (
-            <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy || !payload || saqlashBlok}
+            <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy || !payload || saqlashBlok || dublikatBlok}
               onClick={() => void saqla()}>
               {t('F2 ni yozish')}{payload && !payload.error ? ` (${payload.rows.length} ${t('qator')}${rejali.length + ochirish.length ? ` + ${rejali.length + ochirish.length} ${t('o‘zgarish')}` : ''})` : ''}
             </button>

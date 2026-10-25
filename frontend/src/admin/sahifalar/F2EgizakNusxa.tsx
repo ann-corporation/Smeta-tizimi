@@ -3,7 +3,7 @@ import { sbOqi, type T2Obyekt } from '../../api/supabase';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
 import { f2ServerOl } from '../../lib/f2-ishchi-qoralama';
 import {
-  EGIZAK_USTUNLAR, aslXarita, boglanishKochir, egizakHolat, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja,
+  EGIZAK_USTUNLAR, aslXarita, egizakAktRaqami, boglanishKochir, egizakHolat, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja,
   type EgizakQator, type KochmaganSabab, type QoshimchaReja,
 } from '../../lib/f2-moslash-v3/egizak';
 import type { F2Indeks, IshJoyi } from '../../lib/f2-moslash-v3/ishJoyi';
@@ -28,11 +28,11 @@ export interface F2EgizakNusxaProps {
   versiya(id: number): Promise<number>;
   smetaYangila(): Promise<unknown>;
   /** Bog'lanishlarni bitta tarix qadami bilan qo'yadi va server qoralamasini saqlaydi. */
-  ijQoy: (ij: IshJoyi, izoh: string) => void;
+  ijQoy: (ij: IshJoyi, izoh: string, aRaqam: string) => void;
 }
 
 type Tahlil = {
-  job: T2F2DavomQator; aNom: string;
+  job: T2F2DavomQator; aNom: string; aRaqam: string;
   aIj: IshJoyi; aslMap: Map<number, number>; imzo: string;
   reja: QoshimchaReja; bQosh: YozilganQator[]; qoshMap: Map<number, number>; qolganSoni: number;
   hozir: number; jami: number; bogKochmadi: number;
@@ -96,7 +96,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
       const hozir = boglanishKochir(aD.ij, p.ind, idXarita(x.map, h.map));
       const rejadagi = new Set(reja.buyruqlar.flatMap((b) => [b.tempId, ...b.resursTempIds]));
       const jami = boglanishKochir(aD.ij, p.ind, (id) => x.map.get(id) ?? (rejadagi.has(-id) ? id : undefined));
-      const r: Tahlil = { job, aNom, aIj: aD.ij, aslMap: x.map, imzo: x.imzo, reja, bQosh, qoshMap: h.map, qolganSoni: h.qolgan.length,
+      const r: Tahlil = { job, aNom, aRaqam: egizakAktRaqami(aD.cursor), aIj: aD.ij, aslMap: x.map, imzo: x.imzo, reja, bQosh, qoshMap: h.map, qolganSoni: h.qolgan.length,
         hozir: hozir.kochdi, jami: jami.kochdi, bogKochmadi: jami.kochmadi.length };
       setTahlil(r); setIzoh('');
       return r;
@@ -132,8 +132,8 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
     if (!r0) return;
     const r = boglanishKochir(r0.aIj, p.ind, idXarita(r0.aslMap, r0.qoshMap));
     if (!window.confirm(t('Joriy bog‘lanishlar egizak obyektnikiga almashtiriladi ({n} ta). «Orqaga» bilan qaytarish mumkin. Davom etasizmi?', { n: r.kochdi }))) return;
-    const matn = t('{n} ta bog‘lanish egizak obyektdan ko‘chirildi; {m} tasi ko‘chmadi. Server qoralamasi saqlanmoqda. «F2 ni yozish» ni o‘zingiz bosing.', { n: r.kochdi, m: r.kochmadi.length });
-    p.ijQoy(r.ij, matn);
+    const matn = t('{n} ta bog‘lanish egizak obyektdan ko‘chirildi; {m} tasi ko‘chmadi. Server qoralamasi saqlanmoqda. F2 raqami ko‘chirilmaydi — yangi raqamni kiriting, so‘ng «F2 ni yozish» ni o‘zingiz bosing.', { n: r.kochdi, m: r.kochmadi.length });
+    p.ijQoy(r.ij, matn, r0.aRaqam);
     setIzoh(matn);
   }
 
