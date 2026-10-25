@@ -7,13 +7,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as RKeyboardEvent, type PointerEvent as RPointerEvent } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { AlertTriangle, FileText, HardHat, Maximize2, Minus, Plus, Truck, Warehouse, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
-import { pulQisqa } from '../../lib/format';
 import { t } from '../../i18n/til';
 import {
   hajmOlcham, klaviaturaQadam, markazlaKamera, sigdirKamera, zumla, chegaraHisobla,
   type Joy, type Joylashuv, type Kamera, type XDaraxt, type XHolat, type XTugun,
 } from '../../lib/mindmap-korinish';
-import { HOLAT_RANG, foizMatn, holatNomi } from './holat';
+import { HOLAT_RANG, foizMatn, holatNomi, pulQ } from './holat';
 
 type Props = {
   daraxt: XDaraxt;
@@ -51,7 +50,7 @@ function ariaMatn(x: XTugun, guruhNomi: string): string {
   const tur = x.tur === 'kompaniya' ? t('Kompaniya') : x.tur === 'loyiha' ? t('Loyiha') : x.tur === 'guruh' ? t('Guruh') : t('Obyekt');
   const parts = [x.tur === 'guruh' ? guruhNomi : x.nom, tur, t('holat: {h}', { h: holatNomi(x.holat) })];
   if (x.f2Foiz != null) parts.push(t('F2 {p}', { p: foizMatn(x.f2Foiz) }));
-  if (x.smeta != null) parts.push(t('smeta {s}', { s: pulQisqa(x.smeta) }));
+  if (x.smeta != null) parts.push(t('smeta {s}', { s: pulQ(x.smeta) }));
   if (x.tur !== 'obyekt') parts.push(t('{n} ta obyekt', { n: x.obyektSoni }));
   return parts.join(', ');
 }
@@ -433,7 +432,7 @@ function LoyihaKarta({ x, w, h, nom, tanlangan, fokus, yigilgan, tomon, onYig, m
       <text x={36} y={y0} style={{ fill: 'var(--text)', font: SHRIFT_NOM(14.5) }}>{n1}</text>
       {n2 && <text x={36} y={y0 + 17} style={{ fill: 'var(--text)', font: SHRIFT_NOM(14.5) }}>{n2}</text>}
       <text x={36} y={ySub} style={{ fill: 'var(--text-dim)', font: '500 12px var(--font-sans)' }}>
-        {t('{n} ta obyekt', { n: x.obyektSoni }) + ' · ' + (x.smeta == null ? t('smeta yo‘q') : (x.smetaToliq ? '' : '≈ ') + pulQisqa(x.smeta))}
+        {t('{n} ta obyekt', { n: x.obyektSoni }) + ' · ' + (x.smeta == null ? t('smeta yo‘q') : (x.smetaToliq ? '' : '≈ ') + pulQ(x.smeta))}
       </text>
       <MeterSvg x={36} y={yMet} w={w - 92} h={7} faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} />
       <text x={w - 10} y={yMet + 7} textAnchor="end" style={{ fill: 'var(--text-dim)', font: '600 12px var(--font-mono)' }}>{foizMatn(x.f2Foiz)}</text>
@@ -471,7 +470,7 @@ function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta }: { x: XTugu
     { ikon: Truck, n: x.resurs.texnika, nom: t('texnika') },
     { ikon: HardHat, n: x.resurs.kadr, nom: t('xodim') },
   ].filter((c) => c.n > 0);
-  const summa = x.smeta == null ? t('smeta yo‘q') : pulQisqa(x.smeta);
+  const summa = x.smeta == null ? t('smeta yo‘q') : pulQ(x.smeta);
   const summaKeng = summa.length * 7.4 + 10;
   return (
     <g>

@@ -11,14 +11,13 @@ import {
 import type { MindmapGraf, MindmapTugun } from '../../api/t2-mindmap';
 import type { Hodisa } from '../../api/t2-hodisa';
 import { qachon } from '../../api/t2-hodisa';
-import { pulQisqa } from '../../lib/format';
 import { t, raqamFormatla } from '../../i18n/til';
 import {
   boglanganlar, diqqatRoyxati, entityId, HOLAT_TARTIB,
   type XDaraxt, type XHolat, type XTugun,
 } from '../../lib/mindmap-korinish';
 import { Bajarilish, HolatChiziq, HolatHalqa, Romb } from './belgilar';
-import { foizMatn, holatIzohi, holatNomi } from './holat';
+import { foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 
 export type HodisaHolati = { qatorlar: Hodisa[]; yuklanmoqda: boolean; xato: string };
 
@@ -75,10 +74,10 @@ function PulBloki({ x }: { x: XTugun }) {
       <div className="fz-panel__h"><span>{t('Bajarilish')}</span><span className="normal-case tracking-normal font-normal">{t('ustamasiz')}</span></div>
       <Bajarilish faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} katta />
       <div className="grid grid-cols-2 gap-3">
-        <Raqam nom={t('Smeta')} qiymat={x.smeta == null ? '—' : taxm + pulQisqa(x.smeta)} izoh={x.smeta == null ? t('smeta yuklanmagan') : x.smetaToliq ? undefined : t('to‘liq emas')} />
-        <Raqam nom={t('F2 bilan topshirilgan')} rang="var(--accent)" qiymat={pulQisqa(x.f2)} izoh={foizMatn(x.f2Foiz)} />
-        <Raqam nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulQisqa(x.fakt)} izoh={foizMatn(x.faktFoiz)} />
-        <Raqam nom={t('F2 siz qoldiq')} qiymat={qoldiq == null ? '—' : taxm + pulQisqa(qoldiq)} izoh={t('smeta − F2')} />
+        <Raqam nom={t('Smeta')} qiymat={x.smeta == null ? '—' : taxm + pulQ(x.smeta)} izoh={x.smeta == null ? t('smeta yuklanmagan') : x.smetaToliq ? undefined : t('to‘liq emas')} />
+        <Raqam nom={t('F2 bilan topshirilgan')} rang="var(--accent)" qiymat={pulQ(x.f2)} izoh={foizMatn(x.f2Foiz)} />
+        <Raqam nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulQ(x.fakt)} izoh={foizMatn(x.faktFoiz)} />
+        <Raqam nom={t('F2 siz qoldiq')} qiymat={qoldiq == null ? '—' : taxm + pulQ(qoldiq)} izoh={t('smeta − F2')} />
       </div>
       {x.oshgan && (
         <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden /><span>{t('Bajarilgan yoki topshirilgan hajm smetadan oshgan — tekshiring.')}</span></div>
@@ -94,7 +93,7 @@ function ObyektQatori({ x, onTanla }: { x: XTugun; onTanla: (id: string) => void
         <Romb holat={x.holat} olcham={8} />
         <span className="truncate text-[13px] font-semibold">{x.nom}</span>
       </span>
-      <span className="text-right font-mono text-[11.5px] text-text-dim tabular-nums">{x.smeta == null ? t('smeta yo‘q') : pulQisqa(x.smeta)}</span>
+      <span className="text-right font-mono text-[11.5px] text-text-dim tabular-nums">{x.smeta == null ? t('smeta yo‘q') : pulQ(x.smeta)}</span>
       <span className="col-span-2"><Bajarilish faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} /></span>
     </button>
   );
@@ -138,7 +137,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
           <PulBloki x={x} />
           {byudjet != null && Number.isFinite(byudjet) && (
             <section className="fz-panel">
-              <div className="fz-panel__h"><span>{t('Loyiha byudjeti')}</span><span>{pulQisqa(byudjet)}</span></div>
+              <div className="fz-panel__h"><span>{t('Loyiha byudjeti')}</span><span>{pulQ(byudjet)}</span></div>
               {x.smeta != null && byudjet > 0 && <div className="text-[12.5px] text-text-dim">{t('Smeta byudjetning {p} qismi', { p: foizMatn(Math.round((x.smeta / byudjet) * 1000) / 10) })}</div>}
             </section>
           )}
@@ -240,7 +239,7 @@ function ResursRoyxat({ tugunlar, rollar }: { tugunlar: MindmapTugun[]; rollar?:
       {sort.map((r) => {
         const I = RESURS_IKON[r.tur] ?? FileText;
         const rol = rollar?.get(r.id);
-        const qoshimcha = r.tur === 'shartnoma' && r.meta?.summa != null ? pulQisqa(Number(r.meta.summa)) : rol || (r.tur === 'kadr' ? r.meta?.lavozim : r.tur === 'texnika' ? r.meta?.davlat_raqami : '') || '';
+        const qoshimcha = r.tur === 'shartnoma' && r.meta?.summa != null ? pulQ(Number(r.meta.summa)) : rol || (r.tur === 'kadr' ? r.meta?.lavozim : r.tur === 'texnika' ? r.meta?.davlat_raqami : '') || '';
         return (
           <li key={r.id}>
             <Link to={RESURS_YOLI[r.tur] ?? '/admin'} className="group flex items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1 text-[12.5px] text-text no-underline hover:bg-[var(--surface-3)]">
@@ -300,7 +299,7 @@ function KompaniyaPanel({ root, daraxt, onTanla, guruhNomi, onHolatFiltr, holatF
                 <button type="button" onClick={() => onTanla(l.id)} className="block w-full rounded-[var(--radius-sm)] px-1 py-0.5 text-left hover:bg-[var(--surface-3)]">
                   <span className="flex items-baseline justify-between gap-2 text-[12.5px]">
                     <span className="flex min-w-0 items-center gap-1.5"><Romb holat={l.holat} olcham={7} /><span className="truncate font-semibold text-text">{l.tur === 'guruh' ? guruhNomi : l.nom}</span></span>
-                    <span className="shrink-0 font-mono text-[11.5px] text-text-dim tabular-nums">{l.smeta == null ? '—' : (l.smetaToliq ? '' : '≈ ') + pulQisqa(l.smeta)}</span>
+                    <span className="shrink-0 font-mono text-[11.5px] text-text-dim tabular-nums">{l.smeta == null ? '—' : (l.smetaToliq ? '' : '≈ ') + pulQ(l.smeta)}</span>
                   </span>
                   {/* Uzunlik — smeta ulushi (eng kattasiga nisbatan), ichidagi to‘ldirish — F2 va fakt foizi. */}
                   <span className="mt-1 block" style={{ width: (l.smeta != null && maxS > 0 ? Math.max(18, (l.smeta / maxS) * 100) : 18) + '%' }}>

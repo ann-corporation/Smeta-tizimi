@@ -17,9 +17,16 @@ import { useEffect, useRef, useState } from 'react';
 export type GrafTugun = { id: string; nom: string; rang: string; tur: string; markaz?: boolean };
 export type GrafBog = { manba: string; maqsad: string };
 
-const MONO = '#b4bccc';
-const URGU = '#8fb0ff';
-const MARKAZ = '#f2c46d';
+/** Ranglar Firuza tokenlaridan (ish vaqtida o'qiladi) — Tun va Ganch mavzularida ishlaydi. */
+type Rang = { fon: string; mono: string; urgu: string; markaz: string; matn: string; chiziq: string };
+const ZAXIRA: Rang = { fon: '#0e1113', mono: '#a7b1af', urgu: '#86a6ff', markaz: '#2ec4b6', matn: '#e8ecea', chiziq: '#64707a' };
+function tokenRanglar(): Rang {
+  if (typeof document === 'undefined') return ZAXIRA;
+  const cs = getComputedStyle(document.documentElement);
+  const v = (k: string, z: string) => cs.getPropertyValue(k).trim() || z;
+  return { fon: v('--bg', ZAXIRA.fon), mono: v('--text-dim', ZAXIRA.mono), urgu: v('--info', ZAXIRA.urgu), markaz: v('--accent', ZAXIRA.markaz), matn: v('--text', ZAXIRA.matn), chiziq: v('--border-strong', ZAXIRA.chiziq) };
+}
+const MONO = 'var(--text-dim)';
 const RANG_KALIT = 'graf2d-rang-v1';
 
 type N = GrafTugun & { x: number; y: number; vx: number; vy: number; r: number; daraja: number; qotgan: boolean };
@@ -142,7 +149,9 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
     const { n, e, qo } = holat.current;
     const { x: kx, y: ky, k } = kamera.current;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = '#1e1e1e';
+    const R = tokenRanglar();
+    const URGU = R.urgu, MARKAZ = R.markaz;
+    ctx.fillStyle = R.fon;
     ctx.fillRect(0, 0, w, h);
     ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * (w / 2 + kx), dpr * (h / 2 + ky));
     const bm = boglashRef.current;
@@ -154,14 +163,16 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
     ctx.lineWidth = 1 / k;
     for (const [a, b] of e) {
       const yoniq = faol ? (faol.has(a.id) && faol.has(b.id) && (a.id === hv || b.id === hv)) : true;
-      ctx.strokeStyle = yoniq ? (faol ? 'rgba(143,176,255,0.9)' : 'rgba(160,160,160,0.28)') : 'rgba(120,120,120,0.07)';
+      ctx.strokeStyle = yoniq && faol ? R.urgu : R.chiziq;
+      ctx.globalAlpha = yoniq ? (faol ? 0.9 : 0.45) : 0.1;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.globalAlpha = 1;
     }
     // Bog'lash rejimi: manbadan kursorgacha punktir.
     const bmTugun = bm ? holat.current.byId.get(bm) : undefined;
     if (bmTugun) {
       const kx2 = (kursor.current.x - w / 2 - kx) / k, ky2 = (kursor.current.y - h / 2 - ky) / k;
-      ctx.setLineDash([6 / k, 6 / k]); ctx.strokeStyle = 'rgba(143,176,255,0.9)'; ctx.lineWidth = 1.5 / k;
+      ctx.setLineDash([6 / k, 6 / k]); ctx.strokeStyle = R.urgu; ctx.lineWidth = 1.5 / k;
       ctx.beginPath(); ctx.moveTo(bmTugun.x, bmTugun.y); ctx.lineTo(kx2, ky2); ctx.stroke();
       ctx.setLineDash([]); ctx.lineWidth = 1 / k;
     }
@@ -169,15 +180,15 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
     for (const a of n) {
       const yoniq = (!faol || faol.has(a.id)) && moslik(a);
       ctx.globalAlpha = yoniq ? 1 : 0.15;
-      ctx.fillStyle = a.id === hv || a.id === bm ? URGU : a.markaz ? MARKAZ : turRangRef.current ? a.rang : MONO;
+      ctx.fillStyle = a.id === hv || a.id === bm ? URGU : a.markaz ? MARKAZ : turRangRef.current ? a.rang : R.mono;
       ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2); ctx.fill();
-      if (a.id === hv || a.id === bm) { ctx.strokeStyle = '#dbe5ff'; ctx.lineWidth = 1.5 / k; ctx.stroke(); }
+      if (a.id === hv || a.id === bm) { ctx.strokeStyle = R.matn; ctx.lineWidth = 1.5 / k; ctx.stroke(); }
       // Yozuv: yaqinlashganda yoki faol tugunlarda (Obsidian kabi).
       const muhim = a.daraja >= 5 || !!a.markaz;
-      if (a.markaz) { ctx.strokeStyle = 'rgba(242,196,109,0.55)'; ctx.lineWidth = 2 / k; ctx.beginPath(); ctx.arc(a.x, a.y, a.r + 6 / k, 0, Math.PI * 2); ctx.stroke(); }
+      if (a.markaz) { ctx.strokeStyle = R.markaz; ctx.lineWidth = 2 / k; ctx.beginPath(); ctx.arc(a.x, a.y, a.r + 6 / k, 0, Math.PI * 2); ctx.stroke(); }
       if (k > 1.25 || (faol && faol.has(a.id)) || muhim || (qs && moslik(a))) {
         ctx.globalAlpha = yoniq ? Math.min(1, (faol?.has(a.id) || muhim || qs ? 1 : (k - 1.1) * 3)) : 0.1;
-        ctx.fillStyle = '#dcddde';
+        ctx.fillStyle = R.matn;
         ctx.font = `${12 / Math.max(0.8, k)}px Inter, system-ui, sans-serif`;
         ctx.textAlign = 'center';
         if (a.markaz) {
@@ -203,7 +214,7 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
   };
 
   return (
-    <div ref={quti} className="select-none" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: '#1e1e1e' }}>
+    <div ref={quti} className="select-none" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
       <canvas
         ref={canvas}
         className="block"
@@ -258,23 +269,23 @@ export function Graf2D({ tugunlar, boglar, onTanla, onBogla }: {
       />
       <div className="whitespace-nowrap" style={{ position: 'absolute', left: 12, top: 12, right: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <input value={qidir} onChange={(e) => { setQidir(e.target.value); qidirRef.current = e.target.value; }} placeholder="Qidirish…"
-          className="w-56 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-sky-300/60" />
+          className="w-56 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] text-text placeholder:text-text-mute outline-none focus:border-accent" />
         <button type="button" onClick={() => sigdir()}
-          className="rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-300 hover:bg-white/10">Ekranga sig‘dirish</button>
+          className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] text-text-dim hover:bg-surface-2">Ekranga sig‘dirish</button>
         {onBogla && (
           <button type="button" onClick={() => setBoglash((b) => (b == null ? '' : null))} title="Avval birinchi tugunni, keyin ikkinchisini bosing (Esc — bekor)"
-            className={boglash != null ? 'rounded-md border border-sky-300/40 bg-sky-400/15 px-2.5 py-1.5 text-[12px] text-sky-100' : 'rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-300 hover:bg-white/10'}>
+            className={boglash != null ? 'rounded-md border border-accent bg-[var(--accent-soft)] px-2.5 py-1.5 text-[12px] text-text' : 'rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] text-text-dim hover:bg-surface-2'}>
             🔗 {boglash == null ? 'Bog‘lash' : boglash ? 'Ikkinchi tugunni bosing… (Esc)' : 'Birinchi tugunni bosing… (Esc)'}
           </button>
         )}
-        <label className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-300">
-          <input type="checkbox" checked={turRang} onChange={(e) => setTurRang(e.target.checked)} className="accent-sky-400" /> Tur ranglari
+        <label className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] text-text-dim">
+          <input type="checkbox" checked={turRang} onChange={(e) => setTurRang(e.target.checked)} className="accent-[var(--accent)]" /> Tur ranglari
         </label>
       </div>
       {hover && (() => { const a = holat.current.byId.get(hover); return a ? (
-        <div className="rounded-md border border-white/10 bg-black/60 px-3 py-2 text-[12px] text-zinc-200" style={{ position: 'absolute', left: 12, bottom: 12, pointerEvents: 'none' }}>
+        <div className="rounded-md border border-border bg-surface px-3 py-2 text-[12px] text-text" style={{ position: 'absolute', left: 12, bottom: 12, pointerEvents: 'none' }}>
           <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: turRang ? a.rang : MONO }} />
-          <b>{a.nom}</b> <span className="text-zinc-400">· {a.tur} · {a.daraja} ta bog‘lanish</span>
+          <b>{a.nom}</b> <span className="text-text-mute">· {a.tur} · {a.daraja} ta bog‘lanish</span>
         </div>) : null; })()}
     </div>
   );

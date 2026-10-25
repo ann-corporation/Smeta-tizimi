@@ -390,5 +390,13 @@
  "Foiz faqat smetasi bor obyektlar bo‘yicha": {
   "ru": "Процент — только по объектам со сметой",
   "en": "Percentage covers only objects with an estimate"
+ },
+ "ming": {
+  "ru": "тыс.",
+  "en": "K"
+ },
+ "trln": {
+  "ru": "трлн",
+  "en": "tn"
  }
 }

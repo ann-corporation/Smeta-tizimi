@@ -73,7 +73,7 @@ describe('MindmapKichik', () => {
     render(<MemoryRouter><MindmapKichik graf={graf()} /></MemoryRouter>);
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('link', { name: /To‘liq xaritani ochish/ }).getAttribute('href')).toBe('/admin/mindmap');
-    expect(screen.getByText('2 ta obyekt · smeta ≈ 1 минг · F2 40%')).toBeTruthy();
+    expect(screen.getByText('2 ta obyekt · smeta ≈ 1 ming · F2 40%')).toBeTruthy();
     fetchSpy.mockRestore();
   });
 });

@@ -10,7 +10,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { AlertTriangle, Box, Clock, Info, LayoutDashboard, List, Network, PencilLine, RefreshCcw, Search, X, Map as MapIkon } from 'lucide-react';
 import type { MindmapGraf } from '../../api/t2-mindmap';
-import { pulQisqa } from '../../lib/format';
 import { t, useTil, sanaFormatla } from '../../i18n/til';
 import {
   daraxtQur, fokusYoli, mindmapJoyla, qidiruvMoslari, HOLAT_TARTIB,
@@ -20,7 +19,7 @@ import { XaritaKanvas } from './XaritaKanvas';
 import { XaritaPanel, type HodisaHolati } from './XaritaPanel';
 import { XaritaRoyxat } from './XaritaRoyxat';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
-import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi } from './holat';
+import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 
 export type MindmapKorinishTuri = 'xarita' | 'royxat' | '2d' | '3d' | 'tahrir';
 
@@ -272,12 +271,12 @@ function Korsatkichlar({ daraxt, graf, onHolat }: { daraxt: XDaraxt; graf: Mindm
   return (
     <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-6">
       <Kpi nom={t('Obyektlar')} qiymat={String(r.obyektSoni)} izoh={t('{n} ta loyihada', { n: loyihaSoni })} />
-      <Kpi nom={t('Smeta (ustamasiz)')} qiymat={r.smeta == null ? '—' : taxm + pulQisqa(r.smeta)}
+      <Kpi nom={t('Smeta (ustamasiz)')} qiymat={r.smeta == null ? '—' : taxm + pulQ(r.smeta)}
         izoh={smetasiz ? t('{n} obyektda smeta yo‘q', { n: smetasiz }) : t('barcha obyektlarda bor')} ogoh={!!smetasiz} />
-      <Kpi nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulQisqa(r.fakt)} izoh={t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
+      <Kpi nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulQ(r.fakt)} izoh={t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
         <Bajarilish faktFoiz={r.faktFoiz} f2Foiz={0} smetaBor={r.smeta != null} matn={foizMatn(r.faktFoiz)} />
       </Kpi>
-      <Kpi nom={t('F2 bilan topshirilgan')} rang="var(--accent)" qiymat={pulQisqa(r.f2)} izoh={t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
+      <Kpi nom={t('F2 bilan topshirilgan')} rang="var(--accent)" qiymat={pulQ(r.f2)} izoh={t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
         <Bajarilish faktFoiz={r.f2Foiz} f2Foiz={r.f2Foiz} smetaBor={r.smeta != null} />
       </Kpi>
       <div className="fz-kpi">

@@ -3,11 +3,10 @@
  * obyekt qatorlari — holat rombi, smeta, F2/fakt o‘lchagichi va ogohlantirish chiplari.
  */
 import { AlertTriangle, ChevronRight } from 'lucide-react';
-import { pulQisqa } from '../../lib/format';
 import { t } from '../../i18n/til';
 import type { XDaraxt, XTugun } from '../../lib/mindmap-korinish';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
-import { foizMatn, holatNomi } from './holat';
+import { foizMatn, holatNomi, pulQ } from './holat';
 
 export function XaritaRoyxat({ daraxt, korinadi, tanlangan, onTanla, guruhNomi }: {
   daraxt: XDaraxt; korinadi: (id: string) => boolean; tanlangan: string | null; onTanla: (id: string) => void; guruhNomi: string;
@@ -28,7 +27,7 @@ export function XaritaRoyxat({ daraxt, korinadi, tanlangan, onTanla, guruhNomi }
                   <Romb holat={l.holat} olcham={10} />
                   <span className="truncate font-[600] text-[14.5px] text-text" style={{ fontFamily: 'var(--font-display)' }}>{l.tur === 'guruh' ? guruhNomi : l.nom}</span>
                 </span>
-                <span className="shrink-0 font-mono text-[12px] text-text-dim tabular-nums">{l.smeta == null ? t('smeta yo‘q') : (l.smetaToliq ? '' : '≈ ') + pulQisqa(l.smeta)}</span>
+                <span className="shrink-0 font-mono text-[12px] text-text-dim tabular-nums">{l.smeta == null ? t('smeta yo‘q') : (l.smetaToliq ? '' : '≈ ') + pulQ(l.smeta)}</span>
               </span>
               <span className="mt-2 grid grid-cols-[1fr_auto] items-center gap-3">
                 <Bajarilish faktFoiz={l.faktFoiz} f2Foiz={l.f2Foiz} smetaBor={l.smeta != null} />
@@ -56,7 +55,7 @@ function ObyektQator({ o, tanlangan, onTanla }: { o: XTugun; tanlangan: boolean;
         <Romb holat={o.holat} olcham={8} />
         <span className="min-w-0">
           <span className="block truncate text-[13.5px] font-semibold text-text">{o.nom}</span>
-          <span className="block text-[11.5px] text-text-mute">{holatNomi(o.holat) + ' · ' + (o.smeta == null ? t('smeta yo‘q') : pulQisqa(o.smeta)) + ' · ' + t('F2 {p}', { p: foizMatn(o.f2Foiz) })}</span>
+          <span className="block text-[11.5px] text-text-mute">{holatNomi(o.holat) + ' · ' + (o.smeta == null ? t('smeta yo‘q') : pulQ(o.smeta)) + ' · ' + t('F2 {p}', { p: foizMatn(o.f2Foiz) })}</span>
         </span>
         <ChevronRight aria-hidden className="h-4 w-4 text-text-mute" />
         <span className="col-start-2 col-end-4"><Bajarilish faktFoiz={o.faktFoiz} f2Foiz={o.f2Foiz} smetaBor={o.smeta != null} /></span>

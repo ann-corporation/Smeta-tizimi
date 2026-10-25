@@ -11,11 +11,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Map as MapIkon } from 'lucide-react';
 import { sbMindmapGrafOl, type MindmapGraf } from '../../api/t2-mindmap';
-import { pulQisqa } from '../../lib/format';
 import { t, useTil } from '../../i18n/til';
 import { daraxtQur, diqqatRoyxati, hajmOlcham, radialJoyla, HOLAT_TARTIB } from '../../lib/mindmap-korinish';
 import { HolatChiziq } from './belgilar';
-import { HOLAT_RANG, foizMatn, holatNomi } from './holat';
+import { HOLAT_RANG, foizMatn, holatNomi, pulQ } from './holat';
 import { Romb } from './belgilar';
 
 export type MindmapKichikProps = {
@@ -59,7 +58,7 @@ export function MindmapKichik({ kompaniyaId, graf: tayyor, havola = '/admin/mind
       <div className="fz-card__head">
         <div className="min-w-0">
           <h3 className="fz-card__title inline-flex items-center gap-2"><MapIkon aria-hidden className="h-4 w-4 text-[var(--accent-text)]" />{sarlavhaMatn}</h3>
-          {root && <p className="fz-card__sub">{t('{n} ta obyekt', { n: root.obyektSoni }) + ' · ' + t('smeta {s}', { s: (root.smetaToliq ? '' : '≈ ') + pulQisqa(root.smeta) }) + ' · ' + t('F2 {p}', { p: foizMatn(root.f2Foiz) })}</p>}
+          {root && <p className="fz-card__sub">{t('{n} ta obyekt', { n: root.obyektSoni }) + ' · ' + t('smeta {s}', { s: (root.smetaToliq ? '' : '≈ ') + pulQ(root.smeta) }) + ' · ' + t('F2 {p}', { p: foizMatn(root.f2Foiz) })}</p>}
         </div>
         <Link to={havola} className="fz-btn fz-btn--sm shrink-0 no-underline">{t('To‘liq xaritani ochish')}<ArrowRight aria-hidden /></Link>
       </div>
