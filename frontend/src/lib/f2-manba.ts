@@ -20,3 +20,23 @@ export function f2ImportQilinganmi(aktId: number): Promise<boolean> {
   p.catch(() => kesh.delete(aktId));
   return p;
 }
+
+/**
+ * Bir nechta akt uchun BITTA so'rov (F2 tarixi ro'yxati: N+1 yo'q): import qilingan aktlar to'plami.
+ * Ustun ro'yxati kesilsa (limit) — ishonchsiz natija o'rniga akt-akt tekshiruvga qaytadi.
+ */
+export async function f2ImportAktlari(aktIds: readonly number[]): Promise<Set<number>> {
+  const ids = [...new Set(aktIds.filter((x) => Number.isSafeInteger(x) && x > 0))];
+  if (!ids.length) return new Set();
+  const LIMIT = 20000;
+  const r = await sbOqi<{ akt_id: number }>({ jadval: 't2_akt_qator', filtr: `akt_id=in.(${ids.join(',')})&raw_snapshot->>manba=eq.f2_v3`, ustunlar: 'akt_id', limit: LIMIT });
+  if (!r.ok) throw new Error('F2_MANBA_OQILMADI');
+  const rows = r.qatorlar ?? [];
+  if (rows.length >= LIMIT) {
+    const belgi = await Promise.all(ids.map((id) => f2ImportQilinganmi(id)));
+    return new Set(ids.filter((_, i) => belgi[i]));
+  }
+  const natija = new Set(rows.map((x) => x.akt_id));
+  for (const id of ids) kesh.set(id, Promise.resolve(natija.has(id)));
+  return natija;
+}

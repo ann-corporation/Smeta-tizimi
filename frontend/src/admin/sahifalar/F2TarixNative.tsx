@@ -28,7 +28,7 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 import { ZakazchigaYuborish } from '../zakazchik/ZakazchigaYuborish';
-import { f2ImportQilinganmi } from '../../lib/f2-manba';
+import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
 
 type F2Detail = F2Tafsilot;
 
@@ -105,6 +105,16 @@ export function F2TarixNative() {
     void f2ImportQilinganmi(id).then((v) => { if (faol) setImportAkt({ id, import: v }); }).catch(() => { if (faol) setImportAkt({ id, import: false }); });
     return () => { faol = false; };
   }, [selectedAkt?.id]);
+  /** Qoralama aktlardan qaysilari import orqali yaratilgan: bitta so'rov (null - hali o'qilmagan; xato - eski xulq: import sahifasi). */
+  const [importSet, setImportSet] = useState<ReadonlySet<number> | 'xato' | null>(null);
+  const qoralamaIdlar = useMemo(() => f2Reestr.filter((a) => a.holat === 'qoralama').map((a) => a.id), [f2Reestr]);
+  useEffect(() => {
+    if (!qoralamaIdlar.length) { setImportSet(new Set()); return; }
+    let faol = true;
+    setImportSet(null);
+    void f2ImportAktlari(qoralamaIdlar).then((s) => { if (faol) setImportSet(s); }).catch(() => { if (faol) setImportSet('xato'); });
+    return () => { faol = false; };
+  }, [qoralamaIdlar]);
   const selectedLines = useMemo(
     () => selectedAkt ? tafsilot.filter((line) => line.akt_id === selectedAkt.id) : [],
     [selectedAkt, tafsilot],
@@ -284,7 +294,9 @@ export function F2TarixNative() {
                       <td className="p-3"><button className="text-left" onClick={() => setSelectedAktId(akt.id)}><div className="font-medium text-text">{akt.oy?.slice(0, 7) || 'Davr noma’lum'}</div><div className="text-text-dim">{akt.raqam || 'F2 hujjati'}</div></button></td>
                       <td><PtoStatusChip label={t(holatYorligi(akt))} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-xs text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
                       <td className="text-right tabular-nums"><FmtN val={akt.hujjat_jami} /><div className="text-xs text-text-mute">{akt.qator_soni ?? '—'} qator</div></td>
-                      <td className="p-3 text-right">{akt.holat === 'qoralama' && (akt.lifecycle_status ?? 'draft') === 'draft' && <a className="mr-2 underline text-accent" href={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Import oynasida qayta ochib, xato joylarini tuzatish')}>✎ {t('Tahrirlash')}</a>}{akt.holat === 'qoralama' && tugmaMatni(akt) && <button title={tugmaRuxsat(akt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!tugmaRuxsat(akt)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : t(tugmaMatni(akt) ?? '')}</button>}</td>
+                      <td className="p-3 text-right">{akt.holat === 'qoralama' && (akt.lifecycle_status ?? 'draft') === 'draft' && importSet !== null && (importSet === 'xato' || importSet.has(akt.id)
+                        ? <a className="mr-2 underline text-accent" href={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Import oynasida qayta ochib, xato joylarini tuzatish')}>✎ {t('Tahrirlash')}</a>
+                        : <a className="mr-2 underline text-accent" href={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${akt.id}`} title={t('F2 tayyorlashda ochib, hajm va narxni yangilash')}>✎ {t('Tahrirlash')}</a>)}{akt.holat === 'qoralama' && tugmaMatni(akt) && <button title={tugmaRuxsat(akt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!tugmaRuxsat(akt)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : t(tugmaMatni(akt) ?? '')}</button>}</td>
                     </tr>;
                   })}
                 </tbody>

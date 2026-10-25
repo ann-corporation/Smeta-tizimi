@@ -152,6 +152,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [holat, setHolat] = useState('Obyekt va F2 faylni tanlang.');
   const [xato, setXato] = useState('');
   const [aktZiddiyat, setAktZiddiyat] = useState(false);
+  /** Akt import orqali yaratilmagan (F2 tayyorlashda yasalgan): xato o'rniga tayyorlash sahifasiga havola. */
+  const [tayyorlashHavola, setTayyorlashHavola] = useState<string | null>(null);
   const [avvalgi, setAvvalgi] = useState<{ key: string; akt: AvvalgiF2 | null; error: boolean } | null>(null);
   const [tekshiruv, setTekshiruv] = useState(0);
   const [ogoh, setOgoh] = useState('');
@@ -819,7 +821,7 @@ function Sessiya({ companyId }: { companyId: number }) {
    */
   async function aktdanTikla(aktId: number, obyektId: number): Promise<boolean> {
     if (busy || ij) return false;
-    setBusy(true); setXato('');
+    setBusy(true); setXato(''); setTayyorlashHavola(null);
     try {
       const [qs, ak] = await Promise.all([
         sbOqi<AktQatorBand>({ jadval: 't2_akt_qator', filtr: `akt_id=eq.${aktId}&obyekt_id=eq.${obyektId}`, ustunlar: 'akt_id,qator_id,hajm,certified_quantity,raw_snapshot', limit: 50000 }),
@@ -830,6 +832,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const snaps = (qs.qatorlar ?? []).filter((q) => q.raw_snapshot?.manba === 'f2_v3');
       const s0 = snaps[0]?.raw_snapshot as (AktQatorBand['raw_snapshot'] & { hujjat_id?: number }) | undefined;
       const docId = Number(s0?.hujjat_id);
+      if (!snaps.length) { setTayyorlashHavola(`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${aktId}`); throw new Error(t('Bu F2 tizimda (F2 tayyorlash) yasalgan - uni F2 tayyorlashda oching.')); }
       if (!s0 || !Number.isSafeInteger(docId) || docId <= 0 || !s0.fayl || !s0.varaq) throw new Error('Bu aktning manba hujjati yozilmagan (import orqali yaratilmagan) - uni faylni qayta import qilib almashtiring.');
       const month = String(aktQ.oy).slice(0, 7);
       const malumotP = malumotYukla(obyektId, month);
@@ -1461,7 +1464,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </section>
       )}
       {ogoh && <p className="text-[12px] text-warn">{ogoh}</p>}
-      {xato && <div role="alert" className="text-[13px] text-danger"><p>{xato}</p>{aktZiddiyat && <a
+      {xato && <div role="alert" className="text-[13px] text-danger"><p>{xato}</p>{tayyorlashHavola && <a href={tayyorlashHavola} className="mt-2 inline-block underline text-accent">{t('F2 tayyorlashda ochish')}</a>}{aktZiddiyat && <a
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
