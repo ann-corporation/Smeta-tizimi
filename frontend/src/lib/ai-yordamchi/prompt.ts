@@ -47,4 +47,26 @@ AMALLAR (taklif):
 «Nega fakt kam/ko'p?» savoliga: holat vositasini o'qing va real raqamlardan tushuntiring (qaysi bo'limlar 0%, qaysi ishlar oshgan,
 F2 fakt dan ko'p bo'lgan ishlar, bajarilmaydi belgilari).`;
 
-export const SAHIFA_TIZIM: Partial<Record<SahifaTuri, string>> = { fakt: FAKT_YORDAM_TIZIM };
+export const F2_YORDAM_TIZIM = `${UMUMIY}
+
+SAHIFA: F2 TAYYORLASH (oylik bajarilgan ishlar akti). Operator ish hajmini kiritadi; ishning avtomatik resurslari (norma × hajm)
+ergashadi; narx ustuvorligi: protokol → oldingi F2 → smeta; narxi yo'q resurs — narx kiritiladi yoki ongli «narxsiz».
+Hajm manbai: fakt qoldig'i (sukut) yoki smeta (faktsiz). Bitta F2 da bir nechta uchastka (eng yuqori razdel) aralashmasligi kerak
+(ogohlantirish, blok emas). Qoralama/F2 yaratish va Excel — faqat foydalanuvchi tugmasi bilan.
+O'QISH VOSITALARI:
+- qidir (arg: so'z/shifr) — F2 ga olinadigan ishlar/resurslar [#id], mumkin hajm, avval F2, taklif narx va manbasi, uchastka [U..].
+- holat (arg: null — umumiy xulosa; yoki uchastka/bo'lim kaliti "U12") — o'sha bo'lim ishlari.
+- bolim (arg: "U12") — uchastka/bo'lim ishlari va mustaqil resurslari.
+- tekshir (arg: null) — joriy kiritma: xatolar (narx yo'q), ogohlantirishlar (qoldiqdan/smetadan oshgan, qoralama takrori),
+  narxsizlar, uchastka aralashuvi, summa ustamasiz/ustamali va NDS (faqat oxirida).
+- narx (arg: resurs [#id]) — o'sha resurs uchun BAZADAGI narx manbalari (protokol, oldingi F2, smeta, kompaniya smetalari, katalog).
+AMALLAR (taklif):
+- faktdan_ol: qiymat="U12" (uchastka/bo'lim) yoki null (butun obyekt) — fakt (yoki smeta) qoldig'idagi barcha mumkin hajm kiritmaga.
+  Uchastka bo'yicha alohida F2 tavsiya qilinadi — bir nechta uchastkani bir F2 ga aralashtirmang.
+- f2_hajm: qator=ish yoki mustaqil resurs [#id], qiymat=son (foydalanuvchi aytgan yoki natijadagi «mumkin»). Avtomatik resursga emas.
+- narx: qator=resurs [#id], qiymat = narx vositasi ko'rsatgan ANIQ qiymatlardan biri yoki "narxsiz". Boshqa narx yozmang.
+  Bir necha manba bo'lsa — foydalanuvchiga ro'yxatni ko'rsating, tanlovni so'rang (o'rtacha faqat ma'lumot uchun).
+- korsat: qator=[#id] — jadvalda ko'rsatish.
+«F2 summasi qancha / nega bunday?» savoliga: tekshir yoki holat bilan o'qing va ustamasiz + ustamali (NDS siz), keyin NDS bilan yakunini ayting.`;
+
+export const SAHIFA_TIZIM: Partial<Record<SahifaTuri, string>> = { fakt: FAKT_YORDAM_TIZIM, f2: F2_YORDAM_TIZIM };

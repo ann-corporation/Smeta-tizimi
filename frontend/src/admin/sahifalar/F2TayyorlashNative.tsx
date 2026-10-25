@@ -1,4 +1,5 @@
 import { TayyorlanganF2lar } from './TayyorlanganF2lar';
+import { F2AiYordamchi } from './F2AiYordamchi';
 import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
@@ -543,6 +544,11 @@ export function F2TayyorlashNative() {
             <button type="button" onClick={() => void saqlash()} disabled={!saqlashMumkin || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"><Save size={14} />{aktId != null ? (saving ? t('Yangilanmoqda…') : `${t('F2 qoralamani yangilash')} (${qatorlar.length})`) : saving ? 'Yaratilmoqda…' : `F2 qoralama yaratish (${qatorlar.length})`}</button>
           </div>
         </section>
+        {joriy?.id && !aktKorish && <F2AiYordamchi kompaniyaId={joriy.id} obyektId={obyektId}
+          malumot={{ obyektNomi: obyektlar.find((o) => o.id === obyektId)?.nom, oy, manba, ndsFoiz: ndsFoiz.trim() === '' || !Number.isFinite(Number(ndsFoiz.replace(',', '.'))) ? null : Number(ndsFoiz.replace(',', '.')),
+            bolimlar, ier: bolimIer, qatorBolim, qatorlar, jami, katKesim, uchastkalar, k }}
+          amallar={{ hajm: (id, v) => yoz('hajm', id, v), narx: (id, v) => { yoz('narxsiz', id, undefined); yoz('narx', id, v); }, narxsiz: (id) => { yoz('narx', id, undefined); yoz('narxsiz', id, true); },
+            bolimniOl, korsat: (nom) => setQidir(nom) }} />}
       </>}
     </div>
   </Sahifa>;

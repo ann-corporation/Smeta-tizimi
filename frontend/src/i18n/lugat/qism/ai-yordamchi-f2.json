@@ -1,0 +1,14 @@
+{
+  "Faktdan mumkin hajm kiritmaga olindi: {n} bo‘lim": { "ru": "Возможный объём по факту внесён: разделов — {n}", "en": "Available quantity from actuals entered: {n} sections" },
+  "{n} ta F2 hajmi kiritmaga tushdi — tekshiring": { "ru": "Внесено объёмов Ф-2: {n} — проверьте", "en": "{n} F2 quantities entered — review" },
+  "{n} ta narx kiritmaga tushdi (manba ko‘rsatilgan)": { "ru": "Внесено цен: {n} (источник указан)", "en": "{n} prices entered (source shown)" },
+  "Qoralama F2 yaratish — sahifadagi tugma bilan (Ctrl+Enter).": { "ru": "Черновик Ф-2 создаётся кнопкой на странице (Ctrl+Enter).", "en": "Create the F2 draft with the page button (Ctrl+Enter)." },
+  "F2 AI yordamchisi": { "ru": "AI-помощник по Ф-2", "en": "F2 AI assistant" },
+  "Qaysi uchastkada F2 ga olinadigan hajm bor?": { "ru": "На каком участке есть объём для Ф-2?", "en": "Which site section has quantity for F2?" },
+  "Joriy F2 ni tekshir: narxsiz va xatolar": { "ru": "Проверь текущую Ф-2: без цены и ошибки", "en": "Check the current F2: unpriced rows and errors" },
+  "F2 summasini ustamasiz va ustamali tushuntir": { "ru": "Объясни сумму Ф-2 без накруток и с накрутками", "en": "Explain the F2 total without and with markups" },
+  "Narxi yo‘q resurslarga narx manbalarini top": { "ru": "Найди источники цен для ресурсов без цены", "en": "Find price sources for unpriced resources" },
+  "F2 hajmi (kiritmaga)": { "ru": "Объём Ф-2 (во ввод)", "en": "F2 quantity (to input)" },
+  "Faktdan mumkin hajmni olish": { "ru": "Взять возможный объём по факту", "en": "Take available quantity from actuals" },
+  "Narx (kiritmaga)": { "ru": "Цена (во ввод)", "en": "Price (to input)" }
+}

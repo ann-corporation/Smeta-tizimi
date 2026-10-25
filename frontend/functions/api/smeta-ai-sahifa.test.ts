@@ -30,6 +30,12 @@ describe('sahifa_suhbat (fakt/F2 AI yordamchisi)', () => {
     expect(j.oqish).toEqual([{ vosita: 'qidir', arg: 'beton' }]);
     expect(j.amallar).toEqual([{ tur: 'fakt_hajm', qator: 12, qiymat: '+5', izoh: 'x' }]);
   });
+  it('F2 sahifasi: f2_yordam hisobi; fakt amali F2 da tashlanadi', async () => {
+    m.ai.mockResolvedValue(javob({ javob: 'ok', savollar: [], oqish: [], amallar: [{ tur: 'narx', qator: 4, qiymat: '85000', izoh: '' }, { tur: 'zamena', qator: 4, qiymat: null, izoh: '' }] }));
+    const j = await js(await run({ sahifa: 'f2' }));
+    expect(m.ai.mock.calls[0][4]).toBe('f2_yordam');
+    expect(j.amallar.map((a: { tur: string }) => a.tur)).toEqual(['narx']);
+  });
   it('oxirgi aylanishda o‘qish so‘rovi qaytmaydi', async () => {
     m.ai.mockResolvedValue(javob({ javob: 'Javob', savollar: [], oqish: [{ vosita: 'qidir', arg: 'beton' }], amallar: [] }));
     const j = await js(await run({ oxirgi: true }));
