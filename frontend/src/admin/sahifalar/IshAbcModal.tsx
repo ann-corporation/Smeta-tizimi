@@ -6,12 +6,14 @@ import { BookOpen, Plus, Repeat2, Trash2, X } from 'lucide-react';
 import { yangiOperationId, type AktNatija } from '../../api/supabase';
 import { abcXato, ishAbcSaqla, ishAbcTahrir, ishTuriQidir, narxTakliflari, resursQidir, type AbcSaqlaInput, type IshTuriVariant, type Kat, type NarxManba, type ResursVariant } from '../../api/t2-ish-abc';
 import type { AlmashtirishBelgilaFn } from '../../lib/fakt-studio';
+import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { KATLAR, KAT_NOMI, MANBA_NOMI, abcHisobla, abcTekshir, engYaxshiNarx, katAniqla, son, type AbcResurs } from '../../lib/ish-abc';
 
 export type AbcRejim =
   | { tur: 'additional'; bolimId?: number | null }
-  | { tur: 'replacement'; eski: { id: number; kod: string | null; nom: string; birlik: string | null; otaId: number | null; otaVersiya: number | null } }
-  | { tur: 'resurs_zamena'; eski: { id: number; nom: string; birlik: string | null; kat: string | null; norma: number | null }; ishHajm: number | null };
+  | { tur: 'replacement'; eski: { id: number; kod: string | null; nom: string; birlik: string | null; otaId: number | null; otaVersiya: number | null; hajm?: number | null } }
+  /** Resurs zamenasi: shu ish (yoki bo'lim) ichida resursni boshqa resurs bilan almashtirish. ishHajm — ota ish hajmi (norma × ish hajmi); ish yo'q (alohida resurs) bo'lsa null → aniq hajm kiritiladi. */
+  | { tur: 'resurs_zamena'; eski: { id: number; nom: string; birlik: string | null; kat: string | null; norma: number | null; kod?: string | null; hajm?: number | null; ishNom?: string | null }; ishHajm: number | null };
 
 const fmt = (v: number | null | undefined, d = 2) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: d }));
 const MANBA_RANG: Record<NarxManba, string> = { smeta_obyekt: 'bg-ok/15 text-ok', smeta_shartnoma: 'bg-ok/10 text-ok', smeta: 'bg-accent/15 text-accent', katalog: 'bg-warn/15 text-warn', qolda: 'bg-surface-2 text-text-dim' };
@@ -98,8 +100,11 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
   const birlikFarqli = rejim.tur === 'replacement' && !tahrir && !!almashtirishBelgila
     && !!ish.birlik.trim() && !!rejim.eski.birlik && ish.birlik.trim().toLowerCase() !== rejim.eski.birlik.trim().toLowerCase();
   const ishHajm = rejim.tur ==='resurs_zamena' ? (rejim.ishHajm != null ? String(rejim.ishHajm) : '') : ish.hajm;
-  const hisob = useMemo(() => abcHisobla(ishHajm, resurslar), [ishHajm, resurslar]);
-  const xatolar = useMemo(() => abcTekshir({ rejim: resursRejim ? 'resurs' : 'ish', ish, resurslar, sabab, fakt }), [resursRejim, ish, resurslar, sabab, fakt]);
+  /** Resurs zamenasida ota ish hajmi noma'lum (alohida resurs) — norma qo'llanmaydi, aniq hajm kiritiladi. */
+  const normaQollanadi = !(rejim.tur === 'resurs_zamena' && rejim.ishHajm == null);
+  const hisobRes = useMemo(() => (normaQollanadi ? resurslar : resurslar.map((r) => ({ ...r, norma: '' }))), [normaQollanadi, resurslar]);
+  const hisob = useMemo(() => abcHisobla(ishHajm, hisobRes), [ishHajm, hisobRes]);
+  const xatolar = useMemo(() => abcTekshir({ rejim: resursRejim ? 'resurs' : 'ish', ish, resurslar: hisobRes, sabab, fakt }), [resursRejim, ish, hisobRes, sabab, fakt]);
 
   const ishTuriQ = useMemo(() => (q: string) => ishTuriQidir(obyektId, q), [obyektId]);
   const resursQ = useMemo(() => (kat: Kat) => (q: string) => resursQidir(obyektId, q, kat), [obyektId]);
@@ -139,7 +144,7 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
       if (savedResult.current) { await onSaqlandi(savedResult.current.message,savedResult.current.id); return; }
       const bolim = bolimlar.find((b) => String(b.id) === bolimId);
       const ishP = resursRejim ? null : { kod: ish.kod.trim() || null, nom: ish.nom.trim(), birlik: ish.birlik.trim(), hajm: son(ish.hajm)! };
-      const resP = resurslar.map((r) => { const n = son(r.norma); return { kat: r.kat, kod: r.kod.trim() || null, nom: r.nom.trim(), birlik: r.birlik.trim(), norma: n != null && n > 0 ? n : null, hajm: n != null && n > 0 ? null : son(r.hajm ?? ''), narx: son(r.narx), narx_manba: r.manba }; });
+      const resP = hisobRes.map((r) => { const n = son(r.norma); return { kat: r.kat, kod: r.kod.trim() || null, nom: r.nom.trim(), birlik: r.birlik.trim(), norma: n != null && n > 0 ? n : null, hajm: n != null && n > 0 ? null : son(r.hajm ?? ''), narx: son(r.narx), narx_manba: r.manba }; });
       const res = saqlash
         ? await saqlash({ ish: ishP, resurslar: resP, sabab: sabab.trim(), operationId: operationId.current })
         : tahrir
@@ -179,7 +184,18 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold">{rejim.tur === 'additional' ? <Plus size={16} className="text-accent" /> : <Repeat2 size={16} className="text-warn" />}{sarlavha}</h2>
             <p className="mt-1 flex items-center gap-1 text-[12px] text-text-dim"><BookOpen size={12} /> Nom yozishni boshlang (3+ harf) — yuklangan smetalardagi ish turlari va resurslar taklif qilinadi.</p>
-            {rejim.tur !== 'additional' && <p className="mt-1 text-[12px] text-text-dim">Almashtiriladi: <b className="text-text">{rejim.eski.nom}</b>{rejim.eski.birlik ? `, ${rejim.eski.birlik}` : ''} — eski qator o‘zgarmaydi, yangisi unga ishora qiladi.</p>}
+            {rejim.tur !== 'additional' && <div className="mt-2 rounded-lg border border-warn/30 bg-warn/5 px-3 py-2 text-[12px]" data-testid="zamena-asl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-text-dim">{rejim.tur === 'resurs_zamena' ? t('Almashtiriladigan resurs:') : t('Almashtiriladigan ish:')}</span>
+                {rejim.tur === 'resurs_zamena' ? <KatNishon kat={rejim.eski.kat} /> : <span className="rounded bg-accent/15 px-1 text-[10px] font-semibold text-accent">{t('ISH')}</span>}
+                {rejim.eski.kod && <span className="font-mono text-[11px] text-text-mute">{rejim.eski.kod}</span>}
+                <b className="text-text">{rejim.eski.nom}</b>
+                {rejim.eski.hajm != null && <span className="tabular-nums text-text-dim">{fmt(rejim.eski.hajm, 6)} {rejim.eski.birlik ?? ''}</span>}
+                {rejim.eski.hajm == null && rejim.eski.birlik && <span className="text-text-dim">{rejim.eski.birlik}</span>}
+              </div>
+              {rejim.tur === 'resurs_zamena' && <p className="mt-1 text-[11px] text-text-mute">{rejim.eski.ishNom ? t('Ish: {nom}', { nom: rejim.eski.ishNom }) : t('Alohida resurs (ishsiz)')}{rejim.ishHajm != null ? ` · ${t('ish hajmi')} ${fmt(rejim.ishHajm, 6)}` : ''}</p>}
+              <p className="mt-1 text-[11px] text-text-mute">{t('Asl qator o‘zgarmaydi — yangisi unga ishora qiladi; asl qoldig‘i zamena bajarilgan sari yopiladi.')}</p>
+            </div>}
           </div>
           <button disabled={band} onClick={onYop} className="rounded p-1 text-text-dim hover:bg-surface-2" aria-label={t('Yopish')}><X size={18} /></button>
         </div>
@@ -218,8 +234,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
                   render={(v: ResursVariant) => <div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="truncate text-text">{v.nom}</div><div className="text-[10px] text-text-mute">{v.kat ?? '—'} · {v.birlik} {v.kod ? `· ${v.kod}` : ''} {v.manba === 'katalog' ? `· ${manbaKorinishi(v.manba_nom)}` : `· ${v.soni} ta smetada`}</div></div>
                     <div className="shrink-0 text-right"><div className="font-mono text-text">{fmt(v.narx)}</div><span className={`rounded px-1 text-[10px] ${MANBA_RANG[v.narx_manba]}`}>{MANBA_NOMI[v.narx_manba]}</span></div></div>} /></td>
                 <td className="p-1.5"><input value={r.birlik} onChange={(e) => yangila(i, { birlik: e.target.value })} className={inp} aria-label={`${i + 1}-resurs birligi`} /></td>
-                <td className="p-1.5"><input value={r.norma} onChange={(e) => yangila(i, { norma: e.target.value })} inputMode="decimal" className={num} aria-label={`${i + 1}-resurs normasi`} /></td>
-                <td className="p-1.5 text-right tabular-nums text-text-dim">{son(r.norma) != null && son(r.norma)! > 0 ? fmt(hisob.qatorlar[i]?.hajm, 6)
+                <td className="p-1.5">{normaQollanadi ? <input value={r.norma} onChange={(e) => yangila(i, { norma: e.target.value })} inputMode="decimal" className={num} aria-label={`${i + 1}-resurs normasi`} />
+                  : <span className="block text-right text-text-mute" title={t('Alohida resurs (ishsiz) — norma qo‘llanmaydi, aniq hajm kiriting')}>—</span>}</td>
+                <td className="p-1.5 text-right tabular-nums text-text-dim">{normaQollanadi && son(r.norma) != null && son(r.norma)! > 0 ? fmt(hisob.qatorlar[i]?.hajm, 6)
                   : <input value={r.hajm ?? ''} onChange={(e) => yangila(i, { hajm: e.target.value })} inputMode="decimal" placeholder="aniq hajm" title="Normasiz resurs — sarflangan aniq miqdor" className={num} aria-label={`${i + 1}-resurs aniq hajmi`} />}</td>
                 <td className="p-1.5"><div className="flex items-center gap-1">
                   <span className={`shrink-0 rounded px-1 text-[10px] ${MANBA_RANG[r.manba]}`} title="Narx manbasi">{MANBA_NOMI[r.manba]}</span>

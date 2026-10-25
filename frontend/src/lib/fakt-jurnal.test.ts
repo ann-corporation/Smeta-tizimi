@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi } from './fakt-jurnal';
+import { bolimSummalari, bolimTarkibi, holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi, zamenaTartibla } from './fakt-jurnal';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 1, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: 'n', birlik: 'м3',
@@ -70,6 +70,58 @@ describe('fakt jurnali', () => {
     expect(qoldiqUlushi({ qoldiq: 60 }, 25)).toBe('15');
     expect(qoldiqUlushi({ qoldiq: 0 }, 100)).toBeNull();
     expect(sonOqi(' 1 000,5 ')).toBe(1000.5);
+  });
+});
+
+describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', () => {
+  it('bolimTarkibi: tanlangan bo‘lim + barcha avlodlar; ishsiz shox tashlanadi', () => {
+    const r = [
+      q({ id: 1, tur: 'rz', nom: 'A' }), q({ id: 2, tur: 'rz', ota_id: 1, nom: 'A.1' }), q({ id: 3, tur: 'rz', ota_id: 2, nom: 'A.1.1' }),
+      q({ id: 4, tur: 'bl', ota_id: 3, nom: 'Ish', hajm: 1 }), q({ id: 5, tur: 'rz', ota_id: 1, nom: 'A.2 (bo‘sh)' }),
+    ];
+    const { bolimlar, bolimIshlari } = jurnalQur(r, []);
+    const t = bolimTarkibi(1, bolimlar, bolimIshlari);
+    expect(t.map((x) => [x.bolim.id, x.nisbiy, x.ishlar.map((i) => i.id)])).toEqual([[1, 0, []], [2, 1, []], [3, 2, [4]]]);
+    expect(bolimlar.find((b) => b.id === 1)?.ishSoni).toBe(1);
+  });
+
+  it('zamena asl qatoridan keyin; resurs zamenasi ham ish ichida aslidan keyin; kat va asl nomi', () => {
+    const r = [
+      q({ id: 1, tur: 'rz', nom: 'A' }),
+      q({ id: 2, tur: 'bl', ota_id: 1, kod: 'E1', nom: 'Asl ish', hajm: 10 }),
+      q({ id: 3, tur: 'bl', ota_id: 1, nom: 'Boshqa ish', hajm: 5 }),
+      q({ id: 4, tur: 'bl', ota_id: 1, nom: 'Zamena ish', hajm: 10, zamena: true, qoshimcha: true }),
+      q({ id: 5, tur: 'mat', ota_id: 2, nom: 'Blok', kat: 'МАТ', hajm: 3 }),
+      q({ id: 6, tur: 'mat', ota_id: 2, nom: 'Kabel', kat: 'КАБ', hajm: 2 }),
+      q({ id: 7, tur: 'mat', ota_id: 2, nom: 'G‘isht', kat: 'МАТ', hajm: 300, zamena: true }),
+    ];
+    const zbog = { almashtiradi: new Map([[4, 2], [7, 5]]), almashtirilgan: new Map([[2, 4]]) };
+    const ishlar = jurnalQur(r, [], zbog).bolimIshlari.get(1)!;
+    expect(ishlar.map((x) => x.id)).toEqual([2, 4, 3]);
+    expect(ishlar[1]).toMatchObject({ almashtiradi: 2, aslNom: 'E1 Asl ish' });
+    expect(ishlar[0].almashtirilgan).toBe(4);
+    expect(ishlar[0].resurslar.map((x) => x.id)).toEqual([5, 7, 6]);
+    expect(ishlar[0].resurslar[2].kat).toBe('КАБ');
+    expect(zamenaTartibla([{ id: 1, almashtiradi: 2 }, { id: 2, almashtiradi: 1 }]).map((x) => x.id).sort()).toEqual([1, 2]);
+  });
+
+  it('bolimSummalari: bo‘lim (ichki bilan) va obyekt; smeta faqat asl; NULL 0 emas', () => {
+    const r = [
+      q({ id: 1, tur: 'rz', nom: 'A' }), q({ id: 2, tur: 'rz', ota_id: 1, nom: 'A.1' }),
+      q({ id: 3, tur: 'bl', ota_id: 2, hajm: 1 }), q({ id: 4, tur: 'mat', ota_id: 3, kat: 'МАТ' }), q({ id: 5, tur: 'rs', ota_id: 3, kat: 'ЧЕЛ' }),
+      q({ id: 6, tur: 'bl', ota_id: 2, hajm: 1, zamena: true }), q({ id: 7, tur: 'mat', ota_id: 6, kat: 'МАТ' }),
+    ];
+    const h = [
+      { qator_id: 4, smeta_hajm: 1, fakt_hajm: 1, smeta_summa: 100, fakt_summa: 50, f2_summa: 40, qoldiq_summa: 60 },
+      { qator_id: 5, smeta_hajm: 1, fakt_hajm: 0, smeta_summa: null, fakt_summa: null, f2_summa: null, qoldiq_summa: null },
+      { qator_id: 7, smeta_hajm: 1, fakt_hajm: 1, smeta_summa: 30, fakt_summa: 30, f2_summa: 0, qoldiq_summa: 30 },
+    ];
+    const s = bolimSummalari(r, h);
+    expect(s.get(1)?.smeta.ustamasiz).toBe(100);
+    expect(s.get(1)?.smeta.kesim.summasizSoni).toBe(1);
+    expect(s.get(2)?.fakt.ustamasiz).toBe(80);
+    expect(s.get(0)?.qoldiq.ustamasiz).toBe(90);
+    expect(s.get(0)?.f2.ustamasiz).toBe(40);
   });
 });
 
