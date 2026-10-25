@@ -115,3 +115,25 @@ export function dalilQamrovi(resurslar: number, dalilli: number, taklifli: numbe
     { kalit: 'yoq', soni: Math.max(0, resurslar - dalilli - taklifli) },
   ]);
 }
+
+/* ---------- 5. Narxlar markazi — g'olib manba bo'yicha xulosa ---------- */
+
+export type MarkazManba = 'belgilangan' | 'sana' | 'smeta' | null;
+/** G'olib manba chipi (o'zbekcha kalit — t() orqali). Narxi yo'q (null) — «narx yo'q», 0 emas. */
+export const MARKAZ_MANBA: Record<'belgilangan' | 'sana' | 'smeta' | 'yoq', { matn: string; cls: string; rang: string }> = {
+  belgilangan: { matn: 'Qo‘lda belgilangan', cls: 'fz-chip--accent', rang: 'var(--accent)' },
+  sana: { matn: 'Sana narxi', cls: 'bg-[var(--info-soft)] text-[var(--info)]', rang: 'var(--info)' },
+  smeta: { matn: 'Smeta (max)', cls: '', rang: 'var(--border-strong)' },
+  yoq: { matn: 'Narx yo‘q', cls: 'fz-chip--danger', rang: 'var(--danger)' },
+};
+
+/** Registr qatorlari: g'olib manba bo'yicha soni va xavfli (obyektlararo >5% farq) qatorlar. */
+export function markazXulosa(rows: readonly { natija: number | null; manba: MarkazManba; xavf: boolean }[]) {
+  const s = { belgilangan: 0, sana: 0, smeta: 0, yoq: 0 };
+  let xavf = 0;
+  for (const r of rows) {
+    if (r.natija == null || r.manba == null) s.yoq++; else s[r.manba]++;
+    if (r.xavf) xavf++;
+  }
+  return { ...bolaklar((['belgilangan', 'sana', 'smeta', 'yoq'] as const).map((k) => ({ kalit: k, soni: s[k] }))), jami: rows.length, xavf };
+}

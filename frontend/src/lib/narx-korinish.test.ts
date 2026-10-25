@@ -61,3 +61,16 @@ describe('qamrov', () => {
     expect(bolaklar([{ kalit: 'a', soni: 0 }]).bolaklar[0].ulush).toBe(0);
   });
 });
+
+describe('markazXulosa', () => {
+  it('g‘olib manba bo‘yicha; natija null — «narx yo‘q»', async () => {
+    const { markazXulosa } = await import('./narx-korinish');
+    const x = markazXulosa([
+      { natija: 10, manba: 'belgilangan', xavf: false }, { natija: 5, manba: 'smeta', xavf: true },
+      { natija: null, manba: null, xavf: false }, { natija: 7, manba: 'smeta', xavf: false },
+    ]);
+    expect(x.jami).toBe(4);
+    expect(x.xavf).toBe(1);
+    expect(x.bolaklar.map((b) => [b.kalit, b.soni])).toEqual([['belgilangan', 1], ['sana', 0], ['smeta', 2], ['yoq', 1]]);
+  });
+});

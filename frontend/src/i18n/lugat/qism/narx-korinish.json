@@ -650,5 +650,305 @@
  "Allaqachon import qilingan, narxsiz smetaga RES katalogidan narx qo‘llash": {
   "ru": "Применить цены из каталога РЕС к уже импортированной смете без цен",
   "en": "Apply RES catalogue prices to an already imported unpriced estimate"
+ },
+ "Ishlash qoidasi": {
+  "ru": "Правило работы",
+  "en": "How it works"
+ },
+ "Ishlanmoqda…": {
+  "ru": "Обработка…",
+  "en": "Processing…"
+ },
+ "{n} ta varaq tanlangan": {
+  "ru": "выбрано листов: {n}",
+  "en": "{n} sheets selected"
+ },
+ "LRV bor": {
+  "ru": "есть ЛРВ",
+  "en": "has LRV"
+ },
+ "Format": {
+  "ru": "Формат",
+  "en": "Format"
+ },
+ "Ishonch": {
+  "ru": "Уверенность",
+  "en": "Confidence"
+ },
+ "Topilmalar": {
+  "ru": "Находки",
+  "en": "Findings"
+ },
+ "yashirin": {
+  "ru": "скрытый",
+  "en": "hidden"
+ },
+ "alternativ: {v}": {
+  "ru": "альтернатива: {v}",
+  "en": "alternative: {v}"
+ },
+ "Tender oferta · natija": {
+  "ru": "Тендерная оферта · итог",
+  "en": "Tender offer · result"
+ },
+ "Oferta smetaga nisbatan": {
+  "ru": "Оферта относительно сметы",
+  "en": "Offer vs estimate"
+ },
+ "Hisob to‘liq": {
+  "ru": "Расчёт полный",
+  "en": "Calculation complete"
+ },
+ "hal qilinmagan: {n} ta": {
+  "ru": "не решено: {n}",
+  "en": "unresolved: {n}"
+ },
+ "Noyob material / qator": {
+  "ru": "Уникальных материалов / строк",
+  "en": "Unique materials / lines"
+ },
+ "Smeta bo‘yicha resurslar": {
+  "ru": "Ресурсы по смете",
+  "en": "Resources per estimate"
+ },
+ "Pudratchi resurslari": {
+  "ru": "Ресурсы подрядчика",
+  "en": "Contractor resources"
+ },
+ "Yakuniy oferta (QQS bilan)": {
+  "ru": "Итоговая оферта (с НДС)",
+  "en": "Final offer (with VAT)"
+ },
+ "paket": {
+  "ru": "пакет",
+  "en": "package"
+ },
+ "Smeta (QQS bilan)": {
+  "ru": "Смета (с НДС)",
+  "en": "Estimate (with VAT)"
+ },
+ "Materiallar tayyorligi": {
+  "ru": "Готовность материалов",
+  "en": "Materials readiness"
+ },
+ "Oferta (QQS bilan)": {
+  "ru": "Оферта (с НДС)",
+  "en": "Offer (with VAT)"
+ },
+ "{n} ta hal qilinmagan": {
+  "ru": "не решено: {n}",
+  "en": "{n} unresolved"
+ },
+ "Noma’lum (kaskadga kirmaydi)": {
+  "ru": "Неизвестно (в каскад не входит)",
+  "en": "Unknown (not in cascade)"
+ },
+ "Kaskad qadami": {
+  "ru": "Шаг каскада",
+  "en": "Cascade step"
+ },
+ "paket bo‘yicha": {
+  "ru": "по пакету",
+  "en": "for the package"
+ },
+ "Manba asosida": {
+  "ru": "По источнику",
+  "en": "From source"
+ },
+ "Oldingi sahifa": {
+  "ru": "Предыдущая страница",
+  "en": "Previous page"
+ },
+ "Keyingi sahifa": {
+  "ru": "Следующая страница",
+  "en": "Next page"
+ },
+ "Kompaniya konteksti yuklanmoqda…": {
+  "ru": "Загрузка контекста компании…",
+  "en": "Loading company context…"
+ },
+ "Narxlarni ko‘rish uchun faol kompaniya tanlanmagan.": {
+  "ru": "Не выбрана активная компания для просмотра цен.",
+  "en": "No active company selected to view prices."
+ },
+ "Xavf filtri: yoqilgan": {
+  "ru": "Фильтр риска: включён",
+  "en": "Risk filter: on"
+ },
+ "Faqat xavflilar": {
+  "ru": "Только рискованные",
+  "en": "Risky only"
+ },
+ "Narx qayerdan olinadi": {
+  "ru": "Откуда берётся цена",
+  "en": "Where the price comes from"
+ },
+ "Narx qayerdan olinadi (ustunlik: belgilangan → sana → smeta, eng kattasi)": {
+  "ru": "Откуда берётся цена (приоритет: назначенная → по дате → смета, наибольшая)",
+  "en": "Where the price comes from (priority: set → dated → estimate, the largest)"
+ },
+ "{n} ta resurs obyektlararo 5% dan ortiq farq bilan narxlangan": {
+  "ru": "{n} ресурсов расценены с разницей более 5% между объектами",
+  "en": "{n} resources priced with over 5% difference between sites"
+ },
+ "nom yoki birlik…": {
+  "ru": "название или единица…",
+  "en": "name or unit…"
+ },
+ "Bog‘lanish topilmagan resurslar ({n})": {
+  "ru": "Ресурсы без привязки ({n})",
+  "en": "Unmatched resources ({n})"
+ },
+ "Har bir qator uchun katalogdan birlik va mazmun bo‘yicha taklif qidiriladi. Taklif narxi smeta narxidan alohida ko‘rsatiladi; u smetaga avtomatik yozilmaydi.": {
+  "ru": "Для каждой строки ищется предложение в каталоге по единице и смыслу. Цена предложения показывается отдельно от сметной; в смету она не записывается автоматически.",
+  "en": "For each line a catalogue suggestion is searched by unit and meaning. The suggested price is shown separately from the estimate price and is never written to the estimate automatically."
+ },
+ "Qo‘lda narxlash": {
+  "ru": "Расценить вручную",
+  "en": "Price manually"
+ },
+ "Dalil bog‘langan": {
+  "ru": "Обоснование привязано",
+  "en": "Evidence linked"
+ },
+ "Manba #{n}": {
+  "ru": "Источник №{n}",
+  "en": "Source #{n}"
+ },
+ "Moslik": {
+  "ru": "Совпадение",
+  "en": "Match"
+ },
+ "Dalilni bog‘lash": {
+  "ru": "Привязать обоснование",
+  "en": "Link evidence"
+ },
+ "Katalogdan birlik va mazmun bo‘yicha ishonchli taklif topilmadi — qo‘lda tanlash kerak.": {
+  "ru": "Надёжного предложения по единице и смыслу в каталоге нет — выберите вручную.",
+  "en": "No reliable catalogue suggestion by unit and meaning — choose manually."
+ },
+ "Tanlangan obyekt uchun narxi topilmagan resurs yo‘q.": {
+  "ru": "У выбранного объекта нет ресурсов без цены.",
+  "en": "The selected site has no unpriced resources."
+ },
+ "Narx registri ({n})": {
+  "ru": "Реестр цен ({n})",
+  "en": "Price register ({n})"
+ },
+ "Smeta max": {
+  "ru": "Смета max",
+  "en": "Estimate max"
+ },
+ "Belgilangan": {
+  "ru": "Назначенная",
+  "en": "Set"
+ },
+ "Sana max": {
+  "ru": "По дате max",
+  "en": "Dated max"
+ },
+ "Natija": {
+  "ru": "Итог",
+  "en": "Result"
+ },
+ "Obyektlar orasida {k} barobar farq": {
+  "ru": "Разница между объектами в {k} раз",
+  "en": "{k}× difference between sites"
+ },
+ "Farq >5%": {
+  "ru": "Разница >5%",
+  "en": "Diff >5%"
+ },
+ "Nomsiz resurs": {
+  "ru": "Ресурс без названия",
+  "en": "Unnamed resource"
+ },
+ "Birlik ko‘rsatilmagan": {
+  "ru": "Единица не указана",
+  "en": "Unit not specified"
+ },
+ "kategoriya yo‘q": {
+  "ru": "нет категории",
+  "en": "no category"
+ },
+ "{k} · birlikdan qulflangan": {
+  "ru": "{k} · закреплено по единице",
+  "en": "{k} · locked by unit"
+ },
+ "— o‘zgartirmaslik —": {
+  "ru": "— не менять —",
+  "en": "— keep —"
+ },
+ "Sana narxi uchun sana": {
+  "ru": "Дата для цены по дате",
+  "en": "Date for dated price"
+ },
+ "Saqlash paytida mavjud narx qayta tekshiriladi.": {
+  "ru": "При сохранении текущая цена проверяется заново.",
+  "en": "The current price is re-checked on save."
+ },
+ "Belgilangan narxni saqlash": {
+  "ru": "Сохранить назначенную цену",
+  "en": "Save set price"
+ },
+ "Sana narxini qo‘shish": {
+  "ru": "Добавить цену по дате",
+  "en": "Add dated price"
+ },
+ "Qo‘lda belgilangan": {
+  "ru": "Назначена вручную",
+  "en": "Set manually"
+ },
+ "Sana narxi": {
+  "ru": "Цена по дате",
+  "en": "Dated price"
+ },
+ "Smeta (max)": {
+  "ru": "Смета (max)",
+  "en": "Estimate (max)"
+ },
+ "To‘g‘ridan-to‘g‘ri xarajatlar": {
+  "ru": "Прямые затраты",
+  "en": "Direct costs"
+ },
+ "Material sklad xarajati": {
+  "ru": "Складские расходы материалов",
+  "en": "Material warehouse cost"
+ },
+ "Itogo 1": {
+  "ru": "Итого 1",
+  "en": "Subtotal 1"
+ },
+ "Pudratchi boshqa xarajatlari": {
+  "ru": "Прочие расходы подрядчика",
+  "en": "Contractor's other costs"
+ },
+ "Itogo 2": {
+  "ru": "Итого 2",
+  "en": "Subtotal 2"
+ },
+ "Uskuna zagotovka/sklad": {
+  "ru": "Заготовительно-складские оборудования",
+  "en": "Equipment procurement/warehouse"
+ },
+ "Itogo 3": {
+  "ru": "Итого 3",
+  "en": "Subtotal 3"
+ },
+ "Sug‘urta": {
+  "ru": "Страхование",
+  "en": "Insurance"
+ },
+ "Itogo 4": {
+  "ru": "Итого 4",
+  "en": "Subtotal 4"
+ },
+ "QQS (NDS)": {
+  "ru": "НДС",
+  "en": "VAT"
+ },
+ "JAMI (yakuniy)": {
+  "ru": "ВСЕГО (итог)",
+  "en": "TOTAL (final)"
  }
 }

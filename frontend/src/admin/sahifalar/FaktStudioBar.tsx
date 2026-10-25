@@ -24,8 +24,8 @@ export function FaktStudioBar({ yigindi, obyektId, kompaniyaId, onF2, onYangiIsh
       {y.bajarilmadiSoni - y.bajarilmadiNarxsiz > 0 && <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={y.bajarilmadiUstamasiz} katKesim={y.bajarilmadiKesim} />}
       {y.bajarilmadiNarxsiz > 0 && <div className="text-[10px] text-warn" data-testid="fs-narxsiz">{t('narxi noma‘lum: {n} ta', { n: String(y.bajarilmadiNarxsiz) })}</div>}</div>
     <div className="ml-auto flex items-center gap-2">
-      {onYangiIsh && <button type="button" onClick={onYangiIsh} className="rounded-lg border border-accent/40 px-3 py-1.5 text-[12px] font-semibold text-text hover:bg-accent/10">+ {t('Smetada yo‘q ish')}</button>}
-      {onF2 && <button type="button" disabled={band} onClick={onF2} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50">{t('Fakt bo‘yicha F2 qoralama')} →</button>}
+      {onYangiIsh && <button type="button" onClick={onYangiIsh} className="fz-btn">+ {t('Smetada yo‘q ish')}</button>}
+      {onF2 && <button type="button" disabled={band} onClick={onF2} className="fz-btn fz-btn--primary">{t('Fakt bo‘yicha F2 qoralama')} →</button>}
     </div>
   </section>;
 }
