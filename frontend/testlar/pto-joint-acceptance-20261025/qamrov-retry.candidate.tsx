@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { JurnalIsh } from '../../src/lib/fakt-jurnal';
 
@@ -37,7 +38,7 @@ it('OPEN JQA-04: unknown result retry must preserve the original request body ev
   expect(m.yoz.mock.calls[1][0]).toEqual(m.yoz.mock.calls[0][0]);
 });
 
-it('OPEN JQA-05: partial write plus refreshed remaining rows must not reuse the first chunk ID for different rows', async () => {
+it('CONTROL: actual parent retains the scope snapshot after partial success and a state refresh', async () => {
   const rows = Array.from({ length: 3001 }, (_, i) => row(i + 10));
   const accepted = new Map<string, { akt_id: number }>();
   const persistedIds = new Set<number>();
@@ -58,17 +59,44 @@ it('OPEN JQA-05: partial write plus refreshed remaining rows must not reuse the 
   save();
   await waitFor(() => expect(p.onBajarildi).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(screen.getByRole('button', { name: /^Faktga yozish/ }).hasAttribute('disabled')).toBe(false));
-  // Parent refresh: the first 3000 rows now have no open remainder. Only the failed last row remains.
-  view.rerender(<FaktQamrov {...p} ishlar={rows.slice(3000)} />);
+  // FaktJurnal stores qamrov.ishlar in state: parent refresh replaces holatMap, NOT this snapshot.
+  const refreshed = new Map(rows.slice(0, 3000).map((q) => [q.id, { qator_id: q.id, smeta_hajm: 100, fakt_hajm: 100 }]));
+  view.rerender(<FaktQamrov {...p} ishlar={rows} holatMap={refreshed} />);
   save();
-  await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(3));
+  await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(4));
   const first = m.yoz.mock.calls[0][0];
   const retry = m.yoz.mock.calls[2][0];
-  expect(retry.qatorlar).not.toEqual(first.qatorlar);
-  // Reusing this ID resolves to the already accepted chunk or a command conflict, never the failed chunk.
-  expect.soft(retry.operationId).not.toBe(first.operationId);
-  expect(p.onYop).toHaveBeenCalledTimes(1); // UI has already reported completion.
-  expect(persistedIds.has(rows[3000].id)).toBe(true); // Last row must actually have been accepted.
+  expect(retry).toEqual(first);
+  expect(m.yoz.mock.calls[3][0]).toEqual(m.yoz.mock.calls[1][0]);
+  expect(p.onYop).toHaveBeenCalledTimes(1);
+  expect(persistedIds.has(rows[3000].id)).toBe(true);
+});
+
+it('OPEN JQA-08: close and reopen after an accepted-but-unknown response must not duplicate the same scope', async () => {
+  const p = base();
+  const rows = [row(10)];
+  const accepted = new Set<string>();
+  let persisted = 0;
+  m.yoz.mockImplementation(async (r: { operationId: string; qatorlar: { hajm: number }[] }) => {
+    if (!accepted.has(r.operationId)) { accepted.add(r.operationId); persisted += r.qatorlar[0].hajm; }
+    if (m.yoz.mock.calls.length === 1) throw new Error('synthetic reply lost after commit');
+    return { ok: true, akt_id: accepted.size };
+  });
+  function Parent() {
+    const [open, setOpen] = useState(true);
+    // Same lifecycle as FaktJurnal: onYop clears qamrov; onBajarildi refreshes states.
+    return <><button onClick={() => setOpen(true)}>Open scope</button>{open &&
+      <FaktQamrov {...p} ishlar={rows} onYop={() => setOpen(false)} />}</>;
+  }
+  render(<Parent />);
+  save();
+  await waitFor(() => expect(screen.getByRole('button', { name: /^Faktga yozish/ }).hasAttribute('disabled')).toBe(false));
+  expect(p.onBajarildi).not.toHaveBeenCalled(); // Parent has received no confirmed receipt or refreshed totals.
+  fireEvent.click(screen.getByRole('button', { name: 'Yopish' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Open scope' }));
+  save();
+  await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(2));
+  expect(persisted).toBe(100); // Both clicks refer to the same unknown attempt, not two actual work events.
 });
 
 it('CONTROL: an unchanged unknown-result retry keeps exactly the same command', async () => {

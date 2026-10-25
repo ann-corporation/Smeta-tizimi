@@ -26,8 +26,8 @@ Read-only production incidence check: по объекту153 среди2538 appr
 npx vitest run --config testlar/pto-joint-acceptance-20261025/candidate.config.ts
 ```
 
-Этот config нельзя запускать на baseline8b1eb894: там ещё нет FaktQamrov. Файлы `*.candidate.tsx` тоже исключены из обычного discovery. Измерено **1PASS/2FAIL**: неизменённый retry — PASS; JQA-04 изменённый body с прежнимUUID — FAIL; JQA-05 partial3001→refresh→retry — FAIL (success при незаписанной последней строке). Live function definitions прочитаны SELECT, без вызова writer. Synthetic server model повторяет early replay t2_akt_yarat по operation_id. Production данные не изменяются.
+Этот config нельзя запускать на baseline8b1eb894: там ещё нет FaktQamrov. Файлы `*.candidate.tsx` тоже исключены из обычного discovery. Итог **2PASS/2FAIL**: неизменённый retry и реальный partial3001→holatMap refresh→retry — PASS; JQA-04 изменённый body с прежнимUUID и JQA-08 close/reopen после unknown commit — FAIL. Во втором FAIL synthetic server получил200 вместо100. Live function definitions прочитаны SELECT, без вызова writer. Synthetic server model повторяет early replay t2_akt_yarat по operation_id. Production данные не изменяются.
 
 Обычные тесты кандидата: `ochiq-qoldiq.test.ts`, `fakt-qamrov.test.ts`, `fakt-material-taklif.test.ts`, `FaktJurnal.test.tsx` —36PASS. Это отдельное положительное свидетельство и не закрывает два независимых FAIL.
 
-Полный review: `ops/mailbox/PTO-JOINT-QA-20261025/02-codex@Anvar.md` (также P2 JQA-06/07 по навигации).
+Полный review: `ops/mailbox/PTO-JOINT-QA-20261025/02-codex@Anvar.md` **с обязательным уточнением03-codex@Anvar.md**. Прежний JQA-05 отозван: первый probe подменял ishlar, тогда как реальный FaktJurnal сохраняет qamrov.ishlar snapshot. Он стал положительным CONTROL, отдельный repartition fix не требуется. P2JQA-06/07 навигации остаются source findings.

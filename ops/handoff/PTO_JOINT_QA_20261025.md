@@ -39,3 +39,7 @@ FORBIDDEN: production writes, changes to certified historical data, secrets, for
 Read-only peer review навигации: P2 JQA-06 session role вместо current-company role при входе; P2 JQA-07 утрата job/akt ссылки при F2 tab roundtrip. PR144 material helper delta: блокирующей регрессии не установлено, существующие unit/component testsPASS. Полные exact refs, repro и требования к исправлению — mailbox02.
 
 L0: назначить findings существующим авторам PR143/141/142; прислать exact corrected SHA для повторной независимой приёмки. До этого PR143/144 не имеют QA PASS. Положительный material review не является release approval всего стека.
+
+### Уточнение после проверки consumer
+
+Mailbox03 обязателен: прежнийJQA-05/repartition ОТОЗВАН, реальный FaktJurnal хранит ishlar snapshot; partial+holatMap refresh сталCONTROL/PASS. ПодтвержденыP1JQA-04 (другой body под прежнимUUID) и новыйJQA-08 (unknown commit→закрытие/повторное открытие modal теряетUUID; synthetic итог200 вместо100). Текущий итог4probes:2controlPASS/2OPEN FAIL. Исправляющий комментарий направлен PR143 напрямую, runtime автора не менялся. Рекомендация: immutable attempt/receipts вне modal, resolution unknown до нового draft.
