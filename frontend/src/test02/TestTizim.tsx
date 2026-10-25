@@ -32,7 +32,7 @@ export default function TestTizim() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 mb-2">
-            <ShieldAlert className="text-rose-500" />
+            <ShieldAlert className="text-[var(--danger)]" />
             Universal Audit Jurnali (SOC)
           </h1>
           <p className="text-sm text-text-dim max-w-3xl">
@@ -51,39 +51,39 @@ export default function TestTizim() {
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <Activity className="text-emerald-400" size={20} />
+          <div className="w-10 h-10 rounded-full bg-[var(--ok-soft)] flex items-center justify-center shrink-0">
+            <Activity className="text-[var(--ok)]" size={20} />
           </div>
           <div>
             <p className="text-xs text-text-dim mb-0.5">Jami Holatlar (24s)</p>
-            <p className="text-lg font-bold text-white font-mono">{data.length || 142}</p>
+            <p className="text-lg font-bold text-[var(--text)] font-mono">{data.length || 142}</p>
           </div>
         </div>
         <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
-            <AlertTriangle className="text-rose-400" size={20} />
+          <div className="w-10 h-10 rounded-full bg-[var(--danger-soft)] flex items-center justify-center shrink-0">
+            <AlertTriangle className="text-[var(--danger)]" size={20} />
           </div>
           <div>
             <p className="text-xs text-text-dim mb-0.5">Kritik O'chirishlar</p>
-            <p className="text-lg font-bold text-white font-mono">12</p>
+            <p className="text-lg font-bold text-[var(--text)] font-mono">12</p>
           </div>
         </div>
         <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-sky-500/10 flex items-center justify-center shrink-0">
-            <User className="text-sky-400" size={20} />
+          <div className="w-10 h-10 rounded-full bg-[var(--accent-soft)] flex items-center justify-center shrink-0">
+            <User className="text-[var(--accent-text)]" size={20} />
           </div>
           <div>
             <p className="text-xs text-text-dim mb-0.5">Faol Foydalanuvchilar</p>
-            <p className="text-lg font-bold text-white font-mono">8</p>
+            <p className="text-lg font-bold text-[var(--text)] font-mono">8</p>
           </div>
         </div>
         <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0">
-            <Database className="text-indigo-400" size={20} />
+          <div className="w-10 h-10 rounded-full bg-[var(--info-soft)] flex items-center justify-center shrink-0">
+            <Database className="text-[var(--info)]" size={20} />
           </div>
           <div>
             <p className="text-xs text-text-dim mb-0.5">Qamrab Olingan Jadvallar</p>
-            <p className="text-lg font-bold text-white font-mono">24</p>
+            <p className="text-lg font-bold text-[var(--text)] font-mono">24</p>
           </div>
         </div>
       </div>
@@ -97,10 +97,10 @@ export default function TestTizim() {
               placeholder="Jadval, foydalanuvchi yoki amal bo'yicha izlash..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-accent outline-none"
+              className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-[var(--text)] focus:border-accent outline-none"
             />
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg text-sm text-text-dim hover:text-white hover:bg-surface-2 transition-colors">
+          <button className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg text-sm text-text-dim hover:text-[var(--text)] hover:bg-surface-2 transition-colors">
             <Filter size={16} />
             Filtr
           </button>
@@ -108,7 +108,7 @@ export default function TestTizim() {
         
         <div className="flex-1 overflow-auto p-4">
           {xato && (
-            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-lg mb-4 flex items-start gap-3">
+            <div className="bg-[var(--danger-soft)] border border-[var(--danger)] text-[var(--danger)] p-4 rounded-lg mb-4 flex items-start gap-3">
               <AlertTriangle size={18} className="mt-0.5 shrink-0" />
               <div>
                 <strong className="block mb-1">Audit loglarni o'qishda xatolik</strong>
@@ -130,13 +130,13 @@ export default function TestTizim() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm ${
-                      r.amal === 'INSERT' ? 'bg-emerald-500/20 text-emerald-400' :
-                      r.amal === 'UPDATE' ? 'bg-amber-500/20 text-amber-400' :
-                      'bg-rose-500/20 text-rose-400'
+                      r.amal === 'INSERT' ? 'bg-[var(--ok-soft)] text-[var(--ok)]' :
+                      r.amal === 'UPDATE' ? 'bg-[var(--warn-soft)] text-[var(--warn)]' :
+                      'bg-[var(--danger-soft)] text-[var(--danger)]'
                     }`}>
                       {r.amal}
                     </span>
-                    <span className="text-sm font-mono text-white flex items-center gap-2">
+                    <span className="text-sm font-mono text-[var(--text)] flex items-center gap-2">
                       <Database size={14} className="text-text-dim" />
                       {r.jadval}
                     </span>
@@ -149,19 +149,19 @@ export default function TestTizim() {
                     <User size={14} /> {r.kim || 'Tizim / Noma\'lum'}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Terminal size={14} /> Record ID: <span className="text-white font-mono">{r.yozuv_id}</span>
+                    <Terminal size={14} /> Record ID: <span className="text-[var(--text)] font-mono">{r.yozuv_id}</span>
                   </div>
                 </div>
 
                 {r.eski_malumot && r.amal !== 'INSERT' && (
-                  <div className="mt-2 text-xs font-mono bg-rose-950/20 border border-rose-900/30 text-rose-300 p-2 rounded overflow-x-auto">
+                  <div className="mt-2 text-xs font-mono bg-[var(--danger-soft)] border border-[var(--danger)] text-[var(--danger)] p-2 rounded overflow-x-auto">
                     <span className="opacity-50 select-none mr-2">Eski:</span>
                     {JSON.stringify(r.eski_malumot)}
                   </div>
                 )}
                 
                 {r.yangi_malumot && r.amal !== 'DELETE' && (
-                  <div className="mt-1 text-xs font-mono bg-emerald-950/20 border border-emerald-900/30 text-emerald-300 p-2 rounded overflow-x-auto">
+                  <div className="mt-1 text-xs font-mono bg-[var(--ok-soft)] border border-[var(--ok)] text-[var(--ok)] p-2 rounded overflow-x-auto">
                     <span className="opacity-50 select-none mr-2">Yangi:</span>
                     {JSON.stringify(r.yangi_malumot)}
                   </div>

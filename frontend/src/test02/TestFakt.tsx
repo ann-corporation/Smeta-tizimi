@@ -113,7 +113,7 @@ export default function TestFakt() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">
-            <ClipboardList className="text-emerald-500" />
+            <ClipboardList className="text-[var(--accent-text)]" />
             Bajarilgan Ishlar (Fakt)
           </h1>
           <p className="text-text-dim text-sm mt-1">
@@ -124,13 +124,13 @@ export default function TestFakt() {
         <div className="flex bg-surface border border-border rounded-lg p-1">
           <button
             onClick={() => setActiveTab('prorab')}
-            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === 'prorab' ? 'bg-emerald-600/20 text-emerald-400' : 'text-zinc-400 hover:text-white'}`}
+            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === 'prorab' ? 'bg-[var(--accent)]/20 text-[var(--accent-text)]' : 'text-[var(--text-dim)] hover:text-[var(--text)]'}`}
           >
             <Smartphone size={16} /> Prorab (Kunlik)
           </button>
           <button
             onClick={() => setActiveTab('pto')}
-            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === 'pto' ? 'bg-emerald-600/20 text-emerald-400' : 'text-zinc-400 hover:text-white'}`}
+            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === 'pto' ? 'bg-[var(--accent)]/20 text-[var(--accent-text)]' : 'text-[var(--text-dim)] hover:text-[var(--text)]'}`}
           >
             <TableIcon size={16} /> PTO (Jadval)
           </button>
@@ -141,7 +141,7 @@ export default function TestFakt() {
         <div className="flex-1">
           <label className="block text-xs font-medium text-text-dim mb-1 uppercase tracking-wider">Obyektni tanlang</label>
           <select 
-            className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-white focus:border-emerald-500 outline-none"
+            className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[var(--text)] focus:border-[var(--accent)] outline-none"
             value={tanlanganObyekt || ''}
             onChange={e => setTanlanganObyekt(Number(e.target.value))}
           >
@@ -156,7 +156,7 @@ export default function TestFakt() {
             <label className="block text-xs font-medium text-text-dim mb-1 uppercase tracking-wider">Sana</label>
             <input 
               type="date" 
-              className="bg-surface border border-border rounded-lg px-4 py-2.5 text-white focus:border-emerald-500 outline-none"
+              className="bg-surface border border-border rounded-lg px-4 py-2.5 text-[var(--text)] focus:border-[var(--accent)] outline-none"
               value={sana}
               onChange={e => setSana(e.target.value)}
             />
@@ -177,11 +177,11 @@ export default function TestFakt() {
           <div className="h-full flex flex-col">
             <div className="flex-1 overflow-auto p-4 space-y-3">
               {qatorlar.filter(q => (q.qoldiq_hajm ?? 0) > 0 || (kiritishlar[q.qator_id] !== undefined)).map(q => (
-                <div key={q.id} className="bg-bg/50 border border-border p-4 rounded-xl flex items-center gap-4 hover:border-emerald-500/30 transition-colors">
+                <div key={q.id} className="bg-bg/50 border border-border p-4 rounded-xl flex items-center gap-4 hover:border-[var(--accent)]/30 transition-colors">
                   <div className="flex-1">
                     <div className="text-xs text-text-dim font-mono mb-1">{q.kod}</div>
-                    <div className="font-medium text-sm leading-tight text-white mb-2">{q.nom}</div>
-                    <div className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded inline-flex">
+                    <div className="font-medium text-sm leading-tight text-[var(--text)] mb-2">{q.nom}</div>
+                    <div className="text-xs text-[var(--accent-text)] font-bold bg-[var(--accent)]/10 px-2 py-1 rounded inline-flex">
                       Qoldiq: {<FmtN val={q.qoldiq_hajm} />} {q.birlik}
                     </div>
                   </div>
@@ -189,7 +189,7 @@ export default function TestFakt() {
                     <input 
                       type="number"
                       placeholder="Bajarildi..."
-                      className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-emerald-500 outline-none placeholder:text-zinc-600"
+                      className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[var(--text)] font-mono focus:border-[var(--accent)] outline-none placeholder:text-[var(--text-mute)]"
                       value={kiritishlar[q.qator_id] || ''}
                       onChange={e => setKiritishlar({...kiritishlar, [q.qator_id]: e.target.value})}
                     />
@@ -201,7 +201,7 @@ export default function TestFakt() {
               <button 
                 onClick={prorabSaqlash}
                 disabled={loading || Object.keys(kiritishlar).length === 0}
-                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-bold transition-colors shadow-lg shadow-emerald-900/20 flex items-center gap-2"
+                className="bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--on-accent)] px-6 py-2.5 rounded-lg font-bold transition-colors shadow-lg  flex items-center gap-2"
               >
                 {loading ? 'Saqlanmoqda...' : <><Save size={18}/> Bajarilganini Saqlash</>}
               </button>
@@ -235,9 +235,9 @@ function VirtualTable({ qatorlar, ptoJamiOzgarishi }: { qatorlar: QatorHolat[], 
             <th className="px-4 py-3 w-24">Kod</th>
             <th className="px-4 py-3 w-1/3">Ish nomi</th>
             <th className="px-4 py-3 text-right w-24">Smeta Jami</th>
-            <th className="px-4 py-3 text-right text-emerald-400 w-32">FAKT Jami</th>
-            <th className="px-4 py-3 text-right text-sky-400 w-24">2 Jami</th>
-            <th className="px-4 py-3 text-right text-amber-400 w-24">Qoldiq</th>
+            <th className="px-4 py-3 text-right text-[var(--accent-text)] w-32">FAKT Jami</th>
+            <th className="px-4 py-3 text-right text-[var(--info)] w-24">2 Jami</th>
+            <th className="px-4 py-3 text-right text-[var(--warn)] w-24">Qoldiq</th>
           </tr>
         </thead>
         <tbody 
@@ -257,17 +257,17 @@ function VirtualTable({ qatorlar, ptoJamiOzgarishi }: { qatorlar: QatorHolat[], 
                   height: `${virtualRow.size}px`
                 }}
               >
-                <td className="px-4 py-2 font-mono text-[11px] text-zinc-500 w-24 overflow-hidden text-ellipsis">{q.kod}</td>
-                <td className="px-4 py-2 whitespace-normal text-xs text-white leading-tight w-1/3 overflow-hidden" title={q.nom}>
+                <td className="px-4 py-2 font-mono text-[11px] text-[var(--text-mute)] w-24 overflow-hidden text-ellipsis">{q.kod}</td>
+                <td className="px-4 py-2 whitespace-normal text-xs text-[var(--text)] leading-tight w-1/3 overflow-hidden" title={q.nom}>
                   <div className="line-clamp-2">{q.nom}</div>
                 </td>
-                <td className="px-4 py-2 text-right font-mono text-xs text-zinc-300 w-24">
+                <td className="px-4 py-2 text-right font-mono text-xs text-[var(--text)] w-24">
                   <FmtN val={q.smeta_hajm} /> {q.birlik}
                 </td>
                 <td className="px-4 py-2 text-right font-mono text-xs w-32">
                   <input 
                     type="number"
-                    className="w-20 bg-emerald-500/10 border border-emerald-500/30 rounded px-2 py-1 text-emerald-400 font-bold text-right outline-none focus:border-emerald-500"
+                    className="w-20 bg-[var(--accent)]/10 border border-[var(--accent)]/30 rounded px-2 py-1 text-[var(--accent-text)] font-bold text-right outline-none focus:border-[var(--accent)]"
                     defaultValue={q.fakt_hajm}
                     onBlur={(e) => {
                       const val = parseFloat(e.target.value);
@@ -280,10 +280,10 @@ function VirtualTable({ qatorlar, ptoJamiOzgarishi }: { qatorlar: QatorHolat[], 
                     }}
                   />
                 </td>
-                <td className="px-4 py-2 text-right font-mono text-xs text-sky-400 w-24">
+                <td className="px-4 py-2 text-right font-mono text-xs text-[var(--info)] w-24">
                   <FmtN val={q.f2_hajm} />
                 </td>
-                <td className="px-4 py-2 text-right font-mono text-xs text-amber-400 font-bold bg-amber-500/5 w-24">
+                <td className="px-4 py-2 text-right font-mono text-xs text-[var(--warn)] font-bold bg-[var(--warn)]/5 w-24">
                   {<FmtN val={q.qoldiq_hajm} />}
                 </td>
               </tr>
