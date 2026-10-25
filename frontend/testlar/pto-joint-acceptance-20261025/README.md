@@ -31,3 +31,27 @@ npx vitest run --config testlar/pto-joint-acceptance-20261025/candidate.config.t
 Обычные тесты кандидата: `ochiq-qoldiq.test.ts`, `fakt-qamrov.test.ts`, `fakt-material-taklif.test.ts`, `FaktJurnal.test.tsx` —36PASS. Это отдельное положительное свидетельство и не закрывает два независимых FAIL.
 
 Полный review: `ops/mailbox/PTO-JOINT-QA-20261025/02-codex@Anvar.md` **с обязательным уточнением03-codex@Anvar.md**. Прежний JQA-05 отозван: первый probe подменял ishlar, тогда как реальный FaktJurnal сохраняет qamrov.ishlar snapshot. Он стал положительным CONTROL, отдельный repartition fix не требуется. P2JQA-06/07 навигации остаются source findings.
+
+## Навигация — независимые probes, 26.10.2026
+
+Claude L0 ACK получен26.10в00:10, распределение подтверждено mailbox04. Fixes выполняются прежними авторами; Codex принимает exact SHAs.
+
+На navigation stack PR142 `d3a5c83f97b85ce0969f039a6a19cb87bef8165b` (включает PR141):
+
+```powershell
+npx vitest run --config testlar/pto-joint-acceptance-20261025/navigation.config.ts
+```
+
+Первый measured baseline: **3controlPASS/4OPEN FAIL**,7сценариев. JQA-06: password и existing Google login должны идти в company-aware `/admin`; fixture session boss не должна выбирать dashboard до определения active-company role. Invite/share priorityPASS. JQA-07: F2→history→F2 должен восстановить job и job+akt; уход в history не переносит page-specific job. Company/object switch не восстанавливает прежний draft — CONTROL/PASS. Это реальные компоненты с synthetic API/provider fixtures, без production fetch/write; не authenticated browser smoke.
+
+### Повторная проверка исправлений26.10
+
+- PR141b1585e66: login4/4PASS.
+- PR14280fa2363: навигация7/7PASS. JQA-06/07 закрыты на этихSHA компонентно.
+- PR143a5c6650e: прежние Qamrov4/4PASS, JQA-04/08 закрыты компонентно. ДобавленныйJQA-09: partial3001→known rejection→discard→new attempt записывает ранее подтверждённый объём повторно (200 вместо100). Расширенный набор4PASS/1OPEN FAIL. Это новая кнопка discard, не прежний отозванныйJQA-05.
+
+Synthetic scope компании уникален на каждый Qamrov scenario: сохраняемый module/localStorage state не перетекает между tests. Последовательность partial+refresh повторяет фактический immutable ishlar snapshot потребителя.
+
+Полный текущий receipt — mailbox05-codex@Anvar.md. Пока JQA-09 открыт, общий QA PASS Fakt stack не выдан. JQA-10 — отдельный source gap политики buxgalter approve, не смешивать с уже исправленным JQA-07.
+
+Отдельные configs намеренно разделены: Fakt candidate и nav candidate находятся в разных pending stacks. Qamrov config включает только свой файл, navigation config — только nav файлы. Запуск всех pending candidates под одним source SHA был бы некорректен. Лог: `C:/Temp/PTO-NAV-BASELINE-20261026.log`.

@@ -43,3 +43,9 @@ L0: назначить findings существующим авторам PR143/14
 ### Уточнение после проверки consumer
 
 Mailbox03 обязателен: прежнийJQA-05/repartition ОТОЗВАН, реальный FaktJurnal хранит ishlar snapshot; partial+holatMap refresh сталCONTROL/PASS. ПодтвержденыP1JQA-04 (другой body под прежнимUUID) и новыйJQA-08 (unknown commit→закрытие/повторное открытие modal теряетUUID; synthetic итог200 вместо100). Текущий итог4probes:2controlPASS/2OPEN FAIL. Исправляющий комментарий направлен PR143 напрямую, runtime автора не менялся. Рекомендация: immutable attempt/receipts вне modal, resolution unknown до нового draft.
+
+## 26.10.2026 — ACK и повторная приёмка
+
+ClaudeL0 ACK00:10 принят, mailbox04. Fixes у существующих авторов. Mailbox05 содержит текущий oracle: PR141b1585e66 login4PASS, PR14280fa2363 nav7PASS (JQA-06/07 закрыты компонентно); PR143a5c6650e прежние Qamrov4PASS (JQA-04/08 закрыты), расширенный JQA-09 partial-confirmed→discard→new save даёт200 вместо100. Итог5cases4PASS/1OPEN FAIL. Author notified directly. JQA-05 не возвращается: новый09 относится к сохранённому snapshot и стиранию receipt кнопкойdiscard. JQA-10 — source-level остаток owner policy об approve уbugalter.
+
+Normal full gates QA branch/base8b1eb894:3264PASS/20skip; app+functionsTS, oxlint, site-map check/generate (no diff), tekshir/build/governancePASS. Private logs/receipt C:/Temp/PTO-QA-*. Independent candidate failures не входят в обычную discovery. Полный normal green не является exact candidate CI или release approval.

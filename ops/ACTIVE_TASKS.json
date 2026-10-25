@@ -18,7 +18,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
-      "note": "Owner requests collaboration without overlap with Claude's4-5 implementers. Codex owns independent synthetic acceptance/review only; no runtime, DB, Fakt, navigation, pricing or release file writes. Exact implementation sublease must be agreed with L0 before fixes. Candidate PR140/143/144 exact2e179c77:36 author testsPASS; independent Qamrov2controlPASS/2OPEN FAIL JQA-04/08. Previous JQA-05 repartition claim withdrawn after checking actual parent snapshot; now CONTROL/PASS. P1JQA-08 unknown commit plus modal close/reopen duplicates100 to200 in synthetic harness. Static nav PR141/142 P2JQA-06/07. Direct PR comments include correction; current mailbox03 supersedes02 on JQA-05. No runtime patch or release approval."
+      "note": "Joint QA-only. Claude L0 ACK26Oct00:10 received; existing Fakt/nav authors own fixes, Codex rechecks exact SHAs. PR141b1585e66 login4PASS; PR14280fa2363 nav7PASS closesJQA-06/07 component findings. PR143a5c6650e old4PASS closesJQA-04/08, extended JQA-09 partial-confirmed discard then new save duplicates100 to200 (4PASS/1FAIL). JQA-05 remains withdrawn. JQA-10 is a separate source gap: bugalter approval UI still trusts server f2.approve. Direct PR reviews and mailbox05; full QA-branch regression3264PASS/20skip, gatesPASS. No runtime, DB, main or deployment writes. Corrected JQA-09 SHA pending."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",

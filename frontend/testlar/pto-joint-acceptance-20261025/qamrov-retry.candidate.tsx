@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { JurnalIsh } from '../../src/lib/fakt-jurnal';
 
-const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn(), id: 0 }));
+const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn(), id: 0, scenario: 0 }));
 vi.mock('../../src/api/t2-fakt', () => ({ sbFaktYoz: m.yoz }));
 vi.mock('../../src/api/supabase', () => ({ yangiOperationId: () => `synthetic-operation-${++m.id}`, sbT2AktBekor: vi.fn() }));
 vi.mock('../../src/umumiy/ui/Toast', () => ({ toast: m.toast }));
@@ -19,10 +19,10 @@ function row(id: number): JurnalIsh {
     almashtiradi: null, aslNom: null, almashtirilgan: null, bajarilmaydi: null,
     resurslar: [], avtomatik: [] };
 }
-const base = () => ({ sarlavha: 'Synthetic scope', holatMap: new Map(), obyektId: 8, kompaniyaId: 1,
+const base = () => ({ sarlavha: 'Synthetic scope', holatMap: new Map(), obyektId: 8, kompaniyaId: 1000 + m.scenario,
   sana: '2026-10-25', onYop: vi.fn(), onBajarildi: vi.fn(), aktBekor: vi.fn(async () => ({ ok: true })) });
 const save = () => fireEvent.click(screen.getByRole('button', { name: /^Faktga yozish/ }));
-beforeEach(() => { m.id = 0; m.yoz.mockReset(); m.toast.mockReset(); });
+beforeEach(() => { m.id = 0; m.scenario++; m.yoz.mockReset(); m.toast.mockReset(); });
 afterEach(cleanup);
 
 it('OPEN JQA-04: unknown result retry must preserve the original request body even after editing percent', async () => {
@@ -107,4 +107,30 @@ it('CONTROL: an unchanged unknown-result retry keeps exactly the same command', 
   save();
   await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(2));
   expect(m.yoz.mock.calls[1][0]).toEqual(m.yoz.mock.calls[0][0]);
+});
+
+it('OPEN JQA-09: discarding a partially confirmed attempt must not apply accepted quantities again', async () => {
+  const rows = Array.from({ length: 3001 }, (_, i) => row(i + 10));
+  const accepted = new Map<string, number>();
+  const persisted = new Map<number, number>();
+  m.yoz.mockImplementation(async (r: { operationId: string; qatorlar: { qator_id: number; hajm: number }[] }) => {
+    if (m.yoz.mock.calls.length === 2) return { ok: false, code: 'SYNTHETIC_LINE_REJECTED', error: 'Synthetic rejection before commit' };
+    const previous = accepted.get(r.operationId);
+    if (previous) return { ok: true, takror: true, akt_id: previous };
+    const id = accepted.size + 1;
+    accepted.set(r.operationId, id);
+    r.qatorlar.forEach((q) => persisted.set(q.qator_id, (persisted.get(q.qator_id) ?? 0) + q.hajm));
+    return { ok: true, akt_id: id };
+  });
+  const p = base();
+  const view = render(<FaktQamrov {...p} ishlar={rows} />);
+  save();
+  await waitFor(() => expect(p.onBajarildi).toHaveBeenCalledTimes(1));
+  // Actual FaktJurnal refresh preserves qamrov.ishlar, but replaces the holatMap.
+  const refreshed = new Map(rows.slice(0, 3000).map((q) => [q.id, { qator_id: q.id, smeta_hajm: 100, fakt_hajm: 100 }]));
+  view.rerender(<FaktQamrov {...p} ishlar={rows} holatMap={refreshed} />);
+  fireEvent.click(screen.getByTestId('urinish-tashla'));
+  save();
+  await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(4));
+  expect(persisted.get(rows[0].id)).toBe(100); // Clearing failed attempt must not turn known success into a new write.
 });
