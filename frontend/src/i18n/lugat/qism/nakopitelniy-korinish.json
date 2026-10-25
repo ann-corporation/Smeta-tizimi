@@ -1,0 +1,446 @@
+{
+  "Накопительная ведомость — saytda hujjatdagiday ko‘rish": {
+    "ru": "Накопительная ведомость — просмотр на сайте в виде документа",
+    "en": "Cumulative statement — view on the site as a document"
+  },
+  "Nakopitelniy ko‘rish": {
+    "ru": "Просмотр накопительной",
+    "en": "View cumulative statement"
+  },
+  "Форма № 3": {
+    "ru": "Форма № 3",
+    "en": "Form № 3"
+  },
+  "Форма № 3 — Excel yuklab olish": {
+    "ru": "Форма № 3 — скачать Excel",
+    "en": "Form № 3 — download Excel"
+  },
+  "СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (счет-фактура к актам Ф-2)": {
+    "ru": "СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (счет-фактура к актам Ф-2)",
+    "en": "CERTIFICATE OF THE COST OF WORK PERFORMED AND COSTS (invoice for F-2 acts)"
+  },
+  "Форма № 3 — saytda ko‘rish": {
+    "ru": "Форма № 3 — просмотр на сайте",
+    "en": "Form № 3 — view on the site"
+  },
+  "F3 ko‘rish": {
+    "ru": "Просмотр Ф3",
+    "en": "View F3"
+  },
+  "Форма № 3 — saytda hujjatdagiday ko‘rish": {
+    "ru": "Форма № 3 — просмотр на сайте в виде документа",
+    "en": "Form № 3 — view on the site as a document"
+  },
+  "XLSX eksport": {
+    "ru": "Экспорт XLSX",
+    "en": "XLSX export"
+  },
+  "Nakopitelniy vedomost": {
+    "ru": "Накопительная ведомость",
+    "en": "Cumulative statement"
+  },
+  "Tasdiqlangan F2 aktlarining oyma-oy kumulyativ reestri: smeta, fakt va topshirilgan ish bir joyda.": {
+    "ru": "Помесячный накопительный реестр утверждённых актов Ф-2: смета, факт и сданные работы в одном месте.",
+    "en": "Month-by-month cumulative register of approved F-2 acts: estimate, actuals and delivered work in one place."
+  },
+  "qoralama": {
+    "ru": "черновик",
+    "en": "draft"
+  },
+  "Tasdiqlangan F2 — jami hisobiga kiradi": {
+    "ru": "Утверждённый Ф-2 — входит в итог",
+    "en": "Approved F-2 — included in the total"
+  },
+  "Qoralama F2 — jami hisobiga kirmaydi": {
+    "ru": "Черновик Ф-2 — в итог не входит",
+    "en": "Draft F-2 — not included in the total"
+  },
+  "Tasdiqlangan oylar: {a} / {b}": {
+    "ru": "Утверждённых месяцев: {a} / {b}",
+    "en": "Approved months: {a} / {b}"
+  },
+  "Kod yoki nom bo'yicha qidirish": {
+    "ru": "Поиск по коду или названию",
+    "en": "Search by code or name"
+  },
+  "Kod yoki nom bo'yicha qidirish…": {
+    "ru": "Поиск по коду или названию…",
+    "en": "Search by code or name…"
+  },
+  "Tanlangan oy — F2 qoralama. U oldingi / joriy / jami summalarga KIRMAGAN: reestrda faqat tasdiqlangan oylar hisoblanadi.": {
+    "ru": "Выбранный месяц — черновик Ф-2. Он НЕ входит в суммы «ранее / текущий / итого»: в реестре считаются только утверждённые месяцы.",
+    "en": "The selected month is a draft F-2. It is NOT part of the previous / current / total sums: only approved months count in the register."
+  },
+  "Reestrni ko‘rish uchun yuqoridan obyektni tanlang.": {
+    "ru": "Чтобы увидеть реестр, выберите объект выше.",
+    "en": "Select an object above to see the register."
+  },
+  "To‘liq ro‘yxat serverdan sahifalab o‘qilmoqda…": {
+    "ru": "Полный список читается с сервера по страницам…",
+    "en": "Reading the full list from the server page by page…"
+  },
+  "Форма № 3 manbalari yig‘ilmoqda (nakopitelniy + tasdiqlangan F2)…": {
+    "ru": "Собираются источники Формы № 3 (накопительная + утверждённые Ф-2)…",
+    "en": "Collecting Form № 3 sources (cumulative + approved F-2)…"
+  },
+  "Форма № 3 diqqatlar: {n} ta (hujjatda ham yozilgan)": {
+    "ru": "Замечания к Форме № 3: {n} (указаны и в документе)",
+    "en": "Form № 3 warnings: {n} (also written in the document)"
+  },
+  "Hujjat sozlamalari: imzolovchilar va QQS": {
+    "ru": "Настройки документа: подписанты и НДС",
+    "en": "Document settings: signers and VAT"
+  },
+  "QQS qo‘shilmaydi": {
+    "ru": "НДС не добавляется",
+    "en": "VAT not added"
+  },
+  "QQS {p}%": {
+    "ru": "НДС {p}%",
+    "en": "VAT {p}%"
+  },
+  "F2 resurs qatorlari QQS siz; QQS hujjat oxirida bir marta qo‘shiladi": {
+    "ru": "Ресурсные строки Ф-2 без НДС; НДС добавляется один раз в конце документа",
+    "en": "F-2 resource lines exclude VAT; VAT is added once at the end of the document"
+  },
+  "QQS (НДС) stavkasi, % — hujjat oxirida bir marta": {
+    "ru": "Ставка НДС, % — один раз в конце документа",
+    "en": "VAT rate, % — once at the end of the document"
+  },
+  "QQS stavkasi": {
+    "ru": "Ставка НДС",
+    "en": "VAT rate"
+  },
+  "bo‘sh — QQS qo‘shilmaydi": {
+    "ru": "пусто — НДС не добавляется",
+    "en": "empty — VAT is not added"
+  },
+  "Bu obyektda smeta qatori topilmadi.": {
+    "ru": "В этом объекте строки сметы не найдены.",
+    "en": "No estimate lines found for this object."
+  },
+  "Shartnoma → F2 → F3 → to‘lov → qoldiq: pul oqimi bir qarashda": {
+    "ru": "Договор → Ф-2 → Ф-3 → оплата → остаток: денежный поток с одного взгляда",
+    "en": "Contract → F-2 → F-3 → payment → balance: the money flow at a glance"
+  },
+  "Qo‘shimcha kelishuvlar (DS)": {
+    "ru": "Дополнительные соглашения (ДС)",
+    "en": "Supplementary agreements (SA)"
+  },
+  "Yangi yozuv kiritish": {
+    "ru": "Ввести новую запись",
+    "en": "Add a new entry"
+  },
+  "Akt-sverkadan joylash": {
+    "ru": "Вставить из акта сверки",
+    "en": "Paste from reconciliation act"
+  },
+  "Pereraschet": {
+    "ru": "Перерасчёт",
+    "en": "Recalculation"
+  },
+  "Qayta hisoblansa: qancha ortiqcha olish mumkin yoki qancha qaytarish kerak. Faqat o‘qiydi — smeta va tasdiqlangan aktlar o‘zgarmaydi.": {
+    "ru": "Если пересчитать: сколько можно получить сверх или сколько нужно вернуть. Только чтение — смета и утверждённые акты не меняются.",
+    "en": "If recalculated: how much extra can be collected or how much must be returned. Read-only — the estimate and approved acts do not change."
+  },
+  "Hisoblash tugmasini bosing: har bir smeta qatori fakt va tasdiqlangan F2 bilan solishtiriladi.": {
+    "ru": "Нажмите «Рассчитать»: каждая строка сметы сравнивается с фактом и утверждёнными Ф-2.",
+    "en": "Press Calculate: every estimate line is compared with actuals and approved F-2."
+  },
+  "Umumiy natija: plyus va minus": {
+    "ru": "Общий итог: плюс и минус",
+    "en": "Overall result: plus and minus"
+  },
+  "ustamali": {
+    "ru": "с накруткой",
+    "en": "with markup"
+  },
+  "Qatorlar soni: {n}": {
+    "ru": "Строк: {n}",
+    "en": "Lines: {n}"
+  },
+  "chap: qaytarish kerak (−)": {
+    "ru": "слева: нужно вернуть (−)",
+    "en": "left: must be returned (−)"
+  },
+  "o‘ng: olish mumkin (+)": {
+    "ru": "справа: можно получить (+)",
+    "en": "right: can be collected (+)"
+  },
+  "Sabab bo‘yicha": {
+    "ru": "По причинам",
+    "en": "By reason"
+  },
+  "katta farqdan boshlab": {
+    "ru": "от большей разницы",
+    "en": "largest difference first"
+  },
+  "tanlangan: {n}": {
+    "ru": "выбрано: {n}",
+    "en": "selected: {n}"
+  },
+  "Davrlar chizig‘i": {
+    "ru": "Лента периодов",
+    "en": "Period timeline"
+  },
+  "Nakopitelniy ko‘rsatkichlari": {
+    "ru": "Показатели накопительной",
+    "en": "Cumulative indicators"
+  },
+  "Smeta jami — to‘g‘ri xarajat": {
+    "ru": "Смета итого — прямые затраты",
+    "en": "Estimate total — direct cost"
+  },
+  "к оплате (nakrutka + QQS)": {
+    "ru": "к оплате (накрутка + НДС)",
+    "en": "payable (markup + VAT)"
+  },
+  "Nakrutka hisoblanmadi": {
+    "ru": "Накрутка не рассчитана",
+    "en": "Markup not calculated"
+  },
+  "Fakt jami": {
+    "ru": "Факт итого",
+    "en": "Actual total"
+  },
+  "smetaning {p}%": {
+    "ru": "{p}% сметы",
+    "en": "{p}% of estimate"
+  },
+  "Jami tasdiqlangan F2": {
+    "ru": "Итого утверждённых Ф-2",
+    "en": "Total approved F-2"
+  },
+  "Shu davr F2": {
+    "ru": "Ф-2 за период",
+    "en": "F-2 this period"
+  },
+  "qoralama (hisobga kirmagan)": {
+    "ru": "черновик (не учтён)",
+    "en": "draft (not counted)"
+  },
+  "oldingi: {x}": {
+    "ru": "ранее: {x}",
+    "en": "previous: {x}"
+  },
+  "Faktdan F2ga mumkin": {
+    "ru": "Можно в Ф-2 из факта",
+    "en": "Available for F-2 from actuals"
+  },
+  "F2 fakt dan oshib ketgan": {
+    "ru": "Ф-2 превысил факт",
+    "en": "F-2 exceeds actuals"
+  },
+  "Fakt − tasdiqlangan F2": {
+    "ru": "Факт − утверждённый Ф-2",
+    "en": "Actual − approved F-2"
+  },
+  "Smeta = 100%: qancha topshirildi, qancha qoldi": {
+    "ru": "Смета = 100%: сколько сдано, сколько осталось",
+    "en": "Estimate = 100%: how much delivered, how much left"
+  },
+  "F2 smetadan oshgan: {p}%": {
+    "ru": "Ф-2 превысил смету: {p}%",
+    "en": "F-2 exceeds the estimate: {p}%"
+  },
+  "{p}% F2 bilan topshirilgan": {
+    "ru": "{p}% сдано по Ф-2",
+    "en": "{p}% delivered via F-2"
+  },
+  "Smeta ulushlari: oldingi F2, shu davr F2, faktda bor, qoldiq": {
+    "ru": "Доли сметы: прежние Ф-2, Ф-2 периода, есть в факте, остаток",
+    "en": "Estimate shares: previous F-2, this period F-2, in actuals, remainder"
+  },
+  "oldingi oylar F2": {
+    "ru": "Ф-2 прошлых месяцев",
+    "en": "previous months F-2"
+  },
+  "shu davr F2": {
+    "ru": "Ф-2 этого периода",
+    "en": "this period F-2"
+  },
+  "faktda bor, F2 ga kirmagan": {
+    "ru": "есть в факте, не вошло в Ф-2",
+    "en": "in actuals, not in F-2"
+  },
+  "ishlanmagan qoldiq": {
+    "ru": "невыполненный остаток",
+    "en": "unperformed remainder"
+  },
+  "Farq (nakrutka + QQS)": {
+    "ru": "Разница (накрутка + НДС)",
+    "en": "Difference (markup + VAT)"
+  },
+  "Koeffitsientlar o‘qilmadi — eksportda alohida ogohlantirish beriladi.": {
+    "ru": "Коэффициенты не прочитаны — в экспорте будет отдельное предупреждение.",
+    "en": "Coefficients could not be read — the export will carry a separate warning."
+  },
+  "{n} ta qatorda summa noma’lum": {
+    "ru": "В {n} строках сумма неизвестна",
+    "en": "{n} lines have an unknown amount"
+  },
+  "F2 bajarilishi (smeta = 100%): oldingi oylar kulrang, shu davr firuza": {
+    "ru": "Выполнение Ф-2 (смета = 100%): прошлые месяцы серым, текущий период бирюзовым",
+    "en": "F-2 completion (estimate = 100%): previous months grey, this period turquoise"
+  },
+  "Bo‘limni yig‘ish": {
+    "ru": "Свернуть раздел",
+    "en": "Collapse section"
+  },
+  "Bo‘limni yoyish": {
+    "ru": "Развернуть раздел",
+    "en": "Expand section"
+  },
+  "JAMI — butun smeta (ustamasiz)": {
+    "ru": "ИТОГО — вся смета (без накрутки)",
+    "en": "TOTAL — whole estimate (excl. markup)"
+  },
+  "Shartnoma (smeta) bo‘yicha reja: hajm, narx va summa.": {
+    "ru": "План по договору (смете): объём, цена и сумма.",
+    "en": "Plan per contract (estimate): quantity, price and amount."
+  },
+  "Haqiqatda bajarilgan hajm (fakt jurnalidan). Hali F2 ga kirmagan bo‘lishi mumkin.": {
+    "ru": "Фактически выполненный объём (из журнала факта). Может ещё не входить в Ф-2.",
+    "en": "Actually performed quantity (from the actuals log). May not be in F-2 yet."
+  },
+  "Oy ustuni": {
+    "ru": "Столбец месяца",
+    "en": "Month column"
+  },
+  "Shu oyda TASDIQLANGAN F2 bo‘yicha summa; ostida hajm. Qoralama F2 bu yerga kirmaydi.": {
+    "ru": "Сумма по УТВЕРЖДЁННОМУ Ф-2 за этот месяц; ниже — объём. Черновик Ф-2 сюда не входит.",
+    "en": "Amount per the APPROVED F-2 for this month; quantity below. Draft F-2 is not included."
+  },
+  "Barcha tasdiqlangan oylar yig‘indisi. Yonidagi chiziq — smetaning necha foizi topshirilgani.": {
+    "ru": "Сумма всех утверждённых месяцев. Полоска рядом — какая доля сметы сдана.",
+    "en": "Sum of all approved months. The bar beside it shows what share of the estimate is delivered."
+  },
+  "Smetadan qoldi": {
+    "ru": "Осталось по смете",
+    "en": "Left in estimate"
+  },
+  "Smeta hajmi − fakt hajmi: hali bajarilmagan qism.": {
+    "ru": "Объём сметы − объём факта: ещё не выполненная часть.",
+    "en": "Estimate quantity − actual quantity: the part not yet performed."
+  },
+  "Fakt hajmi − tasdiqlangan F2 hajmi: bajarilgan, lekin aktga kiritilmagan qism. Qizil — F2 faktdan oshib ketgan.": {
+    "ru": "Объём факта − объём утверждённого Ф-2: выполнено, но не внесено в акт. Красный — Ф-2 превысил факт.",
+    "en": "Actual quantity − approved F-2 quantity: performed but not yet in an act. Red — F-2 exceeds actuals."
+  },
+  "Shartnomadan qoldi": {
+    "ru": "Осталось по договору",
+    "en": "Left in contract"
+  },
+  "Shartnoma (tasdiqlangan o‘zgarishlar bilan) hajmi − tasdiqlangan F2 hajmi.": {
+    "ru": "Объём договора (с утверждёнными изменениями) − объём утверждённого Ф-2.",
+    "en": "Contract quantity (with approved changes) − approved F-2 quantity."
+  },
+  "Kumulyativ reestr": {
+    "ru": "Накопительный реестр",
+    "en": "Cumulative register"
+  },
+  "Kumulyativ reestr — tasdiqlangan F2 oyma-oy": {
+    "ru": "Накопительный реестр — утверждённые Ф-2 по месяцам",
+    "en": "Cumulative register — approved F-2 month by month"
+  },
+  "Razdel qatorida — uning ichidagi barcha ishlar jami. Faqat tasdiqlangan F2 hisobga kiradi.": {
+    "ru": "В строке раздела — итог всех работ внутри него. Учитываются только утверждённые Ф-2.",
+    "en": "A section row shows the total of all work inside it. Only approved F-2 are counted."
+  },
+  "Bo‘limlarni yig‘ish": {
+    "ru": "Свернуть разделы",
+    "en": "Collapse sections"
+  },
+  "Hammasini yoyish": {
+    "ru": "Развернуть всё",
+    "en": "Expand all"
+  },
+  "Fakt hajm": {
+    "ru": "Факт, объём",
+    "en": "Actual qty"
+  },
+  "Tasdiqlangan F2 — oylar bo‘yicha": {
+    "ru": "Утверждённые Ф-2 — по месяцам",
+    "en": "Approved F-2 — by month"
+  },
+  "F2 jami (barcha oylar)": {
+    "ru": "Ф-2 итого (все месяцы)",
+    "en": "F-2 total (all months)"
+  },
+  "F2 jami (tasdiqlangan)": {
+    "ru": "Ф-2 итого (утверждённые)",
+    "en": "F-2 total (approved)"
+  },
+  "Qoldiq (hajm)": {
+    "ru": "Остаток (объём)",
+    "en": "Remainder (quantity)"
+  },
+  "hisobot davri": {
+    "ru": "отчётный период",
+    "en": "reporting period"
+  },
+  "Oldingi F2": {
+    "ru": "Ф-2 ранее",
+    "en": "Previous F-2"
+  },
+  "Joriy F2": {
+    "ru": "Ф-2 текущий",
+    "en": "Current F-2"
+  },
+  "Qidiruv bo‘yicha qator topilmadi.": {
+    "ru": "По запросу строки не найдены.",
+    "en": "No lines match the search."
+  },
+  "Ko‘rsatiladigan qator yo‘q.": {
+    "ru": "Нет строк для показа.",
+    "en": "No lines to show."
+  },
+  "Ekranda {n} ta qator (to‘liq emas); Excel hujjatlari barcha qatorlar bilan tuziladi.": {
+    "ru": "На экране {n} строк (не полностью); документы Excel формируются по всем строкам.",
+    "en": "{n} lines on screen (incomplete); Excel documents are built from all lines."
+  },
+  "Ko‘rsatilgan: {a} / {b}": {
+    "ru": "Показано: {a} / {b}",
+    "en": "Shown: {a} / {b}"
+  },
+  "Yana {n} tasini ko‘rsatish": {
+    "ru": "Показать ещё {n}",
+    "en": "Show {n} more"
+  },
+  "Ustunlar nimani bildiradi?": {
+    "ru": "Что означают столбцы?",
+    "en": "What do the columns mean?"
+  },
+  "{nom}: plyus {p}, minus {m}, sof {s}": {
+    "ru": "{nom}: плюс {p}, минус {m}, итого {s}",
+    "en": "{nom}: plus {p}, minus {m}, net {s}"
+  },
+  "nakrutkasiz — shartnomaga foiz berilmaydi": {
+    "ru": "без накрутки — доля от договора не считается",
+    "en": "excl. markup — no share of the contract is given"
+  },
+  "shartnomaning {p}%": {
+    "ru": "{p}% договора",
+    "en": "{p}% of the contract"
+  },
+  "sotuvning {p}%": {
+    "ru": "{p}% продажи",
+    "en": "{p}% of sales"
+  },
+  "mijoz qarzi (sotuv − to‘lov)": {
+    "ru": "долг заказчика (продажа − оплата)",
+    "en": "customer debt (sales − payment)"
+  },
+  "ishlanmagan avans (to‘lov > sotuv)": {
+    "ru": "неотработанный аванс (оплата > продажа)",
+    "en": "unearned advance (payment > sales)"
+  },
+  "qarz yo‘q": {
+    "ru": "долга нет",
+    "en": "no debt"
+  },
+  "Shartnoma quvuri: DS, F2, F3, to‘lov, qoldiq": {
+    "ru": "Конвейер договора: ДС, Ф-2, Ф-3, оплата, остаток",
+    "en": "Contract pipeline: SA, F-2, F-3, payment, balance"
+  }
+}
