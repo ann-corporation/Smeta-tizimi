@@ -30,7 +30,7 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   /* Kompaniya ustunli jadval/ko'rinishlar. */
   t2_obyekt: K, t2_obyekt_jami: K, t2_daraxt: K, t2_qator: K, t2_narx: K, t2_manba: K, t2_xom: K,
   t2_kozgu: K, t2_ozgarish: K, t2_sozlama: K,
-  t2_akt: K, t2_akt_qator: K, t2_akt_reestr: K, t2_faktura: K, t2_ish_turi: K, t2_shaxsiy_smeta: K,
+  t2_akt: K, t2_akt_qator: K, t2_akt_reestr: K, t2_shartnoma_bog_kompaniya: K, t2_faktura: K, t2_ish_turi: K, t2_shaxsiy_smeta: K,
   v_erp_kadrlar_dashboard: K, v_erp_texnika_dashboard: K, v_erp_taminot_dashboard: K, v_erp_sifat_dashboard: K,
   t2_grafik_holat: K, v_boss_init: K, v_boss_data: K,
   t2_birja_rfq: K, t2_birja_taklif: K, t2_sklad_qoldiq: K, t2_sklad_harakat: K, t2_m29_hujjat: K,
