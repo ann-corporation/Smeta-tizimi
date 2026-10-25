@@ -1,11 +1,12 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Download, Eye, FileText, RefreshCw, ShieldAlert } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { CheckCircle2, Download, Eye, FileText, Pencil, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { F2HujjatKorinish } from '../../components/f2-hujjat/F2HujjatKorinish';
+import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
-import { PtoStatusChip } from '../../umumiy/ui/PTOUi';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import {
@@ -26,7 +27,7 @@ import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { t } from '../../i18n/til';
+import { t, tilLocale } from '../../i18n/til';
 import { ZakazchigaYuborish } from '../zakazchik/ZakazchigaYuborish';
 import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
 
@@ -38,14 +39,6 @@ const holatMatni: Record<string, string> = {
   bekor: 'Bekor qilingan',
 };
 
-const reestrMatni: Record<string, string> = {
-  mos: 'Mos',
-  farq: 'Farq bor',
-  jami_nomalum: 'Hujjat jami noma’lum',
-};
-
-const miqdor = (line: F2Detail) => line.gorunish_hajm ?? line.certified_quantity ?? line.hajm;
-const birlikNarx = (line: F2Detail) => line.gorunish_narx ?? line.certified_unit_price ?? line.narx;
 const pul = (line: F2Detail) => line.gorunish_summa ?? line.certified_amount ?? line.summa;
 
 function xavfsizXato() {
@@ -261,83 +254,99 @@ export function F2TarixNative() {
   const tugmaRuxsat = (akt: T2AktReestr) => rejim === 'korporativ' && f2KeyingiQadam(akt.lifecycle_status ?? 'draft') === 'submitted' ? true : mayApprove;
   const holatYorligi = (akt: T2AktReestr) => (akt.lifecycle_status ? f2HolatYorligi(akt.lifecycle_status, rejim) : holatMatni[akt.holat]) || 'Noma’lum holat';
 
+  const obyektNom = obyektlar.find((o) => o.id === obyektId)?.nom || '';
+  const smetaHajm = useMemo(() => new Map(smetaRows.map((r) => [r.id, r.hajm == null ? null : Number(r.hajm)] as const)), [smetaRows]);
+  const statusOf = (akt: T2AktReestr): PtoLifecycleStatus => akt.lifecycle_status ?? (akt.holat === 'tasdiqlangan' ? 'approved' : akt.holat === 'bekor' ? 'cancelled' : 'draft');
+  const stampCls = (s: PtoLifecycleStatus) => ({ draft: 'fz-stamp--draft', submitted: 'fz-stamp--info', checked: 'fz-stamp--info', approved: 'fz-stamp--ok', rejected: 'fz-stamp--danger', cancelled: 'fz-stamp--danger', superseded: '' } as const)[s];
+
+  /** Qoralamani tahrirlash havolalari: import orqali yaratilgan — import oynasi; tizimda yaratilgan — F2 tayyorlash. */
+  const tahrirHavolalari = (akt: T2AktReestr) => akt.holat === 'qoralama' && (akt.lifecycle_status ?? 'draft') === 'draft' && importSet !== null && (importSet === 'xato' || importSet.has(akt.id)
+    ? <Link className="fz-btn fz-btn--sm" to={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Import oynasida qayta ochib, xato joylarini tuzatish')}><Pencil />{t('Tahrirlash')}</Link>
+    : <><Link className="fz-btn fz-btn--sm" to={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${akt.id}`} title={t('F2 tayyorlashda ochib, hajm va narxni yangilash')}><Pencil />{t('Tizimda tahrirlash')}</Link><Link className="fz-btn fz-btn--sm fz-btn--ghost" to={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Yangi (tuzatilgan) Excel faylni shu qoralamaga yuklash')}><Upload />{t('Fayldan yangilash')}</Link></>);
+
   return (
     <>{korinish.oyna}<Sahifa
       sarlavha="F2 tarixi va tasdiqlash"
       tavsif="Qoralama ko‘rib chiqiladi; faqat tasdiqlangan aniq manba LRV va Nakopitelniyga kiradi"
-      amallar={<button onClick={() => void yuklash()} disabled={!validId || loading} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Yangilash</button>}
+      amallar={<button type="button" onClick={() => void yuklash()} disabled={!validId || loading} className="fz-btn fz-btn--ghost"><RefreshCw className={loading ? 'animate-spin' : ''} /> {t('Yangilash')}</button>}
     >
       <div className="flex h-full min-h-0 flex-col gap-3">
-        <section className="karta flex flex-wrap items-end gap-3 p-3">
-          <label className="min-w-[280px] flex-1 text-[12px] font-medium text-text">Kanonik obyekt
-            <select aria-label="Kanonik obyekt" value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const id = Number.isSafeInteger(nextId) && nextId > 0 ? nextId : null; if (workspace.isProvider) workspace.setObjectId(id); else setParams(id ? { obyekt: String(id) } : {}); }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">
+        <section className="fz-card flex flex-wrap items-end gap-3 p-3">
+          <label className="min-w-[280px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
+            <select aria-label="Kanonik obyekt" value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const id = Number.isSafeInteger(nextId) && nextId > 0 ? nextId : null; if (workspace.isProvider) workspace.setObjectId(id); else setParams(id ? { obyekt: String(id) } : {}); }} className="mt-1.5 block w-full">
               <option value="">-- obyektni tanlang --</option>
               <ObyektOptionlari obyektlar={obyektlar} />
             </select>
           </label>
-          <div className="text-[12px] text-text-dim">{f2Reestr.length} ta F2 hujjati · {f2Reestr.filter((a) => a.holat === 'tasdiqlangan').length} tasi tasdiqlangan</div>
+          <div className="flex gap-2 text-[12px] text-text-dim"><span className="fz-chip">{t('{n} ta F2', { n: f2Reestr.length })}</span><span className="fz-chip fz-chip--accent">{t('{n} tasi tasdiqlangan', { n: f2Reestr.filter((a) => a.holat === 'tasdiqlangan').length })}</span></div>
         </section>
 
-        {!validId && <section className="karta p-4 text-[13px] text-text-dim">Avval kanonik obyektni tanlang.</section>}
-        {error && <section role="alert" className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><ShieldAlert size={16} /> {error}</section>}
+        {!validId && <section className="fz-note fz-note--info"><FileText /> {t('Avval obyektni tanlang — uning barcha F2 hujjatlari shu yerda ko‘rinadi.')}</section>}
+        {error && <section role="alert" className="fz-note fz-note--danger"><ShieldAlert /> {error}</section>}
         {loading && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
 
         {validId && !loading && !error && (
-          <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(420px,0.9fr)_minmax(520px,1.4fr)]">
-            <section className="karta min-h-0 overflow-auto">
-              <table className="w-full text-left text-[12px]">
-                <thead className="sticky top-0 bg-surface-2 text-text-dim"><tr><th className="p-3">Davr / hujjat</th><th>Holat</th><th className="text-right">Jami</th><th className="p-3" /></tr></thead>
-                <tbody>
-                  {f2Reestr.map((akt) => {
-                    const active = (selectedAkt?.id ?? null) === akt.id;
-                    return <tr key={akt.id} className={`border-t border-border/60 align-top ${active ? 'bg-accent/10' : ''}`}>
-                      <td className="p-3"><button className="text-left" onClick={() => setSelectedAktId(akt.id)}><div className="font-medium text-text">{akt.oy?.slice(0, 7) || 'Davr noma’lum'}</div><div className="text-text-dim">{akt.raqam || 'F2 hujjati'}</div></button></td>
-                      <td><PtoStatusChip label={t(holatYorligi(akt))} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-xs text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
-                      <td className="text-right tabular-nums"><FmtN val={akt.hujjat_jami} /><div className="text-xs text-text-mute">{akt.qator_soni ?? '—'} qator</div></td>
-                      <td className="p-3 text-right">{akt.holat === 'qoralama' && (akt.lifecycle_status ?? 'draft') === 'draft' && importSet !== null && (importSet === 'xato' || importSet.has(akt.id)
-                        ? <a className="mr-2 underline text-accent" href={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Import oynasida qayta ochib, xato joylarini tuzatish')}>✎ {t('Tahrirlash')}</a>
-                        : <><a className="mr-2 underline text-accent" href={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${akt.id}`} title={t('F2 tayyorlashda ochib, hajm va narxni yangilash')}>✎ {t('Tizimda tahrirlash')}</a><a className="mr-2 underline text-accent" href={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Yangi (tuzatilgan) Excel faylni shu qoralamaga yuklash')}>⬆ {t('Fayldan yangilash')}</a></>)}{akt.holat === 'qoralama' && tugmaMatni(akt) && <button title={tugmaRuxsat(akt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!tugmaRuxsat(akt)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : t(tugmaMatni(akt) ?? '')}</button>}</td>
-                    </tr>;
-                  })}
-                </tbody>
-              </table>
-              {f2Reestr.length === 0 && <div className="p-5 text-[13px] text-text-dim">Bu obyektda F2 hujjati hali yo‘q.</div>}
+          <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <section className="fz-card min-h-0 overflow-auto" aria-label={t('F2 hujjatlari')}>
+              <div className="fz-list">
+                {f2Reestr.map((akt) => {
+                  const active = (selectedAkt?.id ?? null) === akt.id;
+                  const st = statusOf(akt);
+                  return (
+                    <button key={akt.id} type="button" className="fz-list__q" aria-current={active} onClick={() => setSelectedAktId(akt.id)}>
+                      <span className="min-w-0">
+                        <span className="fz-list__nom block truncate">{davrNomi(akt.oy, tilLocale()) || t('Davr noma’lum')}</span>
+                        <span className="fz-list__sub">№ {akt.raqam || '—'} · {t('{n} qator', { n: akt.qator_soni ?? '—' })}</span>
+                      </span>
+                      <span className="fz-list__sum"><FmtN val={akt.hujjat_jami} kasr={0} /></span>
+                      <span className="fz-list__sub" style={{ gridColumn: '1 / -1' }}>
+                        <span className={`fz-stamp ${stampCls(st)}`}>{t(holatYorligi(akt))}</span>
+                        {!!akt.narxsiz_qator && <span className="fz-chip fz-chip--warn">{t('{n} narxsiz', { n: akt.narxsiz_qator })}</span>}
+                        {!!akt.manfiy_qator && <span className="fz-chip fz-chip--warn">{t('{n} manfiy', { n: akt.manfiy_qator })}</span>}
+                        {akt.reestr_holat === 'farq' && <span className="fz-chip fz-chip--danger">{t('jami farqi')}</span>}
+                        {akt.reestr_holat === 'jami_nomalum' && <span className="fz-chip">{t('jami noma’lum')}</span>}
+                      </span>
+                    </button>
+                  );
+                })}
+                {f2Reestr.length === 0 && <div className="p-5 text-[13px] text-text-dim">{t('Bu obyektda F2 hujjati hali yo‘q.')}</div>}
+              </div>
             </section>
 
-            <section className="karta min-h-0 overflow-auto p-4">
-              {selectedAkt ? <>
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3"><div><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><FileText size={16} className="text-accent" />{selectedAkt.raqam || 'F2 hujjati'}</h2><p className="mt-1 text-xs text-text-dim">{selectedAkt.oy?.slice(0, 7)} · {t(holatYorligi(selectedAkt))} · manba qatorlari: {selectedLines.length}</p>{selectedAkt.holat === 'tasdiqlangan' && <span className="mt-2 inline-flex items-center rounded-full border border-ok/25 bg-ok/5 px-2.5 py-1 text-xs text-ok">Tasdiqlangan davr · tarix muzlatilgan</span>}{selectedArithmeticIssues.length > 0 && <span className="ml-2 mt-2 inline-flex items-center rounded-full border border-warn/25 bg-warn/5 px-2.5 py-1 text-xs text-warn">{selectedArithmeticIssues.length} ta arifmetik farq</span>}</div><div className="text-right text-[12px] text-text-dim">Hujjat jami <b className="text-text"><FmtN val={selectedAkt.hujjat_jami} /></b><br />O‘qilgan jami <b className="text-text"><FmtN val={selectedAkt.yozilgan_jami} /></b>
-                  {selectedLines.length > 0 && <div className="mt-2 flex justify-end gap-1.5">
-                    <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-text disabled:opacity-50"><Eye size={13} />{t('Koʻrish')}</button>
-                    <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"><Download size={13} />{t('Ф-2 Excel')}</button>
-                    {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <a href={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="inline-flex items-center gap-1 rounded-md border border-accent/50 px-2 py-1 text-xs font-semibold text-text hover:bg-accent/10"><FileText size={13} />{t('Форма №3 (счёт-фактура)')}</a>}
+            <section className="min-h-0 overflow-auto">
+              {selectedAkt ? (
+                <F2HujjatKorinish
+                  akt={selectedAkt} status={statusOf(selectedAkt)} rejim={rejim} holatYorligi={holatYorligi(selectedAkt)}
+                  obyektId={obyektId} obyektNom={obyektNom}
+                  lines={selectedLines} barchaQatorlar={tafsilot} aktlar={f2Reestr} ierarxiya={ierarxiya} smetaHajm={smetaHajm}
+                  amallar={<>
+                    {selectedAkt.holat === 'qoralama' && tugmaMatni(selectedAkt) && <button type="button" title={tugmaRuxsat(selectedAkt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(selectedAkt)} disabled={savingId != null || !tugmaRuxsat(selectedAkt)} className="fz-btn fz-btn--primary"><CheckCircle2 />{savingId === selectedAkt.id ? '…' : t(tugmaMatni(selectedAkt) ?? '')}</button>}
+                    {tahrirHavolalari(selectedAkt)}
+                    {selectedLines.length > 0 && <>
+                      <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="fz-btn"><Eye />{t('Koʻrish')}</button>
+                      <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="fz-btn"><Download />{t('Ф-2 Excel')}</button>
+                    </>}
+                    {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="fz-btn"><FileText />{t('Форма №3 (счёт-фактура)')}</Link>}
                     {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && !importAkt.import && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
-                  </div>}
-                  {importAkt?.id === selectedAkt.id && importAkt.import && <p className="mt-1 max-w-xs text-xs text-text-mute">{t('F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.')}</p>}</div></div>
-                <table className="w-full text-left text-[12px]"><thead className="sticky top-0 bg-surface text-text-dim"><tr><th className="py-2">Bo‘lim / ish / resurs</th><th className="text-right">Hajm</th><th className="text-right">Narx</th><th className="text-right">Summa</th></tr></thead><tbody>{ierarxiya.map((q) => {
-                  const belgi = q.zamena ? <span className="ml-1 rounded bg-accent/20 px-1 text-xs font-semibold text-accent" title="Smetadagi qator o‘rniga bajarilgan (zamena)">zamena</span> : q.qoshimcha ? <span className="ml-1 rounded bg-accent/20 px-1 text-xs font-semibold text-accent" title="Smetada yo‘q, qo‘shimcha kiritilgan">qo‘shimcha</span> : null;
-                  const pad = { paddingLeft: 4 + q.daraja * 16 };
-                  if (q.bolaSoni > 0 || q.tur === 'rz') {
-                    return <tr key={'o' + q.qator_id} className={`border-t border-border/60 ${q.tur === 'rz' ? 'bg-surface-2/70 font-semibold uppercase text-text' : 'font-medium text-text'}`}><td className="py-1.5" style={pad}>{q.kod && <span className="mr-1 font-mono text-[10.5px] normal-case text-text-mute">{q.kod}</span>}{q.nom || '—'}{belgi}</td><td className="text-right tabular-nums">{q.tur === 'bl' && q.qatorlar[0] ? <FmtN val={miqdor(q.qatorlar[0])} /> : null}</td><td /><td className="text-right tabular-nums"><FmtN val={q.summa} /></td></tr>;
-                  }
-                  return q.qatorlar.map((line, k) => {
-                    const quantity = miqdor(line); const unitPrice = birlikNarx(line); const amount = pul(line);
-                    const mismatch = quantity != null && unitPrice != null && amount != null && Number.isFinite(Number(quantity)) && Number.isFinite(Number(unitPrice)) && Number.isFinite(Number(amount)) && Math.abs(Number(quantity) * Number(unitPrice) - Number(amount)) > 0.005;
-                    return <tr key={line.akt_qator_id} className="border-t border-border/40 text-text-dim"><td className="py-1.5" style={pad}>{line.kod && <span className="mr-1 font-mono text-[10.5px] text-text-mute">{line.kod}</span>}{line.nom || 'Nomsiz qator'}<span className="ml-1 text-xs text-text-mute">{line.birlik || ''}</span>{k === 0 && belgi}</td><td className="text-right tabular-nums"><FmtN val={quantity} /></td><td className="text-right tabular-nums"><FmtN val={unitPrice} /></td><td className="text-right tabular-nums"><FmtN val={amount} />{mismatch && <div className="text-xs text-warn">Q×narx farqi</div>}</td></tr>;
-                  });
-                })}</tbody></table>
-                {selectedLines.length === 0 && <div className="p-5 text-[13px] text-text-dim">Bu hujjatda qator tafsiloti yo‘q. Tasdiqlashdan oldin manba va moslashtirishni tekshiring.</div>}
-                {selectedAkt.holat === 'qoralama' && <>
-                  <p className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] text-amber-100"><ShieldAlert size={15} className="mt-0.5 shrink-0" />Qoralama hali LRVning tasdiqlangan F2 tarixiga kirmaydi. Tasdiqlash amaldagi ma’lumot va hajm chegaralarini qayta tekshiradi.</p>
-                  <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-border/60 p-3">
-                    <label className="min-w-[260px] flex-1 text-xs text-text-dim">Rad etish yoki bekor qilish sababi
-                      <input aria-label="F2 lifecycle sababi" value={actionReason} onChange={(event) => setActionReason(event.target.value)} placeholder="Sababni yozing" className="mt-1 block w-full rounded-md border border-border bg-surface-2 px-2 py-1.5 text-[12px] text-text" />
-                    </label>
-                    <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['submitted', 'checked', 'rejected'], actionReason)} disabled={savingId != null||!mayApprove} className="rounded-md border border-danger/40 px-2.5 py-1.5 text-xs text-danger disabled:opacity-50">Rad etish</button>
-                    <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['cancelled'], actionReason)} disabled={savingId != null||!mayCancel} className="rounded-md border border-warn/40 px-2.5 py-1.5 text-xs text-warn disabled:opacity-50">Bekor qilish</button>
-                  </div>
-                </>}
-              </> : <div className="p-5 text-[13px] text-text-dim">Tafsilotlarni ko‘rish uchun F2 hujjatini tanlang.</div>}
+                  </>}
+                  ostida={<>
+                    {importAkt?.id === selectedAkt.id && importAkt.import && <p className="fz-note fz-note--info"><FileText />{t('F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.')}</p>}
+                    {selectedAkt.holat === 'tasdiqlangan' && <p className="fz-note fz-note--info"><ShieldAlert />{t('Tasdiqlangan davr · tarix muzlatilgan')}</p>}
+                    {selectedArithmeticIssues.length > 0 && <p className="fz-note fz-note--warn"><ShieldAlert />{t('{n} ta arifmetik farq', { n: selectedArithmeticIssues.length })}</p>}
+                    {selectedLines.length === 0 && <p className="fz-note fz-note--warn"><ShieldAlert />{t('Bu hujjatda qator tafsiloti yo‘q. Tasdiqlashdan oldin manba va moslashtirishni tekshiring.')}</p>}
+                    {selectedAkt.holat === 'qoralama' && <>
+                      <p className="fz-note fz-note--warn"><ShieldAlert />{t('Qoralama hali LRVning tasdiqlangan F2 tarixiga kirmaydi. Tasdiqlash amaldagi ma’lumot va hajm chegaralarini qayta tekshiradi.')}</p>
+                      <div className="fz-panel" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <label className="min-w-[260px] flex-1 text-xs text-text-dim">{t('Rad etish yoki bekor qilish sababi')}
+                          <input aria-label="F2 lifecycle sababi" value={actionReason} onChange={(event) => setActionReason(event.target.value)} placeholder={t('Sababni yozing')} className="mt-1 block w-full" />
+                        </label>
+                        <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['submitted', 'checked', 'rejected'], actionReason)} disabled={savingId != null || !mayApprove} className="fz-btn fz-btn--danger">{t('Rad etish')}</button>
+                        <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['cancelled'], actionReason)} disabled={savingId != null || !mayCancel} className="fz-btn fz-btn--ghost">{t('Bekor qilish')}</button>
+                      </div>
+                    </>}
+                  </>}
+                />
+              ) : <div className="fz-note fz-note--info"><FileText />{t('Tafsilotlarni ko‘rish uchun F2 hujjatini tanlang.')}</div>}
             </section>
           </div>
         )}

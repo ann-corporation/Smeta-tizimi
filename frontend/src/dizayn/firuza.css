@@ -438,3 +438,111 @@ h1, h2 { font-family: var(--font-display); }
 @media (max-width: 1023px) {
   .os-desktop-only { display: none !important; }
 }
+
+/* ---------- 6. Hujjat ko'rinishi (F2, smeta, akt) — 2026-10-25 ---------- */
+.fz-table-wrap { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: auto; }
+.fz-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 18px; }
+.fz-table th {
+  position: sticky; top: 0; z-index: 1; height: 34px; padding: 0 var(--space-3); text-align: left; white-space: nowrap;
+  background: var(--surface-2); color: var(--text-dim);
+  font: 600 11px/14px var(--font-sans); letter-spacing: .06em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border-strong);
+}
+.fz-table td { height: var(--row-dense); padding: 6px var(--space-3); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.fz-table tbody tr:hover td { background: var(--surface-3); }
+.fz-table .fz-c-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fz-table .fz-c-shifr { font: 500 11.5px/16px var(--font-mono); color: var(--text-mute); white-space: nowrap; }
+.fz-table .fz-c-unit { color: var(--text-mute); white-space: nowrap; }
+.fz-table tr.fz-row-rz td { background: var(--surface-2); font-weight: 600; color: var(--text); border-bottom-color: var(--border-strong); }
+.fz-table tr.fz-row-rz td:first-child { color: var(--accent-text); }
+.fz-table tr.fz-row-bl td { font-weight: 600; color: var(--text); }
+.fz-table tr.fz-row-res td { color: var(--text-dim); }
+.fz-table tr.fz-row-total td { background: var(--surface-2); font-weight: 600; border-top: 1px solid var(--border-strong); }
+.fz-table td.fz-over { color: var(--warn); font-weight: 600; }
+
+.fz-doc { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.fz-doc__sheet { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); position: relative; overflow: hidden; }
+.fz-doc__sheet::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--accent); }
+.fz-doc__sheet--draft::before { background: repeating-linear-gradient(90deg, var(--border-strong) 0 10px, transparent 10px 16px); }
+.fz-doc__sheet--danger::before { background: var(--danger); }
+.fz-doc__top { display: flex; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; align-items: flex-start; }
+.fz-doc__eyebrow { font: 600 11px/14px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--text-mute); }
+.fz-doc__title { font: 700 24px/30px var(--font-display); letter-spacing: -.01em; margin: 2px 0 4px; color: var(--text); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fz-doc__meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--text-dim); }
+.fz-doc__meta b { color: var(--text); font-weight: 600; }
+.fz-doc__total { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.fz-doc__total small { font-size: 11px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.fz-doc__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.fz-doc__panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-3); }
+.fz-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.fz-panel__h { font: 600 11px/14px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-mute); display: flex; justify-content: space-between; gap: 8px; }
+
+/* Tasdiqlash yo'li */
+.fz-yol { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding-bottom: 2px; }
+.fz-yol__q { flex: 1; min-width: 108px; display: flex; flex-direction: column; gap: 4px; position: relative; padding-right: 8px; }
+.fz-yol__q::before { content: ""; position: absolute; left: 14px; right: -2px; top: 6px; height: 2px; background: var(--border); }
+.fz-yol__q:last-child::before { display: none; }
+.fz-yol__q--done::before { background: var(--accent); }
+.fz-yol__nuqta { width: 14px; height: 14px; transform: rotate(45deg); background: var(--surface); border: 2px solid var(--border-strong); position: relative; z-index: 1; margin-left: 1px; }
+.fz-yol__q--done .fz-yol__nuqta { background: var(--accent); border-color: var(--accent); }
+.fz-yol__q--now .fz-yol__nuqta { border-color: var(--warn); background: var(--warn); }
+.fz-yol__q--bad .fz-yol__nuqta { border-color: var(--danger); background: var(--danger); }
+.fz-yol__nom { font-size: 12.5px; font-weight: 600; color: var(--text); margin-top: 4px; }
+.fz-yol__izoh { font-size: 11.5px; color: var(--text-mute); }
+.fz-yol__q:not(.fz-yol__q--done):not(.fz-yol__q--now):not(.fz-yol__q--bad) .fz-yol__nom { color: var(--text-mute); font-weight: 500; }
+
+/* Kategoriya taqsimoti */
+.fz-split { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: var(--surface-3); gap: 2px; }
+.fz-split > i { display: block; height: 100%; min-width: 2px; }
+.fz-legend { display: grid; grid-template-columns: auto 1fr auto auto; gap: 6px 10px; align-items: center; font-size: 12.5px; }
+.fz-legend .fz-c-num { text-align: right; font-variant-numeric: tabular-nums; }
+.fz-legend small { color: var(--text-mute); font-size: 11.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.fz-bg-chel { background: var(--kat-chel); } .fz-bg-mash { background: var(--kat-mash); } .fz-bg-mat { background: var(--kat-mat); }
+.fz-bg-ob { background: var(--kat-ob); } .fz-bg-nomalum { background: var(--border-strong); }
+
+/* Bo'limlar ustunlari */
+.fz-bars { display: flex; flex-direction: column; gap: 8px; }
+.fz-bars__q { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; font-size: 12.5px; }
+.fz-bars__q span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
+.fz-bars__q b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.fz-bars__q i { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; }
+.fz-bars__q i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w, 0%); background: var(--accent); border-radius: 2px; }
+
+/* Tekshiruv ro'yxati */
+.fz-check { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.fz-check__q { display: flex; gap: 8px; align-items: flex-start; color: var(--text-dim); }
+.fz-check__q svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
+.fz-check__q--ok svg { color: var(--ok); }
+.fz-check__q--warn { color: var(--text); } .fz-check__q--warn svg { color: var(--warn); }
+.fz-check__q--bad { color: var(--text); } .fz-check__q--bad svg { color: var(--danger); }
+
+/* Bajarilish chizig'i: oldin olingan (kulrang) + shu hujjat (firuza) / smeta = 100% */
+.fz-meter { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+.fz-meter__t { position: relative; flex: 1; height: 8px; border-radius: 2px; background: var(--surface-3); overflow: hidden; display: flex; }
+.fz-meter__t > i { display: block; height: 100%; }
+.fz-meter__oldin { background: var(--border-strong); }
+.fz-meter__shu { background: var(--accent); }
+.fz-meter--over .fz-meter__t { box-shadow: inset 0 0 0 1px var(--warn); }
+.fz-meter--over .fz-meter__shu { background: var(--warn); }
+.fz-meter__f { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text-mute); min-width: 38px; text-align: right; }
+.fz-meter--over .fz-meter__f { color: var(--warn); font-weight: 600; }
+
+/* Eslatma bloki */
+.fz-note { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12.5px; line-height: 18px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.fz-note svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+.fz-note--warn { border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: var(--warn-soft); } .fz-note--warn svg { color: var(--warn); }
+.fz-note--danger { border-color: color-mix(in srgb, var(--danger) 40%, transparent); background: var(--danger-soft); } .fz-note--danger svg { color: var(--danger); }
+.fz-note--info { border-color: color-mix(in srgb, var(--info) 40%, transparent); background: var(--info-soft); } .fz-note--info svg { color: var(--info); }
+
+/* Hujjatlar ro'yxati (chap ustun) */
+.fz-list { display: flex; flex-direction: column; gap: 2px; padding: var(--space-2); }
+.fz-list__q { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid transparent; background: transparent; text-align: left; cursor: pointer; color: var(--text); transition: background-color .12s; }
+.fz-list__q:hover { background: var(--surface-3); }
+.fz-list__q[aria-current="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.fz-list__nom { font: 600 13.5px/18px var(--font-display); }
+.fz-list__sub { font-size: 12px; color: var(--text-mute); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.fz-list__sum { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.fz-chip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 600; background: var(--surface-3); color: var(--text-dim); }
+.fz-chip--warn { background: var(--warn-soft); color: var(--warn); }
+.fz-chip--danger { background: var(--danger-soft); color: var(--danger); }
+.fz-chip--accent { background: var(--accent-soft); color: var(--accent-text); }

@@ -2852,7 +2852,12 @@
         "frontend/src/umumiy/ui/Sahifa.tsx",
         "frontend/src/umumiy/ui/KatNishon.tsx",
         "frontend/src/i18n/lugat/qism/dizayn-firuza.json",
-        "ops/mailbox/DIZAYN-FIRUZA-V1-20261025/"
+        "ops/mailbox/DIZAYN-FIRUZA-V1-20261025/",
+        "frontend/src/admin/sahifalar/F2TarixNative.tsx",
+        "frontend/src/components/f2-hujjat/",
+        "frontend/src/lib/f2-hujjat-korinish.ts",
+        "frontend/src/lib/f2-hujjat-korinish.test.ts",
+        "frontend/src/i18n/lugat/qism/f2-hujjat-korinish.json"
       ],
       "depends_on": [],
       "must_read": [
