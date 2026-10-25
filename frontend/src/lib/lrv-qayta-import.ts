@@ -33,6 +33,8 @@
  * Bu modul sof: fayl o'qish ham, yozish ham yo'q — faqat solishtirish.
  */
 
+import { shifrKorinish } from './f2-resurs-guruh';
+
 /** Qator o'zligini normallashtiradi — bo'shliq/registr farqi ahamiyatsiz. */
 function normal(v: unknown): string {
   return String(v ?? '').trim().toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, ' ');
@@ -41,7 +43,17 @@ function normal(v: unknown): string {
 /** Qisqa, barqaror xesh (FNV-1a, base36). Kriptografik emas — maqsad
  *  tasodifiy/qo'lda o'zgarishni sezish, hujumga qarshi turish emas. */
 export function lrvBarmoqIzi(kod: unknown, nom: unknown, birlik: unknown): string {
-  const s = `${normal(kod)}|${normal(nom)}|${normal(birlik)}`;
+  /* «ЦЕНА» shifr emas (narx belgisi): hujjatda shifr katagi bo'sh chiqadi - iz ikkala holatda bir xil (egasi 2026-10-25). */
+  return lrvIzHisobla(shifrKorinish(String(kod ?? '')), nom, birlik);
+}
+/** Eski (kodi xom) iz - «ЦЕНА» shifri bilan avval chiqarilgan fayllar qaytganda ham tanilsin. */
+export function lrvBarmoqIziEski(kod: unknown, nom: unknown, birlik: unknown): string { return lrvIzHisobla(kod, nom, birlik); }
+/** Fayldagi/kanonik qator izi kalitdagi izga mos (yangi yoki eski hisob bo'yicha). */
+export function lrvIziMos(fp: string, kod: unknown, nom: unknown, birlik: unknown): boolean {
+  return lrvBarmoqIzi(kod, nom, birlik) === fp || lrvBarmoqIziEski(kod, nom, birlik) === fp;
+}
+function lrvIzHisobla(kod: unknown, nom: unknown, birlik: unknown): string {
+  const s =`${normal(kod)}|${normal(nom)}|${normal(birlik)}`;
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -165,16 +177,14 @@ export function lrvQaytaImportTekshir(
             o'zgargan bo'lsa, fayl eskirgan.
        Faqat kanonikni tekshirish YETARLI EMAS edi: fayldagi katak
        o'zgartirilsa ham izlar mos kelaverardi. */
-    const faylIzi = lrvBarmoqIzi(q.kod, q.nom, q.birlik);
-    if (faylIzi !== kalit.fp) {
+    if (!lrvIziMos(kalit.fp, q.kod, q.nom, q.birlik)) {
       natija.xatolar.push({
         turi: 'OZLIK_OZGARDI', id: kalit.id, satr: q.satr,
         xabar: `${q.satr}-qator: ID ${kalit.id} — fayldagi kod/nom/birlik tahrirlangan, yashirin kalit esa eski («${k.nom}» ≠ «${q.nom}»). Pul boshqa qatorga yozilib ketmasligi uchun import to'xtatildi.`,
       });
       continue;
     }
-    const kanonikIzi = lrvBarmoqIzi(k.kod, k.nom, k.birlik);
-    if (kanonikIzi !== kalit.fp) {
+    if (!lrvIziMos(kalit.fp, k.kod, k.nom, k.birlik)) {
       natija.xatolar.push({
         turi: 'SMETA_OZGARDI', id: kalit.id, satr: q.satr,
         xabar: `${q.satr}-qator: ID ${kalit.id} — eksportdan keyin smetadagi qator o'zgargan («${k.nom}»). Fayl eskirgan, qaytadan eksport qiling.`,

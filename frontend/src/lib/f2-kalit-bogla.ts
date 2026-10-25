@@ -9,7 +9,7 @@
  *   - kanonik qator barmoq izi ham mos (eksportdan keyin smeta o'zgarmagan).
  * Aks holda qator jim oddiy moslashga qoladi. Kalitsiz (texnadzor qo'shgan) qatorlar ham oddiy moslashdan o'tadi.
  */
-import { lrvBarmoqIzi, lrvKalitOqi } from './lrv-qayta-import';
+import { lrvIziMos, lrvKalitOqi } from './lrv-qayta-import';
 import type { Katak } from './smeta-anatomiya/turlar';
 import type { Bog } from './f2-moslash-v3/ishJoyi';
 import { readXlsxFonda } from './f2-import-parse/xlsxFonda';
@@ -36,8 +36,8 @@ export function kalitdanBog(rows: readonly (readonly Katak[])[], tugunlar: reado
     if ((soni.get(id) ?? 0) !== 1) continue; // nusxalangan qator
     const q = kan.get(id);
     if (!q) continue; // begona ID
-    if (lrvBarmoqIzi(t.kod, t.nom, t.birlik) !== fp) continue; // fayldagi qator tahrirlangan
-    if (lrvBarmoqIzi(q.kod, q.nom, q.birlik) !== fp) continue; // smeta o'zgargan
+    if (!lrvIziMos(fp, t.kod, t.nom, t.birlik)) continue; // fayldagi qator tahrirlangan
+    if (!lrvIziMos(fp, q.kod, q.nom, q.birlik)) continue; // smeta o'zgargan
     bog.set(t.uid, { qatorId: id, holat: 'qolda', usul: F2_KALIT_USUL });
   }
   return bog;
