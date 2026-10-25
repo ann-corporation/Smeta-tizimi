@@ -442,5 +442,141 @@
   "Shartnoma quvuri: DS, F2, F3, to‘lov, qoldiq": {
     "ru": "Конвейер договора: ДС, Ф-2, Ф-3, оплата, остаток",
     "en": "Contract pipeline: SA, F-2, F-3, payment, balance"
+  },
+  "Obyekt tanlanmagan!": {
+    "ru": "Объект не выбран!",
+    "en": "No object selected!"
+  },
+  "Bu fakturada tovarlar ro‘yxati yo‘q. Skladga qabul qilib bo‘lmaydi.": {
+    "ru": "В этой фактуре нет списка товаров. Принять на склад нельзя.",
+    "en": "This invoice has no item list. It cannot be received into the warehouse."
+  },
+  "Skladga muvaffaqiyatli qabul qilindi": {
+    "ru": "Успешно принято на склад",
+    "en": "Successfully received into the warehouse"
+  },
+  "Faktura muvaffaqiyatli saqlandi": {
+    "ru": "Фактура успешно сохранена",
+    "en": "Invoice saved successfully"
+  },
+  "Fakturalar": {
+    "ru": "Фактуры",
+    "en": "Invoices"
+  },
+  "Fakturalarni sun‘iy intellekt orqali o‘qish va skladga avto-kirim qilish (PDF / Didox)": {
+    "ru": "Чтение фактур искусственным интеллектом и автоприход на склад (PDF / Didox)",
+    "en": "Reading invoices with AI and automatic warehouse receipt (PDF / Didox)"
+  },
+  "Faktura yuklash (AI)": {
+    "ru": "Загрузить фактуру (ИИ)",
+    "en": "Upload invoice (AI)"
+  },
+  "Qaysi obyekt skladiga qabul qilinadi": {
+    "ru": "На склад какого объекта принимается",
+    "en": "Which object's warehouse receives it"
+  },
+  "Fakturalar ko‘rsatkichlari": {
+    "ru": "Показатели фактур",
+    "en": "Invoice indicators"
+  },
+  "Jami fakturalar": {
+    "ru": "Всего фактур",
+    "en": "Total invoices"
+  },
+  "summasi noma’lum: {n}": {
+    "ru": "сумма неизвестна: {n}",
+    "en": "amount unknown: {n}"
+  },
+  "Kutilmoqda (skladga kirim qilinmagan)": {
+    "ru": "Ожидает (не оприходовано на склад)",
+    "en": "Pending (not received into the warehouse)"
+  },
+  "{n} ta faktura": {
+    "ru": "Фактур: {n}",
+    "en": "{n} invoices"
+  },
+  "Qabul qilingan va kutilayotgan ulushi": {
+    "ru": "Доля принятых и ожидающих",
+    "en": "Share received vs pending"
+  },
+  "Qabul qilingan va kutilayotgan fakturalar ulushi": {
+    "ru": "Доля принятых и ожидающих фактур",
+    "en": "Share of received and pending invoices"
+  },
+  "Kontragentlar bo‘yicha (eng katta 5)": {
+    "ru": "По контрагентам (5 крупнейших)",
+    "en": "By counterparty (top 5)"
+  },
+  "Tovar": {
+    "ru": "Товар",
+    "en": "Item"
+  },
+  "Tovarlar ro‘yxati kelmagan": {
+    "ru": "Список товаров не пришёл",
+    "en": "No item list received"
+  },
+  "Skladga kirim qilish": {
+    "ru": "Оприходовать на склад",
+    "en": "Receive into warehouse"
+  },
+  "Hozircha fakturalar yo‘q. EHF (PDF) fayllarni yuklang.": {
+    "ru": "Пока фактур нет. Загрузите файлы ЭСФ (PDF).",
+    "en": "No invoices yet. Upload e-invoice (PDF) files."
+  },
+  "AI orqali PDF o‘qish": {
+    "ru": "Чтение PDF через ИИ",
+    "en": "Read PDF with AI"
+  },
+  "PDF hujjat tanlang": {
+    "ru": "Выберите PDF-документ",
+    "en": "Choose a PDF document"
+  },
+  "Faktura PDF faylini yuklang, AI o‘zi o‘qiydi": {
+    "ru": "Загрузите PDF фактуры — ИИ прочитает сам",
+    "en": "Upload the invoice PDF — AI will read it"
+  },
+  "O‘qilmoqda…": {
+    "ru": "Читается…",
+    "en": "Reading…"
+  },
+  "Fayl tanlash": {
+    "ru": "Выбрать файл",
+    "en": "Choose file"
+  },
+  "Faktura №": {
+    "ru": "Фактура №",
+    "en": "Invoice №"
+  },
+  "O‘qilgan tovarlar": {
+    "ru": "Прочитанные товары",
+    "en": "Items read"
+  },
+  "Tizimga saqlash": {
+    "ru": "Сохранить в систему",
+    "en": "Save to system"
+  },
+  "Smeta, yopilgan F2 va haqiqiy xarajat: qayerda ortiqcha sarf, qayerda tejam": {
+    "ru": "Смета, закрытые Ф-2 и фактические затраты: где перерасход, где экономия",
+    "en": "Estimate, closed F-2 and actual cost: where overspend, where savings"
+  },
+  "Farq bo‘yicha: xarajat − F2 (ustamasiz)": {
+    "ru": "По разнице: затраты − Ф-2 (без накрутки)",
+    "en": "By difference: cost − F-2 (excl. markup)"
+  },
+  "chapga — ortiqcha sarf": {
+    "ru": "влево — перерасход",
+    "en": "left — overspend"
+  },
+  "Xarajat hali kiritilmagan — farq noma‘lum": {
+    "ru": "Затраты ещё не внесены — разница неизвестна",
+    "en": "Cost not entered yet — difference unknown"
+  },
+  "xarajat F2 dan ko‘p (ortiqcha sarf)": {
+    "ru": "затраты больше Ф-2 (перерасход)",
+    "en": "cost above F-2 (overspend)"
+  },
+  "xarajat F2 dan kam (tejam)": {
+    "ru": "затраты меньше Ф-2 (экономия)",
+    "en": "cost below F-2 (savings)"
   }
 }
