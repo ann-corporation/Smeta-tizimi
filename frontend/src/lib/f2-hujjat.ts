@@ -19,6 +19,10 @@ import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
+import { kodlarMatni, resursGuruhKaliti, shifrKorinish } from './f2-resurs-guruh';
+
+/** Vedomost qatori: bitta resurs (kat + nom kaliti + birlik kaliti) va bitta narx; narxi farqli guruhlar alohida qatorlarga ajraladi. */
+type VedQator = { guruh: string; kat: NakrutkaKat | null; kodlar: string[]; nom: string; birlik: string; qatorlar: number[]; summaQatorlar: number[]; hajm: number; summa: number | null; narx: number | null; narxFarqli: boolean };
 
 export type F2HujjatOpsiya = {
   obyektNom: string;
@@ -79,7 +83,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   let oxirgiSumma: number | null = null;
   /** Resurs/material qatori: `ishQator` berilsa — miqdor = norma × ish hajmi (tirik). */
   /** Resurs vedomosti uchun: har resurs qaysi qatorga yozilgani (kalit — kat|kod|nom|birlik). */
-  const vedomost = new Map<string, { kat: NakrutkaKat | null; kod: string; nom: string; birlik: string; qatorlar: number[]; hajm: number; summa: number | null; narxlar: Set<number> }>();
+  const vedomost = new Map<string, VedQator>();
   const resursYoz = (x: F2Qator, kod: string | null, norma: number | null, ishQator: number | null): number => {
     const kat = nakrutkaKat(x.kat) ?? (x.tur === 'mat' ? 'МАТ' : x.tur === 'ob' ? 'ОБ' : null);
     const narxBor = !x.narxsiz && x.narx != null;
@@ -94,14 +98,16 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
     oxirgiSumma = narxBor && x.summa != null ? x.summa : null;
     if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; }
     const qatorR = v.r;
-    const vk = `${kat ?? ''}|${(kod ?? '').trim()}|${x.nom.trim()}|${(x.birlik ?? '').trim()}`;
-    const vd = vedomost.get(vk) ?? { kat, kod: (kod ?? '').trim(), nom: x.nom.trim(), birlik: (x.birlik ?? '').trim(), qatorlar: [], hajm: 0, summa: 0, narxlar: new Set<number>() };
+    const guruh = resursGuruhKaliti(kat, x.nom, x.birlik);
+    const vk = `${guruh}|${narxBor ? x.narx : '-'}`;
+    const vd: VedQator = vedomost.get(vk) ?? { guruh, kat, kodlar: [], nom: x.nom.trim(), birlik: (x.birlik ?? '').trim(), qatorlar: [], summaQatorlar: [], hajm: 0, summa: null, narx: narxBor ? (x.narx as number) : null, narxFarqli: false };
     vd.qatorlar.push(qatorR); vd.hajm = yaxlit6(vd.hajm + x.hajm);
-    vd.summa = yaxlit2((vd.summa ?? 0) + (oxirgiSumma ?? 0));
-    if (narxBor) vd.narxlar.add(x.narx as number);
+    if (kod) vd.kodlar.push(kod);
+    // Faqat sonli summali qatorlar formulaga kiradi (narxsiz/ma'lumot qatori - matn «—», SUM/ROUND uni #VALUE! qilardi).
+    if (oxirgiSumma != null) { vd.summa = yaxlit2((vd.summa ?? 0) + oxirgiSumma); vd.summaQatorlar.push(qatorR); }
     vedomost.set(vk, vd);
     return v.qator('oddiy', (r): Qiymat[] => [
-      ++n, kod ?? '', x.nom, x.birlik ?? '',
+      ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
       norma != null ? { n: norma, uslub: 'norma' } : null,
       ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
@@ -126,7 +132,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
       let blQ: number | null = null;
       if (bl) {
         const ishJS = yaxlit2(avto.reduce((s2, r) => s2 + (tanlangan.get(r.id)?.summa ?? 0), 0));
-        blQ = v.qator('ish', (r): Qiymat[] => [++n, ish.kod ?? '', ish.nom, ish.birlik ?? '', null, bl.hajm, null,
+        blQ = v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(ish.kod), ish.nom, ish.birlik ?? '', null, bl.hajm, null,
           avto.length ? { f: `SUM(H${r + 1}:H${r + avto.length})`, v: ishJS } : null, 'bl', '', lrvKalitYoz(ish.id, ish.kod, ish.nom, ish.birlik)], { daraja: 1 });
         tarkib.push(blQ);
         qosh(ishJS);
@@ -149,7 +155,11 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
   nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false });
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
-  const rv = resursVedomosti([...vedomost.values()], { nom: v.nom, itogoR, jami: jamiJS, raqam, davr: o.davr, obyektNom: o.obyektNom });
+  const ved = [...vedomost.values()];
+  const narxlari = new Map<string, number>();
+  for (const x of ved) if (x.narx != null) narxlari.set(x.guruh, (narxlari.get(x.guruh) ?? 0) + 1);
+  for (const x of ved) x.narxFarqli = x.narx != null && (narxlari.get(x.guruh) ?? 0) > 1;
+  const rv = resursVedomosti(ved, { nom: v.nom, itogoR, jami: jamiJS, raqam, davr: o.davr, obyektNom: o.obyektNom });
   const { bytes, yacheykalar } = rasmiyKitob([v, rv], { mavzu: o.mavzu, tur: 'f2', formulasiz: o.formulasiz });
   return {
     bytes, yacheykalar,
@@ -178,7 +188,7 @@ const VED_GURUH: Record<NakrutkaKat, string> = {
  * narx — bitta bo'lsa o'zi, har xil bo'lsa o'rtacha (Сумма / Количество). Oxirida akt bilan solishtiruv (0 bo'lishi shart).
  */
 function resursVedomosti(
-  rs: Array<{ kat: NakrutkaKat | null; kod: string; nom: string; birlik: string; qatorlar: number[]; hajm: number; summa: number | null; narxlar: Set<number> }>,
+  rs: VedQator[],
   o: { nom: string; itogoR: number; jami: number | null; raqam: string; davr: string; obyektNom: string },
 ): RasmiyVaraq {
   const ref = (c: string, r: number) => `'${o.nom}'!${c}${r}`;
@@ -195,7 +205,7 @@ function resursVedomosti(
   let jamiJS: number | null = 0;
   const tartib = [...NAKRUTKA_KATLAR, null] as const;
   for (const kat of tartib) {
-    const guruh = rs.filter((x) => x.kat === kat).sort((a, b) => a.nom.localeCompare(b.nom, 'ru') || a.kod.localeCompare(b.kod));
+    const guruh = rs.filter((x) => x.kat === kat).sort((a, b) => a.nom.localeCompare(b.nom, 'ru') || (a.narx ?? 0) - (b.narx ?? 0));
     if (!guruh.length) continue;
     w.bolim(kat ? VED_GURUH[kat] : 'ПРОЧИЕ РЕСУРСЫ (без маркировки)');
     const rang = kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null;
@@ -203,12 +213,11 @@ function resursVedomosti(
     let gJS: number | null = 0;
     for (const x of guruh) {
       if (x.summa != null) gJS = yaxlit2((gJS ?? 0) + x.summa);
-      const bittaNarx = x.narxlar.size === 1 ? [...x.narxlar][0] : null;
       w.qator('oddiy', (r): Qiymat[] => [
-        ++n, x.kod, x.nom, x.birlik,
+        ++n, kodlarMatni(x.kodlar), x.narxFarqli ? `${x.nom} [ЦЕНА ОТЛИЧАЕТСЯ]` : x.nom, x.birlik,
         { f: `ROUND(${x.qatorlar.map((q) => ref('F', q)).join('+')},6)`, v: x.hajm },
-        bittaNarx != null ? { f: ref('G', x.qatorlar[0]), v: bittaNarx } : x.summa != null && x.hajm ? { f: `IF(E${r}=0,"",ROUND(G${r}/E${r},2))`, v: yaxlit2(x.summa / x.hajm) } : null,
-        x.summa == null ? null : { f: `ROUND(${x.qatorlar.map((q) => ref('H', q)).join('+')},2)`, v: x.summa },
+        x.narx != null ? { f: ref('G', x.qatorlar[0]), v: x.narx } : null,
+        x.summa == null ? null : { f: `ROUND(${x.summaQatorlar.map((q) => ref('H', q)).join('+')},2)`, v: x.summa },
       ], { rang });
     }
     const oxiri = w.r - 1;

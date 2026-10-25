@@ -18,6 +18,7 @@ import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2Obyektl
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { shifrKorinish } from '../../lib/f2-resurs-guruh';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
 import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
@@ -414,7 +415,7 @@ export function F2TayyorlashNative() {
             {ochilgan ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
           </button>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-[10px] text-text-mute">{i.kod}</span><span className="truncate text-[13px] font-semibold text-text">{i.nom}</span>
+            <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-[10px] text-text-mute">{shifrKorinish(i.kod)}</span><span className="truncate text-[13px] font-semibold text-text">{i.nom}</span>
               {(() => { const h = aosrKoz.get(i.id); return h && h !== 'yoq' && h !== 'kerak_emas' ? <span className={`shrink-0 rounded px-1 text-[10px] ${h === 'imzolangan' ? 'bg-ok/10 text-ok' : 'bg-warn/10 text-warn'}`}>{t(AOSR_ISHORA_MATNI[h])}</span> : null; })()}
               {aosrsizId.has(i.id) && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">yashirin · АОСР yo‘q</span>}</div>
             <div className="text-[11px] text-text-mute">F2 mumkin <b className="text-text-dim"><FmtN val={i.mumkin} /></b> {i.birlik} · {t('tasdiqlangan F2')} <FmtN val={i.olingan} />{(i.qoralama ?? 0) > 0 && <b className="text-warn"> · {t('qoralamada')} <FmtN val={i.qoralama ?? 0} /></b>}{i.smeta != null && <> · {t('smeta')} <FmtN val={i.smeta} /></>}{(() => { const n = ishBirlikNarxi(i); return n.summa > 0 || n.narxsiz > 0 ? <> · {t('narx (1 birlik, NDS siz)')} {n.summa > 0 ? <FmtN val={n.summa} /> : '—'}{n.narxsiz > 0 && <b className="text-warn"> ({n.narxsiz} {t('resursda narx yo‘q')})</b>}</> : null; })()} · {i.resurslar.length} resurs</div>
