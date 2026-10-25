@@ -84,6 +84,7 @@ import SmetaNarxlashResNative from './admin/sahifalar/SmetaNarxlashResNative';
 import OfertaNative from './admin/sahifalar/OfertaNative';
 import { Narxlar } from './admin/sahifalar/Narxlar';
 import RolBoshSahifa from './admin/RolBoshSahifa';
+import BolimTablari from './admin/BolimTablari';
 import { AiHelper } from './umumiy/ui/AiHelper';
 
 // Boss pages
@@ -143,10 +144,17 @@ export default function App() {
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
           <Route path="fakt" element={<FaktNative />} />
-          <Route path="f2" element={<F2ImportV3 />} />
+          {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
+              Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
+          <Route element={<BolimTablari />}>
+            <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
+            <Route path="f2" element={<F2ImportV3 />} />
+            <Route path="f2-tarix" element={<F2TarixNative />} />
+            <Route path="f2-reestr" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('Yuklanmoqda...')}</div>}><F2Reestr /></Suspense>} />
+            <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
+          </Route>
           {/* Eski F2 import (V2) — V3 barqarorlashguncha zaxira yo'l. */}
           <Route path="f2-eski" element={<Navigate to="/admin/f2" replace />} />
-          <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
           {/* Egasi 2026-10-01: Loyiha → Shartnoma (tomonlar) → Obyektlar. */}
           {/* Egasi 2026-10-02: har hujjat turi uchun rang mavzusi. */}
           {/* Egasi 2026-10-02: token balansi, obuna, superadmin to'lov tasdig'i. */}
@@ -161,13 +169,10 @@ export default function App() {
           <Route path="hujjat-dizayn" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><HujjatDizayni /></Suspense>} />
           <Route path="smeta-studio" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('Yuklanmoqda...')}</div>}><SmetaStudio /></Suspense>} />
           <Route path="shartnoma-liniya" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><ShartnomaLiniya /></Suspense>} />
-          <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
           <Route path="m29" element={<M29Native />} />
           <Route path="nakrutka" element={<NakrutkaNative />} />
           <Route path="narx-manbalari" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><NarxManbalari /></Suspense>} />
           <Route path="narx-dalil" element={<Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}><NarxDalil /></Suspense>} />
-          <Route path="f2-tarix" element={<F2TarixNative />} />
-          <Route path="f2-reestr" element={<Suspense fallback={<div className="p-6 text-text-dim">{t('Yuklanmoqda...')}</div>}><F2Reestr /></Suspense>} />
           <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
           <Route path="oferta" element={<OfertaNative />} />
           {/* Tizim1 sahifalari olib tashlandi (egasi 2026-10-21/22); eski havolalar zamonaviy sahifaga yo'naltiriladi. */}

@@ -4,8 +4,8 @@ import { yangiOperationId } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import type { AktBekorFn } from '../../lib/fakt-f2-tenglash';
 import type { JurnalHolat, JurnalIsh } from '../../lib/fakt-jurnal';
-import { QAMROV_ISTISNOLAR, foizOqi, qamrovBolaklari, qamrovJami, qamrovReja, type QamrovIstisno } from '../../lib/fakt-qamrov';
-import { urinishAktlari, urinishHolati, urinishOchiqmi, urinishOchir, urinishOl, urinishReceipt, urinishSaqla, urinishYarat, type QamrovUrinish } from '../../lib/fakt-qamrov-urinish';
+import { QAMROV_ISTISNOLAR, foizOqi, ishlarniYangila, qamrovBolaklari, qamrovJami, qamrovReja, type QamrovIstisno } from '../../lib/fakt-qamrov';
+import { urinishAktlari, urinishHolati, urinishOchiqmi, urinishOchir, urinishOl, urinishReceipt, urinishSaqla, urinishYarat, yozilganKorinadimi, yozilganOchir, yozilganOl, yozilganSaqla, yozilganYasa, type QamrovUrinish, type QamrovYozilgan } from '../../lib/fakt-qamrov-urinish';
 import { t } from '../../i18n/til';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { toast } from '../../umumiy/ui/Toast';
@@ -42,8 +42,14 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
    */
   const [urinish, setUrinish] = useState<QamrovUrinish | null>(() => { const u = urinishOl(kompaniyaId, obyektId); return urinishOchiqmi(u) ? u : null; });
   const urinishRef = useRef(urinish);
+  /** JQA-09: tasdiqlangan yozuvlar (aktlar + kutilgan fakt) — jadval ularni ko'rsatmaguncha yangi urinish boshlanmaydi. */
+  const [yozilgan, setYozilgan] = useState<QamrovYozilgan | null>(() => yozilganOl(kompaniyaId, obyektId));
+  const yozilganQoy = (y: QamrovYozilgan | null) => { setYozilgan(y); if (y) yozilganSaqla(y); else yozilganOchir(kompaniyaId, obyektId); };
+  const jadvalYangi = !yozilgan || yozilganKorinadimi(yozilgan, (id) => { const f = holatMap.get(id)?.fakt_hajm; return f == null ? null : Number(f); });
   const foiz = foizOqi(foizMatn);
-  const reja = useMemo(() => qamrovReja(ishlar, foiz ?? 0, holatMap, { ichkiResurslar: ichki, narxOl }), [ishlar, foiz, holatMap, ichki, narxOl]);
+  // Snapshot (ochilgandagi ishlar) joriy holat bilan yangilanadi: oyna ochiq turganda yozilgan fakt qoldiqdan ayriladi.
+  const ishlarJoriy = useMemo(() => ishlarniYangila(ishlar, holatMap), [ishlar, holatMap]);
+  const reja = useMemo(() => qamrovReja(ishlarJoriy, foiz ?? 0, holatMap, { ichkiResurslar: ichki, narxOl }), [ishlarJoriy, foiz, holatMap, ichki, narxOl]);
   const jami = useMemo(() => qamrovJami(reja, chiqarilgan), [reja, chiqarilgan]);
   const istisnoli = useMemo(() => reja.qatorlar.filter((q) => q.istisnolar.length > 0), [reja]);
   const yanaSoni = Math.max(0, istisnoli.length - KORSAT_CHEGARA);
@@ -60,7 +66,15 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
     void Promise.all(aktlar.map((a) => aktBekor(a))).then((natija) => {
       const xato = natija.filter((b) => !b.ok);
       if (xato.length) toast(xato[0].error || t('Bekor qilinmadi.'), 'danger');
-      else toast(t('Qamrov % bekor qilindi.'), 'ok');
+      else {
+        toast(t('Qamrov % bekor qilindi.'), 'ok');
+        // Bekor qilingan aktlar bo'yicha receipt'lar endi haqiqiy emas: yozuv va (shu aktli) urinish tozalanadi.
+        const bekor = new Set(aktlar);
+        const y = yozilganOl(kompaniyaId, obyektId);
+        if (y && y.aktlar.every((a) => bekor.has(a))) yozilganQoy(null);
+        const u = urinishRef.current;
+        if (u && urinishAktlari(u).some((a) => bekor.has(a)) && urinishHolati(u) !== 'nomalum') urinishQoy(null);
+      }
       void onBajarildi();
     });
   };
@@ -76,7 +90,13 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
     let u = urinishRef.current;
     if (!u) {
       if (foiz == null || !jami.paket.length) return;
-      u = urinishYarat({ kompaniyaId, obyektId, sana, sarlavha, foiz }, qamrovBolaklari(jami.paket), yangiOperationId);
+      if (yozilgan) {
+        // Oldingi yozuv jadvalda hali ko'rinmasa — reja eski qoldiqdan: tasdiqlangan hajm ikki marta yozilardi (JQA-09).
+        if (!jadvalYangi) { toast(t('Jadval hali yangilanmagan — oldingi yozuv ko‘rinmayapti. «Jadvalni yangilash» ni bosing.'), 'warn'); return; }
+        yozilganQoy(null);
+      }
+      const faktlar = new Map(reja.qatorlar.map((q) => [q.id, q.fakt] as const));
+      u = urinishYarat({ kompaniyaId, obyektId, sana, sarlavha, foiz }, qamrovBolaklari(jami.paket), yangiOperationId, undefined, (id) => faktlar.get(id) ?? 0);
     }
     setBand(true);
     urinishQoy(u);
@@ -93,6 +113,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
       const holat = urinishHolati(u);
       const qatorSoni = u.bolaklar.reduce((s, b) => s + b.qatorlar.length, 0);
       if (holat === 'toliq') {
+        yozilganQoy(yozilganYasa(u));
         urinishQoy(null);
         toast(t('Qamrov {foiz}%: {n} qator faktga yozildi', { foiz: String(u.foiz), n: String(qatorSoni) }), 'ok', undefined, 15000,
           aktlar.length ? { label: 'Bekor qilish', onClick: bekorQil(aktlar) } : undefined);
@@ -107,8 +128,21 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
       if (aktlar.length) void onBajarildi();
     } finally { setBand(false); }
   };
-  /** Faqat aniq rad etilgan (unknown yo'q) urinishni tashlash — yangi urinishga yo'l ochiladi. */
-  const urinishniTashla = () => { if (urinish && urinishHolati(urinish) !== 'nomalum') urinishQoy(null); };
+  /**
+   * Faqat aniq rad etilgan (unknown yo'q) urinishni tashlash. Tasdiqlangan bo'laklar TASHLANMAYDI (JQA-09): ularning aktlari
+   * va kutilgan fakti yozuvga o'tadi (ro'yxat va «bekor qilish» ko'rinib turadi); yangi urinish faqat jadval ularni
+   * ko'rsatgach va qoldiq yangi holatdan qayta hisoblangach.
+   */
+  const urinishniTashla = () => {
+    if (!urinish || urinishHolati(urinish) === 'nomalum') return;
+    const y = yozilganYasa(urinish);
+    if (y) {
+      const eski = yozilganOl(kompaniyaId, obyektId);
+      yozilganQoy(eski ? { ...y, aktlar: [...eski.aktlar, ...y.aktlar], tekshir: [...eski.tekshir, ...y.tekshir] } : y);
+      void onBajarildi();
+    }
+    urinishQoy(null);
+  };
 
   useHotkeys('fakt-qamrov', t('Qamrov % oynasi'), [
     { id: 'fakt-qamrov.yop', keys: 'esc', nom: t('Yopish'), inInput: true, run: () => { onYop(); } },
@@ -136,6 +170,14 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
           <div className="mt-1 flex flex-wrap gap-2">
             {uAktlar.length > 0 && <button type="button" className="tugma" onClick={bekorQil(uAktlar)} data-testid="urinish-bekor">{t('Yozilgan {n} hujjatni bekor qilish', { n: String(uAktlar.length) })}</button>}
             {uHolat !== 'nomalum' && <button type="button" className="tugma" onClick={urinishniTashla} data-testid="urinish-tashla">{t('Urinishni tashlash (yangisiga yo‘l)')}</button>}
+          </div>
+        </div>}
+        {!urinish && yozilgan && <div className={`rounded-lg border px-3 py-2 text-[12px] ${jadvalYangi ? 'border-border bg-surface-2/40' : 'border-warn/60 bg-warn/10'}`} data-testid="qamrov-yozilgan">
+          <p className="text-text">{t('Oldin yozilgan')}: {yozilgan.sarlavha} · {yozilgan.foiz}% · {t('hujjatlar')}: {yozilgan.aktlar.map((a) => `№${a}`).join(', ') || '—'} · {t('{n} qator', { n: String(yozilgan.tekshir.length) })}</p>
+          {!jadvalYangi && <p className="text-text-dim">{t('Jadval bu yozuvni hali ko‘rsatmayapti — yangi qamrov eski qoldiqdan hisoblanib, ikki marta yozilishi mumkin edi. Yangilanmaguncha yozish yopiq.')}</p>}
+          <div className="mt-1 flex flex-wrap gap-2">
+            {yozilgan.aktlar.length > 0 && <button type="button" className="tugma" onClick={bekorQil(yozilgan.aktlar)} data-testid="yozilgan-bekor">{t('Yozilgan {n} hujjatni bekor qilish', { n: String(yozilgan.aktlar.length) })}</button>}
+            {!jadvalYangi && <button type="button" className="tugma" onClick={() => void onBajarildi()} data-testid="jadval-yangila">{t('Jadvalni yangilash')}</button>}
           </div>
         </div>}
         <div className="flex flex-wrap items-center gap-3 text-[12px]">
@@ -196,7 +238,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
           <span className="text-text-mute">{t('Sana')}: {sana}</span>
           <div className="ml-auto flex gap-2">
             <button type="button" className="tugma" onClick={onYop}>{t('Bekor')}</button>
-            <button type="button" className="tugma tugma-asosiy" disabled={band || (!urinish && (foiz == null || jami.paket.length === 0))} onClick={() => void yoz()}>
+            <button type="button" className="tugma tugma-asosiy" disabled={band || (!urinish && (foiz == null || jami.paket.length === 0 || !jadvalYangi))} onClick={() => void yoz()}>
               {band ? t('Yozilmoqda…') : urinish ? t('Faktga yozish — qayta yuborish (bir xil ID)') : t('Faktga yozish ({n})', { n: String(jami.paket.length) })} <kbd className="ml-1 rounded bg-white/20 px-1 text-[10px]">{'Ctrl+Enter'}</kbd></button>
           </div>
         </div>

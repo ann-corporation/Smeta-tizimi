@@ -20,7 +20,8 @@
         "Foizni yozing (masalan 100 yoki 70): har ish, alohida material/uskuna va (xohlasangiz) ish ichidagi materiallarga fakt = foiz × ochiq qoldiq taklif qilinadi. Mehnat va mashina normadan o'zi ergashadi.",
         "Oldindan ko'rishda qatorlar soni, summa (ustamasiz va ustamali) va istisnolar chiqadi: allaqachon faktli, zamenalangan, bajarilmaydi, narxsiz, chegirma. Keraksizini belgidan olib tashlang yoki turini bitta tugma bilan chiqaring.",
         "Enter yoki Ctrl+Enter — hammasi bitta fakt hujjatiga yoziladi. Xabardagi «Bekor qilish» shu yozuvni butunlay qaytaradi. Asl smeta o'zgarmaydi.",
-        "Internet uzilib javob kelmasa — oyna «oldingi urinish noma'lum» deb ko'rsatadi: «qayta yuborish» xuddi shu amalni yuboradi (ikki marta yozilmaydi), foizni o'zgartirish yoki yangi urinish faqat shu hal bo'lgach. Oynani yopib qayta ochsangiz ham, sahifani yangilasangiz ham esda qoladi."
+        "Internet uzilib javob kelmasa — oyna «oldingi urinish noma'lum» deb ko'rsatadi: «qayta yuborish» xuddi shu amalni yuboradi (ikki marta yozilmaydi), foizni o'zgartirish yoki yangi urinish faqat shu hal bo'lgach. Oynani yopib qayta ochsangiz ham, sahifani yangilasangiz ham esda qoladi.",
+        "Bir qismi yozilib, qolgani rad etilsa: «Urinishni tashlash» faqat yozilmagan qismni tashlaydi — yozilgan hujjatlar ro'yxati va «bekor qilish» qoladi. Yangi qamrov jadval yangilangach, yangi qoldiqdan hisoblanadi (yozilgani ikki marta yozilmaydi)."
       ]
     },
     {
@@ -31,6 +32,16 @@
         "Fakt jurnalidagi «Ochiq qoldiq» ustuni endi smeta − fakt − almashtirilgan (zamena) − «bajarilmaydi» hajmini ko'rsatadi; F2 qoldig'i farq qilsa ostida kichik «F2: …» bo'lib turadi.",
         "25/50/100% tugmalari, «faqat bajarilmaganlar» belgisi va «qoldiqdan oshdi» ogohlantirishi shu bitta raqamdan hisoblanadi — zamena yoki «bajarilmaydi» bor qatorda 100% endi ortiqcha hajm bermaydi.",
         "Oshib ketsa ham saqlash bloklanmaydi: kiritma ostida «qoldiqdan oshdi +X» ko'rinadi."
+      ]
+    },
+    {
+      "id": 12,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 — menyuda bitta band, ichida tablar",
+      "bandlar": [
+        "Chap menyudagi 5 ta F2 bandi (tayyorlash, import, tarix va tasdiqlash, reestr, nakopitelniy) endi bitta «F2» bandida. Sahifa tepasidagi tablar bilan almashasiz.",
+        "Tab almashganda tanlangan obyekt va davr saqlanadi. Eski havolalar va xatcho'plar avvalgidek ishlaydi.",
+        "Rolingizga ochiq bo'lmagan F2 sahifasi tablarda ko'rinmaydi."
       ]
     },
     {

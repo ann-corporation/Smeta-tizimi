@@ -49,6 +49,19 @@ export type QamrovOpsiya = {
 const son = (v: unknown): number | null => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 const yaxlit = (x: number) => Math.round(x * 1e6) / 1e6;
 
+/**
+ * Qamrov snapshotini JORIY holat bilan yangilash (JQA-09): oyna ochilgandan keyin fakt yozilgan bo'lsa (holat
+ * yangilangan), ochiq qoldiq fakt farqiga kamayadi (zamena/bajarilmaydi qismi o'zgarmaydi). Holati yo'q qator — o'zgarishsiz.
+ */
+export function ishlarniYangila(ishlar: readonly JurnalIsh[], holat: ReadonlyMap<number, JurnalHolat>): JurnalIsh[] {
+  const q1 = <T extends JurnalQator>(q: T): T => {
+    const f = son(holat.get(q.id)?.fakt_hajm);
+    if (f == null || Math.abs(f - q.fakt) < 1e-9) return q;
+    return { ...q, fakt: f, qoldiq: q.qoldiq == null ? null : yaxlit(q.qoldiq - (f - q.fakt)) };
+  };
+  return ishlar.map((ish) => ({ ...q1(ish), resurslar: ish.resurslar.map(q1) }));
+}
+
 /** Qamrov rejasi (sof): yozilmaydi, faqat hisoblanadi. `ishlar` — qamrovdagi jurnal ishlari (bo'lim avlodlari bilan). */
 export function qamrovReja(ishlar: readonly JurnalIsh[], foiz: number, holat: ReadonlyMap<number, JurnalHolat>, op: QamrovOpsiya = {}): QamrovReja {
   const ichki = op.ichkiResurslar ?? true;

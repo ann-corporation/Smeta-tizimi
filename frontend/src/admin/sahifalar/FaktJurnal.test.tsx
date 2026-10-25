@@ -14,6 +14,7 @@ const zb = vi.hoisted(() => ({ ol: vi.fn(async () => ({ almashtiradi: new Map<nu
 vi.mock('../../lib/fakt-zamena-boglanish', () => ({ zamenaBoglanishOl: zb.ol }));
 
 import { FaktJurnal } from './FaktJurnal';
+import { urinishOchir, yozilganOchir } from '../../lib/fakt-qamrov-urinish';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: 'n', birlik: 'м3',
@@ -30,7 +31,7 @@ const rows = [
 const states = [{ qator_id: 2, smeta_hajm: 100, fakt_hajm: 40 }, { qator_id: 3, smeta_hajm: 10, fakt_hajm: 0 }, { qator_id: 5, smeta_hajm: 30, fakt_hajm: 0 }];
 const props = () => ({ kompaniyaId: 1, obyektId: 8, rows, states, holatniYangila: vi.fn(), tuzilmaniYangila: vi.fn() });
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); urinishOchir(1, 8); yozilganOchir(1, 8); });
 
 describe('FaktJurnal', () => {
   it('bo‘lim ishlari, "+" va "=" bitta paketda, fokus yo‘qolmaydi', async () => {
