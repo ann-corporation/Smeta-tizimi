@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useSessiya } from '../api/hooks';
 import { HotkeyYordam } from '../lib/hotkeys/HotkeyYordam';
 import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
-import { Map, LogOut, Building2, FileInput, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, NotebookPen, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
+import { Map, LogOut, Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
 import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
@@ -16,6 +16,7 @@ import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
+import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { routePermission } from '../lib/company-authorization/route-permission';
 import { useModullar } from '../api/t2-modul';
 import { MENYU_MODUL, menyuModulYoqilgan } from '../lib/modullar';
@@ -27,7 +28,10 @@ import { MENYU_MODUL, menyuModulYoqilgan } from '../lib/modullar';
 /* Egasi 2026-10-21 (BOSH_REJA §3–4, Smeta Network auditi): 8 guruh → 5 asosiy bo'lim; «Tizim 1 (eski)» qoldiqlari
  * menyudan butunlay olib tashlandi. Modul («Telegram modeli») o'chirilgan bo'lsa uning sahifalari ko'rinmaydi
  * (lib/modullar.ts). `eski` — avvalgi guruh: rol bo'yicha zaxira filtri o'zgarmasin. Har yo'l faqat BIR joyda. */
-type MenyuQator = { yol: string; nom: string; Ikonka: typeof Crown; eski?: string };
+/* `tablar` — bitta band ostidagi bir nechta sahifa (tizim xaritasi P1): sidebarda BITTA band, sahifa tepasida
+ * tablar (BolimTablari). Har tab o'z yo'lida qoladi (eski URL'lar o'zgarmaydi); ruxsat har tabga alohida. */
+type MenyuTab = { yol: string; nom: string };
+type MenyuQator = { yol: string; nom: string; Ikonka: typeof Crown; eski?: string; tablar?: MenyuTab[] };
 const TIZIM_02_GURUHLAR: Array<{ nom: string; Ikonka: typeof Crown; id: string; menyular: MenyuQator[] }> = [
   {
     nom: 'Ish (PTO)',
@@ -41,13 +45,16 @@ const TIZIM_02_GURUHLAR: Array<{ nom: string; Ikonka: typeof Crown; id: string; 
       { yol: '/admin/obyektlar', nom: 'Obyektlar va smeta yuklash', Ikonka: Building2 },
       { yol: '/admin/smeta-studio', nom: 'Smeta studiyasi', Ikonka: Calculator },
       { yol: '/admin/holat', nom: 'Smeta va Fakt / LRV', Ikonka: FileText },
-      { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', Ikonka: FileOutput },
-      { yol: '/admin/f2-tarix', nom: 'F2 tarixi va tasdiqlash', Ikonka: ShieldCheck },
-      { yol: '/admin/f2-reestr', nom: 'F2 reestri', Ikonka: FileText },
-      { yol: '/admin/nakopitelniy', nom: 'Nakopitelniy va F3', Ikonka: NotebookPen },
+      /* 2026-10-25 (tizim xaritasi P1): F2 ga oid 5 band → bitta «F2» bandi, ichida tablar. */
+      { yol: '/admin/f2-tayyorlash', nom: 'F2', Ikonka: FileOutput, tablar: [
+        { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash' },
+        { yol: '/admin/f2', nom: 'F2 import (tayyor F2 faylidan)' },
+        { yol: '/admin/f2-tarix', nom: 'F2 tarixi va tasdiqlash' },
+        { yol: '/admin/f2-reestr', nom: 'F2 reestri' },
+        { yol: '/admin/nakopitelniy', nom: 'Nakopitelniy va F3' },
+      ] },
       { yol: '/admin/m29', nom: 'M-29 (material sarfi)', Ikonka: Box },
       { yol: '/admin/aosr', nom: 'АОСР va laboratoriya', Ikonka: ShieldCheck },
-      { yol: '/admin/f2', nom: 'F2 import (tayyor F2 faylidan)', Ikonka: FileInput },
     ]
   },
   {
@@ -165,7 +172,7 @@ function AdminShellInner() {
     const d: Record<string, boolean> = {};
     TIZIM_02_GURUHLAR.forEach(g => {
       // Agar ochiq sahifa shu guruhga tegishli bo'lsa, uni ochamiz
-      d[g.id] = g.id === 'pto' || g.menyular.some(m => joy.pathname.startsWith(m.yol));
+      d[g.id] = g.id === 'pto' || g.menyular.some(m => [m, ...(m.tablar ?? [])].some(x => joy.pathname.startsWith(x.yol)));
     });
     return d;
   });
@@ -176,7 +183,7 @@ function AdminShellInner() {
     setOchiqGuruhlar(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const barchaYollar = TIZIM_02_GURUHLAR.flatMap(g => g.menyular.map(m => m.yol));
+  const barchaYollar = [...new Set(TIZIM_02_GURUHLAR.flatMap(g => g.menyular.flatMap(m => [m.yol, ...(m.tablar ?? []).map(tb => tb.yol)])))];
   menyuTekshirDev(barchaYollar);
 
   useEffect(() => {
@@ -269,10 +276,21 @@ function AdminShellInner() {
       if (k.joriy?.permissions) return k.joriy.permissions.includes(routePermission(m.yol));
       return eskiRolRuxsat(m.eski ?? g.id, m);
     };
-    return { ...g, menyular: g.menyular.filter(korinadi) };
+    /* Tabli band: har tab o'z yo'li bo'yicha filtrlanadi; band — kamida bitta tab ko'rinsa, birinchi ko'ringan tabga olib boradi. */
+    const tabliFiltr = (m: MenyuQator): MenyuQator | null => {
+      if (!m.tablar) return korinadi(m) ? m : null;
+      const tablar = m.tablar.filter(tb => korinadi({ ...m, yol: tb.yol }));
+      return tablar.length ? { ...m, yol: tablar[0].yol, tablar } : null;
+    };
+    return { ...g, menyular: g.menyular.map(tabliFiltr).filter((m): m is MenyuQator => m !== null) };
   }).filter(g => g.menyular.length > 0);
-  /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3). */
-  const palitraBandlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.map(m => ({ yol: m.yol, nom: m.nom, guruh: g.nom })));
+  /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3); tablar alohida topiladi. */
+  const palitraBandlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
+    ? m.tablar.map(tb => ({ yol: tb.yol, nom: tb.nom, guruh: g.nom }))
+    : [{ yol: m.yol, nom: m.nom, guruh: g.nom }]));
+  /* BolimTablari (sahifa tepasidagi tablar) uchun — ruxsat bo'yicha filtrlangan tab guruhlari. */
+  const tabGuruhlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar ? [m.tablar] : []));
+  const bandFaol = (m: MenyuQator, isActive: boolean) => isActive || !!m.tablar?.some(tb => joy.pathname === tb.yol || joy.pathname.startsWith(tb.yol + '/'));
 
   return (
     <div className="os-app-shell flex h-screen overflow-hidden text-white relative font-sans selection:bg-accent/30">
@@ -326,11 +344,11 @@ function AdminShellInner() {
                       title={t(m.nom)}
                       className={({ isActive }) =>
                         `os-nav-link flex items-center justify-center h-10 rounded-lg transition-colors duration-[120ms] cursor-pointer ${
-                          isActive ? 'os-nav-link--active' : ''
+                          bandFaol(m, isActive) ? 'os-nav-link--active' : ''
                         }`
                       }
                     >
-                      {({ isActive }) => <m.Ikonka className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} />}
+                      {({ isActive }) => <m.Ikonka className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={bandFaol(m, isActive) ? 2 : 1.5} />}
                     </NavLink>
                   ))}
                 </div>
@@ -356,7 +374,7 @@ function AdminShellInner() {
                         to={m.yol}
                         className={({ isActive }) =>
                           `os-nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] font-medium transition-colors duration-[120ms] cursor-pointer relative ${
-                            isActive
+                            bandFaol(m, isActive)
                               ? 'os-nav-link--active'
                               : ''
                           }`
@@ -364,7 +382,7 @@ function AdminShellInner() {
                       >
                         {({ isActive }) => (
                           <>
-                            <m.Ikonka className="w-[16px] h-[16px] flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} />
+                            <m.Ikonka className="w-[16px] h-[16px] flex-shrink-0" strokeWidth={bandFaol(m, isActive) ? 2 : 1.5} />
                             <span className="truncate">{t(m.nom)}</span>
                           </>
                         )}
@@ -441,7 +459,9 @@ function AdminShellInner() {
          * shu tashqi scroll konteynerining ICHIDA, hajmi mos kelsa
          * tashqi scroll umuman ko'rinmaydi. */}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-          {moduleOpen ? <RuxsatGuard /> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
+          <BolimTablariKontekst.Provider value={tabGuruhlari}>
+            {moduleOpen ? <RuxsatGuard /> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
+          </BolimTablariKontekst.Provider>
         </div>
       </main>
 

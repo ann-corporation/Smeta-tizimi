@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 12,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 — menyuda bitta band, ichida tablar",
+      "bandlar": [
+        "Chap menyudagi 5 ta F2 bandi (tayyorlash, import, tarix va tasdiqlash, reestr, nakopitelniy) endi bitta «F2» bandida. Sahifa tepasidagi tablar bilan almashasiz.",
+        "Tab almashganda tanlangan obyekt va davr saqlanadi. Eski havolalar va xatcho'plar avvalgidek ishlaydi.",
+        "Rolingizga ochiq bo'lmagan F2 sahifasi tablarda ko'rinmaydi."
+      ]
+    },
+    {
       "id": 11,
       "sana": "2026-10-25",
       "sarlavha": "Kirgach — o'z ish sahifangiz; Ctrl+K bilan istalgan sahifani toping",
