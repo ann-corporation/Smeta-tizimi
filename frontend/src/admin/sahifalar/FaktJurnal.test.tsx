@@ -10,6 +10,9 @@ vi.mock('../../api/t2-bajarilmadi', async (orig) => ({ ...(await orig<typeof imp
 const abc = vi.hoisted(() => ({ ochir: vi.fn() }));
 vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: vi.fn(async () => []), resursQidir: vi.fn(async () => []), narxTakliflari: vi.fn(async () => []), ishAbcSaqla: vi.fn(), ishAbcTahrir: vi.fn(), ishAbcOchir: abc.ochir, abcXato: () => '' }));
 
+const zb = vi.hoisted(() => ({ ol: vi.fn(async () => ({ almashtiradi: new Map<number, number>(), almashtirilgan: new Map<number, number>() })) }));
+vi.mock('../../lib/fakt-zamena-boglanish', () => ({ zamenaBoglanishOl: zb.ol }));
+
 import { FaktJurnal } from './FaktJurnal';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
@@ -128,6 +131,65 @@ describe('FaktJurnal', () => {
     await waitFor(() => expect(baj.belgila).toHaveBeenCalledWith(expect.objectContaining({ kompaniyaId: 1, obyektId: 8, qatorlar: [{ qator_id: 2, hajm: 60 }], sabab: 'texnik_sabab' })));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Bajarilmaydi' })).toBeNull());
     expect(m.yoz).not.toHaveBeenCalled();
+  });
+
+  it('ierarxiya: yuqori bo‘lim bosilganda BARCHA avlodlar (ichki bo‘lim sarlavhasi, ishlar, resurslar) ko‘rinadi; chapda ishlar soni', () => {
+    const ich = [
+      q({ id: 20, tur: 'rz', kod: '3', nom: 'Karkas' }),
+      q({ id: 21, tur: 'rz', ota_id: 20, daraja: 1, kod: '3.1', nom: 'Ustunlar' }),
+      q({ id: 22, tur: 'rz', ota_id: 21, daraja: 2, kod: '3.1.1', nom: 'Qavat 1' }),
+      q({ id: 23, tur: 'bl', ota_id: 22, daraja: 3, nom: 'Beton quyish', hajm: 12 }),
+      q({ id: 24, tur: 'mat', ota_id: 23, daraja: 4, nom: 'Beton B25', hajm: 12.2, kat: 'МАТ' }),
+      q({ id: 25, tur: 'rs', ota_id: 23, daraja: 4, nom: 'Betonchi mehnati', birlik: 'чел.-ч', hajm: 30, kat: 'ЧЕЛ', norma: 2.5 } as Partial<T2Qator> & { id: number; tur: string }),
+    ];
+    render(<FaktJurnal {...props()} rows={ich} states={[{ qator_id: 23, smeta_hajm: 12, fakt_hajm: 0 }]} />);
+    expect(screen.getByTestId('bolim-soni-20').textContent).toMatch(/^1 ish/);
+    fireEvent.click(screen.getByRole('button', { name: /3 Karkas/ }));
+    expect(screen.queryByText('Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q.')).toBeNull();
+    expect(screen.getByTestId('bolim-sarlavha-21')).toBeTruthy();
+    expect(screen.getByTestId('bolim-sarlavha-22')).toBeTruthy();
+    expect(screen.getByText('Beton quyish')).toBeTruthy();
+    expect(screen.getByLabelText('Bugun bajarildi: Beton B25')).toBeTruthy();
+    expect(screen.getByTestId('resurs-25').querySelector('[data-testid="avto-belgi"]')).toBeTruthy();
+    // Ish bo'yicha yopish va hammasini ochish.
+    fireEvent.click(screen.getByRole('button', { name: 'Resurslar: Beton quyish' }));
+    expect(screen.queryByLabelText('Bugun bajarildi: Beton B25')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Hamma resurslarni yopish' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hamma resurslarni ochish' }));
+    expect(screen.getByLabelText('Bugun bajarildi: Beton B25')).toBeTruthy();
+  });
+
+  it('zamena qator TURIGA mos: alohida resurs va ish ichidagi resurs — «Resurs zamenasi», ish — «Ish zamenasi»', () => {
+    const r2 = [...rows, q({ id: 30, tur: 'mat', ota_id: 1, daraja: 1, nom: 'Ж/Б БЛОКИ РАЗМ.БР100.20.12', birlik: 'шт', hajm: 40, kat: 'МАТ' })];
+    render(<FaktJurnal {...props()} rows={r2} states={[...states, { qator_id: 30, smeta_hajm: 40, fakt_hajm: 0 }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Zamena: Ж/Б БЛОКИ РАЗМ.БР100.20.12' }));
+    let dlg = screen.getByRole('dialog', { name: 'Resurs zamenasi' });
+    expect(screen.queryByLabelText('Ish shifri')).toBeNull();
+    expect(dlg.querySelector('[data-testid="zamena-asl"]')?.textContent).toMatch(/Almashtiriladigan resurs:.*МАТ.*Ж\/Б БЛОКИ/);
+    expect(screen.queryByLabelText('1-resurs normasi')).toBeNull(); // ishsiz resurs — aniq hajm
+    expect(screen.getByLabelText('1-resurs aniq hajmi')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zamena: Qum' }));
+    dlg = screen.getByRole('dialog', { name: 'Resurs zamenasi' });
+    expect(dlg.textContent).toMatch(/Ish: Grunt/);
+    expect(screen.getByLabelText('1-resurs normasi')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zamena: Grunt' }));
+    expect(screen.getByRole('dialog', { name: 'Ish zamenasi' })).toBeTruthy();
+    expect(screen.getByLabelText('Ish shifri')).toBeTruthy();
+  });
+
+  it('zamena asl ostida «↻ zamena: asl X», aslda «almashtirildi X / Y»; qoldiqdan oshsa ogohlantirish (bloklanmaydi)', async () => {
+    zb.ol.mockResolvedValueOnce({ almashtiradi: new Map([[40, 2]]), almashtirilgan: new Map([[2, 30]]) });
+    const r2 = [...rows, q({ id: 40, tur: 'bl', ota_id: 1, daraja: 1, nom: 'Grunt (qo‘lda)', hajm: 30, zamena: true, qoshimcha: true })];
+    render(<FaktJurnal {...props()} rows={r2} states={[...states, { qator_id: 40, smeta_hajm: 30, fakt_hajm: 0 }]} />);
+    await waitFor(() => expect(screen.getByTestId('zamena-belgi').textContent).toMatch(/zamena: asl Grunt/));
+    expect(screen.getByTestId('almashtirildi-belgi').textContent).toMatch(/almashtirildi 30 \/ 100 м3/);
+    const ishlar = [...document.querySelectorAll('[data-testid^="ish-"]')].map((x) => x.getAttribute('data-testid')).filter((x) => /^ish-\d+$/.test(x ?? ''));
+    expect(ishlar.indexOf('ish-40')).toBe(ishlar.indexOf('ish-2') + 1);
+    fireEvent.change(screen.getByLabelText('Bugun bajarildi: Grunt'), { target: { value: '50' } }); // 40 + 50 > 100 − 30
+    expect(screen.getByTestId('qoldiqdan-oshdi')).toBeTruthy();
+    expect((screen.getByRole('button', { name: /^Saqlash/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('Fakt Studio paneli: F2 tayyorlash (fakt bo‘yicha F2 qoralama) tugmasi f2Otish ni chaqiradi', () => {

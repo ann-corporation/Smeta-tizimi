@@ -9,13 +9,21 @@
  *    `fakt_yoz_v2` paketiga delta sifatida tushadi (bitta tranzaksiya, bitta operation_id).
  */
 import type { T2Qator } from '../api/supabase';
+import { bosKatKesim, katKesimgaQosh, type KatKesim } from './ustamali-summa';
 
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
   smeta_summa?: number | null; fakt_summa?: number | null; f2_mumkin_hajm?: number | null;
   /** «Fakt = F2» uchun: tasdiqlangan F2 hajmi va narxlar. */
   f2_hajm?: number | null; smeta_narx?: number | null; f2_narx?: number | null;
+  /** Zamenalar qoplagan hajm (t2_qator_holat.almashtirilgan_hajm, aslning birligida). */
+  almashtirilgan_hajm?: number | null;
+  /** t2_qator_holat: qoldiq = smeta − F2 − almashtirilgan; summalar (NDS siz). */
+  qoldiq_hajm?: number | null; f2_summa?: number | null; qoldiq_summa?: number | null;
 };
+
+/** Zamena bog'lanishi (ixtiyoriy, alohida o'qiladi): zamena qatori → asl qator; asl → almashtirilgan hajm. */
+export type ZamenaBoglanish = { almashtiradi: ReadonlyMap<number, number>; almashtirilgan: ReadonlyMap<number, number> };
 
 export type Rejim = '+' | '=';
 export type Kiritma = { rejim: Rejim; qiymat: string };
@@ -29,6 +37,12 @@ export type JurnalQator = {
   norma: number | null;
   qoshimcha: boolean; zamena: boolean;
   otaId: number | null; otaVersiya: number | null;
+  /** Smeta kategoriyasi (t2_qator.kat): ЧЕЛ/МАШ/МАТ/ОБ/М/К/КАБ/БЕЗСКЛАД; yo'q bo'lsa null. */
+  kat: string | null;
+  /** Zamena qatori: qaysi asl qator o'rniga (id) va uning nomi; bog'lanish noma'lum bo'lsa null. */
+  almashtiradi: number | null; aslNom: string | null;
+  /** Asl qator: zamenalari qoplagan hajm (aslning birligida); yo'q bo'lsa null. */
+  almashtirilgan: number | null;
 };
 
 export type JurnalIsh = JurnalQator & { resurslar: JurnalQator[]; avtomatik: JurnalQator[] };
@@ -53,11 +67,17 @@ export function holatTur(smeta: number | null, fakt: number): JurnalQator['holat
   return 'qisman';
 }
 
-function qatorQur(r: T2Qator, h: JurnalHolat | undefined, byId: Map<number, T2Qator>): JurnalQator {
+function qatorQur(r: T2Qator, h: JurnalHolat | undefined, byId: Map<number, T2Qator>, zb?: ZamenaBoglanish | null): JurnalQator {
   const smeta = son(h?.smeta_hajm) ?? son(r.hajm);
   const fakt = son(h?.fakt_hajm) ?? 0;
   const ota = r.ota_id != null ? byId.get(r.ota_id) : undefined;
+  const aslId = r.zamena ? zb?.almashtiradi.get(r.id) ?? null : null;
+  const asl = aslId != null ? byId.get(aslId) : undefined;
+  const alm = son(h?.almashtirilgan_hajm) ?? zb?.almashtirilgan.get(r.id) ?? null;
   return {
+    kat: r.kat?.trim() || null,
+    almashtiradi: aslId, aslNom: asl ? [asl.kod, asl.nom].filter(Boolean).join(' ') || null : null,
+    almashtirilgan: alm != null && alm > 0 ? alm : null,
     id: r.id, tur: (r.tur as JurnalQator['tur']), kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik,
     smeta, fakt, qoldiq: smeta == null ? null : yaxlit(smeta - fakt), f2Mumkin: son(h?.f2_mumkin_hajm) ?? 0,
     ulush: smeta ? fakt / smeta : null, holat: holatTur(smeta, fakt),
@@ -68,35 +88,50 @@ function qatorQur(r: T2Qator, h: JurnalHolat | undefined, byId: Map<number, T2Qa
 }
 
 /** Obyekt daraxtidan jurnal modeli: bo'limlar ro'yxati va bo'lim → ishlar. */
-export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat[]) {
+/** Zamena qatorini o'z asl qatoridan KEYIN qo'yadi (asl shu ro'yxatda bo'lsa); qolgan tartib o'zgarmaydi. */
+export function zamenaTartibla<T extends { id: number; almashtiradi: number | null }>(arr: readonly T[]): T[] {
+  const ids = new Set(arr.map((x) => x.id));
+  const ergashuvchi = new Map<number, T[]>();
+  for (const x of arr) if (x.almashtiradi != null && x.almashtiradi !== x.id && ids.has(x.almashtiradi)) {
+    const a = ergashuvchi.get(x.almashtiradi) ?? []; a.push(x); ergashuvchi.set(x.almashtiradi, a);
+  }
+  const out: T[] = []; const qoyildi = new Set<number>();
+  const qoy = (x: T) => { if (qoyildi.has(x.id)) return; qoyildi.add(x.id); out.push(x); for (const z of ergashuvchi.get(x.id) ?? []) qoy(z); };
+  for (const x of arr) if (!(x.almashtiradi != null && ids.has(x.almashtiradi) && x.almashtiradi !== x.id)) qoy(x);
+  for (const x of arr) qoy(x); // aylanma bog'lanish bo'lsa ham hech narsa yo'qolmaydi
+  return out;
+}
+
+export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat[], zb?: ZamenaBoglanish | null) {
   const byId = new Map(rows.map((r) => [r.id, r]));
   const holat = new Map(states.map((s) => [s.qator_id, s]));
   const bolalar = new Map<number | null, T2Qator[]>();
   for (const r of rows) { const k = r.ota_id ?? null; const a = bolalar.get(k); if (a) a.push(r); else bolalar.set(k, [r]); }
+  const qq = (c: T2Qator) => qatorQur(c, holat.get(c.id), byId, zb);
 
   /** Bo'lim → o'ziga TEGISHLI (ichki bo'limlarsiz) ishlar va mustaqil resurslar. */
   const bolimIshlari = new Map<number, JurnalIsh[]>();
   const ishQur = (r: T2Qator): JurnalIsh => {
-    const q = qatorQur(r, holat.get(r.id), byId);
+    const q = qq(r);
     const resurslar: JurnalQator[] = []; const avtomatik: JurnalQator[] = [];
     const yur = (ota: number) => {
       for (const c of bolalar.get(ota) ?? []) {
-        if (c.tur === 'mat' || c.tur === 'ob') resurslar.push(qatorQur(c, holat.get(c.id), byId));
-        else if (c.tur === 'rs') avtomatik.push(qatorQur(c, holat.get(c.id), byId));
+        if (c.tur === 'mat' || c.tur === 'ob') resurslar.push(qq(c));
+        else if (c.tur === 'rs') avtomatik.push(qq(c));
         if (c.tur !== 'bl') yur(c.id);
       }
     };
     yur(r.id);
-    return { ...q, resurslar, avtomatik };
+    return { ...q, resurslar: zamenaTartibla(resurslar), avtomatik: zamenaTartibla(avtomatik) };
   };
   for (const r of rows) {
     if (r.tur !== 'rz') continue;
     const ishlar: JurnalIsh[] = [];
     for (const c of bolalar.get(r.id) ?? []) {
       if (c.tur === 'bl') ishlar.push(ishQur(c));
-      else if (c.tur === 'mat' || c.tur === 'ob') ishlar.push({ ...qatorQur(c, holat.get(c.id), byId), resurslar: [], avtomatik: [] });
+      else if (c.tur === 'mat' || c.tur === 'ob') ishlar.push({ ...qq(c), resurslar: [], avtomatik: [] });
     }
-    bolimIshlari.set(r.id, ishlar);
+    bolimIshlari.set(r.id, zamenaTartibla(ishlar));
   }
 
   // Bo'lim ulushi — har ishning HAJM bo'yicha bajarilishi (0..1), smeta summasi bilan tortilgan o'rtacha.
@@ -138,6 +173,67 @@ export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat
   };
   tartibla(null);
   return { bolimlar, bolimIshlari };
+}
+
+export type SummaKesim = { ustamasiz: number | null; kesim: KatKesim };
+export type BolimSumma = { smeta: SummaKesim; f2: SummaKesim; fakt: SummaKesim; qoldiq: SummaKesim };
+const BARG = new Set(['rs', 'mat', 'ob']);
+
+/**
+ * Bo'lim (ichki bo'limlari bilan) va butun obyekt jami summalari — resurs (rs/mat/ob) qatorlari holatidan
+ * (t2_qator_holat: smeta/f2/fakt/qoldiq_summa; narx NDS siz). Pul to'qilmaydi: summasi NULL qator 0 emas —
+ * kesimning `summasizSoni` da; hammasi NULL bo'lsa ustamasiz ham NULL.
+ * «Smeta» — faqat asl smeta qatorlari (qo'shimcha/zamena ostidagilar emas: aks holda zamena asl bilan ikki marta sanalardi).
+ * Kalit `0` — butun obyekt.
+ */
+export function bolimSummalari(rows: readonly T2Qator[], states: readonly JurnalHolat[]): Map<number, BolimSumma> {
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const holat = new Map(states.map((s) => [s.qator_id, s]));
+  const bos = (): SummaKesim => ({ ustamasiz: null, kesim: bosKatKesim() });
+  const out = new Map<number, BolimSumma>();
+  const ol = (id: number) => { let x = out.get(id); if (!x) { x = { smeta: bos(), f2: bos(), fakt: bos(), qoldiq: bos() }; out.set(id, x); } return x; };
+  const qosh = (s: SummaKesim, kat: string | null, v: number | null) => { katKesimgaQosh(s.kesim, kat, v); if (v != null) s.ustamasiz = (s.ustamasiz ?? 0) + v; };
+  for (const r of rows) {
+    if (!BARG.has(r.tur ?? '')) continue;
+    const h = holat.get(r.id);
+    const v = (x: unknown) => son(x as number | null | undefined);
+    // Ota-bobolari: yangi (qo'shimcha/zamena) ekanligi va bo'limlari.
+    let yangi = !!r.qoshimcha || !!r.zamena; const bolimlar: number[] = [0];
+    let p = r.ota_id != null ? byId.get(r.ota_id) : undefined; let n = 0;
+    while (p && n++ < 60) { if (p.qoshimcha || p.zamena) yangi = true; if (p.tur === 'rz') bolimlar.push(p.id); p = p.ota_id != null ? byId.get(p.ota_id) : undefined; }
+    for (const b of bolimlar) {
+      const x = ol(b);
+      if (!yangi) qosh(x.smeta, r.kat, v(h?.smeta_summa));
+      qosh(x.f2, r.kat, v(h?.f2_summa)); qosh(x.fakt, r.kat, v(h?.fakt_summa)); qosh(x.qoldiq, r.kat, v(h?.qoldiq_summa));
+    }
+  }
+  return out;
+}
+
+export type BolimBolak ={ bolim: JurnalBolim; /** Tanlangan bo'limga nisbatan chuqurlik (0 = o'zi). */ nisbiy: number; ishlar: JurnalIsh[] };
+
+/**
+ * Tanlangan bo'lim va uning BARCHA avlod bo'limlari (daraxt tartibida), har biri o'z ishlari bilan.
+ * Egasi 2026-10-25: «kattaroq bo'limni bossa 'ichi bo'sh' deydi» — endi har darajada hamma ish ko'rinadi.
+ * Ishi ham, ishli avlodi ham yo'q bo'limlar tashlanadi (tanlangan bo'limning o'zi doim birinchi).
+ */
+export function bolimTarkibi(bolimId: number, bolimlar: readonly JurnalBolim[], bolimIshlari: ReadonlyMap<number, JurnalIsh[]>): BolimBolak[] {
+  const i0 = bolimlar.findIndex((b) => b.id === bolimId);
+  if (i0 < 0) return [];
+  const chuqur = new Map<number, number>([[bolimId, 0]]);
+  const out: BolimBolak[] = [{ bolim: bolimlar[i0], nisbiy: 0, ishlar: bolimIshlari.get(bolimId) ?? [] }];
+  for (const b of bolimlar) {
+    if (b.id === bolimId || b.otaId == null || !chuqur.has(b.otaId)) continue;
+    const n = chuqur.get(b.otaId)! + 1; chuqur.set(b.id, n);
+    out.push({ bolim: b, nisbiy: n, ishlar: bolimIshlari.get(b.id) ?? [] });
+  }
+  // Ishli avlodi bor-yo'qligi (sarlavha strukturani ko'rsatsin, lekin bo'sh shoxlar shovqin qilmasin).
+  const toliq = new Set<number>();
+  for (let i = out.length - 1; i >= 0; i--) {
+    const x = out[i];
+    if (x.ishlar.length || toliq.has(x.bolim.id)) { toliq.add(x.bolim.id); if (x.bolim.otaId != null) toliq.add(x.bolim.otaId); }
+  }
+  return out.filter((x, i) => i === 0 || toliq.has(x.bolim.id));
 }
 
 /** "12,5" → 12.5; bo'sh → null; noto'g'ri → NaN. */
