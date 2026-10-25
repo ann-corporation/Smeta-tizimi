@@ -13,7 +13,6 @@ import { sbFaktYoz } from '../../api/t2-fakt';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
 import { t } from '../../i18n/til';
-import { qidiruvTayyorla } from '../../lib/qidiruv-normalizatsiya';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalPaket, jurnalQur, ochiqBor, qoldiqUlushi, sonOqi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
@@ -25,25 +24,12 @@ import { toast } from '../../umumiy/ui/Toast';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
 import { abcXato, ishAbcOchir, type NarxManba } from '../../api/t2-ish-abc';
 import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
+import { f2OlishMumkin, faktMeter, jurnalXulosa, obyektUlushi as obyektUlushiHisobla } from '../../lib/fakt-korinish';
+import { BolimMeter, FaktXulosaPanel, HolatMuhr, MeterLegenda, QatorMeter } from '../../components/fakt/FaktKorinish';
 
 const MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'];
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
-const foiz = (u: number | null) => (u == null ? '—' : `${Math.round(u * 100)}%`);
-
-const HOLAT_RANG: Record<JurnalQator['holat'], { bar: string; nuqta: string; matn: string }> = {
-  yangi: { bar: 'bg-text-mute/30', nuqta: 'bg-text-mute/50', matn: 'Boshlanmagan' },
-  qisman: { bar: 'bg-accent', nuqta: 'bg-accent', matn: 'Jarayonda' },
-  tugadi: { bar: 'bg-ok', nuqta: 'bg-ok', matn: 'Bajarildi' },
-  oshdi: { bar: 'bg-warn', nuqta: 'bg-warn', matn: 'Smetadan oshdi' },
-  smetasiz: { bar: 'bg-accent', nuqta: 'bg-accent', matn: 'Smetasiz' },
-};
-
-function Progress({ ulush, holat, ingichka }: { ulush: number | null; holat: JurnalQator['holat'] | 'bolim'; ingichka?: boolean }) {
-  const kenglik = Math.max(0, Math.min(1, ulush ?? 0)) * 100;
-  const rang = holat === 'bolim' ? (ulush != null && ulush >= 1 ? 'bg-ok' : 'bg-accent') : HOLAT_RANG[holat].bar;
-  return <div className={`w-full overflow-hidden rounded-full bg-surface-2 ${ingichka ? 'h-1' : 'h-1.5'}`}><div className={`h-full rounded-full transition-all ${rang}`} style={{ width: `${kenglik}%` }} /></div>;
-}
 
 /**
  * Fakt jurnali: chapda bo'limlar (bajarilish foizi), o'ngda tanlangan bo'lim ishlari (resurslari
@@ -318,23 +304,27 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     // Ochiq qoldiqdan (smeta − fakt − almashtirilgan − bajarilmaydi; yagona formula) oshsa — faqat ogohlantirish, bloklanmaydi.
     const ortiqcha = xato || yangiFakt == null ? null : ochiqdanOrtiqcha({ smeta: q.smeta, fakt: yangiFakt, almashtirilgan: q.almashtirilgan, bajarilmaydi: q.bajarilmaydi });
     const oshdi = (ortiqcha ?? 0) > 0;
-    return <div className="flex items-center justify-end gap-1">
-      <div className="flex w-[92px] justify-end gap-0.5">{!kichik && [25, 50, 100].map((p) => { const v = qoldiqUlushi(q, p); return v ? <button key={p} type="button" tabIndex={-1} onClick={() => kirit(q.id, { rejim: '+', qiymat: v })} className="rounded border border-border px-1 py-0.5 text-[10px] text-text-dim hover:border-accent hover:text-text">{p}%</button> : null; })}</div>
-      <div className="inline-flex overflow-hidden rounded-md border border-border text-[11px]" role="group" aria-label="Kiritish rejimi">
-        {(['+', '='] as Rejim[]).map((r) => <button key={r} type="button" tabIndex={-1} aria-pressed={k.rejim === r} title={r === '+' ? 'Bugun bajarilgan hajm (qo‘shiladi)' : 'Jami fakt (shu qiymatga tenglashtiriladi)'} onClick={() => kirit(q.id, { rejim: r })} className={`w-6 py-0.5 font-semibold ${k.rejim === r ? 'bg-accent text-white' : 'text-text-dim hover:bg-surface-2'}`}>{r}</button>)}
+    const izoh = yangiFakt != null && <div className={`absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] ${oshdi ? 'font-semibold text-warn' : 'text-text-mute'}`} data-testid={oshdi ? 'qoldiqdan-oshdi' : undefined}>→ {fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}{oshdi ? ` · ${t('qoldiqdan oshdi')} +${fmt(ortiqcha)}` : ''}</div>;
+    return <div className="flex items-center justify-end gap-1.5">
+      <div className="flex w-[78px] justify-end gap-0.5">{!kichik && [25, 50, 100].map((p) => { const v = qoldiqUlushi(q, p); return v ? <button key={p} type="button" tabIndex={-1} onClick={() => kirit(q.id, { rejim: '+', qiymat: v })} title={t('Ochiq qoldiqning {p}% i', { p: String(p) })} className="h-6 rounded-[var(--radius-xs)] border border-border px-1 font-mono text-[10.5px] text-text-dim hover:border-accent hover:text-text">{p}%</button> : null; })}</div>
+      <div className="inline-flex h-6 overflow-hidden rounded-[var(--radius-xs)] border border-border-strong text-[12px]" role="group" aria-label={t('Kiritish rejimi')}>
+        {(['+', '='] as Rejim[]).map((r) => <button key={r} type="button" tabIndex={-1} aria-pressed={k.rejim === r} title={r === '+' ? t('Bugun bajarilgan hajm (qo‘shiladi)') : t('Jami fakt (shu qiymatga tenglashtiriladi)')} onClick={() => kirit(q.id, { rejim: r })} className={`w-6 font-semibold ${k.rejim === r ? 'bg-accent text-[var(--on-accent)]' : 'text-text-dim hover:bg-surface-3'}`}>{r}</button>)}
       </div>
       <div className="relative">
         <input ref={(el) => { inputlar.current[i] = el; }} onFocus={(e) => e.currentTarget.select()} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, i, q.id)} inputMode="decimal"
-          placeholder={k.rejim === '+' ? 'bugun' : 'jami'} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
-          className={`w-[104px] rounded-md border bg-bg px-2 py-1 text-right font-mono text-[13px] tabular-nums outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 ${xato || oshdi ? 'border-warn' : k.qiymat ? 'border-accent/60' : 'border-border'}`} />
-        {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10px] text-warn">{JURNAL_XATO_MATN[xato]}</div>
-          : yangiFakt != null && <div className={`absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10px] ${oshdi ? 'text-warn' : 'text-text-mute'}`} data-testid={oshdi ? 'qoldiqdan-oshdi' : undefined}>→ {fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}{oshdi ? ` · ${t('qoldiqdan oshdi')} +${fmt(ortiqcha)}` : ''}</div>}
+          placeholder={k.rejim === '+' ? t('bugun') : t('jami')} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
+          className={`h-7 w-[92px] rounded-[var(--radius-sm)] border bg-bg px-2 text-right font-mono text-[13px] tabular-nums outline-none focus:border-accent ${xato || oshdi ? 'border-warn' : k.qiymat ? 'border-accent' : 'border-border-strong'}`} />
+        {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] font-semibold text-warn">{t(JURNAL_XATO_MATN[xato])}</div> : izoh}
       </div>
     </div>;
   };
 
-  /** Ustunlar (egasi 2026-10-25: hajm/summa/narx aniq ko'rinsin): Nom | Birlik | Smeta | F2 | Fakt | Bu fakt | Qoldiq | Narx | Fakt summasi | % | amallar. */
-  const USTUN = 'grid grid-cols-[minmax(240px,1fr)_52px_88px_88px_88px_250px_88px_96px_150px_72px_116px] items-center gap-x-2';
+  /**
+   * Ustunlar (egasi 2026-10-25: «bir qarashda tushunish», audit: 11 ustun → 8):
+   * Ish/resurs (holat muhri + bitta belgi guruhi) | Smeta (hajm, birlik, narx) | Bajarilish (chiziq) | Bu fakt |
+   * Ochiq qoldiq | F2 ga olish mumkin | Fakt summasi | amallar.
+   */
+  const USTUN = 'grid grid-cols-[minmax(220px,1fr)_100px_190px_236px_88px_104px_136px_92px] items-center gap-x-2';
   const sonKatak = 'text-right font-mono text-[12px] tabular-nums';
   /** F2 qoldig'i (smeta − F2 − almashtirilgan) — yagona `ochiqQoldiq` ning F2 rejimi. */
   const f2QoldiqOl = (q: JurnalQator): number | null => ochiqQoldiq({ smeta: q.smeta, f2: Number(holatMap.get(q.id)?.f2_hajm ?? 0), almashtirilgan: q.almashtirilgan }, 'f2');
@@ -342,184 +332,229 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const narxKatak = (q: JurnalQator) => {
     const r = rowById.get(q.id); const h = holatMap.get(q.id);
     const narx = h?.smeta_narx != null ? Number(h.smeta_narx) : r?.narx != null ? Number(r.narx) : null;
-    if (narx != null) return <span title={t('Birlik narxi (NDS siz)')}>{fmt(narx)}</span>;
+    if (narx != null) return <span title={t('Birlik narxi (NDS siz)')}>× {fmt(narx)}</span>;
     if (narxlashMumkin(q.tur, narx)) return <button type="button" tabIndex={-1} onClick={() => setNarxModal({ id: q.id, nom: q.nom, birlik: q.birlik, kat: r?.kat ?? null, fakt: q.fakt, smeta: q.smeta })}
-      className="rounded bg-warn/10 px-1 font-sans text-[10px] text-warn hover:bg-warn/20" title={t('Narxi noma‘lum - narxlash')} data-testid="narxsiz-belgi">{t('narxsiz')}</button>;
-    if (q.tur === 'bl') { const ts = taxminKesim(q); if (ts && q.smeta) return <span className="text-text-mute" title={t('Ish birlik narxi = resurslar summasi / ish hajmi')}>{fmt(ts.smetaSumma / q.smeta)}</span>; }
-    return <span className="text-text-mute">—</span>;
+      className="fz-chip fz-chip--danger hover:brightness-110" title={t('Narxi noma‘lum - narxlash')} data-testid="narxsiz-belgi">{t('narxsiz')}</button>;
+    if (q.tur === 'bl') { const ts = taxminKesim(q); if (ts && q.smeta) return <span title={t('Ish birlik narxi = resurslar summasi / ish hajmi')}>× {fmt(ts.smetaSumma / q.smeta)}</span>; }
+    return <span>—</span>;
   };
-  const belgilar = (q: JurnalQator) => <>
-    {q.zamena && <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn" data-testid="zamena-belgi" title={q.aslNom ? t('Zamena: asl qator — {nom}', { nom: q.aslNom }) : t('Zamena')}>↻ {t('zamena')}{q.aslNom ? `: ${t('asl')} ${q.aslNom}` : ''}</span>}
-    {q.qoshimcha && <span className="shrink-0 rounded bg-accent/10 px-1 text-[10px] text-accent" data-testid="qoshimcha-belgi">+ {t('qo‘shimcha')}</span>}
-    {(() => { const m = almashtirildiMatn(q.almashtirilgan, q.smeta, q.birlik, fmt); return m ? <span className="shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn" data-testid="almashtirildi-belgi">{t('almashtirildi')} {m}</span> : null; })()}
-    {saqlangan.has(q.id) && <CheckCircle2 size={13} className="shrink-0 text-ok" />}
-    {(bajHajm.get(q.id) ?? 0) > 0 && <button type="button" tabIndex={-1} onClick={() => void bajBekor(q.id, q.nom)} className="shrink-0 rounded bg-danger/10 px-1 text-[10px] text-danger hover:bg-danger/20" title={t('Bajarilmaydi deb belgilangan hajm (bosing - bekor qilish)')} data-testid="baj-belgi">{t('bajarilmaydi')}: {fmt(bajHajm.get(q.id))}</button>}
-  </>;
-  const zamenaTugma = (q: JurnalQator, kichik?: boolean) => q.otaId != null && !q.qoshimcha && !q.zamena
-    ? <button type="button" tabIndex={-1} onClick={() => zamenaOch(q)} title={q.tur === 'bl' ? t('Ish zamenasi — boshqa ish bilan almashtirish') : t('Resurs zamenasi — shu ish ichida boshqa resurs bilan almashtirish')} aria-label={`Zamena: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-warn/10 hover:text-warn"><Repeat2 size={kichik ? 12 : 14} /></button> : null;
-  const tahrirTugmalar = (q: JurnalQator) => (q.qoshimcha || q.zamena) ? <>
-    <button type="button" tabIndex={-1} onClick={() => tahrirOch(q)} title="Tahrirlash" aria-label={`Tahrirlash: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-accent/10 hover:text-accent"><Pencil size={13} /></button>
-    <button type="button" tabIndex={-1} onClick={() => void ochir(q)} title={q.zamena ? 'Zamenani bekor qilish (asliga qaytarish)' : 'O‘chirish'} aria-label={`O‘chirish: ${q.nom}`} className="rounded-md p-1 text-text-mute hover:bg-danger/10 hover:text-danger"><Trash2 size={13} /></button>
-  </> : null;
-  /** Raqamli ustunlar (Birlik … %): ish, resurs va avto qatorlarda bir xil. */
-  const raqamlar = (q: JurnalQator, kiritma: ReactNode) => {
-    const h = holatMap.get(q.id); const f2ql = f2QoldiqOl(q); const ts = taxminKesim(q);
-    const qoldiqOshdi = q.qoldiq != null && (q.smeta ?? 0) !== 0 && !ochiqBor(q) && Math.abs(q.qoldiq) > 1e-9;
+  const almMatn = (q: JurnalQator) => almashtirildiMatn(q.almashtirilgan, q.smeta, q.birlik, fmt);
+  /** Qatorda belgi bormi (ikkinchi satr faqat kerak bo'lsa chiziladi). */
+  const belgiBor = (q: JurnalQator) => q.zamena || q.qoshimcha || !!almMatn(q) || saqlangan.has(q.id) || (bajHajm.get(q.id) ?? 0) > 0;
+  /**
+   * BITTA belgi guruhi: zamena (info) · qo'shimcha (firuza) · almashtirildi (neytral) · bajarilmaydi (qizil, bosilsa bekor).
+   * Sariq rang faqat «smetadan/qoldiqdan oshdi» uchun.
+   */
+  const belgilar = (q: JurnalQator) => {
+    const m = almMatn(q);
     return <>
-      <span className="truncate text-[11px] text-text-dim" title={q.birlik ?? ''}>{q.birlik ?? '—'}</span>
-      <span className={`${sonKatak} text-text-dim`}>{fmt(q.smeta)}</span>
-      <span className={`${sonKatak} text-text-dim`} title={t('Tasdiqlangan F2 hajmi')}>{fmt(h?.f2_hajm == null ? null : Number(h.f2_hajm))}</span>
-      <span className={`${sonKatak} font-semibold text-text`}>{fmt(q.fakt)}</span>
-      {kiritma}
-      <span className={`${sonKatak} leading-tight`} data-testid={`ochiq-${q.id}`}>
-        <span className={`block ${qoldiqOshdi ? 'text-warn' : 'text-text-dim'}`} title={t('Ochiq qoldiq = smeta − fakt − almashtirilgan − bajarilmaydi')}>{fmt(q.qoldiq)}</span>
-        {f2ql != null && Math.abs(f2ql - (q.qoldiq ?? Number.NaN)) > 1e-9 && <span className={`block text-[10px] ${f2ql < -1e-9 && (q.smeta ?? 0) >= 0 ? 'text-warn' : 'text-text-mute'}`} title={t('F2 qoldiq = smeta − F2 − almashtirilgan')}>{t('F2')}: {fmt(f2ql)}</span>}
-      </span>
-      <span className={sonKatak}>{narxKatak(q)}</span>
-      <span className="flex justify-end">{ts ? <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ts.faktSumma} katKesim={ts.fakt} className="items-end" /> : <span className="text-[12px] text-text-mute">—</span>}</span>
-      <span className="space-y-0.5"><span className="block text-right text-[11px] tabular-nums text-text-dim">{foiz(q.ulush)}</span><Progress ulush={q.ulush} holat={q.holat} ingichka /></span>
+      {q.zamena && <span className="fz-chip bg-[var(--info-soft)] text-[var(--info)]" data-testid="zamena-belgi" title={q.aslNom ? t('Zamena: asl qator — {nom}', { nom: q.aslNom }) : t('Zamena')}>↻ {t('zamena')}{q.aslNom ? `: ${t('asl')} ${q.aslNom}` : ''}</span>}
+      {q.qoshimcha && <span className="fz-chip fz-chip--accent" data-testid="qoshimcha-belgi">+ {t('qo‘shimcha')}</span>}
+      {m && <span className="fz-chip" data-testid="almashtirildi-belgi" title={t('Shu hajmni zamena qatorlari qoplagan')}>{t('almashtirildi')} {m}</span>}
+      {(bajHajm.get(q.id) ?? 0) > 0 && <button type="button" tabIndex={-1} onClick={() => void bajBekor(q.id, q.nom)} className="fz-chip fz-chip--danger hover:brightness-110" title={t('Bajarilmaydi deb belgilangan hajm (bosing - bekor qilish)')} data-testid="baj-belgi">{t('bajarilmaydi')}: {fmt(bajHajm.get(q.id))}</button>}
+      {saqlangan.has(q.id) && <span className="fz-chip text-ok"><CheckCircle2 size={12} aria-hidden="true" />{t('saqlandi')}</span>}
     </>;
   };
-  const satrFon = (q: JurnalQator) => `transition-colors focus-within:bg-accent/[.07] ${saqlangan.has(q.id) ? 'bg-ok/10' : kiritmalar[q.id]?.qiymat ? 'bg-accent/[.04]' : ''} ${q.zamena ? 'border-l-2 border-warn/60' : q.qoshimcha ? 'border-l-2 border-accent/50' : 'border-l-2 border-transparent'}`;
+  const tugmaCls = 'rounded-[var(--radius-xs)] p-1 text-text-mute hover:bg-surface-3';
+  const zamenaTugma = (q: JurnalQator, kichik?: boolean) => q.otaId != null && !q.qoshimcha && !q.zamena
+    ? <button type="button" tabIndex={-1} onClick={() => zamenaOch(q)} title={q.tur === 'bl' ? t('Ish zamenasi — boshqa ish bilan almashtirish') : t('Resurs zamenasi — shu ish ichida boshqa resurs bilan almashtirish')} aria-label={`Zamena: ${q.nom}`} className={`${tugmaCls} hover:text-[var(--info)]`}><Repeat2 size={kichik ? 12 : 14} /></button> : null;
+  const tahrirTugmalar = (q: JurnalQator) => (q.qoshimcha || q.zamena) ? <>
+    <button type="button" tabIndex={-1} onClick={() => tahrirOch(q)} title={t('Tahrirlash')} aria-label={`Tahrirlash: ${q.nom}`} className={`${tugmaCls} hover:text-accent`}><Pencil size={13} /></button>
+    <button type="button" tabIndex={-1} onClick={() => void ochir(q)} title={q.zamena ? t('Zamenani bekor qilish (asliga qaytarish)') : t('O‘chirish')} aria-label={`O‘chirish: ${q.nom}`} className={`${tugmaCls} hover:text-danger`}><Trash2 size={13} /></button>
+  </> : null;
+  /** Raqamli ustunlar (Smeta … Fakt summasi): ish, resurs va avto qatorlarda bir xil. */
+  const raqamlar = (q: JurnalQator, kiritma: ReactNode, kichik?: boolean) => {
+    const h = holatMap.get(q.id); const f2ql = f2QoldiqOl(q); const ts = taxminKesim(q);
+    const f2 = h?.f2_hajm == null ? null : Number(h.f2_hajm);
+    const k = kiritmalar[q.id];
+    const ef = k?.qiymat.trim() ? samaraliFakt(q) : null;
+    const m = faktMeter(q.smeta, q.fakt, f2, ef != null && ef !== q.fakt ? ef : null);
+    const qoldiqOshdi = q.qoldiq != null && (q.smeta ?? 0) !== 0 && !ochiqBor(q) && Math.abs(q.qoldiq) > 1e-9;
+    const mumkin = f2OlishMumkin(h);
+    const f2Oldin = m.f2Oldinda && f2 != null ? f2 - q.fakt : null;
+    return <>
+      <span className="flex flex-col items-end leading-tight">
+        <span className={`${sonKatak} ${kichik ? 'text-text-dim' : 'text-text'}`}>{fmt(q.smeta)} <span className="font-sans text-[11px] text-text-mute">{q.birlik ?? ''}</span></span>
+        <span className="mt-0.5 font-mono text-[11px] tabular-nums text-text-mute">{narxKatak(q)}</span>
+      </span>
+      <QatorMeter m={m} fakt={q.fakt} f2={f2} f2Qoldiq={f2ql} smeta={q.smeta} />
+      {kiritma}
+      <span className={`${sonKatak} ${qoldiqOshdi ? 'font-semibold text-warn' : 'text-text'}`} data-testid={`ochiq-${q.id}`} title={t('Ochiq qoldiq = smeta − fakt − almashtirilgan − bajarilmaydi')}>{fmt(q.qoldiq)}</span>
+      <span className="flex flex-col items-end leading-tight" data-testid={`f2mumkin-${q.id}`} title={t('F2 ga olish mumkin = fakt − tasdiqlangan F2')}>
+        <span className={`${sonKatak} ${mumkin != null && mumkin > 1e-9 ? 'font-semibold text-[var(--accent-text)]' : 'text-text-mute'}`}>{fmt(mumkin)}</span>
+        {f2Oldin != null && <span className="text-[10.5px] text-[var(--info)]" title={t('Tasdiqlangan F2 hajmi faktdan ko‘p — «Fakt = F2» bilan tenglash mumkin')}>{t('F2 faktdan +{n}', { n: fmt(f2Oldin) })}</span>}
+      </span>
+      <span className="flex justify-end">{ts ? <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ts.faktSumma} katKesim={ts.fakt} className="items-end" /> : <span className="text-[12px] text-text-mute">—</span>}</span>
+    </>;
+  };
+  const satrFon = (q: JurnalQator) => `transition-colors focus-within:bg-accent/[.07] ${saqlangan.has(q.id) ? 'bg-ok/10' : kiritmalar[q.id]?.qiymat ? 'bg-accent/[.05]' : ''} border-l-2 ${q.zamena ? 'border-l-[var(--info)]' : q.qoshimcha ? 'border-l-accent' : 'border-l-transparent'}`;
 
-  /** ISH qatori (yoki ishsiz alohida resurs): qalin, ISH belgisi, shifr; resurslarini ochish/yopish. */
+  /** ISH qatori (yoki ishsiz alohida resurs): 1-satr — nom; 2-satr — holat muhri va bitta belgi guruhi. */
   const ishQatori = (ish: JurnalIsh) => {
-    const rang = HOLAT_RANG[ish.holat];
     const alohida = ish.tur !== 'bl';
     const bolaSoni = ish.resurslar.length + ish.avtomatik.length;
     const ochiq = ishOchiq(ish.id);
     const f2Bor = !alohida && (holatMap.get(ish.id)?.f2_hajm ?? 0) - ish.fakt > 1e-9;
+    const takliflar = !alohida ? takliflarSoni([ish.id]) : 0;
+    const tk = alohida && !kiritmalar[ish.id]?.qiymat.trim() ? matTaklifi(ish.id) : null;
     return <div className={`${USTUN} px-3 py-2 ${satrFon(ish)}`} data-testid={`ish-${ish.id}`}>
-      <div className="flex min-w-0 items-center gap-1.5">
-        {bolaSoni > 0
-          ? <button type="button" tabIndex={-1} onClick={() => ishAlmashtir(ish.id)} aria-expanded={ochiq} aria-label={t('Resurslar: {nom}', { nom: ish.nom })} title={ochiq ? t('Resurslarni yopish') : t('Resurslarni ochish ({n} ta)', { n: String(bolaSoni) })} className="rounded p-0.5 text-text-mute hover:text-text">{ochiq ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
-          : <span className="w-[18px] shrink-0" />}
-        <span className={`h-2 w-2 shrink-0 rounded-full ${rang.nuqta}`} title={rang.matn} />
-        {alohida ? <KatNishon kat={ish.kat ?? katAniqla(null, ish.tur, ish.birlik)} /> : <span className="shrink-0 rounded bg-accent/15 px-1 text-[10px] font-bold leading-4 text-accent" data-testid="ish-belgi">{t('ISH')}</span>}
-        {ish.kod && <span className="shrink-0 font-mono text-[11px] text-text-mute">{ish.kod}</span>}
-        <span className="truncate text-[13px] font-semibold text-text" title={`${ish.kod ? ish.kod + ' ' : ''}${ish.nom}`}>{ish.nom}</span>
-        {alohida && <span className="shrink-0 text-[10px] text-text-mute">{t('alohida resurs')}</span>}
-        {!ochiq && bolaSoni > 0 && <span className="shrink-0 text-[10px] text-text-mute">{t('{n} resurs', { n: String(bolaSoni) })}</span>}
-        {belgilar(ish)}
-        {!alohida && (() => { const n = takliflarSoni([ish.id]); return n > 0 ? <button type="button" tabIndex={-1} onClick={() => materiallarniOl([ish.id])} data-testid="materiallarni-ol"
-          title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')} aria-label={t('Materiallarni ham olish: {nom}', { nom: ish.nom })}
-          className="shrink-0 rounded border border-accent/40 px-1 text-[10px] text-accent hover:bg-accent/10">{t('Materiallarni ham olish ({n})', { n: String(n) })}</button> : null; })()}
-        {alohida && !kiritmalar[ish.id]?.qiymat.trim() && (() => { const tk = matTaklifi(ish.id); return tk ? <button type="button" tabIndex={-1} onClick={() => kirit(ish.id, { rejim: '+', qiymat: String(tk.hajm) })} data-testid="material-taklif"
-          title={t('«{nom}» ishi ulushida taklif — bosing, kiritmaga olinadi', { nom: tk.ish.nom })}
-          className="shrink-0 rounded border border-dashed border-text-mute/40 px-1 text-[10px] text-text-mute opacity-80 hover:border-accent hover:text-accent">{t('taklif')}: +{fmt(tk.hajm)}</button> : null; })()}
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {bolaSoni > 0
+            ? <button type="button" tabIndex={-1} onClick={() => ishAlmashtir(ish.id)} aria-expanded={ochiq} aria-label={t('Resurslar: {nom}', { nom: ish.nom })} title={ochiq ? t('Resurslarni yopish') : t('Resurslarni ochish ({n} ta)', { n: String(bolaSoni) })} className="rounded p-0.5 text-text-mute hover:text-text">{ochiq ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
+            : <span className="w-[18px] shrink-0" />}
+          {alohida ? <KatNishon kat={ish.kat ?? katAniqla(null, ish.tur, ish.birlik)} /> : <span className="fz-kat shrink-0 bg-accent/15 text-[var(--accent-text)]" data-testid="ish-belgi">{t('ISH')}</span>}
+          {ish.kod && <span className="shrink-0 font-mono text-[11px] text-text-mute">{ish.kod}</span>}
+          <span className="truncate text-[13px] font-semibold text-text" title={`${ish.kod ? ish.kod + ' ' : ''}${ish.nom}`}>{ish.nom}</span>
+          {!ochiq && bolaSoni > 0 && <span className="shrink-0 text-[11px] text-text-mute">{t('{n} resurs', { n: String(bolaSoni) })}</span>}
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-1 pl-6">
+          <HolatMuhr holat={ish.holat} />
+          {alohida && <span className="text-[11px] text-text-mute">{t('alohida resurs')}</span>}
+          {belgilar(ish)}
+          {takliflar > 0 && <button type="button" tabIndex={-1} onClick={() => materiallarniOl([ish.id])} data-testid="materiallarni-ol"
+            title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')} aria-label={t('Materiallarni ham olish: {nom}', { nom: ish.nom })}
+            className="fz-chip border border-accent/40 bg-transparent text-[var(--accent-text)] hover:bg-accent/10">{t('Materiallarni ham olish ({n})', { n: String(takliflar) })}</button>}
+          {tk && <button type="button" tabIndex={-1} onClick={() => kirit(ish.id, { rejim: '+', qiymat: String(tk.hajm) })} data-testid="material-taklif"
+            title={t('«{nom}» ishi ulushida taklif — bosing, kiritmaga olinadi', { nom: tk.ish.nom })}
+            className="fz-chip border border-dashed border-border-strong bg-transparent text-text-mute hover:border-accent hover:text-[var(--accent-text)]">{t('taklif')}: +{fmt(tk.hajm)}</button>}
+        </div>
       </div>
       {raqamlar(ish, kiritish(ish))}
       <div className="flex items-center justify-end gap-0.5">
         {tahrirTugmalar(ish)}
-        <button type="button" tabIndex={-1} onClick={() => bajOch(ish)} title={sarlavhaBilan(t('Bajarilmaydi / qilib bo‘lmaydi'), 'ctrl+b')} aria-label={t('Bajarilmaydi: {nom}', { nom: ish.nom })} className="rounded-md p-1 text-text-mute hover:bg-danger/10 hover:text-danger"><Ban size={13} /></button>
-        {f2Bor && <button type="button" tabIndex={-1} onClick={() => tenglashOch(ish.nom, [ish])} title={t('Fakt ni F2 ga tenglash')} aria-label={`Fakt = F2: ${ish.nom}`} className="rounded-md px-1 text-[10px] font-semibold text-text-mute hover:bg-accent/10 hover:text-accent">{t('=F2')}</button>}
+        <button type="button" tabIndex={-1} onClick={() => bajOch(ish)} title={sarlavhaBilan(t('Bajarilmaydi / qilib bo‘lmaydi'), 'ctrl+b')} aria-label={t('Bajarilmaydi: {nom}', { nom: ish.nom })} className={`${tugmaCls} hover:text-danger`}><Ban size={13} /></button>
+        {f2Bor && <button type="button" tabIndex={-1} onClick={() => tenglashOch(ish.nom, [ish])} title={t('Fakt ni F2 ga tenglash')} aria-label={`Fakt = F2: ${ish.nom}`} className="rounded-[var(--radius-xs)] px-1 font-mono text-[10.5px] font-semibold text-[var(--info)] hover:bg-surface-3">{t('=F2')}</button>}
         {zamenaTugma(ish)}
       </div>
     </div>;
   };
 
   /** Resurs qatori (ish ichida, chekinish bilan): kiritiladigan (mat/ob) yoki avto (rs: norma × ish fakti, xira). */
-  const resursQatori = (r: JurnalQator, avto: boolean) => <div key={r.id} className={`${USTUN} py-1 pl-3 pr-3 ${avto ? 'opacity-75' : ''} ${satrFon(r)}`} data-testid={`resurs-${r.id}`}>
-    <div className="flex min-w-0 items-center gap-1.5 pl-9">
-      <span className="text-text-mute/60">└</span>
-      <KatNishon kat={r.kat ?? katAniqla(null, r.tur, r.birlik)} />
-      {avto && <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-surface-2 px-1 text-[10px] text-text-mute" title={t('Avtomatik: norma × ish fakti')} data-testid="avto-belgi"><Cpu size={10} />{t('avto')}</span>}
-      {r.kod && <span className="shrink-0 font-mono text-[10px] text-text-mute">{r.kod}</span>}
-      <span className={`truncate text-[12px] ${avto ? 'text-text-mute' : 'text-text-dim'}`} title={`${r.kod ? r.kod + ' ' : ''}${r.nom}`}>{r.nom}</span>
-      {belgilar(r)}
-    </div>
-    {raqamlar(r, avto
-      ? <span className="text-right text-[10px] text-text-mute" title={t('Avtomatik: norma × ish fakti')}>{r.norma != null ? `${t('norma')} ${fmt(r.norma)}` : t('avto')}</span>
-      : kiritish(r, true))}
-    <div className="flex items-center justify-end gap-0.5">
-      {tahrirTugmalar(r)}
-      {!avto && <button type="button" tabIndex={-1} onClick={() => bajOch(r)} title={sarlavhaBilan(t('Bajarilmaydi / qilib bo‘lmaydi'), 'ctrl+b')} aria-label={t('Bajarilmaydi: {nom}', { nom: r.nom })} className="rounded-md p-1 text-text-mute hover:bg-danger/10 hover:text-danger"><Ban size={13} /></button>}
-      {zamenaTugma(r, true)}
-    </div>
-  </div>;
+  const resursQatori = (r: JurnalQator, avto: boolean) => {
+    const ikkinchi = belgiBor(r) || r.holat === 'oshdi';
+    return <div key={r.id} className={`${USTUN} py-1 pl-3 pr-3 ${avto ? 'opacity-80' : ''} ${satrFon(r)}`} data-testid={`resurs-${r.id}`}>
+      <div className="flex min-w-0 flex-col gap-0.5 pl-9">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="text-text-mute/60" aria-hidden="true">└</span>
+          <KatNishon kat={r.kat ?? katAniqla(null, r.tur, r.birlik)} />
+          {avto && <span className="fz-chip shrink-0" title={t('Avtomatik: norma × ish fakti')} data-testid="avto-belgi"><Cpu size={10} aria-hidden="true" />{t('avto')}</span>}
+          {r.kod && <span className="shrink-0 font-mono text-[10.5px] text-text-mute">{r.kod}</span>}
+          <span className={`truncate text-[12px] ${avto ? 'text-text-mute' : 'text-text-dim'}`} title={`${r.kod ? r.kod + ' ' : ''}${r.nom}`}>{r.nom}</span>
+        </div>
+        {ikkinchi && <div className="flex min-w-0 flex-wrap items-center gap-1 pl-4">{r.holat === 'oshdi' && <HolatMuhr holat="oshdi" />}{belgilar(r)}</div>}
+      </div>
+      {raqamlar(r, avto
+        ? <span className="text-right text-[11px] text-text-mute" title={t('Avtomatik: norma × ish fakti')}>{r.norma != null ? `${t('norma')} ${fmt(r.norma)}` : t('avto')}</span>
+        : kiritish(r, true), true)}
+      <div className="flex items-center justify-end gap-0.5">
+        {tahrirTugmalar(r)}
+        {!avto && <button type="button" tabIndex={-1} onClick={() => bajOch(r)} title={sarlavhaBilan(t('Bajarilmaydi / qilib bo‘lmaydi'), 'ctrl+b')} aria-label={t('Bajarilmaydi: {nom}', { nom: r.nom })} className={`${tugmaCls} hover:text-danger`}><Ban size={13} /></button>}
+        {zamenaTugma(r, true)}
+      </div>
+    </div>;
+  };
 
-  const summaQatori = (s: BolimSumma | undefined) => s ? <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-[10px] text-text-mute" data-testid="bolim-summalar">
-    {([['smeta', t('Smeta')], ['f2', t('F2')], ['fakt', t('Fakt')], ['qoldiq', t('F2 qoldiq')]] as const).map(([k, l]) => <span key={k} className="inline-flex items-start gap-1"><span className="pt-0.5 uppercase">{l}:</span><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={s[k].ustamasiz} katKesim={s[k].kesim} /></span>)}
+  const summaQatori = (s: BolimSumma | undefined) => s ? <div className="flex flex-wrap items-start gap-x-5 gap-y-1 text-[11px] text-text-mute" data-testid="bolim-summalar">
+    {([['smeta', t('Smeta')], ['f2', t('F2')], ['fakt', t('Fakt')], ['qoldiq', t('F2 qoldiq')]] as const).map(([k, l]) => <span key={k} className="inline-flex items-start gap-1.5"><span className="pt-0.5 font-semibold uppercase tracking-wide">{l}</span><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={s[k].ustamasiz} katKesim={s[k].kesim} /></span>)}
   </div> : null;
 
   const tanlanganBolim = bolimlar.find((b) => b.id === bolimId);
-  const obyektUlushi = useMemo(() => { const top = bolimlar.filter((b) => b.otaId == null && b.ulush != null); return top.length ? top.reduce((s, b) => s + (b.ulush ?? 0), 0) / top.length : null; }, [bolimlar]);
+  const obyektUlushi = useMemo(() => obyektUlushiHisobla(bolimlar, (id) => summalar.get(id)?.smeta.ustamasiz), [bolimlar, summalar]);
+  const xulosa = useMemo(() => jurnalXulosa(bolimlar, bolimIshlari), [bolimlar, bolimIshlari]);
   const bolimKorinadi = (b: (typeof bolimlar)[number]) => { let p = b.otaId; while (p != null) { if (yopiqBolim.has(p)) return false; p = bolimlar.find((x) => x.id === p)?.otaId ?? null; } return true; };
   const bolaliBolim = useMemo(() => new Set(bolimlar.map((b) => b.otaId).filter((x): x is number => x != null)), [bolimlar]);
+  const sarlavha = qidiruv ? t('Qidiruv: «{q}»', { q: qidiruv }) : tanlanganBolim?.nom ?? t('Bo‘limni tanlang');
+  const bolimMaterialIdlar = korinadi.flatMap((b) => b.ishlar.map((i) => i.id));
+  const bolimTakliflar = takliflarSoni(bolimMaterialIdlar);
+  const ustunSarlavha = (nom: string, izoh: string, o?: { ong?: boolean; title?: string }) => <span className={`flex flex-col ${o?.ong ? 'items-end text-right' : ''}`} title={o?.title}>
+    <span>{nom}</span><span className="text-[10.5px] font-normal normal-case tracking-normal text-text-mute">{izoh}</span>
+  </span>;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <section className="karta flex flex-wrap items-center gap-3 px-3 py-2">
-        <label className="flex items-center gap-2 text-[12px] font-medium text-text-dim">Sana<input type="date" value={sana} onChange={(e) => setSana(e.target.value)} className="input h-8 px-2 text-[13px] text-text" aria-label="Fakt sanasi" /></label>
+      <section className="fz-card flex flex-wrap items-center gap-3 px-3 py-2">
+        <label className="flex items-center gap-2 text-[12px] font-medium text-text-dim">{t('Sana')}<input type="date" value={sana} onChange={(e) => setSana(e.target.value)} className="input h-8 px-2 text-[13px] text-text" aria-label={t('Fakt sanasi')} /></label>
         <div className="relative min-w-[240px] flex-1"><Search size={14} className="absolute left-2.5 top-2 text-text-mute" />
-          <input ref={qidiruvRef} value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} onKeyDown={qidiruvKlav} placeholder="Butun obyekt bo‘yicha qidirish…  ( / )" aria-label="Qidirish" className="input h-8 w-full pl-8 pr-8 text-[13px]" />
-          {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute" aria-label="Qidiruvni tozalash"><X size={14} /></button>}</div>
-        <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> faqat bajarilmaganlar</label>
+          <input ref={qidiruvRef} value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} onKeyDown={qidiruvKlav} placeholder={t('Butun obyekt bo‘yicha qidirish…  ( / )')} aria-label={t('Qidirish')} className="input h-8 w-full pl-8 pr-8 text-[13px]" />
+          {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute" aria-label={t('Qidiruvni tozalash')}><X size={14} /></button>}</div>
+        <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> {t('faqat bajarilmaganlar')}</label>
         {tanlanganBolim && <button type="button" onClick={() => tenglashOch(tanlanganBolim.nom, bolimIshlariYigish(tanlanganBolim.id, bolimIshlari, bolimBolalari, true))}
           title={sarlavhaBilan(t('Shu bo‘lim (ichki bo‘limlari bilan): F2 hajmi fakt dan ko‘p ishlarga farqni yozish'), 'f')} aria-label={t('Fakt = F2: bo‘lim')}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-[12px] font-semibold text-text hover:bg-surface-2">{t('Fakt = F2')}</button>}
-        <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-accent/40 px-3 text-[12px] font-semibold text-text hover:bg-accent/10"><Plus size={14} className="text-accent" /> Smetadan tashqari ish</button>
+          className="fz-btn">{t('Fakt = F2')} <kbd className="fz-kbd">F</kbd></button>}
+        <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="fz-btn"><Plus size={14} className="text-accent" /> {t('Smetadan tashqari ish')}</button>
       </section>
+
+      {bolimlar.length > 0 && <FaktXulosaPanel x={xulosa} obyekt={obyektUlushi} />}
 
       <FaktStudioBar yigindi={yigindi} obyektId={obyektId} kompaniyaId={kompaniyaId} onF2={f2Otish} band={band} jami={summalar.get(0)} />
 
       {bolimlar.length === 0
-        ? <section className="karta flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-            <p className="max-w-md text-[13px] text-text-dim">Bu obyektda smeta yo‘q. Bajarilgan ishlarni resurslari bilan to‘g‘ridan-to‘g‘ri kiriting — ular faktga yoziladi va <b className="text-text">F2 ga tayyor</b> bo‘ladi.</p>
-            <button onClick={() => setModal({ rejim: { tur: 'additional' } })} className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white"><Plus size={16} /> Bajarilgan ishni kiritish</button>
+        ? <section className="fz-card flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+            <p className="max-w-md text-[13px] text-text-dim">{t('Bu obyektda smeta yo‘q. Bajarilgan ishlarni resurslari bilan to‘g‘ridan-to‘g‘ri kiriting — ular faktga yoziladi va F2 ga tayyor bo‘ladi.')}</p>
+            <button onClick={() => setModal({ rejim: { tur: 'additional' } })} className="fz-btn fz-btn--primary fz-btn--lg"><Plus size={16} /> {t('Bajarilgan ishni kiritish')}</button>
           </section>
-        : <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Bo‘limlar">
-            <div className="border-b border-border px-3 py-2.5">
-              <div className="flex items-baseline justify-between text-[12px]"><span className="font-semibold text-text">Obyekt bo‘yicha</span><span className="tabular-nums text-text-dim">{foiz(obyektUlushi)}</span></div>
-              <div className="mt-1.5"><Progress ulush={obyektUlushi} holat="bolim" /></div>
-            </div>
+        : <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[272px_minmax(0,1fr)]">
+          <aside className="fz-card flex min-h-0 flex-col" aria-label={t('Bo‘limlar')}>
+            <div className="fz-panel__h border-b border-border px-3 py-2.5"><span>{t('Bo‘limlar')}</span><span className="tabular-nums">{t('{a} / {b} tugagan', { a: String(xulosa.bolimTugagan), b: String(xulosa.bolimJami) })}</span></div>
             <nav className="min-h-0 flex-1 overflow-auto py-1">
-              {bolimlar.filter(bolimKorinadi).map((b) => <div key={b.id} className={`group flex items-center gap-1 pr-2 ${b.id === bolimId && !qidiruv ? 'bg-accent/10' : 'hover:bg-surface-2'}`} style={{ paddingLeft: 6 + b.daraja * 14 }}>
+              {bolimlar.filter(bolimKorinadi).map((b) => { const tanlangan = b.id === bolimId && !qidiruv; return <div key={b.id} className={`group flex items-center gap-1 border-l-2 pr-2 ${tanlangan ? 'border-l-accent bg-accent/10' : 'border-l-transparent hover:bg-surface-3'}`} style={{ paddingLeft: 4 + b.daraja * 14 }}>
                 {bolaliBolim.has(b.id)
-                  ? <button onClick={() => setYopiqBolim((s) => { const n = new Set(s); if (n.has(b.id)) n.delete(b.id); else n.add(b.id); return n; })} className="rounded p-0.5 text-text-mute hover:text-text" aria-label="Ichki bo‘limlar">{yopiqBolim.has(b.id) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}</button>
+                  ? <button onClick={() => setYopiqBolim((s) => { const n = new Set(s); if (n.has(b.id)) n.delete(b.id); else n.add(b.id); return n; })} className="rounded p-0.5 text-text-mute hover:text-text" aria-label={t('Ichki bo‘limlar')}>{yopiqBolim.has(b.id) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}</button>
                   : <span className="w-[17px]" />}
-                <button onClick={() => { setBolimId(b.id); setQidiruv(''); }} className="min-w-0 flex-1 py-1.5 text-left">
-                  <div className="flex items-baseline justify-between gap-2"><span className={`truncate text-[12px] ${b.id === bolimId && !qidiruv ? 'font-semibold text-text' : 'text-text-dim'}`} title={b.nom}>{b.nom}</span><span className="shrink-0 text-[10px] tabular-nums text-text-mute" data-testid={`bolim-soni-${b.id}`} title={t('Ichidagi ishlar (ichki bo‘limlari bilan) va bajarilish')}>{t('{n} ish', { n: String(b.ishSoni) })} · {foiz(b.ulush)}</span></div>
-                  <div className="mt-1"><Progress ulush={b.ulush} holat="bolim" ingichka /></div>
+                <button onClick={() => { setBolimId(b.id); setQidiruv(''); }} className="min-w-0 flex-1 py-1.5 text-left" aria-current={tanlangan ? 'true' : undefined}>
+                  <div className="flex items-baseline justify-between gap-2"><span className={`truncate text-[12.5px] ${tanlangan ? 'font-semibold text-text' : b.daraja === 0 ? 'font-medium text-text' : 'text-text-dim'}`} title={b.nom}>{b.nom}</span><span className="shrink-0 text-[11px] tabular-nums text-text-mute" data-testid={`bolim-soni-${b.id}`} title={t('Ichidagi ishlar (ichki bo‘limlari bilan) va bajarilgani')}>{t('{n} ish', { n: String(b.ishSoni) })}</span></div>
+                  <div className="mt-1"><BolimMeter ulush={b.ulush} /></div>
                 </button>
-              </div>)}
+              </div>; })}
             </nav>
           </aside>
 
-          <section className="karta flex min-h-0 flex-col overflow-hidden">
-            <header className="flex flex-wrap items-start justify-between gap-2 border-b border-border px-3 py-2.5">
-              <div className="min-w-0 space-y-1">
-                <h2 className="truncate text-[14px] font-semibold text-text" title={tanlanganBolim?.nom}>{qidiruv ? `Qidiruv: «${qidiruv}»` : tanlanganBolim?.nom ?? 'Bo‘limni tanlang'}</h2>
-                {!qidiruv && tanlanganBolim && <p className="text-[11px] text-text-mute">{tanlanganBolim.tugaganSoni} / {tanlanganBolim.ishSoni} ish bajarilgan · {foiz(tanlanganBolim.ulush)}</p>}
-                {!qidiruv && tanlanganBolim && summaQatori(summalar.get(tanlanganBolim.id))}
+          <section className="fz-card flex min-h-0 flex-col">
+            <header className="flex flex-col gap-2 border-b border-border px-4 py-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <h2 className="fz-card__title truncate" title={tanlanganBolim?.nom}>{sarlavha}</h2>
+                  {!qidiruv && tanlanganBolim && <div className="flex flex-wrap items-center gap-3 text-[12px] text-text-dim">
+                    <span className="tabular-nums">{t('{a} / {b} ish bajarilgan', { a: String(tanlanganBolim.tugaganSoni), b: String(tanlanganBolim.ishSoni) })}</span>
+                    <span className="w-[180px]"><BolimMeter ulush={tanlanganBolim.ulush} /></span>
+                  </div>}
+                  {!qidiruv && tanlanganBolim && summaQatori(summalar.get(tanlanganBolim.id))}
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  {bolimTakliflar > 0 && <button type="button" onClick={() => materiallarniOl(bolimMaterialIdlar)} data-testid="bolim-materiallarni-ol"
+                    title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')}
+                    className="fz-btn fz-btn--sm border-accent/40 text-[var(--accent-text)]">{t('Bo‘lim: materiallarni ham olish ({n})', { n: String(bolimTakliflar) })}</button>}
+                  <button type="button" onClick={() => { setHammaYopiq((v) => !v); setTeskari(new Set()); }} className="fz-btn fz-btn--ghost fz-btn--sm" aria-label={hammaYopiq ? t('Hamma resurslarni ochish') : t('Hamma resurslarni yopish')}>
+                    {hammaYopiq ? <ChevronRight size={13} /> : <ChevronDown size={13} />}{hammaYopiq ? t('Hammasini ochish') : t('Hammasini yopish')}</button>
+                </div>
               </div>
-              <div className="flex flex-col items-end gap-1.5">
-                {(() => { const idlar = korinadi.flatMap((b) => b.ishlar.map((i) => i.id)); const n = takliflarSoni(idlar); return n > 0 ? <button type="button" onClick={() => materiallarniOl(idlar)} data-testid="bolim-materiallarni-ol"
-                  title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')}
-                  className="inline-flex h-7 items-center gap-1 rounded-md border border-accent/40 px-2 text-[11px] font-semibold text-accent hover:bg-accent/10">{t('Bo‘lim: materiallarni ham olish ({n})', { n: String(n) })}</button> : null; })()}
-                <button type="button" onClick={() => { setHammaYopiq((v) => !v); setTeskari(new Set()); }} className="inline-flex h-7 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-text-dim hover:bg-surface-2 hover:text-text" aria-label={hammaYopiq ? t('Hamma resurslarni ochish') : t('Hamma resurslarni yopish')}>
-                  {hammaYopiq ? <ChevronRight size={13} /> : <ChevronDown size={13} />}{hammaYopiq ? t('Hammasini ochish') : t('Hammasini yopish')}</button>
-                <div className="flex items-center gap-3 text-[10px] text-text-mute">{(['yangi', 'qisman', 'tugadi', 'oshdi'] as const).map((h) => <span key={h} className="inline-flex items-center gap-1"><span className={`h-2 w-2 rounded-full ${HOLAT_RANG[h].nuqta}`} />{HOLAT_RANG[h].matn}</span>)}</div>
-              </div>
+              <MeterLegenda />
             </header>
             <div className="min-h-0 flex-1 overflow-auto pb-16" data-testid="fakt-jadval">
-              <div className="min-w-[1340px]">
-                <div className={`${USTUN} sticky top-0 z-10 border-b border-border bg-surface px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-mute`} role="row">
-                  <span>{t('Ish / resurs')}</span><span>{t('Birlik')}</span><span className="text-right">{t('Smeta')}</span><span className="text-right">{t('F2')}</span><span className="text-right">{t('Fakt')}</span>
-                  <span className="text-right">{t('Bu fakt')}</span><span className="text-right" title={t('Ochiq qoldiq = smeta − fakt − almashtirilgan − bajarilmaydi')}>{t('Ochiq qoldiq')}</span><span className="text-right">{t('Narx')}</span><span className="text-right">{t('Fakt summasi')}</span><span className="text-right">%</span><span />
+              <div className="min-w-[1220px]">
+                <div className={`${USTUN} sticky top-0 z-10 border-b border-border-strong bg-surface-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim`} role="row">
+                  {ustunSarlavha(t('Ish / resurs'), t('holat · belgilar'))}
+                  {ustunSarlavha(t('Smeta'), t('hajm · birlik narxi'), { ong: true })}
+                  {ustunSarlavha(t('Bajarilish'), t('fakt va F2, smetaga nisbatan'))}
+                  {ustunSarlavha(t('Bu fakt'), t('+ bugun · = jami'), { ong: true })}
+                  {ustunSarlavha(t('Ochiq qoldiq'), t('smeta − fakt'), { ong: true, title: t('Ochiq qoldiq = smeta − fakt − almashtirilgan − bajarilmaydi') })}
+                  {ustunSarlavha(t('F2 ga olish mumkin'), t('fakt − F2'), { ong: true, title: t('F2 ga olish mumkin = fakt − tasdiqlangan F2') })}
+                  {ustunSarlavha(t('Fakt summasi'), t('ustamali · ustamasiz'), { ong: true })}
+                  <span />
                 </div>
-                {korinadiIshSoni === 0 && <p className="p-6 text-center text-[13px] text-text-mute">{qidiruv ? 'Hech narsa topilmadi.' : t('Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q.')}</p>}
+                {korinadiIshSoni === 0 && <p className="p-6 text-center text-[13px] text-text-mute">{qidiruv ? t('Hech narsa topilmadi.') : t('Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q.')}</p>}
                 {korinadi.map((bk, bi) => <div key={bk.bolim?.id ?? `b${bi}`}>
-                  {bk.yol && <div className="border-b border-border/60 bg-surface-2/60 px-3 py-1 text-[10px] text-text-mute">{bk.yol}</div>}
-                  {bk.bolim && <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 border-b border-border/60 bg-surface-2/50 py-1.5 pr-3" style={{ paddingLeft: 12 + (bk.nisbiy - 1) * 16 }} data-testid={`bolim-sarlavha-${bk.bolim.id}`}>
-                    <button type="button" tabIndex={-1} onClick={() => setBolimId(bk.bolim!.id)} className="min-w-0 text-left" title={t('Shu bo‘limni ochish')}>
-                      <span className="text-[12px] font-semibold text-text">{bk.bolim.nom}</span>
-                      <span className="ml-2 text-[10px] tabular-nums text-text-mute">{t('{n} ish', { n: String(bk.bolim.ishSoni) })} · {foiz(bk.bolim.ulush)}</span>
+                  {bk.yol && <div className="border-b border-border bg-surface-2 px-3 py-1 text-[11px] text-text-mute">{bk.yol}</div>}
+                  {bk.bolim && <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface-2 py-2 pr-3" style={{ paddingLeft: 12 + (bk.nisbiy - 1) * 16 }} data-testid={`bolim-sarlavha-${bk.bolim.id}`}>
+                    <button type="button" tabIndex={-1} onClick={() => setBolimId(bk.bolim!.id)} className="flex min-w-0 items-center gap-3 text-left" title={t('Shu bo‘limni ochish')}>
+                      <span className="text-[12.5px] font-semibold text-[var(--accent-text)]">{bk.bolim.nom}</span>
+                      <span className="text-[11px] tabular-nums text-text-mute">{t('{n} ish', { n: String(bk.bolim.ishSoni) })}</span>
+                      <span className="w-[140px]"><BolimMeter ulush={bk.bolim.ulush} /></span>
                     </button>
                     {summaQatori(summalar.get(bk.bolim.id))}
                   </div>}
-                  {bk.ishlar.map((ish) => <div key={ish.id} className="border-b border-border/60">
+                  {bk.ishlar.map((ish) => <div key={ish.id} className="border-b border-border">
                     {ishQatori(ish)}
                     {ishOchiq(ish.id) && ish.resurslar.map((r) => resursQatori(r, false))}
                     {ishOchiq(ish.id) && ish.avtomatik.map((a) => resursQatori(a, true))}
@@ -530,13 +565,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           </section>
         </div>}
 
-      {ozgarishSoni > 0 && <div className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-surface/95 px-4 py-2.5 shadow-2xl backdrop-blur" role="region" aria-label="Saqlash paneli">
-        <span className="text-[13px] font-semibold text-text">{ozgarishSoni} ta o‘zgarish</span>
-        {paket.xatolar.size > 0 && <span className="text-[12px] text-warn">{paket.xatolar.size} tasida xato — tuzating</span>}
-        <span className="text-[11px] text-text-mute">sana: {sana}</span>
+      {ozgarishSoni > 0 && <div className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-accent/50 bg-surface px-4 py-2.5" style={{ boxShadow: 'var(--shadow-pop)' }} role="region" aria-label={t('Saqlash paneli')}>
+        <span className="text-[13px] font-semibold text-text">{t('{n} ta o‘zgarish', { n: String(ozgarishSoni) })}</span>
+        {paket.xatolar.size > 0 && <span className="fz-chip fz-chip--warn">{t('{n} tasida xato — tuzating', { n: String(paket.xatolar.size) })}</span>}
+        <span className="text-[12px] text-text-mute">{t('sana: {s}', { s: sana })}</span>
         <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => setKiritmalar({})} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] text-text-dim hover:text-text"><RotateCcw size={13} /> Bekor qilish</button>
-          <button onClick={() => void saqla()} disabled={!paket.ok || band} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"><Save size={14} /> {band ? 'Saqlanmoqda…' : 'Saqlash'} <kbd className="ml-1 rounded bg-white/20 px-1 text-[10px]">Ctrl+S</kbd></button>
+          <button onClick={() => setKiritmalar({})} className="fz-btn fz-btn--ghost"><RotateCcw size={13} /> {t('Bekor qilish')}</button>
+          <button onClick={() => void saqla()} disabled={!paket.ok || band} className="fz-btn fz-btn--primary"><Save size={14} /> {band ? t('Saqlanmoqda…') : t('Saqlash')} <kbd className="fz-kbd">Ctrl+S</kbd></button>
         </div>
       </div>}
 
