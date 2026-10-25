@@ -2,6 +2,7 @@ import type { T2Qator } from '../api/supabase';
 import type { BajarilmadiQator } from '../api/t2-bajarilmadi';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from './ustamali-summa';
 import type { JurnalHolat } from './fakt-jurnal';
+import { ochiqQoldiq } from './zamena-qoldiq';
 
 /**
  * Fakt Studio yig'indisi (egasi 2026-10-24): fakt kiritish ekranida doimiy ko'rinadigan hisob.
@@ -68,10 +69,10 @@ export function bajarilmadiHajmlar(royxat: readonly Pick<BajarilmadiQator, 'qato
   return m;
 }
 
-/** «Bajarilmaydi» uchun taklif hajm: smeta - fakt - belgilangan (manfiy emas); smeta noma'lum bo'lsa null (qo'lda kiritiladi). */
-export function bajarilmadiTaklif(smeta: number | null | undefined, fakt: number, belgilangan: number): number | null {
-  if (smeta == null || !Number.isFinite(Number(smeta))) return null;
-  const q = Number(smeta) - fakt - belgilangan;
+/** «Bajarilmaydi» uchun taklif hajm = OCHIQ qoldiq (`ochiqQoldiq`: smeta − fakt − almashtirilgan − belgilangan; manfiy emas); smeta noma'lum bo'lsa null (qo'lda kiritiladi). */
+export function bajarilmadiTaklif(smeta: number | null | undefined, fakt: number, belgilangan: number, almashtirilgan?: number | null): number | null {
+  const q = ochiqQoldiq({ smeta, fakt, bajarilmaydi: belgilangan, almashtirilgan }, 'fakt');
+  if (q == null) return null;
   return q > 1e-9 ? Math.round(q * 1e6) / 1e6 : 0;
 }
 
