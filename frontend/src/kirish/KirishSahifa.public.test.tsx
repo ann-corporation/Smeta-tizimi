@@ -38,16 +38,30 @@ describe('Public kirish sayti', () => {
     fireEvent.change(screen.getByPlaceholderText('foydalanuvchi_nomi'), { target: { value: 'sinov' } });
     fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'test-password' } });
     fireEvent.submit(screen.getByPlaceholderText('foydalanuvchi_nomi').closest('form')!);
-    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/obyektlar'));
+    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin'));
     expect(fetchMock).toHaveBeenCalledWith('/api/kirish', expect.objectContaining({ body: JSON.stringify({ login: 'sinov', parol: 'test-password' }) }));
   });
-  it.each([['boss', '/admin/dashboard'], ['buyurtmachi', '/admin/zakazchik'], ['usta', '/admin/fakt'], ['omborchi', '/admin/logistika'], ['pudratchi', '/admin/ish-joylarim']])('%s parol bilan kirgach o‘z sahifasiga tushadi', async (rol, yol) => {
+  /* JQA-06: sessiya roli emas — kompaniya-aware /admin indeksi rolni joriy kompaniya bo'yicha hal qiladi. */
+  it.each(['boss', 'buyurtmachi', 'usta', 'omborchi', 'pudratchi'])('%s parol bilan kirgach kompaniya-aware /admin ga tushadi (sessiya roli bo‘yicha emas)', async (rol) => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ ok: true, rol }) })));
     render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
     fireEvent.change(screen.getByPlaceholderText('foydalanuvchi_nomi'), { target: { value: 'sinov' } });
     fireEvent.change(screen.getByLabelText('Parol'), { target: { value: 'test-password' } });
     fireEvent.submit(screen.getByPlaceholderText('foydalanuvchi_nomi').closest('form')!);
-    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith(yol));
+    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin'));
+    expect(m.navigate).not.toHaveBeenCalledWith(expect.stringMatching(/\/admin\/(test|dashboard|zakazchik)/));
+  });
+  it('taklif havolasi kutilayotgan bo‘lsa — kirgach /admin emas, /qoshil/:kod ustuvor', async () => {
+    sessionStorage.setItem('t2_qoshil_kod', 'ABC123');
+    try {
+      vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ ok: true, rol: 'pto' }) })));
+      render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
+      fireEvent.change(screen.getByPlaceholderText('foydalanuvchi_nomi'), { target: { value: 'sinov' } });
+      fireEvent.change(screen.getByLabelText('Parol'), { target: { value: 'test-password' } });
+      fireEvent.submit(screen.getByPlaceholderText('foydalanuvchi_nomi').closest('form')!);
+      await waitFor(() => expect(m.navigate).toHaveBeenCalled());
+      expect(m.navigate.mock.calls[0][0]).toMatch(/^\/qoshil\//);
+    } finally { sessionStorage.removeItem('t2_qoshil_kod'); }
   });
   it('yordam paneli fake operator yoki message receipt yaratmaydi', () => {
     const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock);

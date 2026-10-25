@@ -12,6 +12,10 @@ import { routePermission } from '../company-authorization/route-permission';
 
 export const ZAXIRA_BOSH_SAHIFA = '/admin/ish-joylarim';
 
+/** Mavjud foydalanuvchi kirgach boradigan manzil: kompaniya-aware indeks (RolBoshSahifa) — u joriy kompaniyadagi
+ *  effektiv rol va ruxsat bo'yicha `rolBoshSahifasi` ni qo'llaydi. Kirish sahifasi rolni O'ZI hal qilmaydi. */
+export const MAVJUD_FOYDALANUVCHI_KIRISH = '/admin';
+
 const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   superadmin: '/admin/obyektlar',
   admin: '/admin/obyektlar',
@@ -30,6 +34,13 @@ const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   inspektor: '/admin/aosr',
   loyihachi: '/admin/documents',
 };
+
+/** Joriy kompaniya konteksti bo'yicha bosh sahifa (RolBoshSahifa ishlatadi). Kompaniya tanlanmagan (global rejim,
+ *  ko'p kompaniya/tanlov yo'q) — Ish joylarim: u yerda kompaniya tanlanadi. */
+export function kontekstBoshSahifasi(k: { superadmin: boolean; joriy: { rol?: string; permissions?: string[] } | null }): string {
+  if (!k.joriy) return ZAXIRA_BOSH_SAHIFA;
+  return k.superadmin ? rolBoshSahifasi('superadmin') : rolBoshSahifasi(k.joriy.rol, k.joriy.permissions);
+}
 
 /**
  * @param rol          kompaniyadagi (yoki kirishdagi) rol
