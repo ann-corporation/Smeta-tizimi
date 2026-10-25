@@ -9,7 +9,7 @@
  * yaratmaydi. Kanonik qonun o'zgarmaydi: zamena eski qatorni o'zgartirmaydi (OLD+NEW).
  */
 import type { T2Qator } from '../../api/supabase';
-import { bogIdlari, type IshJoyi } from './ishJoyi';
+import { bogIdlari, bogla, type IshJoyi } from './ishJoyi';
 
 export type RejaliResurs = { tur: 'rs' | 'mat' | 'ob'; nom: string; birlik: string; hajm?: number | null; kod?: string | null };
 
@@ -47,6 +47,69 @@ export interface RejaliBuyruq {
   abcCommand?: 'additional' | 'replacement' | 'resurs_zamena' | 'resurs_ish';
   abcIsh?: unknown;
   abcResurslar?: unknown[];
+}
+
+/** Smeta qatori id → otasining id si (rejali vaqtinchalik qatorlar ham). */
+export type SmetaOta = (qatorId: number) => number | null | undefined;
+
+/**
+ * F2 ishi (bl) qo'shimcha/zamena bo'lib smetaga qo'shilganda uning resurs-qatori yangi ishga O'TADIMI
+ * (egasi 2026-10-25, Sun'iy ko'l: ish ichidagi ko'chatlar smetaning kerakli joylariga qo'lda bog'langan edi —
+ * ishni qo'shimcha qilganda ular qaytib yangi ish ichiga tortib olinmasin).
+ *  - bog'lanmagan va o'tkazilmagan — o'tadi;
+ *  - o'tkazilgan (otkaz) yoki boshqa smeta qatoriga bog'langan — o'z qarorini SAQLAYDI (summasi ikki marta sanalmaydi);
+ *  - istisno: ishning o'zi bilan BIRGA bog'langan (ish bog'langan smeta ishining ichidagi resursga) — ish bilan ko'chadi
+ *    (eski bog'lanish o'rniga yangisi, ikki marta sanalmaydi).
+ */
+export function resursOtadimi(r: { uid: string }, ishUid: string, ij: IshJoyi, smetaOta?: SmetaOta): boolean {
+  if (ij.otkaz.has(r.uid)) return false;
+  const b = ij.bog.get(r.uid);
+  if (!b) return true;
+  const ishBog = ij.bog.get(ishUid);
+  if (!ishBog || ishBog.taqsim || b.taqsim || !smetaOta) return false;
+  return smetaOta(b.qatorId) === ishBog.qatorId;
+}
+
+/** Yangi ishga o'tadigan resurs-qatorlar (F2 tartibida). `tanlov` berilsa (belgilash yo'li) — faqat belgilanganlar ichidan:
+ *  faqat ishning o'zi belgilangan bo'lsa — faqat ish qo'shiladi, bolalar avvalgi holatida qoladi. */
+export function otadiganResurslar<T extends { uid: string }>(
+  f: { uid: string; tur: string; bolalar: readonly T[] }, ij: IshJoyi, o?: { tanlov?: ReadonlySet<string>; smetaOta?: SmetaOta },
+): T[] {
+  if (f.tur !== 'bl') return [];
+  return f.bolalar.filter((r) => resursOtadimi(r, f.uid, ij, o?.smetaOta) && (!o?.tanlov || o.tanlov.has(r.uid)));
+}
+
+/** Ish bilan o'tmay qolgan, lekin hali BOG'LANMAGAN resurslar — operatorga «ularni ham shu ishga qo'shing» deb aytish uchun. */
+export function qolganBoglanmagan<T extends { uid: string }>(f: { uid: string; tur: string; bolalar: readonly T[] }, ij: IshJoyi, otgan: readonly T[]): T[] {
+  if (f.tur !== 'bl') return [];
+  const o = new Set(otgan.map((r) => r.uid));
+  return f.bolalar.filter((r) => !o.has(r.uid) && !ij.bog.has(r.uid) && !ij.otkaz.has(r.uid));
+}
+
+/**
+ * Rejali buyruqni yaratib F2 qatorlarini vaqtinchalik qatorlarga bog'laydi (sof). `f.bolalar` — chaqiruvchi tanlagan
+ * o'tadigan resurslar (`b.resurslar` bilan bir tartibda). Himoya: boshqa joyga bog'langan/o'tkazilgan bola baribir kelib
+ * qolsa (resurslar ro'yxati bolalarga mos bo'lsa) — u ham, unga mos resurs ham buyruqdan chiqariladi: bog'lanish saqlanadi.
+ */
+export function rejaliBuyruqQosh(
+  mavjud: readonly RejaliBuyruq[], ij: IshJoyi,
+  f: { uid: string; tur: string; bolalar: readonly { uid: string }[] },
+  b: Omit<RejaliBuyruq, 'tempId' | 'resursTempIds' | 'f2Uid' | 'f2ResursUidlar'>,
+  smetaOta?: SmetaOta,
+): { buyruq: RejaliBuyruq; ij: IshJoyi } {
+  let bolalar = f.tur === 'bl' ? [...f.bolalar] : [];
+  let resurslar = b.resurslar;
+  if (bolalar.length && resurslar.length === bolalar.length) {
+    const qoldi = bolalar.map((r) => resursOtadimi(r, f.uid, ij, smetaOta));
+    bolalar = bolalar.filter((_, i) => qoldi[i]);
+    resurslar = resurslar.filter((_, i) => qoldi[i]);
+  }
+  const ids = yangiTempIdlar(mavjud.flatMap((x) => [x.tempId, ...x.resursTempIds]), 1 + resurslar.length);
+  const buyruq: RejaliBuyruq = { ...b, resurslar, tempId: ids[0], resursTempIds: ids.slice(1), f2Uid: f.uid,
+    f2ResursUidlar: bolalar.slice(0, resurslar.length).map((r) => r.uid) };
+  let joriy = bogla(ij, f.uid, buyruq.tempId);
+  buyruq.f2ResursUidlar.forEach((uid, i) => { const tid = buyruq.resursTempIds[i]; if (tid != null) joriy = bogla(joriy, uid, tid); });
+  return { buyruq, ij: joriy };
 }
 
 /** Avval saqlangan (siz qo'shgan) qatorni O'CHIRISH — ham qoralamada, «F2 ni yozish» da bajariladi. */

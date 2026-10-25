@@ -1,0 +1,4 @@
+{
+  "ta resurs boshqa smeta qatoriga bog‘langan — bog‘lanishi saqlandi.": { "ru": "ресурс(ов) привязаны к другим строкам сметы — привязка сохранена.", "en": "resource(s) are linked to other estimate rows — their links were kept." },
+  "ta bog‘lanmagan resurs ishga qo‘shilmadi — ularni ham belgilab shu ishga torting (qo‘shimcha resurs).": { "ru": "непривязанный(х) ресурс(ов) не добавлено в работу — отметьте их и перетащите на эту работу (дополнительный ресурс).", "en": "unlinked resource(s) were not added to the work — select them and drag onto this work (additional resource)." }
+}
