@@ -1,0 +1,72 @@
+{
+  "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
+  "yozuvlar": [
+    {
+      "id": 7,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 import: qo'shimcha ish va podval",
+      "bandlar": [
+        "Ishni qo'shimcha ish qilib qo'shganda, siz boshqa joyga bog'lagan qatorlar (masalan daraxtlar) endi tortib olinmaydi — faqat belgilangan yoki bog'lanmaganlar o'tadi.",
+        "Podval qatorlarini «Bog'lash» yoki sudrash bilan to'g'ridan-to'g'ri smeta qatoriga bog'lash mumkin; «Faqat izoh» — aktga kirmaydi, ikki marta sanalmaydi.",
+        "Summasi aynan teng smeta qatori podval uchun o'zi taklif qilinadi."
+      ]
+    },
+    {
+      "id": 6,
+      "sana": "2026-10-25",
+      "sarlavha": "AI yordamchi — Fakt va F2 tayyorlashda",
+      "bandlar": [
+        "O'ng pastdagi AI tugmasi: ish topish, nega fakt kam ekanini tushuntirish, fakt hajmi/materiallar/zamena/«bajarilmaydi» takliflari.",
+        "F2 tayyorlashda: uchastka bo'yicha mumkin hajm, narxsiz qatorlar, narx takliflari (faqat mavjud manbalardan).",
+        "AI faqat taklif qiladi — saqlash va yozish sizning tugmangiz bilan."
+      ]
+    },
+    {
+      "id": 5,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 hujjati va resurs vedomosti",
+      "bandlar": [
+        "F2 Excel: uchastka → razdel sarlavhalari va «ИТОГО ПО РАЗДЕЛУ» oraliq jamilari; vedomost uchastka bo'yicha.",
+        "Shifr o'rnida «ЦЕНА» chiqmaydi; bir xil resurs bitta qator; mashinist qatori formulalarni buzmaydi.",
+        "F2 tayyorlashda «Resurs vedomosti» — har resursga barcha manbalardan narx takliflari, «Narxni qo'llash» bilan."
+      ]
+    },
+    {
+      "id": 4,
+      "sana": "2026-10-25",
+      "sarlavha": "Oylik F2 paketi va tez reestr",
+      "bandlar": [
+        "F2 reestr → «Oylik F2 paketini tayyorlash»: oyning barcha F2 lari, jami (ustamasiz/ustamali/NDS), tekshiruvlar va bitta ZIP paket.",
+        "F2 reestr endi ancha tez ochiladi."
+      ]
+    },
+    {
+      "id": 3,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 tahrirlash va texnadzor Excel'i",
+      "bandlar": [
+        "F2 tarixida tizimda yasalgan qoralama: «✎ Tizimda tahrirlash» va «⬆ Fayldan yangilash» — o'sha qoralama, o'sha raqam yangilanadi.",
+        "Tizim chiqargan F2 Excel'ida yashirin kalit: texnadzordan qaytgan fayl qatorlari o'zi bog'lanadi."
+      ]
+    },
+    {
+      "id": 2,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt oynasi yangilandi",
+      "bandlar": [
+        "Daraxt ko'rinishi: bo'lim → ISH → resurslar (ЧЕЛ/МАШ/МАТ/ОБ belgilari), ustunlar: smeta / F2 / fakt / qoldiq / narx / summa.",
+        "Resurs qatorida resurs zamenasi, ish qatorida ish zamenasi; normativ katalogdan va AI bilan qidirish.",
+        "«Materiallarni ham olish» — ish ostidagi alohida materiallar ham taklif qilinadi."
+      ]
+    },
+    {
+      "id": 1,
+      "sana": "2026-10-25",
+      "sarlavha": "Zamena qoldig'i va F2 yozish",
+      "bandlar": [
+        "Zamena bajarilgan sari asl ishning qoldig'i shu ulushda yopiladi.",
+        "Hajmi 0 qator F2 yozishni to'xtatmaydi — faqat ogohlantiradi."
+      ]
+    }
+  ]
+}
