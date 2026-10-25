@@ -413,15 +413,18 @@ function Sessiya({ companyId }: { companyId: number }) {
   const raw = useMemo(() => new Map(rowsK.map((r) => [r.id, r])), [rowsK]);
   // Zamena qatori → u almashtirgan ASL smeta qatori (t2_daraxt da yo'q — alohida, faqat zamena qatorlari uchun).
   const [zamenaAsl, setZamenaAsl] = useState<ReadonlyMap<number, number>>(new Map());
+  /** Birlik farqli zamenaning kiritilgan almashtirish hajmi (aslning birligida) -- yozilgan zamenalar uchun. */
+  const [zamenaMiqdor, setZamenaMiqdor] = useState<ReadonlyMap<number, number>>(new Map());
   const zamenaKalit = useMemo(() => rows.filter((r) => r.zamena).map((r) => r.id).join(','), [rows]);
   useEffect(() => {
     const idlar = zamenaKalit ? zamenaKalit.split(',') : [];
-    if (!idlar.length || !objectId) { setZamenaAsl(new Map()); return; }
+    if (!idlar.length || !objectId) { setZamenaAsl(new Map()); setZamenaMiqdor(new Map()); return; }
     let active = true;
-    void sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objectId}&id=in.(${idlar.slice(0, 2000).join(',')})`, ustunlar: 'id,replaces_line_id', limit: 2000 })
+    void sbOqi<{ id: number; replaces_line_id: number | null; almashtirish_hajm?: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${objectId}&id=in.(${idlar.slice(0, 2000).join(',')})`, ustunlar: 'id,replaces_line_id,almashtirish_hajm', limit: 2000 })
       .then((d) => {
         if (!active || !d.ok) return;
         setZamenaAsl(new Map((d.qatorlar ?? []).filter((x) => x.replaces_line_id != null).map((x) => [Number(x.id), Number(x.replaces_line_id)])));
+        setZamenaMiqdor(new Map((d.qatorlar ?? []).filter((x) => x.replaces_line_id != null && x.almashtirish_hajm != null).map((x) => [Number(x.id), Number(x.almashtirish_hajm)])));
       }).catch(() => undefined);
     return () => { active = false; };
   }, [zamenaKalit, objectId]);
@@ -433,6 +436,14 @@ function Sessiya({ companyId }: { companyId: number }) {
     for (const b of qosh) m.set(b.tempId, b.almashtirilayotganQatorId as number);
     return m;
   }, [zamenaAsl, rejali]);
+  /** Zamena qatori -> kiritilgan almashtirish hajmi (aslning birligida): yozilganlar + rejali (hali yaratilmagan) zamenalar. */
+  const zamenaMiqdorK = useMemo(() => {
+    const qosh = rejali.filter((b) => (b.kind === 'replacement' || b.kind === 'resurs_ish') && b.almashtirilayotganQatorId != null && b.almashtirishHajm != null);
+    if (!qosh.length) return zamenaMiqdor;
+    const m = new Map(zamenaMiqdor);
+    for (const b of qosh) m.set(b.tempId, b.almashtirishHajm as number);
+    return m;
+  }, [zamenaMiqdor, rejali]);
 
   function tozala() {
     // Scope/file switch must flush pending decisions before clearing in-memory state.
@@ -1578,7 +1589,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       {akt && ind && natija && ij && (
         <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} almashtirilgan={almashtirilgan} band={band}
           ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
-          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} onTahrirRejali={onTahrirRejali} onBolimRejali={bolimRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
+          onYaratildi={yaratildi} zamenaAsl={zamenaAslK} zamenaMiqdor={zamenaMiqdorK}onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} onTahrirRejali={onTahrirRejali} onBolimRejali={bolimRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
       )}
 
       {ochirish.length > 0 && <section className="karta space-y-1 border border-rose-500/40 bg-rose-500/5 p-3 text-[12px]" aria-label={t('O‘chirishga belgilangan')}>

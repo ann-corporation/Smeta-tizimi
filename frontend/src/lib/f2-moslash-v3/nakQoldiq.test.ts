@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { nakQoldiqXaritalari, type NakQator } from './nakQoldiq';
+import { qoralamaAlmashtirilgan, qoldiqHajmi } from '../zamena-qoldiq';
 
 const tartibla = (m: Map<number, number>) => [...m.entries()].sort((a, b) => a[0] - b[0]);
 
@@ -41,5 +42,20 @@ describe('nakQoldiqXaritalari - zamena (almashtirilgan_hajm)', () => {
     expect(qol.has(3)).toBe(false); // smeta hajmi NULL -> qoldiq NULL (0 emas)
     expect(qol.get(9)).toBe(7);
     expect([...alm.entries()].sort()).toEqual([[1, 30], [3, 4]]);
+  });
+});
+describe('nakQoldiqXaritalari + shu qoralamadagi zamena', () => {
+  it('server almashtirilgani + shu F2 dagi zamena: asl qoldig\'i yana kamayadi, qolgan qoldiqdan oshmaydi', () => {
+    const smeta = [{ id: 1, hajm: 100, birlik: 'm3' }, { id: 2, hajm: 300, birlik: 'm3' }];
+    const nak: NakQator[] = [{ qator_id: 1, jami_hajm: 10, smeta_hajm: 100, almashtirilgan_hajm: 20 }, { qator_id: 2, jami_hajm: 20, smeta_hajm: 300 }];
+    const { old, qol, alm } = nakQoldiqXaritalari(nak, smeta);
+    expect(qol.get(1)).toBe(70);
+    const shu = new Map([[2, 50]]);
+    const m = qoralamaAlmashtirilgan(smeta, new Map([[2, 1]]), new Map(), old, shu, alm);
+    expect(m.get(1)).toBe(50);
+    expect(qoldiqHajmi(100, old.get(1), (alm.get(1) ?? 0) + (m.get(1) ?? 0))).toBe(20);
+    // shu F2 da 500 olinsa - aslning qolgan qoldig'i (100-10-20=70) bilan cheklanadi
+    const katta = qoralamaAlmashtirilgan(smeta, new Map([[2, 1]]), new Map(), old, new Map([[2, 500]]), alm);
+    expect(katta.get(1)).toBe(70);
   });
 });

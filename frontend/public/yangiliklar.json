@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 8,
+      "id": 9,
       "sana": "2026-10-25",
       "sarlavha": "F2 ikki marta yozilib ketishidan himoya",
       "bandlar": [
@@ -10,6 +10,16 @@
         "Shu obyektda shu raqamli F2 bor bo'lsa yozilmaydi (baza ham bir shartnoma doirasida bir xil raqamni rad etadi). Egizak nusxadan keyin raqam ko'chmaydi — yangi raqam so'raladi.",
         "Summasi deyarli bir xil F2 yoki «(ekspertizagacha)» smetadagi qator yangi smeta bilan birga bo'lsa — ogohlantirish chiqadi (pereraschet bo'lishi mumkin).",
         "F2 reestrida «Takrorlar tekshiruvi»: bir xil raqam, bir xil summa va tuzatish (N-П) aktlari asl akti bilan juft ko'rinadi."
+      ]
+    },
+    {
+      "id": 8,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 import: zamena hajmi aslning qoldig'idan ayriladi",
+      "bandlar": [
+        "Shu F2 qoralamasida zamena qatoriga hajm bog'lansangiz, asl qatorning qoldig'i darhol kamayadi — hali yozilmagan bo'lsa ham (hujjatda ostatka qolmaydi).",
+        "Asl qatorda «almashtiriladi (shu F2)» yozuvi va yozilgani bilan farqi ko'rinadi; ayrilgan hajm aslning qolgan qoldig'idan oshmaydi.",
+        "Asl ham, zamenasi ham shu F2 da olinsa — ikki marta bo'lishi mumkinligi haqida ogohlantirish chiqadi (bloklanmaydi)."
       ]
     },
     {

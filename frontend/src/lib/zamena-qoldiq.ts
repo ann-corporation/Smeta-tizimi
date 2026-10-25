@@ -78,6 +78,49 @@ export function almashtirilganHajmlar(rows: readonly ZamenaQator[]): Map<number,
   return out;
 }
 
+export interface QoralamaQator {
+  id: number; ota_id?: number | null; otaId?: number | null; tur?: string | null; birlik?: string | null; hajm: number | null;
+}
+
+/**
+ * SHU F2 QORALAMASIDAGI zamena hajmi aslning qoldig'ini kamaytiradigan KUTILAYOTGAN almashtirish (asl qator id -> hajm, aslning birligida).
+ * Egasi 2026-10-25: zamenaga hali yozilmagan F2 hajmi ham aslning qoldig'idan ayriladi, aks holda hujjatda ostatka qoladi.
+ * Yagona formula -- `almashtirilganHajmlar`: zamenaning progressi = server progressi (`oldingi`) + shu qoralamadagi hajm (`shu`);
+ * kutilayotgan = (shu bilan) - (shusiz); aslning serverdagi almashtirilgan qismi (`serverAlm`) ayrilgach qolgan qoldiq bilan cheklanadi.
+ * `zamenaAsl`: zamena id -> asl id (rejali zamenalar ham); `miqdor`: zamena id -> almashtirish hajmi (aslning birligida).
+ */
+export function qoralamaAlmashtirilgan(
+  rows: Iterable<QoralamaQator>,
+  zamenaAsl: ReadonlyMap<number, number>,
+  miqdor: ReadonlyMap<number, number>,
+  oldingi: ReadonlyMap<number, number>,
+  shu: ReadonlyMap<number, number>,
+  serverAlm: ReadonlyMap<number, number>,
+): Map<number, number> {
+  const out = new Map<number, number>();
+  let bor = false;
+  for (const [z] of zamenaAsl) if ((shu.get(z) ?? 0) > 0) { bor = true; break; }
+  if (!bor) return out;
+  const list = [...rows];
+  const yasa = (qoralama: boolean): ZamenaQator[] => list.map((r) => {
+    const z = zamenaAsl.has(r.id);
+    const old = oldingi.get(r.id) ?? 0;
+    return { id: r.id, ota_id: r.ota_id ?? r.otaId, tur: r.tur, birlik: r.birlik, hajm: r.hajm, f2Hajm: old,
+      ...(z ? { change_type: 'REPLACEMENT', replaces_line_id: zamenaAsl.get(r.id), almashtirish_hajm: miqdor.get(r.id) ?? null,
+        progress: old + (qoralama ? Math.max(shu.get(r.id) ?? 0, 0) : 0) } : {}) };
+  });
+  const bilan = almashtirilganHajmlar(yasa(true));
+  const siz = almashtirilganHajmlar(yasa(false));
+  const byId = new Map(list.map((r) => [r.id, r] as const));
+  for (const [id, h] of bilan) {
+    const r = byId.get(id);
+    const rem = Math.max((r?.hajm ?? 0) - (oldingi.get(id) ?? 0) - (serverAlm.get(id) ?? 0), 0);
+    const d = Math.min(Math.max(h - (siz.get(id) ?? 0), 0), rem);
+    if (d > 0) out.set(id, d);
+  }
+  return out;
+}
+
 /** Narx qoidasi (SQL: t2_almashtirilgan_summa_hisob): summa to'qilmaydi. */
 export function almashtirilganSumma(alm: number, hajm: number | null, narx: number | null, summa: number | null): number | null {
   if (!alm) return 0;
