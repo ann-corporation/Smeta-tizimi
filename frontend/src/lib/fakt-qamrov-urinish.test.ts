@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { javobTasnifi, urinishAktlari, urinishHolati, urinishOchir, urinishOchiqmi, urinishOl, urinishReceipt, urinishSaqla, urinishYarat } from './fakt-qamrov-urinish';
+import { javobTasnifi, urinishAktlari, urinishHolati, urinishOchir, urinishOchiqmi, urinishOl, urinishReceipt, urinishSaqla, urinishYarat, yozilganKorinadimi, yozilganOchir, yozilganOl, yozilganSaqla, yozilganYasa } from './fakt-qamrov-urinish';
 
 const paket = [[{ qator_id: 1, hajm: 10 }, { qator_id: 2, hajm: 5 }], [{ qator_id: 3, hajm: 1 }]];
 let n = 0;
@@ -54,5 +54,32 @@ describe('qamrov urinishi (JQA-04 / JQA-08)', () => {
     urinishOchir(1, 8);
     expect(urinishOl(1, 8)).toBeNull();
     expect(localStorage.getItem('t2.fakt.qamrov.urinish:1:8')).toBeNull();
+  });
+});
+
+describe('JQA-09: tasdiqlangan qism unutilmaydi', () => {
+  beforeEach(() => { n = 0; yozilganOchir(1, 8); });
+  const asosli = () => urinishYarat({ kompaniyaId: 1, obyektId: 8, sana: '2026-10-25', sarlavha: 'Ko‘l', foiz: 100 }, paket, yangiId, () => 'T', (id) => (id === 1 ? 2 : 0));
+
+  it('yozuv faqat confirmed bo‘laklardan: aktlar va kutilgan jami fakt (asos + hajm)', () => {
+    let u = urinishReceipt(asosli(), 0, { ok: true, akt_id: 7 });
+    u = urinishReceipt(u, 1, { ok: false, code: 'X' });
+    const y = yozilganYasa(u)!;
+    expect(y.aktlar).toEqual([7]);
+    expect(y.tekshir).toEqual([{ qator_id: 1, kutilgan: 12, ishora: 1 }, { qator_id: 2, kutilgan: 5, ishora: 1 }]);
+    expect(yozilganYasa(urinishReceipt(asosli(), 0, { ok: false, code: 'X' }))).toBeNull();
+  });
+  it('jadval yozuvni ko‘rsatmaguncha — yangi emas; holati yo‘q qator — yangi emas', () => {
+    const y = yozilganYasa(urinishReceipt(urinishReceipt(asosli(), 0, { ok: true, akt_id: 7 }), 1, { ok: true, akt_id: 8 }))!;
+    expect(yozilganKorinadimi(y, (id) => ({ 1: 2, 2: 0, 3: 0 } as Record<number, number>)[id])).toBe(false);
+    expect(yozilganKorinadimi(y, (id) => ({ 1: 12, 2: 5 } as Record<number, number>)[id])).toBe(false); // 3 yo'q
+    expect(yozilganKorinadimi(y, (id) => ({ 1: 12, 2: 5, 3: 1 } as Record<number, number>)[id])).toBe(true);
+  });
+  it('reestr va localStorage', () => {
+    const y = yozilganYasa(urinishReceipt(asosli(), 0, { ok: true, akt_id: 7 }))!;
+    yozilganSaqla(y);
+    expect(yozilganOl(1, 8)?.aktlar).toEqual([7]);
+    yozilganOchir(1, 8);
+    expect(yozilganOl(1, 8)).toBeNull();
   });
 });
