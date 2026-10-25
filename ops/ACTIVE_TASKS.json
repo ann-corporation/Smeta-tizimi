@@ -2857,7 +2857,11 @@
         "frontend/src/components/f2-hujjat/",
         "frontend/src/lib/f2-hujjat-korinish.ts",
         "frontend/src/lib/f2-hujjat-korinish.test.ts",
-        "frontend/src/i18n/lugat/qism/f2-hujjat-korinish.json"
+        "frontend/src/i18n/lugat/qism/f2-hujjat-korinish.json",
+        "frontend/src/components/smeta-hujjat/",
+        "frontend/src/lib/smeta-korinish.ts",
+        "frontend/src/lib/smeta-korinish.test.ts",
+        "frontend/src/i18n/lugat/qism/smeta-anatomiya-korinish.json"
       ],
       "depends_on": [],
       "must_read": [

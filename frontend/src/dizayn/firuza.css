@@ -546,3 +546,21 @@ h1, h2 { font-family: var(--font-display); }
 .fz-chip--warn { background: var(--warn-soft); color: var(--warn); }
 .fz-chip--danger { background: var(--danger-soft); color: var(--danger); }
 .fz-chip--accent { background: var(--accent-soft); color: var(--accent-text); }
+
+/* ---------- 7. Smeta anatomiyasi ---------- */
+.fz-meter__fakt { background: var(--info); }
+.fz-meter--lg .fz-meter__t { height: 14px; border-radius: 3px; }
+.fz-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-4); }
+.fz-kpi { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fz-kpi__label { font: 600 11px/14px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.fz-kpi__label i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.fz-kpi__value { font: 600 20px/26px var(--font-display); font-variant-numeric: tabular-nums; color: var(--text); }
+.fz-kpi__sub { font-size: 12px; line-height: 16px; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+.fz-bolim { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(160px, 1fr) 170px; gap: 6px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.fz-bolim:last-child { border-bottom: 0; }
+.fz-bolim__nom { min-width: 0; }
+.fz-bolim__nom b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fz-bolim__nom small { color: var(--text-mute); font-size: 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.fz-bolim__sum { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.fz-bolim__sum small { display: block; font-weight: 400; font-size: 11.5px; color: var(--text-mute); }
+@media (max-width: 720px) { .fz-bolim { grid-template-columns: minmax(0, 1fr) auto; } .fz-bolim .fz-meter { grid-column: 1 / -1; } }
