@@ -2835,6 +2835,32 @@
       "production_write_allowed": false,
       "release_sha": null,
       "verification": "vitest src/lib/nakopitelniy-svod.test.ts; npm run tekshir; supabase/tests/t2_shartnoma_svod_sverka_contract.sql (L0, BEGIN…ROLLBACK)"
+    },
+    {
+      "id": "DIZAYN-FIRUZA-V1-20261025",
+      "title": "Firuza dizayn tili: tokenlar, qobiq (sidebar), umumiy komponentlar",
+      "owner": "claude",
+      "machine": "cloud",
+      "branch": "claude/blissful-cannon-a0ja8l",
+      "base_sha": "c479101c0c00cda4f60efae1827cec1736a9c981",
+      "status": "in_progress",
+      "owns": [
+        "frontend/src/dizayn/",
+        "frontend/src/main.tsx",
+        "frontend/index.html",
+        "frontend/src/admin/AdminShell.tsx",
+        "frontend/src/umumiy/ui/Sahifa.tsx",
+        "frontend/src/umumiy/ui/KatNishon.tsx",
+        "frontend/src/i18n/lugat/qism/dizayn-firuza.json",
+        "ops/mailbox/DIZAYN-FIRUZA-V1-20261025/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Egasi 2026-10-25: dizayn ideal/ergonomik/professional bo'lsin. Kanonik manba — Design System artifact «Firuza». index.css T2-SMETACHI-RELIABILITY-20261009 qulfida — tegilmadi; firuza.css undan keyin ulanib eski Liquid Glass qatlamini bosadi. Deploy faqat egasi va Obsidian KOORDINATSIYA kelishuvidan keyin; PR draft."
     }
   ]
 }

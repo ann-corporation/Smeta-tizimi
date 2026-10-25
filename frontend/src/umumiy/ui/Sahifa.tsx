@@ -38,17 +38,17 @@ export function Sahifa<T = unknown>({
     : (children as ReactNode);
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
-      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.16, ease: 'easeOut' }}
       className="flex flex-col h-full min-h-0 min-w-0 overflow-hidden"
     >
-      <header className="flex-shrink-0 px-6 pt-6 pb-4 flex items-start justify-between gap-4 flex-wrap">
+      <header className="fz-pagehead flex-shrink-0">
         <div className="min-w-0">
-          <h2 className="text-[22px] leading-7 font-semibold text-text tracking-tight">{t(sarlavha)}</h2>
-          {tavsif && <p className="text-sm text-text-dim mt-1">{t(tavsif)}</p>}
+          <h2 className="fz-pagehead__title">{t(sarlavha)}</h2>
+          {tavsif && <p className="fz-pagehead__desc">{t(tavsif)}</p>}
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="fz-pagehead__actions flex-shrink-0">
           {yangilangan != null && <MalumotYoshi vaqt={yangilangan} />}
           {onYangila && (
             <button
@@ -56,11 +56,9 @@ export function Sahifa<T = unknown>({
               disabled={yangilanmoqda}
               title={t('Yangilash')}
               aria-label={t('Yangilash')}
-              className="h-9 px-3 inline-flex items-center gap-2 rounded-[10px] karta text-sm
-                         text-text hover:border-[var(--accent)]/50 transition-colors
-                         disabled:opacity-50 cursor-pointer"
+              className="fz-btn fz-btn--ghost"
             >
-              <RefreshCw size={16} className={yangilanmoqda ? 'animate-spin' : ''} />
+              <RefreshCw className={yangilanmoqda ? 'animate-spin' : ''} />
               {t('Yangilash')}
             </button>
           )}
