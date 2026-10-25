@@ -34,6 +34,7 @@ import ResursVedomostNative from './ResursVedomostNative';
 import NarxNazoratNative from './NarxNazoratNative';
 import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPanel';
 import { BajarilmadiPanel } from './BajarilmadiPanel';
+import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -343,6 +344,8 @@ export function HolatNative() {
           <button className="tugma ml-auto" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
           <button className="tugma" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
         </nav>}
+        {/* Firuza (egasi 2026-10-25): smeta anatomiyasi — daraxt ustida bir qarashda holat. */}
+        {selected && tree.length > 0 && activeTab === 'smeta' && <SmetaAnatomiya tree={tree} obyektId={obyektId} />}
         {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
         {activeTab === 'shartnoma' && selected && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}

@@ -22,3 +22,12 @@ qulfingizda, shuning uchun men TEGMADIM; tayyor qismlar yangi fayllarda:
 **NakopitelniyVedomost.tsx:** `text-success` aniqlanmagan token (musbat qoldiq rangsiz chiqadi) → `text-ok`.
 
 Yangi umumiy klasslar: `firuza.css` §6–7 (fz-table, fz-meter, fz-doc, fz-panel, fz-split, fz-bars, fz-check, fz-note, fz-chip, fz-kpis, fz-bolim).
+
+## Yangilanish 2026-10-25 (kech): egasi to'g'ridan-to'g'ri talab qildi — minimal vizual o'zgarishlar kiritildi
+Egasi bugun «smeta yoki f2 qatorlariga qarashning o'zi ahvolni tushuntirsin» deb aniq buyurdi, shuning uchun qulfdagi
+ikki faylga FAQAT ko'rinish o'zgarishi kiritildi (mantiq, ma'lumot, handlerlar tegilmadi):
+- `SmetaTree.tsx`: ustun sarlavhalari to'liq yorliq (ranglar olib tashlandi), razdel qatori ajratilgan, resursda KatNishon,
+  yangi «Bajarilish» ustuni (fz-meter: F2 firuza + fakt lojuvard, smeta = 100%), oshganda ▲ sariq; tor vertikal bar olib
+  tashlandi; text-white/bg-black/slate/#a855f7 → tokenlar. Test: «Sm. Vol/F2 Vol» → «Smeta/F2 olingan».
+- `HolatNative.tsx`: smeta tabida `<SmetaAnatomiya>` bitta qator bilan qo'shildi.
+Sizning branchingiz bilan birlashtirishda ziddiyat chiqsa — sizning mantiq o'zgarishlaringiz ustuvor, bizning klasslarni qayta qo'yamiz.

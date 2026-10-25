@@ -22,5 +22,7 @@
   "{n} oshgan": { "ru": "{n} сверх", "en": "{n} over" },
   "zamena {n}": { "ru": "замена {n}", "en": "replacement {n}" },
   "qo‘shimcha {n}": { "ru": "доп. {n}", "en": "additional {n}" },
-  "qoldiq": { "ru": "остаток", "en": "remaining" }
+  "qoldiq": { "ru": "остаток", "en": "remaining" },
+  "F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%": { "ru": "Принято по Ф2 (бирюза) и выполнено по факту (лазурь) — смета = 100%", "en": "Certified by F2 (turquoise) and completed (lapis) — estimate = 100%" },
+  "smetadan oshgan": { "ru": "сверх сметы", "en": "over the estimate" }
 }

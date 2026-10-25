@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TreeNode } from '../../api/types';
 import { flattenTree, getAllKeys } from './utils';
 import { FmtN } from '../../lib/format';
-import { Badge } from '../ui/Badge';
+import { KatNishon } from '../ui/KatNishon';
 import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package, Pickaxe, Box, Pencil, Info } from 'lucide-react';
 import { PRICE_STATE_BADGE, type PriceControlLine } from '../../api/t2-price-control';
 import { QatorTahrirModal } from '../ui/QatorTahrirModal';
@@ -157,7 +157,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
   const showMoney = preset === 'TOLIQ' || preset === 'NARX';
   const showSmetaAndFakt = preset !== 'F2';
   const columnCount = 4 + (showSmetaAndFakt ? 2 : 0) + (showMoney ? 6 : 0);
-  const minimumWidth = 400 + (showSmetaAndFakt ? 176 : 0) + 352 + (showMoney ? 512 : 0) + (columnCount - 1) * 16 + 16;
+  const minimumWidth = 400 + (showSmetaAndFakt ? 176 : 0) + 352 + 128 + (showMoney ? 512 : 0) + (columnCount - 1) * 16 + 16;
   const selected = flatNodes.find((row) => row.key === selectedKey);
   const selectedFakt = selected?.node.fakt;
 
@@ -225,8 +225,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           <button onClick={collapseAll} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-surface-2 border border-border rounded-md">Yig'ish</button>
           </div>
           <div className="mt-2 flex gap-1 overflow-x-auto">
-          {([['all','Hammasi'],['f2','F2 olish mumkin'],['qosh','Qo\'shimcha'],['zamena','Zamena'],['bl','Faqat BL'],['mat','Materiallar']] as const).map(([id,label]) => <button key={id} onClick={() => setQuickFilter(id)} className={`whitespace-nowrap rounded-full px-2 py-1 text-[11px] ${quickFilter === id ? 'bg-accent text-white' : 'bg-surface text-text-dim border border-border'}`}>{label}</button>)}
-          {priceControlReady ? ([['frozen','Muzlagan'],['risk','Xavf ostida'],['basis','Protokolsiz']] as const).map(([id,label]) => <button key={id} onClick={() => setQuickFilter(id)} className={`whitespace-nowrap rounded-full px-2 py-1 text-[11px] ${quickFilter === id ? 'bg-accent text-white' : 'bg-surface text-text-dim border border-border'}`}>{label}</button>) : <span className="px-2 py-1 text-[11px] text-text-mute">Narx nazorati ma'lumoti ulanmagan</span>}
+          {([['all','Hammasi'],['f2','F2 olish mumkin'],['qosh','Qo\'shimcha'],['zamena','Zamena'],['bl','Faqat BL'],['mat','Materiallar']] as const).map(([id,label]) => <button key={id} onClick={() => setQuickFilter(id)} className={`whitespace-nowrap rounded-full px-2 py-1 text-[11px] ${quickFilter === id ? 'bg-accent text-text' : 'bg-surface text-text-dim border border-border'}`}>{label}</button>)}
+          {priceControlReady ? ([['frozen','Muzlagan'],['risk','Xavf ostida'],['basis','Protokolsiz']] as const).map(([id,label]) => <button key={id} onClick={() => setQuickFilter(id)} className={`whitespace-nowrap rounded-full px-2 py-1 text-[11px] ${quickFilter === id ? 'bg-accent text-text' : 'bg-surface text-text-dim border border-border'}`}>{label}</button>) : <span className="px-2 py-1 text-[11px] text-text-mute">Narx nazorati ma'lumoti ulanmagan</span>}
           </div>
         </div>
 
@@ -235,23 +235,24 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           joyida qolib, raqamlar boshqa ustun tagiga tushib ketardi. Endi
           sarlavha tananing scrollLeft'iga ergashadi (pastdagi onScroll). */}
       <div ref={sarlavhaRef} className="overflow-x-hidden">
-      <div style={{ minWidth: minimumWidth, width:bodyWidth }} className="h-8 border-b border-white/5 bg-black/40 flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+      <div style={{ minWidth: minimumWidth, width:bodyWidth }} className="h-9 border-b border-[var(--border-strong)] bg-surface-2 flex items-center text-[10.5px] font-semibold text-text-dim uppercase tracking-[.06em]">
         <div className="flex-1 min-w-0 px-4">Nom / Birlik</div>
         <div className="flex items-center h-full pr-4 flex-shrink-0 gap-4">
-          {showSmetaAndFakt && <div className="w-20 text-right text-blue-400/70" title="Smeta Hajm">Sm. Vol</div>}
-          {showSmetaAndFakt && <div className="w-24 text-right text-emerald-400/70" title="Fakt Hajm">Fakt Vol</div>}
-          <div className="w-24 text-right text-purple-400/70" title="Jami F2 Hajm">F2 Vol</div>
-          <div className="w-24 text-right text-cyan-400/70" title="F2 Olish Mumkin (Fakt - F2)">F2 Mum.</div>
-          <div className="w-20 text-right text-amber-400/70" title="Qoldiq Hajm">Qoldiq</div>
+          {showSmetaAndFakt && <div className="w-20 text-right" title="Smeta Hajm">{t('Smeta')}</div>}
+          {showSmetaAndFakt && <div className="w-24 text-right" title="Fakt Hajm">Fakt</div>}
+          <div className="w-24 text-right" title="Jami F2 Hajm">F2 olingan</div>
+          <div className="w-28 text-left normal-case tracking-normal" title={t('F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%')}>{t('Bajarilish')}</div>
+          <div className="w-24 text-right" title="F2 Olish Mumkin (Fakt - F2)">F2 mumkin</div>
+          <div className="w-20 text-right" title="Qoldiq Hajm">{t('Qoldiq')}</div>
           <div className="w-20 text-left text-text-mute" title="Narx nazorati holati">Holat</div>
           
-          {showMoney && <div className="w-4 border-r border-white/10 h-full mx-2"></div>}
+          {showMoney && <div className="w-4 border-r border-border h-full mx-2"></div>}
           
-          {showMoney && <><div className="w-24 text-right text-blue-400" title="Smeta Summa">Sm. Sum</div>
-          <div className="w-24 text-right text-emerald-400" title="Fakt Summa (Nakrutka)">Fk. Sum</div>
-          <div className="w-24 text-right text-purple-400" title="F2 Summa (Nakrutka)">F2 Sum</div>
-          <div className="w-24 text-right text-cyan-400" title="F2 Olish Mumkin Summa (Nakrutka)">F2 M. Sum</div>
-          <div className="w-24 text-right text-amber-400" title="Qoldiq Summa (Nakrutka)">Ost. Sum</div></>}
+          {showMoney && <><div className="w-24 text-right" title="Smeta Summa">Smeta, so‘m</div>
+          <div className="w-24 text-right" title="Fakt Summa (Nakrutka)">Fakt, so‘m</div>
+          <div className="w-24 text-right" title="F2 Summa (Nakrutka)">F2, so‘m</div>
+          <div className="w-24 text-right" title="F2 Olish Mumkin Summa (Nakrutka)">F2 mumkin</div>
+          <div className="w-24 text-right" title="Qoldiq Summa (Nakrutka)">Qoldiq, so‘m</div></>}
         </div>
       </div>
       </div>
@@ -314,7 +315,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                   if (onNodeDrop) onNodeDrop(draggedNode, node);
                   setDraggedNode(null);
                 }}
-                className={`absolute top-0 left-0 w-full flex items-center border-b border-border/50 hover:bg-surface-2/30 transition-colors text-sm group ${isEdited ? 'shadow-[inset_3px_0_0_var(--warn)] bg-warn/5' : ''} ${selectedKey === key ? 'bg-accent/10' : ''}`}
+                className={`absolute top-0 left-0 w-full flex items-center border-b border-border hover:bg-surface-3 transition-colors text-sm group ${node.type === 'rz' ? 'bg-surface-2 font-semibold' : node.type === 'bl' ? 'font-medium' : ''} ${isEdited ? 'shadow-[inset_3px_0_0_var(--warn)] bg-warn/5' : ''} ${selectedKey === key ? 'bg-accent/10' : ''}`}
                 style={{
                   minWidth: minimumWidth,
                   height: `${virtualRow.size}px`,
@@ -341,7 +342,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     {/* Expand/Collapse Chevron */}
                     <div className="w-5 flex items-center justify-center flex-shrink-0">
                       {row.hasChildren ? (
-                        <button aria-label="Shoxni ochish yoki yopish" aria-expanded={row.isExpanded} onClick={(e) => { e.stopPropagation(); toggleExpand(key); }} className="p-0.5 hover:bg-surface-2 rounded text-text-dim hover:text-white">
+                        <button aria-label="Shoxni ochish yoki yopish" aria-expanded={row.isExpanded} onClick={(e) => { e.stopPropagation(); toggleExpand(key); }} className="p-0.5 hover:bg-surface-3 rounded text-text-dim hover:text-text">
                           {row.isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </button>
                       ) : (
@@ -350,20 +351,20 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     </div>
                     
                     {/* Zamena/Qoshimcha icons */}
-                    {node.isZamena && <RefreshCcw size={14} className="text-[#a855f7] flex-shrink-0" />}
+                    {node.isZamena && <RefreshCcw size={14} className="text-accent flex-shrink-0" aria-label="zamena" />}
                     {node.isQosh && <Plus size={14} className="text-ok flex-shrink-0" />}
                     
                     <span className="text-text-dim flex-shrink-0" title={`Qator turi: ${node.type}`}><TreeTypeIcon type={node.type} /></span>
 
                     {/* Type Badge */}
-                    <Badge variant={node.type as any} className="flex-shrink-0 w-8 justify-center uppercase">{node.type}</Badge>
+                    {node.type !== 'rz' && node.type !== 'bl' && node.kat ? <KatNishon kat={node.kat} /> : null}
                     
                     {/* Kod (Shifr) */}
                     {node.kod && <span className="text-text-dim font-mono text-xs flex-shrink-0 w-24 truncate">{node.kod}</span>}
                     
                     {/* Nom */}
-                    <span className="text-white truncate flex-1" title={node.nom || 'Nomsiz'}>
-                      {node.nom || <span className="text-white/30 italic">Nomsiz</span>}
+                    <span className={`truncate flex-1 ${node.type === 'rz' ? 'text-accent' : node.type === 'bl' ? 'text-text' : 'text-text-dim'}`} title={node.nom || 'Nomsiz'}>
+                      {node.nom || <span className="text-text-mute italic">Nomsiz</span>}
                     </span>
                     
                     {/* Birlik */}
@@ -390,7 +391,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                 {/* Data Columns with Gantt/Progress Visual */}
                 <div className="flex items-center h-full pr-4 flex-shrink-0 font-medium tabular-nums text-[11px] gap-4">
                   {/* VOLUMES */}
-                  {showSmetaAndFakt && <div className="w-20 text-right text-blue-300/80"><FmtN val={node.smetaHajm} /></div>}
+                  {showSmetaAndFakt && <div className="w-20 text-right text-text-dim"><FmtN val={node.smetaHajm} /></div>}
                   {showSmetaAndFakt && <div className="w-24 text-right">
                     {isEditMode && node.type !== 'rz' ? (
                       <input
@@ -411,70 +412,72 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                             }));
                           }
                         }}
-                        className={`w-full text-right bg-black/60 border rounded px-1.5 py-0.5 outline-none transition-colors ${isOverLimit ? 'border-red-500/50 text-red-400' : 'border-emerald-500/30 text-emerald-300 focus:border-emerald-400'}`}
+                        className={`w-full text-right bg-surface border rounded px-1.5 py-0.5 outline-none transition-colors ${isOverLimit ? 'border-warn text-warn' : 'border-[var(--border-strong)] text-text focus:border-[var(--focus)]'}`}
                         title="Fakt hajm kiriting"
                       />
                     ) : (
-                      <FmtN val={node.fakt} cl={isOverLimit ? 'text-red-400' : 'text-emerald-400'} />
+                      <><FmtN val={node.fakt} cl={isOverLimit ? 'text-warn font-semibold' : 'text-text'} />{isOverLimit && <span className="ml-0.5 text-[9px] text-warn" aria-label={t('smetadan oshgan')}>▲</span>}</>
                     )}
                   </div>}
                   
                   <div className="w-24 text-right">
-                       <FmtN val={node.f2ol} cl="text-purple-400" />
+                       <FmtN val={node.f2ol} cl="text-accent" />
                   </div>
-                  <div className="w-24 text-right text-cyan-300"><FmtN val={node.f2mum} /></div>
+                  <div className="w-28">{(() => {
+                    const sm = node.smetaHajm; const fk = Math.max(Number(node.fakt ?? 0), 0); const f2 = Math.max(Number(node.f2ol ?? 0), 0);
+                    if (sm == null || !(sm > 0) || node.type === 'rz') return null;
+                    const f2u = Math.min(1, f2 / sm), fu = Math.min(1, Math.max(fk, f2) / sm), pct = Math.round((Math.max(fk, f2) / sm) * 100);
+                    return <span className={`fz-meter ${pct > 100 ? 'fz-meter--over' : ''}`} style={{ minWidth: 0 }} title={t('F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%')}><span className="fz-meter__t"><i className="fz-meter__shu" style={{ width: `${f2u * 100}%` }} /><i className="fz-meter__fakt" style={{ width: `${Math.max(0, fu - f2u) * 100}%` }} /></span><span className="fz-meter__f">{pct}%</span></span>;
+                  })()}
+                  </div>
+                  <div className="w-24 text-right text-text-dim"><FmtN val={node.f2mum} /></div>
                   
-                  <div className="w-20 text-right text-amber-300/80"><FmtN val={node.qoldiq} /></div>
+                  <div className="w-20 text-right text-text-mute"><FmtN val={node.qoldiq} /></div>
                   <div className={nazoratHolati ? `w-20 text-left truncate ${nazoratHolati.className}` : 'w-20 text-left text-text-mute'} title={nazoratHolati?.label || 'Narx nazorati ma\'lumoti ulanmagan'}>{nazoratHolati ? `${nazoratHolati.emoji} ${nazoratHolati.label}` : '—'}</div>
 
-                  {showMoney && <div className="w-4 border-r border-white/10 h-full mx-2 flex items-center justify-center">
-                    {/* Tiny visual progress bar for Fakt */}
-                    <div className="w-full h-8 flex flex-col justify-end bg-black/30 rounded-sm overflow-hidden" title={node.fakt != null && node.smetaHajm != null ? `Fakt: ${Math.round((node.fakt / (node.smetaHajm || 1)) * 100)}%` : 'Fakt foizi noma’lum'}>
-                      {node.fakt != null && node.smetaHajm != null && <div className="w-full bg-emerald-500/50" style={{ height: `${Math.min((node.fakt / (node.smetaHajm || 1)) * 100, 100)}%` }} />}
-                    </div>
-                  </div>}
+                  {showMoney && <div className="w-4 border-r border-border h-full mx-2" />}
 
                   {/* SUMMAS (Nakrutka) */}
-                  {showMoney && <><div className="w-24 text-right text-blue-200"><FmtN val={node.smeta} /></div>
-                  <div className="w-24 text-right text-emerald-300 font-bold"><FmtN val={node.stFakt} /></div>
-                  <div className="w-24 text-right text-purple-300 font-bold"><FmtN val={node.stF2} /></div>
-                  <div className="w-24 text-right text-cyan-300"><FmtN val={node.stF2Mum} /></div>
-                  <div className="w-24 text-right text-amber-300"><FmtN val={node.stOst} /></div></>}
+                  {showMoney && <><div className="w-24 text-right text-text-dim"><FmtN val={node.smeta} /></div>
+                  <div className="w-24 text-right text-text"><FmtN val={node.stFakt} /></div>
+                  <div className="w-24 text-right text-accent font-semibold"><FmtN val={node.stF2} /></div>
+                  <div className="w-24 text-right text-text-dim"><FmtN val={node.stF2Mum} /></div>
+                  <div className="w-24 text-right text-text-mute"><FmtN val={node.stOst} /></div></>}
                 </div>
 
                 {/* Expanded RowDetailPanel for F2 Monthly Editing */}
                 {expandedDetailId === key && (
-                  <div className="absolute top-9 left-0 w-full h-[214px] bg-black/60 border-t border-white/5 shadow-inner backdrop-blur-md p-4 flex gap-6 z-10 overflow-hidden cursor-default" onClick={(e) => e.stopPropagation()}>
+                  <div className="absolute top-9 left-0 w-full h-[214px] bg-surface border-t border-border shadow-inner p-4 flex gap-6 z-10 overflow-hidden cursor-default" onClick={(e) => e.stopPropagation()}>
                     {/* Left: Quick Stats */}
                     <div className="w-64 flex-shrink-0 grid grid-cols-2 gap-3">
-                      <div className="bg-white/5 border border-white/5 rounded-lg p-3">
-                        <div className="text-[10px] text-slate-500 font-bold">Hajm Smeta</div>
-                        <div className="text-sm text-blue-400 font-mono"><FmtN val={node.smetaHajm} /></div>
+                      <div className="bg-surface-2 border border-border rounded-lg p-3">
+                        <div className="text-[10px] text-text-mute font-bold">Hajm Smeta</div>
+                        <div className="text-sm text-text font-mono"><FmtN val={node.smetaHajm} /></div>
                       </div>
-                      <div className="bg-white/5 border border-white/5 rounded-lg p-3">
-                        <div className="text-[10px] text-slate-500 font-bold">Hajm Fakt</div>
-                        <div className="text-sm text-emerald-400 font-mono"><FmtN val={currentFakt} /></div>
+                      <div className="bg-surface-2 border border-border rounded-lg p-3">
+                        <div className="text-[10px] text-text-mute font-bold">Hajm Fakt</div>
+                        <div className="text-sm text-text font-mono"><FmtN val={currentFakt} /></div>
                       </div>
-                      <div className="bg-white/5 border border-white/5 rounded-lg p-3">
-                        <div className="text-[10px] text-slate-500 font-bold">Hajm F2</div>
-                        <div className="text-sm text-purple-400 font-mono"><FmtN val={node.f2ol} /></div>
+                      <div className="bg-surface-2 border border-border rounded-lg p-3">
+                        <div className="text-[10px] text-text-mute font-bold">Hajm F2</div>
+                        <div className="text-sm text-accent font-mono"><FmtN val={node.f2ol} /></div>
                       </div>
-                      <div className="bg-white/5 border border-white/5 rounded-lg p-3">
-                        <div className="text-[10px] text-slate-500 font-bold">Hajm Mumkin</div>
-                        <div className="text-sm text-cyan-400 font-mono"><FmtN val={node.f2mum} /></div>
+                      <div className="bg-surface-2 border border-border rounded-lg p-3">
+                        <div className="text-[10px] text-text-mute font-bold">Hajm Mumkin</div>
+                        <div className="text-sm text-text-dim font-mono"><FmtN val={node.f2mum} /></div>
                       </div>
                     </div>
                     
                     {/* Right: Monthly F2 Inputs */}
                     <div className="flex-1 overflow-x-auto">
-                      <h4 className="text-xs font-bold text-slate-400 mb-3 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span>Oylik F2 Hajmlarni Kiritish</h4>
+                      <h4 className="text-xs font-bold text-text-dim mb-3 flex items-center gap-2"><span className="w-2 h-2 rotate-45 bg-accent"></span>Oylik F2 Hajmlarni Kiritish</h4>
                       <div className="flex gap-4">
                         {oylar.map((oy: string) => {
                           const oylarState = edits[key]?.edit?.oylar || node.oylar || {};
                           const currentOyVal = oylarState[oy] ?? 0;
                           return (
-                            <div key={oy} className="bg-white/5 border border-white/10 rounded-xl p-3 w-44 flex-shrink-0">
-                              <div className="text-xs font-bold text-slate-300 mb-2">{oy}</div>
+                            <div key={oy} className="bg-surface-2 border border-border rounded-xl p-3 w-44 flex-shrink-0">
+                              <div className="text-xs font-bold text-text-dim mb-2">{oy}</div>
                               <input
                                 type="text"
                                 value={currentOyVal}
@@ -498,7 +501,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                                     });
                                   }
                                 }}
-                                className="w-full bg-black/50 border border-white/10 text-purple-300 font-mono text-sm rounded px-2 py-1 outline-none focus:border-purple-500/50"
+                                className="w-full bg-surface-2 border border-[var(--border-strong)] text-text font-mono text-sm rounded px-2 py-1 outline-none focus:border-[var(--focus)]"
                               />
                             </div>
                           );
@@ -569,7 +572,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                 <label className="block text-xs font-medium text-text">{faktMode === 'jami' ? 'Yangi jami Fakt hajmi' : 'Qo‘shiladigan Fakt hajmi'}
                   <input aria-label={faktMode === 'jami' ? 'Yangi jami Fakt hajmi' : 'Qo‘shiladigan Fakt hajmi'} type="number" step="any" value={faktValue} onChange={(event) => setFaktValue(event.target.value)} className="mt-1 block w-full rounded-lg border border-border bg-bg px-3 py-2 text-right font-mono text-sm text-text outline-none focus:border-accent" />
                 </label>
-                <button type="button" onClick={() => void faktniSaqlash()} disabled={faktSaving || selected.node.id == null || !faktValue.trim()} className="inline-flex items-center justify-center rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{faktSaving ? 'Saqlanmoqda…' : 'Faktni saqlash'}</button>
+                <button type="button" onClick={() => void faktniSaqlash()} disabled={faktSaving || selected.node.id == null || !faktValue.trim()} className="inline-flex items-center justify-center rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-text disabled:cursor-not-allowed disabled:opacity-50">{faktSaving ? 'Saqlanmoqda…' : 'Faktni saqlash'}</button>
                 {faktStatus && <p role={faktStatus.tone === 'danger' ? 'alert' : undefined} className={`text-xs ${faktStatus.tone === 'ok' ? 'text-ok' : faktStatus.tone === 'warn' ? 'text-warn' : 'text-danger'}`}>{faktStatus.text}</p>}
               </fieldset>
             </> : <div className="rounded border border-border p-3 text-xs"><b>Fakt hajmi</b><p className="mt-1"><FmtN val={selected.node.fakt}/></p>{onFaktOpen && <button type="button" className="tugma mt-3" onClick={onFaktOpen}>{t('Fakt kiritish oynasini ochish')}</button>}</div>}
