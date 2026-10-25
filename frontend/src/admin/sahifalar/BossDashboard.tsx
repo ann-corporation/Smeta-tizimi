@@ -16,6 +16,8 @@ import { t } from '../../i18n/til';
 import { amount, filteredObjects, objectUrl, projectUrl, signalUrl, sortedSignals, trustedExecutive, type BossExecutive, type ExecutiveObject } from '../../components/boss-decision/model';
 import Reports from '../../components/boss-decision/Reports';
 import ExecutiveCockpit from '../../components/boss-decision/ExecutiveCockpit';
+import { F2Oqimi, MoliyaUstunlari, PortfelXaritasi, SignalTasma, SmetaF2Ustunlari } from '../../components/rahbar-panel/RahbarGrafiklar';
+import { MindmapSlot } from '../../components/rahbar-panel/MindmapSlot';
 
 type Dashboard = NonNullable<ReturnType<typeof useBossDashboard>['data']>;
 
@@ -86,7 +88,6 @@ const DARAJA_BOSHQA = { cls: 'fz-stamp--info', nom: 'Ma’lumot' };
 function Signallar({ data, objects }: { data: Dashboard; objects: ExecutiveObject[] }) {
   const signals = sortedSignals(data.signal.royxat);
   const labels: Record<string, string> = { document_missing: t('Majburiy hujjat qayd etilmagan'), missing_price: t('Narx asosi yetishmaydi'), data_quality: t('Smeta ma’lumotini tekshirish kerak') };
-  const records = signals.reduce((n, s) => n + (s.quantity ?? 1), 0);
   const sarlavha = (s: BossSignal) => labels[s.signal_type ?? ''] ?? s.title ?? t('Ochiq signal');
   const izoh = (s: BossSignal) => `${objects.find(o => String(o.object_id) === String(s.entity_id))?.name ?? t('Kompaniya yozuvi')} · ${s.quantity ?? 1} ${t('qayd')} · ${vaqt(s.detected_at, true)}`;
   return (
@@ -95,6 +96,7 @@ function Signallar({ data, objects }: { data: Dashboard; objects: ExecutiveObjec
         <h2 className="fz-card__title inline-flex items-center gap-2"><AlertTriangle size={16} aria-hidden="true" />{t('Tekshirish kerak')}</h2>
         <span className={`fz-chip ${data.signal.kritik_soni > 0 ? 'fz-chip--danger' : ''}`}>{data.signal.ochiq_soni}</span>
       </div>
+      <div className="px-5 pt-3"><SignalTasma signal={data.signal} /></div>
       {signals.length > 0 && <ul className="divide-y divide-border">
         {signals.map(s => {
           const d = DARAJA[s.severity ?? ''] ?? DARAJA_BOSHQA;
@@ -109,7 +111,6 @@ function Signallar({ data, objects }: { data: Dashboard; objects: ExecutiveObjec
       </ul>}
       <div className="fz-card__body flex flex-col gap-2 pt-3">
         {signals.length === 0 && <p className="text-[13px] text-text-dim">{t('Ochiq signal qayd etilmagan. Bu barcha tekshiruvlar o‘tganini anglatmaydi.')}</p>}
-        {data.signal.ochiq_soni > records && <p className="text-[12px] text-text-dim">{t('Ko‘rsatilgan / jami')}: {records} / {data.signal.ochiq_soni}</p>}
       </div>
     </section>
   );
@@ -117,11 +118,6 @@ function Signallar({ data, objects }: { data: Dashboard; objects: ExecutiveObjec
 
 /** 3b) Qayd etilgan moliya — buxgalteriya yozuvlari (foyda yoki bank qoldig'i emas). */
 function Moliya({ data, e }: { data: Dashboard; e: BossExecutive | null }) {
-  const qatorlar: [string, number | null][] = [
-    [t('Qayd etilgan to‘lovlar'), data.moliya.jami_tolangan],
-    [t('Qayd etilgan xarajatlar'), data.moliya.jami_xarajat],
-    [t('Hisob bo‘yicha debitorlik'), data.moliya.jami_debitor],
-  ];
   return (
     <section className="fz-card">
       <div className="fz-card__head"><div>
@@ -129,11 +125,7 @@ function Moliya({ data, e }: { data: Dashboard; e: BossExecutive | null }) {
         <p className="fz-card__sub">{t('Buxgalteriya yozuvlari. Bu loyiha foydasi yoki bank qoldig‘i emas.')}</p>
       </div></div>
       <div className="fz-card__body flex flex-col gap-3">
-        <dl className="flex flex-col gap-2 text-[13px]">
-          {qatorlar.map(([label, value]) => <div className="flex justify-between gap-4 border-b border-border pb-2 last:border-0" key={label}>
-            <dt className="text-text-dim">{label}</dt><dd className="tabular-nums font-semibold">{money(data.moliya.ulangan ? value : null)}</dd>
-          </div>)}
-        </dl>
+        <MoliyaUstunlari moliya={data.moliya} />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Link className="fz-btn fz-btn--sm" to="/admin/moliya">{t('Buxgalteriya asoslarini ochish')}</Link>
           {e && <span className="text-[12px] text-text-dim">{t('To‘lov / xarajat yozuvlari')}: {e.payment_count} / {e.expense_count}</span>}
@@ -224,6 +216,19 @@ function Portfolio({ data }: { data: Dashboard }) {
   return <>
     <Xulosa data={data} e={e} />
 
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <MindmapSlot kompaniyaId={data.kompaniya.kompaniya_id} kompaniyaNom={data.kompaniya.nom} e={e} />
+      {e && <PortfelXaritasi e={e} />}
+    </div>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      {e && <SmetaF2Ustunlari e={e} />}
+      <div className="flex min-w-0 flex-col gap-4">
+        {e && <F2Oqimi totals={e.totals} />}
+        <Moliya data={data} e={e} />
+      </div>
+    </div>
+    <Signallar data={data} objects={e?.objects ?? []} />
+
     <div className="fz-card flex flex-wrap items-center justify-between gap-3 px-5 py-3">
       <p className="text-[13px]">
         <strong>{data.kompaniya.loyiha_soni}</strong> {t('loyiha')} · <strong>{data.kompaniya.obyekt_soni}</strong> {t('obyekt')}
@@ -235,10 +240,6 @@ function Portfolio({ data }: { data: Dashboard }) {
 
     <ExecutiveCockpit data={data} onReports={hisobotniOch} />
 
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Signallar data={data} objects={e?.objects ?? []} />
-      <Moliya data={data} e={e} />
-    </div>
 
     <details className="fz-card">
       <summary className="fz-card__head cursor-pointer font-semibold">{t('Portfelning batafsil raqamlari va obyektlar jadvali')}</summary>

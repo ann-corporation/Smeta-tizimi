@@ -1,0 +1,22 @@
+{
+  "Bog‘lanishlar xaritasi": { "ru": "Карта связей", "en": "Relationship map" },
+  "Kompaniya → loyihalar → obyektlar. Tugun o‘lchami — smeta, rangi — holat.": { "ru": "Компания → проекты → объекты. Размер узла — смета, цвет — состояние.", "en": "Company → projects → sites. Node size — estimate, colour — status." },
+  "Portfel modeli ulanmagan — xarita uchun to‘liq Mindmapni oching.": { "ru": "Модель портфеля не подключена — откройте полную майнд-карту.", "en": "Portfolio model is not connected — open the full mind map." },
+  "Portfel xaritasi": { "ru": "Карта портфеля", "en": "Portfolio map" },
+  "Plitka maydoni — smeta (ma’lum to‘g‘ridan-to‘g‘ri xarajat); rangi — obyekt holati. Bosing — obyekt ochiladi.": { "ru": "Площадь плитки — смета (известные прямые затраты); цвет — состояние объекта. Нажмите — откроется объект.", "en": "Tile area — estimate (known direct cost); colour — site status. Click to open the site." },
+  "yana {n} obyekt": { "ru": "ещё {n} объектов", "en": "{n} more sites" },
+  "Smetasi ma’lum obyekt yo‘q — xarita chizilmaydi.": { "ru": "Нет объектов с известной сметой — карта не строится.", "en": "No sites with a known estimate — map is not drawn." },
+  "Smetasi noma’lum obyektlar (xaritada yo‘q)": { "ru": "Объекты с неизвестной сметой (нет на карте)", "en": "Sites with unknown estimate (not on the map)" },
+  "Smeta va tasdiqlangan F2 — obyektlar bo‘yicha": { "ru": "Смета и утверждённые Ф2 — по объектам", "en": "Estimate and approved F2 — by site" },
+  "Ikkala ustun bitta shkalada (UZS). Hisob asoslari har xil — foiz chiqarilmaydi, jismoniy bajarilish emas.": { "ru": "Оба столбца в одной шкале (UZS). Базы расчёта разные — процент не выводится, это не физическое выполнение.", "en": "Both bars on one scale (UZS). Calculation bases differ — no percentage is derived; this is not physical progress." },
+  "Barcha obyektlar ({n})": { "ru": "Все объекты ({n})", "en": "All sites ({n})" },
+  "Tekshiruvda": { "ru": "На проверке", "en": "In review" },
+  "F2 hujjatlar oqimi": { "ru": "Поток документов Ф2", "en": "F2 document flow" },
+  "Aktlar soni holat bo‘yicha (faol obyektlar)": { "ru": "Количество актов по состоянию (активные объекты)", "en": "Number of acts by status (active sites)" },
+  "Ochiq signallar darajasi": { "ru": "Уровень открытых сигналов", "en": "Open signal severity" },
+  "Moliya registri ulanmagan — qiymatlar noma’lum.": { "ru": "Финансовый реестр не подключён — значения неизвестны.", "en": "Finance register is not connected — values unknown." },
+  "Summa yoki smeta yetishmaydi": { "ru": "Не хватает суммы или сметы", "en": "Amount or estimate missing" },
+  "Narxsiz qator yoki o‘zgarish bor": { "ru": "Есть строки без цены или изменения", "en": "Unpriced rows or pending changes" },
+  "F2 tekshiruvda / qoralamada": { "ru": "Ф2 на проверке / в черновике", "en": "F2 in review / draft" },
+  "Ochiq masala qayd etilmagan": { "ru": "Открытых вопросов не зафиксировано", "en": "No open issues recorded" }
+}

@@ -2906,7 +2906,10 @@
         "frontend/src/umumiy/daraxt/SmetaTree.tsx",
         "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
         "frontend/src/admin/sahifalar/PereraschetBolimi.tsx",
-        "frontend/src/index.css"
+        "frontend/src/index.css",
+        "frontend/src/components/rahbar-panel/",
+        "frontend/src/lib/rahbar-panel/",
+        "frontend/src/i18n/lugat/qism/rahbar-panel.json"
       ],
       "depends_on": [],
       "must_read": [
