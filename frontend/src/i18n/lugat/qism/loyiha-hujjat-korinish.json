@@ -1,0 +1,1094 @@
+{
+ "30 kunlik sarf": {
+  "ru": "Расход за 30 дней",
+  "en": "30-day spend"
+ },
+ "Akt-sverka qoldig‘i": {
+  "ru": "Сальдо акта сверки",
+  "en": "Reconciliation balance"
+ },
+ "Amalni bajarib bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.": {
+  "ru": "Не удалось выполнить действие. Повторите попытку позже.",
+  "en": "The action failed. Please try again shortly."
+ },
+ "Asosiy valyuta": {
+  "ru": "Основная валюта",
+  "en": "Base currency"
+ },
+ "Audit jurnali (qora quti)": {
+  "ru": "Журнал аудита («чёрный ящик»)",
+  "en": "Audit log (black box)"
+ },
+ "Audit ma’lumotini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать данные аудита.",
+  "en": "Could not read audit data."
+ },
+ "Audit yozuvi yo‘q": {
+  "ru": "Записей аудита нет",
+  "en": "No audit records"
+ },
+ "A‘zo qo‘shish": {
+  "ru": "Добавить участника",
+  "en": "Add member"
+ },
+ "A‘zolar": {
+  "ru": "Участники",
+  "en": "Members"
+ },
+ "A‘zolar ro‘yxatini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать список участников.",
+  "en": "Could not read the member list."
+ },
+ "A‘zolik yo‘q": {
+  "ru": "Членств нет",
+  "en": "No memberships"
+ },
+ "A‘zoliklar": {
+  "ru": "Членства",
+  "en": "Memberships"
+ },
+ "A‘zoliklarim": {
+  "ru": "Мои членства",
+  "en": "My memberships"
+ },
+ "A‘zolikni bekor qilish": {
+  "ru": "Отменить членство",
+  "en": "Revoke membership"
+ },
+ "A’zolar va tizim sozlamalarini boshqarish uchun rahbar yoki administrator lavozimi kerak.": {
+  "ru": "Для управления участниками и настройками нужна должность руководителя или администратора.",
+  "en": "Managing members and settings requires a director or administrator role."
+ },
+ "Balans 30 kunlik sarfga nisbatan": {
+  "ru": "Баланс относительно расхода за 30 дней",
+  "en": "Balance relative to 30-day spend"
+ },
+ "Bank": {
+  "ru": "Банк",
+  "en": "Bank"
+ },
+ "Barcha bo‘limlar": {
+  "ru": "Все разделы",
+  "en": "All sections"
+ },
+ "Barcha foydalanuvchilar harakati, IP manzillar va o‘chirilgan fayllar arxivini ko‘rish.": {
+  "ru": "Действия всех пользователей, IP-адреса и архив удалённых файлов.",
+  "en": "All user actions, IP addresses and the archive of deleted files."
+ },
+ "Boshqarish (yoqish/o‘chirish, kill-switch): Tizim boshqaruv markazi.": {
+  "ru": "Управление (вкл./выкл., kill-switch): центр управления системой.",
+  "en": "Management (on/off, kill switch): system control centre."
+ },
+ "Bo‘lim {n}": {
+  "ru": "Раздел {n}",
+  "en": "Section {n}"
+ },
+ "Bu amal uchun direktor (boss) yoki admin roli kerak.": {
+  "ru": "Для этого действия нужна роль директора (boss) или администратора.",
+  "en": "This action requires the director (boss) or admin role."
+ },
+ "Bu amal uchun ruxsatingiz yo‘q.": {
+  "ru": "У вас нет прав на это действие.",
+  "en": "You are not allowed to do this."
+ },
+ "Bu foydalanuvchi allaqachon a‘zo.": {
+  "ru": "Этот пользователь уже участник.",
+  "en": "This user is already a member."
+ },
+ "Bu foydalanuvchi shu kompaniyaning a‘zosi emas.": {
+  "ru": "Этот пользователь не состоит в компании.",
+  "en": "This user is not a member of this company."
+ },
+ "Bu global yoki bir necha kompaniyaga tegishli hisob. Parolni hisob egasi yoki platforma administratori boshqaradi.": {
+  "ru": "Это глобальная учётная запись или она относится к нескольким компаниям. Пароль меняет владелец или администратор платформы.",
+  "en": "This account is global or belongs to several companies. Its password is managed by the owner or the platform administrator."
+ },
+ "Bu obyekt uchun ruxsat yo‘q.": {
+  "ru": "Нет доступа к этому объекту.",
+  "en": "No access to this site."
+ },
+ "Bu rolni bu yerdan berib bo‘lmaydi (superadmin — platforma darajasida).": {
+  "ru": "Эту роль нельзя назначить здесь (суперадмин — на уровне платформы).",
+  "en": "This role cannot be assigned here (superadmin is platform-level)."
+ },
+ "Bu sahifada faqat ilova sozlamalari qoladi: valyuta, qat’iy nazorat, integratsiyalar, audit.": {
+  "ru": "Здесь остаются только настройки приложения: валюта, строгий контроль, интеграции, аудит.",
+  "en": "Only app settings remain here: currency, strict control, integrations, audit."
+ },
+ "Bu so‘rov allaqachon ko‘rib chiqilgan.": {
+  "ru": "Эта заявка уже рассмотрена.",
+  "en": "This request has already been reviewed."
+ },
+ "Buni foydalanuvchiga xavfsiz tarzda (telefon/shaxsan) yetkazing — bu yerda qayta ko‘rsatilmaydi.": {
+  "ru": "Передайте его пользователю безопасно (по телефону/лично) — повторно он не показывается.",
+  "en": "Pass it to the user securely (phone/in person) — it will not be shown again."
+ },
+ "CRM bo‘limlari": {
+  "ru": "Разделы CRM",
+  "en": "CRM sections"
+ },
+ "DS № {r} dan ({s})": {
+  "ru": "по ДС № {r} ({s})",
+  "en": "from amendment No. {r} ({s})"
+ },
+ "Didox / EHF API kaliti": {
+  "ru": "API-ключ Didox / ЭСФ",
+  "en": "Didox / e-invoice API key"
+ },
+ "Elektron hisob-fakturalarni (EHF) avtomatlashtirish uchun.": {
+  "ru": "Для автоматизации электронных счетов-фактур (ЭСФ).",
+  "en": "For automating electronic invoices."
+ },
+ "Email": {
+  "ru": "Email",
+  "en": "Email"
+ },
+ "F2 tasdiqlangan": {
+  "ru": "Утверждённые Ф-2",
+  "en": "Approved F2"
+ },
+ "F3 (sotuv)": {
+  "ru": "Ф-3 (продажи)",
+  "en": "F3 (sales)"
+ },
+ "F3 {p}%": {
+  "ru": "Ф-3 {p}%",
+  "en": "F3 {p}%"
+ },
+ "F3: {s} · shartnoma summasi yo‘q": {
+  "ru": "Ф-3: {s} · сумма договора не указана",
+  "en": "F3: {s} · contract amount missing"
+ },
+ "Faol a‘zo yo‘q": {
+  "ru": "Активных участников нет",
+  "en": "No active members"
+ },
+ "Faol kompaniya": {
+  "ru": "Активная компания",
+  "en": "Active company"
+ },
+ "Foydalanuvchi": {
+  "ru": "Пользователь",
+  "en": "User"
+ },
+ "Google Sheets (GAS) bilan uzluksiz sinxronizatsiya": {
+  "ru": "Непрерывная синхронизация с Google Sheets (GAS)",
+  "en": "Continuous sync with Google Sheets (GAS)"
+ },
+ "Harakat": {
+  "ru": "Операция",
+  "en": "Entry"
+ },
+ "Hisob raqam": {
+  "ru": "Расчётный счёт",
+  "en": "Account number"
+ },
+ "Hisoblanmagan qoldiq": {
+  "ru": "Остаток к выставлению",
+  "en": "Remaining to bill"
+ },
+ "Hujjat nazorati bu obyekt uchun hozircha mavjud emas.": {
+  "ru": "Контроль документов для этого объекта пока недоступен.",
+  "en": "Document control is not available for this site yet."
+ },
+ "Hujjatlar (F2, F3, akt-sverka) sarlavhasi va imzolarida ishlatiladi.": {
+  "ru": "Используется в шапке и подписях документов (Ф-2, Ф-3, акт сверки).",
+  "en": "Used in document headers and signatures (F2, F3, reconciliation)."
+ },
+ "Imkoniyat": {
+  "ru": "Возможность",
+  "en": "Capability"
+ },
+ "Individual ruxsatlar konstruktori": {
+  "ru": "Конструктор индивидуальных прав",
+  "en": "Individual permission builder"
+ },
+ "Individual ruxsatlarni kompaniya rahbari yoki superadmin boshqaradi.": {
+  "ru": "Индивидуальными правами управляет руководитель компании или суперадмин.",
+  "en": "Individual permissions are managed by the company director or a superadmin."
+ },
+ "Integratsiya": {
+  "ru": "Интеграция",
+  "en": "Integration"
+ },
+ "Integratsiya sozlanmagan": {
+  "ru": "Интеграции не настроены",
+  "en": "No integrations configured"
+ },
+ "Integratsiyalar": {
+  "ru": "Интеграции",
+  "en": "Integrations"
+ },
+ "Integratsiyalar (API)": {
+  "ru": "Интеграции (API)",
+  "en": "Integrations (API)"
+ },
+ "Integratsiyalar ma’lumotini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать данные интеграций.",
+  "en": "Could not read integration data."
+ },
+ "Ish / resurs qidirish…": {
+  "ru": "Поиск работы / ресурса…",
+  "en": "Search work / resource…"
+ },
+ "Ishtirokchilar o‘qilmadi": {
+  "ru": "Участники не загружены",
+  "en": "Participants could not be loaded"
+ },
+ "Jadval bazada bor, lekin ularni boshqaradigan buyruq hali yaratilmagan — bu bo‘lim faqat holatni halol aytadi, soxta tugma ko‘rsatmaydi. Kompaniya a’zoligi darajasidagi ruxsatlar «A‘zolar» va «Rollar va ruxsatlar» bo‘limlarida ishlaydi.": {
+  "ru": "Таблицы в базе есть, но команды управления ими ещё нет — раздел честно показывает состояние, без фиктивных кнопок. Права на уровне компании работают в разделах «Участники» и «Роли и права».",
+  "en": "The tables exist, but there is no command to manage them yet — this section honestly shows the state, with no fake buttons. Company-level permissions work under “Members” and “Roles and permissions”."
+ },
+ "Joriy ruxsatlarni qayta yuklash": {
+  "ru": "Перезагрузить текущие права",
+  "en": "Reload current permissions"
+ },
+ "Joriy tasdiqlangan davr": {
+  "ru": "Текущий утверждённый период",
+  "en": "Current approved period"
+ },
+ "Kalitni tekshirish hali ulanmagan": {
+  "ru": "Проверка ключа ещё не подключена",
+  "en": "Key check is not connected yet"
+ },
+ "Kompaniya ma‘lumoti serveri sozlamasida nosozlik. Administrator bilan bog‘laning.": {
+  "ru": "Ошибка конфигурации сервера данных компании. Обратитесь к администратору.",
+  "en": "Company data server misconfiguration. Contact the administrator."
+ },
+ "Kompaniya ma‘lumotini o‘qib bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.": {
+  "ru": "Не удалось прочитать данные компании. Повторите позже.",
+  "en": "Could not read company data. Please try again shortly."
+ },
+ "Kompaniya ma’lumotlari yuklanmoqda…": {
+  "ru": "Загружаются данные компании…",
+  "en": "Loading company data…"
+ },
+ "Kompaniya nomi *": {
+  "ru": "Название компании *",
+  "en": "Company name *"
+ },
+ "Kompaniya nomini kiriting.": {
+  "ru": "Введите название компании.",
+  "en": "Enter the company name."
+ },
+ "Kompaniya rekvizitlari": {
+  "ru": "Реквизиты компании",
+  "en": "Company details"
+ },
+ "Kompaniya rekvizitlari (nom, STIR, manzil, tizimdagi roli) endi bitta joyda — Kompaniya sahifasida boshqariladi: ikkita alohida oyna va jim ajralib ketadigan nusxa yo‘q.": {
+  "ru": "Реквизиты компании (название, ИНН, адрес, роль) теперь ведутся в одном месте — на странице «Компания»: без двух окон и расходящихся копий.",
+  "en": "Company details (name, TIN, address, role) are now managed in one place — the Company page: no duplicate windows or drifting copies."
+ },
+ "Kompaniya sahifasiga o‘tish": {
+  "ru": "Перейти на страницу компании",
+  "en": "Go to the Company page"
+ },
+ "Kompaniya so‘rovlari": {
+  "ru": "Заявки на компании",
+  "en": "Company requests"
+ },
+ "Kompaniyaning oxirgi direktorini o‘chirib/tushirib bo‘lmaydi.": {
+  "ru": "Нельзя удалить или понизить последнего директора компании.",
+  "en": "The company's last director cannot be removed or demoted."
+ },
+ "Lavozim boshlang‘ich ruxsatlarni beradi; individual o‘zgarishlar — «Rollar va ruxsatlar» bo‘limida.": {
+  "ru": "Должность задаёт базовые права; индивидуальные изменения — в разделе «Роли и права».",
+  "en": "The role sets default permissions; individual changes are under “Roles and permissions”."
+ },
+ "Lavozim — boshlang‘ich shablon. Har bir xodimning amaliy huquqini alohida sozlang. Server har so‘rovda joriy ruxsatni tekshiradi.": {
+  "ru": "Должность — базовый шаблон. Настройте фактические права каждого сотрудника. Сервер проверяет права при каждом запросе.",
+  "en": "The role is a starting template. Tune each employee's effective rights; the server checks permissions on every request."
+ },
+ "Lavozim — boshlang‘ich shablon. Lavozim A’zolar bo‘limida tayinlanadi; pastdagi konstruktor orqali xodimning huquqini individual yoqish yoki o‘chirish mumkin.": {
+  "ru": "Должность — базовый шаблон. Она назначается в разделе «Участники»; конструктор ниже включает или отключает права индивидуально.",
+  "en": "The role is a starting template, assigned under Members; the builder below turns individual rights on or off."
+ },
+ "Loyiha/obyekt darajasidagi shaxsiy ruxsatlar hali boshqarilmaydi": {
+  "ru": "Права на уровне проекта/объекта пока не управляются",
+  "en": "Project/site-level personal permissions are not managed yet"
+ },
+ "MFO": {
+  "ru": "МФО",
+  "en": "Bank code (MFO)"
+ },
+ "Mavqe": {
+  "ru": "Статус",
+  "en": "Position"
+ },
+ "Mavqe noto‘g‘ri.": {
+  "ru": "Неверный статус.",
+  "en": "Invalid position."
+ },
+ "Ma‘lumot manbai": {
+  "ru": "Источник данных",
+  "en": "Data source"
+ },
+ "Ma’lumot boshqa joyda yangilangan. Sahifani qayta yuklang.": {
+  "ru": "Данные изменены в другом месте. Перезагрузите страницу.",
+  "en": "The data was changed elsewhere. Reload the page."
+ },
+ "Ma’lumot manbai": {
+  "ru": "Источник данных",
+  "en": "Data source"
+ },
+ "Ma’lumot manbai: kanonik read-model (t2_workbench_v1)": {
+  "ru": "Источник данных: каноническая модель чтения (t2_workbench_v1)",
+  "en": "Data source: canonical read model (t2_workbench_v1)"
+ },
+ "Ma’lumotlarni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.": {
+  "ru": "Не удалось загрузить данные. Повторите позже.",
+  "en": "Could not load data. Please try again shortly."
+ },
+ "Men haqimda": {
+  "ru": "Обо мне",
+  "en": "About me"
+ },
+ "Mening so‘rovlarim": {
+  "ru": "Мои заявки",
+  "en": "My requests"
+ },
+ "Modul": {
+  "ru": "Модуль",
+  "en": "Module"
+ },
+ "Moliyaviy va qat’iy nazorat": {
+  "ru": "Финансовый и строгий контроль",
+  "en": "Financial and strict control"
+ },
+ "Nakopitelniy, F3 va akt-sverka — batafsil": {
+  "ru": "Накопительная, Ф-3 и акт сверки — подробно",
+  "en": "Cumulative statement, F3 and reconciliation — details"
+ },
+ "Obuna/to‘lov modeli bu relizda yo‘q.": {
+  "ru": "Модели подписки/оплаты в этом релизе нет.",
+  "en": "There is no subscription/billing model in this release."
+ },
+ "Obyekt / qiymat": {
+  "ru": "Объект / значение",
+  "en": "Entity / value"
+ },
+ "Ochish — men direktor bo‘laman": {
+  "ru": "Открыть — я буду директором",
+  "en": "Create — I will be the director"
+ },
+ "Oxirgi 30 kun sarfi": {
+  "ru": "Расход за последние 30 дней",
+  "en": "Spend over the last 30 days"
+ },
+ "Oxirgi 30 kun sur’atida (kuniga ≈ {k} token) balans ≈ {n} kunga yetadi.": {
+  "ru": "При темпе последних 30 дней (≈ {k} токенов в день) баланса хватит ≈ на {n} дн.",
+  "en": "At the last 30 days' pace (≈ {k} tokens/day) the balance lasts ≈ {n} days."
+ },
+ "Oxirgi 30 kunda sarf yo‘q — balans qancha vaqtga yetishini hisoblab bo‘lmaydi.": {
+  "ru": "За 30 дней расхода не было — срок хватания баланса не рассчитать.",
+  "en": "No spend in the last 30 days — the balance runway cannot be estimated."
+ },
+ "Parol kamida 8 belgi bo‘lishi kerak.": {
+  "ru": "Пароль должен быть не короче 8 символов.",
+  "en": "The password must be at least 8 characters."
+ },
+ "Platformadagi oxirgi superadmin vakolatini olib tashlab bo‘lmaydi.": {
+  "ru": "Нельзя снять полномочия последнего суперадмина платформы.",
+  "en": "The platform's last superadmin cannot be removed."
+ },
+ "Profilni faqat direktor tahrirlaydi. Quyidagi ma’lumot faqat ko‘rish uchun.": {
+  "ru": "Профиль редактирует только директор. Данные ниже — только для просмотра.",
+  "en": "Only the director edits the profile. The data below is read-only."
+ },
+ "QQS bilan, so‘m": {
+  "ru": "с НДС, сум",
+  "en": "incl. VAT, UZS"
+ },
+ "Qator topilmadi": {
+  "ru": "Строки не найдены",
+  "en": "No rows found"
+ },
+ "Qat’iy moliyaviy nazorat (idempotentlik)": {
+  "ru": "Строгий финансовый контроль (идемпотентность)",
+  "en": "Strict financial control (idempotency)"
+ },
+ "Rad etish sababi (ixtiyoriy)": {
+  "ru": "Причина отказа (необязательно)",
+  "en": "Rejection reason (optional)"
+ },
+ "Rahbar": {
+  "ru": "Руководитель",
+  "en": "Director"
+ },
+ "Ruxsat": {
+  "ru": "Право",
+  "en": "Permission"
+ },
+ "Ruxsatlar saqlandi. Keyingi so‘rovlarda yangi qoidalar qo‘llanadi.": {
+  "ru": "Права сохранены. Новые правила применяются к следующим запросам.",
+  "en": "Permissions saved. The new rules apply from the next request."
+ },
+ "Ruxsatlar to‘plami noto‘g‘ri. Sahifani yangilang.": {
+  "ru": "Неверный набор прав. Обновите страницу.",
+  "en": "Invalid permission set. Refresh the page."
+ },
+ "Ruxsatlarni yuklab bo‘lmadi.": {
+  "ru": "Не удалось загрузить права.",
+  "en": "Could not load permissions."
+ },
+ "STIR": {
+  "ru": "ИНН",
+  "en": "TIN"
+ },
+ "STIR (INN)": {
+  "ru": "ИНН",
+  "en": "TIN"
+ },
+ "STIR 9 ta raqamdan iborat bo‘lishi kerak.": {
+  "ru": "ИНН должен состоять из 9 цифр.",
+  "en": "The TIN must have 9 digits."
+ },
+ "Saqlash so‘rovi oldingi amaldan farq qildi. Joriy ruxsatlarni qayta yuklang.": {
+  "ru": "Запрос на сохранение отличается от предыдущего. Перезагрузите текущие права.",
+  "en": "The save request differs from the previous operation. Reload current permissions."
+ },
+ "Sarf yo‘q": {
+  "ru": "Расхода нет",
+  "en": "No spend"
+ },
+ "Sessiya muddati tugagan. Chiqib, qaytadan kiring.": {
+  "ru": "Сессия истекла. Выйдите и войдите снова.",
+  "en": "The session has expired. Sign out and sign in again."
+ },
+ "Sessiyani yangilash kerak. Chiqing va qaytadan kiring.": {
+  "ru": "Нужно обновить сессию. Выйдите и войдите снова.",
+  "en": "The session needs a refresh. Sign out and sign in again."
+ },
+ "Shartnoma / DS": {
+  "ru": "Договор / ДС",
+  "en": "Contract / amendment"
+ },
+ "Shartnoma bo‘yicha hisob (F3) holati": {
+  "ru": "Выставлено по договору (Ф-3)",
+  "en": "Billed against the contract (F3)"
+ },
+ "Shartnoma summasi noma’lum — foiz hisoblanmaydi": {
+  "ru": "Сумма договора неизвестна — процент не рассчитывается",
+  "en": "Contract amount unknown — percentage not calculated"
+ },
+ "Shartnoma zanjiri": {
+  "ru": "Цепочка договора",
+  "en": "Contract chain"
+ },
+ "Shartnoma {sh} · F3 {f3} · to‘lov {tl}": {
+  "ru": "Договор {sh} · Ф-3 {f3} · оплата {tl}",
+  "en": "Contract {sh} · F3 {f3} · paid {tl}"
+ },
+ "Shartnomalar (DS bilan)": {
+  "ru": "Договоры (с ДС)",
+  "en": "Contracts (incl. amendments)"
+ },
+ "Shartnomalar bo‘yicha jami": {
+  "ru": "Итого по договорам",
+  "en": "Contract totals"
+ },
+ "Siz hali hech qaysi kompaniyaga a‘zo emassiz. Yangi kompaniya oching yoki direktordan sizni qo‘shishini so‘rang.": {
+  "ru": "Вы ещё не состоите ни в одной компании. Создайте компанию или попросите директора добавить вас.",
+  "en": "You are not a member of any company yet. Create one or ask a director to add you."
+ },
+ "Sozlama bo‘limlari": {
+  "ru": "Разделы настроек",
+  "en": "Settings sections"
+ },
+ "Sozlamalar muvaffaqiyatli saqlandi": {
+  "ru": "Настройки сохранены",
+  "en": "Settings saved"
+ },
+ "Soʻrov": {
+  "ru": "Заявка",
+  "en": "Request"
+ },
+ "So‘rov topilmadi.": {
+  "ru": "Заявка не найдена.",
+  "en": "Request not found."
+ },
+ "So‘rov yo‘q": {
+  "ru": "Заявок нет",
+  "en": "No requests"
+ },
+ "So‘rov yuborildi — administrator ko‘rib chiqadi.": {
+  "ru": "Заявка отправлена — администратор её рассмотрит.",
+  "en": "Request sent — the administrator will review it."
+ },
+ "So‘rov yuborish": {
+  "ru": "Отправить заявку",
+  "en": "Send request"
+ },
+ "So‘rovlar ro‘yxatini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать список заявок.",
+  "en": "Could not read the request list."
+ },
+ "Standart lavozimlar va ularning ruxsatlari": {
+  "ru": "Стандартные должности и их права",
+  "en": "Standard roles and their permissions"
+ },
+ "Summa, soʻm": {
+  "ru": "Сумма, сум",
+  "en": "Amount, UZS"
+ },
+ "Superadmin va kompaniya rahbarining asosiy boshqaruv vakolati himoyalangan.": {
+  "ru": "Основные полномочия суперадмина и руководителя компании защищены.",
+  "en": "Core management rights of the superadmin and company director are protected."
+ },
+ "Taklif/email yuborish oqimi keyingi bosqichda ulanadi — hozir faqat mavjud ishtirokchilar ko‘rsatiladi.": {
+  "ru": "Отправка приглашений/email будет подключена позже — сейчас показаны только существующие участники.",
+  "en": "Invitation/email sending comes in a later stage — only existing participants are shown now."
+ },
+ "Tanlov": {
+  "ru": "Выбор",
+  "en": "Selection"
+ },
+ "Tasdiqlash (rad etish)": {
+  "ru": "Подтвердить (отказ)",
+  "en": "Confirm (reject)"
+ },
+ "Tashkilot ma’lumotlari": {
+  "ru": "Данные организации",
+  "en": "Organisation details"
+ },
+ "Tizimdagi barcha kiritish, o‘zgartirish va o‘chirish amallari o‘zgartirib bo‘lmaydigan (immutable) jurnallarda (PostgreSQL triggerlari orqali) saqlanadi.": {
+  "ru": "Все операции ввода, изменения и удаления хранятся в неизменяемых журналах (через триггеры PostgreSQL).",
+  "en": "All create, update and delete operations are kept in immutable logs (via PostgreSQL triggers)."
+ },
+ "To‘liq nom": {
+  "ru": "Полное наименование",
+  "en": "Full name"
+ },
+ "USD (AQSh dollari)": {
+  "ru": "USD (доллар США)",
+  "en": "USD (US dollar)"
+ },
+ "UZS (O‘zbek so‘mi)": {
+  "ru": "UZS (узбекский сум)",
+  "en": "UZS (Uzbek sum)"
+ },
+ "Vaqt": {
+  "ru": "Время",
+  "en": "Time"
+ },
+ "Vaqtinchalik parol": {
+  "ru": "Временный пароль",
+  "en": "Temporary password"
+ },
+ "Vaqtinchalik parol o‘rnatish": {
+  "ru": "Установить временный пароль",
+  "en": "Set a temporary password"
+ },
+ "Xatolik yuz berdi": {
+  "ru": "Произошла ошибка",
+  "en": "An error occurred"
+ },
+ "Xavfsizlik va jurnallar": {
+  "ru": "Безопасность и журналы",
+  "en": "Security and logs"
+ },
+ "Yangi kompaniya": {
+  "ru": "Новая компания",
+  "en": "New company"
+ },
+ "Yangi kompaniya ochish": {
+  "ru": "Создать компанию",
+  "en": "Create a company"
+ },
+ "Yangi kompaniya — so‘rov yuborish": {
+  "ru": "Новая компания — отправить заявку",
+  "en": "New company — send a request"
+ },
+ "Yangi kompaniyani to‘g‘ridan-to‘g‘ri faqat superadmin ochadi. Iltimos, so‘rov yuboring.": {
+  "ru": "Создать компанию напрямую может только суперадмин. Отправьте заявку.",
+  "en": "Only a superadmin can create a company directly. Please send a request."
+ },
+ "Yangi kompaniyani to‘g‘ridan-to‘g‘ri ochib bo‘lmaydi — so‘rovingiz platforma administratoriga yuboriladi va tasdiqlangandan keyin siz o‘sha kompaniyaning direktori bo‘lasiz.": {
+  "ru": "Создать компанию напрямую нельзя — заявка уйдёт администратору платформы, после одобрения вы станете её директором.",
+  "en": "You cannot create a company directly — your request goes to the platform administrator, and once approved you become its director."
+ },
+ "Yangi lavozim": {
+  "ru": "Новая должность",
+  "en": "New role"
+ },
+ "Yoqilsa, smetadan tashqari ortiqcha xarajatlar va limitdan oshgan F2 lar tizim tomonidan avtomatik bloklanadi. Har bir operatsiya rahbariyat tasdig‘ini (E-imzo) talab qiladi.": {
+  "ru": "Если включено, сверхсметные расходы и Ф-2 сверх лимита блокируются автоматически. Каждая операция требует подтверждения руководства (ЭЦП).",
+  "en": "When on, extra-estimate costs and over-limit F2s are blocked automatically. Every operation needs management approval (e-signature)."
+ },
+ "Yuqoridagi «Kontekst» tanlovidagi FAOL kompaniya uchun. Boshqa kompaniyani boshqarish uchun avval uni yuqoridan tanlang.": {
+  "ru": "Для АКТИВНОЙ компании из выбора «Контекст» вверху. Чтобы управлять другой компанией, сначала выберите её.",
+  "en": "For the ACTIVE company selected in “Context” above. To manage another company, select it first."
+ },
+ "amal (yozish)": {
+  "ru": "действие (запись)",
+  "en": "action (write)"
+ },
+ "asl shartnoma summasi": {
+  "ru": "исходная сумма договора",
+  "en": "original contract amount"
+ },
+ "avans + to‘lov − qaytarim": {
+  "ru": "аванс + оплата − возврат",
+  "en": "advance + payment − refund"
+ },
+ "bekor qilish": {
+  "ru": "отмена",
+  "en": "cancel"
+ },
+ "bor": {
+  "ru": "есть",
+  "en": "granted"
+ },
+ "buyurtmachi qarzi": {
+  "ru": "долг заказчика",
+  "en": "owed by the client"
+ },
+ "direktor": {
+  "ru": "директор",
+  "en": "director"
+ },
+ "faqat ko‘rish va ish": {
+  "ru": "только просмотр и работа",
+  "en": "view and work only"
+ },
+ "hali hisoblanmagan": {
+  "ru": "ещё не выставлено",
+  "en": "not yet billed"
+ },
+ "himoyalangan": {
+  "ru": "защищено",
+  "en": "protected"
+ },
+ "hisob teng": {
+  "ru": "расчёты равны",
+  "en": "settled"
+ },
+ "hisoblangan, to‘lanmagan": {
+  "ru": "выставлено, не оплачено",
+  "en": "billed, unpaid"
+ },
+ "ishlanmagan avans": {
+  "ru": "неотработанный аванс",
+  "en": "unworked advance"
+ },
+ "ishlayapti": {
+  "ru": "работает",
+  "en": "working"
+ },
+ "jami {n} token": {
+  "ru": "всего {n} токенов",
+  "en": "{n} tokens total"
+ },
+ "jonli maʼlumot": {
+  "ru": "живые данные",
+  "en": "live data"
+ },
+ "kam qoldi": {
+  "ru": "мало",
+  "en": "running low"
+ },
+ "kirim": {
+  "ru": "приход",
+  "en": "credit"
+ },
+ "kirim (sotib olish, bonus, qaytarish)": {
+  "ru": "приход (покупка, бонус, возврат)",
+  "en": "credit (purchase, bonus, refund)"
+ },
+ "kompaniya a’zosi": {
+  "ru": "участник компании",
+  "en": "company member"
+ },
+ "ko‘rish": {
+  "ru": "просмотр",
+  "en": "view"
+ },
+ "login": {
+  "ru": "логин",
+  "en": "login"
+ },
+ "platforma superadmini": {
+  "ru": "суперадмин платформы",
+  "en": "platform superadmin"
+ },
+ "qayta yuklash": {
+  "ru": "перезагрузить",
+  "en": "reload"
+ },
+ "saqlanmagan o‘zgarish": {
+  "ru": "несохранённые изменения",
+  "en": "unsaved changes"
+ },
+ "saqlash": {
+  "ru": "сохранить",
+  "en": "save"
+ },
+ "sarf": {
+  "ru": "расход",
+  "en": "spend"
+ },
+ "sarf yo‘q": {
+  "ru": "расхода нет",
+  "en": "no spend"
+ },
+ "siz boshqarasiz": {
+  "ru": "вы управляете",
+  "en": "you manage it"
+ },
+ "soz": {
+  "ru": "исправно",
+  "en": "healthy"
+ },
+ "sozlash": {
+  "ru": "настроить",
+  "en": "configure"
+ },
+ "superadmin roli bu yerdan berilmaydi — platforma darajasida.": {
+  "ru": "роль суперадмина здесь не назначается — она на уровне платформы.",
+  "en": "the superadmin role is not assigned here — it is platform-level."
+ },
+ "teng": {
+  "ru": "равно",
+  "en": "even"
+ },
+ "to‘langan": {
+  "ru": "оплачено",
+  "en": "paid"
+ },
+ "tugagan": {
+  "ru": "закончился",
+  "en": "exhausted"
+ },
+ "uchun vaqtinchalik parol": {
+  "ru": "— временный пароль",
+  "en": "temporary password"
+ },
+ "ustamasiz — boshqa daraja": {
+  "ru": "без накладных — другой уровень",
+  "en": "before markups — different level"
+ },
+ "versiya {v}": {
+  "ru": "версия {v}",
+  "en": "version {v}"
+ },
+ "yetarli": {
+  "ru": "достаточно",
+  "en": "sufficient"
+ },
+ "yo‘q": {
+  "ru": "нет",
+  "en": "no"
+ },
+ "yuqoridan tanlang": {
+  "ru": "выберите вверху",
+  "en": "choose above"
+ },
+ "{a}–{b} / {n} qator": {
+  "ru": "{a}–{b} из {n} строк",
+  "en": "{a}–{b} of {n} rows"
+ },
+ "{k} ko‘rish · {a} amal / {j}": {
+  "ru": "просмотр {k} · действия {a} / {j}",
+  "en": "{k} view · {a} action / {j}"
+ },
+ "{k} — a‘zolar": {
+  "ru": "{k} — участники",
+  "en": "{k} — members"
+ },
+ "{n} kun": {
+  "ru": "{n} дн.",
+  "en": "{n} days"
+ },
+ "{n} ta akt · ustamasiz": {
+  "ru": "актов: {n} · без накладных",
+  "en": "{n} acts · before markups"
+ },
+ "{n} ta faol": {
+  "ru": "активных: {n}",
+  "en": "{n} active"
+ },
+ "{n} ta ishtirokchi": {
+  "ru": "участников: {n}",
+  "en": "{n} participants"
+ },
+ "{n} ta shartnoma · QQS bilan": {
+  "ru": "договоров: {n} · с НДС",
+  "en": "{n} contracts · incl. VAT"
+ },
+ "{n} ta shartnoma · {m} tasida summa yo‘q": {
+  "ru": "договоров: {n} · без суммы: {m}",
+  "en": "{n} contracts · {m} without amount"
+ },
+ "{n} ta to‘lov yozuvi": {
+  "ru": "записей оплаты: {n}",
+  "en": "{n} payment entries"
+ },
+ "{n} ta · {m} tasi imzolangan": {
+  "ru": "{n} шт. · подписано: {m}",
+  "en": "{n} · {m} signed"
+ },
+ "{n} tasida direktor": {
+  "ru": "директор в {n}",
+  "en": "director in {n}"
+ },
+ "{n}/{m} yoqilgan": {
+  "ru": "включено {n}/{m}",
+  "en": "{n}/{m} enabled"
+ },
+ "{r} — direktor": {
+  "ru": "{r} — директор",
+  "en": "{r} — director"
+ },
+ "«{n}» a‘zoligi bekor qilinsinmi? Qilgan ishlari saqlanadi.": {
+  "ru": "Отменить членство «{n}»? Выполненная работа сохранится.",
+  "en": "Revoke the membership of “{n}”? Their work is kept."
+ },
+ "«{n}» uchun YANGI vaqtinchalik parol o‘rnatilsinmi? Eski parol (agar bo‘lsa) ishlamay qoladi.": {
+  "ru": "Установить НОВЫЙ временный пароль для «{n}»? Старый пароль перестанет работать.",
+  "en": "Set a NEW temporary password for “{n}”? The old password (if any) stops working."
+ },
+ "— loyiha yo‘q —": {
+  "ru": "— нет проектов —",
+  "en": "— no projects —"
+ },
+ "— obyekt yo‘q —": {
+  "ru": "— нет объектов —",
+  "en": "— no sites —"
+ },
+ "≈ {s} soʻm": {
+  "ru": "≈ {s} сум",
+  "en": "≈ {s} UZS"
+ },
+ "Asosiy (buyurtmachi ↔ pudratchi)": {
+  "ru": "Основной (заказчик ↔ подрядчик)",
+  "en": "Main (client ↔ contractor)"
+ },
+ "Asosiy shartnomasiz obyektlar": {
+  "ru": "Объекты без основного договора",
+  "en": "Sites without a main contract"
+ },
+ "Bosh shartnoma, Subpudrat, Laboratoriya…": {
+  "ru": "Генподряд, субподряд, лаборатория…",
+  "en": "General contract, subcontract, laboratory…"
+ },
+ "Bu shartnomalarga loyiha biriktirilmagan — kartani ochib loyihani tanlang.": {
+  "ru": "Эти договоры не привязаны к проекту — откройте карточку и выберите проект.",
+  "en": "These contracts have no project — open the card and choose one."
+ },
+ "Jami (QQS bilan)": {
+  "ru": "Итого (с НДС)",
+  "en": "Total (incl. VAT)"
+ },
+ "Mos obyekt yo‘q": {
+  "ru": "Подходящих объектов нет",
+  "en": "No matching sites"
+ },
+ "Mos obyekt yo‘q (boshqa asosiy shartnomadagilar ko‘rsatilmaydi)": {
+  "ru": "Подходящих объектов нет (объекты других основных договоров не показываются)",
+  "en": "No matching sites (sites in other main contracts are hidden)"
+ },
+ "Nomi / predmeti": {
+  "ru": "Название / предмет",
+  "en": "Name / subject"
+ },
+ "Obyekt faqat bitta asosiy shartnomada bo‘ladi; qolganlari cheklanmagan.": {
+  "ru": "Объект может быть только в одном основном договоре; остальные не ограничены.",
+  "en": "A site can be in only one main contract; others are unlimited."
+ },
+ "Obyekt nomi…": {
+  "ru": "Название объекта…",
+  "en": "Site name…"
+ },
+ "Shartnoma yo‘q": {
+  "ru": "Договоров нет",
+  "en": "No contracts"
+ },
+ "Shartnomaga…": {
+  "ru": "К договору…",
+  "en": "To contract…"
+ },
+ "Shartnomani tanlang yoki yangisini qo‘shing — bu yerda uning zanjiri (DS → F2 → F3 → to‘lov → akt-sverka) va kartasi ochiladi.": {
+  "ru": "Выберите договор или добавьте новый — здесь откроются его цепочка (ДС → Ф-2 → Ф-3 → оплата → акт сверки) и карточка.",
+  "en": "Choose a contract or add one — its chain (amendment → F2 → F3 → payment → reconciliation) and card open here."
+ },
+ "Tashkilot nomi": {
+  "ru": "Название организации",
+  "en": "Organisation name"
+ },
+ "Tomon": {
+  "ru": "Сторона",
+  "en": "Party"
+ },
+ "Tomonlar": {
+  "ru": "Стороны",
+  "en": "Parties"
+ },
+ "Turi (erkin)": {
+  "ru": "Тип (свободно)",
+  "en": "Type (free text)"
+ },
+ "Yangi shartnoma": {
+  "ru": "Новый договор",
+  "en": "New contract"
+ },
+ "asosiy": {
+  "ru": "основной",
+  "en": "main"
+ },
+ "loyihasiz": {
+  "ru": "без проекта",
+  "en": "no project"
+ },
+ "mos shartnoma yo‘q": {
+  "ru": "нет подходящего договора",
+  "en": "no matching contract"
+ },
+ "{n} ta tanlangan": {
+  "ru": "выбрано: {n}",
+  "en": "{n} selected"
+ },
+ "{n} ta xato": {
+  "ru": "ошибок: {n}",
+  "en": "{n} errors"
+ },
+ "{o} obyekt · {s} shartnoma": {
+  "ru": "объектов: {o} · договоров: {s}",
+  "en": "{o} sites · {s} contracts"
+ },
+ "— F2 va hujjat imzolovchilari shartnomadan olinadi; biriktiring.": {
+  "ru": "— подписанты Ф-2 и документов берутся из договора; привяжите.",
+  "en": "— F2 and document signatories come from the contract; link them."
+ },
+ "Kompaniya va a‘zolik": {
+  "ru": "Компания и членство",
+  "en": "Company and membership"
+ },
+ "Kim qaysi kompaniyada, qaysi lavozimda va qanday huquq bilan ishlaydi — hammasi shu yerda.": {
+  "ru": "Кто в какой компании, в какой должности и с какими правами работает — всё здесь.",
+  "en": "Who works in which company, in what role and with which rights — all in one place."
+ },
+ "Tizim sozlamalari": {
+  "ru": "Настройки системы",
+  "en": "System settings"
+ },
+ "Akkaunt sozlamalari, moliyaviy nazorat va integratsiyalar": {
+  "ru": "Настройки аккаунта, финансовый контроль и интеграции",
+  "en": "Account settings, financial control and integrations"
+ },
+ "Nakopitelniy va tasdiqlangan F2": {
+  "ru": "Накопительная и утверждённые Ф-2",
+  "en": "Cumulative statement and approved F2"
+ },
+ "Smeta, o‘zgarishlar, F2 davrlari va yopilish dalillarini bitta kanonik ish oynasida tekshiring.": {
+  "ru": "Проверяйте смету, изменения, периоды Ф-2 и доказательства закрытия в одном каноническом окне.",
+  "en": "Check the estimate, changes, F2 periods and closing evidence in one canonical workspace."
+ },
+ "Kompaniya va a’zolar": {
+  "ru": "Компания и участники",
+  "en": "Company and members"
+ },
+ "Loyiha va obyekt": {
+  "ru": "Проект и объект",
+  "en": "Project and site"
+ },
+ "F2 (bajarilgan ishlar akti)": {
+  "ru": "Ф-2 (акт выполненных работ)",
+  "en": "F2 (completed works act)"
+ },
+ "Smeta, fakt va narx": {
+  "ru": "Смета, факт и цены",
+  "en": "Estimate, actuals and prices"
+ },
+ "Buyurtmachi (zakazchik)": {
+  "ru": "Заказчик",
+  "en": "Client"
+ },
+ "Rollar va Ruxsatlar": {
+  "ru": "Роли и права",
+  "en": "Roles and permissions"
+ },
+ "Modullar": {
+  "ru": "Модули",
+  "en": "Modules"
+ },
+ "Loyiha/Obyekt": {
+  "ru": "Проект/объект",
+  "en": "Project/site"
+ },
+ "Umumiy akkaunt": {
+  "ru": "Общий аккаунт",
+  "en": "General account"
+ },
+ "Rekvizitlar qayerda": {
+  "ru": "Где реквизиты",
+  "en": "Where company details live"
+ },
+ "Moliya va nazorat": {
+  "ru": "Финансы и контроль",
+  "en": "Finance and control"
+ },
+ "Valyuta, qat’iy nazorat": {
+  "ru": "Валюта, строгий контроль",
+  "en": "Currency, strict control"
+ },
+ "Didox, Google Sheets": {
+  "ru": "Didox, Google Sheets",
+  "en": "Didox, Google Sheets"
+ },
+ "Xavfsizlik va audit": {
+  "ru": "Безопасность и аудит",
+  "en": "Security and audit"
+ },
+ "O‘zgarmas jurnal": {
+  "ru": "Неизменяемый журнал",
+  "en": "Immutable log"
+ },
+ "Taklif va bog‘lanish": {
+  "ru": "Приглашения и связи",
+  "en": "Invitations and links"
+ },
+ "Hamkorlarni tizimga taklif qilish": {
+  "ru": "Пригласить партнёров в систему",
+  "en": "Invite partners to the system"
+ },
+ "Korrespondensiya (B2B)": {
+  "ru": "Корреспонденция (B2B)",
+  "en": "Correspondence (B2B)"
+ },
+ "Kiruvchi va chiquvchi xatlar": {
+  "ru": "Входящие и исходящие письма",
+  "en": "Incoming and outgoing letters"
+ },
+ "Uy sotuv (Developer CRM)": {
+  "ru": "Продажа жилья (CRM девелопера)",
+  "en": "Home sales (developer CRM)"
+ },
+ "Xaridorlar va shartnomalar": {
+  "ru": "Покупатели и договоры",
+  "en": "Buyers and contracts"
+ },
+ "Superadmin (platforma)": {
+  "ru": "Суперадмин (платформа)",
+  "en": "Superadmin (platform)"
+ },
+ "Kompaniya administratori": {
+  "ru": "Администратор компании",
+  "en": "Company administrator"
+ },
+ "Kompaniya rahbari": {
+  "ru": "Руководитель компании",
+  "en": "Company director"
+ },
+ "Kuzatuvchi rahbar": {
+  "ru": "Руководитель-наблюдатель",
+  "en": "Observing executive"
+ },
+ "Kuzatuvchi": {
+  "ru": "Наблюдатель",
+  "en": "Observer"
+ },
+ "Hujjat nazorati (F2/Nakopitelniy)": {
+  "ru": "Контроль документов (Ф-2/накопительная)",
+  "en": "Document control (F2/cumulative)"
+ }
+}
