@@ -2,6 +2,29 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { fayldanKalitBog } from '../../lib/f2-kalit-bogla';
 import { avvalgiF2Ol, f2RaqamNormal, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useInRouterContext, useSearchParams } from 'react-router-dom';
+
+/** JQA-07: faol ish (ij) va serverdagi job/akt URL'da ham turadi (`?job=…&akt=…`, replace — tarixga yozilmaydi).
+ *  F2 bo'limi tablari (BolimTablari) shu tabning oxirgi URL'ini eslab qoladi — boshqa tabga o'tib qaytganda
+ *  qoralama mount'dagi odatiy `job`/`akt` o'qish orqali o'zi tiklanadi. Biz yozgan paramlar ish tugaganda o'chiriladi.
+ *  Alohida komponent: F2ImportV3 Router'siz (testlarda) ham render bo'ladi. */
+function F2UrlSinxron({ faol, jobId, aktId }: { faol: boolean; jobId: number | null; aktId: number | null }) {
+  const [, setSearchParams] = useSearchParams();
+  const yozildi = useRef(false);
+  useEffect(() => {
+    const bor = faol && jobId != null;
+    if (!bor && !yozildi.current) return;
+    yozildi.current = bor;
+    setSearchParams((p) => {
+      const n = new URLSearchParams(p);
+      if (bor) { n.set('job', String(jobId)); if (aktId != null) n.set('akt', String(aktId)); else n.delete('akt'); }
+      else { n.delete('job'); n.delete('akt'); }
+      return n;
+    }, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faol, jobId, aktId]);
+  return null;
+}
 import {
   sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator,
 } from '../../api/supabase';
@@ -181,6 +204,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const lastWorkingDraft = useRef<F2IshchiQoralama | null>(null);
   const serverDraft = useRef<F2ServerQoralama | undefined>(undefined);
   const [serverId, setServerId] = useState('');
+  /* JQA-07: faol ish va serverdagi job/akt URL'da ham turadi — pastdagi <F2UrlSinxron/> (faqat Router ichida). */
+  const routerda = useInRouterContext();
   const [serverHolat, setServerHolat] = useState('');
   const rawFile = useRef<File | null>(null);
   const operation = useRef('');
@@ -1344,6 +1369,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const selectedObjectName = objects.find((o) => o.id === Number(objectId))?.nom;
   return (
     <section className="w-full space-y-3 p-3 sm:p-4">
+      {routerda && <F2UrlSinxron faol={!!ij} jobId={Number.isSafeInteger(Number(serverId)) && Number(serverId) > 0 ? Number(serverId) : null} aktId={tahrirAkt} />}
       <div className="flex flex-wrap items-baseline gap-2">
         <h1 className="text-lg font-semibold sm:text-xl">{t('F2 import')}</h1>
         <p role="status" className="text-[13px] text-text-dim">{holat}</p>
