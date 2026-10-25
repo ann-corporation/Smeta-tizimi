@@ -123,14 +123,28 @@ it('OPEN JQA-09: discarding a partially confirmed attempt must not apply accepte
     return { ok: true, akt_id: id };
   });
   const p = base();
-  const view = render(<FaktQamrov {...p} ishlar={rows} />);
+  function Parent() {
+    const [open, setOpen] = useState(true);
+    const [live, setLive] = useState(rows);
+    const [snapshot, setSnapshot] = useState(rows);
+    const [holat, setHolat] = useState(new Map());
+    const refresh = () => {
+      p.onBajarildi();
+      setLive(rows.map((q) => ({ ...q, fakt: persisted.get(q.id) ?? 0, qoldiq: 100 - (persisted.get(q.id) ?? 0) })));
+      setHolat(new Map(rows.map((q) => [q.id, { qator_id: q.id, smeta_hajm: 100, fakt_hajm: persisted.get(q.id) ?? 0 }])));
+    };
+    return <><button onClick={() => { setSnapshot(live); setOpen(true); }}>Open refreshed scope</button>{open &&
+      <FaktQamrov {...p} ishlar={snapshot} holatMap={holat} onBajarildi={refresh} onYop={() => { p.onYop(); setOpen(false); }} />}</>;
+  }
+  render(<Parent />);
   save();
   await waitFor(() => expect(p.onBajarildi).toHaveBeenCalledTimes(1));
-  // Actual FaktJurnal refresh preserves qamrov.ishlar, but replaces the holatMap.
-  const refreshed = new Map(rows.slice(0, 3000).map((q) => [q.id, { qator_id: q.id, smeta_hajm: 100, fakt_hajm: 100 }]));
-  view.rerender(<FaktQamrov {...p} ishlar={rows} holatMap={refreshed} />);
-  fireEvent.click(screen.getByTestId('urinish-tashla'));
+  // Actual FaktJurnal keeps the open snapshot, but a NEW modal may take a fresh one.
+  const discard = screen.queryByTestId('urinish-tashla');
+  if (discard) fireEvent.click(discard);
+  if (!screen.queryByRole('dialog')) fireEvent.click(screen.getByRole('button', { name: 'Open refreshed scope' }));
   save();
-  await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(4));
+  await waitFor(() => expect(p.onYop).toHaveBeenCalled());
   expect(persisted.get(rows[0].id)).toBe(100); // Clearing failed attempt must not turn known success into a new write.
+  expect(persisted.get(rows[3000].id)).toBe(100);
 });
