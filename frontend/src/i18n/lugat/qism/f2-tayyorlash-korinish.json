@@ -74,5 +74,7 @@
   "Saqlashni to‘suvchi xato yo‘q": { "ru": "Ошибок, мешающих сохранению, нет", "en": "No errors blocking save" },
   "Qatorga o‘tish: {m}": { "ru": "Перейти к строке: {m}", "en": "Go to row: {m}" },
   "1-chisiga o‘tish": { "ru": "К первой", "en": "Go to first" },
-  "Qatorga o‘tish": { "ru": "К строке", "en": "Go to row" }
+  "Qatorga o‘tish": { "ru": "К строке", "en": "Go to row" },
+  "Narx asosi yo‘q": { "ru": "Нет основания цены", "en": "No price basis" },
+  "Ogohlantirishlar": { "ru": "Предупреждения", "en": "Warnings" }
 }

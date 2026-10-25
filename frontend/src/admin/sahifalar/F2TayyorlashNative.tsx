@@ -643,6 +643,8 @@ export function F2TayyorlashNative() {
           <div className="flex flex-col text-[12px] leading-tight text-text-dim">
             <span>{t('Tanlangan qatorlar')}: <b className="text-text">{jami.qator}</b></span>
             <span className="text-text-mute">{t('{n} ta ish', { n: jami.ish })}</span>
+            {jami.ogoh > 0 && <span className="text-warn">{t('Ogohlantirishlar')}: {jami.ogoh}</span>}
+            {jami.narxsiz > 0 && <span className="text-warn">{t('Narx asosi yo‘q')}: {jami.narxsiz}</span>}
           </div>
           <button type="button" onClick={tekshiruvgaOtish} className={`fz-chip ${holatChip.cls} cursor-pointer`} style={{ height: 24, border: 0 }} title={t('Tekshiruv')}>{holatChip.matn}</button>
           <div className="ml-auto flex flex-wrap items-center gap-3">
