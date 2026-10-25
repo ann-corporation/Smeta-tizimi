@@ -42,9 +42,9 @@ export function SmetaDocumentPanel({ doc, total, targetSectionId, setTargetSecti
       <label className="block text-[11.5px] text-text-dim">{l.object}<input className="input mt-0.5 h-8 w-full text-[12.5px]" value={context.objectLabel} onChange={e => setContext(old => ({ ...old, objectLabel: e.target.value }))} /></label>
       <label className="block text-[11.5px] text-text-dim">{l.documentTitle}<input className="input mt-0.5 h-8 w-full text-[12.5px]" value={context.title} onChange={e => setContext(old => ({ ...old, title: e.target.value }))} /></label>
       <label className="block text-[11.5px] text-text-dim">{l.currency}<input className="input mt-0.5 h-8 w-full text-[12.5px]" maxLength={3} value={context.currency} onChange={e => setContext(old => ({ ...old, currency: e.target.value.toUpperCase() }))} /></label>
-      <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]">{l.save}</button>
+      <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary mt-1">{l.save}</button>
     </form>
-    <div className="karta p-2 text-sm" role="status">
+    <div className="fz-note fz-note--info" role="status" style={{ display: 'block' }}>
       <strong>{l.amount}: {total.amount ?? l.unknown} {doc.currency}</strong>
       {total.amount == null && <p className="text-[12px] text-text-dim">{l.knownAmount}: {total.knownAmount} · {l.unresolved}: {total.unresolved}</p>}
       <p className="text-[12px] text-text-dim">{l.targetSection}: {target?.name ?? l.choose}</p>
@@ -59,7 +59,7 @@ export function SmetaDocumentPanel({ doc, total, targetSectionId, setTargetSecti
     }}>
       <label className="block text-[11.5px] text-text-dim">{l.newSection}<input className="input mt-0.5 h-8 text-[12.5px]" maxLength={300} value={sectionName} onChange={e => setSectionName(e.target.value)} /></label>
       <label className="block text-[11.5px] text-text-dim"><input type="checkbox" checked={nested} disabled={!target} onChange={e => setNested(e.target.checked)} />{l.subsection}</label>
-      <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]" disabled={!sectionName.trim() || (nested && !target)}>{l.save}</button>
+      <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary mt-1" disabled={!sectionName.trim() || (nested && !target)}>{l.save}</button>
     </form>
     <EstimateEditingWorkspace key={scope} doc={doc} labels={l} command={command} calculation={calculation} pricing={pricing} renderWorkDetails={renderWorkDetails} focusWorkId={focusWorkId} onTargetSection={setTargetSection} />
   </section>;

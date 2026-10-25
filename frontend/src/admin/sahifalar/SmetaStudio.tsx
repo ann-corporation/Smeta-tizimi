@@ -39,6 +39,11 @@ import { MateriallarPaneli } from './StudioMateriallar';
 import { SmetaAiChat } from './SmetaAiChat';
 import { KatalogPanel } from './NormKatalogPanel';
 import { useStudioKontekst } from '../../lib/jarvis/useStudioKontekst';
+import { Undo2, Redo2, Search, TriangleAlert, CircleCheck, Plus } from 'lucide-react';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { FmtN } from '../../lib/format';
+import { DraftAnatomy } from '../../components/smeta-studio-workspace/DraftAnatomy';
+import { qoralamaKesimi } from '../../components/smeta-studio-workspace/draft-kesim';
 
 const BOSQICH_KALIT = 'smeta-studio:bosqich';
 const ACTIVE_DRAFT_KEY = 'smeta-studio:active-draft-v2';
@@ -112,6 +117,7 @@ export default function SmetaStudio() {
   const [hudud, setHududState] = useState<string>(() => lsGet(HUDUD_KALIT) ?? '');
   const setHudud = (v: string) => { setHududState(v); lsSet(HUDUD_KALIT, v); };
   const unitText = useMemo(() => unitTextOf(katalog), [katalog]);
+  const qKesim = useMemo(() => qoralamaKesimi(doc, hisob, unitText), [doc, hisob, unitText]);
   useStudioKontekst(doc, hisob, unitText, joriyId ?? null);
   // Owner workflow (2026-10-13): build the LRV first, then go to pricing (rates + sourced prices), then the RES.
   const [bosqich, setBosqichState] = useState<Bosqich>('lrv');
@@ -332,50 +338,58 @@ export default function SmetaStudio() {
       setHist(historyOf(restoredDoc));setServerVersiya(version);pendingOp.current=null;setNishon(restoredDoc.rootOrder[0] ?? null);setFocusWorkId(null);setCloudOpen(false);setWorkspaceView('editor');setSaqlash({holat:'tayyor',matn:'',edits:null});
     });
   }
+  const jamiSon = ishlarSoni ? Number(hisob.total.amount ?? hisob.total.knownAmount) : null;
+  const jamiBlok = doc.context.objectId ? <SummaJuft obyektId={doc.context.objectId} ustamasiz={jamiSon} katKesim={qKesim.kesim} kompaniyaId={joriyId ?? null} />
+    : <span className="studio-total__plain"><span><b>{jamiSon == null ? '—' : <FmtN val={jamiSon} />}</b><em>{doc.currency}</em></span><small>{t('ustama: obyekt bog‘lanmagan')}</small></span>;
+  const serverText = serverVersiya === 0 ? { tur: 'fz-stamp--draft', matn: t('Serverga saqlanmagan') }
+    : lastServerSave.current?.snapshot === doc ? { tur: 'fz-stamp--ok', matn: t('Serverda: v{n}', { n: serverVersiya }) } : { tur: 'fz-stamp--info', matn: t('Server versiyasi: v{n}', { n: serverVersiya }) };
   return <div className="studio-desk">
     <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} agentOnly/>
     <header className="studio-desk-header">
-      <div className="studio-brand"><span className="studio-brand-icon" aria-hidden="true">S</span><div><h1>{t('Smeta Studio')}</h1><small>{t('LOYIHADAN ANIQ HISOBGACHA')}</small></div></div>
-      <div><strong>{doc.context.title || t('Yangi smeta')}</strong><span className="ml-2 text-[10px] text-text-dim">{t('Qoralama')}</span></div>
+      <div className="studio-brand"><span className="studio-brand-icon" aria-hidden="true" />
+        <div><h1 className="fz-pagehead__title">{t('Smeta Studio')}</h1><p className="studio-doc-title"><strong>{doc.context.title || t('Yangi smeta')}</strong><span className="fz-stamp fz-stamp--draft">{t('Qoralama')}</span></p></div></div>
       <div className="studio-desk-actions">
-        <button className="studio-action" aria-label={t('Bekor qilish')} disabled={!hist.past.length} onClick={()=>setHist(undo)} title={t('Ctrl+Z')}>↶ {t('Bekor qilish')}</button>
-        <button className="studio-action" aria-label={t('Qaytarish')} disabled={!hist.future.length} onClick={()=>setHist(redo)} title={t('Ctrl+Y')}>↷ {t('Qaytarish')}</button>
-        <button className="studio-action" onClick={()=>setInspectorTab('ai')}>{t('Smetachi AI')}</button>
-        <details className="studio-popover"><summary className="studio-action">{t('Fayl')} ▾</summary><div>
-          <button className="studio-action" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void yangiQoralama()}>{t('Yangi qoralama')}</button>
-          <button className="studio-action" disabled={draftBusy} onClick={()=>void kutubxona()}>{t('Saqlangan qoralamalar')}</button>
-          <button className="studio-action" onClick={()=>setCloudOpen(v=>!v)}>{t('Serverdagi smetalar')}</button>
+        <button className="fz-btn fz-btn--sm" aria-label={t('Bekor qilish')} disabled={!hist.past.length} onClick={()=>setHist(undo)} title={t('Ctrl+Z')}><Undo2 aria-hidden="true"/> {t('Bekor qilish')}</button>
+        <button className="fz-btn fz-btn--sm" aria-label={t('Qaytarish')} disabled={!hist.future.length} onClick={()=>setHist(redo)} title={t('Ctrl+Y')}><Redo2 aria-hidden="true"/> {t('Qaytarish')}</button>
+        <button className="fz-btn fz-btn--sm" onClick={()=>setInspectorTab('ai')}>{t('Smetachi AI')}</button>
+        <details className="studio-popover"><summary className="fz-btn fz-btn--sm">{t('Fayl')} ▾</summary><div>
+          <button className="fz-btn fz-btn--sm" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void yangiQoralama()}>{t('Yangi qoralama')}</button>
+          <button className="fz-btn fz-btn--sm" disabled={draftBusy} onClick={()=>void kutubxona()}>{t('Saqlangan qoralamalar')}</button>
+          <button className="fz-btn fz-btn--sm" onClick={()=>setCloudOpen(v=>!v)}>{t('Serverdagi smetalar')}</button>
           <label className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={!joriyId || (doc.context.companyId!=null && doc.context.companyId!==joriyId)} checked={autoSave?.draft===doc.draftId && autoSave.company===joriyId} onChange={e=>setAutoSave(e.target.checked && joriyId ? {company:joriyId,draft:doc.draftId} : null)}/>{t('Serverga avtomatik saqlash')}</label>
         </div></details>
-        <button className="studio-action studio-primary" disabled={draftBusy || saqlash.holat==='saqlanmoqda' || (!doc.rootOrder.length && serverVersiya===0)} onClick={()=>void serverga()}>{saqlash.holat==='saqlanmoqda' ? t('Saqlanmoqda…') : t('Serverga saqlash')}</button>
+        <button className="fz-btn fz-btn--sm fz-btn--primary" disabled={draftBusy || saqlash.holat==='saqlanmoqda' || (!doc.rootOrder.length && serverVersiya===0)} onClick={()=>void serverga()}>{saqlash.holat==='saqlanmoqda' ? t('Saqlanmoqda…') : t('Serverga saqlash')}</button>
       </div>
     </header>
-    {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`text-sm ${saqlash.holat === 'xato' ? 'text-danger' : 'text-accent'}`}>{saqlash.matn}{saqlash.holat === 'saqlandi' && lastServerSave.current?.snapshot !== doc ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</p>}
+    <div className="studio-notices">
+    {saqlash.matn && <p role={saqlash.holat === 'xato' ? 'alert' : 'status'} className={`fz-note ${saqlash.holat === 'xato' ? 'fz-note--danger' : 'fz-note--info'}`}>{saqlash.holat === 'xato' ? <TriangleAlert aria-hidden="true"/> : <CircleCheck aria-hidden="true"/>}<span>{saqlash.matn}{saqlash.holat === 'saqlandi' && lastServerSave.current?.snapshot !== doc ? ' ' + t('Keyin o‘zgarishlar bor — qayta saqlang.') : ''}</span></p>}
     {tiklandi && <p role="status" className="sr-only">{t('Oxirgi qoralama tiklandi.')}</p>}
-    {boshqaTab && <p role="alert" className="text-sm text-warn">{t('Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.')}</p>}
-    {xato && <p role="alert" className="text-sm text-danger">{xato}</p>}
+    {boshqaTab && <p role="alert" className="fz-note fz-note--warn"><TriangleAlert aria-hidden="true"/><span>{t('Smeta studiyasi boshqa tabda ham ochilgan. Bir qoralama bo‘yicha konflikt chiqsa, o‘zgarishlarni nusxa sifatida saqlang.')}</span></p>}
+    {xato && <p role="alert" className="fz-note fz-note--danger"><TriangleAlert aria-hidden="true"/><span>{xato}</span></p>}
 
-    {(localStatus==='error' || localStatus==='conflict') && <p role="alert" className="text-sm text-danger">{localStatus==='conflict' ? t('Qoralama boshqa tabda o‘zgargan. Ustidan yozilmadi; o‘zgarishlarni nusxa sifatida saqlang.') : t('Qoralama qurilmada saqlanmadi. Hozirgi oynani yopmang; qayta urinib ko‘ring.')}</p>}
-    {localStatus==='error' && <button type="button" className="tugma h-8 px-2" disabled={draftBusy} onClick={()=>void persistDraft(doc,serverVersiya)}>{t('Qayta urinish')}</button>}
-    {localStatus==='conflict' && <button type="button" className="tugma h-8 px-2" onClick={()=>void qoralamaNusxa()}>{t('Qoralamani nusxa sifatida saqlash')}</button>}
+    {(localStatus==='error' || localStatus==='conflict') && <p role="alert" className="fz-note fz-note--danger"><TriangleAlert aria-hidden="true"/><span>{localStatus==='conflict' ? t('Qoralama boshqa tabda o‘zgargan. Ustidan yozilmadi; o‘zgarishlarni nusxa sifatida saqlang.') : t('Qoralama qurilmada saqlanmadi. Hozirgi oynani yopmang; qayta urinib ko‘ring.')}</span></p>}
+    {localStatus==='error' && <button type="button" className="fz-btn fz-btn--sm" disabled={draftBusy} onClick={()=>void persistDraft(doc,serverVersiya)}>{t('Qayta urinish')}</button>}
+    {localStatus==='conflict' && <button type="button" className="fz-btn fz-btn--sm" onClick={()=>void qoralamaNusxa()}>{t('Qoralamani nusxa sifatida saqlash')}</button>}
+    </div>
 
     {cloudOpen && <CloudDrafts key={joriyId} company={joriyId ?? null} onOpen={openCloud} onClose={()=>setCloudOpen(false)}/>}
-    {libraryOpen && <section className="karta space-y-2 p-3" aria-label={t('Saqlangan qoralamalar')}>
-      <div className="flex items-center justify-between"><h2 className="font-semibold">{t('Saqlangan qoralamalar')}</h2><button type="button" onClick={()=>setLibraryOpen(false)}>{t('Yopish')}</button></div>
-      <p className="text-xs text-text-dim">{t('Bu qurilmadagi nusxalar. Serverga saqlash alohida bajariladi.')}</p>
-      <ul className="max-h-64 overflow-auto">{drafts.map(d=><li key={d.draftId} className="border-b border-border py-2 text-sm"><button type="button" className="text-left underline" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void qoralamaOch(d.draftId)}>{d.title || d.objectLabel || t('Nomsiz smeta')}</button><span className="ml-2 text-xs text-text-dim">{t('{n} ta ish',{n:d.works})} · {new Date(d.savedAt).toLocaleString()}</span></li>)}</ul>
+    {libraryOpen && <section className="fz-card studio-library-card" aria-label={t('Saqlangan qoralamalar')}>
+      <div className="fz-card__head"><h2 className="fz-card__title">{t('Saqlangan qoralamalar')}</h2><button type="button" className="fz-btn fz-btn--sm fz-btn--ghost" onClick={()=>setLibraryOpen(false)}>{t('Yopish')}</button></div>
+      <p className="text-xs text-text-dim studio-card-note">{t('Bu qurilmadagi nusxalar. Serverga saqlash alohida bajariladi.')}</p>
+      <ul className="max-h-64 overflow-auto studio-draft-list">{drafts.map(d=><li key={d.draftId} className="border-b border-border py-2 text-sm"><button type="button" className="text-left underline" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void qoralamaOch(d.draftId)}>{d.title || d.objectLabel || t('Nomsiz smeta')}</button><span className="ml-2 text-xs text-text-dim">{t('{n} ta ish',{n:d.works})} · {new Date(d.savedAt).toLocaleString()}</span></li>)}</ul>
     </section>}
 
     <div className="studio-commandbar">
       <div className="studio-mode-buttons" aria-label={t('Panel tartibi')}><button aria-pressed={panels===2} onClick={()=>setPanels(2)}>{t('2 panel')}</button><button aria-pressed={panels===3} onClick={()=>setPanels(3)}>{t('3 panel')}</button></div>
-      <button className="studio-quick-open" onClick={()=>setCommandOpen(true)}><span aria-hidden="true">⌕</span>{t('Amal yoki ishni topish…')}<kbd>{t('Ctrl K')}</kbd></button>
+      <button className="studio-quick-open" onClick={()=>setCommandOpen(true)}><Search aria-hidden="true"/>{t('Amal yoki ishni topish…')}<kbd className="fz-kbd">{t('Ctrl K')}</kbd></button>
+      <div className="studio-hints" aria-label={t('Klaviatura yordami')}><span><kbd className="fz-kbd">{'Ctrl'}</kbd> <kbd className="fz-kbd">Z</kbd> {t('bekor')}</span><span><kbd className="fz-kbd">↑</kbd> <kbd className="fz-kbd">↓</kbd> {t('ish tanlash')}</span><span><kbd className="fz-kbd">↵</kbd> {t('hajmni saqlash')}</span></div>
       <div className="studio-resize"><label>{t('Katalog')} <input aria-label={t('Katalog paneli kengligi')} type="range" min="210" max="340" value={leftWidth} onChange={e=>setLeftWidth(Number(e.target.value))}/></label><label>{t('Nazoratchi')} <input aria-label={t('Nazorat paneli kengligi')} type="range" min="310" max="470" value={rightWidth} onChange={e=>setRightWidth(Number(e.target.value))}/></label></div>
     </div>
     <div className="studio-columns" data-panels={panels} style={{'--studio-left':`${leftWidth}px`,'--studio-right':`${rightWidth}px`} as CSSProperties}>
       <section hidden={panels===2} aria-label={t('Normativ katalog')} className="studio-library studio-pane">
-        <div className="studio-pane-title"><span className="studio-step">01</span><strong>{t('Katalog va bo‘limlar')}</strong><span className="text-[10px] text-text-dim">{(katalog?.manifest.counts.basis ?? katalog?.manifest.counts.works)?.toLocaleString('ru') ?? '…'}</span></div>
-        <label className="px-2 text-sm">{t('Kutubxona manbasi')}
-          <select className="block w-full min-w-0 p-2 border border-border rounded bg-bg text-sm" aria-label={t('Kutubxona manbasi')} value={catalogSource} onChange={e => {
+        <div className="studio-pane-title"><span className="studio-step">01</span><strong>{t('Katalog va bo‘limlar')}</strong><span className="studio-count">{(katalog?.manifest.counts.basis ?? katalog?.manifest.counts.works)?.toLocaleString('ru') ?? '…'}</span></div>
+        <label className="studio-source">{t('Kutubxona manbasi')}
+          <select className="studio-select" aria-label={t('Kutubxona manbasi')} value={catalogSource} onChange={e => {
             lsSet('studio:catalog-source', e.target.value);
             catalogSession.current++;
             setKatalog(null); setKatalogHolat('yuklanmoqda');
@@ -419,9 +433,10 @@ export default function SmetaStudio() {
         {openedViews.includes('res') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='res'}><DocumentCenter doc={doc} calculation={hisob} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}}><ResBosqichi key={`${joriyId}:${doc.draftId}`} doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></DocumentCenter></div>}
 
           <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='lrv'}>
-            <div className="flex gap-2 border-b border-border px-3 py-2"><button className={`tugma ${worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button className={`tugma ${!worksheet ? 'tugma-asosiy' : ''}`} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button><button className="tugma ml-auto" onClick={()=>{setPanels(3);setBosqich('lrv');}}>{t('+ Ish qo‘shish')}</button></div>
-            {worksheet && <WorkSheet docked activeWorkId={selectedWorkId} revealToken={revealToken} doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={()=>null}/>}
-        <div hidden={worksheet}>
+            <DraftAnatomy doc={doc} calculation={hisob} unitText={unitText}/>
+            <div className="studio-lrv-bar"><div className="studio-seg"><button aria-pressed={worksheet} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button aria-pressed={!worksheet} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button></div><button className="fz-btn fz-btn--sm" style={{marginLeft:'auto'}} onClick={()=>{setPanels(3);setBosqich('lrv');}}><Plus aria-hidden="true"/>{t('Ish qo‘shish')}</button></div>
+            {worksheet && <WorkSheet docked unitText={unitText} activeWorkId={selectedWorkId} revealToken={revealToken} doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={()=>null}/>}
+        <div hidden={worksheet} className="studio-docview">
         <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
@@ -431,12 +446,20 @@ export default function SmetaStudio() {
           </div>
         </div>
       </main>
-      <StudioInspector doc={doc} calculation={hisob} workId={selectedWorkId} onWork={openWork} command={amal} pricing={{source:narxKat,unitText,region:hudud || null}} tab={inspectorTab} onTab={setInspectorTab}
+      <StudioInspector unitText={unitText} doc={doc} calculation={hisob} workId={selectedWorkId} onWork={openWork} command={amal} pricing={{source:narxKat,unitText,region:hudud || null}} tab={inspectorTab} onTab={setInspectorTab}
         coefficients={selectedWorkId ? <KoeffitsientlarPaneli key={`${joriyId}:${doc.draftId}:${selectedWorkId}`} doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={selectedWorkId}/> : null}
         ai={<SmetaAiChat key={`${catalogSource}:${katalog?.manifest.revision ?? "loading"}`} selectedWorkId={selectedWorkId} doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={c => aiSession === catalogSession.current && !!katalog ? amal(c) : false} newId={uid} onBosqich={b => { if (aiSession === catalogSession.current) setBosqich(b); }}/>}
         calculator={<QuantityWorkbench key={doc.draftId} doc={doc} command={amal} onWork={openWork}/>}/>
     </div>
     {commandOpen && <StudioCommandMenu doc={doc} onAction={deskAction} onClose={()=>setCommandOpen(false)} onWork={id=>{openWork(id);setBosqich('lrv');setWorksheet(true);}}/>}
-    <footer className="studio-footer"><span className="studio-live-dot"/><span role="status">{localStatus==='saved' ? t('Shu qurilmada saqlandi') : localStatus==='saving' ? t('Qurilmada saqlanmoqda...') : t('Qoralama')}</span><span role="status" className="text-accent">{lastAction}</span><span><strong>{ishlarSoni}</strong> {t('ish')} · <strong>{hajmsiz}</strong> {t('hajmsiz')}</span><span>{t('Ochiq masalalar')}: <strong>{hisob.total.unresolved}</strong></span><span className="studio-total">{t(hisob.total.amount==null ? 'Ma’lum qism' : 'Jami')}<strong>{Number(hisob.total.amount ?? hisob.total.knownAmount).toLocaleString('ru-RU',{maximumFractionDigits:2})} {doc.currency}</strong></span></footer>
+    <footer className="studio-footer">
+      <span className="studio-live-dot" aria-hidden="true"/>
+      <span className={`fz-stamp ${localStatus==='saved' ? 'fz-stamp--ok' : localStatus==='error' || localStatus==='conflict' ? 'fz-stamp--danger' : 'fz-stamp--draft'}`}><span role="status">{localStatus==='saved' ? t('Shu qurilmada saqlandi') : localStatus==='saving' ? t('Qurilmada saqlanmoqda...') : t('Qoralama')}</span></span>
+      {serverText && <span className={`fz-stamp ${serverText.tur}`}>{serverText.matn}</span>}
+      <span role="status" className="text-accent">{lastAction}</span>
+      <span><strong>{ishlarSoni}</strong> {t('ish')} · <strong>{hajmsiz}</strong> {t('hajmsiz')}</span>
+      <span>{t('Ochiq masalalar')}: <strong>{hisob.total.unresolved}</strong></span>
+      <span className="studio-total"><span className="studio-total__label">{t(hisob.total.amount==null ? 'Ma’lum qism' : 'Jami')}</span>{jamiBlok}</span>
+    </footer>
   </div>;
 }

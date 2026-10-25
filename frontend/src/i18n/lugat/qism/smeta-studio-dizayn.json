@@ -1,0 +1,138 @@
+{
+ "ustama: obyekt bog‘lanmagan": {
+  "ru": "ustama: объект не привязан",
+  "en": "markup: no object linked"
+ },
+ "Serverga saqlanmagan": {
+  "ru": "Не сохранено на сервере",
+  "en": "Not saved to server"
+ },
+ "Serverda: v{n}": {
+  "ru": "На сервере: v{n}",
+  "en": "On server: v{n}"
+ },
+ "Server versiyasi: v{n}": {
+  "ru": "Версия на сервере: v{n}",
+  "en": "Server version: v{n}"
+ },
+ "Klaviatura yordami": {
+  "ru": "Подсказки по клавишам",
+  "en": "Keyboard hints"
+ },
+ "bekor": {
+  "ru": "отмена",
+  "en": "undo"
+ },
+ "ish tanlash": {
+  "ru": "выбор работы",
+  "en": "select work"
+ },
+ "hajmni saqlash": {
+  "ru": "сохранить объём",
+  "en": "save quantity"
+ },
+ "Ish qo‘shish": {
+  "ru": "Добавить работу",
+  "en": "Add work"
+ },
+ "Hisobda": {
+  "ru": "В расчёте",
+  "en": "Applied"
+ },
+ "hammasi": {
+  "ru": "все",
+  "en": "all"
+ },
+ "Qabul qilinmaguncha hisobga kirmaydi.": {
+  "ru": "Пока не принят — в расчёт не входит.",
+  "en": "Not part of the calculation until accepted."
+ },
+ "Qoralama tarkibi": {
+  "ru": "Состав черновика",
+  "en": "Draft composition"
+ },
+ "Kategoriya bo‘yicha taqsimot": {
+  "ru": "Распределение по категориям",
+  "en": "Split by category"
+ },
+ "Hali birorta qatorning summasi hisoblanmagan — hajm va narxlarni kiriting.": {
+  "ru": "Ни у одной строки сумма ещё не рассчитана — введите объёмы и цены.",
+  "en": "No line has a calculated amount yet — enter quantities and prices."
+ },
+ "Hisoblash to‘liqligi": {
+  "ru": "Полнота расчёта",
+  "en": "Calculation completeness"
+ },
+ "Summasi hisoblangan resurs qatorlari: {a} / {b}": {
+  "ru": "Строк ресурсов с рассчитанной суммой: {a} / {b}",
+  "en": "Resource lines with a calculated amount: {a} / {b}"
+ },
+ "{n} ta bo‘lim": {
+  "ru": "Разделов: {n}",
+  "en": "{n} sections"
+ },
+ "hajmsiz: {n}": {
+  "ru": "без объёма: {n}",
+  "en": "no quantity: {n}"
+ },
+ "summasi noma’lum qator: {n}": {
+  "ru": "строк с неизвестной суммой: {n}",
+  "en": "lines with unknown amount: {n}"
+ },
+ "hammasi hisoblangan": {
+  "ru": "всё рассчитано",
+  "en": "all calculated"
+ },
+ "kat?": {
+  "ru": "кат?",
+  "en": "cat?"
+ },
+ "koeff.: {n}": {
+  "ru": "коэфф.: {n}",
+  "en": "coef.: {n}"
+ },
+ "Qabul qilinmagan takliflar — hisobga olinmaydi": {
+  "ru": "Непринятые предложения — не учитываются",
+  "en": "Unaccepted proposals — not counted"
+ },
+ "taklif: {n}": {
+  "ru": "предложений: {n}",
+  "en": "proposals: {n}"
+ },
+ "Narxi belgilanmagan resurs qatorlari": {
+  "ru": "Строки ресурсов без цены",
+  "en": "Resource lines without a price"
+ },
+ "narxsiz: {n}": {
+  "ru": "без цены: {n}",
+  "en": "no price: {n}"
+ },
+ "Summa hisoblanmagan: hajm, norma yoki narx yetishmaydi": {
+  "ru": "Сумма не рассчитана: не хватает объёма, нормы или цены",
+  "en": "Amount not calculated: quantity, norm or price is missing"
+ },
+ "Bo‘limda summasi noma’lum qatorlar bor — faqat ma’lum qism ko‘rsatilgan": {
+  "ru": "В разделе есть строки с неизвестной суммой — показана только известная часть",
+  "en": "The section has lines with unknown amounts — only the known part is shown"
+ },
+ "ЧЕЛ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество ресурсов ЧЕЛ",
+  "en": "Multiplies LABOUR resource quantities"
+ },
+ "МАШ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество ресурсов МАШ",
+  "en": "Multiplies MACHINE resource quantities"
+ },
+ "ЧЕЛ va МАШ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество ресурсов ЧЕЛ и МАШ",
+  "en": "Multiplies LABOUR and MACHINE resource quantities"
+ },
+ "МАТ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество материалов МАТ",
+  "en": "Multiplies MATERIAL resource quantities"
+ },
+ "Hamma resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество всех ресурсов",
+  "en": "Multiplies all resource quantities"
+ }
+}
