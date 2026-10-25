@@ -1,267 +1,157 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import {
-  sbT2TolovlarOl, sbT2BuxDashboardOl,
-  type Tolov, type BuxDashboard,
-} from '../api/t2-buxgalteriya';
-import { Calculator, Plus, ArrowUpRight, ArrowDownRight, RefreshCcw, FileSpreadsheet, Building2, Search, ArrowRightLeft, CreditCard, Banknote, History, Wallet, BarChart3 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { sbT2TolovlarOl, sbT2BuxDashboardOl, type Tolov } from '../api/t2-buxgalteriya';
+import { Plus, RefreshCcw, FileSpreadsheet, Building2, CreditCard, Banknote, BarChart3 } from 'lucide-react';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
+import { t } from '../i18n/til';
+import { Sahifa } from '../umumiy/ui/Sahifa';
 import { useKompaniya } from './KompaniyaTanlov';
+import { tolovOqimi, tolovUlushi } from '../lib/kompaniya-ops-korinish';
+import { OpsBoshQator, OpsChiziq, OpsKpi, OpsKpiQator, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+
+/**
+ * To'lovlar (moliya) — egasi 2026-10-25: Firuza ko'rinishi.
+ * Tepada: bajarilgan (F2) → to'langan ulushi chizig'i, qarzdorlik va avans; oylar bo'yicha kirim/chiqim ustunlari.
+ * To'lov — haqiqiy pul harakati (ustama qo'llanmaydi); belgi o'rniga so'z: «kirim» / «chiqim».
+ */
+type Tab = 'reestr' | 'kassa' | 'cashflow' | '1c';
+type Toifa = 'barchasi' | 'kirim' | 'chiqim';
+const TUR_NOM: Record<string, string> = { avans: 'avans', tolov: 'to‘lov', qaytarim: 'qaytarim' };
 
 export default function TestTolov() {
-  const [params] = useSearchParams();
   const { joriy } = useKompaniya();
   const aktKomp = joriy?.id ?? 0;
 
-  const [activeTab, setActiveTab] = useState<'reestr' | 'kassa' | 'cashflow' | '1c'>('reestr');
-  
-  const [dashboard, setDashboard] = useState<{bajarilgan: number, tolangan: number, debitor: number, avans: number}>({bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0});
+  const [activeTab, setActiveTab] = useState<Tab>('reestr');
+  const [dashboard, setDashboard] = useState<{ bajarilgan: number; tolangan: number; debitor: number; avans: number }>({ bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0 });
   const [tolovlar, setTolovlar] = useState<Tolov[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [toifa, setToifa] = useState<Toifa>('barchasi');
 
   useEffect(() => {
     if (!aktKomp) return;
-    
     setYuklanmoqda(true);
-    Promise.all([
-      sbT2BuxDashboardOl(aktKomp),
-      sbT2TolovlarOl()
-    ]).then(([dashRes, tolovRes]) => {
+    void Promise.all([sbT2BuxDashboardOl(aktKomp), sbT2TolovlarOl()]).then(([dashRes, tolovRes]) => {
       setYuklanmoqda(false);
-      
       if (dashRes.ok && dashRes.qatorlar) {
-        // Hozirgi kompaniyaga tegishli shartnomalar ekanligini qanday bilamiz?
-        // t2_bux_dashboard'da kompaniya_id yo'q bo'lishi mumkin. Hozircha hamma dashboard summalarini qo'shamiz
-        const jami = dashRes.qatorlar.reduce((acc, curr) => {
-          return {
-            bajarilgan: acc.bajarilgan + (curr.bajarilgan || 0),
-            tolangan: acc.tolangan + (curr.tolangan || 0),
-            debitor: acc.debitor + (curr.debitor || 0),
-            avans: acc.avans + (curr.avans || 0)
-          };
-        }, {bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0});
-        setDashboard(jami);
+        // t2_bux_dashboard da kompaniya_id bo'lmasligi mumkin — hozircha barcha qatorlar yig'iladi (avvalgi xulq).
+        setDashboard(dashRes.qatorlar.reduce((acc, curr) => ({
+          bajarilgan: acc.bajarilgan + (curr.bajarilgan || 0),
+          tolangan: acc.tolangan + (curr.tolangan || 0),
+          debitor: acc.debitor + (curr.debitor || 0),
+          avans: acc.avans + (curr.avans || 0),
+        }), { bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0 }));
       } else {
-        setDashboard({bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0});
+        setDashboard({ bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0 });
       }
-
-      if (tolovRes.ok && tolovRes.qatorlar) {
-        // Filtrlash faqat hozirgi kompaniya uchun (chunki tolovRes barchasini beradi, agar rls bo'lmasa)
-        // API 't2-buxgalteriya' dagi sbT2TolovlarOl hozircha shartnomaId bilan chaqirilishi mumkin.
-        // Biz filter orqali kompaniyani ajratib olamiz.
-        setTolovlar(tolovRes.qatorlar.filter(t => t.kompaniya_id === aktKomp));
-      } else {
-        setTolovlar([]);
-      }
+      // sbT2TolovlarOl barcha to'lovlarni berishi mumkin — joriy kompaniya bo'yicha ajratiladi.
+      setTolovlar(tolovRes.ok && tolovRes.qatorlar ? tolovRes.qatorlar.filter((x) => x.kompaniya_id === aktKomp) : []);
     });
   }, [aktKomp]);
 
-  const filteredTolovlar = tolovlar.filter(t => 
-    t.izoh?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.shartnoma_id?.toString().includes(searchTerm)
-  );
+  const filteredTolovlar = tolovlar.filter((x) =>
+    (x.izoh?.toLowerCase().includes(searchTerm.toLowerCase()) || x.shartnoma_id?.toString().includes(searchTerm))
+    && (toifa === 'barchasi' || (toifa === 'kirim' ? x.summa > 0 : x.summa < 0)));
+  const oqim = useMemo(() => tolovOqimi(tolovlar), [tolovlar]);
+  const ulush = tolovUlushi(dashboard.bajarilgan, dashboard.tolangan);
+  const oyMaks = Math.max(1, ...oqim.oylar.map((o) => Math.max(o.kirim, o.chiqim)));
 
   return (
-    <div className="p-6 bg-transparent h-full overflow-y-auto text-text">
-      
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 mb-2 text-white">
-            <Wallet className="text-emerald-500" />
-            Moliya va G'aznachilik (Kassa)
-          </h1>
-          <p className="text-text-dim text-sm max-w-2xl">
-            Markazlashtirilgan moliya boshqaruvi. To'lovlar reestri, kassa operatsiyalari, debitor/kreditor qarzdorliklar tahlili.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button className="bg-[var(--surface-2)] border border-border hover:bg-[var(--surface-3)] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
-            <FileSpreadsheet size={16} className="text-emerald-500" />
-            Excel Eksport
-          </button>
-          <button 
-            onClick={() => toast("Yangi to'lov oynasi faqat 'Shartnomalar' ichidan ochilishi kerak (biznes logika)", "warn")}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-emerald-900/20"
-          >
-            <Plus size={16} />
-            Yangi To'lov
-          </button>
-        </div>
-      </div>
+    <Sahifa
+      sarlavha="To‘lovlar va kassa"
+      tavsif="Bajarilgan ish (F2) qanchasi to‘langan, kim qarzdor va oylar bo‘yicha pul oqimi."
+      amallar={<>
+        <button type="button" className="fz-btn fz-btn--ghost" title={t('Tez orada')}><FileSpreadsheet /> {t('Excel eksport')}</button>
+        <button type="button" onClick={() => toast(t('Yangi to‘lov faqat «Shartnomalar» ichidan kiritiladi (shartnomaga bog‘lanadi).'), 'warn')} className="fz-btn fz-btn--primary"><Plus /> {t('Yangi to‘lov')}</button>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <OpsKpiQator yorliq={t('Moliya ko‘rsatkichlari')}>
+          <OpsKpi nom={t('Bajarilgan (F2)')} rang="var(--info)" qiymat={<FmtN val={dashboard.bajarilgan} />} ost={t('Forma-2 lar yig‘indisi, so‘m')} />
+          <OpsKpi nom={t('To‘langan')} rang="var(--ok)" qiymat={<FmtN val={dashboard.tolangan} />}
+            ost={<span className="flex items-center gap-2"><OpsChiziq ulush={ulush} rang="var(--ok)" /><span className="whitespace-nowrap">{ulush == null ? '—' : t('{f}% bajarilgandan', { f: Math.round(ulush * 100) })}</span></span>} />
+          <OpsKpi nom={t('Qarzdorlik (bizga)')} rang="var(--danger)" qiymat={<span className={dashboard.debitor > 0 ? 'text-danger' : ''}><FmtN val={dashboard.debitor} /></span>} ost={t('bajarilgan, lekin to‘lanmagan')} />
+          <OpsKpi nom={t('Avans')} rang="var(--warn)" qiymat={<FmtN val={dashboard.avans} />} ost={t('oldindan to‘lovlar')} />
+        </OpsKpiQator>
 
-      {/* KPI WIDGETS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-[var(--surface-1)] border border-border p-5 rounded-xl shadow-md">
-          <div className="flex items-center gap-2 text-text-dim mb-3">
-            <Banknote size={16} className="text-emerald-400" />
-            <h3 className="text-sm font-medium">Bajarilgan Jami Qoldiq</h3>
+        <section className="fz-panel" aria-label={t('Pul oqimi oylar bo‘yicha')}>
+          <div className="fz-panel__h">
+            <span>{t('Pul oqimi oylar bo‘yicha')}</span>
+            <span className="flex gap-3 normal-case tracking-normal">
+              <span className="inline-flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-sm" style={{ background: 'var(--ok)' }} />{t('kirim')} <b className="tabular-nums text-text"><FmtN val={oqim.kirim} kasr={0} /></b></span>
+              <span className="inline-flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-sm" style={{ background: 'var(--danger)' }} />{t('chiqim')} <b className="tabular-nums text-text"><FmtN val={oqim.chiqim} kasr={0} /></b></span>
+            </span>
           </div>
-          <p className="text-2xl font-bold font-mono tracking-tight text-white mb-1">
-            <FmtN val={dashboard?.bajarilgan || 0} /> <span className="text-sm text-text-dim font-sans">UZS</span>
-          </p>
-          <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-            Forma-2 lar yig'indisi
-          </div>
-        </div>
-
-        <div className="bg-[var(--surface-1)] border border-border p-5 rounded-xl shadow-md">
-          <div className="flex items-center gap-2 text-text-dim mb-3">
-            <ArrowDownRight size={16} className="text-emerald-400" />
-            <h3 className="text-sm font-medium">To'langan Summa</h3>
-          </div>
-          <p className="text-2xl font-bold font-mono tracking-tight text-white mb-1">
-            <FmtN val={dashboard?.tolangan || 0} /> <span className="text-sm text-text-dim font-sans">UZS</span>
-          </p>
-          <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-            Tizimdagi to'lovlar
-          </div>
-        </div>
-
-        <div className="bg-[var(--surface-1)] border border-border p-5 rounded-xl shadow-md">
-          <div className="flex items-center gap-2 text-text-dim mb-3">
-            <ArrowUpRight size={16} className="text-rose-400" />
-            <h3 className="text-sm font-medium">Qarzdorlik (Balans)</h3>
-          </div>
-          <p className="text-2xl font-bold font-mono tracking-tight text-white mb-1">
-            <FmtN val={dashboard?.debitor || 0} /> <span className="text-sm text-text-dim font-sans">UZS</span>
-          </p>
-          <div className="flex items-center gap-1 text-xs text-text-dim font-medium">
-            Bizga qarzlar
-          </div>
-        </div>
-
-        <div className="bg-[var(--surface-1)] border border-border p-5 rounded-xl shadow-md">
-          <div className="flex items-center gap-2 text-text-dim mb-3">
-            <History size={16} className="text-amber-400" />
-            <h3 className="text-sm font-medium">To'langan Avans</h3>
-          </div>
-          <p className="text-2xl font-bold font-mono tracking-tight text-white mb-1">
-            <FmtN val={dashboard?.avans || 0} /> <span className="text-sm text-text-dim font-sans">UZS</span>
-          </p>
-          <div className="flex items-center gap-1 text-xs text-amber-400 font-medium">
-            Oldindan to'lovlar
-          </div>
-        </div>
-      </div>
-
-      {/* TABS */}
-      <div className="flex gap-1 bg-[var(--surface-1)] border border-border p-1 rounded-lg w-max mb-6">
-        {[
-          { id: 'reestr', label: 'To\'lovlar Reestri', icon: CreditCard },
-          { id: 'kassa', label: 'Bank va Kassa', icon: Banknote },
-          { id: 'cashflow', label: 'Cashflow (Prognoz)', icon: BarChart3 },
-          { id: '1c', label: '1C:Buxgalteriya Sinxron', icon: RefreshCcw }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-black text-white shadow-sm border border-border' : 'text-text-dim hover:text-white hover:bg-white/5'}`}
-          >
-            <tab.icon size={16} className={activeTab === tab.id ? 'text-emerald-400' : ''} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* CONTENT: REESTR */}
-      {activeTab === 'reestr' && (
-        <div className="bg-[var(--surface-1)] border border-border rounded-xl shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-border flex justify-between items-center bg-[var(--surface-2)]">
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-              <input 
-                type="text" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Izoh yoki shartnoma № bo'yicha qidiring..."
-                className="w-full bg-black border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-sky-500 outline-none"
-              />
+          {oqim.oylar.length === 0 ? <p className="text-[12px] text-text-mute">{t('To‘lovlar hali yo‘q — oqim chizig‘i to‘lov kiritilgach paydo bo‘ladi.')}</p> : (
+            <div className="flex items-end gap-3 overflow-x-auto pb-1" style={{ minHeight: 110 }}>
+              {oqim.oylar.map((o) => (
+                <div key={o.oy} className="flex min-w-[44px] flex-col items-center gap-1" title={t('{oy}: kirim {k}, chiqim {c}', { oy: o.oy, k: o.kirim.toLocaleString('ru-RU'), c: o.chiqim.toLocaleString('ru-RU') })}>
+                  <div className="flex h-[84px] items-end gap-1">
+                    <i className="block w-3 rounded-t-sm" style={{ height: `${(o.kirim / oyMaks) * 100}%`, minHeight: o.kirim ? 2 : 0, background: 'var(--ok)' }} />
+                    <i className="block w-3 rounded-t-sm" style={{ height: `${(o.chiqim / oyMaks) * 100}%`, minHeight: o.chiqim ? 2 : 0, background: 'var(--danger)' }} />
+                  </div>
+                  <span className="text-[10.5px] tabular-nums text-text-mute">{o.oy}</span>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-3">
-              <select className="bg-black border border-border rounded-lg px-3 py-2 text-sm text-text-dim outline-none">
-                <option>Barcha toifalar</option>
-                <option>Kirim</option>
-                <option>Chiqim</option>
+          )}
+        </section>
+
+        <OpsTablar<Tab> yorliq={t('Moliya bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+          { id: 'reestr', nom: t('To‘lovlar reestri'), ikon: <CreditCard />, soni: tolovlar.length },
+          { id: 'kassa', nom: t('Bank va kassa'), ikon: <Banknote /> },
+          { id: 'cashflow', nom: t('Cashflow (prognoz)'), ikon: <BarChart3 /> },
+          { id: '1c', nom: t('1C sinxron'), ikon: <RefreshCcw /> },
+        ]} />
+
+        {activeTab === 'reestr' && (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <OpsQidiruv qiymat={searchTerm} onChange={setSearchTerm} placeholder={t('Izoh yoki shartnoma № bo‘yicha qidiring…')} />
+              <select aria-label={t('Toifa')} value={toifa} onChange={(e) => setToifa(e.target.value as Toifa)} className="h-8 px-2 text-[13px]">
+                <option value="barchasi">{t('Barcha toifalar')}</option>
+                <option value="kirim">{t('Kirim')}</option>
+                <option value="chiqim">{t('Chiqim')}</option>
               </select>
             </div>
+            <div className="fz-table-wrap">
+              <table className="fz-table">
+                <thead>
+                  <tr><th>{t('ID')}</th><th>{t('Sana')}</th><th>{t('Shartnoma / tur')}</th><th>{t('Izoh')}</th><th className="fz-c-num">{t('Summa, so‘m')}</th><th>{t('Holat')}</th></tr>
+                </thead>
+                <tbody>
+                  {yuklanmoqda ? (
+                    <tr><td colSpan={6}><div className="skel h-24 rounded" /></td></tr>
+                  ) : filteredTolovlar.map((x) => (
+                    <tr key={x.id}>
+                      <td className="fz-c-shifr">#{x.id.toString().padStart(4, '0')}</td>
+                      <td className="whitespace-nowrap">{x.sana}</td>
+                      <td>
+                        <span className="inline-flex items-center gap-1.5"><Building2 size={13} className="text-text-mute" />{t('Shartnoma № {id}', { id: x.shartnoma_id })}</span>
+                        <span className="mt-0.5 block"><span className="fz-chip">{t(TUR_NOM[x.tur] ?? x.tur)}</span></span>
+                      </td>
+                      <td className="max-w-[260px] truncate text-text-dim" title={x.izoh || ''}>{x.izoh || '—'}</td>
+                      <td className={`fz-c-num font-semibold ${x.summa > 0 ? 'text-ok' : 'text-danger'}`}>
+                        <FmtN val={Math.abs(x.summa)} /><small className="ml-1 text-[10.5px] font-medium opacity-80">{x.summa > 0 ? t('kirim') : t('chiqim')}</small>
+                      </td>
+                      <td><span className={`fz-stamp ${x.holat === 'faol' ? 'fz-stamp--ok' : 'fz-stamp--danger'}`}>{x.holat === 'faol' ? t('faol') : t('bekor')}</span></td>
+                    </tr>
+                  ))}
+                  {!yuklanmoqda && filteredTolovlar.length === 0 && <OpsBoshQator ustun={6} matn={t('Hech qanday to‘lov yozuvi topilmadi.')} izoh={t('To‘lovlar «Shartnomalar» bo‘limida shartnomaga bog‘lab kiritiladi.')} />}
+                </tbody>
+              </table>
+            </div>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-black/40 border-b border-border text-text-dim font-medium">
-                  <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Sana</th>
-                  <th className="px-6 py-4">Shartnoma / Tur</th>
-                  <th className="px-6 py-4">Izoh</th>
-                  <th className="px-6 py-4 text-right">Summa (UZS)</th>
-                  <th className="px-6 py-4 text-center">Holat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {yuklanmoqda ? (
-                  <tr>
-                    <td colSpan={6} className="p-10 text-center text-text-dim animate-pulse">Yuklanmoqda...</td>
-                  </tr>
-                ) : filteredTolovlar.map(t => (
-                  <tr key={t.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 text-text-dim font-mono">#{t.id.toString().padStart(4, '0')}</td>
-                    <td className="px-6 py-4 text-white whitespace-nowrap">{t.sana}</td>
-                    <td className="px-6 py-4 font-medium text-sky-300">
-                      <div className="flex flex-col gap-1">
-                        <span className="flex items-center gap-2"><Building2 size={14} className="text-sky-500/50" /> Shartnoma ID: {t.shartnoma_id}</span>
-                        <span className="text-xs text-text-dim uppercase tracking-wider">{t.tur}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-text-dim max-w-[250px] truncate" title={t.izoh || ''}>{t.izoh || '-'}</td>
-                    <td className={`px-6 py-4 text-right font-mono font-bold whitespace-nowrap ${t.summa > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {t.summa > 0 ? '+' : ''}<FmtN val={t.summa} />
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${t.holat === 'faol' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-                        {t.holat}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {!yuklanmoqda && filteredTolovlar.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-10 text-center text-text-dim">Hech qanday to'lov yozuvi topilmadi.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        )}
 
-      {activeTab === '1c' && (
-        <div className="bg-[var(--surface-1)] border border-border rounded-xl p-12 text-center shadow-xl mt-6">
-          <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-blue-500/20">
-            <RefreshCcw size={32} className="text-blue-400" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-3">1C:Korxona (Buxgalteriya) API Ko'prigi</h2>
-          <p className="text-text-dim max-w-lg mx-auto mb-8">
-            Bu yerda barcha moliyaviy tranzaksiyalar (Provodkalar, F2 aktlar va EHF lar) avtomatik ravishda tashkilotning 1C bazasi bilan ikki tomonlama sinxronlanadi. Hozircha ishlab chiqilmoqda.
-          </p>
-          <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 mx-auto transition-colors shadow-lg shadow-blue-900/20">
-            Sinxronizatsiyani ishga tushirish
-          </button>
-        </div>
-      )}
-      
-      {(activeTab === 'kassa' || activeTab === 'cashflow') && (
-        <div className="bg-[var(--surface-1)] border border-border rounded-xl p-12 text-center shadow-xl mt-6">
-          <h2 className="text-xl font-bold text-white mb-3">Bo'lim yasalmoqda</h2>
-          <p className="text-text-dim max-w-lg mx-auto mb-8">
-            Bu bo'lim keyingi fazalarda ishga tushiriladi. Hozircha to'lovlar reestridan foydalaning.
-          </p>
-        </div>
-      )}
-
-    </div>
+        {activeTab === '1c' && (
+          <section className="fz-note fz-note--info"><RefreshCcw /><span><b>{t('1C:Buxgalteriya ko‘prigi')}</b>{' — '}{t('to‘lovlar, F2 aktlar va EHF larni 1C bazasi bilan ikki tomonlama sinxronlash. Hozircha ishlab chiqilmoqda.')}</span></section>
+        )}
+        {(activeTab === 'kassa' || activeTab === 'cashflow') && (
+          <section className="fz-note"><BarChart3 /><span>{t('Bu bo‘lim keyingi bosqichda ishga tushiriladi. Hozircha to‘lovlar reestridan foydalaning.')}</span></section>
+        )}
+      </div>
+    </Sahifa>
   );
 }
