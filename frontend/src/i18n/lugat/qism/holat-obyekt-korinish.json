@@ -1,0 +1,650 @@
+{
+ "Bajarilmaydigan / bekor qilingan ishlar": {
+  "ru": "Невыполняемые / отменённые работы",
+  "en": "Work not to be done / cancelled"
+ },
+ "Bu obyektda kanonik smeta qatorlari yo‘q.": {
+  "ru": "В этом объекте нет строк сметы.",
+  "en": "This object has no estimate rows."
+ },
+ "Eksport hozir mumkin emas": {
+  "ru": "Экспорт сейчас недоступен",
+  "en": "Export is not available right now"
+ },
+ "Eksport uchun obyektda smeta qatorlari bo‘lishi kerak.": {
+  "ru": "Для экспорта в объекте должны быть строки сметы.",
+  "en": "The object needs estimate rows before export."
+ },
+ "Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.": {
+  "ru": "Старая текстовая ссылка на объект недействительна. Выберите объект выше — дальше страница работает только с числовым `t2_obyekt.id`.",
+  "en": "The old text link to the object is not a canonical identity. Pick the object above — the page then works only with the numeric `t2_obyekt.id`."
+ },
+ "Excel eksporti hozir mumkin emas": {
+  "ru": "Экспорт в Excel сейчас недоступен",
+  "en": "Excel export is not available right now"
+ },
+ "Excel fayllar shu smetadan tuziladi; formulalar faylning o‘zida hisoblanadi.": {
+  "ru": "Файлы Excel строятся из этой сметы; формулы считаются прямо в файле.",
+  "en": "Excel files are built from this estimate; formulas calculate inside the file."
+ },
+ "Hujjatlardagi imzo va tomonlar": {
+  "ru": "Подписи и стороны в документах",
+  "en": "Signatures and parties in documents"
+ },
+ "Narx nazorati": {
+  "ru": "Контроль цен",
+  "en": "Price control"
+ },
+ "Slichitelniy vedomostga faqat fakt smetadan farq qiladigan pozitsiyalar kirsin": {
+  "ru": "В сличительную ведомость — только позиции, где факт отличается от сметы",
+  "en": "Include only items where actual differs from the estimate"
+ },
+ "Smeta XLSX yuklash": {
+  "ru": "Загрузка сметы XLSX",
+  "en": "Upload estimate XLSX"
+ },
+ "Tuzilmoqda…": {
+  "ru": "Формируется…",
+  "en": "Building…"
+ },
+ "faqat farqi borlar": {
+  "ru": "только с отличиями",
+  "en": "differences only"
+ },
+ "ochish ▾": {
+  "ru": "открыть ▾",
+  "en": "open ▾"
+ },
+ "yopish ▴": {
+  "ru": "закрыть ▴",
+  "en": "close ▴"
+ },
+ "tasdiq kutilmoqda": {
+  "ru": "ожидает утверждения",
+  "en": "awaiting approval"
+ },
+ "kompaniya tanlanmagan": {
+  "ru": "компания не выбрана",
+  "en": "no company selected"
+ },
+ "obyekt tanlanmagan": {
+  "ru": "объект не выбран",
+  "en": "no object selected"
+ },
+ "smeta ma’lumoti hali to‘liq yuklanmadi — yangilab qayta urinib ko‘ring": {
+  "ru": "данные сметы ещё не загружены полностью — обновите и повторите",
+  "en": "estimate data is not fully loaded yet — refresh and retry"
+ },
+ "ma’lumot yetarli emas": {
+  "ru": "данных недостаточно",
+  "en": "not enough data"
+ },
+ "Obyektni tanlang — smeta, bajarilgan ishlar va hujjatlar bir joyda": {
+  "ru": "Выберите объект — смета, выполненные работы и документы в одном месте",
+  "en": "Pick an object — estimate, completed work and documents in one place"
+ },
+ "LRV — butun smeta": {
+  "ru": "ЛРВ — вся смета",
+  "en": "LRV — whole estimate"
+ },
+ "Ф-2 shaklida: guruhlash, filtr, fakt / F2 / ostatka, resurs vedomosti va svod.": {
+  "ru": "В форме Ф-2: группировка, фильтр, факт / Ф2 / остаток, ресурсная ведомость и свод.",
+  "en": "In Form F-2: grouping, filter, actual / F2 / remainder, resource sheet and summary."
+ },
+ "LRV Excel": {
+  "ru": "ЛРВ Excel",
+  "en": "LRV Excel"
+ },
+ "LRV ko‘rish": {
+  "ru": "Просмотр ЛРВ",
+  "en": "Preview LRV"
+ },
+ "Ostatka vedomosti": {
+  "ru": "Ведомость остатка",
+  "en": "Remainder sheet"
+ },
+ "Bajarilmay qolgan ishlar (smeta − fakt), RZ ierarxiyasi, jami va imzolar.": {
+  "ru": "Невыполненные работы (смета − факт), иерархия разделов, итого и подписи.",
+  "en": "Remaining work (estimate − actual), section hierarchy, totals and signatures."
+ },
+ "Ostatka Excel": {
+  "ru": "Остаток Excel",
+  "en": "Remainder Excel"
+ },
+ "Ostatka ko‘rish": {
+  "ru": "Просмотр остатка",
+  "en": "Preview remainder"
+ },
+ "Slichitelniy vedomost": {
+  "ru": "Сличительная ведомость",
+  "en": "Reconciliation sheet"
+ },
+ "Smeta va haqiqatda bajarilgan hajm (va tasdiqlangan F2) har pozitsiya bo‘yicha, farq summasi bilan.": {
+  "ru": "Смета и фактически выполненный объём (и утверждённый Ф2) по каждой позиции, с суммой отклонения.",
+  "en": "Estimate vs. actually completed volume (and approved F2) per item, with the difference amount."
+ },
+ "Slichitelniy Excel": {
+  "ru": "Сличительная Excel",
+  "en": "Reconciliation Excel"
+ },
+ "Slichitelniy ko‘rish": {
+  "ru": "Просмотр сличительной",
+  "en": "Preview reconciliation"
+ },
+ "ВЕДОМОСТЬ ОСТАТКА РАБОТ: bajarilmay qolgan ishlar (smeta − fakt) smeta shaklida, RZ ierarxiyasi, ИТОГО, imzolar.": {
+  "ru": "ВЕДОМОСТЬ ОСТАТКА РАБОТ: невыполненные работы (смета − факт) в форме сметы, иерархия разделов, ИТОГО, подписи.",
+  "en": "REMAINING WORK SHEET: unfinished work (estimate − actual) in estimate form, section hierarchy, TOTAL, signatures."
+ },
+ "СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ: smeta va haqiqatda bajarilgan hajm (va tasdiqlangan Ф-2) har pozitsiya bo'yicha, farq (+/−) summasi bilan, imzolar.": {
+  "ru": "СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ: смета и фактически выполненный объём (и утверждённый Ф-2) по каждой позиции, с суммой отклонения (+/−), подписи.",
+  "en": "RECONCILIATION SHEET: estimate vs. actually completed volume (and approved F-2) per item, with difference (+/−), signatures."
+ },
+ "LRV — saytda hujjatdagiday ko‘rish": {
+  "ru": "ЛРВ — просмотр на сайте как в документе",
+  "en": "LRV — preview on site exactly as the document"
+ },
+ "Asosiy": {
+  "ru": "Основной",
+  "en": "Main"
+ },
+ "To‘liq (pul ustunlari bilan)": {
+  "ru": "Полный (с денежными столбцами)",
+  "en": "Full (with money columns)"
+ },
+ "Ko‘rinadigan ustunlar to‘plami": {
+  "ru": "Набор видимых столбцов",
+  "en": "Visible column set"
+ },
+ "Qator balandligi": {
+  "ru": "Высота строк",
+  "en": "Row height"
+ },
+ "Keng qatorlar": {
+  "ru": "Просторные строки",
+  "en": "Comfortable rows"
+ },
+ "Zich qatorlar": {
+  "ru": "Плотные строки",
+  "en": "Compact rows"
+ },
+ "Tezkor filtrlar": {
+  "ru": "Быстрые фильтры",
+  "en": "Quick filters"
+ },
+ "Narx nazorati filtrlari: ma’lumot ulanmagan": {
+  "ru": "Фильтры контроля цен: данные не подключены",
+  "en": "Price-control filters: data not connected"
+ },
+ "Muzlagan / Xavf ostida / Protokolsiz filtrlari narx nazorati ma’lumoti kelganda chiqadi": {
+  "ru": "Фильтры «Заморожено / Под риском / Без протокола» появятся, когда придут данные контроля цен",
+  "en": "The Frozen / At risk / No protocol filters appear once price-control data arrives"
+ },
+ "Narx nazorati holati": {
+  "ru": "Статус контроля цен",
+  "en": "Price-control status"
+ },
+ "Narx holati": {
+  "ru": "Статус цены",
+  "en": "Price status"
+ },
+ "Narx nazorati ma’lumoti ulanmagan": {
+  "ru": "Данные контроля цен не подключены",
+  "en": "Price-control data not connected"
+ },
+ "F2 olish mumkin": {
+  "ru": "Можно принять по Ф2",
+  "en": "Can be claimed in F2"
+ },
+ "Faqat BL": {
+  "ru": "Только работы",
+  "en": "Work items only"
+ },
+ "Muzlagan": {
+  "ru": "Заморожено",
+  "en": "Frozen"
+ },
+ "Xavf ostida": {
+  "ru": "Под риском",
+  "en": "At risk"
+ },
+ "Protokolsiz": {
+  "ru": "Без протокола",
+  "en": "No protocol"
+ },
+ "Normal": {
+  "ru": "Норма",
+  "en": "Normal"
+ },
+ "Asoslangan": {
+  "ru": "Обосновано",
+  "en": "Justified"
+ },
+ "Basis kerak": {
+  "ru": "Нужно основание",
+  "en": "Basis needed"
+ },
+ "Asosdan yuqori": {
+  "ru": "Выше основания",
+  "en": "Above basis"
+ },
+ "Past narx / muzlagan": {
+  "ru": "Низкая цена / заморожено",
+  "en": "Low price / frozen"
+ },
+ "Basis bor — asoslangan": {
+  "ru": "Основание есть — обосновано",
+  "en": "Basis exists — justified"
+ },
+ "Yuqori narx / basis talab": {
+  "ru": "Высокая цена / нужно основание",
+  "en": "High price / basis required"
+ },
+ "Tasdiqlangan basisdan yuqori": {
+  "ru": "Выше утверждённого основания",
+  "en": "Above the approved basis"
+ },
+ "Nomsiz": {
+  "ru": "Без названия",
+  "en": "Untitled"
+ },
+ "Kod yo‘q": {
+  "ru": "Нет кода",
+  "en": "No code"
+ },
+ "Birlik yo‘q": {
+  "ru": "Нет ед. изм.",
+  "en": "No unit"
+ },
+ "Qator maydonlarini tahrirlash": {
+  "ru": "Редактировать поля строки",
+  "en": "Edit row fields"
+ },
+ "Fakt hajmi": {
+  "ru": "Объём факта",
+  "en": "Actual volume"
+ },
+ "F2 hajmi": {
+  "ru": "Объём Ф2",
+  "en": "F2 volume"
+ },
+ "Qoldiq hajmi": {
+  "ru": "Остаток объёма",
+  "en": "Remaining volume"
+ },
+ "Narx, so‘m": {
+  "ru": "Цена, сум",
+  "en": "Price, UZS"
+ },
+ "F2 summasi": {
+  "ru": "Сумма Ф2",
+  "en": "F2 amount"
+ },
+ "Qoldiq summasi": {
+  "ru": "Остаток суммы",
+  "en": "Remaining amount"
+ },
+ "Summalar, so‘m": {
+  "ru": "Суммы, сум",
+  "en": "Amounts, UZS"
+ },
+ "F2 olingan": {
+  "ru": "Принято по Ф2",
+  "en": "Certified in F2"
+ },
+ "Joriy Fakt": {
+  "ru": "Текущий факт",
+  "en": "Current actual"
+ },
+ "Fakt amalini tanlang": {
+  "ru": "Выберите действие с фактом",
+  "en": "Choose the actual action"
+ },
+ "Jami Faktni o‘rnatish": {
+  "ru": "Задать итоговый факт",
+  "en": "Set total actual"
+ },
+ "Server eskirgan qiymatni conflict sifatida tekshiradi.": {
+  "ru": "Сервер проверит устаревшее значение как конфликт.",
+  "en": "The server checks a stale value as a conflict."
+ },
+ "Faktga qo‘shish": {
+  "ru": "Добавить к факту",
+  "en": "Add to actual"
+ },
+ "Kiritilgan qiymat alohida Fakt qatoriga yoziladi.": {
+  "ru": "Введённое значение записывается отдельной строкой факта.",
+  "en": "The entered value is written as a separate actual row."
+ },
+ "Yangi jami Fakt hajmi": {
+  "ru": "Новый итоговый объём факта",
+  "en": "New total actual volume"
+ },
+ "Qo‘shiladigan Fakt hajmi": {
+  "ru": "Добавляемый объём факта",
+  "en": "Actual volume to add"
+ },
+ "Faktni saqlash": {
+  "ru": "Сохранить факт",
+  "en": "Save actual"
+ },
+ "F2 mumkin — bajarilgan (fakt), lekin hali F2 akti bilan topshirilmagan qism.": {
+  "ru": "Можно по Ф2 — выполнено (факт), но ещё не сдано актом Ф2.",
+  "en": "F2 available — completed (actual) but not yet submitted in an F2 act."
+ },
+ "Oylar bo‘yicha F2 hajmi": {
+  "ru": "Объём Ф2 по месяцам",
+  "en": "F2 volume by month"
+ },
+ "Reference narx": {
+  "ru": "Референсная цена",
+  "en": "Reference price"
+ },
+ "F2 narx": {
+  "ru": "Цена по Ф2",
+  "en": "F2 price"
+ },
+ "Muzlagan summa": {
+  "ru": "Замороженная сумма",
+  "en": "Frozen amount"
+ },
+ "Xavf ostidagi summa": {
+  "ru": "Сумма под риском",
+  "en": "Amount at risk"
+ },
+ "Qator identifikatori": {
+  "ru": "Идентификатор строки",
+  "en": "Row identifier"
+ },
+ "Kanonik ID yo‘q": {
+  "ru": "Нет канонического ID",
+  "en": "No canonical ID"
+ },
+ "O‘zgarish holati": {
+  "ru": "Состояние изменения",
+  "en": "Change status"
+ },
+ "Zamena aloqasi mavjud": {
+  "ru": "Есть связь замены",
+  "en": "Replacement link exists"
+ },
+ "Oddiy qator": {
+  "ru": "Обычная строка",
+  "en": "Regular row"
+ },
+ "Bajarilish: smeta qiymati noma’lum": {
+  "ru": "Выполнение: стоимость по смете неизвестна",
+  "en": "Progress: estimate value unknown"
+ },
+ "fakt (F2 siz)": {
+  "ru": "факт (без Ф2)",
+  "en": "actual (not in F2)"
+ },
+ "Bu obyektda resurs qatori topilmadi.": {
+  "ru": "В этом объекте строки ресурсов не найдены.",
+  "en": "No resource rows found in this object."
+ },
+ "F2 summa": {
+  "ru": "Сумма Ф2",
+  "en": "F2 amount"
+ },
+ "F2 ulushi": {
+  "ru": "Доля Ф2",
+  "en": "F2 share"
+ },
+ "Qoldiq hajm": {
+  "ru": "Остаток объёма",
+  "en": "Remaining volume"
+ },
+ "Qoldiq summa": {
+  "ru": "Остаток суммы",
+  "en": "Remaining amount"
+ },
+ "Smeta summa": {
+  "ru": "Сумма по смете",
+  "en": "Estimate amount"
+ },
+ "Resurs qidirish": {
+  "ru": "Поиск ресурса",
+  "en": "Search resource"
+ },
+ "Resurs tarkibi (smeta summasi bo‘yicha)": {
+  "ru": "Состав ресурсов (по сумме сметы)",
+  "en": "Resource mix (by estimate amount)"
+ },
+ "Saytda hujjatdagiday ko‘rish": {
+  "ru": "Просмотр на сайте как в документе",
+  "en": "Preview on site exactly as the document"
+ },
+ "Mehnat (ishchilar)": {
+  "ru": "Труд (рабочие)",
+  "en": "Labour (workers)"
+ },
+ "Jihozlar": {
+  "ru": "Оборудование",
+  "en": "Equipment"
+ },
+ "Bu xarid tejami emas.": {
+  "ru": "Это не экономия на закупках.",
+  "en": "This is not a procurement saving."
+ },
+ "F2 qaysi narxda sertifikatlangani va shu qator uchun reference (smeta baseline, F2 yaratilgan payt muzlagan) narx orasidagi farq ko‘rsatiladi.": {
+  "ru": "Показана разница между ценой, по которой сертифицирован Ф2, и референсной ценой строки (базовая цена сметы, зафиксированная при создании Ф2).",
+  "en": "Shows the difference between the price at which F2 was certified and the line’s reference price (estimate baseline, frozen when the F2 was created)."
+ },
+ "past narxda yopilgan qism": {
+  "ru": "часть, закрытая по низкой цене",
+  "en": "part closed at a low price"
+ },
+ "hali tasdiqlanmagan qism": {
+  "ru": "ещё не утверждённая часть",
+  "en": "part not yet approved"
+ },
+ "narx reference‘dan yuqori — bu foyda emas, asos (protokol) nazorati": {
+  "ru": "цена выше референсной — это не выгода, а контроль основания (протокола)",
+  "en": "price above reference — not a gain, it is basis (protocol) control"
+ },
+ "Bu obyektda hali tasdiqlangan (exact-source, v2) F2 qatori yo‘q — narx nazorati faqat": {
+  "ru": "В этом объекте пока нет утверждённых (exact-source, v2) строк Ф2 — контроль цен работает только для строк Ф2,",
+  "en": "This object has no certified (exact-source, v2) F2 rows yet — price control works only for F2 rows"
+ },
+ "orqali yaratilgan F2 qatorlar uchun ishlaydi.": {
+  "ru": "созданных через",
+  "en": "created via"
+ },
+ "Obyekt tanlanmagan.": {
+  "ru": "Объект не выбран.",
+  "en": "No object selected."
+ },
+ "barcha qatorlarni ko‘rsatish": {
+  "ru": "показать все строки",
+  "en": "show all rows"
+ },
+ "yangilash": {
+  "ru": "обновить",
+  "en": "refresh"
+ },
+ "— obyekt tanlang —": {
+  "ru": "— выберите объект —",
+  "en": "— select an object —"
+ },
+ "Reference‘dan yuqori F2": {
+  "ru": "Ф2 выше референса",
+  "en": "F2 above reference"
+ },
+ "Jami muzlagan summa": {
+  "ru": "Всего заморожено",
+  "en": "Total frozen"
+ },
+ "Hozir xavf ostidagi summa": {
+  "ru": "Сейчас под риском",
+  "en": "Currently at risk"
+ },
+ "Basis/protokolsiz qatorlar": {
+  "ru": "Строки без основания/протокола",
+  "en": "Rows without basis/protocol"
+ },
+ "Nom": {
+  "ru": "Название",
+  "en": "Name"
+ },
+ "Hujjatni ko‘rish": {
+  "ru": "Просмотр документа",
+  "en": "View document"
+ },
+ "Import to‘xtatilmaydi — bu ogohlantirish. Solishtirish nom + birlik bo‘yicha; kod bir xil, nomi farqli pozitsiyalar birlashtirilmaydi, izohda ko‘rsatiladi.": {
+  "ru": "Импорт не прерывается — это предупреждение. Сверка по названию + единице; позиции с одинаковым кодом, но разным названием не объединяются и показаны в примечании.",
+  "en": "Import is not stopped — this is a warning. Matching is by name + unit; items with the same code but a different name are not merged and are noted."
+ },
+ "LRV va RES solishtirilmoqda…": {
+  "ru": "ЛРВ и РС сверяются…",
+  "en": "Comparing LRV and RES…"
+ },
+ "LRV va RES solishtirish natijasi": {
+  "ru": "Результат сверки ЛРВ и РС",
+  "en": "LRV vs RES comparison result"
+ },
+ "LRV ↔ RES solishtirish": {
+  "ru": "Сверка ЛРВ ↔ РС",
+  "en": "LRV ↔ RES comparison"
+ },
+ "Tur": {
+  "ru": "Тип",
+  "en": "Type"
+ },
+ "ta muammo": {
+  "ru": "проблем",
+  "en": "issues"
+ },
+ "to‘liq mos": {
+  "ru": "полностью совпадает",
+  "en": "fully matching"
+ },
+ "farq bor": {
+  "ru": "есть разница",
+  "en": "differs"
+ },
+ "faqat LRV da": {
+  "ru": "только в ЛРВ",
+  "en": "LRV only"
+ },
+ "faqat RES da": {
+  "ru": "только в РС",
+  "en": "RES only"
+ },
+ "miqdori yo‘q": {
+  "ru": "нет количества",
+  "en": "no quantity"
+ },
+ "mashinist mehnati (ma’lumot uchun)": {
+  "ru": "труд машиниста (справочно)",
+  "en": "machine-operator labour (info)"
+ },
+ "Bajarilish foizi smeta va fakt ma’lum bo‘lganda hisoblanadi": {
+  "ru": "Процент выполнения считается, когда известны смета и факт",
+  "en": "Progress is calculated once estimate and actual are known"
+ },
+ "Ba’zi qiymatlar noma’lum — foiz taxminiy": {
+  "ru": "Некоторые значения неизвестны — процент приблизительный",
+  "en": "Some values are unknown — the percentage is approximate"
+ },
+ "Umumiy bajarilish": {
+  "ru": "Общее выполнение",
+  "en": "Overall progress"
+ },
+ "Smeta noma’lum": {
+  "ru": "Смета неизвестна",
+  "en": "Estimate unknown"
+ },
+ "Fakt noma’lum": {
+  "ru": "Факт неизвестен",
+  "en": "Actual unknown"
+ },
+ "Smetadan oshgan": {
+  "ru": "Превышает смету",
+  "en": "Over estimate"
+ },
+ "Yakunlangan": {
+  "ru": "Завершён",
+  "en": "Completed"
+ },
+ "\"{nom}\" obyektini arxivga (korzinka) o‘tkazasizmi?": {
+  "ru": "Перенести объект «{nom}» в архив (корзину)?",
+  "en": "Move object “{nom}” to the archive (trash)?"
+ },
+ "Arxivga o‘tkazish": {
+  "ru": "В архив",
+  "en": "Archive"
+ },
+ "Loyiha (ixtiyoriy)": {
+  "ru": "Проект (необязательно)",
+  "en": "Project (optional)"
+ },
+ "Loyiha yaratish": {
+  "ru": "Создать проект",
+  "en": "Create project"
+ },
+ "Masalan: Amfiteatr, blok A": {
+  "ru": "Например: Амфитеатр, блок А",
+  "en": "e.g. Amphitheatre, block A"
+ },
+ "Obyekt nomi": {
+  "ru": "Название объекта",
+  "en": "Object name"
+ },
+ "Obyekt turi": {
+  "ru": "Тип объекта",
+  "en": "Object type"
+ },
+ "Saqlash va Joylash": {
+  "ru": "Сохранить и разместить",
+  "en": "Save and place"
+ },
+ "Turi…": {
+  "ru": "Тип…",
+  "en": "Type…"
+ },
+ "Yangi nomi…": {
+  "ru": "Новое название…",
+  "en": "New name…"
+ },
+ "Yangi obyekt": {
+  "ru": "Новый объект",
+  "en": "New object"
+ },
+ "Yaratish": {
+  "ru": "Создать",
+  "en": "Create"
+ },
+ "— Loyihasiz —": {
+  "ru": "— Без проекта —",
+  "en": "— No project —"
+ },
+ "Hali birorta obyekt yo‘q": {
+  "ru": "Объектов пока нет",
+  "en": "No objects yet"
+ },
+ "Obyekt — smeta, bajarilgan ishlar va hujjatlar bir joyda turadigan ish joyi. Boshlash uchun quyidagi qadamlardan birini tanlang.": {
+  "ru": "Объект — рабочее место, где в одном месте собраны смета, выполненные работы и документы. Чтобы начать, выберите один из шагов ниже.",
+  "en": "An object is the workspace where the estimate, completed work and documents live together. Pick one of the steps below to begin."
+ },
+ "Loyiha yarating (ixtiyoriy) — obyektlar shu loyiha ostida guruhlanadi.": {
+  "ru": "Создайте проект (необязательно) — объекты группируются под ним.",
+  "en": "Create a project (optional) — objects are grouped under it."
+ },
+ "Obyekt qo‘shing va nomini yozing.": {
+  "ru": "Добавьте объект и укажите его название.",
+  "en": "Add an object and give it a name."
+ },
+ "Obyekt ichida smeta XLSX faylini yuklang — smeta, fakt va F2 shu yerdan boshlanadi.": {
+  "ru": "Загрузите в объект файл сметы XLSX — смета, факт и Ф2 начинаются отсюда.",
+  "en": "Upload the estimate XLSX inside the object — estimate, actual and F2 start from there."
+ },
+ "Obyekt Joylashuvini Belgilash": {
+  "ru": "Указать расположение объекта",
+  "en": "Set object location"
+ },
+ "ta qator topildi": {
+  "ru": "строк найдено",
+  "en": "rows found"
+ }
+}

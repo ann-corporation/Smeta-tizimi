@@ -4,12 +4,11 @@ import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySu
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Database, Eye, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Ban, ChevronDown, Eye, FileSpreadsheet, Info, Plus, Upload, X } from 'lucide-react';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
-import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import { useT2Daraxt } from '../../umumiy/daraxt/useT2Daraxt';
@@ -95,6 +94,13 @@ export function HolatNative() {
   }), [joriy?.id, selected?.loyiha_id, validId, obyektId, daraxtXom.length, error, loading, workspace.loading.periods, workspace.periods.length, workspace.scope, workspace.sourceDocuments]);
   const exportGate = lrvPlusEksportGate(exportContext);
   const exportBlockReason = !exportGate.ok ? exportGate.reasons[0] : null;
+  /* Texnik gate kodi (OBJECT_CONTEXT_REQUIRED…) foydalanuvchiga ko'rsatilmaydi — tushunarli sabab. */
+  const SABAB_UZ: Record<string, string> = {
+    COMPANY_CONTEXT_REQUIRED: 'kompaniya tanlanmagan',
+    OBJECT_CONTEXT_REQUIRED: 'obyekt tanlanmagan',
+    READ_MODEL_NOT_COMPLETE: 'smeta ma’lumoti hali to‘liq yuklanmadi — yangilab qayta urinib ko‘ring',
+  };
+  const eksportSababi = t(exportBlockReason ? (SABAB_UZ[exportBlockReason] ?? 'ma’lumot yetarli emas') : 'ma’lumot yetarli emas');
 
   useEffect(() => {
     let active = true;
@@ -164,7 +170,7 @@ export function HolatNative() {
   const eksportQil = useCallback(async (korish = false) => {
     if (!selected || !daraxtXom.length || !joriy?.id) return;
     if (!exportGate.ok) {
-      setError(`Excel eksporti bloklandi: ${exportBlockReason || 'provenance/context yetarli emas'}.`);
+      setError(`${t('Excel eksporti hozir mumkin emas')}: ${eksportSababi}.`);
       return;
     }
     setEksportBolmoqda(true);
@@ -187,7 +193,7 @@ export function HolatNative() {
     } catch {
       setError('Excel fayli tuzilmadi. Qayta urinib ko‘ring.');
     } finally { setEksportBolmoqda(false); }
-  }, [selected, daraxtXom, holatXom, obyektId, joriy?.id, exportGate.ok, exportBlockReason, tomonlar, korinish]);
+  }, [selected, daraxtXom, holatXom, obyektId, joriy?.id, exportGate.ok, eksportSababi, tomonlar, korinish]);
 
   /* Egasi (2026-09-23): "tizim ostatka ishlarni ham bittada smeta shaklida bera
      oladigan bo'lishi kerak". Ostatka = smeta − fakt; hujjat — rasmiy
@@ -196,7 +202,7 @@ export function HolatNative() {
   const ostatkaEksport = useCallback(async (korish = false) => {
     if (!selected || !daraxtXom.length || !joriy?.id) return;
     if (!exportGate.ok) {
-      setError(`Excel eksporti bloklandi: ${exportBlockReason || 'provenance/context yetarli emas'}.`);
+      setError(`${t('Excel eksporti hozir mumkin emas')}: ${eksportSababi}.`);
       return;
     }
     // Bajarilmaydigan/bekor qilingan ishlar — eng so'nggi holat bilan (jim yo'qotish yo'q).
@@ -227,7 +233,7 @@ export function HolatNative() {
     } catch {
       setError('Ostatka Excel fayli tuzilmadi. Qayta urinib ko‘ring.');
     } finally { setEksportBolmoqda(false); }
-  }, [selected, daraxtXom, holatXom, exportGate.ok, exportBlockReason, tomonlar, istisno, obyektId, korinish, joriy?.id]);
+  }, [selected, daraxtXom, holatXom, exportGate.ok, eksportSababi, tomonlar, istisno, obyektId, korinish, joriy?.id]);
 
 
   /* Egasi (2026-09-25): "slichitelniy vedomost ham yasay oladigan bo'lishi
@@ -237,7 +243,7 @@ export function HolatNative() {
   const slichitelniyEksport = useCallback(async (korish = false) => {
     if (!selected || !daraxtXom.length || !joriy?.id) return;
     if (!exportGate.ok) {
-      setError(`Excel eksporti bloklandi: ${exportBlockReason || 'provenance/context yetarli emas'}.`);
+      setError(`${t('Excel eksporti hozir mumkin emas')}: ${eksportSababi}.`);
       return;
     }
     let istisnolar;
@@ -259,127 +265,152 @@ export function HolatNative() {
     } catch {
       setError('Slichitelniy Excel fayli tuzilmadi. Qayta urinib ko‘ring.');
     } finally { setEksportBolmoqda(false); }
-  }, [selected, daraxtXom, holatXom, exportGate.ok, exportBlockReason, tomonlar, istisno, slichFaqatFarq, obyektId, korinish, joriy?.id]);
+  }, [selected, daraxtXom, holatXom, exportGate.ok, eksportSababi, tomonlar, istisno, slichFaqatFarq, obyektId, korinish, joriy?.id]);
 
-  const smetaJami = tree.reduce((sum, n) => sum + (n.smeta || 0), 0);
-  const faktJami = tree.reduce((sum, n) => sum + (n.stFakt || 0), 0);
-  const f2Jami = tree.reduce((sum, n) => sum + (n.stF2 || 0), 0);
+  /* Shartnoma bo'yicha ustama (URL `?shartnoma=`) — SmetaAnatomiya umumiy (obyekt) ustamasini ko'rsatadi; aniq
+     shartnoma tanlangan bo'lsa, o'sha shartnomaning nakrutkali summasi alohida ixcham qatorda qoladi. */
+  const shartnomaTanlangan = searchParams.get('shartnoma') != null;
+  const eksportMumkin = validId && tree.length > 0;
+  const kutilayotgan = istisno.royxat.filter((o) => o.holat === 'qoralama').length;
 
+  const TABLAR = [
+    ['smeta', 'Smeta va bajarilish'], ['resurs', 'Resurslar'], ['narx', 'Narxlar nazorati'], ['yuklash', 'Smeta yuklash'], ['shartnoma', 'Shartnoma doirasi'],
+  ] as const;
+  const eksportQator = (nom: string, tavsif: string, tugma: string, korishNomi: string, onExcel: () => void, onKorish: () => void, sarlavhaTitle: string, qoshimcha?: ReactNode) => (
+    <div className="grid items-center gap-x-4 gap-y-1 border-b border-border py-2.5 last:border-b-0" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }}>
+      <div className="min-w-0">
+        <p className="text-[13.5px] font-semibold text-text" style={{ fontFamily: 'var(--font-display)' }}>{t(nom)}</p>
+        <p className="text-[12px] leading-4 text-text-mute">{t(tavsif)}</p>
+        {qoshimcha}
+      </div>
+      <div className="flex items-center gap-1.5">
+        <button type="button" onClick={onExcel} disabled={eksportBolmoqda || !exportGate.ok} title={exportGate.ok ? t(sarlavhaTitle) : `${t('Eksport hozir mumkin emas')}: ${eksportSababi}`} className="fz-btn fz-btn--sm">
+          <FileSpreadsheet aria-hidden="true" /> {eksportBolmoqda ? t('Tuzilmoqda…') : tugma}
+        </button>
+        <button type="button" onClick={onKorish} disabled={eksportBolmoqda || !exportGate.ok} title={t(korishNomi)} aria-label={t(korishNomi)} className="fz-btn fz-btn--sm fz-btn--icon"><Eye aria-hidden="true" /></button>
+      </div>
+    </div>
+  );
 
   return (
-    <Sahifa sarlavha="Obyekt ish joyi" tavsif="Smeta, bajarilgan ishlar va hujjatlar bir joyda">
+    <Sahifa
+      sarlavha={selected?.nom ?? 'Obyekt ish joyi'}
+      tavsif={selected ? 'Smeta, bajarilgan ishlar va hujjatlar bir joyda' : 'Obyektni tanlang — smeta, bajarilgan ishlar va hujjatlar bir joyda'}
+      onYangila={validId ? () => void yuklash() : undefined}
+      yangilanmoqda={loading || yangilanmoqda}
+      amallar={<>
+        {selected && <button type="button" className="fz-btn" aria-expanded={exportsOpen} onClick={() => setExportsOpen(v => !v)}><FileSpreadsheet aria-hidden="true" />{t('Hujjatlar va eksport')}<ChevronDown aria-hidden="true" style={{ transform: exportsOpen ? 'rotate(180deg)' : undefined, transition: 'transform .12s' }} /></button>}
+        {validId && <button type="button" onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="fz-btn fz-btn--primary"><Plus aria-hidden="true" />{t('Fakt kiritish')}</button>}
+      </>}
+    >
       {korinish.oyna}
       <div className="flex min-h-0 flex-col gap-3">
-        {validId && <ObjectTrail companyId={joriy?.id ?? null} objectId={obyektId} />}
-        <section className="karta flex flex-wrap items-end gap-3 p-3">
-          <button onClick={() => navigate('/admin/obyektlar')} className="rounded-lg border border-border p-2 text-text-dim hover:text-text" aria-label="Obyektlarga qaytish"><ArrowLeft size={17} /></button>
-          <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text">
-            {t('Obyekt')}
-            <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); if (Number.isSafeInteger(nextId) && nextId > 0) navigate(`/admin/holat/${nextId}${workspace.scopeSearch(nextId)}`); else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-text outline-none focus:border-accent">
-              <option value="">-- obyektni tanlang --</option>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <button type="button" onClick={() => navigate('/admin/obyektlar')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label="Obyektlarga qaytish" title={t('Obyektlarga qaytish')}><ArrowLeft aria-hidden="true" /></button>
+          {validId && <div className="min-w-0 flex-1"><ObjectTrail companyId={joriy?.id ?? null} objectId={obyektId} /></div>}
+          <label className="ml-auto flex min-w-[240px] max-w-[420px] flex-1 items-center gap-2 text-[12px] font-medium text-text-dim">
+            <span className="shrink-0">{t('Obyekt')}</span>
+            <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); if (Number.isSafeInteger(nextId) && nextId > 0) navigate(`/admin/holat/${nextId}${workspace.scopeSearch(nextId)}`); else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="h-8 min-w-0 flex-1 rounded-md border border-[var(--border-strong)] bg-surface-2 px-2 text-[13px] text-text">
+              <option value="">{t('-- obyektni tanlang --')}</option>
               <ObyektOptionlari obyektlar={obyektlar} />
             </select>
           </label>
-          <button onClick={() => void yuklash()} disabled={!validId || loading || yangilanmoqda} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] font-medium hover:bg-surface-2 disabled:opacity-40"><RefreshCw size={14} className={yangilanmoqda ? 'animate-spin' : undefined} /> Yangilash</button>
-          {validId && tree.length > 0 && !exportGate.ok && (
-            <span role="status" className="max-w-[280px] text-[11px] text-warn">
-              Excel eksporti bloklangan: {exportBlockReason}. PTO scope’da loyiha, davr, source hujjat va revisionni tanlang.
-            </span>
-          )}
-          {selected && <button type="button" className="tugma" aria-expanded={exportsOpen} onClick={() => setExportsOpen(v => !v)}><FileSpreadsheet size={14}/>{t('Hujjatlar va eksport')}</button>}
-          {validId && <button onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white">Fakt kiritish</button>}
+        </div>
 
-        </section>
-
-        {exportsOpen && selected && <section className="karta flex flex-wrap items-center gap-2 p-3" aria-label={t('Hujjatlar va eksport')}>
-          {validId && tree.length > 0 && (<>
-            <button onClick={() => void eksportQil(false)} disabled={eksportBolmoqda || !exportGate.ok}
-              title={exportGate.ok ? t('ЛРВ: butun smeta Ф-2 shaklida — guruhlash, filtr, fakt / F2 / ostatka, resurs vedomosti va svod formulalarda') : `Eksport bloklangan: ${exportBlockReason}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] font-medium hover:bg-surface-2 disabled:opacity-40">
-              <FileSpreadsheet size={14} /> {eksportBolmoqda ? 'Tuzilmoqda…' : 'LRV Excel'}
-            </button>
-            <button onClick={() => void eksportQil(true)} disabled={eksportBolmoqda || !exportGate.ok} title="LRV — saytda hujjatdagiday ko‘rish" aria-label="LRV ko‘rish"
-              className="inline-flex items-center rounded-lg border border-border px-2 py-2 text-[12px] hover:bg-surface-2 disabled:opacity-40"><Eye size={14} /></button>
-            <button onClick={() => void ostatkaEksport(false)} disabled={eksportBolmoqda || !exportGate.ok}
-              title={exportGate.ok ? "ВЕДОМОСТЬ ОСТАТКА РАБОТ: bajarilmay qolgan ishlar (smeta − fakt) smeta shaklida, RZ ierarxiyasi, ИТОГО, imzolar." : `Eksport bloklangan: ${exportBlockReason}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] font-medium hover:bg-surface-2 disabled:opacity-40">
-              <FileSpreadsheet size={14} /> {eksportBolmoqda ? 'Tuzilmoqda…' : 'Ostatka Excel'}
-            </button>
-            <button onClick={() => void ostatkaEksport(true)} disabled={eksportBolmoqda || !exportGate.ok} title="Ostatka — saytda hujjatdagiday ko‘rish" aria-label="Ostatka ko‘rish"
-              className="inline-flex items-center rounded-lg border border-border px-2 py-2 text-[12px] hover:bg-surface-2 disabled:opacity-40"><Eye size={14} /></button>
-            <button onClick={() => void slichitelniyEksport(false)} disabled={eksportBolmoqda || !exportGate.ok}
-              title={exportGate.ok ? "СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ: smeta va haqiqatda bajarilgan hajm (va tasdiqlangan Ф-2) har pozitsiya bo'yicha, farq (+/−) summasi bilan, imzolar." : `Eksport bloklangan: ${exportBlockReason}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] font-medium hover:bg-surface-2 disabled:opacity-40">
-              <FileSpreadsheet size={14} /> {eksportBolmoqda ? 'Tuzilmoqda…' : 'Slichitelniy Excel'}
-            </button>
-            <button onClick={() => void slichitelniyEksport(true)} disabled={eksportBolmoqda || !exportGate.ok} title="Slichitelniy — saytda hujjatdagiday ko‘rish" aria-label="Slichitelniy ko‘rish"
-              className="inline-flex items-center rounded-lg border border-border px-2 py-2 text-[12px] hover:bg-surface-2 disabled:opacity-40"><Eye size={14} /></button>
-            <label className="inline-flex items-center gap-1.5 text-[11px] text-text-dim" title="Slichitelniy vedomostga faqat fakt smetadan farq qiladigan pozitsiyalar kirsin">
-              <input type="checkbox" checked={slichFaqatFarq} onChange={(e) => setSlichFaqatFarq(e.target.checked)} /> faqat farqi borlar
-            </label>
-          </>)}
-          {validId && tree.length > 0 && <div className="basis-full"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>}
+        {exportsOpen && selected && <section className="fz-card" aria-label={t('Hujjatlar va eksport')}>
+          <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}>
+            <div>
+              <h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Hujjatlar va eksport')}</h3>
+              <p className="fz-card__sub">{t('Excel fayllar shu smetadan tuziladi; formulalar faylning o‘zida hisoblanadi.')}</p>
+            </div>
+            <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" onClick={() => setExportsOpen(false)} aria-label={t('Yopish')}><X aria-hidden="true" /></button>
+          </div>
+          <div className="px-4 py-1">
+            {validId && tree.length > 0 && !exportGate.ok && (
+              <div role="status" className="fz-note fz-note--warn my-2"><AlertTriangle aria-hidden="true" /><span><b>{t('Excel eksporti hozir mumkin emas')}.</b> {eksportSababi}.</span></div>
+            )}
+            {eksportMumkin ? (<>
+              {eksportQator('LRV — butun smeta', 'Ф-2 shaklida: guruhlash, filtr, fakt / F2 / ostatka, resurs vedomosti va svod.', 'LRV Excel', 'LRV ko‘rish', () => void eksportQil(false), () => void eksportQil(true),
+                'ЛРВ: butun smeta Ф-2 shaklida — guruhlash, filtr, fakt / F2 / ostatka, resurs vedomosti va svod formulalarda')}
+              {eksportQator('Ostatka vedomosti', 'Bajarilmay qolgan ishlar (smeta − fakt), RZ ierarxiyasi, jami va imzolar.', 'Ostatka Excel', 'Ostatka ko‘rish', () => void ostatkaEksport(false), () => void ostatkaEksport(true),
+                'ВЕДОМОСТЬ ОСТАТКА РАБОТ: bajarilmay qolgan ishlar (smeta − fakt) smeta shaklida, RZ ierarxiyasi, ИТОГО, imzolar.')}
+              {eksportQator('Slichitelniy vedomost', 'Smeta va haqiqatda bajarilgan hajm (va tasdiqlangan F2) har pozitsiya bo‘yicha, farq summasi bilan.', 'Slichitelniy Excel', 'Slichitelniy ko‘rish', () => void slichitelniyEksport(false), () => void slichitelniyEksport(true),
+                'СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ: smeta va haqiqatda bajarilgan hajm (va tasdiqlangan Ф-2) har pozitsiya bo\'yicha, farq (+/−) summasi bilan, imzolar.',
+                <label className="mt-1 inline-flex items-center gap-1.5 text-[11.5px] text-text-dim" title={t('Slichitelniy vedomostga faqat fakt smetadan farq qiladigan pozitsiyalar kirsin')}>
+                  <input type="checkbox" checked={slichFaqatFarq} onChange={(e) => setSlichFaqatFarq(e.target.checked)} /> {t('faqat farqi borlar')}
+                </label>)}
+              <details className="border-t border-border py-2.5">
+                <summary className="cursor-pointer text-[12.5px] font-medium text-text-dim">{t('Hujjatlardagi imzo va tomonlar')}</summary>
+                <div className="mt-2"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+              </details>
+            </>) : <p className="py-3 text-[12.5px] text-text-mute">{t('Eksport uchun obyektda smeta qatorlari bo‘lishi kerak.')}</p>}
+          </div>
         </section>}
 
         {!validId && (
-          <section className="karta border-warn/40 bg-warn/5 p-4 text-[13px] text-text-dim">
-            Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.
-          </section>
+          <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.')}</span></div>
         )}
-        {error && <section className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} />{error}</section>}
+        {error && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{error}</span></div>}
 
         {loading && tree.length === 0 && <div className="skel min-h-[280px] flex-1 rounded-xl" />}
-        {selected && !loading && !error && (
-          <section className="karta flex flex-wrap gap-x-6 gap-y-1 p-3 text-[12px]">
-            <span><Database size={13} className="mr-1 inline text-accent" />{selected.nom}</span>
-            <span className="text-text-dim">Smeta: <b className="text-text"><FmtN val={smetaJami} /></b></span>
-            <span className="text-text-dim">Fakt: <b className="text-text"><FmtN val={faktJami} /></b></span>
-            <span className="text-text-dim">Tasdiqlangan F2: <b className="text-text"><FmtN val={f2Jami} /></b></span>
-          </section>
+        {validId && !loading && !error && tree.length === 0 && (
+          <div className="fz-note fz-note--info items-center">
+            <Info aria-hidden="true" />
+            <span className="flex-1">{t('Bu obyektda kanonik smeta qatorlari yo‘q.')}</span>
+            <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" onClick={() => setActiveTab('yuklash')}><Upload aria-hidden="true" />{t('Smeta yuklash')}</button>
+          </div>
         )}
-        {validId && !loading && !error && tree.length === 0 && <section className="karta p-5 text-[13px] text-text-dim">Bu obyektda kanonik smeta qatorlari yo‘q.</section>}
-        {selected && <ObjectMoneySummary object={selected} />}
-        {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="karta flex flex-wrap gap-2 p-2">
-          {(['smeta', 'resurs', 'narx', 'yuklash', 'shartnoma'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',yuklash:'Smeta yuklash',shartnoma:'Shartnoma doirasi'})[tab])}</button>)}
-          <button className="tugma ml-auto" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
-          <button className="tugma" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
+        {selected && shartnomaTanlangan && <ObjectMoneySummary object={selected} />}
+
+        {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div role="group" className="inline-flex max-w-full overflow-x-auto rounded-md border border-border bg-surface-2 p-0.5" style={{ gap: 2 }}>
+            {TABLAR.map(([tab, nom]) => {
+              const faol = activeTab === tab;
+              return <button type="button" key={tab} aria-pressed={faol} onClick={() => setActiveTab(tab)} className="whitespace-nowrap rounded-[5px] px-3 text-[12.5px]" style={{ height: 28, cursor: 'pointer', fontWeight: faol ? 600 : 500, border: 0,
+                background: faol ? 'var(--surface)' : 'transparent', color: faol ? 'var(--accent-text)' : 'var(--text-dim)', boxShadow: faol ? '0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent)' : 'none' }}>{t(nom)}</button>;
+            })}
+          </div>
+          <span className="ml-auto flex flex-wrap items-center gap-1.5">
+            <button type="button" className="fz-btn fz-btn--sm" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
+            <button type="button" className="fz-btn fz-btn--sm" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
+          </span>
         </nav>}
-        {/* Firuza (egasi 2026-10-25): smeta anatomiyasi — daraxt ustida bir qarashda holat. */}
+
+        {/* Firuza (egasi 2026-10-25): smeta anatomiyasi — daraxt ustida bir qarashda holat (smeta / fakt / F2 / qoldiq — yagona jami). */}
         {selected && tree.length > 0 && activeTab === 'smeta' && <SmetaAnatomiya tree={tree} obyektId={obyektId} />}
-        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
+        {selected && !loading && !error && activeTab === 'smeta' && (
+          <details className="fz-card" open={ochiqPanel === 'istisno'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'istisno' : null)}>
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
+              <Ban size={15} aria-hidden="true" className="text-text-mute" />
+              <span>{t('Bajarilmaydigan / bekor qilingan ishlar')}</span>
+              {istisno.royxat.length > 0 && <span className="fz-chip">{istisno.royxat.length}</span>}
+              {kutilayotgan > 0 && <span className="fz-stamp fz-stamp--warn fz-stamp--draft">{t('tasdiq kutilmoqda')}</span>}
+              <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'istisno' ? t('yopish ▴') : t('ochish ▾')}</span>
+            </summary>
+            {ochiqPanel === 'istisno' && <div className="max-h-[520px] overflow-auto border-t border-border px-4 py-3">
+              {istisno.xato && <p role="alert" className="mb-2 text-danger">{istisno.xato}</p>}
+              {joriy?.id != null && <div className="mb-4 border-b border-border pb-3"><BajarilmadiPanel kompaniyaId={joriy.id} obyektId={obyektId} obyektNomi={selected?.nom} qatorlar={daraxtXom} holatlar={holatXom} /></div>}
+              <OstatkaIstisnoPanel obyektId={obyektId} qatorlar={daraxtXom} holatlar={holatXom} royxat={istisno.royxat} yangila={istisno.yangila} onSmetaOzgardi={() => void yuklash()} />
+            </div>}
+          </details>
+        )}
+        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="shrink-0"><SmetaTree moslashuvchan data={tree} priceControlLines={priceControlLines} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
         {activeTab === 'shartnoma' && selected && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 
-
         {selected && !loading && !error && (
           <div key={`${joriy?.id}|${obyektId}`} className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">
-            <section hidden={activeTab !== 'yuklash'} className="karta group p-3">
-              <h3 className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
-                <span>Smeta XLSX yuklash</span>
-              </h3>
-              {activeTab === 'yuklash' && <div className="mt-3 "><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
+            <section hidden={activeTab !== 'yuklash'} className="fz-card">
+              <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Smeta XLSX yuklash')}</h3></div>
+              {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
             </section>
-            <section hidden={activeTab !== 'resurs'} className="karta group p-3">
-              <h3 className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
-                <span>Resurs vedomosti</span>
-              </h3>
-              {activeTab === 'resurs' && <div className="mt-3 "><ResursVedomostNative obyektId={obyektId} /></div>}
+            <section hidden={activeTab !== 'resurs'} className="fz-card">
+              <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Resurs vedomosti')}</h3></div>
+              {activeTab === 'resurs' && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
             </section>
-            <details hidden={activeTab !== 'smeta'} className="karta group p-3" open={ochiqPanel === 'istisno'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'istisno' : null)}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
-                <span>Bajarilmaydigan / bekor qilingan ishlar{istisno.royxat.some((o) => o.holat === 'qoralama') ? ' • tasdiq kutilmoqda' : ''}</span><span className="text-[11px] font-normal text-text-mute group-open:hidden">ochish ▾</span><span className="hidden text-[11px] font-normal text-text-mute group-open:inline">yopish ▴</span>
-              </summary>
-              {ochiqPanel === 'istisno' && <div className="mt-3 max-h-[520px] overflow-auto">
-                {istisno.xato && <p role="alert" className="mb-2 text-danger">{istisno.xato}</p>}
-                {joriy?.id != null && <div className="mb-4 border-b border-border pb-3"><BajarilmadiPanel kompaniyaId={joriy.id} obyektId={obyektId} obyektNomi={selected?.nom} qatorlar={daraxtXom} holatlar={holatXom} /></div>}
-                <OstatkaIstisnoPanel obyektId={obyektId} qatorlar={daraxtXom} holatlar={holatXom} royxat={istisno.royxat} yangila={istisno.yangila} onSmetaOzgardi={() => void yuklash()} />
-              </div>}
-            </details>
-            <section hidden={activeTab !== 'narx'} className="karta group p-3">
-              <h3 className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
-                <span>Narx nazorati</span>
-              </h3>
-              {activeTab === 'narx' && <div className="mt-3 "><NarxNazoratNative obyektId={obyektId} /></div>}
+            <section hidden={activeTab !== 'narx'} className="fz-card">
+              <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Narx nazorati')}</h3></div>
+              {activeTab === 'narx' && <div className="p-4"><NarxNazoratNative obyektId={obyektId} /></div>}
             </section>
           </div>
         )}

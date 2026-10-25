@@ -1799,7 +1799,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                   <span className="text-[11px] text-text-mute self-end">{paketVaraqlar.length} ta varaq tahlil qilindi</span>
                 </div>
                 <div className="overflow-auto">
-                  <table className="w-full text-[12px]">
+                  <table className="fz-table">
                     <thead><tr className="text-left text-text-mute"><th className="pb-1 font-normal">Fayl / varaq</th><th className="pb-1 font-normal">Tahlil</th><th className="pb-1 font-normal">Rol</th><th className="pb-1 font-normal">RES qaysi LRVga</th><th className="pb-1 font-normal">Amal</th></tr></thead>
                     <tbody>{paketVaraqlar.map((sheet) => {
                       const allLrvs = paketVaraqlar.filter((item) => item.selectedRole === 'lrv');
@@ -1858,9 +1858,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       {!busy && (ochiqImport || rollupObyekt != null) && (
         <div className="flex flex-wrap items-center gap-2 text-[13px]">
           {ochiqImport && <span className="text-text-mute">{t('Import sessiyasi №{id} ochiq qoldi — qatorlar serverda saqlangan, qayta yuborish shart emas.', { id: ochiqImport.sessiyaId })}</span>}
-          {ochiqImport && <button type="button" disabled={tiklashBand} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white disabled:opacity-50" onClick={() => void yakunlashniQaytaUrin()}>{t('Yakunlashni qayta urinish')}</button>}
-          {ochiqImport && !ochiqImport.paket && <button type="button" disabled={tiklashBand} className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-50" onClick={() => void importniBekorQil()}>{t('Importni bekor qilish')}</button>}
-          {rollupObyekt != null && <button type="button" disabled={tiklashBand} className="rounded-lg bg-accent px-3 py-1.5 font-semibold text-white disabled:opacity-50" onClick={() => void rollupniQaytaUrin()}>{t('Jamlarni qayta hisoblash')}</button>}
+          {ochiqImport && <button type="button" disabled={tiklashBand} className="fz-btn fz-btn--primary" onClick={() => void yakunlashniQaytaUrin()}>{t('Yakunlashni qayta urinish')}</button>}
+          {ochiqImport && !ochiqImport.paket && <button type="button" disabled={tiklashBand} className="fz-btn" onClick={() => void importniBekorQil()}>{t('Importni bekor qilish')}</button>}
+          {rollupObyekt != null && <button type="button" disabled={tiklashBand} className="fz-btn fz-btn--primary" onClick={() => void rollupniQaytaUrin()}>{t('Jamlarni qayta hisoblash')}</button>}
         </div>
       )}
       {book && cols && !result && (
@@ -1876,7 +1876,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                 manba ildizlari ostida bitta kanonik importga tushadi. RES belgilangan varaq(lar)ning narxlari
                 hammasidan birlashtirib qo‘llanadi.
               </p>
-              <table className="w-full text-[12.5px]">
+              <table className="fz-table">
                 <thead><tr className="text-text-mute text-left"><th className="font-normal pb-1">Varaq</th><th className="font-normal pb-1">LRV</th><th className="font-normal pb-1">RES</th></tr></thead>
                 <tbody>
                   {book.sheets.map(s => (
@@ -1932,7 +1932,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           )}
           <div className="karta p-3 text-[12px] overflow-auto max-h-64">
             <p className="mb-1 text-[11px] text-text-mute">Tekshirilayotgan LRV varag‘i: <b>{sheetName}</b></p>
-            <table className="w-full">
+            <table className="fz-table">
               <tbody>
                 {preview.slice(0, 12).map(row => (
                   <tr key={row.r} className="border-t border-border/60">
@@ -1971,7 +1971,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                   <p className="text-[12px] font-semibold text-text">
                     RES faylining varaqlari — narx o‘qiladigan hamma varaqlarni belgilang
                   </p>
-                  <table className="w-full text-[12.5px]">
+                  <table className="fz-table">
                     <thead>
                       <tr className="text-text-mute text-left text-[11px]">
                         <th className="font-normal pb-1">Tanlash</th>
@@ -2037,7 +2037,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
               </p>
             )}
             {katKorib.length > 0 && (
-              <div className="karta p-2 space-y-1.5 border-amber-500/30">
+              <div className="karta p-2 space-y-1.5 border-warn/40">
                 <p className="text-[11px] text-text-mute">
                   <b>{katKorib.length} ta</b> resursning turi aniqlandi. Tartib: <b>birlik eng ustun</b> —
                   ЧЕЛ-Ч → ЧЕЛ, МАШ-Ч → МАШ (mashinist mehnati МАШ, chunki u mashina stavkasi ichida).
@@ -2058,7 +2058,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                     .map(x => `${x.k}: ${x.n}`).join(' · ')}
                 </p>
                 <div className="overflow-auto max-h-48 text-[12px]">
-                  <table className="w-full">
+                  <table className="fz-table">
                     <tbody>
                       {katKorib.slice(0, 300).map((k, i) => (
                         <tr key={k.nom + '|' + k.birlik} className="border-t border-border/40">
@@ -2110,7 +2110,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                     .join(' · ')}
                 </p>
                 <div className="overflow-auto max-h-48 text-[12px]">
-                  <table className="w-full">
+                  <table className="fz-table">
                     <thead>
                       <tr className="text-text-mute text-[11px]">
                         <th className="text-left py-0.5 pr-2">Kod</th>

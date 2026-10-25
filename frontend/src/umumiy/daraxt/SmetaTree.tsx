@@ -5,8 +5,9 @@ import type { TreeNode } from '../../api/types';
 import { flattenTree, getAllKeys } from './utils';
 import { FmtN } from '../../lib/format';
 import { KatNishon } from '../ui/KatNishon';
-import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package, Pickaxe, Box, Pencil, Info } from 'lucide-react';
+import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package, Pickaxe, Box, Pencil, Info, Rows3, Rows2, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { PRICE_STATE_BADGE, type PriceControlLine } from '../../api/t2-price-control';
+import { NARX_MUHR } from './narx-muhr';
 import { QatorTahrirModal } from '../ui/QatorTahrirModal';
 
 interface SmetaTreeProps {
@@ -25,12 +26,21 @@ interface SmetaTreeProps {
   onQatorTahrirlandi?: () => void;
   /** LRV ichidagi kichik, canonical Fakt yozish porti. Backend qoidalari parentda qoladi. */
   onFaktOpen?: () => void;
+  /** Konteyner balandligini qatorlar soniga moslaydi: kam qator — past; ko'p — ekran balandligigacha (keyin ichki skroll).
+   *  Berilmasa daraxt ota-konteynerni to'ldiradi (`h-full`) — eski sahifalar o'zgarmaydi. */
+  moslashuvchan?: boolean;
   onFaktSave?: (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => Promise<{
     ok: boolean;
     message?: string;
     conflict?: boolean;
   }>;
 }
+
+type TezFiltr = 'all' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis';
+type Preset = 'ASOSIY' | 'F2' | 'NARX' | 'TOLIQ';
+const PRESET_KALIT = 't2-smeta-tree-preset';
+const omborOqi = (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } };
+const omborYoz = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* xotira yopiq — sozlama faqat shu seans uchun */ } };
 
 function TreeTypeIcon({ type }: { type: TreeNode['type'] }) {
   if (type === 'rz') return <Layers size={14} aria-hidden="true" />;
@@ -39,20 +49,39 @@ function TreeTypeIcon({ type }: { type: TreeNode['type'] }) {
   return <Pickaxe size={14} aria-hidden="true" />;
 }
 
-export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen }: SmetaTreeProps) {
+/** Bajarilish chizig'i: F2 olingan (firuza) + fakt ortig'i (lojuvard) / smeta = 100%. Smeta noma'lum bo'lsa — «—», 0 emas. */
+function Olchov({ sm, fk, f2, katta = false }: { sm: number | null | undefined; fk: number | null | undefined; f2: number | null | undefined; katta?: boolean }) {
+  if (sm == null || !(sm > 0)) return <p className="text-[12px] text-text-mute">{t('Bajarilish: smeta qiymati noma’lum')}</p>;
+  const fakt = Math.max(Number(fk ?? 0), 0), f2v = Math.max(Number(f2 ?? 0), 0);
+  const f2u = Math.min(1, f2v / sm), fu = Math.min(1, Math.max(fakt, f2v) / sm), pct = Math.round((Math.max(fakt, f2v) / sm) * 100);
+  return (
+    <div className="space-y-1.5">
+      <span className={`fz-meter ${katta ? 'fz-meter--lg' : ''} ${pct > 100 ? 'fz-meter--over' : ''}`} style={{ minWidth: 0 }}><span className="fz-meter__t"><i className="fz-meter__shu" style={{ width: `${f2u * 100}%` }} /><i className="fz-meter__fakt" style={{ width: `${Math.max(0, fu - f2u) * 100}%` }} /></span><span className="fz-meter__f">{pct}%</span></span>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-text-mute">
+        <span className="inline-flex items-center gap-1.5"><i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--accent)' }} />{t('F2 olingan')}</span>
+        <span className="inline-flex items-center gap-1.5"><i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--info)' }} />{t('fakt (F2 siz)')}</span>
+        <span className="inline-flex items-center gap-1.5"><i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--surface-3)', border: '1px solid var(--border-strong)' }} />{t('qoldiq')}</span>
+      </div>
+    </div>
+  );
+}
+
+export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen, moslashuvchan = false }: SmetaTreeProps) {
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
   const [expandedDetailId, setExpandedDetailId] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<TreeNode | null>(null);
   const [tahrirNode, setTahrirNode] = useState<TreeNode | null>(null);
   const [qidiruv, setQidiruv] = useState('');
   const [density, setDensity] = useState<'compact' | 'comfort'>(() =>
-    localStorage.getItem('t2-smeta-tree-density') === 'comfort' ? 'comfort' : 'compact');
-  /* Owner (2026-09-10): "pul ham ko'rinishi kerak, faqat obyomlar emas" --
-   * pul ustunlari (Sm./Fk./F2 Summa) allaqachon mavjud edi, lekin faqat
-   * "To'liq"/"Narx nazorati" preset'ida ko'rinardi. Standart holat endi
-   * "To'liq" -- har safar qayta tanlash shart emas. */
-  const [preset, setPreset] = useState<'ASOSIY' | 'F2' | 'NARX' | 'TOLIQ'>('TOLIQ');
-  const [quickFilter, setQuickFilter] = useState<'all' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis'>('all');
+    omborOqi('t2-smeta-tree-density') === 'comfort' ? 'comfort' : 'compact');
+  /* Firuza (egasi 2026-10-25): standart preset — «Asosiy» (hajm ustunlari bir ekranga sig'adi; «To'liq»
+   * ~1900px talab qiladi). Pul summalari — smeta anatomiyasida va qator tafsilotida; «To'liq» yoki «Narx
+   * nazorati» tanlansa ustun sifatida ham chiqadi. Tanlov brauzerda eslab qolinadi. */
+  const [preset, setPreset] = useState<Preset>(() => {
+    const x = omborOqi(PRESET_KALIT);
+    return x === 'F2' || x === 'NARX' || x === 'TOLIQ' ? x : 'ASOSIY';
+  });
+  const [quickFilter, setQuickFilter] = useState<TezFiltr>('all');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'umumiy' | 'fakt' | 'f2' | 'narx' | 'audit'>('umumiy');
@@ -128,6 +157,33 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     () => flattenTree(filtrlangan, kengaytirilgan),
     [filtrlangan, kengaytirilgan]);
 
+  /* Tezkor filtr nishonlari: har filtrga nechta qator mos kelishi (butun daraxt bo'yicha, qidiruvdan mustaqil). */
+  const tezSoni = useMemo(() => {
+    const c: Record<TezFiltr, number> = { all: 0, f2: 0, qosh: 0, zamena: 0, bl: 0, mat: 0, frozen: 0, risk: 0, basis: 0 };
+    const yur = (nodes: TreeNode[]) => {
+      for (const n of nodes) {
+        if (Number(n.f2mum) > 0) c.f2++;
+        if (n.isQosh) c.qosh++;
+        if (n.isZamena) c.zamena++;
+        if (n.type === 'bl') c.bl++;
+        if (n.type === 'mat') c.mat++;
+        const pc = n.id == null ? undefined : priceControlByQatorId.get(n.id);
+        if (pc) {
+          if ((pc.frozen_amount || 0) > 0) c.frozen++;
+          if ((pc.at_risk_amount || 0) > 0) c.risk++;
+          if (pc.price_state === 'ABOVE_REFERENCE_MISSING_BASIS') c.basis++;
+        }
+        if (n.children?.length) yur(n.children);
+      }
+    };
+    yur(data);
+    return c;
+  }, [data, priceControlByQatorId]);
+  const tezRoyxat: ReadonlyArray<readonly [TezFiltr, string]> = [
+    ['all', 'Hammasi'], ['f2', 'F2 olish mumkin'], ['qosh', 'Qo‘shimcha'], ['zamena', 'Zamena'], ['bl', 'Faqat BL'], ['mat', 'Materiallar'],
+    ...(priceControlReady ? [['frozen', 'Muzlagan'], ['risk', 'Xavf ostida'], ['basis', 'Protokolsiz']] as const : []),
+  ];
+
   const rowVirtualizer = useVirtualizer({
     count: flatNodes.length,
     getScrollElement: () => parentRef.current,
@@ -152,12 +208,12 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
 
   const collapseAll = () => setExpandedMap({});
   const changeDensity = (next: 'compact' | 'comfort') => {
-    setDensity(next); localStorage.setItem('t2-smeta-tree-density', next);
+    setDensity(next); omborYoz('t2-smeta-tree-density', next);
   };
   const showMoney = preset === 'TOLIQ' || preset === 'NARX';
   const showSmetaAndFakt = preset !== 'F2';
   const columnCount = 4 + (showSmetaAndFakt ? 2 : 0) + (showMoney ? 6 : 0);
-  const minimumWidth = 400 + (showSmetaAndFakt ? 176 : 0) + 352 + 128 + (showMoney ? 512 : 0) + (columnCount - 1) * 16 + 16;
+  const minimumWidth = 400 + (showSmetaAndFakt ? 176 : 0) + 352 + 160 + (showMoney ? 512 : 0) + (columnCount - 1) * 16 + 16;
   const selected = flatNodes.find((row) => row.key === selectedKey);
   const selectedFakt = selected?.node.fakt;
 
@@ -191,42 +247,44 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     }
   };
 
+  /* Qator tafsiloti bo'limlari: ma'lumoti yo'q bo'lim ko'rsatilmaydi (avval «Ma'lumot ulanmagan» yozuvli bo'sh tablar bor edi). */
+  const drawerPc = selected?.node.id != null ? priceControlByQatorId.get(selected.node.id) : undefined;
+  const drawerTablar: ReadonlyArray<readonly ['umumiy' | 'fakt' | 'f2' | 'narx' | 'audit', string]> = [
+    ['umumiy', 'Umumiy'], ['fakt', 'Fakt'], ['f2', 'F2'], ...(drawerPc ? [['narx', 'Narx'] as const] : []), ['audit', 'Audit'],
+  ];
+  const drawerTabEff = drawerTablar.some(([id]) => id === drawerTab) ? drawerTab : 'umumiy';
+
   return (
-    <div className={`relative flex flex-col h-full bg-surface border border-border rounded-xl shadow-sm overflow-hidden ${density === 'compact' ? 'text-xs' : 'text-sm'}`}>
+    <div className={`fz-card relative flex flex-col ${moslashuvchan ? '' : 'h-full'} ${density === 'compact' ? 'text-xs' : 'text-sm'}`}>
       <div className="sticky top-0 z-30 flex-shrink-0 bg-surface-2/95 backdrop-blur-md">
-        <div className="border-b border-border px-4 py-2">
+        <div className="border-b border-border px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-          <Search size={14} className="absolute left-2 top-2 text-text-mute" />
-          <input
-            type="text"
-            value={qidiruv}
-            onChange={(e) => setQidiruv(e.target.value)}
-            placeholder="Qidiruv..."
-            aria-label="Daraxtdan qidirish"
-            className="bg-bg border border-border rounded-md pl-7 pr-7 py-1.5 text-sm w-64 focus:outline-none focus:border-accent"
-          />
-          {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute"><X size={14}/></button>}
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-[9px] text-text-mute" aria-hidden="true" />
+              <input
+                type="text"
+                value={qidiruv}
+                onChange={(e) => setQidiruv(e.target.value)}
+                placeholder={t('Qidiruv…')}
+                aria-label="Daraxtdan qidirish"
+                className="h-8 w-64 rounded-md border border-[var(--border-strong)] bg-bg pl-8 pr-7 text-[13px] focus:outline-none"
+              />
+              {qidiruv && <button type="button" onClick={() => setQidiruv('')} aria-label={t('Qidiruvni tozalash')} className="absolute right-1.5 top-[7px] text-text-mute hover:text-text"><X size={14} /></button>}
+            </div>
+            {!!qidiruv.trim() && <span className="whitespace-nowrap text-[11.5px] text-text-mute tabular-nums">{flatNodes.length} {t('ta qator topildi')}</span>}
+            <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+            <select value={preset} onChange={(e) => { const x = e.target.value as Preset; setPreset(x); omborYoz(PRESET_KALIT, x); }} className="h-8 rounded-md border border-[var(--border-strong)] bg-surface px-2 text-[12.5px]" aria-label="Ustun preset" title={t('Ko‘rinadigan ustunlar to‘plami')}>
+              <option value="ASOSIY">{t('Asosiy')}</option><option value="F2">F2</option><option value="NARX">{t('Narx nazorati')}</option><option value="TOLIQ">{t('To‘liq (pul ustunlari bilan)')}</option>
+            </select>
+            <div className="ml-auto flex flex-wrap items-center gap-1">
+              <button type="button" onClick={() => changeDensity(density === 'compact' ? 'comfort' : 'compact')} className="fz-btn fz-btn--sm fz-btn--ghost" title={t('Qator balandligi')}>{density === 'compact' ? <Rows2 aria-hidden="true" /> : <Rows3 aria-hidden="true" />}{density === 'compact' ? t('Keng qatorlar') : t('Zich qatorlar')}</button>
+              <button type="button" onClick={expandAll} className="fz-btn fz-btn--sm fz-btn--ghost"><ChevronsUpDown aria-hidden="true" />{t('Hammasini yoyish')}</button>
+              <button type="button" onClick={collapseAll} className="fz-btn fz-btn--sm fz-btn--ghost"><ChevronsDownUp aria-hidden="true" />{t('Yig‘ish')}</button>
+            </div>
           </div>
-          {!!qidiruv.trim() && (
-            <span className="text-[11px] text-text-mute whitespace-nowrap">
-              {flatNodes.length} qator
-              <button onClick={() => setQidiruv('')}
-                className="ml-2 text-accent hover:underline">tozalash</button>
-            </span>
-          )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-          <select value={preset} onChange={(e) => setPreset(e.target.value as any)} className="px-2 py-1.5 bg-surface border border-border rounded-md" aria-label="Ustun preset">
-            <option value="ASOSIY">Asosiy</option><option value="F2">F2</option><option value="NARX">Narx nazorati</option><option value="TOLIQ">To'liq</option>
-          </select>
-          <button onClick={() => changeDensity(density === 'compact' ? 'comfort' : 'compact')} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-surface-2 border border-border rounded-md">{density === 'compact' ? 'Comfort' : 'Compact'}</button>
-          <button onClick={expandAll} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-surface-2 border border-border rounded-md">Hammasini yoyish</button>
-          <button onClick={collapseAll} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-surface-2 border border-border rounded-md">Yig'ish</button>
-          </div>
-          <div className="mt-2 flex gap-1 overflow-x-auto">
-          {([['all','Hammasi'],['f2','F2 olish mumkin'],['qosh','Qo\'shimcha'],['zamena','Zamena'],['bl','Faqat BL'],['mat','Materiallar']] as const).map(([id,label]) => <button key={id} onClick={() => setQuickFilter(id)} className={`whitespace-nowrap rounded-full px-2 py-1 text-[11px] ${quickFilter === id ? 'bg-accent text-text' : 'bg-surface text-text-dim border border-border'}`}>{label}</button>)}
-          {priceControlReady ? ([['frozen','Muzlagan'],['risk','Xavf ostida'],['basis','Protokolsiz']] as const).map(([id,label]) => <button key={id} onClick={() => setQuickFilter(id)} className={`whitespace-nowrap rounded-full px-2 py-1 text-[11px] ${quickFilter === id ? 'bg-accent text-text' : 'bg-surface text-text-dim border border-border'}`}>{label}</button>) : <span className="px-2 py-1 text-[11px] text-text-mute">Narx nazorati ma'lumoti ulanmagan</span>}
+          <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label={t('Tezkor filtrlar')}>
+            {tezRoyxat.map(([id, label]) => <button key={id} type="button" aria-pressed={quickFilter === id} onClick={() => setQuickFilter(id)} className="fz-chip whitespace-nowrap" style={{ height: 24, padding: '0 9px', border: '1px solid ' + (quickFilter === id ? 'var(--accent)' : 'var(--border)'), cursor: 'pointer', ...(quickFilter === id ? { background: 'var(--accent)', color: 'var(--on-accent)' } : { background: 'var(--surface)' }) }}>{t(label)}{id !== 'all' && tezSoni[id] != null && <span className="tabular-nums opacity-80">{tezSoni[id]}</span>}</button>)}
+            {!priceControlReady && <span className="px-2 text-[11px] text-text-mute" title={t('Muzlagan / Xavf ostida / Protokolsiz filtrlari narx nazorati ma’lumoti kelganda chiqadi')}>{t('Narx nazorati filtrlari: ma’lumot ulanmagan')}</span>}
           </div>
         </div>
 
@@ -241,10 +299,10 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           {showSmetaAndFakt && <div className="w-20 text-right" title="Smeta Hajm">{t('Smeta')}</div>}
           {showSmetaAndFakt && <div className="w-24 text-right" title="Fakt Hajm">Fakt</div>}
           <div className="w-24 text-right" title="Jami F2 Hajm">F2 olingan</div>
-          <div className="w-28 text-left normal-case tracking-normal" title={t('F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%')}>{t('Bajarilish')}</div>
+          <div className="w-28 text-left" title={t('F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%')}>{t('Bajarilish')}</div>
           <div className="w-24 text-right" title="F2 Olish Mumkin (Fakt - F2)">F2 mumkin</div>
           <div className="w-20 text-right" title="Qoldiq Hajm">{t('Qoldiq')}</div>
-          <div className="w-20 text-left text-text-mute" title="Narx nazorati holati">Holat</div>
+          <div className="w-28 text-left text-text-mute" title={t('Narx nazorati holati')}>{t('Narx holati')}</div>
           
           {showMoney && <div className="w-4 border-r border-border h-full mx-2"></div>}
           
@@ -260,6 +318,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
 
       <div 
         className="flex-1 overflow-auto" 
+        style={moslashuvchan ? { flex: '0 1 auto', maxHeight: 'max(320px, calc(100dvh - 330px))', minHeight: 96 } : undefined}
         ref={parentRef}
         onScroll={(e) => {
           const h = sarlavhaRef.current;
@@ -433,7 +492,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                   <div className="w-24 text-right text-text-dim"><FmtN val={node.f2mum} /></div>
                   
                   <div className="w-20 text-right text-text-mute"><FmtN val={node.qoldiq} /></div>
-                  <div className={nazoratHolati ? `w-20 text-left truncate ${nazoratHolati.className}` : 'w-20 text-left text-text-mute'} title={nazoratHolati?.label || 'Narx nazorati ma\'lumoti ulanmagan'}>{nazoratHolati ? `${nazoratHolati.emoji} ${nazoratHolati.label}` : '—'}</div>
+                  <div className="w-28 text-left" title={nazoratHolati ? t(nazoratHolati.label) : t('Narx nazorati ma’lumoti ulanmagan')}>{priceControl && nazoratHolati ? <span className={`fz-stamp fz-stamp--${NARX_MUHR[priceControl.price_state].ton}`} style={{ height: 18, padding: '0 5px', fontSize: 9.5 }}>{t(NARX_MUHR[priceControl.price_state].soz)}</span> : <span className="text-text-mute">—</span>}</div>
 
                   {showMoney && <div className="w-4 border-r border-border h-full mx-2" />}
 
@@ -516,70 +575,115 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
         </div>
       </div>
       {drawerOpen && selected && !isEditMode && (
-        <aside className="absolute inset-y-0 right-0 z-40 w-[min(460px,90vw)] overflow-auto border-l border-border bg-surface p-4 shadow-2xl" aria-label="Qator tafsilotlari">
-          <div className="flex items-start justify-between gap-3">
+        <aside className="absolute inset-y-0 right-0 z-40 flex w-[min(480px,92vw)] flex-col border-l border-[var(--border-strong)] bg-surface shadow-[var(--shadow-pop)]" aria-label="Qator tafsilotlari">
+          <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
             <div className="min-w-0">
-              <p className="text-xs text-text-mute">{selected.lineage.slice(0,-1).join(' › ')}</p>
-              <h3 className="mt-2 truncate font-semibold" title={selected.node.nom || 'Nomsiz'}>{selected.node.nom || 'Nomsiz'}</h3>
-              {selected.node.type !== 'rz' && <p className="mt-1 text-[11px] text-text-mute">{selected.node.kod || 'Kod yo‘q'} · {selected.node.birlik || 'Birlik yo‘q'}</p>}
+              {selected.lineage.length > 1 && <p className="truncate text-[11.5px] text-text-mute" title={selected.lineage.slice(0, -1).join(' › ')}>{selected.lineage.slice(0, -1).join(' › ')}</p>}
+              <h3 className="mt-1 text-[15px] font-semibold leading-5 text-text" style={{ fontFamily: 'var(--font-display)', overflowWrap: 'anywhere' }} title={selected.node.nom || t('Nomsiz')}>{selected.node.nom || t('Nomsiz')}</h3>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-text-mute">
+                {selected.node.type !== 'rz' && selected.node.kat ? <KatNishon kat={selected.node.kat} /> : null}
+                {selected.node.type !== 'rz' && <span className="font-mono">{selected.node.kod || t('Kod yo‘q')}</span>}
+                {selected.node.type !== 'rz' && <span>{selected.node.birlik || t('Birlik yo‘q')}</span>}
+                {selected.node.isZamena && <span className="fz-stamp fz-stamp--info">{t('Zamena')}</span>}
+                {selected.node.isQosh && <span className="fz-stamp fz-stamp--warn">{t('Qo‘shimcha')}</span>}
+              </div>
               {/* Qator maydonlarini (nom/hajm/narx/birlik/kat) to'g'ridan-to'g'ri
                   tahrirlash — Fakt tahriridan alohida: u bajarilgan hajmni
                   yozadi, bu esa smeta qatorining o'zini o'zgartiradi. */}
               {selected.node.id != null && selected.node.versiya != null && (
                 <button
+                  type="button"
                   onClick={() => setTahrirNode(selected.node)}
-                  title="Qator maydonlarini tahrirlash"
-                  className="mt-2 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-dim hover:bg-surface-2 hover:text-accent"
+                  title={t('Qator maydonlarini tahrirlash')}
+                  className="fz-btn fz-btn--sm mt-2"
                 >
-                  <Pencil size={12} /> Tahrirlash
+                  <Pencil aria-hidden="true" /> {t('Tahrirlash')}
                 </button>
               )}
             </div>
-            <button onClick={() => setDrawerOpen(false)} className="shrink-0 rounded p-1 text-text-dim hover:bg-surface-2 hover:text-text" aria-label="Qator tafsilotlarini yopish"><X size={18}/></button>
+            <button type="button" onClick={() => setDrawerOpen(false)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm shrink-0" aria-label="Qator tafsilotlarini yopish"><X aria-hidden="true" /></button>
           </div>
-          <div className="mt-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label="Qator tafsilotlari bo‘limlari">
-            {([['umumiy', 'Umumiy'], ['fakt', 'Fakt'], ['f2', 'F2 tarixi'], ['narx', 'Narx'], ['audit', 'Audit']] as const).map(([id, label]) => <button key={id} role="tab" aria-selected={drawerTab === id} onClick={() => setDrawerTab(id)} className={`whitespace-nowrap border-b-2 px-2 py-2 text-xs font-medium ${drawerTab === id ? 'border-accent text-text' : 'border-transparent text-text-dim hover:text-text'}`}>{label}</button>)}
+          <div className="flex gap-1 overflow-x-auto border-b border-border px-3" role="tablist" aria-label="Qator tafsilotlari bo‘limlari">
+            {drawerTablar.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={drawerTabEff === id} onClick={() => setDrawerTab(id)} className="whitespace-nowrap px-2.5 py-2 text-[12.5px] font-medium" style={{ background: 'none', cursor: 'pointer', borderBottom: '2px solid ' + (drawerTabEff === id ? 'var(--accent)' : 'transparent'), color: drawerTabEff === id ? 'var(--text)' : 'var(--text-dim)' }}>{t(label)}</button>)}
           </div>
-          {drawerTab === 'umumiy' && <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-            {(selected.node.type === 'rz' ? [
-              ['Smeta summasi', <FmtN key="sm" val={selected.node.smeta}/>],
-              ['Fakt summasi', <FmtN key="fk" val={selected.node.stFakt}/>],
-              ['F2 summasi', <FmtN key="f2sum" val={selected.node.stF2}/>],
-              ['Qoldiq summasi', <FmtN key="ost" val={selected.node.stOst}/>],
-            ] : [
-              ['Smeta hajmi', <FmtN key="smeta" val={selected.node.smetaHajm} />],
-              ['Fakt hajmi', <FmtN key="fakt" val={selected.node.fakt} />],
-              ['F2 hajmi', <FmtN key="f2" val={selected.node.f2ol} />],
-              ['F2 mumkin', <FmtN key="mumkin" val={selected.node.f2mum} />],
-              ['Resurslar', 'Qator zanjiri orqali'],
-              ['O‘zgarish', selected.node.isZamena ? 'Zamena aloqasi mavjud' : selected.node.isQosh ? 'Qo‘shimcha ish' : 'Oddiy qator'],
-            ]).map(([title, value]) => <div key={String(title)} className="rounded border border-border p-3"><b>{title}</b><p className="mt-1 text-text-dim">{value}</p></div>)}
-          </div>}
-          {drawerTab === 'fakt' && <div className="mt-4 space-y-4">
-            {onFaktSave ? <>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded border border-border p-3"><span className="text-text-mute">Smeta</span><strong className="mt-1 block text-text"><FmtN val={selected.node.smetaHajm} /></strong></div>
-                <div className="rounded border border-border p-3"><span className="text-text-mute">Joriy Fakt</span><strong className="mt-1 block text-ok"><FmtN val={selected.node.fakt} /></strong></div>
-                <div className="rounded border border-border p-3"><span className="text-text-mute">F2</span><strong className="mt-1 block text-accent"><FmtN val={selected.node.f2ol} /></strong></div>
-                <div className="rounded border border-border p-3"><span className="text-text-mute">F2 mumkin</span><strong className="mt-1 block text-accent"><FmtN val={selected.node.f2mum} /></strong></div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {drawerTabEff === 'umumiy' && <div className="space-y-4">
+            {selected.node.type === 'rz'
+              ? <Olchov sm={selected.node.smeta} fk={selected.node.stFakt} f2={selected.node.stF2} katta />
+              : <Olchov sm={selected.node.smetaHajm} fk={selected.node.fakt} f2={selected.node.f2ol} katta />}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {(selected.node.type === 'rz' ? [
+                ['Smeta summasi', <FmtN key="sm" val={selected.node.smeta}/>],
+                ['Fakt summasi', <FmtN key="fk" val={selected.node.stFakt}/>],
+                ['F2 summasi', <FmtN key="f2sum" val={selected.node.stF2}/>],
+                ['Qoldiq summasi', <FmtN key="ost" val={selected.node.stOst}/>],
+              ] : [
+                ['Smeta hajmi', <FmtN key="smeta" val={selected.node.smetaHajm} />],
+                ['Fakt hajmi', <FmtN key="fakt" val={selected.node.fakt} />],
+                ['F2 hajmi', <FmtN key="f2" val={selected.node.f2ol} />],
+                ['F2 mumkin', <FmtN key="mumkin" val={selected.node.f2mum} />],
+                ['Qoldiq hajmi', <FmtN key="qold" val={selected.node.qoldiq} />],
+                ['Narx, so‘m', <FmtN key="narx" val={selected.node.narx} />],
+              ]).map(([title, value]) => <div key={String(title)} className="fz-kpi"><span className="fz-kpi__label">{t(String(title))}</span><span className="fz-kpi__value" style={{ fontSize: 16, lineHeight: '22px' }}>{value}</span></div>)}
+            </div>
+            {selected.node.type !== 'rz' && [selected.node.smeta, selected.node.stFakt, selected.node.stF2, selected.node.stOst].some((x) => x != null) && <div className="rounded-md border border-border bg-surface-2 p-3">
+              <p className="fz-panel__h">{t('Summalar, so‘m')}</p>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-[12.5px]">
+                <span className="text-text-mute">{t('Smeta')}</span><b className="text-right tabular-nums"><FmtN val={selected.node.smeta} /></b>
+                <span className="text-text-mute">{t('Fakt')}</span><b className="text-right tabular-nums"><FmtN val={selected.node.stFakt} /></b>
+                <span className="text-text-mute">{t('F2 olingan')}</span><b className="text-right tabular-nums"><FmtN val={selected.node.stF2} /></b>
+                <span className="text-text-mute">{t('Qoldiq')}</span><b className="text-right tabular-nums"><FmtN val={selected.node.stOst} /></b>
               </div>
-              <fieldset className="space-y-3 rounded-lg border border-border bg-surface-2/50 p-3" disabled={faktSaving}>
-                <legend className="px-1 text-xs font-semibold text-text">Fakt amalini tanlang</legend>
+            </div>}
+          </div>}
+          {drawerTabEff === 'fakt' && <div className="space-y-4">
+            {onFaktSave ? <>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta')}</span><span className="fz-kpi__value" style={{ fontSize: 16 }}><FmtN val={selected.node.smetaHajm} /></span></div>
+                <div className="fz-kpi"><span className="fz-kpi__label">{t('Joriy Fakt')}</span><span className="fz-kpi__value" style={{ fontSize: 16, color: 'var(--info)' }}><FmtN val={selected.node.fakt} /></span></div>
+                <div className="fz-kpi"><span className="fz-kpi__label">F2</span><span className="fz-kpi__value" style={{ fontSize: 16, color: 'var(--accent-text)' }}><FmtN val={selected.node.f2ol} /></span></div>
+                <div className="fz-kpi"><span className="fz-kpi__label">{t('F2 mumkin')}</span><span className="fz-kpi__value" style={{ fontSize: 16 }}><FmtN val={selected.node.f2mum} /></span></div>
+              </div>
+              <fieldset className="space-y-3 rounded-md border border-border bg-surface-2 p-3" disabled={faktSaving}>
+                <legend className="px-1 text-xs font-semibold text-text">{t('Fakt amalini tanlang')}</legend>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className={`cursor-pointer rounded border p-2 text-xs ${faktMode === 'jami' ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim'}`}><input className="sr-only" type="radio" name="lrv-fakt-mode" checked={faktMode === 'jami'} onChange={() => { setFaktMode('jami'); setFaktValue(String(selected.node.fakt ?? '')); setFaktStatus(null); }} />Jami Faktni o‘rnatish<p className="mt-1 text-[11px] text-text-mute">Server eskirgan qiymatni conflict sifatida tekshiradi.</p></label>
-                  <label className={`cursor-pointer rounded border p-2 text-xs ${faktMode === 'qoshish' ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim'}`}><input className="sr-only" type="radio" name="lrv-fakt-mode" checked={faktMode === 'qoshish'} onChange={() => { setFaktMode('qoshish'); setFaktValue(''); setFaktStatus(null); }} />Faktga qo‘shish<p className="mt-1 text-[11px] text-text-mute">Kiritilgan qiymat alohida Fakt qatoriga yoziladi.</p></label>
+                  <label className={`cursor-pointer rounded border p-2 text-xs ${faktMode === 'jami' ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim'}`}><input className="sr-only" type="radio" name="lrv-fakt-mode" checked={faktMode === 'jami'} onChange={() => { setFaktMode('jami'); setFaktValue(String(selected.node.fakt ?? '')); setFaktStatus(null); }} />{t('Jami Faktni o‘rnatish')}<p className="mt-1 text-[11px] text-text-mute">{t('Server eskirgan qiymatni conflict sifatida tekshiradi.')}</p></label>
+                  <label className={`cursor-pointer rounded border p-2 text-xs ${faktMode === 'qoshish' ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim'}`}><input className="sr-only" type="radio" name="lrv-fakt-mode" checked={faktMode === 'qoshish'} onChange={() => { setFaktMode('qoshish'); setFaktValue(''); setFaktStatus(null); }} />{t('Faktga qo‘shish')}<p className="mt-1 text-[11px] text-text-mute">{t('Kiritilgan qiymat alohida Fakt qatoriga yoziladi.')}</p></label>
                 </div>
-                <label className="block text-xs font-medium text-text">{faktMode === 'jami' ? 'Yangi jami Fakt hajmi' : 'Qo‘shiladigan Fakt hajmi'}
-                  <input aria-label={faktMode === 'jami' ? 'Yangi jami Fakt hajmi' : 'Qo‘shiladigan Fakt hajmi'} type="number" step="any" value={faktValue} onChange={(event) => setFaktValue(event.target.value)} className="mt-1 block w-full rounded-lg border border-border bg-bg px-3 py-2 text-right font-mono text-sm text-text outline-none focus:border-accent" />
+                <label className="block text-xs font-medium text-text">{faktMode === 'jami' ? t('Yangi jami Fakt hajmi') : t('Qo‘shiladigan Fakt hajmi')}
+                  <input aria-label={faktMode === 'jami' ? 'Yangi jami Fakt hajmi' : 'Qo‘shiladigan Fakt hajmi'} type="number" step="any" value={faktValue} onChange={(event) => setFaktValue(event.target.value)} className="mt-1 block h-9 w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-right font-mono text-sm text-text" />
                 </label>
-                <button type="button" onClick={() => void faktniSaqlash()} disabled={faktSaving || selected.node.id == null || !faktValue.trim()} className="inline-flex items-center justify-center rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-text disabled:cursor-not-allowed disabled:opacity-50">{faktSaving ? 'Saqlanmoqda…' : 'Faktni saqlash'}</button>
+                <button type="button" onClick={() => void faktniSaqlash()} disabled={faktSaving || selected.node.id == null || !faktValue.trim()} className="fz-btn fz-btn--primary">{faktSaving ? t('Saqlanmoqda…') : t('Faktni saqlash')}</button>
                 {faktStatus && <p role={faktStatus.tone === 'danger' ? 'alert' : undefined} className={`text-xs ${faktStatus.tone === 'ok' ? 'text-ok' : faktStatus.tone === 'warn' ? 'text-warn' : 'text-danger'}`}>{faktStatus.text}</p>}
               </fieldset>
-            </> : <div className="rounded border border-border p-3 text-xs"><b>Fakt hajmi</b><p className="mt-1"><FmtN val={selected.node.fakt}/></p>{onFaktOpen && <button type="button" className="tugma mt-3" onClick={onFaktOpen}>{t('Fakt kiritish oynasini ochish')}</button>}</div>}
+            </> : <div className="space-y-3">
+              <div className="fz-kpi"><span className="fz-kpi__label">{t('Fakt hajmi')}</span><span className="fz-kpi__value"><FmtN val={selected.node.fakt}/></span><span className="fz-kpi__sub">{t('smeta')}: <FmtN val={selected.node.smetaHajm} /></span></div>
+              {onFaktOpen && <button type="button" className="fz-btn fz-btn--primary" onClick={onFaktOpen}>{t('Fakt kiritish oynasini ochish')}</button>}
+            </div>}
           </div>}
-          {drawerTab === 'f2' && <div className="mt-4 space-y-2 text-xs"><div className="rounded border border-border p-3"><b>F2 tarixi</b><p className="mt-1 text-text-dim">{oylar.length ? `${oylar.length} oy — obyom, narx va summa` : 'Ma’lumot ulanmagan'}</p></div><div className="rounded border border-border p-3"><b>F2 mumkin</b><p className="mt-1 text-text-dim"><FmtN val={selected.node.f2mum} /></p></div></div>}
-          {drawerTab === 'narx' && <div className="mt-4 rounded border border-border p-3 text-xs"><b>Narx nazorati</b><p className="mt-1 text-text-dim">{selected.node.id != null && priceControlByQatorId.get(selected.node.id) ? PRICE_STATE_BADGE[priceControlByQatorId.get(selected.node.id)!.price_state].label : 'Ma’lumot ulanmagan'}</p></div>}
-          {drawerTab === 'audit' && <div className="mt-4 space-y-2 text-xs"><div className="rounded border border-border p-3"><b>Qator identifikatori</b><p className="mt-1 font-mono text-text-dim">{selected.node.id ?? 'Kanonik ID yo‘q'}</p></div><div className="rounded border border-border p-3"><b>O‘zgarish holati</b><p className="mt-1 text-text-dim">{selected.node.isZamena ? 'Zamena aloqasi mavjud' : selected.node.isQosh ? 'Qo‘shimcha ish' : 'Oddiy qator'}</p></div></div>}
+          {drawerTabEff === 'f2' && <div className="space-y-4">
+            <Olchov sm={selected.node.type === 'rz' ? selected.node.smeta : selected.node.smetaHajm} fk={selected.node.type === 'rz' ? selected.node.stFakt : selected.node.fakt} f2={selected.node.type === 'rz' ? selected.node.stF2 : selected.node.f2ol} katta />
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {(selected.node.type === 'rz'
+                ? [['F2 summasi', selected.node.stF2], ['F2 mumkin', selected.node.stF2Mum]] as const
+                : [['F2 hajmi', selected.node.f2ol], ['F2 mumkin', selected.node.f2mum]] as const
+              ).map(([title, v]) => <div key={title} className="fz-kpi"><span className="fz-kpi__label">{t(title)}</span><span className="fz-kpi__value" style={{ fontSize: 16 }}><FmtN val={v} /></span></div>)}
+            </div>
+            <p className="text-[11.5px] text-text-mute">{t('F2 mumkin — bajarilgan (fakt), lekin hali F2 akti bilan topshirilmagan qism.')}</p>
+            {oylar.length > 0 && <div><p className="fz-panel__h">{t('Oylar bo‘yicha F2 hajmi')}</p><div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[12.5px]">{oylar.map((oy) => <div key={oy} className="contents"><span className="text-text-mute">{oy}</span><b className="text-right tabular-nums"><FmtN val={selected.node.oylar?.[oy]?.obyom} /></b></div>)}</div></div>}
+          </div>}
+          {drawerTabEff === 'narx' && drawerPc && <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2"><span className={`fz-stamp fz-stamp--${NARX_MUHR[drawerPc.price_state].ton}`}>{t(NARX_MUHR[drawerPc.price_state].soz)}</span><span className="text-[12.5px] text-text-dim">{t(PRICE_STATE_BADGE[drawerPc.price_state].label)}</span></div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {([['Reference narx', drawerPc.reference_unit_price], ['F2 narx', drawerPc.certified_unit_price], ['Farq', drawerPc.price_delta], ['Muzlagan summa', drawerPc.frozen_amount], ['Xavf ostidagi summa', drawerPc.at_risk_amount]] as const).map(([title, v]) => <div key={title} className="fz-kpi"><span className="fz-kpi__label">{t(title)}</span><span className="fz-kpi__value" style={{ fontSize: 16 }}><FmtN val={v} /></span></div>)}
+            </div>
+          </div>}
+          {drawerTabEff === 'audit' && <dl className="space-y-3 text-[12.5px]">
+            <div><dt className="fz-panel__h">{t('Qator identifikatori')}</dt><dd className="mt-1 font-mono text-text-dim">{selected.node.id ?? t('Kanonik ID yo‘q')}</dd></div>
+            {selected.node.versiya != null && <div><dt className="fz-panel__h">{t('Versiya')}</dt><dd className="mt-1 font-mono text-text-dim">{selected.node.versiya}</dd></div>}
+            <div><dt className="fz-panel__h">{t('O‘zgarish holati')}</dt><dd className="mt-1 text-text-dim">{selected.node.isZamena ? t('Zamena aloqasi mavjud') : selected.node.isQosh ? t('Qo‘shimcha ish') : t('Oddiy qator')}</dd></div>
+          </dl>}
+          </div>
         </aside>
       )}
       {tahrirNode && tahrirNode.id != null && tahrirNode.versiya != null && (

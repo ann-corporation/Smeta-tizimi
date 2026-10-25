@@ -1,10 +1,12 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, AlertTriangle, MapPin, Plus, FolderKanban } from 'lucide-react';
+import { AlertTriangle, MapPin, Plus, FolderKanban, FolderPlus, Building2 } from 'lucide-react';
+import { ModalOyna } from '../components/pto-workspace/ModalOyna';
+import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { ProjectNavigator } from '../components/pto-workspace/ProjectNavigator';
 import { t } from '../i18n/til';
-import { Sahifa } from '../umumiy/ui/Sahifa';
+import { Sahifa, BoshHolat } from '../umumiy/ui/Sahifa';
 import { sbT2ObyektlarOlKomp, sbObyektOchirish, sbObyektTahrirlash, sbObyektLokatsiyaBelgila, sbT2ObyektYarat, type T2Obyekt } from '../api/supabase';
 import { sbT2LoyihalarOl, type T2Loyiha } from '../api/t2-loyiha';
 import { toast } from '../umumiy/ui/Toast';
@@ -81,7 +83,7 @@ export default function TestObyektlar() {
 
   const handleOchirish = async (e: any, o: Qator) => {
     e.stopPropagation();
-    if(!confirm(`"${o.nom}" obyektini arxivga (korzinka) o'tkazasizmi?`)) return;
+    if (!(await tasdiqSora({ sarlavha: t('Obyektni arxivlash'), matn: t('"{nom}" obyektini arxivga (korzinka) o‘tkazasizmi?', { nom: o.nom }), tasdiqMatni: t('Arxivga o‘tkazish'), xavfli: true }))) return;
     try {
       setYuklanmoqda(true);
       await sbObyektOchirish(o.id, o.nom);
@@ -184,34 +186,25 @@ export default function TestObyektlar() {
     <Sahifa
       sarlavha="Loyihalar va obyektlar"
       tavsif="Loyiha → shartnoma → obyekt → smeta va bajarilgan ishlar"
+      onYangila={() => void sinxronla()}
+      yangilanmoqda={yuklanmoqda}
       amallar={
-        <div className="flex items-center gap-2">
-          <button onClick={() => setYaratishOchiq(true)}
-            className="h-9 px-3 inline-flex items-center gap-2 rounded-[10px]
-                       bg-[var(--accent)] text-white text-sm font-medium
-                       hover:opacity-90 transition-opacity">
-            <Plus size={15} />
-            Yangi obyekt
-          </button>
-          <button onClick={() => setXaritaKorinadi((v) => !v)} aria-pressed={xaritaKorinadi}
-            className={'h-9 px-3 inline-flex items-center gap-2 rounded-[10px] karta text-sm transition-colors ' +
-              (xaritaKorinadi ? 'border-[var(--accent)] text-[var(--accent)]' : 'text-text hover:border-[var(--accent)]/50')}>
-            <MapPin size={15} />
+        <>
+          <button type="button" onClick={() => setXaritaKorinadi((v) => !v)} aria-pressed={xaritaKorinadi} className="fz-btn"
+            style={xaritaKorinadi ? { borderColor: 'var(--accent)', color: 'var(--accent-text)', background: 'var(--accent-soft)' } : undefined}>
+            <MapPin aria-hidden="true" />
             {t('Xaritada')}
           </button>
-          <button onClick={() => void sinxronla()} disabled={yuklanmoqda}
-            className="h-9 px-3 inline-flex items-center gap-2 rounded-[10px] karta text-sm
-                       text-text hover:border-[var(--accent)]/50 transition-colors
-                       disabled:opacity-50">
-            <RefreshCw size={15} className={yuklanmoqda ? 'animate-spin' : ''} />
-            Yangilash
+          <button type="button" onClick={() => setYaratishOchiq(true)} className="fz-btn fz-btn--primary">
+            <Plus aria-hidden="true" />
+            {t('Yangi obyekt')}
           </button>
-        </div>
+        </>
       }
     >
       <div className="space-y-3">
         {xaritaKorinadi && currentRows && (
-          <div className="karta p-3">
+          <div className="fz-card p-3">
             <Suspense fallback={<div className="skel h-[360px] rounded-xl" />}>
               <ObyektlarXaritasi obyektlar={currentRows}
                 loyihaNomi={(id) => loyihalar.find((l) => l.id === id)?.nom}
@@ -221,98 +214,89 @@ export default function TestObyektlar() {
           </div>
         )}
         {yaratishOchiq && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-surface border border-border p-5 rounded-2xl w-full max-w-[520px] max-h-[92vh] overflow-auto shadow-2xl">
-              <h3 className="font-bold text-lg mb-4 text-text flex items-center gap-2">
-                <FolderKanban className="text-accent" /> Yangi obyekt
-              </h3>
-              <label className="block text-sm mb-3">
-                <span className="text-text-dim text-[12px]">Nomi</span>
-                <input value={yangiNom} onChange={e => setYangiNom(e.target.value)} autoFocus
-                  className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500"
-                  placeholder="Masalan: Amfiteatr, blok A" />
-              </label>
-              <label className="block text-sm mb-4">
-                <span className="text-text-dim text-[12px]">Loyiha (ixtiyoriy)</span>
-                <select value={yangiLoyihaId} onChange={e => setYangiLoyihaId(e.target.value)}
-                  className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500">
-                  <option value="">— Loyihasiz —</option>
-                  {loyihalar.map(l => <option key={l.id} value={l.id}>{l.nom}</option>)}
-                </select>
-                {!loyihalar.length && (
-                  <span className="text-[11px] text-text-mute mt-1 block">
-                    Hali loyiha yo'q. <a href="/admin/loyiha" className="text-accent underline">Loyiha yaratish</a>
-                  </span>
-                )}
-              </label>
-              <div className="mb-4">
-                <button type="button" onClick={() => setYangiJoyOchiq((v) => !v)}
-                  className="text-[12px] text-accent underline inline-flex items-center gap-1">
-                  <MapPin size={13} /> {yangiJoyOchiq ? t('Lokatsiyani yashirish') : t('Lokatsiyani xaritadan belgilash (ixtiyoriy)')}
-                </button>
-                {yangiJoy && <span className="ml-2 text-[11px] text-text-mute font-mono">{yangiJoy[0].toFixed(5)}, {yangiJoy[1].toFixed(5)}</span>}
-                {yangiJoyOchiq && (
-                  <div className="mt-2 h-[380px] border border-border rounded-xl overflow-hidden">
-                    <Suspense fallback={<div className="skel h-full" />}><ObjectLocationMap position={yangiJoy} onChange={setYangiJoy} /></Suspense>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false); }}
-                  className="px-5 py-2 rounded-xl text-sm font-medium text-text-dim hover:bg-surface-2 transition-colors">
-                  Bekor qilish
-                </button>
-                <button onClick={() => void obyektYarat()} disabled={!yangiNom.trim() || yaratilmoqda}
-                  className="px-5 py-2 rounded-xl text-sm font-medium bg-accent text-white hover:bg-accent/80 transition-colors shadow-lg shadow-accent/20 disabled:opacity-50">
-                  {yaratilmoqda ? 'Yaratilmoqda…' : 'Yaratish'}
-                </button>
-              </div>
+          <ModalOyna sarlavha="Yangi obyekt" ikon={<FolderKanban className="text-accent" size={18} aria-hidden="true" />}
+            yop={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false); }}>
+            <label className="mb-3 block text-sm">
+              <span className="text-[12px] text-text-dim">{t('Nomi')}</span>
+              <input value={yangiNom} onChange={e => setYangiNom(e.target.value)} autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter' && yangiNom.trim() && !yaratilmoqda) void obyektYarat(); }}
+                className="mt-1 h-9 w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-sm text-text"
+                placeholder={t('Masalan: Amfiteatr, blok A')} />
+            </label>
+            <label className="mb-4 block text-sm">
+              <span className="text-[12px] text-text-dim">{t('Loyiha (ixtiyoriy)')}</span>
+              <select value={yangiLoyihaId} onChange={e => setYangiLoyihaId(e.target.value)}
+                className="mt-1 h-9 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 text-sm text-text">
+                <option value="">{t('— Loyihasiz —')}</option>
+                {loyihalar.map(l => <option key={l.id} value={l.id}>{l.nom}</option>)}
+              </select>
+              {!loyihalar.length && (
+                <span className="mt-1 block text-[11px] text-text-mute">
+                  {t('Hali loyiha yo‘q.')} <a href="/admin/loyiha" className="text-[var(--accent-text)] underline">{t('Loyiha yaratish')}</a>
+                </span>
+              )}
+            </label>
+            <div className="mb-4">
+              <button type="button" onClick={() => setYangiJoyOchiq((v) => !v)}
+                className="inline-flex items-center gap-1 text-[12px] text-[var(--accent-text)] underline">
+                <MapPin size={13} aria-hidden="true" /> {yangiJoyOchiq ? t('Lokatsiyani yashirish') : t('Lokatsiyani xaritadan belgilash (ixtiyoriy)')}
+              </button>
+              {yangiJoy && <span className="ml-2 font-mono text-[11px] text-text-mute">{yangiJoy[0].toFixed(5)}, {yangiJoy[1].toFixed(5)}</span>}
+              {yangiJoyOchiq && (
+                <div className="mt-2 h-[380px] overflow-hidden rounded-md border border-border">
+                  <Suspense fallback={<div className="skel h-full" />}><ObjectLocationMap position={yangiJoy} onChange={setYangiJoy} /></Suspense>
+                </div>
+              )}
             </div>
-          </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="fz-btn fz-btn--ghost" onClick={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false); }}>
+                {t('Bekor qilish')}
+              </button>
+              <button type="button" className="fz-btn fz-btn--primary" onClick={() => void obyektYarat()} disabled={!yangiNom.trim() || yaratilmoqda}>
+                {yaratilmoqda ? t('Yaratilmoqda…') : t('Yaratish')}
+              </button>
+            </div>
+          </ModalOyna>
         )}
         {editObj && editObj.kompaniya_id === joriy?.id && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-surface border border-border p-5 rounded-2xl w-full max-w-[640px] shadow-2xl flex flex-col max-h-[92vh] overflow-auto">
-              <h3 className="font-bold text-lg mb-4 text-text flex items-center gap-2">
-                <MapPin className="text-accent"/> Obyekt Joylashuvini Belgilash
-              </h3>
-              
-              <div className="flex gap-3 mb-3">
-                <input value={nomi} onChange={e=>setNomi(e.target.value)} className="flex-1 bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" placeholder="Yangi nomi..." />
-                <input value={tur} onChange={e=>setTur(e.target.value)} className="w-1/3 bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" placeholder="Turi..." />
-              </div>
-
-              <div className="h-[420px] border border-border rounded-xl overflow-hidden mb-4 relative z-0">
-                <Suspense fallback={<div className="skel h-full" />}><ObjectLocationMap position={position} onChange={setPosition} /></Suspense>
-              </div>
-
-              <div className="flex gap-2 justify-end mt-auto">
-                <button onClick={() => setEditObj(null)} className="px-5 py-2 rounded-xl text-sm font-medium text-text-dim hover:bg-surface-2 transition-colors">Bekor qilish</button>
-                <button onClick={saqlashTahrir} className="px-5 py-2 rounded-xl text-sm font-medium bg-accent text-white hover:bg-accent/80 transition-colors shadow-lg shadow-accent/20">Saqlash va Joylash</button>
-              </div>
+          <ModalOyna sarlavha="Obyekt Joylashuvini Belgilash" kenglik={640} ikon={<MapPin className="text-accent" size={18} aria-hidden="true" />} yop={() => setEditObj(null)}>
+            <div className="mb-3 flex gap-3">
+              <input value={nomi} onChange={e=>setNomi(e.target.value)} aria-label={t('Obyekt nomi')} className="h-9 flex-1 rounded-md border border-[var(--border-strong)] bg-bg px-3 text-sm text-text" placeholder={t('Yangi nomi…')} />
+              <input value={tur} onChange={e=>setTur(e.target.value)} aria-label={t('Obyekt turi')} className="h-9 w-1/3 rounded-md border border-[var(--border-strong)] bg-bg px-3 text-sm text-text" placeholder={t('Turi…')} />
             </div>
-          </div>
+            <div className="relative z-0 mb-4 h-[420px] overflow-hidden rounded-md border border-border">
+              <Suspense fallback={<div className="skel h-full" />}><ObjectLocationMap position={position} onChange={setPosition} /></Suspense>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="fz-btn fz-btn--ghost" onClick={() => setEditObj(null)}>{t('Bekor qilish')}</button>
+              <button type="button" className="fz-btn fz-btn--primary" onClick={saqlashTahrir}>{t('Saqlash va Joylash')}</button>
+            </div>
+          </ModalOyna>
         )}
-        
+
         {xato && (
-          <div className="karta p-4 border-danger/40 bg-danger/5">
-            <p className="text-[13px] text-danger flex items-center gap-2">
-              <AlertTriangle size={15} /> {xato}
-            </p>
-          </div>
+          <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{xato}</span></div>
         )}
 
         {yuklanmoqda && !currentRows && <div className="skel h-40 rounded-xl" />}
 
         {currentRows && !currentRows.length && !xato && (
-          <div className="karta p-6 text-center">
-            <p className="text-[13px] text-text-dim">Tizim_02 hali BO'SH.</p>
-            <p className="text-[12px] text-text-mute mt-1">Obyekt qo'shish uchun smeta faylini import qiling.</p>
-          </div>
+          <BoshHolat matn="Hali birorta obyekt yo‘q" izoh="Obyekt — smeta, bajarilgan ishlar va hujjatlar bir joyda turadigan ish joyi. Boshlash uchun quyidagi qadamlardan birini tanlang."
+            amal={<div className="flex flex-col items-center gap-4">
+              <ol className="flex flex-col gap-2 text-left text-[13px] text-text-dim" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {[['1', 'Loyiha yarating (ixtiyoriy) — obyektlar shu loyiha ostida guruhlanadi.'], ['2', 'Obyekt qo‘shing va nomini yozing.'], ['3', 'Obyekt ichida smeta XLSX faylini yuklang — smeta, fakt va F2 shu yerdan boshlanadi.']].map(([n, matn]) => (
+                  <li key={n} className="flex items-start gap-2.5"><span className="fz-chip fz-chip--accent" style={{ minWidth: 20, justifyContent: 'center' }}>{n}</span><span>{t(matn)}</span></li>
+                ))}
+              </ol>
+              <div className="flex flex-wrap justify-center gap-2">
+                <a className="fz-btn" href="/admin/loyiha"><FolderPlus aria-hidden="true" />{t('Loyiha yaratish')}</a>
+                <button type="button" className="fz-btn fz-btn--primary" onClick={() => setYaratishOchiq(true)}><Building2 aria-hidden="true" />{t('Yangi obyekt')}</button>
+              </div>
+            </div>} />
         )}
 
         {/* ProjectNavigator sums narxsiz at every level and marks incomplete financial totals. */}
-        {joriy?.id && currentRows && <ProjectNavigator key={joriy.id} companyId={joriy.id} objects={currentRows}
+        {joriy?.id && currentRows && currentRows.length > 0 && <ProjectNavigator key={joriy.id} companyId={joriy.id} objects={currentRows}
           onOpen={(o, contractId) => {
             workspace.setObjectId(o.id);
             const params = new URLSearchParams();
