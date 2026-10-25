@@ -15,6 +15,7 @@
 import type { F2Bolim, F2Qator } from './f2-tayyor';
 import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
 import { davrMatni } from './nakopitelniy-vedomost-export';
+import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
@@ -48,6 +49,8 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'Тип', kenglik: 7, tur: 'birlik' },
   /* J — xarajat turi (ЧЕЛ/МАШ/МАТ/…): podval SUMIF va ranglar uchun, chop etilmaydi. */
   { sarlavha: 'Кат.', kenglik: 8, tur: 'texnik', yashirin: true },
+  /* K — yashirin КАЛИТ <t2_qator.id>:<barmoq izi> (round-trip: texnadzor tuzatgan fayl qaytganda F2 import aniq bog'laydi; lrv-qayta-import himoyasi). Chop etilmaydi. */
+  { sarlavha: 'КАЛИТ', kenglik: 10, tur: 'texnik', yashirin: true },
 ];
 
 const yaxlit6 = (x: number) => Math.round(x * 1e6) / 1e6;
@@ -104,7 +107,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
       narxBor ? x.narx : null,
       // «—» (matn): SUM uni o'tkazib yuboradi, ИТОГО dagi «bo'sh summa» tekshiruvi esa uni yetishmovchilik deb sanamaydi.
       !narxBor ? (ongliNarxsiz ? '—' : null) : summaQiymat ? x.summa : { f: `ROUND(F${r}*G${r},2)`, v: hisob },
-      x.tur, kat ?? '',
+      x.tur, kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
     ], { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
   };
 
@@ -124,7 +127,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
       if (bl) {
         const ishJS = yaxlit2(avto.reduce((s2, r) => s2 + (tanlangan.get(r.id)?.summa ?? 0), 0));
         blQ = v.qator('ish', (r): Qiymat[] => [++n, ish.kod ?? '', ish.nom, ish.birlik ?? '', null, bl.hajm, null,
-          avto.length ? { f: `SUM(H${r + 1}:H${r + avto.length})`, v: ishJS } : null, 'bl', ''], { daraja: 1 });
+          avto.length ? { f: `SUM(H${r + 1}:H${r + avto.length})`, v: ishJS } : null, 'bl', '', lrvKalitYoz(ish.id, ish.kod, ish.nom, ish.birlik)], { daraja: 1 });
         tarkib.push(blQ);
         qosh(ishJS);
         for (const r of avto) resursYoz(tanlangan.get(r.id)!, r.kod, r.norma, blQ);
