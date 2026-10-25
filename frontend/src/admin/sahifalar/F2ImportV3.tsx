@@ -152,8 +152,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [holat, setHolat] = useState('Obyekt va F2 faylni tanlang.');
   const [xato, setXato] = useState('');
   const [aktZiddiyat, setAktZiddiyat] = useState(false);
-  /** Akt import orqali yaratilmagan (F2 tayyorlashda yasalgan): xato o'rniga tayyorlash sahifasiga havola. */
-  const [tayyorlashHavola, setTayyorlashHavola] = useState<string | null>(null);
+  /** Maqsad akt: tizimda yasalgan (manba hujjatsiz) QORALAMA - yangi fayl shu aktga yuklanadi (yozish: sbT2F2QoralamaYangila, akt id/raqam saqlanadi). */
+  const [maqsadAkt0, setMaqsadAkt] = useState<{ id: number; raqam: string | null; oy: string; obyektId: number } | null>(null);
   const [avvalgi, setAvvalgi] = useState<{ key: string; akt: AvvalgiF2 | null; error: boolean } | null>(null);
   const [tekshiruv, setTekshiruv] = useState(0);
   const [ogoh, setOgoh] = useState('');
@@ -314,6 +314,12 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [companyId, objectId]);
 
 
+  const maqsadAkt = maqsadAkt0 && Number(objectId) === maqsadAkt0.obyektId ? maqsadAkt0 : null;
+  /** Maqsad akt rejimida fayl tanlangach davr va raqam aktniki bo'ladi - kalit mavjud qoralamaga mos tushib, odatdagi almashtirish yo'li ishlaydi. */
+  useEffect(() => {
+    if (!maqsadAkt || !aktlar.length) return;
+    setRaqam(maqsadAkt.raqam ?? ''); setDavr(maqsadAkt.oy);
+  }, [maqsadAkt, aktlar]);
   const akt = aktlar[aktIdx] ?? null;
   const ind = useMemo(() => (akt ? f2Indeks(akt.daraxt) : null), [akt]);
   const avvalgiKalit = akt && objectId && /^\d{4}-(0[1-9]|1[0-2])$/.test(davr) ? `${companyId}:${objectId}:${davr}:${raqamN}` : '';
@@ -350,7 +356,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [aktlar, aktIdx, sessiyaKiritilgan, avvalKiritilgan, faylSha, aktNomlari]);
   /** Boshqa varaqni tanlash = yangi F2: raqam bo'shatiladi, davr varaqdan olinadi (kalit o'zgarib smeta qayta o'qiladi). */
   function varaqniTanla(i: number) {
-    setAktIdx(i); setDavr(aktlar[i]?.davr ?? davr); setRaqam(''); setAlmashtirTasdiq(null); setJarayon(null);
+    setAktIdx(i); setDavr(maqsadAkt ? maqsadAkt.oy : aktlar[i]?.davr ?? davr); setRaqam(maqsadAkt?.raqam ?? ''); setAlmashtirTasdiq(null); setJarayon(null);
   }
   const avvalgiImport = useMemo(() => {
     if (!akt) return [];
@@ -358,7 +364,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, [avvalKiritilgan, akt, faylSha, mavjudQoralama?.id]);
   useEffect(() => { if (tahrirAkt != null && mavjudQoralama?.id === tahrirAkt && almashtirTasdiq !== tahrirAkt) setAlmashtirTasdiq(tahrirAkt); }, [tahrirAkt, mavjudQoralama?.id, almashtirTasdiq]);
   const tahrirdaQoralama = tahrirAkt != null && mavjudQoralama?.id === tahrirAkt ? mavjudQoralama : null;
-  const saqlashBlok = takrorTekshirilmoqda || (!!joriyAvvalgi?.akt && !mavjudQoralama) || almashtirishKutilmoqda;
+  const maqsadMosEmas = !!maqsadAkt && !!akt && !takrorTekshirilmoqda && mavjudQoralama?.id !== maqsadAkt.id; // maqsad qoralama topilmasa YANGI akt yaratilmasin
+  const saqlashBlok = takrorTekshirilmoqda || (!!joriyAvvalgi?.akt && !mavjudQoralama) || almashtirishKutilmoqda || maqsadMosEmas;
   useEffect(() => {
     if (!avvalgiKalit) return;
     let active = true;
@@ -821,7 +828,7 @@ function Sessiya({ companyId }: { companyId: number }) {
    */
   async function aktdanTikla(aktId: number, obyektId: number): Promise<boolean> {
     if (busy || ij) return false;
-    setBusy(true); setXato(''); setTayyorlashHavola(null);
+    setBusy(true); setXato('');
     try {
       const [qs, ak] = await Promise.all([
         sbOqi<AktQatorBand>({ jadval: 't2_akt_qator', filtr: `akt_id=eq.${aktId}&obyekt_id=eq.${obyektId}`, ustunlar: 'akt_id,qator_id,hajm,certified_quantity,raw_snapshot', limit: 50000 }),
@@ -832,7 +839,14 @@ function Sessiya({ companyId }: { companyId: number }) {
       const snaps = (qs.qatorlar ?? []).filter((q) => q.raw_snapshot?.manba === 'f2_v3');
       const s0 = snaps[0]?.raw_snapshot as (AktQatorBand['raw_snapshot'] & { hujjat_id?: number }) | undefined;
       const docId = Number(s0?.hujjat_id);
-      if (!snaps.length) { setTayyorlashHavola(`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${aktId}`); throw new Error(t('Bu F2 tizimda (F2 tayyorlash) yasalgan - uni F2 tayyorlashda oching.')); }
+      if (!snaps.length) {
+        // Manba hujjati yo'q: tizimda (F2 tayyorlash) yasalgan. Faylni YANGI hujjat sifatida shu qoralamaga yuklash rejimi.
+        if (aktQ.holat !== 'qoralama' || (aktQ.lifecycle_status ?? 'draft') !== 'draft') throw new Error(t('Tasdiqlangan yoki yuborilgan F2 ni fayl bilan yangilab bo‘lmaydi (tuzatuvchi akt alohida yaratiladi).'));
+        tozala(); setAktlar([]); setObjectId(String(obyektId)); workspace.setObjectId(obyektId);
+        setMaqsadAkt({ id: aktId, raqam: aktQ.raqam, oy: String(aktQ.oy).slice(0, 7), obyektId }); setTahrirAkt(aktId); setRaqam(aktQ.raqam ?? ''); setAlmashtirTasdiq(null);
+        setHolat(t('Yangi F2 faylini tanlang - u shu qoralamaga yuklanadi.'));
+        return true;
+      }
       if (!s0 || !Number.isSafeInteger(docId) || docId <= 0 || !s0.fayl || !s0.varaq) throw new Error('Bu aktning manba hujjati yozilmagan (import orqali yaratilmagan) - uni faylni qayta import qilib almashtiring.');
       const month = String(aktQ.oy).slice(0, 7);
       const malumotP = malumotYukla(obyektId, month);
@@ -1315,6 +1329,12 @@ function Sessiya({ companyId }: { companyId: number }) {
             <option value="">Tanlang</option><ObyektOptionlari obyektlar={objects} />
           </select>
         </label>
+        {maqsadAkt && <div role="status" className="rounded-lg border border-accent/40 bg-accent/5 p-2 text-[12px] text-text">
+          <b>{t('Mavjud F2 qoralamani fayldan yangilash')}: № {maqsadAkt.raqam || '—'} · {maqsadAkt.oy} (akt #{maqsadAkt.id})</b>
+          <p className="text-text-dim">{t('Yangi (masalan, texnadzor tuzatgan) faylni tanlang: moslash odatdagidek, saqlash esa yangi akt yaratmaydi - shu qoralama yangilanadi, raqami saqlanadi.')}</p>
+          {maqsadMosEmas && <p className="text-danger">{t('Maqsad qoralama topilmadi yoki o‘zgargan - saqlash to‘xtatildi (yangi akt yaratilmaydi). Sahifani qayta oching.')}</p>}
+          <a className="underline text-accent" href={`/admin/f2-tayyorlash?obyekt=${maqsadAkt.obyektId}&akt=${maqsadAkt.id}`}>{t('Tizimda tahrirlash (F2 tayyorlash)')}</a>
+        </div>}
         <label className="block text-[12px] font-medium text-text">F2 fayl (XLSX)
           <input type="file" accept=".xlsx,.xlsm" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setTizimTanlov(''); void faylTanla(f); } }}
             className="input mt-1.5 block h-9 w-full px-2 py-1.5 text-[12px]" />
@@ -1330,13 +1350,13 @@ function Sessiya({ companyId }: { companyId: number }) {
         )}
         {akt && (
           <label className="block text-[12px] font-medium text-text">Hisobot davri {akt.davr ? <span className="font-normal text-text-mute">(fayldan: {akt.davrMatn})</span> : <span className="font-normal text-warn">(fayldan topilmadi)</span>}
-            <input type="month" value={davr} onChange={(e) => setDavr(e.target.value)} disabled={!!ij && !!done}
+            <input type="month" value={davr} onChange={(e) => setDavr(e.target.value)} disabled={(!!ij && !!done) || !!maqsadAkt}
               className="input mt-1.5 block h-9 w-full px-2 text-[13px]" />
           </label>
         )}
         {akt && (
           <label className="block text-[12px] font-medium text-text">{t('F2 raqami (akt №)')}
-            <input aria-label={t('F2 raqami (akt №)')} value={raqam} maxLength={100} placeholder={t('masalan F2-07')} disabled={!!done}
+            <input aria-label={t('F2 raqami (akt №)')} value={raqam} maxLength={100} placeholder={t('masalan F2-07')} disabled={!!done || !!maqsadAkt}
               onChange={(e) => { setRaqam(e.target.value); setAlmashtirTasdiq(null); }}
               className="input mt-1.5 block h-9 w-full px-2 text-[13px]" />
             <span className="mt-1 block font-normal text-text-mute">{t('Bir oyda bir nechta F2 bo‘lsa, har biriga o‘z raqamini kiriting — aks holda ular bir-birini almashtiradi.')}</span>
@@ -1464,7 +1484,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </section>
       )}
       {ogoh && <p className="text-[12px] text-warn">{ogoh}</p>}
-      {xato && <div role="alert" className="text-[13px] text-danger"><p>{xato}</p>{tayyorlashHavola && <a href={tayyorlashHavola} className="mt-2 inline-block underline text-accent">{t('F2 tayyorlashda ochish')}</a>}{aktZiddiyat && <a
+      {xato && <div role="alert" className="text-[13px] text-danger"><p>{xato}</p>{aktZiddiyat && <a
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
