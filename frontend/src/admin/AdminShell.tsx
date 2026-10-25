@@ -17,6 +17,7 @@ import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
+import { menyuRolYopiq } from '../lib/nav/menyuRolYopiq';
 import { routePermission } from '../lib/company-authorization/route-permission';
 import { useModullar } from '../api/t2-modul';
 import { MENYU_MODUL, menyuModulYoqilgan } from '../lib/modullar';
@@ -273,6 +274,8 @@ function AdminShellInner() {
     const korinadi = (m: MenyuQator): boolean => {
       if (!menyuModulYoqilgan(m.yol, modullar)) return false;
       if (k.superadmin) return true;
+      /* Egasi: buxgalter F2 import/tayyorlashni menyu/tab darajasida ko'rmaydi (lib/nav/menyuRolYopiq). */
+      if (menyuRolYopiq(rol, m.yol)) return false;
       if (k.joriy?.permissions) return k.joriy.permissions.includes(routePermission(m.yol));
       return eskiRolRuxsat(m.eski ?? g.id, m);
     };

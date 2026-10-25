@@ -1,8 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+
+const m = vi.hoisted(() => ({ ws: { companyId: 7 as number | null, scope: { objectId: 42 as number | null }, scopeSearch: (o: number | null) => (o ? `?obyekt=${o}` : '') } }));
+vi.mock('../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => m.ws }));
 import BolimTablari from './BolimTablari';
-import { BolimTablariKontekst, joriyTabGuruhi } from './bolimTablariKontekst';
+import { BolimTablariKontekst, joriyTabGuruhi, tabXotiraKaliti } from './bolimTablariKontekst';
 
 const F2 = [
   { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash' },
@@ -24,14 +27,14 @@ const chiz = (yol: string, guruhlar = [F2]) => render(
   </BolimTablariKontekst.Provider>,
 );
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); sessionStorage.clear(); m.ws.scope.objectId = 42; });
 
 describe('BolimTablari (F2 tab-qobig‘i)', () => {
   it('eski URL o‘z sahifasini ochadi va tablar tepada turadi', () => {
     chiz('/admin/f2');
     expect(screen.getByText('import-sahifa')).toBeTruthy();
     const tablar = screen.getAllByRole('link');
-    expect(tablar.map(a => a.getAttribute('href'))).toEqual(['/admin/f2-tayyorlash', '/admin/f2', '/admin/f2-reestr']);
+    expect(tablar.map(a => a.getAttribute('href'))).toEqual(['/admin/f2-tayyorlash?obyekt=42', '/admin/f2', '/admin/f2-reestr?obyekt=42']);
     expect(screen.getByRole('link', { name: 'F2 import (tayyor F2 faylidan)' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('link', { name: 'F2 tayyorlash' }).getAttribute('aria-current')).toBeNull();
   });
@@ -44,6 +47,25 @@ describe('BolimTablari (F2 tab-qobig‘i)', () => {
     chiz('/admin/f2-reestr', [[F2[2]]]);
     expect(screen.getByText('reestr-sahifa')).toBeTruthy();
     expect(screen.queryByRole('navigation')).toBeNull();
+  });
+  /* JQA-07: F2 import `?job=…&akt=…` bilan turganda boshqa tabga o'tib qaytilsa — o'sha job/akt bilan ochiladi. */
+  it('tab havolalari: joriy tab o‘z query’sini eslab qoladi, boshqalar scope bilan ochiladi', () => {
+    chiz('/admin/f2?obyekt=42&job=15&akt=9');
+    expect(screen.getByRole('link', { name: 'F2 reestri' }).getAttribute('href')).toBe('/admin/f2-reestr?obyekt=42');
+    expect(sessionStorage.getItem(tabXotiraKaliti(7, 42, '/admin/f2'))).toBe('?obyekt=42&job=15&akt=9');
+  });
+  it('qaytganda tabning oxirgi URL’i (kompaniya+obyekt bo‘yicha) tiklanadi', () => {
+    sessionStorage.setItem(tabXotiraKaliti(7, 42, '/admin/f2'), '?obyekt=42&job=15&akt=9');
+    sessionStorage.setItem(tabXotiraKaliti(7, 43, '/admin/f2'), '?obyekt=43&job=99');
+    chiz('/admin/f2-reestr?obyekt=42');
+    expect(screen.getByRole('link', { name: 'F2 import (tayyor F2 faylidan)' }).getAttribute('href')).toBe('/admin/f2?obyekt=42&job=15&akt=9');
+    fireEvent.click(screen.getByRole('link', { name: 'F2 import (tayyor F2 faylidan)' }));
+    expect(screen.getByText('import-sahifa')).toBeTruthy();
+  });
+  it('boshqa obyektning job’i ko‘chmaydi', () => {
+    sessionStorage.setItem(tabXotiraKaliti(7, 43, '/admin/f2'), '?obyekt=43&job=99');
+    chiz('/admin/f2-reestr?obyekt=42');
+    expect(screen.getByRole('link', { name: 'F2 import (tayyor F2 faylidan)' }).getAttribute('href')).toBe('/admin/f2?obyekt=42');
   });
   it('joriyTabGuruhi: /admin/f2 prefiksi /admin/f2-tarix bilan adashmaydi', () => {
     expect(joriyTabGuruhi([[{ yol: '/admin/f2', nom: 'x' }]], '/admin/f2-tarix')).toBeNull();
