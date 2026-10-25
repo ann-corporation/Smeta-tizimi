@@ -85,10 +85,10 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
   if (asosiy) {
     return (
       <div className="flex flex-col gap-3">
-        <a href={asosiy + '/kirish'} className="w-full rounded-full bg-black px-4 py-2.5 text-center text-[14px] font-medium text-white ring-1 ring-white/15 hover:bg-zinc-900" data-testid="google-asosiy">
+        <a href={asosiy + '/kirish'} className="w-full rounded-full bg-surface-3 px-4 py-2.5 text-center text-[14px] font-medium text-text ring-1 ring-border-strong hover:bg-surface-2" data-testid="google-asosiy">
           {t('Google bilan kirish — asosiy manzilda')}
         </a>
-        <div className="text-center text-[11px] text-zinc-500">{t('Google bilan kirish faqat asosiy manzilda ishlaydi')}</div>
+        <div className="text-center text-[11px] text-text-mute">{t('Google bilan kirish faqat asosiy manzilda ishlaydi')}</div>
       </div>
     );
   }
@@ -97,8 +97,8 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
     <div className="flex flex-col gap-3">
       {/* colorScheme: 'normal' — qorong'i sahifada Google iframe'i atrofidagi oq fon chiqmasligi uchun. */}
       <div ref={joy} className="w-full flex justify-center min-h-[44px]" style={{ colorScheme: 'normal' }} data-testid="google-kirish" />
-      <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-zinc-500">
-        <span className="h-px flex-1 bg-white/10" />{t('yoki')}<span className="h-px flex-1 bg-white/10" />
+      <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-text-mute">
+        <span className="h-px flex-1 bg-border" />{t('yoki')}<span className="h-px flex-1 bg-border" />
       </div>
     </div>
   );

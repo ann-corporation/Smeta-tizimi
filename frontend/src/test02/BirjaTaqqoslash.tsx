@@ -14,10 +14,10 @@ export function BirjaTaqqoslash({ rfq, takliflar }: { rfq: BirjaRfq; takliflar: 
   return (
     <div className="mb-6 bg-surface border border-border rounded-xl p-4">
       <div className="flex flex-wrap gap-4 mb-3 text-sm">
-        <div><span className="text-text-dim">{t("O'rtacha narx (NDS siz)")}: </span>{r.ortacha == null ? '—' : <b className="text-sky-400"><FmtN val={r.ortacha} /></b>}</div>
-        <div><span className="text-text-dim">{t("Eng arzon")}: </span>{r.eng?.narx == null ? '—' : <b className="text-emerald-400"><FmtN val={r.eng.narx} /></b>}</div>
+        <div><span className="text-text-dim">{t("O'rtacha narx (NDS siz)")}: </span>{r.ortacha == null ? '—' : <b className="text-[var(--info)]"><FmtN val={r.ortacha} /></b>}</div>
+        <div><span className="text-text-dim">{t("Eng arzon")}: </span>{r.eng?.narx == null ? '—' : <b className="text-ok"><FmtN val={r.eng.narx} /></b>}</div>
       </div>
-      {r.xabar && <p className="text-xs text-amber-400 mb-3">{t("{n} ta yetkazuvchi narxi o'rtachalandi", { n: r.narxliSoni })}</p>}
+      {r.xabar && <p className="text-xs text-warn mb-3">{t("{n} ta yetkazuvchi narxi o'rtachalandi", { n: r.narxliSoni })}</p>}
       <table className="w-full text-sm">
         <thead><tr className="text-left text-text-dim text-xs uppercase"><th className="py-1">{t("Yetkazuvchi")}</th><th className="py-1 text-right">{t("Narx, NDS siz")}</th><th className="py-1 text-right">{t("O'rtachadan farq")}</th></tr></thead>
         <tbody>
@@ -25,7 +25,7 @@ export function BirjaTaqqoslash({ rfq, takliflar }: { rfq: BirjaRfq; takliflar: 
             const farq = x.narx != null && r.ortacha ? ((x.narx - r.ortacha) / r.ortacha) * 100 : null;
             return (
               <tr key={x.yetkazuvchiId} className="border-t border-border/50">
-                <td className="py-1.5">{t("Kompaniya")} {x.yetkazuvchiNom}{r.eng?.yetkazuvchiId === x.yetkazuvchiId && <span className="ml-2 text-[10px] text-emerald-400 font-bold uppercase">{t("Eng arzon")}</span>}</td>
+                <td className="py-1.5">{t("Kompaniya")} {x.yetkazuvchiNom}{r.eng?.yetkazuvchiId === x.yetkazuvchiId && <span className="ml-2 text-[10px] text-ok font-bold uppercase">{t("Eng arzon")}</span>}</td>
                 <td className="py-1.5 text-right font-mono">{x.narx == null ? '—' : <FmtN val={x.narx} />}</td>
                 <td className="py-1.5 text-right font-mono text-text-dim">{farq == null ? '—' : `${farq > 0 ? '+' : ''}${farq.toFixed(1)}%`}</td>
               </tr>

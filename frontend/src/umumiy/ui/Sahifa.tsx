@@ -299,7 +299,7 @@ export function Yon({
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={yop}
-            className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-40"
+            className="fixed inset-0 bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] backdrop-blur-[3px] z-40"
           />
           <motion.aside
             initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
@@ -378,7 +378,7 @@ export function Tanlov({ qiymat, ozgardi, variantlar }: {
       onChange={(e) => ozgardi(e.target.value)}
       className="input h-9 px-3 text-sm w-full cursor-pointer"
     >
-      {variantlar.map((v) => <option key={v} value={v} className="bg-slate-800 text-white">{v}</option>)}
+      {variantlar.map((v) => <option key={v} value={v} className="bg-surface-2 text-text">{v}</option>)}
     </select>
   );
 }
@@ -393,7 +393,7 @@ export function Tugma({
   ikonka?: ReactNode;
 }) {
   const uslub = {
-    primary: 'bg-accent text-white hover:bg-accent/90 border-transparent',
+    primary: 'bg-accent text-[var(--on-accent)] hover:brightness-110 border-transparent',
     secondary: 'karta text-text hover:border-[var(--accent)]/50',
     danger: 'bg-danger/10 text-danger border-danger/25 hover:bg-danger/15',
   }[tur];
