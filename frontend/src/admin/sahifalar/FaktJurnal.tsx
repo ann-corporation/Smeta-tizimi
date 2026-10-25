@@ -5,6 +5,7 @@ import { bajarilmadiHajmlar, faktYigindiHisobla, narxlashMumkin } from '../../li
 import { FaktNarxlash, type NarxlashQator } from './FaktNarxlash';
 import { FaktBajarilmadiTez, type BajarilmadiQatorInfo } from './FaktBajarilmadiTez';
 import { FaktStudioBar } from './FaktStudioBar';
+import { FaktAiYordamchi } from './FaktAiYordamchi';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../../lib/ustamali-summa';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
@@ -78,15 +79,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const [yopiqBolim, setYopiqBolim] = useState<Set<number>>(new Set());
   const [band, setBand] = useState(false);
   const [saqlangan, setSaqlangan] = useState<Set<number>>(new Set());
-  const [modal, setModal] = useState<{ rejim: AbcRejim; tahrir?: AbcTahrir | null } | null>(null);
+  const [modal, setModal] = useState<{ rejim: AbcRejim; tahrir?: AbcTahrir | null; normativId?: string | null } | null>(null);
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   /**
    * Zamena qator TURIGA qarab (egasi 2026-10-25: «resurs zamenasi ish zamenasiga o'tib ketyapti»):
    * ish (bl) — ish zamenasi; har qanday resurs (rs/mat/ob, ish ichida yoki alohida) — resurs zamenasi.
    * Resurs normasi ota ISH hajmiga ko'paytiriladi (server bilan bir xil: ota t2_qator.hajm); ota ish bo'lmasa — aniq hajm.
    */
-  const zamenaOch = (q: JurnalQator) => {
-    if (q.tur === 'bl') { setModal({ rejim: { tur: 'replacement', eski: { id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, otaId: q.otaId, otaVersiya: q.otaVersiya, hajm: q.smeta } } }); return; }
+  const zamenaOch = (q: JurnalQator, normativId: string | null = null) => {
+    if (q.tur === 'bl') { setModal({ rejim: { tur: 'replacement', eski: { id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, otaId: q.otaId, otaVersiya: q.otaVersiya, hajm: q.smeta } }, normativId }); return; }
     const ota = q.otaId != null ? rowById.get(q.otaId) : undefined;
     const ishmi = ota?.tur === 'bl';
     setModal({ rejim: { tur: 'resurs_zamena',
@@ -142,7 +143,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     if (!r?.ok) { toast(r ? t(bajarilmadiXato(r)) : t('Javob olinmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
     toast(t('Belgi bekor qilindi.'), 'ok'); await bajYangila();
   };
-  const bajOch = (q: JurnalQator) => setBajModal({ id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, smeta: q.smeta, fakt: q.fakt, belgilangan: bajHajm.get(q.id) ?? 0 });
+  const bajOch = (q: JurnalQator, boshlangichHajm: number | null = null) => setBajModal({ id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, smeta: q.smeta, fakt: q.fakt, belgilangan: bajHajm.get(q.id) ?? 0, boshlangichHajm });
   const operationId = useRef(yangiOperationId());
   const inputlar = useRef<Array<HTMLInputElement | null>>([]);
   const qidiruvRef = useRef<HTMLInputElement | null>(null);
@@ -538,6 +539,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         </div>
       </div>}
 
+      <FaktAiYordamchi kompaniyaId={kompaniyaId} obyektId={obyektId}
+        malumot={{ bolimlar, bolimIshlari, holatMap, summalar, bajHajm, materialTakliflari: (id) => takliflarSoni([id]), kiritmaSoni: ozgarishSoni }}
+        amallar={{ kirit: (id, k) => kirit(id, k), materiallarniOl, korsat: (q) => setQidiruv(q.kod || q.nom), zamena: (q, n) => zamenaOch(q, n), bajarilmaydi: (q, h) => bajOch(q, h) }} />
+
       {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} obyektId={obyektId} sana={sana}
         onYop={() => setTenglash(null)} onBajarildi={() => holatniYangila()}
         aktBekor={faktF2Bekor} />}
@@ -550,7 +555,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 
       {modal && <IshAbcModal kompaniyaId={kompaniyaId} obyektId={obyektId} sana={sana}
         bolimlar={bolimlar.map((b) => ({ id: b.id, versiya: b.versiya, nom: `${'· '.repeat(b.daraja)}${b.nom}` }))}
-        rejim={modal.rejim} tahrir={modal.tahrir} onYop={() => setModal(null)}
+        rejim={modal.rejim} tahrir={modal.tahrir} normativId={modal.normativId} onYop={() => setModal(null)}
         onSaqlandi={(xabar) => { setModal(null); toast(xabar, 'ok'); void tuzilmaniYangila(); }} />}
     </div>
   );

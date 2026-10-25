@@ -83,7 +83,7 @@ export function F2ResursVedomosti({ qatorlar, kodOl, obyektId, kompaniyaId, onQo
               <td className="px-2 py-1 text-text">{x.nom}{x.narxFarqli && <span className="ml-1 rounded bg-warn/10 px-1 text-[10px] text-warn">{t('narx farqli')}</span>}{x.axborot && <span className="ml-1 text-[10px] text-text-mute">{t('ma’lumot qatori (narx mashina narxi ichida)')}</span>}</td>
               <td className="w-16 px-2 py-1 text-text-dim">{x.birlik}</td>
               <td className="w-24 px-2 py-1 text-right tabular-nums"><FmtN val={x.hajm} /></td>
-              <td className="w-28 px-2 py-1 text-right tabular-nums">{x.narx != null ? <FmtN val={x.narx} /> : x.axborot ? '' : <span className="text-warn">{t('narx yo‘q')}</span>}</td>
+              <td className="w-28 px-2 py-1 text-right tabular-nums">{x.narx != null && <FmtN val={x.narx} />}{x.narx == null && !x.axborot && <span className="text-warn">{t('narx yo‘q')}</span>}</td>
               <td className="w-32 px-2 py-1 text-right tabular-nums font-semibold">{x.summa != null ? <FmtN val={x.summa} /> : ''}</td>
             </tr>
             {ochilgan && <tr key={`${x.kalit}-t`}><td colSpan={7} className="bg-surface-2/40">{taklifPaneli(x)}</td></tr>}

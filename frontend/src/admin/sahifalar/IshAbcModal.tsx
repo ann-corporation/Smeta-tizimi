@@ -68,7 +68,9 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
  */
 export type AbcTahrir = { qatorId: number; kutilganVersiya?: number; oldAmount?: number | null; ish?: { kod: string; nom: string; birlik: string; hajm: string }; resurslar: AbcResurs[]; fakt?: string };
 
-export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, boshlang, onYop, onSaqlandi, saqlash, almashtirishBelgila }: {
+export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahrir, boshlang, normativId, onYop, onSaqlandi, saqlash, almashtirishBelgila }: {
+  /** Normativ katalog pozitsiyasi id (AI yordamchi taklifi): oyna shu ish va uning normativ resurslari bilan to'ladi; yozuv — «Saqlash». */
+  normativId?: string | null;
   kompaniyaId: number; obyektId: number; sana: string;
   bolimlar: Array<{ id: number; nom: string; versiya: number }>;
   rejim: AbcRejim;
@@ -167,6 +169,14 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
     const n = resurslar.map((o, i) => (i === 0 ? { ...o, kat: x.kat, kod: x.kod, nom: x.nom, birlik: x.birlik || o.birlik, narx: '', manba: 'qolda' as const } : o));
     setResurslar(n); void narxlarniOl(n, 0); setNormOyna(null); setAiIsh(null);
   };
+  // AI yordamchi taklif qilgan normativ pozitsiya (faqat katalogda BOR id): oyna shu ish va uning normativ resurslari bilan ochiladi.
+  const normBoshlandi = useRef(false);
+  useEffect(() => {
+    if (!normativId || normBoshlandi.current || resursRejim || tahrir) return;
+    if (!katalog) { if (!katalogXato) void normKatalogOch().then(setKatalog).catch(() => setKatalogXato(true)); return; }
+    normBoshlandi.current = true; void normativIshTanla(normativId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normativId, katalog, katalogXato]);
   const izohMatn = (k: string) => k === 'NORMA_MASSHTABI_NOMALUM' ? t('Normativ birlik masshtabi manbada tasdiqlanmagan — normalar bo‘sh qoldirildi, kiriting.')
     : k === 'NORMASIZ_RESURS' ? t('Ayrim resurslarning normasi manbada yo‘q — normani yoki aniq hajmni kiriting.')
     : k === 'NOANIQ_RESURS' ? t('Ayrim resurslar katalogda aniq aniqlanmadi — ular qo‘shilmadi, kerak bo‘lsa qo‘lda qo‘shing.')

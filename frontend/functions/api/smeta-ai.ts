@@ -16,6 +16,9 @@
  *   POST { amal: 'narx_internet', kompaniya_id, sorovlar: [{id, nom, birlik, kat}] (≤ 8), hudud? }
  *        → { ok, natijalar }                           (web-search model claims seller pages; every page is opened here and
  *                                                       the price + product marks must be on it — else "not verified")
+ *   POST { amal: 'sahifa_suhbat', kompaniya_id, sahifa: 'fakt'|'f2', xabarlar, kontekst, natijalar?, oxirgi? }
+ *        → { ok, javob, savollar, oqish, amallar }      (sahifa AI yordamchisi: o'qish vositasi so'rovlari brauzerda bajariladi,
+ *                                                       amallar faqat taklif — lib/ai-yordamchi/protokol)
  *   POST { amal: 'narx_tajriba' | 'narx_tajriba_yoz' } (platform price experience: accepted/rejected sources, practice check)
  *
  * Session actor + company membership; company AI budget checked before every model call and usage
@@ -34,6 +37,8 @@ import { foundationSourceContext, contradictsFoundationSource } from '../../src/
 import { INTERNET_NARX_SXEMA, INTERNET_NARX_TIZIM, internetJavobiniTekshir, internetNarxi, qqsSiz, sahifadaMahsulotBor, sahifadaNarxBor,
   type InternetManba, type InternetNatija, type InternetSorov } from '../../src/lib/smeta-ai/internet-narx';
 import { priceUnitFactor } from '../../src/lib/smeta-studio/resource-match';
+import { oqishNatijalari, sahifaJavobiniTekshir, sahifaSxema, sahifaTuri } from '../../src/lib/ai-yordamchi/protokol';
+import { SAHIFA_TIZIM, SAHIFA_YORDAM_VERSIYA } from '../../src/lib/ai-yordamchi/prompt';
 import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
 import { KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
   type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
@@ -285,6 +290,33 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { system: KOEF_TANLOV_TIZIM, text: `Ish sharoiti (foydalanuvchi): ${sharoit}\n<MALUMOT>\n${JSON.stringify(sorovlar)}\n</MALUMOT>`, tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 4000, jsonSchema: KOEF_TANLOV_SXEMA },
         ['tanlovlar', 'savol']);
       return Response.json({ ok: true, ...koefTanlovlariniTekshir(obj, sorovlar), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    // Sahifa AI yordamchisi (fakt / F2 tayyorlash): Studio agenti bilan bir xil tartib — model o'qish vositalarini so'raydi
+    // (brauzer foydalanuvchining o'z ma'lumoti ustida bajaradi) va amallarni faqat TAKLIF qiladi; yozuv — foydalanuvchi tasdig'i bilan.
+    if (so.amal === 'sahifa_suhbat') {
+      const sahifa = sahifaTuri(so.sahifa);
+      const tizim = sahifa ? SAHIFA_TIZIM[sahifa] : undefined;
+      if (!sahifa || !tizim) return fail('SAHIFA_INVALID');
+      const xabarlar = xabarlarniTayyorla(so.xabarlar);
+      if (!xabarlar) return fail('XABAR_INVALID');
+      const kontekst = clip(so.kontekst, 20000).trim();
+      const natijalar = oqishNatijalari(so.natijalar, sahifa);
+      // Oxirgi aylanish: brauzer boshqa vosita bajarmaydi — model javob berishi shart.
+      const oxirgi = so.oxirgi === true;
+      const text = [
+        `<XULOSA>\n${kontekst || 'bo‘sh'}\n</XULOSA>`,
+        ...(natijalar.length ? [`<NATIJALAR>\n${natijalar.map(n => `## ${n.vosita}(${n.arg ?? ''})\n${n.natija}`).join('\n\n')}\n</NATIJALAR>`] : []),
+        `Suhbat:\n<SUHBAT>\n${xabarlar.map(x => `${x.rol === 'user' ? 'Foydalanuvchi' : 'Yordamchi'}: ${x.matn}`).join('\n')}\n</SUHBAT>`,
+        ...(oxirgi ? ["DIQQAT: bu oxirgi aylanish — \"oqish\": [] qaytaring va bor ma'lumot bilan javob bering."] : []),
+      ].join('\n\n');
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', `${sahifa}_yordam`, req);
+      const xotira = await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId);
+      const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
+        { system: tizim + xotiraBloklari(xotira), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 5000, jsonSchema: sahifaSxema(sahifa) },
+        ['javob', 'amallar', 'oqish']);
+      const out = sahifaJavobiniTekshir(obj, sahifa);
+      return Response.json({ ok: true, ...out, ...(oxirgi ? { oqish: [] } : {}), tushunildi: !!obj, model: r.model, versiya: SAHIFA_YORDAM_VERSIYA,
+        ...(ogohlantirish ? { ogohlantirish } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'xotira') return Response.json({ ok: true, ...(await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, true)) }, { headers: { 'Cache-Control': 'no-store' } });
     if (so.amal === 'xotira_yoz') {
