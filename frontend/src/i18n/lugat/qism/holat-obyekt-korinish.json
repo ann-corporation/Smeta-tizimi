@@ -646,5 +646,169 @@
  "ta qator topildi": {
   "ru": "строк найдено",
   "en": "rows found"
+ },
+ "Barcha resurslarda narx bor": {
+  "ru": "У всех ресурсов есть цена",
+  "en": "All resources have a price"
+ },
+ "Bir nechta fayl yoki papka bo‘lsa — pastdagi «Ko‘p faylli paket» bo‘limidan foydalaning.": {
+  "ru": "Если файлов несколько или целая папка — используйте раздел «Пакет из нескольких файлов» ниже.",
+  "en": "For several files or a folder, use the “Multi-file package” section below."
+ },
+ "Bu obyektda smeta yo‘q, shuning uchun import yangi smeta yaratadi. Keyinchalik shu obyektga yangi fayl yuklansa — u faqat farq (preview) sifatida ko‘rsatiladi va mavjud smetani o‘zgartirmaydi.": {
+  "ru": "В этом объекте сметы нет, поэтому импорт создаст новую смету. Если позже в объект загрузить новый файл — он будет показан только как разница (предпросмотр) и не изменит существующую смету.",
+  "en": "This object has no estimate, so the import creates a new one. A file uploaded later is shown only as a diff (preview) and never changes the existing estimate."
+ },
+ "Diff tayyor": {
+  "ru": "Разница готова",
+  "en": "Diff ready"
+ },
+ "Faylni shu yerga tashlang yoki bosib tanlang — .xlsx, .xlsm, .xls. Hech narsa yozilmaydi, faqat farq ko‘rsatiladi.": {
+  "ru": "Перетащите файл сюда или нажмите для выбора — .xlsx, .xlsm, .xls. Ничего не записывается, показывается только разница.",
+  "en": "Drop the file here or click to choose — .xlsx, .xlsm, .xls. Nothing is written; only the difference is shown."
+ },
+ "Hali birorta LRV varag‘i va uning ustunlari tanlanmagan — tuzilma ko‘rsatilmaydi.": {
+  "ru": "Ни один лист ЛРВ и его столбцы ещё не выбраны — структура не показывается.",
+  "en": "No LRV sheet and its columns are selected yet — the structure is not shown."
+ },
+ "Hujjat anatomiyasi": {
+  "ru": "Анатомия документа",
+  "en": "Document anatomy"
+ },
+ "Import qarori": {
+  "ru": "Решение об импорте",
+  "en": "Import decision"
+ },
+ "Import tugadi": {
+  "ru": "Импорт завершён",
+  "en": "Import finished"
+ },
+ "Keyingi qadam: «Smeta va bajarilish» bo‘limiga o‘ting — daraxt, jami summalar va narxsiz qatorlar o‘sha yerda. Narxsiz resurslar bo‘lsa, «Narxlar nazorati» orqali to‘ldiring.": {
+  "ru": "Следующий шаг: перейдите в «Смета и выполнение» — дерево, итоги и строки без цены там. Если есть ресурсы без цены, заполните их через «Контроль цен».",
+  "en": "Next step: open “Estimate and progress” — the tree, totals and unpriced rows are there. Fill unpriced resources via “Price control”."
+ },
+ "Ko‘p faylli paket": {
+  "ru": "Пакет из нескольких файлов",
+  "en": "Multi-file package"
+ },
+ "Qabul qilinadi: .xlsx, .xlsm, .xls. LRV (ish va hajm) varag‘i kerak; resurs narxlari uchun RES varag‘i ixtiyoriy. Import qilishdan oldin tahlil ko‘rsatiladi — hech narsa darhol yozilmaydi.": {
+  "ru": "Принимаются: .xlsx, .xlsm, .xls. Нужен лист ЛРВ (работы и объёмы); лист РС с ценами ресурсов — по желанию. Перед импортом показывается анализ — ничего не записывается сразу.",
+  "en": "Accepted: .xlsx, .xlsm, .xls. An LRV sheet (work and volumes) is required; an RES sheet with resource prices is optional. An analysis is shown before import — nothing is written immediately."
+ },
+ "Qayta import — faqat ko‘rib chiqish (preview).": {
+  "ru": "Повторный импорт — только предпросмотр.",
+  "en": "Re-import — preview only."
+ },
+ "Qo‘shilgan": {
+  "ru": "Добавлено",
+  "en": "Added"
+ },
+ "Yo‘qolgan": {
+  "ru": "Пропало",
+  "en": "Missing"
+ },
+ "Tarix candidate": {
+  "ru": "Кандидаты в историю",
+  "en": "History candidates"
+ },
+ "Resurs turlari ulushi": {
+  "ru": "Доля типов ресурсов",
+  "en": "Resource type share"
+ },
+ "Smeta faylini shu yerga tashlang yoki bosib tanlang": {
+  "ru": "Перетащите файл сметы сюда или нажмите для выбора",
+  "en": "Drop the estimate file here or click to choose"
+ },
+ "Smeta yangi revisioni (preview)": {
+  "ru": "Новая ревизия сметы (предпросмотр)",
+  "en": "New estimate revision (preview)"
+ },
+ "Ushbu ustunlar bilan import qilish": {
+  "ru": "Импортировать с этими столбцами",
+  "en": "Import with these columns"
+ },
+ "Yuklash bosqichlari": {
+  "ru": "Этапы загрузки",
+  "en": "Upload steps"
+ },
+ "import qilinishidan oldin": {
+  "ru": "до импорта",
+  "en": "before import"
+ },
+ "{n} ta LRV varag‘i o‘qildi, {r} ta bo‘lim topildi": {
+  "ru": "Прочитано листов ЛРВ: {n}, найдено разделов: {r}",
+  "en": "{n} LRV sheet(s) read, {r} section(s) found"
+ },
+ "{n} ta mashinist mehnati normativ bo‘yicha 0 — xato emas": {
+  "ru": "{n} позиций труда машинистов по нормативу = 0 — не ошибка",
+  "en": "{n} machine-operator labour rows are 0 by norm — not an error"
+ },
+ "{n} ta resursda narx yo‘q yoki 0 ({jami} dan) — RES bilan narxlang": {
+  "ru": "У {n} ресурсов нет цены или она 0 (из {jami}) — установите цены через РС",
+  "en": "{n} resources have no price or 0 (of {jami}) — price them with RES"
+ },
+ "{n} ta varaq o‘qildi. Quyida tuzilma tekshiriladi; import faqat «Import qilish» bosilganda bajariladi.": {
+  "ru": "Прочитано листов: {n}. Ниже проверяется структура; импорт выполняется только по кнопке «Импортировать».",
+  "en": "{n} sheet(s) read. The structure is checked below; the import runs only when you press “Import”."
+ },
+ "«{nom}»: tekis tuzilma ishlatildi — {sabab}": {
+  "ru": "«{nom}»: использована плоская структура — {sabab}",
+  "en": "“{nom}”: flat structure used — {sabab}"
+ },
+ "«ВЕДОМОСТЬ РЕСУРСОВ» bo‘limidan {n} ta qator ish sifatida qo‘shilmadi (ikki marta sanalmasin)": {
+  "ru": "Из раздела «ВЕДОМОСТЬ РЕСУРСОВ» {n} строк не добавлены как работы (чтобы не считать дважды)",
+  "en": "{n} rows from the “RESOURCE SHEET” section were not added as work (to avoid double counting)"
+ },
+ "Mehnat / mashina (rs)": {
+  "ru": "Труд / машины (rs)",
+  "en": "Labour / machines (rs)"
+ },
+ "F2, so‘m": {
+  "ru": "Ф2, сум",
+  "en": "F2, UZS"
+ },
+ "Fakt hajm kiriting": {
+  "ru": "Введите объём факта",
+  "en": "Enter the actual volume"
+ },
+ "Fakt, so‘m": {
+  "ru": "Факт, сум",
+  "en": "Actual, UZS"
+ },
+ "Hajm F2": {
+  "ru": "Объём Ф2",
+  "en": "F2 volume"
+ },
+ "Hajm Fakt": {
+  "ru": "Объём факта",
+  "en": "Actual volume"
+ },
+ "Hajm Mumkin": {
+  "ru": "Объём можно по Ф2",
+  "en": "F2-available volume"
+ },
+ "Hajm Smeta": {
+  "ru": "Объём по смете",
+  "en": "Estimate volume"
+ },
+ "Nom / Birlik": {
+  "ru": "Название / Ед.",
+  "en": "Name / Unit"
+ },
+ "Oylik F2 Hajmlarni Kiritish": {
+  "ru": "Ввод месячных объёмов Ф2",
+  "en": "Enter monthly F2 volumes"
+ },
+ "Qator turi": {
+  "ru": "Тип строки",
+  "en": "Row type"
+ },
+ "Qoldiq, so‘m": {
+  "ru": "Остаток, сум",
+  "en": "Remaining, UZS"
+ },
+ "Smeta, so‘m": {
+  "ru": "Смета, сум",
+  "en": "Estimate, UZS"
  }
 }

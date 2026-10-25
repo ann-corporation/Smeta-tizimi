@@ -294,23 +294,23 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           sarlavha tananing scrollLeft'iga ergashadi (pastdagi onScroll). */}
       <div ref={sarlavhaRef} className="overflow-x-hidden">
       <div style={{ minWidth: minimumWidth, width:bodyWidth }} className="h-9 border-b border-[var(--border-strong)] bg-surface-2 flex items-center text-[10.5px] font-semibold text-text-dim uppercase tracking-[.06em]">
-        <div className="flex-1 min-w-0 px-4">Nom / Birlik</div>
+        <div className="flex-1 min-w-0 px-4">{t('Nom / Birlik')}</div>
         <div className="flex items-center h-full pr-4 flex-shrink-0 gap-4">
-          {showSmetaAndFakt && <div className="w-20 text-right" title="Smeta Hajm">{t('Smeta')}</div>}
-          {showSmetaAndFakt && <div className="w-24 text-right" title="Fakt Hajm">Fakt</div>}
-          <div className="w-24 text-right" title="Jami F2 Hajm">F2 olingan</div>
+          {showSmetaAndFakt && <div className="w-20 text-right" title={t('Smeta hajmi')}>{t('Smeta')}</div>}
+          {showSmetaAndFakt && <div className="w-24 text-right" title={t('Fakt hajmi')}>{t('Fakt')}</div>}
+          <div className="w-24 text-right" title={t('F2 hajmi')}>{t('F2 olingan')}</div>
           <div className="w-28 text-left" title={t('F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%')}>{t('Bajarilish')}</div>
-          <div className="w-24 text-right" title="F2 Olish Mumkin (Fakt - F2)">F2 mumkin</div>
-          <div className="w-20 text-right" title="Qoldiq Hajm">{t('Qoldiq')}</div>
+          <div className="w-24 text-right" title={t('F2 mumkin — bajarilgan (fakt), lekin hali F2 akti bilan topshirilmagan qism.')}>{t('F2 mumkin')}</div>
+          <div className="w-20 text-right" title={t('Qoldiq hajmi')}>{t('Qoldiq')}</div>
           <div className="w-28 text-left text-text-mute" title={t('Narx nazorati holati')}>{t('Narx holati')}</div>
           
           {showMoney && <div className="w-4 border-r border-border h-full mx-2"></div>}
           
-          {showMoney && <><div className="w-24 text-right" title="Smeta Summa">Smeta, so‘m</div>
-          <div className="w-24 text-right" title="Fakt Summa (Nakrutka)">Fakt, so‘m</div>
-          <div className="w-24 text-right" title="F2 Summa (Nakrutka)">F2, so‘m</div>
-          <div className="w-24 text-right" title="F2 Olish Mumkin Summa (Nakrutka)">F2 mumkin</div>
-          <div className="w-24 text-right" title="Qoldiq Summa (Nakrutka)">Qoldiq, so‘m</div></>}
+          {showMoney && <><div className="w-24 text-right" title={t('Smeta summasi')}>{t('Smeta, so‘m')}</div>
+          <div className="w-24 text-right" title={t('Fakt summasi')}>{t('Fakt, so‘m')}</div>
+          <div className="w-24 text-right" title={t('F2 summasi')}>{t('F2, so‘m')}</div>
+          <div className="w-24 text-right" title={t('F2 mumkin')}>{t('F2 mumkin')}</div>
+          <div className="w-24 text-right" title={t('Qoldiq summasi')}>{t('Qoldiq, so‘m')}</div></>}
         </div>
       </div>
       </div>
@@ -410,10 +410,10 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     </div>
                     
                     {/* Zamena/Qoshimcha icons */}
-                    {node.isZamena && <RefreshCcw size={14} className="text-accent flex-shrink-0" aria-label="zamena" />}
+                    {node.isZamena && <RefreshCcw size={14} className="text-accent flex-shrink-0" aria-label={t('zamena')} />}
                     {node.isQosh && <Plus size={14} className="text-ok flex-shrink-0" />}
                     
-                    <span className="text-text-dim flex-shrink-0" title={`Qator turi: ${node.type}`}><TreeTypeIcon type={node.type} /></span>
+                    <span className="text-text-dim flex-shrink-0" title={`${t('Qator turi')}: ${node.type}`}><TreeTypeIcon type={node.type} /></span>
 
                     {/* Type Badge */}
                     {node.type !== 'rz' && node.type !== 'bl' && node.kat ? <KatNishon kat={node.kat} /> : null}
@@ -423,7 +423,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     
                     {/* Nom */}
                     <span className={`truncate flex-1 ${node.type === 'rz' ? 'text-accent' : node.type === 'bl' ? 'text-text' : 'text-text-dim'}`} title={node.nom || 'Nomsiz'}>
-                      {node.nom || <span className="text-text-mute italic">Nomsiz</span>}
+                      {node.nom || <span className="text-text-mute italic">{t('Nomsiz')}</span>}
                     </span>
                     
                     {/* Birlik */}
@@ -456,7 +456,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                       <input
                         type="text"
                         value={currentFakt}
-                        placeholder="Fakt"
+                        placeholder={t('Fakt')}
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => {
                           const val = Number(e.target.value.replace(/,/g, '.'));
@@ -472,7 +472,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                           }
                         }}
                         className={`w-full text-right bg-surface border rounded px-1.5 py-0.5 outline-none transition-colors ${isOverLimit ? 'border-warn text-warn' : 'border-[var(--border-strong)] text-text focus:border-[var(--focus)]'}`}
-                        title="Fakt hajm kiriting"
+                        title={t('Fakt hajm kiriting')}
                       />
                     ) : (
                       <><FmtN val={node.fakt} cl={isOverLimit ? 'text-warn font-semibold' : 'text-text'} />{isOverLimit && <span className="ml-0.5 text-[9px] text-warn" aria-label={t('smetadan oshgan')}>▲</span>}</>
@@ -510,26 +510,26 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     {/* Left: Quick Stats */}
                     <div className="w-64 flex-shrink-0 grid grid-cols-2 gap-3">
                       <div className="bg-surface-2 border border-border rounded-lg p-3">
-                        <div className="text-[10px] text-text-mute font-bold">Hajm Smeta</div>
+                        <div className="text-[10px] text-text-mute font-bold">{t('Hajm Smeta')}</div>
                         <div className="text-sm text-text font-mono"><FmtN val={node.smetaHajm} /></div>
                       </div>
                       <div className="bg-surface-2 border border-border rounded-lg p-3">
-                        <div className="text-[10px] text-text-mute font-bold">Hajm Fakt</div>
+                        <div className="text-[10px] text-text-mute font-bold">{t('Hajm Fakt')}</div>
                         <div className="text-sm text-text font-mono"><FmtN val={currentFakt} /></div>
                       </div>
                       <div className="bg-surface-2 border border-border rounded-lg p-3">
-                        <div className="text-[10px] text-text-mute font-bold">Hajm F2</div>
+                        <div className="text-[10px] text-text-mute font-bold">{t('Hajm F2')}</div>
                         <div className="text-sm text-accent font-mono"><FmtN val={node.f2ol} /></div>
                       </div>
                       <div className="bg-surface-2 border border-border rounded-lg p-3">
-                        <div className="text-[10px] text-text-mute font-bold">Hajm Mumkin</div>
+                        <div className="text-[10px] text-text-mute font-bold">{t('Hajm Mumkin')}</div>
                         <div className="text-sm text-text-dim font-mono"><FmtN val={node.f2mum} /></div>
                       </div>
                     </div>
                     
                     {/* Right: Monthly F2 Inputs */}
                     <div className="flex-1 overflow-x-auto">
-                      <h4 className="text-xs font-bold text-text-dim mb-3 flex items-center gap-2"><span className="w-2 h-2 rotate-45 bg-accent"></span>Oylik F2 Hajmlarni Kiritish</h4>
+                      <h4 className="text-xs font-bold text-text-dim mb-3 flex items-center gap-2"><span className="w-2 h-2 rotate-45 bg-accent"></span>{t('Oylik F2 Hajmlarni Kiritish')}</h4>
                       <div className="flex gap-4">
                         {oylar.map((oy: string) => {
                           const oylarState = edits[key]?.edit?.oylar || node.oylar || {};
