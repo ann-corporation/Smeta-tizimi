@@ -159,6 +159,7 @@ export const GENERATED_SITE_MAP = {
     "t2_akt",
     "t2_akt_qator",
     "t2_akt_reestr",
+    "t2_shartnoma_bog_kompaniya",
     "t2_qator_holat",
     "t2_faktura",
     "t2_ish_turi",

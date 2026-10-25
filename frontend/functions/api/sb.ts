@@ -50,7 +50,7 @@ const RUXSAT_JADVALLAR = new Set([
   't2_narx', 't2_manba', 't2_xom', 't2_lrv',
   't2_kozgu', 't2_ozgarish', 't2_sozlama',
   /* F2 / FAKT (E bosqichi) */
-  't2_akt', 't2_akt_qator', 't2_akt_reestr', 't2_qator_holat', 't2_faktura', 't2_ish_turi', 't2_shaxsiy_smeta',
+  't2_akt', 't2_akt_qator', 't2_akt_reestr', 't2_shartnoma_bog_kompaniya', 't2_qator_holat', 't2_faktura', 't2_ish_turi', 't2_shaxsiy_smeta',
   'v_erp_kadrlar_dashboard', 'v_erp_texnika_dashboard', 'v_erp_taminot_dashboard', 'v_erp_sifat_dashboard', 't2_grafik_holat', 'v_boss_init', 'v_boss_data',
   't2_birja_rfq', 't2_birja_taklif', 't2_sklad_qoldiq', 't2_sklad_harakat', 't2_m29_hujjat',
   /* NARXLAR MARKAZI — hammasi FAQAT O'QISH uchun ko'rinishlar.

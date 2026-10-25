@@ -360,6 +360,8 @@ export type T2AktReestr = {
   hujjat_jami: number | null; yozilgan_jami: number; qator_soni: number | null;
   narxsiz_qator: number | null; manfiy_qator: number | null;
   farq: number | null; reestr_holat: string; versiya: number;
+  /** Migratsiya 20261108800000: birinchi akt qatori raw_snapshot'idan manba belgilari (yo'q bo'lsa undefined). */
+  manba_bor?: boolean; manba?: string | null; import_job_id?: number | null; hujjat_id?: number | null;
 };
 
 export function sbT2AktReestrOl(obyektId: number) {
