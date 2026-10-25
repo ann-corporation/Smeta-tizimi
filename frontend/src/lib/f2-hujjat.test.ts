@@ -6,6 +6,8 @@ import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 import { readXlsx } from './f2-import-parse/xlsxReader';
 import { f2FaylOqiCore, f2UstunAniqla } from './f2-import-parse';
 import { imzoNomlariTomonlardan, imzoRollari } from './shartnoma-liniya';
+import { kalitdanBog } from './f2-kalit-bogla';
+import { lrvKalitOqi } from './lrv-qayta-import';
 import { AKT246_HAJM, AKT246_HOLAT, AKT246_ROWS, NAMUNA_NAKRUTKA } from './f2-hujjat.fixture';
 
 const tayyorla = () => {
@@ -38,7 +40,7 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     expect(k.some((x) => x.f?.startsWith('SUMIF(J'))).toBe(true);                 // podval — xarajat turi bo'yicha
     expect(t.matnlar.some((s) => s.includes('ИТОГО ПО РАЗДЕЛУ «НАРУЖНАЯ ОТДЕЛКА»'))).toBe(true);
     expect(t.matnlar).toContain('АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ № 1 (ФОРМА № 2)');
-    expect(k.some((x) => /^[K-Z]\d/.test(x.ref))).toBe(false);                     // ko'rinadigan A–I + yashirin J, boshqa yo'q
+    expect(k.some((x) => /^[L-Z]\d/.test(x.ref))).toBe(false);                     // ko'rinadigan A–I + yashirin J (kat), K (КАЛИТ), boshqa yo'q
   });
 
   it('ROUND-TRIP: tizim chiqargan Ф-2 ni F2 import aynan o‘qiydi (ish, resurs, material, hajm, summa)', async () => {
@@ -64,6 +66,27 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     for (const x of barglar) expect(aktHajm.has(`${x.nom}|${x.hajm}`)).toBe(true);
   });
 
+  it('КАЛИТ round-trip: yashirin K ustuni har ish/resurs qatorini t2_qator.id ga aniq bog‘laydi; tahrirlangan/nusxalangan/begona kalit bog‘lanmaydi', async () => {
+    const { b, q } = tayyorla();
+    const r = f2Hujjat(b, q, { obyektNom: 'Fast Food 1-etaj', davr: '2026-10', raqam: '1', nakrutka: NAMUNA_NAKRUTKA, ndsFoiz: 12 });
+    const grid = (await readXlsx(r.bytes)).sheet('Ф-2')!.rows;
+    const tugunlar = grid.flatMap((row, i) => lrvKalitOqi(row[10]) ? [{ uid: 'r' + i, kod: row[1] == null ? null : String(row[1]), nom: String(row[2] ?? ''), birlik: row[3] == null ? null : String(row[3]), manzil: { qator: i + 1 } }] : []);
+    expect(tugunlar).toHaveLength(q.length);
+    const kanonik = AKT246_ROWS.map((x) => ({ id: x.id, kod: x.kod, nom: x.nom, birlik: x.birlik }));
+    const bog = kalitdanBog(grid, tugunlar, kanonik);
+    expect(bog.size).toBe(q.length);
+    const idlar = new Set(q.map((x) => x.id));
+    for (const v of bog.values()) { expect(idlar.has(v.qatorId)).toBe(true); expect(v.holat).toBe('qolda'); }
+    // Fayldagi nom tahrirlansa - shu qator bog'lanmaydi (kalit eski).
+    const t2 = tugunlar.map((t, i) => i === 3 ? { ...t, nom: t.nom + ' (TAHRIR)' } : t);
+    expect(kalitdanBog(grid, t2, kanonik).size).toBe(q.length - 1);
+    // Nusxalangan qator (bir xil ID ikki marta) - ikkalasi ham oddiy moslashga qoladi.
+    const g2 = grid.map((row) => [...row]); const src = tugunlar[5].manzil.qator - 1;
+    g2[tugunlar[6].manzil.qator - 1][10] = g2[src][10];
+    expect(kalitdanBog(g2, tugunlar, kanonik).size).toBe(q.length - 2 );
+    // Begona obyekt (smetada yo'q ID).
+    expect(kalitdanBog(grid, tugunlar, kanonik.filter((x) => x.id !== q[0].id)).size).toBe(q.length - 1);
+  });
   it('resurs vedomosti: turlar bo‘yicha, Ф-2 ga havola formulalar, akt bilan solishtiruv 0', () => {
     const { b, q } = tayyorla();
     const t = hujjatTekshir(f2Hujjat(b, q, { obyektNom: 'Fast Food 1-etaj', davr: '2026-10', raqam: '1' }).bytes);

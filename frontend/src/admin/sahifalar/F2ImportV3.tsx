@@ -1,4 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+import { fayldanKalitBog } from '../../lib/f2-kalit-bogla';
 import { avvalgiF2Ol, f2RaqamNormal, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -521,9 +522,13 @@ function Sessiya({ companyId }: { companyId: number }) {
       try {
         const { r } = await malumotYukla(Number(objectId), davr, () => active);
         if (!active) return;
-        setNatija({ natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: f2Indeks(akt.daraxt).qatorlar.length } });
-        tarixniTozala(); setIj({ bog: new Map(), otkaz: new Set() });
-        setHolat('F2 va smeta tayyor. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.');
+        // Tizim chiqargan Ф-2 (yashirin КАЛИТ ustuni): qatorlar aniq bog'lanadi; kalitsiz/tahrirlangan qatorlar oddiy moslashda qoladi.
+        const qatorlarF2 = f2Indeks(akt.daraxt).qatorlar;
+        const kalitBog = await fayldanKalitBog(rawFile.current, akt.varaq, qatorlarF2, r);
+        if (!active) return;
+        setNatija({ natijalar: new Map(), rzDiag: [], stat: { aniq: kalitBog.size, xotira: 0, taklif: 0, topilmadi: qatorlarF2.length - kalitBog.size } });
+        tarixniTozala(); setIj({ bog: kalitBog, otkaz: new Set() });
+        setHolat(kalitBog.size ? t('Tizim kaliti bo‘yicha {n} qator aniq bog‘landi (✓). Qolganlari uchun «Mos qatorlarni bog‘lash» tugmasini bosing.', { n: kalitBog.size }) : 'F2 va smeta tayyor. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.');
         operation.current = yangiOperationId();
       } catch (e) { if (active) setXato(e instanceof Error ? e.message : 'Smeta yuklanmadi.'); }
       finally { if (active) setBusy(false); }

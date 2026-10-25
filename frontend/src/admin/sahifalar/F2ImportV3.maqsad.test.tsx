@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import type { F2IshchiQoralama } from '../../lib/f2-ishchi-qoralama';
 
-const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), update: vi.fn(), oqi: vi.fn() }));
+const m = vi.hoisted(() => ({ read: vi.fn(), save: vi.fn(), parse: vi.fn(), match: vi.fn(), create: vi.fn(), tree: vi.fn(), cloudSave: vi.fn(), update: vi.fn(), oqi: vi.fn(), kalit: vi.fn() }));
+vi.mock('../../lib/f2-kalit-bogla', () => ({ fayldanKalitBog: m.kalit }));
 vi.mock('../../api/t2-ish-abc', () => ({ ishAbcOchir: vi.fn(), ishAbcSaqla: vi.fn(), resursIshZamena: vi.fn(), abcXato: () => 'xato' }));
 vi.mock('../../api/t2-additional-replacement', () => ({ sbT2ResursBolaQosh: vi.fn(), sbT2IshResurslarBilanYarat: vi.fn(), sbT2QoshimchaIshYarat: vi.fn(), sbT2ZamenaIshYarat: vi.fn() }));
 vi.mock('../../api/t2-f2-davom', () => ({ f2DavomRoyxatOl: async () => ({ ok: true, qatorlar: [] }) }));
@@ -30,6 +31,7 @@ const qoralama = { id: 55, raqam: '5', oy: '2026-10-01', holat: 'qoralama', tur:
 
 beforeEach(() => {
   Object.values(m).forEach((fn) => fn.mockReset());
+  m.kalit.mockResolvedValue(new Map());
   m.read.mockResolvedValue(null); m.save.mockResolvedValue(undefined);
   m.parse.mockResolvedValue([act]);
   m.match.mockResolvedValue({ natijalar: new Map(), rzDiag: [], stat: { aniq: 0, xotira: 0, taklif: 0, topilmadi: 1 } });
@@ -48,6 +50,8 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window
 describe('F2 import: tizimda yasalgan qoralamani fayldan yangilash (?akt=ID, manba hujjatsiz)', () => {
   it('xato o‘rniga fayl tanlash rejimi; davr/raqam aktniki; yozish yangi akt yaratmaydi - sbT2F2QoralamaYangila', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: true, document_id: 61 }), { status: 200 })));
+    // Round-trip: fayldagi yashirin KALIT plus qatorini 7-qatorga aniq bog'laydi (qo'lda bog'lash kerak emas).
+    m.kalit.mockResolvedValue(new Map([['plus', { qatorId: 7, holat: 'qolda', usul: 'kalit' }]]));
     render(<F2ImportV3 />);
     await screen.findByText(/Mavjud F2 qoralamani fayldan yangilash/);
     expect(screen.queryByText(/manba hujjati yozilmagan/)).toBeNull();
@@ -56,7 +60,6 @@ describe('F2 import: tizimda yasalgan qoralamani fayldan yangilash (?akt=ID, man
     const raqam = await screen.findByLabelText('F2 raqami (akt №)') as HTMLInputElement;
     await waitFor(() => expect(raqam.value).toBe('5'));
     expect(raqam.disabled).toBe(true);
-    fireEvent.click(await screen.findByText('Plusni bog‘lash'));
     await screen.findByText('Ha, qoralama #55 qatorlarini shu fayl bilan almashtirish');
     const yoz = await screen.findByRole('button', { name: /F2 ni yozish/ }) as HTMLButtonElement;
     await waitFor(() => expect(yoz.disabled).toBe(false));
