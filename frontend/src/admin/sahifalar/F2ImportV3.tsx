@@ -62,6 +62,12 @@ async function rejaliniTozala(oid: number, rejali: RejaliBuyruq[], ij: IshJoyi):
   const { qolgan, map } = rejaliniYozilganlardanTozala(rejali, r.qatorlar ?? []);
   return { rejali: qolgan, ij: map.size ? ijniAlmashtir(ij, map) : ij, soni: rejali.length - qolgan.length };
 }
+/** Oylik F2 paketidan «+ F2 yuklash»: /admin/f2?davr=YYYY-MM — fayldan davr o'qilmasa shu oy oldindan qo'yiladi. */
+function urlDavr(): string {
+  const d = new URLSearchParams(window.location.search).get('davr') ?? '';
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(d) ? d : '';
+}
+
 /** Server qoralamasi (yordamchi qadam) xatosi — foydalanuvchi tilida; akt yozishni to'xtatmaydi. */
 function serverXatoMatni(e: unknown): string {
   if (e instanceof F2ServerZiddiyat) return `${e.uidlar.length} ${t('qatorda server qarori boshqacha bog‘langan (boshqa joyda o‘zgartirilgan)')}`;
@@ -434,8 +440,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Fayl o'qish va akt tahlili FONDA (Web Worker) — katta faylda sahifa qotmaydi.
       const a = await f2AktlarniOqiFonda(file.name, file);
       if (!a.length) throw new Error('Faylda F2 akt varag‘i topilmadi (ishlar ro‘yxati bor LRV shaklidagi varaq kerak).');
-      setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? '');
-      setHolat(a[0].davr ? 'Akt o‘qildi. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.' : 'Akt o‘qildi. Hisobot davrini tanlang.');
+      setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? urlDavr());
+      setHolat(a[0].davr || urlDavr() ? 'Akt o‘qildi. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.' : 'Akt o‘qildi. Hisobot davrini tanlang.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Fayl o‘qilmadi.'); setHolat('Fayl o‘qilmadi.'); }
     finally { setBusy(false); }
   }
