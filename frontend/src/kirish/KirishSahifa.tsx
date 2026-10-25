@@ -9,6 +9,7 @@ import { TilTanlagich } from '../i18n/TilTanlagich';
 import { PublicEntry } from '../components/public-entry/PublicEntry';
 import { kutilayotganTaklifKodi } from './QoshilSahifa';
 import { kutilayotganUlashKodi } from './UlashSahifa';
+import { MAVJUD_FOYDALANUVCHI_KIRISH } from '../lib/nav/boshSahifa';
 
 export default function KirishSahifa() {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,11 +53,10 @@ export default function KirishSahifa() {
       const data = await r.json();
 
       if (data.ok) {
-        if (['admin', 'superadmin', 'bugalter', 'pto', 'prorab'].includes(data.rol)) {
-          navigate('/admin/test/obyektlar');
-        } else if (['boss', 'rahbar'].includes(data.rol)) {
-          navigate('/boss');
-        }
+        /* Kompaniya-aware `/admin` indeksi (RolBoshSahifa) JORIY KOMPANIYADAGI effektiv rol bo'yicha bosh sahifani
+           tanlaydi — sessiyadagi global rol emas (bir odam A da boss, B da pto bo'lishi mumkin). Taklif/ulash
+           havolasi ustuvor (navigate o'rami). */
+        navigate(MAVJUD_FOYDALANUVCHI_KIRISH);
       } else {
         setError(data.xato || 'Xato yuz berdi');
       }
@@ -132,8 +132,7 @@ export default function KirishSahifa() {
     if (n.yangi) {
       toast(n.demo ? 'Xush kelibsiz! Bepul tokenlar va demo obyekt tayyor.' : 'Xush kelibsiz! Bepul tokenlar hisobingizda.', 'ok');
       navigate('/admin/tokenlar');
-    } else if (['boss', 'rahbar'].includes(n.rol)) navigate('/boss');
-    else navigate('/admin/test/obyektlar');
+    } else navigate(MAVJUD_FOYDALANUVCHI_KIRISH);
   };
   const googleBoshlandi = () => { setError(''); setLoading(true); };
 

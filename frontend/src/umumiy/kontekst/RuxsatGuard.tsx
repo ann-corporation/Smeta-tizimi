@@ -44,7 +44,7 @@ function RuxsatYoq({ reason }: { reason?: string }) {
         <div className="mt-3">
           {auth
             ? <button onClick={tizimdanChiq} className="inline-flex items-center gap-1.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 px-3 py-1.5 text-[13px] font-medium text-rose-100"><LogOut size={13} /> Chiqib, qayta kirish</button>
-            : <a href="/admin/dashboard" className="inline-flex items-center gap-1.5 rounded-md bg-white/10 hover:bg-white/15 px-3 py-1.5 text-[13px] font-medium text-text"><RefreshCw size={13} /> Bosh sahifaga qaytish</a>}
+            : <a href="/admin" className="inline-flex items-center gap-1.5 rounded-md bg-white/10 hover:bg-white/15 px-3 py-1.5 text-[13px] font-medium text-text"><RefreshCw size={13} /> Bosh sahifaga qaytish</a>}
         </div>
       </div>
     </div>
