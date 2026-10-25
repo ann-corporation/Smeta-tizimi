@@ -29,6 +29,7 @@ import { FmtN } from '../../lib/format';
 import { ozgarishIzohi, smetaModeliniYukla, tartibla, type SmetaModel } from '../../lib/smeta-model';
 import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 import { f3CertifiedHajm, f3CertifiedSources, f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
+import { PereraschetBolimi } from './PereraschetBolimi';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -618,6 +619,9 @@ function Sessiya({ companyId }: { companyId: number }) {
             </div>
           )}
         </>
+      )}
+      {objectId && obyektKompaniyaId === companyId && (
+        <PereraschetBolimi key={objectId} companyId={companyId} obyektId={Number(objectId)} obyektNom={obyektNom} tomonlar={tomonlar} ndsFoiz={stavkaOl()} />
       )}
       {shartnomaId != null && (
         <ShartnomaSvodBolimi companyId={companyId} shartnomaId={shartnomaId} tashkilot={kompaniyalar.find((x) => x.id === companyId)?.nom ?? null} />
