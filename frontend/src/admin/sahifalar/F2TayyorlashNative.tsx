@@ -20,6 +20,7 @@ import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { shifrKorinish } from '../../lib/f2-resurs-guruh';
+import { F2ResursVedomosti } from './F2ResursVedomosti';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
 import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
@@ -89,6 +90,8 @@ export function F2TayyorlashNative() {
   const [ochiq, setOchiq] = useState<Set<number>>(new Set());
   /** Bo'lim daraxti yig'iq: faqat shu kalitli (id ?? -1) bo'limlarning farzandlari ochilgan; tanlangan bo'lim ajdodlari doim ochiq. */
   const [kengaygan, setKengaygan] = useState<Set<number>>(new Set());
+  /** Resurs vedomosti (tanlangan ishlar resurslari + narxlash) ochiqmi. */
+  const [vedomostOchiq, setVedomostOchiq] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -172,6 +175,9 @@ export function F2TayyorlashNative() {
   const byId = useMemo(() => new Map(qatorlar.map((x) => [x.id, x])), [qatorlar]);
   const narxsizlar = useMemo(() => narxsizNomzodlar(qatorlar), [qatorlar]);
   const aosrsizId = useMemo(() => new Set(aosrsiz.map((x) => x.qator_id)), [aosrsiz]);
+  const resursKodi = useMemo(() => { const m = new Map<number, string | null>(); for (const b of bolimlar) { for (const i of b.ishlar) for (const r of i.resurslar) m.set(r.id, r.kod); for (const r of b.alohida) m.set(r.id, r.kod); } return (id: number) => m.get(id) ?? null; }, [bolimlar]);
+  /** Vedomostdan tanlangan taklif narxi: faqat F2 qatoriga (qo'lda narx) yoziladi - asl smetaga emas. */
+  const narxniQollash = (ids: number[], narx: number) => setK((o) => { const n = { ...o.narx }; const ns = { ...o.narxsiz }; for (const id of ids) { n[id] = String(narx); delete ns[id]; } return { ...o, narx: n, narxsiz: ns }; });
   const tayyor = qatorlar.length > 0 && jami.xato === 0;
   const saqlashMumkin = tayyor && (aktId == null || (!!akt && !aktKorish));
   const bolimIer = useMemo(() => f2BolimIerarxiya(rows, bolimlar), [rows, bolimlar]);
@@ -528,6 +534,7 @@ export function F2TayyorlashNative() {
           <p className="mt-1 text-[11px] text-text-mute">{avto.shartnoma || avto.imzo.zakazchik || avto.imzo.pudratchi
             ? <>Shartnomadan avtomatik: <b className="text-text-dim">{[avto.shartnoma, avto.imzo.zakazchik, avto.imzo.pudratchi, avto.imzo.subpudratchi].filter(Boolean).join(' · ')}</b> (panelda qo‘lda yozilgani ustun turadi)</>
             : <>Obyekt asosiy shartnomaga biriktirilmagan — imzolovchilarni <a href="/admin/shartnoma-liniya" className="text-accent underline">Shartnoma liniyasi</a>da bog‘lang yoki panelda yozing.</>}</p></div><label className="text-[12px] text-text-dim">QQS (НДС), % — hujjat oxirida<input aria-label="QQS stavkasi" value={ndsFoiz} onChange={(event) => setNdsFoiz(event.target.value)} placeholder="bo‘sh — QQS yo‘q" inputMode="decimal" className="ml-2 w-32 rounded border border-border bg-bg px-2 py-1" /></label></section>
+        {vedomostOchiq && <section aria-label={t('Resurs vedomosti')} className="karta max-h-[40vh] overflow-auto"><F2ResursVedomosti qatorlar={qatorlar} kodOl={resursKodi} obyektId={obyektId} kompaniyaId={joriy?.id} onQollash={narxniQollash} /></section>}
         <section aria-label="F2 jami" className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-surface/95 px-4 py-2.5 shadow-2xl backdrop-blur">
           <span className="text-[12px] text-text-dim">Tanlangan qatorlar: <b className="text-text">{jami.qator}</b> ({jami.ish} ish)</span>
           {Object.entries(jami.kat).map(([kat, s]) => <span key={kat} className="text-[11px] text-text-dim">{kat}: <b className="tabular-nums text-text"><FmtN val={s} /></b></span>)}
@@ -538,6 +545,7 @@ export function F2TayyorlashNative() {
           {jami.xato > 0 && <span className="flex items-center gap-1 text-[12px] text-danger"><AlertTriangle size={13} />{jami.xato} ta xato</span>}
           {narxsizlar.length > 0 && <button type="button" onClick={narxsizBelgila} className="rounded-md border border-warn/40 px-2 py-1 text-[11px] text-warn hover:bg-warn/10">Narxi yo‘q {narxsizlar.length} ta resursni «narxsiz» belgilash</button>}
           <div className="ml-auto flex items-center gap-2">
+            <button type="button" aria-pressed={vedomostOchiq} disabled={qatorlar.length === 0} onClick={() => setVedomostOchiq((o) => !o)} className="rounded-lg border border-border px-3 py-1.5 text-[12px] text-text disabled:opacity-50">{t('Resurs vedomosti')}</button>
             <button type="button" onClick={() => navigate(`/admin/f2-tarix?obyekt=${obyektId}`)} className="rounded-lg border border-border px-3 py-1.5 text-[12px] text-text">F2 tarixi</button>
             <button type="button" onClick={() => void excelYuklash(false)} disabled={!tayyor || saving} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] font-semibold text-text disabled:opacity-50"><Download size={14} />Excel</button>
             <button type="button" onClick={() => void excelYuklash(true)} disabled={!tayyor || saving} aria-label="Forma-2 qoralama ko‘rish" className="inline-flex items-center rounded-lg border border-border px-2 py-1.5 text-text disabled:opacity-50"><Eye size={14} /></button>

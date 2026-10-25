@@ -205,7 +205,7 @@ function resursVedomosti(
   let jamiJS: number | null = 0;
   const tartib = [...NAKRUTKA_KATLAR, null] as const;
   for (const kat of tartib) {
-    const guruh = rs.filter((x) => x.kat === kat).sort((a, b) => a.nom.localeCompare(b.nom, 'ru') || (a.narx ?? 0) - (b.narx ?? 0));
+    const guruh = rs.filter((x) => x.kat === kat).sort((a, b) => a.nom.localeCompare(b.nom, 'ru', { sensitivity: 'base' }) || (a.narx ?? 0) - (b.narx ?? 0));
     if (!guruh.length) continue;
     w.bolim(kat ? VED_GURUH[kat] : 'ПРОЧИЕ РЕСУРСЫ (без маркировки)');
     const rang = kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null;
