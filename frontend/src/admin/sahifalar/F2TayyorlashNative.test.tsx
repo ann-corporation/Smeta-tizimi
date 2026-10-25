@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import type { T2Qator } from '../../api/supabase';
 
-const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn() }));
+const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn(), yangila: vi.fn(), oqi: vi.fn() }));
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
   hajm: null, narx: null, summa: null, kat: null, narx_usul: null, qoshimcha: false, zamena: false,
@@ -28,6 +28,8 @@ vi.mock('../../api/supabase', () => ({
   sbT2ObyektlarOlKomp: vi.fn(async () => ({ ok: true, qatorlar: [{ id: 8, nom: 'Ko‘l' }] })),
   sbT2DaraxtOl: vi.fn(async () => ({ ok: true, qatorlar: rows })),
   sbT2AktYaratV2: m.yarat,
+  sbT2F2QoralamaYangila: m.yangila,
+  sbOqi: m.oqi,
   yangiOperationId: () => '00000000-0000-4000-8000-000000000001',
 }));
 // Token daftari: sarf muvaffaqiyatli — amal bajariladi (token mantig'i t2-token/f2-yacheyka testlarida).
@@ -163,5 +165,40 @@ describe('F2 tayyorlash', () => {
   it('imzolovchilar va shartnoma raqami shartnoma liniyasidan avtomatik (3 tomonlama — subpudratchi)', async () => {
     ochish();
     expect(await screen.findByText(/№ 45 — Bosh pudrat · Дирекция · ООО «NTB» · ООО «Суб»/)).toBeTruthy();
+  });
+
+  it('?akt=ID: qoralama akt qatorlari yuklanadi, saqlash yangi akt yaratmaydi - sbT2F2QoralamaYangila (versiya, raqam saqlanadi)', async () => {
+    const akt = { id: 77, raqam: '5', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 4 };
+    m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt' ? { ok: true, qatorlar: [akt] } : { ok: true, qatorlar: [
+      { qator_id: 2, hajm: 6, certified_quantity: 6, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' },
+      { qator_id: 3, hajm: 12, certified_quantity: 12, certified_unit_price: 25000, certified_amount: 300000, provenance_status: 'source_certified' },
+      { qator_id: 4, hajm: 3, certified_quantity: 3, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' },
+    ] });
+    m.yangila.mockResolvedValue({ ok: true, akt_id: 77 });
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=77']}><F2TayyorlashNative /></MemoryRouter>);
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish');
+    await waitFor(() => expect((hajm as HTMLInputElement).value).toBe('6'));
+    expect((screen.getByLabelText('F2 raqami') as HTMLInputElement).value).toBe('5');
+    expect((screen.getByLabelText('F2 raqami') as HTMLInputElement).disabled).toBe(true);
+    const saqla = await screen.findByRole('button', { name: /F2 qoralamani yangilash/ }) as HTMLButtonElement;
+    await waitFor(() => expect(saqla.disabled).toBe(false));
+    fireEvent.click(saqla);
+    await waitFor(() => expect(m.yangila).toHaveBeenCalledTimes(1));
+    expect(m.yarat).not.toHaveBeenCalled();
+    const a = m.yangila.mock.calls[0][0];
+    expect([a.kompaniyaId, a.aktId, a.kutilganVersiya]).toEqual([1, 77, 4]);
+    expect(a.qatorlar.map((x: { qatorId: number; certifiedQuantity: number; certifiedAmount?: number }) => [x.qatorId, x.certifiedQuantity, x.certifiedAmount ?? null]))
+      .toEqual([[2, 6, null], [3, 12, 300000], [4, 3, null]]);
+  });
+
+  it('?akt=ID: tasdiqlangan akt - faqat ko‘rish, saqlash o‘chiq', async () => {
+    m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt'
+      ? { ok: true, qatorlar: [{ id: 78, raqam: '6', oy: '2026-09-01', holat: 'tasdiqlangan', lifecycle_status: 'approved', versiya: 2 }] }
+      : { ok: true, qatorlar: [{ qator_id: 2, hajm: 6, certified_quantity: 6, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' }] });
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=78']}><F2TayyorlashNative /></MemoryRouter>);
+    expect(await screen.findByText(/faqat ko‘rish/)).toBeTruthy();
+    const saqla = screen.getByRole('button', { name: /F2 qoralamani yangilash/ }) as HTMLButtonElement;
+    expect(saqla.disabled).toBe(true);
+    expect(m.yangila).not.toHaveBeenCalled();
   });
 });

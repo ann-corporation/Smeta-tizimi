@@ -1,0 +1,19 @@
+{
+  "F2 tayyorlashda ochib, hajm va narxni yangilash": { "ru": "Открыть в подготовке Ф-2 и обновить объём и цену", "en": "Open in F2 preparation to update quantity and price" },
+  "Bu F2 tizimda (F2 tayyorlash) yasalgan - uni F2 tayyorlashda oching.": { "ru": "Эта Ф-2 создана в системе (подготовка Ф-2) — откройте её в подготовке Ф-2.", "en": "This F2 was created in the system (F2 preparation) - open it in F2 preparation." },
+  "F2 tayyorlashda ochish": { "ru": "Открыть в подготовке Ф-2", "en": "Open in F2 preparation" },
+  "F2 akti o‘qilmadi. Qayta urinib ko‘ring.": { "ru": "Акт Ф-2 не прочитан. Повторите попытку.", "en": "The F2 act could not be read. Try again." },
+  "Bu obyektda bunday F2 akti topilmadi.": { "ru": "На этом объекте такой акт Ф-2 не найден.", "en": "No such F2 act was found for this object." },
+  "F2 qoralama boshqa joyda o‘zgargan - yangi holati o‘qildi. Tekshirib, qayta saqlang.": { "ru": "Черновик Ф-2 изменён в другом месте — загружено новое состояние. Проверьте и сохраните снова.", "en": "The F2 draft was changed elsewhere - the new state was loaded. Review and save again." },
+  "F2 qoralama yangilanmadi.": { "ru": "Черновик Ф-2 не обновлён.", "en": "The F2 draft was not updated." },
+  "F2 qoralama yangilandi (akt #{id}, {n} qator). Tasdiqlash - F2 tarixida.": { "ru": "Черновик Ф-2 обновлён (акт #{id}, строк: {n}). Утверждение — в истории Ф-2.", "en": "F2 draft updated (act #{id}, {n} rows). Approval - in F2 history." },
+  "Javob olinmadi. Qayta urinib ko‘ring.": { "ru": "Ответ не получен. Повторите попытку.", "en": "No response received. Try again." },
+  "Yangilanmoqda…": { "ru": "Обновляется…", "en": "Updating…" },
+  "F2 qoralamani yangilash": { "ru": "Обновить черновик Ф-2", "en": "Update F2 draft" },
+  "F2 qoralamani tahrirlash": { "ru": "Редактирование черновика Ф-2", "en": "Editing F2 draft" },
+  "F2 akti o‘qilmoqda…": { "ru": "Акт Ф-2 загружается…", "en": "Loading the F2 act…" },
+  "Bu F2 qoralama emas (tasdiqlangan yoki yuborilgan) - faqat ko‘rish; o‘zgartirib bo‘lmaydi.": { "ru": "Это не черновик Ф-2 (утверждён или отправлен) — только просмотр; изменить нельзя.", "en": "This F2 is not a draft (approved or sent) - view only; it cannot be changed." },
+  "Saqlash yangi akt yaratmaydi - shu qoralama yangilanadi (raqami saqlanadi).": { "ru": "Сохранение не создаёт новый акт — обновляется этот черновик (номер сохраняется).", "en": "Saving does not create a new act - this draft is updated (its number is kept)." },
+  "{n} ta akt qatori joriy ro‘yxatda topilmadi - yangilashda ular aktdan chiqadi.": { "ru": "Строк акта, не найденных в текущем списке: {n} — при обновлении они будут удалены из акта.", "en": "{n} act rows were not found in the current list - they will be removed from the act on update." },
+  "Yangi F2 tayyorlash": { "ru": "Подготовить новую Ф-2", "en": "Prepare a new F2" }
+}

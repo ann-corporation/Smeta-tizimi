@@ -158,11 +158,12 @@ export function sbQatorHolatOl(obyektId: number) {
 }
 
 /** Tasdiqlanmagan (qoralama) F2 aktlaridagi hajmlar: qator_id -> jami hajm (ikki marta F2 qilish xavfini ko'rsatish uchun). */
-export async function sbF2QoralamaHajmlar(obyektId: number): Promise<{ ok: boolean; hajm: Map<number, number>; aktSoni: number }> {
+export async function sbF2QoralamaHajmlar(obyektId: number, istisnoAktId?: number | null): Promise<{ ok: boolean; hajm: Map<number, number>; aktSoni: number }> {
   const bosh = { ok: false, hajm: new Map<number, number>(), aktSoni: 0 };
   const a = await sbOqi<{ id: number }>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.f2&holat=eq.qoralama`, ustunlar: 'id', limit: 500 }); // faqat F2 qoralamalari (fakt qoralamasi o'zini ayirmasin)
   if (!a.ok) return bosh;
-  const ids = (a.qatorlar || []).map((x) => x.id).filter((x) => Number.isSafeInteger(x));
+  // Tahrirlanayotgan qoralamaning o'z hajmi «mumkin» dan ayirilmaydi (istisnoAktId).
+  const ids = (a.qatorlar || []).map((x) => x.id).filter((x) => Number.isSafeInteger(x) && x !== istisnoAktId);
   if (!ids.length) return { ok: true, hajm: new Map(), aktSoni: 0 };
   const q = await sbOqi<{ qator_id: number; hajm: number | null; certified_quantity: number | null }>({ jadval: 't2_akt_qator', filtr: `akt_id=in.(${ids.join(',')})`, ustunlar: 'qator_id,hajm,certified_quantity', limit: 20000 });
   if (!q.ok) return bosh;
