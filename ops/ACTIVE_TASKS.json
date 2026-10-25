@@ -2889,7 +2889,12 @@
         "frontend/src/components/m29/",
         "frontend/src/lib/m29-korinish.ts",
         "frontend/src/lib/m29-korinish.test.ts",
-        "frontend/src/i18n/lugat/qism/m29-korinish.json"
+        "frontend/src/i18n/lugat/qism/m29-korinish.json",
+        "frontend/src/umumiy/ui/Tasdiq.tsx",
+        "frontend/src/umumiy/ui/SahifaYuklanmoqda.tsx",
+        "frontend/src/App.tsx",
+        "frontend/src/admin/sahifalar/F2EgizakNusxa.tsx",
+        "frontend/src/i18n/lugat/qism/tasdiq-oyna.json"
       ],
       "depends_on": [],
       "must_read": [

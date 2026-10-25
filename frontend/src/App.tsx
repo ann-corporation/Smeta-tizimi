@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useEffect } from 'react';
 import { titleForPath } from './lib/pageTitle';
 import { SahifaYuklanmoqda } from './umumiy/ui/SahifaYuklanmoqda';
+import { TasdiqContainer } from './umumiy/ui/Tasdiq';
 import { ToastContainer } from './umumiy/ui/Toast';
 import SahifaTopilmadi from './umumiy/ui/SahifaTopilmadi';
 import KirishSahifa from './kirish/KirishSahifa';
@@ -308,6 +309,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ToastContainer />
+      <TasdiqContainer />
     </BrowserRouter>
   );
 }

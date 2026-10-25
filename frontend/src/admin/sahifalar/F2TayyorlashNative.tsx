@@ -1,3 +1,4 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { TayyorlanganF2lar } from './TayyorlanganF2lar';
 import { F2AiYordamchi } from './F2AiYordamchi';
 import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
@@ -345,7 +346,7 @@ export function F2TayyorlashNative() {
     if (!joriy?.id) return;
     if (aktId != null) { await aktniYangila(); return; }
     const ogoh = dublikatlar.filter((m) => m.daraja === 'ogoh');
-    if (ogoh.length && !window.confirm(ogoh.map((m) => m.matn).join('\n\n') + '\n\n' + t('Baribir yozasizmi?'))) return;
+    if (ogoh.length && !await tasdiqSora(ogoh.map((m) => m.matn).join('\n\n') + '\n\n' + t('Baribir yozasizmi?'))) return;
     setSaving(true);
     try {
       // Token (egasi 2026-10-02): F2 qoralama — "f2_qoralama"; server xato bersa token avtomatik qaytadi.

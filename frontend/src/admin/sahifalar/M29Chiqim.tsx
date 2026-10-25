@@ -1,3 +1,4 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useMemo, useState } from 'react';
 import { PackageMinus, RotateCcw } from 'lucide-react';
 import { t } from '../../i18n/til';
@@ -48,12 +49,12 @@ export function M29Chiqim({ kompaniyaId, obyektId, davr, materiallar, onYangilan
         }
         if (r.code === 'TRIGGER_CHIQIM_BOR' && !triggerBekor) {
           const n = r.trigger?.length ?? 0;
-          if (!window.confirm(t('Bu davrda Fakt kiritilganda {n} ta material omborda avtomatik chiqim qilingan (eski tartib). M-29 ular o‘rniga yoziladi: eski yozuvlar o‘chirilmaydi, «bekor» deb belgilanadi va qoldiqqa qaytariladi — ikki marta yechilmaydi. Davom etilsinmi?', { n }))) return;
+          if (!await tasdiqSora(t('Bu davrda Fakt kiritilganda {n} ta material omborda avtomatik chiqim qilingan (eski tartib). M-29 ular o‘rniga yoziladi: eski yozuvlar o‘chirilmaydi, «bekor» deb belgilanadi va qoldiqqa qaytariladi — ikki marta yechilmaydi. Davom etilsinmi?', { n }))) return;
           triggerBekor = true; continue;
         }
         if (r.code === 'QOLDIQ_YETMAYDI' && !manfiy) {
           const ro = (r.yetmaydi ?? []).slice(0, 8).map((y) => `• ${y.nomi}: ${t('kerak')} ${fmt(y.kerak)}, ${t('omborda')} ${fmt(y.bor)} ${y.birligi ?? ''}`).join('\n');
-          if (!window.confirm(t('Omborda yetarli qoldiq yo‘q ({n} ta material) — kirim kiritilmagan bo‘lishi mumkin:', { n: r.yetmaydi?.length ?? 0 })
+          if (!await tasdiqSora(t('Omborda yetarli qoldiq yo‘q ({n} ta material) — kirim kiritilmagan bo‘lishi mumkin:', { n: r.yetmaydi?.length ?? 0 })
             + '\n' + ro + '\n\n' + t('Baribir chiqim qilinsinmi? Qoldiq minusga tushadi (keyin kirim kiritsangiz tenglashadi).'))) return;
           manfiy = true; continue;
         }

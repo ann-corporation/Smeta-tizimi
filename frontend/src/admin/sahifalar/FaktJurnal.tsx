@@ -1,3 +1,4 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
@@ -124,7 +125,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const bajBekor = async (qatorId: number, nom: string) => {
     const faol = bajarilmadi.filter((b) => b.qator_id === qatorId && b.holat === 'faol').sort((a, b) => b.id - a.id)[0];
     if (!faol) return;
-    if (!window.confirm(t('«{nom}»: «bajarilmaydi» belgisi ({hajm}) bekor qilinsinmi?', { nom, hajm: fmt(faol.bajarilmagan_hajm) }))) return;
+    if (!await tasdiqSora(t('«{nom}»: «bajarilmaydi» belgisi ({hajm}) bekor qilinsinmi?', { nom, hajm: fmt(faol.bajarilmagan_hajm) }))) return;
     const r = await bajarilmadiBekor({ kompaniyaId, id: faol.id, operationId: yangiOperationId() }).catch(() => null);
     if (!r?.ok) { toast(r ? t(bajarilmadiXato(r)) : t('Javob olinmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
     toast(t('Belgi bekor qilindi.'), 'ok'); await bajYangila();
