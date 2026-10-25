@@ -22,14 +22,14 @@ export default function TestSpravochnik() {
   }, [aktKomp]);
 
   return (
-    <div className="p-4 bg-zinc-900 text-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-4 text-sky-400">Ish Turlari Ma'lumotnomasi (Spravochnik)</h1>
-      {xato && <div className="text-red-400 mb-2">{xato}</div>}
+    <div className="p-4 bg-[var(--surface)] text-[var(--text)] min-h-screen">
+      <h1 className="text-2xl font-bold mb-4 text-[var(--info)]">Ish Turlari Ma'lumotnomasi (Spravochnik)</h1>
+      {xato && <div className="text-[var(--danger)] mb-2">{xato}</div>}
       
       {yuklanmoqda ? <div>Yuklanmoqda...</div> : (
-        <table className="w-full text-left border-collapse border border-zinc-700 mt-4">
+        <table className="w-full text-left border-collapse border border-[var(--border)] mt-4">
           <thead>
-            <tr className="bg-zinc-800 border-b border-zinc-700">
+            <tr className="bg-[var(--surface-2)] border-b border-[var(--border)]">
               <th className="p-2">Kod</th>
               <th className="p-2">Nomi</th>
               <th className="p-2">Birligi</th>
@@ -40,18 +40,18 @@ export default function TestSpravochnik() {
           </thead>
           <tbody>
             {ishTurlari.map((f, i) => (
-              <tr key={i} className="border-b border-zinc-800 hover:bg-zinc-800/50 text-[13px]">
-                <td className="p-2 text-zinc-400 font-mono">{f.kod}</td>
+              <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--surface-3)] text-[13px]">
+                <td className="p-2 text-[var(--text-dim)] font-mono">{f.kod}</td>
                 <td className="p-2">{f.nomi}</td>
                 <td className="p-2">{f.birligi}</td>
-                <td className="p-2 text-zinc-400">{f.kategoriya}</td>
+                <td className="p-2 text-[var(--text-dim)]">{f.kategoriya}</td>
                 <td className="p-2 text-right">{f.norma}</td>
-                <td className="p-2 text-right font-bold text-emerald-400">{f.narx}</td>
+                <td className="p-2 text-right font-bold text-[var(--ok)]">{f.narx}</td>
               </tr>
             ))}
             {ishTurlari.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-4 text-center text-zinc-500">
+                <td colSpan={6} className="p-4 text-center text-[var(--text-mute)]">
                   Ish turlari topilmadi
                 </td>
               </tr>

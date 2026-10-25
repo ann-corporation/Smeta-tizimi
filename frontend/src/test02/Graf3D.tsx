@@ -47,10 +47,10 @@ function sozlamaOqi(): Graf3DSozlama {
 }
 
 /** Monoxrom palitra: kumush-ko'kish tugunlar, bitta urg'u (tanlash/bog'lash). */
-const MONO = '#c9d4ec';
-const URGU = '#8fb0ff';
+const MONO = '#e8ecea';
+const URGU = '#86a6ff';
 /** Markaz (kompaniya) rangi — palitradan mustaqil, iliq oltin. */
-const MARKAZ = '#f2c46d';
+const MARKAZ = '#f0b450';
 
 type N = GrafTugun & {
   x: number; y: number; z: number; vx: number; vy: number; vz: number;
@@ -68,15 +68,15 @@ const rgb = (hex: string): [number, number, number] => {
 
 function Slayder({ nom, v, min, max, step, on }: { nom: string; v: number; min: number; max: number; step: number; on: (x: number) => void }) {
   return (
-    <label className="block text-[11px] text-zinc-300">
-      <span className="flex justify-between"><span>{nom}</span><span className="tabular-nums text-zinc-500">{v.toFixed(step < 1 ? 1 : 0)}</span></span>
-      <input type="range" min={min} max={max} step={step} value={v} onChange={(e) => on(Number(e.target.value))} className="w-full accent-sky-400" />
+    <label className="block text-[11px] text-[var(--text-dim)]">
+      <span className="flex justify-between"><span>{nom}</span><span className="tabular-nums text-[var(--text-mute)]">{v.toFixed(step < 1 ? 1 : 0)}</span></span>
+      <input type="range" min={min} max={max} step={step} value={v} onChange={(e) => on(Number(e.target.value))} className="w-full accent-[var(--info)]" />
     </label>
   );
 }
 function Belgi({ nom, v, on }: { nom: string; v: boolean; on: (x: boolean) => void }) {
   return (
-    <label className="flex items-center justify-between text-[11px] text-zinc-300"><span>{nom}</span><input type="checkbox" checked={v} onChange={(e) => on(e.target.checked)} className="accent-sky-400" /></label>
+    <label className="flex items-center justify-between text-[11px] text-[var(--text-dim)]"><span>{nom}</span><input type="checkbox" checked={v} onChange={(e) => on(e.target.checked)} className="accent-[var(--info)]" /></label>
   );
 }
 
@@ -230,7 +230,7 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
     const bg = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.8);
-    bg.addColorStop(0, '#0e1220'); bg.addColorStop(0.55, '#080a14'); bg.addColorStop(1, '#030409');
+    bg.addColorStop(0, '#1c2226'); bg.addColorStop(0.55, '#0e1113'); bg.addColorStop(1, '#0a0d0e');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = 'lighter';
     if (so.tuman) {
@@ -239,8 +239,8 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
         g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
       };
-      tuman(w * (0.32 + 0.08 * Math.sin(T * 0.07)), h * (0.36 + 0.06 * Math.cos(T * 0.05)), Math.max(w, h) * 0.45, 'rgba(90,110,170,0.07)');
-      tuman(w * (0.7 + 0.07 * Math.cos(T * 0.06)), h * (0.64 + 0.05 * Math.sin(T * 0.08)), Math.max(w, h) * 0.4, 'rgba(70,95,150,0.06)');
+      tuman(w * (0.32 + 0.08 * Math.sin(T * 0.07)), h * (0.36 + 0.06 * Math.cos(T * 0.05)), Math.max(w, h) * 0.45, 'rgba(134,166,255,0.06)');
+      tuman(w * (0.7 + 0.07 * Math.cos(T * 0.06)), h * (0.64 + 0.05 * Math.sin(T * 0.08)), Math.max(w, h) * 0.4, 'rgba(46,196,182,0.05)');
     }
     if (so.yulduzlar) {
       // Yulduzlar markazga bog'liq emas va sekinroq aylanadi (parallaks).
@@ -250,7 +250,7 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
       for (const s of yulduzlar.current) {
         const p = proyeksiya(s.x, s.y, s.z, w, h);
         if (p.s <= 0) continue;
-        ctx.fillStyle = `rgba(210,218,240,${0.3 + 0.3 * Math.sin(T * 1.7 + s.miltillash)})`;
+        ctx.fillStyle = `rgba(232,236,234,${0.3 + 0.3 * Math.sin(T * 1.7 + s.miltillash)})`;
         ctx.fillRect(p.sx, p.sy, s.r * p.s * 1.5, s.r * p.s * 1.5);
       }
       kamera.current.ay = ayEski;
@@ -355,10 +355,10 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
       ctx.font = `${a.id === hv || a.markaz ? 700 : 500} ${fs}px Inter, system-ui, sans-serif`;
       ctx.globalAlpha = (yoniq ? 1 : 0.12) * chuqurAlfa(a.s);
       const matn = a.nom.length > 34 ? a.nom.slice(0, 32) + '…' : a.nom;
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(3,4,9,0.85)';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(14,17,19,0.85)';
       const ty = a.markaz ? a.sy - a.r * a.s * so.olcham * 2.4 - 6 : a.sy + a.r * a.s * so.olcham + fs + 2;
       ctx.strokeText(matn, a.sx, ty);
-      ctx.fillStyle = a.markaz ? MARKAZ : a.id === hv ? '#ffffff' : '#d4d9e8';
+      ctx.fillStyle = a.markaz ? MARKAZ : a.id === hv ? '#e8ecea' : '#a7b1af';
       ctx.fillText(matn, a.sx, ty);
       ctx.globalAlpha = 1;
     }
@@ -376,12 +376,12 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
     return eng;
   };
   const yangila = (p: Partial<Graf3DSozlama>) => setSozlama((s) => ({ ...s, ...p }));
-  const tugma = 'rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-[12px] text-zinc-200 hover:bg-white/10 backdrop-blur';
-  const faolTugma = 'rounded-md border border-sky-300/40 bg-sky-400/15 px-2.5 py-1.5 text-[12px] text-sky-100 backdrop-blur';
+  const tugma = 'rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12px] text-[var(--text)] hover:bg-[var(--surface-3)] backdrop-blur';
+  const faolTugma = 'rounded-md border border-[color-mix(in_srgb,var(--info)_40%,transparent)] bg-[color-mix(in_srgb,var(--info)_15%,transparent)] px-2.5 py-1.5 text-[12px] text-[var(--info)] backdrop-blur';
   const hoverTugun = hover ? holat.current.byId.get(hover) : undefined;
 
   return (
-    <div ref={quti} className="select-none" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: '#030409' }}>
+    <div ref={quti} className="select-none" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: '#0a0d0e' }}>
       <canvas
         ref={canvas}
         style={{ display: 'block', cursor: boglash != null ? 'crosshair' : hover ? 'pointer' : 'grab' }}
@@ -420,7 +420,7 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
       />
       <div className="whitespace-nowrap" style={{ position: 'absolute', left: 12, top: 12, right: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <input value={qidir} onChange={(e) => { setQidir(e.target.value); qidirRef.current = e.target.value; }} placeholder="Qidirish…"
-          className="w-52 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-[12px] text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-sky-300/60" />
+          className="w-52 rounded-md border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_40%,transparent)] px-2.5 py-1.5 text-[12px] text-[var(--text)] placeholder:text-[var(--text-mute)] outline-none focus:border-[color-mix(in_srgb,var(--info)_60%,transparent)]" />
         {onBogla && (
           <button type="button" className={boglash != null ? faolTugma : tugma} onClick={() => setBoglash((b) => (b == null ? '' : null))}
             title="Avval birinchi tugunni, keyin ikkinchisini bosing (Esc — bekor)">
@@ -432,15 +432,15 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
         <button type="button" className={panel ? faolTugma : tugma} onClick={() => setPanel((p) => !p)}>⚙ Sozlamalar</button>
       </div>
       {panel && (
-        <div className="space-y-2.5 rounded-lg border border-white/10 bg-black/70 p-3 text-zinc-200 backdrop-blur" style={{ position: 'absolute', right: 12, top: 12, width: 250 }}>
-          <div className="flex items-center justify-between text-[12px] font-semibold text-zinc-100"><span>Grafik sozlamalari</span>
-            <button type="button" className="text-[11px] font-normal text-zinc-400 hover:text-zinc-100" onClick={() => setSozlama(GRAF3D_SUKUT)}>Sukutga qaytarish</button></div>
-          <label className="block text-[11px] text-zinc-300">Rang
-            <select value={sozlama.rang} onChange={(e) => yangila({ rang: e.target.value as Graf3DSozlama['rang'] })} className="mt-1 w-full rounded border border-white/10 bg-zinc-900 px-1.5 py-1 text-[11px]">
+        <div className="space-y-2.5 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_70%,transparent)] p-3 text-[var(--text)] backdrop-blur" style={{ position: 'absolute', right: 12, top: 12, width: 250 }}>
+          <div className="flex items-center justify-between text-[12px] font-semibold text-[var(--text)]"><span>Grafik sozlamalari</span>
+            <button type="button" className="text-[11px] font-normal text-[var(--text-dim)] hover:text-[var(--text)]" onClick={() => setSozlama(GRAF3D_SUKUT)}>Sukutga qaytarish</button></div>
+          <label className="block text-[11px] text-[var(--text-dim)]">Rang
+            <select value={sozlama.rang} onChange={(e) => yangila({ rang: e.target.value as Graf3DSozlama['rang'] })} className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-1 text-[11px]">
               <option value="monoxrom">Bir rangli (vazmin)</option><option value="tur">Tur bo‘yicha ranglar</option>
             </select></label>
-          <label className="block text-[11px] text-zinc-300">Yozuvlar
-            <select value={sozlama.yozuvlar} onChange={(e) => yangila({ yozuvlar: e.target.value as Graf3DSozlama['yozuvlar'] })} className="mt-1 w-full rounded border border-white/10 bg-zinc-900 px-1.5 py-1 text-[11px]">
+          <label className="block text-[11px] text-[var(--text-dim)]">Yozuvlar
+            <select value={sozlama.yozuvlar} onChange={(e) => yangila({ yozuvlar: e.target.value as Graf3DSozlama['yozuvlar'] })} className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-1 text-[11px]">
               <option value="muhim">Muhimlari (yaqinlashsa — ko‘proq)</option><option value="hammasi">Hammasi</option><option value="yoq">Faqat tanlanganda</option>
             </select></label>
           <Slayder nom="Aylanish tezligi" v={sozlama.aylanish} min={0} max={3} step={0.1} on={(x) => yangila({ aylanish: x })} />
@@ -455,9 +455,9 @@ export function Graf3D({ tugunlar, boglar, onTanla, onBogla }: {
         </div>
       )}
       {hoverTugun && (
-        <div className="rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-[12px] text-zinc-200 backdrop-blur" style={{ position: 'absolute', left: 12, bottom: 12, pointerEvents: 'none' }}>
+        <div className="rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_60%,transparent)] px-3 py-2 text-[12px] text-[var(--text)] backdrop-blur" style={{ position: 'absolute', left: 12, bottom: 12, pointerEvents: 'none' }}>
           <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: sozlama.rang === 'tur' ? hoverTugun.rang : MONO }} />
-          <b>{hoverTugun.nom}</b> <span className="text-zinc-400">· {hoverTugun.tur} · {hoverTugun.daraja} ta bog‘lanish</span>
+          <b>{hoverTugun.nom}</b> <span className="text-[var(--text-dim)]">· {hoverTugun.tur} · {hoverTugun.daraja} ta bog‘lanish</span>
         </div>
       )}
     </div>
