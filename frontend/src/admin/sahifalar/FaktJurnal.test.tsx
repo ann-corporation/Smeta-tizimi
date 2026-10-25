@@ -61,6 +61,17 @@ describe('FaktJurnal', () => {
     await waitFor(() => expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ qatorlar: [{ qator_id: 2, hajm: 60 }] })));
   });
 
+  it('yagona ochiq qoldiq: «bajarilmaydi» ayriladi — ustun, 100% tugmasi va ogohlantirish bir xil raqamda', async () => {
+    baj.royxat.mockResolvedValueOnce({ ok: true, qatorlar: [{ id: 1, qator_id: 2, bajarilmagan_hajm: 20, holat: 'faol' }] });
+    render(<FaktJurnal {...props()} />);
+    await waitFor(() => expect(screen.getByTestId('ochiq-2').textContent).toMatch(/^40/)); // 100 − 40 − 20
+    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+    expect((screen.getByLabelText('Bugun bajarildi: Grunt') as HTMLInputElement).value).toBe('40');
+    expect(screen.queryByTestId('qoldiqdan-oshdi')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Bugun bajarildi: Grunt'), { target: { value: '45' } });
+    expect(screen.getByTestId('qoldiqdan-oshdi').textContent).toMatch(/\+5/);
+  });
+
   it('boshqa bo‘lim tanlanadi; qidiruv butun obyekt bo‘yicha', () => {
     render(<FaktJurnal {...props()} />);
     expect(screen.queryByText('Poydevor')).toBeNull();

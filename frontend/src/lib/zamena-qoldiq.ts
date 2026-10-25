@@ -27,10 +27,47 @@ export interface ZamenaQator {
 
 const birlikKalit = (q: ZamenaQator): string => (q.birlik_key ?? (q.birlik ?? '').trim().toLowerCase());
 
-/** qoldiq = smeta - tasdiqlangan F2 - almashtirilgan. smeta NULL bo'lsa NULL (0 emas). */
+/** Qoldiq rejimi: 'fakt' — fakt kiritish ekranlari (ochiq qoldiq); 'f2' — F2 hujjatlari (F2 qoldig'i). */
+export type QoldiqRejim = 'fakt' | 'f2';
+export interface QoldiqKirish {
+  smeta: number | null | undefined;
+  fakt?: number | null;
+  /** Tasdiqlangan F2 hajmi. */
+  f2?: number | null;
+  /** Zamenalar qoplagan hajm (aslning birligida). */
+  almashtirilgan?: number | null;
+  /** Faol «bajarilmaydi» belgilari hajmi (faqat 'fakt' rejimida ayriladi). */
+  bajarilmaydi?: number | null;
+}
+
+/**
+ * YAGONA «OCHIQ QOLDIQ» formulasi (tadqiqot 02, §3.1; egasi 2026-10-25: «bir ekranda uch xil qoldiq — to'qnashuv»):
+ *  - fakt rejimi: ochiq = smeta − fakt − almashtirilgan − bajarilmaydi;
+ *  - F2 rejimi:   qoldiq = smeta − F2 − almashtirilgan (SQL t2_qator_holat.qoldiq_hajm bilan bir xil).
+ * Fakt jurnali ustuni, 25/50/100% tugmalari, «faqat bajarilmaganlar» filtri, «qoldiqdan oshdi» ogohlantirishi,
+ * «bajarilmaydi» taklifi va qamrov % (Tiklash rejimi) — hammasi SHU funksiyadan.
+ * Smeta NULL → NULL (0 emas). Chegirma (manfiy smeta) qatorida yopilgan hajmlar smeta ishorasida ayriladi.
+ * Asl smeta o'zgarmaydi; natija bloklash uchun emas — faqat ko'rsatish/taklif/ogohlantirish.
+ */
+export function ochiqQoldiq(k: QoldiqKirish, rejim: QoldiqRejim = 'fakt'): number | null {
+  if (k.smeta == null || !Number.isFinite(Number(k.smeta))) return null;
+  const smeta = Number(k.smeta);
+  const bajarilgan = rejim === 'fakt' ? Number(k.fakt ?? 0) : Number(k.f2 ?? 0);
+  const yopiq = Number(k.almashtirilgan ?? 0) + (rejim === 'fakt' ? Number(k.bajarilmaydi ?? 0) : 0);
+  return smeta - bajarilgan - (smeta < 0 ? -yopiq : yopiq);
+}
+
+/** Ochiq qoldiqdan OSHGAN hajm (musbat) — `fakt` kiritmadan keyingi jami fakt; oshmasa 0; smeta noma'lum yoki 0 bo'lsa null. */
+export function ochiqdanOrtiqcha(k: QoldiqKirish): number | null {
+  const o = ochiqQoldiq(k, 'fakt');
+  if (o == null || !k.smeta) return null;
+  const ort = Number(k.smeta) < 0 ? o : -o;
+  return ort > 1e-9 ? Math.round(ort * 1e6) / 1e6 : 0;
+}
+
+/** qoldiq = smeta - tasdiqlangan F2 - almashtirilgan (`ochiqQoldiq` F2 rejimi). smeta NULL bo'lsa NULL (0 emas). */
 export function qoldiqHajmi(smeta: number | null | undefined, tasdiqlangan: number | null | undefined, almashtirilgan?: number | null): number | null {
-  if (smeta == null) return null;
-  return smeta - (tasdiqlangan ?? 0) - (almashtirilgan ?? 0);
+  return ochiqQoldiq({ smeta, f2: tasdiqlangan, almashtirilgan }, 'f2');
 }
 
 /** Bir asl qatorning O'Z zamenalaridan qoplangan hajmi (aslning birligida), aslning qolgan qoldig'i bilan cheklangan. */
