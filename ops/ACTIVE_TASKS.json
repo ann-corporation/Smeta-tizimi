@@ -3,6 +3,24 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "PTO-JOINT-QA-20261025",
+      "title": "Independent PTO acceptance and adversarial review for Claude integration",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/pto-joint-qa-20261025",
+      "base_sha": "8b1eb8946dcb5b171db9af5a014d7e031dece585",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/testlar/pto-joint-acceptance-20261025/",
+        "ops/mailbox/PTO-JOINT-QA-20261025/",
+        "ops/handoff/PTO_JOINT_QA_20261025.md"
+      ],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "production_write_allowed": false,
+      "note": "Owner requests collaboration without overlap with Claude's4-5 implementers. Codex owns independent synthetic acceptance/review only; no runtime, DB, Fakt, navigation, pricing or release file writes. Obsidian REQUEST/ACK recorded. Exact implementation sublease must be agreed with L0 before code fixes. Registry registration under existing own Studio coordination lease."
+    },
+    {
       "id": "CATALOG-IMPORT-AUDIT-20261023",
       "title": "Current source 2.8.1 catalogue audit and namespace-safe shared XLSX import",
       "owner": "codex",
