@@ -41,3 +41,11 @@ export function useSeen(ref: RefObject<Element | null>, amount = 0.35): boolean 
   }, [ref, amount, seen]);
   return seen;
 }
+
+const numFmt = new Map<number, Intl.NumberFormat>();
+/** Intro numbers: space-grouped, decimal comma ("44 946 000", "0,412") regardless of the browser's locale data. */
+export function num(v: number, digits = 2): string {
+  let f = numFmt.get(digits);
+  if (!f) { f = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits }); numFmt.set(digits, f); }
+  return f.format(v).replace(/[  ]/g, ' ').replace(/\./g, ',');
+}

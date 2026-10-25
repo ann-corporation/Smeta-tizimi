@@ -188,7 +188,7 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
     </main>
     <footer className="entry-footer"><span>{text(c.footer)}</span><a href="#entry-account" onClick={() => choose('signup')}>{text(c.signup)}<ArrowUpRight size={14} aria-hidden="true" /></a></footer>
     <MobileCta label={local(ic.stickyStart)} onStart={() => choose('signup')} />
-    <button ref={helpToggle} className="entry-help-toggle" aria-expanded={help} aria-controls="entry-help" onClick={() => help ? closeHelp() : setHelp(true)}><MessageCircle size={18} aria-hidden="true" />{text(c.help)}</button>
+    <button ref={helpToggle} className="entry-help-toggle" aria-expanded={help} aria-controls="entry-help" onClick={() => help ? closeHelp() : setHelp(true)}><MessageCircle size={18} aria-hidden="true" /><span className="entry-help-label">{text(c.help)}</span></button>
     {help && <aside id="entry-help" className="entry-help" aria-label={text(c.helpTitle)} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); closeHelp(); } }}><header><h2>{text(c.helpTitle)}</h2><button id="entry-help-close" aria-label={text(c.close)} onClick={closeHelp}><X size={20} /></button></header>{supportPort ? <SupportConversation port={supportPort} /> : <><p>{text(c.helpNote)}</p>{faq.map(([q, a]) => <details key={q}><summary>{text(q)}</summary><p>{text(a)}</p></details>)}</>}<a className="entry-primary" href={`tel:${OWNER_PHONE}`}><Phone size={17} aria-hidden="true" />{PHONE_LABEL}</a></aside>}
   </div></MotionConfig>;
 }

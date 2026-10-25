@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { raqamFormatla } from '../../../i18n/til';
 import type { EntryCopy } from '../product-scope';
 import { introCopy as c } from './copy';
-import { useSeen } from './hooks';
+import { useSeen, num } from './hooks';
 
 type Local = (s: EntryCopy) => string;
 const SCALE = 115; // meter spans 0..115% so over-limit has room past the 100% line
@@ -21,7 +20,7 @@ export function F2Anatomy({ local }: { local: Local }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeen(ref, 0.3);
   const [focus, setFocus] = useState<number | null>(null);
-  const n = (v: number, d = 2) => raqamFormatla(v, { maximumFractionDigits: d });
+  const n = (v: number, d = 2) => num(v, d);
   return <div ref={ref} className="entry-f2" data-focus={focus ?? undefined}>
     <div className="entry-f2-doc">
       <div className="entry-f2-doc-head"><b>{DOC_TITLE}</b><span className="entry-pill entry-pill--ok">{local(c.statusApproved)}</span><span className="entry-sheet-sample">{local(c.sample)}</span></div>

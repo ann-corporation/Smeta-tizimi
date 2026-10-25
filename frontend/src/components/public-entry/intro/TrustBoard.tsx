@@ -1,11 +1,10 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDown, Lock } from 'lucide-react';
-import { raqamFormatla } from '../../../i18n/til';
 import type { EntryCopy } from '../product-scope';
 import { trustPoints } from '../product-scope';
 import { introCopy as c } from './copy';
-import { useSeen } from './hooks';
+import { useSeen, num } from './hooks';
 
 type Local = (s: EntryCopy) => string;
 
@@ -13,7 +12,7 @@ type Local = (s: EntryCopy) => string;
 export function TrustBoard({ local }: { local: Local }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeen(ref, 0.25);
-  const n = (v: number) => raqamFormatla(v);
+  const n = (v: number) => num(v);
   const go = (d: number) => ({ initial: { opacity: 0, y: 14 }, animate: seen ? { opacity: 1, y: 0 } : {}, transition: { delay: d, duration: 0.45 } });
   const trace = local(c.tTrace).split(' → ');
   return <div ref={ref} className="entry-trust-board">

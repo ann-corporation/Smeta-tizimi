@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion, motionValue, useMotionValueEvent, useTransform, type MotionValue } from 'framer-motion';
 import { AlertTriangle, FileSpreadsheet, Sparkles } from 'lucide-react';
-import { raqamFormatla } from '../../../i18n/til';
 import type { EntryCopy } from '../product-scope';
 import { introCopy as c } from './copy';
-import { useSeen } from './hooks';
+import { useSeen, num } from './hooks';
 
 type Local = (s: EntryCopy) => string;
 type Kat = 'chel' | 'mash' | 'mat' | 'ob';
@@ -55,7 +54,7 @@ export function HeroSheet({ local, progress }: { local: Local; progress: MotionV
   const live = manual ? manual === 'live' : auto === 2;
   const stage = manual ? (manual === 'live' ? 2 : 0) : auto;
   const visible = rows.filter(r => (live ? r.kind === 'section' || r.kind === 'work' : true));
-  const fmt = (n: number) => raqamFormatla(n, { maximumFractionDigits: 3 });
+  const fmt = (n: number) => num(n, 3);
 
   return <figure ref={ref} className="entry-sheet" data-view={live ? 'live' : 'excel'} aria-label={local(c.sheetTitle)}>
     <div className="entry-sheet-bar">

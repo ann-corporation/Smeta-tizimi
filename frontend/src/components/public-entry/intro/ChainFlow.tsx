@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from 'framer-motion';
 import { Lock } from 'lucide-react';
-import { raqamFormatla } from '../../../i18n/til';
 import type { EntryCopy } from '../product-scope';
 import { introCopy as c } from './copy';
-import { useScrollStory, useSeen } from './hooks';
+import { useScrollStory, useSeen, num } from './hooks';
 
 type Local = (s: EntryCopy) => string;
 const st = (id: string, title: EntryCopy, caption: EntryCopy) => ({ id, title, caption });
@@ -78,12 +77,12 @@ function Track({ progress, active, local }: { progress: MotionValue<number>; act
   return <div className="entry-track" aria-hidden="true">
     <div className="entry-track-line"><motion.i style={{ scaleX: fill }} /></div>
     {chainStations.map((s, i) => <span key={s.id} className="entry-track-node" data-on={i <= active} style={{ left: `${(i + 0.5) * (100 / 6)}%` }} />)}
-    <motion.span className="entry-track-token" style={{ left }}><b>{raqamFormatla(ACT)} м³</b><small>{local(c.rowName)}</small></motion.span>
+    <motion.span className="entry-track-token" style={{ left }}><b>{num(ACT)} м³</b><small>{local(c.rowName)}</small></motion.span>
   </div>;
 }
 
 function Stations({ local, active, f2Step }: { local: Local; active: number; f2Step: number }) {
-  const n = (v: number, d = 0) => raqamFormatla(v, { maximumFractionDigits: d });
+  const n = (v: number, d = 0) => num(v, d);
   const sum = local(c.sum);
   const body = (id: string): ReactNode => {
     switch (id) {
@@ -128,7 +127,7 @@ function Stations({ local, active, f2Step }: { local: Local; active: number; f2S
     <p className="entry-station-caption">{local(s.caption)}</p>
     <div className="entry-station-body">{body(s.id)}</div>
     {s.id === 'f2' && <AnimatePresence>{stamped && <>
-      <motion.span key="stamp" className="entry-stamp" initial={{ opacity: 0, scale: 2.6, rotate: -22 }} animate={{ opacity: 1, scale: 1, rotate: -9 }} exit={{ opacity: 0, scale: 1.3 }}
+      <motion.span key="stamp" className="entry-stamp" initial={{ opacity: 0, scale: 2.6, rotate: -16 }} animate={{ opacity: 1, scale: 1, rotate: -4 }} exit={{ opacity: 0, scale: 1.3 }}
         transition={{ type: 'spring', stiffness: 520, damping: 17, mass: 0.8 }}>{local(c.approved)}</motion.span>
       <motion.span key="ring" className="entry-stamp-ring" aria-hidden="true" initial={{ opacity: 0.7, scale: 0.4 }} animate={{ opacity: 0, scale: 1.8 }} transition={{ duration: 0.7, delay: 0.08 }} />
       <motion.p key="frozen" className="entry-frozen" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}><Lock size={12} aria-hidden="true" />{local(c.frozen)}</motion.p>
