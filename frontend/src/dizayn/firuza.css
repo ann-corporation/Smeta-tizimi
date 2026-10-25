@@ -564,3 +564,9 @@ h1, h2 { font-family: var(--font-display); }
 .fz-bolim__sum { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .fz-bolim__sum small { display: block; font-weight: 400; font-size: 11.5px; color: var(--text-mute); }
 @media (max-width: 720px) { .fz-bolim { grid-template-columns: minmax(0, 1fr) auto; } .fz-bolim .fz-meter { grid-column: 1 / -1; } }
+
+/* `success` 6 faylda ishlatilgan, lekin hech qayerda e'lon qilinmagan edi (musbat summa, «mos» rangsiz chiqardi) → ok. */
+:root { --color-success: var(--ok); }
+.text-success { color: var(--ok); }
+.bg-success { background-color: var(--ok); }
+.border-success\/40 { border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
