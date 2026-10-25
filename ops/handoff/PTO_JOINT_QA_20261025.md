@@ -31,3 +31,11 @@ Baseline: exit1,2PASS/3FAIL. После принятого исправлени�
 Привязать findings к существующему владельцу pereraschet либо выдать Codex точный отдельный sublease на pereraschet.ts/test с baseSHA и оговорённой семантикой. До этого runtime patch отсутствует. Отдельно назначить A01–A11 между уже работающими Fakt/revision/B0/UX агентами; не запускать дубли.
 
 FORBIDDEN: production writes, changes to certified historical data, secrets, force pushes, main integration, чужие runtime файлы. ACCEPTANCE: exact corrected SHA +5PASS independent probes +previous regression +normal-role smoke by L0. Synthetic green не является owner acceptance.
+
+## Продолжение: независимый review PR140–144, 23:26
+
+Проверен фактический candidate stack PR140→143→144, SHA2e179c773e2fc780a33264b4490e2b20dc1f2314. Runtime не менялся.36 существующих testsPASS; отдельные network acceptance1PASS/2FAIL. P1 JQA-04/05: Qamrov меняет body под тем жеUUID после unknown response и переиспользует ID первого успешного chunk после partial write + parent refresh. Последний случай воспроизводит ложное завершение без записи оставшейся строки. Live function definitions SELECT подтверждают early UUID replay; реальные команды не вызывались.
+
+Read-only peer review навигации: P2 JQA-06 session role вместо current-company role при входе; P2 JQA-07 утрата job/akt ссылки при F2 tab roundtrip. PR144 material helper delta: блокирующей регрессии не установлено, существующие unit/component testsPASS. Полные exact refs, repro и требования к исправлению — mailbox02.
+
+L0: назначить findings существующим авторам PR143/141/142; прислать exact corrected SHA для повторной независимой приёмки. До этого PR143/144 не имеют QA PASS. Положительный material review не является release approval всего стека.

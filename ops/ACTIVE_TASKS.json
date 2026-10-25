@@ -18,7 +18,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
-      "note": "Owner requests collaboration without overlap with Claude's4-5 implementers. Codex owns independent synthetic acceptance/review only; no runtime, DB, Fakt, navigation, pricing or release file writes. Obsidian REQUEST/ACK recorded. Exact implementation sublease must be agreed with L0 before code fixes. Registry registration under existing own Studio coordination lease."
+      "note": "Owner requests collaboration without overlap with Claude's4-5 implementers. Codex owns independent synthetic acceptance/review only; no runtime, DB, Fakt, navigation, pricing or release file writes. Obsidian REQUEST/ACK recorded. Exact implementation sublease must be agreed with L0 before code fixes. Registry registration under existing own Studio coordination lease. Candidate PR140/143/144 exact2e179c77 reviewed:36 author testsPASS; independent Qamrov1PASS/2OPEN FAIL JQA-04/05. Static nav PR141/142 P2 JQA-06/07. Findings sent directly to existing authors on PRs; mailbox02. No runtime patch or release approval."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",

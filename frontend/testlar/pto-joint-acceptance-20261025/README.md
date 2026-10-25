@@ -17,3 +17,17 @@ npx vitest run --config testlar/pto-joint-acceptance-20261025/config.ts
 Read-only production incidence check: по объекту153 среди2538 approved F2 row groups JQA-01-формы не обнаружены (0). Это не отменяет воспроизводимый дефект для допустимого correction shape и не доказывает его присутствие у владельца.
 
 Не менять runtime из этого QA lane. Claude L0 назначает существующего implementer и записывает точный SHA исправления в mailbox.
+
+## Приёмка Claude PR143/144
+
+На отдельном worktree точного PR144 SHA `2e179c773e2fc780a33264b4490e2b20dc1f2314`:
+
+```powershell
+npx vitest run --config testlar/pto-joint-acceptance-20261025/candidate.config.ts
+```
+
+Этот config нельзя запускать на baseline8b1eb894: там ещё нет FaktQamrov. Файлы `*.candidate.tsx` тоже исключены из обычного discovery. Измерено **1PASS/2FAIL**: неизменённый retry — PASS; JQA-04 изменённый body с прежнимUUID — FAIL; JQA-05 partial3001→refresh→retry — FAIL (success при незаписанной последней строке). Live function definitions прочитаны SELECT, без вызова writer. Synthetic server model повторяет early replay t2_akt_yarat по operation_id. Production данные не изменяются.
+
+Обычные тесты кандидата: `ochiq-qoldiq.test.ts`, `fakt-qamrov.test.ts`, `fakt-material-taklif.test.ts`, `FaktJurnal.test.tsx` —36PASS. Это отдельное положительное свидетельство и не закрывает два независимых FAIL.
+
+Полный review: `ops/mailbox/PTO-JOINT-QA-20261025/02-codex@Anvar.md` (также P2 JQA-06/07 по навигации).
