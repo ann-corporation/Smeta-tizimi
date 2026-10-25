@@ -35,5 +35,18 @@
   "Qamrov %: {nom}": { "ru": "Охват %: {nom}", "en": "Scope %: {nom}" },
   "Qamrov %: bo‘lim": { "ru": "Охват %: раздел", "en": "Scope %: section" },
   "Tiklash rejimi: shu bo‘lim (ichki bo‘limlari bilan) barcha ishlariga bitta foiz — fakt = foiz × ochiq qoldiq; oldindan ko‘rish va bekor qilish bilan": { "ru": "Режим восстановления: один процент для всех работ раздела (с подразделами) — факт = процент × открытый остаток; с предпросмотром и отменой", "en": "Catch-up mode: one percent for all works of this section (with subsections) — actual = percent × open balance; with preview and undo" },
+  "Oldingi urinish natijasi noma’lum — avval shuni hal qiling": { "ru": "Результат предыдущей попытки неизвестен — сначала разрешите её", "en": "The previous attempt's result is unknown — resolve it first" },
+  "Oldingi urinish to‘liq yozilmadi — avval shuni hal qiling": { "ru": "Предыдущая попытка записана не полностью — сначала разрешите её", "en": "The previous attempt was not fully written — resolve it first" },
+  "Qamrov": { "ru": "Охват", "en": "Scope" },
+  "bo‘laklar": { "ru": "части", "en": "chunks" },
+  "tasdiqlandi": { "ru": "подтверждено", "en": "confirmed" },
+  "rad etildi": { "ru": "отклонено", "en": "rejected" },
+  "noma’lum": { "ru": "неизвестно", "en": "unknown" },
+  "kutmoqda": { "ru": "ожидает", "en": "pending" },
+  "«Qayta yuborish» xuddi shu amalni bir xil ID bilan yuboradi — server yozilganini qaytadan yozmaydi. Foizni o‘zgartirish bu urinish hal bo‘lgach mumkin.": { "ru": "«Отправить снова» повторяет ту же команду с тем же ID — сервер не запишет уже записанное повторно. Изменить процент можно после разрешения этой попытки.", "en": "«Resend» replays the same command with the same ID — the server will not write what is already written. The percent can be changed once this attempt is resolved." },
+  "Yozilgan {n} hujjatni bekor qilish": { "ru": "Отменить записанные документы: {n}", "en": "Undo {n} written documents" },
+  "Urinishni tashlash (yangisiga yo‘l)": { "ru": "Отбросить попытку (разрешить новую)", "en": "Discard attempt (allow a new one)" },
+  "Faktga yozish — qayta yuborish (bir xil ID)": { "ru": "Записать в факт — отправить снова (тот же ID)", "en": "Write to actuals — resend (same ID)" },
+  "Javob olinmadi — amal serverda bajarilgan bo‘lishi mumkin. «Qayta yuborish» xuddi shu amalni (bir xil ID) yuboradi, ikkinchi hujjat yaratilmaydi.": { "ru": "Ответ не получен — команда могла выполниться на сервере. «Отправить снова» повторит ту же команду (тот же ID), второй документ не создаётся.", "en": "No reply — the command may have been executed on the server. «Resend» replays the same command (same ID); no second document is created." },
   "Saqlanmagan kiritmalar bor — qamrov serverdagi faktdan hisoblanadi; avval saqlang yoki tozalang.": { "ru": "Есть несохранённые вводы — охват считается от факта на сервере; сначала сохраните или очистите.", "en": "There are unsaved entries — scope is computed from server actuals; save or clear them first." }
 }

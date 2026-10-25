@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 12,
+      "id": 15,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: ish ichidagi materiallar ham ergashadi",
       "bandlar": [
@@ -12,24 +12,36 @@
       ]
     },
     {
-      "id": 11,
+      "id": 14,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: «Qamrov %» — bo'limni bitta foiz bilan tiklash",
       "bandlar": [
         "Fakt jurnalida bo'limni tanlang va yuqoridagi «Qamrov %» tugmasini bosing (yoki klaviaturada «%»). Ichki bo'limlar sarlavhasida ham, har ish qatorida ham «%» tugmasi bor; hajm katagida «%» yozsangiz — shu ish uchun ochiladi.",
         "Foizni yozing (masalan 100 yoki 70): har ish, alohida material/uskuna va (xohlasangiz) ish ichidagi materiallarga fakt = foiz × ochiq qoldiq taklif qilinadi. Mehnat va mashina normadan o'zi ergashadi.",
         "Oldindan ko'rishda qatorlar soni, summa (ustamasiz va ustamali) va istisnolar chiqadi: allaqachon faktli, zamenalangan, bajarilmaydi, narxsiz, chegirma. Keraksizini belgidan olib tashlang yoki turini bitta tugma bilan chiqaring.",
-        "Enter yoki Ctrl+Enter — hammasi bitta fakt hujjatiga yoziladi. Xabardagi «Bekor qilish» shu yozuvni butunlay qaytaradi. Asl smeta o'zgarmaydi."
+        "Enter yoki Ctrl+Enter — hammasi bitta fakt hujjatiga yoziladi. Xabardagi «Bekor qilish» shu yozuvni butunlay qaytaradi. Asl smeta o'zgarmaydi.",
+        "Internet uzilib javob kelmasa — oyna «oldingi urinish noma'lum» deb ko'rsatadi: «qayta yuborish» xuddi shu amalni yuboradi (ikki marta yozilmaydi), foizni o'zgartirish yoki yangi urinish faqat shu hal bo'lgach. Oynani yopib qayta ochsangiz ham, sahifani yangilasangiz ham esda qoladi."
       ]
     },
     {
-      "id": 10,
+      "id": 13,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: bitta «ochiq qoldiq»",
       "bandlar": [
         "Fakt jurnalidagi «Ochiq qoldiq» ustuni endi smeta − fakt − almashtirilgan (zamena) − «bajarilmaydi» hajmini ko'rsatadi; F2 qoldig'i farq qilsa ostida kichik «F2: …» bo'lib turadi.",
         "25/50/100% tugmalari, «faqat bajarilmaganlar» belgisi va «qoldiqdan oshdi» ogohlantirishi shu bitta raqamdan hisoblanadi — zamena yoki «bajarilmaydi» bor qatorda 100% endi ortiqcha hajm bermaydi.",
         "Oshib ketsa ham saqlash bloklanmaydi: kiritma ostida «qoldiqdan oshdi +X» ko'rinadi."
+      ]
+    },
+    {
+      "id": 10,
+      "sana": "2026-10-25",
+      "sarlavha": "Pereraschet: qancha ko'p olasiz yoki qancha qaytarasiz",
+      "bandlar": [
+        "Nakopitelniy sahifasida «Pereraschet» bo'limi: har resurs qatori bo'yicha ortiqcha olingan hajm (minus), narx farqi (±) va faktda bor, lekin F2 ga olinmagan hajm (plyus).",
+        "Yuqorida jami: olish mumkin / qaytarish kerak / sof natija — ustamasiz, obyekt ustamasi bilan va QQS bilan; razdellar bo'yicha. Qatorni bossangiz — qaysi F2 aktlarda olingani.",
+        "Birlik shubhasi, smetada hajm yoki narx yo'q, «(ekspertizagacha)» bo'lim, zamena qatorlari pulga kirmaydi — «Tekshirish kerak» ro'yxatida.",
+        "Excel «Перерасчёт» hujjati (buyurtmachi bilan pereraschet asosi) va tanlangan qatorlardan tuzatuvchi F2 qoralamasi — tasdiqlash siz tomondan F2 tarixida."
       ]
     },
     {
