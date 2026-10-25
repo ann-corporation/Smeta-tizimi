@@ -2861,7 +2861,11 @@
         "frontend/src/components/smeta-hujjat/",
         "frontend/src/lib/smeta-korinish.ts",
         "frontend/src/lib/smeta-korinish.test.ts",
-        "frontend/src/i18n/lugat/qism/smeta-anatomiya-korinish.json"
+        "frontend/src/i18n/lugat/qism/smeta-anatomiya-korinish.json",
+        "frontend/src/components/nakopitelniy/",
+        "frontend/src/lib/nakopitelniy-grafik.ts",
+        "frontend/src/lib/nakopitelniy-grafik.test.ts",
+        "frontend/src/i18n/lugat/qism/nakopitelniy-grafik.json"
       ],
       "depends_on": [],
       "must_read": [

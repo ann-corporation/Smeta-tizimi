@@ -31,3 +31,4 @@ ikki faylga FAQAT ko'rinish o'zgarishi kiritildi (mantiq, ma'lumot, handlerlar t
   tashlandi; text-white/bg-black/slate/#a855f7 → tokenlar. Test: «Sm. Vol/F2 Vol» → «Smeta/F2 olingan».
 - `HolatNative.tsx`: smeta tabida `<SmetaAnatomiya>` bitta qator bilan qo'shildi.
 Sizning branchingiz bilan birlashtirishda ziddiyat chiqsa — sizning mantiq o'zgarishlaringiz ustuvor, bizning klasslarni qayta qo'yamiz.
+- `NakopitelniyVedomost.tsx`: jami kartasidan keyin `<NakopitelniyGrafik>` bitta qator bilan qo'shildi (oyma-oy F2 + jamlanma, smeta/fakt chiziqlari).

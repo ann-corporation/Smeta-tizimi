@@ -1,5 +1,6 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
+import { NakopitelniyGrafik } from '../../components/nakopitelniy/NakopitelniyGrafik';
 import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, ClipboardPaste, FileSpreadsheet } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -522,6 +523,9 @@ function Sessiya({ companyId }: { companyId: number }) {
           </div>
         </div>
       )}
+
+      {/* Firuza (egasi 2026-10-25): oyma-oy F2 va jamlanma grafigi. */}
+      {jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={jami.fakt_summa} />}
 
       {qatorlar.length > 0 && (
         <>
