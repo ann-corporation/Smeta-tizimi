@@ -19,6 +19,8 @@ import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2Obyektl
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { F2DublikatPanel, useObyektF2Aktlari } from './F2DublikatPanel';
+import { bloklarmi, dublikatTekshiruv, pereraschetBelgisi } from '../../lib/f2-dublikat/tekshiruv';
 import { shifrKorinish } from '../../lib/f2-resurs-guruh';
 import { F2ResursVedomosti } from './F2ResursVedomosti';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
@@ -179,7 +181,17 @@ export function F2TayyorlashNative() {
   /** Vedomostdan tanlangan taklif narxi: faqat F2 qatoriga (qo'lda narx) yoziladi - asl smetaga emas. */
   const narxniQollash = (ids: number[], narx: number) => setK((o) => { const n = { ...o.narx }; const ns = { ...o.narxsiz }; for (const id of ids) { n[id] = String(narx); delete ns[id]; } return { ...o, narx: n, narxsiz: ns }; });
   const tayyor = qatorlar.length > 0 && jami.xato === 0;
-  const saqlashMumkin = tayyor && (aktId == null || (!!akt && !aktKorish));
+  /** DUBLIKAT HIMOYASI (egasi 2026-10-25): shu obyektda shu raqam bor — BLOK; summasi ±0,5% teng F2 / pereraschet — ogohlantirish. */
+  const { aktlar: obyektAktlari } = useObyektF2Aktlari(validId ? obyektId : null, saving ? 1 : 0);
+  const dublikatlar = useMemo(() => {
+    if (!validId || aktId != null || !qatorlar.length) return [];
+    const yuk = f2Yuk(qatorlar, raqam);
+    const jamiS = yuk.some((r) => r.certifiedAmount != null) ? yuk.reduce((s, r) => s + (r.certifiedAmount ?? 0), 0) : null;
+    return dublikatTekshiruv({ aktlar: obyektAktlari, oy: oy.slice(0, 7), raqam, jami: jamiS, ozAktId: null, manbaAktIdlar: [],
+      pereraschet: pereraschetBelgisi(rows, yuk.map((r) => r.qatorId)) });
+  }, [validId, aktId, qatorlar, raqam, oy, obyektAktlari, rows]);
+  const dublikatBlok = bloklarmi(dublikatlar);
+  const saqlashMumkin = tayyor && !dublikatBlok && (aktId == null || (!!akt && !aktKorish));
   const bolimIer = useMemo(() => f2BolimIerarxiya(rows, bolimlar), [rows, bolimlar]);
   const tanlanganBolim: number | null = bolimId !== undefined ? bolimId : bolimlar[0] ? bolimlar[0].id ?? -1 : null;
   const tanlanganAvlod = useMemo(() => (tanlanganBolim == null ? new Set<number>() : avlodKalitlari(bolimIer, tanlanganBolim)), [bolimIer, tanlanganBolim]);
@@ -310,6 +322,8 @@ export function F2TayyorlashNative() {
     if (!validId || !tayyor || saving) return;
     if (!joriy?.id) return;
     if (aktId != null) { await aktniYangila(); return; }
+    const ogoh = dublikatlar.filter((m) => m.daraja === 'ogoh');
+    if (ogoh.length && !window.confirm(ogoh.map((m) => m.matn).join('\n\n') + '\n\n' + t('Baribir yozasizmi?'))) return;
     setSaving(true);
     try {
       // Token (egasi 2026-10-02): F2 qoralama — "f2_qoralama"; server xato bersa token avtomatik qaytadi.
@@ -499,6 +513,7 @@ export function F2TayyorlashNative() {
           </>}
         <a className="ml-auto underline text-accent" href={`/admin/f2-tayyorlash?obyekt=${obyektId}`}>{t('Yangi F2 tayyorlash')}</a>
       </section>}
+      {validId && aktId == null && <F2DublikatPanel masalalar={dublikatlar} obyektId={obyektId} yangilaHref={(id) => `/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${id}`} />}
       {!validId && <section className="karta p-4 text-text-dim">Avval obyektni tanlang.</section>}
       {error && validId && <section role="alert" className="karta flex flex-wrap items-center gap-3 border-danger/40 bg-danger/5 p-4 text-[13px] text-danger"><AlertTriangle size={16} /><span className="flex-1">{error}</span><button type="button" onClick={() => void yuklash()} className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold hover:bg-danger/10">Qayta urinib ko‘rish</button></section>}
       {loading && <div className="skel min-h-[260px] flex-1 rounded-xl" />}
