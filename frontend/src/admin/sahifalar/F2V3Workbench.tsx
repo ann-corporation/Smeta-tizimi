@@ -26,7 +26,7 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { expandableDepths, expandableIdsAtDepth, flattenVisibleTree } from '../../lib/f2-link-review/tree';
 import { saqlanmaganIsh } from '../../_shared/versiya';
 import { t, t as tarj } from '../../i18n/til';
-import { almashtirildiMatn } from '../../lib/zamena-qoldiq';
+import { almashtirildiMatn, qoralamaAlmashtirilgan } from '../../lib/zamena-qoldiq';
 
 /**
  * F2 V3 — ikki oynali moslashtirish (docs/architecture/F2_IMPORT_V3.md §3).
@@ -101,6 +101,8 @@ export interface F2V3WorkbenchProps {
   onYaratildi: (f: F2Tugun, qatorId: number, resursQatorIdlar?: number[]) => Promise<void>;
   /** Zamena qatori id → u almashtirgan ASL smeta qatori id (asl qator o'zi o'zgarmaydi). */
   zamenaAsl?: ReadonlyMap<number, number>;
+  /** Zamena qatori id -> kiritilgan almashtirish hajmi (aslning birligida; birlik farqli zamena) -- yozilgan va rejali zamenalar. */
+  zamenaMiqdor?: ReadonlyMap<number, number>;
   /** Qo'shilgan qator tahrirlandi (yangiId) yoki o'chirildi: sahifa smetani yangilaydi va F2 bog'lanishlarini to'g'rilaydi. */
   onQoshilganOzgardi?: (eskiIdlar: number[], yangiId?: number | null) => Promise<void>;
   /** Berilsa — qo'shimcha/zamena/resurs serverga darhol yozilmaydi, qoralamaga (rejali) qo'shiladi. */
@@ -376,6 +378,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     }
     return m;
   }, [ij, ind, S]);
+  /** SHU qoralamadagi zamena hajmi aslning qoldig'idan ayriladigan kutilayotgan almashtirish (asl qator id -> hajm; yozilgani `p.almashtirilgan` da). */
+  const shuAlm = useMemo(
+    () => qoralamaAlmashtirilgan(S.byId.values(), zamenaAsl, p.zamenaMiqdor ?? BOSH_XARITA, p.oldingi, new Map([...shuF2].map(([id, v]) => [id, v.hajm] as const)), p.almashtirilgan ?? BOSH_XARITA),
+    [S, zamenaAsl, p.zamenaMiqdor, p.oldingi, shuF2, p.almashtirilgan]);
   const rzDiag = useMemo(() => new Map(p.natija.rzDiag.map((d) => [d.f2Uid, d])), [p.natija]);
   const tTugun = tanlangan ? ind.byUid.get(tanlangan) ?? null : null;
 
@@ -554,7 +560,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const qatorlar = nomzod.map((s) => {
       const shu = shuF2.get(s.id);
       const boshqa = (shu?.hajm ?? 0) - (shu?.qism.get(f.uid) ?? 0);
-      const qoldiq = s.hajm == null ? null : s.hajm - (p.oldingi.get(s.id) ?? 0) - (p.almashtirilgan?.get(s.id) ?? 0) - (p.band?.get(s.id) ?? 0) - boshqa;
+      const qoldiq = s.hajm == null ? null : s.hajm - (p.oldingi.get(s.id) ?? 0) - (p.almashtirilgan?.get(s.id) ?? 0) - (shuAlm.get(s.id) ?? 0) - (p.band?.get(s.id) ?? 0) - boshqa;
       return { s, qoldiq };
     });
     const qismlar = taqsimHisobla(f.hajm ?? 0, qatorlar.map(({ s, qoldiq }) => ({ qatorId: s.id, qoldiq, smetaHajm: s.hajm ?? null })));
@@ -1410,7 +1416,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     }
     const old = p.oldingi.get(s.id) ?? 0;
     const qoralamada = p.band?.get(s.id) ?? 0;
-    const qoldiq = s.hajm != null ? s.hajm - old - (p.almashtirilgan?.get(s.id) ?? 0) - qoralamada - (band?.hajm ?? 0) : null;
+    const shuAl = shuAlm.get(s.id) ?? 0;
+    const qoldiq = s.hajm != null ? s.hajm - old - (p.almashtirilgan?.get(s.id) ?? 0) - shuAl - qoralamada - (band?.hajm ?? 0) : null;
     const ish = s.tur === 'bl';
     const tur = qatorTuri(s.id);
     const rang = QATOR_RANG[tur];
@@ -1451,11 +1458,15 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <span className={`${SON} ${qoralamada ? 'text-warn' : 'text-text-mute'}`} title={qoralamada ? t('Boshqa F2 qoralamalarida band') : undefined}>{qoralamada ? fmt(qoralamada) : ''}</span>
         {(() => {
           const oshdi = qoldiq != null && s.hajm != null && oshibKetdimi(s.hajm, qoldiq) && Math.abs(qoldiq) > 1e-9;
-          const almMatn = almashtirildiMatn(p.almashtirilgan?.get(s.id), s.hajm, s.birlik, (n) => fmt(n));
+          const almYozilgan = p.almashtirilgan?.get(s.id) ?? 0;
+          const almMatn = almashtirildiMatn(almYozilgan, s.hajm, s.birlik, (n) => fmt(n));
+          // Shu qoralamadagi zamena: hali yozilmagan, lekin qoldiqdan ayrilgan -- yozilgani bilan farqi aniq.
+          const shuMatn = shuAl > 0 ? `${t('almashtiriladi (shu F2)')}: ${almashtirildiMatn(almYozilgan + shuAl, s.hajm, s.birlik, (n) => fmt(n))}${almYozilgan > 0 ? ` (${t('yozilgan')}: ${fmt(almYozilgan)}, ${t('shu F2')}: ${fmt(shuAl)})` : ''}` : null;
+          const ikkiMarta = shuAl > 0 && (band?.hajm ?? 0) > 0;
           // Manfiy qoldiq — HAJM oshdi (smeta birligida), pul emas: birlik yonida ko'rsatiladi.
           return <span className={`${SON} ${oshdi ? 'bg-danger/20 font-semibold text-danger' : 'text-text-dim'}`}
-            title={oshdi ? `${tarj('hajm oshdi')}: ${fmt(Math.abs(qoldiq!), 6)} ${s.birlik ?? ''}` : (almMatn ? `${t('almashtirildi')}: ${almMatn}` : undefined)}>
-            {qoldiq == null ? '' : <>{fmt(qoldiq)}{oshdi && s.birlik ? <span className="ml-0.5 text-[10px] font-normal">{s.birlik} · {tarj('hajm oshdi')}</span> : null}{almMatn ? <span className="ml-0.5 text-[10px] font-normal text-warn">{t('almashtirildi')}: {almMatn}</span> : null}</>}</span>;
+            title={oshdi ? `${tarj('hajm oshdi')}: ${fmt(Math.abs(qoldiq!), 6)} ${s.birlik ?? ''}` : (shuMatn ?? (almMatn ? `${t('almashtirildi')}: ${almMatn}` : undefined))}>
+            {qoldiq == null ? '' : <>{fmt(qoldiq)}{oshdi && s.birlik ? <span className="ml-0.5 text-[10px] font-normal">{s.birlik} · {tarj('hajm oshdi')}</span> : null}{shuMatn ? <span className="ml-0.5 block text-[10px] font-normal text-warn">{shuMatn}</span> : null}{!shuMatn && almMatn ? <span className="ml-0.5 text-[10px] font-normal text-warn">{t('almashtirildi')}: {almMatn}</span> : null}{ikkiMarta ? <span className="block text-[10px] font-semibold text-danger">{t('asl ham, zamenasi ham olinmoqda — ikki marta bo‘lishi mumkin')}</span> : null}</>}</span>;
         })()}
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
           {tTugun && (tBog
