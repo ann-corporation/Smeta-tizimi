@@ -1,0 +1,654 @@
+{
+ "Rejimni almashtirish": {
+  "ru": "Сменить режим",
+  "en": "Switch mode"
+ },
+ "Rejim almashsa, saqlanmagan tahrirlar yopiladi. Davom etasizmi?": {
+  "ru": "При смене режима несохранённые правки будут закрыты. Продолжить?",
+  "en": "Switching mode closes unsaved edits. Continue?"
+ },
+ "Muammo bo‘lsa: eski (GAS) rejimga o‘tish": {
+  "ru": "При проблемах: перейти в старый (GAS) режим",
+  "en": "If something breaks: switch to the old (GAS) mode"
+ },
+ "Eski rejim": {
+  "ru": "Старый режим",
+  "en": "Legacy mode"
+ },
+ "Saqlangach obyektni «Ishla» bilan qayta hisoblang": {
+  "ru": "После сохранения пересчитайте объект кнопкой «Ishla»",
+  "en": "After saving, recalculate the site with “Ishla”"
+ },
+ "Obyekt narxi ishlatiladigan narxga nisbatan": {
+  "ru": "Цена объекта относительно применяемой цены",
+  "en": "Site price vs the price in use"
+ },
+ "Takliflar ({n})": {
+  "ru": "Предложения ({n})",
+  "en": "Suggestions ({n})"
+ },
+ "Bog‘langan dalillar ({n})": {
+  "ru": "Привязанные обоснования ({n})",
+  "en": "Linked evidence ({n})"
+ },
+ "kod bo‘yicha": {
+  "ru": "по коду",
+  "en": "by code"
+ },
+ "nom+birlik": {
+  "ru": "имя+ед.",
+  "en": "name+unit"
+ },
+ "hudud bo‘yicha": {
+  "ru": "по региону",
+  "en": "by region"
+ },
+ "Dalil qamrovi": {
+  "ru": "Покрытие обоснованиями",
+  "en": "Evidence coverage"
+ },
+ "Dalil bilan": {
+  "ru": "С обоснованием",
+  "en": "With evidence"
+ },
+ "Taklif bor": {
+  "ru": "Есть предложение",
+  "en": "Suggestion available"
+ },
+ "Dalilsiz va taklifsiz": {
+  "ru": "Без обоснования и предложения",
+  "en": "No evidence, no suggestion"
+ },
+ "Barcha tavsiyalarni belgilash": {
+  "ru": "Отметить все рекомендации",
+  "en": "Select all recommendations"
+ },
+ "Tanlanganlarni bog‘lash ({n})": {
+  "ru": "Привязать выбранные ({n})",
+  "en": "Link selected ({n})"
+ },
+ "Og‘ish: markaz — smeta narxi; o‘ngga — manba qimmat, chapga — arzon; 10% dan ortig‘i sariq.": {
+  "ru": "Отклонение: центр — сметная цена; вправо — источник дороже, влево — дешевле; больше 10% — жёлтым.",
+  "en": "Deviation: centre = estimate price; right = source dearer, left = cheaper; over 10% in yellow."
+ },
+ "Manba (tanlang)": {
+  "ru": "Источник (выберите)",
+  "en": "Source (choose)"
+ },
+ "Manba narxi": {
+  "ru": "Цена источника",
+  "en": "Source price"
+ },
+ "Taklif yo‘q — avval «Narx manbalari»ga katalog/faktura yuklang": {
+  "ru": "Предложений нет — сначала загрузите каталог/счёт-фактуру в «Источники цен»",
+  "en": "No suggestions — first upload a catalogue/invoice in “Price sources”"
+ },
+ "Tanlash: {nom}": {
+  "ru": "Выбрать: {nom}",
+  "en": "Select: {nom}"
+ },
+ "operator tanlovi": {
+  "ru": "выбор оператора",
+  "en": "operator's choice"
+ },
+ "Birinchi 1000 ta ko‘rsatildi (jami {n}); «Barcha tavsiyalarni belgilash» hammasini oladi.": {
+  "ru": "Показаны первые 1000 (всего {n}); «Отметить все рекомендации» берёт все.",
+  "en": "First 1000 shown ({n} total); “Select all recommendations” takes them all."
+ },
+ "Kim / qachon": {
+  "ru": "Кто / когда",
+  "en": "Who / when"
+ },
+ "Hali dalil bog‘lanmagan": {
+  "ru": "Обоснования ещё не привязаны",
+  "en": "No evidence linked yet"
+ },
+ "Dalilni olib tashlash": {
+  "ru": "Удалить обоснование",
+  "en": "Remove evidence"
+ },
+ "Manbani bekor qilish": {
+  "ru": "Отменить источник",
+  "en": "Cancel source"
+ },
+ "«{nom}» bekor qilinsinmi? (smeta dalili sifatida ishlatilsa — rad etiladi)": {
+  "ru": "Отменить «{nom}»? (если используется как обоснование сметы — будет отклонено)",
+  "en": "Cancel “{nom}”? (refused if it is used as estimate evidence)"
+ },
+ "Yangi manba": {
+  "ru": "Новый источник",
+  "en": "New source"
+ },
+ "anatomiya aniqladi": {
+  "ru": "определено анатомией",
+  "en": "detected by anatomy"
+ },
+ "operator tanladi": {
+  "ru": "выбрано оператором",
+  "en": "chosen by operator"
+ },
+ "topilmadi — qo‘lda tanlang": {
+  "ru": "не найдено — выберите вручную",
+  "en": "not found — choose manually"
+ },
+ "Faol manbalar": {
+  "ru": "Активные источники",
+  "en": "Active sources"
+ },
+ "Pozitsiyalar": {
+  "ru": "Позиции",
+  "en": "Positions"
+ },
+ "Smeta narxiga bog‘langan dalillar": {
+  "ru": "Обоснования, привязанные к ценам сметы",
+  "en": "Evidence linked to estimate prices"
+ },
+ "Yangi narx manbasi": {
+  "ru": "Новый источник цен",
+  "en": "New price source"
+ },
+ "Rekvizitlar — «Обоснование цен» hujjatiga aynan shunday chiqadi.": {
+  "ru": "Реквизиты попадут в «Обоснование цен» именно так.",
+  "en": "Details appear in the “Обоснование цен” document exactly as entered."
+ },
+ "Nomi *": {
+  "ru": "Название *",
+  "en": "Name *"
+ },
+ "Yetkazuvchi / nashr etuvchi": {
+  "ru": "Поставщик / издатель",
+  "en": "Supplier / publisher"
+ },
+ "Region": {
+  "ru": "Регион",
+  "en": "Region"
+ },
+ "Excel’dan pozitsiyalar": {
+  "ru": "Позиции из Excel",
+  "en": "Positions from Excel"
+ },
+ "+ qo‘lda pozitsiya": {
+  "ru": "+ позиция вручную",
+  "en": "+ manual position"
+ },
+ "Ustunlar": {
+  "ru": "Столбцы",
+  "en": "Columns"
+ },
+ "pozitsiya": {
+  "ru": "позиций",
+  "en": "positions"
+ },
+ "1-qator:": {
+  "ru": "1-я строка:",
+  "en": "First row:"
+ },
+ "Pozitsiyani olib tashlash": {
+  "ru": "Удалить позицию",
+  "en": "Remove position"
+ },
+ "… yana {n} ta": {
+  "ru": "… ещё {n}",
+  "en": "… {n} more"
+ },
+ "Rekvizit": {
+  "ru": "Реквизиты",
+  "en": "Details"
+ },
+ "Pozitsiya": {
+  "ru": "Позиции",
+  "en": "Positions"
+ },
+ "Manba yo‘q — «Yangi manba» bilan katalog, faktura yoki КП yuklang.": {
+  "ru": "Источников нет — загрузите каталог, счёт-фактуру или КП через «Новый источник».",
+  "en": "No sources — add a catalogue, invoice or quote via “New source”."
+ },
+ "Shartnoma uchun koeffitsientlar": {
+  "ru": "Коэффициенты договора",
+  "en": "Contract coefficients"
+ },
+ "Kompaniya standart koeffitsientlari": {
+  "ru": "Стандартные коэффициенты компании",
+  "en": "Company default coefficients"
+ },
+ "Har foiz kaskadning bir qadamini beradi — pastdagi zinapoyada ko‘rinadi.": {
+  "ru": "Каждый процент — шаг каскада; он виден на лесенке ниже.",
+  "en": "Each percentage is one cascade step — see the staircase below."
+ },
+ "Koeffitsientlar yuklanmoqda…": {
+  "ru": "Загрузка коэффициентов…",
+  "en": "Loading coefficients…"
+ },
+ "Koeffitsient": {
+  "ru": "Коэффициент",
+  "en": "Coefficient"
+ },
+ "Ulushi": {
+  "ru": "Доля",
+  "en": "Share"
+ },
+ "Ustama natijasi": {
+  "ru": "Итог накруток",
+  "en": "Markup result"
+ },
+ "To‘g‘ri xarajat (ustamasiz)": {
+  "ru": "Прямые затраты (без накруток)",
+  "en": "Direct cost (without markups)"
+ },
+ "ВСЕГО (ustamali, ҚҚС bilan)": {
+  "ru": "ВСЕГО (с накрутками и НДС)",
+  "en": "ВСЕГО (with markups and VAT)"
+ },
+ "Umumiy ustama": {
+  "ru": "Общая накрутка",
+  "en": "Total markup"
+ },
+ "To‘g‘ri xarajat kategoriyalar bo‘yicha": {
+  "ru": "Прямые затраты по категориям",
+  "en": "Direct cost by category"
+ },
+ "МАТ ichida:": {
+  "ru": "В том числе в МАТ:",
+  "en": "Within МАТ:"
+ },
+ "Kategoriya bo‘yicha yakuniy koeffitsient jadvali": {
+  "ru": "Итоговые коэффициенты по категориям",
+  "en": "Final coefficients by category"
+ },
+ "Shartnoma qamrovi": {
+  "ru": "Охват договора",
+  "en": "Contract scope"
+ },
+ "Smeta qatori o‘chmaydi. Faqat shu shartnoma hisobidan kiritiladi yoki chiqariladi.": {
+  "ru": "Строка сметы не удаляется. Она только включается в расчёт договора или исключается из него.",
+  "en": "Estimate lines are never deleted — only included in or excluded from this contract's calculation."
+ },
+ "{a} / {b} resurs qatori hisobda": {
+  "ru": "в расчёте {a} / {b} строк ресурсов",
+  "en": "{a} / {b} resource lines counted"
+ },
+ "Obyekt, kod yoki nom bo‘yicha qidirish": {
+  "ru": "Поиск по объекту, коду или названию",
+  "en": "Search by site, code or name"
+ },
+ "O‘zgarish sababi": {
+  "ru": "Причина изменения",
+  "en": "Reason for change"
+ },
+ "Kod / nom": {
+  "ru": "Код / название",
+  "en": "Code / name"
+ },
+ "Shartnoma hajmi": {
+  "ru": "Объём по договору",
+  "en": "Contract volume"
+ },
+ "Tarkib qatori": {
+  "ru": "Строка состава",
+  "en": "Composite line"
+ },
+ "Chiqarilgan": {
+  "ru": "Исключено",
+  "en": "Excluded"
+ },
+ "Smeta bilan bir xil": {
+  "ru": "Как в смете",
+  "en": "Same as estimate"
+ },
+ "Chiqarish": {
+  "ru": "Исключить",
+  "en": "Exclude"
+ },
+ "Hajmni saqlash": {
+  "ru": "Сохранить объём",
+  "en": "Save volume"
+ },
+ "Shartnoma qamrovi yuklanmoqda…": {
+  "ru": "Загрузка охвата договора…",
+  "en": "Loading contract scope…"
+ },
+ "Hisob qo‘llanadigan shartnoma": {
+  "ru": "Договор для расчёта",
+  "en": "Contract applied to the calculation"
+ },
+ "Kompaniya standarti": {
+  "ru": "Стандарт компании",
+  "en": "Company default"
+ },
+ "Obyekt (nakrutka hisobini ko‘rish uchun)": {
+  "ru": "Объект (для просмотра расчёта накруток)",
+  "en": "Site (to view the markup calculation)"
+ },
+ "Shartnoma tanlansa, uning nakrutka koeffitsientlari va qamrov qarorlari barcha ulangan obyektlarga bir xil qo‘llanadi.": {
+  "ru": "Если выбран договор, его коэффициенты накруток и решения по охвату одинаково применяются ко всем связанным объектам.",
+  "en": "When a contract is selected, its markup coefficients and scope decisions apply equally to all linked sites."
+ },
+ "Obyekt tanlang — to‘g‘ri xarajatdan ВСЕГО gacha ustama zinapoyasi shu yerda chiziladi.": {
+  "ru": "Выберите объект — здесь появится лесенка накруток от прямых затрат до ВСЕГО.",
+  "en": "Choose a site — the markup staircase from direct cost to ВСЕГО is drawn here."
+ },
+ "Bosing — ishorani almashtirish (+/−)": {
+  "ru": "Нажмите — сменить знак (+/−)",
+  "en": "Click to flip the sign (+/−)"
+ },
+ "± baza": {
+  "ru": "± база",
+  "en": "± base"
+ },
+ "Kategoriyalar (to‘g‘ri xarajat)": {
+  "ru": "Категории (прямые затраты)",
+  "en": "Categories (direct cost)"
+ },
+ "Yuqoridagi qatorlar": {
+  "ru": "Строки выше",
+  "en": "Rows above"
+ },
+ "Maxsus podval o‘chirilib, bu doira standart kaskadga qaytsinmi? (tarix saqlanadi)": {
+  "ru": "Удалить особый подвал и вернуть этот уровень к стандартному каскаду? (история сохранится)",
+  "en": "Delete the custom footer and return this scope to the standard cascade? (history is kept)"
+ },
+ "Podval konstruktori": {
+  "ru": "Конструктор подвала",
+  "en": "Footer builder"
+ },
+ "Hujjat podvali qatorma-qator: foiz, belgilangan summa, oraliq jami. Oxirgi qator — ВСЕГО.": {
+  "ru": "Подвал документа построчно: процент, фиксированная сумма, промежуточный итог. Последняя строка — ВСЕГО.",
+  "en": "Document footer row by row: percentage, fixed amount, subtotal. The last row is ВСЕГО."
+ },
+ "Podval doirasi": {
+  "ru": "Уровень подвала",
+  "en": "Footer scope"
+ },
+ "Amalda:": {
+  "ru": "Действует:",
+  "en": "In effect:"
+ },
+ "Maxsus podval": {
+  "ru": "Особый подвал",
+  "en": "Custom footer"
+ },
+ "Standart kaskad": {
+  "ru": "Стандартный каскад",
+  "en": "Standard cascade"
+ },
+ "Ustunlik tartibi: obyekt → shartnoma → kompaniya → standart. Standart foizlar yuqoridagi koeffitsientlardan.": {
+  "ru": "Приоритет: объект → договор → компания → стандарт. Стандартные проценты — из коэффициентов выше.",
+  "en": "Priority: site → contract → company → standard. Standard percentages come from the coefficients above."
+ },
+ "Shu doira uchun maxsus podval yaratish (amaldagidan nusxa)": {
+  "ru": "Создать особый подвал для этого уровня (копия действующего)",
+  "en": "Create a custom footer for this scope (copy of the current one)"
+ },
+ "Statya": {
+  "ru": "Статья",
+  "en": "Item"
+ },
+ "% / summa": {
+  "ru": "% / сумма",
+  "en": "% / amount"
+ },
+ "Baza": {
+  "ru": "База",
+  "en": "Base"
+ },
+ "Hisob (obyekt)": {
+  "ru": "Расчёт (объект)",
+  "en": "Calculation (site)"
+ },
+ "Asos (shartnoma bandi, xat …)": {
+  "ru": "Основание (пункт договора, письмо …)",
+  "en": "Basis (contract clause, letter …)"
+ },
+ "Standart foiz — yuqoridagi koeffitsientlardan": {
+  "ru": "Стандартный процент — из коэффициентов выше",
+  "en": "Standard percentage — from the coefficients above"
+ },
+ "Qatorni olib tashlash": {
+  "ru": "Удалить строку",
+  "en": "Remove row"
+ },
+ "+ foiz qator": {
+  "ru": "+ строка с %",
+  "en": "+ percentage row"
+ },
+ "+ belgilangan summa": {
+  "ru": "+ фиксированная сумма",
+  "en": "+ fixed amount"
+ },
+ "+ oraliq jami": {
+  "ru": "+ промежуточный итог",
+  "en": "+ subtotal"
+ },
+ "Podval nomi": {
+  "ru": "Название подвала",
+  "en": "Footer name"
+ },
+ "Kategoriya koeffitsientlari (ustama %)": {
+  "ru": "Коэффициенты категорий (накрутка %)",
+  "en": "Category coefficients (markup %)"
+ },
+ "1 so‘m to‘g‘ri xarajat → ВСЕГО": {
+  "ru": "1 сум прямых затрат → ВСЕГО",
+  "en": "1 sum of direct cost → ВСЕГО"
+ },
+ "Belgilangan summalar ({s}) koeffitsientlarga kirmaydi — hujjat podvalida alohida qator bo‘lib chiqadi.": {
+  "ru": "Фиксированные суммы ({s}) не входят в коэффициенты — они выводятся отдельной строкой подвала.",
+  "en": "Fixed amounts ({s}) are not part of the coefficients — they appear as a separate footer row."
+ },
+ "noma’lum bor": {
+  "ru": "есть неизвестные",
+  "en": "some unknown"
+ },
+ "«{nom}» — tanilgan ustunlar": {
+  "ru": "«{nom}» — распознанные столбцы",
+  "en": "“{nom}” — recognised columns"
+ },
+ "{b}-qatordan boshlab, dastlabki {n} qator": {
+  "ru": "с {b}-й строки, первые {n} строк",
+  "en": "from row {b}, first {n} rows"
+ },
+ "RES fayli": {
+  "ru": "Файл РЕС",
+  "en": "RES file"
+ },
+ "Oldindan ko‘rish": {
+  "ru": "Предпросмотр",
+  "en": "Preview"
+ },
+ "Tasdiqlab narxlash": {
+  "ru": "Подтвердить расценку",
+  "en": "Confirm pricing"
+ },
+ "Narxlash bosqichlari": {
+  "ru": "Этапы расценки",
+  "en": "Pricing steps"
+ },
+ "RES fayli (XLSX/XLS)": {
+  "ru": "Файл РЕС (XLSX/XLS)",
+  "en": "RES file (XLSX/XLS)"
+ },
+ "RES varaqlari": {
+  "ru": "Листы РЕС",
+  "en": "RES sheets"
+ },
+ "Hali hech narsa yozilmadi": {
+  "ru": "Пока ничего не записано",
+  "en": "Nothing written yet"
+ },
+ "RESdan narx topildi": {
+  "ru": "цена найдена в РЕС",
+  "en": "price found in RES"
+ },
+ "narxsiz qoladi": {
+  "ru": "останется без цены",
+  "en": "will stay unpriced"
+ },
+ "{n} ta RES kalitida turli narx bor — ular avtomatik qo‘llanmaydi (taxmin qilinmaydi).": {
+  "ru": "В {n} ключах РЕС разные цены — они не применяются автоматически (без догадок).",
+  "en": "{n} RES keys have conflicting prices — they are not applied automatically (no guessing)."
+ },
+ "Narxsiz qoladigan qatorlar sababi ({n})": {
+  "ru": "Почему строки остаются без цены ({n})",
+  "en": "Why lines stay unpriced ({n})"
+ },
+ "kodsiz": {
+  "ru": "без кода",
+  "en": "no code"
+ },
+ "nomsiz": {
+  "ru": "без названия",
+  "en": "no name"
+ },
+ "birliksiz": {
+  "ru": "без ед.",
+  "en": "no unit"
+ },
+ "Yana {n} ta qator bor.": {
+  "ru": "Ещё {n} строк.",
+  "en": "{n} more lines."
+ },
+ "Zinapoya: to‘g‘ri xarajat → ВСЕГО": {
+  "ru": "Лесенка: прямые затраты → ВСЕГО",
+  "en": "Staircase: direct cost → ВСЕГО"
+ },
+ "Ulush": {
+  "ru": "Доля",
+  "en": "Share"
+ },
+ "Summa (so‘m)": {
+  "ru": "Сумма (сум)",
+  "en": "Amount (sum)"
+ },
+ "Server jamisi oldingi qatorlar yig‘indisidan farq qiladi": {
+  "ru": "Итог сервера отличается от суммы предыдущих строк",
+  "en": "Server total differs from the sum of the rows above"
+ },
+ "to‘g‘ridan-to‘g‘ri xarajat": {
+  "ru": "прямые затраты",
+  "en": "direct cost"
+ },
+ "ustama qo‘shimchasi (% — to‘g‘ri xarajatga nisbatan)": {
+  "ru": "надбавка (% — от прямых затрат)",
+  "en": "markup addition (% of direct cost)"
+ },
+ "oraliq jami (ИТОГО)": {
+  "ru": "промежуточный итог (ИТОГО)",
+  "en": "subtotal (ИТОГО)"
+ },
+ "Smeta narxi noma’lum — taqqoslab bo‘lmaydi": {
+  "ru": "Сметная цена неизвестна — сравнить нельзя",
+  "en": "Estimate price unknown — cannot compare"
+ },
+ "Manba narxi smeta narxidan {f} (chiziq chegarasi ±{c}%)": {
+  "ru": "Цена источника относительно сметной: {f} (шкала ±{c}%)",
+  "en": "Source price vs estimate price: {f} (scale ±{c}%)"
+ },
+ "Faktura": {
+  "ru": "Счёт-фактура",
+  "en": "Invoice"
+ },
+ "Mash.-soat kalk.": {
+  "ru": "Кальк. маш.-часа",
+  "en": "Machine-hour calc."
+ },
+ "Chel.-soat": {
+  "ru": "Чел.-час",
+  "en": "Man-hour"
+ },
+ "Boshqa hujjat": {
+  "ru": "Иной документ",
+  "en": "Other document"
+ },
+ "НДС noma’lum": {
+  "ru": "НДС неизвестен",
+  "en": "VAT unknown"
+ },
+ "Foiz": {
+  "ru": "Процент",
+  "en": "Percent"
+ },
+ "Kompaniya (sukut)": {
+  "ru": "Компания (по умолчанию)",
+  "en": "Company (default)"
+ },
+ "Obyekt (smeta)": {
+  "ru": "Объект (смета)",
+  "en": "Site (estimate)"
+ },
+ "qator nomi yoki birligi yo‘q": {
+  "ru": "нет названия или единицы строки",
+  "en": "line name or unit missing"
+ },
+ "RESda aynan mos qator topilmadi": {
+  "ru": "в РЕС нет точно совпадающей строки",
+  "en": "no exact match in RES"
+ },
+ "bir RES kalitida turli narxlar bor": {
+  "ru": "в одном ключе РЕС разные цены",
+  "en": "one RES key has different prices"
+ },
+ "bir nechta mos narx varianti bor": {
+  "ru": "несколько подходящих вариантов цены",
+  "en": "several matching price variants"
+ },
+ "Narxsiz qator": {
+  "ru": "Строк без цены",
+  "en": "Unpriced lines"
+ },
+ "Narxi topildi": {
+  "ru": "Цена найдена",
+  "en": "Price found"
+ },
+ "Narxsiz qoladi": {
+  "ru": "Останется без цены",
+  "en": "Will stay unpriced"
+ },
+ "To‘g‘ridan-to‘g‘ri xarajat (ЧЕЛ+МАШ+МАТ+ОБ)": {
+  "ru": "Прямые затраты (ЧЕЛ+МАШ+МАТ+ОБ)",
+  "en": "Direct cost (ЧЕЛ+МАШ+МАТ+ОБ)"
+ },
+ "To'g'ridan-to'g'ri xarajat (ЧЕЛ+МАШ+МАТ+ОБ)": {
+  "ru": "Прямые затраты (ЧЕЛ+МАШ+МАТ+ОБ)",
+  "en": "Direct cost (ЧЕЛ+МАШ+МАТ+ОБ)"
+ },
+ "Transport — material": {
+  "ru": "Транспорт — материалы",
+  "en": "Transport — materials"
+ },
+ "Склад — material": {
+  "ru": "Склад — материалы",
+  "en": "Warehouse — materials"
+ },
+ "Transport — kabel": {
+  "ru": "Транспорт — кабель",
+  "en": "Transport — cable"
+ },
+ "Transport — uskuna": {
+  "ru": "Транспорт — оборудование",
+  "en": "Transport — equipment"
+ },
+ "Tayyorlov-склад — uskuna": {
+  "ru": "Заготовительно-складские — оборудование",
+  "en": "Procurement-warehouse — equipment"
+ },
+ "Koeffitsientlar, shartnoma qamrovi va podval: to‘g‘ridan-to‘g‘ri xarajatdan ВСЕГО gacha har qadam ko‘rinadi": {
+  "ru": "Коэффициенты, охват договора и подвал: виден каждый шаг от прямых затрат до ВСЕГО",
+  "en": "Coefficients, contract scope and footer: every step from direct cost to ВСЕГО is visible"
+ },
+ "Kataloglar, счет-фактуралар, КП va kalkulyatsiyalar — smeta narxlarining dalili (НАПУ himoyasi).": {
+  "ru": "Каталоги, счета-фактуры, КП и калькуляции — обоснование сметных цен (защита для НАПУ).",
+  "en": "Catalogues, invoices, quotes and calculations — evidence for estimate prices (НАПУ protection)."
+ },
+ "Narx dalili": {
+  "ru": "Обоснование цен",
+  "en": "Price evidence"
+ },
+ "Har resurs narxi katalog / счет-фактура / КП / kalkulyatsiya bilan tasdiqlanadi. Taklifni siz tanlaysiz — smeta narxi o‘zgarmaydi.": {
+  "ru": "Цена каждого ресурса подтверждается каталогом / счётом-фактурой / КП / калькуляцией. Предложение выбираете вы — сметная цена не меняется.",
+  "en": "Each resource price is backed by a catalogue / invoice / quote / calculation. You choose the suggestion — the estimate price does not change."
+ },
+ "Allaqachon import qilingan, narxsiz smetaga RES katalogidan narx qo‘llash": {
+  "ru": "Применить цены из каталога РЕС к уже импортированной смете без цен",
+  "en": "Apply RES catalogue prices to an already imported unpriced estimate"
+ }
+}
