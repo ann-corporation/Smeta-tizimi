@@ -1090,5 +1090,465 @@
  "Hujjat nazorati (F2/Nakopitelniy)": {
   "ru": "Контроль документов (Ф-2/накопительная)",
   "en": "Document control (F2/cumulative)"
+ },
+ "AOSR / yashirin ishlar": {
+  "ru": "АОСР / скрытые работы",
+  "en": "AOSR / hidden works"
+ },
+ "Avval kompaniya storage tayyor bo‘lishi kerak.": {
+  "ru": "Сначала должно быть готово хранилище компании.",
+  "en": "The company storage must be ready first."
+ },
+ "Avval yuqoridan kompaniya tanlang.": {
+  "ru": "Сначала выберите компанию вверху.",
+  "en": "Choose a company above first."
+ },
+ "Bu kompaniya legacy ruxsatnomasida — yangi T2 yozuv oqimi legacy workspace’ga yozmaydi.": {
+  "ru": "Компания на старом (legacy) доступе — новый поток записи T2 не пишет в legacy-пространство.",
+  "en": "This company uses a legacy grant — the new T2 write flow does not write to the legacy workspace."
+ },
+ "Bu loyihada obyekt yo‘q.": {
+  "ru": "В этом проекте нет объектов.",
+  "en": "This project has no sites."
+ },
+ "Butunlay o‘chirildi": {
+  "ru": "Удалено безвозвратно",
+  "en": "Permanently deleted"
+ },
+ "Butunlay o‘chirish": {
+  "ru": "Удалить безвозвратно",
+  "en": "Delete permanently"
+ },
+ "Byudjet, so‘m": {
+  "ru": "Бюджет, сум",
+  "en": "Budget, UZS"
+ },
+ "Chapdan loyiha tanlang.": {
+  "ru": "Выберите проект слева.",
+  "en": "Choose a project on the left."
+ },
+ "DEMO — backend hali productionga qo‘llanmagan. Ekran kanonik kontrakt shakli bilan ishlaydi; jonli ulanish uchun manzilga ?demo=0 qo‘shing.": {
+  "ru": "ДЕМО — бэкенд ещё не в продакшене. Экран работает по каноническому контракту; для живого подключения добавьте ?demo=0 к адресу.",
+  "en": "DEMO — the backend is not in production yet. The screen follows the canonical contract; add ?demo=0 to the URL for a live connection."
+ },
+ "ESKI (LEGACY)": {
+  "ru": "СТАРЫЙ (LEGACY)",
+  "en": "OLD (LEGACY)"
+ },
+ "F2 / Bajarilgan ish dalolatnomasi": {
+  "ru": "Ф-2 / Акт выполненных работ",
+  "en": "F2 / Completed works act"
+ },
+ "Fayl faqat obyektning saqlangan papkasiga (folder_id) yoziladi va hujjatlar reyestriga qayd etiladi. Nom bo‘yicha Drive qidiruvi yo‘q; xato bo‘lsa eski umumiy papkaga tushmaydi.": {
+  "ru": "Файл пишется только в сохранённую папку объекта (folder_id) и регистрируется в реестре документов. Поиска Drive по имени нет; при ошибке файл не попадает в старую общую папку.",
+  "en": "The file is written only to the site's saved folder (folder_id) and recorded in the document registry. No Drive search by name; on error it never falls back to the old shared folder."
+ },
+ "Fayl turlari": {
+  "ru": "Типы файлов",
+  "en": "File types"
+ },
+ "Fayl turlari (shu bo‘limda)": {
+  "ru": "Типы файлов (в этом разделе)",
+  "en": "File types (in this section)"
+ },
+ "Hali loyiha yaratilmagan — «Yangi loyiha» tugmasi bilan boshlang.": {
+  "ru": "Проектов ещё нет — начните с кнопки «Новый проект».",
+  "en": "No projects yet — start with “New project”."
+ },
+ "Hujjat #{id} — «{ob}» obyekt papkasiga yozildi va reyestrga qayd etildi.": {
+  "ru": "Документ #{id} записан в папку объекта «{ob}» и зарегистрирован в реестре.",
+  "en": "Document #{id} was written to the “{ob}” site folder and recorded in the registry."
+ },
+ "Hujjat / F2 yuklash": {
+  "ru": "Загрузка документа / Ф-2",
+  "en": "Upload document / F2"
+ },
+ "Kompaniya papkasi": {
+  "ru": "Папка компании",
+  "en": "Company folder"
+ },
+ "Korzinka bo‘limlari": {
+  "ru": "Разделы корзины",
+  "en": "Recycle bin sections"
+ },
+ "Korzinka bo‘sh": {
+  "ru": "Корзина пуста",
+  "en": "The recycle bin is empty"
+ },
+ "Loyiha chizmasi": {
+  "ru": "Чертёж проекта",
+  "en": "Project drawing"
+ },
+ "Loyiha papkalari": {
+  "ru": "Папки проектов",
+  "en": "Project folders"
+ },
+ "Loyiha qidirish": {
+  "ru": "Поиск проекта",
+  "en": "Search projects"
+ },
+ "Loyiha qidirish…": {
+  "ru": "Поиск проекта…",
+  "en": "Search projects…"
+ },
+ "Loyiha storage": {
+  "ru": "Хранилище проектов",
+  "en": "Project storage"
+ },
+ "Loyiha topilmadi.": {
+  "ru": "Проекты не найдены.",
+  "en": "No projects found."
+ },
+ "Loyiha yaratildi": {
+  "ru": "Проект создан",
+  "en": "Project created"
+ },
+ "Loyihalar bo‘yicha jami": {
+  "ru": "Итого по проектам",
+  "en": "Project totals"
+ },
+ "Loyihalar ro‘yxati": {
+  "ru": "Список проектов",
+  "en": "Project list"
+ },
+ "Muvaffaqiyatli tiklandi": {
+  "ru": "Успешно восстановлено",
+  "en": "Restored successfully"
+ },
+ "Obyekt papkalari": {
+  "ru": "Папки объектов",
+  "en": "Site folders"
+ },
+ "Obyekt storage": {
+  "ru": "Хранилище объектов",
+  "en": "Site storage"
+ },
+ "O‘chirilgan vaqt": {
+  "ru": "Время удаления",
+  "en": "Deleted at"
+ },
+ "O‘qilmadi": {
+  "ru": "Не прочитано",
+  "en": "Could not be read"
+ },
+ "Papkani tayyorlash": {
+  "ru": "Подготовить папку",
+  "en": "Prepare folder"
+ },
+ "Papkani tayyorlash / qayta urinish": {
+  "ru": "Подготовить папку / повторить",
+  "en": "Prepare folder / retry"
+ },
+ "Qatnashchilar": {
+  "ru": "Участники",
+  "en": "Participants"
+ },
+ "Qidiruvga mos loyiha yo‘q.": {
+  "ru": "Нет проектов по запросу.",
+  "en": "No projects match the search."
+ },
+ "Shartnoma bo‘yicha hisob (F3)": {
+  "ru": "Выставлено по договорам (Ф-3)",
+  "en": "Billed against contracts (F3)"
+ },
+ "TAYYOR": {
+  "ru": "ГОТОВ",
+  "en": "READY"
+ },
+ "Tarkib": {
+  "ru": "Состав",
+  "en": "Contents"
+ },
+ "Yangi loyiha": {
+  "ru": "Новый проект",
+  "en": "New project"
+ },
+ "Yuklash uchun kompaniya, loyiha va storage‑i": {
+  "ru": "Для загрузки выберите компанию, проект и объект с хранилищем в статусе",
+  "en": "To upload, choose a company, a project and a site whose storage is"
+ },
+ "Zanjir tayyorligi": {
+  "ru": "Готовность цепочки",
+  "en": "Chain readiness"
+ },
+ "hali yo‘q": {
+  "ru": "пока нет",
+  "en": "not yet"
+ },
+ "kamida bitta tayyor obyekt kerak": {
+  "ru": "нужен хотя бы один готовый объект",
+  "en": "at least one ready site is needed"
+ },
+ "kanonik obyekt papkasi": {
+  "ru": "каноническая папка объекта",
+  "en": "canonical site folder"
+ },
+ "loyiha tanlang": {
+  "ru": "выберите проект",
+  "en": "choose a project"
+ },
+ "loyihaga biriktirilgan": {
+  "ru": "привязаны к проектам",
+  "en": "linked to projects"
+ },
+ "loyihalar ichida": {
+  "ru": "внутри проектов",
+  "en": "inside projects"
+ },
+ "obyekt tanlang.": {
+  "ru": ".",
+  "en": "."
+ },
+ "papka biriktirilmagan": {
+  "ru": "папка не привязана",
+  "en": "no folder linked"
+ },
+ "qoldiq hisob: {q}": {
+  "ru": "осталось выставить: {q}",
+  "en": "left to bill: {q}"
+ },
+ "shartnoma summasi (DS bilan) = 100%": {
+  "ru": "сумма договора (с ДС) = 100%",
+  "en": "contract amount (incl. amendments) = 100%"
+ },
+ "shartnoma yo‘q": {
+  "ru": "договоров нет",
+  "en": "no contracts"
+ },
+ "tanlangan loyihada": {
+  "ru": "в выбранном проекте",
+  "en": "in the selected project"
+ },
+ "tayyor emas": {
+  "ru": "не готово",
+  "en": "not ready"
+ },
+ "tayyorlangan loyihalar": {
+  "ru": "подготовленные проекты",
+  "en": "prepared projects"
+ },
+ "xavfli hudud": {
+  "ru": "опасная зона",
+  "en": "danger zone"
+ },
+ "{n} ta shartnomada summa yo‘q": {
+  "ru": "без суммы договоров: {n}",
+  "en": "{n} contracts without amount"
+ },
+ "{n} tasi faol": {
+  "ru": "активных: {n}",
+  "en": "{n} active"
+ },
+ "«{n}» butunlay o‘chirilsinmi? Drive dan ham o‘chib ketadi va tiklab bo‘lmaydi.": {
+  "ru": "Удалить «{n}» безвозвратно? Файл удалится и из Drive, восстановить будет нельзя.",
+  "en": "Delete “{n}” permanently? It is also removed from Drive and cannot be restored."
+ },
+ "{n} ta obyekt sozlamasi saqlandi": {
+  "ru": "Сохранены настройки объектов: {n}",
+  "en": "Settings saved for {n} sites"
+ },
+ "Hech biri belgilanmasa — barcha varaqlar o‘qiladi.": {
+  "ru": "Если ничего не отмечено — читаются все листы.",
+  "en": "If none are ticked, all sheets are read."
+ },
+ "Smeta fayli": {
+  "ru": "Файл сметы",
+  "en": "Estimate file"
+ },
+ "Svodka fayli": {
+  "ru": "Файл сводки",
+  "en": "Summary file"
+ },
+ "{n} (joriy)": {
+  "ru": "{n} (текущий)",
+  "en": "{n} (current)"
+ },
+ "Sozlama holati": {
+  "ru": "Состояние настроек",
+  "en": "Setup status"
+ },
+ "Hisoblashga tayyor obyektlar": {
+  "ru": "Объекты, готовые к расчёту",
+  "en": "Sites ready for calculation"
+ },
+ "{n} tasida smeta fayli yo‘q": {
+  "ru": "без файла сметы: {n}",
+  "en": "{n} without an estimate file"
+ },
+ "{n} tasida narx manbai yo‘q": {
+  "ru": "без источника цен: {n}",
+  "en": "{n} without a price source"
+ },
+ "{n} ta saqlanmagan o‘zgarish": {
+  "ru": "несохранённых изменений: {n}",
+  "en": "{n} unsaved changes"
+ },
+ "Obyekt qidirish": {
+  "ru": "Поиск объекта",
+  "en": "Search sites"
+ },
+ "Obyekt qidirish…": {
+  "ru": "Поиск объекта…",
+  "en": "Search sites…"
+ },
+ "smeta bor": {
+  "ru": "смета есть",
+  "en": "estimate set"
+ },
+ "narx manbai yo‘q": {
+  "ru": "нет источника цен",
+  "en": "no price source"
+ },
+ "narx smetada": {
+  "ru": "цены в смете",
+  "en": "prices in estimate"
+ },
+ "svodka bor": {
+  "ru": "сводка есть",
+  "en": "summary set"
+ },
+ "{n} ta o‘zgarishni saqlash": {
+  "ru": "Сохранить изменения ({n})",
+  "en": "Save {n} changes"
+ },
+ "Chapdan obyekt tanlang": {
+  "ru": "Выберите объект слева",
+  "en": "Choose a site on the left"
+ },
+ "1. Smeta fayli (лок)": {
+  "ru": "1. Файл сметы (лок)",
+  "en": "1. Estimate file (local)"
+ },
+ "O‘qiladigan varaqlar": {
+  "ru": "Читаемые листы",
+  "en": "Sheets to read"
+ },
+ "Varaqlar o‘qilmoqda…": {
+  "ru": "Листы загружаются…",
+  "en": "Loading sheets…"
+ },
+ "Avval faylni tanlang": {
+  "ru": "Сначала выберите файл",
+  "en": "Choose a file first"
+ },
+ "2. Svodka fayli (нарх манбаи)": {
+  "ru": "2. Файл сводки (источник цен)",
+  "en": "2. Summary file (price source)"
+ },
+ "3. Format": {
+  "ru": "3. Формат",
+  "en": "3. Format"
+ },
+ "Narx tayyor": {
+  "ru": "Цены готовы",
+  "en": "Prices ready"
+ },
+ "Smetada narx allaqachon bor — svodka talab qilinmaydi": {
+  "ru": "В смете уже есть цены — сводка не нужна",
+  "en": "The estimate already has prices — no summary needed"
+ },
+ "Svodka tanlanmagan va «Narx tayyor» ham belgilanmagan — narxlash ishlamaydi va obyekt hisoblanmaydi.": {
+  "ru": "Сводка не выбрана и «Цены готовы» не отмечено — расценка не работает, объект не рассчитывается.",
+  "en": "No summary selected and “Prices ready” is off — pricing will not run and the site will not be calculated."
+ },
+ "4. Svodka ustunlari": {
+  "ru": "4. Столбцы сводки",
+  "en": "4. Summary columns"
+ },
+ "Svodka faylida qaysi ma’lumot qaysi ustunda turishi (raqam bilan: A=1, B=2…). Bo‘sh qoldirilsa tizim o‘zi topishga urinadi. Papkadagi barcha lokalkaga tarqaladi.": {
+  "ru": "В каком столбце файла сводки какие данные (номером: A=1, B=2…). Если пусто — система попробует найти сама. Применяется ко всем локальным сметам папки.",
+  "en": "Which data sits in which summary column (by number: A=1, B=2…). If empty, the system tries to detect it. Applies to all local estimates in the folder."
+ },
+ "Svodka ustunlari saqlandi (papkadagi barcha lokalkaga)": {
+  "ru": "Столбцы сводки сохранены (для всех локальных смет папки)",
+  "en": "Summary columns saved (for all local estimates in the folder)"
+ },
+ "Faqat ustunlarni saqlash": {
+  "ru": "Сохранить только столбцы",
+  "en": "Save columns only"
+ },
+ "Bu obyektda saqlanmagan o‘zgarish bor. Chapdagi tugma bilan saqlang.": {
+  "ru": "В этом объекте есть несохранённые изменения. Сохраните кнопкой слева.",
+  "en": "This site has unsaved changes. Save them with the button on the left."
+ },
+ "Sozlama to‘liq — bu obyekt hisoblanishga tayyor.": {
+  "ru": "Настройка полная — объект готов к расчёту.",
+  "en": "Setup complete — this site is ready to calculate."
+ },
+ "Resurs nomi turgan ustun": {
+  "ru": "Столбец с названием ресурса",
+  "en": "Column with the resource name"
+ },
+ "O'lchov birligi": {
+  "ru": "Единица измерения",
+  "en": "Unit of measure"
+ },
+ "Birlik narxi — ENG MUHIMI": {
+  "ru": "Цена за единицу — САМОЕ ВАЖНОЕ",
+  "en": "Unit price — MOST IMPORTANT"
+ },
+ "Blok/bo'lim ustuni (ixtiyoriy)": {
+  "ru": "Столбец блока/раздела (необязательно)",
+  "en": "Block/section column (optional)"
+ },
+ "Miqdor (ixtiyoriy)": {
+  "ru": "Количество (необязательно)",
+  "en": "Quantity (optional)"
+ },
+ "Jami summa (ixtiyoriy)": {
+  "ru": "Итоговая сумма (необязательно)",
+  "en": "Total amount (optional)"
+ },
+ "Kompaniya → Loyiha → Obyekt → Hujjat zanjiri. Har daraja o‘zining tekshirilgan Google Drive papkasiga ega; global umumiy papka yo‘q — hammasi kanonik ID orqali.": {
+  "ru": "Цепочка Компания → Проект → Объект → Документ. У каждого уровня своя проверенная папка Google Drive; общей глобальной папки нет — всё по каноническим ID.",
+  "en": "Company → Project → Site → Document chain. Each level has its own verified Google Drive folder; there is no global shared folder — everything goes by canonical IDs."
+ },
+ "O‘chirilgan obyektlar, smetalar va sklad hujjatlari. Tiklash — xavfsiz; «Butunlay o‘chirish» Drive dagi faylni ham o‘chiradi.": {
+  "ru": "Удалённые объекты, сметы и складские документы. Восстановление безопасно; «Удалить безвозвратно» удаляет и файл в Drive.",
+  "en": "Deleted sites, estimates and warehouse documents. Restoring is safe; “Delete permanently” also removes the file from Drive."
+ },
+ "Kompaniyaning barcha fayllari: Loyiha → Obyekt → Hujjat turi → Oy. Ko‘rish, yuklab olish, o‘z papkalari, savat va to‘liq ZIP arxiv.": {
+  "ru": "Все файлы компании: Проект → Объект → Тип документа → Месяц. Просмотр, скачивание, свои папки, корзина и полный ZIP-архив.",
+  "en": "All company files: Project → Site → Document type → Month. View, download, own folders, recycle bin and a full ZIP archive."
+ },
+ "Bir nechta obyekt bitta loyihaga guruhlanadi («32 gektar park» — 40 obyekt, 5 shartnoma); loyiha ostida qatnashchilar turli rolda: buyurtmachi, bosh pudratchi, subpudratchi.": {
+  "ru": "Несколько объектов группируются в один проект («Парк 32 га» — 40 объектов, 5 договоров); участники проекта — в разных ролях: заказчик, генподрядчик, субподрядчик.",
+  "en": "Several sites are grouped into one project (“32-hectare park” — 40 sites, 5 contracts); participants have different roles: client, general contractor, subcontractor."
+ },
+ "Fayl bog'lash": {
+  "ru": "Привязка файлов",
+  "en": "File binding"
+ },
+ "Obyekt sozlamasi — qaysi fayl smeta, qaysi fayl svodka, qaysi varaqlar va ustunlar": {
+  "ru": "Настройка объекта — какой файл смета, какой сводка, какие листы и столбцы",
+  "en": "Site setup — which file is the estimate, which is the summary, which sheets and columns"
+ },
+ "to‘xtatilgan": {
+  "ru": "приостановлен",
+  "en": "paused"
+ },
+ "yakunlangan": {
+  "ru": "завершён",
+  "en": "completed"
+ },
+ "Smetalar": {
+  "ru": "Сметы",
+  "en": "Estimates"
+ },
+ "Sklad hujjatlari": {
+  "ru": "Складские документы",
+  "en": "Warehouse documents"
+ },
+ "PDF": {
+  "ru": "PDF",
+  "en": "PDF"
+ },
+ "Word": {
+  "ru": "Word",
+  "en": "Word"
+ },
+ "Arxiv": {
+  "ru": "Архив",
+  "en": "Archive"
  }
 }

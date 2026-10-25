@@ -1,26 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FolderKanban, Plus, Search, Building2, MapPin, Calculator, ShieldCheck, CreditCard } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FolderKanban, Plus, Search, MapPin, Network, Building2, FileSignature, Users } from 'lucide-react';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
 import { sbT2LoyihalarOl, sbT2LoyihaYoz, type T2Loyiha } from '../api/t2-loyiha';
 import { EntityFormModal } from '../umumiy/ui/forms/SharedForms';
 import { onEntityChanged } from '../api/entity-consistency';
+import { Sahifa } from '../umumiy/ui/Sahifa';
+import { t } from '../i18n/til';
+import { shartnomaSvodOl } from '../api/t2-nakopitelniy';
+import { shartnomaSvodi, type ShartnomaSvodi } from '../lib/nakopitelniy-svod';
+import { loyihaChizigi } from '../lib/shartnoma-zanjir-korinish';
 
+const HOLAT: Record<string, { nom: string; cls: string }> = {
+  faol: { nom: 'faol', cls: 'fz-stamp--ok' }, tuxtatilgan: { nom: 'to‘xtatilgan', cls: 'fz-stamp--warn' },
+  yakunlangan: { nom: 'yakunlangan', cls: 'fz-stamp--info' }, bekor: { nom: 'bekor qilingan', cls: 'fz-stamp--danger' },
+};
+const fmt = (n: number | null) => (n == null ? '—' : n.toLocaleString('ru-RU', { maximumFractionDigits: 0 }));
+
+/**
+ * Loyihalar reestri (Firuza, 2026-10-25): loyiha → shartnomalar → obyektlar, har loyihada shartnoma bo'yicha
+ * hisob (F3) va to'lov chizig'i. Pul — /api/sb `shartnoma_svod_v1` (o'qilmasa chiziq ko'rinmaydi, ro'yxat ishlayveradi).
+ */
 export default function TestLoyiha() {
   const { joriy } = useKompaniya();
   const aktKomp = joriy?.id ?? 0;
   const navigate = useNavigate();
-  
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loyihalar, setLoyihalar] = useState<T2Loyiha[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const [fNom, setFNom] = useState('');
-  const [fHudud, setFHudud] = useState('');
-  const [fByudjet, setFByudjet] = useState('');
+  const [svod, setSvod] = useState<ShartnomaSvodi[] | null>(null);
 
   const yukla = async () => {
     if (!aktKomp) return;
@@ -30,71 +42,38 @@ export default function TestLoyiha() {
     if (r.ok && r.qatorlar) {
       setLoyihalar(r.qatorlar);
     }
+    try { const s = await shartnomaSvodOl(aktKomp); setSvod(s.ok ? s.natija.shartnomalar.map(shartnomaSvodi) : null); } catch { setSvod(null); }
   };
 
   useEffect(() => {
-    yukla();
+    void yukla();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aktKomp]);
   useEffect(() => onEntityChanged((event) => {
-    if (event.detail.kompaniyaId === aktKomp && event.detail.type === 'loyiha') yukla();
+    if (event.detail.kompaniyaId === aktKomp && event.detail.type === 'loyiha') void yukla();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [aktKomp]);
 
-  const handleSaqla = async () => {
-    if (!fNom) return toast("Loyiha nomini kiriting!", "warn");
-    setYuklanmoqda(true);
-    const r = await sbT2LoyihaYoz(aktKomp, {
-      nom: fNom,
-      hudud: fHudud,
-      byudjet: Number(fByudjet) || 0
-    });
-    setYuklanmoqda(false);
-    
-    if (r.ok) {
-      toast("Loyiha yaratildi", "ok");
-      setIsFormOpen(false);
-      setFNom('');
-      setFHudud('');
-      setFByudjet('');
-      yukla();
-    } else {
-      toast(r.error || "Xato", "danger");
-    }
-  };
-
   const filtered = loyihalar.filter(l => l.nom.toLowerCase().includes(searchTerm.toLowerCase()));
+  const loyihaSvod = useMemo(() => {
+    const m = new Map<number, ShartnomaSvodi[]>();
+    for (const s of svod ?? []) if (s.shartnoma.loyiha_id != null) m.set(s.shartnoma.loyiha_id, [...(m.get(s.shartnoma.loyiha_id) ?? []), s]);
+    return m;
+  }, [svod]);
+  const jami = useMemo(() => ({
+    loyiha: loyihalar.length,
+    obyekt: loyihalar.reduce((s, l) => s + (l.obyekt_soni ?? l.obyektlar?.length ?? 0), 0),
+    shartnoma: svod?.filter((s) => s.shartnoma.loyiha_id != null).length ?? null,
+    faol: loyihalar.filter((l) => l.holat === 'faol').length,
+  }), [loyihalar, svod]);
 
   return (
-    <div className="p-6 bg-transparent min-h-screen text-text h-full overflow-y-auto">
-      
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 mb-2 text-white">
-            <FolderKanban className="text-indigo-400" />
-            Loyihalar (Projects)
-          </h1>
-          <p className="text-text-dim text-sm max-w-2xl">
-            Markaziy loyihalar reestri: bir nechta obyekt bitta loyihaga guruhlanadi
-            («32 gektar park» — 40 obyekt, 5 shartnoma). Loyiha ostida qatnashchilar
-            har xil rolda bo'lishi mumkin: buyurtmachi, bosh pudratchi, subpudratchi.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={() => setIsFormOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-indigo-900/20"
-          >
-            <Plus size={16} />
-            Yangi Loyiha
-          </button>
-        </div>
-      </div>
-
+    <Sahifa sarlavha="Loyihalar" tavsif="Bir nechta obyekt bitta loyihaga guruhlanadi («32 gektar park» — 40 obyekt, 5 shartnoma); loyiha ostida qatnashchilar turli rolda: buyurtmachi, bosh pudratchi, subpudratchi."
+      amallar={<button type="button" onClick={() => setIsFormOpen(true)} className="fz-btn fz-btn--primary"><Plus size={16} />{t('Yangi loyiha')}</button>}>
       {isFormOpen && (
         <EntityFormModal
           entityType="loyiha"
           title="Yangi loyiha"
-          color="#34d399" // emerald-400 equivalent
           onClose={() => setIsFormOpen(false)}
           isLoading={yuklanmoqda}
           onSubmit={async (data) => {
@@ -106,92 +85,95 @@ export default function TestLoyiha() {
             });
             setYuklanmoqda(false);
             if (r.ok) {
-              toast("Loyiha yaratildi", "ok");
+              toast(t('Loyiha yaratildi'), 'ok');
               setIsFormOpen(false);
-              yukla();
+              void yukla();
             } else {
-              toast(r.error || "Xato", "danger");
+              toast(r.error || t('Xato'), 'danger');
             }
           }}
         />
       )}
 
-      {/* TABLE */}
-      <div className="bg-[var(--surface-1)] border border-border rounded-xl shadow-xl overflow-hidden">
-        <div className="p-4 border-b border-border bg-[var(--surface-2)]">
-          <div className="relative w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-            <input 
-              type="text" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Loyiha qidirish..."
-              className="w-full bg-black border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-indigo-500 outline-none"
-            />
+      <div className="flex flex-col gap-3">
+        <section className="fz-card p-4" aria-label={t('Loyihalar bo‘yicha jami')}>
+          <div className="fz-kpis">
+            <div className="fz-kpi"><span className="fz-kpi__label">{t('Loyihalar')}</span><span className="fz-kpi__value">{jami.loyiha}</span><span className="fz-kpi__sub">{t('{n} tasi faol', { n: jami.faol })}</span></div>
+            <div className="fz-kpi"><span className="fz-kpi__label">{t('Shartnomalar')}</span><span className="fz-kpi__value">{jami.shartnoma ?? '—'}</span><span className="fz-kpi__sub">{t('loyihaga biriktirilgan')}</span></div>
+            <div className="fz-kpi"><span className="fz-kpi__label">{t('Obyektlar')}</span><span className="fz-kpi__value">{jami.obyekt}</span><span className="fz-kpi__sub">{t('loyihalar ichida')}</span></div>
           </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="bg-black/40 border-b border-border text-text-dim font-medium">
-                <th className="px-6 py-4">Loyiha Nomi</th>
-                <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4">Hudud</th>
-                <th className="px-6 py-4 text-right">Byudjet (UZS)</th>
-                <th className="px-6 py-4 text-center">Holat</th>
-                <th className="px-6 py-4 text-right">Amal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {yuklanmoqda ? (
-                <tr>
-                  <td colSpan={5} className="p-10 text-center text-text-dim animate-pulse">Yuklanmoqda…</td>
-                </tr>
-              ) : filtered.map(l => (
-                <tr key={l.id} className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
-                    <FolderKanban size={16} className="text-indigo-400" />
-                    <button type="button" className="text-left hover:text-accent" onClick={() => navigate(`/admin/obyektlar?loyiha=${l.id}`)}>{l.nom}</button>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-mono text-zinc-500 truncate max-w-[150px]" title={l.id.toString()}>
-                    <ShieldCheck size={12} className="inline mr-1 text-emerald-500/50" />
-                    {l.id}
-                  </td>
-                  <td className="px-6 py-4 text-text-dim flex items-center gap-1">
-                    <MapPin size={14} className="text-zinc-400" /> {l.hudud || '-'}
-                  </td>
-                  <td className="px-6 py-4 text-right font-mono font-bold text-white">
-                    <FmtN val={l.byudjet} />
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      {l.holat}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => navigate(`/admin/test/xarita?tugun=loyiha:${l.id}`)}
-                      className="text-xs bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 px-2.5 py-1.5 rounded-lg transition-colors border border-sky-500/20"
-                    >
-                      Mindmapda ko'rish
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!yuklanmoqda && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-10 text-center text-text-dim">
-                    Hali loyihalar yaratilmagan (Yoki SQL skript Supabase'da ishga tushirilmagan). 
-                    Iltimos `01_T2_LOYIHA_MIGRATSIYA.sql` faylini SQL muhitida yurgizing.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        </section>
 
-    </div>
+        <section className="fz-card" aria-label={t('Loyihalar ro‘yxati')}>
+          <div className="fz-card__head">
+            <label className="relative w-full max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-mute" size={15} />
+              <input type="text" aria-label={t('Loyiha qidirish')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('Loyiha qidirish…')} className="input w-full py-1.5 pl-9 pr-3 text-[13px]" />
+            </label>
+            <span className="text-[12px] text-text-mute">{t('{n} ta loyiha', { n: filtered.length })}</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="fz-table">
+              <thead><tr>
+                <th>{t('Loyiha')}</th><th>{t('Tarkib')}</th><th className="fz-c-num">{t('Byudjet, so‘m')}</th><th style={{ minWidth: 220 }}>{t('Shartnoma bo‘yicha hisob (F3)')}</th><th>{t('Holat')}</th><th className="fz-c-num">{t('Amal')}</th>
+              </tr></thead>
+              <tbody>
+                {yuklanmoqda && !loyihalar.length ? (
+                  <tr><td colSpan={6}><div className="skel h-24 rounded-md" /></td></tr>
+                ) : filtered.map(l => {
+                  const sv = loyihaSvod.get(l.id) ?? [];
+                  const c = sv.length ? loyihaChizigi(sv) : null;
+                  const h = HOLAT[l.holat] ?? { nom: l.holat, cls: '' };
+                  const obSoni = l.obyekt_soni ?? l.obyektlar?.length ?? 0;
+                  return (
+                    <tr key={l.id}>
+                      <td>
+                        <button type="button" className="flex items-center gap-2 text-left font-semibold text-text hover:text-accent" onClick={() => navigate(`/admin/obyektlar?loyiha=${l.id}`)}>
+                          <FolderKanban size={15} className="shrink-0 text-accent" />{l.nom}
+                        </button>
+                        <div className="mt-0.5 flex items-center gap-1 text-[12px] text-text-mute"><MapPin size={12} />{l.hudud || '—'}<span className="fz-c-shifr ml-2">#{l.id}</span></div>
+                      </td>
+                      <td>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="fz-chip" title={t('Shartnomalar')}><FileSignature size={11} />{svod ? sv.length : '—'}</span>
+                          <span className="fz-chip" title={t('Obyektlar')}><Building2 size={11} />{obSoni}</span>
+                          <span className="fz-chip" title={t('Qatnashchilar')}><Users size={11} />{l.qatnashchilar?.length ?? 0}</span>
+                        </div>
+                      </td>
+                      <td className="fz-c-num">{l.byudjet == null ? <span className="text-text-mute">—</span> : <FmtN val={l.byudjet} kasr={0} />}</td>
+                      <td>
+                        {!c ? <span className="text-[12px] text-text-mute">{svod ? t('shartnoma yo‘q') : '—'}</span>
+                          : c.foiz == null ? <span className="text-[12px] text-text-mute">{t('F3: {s} · shartnoma summasi yo‘q', { s: fmt(c.f3) })}</span>
+                          : <div className="flex flex-col gap-1" title={t('Shartnoma {sh} · F3 {f3} · to‘lov {tl}', { sh: fmt(c.shartnoma), f3: fmt(c.f3), tl: fmt(c.tolov) })}>
+                            <span className={`fz-meter ${c.oshdi ? 'fz-meter--over' : ''}`}>
+                              <span className="fz-meter__t"><i style={{ width: `${c.tolovUlush * 100}%`, background: 'var(--ok)' }} /><i className="fz-meter__shu" style={{ width: `${c.qarzUlush * 100}%` }} /></span>
+                              <span className="fz-meter__f">{Math.round(c.foiz)}%</span>
+                            </span>
+                            <span className="text-[11.5px] text-text-mute">{t('qoldiq hisob: {q}', { q: fmt(c.qolgan) })}{c.nomalum ? ` · ${t('{n} ta shartnomada summa yo‘q', { n: c.nomalum })}` : ''}</span>
+                          </div>}
+                      </td>
+                      <td><span className={`fz-stamp ${h.cls}`}>{t(h.nom)}</span></td>
+                      <td className="fz-c-num">
+                        <button type="button" onClick={() => navigate(`/admin/test/xarita?tugun=loyiha:${l.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network size={14} />{t('Mindmapda ko‘rish')}</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!yuklanmoqda && filtered.length === 0 && (
+                  <tr><td colSpan={6} className="p-8 text-center text-text-mute">
+                    {loyihalar.length ? t('Qidiruvga mos loyiha yo‘q.') : t('Hali loyiha yaratilmagan — «Yangi loyiha» tugmasi bilan boshlang.')}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <p className="border-t border-border px-4 py-2.5 text-[12px] text-text-mute">
+            <span className="inline-flex items-center gap-1"><i className="inline-block h-2 w-3 rounded-sm" style={{ background: 'var(--ok)' }} />{t('to‘langan')}</span>{' · '}
+            <span className="inline-flex items-center gap-1"><i className="fz-meter__shu inline-block h-2 w-3 rounded-sm" />{t('hisoblangan, to‘lanmagan')}</span>{' · '}
+            {t('shartnoma summasi (DS bilan) = 100%')}
+          </p>
+        </section>
+      </div>
+    </Sahifa>
   );
 }

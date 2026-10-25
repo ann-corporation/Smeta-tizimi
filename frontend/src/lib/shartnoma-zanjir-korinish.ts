@@ -33,3 +33,17 @@ export function qoldiqMazmuni(qoldiqTiyin: number): 'buyurtmachi_qarzi' | 'avans
   if (qoldiqTiyin < 0) return 'avans';
   return 'teng';
 }
+
+/**
+ * Loyiha bo'yicha jamlangan chiziq: loyihadagi shartnomalar svodlari yig'indisi.
+ * Summasi noma'lum shartnomalar shartnoma jamiga qo'shilmaydi (`nomalum` soni bilan aytiladi); hammasi noma'lum — null.
+ */
+export function loyihaChizigi(svodlar: readonly Pick<ShartnomaSvodi, 'joriy' | 'f3' | 'tolov' | 'f2'>[]): HisobChizigi & { soni: number; nomalum: number; f2: number } {
+  let shartnoma = 0, bor = 0, f3 = 0, tolov = 0, f2 = 0;
+  for (const s of svodlar) {
+    if (s.joriy.summa != null) { shartnoma += s.joriy.summa; bor++; }
+    f3 += s.f3; tolov += s.tolov; f2 += s.f2;
+  }
+  const c = hisobChizigi({ joriy: { summa: bor ? shartnoma : null, manba: bor ? 'shartnoma' : 'nomalum', ds: null, asl: null }, f3, tolov });
+  return { ...c, soni: svodlar.length, nomalum: svodlar.length - bor, f2: somga(f2) };
+}

@@ -26,3 +26,17 @@ describe('ruxsat matritsasi', () => {
     expect(k.korish).toBeGreaterThan(0);
   });
 });
+
+import { loyihaChizigi } from './shartnoma-zanjir-korinish';
+describe('loyihaChizigi', () => {
+  const sv = (summa: number | null, f3: number, tolov: number) => ({ joriy: { summa, manba: summa == null ? 'nomalum' as const : 'shartnoma' as const, ds: null, asl: summa }, f3: f3 * 100, tolov: tolov * 100, f2: 0 });
+  it('summasi ma’lum shartnomalar yig‘iladi, noma’lumi sanaladi', () => {
+    const c = loyihaChizigi([sv(1000, 400, 100), sv(null, 50, 0)]);
+    expect([c.shartnoma, c.f3, c.tolov, c.nomalum, c.soni]).toEqual([1000, 450, 100, 1, 2]);
+    expect(c.qolgan).toBe(550);
+  });
+  it('hammasi noma’lum — foiz null', () => {
+    expect(loyihaChizigi([sv(null, 10, 0)]).foiz).toBeNull();
+    expect(loyihaChizigi([]).shartnoma).toBeNull();
+  });
+});
