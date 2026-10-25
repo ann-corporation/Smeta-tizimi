@@ -1,0 +1,47 @@
+/* Hujjat ko‘rish oynasi. Qog‘oz — chop etilgan hujjatdagiday: mavzudan qat’i nazar oq fon, qora matn
+   (bu interfeys palitrasi emas, hujjatning o‘zi). Qolgan hamma narsa — Firuza tokenlari. */
+.hk-overlay { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; padding: var(--space-3); background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: blur(3px); }
+.hk-overlay--center { align-items: center; justify-content: center; }
+.hk-dialog { display: flex; flex-direction: column; flex: 1; min-height: 0; box-shadow: var(--shadow-pop); border-color: var(--border-strong); outline: none; }
+.hk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); font-size: 12px; }
+.hk-name { margin-right: var(--space-2); font: 600 13px/18px var(--font-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40ch; }
+.hk-search { position: relative; margin-left: auto; display: inline-flex; align-items: center; }
+.hk-search svg { position: absolute; left: 8px; color: var(--text-mute); }
+.hk-search input { width: 14rem; height: var(--control-sm); padding: 0 8px 0 26px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); font: 400 12px/1 var(--font-sans); }
+.hk-check { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); }
+.hk-check input { accent-color: var(--accent); }
+.hk-desk { flex: 1; min-height: 0; overflow: auto; padding: var(--space-3); background: var(--surface-3); --paper: #fff; --paper-ink: #111; --paper-line: #9aa3ad; --paper-bolim: #e8eef6; --paper-jami: #fff6dc; --paper-bosh: #f3f4f6; --paper-formula: #0b3a6e; font-size: 11px; color: var(--paper-ink); }
+.hk-paper { display: inline-block; min-width: 100%; padding: var(--space-4); background: var(--paper); box-shadow: 0 1px 3px rgba(0,0,0,.25), 0 8px 24px rgba(0,0,0,.18); }
+.hk-cell { border: 1px solid var(--paper-line); padding: 2px 6px; }
+.hk-formula { color: var(--paper-formula); }
+.hk-bolim { background: var(--paper-bolim); } .hk-jami { background: var(--paper-jami); } .hk-sarlavha { background: var(--paper-bosh); }
+.hk-thead { position: sticky; top: 0; z-index: 10; background: var(--paper-bosh); }
+.hk-empty { margin-top: var(--space-3); color: #555; }
+.hk-pager { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
+
+/* Imzo tomonlari paneli */
+.ht-panel { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); font-size: 12px; color: var(--text-dim); }
+.ht-summary { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2) var(--space-3); cursor: pointer; user-select: none; list-style: none; }
+.ht-summary::-webkit-details-marker { display: none; }
+.ht-summary:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.ht-summary__h { font: 600 11px/14px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-mute); }
+.ht-summary__n { color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ht-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); padding: var(--space-3); border-top: 1px solid var(--border); }
+.ht-blok { display: flex; flex-direction: column; gap: 4px; padding: var(--space-3); border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); }
+.ht-blok--bor { border-left-color: var(--accent); }
+.ht-blok__rol { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ht-blok__rol b { color: var(--text); font-weight: 600; }
+.ht-blok__rol i { font: 500 10.5px/1 var(--font-mono); font-style: normal; color: var(--text-mute); letter-spacing: .04em; }
+.ht-blok__izoh { font-size: 11px; color: var(--text-mute); }
+.ht-blok__input { height: var(--control-md); padding: 0 8px; border: 0; border-bottom: 1px solid var(--border-strong); border-radius: 0; background: transparent; color: var(--text); font: 400 13px/1 var(--font-sans); }
+.ht-blok__input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: var(--radius-xs); }
+.ht-blok__chiziq { min-height: 14px; font-size: 10.5px; color: var(--warn); }
+
+/* Kompaniya logosi */
+.kl-card { max-width: 42rem; margin-top: var(--space-4); }
+.kl-body { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.kl-frame { width: 96px; height: 96px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-2); color: var(--text-dim); }
+.kl-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.kl-none { font-size: 11px; color: var(--text-mute); }
+.kl-side { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.kl-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }

@@ -310,7 +310,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
 
   return <section aria-label={t('Smetachi AI')} className="flex min-h-[220px] xl:min-h-[520px] flex-col gap-2 text-sm">
     <ModelChip profil="smeta_ai" kompaniyaId={kompaniyaId} />
-    <div className="karta max-h-72 min-h-[140px] flex-1 space-y-2 overflow-auto p-2" role="log" aria-live="polite">
+    <div className="fz-card max-h-72 min-h-[140px] flex-1 space-y-2 overflow-auto p-2" role="log" aria-live="polite">
       {!xabarlar.length && <div className="space-y-1 text-[12.5px] text-text-dim">
         <p className="font-medium text-text">{t('Bajarilgan ishni oddiy so‘z bilan yozing — tizim normativ ishlarga ajratib, hajmni siz bilan aniqlaydi.')}</p>
         <p>{t('Masalan:')} <button type="button" className="underline" onClick={() => setMatn(t('Lentali fundament qilindi: kotlovan qazildi, podbetonka quyildi, armatura to‘qildi, beton B20 quyildi. Uzunligi 48 m, kengligi 0,6 m, balandligi 1,2 m.'))}>
@@ -324,16 +324,16 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       <textarea aria-label={t('Smetachiga xabar')} className="input min-h-[96px] w-full min-w-0 basis-full resize-y py-2 text-[13px]" rows={3} value={matn} disabled={!!band}
         placeholder={t('Masalan: plita quyildi 12×8 m, qalinligi 0,2 m, beton B25...')} onChange={e => setMatn(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(); } }} />
-      <button type="button" aria-label={tinglash ? t('Ovozni to‘xtatish') : t('Ovoz bilan aytish')} className={`tugma h-9 px-2 ${tinglash ? 'tugma-asosiy' : ''}`} onClick={ovoz}>🎤</button>
-      <label className="tugma h-9 cursor-pointer px-2" title={t('Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)')}>📎
+      <button type="button" aria-label={tinglash ? t('Ovozni to‘xtatish') : t('Ovoz bilan aytish')} className={`fz-btn ${tinglash ? 'fz-btn--primary' : ''}`} onClick={ovoz}>🎤</button>
+      <label className="fz-btn fz-btn--sm cursor-pointer" title={t('Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)')}>📎
         <input aria-label={t('Loyiha hujjati')} type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls,.xlsm,.docx"
           onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
-      <button type="submit" className="tugma tugma-asosiy ml-auto h-9 px-3" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
+      <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary ml-auto" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}
-    {eslash.length > 0 && kompaniyaId != null && <div className="karta space-y-1 p-2 text-[12px]">
+    {eslash.length > 0 && kompaniyaId != null && <div className="fz-card space-y-1 p-2 text-[12px]">
       <div className="flex flex-wrap items-center gap-2">
-        <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI eslab qolishni taklif qiladi')}</strong>
+        <strong className="fz-panel__h">{t('AI eslab qolishni taklif qiladi')}</strong>
         <select aria-label={t('Xotira darajasi')} className="input h-7 py-0 text-[11px]" value={daraja} onChange={e => setDaraja(e.target.value as XotiraDaraja)}>
           <option value="foydalanuvchi">{t('Faqat men uchun')}</option>
           <option value="kompaniya">{t('Butun kompaniya uchun')}</option>
@@ -342,7 +342,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       </div>
       {eslash.map((x, i) => <div key={i} className="flex items-start gap-2">
         <span className="flex-1">{x}</span>
-        <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => void smetaXotiraYoz(kompaniyaId, x, daraja).then(ok => {
+        <button type="button" className="fz-btn fz-btn--sm" onClick={() => void smetaXotiraYoz(kompaniyaId, x, daraja).then(ok => {
           setEslash(l => l.filter((_, j) => j !== i));
           setHolat(ok ? t('Eslab qolindi — keyingi suhbatlarda AI shunga amal qiladi.') : t('Xotiraga yozilmadi (ruxsat yoki limit).'));
           if (ok) void xotiraYangila(kompaniyaId);
@@ -366,14 +366,14 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       onTanla={(i, v) => setAmallar(l => l.map((x, j) => (j === i ? { ...x, tanlangan: v } : x)))}
       amallar={amallar.map(a => ({ nom: t(AMAL_NOMI[a.tur]), tafsilot: `${a.ish ? ` · ${a.ish}` : ''}${a.qiymat ? ` · ${a.qiymat}` : ''}${a.manba ? ` · ${a.manba}` : ''}`, izoh: a.izoh, ogoh: a.ogoh, tanlangan: a.tanlangan }))} />
 
-    {ishlar.length > 0 && <div className="karta overflow-hidden p-0">
-      <div className="flex items-center gap-2 border-b border-border bg-surface-2/60 px-2 py-1.5">
-        <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Taklif qilingan ishlar')}</strong>
+    {ishlar.length > 0 && <div className="fz-card overflow-hidden p-0">
+      <div className="flex items-center gap-2 border-b border-border bg-surface-2 px-2 py-1.5">
+        <strong className="fz-panel__h">{t('Taklif qilingan ishlar')}</strong>
         <span className="text-xs text-text-mute">{t('{a} / {b} tayyor', { a: tayyor.length, b: ishlar.length })}</span>
         <span className="flex-1" />
-        {tasdiqKutadi.length > 0 && <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => setIshlar(l => l.map(x => (tasdiqKerak(x) ? { ...x, tasdiqlandi: true } : x)))}>
+        {tasdiqKutadi.length > 0 && <button type="button" className="fz-btn fz-btn--sm" onClick={() => setIshlar(l => l.map(x => (tasdiqKerak(x) ? { ...x, tasdiqlandi: true } : x)))}>
           {t('Barcha taxminlarni tasdiqlash ({n})', { n: tasdiqKutadi.length })}</button>}
-        <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[11.5px]" disabled={!tayyor.length || !!band} onClick={() => void qosh()}>
+        <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" disabled={!tayyor.length || !!band} onClick={() => void qosh()}>
           {t('Tayyorlarini smetaga qo‘shish ({n})', { n: tayyor.length })}</button>
       </div>
       <ul className="divide-y divide-border/60">
@@ -411,11 +411,11 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
             <span className="tabular-nums font-medium">{i.hajm ? `= ${i.hajm.qiymat.replace('.', ',')} ${i.birlik}` : <span className="text-warn">{i.hajmXato ? t('formula noto‘g‘ri') : t('hajm kerak')}</span>}</span>
           </div>
           {i.hajmIzoh && <p className="text-[11px] text-text-mute">{i.hajmIzoh}</p>}
-          {tasdiqKerak(i) && <div role="status" className="rounded border border-warn/40 bg-warn/10 px-2 py-1 text-[11.5px]">
+          {tasdiqKerak(i) && <div role="status" className="rounded border border-warn/40 bg-warn-soft px-2 py-1 text-[11.5px]">
             <p><b>{t('AI taxmini — to‘g‘rimi?')}</b> {[i.taxmin, i.tanlangan?.taxmin && !i.tanlangan.qolda ? t('Norma varianti: {s}', { s: i.tanlangan.sabab }) : null].filter(Boolean).join(' · ')}</p>
             <div className="mt-1 flex gap-2">
-              <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => ishniYangila(i.id, { tasdiqlandi: true })}>{t('Ha, to‘g‘ri')}</button>
-              <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => setMatn(`«${i.tavsif}»: `)}>{t('Yo‘q, to‘g‘risini yozaman')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => ishniYangila(i.id, { tasdiqlandi: true })}>{t('Ha, to‘g‘ri')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => setMatn(`«${i.tavsif}»: `)}>{t('Yo‘q, to‘g‘risini yozaman')}</button>
             </div></div>}
         </li>)}
       </ul>
@@ -443,7 +443,7 @@ function KatalogQidiruv({ katalog, onPick }: { katalog: AiKatalog; onPick: (n: T
     <div className="mt-1 flex gap-1">
       <input aria-label={t('Norma kodi yoki nomi')} className="input h-7 flex-1" value={query} onChange={e => setQuery(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); search(query, 0); } }} />
-      <button type="button" className="tugma h-7" onClick={() => search(query, 0)}>{t('Qidirish')}</button>
+      <button type="button" className="fz-btn fz-btn--sm" onClick={() => search(query, 0)}>{t('Qidirish')}</button>
     </div>
     {result && <div className="space-y-1">
       <p>{result.manoBoyicha ? t('Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar') : <>{t('Topildi')}: {result.total}</>} · {t('Sahifa')}: {result.page + 1}</p>
@@ -451,8 +451,8 @@ function KatalogQidiruv({ katalog, onPick }: { katalog: AiKatalog; onPick: (n: T
         {n.kod} · {n.nom} · {n.birlik ?? '—'}
       </button>)}
       <div className="flex gap-1">
-        <button type="button" className="tugma" disabled={result.page === 0} onClick={() => search(result.query, result.page - 1)}>{t('Oldingi')}</button>
-        <button type="button" className="tugma" disabled={!result.hasNext} onClick={() => search(result.query, result.page + 1)}>{t('Keyingi')}</button>
+        <button type="button" className="fz-btn fz-btn--sm" disabled={result.page === 0} onClick={() => search(result.query, result.page - 1)}>{t('Oldingi')}</button>
+        <button type="button" className="fz-btn fz-btn--sm" disabled={!result.hasNext} onClick={() => search(result.query, result.page + 1)}>{t('Keyingi')}</button>
       </div>
     </div>}
   </details>;
