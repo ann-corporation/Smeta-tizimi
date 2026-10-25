@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 11,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt jurnali: «Qamrov %» — bo'limni bitta foiz bilan tiklash",
+      "bandlar": [
+        "Fakt jurnalida bo'limni tanlang va yuqoridagi «Qamrov %» tugmasini bosing (yoki klaviaturada «%»). Ichki bo'limlar sarlavhasida ham, har ish qatorida ham «%» tugmasi bor; hajm katagida «%» yozsangiz — shu ish uchun ochiladi.",
+        "Foizni yozing (masalan 100 yoki 70): har ish, alohida material/uskuna va (xohlasangiz) ish ichidagi materiallarga fakt = foiz × ochiq qoldiq taklif qilinadi. Mehnat va mashina normadan o'zi ergashadi.",
+        "Oldindan ko'rishda qatorlar soni, summa (ustamasiz va ustamali) va istisnolar chiqadi: allaqachon faktli, zamenalangan, bajarilmaydi, narxsiz, chegirma. Keraksizini belgidan olib tashlang yoki turini bitta tugma bilan chiqaring.",
+        "Enter yoki Ctrl+Enter — hammasi bitta fakt hujjatiga yoziladi. Xabardagi «Bekor qilish» shu yozuvni butunlay qaytaradi. Asl smeta o'zgarmaydi."
+      ]
+    },
+    {
       "id": 10,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: bitta «ochiq qoldiq»",

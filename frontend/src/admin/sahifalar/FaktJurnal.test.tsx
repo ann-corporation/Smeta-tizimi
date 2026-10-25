@@ -72,6 +72,34 @@ describe('FaktJurnal', () => {
     expect(screen.getByTestId('qoldiqdan-oshdi').textContent).toMatch(/\+5/);
   });
 
+  it('Qamrov %: bo‘lim → foiz → oldindan ko‘rish (istisnolar) → bitta fakt_yoz_v2, xabarda «Bekor qilish»', async () => {
+    m.yoz.mockResolvedValue({ ok: true, akt_id: 77 });
+    const p = props();
+    render(<FaktJurnal {...p} />);
+    fireEvent.keyDown(window, { key: '%' });
+    const dlg = screen.getByRole('dialog', { name: 'Qamrov %' });
+    expect(screen.getByTestId('qamrov-jami').textContent).toMatch(/2 qator yoziladi/); // Grunt 60 + Qum 10
+    expect(dlg.querySelector('[data-testid="qamrov-istisno-2"]')?.textContent).toMatch(/Allaqachon faktli/);
+    fireEvent.change(screen.getByLabelText('Bajarilish foizi'), { target: { value: '50' } });
+    fireEvent.click(screen.getByLabelText('Olinsin: Grunt')); // ish olib tashlansa — ichidagi Qum ham tushadi
+    expect(screen.getByTestId('qamrov-jami').textContent).toMatch(/0 qator yoziladi/);
+    fireEvent.click(screen.getByLabelText('Olinsin: Grunt'));
+    fireEvent.keyDown(screen.getByLabelText('Bajarilish foizi'), { key: 'Enter' });
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(1));
+    expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ obyektId: 8, qatorlar: [{ qator_id: 2, hajm: 30 }, { qator_id: 3, hajm: 5 }] }));
+    await waitFor(() => expect(p.holatniYangila).toHaveBeenCalled());
+    const ok = m.toast.mock.calls.find((c) => String(c[0]).startsWith('Qamrov 50%'));
+    expect(ok?.[4]).toMatchObject({ label: 'Bekor qilish' });
+    expect(screen.queryByRole('dialog', { name: 'Qamrov %' })).toBeNull();
+  });
+
+  it('Qamrov %: ish qatoridagi «%» tugmasi va katakda «%» — faqat shu ish', () => {
+    render(<FaktJurnal {...props()} />);
+    fireEvent.keyDown(screen.getByLabelText('Bugun bajarildi: Qum'), { key: '%' });
+    expect(screen.getByRole('dialog', { name: 'Qamrov %' }).textContent).toMatch(/Grunt/);
+    expect(screen.getByTestId('qamrov-jami').textContent).toMatch(/2 qator yoziladi/);
+  });
+
   it('boshqa bo‘lim tanlanadi; qidiruv butun obyekt bo‘yicha', () => {
     render(<FaktJurnal {...props()} />);
     expect(screen.queryByText('Poydevor')).toBeNull();
