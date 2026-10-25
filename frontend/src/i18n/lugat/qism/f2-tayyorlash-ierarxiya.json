@@ -1,0 +1,9 @@
+{
+  "Bo‘limlar": { "ru": "Разделы", "en": "Sections" },
+  "faqat F2 ga olinadiganlar": { "ru": "только доступные для Ф-2", "en": "only available for F2" },
+  "fakt bor / jami": { "ru": "доступно / всего", "en": "available / total" },
+  "Bitta F2 da bir nechta uchastka/fayl ishlari aralashgan": { "ru": "В одной Ф-2 смешаны работы нескольких участков/файлов", "en": "One F2 mixes works from several sections/files" },
+  "Tavsiya: har uchastka/fayl uchun alohida F2 tayyorlang (bloklanmaydi).": { "ru": "Рекомендация: готовьте отдельную Ф-2 на каждый участок/файл (не блокируется).", "en": "Recommended: prepare a separate F2 per section/file (not blocking)." },
+  "Yana ko‘rsatish": { "ru": "Показать ещё", "en": "Show more" },
+  "Uchastka/fayl": { "ru": "Участок/файл", "en": "Section/file" }
+}
