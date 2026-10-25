@@ -26,7 +26,7 @@ begin
   insert into public.t2_akt(kompaniya_id,obyekt_id,tur,oy,holat) values(c,o1,'f2','2027-01-01','qoralama');
   insert into public.t2_akt(kompaniya_id,obyekt_id,tur,oy,holat) values(c,o1,'f2','2027-02-01','qoralama');
   -- 4) tuzatish akti (manba='tuzatish') va bekor akt istisno
-  insert into public.t2_akt(kompaniya_id,obyekt_id,tur,oy,holat,raqam,manba,shartnoma_id) values(c,o1,'f2','2026-10-01','qoralama','49','tuzatish',s);
+  insert into public.t2_akt(kompaniya_id,obyekt_id,tur,oy,holat,raqam,manba,shartnoma_id) values(c,o1,'f2','2026-08-01','qoralama','49','tuzatish',s);
   insert into public.t2_akt(kompaniya_id,obyekt_id,tur,oy,holat,raqam,shartnoma_id) values(c,o2,'f2','2026-10-01','bekor','49',s);
   -- 5) bekor aktni qaytarish takror bo'lsa: BLOK
   ok := false;
