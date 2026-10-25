@@ -396,6 +396,14 @@ function Sessiya({ companyId }: { companyId: number }) {
     const yangi = tarkibniMosla(ij, ind, S);
     if (yangi !== ij) setIj(yangi);
   }, [ij, ind, S]);
+  // Podval ◐ takliflari smeta yangilanganda ham (masalan operator hozirgina «Таможенные расходы» ni qo'shdi) qayta
+  // hisoblanadi — faqat bog'lanmagan va o'tkazilmagan podval qatorlari; operator uzgan taklif ij o'zgarishida qaytmaydi.
+  useEffect(() => {
+    const cur = ijRef.current;
+    if (!cur || !ind) return;
+    const next = podvalTaklifQosh(cur, ind.qatorlar, rows);
+    if (next !== cur) { ijRef.current = next; setIj(next); }
+  }, [rows, ind]);
   const raw = useMemo(() => new Map(rowsK.map((r) => [r.id, r])), [rowsK]);
   // Zamena qatori → u almashtirgan ASL smeta qatori (t2_daraxt da yo'q — alohida, faqat zamena qatorlari uchun).
   const [zamenaAsl, setZamenaAsl] = useState<ReadonlyMap<number, number>>(new Map());

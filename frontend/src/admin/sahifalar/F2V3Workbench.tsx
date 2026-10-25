@@ -16,6 +16,7 @@ import { abcXato, ishAbcOchir, resursIshZamena, type NarxManba } from '../../api
 import { yangiOperationId } from '../../api/supabase';
 import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
 import { qoshilganmi, smetaQatorTuri, type SmetaQatorTuri } from '../../lib/f2-moslash-v3/qoshilgan';
+import { podvalTakrori } from '../../lib/f2-moslash-v3/podval';
 import { ketmaKetBogla, pastdagilarniBogla } from '../../lib/f2-moslash-v3/ketmaKet';
 import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
@@ -577,17 +578,26 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     }
     if (f.tur === 'bl') {
       if (s.tur === 'rz') { ochModal(f, { kind: 'additional', parent: p.raw.get(s.id)!, keyinId: s.id }); return; }
+      // Egasi 2026-10-25: podval qatori (bojxona, shef-montaj — summa bilan, hajm 1 КОМПЛ) to'g'ridan-to'g'ri smeta QATORIGA
+      // bog'lanadi: bo'limga bog'lash shart emas, siz qo'shgan qator ham bo'ladi (bog'lash qatorni o'zgartirmaydi).
+      if (f.podval && !f.bolalar.length) {
+        p.onIj(bogla(ij, f.uid, s.id));
+        const takror = podvalTakrori(f, ind.qatorlar, bogla(ij, f.uid, s.id)).length;
+        xab(`«${f.nom.slice(0, 50)}» → «${(s.nom ?? '').slice(0, 50)}» ${tarj('bog‘landi.')}${takror ? ` ${tarj('Bu smeta qatori aktning asosiy qismida ham olingan — takror bo‘lsa «Faqat izoh» bosing (summa ikki marta sanalmaydi).')}` : ''}`);
+        return;
+      }
       if (sRes) {
-        // Egasi 2026-10-18: ish smeta RESURSIGA tashlansa — "shu resurs o'rniga ish" (masalan ГПС ni buyurtmachi bergan:
-        // material olinmaydi, qazib olish va tashish ishlari olinadi).
-        if (qoshilganmi(p.raw.get(s.id))) { xab('Bu resursni o‘zingiz qo‘shgansiz — uni tahrirlang yoki o‘chiring.'); return; }
         // Egasi 2026-10-21: F2 da resurssiz «ish» qatori aslida material (masalan ПК → ПБ plita). Uni smeta resursiga
         // tashlash — material bog'lash/zamenasi; «resurs o'rniga ish» (karyer) faqat resurslari bor ish uchun.
+        // Bog'lash siz qo'shgan qatorni o'zgartirmaydi — u ham bog'lanadi.
         if (!f.bolalar.length) {
           if (aynanBirXil(f, s)) { p.onIj(bogla(ij, f.uid, s.id)); xab(`«${f.nom.slice(0, 50)}» bog‘landi.`); return; }
           setTanlov({ f, s, tur: 'resurs' });
           return;
         }
+        // Egasi 2026-10-18: ish smeta RESURSIGA tashlansa — "shu resurs o'rniga ish" (masalan ГПС ni buyurtmachi bergan:
+        // material olinmaydi, qazib olish va tashish ishlari olinadi).
+        if (qoshilganmi(p.raw.get(s.id))) { xab('Bu resursni o‘zingiz qo‘shgansiz — uni tahrirlang yoki o‘chiring.'); return; }
         setTanlov({ f, s, tur: 'ish_resurs' });
         return;
       }
@@ -781,8 +791,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           </div>
           <span className={`${SON} font-semibold`}>{fmt(rzSumma.get(t.uid) ?? null, 2)}</span>
           <span className={`${KATAK} text-[10.5px] font-normal normal-case ${d?.ok || !ishliRz ? 'text-text-mute' : 'text-warn'}`} title={sNom || undefined}>
-            {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : ishliRz ? (rzTaklif ? '' : 'bo‘lim ulanmagan — mos smeta bo‘limiga torting') : 'guruh'}
-            {!d?.ok && rzTaklif && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
+            {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : t.podval ? tarj('har qatorni to‘g‘ridan-to‘g‘ri smeta qatoriga bog‘lang (bo‘lim shart emas)') : ishliRz ? (rzTaklif ? '' : 'bo‘lim ulanmagan — mos smeta bo‘limiga torting') : 'guruh'}
+            {!d?.ok && !t.podval && rzTaklif && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
               title={`${rzTaklif.soni}/${rzTaklif.jami} ${tarj('ish shu bo‘limga bog‘langan')}`}
               onClick={() => p.onRzBog(t.uid, rzTaklif.smetaRzId)}>
               <Check size={11} /> {tarj('Bo‘lim')}: {(rzTaklif.nom || '').slice(0, 40)} ({Math.round(rzTaklif.ulush * 100)}%)
@@ -829,6 +839,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     const tavsiya = p.natija.natijalar.get(t.uid)?.tavsiya;
     const tavsiyaS = tavsiya?.tur === 'zamena' ? S.byId.get(tavsiya.qatorId) : undefined;
     const tugma = 'tugma h-6 px-1.5 text-[11px]';
+    const podvalTakror = t.podval ? podvalTakrori(t, ind.qatorlar, ij).length > 0 : false;
     return (
       <div data-fuid={t.uid} role="group" aria-label={`F2 qatori (${f2QatorTuriYorlig(t.tur)}): ${t.nom}`}
         onPointerDown={(e) => ptrBoshla(e, t)} data-sudrash={(p.disabled || mutationBusy) ? undefined : 'ha'}
@@ -853,6 +864,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {b?.taqsim && b.taqsim.length > 1 && k !== 'otkazildi' && <span className="mt-0.5 block text-[10.5px] font-normal text-accent">⇶ {tarj('{n} ta smeta qatoriga taqsimlangan', { n: b.taqsim.length })}</span>}
           {b?.usul !== TARKIB_USUL && !(b?.taqsim && b.taqsim.length > 1) && s && k !== 'otkazildi' && nomKalit(s.nom) !== nomKalit(t.nom) && <span className="mt-0.5 block truncate text-[10.5px] font-normal text-accent" title={s.nom ?? ''}>→ {s.nom}</span>}
           {!s && tavsiya && <span className="mt-0.5 block text-[10.5px] font-normal text-warn">{tavsiya.tur === 'zamena' ? `⇄ zamena taklifi: «${tavsiyaS?.nom ?? ''}» o‘rniga` : '＋ smeta ishida mos resurs yo‘q — qo‘shimcha resurs'}</span>}
+          {podvalTakror && <span className="mt-0.5 block text-[10.5px] font-normal text-warn">{tarj('Takror: bu smeta qatori aktning asosiy qismida ham olingan — «Faqat izoh» bosing, aks holda summa ikki marta sanaladi')}</span>}
           {t.ogohlantirish?.length ? <span className="mt-0.5 block text-[10.5px] font-normal text-danger">{t.ogohlantirish.join('; ')}</span> : null}
           {bk.summaBoyicha && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">{tarj('summa bo‘yicha hisoblandi')}: {fmt(bk.summa, 2)} / {fmt(bk.smetaNarx, 2)}</span>}
         </button>
@@ -882,6 +894,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             onClick={() => ochModal(t, { kind: 'resource', parent: p.raw.get(otaSmetaIsh)!, keyinId: resursKeyin() })} title="Smeta ishiga qo‘shimcha resurs — F2 dagi tartibda">＋ Resurs</button>}
           {k === 'topilmadi' && !ish && otaSmetaIsh == null && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Avval ishini bog‘lang">Tanlash</button>}
+          {t.podval && t.barg && <button type="button" className={`${tugma} ${podvalTakror ? 'tugma-asosiy' : ''}`} disabled={(p.disabled || mutationBusy)}
+            aria-label={`${k === 'otkazildi' ? tarj('Aktga qaytarish') : tarj('Faqat izoh')}: ${t.nom}`} onClick={() => p.onIj(otkazibYubor(ij, t, k !== 'otkazildi'))}
+            title={tarj('Podval qatori faqat izoh — aktga kirmaydi, summasi sanalmaydi, yozish to‘xtamaydi')}>
+            <SkipForward size={11} /> {k === 'otkazildi' ? tarj('Aktga qaytarish') : tarj('Faqat izoh')}</button>}
           {b && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             aria-label={`Bog‘lanishni uzish: ${t.nom}`} onClick={() => p.onIj(uz(ij, t))} title="Bog‘lanishni bekor qilish"><Unlink size={11} /></button>}
         </span>
