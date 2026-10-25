@@ -10,6 +10,7 @@
  */
 import type { T2Qator } from '../api/supabase';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from './ustamali-summa';
+import { ochiqQoldiq } from './zamena-qoldiq';
 
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
@@ -30,7 +31,11 @@ export type Kiritma = { rejim: Rejim; qiymat: string };
 
 export type JurnalQator = {
   id: number; tur: 'bl' | 'mat' | 'ob' | 'rs'; kod: string | null; nom: string; birlik: string | null;
-  smeta: number | null; fakt: number; qoldiq: number | null; f2Mumkin: number;
+  smeta: number | null; fakt: number;
+  /** OCHIQ qoldiq (fakt rejimi) = smeta − fakt − almashtirilgan − bajarilmaydi (ochiqQoldiq); smeta yo'q → null. */
+  qoldiq: number | null; f2Mumkin: number;
+  /** Faol «bajarilmaydi» belgilari hajmi; yo'q bo'lsa null. */
+  bajarilmaydi: number | null;
   /** 0..∞ (1 = 100%). Smeta yo'q bo'lsa null. */
   ulush: number | null;
   holat: 'yangi' | 'qisman' | 'tugadi' | 'oshdi' | 'smetasiz';
@@ -67,19 +72,22 @@ export function holatTur(smeta: number | null, fakt: number): JurnalQator['holat
   return 'qisman';
 }
 
-function qatorQur(r: T2Qator, h: JurnalHolat | undefined, byId: Map<number, T2Qator>, zb?: ZamenaBoglanish | null): JurnalQator {
+function qatorQur(r: T2Qator, h: JurnalHolat | undefined, byId: Map<number, T2Qator>, zb?: ZamenaBoglanish | null, baj?: ReadonlyMap<number, number> | null): JurnalQator {
   const smeta = son(h?.smeta_hajm) ?? son(r.hajm);
   const fakt = son(h?.fakt_hajm) ?? 0;
   const ota = r.ota_id != null ? byId.get(r.ota_id) : undefined;
   const aslId = r.zamena ? zb?.almashtiradi.get(r.id) ?? null : null;
   const asl = aslId != null ? byId.get(aslId) : undefined;
   const alm = son(h?.almashtirilgan_hajm) ?? zb?.almashtirilgan.get(r.id) ?? null;
+  const bj = baj?.get(r.id) ?? null;
+  const ochiq = ochiqQoldiq({ smeta, fakt, almashtirilgan: alm != null && alm > 0 ? alm : null, bajarilmaydi: bj }, 'fakt');
   return {
     kat: r.kat?.trim() || null,
     almashtiradi: aslId, aslNom: asl ? [asl.kod, asl.nom].filter(Boolean).join(' ') || null : null,
     almashtirilgan: alm != null && alm > 0 ? alm : null,
     id: r.id, tur: (r.tur as JurnalQator['tur']), kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik,
-    smeta, fakt, qoldiq: smeta == null ? null : yaxlit(smeta - fakt), f2Mumkin: son(h?.f2_mumkin_hajm) ?? 0,
+    smeta, fakt, qoldiq: ochiq == null ? null : yaxlit(ochiq), f2Mumkin: son(h?.f2_mumkin_hajm) ?? 0,
+    bajarilmaydi: bj != null && bj > 0 ? bj : null,
     ulush: smeta ? fakt / smeta : null, holat: holatTur(smeta, fakt),
     norma: son((r as T2Qator & { norma?: number | null }).norma),
     qoshimcha: !!r.qoshimcha && !r.zamena, zamena: !!r.zamena,
@@ -102,12 +110,13 @@ export function zamenaTartibla<T extends { id: number; almashtiradi: number | nu
   return out;
 }
 
-export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat[], zb?: ZamenaBoglanish | null) {
+/** baj — faol «bajarilmaydi» hajmlari (qator id → hajm): ochiq qoldiqdan ayriladi. */
+export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat[], zb?: ZamenaBoglanish | null, baj?: ReadonlyMap<number, number> | null) {
   const byId = new Map(rows.map((r) => [r.id, r]));
   const holat = new Map(states.map((s) => [s.qator_id, s]));
   const bolalar = new Map<number | null, T2Qator[]>();
   for (const r of rows) { const k = r.ota_id ?? null; const a = bolalar.get(k); if (a) a.push(r); else bolalar.set(k, [r]); }
-  const qq = (c: T2Qator) => qatorQur(c, holat.get(c.id), byId, zb);
+  const qq = (c: T2Qator) => qatorQur(c, holat.get(c.id), byId, zb, baj);
 
   /** Bo'lim → o'ziga TEGISHLI (ichki bo'limlarsiz) ishlar va mustaqil resurslar. */
   const bolimIshlari = new Map<number, JurnalIsh[]>();
@@ -273,8 +282,14 @@ export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktl
   return { qatorlar, xatolar, ok: xatolar.size === 0 && qatorlar.length > 0 };
 }
 
-/** Qoldiqning ulushi (25/50/100%) — "+" rejimi uchun qiymat. */
+/** Ochiq qoldiq bormi (smeta ishorasida, 1e-9 dan katta)? Smeta noma'lum bo'lsa — true (yashirilmaydi). «Faqat bajarilmaganlar» filtri. */
+export function ochiqBor(q: Pick<JurnalQator, 'qoldiq'> & { smeta?: number | null }): boolean {
+  if (q.qoldiq == null) return true;
+  return (q.smeta ?? 0) < 0 ? q.qoldiq < -1e-9 : q.qoldiq > 1e-9;
+}
+
+/** OCHIQ qoldiqning ulushi (25/50/100%) — "+" rejimi uchun qiymat (zamena va «bajarilmaydi» ayrilgan). */
 export function qoldiqUlushi(q: Pick<JurnalQator, 'qoldiq'> & { smeta?: number | null }, foiz: number): string | null {
-  if (q.qoldiq == null || q.qoldiq === 0 || ((q.smeta ?? 0) < 0 ? q.qoldiq > 0 : q.qoldiq < 0)) return null;
+  if (!ochiqBor(q) || q.qoldiq == null) return null;
   return String(yaxlit(q.qoldiq * foiz / 100));
 }

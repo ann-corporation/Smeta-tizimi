@@ -6,6 +6,8 @@ import { bajarilmadiTaklif } from '../../lib/fakt-studio';
 import { t } from '../../i18n/til';
 
 export type BajarilmadiQatorInfo = { id: number; kod: string | null; nom: string; birlik: string | null; smeta: number | null; fakt: number; belgilangan: number;
+  /** Zamenalar qoplagan hajm — ochiq qoldiqdan ayriladi (yagona formula). */
+  almashtirilgan?: number | null;
   /** Oldindan to'ldiriladigan hajm (masalan AI yordamchi taklifi); yo'q bo'lsa — qoldiq taklifi. */
   boshlangichHajm?: number | null };
 
@@ -18,7 +20,7 @@ export function FaktBajarilmadiTez({ kompaniyaId, obyektId, sana, qator, onYop, 
   kompaniyaId: number; obyektId: number; sana: string; qator: BajarilmadiQatorInfo;
   onYop: () => void; onSaqlandi: (xabar: string) => void;
 }) {
-  const taklif = bajarilmadiTaklif(qator.smeta, qator.fakt, qator.belgilangan);
+  const taklif = bajarilmadiTaklif(qator.smeta, qator.fakt, qator.belgilangan, qator.almashtirilgan);
   const [hajm, setHajm] = useState(qator.boshlangichHajm != null && qator.boshlangichHajm > 0 ? String(qator.boshlangichHajm) : taklif != null && taklif > 0 ? String(taklif) : '');
   const [sabab, setSabab] = useState<BajarilmadiSabab>('texnik_sabab');
   const [izoh, setIzoh] = useState('');

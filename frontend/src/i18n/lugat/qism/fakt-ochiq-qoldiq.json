@@ -1,0 +1,6 @@
+{
+  "Ochiq qoldiq": { "ru": "Открытый остаток", "en": "Open balance" },
+  "Ochiq qoldiq = smeta − fakt − almashtirilgan − bajarilmaydi": { "ru": "Открытый остаток = смета − факт − заменено − не выполняется", "en": "Open balance = estimate − actual − replaced − not performed" },
+  "F2 qoldiq = smeta − F2 − almashtirilgan": { "ru": "Остаток Ф-2 = смета − Ф-2 − заменено", "en": "F-2 balance = estimate − F-2 − replaced" },
+  "F2 qoldiq": { "ru": "Остаток Ф-2", "en": "F-2 balance" }
+}
