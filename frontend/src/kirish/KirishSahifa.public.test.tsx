@@ -38,8 +38,16 @@ describe('Public kirish sayti', () => {
     fireEvent.change(screen.getByPlaceholderText('foydalanuvchi_nomi'), { target: { value: 'sinov' } });
     fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'test-password' } });
     fireEvent.submit(screen.getByPlaceholderText('foydalanuvchi_nomi').closest('form')!);
-    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/test/obyektlar'));
+    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/obyektlar'));
     expect(fetchMock).toHaveBeenCalledWith('/api/kirish', expect.objectContaining({ body: JSON.stringify({ login: 'sinov', parol: 'test-password' }) }));
+  });
+  it.each([['boss', '/admin/dashboard'], ['buyurtmachi', '/admin/zakazchik'], ['usta', '/admin/fakt'], ['omborchi', '/admin/logistika'], ['pudratchi', '/admin/ish-joylarim']])('%s parol bilan kirgach o‘z sahifasiga tushadi', async (rol, yol) => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ ok: true, rol }) })));
+    render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
+    fireEvent.change(screen.getByPlaceholderText('foydalanuvchi_nomi'), { target: { value: 'sinov' } });
+    fireEvent.change(screen.getByLabelText('Parol'), { target: { value: 'test-password' } });
+    fireEvent.submit(screen.getByPlaceholderText('foydalanuvchi_nomi').closest('form')!);
+    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith(yol));
   });
   it('yordam paneli fake operator yoki message receipt yaratmaydi', () => {
     const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock);
