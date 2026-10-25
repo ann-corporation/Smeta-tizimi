@@ -5,7 +5,6 @@ import { Eye, EyeOff, ShieldCheck, Lock, User, ArrowRight, Building2, Mail, Phon
 import { toast } from '../umumiy/ui/Toast';
 import GoogleKirish, { type GoogleNatija } from './GoogleKirish';
 import { t } from '../i18n/til';
-import { TilTanlagich } from '../i18n/TilTanlagich';
 import { PublicEntry } from '../components/public-entry/PublicEntry';
 import { kutilayotganTaklifKodi } from './QoshilSahifa';
 import { kutilayotganUlashKodi } from './UlashSahifa';
@@ -139,23 +138,18 @@ export default function KirishSahifa() {
   const handleBossLogin = () => loginniToldir('boss');
   const handleSuperadminLogin = () => loginniToldir('Anvar');
 
+  const field = 'entry-input';
   return (
     <PublicEntry onChooseAuth={(mode) => { setIsLogin(mode === "login"); setError(""); }}>
-        <div className="w-full py-8">
-
-          <div className="mb-3 flex justify-end"><TilTanlagich /></div>
-          <div className="flex bg-[#0a0f1d] border border-white/10 p-1 rounded-xl mb-8">
-            <button 
-              onClick={() => { setIsLogin(true); setError(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${isLogin ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-400 hover:text-white'}`}
-            >
-              {t('Kirish')}
+        <div className="entry-auth">
+          <div className="entry-auth-switch">
+            <button type="button" aria-pressed={isLogin} onClick={() => { setIsLogin(true); setError(''); }}>
+              {isLogin && <motion.span layoutId="entry-auth-pill" className="entry-auth-pill" transition={{ type: 'spring', stiffness: 400, damping: 34 }} />}
+              <span>{t('Kirish')}</span>
             </button>
-            <button 
-              onClick={() => { setIsLogin(false); setError(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${!isLogin ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-400 hover:text-white'}`}
-            >
-              {t("Ro'yxatdan o'tish")}
+            <button type="button" aria-pressed={!isLogin} onClick={() => { setIsLogin(false); setError(''); }}>
+              {!isLogin && <motion.span layoutId="entry-auth-pill" className="entry-auth-pill" transition={{ type: 'spring', stiffness: 400, damping: 34 }} />}
+              <span>{t("Ro'yxatdan o'tish")}</span>
             </button>
           </div>
 
@@ -168,31 +162,31 @@ export default function KirishSahifa() {
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-2xl font-bold text-white mb-2">{t('Tizimga kirish')}</h2>
-                <p className="text-zinc-400 text-sm mb-8">{t("O'z hisob ma'lumotlaringizni kiriting")}</p>
+                <h2 className="entry-auth-title">{t('Tizimga kirish')}</h2>
+                <p className="entry-auth-note">{t("O'z hisob ma'lumotlaringizni kiriting")}</p>
 
-                <div className="mb-5"><GoogleKirish matn="signin_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
-                <form onSubmit={handleLogin} className="flex flex-col gap-5">
-                  <div className="space-y-1.5">
-                    <label htmlFor="entry-login" className="text-sm font-medium text-zinc-300">{t('Login')}</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <div className="entry-auth-google"><GoogleKirish matn="signin_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
+                <form onSubmit={handleLogin} className="entry-auth-form">
+                  <div className="entry-field">
+                    <label htmlFor="entry-login">{t('Login')}</label>
+                    <div className="entry-input-wrap">
+                      <User aria-hidden="true" size={17} />
                       <input
                         type="text"
                         id="entry-login"
                         autoComplete="username"
                         value={login}
                         onChange={e => setLogin(e.target.value)}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+                        className={field}
                         placeholder={t('foydalanuvchi_nomi')}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="entry-password" className="text-sm font-medium text-zinc-300">{t('Parol')}</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                  <div className="entry-field">
+                    <label htmlFor="entry-password">{t('Parol')}</label>
+                    <div className="entry-input-wrap">
+                      <Lock aria-hidden="true" size={17} />
                       <input
                         ref={parolMaydoni}
                         id="entry-password"
@@ -200,62 +194,36 @@ export default function KirishSahifa() {
                         type={parolKor ? 'text' : 'password'}
                         value={parol}
                         onChange={e => setParol(e.target.value)}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+                        className={field}
                         placeholder="••••••••"
                       />
-                      <button type="button" onClick={() => setParolKor(!parolKor)} aria-label={t(parolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">{parolKor ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                      <button type="button" onClick={() => setParolKor(!parolKor)} aria-label={t(parolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish')} className="entry-eye">{parolKor ? <EyeOff size={17} /> : <Eye size={17} />}</button>
                     </div>
                   </div>
-                  
+
                   <AnimatePresence>
                     {error && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-sm">
-                          {t(error)}
-                        </div>
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="entry-auth-error-wrap">
+                        <div className="entry-auth-error" role="alert">{t(error)}</div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <button
-                    type="submit"
-                    disabled={loading || !login || !parol}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 shadow-[0_4px_14px_0_rgba(79,70,229,0.39)]"
-                  >
+                  <button type="submit" disabled={loading || !login || !parol} className="entry-auth-submit">
                     {loading ? t('Tekshirilmoqda...') : (
-                      <>{t('Kirish')} <ArrowRight size={18} /></>
+                      <>{t('Kirish')} <ArrowRight size={18} aria-hidden="true" /></>
                     )}
                   </button>
                 </form>
 
-                <div className="flex items-center gap-4 my-8">
-                  <div className="flex-1 h-px bg-white/10"></div>
-                  <span className="text-zinc-500 text-xs font-medium uppercase tracking-widest">{t('Tezkor')}</span>
-                  <div className="flex-1 h-px bg-white/10"></div>
-                </div>
+                <div className="entry-auth-divider"><span>{t('Tezkor')}</span></div>
 
-                <div className="flex flex-col gap-3">
-                  <button
-                    type="button"
-                    onClick={handleSuperadminLogin}
-                    disabled={loading}
-                    className="w-full bg-indigo-600/10 border border-indigo-500/30 hover:bg-indigo-600/20 text-indigo-400 rounded-xl py-3 text-sm font-semibold transition-all disabled:opacity-50 flex justify-center items-center gap-2 group"
-                  >
-                    <ShieldCheck size={18} className="group-hover:scale-110 transition-transform" />
+                <div className="entry-auth-quick">
+                  <button type="button" onClick={handleSuperadminLogin} disabled={loading}>
+                    <ShieldCheck size={16} aria-hidden="true" />
                     {t('Admin')}
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={handleBossLogin}
-                    disabled={loading}
-                    className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 rounded-xl py-3 text-sm font-medium transition-all disabled:opacity-50"
-                  >
+                  <button type="button" onClick={handleBossLogin} disabled={loading}>
                     {t('Rahbar kirishi (svodka)')}
                   </button>
                 </div>
@@ -269,90 +237,69 @@ export default function KirishSahifa() {
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-2xl font-bold text-white mb-2">{t("Bepul sinab ko'rish")}</h2>
-                <p className="text-zinc-400 text-sm mb-6">{t("1 daqiqada hisob oching — bepul tokenlar bilan smeta import, F2 va hujjatlarni o'zingiz sinab ko'ring. Operator kutish shart emas.")}</p>
+                <h2 className="entry-auth-title">{t("Bepul sinab ko'rish")}</h2>
+                <p className="entry-auth-note">{t("1 daqiqada hisob oching — bepul tokenlar bilan smeta import, F2 va hujjatlarni o'zingiz sinab ko'ring. Operator kutish shart emas.")}</p>
 
-                <div className="mb-4"><GoogleKirish matn="signup_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
-                <form onSubmit={handleRegister} className="flex flex-col gap-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="entry-signup-name" className="text-sm font-medium text-zinc-300">{t('Ismingiz')}</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input id="entry-signup-name" type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder={t('F.I.Sh.')}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                      />
+                <div className="entry-auth-google"><GoogleKirish matn="signup_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
+                <form onSubmit={handleRegister} className="entry-auth-form">
+                  <div className="entry-field">
+                    <label htmlFor="entry-signup-name">{t('Ismingiz')}</label>
+                    <div className="entry-input-wrap">
+                      <User aria-hidden="true" size={17} />
+                      <input id="entry-signup-name" type="text" autoComplete="name" required value={regIsm} onChange={e => setRegIsm(e.target.value)} placeholder={t('F.I.Sh.')} className={field} />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="entry-signup-phone" className="text-sm font-medium text-zinc-300">{t('Telefon')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input id="entry-signup-phone" type="tel" autoComplete="tel" value={regTelefon} onChange={e => setRegTelefon(e.target.value)} placeholder="+998"
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                      />
+                  <div className="entry-field">
+                    <label htmlFor="entry-signup-phone">{t('Telefon')} <span>{t('(ixtiyoriy)')}</span></label>
+                    <div className="entry-input-wrap">
+                      <Phone aria-hidden="true" size={17} />
+                      <input id="entry-signup-phone" type="tel" autoComplete="tel" value={regTelefon} onChange={e => setRegTelefon(e.target.value)} placeholder="+998" className={field} />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="entry-signup-company" className="text-sm font-medium text-zinc-300">{t('Kompaniya')} <span className="text-zinc-500">{t('(ixtiyoriy)')}</span></label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input id="entry-signup-company" type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder={t('MChJ / XK nomi')}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                      />
+                  <div className="entry-field">
+                    <label htmlFor="entry-signup-company">{t('Kompaniya')} <span>{t('(ixtiyoriy)')}</span></label>
+                    <div className="entry-input-wrap">
+                      <Building2 aria-hidden="true" size={17} />
+                      <input id="entry-signup-company" type="text" autoComplete="organization" value={regKompaniya} onChange={e => setRegKompaniya(e.target.value)} placeholder={t('MChJ / XK nomi')} className={field} />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="entry-signup-email" className="text-sm font-medium text-zinc-300">{t('Email manzili')}</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input id="entry-signup-email" type="email" autoComplete="email" required value={regLogin} onChange={e => { setRegLogin(e.target.value.toLowerCase()); setTasdiqlashId(null); setRegKod(''); }} placeholder={t('masalan: aziz@gmail.com')}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                      />
+                  <div className="entry-field">
+                    <label htmlFor="entry-signup-email">{t('Email manzili')}</label>
+                    <div className="entry-input-wrap">
+                      <Mail aria-hidden="true" size={17} />
+                      <input id="entry-signup-email" type="email" autoComplete="email" required value={regLogin} onChange={e => { setRegLogin(e.target.value.toLowerCase()); setTasdiqlashId(null); setRegKod(''); }} placeholder={t('masalan: aziz@gmail.com')} className={field} />
                     </div>
                   </div>
-                  {tasdiqlashId && <div className="space-y-1.5">
-                    <label htmlFor="email-tasdiqlash-kodi" className="text-sm font-medium text-zinc-300">{t('Email tasdiqlash kodi')}</label>
-                    <input id="email-tasdiqlash-kodi" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={regKod} onChange={e => setRegKod(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600" />
-                    <button type="button" disabled={loading} onClick={() => { setTasdiqlashId(null); setRegKod(''); }} className="text-xs text-indigo-300 hover:text-indigo-200">{t('Kodni qayta yuborish')}</button>
+                  {tasdiqlashId && <div className="entry-field">
+                    <label htmlFor="email-tasdiqlash-kodi">{t('Email tasdiqlash kodi')}</label>
+                    <input id="email-tasdiqlash-kodi" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={regKod} onChange={e => setRegKod(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" className={`${field} entry-input--code`} />
+                    <button type="button" disabled={loading} onClick={() => { setTasdiqlashId(null); setRegKod(''); }} className="entry-auth-resend">{t('Kodni qayta yuborish')}</button>
                   </div>}
-                  <div className="space-y-1.5">
-                    <label htmlFor="entry-signup-password" className="text-sm font-medium text-zinc-300">{t('Parol')} <span className="text-zinc-500">{t('(kamida 8 belgi)')}</span></label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input id="entry-signup-password" type={regParolKor ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={regParol} onChange={e => setRegParol(e.target.value)}
-                        className="w-full bg-[#0a0f1d] border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
-                      />
-                      <button type="button" onClick={() => setRegParolKor(v => !v)} aria-label={t(regParolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
-                        {regParolKor ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <div className="entry-field">
+                    <label htmlFor="entry-signup-password">{t('Parol')} <span>{t('(kamida 8 belgi)')}</span></label>
+                    <div className="entry-input-wrap">
+                      <Lock aria-hidden="true" size={17} />
+                      <input id="entry-signup-password" type={regParolKor ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={regParol} onChange={e => setRegParol(e.target.value)} className={field} />
+                      <button type="button" onClick={() => setRegParolKor(v => !v)} aria-label={t(regParolKor ? 'Parolni yashirish' : 'Parolni ko‘rsatish')} className="entry-eye">
+                        {regParolKor ? <EyeOff size={17} /> : <Eye size={17} />}
                       </button>
                     </div>
                   </div>
-                  
+
                   <AnimatePresence>
                     {error && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-sm">
-                          {t(error)}
-                        </div>
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="entry-auth-error-wrap">
+                        <div className="entry-auth-error" role="alert">{t(error)}</div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]"
-                  >
+                  <button type="submit" disabled={loading} className="entry-auth-submit">
                     {loading ? t('Hisob ochilmoqda...') : tasdiqlashId ? t('Kodni tasdiqlash va hisob ochish') : t('Emailga kod yuborish')}
                   </button>
                 </form>
-                
-                <p className="text-xs text-zinc-500 text-center mt-6">
+
+                <p className="entry-auth-foot">
                   {t('Bepul tarif: 300 token (taxminan 150 ta F2 hujjati). Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.')}
                 </p>
               </motion.div>
