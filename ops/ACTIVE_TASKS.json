@@ -2865,7 +2865,13 @@
         "frontend/src/components/nakopitelniy/",
         "frontend/src/lib/nakopitelniy-grafik.ts",
         "frontend/src/lib/nakopitelniy-grafik.test.ts",
-        "frontend/src/i18n/lugat/qism/nakopitelniy-grafik.json"
+        "frontend/src/i18n/lugat/qism/nakopitelniy-grafik.json",
+        "frontend/src/admin/sahifalar/F2Reestr.tsx",
+        "frontend/src/admin/sahifalar/IshJoylarim.tsx",
+        "frontend/src/admin/sahifalar/BossDashboard.tsx",
+        "frontend/src/lib/f2-reestr/reestr-korinish.ts",
+        "frontend/src/lib/f2-reestr/reestr-korinish.test.ts",
+        "frontend/src/i18n/lugat/qism/reestr-bosh-korinish.json"
       ],
       "depends_on": [],
       "must_read": [
