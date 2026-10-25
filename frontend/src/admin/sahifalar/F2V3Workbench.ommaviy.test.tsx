@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { T2Qator } from '../../api/supabase';
 import { f2Indeks, smetaIndeks, type IshJoyi } from '../../lib/f2-moslash-v3/ishJoyi';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
@@ -69,11 +69,12 @@ describe('F2 import — ommaviy belgilash', () => {
 });
 
 describe('F2 import — boshqa bo‘limdagi shifr mos ◐ ommaviy tasdiqda alohida so‘raladi', () => {
-  it('«Bekor» — faqat oddiy ◐ tasdiqlanadi; «OK» — hammasi', () => {
+  it('«Bekor» — faqat oddiy ◐ tasdiqlanadi; «OK» — hammasi', async () => {
     const conf = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
     let { onIj, toolbar } = chiz('boshqa_bolim_shifr');
     fireEvent.click(toolbar().getByRole('button', { name: 'Ko‘rinadiganlarni belgilash' }));
     fireEvent.click(toolbar().getByRole('button', { name: /Tasdiqlash/ }));
+    await waitFor(() => expect(onIj).toHaveBeenCalled());
     let next = onIj.mock.calls[0][0] as IshJoyi;
     expect(next.bog.get('a')?.holat).toBe('qolda');
     expect(next.bog.get('b')?.holat).toBe('taklif');
@@ -81,6 +82,7 @@ describe('F2 import — boshqa bo‘limdagi shifr mos ◐ ommaviy tasdiqda alohi
     ({ onIj, toolbar } = chiz('boshqa_bolim_shifr'));
     fireEvent.click(toolbar().getByRole('button', { name: 'Ko‘rinadiganlarni belgilash' }));
     fireEvent.click(toolbar().getByRole('button', { name: /Tasdiqlash/ }));
+    await waitFor(() => expect(onIj).toHaveBeenCalled());
     next = onIj.mock.calls[0][0] as IshJoyi;
     expect(next.bog.get('b')?.holat).toBe('qolda');
     expect(conf).toHaveBeenCalledTimes(2);

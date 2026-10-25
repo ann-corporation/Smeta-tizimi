@@ -1,0 +1,370 @@
+{
+ "Dublikat ogohlantirishi": {
+  "ru": "Предупреждение о дубликате",
+  "en": "Duplicate warning"
+ },
+ "Bog‘lanmagan qatorlar bor": {
+  "ru": "Есть несвязанные строки",
+  "en": "There are unlinked rows"
+ },
+ "Yozish ma‘lumotida xato bor — xabar pastda": {
+  "ru": "Ошибка в данных для записи — сообщение ниже",
+  "en": "Error in the data to write — message below"
+ },
+ "Ko‘rsatish": {
+  "ru": "Показать",
+  "en": "Show"
+ },
+ "Dublikat nazorati to‘sig‘i: {n}": {
+  "ru": "Блокировки контроля дубликатов: {n}",
+  "en": "Duplicate-check blockers: {n}"
+ },
+ "Dublikat nazorati ogohlantirishi: {n}": {
+  "ru": "Предупреждения контроля дубликатов: {n}",
+  "en": "Duplicate-check warnings: {n}"
+ },
+ "Bog‘lanmagan qatorlar aktga kirmaydi: {n}": {
+  "ru": "Несвязанные строки не войдут в акт: {n}",
+  "en": "Unlinked rows will not enter the act: {n}"
+ },
+ "Tasdiq kutayotgan takliflar (aktga faqat tasdiqlanganlar kiradi): {n}": {
+  "ru": "Предложения, ожидающие подтверждения (в акт войдут только подтверждённые): {n}",
+  "en": "Suggestions awaiting confirmation (only confirmed ones enter the act): {n}"
+ },
+ "Smeta qoldig‘idan oshadigan qatorlar: {n}": {
+  "ru": "Строки, превышающие остаток сметы: {n}",
+  "en": "Rows exceeding the estimate remainder: {n}"
+ },
+ "Manba jami va qatorlar yig‘indisi mos emas: {n} so‘m": {
+  "ru": "Итог источника не равен сумме строк: {n} сум",
+  "en": "Source total differs from the sum of rows: {n} UZS"
+ },
+ "Serverga hali yozilmagan o‘zgarishlar: {n} — «F2 ni yozish» bosilganda hammasi bittada yoziladi": {
+  "ru": "Изменения, ещё не записанные на сервер: {n} — при нажатии «Записать F2» всё запишется разом",
+  "en": "Changes not yet written to the server: {n} — pressing “Write F2” writes them all at once"
+ },
+ "Aktga kiradigan qatorlar: {n}": {
+  "ru": "Строки, входящие в акт: {n}",
+  "en": "Rows entering the act: {n}"
+ },
+ "Obyektni tanlang va F2 faylni yuklang": {
+  "ru": "Выберите объект и загрузите файл F2",
+  "en": "Choose an object and upload the F2 file"
+ },
+ "Aktga kiradi: {n}": {
+  "ru": "Войдёт в акт: {n}",
+  "en": "Enters the act: {n}"
+ },
+ "Qatorlarni bog‘lang": {
+  "ru": "Свяжите строки",
+  "en": "Link the rows"
+ },
+ "Fayl yuklangach ochiladi": {
+  "ru": "Откроется после загрузки файла",
+  "en": "Opens after the file is loaded"
+ },
+ "Yozildi": {
+  "ru": "Записано",
+  "en": "Written"
+ },
+ "Tekshiruv → yozish": {
+  "ru": "Проверка → запись",
+  "en": "Check → write"
+ },
+ "yozishdan oldin": {
+  "ru": "перед записью",
+  "en": "before writing"
+ },
+ "To‘siq: {n}": {
+  "ru": "Блокировки: {n}",
+  "en": "Blockers: {n}"
+ },
+ "Ogohlantirish: {n}": {
+  "ru": "Предупреждения: {n}",
+  "en": "Warnings: {n}"
+ },
+ "Tayyor": {
+  "ru": "Готово",
+  "en": "Ready"
+ },
+ "Tekshiriladigan narsa yo‘q — qatorlar hisoblanmoqda.": {
+  "ru": "Проверять нечего — строки считаются.",
+  "en": "Nothing to check — rows are being calculated."
+ },
+ "Aniq mos": {
+  "ru": "Точное совпадение",
+  "en": "Exact match"
+ },
+ "Oldingi qaror": {
+  "ru": "Прежнее решение",
+  "en": "Earlier decision"
+ },
+ "Siz bog‘ladingiz": {
+  "ru": "Вы связали",
+  "en": "You linked it"
+ },
+ "Taklif — tasdiqlang": {
+  "ru": "Предложение — подтвердите",
+  "en": "Suggestion — confirm"
+ },
+ "Aktga kirmaydi": {
+  "ru": "В акт не входит",
+  "en": "Not in the act"
+ },
+ "Ha, hammasini tasdiqlash": {
+  "ru": "Да, подтвердить все",
+  "en": "Yes, confirm all"
+ },
+ "Faqat qolganlarini": {
+  "ru": "Только остальные",
+  "en": "Only the others"
+ },
+ "Mos topildi": {
+  "ru": "Найдено соответствие",
+  "en": "Matched"
+ },
+ "Smeta qatoriga bog‘langan: tizim topgan, oldingi qaror yoki operator tasdiqlagan": {
+  "ru": "Связано со строкой сметы: найдено системой, прежнее решение или подтверждено оператором",
+  "en": "Linked to an estimate row: found by the system, an earlier decision or confirmed by the operator"
+ },
+ "Taklif — tasdiq kutmoqda": {
+  "ru": "Предложение — ждёт подтверждения",
+  "en": "Suggestion — awaiting confirmation"
+ },
+ "Tizim taklif qildi, lekin operator hali tasdiqlamadi": {
+  "ru": "Система предложила, но оператор ещё не подтвердил",
+  "en": "The system suggested it, but the operator has not confirmed yet"
+ },
+ "Smetada mos qator yo‘q — bog‘lang, zamena yoki qo‘shimcha qiling": {
+  "ru": "В смете нет подходящей строки — свяжите, сделайте замену или дополнительную",
+  "en": "No matching estimate row — link it, or make a replacement or an addition"
+ },
+ "Smeta qatori o‘rniga bajarilgan (yangi qator, eskisi o‘zgarmaydi)": {
+  "ru": "Выполнено вместо строки сметы (новая строка, прежняя не меняется)",
+  "en": "Done instead of an estimate row (a new row; the old one is unchanged)"
+ },
+ "Qo‘shimcha": {
+  "ru": "Дополнительная",
+  "en": "Addition"
+ },
+ "Smetada yo‘q ish yoki resurs — smetaga qo‘shimcha qilib yoziladi": {
+  "ru": "Работа или ресурс, которых нет в смете — записывается в смету как дополнительная",
+  "en": "Work or resource missing from the estimate — written into the estimate as an addition"
+ },
+ "Aktga kiritilmaydi": {
+  "ru": "В акт не вносится",
+  "en": "Not entered in the act"
+ },
+ "Ataylab chiqarilgan (masalan podval izohi)": {
+  "ru": "Намеренно исключено (например, примечание подвала)",
+  "en": "Deliberately excluded (e.g. a footer note)"
+ },
+ "Moslik sifati": {
+  "ru": "Качество соответствия",
+  "en": "Match quality"
+ },
+ "F2 qatorlari smeta bilan qanchalik bog‘langan": {
+  "ru": "Насколько строки F2 связаны со сметой",
+  "en": "How well the F2 rows are linked to the estimate"
+ },
+ "Mos topilganlar: tizim {a} · oldingi qaror {b} · operator {c}": {
+  "ru": "Найдено: система {a} · прежнее решение {b} · оператор {c}",
+  "en": "Matched: system {a} · earlier decision {b} · operator {c}"
+ },
+ "navbatda": {
+  "ru": "в очереди",
+  "en": "queued"
+ },
+ "bajarilmoqda…": {
+  "ru": "выполняется…",
+  "en": "in progress…"
+ },
+ "tayyor": {
+  "ru": "готово",
+  "en": "done"
+ },
+ "o‘tkazildi": {
+  "ru": "пропущено",
+  "en": "skipped"
+ },
+ "Qadamda xato chiqdi — pastda sababi ko‘rsatilgan.": {
+  "ru": "Ошибка на шаге — причина указана ниже.",
+  "en": "A step failed — the reason is shown below."
+ },
+ "Hammasi yozildi.": {
+  "ru": "Всё записано.",
+  "en": "Everything has been written."
+ },
+ "Har qadam shu yerda ko‘rinadi; sahifani yopmang.": {
+  "ru": "Каждый шаг виден здесь; не закрывайте страницу.",
+  "en": "Every step is shown here; do not close the page."
+ },
+ "Yozish qadamlari": {
+  "ru": "Шаги записи",
+  "en": "Writing steps"
+ },
+ "Qadam tafsilotlari": {
+  "ru": "Подробности шагов",
+  "en": "Step details"
+ },
+ "Resurs (RS)": {
+  "ru": "Ресурс (RS)",
+  "en": "Resource (RS)"
+ },
+ "Material (MAT)": {
+  "ru": "Материал (MAT)",
+  "en": "Material (MAT)"
+ },
+ "Uskuna (OB)": {
+  "ru": "Оборудование (OB)",
+  "en": "Equipment (OB)"
+ },
+ "Zamena — \"{nom}\" o‘rniga": {
+  "ru": "Замена — вместо «{nom}»",
+  "en": "Replacement — instead of “{nom}”"
+ },
+ "Qo‘shimcha ish — \"{nom}\" ostiga": {
+  "ru": "Дополнительная работа — под «{nom}»",
+  "en": "Additional work — under “{nom}”"
+ },
+ "Resurs qo‘shish — \"{nom}\" ostiga": {
+  "ru": "Добавить ресурс — под «{nom}»",
+  "en": "Add a resource — under “{nom}”"
+ },
+ "Joyi: «{nom}» dan keyin": {
+  "ru": "Место: после «{nom}»",
+  "en": "Position: after “{nom}”"
+ },
+ "Joyi: ota qator oxirida": {
+  "ru": "Место: в конце родительской строки",
+  "en": "Position: at the end of the parent row"
+ },
+ "Joyi: birinchi o‘rinda": {
+  "ru": "Место: первым",
+  "en": "Position: first"
+ },
+ "Joyi: tanlangan qatordan keyin": {
+  "ru": "Место: после выбранной строки",
+  "en": "Position: after the selected row"
+ },
+ "Qo‘shimcha ish": {
+  "ru": "Дополнительная работа",
+  "en": "Additional work"
+ },
+ "Qo‘shimcha resurs": {
+  "ru": "Дополнительный ресурс",
+  "en": "Additional resource"
+ },
+ "Nom, birlik va sabab majburiy.": {
+  "ru": "Название, единица и причина обязательны.",
+  "en": "Name, unit and reason are required."
+ },
+ "Hajm 0 dan farqli son bo‘lishi shart (minus ham mumkin — norma tuzatuvchi ish).": {
+  "ru": "Объём должен быть числом, отличным от 0 (минус допустим — корректирующая норму работа).",
+  "en": "Quantity must be a non-zero number (negative is allowed — a norm-correcting work)."
+ },
+ "Tarmoq xatosi — qayta urinib ko‘ring.": {
+  "ru": "Ошибка сети — повторите попытку.",
+  "en": "Network error — try again."
+ },
+ "Almashtirilayotgan": {
+  "ru": "Заменяется",
+  "en": "Being replaced"
+ },
+ "Pozitsiya turi": {
+  "ru": "Тип позиции",
+  "en": "Position type"
+ },
+ "Ish (resurssiz)": {
+  "ru": "Работа (без ресурсов)",
+  "en": "Work (no resources)"
+ },
+ "Material («С», kategoriya birlikdan)": {
+  "ru": "Материал («С», категория по единице)",
+  "en": "Material (“С”, category from the unit)"
+ },
+ "Uskuna / oborudovaniye": {
+  "ru": "Оборудование",
+  "en": "Equipment"
+ },
+ "Kod (ixtiyoriy)": {
+  "ru": "Код (необязательно)",
+  "en": "Code (optional)"
+ },
+ "Hajm (ixtiyoriy)": {
+  "ru": "Объём (необязательно)",
+  "en": "Quantity (optional)"
+ },
+ "F2 dagi {n} ta resurs ham shu ish ostida birga yaratiladi va bog‘lanadi (bitta amal).": {
+  "ru": "Ресурсы из F2 ({n}) создаются и связываются под этой работой одной операцией.",
+  "en": "The {n} resources from F2 are created and linked under this work in a single operation."
+ },
+ "Yaratish va bog‘lash": {
+  "ru": "Создать и связать",
+  "en": "Create and link"
+ },
+ "F2 yozish — qotgan": {
+  "ru": "Запись F2 — застряла",
+  "en": "F2 writing — stuck"
+ },
+ "F2 yozish — xato": {
+  "ru": "Запись F2 — ошибка",
+  "en": "F2 writing — error"
+ },
+ "F2 yozish tugadi": {
+  "ru": "Запись F2 завершена",
+  "en": "F2 writing finished"
+ },
+ "F2 yozilmoqda… {foiz}%": {
+  "ru": "F2 записывается… {foiz}%",
+  "en": "Writing F2… {foiz}%"
+ },
+ "Yozish ishini to‘xtatamizmi?": {
+  "ru": "Остановить запись?",
+  "en": "Stop the writing job?"
+ },
+ "To‘xtatish va tozalash": {
+  "ru": "Остановить и очистить",
+  "en": "Stop and clear"
+ },
+ "Qotib qolgan yozish ishi to‘xtatiladi va tozalanadi.": {
+  "ru": "Застрявшая запись будет остановлена и очищена.",
+  "en": "The stuck writing job will be stopped and cleared."
+ },
+ "Smetaga ALLAQACHON yozilgan qatorlar JOYIDA QOLADI — ular o‘chmaydi.": {
+  "ru": "Строки, УЖЕ записанные в смету, ОСТАЮТСЯ на месте — они не удаляются.",
+  "en": "Rows ALREADY written to the estimate STAY in place — they are not deleted."
+ },
+ "Tozalandi": {
+  "ru": "Очищено",
+  "en": "Cleared"
+ },
+ "Batafsil ko‘rsatish": {
+  "ru": "Показать подробности",
+  "en": "Show details"
+ },
+ "Yozish jarayoni": {
+  "ru": "Ход записи",
+  "en": "Writing progress"
+ },
+ "{a} / {b} qator": {
+  "ru": "{a} / {b} строк",
+  "en": "{a} / {b} rows"
+ },
+ "{n} daq. jim": {
+  "ru": "{n} мин. без движения",
+  "en": "{n} min idle"
+ },
+ "{n} daqiqadan beri siljimadi. Server ishni tashlab yuborgan bo‘lishi mumkin.": {
+  "ru": "Нет движения уже {n} мин. Сервер мог бросить задачу.",
+  "en": "No progress for {n} min. The server may have dropped the job."
+ },
+ "To‘xtatilmoqda…": {
+  "ru": "Останавливается…",
+  "en": "Stopping…"
+ },
+ "Brauzerni yopsangiz ham davom etadi.": {
+  "ru": "Продолжится, даже если закрыть браузер.",
+  "en": "It continues even if you close the browser."
+ }
+}
