@@ -160,7 +160,7 @@ export function sbQatorHolatOl(obyektId: number) {
 /** Tasdiqlanmagan (qoralama) F2 aktlaridagi hajmlar: qator_id -> jami hajm (ikki marta F2 qilish xavfini ko'rsatish uchun). */
 export async function sbF2QoralamaHajmlar(obyektId: number): Promise<{ ok: boolean; hajm: Map<number, number>; aktSoni: number }> {
   const bosh = { ok: false, hajm: new Map<number, number>(), aktSoni: 0 };
-  const a = await sbOqi<{ id: number }>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&holat=eq.qoralama`, ustunlar: 'id', limit: 500 });
+  const a = await sbOqi<{ id: number }>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.f2&holat=eq.qoralama`, ustunlar: 'id', limit: 500 }); // faqat F2 qoralamalari (fakt qoralamasi o'zini ayirmasin)
   if (!a.ok) return bosh;
   const ids = (a.qatorlar || []).map((x) => x.id).filter((x) => Number.isSafeInteger(x));
   if (!ids.length) return { ok: true, hajm: new Map(), aktSoni: 0 };
