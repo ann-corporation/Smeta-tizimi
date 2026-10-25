@@ -45,6 +45,7 @@ import { foundationReference } from '../../lib/smeta-ai/normative-reference';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
 import { smetachiSuhbat, smetachiTanla, smetaTajribaYoz, smetaXotirasi, smetaXotiraYoz, type XotiraDaraja, type XotiraYozuv } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
+import { AgentAmallar, AgentQadamlar, AgentXabarlar } from '../../umumiy/ui/ai-yordamchi/AgentQismlar';
 
 const XATO: Record<string, string> = {
   AI_NOT_CONFIGURED: 'AI hali sozlanmagan (Cloudflare’da AI kaliti yo‘q).',
@@ -315,12 +316,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         <p>{t('Masalan:')} <button type="button" className="underline" onClick={() => setMatn(t('Lentali fundament qilindi: kotlovan qazildi, podbetonka quyildi, armatura to‘qildi, beton B20 quyildi. Uzunligi 48 m, kengligi 0,6 m, balandligi 1,2 m.'))}>
           {t('Lentali fundament qilindi: kotlovan qazildi, podbetonka quyildi, armatura to‘qildi, beton B20 quyildi. Uzunligi 48 m, kengligi 0,6 m, balandligi 1,2 m.')}</button></p>
       </div>}
-      {xabarlar.map((x, i) => <div key={i} className={x.rol === 'user' ? 'ml-8 rounded-lg bg-accent/10 px-2 py-1.5' : 'mr-8 whitespace-pre-line rounded-lg bg-surface-2 px-2 py-1.5'}>{x.matn}</div>)}
-      {qadamlar.length > 0 && <details open={!!band} className="mr-8 rounded-lg border border-border/70 bg-surface-1 px-2 py-1 text-[11.5px]">
-        <summary className="cursor-pointer text-text-dim">{band ? t('Smetachi ishlayapti — {n} qadam', { n: qadamlar.length }) : t('Smetachi nima qildi ({n} qadam)', { n: qadamlar.length })}</summary>
-        <ol className="mt-1 space-y-0.5">{qadamlar.map((q, i) => <li key={i} className={`flex gap-1.5 ${q.holat === 'xato' ? 'text-danger' : q.holat === 'savol' ? 'text-warn' : 'text-text-dim'}`}>
-          <span className="shrink-0 w-3">{q.holat === 'ishda' && band ? '⏳' : q.holat === 'xato' ? '✗' : q.holat === 'savol' ? '?' : '✓'}</span><span>{q.matn}</span></li>)}</ol>
-      </details>}
+      <AgentXabarlar xabarlar={xabarlar} />
+      <AgentQadamlar qadamlar={qadamlar} band={!!band} sarlavha={(n, ishda) => ishda ? t('Smetachi ishlayapti — {n} qadam', { n }) : t('Smetachi nima qildi ({n} qadam)', { n })} />
       <div ref={oxir} />
     </div>
     <form className="flex flex-wrap items-end gap-2" onSubmit={e => { e.preventDefault(); void yubor(); }}>
@@ -365,19 +362,9 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     {!ilova && doimiy && <p className="text-xs text-text-dim">📎 {doimiy.nom} — {t('suhbatga biriktirilgan, har xabarda AI ga beriladi')}
       <button type="button" className="ml-1 underline text-text-mute" onClick={() => setDoimiy(null)}>{t('olib tashlash')}</button></p>}
     {ilova && <p className="text-xs text-accent">📎 {ilova.nom} <button type="button" className="ml-1 underline text-text-mute" onClick={() => setIlova(null)}>{t('olib tashlash')}</button></p>}
-    {amallar.length > 0 && <div className="karta space-y-1 p-2 text-[12px]">
-      <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI taklif qilgan amallar')}</strong>
-      {amallar.map((a, i) => <label key={i} className="flex items-start gap-2">
-        <input type="checkbox" className="mt-0.5" checked={a.tanlangan} onChange={e => setAmallar(l => l.map((x, j) => (j === i ? { ...x, tanlangan: e.target.checked } : x)))} />
-        <span><b>{t(AMAL_NOMI[a.tur])}</b>{a.ish ? ` · ${a.ish}` : ''}{a.qiymat ? ` · ${a.qiymat}` : ''}{a.manba ? ` · ${a.manba}` : ''}
-          {a.izoh && <span className="block text-[11px] text-text-mute">{a.izoh}</span>}
-          {a.ogoh && <span className="block text-[11px] text-warn">{a.ogoh}</span>}</span>
-      </label>)}
-      <div className="flex gap-2">
-        <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={!!band || !amallar.some(a => a.tanlangan)} onClick={() => void bajar()}>{t('Bajarish')}</button>
-        <button type="button" className="tugma h-8 px-3 text-[12px]" onClick={() => setAmallar([])}>{t('Bekor qilish')}</button>
-      </div>
-    </div>}
+    <AgentAmallar band={!!band} onBajar={() => void bajar()} onBekor={() => setAmallar([])}
+      onTanla={(i, v) => setAmallar(l => l.map((x, j) => (j === i ? { ...x, tanlangan: v } : x)))}
+      amallar={amallar.map(a => ({ nom: t(AMAL_NOMI[a.tur]), tafsilot: `${a.ish ? ` · ${a.ish}` : ''}${a.qiymat ? ` · ${a.qiymat}` : ''}${a.manba ? ` · ${a.manba}` : ''}`, izoh: a.izoh, ogoh: a.ogoh, tanlangan: a.tanlangan }))} />
 
     {ishlar.length > 0 && <div className="karta overflow-hidden p-0">
       <div className="flex items-center gap-2 border-b border-border bg-surface-2/60 px-2 py-1.5">

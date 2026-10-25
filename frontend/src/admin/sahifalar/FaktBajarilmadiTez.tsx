@@ -5,7 +5,9 @@ import { BAJARILMADI_SABABLAR, bajarilmadiBelgila, bajarilmadiXato, type Bajaril
 import { bajarilmadiTaklif } from '../../lib/fakt-studio';
 import { t } from '../../i18n/til';
 
-export type BajarilmadiQatorInfo = { id: number; kod: string | null; nom: string; birlik: string | null; smeta: number | null; fakt: number; belgilangan: number };
+export type BajarilmadiQatorInfo = { id: number; kod: string | null; nom: string; birlik: string | null; smeta: number | null; fakt: number; belgilangan: number;
+  /** Oldindan to'ldiriladigan hajm (masalan AI yordamchi taklifi); yo'q bo'lsa — qoldiq taklifi. */
+  boshlangichHajm?: number | null };
 
 /**
  * Fakt kiritish paytida joyida: «bu hajm bajarilmaydi / qilib bo'lmaydi» (sabab bilan). Mavjud bajarilmadi qatlamiga
@@ -17,7 +19,7 @@ export function FaktBajarilmadiTez({ kompaniyaId, obyektId, sana, qator, onYop, 
   onYop: () => void; onSaqlandi: (xabar: string) => void;
 }) {
   const taklif = bajarilmadiTaklif(qator.smeta, qator.fakt, qator.belgilangan);
-  const [hajm, setHajm] = useState(taklif != null && taklif > 0 ? String(taklif) : '');
+  const [hajm, setHajm] = useState(qator.boshlangichHajm != null && qator.boshlangichHajm > 0 ? String(qator.boshlangichHajm) : taklif != null && taklif > 0 ? String(taklif) : '');
   const [sabab, setSabab] = useState<BajarilmadiSabab>('texnik_sabab');
   const [izoh, setIzoh] = useState('');
   const [band, setBand] = useState(false);
