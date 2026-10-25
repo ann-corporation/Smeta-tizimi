@@ -1,0 +1,98 @@
+{
+ "Manbani o‘chirish": {
+  "ru": "Удалить источник",
+  "en": "Remove source"
+ },
+ "Kuchsiz model": {
+  "ru": "Слабая модель",
+  "en": "Weak model"
+ },
+ "Baribir tanlash": {
+  "ru": "Всё равно выбрать",
+  "en": "Choose anyway"
+ },
+ "Muddat o‘tgan": {
+  "ru": "Срок прошёл",
+  "en": "Overdue"
+ },
+ "AI ishchilar (agentlar)": {
+  "ru": "ИИ-сотрудники (агенты)",
+  "en": "AI workers (agents)"
+ },
+ "Agent xulosasi": {
+  "ru": "Вывод агента",
+  "en": "Agent conclusion"
+ },
+ "Ko‘rib chiqishga": {
+  "ru": "На рассмотрение",
+  "en": "For review"
+ },
+ "Tizim yordamchisi javobi": {
+  "ru": "Ответ системного помощника",
+  "en": "System helper answer"
+ },
+ "Doiradan tashqari": {
+  "ru": "Вне рамок",
+  "en": "Out of scope"
+ },
+ "Javob shu ma’lumot toifasiga tayangan": {
+  "ru": "Ответ опирается на эту категорию данных",
+  "en": "The answer relies on this data category"
+ },
+ "AI taklif qilgan amal": {
+  "ru": "Действие, предложенное ИИ",
+  "en": "Action proposed by AI"
+ },
+ "Xavf darajasi": {
+  "ru": "Уровень риска",
+  "en": "Risk level"
+ },
+ "Modelga yuborilgan matn (savol, kontekst, qoidalar)": {
+  "ru": "Текст, отправленный модели (вопрос, контекст, правила)",
+  "en": "Text sent to the model (question, context, rules)"
+ },
+ "Kirdi": {
+  "ru": "Вход",
+  "en": "In"
+ },
+ "Model yozgan javob": {
+  "ru": "Ответ, написанный моделью",
+  "en": "Answer written by the model"
+ },
+ "Chiqdi": {
+  "ru": "Выход",
+  "en": "Out"
+ },
+ "Limit yo‘q — AI ishlamaydi": {
+  "ru": "Лимита нет — ИИ не работает",
+  "en": "No limit — AI is off"
+ },
+ "Limit ichida": {
+  "ru": "В пределах лимита",
+  "en": "Within limit"
+ },
+ "Limitga yaqin": {
+  "ru": "Близко к лимиту",
+  "en": "Near the limit"
+ },
+ "Limit tugadi": {
+  "ru": "Лимит исчерпан",
+  "en": "Limit reached"
+ },
+ "token noma’lum": {
+  "ru": "токены неизвестны",
+  "en": "tokens unknown"
+ },
+ "{n} mln token": {
+  "ru": "{n} млн токенов",
+  "en": "{n}M tokens"
+ },
+ "{n} ming token": {
+  "ru": "{n} тыс. токенов",
+  "en": "{n}K tokens"
+ },
+ "{n} token": {
+  "ru": "{n} токенов",
+  "en": "{n} tokens"
+ }
+}

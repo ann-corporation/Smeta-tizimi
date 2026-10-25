@@ -56,7 +56,7 @@ export function AiShaxsiy({ kasb, kuzatuvYoqilgan, kuzatuvAlmashtir }: { kasb: K
             </select>
           </label>
         </div>
-        <button type="button" onClick={() => void saqla()} className="rounded-md bg-accent px-3 py-1.5 text-xs text-white">{t('Saqlash')}</button>
+        <button type="button" onClick={() => void saqla()} className="fz-btn fz-btn--primary fz-btn--sm">{t('Saqlash')}</button>
       </fieldset>
 
       <AiUslub />

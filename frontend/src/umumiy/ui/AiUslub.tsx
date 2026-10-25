@@ -47,8 +47,8 @@ export function AiUslub() {
         <span><b className="text-text">{t('Uslubimni o‘rgansin')}</b><br /><span className="text-[11px] text-text-dim">{t('O‘chirsangiz, o‘rganilgan belgilar ham o‘chiriladi va yangi belgi yig‘ilmaydi.')}</span></span>
       </label>
       <div className="mt-2 flex gap-2">
-        <button type="button" onClick={() => void saqla()} className="rounded-md bg-accent px-3 py-1.5 text-xs text-white">{t('Saqlash')}</button>
-        <button type="button" onClick={() => void tozala()} className="rounded-md border border-border px-3 py-1.5 text-xs text-text-dim hover:bg-white/5">{t('O‘rganilganni tozalash')}</button>
+        <button type="button" onClick={() => void saqla()} className="fz-btn fz-btn--primary fz-btn--sm">{t('Saqlash')}</button>
+        <button type="button" onClick={() => void tozala()} className="fz-btn fz-btn--ghost fz-btn--sm">{t('O‘rganilganni tozalash')}</button>
       </div>
     </section>
   );
