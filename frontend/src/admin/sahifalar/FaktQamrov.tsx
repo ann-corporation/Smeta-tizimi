@@ -5,6 +5,7 @@ import { sbFaktYoz } from '../../api/t2-fakt';
 import type { AktBekorFn } from '../../lib/fakt-f2-tenglash';
 import type { JurnalHolat, JurnalIsh } from '../../lib/fakt-jurnal';
 import { QAMROV_ISTISNOLAR, foizOqi, qamrovBolaklari, qamrovJami, qamrovReja, type QamrovIstisno } from '../../lib/fakt-qamrov';
+import { urinishAktlari, urinishHolati, urinishOchiqmi, urinishOchir, urinishOl, urinishReceipt, urinishSaqla, urinishYarat, type QamrovUrinish } from '../../lib/fakt-qamrov-urinish';
 import { t } from '../../i18n/til';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { toast } from '../../umumiy/ui/Toast';
@@ -34,7 +35,13 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
   const [ichki, setIchki] = useState(true);
   const [chiqarilgan, setChiqarilgan] = useState<Set<number>>(new Set());
   const [band, setBand] = useState(false);
-  const opIdlar = useRef<string[]>([]);
+  /**
+   * Hal bo'lmagan urinish (JQA-04/08): snapshot modal tashqarisida (reestr + localStorage) yashaydi — oyna yopilib qayta
+   * ochilsa ham, foiz o'zgartirilsa ham XUDDI SHU bo'laklar xuddi shu UUID'lar bilan qayta yuboriladi; yangi urinish —
+   * faqat eskisi to'liq tasdiqlangach.
+   */
+  const [urinish, setUrinish] = useState<QamrovUrinish | null>(() => { const u = urinishOl(kompaniyaId, obyektId); return urinishOchiqmi(u) ? u : null; });
+  const urinishRef = useRef(urinish);
   const foiz = foizOqi(foizMatn);
   const reja = useMemo(() => qamrovReja(ishlar, foiz ?? 0, holatMap, { ichkiResurslar: ichki, narxOl }), [ishlar, foiz, holatMap, ichki, narxOl]);
   const jami = useMemo(() => qamrovJami(reja, chiqarilgan), [reja, chiqarilgan]);
@@ -49,44 +56,67 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
     return n;
   });
 
-  const yoz = async () => {
-    if (band || foiz == null || !jami.paket.length) return;
-    setBand(true);
-    const bolaklar = qamrovBolaklari(jami.paket);
-    const aktlar: number[] = [];
-    const bekorQil = () => {
-      void Promise.all(aktlar.map((a) => aktBekor(a))).then((natija) => {
-        const xato = natija.filter((b) => !b.ok);
-        if (xato.length) toast(xato[0].error || t('Bekor qilinmadi.'), 'danger');
-        else toast(t('Qamrov % bekor qilindi.'), 'ok');
-        void onBajarildi();
-      });
-    };
-    try {
-      for (let i = 0; i < bolaklar.length; i++) {
-        opIdlar.current[i] ??= yangiOperationId(); // qayta urinishda ayni ID — server ikkinchi hujjat yaratmaydi
-        const r = await sbFaktYoz({ obyektId, sana, operationId: opIdlar.current[i], qatorlar: bolaklar[i],
-          izoh: `Qamrov ${foiz}%: ${sarlavha}`.slice(0, 480) + (bolaklar.length > 1 ? ` (${i + 1}/${bolaklar.length})` : '') });
-        if (!r.ok) {
-          toast(`${r.error || r.xabar || t('Fakt saqlanmadi.')}${aktlar.length ? ` — ${t('yozilgani')}: ${aktlar.length}/${bolaklar.length}` : ''}`, 'danger', undefined, 15000,
-            aktlar.length ? { label: 'Bekor qilish', onClick: bekorQil } : undefined);
-          if (aktlar.length) void onBajarildi();
-          return;
-        }
-        if (r.akt_id) aktlar.push(r.akt_id);
-      }
-      toast(t('Qamrov {foiz}%: {n} qator faktga yozildi', { foiz: String(foiz), n: String(jami.paket.length) }), 'ok', undefined, 15000,
-        aktlar.length ? { label: 'Bekor qilish', onClick: bekorQil } : undefined);
-      onYop();
-      await onBajarildi();
-    } catch { toast(t('Javob olinmadi. Qayta urining — takror xavfsiz (bir xil amal ID).'), 'danger'); }
-    finally { setBand(false); }
+  const bekorQil = (aktlar: readonly number[]) => () => {
+    void Promise.all(aktlar.map((a) => aktBekor(a))).then((natija) => {
+      const xato = natija.filter((b) => !b.ok);
+      if (xato.length) toast(xato[0].error || t('Bekor qilinmadi.'), 'danger');
+      else toast(t('Qamrov % bekor qilindi.'), 'ok');
+      void onBajarildi();
+    });
   };
+  const urinishQoy = (u: QamrovUrinish | null) => { urinishRef.current = u; setUrinish(u); if (u) urinishSaqla(u); else urinishOchir(kompaniyaId, obyektId); };
+
+  /**
+   * Yozish. Hal bo'lmagan urinish bo'lsa — joriy forma e'tiborga olinmaydi, o'sha snapshot (hamma bo'lagi, shu UUID'lar)
+   * qayta yuboriladi: server tasdiqlangan bo'lakka eski aktni (takror) qaytaradi, yozilmaganini yozadi. Aks holda birinchi
+   * so'rovdan OLDIN yangi snapshot muzlatilib saqlanadi. Har bo'lak javobi receipt sifatida darhol saqlanadi.
+   */
+  const yoz = async () => {
+    if (band) return;
+    let u = urinishRef.current;
+    if (!u) {
+      if (foiz == null || !jami.paket.length) return;
+      u = urinishYarat({ kompaniyaId, obyektId, sana, sarlavha, foiz }, qamrovBolaklari(jami.paket), yangiOperationId);
+    }
+    setBand(true);
+    urinishQoy(u);
+    try {
+      for (let i = 0; i < u.bolaklar.length; i++) {
+        const b = u.bolaklar[i];
+        let r: Parameters<typeof urinishReceipt>[2];
+        try { r = await sbFaktYoz({ obyektId: u.obyektId, sana: u.sana, operationId: b.operationId, qatorlar: [...b.qatorlar], izoh: b.izoh }); }
+        catch { r = { tashlandi: true }; }
+        u = urinishReceipt(u, i, r);
+        urinishQoy(u);
+      }
+      const aktlar = urinishAktlari(u);
+      const holat = urinishHolati(u);
+      const qatorSoni = u.bolaklar.reduce((s, b) => s + b.qatorlar.length, 0);
+      if (holat === 'toliq') {
+        urinishQoy(null);
+        toast(t('Qamrov {foiz}%: {n} qator faktga yozildi', { foiz: String(u.foiz), n: String(qatorSoni) }), 'ok', undefined, 15000,
+          aktlar.length ? { label: 'Bekor qilish', onClick: bekorQil(aktlar) } : undefined);
+        onYop();
+        await onBajarildi();
+        return;
+      }
+      const birinchi = u.bolaklar.find((b) => b.holat !== 'confirmed');
+      const tasdiq = u.bolaklar.filter((b) => b.holat === 'confirmed').length;
+      toast(`${holat === 'nomalum' ? t('Javob olinmadi — amal serverda bajarilgan bo‘lishi mumkin. «Qayta yuborish» xuddi shu amalni (bir xil ID) yuboradi, ikkinchi hujjat yaratilmaydi.') : birinchi?.xato || t('Fakt saqlanmadi.')}${tasdiq ? ` — ${t('yozilgani')}: ${tasdiq}/${u.bolaklar.length}` : ''}`,
+        'danger', undefined, 15000, aktlar.length ? { label: 'Bekor qilish', onClick: bekorQil(aktlar) } : undefined);
+      if (aktlar.length) void onBajarildi();
+    } finally { setBand(false); }
+  };
+  /** Faqat aniq rad etilgan (unknown yo'q) urinishni tashlash — yangi urinishga yo'l ochiladi. */
+  const urinishniTashla = () => { if (urinish && urinishHolati(urinish) !== 'nomalum') urinishQoy(null); };
 
   useHotkeys('fakt-qamrov', t('Qamrov % oynasi'), [
     { id: 'fakt-qamrov.yop', keys: 'esc', nom: t('Yopish'), inInput: true, run: () => { onYop(); } },
-    { id: 'fakt-qamrov.yoz', keys: ['ctrl+enter'], nom: t('Faktga yozish'), inInput: true, run: () => { if (!jami.paket.length) return false; void yoz(); } },
+    { id: 'fakt-qamrov.yoz', keys: ['ctrl+enter'], nom: t('Faktga yozish'), inInput: true, run: () => { if (!urinish && !jami.paket.length) return false; void yoz(); } },
   ]);
+  const uHolat = urinish ? urinishHolati(urinish) : null;
+  const uAktlar = urinish ? urinishAktlari(urinish) : [];
+  const BOLAK_HOLAT: Record<string, string> = { confirmed: 'tasdiqlandi', failed: 'rad etildi', unknown: 'noma’lum', kutmoqda: 'kutmoqda' };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={t('Qamrov %')}>
@@ -99,14 +129,23 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
           <button type="button" onClick={onYop} aria-label={t('Yopish')} className="rounded p-1 text-text-mute hover:text-text"><X size={16} /></button>
         </div>
 
+        {urinish && <div className="rounded-lg border border-warn/60 bg-warn/10 px-3 py-2 text-[12px]" role="alert" data-testid="qamrov-urinish">
+          <p className="font-semibold text-text">{uHolat === 'nomalum' ? t('Oldingi urinish natijasi noma’lum — avval shuni hal qiling') : t('Oldingi urinish to‘liq yozilmadi — avval shuni hal qiling')}</p>
+          <p className="text-text-dim">{t('Qamrov')}: {urinish.sarlavha} · {urinish.foiz}% · {t('Sana')}: {urinish.sana} · {t('bo‘laklar')}: {urinish.bolaklar.map((b, i) => `${i + 1}:${t(BOLAK_HOLAT[b.holat])}${b.aktId != null ? ` (№${b.aktId})` : ''}`).join(', ')}</p>
+          <p className="text-text-dim">{t('«Qayta yuborish» xuddi shu amalni bir xil ID bilan yuboradi — server yozilganini qaytadan yozmaydi. Foizni o‘zgartirish bu urinish hal bo‘lgach mumkin.')}</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {uAktlar.length > 0 && <button type="button" className="tugma" onClick={bekorQil(uAktlar)} data-testid="urinish-bekor">{t('Yozilgan {n} hujjatni bekor qilish', { n: String(uAktlar.length) })}</button>}
+            {uHolat !== 'nomalum' && <button type="button" className="tugma" onClick={urinishniTashla} data-testid="urinish-tashla">{t('Urinishni tashlash (yangisiga yo‘l)')}</button>}
+          </div>
+        </div>}
         <div className="flex flex-wrap items-center gap-3 text-[12px]">
           <label className="flex items-center gap-2 font-medium text-text-dim">{t('Bajarilish foizi')}
-            <input autoFocus value={foizMatn} onChange={(e) => setFoizMatn(e.target.value)} onFocus={(e) => e.currentTarget.select()} inputMode="decimal"
+            <input autoFocus value={foizMatn} disabled={!!urinish} onChange={(e) => setFoizMatn(e.target.value)} onFocus={(e) => e.currentTarget.select()} inputMode="decimal"
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.ctrlKey) { e.preventDefault(); void yoz(); } }}
               aria-label={t('Bajarilish foizi')} className={`input h-8 w-20 px-2 text-right font-mono ${foiz == null ? 'border-warn' : ''}`} />%</label>
-          <div className="flex gap-1">{[25, 50, 70, 100].map((p) => <button key={p} type="button" onClick={() => setFoizMatn(String(p))}
-            className={`rounded border px-2 py-0.5 text-[11px] ${foiz === p ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:border-accent'}`}>{p}%</button>)}</div>
-          <label className="flex items-center gap-1.5 text-text-dim"><input type="checkbox" checked={ichki} onChange={(e) => setIchki(e.target.checked)} /> {t('Ish ichidagi material/uskuna ham')}</label>
+          <div className="flex gap-1">{[25, 50, 70, 100].map((p) => <button key={p} type="button" disabled={!!urinish} onClick={() => setFoizMatn(String(p))}
+            className={`rounded border px-2 py-0.5 text-[11px] disabled:opacity-50 ${foiz === p ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:border-accent'}`}>{p}%</button>)}</div>
+          <label className="flex items-center gap-1.5 text-text-dim"><input type="checkbox" checked={ichki} disabled={!!urinish} onChange={(e) => setIchki(e.target.checked)} /> {t('Ish ichidagi material/uskuna ham')}</label>
         </div>
         <p className="text-[11px] text-text-mute">{t('Har qatorga: foiz × ochiq qoldiq (smeta − fakt − almashtirilgan − bajarilmaydi). Mehnat va mashina norma bo‘yicha o‘zi ergashadi. Hech narsa bloklanmaydi.')}</p>
 
@@ -157,8 +196,8 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
           <span className="text-text-mute">{t('Sana')}: {sana}</span>
           <div className="ml-auto flex gap-2">
             <button type="button" className="tugma" onClick={onYop}>{t('Bekor')}</button>
-            <button type="button" className="tugma tugma-asosiy" disabled={band || foiz == null || jami.paket.length === 0} onClick={() => void yoz()}>
-              {band ? t('Yozilmoqda…') : t('Faktga yozish ({n})', { n: String(jami.paket.length) })} <kbd className="ml-1 rounded bg-white/20 px-1 text-[10px]">{'Ctrl+Enter'}</kbd></button>
+            <button type="button" className="tugma tugma-asosiy" disabled={band || (!urinish && (foiz == null || jami.paket.length === 0))} onClick={() => void yoz()}>
+              {band ? t('Yozilmoqda…') : urinish ? t('Faktga yozish — qayta yuborish (bir xil ID)') : t('Faktga yozish ({n})', { n: String(jami.paket.length) })} <kbd className="ml-1 rounded bg-white/20 px-1 text-[10px]">{'Ctrl+Enter'}</kbd></button>
           </div>
         </div>
       </div>

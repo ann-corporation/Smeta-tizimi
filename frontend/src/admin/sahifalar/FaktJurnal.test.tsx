@@ -93,6 +93,36 @@ describe('FaktJurnal', () => {
     expect(screen.queryByRole('dialog', { name: 'Qamrov %' })).toBeNull();
   });
 
+  it('Qamrov % (JQA-04/08): javob noma’lum → foiz o‘zgartirilsa ham, oyna yopilib qayta ochilsa ham XUDDI SHU amal (bir xil ID) qayta yuboriladi', async () => {
+    const qabul = new Set<string>(); let yozildi = 0;
+    m.yoz.mockImplementation(async (r: { operationId: string; qatorlar: { hajm: number }[] }) => {
+      if (!qabul.has(r.operationId)) { qabul.add(r.operationId); yozildi += r.qatorlar.reduce((s, q) => s + q.hajm, 0); }
+      if (m.yoz.mock.calls.length === 1) return { ok: false, error: 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin.' };
+      return { ok: true, akt_id: qabul.size, takror: m.yoz.mock.calls.length > 1 };
+    });
+    const p = props();
+    render(<FaktJurnal {...p} />);
+    fireEvent.click(screen.getByTestId('qamrov-tanlangan'));
+    fireEvent.keyDown(screen.getByLabelText('Bajarilish foizi'), { key: 'Enter' }); // 100%: Grunt 60 + Qum 10
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId('qamrov-urinish')).toBeTruthy());
+    expect(p.holatniYangila).not.toHaveBeenCalled();
+    expect((screen.getByLabelText('Bajarilish foizi') as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByTestId('urinish-tashla')).toBeNull(); // noma’lum — tashlab bo‘lmaydi, faqat qayta yuborish
+    fireEvent.change(screen.getByLabelText('Bajarilish foizi'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Yopish' }));
+    fireEvent.click(screen.getByTestId('qamrov-tanlangan')); // qayta ochildi — urinish reestrdan
+    expect(screen.getByTestId('qamrov-urinish').textContent).toMatch(/100%/);
+    fireEvent.click(screen.getByRole('button', { name: /^Faktga yozish — qayta yuborish/ }));
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(2));
+    expect(m.yoz.mock.calls[1][0]).toEqual(m.yoz.mock.calls[0][0]);
+    expect(yozildi).toBe(70); // ikki marta yozilmadi
+    await waitFor(() => expect(p.holatniYangila).toHaveBeenCalled());
+    expect(screen.queryByRole('dialog', { name: 'Qamrov %' })).toBeNull();
+    fireEvent.click(screen.getByTestId('qamrov-tanlangan')); // hal bo‘ldi — yangi urinishga yo‘l ochiq
+    expect(screen.queryByTestId('qamrov-urinish')).toBeNull();
+  });
+
   it('Qamrov %: ish qatoridagi «%» tugmasi va katakda «%» — faqat shu ish', () => {
     render(<FaktJurnal {...props()} />);
     fireEvent.keyDown(screen.getByLabelText('Bugun bajarildi: Qum'), { key: '%' });
