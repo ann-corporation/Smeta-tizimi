@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 12,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt jurnali: ish ichidagi materiallar ham ergashadi",
+      "bandlar": [
+        "Ishga fakt kiritsangiz, uning ICHIDAGI material/uskuna qatorlarida ham xira «taklif: +X» chiqadi — ish qancha foiz bajarilgan bo'lsa, material ham shu ulushda (zamena va «bajarilmaydi» qismi ayrilgan).",
+        "Ish qatoridagi «Materiallarni ham olish (n)» endi ichidagi va undan keyingi alohida materiallarni birga oladi — bitta bosish, so'ng Ctrl+S. Taklifni bosib bittalab ham olish mumkin.",
+        "Hech narsa o'zi yozilmaydi: taklif faqat kiritmaga tushadi, saqlashni o'zingiz qilasiz."
+      ]
+    },
+    {
       "id": 11,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: «Qamrov %» — bo'limni bitta foiz bilan tiklash",

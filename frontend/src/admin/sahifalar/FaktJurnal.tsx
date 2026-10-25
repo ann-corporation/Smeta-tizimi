@@ -22,7 +22,7 @@ import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalPaket, jurnalQur,
 import { zamenaBoglanishOl } from '../../lib/fakt-zamena-boglanish';
 import { almashtirildiMatn, ochiqdanOrtiqcha, ochiqQoldiq } from '../../lib/zamena-qoldiq';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
-import { ishKeyingiMateriallari, materialTaklifi } from '../../lib/fakt-material-taklif';
+import { ishMateriallari, materialTaklifi } from '../../lib/fakt-material-taklif';
 import { toast } from '../../umumiy/ui/Toast';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
 import { abcXato, ishAbcOchir, type NarxManba } from '../../api/t2-ish-abc';
@@ -162,9 +162,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const { bolimlar, bolimIshlari } = useMemo(() => jurnalQur(rows, states, zb, bajHajm), [rows, states, zb, bajHajm]);
   const summalar = useMemo(() => bolimSummalari(rows, states), [rows, states]);
   // Ishdan KEYIN turgan alohida materiallar (ota = bo'lim) — ish ulushida fakt TAKLIFI (avtomatik yozilmaydi).
-  const keyingiMat = useMemo(() => ishKeyingiMateriallari(rows), [rows]);
+  // Ish ichidagi mat/ob bolalari va ishdan keyingi alohida mat/ob — ish ulushida TAKLIF (ergashish qoidasi; avtomatik yozilmaydi).
+  const keyingiMat = useMemo(() => ishMateriallari(rows), [rows]);
   const matIshi = useMemo(() => { const m = new Map<number, number>(); for (const [ish, ms] of keyingiMat) for (const x of ms) m.set(x, ish); return m; }, [keyingiMat]);
   const jurnalById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of bolimIshlari.values()) for (const x of arr) m.set(x.id, x); return m; }, [bolimIshlari]);
+  /** Barcha jurnal qatorlari (ishlar va ularning resurslari). */
+  const barchaById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of bolimIshlari.values()) for (const x of arr) { m.set(x.id, x); for (const r of x.resurslar) m.set(r.id, r); } return m; }, [bolimIshlari]);
   const faktlar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, Number(x.fakt_hajm ?? 0)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? 0])); }, [rows, states]);
   useEffect(() => { if (bolimId == null && bolimlar.length) setBolimId(bolimlar[0].id); }, [bolimId, bolimlar]);
 
@@ -238,11 +241,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     const k = kiritmalar[q.id]; const n = k ? sonOqi(k.qiymat) : null;
     return n == null || !Number.isFinite(n) ? q.fakt : k!.rejim === '+' ? q.fakt + n : n;
   };
-  /** Alohida material uchun taklif (ish ulushida), yoki null. */
+  /** Ishga ergashadigan material (ichki yoki alohida) uchun taklif (ish ulushida; zamena/bajarilmaydi qismi ayrilgan), yoki null. */
   const matTaklifi = (matId: number): { ish: JurnalQator; hajm: number } | null => {
-    const ishId = matIshi.get(matId); const ish = ishId != null ? jurnalById.get(ishId) : undefined; const m = jurnalById.get(matId);
+    const ishId = matIshi.get(matId); const ish = ishId != null ? jurnalById.get(ishId) : undefined; const m = barchaById.get(matId);
     if (!ish || !m) return null;
-    const h = materialTaklifi(samaraliFakt(ish), ish.smeta, m.smeta, m.fakt);
+    const h = materialTaklifi(samaraliFakt(ish), ish.smeta, m.smeta, m.fakt, (m.almashtirilgan ?? 0) + (m.bajarilmaydi ?? 0));
     return h == null ? null : { ish, hajm: h };
   };
   /** Ish(lar)ning keyingi alohida materiallariga taklifni KIRITMAGA oladi (saqlash — foydalanuvchi o'zi, Ctrl+S). */
@@ -419,7 +422,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         {!ochiq && bolaSoni > 0 && <span className="shrink-0 text-[10px] text-text-mute">{t('{n} resurs', { n: String(bolaSoni) })}</span>}
         {belgilar(ish)}
         {!alohida && (() => { const n = takliflarSoni([ish.id]); return n > 0 ? <button type="button" tabIndex={-1} onClick={() => materiallarniOl([ish.id])} data-testid="materiallarni-ol"
-          title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')} aria-label={t('Materiallarni ham olish: {nom}', { nom: ish.nom })}
+          title={t('Ish ichidagi va undan keyingi materiallarga ish ulushida taklif (avtomatik yozilmaydi)')} aria-label={t('Materiallarni ham olish: {nom}', { nom: ish.nom })}
           className="shrink-0 rounded border border-accent/40 px-1 text-[10px] text-accent hover:bg-accent/10">{t('Materiallarni ham olish ({n})', { n: String(n) })}</button> : null; })()}
         {alohida && !kiritmalar[ish.id]?.qiymat.trim() && (() => { const tk = matTaklifi(ish.id); return tk ? <button type="button" tabIndex={-1} onClick={() => kirit(ish.id, { rejim: '+', qiymat: String(tk.hajm) })} data-testid="material-taklif"
           title={t('«{nom}» ishi ulushida taklif — bosing, kiritmaga olinadi', { nom: tk.ish.nom })}
@@ -446,6 +449,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       {r.kod && <span className="shrink-0 font-mono text-[10px] text-text-mute">{r.kod}</span>}
       <span className={`truncate text-[12px] ${avto ? 'text-text-mute' : 'text-text-dim'}`} title={`${r.kod ? r.kod + ' ' : ''}${r.nom}`}>{r.nom}</span>
       {belgilar(r)}
+      {!avto && !kiritmalar[r.id]?.qiymat.trim() && (() => { const tk = matTaklifi(r.id); return tk ? <button type="button" tabIndex={-1} onClick={() => kirit(r.id, { rejim: '+', qiymat: String(tk.hajm) })} data-testid="material-taklif"
+        title={t('«{nom}» ishi ulushida taklif — bosing, kiritmaga olinadi', { nom: tk.ish.nom })}
+        className="shrink-0 rounded border border-dashed border-text-mute/40 px-1 text-[10px] text-text-mute opacity-80 hover:border-accent hover:text-accent">{t('taklif')}: +{fmt(tk.hajm)}</button> : null; })()}
     </div>
     {raqamlar(r, avto
       ? <span className="text-right text-[10px] text-text-mute" title={t('Avtomatik: norma × ish fakti')}>{r.norma != null ? `${t('norma')} ${fmt(r.norma)}` : t('avto')}</span>
@@ -518,7 +524,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
               </div>
               <div className="flex flex-col items-end gap-1.5">
                 {(() => { const idlar = korinadi.flatMap((b) => b.ishlar.map((i) => i.id)); const n = takliflarSoni(idlar); return n > 0 ? <button type="button" onClick={() => materiallarniOl(idlar)} data-testid="bolim-materiallarni-ol"
-                  title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')}
+                  title={t('Ish ichidagi va undan keyingi materiallarga ish ulushida taklif (avtomatik yozilmaydi)')}
                   className="inline-flex h-7 items-center gap-1 rounded-md border border-accent/40 px-2 text-[11px] font-semibold text-accent hover:bg-accent/10">{t('Bo‘lim: materiallarni ham olish ({n})', { n: String(n) })}</button> : null; })()}
                 <button type="button" onClick={() => { setHammaYopiq((v) => !v); setTeskari(new Set()); }} className="inline-flex h-7 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-text-dim hover:bg-surface-2 hover:text-text" aria-label={hammaYopiq ? t('Hamma resurslarni ochish') : t('Hamma resurslarni yopish')}>
                   {hammaYopiq ? <ChevronRight size={13} /> : <ChevronDown size={13} />}{hammaYopiq ? t('Hammasini ochish') : t('Hammasini yopish')}</button>

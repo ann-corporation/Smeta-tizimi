@@ -253,6 +253,20 @@ describe('FaktJurnal', () => {
     await waitFor(() => expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ qatorlar: [{ qator_id: 51, hajm: 500 }, { qator_id: 52, hajm: 60 }, { qator_id: 53, hajm: 0.5 }] })));
   });
 
+  it('ish ichidagi material (ota = ish) ham ergashadi: ish ulushida xira taklif, «Materiallarni ham olish» bitta tugma', () => {
+    m.yoz.mockResolvedValue({ ok: true });
+    render(<FaktJurnal {...props()} />);
+    // Grunt fakti 40/100 → ichidagi Qum (smeta 10, fakt 0) uchun 4 taklif.
+    expect(screen.getByTestId('resurs-3').querySelector('[data-testid="material-taklif"]')?.textContent).toBe('taklif: +4');
+    fireEvent.click(screen.getAllByRole('button', { name: '=' })[0]);
+    fireEvent.change(screen.getByLabelText('Jami fakt: Grunt'), { target: { value: '70' } });
+    expect(screen.getByTestId('resurs-3').querySelector('[data-testid="material-taklif"]')?.textContent).toBe('taklif: +7');
+    expect(m.yoz).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Materiallarni ham olish: Grunt' }));
+    expect((screen.getByLabelText('Bugun bajarildi: Qum') as HTMLInputElement).value).toBe('7');
+    expect(m.yoz).not.toHaveBeenCalled();
+  });
+
   it('Fakt Studio paneli: F2 tayyorlash (fakt bo‘yicha F2 qoralama) tugmasi f2Otish ni chaqiradi', () => {
     const f2 = vi.fn();
     render(<FaktJurnal {...props()} f2Otish={f2} />);
