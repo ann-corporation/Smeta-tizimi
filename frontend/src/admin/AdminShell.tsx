@@ -15,6 +15,7 @@ import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AiHelper } from '../umumiy/ui/AiHelper';
+import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { routePermission } from '../lib/company-authorization/route-permission';
 import { useModullar } from '../api/t2-modul';
 import { MENYU_MODUL, menyuModulYoqilgan } from '../lib/modullar';
@@ -270,10 +271,13 @@ function AdminShellInner() {
     };
     return { ...g, menyular: g.menyular.filter(korinadi) };
   }).filter(g => g.menyular.length > 0);
+  /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3). */
+  const palitraBandlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.map(m => ({ yol: m.yol, nom: m.nom, guruh: g.nom })));
 
   return (
     <div className="os-app-shell flex h-screen overflow-hidden text-white relative font-sans selection:bg-accent/30">
       <HotkeyYordam />
+      <CommandPalette bandlar={palitraBandlari} />
 
       {/* Sidebar -- 2026-09-07: standart holatda faqat belgichalar (ikonalar)
        * qatori, sichqoncha ustiga borilganda to'liq (nomlar bilan) kengayadi.

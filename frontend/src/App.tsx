@@ -83,7 +83,7 @@ import F2TarixNative from './admin/sahifalar/F2TarixNative';
 import SmetaNarxlashResNative from './admin/sahifalar/SmetaNarxlashResNative';
 import OfertaNative from './admin/sahifalar/OfertaNative';
 import { Narxlar } from './admin/sahifalar/Narxlar';
-import { CommandPalette } from './umumiy/ui/CommandPalette';
+import RolBoshSahifa from './admin/RolBoshSahifa';
 import { AiHelper } from './umumiy/ui/AiHelper';
 
 // Boss pages
@@ -104,7 +104,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <PageIdentity />
-      <CommandPalette />
       <GlobalAiHelper />
       <Routes>
         <Route path="/" element={<KirishSahifa />} />
@@ -126,7 +125,9 @@ export default function App() {
               O'CHIRILMAGAN — barcha marshrutlari joyida, faqat AdminShell
               sidebar'ida "Eski Tizim (Arxiv)" degan yopiq bo'lim ostiga
               yig'ildi (pastga qara). */}
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          {/* 2026-10-25 (tizim xaritasi P3): indeks har rolni o'z bosh sahifasiga yuboradi
+              (boss/rahbar — rahbar paneli, PTO — obyektlar, buyurtmachi — kabinet …). */}
+          <Route index element={<RolBoshSahifa />} />
           {/* BOSS PANEL P0 — canonical director dashboard (Supabase read model). */}
           <Route path="dashboard" element={
             <Suspense fallback={<div className="p-6 text-text-dim">Yuklanmoqda...</div>}>
