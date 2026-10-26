@@ -296,6 +296,22 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_sverka_yozuv_v1"
     },
     {
+      "amal": "sverka_import_v1",
+      "rpc": "t2_sverka_import_v1"
+    },
+    {
+      "amal": "tolov_taqsimot_saqla_v1",
+      "rpc": "t2_tolov_taqsimot_saqla_v1"
+    },
+    {
+      "amal": "forma3_f2_bog_v1",
+      "rpc": "t2_forma3_f2_bog_v1"
+    },
+    {
+      "amal": "f2_reestr_yoz_v1",
+      "rpc": "t2_f2_reestr_yoz_v1"
+    },
+    {
       "amal": "fayl_amal_v1",
       "rpc": "t2_fayl_amal_v1"
     },

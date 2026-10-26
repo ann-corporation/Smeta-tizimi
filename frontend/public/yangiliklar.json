@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 29,
+      "sana": "2026-10-26",
+      "sarlavha": "1C akt-sverkani yuklash: to'lov, F3 (sotuv) va F2 bilan farq",
+      "bandlar": [
+        "Nakopitelniy sahifasida «1C akt-sverkani yuklash» tugmasi: 1C dan chiqqan «Акт сверки» faylini tanlaysiz (bir nechta davr bo'lsa — hammasini birga). Fayl brauzerda o'qiladi, avval ko'rib chiqish jadvali chiqadi: yangi to'lovlar, yangi Продажа (F3), tizimda bor (takror yozilmaydi), shartnoma topilmagan qatorlar.",
+        "Har shartnoma bo'yicha saldo fayl bilan solishtiriladi; 1C da keyinroq o'zgargan yoki yo'qolgan yozuvlar alohida ro'yxatda — o'zingiz tasdiqlamaguningizcha hech narsa o'chirilmaydi (sana ko'chgan bo'lsa — sanani tuzatasiz). To'lov shartnoma summasidan oshsa — ogohlantirish (bloklamaydi).",
+        "«Продажа ↔ F2»: har Продажага qaysi F2 lar tegishli (taklif — oyma-oy, qo'lda o'zgartirasiz), F2 ustamasiz, QQS bilan va farq; F2 si yo'q Продажа va Продажага kirmagan F2 ro'yxati. Rasmiy F2 reestri (CSV) yuklansa hujjat jami ishlatiladi.",
+        "«Obyektlar bo'yicha»: har obyekt uchun F3 / to'langan / qarz yoki avans — jami netto qarz va avansni yashirmaydi. Ko'p obyektli shartnomada to'lov taqsimoti taklif qilinadi (eng eski F2 dan), siz tasdiqlaysiz.",
+        "F2 hujjatlari o'zgarmaydi; yozish qayta bosilsa ham ikki marta yozilmaydi."
+      ]
+    },
+    {
       "id": 27,
       "sana": "2026-10-26",
       "sarlavha": "Smeta yuklash: perevozka va svod endi tashlab yuborilmaydi",

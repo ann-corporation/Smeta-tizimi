@@ -126,7 +126,7 @@ export function ustunlarniTop(rows: readonly (readonly unknown[])[]): Ustunlar |
 
 const sum = (xs: readonly (number | null)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
 
-/** Butun varaq (sheet_to_json header:1, raw:true) → tuzilma. Sarlavha qatori topilmasa — null. */
+/** Butun varaq (qatorlar massivi, xom qiymatlar) → tuzilma. Sarlavha qatori topilmasa — null. */
 export function sverkaJadvalOqi(rows: readonly (readonly unknown[])[]): SverkaFayl | null {
   const u = ustunlarniTop(rows);
   if (!u) return null;
