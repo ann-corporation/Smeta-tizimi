@@ -101,6 +101,7 @@ export function kitobAnatomiyasi(kitob: KirishKitob): KitobAnatomiyasi {
 
 export { sarlavhaYoli } from './ierarxiya';
 export { moddaliSvodniOqi, svodVaraqlari } from './svod';
+export { nakrutkaPodvaliniOqi, nakrutkaVaraqlari, formulaniHisobla, NAKRUTKA_FOIZ_KODLARI, type NakrutkaPodvalOqish, type NakrutkaPodvalQatori, type NakrutkaIsbot } from './nakrutka';
 export { transportQatorlari } from './erkin';
 export { tushunilmaganVaraqlar, sonliQatorlar } from './darvoza';
 export { hamrohDaraxti, xatQatoriNarxi, type HamrohTanlov } from './yuklash';

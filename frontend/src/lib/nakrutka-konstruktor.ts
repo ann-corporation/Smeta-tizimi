@@ -38,6 +38,12 @@ export type PodvalQator = {
   izoh?: string;
   /** Standart koeffitsient kodi (standart qatorlar uchun — foiz sozlamadan keladi). */
   koefKod?: keyof NakrutkaKoeffitsientlar;
+  /** Smeta podvalidan o'qilgan qator (`lib/nakrutka-smetadan.ts`): `smeta` — foiz hujjatdan isbotli
+   *  (server `t2_obyekt_nakrutka` shuni ishlatadi), `meros` — hujjatda topilmadi, shartnoma/sukut qiymati. */
+  manba?: 'smeta' | 'meros';
+  /** Dalil: `formula` / `yorliq` / `summa_nisbati` va katak manzili («Varaq!E1201»). */
+  dalil?: string;
+  katak?: string;
 };
 
 export type Podval = { versiya: 1; nom?: string; qatorlar: PodvalQator[] };

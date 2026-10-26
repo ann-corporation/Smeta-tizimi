@@ -14,6 +14,17 @@
       ]
     },
     {
+      "id": 28,
+      "sana": "2026-10-26",
+      "sarlavha": "Nakrutka foizlari endi smetaning o'z podvalidan",
+      "bandlar": [
+        "Smeta yuklanganda podval o'qiladi: transport, складские (М/К alohida), kabel transporti, прочие расходы подрядчика, jihoz transporti va заготовительно-складские, страхование, риск, НДС — har biri katak manzili va dalili bilan (formula / yorliq / summa nisbati).",
+        "Arifmetik isbot: o'qilgan foizlar bilan ИТОГО, НДС va ВСЕГО qayta hisoblanib hujjatga solishtiriladi; nomos bo'lsa ogohlantirish chiqadi, import to'xtamaydi. Topilmagan foiz uydirilmaydi — shartnoma/sukut qiymati qoladi.",
+        "Tasdiqlasangiz foizlar obyekt podvaliga yoziladi va obyekt hisobi shu foizlar bilan yuradi; nakrutka sahifasida manba ko'rinadi: «smeta podvalidan» / «shartnoma» / «sukut».",
+        "Mavjud obyektlar uchun «Podvalni smetadan qayta o'qish»: asl fayl R2 da bo'lsa o'shandan, bo'lmasa faylni qayta tanlaysiz — eski/yangi foizlar va ВСЕГО ga ta'siri (ustamasiz va ustamali) ko'rsatiladi, yozish faqat tasdiq bilan."
+      ]
+    },
+    {
       "id": 27,
       "sana": "2026-10-26",
       "sarlavha": "Smeta yuklash: perevozka va svod endi tashlab yuborilmaydi",
