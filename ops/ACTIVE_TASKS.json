@@ -3,6 +3,17 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "PTO-RECONCILIATION-20261026",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/pto-reconciliation-20261026",
+      "base_sha": "a4fe8b65",
+      "status": "ready_for_review",
+      "owns": ["frontend/src/lib/pereraschet.ts", "frontend/src/lib/pereraschet-export.ts", "frontend/src/lib/pereraschet-null.test.ts", "frontend/src/i18n/lugat/qism/pereraschet-semantika-20261026.json"],
+      "production_write_allowed": false,
+      "note": "L0 request 2026-10-26 17:40: separate narrow PR for JQA01/02 after integration sandbox. PereraschetBolimi UI uses retained DIZAYN author ownership with scoped integration sublease for two review reasons and shared SummaJuft only. Unknown F2 stays NULL; amount-only balance review-only, no automatic correction. No DB/DDL. Baseline main has unrelated historical overlapping locks; guard remains unchanged."
+    },
+    {
       "id": "ARCHITECTURE-PACK-20261026",
       "title": "Live metadata Data Model Registry and current architecture pack for Claude L0",
       "owner": "codex",
