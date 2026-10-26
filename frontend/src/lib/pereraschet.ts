@@ -187,10 +187,13 @@ const NORMA_HAVOLA = /НОРМ[ЕАЫ]?\s*(?:№\s*)?([0-9]+(?:-[0-9]+)+)/i;
 const kodNorm = (k: string | null | undefined) => String(k ?? '').toUpperCase().replace(/\s+/g, '').replace(/Е/g, 'E');
 const kodPrefiks = (k: string | null | undefined) => { const s = kodNorm(k); const i = s.lastIndexOf('-'); return i > 0 ? s.slice(0, i) : ''; };
 
-type Ajdod = { bolimId: number | null; yol: string[]; ajdodlar: number[]; eski: boolean };
+export type Ajdod = { bolimId: number | null; yol: string[]; ajdodlar: number[]; eski: boolean };
 
-/** Butun obyekt: barcha qatorlar (rz/bl ham — daraxt uchun) → pereraschet natijasi. O(n). */
-export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): PNatija {
+/**
+ * Daraxt bo'yicha ajdod ma'lumoti (eng yaqin razdel, yo'l, barcha razdel ajdodlar, «(ekspertizagacha)» belgisi).
+ * `ajdodOl(id)` — tugunning O'ZI va ajdodlari (iterativ, memo bilan). Fakt asosidagi pereraschet ham shuni ishlatadi.
+ */
+export function ajdodlarQur(rows: readonly PQator[]): { byId: Map<number, PQator>; ajdodOl: (id: number | null) => Ajdod } {
   const byId = new Map<number, PQator>();
   for (const r of rows) byId.set(r.qator_id, r);
   const memo = new Map<number, Ajdod>();
@@ -218,6 +221,12 @@ export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): 
     }
     return memo.get(id) ?? BOSH;
   };
+  return { byId, ajdodOl };
+}
+
+/** Butun obyekt: barcha qatorlar (rz/bl ham — daraxt uchun) → pereraschet natijasi. O(n). */
+export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): PNatija {
+  const { byId, ajdodOl } = ajdodlarQur(rows);
 
   const bolalar = new Map<number | null, PQator[]>();
   for (const r of rows) { const kk = r.ota_id ?? null; const x = bolalar.get(kk); if (x) x.push(r); else bolalar.set(kk, [r]); }

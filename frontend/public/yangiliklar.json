@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 22,
+      "id": 23,
       "sana": "2026-10-26",
       "sarlavha": "Fakt: «Fakt = F2» butun obyekt bo'yicha va «Faktdan F2» tez yo'li",
       "bandlar": [
@@ -10,6 +10,17 @@
         "Yozish bitta urinishda: katta obyekt (Sun'iy ko'l kabi) bir necha hujjatga bo'linadi, javob kelmasa xuddi shu amal qayta yuboriladi (ikki marta yozilmaydi), xabardagi «Bekor qilish» hammasini qaytaradi. Fakt faqat oshadi, kamaymaydi; smeta o'zgarmaydi.",
         "Panelda F2 davrini (oyni) tanlab «Fakt bo'yicha F2 qoralama» bosilsa — F2 tayyorlash shu oy bilan ochiladi, F2 ga hali kirmagan barcha faktli ishlar o'zi olinadi, faqat olinganlar ko'rinadi va keyingi F2 raqami qo'yiladi. Qoralamani yaratish va tasdiqlash avvalgidek sizda.",
         "Bo'lim va obyekt F2 jamisiga endi to'g'ridan-to'g'ri ish qatoriga bog'langan F2 summasi ham qo'shiladi (avval ko'rinmasdi, masalan Sun'iy ko'lda 5,5 mlrd). Jami yonida «Nakopitelniy smeta = daraxt smeta + qo'shimcha ishlar» izohi; Nakopitelniy bilan farq bo'lsa ogohlantirish chiqadi."
+      ]
+    },
+    {
+      "id": 22,
+      "sana": "2026-10-26",
+      "sarlavha": "Pereraschet: «Fakt bo'yicha qayta hisob» rejimi",
+      "bandlar": [
+        "Nakopitelniy → Pereraschet: yangi «Fakt bo'yicha qayta hisob» tugmasi. Har smeta pozitsiyasi uchun «bo'lishi kerak» = fakt × smeta narxi, «olingan» = barcha tasdiqlangan F2 (tuzatish aktlari bilan); farq plyus yoki minus bo'lib ko'rinadi.",
+        "Smetaga bog'lanmagan eski F2 qatorlari (smeta yo'q paytida o'tkazilgan arzon ishlar, F2 importida qo'shilgan narxsiz qatorlar, «(ekspertizagacha)» bo'lim) alohida ro'yxatda — to'liq minus.",
+        "Ikki format, natija bir xil: «To'liq storno + qayta» (olinganning hammasi minus, fakt bo'yicha yangidan) yoki «Faqat farq». Excel «ПЕРЕРАСЧЁТ ПО ФАКТУ» ikkala varaq bilan; F2 qoralamasi yaratiladi, tasdiqlash — F2 tarixida.",
+        "«Fakti yo'q, lekin F2 olingan» pozitsiyalarni bir bosishda Fakt jurnalida filtr bilan ochib, faktni qayta belgilash mumkin."
       ]
     },
     {
