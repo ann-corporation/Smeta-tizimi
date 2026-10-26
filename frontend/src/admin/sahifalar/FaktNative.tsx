@@ -28,6 +28,9 @@ export function FaktNative() {
   /** Egasi 2026-10-01: tezkor jadval (ko'p qatorni bir yo'la saqlash) asosiy ko'rinish; daraxt — ixtiyoriy. */
   const [korinish, setKorinish] = useState<'tezkor' | 'daraxt' | 'xotira'>('tezkor');
   const obyektId = Number(params.get('obyekt')); const valid = Number.isSafeInteger(obyektId) && obyektId > 0;
+  /** Pereraschet ekranidan havola: `?filtr=faktsiz_f2&bolim=<id>` (fakti yo'q, F2 olingan qatorlar). */
+  const boshFaktsizF2 = params.get('filtr') === 'faktsiz_f2';
+  const boshBolimRaw = Number(params.get('bolim')); const boshBolimId = Number.isSafeInteger(boshBolimRaw) && boshBolimRaw > 0 ? boshBolimRaw : null;
   const { rows, states, tree, price, loading, yangilanmoqda, error, yuklash, holatniYangila } = useT2Daraxt(valid ? obyektId : null);
   const markers = useMemo(() => Array.from(new Set(rows.filter(r => faktQoldaKiritiladimi(r.tur || '') && r.kat?.trim()).map(r => r.kat!.trim()))).sort(), [rows]);
   const smetaJami = states.reduce((s, r) => s + (r.smeta_hajm || 0), 0); const faktJami = states.reduce((s, r) => s + (r.fakt_hajm || 0), 0);
@@ -60,7 +63,7 @@ export function FaktNative() {
     } finally { setSaving(false); }
   };
   /** Avval saqlanmagan kiritmalarni saqlaydi, so'ng F2 tayyorlashga o'tadi (yuqori tugma va Fakt Studio paneli uchun umumiy). */
-  const f2gaOt = async (avto = false) => { if (otmoqda) return; setOtmoqda(true); try { const ok = jurnalSaqlash.current ? await jurnalSaqlash.current() : true; if (!ok) { toast('Fakt saqlanmadi. Avval saqlang, keyin F2 tayyorlashga o\u2018ting.', 'warn'); return; } navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}${avto ? '&avto=1' : ''}`); } finally { setOtmoqda(false); } };
+  const f2gaOt = async (avto = false, oy?: string) => { if (otmoqda) return; setOtmoqda(true); try { const ok = jurnalSaqlash.current ? await jurnalSaqlash.current() : true; if (!ok) { toast('Fakt saqlanmadi. Avval saqlang, keyin F2 tayyorlashga o\u2018ting.', 'warn'); return; } navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}${avto ? '&avto=1' : ''}${oy ? `&oy=${oy}` : ''}`); } finally { setOtmoqda(false); } };
   const birinchiYuklash = loading && tree.length === 0;
   const korinishlar = [['tezkor', t('Fakt jurnali')], ['xotira', t('Xotiradan')], ['daraxt', t('Daraxt')]] as const;
   const jurnal = valid && joriy?.id && !birinchiYuklash && !error && (korinish === 'tezkor' || (korinish === 'daraxt' && tree.length === 0));
@@ -93,7 +96,7 @@ export function FaktNative() {
       {!valid && <section className="fz-note fz-note--info"><span>{t('Avval kanonik obyektni tanlang.')}</span></section>}
       {error && valid && <section role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true"/><span>{error}</span></section>}
       {birinchiYuklash && <div className="skel min-h-[280px] flex-1 rounded-[var(--radius-md)]"/>}
-      {jurnal && joriy?.id && <FaktJurnal saqlashRef={jurnalSaqlash} f2Otish={() => void f2gaOt(true)} kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
+      {jurnal && joriy?.id && <FaktJurnal boshFaktsizF2={boshFaktsizF2} boshBolimId={boshBolimId} saqlashRef={jurnalSaqlash} f2Otish={(oy) => void f2gaOt(true, oy)} kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
       {valid && joriy?.id && korinish === 'xotira' && !birinchiYuklash && !error && <XotiradanFakt kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
       {korinish === 'daraxt' && tree.length > 0 && <div className="min-h-0 flex-1"><SmetaTree data={tree} priceControlLines={price} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash}/></div>}
       {markirovkaQamrov && joriy?.id && <FaktQamrov sarlavha={markirovkaQamrov.sarlavha} ishlar={markirovkaQamrov.ishlar} holatMap={holatMap} narxOl={narxOl}
