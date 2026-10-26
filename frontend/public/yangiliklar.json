@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 16,
+      "sana": "2026-10-26",
+      "sarlavha": "Buxgalter F2 ni faqat ko'radi",
+      "bandlar": [
+        "Buxgalter F2 tarixi, reestr va Nakopitelniyni avvalgidek ko'radi va yuklab oladi.",
+        "F2 import, tayyorlash, tasdiqlash, rad etish, bekor qilish va tuzatish buxgalterga endi ko'rinmaydi — bu amallarni PTO yoki prorab bajaradi. Server ham shu qoidani tekshiradi."
+      ]
+    },
+    {
       "id": 13,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: bitta «ochiq qoldiq»",
@@ -9,6 +18,16 @@
         "Fakt jurnalidagi «Ochiq qoldiq» ustuni endi smeta − fakt − almashtirilgan (zamena) − «bajarilmaydi» hajmini ko'rsatadi; F2 qoldig'i farq qilsa ostida kichik «F2: …» bo'lib turadi.",
         "25/50/100% tugmalari, «faqat bajarilmaganlar» belgisi va «qoldiqdan oshdi» ogohlantirishi shu bitta raqamdan hisoblanadi — zamena yoki «bajarilmaydi» bor qatorda 100% endi ortiqcha hajm bermaydi.",
         "Oshib ketsa ham saqlash bloklanmaydi: kiritma ostida «qoldiqdan oshdi +X» ko'rinadi."
+      ]
+    },
+    {
+      "id": 12,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 — menyuda bitta band, ichida tablar",
+      "bandlar": [
+        "Chap menyudagi 5 ta F2 bandi (tayyorlash, import, tarix va tasdiqlash, reestr, nakopitelniy) endi bitta «F2» bandida. Sahifa tepasidagi tablar bilan almashasiz.",
+        "Tab almashganda tanlangan obyekt va davr saqlanadi. Eski havolalar va xatcho'plar avvalgidek ishlaydi.",
+        "Rolingizga ochiq bo'lmagan F2 sahifasi tablarda ko'rinmaydi."
       ]
     },
     {

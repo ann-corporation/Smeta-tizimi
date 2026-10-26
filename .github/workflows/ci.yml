@@ -44,3 +44,25 @@ jobs:
         run: npm run test:perf
       - name: Build
         run: npx cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build
+
+  # MCP server (mcp/smeta-mcp): frontend sof mantig'ini bundle qiladi — frontend lib o'zgarishi uni buzmasligi shu yerda ushlanadi.
+  mcp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mcp/smeta-mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mcp/smeta-mcp/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Testlar (mock pg, ulanishsiz)
+        run: npx vitest run
+      - name: Build
+        run: node build.mjs

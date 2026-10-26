@@ -1,11 +1,13 @@
 -- ⚠ T2 EKOTIZIM F1 RUXSAT — contract test (rollback bilan; natija "TEST_F1_RUXSAT ..." exception matnida).
 -- Talab: 20261108010000_t2_ekotizim_f1_ruxsat_v1.sql qo'llangan baza (disposable). PRODDA ISHLATILMAYDI.
 -- Asosiy kafolat: mavjud rollarning ESKI 25-capability to'plami aynan saqlanadi (faqat yangi domenlar qo'shiladi).
+-- Istisno (egasi 2026-10-26, 20261110100000): bugalter F2 ni faqat o'qiydi — f2.import/prepare/approve/cancel/correct yo'q.
+-- Shu sabab bu test endi 20261110100000 ham qo'llangan bazada ishlatiladi.
 do $$
 declare
   eski jsonb := '{
     "rahbar":["company.read","control.company.read","project.read","object.read","document.read","financial.read","f2.read","smeta.read","fakt.read","narx.read"],
-    "bugalter":["company.read","financial.read","financial.write","document.read","f2.read","smeta.read","fakt.read","narx.read","f2.import","f2.prepare","f2.approve","f2.cancel","f2.correct"],
+    "bugalter":["company.read","financial.read","financial.write","document.read","f2.read","smeta.read","fakt.read","narx.read"],
     "pto":["company.read","project.read","project.write","object.read","object.write","document.read","document.write","financial.read","financial.write","f2.read","smeta.read","fakt.read","narx.read","f2.import","f2.prepare","f2.approve","f2.cancel","f2.correct","smeta.write","fakt.write","narx.write"],
     "prorab":["company.read","project.read","project.write","object.read","object.write","document.read","document.write","f2.read","smeta.read","fakt.read","narx.read","f2.import","f2.prepare","f2.approve","f2.cancel","f2.correct","smeta.write","fakt.write","narx.write"],
     "buyurtmachi":["company.read","project.read","object.read","document.read","financial.read","f2.read","smeta.read","fakt.read","narx.read"],
