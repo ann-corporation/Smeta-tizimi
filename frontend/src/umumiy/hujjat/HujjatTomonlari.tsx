@@ -7,7 +7,8 @@
  * (Ostatka, АКТ Ф-2, Накопительная, Ресурсная ведомость) bir xil qiymatni
  * ishlatadi.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { kompaniyaSozlamaOl, kompaniyaSozlamaYoz } from '../../api/kompaniya-sozlama';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { t } from '../../i18n/til';
 import './hujjat-korinish.css';
@@ -21,17 +22,68 @@ function oqi(kompaniyaId: number | null | undefined): ImzoNomlar {
   } catch { return {}; }
 }
 
+const bosh = (x: ImzoNomlar) => !Object.values(x).some((v) => typeof v === 'string' && v.trim());
+const SAQLASH_KECHIKISH = 800;
+
+/**
+ * Server-backed (kompaniya sozlamasi `hujjat.imzo_tomonlari`), lekin AVVAL localStorage (tezkor, oflayn-xavfsiz).
+ * Server qiymati kelsa — o'sha ustun; serverda yo'q, mahalliy bor va yozish mumkin bo'lsa — bir marta yuklanadi.
+ * API 404/403/tarmoq xatosi — jim, mahalliy rejimda qoladi. Oddiy fetch (QueryClient shart emas).
+ */
 export function useHujjatTomonlari(kompaniyaId: number | null | undefined): [ImzoNomlar, (next: ImzoNomlar) => void] {
   const [nomlar, setNomlar] = useState<ImzoNomlar>(() => oqi(kompaniyaId));
-  useEffect(() => { setNomlar(oqi(kompaniyaId)); }, [kompaniyaId]);
+  const yozishRef = useRef(false);
+  const taymer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const kutilgan = useRef<ImzoNomlar | null>(null);
+
+  const serverga = useCallback((kid: number, qiymat: ImzoNomlar) => {
+    void kompaniyaSozlamaYoz({ kompaniya_id: kid, kalit: 'hujjat.imzo_tomonlari', qiymat: bosh(qiymat) ? null : { ...qiymat } }).catch(() => { /* jim — mahalliy saqlangan */ });
+  }, []);
+
+  useEffect(() => {
+    setNomlar(oqi(kompaniyaId));
+    yozishRef.current = false;
+    kutilgan.current = null;
+    if (kompaniyaId == null) return;
+    let bekor = false;
+    kompaniyaSozlamaOl(kompaniyaId).then((s) => {
+      if (bekor) return;
+      yozishRef.current = s.yozish_mumkin;
+      const sv = s.sozlamalar['hujjat.imzo_tomonlari']?.qiymat;
+      if (sv && typeof sv === 'object') {
+        if (kutilgan.current) return; // foydalanuvchi allaqachon tahrirlayapti
+        const x = sv as ImzoNomlar;
+        setNomlar(x);
+        try { globalThis.localStorage?.setItem(kalit(kompaniyaId), JSON.stringify(x)); } catch { /* xotira yopiq */ }
+      } else if (s.yozish_mumkin) {
+        const lokal = oqi(kompaniyaId);
+        if (!bosh(lokal)) serverga(kompaniyaId, lokal);
+      }
+    }).catch(() => { /* jim — mahalliy rejim */ });
+    return () => { bekor = true; };
+  }, [kompaniyaId, serverga]);
+
+  useEffect(() => () => {
+    if (taymer.current) clearTimeout(taymer.current);
+  }, []);
+
   const saqla = useCallback((next: ImzoNomlar) => {
     setNomlar(next);
     try { globalThis.localStorage?.setItem(kalit(kompaniyaId), JSON.stringify(next)); } catch { /* xotira yopiq — faqat shu sessiya */ }
-  }, [kompaniyaId]);
+    if (kompaniyaId == null) return;
+    kutilgan.current = next;
+    if (taymer.current) clearTimeout(taymer.current);
+    taymer.current = setTimeout(() => {
+      taymer.current = null;
+      const q = kutilgan.current;
+      kutilgan.current = null;
+      if (q && yozishRef.current) serverga(kompaniyaId, q);
+    }, SAQLASH_KECHIKISH);
+  }, [kompaniyaId, serverga]);
   return [nomlar, saqla];
 }
 
-const MAYDONLAR: Array<{ k: keyof ImzoNomlar; rol: string; ru: string; izoh?: string }> = [
+export const MAYDONLAR: Array<{ k: keyof ImzoNomlar; rol: string; ru: string; izoh?: string }> = [
   { k: 'zakazchik', rol: 'Buyurtmachi', ru: 'ЗАКАЗЧИК' },
   { k: 'pudratchi', rol: 'Pudratchi', ru: 'ПОДРЯДЧИК' },
   { k: 'subpudratchi', rol: 'Subpudratchi', ru: 'СУБПОДРЯДЧИК', izoh: '3 tomonlama bo‘lsa' },

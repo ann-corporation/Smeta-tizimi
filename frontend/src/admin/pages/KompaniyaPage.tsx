@@ -18,8 +18,10 @@ import { Fragment, useMemo, useState } from 'react';
 import {
   Building2, Crown, ShieldCheck, Loader2, AlertTriangle, Trash2, Users, LogOut,
   User, KeyRound, Layers, FolderKanban, Plug, History, Save, RefreshCw,
-  Send, Clock, CheckCircle2, XCircle, Check, Info,
+  Send, Clock, CheckCircle2, XCircle, Check, Info, Settings2,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { KompaniyaSozlamaPanel } from '../../components/kompaniya-sozlama/KompaniyaSozlamaPanel';
 import { useMen, useOnboardingCommands, useKompaniyaAzolari, useKompaniyaProfil, useProfilYangila, useKompaniyaRoyxatlar, useAzolikRuxsatlari, type Azolik, type KompaniyaProfil, type KompaniyaRoyxat } from '../../api/t2-men';
 import { useSystemControl } from '../../api/t2-control';
 import { useModullar, useModulOzgartir } from '../../api/t2-modul';
@@ -559,11 +561,15 @@ const TABS = [
   { key: 'loyiha', nom: 'Loyiha/Obyekt', Ikonka: FolderKanban },
   { key: 'integratsiya', nom: 'Integratsiyalar', Ikonka: Plug },
   { key: 'audit', nom: 'Audit', Ikonka: History },
+  { key: 'sozlamalar', nom: 'Sozlamalar', Ikonka: Settings2 },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
 function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaId: number; kompaniyaNom: string; isDirector: boolean }) {
-  const [tab, setTab] = useState<TabKey>('profil');
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get('tab');
+  const tab: TabKey = TABS.some((x) => x.key === tabParam) ? tabParam as TabKey : 'profil';
+  const setTab = (k: TabKey) => setParams((p) => { const n = new URLSearchParams(p); n.set('tab', k); return n; }, { replace: true });
   return (
     <div>
       <div role="tablist" aria-label={t('Kompaniya boshqaruvi')} className="flex items-center gap-1 overflow-x-auto border-b border-border">
@@ -582,6 +588,7 @@ function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniy
         {tab === 'loyiha' && <LoyihaObyektTab />}
         {tab === 'integratsiya' && <IntegratsiyalarTab kompaniyaId={kompaniyaId} />}
         {tab === 'audit' && <AuditTab kompaniyaId={kompaniyaId} />}
+        {tab === 'sozlamalar' && <KompaniyaSozlamaPanel kompaniyaId={kompaniyaId} />}
       </div>
     </div>
   );
