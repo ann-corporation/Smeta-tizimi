@@ -41,9 +41,18 @@ import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, ishBirlikNarxi, narxsizNomzodlar, sonOqi, ulushHajm,
-  type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs,
+  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, sonOqi, ulushHajm,
+  type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst,
 } from '../../lib/f2-tayyor';
+import { MinusCircle, Repeat2 } from 'lucide-react';
+import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
+import { bajarilmadiHajmlar } from '../../lib/fakt-studio';
+import { zamenaBoglanishOl, zamenaMiqdorOl } from '../../lib/fakt-zamena-boglanish';
+import type { ZamenaBoglanish } from '../../lib/fakt-jurnal';
+import { chiqarilganmi, chiqarishRuxsat, zamenaRuxsat } from '../../lib/resurs-amal';
+import { IshAbcModal, type AbcRejim } from './IshAbcModal';
+import { ResursChiqarishModal, type ChiqarishQator } from './ResursChiqarishModal';
+import { sbT2ZamenaAlmashtirishBelgila } from '../../api/t2-additional-replacement';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { ishMeter, keyingiF2Raqam, qoralamaKatTaqsimot, tekshiruvBandlari, tekshiruvSanoq, type TekshiruvBand } from '../../lib/f2-tayyorlash-korinish';
@@ -157,6 +166,38 @@ export function F2TayyorlashNative() {
   }, [obyektId, validId, aktId]);
   useEffect(() => { void yuklash(); }, [yuklash]);
 
+  /**
+   * Resurs zamenasi/chiqarish qatlami (egasi 2026-10-27): faol «bajarilmaydi» belgilari (chiqarilgan resurslar), zamena → asl
+   * bog'lanishi va almashtirish miqdori. Yuklanmaguncha F2 saqlanmaydi (chiqarilgan resurs F2 ga tushib qolmasin).
+   */
+  const [baj, setBaj] = useState<BajarilmadiQator[]>([]);
+  const [zb, setZb] = useState<ZamenaBoglanish | null>(null);
+  const [miqdor, setMiqdor] = useState<ReadonlyMap<number, number>>(new Map());
+  const [qoshTayyor, setQoshTayyor] = useState(false);
+  const [bajXato, setBajXato] = useState(false);
+  const qoshimchaYukla = useCallback(async () => {
+    if (!validId || !joriy?.id) { setBaj([]); setZb(null); setMiqdor(new Map()); setBajXato(false); setQoshTayyor(true); return; }
+    const raqam = sorov.current;
+    setQoshTayyor(false);
+    const [b, z, m] = await Promise.all([
+      bajarilmadiRoyxatOl(joriy.id, obyektId).catch(() => null),
+      zamenaBoglanishOl(obyektId).catch(() => null),
+      zamenaMiqdorOl(obyektId).catch(() => new Map<number, number>()),
+    ]);
+    if (raqam !== sorov.current) return;
+    setBaj(b?.ok ? b.qatorlar : []); setBajXato(!b?.ok); setZb(z); setMiqdor(m); setQoshTayyor(true);
+  }, [validId, joriy?.id, obyektId]);
+  useEffect(() => { void qoshimchaYukla(); }, [qoshimchaYukla]);
+  /** Zamena/chiqarishdan keyin: daraxt va holat qayta o'qiladi, operator kiritmalari (hajm/narx) SAQLANADI. */
+  const tuzilmaYangila = async () => {
+    const raqam = sorov.current;
+    const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]).catch(() => [null, null] as const);
+    if (raqam !== sorov.current) return;
+    if (d?.ok && h?.ok) { setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]); }
+    else toast(t('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.'), 'warn');
+    await qoshimchaYukla();
+  };
+
   /* Egasi (2026-10-02): imzolovchilarni tizim qo'yadi — shartnoma tomonlaridan (yumshoq: panelda qo'lda o'zgartirsa, o'sha ustun). */
   useEffect(() => {
     if (!joriy?.id || !validId) { setAvto({ imzo: {}, shartnoma: null }); return; }
@@ -174,8 +215,29 @@ export function F2TayyorlashNative() {
 
   const protokolNarx = useMemo(() => amaldagiProtokolNarxlari(protokolQ, oy), [protokolQ, oy]);
   const manba: F2Manba = manbaTanlov ?? (holat.some((h) => Number(h.f2_mumkin_hajm) > 0) ? 'fakt' : 'smeta');
-  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm), [rows, holat, protokolNarx, manba, qoralamaHajm]);
-  const qatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
+  const bajHajm = useMemo(() => bajarilmadiHajmlar(baj), [baj]);
+  /** Ishdan chiqarilgan resurslar (faol «bajarilmaydi» butun smeta hajmini qoplaydi) — F2 ga kirmaydi. */
+  const chiqarilgan = useMemo(() => {
+    const sm = new Map(holat.map((h) => [h.qator_id, h.smeta_hajm]));
+    const s = new Set<number>();
+    for (const r of rows) if ((r.tur === 'rs' || r.tur === 'mat' || r.tur === 'ob') && chiqarilganmi(sm.get(r.id) ?? r.hajm, bajHajm.get(r.id))) s.add(r.id);
+    return s;
+  }, [rows, holat, bajHajm]);
+  const zamenaAsl = useMemo<ReadonlyMap<number, number>>(() => zb?.almashtiradi ?? new Map(), [zb]);
+  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm, { chiqarilgan, zamenaAsl }), [rows, holat, protokolNarx, manba, qoralamaHajm, chiqarilgan, zamenaAsl]);
+  /** Zamena qoldig'i: shu F2 dagi zamena hajmi asl resurs/ishning F2 hajmidan ayiriladi (yagona zamena-qoldiq formulasi). */
+  const zamenaKtx = useMemo((): F2ZamenaKontekst | null => {
+    if (!zamenaAsl.size) return null;
+    const oldingi = new Map<number, number>(); const serverAlm = new Map<number, number>();
+    for (const h of holat) {
+      const f2 = Number(h.f2_hajm ?? 0); if (Number.isFinite(f2) && f2 !== 0) oldingi.set(h.qator_id, f2);
+      const a = Number((h as QatorHolat & { almashtirilgan_hajm?: number | null }).almashtirilgan_hajm ?? 0); if (Number.isFinite(a) && a > 0) serverAlm.set(h.qator_id, a);
+    }
+    return { rows: rows.map((r) => ({ id: r.id, ota_id: r.ota_id ?? null, tur: r.tur, birlik: r.birlik, hajm: r.hajm == null ? null : Number(r.hajm) })), zamenaAsl, miqdor, oldingi, serverAlm };
+  }, [rows, holat, zamenaAsl, miqdor]);
+  const xomQatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
+  const zamenaNatija = useMemo(() => f2ZamenaQolla(xomQatorlar, bolimlar, k, zamenaKtx), [xomQatorlar, bolimlar, k, zamenaKtx]);
+  const qatorlar = zamenaNatija.qatorlar;
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
   const katKesim = useMemo(() => f2KatKesim(qatorlar), [qatorlar]);
   const byId = useMemo(() => new Map(qatorlar.map((x) => [x.id, x])), [qatorlar]);
@@ -195,7 +257,7 @@ export function F2TayyorlashNative() {
       pereraschet: pereraschetBelgisi(rows, yuk.map((r) => r.qatorId)) });
   }, [validId, aktId, qatorlar, raqam, oy, obyektAktlari, rows]);
   const dublikatBlok = bloklarmi(dublikatlar);
-  const saqlashMumkin = tayyor && !dublikatBlok && (aktId == null || (!!akt && !aktKorish));
+  const saqlashMumkin = tayyor && !dublikatBlok && qoshTayyor && !bajXato && (aktId == null || (!!akt && !aktKorish));
   const bolimIer = useMemo(() => f2BolimIerarxiya(rows, bolimlar), [rows, bolimlar]);
   const tanlanganBolim: number | null = bolimId !== undefined ? bolimId : bolimlar[0] ? bolimlar[0].id ?? -1 : null;
   const tanlanganAvlod = useMemo(() => (tanlanganBolim == null ? new Set<number>() : avlodKalitlari(bolimIer, tanlanganBolim)), [bolimIer, tanlanganBolim]);
@@ -401,29 +463,81 @@ export function F2TayyorlashNative() {
     { id: 'saqlash', keys: 'ctrl+enter', nom: t('F2 qoralama yaratish'), guruh: t('Tez kiritish'), inInput: true, enabled: () => saqlashMumkin && !saving, run: () => { void saqlash(); } },
   ], validId);
 
-  function resursQatori(r: F2Resurs) {
+  // ── Faktli ish ichidagi resurs: ZAMENA va ISHDAN CHIQARISH (egasi 2026-10-27). Yozuvlar mavjud RPC'lar orqali. ──
+  const [resZamena, setResZamena] = useState<AbcRejim | null>(null);
+  const [chiqModal, setChiqModal] = useState<ChiqarishQator | null>(null);
+  const bugun = new Date().toISOString().slice(0, 10);
+  const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
+  const holatById = useMemo(() => new Map(holat.map((h) => [h.qator_id, h])), [holat]);
+  const zamenaOch = (r: F2Resurs, ish: F2Ish | null) => {
+    const ota = ish ? rowById.get(ish.id) : undefined;
+    setResZamena({ tur: 'resurs_zamena', eski: { id: r.id, kod: r.kod, nom: r.nom, birlik: r.birlik, kat: r.kat, norma: r.norma, hajm: r.smeta ?? null, ishNom: ish ? [ish.kod, ish.nom].filter(Boolean).join(' ') || null : null },
+      ishHajm: ota?.hajm != null ? Number(ota.hajm) : null });
+  };
+  const chiqarishBekor = async (r: F2Resurs) => {
+    const faol = baj.filter((b) => b.qator_id === r.id && b.holat === 'faol').sort((a, b) => b.id - a.id)[0];
+    if (!faol || !joriy?.id) return;
+    if (!await tasdiqSora(t('«{nom}»: ishdan chiqarish bekor qilinsinmi? Resurs yana F2 ga olinadi.', { nom: r.nom }))) return;
+    const res = await bajarilmadiBekor({ kompaniyaId: joriy.id, id: faol.id, operationId: yangiOperationId() }).catch(() => null);
+    if (!res?.ok) { toast(res ? t(bajarilmadiXato(res)) : t('Javob olinmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
+    toast(t('Belgi bekor qilindi.'), 'ok'); await qoshimchaYukla();
+  };
+  /** Resurs qatori amallari: zamena (mehnatdan tashqari) va ishdan chiqarish; ruxsat yo'q bo'lsa — xira belgi + sababi. */
+  function resursAmallari(r: F2Resurs, ish: F2Ish | null) {
+    if (aktKorish || r.qoshimcha || r.zamena) return null;
+    if (r.chiqarilgan) return <button type="button" onClick={() => void chiqarishBekor(r)} className="fz-chip fz-chip--danger hover:brightness-110" title={t('Resurs ishdan chiqarilgan — F2 ga kirmaydi (bosing - bekor qilish)')} data-testid="chiqarilgan-belgi"><MinusCircle size={11} aria-hidden="true" />{t('ishdan chiqarilgan')}</button>;
+    const hol = holatById.get(r.id) as (QatorHolat & { fakt_manbasi?: string | null }) | undefined;
+    const ozFakt = r.tur === 'rs' ? (hol?.fakt_manbasi === 'DIRECT' ? Number(hol.fakt_hajm ?? 0) : 0) : Number(hol?.fakt_hajm ?? 0);
+    const holatlar = { tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, ishIchida: ish != null, smeta: r.smeta ?? null, ozFakt, belgilangan: bajHajm.get(r.id) ?? 0 };
+    const z = zamenaRuxsat(holatlar); const c = chiqarishRuxsat(holatlar);
+    const xira = 'inline-flex cursor-not-allowed items-center rounded p-1 text-text-mute opacity-40';
+    const tugma = 'inline-flex items-center rounded p-1 text-text-mute hover:bg-surface-3';
+    return <span className="inline-flex items-center gap-0.5">
+      {ish && (z.mumkin
+        ? <button type="button" tabIndex={-1} onClick={() => zamenaOch(r, ish)} title={t('Resurs zamenasi — shu ish ichida boshqa resurs bilan almashtirish')} aria-label={`Zamena: ${r.nom}`} data-testid="f2-zamena-tugma" className={`${tugma} hover:text-[var(--info)]`}><Repeat2 size={13} /></button>
+        : <span className={xira} title={t(z.sabab)} data-testid="f2-zamena-yoq"><Repeat2 size={13} /></span>)}
+      {ish && (c.mumkin
+        ? <button type="button" tabIndex={-1} onClick={() => setChiqModal({ id: r.id, kod: r.kod, nom: r.nom, birlik: r.birlik, smeta: r.smeta ?? null, ishNom: [ish.kod, ish.nom].filter(Boolean).join(' ') || null })} title={t('Resursni ishdan chiqarish — shu ishda ishlatilmadi, F2 ga kirmaydi')} aria-label={t('Ishdan chiqarish: {nom}', { nom: r.nom })} data-testid="f2-chiqarish-tugma" className={`${tugma} hover:text-danger`}><MinusCircle size={13} /></button>
+        : <span className={xira} title={t(c.sabab)} data-testid="f2-chiqarish-yoq"><MinusCircle size={13} /></span>)}
+    </span>;
+  }
+  /** Zamena belgilari: zamena qatori (asl nomi bilan) va asl qatorning shu F2 da zamena yopgan hajmi. */
+  function zamenaBelgi(r: F2Resurs) {
+    if (r.zamena) { const asl = r.almashtiradi != null ? rowById.get(r.almashtiradi) : undefined;
+      return <span className="fz-chip bg-[var(--info-soft)] text-[var(--info)]" data-testid="f2-zamena-belgi">↻ {t('zamena')}{asl ? `: ${t('asl')} ${[asl.kod, asl.nom].filter(Boolean).join(' ')}` : ''}</span>; }
+    const y = zamenaNatija.yopildi.get(r.id);
+    if (y == null) return null;
+    return zamenaNatija.tashlandi.has(r.id)
+      ? <span className="fz-chip" data-testid="f2-zamena-yopdi" title={t('Shu F2 dagi zamena asl hajmni to‘liq qopladi — asl F2 ga kirmaydi')}>{t('zamena qopladi — F2 ga kirmaydi')}</span>
+      : <span className="fz-chip" data-testid="f2-zamena-yopdi" title={t('Shu F2 dagi zamena qoplagan hajm (asl birlikda) ayirildi')}>{t('zamena yopdi')}: −<FmtN val={y} /></span>;
+  }
+
+  function resursQatori(r: F2Resurs, ish: F2Ish | null = null) {
     const x = byId.get(r.id);
     const taklif = r.taklifNarx != null ? String(Math.round(r.taklifNarx * 1e6) / 1e6) : '';
     const kat = r.tur === 'rs' ? r.kat : r.kat || (r.tur === 'ob' ? 'ОБ' : 'МАТ');
     const katBelgi = kat ? <KatNishon kat={kat} /> : <span className="fz-kat">{'rs'}</span>;
+    const amal = resursAmallari(r, ish);
+    const zb2 = zamenaBelgi(r);
     return (
-      <tr key={r.id} data-qator={r.id} className="border-t border-border align-top">
+      <tr key={r.id} data-qator={r.id} className={`border-t border-border align-top ${r.chiqarilgan ? 'opacity-60' : ''} ${r.zamena ? 'border-l-2 border-l-[var(--info)]' : ''}`}>
         <td className="py-1.5 pl-9 pr-2">
-          <div className="flex items-center gap-1.5">{katBelgi}<span className="truncate text-text">{r.nom}</span></div>
+          <div className="flex items-center gap-1.5">{katBelgi}<span className={`truncate text-text ${r.chiqarilgan ? 'line-through' : ''}`}>{r.nom}</span></div>
           {r.norma != null && r.avto && <div className="pl-1 text-[11px] text-text-mute">{t('norma')} {r.norma}</div>}
+          {(amal || zb2) && <div className="mt-0.5 flex flex-wrap items-center gap-1 pl-1">{zb2}{amal}</div>}
         </td>
         <td className="px-2 py-1.5 text-right text-text-mute">{r.birlik}</td>
         <td className="px-2 py-1.5 text-right tabular-nums">
           {r.avto ? (x ? <FmtN val={x.hajm} /> : <span className="text-text-mute">—</span>)
-            : <input aria-label={`F2 hajmi: ${r.nom}`} inputMode="decimal" value={k.hajm[r.id] ?? ''} onChange={(e) => yoz('hajm', r.id, e.target.value)} placeholder={String(r.mumkin)} className={`${kirit} w-24 ${OSH_OGOH.has(x?.ogoh) ? '!border-warn bg-warn/10' : ''}`} />}
+            : <input aria-label={`F2 hajmi: ${r.nom}`} inputMode="decimal" disabled={r.chiqarilgan} value={k.hajm[r.id] ?? ''} onChange={(e) => yoz('hajm', r.id, e.target.value)} placeholder={String(r.mumkin)} className={`${kirit} w-24 ${OSH_OGOH.has(x?.ogoh) ? '!border-warn bg-warn/10' : ''}`} />}
           <div className="text-[11px] text-text-mute">{t('mumkin')} <FmtN val={r.mumkin} /></div>
         </td>
         <td className="px-2 py-1.5 text-right">
-          <MoneyInput aria-label={`F2 narxi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.narx[r.id] ?? ''} onValueChange={(moneyValue) => yoz('narx', r.id, moneyValue)} placeholder={taklif || t('narx')} className={`${kirit} w-28 disabled:opacity-40`} />
+          <MoneyInput aria-label={`F2 narxi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true || !!r.chiqarilgan} value={k.narx[r.id] ?? ''} onValueChange={(moneyValue) => yoz('narx', r.id, moneyValue)} placeholder={taklif || t('narx')} className={`${kirit} w-28 disabled:opacity-40`} />
           {x && <div className="mt-1 flex items-center justify-end gap-1"><NarxManbaChip manba={x.manba} protokol={x.protokol} />{x.protokol && <span className="text-[11px] text-text-mute">{x.protokol}</span>}</div>}
         </td>
         <td className="px-2 py-1.5 text-right">
-          <MoneyInput aria-label={`F2 summasi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true} value={k.summa[r.id] ?? ''} onValueChange={(moneyValue) => yoz('summa', r.id, moneyValue)} placeholder={x?.summa != null ? x.summa.toFixed(2) : ''} className={`${kirit} w-32 disabled:opacity-40`} />
+          <MoneyInput aria-label={`F2 summasi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true || !!r.chiqarilgan} value={k.summa[r.id] ?? ''} onValueChange={(moneyValue) => yoz('summa', r.id, moneyValue)} placeholder={x?.summa != null ? x.summa.toFixed(2) : ''} className={`${kirit} w-32 disabled:opacity-40`} />
         </td>
         <td className="w-28 px-2 py-1.5">
           <label className="flex items-center gap-1 whitespace-nowrap text-[11px] text-text-dim"><input type="checkbox" aria-label={`Narxsiz: ${r.nom}`} checked={k.narxsiz[r.id] === true} onChange={(e) => yoz('narxsiz', r.id, e.target.checked || undefined)} />{t('narxsiz')}</label>
@@ -506,7 +620,7 @@ export function F2TayyorlashNative() {
               <th className="px-2 text-right font-semibold">{t('Hajm')}</th><th className="px-2 text-right font-semibold">{t('Narx · manba')}</th>
               <th className="px-2 text-right font-semibold">{t('Summa')}</th><th className="px-2 text-left font-semibold">{t('Holat')}</th>
             </tr></thead>
-            <tbody>{i.resurslar.map(resursQatori)}</tbody>
+            <tbody>{i.resurslar.map((r) => resursQatori(r, i))}</tbody>
           </table>
         )}
       </div>
@@ -601,6 +715,7 @@ export function F2TayyorlashNative() {
       </section>}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}
       {error && validId && <section role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t(error)}</span><button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
+      {bajXato && validId && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Ishdan chiqarilgan resurslar ro‘yxati o‘qilmadi — F2 saqlanmaydi. Qayta urinib ko‘ring.')}</span><button type="button" onClick={() => void qoshimchaYukla()} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {loading && <div className="skel min-h-[260px] flex-1 rounded-xl" />}
       {validId && !loading && !error && bolimlar.length === 0 && <section className="fz-card p-8 text-center text-text-dim">{t('F2 ga olish mumkin bo‘lgan fakt qoldig‘i yo‘q — avval Fakt jurnalida bajarilgan ishni kiriting.')}</section>}
       {validId && !loading && !error && bolimlar.length > 0 && <>
@@ -625,7 +740,7 @@ export function F2TayyorlashNative() {
               {(() => { let qolgan = korsatLimit; return korinadi.map((b) => { const kes = b.ishlar.slice(0, Math.max(0, qolgan)); qolgan -= kes.length; return <div key={b.id ?? 'yoq'} className="space-y-2">
                 {royxatRejimi && <div className="fz-panel__h pt-1">{b.nom}</div>}
                 {kes.map(ishKartasi)}
-                {b.alohida.length > 0 && <div className="rounded-lg border border-border"><div className="px-3 py-1.5 text-[12px] font-semibold text-text-dim">{t('Alohida materiallar')}</div><table className="w-full text-[12.5px]"><tbody>{b.alohida.map(resursQatori)}</tbody></table></div>}
+                {b.alohida.length > 0 && <div className="rounded-lg border border-border"><div className="px-3 py-1.5 text-[12px] font-semibold text-text-dim">{t('Alohida materiallar')}</div><table className="w-full text-[12.5px]"><tbody>{b.alohida.map((r) => resursQatori(r))}</tbody></table></div>}
               </div>; }); })()}
               {korinadi.reduce((s, b) => s + b.ishlar.length, 0) > korsatLimit && <button type="button" onClick={() => setKorsatLimit((n) => n + 500)} className="fz-btn w-full">{t('Yana ko‘rsatish')}</button>}
             </div>
@@ -659,6 +774,11 @@ export function F2TayyorlashNative() {
             <button type="button" onClick={() => void saqlash()} disabled={!saqlashMumkin || saving} className="fz-btn fz-btn--primary"><Save aria-hidden="true" />{saqlaMatn}<kbd className="fz-kbd" aria-hidden="true">{'Ctrl+Enter'}</kbd></button>
           </div>
         </section>
+        {resZamena && joriy?.id && <IshAbcModal kompaniyaId={joriy.id} obyektId={obyektId} sana={bugun} bolimlar={[]} rejim={resZamena} onYop={() => setResZamena(null)}
+          almashtirishBelgila={(qatorId, hajm) => sbT2ZamenaAlmashtirishBelgila({ kompaniyaId: joriy.id, qatorId, hajm })}
+          onSaqlandi={async (xabar) => { setResZamena(null); toast(xabar, 'ok'); await tuzilmaYangila(); }} />}
+        {chiqModal && joriy?.id && <ResursChiqarishModal kompaniyaId={joriy.id} obyektId={obyektId} sana={bugun} qator={chiqModal} onYop={() => setChiqModal(null)}
+          onSaqlandi={(xabar) => { setChiqModal(null); toast(xabar, 'ok'); void qoshimchaYukla(); }} />}
         {joriy?.id && !aktKorish && <F2AiYordamchi kompaniyaId={joriy.id} obyektId={obyektId}
           malumot={{ obyektNomi: obyektlar.find((o) => o.id === obyektId)?.nom, oy, manba, ndsFoiz: ndsFoiz.trim() === '' || !Number.isFinite(Number(ndsFoiz.replace(',', '.'))) ? null : Number(ndsFoiz.replace(',', '.')),
             bolimlar, ier: bolimIer, qatorBolim, qatorlar, jami, katKesim, uchastkalar, k }}
