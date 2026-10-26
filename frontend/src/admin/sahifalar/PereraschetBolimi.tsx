@@ -26,6 +26,7 @@ import { Maydon } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { IkkiTomonQator, MiniFarq, Eksa, Rang } from '../../components/nakopitelniy/PereraschetGrafik';
 import { useObyektF2Aktlari } from './F2DublikatPanel';
+import { PereraschetFakt } from './PereraschetFakt';
 import type { KatKesim } from '../../lib/ustamali-summa';
 
 const SAHIFA = 100;
@@ -47,6 +48,9 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
   const navigate = useNavigate();
   const [rows, setRows] = useState<PQator[] | null>(null);
   const [zamena, setZamena] = useState<{ z: Set<number>; a: Set<number> }>({ z: new Set(), a: new Set() });
+  /** Rejim: «F2 vs smeta» (mavjud) yoki «Fakt bo'yicha qayta hisob» (egasi 2026-10-26). */
+  const [rejim, setRejim] = useState<'smeta' | 'fakt'>('smeta');
+  const [qoshimcha, setQoshimcha] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [xato, setXato] = useState('');
   const [bolim, setBolim] = useState<number | null>(null);
@@ -65,12 +69,15 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
   const yukla = async () => {
     setBusy(true); setXato(''); setTarix(null); setOchiq(null);
     try {
-      const [h, z] = await Promise.all([
+      const [h, z, qs] = await Promise.all([
         t2ToliqOqiParallel<PQator>(sbOqi, { jadval: 't2_qator_holat', filtr: 'obyekt_id=eq.' + obyektId, ustunlar: PERERASCHET_USTUNLAR, limit: 200000 }, 'qator_id'),
         sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&replaces_line_id=not.is.null`, ustunlar: 'id,replaces_line_id', limit: 20000 }),
+        t2ToliqOqiParallel<{ id: number }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&qoshimcha=is.true`, ustunlar: 'id', limit: 200000 }, 'id'),
       ]);
       if (!h.ok || h.toliq === false) { setXato(t('Smeta qatorlari to‘liq o‘qilmadi — pereraschet chala ma’lumot ustida hisoblanmaydi.')); setRows(null); return; }
       if (!z.ok) { setXato(t('Zamena bog‘lanishlari o‘qilmadi — qayta urinib ko‘ring.')); setRows(null); return; }
+      if (!qs.ok || qs.toliq === false) { setXato(t('Qo‘shimcha (smetadan tashqari) qatorlar o‘qilmadi — qayta urinib ko‘ring.')); setRows(null); return; }
+      setQoshimcha(new Set((qs.qatorlar ?? []).map((x) => Number(x.id))));
       const zs = new Set<number>(); const as = new Set<number>();
       for (const x of z.qatorlar ?? []) { zs.add(Number(x.id)); if (x.replaces_line_id != null) as.add(Number(x.replaces_line_id)); }
       setZamena({ z: zs, a: as });
@@ -181,6 +188,10 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
           <p className="fz-card__sub">{t('Qayta hisoblansa: qancha ortiqcha olish mumkin yoki qancha qaytarish kerak. Faqat o‘qiydi — smeta va tasdiqlangan aktlar o‘zgarmaydi.')}</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <div role="group" aria-label={t('Pereraschet rejimi')} style={{ display: 'inline-flex', gap: 2 }}>
+            <button type="button" aria-pressed={rejim === 'smeta'} className={`fz-btn fz-btn--sm ${rejim === 'smeta' ? 'fz-btn--primary' : ''}`} onClick={() => setRejim('smeta')}>{t('F2 vs smeta')}</button>
+            <button type="button" aria-pressed={rejim === 'fakt'} className={`fz-btn fz-btn--sm ${rejim === 'fakt' ? 'fz-btn--primary' : ''}`} onClick={() => setRejim('fakt')}>{t('Fakt bo‘yicha qayta hisob')}</button>
+          </div>
           {rows && (
             <select aria-label={t('Uchastka / razdel')} className="input" style={{ height: 'var(--control-md)', padding: '0 8px', maxWidth: 300 }} value={bolim ?? ''}
               onChange={(e) => { setBolim(e.target.value ? Number(e.target.value) : null); setSahifa(0); setTanlangan(new Set()); }}>
@@ -188,7 +199,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
               {bolimlar.map((b) => <option key={b.id} value={b.id}>{' '.repeat(b.daraja * 3)}{b.nom}</option>)}
             </select>
           )}
-          {natija && (
+          {natija && rejim === 'smeta' && (
             <button type="button" className="fz-btn" onClick={() => void excel()}>
               <Download /> {t('Pereraschet (Excel)')}
             </button>
@@ -203,7 +214,12 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
         {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{xato}</span></div>}
         {!natija && !busy && !xato && <div className="fz-note fz-note--info"><span>{t('Hisoblash tugmasini bosing: har bir smeta qatori fakt va tasdiqlangan F2 bilan solishtiriladi.')}</span></div>}
 
-        {natija && (
+        {rows && rejim === 'fakt' && (
+          <PereraschetFakt companyId={companyId} obyektId={obyektId} obyektNom={obyektNom} tomonlar={tomonlar} ndsFoiz={ndsFoiz}
+            rows={rows} qoshimcha={qoshimcha} bolim={bolim} bolimNomi={bolimNomi} aktlar={aktlar} onYaratildi={() => setYangila((x) => x + 1)} />
+        )}
+
+        {natija && rejim === 'smeta' && (
           <>
             <div className="fz-kpis">
               <div className="fz-kpi">
