@@ -15,8 +15,10 @@ import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 import { FaktJurnal, type SaqlashFn } from './FaktJurnal';
 import { XotiradanFakt } from './XotiradanFakt';
+import { FaktQamrov } from './FaktQamrov';
+import { jurnalQur, type JurnalHolat, type JurnalIsh } from '../../lib/fakt-jurnal';
+import { bajarilmaydiXarita, faktQamrovBekor, holatXarita, markirovkaIshlari } from '../../lib/fakt-qamrov';
 
-function walk(nodes: TreeNode[], fn: (n: TreeNode) => void) { for (const n of nodes) { fn(n); if (n.children) walk(n.children, fn); } }
 
 export function FaktNative() {
   const { joriy } = useKompaniya(); const navigate = useNavigate(); const [params, setParams] = useSearchParams(); const workspace = usePTOWorkspace();
@@ -39,10 +41,23 @@ export function FaktNative() {
     // Faqat shu qator, ota-bobolari va bolalari qayta o'qiladi; daraxt ekranda qoladi.
     await holatniYangila(node.id); return { ok: true };
   }, [obyektId, valid, holatniYangila]);
+  /**
+   * «Markirovka bo‘yicha 100%» (JQA-03): endi qatorma-qator `fakt_belgila_v2` («= smeta») EMAS — Qamrov % oynasi (100%):
+   * oldindan ko‘rish, bitta fakt_yoz_v2 tranzaksiyasi (urinish/receipt), faqat OSHIRADI. Smetadan oshgan qator (masalan
+   * 120 / 100) o‘zgarmaydi va «allaqachon ≥100%» deb ko‘rsatiladi; kamaytirish — oynadagi alohida «Tuzatish» (preview bilan).
+   */
+  const [markirovkaQamrov, setMarkirovkaQamrov] = useState<{ sarlavha: string; ishlar: JurnalIsh[] } | null>(null);
+  const holatMap = useMemo(() => holatXarita(states as readonly JurnalHolat[]), [states]);
+  const narxOl = useCallback((id: number): number | null => { const h = holatMap.get(id); const r = rows.find((x) => x.id === id); return h?.smeta_narx != null ? Number(h.smeta_narx) : r?.narx != null ? Number(r.narx) : null; }, [holatMap, rows]);
   const yuz = async () => {
-    if (!marker || saving) return; const targets: TreeNode[] = []; walk(tree, n => { if (faktQoldaKiritiladimi(n.type) && String(n.kat || '').trim() === marker && n.smetaHajm != null && n.fakt !== n.smetaHajm) targets.push(n); });
-    if (!targets.length) { toast('Bu markirovkada bajarilmagan hajm topilmadi.', 'warn'); return; } setSaving(true); let ok = 0; let fail = 0;
-    try { for (const n of targets) { const r = await sbFaktBelgilaV2({ obyektId, qatorId: n.id!, expectedFaktHajm: Number(n.fakt || 0), yangiFaktHajm: n.smetaHajm!, sana: new Date().toISOString().slice(0, 10), operationId: yangiOperationId(), izoh: `Markirovka ${marker} bo‘yicha 100% Fakt` }); if (r.ok) ok++; else fail++; } toast(`${ok} ta qator 100% ga belgilandi${fail ? `, ${fail} ta qator saqlanmadi` : ''}.`, fail ? 'warn' : 'ok'); await holatniYangila(); } catch { toast('100% belgilash vaqtida javob olinmadi.', 'danger'); } finally { setSaving(false); }
+    if (!marker || saving || !joriy?.id) return; setSaving(true);
+    try {
+      const baj = await bajarilmaydiXarita(joriy.id, obyektId);
+      const j = jurnalQur(rows, states, null, baj);
+      const ishlar = markirovkaIshlari(j.bolimIshlari, marker, j.ildizIshlari);
+      if (!ishlar.length) { toast(t('Bu markirovkada qator topilmadi.'), 'warn'); return; }
+      setMarkirovkaQamrov({ sarlavha: `${t('Markirovka')} ${marker}`, ishlar });
+    } finally { setSaving(false); }
   };
   /** Avval saqlanmagan kiritmalarni saqlaydi, so'ng F2 tayyorlashga o'tadi (yuqori tugma va Fakt Studio paneli uchun umumiy). */
   const f2gaOt = async (avto = false) => { if (otmoqda) return; setOtmoqda(true); try { const ok = jurnalSaqlash.current ? await jurnalSaqlash.current() : true; if (!ok) { toast('Fakt saqlanmadi. Avval saqlang, keyin F2 tayyorlashga o\u2018ting.', 'warn'); return; } navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}${avto ? '&avto=1' : ''}`); } finally { setOtmoqda(false); } };
@@ -51,6 +66,9 @@ export function FaktNative() {
     <div className="flex h-full min-h-0 flex-col gap-3"><section className="karta flex flex-wrap items-end gap-3 p-3"><label className="min-w-[260px] flex-1 text-[12px] font-medium text-text">Obyekt<select aria-label="Obyekt" value={valid ? obyektId : ''} onChange={e => { const o = obyektlar.find(x => x.id === Number(e.target.value)); if (workspace.isProvider) workspace.setObjectId(o?.id ?? null); else setParams(o ? { obyekt: String(o.id) } : {}); }} className="input mt-1.5 block h-9 w-full px-2 text-[13px]"><option value="">-- obyektni tanlang --</option>{valid && !obyektlar.some((item) => item.id === obyektId) && <option value={obyektId}>{t('Obyekt')} {'#'}{obyektId}</option>}<ObyektOptionlari obyektlar={obyektlar} /></select></label>{valid && <button onClick={() => navigate(`/admin/holat/${obyektId}${workspace.scopeSearch(obyektId)}`)} className="rounded-lg border border-border px-3 py-2 text-[12px]">LRVga qaytish</button>}{valid && <button disabled={otmoqda} onClick={() => void f2gaOt()} className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-text hover:bg-accent/10">F2 tayyorlash →</button>}{valid && <button onClick={() => void yuklash()} disabled={loading || yangilanmoqda || saving} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px]"><RefreshCw size={14} className={yangilanmoqda ? 'animate-spin' : undefined}/> Yangilash</button>}{yangilanmoqda && <span role="status" className="text-[11px] text-text-mute">Yangilanmoqda…</span>}{valid && <div className="ml-auto flex items-center gap-1 rounded-lg border border-border p-1" aria-label="Fakt ko‘rinishi">{([['tezkor', 'Fakt jurnali'], ['xotira', t('Xotiradan')], ['daraxt', 'Daraxt']] as const).map(([k, l]) => <button key={k} aria-pressed={korinish === k} onClick={() => setKorinish(k)} className={`rounded-md px-2.5 py-1 text-[12px] ${korinish === k ? 'bg-accent/15 text-text' : 'text-text-dim hover:text-text'}`}>{l}</button>)}</div>}</section>
       {valid && korinish === 'daraxt' && !birinchiYuklash && !error && tree.length > 0 && <section className="karta flex flex-wrap items-end gap-3 p-3" aria-label="Fakt markirovka boshqaruvi"><span className="text-[12px] text-text-dim"><b className="text-text">Smeta:</b> {smetaJami.toLocaleString('ru-RU')} · <b className="text-text">Fakt:</b> {faktJami.toLocaleString('ru-RU')}</span><label className="min-w-[220px] text-[12px] font-medium text-text">Markirovka bo‘yicha 100%<select aria-label="Fakt markirovkasi" value={marker} onChange={e => setMarker(e.target.value)} className="input mt-1 block h-9 w-full px-2"><option value="">Markirovkani tanlang</option>{markers.map(m => <option key={m} value={m}>{m}</option>)}</select></label><button onClick={() => void yuz()} disabled={!marker || saving} className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50"><Target size={14}/> {saving ? 'Belgilanmoqda…' : '100% qilish'}</button><span className="text-[11px] text-text-mute">Faqat BL/MAT/OB; RS avtomatik hisoblanadi.</span></section>}
       {!valid && <section className="karta p-4 text-text-dim">Avval kanonik obyektni tanlang.</section>}{error && valid && <section role="alert" className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-danger"><AlertTriangle size={16}/>{error}</section>}{birinchiYuklash && <div className="skel min-h-[280px] flex-1 rounded-xl"/>}{valid && joriy?.id && !birinchiYuklash && !error && (korinish === 'tezkor' || (korinish === 'daraxt' && tree.length === 0)) && <FaktJurnal saqlashRef={jurnalSaqlash} f2Otish={() => void f2gaOt(true)} kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}{valid && joriy?.id && korinish === 'xotira' && !birinchiYuklash && !error && <XotiradanFakt kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}{korinish === 'daraxt' && tree.length > 0 && <div className="min-h-0 flex-1"><SmetaTree data={tree} priceControlLines={price} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash}/></div>}
+      {markirovkaQamrov && joriy?.id && <FaktQamrov sarlavha={markirovkaQamrov.sarlavha} ishlar={markirovkaQamrov.ishlar} holatMap={holatMap} narxOl={narxOl}
+        obyektId={obyektId} kompaniyaId={joriy.id} sana={new Date().toISOString().slice(0, 10)}
+        onYop={() => setMarkirovkaQamrov(null)} onBajarildi={() => holatniYangila()} aktBekor={faktQamrovBekor} />}
     </div></Sahifa>;
 }
 export default FaktNative;

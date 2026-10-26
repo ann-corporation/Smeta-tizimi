@@ -52,6 +52,10 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
   const reja = useMemo(() => qamrovReja(ishlarJoriy, foiz ?? 0, holatMap, { ichkiResurslar: ichki, narxOl }), [ishlarJoriy, foiz, holatMap, ichki, narxOl]);
   const jami = useMemo(() => qamrovJami(reja, chiqarilgan), [reja, chiqarilgan]);
   const istisnoli = useMemo(() => reja.qatorlar.filter((q) => q.istisnolar.length > 0), [reja]);
+  /** Alohida «Tuzatish» (JQA-03): faqat oshgan qatorlar, faqat egasi ochib tasdiqlaganda; 100%/foiz yo'li hech qachon kamaytirmaydi. */
+  const [tuzatishOchiq, setTuzatishOchiq] = useState(false);
+  const [tuzTanlangan, setTuzTanlangan] = useState<Set<number>>(new Set());
+  const tuzPaket = useMemo(() => reja.oshganlar.filter((q) => tuzTanlangan.has(q.id)).map((q) => ({ qator_id: q.id, hajm: q.hajm })), [reja, tuzTanlangan]);
   const yanaSoni = Math.max(0, istisnoli.length - KORSAT_CHEGARA);
   const turNomi = (tur: string) => (tur === 'bl' ? t('ISH') : tur === 'ob' ? t('uskuna') : t('material'));
 
@@ -85,18 +89,21 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
    * qayta yuboriladi: server tasdiqlangan bo'lakka eski aktni (takror) qaytaradi, yozilmaganini yozadi. Aks holda birinchi
    * so'rovdan OLDIN yangi snapshot muzlatilib saqlanadi. Har bo'lak javobi receipt sifatida darhol saqlanadi.
    */
-  const yoz = async () => {
+  const yoz = async (tuzatish?: readonly { qator_id: number; hajm: number }[]) => {
     if (band) return;
     let u = urinishRef.current;
     if (!u) {
-      if (foiz == null || !jami.paket.length) return;
+      const paket = tuzatish ?? jami.paket;
+      if ((!tuzatish && foiz == null) || !paket.length) return;
       if (yozilgan) {
         // Oldingi yozuv jadvalda hali ko'rinmasa — reja eski qoldiqdan: tasdiqlangan hajm ikki marta yozilardi (JQA-09).
         if (!jadvalYangi) { toast(t('Jadval hali yangilanmagan — oldingi yozuv ko‘rinmayapti. «Jadvalni yangilash» ni bosing.'), 'warn'); return; }
         yozilganQoy(null);
       }
-      const faktlar = new Map(reja.qatorlar.map((q) => [q.id, q.fakt] as const));
-      u = urinishYarat({ kompaniyaId, obyektId, sana, sarlavha, foiz }, qamrovBolaklari(jami.paket), yangiOperationId, undefined, (id) => faktlar.get(id) ?? 0);
+      const faktlar = new Map([...reja.qatorlar, ...reja.oshganlar].map((q) => [q.id, q.fakt] as const));
+      u = urinishYarat(tuzatish
+        ? { kompaniyaId, obyektId, sana, sarlavha, foiz: 100, tur: 'tuzatish', izohBosh: 'Tuzatish (oshgan fakt → smeta)' }
+        : { kompaniyaId, obyektId, sana, sarlavha, foiz: foiz ?? 0 }, qamrovBolaklari(paket), yangiOperationId, undefined, (id) => faktlar.get(id) ?? 0);
     }
     setBand(true);
     urinishQoy(u);
@@ -115,7 +122,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
       if (holat === 'toliq') {
         yozilganQoy(yozilganYasa(u));
         urinishQoy(null);
-        toast(t('Qamrov {foiz}%: {n} qator faktga yozildi', { foiz: String(u.foiz), n: String(qatorSoni) }), 'ok', undefined, 15000,
+        toast(u.tur === 'tuzatish' ? t('Tuzatish: {n} qator fakti smetaga tushirildi', { n: String(qatorSoni) }) : t('Qamrov {foiz}%: {n} qator faktga yozildi', { foiz: String(u.foiz), n: String(qatorSoni) }), 'ok', undefined, 15000,
           aktlar.length ? { label: 'Bekor qilish', onClick: bekorQil(aktlar) } : undefined);
         onYop();
         await onBajarildi();
@@ -197,6 +204,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
           {jami.narxsiz > 0 && <span className="text-warn">{t('summa noma’lum: {n} qator', { n: String(jami.narxsiz) })}</span>}
           {reja.yopiq > 0 && <span className="text-text-mute">{t('ochiq qoldig‘i yo‘q: {n}', { n: String(reja.yopiq) })}</span>}
           {reja.smetasiz > 0 && <span className="text-text-mute">{t('smetasi noma’lum: {n}', { n: String(reja.smetasiz) })}</span>}
+          {reja.oshganlar.length > 0 && <span className="text-warn" data-testid="qamrov-oshgan-soni">{t('allaqachon ≥100% (smetadan oshgan, o‘zgarmaydi): {n}', { n: String(reja.oshganlar.length) })}</span>}
           {chiqarilgan.size > 0 && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(chiqarilgan.size) })}</span>}
           {jami.paket.length > 3000 && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
         </div>
@@ -232,6 +240,33 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
               </table>
               {yanaSoni > 0 && <p className="pt-1 text-[11px] text-text-mute">{t('yana {n} ta istisno — yuqoridagi tur tugmalari bilan boshqaring', { n: String(yanaSoni) })}</p>}
             </>}
+          {!urinish && reja.oshganlar.length > 0 && <div className="mt-3 rounded-lg border border-border px-3 py-2 text-[12px]" data-testid="qamrov-oshganlar">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-text-dim">{t('Smetadan oshgan qatorlar foiz bilan KAMAYTIRILMAYDI. Kamaytirish kerak bo‘lsa — alohida tuzatish (oldindan ko‘rish bilan).')}</span>
+              {!tuzatishOchiq && <button type="button" className="tugma" onClick={() => { setTuzTanlangan(new Set(reja.oshganlar.map((q) => q.id))); setTuzatishOchiq(true); }} data-testid="tuzatish-och">{t('Tuzatishni ko‘rish ({n})', { n: String(reja.oshganlar.length) })}</button>}
+            </div>
+            {tuzatishOchiq && <>
+              <table className="mt-2 w-full text-[12px]">
+                <thead><tr className="border-b border-border text-left text-text-mute">
+                  <th className="w-6 px-1" /><th className="px-1">{t('Qator')}</th><th className="px-1 text-right">{t('Smeta')}</th>
+                  <th className="px-1 text-right">{t('Hozirgi fakt')}</th><th className="px-1 text-right">{t('Yangi fakt')}</th><th className="px-1 text-right">{t('Farq')}</th>
+                </tr></thead>
+                <tbody>{reja.oshganlar.slice(0, KORSAT_CHEGARA).map((q) => <tr key={q.id} className="border-b border-border/40" data-testid={`tuzatish-${q.id}`}>
+                  <td className="px-1"><input type="checkbox" checked={tuzTanlangan.has(q.id)} onChange={() => setTuzTanlangan((s) => { const n = new Set(s); if (n.has(q.id)) n.delete(q.id); else n.add(q.id); return n; })} aria-label={t('Tuzatilsin: {nom}', { nom: q.nom })} /></td>
+                  <td className="max-w-[300px] truncate px-1" title={q.nom}><span className="text-text-mute">{turNomi(q.tur)}</span> {q.kod ? `${q.kod} ` : ''}{q.nom}</td>
+                  <td className="px-1 text-right tabular-nums">{fmt(q.smeta)}</td>
+                  <td className="px-1 text-right tabular-nums">{fmt(q.fakt)}</td>
+                  <td className="px-1 text-right tabular-nums">{fmt(q.fakt + q.hajm)}</td>
+                  <td className="px-1 text-right font-semibold tabular-nums text-danger">{fmt(q.hajm)} {q.birlik ?? ''}</td>
+                </tr>)}</tbody>
+              </table>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" className="tugma" onClick={() => setTuzatishOchiq(false)}>{t('Bekor')}</button>
+                <button type="button" className="tugma border-danger/50 text-danger" disabled={band || tuzPaket.length === 0 || !jadvalYangi} onClick={() => void yoz(tuzPaket)} data-testid="tuzatish-yoz">
+                  {t('Tuzatishni yozish — faktni kamaytirish ({n})', { n: String(tuzPaket.length) })}</button>
+              </div>
+            </>}
+          </div>}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-2 text-[12px]">
