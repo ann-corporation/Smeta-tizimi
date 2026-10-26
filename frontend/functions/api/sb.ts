@@ -79,6 +79,8 @@ const RUXSAT_JADVALLAR = new Set([
   't2_platforma_narx_manba', 't2_platforma_narx_manba_qator',
   /* Протокол согласования цен (2026-10-03). */
   't2_narx_protokol_royxat', 't2_narx_protokol_qator',
+  /* Smeta versiyasi → farq → da'vo (PTO-CORE-001, 2026-10-26): tashqi versiya, pozitsiyalar, moslik/qaror, da'vo o'qish modeli. */
+  't2_smeta_versiya', 't2_smeta_versiya_pozitsiya', 't2_smeta_versiya_moslik', 't2_smeta_versiya_dava',
   /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval
      birlashgan VIEW — `holat='bekor'`, is_deleted EMAS). */
   't2_korzinka',

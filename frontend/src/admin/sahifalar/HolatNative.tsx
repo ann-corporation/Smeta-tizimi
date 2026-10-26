@@ -34,6 +34,7 @@ import ResursVedomostNative from './ResursVedomostNative';
 import NarxNazoratNative from './NarxNazoratNative';
 import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPanel';
 import { BajarilmadiPanel } from './BajarilmadiPanel';
+import { SmetaVersiyaFarq } from './SmetaVersiyaFarq';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -339,7 +340,7 @@ export function HolatNative() {
         {validId && !loading && !error && tree.length === 0 && <section className="karta p-5 text-[13px] text-text-dim">Bu obyektda kanonik smeta qatorlari yo‘q.</section>}
         {selected && <ObjectMoneySummary object={selected} />}
         {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="karta flex flex-wrap gap-2 p-2">
-          {(['smeta', 'resurs', 'narx', 'yuklash', 'shartnoma'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',yuklash:'Smeta yuklash',shartnoma:'Shartnoma doirasi'})[tab])}</button>)}
+          {(['smeta', 'resurs', 'narx', 'yuklash', 'versiya', 'shartnoma'] as const).map(tab => <button type="button" key={tab} aria-pressed={activeTab === tab} className={`tugma ${activeTab === tab ? 'tugma-asosiy' : ''}`} onClick={() => setActiveTab(tab)}>{t(({smeta:'Smeta va bajarilish',resurs:'Resurslar',narx:'Narxlar nazorati',yuklash:'Smeta yuklash',versiya:'Versiyalar va farq',shartnoma:'Shartnoma doirasi'})[tab])}</button>)}
           <button className="tugma ml-auto" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
           <button className="tugma" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
         </nav>}
@@ -356,6 +357,12 @@ export function HolatNative() {
               </h3>
               {activeTab === 'yuklash' && <div className="mt-3 "><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
             </section>
+            {/* PTO-CORE-001: tashqi smeta versiyasi (ekspertizagacha …) → farq → da'vo; joriy smeta o'zgarmaydi. */}
+            {activeTab === 'versiya' && joriy?.id != null && (
+              <section className="karta p-3">
+                <SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={selected.nom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} />
+              </section>
+            )}
             <section hidden={activeTab !== 'resurs'} className="karta group p-3">
               <h3 className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-semibold text-text">
                 <span>Resurs vedomosti</span>
