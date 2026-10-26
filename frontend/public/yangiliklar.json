@@ -12,6 +12,17 @@
       ]
     },
     {
+      "id": 25,
+      "sana": "2026-10-27",
+      "sarlavha": "Smeta muhrlandi: asl smetadan har bir o'zgarish ko'rinadi",
+      "bandlar": [
+        "Har obyekt smetasining asl qatorlari muhrlandi (shifr, nom, birlik, hajm, narx, norma, tur, joyi). Bitta vergul qo'shilsa ham qator «O'zgargan» deb belgilanadi.",
+        "Smeta va bajarilish sahifasida daraxt ustida xulosa: nechta qator o'zgargan, qo'shilgan yoki o'chirilgan; daraxtda «Asl smetadan farq» filtri va qator yonida belgi.",
+        "Belgini bosing — qator tafsilotida «Avval (asl smeta) / Endi» jadvali va o'zgarish jurnali (kim, qachon) chiqadi. Tahrirlash taqiqlanmaydi — faqat ko'rinadi.",
+        "Narx keyin qo'yilgan qatorlar («Narx qo'yildi») va ekspertizagacha bo'limlar alohida ko'rsatiladi."
+      ]
+    },
+    {
       "id": 24,
       "sana": "2026-10-26",
       "sarlavha": "Chap menyu: ish, kompaniya va platforma ajratildi",
