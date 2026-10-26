@@ -137,6 +137,12 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   kontragent_ochir: 'document.write',
   bajarilmadi_belgila: 'fakt.write',
   bajarilmadi_bekor: 'fakt.write',
+  /* PTO-CORE-001: smeta versiyasi / farq / da'vo (qoplama, t2_qator o'zgarmaydi); RPC ham smeta.write talab qiladi. */
+  smeta_versiya_yarat_v1: 'smeta.write',
+  smeta_versiya_pozitsiya_yoz_v1: 'smeta.write',
+  smeta_versiya_moslik_yoz_v1: 'smeta.write',
+  smeta_versiya_qaror_v1: 'smeta.write',
+  smeta_versiya_bekor_v1: 'smeta.write',
   xarajat_kirit_v1: 'financial.write',
   xarajat_bekor_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
