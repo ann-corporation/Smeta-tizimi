@@ -17,3 +17,14 @@ export async function zamenaBoglanishOl(obyektId: number): Promise<ZamenaBoglani
   if (h?.ok) for (const r of h.qatorlar ?? []) { const v = Number(r.almashtirilgan_hajm); if (Number.isFinite(v) && v > 0) almashtirilgan.set(Number(r.qator_id), v); }
   return { almashtiradi, almashtirilgan };
 }
+
+/**
+ * Zamena qatorlarining «aslning qancha hajmini almashtiradi» qiymati (t2_qator.almashtirish_hajm, aslning birligida).
+ * Alohida so'rov: ustun bo'lmasa/xato bo'lsa bo'sh xarita — qoida proporsional ulushga qaytadi (to'qilmaydi).
+ */
+export async function zamenaMiqdorOl(obyektId: number): Promise<Map<number, number>> {
+  const r = await sbOqi<{ id: number; almashtirish_hajm: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&zamena=is.true&almashtirish_hajm=not.is.null`, ustunlar: 'id,almashtirish_hajm', limit: 20000 }).catch(() => null);
+  const m = new Map<number, number>();
+  if (r?.ok) for (const x of r.qatorlar ?? []) { const v = Number(x.almashtirish_hajm); if (x.almashtirish_hajm != null && Number.isFinite(v) && v >= 0) m.set(Number(x.id), v); }
+  return m;
+}
