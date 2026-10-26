@@ -38,7 +38,7 @@
 ### B4. Mindmap — markaziy boshqaruv yuzasi
 - «Har kim o'ziga tegishli qismni ko'ra olsin va boshqara olsin, to'liq nazorat; har funksiya professional; **har signal ideal asosli**; **kompaniya strukturasini shu mindmapda tuzsa bo'lsin**.»
 - Reja (tekshiruv 2026-10-26):
-  1. Ishonchli xarita — F2 faqat tasdiqlangan (hozir qoralamalar ham qo'shiladi), haqiqiy signallar (`t2_signal`, `t2_overbilling_radar`), shartnoma ma'lumotlari, tahrir faqat ruxsati borlarga, eski havolalar/«�» tuzatish. — 🟡 ishlanmoqda.
+  1. Ishonchli xarita — F2 faqat tasdiqlangan (hozir qoralamalar ham qo'shiladi), haqiqiy signallar (`t2_signal`, `t2_overbilling_radar`), shartnoma ma'lumotlari, tahrir faqat ruxsati borlarga, eski havolalar tuzatish. — 🟡 frontend ✅ `877d3b00`; SQL `20261111600000_t2_mindmap_grafi_v3` prodga qo'llanmagan (Supabase tasdig'i).
   2. Har kim o'z qismi — rol/obyekt bo'yicha filtr, moliyaviy ruxsatsizlarga summa yo'q, rahbar xaritadan obyekt ochadi. — ⏳
   3. Kompaniya tuzilmasi xaritada — bo'lim/brigada, xodim + rol, «obyektda PTO/prorab kim», taklif va rol berish xaritadan. — ⏳ (bo'lim/brigada jadvali yo'q)
   4. Tashqi tomonlar va imzochilar xaritada; eski tahrir kodini tozalash. — ⏳
