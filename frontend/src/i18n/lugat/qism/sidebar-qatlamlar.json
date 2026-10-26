@@ -1,0 +1,16 @@
+{
+  "Obyektlar va loyihalar": { "ru": "Объекты и проекты", "en": "Sites and projects" },
+  "F2 va Nakopitelniy": { "ru": "Ф-2 и накопительная", "en": "F2 and cumulative statement" },
+  "Moliya va shartnomalar": { "ru": "Финансы и договоры", "en": "Finance and contracts" },
+  "Kiruvchi (tomonlar)": { "ru": "Входящие (стороны)", "en": "Inbox (parties)" },
+  "Ta‘minot va resurslar": { "ru": "Снабжение и ресурсы", "en": "Supply and resources" },
+  "⚙ Kompaniya": { "ru": "⚙ Компания", "en": "⚙ Company" },
+  "Shaxsiy": { "ru": "Личное", "en": "Personal" },
+  "Mening topshiriqlarim": { "ru": "Мои задачи", "en": "My tasks" },
+  "Platforma": { "ru": "Платформа", "en": "Platform" },
+  "Fayl bog‘lash (texnik)": { "ru": "Привязка файлов (техн.)", "en": "File linking (technical)" },
+  "Sinov qobig‘i (eski)": { "ru": "Тестовая оболочка (старая)", "en": "Test shell (legacy)" },
+  "Fayllar (saqlash)": { "ru": "Файлы (хранилище)", "en": "Files (storage)" },
+  "Kompaniya, a‘zolar va modullar": { "ru": "Компания, участники и модули", "en": "Company, members and modules" },
+  "Integratsiyalar va audit": { "ru": "Интеграции и аудит", "en": "Integrations and audit" }
+}

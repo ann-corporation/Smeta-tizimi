@@ -2,13 +2,25 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 24,
+      "id": 26,
       "sana": "2026-10-27",
       "sarlavha": "Faktli ishda resurs zamenasi va «ishdan chiqarish»",
       "bandlar": [
         "F2 tayyorlash va Fakt jurnalida ish ichidagi istalgan resurs (mashina, material, uskuna, perevozka) yonida «Zamena» tugmasi bor: yangi resursni katalogdan tanlang yoki qo'lda yozing (kod, nom, birlik, norma/hajm, narx manbasi). Asl qator o'zgarmaydi — zamena F2 da uning o'rnida turadi, aslning hajmi esa zamena hajmiga qarab yopiladi (ikki marta olinmaydi). Birlik farqli bo'lsa — «asl resursning qancha hajmini almashtiradi» ni yozish mumkin.",
         "«Ishdan chiqarish» — resurs shu ishda ishlatilmagan bo'lsa: sababini tanlaysiz, resurs F2 ga kirmaydi va «ishdan chiqarilgan» belgisi bilan ko'rinadi. Smeta qatori o'chirilmaydi; belgini bosib bekor qilish mumkin.",
         "Ishchi mehnati (ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ) zamena qilinmaydi va hozircha chiqarilmaydi — tugma xira, ustiga borsangiz sababi yoziladi."
+      ]
+    },
+    {
+      "id": 24,
+      "sana": "2026-10-26",
+      "sarlavha": "Chap menyu: ish, kompaniya va platforma ajratildi",
+      "bandlar": [
+        "Menyu qurilish zanjiri tartibida: Obyektlar → Smeta → Fakt → F2 va Nakopitelniy → Moliya va shartnomalar → Hujjatlar → Ta'minot. PTO pulga aloqador hamma bandni avvalgidek ko'radi.",
+        "Takroriy bandlar bittaga yig'ildi: narx (6 ta) — «Narxlash», tomonlar — «Shartnomalar va tomonlar» va «Kiruvchi», sozlamalar — «⚙ Kompaniya». Har sahifa eski manzilida, tepada tablar bilan.",
+        "«Fakt kiritish» menyuga qo'shildi (usta, brigadir, prorab, PTO).",
+        "Platforma boshqaruvi, sayt xaritasi va sinov yo'llari endi faqat platforma superadminiga ko'rinadi; kompaniya rahbari ularni ko'rmaydi.",
+        "Har rol faqat o'z ishiga oid bandni ko'radi: usta, omborchi, haydovchi va buyurtmachiga «AI ishchilar», «Korzinka», «Sayt xaritasi», nakrutka va narx manbalari ko'rinmaydi."
       ]
     },
     {
