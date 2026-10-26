@@ -142,6 +142,12 @@ export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat
     }
     bolimIshlari.set(r.id, zamenaTartibla(ishlar));
   }
+  /** Bo'limsiz (ota yo'q) ishlar va alohida mat/ob — jurnal ko'rinishida yo'q, lekin markirovka/qamrov ularni o'tkazib yubormasin. */
+  const ildizIshlari: JurnalIsh[] = [];
+  for (const c of bolalar.get(null) ?? []) {
+    if (c.tur === 'bl') ildizIshlari.push(ishQur(c));
+    else if (c.tur === 'mat' || c.tur === 'ob') ildizIshlari.push({ ...qq(c), resurslar: [], avtomatik: [] });
+  }
 
   // Bo'lim ulushi — har ishning HAJM bo'yicha bajarilishi (0..1), smeta summasi bilan tortilgan o'rtacha.
   // Fakt summasi ishlatilmaydi: ish (bl) qatorining o'z narxi yo'q (summa resurslardan), shuning uchun
@@ -181,7 +187,7 @@ export function jurnalQur(rows: readonly T2Qator[], states: readonly JurnalHolat
     }
   };
   tartibla(null);
-  return { bolimlar, bolimIshlari };
+  return { bolimlar, bolimIshlari, ildizIshlari };
 }
 
 export type SummaKesim = { ustamasiz: number | null; kesim: KatKesim };

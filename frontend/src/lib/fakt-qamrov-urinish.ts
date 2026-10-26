@@ -25,6 +25,8 @@ export type UrinishBolak = {
 };
 export type QamrovUrinish = {
   kalit: string; kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number;
+  /** 'qamrov' — foiz × ochiq qoldiq (faqat oshiradi); 'tuzatish' — oshgan faktni ochiq qoldiq 0 ga kamaytirish (alohida, preview bilan). */
+  tur?: 'qamrov' | 'tuzatish';
   yaratildi: string; bolaklar: readonly UrinishBolak[];
 };
 export type UrinishHolat = 'kutmoqda' | 'toliq' | 'nomalum' | 'xato';
@@ -32,16 +34,16 @@ export type UrinishHolat = 'kutmoqda' | 'toliq' | 'nomalum' | 'xato';
 export const urinishKaliti = (kompaniyaId: number, obyektId: number) => `${kompaniyaId}:${obyektId}`;
 
 /** Snapshot: bo'laklar va UUID'lar shu yerda muzlatiladi (keyin o'zgarmaydi). */
-export function urinishYarat(p: { kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number },
+export function urinishYarat(p: { kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number; /** Izoh boshi (standart: «Qamrov N%»). */ izohBosh?: string; tur?: 'qamrov' | 'tuzatish' },
   bolaklar: readonly (readonly { qator_id: number; hajm: number }[])[], yangiId: () => string, hozir: () => string = () => new Date().toISOString(),
   faktOl: (id: number) => number = () => 0): QamrovUrinish {
   const n = bolaklar.length;
   return Object.freeze({
-    kalit: urinishKaliti(p.kompaniyaId, p.obyektId), kompaniyaId: p.kompaniyaId, obyektId: p.obyektId, sana: p.sana, sarlavha: p.sarlavha, foiz: p.foiz,
+    kalit: urinishKaliti(p.kompaniyaId, p.obyektId), kompaniyaId: p.kompaniyaId, obyektId: p.obyektId, sana: p.sana, sarlavha: p.sarlavha, foiz: p.foiz, tur: p.tur ?? 'qamrov',
     yaratildi: hozir(),
     bolaklar: bolaklar.map((q, i) => Object.freeze({
       operationId: yangiId(), qatorlar: q.map((x) => ({ qator_id: x.qator_id, hajm: x.hajm })),
-      izoh: `Qamrov ${p.foiz}%: ${p.sarlavha}`.slice(0, 480) + (n > 1 ? ` (${i + 1}/${n})` : ''),
+      izoh: `${p.izohBosh ?? `Qamrov ${p.foiz}%`}: ${p.sarlavha}`.slice(0, 480) + (n > 1 ? ` (${i + 1}/${n})` : ''),
       holat: 'kutmoqda' as BolakHolat, aktId: null, xato: null, asos: q.map((x) => faktOl(x.qator_id)),
     })),
   });

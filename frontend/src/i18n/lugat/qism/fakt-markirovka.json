@@ -1,0 +1,13 @@
+{
+  "Bu markirovkada qator topilmadi.": { "ru": "По этой маркировке строки не найдены.", "en": "No rows found for this marking." },
+  "Markirovka": { "ru": "Маркировка", "en": "Marking" },
+  "allaqachon ≥100% (smetadan oshgan, o‘zgarmaydi): {n}": { "ru": "уже ≥100% (превышение сметы, не меняется): {n}", "en": "already ≥100% (over the estimate, unchanged): {n}" },
+  "Smetadan oshgan qatorlar foiz bilan KAMAYTIRILMAYDI. Kamaytirish kerak bo‘lsa — alohida tuzatish (oldindan ko‘rish bilan).": { "ru": "Строки с превышением сметы процентом НЕ уменьшаются. Если нужно уменьшить — отдельная корректировка (с предпросмотром).", "en": "Rows over the estimate are NOT reduced by the percent. To reduce them, use a separate correction (with preview)." },
+  "Tuzatishni ko‘rish ({n})": { "ru": "Посмотреть корректировку ({n})", "en": "Review correction ({n})" },
+  "Hozirgi fakt": { "ru": "Текущий факт", "en": "Current actual" },
+  "Yangi fakt": { "ru": "Новый факт", "en": "New actual" },
+  "Farq": { "ru": "Разница", "en": "Difference" },
+  "Tuzatilsin: {nom}": { "ru": "Корректировать: {nom}", "en": "Correct: {nom}" },
+  "Tuzatishni yozish — faktni kamaytirish ({n})": { "ru": "Записать корректировку — уменьшить факт ({n})", "en": "Write correction — reduce actuals ({n})" },
+  "Tuzatish: {n} qator fakti smetaga tushirildi": { "ru": "Корректировка: факт строк ({n}) снижен до сметы", "en": "Correction: actuals of {n} rows reduced to the estimate" }
+}
