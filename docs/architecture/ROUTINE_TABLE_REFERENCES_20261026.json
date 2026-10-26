@@ -5325,6 +5325,12 @@
         "security_definer": true
       },
       {
+        "name": "t2_smeta_versiya_yarat_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
         "name": "t2_obyekt_yarat_v1",
         "schema": "public",
         "volatility": "v",
@@ -5836,6 +5842,36 @@
       },
       {
         "name": "t2_kompaniya_yarat_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_qaror_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_yarat_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_pozitsiya_yoz_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_moslik_yoz_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_bekor_v1",
         "schema": "public",
         "volatility": "v",
         "security_definer": true
@@ -6542,6 +6578,12 @@
       },
       {
         "name": "t2_addrepl_execute_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_moslik_yoz_v1",
         "schema": "public",
         "volatility": "v",
         "security_definer": true
@@ -8099,6 +8141,12 @@
         "security_definer": true
       },
       {
+        "name": "t2_smeta_versiya_yarat_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
         "name": "t2_f2_qoralama_yangila_v1",
         "schema": "public",
         "volatility": "v",
@@ -8186,6 +8234,78 @@
         "name": "t2_norma_tajriba_v1",
         "schema": "public",
         "volatility": "s",
+        "security_definer": true
+      }
+    ]
+  },
+  {
+    "table": "t2_smeta_versiya",
+    "schema": "public",
+    "routine_references": [
+      {
+        "name": "t2_smeta_versiya_qaror_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_yarat_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_pozitsiya_yoz_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_moslik_yoz_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_bekor_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      }
+    ]
+  },
+  {
+    "table": "t2_smeta_versiya_moslik",
+    "schema": "public",
+    "routine_references": [
+      {
+        "name": "t2_smeta_versiya_qaror_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_moslik_yoz_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      }
+    ]
+  },
+  {
+    "table": "t2_smeta_versiya_pozitsiya",
+    "schema": "public",
+    "routine_references": [
+      {
+        "name": "t2_smeta_versiya_pozitsiya_yoz_v1",
+        "schema": "public",
+        "volatility": "v",
+        "security_definer": true
+      },
+      {
+        "name": "t2_smeta_versiya_moslik_yoz_v1",
+        "schema": "public",
+        "volatility": "v",
         "security_definer": true
       }
     ]

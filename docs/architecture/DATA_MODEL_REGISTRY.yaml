@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-26T05:48:29.354146+00:00",
-  "git_commit": "69db8d45050cc82dfd67baae6dec7153b727a219",
+  "generated_at": "2026-10-26T06:19:09.50903+00:00",
+  "git_commit": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9",
   "db_migration_head": "20261106510000",
   "db_migration_head_name": "t2_agent_qidiruv_v1",
   "migration_head_semantics": "lexicographic max(version), not latest DDL/apply time",
@@ -22,247 +22,18 @@
     "ordinary_table",
     "partitioned_table"
   ],
-  "table_count": 204,
+  "table_count": 207,
   "counts": {
-    "CANONICAL": 179,
+    "CANONICAL": 180,
     "COMPAT": 2,
     "DEPRECATED": 0,
     "BACKUP": 14,
     "TEMP": 1,
-    "UNCLASSIFIED": 8
+    "UNCLASSIFIED": 10
   },
   "source_of_truth": "Live catalog SELECT metadata; no business rows; static source references pinned to git_commit",
   "classification_policy": "CANONICAL means current module storage, not canonical financial entitlement; NULL means unresolved. No table is deprecated/deletable merely by name.",
   "tables": [
-    {
-      "table": "snapshot.bolak_mazmun",
-      "classification": "BACKUP",
-      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
-      "owner_module": "Snapshot / Recovery",
-      "owner_basis": "Выделенная snapshot schema",
-      "replacement": null,
-      "delete_authorized": false,
-      "rls": true,
-      "force_rls": false,
-      "write_path": {
-        "database_triggers": [],
-        "live_routine_text_references": [
-          {
-            "name": "_yukla",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "_snap_shartnomalar",
-            "schema": "snapshot",
-            "volatility": "s",
-            "security_definer": true
-          },
-          {
-            "name": "ol",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "tozala",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          }
-        ],
-        "migration_dml_candidates": [],
-        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
-      },
-      "runtime_references": [],
-      "foreign_keys": []
-    },
-    {
-      "table": "snapshot.jadval_royxat",
-      "classification": "BACKUP",
-      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
-      "owner_module": "Snapshot / Recovery",
-      "owner_basis": "Выделенная snapshot schema",
-      "replacement": null,
-      "delete_authorized": false,
-      "rls": true,
-      "force_rls": false,
-      "write_path": {
-        "database_triggers": [],
-        "live_routine_text_references": [
-          {
-            "name": "_jadval_bolaklar",
-            "schema": "snapshot",
-            "volatility": "s",
-            "security_definer": true
-          },
-          {
-            "name": "_yukla",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "ol",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "farq",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "qaytar",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          }
-        ],
-        "migration_dml_candidates": [],
-        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
-      },
-      "runtime_references": [],
-      "foreign_keys": []
-    },
-    {
-      "table": "snapshot.obyekt_snapshot",
-      "classification": "BACKUP",
-      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
-      "owner_module": "Snapshot / Recovery",
-      "owner_basis": "Выделенная snapshot schema",
-      "replacement": null,
-      "delete_authorized": false,
-      "rls": true,
-      "force_rls": false,
-      "write_path": {
-        "database_triggers": [],
-        "live_routine_text_references": [
-          {
-            "name": "ol",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "royxat",
-            "schema": "snapshot",
-            "volatility": "s",
-            "security_definer": true
-          },
-          {
-            "name": "farq",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "qaytar",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "tozala",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "kunlik",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          }
-        ],
-        "migration_dml_candidates": [],
-        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
-      },
-      "runtime_references": [],
-      "foreign_keys": []
-    },
-    {
-      "table": "snapshot.obyekt_snapshot_bolak",
-      "classification": "BACKUP",
-      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
-      "owner_module": "Snapshot / Recovery",
-      "owner_basis": "Выделенная snapshot schema",
-      "replacement": null,
-      "delete_authorized": false,
-      "rls": true,
-      "force_rls": false,
-      "write_path": {
-        "database_triggers": [],
-        "live_routine_text_references": [
-          {
-            "name": "_yukla",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "_snap_shartnomalar",
-            "schema": "snapshot",
-            "volatility": "s",
-            "security_definer": true
-          },
-          {
-            "name": "ol",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          },
-          {
-            "name": "tozala",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          }
-        ],
-        "migration_dml_candidates": [],
-        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
-      },
-      "runtime_references": [],
-      "foreign_keys": [
-        {
-          "name": "obyekt_snapshot_bolak_snapshot_id_fkey",
-          "target": "snapshot.obyekt_snapshot"
-        },
-        {
-          "name": "obyekt_snapshot_bolak_xesh_fkey",
-          "target": "snapshot.bolak_mazmun"
-        }
-      ]
-    },
-    {
-      "table": "snapshot.qaytarish_jurnal",
-      "classification": "BACKUP",
-      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
-      "owner_module": "Snapshot / Recovery",
-      "owner_basis": "Выделенная snapshot schema",
-      "replacement": null,
-      "delete_authorized": false,
-      "rls": true,
-      "force_rls": false,
-      "write_path": {
-        "database_triggers": [],
-        "live_routine_text_references": [
-          {
-            "name": "qaytar",
-            "schema": "snapshot",
-            "volatility": "v",
-            "security_definer": true
-          }
-        ],
-        "migration_dml_candidates": [],
-        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
-      },
-      "runtime_references": [],
-      "foreign_keys": []
-    },
     {
       "table": "public.t2_addrepl_command",
       "classification": "CANONICAL",
@@ -1389,11 +1160,6 @@
         ],
         "migration_dml_candidates": [
           {
-            "routine_candidate": "_t2_agent_qoida_yadro_qulf",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261106260000_t2_agent_ish_muhiti_v1.sql:103"
-          },
-          {
             "routine_candidate": "t2_agent_taklif_qaror_v1",
             "operation": "UPDATE",
             "evidence": "supabase/migrations/20261106360000_t2_agent_bilim_v1.sql:102"
@@ -2456,7 +2222,7 @@
           {
             "routine_candidate": "t2_akt_yarat_v2",
             "operation": "UPDATE",
-            "evidence": "supabase/migrations/20260929120000_t2_akt_yarat_v2_hujjat_summasi_v1.sql:132"
+            "evidence": "supabase/migrations/20260929120000_t2_akt_yarat_v2_hujjat_summasi_v1.sql:115"
           },
           {
             "routine_candidate": "t2_f2_qoralama_yangila_v1",
@@ -3842,8 +3608,8 @@
     },
     {
       "table": "public.t2_bosqich_katalog",
-      "classification": "CANONICAL",
-      "classification_basis": "Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды",
+      "classification": null,
+      "classification_basis": "Недостаточно доказательств для lifecycle-класса; классификация оставлена NULL",
       "owner_module": "Catalog / Pricing",
       "owner_basis": "Правило доменного префикса catalog; review L0",
       "replacement": null,
@@ -3853,13 +3619,7 @@
       "write_path": {
         "database_triggers": [],
         "live_routine_text_references": [],
-        "migration_dml_candidates": [
-          {
-            "routine_candidate": "t2_bildirishnoma_oqildi_v1",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261108000000_t2_ekotizim_f1_yadro_v1.sql:375"
-          }
-        ],
+        "migration_dml_candidates": [],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
       },
       "runtime_references": [],
@@ -5892,16 +5652,6 @@
             "routine_candidate": "t2_boshqaruv_foydalanuvchi_holat_v1",
             "operation": "UPDATE",
             "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:416"
-          },
-          {
-            "routine_candidate": "t2_boshqaruv_tarif_saqla_v1",
-            "operation": "UPDATE",
-            "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:312"
-          },
-          {
-            "routine_candidate": "t2_boshqaruv_tarif_saqla_v1",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:328"
           },
           {
             "routine_candidate": "t2_ozi_royxat_email_tasdiqla_v1",
@@ -8967,11 +8717,6 @@
             "evidence": "supabase/migrations/20261105130000_t2_narx_dalil_v1.sql:226"
           },
           {
-            "routine_candidate": "_t2_katalog_zavod",
-            "operation": "UPDATE",
-            "evidence": "supabase/migrations/20261105320000_t2_platforma_katalog_v1.sql:101"
-          },
-          {
             "routine_candidate": "_t2_narx_manba_yoz",
             "operation": "UPDATE",
             "evidence": "supabase/migrations/20261105320000_t2_platforma_katalog_v1.sql:164"
@@ -8985,11 +8730,6 @@
             "routine_candidate": "t2_platforma_narx_manba_bekor_v1",
             "operation": "UPDATE",
             "evidence": "supabase/migrations/20261105320000_t2_platforma_katalog_v1.sql:247"
-          },
-          {
-            "routine_candidate": "t2_platforma_narx_manba_yoz_v1",
-            "operation": "UPDATE",
-            "evidence": "supabase/migrations/20261106120000_t2_narx_katalog_r2_v1.sql:164"
           }
         ],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
@@ -9060,11 +8800,6 @@
             "evidence": "supabase/migrations/20261105130000_t2_narx_dalil_v1.sql:192"
           },
           {
-            "routine_candidate": "_t2_katalog_zavod",
-            "operation": "UPDATE",
-            "evidence": "supabase/migrations/20261105321000_t2_katalog_zavod_nom_tuzatish.sql:51"
-          },
-          {
             "routine_candidate": "_t2_narx_manba_yoz",
             "operation": "DELETE FROM",
             "evidence": "supabase/migrations/20261105320000_t2_platforma_katalog_v1.sql:191"
@@ -9073,11 +8808,6 @@
             "routine_candidate": "_t2_narx_manba_yoz",
             "operation": "INSERT INTO",
             "evidence": "supabase/migrations/20261105320000_t2_platforma_katalog_v1.sql:193"
-          },
-          {
-            "routine_candidate": "t2_platforma_narx_manba_yoz_v1",
-            "operation": "DELETE FROM",
-            "evidence": "supabase/migrations/20261106120000_t2_narx_katalog_r2_v1.sql:167"
           }
         ],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
@@ -9340,11 +9070,6 @@
             "routine_candidate": "t2_google_kirish_v1",
             "operation": "INSERT INTO",
             "evidence": "supabase/migrations/20261105310000_t2_token_narx_v2_tolov.sql:377"
-          },
-          {
-            "routine_candidate": "t2_boshqaruv_tarif_saqla_v1",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:333"
           },
           {
             "routine_candidate": "t2_ish_joyi_yarat_v1",
@@ -9807,6 +9532,12 @@
           },
           {
             "name": "t2_addrepl_execute_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_yarat_v1",
             "schema": "public",
             "volatility": "v",
             "security_definer": true
@@ -10509,6 +10240,36 @@
             "security_definer": true
           },
           {
+            "name": "t2_smeta_versiya_qaror_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_yarat_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_pozitsiya_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_moslik_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_bekor_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
             "name": "t2_f2_qoralama_yangila_v1",
             "schema": "public",
             "volatility": "v",
@@ -10802,6 +10563,31 @@
             "routine_candidate": "t2_bajarilmadi_bekor_v1",
             "operation": "INSERT INTO",
             "evidence": "supabase/migrations/20261106880000_t2_qator_bajarilmadi_v1.sql:118"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_yarat_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:165"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_pozitsiya_yoz_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:206"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_moslik_yoz_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:288"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_qaror_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:376"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_bekor_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:396"
           }
         ],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
@@ -11019,11 +10805,6 @@
             "routine_candidate": "t2_google_kirish_v1",
             "operation": "INSERT INTO",
             "evidence": "supabase/migrations/20261105310000_t2_token_narx_v2_tolov.sql:381"
-          },
-          {
-            "routine_candidate": "t2_boshqaruv_tarif_saqla_v1",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:338"
           }
         ],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
@@ -11282,8 +11063,8 @@
     },
     {
       "table": "public.t2_primitiv_tur",
-      "classification": "CANONICAL",
-      "classification_basis": "Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды",
+      "classification": null,
+      "classification_basis": "Недостаточно доказательств для lifecycle-класса; классификация оставлена NULL",
       "owner_module": "Ecosystem / Collaboration",
       "owner_basis": "Правило доменного префикса ecosystem; review L0",
       "replacement": null,
@@ -11293,13 +11074,7 @@
       "write_path": {
         "database_triggers": [],
         "live_routine_text_references": [],
-        "migration_dml_candidates": [
-          {
-            "routine_candidate": "t2_bildirishnoma_oqildi_v1",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261108000000_t2_ekotizim_f1_yadro_v1.sql:341"
-          }
-        ],
+        "migration_dml_candidates": [],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
       },
       "runtime_references": [],
@@ -11819,6 +11594,12 @@
             "security_definer": true
           },
           {
+            "name": "t2_smeta_versiya_moslik_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
             "name": "t2_f2_qoralama_yangila_v1",
             "schema": "public",
             "volatility": "v",
@@ -12111,11 +11892,6 @@
             "evidence": "supabase/migrations/20261025090000_t2_smeta_paket_import_v1.sql:465"
           },
           {
-            "routine_candidate": "t2_qator_bez_sklad_trg",
-            "operation": "UPDATE",
-            "evidence": "supabase/migrations/20261105250000_t2_ish_abc_v2_shartnoma_normasiz.sql:249"
-          },
-          {
             "routine_candidate": "t2_ish_abc_ochir_ichki",
             "operation": "DELETE FROM",
             "evidence": "supabase/migrations/20261106700000_t2_smeta_bolim_v1.sql:89"
@@ -12200,9 +11976,9 @@
         "frontend/src/admin/sahifalar/F2ImportV3.tsx:743",
         "frontend/src/admin/sahifalar/F2ImportV3.tsx:1180",
         "frontend/src/admin/sahifalar/F2V3Workbench.tsx:36",
-        "frontend/src/admin/sahifalar/FaktJurnal.tsx:87",
-        "frontend/src/admin/sahifalar/FaktJurnal.tsx:176",
-        "frontend/src/admin/sahifalar/FaktJurnal.tsx:341",
+        "frontend/src/admin/sahifalar/FaktJurnal.tsx:89",
+        "frontend/src/admin/sahifalar/FaktJurnal.tsx:178",
+        "frontend/src/admin/sahifalar/FaktJurnal.tsx:358",
         "frontend/src/admin/sahifalar/HolatNative.tsx:41",
         "frontend/src/admin/sahifalar/NakrutkaNative.tsx:26",
         "frontend/src/admin/sahifalar/NarxlarNative.tsx:121",
@@ -14970,6 +14746,12 @@
             "security_definer": true
           },
           {
+            "name": "t2_smeta_versiya_yarat_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
             "name": "t2_f2_qoralama_yangila_v1",
             "schema": "public",
             "volatility": "v",
@@ -15155,6 +14937,191 @@
       ]
     },
     {
+      "table": "public.t2_smeta_versiya",
+      "classification": "CANONICAL",
+      "classification_basis": "Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды",
+      "owner_module": "PTO / Estimate / Fakt",
+      "owner_basis": "Правило доменного префикса estimate; review L0",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "t2_smeta_versiya_qaror_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_yarat_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_pozitsiya_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_moslik_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_bekor_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [
+          {
+            "routine_candidate": "t2_smeta_versiya_yarat_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:160"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_pozitsiya_yoz_v1",
+            "operation": "UPDATE",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:203"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_moslik_yoz_v1",
+            "operation": "UPDATE",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:284"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_qaror_v1",
+            "operation": "UPDATE",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:374"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_bekor_v1",
+            "operation": "UPDATE",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:390"
+          }
+        ],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": [
+        {
+          "name": "t2_smeta_versiya_bazaviy_revision_id_fkey",
+          "target": "t2_smeta_revision"
+        },
+        {
+          "name": "t2_smeta_versiya_obyekt_id_fkey",
+          "target": "t2_obyekt"
+        }
+      ]
+    },
+    {
+      "table": "public.t2_smeta_versiya_moslik",
+      "classification": "CANONICAL",
+      "classification_basis": "Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды",
+      "owner_module": "PTO / Estimate / Fakt",
+      "owner_basis": "Правило доменного префикса estimate; review L0",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "t2_smeta_versiya_qaror_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_moslik_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [
+          {
+            "routine_candidate": "t2_smeta_versiya_moslik_yoz_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:271"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_qaror_v1",
+            "operation": "UPDATE",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:347"
+          },
+          {
+            "routine_candidate": "t2_smeta_versiya_qaror_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:368"
+          }
+        ],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": [
+        {
+          "name": "t2_smeta_versiya_moslik_pozitsiya_id_fkey",
+          "target": "t2_smeta_versiya_pozitsiya"
+        },
+        {
+          "name": "t2_smeta_versiya_moslik_versiya_id_fkey",
+          "target": "t2_smeta_versiya"
+        }
+      ]
+    },
+    {
+      "table": "public.t2_smeta_versiya_pozitsiya",
+      "classification": "CANONICAL",
+      "classification_basis": "Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды",
+      "owner_module": "PTO / Estimate / Fakt",
+      "owner_basis": "Правило доменного префикса estimate; review L0",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "t2_smeta_versiya_pozitsiya_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "t2_smeta_versiya_moslik_yoz_v1",
+            "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [
+          {
+            "routine_candidate": "t2_smeta_versiya_pozitsiya_yoz_v1",
+            "operation": "INSERT INTO",
+            "evidence": "supabase/migrations/20261111100000_t2_smeta_versiya_farq_v1.sql:193"
+          }
+        ],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": [
+        {
+          "name": "t2_smeta_versiya_pozitsiya_versiya_id_fkey",
+          "target": "t2_smeta_versiya"
+        }
+      ]
+    },
+    {
       "table": "public.t2_sozlama",
       "classification": "CANONICAL",
       "classification_basis": "Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды",
@@ -15256,11 +15223,6 @@
             "routine_candidate": "t2_boshqaruv_tarif_saqla_v1",
             "operation": "INSERT INTO",
             "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:531"
-          },
-          {
-            "routine_candidate": "_t2_sinov_bonus",
-            "operation": "UPDATE",
-            "evidence": "supabase/migrations/20261105310000_t2_token_narx_v2_tolov.sql:128"
           }
         ],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
@@ -15594,19 +15556,9 @@
             "evidence": "supabase/migrations/20261105280000_t2_ozi_royxat_email_login.sql:33"
           },
           {
-            "routine_candidate": "t2_demo_manba_belgila_v1",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261105270000_t2_pto_tijorat_v1.sql:273"
-          },
-          {
             "routine_candidate": "t2_google_kirish_v1",
             "operation": "INSERT INTO",
             "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:77"
-          },
-          {
-            "routine_candidate": "t2_boshqaruv_tarif_saqla_v1",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261105300000_t2_boshqaruv_panel_v1.sql:334"
           },
           {
             "routine_candidate": "_t2_sinov_bonus",
@@ -15720,13 +15672,7 @@
             "security_definer": true
           }
         ],
-        "migration_dml_candidates": [
-          {
-            "routine_candidate": "_t2_sinov_bonus",
-            "operation": "INSERT INTO",
-            "evidence": "supabase/migrations/20261105310000_t2_token_narx_v2_tolov.sql:137"
-          }
-        ],
+        "migration_dml_candidates": [],
         "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
       },
       "runtime_references": [],
@@ -17557,6 +17503,235 @@
           {
             "name": "t2_kompaniya_faoliyat_saqla_v1",
             "schema": "public",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": []
+    },
+    {
+      "table": "snapshot.bolak_mazmun",
+      "classification": "BACKUP",
+      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
+      "owner_module": "Snapshot / Recovery",
+      "owner_basis": "Выделенная snapshot schema",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "_yukla",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "_snap_shartnomalar",
+            "schema": "snapshot",
+            "volatility": "s",
+            "security_definer": true
+          },
+          {
+            "name": "ol",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "tozala",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": []
+    },
+    {
+      "table": "snapshot.jadval_royxat",
+      "classification": "BACKUP",
+      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
+      "owner_module": "Snapshot / Recovery",
+      "owner_basis": "Выделенная snapshot schema",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "_jadval_bolaklar",
+            "schema": "snapshot",
+            "volatility": "s",
+            "security_definer": true
+          },
+          {
+            "name": "_yukla",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "ol",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "farq",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "qaytar",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": []
+    },
+    {
+      "table": "snapshot.obyekt_snapshot",
+      "classification": "BACKUP",
+      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
+      "owner_module": "Snapshot / Recovery",
+      "owner_basis": "Выделенная snapshot schema",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "ol",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "royxat",
+            "schema": "snapshot",
+            "volatility": "s",
+            "security_definer": true
+          },
+          {
+            "name": "farq",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "qaytar",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "tozala",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "kunlik",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": []
+    },
+    {
+      "table": "snapshot.obyekt_snapshot_bolak",
+      "classification": "BACKUP",
+      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
+      "owner_module": "Snapshot / Recovery",
+      "owner_basis": "Выделенная snapshot schema",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "_yukla",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "_snap_shartnomalar",
+            "schema": "snapshot",
+            "volatility": "s",
+            "security_definer": true
+          },
+          {
+            "name": "ol",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "name": "tozala",
+            "schema": "snapshot",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "migration_dml_candidates": [],
+        "completeness": "CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected"
+      },
+      "runtime_references": [],
+      "foreign_keys": [
+        {
+          "name": "obyekt_snapshot_bolak_snapshot_id_fkey",
+          "target": "snapshot.obyekt_snapshot"
+        },
+        {
+          "name": "obyekt_snapshot_bolak_xesh_fkey",
+          "target": "snapshot.bolak_mazmun"
+        }
+      ]
+    },
+    {
+      "table": "snapshot.qaytarish_jurnal",
+      "classification": "BACKUP",
+      "classification_basis": "Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления",
+      "owner_module": "Snapshot / Recovery",
+      "owner_basis": "Выделенная snapshot schema",
+      "replacement": null,
+      "delete_authorized": false,
+      "rls": true,
+      "force_rls": false,
+      "write_path": {
+        "database_triggers": [],
+        "live_routine_text_references": [
+          {
+            "name": "qaytar",
+            "schema": "snapshot",
             "volatility": "v",
             "security_definer": true
           }

@@ -1,7 +1,7 @@
 # Границы доменов и права записи
 
-generated_at: 2026-10-26T05:48:29Z  
-git_commit: 69db8d45050cc82dfd67baae6dec7153b727a219  
+generated_at: 2026-10-26T06:19:09Z
+git_commit: d7bf735359e8a54ef9e589c9a23cc28fc67876a9
 db_migration_head: 20261106510000 / t2_agent_qidiruv_v1
 
 Производный индекс к существующим ekotizim/E3, CONTRACT_SCOPE_V1, SMETA_ANATOMIYA_V1, F2_IMPORT_V3 и Obsidian CODEMAP. Никаких новых сущностей или универсального graph-store. Префиксные owner_module в registry — домен поддержки, не назначение конкретного агента и не доказательство business ownership.
@@ -16,7 +16,7 @@ t2_loyiha → t2_obyekt → t2_qator. Договор и допсоглашени
 
 ## Estimate / Revision / Catalog / Pricing
 
-t2_qator — текущая иерархия и связи replacement/additional. t2_smeta_revision, t2_smeta_ozgarish/_qator — версии и контролируемые изменения; t2_smeta_* import/job/studio tables — промежуточные процессы с собственным lifetime. Каталог и observation/candidate таблицы дают кандидатов с provenance, не автоматическое право переписывать утверждённую смету. Норма, коэффициент и источник цены сохраняют scope/edition; NULL не ноль. Расчёт устамали идёт через ustamali-summa и существующий nakrutka cascade, новый финансовый движок не создаётся.
+t2_qator — текущая иерархия и связи replacement/additional. t2_smeta_revision, t2_smeta_ozgarish/_qator — версии и контролируемые изменения; t2_smeta_* import/job/studio tables — промежуточные процессы с собственным lifetime. PR152 добавил t2_smeta_versiya/_pozitsiya/_moslik для внешних исходной/экспертной редакций и связи с текущим деревом; bazaviy_revision_id имеет FK на существующую t2_smeta_revision. Это source-edition слой, который должен сохранять связь с operational revision, а не второй расчётный движок. DB schema присутствует, законченный пользовательский flow не заявляется. Каталог и observation/candidate таблицы дают кандидатов с provenance, не автоматическое право переписывать утверждённую смету. Норма, коэффициент и источник цены сохраняют scope/edition; NULL не ноль. Расчёт устамали идёт через ustamali-summa и существующий nakrutka cascade, новый финансовый движок не создаётся.
 
 ## Fakt / F2 / F3 / M29
 

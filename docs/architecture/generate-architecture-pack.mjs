@@ -9,11 +9,11 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(dir, '../..');
 const metadata = JSON.parse(fs.readFileSync(path.join(dir, 'SCHEMA_METADATA_20261026.json'), 'utf8'));
 const liveRefs = JSON.parse(fs.readFileSync(path.join(dir, 'ROUTINE_TABLE_REFERENCES_20261026.json'), 'utf8'));
-const pin = '69db8d45050cc82dfd67baae6dec7153b727a219';
+const pin = 'd7bf735359e8a54ef9e589c9a23cc28fc67876a9';
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
 const tracked = git('ls-tree', '-r', '--name-only', pin).split('\n');
 const sourceFiles = tracked.filter(p => /^(frontend\/(src|functions)\/.*\.(ts|tsx)|mcp\/smeta-mcp\/src\/.*\.ts)$/.test(p) && !/\.(test|spec)\./.test(p));
-const migrations = tracked.filter(p => /^supabase\/migrations\/.*\.sql$/.test(p) && !/\.rollback\.sql$/.test(p));
+const migrations = tracked.filter(p => /^supabase\/migrations\/.*\.sql$/.test(p) && !/\.(rollback|acceptance)\.sql$/.test(p));
 // Sparse worktrees may omit MCP. Read an immutable Git export, not another agent's checkout.
 const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'smeta-architecture-source-'));
 const archive = path.join(sourceRoot, 'source.tar');
@@ -36,10 +36,14 @@ for (const file of migrations) {
   const functions = [...text.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-zA-Z0-9_]+)"?\s*\(/gi)];
   for (let i = 0; i < functions.length; i++) {
     const f = functions[i];
-    const body = text.slice(f.index, functions[i + 1]?.index ?? text.length);
+    const span = text.slice(f.index, functions[i + 1]?.index ?? text.length);
+    const quoted = /\bas\s+(\$[a-zA-Z0-9_]*\$)([\s\S]*?)\1/i.exec(span);
+    if (!quoted) continue; // single-quoted bodies require separate review; do not index trailing migration DML
+    const body = quoted[2];
+    const bodyStart = f.index + quoted.index + quoted[0].indexOf(body);
     for (const m of body.matchAll(/\b(insert\s+into|update|delete\s+from)\s+(?:public\.)?"?(t2_[a-zA-Z0-9_]+)"?\b/gi)) {
       if (!dml.has(m[2])) continue;
-      const line = text.slice(0, f.index + m.index).split('\n').length;
+      const line = text.slice(0, bodyStart + m.index).split('\n').length;
       dml.get(m[2]).push({ routine_candidate: f[1], operation: m[1].toUpperCase().replace(/\s+/g, ' '), evidence: `${file}:${line}` });
     }
   }
@@ -93,7 +97,7 @@ const pages = pageLines.map(line => ({ key: field(line, 'kalit'), route: field(l
 if (!pages.length || pages.some(p => !p.key || !p.route || !p.scope)) throw new Error('pageCatalog source shape changed: review parser');
 const body = [
   '# Маршруты → модели чтения → именованные команды',
-  `generated_at: ${header.generated_at}  \ngit_commit: ${pin}  \ndb_migration_head: ${header.db_migration_head} (${header.db_migration_head_name})`,
+  `generated_at: ${header.generated_at}\n\ngit_commit: ${pin}\n\ndb_migration_head: ${header.db_migration_head} (${header.db_migration_head_name})`,
   'Источник: существующий pageCatalog.ts (семантика экранов) + generated.ts (статическая карта). Не создавать параллельный реестр runtime. Ни совпадение имени, ни наличие routine не доказывают правильные grants/actor/tenant. Полный callgraph React→API автоматически не установлен; ниже точная allowlist, а не выдуманные связи.',
   `Инвентарь: меню ${site.menuRoutes.length}; сегментов App ${site.appRouteSegments.length}; allowlist read relations ${site.readTables.length}; именованных write actions ${site.writeActions.length}.`,
   '## Семантические связи экранов (существующий pageCatalog)',

@@ -1,7 +1,7 @@
 # Текущая карта системы — индекс для совместной работы
 
-generated_at: 2026-10-26T05:48:29Z  
-git_commit: 69db8d45050cc82dfd67baae6dec7153b727a219  
+generated_at: 2026-10-26T06:19:09Z
+git_commit: d7bf735359e8a54ef9e589c9a23cc28fc67876a9
 db_migration_head: 20261106510000 / t2_agent_qidiruv_v1
 
 Документ — производная карта наблюдённого состояния, не новый продуктовый контракт. Задание Claude L026.10: architecture pack без runtime/DDL. HEAD истории миграций — лексикографический max(version), не время последнего DDL. Последующие PR и deployment проверяются отдельно. Основа законов: CONSTITUTION, существующие F2_IMPORT_V3, SMETA_F2_NAKOPITELNIY_CHANGE_CONTROL_V1, FILE_TRUTH_AND_SECONDARY_REPLICA_V1 и ekotizim/E3. Каноническая очередь и назначения — Obsidian PRODUCT_ROADMAP / KOORDINATSIYA.
@@ -36,7 +36,7 @@ Web gateway и локальный MCP — разные trust boundaries. Web act
 
 ## Что точно инвентаризировано
 
-SELECT каталога: public199 и snapshot5, всего204 application tables; все имеют RLS flag. Это не проверка policies/grants или tenant isolation. Public routines572; snapshot routines не включены в эту цифру. Исключены управляемые auth/storage/realtime/cron/vault и migration history. Бизнес-строки, пароли, ключи, файлы смет в pack не входят.
+SELECT каталога: public202 и snapshot5, всего207 application tables; все имеют RLS flag. Это не проверка policies/grants или tenant isolation. Public routines578; snapshot routines не включены в эту цифру. Исключены управляемые auth/storage/realtime/cron/vault и migration history. Бизнес-строки, пароли, ключи, файлы смет в pack не входят.
 
 [DATA_MODEL_REGISTRY.yaml](DATA_MODEL_REGISTRY.yaml) — по одному отношению, модуль, lifecycle-класс, FK, triggers и кандидаты write paths. YAML представлен JSON-подмножеством YAML1.2. Класс CANONICAL означает наблюдённое активное хранилище модуля; не превращает каждую таблицу в финансовую истину. Неразрешённые классы NULL, не DEPRECATED. [ROUTINE_TABLE_REFERENCES_20261026.json](ROUTINE_TABLE_REFERENCES_20261026.json) — текстовые ссылки из live bodies, не доказательство вызова/записи. SQL в комментариях и dynamic SQL требуют ручного review.
 

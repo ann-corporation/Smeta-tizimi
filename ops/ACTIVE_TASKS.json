@@ -14,7 +14,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md"],
       "production_write_allowed": false,
-      "note": "Explicit L0 packet26Oct11:20 item4, acknowledged Obsidian/mailbox06. Documentation-only. Public199+snapshot5 tables, public572 routines; metadata SELECT only. Eight lifecycle classes and one module owner unresolved, retained NULL; no DEPRECATED or deletion claims. Source pinned69db8d45; generated routes reuse pageCatalog. Claude L0 reviews/merges."
+      "note": "Explicit L0 item4. Documentation-only, refreshed source d7bf7353 after143/152. Public202+snapshot5=207 tables, public578 routines; SELECT only. 180current/2COMPAT/14BACKUP/1TEMP/10NULL lifecycle entries; one module owner NULL. Static routine bodies exclude acceptance/rollback SQL and trailing migration DML. No DEPRECATED/delete claims, snapshot infrastructure excluded from cleanup. Existing pageCatalog reused. Claude L0 reviews PR156/merges; no runtime/DB/deploy writes."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",

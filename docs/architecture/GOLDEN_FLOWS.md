@@ -1,7 +1,7 @@
 # Сквозная приёмка: одинаковый путь для оператора и AI
 
-generated_at: 2026-10-26T05:48:29Z  
-git_commit: 69db8d45050cc82dfd67baae6dec7153b727a219  
+generated_at: 2026-10-26T06:19:09Z
+git_commit: d7bf735359e8a54ef9e589c9a23cc28fc67876a9
 db_migration_head: 20261106510000 / t2_agent_qidiruv_v1
 
 Сценарии — условия приёмки, не отчёт об их полном выполнении. Production writes Codex не выполнял. Synthetic fixtures и disposable DB отделены от текущей сметы владельца. В каждом flow фиксируются sourceSHA, actor/company/object, команда/operation_id, expected version, before/after, receipt и readback; без бизнес-данных/секретов в репозитории.

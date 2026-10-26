@@ -1,7 +1,7 @@
 # Риски текущего architecture capture
 
-generated_at: 2026-10-26T05:48:29Z  
-git_commit: 69db8d45050cc82dfd67baae6dec7153b727a219  
+generated_at: 2026-10-26T06:19:09Z
+git_commit: d7bf735359e8a54ef9e589c9a23cc28fc67876a9
 db_migration_head: 20261106510000 / t2_agent_qidiruv_v1
 
 Производный технический индекс. Назначения и приоритеты владельца остаются в Obsidian RISK_REGISTER / PRODUCT_ROADMAP / KOORDINATSIYA. Не закрывать риски по названию PR или общему green CI. QA receipts — PR145, mailbox PTO-JOINT-QA-20261025.
@@ -11,6 +11,8 @@ db_migration_head: 20261106510000 / t2_agent_qidiruv_v1
 - **MCP-QA01, OPEN на69db8d45:** raw SQL COMMIT обходит завершающий dry_run ROLLBACK, при этом snapshot/audit пропускаются. Fake-pool ledger1controlPASS/1FAIL; live writer не вызывался. Владелец fix: существующий MCP автор/L0; PR151 comment6409158001. Приёмка: входной SQL не управляет transaction boundary, negative probes + обычные MCP tests + disposable PostgreSQL drill. Административные полномочия владельца этим не оспариваются.
 - **JQA03, OPEN baseline8b1eb894:** marker «100%» отправляет факт120→100 без correction review. Физическое выполнение нельзя стирать completion-действием. Fix у существующего Fakt автора, Codex повторяет probe по exact SHA.
 - **Revision/expertise chain, IMPLEMENTING у L0:** исходная и экспертная редакции, выполненное сверх entitlement, claim/additional и evidence должны связываться без automatic negative fact. Наличие t2_smeta_revision/t2_smeta_ozgarish подтверждено; end-to-end owner scenario ещё не принят. Не создавать дубль этих моделей.
+
+Fix receipts после capture: MCP PR15517703bbb — independent7PASS, regressions43PASS/1skip, TS/build/stdioPASS; JQA03 PR15417f3f1f2 — strengthened section/mixed2PASS + regressions13PASS. Это точные pending candidates, не утверждение, что старый main уже исправлен. Новые3source-edition таблицы PR152 уже включены в обновлённый capture207; их наличие не заменяет owner workflow. Sidebar PR15327ebb87e:45PASS, page guard unchanged; merge с дизайном1e418514 требует разрешить4 content conflicts. Design governance overlap locks также требует решенияL0.
 
 ## P2: не скрывать неполноту
 

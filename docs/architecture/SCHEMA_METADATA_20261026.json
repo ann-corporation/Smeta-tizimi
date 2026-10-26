@@ -1,244 +1,5 @@
 {
   "tables": [
-      {
-        "rls": true,
-        "kind": "r",
-        "name": "bolak_mazmun",
-        "schema": "snapshot",
-        "columns": [
-          {
-            "name": "xesh",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "jadval",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "qator_soni",
-            "type": "integer",
-            "nullable": false
-          },
-          {
-            "name": "qatorlar",
-            "type": "jsonb",
-            "nullable": false
-          },
-          {
-            "name": "yaratildi",
-            "type": "timestamp with time zone",
-            "nullable": false
-          }
-        ],
-        "triggers": [],
-        "force_rls": false,
-        "foreign_keys": []
-      },
-      {
-        "rls": true,
-        "kind": "r",
-        "name": "jadval_royxat",
-        "schema": "snapshot",
-        "columns": [
-          {
-            "name": "jadval",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "tartib",
-            "type": "integer",
-            "nullable": false
-          },
-          {
-            "name": "rejim",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "doira",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "sabab",
-            "type": "text",
-            "nullable": false
-          }
-        ],
-        "triggers": [],
-        "force_rls": false,
-        "foreign_keys": []
-      },
-      {
-        "rls": true,
-        "kind": "r",
-        "name": "obyekt_snapshot",
-        "schema": "snapshot",
-        "columns": [
-          {
-            "name": "id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "kompaniya_id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "obyekt_id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "olingan_vaqt",
-            "type": "timestamp with time zone",
-            "nullable": false
-          },
-          {
-            "name": "sabab",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "izoh",
-            "type": "text",
-            "nullable": true
-          },
-          {
-            "name": "muallif",
-            "type": "text",
-            "nullable": true
-          },
-          {
-            "name": "jadvallar",
-            "type": "jsonb",
-            "nullable": false
-          },
-          {
-            "name": "umumiy_xesh",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "hajm_bayt",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "yangi_bayt",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "davomiylik_ms",
-            "type": "integer",
-            "nullable": true
-          }
-        ],
-        "triggers": [],
-        "force_rls": false,
-        "foreign_keys": []
-      },
-      {
-        "rls": true,
-        "kind": "r",
-        "name": "obyekt_snapshot_bolak",
-        "schema": "snapshot",
-        "columns": [
-          {
-            "name": "snapshot_id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "jadval",
-            "type": "text",
-            "nullable": false
-          },
-          {
-            "name": "bolak",
-            "type": "integer",
-            "nullable": false
-          },
-          {
-            "name": "qator_soni",
-            "type": "integer",
-            "nullable": false
-          },
-          {
-            "name": "xesh",
-            "type": "text",
-            "nullable": false
-          }
-        ],
-        "triggers": [],
-        "force_rls": false,
-        "foreign_keys": [
-          {
-            "name": "obyekt_snapshot_bolak_snapshot_id_fkey",
-            "target": "snapshot.obyekt_snapshot"
-          },
-          {
-            "name": "obyekt_snapshot_bolak_xesh_fkey",
-            "target": "snapshot.bolak_mazmun"
-          }
-        ]
-      },
-      {
-        "rls": true,
-        "kind": "r",
-        "name": "qaytarish_jurnal",
-        "schema": "snapshot",
-        "columns": [
-          {
-            "name": "id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "snapshot_id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "oldi_snapshot_id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "kompaniya_id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "obyekt_id",
-            "type": "bigint",
-            "nullable": false
-          },
-          {
-            "name": "vaqt",
-            "type": "timestamp with time zone",
-            "nullable": false
-          },
-          {
-            "name": "muallif",
-            "type": "text",
-            "nullable": true
-          },
-          {
-            "name": "natija",
-            "type": "jsonb",
-            "nullable": false
-          }
-        ],
-        "triggers": [],
-        "force_rls": false,
-        "foreign_keys": []
-      },
     {
       "rls": true,
       "kind": "r",
@@ -12780,6 +12541,352 @@
     {
       "rls": true,
       "kind": "r",
+      "name": "t2_smeta_versiya",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "kompaniya_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "obyekt_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "nom",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "tur",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "manba_sana",
+          "type": "date",
+          "nullable": true
+        },
+        {
+          "name": "manba_fayllar",
+          "type": "jsonb",
+          "nullable": false
+        },
+        {
+          "name": "manba_hujjat_id",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "bazaviy_revision_id",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "holat",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "pozitsiya_soni",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "izoh",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "operation_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "yangilandi",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "bekor_actor_id",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "bekor_vaqt",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "bekor_sabab",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": [
+        {
+          "name": "t2_smeta_versiya_bazaviy_revision_id_fkey",
+          "target": "t2_smeta_revision"
+        },
+        {
+          "name": "t2_smeta_versiya_obyekt_id_fkey",
+          "target": "t2_obyekt"
+        }
+      ]
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "t2_smeta_versiya_moslik",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "versiya_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "kompaniya_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "pozitsiya_id",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "qator_id",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "holat",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "ishonch",
+          "type": "smallint",
+          "nullable": true
+        },
+        {
+          "name": "usul",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "birlik_farq",
+          "type": "boolean",
+          "nullable": false
+        },
+        {
+          "name": "eski_hajm",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "joriy_hajm",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "joriy_kod",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "joriy_nom",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "joriy_birlik",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "tasdiq",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "tasdiq_actor_id",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "tasdiq_vaqt",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "qaror",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "qurilgan_hajm",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "qaror_izoh",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "qaror_actor_id",
+          "type": "bigint",
+          "nullable": true
+        },
+        {
+          "name": "qaror_vaqt",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "versiya",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "nullable": false
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": [
+        {
+          "name": "t2_smeta_versiya_moslik_pozitsiya_id_fkey",
+          "target": "t2_smeta_versiya_pozitsiya"
+        },
+        {
+          "name": "t2_smeta_versiya_moslik_versiya_id_fkey",
+          "target": "t2_smeta_versiya"
+        }
+      ]
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "t2_smeta_versiya_pozitsiya",
+      "schema": "public",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "versiya_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "kompaniya_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "tartib",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "ls_kod",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "ls_nom",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "razdel",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "blok",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "raqam",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "kod",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "nom",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "birlik",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "hajm",
+          "type": "numeric",
+          "nullable": true
+        },
+        {
+          "name": "resurslar",
+          "type": "jsonb",
+          "nullable": false
+        },
+        {
+          "name": "manba",
+          "type": "jsonb",
+          "nullable": true
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": [
+        {
+          "name": "t2_smeta_versiya_pozitsiya_versiya_id_fkey",
+          "target": "t2_smeta_versiya"
+        }
+      ]
+    },
+    {
+      "rls": true,
+      "kind": "r",
       "name": "t2_sozlama",
       "schema": "public",
       "columns": [
@@ -15328,6 +15435,245 @@
         {
           "name": "tartib",
           "type": "integer",
+          "nullable": false
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": []
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "bolak_mazmun",
+      "schema": "snapshot",
+      "columns": [
+        {
+          "name": "xesh",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "jadval",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "qator_soni",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "qatorlar",
+          "type": "jsonb",
+          "nullable": false
+        },
+        {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "nullable": false
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": []
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "jadval_royxat",
+      "schema": "snapshot",
+      "columns": [
+        {
+          "name": "jadval",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "tartib",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "rejim",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "doira",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "sabab",
+          "type": "text",
+          "nullable": false
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": []
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "obyekt_snapshot",
+      "schema": "snapshot",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "kompaniya_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "obyekt_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "olingan_vaqt",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "sabab",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "izoh",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "muallif",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "jadvallar",
+          "type": "jsonb",
+          "nullable": false
+        },
+        {
+          "name": "umumiy_xesh",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "hajm_bayt",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "yangi_bayt",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "davomiylik_ms",
+          "type": "integer",
+          "nullable": true
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": []
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "obyekt_snapshot_bolak",
+      "schema": "snapshot",
+      "columns": [
+        {
+          "name": "snapshot_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "jadval",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "bolak",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "qator_soni",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "xesh",
+          "type": "text",
+          "nullable": false
+        }
+      ],
+      "triggers": [],
+      "force_rls": false,
+      "foreign_keys": [
+        {
+          "name": "obyekt_snapshot_bolak_snapshot_id_fkey",
+          "target": "snapshot.obyekt_snapshot"
+        },
+        {
+          "name": "obyekt_snapshot_bolak_xesh_fkey",
+          "target": "snapshot.bolak_mazmun"
+        }
+      ]
+    },
+    {
+      "rls": true,
+      "kind": "r",
+      "name": "qaytarish_jurnal",
+      "schema": "snapshot",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "snapshot_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "oldi_snapshot_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "kompaniya_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "obyekt_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "vaqt",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "muallif",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "natija",
+          "type": "jsonb",
           "nullable": false
         }
       ],
@@ -18284,6 +18630,42 @@
       "security_definer": true
     },
     {
+      "args": "p_kompaniya_id bigint, p_actor_id bigint, p_versiya_id bigint, p_sabab text, p_operation_id uuid",
+      "name": "t2_smeta_versiya_bekor_v1",
+      "volatility": "v",
+      "security_definer": true
+    },
+    {
+      "args": "p_holat text, p_qaror text, p_eski_hajm numeric, p_qurilgan_hajm numeric, p_joriy_hajm numeric, p_birlik_farq boolean",
+      "name": "t2_smeta_versiya_dava_hajm",
+      "volatility": "i",
+      "security_definer": false
+    },
+    {
+      "args": "p_kompaniya_id bigint, p_actor_id bigint, p_versiya_id bigint, p_mosliklar jsonb, p_yakunla boolean, p_operation_id uuid",
+      "name": "t2_smeta_versiya_moslik_yoz_v1",
+      "volatility": "v",
+      "security_definer": true
+    },
+    {
+      "args": "p_kompaniya_id bigint, p_actor_id bigint, p_versiya_id bigint, p_pozitsiyalar jsonb, p_operation_id uuid",
+      "name": "t2_smeta_versiya_pozitsiya_yoz_v1",
+      "volatility": "v",
+      "security_definer": true
+    },
+    {
+      "args": "p_kompaniya_id bigint, p_actor_id bigint, p_versiya_id bigint, p_qarorlar jsonb, p_operation_id uuid",
+      "name": "t2_smeta_versiya_qaror_v1",
+      "volatility": "v",
+      "security_definer": true
+    },
+    {
+      "args": "p_kompaniya_id bigint, p_actor_id bigint, p_obyekt_id bigint, p_nom text, p_tur text, p_manba_sana date, p_manba_fayllar jsonb, p_izoh text, p_operation_id uuid",
+      "name": "t2_smeta_versiya_yarat_v1",
+      "volatility": "v",
+      "security_definer": true
+    },
+    {
       "args": "p_actor_id bigint, p_kompaniya_id bigint",
       "name": "t2_smeta_xotira_v1",
       "volatility": "s",
@@ -18770,7 +19152,7 @@
       "security_definer": true
     }
   ],
-  "observed_at": "2026-10-26T05:48:29.354146+00:00",
+  "observed_at": "2026-10-26T06:19:09.50903+00:00",
   "migration_head": {
     "name": "t2_agent_qidiruv_v1",
     "version": "20261106510000"

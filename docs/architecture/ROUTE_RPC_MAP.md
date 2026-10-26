@@ -1,7 +1,9 @@
 # Маршруты → модели чтения → именованные команды
 
-generated_at: 2026-10-26T05:48:29.354146+00:00  
-git_commit: 69db8d45050cc82dfd67baae6dec7153b727a219  
+generated_at: 2026-10-26T06:19:09.50903+00:00
+
+git_commit: d7bf735359e8a54ef9e589c9a23cc28fc67876a9
+
 db_migration_head: 20261106510000 (t2_agent_qidiruv_v1)
 
 Источник: существующий pageCatalog.ts (семантика экранов) + generated.ts (статическая карта). Не создавать параллельный реестр runtime. Ни совпадение имени, ни наличие routine не доказывают правильные grants/actor/tenant. Полный callgraph React→API автоматически не установлен; ниже точная allowlist, а не выдуманные связи.

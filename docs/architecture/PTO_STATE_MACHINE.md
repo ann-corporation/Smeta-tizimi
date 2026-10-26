@@ -1,7 +1,7 @@
 # PTO: независимые состояния и допустимые переходы
 
-generated_at: 2026-10-26T05:48:29Z  
-git_commit: 69db8d45050cc82dfd67baae6dec7153b727a219  
+generated_at: 2026-10-26T06:19:09Z
+git_commit: d7bf735359e8a54ef9e589c9a23cc28fc67876a9
 db_migration_head: 20261106510000 / t2_agent_qidiruv_v1
 
 Это карта существующих состояний и owner invariants, не новая миграция. Live SELECT constraint definitions26.10 подтвердил перечисления ниже. Наличие состояния не означает доступность каждого перехода каждому actor.
@@ -34,7 +34,7 @@ t2_smeta_ozgarish.holat ∈ qoralama/tasdiqlangan/rad/bekor. Типы: replaceme
 
 ## Receipt операции — не business status
 
-До первого await фиксируются company/object/date/точный body/chunks/UUID. Статусы попытки: planned → sending → confirmed / rejected / unknown. Это семантика очереди, не новый DB enum. Повтор unknown отправляет тот же ID и body либо сначала получает readback. Known confirmed нельзя отправить повторно с новой UUID. При partial: успешные receipts остаются; discard удаляет только отвергнутую часть; новый план ждёт свежий holatMap. Проверено на PR1437acb69f7 и PR144c5965290; эта runtime логика ещё не входила в source pin pack.
+До первого await фиксируются company/object/date/точный body/chunks/UUID. Статусы попытки: planned → sending → confirmed / rejected / unknown. Это семантика очереди, не новый DB enum. Повтор unknown отправляет тот же ID и body либо сначала получает readback. Known confirmed нельзя отправить повторно с новой UUID. При partial: успешные receipts остаются; discard удаляет только отвергнутую часть; новый план ждёт свежий holatMap. Проверено на PR1437acb69f7 и PR144c5965290; PR143 уже входит в source pin d7bf7353, PR144 принимается отдельно.
 
 ## Ортогональное бизнес-решение
 
