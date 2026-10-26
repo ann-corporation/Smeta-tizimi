@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tekshir } from '../_shared/auth';
-import { kodXesh, onRequestPost, xatTanasi, yangiKod } from './kirish-email';
+import { kodXesh, onRequestGet, onRequestPost, STANDART_FROM, xatTanasi, yangiKod } from './kirish-email';
 
 const ENV = { SESSIYA_KALIT: 'k'.repeat(32), SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_KEY: 'service', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Smeta OS <kod@smeta.uz>' };
 const TID = '11111111-1111-4111-8111-111111111111';
@@ -28,7 +28,7 @@ describe('/api/kirish-email — kod', () => {
     expect((await post({ amal: 'kod', email: 'a@b.uz' }, ENV, { Origin: 'https://evil.example' })).status).toBe(403);
     expect((await post({ amal: 'x', email: 'a@b.uz' })).status).toBe(400);
   });
-  it('Resend sozlanmagan → 503 EMAIL_XIZMATI_SOZLANMAGAN (bazaga yozmaydi)', async () => {
+  it('Resend kaliti yo‘q → 503 EMAIL_XIZMATI_SOZLANMAGAN (bazaga yozmaydi)', async () => {
     const f = mockFetch({});
     const r = await post({ amal: 'kod', email: 'a@b.uz' }, { ...ENV, RESEND_API_KEY: '' });
     expect(r.status).toBe(503);
@@ -58,6 +58,26 @@ describe('/api/kirish-email — kod', () => {
     const r = await post({ amal: 'kod', email: 'a@b.uz' });
     expect(r.status).toBe(503);
     expect(((await r.json()) as { code?: string }).code).toBe('SERVER_YANGILANMAGAN');
+  });
+});
+
+describe('/api/kirish-email — sozlama', () => {
+  it('EMAIL_FROM berilmasa Resend sinov manzili ishlatiladi', async () => {
+    let from = '';
+    mockFetch({ t2_email_kod_yarat_v1: () => ({ ok: true, tasdiqlash_id: TID }), resend: (b) => { from = b.from; return { id: 'x' }; }, t2_royxat_email_kod_yuborildi_v1: () => ({ ok: true }) });
+    expect((await post({ amal: 'kod', email: 'a@b.uz' }, { ...ENV, EMAIL_FROM: '' })).status).toBe(200);
+    expect(from).toBe(STANDART_FROM);
+  });
+  it('Resend 403 (domen tasdiqlanmagan) → aniq xabar EMAIL_SINOV_REJIMI', async () => {
+    mockFetch({ t2_email_kod_yarat_v1: () => ({ ok: true, tasdiqlash_id: TID }), resend: () => new Response('{}', { status: 403 }) });
+    const r = await post({ amal: 'kod', email: 'boshqa@b.uz' });
+    expect(((await r.json()) as { code?: string }).code).toBe('EMAIL_SINOV_REJIMI');
+  });
+  it('GET holat maxfiy qiymatni qaytarmaydi', async () => {
+    const r = await onRequestGet({ request: new Request('https://t.example/api/kirish-email'), env: ENV, data: {} } as never);
+    const d = await r.json() as Record<string, unknown>;
+    expect(d).toEqual({ ok: true, email_yoqilgan: true, yuboruvchi: 'domen' });
+    expect(JSON.stringify(d)).not.toContain('re_x');
   });
 });
 

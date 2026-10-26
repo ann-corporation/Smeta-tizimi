@@ -13,6 +13,8 @@ import { imzola, SESSIYA_MUDDAT_MS, type Rol } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
 type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; RESEND_API_KEY?: string; EMAIL_FROM?: string };
+/** EMAIL_FROM berilmasa — Resend sinov manzili (domen tasdiqlanmaguncha kod faqat Resend hisobi egasiga yetadi). */
+export const STANDART_FROM = 'Smeta OS <onboarding@resend.dev>';
 const EMAIL = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const json = (b: unknown, status = 200, headers: Record<string, string> = {}) =>
@@ -50,8 +52,14 @@ export function xatTanasi(kod: string): { text: string; html: string } {
   return { text, html };
 }
 
+/** GET — sozlama holati (maxfiy qiymat qaytarilmaydi): email kirish yoqilganmi va qaysi yuboruvchi turi. */
+export const onRequestGet: PagesFunction<Env> = async (ctx) => json({
+  ok: true, email_yoqilgan: !!ctx.env.RESEND_API_KEY, yuboruvchi: ctx.env.EMAIL_FROM?.trim() ? 'domen' : 'resend-sinov',
+});
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const { SUPABASE_URL, SUPABASE_KEY, SESSIYA_KALIT, RESEND_API_KEY, EMAIL_FROM } = ctx.env;
+  const { SUPABASE_URL, SUPABASE_KEY, SESSIYA_KALIT, RESEND_API_KEY } = ctx.env;
+  const EMAIL_FROM = ctx.env.EMAIL_FROM?.trim() || STANDART_FROM;
   if (originYaroqsiz(ctx.request)) return json({ ok: false, code: 'ORIGIN_INVALID' }, 403);
   let b: { amal?: string; email?: string; tasdiqlash_id?: string; kod?: string; ism?: string; operation_id?: string } = {};
   try { b = await ctx.request.json(); } catch { return json({ ok: false, code: 'BODY_INVALID', xabar: 'Noto‘g‘ri so‘rov' }, 400); }
@@ -63,7 +71,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   });
 
   if (b.amal === 'kod') {
-    if (!RESEND_API_KEY || !EMAIL_FROM) return json({ ok: false, code: 'EMAIL_XIZMATI_SOZLANMAGAN', xabar: 'Email orqali kirish hali yoqilmagan. Google yoki login-parol bilan kiring.' }, 503);
+    if (!RESEND_API_KEY) return json({ ok: false, code: 'EMAIL_XIZMATI_SOZLANMAGAN', xabar: 'Email orqali kirish hali yoqilmagan. Google yoki login-parol bilan kiring.' }, 503);
     const kod = yangiKod();
     try {
       const r = await rpc('t2_email_kod_yarat_v1', { p_email: email, p_kod_xesh: await kodXesh(kod, email, SESSIYA_KALIT), p_ip_belgi: await ipBelgi(ctx.request) });
@@ -76,7 +84,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         method: 'POST', headers: { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ from: EMAIL_FROM, to: [email], subject: `Smeta OS — kirish kodi: ${kod}`, text: xat.text, html: xat.html }),
       });
-      if (!mail.ok) return json({ ok: false, code: 'EMAIL_YUBORILMADI', xabar: 'Kod yuborib bo‘lmadi. Keyinroq urinib ko‘ring.' }, 502);
+      if (!mail.ok) {
+        // Resend 403: domen tasdiqlanmagan (sinov rejimi) — kod faqat Resend hisobi egasining emailiga yuboriladi.
+        if (mail.status === 403) return json({ ok: false, code: 'EMAIL_SINOV_REJIMI', xabar: 'Email xizmati sinov rejimida: domen hali tasdiqlanmagan, shuning uchun kod bu manzilga yuborilmadi. Google yoki login-parol bilan kiring.' }, 503);
+        if (mail.status === 401) return json({ ok: false, code: 'EMAIL_KALIT_XATO', xabar: 'Email xizmati kaliti noto‘g‘ri. Administratorga xabar bering.' }, 503);
+        return json({ ok: false, code: 'EMAIL_YUBORILMADI', xabar: 'Kod yuborib bo‘lmadi. Keyinroq urinib ko‘ring.' }, 502);
+      }
       const sent = await rpc('t2_royxat_email_kod_yuborildi_v1', { p_tasdiqlash_id: d.tasdiqlash_id });
       if (!sent.ok) return json({ ok: false, code: 'SERVER_XATO', xabar: 'Kod yuborildi, lekin saqlanmadi. Yangisini so‘rang.' }, 502);
       return json({ ok: true, tasdiqlash_id: d.tasdiqlash_id });

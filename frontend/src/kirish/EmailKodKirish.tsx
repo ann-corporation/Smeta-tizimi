@@ -48,7 +48,7 @@ export function EmailKodKirish({ royxat = false, onKirdi, onXizmatYoq }: {
       const { d } = await sorov({ amal: 'kod', email: e });
       if (!d.ok || !d.tasdiqlash_id) {
         setXato(d.xabar || t('Kod yuborib bo‘lmadi.'));
-        if (d.code === 'EMAIL_XIZMATI_SOZLANMAGAN' || d.code === 'SERVER_YANGILANMAGAN') onXizmatYoq?.();
+        if (d.code === 'EMAIL_XIZMATI_SOZLANMAGAN' || d.code === 'SERVER_YANGILANMAGAN' || d.code === 'EMAIL_SINOV_REJIMI' || d.code === 'EMAIL_KALIT_XATO') onXizmatYoq?.();
         return;
       }
       setEmail(e); setTid(d.tasdiqlash_id); setKod(''); setQayta(QAYTA_SONIYA);
