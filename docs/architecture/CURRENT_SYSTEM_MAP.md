@@ -38,7 +38,7 @@ Web gateway и локальный MCP — разные trust boundaries. Web act
 
 SELECT каталога: public202 и snapshot5, всего207 application tables; все имеют RLS flag. Это не проверка policies/grants или tenant isolation. Public routines578; snapshot routines не включены в эту цифру. Исключены управляемые auth/storage/realtime/cron/vault и migration history. Бизнес-строки, пароли, ключи, файлы смет в pack не входят.
 
-[DATA_MODEL_REGISTRY.yaml](DATA_MODEL_REGISTRY.yaml) — по одному отношению, модуль, lifecycle-класс, FK, triggers и кандидаты write paths. YAML представлен JSON-подмножеством YAML1.2. Класс CANONICAL означает наблюдённое активное хранилище модуля; не превращает каждую таблицу в финансовую истину. Неразрешённые классы NULL, не DEPRECATED. [ROUTINE_TABLE_REFERENCES_20261026.json](ROUTINE_TABLE_REFERENCES_20261026.json) — текстовые ссылки из live bodies, не доказательство вызова/записи. SQL в комментариях и dynamic SQL требуют ручного review.
+[DATA_MODEL_REGISTRY.yaml](DATA_MODEL_REGISTRY.yaml) — по одному отношению, модуль, lifecycle-класс, FK, triggers и кандидаты write paths. YAML представлен JSON-подмножеством YAML1.2. Класс CANONICAL означает каноническое хранение по указанной роли контракта; фактическое использование не доказывается и каждая таблица не становится финансовой истиной. Неразрешённые классы NULL, не DEPRECATED. [ROUTINE_TABLE_REFERENCES_20261026.json](ROUTINE_TABLE_REFERENCES_20261026.json) — текстовые ссылки из live bodies, не доказательство вызова/записи. SQL в комментариях и dynamic SQL требуют ручного review.
 
 [ROUTE_RPC_MAP.md](ROUTE_RPC_MAP.md) — статический инвентарь существующего site-map, а не новый runtime реестр. [DOMAIN_MAP.md](DOMAIN_MAP.md), [PTO_STATE_MACHINE.md](PTO_STATE_MACHINE.md), [GOLDEN_FLOWS.md](GOLDEN_FLOWS.md) объясняют границы и приёмку. [RISK_REGISTER.md](RISK_REGISTER.md) хранит только привязанные к этому capture проверки/пробелы.
 
@@ -49,3 +49,6 @@ SELECT каталога: public202 и snapshot5, всего207 application table
 ## Ответственность и следующий шаг
 
 Claude L0 интегрирует/deploy и назначает runtime fixes. Codex владеет этим documentation pack и независимыми probes. Существующие Fakt, Sidebar и revision branches сохраняют владельцев. Перед изменением: найти эквивалент в CODEMAP; выбрать named command; задать tenant/actor/version/operation_id; указать, какая из четырёх истин меняется; затем провести golden flow. Схема snapshot не заменяет проверенный restore drill и не делает destructiveness безопасной по умолчанию.
+
+### Ручная проверка lifecycle — 26.10.2026
+11 спорных отношений получили отдельные решения с revision/path:line в DATA_MODEL_CLASSIFICATION_OVERRIDES.json. На том же metadata snapshot:185 CANONICAL,4 COMPAT,14 BACKUP,0 TEMP,4 NULL. Типы/этапы/доказательства/иерархия — канонические по роли контракта; sync envelope/conflict — совместимость. Observation хранит исходные наблюдения, не утверждённые рецептуры. Три legacy ERP и неизвестный tmp остаютсяNULL. Это документальная классификация, не подтверждение эксплуатации; запрет удаления сохраняется у всех207отношений.
