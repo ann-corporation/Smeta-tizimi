@@ -210,6 +210,10 @@ export const GENERATED_SITE_MAP = {
     "t2_platforma_narx_manba_qator",
     "t2_narx_protokol_royxat",
     "t2_narx_protokol_qator",
+    "t2_smeta_versiya",
+    "t2_smeta_versiya_pozitsiya",
+    "t2_smeta_versiya_moslik",
+    "t2_smeta_versiya_dava",
     "t2_korzinka",
     "t2_audit_reestr",
     "t2_obyekt_hujjat_royxat",
@@ -732,6 +736,26 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "bajarilmadi_bekor",
       "rpc": "t2_bajarilmadi_bekor_v1"
+    },
+    {
+      "amal": "smeta_versiya_yarat_v1",
+      "rpc": "t2_smeta_versiya_yarat_v1"
+    },
+    {
+      "amal": "smeta_versiya_pozitsiya_yoz_v1",
+      "rpc": "t2_smeta_versiya_pozitsiya_yoz_v1"
+    },
+    {
+      "amal": "smeta_versiya_moslik_yoz_v1",
+      "rpc": "t2_smeta_versiya_moslik_yoz_v1"
+    },
+    {
+      "amal": "smeta_versiya_qaror_v1",
+      "rpc": "t2_smeta_versiya_qaror_v1"
+    },
+    {
+      "amal": "smeta_versiya_bekor_v1",
+      "rpc": "t2_smeta_versiya_bekor_v1"
     },
     {
       "amal": "xarajat_kirit_v1",

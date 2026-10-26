@@ -191,6 +191,12 @@ const AMALLAR = {
   kontragent_ochir: { rpc: 't2_kontragent_ochir' },
   bajarilmadi_belgila: { rpc: 't2_bajarilmadi_belgila_v1' },
   bajarilmadi_bekor: { rpc: 't2_bajarilmadi_bekor_v1' },
+  /* PTO-CORE-001 (egasi 2026-10-26): smeta versiyasi → farq → da'vo — t2_qator ga TEGMAYDI; a'zolik + smeta.write RPC ichida. */
+  smeta_versiya_yarat_v1: { rpc: 't2_smeta_versiya_yarat_v1' },
+  smeta_versiya_pozitsiya_yoz_v1: { rpc: 't2_smeta_versiya_pozitsiya_yoz_v1' },
+  smeta_versiya_moslik_yoz_v1: { rpc: 't2_smeta_versiya_moslik_yoz_v1' },
+  smeta_versiya_qaror_v1: { rpc: 't2_smeta_versiya_qaror_v1' },
+  smeta_versiya_bekor_v1: { rpc: 't2_smeta_versiya_bekor_v1' },
   /* Egasi 2026-10-24 (pul tahlili P1): haqiqiy xarajatni kategoriya/obyekt bilan qo'lda kiritish (idempotent) va bekor qilish. */
   xarajat_kirit_v1: { rpc: 't2_xarajat_kirit_v1' },
   xarajat_bekor_v1: { rpc: 't2_xarajat_bekor_v1' },
@@ -2112,6 +2118,42 @@ export const onRequestPost: PagesFunction<{
       /* Egalik: yozuv shu kompaniyaniki ekani RPC ichida (kompaniya_id sharti) tekshiriladi; p_id shlyuz egalik jadvaliga kirmaydi. */
       yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_id: id,
         p_sabab: so.sabab ? String(so.sabab).slice(0, 500) : null, p_operation_id: String(so.operation_id) };
+
+    /* Smeta versiyasi / farq / da'vo (PTO-CORE-001): faqat qoplama jadvallar; egalik (versiya → kompaniya, qator → obyekt)
+       RPC ichida tekshiriladi (`p_versiya_id` shlyuz egalik jadvaliga kirmaydi — xuddi bajarilmadi_bekor kabi). */
+    } else if (amal.startsWith('smeta_versiya_')) {
+      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      const asos = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_operation_id: String(so.operation_id) };
+      const musbatId = (v: unknown) => { const n = Number(v); return Number.isInteger(n) && n > 0 ? n : null; };
+      if (amal === 'smeta_versiya_yarat_v1') {
+        const obyektId = musbatId(so.obyekt_id);
+        if (!obyektId) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
+        const sana = so.manba_sana ? String(so.manba_sana) : null;
+        if (sana && !/^\d{4}-\d{2}-\d{2}$/.test(sana)) return Response.json({ ok: false, error: 'manba_sana YYYY-MM-DD shaklida bo\'lishi kerak' });
+        const fayllar = Array.isArray(so.manba_fayllar) ? so.manba_fayllar.slice(0, 200).map((f: { nom?: unknown; hajm?: unknown }) => ({
+          nom: String(f?.nom ?? '').slice(0, 300), hajm: Number.isFinite(Number(f?.hajm)) ? Number(f?.hajm) : null })) : [];
+        yuk = { ...asos, p_obyekt_id: obyektId, p_nom: String(so.nom ?? '').slice(0, 300), p_tur: String(so.tur ?? ''),
+          p_manba_sana: sana, p_manba_fayllar: fayllar, p_izoh: so.izoh ? String(so.izoh).slice(0, 2000) : null };
+      } else {
+        const versiyaId = musbatId(so.versiya_id);
+        if (!versiyaId) return Response.json({ ok: false, error: 'versiya_id noto\'g\'ri' });
+        if (amal === 'smeta_versiya_pozitsiya_yoz_v1') {
+          if (!Array.isArray(so.pozitsiyalar) || !so.pozitsiyalar.length || so.pozitsiyalar.length > 1000) return Response.json({ ok: false, error: 'pozitsiyalar 1..1000 ta bo\'lishi kerak' });
+          yuk = { ...asos, p_versiya_id: versiyaId, p_pozitsiyalar: so.pozitsiyalar };
+        } else if (amal === 'smeta_versiya_moslik_yoz_v1') {
+          if (so.mosliklar != null && (!Array.isArray(so.mosliklar) || so.mosliklar.length > 2000)) return Response.json({ ok: false, error: 'mosliklar 0..2000 ta bo\'lishi kerak' });
+          yuk = { ...asos, p_versiya_id: versiyaId, p_mosliklar: so.mosliklar ?? [], p_yakunla: so.yakunla === true };
+        } else if (amal === 'smeta_versiya_qaror_v1') {
+          if (!Array.isArray(so.qarorlar) || !so.qarorlar.length || so.qarorlar.length > 2000) return Response.json({ ok: false, error: 'qarorlar 1..2000 ta bo\'lishi kerak' });
+          yuk = { ...asos, p_versiya_id: versiyaId, p_qarorlar: so.qarorlar };
+        } else {
+          yuk = { ...asos, p_versiya_id: versiyaId, p_sabab: so.sabab ? String(so.sabab).slice(0, 1000) : null };
+        }
+      }
 
     /* Shartnoma qamrovi: canonical t2_qator satrini o'chirmasdan,
        faqat shu shartnoma hisobidan kiritish/chiqarish qarorini saqlaydi. */
