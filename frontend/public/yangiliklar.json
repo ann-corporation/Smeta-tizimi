@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 26,
+      "sana": "2026-10-27",
+      "sarlavha": "Faktli ishda resurs zamenasi va «ishdan chiqarish»",
+      "bandlar": [
+        "F2 tayyorlash va Fakt jurnalida ish ichidagi istalgan resurs (mashina, material, uskuna, perevozka) yonida «Zamena» tugmasi bor: yangi resursni katalogdan tanlang yoki qo'lda yozing (kod, nom, birlik, norma/hajm, narx manbasi). Asl qator o'zgarmaydi — zamena F2 da uning o'rnida turadi, aslning hajmi esa zamena hajmiga qarab yopiladi (ikki marta olinmaydi). Birlik farqli bo'lsa — «asl resursning qancha hajmini almashtiradi» ni yozish mumkin.",
+        "«Ishdan chiqarish» — resurs shu ishda ishlatilmagan bo'lsa: sababini tanlaysiz, resurs F2 ga kirmaydi va «ishdan chiqarilgan» belgisi bilan ko'rinadi. Smeta qatori o'chirilmaydi; belgini bosib bekor qilish mumkin.",
+        "Ishchi mehnati (ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ) zamena qilinmaydi va hozircha chiqarilmaydi — tugma xira, ustiga borsangiz sababi yoziladi."
+      ]
+    },
+    {
       "id": 25,
       "sana": "2026-10-27",
       "sarlavha": "Smeta muhrlandi: asl smetadan har bir o'zgarish ko'rinadi",

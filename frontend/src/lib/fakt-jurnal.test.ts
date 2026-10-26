@@ -123,6 +123,12 @@ describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', ()
     expect(s.get(0)?.qoldiq.ustamasiz).toBe(90);
     expect(s.get(0)?.f2.ustamasiz).toBe(40);
     expect(s.get(0)?.qoshimcha.ustamasiz).toBe(30); // zamena ostidagi smeta — alohida («smeta» ga kirmaydi)
+    // Ishdan chiqarilgan resurs (4): fakt summasi bo'lim/obyekt jamisiga kirmaydi; smeta va F2 o'zgarmaydi.
+    const c = bolimSummalari(r, h, new Set([4]));
+    expect(c.get(2)?.fakt.ustamasiz).toBe(30);
+    expect(c.get(0)?.fakt.ustamasiz).toBe(30);
+    expect(c.get(1)?.smeta.ustamasiz).toBe(100);
+    expect(c.get(0)?.f2.ustamasiz).toBe(40);
   });
 
   it('bolimSummalari: ISH qatorining O‘Z F2/fakt summasi bo‘limga qo‘shiladi, bolalarniki alohida — ikki marta sanalmaydi (L0, Sun‘iy ko‘l 5,51 mlrd)', () => {
