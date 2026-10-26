@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 25,
+      "id": 27,
       "sana": "2026-10-26",
       "sarlavha": "Smeta yuklash: perevozka va svod endi tashlab yuborilmaydi",
       "bandlar": [
@@ -10,6 +10,17 @@
         "«16.Перевоз» kabi sarlavhasiz perevozka resurs varag'i RES sifatida o'qiladi (resurslar va ИТОГО).",
         "Svod qatorlari (moddalar, foizlar, НДС, «письмо заказчика №…» yaxlit summalari, заявленная/снижения) «Hamroh varaqlar» panelida ko'rinadi. Smetaga hech narsa o'zi yozilmaydi: belgilangan tn·km varag'i — har material alohida perevozka resursi; belgilangan xat qatori — smeta tarkibiga yaxlit ish (НДС siz narx svoddagi stavka bilan).",
         "O'qilmagan varaq endi jim «0 qator» bo'lmaydi: «tushunilmadi» ogohlantirishi, eng katta summa va taklif chiqadi."
+      ]
+    },
+    {
+      "id": 25,
+      "sana": "2026-10-27",
+      "sarlavha": "Smeta muhrlandi: asl smetadan har bir o'zgarish ko'rinadi",
+      "bandlar": [
+        "Har obyekt smetasining asl qatorlari muhrlandi (shifr, nom, birlik, hajm, narx, norma, tur, joyi). Bitta vergul qo'shilsa ham qator «O'zgargan» deb belgilanadi.",
+        "Smeta va bajarilish sahifasida daraxt ustida xulosa: nechta qator o'zgargan, qo'shilgan yoki o'chirilgan; daraxtda «Asl smetadan farq» filtri va qator yonida belgi.",
+        "Belgini bosing — qator tafsilotida «Avval (asl smeta) / Endi» jadvali va o'zgarish jurnali (kim, qachon) chiqadi. Tahrirlash taqiqlanmaydi — faqat ko'rinadi.",
+        "Narx keyin qo'yilgan qatorlar («Narx qo'yildi») va ekspertizagacha bo'limlar alohida ko'rsatiladi."
       ]
     },
     {
