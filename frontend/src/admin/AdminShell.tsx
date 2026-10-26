@@ -15,6 +15,7 @@ import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AkkauntTugmasi } from '../components/akkaunt/AkkauntTugmasi';
+import { OrqaOldinga } from '../umumiy/ui/OrqaOldinga';
 import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
@@ -402,6 +403,7 @@ function AdminShellInner() {
           <button type="button" className="os-mobile-only os-menu-button" aria-label={mobilMenyuOchiq ? 'Navigatsiyani yopish' : 'Navigatsiyani ochish'} aria-expanded={mobilMenyuOchiq} onClick={() => setMobilMenyuOchiq((open) => !open)}>
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
+          <OrqaOldinga />
           <KompaniyaTanlagich />
           {k.superadmin && <span className="rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="text-[10px] text-text-dim">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
