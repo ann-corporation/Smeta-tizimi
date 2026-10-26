@@ -2939,6 +2939,37 @@
       ],
       "production_write_allowed": false,
       "note": "Egasi 2026-10-25: dizayn ideal/ergonomik/professional bo'lsin. Kanonik manba — Design System artifact «Firuza». index.css T2-SMETACHI-RELIABILITY-20261009 qulfida — tegilmadi; firuza.css undan keyin ulanib eski Liquid Glass qatlamini bosadi. Deploy faqat egasi va Obsidian KOORDINATSIYA kelishuvidan keyin; PR draft. 2026-10-25 kech: egasi «Codex ishlamayapti, hamma joyga kiraver» — SmetaStudio, F2 import, Holat, Nakopitelniy, index.css shu vazifaga o'tdi (boshqa agentlar ertalabgacha to'xtatilgan)."
+    },
+    {
+      "id": "AKKAUNT-KIRISH-20261026",
+      "title": "Akkaunt markazi: bitta hisob (hisoblarni birlashtirish), profil/parol/sessiya, ideal kirish (email kod)",
+      "owner": "claude",
+      "machine": "cloud",
+      "branch": "claude/blissful-cannon-a0ja8l",
+      "base_sha": "b0202f6b",
+      "status": "in_progress",
+      "owns": [
+        "frontend/functions/api/profil.ts",
+        "frontend/functions/_shared/role-authority.ts",
+        "frontend/functions/_shared/google-id.ts",
+        "frontend/functions/_shared/auth.ts",
+        "frontend/functions/api/kirish.ts",
+        "frontend/functions/api/kirish-google.ts",
+        "frontend/functions/api/royxat-email-kod.ts",
+        "frontend/functions/api/royxat-ozi.ts",
+        "frontend/src/kirish/",
+        "frontend/src/components/public-entry/",
+        "frontend/src/components/akkaunt/",
+        "frontend/src/api/profil.ts",
+        "supabase/migrations/20261110200000_t2_profil_xavfsizlik_v1*"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md"
+      ],
+      "production_write_allowed": true,
+      "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing."
     }
   ]
 }
