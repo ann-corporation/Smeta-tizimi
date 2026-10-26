@@ -92,7 +92,8 @@ export function F2TayyorlashNative() {
   const [k, setK] = useState<F2Kiritma>(bosKiritma);
   /** Hajm manbai: operator tanlamaguncha — obyektda fakt qoldig'i bo'lsa `fakt`, bo'lmasa `smeta` (faktsiz F2). */
   const [manbaTanlov, setManbaTanlov] = useState<F2Manba | null>(null);
-  const [oy, setOy] = useState(oyBoshlanishi());
+  /** «Faktdan F2» (Fakt jurnalidan ?oy=YYYY-MM): davr fakt sahifasida tanlangan bo'lsa — shu oy. */
+  const [oy, setOy] = useState(() => { const p = params.get('oy'); return p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : oyBoshlanishi(); });
   const [raqam, setRaqam] = useState('');
   const [qidir, setQidir] = useState('');
   /** Bitta almashtirgich: faqat shu davrda hajmi kiritilgan ishlar (hamma bo'limlardan). */
@@ -326,10 +327,19 @@ export function F2TayyorlashNative() {
     avtoQollandi.current = true;
     bolimniOl(bolimlar);
     const n = bolimlar.reduce((s, b) => s + b.ishlar.filter((i) => i.mumkin > 0).length + b.alohida.filter((r) => r.mumkin > 0).length, 0);
+    // Tez yo'l: faqat olingan ishlar ko'rinadi (bo'limma-bo'lim yurish shart emas), raqam — keyingi bo'sh raqam (pastdagi effekt).
+    if (n > 0) { setFaqatKiritilgan(true); avtoRaqam.current = true; }
     toast(n > 0 ? t('Fakt bo‘yicha {n} ta ish hajmi olindi. Tekshirib, Ctrl+Enter bilan qoralama yarating.', { n: String(n) }) : t('Fakt qoldig‘i yo‘q - olinadigan hajm topilmadi.'), n > 0 ? 'ok' : 'warn');
-    setParams((p) => { const x = new URLSearchParams(p); x.delete('avto'); return x; }, { replace: true });
+    setParams((p) => { const x = new URLSearchParams(p); x.delete('avto'); x.delete('oy'); return x; }, { replace: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, bolimlar, params]);  const narxsizBelgila = () => setK((o) => ({ ...o, narxsiz: { ...o.narxsiz, ...Object.fromEntries(narxsizlar.map((id) => [id, true])) } }));
+  }, [loading, bolimlar, params]);
+  /** Tez yo'lda F2 raqami bo'sh bo'lsa — shu obyektdagi keyingi raqam (aktlar keyinroq o'qilishi mumkin; bir marta). */
+  const avtoRaqam = useRef(false);
+  useEffect(() => {
+    if (!avtoRaqam.current || !raqamTaklif || aktId != null) return;
+    avtoRaqam.current = false;
+    setRaqam((r) => (r.trim() ? r : raqamTaklif));
+  }, [raqamTaklif, aktId, faqatKiritilgan]);  const narxsizBelgila = () => setK((o) => ({ ...o, narxsiz: { ...o.narxsiz, ...Object.fromEntries(narxsizlar.map((id) => [id, true])) } }));
 
   /** ?akt=ID: qoralama aktning qatorlari kiritmalarga yuklanadi (ish/mustaqil resurs hajmi, resurs narxi); avtomatik resurs hajmi normadan qayta hisoblanadi. */
   const [korinmaganQator, setKorinmaganQator] = useState(0);

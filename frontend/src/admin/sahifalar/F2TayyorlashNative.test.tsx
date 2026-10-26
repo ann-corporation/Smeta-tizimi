@@ -128,6 +128,14 @@ describe('F2 tayyorlash', () => {
     expect(m.toast).toHaveBeenCalledWith(expect.stringContaining('Fakt bo‘yicha'), 'ok');
     expect(m.yarat).not.toHaveBeenCalled();
   });
+  it('«Faktdan F2» tez yo‘li (?avto=1&oy=YYYY-MM): davr fakt sahifasidagi oy, faqat olinganlar ko‘rinadi; qoralama — faqat operator tasdig‘i bilan', async () => {
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&avto=1&oy=2026-09']}><F2TayyorlashNative /></MemoryRouter>);
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish');
+    await waitFor(() => expect((hajm as HTMLInputElement).value).toBe('6'));
+    expect((screen.getByLabelText('F2 davri') as HTMLInputElement).value).toBe('2026-09');
+    expect((screen.getByRole('checkbox', { name: 'Faqat kiritilganlar' }) as HTMLInputElement).checked).toBe(true);
+    expect(m.yarat).not.toHaveBeenCalled();
+  });
   it('bo‘limlar navigatori va qidiruv', async () => {
     ochish();
     await screen.findByLabelText('F2 hajmi: Beton quyish');

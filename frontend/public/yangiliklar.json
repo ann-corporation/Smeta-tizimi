@@ -2,13 +2,24 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 23,
+      "id": 24,
       "sana": "2026-10-27",
       "sarlavha": "Faktli ishda resurs zamenasi va «ishdan chiqarish»",
       "bandlar": [
         "F2 tayyorlash va Fakt jurnalida ish ichidagi istalgan resurs (mashina, material, uskuna, perevozka) yonida «Zamena» tugmasi bor: yangi resursni katalogdan tanlang yoki qo'lda yozing (kod, nom, birlik, norma/hajm, narx manbasi). Asl qator o'zgarmaydi — zamena F2 da uning o'rnida turadi, aslning hajmi esa zamena hajmiga qarab yopiladi (ikki marta olinmaydi). Birlik farqli bo'lsa — «asl resursning qancha hajmini almashtiradi» ni yozish mumkin.",
         "«Ishdan chiqarish» — resurs shu ishda ishlatilmagan bo'lsa: sababini tanlaysiz, resurs F2 ga kirmaydi va «ishdan chiqarilgan» belgisi bilan ko'rinadi. Smeta qatori o'chirilmaydi; belgini bosib bekor qilish mumkin.",
         "Ishchi mehnati (ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ) zamena qilinmaydi va hozircha chiqarilmaydi — tugma xira, ustiga borsangiz sababi yoziladi."
+      ]
+    },
+    {
+      "id": 23,
+      "sana": "2026-10-26",
+      "sarlavha": "Fakt: «Fakt = F2» butun obyekt bo'yicha va «Faktdan F2» tez yo'li",
+      "bandlar": [
+        "Fakt jurnalida yangi «Fakt = F2: obyekt» tugmasi (Shift+F): barcha bo'limlarda F2 hajmi faktdan ko'p ishlar bir oynada — qatorlar soni, summa (ustamasiz va ustamali) va bo'lim bo'yicha jami. Keraksiz bo'lim yoki qatorni belgini olib istisno qilasiz.",
+        "Yozish bitta urinishda: katta obyekt (Sun'iy ko'l kabi) bir necha hujjatga bo'linadi, javob kelmasa xuddi shu amal qayta yuboriladi (ikki marta yozilmaydi), xabardagi «Bekor qilish» hammasini qaytaradi. Fakt faqat oshadi, kamaymaydi; smeta o'zgarmaydi.",
+        "Panelda F2 davrini (oyni) tanlab «Fakt bo'yicha F2 qoralama» bosilsa — F2 tayyorlash shu oy bilan ochiladi, F2 ga hali kirmagan barcha faktli ishlar o'zi olinadi, faqat olinganlar ko'rinadi va keyingi F2 raqami qo'yiladi. Qoralamani yaratish va tasdiqlash avvalgidek sizda.",
+        "Bo'lim va obyekt F2 jamisiga endi to'g'ridan-to'g'ri ish qatoriga bog'langan F2 summasi ham qo'shiladi (avval ko'rinmasdi, masalan Sun'iy ko'lda 5,5 mlrd). Jami yonida «Nakopitelniy smeta = daraxt smeta + qo'shimcha ishlar» izohi; Nakopitelniy bilan farq bo'lsa ogohlantirish chiqadi."
       ]
     },
     {
