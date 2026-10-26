@@ -3,7 +3,7 @@
  * Yangi biznes formula YO'Q: reestrQur bergan summalarni smeta (=100%) ga nisbatan chiziq bo'laklariga ajratadi.
  * Bu SUMMA nisbati — jismoniy bajarilish foizi emas. NULL ≠ 0: smeta noma'lum yoki ≤ 0 bo'lsa foiz ham noma'lum (null).
  */
-import type { Summa } from './reestr';
+import { bosqich, type Summa } from './reestr';
 
 export type ReestrUlush = {
   /** Tasdiqlangan F2 (ma'lum qismi) / smeta × 100; smeta noma'lum bo'lsa null. */
@@ -33,4 +33,23 @@ export function manbaTaqsimot(p: { tasdiqlangan: Summa; tasdiqImport: Summa; tas
   const imp = Math.max(0, p.tasdiqImport.malum), tiz = Math.max(0, p.tasdiqTizim.malum);
   const boshqa = Math.max(0, p.tasdiqlangan.malum - imp - tiz);
   return { import: imp, tizim: tiz, boshqa, jami: imp + tiz + boshqa };
+}
+
+export type OylikJami = { oy: string; tasdiqlangan: number; jarayonda: number; rad: number; bekor: number; nomalumSoni: number };
+
+/**
+ * Oylar bo'yicha F2 hujjat jami (ustamasiz) holat kesimida — grafik uchun. Yangi formula yo'q: `hujjat_jami` yig'indisi.
+ * Summasi noma'lum (null) akt 0 emas: `nomalumSoni` ga yoziladi. Oylar o'sish tartibida.
+ */
+export function oylikJami(aktlar: readonly { oy: string; hujjat_jami: number | null; holat: string; lifecycle_status?: string | null }[]): OylikJami[] {
+  const m = new Map<string, OylikJami>();
+  for (const a of aktlar) {
+    const oy = String(a.oy ?? '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(oy)) continue;
+    const r = m.get(oy) ?? { oy, tasdiqlangan: 0, jarayonda: 0, rad: 0, bekor: 0, nomalumSoni: 0 };
+    if (a.hujjat_jami == null || !Number.isFinite(Number(a.hujjat_jami))) r.nomalumSoni++;
+    else r[bosqich(a)] += Number(a.hujjat_jami);
+    m.set(oy, r);
+  }
+  return [...m.values()].sort((x, y) => x.oy.localeCompare(y.oy));
 }

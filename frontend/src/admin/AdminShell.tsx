@@ -14,6 +14,8 @@ import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
+import { AkkauntTugmasi } from '../components/akkaunt/AkkauntTugmasi';
+import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { routePermission } from '../lib/company-authorization/route-permission';
@@ -164,6 +166,12 @@ function AdminShellInner() {
   useEffect(() => {
     try { localStorage.setItem('fz-sidebar-mahkam', mahkam ? '1' : '0'); } catch { /* brauzer xotirasi yopiq */ }
   }, [mahkam]);
+  /* Akkaunt markazi («Ko‘rinish») yon panel mahkamligini o‘zgartirsa — shu yerda ham darhol aks etadi. */
+  useEffect(() => {
+    const f = (e: Event) => setMahkam(!!(e as CustomEvent<boolean>).detail);
+    window.addEventListener(SIDEBAR_HODISA, f);
+    return () => window.removeEventListener(SIDEBAR_HODISA, f);
+  }, []);
   const sidebarKengaygan = mahkam || kengaygan || mobilMenyuOchiq;
 
   // Qaysi guruhlar ochiq ekanligini saqlash
@@ -377,7 +385,7 @@ function AdminShellInner() {
           {k.superadmin && <span className="rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="text-[10px] text-text-dim">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <div className="ml-auto"><TilTanlagich ixcham /></div>
+          <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`

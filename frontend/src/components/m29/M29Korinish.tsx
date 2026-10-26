@@ -4,8 +4,9 @@ import { t, tilLocale } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import type { M29Diqqat, M29Material, M29Natija } from '../../lib/m29';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
-import { m29DiqqatXaritasi, m29FarqHolat, m29GuruhKesim, m29MaterialNisbat, m29PulKesim, m29Xulosa } from '../../lib/m29-korinish';
+import { m29DiqqatXaritasi, m29FarqHolat, m29GuruhKesim, m29EngKopChetlanish, m29MaterialNisbat, m29PulKesim, m29Xulosa } from '../../lib/m29-korinish';
 import { M29NormaChiziq } from './M29NormaChiziq';
+import { M29ChetlanishDiagramma } from './M29Chetlanish';
 
 /**
  * M-29 natijasining KO'RINISHI (egasi 2026-10-25): xulosa (tejash / ortiqcha — ustamali + ustamasiz, normadan oshgan
@@ -76,6 +77,7 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
   useEffect(() => { setOchiq(new Set(natija.guruhlar.map((g) => 'g:' + g.kat))); }, [natija]);
   const xulosa = useMemo(() => m29Xulosa(natija), [natija]);
   const diqqatXarita = useMemo(() => m29DiqqatXaritasi(natija), [natija]);
+  const chetlanish = useMemo(() => m29EngKopChetlanish(natija), [natija]);
   const kesim = useMemo(() => ({ tejash: m29PulKesim(natija, 'tejash'), ortiqcha: m29PulKesim(natija, 'ortiqcha'), sof: m29PulKesim(natija, 'sof') }), [natija]);
   const almashtir = (k: string) => setOchiq((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const hammasiniOch = (on: boolean) => {
@@ -137,6 +139,7 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
                   <SummaJuft obyektId={oid} ustamasiz={Math.abs(natija.jami.farqSummaJami)} katKesim={kesim.sof} />
                 </span>}
             </Korsatkich>
+            <M29ChetlanishDiagramma royxat={chetlanish} />
             <div className="fz-panel sm:col-span-2 xl:col-span-4">
               <div className="fz-panel__h"><span>{t('Materiallar holati')}</span><span>{t('{n} ta material', { n: xulosa.materialSoni })}</span></div>
               <div className="fz-split" role="img" aria-label={t('Normadan oshgan: {o} · normada: {m} · tejalgan: {t} · fakt noma’lum: {f}', { o: xulosa.ortiqchaSoni + xulosa.normasizSoni, m: xulosa.mosSoni, t: xulosa.tejaldiSoni, f: xulosa.faktYoqSoni })}>

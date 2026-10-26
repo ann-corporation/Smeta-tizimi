@@ -1,5 +1,6 @@
 import { t } from '../../i18n/til';
 import type { M29Nisbat } from '../../lib/m29-korinish';
+import { OsuvchiI } from '../f2-hujjat/OsuvchiI';
 
 /**
  * Norma ↔ fakt chizig'i: norma — tik belgi (100%), fakt — to'ldirilgan chiziq. Normadan oshgan qism qizil,
@@ -34,10 +35,10 @@ export function M29NormaChiziq({ n, izoh }: { n: M29Nisbat; izoh?: string }) {
           <i className="absolute inset-y-0 left-0" style={{ width: `${normaFoiz}%`, background: 'repeating-linear-gradient(135deg, var(--warn-soft) 0 3px, transparent 3px 6px)' }} />
         )}
         {n.holat !== 'normasiz' && faktFoiz > 0 && (
-          <i className="absolute inset-y-0 left-0" style={{ width: `${ichki}%`, background: n.holat === 'tejaldi' ? 'var(--ok)' : 'var(--accent)' }} />
+          <OsuvchiI ulush={ichki / 100} className="absolute inset-y-0 left-0" style={{ background: n.holat === 'tejaldi' ? 'var(--ok)' : 'var(--accent)' }} />
         )}
         {oshgan && (
-          <i className="absolute inset-y-0" style={{ left: `${n.holat === 'normasiz' ? 0 : normaFoiz}%`, width: `${faktFoiz - (n.holat === 'normasiz' ? 0 : normaFoiz)}%`, background: 'var(--danger)' }} />
+          <OsuvchiI ulush={(faktFoiz - (n.holat === 'normasiz' ? 0 : normaFoiz)) / 100} className="absolute inset-y-0" kechikish={0.15} style={{ left: `${n.holat === 'normasiz' ? 0 : normaFoiz}%`, background: 'var(--danger)' }} />
         )}
         {normaFoiz > 0 && (
           <i className="absolute -inset-y-px w-0.5" style={{ left: `calc(${normaFoiz}% - 1px)`, background: 'var(--text)' }} />

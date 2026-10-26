@@ -11,6 +11,8 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { t } from '../../i18n/til';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { katKesimYigish } from '../../lib/ustamali-summa';
 import { AlertTriangle, Eye, FileSpreadsheet, Search } from 'lucide-react';
 
 // T2-PTO-CLOSURE-007 (Claude lane): egasining so'rovi bo'yicha — butun
@@ -77,6 +79,11 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
     МАТ: { nom: 'Materiallar', bg: 'fz-bg-mat' }, ОБ: { nom: 'Jihozlar', bg: 'fz-bg-ob' },
   };
   const jamiSmeta = kategoriyalar.reduce((x, k) => x + k.jamiSmetaSumma, 0);
+  const jamiF2 = kategoriyalar.reduce((x, k) => x + k.jamiF2Summa, 0);
+  const jamiQoldiq = kategoriyalar.reduce((x, k) => x + k.jamiQoldiqSumma, 0);
+  const smetaKesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiSmetaSumma);
+  const f2Kesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiF2Summa);
+  const oid = Number(objectId) || null;
   return (
     <div className="space-y-3">
       {korinish.oyna}
@@ -91,9 +98,14 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
       {error && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{error}</span></div>}
       {kategoriyalar.length > 0 && (
         <>
+          <section className="fz-card fz-kpis p-4" aria-label={t('Resurs vedomosti jami')} data-testid="resurs-kpi">
+            <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta')}</span><SummaJuft obyektId={oid} ustamasiz={jamiSmeta} katKesim={smetaKesim} /></div>
+            <div className="fz-kpi"><span className="fz-kpi__label">{t('F2 (tasdiqlangan)')}</span><SummaJuft obyektId={oid} ustamasiz={jamiF2} katKesim={f2Kesim} /></div>
+            <div className="fz-kpi"><span className="fz-kpi__label">{t('Qoldiq')}</span><b className="text-[14px] tabular-nums text-text"><FmtN val={jamiQoldiq} /></b><span className="fz-kpi__sub">{t('ustamasiz')}</span></div>
+          </section>
           {jamiSmeta > 0 && (
             <div className="fz-panel">
-              <div className="fz-panel__h"><span>{t('Resurs tarkibi (smeta summasi bo‘yicha)')}</span><span><FmtN val={jamiSmeta} /></span></div>
+              <div className="fz-panel__h"><span>{t('Resurs tarkibi (smeta summasi bo‘yicha)')}</span><span>{t('ustamasiz')}: <FmtN val={jamiSmeta} /></span></div>
               <div className="fz-split" role="img" aria-label={t('Resurs tarkibi (smeta summasi bo‘yicha)')}>
                 {kategoriyalar.filter(k => k.jamiSmetaSumma > 0).map(k => <i key={k.kat} className={KAT_INFO[k.kat]?.bg ?? 'fz-bg-nomalum'} style={{ flex: k.jamiSmetaSumma }} title={`${KAT_INFO[k.kat] ? t(KAT_INFO[k.kat].nom) : k.kat}: ${Math.round((k.jamiSmetaSumma / jamiSmeta) * 100)}%`} />)}
               </div>
@@ -120,7 +132,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
                 <KatNishon kat={k.kat} />
                 <span className="text-text-dim font-normal">{KAT_INFO[k.kat] ? t(KAT_INFO[k.kat].nom) : ''} <span className="text-text-mute">({k.qatorlar.length} {t('resurs')})</span></span>
                 <span className="ml-auto text-[11.5px] font-normal text-text-mute tabular-nums">
-                  {t('Smeta')}: <FmtN val={k.jamiSmetaSumma} /> · F2: <FmtN val={k.jamiF2Summa} /> · {t('Qoldiq')}: <FmtN val={k.jamiQoldiqSumma} />
+                  {t('Smeta')}: <FmtN val={k.jamiSmetaSumma} /> · F2: <FmtN val={k.jamiF2Summa} /> · {t('Qoldiq')}: <FmtN val={k.jamiQoldiqSumma} /> · {t('ustamasiz')}
                 </span>
               </summary>
               {/* 8 ustun + uzun ruscha resurs nomlari: tor ekranda jadval

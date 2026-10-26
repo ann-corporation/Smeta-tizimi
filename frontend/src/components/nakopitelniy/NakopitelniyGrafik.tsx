@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { OsuvchiI } from '../f2-hujjat/OsuvchiI';
 import { t } from '../../i18n/til';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { oylikNuqtalar, yumaloqMax } from '../../lib/nakopitelniy-grafik';
@@ -19,6 +21,7 @@ export function NakopitelniyGrafik({ kesim, smeta, fakt }: {
   kesim: { oylar: string[]; qiymat: Map<number, Map<string, { hajm: number; summa: number | null }>> } | null;
   smeta: number | null | undefined; fakt: number | null | undefined;
 }) {
+  const kam = useReducedMotion();
   const nuqtalar = useMemo(() => (kesim ? oylikNuqtalar(kesim) : []), [kesim]);
   if (!nuqtalar.length) return null;
   const W = 760, H = 260, L = 64, R = 16, T = 16, B = 34;
@@ -54,20 +57,36 @@ export function NakopitelniyGrafik({ kesim, smeta, fakt }: {
           ))}
           {nuqtalar.map((n, i) => (
             <g key={n.oy}>
-              <rect x={x(i) - Math.min(28, bw * 0.32)} y={y(n.summa)} width={Math.min(56, bw * 0.64)} height={Math.max(0, T + ih - y(n.summa))} rx={2} fill="var(--accent)" opacity={i === nuqtalar.length - 1 ? 1 : 0.55}>
+              <motion.rect x={x(i) - Math.min(28, bw * 0.32)} y={y(n.summa)} width={Math.min(56, bw * 0.64)} height={Math.max(0, T + ih - y(n.summa))} rx={2} fill="var(--accent)" opacity={i === nuqtalar.length - 1 ? 1 : 0.55}
+                style={{ transformBox: 'fill-box', transformOrigin: 'bottom' }} initial={kam ? false : { scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.5, delay: i * 0.05, ease: [0.2, 0.7, 0.2, 1] }}>
                 <title>{`${davrNomi(n.oy, 'uz')}: ${qisqa(n.summa)}${n.nomalum ? ' · ' + t('summasi noma’lum qatorlar bor') : ''}`}</title>
-              </rect>
+              </motion.rect>
               {n.nomalum && <text x={x(i)} y={y(n.summa) - 6} textAnchor="middle" fontSize={11} fill="var(--warn)">?</text>}
               <text x={x(i)} y={H - 12} textAnchor="middle" fontSize={11} fill="var(--text-dim)">{OY_QISQA[Number(n.oy.slice(5, 7)) - 1] ?? n.oy.slice(5, 7)} {n.oy.slice(2, 4)}</text>
             </g>
           ))}
           {smeta != null && smeta > 0 && <line x1={L} x2={W - R} y1={y(smeta)} y2={y(smeta)} stroke="var(--text-dim)" strokeWidth={1.5} />}
           {fakt != null && fakt > 0 && <line x1={L} x2={W - R} y1={y(fakt)} y2={y(fakt)} stroke="var(--info)" strokeWidth={1.5} strokeDasharray="5 4" />}
-          <path d={yol} fill="none" stroke="var(--accent-text)" strokeWidth={2.5} strokeLinejoin="round" />
+          <motion.path d={yol} fill="none" stroke="var(--accent-text)" strokeWidth={2.5} strokeLinejoin="round" initial={kam ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, delay: 0.25, ease: 'easeOut' }} />
           {nuqtalar.map((n, i) => <rect key={n.oy} x={x(i) - 4} y={y(n.jamlanma) - 4} width={8} height={8} transform={`rotate(45 ${x(i)} ${y(n.jamlanma)})`} fill="var(--accent-text)" stroke="var(--surface)" strokeWidth={1.5}><title>{`${t('jamlanma')}: ${qisqa(n.jamlanma)}`}</title></rect>)}
           <text x={x(nuqtalar.length - 1)} y={y(oxirgi) - 12} textAnchor="middle" fontSize={12} fontWeight={600} fill="var(--text)">{qisqa(oxirgi)}</text>
         </svg>
       </div>
+      {smeta != null && smeta > 0 && (
+        <div className="flex flex-col gap-1.5" data-testid="reja-fakt" aria-label={t('Reja va fakt')}>
+          {([
+            [t('Reja (smeta)'), smeta, 'var(--border-strong)'],
+            [t('Tasdiqlangan F2 (jamlanma)'), oxirgi, 'var(--accent)'],
+            ...(fakt != null ? [[t('Bajarilgan fakt'), fakt, 'var(--info)'] as const] : []),
+          ] as const).map(([nom, v, rang], i) => (
+            <div key={nom} className="grid grid-cols-[minmax(0,180px)_1fr_auto] items-center gap-2 text-[12px]">
+              <span className="truncate text-text-dim">{nom}</span>
+              <span className="fz-meter__t"><OsuvchiI ulush={v / Math.max(smeta, v)} style={{ background: rang }} kechikish={i * 0.08} /></span>
+              <b className="tabular-nums text-text">{Math.round((v / smeta) * 100)}%</b>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -63,6 +63,7 @@ const IshJoylarim = lazy(() => import('./admin/sahifalar/IshJoylarim'));
 const Topshiriqlar = lazy(() => import('./admin/sahifalar/Topshiriqlar'));
 const Mutaxassis = lazy(() => import('./admin/sahifalar/Mutaxassis'));
 const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
+const AkkauntMarkazi = lazy(() => import('./admin/sahifalar/AkkauntMarkazi'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
 const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
@@ -200,6 +201,7 @@ export default function App() {
           <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
           <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
           <Route path="system-control" element={<Suspense fallback={<SahifaYuklanmoqda />}><SystemControlPage /></Suspense>} />
+          <Route path="akkaunt" element={<Suspense fallback={<SahifaYuklanmoqda />}><AkkauntMarkazi /></Suspense>} />
           <Route path="sayt-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SaytXaritasi /></Suspense>} />
           <Route path="ai-agentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><AiAgentlar /></Suspense>} />
           <Route path="kompaniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><KompaniyaPage /></Suspense>} />

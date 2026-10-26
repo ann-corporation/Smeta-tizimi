@@ -128,6 +128,7 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
                 style={{ cursor: 'pointer', borderColor: filtr === k.id ? 'var(--accent)' : 'var(--border)', boxShadow: filtr === k.id ? '0 0 0 1px var(--accent)' : undefined }}>
                 <span className="fz-kpi__label"><span style={{ color: k.ton ?? 'var(--text-dim)', display: 'inline-flex' }}>{k.ikon}</span>{t(k.nom)}</span>
                 <span className="fz-kpi__value">{k.qiymat}</span>
+                {(k.id === 'muzlagan' || k.id === 'xavf_ostida') && <span className="fz-kpi__sub">{t('ustamasiz, NDS siz (narx farqi)')}</span>}
               </button>
             ))}
           </div>

@@ -298,7 +298,7 @@ export function F2TarixNative() {
                         <span className="fz-list__nom block truncate">{davrNomi(akt.oy, tilLocale()) || t('Davr noma’lum')}</span>
                         <span className="fz-list__sub">№ {akt.raqam || '—'} · {t('{n} qator', { n: akt.qator_soni ?? '—' })}</span>
                       </span>
-                      <span className="fz-list__sum"><FmtN val={akt.hujjat_jami} kasr={0} /></span>
+                      <span className="fz-list__sum" title={t('ustamasiz, NDS siz — ustamali summa hujjat ichida')}><FmtN val={akt.hujjat_jami} kasr={0} /></span>
                       <span className="fz-list__sub" style={{ gridColumn: '1 / -1' }}>
                         <span className={`fz-stamp ${stampCls(st)}`}>{t(holatYorligi(akt))}</span>
                         {!!akt.narxsiz_qator && <span className="fz-chip fz-chip--warn">{t('{n} narxsiz', { n: akt.narxsiz_qator })}</span>}

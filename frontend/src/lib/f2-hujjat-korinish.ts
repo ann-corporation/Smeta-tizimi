@@ -134,3 +134,37 @@ export function davrNomi(oy: string | null | undefined, locale: string): string 
   if (/^uz/i.test(locale)) return `${(/cyrl/i.test(locale) ? OY_KIRILL : OY_LOTIN)[i]} ${yil}`;
   return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(Number(yil), i, 1));
 }
+
+export type BolimBajarilish = {
+  qator_id: number; kod: string | null; nom: string | null;
+  /** Smeta hajmi ma'lum bo'lgan ishlar soni (foizga kirgan). */
+  soni: number;
+  /** Ishlar bo'yicha o'rtacha ulush 0..1 (smeta = 1): oldin olingan va shu F2. Summa emas — hajm ulushi. */
+  oldinUlush: number; shuUlush: number;
+  /** (oldin + shu) o'rtacha foizi; ma'lum ish yo'q bo'lsa null (NULL ≠ 0). */
+  foiz: number | null;
+};
+
+/**
+ * Eng yuqori daraja bo'limlari bo'yicha bajarilish: har bo'limdagi ishlarning (smeta hajmi ma'lum) oldin/shu ulushi
+ * oddiy o'rtacha. Bu YANGI PUL FORMULASI emas — faqat qator ulushlarining o'rtachasi (birliklar har xil, shuning uchun summa emas).
+ */
+export function bolimBajarilish(
+  ier: readonly { qator_id: number; daraja: number; tur: string; kod: string | null; nom: string | null; bolaSoni: number; qatorlar: readonly unknown[] }[],
+  bajar: (qatorId: number) => QatorBajarilish,
+): BolimBajarilish[] {
+  const out: (BolimBajarilish & { _o: number; _s: number })[] = [];
+  let joriy: (typeof out)[number] | null = null;
+  for (const q of ier) {
+    if (q.daraja === 0) { joriy = { qator_id: q.qator_id, kod: q.kod, nom: q.nom, soni: 0, oldinUlush: 0, shuUlush: 0, foiz: null, _o: 0, _s: 0 }; out.push(joriy); }
+    if (!joriy) continue;
+    const bargMi = !(q.bolaSoni > 0 || q.tur === 'rz') && q.qatorlar.length > 0;
+    if (!bargMi) continue;
+    const b = bajar(q.qator_id);
+    if (b.foiz == null) continue;
+    joriy.soni++; joriy._o += b.oldinUlush; joriy._s += b.shuUlush;
+  }
+  return out.map(({ _o, _s, ...r }) => (r.soni > 0
+    ? { ...r, oldinUlush: _o / r.soni, shuUlush: _s / r.soni, foiz: ((_o + _s) / r.soni) * 100 }
+    : r));
+}

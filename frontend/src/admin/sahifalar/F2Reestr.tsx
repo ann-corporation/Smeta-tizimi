@@ -16,6 +16,9 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { FmtN, pulQisqa } from '../../lib/format';
 import { t, tilLocale } from '../../i18n/til';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
+import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
+import { usePortfelUstamali } from '../../umumiy/ui/usePortfelUstamali';
+import { F2ReestrOylik } from '../../components/f2-hujjat/F2ReestrOylik';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2OylikPaket } from './F2OylikPaket';
 import { F2Takrorlar } from './F2Takrorlar';
@@ -82,6 +85,7 @@ function HolatChiplari({ q }: { q: ReestrQator }) {
 
 /** Kompaniya xulosasi — bitta tasma: obyektlar, tasdiqlangan F2 (manba taqsimoti bilan), jarayondagilar, shartnomasizlar. */
 function XulosaTasma({ jami, qatorlar }: { jami: ReestrJami; qatorlar: ReestrQator[] }) {
+  const portfel = useMemo(() => qatorlar.map(q => ({ obyektId: q.obyekt.id })), [qatorlar]);
   const f2Bor = qatorlar.filter(q => q.aktlar.length).length;
   const m = manbaTaqsimot({ tasdiqlangan: jami.boyicha.tasdiqlangan, tasdiqImport: jami.tasdiqImport, tasdiqTizim: jami.tasdiqTizim });
   const radBekor = `${jami.boyicha.rad.soni} / ${jami.boyicha.bekor.soni}`;
@@ -128,7 +132,8 @@ function XulosaTasma({ jami, qatorlar }: { jami: ReestrJami; qatorlar: ReestrQat
       <div className="fz-panel rounded-none border-0">
         <div className="fz-panel__h"><span>{t('Shartnomasiz obyekt (F2 bilan)')}</span></div>
         <div className={`text-2xl font-semibold tabular-nums ${jami.shartnomasiz ? 'text-warn' : ''}`}>{jami.shartnomasiz}</div>
-        <div className="text-[12px] text-text-mute">{t('Smeta jami (ustamasiz)')}: <SummaKorinish s={jami.smeta} qisqa /></div>
+        <div className="mt-1 text-[12px] text-text-mute">{t('Smeta jami')}:</div>
+        <PortfelSummaJuft obyektlar={portfel} ustamasiz={jami.smeta.soni ? jami.smeta.malum : null} kichik />
       </div>
     </section>
   );
@@ -162,6 +167,20 @@ export default function F2Reestr() {
 
   const reestr = useMemo(() => (malumot ? reestrQur(malumot) : null), [malumot]);
   const qatorlar = useMemo(() => (reestr ? tartibla(filtrla(reestr.qatorlar, filtr)) : []), [reestr, filtr]);
+  /** Smeta ustuni: qatorda ustamasiz (asos), «Ustamali» tanlansa — obyekt bo‘yicha ustamali; jami qatorida har doim ikkalasi. */
+  const [summaTur, setSummaTur] = useState<'ustamasiz' | 'ustamali'>('ustamasiz');
+  const portfelHammasi = useMemo(() => (reestr ? reestr.qatorlar.map(q => ({ obyektId: q.obyekt.id })) : []), [reestr]);
+  const portfelUstamali = usePortfelUstamali(portfelHammasi);
+  const korinadiganPortfel = useMemo(() => qatorlar.map(q => ({ obyektId: q.obyekt.id })), [qatorlar]);
+  const korinadiganJami = useMemo(() => {
+    let smeta: number | null = null; let tasdiq: Summa = { malum: 0, nomalum: 0, soni: 0 };
+    for (const q of qatorlar) {
+      if (q.obyekt.jami != null) smeta = (smeta ?? 0) + q.obyekt.jami;
+      const x = q.boyicha.tasdiqlangan;
+      tasdiq = { malum: tasdiq.malum + x.malum, nomalum: tasdiq.nomalum + x.nomalum, soni: tasdiq.soni + x.soni };
+    }
+    return { smeta, tasdiq };
+  }, [qatorlar]);
 
   function ochYop(obyektId: number) {
     setOchiq(s => { const x = new Set(s); if (x.has(obyektId)) x.delete(obyektId); else x.add(obyektId); return x; });
@@ -186,6 +205,7 @@ export default function F2Reestr() {
       <F2DavomRoyxat kompaniyaId={kompaniyaId} />
       {malumot && <F2Takrorlar malumot={malumot} />}
       {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} />}
+      {reestr && <F2ReestrOylik aktlar={reestr.qatorlar.flatMap(q => q.aktlar)} />}
       {malumot && malumot.manbaXato > 0 && <div role="status" className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('{n} ta aktning manbasi o‘qilmadi — ular «aniqlanmadi» deb ko‘rsatilgan.', { n: malumot.manbaXato })}</span></div>}
 
       {reestr && <section className="fz-card flex flex-wrap items-end gap-3 p-3 text-[12px]">
@@ -198,6 +218,13 @@ export default function F2Reestr() {
             <option value="f2siz">{t('F2 si yo‘q obyektlar')}</option>
           </select></label>
         <label className="flex items-center gap-1.5 pb-1.5"><input type="checkbox" checked={filtr.faqatMuammo} onChange={e => setFiltr({ ...filtr, faqatMuammo: e.target.checked })} /> {t('Faqat e’tibor talab qiladiganlar')}</label>
+        <div className="pb-0.5" role="group" aria-label={t('Smeta summasi ko‘rinishi')}>
+          <span className="mb-1 block text-text-dim">{t('Smeta summasi')}</span>
+          <span className="inline-flex items-center gap-0.5 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5">
+            {(['ustamasiz', 'ustamali'] as const).map(k => <button key={k} type="button" aria-pressed={summaTur === k} onClick={() => setSummaTur(k)}
+              className={`fz-btn fz-btn--sm ${summaTur === k ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{k === 'ustamali' ? t('Ustamali') : t('Ustamasiz')}</button>)}
+          </span>
+        </div>
         <span className="ml-auto flex flex-wrap items-center gap-3 pb-1.5 text-text-mute">
           <span className="inline-flex items-center gap-1.5"><i className="fz-meter__oldin inline-block h-2 w-3 rounded-sm" />{t('Import')}</span>
           <span className="inline-flex items-center gap-1.5"><i className="fz-meter__shu inline-block h-2 w-3 rounded-sm" />{t('Tizimda tayyorlangan')}</span>
@@ -232,7 +259,9 @@ export default function F2Reestr() {
                   <td>{q.shartnomalar.length ? q.shartnomalar.map(s => <div key={s.id}>№ {s.raqam}{s.nom ? ` · ${s.nom}` : ''}
                     <span className="ml-1 text-[12px] text-text-mute">{s.jami_nds_bilan != null ? pulQisqa(s.jami_nds_bilan) : t('summa yo‘q')}</span></div>)
                     : <span className="text-text-mute">{t('biriktirilmagan')}</span>}</td>
-                  <td className="fz-c-num">{q.obyekt.jami != null ? pulQisqa(q.obyekt.jami) : <span className="text-text-mute">—</span>}
+                  <td className="fz-c-num">{summaTur === 'ustamali'
+                    ? (portfelUstamali.boYicha.get(q.obyekt.id) != null ? <span title={t('ustamali, NDS siz')}>{pulQisqa(portfelUstamali.boYicha.get(q.obyekt.id))}</span> : <span className="text-text-mute" title={portfelUstamali.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : t('ustamali noma’lum')}>—</span>)
+                    : q.obyekt.jami != null ? pulQisqa(q.obyekt.jami) : <span className="text-text-mute">—</span>}
                     {(q.obyekt.narxsiz ?? 0) > 0 && <div><span className="fz-chip fz-chip--warn">{t('{n} narxsiz qator', { n: q.obyekt.narxsiz ?? 0 })}</span></div>}</td>
                   <td className="fz-c-num"><span className="font-semibold"><SummaKorinish s={q.boyicha.tasdiqlangan} qisqa /></span>
                     {q.boyicha.tasdiqlangan.soni > 0 && <div className="text-[12px] text-text-mute">{t('{n} ta akt', { n: q.boyicha.tasdiqlangan.soni })}</div>}</td>
@@ -270,6 +299,12 @@ export default function F2Reestr() {
               </Fragment>;
             })}
           </tbody>
+          {qatorlar.length > 0 && <tfoot><tr className="fz-row-total">
+            <td /><td colSpan={2}>{t('Jami: {a} obyekt', { a: qatorlar.length })}</td>
+            <td className="fz-c-num"><PortfelSummaJuft obyektlar={korinadiganPortfel} ustamasiz={korinadiganJami.smeta} kichik className="items-end text-right" /></td>
+            <td className="fz-c-num"><SummaKorinish s={korinadiganJami.tasdiq} qisqa /><div className="text-[11px] font-normal text-text-mute">{t('ustamasiz')}</div></td>
+            <td colSpan={5} />
+          </tr></tfoot>}
         </table>
       </div>}
     </div>

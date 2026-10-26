@@ -128,3 +128,20 @@ export function m29GuruhKesim(g: M29Natija['guruhlar'][number]): KatKesim {
 /** Imzoli farq → so'z bilan holat (+ — ortiqcha, − — tejaldi). */
 export const m29FarqHolat = (x: number | null | undefined): 'ortiqcha' | 'tejaldi' | 'mos' | null =>
   x == null ? null : x > EPS ? 'ortiqcha' : x < -EPS ? 'tejaldi' : 'mos';
+
+export type M29Chetlanish = { kalit: string; nom: string; birlik: string | null; norma: number; fakt: number; foiz: number; holat: M29Holat };
+
+/**
+ * Normadan eng ko'p chetlashgan materiallar (fakt/norma %): avval ortiqcha (kattasi birinchi), keyin tejalgan.
+ * Faqat fakt ma'lum va norma > 0 bo'lganlar (NULL ≠ 0). Yangi formula yo'q — `m29Nisbat` foizi.
+ */
+export function m29EngKopChetlanish(n: M29Natija, limit = 8): M29Chetlanish[] {
+  const r: M29Chetlanish[] = [];
+  for (const g of n.guruhlar) for (const m of g.materiallar) {
+    const x = m29MaterialNisbat(m);
+    if (x.foiz == null || m.faktJami == null || (x.holat !== 'ortiqcha' && x.holat !== 'tejaldi')) continue;
+    r.push({ kalit: m.kalit, nom: m.nom, birlik: m.birlik ?? null, norma: m.normaJami, fakt: m.faktJami, foiz: x.foiz, holat: x.holat });
+  }
+  r.sort((a, b) => Math.abs(b.foiz - 100) - Math.abs(a.foiz - 100));
+  return r.slice(0, limit);
+}

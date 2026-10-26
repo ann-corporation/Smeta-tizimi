@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { t } from '../../i18n/til';
+import { OsuvchiI } from '../f2-hujjat/OsuvchiI';
 import {
   HOLAT_MUHR, HOLAT_TARTIB, foizMatn, type FaktMeter, type Holat, type JurnalXulosa, type ObyektUlushi,
 } from '../../lib/fakt-korinish';
@@ -53,7 +54,7 @@ export function BolimMeter({ ulush }: { ulush: number | null }) {
   const tugadi = ulush != null && ulush >= 1 - 1e-9;
   return <span className="fz-meter" style={{ minWidth: 0 }}>
     <span className="fz-meter__t" style={{ height: 6 }}>
-      {ulush != null && <i className="fz-meter__shu" style={{ ...w(Math.min(1, Math.max(0, ulush))), ...(tugadi ? { background: 'var(--ok)' } : null) }} />}
+      {ulush != null && <OsuvchiI ulush={ulush} className="fz-meter__shu" style={tugadi ? { background: 'var(--ok)' } : undefined} />}
     </span>
     <span className="fz-meter__f" style={tugadi ? { color: 'var(--ok)' } : undefined}>{ulush == null ? '—' : foizMatn(ulush * 100)}</span>
   </span>;

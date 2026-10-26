@@ -1,4 +1,6 @@
 import { Fragment, useMemo, type ReactNode } from 'react';
+import { KatDonut, BolimBajarilishPanel } from './F2Diagramma';
+import { OsuvchiI } from './OsuvchiI';
 import { AlertTriangle, CheckCircle2, CircleSlash, FileQuestion, Repeat, Sigma } from 'lucide-react';
 import { FmtN } from '../../lib/format';
 import { t, tilLocale } from '../../i18n/til';
@@ -9,7 +11,7 @@ import type { F2IerQator } from '../../lib/f2-ierarxiya';
 import type { PtoLifecycleStatus } from '../../api/t2-akt-lifecycle';
 import type { F2TasdiqRejimi } from '../../lib/f2-lifecycle-workflow';
 import {
-  bolimJamilari, davrNomi, f2BirlikNarx, f2Miqdor, f2Pul, f2Tekshiruv, hajmXaritasi, katTaqsimot,
+  bolimBajarilish, bolimJamilari, davrNomi, f2BirlikNarx, f2Miqdor, f2Pul, f2Tekshiruv, hajmXaritasi, katTaqsimot,
   KAT_GURUH_NOMI, oldingiTasdiqlanganAktlar, qatorBajarilish, type F2KorQator, type QatorBajarilish,
 } from '../../lib/f2-hujjat-korinish';
 
@@ -55,7 +57,7 @@ function Meter({ b }: { b: QatorBajarilish }) {
   if (b.foiz == null) return <span className="fz-meter__f" title={t('Smeta hajmi noma’lum')}>—</span>;
   return (
     <span className={`fz-meter ${b.oshdi ? 'fz-meter--over' : ''}`} title={t('Oldin olingan: {o} · shu F2: {s} · smeta: {m}', { o: fmt(b.oldin), s: fmt(b.shu), m: fmt(b.smeta) })}>
-      <span className="fz-meter__t"><i className="fz-meter__oldin" style={{ width: `${b.oldinUlush * 100}%` }} /><i className="fz-meter__shu" style={{ width: `${b.shuUlush * 100}%` }} /></span>
+      <span className="fz-meter__t"><OsuvchiI ulush={b.oldinUlush} className="fz-meter__oldin" /><OsuvchiI ulush={b.shuUlush} className="fz-meter__shu" kechikish={0.08} /></span>
       <span className="fz-meter__f">{Math.round(b.foiz)}%</span>
     </span>
   );
@@ -78,6 +80,7 @@ export function F2HujjatKorinish(p: {
   const belgilar = useMemo(() => new Map(p.ierarxiya.map((q) => [q.qator_id, { zamena: q.zamena, qoshimcha: q.qoshimcha }])), [p.ierarxiya]);
   const tek = useMemo(() => f2Tekshiruv({ lines, smetaHajm: p.smetaHajm, oldin, belgilar }), [lines, p.smetaHajm, oldin, belgilar]);
   const katKesim = useMemo(() => katKesimYigish(lines, (l) => l.kat, f2Pul), [lines]);
+  const bolimBaj = useMemo(() => bolimBajarilish(p.ierarxiya, (id) => qatorBajarilish(p.smetaHajm.get(id) ?? null, oldin.get(id) ?? 0, shu.get(id) ?? 0)), [p.ierarxiya, p.smetaHajm, oldin, shu]);
   const qatorlarJami = kat.jami;
   const birinchi = lines[0];
   const farq = akt.hujjat_jami != null ? akt.hujjat_jami - akt.yozilgan_jami : null;
@@ -115,9 +118,7 @@ export function F2HujjatKorinish(p: {
       <div className="fz-doc__panels">
         <section className="fz-panel" aria-label={t('Kategoriyalar')}>
           <div className="fz-panel__h"><span>{t('Kategoriyalar bo‘yicha')}</span><span>{t('ustamasiz')}</span></div>
-          <div className="fz-split" role="img" aria-label={kat.qismlar.map((k) => `${KAT_GURUH_NOMI[k.guruh]} ${Math.round(k.ulush * 100)}%`).join(', ')}>
-            {kat.qismlar.map((k) => <i key={k.guruh} className={`fz-bg-${k.guruh}`} style={{ flexGrow: Math.max(k.ulush, 0.002) }} />)}
-          </div>
+          <KatDonut qismlar={kat.qismlar} jami={kat.jami} />
           <div className="fz-legend">
             {kat.qismlar.map((k) => (<Fragment key={k.guruh}>
               <i className={`fz-bg-${k.guruh}`} style={{ width: 10, height: 10, borderRadius: 2, display: 'block' }} />
@@ -142,6 +143,8 @@ export function F2HujjatKorinish(p: {
           </div>
         </section>
 
+        <BolimBajarilishPanel bolimlar={bolimBaj} />
+
         <section className="fz-panel" aria-label={t('Tekshiruv')}>
           <div className="fz-panel__h"><span>{t('Tekshiruv')}</span>{tozami ? <span className="fz-chip fz-chip--accent">{t('toza')}</span> : null}</div>
           <div className="fz-check">
@@ -165,7 +168,7 @@ export function F2HujjatKorinish(p: {
           <thead><tr>
             <th>{t('Bo‘lim / ish / resurs')}</th><th>{t('Birlik')}</th>
             <th className="fz-c-num">{t('Smeta')}</th><th className="fz-c-num">{t('Oldin olingan')}</th><th className="fz-c-num">{t('Shu F2')}</th>
-            <th>{t('Bajarilish')}</th><th className="fz-c-num">{t('Narx')}</th><th className="fz-c-num">{t('Summa')}</th>
+            <th>{t('Bajarilish')}</th><th className="fz-c-num">{t('Narx')}</th><th className="fz-c-num">{t('Summa')} <small className="font-normal text-text-mute">({t('ustamasiz')})</small></th>
           </tr></thead>
           <tbody>
             {p.ierarxiya.map((q) => {
@@ -201,7 +204,10 @@ export function F2HujjatKorinish(p: {
               ));
             })}
             {lines.length > 0 && (
-              <tr className="fz-row-total"><td colSpan={7}>{t('Jami (ustamasiz, NDS siz)')}</td><td className="fz-c-num"><FmtN val={qatorlarJami} /></td></tr>
+              <tr className="fz-row-total">
+                <td colSpan={7}>{t('Jami: ustamali (katta) va ustamasiz (kichik), NDS siz')}</td>
+                <td className="fz-c-num"><SummaJuft obyektId={p.obyektId} ustamasiz={qatorlarJami} katKesim={katKesim} className="items-end text-right" /></td>
+              </tr>
             )}
           </tbody>
         </table>
