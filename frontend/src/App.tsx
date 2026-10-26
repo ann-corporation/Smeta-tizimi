@@ -64,6 +64,7 @@ const Topshiriqlar = lazy(() => import('./admin/sahifalar/Topshiriqlar'));
 const Mutaxassis = lazy(() => import('./admin/sahifalar/Mutaxassis'));
 const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const AkkauntMarkazi = lazy(() => import('./admin/sahifalar/AkkauntMarkazi'));
+const SozlamalarMarkazi = lazy(() => import('./admin/sahifalar/SozlamalarMarkazi'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
 const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
@@ -186,7 +187,7 @@ export default function App() {
           <Route path="narxlar" element={<Narxlar />} />
           <Route path="ierarxiya" element={<Navigate to="/admin/holat" replace />} />
           <Route path="monitoring" element={<Navigate to="/admin/system-control" replace />} />
-          <Route path="sozlamalar" element={<Navigate to="/admin/tizim-sozlama" replace />} />
+          <Route path="sozlamalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><SozlamalarMarkazi /></Suspense>} />
           {/* ⚡ 2026-08-16: eski GAS paneldagi «Файл боғлаш» tabi */}
           <Route path="fayl-boglash" element={<FaylBoglash />} />
           <Route path="hujjatlar" element={<Navigate to="/admin/documents" replace />} />

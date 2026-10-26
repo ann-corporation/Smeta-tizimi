@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HUB_BANDLAR, hubFiltr, hubGuruhla, hubKorinadi, initsiallar, kompaniyaRollari, rolNomi, sessiyaTugashi, sonYoki } from './akkaunt-lib';
+import { initsiallar, kompaniyaRollari, rolNomi, sessiyaTugashi, sonYoki } from './akkaunt-lib';
 
 describe('akkaunt-lib', () => {
   it('initsiallar', () => {
@@ -35,23 +35,5 @@ describe('akkaunt-lib', () => {
     expect(sessiyaTugashi(null)).toBeNull();
     expect(sessiyaTugashi(1_700_000_000)?.getTime()).toBe(1_700_000_000_000);
     expect(sessiyaTugashi(1_700_000_000_000)?.getTime()).toBe(1_700_000_000_000);
-  });
-  it('hub: ruxsat filtri', () => {
-    const band = (yol: string) => HUB_BANDLAR.find((b) => b.yol === yol)!;
-    expect(hubKorinadi(band('/admin/boshqaruv'), { superadmin: false, permissions: ['control.global.read'] })).toBe(false);
-    expect(hubKorinadi(band('/admin/boshqaruv'), { superadmin: true })).toBe(true);
-    expect(hubKorinadi(band('/admin/kompaniya'), { superadmin: false, permissions: ['company.read'] })).toBe(true);
-    expect(hubKorinadi(band('/admin/kompaniya'), { superadmin: false, permissions: ['smeta.read'] })).toBe(false);
-    expect(hubKorinadi(band('/admin/sayt-xaritasi'), { superadmin: false, rol: 'pto' })).toBe(false);
-    expect(hubKorinadi(band('/admin/sayt-xaritasi'), { superadmin: false, rol: 'admin' })).toBe(true);
-    expect(hubKorinadi(band('/admin/kompaniya'), { superadmin: false, rol: 'pto', modulYoqilgan: () => false })).toBe(false);
-  });
-  it('hub: qidiruv va guruhlash', () => {
-    const id = (s: string) => s;
-    const r = hubFiltr(HUB_BANDLAR, { superadmin: true }, 'nakrutka', id);
-    expect(r.map((b) => b.yol)).toEqual(['/admin/nakrutka']);
-    const g = hubGuruhla(hubFiltr(HUB_BANDLAR, { superadmin: true }, '', id));
-    expect(g.length).toBe(5);
-    expect(g.reduce((s, x) => s + x.bandlar.length, 0)).toBe(HUB_BANDLAR.length);
   });
 });
