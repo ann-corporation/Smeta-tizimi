@@ -72,6 +72,9 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_fakt_yoz_v2', 't2_fakt_belgila', 't2_fakt_belgila_v2',
                       /* 2026-10-24: «Bajarilmadi» qoplamasi — smeta qatoriga tegmaydi; RPC ichida a'zolik + fakt.write. */
                       't2_bajarilmadi_belgila_v1', 't2_bajarilmadi_bekor_v1',
+                      /* 2026-10-26 PTO-CORE-001: smeta versiyasi / farq / da'vo — qoplama; RPC ichida a'zolik + smeta.write. */
+                      't2_smeta_versiya_yarat_v1', 't2_smeta_versiya_pozitsiya_yoz_v1', 't2_smeta_versiya_moslik_yoz_v1',
+                      't2_smeta_versiya_qaror_v1', 't2_smeta_versiya_bekor_v1',
                       /* 2026-09-06, T2 daily native F2 import: resumable
                          import job and durable draft writes are explicit
                          named RPCs, so they must remain in the gateway

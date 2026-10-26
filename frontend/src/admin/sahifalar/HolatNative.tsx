@@ -34,6 +34,7 @@ import NarxNazoratNative from './NarxNazoratNative';
 import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPanel';
 import { BajarilmadiPanel } from './BajarilmadiPanel';
 import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
+import { SmetaVersiyaFarq } from './SmetaVersiyaFarq';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -274,7 +275,7 @@ export function HolatNative() {
   const kutilayotgan = istisno.royxat.filter((o) => o.holat === 'qoralama').length;
 
   const TABLAR = [
-    ['smeta', 'Smeta va bajarilish'], ['resurs', 'Resurslar'], ['narx', 'Narxlar nazorati'], ['yuklash', 'Smeta yuklash'], ['shartnoma', 'Shartnoma doirasi'],
+    ['smeta', 'Smeta va bajarilish'], ['resurs', 'Resurslar'], ['narx', 'Narxlar nazorati'], ['yuklash', 'Smeta yuklash'], ['versiya', 'Versiyalar va farq'], ['shartnoma', 'Shartnoma doirasi'],
   ] as const;
   const eksportQator = (nom: string, tavsif: string, tugma: string, korishNomi: string, onExcel: () => void, onKorish: () => void, sarlavhaTitle: string, qoshimcha?: ReactNode) => (
     <div className="grid items-center gap-x-4 gap-y-1 border-b border-border py-2.5 last:border-b-0" style={{ gridTemplateColumns: 'minmax(0,1fr) auto' }}>
@@ -404,6 +405,13 @@ export function HolatNative() {
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Smeta XLSX yuklash')}</h3></div>
               {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
             </section>
+            {/* PTO-CORE-001: tashqi smeta versiyasi (ekspertizagacha …) → farq → da'vo; joriy smeta o'zgarmaydi. */}
+            {activeTab === 'versiya' && joriy?.id != null && (
+              <section className="fz-card">
+                <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Versiyalar va farq')}</h3></div>
+                <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={selected.nom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} /></div>
+              </section>
+            )}
             <section hidden={activeTab !== 'resurs'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Resurs vedomosti')}</h3></div>
               {activeTab === 'resurs' && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
