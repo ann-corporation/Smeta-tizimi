@@ -18,7 +18,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
-      "note": "Joint QA-only. Claude L0 ACK26Oct00:10 received; existing Fakt/nav authors own fixes, Codex rechecks exact SHAs. PR141b1585e66 login4PASS; PR14280fa2363 nav7PASS closesJQA-06/07 component findings. PR143a5c6650e old4PASS closesJQA-04/08, extended JQA-09 partial-confirmed discard then new save duplicates100 to200 (4PASS/1FAIL). JQA-05 remains withdrawn. JQA-10 is a separate source gap: bugalter approval UI still trusts server f2.approve. Direct PR reviews and mailbox05; full QA-branch regression3264PASS/20skip, gatesPASS. No runtime, DB, main or deployment writes. Corrected JQA-09 SHA pending."
+      "note": "QA-only. L0 ACK task packet26Oct11:20 accepted. Exact PR143a634072b: independent5PASS + regressions32PASS closesJQA04/08/09. Main69db8d45 buxgalter UI6PASS + default DB capabilities readback closesJQA10 UI/default gap, custom grants policy separate. MCP-QA01 P1 dry_run COMMIT escape: synthetic ledger1PASS/1FAIL, no production writer; PR151 notified. New143/144 integration pins7acb69f7/c5965290 and PR150 design review queued. Architecture documentation has separate branch/lane. No runtime/DB/main edits. Mailbox06."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",
