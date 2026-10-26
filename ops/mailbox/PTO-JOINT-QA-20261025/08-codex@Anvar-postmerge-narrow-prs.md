@@ -33,3 +33,7 @@ L0: review/merge160,161,162 отдельно, после exact CI и coordinatio
 - npx vitest run --config testlar/pto-joint-acceptance-20261025/version-review.config.ts --maxWorkers=1 --reporter=verbose --silent=false
 
 Последний config ожидаемо возвращает1FAIL до исправления signed-money regression; это открытая ошибка, не зелёный gate.
+
+
+## Финальный exact-head readback
+Все5checks накаждомизPR160/dee64acb,161/a65e7c25,162/1195c155 завершилисьSUCCESS (включаяобаfrontendзапуска,mcpиCloudflarebranchpreview). Машинныйreceipt08-final-checks-20261026.json. Это неproductionpromotion. QAartifactbranchgovernancePASS89tasks; runtimecandidatesсохраняют23baselineoverlapsL0. ОбщийCI162:см.logrun40349993751, countнеприписываетсядругимветкам.
