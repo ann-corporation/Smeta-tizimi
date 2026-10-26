@@ -7,6 +7,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { PtoStatusChip } from '../../umumiy/ui/PTOUi';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
+import { rolF2YozishYopiq } from '../../lib/nav/menyuRolYopiq';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import {
   sbT2AktReestrOl, sbT2ObyektlarOlKomp, sbT2DaraxtOl,
@@ -61,8 +62,10 @@ function xavfsizXato() {
  */
 export function F2TarixNative() {
   const { joriy, superadmin } = useKompaniya();
-  const mayApprove=superadmin||!!joriy?.permissions?.includes('f2.approve');
-  const mayCancel=superadmin||!!joriy?.permissions?.includes('f2.cancel');
+  /* Egasi (JQA-10): buxgalter F2 ni faqat o'qiydi — yozish tugmalari unga umuman ko'rinmaydi (lib/nav/menyuRolYopiq). */
+  const f2YozishYopiq=!superadmin&&rolF2YozishYopiq(joriy?.rol);
+  const mayApprove=!f2YozishYopiq&&(superadmin||!!joriy?.permissions?.includes('f2.approve'));
+  const mayCancel=!f2YozishYopiq&&(superadmin||!!joriy?.permissions?.includes('f2.cancel'));
   const workspace = usePTOWorkspace();
   /* Tasdiqlash rejimi (ADR-2): shaxsiy — «Yakunlash (shaxsiy)»; korporativ — har bosqich alohida, SoD bazada. */
   const [rejim, setRejim] = useState<F2TasdiqRejimi>('shaxsiy');
@@ -294,9 +297,9 @@ export function F2TarixNative() {
                       <td className="p-3"><button className="text-left" onClick={() => setSelectedAktId(akt.id)}><div className="font-medium text-text">{akt.oy?.slice(0, 7) || 'Davr noma’lum'}</div><div className="text-text-dim">{akt.raqam || 'F2 hujjati'}</div></button></td>
                       <td><PtoStatusChip label={t(holatYorligi(akt))} tone={akt.holat === 'tasdiqlangan' ? 'success' : akt.holat === 'qoralama' ? 'warning' : 'unknown'} /><div className="mt-1 text-xs text-text-mute">{reestrMatni[akt.reestr_holat] || 'Tekshirilmagan'}</div></td>
                       <td className="text-right tabular-nums"><FmtN val={akt.hujjat_jami} /><div className="text-xs text-text-mute">{akt.qator_soni ?? '—'} qator</div></td>
-                      <td className="p-3 text-right">{akt.holat === 'qoralama' && (akt.lifecycle_status ?? 'draft') === 'draft' && importSet !== null && (importSet === 'xato' || importSet.has(akt.id)
+                      <td className="p-3 text-right">{!f2YozishYopiq && akt.holat === 'qoralama' && (akt.lifecycle_status ?? 'draft') === 'draft' && importSet !== null && (importSet === 'xato' || importSet.has(akt.id)
                         ? <a className="mr-2 underline text-accent" href={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Import oynasida qayta ochib, xato joylarini tuzatish')}>✎ {t('Tahrirlash')}</a>
-                        : <><a className="mr-2 underline text-accent" href={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${akt.id}`} title={t('F2 tayyorlashda ochib, hajm va narxni yangilash')}>✎ {t('Tizimda tahrirlash')}</a><a className="mr-2 underline text-accent" href={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Yangi (tuzatilgan) Excel faylni shu qoralamaga yuklash')}>⬆ {t('Fayldan yangilash')}</a></>)}{akt.holat === 'qoralama' && tugmaMatni(akt) && <button title={tugmaRuxsat(akt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!tugmaRuxsat(akt)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : t(tugmaMatni(akt) ?? '')}</button>}</td>
+                        : <><a className="mr-2 underline text-accent" href={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${akt.id}`} title={t('F2 tayyorlashda ochib, hajm va narxni yangilash')}>✎ {t('Tizimda tahrirlash')}</a><a className="mr-2 underline text-accent" href={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Yangi (tuzatilgan) Excel faylni shu qoralamaga yuklash')}>⬆ {t('Fayldan yangilash')}</a></>)}{!f2YozishYopiq && akt.holat === 'qoralama' && tugmaMatni(akt) && <button title={tugmaRuxsat(akt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(akt)} disabled={savingId != null||!tugmaRuxsat(akt)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"><CheckCircle2 size={13} />{savingId === akt.id ? '…' : t(tugmaMatni(akt) ?? '')}</button>}</td>
                     </tr>;
                   })}
                 </tbody>
@@ -327,7 +330,7 @@ export function F2TarixNative() {
                   });
                 })}</tbody></table>
                 {selectedLines.length === 0 && <div className="p-5 text-[13px] text-text-dim">Bu hujjatda qator tafsiloti yo‘q. Tasdiqlashdan oldin manba va moslashtirishni tekshiring.</div>}
-                {selectedAkt.holat === 'qoralama' && <>
+                {selectedAkt.holat === 'qoralama' && !f2YozishYopiq && <>
                   <p className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] text-amber-100"><ShieldAlert size={15} className="mt-0.5 shrink-0" />Qoralama hali LRVning tasdiqlangan F2 tarixiga kirmaydi. Tasdiqlash amaldagi ma’lumot va hajm chegaralarini qayta tekshiradi.</p>
                   <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-border/60 p-3">
                     <label className="min-w-[260px] flex-1 text-xs text-text-dim">Rad etish yoki bekor qilish sababi
