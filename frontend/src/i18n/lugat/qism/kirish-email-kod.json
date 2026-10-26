@@ -1,0 +1,19 @@
+{
+  "Email kod bilan kirish": { "ru": "Вход по коду из письма", "en": "Sign in with an email code" },
+  "Email manzilini to‘g‘ri kiriting.": { "ru": "Введите корректный адрес почты.", "en": "Enter a valid email address." },
+  "Emailga kelgan 6 xonali kod": { "ru": "6-значный код из письма", "en": "6-digit code from the email" },
+  "Emailni o‘zgartirish": { "ru": "Изменить почту", "en": "Change email" },
+  "Ismingiz (yangi hisob ochilsa)": { "ru": "Ваше имя (если создаётся новый аккаунт)", "en": "Your name (if a new account is created)" },
+  "Kirib bo‘lmadi.": { "ru": "Не удалось войти.", "en": "Could not sign in." },
+  "Kod yuborib bo‘lmadi.": { "ru": "Не удалось отправить код.", "en": "Could not send the code." },
+  "Kod yuborish": { "ru": "Отправить код", "en": "Send code" },
+  "Kod {email} manziliga yuborildi. «Spam» papkasini ham tekshiring.": { "ru": "Код отправлен на {email}. Проверьте также папку «Спам».", "en": "The code was sent to {email}. Check your spam folder too." },
+  "Qayta yuborish ({s} s)": { "ru": "Отправить снова ({s} с)", "en": "Resend ({s} s)" },
+  "Qolgan urinish: {n}": { "ru": "Осталось попыток: {n}", "en": "Attempts left: {n}" },
+  "Server javobi noto‘g‘ri": { "ru": "Некорректный ответ сервера", "en": "Invalid server response" },
+  "Tizimga ulanish amalga oshmadi. Qayta urinib ko‘ring.": { "ru": "Не удалось подключиться к системе. Попробуйте ещё раз.", "en": "Could not connect. Please try again." },
+  "1 daqiqada hisob oching: emailingizga kod keladi — parol o‘ylab topish shart emas. Bepul tokenlar bilan smeta import, F2 va hujjatlarni o‘zingiz sinab ko‘ring.": { "ru": "Откройте аккаунт за минуту: на почту придёт код — пароль придумывать не нужно. Попробуйте импорт смет, Ф2 и документы на бесплатных токенах.", "en": "Open an account in a minute: a code arrives by email — no password to invent. Try estimate import, F2 and documents with free tokens." },
+  "Email yoki Google orqali — parol shart emas. Hisobingiz bo‘lmasa, avtomatik ochiladi.": { "ru": "Через почту или Google — пароль не нужен. Если аккаунта нет, он откроется автоматически.", "en": "Via email or Google — no password needed. If you don't have an account, one is created automatically." },
+  "Login va parol bilan kirish": { "ru": "Войти по логину и паролю", "en": "Sign in with login and password" },
+  "Login yoki email": { "ru": "Логин или почта", "en": "Login or email" }
+}

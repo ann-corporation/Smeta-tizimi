@@ -2947,7 +2947,9 @@
         "frontend/src/components/public-entry/",
         "frontend/src/components/akkaunt/",
         "frontend/src/api/profil.ts",
-        "supabase/migrations/20261110200000_t2_profil_xavfsizlik_v1*"
+        "supabase/migrations/20261110200000_t2_profil_xavfsizlik_v1*",
+        "frontend/functions/api/kirish-email.ts",
+        "supabase/migrations/20261111300000_t2_email_kod_kirish_v1*"
       ],
       "depends_on": [],
       "must_read": [
@@ -2955,7 +2957,7 @@
         "docs/governance/CONSTITUTION.md"
       ],
       "production_write_allowed": true,
-      "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing."
+      "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing. | 2026-10-26 (2): email kod bilan kirish/ro'yxat (/api/kirish-email); migratsiyalar 20261105333000 (ilgari qo'llanmagan edi) va 20261111300000 jonli bazaga qo'llandi; login sahifasidan Admin/Rahbar tezkor tugmalari olib tashlandi. Email yuborish uchun Cloudflare Pages env: RESEND_API_KEY, EMAIL_FROM (egasi sozlaydi)."
     }
   ]
 }

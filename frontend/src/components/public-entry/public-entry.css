@@ -490,10 +490,6 @@
 .entry-auth-submit:disabled { opacity: .5; cursor: not-allowed; }
 .entry-auth-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 14px; color: var(--text-mute); font: 600 10.5px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .14em; }
 .entry-auth-divider::before, .entry-auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.entry-auth-quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.entry-auth-quick button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); color: var(--text-dim); font-size: 13px; font-weight: 500; }
-.entry-auth-quick button:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
-.entry-auth-quick button:disabled { opacity: .5; }
 .entry-auth-foot { margin: 20px 0 0; text-align: center; font-size: 12px; color: var(--text-mute); }
 
 /* ---------- Contact, footer, help, mobile CTA ---------- */
@@ -607,8 +603,15 @@
   .public-entry .entry-help-toggle { bottom: max(16px, env(safe-area-inset-bottom)); right: 78px; width: 48px; height: 48px; padding: 0; justify-content: center; }
   .entry-help-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .public-entry .entry-help { bottom: 84px; }
-  .entry-auth-quick { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .public-entry *, .public-entry *::before, .public-entry *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Email kod — asosiy kirish usuli; login-parol ikkinchi darajali (egasi 2026-10-26). */
+.entry-auth-alt { display: inline-flex; align-items: center; gap: 7px; margin: 14px auto 0; padding: 6px 10px; border: 0; background: none;
+  color: var(--text-dim); font-size: 13px; font-weight: 500; border-radius: var(--radius-md); cursor: pointer; width: 100%; justify-content: center; }
+.entry-auth-alt:hover { color: var(--text); background: var(--surface-2); }
+.entry-auth-alt[aria-expanded="true"] { color: var(--accent-text); }
+#entry-parol-forma:not([hidden]) { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.entry-auth-resend svg { vertical-align: -2px; }
