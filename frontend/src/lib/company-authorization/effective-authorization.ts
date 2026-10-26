@@ -103,7 +103,8 @@ for (const role of MEMBERSHIP_ROLES) {
   if (['superadmin','admin','boss'].includes(role)) continue;
   const p=ROLE_PERMISSIONS[role];
   if(p.includes('document.read')) p.push('f2.read','smeta.read','fakt.read','narx.read');
-  if(['pto','prorab','bugalter'].includes(role)) p.push('f2.import','f2.prepare','f2.approve','f2.cancel','f2.correct');
+  // Egasi (JQA-10, 20261110100000): buxgalter F2 ni faqat o'qiydi — yozish capability lari faqat pto/prorab da.
+  if(['pto','prorab'].includes(role)) p.push('f2.import','f2.prepare','f2.approve','f2.cancel','f2.correct');
   if(p.includes('object.write')) p.push('smeta.write','fakt.write','narx.write');
 }
 

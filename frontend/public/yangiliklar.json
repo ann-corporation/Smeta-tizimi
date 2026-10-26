@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 15,
+      "id": 18,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: ish ichidagi materiallar ham ergashadi",
       "bandlar": [
@@ -12,7 +12,7 @@
       ]
     },
     {
-      "id": 14,
+      "id": 17,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: «Qamrov %» — bo'limni bitta foiz bilan tiklash",
       "bandlar": [
@@ -22,6 +22,15 @@
         "Enter yoki Ctrl+Enter — hammasi bitta fakt hujjatiga yoziladi. Xabardagi «Bekor qilish» shu yozuvni butunlay qaytaradi. Asl smeta o'zgarmaydi.",
         "Internet uzilib javob kelmasa — oyna «oldingi urinish noma'lum» deb ko'rsatadi: «qayta yuborish» xuddi shu amalni yuboradi (ikki marta yozilmaydi), foizni o'zgartirish yoki yangi urinish faqat shu hal bo'lgach. Oynani yopib qayta ochsangiz ham, sahifani yangilasangiz ham esda qoladi.",
         "Bir qismi yozilib, qolgani rad etilsa: «Urinishni tashlash» faqat yozilmagan qismni tashlaydi — yozilgan hujjatlar ro'yxati va «bekor qilish» qoladi. Yangi qamrov jadval yangilangach, yangi qoldiqdan hisoblanadi (yozilgani ikki marta yozilmaydi)."
+      ]
+    },
+    {
+      "id": 16,
+      "sana": "2026-10-26",
+      "sarlavha": "Buxgalter F2 ni faqat ko'radi",
+      "bandlar": [
+        "Buxgalter F2 tarixi, reestr va Nakopitelniyni avvalgidek ko'radi va yuklab oladi.",
+        "F2 import, tayyorlash, tasdiqlash, rad etish, bekor qilish va tuzatish buxgalterga endi ko'rinmaydi — bu amallarni PTO yoki prorab bajaradi. Server ham shu qoidani tekshiradi."
       ]
     },
     {

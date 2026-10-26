@@ -1,0 +1,35 @@
+{
+  "name": "smeta-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Smeta tizimi (T2) uchun MCP server: Postgres'ga to'g'ridan-to'g'ri o'qish/yozish, avtomatik snapshot, audit.",
+  "type": "module",
+  "bin": {
+    "smeta-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "node dist/index.js --smoke",
+    "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "fflate": "^0.8.3",
+    "pg": "8.23.1",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/pg": "^8.15.6",
+    "@types/react": "^19.3.0",
+    "esbuild": "0.28.2",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.0"
+  }
+}
