@@ -66,13 +66,36 @@ export function kontekstSorovlari(o: TxOpsiya): Array<{ sql: string; params: unk
   return out;
 }
 
+/**
+ * Kirish SQL'ini BITTA buyruq sifatida bajaradi (MCP-QA-01): haqiqiy pg ulanishida extended protocol — Postgres
+ * ko'p buyruqli matnni o'zi rad etadi («cannot insert multiple commands into a prepared statement»), shuning uchun
+ * `…; COMMIT; UPDATE …` bilan tranzaksiyadan chiqib bo'lmaydi. Tranzaksiya buyrug'i (COMMIT/BEGIN/…) ham rad etiladi.
+ */
+export async function bittaSorov<T = Record<string, unknown>>(m: Mijoz, sql: string, params: unknown[] | undefined, tbuyruq: (s: string) => string | null): Promise<SorovNatija<T>> {
+  const t = tbuyruq(sql);
+  if (t) throw new Error(`Tranzaksiya buyrug'i (${t.toUpperCase()}) ruxsat etilmaydi: MCP har amalni o'zi ochgan tranzaksiyada bajaradi (dry_run/READ ONLY kafolati).`);
+  if (m instanceof pg.Client) {
+    return (m as unknown as { query: (c: unknown) => Promise<SorovNatija<T>> }).query({ text: sql, values: params ?? [], queryMode: 'extended' });
+  }
+  return m.query<T>(sql, params ?? []);
+}
+
+/** Tranzaksiya belgisi: now() tranzaksiya boshlangan vaqt + backend pid — chegara buzilsa (COMMIT/BEGIN) o'zgaradi. */
+const BELGI_SQL = "select now()::text || ':' || pg_backend_pid()::text as b";
+
 /** fn ni bitta tranzaksiyada bajaradi: COMMIT (yoki rollback=true bo'lsa ROLLBACK); xatoda ROLLBACK. */
 export async function tranzaksiya<T>(hovuz: Hovuz, o: TxOpsiya, fn: (m: Mijoz) => Promise<T>): Promise<T> {
   const m = await hovuz.connect();
   let ochiq = false;
   try {
     for (const s of kontekstSorovlari(o)) { await m.query(s.sql, s.params); ochiq = true; }
+    const oldin = (await m.query<{ b: string }>(BELGI_SQL)).rows?.[0]?.b;
     const natija = await fn(m);
+    const keyin = (await m.query<{ b: string }>(BELGI_SQL)).rows?.[0]?.b;
+    if (oldin != null && keyin != null && oldin !== keyin) {
+      throw new Error('Tranzaksiya chegarasi buzildi: so\'rov ichida COMMIT/ROLLBACK/BEGIN bajarilgan — ba\'zi o\'zgarishlar allaqachon '
+        + 'yozilgan bo\'lishi mumkin (snapshot/audit/dry_run kafolati amal qilmaydi). Snapshot ro\'yxatini tekshiring.');
+    }
     await m.query(o.rollback || o.readOnly ? 'ROLLBACK' : 'COMMIT');
     ochiq = false;
     return natija;
