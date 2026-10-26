@@ -11,7 +11,7 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../../lib/ustamali-summa';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
-import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
+import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, obyektF2Reja, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
 import { FaktQamrov } from './FaktQamrov';
 import { faktQamrovBekor } from '../../lib/fakt-qamrov';
@@ -50,7 +50,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   /** Boshlang'ich filtr «fakti yo'q, lekin F2 olingan» (pereraschet ekranidan havola: `?filtr=faktsiz_f2`). */
   boshFaktsizF2?: boolean;
   /** Yig'indi paneli «F2 tayyorlash» tugmasi: sahifa avval saqlaydi, so'ng F2 tayyorlashga o'tadi. */
-  f2Otish?: () => void;
+  f2Otish?: (oy: string) => void;
   /** Tashqi sahifa (F2 tayyorlashga o'tish) saqlanmagan kiritmalarni saqlab, natijasini kutishi uchun. */
   saqlashRef?: { current: SaqlashFn | null };
   rows: readonly T2Qator[]; states: readonly JurnalHolat[];
@@ -151,7 +151,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     void zamenaBoglanishOl(obyektId).then((z) => { if (tirik) setZb(z); }).catch(() => undefined);
     return () => { tirik = false; };
   }, [obyektId, zamenaBor, rows, states]);
-  const { bolimlar, bolimIshlari } = useMemo(() => jurnalQur(rows, states, zb, bajHajm), [rows, states, zb, bajHajm]);
+  const { bolimlar, bolimIshlari, ildizIshlari } = useMemo(() => jurnalQur(rows, states, zb, bajHajm), [rows, states, zb, bajHajm]);
   const summalar = useMemo(() => bolimSummalari(rows, states), [rows, states]);
   // Ishdan KEYIN turgan alohida materiallar (ota = bo'lim) — ish ulushida fakt TAKLIFI (avtomatik yozilmaydi).
   // Ish ichidagi mat/ob bolalari va ishdan keyingi alohida mat/ob — ish ulushida TAKLIF (ergashish qoidasi; avtomatik yozilmaydi).
@@ -182,11 +182,17 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     return { fakt, smeta, faktSumma: asos * q.ulush, smetaSumma: asos };
   };
   const bolimBolalari = useMemo(() => { const m = new Map<number, number[]>(); for (const b of bolimlar) if (b.otaId != null) m.set(b.otaId, [...(m.get(b.otaId) ?? []), b.id]); return m; }, [bolimlar]);
-  const tenglashOch = (sarlavha: string, ishlar: JurnalIsh[]) => setTenglash({ sarlavha, reja: faktF2Reja(ishlar, holatMap) });
+  const kiritmaOgoh = () => { if (ozgarishSoni) toast(t('Saqlanmagan kiritmalar bor — qamrov serverdagi faktdan hisoblanadi; avval saqlang yoki tozalang.'), 'warn'); };
+  const tenglashOch = (sarlavha: string, ishlar: JurnalIsh[]) => { kiritmaOgoh(); setTenglash({ sarlavha, reja: faktF2Reja(ishlar, holatMap) }); };
+  /** «Fakt = F2» BUTUN OBYEKT bo'yicha: har bo'limning o'z ishlari (har ish bir marta) + bo'limsiz ishlar; oldindan ko'rishda bo'lim jamisi. */
+  const tenglashObyekt = () => {
+    kiritmaOgoh();
+    const guruhlar = [...bolimlar.map((b) => ({ nom: b.nom, ishlar: bolimIshlari.get(b.id) ?? [] })), { nom: t('Bo‘limsiz'), ishlar: ildizIshlari }];
+    setTenglash({ sarlavha: t('Butun obyekt (barcha bo‘limlar)'), reja: obyektF2Reja(guruhlar, holatMap) });
+  };
 
   // ── «Qamrov %» (Tiklash rejimi): bo'lim (avlodlari bilan) yoki ish → foiz × ochiq qoldiq; oldindan ko'rish + bitta tranzaksiya + bekor qilish. ──
   const [qamrov, setQamrov] = useState<{ sarlavha: string; ishlar: JurnalIsh[] } | null>(null);
-  const kiritmaOgoh = () => { if (ozgarishSoni) toast(t('Saqlanmagan kiritmalar bor — qamrov serverdagi faktdan hisoblanadi; avval saqlang yoki tozalang.'), 'warn'); };
   const qamrovBolim = (b: JurnalBolim) => { kiritmaOgoh(); setQamrov({ sarlavha: b.nom, ishlar: bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true) }); };
   const qamrovIsh = (ish: JurnalIsh) => { kiritmaOgoh(); setQamrov({ sarlavha: [ish.kod, ish.nom].filter(Boolean).join(' '), ishlar: [ish] }); };
   const narxOl = useCallback((id: number): number | null => {
@@ -293,6 +299,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     { id: 'fakt.saqla', keys: 'ctrl+s', nom: t('Saqlash'), inInput: true, run: () => { void saqla(); } },
     { id: 'fakt.qidiruv', keys: '/', nom: t('Qidirish'), run: () => { qidiruvRef.current?.focus(); } },
     { id: 'fakt.f2', keys: 'f', nom: t('Fakt = F2 (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b) return false; tenglashOch(b.nom, bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true)); } },
+    { id: 'fakt.f2.obyekt', keys: 'shift+f', nom: t('Fakt = F2 (butun obyekt)'), run: () => { if (!bolimlar.length && !ildizIshlari.length) return false; tenglashObyekt(); } },
     { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; setKiritmalar({}); } },
     { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
   ], !modal && !tenglash && !bajModal && !narxModal && !qamrov);
@@ -520,6 +527,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         {tanlanganBolim && <button type="button" onClick={() => tenglashOch(tanlanganBolim.nom, bolimIshlariYigish(tanlanganBolim.id, bolimIshlari, bolimBolalari, true))}
           title={sarlavhaBilan(t('Shu bo‘lim (ichki bo‘limlari bilan): F2 hajmi fakt dan ko‘p ishlarga farqni yozish'), 'f')} aria-label={t('Fakt = F2: bo‘lim')}
           className="fz-btn">{t('Fakt = F2')} <kbd className="fz-kbd">F</kbd></button>}
+        {(bolimlar.length > 0 || ildizIshlari.length > 0) && <button type="button" onClick={tenglashObyekt} data-testid="f2-tenglash-obyekt"
+          title={sarlavhaBilan(t('Butun obyekt (barcha bo‘limlar): F2 hajmi fakt dan ko‘p ishlarga farqni yozish — oldindan ko‘rish, istisno va bekor qilish bilan'), 'shift+f')} aria-label={t('Fakt = F2: butun obyekt')}
+          className="fz-btn">{t('Fakt = F2: obyekt')} <kbd className="fz-kbd">{'Shift+F'}</kbd></button>}
         {tanlanganBolim && !qidiruv && <button type="button" onClick={() => qamrovBolim(tanlanganBolim)} data-testid="qamrov-tanlangan"
           title={sarlavhaBilan(t('Tiklash rejimi: shu bo‘lim (ichki bo‘limlari bilan) barcha ishlariga bitta foiz — fakt = foiz × ochiq qoldiq; oldindan ko‘rish va bekor qilish bilan'), '%')} aria-label={t('Qamrov %: bo‘lim')}
           className="fz-btn">{t('Qamrov %')} <kbd className="fz-kbd">%</kbd></button>}
@@ -624,7 +634,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         malumot={{ bolimlar, bolimIshlari, holatMap, summalar, bajHajm, materialTakliflari: (id) => takliflarSoni([id]), kiritmaSoni: ozgarishSoni }}
         amallar={{ kirit: (id, k) => kirit(id, k), materiallarniOl, korsat: (q) => setQidiruv(q.kod || q.nom), zamena: (q, n) => zamenaOch(q, n), bajarilmaydi: (q, h) => bajOch(q, h) }} />
 
-      {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} obyektId={obyektId} sana={sana}
+      {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana} holatMap={holatMap}
         onYop={() => setTenglash(null)} onBajarildi={() => holatniYangila()}
         aktBekor={faktF2Bekor} />}
 
