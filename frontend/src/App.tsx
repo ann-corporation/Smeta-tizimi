@@ -138,12 +138,6 @@ export default function App() {
               <BossDashboard />
             </Suspense>
           } />
-          {/* Kundalik obyekt ro'yxati endi faqat t2_obyekt kanonik IDlari
-              bilan ishlaydi. Eski Drive/GAS kartalari arxiv yo'liga chiqmaydi. */}
-          <Route path="obyektlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TestObyektlar /></Suspense>} />
-          {/* T2-PTO-OWNER-CRITICAL-CLOSURE P0-1: loyiha yaratish/tanlash
-              production yo'lda -- avval faqat /admin/test/loyiha ostida edi. */}
-          <Route path="loyiha" element={<Suspense fallback={<SahifaYuklanmoqda />}><TestLoyiha /></Suspense>} />
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
           <Route path="fakt" element={<FaktNative />} />
@@ -155,13 +149,42 @@ export default function App() {
             <Route path="f2-tarix" element={<F2TarixNative />} />
             <Route path="f2-reestr" element={<Suspense fallback={<SahifaYuklanmoqda />}><F2Reestr /></Suspense>} />
             <Route path="nakopitelniy" element={<NakopitelniyVedomost />} />
+            {/* 2026-10-26 (yagona navigatsiya reestri, lib/nav/navReestr.ts): tabli bandlar — Obyektlar, Narxlash,
+                Shartnomalar va tomonlar, Hujjatlar, Kiruvchi, Kompaniya. Yo'llar o'zgarmagan, faqat tepada tablar.
+                obyektlar — faqat t2_obyekt kanonik IDlari; loyiha — production yo'l (avval faqat /admin/test/loyiha). */}
+            <Route path="obyektlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TestObyektlar /></Suspense>} />
+            <Route path="loyiha" element={<Suspense fallback={<SahifaYuklanmoqda />}><TestLoyiha /></Suspense>} />
+            <Route path="tokenlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Tokenlar /></Suspense>} />
+            <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
+            <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
+            <Route path="nakrutka" element={<NakrutkaNative />} />
+            <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
+            <Route path="narx-dalil" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxDalil /></Suspense>} />
+            <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
+            <Route path="oferta" element={<OfertaNative />} />
+            <Route path="narxlar" element={<Narxlar />} />
+            <Route path="storage" element={<TestSaqlash />} />
+            <Route path="mindmap" element={<TestXarita />} />
+            <Route path="documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentsPage /></Suspense>} />
+            <Route path="hujjat-nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatNazoratPage /></Suspense>} />
+            <Route path="participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantsPage /></Suspense>} />
+            <Route path="zakazchik" element={<Suspense fallback={<SahifaYuklanmoqda />}><ZakazchikKabinet /></Suspense>} />
+            <Route path="aloqalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TomonlarAloqa /></Suspense>} />
+            <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
+            <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
+            <Route path="system-control" element={<Suspense fallback={<SahifaYuklanmoqda />}><SystemControlPage /></Suspense>} />
+            <Route path="ai-agentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><AiAgentlar /></Suspense>} />
+            <Route path="kompaniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><KompaniyaPage /></Suspense>} />
+            <Route path="crm" element={<WrapperCRM />} />
+            <Route path="aosr" element={<TestAosr />} />
+            <Route path="korzinka" element={<TestKorzinka />} />
+            <Route path="tizim-sozlama" element={<TestSozlama />} />
           </Route>
           {/* Eski F2 import (V2) — V3 barqarorlashguncha zaxira yo'l. */}
           <Route path="f2-eski" element={<Navigate to="/admin/f2" replace />} />
           {/* Egasi 2026-10-01: Loyiha → Shartnoma (tomonlar) → Obyektlar. */}
           {/* Egasi 2026-10-02: har hujjat turi uchun rang mavzusi. */}
           {/* Egasi 2026-10-02: token balansi, obuna, superadmin to'lov tasdig'i. */}
-          <Route path="tokenlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Tokenlar /></Suspense>} />
           {/* «Telegram modeli» markazi: barcha ish joylari + barcha joylardan «Mening ishlarim». */}
           <Route path="topshiriqlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Topshiriqlar /></Suspense>} />
           <Route path="ish-joylarim" element={<Suspense fallback={<SahifaYuklanmoqda />}><IshJoylarim /></Suspense>} />
@@ -169,21 +192,13 @@ export default function App() {
           <Route path="mutaxassis" element={<Suspense fallback={<SahifaYuklanmoqda />}><Mutaxassis /></Suspense>} />
           {/* Egasi 2026-10-02: platforma boshqaruv paneli (faqat superadmin; server tekshiradi). */}
           <Route path="boshqaruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><BoshqaruvPanel /></Suspense>} />
-          <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
           <Route path="smeta-studio" element={<Suspense fallback={<SahifaYuklanmoqda />}><SmetaStudio /></Suspense>} />
-          <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
           <Route path="m29" element={<M29Native />} />
-          <Route path="nakrutka" element={<NakrutkaNative />} />
-          <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
-          <Route path="narx-dalil" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxDalil /></Suspense>} />
-          <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
-          <Route path="oferta" element={<OfertaNative />} />
           {/* Tizim1 sahifalari olib tashlandi (egasi 2026-10-21/22); eski havolalar zamonaviy sahifaga yo'naltiriladi. */}
           <Route path="buxgalteriya" element={<Navigate to="/admin/moliya" replace />} />
           <Route path="shartnomalar" element={<Navigate to="/admin/shartnoma-liniya" replace />} />
           <Route path="fakturalar" element={<Navigate to="/admin/moliya" replace />} />
           <Route path="sklad" element={<Navigate to="/admin/logistika" replace />} />
-          <Route path="narxlar" element={<Narxlar />} />
           <Route path="ierarxiya" element={<Navigate to="/admin/holat" replace />} />
           <Route path="monitoring" element={<Navigate to="/admin/system-control" replace />} />
           <Route path="sozlamalar" element={<Navigate to="/admin/tizim-sozlama" replace />} />
@@ -195,21 +210,9 @@ export default function App() {
           <Route path="tezlik" element={<Navigate to="/admin/system-control" replace />} />
           {/* Canonical product routes; legacy /admin/test/* remains for compatibility.
               `dashboard` -> BossDashboard (declared above). */}
-          <Route path="storage" element={<TestSaqlash />} />
-          <Route path="mindmap" element={<TestXarita />} />
-          <Route path="documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentsPage /></Suspense>} />
-          <Route path="hujjat-nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatNazoratPage /></Suspense>} />
-          <Route path="participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantsPage /></Suspense>} />
-          <Route path="zakazchik" element={<Suspense fallback={<SahifaYuklanmoqda />}><ZakazchikKabinet /></Suspense>} />
           <Route path="zakazchik/obyekt/:aloqaId/:obyektId" element={<Suspense fallback={<SahifaYuklanmoqda />}><ObyektPortali /></Suspense>} />
-          <Route path="aloqalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TomonlarAloqa /></Suspense>} />
-          <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
-          <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
-          <Route path="system-control" element={<Suspense fallback={<SahifaYuklanmoqda />}><SystemControlPage /></Suspense>} />
           <Route path="akkaunt" element={<Suspense fallback={<SahifaYuklanmoqda />}><AkkauntMarkazi /></Suspense>} />
           <Route path="sayt-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SaytXaritasi /></Suspense>} />
-          <Route path="ai-agentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><AiAgentlar /></Suspense>} />
-          <Route path="kompaniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><KompaniyaPage /></Suspense>} />
           {/* Demo harnesses — explicit, never the default route. */}
           <Route path="_demo/documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentCenterDemo /></Suspense>} />
           <Route path="_demo/participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantNetworkDemo /></Suspense>} />
@@ -265,13 +268,9 @@ export default function App() {
               xatcho'plar va boshqa agentlarning shoxchalari buzilmasin). */}
           <Route path="moliya" element={<WrapperMoliya />} />
           <Route path="logistika" element={<WrapperLogistika />} />
-          <Route path="crm" element={<WrapperCRM />} />
           <Route path="zayavka" element={<TestZayavka />} />
-          <Route path="aosr" element={<TestAosr />} />
-          <Route path="korzinka" element={<TestKorzinka />} />
           <Route path="erp" element={<TestErp />} />
           {/* `sozlamalar` (T1) allaqachon band — bu T2 sozlamalari. */}
-          <Route path="tizim-sozlama" element={<TestSozlama />} />
 
           {/* WARN 2026-08-17 — ESKI MANZILLAR UCHUN KO’PRIK.
               Menyudagi `shartnoma` → `shartnomalar` xatosi tuzatilgach ham

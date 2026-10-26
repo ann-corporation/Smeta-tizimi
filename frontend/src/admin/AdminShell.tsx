@@ -4,6 +4,7 @@ import { useSessiya } from '../api/hooks';
 import { HotkeyYordam } from '../lib/hotkeys/HotkeyYordam';
 import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
 import { Map, LogOut, Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Inbox, Truck, User } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
 import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
@@ -19,111 +20,21 @@ import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
-import { menyuRolYopiq } from '../lib/nav/menyuRolYopiq';
-import { routePermission } from '../lib/company-authorization/route-permission';
+import { NAV_GURUHLAR, NAV_SAHIFALAR, type NavIkonka } from '../lib/nav/navReestr';
+import { menyuQur } from '../lib/nav/navFiltr';
 import { useModullar } from '../api/t2-modul';
-import { MENYU_MODUL, menyuModulYoqilgan } from '../lib/modullar';
+import { MENYU_MODUL } from '../lib/modullar';
 
-/* 2026-10-02 (egasi): menyu product relsi bo'yicha qayta tuzildi — "oddiy PTO ham, o'zim ham
- * adashmasin". Tartib = ish ketma-ketligi: PTO ish yo'li → narx → loyiha/shartnoma → kompaniya
- * boshqaruvi → hisob → tizim. Rol faqat KO'RINISHNI qisqartiradi (pastdagi filtr), tuzilma hamma
- * uchun bir xil. Har yo'l faqat BIR joyda (takror yo'q). Server tekshiruvi — yakuniy qo'riqchi. */
-/* Egasi 2026-10-21 (BOSH_REJA §3–4, Smeta Network auditi): 8 guruh → 5 asosiy bo'lim; «Tizim 1 (eski)» qoldiqlari
- * menyudan butunlay olib tashlandi. Modul («Telegram modeli») o'chirilgan bo'lsa uning sahifalari ko'rinmaydi
- * (lib/modullar.ts). `eski` — avvalgi guruh: rol bo'yicha zaxira filtri o'zgarmasin. Har yo'l faqat BIR joyda. */
-/* `tablar` — bitta band ostidagi bir nechta sahifa (tizim xaritasi P1): sidebarda BITTA band, sahifa tepasida
- * tablar (BolimTablari). Har tab o'z yo'lida qoladi (eski URL'lar o'zgarmaydi); ruxsat har tabga alohida. */
+/* 2026-10-26 (egasi; tizim xaritasi S1/P2): menyu tuzilmasi va rol filtri — YAGONA navigatsiya reestrida
+ * (lib/nav/navReestr.ts) va sof filtrda (lib/nav/navFiltr.ts). Bu yerda faqat ikonka xaritasi va ulash.
+ * Qatlamlar: ish (qurilish zanjiri) → ⚙ Kompaniya → Shaxsiy → Platforma (faqat superadmin).
+ * `tablar` — bitta band ostidagi bir nechta sahifa: sidebarda BITTA band, sahifa tepasida tablar (BolimTablari). */
 type MenyuTab = { yol: string; nom: string };
-type MenyuQator = { yol: string; nom: string; Ikonka: typeof Crown; eski?: string; tablar?: MenyuTab[] };
-const TIZIM_02_GURUHLAR: Array<{ nom: string; Ikonka: typeof Crown; id: string; menyular: MenyuQator[] }> = [
-  {
-    nom: 'Ish (PTO)',
-    Ikonka: FileText,
-    id: 'pto',
-    menyular: [
-      /* «Telegram modeli» (2026-10-22): barcha ish joylari va ulardagi navbatingiz — bitta ekranda. */
-      { yol: '/admin/ish-joylarim', nom: 'Ish joylarim', Ikonka: LayoutDashboard },
-      /* T6: o'z profilingiz va kompaniyalarga xizmat taklif qilish. */
-      { yol: '/admin/mutaxassis', nom: 'Mening xizmatlarim', Ikonka: Briefcase },
-      { yol: '/admin/obyektlar', nom: 'Obyektlar va smeta yuklash', Ikonka: Building2 },
-      { yol: '/admin/smeta-studio', nom: 'Smeta studiyasi', Ikonka: Calculator },
-      { yol: '/admin/holat', nom: 'Smeta va Fakt / LRV', Ikonka: FileText },
-      /* 2026-10-25 (tizim xaritasi P1): F2 ga oid 5 band → bitta «F2» bandi, ichida tablar. */
-      { yol: '/admin/f2-tayyorlash', nom: 'F2', Ikonka: FileOutput, tablar: [
-        { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash' },
-        { yol: '/admin/f2', nom: 'F2 import (tayyor F2 faylidan)' },
-        { yol: '/admin/f2-tarix', nom: 'F2 tarixi va tasdiqlash' },
-        { yol: '/admin/f2-reestr', nom: 'F2 reestri' },
-        { yol: '/admin/nakopitelniy', nom: 'Nakopitelniy va F3' },
-      ] },
-      { yol: '/admin/m29', nom: 'M-29 (material sarfi)', Ikonka: Box },
-      { yol: '/admin/aosr', nom: 'АОСР va laboratoriya', Ikonka: ShieldCheck },
-    ]
-  },
-  {
-    nom: 'Narx va oferta',
-    Ikonka: Tags,
-    id: 'narx',
-    menyular: [
-      { yol: '/admin/smeta-narxlash', nom: 'Smetani narxlash (RES)', Ikonka: Tags },
-      { yol: '/admin/oferta', nom: 'Tender oferta', Ikonka: FileOutput },
-      { yol: '/admin/narx-manbalari', nom: 'Narx manbalari (katalog, faktura, КП)', Ikonka: Calculator },
-      { yol: '/admin/narx-dalil', nom: 'Narx dalili (Обоснование цен)', Ikonka: Calculator },
-      { yol: '/admin/nakrutka', nom: 'Nakrutka (ustama)', Ikonka: Calculator },
-      { yol: '/admin/narxlar', nom: 'Narxlar nazorati', Ikonka: Tags },
-    ]
-  },
-  {
-    nom: 'Loyiha va tomonlar',
-    Ikonka: FolderKanban,
-    id: 'loyiha',
-    menyular: [
-      { yol: '/admin/loyiha', nom: 'Loyihalar', Ikonka: FolderKanban },
-      { yol: '/admin/shartnoma-liniya', nom: 'Shartnomalar va tomonlar', Ikonka: Briefcase },
-      { yol: '/admin/documents', nom: 'Hujjatlar', Ikonka: FileStack },
-      { yol: '/admin/hujjat-nazorat', nom: 'Hujjat nazorati', Ikonka: FileOutput },
-      { yol: '/admin/participants', nom: 'Loyiha ishtirokchilari', Ikonka: Users },
-      { yol: '/admin/crm', nom: 'Kontragentlar (CRM/EDO)', Ikonka: Users },
-      /* Egasi 2026-10-05: tomonlar (zakazchik ↔ pudratchi …) — handshake, ruxsat (grant), hujjat taqdimi. */
-      { yol: '/admin/zakazchik', nom: 'Buyurtmachi kabineti', Ikonka: Building2, eski: 'tomonlar' },
-      { yol: '/admin/taqdimlar', nom: 'Tomonlar hujjatlari', Ikonka: FileStack, eski: 'tomonlar' },
-      { yol: '/admin/murojaatlar', nom: 'Murojaatlar (remark, so‘rov)', Ikonka: ClipboardList, eski: 'tomonlar' },
-      { yol: '/admin/aloqalar', nom: 'Tomonlar aloqasi', Ikonka: Link2, eski: 'tomonlar' },
-    ]
-  },
-  {
-    nom: 'Kompaniya',
-    Ikonka: LayoutDashboard,
-    id: 'kompaniya',
-    menyular: [
-      { yol: '/admin/dashboard', nom: 'Rahbar paneli', Ikonka: BarChart },
-      { yol: '/admin/moliya', nom: 'Moliya (to‘lov, xarajat)', Ikonka: Briefcase },
-      { yol: '/admin/logistika', nom: 'Ta‘minot va sklad', Ikonka: Box },
-      { yol: '/admin/zayavka', nom: 'Zayavkalar', Ikonka: ClipboardList },
-      { yol: '/admin/erp', nom: 'Kadrlar va texnika', Ikonka: Users },
-      { yol: '/admin/mindmap', nom: 'Mindmap (xarita)', Ikonka: Map },
-      { yol: '/admin/kompaniya', nom: 'Kompaniya, a‘zolar va modullar', Ikonka: Building2, eski: 'hisob' },
-      { yol: '/admin/tokenlar', nom: 'Tokenlar va obuna', Ikonka: Gauge, eski: 'hisob' },
-      { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', Ikonka: FileText, eski: 'hisob' },
-      { yol: '/admin/tizim-sozlama', nom: 'Sozlamalar', Ikonka: Settings, eski: 'hisob' },
-    ]
-  },
-  {
-    nom: 'Tizim (admin)',
-    Ikonka: ShieldAlert,
-    id: 'tizim',
-    menyular: [
-      /* Platforma boshqaruvi — faqat superadmin (server ham tekshiradi). */
-      { yol: '/admin/boshqaruv', nom: 'Platforma boshqaruvi', Ikonka: Crown, eski: 'boshqaruv' },
-      { yol: '/admin/system-control', nom: 'Tizim boshqaruv markazi', Ikonka: ShieldAlert },
-      { yol: '/admin/ai-agentlar', nom: 'AI ishchilar', Ikonka: FlaskConical },
-      { yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', Ikonka: Map },
-      { yol: '/admin/storage', nom: 'Fayl saqlash (Storage)', Ikonka: HardHat },
-      { yol: '/admin/fayl-boglash', nom: 'Fayl bog‘lash', Ikonka: Link2 },
-      { yol: '/admin/korzinka', nom: 'Korzinka', Ikonka: Trash2 },
-    ]
-  }
-];
+type MenyuQator = { yol: string; nom: string; Ikonka: typeof Crown; tablar?: MenyuTab[] };
+const IKONKALAR: Record<NavIkonka, typeof Crown> = {
+  Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical,
+  LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Users, FolderKanban, Crown, ShieldCheck, Map, Inbox, Truck, User, Trash2,
+};
 
 /* T2-PRODUCT-RECOVERY P0: `t2_effective_authorization_core_v1`ning o'z
  * ruxsat jadvaliga mos (frontend/functions dagi RPC bilan bir xil manba
@@ -185,9 +96,9 @@ function AdminShellInner() {
   // Qaysi guruhlar ochiq ekanligini saqlash
   const [ochiqGuruhlar, setOchiqGuruhlar] = useState<Record<string, boolean>>(() => {
     const d: Record<string, boolean> = {};
-    TIZIM_02_GURUHLAR.forEach(g => {
-      // Agar ochiq sahifa shu guruhga tegishli bo'lsa, uni ochamiz
-      d[g.id] = g.id === 'pto' || g.menyular.some(m => [m, ...(m.tablar ?? [])].some(x => joy.pathname.startsWith(x.yol)));
+    NAV_GURUHLAR.forEach(g => {
+      // Ish qatlami (qurilish zanjiri) standart ochiq; boshqa guruh — ochiq sahifa shu guruhda bo'lsa.
+      d[g.id] = g.qatlam === 'ish' || g.bandlar.some(b => b.sahifalar.some(x => joy.pathname.startsWith(x.yol)));
     });
     return d;
   });
@@ -198,8 +109,7 @@ function AdminShellInner() {
     setOchiqGuruhlar(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const barchaYollar = [...new Set(TIZIM_02_GURUHLAR.flatMap(g => g.menyular.flatMap(m => [m.yol, ...(m.tablar ?? []).map(tb => tb.yol)])))];
-  menyuTekshirDev(barchaYollar);
+  menyuTekshirDev(NAV_SAHIFALAR.map(s => s.yol));
 
   useEffect(() => {
     if (sess.isError && sess.error?.message === "Sessiya yo'q") {
@@ -269,38 +179,9 @@ function AdminShellInner() {
   // Faqat modul ANIQ o'chirilgan bo'lsa yopiladi. Yuklanayotgan / o'qib bo'lmagan / global rejim — sahifa ochiq
   // (bu ko'rinish, xavfsizlik emas; L0 2026-10-22: Codex varianti xato bo'lganda ishni to'xtatardi).
   const moduleOpen = !routeModule || !modullar?.some(m => m.kod === routeModule && m.holat === 'off');
-  const rol = effektivRol;
-  const toliq = rol === 'rahbar' || rol === 'boss' || rol === 'admin' || rol === 'superadmin';
-  /** Ruxsatlar katalogi yo'q (eski DB javobi) bo'lsa — avvalgi guruh bo'yicha rol filtri (o'zgarmagan qoida). */
-  const eskiRolRuxsat = (gid: string, m: MenyuQator): boolean => {
-    if (gid === 'boshqaruv') return !!k.superadmin;
-    if (gid === 'tizim') return rol === 'admin' || rol === 'superadmin' || !!k.superadmin;
-    if (gid === 'hisob') return toliq || rol === 'pto' || rol === 'bugalter' || rol === 'prorab' || m.yol.includes('kompaniya');
-    if (gid === 'tomonlar') return toliq || rol === 'pto' || rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi';
-    if (toliq) return true;
-    if (rol === 'pto') return gid === 'kompaniya' ? (m.yol.includes('zayavka') || m.yol.includes('logistika')) : gid === 'loyiha' ? !m.yol.includes('participants') : true;
-    if (rol === 'prorab') return gid === 'pto' ? (m.yol.includes('fakt') || m.yol.includes('obyekt')) : gid === 'kompaniya' ? (m.yol.includes('logistika') || m.yol.includes('zayavka')) : gid === 'loyiha' ? m.yol.includes('loyiha') : false;
-    if (rol === 'bugalter') return gid === 'kompaniya' ? m.yol.includes('moliya') : gid === 'loyiha' ? (m.yol.includes('crm') || m.yol.includes('shartnoma')) : gid === 'pto' ? (m.yol.includes('f2-tarix') || m.yol.includes('nakopitelniy')) : false;
-    if (rol === 'buyurtmachi' || rol === 'pudratchi' || rol === 'kuzatuvchi') return gid === 'loyiha' ? m.yol.includes('loyiha') : gid === 'pto' ? m.yol.includes('obyekt') : false;
-    return false;
-  };
-  const filtrKilinganGuruhlar = TIZIM_02_GURUHLAR.map(g => {
-    const korinadi = (m: MenyuQator): boolean => {
-      if (!menyuModulYoqilgan(m.yol, modullar)) return false;
-      if (k.superadmin) return true;
-      /* Egasi: buxgalter F2 import/tayyorlashni menyu/tab darajasida ko'rmaydi (lib/nav/menyuRolYopiq). */
-      if (menyuRolYopiq(rol, m.yol)) return false;
-      if (k.joriy?.permissions) return k.joriy.permissions.includes(routePermission(m.yol));
-      return eskiRolRuxsat(m.eski ?? g.id, m);
-    };
-    /* Tabli band: har tab o'z yo'li bo'yicha filtrlanadi; band — kamida bitta tab ko'rinsa, birinchi ko'ringan tabga olib boradi. */
-    const tabliFiltr = (m: MenyuQator): MenyuQator | null => {
-      if (!m.tablar) return korinadi(m) ? m : null;
-      const tablar = m.tablar.filter(tb => korinadi({ ...m, yol: tb.yol }));
-      return tablar.length ? { ...m, yol: tablar[0].yol, tablar } : null;
-    };
-    return { ...g, menyular: g.menyular.map(tabliFiltr).filter((m): m is MenyuQator => m !== null) };
-  }).filter(g => g.menyular.length > 0);
+  /* Rol/ruxsat/modul/qatlam filtri — sof funksiya (lib/nav/navFiltr.ts, rol snapshot testlari bilan). */
+  const filtrKilinganGuruhlar = menyuQur({ superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar })
+    .map(g => ({ nom: g.nom, id: g.id, Ikonka: IKONKALAR[g.ikonka], menyular: g.bandlar.map((b): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar })) }));
   /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3); tablar alohida topiladi. */
   const palitraBandlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
     ? m.tablar.map(tb => ({ yol: tb.yol, nom: tb.nom, guruh: g.nom }))
