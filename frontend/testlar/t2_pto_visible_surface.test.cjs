@@ -27,11 +27,15 @@ function must(label, condition, reason) {
 }
 
 const shell = noComment(read('frontend', 'src', 'admin', 'AdminShell.tsx'));
+/* 2026-10-26: menyu tuzilmasi — yagona navigatsiya reestrida (lib/nav/navReestr.ts); AdminShell faqat ulaydi. */
+const reestr = noComment(read('frontend', 'src', 'lib', 'nav', 'navReestr.ts'));
 const oldStart = shell.indexOf('const ESKI_TIZIM_MENYU');
 const oldMenu = oldStart < 0 ? '' : shell.slice(oldStart, shell.indexOf('export default function AdminShell'));
-const t2Start = shell.indexOf('const TIZIM_02_GURUHLAR');
-must('canonical navigation declaration exists', t2Start >= 0);
-const t2Menu = shell.slice(t2Start, oldStart < 0 ? shell.indexOf('export default function AdminShell') : oldStart);
+const t2Start = reestr.indexOf('export const NAV_GURUHLAR');
+must('canonical navigation declaration exists', t2Start >= 0 && /NAV_GURUHLAR|menyuQur/.test(shell));
+/* Platforma guruhi (faqat superadmin) — oddiy ish menyusi emas; test/texnik yo'llar faqat shu guruhda bo'lishi mumkin. */
+const platformaStart = reestr.indexOf("id: 'platforma'");
+const t2Menu = reestr.slice(t2Start, platformaStart < 0 ? reestr.indexOf('export const NAV_SAHIFALAR') : platformaStart);
 const exactMenuPath = (source, route) => new RegExp(`yol:\\s*['"]${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`).test(source);
 
 console.log('\n── T2 / legacy navigation boundary ──');
@@ -41,10 +45,13 @@ for (const route of ['/admin/obyektlar', '/admin/f2', '/admin/f2-tayyorlash', '/
 }
 must('canonical nav uses production routes only', !/\/admin\/test\//.test(t2Menu),
   'oddiy PTO menyusida test/texnik marshrutlar ko‘rinmasligi kerak');
-must('Smeta va Fakt bitta ishchi menyuda birlashtirilgan',
-  /yol:\s*['"]\/admin\/holat['"][\s\S]{0,120}nom:\s*['"]Smeta va Fakt \/ LRV['"]/.test(t2Menu) && !exactMenuPath(t2Menu, '/admin/fakt'),
-  'Fakt alohida dublikat menyu bo‘lib chiqmasligi kerak');
-for (const route of ['/admin/dashboard', '/admin/obyektlar', '/admin/holat', '/admin/f2', '/admin/f2-tayyorlash', '/admin/f2-tarix', '/admin/hujjat-nazorat', '/admin/narxlar', '/admin/documents', '/admin/fayl-boglash']) {
+/* Egasi 2026-10-26 (tizim xaritasi M4): Fakt kiritish (/admin/fakt) endi menyuda — usta/brigadir/prorab/PTO uchun
+   o'z bandi (avval menyusiz edi). Smeta va Fakt / LRV o'z joyida qoladi. */
+must('Smeta va Fakt / LRV va Fakt kiritish ishchi menyuda',
+  /yol:\s*['"]\/admin\/holat['"][\s\S]{0,120}nom:\s*['"]Smeta va Fakt \/ LRV['"]/.test(t2Menu) && exactMenuPath(t2Menu, '/admin/fakt'),
+  'LRV va Fakt kiritish ishchi menyuda bo‘lishi kerak');
+must('fayl bog‘lash (texnik) faqat platforma guruhida', exactMenuPath(reestr.slice(platformaStart), '/admin/fayl-boglash') && !exactMenuPath(t2Menu, '/admin/fayl-boglash'));
+for (const route of ['/admin/dashboard', '/admin/obyektlar', '/admin/holat', '/admin/f2', '/admin/f2-tayyorlash', '/admin/f2-tarix', '/admin/hujjat-nazorat', '/admin/narxlar', '/admin/documents']) {
   must(route + ' is present in the canonical IA', exactMenuPath(t2Menu, route),
     route + ' production information architecture ichida bo‘lishi kerak');
 }
