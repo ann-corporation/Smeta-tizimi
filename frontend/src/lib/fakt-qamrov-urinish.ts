@@ -26,7 +26,7 @@ export type UrinishBolak = {
 export type QamrovUrinish = {
   kalit: string; kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number;
   /** 'qamrov' — foiz × ochiq qoldiq (faqat oshiradi); 'tuzatish' — oshgan faktni ochiq qoldiq 0 ga kamaytirish (alohida, preview bilan). */
-  tur?: 'qamrov' | 'tuzatish';
+  tur?: 'qamrov' | 'tuzatish' | 'f2';
   yaratildi: string; bolaklar: readonly UrinishBolak[];
 };
 export type UrinishHolat = 'kutmoqda' | 'toliq' | 'nomalum' | 'xato';
@@ -34,7 +34,7 @@ export type UrinishHolat = 'kutmoqda' | 'toliq' | 'nomalum' | 'xato';
 export const urinishKaliti = (kompaniyaId: number, obyektId: number) => `${kompaniyaId}:${obyektId}`;
 
 /** Snapshot: bo'laklar va UUID'lar shu yerda muzlatiladi (keyin o'zgarmaydi). */
-export function urinishYarat(p: { kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number; /** Izoh boshi (standart: «Qamrov N%»). */ izohBosh?: string; tur?: 'qamrov' | 'tuzatish' },
+export function urinishYarat(p: { kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number; /** Izoh boshi (standart: «Qamrov N%»). */ izohBosh?: string; tur?: 'qamrov' | 'tuzatish' | 'f2' },
   bolaklar: readonly (readonly { qator_id: number; hajm: number }[])[], yangiId: () => string, hozir: () => string = () => new Date().toISOString(),
   faktOl: (id: number) => number = () => 0): QamrovUrinish {
   const n = bolaklar.length;
