@@ -19,6 +19,17 @@ export function izohsiz(sql: string): string {
     .trim();
 }
 
+/**
+ * Tranzaksiya chegarasini boshqaradigan buyruqmi (COMMIT/ROLLBACK/BEGIN/SAVEPOINT …). MCP har toolni o'zi ochgan
+ * tranzaksiyada bajaradi — kirish SQL'i bu chegarani boshqarmasligi kerak (MCP-QA-01). Izoh/satr olib tashlanib,
+ * BIRINCHI kalit so'z tekshiriladi; ko'p buyruqli SQL'ni Postgres'ning o'zi rad etadi (bittaSorov, extended protocol).
+ */
+export function tranzaksiyaBuyrugi(sql: string): string | null {
+  const s = izohsiz(sql).replace(/^[\s(;]+/, '').toLowerCase();
+  const m = /^(begin|start\s+transaction|commit|end|rollback|abort|savepoint|release|prepare\s+transaction|set\s+transaction|set\s+session\s+characteristics)\b/.exec(s);
+  return m ? m[1].replace(/\s+/g, ' ') : null;
+}
+
 /** Bitta SELECT-shakl so'rovmi (subquery'ga o'raladigan): select/with/values/table, ichida `;` yo'q. */
 export function oralaMumkin(sql: string): boolean {
   const s = izohsiz(sql).replace(/;\s*$/, '');
