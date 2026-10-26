@@ -9,15 +9,23 @@ import { muhrXaritasi, muhrXulosa, MUHR_MAYDON_NOMI, type QatorMuhrFarq } from '
  * `yangilash` o'zgarsa (daraxt qayta yuklangan) — qayta o'qiladi. O'qib bo'lmasa (masalan migratsiya hali qo'llanmagan) —
  * jim: belgi ko'rinmaydi, smeta ishlashda davom etadi.
  */
-export function useMuhrFarq(obyektId: number | null, yangilash: unknown) {
+export function useMuhrFarq(obyektId: number | null, qatorlar: readonly { id?: number | null; versiya?: number | null }[] | null | undefined) {
   const [royxat, setRoyxat] = useState<QatorMuhrFarq[]>([]);
+  /* Massiv havolasiga emas, mazmun imzosiga bog'lanadi: har renderda yangi massiv qaytsa ham (masalan bo'sh `[]`)
+   * cheksiz qayta o'qish/render bo'lmaydi; qator tahrirlansa versiya o'zgaradi — imzo yangilanadi. */
+  const imzo = useMemo(() => {
+    const q = qatorlar ?? [];
+    let v = 0, maxId = 0;
+    for (const r of q) { v += Number(r.versiya) || 0; maxId = Math.max(maxId, Number(r.id) || 0); }
+    return `${q.length}:${v}:${maxId}`;
+  }, [qatorlar]);
   useEffect(() => {
     let faol = true;
-    setRoyxat([]);
+    setRoyxat((p) => (p.length ? [] : p));
     if (obyektId == null) return;
     void qatorMuhrFarqOl(obyektId).then((r) => { if (faol && r.ok) setRoyxat((r.qatorlar || []) as QatorMuhrFarq[]); }).catch(() => { /* jim */ });
     return () => { faol = false; };
-  }, [obyektId, yangilash]);
+  }, [obyektId, imzo]);
   const xarita = useMemo(() => muhrXaritasi(royxat), [royxat]);
   return { royxat, xarita };
 }
