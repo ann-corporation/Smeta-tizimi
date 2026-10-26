@@ -10,9 +10,24 @@
       "branch": "codex/architecture-pack-20261026",
       "base_sha": "69db8d45050cc82dfd67baae6dec7153b727a219",
       "status": "ready_for_review",
-      "owns": ["docs/architecture/DATA_MODEL_REGISTRY.yaml", "docs/architecture/CURRENT_SYSTEM_MAP.md", "docs/architecture/DOMAIN_MAP.md", "docs/architecture/PTO_STATE_MACHINE.md", "docs/architecture/ROUTE_RPC_MAP.md", "docs/architecture/RISK_REGISTER.md", "docs/architecture/GOLDEN_FLOWS.md", "docs/architecture/SCHEMA_METADATA_20261026.json", "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json", "docs/architecture/generate-architecture-pack.mjs"],
+      "owns": [
+        "docs/architecture/DATA_MODEL_REGISTRY.yaml",
+        "docs/architecture/CURRENT_SYSTEM_MAP.md",
+        "docs/architecture/DOMAIN_MAP.md",
+        "docs/architecture/PTO_STATE_MACHINE.md",
+        "docs/architecture/ROUTE_RPC_MAP.md",
+        "docs/architecture/RISK_REGISTER.md",
+        "docs/architecture/GOLDEN_FLOWS.md",
+        "docs/architecture/SCHEMA_METADATA_20261026.json",
+        "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json",
+        "docs/architecture/generate-architecture-pack.mjs"
+      ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/AGENT_CAPABILITY_POLICY.md"
+      ],
       "production_write_allowed": false,
       "note": "Explicit L0 item4. Documentation-only, refreshed source d7bf7353 after143/152. Public202+snapshot5=207 tables, public578 routines; SELECT only. 180current/2COMPAT/14BACKUP/1TEMP/10NULL lifecycle entries; one module owner NULL. Static routine bodies exclude acceptance/rollback SQL and trailing migration DML. No DEPRECATED/delete claims, snapshot infrastructure excluded from cleanup. Existing pageCatalog reused. Claude L0 reviews PR156/merges; no runtime/DB/deploy writes."
     },
@@ -2942,7 +2957,7 @@
     },
     {
       "id": "AKKAUNT-KIRISH-20261026",
-      "title": "Akkaunt markazi: bitta hisob (hisoblarni birlashtirish), profil/parol/sessiya, ideal kirish (email kod)",
+      "title": "Akkaunt markazi: bitta hisob (hisoblarni birlashtirish), profil/parol/sessiya, ideal kirish (email kod) + Sozlamalar markazi (akkaunt / kompaniya / tizim)",
       "owner": "claude",
       "machine": "cloud",
       "branch": "claude/blissful-cannon-a0ja8l",
@@ -2963,7 +2978,15 @@
         "frontend/src/api/profil.ts",
         "supabase/migrations/20261110200000_t2_profil_xavfsizlik_v1*",
         "frontend/functions/api/kirish-email.ts",
-        "supabase/migrations/20261111300000_t2_email_kod_kirish_v1*"
+        "supabase/migrations/20261111300000_t2_email_kod_kirish_v1*",
+        "frontend/functions/api/kompaniya-sozlama.ts",
+        "supabase/migrations/20261111400000_t2_kompaniya_sozlama_v1*",
+        "frontend/src/lib/sozlama/",
+        "frontend/src/admin/sahifalar/SozlamalarMarkazi.tsx",
+        "frontend/src/components/kompaniya-sozlama/",
+        "frontend/src/api/kompaniya-sozlama.ts",
+        "frontend/src/umumiy/hujjat/HujjatTomonlari.tsx",
+        "frontend/src/admin/pages/KompaniyaPage.tsx (faqat yangi 'sozlamalar' tabi)"
       ],
       "depends_on": [],
       "must_read": [
@@ -2971,7 +2994,7 @@
         "docs/governance/CONSTITUTION.md"
       ],
       "production_write_allowed": true,
-      "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing. | 2026-10-26 (2): email kod bilan kirish/ro'yxat (/api/kirish-email); migratsiyalar 20261105333000 (ilgari qo'llanmagan edi) va 20261111300000 jonli bazaga qo'llandi; login sahifasidan Admin/Rahbar tezkor tugmalari olib tashlandi. Email yuborish uchun Cloudflare Pages env: RESEND_API_KEY, EMAIL_FROM (egasi sozlaydi)."
+      "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing. | 2026-10-26 (2): email kod bilan kirish/ro'yxat (/api/kirish-email); migratsiyalar 20261105333000 (ilgari qo'llanmagan edi) va 20261111300000 jonli bazaga qo'llandi; login sahifasidan Admin/Rahbar tezkor tugmalari olib tashlandi. Email yuborish uchun Cloudflare Pages env: RESEND_API_KEY, EMAIL_FROM (egasi sozlaydi). | 2026-10-26: Sozlamalar markazi — /admin/sozlamalar (3 qatlam reestri) va kompaniya sozlamalari serverda (t2_kompaniya_sozlama, egasi ruxsati bilan prodga qo'llandi, additiv). AdminShell/navReestr ga TEGILMAYDI (#153 L0 niki) — menyu bandi #153 merge'dan keyin."
     }
   ]
 }

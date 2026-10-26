@@ -27,7 +27,10 @@ describe('role integration architecture',()=>{
       'profil',
       /* Email kod bilan kirish/ro'yxat (2026-10-26): login'dan OLDINGI ochiq nuqta (kirish/kirish-google kabi) — sessiya yo'q.
          Kod HMAC xeshi, 10 daqiqa, 5 urinish, email/IP limitlari bazada; origin tekshiruvi (kirish-email.test.ts). */
-      'kirish-email']);
+      'kirish-email',
+      /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
+         o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
+      'kompaniya-sozlama']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });
