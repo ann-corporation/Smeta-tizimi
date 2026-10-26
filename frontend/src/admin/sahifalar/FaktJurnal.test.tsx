@@ -14,6 +14,7 @@ const zb = vi.hoisted(() => ({ ol: vi.fn(async () => ({ almashtiradi: new Map<nu
 vi.mock('../../lib/fakt-zamena-boglanish', () => ({ zamenaBoglanishOl: zb.ol }));
 
 import { FaktJurnal } from './FaktJurnal';
+import { urinishOchir, yozilganOchir } from '../../lib/fakt-qamrov-urinish';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: 'n', birlik: 'м3',
@@ -30,7 +31,7 @@ const rows = [
 const states = [{ qator_id: 2, smeta_hajm: 100, fakt_hajm: 40 }, { qator_id: 3, smeta_hajm: 10, fakt_hajm: 0 }, { qator_id: 5, smeta_hajm: 30, fakt_hajm: 0 }];
 const props = () => ({ kompaniyaId: 1, obyektId: 8, rows, states, holatniYangila: vi.fn(), tuzilmaniYangila: vi.fn() });
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); urinishOchir(1, 8); yozilganOchir(1, 8); });
 
 describe('FaktJurnal', () => {
   it('bo‘lim ishlari, "+" va "=" bitta paketda, fokus yo‘qolmaydi', async () => {
@@ -70,6 +71,64 @@ describe('FaktJurnal', () => {
     expect(screen.queryByTestId('qoldiqdan-oshdi')).toBeNull();
     fireEvent.change(screen.getByLabelText('Bugun bajarildi: Grunt'), { target: { value: '45' } });
     expect(screen.getByTestId('qoldiqdan-oshdi').textContent).toMatch(/\+5/);
+  });
+
+  it('Qamrov %: bo‘lim → foiz → oldindan ko‘rish (istisnolar) → bitta fakt_yoz_v2, xabarda «Bekor qilish»', async () => {
+    m.yoz.mockResolvedValue({ ok: true, akt_id: 77 });
+    const p = props();
+    render(<FaktJurnal {...p} />);
+    fireEvent.keyDown(window, { key: '%' });
+    const dlg = screen.getByRole('dialog', { name: 'Qamrov %' });
+    expect(screen.getByTestId('qamrov-jami').textContent).toMatch(/2 qator yoziladi/); // Grunt 60 + Qum 10
+    expect(dlg.querySelector('[data-testid="qamrov-istisno-2"]')?.textContent).toMatch(/Allaqachon faktli/);
+    fireEvent.change(screen.getByLabelText('Bajarilish foizi'), { target: { value: '50' } });
+    fireEvent.click(screen.getByLabelText('Olinsin: Grunt')); // ish olib tashlansa — ichidagi Qum ham tushadi
+    expect(screen.getByTestId('qamrov-jami').textContent).toMatch(/0 qator yoziladi/);
+    fireEvent.click(screen.getByLabelText('Olinsin: Grunt'));
+    fireEvent.keyDown(screen.getByLabelText('Bajarilish foizi'), { key: 'Enter' });
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(1));
+    expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ obyektId: 8, qatorlar: [{ qator_id: 2, hajm: 30 }, { qator_id: 3, hajm: 5 }] }));
+    await waitFor(() => expect(p.holatniYangila).toHaveBeenCalled());
+    const ok = m.toast.mock.calls.find((c) => String(c[0]).startsWith('Qamrov 50%'));
+    expect(ok?.[4]).toMatchObject({ label: 'Bekor qilish' });
+    expect(screen.queryByRole('dialog', { name: 'Qamrov %' })).toBeNull();
+  });
+
+  it('Qamrov % (JQA-04/08): javob noma’lum → foiz o‘zgartirilsa ham, oyna yopilib qayta ochilsa ham XUDDI SHU amal (bir xil ID) qayta yuboriladi', async () => {
+    const qabul = new Set<string>(); let yozildi = 0;
+    m.yoz.mockImplementation(async (r: { operationId: string; qatorlar: { hajm: number }[] }) => {
+      if (!qabul.has(r.operationId)) { qabul.add(r.operationId); yozildi += r.qatorlar.reduce((s, q) => s + q.hajm, 0); }
+      if (m.yoz.mock.calls.length === 1) return { ok: false, error: 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin.' };
+      return { ok: true, akt_id: qabul.size, takror: m.yoz.mock.calls.length > 1 };
+    });
+    const p = props();
+    render(<FaktJurnal {...p} />);
+    fireEvent.click(screen.getByTestId('qamrov-tanlangan'));
+    fireEvent.keyDown(screen.getByLabelText('Bajarilish foizi'), { key: 'Enter' }); // 100%: Grunt 60 + Qum 10
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId('qamrov-urinish')).toBeTruthy());
+    expect(p.holatniYangila).not.toHaveBeenCalled();
+    expect((screen.getByLabelText('Bajarilish foizi') as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByTestId('urinish-tashla')).toBeNull(); // noma’lum — tashlab bo‘lmaydi, faqat qayta yuborish
+    fireEvent.change(screen.getByLabelText('Bajarilish foizi'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Yopish' }));
+    fireEvent.click(screen.getByTestId('qamrov-tanlangan')); // qayta ochildi — urinish reestrdan
+    expect(screen.getByTestId('qamrov-urinish').textContent).toMatch(/100%/);
+    fireEvent.click(screen.getByRole('button', { name: /^Faktga yozish — qayta yuborish/ }));
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(2));
+    expect(m.yoz.mock.calls[1][0]).toEqual(m.yoz.mock.calls[0][0]);
+    expect(yozildi).toBe(70); // ikki marta yozilmadi
+    await waitFor(() => expect(p.holatniYangila).toHaveBeenCalled());
+    expect(screen.queryByRole('dialog', { name: 'Qamrov %' })).toBeNull();
+    fireEvent.click(screen.getByTestId('qamrov-tanlangan')); // hal bo‘ldi — yangi urinishga yo‘l ochiq
+    expect(screen.queryByTestId('qamrov-urinish')).toBeNull();
+  });
+
+  it('Qamrov %: ish qatoridagi «%» tugmasi va katakda «%» — faqat shu ish', () => {
+    render(<FaktJurnal {...props()} />);
+    fireEvent.keyDown(screen.getByLabelText('Bugun bajarildi: Qum'), { key: '%' });
+    expect(screen.getByRole('dialog', { name: 'Qamrov %' }).textContent).toMatch(/Grunt/);
+    expect(screen.getByTestId('qamrov-jami').textContent).toMatch(/2 qator yoziladi/);
   });
 
   it('boshqa bo‘lim tanlanadi; qidiruv butun obyekt bo‘yicha', () => {

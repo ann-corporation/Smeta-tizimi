@@ -13,6 +13,8 @@ import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
+import { FaktQamrov } from './FaktQamrov';
+import { faktQamrovBekor } from '../../lib/fakt-qamrov';
 import { t } from '../../i18n/til';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { sarlavhaBilan } from '../../lib/hotkeys/core';
@@ -174,6 +176,16 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const bolimBolalari = useMemo(() => { const m = new Map<number, number[]>(); for (const b of bolimlar) if (b.otaId != null) m.set(b.otaId, [...(m.get(b.otaId) ?? []), b.id]); return m; }, [bolimlar]);
   const tenglashOch = (sarlavha: string, ishlar: JurnalIsh[]) => setTenglash({ sarlavha, reja: faktF2Reja(ishlar, holatMap) });
 
+  // ── «Qamrov %» (Tiklash rejimi): bo'lim (avlodlari bilan) yoki ish → foiz × ochiq qoldiq; oldindan ko'rish + bitta tranzaksiya + bekor qilish. ──
+  const [qamrov, setQamrov] = useState<{ sarlavha: string; ishlar: JurnalIsh[] } | null>(null);
+  const kiritmaOgoh = () => { if (ozgarishSoni) toast(t('Saqlanmagan kiritmalar bor — qamrov serverdagi faktdan hisoblanadi; avval saqlang yoki tozalang.'), 'warn'); };
+  const qamrovBolim = (b: JurnalBolim) => { kiritmaOgoh(); setQamrov({ sarlavha: b.nom, ishlar: bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true) }); };
+  const qamrovIsh = (ish: JurnalIsh) => { kiritmaOgoh(); setQamrov({ sarlavha: [ish.kod, ish.nom].filter(Boolean).join(' '), ishlar: [ish] }); };
+  const narxOl = useCallback((id: number): number | null => {
+    const h = holatMap.get(id); const r = rowById.get(id);
+    return h?.smeta_narx != null ? Number(h.smeta_narx) : r?.narx != null ? Number(r.narx) : null;
+  }, [holatMap, rowById]);
+
   // Ko'rinadigan bo'laklar: qidiruv bo'lsa — butun obyekt bo'yicha (har ish o'z bo'lim yo'li bilan);
   // aks holda tanlangan bo'lim va uning BARCHA avlod bo'limlari (egasi 2026-10-25: «ichi bo'sh» chiqmasin).
   type Bolak = { bolim: JurnalBolim | null; nisbiy: number; yol?: string; ishlar: JurnalIsh[] };
@@ -271,7 +283,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     { id: 'fakt.qidiruv', keys: '/', nom: t('Qidirish'), run: () => { qidiruvRef.current?.focus(); } },
     { id: 'fakt.f2', keys: 'f', nom: t('Fakt = F2 (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b) return false; tenglashOch(b.nom, bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true)); } },
     { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; setKiritmalar({}); } },
-  ], !modal && !tenglash && !bajModal && !narxModal);
+    { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
+  ], !modal && !tenglash && !bajModal && !narxModal && !qamrov);
   useEffect(() => {
     if (!ozgarishSoni) return;
     const k = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -287,6 +300,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     else if (e.key === 'ArrowUp') { e.preventDefault(); (inputlar.current[i - 1] ?? qidiruvRef.current)?.focus(); }
     else if (e.key === 'Escape') { e.preventDefault(); if (kiritmalar[id]?.qiymat) kirit(id, { qiymat: '' }); else qidiruvRef.current?.focus(); }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); const q = qatorlarRef.current.get(id); if (q) bajOch(q); }
+    else if (e.key === '%') { // hajm katagida «%» — shu ish (resurs bo'lsa — uning ishi) uchun Qamrov %
+      const ish = jurnalById.get(id) ?? (() => { const q = qatorlarRef.current.get(id); return q?.otaId != null ? jurnalById.get(q.otaId) : undefined; })();
+      if (ish && 'resurslar' in ish) { e.preventDefault(); qamrovIsh(ish as JurnalIsh); }
+    }
   };
 
   /** Qidiruv maydonidan: ↓ / Enter — birinchi ko'rinadigan qatorning hajm katagiga; Esc — qidiruvni tozalash. */
@@ -425,6 +442,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       <div className="flex items-center justify-end gap-0.5">
         {tahrirTugmalar(ish)}
         <button type="button" tabIndex={-1} onClick={() => bajOch(ish)} title={sarlavhaBilan(t('Bajarilmaydi / qilib bo‘lmaydi'), 'ctrl+b')} aria-label={t('Bajarilmaydi: {nom}', { nom: ish.nom })} className={`${tugmaCls} hover:text-danger`}><Ban size={13} /></button>
+        {!alohida && <button type="button" tabIndex={-1} onClick={() => qamrovIsh(ish)} title={t('Qamrov %: shu ish (va ichidagi material/uskuna) — foiz × ochiq qoldiq (katakda «%»)')} aria-label={t('Qamrov %: {nom}', { nom: ish.nom })} data-testid="qamrov-ish"
+          className="rounded-[var(--radius-xs)] px-1 font-mono text-[11px] font-semibold text-[var(--accent-text)] hover:bg-surface-3">%</button>}
         {f2Bor && <button type="button" tabIndex={-1} onClick={() => tenglashOch(ish.nom, [ish])} title={t('Fakt ni F2 ga tenglash')} aria-label={`Fakt = F2: ${ish.nom}`} className="rounded-[var(--radius-xs)] px-1 font-mono text-[10.5px] font-semibold text-[var(--info)] hover:bg-surface-3">{t('=F2')}</button>}
         {zamenaTugma(ish)}
       </div>
@@ -483,6 +502,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         {tanlanganBolim && <button type="button" onClick={() => tenglashOch(tanlanganBolim.nom, bolimIshlariYigish(tanlanganBolim.id, bolimIshlari, bolimBolalari, true))}
           title={sarlavhaBilan(t('Shu bo‘lim (ichki bo‘limlari bilan): F2 hajmi fakt dan ko‘p ishlarga farqni yozish'), 'f')} aria-label={t('Fakt = F2: bo‘lim')}
           className="fz-btn">{t('Fakt = F2')} <kbd className="fz-kbd">F</kbd></button>}
+        {tanlanganBolim && !qidiruv && <button type="button" onClick={() => qamrovBolim(tanlanganBolim)} data-testid="qamrov-tanlangan"
+          title={sarlavhaBilan(t('Tiklash rejimi: shu bo‘lim (ichki bo‘limlari bilan) barcha ishlariga bitta foiz — fakt = foiz × ochiq qoldiq; oldindan ko‘rish va bekor qilish bilan'), '%')} aria-label={t('Qamrov %: bo‘lim')}
+          className="fz-btn">{t('Qamrov %')} <kbd className="fz-kbd">%</kbd></button>}
         <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="fz-btn"><Plus size={14} className="text-accent" /> {t('Smetadan tashqari ish')}</button>
       </section>
 
@@ -553,7 +575,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
                       <span className="text-[11px] tabular-nums text-text-mute">{t('{n} ish', { n: String(bk.bolim.ishSoni) })}</span>
                       <span className="w-[140px]"><BolimMeter ulush={bk.bolim.ulush} /></span>
                     </button>
-                    {summaQatori(summalar.get(bk.bolim.id))}
+                    <div className="flex flex-wrap items-start gap-2">
+                      {summaQatori(summalar.get(bk.bolim.id))}
+                      <button type="button" tabIndex={-1} onClick={() => qamrovBolim(bk.bolim!)} aria-label={t('Qamrov %: {nom}', { nom: bk.bolim.nom })} data-testid={`qamrov-bolim-${bk.bolim.id}`}
+                        className="rounded border border-accent/40 px-1.5 text-[10px] font-semibold text-accent hover:bg-accent/10">{t('Qamrov %')}</button>
+                    </div>
                   </div>}
                   {bk.ishlar.map((ish) => <div key={ish.id} className="border-b border-border">
                     {ishQatori(ish)}
@@ -583,6 +609,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} obyektId={obyektId} sana={sana}
         onYop={() => setTenglash(null)} onBajarildi={() => holatniYangila()}
         aktBekor={faktF2Bekor} />}
+
+      {qamrov && <FaktQamrov sarlavha={qamrov.sarlavha} ishlar={qamrov.ishlar} holatMap={holatMap} narxOl={narxOl} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana}
+        onYop={() => setQamrov(null)} onBajarildi={() => holatniYangila()} aktBekor={faktQamrovBekor} />}
 
       {narxModal && <FaktNarxlash kompaniyaId={kompaniyaId} obyektId={obyektId} qator={narxModal} onYop={() => setNarxModal(null)}
         onSaqlandi={(xabar) => { setNarxModal(null); toast(xabar, 'ok'); void tuzilmaniYangila(); }} />}
