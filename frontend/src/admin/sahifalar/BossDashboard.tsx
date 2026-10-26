@@ -16,7 +16,7 @@ import { t } from '../../i18n/til';
 import { amount, filteredObjects, objectUrl, projectUrl, signalUrl, sortedSignals, trustedExecutive, type BossExecutive, type ExecutiveObject } from '../../components/boss-decision/model';
 import Reports from '../../components/boss-decision/Reports';
 import ExecutiveCockpit from '../../components/boss-decision/ExecutiveCockpit';
-import { F2Oqimi, MoliyaUstunlari, PortfelXaritasi, SignalTasma, SmetaF2Ustunlari } from '../../components/rahbar-panel/RahbarGrafiklar';
+import { F2Oqimi, MoliyaUstunlari, SignalTasma, SmetaF2Ustunlari } from '../../components/rahbar-panel/RahbarGrafiklar';
 import { MindmapSlot } from '../../components/rahbar-panel/MindmapSlot';
 import { KategoriyaDonut, SanaYurish, UstamaSharshara, UstamaXulosaKarta } from '../../components/rahbar-panel/RahbarUstama';
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
@@ -223,10 +223,7 @@ function Portfolio({ data }: { data: Dashboard }) {
   return <>
     <Xulosa data={data} e={e} />
 
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-      <MindmapSlot kompaniyaId={data.kompaniya.kompaniya_id} kompaniyaNom={data.kompaniya.nom} e={e} />
-      {e && <PortfelXaritasi e={e} />}
-    </div>
+    <MindmapSlot kompaniyaId={data.kompaniya.kompaniya_id} />
     {e && <div className="grid gap-4 xl:grid-cols-2">
       <UstamaSharshara obyektlar={e.objects.map(o => ({ obyektId: o.object_id }))} kompaniyaId={data.kompaniya.kompaniya_id} />
       <KategoriyaDonut kompaniyaId={data.kompaniya.kompaniya_id} obyektIdlar={e.objects.map(o => o.object_id)} />
