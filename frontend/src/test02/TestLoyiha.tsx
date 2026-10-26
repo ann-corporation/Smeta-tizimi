@@ -12,6 +12,8 @@ import { t } from '../i18n/til';
 import { shartnomaSvodOl } from '../api/t2-nakopitelniy';
 import { shartnomaSvodi, type ShartnomaSvodi } from '../lib/nakopitelniy-svod';
 import { loyihaChizigi } from '../lib/shartnoma-zanjir-korinish';
+import { PortfelSummaJuft } from '../umumiy/ui/PortfelSummaJuft';
+import { HisobStack, type HisobQator } from '../components/pto-workspace/ObyektGrafik';
 
 const HOLAT: Record<string, { nom: string; cls: string }> = {
   faol: { nom: 'faol', cls: 'fz-stamp--ok' }, tuxtatilgan: { nom: 'to‘xtatilgan', cls: 'fz-stamp--warn' },
@@ -60,6 +62,12 @@ export default function TestLoyiha() {
     for (const s of svod ?? []) if (s.shartnoma.loyiha_id != null) m.set(s.shartnoma.loyiha_id, [...(m.get(s.shartnoma.loyiha_id) ?? []), s]);
     return m;
   }, [svod]);
+  const hisobQatorlari = useMemo<HisobQator[]>(() => filtered.flatMap((l) => {
+    const sv = loyihaSvod.get(l.id) ?? [];
+    const c = sv.length ? loyihaChizigi(sv) : null;
+    if (!c || c.shartnoma == null) return [];
+    return [{ kalit: String(l.id), nom: l.nom, tolov: c.tolov, qarz: Math.max(0, c.f3 - c.tolov), qolgan: Math.max(0, c.shartnoma - c.f3) }];
+  }), [filtered, loyihaSvod]);
   const jami = useMemo(() => ({
     loyiha: loyihalar.length,
     obyekt: loyihalar.reduce((s, l) => s + (l.obyekt_soni ?? l.obyektlar?.length ?? 0), 0),
@@ -104,6 +112,8 @@ export default function TestLoyiha() {
           </div>
         </section>
 
+        <HisobStack qatorlar={hisobQatorlari} />
+
         <section className="fz-card" aria-label={t('Loyihalar ro‘yxati')}>
           <div className="fz-card__head">
             <label className="relative w-full max-w-sm">
@@ -115,11 +125,11 @@ export default function TestLoyiha() {
           <div className="overflow-x-auto">
             <table className="fz-table">
               <thead><tr>
-                <th>{t('Loyiha')}</th><th>{t('Tarkib')}</th><th className="fz-c-num">{t('Byudjet, so‘m')}</th><th style={{ minWidth: 220 }}>{t('Shartnoma bo‘yicha hisob (F3)')}</th><th>{t('Holat')}</th><th className="fz-c-num">{t('Amal')}</th>
+                <th>{t('Loyiha')}</th><th>{t('Tarkib')}</th><th className="fz-c-num">{t('Smeta (ustamali / ustamasiz)')}</th><th className="fz-c-num">{t('Byudjet, so‘m')}</th><th style={{ minWidth: 220 }}>{t('Shartnoma bo‘yicha hisob (F3)')}</th><th>{t('Holat')}</th><th className="fz-c-num">{t('Amal')}</th>
               </tr></thead>
               <tbody>
                 {yuklanmoqda && !loyihalar.length ? (
-                  <tr><td colSpan={6}><div className="skel h-24 rounded-md" /></td></tr>
+                  <tr><td colSpan={7}><div className="skel h-24 rounded-md" /></td></tr>
                 ) : filtered.map(l => {
                   const sv = loyihaSvod.get(l.id) ?? [];
                   const c = sv.length ? loyihaChizigi(sv) : null;
@@ -140,6 +150,7 @@ export default function TestLoyiha() {
                           <span className="fz-chip" title={t('Qatnashchilar')}><Users size={11} />{l.qatnashchilar?.length ?? 0}</span>
                         </div>
                       </td>
+                      <td className="fz-c-num">{l.obyektlar?.length ? <PortfelSummaJuft className="items-end" kichik obyektlar={l.obyektlar.map((o) => ({ obyektId: o.obyekt_id }))} /> : <span className="text-text-mute">—</span>}</td>
                       <td className="fz-c-num">{l.byudjet == null ? <span className="text-text-mute">—</span> : <FmtN val={l.byudjet} kasr={0} />}</td>
                       <td>
                         {!c ? <span className="text-[12px] text-text-mute">{svod ? t('shartnoma yo‘q') : '—'}</span>
@@ -160,7 +171,7 @@ export default function TestLoyiha() {
                   );
                 })}
                 {!yuklanmoqda && filtered.length === 0 && (
-                  <tr><td colSpan={6} className="p-8 text-center text-text-mute">
+                  <tr><td colSpan={7} className="p-8 text-center text-text-mute">
                     {loyihalar.length ? t('Qidiruvga mos loyiha yo‘q.') : t('Hali loyiha yaratilmagan — «Yangi loyiha» tugmasi bilan boshlang.')}
                   </td></tr>
                 )}

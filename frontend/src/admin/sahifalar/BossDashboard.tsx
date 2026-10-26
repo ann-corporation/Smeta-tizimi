@@ -18,6 +18,8 @@ import Reports from '../../components/boss-decision/Reports';
 import ExecutiveCockpit from '../../components/boss-decision/ExecutiveCockpit';
 import { F2Oqimi, MoliyaUstunlari, PortfelXaritasi, SignalTasma, SmetaF2Ustunlari } from '../../components/rahbar-panel/RahbarGrafiklar';
 import { MindmapSlot } from '../../components/rahbar-panel/MindmapSlot';
+import { KategoriyaDonut, SanaYurish, UstamaSharshara, UstamaXulosaKarta } from '../../components/rahbar-panel/RahbarUstama';
+import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
 
 type Dashboard = NonNullable<ReturnType<typeof useBossDashboard>['data']>;
 
@@ -58,6 +60,7 @@ export default function BossDashboard() {
 
 /** 1) Xulosa — to'rtta asosiy raqam. Smeta va F2 nisbatidan foiz chiqarilmaydi (hisob asoslari har xil). */
 function Xulosa({ data, e }: { data: Dashboard; e: BossExecutive | null }) {
+  const obyektlar = (e?.objects ?? []).map(o => ({ obyektId: o.object_id }));
   const yoq = t('Ma’lumot yetarli emas');
   const smetaIzoh = e ? `${t('Narxsiz qatorlar')}: ${e.totals.unpriced_rows} · ${t('Smetasi yetishmagan obyektlar')}: ${e.totals.estimate_missing}` : yoq;
   const f2Izoh = e ? `${t('Aktlar')}: ${e.totals.approved_count} · ${t('Summasi noma’lum')}: ${e.totals.approved_missing}` : yoq;
@@ -67,13 +70,14 @@ function Xulosa({ data, e }: { data: Dashboard; e: BossExecutive | null }) {
     <section aria-label={t('Portfel xulosasi')} className="flex flex-col gap-2">
       {!e && <div role="status" className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" />
         <span>{t('Tasdiqlangan F2 va obyektlar bo‘yicha yangi hisob modeli hali ulanmagan. Eski umumiy akt summasi bajarilgan ish sifatida ko‘rsatilmaydi.')}</span></div>}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiKarta nom={t('Smeta: ma’lum to‘g‘ridan-to‘g‘ri xarajat')} qiymat={money(e?.totals.estimate_known)} ost={smetaIzoh} />
-        <KpiKarta nom={t('Tasdiqlangan F2 hujjatlari summasi')} qiymat={money(e?.totals.approved_known)} ost={f2Izoh} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {e && <UstamaXulosaKarta obyektlar={obyektlar} ustamasiz={amount(e.totals.estimate_known)} kompaniyaId={data.kompaniya.kompaniya_id} />}
+        <KpiKarta nom={t('To‘g‘ridan-to‘g‘ri xarajat (ustamasiz)')} qiymat={e && amount(e.totals.estimate_known) != null ? <><SanaYurish qiymat={amount(e.totals.estimate_known)} />{' UZS'}</> : '—'} ost={smetaIzoh} />
+        <KpiKarta nom={t('Tasdiqlangan F2 hujjatlari summasi')} qiymat={e && amount(e.totals.approved_known) != null ? <><SanaYurish qiymat={amount(e.totals.approved_known)} />{' UZS'}</> : '—'} ost={f2Izoh} />
         <KpiKarta nom={t('F2: tekshiruv / qoralama')} qiymat={jarayon} ost={t('Tasdiqlangan aktlardan alohida')} />
         <KpiKarta nom={t('Muhim ochiq signallar')} qiymat={<span className={data.signal.kritik_soni > 0 ? 'text-danger' : ''}>{data.signal.kritik_soni}</span>} ost={signalIzoh} />
       </div>
-      <p className="text-[12px] text-text-mute">{t('Summalar hisob asosi bilan ko‘rsatilgan. Smeta va F2 nisbatidan jismoniy bajarilish foizi chiqarilmaydi. Narxsiz qatorlar bo‘lsa, summa qisman.')}</p>
+      <p className="text-[12px] text-text-mute">{t('Smeta jami — faol obyektlar bo‘limlari yig‘indisi (nakrutkasiz); smeta o‘zgarishining qoralamalari (qoralama) bunga kirmaydi.')} {t('Summalar hisob asosi bilan ko‘rsatilgan. Smeta va F2 nisbatidan jismoniy bajarilish foizi chiqarilmaydi. Narxsiz qatorlar bo‘lsa, summa qisman.')}</p>
     </section>
   );
 }
@@ -169,14 +173,15 @@ function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number)
       <div className="grid gap-3 md:grid-cols-3">
         {e.projects.map(p => <Link className="fz-panel hover:bg-surface-2" to={projectUrl(p.project_id)} key={p.project_id ?? 'none'}>
           <span className="font-medium">{p.name}</span>
-          <span className="text-[13px] text-text-dim">{p.object_count} {t('obyekt')} · {money(p.estimate_known)}</span>
+          <span className="text-[13px] text-text-dim">{p.object_count} {t('obyekt')}</span>
+          <PortfelSummaJuft obyektlar={e.objects.filter(o => o.project_id === p.project_id).map(o => ({ obyektId: o.object_id }))} ustamasiz={amount(p.estimate_known)} />
         </Link>)}
       </div>
       <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={issues} onChange={ev => setIssues(ev.target.checked)} />{t('Faqat e’tibor talab qiladigan obyektlar')}</label>
       <div className="fz-table-wrap">
         <table className="fz-table min-w-[760px]">
           <thead><tr>
-            <th>{t('Obyekt')}</th><th className="fz-c-num">{t('Smeta, nakrutkasiz')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}</th><th>{t('E’tibor talab qiladi')}</th>
+            <th>{t('Obyekt')}</th><th className="fz-c-num">{t('Smeta: ustamali / ustamasiz')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}</th><th>{t('E’tibor talab qiladi')}</th>
           </tr></thead>
           <tbody>
             {objects.map(o => <tr key={o.object_id}>
@@ -185,7 +190,9 @@ function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number)
                 <p className="mt-1 text-[12px] text-text-dim">{o.project_name ?? t('Loyihaga biriktirilmagan')}</p>
               </td>
               <td className="fz-c-num">
-                <a href="#boss-reports" className="underline decoration-dotted underline-offset-4 hover:text-accent" aria-label={`${t('Summaning asosini ko‘rish')}: ${o.name}`} onClick={() => onAsos(o.object_id)}>{money(o.estimate_known)}</a>
+                <a href="#boss-reports" className="underline decoration-dotted underline-offset-4 hover:text-accent" aria-label={`${t('Summaning asosini ko‘rish')}: ${o.name}`} onClick={() => onAsos(o.object_id)}>
+                  <PortfelSummaJuft kichik obyektlar={[{ obyektId: o.object_id }]} ustamasiz={amount(o.estimate_known)} />
+                </a>
               </td>
               <td className="fz-c-num">
                 <Link className="underline decoration-dotted underline-offset-4 hover:text-accent" to={objectUrl(o.object_id, o.project_id, 'f2-tarix')}>{money(o.approved_known)}</Link>
@@ -220,6 +227,10 @@ function Portfolio({ data }: { data: Dashboard }) {
       <MindmapSlot kompaniyaId={data.kompaniya.kompaniya_id} kompaniyaNom={data.kompaniya.nom} e={e} />
       {e && <PortfelXaritasi e={e} />}
     </div>
+    {e && <div className="grid gap-4 xl:grid-cols-2">
+      <UstamaSharshara obyektlar={e.objects.map(o => ({ obyektId: o.object_id }))} kompaniyaId={data.kompaniya.kompaniya_id} />
+      <KategoriyaDonut kompaniyaId={data.kompaniya.kompaniya_id} obyektIdlar={e.objects.map(o => o.object_id)} />
+    </div>}
     <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       {e && <SmetaF2Ustunlari e={e} />}
       <div className="flex min-w-0 flex-col gap-4">

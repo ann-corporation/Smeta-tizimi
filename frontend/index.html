@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0e1113" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem('fz-mavzu');
+          var l = m === 'ganch' || (m === 'tizim' && matchMedia('(prefers-color-scheme: light)').matches);
+          if (l) {
+            document.documentElement.setAttribute('data-mavzu', 'ganch');
+            var c = document.querySelector('meta[name="theme-color"]');
+            if (c) c.setAttribute('content', '#f5f4f0');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />

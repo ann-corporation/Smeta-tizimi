@@ -116,7 +116,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   isolation: isolate;
   background:
     radial-gradient(85% 65% at 100% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 58%),
-    radial-gradient(70% 60% at 0% 100%, rgba(255, 255, 255, .025), transparent 60%),
+    radial-gradient(70% 60% at 0% 100%, color-mix(in srgb, var(--text) 2.5%, transparent), transparent 60%),
     var(--bg);
 }
 .os-app-shell > * { min-height: 0; }
@@ -135,27 +135,27 @@ html, body, #root { height: 100%; min-height: 100%; }
   pointer-events: none;
   opacity: .28;
   background-image:
-    linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--text) 2.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--text) 2.5%, transparent) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .55), transparent 76%);
 }
 .os-sidebar {
-  background: color-mix(in srgb, var(--surface) 92%, black);
-  border-color: color-mix(in srgb, var(--border) 80%, white 8%);
-  box-shadow: 18px 0 46px rgba(0, 0, 0, .16);
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+  border-color: var(--border);
+  box-shadow: 18px 0 46px rgba(0, 0, 0, .06);
   min-height: 0;
 }
 .os-workspace {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .012), transparent 34%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--text) 1.2%, transparent), transparent 34%);
 }
 .os-brand-mark {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, var(--on-accent)), var(--accent));
   box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .os-context-bar {
   background: color-mix(in srgb, var(--surface) 74%, transparent);
-  border-color: color-mix(in srgb, var(--border) 75%, white 7%);
+  border-color: var(--border);
 }
 .os-context-divider { color: var(--text-mute, #596276); font-size: 0.75rem; }
 .os-route-label { color: var(--text-dim); font-size: 0.75rem; font-weight: 600; letter-spacing: .01em; }
@@ -164,7 +164,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   display: inline-flex; align-items: center; gap: .4rem; flex-shrink: 0;
   border: 1px solid color-mix(in srgb, var(--ok) 26%, transparent);
   border-radius: 999px; padding: .25rem .55rem;
-  color: color-mix(in srgb, var(--ok) 82%, white);
+  color: var(--ok);
   background: color-mix(in srgb, var(--ok) 8%, transparent);
   font-size: .68rem; font-weight: 600; letter-spacing: .02em;
 }
@@ -184,7 +184,7 @@ html, body, #root { height: 100%; min-height: 100%; }
 }
 .os-nav-link:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, .035);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 .os-nav-link--active {
   color: var(--text);
@@ -203,14 +203,14 @@ html, body, #root { height: 100%; min-height: 100%; }
 .karta {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--text) 5%, transparent), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   border-radius: 0.5rem;
 }
 
 .input {
   background-color: var(--surface-2);
   border: 1px solid var(--border);
-  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2), inset 0 -1px 0 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.12), inset 0 -1px 0 0 color-mix(in srgb, var(--text) 3%, transparent);
   color: var(--text);
   border-radius: 0.375rem;
   transition: all 0.2s;
@@ -218,7 +218,7 @@ html, body, #root { height: 100%; min-height: 100%; }
 .input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(79, 123, 255, 0.25), inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent), inset 0 2px 4px 0 rgba(0, 0, 0, 0.12);
 }
 
 /* ⚡ 2026-09-07: `.tugma`/`.tugma-asosiy` (SmetaYuklaNative.tsx,
@@ -249,7 +249,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   display: inline-flex; align-items: center; justify-content: center; gap: .375rem;
   height: 2rem; padding: 0 .875rem; border-radius: .5rem;
   font-size: .8125rem; font-weight: 600; line-height: 1;
-  border: 1px solid transparent; color: #fff;
+  border: 1px solid transparent; color: var(--on-accent);
   background-color: var(--accent);
   cursor: pointer;
   transition: opacity .15s;
@@ -281,17 +281,17 @@ html, body, #root { height: 100%; min-height: 100%; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--text) 18%, transparent);
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover { 
-  background: rgba(255, 255, 255, 0.3); 
+  background: color-mix(in srgb, var(--text) 32%, transparent); 
   background-clip: padding-box; 
 }
 
-::selection { background: rgba(79,123,255,.28); color: #fff; }
+::selection { background: var(--selection, rgba(79,123,255,.28)); color: var(--text); }
 
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
@@ -321,7 +321,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   .os-sidebar.os-sidebar--open { transform: translateX(0); }
   .os-sidebar-backdrop {
     display: block; position: fixed; inset: 0; z-index: 20;
-    border: 0; background: rgba(2, 6, 23, .72); backdrop-filter: blur(2px);
+    border: 0; background: var(--scrim, rgba(2, 6, 23, .72)); backdrop-filter: blur(2px);
   }
 }
 

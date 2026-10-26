@@ -1,0 +1,18 @@
+{
+  "Mehnat (ЧЕЛ)": { "ru": "Труд (ЧЕЛ)", "en": "Labour (ЧЕЛ)" },
+  "Mashina (МАШ)": { "ru": "Машины (МАШ)", "en": "Machinery (МАШ)" },
+  "Material (МАТ)": { "ru": "Материалы (МАТ)", "en": "Materials (МАТ)" },
+  "Uskuna (ОБ)": { "ru": "Оборудование (ОБ)", "en": "Equipment (ОБ)" },
+  "Boshqa material (БЕЗ СКЛАД, КАБ, М/К)": { "ru": "Прочие материалы (БЕЗ СКЛАД, КАБ, М/К)", "en": "Other materials (БЕЗ СКЛАД, КАБ, М/К)" },
+  "Kategoriya taqsimoti": { "ru": "Распределение по категориям", "en": "Category breakdown" },
+  "Kategoriya taqsimoti: —": { "ru": "Распределение по категориям: —", "en": "Category breakdown: —" },
+  "Smeta → F2 → fakt progressi": { "ru": "Прогресс: смета → Ф2 → факт", "en": "Progress: estimate → F2 → actuals" },
+  "Smeta bajarilishi — stack ustunlar": { "ru": "Выполнение сметы — составные столбцы", "en": "Estimate completion — stacked bars" },
+  "Smeta bajarilishi (ustamasiz)": { "ru": "Выполнение сметы (без наценки)", "en": "Estimate completion (before markup)" },
+  "Shartnoma bo‘yicha hisob — stack ustunlar": { "ru": "Расчёты по договору — составные столбцы", "en": "Contract settlements — stacked bars" },
+  "Shartnoma zanjiri: to‘lov va hisob": { "ru": "Цепочка договора: оплата и расчёты", "en": "Contract chain: payments and billing" },
+  "Smeta summasi": { "ru": "Сумма сметы", "en": "Estimate amount" },
+  "Smeta: katta raqam — ustamali (QQSsiz), kichik — ustamasiz. QQS bilan qiymat alohida yorliqda.": { "ru": "Смета: крупная цифра — с наценкой (без НДС), мелкая — без наценки. Значение с НДС — отдельной подписью.", "en": "Estimate: large figure is with markup (excl. VAT), small is before markup. The VAT-inclusive value is labelled separately." },
+  "Smeta (ustamali / ustamasiz)": { "ru": "Смета (с наценкой / без)", "en": "Estimate (with / without markup)" },
+  "jamlangan qoldiq": { "ru": "накопленный остаток", "en": "cumulative balance" }
+}

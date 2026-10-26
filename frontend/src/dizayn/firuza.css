@@ -40,6 +40,8 @@
   --kat-mash: #e9a94f;
   --kat-mat: #76c98f;
   --kat-ob: #b9a2f5;
+  --veil: #ffffff;
+  --scrim: rgba(2, 6, 23, .72);
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .04);
   --shadow-raise: 0 1px 0 rgba(255, 255, 255, .03) inset;
   --shadow-panel: var(--shadow-raise);
@@ -95,9 +97,11 @@
   color-scheme: dark;
 }
 
-/* ---------- 1b. Ganch (yorug') — tayyor, lekin hali yoqilmagan ----------
-   Eski sahifalarda 480+ joyda `text-white` qattiq yozilgan; ular token klassiga o'tmaguncha
-   yorug' mavzu yoqilmaydi. Sinov uchun: <html data-mavzu="ganch">. */
+/* ---------- 1b. Ganch (yorug') ----------
+   Yoqish: <html data-mavzu="ganch"> (Mavzu.tsx → useMavzu, localStorage `fz-mavzu`).
+   --veil: qorong'i mavzuda «oq qatlam» (hover/chiziq), yorug'da qora qatlam o'rniga ishlatiladi.
+   Kontrast (hisoblangan, bg→surface-3): text 13.6–17.1, text-dim 6.3–8.0, text-mute 4.9–6.1,
+   accent-text 5.4–6.8, on-accent/accent 5.2, ok/warn/danger/info/kat-* 4.6–6.6 — hammasi WCAG AA (≥4.5). */
 [data-mavzu="ganch"] {
   --bg: #f5f4f0;
   --surface: #ffffff;
@@ -126,10 +130,43 @@
   --kat-mash: #8a5300;
   --kat-mat: #26733f;
   --kat-ob: #6a49c2;
+  --veil: #191c1d;
+  --scrim: rgba(25, 28, 29, .45);
   --shadow-pop: 0 10px 28px rgba(25, 28, 29, .14), 0 0 0 1px rgba(25, 28, 29, .04);
   --shadow-raise: 0 1px 2px rgba(25, 28, 29, .06);
   color-scheme: light;
 }
+
+/* Ganch: Tailwind palitrasi (eski sahifalar) — qorong'i qiymatlar yorug' fonda o'qilmaydi, to'q variantlarga. */
+[data-mavzu="ganch"] {
+  --color-zinc-50: #191c1d; --color-zinc-100: #22282a; --color-zinc-200: #2f3638; --color-zinc-300: #4b5254;
+  --color-zinc-400: #5c6365; --color-zinc-500: #6b7274; --color-zinc-600: #8f8a7e; --color-zinc-700: #dedbd3;
+  --color-zinc-800: #e7e5de; --color-zinc-900: #f1f0eb; --color-zinc-950: #f5f4f0;
+  --color-slate-50: #191c1d; --color-slate-100: #22282a; --color-slate-200: #2f3638; --color-slate-300: #4b5254;
+  --color-slate-400: #5c6365; --color-slate-500: #6b7274; --color-slate-600: #8f8a7e; --color-slate-700: #dedbd3;
+  --color-slate-800: #e7e5de; --color-slate-900: #f1f0eb; --color-slate-950: #f5f4f0;
+  --color-emerald-300: #236a34; --color-emerald-400: #236a34; --color-emerald-500: #1c5a2b;
+  --color-rose-300: #b0301f; --color-rose-400: #b0301f; --color-rose-500: #962818;
+  --color-amber-300: #8f5600; --color-amber-400: #8f5600; --color-amber-500: #7a4900;
+  --color-sky-300: #2f54c4; --color-sky-400: #2f54c4; --color-sky-500: #2646a8;
+}
+/* Ganch: qattiq yozilgan oq/qora qatlamlar (text-white, bg-white/5, border-white/10, bg-black/20 …) */
+[data-mavzu="ganch"] .text-white { color: var(--text); }
+[data-mavzu="ganch"] :is(.bg-accent, .bg-danger, .bg-ok, .bg-success, .bg-warn, .bg-info, .tugma-asosiy, .fz-btn--primary) .text-white,
+[data-mavzu="ganch"] :is(.bg-accent, .bg-danger, .bg-ok, .bg-success, .bg-warn, .bg-info).text-white { color: var(--on-accent); }
+[data-mavzu="ganch"] .text-black { color: var(--text); }
+[data-mavzu="ganch"] .bg-white { background-color: var(--surface); }
+[data-mavzu="ganch"] .bg-white\/5 { background-color: color-mix(in srgb, var(--veil) 5%, transparent); }
+[data-mavzu="ganch"] .bg-white\/10 { background-color: color-mix(in srgb, var(--veil) 8%, transparent); }
+[data-mavzu="ganch"] .bg-white\/15 { background-color: color-mix(in srgb, var(--veil) 12%, transparent); }
+[data-mavzu="ganch"] .border-white\/5 { border-color: color-mix(in srgb, var(--veil) 8%, transparent); }
+[data-mavzu="ganch"] .border-white\/10 { border-color: color-mix(in srgb, var(--veil) 14%, transparent); }
+[data-mavzu="ganch"] .border-white\/15 { border-color: color-mix(in srgb, var(--veil) 18%, transparent); }
+[data-mavzu="ganch"] .border-white\/20 { border-color: color-mix(in srgb, var(--veil) 24%, transparent); }
+[data-mavzu="ganch"] .bg-black\/20 { background-color: color-mix(in srgb, var(--veil) 5%, transparent); }
+[data-mavzu="ganch"] .bg-black\/40 { background-color: color-mix(in srgb, var(--veil) 30%, transparent); }
+[data-mavzu="ganch"] .bg-black\/50 { background-color: color-mix(in srgb, var(--veil) 40%, transparent); }
+[data-mavzu="ganch"] .bg-black\/60 { background-color: color-mix(in srgb, var(--veil) 50%, transparent); }
 
 /* ---------- 2. Asos ---------- */
 html, body {
@@ -378,6 +415,8 @@ h1, h2 { font-family: var(--font-display); }
 .fz-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .fz-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .fz-btn--primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+[data-mavzu="ganch"] .fz-btn--primary:hover:not(:disabled),
+[data-mavzu="ganch"] .tugma-asosiy:hover:not(:disabled) { filter: brightness(.9); }
 .fz-btn--ghost { background: transparent; border-color: transparent; color: var(--text-dim); }
 .fz-btn--ghost:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
 .fz-btn--danger { background: transparent; border-color: var(--danger); color: var(--danger); }

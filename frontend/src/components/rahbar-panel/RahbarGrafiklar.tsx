@@ -5,6 +5,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import type { BossDashboard } from '../../api/t2-boss';
 import { t } from '../../i18n/til';
 import { amount, objectUrl, type BossExecutive, type ExecutiveObject, type PortfolioTotals } from '../boss-decision/model';
@@ -118,9 +119,11 @@ function Shkala({ belgilar, max }: { belgilar: number[]; max: number }) {
   </div>;
 }
 function Ustun({ qiymat, max, rang, nom, chiziq = false }: { qiymat: number | null; max: number; rang: string; nom: string; chiziq?: boolean }) {
+  const kam = useReducedMotion();
   return <div className="flex items-center gap-2" title={`${nom}: ${pul(qiymat)}`}>
     <div className="relative h-2.5 flex-1 rounded-sm" style={{ background: 'var(--surface-3)' }}>
-      {qiymat != null && <div className="absolute inset-y-0 left-0 rounded-sm" style={{ width: foizda(qiymat, max), ...(chiziq ? { border: `1px solid ${rang}`, background: yumshoq(rang, 30) } : { background: rang }) }} />}
+      {qiymat != null && <motion.div className="absolute inset-y-0 left-0 rounded-sm" initial={kam ? false : { width: 0 }} animate={{ width: foizda(qiymat, max) }} transition={{ duration: kam ? 0 : 0.7, ease: 'easeOut' }}
+        style={chiziq ? { border: `1px solid ${rang}`, background: yumshoq(rang, 30) } : { background: rang }} />}
     </div>
     <span className="w-20 shrink-0 text-right text-[11.5px] tabular-nums text-text-dim">{pul(qiymat)}</span>
   </div>;

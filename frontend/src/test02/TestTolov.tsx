@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { sbT2TolovlarOl, sbT2BuxDashboardOl, type Tolov } from '../api/t2-buxgalteriya';
+import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useReducedMotion } from 'framer-motion';
 import { Plus, RefreshCcw, FileSpreadsheet, Building2, CreditCard, Banknote, BarChart3 } from 'lucide-react';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
@@ -55,7 +57,10 @@ export default function TestTolov() {
     && (toifa === 'barchasi' || (toifa === 'kirim' ? x.summa > 0 : x.summa < 0)));
   const oqim = useMemo(() => tolovOqimi(tolovlar), [tolovlar]);
   const ulush = tolovUlushi(dashboard.bajarilgan, dashboard.tolangan);
-  const oyMaks = Math.max(1, ...oqim.oylar.map((o) => Math.max(o.kirim, o.chiqim)));
+  const kamHarakat = useReducedMotion();
+  const nomKirim = t('kirim'), nomChiqim = t('chiqim'), nomSof = t('jamlangan qoldiq');
+  /** To‘lov — haqiqiy pul harakati (ustamasiz, o‘zgartirilmaydi): oylik kirim/chiqim va jamlangan sof oqim. */
+  const oyData = useMemo(() => { let c = 0; return oqim.oylar.map((o) => { c += o.kirim - o.chiqim; return { ...o, sof: c }; }); }, [oqim]);
 
   return (
     <Sahifa
@@ -84,16 +89,19 @@ export default function TestTolov() {
             </span>
           </div>
           {oqim.oylar.length === 0 ? <p className="text-[12px] text-text-mute">{t('To‘lovlar hali yo‘q — oqim chizig‘i to‘lov kiritilgach paydo bo‘ladi.')}</p> : (
-            <div className="flex items-end gap-3 overflow-x-auto pb-1" style={{ minHeight: 110 }}>
-              {oqim.oylar.map((o) => (
-                <div key={o.oy} className="flex min-w-[44px] flex-col items-center gap-1" title={t('{oy}: kirim {k}, chiqim {c}', { oy: o.oy, k: o.kirim.toLocaleString('ru-RU'), c: o.chiqim.toLocaleString('ru-RU') })}>
-                  <div className="flex h-[84px] items-end gap-1">
-                    <i className="block w-3 rounded-t-sm" style={{ height: `${(o.kirim / oyMaks) * 100}%`, minHeight: o.kirim ? 2 : 0, background: 'var(--ok)' }} />
-                    <i className="block w-3 rounded-t-sm" style={{ height: `${(o.chiqim / oyMaks) * 100}%`, minHeight: o.chiqim ? 2 : 0, background: 'var(--danger)' }} />
-                  </div>
-                  <span className="text-[10.5px] tabular-nums text-text-mute">{o.oy}</span>
-                </div>
-              ))}
+            <div role="img" aria-label={t('Pul oqimi oylar bo‘yicha')} style={{ width: '100%', height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={oyData} margin={{ top: 6, right: 12, bottom: 0, left: 4 }}>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="oy" tick={{ fill: 'var(--text-mute)', fontSize: 11 }} stroke="var(--border)" />
+                  <YAxis tick={{ fill: 'var(--text-mute)', fontSize: 11 }} stroke="var(--border)" width={56} tickFormatter={(v: number) => (Math.abs(v) >= 1e6 ? `${Math.round(v / 1e6)} ${t('mln')}` : String(v))} />
+                  <Tooltip cursor={{ fill: 'var(--surface-2)' }} contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12 }}
+                    formatter={(v) => Number(v ?? 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} />
+                  <Bar dataKey="kirim" name={nomKirim} fill="var(--ok)" radius={[3, 3, 0, 0]} isAnimationActive={!kamHarakat} animationDuration={700} />
+                  <Bar dataKey="chiqim" name={nomChiqim} fill="var(--danger)" radius={[3, 3, 0, 0]} isAnimationActive={!kamHarakat} animationDuration={700} />
+                  <Line dataKey="sof" name={nomSof} type="monotone" stroke="var(--info)" strokeWidth={2} dot={{ r: 2.5, fill: 'var(--info)' }} isAnimationActive={!kamHarakat} animationDuration={900} />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
           )}
         </section>

@@ -15,6 +15,7 @@ import {
 } from '../../lib/shartnoma-liniya';
 import { shartnomaSvodOl } from '../../api/t2-nakopitelniy';
 import { shartnomaSvodi, svodJami, type ShartnomaSvodi } from '../../lib/nakopitelniy-svod';
+import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
 import { HisobMeterIxcham, ShartnomaZanjir, ZanjirKpi } from '../../components/shartnoma-liniya/ShartnomaZanjir';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
@@ -113,7 +114,7 @@ export function ShartnomaLiniya() {
             <span className={`fz-chip ${s.asosiy ? 'fz-chip--accent' : ''}`}>{s.asosiy ? tr('asosiy') : (s.turi || tr('qo‘shimcha'))}</span>
             {s.asosiy && s.turi && <span className="shrink-0 truncate text-[11px] text-text-mute">{s.turi}</span>}
             <span className="ml-auto shrink-0 text-right text-sm tabular-nums text-text-dim">{s.jami_nds_bilan != null ? <FmtN val={s.jami_nds_bilan} /> : <span className="text-text-mute">{tr('summa kiritilmagan')}</span>}
-              {(() => { const a = smetaAloqa(s.obyektlar, smetalar); return a.smeta != null ? <span className="block text-xs text-text-mute">{tr('smeta:')} <FmtN val={a.smeta} /></span> : null; })()}</span>
+              {(() => { const a = smetaAloqa(s.obyektlar, smetalar); return a.smeta != null ? <span className="mt-0.5 flex items-start justify-end gap-1.5 text-xs text-text-mute">{tr('smeta:')} <PortfelSummaJuft kichik obyektlar={s.obyektlar.map((obyektId) => ({ obyektId, shartnomaId: s.id ?? null }))} ustamasiz={a.smeta} kompaniyaId={kid} /></span> : null; })()}</span>
           </div>
           {s.nom && <div className="mt-0.5 truncate text-[12px] text-text-dim">{s.nom}</div>}
           {svod?.get(s.id) && <div className="mt-1.5 max-w-sm"><HisobMeterIxcham sv={svod.get(s.id)!} /></div>}
@@ -181,7 +182,7 @@ export function ShartnomaLiniya() {
                 <p className="fz-panel__h">{tr('Smeta bilan aloqa')}</p>
                 {a.qatorlar.length === 0 ? <p className="text-text-mute">{tr('Obyekt bog‘lanmagan — pastda obyektlarni tanlang.')}</p> : <>
                   <ul className="space-y-0.5">{a.qatorlar.map((q) => <li key={q.id} className="flex justify-between gap-2"><span className="truncate">{q.nom}</span><span className="tabular-nums">{q.bor ? <FmtN val={q.jami} /> : <span className="text-text-mute">{tr('smeta yo‘q')}</span>}</span></li>)}</ul>
-                  <p className="mt-1 flex justify-between border-t border-border/50 pt-1"><span>{tr('Smeta summasi (nakrutkasiz, QQSsiz)')}</span><b className="tabular-nums">{a.smeta == null ? '—' : <FmtN val={a.smeta} />}</b></p>
+                  <p className="mt-1 flex justify-between border-t border-border/50 pt-1"><span>{tr('Smeta summasi (nakrutkasiz, QQSsiz)')}</span><span className="text-right">{a.smeta == null ? <b>—</b> : <PortfelSummaJuft kichik obyektlar={s.obyektlar.map((obyektId) => ({ obyektId, shartnomaId: s.id ?? null }))} ustamasiz={a.smeta} kompaniyaId={kid} />}</span></p>
                   <p className="flex justify-between"><span>{tr('Shartnoma summasi (QQSsiz)')}</span><b className="tabular-nums">{shSumma == null ? <span className="font-normal text-text-mute">{tr('kiritilmagan')}</span> : <FmtN val={shSumma} />}</b></p>
                   {a.smeta != null && s.id != null && kid != null && <p className="mt-0.5"><UstamaJami companyId={kid} line={liniya} objects={t2Obyektlar} ids={s.obyektlar} contractId={s.id} label={tr('Smeta ustama bilan (QQS bilan)')} /></p>}
                   {f != null && <p className="flex justify-between"><span>{tr('Farq (shartnoma − smeta)')}</span><b className={`tabular-nums ${Math.abs(f) < 0.01 ? 'text-ok' : 'text-text'}`}><FmtN val={f} /></b></p>}

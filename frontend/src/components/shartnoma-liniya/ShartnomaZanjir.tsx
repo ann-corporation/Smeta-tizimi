@@ -4,6 +4,7 @@
  */
 import { Fragment, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { AlertTriangle, ArrowRight, ChevronRight } from 'lucide-react';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
@@ -54,7 +55,9 @@ const fmt = (n: number | null) => (n == null ? '—' : n.toLocaleString('ru-RU',
 
 /** To'liq quvur: 5 bosqich, har birida summa va izoh; ostida «hisoblanmagan qoldiq» chizig'i va ogohlantirishlar. */
 export function ShartnomaZanjir({ sv }: { sv: ShartnomaSvodi }) {
+  const kam = useReducedMotion();
   const c = hisobChizigi(sv);
+  const harakat = (ulush: number, kechik: number) => ({ initial: kam ? false as const : { width: 0 }, animate: { width: `${ulush * 100}%` }, transition: kam ? { duration: 0 } : { duration: 0.7, delay: kechik, ease: 'easeOut' as const } });
   const q = qoldiqMazmuni(sv.qoldiq);
   const dsIzoh = sv.joriy.manba === 'ds' && sv.joriy.ds ? t('DS № {r} dan ({s})', { r: sv.joriy.ds.raqam, s: sv.joriy.ds.sana.slice(0, 10) }) : sv.joriy.manba === 'shartnoma' ? t('asl shartnoma summasi') : t('summa kiritilmagan');
   const bosqichlar: { kalit: string; nom: string; qiymat: number | null; izoh: string; rang: string; holat?: 'warn' }[] = [
@@ -87,8 +90,8 @@ export function ShartnomaZanjir({ sv }: { sv: ShartnomaSvodi }) {
         {c.foiz == null ? <span className="text-[12px] text-text-mute">{t('Shartnoma summasi noma’lum — foiz hisoblanmaydi')}</span> : (
           <span className={`fz-meter fz-meter--lg ${c.oshdi ? 'fz-meter--over' : ''}`}>
             <span className="fz-meter__t">
-              <i style={{ width: `${c.tolovUlush * 100}%`, background: 'var(--ok)' }} />
-              <i className="fz-meter__shu" style={{ width: `${c.qarzUlush * 100}%` }} />
+              <motion.i style={{ background: 'var(--ok)' }} {...harakat(c.tolovUlush, 0)} />
+              <motion.i className="fz-meter__shu" {...harakat(c.qarzUlush, 0.15)} />
             </span>
             <span className="fz-meter__f">{Math.round(c.foiz)}%</span>
           </span>

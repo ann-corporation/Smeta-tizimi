@@ -9,6 +9,8 @@ import { useCompanyLineage } from './useLineage';
 import { useMarkupTotals } from './useMarkupTotals';
 import { useObjectFinancials } from './useObjectFinancials';
 import { FINANCIAL_METRICS, type FinancialMetric, type FinancialTotals } from './financials';
+import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
+import { KatTaqsimot, LoyihaStack, ProgressQadam, type StackQator } from './ObyektGrafik';
 
 const financialLabels: Record<FinancialMetric, string> = { smeta: 'Smeta', fakt: 'Fakt', f2: 'Tasdiqlangan F2', ostatka: 'Ostatka' };
 const technicalMetrics = ['razdel', 'ish', 'resurs', 'narxsiz', 'qator_soni'] as const;
@@ -81,10 +83,19 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
   const contracts = line.shartnomalar.filter(s => s.loyiha_id === projectId);
   const idSet = new Set(ids);
   const objectList = objects.filter(o => idSet.has(o.id) && matches(o.nom));
-  const amount = (objectIds: number[], metric: FinancialMetric, sid?: number) => <>
-    <Value value={financials.sum(objectIds)[metric]} money />
-    {metric === 'smeta' && <span className="mt-1 block text-sm font-normal text-text-dim">{t('Nakrutkalar bilan (QQS bilan)')}: {money.loading ? t('Hisoblanmoqda…') : <Value value={money.sum(objectIds,sid)} money />}</span>}
-  </>;
+  const amount = (objectIds: number[], metric: FinancialMetric, sid?: number) => {
+    const agg = financials.sum(objectIds)[metric];
+    if (metric === 'smeta') return <>
+      {/* Egasi 2026-10-24: ustamali (katta) + ustamasiz (kichik); QQS bilan qiymat alohida yorliq bilan. */}
+      <PortfelSummaJuft obyektlar={objectIds.map(obyektId => ({ obyektId, shartnomaId: sid ?? null }))} ustamasiz={agg.present === 0 ? null : agg.known} />
+      {agg.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-text-mute">{t('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida')}</span>}
+      <span className="mt-1 block text-[11.5px] font-normal text-text-dim">{t('Nakrutkalar bilan (QQS bilan)')}: {money.loading ? t('Hisoblanmoqda…') : <Value value={money.sum(objectIds,sid)} money />}</span>
+    </>;
+    return <Value value={agg} money />;
+  };
+  const stackQatorlar: StackQator[] = projectId === undefined && !contractRaw
+    ? line.loyihalar.map(p => ({ kalit: `p${p.id}`, nom: p.nom, fin: financials.sum(projectObjects(line, p.id)) }))
+    : projectId !== undefined && !contractRaw ? contracts.map(s => ({ kalit: `s${s.id}`, nom: `№ ${s.raqam} · ${s.nom ?? ''}`, fin: financials.sum(contractObjects(line, s.id)) })) : [];
   const technicalDetails = (objectIds: number[], name: string) => {
     const counts = summarize(objectIds);
     const financial = financials.sum(objectIds);
@@ -121,7 +132,8 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
         <span className="inline-flex items-center gap-1.5"><i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--info)' }} />{t('fakt (F2 siz)')}</span>
       </div>
     </div>}
-    <p className="text-[11px] text-text-dim">{t('To‘g‘ri xarajatlar · nakrutka va QQSsiz')}</p>
+    {!financials.loading && !financials.failed && stackQatorlar.length > 0 && <LoyihaStack qatorlar={stackQatorlar} />}
+    <p className="text-[11px] text-text-dim">{t('Smeta: katta raqam — ustamali (QQSsiz), kichik — ustamasiz. QQS bilan qiymat alohida yorliqda.')}</p>
     {technicalDetails(ids, projectId === undefined ? t('Barcha loyihalar') : contract?.nom ?? projectName)}
     {financials.failed && <p role="status" className="fz-note fz-note--warn">{t('Moliyaviy ko‘rsatkichlar o‘qilmadi.')}<button type="button" className="fz-btn fz-btn--sm ml-2" onClick={financials.retry}>{t('Qayta urinish')}</button></p>}
     {money.failed && <p role="status" className="fz-note fz-note--warn">{t('Nakrutka hisobi o‘qilmadi. Qayta yangilang.')}<button type="button" className="fz-btn fz-btn--sm ml-2" onClick={money.retry}>{t('Qayta urinish')}</button></p>}
@@ -145,7 +157,8 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
           <button className="min-w-0 flex-1 break-words text-left text-[15px] font-semibold hover:underline" style={{ fontFamily: 'var(--font-display)' }} onClick={() => onOpen(o,contract?.id)}>{o.nom}</button>
           {!financials.loading && !financials.failed && <span className={`fz-stamp ${muhr.ton ? `fz-stamp--${muhr.ton}` : ''}`}>{t(muhr.soz)}</span>}
         </div>
-        {!financials.loading && !financials.failed && <Bajarilish f={fin} katta />}
+        {!financials.loading && !financials.failed && <ProgressQadam fin={fin} />}
+        <KatTaqsimot obyekt={o} />
         <div className="grid grid-cols-2 gap-x-3 gap-y-3">{FINANCIAL_METRICS.map(metric => <div key={metric} className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: metricRang[metric], boxShadow: metric === 'ostatka' ? 'inset 0 0 0 1px var(--border-strong)' : undefined }} />{t(financialLabels[metric])}</span><b className="text-[15px] font-semibold">{amount([o.id],metric,contract?.id)}</b></div>)}</div>
         {technicalDetails([o.id],o.nom)}
         <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3"><button className="fz-btn fz-btn--primary flex-1" onClick={() => onOpen(o,contract?.id)}>{t('Smetani ochish')}</button><Link className="fz-btn" to={`/admin/holat/${o.id}?panel=smeta`}><Upload aria-hidden="true" />{t('Smeta yuklash')}</Link><button className="fz-btn fz-btn--icon" aria-label={`${t('Obyektni tahrirlash')}: ${o.nom}`} title={t('Obyektni tahrirlash')} onClick={() => onEdit(o)}><Edit3 aria-hidden="true" /></button>{onShare && <button className="fz-btn fz-btn--icon" aria-label={`${t('Ulashish')}: ${o.nom}`} title={t('Ulashish')} onClick={() => onShare(o)}><Share2 aria-hidden="true" /></button>}<button className="fz-btn fz-btn--icon" aria-label={`${t('Obyektni arxivlash')}: ${o.nom}`} title={t('Obyektni arxivlash')} onClick={() => onArchive(o)}><Archive aria-hidden="true" /></button></div>
