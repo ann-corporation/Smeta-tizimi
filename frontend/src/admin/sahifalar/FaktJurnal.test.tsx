@@ -249,6 +249,58 @@ describe('FaktJurnal', () => {
     expect(screen.getByLabelText('Ish shifri')).toBeTruthy();
   });
 
+  describe('resurs zamenasi va ishdan chiqarish (egasi 2026-10-27)', () => {
+    const rs = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number }) => q(o as Partial<T2Qator> & { id: number; tur: string });
+    const ish = [
+      q({ id: 60, tur: 'rz', kod: '6', nom: 'Karkas' }),
+      q({ id: 61, tur: 'bl', ota_id: 60, daraja: 1, nom: 'Beton quyish', hajm: 12 }),
+      rs({ id: 62, tur: 'rs', ota_id: 61, daraja: 2, nom: 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', birlik: 'чел.-ч', hajm: 30, kat: 'ЧЕЛ', norma: 2.5 }),
+      rs({ id: 63, tur: 'rs', ota_id: 61, daraja: 2, nom: 'Kran', birlik: 'маш.-ч', hajm: 6, kat: 'МАШ', norma: 0.5, narx: 300000 }),
+    ];
+    const st = [{ qator_id: 61, smeta_hajm: 12, fakt_hajm: 6 }, { qator_id: 62, smeta_hajm: 30, fakt_hajm: 15 }, { qator_id: 63, smeta_hajm: 6, fakt_hajm: 3, smeta_summa: 1800000, fakt_manbasi: 'BL_NORMA' }];
+
+    it('ishchi mehnati: zamena tugmasi YO‘Q (sababi tooltip‘da), chiqarish ham yo‘q; kran — ikkalasi bor', () => {
+      render(<FaktJurnal {...props()} rows={ish} states={st} />);
+      expect(screen.queryByRole('button', { name: 'Zamena: ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ' })).toBeNull();
+      const mehnat = screen.getByTestId('resurs-62');
+      expect(mehnat.querySelector('[data-testid="zamena-yoq"]')?.getAttribute('title')).toMatch(/zamena qilinmaydi/);
+      expect(mehnat.querySelector('[data-testid="chiqarish-yoq"]')?.getAttribute('title')).toMatch(/chiqarib bo‘lmaydi/);
+      expect(screen.getByRole('button', { name: 'Zamena: Kran' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Ishdan chiqarish: Kran' })).toBeTruthy();
+    });
+
+    it('kran ishdan chiqariladi: «bajarilmaydi» qatlamiga TO‘LIQ smeta hajmi + sabab (smeta o‘zgarmaydi, fakt yozilmaydi)', async () => {
+      baj.belgila.mockResolvedValue({ ok: true, yaratildi: 1, otkazildi: 0 });
+      render(<FaktJurnal {...props()} rows={ish} states={st} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Ishdan chiqarish: Kran' }));
+      const dlg = screen.getByRole('dialog', { name: 'Resursni ishdan chiqarish' });
+      expect(dlg.textContent).toMatch(/Ish: Beton quyish/);
+      fireEvent.change(screen.getByLabelText('Sabab'), { target: { value: 'loyiha_ozgardi' } });
+      fireEvent.keyDown(dlg, { key: 'Enter' });
+      await waitFor(() => expect(baj.belgila).toHaveBeenCalledWith(expect.objectContaining({ qatorlar: [{ qator_id: 63, hajm: 6 }], sabab: 'loyiha_ozgardi' })));
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Resursni ishdan chiqarish' })).toBeNull());
+      expect(m.yoz).not.toHaveBeenCalled();
+    });
+
+    it('server belgini o‘tkazib yuborsa (boshqa faol belgi bor) — xato ko‘rsatiladi, oyna yopilmaydi', async () => {
+      baj.belgila.mockResolvedValue({ ok: true, yaratildi: 0, otkazildi: 1 });
+      render(<FaktJurnal {...props()} rows={ish} states={st} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Ishdan chiqarish: Kran' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Chiqarish/ }));
+      expect(await screen.findByRole('alert')).toBeTruthy();
+      expect(screen.getByRole('dialog', { name: 'Resursni ishdan chiqarish' })).toBeTruthy();
+    });
+
+    it('chiqarilgan kran: «ishdan chiqarilgan» belgisi, ochiq qoldiq o‘rnida «—», chiqarish/zamena tugmasi yo‘q', async () => {
+      baj.royxat.mockResolvedValueOnce({ ok: true, qatorlar: [{ id: 7, obyekt_id: 8, qator_id: 63, bajarilmagan_hajm: 6, hajm: 6, holat: 'faol' }] });
+      render(<FaktJurnal {...props()} rows={ish} states={st} />);
+      await screen.findByTestId('chiqarilgan-belgi');
+      expect(screen.getByTestId('ochiq-63').textContent).toBe('—');
+      expect(screen.queryByRole('button', { name: 'Ishdan chiqarish: Kran' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Zamena: Kran' })).toBeNull();
+    });
+  });
+
   it('zamena asl ostida «↻ zamena: asl X», aslda «almashtirildi X / Y»; qoldiqdan oshsa ogohlantirish (bloklanmaydi)', async () => {
     zb.ol.mockResolvedValueOnce({ almashtiradi: new Map([[40, 2]]), almashtirilgan: new Map([[2, 30]]) });
     const r2 = [...rows, q({ id: 40, tur: 'bl', ota_id: 1, daraja: 1, nom: 'Grunt (qo‘lda)', hajm: 30, zamena: true, qoshimcha: true })];

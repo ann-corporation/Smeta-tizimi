@@ -211,7 +211,9 @@ const BARG = new Set(['rs', 'mat', 'ob']);
  * alohida. Ish smeta_summa'si bolalar yig'indisi (takror) — smeta/qoldiqqa olinmaydi; qoldiq ish F2 siga kamayadi
  * (Nakopitelniy: qoldiq = smeta − jami tasdiqlangan).
  */
-export function bolimSummalari(rows: readonly T2Qator[], states: readonly JurnalHolat[]): Map<number, BolimSumma> {
+export function bolimSummalari(rows: readonly T2Qator[], states: readonly JurnalHolat[],
+  /** Ishdan chiqarilgan resurslar (lib/resurs-amal): norma × ish faktidan hosila FAKT summasi bo'lim/obyekt jamisiga qo'shilmaydi (smeta/F2 o'zgarmaydi). */
+  chiqarilgan?: ReadonlySet<number>): Map<number, BolimSumma> {
   const byId = new Map(rows.map((r) => [r.id, r]));
   const holat = new Map(states.map((s) => [s.qator_id, s]));
   const bos = (): SummaKesim => ({ ustamasiz: null, kesim: bosKatKesim() });
@@ -244,7 +246,7 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
     for (const b of bolimlar) {
       const x = ol(b);
       qosh(yangi ? x.qoshimcha : x.smeta, r.kat, v(h?.smeta_summa));
-      qosh(x.f2, r.kat, v(h?.f2_summa)); qosh(x.fakt, r.kat, v(h?.fakt_summa)); qosh(x.qoldiq, r.kat, v(h?.qoldiq_summa));
+      qosh(x.f2, r.kat, v(h?.f2_summa)); if (!chiqarilgan?.has(r.id)) qosh(x.fakt, r.kat, v(h?.fakt_summa)); qosh(x.qoldiq, r.kat, v(h?.qoldiq_summa));
     }
   }
   return out;

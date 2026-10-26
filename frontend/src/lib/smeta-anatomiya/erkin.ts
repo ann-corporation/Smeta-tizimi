@@ -1,5 +1,6 @@
 import { kalit, son, toliqUstunlar, xom } from './matn';
-import type { Dalil, ErkinVaraq, KirishKitob, Manzil, VaraqAnatomiyasi } from './turlar';
+import { sarlavhaBlokiniTop, tartibRaqamlariQatorimi } from './ustun';
+import type { Dalil, ErkinVaraq, Katak, KirishKitob, KirishVaraq, Manzil, TransportQatori, VaraqAnatomiyasi } from './turlar';
 
 /**
  * Erkin hisob varaqlari (egasi 2026-09-24: "perevozka proizvoniy shaklda
@@ -7,6 +8,13 @@ import type { Dalil, ErkinVaraq, KirishKitob, Manzil, VaraqAnatomiyasi } from '.
  * bo'lmaydi"). Modul ularni LRV/RES ga majburan solmaydi: faqat isbotlanadigan
  * yakuniy summani va uni o'qiydigan svod qatorini topadi. Qayerga qo'shish —
  * operator qarori.
+ *
+ * Perevozka (C4 PR-1, 2026-10-26):
+ *   - tn·km varag'i (`трансп.`, `Лист2`) — har material qatori olinadi; tonna × masofa = tn·km va
+ *     tn·km × narx = summa arifmetikasi bilan tekshiriladi. Egasi qarori: importda har material
+ *     ALOHIDA perevozka resursi bo'ladi (F2 da qisman bajarish uchun) — `yuklash.hamrohDaraxti`.
+ *   - sarlavhasiz bitta guruhli perevozka RES (`16.Перевоз`) — varaq anatomiyada `res` bo'lib o'qiladi
+ *     (varaq.ts: sarlavhasiz RES isboti), bu yerda faqat ИТОГО va svod bog'lanishi.
  */
 const JAMI = /^(ИТОГО|ВСЕГО|JAMI|ЖАМИ)/;
 
@@ -70,14 +78,87 @@ function svodQatoriniTop(
   return tenglik;
 }
 
+// ─── tn·km qatorlari ─────────────────────────────────────────────────────────
+
+interface TransportUstunlari { tartib: number; nom: number; birlik: number; miqdor: number; tonna: number; masofa: number; tnKm: number; narx: number; summa: number }
+
+/** tn·km sarlavhasi: «Грузооборот тн.км», «Дальность возки (км)», «Кол-во (тн)», «Стоимость тн.км», «Стоимость всего». */
+export function transportUstunlari(sarlavhalar: readonly string[]): TransportUstunlari | null {
+  const band = new Set<number>();
+  const top = (naqsh: RegExp, taqiq?: RegExp): number => {
+    const i = sarlavhalar.findIndex((s, k) => !band.has(k) && naqsh.test(s) && !(taqiq && taqiq.test(s)));
+    if (i >= 0) band.add(i);
+    return i;
+  };
+  const PUL = /СТОИМ|ЦЕНА|СУММА/;
+  const tnKm = top(/ГРУЗООБОРОТ|Т(ОНН?|Н)?\s*[.·*/-]?\s*КМ/, PUL);
+  const narx = top(/(СТОИМ|ЦЕНА).*(Т(ОНН?|Н)?\s*[.·*/-]?\s*КМ|ЕД)/, /ВСЕГО/);
+  const summa = top(/ВСЕГО|СУММА|СТОИМ/);
+  const masofa = top(/ДАЛЬНОСТ|РАССТОЯН|\(КМ\)|^КМ$/);
+  const tonna = top(/\(Т(Н|ОНН)?\.?\)|ТОНН|ВЕС|МАССА/);
+  const nom = top(/НАИМЕНОВАН|МАТЕРИАЛ/);
+  const birlik = top(/ЕД\.?\s*ИЗМ|ЕДИНИЦ/);
+  const miqdor = top(/КОЛ-?ВО|КОЛИЧЕСТВ/);
+  const tartib = top(/^(№|N П|NN|№№)|^N$/);
+  // Kamida material, tn·km va summa ustunlari bo'lmasa — bu tn·km jadvali deb o'qilmaydi.
+  if (nom < 0 || tnKm < 0 || summa < 0) return null;
+  return { tartib, nom, birlik, miqdor, tonna, masofa, tnKm, narx, summa };
+}
+
+const mos = (a: number, b: number) => Math.abs(a - b) <= Math.max(Math.abs(b) * 0.005, 0.5);
+
+/** tn·km varag'i material qatorlari (ИТОГО gacha). Ustunlar tanilmasa — null. */
+export function transportQatorlari(fayl: string, v: KirishVaraq): { qatorlar: TransportQatori[]; ustunlar: TransportUstunlari } | null {
+  const blok = sarlavhaBlokiniTop(v.rows);
+  if (!blok) return null;
+  const u = transportUstunlari(blok.sarlavhalar);
+  if (!u) return null;
+  const ol = (row: readonly Katak[], i: number): Katak => (i >= 0 ? row[i] ?? null : null);
+  const raqam = (row: readonly Katak[], i: number): number | null => son(ol(row, i));
+  const qatorlar: TransportQatori[] = [];
+  for (let r = blok.malumotBoshi; r < v.rows.length; r++) {
+    const row = v.rows[r] ?? [];
+    const toliq = toliqUstunlar(row);
+    if (!toliq.length || tartibRaqamlariQatorimi(row)) continue;
+    if (toliq.some((i) => JAMI.test(kalit(row[i])))) break;
+    const nom = xom(ol(row, u.nom));
+    if (!nom || !/[A-Za-zА-Яа-яЁё]/.test(nom)) continue;
+    const tonna = raqam(row, u.tonna), masofa = raqam(row, u.masofa), tnKm = raqam(row, u.tnKm);
+    const narx = raqam(row, u.narx), summa = raqam(row, u.summa);
+    if ([raqam(row, u.miqdor), tonna, tnKm, summa].every((x) => x == null)) continue;
+    qatorlar.push({
+      tartib: xom(ol(row, u.tartib)), xom: nom, birlik: xom(ol(row, u.birlik)) || null,
+      miqdor: raqam(row, u.miqdor), tonna, masofa, tnKm, narx, summa,
+      isbot: {
+        tnKm: tonna != null && masofa != null && tnKm != null ? mos(tonna * masofa, tnKm) : null,
+        summa: tnKm != null && narx != null && summa != null ? mos(tnKm * narx, summa) : null,
+      },
+      manzil: { fayl, varaq: v.nom, qator: r + 1, ustun: u.nom + 1 },
+    });
+  }
+  return { qatorlar, ustunlar: u };
+}
+
 export function erkinVaraqlar(kitob: KirishKitob, anat: readonly VaraqAnatomiyasi[]): ErkinVaraq[] {
   const chiq: ErkinVaraq[] = [];
   kitob.varaqlar.forEach((v, j) => {
-    const rol = anat[j]?.rol;
-    if (rol !== 'transport' && rol !== 'erkin') return;
+    const a = anat[j];
+    const perevozkaRes = a?.rol === 'res' && a.rolDalil.some((d) => d.qoida === 'res:sarlavhasiz_arifmetika');
+    const rol: ErkinVaraq['rol'] | null = perevozkaRes ? 'perevozka_res' : a?.rol === 'transport' || a?.rol === 'erkin' ? a.rol : null;
+    if (!rol) return;
     const yakuniy = yakuniySumma(kitob.fayl, v.nom, v.rows);
     const svodQatori = yakuniy ? svodQatoriniTop(kitob, anat, v.nom, yakuniy) : null;
-    chiq.push({ fayl: kitob.fayl, varaq: v.nom, rol, yakuniy, svodQatori, holat: 'kutmoqda' });
+    const e: ErkinVaraq = { fayl: kitob.fayl, varaq: v.nom, rol, yakuniy, svodQatori, holat: 'kutmoqda' };
+    if (rol === 'transport') {
+      const t = transportQatorlari(kitob.fayl, v);
+      if (t) {
+        e.qatorlar = t.qatorlar;
+        const summalar = t.qatorlar.map((q) => q.summa).filter((x): x is number => x != null);
+        e.qatorlarJami = summalar.length ? summalar.reduce((s, x) => s + x, 0) : null;
+        e.jamiMos = e.qatorlarJami != null && yakuniy ? mos(e.qatorlarJami, yakuniy.qiymat) : null;
+      }
+    }
+    chiq.push(e);
   });
   return chiq;
 }

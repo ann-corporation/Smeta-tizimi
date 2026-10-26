@@ -17,7 +17,10 @@ import {
 } from '../../lib/smeta-source-analysis';
 import type { AktNode } from '../../lib/f2-match-engine';
 import { varaqniTahlilQil } from '../../lib/smeta-anatomiya/varaq';
-import { lrvDaraxti, ustunSozlamasi, ustunXaritasigaQayt, varaqRoli } from '../../lib/smeta-anatomiya/yuklash';
+import { hamrohDaraxti, hamrohTanlovniYig, lrvDaraxti, ustunSozlamasi, ustunXaritasigaQayt, varaqRoli, type HamrohTanlovKalitlari } from '../../lib/smeta-anatomiya/yuklash';
+import { kitobHamrohlari } from '../../lib/smeta-anatomiya';
+import type { Katak } from '../../lib/smeta-anatomiya/turlar';
+import { HamrohVaraqlarPaneli } from './HamrohVaraqlarPaneli';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from '../../lib/res-kategoriya';
 import { bezSkladKategoriyaAniqla } from '../../lib/resurs-kategoriyasi/bez-sklad';
@@ -378,7 +381,8 @@ export function katTaxmini(nom: string, birlik: string): 'ЧЕЛ' | 'МАШ' | '
   return 'МАТ';
 }
 
-export type VaraqTegi = 'lrv' | 'res' | 'etibor_bermaslik';
+/** `hamroh` — svod / tn·km varag'i: LRV/RES emas, qatorlari «Hamroh varaqlar» panelida (operator tanlaydi). */
+export type VaraqTegi = 'lrv' | 'res' | 'hamroh' | 'etibor_bermaslik';
 
 /**
  * Owner: "smeta lrv res... nomni farqi yo'q tizim o'zi aniqlashga harakat
@@ -393,19 +397,20 @@ export type VaraqTegi = 'lrv' | 'res' | 'etibor_bermaslik';
  * Ikkalasi ham yo'q yoki juda kam ma'lumot -- "nomalum" (foydalanuvchi
  * qo'lda belgilaydi, hech narsa taxmin qilib yozilmaydi).
  */
-export function varaqTuriTaxmin(rows: SheetGrid | null | undefined, nom = ''): 'lrv' | 'res' | 'nomalum' {
+export function varaqTuriTaxmin(rows: SheetGrid | null | undefined, nom = ''): 'lrv' | 'res' | 'hamroh' | 'nomalum' {
   const grid = safeSheetRows(rows);
   /* C4: rolni avval yagona anatomiya aytadi (katalog, 1C hisobot, svod —
      LRV deb olinmaydi; LRV_PLUS — RES deb olinmaydi). Aniq xulosa bo'lmasa
-     quyidagi eski mazmun evristikasi. */
+     quyidagi eski mazmun evristikasi. Svod / tn·km — `hamroh` (tashlanmaydi,
+     qatorlari hamroh panelida; C4 PR-1). */
   let anatLrv = true;
   try {
     // SMETA YADROSI: aniq nom (LRV/ЛРВ/RES/РС/Ведомость…) birinchi.
     const yadro = varaqRoliniAniqla(nom, grid);
     if (yadro.manba !== 'tuzilma' && (yadro.rol === 'lrv' || yadro.rol === 'res')) return yadro.rol;
-    if (yadro.manba !== 'yoq' && (yadro.rol === 'svod' || yadro.rol === 'transport')) return 'nomalum';
+    if (yadro.manba !== 'yoq' && (yadro.rol === 'svod' || yadro.rol === 'transport')) return 'hamroh';
     const x = varaqRoli(nom, grid);
-    if (x.aniq) return x.rol === 'lrv' ? 'lrv' : x.rol === 'res' ? 'res' : 'nomalum';
+    if (x.aniq) return x.rol === 'lrv' ? 'lrv' : x.rol === 'res' ? 'res' : x.rol === 'hamroh' ? 'hamroh' : 'nomalum';
     // Ish daraxti topilmagan varaq (1C hisobot, katalog, grafik, ostatka) avtomatik LRV bo'lmaydi.
     anatLrv = x.anatomiya.rol === 'lrv' && x.anatomiya.ishlar.length > 0;
   } catch { /* zaxira evristika */ }
@@ -1025,6 +1030,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
    *  har bir varaq turi mazmuniga qarab avtomatik taxmin qilinadi
    *  (varaqTuriTaxmin), foydalanuvchi shu yerda tasdiqlaydi/tuzatadi. */
   const [varaqTeglari, setVaraqTeglari] = useState<Record<string, VaraqTegi>>({});
+  /** Hamroh varaqlar (svod / tn·km) — operator tanlovi; sukut bilan bo'sh (hech narsa o'zi yozilmaydi). */
+  const [hamrohTanlov, setHamrohTanlov] = useState<HamrohTanlovKalitlari>({ transport: [], xatlar: [] });
   /** Har tanlangan LRV varag'i o'z ustun xaritasini saqlaydi. Bu bir
    * obyekt ichidagi uchastkalar turli Excel shaklida bo'lsa ham ularni
    * bitta import sessiyasida aralashtirmasdan o'qish uchun kerak. */
@@ -1077,6 +1084,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
     generation.current++; setError(''); setResult(null); setCols(null); setPreview([]);
     setResBook(null); setResSheetNames([]); setResColsBySheet({}); setResIndex(null); setResIndexSize(0); setResError('');
     setVaraqTeglari({}); setInFileLrvCols({}); setInFileResCols({}); setKatKorib([]); setReimportDiff(null);
+    setHamrohTanlov({ transport: [], xatlar: [] });
     setPaketVaraqlar([]); setPaketTasdiqImzosi(null); setPaketKalit(''); setPaketNom(''); setPaketBand(false); paketImportOperationId.current = '';
   }
 
@@ -1155,17 +1163,24 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       const lrvUstunlari: Record<string, F2ColumnConfig> = {};
       const resUstunlari: Record<string, F2ColumnConfig> = {};
       let lrvTanlandi = '';
+      const hamrohlar: string[] = [];
       for (const s of workbook.sheets) {
         const sheet = workbook.sheet(s.name);
         const taxmin = sheet ? varaqTuriTaxmin(sheet.rows, s.name) : 'nomalum';
         teglar[s.name] = taxmin === 'nomalum' ? 'etibor_bermaslik' : taxmin;
+        if (taxmin === 'hamroh') hamrohlar.push(s.name);
         if (taxmin === 'lrv' && sheet) {
           lrvUstunlari[s.name] = avtoUstunlar(sheet.rows, s.name);
           if (!lrvTanlandi) lrvTanlandi = s.name;
         }
         if (taxmin === 'res' && sheet) resUstunlari[s.name] = avtoUstunlar(sheet.rows, s.name);
       }
-      if (!lrvTanlandi) { lrvTanlandi = workbook.sheets[0]?.name || ''; teglar[lrvTanlandi] = 'lrv'; }
+      // LRV topilmasa — birinchi varaq sukut bilan LRV (eski odat), lekin hamroh (svod/tn·km) varaq LRV qilinmaydi:
+      // uning qatorlari hamroh panelida, bo'sh LRV daraxti/bo'lim yaratilmaydi (C4 PR-1 «bo'sh import» darvozasi).
+      if (!lrvTanlandi) {
+        lrvTanlandi = workbook.sheets.find((s) => !hamrohlar.includes(s.name))?.name || '';
+        if (lrvTanlandi) teglar[lrvTanlandi] = 'lrv';
+      }
       if (lrvTanlandi && !lrvUstunlari[lrvTanlandi]) {
         const sheet = workbook.sheet(lrvTanlandi);
         if (sheet) lrvUstunlari[lrvTanlandi] = avtoUstunlar(sheet.rows, lrvTanlandi);
@@ -1644,6 +1659,15 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         yakunla('tayyor', qollangan.mosSoni + ' ta mos, ' + qollangan.mosEmasSoni + ' ta narxsiz qoldi');
       }
 
+      // C4 PR-1: operator belgilagan hamroh qatorlari (tn·km — har material alohida perevozka resursi; svod xat
+      // qatorlari — yaxlit resurssiz ish) LRV daraxtiga alohida bo'lim bo'lib qo'shiladi. Belgilanmagan bo'lsa — hech narsa.
+      if (hamroh && (hamrohTanlov.transport.length || hamrohTanlov.xatlar.length)) {
+        qadam('Hamroh qatorlar (perevozka / svod) qo‘shilmoqda');
+        const h = hamrohDaraxti(hamrohTanlovniYig(hamroh, hamrohTanlov));
+        importTree = [...importTree, ...h.tree];
+        yakunla('tayyor', `${h.tree.length} ta bo‘lim qo‘shildi${h.otkazildi ? `, ${h.otkazildi} ta qator kirmadi (tn·km/narx yo‘q yoki nusxa)` : ''}`);
+      }
+
       // #11: narxsiz smeta jim o'tmasin -- ongli tasdiq (blok emas, lekin ko'rinadigan).
       const narxHisobi = narxsizImportHisobi(importTree);
       if (narxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(narxHisobi))) {
@@ -1803,6 +1827,18 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   }), [paketVaraqlar]);
 
   /* Import oldidan hujjat anatomiyasi: import aynan shu daraxtni quradi — bu yerda faqat o'qiladi, hech narsa yozilmaydi. */
+  /** Hamroh natijalar (svod qatorlari, tn·km, perevozka RES, «tushunilmadi» darvozasi) — yagona anatomiya yadrosidan. */
+  const hamroh = useMemo(() => {
+    if (!book) return null;
+    try {
+      const varaqlar = book.sheets.flatMap((s) => {
+        const sheet = book.sheet(s.name);
+        return sheet ? [{ nom: s.name, rows: sheet.rows as Katak[][], merges: sheet.merges, formulalar: sheet.formulalar }] : [];
+      });
+      return kitobHamrohlari({ fayl: rawFile.current?.name ?? 'fayl', varaqlar });
+    } catch { return null; }
+  }, [book]);
+
   const tahlil = useMemo(() => {
     if (!book || !cols || result) return null;
     try {
@@ -1976,6 +2012,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           {rollupObyekt != null && <button type="button" disabled={tiklashBand} className="fz-btn fz-btn--primary" onClick={() => void rollupniQaytaUrin()}>{t('Jamlarni qayta hisoblash')}</button>}
         </div>
       )}
+      {book && !result && hamroh && (
+        <HamrohVaraqlarPaneli erkin={hamroh.erkin} svod={hamroh.svod} tushunilmadi={hamroh.tushunilmadi} tanlov={hamrohTanlov} onTanlov={setHamrohTanlov} />
+      )}
       {book && cols && !result && (
         <>
           <div className="fz-note fz-note--info items-center">
@@ -2000,7 +2039,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                 <tbody>
                   {book.sheets.map(s => (
                     <tr key={s.name} className="border-t border-border/40">
-                      <td className="py-1 pr-2">{s.name}</td>
+                      <td className="py-1 pr-2">{s.name}{varaqTeglari[s.name] === 'hamroh' && <span className="text-text-mute"> · {t('hamroh (svod / perevozka)')}</span>}</td>
                       <td className="py-1 pr-2">
                         <input type="checkbox" aria-label={`${s.name} — LRV`}
                           checked={varaqTeglari[s.name] === 'lrv'}

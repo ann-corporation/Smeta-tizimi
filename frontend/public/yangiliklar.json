@@ -2,6 +2,38 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 27,
+      "sana": "2026-10-26",
+      "sarlavha": "Smeta yuklash: perevozka va svod endi tashlab yuborilmaydi",
+      "bandlar": [
+        "tn·km perevozka varag'i («трансп.», «Лист2») o'qiladi: har material — tonna, masofa, tn·km, narx, summa; arifmetika va ИТОГО bilan tekshiriladi, svoddagi «ЗАТРАТЫ НА ТРАНСПОРТНЫЕ РАСХОДЫ» qatoriga bog'lanadi.",
+        "«16.Перевоз» kabi sarlavhasiz perevozka resurs varag'i RES sifatida o'qiladi (resurslar va ИТОГО).",
+        "Svod qatorlari (moddalar, foizlar, НДС, «письмо заказчика №…» yaxlit summalari, заявленная/снижения) «Hamroh varaqlar» panelida ko'rinadi. Smetaga hech narsa o'zi yozilmaydi: belgilangan tn·km varag'i — har material alohida perevozka resursi; belgilangan xat qatori — smeta tarkibiga yaxlit ish (НДС siz narx svoddagi stavka bilan).",
+        "O'qilmagan varaq endi jim «0 qator» bo'lmaydi: «tushunilmadi» ogohlantirishi, eng katta summa va taklif chiqadi."
+      ]
+    },
+    {
+      "id": 26,
+      "sana": "2026-10-27",
+      "sarlavha": "Faktli ishda resurs zamenasi va «ishdan chiqarish»",
+      "bandlar": [
+        "F2 tayyorlash va Fakt jurnalida ish ichidagi istalgan resurs (mashina, material, uskuna, perevozka) yonida «Zamena» tugmasi bor: yangi resursni katalogdan tanlang yoki qo'lda yozing (kod, nom, birlik, norma/hajm, narx manbasi). Asl qator o'zgarmaydi — zamena F2 da uning o'rnida turadi, aslning hajmi esa zamena hajmiga qarab yopiladi (ikki marta olinmaydi). Birlik farqli bo'lsa — «asl resursning qancha hajmini almashtiradi» ni yozish mumkin.",
+        "«Ishdan chiqarish» — resurs shu ishda ishlatilmagan bo'lsa: sababini tanlaysiz, resurs F2 ga kirmaydi va «ishdan chiqarilgan» belgisi bilan ko'rinadi. Smeta qatori o'chirilmaydi; belgini bosib bekor qilish mumkin.",
+        "Ishchi mehnati (ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ) zamena qilinmaydi va hozircha chiqarilmaydi — tugma xira, ustiga borsangiz sababi yoziladi."
+      ]
+    },
+    {
+      "id": 25,
+      "sana": "2026-10-27",
+      "sarlavha": "Smeta muhrlandi: asl smetadan har bir o'zgarish ko'rinadi",
+      "bandlar": [
+        "Har obyekt smetasining asl qatorlari muhrlandi (shifr, nom, birlik, hajm, narx, norma, tur, joyi). Bitta vergul qo'shilsa ham qator «O'zgargan» deb belgilanadi.",
+        "Smeta va bajarilish sahifasida daraxt ustida xulosa: nechta qator o'zgargan, qo'shilgan yoki o'chirilgan; daraxtda «Asl smetadan farq» filtri va qator yonida belgi.",
+        "Belgini bosing — qator tafsilotida «Avval (asl smeta) / Endi» jadvali va o'zgarish jurnali (kim, qachon) chiqadi. Tahrirlash taqiqlanmaydi — faqat ko'rinadi.",
+        "Narx keyin qo'yilgan qatorlar («Narx qo'yildi») va ekspertizagacha bo'limlar alohida ko'rsatiladi."
+      ]
+    },
+    {
       "id": 24,
       "sana": "2026-10-26",
       "sarlavha": "Chap menyu: ish, kompaniya va platforma ajratildi",
