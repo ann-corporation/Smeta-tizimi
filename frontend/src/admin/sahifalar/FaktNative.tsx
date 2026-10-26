@@ -15,8 +15,10 @@ import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 import { FaktJurnal, type SaqlashFn } from './FaktJurnal';
 import { XotiradanFakt } from './XotiradanFakt';
+import { FaktQamrov } from './FaktQamrov';
+import { jurnalQur, type JurnalHolat, type JurnalIsh } from '../../lib/fakt-jurnal';
+import { bajarilmaydiXarita, faktQamrovBekor, holatXarita, markirovkaIshlari } from '../../lib/fakt-qamrov';
 
-function walk(nodes: TreeNode[], fn: (n: TreeNode) => void) { for (const n of nodes) { fn(n); if (n.children) walk(n.children, fn); } }
 
 export function FaktNative() {
   const { joriy } = useKompaniya(); const navigate = useNavigate(); const [params, setParams] = useSearchParams(); const workspace = usePTOWorkspace();
@@ -39,10 +41,23 @@ export function FaktNative() {
     // Faqat shu qator, ota-bobolari va bolalari qayta o'qiladi; daraxt ekranda qoladi.
     await holatniYangila(node.id); return { ok: true };
   }, [obyektId, valid, holatniYangila]);
+  /**
+   * «Markirovka bo‘yicha 100%» (JQA-03): endi qatorma-qator `fakt_belgila_v2` («= smeta») EMAS — Qamrov % oynasi (100%):
+   * oldindan ko‘rish, bitta fakt_yoz_v2 tranzaksiyasi (urinish/receipt), faqat OSHIRADI. Smetadan oshgan qator (masalan
+   * 120 / 100) o‘zgarmaydi va «allaqachon ≥100%» deb ko‘rsatiladi; kamaytirish — oynadagi alohida «Tuzatish» (preview bilan).
+   */
+  const [markirovkaQamrov, setMarkirovkaQamrov] = useState<{ sarlavha: string; ishlar: JurnalIsh[] } | null>(null);
+  const holatMap = useMemo(() => holatXarita(states as readonly JurnalHolat[]), [states]);
+  const narxOl = useCallback((id: number): number | null => { const h = holatMap.get(id); const r = rows.find((x) => x.id === id); return h?.smeta_narx != null ? Number(h.smeta_narx) : r?.narx != null ? Number(r.narx) : null; }, [holatMap, rows]);
   const yuz = async () => {
-    if (!marker || saving) return; const targets: TreeNode[] = []; walk(tree, n => { if (faktQoldaKiritiladimi(n.type) && String(n.kat || '').trim() === marker && n.smetaHajm != null && n.fakt !== n.smetaHajm) targets.push(n); });
-    if (!targets.length) { toast('Bu markirovkada bajarilmagan hajm topilmadi.', 'warn'); return; } setSaving(true); let ok = 0; let fail = 0;
-    try { for (const n of targets) { const r = await sbFaktBelgilaV2({ obyektId, qatorId: n.id!, expectedFaktHajm: Number(n.fakt || 0), yangiFaktHajm: n.smetaHajm!, sana: new Date().toISOString().slice(0, 10), operationId: yangiOperationId(), izoh: `Markirovka ${marker} bo‘yicha 100% Fakt` }); if (r.ok) ok++; else fail++; } toast(`${ok} ta qator 100% ga belgilandi${fail ? `, ${fail} ta qator saqlanmadi` : ''}.`, fail ? 'warn' : 'ok'); await holatniYangila(); } catch { toast('100% belgilash vaqtida javob olinmadi.', 'danger'); } finally { setSaving(false); }
+    if (!marker || saving || !joriy?.id) return; setSaving(true);
+    try {
+      const baj = await bajarilmaydiXarita(joriy.id, obyektId);
+      const j = jurnalQur(rows, states, null, baj);
+      const ishlar = markirovkaIshlari(j.bolimIshlari, marker, j.ildizIshlari);
+      if (!ishlar.length) { toast(t('Bu markirovkada qator topilmadi.'), 'warn'); return; }
+      setMarkirovkaQamrov({ sarlavha: `${t('Markirovka')} ${marker}`, ishlar });
+    } finally { setSaving(false); }
   };
   /** Avval saqlanmagan kiritmalarni saqlaydi, so'ng F2 tayyorlashga o'tadi (yuqori tugma va Fakt Studio paneli uchun umumiy). */
   const f2gaOt = async (avto = false) => { if (otmoqda) return; setOtmoqda(true); try { const ok = jurnalSaqlash.current ? await jurnalSaqlash.current() : true; if (!ok) { toast('Fakt saqlanmadi. Avval saqlang, keyin F2 tayyorlashga o\u2018ting.', 'warn'); return; } navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}${avto ? '&avto=1' : ''}`); } finally { setOtmoqda(false); } };
@@ -81,6 +96,9 @@ export function FaktNative() {
       {jurnal && joriy?.id && <FaktJurnal saqlashRef={jurnalSaqlash} f2Otish={() => void f2gaOt(true)} kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
       {valid && joriy?.id && korinish === 'xotira' && !birinchiYuklash && !error && <XotiradanFakt kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
       {korinish === 'daraxt' && tree.length > 0 && <div className="min-h-0 flex-1"><SmetaTree data={tree} priceControlLines={price} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash}/></div>}
+      {markirovkaQamrov && joriy?.id && <FaktQamrov sarlavha={markirovkaQamrov.sarlavha} ishlar={markirovkaQamrov.ishlar} holatMap={holatMap} narxOl={narxOl}
+        obyektId={obyektId} kompaniyaId={joriy.id} sana={new Date().toISOString().slice(0, 10)}
+        onYop={() => setMarkirovkaQamrov(null)} onBajarildi={() => holatniYangila()} aktBekor={faktQamrovBekor} />}
     </div></Sahifa>;
 }
 export default FaktNative;

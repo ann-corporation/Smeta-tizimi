@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
 import { jurnalQur, type JurnalHolat } from './fakt-jurnal';
-import { foizOqi, qamrovBolaklari, qamrovJami, qamrovReja } from './fakt-qamrov';
+import { foizOqi, markirovkaIshlari, qamrovBolaklari, qamrovJami, qamrovReja } from './fakt-qamrov';
 import { bolimIshlariYigish } from './fakt-f2-tenglash';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
@@ -83,5 +83,36 @@ describe('qamrov % (Tiklash rejimi)', () => {
     expect(foizOqi('12,5')).toBe(12.5);
     expect(foizOqi('0')).toBeNull();
     expect(foizOqi('abc')).toBeNull();
+  });
+});
+
+describe('JQA-03: 100% oshgan faktni kamaytirmaydi; markirovka qamrovi', () => {
+  const r2 = [
+    q({ id: 1, tur: 'rz' }),
+    q({ id: 10, tur: 'bl', ota_id: 1, hajm: 100, kat: 'МАТ' }),
+    q({ id: 11, tur: 'bl', ota_id: 1, hajm: 100, kat: 'МАТ' }),
+    q({ id: 12, tur: 'bl', ota_id: 1, hajm: -10, kat: 'МАТ' }),
+    q({ id: 13, tur: 'bl', ota_id: 1, hajm: 50, kat: 'ЧЕЛ' }),
+    q({ id: 14, tur: 'mat', ota_id: 13, hajm: 5, kat: 'МАТ' }),
+    q({ id: 15, tur: 'mat', ota_id: 13, hajm: 5, kat: 'ОБ' }),
+    q({ id: 30, tur: 'bl', ota_id: null, hajm: 8, kat: 'МАТ' }), // bo'limsiz ish
+  ];
+  const s2: JurnalHolat[] = [
+    { qator_id: 10, smeta_hajm: 100, fakt_hajm: 120 }, { qator_id: 11, smeta_hajm: 100, fakt_hajm: 40 },
+    { qator_id: 12, smeta_hajm: -10, fakt_hajm: -12 }, { qator_id: 13, smeta_hajm: 50, fakt_hajm: 0 },
+    { qator_id: 14, smeta_hajm: 5, fakt_hajm: 0 }, { qator_id: 15, smeta_hajm: 5, fakt_hajm: 0 }, { qator_id: 30, smeta_hajm: 8, fakt_hajm: 0 },
+  ];
+  const h2 = new Map(s2.map((s) => [s.qator_id, s]));
+  it('markirovka: mos ishlar, mos bo‘lmagan ish ichidagi mos resurs alohida, bo‘limsiz ish ham', () => {
+    const j = jurnalQur(r2, s2);
+    expect(markirovkaIshlari(j.bolimIshlari, 'МАТ', j.ildizIshlari).map((x) => x.id)).toEqual([10, 11, 12, 14, 30]);
+  });
+  it('120/100 va chegirmadagi oshgan (-12/-10) — yozilmaydi, oshganlar ro‘yxatida tuzatish deltasi bilan', () => {
+    const j = jurnalQur(r2, s2);
+    const r = qamrovReja(markirovkaIshlari(j.bolimIshlari, 'МАТ', j.ildizIshlari), 100, h2);
+    expect(r.qatorlar.map((x) => [x.id, x.hajm])).toEqual([[11, 60], [14, 5], [30, 8]]);
+    expect(r.qatorlar.every((x) => x.hajm > 0)).toBe(true);
+    expect(r.oshganlar.map((x) => [x.id, x.hajm])).toEqual([[10, -20], [12, 2]]);
+    expect(qamrovJami(r, new Set()).paket.some((x) => x.qator_id === 10)).toBe(false);
   });
 });
