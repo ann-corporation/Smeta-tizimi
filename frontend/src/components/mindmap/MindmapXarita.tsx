@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { AlertTriangle, Box, Clock, Info, LayoutDashboard, List, Network, PencilLine, RefreshCcw, Search, X, Map as MapIkon } from 'lucide-react';
 import type { MindmapGraf } from '../../api/t2-mindmap';
+import { tahrirYopiqMatni, type TahrirRuxsati } from '../../lib/mindmap-ruxsat';
 import { t, useTil, sanaFormatla } from '../../i18n/til';
 import {
   daraxtQur, fokusYoli, mindmapJoyla, qidiruvMoslari, HOLAT_TARTIB,
@@ -32,10 +33,10 @@ const KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => strin
 ];
 
 /** Ko‘rinish almashtirgich (yangi va eski ko‘rinishlarda bir xil). */
-export function KorinishTanlagich({ joriy, onTanla, className = '' }: { joriy: MindmapKorinishTuri; onTanla: (k: MindmapKorinishTuri) => void; className?: string }) {
+export function KorinishTanlagich({ joriy, onTanla, className = '', tahrirMumkin = true }: { joriy: MindmapKorinishTuri; onTanla: (k: MindmapKorinishTuri) => void; className?: string; /** `false` — «Tahrir» yorlig‘i chiqmaydi (yozuv ruxsati yo‘q). */ tahrirMumkin?: boolean }) {
   return (
     <div role="tablist" aria-label={t('Ko‘rinish')} className={'inline-flex max-w-full overflow-x-auto rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-surface-2 p-0.5 ' + className}>
-      {KORINISHLAR.map(({ k, ikon: I, nom }) => (
+      {KORINISHLAR.filter(({ k }) => tahrirMumkin || k !== 'tahrir').map(({ k, ikon: I, nom }) => (
         <button key={k} type="button" role="tab" aria-selected={joriy === k} onClick={() => onTanla(k)}
           className={'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[var(--radius-xs)] px-2.5 text-[12px] font-medium transition-colors ' +
             (joriy === k ? 'bg-[var(--accent)] text-[var(--on-accent)]' : 'text-text-dim hover:bg-[var(--surface-3)] hover:text-text')}>
@@ -71,10 +72,14 @@ type Props = {
   onKorinish: (k: MindmapKorinishTuri) => void;
   hodisalar?: HodisaHolati;
   onTahrirdaOch?: (id: string) => void;
+  /** Tahrir ruxsati (berilmasa — cheklov yo‘q). Yopiq bo‘lsa Tahrir yorlig‘i va tahrir tugmalari chiqmaydi. */
+  tahrir?: TahrirRuxsati;
 };
 
-export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYangila, tanlangan, onTanla, korinish, onKorinish, hodisalar, onTahrirdaOch }: Props) {
+export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYangila, tanlangan, onTanla, korinish, onKorinish, hodisalar, onTahrirdaOch, tahrir }: Props) {
   useTil();
+  const tahrirMumkin = !tahrir || tahrir.mumkin;
+  const yopiqMatn = tahrirYopiqMatni(tahrir);
   const katta = useEkran('(min-width: 1024px)');
   const kamQisqarish = useReducedMotion();
   const daraxt = useMemo(() => daraxtQur(graf), [graf]);
@@ -136,7 +141,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
 
   const panel = (
     <XaritaPanel daraxt={daraxt} graf={graf} tanlangan={tanlangan} onTanla={onTanla} guruhNomi={guruhNomi}
-      hodisalar={hodisalar} onTahrirdaOch={onTahrirdaOch} onHolatFiltr={holatniTanla} holatFiltri={holatFiltri}
+      hodisalar={hodisalar} onTahrirdaOch={tahrirMumkin ? onTahrirdaOch : undefined} onHolatFiltr={holatniTanla} holatFiltri={holatFiltri}
       onYop={katta ? (tanlangan ? () => onTanla(null) : undefined) : () => { setPanelOchiq(false); onTanla(null); }} />
   );
 
@@ -193,10 +198,11 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
                 <LayoutDashboard aria-hidden />{t('Umumiy holat')}
               </button>
             )}
-            <KorinishTanlagich joriy={korinish} onTanla={onKorinish} />
+            <KorinishTanlagich joriy={korinish} onTanla={onKorinish} tahrirMumkin={tahrirMumkin} />
           </div>
         </div>
         {!bosh && <Korsatkichlar daraxt={daraxt} graf={graf} onHolat={holatniTanla} />}
+        {yopiqMatn && <p role="note" data-testid="mindmap-faqat-oqish" className="mt-2 inline-flex items-center gap-1.5 text-[11.5px] text-text-mute"><Info aria-hidden className="h-3.5 w-3.5" />{yopiqMatn}</p>}
       </header>
 
       {xato && (
@@ -218,7 +224,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
             <div className="grid h-full place-items-center p-6">
               <div className="fz-note fz-note--info max-w-md">
                 <Info aria-hidden />
-                <span>{t('Hali loyiha va obyekt yo‘q. Obyektlar «Obyektlar» sahifasida, loyiha va resurslar «Tahrir» ko‘rinishida qo‘shiladi.')}</span>
+                <span>{tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Obyektlar «Obyektlar» sahifasida, loyiha va resurslar «Tahrir» ko‘rinishida qo‘shiladi.') : t('Hali loyiha va obyekt yo‘q.')}</span>
               </div>
             </div>
           )}
@@ -269,14 +275,16 @@ function Korsatkichlar({ daraxt, graf, onHolat }: { daraxt: XDaraxt; graf: Mindm
   const smetasiz = j?.smetasiz_obyekt ?? null;
   const taxm = r.smetaToliq ? '' : '≈ ';
   return (
-    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-6">
+    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-7">
       <Kpi nom={t('Obyektlar')} qiymat={String(r.obyektSoni)} izoh={t('{n} ta loyihada', { n: loyihaSoni })} />
       <Kpi nom={t('Smeta (ustamasiz)')} qiymat={r.smeta == null ? '—' : taxm + pulQ(r.smeta)}
         izoh={smetasiz ? t('{n} obyektda smeta yo‘q', { n: smetasiz }) : t('barcha obyektlarda bor')} ogoh={!!smetasiz} />
       <Kpi nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulQ(r.fakt)} izoh={t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
         <Bajarilish faktFoiz={r.faktFoiz} f2Foiz={0} smetaBor={r.smeta != null} matn={foizMatn(r.faktFoiz)} />
       </Kpi>
-      <Kpi nom={t('F2 bilan topshirilgan')} rang="var(--accent)" qiymat={pulQ(r.f2)} izoh={t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
+      <Kpi nom={t('F2 (tasdiqlangan)')} rang="var(--accent)" qiymat={pulQ(r.f2)}
+        izoh={r.f2Tasdiqlangan ? t('qoralama: {x}', { x: pulQ(r.f2Qoralama) }) : t('asosi noma’lum (server yangilanmagan)')} ogoh={!r.f2Tasdiqlangan && r.obyektSoni > 0}
+        title={t('Faqat tasdiqlangan F2 aktlar. Foiz faqat smetasi bor obyektlar bo‘yicha')}>
         <Bajarilish faktFoiz={r.f2Foiz} f2Foiz={r.f2Foiz} smetaBor={r.smeta != null} />
       </Kpi>
       <div className="fz-kpi">
@@ -291,6 +299,8 @@ function Korsatkichlar({ daraxt, graf, onHolat }: { daraxt: XDaraxt; graf: Mindm
           ))}
         </span>
       </div>
+      <Kpi nom={t('Ochiq signallar')} qiymat={r.signalSoni == null ? '—' : String(r.signalSoni)}
+        izoh={r.signalSoni == null ? t('ma’lumot yo‘q') : t('{n} kritik', { n: r.kritikSoni ?? 0 })} ogoh={(r.kritikSoni ?? 0) > 0} />
       <Kpi nom={t('Ochiq zayavkalar')} qiymat={r.zayavka == null ? '—' : String(r.zayavka)}
         izoh={j?.narxsiz_obyekt ? t('{n} obyektda narxsiz qator', { n: j.narxsiz_obyekt }) : t('narxsiz qator yo‘q')} ogoh={!!j?.narxsiz_obyekt} />
     </div>
@@ -327,7 +337,7 @@ function Izoh({ ochiq, setOchiq }: { ochiq: boolean; setOchiq: (v: boolean) => v
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span aria-hidden className="flex h-2 w-8 overflow-hidden rounded-sm bg-[var(--surface-3)]"><i className="w-1/2 bg-[var(--accent)]" /><i className="w-1/4 bg-[var(--info)]" /></span>
-        {t('F2 topshirilgan + bajarilgan (fakt) / smeta')}
+        {t('F2 (tasdiqlangan) + bajarilgan (fakt) / smeta (ustamasiz)')}
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span aria-hidden className="h-2 w-8 rounded-sm border border-dashed border-[var(--border-strong)]" />
@@ -335,7 +345,7 @@ function Izoh({ ochiq, setOchiq }: { ochiq: boolean; setOchiq: (v: boolean) => v
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span aria-hidden className="fz-chip fz-chip--danger h-4 px-1"><AlertTriangle className="h-3 w-3" /></span>
-        {t('Ogohlantirishlar soni (qizil — muammo, sariq — e’tibor)')}
+        {t('Belgilar va signallar soni (qizil — muammo/kritik, sariq — e’tibor)')}
       </span>
       <span className="ml-auto hidden text-text-mute xl:inline">{t('Strelkalar — yurish · Enter — ochish · 0 — sig‘dirish · / — qidiruv')}</span>
       <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm -my-1" onClick={() => setOchiq(false)} aria-label={t('Izohni yopish')}><X /></button>

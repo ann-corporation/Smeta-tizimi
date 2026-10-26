@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as RKeyboardEvent, type PointerEvent as RPointerEvent } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { AlertTriangle, FileText, HardHat, Maximize2, Minus, Plus, Truck, Warehouse, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { AlertTriangle, FileText, HardHat, Maximize2, Minus, Plus, ShieldAlert, Truck, Warehouse, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { t } from '../../i18n/til';
 import {
   hajmOlcham, klaviaturaQadam, markazlaKamera, sigdirKamera, zumla, chegaraHisobla,
@@ -49,7 +49,9 @@ const SHRIFT_NOM = (px: number) => `600 ${px}px Geologica, "IBM Plex Sans", syst
 function ariaMatn(x: XTugun, guruhNomi: string): string {
   const tur = x.tur === 'kompaniya' ? t('Kompaniya') : x.tur === 'loyiha' ? t('Loyiha') : x.tur === 'guruh' ? t('Guruh') : t('Obyekt');
   const parts = [x.tur === 'guruh' ? guruhNomi : x.nom, tur, t('holat: {h}', { h: holatNomi(x.holat) })];
-  if (x.f2Foiz != null) parts.push(t('F2 {p}', { p: foizMatn(x.f2Foiz) }));
+  if (x.f2Foiz != null) parts.push(t('F2 (tasdiqlangan) {p}', { p: foizMatn(x.f2Foiz) }));
+  if ((x.kritikSoni ?? 0) > 0) parts.push(t('{n} kritik signal', { n: x.kritikSoni ?? 0 }));
+  else if ((x.signalSoni ?? 0) > 0) parts.push(t('{n} ochiq signal', { n: x.signalSoni ?? 0 }));
   if (x.smeta != null) parts.push(t('smeta {s}', { s: pulQ(x.smeta) }));
   if (x.tur !== 'obyekt') parts.push(t('{n} ta obyekt', { n: x.obyektSoni }));
   return parts.join(', ');
@@ -470,6 +472,13 @@ function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta }: { x: XTugu
     { ikon: Truck, n: x.resurs.texnika, nom: t('texnika') },
     { ikon: HardHat, n: x.resurs.kadr, nom: t('xodim') },
   ].filter((c) => c.n > 0);
+  const signalSoni = x.signalSoni ?? 0, kritik = x.kritikSoni ?? 0;
+  const belgiChiplari: { kalit: string; n: number; ikon: typeof AlertTriangle; rang: string; fon: string; sarlavha: string }[] = [
+    { kalit: 'ogoh', n: ogoh, ikon: AlertTriangle, rang: 'var(--danger)', fon: 'var(--danger-soft)', sarlavha: x.belgilar.filter((b) => b.daraja === 'ogoh').map((b) => b.matn).join('\n') },
+    { kalit: 'info', n: info, ikon: AlertTriangle, rang: 'var(--warn)', fon: 'var(--warn-soft)', sarlavha: x.belgilar.filter((b) => b.daraja !== 'ogoh').map((b) => b.matn).join('\n') },
+    { kalit: 'signal', n: signalSoni, ikon: ShieldAlert, rang: kritik > 0 ? 'var(--danger)' : 'var(--warn)', fon: kritik > 0 ? 'var(--danger-soft)' : 'var(--warn-soft)',
+      sarlavha: t('{n} ochiq signal, {k} kritik', { n: signalSoni, k: kritik }) + (x.topSignallar.length ? '\n' + x.topSignallar.map((q) => '• ' + (q.title ?? '')).join('\n') : '') },
+  ].filter((c) => c.n > 0);
   const summa = x.smeta == null ? t('smeta yo‘q') : pulQ(x.smeta);
   const summaKeng = summa.length * 7.4 + 10;
   return (
@@ -485,25 +494,17 @@ function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta }: { x: XTugu
         {x.smeta == null ? '—' : 'F2 ' + foizMatn(x.f2Foiz)}
       </text>
       <g transform={`translate(35 ${h - 28})`}>
-        {ogoh > 0 && (
-          <g>
-            <title>{x.belgilar.filter((b) => b.daraja === 'ogoh').map((b) => b.matn).join('\n')}</title>
-            <rect width={42} height={19} rx={3} style={{ fill: 'var(--danger-soft)' }} />
-            <AlertTriangle x={5} y={3.5} width={12} height={12} style={{ color: 'var(--danger)' }} />
-            <text x={21} y={14} style={{ fill: 'var(--danger)', font: '700 12px var(--font-mono)' }}>{String(ogoh)}</text>
+        {belgiChiplari.map((c, i) => (
+          <g key={c.kalit} transform={`translate(${i * 48} 0)`} data-belgi={c.kalit}>
+            <title>{c.sarlavha}</title>
+            <rect width={42} height={19} rx={3} style={{ fill: c.fon }} />
+            <c.ikon x={5} y={3.5} width={12} height={12} style={{ color: c.rang }} />
+            <text x={21} y={14} style={{ fill: c.rang, font: '700 12px var(--font-mono)' }}>{String(c.n)}</text>
           </g>
-        )}
-        {info > 0 && (
-          <g transform={`translate(${ogoh > 0 ? 48 : 0} 0)`}>
-            <title>{x.belgilar.filter((b) => b.daraja !== 'ogoh').map((b) => b.matn).join('\n')}</title>
-            <rect width={42} height={19} rx={3} style={{ fill: 'var(--warn-soft)' }} />
-            <AlertTriangle x={5} y={3.5} width={12} height={12} style={{ color: 'var(--warn)' }} />
-            <text x={21} y={14} style={{ fill: 'var(--warn)', font: '700 12px var(--font-mono)' }}>{String(info)}</text>
-          </g>
-        )}
+        ))}
         {chiplar.map((c, i) => {
           const I = c.ikon;
-          const bx = (ogoh > 0 ? 48 : 0) + (info > 0 ? 48 : 0) + 4 + i * 38;
+          const bx = belgiChiplari.length * 48 + 4 + i * 38;
           return (
             <g key={c.nom} transform={`translate(${bx} 0)`}>
               <title>{c.n + ' ' + c.nom}</title>

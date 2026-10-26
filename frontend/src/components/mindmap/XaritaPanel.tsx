@@ -6,7 +6,7 @@
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, ArrowLeft, Building2, ChevronRight, Clock, ExternalLink, FileText, FolderKanban, HardHat,
-  PencilLine, Truck, Users, Warehouse, X, ClipboardList, History, Gauge,
+  PencilLine, Truck, Users, Warehouse, X, ClipboardList, History, Gauge, ShieldAlert,
 } from 'lucide-react';
 import type { MindmapGraf, MindmapTugun } from '../../api/t2-mindmap';
 import type { Hodisa } from '../../api/t2-hodisa';
@@ -18,6 +18,7 @@ import {
 } from '../../lib/mindmap-korinish';
 import { Bajarilish, HolatChiziq, HolatHalqa, Romb } from './belgilar';
 import { foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
+import { RESURS_YOLI } from '../../lib/mindmap-yollar';
 
 export type HodisaHolati = { qatorlar: Hodisa[]; yuklanmoqda: boolean; xato: string };
 
@@ -41,10 +42,7 @@ const turNomi = (tur: string): string => ({
   shartnoma: t('Shartnoma'), sklad: t('Sklad'), texnika: t('Texnika'), kadr: t('Xodim'), kontragent: t('Kontragent'),
 } as Record<string, string>)[tur] ?? tur;
 
-const RESURS_YOLI: Record<string, string> = {
-  shartnoma: '/admin/shartnomalar', sklad: '/admin/sklad', texnika: '/admin/test/erp?modul=texnika',
-  kadr: '/admin/test/erp?modul=kadrlar', kontragent: '/admin/test/kontragent',
-};
+const SIGNAL_DARAJA: Record<string, string> = { critical: 'fz-note--danger', error: 'fz-note--danger', warning: 'fz-note--warn' };
 
 function Raqam({ nom, qiymat, izoh, rang }: { nom: string; qiymat: string; izoh?: string; rang?: string }) {
   return (
@@ -72,16 +70,38 @@ function PulBloki({ x }: { x: XTugun }) {
   return (
     <section className="fz-panel">
       <div className="fz-panel__h"><span>{t('Bajarilish')}</span><span className="normal-case tracking-normal font-normal">{t('ustamasiz')}</span></div>
+      {!x.f2Tasdiqlangan && x.obyektSoni > 0 && (
+        <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden /><span>{t('F2 asosi noma’lum: server hali yangilanmagan, qoralama F2 ham hisoblangan bo‘lishi mumkin.')}</span></div>
+      )}
       <Bajarilish faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} katta />
       <div className="grid grid-cols-2 gap-3">
-        <Raqam nom={t('Smeta')} qiymat={x.smeta == null ? '—' : taxm + pulQ(x.smeta)} izoh={x.smeta == null ? t('smeta yuklanmagan') : x.smetaToliq ? undefined : t('to‘liq emas')} />
-        <Raqam nom={t('F2 bilan topshirilgan')} rang="var(--accent)" qiymat={pulQ(x.f2)} izoh={foizMatn(x.f2Foiz)} />
+        <Raqam nom={t('Smeta (ustamasiz)')} qiymat={x.smeta == null ? '—' : taxm + pulQ(x.smeta)} izoh={x.smeta == null ? t('smeta yuklanmagan') : x.smetaToliq ? undefined : t('to‘liq emas')} />
+        <Raqam nom={t('F2 (tasdiqlangan)')} rang="var(--accent)" qiymat={pulQ(x.f2)} izoh={foizMatn(x.f2Foiz) + ' · ' + t('qoralama: {x}', { x: pulQ(x.f2Qoralama) })} />
         <Raqam nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulQ(x.fakt)} izoh={foizMatn(x.faktFoiz)} />
-        <Raqam nom={t('F2 siz qoldiq')} qiymat={qoldiq == null ? '—' : taxm + pulQ(qoldiq)} izoh={t('smeta − F2')} />
+        <Raqam nom={t('F2 qoralama (tasdiqlanmagan)')} qiymat={x.f2Qoralama == null ? '—' : pulQ(x.f2Qoralama)} izoh={t('F2 ga kirmaydi')} />
+        <Raqam nom={t('Qoldiq (smeta − F2 tasdiqlangan)')} qiymat={qoldiq == null ? '—' : taxm + pulQ(qoldiq)} />
       </div>
       {x.oshgan && (
-        <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden /><span>{t('Bajarilgan yoki topshirilgan hajm smetadan oshgan — tekshiring.')}</span></div>
+        <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden /><span>{t('F2 fakt yoki smetadan oshgan (overbilling radari) — tekshiring.')}</span></div>
       )}
+    </section>
+  );
+}
+
+/** Ochiq signallar (server `t2_mindmap_signal_summary`): soni, kritik soni va eng og‘ir 3 tasi. `null` — manba yo‘q. */
+function SignalBloki({ x }: { x: XTugun }) {
+  if (x.signalSoni == null) {
+    return <p className="text-[12px] text-text-mute">{t('Signal ma’lumoti yo‘q (server yangilanmagan).')}</p>;
+  }
+  if (x.signalSoni === 0) return null;
+  const qolgan = x.signalSoni - x.topSignallar.length;
+  return (
+    <section className="space-y-1.5" aria-label={t('Ochiq signallar')} data-testid="xarita-signallar">
+      <div className="fz-panel__h"><span className="inline-flex items-center gap-1.5"><ShieldAlert aria-hidden className="h-3.5 w-3.5" />{t('Ochiq signallar')}</span><span>{t('{n} ta · {k} kritik', { n: x.signalSoni, k: x.kritikSoni ?? 0 })}</span></div>
+      {x.topSignallar.map((s, i) => (
+        <div key={i} className={'fz-note ' + (SIGNAL_DARAJA[s.severity ?? ''] ?? 'fz-note--info')}><AlertTriangle aria-hidden /><span>{s.title || t('Nomsiz signal')}</span></div>
+      ))}
+      {qolgan > 0 && <p className="text-[11.5px] text-text-mute">{t('Yana {n} ta signal — Tizim boshqaruv markazida.', { n: qolgan })}</p>}
     </section>
   );
 }
@@ -181,6 +201,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
             ))}
           </section>
         )}
+        <SignalBloki x={x} />
         <PulBloki x={x} />
         <section className="fz-panel">
           <div className="fz-panel__h"><span>{t('Ma’lumot sifati')}</span></div>
@@ -221,7 +242,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
             <Havola to={'/admin/holat/' + oid} ikon={Gauge} matn={t('Obyekt holati')} asosiy />
             <Havola to={'/admin/f2-tarix?obyekt=' + oid} ikon={History} matn={t('F2 tarixi')} />
             <Havola to={'/admin/fakt?obyekt=' + oid} ikon={ClipboardList} matn={t('Fakt (bajarilgan ishlar)')} />
-            <Havola to={'/admin/test/zayavka?obyekt=' + encodeURIComponent(x.nom)} ikon={FileText} matn={t('Zayavkalar')} />
+            <Havola to={'/admin/zayavka?obyekt=' + oid} ikon={FileText} matn={t('Zayavkalar')} />
             {onTahrirdaOch && <button type="button" className="fz-btn fz-btn--sm justify-start" onClick={() => onTahrirdaOch(x.id)}><PencilLine aria-hidden />{t('Tahrir rejimida ochish')}</button>}
           </div>
         )}
@@ -326,7 +347,7 @@ function KompaniyaPanel({ root, daraxt, onTanla, guruhNomi, onHolatFiltr, holatF
                   <Romb holat={o.holat} olcham={8} className="mt-1.5" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-semibold text-text">{o.nom}</span>
-                    <span className="block truncate text-[11.5px] text-text-mute">{o.belgilar.map((q) => q.matn).join(' · ') || (o.oshgan ? t('smetadan oshgan') : '')}</span>
+                    <span className="block truncate text-[11.5px] text-text-mute">{[...o.belgilar.map((q) => q.matn), ...o.topSignallar.map((q) => q.title ?? '').filter(Boolean)].join(' · ') || (o.oshgan ? t('F2 ortiqcha') : '')}</span>
                   </span>
                   <ChevronRight aria-hidden className="mt-1 h-3.5 w-3.5 text-text-mute" />
                 </button>

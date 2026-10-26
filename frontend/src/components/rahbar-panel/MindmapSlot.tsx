@@ -26,7 +26,8 @@ export function MindmapSlot({ kompaniyaId }: { kompaniyaId: number; kompaniyaNom
       </div>
       <div className="relative h-[72vh] min-h-[560px] max-h-[860px] border-t border-border">
         <Suspense fallback={<div className="skel h-full w-full" />}>
-          <Mindmap />
+          {/* ichki: sahifaning ?tugun= parametri (BossDashboard/TugunDosye) xaritaga o‘tmaydi; kompaniya — panel kompaniyasi. */}
+          <Mindmap ichki kompaniyaId={kompaniyaId} />
         </Suspense>
       </div>
     </section>

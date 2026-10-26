@@ -7,7 +7,7 @@
  * Qoidalar: noma’lum qiymat 0 emas — `null` (smeta yuklanmagan obyekt foizi yo‘q); jamlanma qisman bo‘lsa
  * `smetaToliq=false` bilan aniq aytiladi. Pul — serverdagi ustamasiz (rz qatorlar yig‘indisi) qiymat.
  */
-import type { MindmapBelgi, MindmapGraf, MindmapTugun, TugunTur } from '../api/t2-mindmap';
+import type { MindmapBelgi, MindmapGraf, MindmapSignal, MindmapTugun, TugunTur } from '../api/t2-mindmap';
 import { qidiruvdaBor } from '../i18n/lotin-kirill';
 
 export type XHolat = 'xavf' | 'etibor' | 'yaxshi' | 'nomalum';
@@ -35,7 +35,12 @@ export type XTugun = {
   /** Jamlanmadagi barcha obyektlarning smetasi ma’lummi. */
   smetaToliq: boolean;
   fakt: number | null;
+  /** F2 — FAQAT tasdiqlangan (v3). Eski RPCda qoralama aralash bo‘lishi mumkin (`f2Tasdiqlangan=false`). */
   f2: number | null;
+  /** Tasdiqlanmagan F2 qoralamalar summasi; `null` — server yubormagan (eski shakl). */
+  f2Qoralama: number | null;
+  /** Server F2 asosini `tasdiqlangan` deb tasdiqladimi (v3). */
+  f2Tasdiqlangan: boolean;
   faktFoiz: number | null;
   f2Foiz: number | null;
   belgilar: MindmapBelgi[];
@@ -45,8 +50,13 @@ export type XTugun = {
   obyektSoni: number;
   holatSanoq: HolatSanoq;
   resurs: ResursSanoq;
-  /** Smetadan oshgan (fakt yoki F2 > 100%). */
+  /** F2 oshgan: v3 da server `ortiqcha` belgisi (overbilling radari); eski RPCda — foiz > 100 (zaxira qoida). */
   oshgan: boolean;
+  /** Ochiq signallar (`null` — manba yo‘q). */
+  signalSoni: number | null;
+  kritikSoni: number | null;
+  /** Eng og‘ir 3 signal (obyektda). */
+  topSignallar: MindmapSignal[];
 };
 
 export type XDaraxt = {
@@ -61,7 +71,7 @@ export type XDaraxt = {
 
 const bosResurs = (): ResursSanoq => ({ shartnoma: 0, sklad: 0, texnika: 0, kadr: 0, kontragent: 0 });
 const bosHolat = (): HolatSanoq => ({ xavf: 0, etibor: 0, yaxshi: 0, nomalum: 0 });
-const son = (v: unknown): number | null => {
+export const son = (v: unknown): number | null => {
   if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -78,14 +88,39 @@ export function belgilariOl(t: MindmapTugun | null | undefined): MindmapBelgi[] 
   return Array.isArray(b) ? (b as MindmapBelgi[]) : [];
 }
 
-/** Obyekt holati faqat real belgilardan: `ogoh` (narxsiz, ko‘zgu, smeta yo‘q) — xavf; zayavka yoki smetadan oshish — e’tibor. */
+/** Serverdan `ortiqcha_soni` kelganmi (v3). Kelmasa — eski RPC shakli. */
+export function serverOrtiqchaBilar(t: MindmapTugun): boolean {
+  return son(t.meta?.ortiqcha_soni) != null;
+}
+
+/** F2 oshishi: v3 da — server belgisi (`ortiqcha_soni > 0`); eski RPC shaklida — foiz > 100 (zaxira). */
+export function obyektOshgan(t: MindmapTugun): boolean {
+  const o = son(t.meta?.ortiqcha_soni);
+  if (o != null) return o > 0;
+  const fk = son(t.meta?.fakt_foiz), f2 = son(t.meta?.f2_foiz);
+  return (fk != null && fk > 100) || (f2 != null && f2 > 100);
+}
+
+/**
+ * Obyekt holati faqat real belgilardan:
+ *  - xavf: `ogoh` belgi (narxsiz qator, ko‘zgu farqi, smeta yo‘q) yoki kritik signal;
+ *  - e’tibor: boshqa belgi (ochiq zayavka, resurs yo‘q, F2 ortiqcha), oddiy ochiq signal yoki F2 oshishi;
+ *  - yaxshi: hech biri; meta yo‘q — nomalum.
+ * Signal soni `null` (manba yo‘q) — hech narsa qo‘shmaydi (0 ham emas, signal ham emas).
+ */
 export function obyektHolati(t: MindmapTugun): XHolat {
   if (!t.meta) return 'nomalum';
   const b = belgilariOl(t);
-  if (b.some((x) => x.daraja === 'ogoh')) return 'xavf';
-  const fk = son(t.meta.fakt_foiz), f2 = son(t.meta.f2_foiz);
-  if (b.length > 0 || (fk != null && fk > 100) || (f2 != null && f2 > 100)) return 'etibor';
+  if (b.some((x) => x.daraja === 'ogoh') || (son(t.meta.critical_count) ?? 0) > 0) return 'xavf';
+  if (b.length > 0 || (son(t.meta.signal_count) ?? 0) > 0 || obyektOshgan(t)) return 'etibor';
   return 'yaxshi';
+}
+
+/** Meta.top_signals — faqat yaroqli yozuvlar, ko‘pi bilan 3 ta. */
+export function topSignallarOl(t: MindmapTugun | null | undefined): MindmapSignal[] {
+  const v = t?.meta?.top_signals;
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is MindmapSignal => !!x && typeof x === 'object').slice(0, 3);
 }
 
 /** Bir nechta holatdan eng og‘iri (bo‘sh bo‘lsa — nomalum). */
@@ -118,6 +153,7 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
     id, tur, nom, manba, ota, bolalar: [], daraja, tomon: 0, holat: 'nomalum',
     smeta: null, smetaToliq: false, fakt: null, f2: null, faktFoiz: null, f2Foiz: null,
     belgilar: [], zayavka: null, narxsiz: null, obyektSoni: 0, holatSanoq: bosHolat(), resurs: bosResurs(), oshgan: false,
+    f2Qoralama: null, f2Tasdiqlangan: false, signalSoni: null, kritikSoni: null, topSignallar: [],
   });
   tugunlar.set(ildiz, yangi(ildiz, 'kompaniya', kompaniya?.nom ?? '', kompaniya, null, 0));
 
@@ -147,13 +183,18 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
     x.smetaToliq = x.smeta != null;
     x.fakt = son(m?.fakt);
     x.f2 = son(m?.f2);
+    x.f2Qoralama = son(m?.f2_qoralama);
+    x.f2Tasdiqlangan = m?.f2_asos === 'tasdiqlangan';
+    x.signalSoni = son(m?.signal_count);
+    x.kritikSoni = son(m?.critical_count);
+    x.topSignallar = topSignallarOl(o);
     x.faktFoiz = son(m?.fakt_foiz) ?? foiz(x.fakt, x.smeta);
     x.f2Foiz = son(m?.f2_foiz) ?? foiz(x.f2, x.smeta);
     x.belgilar = belgilariOl(o);
     x.zayavka = son(m?.zayavka);
     x.narxsiz = son(m?.narxsiz);
     x.holat = obyektHolati(o);
-    x.oshgan = (x.faktFoiz ?? 0) > 100 || (x.f2Foiz ?? 0) > 100;
+    x.oshgan = obyektOshgan(o);
     x.obyektSoni = 1;
     x.holatSanoq[x.holat] = 1;
     tugunlar.set(o.id, x);
@@ -198,6 +239,14 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
     const maLum = bolalar.filter((b) => b.smeta != null);
     x.faktFoiz = foiz(yigindi(maLum.map((b) => b.fakt)).jami, x.smeta);
     x.f2Foiz = foiz(yigindi(maLum.map((b) => b.f2)).jami, x.smeta);
+    const qor = yigindi(bolalar.map((b) => b.f2Qoralama));
+    x.f2Qoralama = qor.toliq ? qor.jami : null; // qisman ma’lum bo‘lsa — to‘liq deb ko‘rsatilmaydi
+    // Aralash (eski/yangi) obyektlar bo‘lsa — F2 asosi tasdiqlangan deb aytilmaydi.
+    x.f2Tasdiqlangan = bolalar.length > 0 && bolalar.every((b) => b.f2Tasdiqlangan);
+    const sg = bolalar.map((b) => b.signalSoni).filter((v): v is number => v != null);
+    x.signalSoni = sg.length ? sg.reduce((a, b) => a + b, 0) : null;
+    const kr = bolalar.map((b) => b.kritikSoni).filter((v): v is number => v != null);
+    x.kritikSoni = kr.length ? kr.reduce((a, b) => a + b, 0) : null;
     x.obyektSoni = bolalar.reduce((n, b) => n + b.obyektSoni, 0);
     x.holatSanoq = bosHolat();
     for (const b of bolalar) for (const h of HOLAT_TARTIB) x.holatSanoq[h] += b.holatSanoq[h];
@@ -228,6 +277,8 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
     root.smeta = sj === 0 ? null : sj;
     root.smetaToliq = (son(j.smetasiz_obyekt) ?? 0) === 0 && root.smeta != null;
     root.fakt = son(j.fakt_jami); root.f2 = son(j.f2_jami);
+    root.f2Qoralama = son(j.f2_qoralama_jami);
+    root.f2Tasdiqlangan = j.f2_asos === 'tasdiqlangan';
     root.zayavka = son(j.zayavka_kutilmoqda);
   }
 

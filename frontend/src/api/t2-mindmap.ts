@@ -50,7 +50,14 @@ export type BogTur =
  *     kozgu    → t2_kozgu (holat='farqli')
  *     smeta_yoq→ obyektda umuman resurs qatori yo'q
  * Manba bo'sh bo'lsa belgi CHIQMAYDI (bo'sh massiv), soxta 0 emas. */
-export type BelgiTur = 'zayavka' | 'narx_yoq' | 'kozgu' | 'smeta_yoq';
+export type BelgiTur = 'zayavka' | 'narx_yoq' | 'kozgu' | 'smeta_yoq'
+  /** v3: smeta (rz) bor, lekin resurs qatorlari yo'q. */
+  | 'resurs_yoq'
+  /** v3: t2_overbilling_radar — F2 fakt yoki smetadan oshgan qatorlar. */
+  | 'ortiqcha';
+
+/** v3: obyektning ochiq signali (t2_mindmap_signal_summary.top_signals, eng og'ir 3 tasi). */
+export type MindmapSignal = { title: string | null; severity: string | null; type?: string | null };
 
 export type MindmapBelgi = {
   tur: BelgiTur;
@@ -70,7 +77,19 @@ export type ObyektMeta = {
   narxsiz: number;
   /** `false` — jami TO'LIQ EMAS, moliyaviy qaror uchun ishlatilmasin. */
   toliq: boolean;
-  fakt: number; f2: number;
+  fakt: number;
+  /** F2. v3 dan: FAQAT tasdiqlangan aktlar (`f2_asos === 'tasdiqlangan'`). Eski RPC qoralamani ham qo'shgan. */
+  f2: number;
+  /** v3: `'tasdiqlangan'`. Maydon yo'q — eski RPC shakli (F2 asosi noma'lum, qoralama aralash bo'lishi mumkin). */
+  f2_asos?: string;
+  /** v3: tasdiqlanmagan F2 qoralamalar summasi (f2 ga kirmaydi). Eski RPCda yo'q. */
+  f2_qoralama?: number | null;
+  /** v3: rz qatorlari soni. */
+  rz_qatori?: number;
+  /** v3: ochiq signallar. */
+  signal_count?: number; critical_count?: number; top_signals?: MindmapSignal[];
+  /** v3: overbilling radaridagi qatorlar soni (server belgisi). */
+  ortiqcha_soni?: number;
   /** Smeta 0/`null` bo'lsa `null` — yolg'on «0%» ko'rsatilmaydi. */
   fakt_foiz: number | null; f2_foiz: number | null;
   zayavka: number;
@@ -95,7 +114,21 @@ export type MindmapTugun = {
 };
 
 export type MindmapBogich = {
-  manba: string; maqsad: string; tur: BogTur; uzsa_boladi: boolean; rol?: string;
+  manba: string; maqsad: string; tur: BogTur; uzsa_boladi: boolean;
+  /** `qatnashchi` chiziqlarida (v3 dan server yuboradi). */
+  rol?: string;
+  /** `qatnashchi` ishtirokchi qatorining ID si (v3). */
+  id?: number;
+};
+
+/** v3: shartnoma tuguni metasi (barcha maydon ixtiyoriy — eski RPCda yo'q). */
+export type ShartnomaMeta = {
+  nom?: string | null; taraf?: string | null; versiya?: number;
+  /** NDS bilan. */
+  summa?: number | null; summa_bez_nds?: number | null;
+  holat?: string | null; loyiha_id?: number | null;
+  obyekt_soni?: number; obyekt_idlar?: number[];
+  tomonlar?: { rol: string | null; nom: string | null; kontragent_id?: number | null }[];
 };
 
 /** Butun tashkilot bo'yicha bir qarashda ko'riladigan jamlanma. */
@@ -109,6 +142,11 @@ export type MindmapJamlanma = {
   narxsiz_obyekt: number;
   smetasiz_obyekt: number;
   kozgu_eskirgan: number;
+  /** v3 maydonlari (eski RPCda yo'q). */
+  f2_asos?: string;
+  f2_qoralama_jami?: number | null;
+  resurssiz_obyekt?: number;
+  ortiqcha_obyekt?: number;
 };
 
 export type MindmapGraf = {

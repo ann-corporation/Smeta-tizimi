@@ -58,7 +58,7 @@ export function MindmapKichik({ kompaniyaId, graf: tayyor, havola = '/admin/mind
       <div className="fz-card__head">
         <div className="min-w-0">
           <h3 className="fz-card__title inline-flex items-center gap-2"><MapIkon aria-hidden className="h-4 w-4 text-[var(--accent-text)]" />{sarlavhaMatn}</h3>
-          {root && <p className="fz-card__sub">{t('{n} ta obyekt', { n: root.obyektSoni }) + ' · ' + t('smeta {s}', { s: (root.smetaToliq ? '' : '≈ ') + pulQ(root.smeta) }) + ' · ' + t('F2 {p}', { p: foizMatn(root.f2Foiz) })}</p>}
+          {root && <p className="fz-card__sub">{t('{n} ta obyekt', { n: root.obyektSoni }) + ' · ' + t('smeta (ustamasiz) {s}', { s: (root.smetaToliq ? '' : '≈ ') + pulQ(root.smeta) }) + ' · ' + t('F2 (tasdiqlangan) {p}', { p: foizMatn(root.f2Foiz) })}</p>}
         </div>
         <Link to={havola} className="fz-btn fz-btn--sm shrink-0 no-underline">{t('To‘liq xaritani ochish')}<ArrowRight aria-hidden /></Link>
       </div>
@@ -83,7 +83,7 @@ export function MindmapKichik({ kompaniyaId, graf: tayyor, havola = '/admin/mind
                   return (
                     <rect key={x.id} x={p.x - r} y={p.y - r} width={r * 2} height={r * 2} rx={1} transform={`rotate(45 ${p.x} ${p.y})`}
                       style={{ fill: HOLAT_RANG[x.holat], cursor: 'pointer' }} onClick={() => navigate(havola + '?tugun=' + encodeURIComponent(x.id))}>
-                      <title>{x.nom + ' — ' + holatNomi(x.holat) + ' · F2 ' + foizMatn(x.f2Foiz)}</title>
+                      <title>{x.nom + ' — ' + holatNomi(x.holat) + ' · F2 (tasdiqlangan) ' + foizMatn(x.f2Foiz)}</title>
                     </rect>
                   );
                 })}
