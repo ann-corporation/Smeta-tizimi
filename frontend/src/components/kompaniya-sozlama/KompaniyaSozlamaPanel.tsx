@@ -3,14 +3,12 @@
  * Hamma narsa serverda (`/api/kompaniya-sozlama`): barcha xodim va kompyuterlarda bir xil.
  * Rasmiy hujjat matnlari rus tilida qoladi; bu yerda faqat boshqaruv interfeysi.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, FileSignature, Palette, ShieldCheck } from 'lucide-react';
 import { SERVER_YANGILANMAGAN, SozlamaXatosi, useKompaniyaSozlama, useKompaniyaSozlamaSaqla, type F2TasdiqRejimi } from '../../api/kompaniya-sozlama';
-import { MAYDONLAR } from '../../umumiy/hujjat/HujjatTomonlari';
-import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { t } from '../../i18n/til';
-import { INPUT_SINF, INPUT_STIL, Karta, Nota, Skelet } from '../akkaunt/AkkauntUi';
+import { Karta, Nota, Skelet } from '../akkaunt/AkkauntUi';
 
 const MAVQE: Record<string, { nom: string; izoh: string }> = {
   zakazchik: { nom: 'Buyurtmachi', izoh: 'Pudratchi aktlarini qabul qiladi, tasdiqlaydi va to‘lovni nazorat qiladi.' },
@@ -26,17 +24,10 @@ const REJIMLAR: Array<{ k: F2TasdiqRejimi; nom: string; izoh: string }> = [
 export function KompaniyaSozlamaPanel({ kompaniyaId }: { kompaniyaId: number }) {
   const q = useKompaniyaSozlama(kompaniyaId);
   const saqla = useKompaniyaSozlamaSaqla();
-  const [imzo, setImzo] = useState<ImzoNomlar>({});
-  const [imzoOzgargan, setImzoOzgargan] = useState(false);
   const [rejim, setRejim] = useState<F2TasdiqRejimi | null>(null);
   const [xato, setXato] = useState<string | null>(null);
-  const [saqlandi, setSaqlandi] = useState(false);
-  const taymer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const serverImzo = q.data?.sozlamalar['hujjat.imzo_tomonlari']?.qiymat;
-  useEffect(() => { if (!imzoOzgargan) setImzo((serverImzo && typeof serverImzo === 'object' ? serverImzo : {}) as ImzoNomlar); }, [serverImzo, imzoOzgargan]);
   useEffect(() => { if (q.data) setRejim(q.data.f2_tasdiq_rejimi); }, [q.data]);
-  useEffect(() => () => { if (taymer.current) clearTimeout(taymer.current); }, []);
 
   if (q.isLoading) return <Skelet qatorlar={4} />;
   if (q.isError || !q.data) {
@@ -63,18 +54,6 @@ export function KompaniyaSozlamaPanel({ kompaniyaId }: { kompaniyaId: number }) 
     const eski = rejim;
     setRejim(k); setXato(null);
     saqla.mutate({ kompaniya_id: kompaniyaId, kalit: 'f2.tasdiq_rejimi', qiymat: k }, { onError: (e) => { setRejim(eski); xatoQil(e); } });
-  };
-
-  const imzoOzgart = (kalit: keyof ImzoNomlar, v: string) => {
-    const next = { ...imzo, [kalit]: v };
-    setImzo(next); setImzoOzgargan(true); setSaqlandi(false); setXato(null);
-    if (taymer.current) clearTimeout(taymer.current);
-    taymer.current = setTimeout(() => {
-      const toza = Object.fromEntries(Object.entries(next).filter(([, x]) => typeof x === 'string' && x.trim()));
-      saqla.mutate({ kompaniya_id: kompaniyaId, kalit: 'hujjat.imzo_tomonlari', qiymat: Object.keys(toza).length ? toza : null }, {
-        onSuccess: () => { setSaqlandi(true); setImzoOzgargan(false); }, onError: xatoQil,
-      });
-    }, 800);
   };
 
   return (
@@ -109,17 +88,9 @@ export function KompaniyaSozlamaPanel({ kompaniyaId }: { kompaniyaId: number }) 
         {!yozish && <p className="m-0 text-[12px] text-text-dim">{t('O‘zgartirish uchun ruxsat yo‘q.')}</p>}
       </Karta>
 
-      <Karta sarlavha="Hujjat imzo tomonlari" tavsif="Hujjat imzo blokida chiqadigan tashkilotlar. Bo‘sh qoldirilsa hujjatda to‘ldirish chizig‘i chiqadi.">
-        <p className="m-0 flex items-center gap-1.5 text-[12px] text-text-dim"><FileSignature size={13} aria-hidden="true" />{t('Barcha xodimlar va kompyuterlarda bir xil')}{saqlandi ? ` · ${t('Saqlandi')}` : ''}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {MAYDONLAR.map((m) => (
-            <label key={m.k} className="flex flex-col gap-1 text-[12px] text-text-dim">
-              <span><b className="text-text">{t(m.rol)}</b> <i>{m.ru}</i>{m.izoh ? ` — ${t(m.izoh)}` : ''}</span>
-              <input className={INPUT_SINF} style={INPUT_STIL} disabled={!yozish} aria-label={`${t(m.rol)} (${m.ru})`} value={imzo[m.k] ?? ''}
-                placeholder={t('tashkilot, lavozim, F.I.O.')} onChange={(e) => imzoOzgart(m.k, e.target.value)} />
-            </label>
-          ))}
-        </div>
+      <Karta sarlavha="Hujjat imzochilari" tavsif="Hujjat imzo blokida chiqadigan tomonlar.">
+        <p className="m-0 flex items-start gap-1.5 text-[12px] text-text-dim"><FileSignature size={13} className="mt-0.5" aria-hidden="true" /><span><b className="text-text">{t('Imzochilar har obyektda alohida — tomonlar o‘zi tayinlaydi')}</b>. {t('Buyurtmachi o‘z odamlarini, pudratchi o‘zinikini belgilaydi: hujjat sahifalaridagi «Hujjat imzolari» panelida (loyiha, obyekt yoki razdel darajasida).')}</span></p>
+        <Link to="/admin/obyektlar" className="fz-btn fz-btn--sm self-start">{t('Obyektlarga o‘tish')}</Link>
       </Karta>
 
       <Karta sarlavha="Hujjat dizayni" tavsif="Har bir hujjat turi uchun rang mavzusi (Excel va ko‘rish oynasida).">

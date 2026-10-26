@@ -69,7 +69,6 @@ const kirit = 'rounded border border-border bg-bg px-2 py-1 text-right tabular-n
 export function F2TayyorlashNative() {
   const moneyScope = useRef<HTMLDivElement>(null);
   const { joriy } = useKompaniya();
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(joriy?.id);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const workspace = usePTOWorkspace();
   const navigate = useNavigate();
@@ -108,6 +107,7 @@ export function F2TayyorlashNative() {
   const operationId = useRef(yangiOperationId());
   const obyektId = Number(params.get('obyekt'));
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(joriy?.id, validId ? obyektId : null);
   const aktParam = Number(params.get('akt'));
   const aktId = Number.isSafeInteger(aktParam) && aktParam > 0 ? aktParam : null;
   const [akt, setAkt] = useState<TahrirAkt | null>(null);
@@ -635,7 +635,7 @@ export function F2TayyorlashNative() {
             <F2KatPanel kat={katTaq} manba={jami.manba} />
           </div>
         </div>
-        <section className="flex flex-wrap items-start gap-3"><div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} />
+        <section className="flex flex-wrap items-start gap-3"><div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} />
           <p className="mt-1 text-[12px] text-text-mute">{imzoMatn}</p></div>
           <label className="text-[12px] text-text-dim">{t('QQS (НДС), % — hujjat oxirida')}<input aria-label="QQS stavkasi" value={ndsFoiz} onChange={(event) => setNdsFoiz(event.target.value)} placeholder={t('bo‘sh — QQS yo‘q')} inputMode="decimal" className="ml-2 w-32 rounded border border-border bg-bg px-2 py-1" /></label></section>
         {vedomostOchiq && <section aria-label={t('Resurs vedomosti')} className="karta max-h-[40vh] overflow-auto"><F2ResursVedomosti qatorlar={qatorlar} kodOl={resursKodi} obyektId={obyektId} kompaniyaId={joriy?.id} onQollash={narxniQollash} /></section>}

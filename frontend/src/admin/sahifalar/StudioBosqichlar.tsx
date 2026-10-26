@@ -685,7 +685,7 @@ function JamiSatri({ doc, hisob, unitText }: { doc: EstimateDoc; hisob: DocCalc;
 export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack }: { doc: EstimateDoc; hisob: DocCalc; unitText: UnitText;
   katalog: StudioNormCatalog | null; kompaniyaId: number | null; onBack: () => void }) {
   const [xabar, setXabar] = useState('');
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(kompaniyaId);
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(kompaniyaId, doc.context.objectId ?? null);
   const [protokol, setProtokol] = useState({ raqam: '1', sana: new Date().toISOString().slice(0, 10) });
   const yuklabBer = (bytes: Uint8Array, nom: string) => {
     const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
@@ -769,7 +769,7 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
     <section aria-label={t('Narxlarni kelishish protokoli')} className="fz-card space-y-2 p-3 text-[12.5px]">
       <strong className="fz-panel__h">{t('Narxlarni kelishish protokoli (buyurtmachi — pudratchi)')}</strong>
       <p className="text-xs text-text-mute">{t('Har resurs: asos hujjatdagi narx (smeta birligida), smetaga qo‘yilgan kelishiladigan narx, og‘ish va obosnovaniye. Ikki tomon imzosi bilan.')}</p>
-      <HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} />
+      <HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} />
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-xs">{t('Protokol raqami')}<input aria-label={t('Protokol raqami')} className="input mt-0.5 block h-8 w-24" value={protokol.raqam} onChange={e => setProtokol({ ...protokol, raqam: e.target.value })} /></label>
         <label className="text-xs">{t('Sana')}<input aria-label={t('Protokol sanasi')} type="date" className="input mt-0.5 block h-8" value={protokol.sana} onChange={e => setProtokol({ ...protokol, sana: e.target.value || protokol.sana })} /></label>

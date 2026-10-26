@@ -29,7 +29,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   const [error, setError] = useState('');
   const [qidiruv, setQidiruv] = useState('');
   const [holatlar, setHolatlar] = useState<T2QatorHolat[]>([]);
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(companyId);
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(companyId, Number(objectId) || null);
 
   useEffect(() => {
     let active = true;
@@ -119,7 +119,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
               onClick={() => void hujjat(false)}><FileSpreadsheet aria-hidden="true" />Ресурсная ведомость (Excel)</button>
             <button type="button" className="fz-btn" title={t('Saytda hujjatdagiday ko‘rish')}
               onClick={() => void hujjat(true)}><Eye aria-hidden="true" />{t('Ko‘rish')}</button>
-            <div className="min-w-[260px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+            <div className="min-w-[260px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
           </div>
           <label className="relative block max-w-sm">
             <Search size={14} aria-hidden="true" className="absolute left-2.5 top-[9px] text-text-mute" />
