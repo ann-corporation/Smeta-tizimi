@@ -3,6 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "ARCHITECTURE-PACK-20261026",
+      "title": "Live metadata Data Model Registry and current architecture pack for Claude L0",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/architecture-pack-20261026",
+      "base_sha": "69db8d45050cc82dfd67baae6dec7153b727a219",
+      "status": "ready_for_review",
+      "owns": ["docs/architecture/DATA_MODEL_REGISTRY.yaml", "docs/architecture/CURRENT_SYSTEM_MAP.md", "docs/architecture/DOMAIN_MAP.md", "docs/architecture/PTO_STATE_MACHINE.md", "docs/architecture/ROUTE_RPC_MAP.md", "docs/architecture/RISK_REGISTER.md", "docs/architecture/GOLDEN_FLOWS.md", "docs/architecture/SCHEMA_METADATA_20261026.json", "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json", "docs/architecture/generate-architecture-pack.mjs"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md"],
+      "production_write_allowed": false,
+      "note": "Explicit L0 packet26Oct11:20 item4, acknowledged Obsidian/mailbox06. Documentation-only. Public199+snapshot5 tables, public572 routines; metadata SELECT only. Eight lifecycle classes and one module owner unresolved, retained NULL; no DEPRECATED or deletion claims. Source pinned69db8d45; generated routes reuse pageCatalog. Claude L0 reviews/merges."
+    },
+    {
       "id": "CATALOG-IMPORT-AUDIT-20261023",
       "title": "Current source 2.8.1 catalogue audit and namespace-safe shared XLSX import",
       "owner": "codex",
