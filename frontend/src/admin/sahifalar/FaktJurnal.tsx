@@ -43,8 +43,12 @@ const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toL
 export type SaqlashNatija = Promise<boolean>;
 export type SaqlashFn = () => SaqlashNatija;
 type SaqlashVaqda = SaqlashNatija | null;
-export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef, f2Otish }: {
+export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef, f2Otish, boshBolimId = null, boshFaktsizF2 = false }: {
   kompaniyaId: number; obyektId: number;
+  /** Boshlang'ich bo'lim (masalan pereraschet ekranidan havola: `?bolim=`). */
+  boshBolimId?: number | null;
+  /** Boshlang'ich filtr «fakti yo'q, lekin F2 olingan» (pereraschet ekranidan havola: `?filtr=faktsiz_f2`). */
+  boshFaktsizF2?: boolean;
   /** Yig'indi paneli «F2 tayyorlash» tugmasi: sahifa avval saqlaydi, so'ng F2 tayyorlashga o'tadi. */
   f2Otish?: () => void;
   /** Tashqi sahifa (F2 tayyorlashga o'tish) saqlanmagan kiritmalarni saqlab, natijasini kutishi uchun. */
@@ -57,9 +61,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 }) {
   const [sana, setSana] = useState(() => new Date().toISOString().slice(0, 10));
   const [kiritmalar, setKiritmalar] = useState<Record<number, Kiritma>>({});
-  const [bolimId, setBolimId] = useState<number | null>(null);
+  const [bolimId, setBolimId] = useState<number | null>(boshBolimId);
   const [qidiruv, setQidiruv] = useState('');
   const [faqatQoldiq, setFaqatQoldiq] = useState(false);
+  const [faktsizF2, setFaktsizF2] = useState(boshFaktsizF2);
   /** Ish resurslarini ochish/yopish: `hammaYopiq` — umumiy holat, `teskari` — undan farq qiladigan ishlar. */
   const [hammaYopiq, setHammaYopiq] = useState(false);
   const [teskari, setTeskari] = useState<Set<number>>(new Set());
@@ -195,9 +200,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const korinadi = useMemo((): Bolak[] => {
     const q = qidiruv.trim().toLowerCase();
     const mos = (x: JurnalQator) => `${x.kod ?? ''} ${x.nom}`.toLowerCase().includes(q);
+    // «Fakti yo'q, lekin F2 olingan» (pereraschet → fakt jurnali): tasdiqlangan F2 bor, fakt 0.
+    const faktsiz = (x: JurnalQator) => { const h = holatMap.get(x.id); return Number(h?.f2_hajm ?? 0) > 1e-9 && !(Number(h?.fakt_hajm ?? 0) > 1e-9); };
     const filtr = (ish: JurnalIsh) => (!faqatQoldiq || ochiqBor(ish) || ish.resurslar.some(ochiqBor))
+      && (!faktsizF2 || faktsiz(ish) || ish.resurslar.some(faktsiz) || ish.avtomatik.some(faktsiz))
       && (!q || mos(ish) || ish.resurslar.some(mos) || ish.avtomatik.some(mos));
-    if (q) {
+    if (q || faktsizF2) {
       const out: Bolak[] = []; let n = 0;
       for (const b of bolimlar) {
         if (n >= 200) break;
@@ -212,7 +220,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     const toliq = new Set<number>();
     for (let i = tarkib.length - 1; i >= 0; i--) { const x = tarkib[i]; if (x.ishlar.length || toliq.has(x.bolim.id)) { toliq.add(x.bolim.id); if (x.bolim.otaId != null) toliq.add(x.bolim.otaId); } }
     return tarkib.filter((x) => x.nisbiy === 0 || toliq.has(x.bolim.id)).map((x) => ({ bolim: x.nisbiy === 0 ? null : x.bolim, nisbiy: x.nisbiy, ishlar: x.ishlar }));
-  }, [qidiruv, faqatQoldiq, bolimId, bolimlar, bolimIshlari]);
+  }, [qidiruv, faqatQoldiq, faktsizF2, holatMap, bolimId, bolimlar, bolimIshlari]);
   const korinadiIshSoni = korinadi.reduce((s, x) => s + x.ishlar.length, 0);
 
   const kirit = (id: number, patch: Partial<Kiritma>) => setKiritmalar((o) => {
@@ -508,6 +516,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           <input ref={qidiruvRef} value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} onKeyDown={qidiruvKlav} placeholder={t('Butun obyekt bo‘yicha qidirish…  ( / )')} aria-label={t('Qidirish')} className="input h-8 w-full pl-8 pr-8 text-[13px]" />
           {qidiruv && <button onClick={() => setQidiruv('')} className="absolute right-2 top-2 text-text-mute" aria-label={t('Qidiruvni tozalash')}><X size={14} /></button>}</div>
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> {t('faqat bajarilmaganlar')}</label>
+        <label className="flex items-center gap-1.5 text-[12px] text-text-dim" title={t('Pereraschet uchun: tasdiqlangan F2 olingan, lekin fakt belgilanmagan qatorlar (butun obyekt bo‘yicha)')}><input type="checkbox" checked={faktsizF2} onChange={(e) => setFaktsizF2(e.target.checked)} /> {t('fakti yo‘q, F2 olingan')}</label>
         {tanlanganBolim && <button type="button" onClick={() => tenglashOch(tanlanganBolim.nom, bolimIshlariYigish(tanlanganBolim.id, bolimIshlari, bolimBolalari, true))}
           title={sarlavhaBilan(t('Shu bo‘lim (ichki bo‘limlari bilan): F2 hajmi fakt dan ko‘p ishlarga farqni yozish'), 'f')} aria-label={t('Fakt = F2: bo‘lim')}
           className="fz-btn">{t('Fakt = F2')} <kbd className="fz-kbd">F</kbd></button>}
