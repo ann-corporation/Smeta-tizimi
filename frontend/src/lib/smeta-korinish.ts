@@ -12,11 +12,37 @@ import { katGuruh, type KatGuruh } from './f2-hujjat-korinish';
 
 const n = (v: number | null | undefined): number | null => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 
-export type Kesim = { smeta: number; fakt: number; f2: number; f2Ulush: number; faktUlush: number; qoldiq: number };
-function kesim(smeta: number, fakt: number, f2: number): Kesim {
-  const ul = (x: number) => (smeta > 0 ? Math.min(1, Math.max(0, x / smeta)) : 0);
-  return { smeta, fakt, f2, f2Ulush: ul(f2), faktUlush: ul(Math.max(fakt, f2)), qoldiq: smeta - Math.max(fakt, f2) };
+/**
+ * Kesim: summa NOMA'LUM bo'lsa 0 emas, `null` (hech bir manba qiymati bo'lmasa) yoki `toliq: false`
+ * (ba'zi qismlar noma'lum — ko'rsatilgan summa faqat ma'lum qismlar yig'indisi). UI bu holatni yashirmaydi.
+ */
+export type Kesim = {
+  smeta: number | null; fakt: number | null; f2: number | null; qoldiq: number | null;
+  f2Ulush: number | null; faktUlush: number | null;
+  /** Har ko'rsatkich bo'yicha summasi noma'lum tugunlar soni. */
+  nomalum: { smeta: number; fakt: number; f2: number };
+  /** Hamma tugunda smeta, fakt va F2 ma'lum bo'lsa true. */
+  toliq: boolean;
+};
+type Uchlik = { smeta: number | null; fakt: number | null; f2: number | null };
+function yig(qismlar: readonly Uchlik[]): Kesim {
+  const nom = { smeta: 0, fakt: 0, f2: 0 };
+  const sum = { smeta: null as number | null, fakt: null as number | null, f2: null as number | null };
+  for (const q of qismlar) for (const k of ['smeta', 'fakt', 'f2'] as const) {
+    const v = q[k];
+    if (v == null) nom[k]++; else sum[k] = (sum[k] ?? 0) + v;
+  }
+  const { smeta, fakt, f2 } = sum;
+  const ul = (x: number | null) => (smeta != null && smeta > 0 && x != null ? Math.min(1, Math.max(0, x / smeta)) : null);
+  const bajarilgan = fakt == null && f2 == null ? null : Math.max(fakt ?? 0, f2 ?? 0);
+  return {
+    smeta, fakt, f2,
+    f2Ulush: ul(f2), faktUlush: ul(bajarilgan),
+    qoldiq: smeta == null || bajarilgan == null ? null : smeta - bajarilgan,
+    nomalum: nom, toliq: nom.smeta === 0 && nom.fakt === 0 && nom.f2 === 0,
+  };
 }
+const uchlik = (r: TreeNode): Uchlik => ({ smeta: n(r.smeta), fakt: n(r.stFakt), f2: n(r.stF2) });
 
 export function* barglar(nodes: readonly TreeNode[]): Generator<TreeNode> {
   for (const x of nodes) {
@@ -26,9 +52,7 @@ export function* barglar(nodes: readonly TreeNode[]): Generator<TreeNode> {
 }
 
 export function umumiyKesim(tree: readonly TreeNode[]): Kesim {
-  let s = 0, f = 0, f2 = 0;
-  for (const r of tree) { s += n(r.smeta) ?? 0; f += n(r.stFakt) ?? 0; f2 += n(r.stF2) ?? 0; }
-  return kesim(s, f, f2);
+  return yig(tree.map(uchlik));
 }
 
 export const oshganmi = (x: TreeNode): boolean => {
@@ -48,7 +72,7 @@ export function bolimlarKorinishi(tree: readonly TreeNode[]): BolimKorinish[] {
       x.children?.forEach(yur);
     };
     r.children?.forEach(yur);
-    return { ...kesim(n(r.smeta) ?? 0, n(r.stFakt) ?? 0, n(r.stF2) ?? 0), id: String(r.id ?? `${r.varaq}:${r.row}:${i}`), kod: r.kod ?? null, nom: r.nom, ishSoni: ish, resursSoni: res, oshgan: osh, zamena: zam, qoshimcha: qosh };
+    return { ...yig([uchlik(r)]), id: String(r.id ?? `${r.varaq}:${r.row}:${i}`), kod: r.kod ?? null, nom: r.nom, ishSoni: ish, resursSoni: res, oshgan: osh, zamena: zam, qoshimcha: qosh };
   });
 }
 

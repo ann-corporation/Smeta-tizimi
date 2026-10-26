@@ -17,13 +17,23 @@ describe('smeta anatomiyasi', () => {
   it('umumiy kesim va ulushlar', () => {
     const k = umumiyKesim(tree);
     expect(k).toMatchObject({ smeta: 1000, fakt: 600, f2: 400, qoldiq: 400 });
+    expect(k.toliq).toBe(false);
     expect(k.f2Ulush).toBeCloseTo(0.4);
     expect(k.faktUlush).toBeCloseTo(0.6);
   });
   it('bo‘limlar: ish/resurs soni, oshgan, zamena', () => {
     const [a, b] = bolimlarKorinishi(tree);
     expect(a).toMatchObject({ nom: 'Razdel 1', ishSoni: 1, resursSoni: 2, oshgan: 1, zamena: 1 });
-    expect(b.f2Ulush).toBe(0);
+    expect(b.f2Ulush).toBeNull();
+    expect(b.toliq).toBe(false);
+  });
+  it('NULL ≠ 0: hammasi noma’lum bo‘lsa jami null, aralash bo‘lsa toliq=false', () => {
+    const hammasi = umumiyKesim([node({ id: 9, type: 'rz', smeta: null, stFakt: null, stF2: null })]);
+    expect(hammasi).toMatchObject({ smeta: null, fakt: null, f2: null, qoldiq: null, f2Ulush: null, toliq: false });
+    const aralash = umumiyKesim(tree);
+    expect(aralash.toliq).toBe(false);
+    expect(aralash.nomalum).toEqual({ smeta: 0, fakt: 1, f2: 1 });
+    expect(aralash.smeta).toBe(1000);
   });
   it('kategoriya taqsimoti NULL ni sanaydi, 0 qilmaydi', () => {
     const k = katSmeta(tree);

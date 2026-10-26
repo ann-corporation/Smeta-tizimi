@@ -15,11 +15,13 @@ import { barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type
  * `lib/smeta-korinish` da. Holat sahifasiga (HolatNative) daraxt ustiga qo'yish uchun mo'ljallangan.
  */
 function Chiziq({ k, katta = false }: { k: Kesim; katta?: boolean }) {
-  const faktOrtiq = Math.max(0, k.faktUlush - k.f2Ulush);
-  const foiz = k.smeta > 0 ? Math.round(k.faktUlush * 100) : null;
+  const f2u = k.f2Ulush ?? 0, faktu = k.faktUlush ?? 0;
+  const faktOrtiq = Math.max(0, faktu - f2u);
+  const foiz = k.faktUlush == null ? null : Math.round(k.faktUlush * 100);
+  const ulMatn = (x: number | null) => (x == null ? '—' : Math.round(x * 100) + '%');
   return (
-    <span className={`fz-meter ${katta ? 'fz-meter--lg' : ''}`} title={t('F2 olingan: {f2} · bajarilgan: {fakt} · smeta: {s}', { f2: Math.round(k.f2Ulush * 100) + '%', fakt: Math.round(k.faktUlush * 100) + '%', s: '100%' })}>
-      <span className="fz-meter__t"><i className="fz-meter__shu" style={{ width: `${k.f2Ulush * 100}%` }} /><i className="fz-meter__fakt" style={{ width: `${faktOrtiq * 100}%` }} /></span>
+    <span className={`fz-meter ${katta ? 'fz-meter--lg' : ''}`} title={t('F2 olingan: {f2} · bajarilgan: {fakt} · smeta: {s}', { f2: ulMatn(k.f2Ulush), fakt: ulMatn(k.faktUlush), s: '100%' })}>
+      <span className="fz-meter__t"><i className="fz-meter__shu" style={{ width: `${f2u * 100}%` }} /><i className="fz-meter__fakt" style={{ width: `${faktOrtiq * 100}%` }} /></span>
       <span className="fz-meter__f">{foiz == null ? '—' : `${foiz}%`}</span>
     </span>
   );
@@ -32,18 +34,21 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   const diqqat = useMemo(() => oshganQatorlar(tree), [tree]);
   const kesim = useMemo(() => katKesimYigish([...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => b.smeta), [tree]);
   if (!tree.length) return null;
-  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  const pct = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
+  const toliqEmas = umumiy.toliq ? null : t('To‘liq emas: {s} bo‘limda smeta, {f} da fakt, {f2} da F2 summasi noma’lum — ko‘rsatilgan qiymat faqat ma’lum qismlar yig‘indisi', { s: umumiy.nomalum.smeta, f: umumiy.nomalum.fakt, f2: umumiy.nomalum.f2 });
+  const nomalumBelgi = (soni: number) => (soni > 0 ? <span className="fz-chip fz-chip--warn" title={toliqEmas ?? undefined}>{t('qisman')}</span> : null);
 
   return (
     <section className="fz-doc" aria-label={t('Smeta anatomiyasi')}>
       <div className="fz-doc__sheet">
         <div className="fz-kpis">
-          <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta qiymati')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className="[&_[data-testid=summa-ustamali]]:text-[20px] [&_[data-testid=summa-ustamali]]:font-semibold" /></div>
-          <div className="fz-kpi"><span className="fz-kpi__label"><i className="fz-bg-nomalum" style={{ background: 'var(--info)' }} />{t('Bajarilgan (fakt)')}</span><span className="fz-kpi__value"><FmtN val={umumiy.fakt} kasr={0} /></span><span className="fz-kpi__sub">{pct(umumiy.faktUlush)} {t('smetadan')}</span></div>
-          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('F2 bilan topshirilgan')}</span><span className="fz-kpi__value"><FmtN val={umumiy.f2} kasr={0} /></span><span className="fz-kpi__sub">{pct(umumiy.f2Ulush)} {t('smetadan')}</span></div>
-          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--surface-3)', boxShadow: 'inset 0 0 0 1px var(--border-strong)' }} />{t('Qoldiq')}</span><span className="fz-kpi__value"><FmtN val={umumiy.qoldiq} kasr={0} /></span><span className="fz-kpi__sub">{t('bajarilmagan qism (ustamasiz)')}</span></div>
+          <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta qiymati')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className="[&_[data-testid=summa-ustamali]]:text-[20px] [&_[data-testid=summa-ustamali]]:font-semibold" />{nomalumBelgi(umumiy.nomalum.smeta)}</div>
+          <div className="fz-kpi"><span className="fz-kpi__label"><i className="fz-bg-nomalum" style={{ background: 'var(--info)' }} />{t('Bajarilgan (fakt)')}</span><span className="fz-kpi__value"><FmtN val={umumiy.fakt} kasr={0} />{nomalumBelgi(umumiy.nomalum.fakt)}</span><span className="fz-kpi__sub">{pct(umumiy.faktUlush)} {t('smetadan')}</span></div>
+          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('F2 bilan topshirilgan')}</span><span className="fz-kpi__value"><FmtN val={umumiy.f2} kasr={0} />{nomalumBelgi(umumiy.nomalum.f2)}</span><span className="fz-kpi__sub">{pct(umumiy.f2Ulush)} {t('smetadan')}</span></div>
+          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--surface-3)', boxShadow: 'inset 0 0 0 1px var(--border-strong)' }} />{t('Qoldiq')}</span><span className="fz-kpi__value"><FmtN val={umumiy.qoldiq} kasr={0} />{nomalumBelgi(umumiy.nomalum.smeta + umumiy.nomalum.fakt + umumiy.nomalum.f2)}</span><span className="fz-kpi__sub">{t('bajarilmagan qism (ustamasiz)')}</span></div>
         </div>
         <Chiziq k={umumiy} katta />
+        {toliqEmas && <p className="fz-note fz-note--warn" role="note"><AlertTriangle aria-hidden="true" />{toliqEmas}</p>}
         <div className="fz-doc__meta"><span>{t('{n} bo‘lim', { n: bolimlar.length })}</span><span>{t('{n} ish', { n: bolimlar.reduce((a, b) => a + b.ishSoni, 0) })}</span><span>{t('{n} resurs', { n: bolimlar.reduce((a, b) => a + b.resursSoni, 0) })}</span>{diqqat.length > 0 && <span className="fz-chip fz-chip--warn">{t('{n} qator smetadan oshgan', { n: bolimlar.reduce((a, b) => a + b.oshgan, 0) })}</span>}</div>
       </div>
 
