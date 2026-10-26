@@ -1,0 +1,6 @@
+{
+  "Bajarilish tahlili": { "ru": "Анализ выполнения", "en": "Progress analysis" },
+  "Bo‘lim summalari": { "ru": "Суммы по разделу", "en": "Section amounts" },
+  "Fakt jadvali": { "ru": "Таблица факта", "en": "Fact table" },
+  "{n} ish · {q} qator": { "ru": "{n} работ · {q} строк", "en": "{n} works · {q} rows" }
+}

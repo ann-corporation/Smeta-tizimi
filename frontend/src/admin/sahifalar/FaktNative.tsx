@@ -67,13 +67,13 @@ export function FaktNative() {
   return <Sahifa sarlavha="Bajarilgan ishlar (Fakt)" tavsif="Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring">
     <div className="flex h-full min-h-0 flex-col gap-3">
       <section className="fz-card flex flex-wrap items-end gap-2 p-3">
-        <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
+        {!workspace.isProvider && <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
           <select aria-label={t('Obyekt')} value={valid ? obyektId : ''} onChange={e => { const o = obyektlar.find(x => x.id === Number(e.target.value)); if (workspace.isProvider) workspace.setObjectId(o?.id ?? null); else setParams(o ? { obyekt: String(o.id) } : {}); }} className="input mt-1.5 block h-9 w-full px-2 text-[13px] text-text">
             <option value="">{t('-- obyektni tanlang --')}</option>
             {valid && !obyektlar.some((item) => item.id === obyektId) && <option value={obyektId}>{t('Obyekt')} {'#'}{obyektId}</option>}
             <ObyektOptionlari obyektlar={obyektlar} />
           </select>
-        </label>
+        </label>}
         {valid && <button onClick={() => navigate(`/admin/holat/${obyektId}${workspace.scopeSearch(obyektId)}`)} className="fz-btn">{t('LRVga qaytish')}</button>}
         {valid && <button onClick={() => void yuklash()} disabled={loading || yangilanmoqda || saving} className="fz-btn"><RefreshCw size={14} className={yangilanmoqda ? 'animate-spin' : undefined}/> {t('Yangilash')}</button>}
         {valid && <button disabled={otmoqda} onClick={() => void f2gaOt()} className="fz-btn fz-btn--primary">{t('F2 tayyorlash →')}</button>}

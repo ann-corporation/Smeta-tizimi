@@ -3,6 +3,18 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "FAKT-WINDOWING-20261026",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/fakt-windowing-20261026",
+      "base_sha": "a4fe8b65",
+      "status": "ready_for_review",
+      "owns": ["frontend/testlar/pto-integration-20261026/", "frontend/src/i18n/lugat/qism/fakt-ish-maydoni-20261026.json"],
+      "production_write_allowed": false,
+      "runtime_sublease": { "from_task": "DIZAYN-FIRUZA-V1-20261025", "paths": ["frontend/src/admin/sahifalar/FaktJurnal.tsx", "frontend/src/admin/sahifalar/FaktNative.tsx"], "basis": "L0 17:40 and18:50 asks for isolated small PR on current main after154. Runtime author ownership retained, no transfer of other files; L0 review/merge." },
+      "note": "Window journal DOM only; complete draft/save/section scope and keyboard order retained. Remove silent200work search cap; Latin/Cyrillic same search. Compact optional analysis, shared workspace object picker remains. Isolated synthetic read-only UI harness; no DB/runtime authorization changes."
+    },
+    {
       "id": "ARCHITECTURE-PACK-20261026",
       "title": "Live metadata Data Model Registry and current architecture pack for Claude L0",
       "owner": "codex",

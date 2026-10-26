@@ -1,5 +1,6 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
 import { bajarilmadiHajmlar, faktYigindiHisobla, narxlashMumkin } from '../../lib/fakt-studio';
@@ -16,6 +17,7 @@ import { FaktF2Tenglash } from './FaktF2Tenglash';
 import { FaktQamrov } from './FaktQamrov';
 import { faktQamrovBekor } from '../../lib/fakt-qamrov';
 import { t } from '../../i18n/til';
+import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalPaket, jurnalQur, ochiqBor, qoldiqUlushi, sonOqi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
@@ -123,7 +125,6 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const bajHajm = useMemo(() => bajarilmadiHajmlar(bajarilmadi), [bajarilmadi]);
   const yigindi = useMemo(() => faktYigindiHisobla(rows, states, bajarilmadi), [rows, states, bajarilmadi]);
   const [narxModal, setNarxModal] = useState<NarxlashQator | null>(null);
-  const qatorlarRef = useRef(new Map<number, JurnalQator>());
   const bajBekor = async (qatorId: number, nom: string) => {
     const faol = bajarilmadi.filter((b) => b.qator_id === qatorId && b.holat === 'faol').sort((a, b) => b.id - a.id)[0];
     if (!faol) return;
@@ -134,7 +135,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   };
   const bajOch = (q: JurnalQator, boshlangichHajm: number | null = null) => setBajModal({ id: q.id, kod: q.kod, nom: q.nom, birlik: q.birlik, smeta: q.smeta, fakt: q.fakt, belgilangan: bajHajm.get(q.id) ?? 0, almashtirilgan: q.almashtirilgan, boshlangichHajm });
   const operationId = useRef(yangiOperationId());
-  const inputlar = useRef<Array<HTMLInputElement | null>>([]);
+  const inputlar = useRef(new Map<number, HTMLInputElement>());
+  const jadvalRef = useRef<HTMLDivElement | null>(null);
+  const fokusSorov = useRef<number | null>(null);
+  const [fokusId, setFokusId] = useState<number | null>(null);
   const qidiruvRef = useRef<HTMLInputElement | null>(null);
 
   // Zamena → asl bog'lanishi va asl qatorning «almashtirildi» hajmi (ixtiyoriy; xato bo'lsa belgilar chiqmaydi).
@@ -193,16 +197,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   // aks holda tanlangan bo'lim va uning BARCHA avlod bo'limlari (egasi 2026-10-25: «ichi bo'sh» chiqmasin).
   type Bolak = { bolim: JurnalBolim | null; nisbiy: number; yol?: string; ishlar: JurnalIsh[] };
   const korinadi = useMemo((): Bolak[] => {
-    const q = qidiruv.trim().toLowerCase();
-    const mos = (x: JurnalQator) => `${x.kod ?? ''} ${x.nom}`.toLowerCase().includes(q);
+    const q = qidiruvKaliti(qidiruv.trim());
+    const mos = (x: JurnalQator) => qidiruvKaliti(`${x.kod ?? ''} ${x.nom}`).includes(q);
     const filtr = (ish: JurnalIsh) => (!faqatQoldiq || ochiqBor(ish) || ish.resurslar.some(ochiqBor))
       && (!q || mos(ish) || ish.resurslar.some(mos) || ish.avtomatik.some(mos));
     if (q) {
-      const out: Bolak[] = []; let n = 0;
+      const out: Bolak[] = [];
       for (const b of bolimlar) {
-        if (n >= 200) break;
-        const ishlar = (bolimIshlari.get(b.id) ?? []).filter(filtr).slice(0, 200 - n);
-        if (ishlar.length) { out.push({ bolim: null, nisbiy: 0, yol: b.nom, ishlar }); n += ishlar.length; }
+        const ishlar = (bolimIshlari.get(b.id) ?? []).filter(filtr);
+        if (ishlar.length) out.push({ bolim: null, nisbiy: 0, yol: b.nom, ishlar });
       }
       return out;
     }
@@ -214,6 +217,56 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     return tarkib.filter((x) => x.nisbiy === 0 || toliq.has(x.bolim.id)).map((x) => ({ bolim: x.nisbiy === 0 ? null : x.bolim, nisbiy: x.nisbiy, ishlar: x.ishlar }));
   }, [qidiruv, faqatQoldiq, bolimId, bolimlar, bolimIshlari]);
   const korinadiIshSoni = korinadi.reduce((s, x) => s + x.ishlar.length, 0);
+
+  // Virtualizatsiya faqat chizishni cheklaydi: barcha qatorlar, kiritmalar va saqlash paketi to'liq qoladi.
+  type Satr = { key: string; tur: 'bolim'; bolak: Bolak }
+    | { key: string; tur: 'ish'; qator: JurnalIsh }
+    | { key: string; tur: 'resurs'; qator: JurnalQator; avto: boolean };
+  const satrlar = useMemo(() => {
+    const out: Satr[] = [];
+    korinadi.forEach((b, i) => {
+      if (b.yol || b.bolim) out.push({ key: `bolim-${b.bolim?.id ?? i}`, tur: 'bolim', bolak: b });
+      for (const ish of b.ishlar) {
+        out.push({ key: `q-${ish.id}`, tur: 'ish', qator: ish });
+        if (hammaYopiq ? teskari.has(ish.id) : !teskari.has(ish.id)) {
+          for (const r of ish.resurslar) out.push({ key: `q-${r.id}`, tur: 'resurs', qator: r, avto: false });
+          for (const r of ish.avtomatik) out.push({ key: `q-${r.id}`, tur: 'resurs', qator: r, avto: true });
+        }
+      }
+    });
+    return out;
+  }, [korinadi, hammaYopiq, teskari]);
+  const satrIndeks = useMemo(() => new Map(satrlar.flatMap((s, i) => s.tur === 'bolim' ? [] : [[s.qator.id, i] as const])), [satrlar]);
+  const kirishTartib = useMemo(() => satrlar.flatMap(s => s.tur === 'ish' || s.tur === 'resurs' && !s.avto ? [s.qator.id] : []), [satrlar]);
+  const kirishIndeks = useMemo(() => new Map(kirishTartib.map((id, i) => [id, i])), [kirishTartib]);
+  const kattaJurnal = satrlar.length > 100;
+  const fokusSatr = fokusId == null ? undefined : satrIndeks.get(fokusId);
+  const rangeExtractor = useCallback((range: Parameters<typeof defaultRangeExtractor>[0]) => {
+    const indices = defaultRangeExtractor(range);
+    return fokusSatr == null || indices.includes(fokusSatr) ? indices : [...indices, fokusSatr].sort((a, b) => a - b);
+  }, [fokusSatr]);
+  const virtual = useVirtualizer<HTMLDivElement, HTMLDivElement>({
+    count: satrlar.length, enabled: kattaJurnal, getScrollElement: () => jadvalRef.current,
+    getItemKey: i => satrlar[i].key, estimateSize: i => satrlar[i].tur === 'ish' ? 84 : 64,
+    overscan: 8, scrollMargin: 64, scrollPaddingStart: 64, rangeExtractor,
+  });
+  useEffect(() => {
+    if (jadvalRef.current) jadvalRef.current.scrollTop = 0;
+  }, [bolimId, qidiruv, faqatQoldiq]);
+  useEffect(() => {
+    const id = fokusSorov.current;
+    if (id != null && inputlar.current.has(id)) { fokusSorov.current = null; inputlar.current.get(id)!.focus(); }
+  });
+  const fokusgaOt = (id: number | undefined) => {
+    if (id == null) return;
+    const el = inputlar.current.get(id);
+    if (el) { el.focus(); return; }
+    const index = satrIndeks.get(id);
+    if (index == null) return;
+    fokusSorov.current = id;
+    virtual.scrollToIndex(index, { align: 'auto' });
+    setFokusId(id);
+  };
 
   const kirit = (id: number, patch: Partial<Kiritma>) => setKiritmalar((o) => {
     const eski = o[id] ?? { rejim: '+' as Rejim, qiymat: '' };
@@ -295,30 +348,28 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     return () => window.removeEventListener('beforeunload', k);
   }, [ozgarishSoni]);
 
-  let tabIndeks = 0;
-  inputlar.current = [];
-  const klaviatura = (e: KeyboardEvent<HTMLInputElement>, i: number, id: number) => {
+  const klaviatura = (e: KeyboardEvent<HTMLInputElement>, id: number) => {
+    const i = kirishIndeks.get(id) ?? -1;
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void saqla(); }
-    else if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); inputlar.current[i + 1]?.focus(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); (inputlar.current[i - 1] ?? qidiruvRef.current)?.focus(); }
+    else if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); fokusgaOt(kirishTartib[i + 1]); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (i > 0) fokusgaOt(kirishTartib[i - 1]); else qidiruvRef.current?.focus(); }
+    else if (e.key === 'Tab') { const next = kirishTartib[i + (e.shiftKey ? -1 : 1)]; if (next != null) { e.preventDefault(); fokusgaOt(next); } }
     else if (e.key === 'Escape') { e.preventDefault(); if (kiritmalar[id]?.qiymat) kirit(id, { qiymat: '' }); else qidiruvRef.current?.focus(); }
-    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); const q = qatorlarRef.current.get(id); if (q) bajOch(q); }
+    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); const q = barchaById.get(id); if (q) bajOch(q); }
     else if (e.key === '%') { // hajm katagida «%» — shu ish (resurs bo'lsa — uning ishi) uchun Qamrov %
-      const ish = jurnalById.get(id) ?? (() => { const q = qatorlarRef.current.get(id); return q?.otaId != null ? jurnalById.get(q.otaId) : undefined; })();
+      const ish = jurnalById.get(id) ?? (() => { const q = barchaById.get(id); return q?.otaId != null ? jurnalById.get(q.otaId) : undefined; })();
       if (ish && 'resurslar' in ish) { e.preventDefault(); qamrovIsh(ish as JurnalIsh); }
     }
   };
 
   /** Qidiruv maydonidan: ↓ / Enter — birinchi ko'rinadigan qatorning hajm katagiga; Esc — qidiruvni tozalash. */
   const qidiruvKlav = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown' || e.key === 'Enter') { const el = inputlar.current[0]; if (el) { e.preventDefault(); el.focus(); } }
+    if (e.key === 'ArrowDown' || e.key === 'Enter') { if (kirishTartib.length) { e.preventDefault(); fokusgaOt(kirishTartib[0]); } }
     else if (e.key === 'Escape' && qidiruv) { e.preventDefault(); setQidiruv(''); }
   };
 
   // Oddiy render funksiyasi (komponent emas) — input fokusini yo'qotmaslik uchun.
   const kiritish = (q: JurnalQator, kichik?: boolean) => {
-    const i = tabIndeks++;
-    qatorlarRef.current.set(q.id, q);
     const k = kiritmalar[q.id] ?? { rejim: '+' as Rejim, qiymat: '' };
     const xato = paket.xatolar.get(q.id);
     const yangiFakt = (() => { const n = Number(k.qiymat.replace(',', '.')); if (!k.qiymat.trim() || !Number.isFinite(n)) return null; return k.rejim === '+' ? q.fakt + n : n; })();
@@ -332,7 +383,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         {(['+', '='] as Rejim[]).map((r) => <button key={r} type="button" tabIndex={-1} aria-pressed={k.rejim === r} title={r === '+' ? t('Bugun bajarilgan hajm (qo‘shiladi)') : t('Jami fakt (shu qiymatga tenglashtiriladi)')} onClick={() => kirit(q.id, { rejim: r })} className={`w-6 font-semibold ${k.rejim === r ? 'bg-accent text-[var(--on-accent)]' : 'text-text-dim hover:bg-surface-3'}`}>{r}</button>)}
       </div>
       <div className="relative">
-        <input ref={(el) => { inputlar.current[i] = el; }} onFocus={(e) => e.currentTarget.select()} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, i, q.id)} inputMode="decimal"
+        <input ref={(el) => { if (el) inputlar.current.set(q.id, el); else inputlar.current.delete(q.id); }} onFocus={(e) => { e.currentTarget.select(); setFokusId(q.id); }} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, q.id)} inputMode="decimal"
           placeholder={k.rejim === '+' ? t('bugun') : t('jami')} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
           className={`h-7 w-[92px] rounded-[var(--radius-sm)] border bg-bg px-2 text-right font-mono text-[13px] tabular-nums outline-none focus:border-accent ${xato || oshdi ? 'border-warn' : k.qiymat ? 'border-accent' : 'border-border-strong'}`} />
         {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] font-semibold text-warn">{t(JURNAL_XATO_MATN[xato])}</div> : izoh}
@@ -499,6 +550,26 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const ustunSarlavha = (nom: string, izoh: string, o?: { ong?: boolean; title?: string }) => <span className={`flex flex-col ${o?.ong ? 'items-end text-right' : ''}`} title={o?.title}>
     <span>{nom}</span><span className="text-[10.5px] font-normal normal-case tracking-normal text-text-mute">{izoh}</span>
   </span>;
+  const satrChiz = (satr: Satr) => {
+    if (satr.tur === 'ish') return ishQatori(satr.qator);
+    if (satr.tur === 'resurs') return resursQatori(satr.qator, satr.avto);
+    const bk = satr.bolak;
+    return <>
+      {bk.yol && <div className="border-b border-border bg-surface-2 px-3 py-1 text-[11px] text-text-mute">{bk.yol}</div>}
+      {bk.bolim && <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface-2 py-2 pr-3" style={{ paddingLeft: 12 + (bk.nisbiy - 1) * 16 }} data-testid={`bolim-sarlavha-${bk.bolim.id}`}>
+        <button type="button" tabIndex={-1} onClick={() => setBolimId(bk.bolim!.id)} className="flex min-w-0 items-center gap-3 text-left" title={t('Shu bo‘limni ochish')}>
+          <span className="text-[12.5px] font-semibold text-[var(--accent-text)]">{bk.bolim.nom}</span>
+          <span className="text-[11px] tabular-nums text-text-mute">{t('{n} ish', { n: String(bk.bolim.ishSoni) })}</span>
+          <span className="w-[140px]"><BolimMeter ulush={bk.bolim.ulush} /></span>
+        </button>
+        <div className="flex flex-wrap items-start gap-2">
+          {summaQatori(summalar.get(bk.bolim.id))}
+          <button type="button" tabIndex={-1} onClick={() => qamrovBolim(bk.bolim!)} aria-label={t('Qamrov %: {nom}', { nom: bk.bolim.nom })} data-testid={`qamrov-bolim-${bk.bolim.id}`}
+            className="rounded border border-accent/40 px-1.5 text-[10px] font-semibold text-accent hover:bg-accent/10">{t('Qamrov %')}</button>
+        </div>
+      </div>}
+    </>;
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -517,7 +588,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="fz-btn"><Plus size={14} className="text-accent" /> {t('Smetadan tashqari ish')}</button>
       </section>
 
-      {bolimlar.length > 0 && <FaktXulosaPanel x={xulosa} obyekt={obyektUlushi} />}
+      {bolimlar.length > 0 && <details className="group rounded-[var(--radius-md)] border border-border bg-surface-1" data-testid="fakt-tahlil">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-1.5 text-[12px] text-text-dim">
+          <ChevronRight size={13} className="transition-transform group-open:rotate-90" aria-hidden="true" />
+          {t('Bajarilish tahlili')}
+        </summary>
+        <div className="border-t border-border p-2"><FaktXulosaPanel x={xulosa} obyekt={obyektUlushi} /></div>
+      </details>}
 
       <FaktStudioBar yigindi={yigindi} obyektId={obyektId} kompaniyaId={kompaniyaId} onF2={f2Otish} band={band} jami={summalar.get(0)} />
 
@@ -547,11 +624,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">
                   <h2 className="fz-card__title truncate" title={tanlanganBolim?.nom}>{sarlavha}</h2>
+                  <span className="text-[11px] tabular-nums text-text-mute" data-testid="fakt-royxat-soni">{t('{n} ish · {q} qator', { n: String(korinadiIshSoni), q: String(satrlar.filter(s => s.tur !== 'bolim').length) })}</span>
                   {!qidiruv && tanlanganBolim && <div className="flex flex-wrap items-center gap-3 text-[12px] text-text-dim">
                     <span className="tabular-nums">{t('{a} / {b} ish bajarilgan', { a: String(tanlanganBolim.tugaganSoni), b: String(tanlanganBolim.ishSoni) })}</span>
                     <span className="w-[180px]"><BolimMeter ulush={tanlanganBolim.ulush} /></span>
                   </div>}
-                  {!qidiruv && tanlanganBolim && summaQatori(summalar.get(tanlanganBolim.id))}
+                  {!qidiruv && tanlanganBolim && <details className="text-[11px] text-text-mute">
+                    <summary className="cursor-pointer py-0.5">{t('Bo‘lim summalari')}</summary>
+                    {summaQatori(summalar.get(tanlanganBolim.id))}
+                  </details>}
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                   {bolimTakliflar > 0 && <button type="button" onClick={() => materiallarniOl(bolimMaterialIdlar)} data-testid="bolim-materiallarni-ol"
@@ -563,9 +644,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
               </div>
               <MeterLegenda />
             </header>
-            <div className="min-h-0 flex-1 overflow-auto pb-16" data-testid="fakt-jadval">
+            <div ref={jadvalRef} tabIndex={0} role="region" aria-label={t('Fakt jadvali')} className="min-h-0 flex-1 overflow-auto pb-16 focus-visible:outline focus-visible:outline-accent" data-testid="fakt-jadval">
               <div className="min-w-[1220px]">
-                <div className={`${USTUN} sticky top-0 z-10 border-b border-border-strong bg-surface-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim`} role="row">
+                <div className={`${USTUN} sticky top-0 z-10 h-16 border-b border-border-strong bg-surface-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim`} role="row">
                   {ustunSarlavha(t('Ish / resurs'), t('holat · belgilar'))}
                   {ustunSarlavha(t('Smeta'), t('hajm · birlik narxi'), { ong: true })}
                   {ustunSarlavha(t('Bajarilish'), t('fakt va F2, smetaga nisbatan'))}
@@ -576,26 +657,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
                   <span />
                 </div>
                 {korinadiIshSoni === 0 && <p className="p-6 text-center text-[13px] text-text-mute">{qidiruv ? t('Hech narsa topilmadi.') : t('Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q.')}</p>}
-                {korinadi.map((bk, bi) => <div key={bk.bolim?.id ?? `b${bi}`}>
-                  {bk.yol && <div className="border-b border-border bg-surface-2 px-3 py-1 text-[11px] text-text-mute">{bk.yol}</div>}
-                  {bk.bolim && <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface-2 py-2 pr-3" style={{ paddingLeft: 12 + (bk.nisbiy - 1) * 16 }} data-testid={`bolim-sarlavha-${bk.bolim.id}`}>
-                    <button type="button" tabIndex={-1} onClick={() => setBolimId(bk.bolim!.id)} className="flex min-w-0 items-center gap-3 text-left" title={t('Shu bo‘limni ochish')}>
-                      <span className="text-[12.5px] font-semibold text-[var(--accent-text)]">{bk.bolim.nom}</span>
-                      <span className="text-[11px] tabular-nums text-text-mute">{t('{n} ish', { n: String(bk.bolim.ishSoni) })}</span>
-                      <span className="w-[140px]"><BolimMeter ulush={bk.bolim.ulush} /></span>
-                    </button>
-                    <div className="flex flex-wrap items-start gap-2">
-                      {summaQatori(summalar.get(bk.bolim.id))}
-                      <button type="button" tabIndex={-1} onClick={() => qamrovBolim(bk.bolim!)} aria-label={t('Qamrov %: {nom}', { nom: bk.bolim.nom })} data-testid={`qamrov-bolim-${bk.bolim.id}`}
-                        className="rounded border border-accent/40 px-1.5 text-[10px] font-semibold text-accent hover:bg-accent/10">{t('Qamrov %')}</button>
-                    </div>
-                  </div>}
-                  {bk.ishlar.map((ish) => <div key={ish.id} className="border-b border-border">
-                    {ishQatori(ish)}
-                    {ishOchiq(ish.id) && ish.resurslar.map((r) => resursQatori(r, false))}
-                    {ishOchiq(ish.id) && ish.avtomatik.map((a) => resursQatori(a, true))}
+                {kattaJurnal ? <div className="relative" style={{ height: virtual.getTotalSize() }} data-testid="fakt-virtual-royxat">
+                  {virtual.getVirtualItems().map(v => <div key={v.key} data-index={v.index} ref={virtual.measureElement}
+                    className="absolute left-0 top-0 w-full border-b border-border" style={{ transform: `translateY(${v.start - 64}px)` }}>
+                    {satrChiz(satrlar[v.index])}
                   </div>)}
-                </div>)}
+                </div> : satrlar.map(s => <div key={s.key} className="border-b border-border">{satrChiz(s)}</div>)}
               </div>
             </div>
           </section>
