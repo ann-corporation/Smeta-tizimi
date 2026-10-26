@@ -89,7 +89,7 @@ export function AiBoshqaruvchi({ m, taklifgaOt }: { m: Markaz; taklifgaOt: () =>
         <Karta nom="O‘zgargan manbalar" qiymat={h.kuzatuv_ozgargan} ogoh />
       </div>
       {(m.sonlar.taklif_kutilmoqda > 0 || h.bilim_kutilmoqda > 0) && (
-        <button type="button" onClick={taklifgaOt} className="tugma h-8 px-3 text-[12px]">{t('Kutayotgan takliflarni ko‘rib chiqish')}</button>
+        <button type="button" onClick={taklifgaOt} className="fz-btn h-8 px-3 text-[12px]">{t('Kutayotgan takliflarni ko‘rib chiqish')}</button>
       )}
 
       <div className="karta space-y-2 p-3">
@@ -116,7 +116,7 @@ export function AiBoshqaruvchi({ m, taklifgaOt }: { m: Markaz; taklifgaOt: () =>
           <input aria-label={t(YARLIQ_URL)} placeholder={t(YARLIQ_URL)} value={url} onChange={(e) => setUrl(e.target.value)} className="input h-8 px-2 text-[12px]" />
           <input aria-label={t(YARLIQ_NOM)} placeholder={t(YARLIQ_NOM)} value={nom} onChange={(e) => setNom(e.target.value)} className="input h-8 px-2 text-[12px]" />
           <input aria-label={t(YARLIQ_MAQSAD)} placeholder={t(YARLIQ_MAQSAD)} value={maqsad} onChange={(e) => setMaqsad(e.target.value)} className="input h-8 px-2 text-[12px]" />
-          <button type="button" disabled={!url.trim() || !nom.trim()} onClick={() => void qosh()} className="tugma-asosiy h-8 px-3 text-[12px] disabled:opacity-40">{t('Kuzatuvga qo‘shish')}</button>
+          <button type="button" disabled={!url.trim() || !nom.trim()} onClick={() => void qosh()} className="fz-btn fz-btn--primary h-8 px-3 text-[12px] disabled:opacity-40">{t('Kuzatuvga qo‘shish')}</button>
         </div>
         {domenSoraldi && (
           <div role="status" className="flex flex-wrap items-center gap-2 rounded border border-warn/40 bg-warn/10 px-2 py-1.5 text-xs text-warn">
@@ -127,7 +127,7 @@ export function AiBoshqaruvchi({ m, taklifgaOt }: { m: Markaz; taklifgaOt: () =>
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-text-mute">
           <span>{t('Tavsiya etilgan rasmiy manbalar')}:</span>
           {TAVSIYA_MANBA.map((x) => (
-            <button key={x.url} type="button" onClick={() => { setUrl(x.url); setNom(t(x.nom)); setDomenSoraldi(false); }} className="rounded-full border border-border px-2 py-0.5 hover:bg-white/5">{x.url.replace('https://', '')}</button>
+            <button key={x.url} type="button" onClick={() => { setUrl(x.url); setNom(t(x.nom)); setDomenSoraldi(false); }} className="rounded-full border border-border px-2 py-0.5 hover:bg-surface-3">{x.url.replace('https://', '')}</button>
           ))}
         </div>
       </div>
@@ -150,7 +150,7 @@ export function AiBoshqaruvchi({ m, taklifgaOt }: { m: Markaz; taklifgaOt: () =>
             <input aria-label={t('Sarlavha')} placeholder={t('Sarlavha')} value={bs} onChange={(e) => setBs(e.target.value)} className="input h-8 px-2 text-[12px]" />
             <textarea aria-label={t('Matn (manba va bandini ko‘rsating)')} placeholder={t('Matn (manba va bandini ko‘rsating)')} rows={3} value={bm} onChange={(e) => setBm(e.target.value)} className="input px-2 py-1.5 text-[12px]" />
             <input aria-label={t('Kalit so‘zlar (vergul bilan)')} placeholder={t('Kalit so‘zlar (vergul bilan)')} value={bk} onChange={(e) => setBk(e.target.value)} className="input h-8 px-2 text-[12px]" />
-            <button type="button" disabled={bs.trim().length < 3 || bm.trim().length < 20 || !bk.trim()} onClick={() => void yoz()} className="tugma-asosiy h-8 w-fit px-3 text-[12px] disabled:opacity-40">{t('Bilimni saqlash')}</button>
+            <button type="button" disabled={bs.trim().length < 3 || bm.trim().length < 20 || !bk.trim()} onClick={() => void yoz()} className="fz-btn fz-btn--primary h-8 w-fit px-3 text-[12px] disabled:opacity-40">{t('Bilimni saqlash')}</button>
           </div>
         </details>
       </div>

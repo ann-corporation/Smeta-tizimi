@@ -19,7 +19,9 @@ import { MoneyInput } from './MoneyInput';
  * ⚠️ ZIDDIYAT — «xato» EMAS, normal holat: boshqa foydalanuvchi
  * o'sha qatorni tezroq o'zgartirgan bo'lishi mumkin.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { t } from '../../i18n/til';
+import './qator-tahrir-modal.css';
 import { X, Save, AlertTriangle, RefreshCw, Check } from 'lucide-react';
 import { toast } from './Toast';
 import { sbT2QatorTahrir, type T2TahrirNatija } from '../../api/supabase';
@@ -62,6 +64,26 @@ export function QatorTahrirModal({
   const [saqlandiBelgi, setSaqlandiBelgi] = useState<Partial<Record<QatorTahrirMaydon, boolean>>>({});
   const [ziddiyat, setZiddiyat] = useState<Partial<Record<QatorTahrirMaydon, T2TahrirNatija>>>({});
 
+  const dialog = useRef<HTMLDivElement>(null);
+  // Esc yopadi; Tab modal ichida aylanadi; yopilganda fokus avvalgi elementga qaytadi.
+  useEffect(() => {
+    const oldingi = document.activeElement as HTMLElement | null;
+    dialog.current?.querySelector<HTMLElement>('input,button')?.focus();
+    const tugma = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); yop(); return; }
+      if (e.key !== 'Tab' || !dialog.current) return;
+      const el = [...dialog.current.querySelectorAll<HTMLElement>('input,button,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(x => !(x as HTMLButtonElement).disabled);
+      if (!el.length) return;
+      const birinchi = el[0], oxirgi = el[el.length - 1];
+      if (e.shiftKey && document.activeElement === birinchi) { e.preventDefault(); oxirgi.focus(); }
+      else if (!e.shiftKey && document.activeElement === oxirgi) { e.preventDefault(); birinchi.focus(); }
+      else if (!dialog.current.contains(document.activeElement)) { e.preventDefault(); birinchi.focus(); }
+    };
+    document.addEventListener('keydown', tugma, true);
+    return () => { document.removeEventListener('keydown', tugma, true); oldingi?.focus?.(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const ozgartir = (maydon: QatorTahrirMaydon, val: string) => {
     setQiymatlar((prev) => ({ ...prev, [maydon]: val }));
     setSaqlandiBelgi((prev) => ({ ...prev, [maydon]: false }));
@@ -76,7 +98,7 @@ export function QatorTahrirModal({
     if (r.ok && r.versiya != null) {
       setVersiya(r.versiya);
       setSaqlandiBelgi((prev) => ({ ...prev, [maydon]: true }));
-      toast(`${MAYDON_NOMI[maydon]} saqlandi`, 'ok');
+      toast(t('{m} saqlandi', { m: t(MAYDON_NOMI[maydon]) }), 'ok');
       saqlandi();
       return;
     }
@@ -85,118 +107,101 @@ export function QatorTahrirModal({
       setZiddiyat((prev) => ({ ...prev, [maydon]: r }));
       return;
     }
-    toast(r.xabar || r.error || 'Saqlanmadi', 'danger', undefined, 9000);
+    toast(r.xabar || r.error || t('Saqlanmadi'), 'danger', undefined, 9000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
-         onClick={yop}>
-      <div className="karta w-full max-w-lg p-4 bg-[var(--surface-1)]"
-           onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 mb-3">
+    <div className="qt-overlay" onClick={yop}>
+      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="qt-title" className="fz-card qt-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="fz-card__head">
           <div className="min-w-0">
-            <h3 className="text-[14px] font-semibold text-text">Qatorni tahrirlash</h3>
-            <p className="text-[11px] text-text-mute truncate">{nishon.nom}</p>
+            <h3 id="qt-title" className="fz-card__title">{t('Qatorni tahrirlash')}</h3>
+            <p className="fz-card__sub truncate">{nishon.nom}</p>
           </div>
-          <button onClick={yop} aria-label="Yopish" title="Yopish"
-            className="text-text-mute hover:text-text p-1 rounded hover:bg-white/10">
-            <X size={16} />
-          </button>
+          <button type="button" onClick={yop} aria-label={t('Yopish')} title={t('Yopish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm"><X size={16} /></button>
         </div>
 
-        <div className="space-y-3">
+        <div className="fz-card__body qt-body">
           {MAYDON_TARTIB.map((maydon) => {
             const konflikt = ziddiyat[maydon];
             const ozgargan = qiymatlar[maydon] !== saqlangan[maydon];
+            const eski = saqlangan[maydon];
             return (
-              <div key={maydon}>
-                <label className="block text-[11px] font-medium text-text-mute mb-1">{MAYDON_NOMI[maydon]}</label>
+              <div key={maydon} className="qt-field">
+                <label className="qt-label" htmlFor={`qt-${maydon}`}>{t(MAYDON_NOMI[maydon])}</label>
                 {!konflikt && (
-                  <div className="flex items-center gap-2">
-                    {maydon === 'narx' ? <MoneyInput value={qiymatlar[maydon]} onValueChange={(v) => ozgartir(maydon, v)} onKeyDown={(e) => { if (e.key === 'Enter' && ozgargan) void saqla(maydon, versiya); }} className="flex-1 bg-[var(--surface-2)] border border-border rounded-lg px-3 py-1.5 text-[13px] text-text outline-none focus:border-accent/50" /> : (
+                  <div className="qt-row">
+                    {maydon === 'narx' ? <MoneyInput value={qiymatlar[maydon]} onValueChange={(v) => ozgartir(maydon, v)} onKeyDown={(e) => { if (e.key === 'Enter' && ozgargan) void saqla(maydon, versiya); }} className="qt-input" /> : (
                     <input
+                      id={`qt-${maydon}`}
                       value={qiymatlar[maydon]}
                       onChange={(e) => ozgartir(maydon, e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && ozgargan) void saqla(maydon, versiya); }}
                       type={maydon === 'hajm' ? 'number' : 'text'}
                       step="any"
-                      className="flex-1 bg-[var(--surface-2)] border border-border rounded-lg
-                                 px-3 py-1.5 text-[13px] text-text outline-none focus:border-accent/50"
+                      className="qt-input"
                     />
                     )}
-                    <button
+                    <button type="button"
                       onClick={() => void saqla(maydon, versiya)}
                       disabled={!ozgargan || ketyapti === maydon}
-                      title="Shu maydonni saqlash"
-                      className="shrink-0 px-2.5 py-1.5 rounded-lg bg-accent text-white text-[12px]
-                                 font-medium hover:bg-accent/90 disabled:opacity-40
-                                 inline-flex items-center gap-1">
+                      title={t('Shu maydonni saqlash')}
+                      aria-label={t('Shu maydonni saqlash')}
+                      className="fz-btn fz-btn--primary fz-btn--icon">
                       {ketyapti === maydon
                         ? <RefreshCw size={13} className="animate-spin" />
                         : saqlandiBelgi[maydon] && !ozgargan ? <Check size={13} /> : <Save size={13} />}
                     </button>
                   </div>
                 )}
+                {!konflikt && ozgargan && (
+                  <div className="qt-diff" aria-live="polite">
+                    <span className="qt-diff__eski"><small>{t('Oldin')}</small>{eski || '—'}</span>
+                    <span aria-hidden="true">→</span>
+                    <span className="qt-diff__yangi"><small>{t('Keyin')}</small>{qiymatlar[maydon] || '—'}</span>
+                  </div>
+                )}
 
                 {konflikt && (
-                  <div className="rounded-lg border border-warn/40 bg-warn/5 p-3">
-                    <p className="text-[12px] font-medium text-warn flex items-center gap-2 mb-2">
-                      <AlertTriangle size={14} />
-                      Bu maydonni boshqa foydalanuvchi o‘zgartirdi
-                    </p>
-                    <p className="text-[11px] text-text-dim mb-2">
-                      Siz {konflikt.sizning_versiya}-versiyani ko‘rgansiz, bazada esa
-                      allaqachon {konflikt.bazadagi_versiya}-versiya.
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 text-[11px] mb-2">
-                      <div className="rounded border border-border p-2">
-                        <p className="text-text-mute mb-0.5">Hozir bazada</p>
-                        <p className="text-text font-mono">{String((konflikt.joriy as any)?.[maydon] ?? '—')}</p>
+                  <div className="fz-note fz-note--warn qt-conflict" role="alert">
+                    <div className="min-w-0 flex-1">
+                      <p className="qt-conflict__h"><AlertTriangle size={14} />{t('Bu maydonni boshqa foydalanuvchi o‘zgartirdi')}</p>
+                      <p className="qt-conflict__p">{t('Siz {a}-versiyani ko‘rgansiz, bazada esa allaqachon {b}-versiya.', { a: konflikt.sizning_versiya ?? '—', b: konflikt.bazadagi_versiya ?? '—' })}</p>
+                      <div className="qt-vs">
+                        <div className="qt-vs__q"><small>{t('Hozir bazada')}</small><b>{String((konflikt.joriy as any)?.[maydon] ?? '—')}</b></div>
+                        <div className="qt-vs__q qt-vs__q--siz"><small>{t('Siz yozmoqchisiz')}</small><b>{qiymatlar[maydon] || '—'}</b></div>
                       </div>
-                      <div className="rounded border border-accent/40 p-2">
-                        <p className="text-text-mute mb-0.5">Siz yozmoqchisiz</p>
-                        <p className="text-accent font-mono">{qiymatlar[maydon] || '—'}</p>
+                      <div className="qt-actions">
+                        <button type="button"
+                          onClick={() => {
+                            const j = (konflikt.joriy as any)?.[maydon];
+                            ozgartir(maydon, j == null ? '' : String(j));
+                            if (konflikt.bazadagi_versiya != null) setVersiya(konflikt.bazadagi_versiya);
+                            setZiddiyat((prev) => ({ ...prev, [maydon]: undefined }));
+                          }}
+                          className="fz-btn fz-btn--sm"><RefreshCw size={12} /> {t('Bazadagini olish')}</button>
+                        <button type="button"
+                          onClick={() => void saqla(maydon, konflikt.bazadagi_versiya!)}
+                          disabled={ketyapti === maydon}
+                          className="fz-btn fz-btn--sm fz-btn--danger">{t('Baribir o‘zimniki bilan yozish')}</button>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          const j = (konflikt.joriy as any)?.[maydon];
-                          ozgartir(maydon, j == null ? '' : String(j));
-                          if (konflikt.bazadagi_versiya != null) setVersiya(konflikt.bazadagi_versiya);
-                          setZiddiyat((prev) => ({ ...prev, [maydon]: undefined }));
-                        }}
-                        className="px-3 py-1.5 rounded-lg text-[12px] text-text
-                                   border border-border hover:bg-white/5 inline-flex items-center gap-1.5">
-                        <RefreshCw size={12} /> Bazadagini olish
-                      </button>
-                      <button
-                        onClick={() => void saqla(maydon, konflikt.bazadagi_versiya!)}
-                        disabled={ketyapti === maydon}
-                        className="px-3 py-1.5 rounded-lg bg-warn/20 text-warn text-[12px]
-                                   font-medium hover:bg-warn/30 disabled:opacity-40">
-                        Baribir o‘zimniki bilan yozish
-                      </button>
                     </div>
                   </div>
                 )}
               </div>
             );
           })}
+
+          {/* Halollik qoidasi (t2_kompaniya.test.cjs shuni tekshiradi):
+              bo'sh maydon — bu 0 EMAS. */}
+          <p className="qt-hint">
+            Bo‘sh qoldirilsa qiymat <b>yo‘q</b> bo‘ladi (0 emas). 0 va «kiritilmagan» — boshqa-boshqa narsa.
+          </p>
         </div>
 
-        {/* Halollik qoidasi (t2_kompaniya.test.cjs shuni tekshiradi):
-            bo'sh maydon — bu 0 EMAS. Moliyaviy ma'lumotda "kiritilmagan"
-            va "nol" butunlay boshqa narsa, shuning uchun aytib turiladi. */}
-        <p className="mt-3 text-[10px] text-text-mute">
-          Bo‘sh qoldirilsa qiymat <b>yo‘q</b> bo‘ladi (0 emas). 0 va «kiritilmagan» — boshqa-boshqa narsa.
-        </p>
-
-        <div className="flex justify-end mt-4">
-          <button onClick={yop}
-            className="px-4 py-1.5 rounded-lg text-[12px] font-medium text-text-dim hover:bg-white/5 border border-border">
-            Yopish
-          </button>
+        <div className="qt-foot">
+          <span className="qt-keys"><kbd className="fz-kbd">{'Esc'}</kbd> {t('yopish')} · <kbd className="fz-kbd">↵</kbd> {t('maydonni saqlash')}</span>
+          <button type="button" onClick={yop} className="fz-btn">{t('Yopish')}</button>
         </div>
       </div>
     </div>

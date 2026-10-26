@@ -65,7 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
    *      CHAQIRILMAYDI. Noto'g'ri parol qat'iy rad etiladi, GAS'ga
    *      "orqaga qaytib" tekshirilmaydi -- aks holda Supabase paroli
    *      GAS parolini chetlab o'tishning yashirin yo'liga aylanardi. */
-  let supabaseNatija: { ok: boolean; code?: string; foydalanuvchi_id?: number; rol?: string } | null = null;
+  let supabaseNatija: { ok: boolean; code?: string; foydalanuvchi_id?: number; rol?: string; login?: string } | null = null;
   if (ctx.env.SUPABASE_URL && ctx.env.SUPABASE_KEY) {
     try {
       const rr = await fetch(supabaseBaseUrl(ctx.env.SUPABASE_URL) + '/rest/v1/rpc/t2_parol_tekshir_v1', {
@@ -83,6 +83,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (supabaseNatija && supabaseNatija.code !== 'NO_PASSWORD_SET') {
     if (supabaseNatija.ok && supabaseNatija.rol) {
       rol = supabaseNatija.rol as Rol;
+      /* Hisoblar birlashtirilgan bo'lsa (t2_hisob_birlashtir_v1) parol eski hisobniki, lekin sessiya OMON QOLGAN
+       * hisobga beriladi — RPC uning loginini qaytaradi. Oddiy hisobda `login` kelmaydi → o'zgarmaydi. */
+      if (supabaseNatija.login) login = supabaseNatija.login;
     } else {
       // Hash BOR, lekin mos kelmadi -- GAS'ga qaytish YO'Q (fail-closed).
       await new Promise(r => setTimeout(r, 800));

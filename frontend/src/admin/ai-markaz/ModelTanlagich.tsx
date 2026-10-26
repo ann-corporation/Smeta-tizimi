@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, Search, Sparkles } from 'lucide-react';
 import { modelOpenrouterdanQosh, openrouterModellarOl, type ModelKatalogi, type ModelMoslik } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { toast } from '../../umumiy/ui/Toast';
 
 const DARAJA: Record<string, [string, string]> = {
@@ -19,7 +20,7 @@ function Nishon({ m }: { m: ModelMoslik }) {
 function Qator({ m, tavsiya, katalogda, tanlangan, onTanla }: { m: ModelMoslik; tavsiya: boolean; katalogda: boolean; tanlangan: boolean; onTanla: (m: ModelMoslik) => void }) {
   return (
     <li role="presentation">
-      <button type="button" role="option" aria-selected={tanlangan} onClick={() => onTanla(m)} className={`flex w-full items-start gap-2 px-2.5 py-1.5 text-left hover:bg-white/5 ${tanlangan ? 'bg-accent/10' : ''}`}>
+      <button type="button" role="option" aria-selected={tanlangan} onClick={() => onTanla(m)} className={`flex w-full items-start gap-2 px-2.5 py-1.5 text-left hover:bg-surface-3 ${tanlangan ? 'bg-accent/10' : ''}`}>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-1.5 text-[12px] text-text">
             {m.nom}{tavsiya && <span className="inline-flex items-center gap-0.5 rounded bg-accent/20 px-1 text-[10px] text-accent"><Sparkles size={9} />{t('Tavsiya')}</span>}
@@ -76,7 +77,7 @@ export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq
 
   const joriy = katalogBaho.find((x) => x.id === qiymat) ?? null;
   const tanla = useCallback(async (m: ModelMoslik) => {
-    if (m.daraja === 'kuchsiz' && !window.confirm(`${m.ogohlantirish ?? t('Bu model bu ish uchun kuchsiz.')}\n\n${t('Baribir tanlaysizmi?')}`)) return;
+    if (m.daraja === 'kuchsiz' && !(await tasdiqSora({ sarlavha: t('Kuchsiz model'), matn: `${m.ogohlantirish ?? t('Bu model bu ish uchun kuchsiz.')}\n\n${t('Baribir tanlaysizmi?')}`, tasdiqMatni: t('Baribir tanlash') }))) return;
     if (!katalogSet.has(m.id)) {
       if (rejim !== 'superadmin') return;
       const r = await modelOpenrouterdanQosh(m.id);
@@ -114,11 +115,11 @@ export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq
             </div>
           )}
           <ul role="listbox" aria-label={t('Modellar')}>
-            <li role="presentation"><button type="button" role="option" aria-selected={!qiymat} onClick={() => { setOch(false); onTanla(null); }} className={`w-full px-2.5 py-1.5 text-left text-[12px] hover:bg-white/5 ${!qiymat ? 'bg-accent/10' : ''}`}>{t('Server standarti')}</button></li>
+            <li role="presentation"><button type="button" role="option" aria-selected={!qiymat} onClick={() => { setOch(false); onTanla(null); }} className={`w-full px-2.5 py-1.5 text-left text-[12px] hover:bg-surface-3 ${!qiymat ? 'bg-accent/10' : ''}`}>{t('Server standarti')}</button></li>
             {katalogQatorlari.length > 0 && <li className="px-2.5 pt-2 text-[10px] uppercase text-text-mute" role="presentation">{t('Tasdiqlangan katalog')}</li>}
             {katalogQatorlari.map((m) => <Qator key={m.id} m={m} tavsiya={tavsiya.includes(m.id)} katalogda tanlangan={m.id === qiymat} onTanla={(x) => void tanla(x)} />)}
             {baholanmagan.map((k) => (
-              <li key={k.id} role="presentation"><button type="button" role="option" aria-selected={k.id === qiymat} onClick={() => { setOch(false); onTanla(k.id); }} className="w-full px-2.5 py-1.5 text-left text-[12px] hover:bg-white/5">{k.nom} <span className="text-[10px] text-text-mute">{t('baholanmagan')}</span></button></li>
+              <li key={k.id} role="presentation"><button type="button" role="option" aria-selected={k.id === qiymat} onClick={() => { setOch(false); onTanla(k.id); }} className="w-full px-2.5 py-1.5 text-left text-[12px] hover:bg-surface-3">{k.nom} <span className="text-[10px] text-text-mute">{t('baholanmagan')}</span></button></li>
             ))}
             {rejim === 'superadmin' && (<>
               <li className="px-2.5 pt-2 text-[10px] uppercase text-text-mute" role="presentation">{t('OpenRouter ro‘yxati')} {yuk ? '…' : ''}</li>

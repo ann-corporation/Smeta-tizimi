@@ -1,0 +1,4 @@
+{
+  "{n} ta obyektning ustamasi hisoblanmadi — ular ustamasiz qiymati bilan qo‘shilgan": { "ru": "Наценка не рассчитана для {n} объектов — они учтены без наценки", "en": "Markup not calculated for {n} objects — included without markup" },
+  "{n} / {jami} obyekt ustamasi noma’lum": { "ru": "Наценка неизвестна: {n} из {jami} объектов", "en": "Markup unknown for {n} of {jami} objects" }
+}

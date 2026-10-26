@@ -1,0 +1,70 @@
+{
+  "Portfel xulosasi": {
+    "ru": "Сводка портфеля",
+    "en": "Portfolio summary"
+  },
+  "Smeta summasi noma’lum — nisbat hisoblanmaydi": {
+    "ru": "Сумма сметы неизвестна — соотношение не рассчитывается",
+    "en": "Estimate amount unknown — ratio is not calculated"
+  },
+  "Tasdiqlangan F2 / smeta (summa nisbati, ustamasiz; jismoniy bajarilish emas)": {
+    "ru": "Утверждённые Ф2 / смета (соотношение сумм, без накруток; не физическое выполнение)",
+    "en": "Approved F2 / estimate (amount ratio, without markups; not physical progress)"
+  },
+  "{n} jarayonda": {
+    "ru": "{n} в работе",
+    "en": "{n} in progress"
+  },
+  "{n} rad etilgan": {
+    "ru": "{n} отклонено",
+    "en": "{n} rejected"
+  },
+  "{n} bekor": {
+    "ru": "{n} отменено",
+    "en": "{n} cancelled"
+  },
+  "F2 reestri xulosasi": {
+    "ru": "Сводка реестра Ф2",
+    "en": "F2 registry summary"
+  },
+  "Tasdiqlangan F2 manbasi bo‘yicha": {
+    "ru": "Утверждённые Ф2 по источнику",
+    "en": "Approved F2 by source"
+  },
+  "Tizimda tayyorlangan": {
+    "ru": "Подготовлено в системе",
+    "en": "Prepared in the system"
+  },
+  "Manbasi aniqlanmagan": {
+    "ru": "Источник не определён",
+    "en": "Source not determined"
+  },
+  "Smeta jami (ustamasiz)": {
+    "ru": "Итого смета (без накруток)",
+    "en": "Estimate total (without markups)"
+  },
+  "Smetaga nisbatan": {
+    "ru": "Относительно сметы",
+    "en": "Against estimate"
+  },
+  "Aktlarni ko‘rsatish: {nom}": {
+    "ru": "Показать акты: {nom}",
+    "en": "Show acts: {nom}"
+  },
+  "F2 tarixi": {
+    "ru": "История Ф2",
+    "en": "F2 history"
+  },
+  "Muhim": {
+    "ru": "Важно",
+    "en": "Critical"
+  },
+  "O‘rta": {
+    "ru": "Средне",
+    "en": "Medium"
+  },
+  "Ma’lumot": {
+    "ru": "Информация",
+    "en": "Info"
+  }
+}

@@ -17,6 +17,8 @@ import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/
 import { toast } from '../../umumiy/ui/Toast';
 import { AgentKompaniyaSozlama } from './AgentKompaniyaSozlama';
 import { t } from '../../i18n/til';
+import { narxOgish } from '../../lib/narx-korinish';
+import { OgishMeter } from '../../components/narx/NarxKorinish';
 import { AgentModellar } from './AgentModellar';
 import { AgentTakliflar } from './AgentTakliflar';
 
@@ -58,17 +60,17 @@ export default function AiAgentlar() {
   return (
     <div className="p-4 space-y-3">
       <div>
-        <h1 className="text-lg font-semibold">AI ishchilar (agentlar)</h1>
-        <p className="text-xs text-text-dim">Har agent faqat o‘z roliga ruxsat etilgan buyruqlarni tayyorlaydi; pul va hujjatga ta’sir qiluvchi amallar — faqat rahbar tasdig‘i bilan. Barcha qadamlar auditda.</p>
+        <h1 className="fz-pagehead__title">{t('AI ishchilar (agentlar)')}</h1>
+        <p className="fz-pagehead__desc">Har agent faqat o‘z roliga ruxsat etilgan buyruqlarni tayyorlaydi; pul va hujjatga ta’sir qiluvchi amallar — faqat rahbar tasdig‘i bilan. Barcha qadamlar auditda.</p>
       </div>
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm">
-        <select className="border rounded px-2 py-1 text-sm" value={ishchi} onChange={(e) => setIshchi(e.target.value as keyof typeof ISHCHILAR)}>
+      <div className="fz-panel flex-row flex-wrap items-center text-sm">
+        <select className="h-8 px-2 text-sm" value={ishchi} onChange={(e) => setIshchi(e.target.value as keyof typeof ISHCHILAR)}>
           {Object.entries(ISHCHILAR).map(([k, v]) => <option key={k} value={k}>{v.nom}</option>)}
         </select>
-        <select className="border rounded px-2 py-1 text-sm" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>
+        <select className="h-8 px-2 text-sm" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>
           <ObyektOptionlari obyektlar={obyektlar} />
         </select>
-        <button type="button" disabled={!obyektId || !joriy?.id} className="rounded-md border border-accent/40 px-3 py-1 text-accent hover:bg-accent/10 disabled:opacity-40"
+        <button type="button" disabled={!obyektId || !joriy?.id} className="fz-btn fz-btn--primary fz-btn--sm"
           onClick={() => {
             const o = obyektlar.find((x) => x.id === obyektId);
             if (!o || !joriy?.id) return;
@@ -77,11 +79,11 @@ export default function AiAgentlar() {
         <span className="text-xs text-text-dim">So‘rov → rahbar tasdig‘i → «Boshlash» → natija ko‘rib chiqishga.</span>
       </div>
       {natija && (
-        <div className="rounded-lg border border-border bg-surface p-3 text-sm space-y-1">
-          <div className="font-medium">Agent xulosasi</div>
+        <div className="fz-panel text-sm" data-testid="agent-xulosa">
+          <div className="flex items-center gap-2"><span className="fz-panel__h">{t('Agent xulosasi')}</span><span className="fz-stamp fz-stamp--info ml-auto">{t('Ko‘rib chiqishga')}</span></div>
           <p>{String(natija.xulosa ?? '')}</p>
           {Array.isArray(natija.katta_ogish) && natija.katta_ogish.length > 0 && (
-            <ul className="list-disc pl-5 text-xs text-text-dim">{(natija.katta_ogish as Array<{ qator_id: number; nom: string; smeta_narx: number; manba_narx: number; ogish_foiz: number }>).slice(0, 30).map((x) => <li key={x.qator_id}>{x.nom}: smeta {x.smeta_narx} → manba {x.manba_narx} ({x.ogish_foiz}%)</li>)}</ul>
+            <ul className="flex flex-col gap-1 text-xs text-text-dim">{(natija.katta_ogish as Array<{ qator_id: number; nom: string; smeta_narx: number; manba_narx: number; ogish_foiz: number }>).slice(0, 30).map((x) => <li key={x.qator_id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2"><span className="truncate" title={x.nom}>{x.nom}</span><span className="fz-chip tabular-nums">{x.smeta_narx} → {x.manba_narx}</span><OgishMeter og={narxOgish(x.manba_narx, x.smeta_narx)} /></li>)}</ul>
           )}
           {/* Ombor agenti: БЕЗСКЛАД qoidasi bazada avtomatik — agent faqat istisnolarni ko'rsatadi. */}
           {Array.isArray(natija.aktda_qolgan) && natija.aktda_qolgan.length > 0 && (<>
@@ -99,7 +101,7 @@ export default function AiAgentlar() {
       )}
       {joriy?.id && <AgentKompaniyaSozlama kompaniyaId={joriy.id} />}
       {joriy?.id && (
-        <details className="rounded-lg border border-border bg-surface p-3">
+        <details className="fz-panel">
           <summary className="cursor-pointer text-sm font-medium">{t('Kompaniya AI sozlamalari (admin)')}</summary>
           <div className="mt-3 space-y-4">
             <AgentModellar kompaniyaId={joriy.id} tizim={false} />

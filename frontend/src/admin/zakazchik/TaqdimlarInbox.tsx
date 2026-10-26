@@ -16,7 +16,7 @@ import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
 import { QatorIzohMuloqot, QatorIzohTugma } from './QatorIzohlari';
 import { useQatorIzohlari } from './qator-izohlari-hook';
-import { HODISA_NOMI, inp, oyMatn, pul, sana, tugma, tugmaAsosiy } from './tomon-yordam';
+import { HODISA_NOMI, inp, oyMatn, pul, sana, TAQDIM_HOLAT_NOMI, tugma, tugmaAsosiy } from './tomon-yordam';
 
 const OCHIQ = ['yuborilgan', 'ko_rilmoqda'];
 const KORINADIGAN_QATOR = 200;
@@ -31,7 +31,7 @@ function Tafsilot({ kompaniyaId, id, yangila }: { kompaniyaId: number; id: numbe
   const aktId = d && d.taqdim.resurs === 'f2' && d.taqdim.manba_jadval === 't2_akt' ? d.taqdim.manba_id : null;
   const qIzoh = useQatorIzohlari(kompaniyaId, aktId, d?.taqdim.aloqa_id);
   const [ochiqQator, setOchiqQator] = useState<number | null>(null);
-  if (!d) return <p className="text-xs text-text-dim">{t('Yuklanmoqda…')}</p>;
+  if (!d) return <div className="skel h-40 rounded-xl" aria-label={t('Yuklanmoqda…')} />;
   const q = d.taqdim;
   const ochiq = OCHIQ.includes(q.holat);
 
@@ -51,28 +51,40 @@ function Tafsilot({ kompaniyaId, id, yangila }: { kompaniyaId: number; id: numbe
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <b>{q.nom}</b><HolatBelgi holat={q.holat} turi="taqdim" />
-        <span className="text-text-dim">{q.etuvchi_nom} → {q.qabul_qiluvchi_nom}</span>
-        {q.obyekt_nom && <span className="text-text-dim">{t('Obyekt')}: {q.obyekt_nom}</span>}
-        {q.summa != null && <span className="tabular-nums">{t('Summa')}: <b>{pul(q.summa)}</b></span>}
-      </div>
-      {q.taqdim_izoh && <p className="text-xs text-text-dim">{t('Yuboruvchi izohi')}: {q.taqdim_izoh}</p>}
-      {q.qaror_izoh && <p className="rounded border border-warn/40 bg-warn/5 px-2 py-1 text-xs">{t('Qaror izohi')}: {q.qaror_izoh}</p>}
-      {d.butunlik_ok === false && <p role="alert" className="rounded border border-danger/50 bg-danger/5 px-2 py-1 text-xs text-danger">{t('DIQQAT: yuborilgandan keyin hujjat qatorlari o‘zgargan (butunlik xeshi mos kelmaydi). Qaror chiqarishdan oldin yuboruvchidan aniqlang.')}</p>}
-      {d.butunlik_ok === true && <p className="text-xs text-ok">✓ {t('Butunlik tekshiruvi: yuborilgan hujjat o‘zgarmagan')}</p>}
-      {q.document_id != null && <a className="text-xs text-accent underline" href={hujjatYuklabOlishUrl(q.document_id)}>{t('Hujjat faylini yuklab olish')}</a>}
+      {/* Hujjat varag'i: kim → kimga, obyekt, oy, summa, holat va butunlik — bir qarashda. */}
+      <section className={`fz-doc__sheet ${q.holat === 'rad' ? 'fz-doc__sheet--danger' : OCHIQ.includes(q.holat) ? 'fz-doc__sheet--draft' : ''}`}>
+        <div className="fz-doc__top">
+          <div className="min-w-0">
+            <div className="fz-doc__eyebrow">{q.resurs === 'f2' ? t('Ф-2 · bajarilgan ishlar akti') : t('Yuborilgan hujjat')}</div>
+            <h3 className="fz-doc__title">{q.nom} <HolatBelgi holat={q.holat} turi="taqdim" /></h3>
+            <div className="fz-doc__meta">
+              <span>{t('Kimdan')}: <b>{q.etuvchi_nom}</b></span><span>{t('Kimga')}: <b>{q.qabul_qiluvchi_nom}</b></span>
+              {q.obyekt_nom && <span>{t('Obyekt')}: <b>{q.obyekt_nom}</b></span>}
+              {q.oy && <span>{t('Davr')}: <b>{oyMatn(q.oy)}</b></span>}
+              {q.resurs === 'f2' && <span>{t('{n} qator', { n: d.qator_jami })}</span>}
+            </div>
+          </div>
+          {q.summa != null && <div className="fz-doc__total"><small>{t('Summa')}</small><b className="text-[20px] tabular-nums">{pul(q.summa)}</b></div>}
+        </div>
+        <div className="fz-check">
+          {d.butunlik_ok === false && <p role="alert" className="fz-check__q fz-check__q--bad">{t('DIQQAT: yuborilgandan keyin hujjat qatorlari o‘zgargan (butunlik xeshi mos kelmaydi). Qaror chiqarishdan oldin yuboruvchidan aniqlang.')}</p>}
+          {d.butunlik_ok === true && <p className="fz-check__q fz-check__q--ok text-ok">✓ {t('Butunlik tekshiruvi: yuborilgan hujjat o‘zgarmagan')}</p>}
+        </div>
+        {q.taqdim_izoh && <p className="fz-note">{t('Yuboruvchi izohi')}: {q.taqdim_izoh}</p>}
+        {q.qaror_izoh && <p className="fz-note fz-note--warn">{t('Qaror izohi')}: {q.qaror_izoh}</p>}
+        {q.document_id != null && <a className="fz-btn fz-btn--sm self-start" href={hujjatYuklabOlishUrl(q.document_id)}>{t('Hujjat faylini yuklab olish')}</a>}
+      </section>
 
       {q.resurs === 'f2' && (
-        <div className="max-h-96 overflow-auto rounded border border-border">
-          <table className="w-full min-w-[720px] text-xs">
-            <thead className="sticky top-0 bg-surface text-left text-text-dim"><tr><th className="px-2 py-1">№</th><th className="px-2 py-1">{t('Kod')}</th><th className="px-2 py-1">{t('Nomi')}</th><th className="px-2 py-1">{t('Birlik')}</th>
-              <th className="px-2 py-1 text-right">{t('Hajm')}</th><th className="px-2 py-1 text-right">{t('Narx')}</th><th className="px-2 py-1 text-right">{t('Summa')}</th>{aktId != null && <th className="px-2 py-1">{t('Izoh')}</th>}</tr></thead>
+        <div className="fz-table-wrap max-h-96">
+          <table className="fz-table min-w-[720px]">
+            <thead><tr><th>№</th><th>{t('Kod')}</th><th>{t('Nomi')}</th><th>{t('Birlik')}</th>
+              <th className="fz-c-num">{t('Hajm')}</th><th className="fz-c-num">{t('Narx')}</th><th className="fz-c-num">{t('Summa')}</th>{aktId != null && <th>{t('Izoh')}</th>}</tr></thead>
             <tbody>{qatorlar.map((x) => (
               <Fragment key={x.qator_id}>
-                <tr className="border-t"><td className="px-2 py-1 tabular-nums">{x.tartib}</td><td className="px-2 py-1">{x.kod}</td><td className="px-2 py-1">{x.nom}</td><td className="px-2 py-1">{x.birlik}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{pul(x.hajm)}</td><td className="px-2 py-1 text-right tabular-nums">{pul(x.narx)}</td><td className="px-2 py-1 text-right tabular-nums">{pul(x.summa)}</td>
-                  {aktId != null && <td className="px-2 py-1">{x.akt_qator_id != null && <QatorIzohTugma soni={qIzoh.ochiqSoni(x.akt_qator_id)} jami={(qIzoh.qator.get(x.akt_qator_id) ?? []).length} ochiq={ochiqQator === x.akt_qator_id} onClick={() => setOchiqQator(ochiqQator === x.akt_qator_id ? null : x.akt_qator_id!)} />}</td>}</tr>
+                <tr><td className="tabular-nums text-text-mute">{x.tartib}</td><td className="fz-c-shifr">{x.kod}</td><td>{x.nom}</td><td className="fz-c-unit">{x.birlik}</td>
+                  <td className="fz-c-num">{pul(x.hajm)}</td><td className="fz-c-num">{pul(x.narx)}</td><td className="fz-c-num font-semibold">{pul(x.summa)}</td>
+                  {aktId != null && <td>{x.akt_qator_id != null && <QatorIzohTugma soni={qIzoh.ochiqSoni(x.akt_qator_id)} jami={(qIzoh.qator.get(x.akt_qator_id) ?? []).length} ochiq={ochiqQator === x.akt_qator_id} onClick={() => setOchiqQator(ochiqQator === x.akt_qator_id ? null : x.akt_qator_id!)} />}</td>}</tr>
                 {aktId != null && x.akt_qator_id != null && ochiqQator === x.akt_qator_id && (
                   <tr><td colSpan={8} className="p-0"><QatorIzohMuloqot kompaniyaId={kompaniyaId} aloqaId={q.aloqa_id} aktQatorId={x.akt_qator_id} izohlar={qIzoh.qator.get(x.akt_qator_id) ?? []} ichkiMumkin={!q.kelgan} yangila={() => void qIzoh.yukla()} /></td></tr>)}
               </Fragment>))}</tbody>
@@ -83,8 +95,8 @@ function Tafsilot({ kompaniyaId, id, yangila }: { kompaniyaId: number; id: numbe
       )}
 
       <div>
-        <div className="text-xs font-semibold">{t('Muloqot va tarix')}</div>
-        <ul className="mt-1 max-h-48 space-y-0.5 overflow-auto">{d.hodisalar.map((h) => (
+        <div className="fz-panel__h">{t('Muloqot va tarix')}</div>
+        <ul className="mt-1 max-h-48 space-y-0.5 overflow-auto border-l-2 border-border pl-3">{d.hodisalar.map((h) => (
           <li key={h.id} className={`text-xs ${h.meni ? 'text-text' : 'text-text-dim'}`}><span className="tabular-nums">{sana(h.vaqt)}</span> · {h.kompaniya_nom ?? '—'} · <b>{t(HODISA_NOMI[h.tur] ?? h.tur)}</b>{h.matn ? ` — ${h.matn}` : ''}</li>))}</ul>
       </div>
 
@@ -127,25 +139,26 @@ export default function TaqdimlarInbox() {
     <Sahifa sarlavha="Tomonlar hujjatlari" tavsif="Pudratchi yuborgan hujjatlar — zakazchik ko‘radi, izoh yozadi va qaror chiqaradi; qaror o‘zgarmaydi">
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex overflow-hidden rounded border text-xs">
+          <div className="inline-flex gap-1" role="group" aria-label={t('Yo‘nalish')}>
             {(['kelgan', 'yuborilgan'] as const).map((y) => (
-              <button key={y} type="button" onClick={() => { setYonalish(y); setTanlangan(null); }} className={'px-3 py-1.5 ' + (yonalish === y ? 'bg-accent/15 text-accent' : '')}>{y === 'kelgan' ? t('Kelgan') : t('Yuborilgan')}</button>))}
+              <button key={y} type="button" aria-pressed={yonalish === y} onClick={() => { setYonalish(y); setTanlangan(null); }} className={`fz-btn fz-btn--sm ${yonalish === y ? 'fz-btn--primary' : ''}`}>{y === 'kelgan' ? t('Kelgan') : t('Yuborilgan')}</button>))}
           </div>
           <select aria-label={t('Holat')} className={inp} value={holat} onChange={(e) => setHolat(e.target.value)}>
             <option value="">{t('Barcha holatlar')}</option>
-            {['yuborilgan', 'ko_rilmoqda', 'tuzatish', 'qabul', 'rad', 'qaytarilgan'].map((h) => <option key={h} value={h}>{h}</option>)}
+            {(['yuborilgan', 'ko_rilmoqda', 'tuzatish', 'qabul', 'rad', 'qaytarilgan'] as const).map((h) => <option key={h} value={h}>{t(TAQDIM_HOLAT_NOMI[h])}</option>)}
           </select>
-          <span className="text-xs text-text-dim">{t('Ochiq')}: <b>{ochiqSoni}</b></span>
+          <span className={`fz-chip ${ochiqSoni ? 'fz-chip--warn' : ''}`}>{t('Ochiq')}: {ochiqSoni}</span>
         </div>
-        {xato && <div role="alert" className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{xato}</div>}
+        {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
         <div className="grid gap-3 lg:grid-cols-[minmax(320px,1fr)_minmax(0,2fr)]">
           <Bolim sarlavha="Ro‘yxat">
-            {royxat.length === 0 ? <p className="text-sm text-text-dim">{t('Hujjat yo‘q')}</p> : (
-              <ul className="max-h-[70vh] space-y-1 overflow-auto">{royxat.map((x) => (
-                <li key={x.id}><button type="button" onClick={() => setTanlangan(x.id)} className={`w-full rounded border px-2 py-1.5 text-left text-xs hover:border-accent ${tanlangan === x.id ? 'border-accent bg-accent/5' : 'border-border'}`}>
-                  <div className="flex items-center justify-between gap-2"><b>{x.nom}</b><HolatBelgi holat={x.holat} turi="taqdim" /></div>
-                  <div className="text-text-dim">{x.qarshi_nom} · {x.obyekt_nom ?? '—'} · {oyMatn(x.oy)} · {pul(x.summa)}</div>
-                  <div className="text-text-dim">{sana(x.taqdim_vaqti)}</div></button></li>))}</ul>)}
+            {royxat.length === 0 ? <p className="text-[13px] text-text-mute">{t('Hujjat yo‘q')}</p> : (
+              <ul className="fz-list max-h-[70vh] overflow-auto p-0">{royxat.map((x) => (
+                <li key={x.id}><button type="button" onClick={() => setTanlangan(x.id)} aria-current={tanlangan === x.id} className="fz-list__q">
+                  <span className="min-w-0"><span className="fz-list__nom block truncate">{x.nom}</span>
+                    <span className="fz-list__sub">{x.qarshi_nom} · {x.obyekt_nom ?? '—'} · {oyMatn(x.oy)}</span>
+                    <span className="fz-list__sub">{sana(x.taqdim_vaqti)}</span></span>
+                  <span className="flex flex-col items-end gap-1"><HolatBelgi holat={x.holat} turi="taqdim" /><span className="fz-list__sum text-[12.5px]">{pul(x.summa)}</span></span></button></li>))}</ul>)}
           </Bolim>
           <Bolim sarlavha="Hujjat">
             {tanlangan == null ? <p className="text-sm text-text-dim">{t('Ro‘yxatdan hujjatni tanlang')}</p> : <Tafsilot kompaniyaId={kompaniyaId} id={tanlangan} yangila={() => void yukla()} />}

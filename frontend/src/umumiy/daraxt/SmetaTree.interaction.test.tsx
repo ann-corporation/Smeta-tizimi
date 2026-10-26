@@ -22,6 +22,6 @@ describe('intentional estimate row details',()=>{
  });
  it('removes the mismatched extra heading row for every preset',()=>{
   render(<SmetaTree data={data}/>);expect(screen.queryByText('QIYMATLAR')).toBeNull();
-  fireEvent.change(screen.getByLabelText('Ustun preset'),{target:{value:'F2'}});expect(screen.queryByText('Sm. Vol')).toBeNull();expect(screen.getByText('F2 Vol')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Ustun preset'),{target:{value:'F2'}});expect(screen.queryByText('Smeta')).toBeNull();expect(screen.getByText('F2 olingan')).toBeTruthy();
  });
 });

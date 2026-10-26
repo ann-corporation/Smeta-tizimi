@@ -7,15 +7,19 @@
  *    bir bosishda kerakli ish joyi tanlanadi va hujjat ochiladi.
  *  • Yangi ish joyi / havola orqali qo'shilish — shu yerning o'zida.
  * Ma'lumot: /api/ish-joyi?bolim=joylarim (faqat o'z a'zoliklari, har ishning ruxsati bazada tekshiriladi).
+ *
+ * Firuza ko'rinishi (2026-10-25): Sahifa karkasi, Skelet / BoshHolat, holat — shtamp so'zi bilan, faqat token ranglari.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, CheckCircle2, FileEdit, Loader2, RefreshCw, Search, User } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, FileEdit, Search, User } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { IshJoyiAmallari } from '../../umumiy/kontekst/IshJoyiAmallari';
+import { BoshHolat, Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { ishJoylarim, type IshJoyiKarta, type MeningIshim } from '../../api/t2-ish-joyi';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
-import { t } from '../../i18n/til';
+import { davrNomi } from '../../lib/f2-hujjat-korinish';
+import { t, tilLocale } from '../../i18n/til';
 
 /** Barqaror avatar rangi (id dan) va bosh harflar — Telegram kabi. */
 export const avatarRangi = (id: number) => `hsl(${(id * 137.508) % 360} 55% 42%)`;
@@ -33,11 +37,66 @@ export function qachon(iso: string | null, hozir = Date.now()): string {
   if (d < 60 * 24 * 30) return `${Math.round(d / 1440)} ${t('kun')}`;
   return new Date(iso).toLocaleDateString('ru-RU');
 }
-const summa = (n: number | null) => (n == null ? t('noma’lum') : n.toLocaleString('ru-RU', { maximumFractionDigits: 0 }));
+/** Noma'lum summa — «—» (0 emas). */
+const summa = (n: number | null) => (n == null ? '—' : `${n.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ${t('so‘m')}`);
 
+/** Avatar: ish joyi rangi mavzu fonida yumshatilgan — yorug' va tun mavzusida ham o'qiladi. */
 function Avatar({ id, nom, kichik = false }: { id: number; nom: string; kichik?: boolean }) {
-  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${kichik ? 'h-6 w-6 text-[10px]' : 'h-10 w-10 text-[13px]'}`}
-    style={{ background: avatarRangi(id) }}>{boshHarflar(nom)}</span>;
+  const rang = avatarRangi(id);
+  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold ${kichik ? 'h-7 w-7 text-[12px]' : 'h-10 w-10 text-[13px]'}`}
+    style={{ background: `color-mix(in srgb, ${rang} 32%, var(--surface-2))`, color: `color-mix(in srgb, ${rang} 40%, var(--text))`, boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${rang} 45%, transparent)` }}>{boshHarflar(nom)}</span>;
+}
+
+/** «Mening ishlarim» qatori — komponentdan TASHQARIDA (har renderda qayta o'rnatilmaydi). */
+function IshQatori({ x, onOch }: { x: MeningIshim; onOch: (x: MeningIshim) => void }) {
+  const tasdiq = x.tur === 'f2_tasdiq';
+  const davr = davrNomi(x.oy, tilLocale()) || x.oy || '—';
+  return <li>
+    <button type="button" onClick={() => onOch(x)} className="fz-list__q items-center" style={{ gridTemplateColumns: 'auto minmax(0, 1fr) auto' }}>
+      <Avatar id={x.kompaniya_id} nom={x.kompaniya_nom} kichik />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="fz-list__nom truncate">{x.obyekt_nom}</span>
+          <span className={`fz-stamp ${tasdiq ? 'fz-stamp--warn' : 'fz-stamp--draft'}`}>{tasdiq ? t('Tasdiq kutmoqda') : t('Qoralama')}</span>
+        </span>
+        <span className="fz-list__sub truncate">F2 · {davr} · {x.kompaniya_nom}</span>
+      </span>
+      <span className="flex flex-col items-end gap-0.5">
+        <span className="fz-list__sum">{summa(x.summa)}</span>
+        <span className="text-[12px] text-text-mute">{qachon(x.yangilandi)}</span>
+      </span>
+    </button>
+  </li>;
+}
+
+/** Ish joyi qatori (chap ro'yxat). */
+function JoyQatori({ j, joriy, onOch }: { j: IshJoyiKarta; joriy: boolean; onOch: (id: number) => void }) {
+  const Ikon = j.turi === 'shaxsiy' ? User : Building2;
+  return <li>
+    <button type="button" onClick={() => onOch(j.kompaniya_id)} aria-current={joriy ? 'true' : undefined}
+      className="fz-list__q items-center" style={{ gridTemplateColumns: 'auto minmax(0, 1fr) auto' }}>
+      <Avatar id={j.kompaniya_id} nom={j.nom} />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <Ikon size={13} className="shrink-0 text-text-mute" aria-hidden="true" />
+          <span className="fz-list__nom truncate">{j.nom}</span>
+        </span>
+        <span className="fz-list__sub truncate">{ROLE_LABELS[j.rol] ?? j.rol} · {j.obyektlar} {t('obyekt')} · {j.azolar} {t('a’zo')}</span>
+      </span>
+      <span className="flex flex-col items-end gap-1">
+        <span className="text-[12px] text-text-mute">{qachon(j.oxirgi_faollik)}</span>
+        {j.kutmoqda > 0 && <span className="fz-chip fz-chip--accent" title={t('Sizni kutayotgan ishlar')}>{j.kutmoqda}</span>}
+      </span>
+    </button>
+  </li>;
+}
+
+function IshGuruhi({ sarlavha, ikon, ishlar, ton, onOch }: { sarlavha: string; ikon: ReactNode; ishlar: MeningIshim[]; ton: 'warn' | 'dim'; onOch: (x: MeningIshim) => void }) {
+  if (!ishlar.length) return null;
+  return <div>
+    <div className={`fz-panel__h px-3 pt-2 ${ton === 'warn' ? 'text-warn' : ''}`}><span className="inline-flex items-center gap-1.5">{ikon}{sarlavha}</span><span>{ishlar.length}</span></div>
+    <ul className="fz-list">{ishlar.map((x) => <IshQatori key={x.akt_id} x={x} onOch={onOch} />)}</ul>
+  </div>;
 }
 
 export default function IshJoylarim() {
@@ -70,81 +129,42 @@ export default function IshJoylarim() {
     navigate(yol);
   }
   const ishniOch = (x: MeningIshim) => ochJoy(x.kompaniya_id, `/admin/f2-tarix?obyekt=${x.obyekt_id}`);
-
-  function IshQatori({ x }: { x: MeningIshim }) {
-    return <li>
-      <button type="button" onClick={() => ishniOch(x)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-surface-2">
-        <Avatar id={x.kompaniya_id} nom={x.kompaniya_nom} kichik />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-medium text-text">{x.obyekt_nom} · F2 {x.oy}</span>
-          <span className="block truncate text-[11px] text-text-mute">{x.kompaniya_nom} · {summa(x.summa)} {t('so‘m')}</span>
-        </span>
-        <span className="shrink-0 text-[11px] text-text-mute">{qachon(x.yangilandi)}</span>
-      </button>
-    </li>;
-  }
+  const boshMatn = q ? t('Topilmadi.') : t('Hali ish joyingiz yo‘q — «＋» bilan oching yoki havola orqali qo‘shiling.');
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-4">
-      <header className="flex flex-wrap items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold text-text">{t('Ish joylarim')}</h1>
-          <p className="text-[12px] text-text-dim">{t('Barcha ish joylaringiz va ulardagi navbatingiz — bitta ekranda. Bosing — o‘sha joyga o‘tasiz.')}</p>
+    <Sahifa sarlavha={t('Ish joylarim')} tavsif={t('Barcha ish joylaringiz va ulardagi navbatingiz — bitta ekranda. Bosing — o‘sha joyga o‘tasiz.')}
+      onYangila={() => void yukla()} yangilanmoqda={band} amallar={<IshJoyiAmallari />}>
+      <div className="mx-auto flex max-w-6xl flex-col gap-4">
+        {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{xato}</span></div>}
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(280px,2fr)_3fr]">
+          <section aria-label={t('Ish joylari')} className="fz-card">
+            <div className="relative border-b border-border p-2">
+              <Search size={14} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-mute" aria-hidden="true" />
+              <input className="input h-8 w-full pl-8" placeholder={t('Ish joyini qidirish…')} aria-label={t('Ish joyini qidirish')} value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            {!joylar && !xato && <Skelet qatorlar={4} />}
+            {korinadi.length > 0 && <ul className="fz-list">
+              {korinadi.map((j) => <JoyQatori key={j.kompaniya_id} j={j} joriy={k.joriyId === j.kompaniya_id} onOch={ochJoy} />)}
+            </ul>}
+            {joylar && !korinadi.length && <BoshHolat matn={boshMatn} />}
+          </section>
+
+          <section aria-label={t('Mening ishlarim')} className="fz-card">
+            <div className="fz-card__head">
+              <div>
+                <h2 className="fz-card__title">{t('Mening ishlarim')}</h2>
+                <p className="fz-card__sub">{t('barcha ish joylaridan')}</p>
+              </div>
+              {ishlar.length > 0 && <span className="fz-chip fz-chip--accent">{ishlar.length}</span>}
+            </div>
+            {!joylar && !xato && <Skelet qatorlar={3} />}
+            {joylar && !ishlar.length && <div className="p-4"><div className="fz-note fz-note--info"><CheckCircle2 aria-hidden="true" /><span>{t('Hozir sizni kutayotgan ish yo‘q.')}</span></div></div>}
+            <IshGuruhi sarlavha={t('Tasdiq kutmoqda')} ikon={<CheckCircle2 size={13} aria-hidden="true" />} ishlar={tasdiq} ton="warn" onOch={ishniOch} />
+            <IshGuruhi sarlavha={t('F2 qoralamalari')} ikon={<FileEdit size={13} aria-hidden="true" />} ishlar={qoralama} ton="dim" onOch={ishniOch} />
+          </section>
         </div>
-        <IshJoyiAmallari />
-        <button type="button" className="tugma h-8" onClick={() => void yukla()} disabled={band} aria-label={t('Yangilash')}>
-          {band ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}</button>
-      </header>
-      {xato && <p role="alert" className="text-[13px] text-rose-400">{xato}</p>}
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(280px,2fr)_3fr]">
-        <section aria-label={t('Ish joylari')} className="karta overflow-hidden">
-          <div className="relative border-b border-border p-2">
-            <Search size={13} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-mute" />
-            <input className="input h-8 w-full pl-7 text-[12.5px]" placeholder={t('Ish joyini qidirish…')} aria-label={t('Ish joyini qidirish')} value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
-          {!joylar && !xato && <p className="p-4 text-[13px] text-text-dim"><Loader2 size={13} className="inline animate-spin" /> {t('yuklanmoqda…')}</p>}
-          <ul className="divide-y divide-border/50">
-            {korinadi.map((j) => {
-              const joriy = k.joriyId === j.kompaniya_id;
-              return <li key={j.kompaniya_id}>
-                <button type="button" onClick={() => ochJoy(j.kompaniya_id)} aria-current={joriy ? 'true' : undefined}
-                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-2 ${joriy ? 'bg-accent/10' : ''}`}>
-                  <Avatar id={j.kompaniya_id} nom={j.nom} />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      {j.turi === 'shaxsiy' ? <User size={12} className="shrink-0 text-text-mute" /> : <Building2 size={12} className="shrink-0 text-text-mute" />}
-                      <span className="truncate text-[13.5px] font-medium text-text">{j.nom}</span>
-                    </span>
-                    <span className="block truncate text-[11px] text-text-mute">
-                      {ROLE_LABELS[j.rol] ?? j.rol} · {j.obyektlar} {t('obyekt')} · {j.azolar} {t('a’zo')}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="text-[10.5px] text-text-mute">{qachon(j.oxirgi_faollik)}</span>
-                    {j.kutmoqda > 0 && <span className="min-w-5 rounded-full bg-accent px-1.5 text-center text-[11px] font-semibold text-white"
-                      title={t('Sizni kutayotgan ishlar')}>{j.kutmoqda}</span>}
-                  </span>
-                </button>
-              </li>;
-            })}
-          </ul>
-          {joylar && !korinadi.length && <p className="p-4 text-[13px] text-text-mute">{q ? t('Topilmadi.') : t('Hali ish joyingiz yo‘q — «＋» bilan oching yoki havola orqali qo‘shiling.')}</p>}
-        </section>
-
-        <section aria-label={t('Mening ishlarim')} className="karta space-y-3 p-3">
-          <h2 className="text-[14px] font-semibold text-text">{t('Mening ishlarim')} <span className="text-[12px] font-normal text-text-mute">— {t('barcha ish joylaridan')}</span></h2>
-          {joylar && !ishlar.length && <p className="text-[13px] text-text-mute"><CheckCircle2 size={14} className="inline text-emerald-400" /> {t('Hozir sizni kutayotgan ish yo‘q.')}</p>}
-          {tasdiq.length > 0 && <div>
-            <h3 className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-warn"><CheckCircle2 size={13} /> {t('Tasdiq kutmoqda')} ({tasdiq.length})</h3>
-            <ul>{tasdiq.map((x) => <IshQatori key={x.akt_id} x={x} />)}</ul>
-          </div>}
-          {qoralama.length > 0 && <div>
-            <h3 className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-text-dim"><FileEdit size={13} /> {t('F2 qoralamalari')} ({qoralama.length})</h3>
-            <ul>{qoralama.map((x) => <IshQatori key={x.akt_id} x={x} />)}</ul>
-          </div>}
-        </section>
       </div>
-    </div>
+    </Sahifa>
   );
 }

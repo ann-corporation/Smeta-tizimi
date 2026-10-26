@@ -12,7 +12,8 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConstructionDocumentWorkbench } from '../../components/construction-document-control';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
-import { Skelet } from '../../umumiy/ui/Sahifa';
+import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
+import { t } from '../../i18n/til';
 import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
 import { useHujjatNazoratModel, progressValuationPage } from '../../api/t2-document-control';
 
@@ -45,7 +46,7 @@ export default function HujjatNazoratPage() {
   const sectionOptions = useMemo(() => {
     if (!model) return [];
     const labels = new Map<string, string>();
-    for (const line of model.valuation.lines) if (!labels.has(line.sectionId)) labels.set(line.sectionId, line.description || `Bo‘lim ${labels.size + 1}`);
+    for (const line of model.valuation.lines) if (!labels.has(line.sectionId)) labels.set(line.sectionId, line.description || t('Bo‘lim {n}', { n: labels.size + 1 }));
     return [...labels.entries()];
   }, [model]);
   const notApplied = (q.error as any)?.code === 'HTTP_501';
@@ -53,60 +54,43 @@ export default function HujjatNazoratPage() {
 
   if (!joriy?.id) return <KompaniyaKerak nima="Hujjat nazorati (F2/Nakopitelniy)" />;
 
+  const sel = 'mt-1 block w-full rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-[13px] text-text';
+  const yorliq = 'min-w-[200px] text-[12px] font-medium text-text-dim';
+  const sahifaMatn = page ? (page.totalCount === 0 ? t('Qator topilmadi') : t('{a}–{b} / {n} qator', { a: page.query.offset + 1, b: page.query.offset + page.rows.length, n: page.totalCount })) : '';
   return (
-    <div className="os-workbench text-text space-y-4">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">PTO · HUJJAT NAZORATI</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Nakopitelniy va tasdiqlangan F2</h1>
-          <p className="mt-1 max-w-2xl text-sm text-text-dim">Smeta, o‘zgarishlar, F2 davrlari va yopilish dalillarini bitta kanonik ish oynasida tekshiring.</p>
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-ok/20 bg-ok/5 px-3 py-1.5 text-xs text-ok">
-          <span className="h-1.5 w-1.5 rounded-full bg-ok" /> Supabase read-model
-        </div>
-      </header>
-      {joriy?.id && (
-        <div className="karta flex flex-wrap items-end gap-3 p-3">
-          <label className="text-[13px] min-w-[220px]">
-            <span className="mr-2 text-text-dim">Loyiha</span>
-            <select className="rounded-lg border border-border bg-surface px-2 py-1"
-              value={loyihaId ?? ''} onChange={(e) => { setLoyihaId(Number(e.target.value) || null); setPageOffset(0); }}>
-              {loyihalar.length === 0 && <option value="">— loyiha yo‘q —</option>}
+    <Sahifa sarlavha="Nakopitelniy va tasdiqlangan F2" tavsif="Smeta, o‘zgarishlar, F2 davrlari va yopilish dalillarini bitta kanonik ish oynasida tekshiring."
+      amallar={<span className="fz-stamp fz-stamp--ok" title={t('Ma’lumot manbai: kanonik read-model (t2_workbench_v1)')}>{t('jonli maʼlumot')}</span>}>
+      <div className="flex flex-col gap-3 text-text">
+        <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('Tanlov')}>
+          <label className={yorliq}>{t('Loyiha')}
+            <select className={sel} value={loyihaId ?? ''} onChange={(e) => { setLoyihaId(Number(e.target.value) || null); setPageOffset(0); }}>
+              {loyihalar.length === 0 && <option value="">{t('— loyiha yo‘q —')}</option>}
               {loyihalar.map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
             </select>
           </label>
-          <label className="text-[13px] min-w-[220px]">
-            <span className="mr-2 text-text-dim">Obyekt</span>
-            <select className="rounded-lg border border-border bg-surface px-2 py-1"
-              value={obyektId ?? ''} onChange={(e) => { setObyektId(Number(e.target.value) || null); setPageOffset(0); }}>
-              {(loyiha?.obyektlar ?? []).length === 0 && <option value="">— obyekt yo‘q —</option>}
+          <label className={yorliq}>{t('Obyekt')}
+            <select className={sel} value={obyektId ?? ''} onChange={(e) => { setObyektId(Number(e.target.value) || null); setPageOffset(0); }}>
+              {(loyiha?.obyektlar ?? []).length === 0 && <option value="">{t('— obyekt yo‘q —')}</option>}
               {(loyiha?.obyektlar ?? []).map((o) => <option key={o.obyekt_id} value={o.obyekt_id}>{o.obyekt_nom}</option>)}
             </select>
           </label>
-          <label className="text-[13px] min-w-[190px]"><span className="mr-2 text-text-dim">Davr</span><select className="rounded-lg border border-border bg-surface px-2 py-1" value={davr} onChange={(e) => { setDavr(e.target.value); setPageOffset(0); }}><option value="">Joriy tasdiqlangan davr</option>{(model?.valuation.periods ?? []).map((period) => <option key={period.periodId} value={period.periodId}>{period.label}</option>)}</select></label>
-          <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 text-[13px] text-text-dim"><Search size={14} /><input aria-label="Nakopitelniy qatoridan qidirish" value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setPageOffset(0); }} placeholder="Ish / resurs qidirish…" className="min-w-0 flex-1 bg-transparent text-text outline-none" /></label>
-          <label className="text-[13px] min-w-[190px]"><span className="mr-2 text-text-dim">Bo‘lim</span><select className="rounded-lg border border-border bg-surface px-2 py-1" value={sectionId} onChange={(e) => { setSectionId(e.target.value); setPageOffset(0); }}><option value="">Barcha bo‘limlar</option>{sectionOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-        </div>
-      )}
+          <label className={yorliq}>{t('Davr')}<select className={sel} value={davr} onChange={(e) => { setDavr(e.target.value); setPageOffset(0); }}><option value="">{t('Joriy tasdiqlangan davr')}</option>{(model?.valuation.periods ?? []).map((period) => <option key={period.periodId} value={period.periodId}>{period.label}</option>)}</select></label>
+          <label className={yorliq}>{t('Bo‘lim')}<select className={sel} value={sectionId} onChange={(e) => { setSectionId(e.target.value); setPageOffset(0); }}><option value="">{t('Barcha bo‘limlar')}</option>{sectionOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-[13px] text-text-dim"><Search size={14} /><input aria-label="Nakopitelniy qatoridan qidirish" value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setPageOffset(0); }} placeholder={t('Ish / resurs qidirish…')} className="min-w-0 flex-1 border-0 bg-transparent text-text outline-none" style={{ boxShadow: 'none' }} /></label>
+        </section>
 
-      {notApplied && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100 flex items-start gap-2 max-w-3xl">
-          <Info size={16} className="mt-0.5 shrink-0" />
-          <div>Hujjat nazorati bu obyekt uchun hozircha mavjud emas.</div>
-        </div>
-      )}
+        {notApplied && <p className="fz-note fz-note--info max-w-3xl"><Info aria-hidden="true" />{t('Hujjat nazorati bu obyekt uchun hozircha mavjud emas.')}</p>}
+        {noPerm && <p className="fz-note fz-note--warn max-w-3xl"><Info aria-hidden="true" />{t('Bu obyekt uchun ruxsat yo‘q.')}</p>}
+        {q.isLoading && <Skelet qatorlar={6} />}
+        {q.isError && !notApplied && !noPerm && (
+          <div role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><span className="flex-1">{t('Ma’lumotlarni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.')}</span><button type="button" onClick={() => void q.refetch()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinish')}</button></div>
+        )}
 
-      {noPerm && <p className="text-sm text-rose-300">Bu obyekt uchun ruxsat yo‘q.</p>}
-      {q.isLoading && <Skelet qatorlar={6} />}
-      {q.isError && !notApplied && !noPerm && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/25 bg-danger/5 px-4 py-3 text-sm text-danger"><span className="flex-1">Ma’lumotlarni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.</span><button type="button" onClick={() => void q.refetch()} className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold hover:bg-danger/10">Qayta urinish</button></div>
-      )}
-
-      {model && page && <>
-        <ConstructionDocumentWorkbench model={model} page={page} />
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface-2/40 px-4 py-3 text-xs text-text-dim" aria-label="Nakopitelniy sahifalash"><span>{page.totalCount === 0 ? 'Qator topilmadi' : `${page.query.offset + 1}–${page.query.offset + page.rows.length} / ${page.totalCount} qator`}</span><div className="flex items-center gap-2"><button type="button" onClick={() => setPageOffset((old) => Math.max(0, old - pageSize))} disabled={pageOffset === 0} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-text disabled:opacity-40"><ChevronLeft size={14} />Oldingi</button><button type="button" onClick={() => setPageOffset((old) => old + pageSize)} disabled={pageOffset + page.rows.length >= page.totalCount} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-text disabled:opacity-40">Keyingi<ChevronRight size={14} /></button></div></div>
-      </>}
-
-    </div>
+        {model && page && <>
+          <ConstructionDocumentWorkbench model={model} page={page} />
+          <div className="fz-card flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-[12.5px] text-text-dim" aria-label="Nakopitelniy sahifalash"><span className="tabular-nums">{sahifaMatn}</span><div className="flex items-center gap-2"><button type="button" onClick={() => setPageOffset((old) => Math.max(0, old - pageSize))} disabled={pageOffset === 0} className="fz-btn fz-btn--sm"><ChevronLeft size={14} />{t('Oldingi')}</button><button type="button" onClick={() => setPageOffset((old) => old + pageSize)} disabled={pageOffset + page.rows.length >= page.totalCount} className="fz-btn fz-btn--sm">{t('Keyingi')}<ChevronRight size={14} /></button></div></div>
+        </>}
+      </div>
+    </Sahifa>
   );
 }

@@ -103,6 +103,7 @@ export const GENERATED_SITE_MAP = {
     "taqdimlar",
     "murojaatlar",
     "system-control",
+    "akkaunt",
     "sayt-xaritasi",
     "ai-agentlar",
     "kompaniya",

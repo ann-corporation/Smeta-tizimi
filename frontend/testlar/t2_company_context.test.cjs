@@ -68,7 +68,7 @@ console.log('\n── P1: IA konsolidatsiyasi ──');
 must('/admin/test/xodimlar -> /admin/kompaniya ga yo\'naltiriladi', /path="xodimlar" element=\{<Navigate to="\/admin\/kompaniya"/.test(app));
 must('AdminShell navida "Xodimlar va Rollar" yo\'q (dublikat CRUD)', !/Xodimlar va Rollar/.test(adminShell));
 must('KompaniyaPage a\'zolar boshqaruvini o\'z ichiga oladi (kanonik komandalar)', /useKompaniyaAzolari/.test(R('frontend','src','admin','pages','KompaniyaPage.tsx')) && /azoOchir/.test(R('frontend','src','admin','pages','KompaniyaPage.tsx')));
-must('Settings dagi kompaniya-profil bloki olib tashlangan (redirect)', /Kompaniya sahifasiga o'tish/.test(R('frontend','src','test02','TestSozlama.tsx')) && !/kompaniya_nomi/.test(R('frontend','src','test02','TestSozlama.tsx')));
+must('Settings dagi kompaniya-profil bloki olib tashlangan (redirect)', /Kompaniya sahifasiga o['‘ʻ]tish/.test(R('frontend','src','test02','TestSozlama.tsx')) && !/kompaniya_nomi/.test(R('frontend','src','test02','TestSozlama.tsx')));
 
 console.log('\n── P0-2 server: platforma superadmin (sun\'iy a\'zoliksiz) ──');
 const mig = R('supabase', 'migrations', '20260914120000_t2_platforma_superadmin_context_v1.sql');

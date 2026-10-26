@@ -25,7 +25,7 @@ import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar } from '../_shared/tenant-oqish';
-import { roleAuthority, mayWriteCompanies } from '../_shared/role-authority';
+import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompanies } from '../_shared/role-authority';
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 
@@ -298,7 +298,9 @@ export const onRequestPost: PagesFunction<{
         error: 'Supabase sozlanmagan (SUPABASE_URL / SUPABASE_KEY)' });
     }
 
+    const tekshirilgan = sess;
     sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
+    if (!sess && sessiyaYaroqsizmi(tekshirilgan)) return yaroqsizSessiyaJavob();
     if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE', error: 'Joriy ruxsatlarni tekshirib bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
 
     const so = await ctx.request.json<any>();

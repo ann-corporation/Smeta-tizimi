@@ -8,14 +8,17 @@
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { FaylMenejer } from '../sahifalar/FaylMenejer';
+import { Sahifa } from '../../umumiy/ui/Sahifa';
 
 export default function DocumentsPage() {
   const { joriy } = useKompaniya();
   // Kompaniya konteksti majburiy: tanlanmagan bo'lsa — professional tanlash holati (KompaniyaKerak), xom matn emas.
   if (!joriy?.id) return <KompaniyaKerak nima="Hujjatlar" />;
   return (
-    <div className="flex h-full min-h-[calc(100vh-80px)] flex-col bg-bg p-4 text-text">
-      <FaylMenejer kompaniyaId={joriy.id} />
-    </div>
+    <Sahifa sarlavha="Hujjatlar" tavsif="Kompaniyaning barcha fayllari: Loyiha → Obyekt → Hujjat turi → Oy. Ko‘rish, yuklab olish, o‘z papkalari, savat va to‘liq ZIP arxiv.">
+      <div className="flex h-full min-h-[calc(100vh-180px)] flex-col">
+        <FaylMenejer kompaniyaId={joriy.id} />
+      </div>
+    </Sahifa>
   );
 }

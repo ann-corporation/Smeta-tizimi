@@ -44,7 +44,7 @@ export function FaktF2Tenglash({ sarlavha, reja, obyektId, sana, onYop, onBajari
   ]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={t('Fakt = F2')}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] p-4" role="dialog" aria-modal="true" aria-label={t('Fakt = F2')}>
       <div className="karta flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

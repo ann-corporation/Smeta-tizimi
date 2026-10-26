@@ -18,8 +18,8 @@ import { t } from '../../i18n/til';
 const KASBLAR = Object.keys(KASB_NOMI) as Kasb[];
 const ROLLAR: XizmatRoli[] = ['pto', 'prorab', 'bugalter', 'kuzatuvchi'];
 const HOLAT: Record<YuborilganTaklif['holat'], { nom: string; cls: string }> = {
-  yuborildi: { nom: 'Javob kutilmoqda', cls: 'text-warn' }, qabul: { nom: 'Qabul qilindi', cls: 'text-emerald-400' },
-  rad: { nom: 'Rad etildi', cls: 'text-rose-400' }, bekor: { nom: 'Bekor qilingan', cls: 'text-text-mute' },
+  yuborildi: { nom: 'Javob kutilmoqda', cls: 'fz-stamp fz-stamp--warn' }, qabul: { nom: 'Qabul qilindi', cls: 'fz-stamp fz-stamp--ok' },
+  rad: { nom: 'Rad etildi', cls: 'fz-stamp fz-stamp--danger' }, bekor: { nom: 'Bekor qilingan', cls: 'fz-stamp fz-stamp--draft' },
 };
 
 export default function Mutaxassis() {
@@ -87,7 +87,7 @@ export default function Mutaxassis() {
         <h1 className="text-xl font-semibold text-text">{t('Mening xizmatlarim')}</h1>
         <p className="text-[12px] text-text-dim">{t('Profilingizni to‘ldiring va istalgan kompaniyaga xizmatingizni taklif qiling. Tizimdagi haqiqiy ishingiz — eng kuchli tavsiyanoma.')}</p>
       </header>
-      {xato && <p role="alert" className="text-[13px] text-rose-400">{xato}</p>}
+      {xato && <p role="alert" className="fz-note fz-note--danger">{xato}</p>}
 
       <section aria-label={t('Profil')} className="grid gap-4 lg:grid-cols-2">
         <div className="karta space-y-2 p-4 text-[12.5px]">
@@ -105,8 +105,8 @@ export default function Mutaxassis() {
           <label className="flex items-center gap-2"><input type="checkbox" checked={f.statistika} onChange={(e) => setF({ ...f, statistika: e.target.checked })} />
             {t('Tizim tasdiqlagan tajribamni ko‘rsatish (F2 soni, obyektlar, summa)')}</label>
           <div className="flex items-center gap-2">
-            <button type="button" className="tugma tugma-asosiy h-8" disabled={band} onClick={() => void saqla()}>{band ? <Loader2 size={13} className="animate-spin" /> : null} {t('Saqlash')}</button>
-            {saqlandi && <span role="status" className="text-[12px] text-emerald-400">{saqlandi}</span>}
+            <button type="button" className="fz-btn fz-btn fz-btn--primary h-8" disabled={band} onClick={() => void saqla()}>{band ? <Loader2 size={13} className="animate-spin" /> : null} {t('Saqlash')}</button>
+            {saqlandi && <span role="status" className="fz-chip text-ok">{saqlandi}</span>}
           </div>
         </div>
         <div className="space-y-2">
@@ -122,7 +122,7 @@ export default function Mutaxassis() {
             <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-mute" />
             <input className="input h-8 w-full pl-7 text-[12.5px]" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Kompaniya nomi yoki STIR (9 raqam)')} aria-label={t('Kompaniyani qidirish')} />
           </div>
-          <button type="submit" className="tugma h-8" disabled={q.trim().length < 3}>{t('Qidirish')}</button>
+          <button type="submit" className="fz-btn h-8" disabled={q.trim().length < 3}>{t('Qidirish')}</button>
         </form>
         <p className="text-[11px] text-text-mute">{t('Nom bo‘yicha faqat xizmat takliflarini qabul qiladigan kompaniyalar chiqadi; STIR bo‘yicha — istalgan tashkilot.')}</p>
         {topildi && !topildi.length && <p className="text-[12px] text-text-mute">{t('Topilmadi.')}</p>}
@@ -132,7 +132,7 @@ export default function Mutaxassis() {
             <span className="min-w-0 flex-1"><b>{c.nom}</b>{c.manzil && <span className="text-text-mute"> · {c.manzil}</span>}</span>
             {c.azo && <span className="text-text-mute">{t('Siz bu yerda ishlaysiz')}</span>}
             {!c.azo && c.kutilmoqda && <span className="text-warn">{t('Javob kutilmoqda')}</span>}
-            {!c.azo && !c.kutilmoqda && <button type="button" className="tugma h-7" onClick={() => setTanlangan(c)}><Send size={12} /> {t('Taklif qilish')}</button>}
+            {!c.azo && !c.kutilmoqda && <button type="button" className="fz-btn h-7" onClick={() => setTanlangan(c)}><Send size={12} /> {t('Taklif qilish')}</button>}
           </li>)}
         </ul>}
         {tanlangan && <div className="rounded-lg border border-accent/40 bg-accent/5 p-3 text-[12.5px] space-y-2">
@@ -143,8 +143,8 @@ export default function Mutaxassis() {
             <textarea className="input min-h-16 w-full text-[12.5px]" maxLength={1000} value={xabar} onChange={(e) => setXabar(e.target.value)} /></label>
           <p className="text-[11px] text-text-mute">{t('Kompaniya rahbari sizning kartangizni (profil va tasdiqlangan tajriba) ko‘radi. Qabul qilsa — siz shu rol bilan qo‘shilasiz.')}</p>
           <div className="flex gap-2">
-            <button type="button" className="tugma tugma-asosiy h-8" disabled={band} onClick={() => void yubor()}><Send size={13} /> {t('Yuborish')}</button>
-            <button type="button" className="tugma h-8" onClick={() => setTanlangan(null)}>{t('Bekor qilish')}</button>
+            <button type="button" className="fz-btn fz-btn fz-btn--primary h-8" disabled={band} onClick={() => void yubor()}><Send size={13} /> {t('Yuborish')}</button>
+            <button type="button" className="fz-btn h-8" onClick={() => setTanlangan(null)}>{t('Bekor qilish')}</button>
           </div>
         </div>}
       </section>
@@ -156,7 +156,7 @@ export default function Mutaxassis() {
           <span className="min-w-0 flex-1"><b>{x.kompaniya_nom}</b> · {ROLE_LABELS[x.rol] ?? x.rol}
             {x.javob_izoh && <span className="block text-[11px] text-text-mute">«{x.javob_izoh}»</span>}</span>
           <span className={HOLAT[x.holat].cls}>{t(HOLAT[x.holat].nom)}</span>
-          {x.holat === 'qabul' && <button type="button" className="tugma h-7" onClick={() => { k.qayta(); k.tanla(x.kompaniya_id); navigate('/admin/ish-joylarim'); }}>{t('Ish joyiga o‘tish')}</button>}
+          {x.holat === 'qabul' && <button type="button" className="fz-btn h-7" onClick={() => { k.qayta(); k.tanla(x.kompaniya_id); navigate('/admin/ish-joylarim'); }}>{t('Ish joyiga o‘tish')}</button>}
           {x.holat === 'yuborildi' && <button type="button" className="text-text-mute hover:text-danger" aria-label={`${t('Bekor qilish')}: ${x.kompaniya_nom}`} onClick={() => void bekor(x.id)}><X size={13} /></button>}
         </li>)}</ul>
       </section>

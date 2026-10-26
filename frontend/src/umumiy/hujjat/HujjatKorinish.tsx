@@ -1,4 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../../i18n/til';
+import './hujjat-korinish.css';
 import { Download, Search, X } from 'lucide-react';
 import { hujjatKorinishi, type KorinishQator, type KorinishVaraq } from '../../lib/hujjat-yozuvchi';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
@@ -22,6 +24,23 @@ export function HujjatKorinish({ bytes, faylNomi, onClose }: { bytes: Uint8Array
   const [faqatJami, setFaqatJami] = useState(false);
   const [sahifa, setSahifa] = useState(0);
   const v = varaqlar[vi];
+  const oyna = useRef<HTMLDivElement>(null);
+  // Esc yopadi, fokus oynada qoladi (Tab aylanadi) va yopilganda avvalgi elementga qaytadi.
+  useEffect(() => {
+    const oldingi = document.activeElement as HTMLElement | null;
+    oyna.current?.focus();
+    const tugma = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+      if (e.key !== 'Tab' || !oyna.current) return;
+      const el = [...oyna.current.querySelectorAll<HTMLElement>('input,button,select,a[href],[tabindex]:not([tabindex="-1"])')].filter(x => !(x as HTMLButtonElement).disabled);
+      if (!el.length) return;
+      if (e.shiftKey && (document.activeElement === el[0] || document.activeElement === oyna.current)) { e.preventDefault(); el[el.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === el[el.length - 1]) { e.preventDefault(); el[0].focus(); }
+    };
+    document.addEventListener('keydown', tugma, true);
+    return () => { document.removeEventListener('keydown', tugma, true); oldingi?.focus?.(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { yuqori, bosh, malumot } = useMemo(() => {
     if (!v) return { yuqori: [] as KorinishQator[], bosh: [] as KorinishQator[], malumot: [] as KorinishQator[] };
@@ -45,8 +64,8 @@ export function HujjatKorinish({ bytes, faylNomi, onClose }: { bytes: Uint8Array
 
   if (!v) {
     return (
-      <div role="dialog" aria-label="Hujjatni ko‘rish" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="karta p-4 text-[13px]">Hujjatni ko‘rsatib bo‘lmadi. <button onClick={onClose} className="ml-2 underline">Yopish</button></div>
+      <div role="dialog" aria-modal="true" aria-label={t('Hujjatni ko‘rish')} className="hk-overlay hk-overlay--center">
+        <div ref={oyna} tabIndex={-1} className="fz-note fz-note--warn">{t('Hujjatni ko‘rsatib bo‘lmadi.')} <button onClick={onClose} className="fz-btn fz-btn--sm">{t('Yopish')}</button></div>
       </div>
     );
   }
@@ -57,39 +76,39 @@ export function HujjatKorinish({ bytes, faylNomi, onClose }: { bytes: Uint8Array
     for (let i = 0; i < v.ustunlar.length;) {
       const col = v.ustunlar[i].c;
       const k = joy.get(col);
-      if (!k) { cells.push(<td key={`${q.r}-${col}`} className={q.turi === 'sarlavha' && !v.raqamQatori ? '' : 'border border-[#9aa3ad] px-1.5 py-0.5'} />); i++; continue; }
+      if (!k) { cells.push(<td key={`${q.r}-${col}`} className={q.turi === 'sarlavha' && !v.raqamQatori ? '' : 'hk-cell'} />); i++; continue; }
       cells.push(
         <td key={`${q.r}-${col}`} colSpan={k.span}
-          className={`border border-[#9aa3ad] px-1.5 py-0.5 align-top ${k.qalin ? 'font-semibold' : ''} ${k.tekis === 'right' ? 'text-right tabular-nums' : k.tekis === 'center' ? 'text-center' : 'text-left'} ${k.formula ? 'text-[#0b3a6e]' : ''}`}
-          title={k.formula ? 'Excel formulasi bilan hisoblanadi (Excelda o‘zgartirsangiz qayta hisoblanadi)' : undefined}>
+          className={`hk-cell align-top ${k.qalin ? 'font-semibold' : ''} ${k.tekis === 'right' ? 'text-right tabular-nums' : k.tekis === 'center' ? 'text-center' : 'text-left'} ${k.formula ? 'hk-formula' : ''}`}
+          title={k.formula ? t('Excel formulasi bilan hisoblanadi (Excelda o‘zgartirsangiz qayta hisoblanadi)') : undefined}>
           {k.matn}
         </td>,
       );
       i += k.span;
     }
     // Qog'oz ko'rinishi — mavzudan qat'i nazar oq fon, qora matn (hujjatdagiday).
-    const fon = q.turi === 'bolim' ? 'bg-[#e8eef6]' : q.turi === 'jami' ? 'bg-[#fff6dc]' : q.turi === 'sarlavha' ? 'bg-[#f3f4f6]' : 'bg-white';
+    const fon = q.turi === 'bolim' ? 'hk-bolim' : q.turi === 'jami' ? 'hk-jami' : q.turi === 'sarlavha' ? 'hk-sarlavha' : '';
     return <tr key={q.r} className={fon}>{cells}</tr>;
   };
 
   return (
-    <div role="dialog" aria-label="Hujjatni ko‘rish" className="fixed inset-0 z-50 flex flex-col bg-black/50 p-3">
-      <div className="karta flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border p-2 text-[12px]">
-          <b className="mr-2 truncate text-[13px]">{faylNomi}</b>
+    <div role="dialog" aria-modal="true" aria-label={t('Hujjatni ko‘rish')} className="hk-overlay">
+      <div ref={oyna} tabIndex={-1} className="fz-card hk-dialog">
+        <div className="hk-bar">
+          <b className="hk-name">{faylNomi}</b>
           {varaqlar.length > 1 && varaqlar.map((x, i) => (
-            <button key={x.nom} onClick={() => { setVi(i); setSahifa(0); }} className={`rounded border px-2 py-0.5 ${i === vi ? 'border-accent text-accent' : 'border-border'}`}>{x.nom}</button>
+            <button key={x.nom} onClick={() => { setVi(i); setSahifa(0); }} className={`fz-btn fz-btn--sm ${i === vi ? 'fz-btn--primary' : ''}`} aria-pressed={i === vi}>{x.nom}</button>
           ))}
-          <label className="relative ml-auto">
-            <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-mute" />
-            <input aria-label="Hujjatdan qidirish" value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setSahifa(0); }} placeholder="Qidirish (kod, nom)…" className="w-56 rounded border border-border bg-bg py-1 pl-7 pr-2" />
+          <label className="hk-search">
+            <Search size={13} aria-hidden="true" />
+            <input aria-label={t('Hujjatdan qidirish')} value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setSahifa(0); }} placeholder={t('Qidirish (kod, nom)…')} />
           </label>
-          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={faqatJami} onChange={(e) => { setFaqatJami(e.target.checked); setSahifa(0); }} /> faqat bo‘lim va jamilar</label>
-          <button onClick={() => downloadBlob(bytes, faylNomi)} className="inline-flex items-center gap-1 rounded bg-accent px-2 py-1 text-white"><Download size={13} /> Excel</button>
-          <button onClick={onClose} aria-label="Yopish" className="rounded border border-border p-1"><X size={14} /></button>
+          <label className="hk-check"><input type="checkbox" checked={faqatJami} onChange={(e) => { setFaqatJami(e.target.checked); setSahifa(0); }} /> {t('faqat bo‘lim va jamilar')}</label>
+          <button onClick={() => downloadBlob(bytes, faylNomi)} className="fz-btn fz-btn--sm fz-btn--primary"><Download size={13} /> {t('Excel')}</button>
+          <button onClick={onClose} aria-label={t('Yopish')} className="fz-btn fz-btn--sm fz-btn--icon"><X size={14} /></button>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-[#e5e7eb] p-3 text-[11px] text-black">
-          <div className="inline-block min-w-full bg-white p-4 shadow">
+        <div className="hk-desk">
+          <div className="hk-paper">
           {/* Hujjat nomi va titul — ramkasiz, hujjatdagiday. */}
           <table className="mb-2 border-collapse" style={{ tableLayout: 'fixed' }}>
             <colgroup>{v.ustunlar.map((u) => <col key={u.c} style={{ width: Math.round(u.kenglik * 7.2) }} />)}</colgroup>
@@ -101,17 +120,17 @@ export function HujjatKorinish({ bytes, faylNomi, onClose }: { bytes: Uint8Array
           </table>
           <table className="border-collapse" style={{ tableLayout: 'fixed' }}>
             <colgroup>{v.ustunlar.map((u) => <col key={u.c} style={{ width: Math.round(u.kenglik * 7.2) }} />)}</colgroup>
-            <thead className="sticky top-0 z-10 bg-[#f3f4f6]">{bosh.map(qatorRender)}</thead>
+            <thead className="hk-thead">{bosh.map(qatorRender)}</thead>
             <tbody>{korinadigan.filter((q) => q.turi !== 'bosh').map(qatorRender)}</tbody>
           </table>
-          {!korinadigan.length && <p className="mt-3 text-[#555]">Mos qator yo‘q.</p>}
+          {!korinadigan.length && <p className="hk-empty">{t('Mos qator yo‘q.')}</p>}
           </div>
         </div>
         {sahifalar > 1 && (
-          <div className="flex items-center gap-2 border-t border-border p-2 text-[12px]">
-            <button disabled={sahifa === 0} onClick={() => setSahifa((p) => p - 1)} className="rounded border px-2 py-0.5 disabled:opacity-40">Oldingi</button>
-            <span>{sahifa + 1} / {sahifalar} ({malumot.length} qator)</span>
-            <button disabled={sahifa + 1 >= sahifalar} onClick={() => setSahifa((p) => p + 1)} className="rounded border px-2 py-0.5 disabled:opacity-40">Keyingi</button>
+          <div className="hk-pager">
+            <button disabled={sahifa === 0} onClick={() => setSahifa((p) => p - 1)} className="fz-btn fz-btn--sm">{t('Oldingi')}</button>
+            <span>{sahifa + 1} / {sahifalar} ({t('{n} qator',{n:malumot.length})})</span>
+            <button disabled={sahifa + 1 >= sahifalar} onClick={() => setSahifa((p) => p + 1)} className="fz-btn fz-btn--sm">{t('Keyingi')}</button>
           </div>
         )}
       </div>

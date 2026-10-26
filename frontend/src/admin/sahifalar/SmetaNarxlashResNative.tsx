@@ -8,6 +8,8 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { t } from '../../i18n/til';
+import { bolaklar } from '../../lib/narx-korinish';
+import { QamrovChizigi } from '../../components/narx/NarxKorinish';
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
@@ -26,10 +28,10 @@ function ustunHarfi(i: number): string {
 }
 
 const USTUN_YORLIQ: Array<[keyof ResUstunlar, string, string]> = [
-  ['kod', 'КОД', 'bg-info/15 text-info'],
-  ['nom', 'НАИМЕНОВАНИЕ', 'bg-ok/15 text-ok'],
-  ['birlik', 'ЕД.ИЗМ.', 'bg-warn/15 text-warn'],
-  ['narx', 'НАРХ', 'bg-accent/15 text-accent'],
+  ['kod', 'КОД', 'bg-[var(--info-soft)] text-[var(--info)]'],
+  ['nom', 'НАИМЕНОВАНИЕ', 'bg-[var(--ok-soft)] text-ok'],
+  ['birlik', 'ЕД.ИЗМ.', 'bg-surface-3 text-text'],
+  ['narx', 'НАРХ', 'bg-accent/15 text-[var(--accent-text)]'],
 ];
 
 /**
@@ -54,30 +56,31 @@ function VaraqKorinishi({ nom, rows, cols }: { nom: string; rows: SheetGrid; col
   const idx = Array.from({ length: ustunSoni }, (_, i) => i);
 
   return (
-    <div className="karta p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[12px] font-semibold text-text">«{nom}» — tanilgan ustunlar</p>
-        <p className="text-[11px] text-text-mute">{bosh + 1}-qatordan boshlab, dastlabki {korinish.length} qator</p>
+    <section className="fz-card">
+      <div className="fz-card__head">
+        <h3 className="fz-card__title">{t('«{nom}» — tanilgan ustunlar', { nom })}</h3>
+        <p className="fz-card__sub">{t('{b}-qatordan boshlab, dastlabki {n} qator', { b: String(bosh + 1), n: String(korinish.length) })}</p>
       </div>
+      <div className="fz-card__body">
       <div className="mt-2 flex flex-wrap gap-1.5">
         {USTUN_YORLIQ.map(([kalit, yorliq, rang]) => {
           const i = cols[kalit];
           const bor = typeof i === 'number' && i >= 0;
           return (
-            <span key={yorliq} className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${bor ? rang : 'bg-danger/15 text-danger'}`}>
-              {yorliq}: {bor ? ustunHarfi(i as number) : 'topilmadi'}
+            <span key={yorliq} className={`fz-chip ${bor ? rang : 'fz-chip--danger'}`}>
+              {yorliq}: {bor ? ustunHarfi(i as number) : t('topilmadi')}
             </span>
           );
         })}
       </div>
-      <div className="mt-2 overflow-x-auto">
-        <table className="w-full border-collapse text-[11px]">
+      <div className="fz-table-wrap mt-3">
+        <table className="fz-table text-[12px]">
           <thead>
             <tr>
               {idx.map((i) => {
                 const b = belgi.get(i);
                 return (
-                  <th key={i} className={`border border-border px-1.5 py-1 text-left font-semibold ${b ? b[1] : 'text-text-mute'}`}>
+                  <th key={i} className={b ? b[1] : ''}>
                     {ustunHarfi(i)}{b ? ` · ${b[0]}` : ''}
                   </th>
                 );
@@ -88,7 +91,7 @@ function VaraqKorinishi({ nom, rows, cols }: { nom: string; rows: SheetGrid; col
             {korinish.map((r, ri) => (
               <tr key={ri}>
                 {idx.map((i) => (
-                  <td key={i} className={`max-w-[220px] truncate border border-border/60 px-1.5 py-1 ${belgi.has(i) ? 'font-medium text-text' : 'text-text-dim'}`}
+                  <td key={i} className={`max-w-[220px] truncate ${belgi.has(i) ? 'font-medium text-text' : 'text-text-mute'}`}
                     title={String(r[i] ?? '')}>
                     {String(r[i] ?? '')}
                   </td>
@@ -98,7 +101,8 @@ function VaraqKorinishi({ nom, rows, cols }: { nom: string; rows: SheetGrid; col
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -189,37 +193,49 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   }
 
   const topilgan = book ? resVaraqlariniTop(book) : [];
-  return <div className="space-y-3">
-    <p className="text-[12px] text-text-mute">
+  const qadamlar = [
+    { n: 1, nom: t('Obyekt'), bajarildi: !!objectId && qatorlar.length > 0 },
+    { n: 2, nom: t('RES fayli'), bajarildi: !!book },
+    { n: 3, nom: t('Oldindan ko‘rish'), bajarildi: !!preview },
+    { n: 4, nom: t('Tasdiqlab narxlash'), bajarildi: !!natija },
+  ];
+  const joriyQadam = qadamlar.findIndex((q) => !q.bajarildi);
+  return <div className="flex flex-col gap-3">
+    <div className="fz-yol" aria-label={t('Narxlash bosqichlari')}>
+      {qadamlar.map((q, i) => <div key={q.n} className={`fz-yol__q ${q.bajarildi ? 'fz-yol__q--done' : i === joriyQadam ? 'fz-yol__q--now' : ''}`}>
+        <span className="fz-yol__nuqta" aria-hidden="true" /><span className="fz-yol__nom">{q.n}. {q.nom}</span>
+      </div>)}
+    </div>
+    <p className="fz-note fz-note--info">
       {t('Bu ekran narxi yo‘q (NULL) RS/MAT/OB qatorlarini RES bilan to‘ldiradi. Narxi 0 bo‘lgan qatorlar — faqat pastdagi belgini qo‘ysangiz. Mavjud narx, F2 va tarixiy certified qiymatlar o‘zgarmaydi.')}
     </p>
     <label className="flex items-start gap-2 text-[12px]">
       <input type="checkbox" className="mt-0.5" checked={nolHam} onChange={(e) => setNolHam(e.target.checked)} />
       <span>{t('0 narxlarni ham to‘ldirish (dastur eksportida RES narxi 0 bo‘lsa). Amal auditga yoziladi.')}
-        {preview && preview.nolNarxli !== 0 && !nolHam && <b className="ml-1 text-warn">{t('Bu obyektda narxi 0 bo‘lgan {n} ta qator bor.', { n: preview.nolNarxli })}</b>}
+        {preview && preview.nolNarxli !== 0 && !nolHam && <b className="fz-chip fz-chip--warn ml-1">{t('Bu obyektda narxi 0 bo‘lgan {n} ta qator bor.', { n: preview.nolNarxli })}</b>}
       </span>
     </label>
 
     {/* Obyekt + fayl bir qatorda (keng ekran), tor ekranda ustma-ust. */}
-    <div className="karta grid gap-3 p-3 sm:grid-cols-2">
-      {!fixedObjectId && <label className="block text-[12px] font-medium text-text">Obyekt
+    <div className="fz-card fz-card__body grid gap-3 sm:grid-cols-2">
+      {!fixedObjectId && <label className="block text-[12px] font-medium text-text-dim">{t('Obyekt')}
         <select aria-label="Narxlash obyekti" value={objectId} onChange={(e) => void obyektniYukla(e.target.value)}
           className="input mt-1.5 block h-9 w-full px-2 text-[13px]">
-          <option value="">Tanlang</option><ObyektOptionlari obyektlar={objects} />
+          <option value="">{t('Tanlang')}</option><ObyektOptionlari obyektlar={objects} />
         </select>
       </label>}
-      {objectId && <label className="block text-[12px] font-medium text-text">RES fayli (XLSX/XLS)
+      {objectId && <label className="block text-[12px] font-medium text-text-dim">{t('RES fayli (XLSX/XLS)')}
         <input aria-label="RES narx fayli" type="file" accept=".xlsx,.xlsm,.xls" disabled={busy}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void faylYukla(f); }}
-          className="input mt-1.5 block h-9 w-full px-2 py-1.5 text-[12px] file:mr-2 file:rounded file:border-0 file:bg-surface file:px-2 file:py-1 file:text-[12px] file:text-text" />
+          className="input mt-1.5 block h-9 w-full px-2 py-1.5 text-[12px] file:mr-2 file:rounded file:border-0 file:bg-surface-3 file:px-2 file:py-1 file:text-[12px] file:text-text" />
       </label>}
     </div>
 
-    {busy && <p role="status" className="text-[13px] text-text-dim">Hisoblanmoqda…</p>}
-    {error && <p role="alert" className="karta border-danger/40 bg-danger/5 p-3 text-[13px] text-danger">{error}</p>}
+    {busy && <p role="status" className="text-[13px] text-text-dim">{t('Hisoblanmoqda…')}</p>}
+    {error && <p role="alert" className="fz-note fz-note--danger">{error}</p>}
 
-    {topilgan.length > 0 && <div className="karta p-3">
-      <p className="text-[12px] font-semibold text-text">RES varaqlari</p>
+    {topilgan.length > 0 && <div className="fz-card fz-card__body">
+      <p className="fz-panel__h">{t('RES varaqlari')}</p>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
         {topilgan.map((x) => (
           <label key={x.nom} className="inline-flex items-center gap-2 text-[12px]">
@@ -239,51 +255,56 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
 
     {/* Oldindan ko'rish — yozishdan OLDIN ko'riladigan yagona joy,
         shuning uchun raqamlar matn ichida emas, alohida kartochkalarda. */}
-    {preview && <div className="karta p-3" aria-live="polite">
-      <p className="text-[12px] font-semibold text-text">Oldindan ko‘rish — hali hech narsa yozilmadi</p>
-      <div className="mt-2 grid gap-2 sm:grid-cols-3">
-        {([
-          ['Narxsiz qator', preview.narxsiz, 'text-text'],
-          ['Narxi topildi', preview.mos, preview.mos ? 'text-ok' : 'text-text'],
-          ['Narxsiz qoladi', preview.narxsizQoldi, preview.narxsizQoldi ? 'text-warn' : 'text-text'],
-        ] as const).map(([label, value, tone]) => (
-          <div key={label} className="rounded-lg border border-border px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-mute">{label}</p>
-            <p className={`mt-1 text-lg font-semibold tabular-nums ${tone}`}>{value}</p>
-          </div>
-        ))}
+    {preview && <section className="fz-doc__sheet fz-doc__sheet--draft" aria-live="polite">
+      <div className="fz-doc__top">
+        <div><div className="fz-doc__eyebrow">{t('Oldindan ko‘rish')}</div><h3 className="fz-card__title">{t('Hali hech narsa yozilmadi')} <span className="fz-stamp fz-stamp--draft ml-1">{t('Qoralama')}</span></h3></div>
+        <div className="grid grid-cols-3 gap-4 text-right">
+          {([
+            ['Narxsiz qator', preview.narxsiz, 'text-text'],
+            ['Narxi topildi', preview.mos, preview.mos ? 'text-ok' : 'text-text'],
+            ['Narxsiz qoladi', preview.narxsizQoldi, preview.narxsizQoldi ? 'text-warn' : 'text-text'],
+          ] as const).map(([label, value, tone]) => (
+            <div key={label}>
+              <p className="fz-panel__h justify-end">{t(label)}</p>
+              <p className={`font-[family-name:var(--font-display)] text-[20px] font-semibold tabular-nums ${tone}`}>{value}</p>
+            </div>
+          ))}
+        </div>
       </div>
-      {preview.ziddiyatliManba > 0 && <p className="mt-2 text-[12px] text-warn">
-        {preview.ziddiyatliManba} ta RES kalitida turli narx bor — ular avtomatik qo‘llanmaydi (taxmin qilinmaydi).
+      <QamrovChizigi aria={t('Narxsiz qatorlar')} bolaklar={bolaklar([{ kalit: 'mos', soni: preview.mos }, { kalit: 'qoldi', soni: preview.narxsizQoldi }]).bolaklar}
+        nomlar={{ mos: t('RESdan narx topildi'), qoldi: t('narxsiz qoladi') }} ranglar={{ mos: 'var(--ok)', qoldi: 'var(--warn)' }} />
+      <div className="fz-bars">
+        {(['rs', 'mat', 'ob'] as const).map((k) => { const x = preview.turBoyicha[k]; return (
+          <div key={k} className="fz-bars__q"><span>{k.toUpperCase()}</span><b>{x.mos} / {x.narxsiz}</b><i style={{ ['--w' as string]: `${x.narxsiz ? (x.mos / x.narxsiz) * 100 : 0}%` }} /></div>); })}
+      </div>
+      {preview.ziddiyatliManba > 0 && <p className="fz-note fz-note--warn">
+        {t('{n} ta RES kalitida turli narx bor — ular avtomatik qo‘llanmaydi (taxmin qilinmaydi).', { n: String(preview.ziddiyatliManba) })}
       </p>}
-      <p className="mt-2 text-[11px] text-text-mute">
-        RS: {preview.turBoyicha.rs.mos}/{preview.turBoyicha.rs.narxsiz} · MAT: {preview.turBoyicha.mat.mos}/{preview.turBoyicha.mat.narxsiz} · OB: {preview.turBoyicha.ob.mos}/{preview.turBoyicha.ob.narxsiz}
-      </p>
-      {preview.moslashmagan.length > 0 && <details className="mt-2 rounded-lg border border-border/60 p-2">
+      {preview.moslashmagan.length > 0 && <details className="rounded-[var(--radius-sm)] border border-border p-2">
         <summary className="cursor-pointer text-[12px] font-medium text-text">
-          Narxsiz qoladigan qatorlar sababi ({preview.moslashmagan.length})
+          {t('Narxsiz qoladigan qatorlar sababi ({n})', { n: String(preview.moslashmagan.length) })}
         </summary>
         <ul className="mt-2 max-h-52 space-y-1 overflow-auto text-[11px] text-text-dim">
           {preview.moslashmagan.slice(0, 100).map((q, i) => <li key={`${q.tur}:${q.kod ?? ''}:${q.nom ?? ''}:${i}`}>
-            <b>{q.tur.toUpperCase()}</b> · {q.kod || 'kodsiz'} · {q.nom || 'nomsiz'} ({q.birlik || 'birliksiz'}) — {RES_SABAB_MATNI[q.sabab]}
+            <b>{q.tur.toUpperCase()}</b> · {q.kod || t('kodsiz')} · {q.nom || t('nomsiz')} ({q.birlik || t('birliksiz')}) — {t(RES_SABAB_MATNI[q.sabab])}
           </li>)}
-          {preview.moslashmagan.length > 100 && <li>Yana {preview.moslashmagan.length - 100} ta qator bor.</li>}
+          {preview.moslashmagan.length > 100 && <li>{t('Yana {n} ta qator bor.', { n: String(preview.moslashmagan.length - 100) })}</li>}
         </ul>
       </details>}
-      <button type="button" className="tugma tugma-asosiy mt-3 w-full sm:w-auto"
-        disabled={busy || preview.mos === 0} onClick={() => void tasdiqla()}>Tasdiqlab narxlash</button>
-    </div>}
+      <div className="fz-doc__actions"><button type="button" className="fz-btn fz-btn--primary fz-btn--lg w-full sm:w-auto"
+        disabled={busy || preview.mos === 0} onClick={() => void tasdiqla()}>{t('Tasdiqlab narxlash')}</button></div>
+    </section>}
 
-    {natija && <p role="status" className="karta border-ok/40 bg-ok/5 p-3 text-[13px] text-success">{natija}</p>}
+    {natija && <p role="status" className="fz-note border-ok/40 bg-[var(--ok-soft)] text-[13px]">{natija}</p>}
   </div>;
 }
 
 export default function SmetaNarxlashResNative({ obyektId }: { obyektId?: number } = {}) {
   const { joriy, yuklanmoqda } = useKompaniya();
   const ichki = yuklanmoqda
-    ? <p className="text-[13px] text-text-dim">Kompaniya yuklanmoqda…</p>
+    ? <p className="text-[13px] text-text-dim">{t('Kompaniya yuklanmoqda…')}</p>
     : !joriy?.id
-      ? <p className="text-[13px] text-text-dim">Kompaniyani tanlang.</p>
+      ? <p className="fz-note fz-note--info">{t('Kompaniyani tanlang.')}</p>
       : <Sessiya key={`${joriy.id}:${obyektId ?? 'all'}`} companyId={joriy.id} fixedObjectId={obyektId} />;
   /* `obyektId` berilgan bo'lsa — bu boshqa sahifa ichiga qo'yilgan panel,
      o'z sarlavhasi kerak emas. Mustaqil marshrut sifatida ochilganda esa

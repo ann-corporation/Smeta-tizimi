@@ -59,9 +59,9 @@ describe('F2 import — siz qo‘shgan qatorlar boshqariladi, smeta qatorlari o�
     expect(qator(3).dataset.qatorTuri).toBe('qoshimcha');
     expect(qator(4).dataset.qatorTuri).toBe('zamena');
     expect(qator(2).dataset.qatorTuri).toBe('almashtirilgan');
-    expect(qator(3).className).toMatch(/border-l-emerald-500/);
-    expect(qator(4).className).toMatch(/border-l-amber-500/);
-    expect(qator(2).className).toMatch(/border-l-rose-500/);
+    expect(qator(3).className).toMatch(/border-l-\[var\(--info\)\]/);
+    expect(qator(4).className).toMatch(/border-l-\[var\(--kat-ob\)\]/);
+    expect(qator(2).className).toMatch(/border-l-danger/);
     expect(screen.getByLabelText('Qator ranglari izohi').textContent).toMatch(/Smetadan — o‘zgarmas/);
   });
 

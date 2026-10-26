@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { manbaHolati, muhitRoyxatiOl, type MuhitKorinishi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { toast } from '../../umumiy/ui/Toast';
 
 /** Qoidalar (yadro — o'zgarmas; tizim — tasdiqlangan) va agentlar internetdan olishi mumkin bo'lgan tasdiqlangan manbalar. */
@@ -12,7 +13,7 @@ export function AiQoidalarBolimi() {
   useEffect(() => { void yukla(); }, [yukla]);
 
   const ochir = async (domen: string) => {
-    if (!window.confirm(`${domen} — ${t('manbani o‘chirasizmi? Agentlar undan o‘qiy olmaydi.')}`)) return;
+    if (!(await tasdiqSora({ sarlavha: t('Manbani o‘chirish'), matn: `${domen} — ${t('manbani o‘chirasizmi? Agentlar undan o‘qiy olmaydi.')}`, xavfli: true }))) return;
     const r = await manbaHolati(domen, false);
     if (r.ok) { toast(t('Manba o‘chirildi'), 'ok'); void yukla(); } else toast(r.error, 'danger');
   };
@@ -39,7 +40,7 @@ export function AiQoidalarBolimi() {
         {d.manbalar.length === 0 ? <p className="text-[12px] text-text-mute">{t('Hozircha internetdan o‘qish taqiqlangan (manba yo‘q).')}</p> : (
           <ul className="space-y-1">{d.manbalar.map((x) => (
             <li key={x.domen} className="flex items-center gap-2 text-[13px]"><span className="text-text">{x.nom}</span><span className="text-[11px] text-text-mute">{x.domen}</span>
-              <button type="button" className="tugma ml-auto h-7 px-2 text-[12px] text-danger" onClick={() => void ochir(x.domen)}>{t('O‘chirish')}</button></li>
+              <button type="button" className="fz-btn ml-auto h-7 px-2 text-[12px] text-danger" onClick={() => void ochir(x.domen)}>{t('O‘chirish')}</button></li>
           ))}</ul>
         )}
       </section>

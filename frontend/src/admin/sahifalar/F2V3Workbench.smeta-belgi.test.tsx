@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { T2Qator } from '../../api/supabase';
 import { f2Indeks, smetaIndeks, type IshJoyi } from '../../lib/f2-moslash-v3/ishJoyi';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
@@ -46,7 +46,7 @@ function chiz() {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('F2 import — smeta tomonda belgilash va bo‘limlar', () => {
-  it('Shift bilan oraliq belgilanadi; «Qo‘shilganlarni o‘chirish» faqat siz qo‘shganlarni (ota bilan birga) qoralamaga beradi', () => {
+  it('Shift bilan oraliq belgilanadi; «Qo‘shilganlarni o‘chirish» faqat siz qo‘shganlarni (ota bilan birga) qoralamaga beradi', async () => {
     const { onOchirishRejali, toolbar } = chiz();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     fireEvent.click(screen.getByRole('button', { name: 'Smetada belgilash: ASL BOLIM' }));
@@ -54,7 +54,7 @@ describe('F2 import — smeta tomonda belgilash va bo‘limlar', () => {
     expect(screen.getByRole('toolbar', { name: 'Belgilangan smeta qatorlari' }).textContent).toContain('4 ta belgilandi:');
     fireEvent.click(toolbar().getByRole('button', { name: /Qo‘shilganlarni o‘chirish/ }));
     // Asl bo'lim (1) va uning ichidagi asl ish (2) o'tkazib yuboriladi; qo'shilgan bo'lim (5) ichidagi ish (6) bilan bitta buyruq.
-    expect(onOchirishRejali).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onOchirishRejali).toHaveBeenCalledTimes(1));
     expect(onOchirishRejali.mock.calls[0][0]).toMatchObject({ qatorId: 5, versiya: 4, eskiIdlar: [5, 6] });
   });
 

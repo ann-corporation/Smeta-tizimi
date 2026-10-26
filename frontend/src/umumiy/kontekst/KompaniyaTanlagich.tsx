@@ -10,15 +10,15 @@ import { IshJoyiAmallari, IshJoyiBelgi, turiPrefiksi } from './IshJoyiAmallari';
 import { t } from '../../i18n/til';
 
 const MAVQE_BELGI: Record<string, { nom: string; rang: string }> = {
-  zakazchik: { nom: 'Buyurtmachi', rang: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
-  pudratchi: { nom: 'Pudratchi', rang: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
-  loyihachi: { nom: 'Loyihachi', rang: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30' },
+  zakazchik: { nom: 'Buyurtmachi', rang: 'bg-[var(--info-soft)] text-[var(--info)] border-[var(--info)]/30' },
+  pudratchi: { nom: 'Pudratchi', rang: 'bg-ok/15 text-ok border-ok/30' },
+  loyihachi: { nom: 'Loyihachi', rang: 'bg-accent/15 text-[var(--accent-text)] border-accent/30' },
 };
 
 /** Eski UI mosligi — `mavqe` bo'lsa rangli belgi, bo'lmasa hech narsa. */
 export function MavqeBelgisi({ mavqe }: { mavqe: KompaniyaMavqe | null | undefined }) {
   if (!mavqe) return null;
-  const b = MAVQE_BELGI[mavqe] || { nom: String(mavqe), rang: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/30' };
+  const b = MAVQE_BELGI[mavqe] || { nom: String(mavqe), rang: 'bg-surface-3 text-text-dim border-border' };
   return (
     <span className={'inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wide ' + b.rang}>
       {t(b.nom)}

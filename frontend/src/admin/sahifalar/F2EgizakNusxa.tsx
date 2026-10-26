@@ -1,3 +1,4 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useState } from 'react';
 import { sbOqi, type T2Obyekt } from '../../api/supabase';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
@@ -107,7 +108,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
   async function qoshimchaYoz() {
     if (!tahlil || ish) return;
     const bNom = p.objects.find((o) => o.id === p.objectId)?.nom ?? '';
-    if (!window.confirm(t('{nom} smetasiga {n} ta amal ({q} qator) qo‘shimcha/zamena sifatida yoziladi. Asl qatorlar o‘zgarmaydi. Davom etasizmi?',
+    if (!await tasdiqSora(t('{nom} smetasiga {n} ta amal ({q} qator) qo‘shimcha/zamena sifatida yoziladi. Asl qatorlar o‘zgarmaydi. Davom etasizmi?',
       { nom: bNom, n: tahlil.qolganSoni, q: tahlil.reja.qatorSoni }))) return;
     setIsh(true);
     let natija = '';
@@ -131,7 +132,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
     const r0 = await tekshir(tahlil.job);
     if (!r0) return;
     const r = boglanishKochir(r0.aIj, p.ind, idXarita(r0.aslMap, r0.qoshMap));
-    if (!window.confirm(t('Joriy bog‘lanishlar egizak obyektnikiga almashtiriladi ({n} ta). «Orqaga» bilan qaytarish mumkin. Davom etasizmi?', { n: r.kochdi }))) return;
+    if (!await tasdiqSora(t('Joriy bog‘lanishlar egizak obyektnikiga almashtiriladi ({n} ta). «Orqaga» bilan qaytarish mumkin. Davom etasizmi?', { n: r.kochdi }))) return;
     const matn = t('{n} ta bog‘lanish egizak obyektdan ko‘chirildi; {m} tasi ko‘chmadi. Server qoralamasi saqlanmoqda. F2 raqami ko‘chirilmaydi — yangi raqamni kiriting, so‘ng «F2 ni yozish» ni o‘zingiz bosing.', { n: r.kochdi, m: r.kochmadi.length });
     p.ijQoy(r.ij, matn, r0.aRaqam);
     setIzoh(matn);
@@ -140,7 +141,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
   if (!nomzodlar.length) return null;
   const band = ish || p.busy;
   return (
-    <section className="karta space-y-2 border border-violet-500/40 bg-violet-500/5 p-2 text-[12px]" aria-label={t('Egizak obyektdan nusxa')}>
+    <section className="karta space-y-2 border border-[var(--info)] bg-[var(--info-soft)] p-2 text-[12px]" aria-label={t('Egizak obyektdan nusxa')}>
       <div className="flex flex-wrap items-center gap-2">
         {nomzodlar.map((n) => (
           <button key={n.job_id} type="button" className="tugma" disabled={band} onClick={() => void tekshir(n)}>

@@ -1,0 +1,1794 @@
+{
+ "Logistika bo‘limlari": {
+  "ru": "Разделы логистики",
+  "en": "Logistics sections"
+ },
+ "Sklad (qoldiq)": {
+  "ru": "Склад (остатки)",
+  "en": "Warehouse (stock)"
+ },
+ "Kontragentlar": {
+  "ru": "Контрагенты",
+  "en": "Counterparties"
+ },
+ "Ta’minot va birja": {
+  "ru": "Снабжение и биржа",
+  "en": "Supply and exchange"
+ },
+ "Material nomlari (AI)": {
+  "ru": "Названия материалов (ИИ)",
+  "en": "Material names (AI)"
+ },
+ "Moliya bo‘limlari": {
+  "ru": "Разделы финансов",
+  "en": "Finance sections"
+ },
+ "To‘lovlar": {
+  "ru": "Платежи",
+  "en": "Payments"
+ },
+ "Fakturalar (PDF, AI)": {
+  "ru": "Счета-фактуры (PDF, ИИ)",
+  "en": "Invoices (PDF, AI)"
+ },
+ "Obyekt, maxsulot va miqdorni kiriting": {
+  "ru": "Укажите объект, материал и количество",
+  "en": "Enter the site, item and quantity"
+ },
+ "Xato yuz berdi": {
+  "ru": "Произошла ошибка",
+  "en": "An error occurred"
+ },
+ "Zayavka muvaffaqiyatli yaratildi!": {
+  "ru": "Заявка успешно создана!",
+  "en": "Request created successfully!"
+ },
+ "Zayavka topilmadi": {
+  "ru": "Заявка не найдена",
+  "en": "Request not found"
+ },
+ "Holat o‘zgardi: {h}": {
+  "ru": "Статус изменён: {h}",
+  "en": "Status changed: {h}"
+ },
+ "Noma’lum obyekt": {
+  "ru": "Неизвестный объект",
+  "en": "Unknown site"
+ },
+ "Yangi zayavka": {
+  "ru": "Новая заявка",
+  "en": "New request"
+ },
+ "Zayavka ko‘rsatkichlari": {
+  "ru": "Показатели заявок",
+  "en": "Request indicators"
+ },
+ "Jami zayavka": {
+  "ru": "Всего заявок",
+  "en": "Total requests"
+ },
+ "Ochiq (jarayonda)": {
+  "ru": "Открытые (в работе)",
+  "en": "Open (in progress)"
+ },
+ "yetkazilmagan va bekor qilinmagan": {
+  "ru": "не доставлены и не отменены",
+  "en": "not delivered and not cancelled"
+ },
+ "Muddati o‘tgan": {
+  "ru": "Просрочено",
+  "en": "Overdue"
+ },
+ "kerakli sana o‘tgan, hali ochiq": {
+  "ru": "срок прошёл, ещё открыта",
+  "en": "required date passed, still open"
+ },
+ "Yetkazilgan / yopilgan": {
+  "ru": "Доставлено / закрыто",
+  "en": "Delivered / closed"
+ },
+ "Zayavkalar yo‘li — holatlar bo‘yicha": {
+  "ru": "Путь заявок — по статусам",
+  "en": "Request pipeline — by status"
+ },
+ "filtrni olib tashlash": {
+  "ru": "сбросить фильтр",
+  "en": "clear filter"
+ },
+ "Material, obyekt yoki izoh bo‘yicha…": {
+  "ru": "По материалу, объекту или примечанию…",
+  "en": "By material, site or note…"
+ },
+ "{n} ta ko‘rsatilmoqda": {
+  "ru": "показано: {n}",
+  "en": "{n} shown"
+ },
+ "№ / yoshi": {
+  "ru": "№ / возраст",
+  "en": "No. / age"
+ },
+ "Obyekt / kerakli sana": {
+  "ru": "Объект / нужная дата",
+  "en": "Site / required date"
+ },
+ "So‘ralgan": {
+  "ru": "Запрошено",
+  "en": "Requested"
+ },
+ "Yetkazilgan": {
+  "ru": "Доставлено",
+  "en": "Delivered"
+ },
+ "Qolgan": {
+  "ru": "Осталось",
+  "en": "Remaining"
+ },
+ "Yetkazish": {
+  "ru": "Доставка",
+  "en": "Delivery"
+ },
+ "Filtrga mos zayavka yo‘q.": {
+  "ru": "Нет заявок по фильтру.",
+  "en": "No requests match the filter."
+ },
+ "Hozircha zayavkalar yo‘q.": {
+  "ru": "Заявок пока нет.",
+  "en": "No requests yet."
+ },
+ "«Yangi zayavka» tugmasi bilan obyekt uchun material so‘rang.": {
+  "ru": "Запросите материал для объекта кнопкой «Новая заявка».",
+  "en": "Request material for a site with the “New request” button."
+ },
+ "{n} kun": {
+  "ru": "{n} дн.",
+  "en": "{n} d"
+ },
+ "Kuting…": {
+  "ru": "Подождите…",
+  "en": "Please wait…"
+ },
+ "Material / xizmat nomi": {
+  "ru": "Наименование материала / услуги",
+  "en": "Material / service name"
+ },
+ "M400 beton": {
+  "ru": "Бетон М400",
+  "en": "M400 concrete"
+ },
+ "tonna, m3": {
+  "ru": "тонна, м3",
+  "en": "tonne, m3"
+ },
+ "Qo‘shimcha ma’lumotlar…": {
+  "ru": "Дополнительные сведения…",
+  "en": "Additional details…"
+ },
+ "Zayavkalar (ta’minot talabnomasi)": {
+  "ru": "Заявки (требования на снабжение)",
+  "en": "Requests (supply requisitions)"
+ },
+ "Obyektdan kelgan talab → tasdiq → ta’minot → buyurtma → yetkazish. Har qatorda yetkazilgan ulush.": {
+  "ru": "Требование с объекта → утверждение → снабжение → заказ → доставка. В каждой строке — доля доставленного.",
+  "en": "Site request → approval → supply → order → delivery. Each row shows the delivered share."
+ },
+ "Barcha maydonlarni to‘ldiring": {
+  "ru": "Заполните все поля",
+  "en": "Fill in all fields"
+ },
+ "Omborga kirim yozildi.": {
+  "ru": "Приход на склад записан.",
+  "en": "Warehouse receipt recorded."
+ },
+ "Ombordan chiqim yozildi.": {
+  "ru": "Расход со склада записан.",
+  "en": "Warehouse issue recorded."
+ },
+ "Xato yuz berdi: {x}": {
+  "ru": "Произошла ошибка: {x}",
+  "en": "An error occurred: {x}"
+ },
+ "Chiqim (rasxod)": {
+  "ru": "Расход",
+  "en": "Issue (outgoing)"
+ },
+ "Kirim (prixod)": {
+  "ru": "Приход",
+  "en": "Receipt (incoming)"
+ },
+ "Ombor ko‘rsatkichlari": {
+  "ru": "Показатели склада",
+  "en": "Warehouse indicators"
+ },
+ "Pozitsiyalar (tanlangan obyekt)": {
+  "ru": "Позиции (выбранный объект)",
+  "en": "Items (selected site)"
+ },
+ "Manfiy qoldiq": {
+  "ru": "Отрицательный остаток",
+  "en": "Negative stock"
+ },
+ "chiqim bor, kirim yo‘q — tekshiring": {
+  "ru": "есть расход без прихода — проверьте",
+  "en": "issued without receipt — check"
+ },
+ "Tugagan (0)": {
+  "ru": "Закончилось (0)",
+  "en": "Out of stock (0)"
+ },
+ "Oxirgi harakat": {
+  "ru": "Последнее движение",
+  "en": "Last movement"
+ },
+ "Ombor bo‘limlari": {
+  "ru": "Разделы склада",
+  "en": "Warehouse sections"
+ },
+ "Jamlangan ombor": {
+  "ru": "Сводный склад",
+  "en": "Consolidated warehouse"
+ },
+ "Obyekt qoldiqlari": {
+  "ru": "Остатки объекта",
+  "en": "Site stock"
+ },
+ "Harakatlar tarixi": {
+  "ru": "История движений",
+  "en": "Movement history"
+ },
+ "M-29 hisobot": {
+  "ru": "Отчёт М-29",
+  "en": "M-29 report"
+ },
+ "Markaziy sklad": {
+  "ru": "Центральный склад",
+  "en": "Central warehouse"
+ },
+ "Jami qoldiq": {
+  "ru": "Итого остаток",
+  "en": "Total stock"
+ },
+ "Obyektlar bo‘yicha taqsimot": {
+  "ru": "Распределение по объектам",
+  "en": "Distribution by site"
+ },
+ "Ushbu markaziy sklad va unga bog‘langan obyektlarda qoldiq yo‘q.": {
+  "ru": "На этом центральном складе и связанных объектах остатков нет.",
+  "en": "No stock in this central warehouse or its linked sites."
+ },
+ "Material nomi bo‘yicha…": {
+  "ru": "По наименованию материала…",
+  "en": "By material name…"
+ },
+ "ID": {
+  "ru": "ID",
+  "en": "ID"
+ },
+ "QR pasport": {
+  "ru": "QR-паспорт",
+  "en": "QR passport"
+ },
+ "tugagan": {
+  "ru": "закончился",
+  "en": "out"
+ },
+ "bor": {
+  "ru": "есть",
+  "en": "in stock"
+ },
+ "Omborda qoldiq mavjud emas yoki topilmadi.": {
+  "ru": "Остатков на складе нет или не найдено.",
+  "en": "No stock in the warehouse or nothing found."
+ },
+ "Kirim tugmasi bilan omborga material kiriting.": {
+  "ru": "Внесите материал на склад кнопкой «Приход».",
+  "en": "Add material to the warehouse with the Receipt button."
+ },
+ "M-29: norma ↔ fakt sarf hisoboti": {
+  "ru": "М-29: отчёт о расходе норма ↔ факт",
+  "en": "M-29: norm ↔ actual consumption report"
+ },
+ "tasdiqlangan F2 normasi va ombor chiqimi alohida sahifada solishtiriladi.": {
+  "ru": "норма по утверждённым Ф-2 и списание со склада сопоставляются на отдельной странице.",
+  "en": "the approved F2 norm and warehouse issues are compared on a separate page."
+ },
+ "M-29 sahifasini ochish": {
+  "ru": "Открыть страницу М-29",
+  "en": "Open the M-29 page"
+ },
+ "Kirim va chiqim jurnali hali yasalmagan — hozircha harakatlar «Obyekt qoldiqlari» orqali ko‘rinadi.": {
+  "ru": "Журнал прихода и расхода ещё не создан — пока движения видны через «Остатки объекта».",
+  "en": "The receipt/issue journal is not built yet — for now movements are visible via “Site stock”."
+ },
+ "Omborga kirim qilish": {
+  "ru": "Приход на склад",
+  "en": "Receive into warehouse"
+ },
+ "Material nomi": {
+  "ru": "Наименование материала",
+  "en": "Material name"
+ },
+ "Masalan, sement M400": {
+  "ru": "Например, цемент М400",
+  "en": "For example, cement M400"
+ },
+ "Ombor (sklad): qoldiq va harakatlar": {
+  "ru": "Склад: остатки и движения",
+  "en": "Warehouse: stock and movements"
+ },
+ "Kirim — omborga keldi, chiqim — obyektga sarflandi. Qoldiq = kirim − chiqim; manfiy qoldiq — kirim kiritilmagan.": {
+  "ru": "Приход — поступило на склад, расход — израсходовано на объекте. Остаток = приход − расход; отрицательный остаток — приход не внесён.",
+  "en": "Receipt — arrived at the warehouse, issue — consumed on site. Stock = receipts − issues; negative stock means a receipt was not entered."
+ },
+ "Tez orada": {
+  "ru": "Скоро",
+  "en": "Coming soon"
+ },
+ "Excel eksport": {
+  "ru": "Экспорт в Excel",
+  "en": "Excel export"
+ },
+ "Yangi to‘lov faqat «Shartnomalar» ichidan kiritiladi (shartnomaga bog‘lanadi).": {
+  "ru": "Новый платёж вносится только в «Договорах» (привязывается к договору).",
+  "en": "A new payment is entered only from “Contracts” (it is linked to a contract)."
+ },
+ "Yangi to‘lov": {
+  "ru": "Новый платёж",
+  "en": "New payment"
+ },
+ "Moliya ko‘rsatkichlari": {
+  "ru": "Финансовые показатели",
+  "en": "Finance indicators"
+ },
+ "Bajarilgan (F2)": {
+  "ru": "Выполнено (Ф-2)",
+  "en": "Completed (F2)"
+ },
+ "Forma-2 lar yig‘indisi, so‘m": {
+  "ru": "сумма форм Ф-2, сум",
+  "en": "sum of F2 forms, sum"
+ },
+ "To‘langan": {
+  "ru": "Оплачено",
+  "en": "Paid"
+ },
+ "{f}% bajarilgandan": {
+  "ru": "{f}% от выполненного",
+  "en": "{f}% of completed"
+ },
+ "Qarzdorlik (bizga)": {
+  "ru": "Дебиторская задолженность",
+  "en": "Receivables (owed to us)"
+ },
+ "bajarilgan, lekin to‘lanmagan": {
+  "ru": "выполнено, но не оплачено",
+  "en": "completed but unpaid"
+ },
+ "oldindan to‘lovlar": {
+  "ru": "предоплаты",
+  "en": "prepayments"
+ },
+ "Pul oqimi oylar bo‘yicha": {
+  "ru": "Денежный поток по месяцам",
+  "en": "Cash flow by month"
+ },
+ "kirim": {
+  "ru": "приход",
+  "en": "in"
+ },
+ "chiqim": {
+  "ru": "расход",
+  "en": "out"
+ },
+ "To‘lovlar hali yo‘q — oqim chizig‘i to‘lov kiritilgach paydo bo‘ladi.": {
+  "ru": "Платежей пока нет — график потока появится после ввода платежей.",
+  "en": "No payments yet — the flow chart appears once payments are entered."
+ },
+ "{oy}: kirim {k}, chiqim {c}": {
+  "ru": "{oy}: приход {k}, расход {c}",
+  "en": "{oy}: in {k}, out {c}"
+ },
+ "To‘lovlar reestri": {
+  "ru": "Реестр платежей",
+  "en": "Payment register"
+ },
+ "Bank va kassa": {
+  "ru": "Банк и касса",
+  "en": "Bank and cash"
+ },
+ "Cashflow (prognoz)": {
+  "ru": "Cashflow (прогноз)",
+  "en": "Cash flow (forecast)"
+ },
+ "1C sinxron": {
+  "ru": "Синхронизация 1С",
+  "en": "1C sync"
+ },
+ "Izoh yoki shartnoma № bo‘yicha qidiring…": {
+  "ru": "Поиск по примечанию или № договора…",
+  "en": "Search by note or contract No.…"
+ },
+ "Toifa": {
+  "ru": "Категория",
+  "en": "Category"
+ },
+ "Chiqim": {
+  "ru": "Расход",
+  "en": "Outgoing"
+ },
+ "Shartnoma / tur": {
+  "ru": "Договор / тип",
+  "en": "Contract / type"
+ },
+ "Summa, so‘m": {
+  "ru": "Сумма, сум",
+  "en": "Amount, sum"
+ },
+ "Shartnoma № {id}": {
+  "ru": "Договор № {id}",
+  "en": "Contract No. {id}"
+ },
+ "Hech qanday to‘lov yozuvi topilmadi.": {
+  "ru": "Платёжных записей не найдено.",
+  "en": "No payment records found."
+ },
+ "To‘lovlar «Shartnomalar» bo‘limida shartnomaga bog‘lab kiritiladi.": {
+  "ru": "Платежи вносятся в разделе «Договоры» с привязкой к договору.",
+  "en": "Payments are entered in “Contracts”, linked to a contract."
+ },
+ "1C:Buxgalteriya ko‘prigi": {
+  "ru": "Мост 1С:Бухгалтерия",
+  "en": "1C:Accounting bridge"
+ },
+ "to‘lovlar, F2 aktlar va EHF larni 1C bazasi bilan ikki tomonlama sinxronlash. Hozircha ishlab chiqilmoqda.": {
+  "ru": "двусторонняя синхронизация платежей, актов Ф-2 и ЭСФ с базой 1С. Пока в разработке.",
+  "en": "two-way sync of payments, F2 acts and e-invoices with the 1C database. Still in development."
+ },
+ "Bu bo‘lim keyingi bosqichda ishga tushiriladi. Hozircha to‘lovlar reestridan foydalaning.": {
+  "ru": "Раздел будет запущен на следующем этапе. Пока пользуйтесь реестром платежей.",
+  "en": "This section launches in a later phase. Use the payment register for now."
+ },
+ "To‘lovlar va kassa": {
+  "ru": "Платежи и касса",
+  "en": "Payments and cash"
+ },
+ "Bajarilgan ish (F2) qanchasi to‘langan, kim qarzdor va oylar bo‘yicha pul oqimi.": {
+  "ru": "Сколько выполненных работ (Ф-2) оплачено, кто должен и денежный поток по месяцам.",
+  "en": "How much completed work (F2) is paid, who owes, and cash flow by month."
+ },
+ "Nomini / F.I.Sh kiriting": {
+  "ru": "Введите название / Ф.И.О.",
+  "en": "Enter the name / full name"
+ },
+ "Muvaffaqiyatli saqlandi!": {
+  "ru": "Успешно сохранено!",
+  "en": "Saved successfully!"
+ },
+ "«{nom}» bekor qilinsinmi? Tarix saqlanadi.": {
+  "ru": "Отменить «{nom}»? История сохранится.",
+  "en": "Cancel “{nom}”? History is kept."
+ },
+ "Yangi xodim": {
+  "ru": "Новый сотрудник",
+  "en": "New employee"
+ },
+ "Yangi texnika": {
+  "ru": "Новая техника",
+  "en": "New machine"
+ },
+ "ERP ko‘rsatkichlari": {
+  "ru": "Показатели ERP",
+  "en": "ERP indicators"
+ },
+ "Texnikalar": {
+  "ru": "Техника",
+  "en": "Machines"
+ },
+ "Ishlamoqda (obyektda)": {
+  "ru": "Работает (на объекте)",
+  "en": "Working (on site)"
+ },
+ "Garajda": {
+  "ru": "В гараже",
+  "en": "In garage"
+ },
+ "Obyektda": {
+  "ru": "На объекте",
+  "en": "On site"
+ },
+ "Zaxirada": {
+  "ru": "В резерве",
+  "en": "In reserve"
+ },
+ "hech bir obyektga biriktirilmagan": {
+  "ru": "не закреплён ни за одним объектом",
+  "en": "not assigned to any site"
+ },
+ "ERP bo‘limlari": {
+  "ru": "Разделы ERP",
+  "en": "ERP sections"
+ },
+ "Xodimlar va brigadalar": {
+  "ru": "Сотрудники и бригады",
+  "en": "Staff and crews"
+ },
+ "Texnika parki": {
+  "ru": "Парк техники",
+  "en": "Machine fleet"
+ },
+ "Mehnat muhofazasi va sifat": {
+  "ru": "Охрана труда и качество",
+  "en": "Safety and quality"
+ },
+ "F.I.Sh yoki lavozim bo‘yicha…": {
+  "ru": "По Ф.И.О. или должности…",
+  "en": "By name or position…"
+ },
+ "Texnika nomi yoki davlat raqami bo‘yicha…": {
+  "ru": "По названию техники или госномеру…",
+  "en": "By machine name or plate number…"
+ },
+ "F.I.Sh": {
+  "ru": "Ф.И.О.",
+  "en": "Full name"
+ },
+ "Qidiruvga mos xodim topilmadi.": {
+  "ru": "Сотрудники по запросу не найдены.",
+  "en": "No employees match the search."
+ },
+ "Hali xodimlar kiritilmagan.": {
+  "ru": "Сотрудники ещё не внесены.",
+  "en": "No employees entered yet."
+ },
+ "Mindmapda ko‘rish": {
+  "ru": "Показать в майндмапе",
+  "en": "Show in mind map"
+ },
+ "Mindmap": {
+  "ru": "Майндмап",
+  "en": "Mind map"
+ },
+ "Bekor qilish (tarix saqlanadi)": {
+  "ru": "Отменить (история сохранится)",
+  "en": "Cancel (history is kept)"
+ },
+ "Yoqilg‘i me’yori": {
+  "ru": "Норма топлива",
+  "en": "Fuel norm"
+ },
+ "Qidiruvga mos texnika topilmadi.": {
+  "ru": "Техника по запросу не найдена.",
+  "en": "No machines match the search."
+ },
+ "Hali texnikalar kiritilmagan.": {
+  "ru": "Техника ещё не внесена.",
+  "en": "No machines entered yet."
+ },
+ "Ishlamoqda": {
+  "ru": "Работает",
+  "en": "Working"
+ },
+ "Sifat va mehnat muhofazasi jurnallari": {
+  "ru": "Журналы качества и охраны труда",
+  "en": "Quality and safety logs"
+ },
+ "yong‘in xavfsizligi, instruktaj jurnallari va sifat nazorati aktlari shu yerda yuritiladi (jarayonda). Nuqsonlar hozir «ERP · Sifat» sahifasida.": {
+  "ru": "здесь будут вестись пожарная безопасность, журналы инструктажей и акты контроля качества (в работе). Дефекты сейчас — на странице «ERP · Качество».",
+  "en": "fire safety, briefing logs and quality-control acts will be kept here (in progress). Defects are currently on the “ERP · Quality” page."
+ },
+ "Xodimni ro‘yxatga olish": {
+  "ru": "Регистрация сотрудника",
+  "en": "Register an employee"
+ },
+ "Texnikani ro‘yxatga olish": {
+  "ru": "Регистрация техники",
+  "en": "Register a machine"
+ },
+ "Texnika nomi / markasi": {
+  "ru": "Название / марка техники",
+  "en": "Machine name / model"
+ },
+ "G‘aniyev Zafar": {
+  "ru": "Ганиев Зафар",
+  "en": "Zafar Ganiyev"
+ },
+ "CAT 320 ekskavator": {
+  "ru": "Экскаватор CAT 320",
+  "en": "CAT 320 excavator"
+ },
+ "Lavozim / kasb": {
+  "ru": "Должность / профессия",
+  "en": "Position / trade"
+ },
+ "Oylik maosh": {
+  "ru": "Месячный оклад",
+  "en": "Monthly salary"
+ },
+ "Yoqilg‘i / motochas": {
+  "ru": "Топливо / моточас",
+  "en": "Fuel / engine hour"
+ },
+ "Korxona resurslari (ERP)": {
+  "ru": "Ресурсы предприятия (ERP)",
+  "en": "Enterprise resources (ERP)"
+ },
+ "Markaziy kadrlar va texnika parki — obyektlarga biriktiriladi; biriktirilmagani zaxirada turadi.": {
+  "ru": "Центральные кадры и парк техники закрепляются за объектами; незакреплённые — в резерве.",
+  "en": "Central staff and fleet are assigned to sites; unassigned ones stay in reserve."
+ },
+ "Yangi shartnoma": {
+  "ru": "Новый договор",
+  "en": "New contract"
+ },
+ "Shartnoma ko‘rsatkichlari": {
+  "ru": "Показатели договоров",
+  "en": "Contract indicators"
+ },
+ "Jami portfel": {
+  "ru": "Весь портфель",
+  "en": "Total portfolio"
+ },
+ "{n} ta shartnoma · so‘m, QQS bilan": {
+  "ru": "договоров: {n} · сум, с НДС",
+  "en": "{n} contracts · sum, incl. VAT"
+ },
+ "Bosh pudrat (daromad)": {
+  "ru": "Генподряд (доход)",
+  "en": "General contract (income)"
+ },
+ "faol va yopilganlar": {
+  "ru": "действующие и закрытые",
+  "en": "active and closed"
+ },
+ "Sub-pudrat / xarid": {
+  "ru": "Субподряд / закупка",
+  "en": "Subcontract / purchase"
+ },
+ "hali hisoblanmaydi": {
+  "ru": "пока не рассчитывается",
+  "en": "not calculated yet"
+ },
+ "Kafolat ushlanmasi": {
+  "ru": "Гарантийное удержание",
+  "en": "Retention"
+ },
+ "Shartnomalar holati": {
+  "ru": "Статус договоров",
+  "en": "Contract status"
+ },
+ "Shartnoma bo‘limlari": {
+  "ru": "Разделы договоров",
+  "en": "Contract sections"
+ },
+ "Bosh shartnomalar": {
+  "ru": "Основные договоры",
+  "en": "Main contracts"
+ },
+ "Qo‘shimcha kelishuvlar": {
+  "ru": "Доп. соглашения",
+  "en": "Supplementary agreements"
+ },
+ "Ustama va soliqlar": {
+  "ru": "Накрутки и налоги",
+  "en": "Markups and taxes"
+ },
+ "Limitlar radari": {
+  "ru": "Радар лимитов",
+  "en": "Limits radar"
+ },
+ "Yangi shartnomani ro‘yxatga olish": {
+  "ru": "Регистрация нового договора",
+  "en": "Register a new contract"
+ },
+ "Raqam va nomni kiriting!": {
+  "ru": "Введите номер и название!",
+  "en": "Enter the number and name!"
+ },
+ "Noma’lum xato": {
+  "ru": "Неизвестная ошибка",
+  "en": "Unknown error"
+ },
+ "Shartnoma muvaffaqiyatli saqlandi!": {
+  "ru": "Договор успешно сохранён!",
+  "en": "Contract saved successfully!"
+ },
+ "Raqam, nom yoki kontragent bo‘yicha…": {
+  "ru": "По номеру, названию или контрагенту…",
+  "en": "By number, name or counterparty…"
+ },
+ "Shartnoma №": {
+  "ru": "Договор №",
+  "en": "Contract No."
+ },
+ "Nomi va predmeti": {
+  "ru": "Название и предмет",
+  "en": "Name and subject"
+ },
+ "Kontragent (2-tomon)": {
+  "ru": "Контрагент (2-я сторона)",
+  "en": "Counterparty (2nd party)"
+ },
+ "Qidiruvga mos shartnoma yo‘q.": {
+  "ru": "Договоров по запросу нет.",
+  "en": "No contracts match the search."
+ },
+ "Hech qanday shartnoma topilmadi.": {
+  "ru": "Договоров не найдено.",
+  "en": "No contracts found."
+ },
+ "«Yangi shartnoma» tugmasi bilan birinchi shartnomani kiriting.": {
+  "ru": "Внесите первый договор кнопкой «Новый договор».",
+  "en": "Enter the first contract with the “New contract” button."
+ },
+ "Qo‘shimcha kelishuvlar reestri — asosiy shartnomaga qilingan kelishuvlar shu yerda yuritiladi va asosiy summa bilan jamlanadi (jarayonda).": {
+  "ru": "Реестр доп. соглашений — соглашения к основному договору ведутся здесь и суммируются с основной суммой (в работе).",
+  "en": "Supplementary agreements register — agreements to the main contract are kept here and added to the main amount (in progress)."
+ },
+ "Bu bo‘lim keyingi bosqichda ishga tushiriladi.": {
+  "ru": "Раздел будет запущен на следующем этапе.",
+  "en": "This section launches in a later phase."
+ },
+ "Bosh pudrat, sub-pudrat va xarid shartnomalari reestri: summa (QQS bilan), holat va mindmapdagi bog‘lanishi.": {
+  "ru": "Реестр договоров генподряда, субподряда и закупок: сумма (с НДС), статус и связь в майндмапе.",
+  "en": "Register of general, sub- and purchase contracts: amount (incl. VAT), status and mind-map link."
+ },
+ "Didox API hali ulanmagan. Iltimos, ma’lumotlarni qo‘lda kiriting.": {
+  "ru": "Didox API ещё не подключён. Введите данные вручную.",
+  "en": "Didox API is not connected yet. Please enter details manually."
+ },
+ "Kompaniya nomini kiritish shart!": {
+  "ru": "Название компании обязательно!",
+  "en": "Company name is required!"
+ },
+ "Kontragent bazaga saqlandi!": {
+  "ru": "Контрагент сохранён в базе!",
+  "en": "Counterparty saved!"
+ },
+ "Kontragentni o‘chirish": {
+  "ru": "Удаление контрагента",
+  "en": "Delete counterparty"
+ },
+ "«{nom}» o‘chirilsinmi?": {
+  "ru": "Удалить «{nom}»?",
+  "en": "Delete “{nom}”?"
+ },
+ "O‘chirildi": {
+  "ru": "Удалено",
+  "en": "Deleted"
+ },
+ "Kompaniya tanlanmagan": {
+  "ru": "Компания не выбрана",
+  "en": "No company selected"
+ },
+ "Kontragentlar rollar bo‘yicha": {
+  "ru": "Контрагенты по ролям",
+  "en": "Counterparties by role"
+ },
+ "Rol ko‘rsatilmagan": {
+  "ru": "Роль не указана",
+  "en": "Role not set"
+ },
+ "Yangi kontragent qo‘shish": {
+  "ru": "Добавить контрагента",
+  "en": "Add counterparty"
+ },
+ "STIR (INN)": {
+  "ru": "ИНН",
+  "en": "TIN (INN)"
+ },
+ "9 xonali raqam": {
+  "ru": "9-значный номер",
+  "en": "9-digit number"
+ },
+ "Didox’dan tortish (hozircha ishlamaydi)": {
+  "ru": "Загрузить из Didox (пока не работает)",
+  "en": "Fetch from Didox (not working yet)"
+ },
+ "Kompaniya to‘liq nomi": {
+  "ru": "Полное название компании",
+  "en": "Company full name"
+ },
+ "Rahbar F.I.O": {
+  "ru": "Ф.И.О. руководителя",
+  "en": "Director’s full name"
+ },
+ "Roli": {
+  "ru": "Роль",
+  "en": "Role"
+ },
+ "Yuridik manzil": {
+  "ru": "Юридический адрес",
+  "en": "Legal address"
+ },
+ "Hisob raqami": {
+  "ru": "Расчётный счёт",
+  "en": "Bank account"
+ },
+ "MFO kodi": {
+  "ru": "Код МФО",
+  "en": "Bank code (MFO)"
+ },
+ "QQS (NDS) to‘lovchisi": {
+  "ru": "Плательщик НДС",
+  "en": "VAT payer"
+ },
+ "Bazaga saqlash": {
+  "ru": "Сохранить в базу",
+  "en": "Save to database"
+ },
+ "Mavjud kontragentlar": {
+  "ru": "Существующие контрагенты",
+  "en": "Existing counterparties"
+ },
+ "Rol bo'yicha filtr": {
+  "ru": "Фильтр по роли",
+  "en": "Filter by role"
+ },
+ "Barcha rollar": {
+  "ru": "Все роли",
+  "en": "All roles"
+ },
+ "INN / MFO": {
+  "ru": "ИНН / МФО",
+  "en": "TIN / MFO"
+ },
+ "Bu rolda kontragent yo‘q.": {
+  "ru": "С этой ролью контрагентов нет.",
+  "en": "No counterparties with this role."
+ },
+ "Hozircha hech qanday kontragent qo‘shilmagan.": {
+  "ru": "Контрагенты пока не добавлены.",
+  "en": "No counterparties added yet."
+ },
+ "QQS to‘lovchi": {
+  "ru": "Плательщик НДС",
+  "en": "VAT payer"
+ },
+ "Kontragentlar va hamkorlar": {
+  "ru": "Контрагенты и партнёры",
+  "en": "Counterparties and partners"
+ },
+ "Buyurtmachi, pudratchi, loyihachi, ta’minotchi va laboratoriyalar reestri. Didox ulanmaguncha rekvizitlar qo‘lda kiritiladi.": {
+  "ru": "Реестр заказчиков, подрядчиков, проектировщиков, поставщиков и лабораторий. Пока Didox не подключён, реквизиты вводятся вручную.",
+  "en": "Register of clients, contractors, designers, suppliers and labs. Until Didox is connected, details are entered manually."
+ },
+ "Kompaniya tanlang": {
+  "ru": "Выберите компанию",
+  "en": "Choose a company"
+ },
+ "Nomi va hajmini kiriting": {
+  "ru": "Введите название и объём",
+  "en": "Enter the name and volume"
+ },
+ "Yangi RFQ tenderga qo‘yildi!": {
+  "ru": "Новый RFQ выставлен на тендер!",
+  "en": "New RFQ posted to tender!"
+ },
+ "Narxni kiriting": {
+  "ru": "Введите цену",
+  "en": "Enter the price"
+ },
+ "Taklif yuborildi!": {
+  "ru": "Предложение отправлено!",
+  "en": "Offer sent!"
+ },
+ "Yangi RFQ": {
+  "ru": "Новый RFQ",
+  "en": "New RFQ"
+ },
+ "Birja bo‘limlari": {
+  "ru": "Разделы биржи",
+  "en": "Exchange sections"
+ },
+ "Faol so‘rovlar (RFQ)": {
+  "ru": "Активные запросы (RFQ)",
+  "en": "Active requests (RFQ)"
+ },
+ "Xarid tarixi": {
+  "ru": "История закупок",
+  "en": "Purchase history"
+ },
+ "Hali hech qanday RFQ e’lon qilinmagan.": {
+  "ru": "RFQ ещё не объявлены.",
+  "en": "No RFQs posted yet."
+ },
+ "«Yangi RFQ» tugmasi bilan birinchi so‘rovni e’lon qiling.": {
+  "ru": "Объявите первый запрос кнопкой «Новый RFQ».",
+  "en": "Post the first request with the “New RFQ” button."
+ },
+ "Talab hajmi": {
+  "ru": "Требуемый объём",
+  "en": "Required volume"
+ },
+ "Batafsil va takliflar": {
+  "ru": "Подробнее и предложения",
+  "en": "Details and offers"
+ },
+ "Sizning narxingiz (so‘m / {b})": {
+  "ru": "Ваша цена (сум / {b})",
+  "en": "Your price (sum / {b})"
+ },
+ "masalan: 1200000": {
+  "ru": "например: 1200000",
+  "en": "e.g. 1200000"
+ },
+ "Izoh / muddat": {
+  "ru": "Примечание / срок",
+  "en": "Note / lead time"
+ },
+ "3 kunda yetkazib beramiz": {
+  "ru": "Доставим за 3 дня",
+  "en": "We deliver in 3 days"
+ },
+ "Kelib tushgan takliflar": {
+  "ru": "Поступившие предложения",
+  "en": "Received offers"
+ },
+ "Hozircha hech qanday zavod taklif bermagan.": {
+  "ru": "Пока ни один завод не дал предложение.",
+  "en": "No supplier has made an offer yet."
+ },
+ "Kompaniya #{id}": {
+  "ru": "Компания #{id}",
+  "en": "Company #{id}"
+ },
+ "Izohsiz": {
+  "ru": "Без примечания",
+  "en": "No note"
+ },
+ "so‘m / {b}": {
+  "ru": "сум / {b}",
+  "en": "sum / {b}"
+ },
+ "Yopilgan va hal qilingan tenderlar tarixi shu yerda ko‘rinadi (keyingi bosqich).": {
+  "ru": "Здесь будет история закрытых тендеров (следующий этап).",
+  "en": "History of closed tenders will appear here (next phase)."
+ },
+ "Yangi RFQ qo‘shish": {
+  "ru": "Добавить RFQ",
+  "en": "Add RFQ"
+ },
+ "Tenderga e’lon qilish": {
+  "ru": "Объявить тендер",
+  "en": "Post to tender"
+ },
+ "Tovarning to‘liq nomi": {
+  "ru": "Полное название товара",
+  "en": "Full item name"
+ },
+ "masalan: M400 sement": {
+  "ru": "например: цемент М400",
+  "en": "e.g. M400 cement"
+ },
+ "Qo‘shimcha izoh": {
+  "ru": "Дополнительное примечание",
+  "en": "Additional note"
+ },
+ "Zavodga qo‘shimcha talablar…": {
+  "ru": "Дополнительные требования к заводу…",
+  "en": "Extra requirements for the supplier…"
+ },
+ "Xarid birjasi (tenderlar)": {
+  "ru": "Закупочная биржа (тендеры)",
+  "en": "Purchase exchange (tenders)"
+ },
+ "Material so‘rovi (RFQ) e’lon qilinadi, yetkazuvchilar narx beradi, takliflar eng arzonidan boshlab taqqoslanadi.": {
+  "ru": "Объявляется запрос (RFQ), поставщики дают цены, предложения сравниваются от самого дешёвого.",
+  "en": "A request (RFQ) is posted, suppliers quote, offers are compared from the cheapest."
+ },
+ "Alias va kanonik kalit majburiy!": {
+  "ru": "Алиас и канонический ключ обязательны!",
+  "en": "Alias and canonical key are required!"
+ },
+ "Material aliasingiz saqlandi": {
+  "ru": "Алиас материала сохранён",
+  "en": "Material alias saved"
+ },
+ "Aliasni o‘chirish": {
+  "ru": "Удаление алиаса",
+  "en": "Delete alias"
+ },
+ "«{a}» → «{k}» bog‘lanishi o‘chirilsinmi?": {
+  "ru": "Удалить связь «{a}» → «{k}»?",
+  "en": "Delete the “{a}” → “{k}” link?"
+ },
+ "Alias o‘chirildi": {
+  "ru": "Алиас удалён",
+  "en": "Alias deleted"
+ },
+ "Yangi bog‘lanish": {
+  "ru": "Новая связь",
+  "en": "New link"
+ },
+ "Erkin yozilish (alias)": {
+  "ru": "Свободное написание (алиас)",
+  "en": "Free spelling (alias)"
+ },
+ "AI ushbu yozuvni qidirganda kanonik kalitga o‘tkazadi.": {
+  "ru": "При поиске ИИ переводит это написание в канонический ключ.",
+  "en": "AI maps this spelling to the canonical key when searching."
+ },
+ "Masalan: M-200 beton, sement M400": {
+  "ru": "Например: бетон М-200, цемент М400",
+  "en": "E.g. M-200 concrete, M400 cement"
+ },
+ "Kanonik nom (kalit)": {
+  "ru": "Каноническое имя (ключ)",
+  "en": "Canonical name (key)"
+ },
+ "Smeta yoki narxlash bazasidagi qat’iy nom/kod.": {
+  "ru": "Точное имя/код в смете или базе цен.",
+  "en": "The exact name/code in the estimate or price base."
+ },
+ "Masalan: M200": {
+  "ru": "Например: M200",
+  "en": "E.g. M200"
+ },
+ "Kanonik birlik": {
+  "ru": "Каноническая единица",
+  "en": "Canonical unit"
+ },
+ "m3, tn, kg (ixtiyoriy)": {
+  "ru": "м3, т, кг (необязательно)",
+  "en": "m3, t, kg (optional)"
+ },
+ "Bog‘lash": {
+  "ru": "Связать",
+  "en": "Link"
+ },
+ "Global va lokal": {
+  "ru": "Глобальные и локальные",
+  "en": "Global and local"
+ },
+ "kompaniya tanlanmagan bo‘lsa bog‘lanish global qoidaga aylanadi va barcha foydalanuvchilarga yordam beradi; kompaniya tanlangan bo‘lsa — faqat shu kompaniya uchun ishlaydi.": {
+  "ru": "если компания не выбрана, связь становится глобальным правилом для всех пользователей; если выбрана — работает только для этой компании.",
+  "en": "with no company selected the link becomes a global rule for all users; with a company selected it applies only to that company."
+ },
+ "{n} ta bog‘lanish": {
+  "ru": "связей: {n}",
+  "en": "{n} links"
+ },
+ "global: {n}": {
+  "ru": "глобальных: {n}",
+  "en": "global: {n}"
+ },
+ "lokal: {n}": {
+  "ru": "локальных: {n}",
+  "en": "local: {n}"
+ },
+ "Erkin yozuv (alias)": {
+  "ru": "Свободное написание (алиас)",
+  "en": "Free spelling (alias)"
+ },
+ "Kanonik standart (kalit)": {
+  "ru": "Канонический стандарт (ключ)",
+  "en": "Canonical standard (key)"
+ },
+ "Hali hech qanday alias kiritilmagan.": {
+  "ru": "Алиасы ещё не внесены.",
+  "en": "No aliases entered yet."
+ },
+ "Global": {
+  "ru": "Глобальный",
+  "en": "Global"
+ },
+ "Lokal": {
+  "ru": "Локальный",
+  "en": "Local"
+ },
+ "Material nomlari (AI sozlama)": {
+  "ru": "Названия материалов (настройка ИИ)",
+  "en": "Material names (AI setup)"
+ },
+ "Har xil yozilgan material nomini bitta standart (kanonik) kalitga bog‘lash — qidiruv va moslashtirish shu orqali ishlaydi.": {
+  "ru": "Привязка разных написаний материала к одному стандартному (каноническому) ключу — через это работают поиск и сопоставление.",
+  "en": "Link differently spelled material names to one standard (canonical) key — search and matching rely on it."
+ },
+ "«{m}» maydonini to‘ldiring.": {
+  "ru": "Заполните поле «{m}».",
+  "en": "Fill in the “{m}” field."
+ },
+ "Ishchini o‘chirish": {
+  "ru": "Удаление работника",
+  "en": "Delete worker"
+ },
+ "«{ism}» ishchi ro‘yxatdan o‘chirilsinmi? {kim}\n\nDiqqat: bu ishchining oldingi tabel yozuvlari saqlanib qolishi mumkin.": {
+  "ru": "Удалить работника «{ism}» из списка? {kim}\n\nВнимание: прежние записи табеля этого работника могут сохраниться.",
+  "en": "Remove worker “{ism}” from the list? {kim}\n\nNote: this worker’s earlier timesheet records may remain."
+ },
+ "{ism} o‘chirildi": {
+  "ru": "{ism} удалён",
+  "en": "{ism} deleted"
+ },
+ "Ishchi qo‘shish": {
+  "ru": "Добавить работника",
+  "en": "Add worker"
+ },
+ "Kadrlar ko‘rsatkichlari": {
+  "ru": "Показатели кадров",
+  "en": "Staff indicators"
+ },
+ "Faol ishchilar": {
+  "ru": "Активные работники",
+  "en": "Active workers"
+ },
+ "{n} kishi": {
+  "ru": "{n} чел.",
+  "en": "{n} people"
+ },
+ "Bugungi davomat": {
+  "ru": "Посещаемость сегодня",
+  "en": "Today’s attendance"
+ },
+ "Oylik fond (kutilma)": {
+  "ru": "Фонд оплаты (ожид.)",
+  "en": "Payroll (expected)"
+ },
+ "so‘m, tabel bo‘yicha": {
+  "ru": "сум, по табелю",
+  "en": "sum, per timesheet"
+ },
+ "Berilgan avanslar": {
+  "ru": "Выданные авансы",
+  "en": "Advances paid"
+ },
+ "Bugun ({kun}-sana) davomat": {
+  "ru": "Посещаемость сегодня ({kun}-е число)",
+  "en": "Attendance today (day {kun})"
+ },
+ "barchasi": {
+  "ru": "все",
+  "en": "all"
+ },
+ "Kelganlar": {
+  "ru": "Пришли",
+  "en": "Present"
+ },
+ "Kelmaganlar": {
+  "ru": "Не пришли",
+  "en": "Absent"
+ },
+ "Bemor / otgul": {
+  "ru": "Больничный / отгул",
+  "en": "Sick / day off"
+ },
+ "Belgilanmagan": {
+  "ru": "Не отмечено",
+  "en": "Not marked"
+ },
+ "F.I.O yoki kasb bo‘yicha qidiruv…": {
+  "ru": "Поиск по Ф.И.О. или профессии…",
+  "en": "Search by name or trade…"
+ },
+ "F.I.O va kasbi": {
+  "ru": "Ф.И.О. и профессия",
+  "en": "Name and trade"
+ },
+ "Ishlagan": {
+  "ru": "Отработано",
+  "en": "Worked"
+ },
+ "/kun": {
+  "ru": "/день",
+  "en": "/day"
+ },
+ "Ishchini tahrirlash": {
+  "ru": "Редактировать работника",
+  "en": "Edit worker"
+ },
+ "Bosib davomatni belgilang (bo‘sh → keldi → kelmadi → kasal)": {
+  "ru": "Нажмите, чтобы отметить (пусто → пришёл → не пришёл → болен)",
+  "en": "Click to mark (blank → present → absent → sick)"
+ },
+ "{kun}-kun davomati": {
+  "ru": "Посещаемость, {kun}-й день",
+  "en": "Attendance, day {kun}"
+ },
+ "Hali birorta ishchi kiritilmagan — «Ishchi qo‘shish» tugmasini bosing.": {
+  "ru": "Работников ещё нет — нажмите «Добавить работника».",
+  "en": "No workers yet — press “Add worker”."
+ },
+ "Qidiruvga mos ishchi topilmadi.": {
+  "ru": "Работники по запросу не найдены.",
+  "en": "No workers match the search."
+ },
+ "Yangi ishchi qo‘shish": {
+  "ru": "Добавить нового работника",
+  "en": "Add a new worker"
+ },
+ "Ishchi qo‘shildi": {
+  "ru": "Работник добавлен",
+  "en": "Worker added"
+ },
+ "Tahrirlash: {nom}": {
+  "ru": "Редактирование: {nom}",
+  "en": "Editing: {nom}"
+ },
+ "Kadrlar va davomat": {
+  "ru": "Кадры и посещаемость",
+  "en": "Staff and attendance"
+ },
+ "Ishchilar, oylik tabel va hisoblangan maosh. Katakni bosing: bo‘sh → keldi (8) → kelmadi (N) → bemor (B).": {
+  "ru": "Работники, месячный табель и начисленная зарплата. Нажмите ячейку: пусто → пришёл (8) → не пришёл (N) → болен (B).",
+  "en": "Workers, monthly timesheet and accrued pay. Click a cell: blank → present (8) → absent (N) → sick (B)."
+ },
+ "Zapravka / smena": {
+  "ru": "Заправка / смена",
+  "en": "Refuel / shift"
+ },
+ "Texnika qo‘shish": {
+  "ru": "Добавить технику",
+  "en": "Add machine"
+ },
+ "Texnika ko‘rsatkichlari": {
+  "ru": "Показатели техники",
+  "en": "Fleet indicators"
+ },
+ "Jami texnika": {
+  "ru": "Всего техники",
+  "en": "Total machines"
+ },
+ "Faol (obyektda)": {
+  "ru": "Активна (на объекте)",
+  "en": "Active (on site)"
+ },
+ "Remontda": {
+  "ru": "В ремонте",
+  "en": "In repair"
+ },
+ "Oylik yoqilg‘i sarfi": {
+  "ru": "Расход топлива за месяц",
+  "en": "Monthly fuel use"
+ },
+ "Park holati": {
+  "ru": "Состояние парка",
+  "en": "Fleet status"
+ },
+ "Holati ko‘rsatilmagan": {
+  "ru": "Статус не указан",
+  "en": "Status not set"
+ },
+ "Texnika nomi yoki raqami…": {
+  "ru": "Название или номер техники…",
+  "en": "Machine name or number…"
+ },
+ "Texnika va turi": {
+  "ru": "Техника и тип",
+  "en": "Machine and type"
+ },
+ "Joy va haydovchi": {
+  "ru": "Место и водитель",
+  "en": "Location and driver"
+ },
+ "Yoqilg‘i qoldig‘i": {
+  "ru": "Остаток топлива",
+  "en": "Fuel remaining"
+ },
+ "Zapravka": {
+  "ru": "Заправка",
+  "en": "Refuel"
+ },
+ "Motochas": {
+  "ru": "Моточас",
+  "en": "Engine hours"
+ },
+ "Texnikani tahrirlash": {
+  "ru": "Редактировать технику",
+  "en": "Edit machine"
+ },
+ "Tahrirlash (holat, norma, haydovchi…)": {
+  "ru": "Редактировать (статус, норма, водитель…)",
+  "en": "Edit (status, norm, driver…)"
+ },
+ "Hali birorta texnika kiritilmagan — «Texnika qo‘shish» tugmasini bosing.": {
+  "ru": "Техники ещё нет — нажмите «Добавить технику».",
+  "en": "No machines yet — press “Add machine”."
+ },
+ "Yangi texnika qo‘shish": {
+  "ru": "Добавить новую технику",
+  "en": "Add a new machine"
+ },
+ "Texnika qo‘shildi": {
+  "ru": "Техника добавлена",
+  "en": "Machine added"
+ },
+ "Zapravka / smena yozuvi": {
+  "ru": "Запись заправки / смены",
+  "en": "Refuel / shift entry"
+ },
+ "Yozuv qo‘shildi": {
+  "ru": "Запись добавлена",
+  "en": "Entry added"
+ },
+ "Texnika va yoqilg‘i": {
+  "ru": "Техника и топливо",
+  "en": "Machines and fuel"
+ },
+ "Texnika va yoqilg‘i (GSM)": {
+  "ru": "Техника и топливо (ГСМ)",
+  "en": "Machines and fuel (POL)"
+ },
+ "Maxsus texnika holati, joylashuvi, yoqilg‘i qoldig‘i va motochas yozuvlari.": {
+  "ru": "Состояние, местоположение, остаток топлива и моточасы спецтехники.",
+  "en": "Status, location, fuel level and engine-hour logs of special machinery."
+ },
+ "Holat o‘zgartirildi: {h}": {
+  "ru": "Статус изменён: {h}",
+  "en": "Status changed: {h}"
+ },
+ "Nuqson qayd etish": {
+  "ru": "Зарегистрировать дефект",
+  "en": "Log a defect"
+ },
+ "Sifat ko‘rsatkichlari": {
+  "ru": "Показатели качества",
+  "en": "Quality indicators"
+ },
+ "Jami nuqsonlar": {
+  "ru": "Всего дефектов",
+  "en": "Total defects"
+ },
+ "Tuzatilgan": {
+  "ru": "Устранено",
+  "en": "Fixed"
+ },
+ "Nuqsonlar holati": {
+  "ru": "Статус дефектов",
+  "en": "Defect status"
+ },
+ "Barchasi": {
+  "ru": "Все",
+  "en": "All"
+ },
+ "Nuqson tavsifi yoki obyekt…": {
+  "ru": "Описание дефекта или объект…",
+  "en": "Defect description or site…"
+ },
+ "Nuqson / daraja": {
+  "ru": "Дефект / степень",
+  "en": "Defect / severity"
+ },
+ "Obyekt va prorab": {
+  "ru": "Объект и прораб",
+  "en": "Site and foreman"
+ },
+ "Sana / muddat": {
+  "ru": "Дата / срок",
+  "en": "Date / deadline"
+ },
+ "Yozilgan": {
+  "ru": "Записано",
+  "en": "Logged"
+ },
+ "Ishga olindi": {
+  "ru": "Взято в работу",
+  "en": "Taken into work"
+ },
+ "Tuzatildi deb belgilash": {
+  "ru": "Отметить устранённым",
+  "en": "Mark as fixed"
+ },
+ "Tuzatish tekshiruvdan o‘tmadi — qayta ishga qaytarish": {
+  "ru": "Устранение не прошло проверку — вернуть в работу",
+  "en": "Fix failed inspection — return to work"
+ },
+ "Hali birorta nuqson qayd etilmagan — «Nuqson qayd etish» tugmasini bosing.": {
+  "ru": "Дефектов ещё нет — нажмите «Зарегистрировать дефект».",
+  "en": "No defects yet — press “Log a defect”."
+ },
+ "Filtrga mos nuqson topilmadi.": {
+  "ru": "Дефекты по фильтру не найдены.",
+  "en": "No defects match the filter."
+ },
+ "Yangi nuqson qayd etish": {
+  "ru": "Регистрация нового дефекта",
+  "en": "Log a new defect"
+ },
+ "Nuqson qayd etildi": {
+  "ru": "Дефект зарегистрирован",
+  "en": "Defect logged"
+ },
+ "Sifat nazorati": {
+  "ru": "Контроль качества",
+  "en": "Quality control"
+ },
+ "Sifat nazorati (texnadzor)": {
+  "ru": "Контроль качества (технадзор)",
+  "en": "Quality control (technical supervision)"
+ },
+ "Obyektlardagi nuqsonlar va ularni tuzatish yo‘li: yangi → jarayonda → tuzatildi. Muddati o‘tganlari qizil.": {
+  "ru": "Дефекты на объектах и путь их устранения: новый → в работе → устранён. Просроченные — красным.",
+  "en": "Site defects and their path: new → in progress → fixed. Overdue ones in red."
+ },
+ "Zayavka berish": {
+  "ru": "Подать заявку",
+  "en": "Submit request"
+ },
+ "Ta’minot ko‘rsatkichlari": {
+  "ru": "Показатели снабжения",
+  "en": "Supply indicators"
+ },
+ "Yangi zayavkalar": {
+  "ru": "Новые заявки",
+  "en": "New requests"
+ },
+ "Kritik qoldiq": {
+  "ru": "Критический остаток",
+  "en": "Critical stock"
+ },
+ "{n} ta tovar": {
+  "ru": "товаров: {n}",
+  "en": "{n} items"
+ },
+ "minimal qoldiqdan kam": {
+  "ru": "меньше минимального остатка",
+  "en": "below minimum stock"
+ },
+ "Smetadan qimmat": {
+  "ru": "Дороже сметы",
+  "en": "Above estimate price"
+ },
+ "Yetkazib beruvchiga qarzimiz": {
+  "ru": "Наш долг поставщикам",
+  "en": "Owed to suppliers"
+ },
+ "Ta’minot bo‘limlari": {
+  "ru": "Разделы снабжения",
+  "en": "Supply sections"
+ },
+ "Qidiruv…": {
+  "ru": "Поиск…",
+  "en": "Search…"
+ },
+ "Ombor va qoldiqlar": {
+  "ru": "Склад и остатки",
+  "en": "Warehouse and stock"
+ },
+ "Yetkazib beruvchilar": {
+  "ru": "Поставщики",
+  "en": "Suppliers"
+ },
+ "Zayavkalar yo‘li": {
+  "ru": "Путь заявок",
+  "en": "Request pipeline"
+ },
+ "Material va miqdor": {
+  "ru": "Материал и количество",
+  "en": "Material and quantity"
+ },
+ "Prorab va obyekt": {
+  "ru": "Прораб и объект",
+  "en": "Foreman and site"
+ },
+ "Sana / izoh": {
+  "ru": "Дата / примечание",
+  "en": "Date / note"
+ },
+ "Omborchi / ta’minotchi qadami": {
+  "ru": "Действие кладовщика / снабженца",
+  "en": "Storekeeper / buyer step"
+ },
+ "Skladda tekshirish": {
+  "ru": "Проверить на складе",
+  "en": "Check in warehouse"
+ },
+ "Skladdan berish": {
+  "ru": "Выдать со склада",
+  "en": "Issue from warehouse"
+ },
+ "Skladda bor — nakladnoy bilan berish": {
+  "ru": "Есть на складе — выдать по накладной",
+  "en": "In stock — issue with a waybill"
+ },
+ "Bozorga jo‘natish": {
+  "ru": "Отправить на рынок",
+  "en": "Send to market"
+ },
+ "Skladda yo‘q — ta’minotchi qidiradi": {
+  "ru": "Нет на складе — снабженец ищет",
+  "en": "Not in stock — buyer will source"
+ },
+ "Xarid qilish va obyektga yuborish": {
+  "ru": "Купить и отправить на объект",
+  "en": "Buy and send to site"
+ },
+ "Obyekt qabul qildi": {
+  "ru": "Объект принял",
+  "en": "Site received"
+ },
+ "Joylashuv (sklad)": {
+  "ru": "Расположение (склад)",
+  "en": "Location (warehouse)"
+ },
+ "Haqiqiy qoldiq": {
+  "ru": "Фактический остаток",
+  "en": "Actual stock"
+ },
+ "Qoldiq / minimum": {
+  "ru": "Остаток / минимум",
+  "en": "Stock / minimum"
+ },
+ "Smeta → fakt narxi": {
+  "ru": "Цена смета → факт",
+  "en": "Price estimate → actual"
+ },
+ "Minimum: {m}": {
+  "ru": "Минимум: {m}",
+  "en": "Minimum: {m}"
+ },
+ "min {m}": {
+  "ru": "мин {m}",
+  "en": "min {m}"
+ },
+ "kam qoldi": {
+  "ru": "мало осталось",
+  "en": "low stock"
+ },
+ "smetadan qimmat": {
+  "ru": "дороже сметы",
+  "en": "above estimate"
+ },
+ "narx normada": {
+  "ru": "цена в норме",
+  "en": "price on norm"
+ },
+ "Kimga qancha qarzdormiz — nomma-nom": {
+  "ru": "Кому сколько должны — поимённо",
+  "en": "Who we owe and how much — by name"
+ },
+ "Yetkazib beruvchi qo‘shish": {
+  "ru": "Добавить поставщика",
+  "en": "Add supplier"
+ },
+ "Yetkazilgan, so‘m": {
+  "ru": "Поставлено, сум",
+  "en": "Delivered, sum"
+ },
+ "Qarzimiz, so‘m": {
+  "ru": "Наш долг, сум",
+  "en": "We owe, sum"
+ },
+ "«{q}» bo‘yicha topilmadi": {
+  "ru": "По «{q}» ничего не найдено",
+  "en": "Nothing found for “{q}”"
+ },
+ "Hali yetkazib beruvchi kiritilmagan — yuqoridagi tugmani bosing.": {
+  "ru": "Поставщиков ещё нет — нажмите кнопку выше.",
+  "en": "No suppliers yet — press the button above."
+ },
+ "Yangi zayavka (material so‘rovi)": {
+  "ru": "Новая заявка (запрос материала)",
+  "en": "New request (material request)"
+ },
+ "Zayavka qo‘shildi": {
+  "ru": "Заявка добавлена",
+  "en": "Request added"
+ },
+ "Yangi yetkazib beruvchi": {
+  "ru": "Новый поставщик",
+  "en": "New supplier"
+ },
+ "Yetkazib beruvchi qo‘shildi": {
+  "ru": "Поставщик добавлен",
+  "en": "Supplier added"
+ },
+ "Ta’minot va ombor": {
+  "ru": "Снабжение и склад",
+  "en": "Supply and warehouse"
+ },
+ "Obyekt so‘rovi → omborda tekshiruv → ombordan berish yoki bozordan xarid → obyekt qabul qiladi.": {
+  "ru": "Запрос объекта → проверка на складе → выдача со склада или закупка на рынке → объект принимает.",
+  "en": "Site request → warehouse check → issue from stock or market purchase → site receives."
+ },
+ "Yuborildi": {
+  "ru": "Отправлена",
+  "en": "Submitted"
+ },
+ "Ta’minotda": {
+  "ru": "В снабжении",
+  "en": "In procurement"
+ },
+ "Buyurtma berildi": {
+  "ru": "Заказано",
+  "en": "Ordered"
+ },
+ "Qisman yetkazildi": {
+  "ru": "Частично доставлено",
+  "en": "Partially delivered"
+ },
+ "Yetkazildi": {
+  "ru": "Доставлено",
+  "en": "Delivered"
+ },
+ "Ta’minotga": {
+  "ru": "В снабжение",
+  "en": "To procurement"
+ },
+ "Ta’minotga berish": {
+  "ru": "Передать в снабжение",
+  "en": "Hand to procurement"
+ },
+ "Buyurtma": {
+  "ru": "Заказ",
+  "en": "Order"
+ },
+ "Buyurtma berish": {
+  "ru": "Оформить заказ",
+  "en": "Place order"
+ },
+ "Yetkazildi deb belgilash": {
+  "ru": "Отметить доставленной",
+  "en": "Mark as delivered"
+ },
+ "avans": {
+  "ru": "аванс",
+  "en": "advance"
+ },
+ "to‘lov": {
+  "ru": "платёж",
+  "en": "payment"
+ },
+ "qaytarim": {
+  "ru": "возврат",
+  "en": "refund"
+ },
+ "yopiq": {
+  "ru": "закрыт",
+  "en": "closed"
+ },
+ "yopildi": {
+  "ru": "закрыт",
+  "en": "closed"
+ },
+ "Bosh pudratchi": {
+  "ru": "Генподрядчик",
+  "en": "General contractor"
+ },
+ "Subpudratchi": {
+  "ru": "Субподрядчик",
+  "en": "Subcontractor"
+ },
+ "Ta’minotchi": {
+  "ru": "Поставщик",
+  "en": "Supplier"
+ },
+ "Laboratoriya": {
+  "ru": "Лаборатория",
+  "en": "Laboratory"
+ },
+ "Ishlayapti": {
+  "ru": "Работает",
+  "en": "Working"
+ },
+ "Kutishda": {
+  "ru": "В ожидании",
+  "en": "Waiting"
+ },
+ "Ijara": {
+  "ru": "Аренда",
+  "en": "Rented"
+ },
+ "Ekskavator": {
+  "ru": "Экскаватор",
+  "en": "Excavator"
+ },
+ "Kran": {
+  "ru": "Кран",
+  "en": "Crane"
+ },
+ "Samosval": {
+  "ru": "Самосвал",
+  "en": "Dump truck"
+ },
+ "Buldozer": {
+  "ru": "Бульдозер",
+  "en": "Bulldozer"
+ },
+ "Muddati o'tgan": {
+  "ru": "Просрочено",
+  "en": "Overdue"
+ },
+ "Tuzatildi": {
+  "ru": "Устранено",
+  "en": "Fixed"
+ },
+ "Obyektdan so'rov": {
+  "ru": "Запрос с объекта",
+  "en": "Site request"
+ },
+ "Omborda tekshirilmoqda": {
+  "ru": "Проверяется на складе",
+  "en": "Checking in warehouse"
+ },
+ "Ombordan berildi": {
+  "ru": "Выдано со склада",
+  "en": "Issued from warehouse"
+ },
+ "Bozorda": {
+  "ru": "На рынке",
+  "en": "At market"
+ },
+ "F.I.O": {
+  "ru": "Ф.И.О.",
+  "en": "Full name"
+ },
+ "Kasbi": {
+  "ru": "Профессия",
+  "en": "Trade"
+ },
+ "Kunlik stavka (so‘m)": {
+  "ru": "Дневная ставка (сум)",
+  "en": "Daily rate (sum)"
+ },
+ "Brigada": {
+  "ru": "Бригада",
+  "en": "Crew"
+ },
+ "Holati": {
+  "ru": "Статус",
+  "en": "Status"
+ },
+ "Haydovchi": {
+  "ru": "Водитель",
+  "en": "Driver"
+ },
+ "Motochasiga yoqilg‘i normasi (litr)": {
+  "ru": "Норма топлива на моточас (л)",
+  "en": "Fuel norm per engine hour (L)"
+ },
+ "Boshlang‘ich yoqilg‘i qoldig‘i (litr)": {
+  "ru": "Начальный остаток топлива (л)",
+  "en": "Initial fuel balance (L)"
+ },
+ "Quyilgan yoqilg‘i (litr)": {
+  "ru": "Залито топлива (л)",
+  "en": "Fuel added (L)"
+ },
+ "Qo‘lda chiqim (litr)": {
+  "ru": "Ручной расход (л)",
+  "en": "Manual consumption (L)"
+ },
+ "Motochas (soat)": {
+  "ru": "Моточасы (ч)",
+  "en": "Engine hours (h)"
+ },
+ "Nuqson tavsifi": {
+  "ru": "Описание дефекта",
+  "en": "Defect description"
+ },
+ "Mas’ul prorab": {
+  "ru": "Ответственный прораб",
+  "en": "Responsible foreman"
+ },
+ "Muhimlik darajasi": {
+  "ru": "Степень важности",
+  "en": "Severity"
+ },
+ "Qayd etilgan sana": {
+  "ru": "Дата регистрации",
+  "en": "Logged date"
+ },
+ "Tuzatish muddati": {
+  "ru": "Срок устранения",
+  "en": "Fix deadline"
+ },
+ "Miqdori": {
+  "ru": "Количество",
+  "en": "Quantity"
+ },
+ "So‘ragan prorab": {
+  "ru": "Запросивший прораб",
+  "en": "Requesting foreman"
+ },
+ "Boshlang‘ich holat": {
+  "ru": "Начальный статус",
+  "en": "Initial status"
+ },
+ "Yetkazilgan summa (so‘m)": {
+  "ru": "Поставлено на сумму (сум)",
+  "en": "Delivered amount (sum)"
+ },
+ "Qarzimiz (so‘m)": {
+  "ru": "Наш долг (сум)",
+  "en": "We owe (sum)"
+ }
+}

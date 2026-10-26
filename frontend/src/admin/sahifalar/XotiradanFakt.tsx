@@ -182,7 +182,7 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
             className="input mt-1.5 block w-full resize-y p-2 font-mono text-[13px]" />
         </label>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={moslash} disabled={!matn.trim()} className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50"><Search size={14} />{t('Smetaga moslash')}</button>
+          <button type="button" onClick={moslash} disabled={!matn.trim()} className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50"><Search size={14} />{t('Smetaga moslash')}</button>
           <span className="text-[11px] text-text-mute">{t('Ctrl+Enter — moslash; ? — tugmalar roʻyxati')}</span>
           {qatorlarSoni > 0 && <span className="ml-auto text-[12px] text-text-dim" role="status">{t('{a} / {b} qator savatda', { a: hal, b: qatorlarSoni })}</span>}
         </div>
@@ -262,7 +262,7 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
           {jami.narxsiz > 0 && <div className="text-[11px] text-warn">{t('Narxsiz qatorlar: {n} — jamiga kirmaydi', { n: jami.narxsiz })}</div>}
         </dl>
         <div className="flex gap-2">
-          <button type="button" onClick={() => void saqla()} disabled={!savat.length || saqlanmoqda} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50"><Save size={14} />{saqlanmoqda ? t('Saqlanmoqda…') : t('Saqlash')}</button>
+          <button type="button" onClick={() => void saqla()} disabled={!savat.length || saqlanmoqda} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50"><Save size={14} />{saqlanmoqda ? t('Saqlanmoqda…') : t('Saqlash')}</button>
           <button type="button" onClick={() => navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}`)} className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-text hover:bg-accent/10">{t('F2 tayyorlash →')}</button>
         </div>
       </aside>

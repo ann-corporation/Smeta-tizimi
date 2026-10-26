@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 20,
+      "sana": "2026-10-26",
+      "sarlavha": "Yangi dizayn «Firuza» — butun tizim",
+      "bandlar": [
+        "Butun tizim yangi ko'rinishda: aniqroq shrift, ranglar va kartalar. Hisob-kitob va funksiyalar o'zgarmagan.",
+        "Smeta sahifasida «anatomiya»: jami, bo'limlar va bajarilish bir qarashda; noma'lum summa «—» bo'lib ko'rinadi (0 emas).",
+        "F2 hujjati, Nakopitelniy, Fakt va rahbar paneli grafiklar va o'lchagichlar bilan; tasdiqlash oynalari yangilandi.",
+        "O'ng yuqori burchakda «Akkaunt markazi»: profil, xavfsizlik va kirish usullari bitta joyda."
+      ]
+    },
+    {
       "id": 19,
       "sana": "2026-10-26",
       "sarlavha": "Smeta va Fakt / LRV: «Versiyalar va farq» — ekspertizagacha smeta bilan solishtirish va da'vo ro'yxati",
