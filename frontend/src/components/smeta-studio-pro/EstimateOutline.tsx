@@ -13,9 +13,9 @@ export type OutlineLabels = {
 const ROW_H = 32;
 /** Same visual grouping as the F2 workbench: each work starts with a strong top line, its resources carry a left bar. */
 const ROW_TONE: Record<OutlineRow['kind'], string> = {
-  section: 'bg-surface-2 font-semibold text-text',
-  work: 'border-t-2 border-t-sky-400/70 font-medium text-text hover:bg-surface-2/60',
-  resource: 'shadow-[inset_4px_0_0_0_rgba(56,189,248,0.45)] text-text-dim hover:bg-surface-2/60',
+  section: 'bg-surface-2 font-semibold text-text shadow-[inset_3px_0_0_0_var(--accent)]',
+  work: 'border-t-2 border-t-accent/60 font-medium text-text hover:bg-surface-3',
+  resource: 'shadow-[inset_3px_0_0_0_var(--border-strong)] text-text-dim hover:bg-surface-3',
 };
 export function EstimateOutline({ doc, labels, onSelect, renderSummary, renderWorkDetails, focusWorkId }: {
   doc: EstimateDoc; labels: OutlineLabels; onSelect: (row: OutlineRow) => void;
@@ -72,13 +72,13 @@ export function EstimateOutline({ doc, labels, onSelect, renderSummary, renderWo
     revealKey.current = null;
   }, [rows, virtual]);
   const levels = (depth: number) => { setQuery(''); setOpen(expandThroughDepth(parsed.index, depth)); virtual.scrollToOffset(0); };
-  return <section aria-label={labels.title} className="karta overflow-hidden p-0">
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface-2/60 px-2 py-1.5">
-      <strong className="mr-auto text-[11px] font-semibold uppercase tracking-wide text-text-dim">{labels.title}</strong>
-      <button type="button" className="tugma h-6 px-1.5 text-[10.5px]" onClick={() => levels(0)}>{labels.collapse}</button>
-      <button type="button" className="tugma h-6 px-1.5 text-[10.5px]" onClick={() => levels(1)}>{labels.sections}</button>
-      <button type="button" className="tugma h-6 px-1.5 text-[10.5px]" onClick={() => { setQuery(''); setOpen(new Set(parsed.index.rows.filter(r => r.kind === 'section' && r.expandable).map(r => r.key))); virtual.scrollToOffset(0); }}>{labels.works}</button>
-      <button type="button" className="tugma h-6 px-1.5 text-[10.5px]" onClick={() => levels(Infinity)}>{labels.resources}</button>
+  return <section aria-label={labels.title} className="fz-card">
+    <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-surface-2 px-2 py-1.5">
+      <strong className="fz-panel__h mr-auto">{labels.title}</strong>
+      <button type="button" className="fz-btn fz-btn--sm" onClick={() => levels(0)}>{labels.collapse}</button>
+      <button type="button" className="fz-btn fz-btn--sm" onClick={() => levels(1)}>{labels.sections}</button>
+      <button type="button" className="fz-btn fz-btn--sm" onClick={() => { setQuery(''); setOpen(new Set(parsed.index.rows.filter(r => r.kind === 'section' && r.expandable).map(r => r.key))); virtual.scrollToOffset(0); }}>{labels.works}</button>
+      <button type="button" className="fz-btn fz-btn--sm" onClick={() => levels(Infinity)}>{labels.resources}</button>
       <input aria-label={labels.search} placeholder={labels.search} value={query} maxLength={200}
         className="input h-7 w-full text-[12px]"
         onChange={event => { setQuery(event.target.value); virtual.scrollToOffset(0); }} />
@@ -92,7 +92,7 @@ export function EstimateOutline({ doc, labels, onSelect, renderSummary, renderWo
               return <div key={row.key} ref={virtual.measureElement} data-index={item.index} role="treeitem" aria-level={row.depth + 1} aria-selected={selected === row.key}
                 aria-expanded={row.expandable ? open.has(row.key) || Boolean(deferred.trim()) : undefined}
                 title={outlineBreadcrumb(parsed.index, row).join(' → ')}
-                className={`flex flex-col border-b border-border/50 pr-2 text-[12px] ${selected === row.key ? 'bg-accent/15 outline outline-1 -outline-offset-1 outline-accent' : ROW_TONE[row.kind]}`}
+                className={`flex flex-col border-b border-border/50 pr-2 text-[12px] ${selected === row.key ? 'bg-accent-soft outline outline-1 -outline-offset-1 outline-accent' : ROW_TONE[row.kind]}`}
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', minHeight: ROW_H,
                   transform: `translateY(${item.start}px)`, paddingLeft: 6 + Math.min(row.depth, 12) * 14 }}>
                 <div className="flex min-h-8 items-center gap-1.5 w-full">

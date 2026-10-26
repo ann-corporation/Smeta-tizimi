@@ -5,32 +5,31 @@
 import type { ReactNode } from 'react';
 import { t } from '../../i18n/til';
 import type { AktUstama, AloqaHolat, TaqdimHolat } from '../../api/t2-tomon';
-import { pul } from './tomon-yordam';
+import { pul, TAQDIM_HOLAT_NOMI } from './tomon-yordam';
 
 const ALOQA_NOMI: Record<AloqaHolat, string> = {
   taklif: 'Taklif (javob kutilmoqda)', faol: 'Faol', toxtatilgan: 'To‘xtatilgan', yopilgan: 'Yopilgan', rad: 'Rad etilgan', bekor: 'Bekor qilingan',
 };
-const TAQDIM_NOMI: Record<TaqdimHolat, string> = {
-  yuborilgan: 'Yuborilgan', ko_rilmoqda: 'Ko‘rib chiqilmoqda', qabul: 'Qabul qilingan', rad: 'Rad etilgan', tuzatish: 'Tuzatish so‘ralgan', qaytarilgan: 'Qaytarib olingan',
-};
+const TAQDIM_NOMI: Record<TaqdimHolat, string> = TAQDIM_HOLAT_NOMI;
+/** Holat → Firuza muhri (so'z + rang): yashil — qabul/faol, sariq — kutilmoqda, ko'k — ko'rib chiqilmoqda, qizil — rad. */
 const RANG: Record<string, string> = {
-  faol: 'bg-ok/15 text-ok', qabul: 'bg-ok/15 text-ok',
-  taklif: 'bg-warn/15 text-warn', yuborilgan: 'bg-warn/15 text-warn', ko_rilmoqda: 'bg-accent/15 text-accent', tuzatish: 'bg-warn/15 text-warn', toxtatilgan: 'bg-warn/15 text-warn',
-  rad: 'bg-danger/15 text-danger', yopilgan: 'bg-surface-2 text-text-dim', bekor: 'bg-surface-2 text-text-dim', qaytarilgan: 'bg-surface-2 text-text-dim',
+  faol: 'fz-stamp--ok', qabul: 'fz-stamp--ok',
+  taklif: 'fz-stamp--warn', yuborilgan: 'fz-stamp--warn', ko_rilmoqda: 'fz-stamp--info', tuzatish: 'fz-stamp--warn', toxtatilgan: 'fz-stamp--warn',
+  rad: 'fz-stamp--danger', yopilgan: 'fz-stamp--draft', bekor: 'fz-stamp--draft', qaytarilgan: 'fz-stamp--draft',
 };
 
 export function HolatBelgi({ holat, turi }: { holat: string; turi: 'aloqa' | 'taqdim' }) {
   const nom = turi === 'aloqa' ? ALOQA_NOMI[holat as AloqaHolat] : TAQDIM_NOMI[holat as TaqdimHolat];
-  return <span className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${RANG[holat] ?? 'bg-surface-2 text-text-dim'}`}>{nom ? t(nom) : holat}</span>;
+  return <span className={`fz-stamp ${RANG[holat] ?? ''}`}>{nom ? t(nom) : holat}</span>;
 }
 
 export function Bolim({ sarlavha, children, amal }: { sarlavha: string; children: ReactNode; amal?: ReactNode }) {
   return (
-    <section className="rounded-lg border border-border">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <h2 className="text-sm font-semibold">{t(sarlavha)}</h2>{amal}
+    <section className="fz-card">
+      <header className="fz-card__head flex-wrap">
+        <h2 className="fz-card__title">{t(sarlavha)}</h2>{amal}
       </header>
-      <div className="p-3">{children}</div>
+      <div className="p-4">{children}</div>
     </section>
   );
 }
@@ -48,7 +47,7 @@ export function TomonSummaJuft({ u, kichik = false }: { u: Pick<AktUstama, 'prya
   return (
     <span className="inline-flex flex-col leading-tight tabular-nums" data-testid="tomon-summa-juft">
       <b className={kichik ? 'text-[12px]' : 'text-[14px]'} data-testid="tomon-ustamali">{u.katsiz > 0 ? '≈ ' : ''}{pul(u.ustamali)}</b>
-      <span className="text-[10.5px] text-text-dim" data-testid="tomon-ustamasiz">{t('ustamasiz')}: {pul(u.pryamye)}</span>
+      <span className="text-[10.5px] text-text-mute" data-testid="tomon-ustamasiz">{t('ustamasiz')}: {pul(u.pryamye)}</span>
       {u.katsiz > 0 && <span className="text-[10px] text-warn">{t('taxminiy (kat noma’lum: {pul} so‘m)', { pul: pul(u.katsiz) })}</span>}
       {u.narxsiz_qator > 0 && <span className="text-[10px] text-warn">{t('narxsiz qator: {n} ta', { n: u.narxsiz_qator })}</span>}
     </span>
@@ -60,7 +59,7 @@ export function PodvalJadvali({ podval }: { podval: AktUstama['podval'] }) {
   const qatorlar = PODVAL_NOMI.filter(([k]) => podval[k] != null && Number(podval[k]) !== 0);
   if (qatorlar.length === 0) return null;
   return (
-    <table className="w-full max-w-xl text-xs"><tbody>{qatorlar.map(([k, nom]) => (
-      <tr key={k} className={`border-t ${k === 'itogo4' || k === 'vsego' ? 'font-semibold' : ''}`}><td className="px-2 py-0.5">{nom}</td><td className="px-2 py-0.5 text-right tabular-nums">{pul(podval[k])}</td></tr>))}</tbody></table>
+    <div className="fz-table-wrap max-w-xl"><table className="fz-table"><tbody>{qatorlar.map(([k, nom]) => (
+      <tr key={k} className={k === 'itogo4' || k === 'vsego' ? 'fz-row-total' : ''}><td>{nom}</td><td className="fz-c-num">{pul(podval[k])}</td></tr>))}</tbody></table></div>
   );
 }

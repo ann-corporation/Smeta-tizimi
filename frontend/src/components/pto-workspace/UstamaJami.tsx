@@ -18,6 +18,6 @@ export function UstamaJami({companyId,line,objects,ids,contractId,label}:{
     <span className="text-text-dim">{label ?? t('Ustama bilan (QQS bilan)')}: </span>
     <b className="text-text">{totals.loading ? t('Hisoblanmoqda…') : total.present ? <FmtN val={total.known}/> : t('Noma’lum')}</b>
     {!totals.loading && total.unknown > 0 && <span className="ml-2 text-text-mute">{t('narxsiz resurslar kirmagan')}</span>}
-    {totals.failed && <button type="button" className="tugma ml-2" onClick={totals.retry}>{t('Qayta urinish')}</button>}
+    {totals.failed && <button type="button" className="fz-btn fz-btn--sm ml-2" onClick={totals.retry}>{t('Qayta urinish')}</button>}
   </span>;
 }

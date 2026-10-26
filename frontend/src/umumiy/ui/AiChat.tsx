@@ -137,7 +137,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
                 <button key={x} type="button" onClick={() => void yubor(x)} className="rounded-full border border-accent/40 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{x}</button>
               ))}
               {UMUMIY_SAVOLLAR.map((x) => (
-                <button key={x} type="button" onClick={() => void yubor(t(x))} className="rounded-full border border-border px-2.5 py-1 text-xs text-text-dim hover:bg-white/5">{t(x)}</button>
+                <button key={x} type="button" onClick={() => void yubor(t(x))} className="rounded-full border border-border px-2.5 py-1 text-xs text-text-dim hover:bg-surface-3">{t(x)}</button>
               ))}
             </div>
             {kasb.taqiq_izoh && <p className="mt-2 text-[11px] text-text-mute">🔒 {kasb.taqiq_izoh}</p>}
@@ -148,7 +148,12 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${m.rol === 'user' ? 'bg-surface-2 text-text-dim' : 'bg-accent/20 text-accent'}`}>
               {m.rol === 'user' ? <User size={16} /> : <Bot size={16} />}
             </div>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${m.rol === 'user' ? 'rounded-tr-none bg-accent text-white' : `rounded-tl-none border bg-surface-2 text-text ${m.xato ? 'border-danger/50' : 'border-border'}`}`}>
+            <div className={`max-w-[85%] text-sm ${m.rol === 'user' ? 'rounded-[var(--radius-md)] rounded-tr-none bg-accent px-4 py-2 text-[var(--on-accent)]' : `fz-panel gap-1.5 rounded-tl-none px-3.5 py-2.5 text-text ${m.xato ? 'border-danger/50' : ''}`}`} data-testid={m.rol === 'ai' ? 'ai-javob-karta' : undefined}>
+              {m.rol === 'ai' && !m.jonli && <div className="flex items-center gap-1.5">
+                <span className="fz-panel__h">{m.yordam ? t('Tizim yordamchisi javobi') : m.yakun?.kasb?.nom ?? t('AI javobi')}</span>
+                {m.xato && <span className="fz-stamp fz-stamp--danger ml-auto">{t('Xato')}</span>}
+                {!m.xato && m.yakun?.rad && <span className="fz-stamp fz-stamp--warn ml-auto">{t('Doiradan tashqari')}</span>}
+              </div>}
               {m.rol === 'ai' && m.jonli && !m.qadamlar?.length && <span className="text-xs text-text-dim">{t('Ulanmoqda…')}</span>}
               {m.matn && <div className="prose prose-invert prose-sm max-w-none"><ReactMarkdown>{m.matn}</ReactMarkdown></div>}
               {m.rol === 'ai' && m.yakun?.rad && <div className="mt-1 text-[11px] text-warn">🛑 {t('Doiradan tashqari savol — model chaqirilmadi')}</div>}
@@ -158,8 +163,8 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
               {kompaniyaId != null && m.rol === 'ai' && m.yakun?.ok && !m.yakun.rad && m.yakun.model !== 'local' && <AiBaho kompaniyaId={kompaniyaId} profil={m.yakun.kasb?.profil} sahifa={sahifa} />}
               {m.yordam && <div className="mt-1 text-[11px] text-text-mute">{t('Tizim yordamchisi — model chaqirilmadi, token sarflanmadi')}</div>}
               {m.yakun?.ok && !m.yakun.rad && m.yakun.model !== 'local' && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-1.5 text-[10px] text-text-mute">
-                  {(m.yakun.toifalar ?? []).map((x) => <span key={x} className="rounded bg-surface px-1.5 py-0.5">{t(TOIFA_NOMI[x] ?? x)}</span>)}
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 border-t border-border pt-1.5 text-[10.5px] text-text-mute">
+                  {(m.yakun.toifalar ?? []).map((x) => <span key={x} className="fz-chip" title={t('Javob shu ma’lumot toifasiga tayangan')}>{t(TOIFA_NOMI[x] ?? x)}</span>)}
                   <span className="ml-auto">{m.yakun.model} · {((m.yakun.ms ?? 0) / 1000).toFixed(1)} s</span>
                 </div>
               )}
@@ -172,12 +177,12 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         <div className="relative">
           <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={1} placeholder={t('Xabaringizni yozing...')}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(matn); } }}
-            className="max-h-32 min-h-[44px] w-full resize-none rounded-xl border border-border bg-surface py-3 pl-4 pr-12 text-sm text-white focus:border-accent focus:outline-none" />
+            className="max-h-32 min-h-[44px] w-full resize-none rounded-xl border border-border bg-surface py-3 pl-4 pr-12 text-sm text-text focus:border-accent focus:outline-none" />
           {band ? (
-            <button type="button" onClick={() => abort.current?.abort()} aria-label={t('To‘xtatish')} title={t('To‘xtatish')} className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-danger text-white"><Square size={14} /></button>
+            <button type="button" onClick={() => abort.current?.abort()} aria-label={t('To‘xtatish')} title={t('To‘xtatish')} className="fz-btn fz-btn--danger fz-btn--icon absolute bottom-2 right-2"><Square size={14} /></button>
           ) : (
             <button type="button" onClick={() => void yubor(matn)} disabled={!matn.trim()} aria-label={t('Yuborish')} title={t('Yuborish')}
-              className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white disabled:cursor-not-allowed disabled:opacity-50"><Send size={16} /></button>
+              className="fz-btn fz-btn--primary fz-btn--icon absolute bottom-2 right-2"><Send size={16} /></button>
           )}
         </div>
         <div className="mt-2 text-center text-[10px] text-text-mute">{t('AI xato qilishi mumkin. Pul va omborga ta’sir qiluvchi harakatlar faqat sizning tasdig‘ingiz bilan bajariladi.')}</div>

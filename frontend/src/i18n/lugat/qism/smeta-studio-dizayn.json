@@ -1,0 +1,354 @@
+{
+ "ustama: obyekt bog‘lanmagan": {
+  "ru": "ustama: объект не привязан",
+  "en": "markup: no object linked"
+ },
+ "Serverga saqlanmagan": {
+  "ru": "Не сохранено на сервере",
+  "en": "Not saved to server"
+ },
+ "Serverda: v{n}": {
+  "ru": "На сервере: v{n}",
+  "en": "On server: v{n}"
+ },
+ "Server versiyasi: v{n}": {
+  "ru": "Версия на сервере: v{n}",
+  "en": "Server version: v{n}"
+ },
+ "Klaviatura yordami": {
+  "ru": "Подсказки по клавишам",
+  "en": "Keyboard hints"
+ },
+ "bekor": {
+  "ru": "отмена",
+  "en": "undo"
+ },
+ "ish tanlash": {
+  "ru": "выбор работы",
+  "en": "select work"
+ },
+ "hajmni saqlash": {
+  "ru": "сохранить объём",
+  "en": "save quantity"
+ },
+ "Ish qo‘shish": {
+  "ru": "Добавить работу",
+  "en": "Add work"
+ },
+ "Hisobda": {
+  "ru": "В расчёте",
+  "en": "Applied"
+ },
+ "hammasi": {
+  "ru": "все",
+  "en": "all"
+ },
+ "Qabul qilinmaguncha hisobga kirmaydi.": {
+  "ru": "Пока не принят — в расчёт не входит.",
+  "en": "Not part of the calculation until accepted."
+ },
+ "Qoralama tarkibi": {
+  "ru": "Состав черновика",
+  "en": "Draft composition"
+ },
+ "Kategoriya bo‘yicha taqsimot": {
+  "ru": "Распределение по категориям",
+  "en": "Split by category"
+ },
+ "Hali birorta qatorning summasi hisoblanmagan — hajm va narxlarni kiriting.": {
+  "ru": "Ни у одной строки сумма ещё не рассчитана — введите объёмы и цены.",
+  "en": "No line has a calculated amount yet — enter quantities and prices."
+ },
+ "Hisoblash to‘liqligi": {
+  "ru": "Полнота расчёта",
+  "en": "Calculation completeness"
+ },
+ "Summasi hisoblangan resurs qatorlari: {a} / {b}": {
+  "ru": "Строк ресурсов с рассчитанной суммой: {a} / {b}",
+  "en": "Resource lines with a calculated amount: {a} / {b}"
+ },
+ "{n} ta bo‘lim": {
+  "ru": "Разделов: {n}",
+  "en": "{n} sections"
+ },
+ "hajmsiz: {n}": {
+  "ru": "без объёма: {n}",
+  "en": "no quantity: {n}"
+ },
+ "summasi noma’lum qator: {n}": {
+  "ru": "строк с неизвестной суммой: {n}",
+  "en": "lines with unknown amount: {n}"
+ },
+ "hammasi hisoblangan": {
+  "ru": "всё рассчитано",
+  "en": "all calculated"
+ },
+ "kat?": {
+  "ru": "кат?",
+  "en": "cat?"
+ },
+ "koeff.: {n}": {
+  "ru": "коэфф.: {n}",
+  "en": "coef.: {n}"
+ },
+ "Qabul qilinmagan takliflar — hisobga olinmaydi": {
+  "ru": "Непринятые предложения — не учитываются",
+  "en": "Unaccepted proposals — not counted"
+ },
+ "taklif: {n}": {
+  "ru": "предложений: {n}",
+  "en": "proposals: {n}"
+ },
+ "Narxi belgilanmagan resurs qatorlari": {
+  "ru": "Строки ресурсов без цены",
+  "en": "Resource lines without a price"
+ },
+ "narxsiz: {n}": {
+  "ru": "без цены: {n}",
+  "en": "no price: {n}"
+ },
+ "Summa hisoblanmagan: hajm, norma yoki narx yetishmaydi": {
+  "ru": "Сумма не рассчитана: не хватает объёма, нормы или цены",
+  "en": "Amount not calculated: quantity, norm or price is missing"
+ },
+ "Bo‘limda summasi noma’lum qatorlar bor — faqat ma’lum qism ko‘rsatilgan": {
+  "ru": "В разделе есть строки с неизвестной суммой — показана только известная часть",
+  "en": "The section has lines with unknown amounts — only the known part is shown"
+ },
+ "ЧЕЛ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество ресурсов ЧЕЛ",
+  "en": "Multiplies LABOUR resource quantities"
+ },
+ "МАШ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество ресурсов МАШ",
+  "en": "Multiplies MACHINE resource quantities"
+ },
+ "ЧЕЛ va МАШ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество ресурсов ЧЕЛ и МАШ",
+  "en": "Multiplies LABOUR and MACHINE resource quantities"
+ },
+ "МАТ resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество материалов МАТ",
+  "en": "Multiplies MATERIAL resource quantities"
+ },
+ "Hamma resurs miqdorini ko‘paytiradi": {
+  "ru": "Умножает количество всех ресурсов",
+  "en": "Multiplies all resource quantities"
+ },
+ "Qatorni tahrirlash": {
+  "ru": "Редактирование строки",
+  "en": "Edit row"
+ },
+ "Yopish": {
+  "ru": "Закрыть",
+  "en": "Close"
+ },
+ "Nomi": {
+  "ru": "Название",
+  "en": "Name"
+ },
+ "Hajm": {
+  "ru": "Объём",
+  "en": "Quantity"
+ },
+ "Narx": {
+  "ru": "Цена",
+  "en": "Price"
+ },
+ "Birlik": {
+  "ru": "Единица",
+  "en": "Unit"
+ },
+ "Kategoriya": {
+  "ru": "Категория",
+  "en": "Category"
+ },
+ "{m} saqlandi": {
+  "ru": "{m}: сохранено",
+  "en": "{m} saved"
+ },
+ "Saqlanmadi": {
+  "ru": "Не сохранено",
+  "en": "Not saved"
+ },
+ "Shu maydonni saqlash": {
+  "ru": "Сохранить это поле",
+  "en": "Save this field"
+ },
+ "Oldin": {
+  "ru": "Было",
+  "en": "Before"
+ },
+ "Keyin": {
+  "ru": "Станет",
+  "en": "After"
+ },
+ "Bu maydonni boshqa foydalanuvchi o‘zgartirdi": {
+  "ru": "Это поле изменил другой пользователь",
+  "en": "Another user changed this field"
+ },
+ "Siz {a}-versiyani ko‘rgansiz, bazada esa allaqachon {b}-versiya.": {
+  "ru": "Вы видели версию {a}, а в базе уже версия {b}.",
+  "en": "You saw version {a}, but the database already has version {b}."
+ },
+ "Hozir bazada": {
+  "ru": "Сейчас в базе",
+  "en": "Currently in database"
+ },
+ "Siz yozmoqchisiz": {
+  "ru": "Вы хотите записать",
+  "en": "You want to write"
+ },
+ "Bazadagini olish": {
+  "ru": "Взять из базы",
+  "en": "Use database value"
+ },
+ "Baribir o‘zimniki bilan yozish": {
+  "ru": "Всё равно записать моё",
+  "en": "Overwrite with mine"
+ },
+ "yopish": {
+  "ru": "закрыть",
+  "en": "close"
+ },
+ "maydonni saqlash": {
+  "ru": "сохранить поле",
+  "en": "save field"
+ },
+ "Hujjatni ko‘rish": {
+  "ru": "Просмотр документа",
+  "en": "View document"
+ },
+ "Hujjatni ko‘rsatib bo‘lmadi.": {
+  "ru": "Не удалось показать документ.",
+  "en": "The document cannot be shown."
+ },
+ "Excel formulasi bilan hisoblanadi (Excelda o‘zgartirsangiz qayta hisoblanadi)": {
+  "ru": "Считается формулой Excel (при изменении в Excel пересчитывается)",
+  "en": "Calculated by an Excel formula (recalculates if you change it in Excel)"
+ },
+ "Hujjatdan qidirish": {
+  "ru": "Поиск по документу",
+  "en": "Search the document"
+ },
+ "Qidirish (kod, nom)…": {
+  "ru": "Поиск (код, название)…",
+  "en": "Search (code, name)…"
+ },
+ "faqat bo‘lim va jamilar": {
+  "ru": "только разделы и итоги",
+  "en": "sections and totals only"
+ },
+ "Excel": {
+  "ru": "Excel",
+  "en": "Excel"
+ },
+ "Mos qator yo‘q.": {
+  "ru": "Нет подходящих строк.",
+  "en": "No matching rows."
+ },
+ "Oldingi": {
+  "ru": "Назад",
+  "en": "Previous"
+ },
+ "Keyingi": {
+  "ru": "Далее",
+  "en": "Next"
+ },
+ "Hujjat imzolari": {
+  "ru": "Подписи документа",
+  "en": "Document signatories"
+ },
+ "{a} / {b} tomon kiritilgan": {
+  "ru": "Указано сторон: {a} из {b}",
+  "en": "{a} of {b} parties entered"
+ },
+ "kiritilmagan (hujjatda chiziq)": {
+  "ru": "не указано (в документе — линия)",
+  "en": "not entered (a line in the document)"
+ },
+ "Buyurtmachi": {
+  "ru": "Заказчик",
+  "en": "Client"
+ },
+ "Pudratchi": {
+  "ru": "Подрядчик",
+  "en": "Contractor"
+ },
+ "Subpudratchi": {
+  "ru": "Субподрядчик",
+  "en": "Subcontractor"
+ },
+ "Texnik nazorat": {
+  "ru": "Технический надзор",
+  "en": "Technical supervision"
+ },
+ "Tuzuvchi": {
+  "ru": "Составил",
+  "en": "Prepared by"
+ },
+ "3 tomonlama bo‘lsa": {
+  "ru": "если трёхсторонний",
+  "en": "if three-party"
+ },
+ "tashkilot, lavozim, F.I.O.": {
+  "ru": "организация, должность, Ф.И.О.",
+  "en": "organisation, position, full name"
+ },
+ "hujjatda chiziq bo‘ladi": {
+  "ru": "в документе будет линия",
+  "en": "a line will appear in the document"
+ },
+ "Kompaniya logosi": {
+  "ru": "Логотип компании",
+  "en": "Company logo"
+ },
+ "Saqlab bo‘lmadi": {
+  "ru": "Не удалось сохранить",
+  "en": "Could not save"
+ },
+ "Faqat PNG yoki JPEG.": {
+  "ru": "Только PNG или JPEG.",
+  "en": "PNG or JPEG only."
+ },
+ "Fayl {n} KB — ruxsat ≤ 300 KB.": {
+  "ru": "Файл {n} КБ — допустимо ≤ 300 КБ.",
+  "en": "File is {n} KB — limit is 300 KB."
+ },
+ "АОСР, F2 va boshqa hujjatlarda ishlatiladi. PNG/JPEG, ≤ 300 KB.": {
+  "ru": "Используется в АОСР, F2 и других документах. PNG/JPEG, ≤ 300 КБ.",
+  "en": "Used in AOSR, F2 and other documents. PNG/JPEG, ≤ 300 KB."
+ },
+ "yuklangan": {
+  "ru": "загружен",
+  "en": "uploaded"
+ },
+ "logo yo‘q": {
+  "ru": "логотипа нет",
+  "en": "no logo"
+ },
+ "Logo faylini tanlash": {
+  "ru": "Выбрать файл логотипа",
+  "en": "Choose logo file"
+ },
+ "Almashtirish": {
+  "ru": "Заменить",
+  "en": "Replace"
+ },
+ "Yuklash": {
+  "ru": "Загрузить",
+  "en": "Upload"
+ },
+ "Logo olib tashlansinmi?": {
+  "ru": "Удалить логотип?",
+  "en": "Remove the logo?"
+ },
+ "olib tashlash": {
+  "ru": "удалить",
+  "en": "remove"
+ },
+ "Logoni faqat direktor (boss/admin) o‘zgartiradi.": {
+  "ru": "Логотип меняет только директор (boss/admin).",
+  "en": "Only the director (boss/admin) can change the logo."
+ }
+}

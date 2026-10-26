@@ -23,6 +23,9 @@ import { useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
 import { NarxProtokolPanel } from './NarxProtokolPanel';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { dalilQamrovi, narxOgish } from '../../lib/narx-korinish';
+import { ManbaChip, OgishMeter, QamrovChizigi } from '../../components/narx/NarxKorinish';
 
 const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 
@@ -111,110 +114,111 @@ export default function NarxDalil() {
     toast(`«Обоснование цен»: ${tasdiqlangan} tasdiqlangan, ${dalilsiz} dalilsiz${tk.xabar ? ' · ' + tk.xabar : ''}`, 'ok');
   };
 
+  const qamrov = dalilQamrovi(resurslar.length, dalillar.length, natijalar.length);
+  const VARAQLAR = [['taklif', t('Takliflar ({n})', { n: String(natijalar.length) })], ['dalil', t('Bog‘langan dalillar ({n})', { n: String(dalillar.length) })], ['protokol', t('Протокол согласования цен')]] as const;
+  const MOSLIK: Record<NarxTaklif['moslik'], string> = { kod: t('kod bo‘yicha'), nom_birlik: t('nom+birlik'), hudud: t('hudud bo‘yicha') };
+  const amallar = <>
+    <select aria-label={t('Obyekt')} className="h-8 max-w-xs px-2 text-[13px]" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}><ObyektOptionlari obyektlar={obyektlar} /></select>
+    <button type="button" onClick={() => void excel()} disabled={!obyekt || !resurslar.length} className="fz-btn"><FileSpreadsheet size={14} /> Обоснование цен</button>
+  </>;
+
   return (
-    <div className="p-4 space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-lg font-semibold">Narx dalili</h1>
-          <p className="text-xs text-text-dim">Har resurs narxi katalog / счет-фактура / КП / kalkulyatsiya bilan tasdiqlanadi. Taklifni siz tanlaysiz — smeta narxi o‘zgarmaydi.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select className="border rounded px-2 py-1 text-sm max-w-xs" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}><ObyektOptionlari obyektlar={obyektlar} /></select>
-          <button type="button" onClick={() => void excel()} disabled={!obyekt || !resurslar.length} className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-sm disabled:opacity-40"><FileSpreadsheet size={14} /> Обоснование цен</button>
-        </div>
+    <Sahifa sarlavha="Narx dalili" tavsif="Har resurs narxi katalog / счет-фактура / КП / kalkulyatsiya bilan tasdiqlanadi. Taklifni siz tanlaysiz — smeta narxi o‘zgarmaydi." amallar={amallar}>
+    <div className="flex flex-col gap-3">
+      <div className="fz-doc__panels">
+        <section className="fz-panel" aria-label={t('Dalil qamrovi')}>
+          <div className="fz-panel__h"><span>{t('Dalil qamrovi')}</span><span>{t('{n} resurs', { n: resurslar.length.toLocaleString('ru-RU') })}</span></div>
+          <QamrovChizigi aria={t('Dalil qamrovi')} bolaklar={qamrov.bolaklar}
+            nomlar={{ dalil: t('Dalil bilan'), taklif: t('Taklif bor'), yoq: t('Dalilsiz va taklifsiz') }}
+            ranglar={{ dalil: 'var(--ok)', taklif: 'var(--accent)', yoq: 'var(--surface-3)' }} />
+        </section>
+        <section className="fz-panel" aria-label={t('Obyekt hududi')}>
+          <div className="fz-panel__h"><span>{t('Obyekt hududi (chel.-soat narxi shu hududdan):')}</span></div>
+          <select aria-label={t('Obyekt hududi')} className="h-8 px-2 text-[13px]" value={hudud?.hudud ?? ''} onChange={(e) => void hududSaqla(e.target.value || null)} disabled={!obyektId || !hudud}>
+            <option value="">{t('— tanlanmagan —')}</option>
+            {HUDUDLAR.map((h) => <option key={h.kalit} value={h.kalit}>{h.nom}</option>)}
+          </select>
+          {hududTaklif && (
+            <button type="button" onClick={() => void hududSaqla(hududTaklif)} className="fz-btn fz-btn--sm self-start border-accent/50 text-[var(--accent-text)]">
+              {t('Xaritadagi joylashuvga ko‘ra: {nom} — tasdiqlash', { nom: hududNomi(hududTaklif) ?? '' })}
+            </button>
+          )}
+          {hudud && !hudud.hudud && !hududTaklif && <span className="fz-chip fz-chip--warn self-start">{t('Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang')}</span>}
+        </section>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded border border-border px-3 py-2 text-xs">
-        <span className="text-text-dim">{t('Obyekt hududi (chel.-soat narxi shu hududdan):')}</span>
-        <select aria-label={t('Obyekt hududi')} className="rounded border px-2 py-1" value={hudud?.hudud ?? ''} onChange={(e) => void hududSaqla(e.target.value || null)} disabled={!obyektId || !hudud}>
-          <option value="">{t('— tanlanmagan —')}</option>
-          {HUDUDLAR.map((h) => <option key={h.kalit} value={h.kalit}>{h.nom}</option>)}
-        </select>
-        {hududTaklif && (
-          <button type="button" onClick={() => void hududSaqla(hududTaklif)} className="rounded border border-accent/50 px-2 py-1 text-accent">
-            {t('Xaritadagi joylashuvga ko‘ra: {nom} — tasdiqlash', { nom: hududNomi(hududTaklif) ?? '' })}
-          </button>
-        )}
-        {hudud && !hudud.hudud && !hududTaklif && <span className="text-warning">{t('Xaritada joylashuv belgilanmagan — hududni qo‘lda tanlang')}</span>}
+      <div className="inline-flex gap-0.5 self-start rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5" role="tablist">
+        {VARAQLAR.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={varaq === k} onClick={() => setVaraq(k)} className={'fz-btn fz-btn--sm ' + (varaq === k ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost')}>{l}</button>)}
       </div>
 
-      <div className="flex flex-wrap gap-3 text-xs text-text-dim">
-        <span>Resurslar: <b className="text-text">{resurslar.length.toLocaleString('ru-RU')}</b></span>
-        <span>Dalil bilan: <b className="text-text">{dalillar.length.toLocaleString('ru-RU')}</b></span>
-        <span>Taklif bor: <b className="text-text">{natijalar.length.toLocaleString('ru-RU')}</b></span>
-        <span>Dalilsiz va taklifsiz: <b className="text-text">{Math.max(0, resurslar.length - dalillar.length - natijalar.length).toLocaleString('ru-RU')}</b></span>
-      </div>
-
-      <div className="inline-flex overflow-hidden rounded border text-xs">
-        <button type="button" onClick={() => setVaraq('taklif')} className={'px-3 py-1.5 ' + (varaq === 'taklif' ? 'bg-accent/15 text-accent' : '')}>Takliflar ({natijalar.length})</button>
-        <button type="button" onClick={() => setVaraq('dalil')} className={'px-3 py-1.5 ' + (varaq === 'dalil' ? 'bg-accent/15 text-accent' : '')}>Bog‘langan dalillar ({dalillar.length})</button>
-        <button type="button" onClick={() => setVaraq('protokol')} className={'px-3 py-1.5 ' + (varaq === 'protokol' ? 'bg-accent/15 text-accent' : '')}>{t('Протокол согласования цен')}</button>
-      </div>
-
-      {yuklanmoqda ? <p className="text-sm text-text-dim">Yuklanmoqda…</p> : varaq === 'protokol' ? (
+      {yuklanmoqda ? <div className="skel h-40 rounded-[var(--radius-md)]" role="status" aria-label={t('Yuklanmoqda…')} /> : varaq === 'protokol' ? (
         kompaniyaId && obyekt ? <NarxProtokolPanel kompaniyaId={kompaniyaId} obyektId={obyekt.id} obyektNomi={obyekt.nom} takliflar={hammaTaklif} dalillar={dalillar} imzo={tomonlar} /> : null
       ) : varaq === 'taklif' ? (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => setTanlov(new Map(natijalar.map((n) => [n.qator_id, n.tavsiya.manba_qator_id])))}>Barcha tavsiyalarni belgilash</button>
-            <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => setTanlov(new Map())}>Tozalash</button>
-            <button type="button" disabled={!tanlov.size} onClick={() => void bogla()} className="inline-flex items-center gap-1 rounded bg-accent px-3 py-1 text-xs text-white disabled:opacity-40"><Link2 size={13} /> Tanlanganlarni bog‘lash ({tanlov.size})</button>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className="fz-btn fz-btn--sm" onClick={() => setTanlov(new Map(natijalar.map((n) => [n.qator_id, n.tavsiya.manba_qator_id])))}>{t('Barcha tavsiyalarni belgilash')}</button>
+            <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setTanlov(new Map())}>{t('Tozalash')}</button>
+            <button type="button" disabled={!tanlov.size} onClick={() => void bogla()} className="fz-btn fz-btn--primary fz-btn--sm"><Link2 size={13} /> {t('Tanlanganlarni bog‘lash ({n})', { n: String(tanlov.size) })}</button>
+            <span className="ml-auto text-[11.5px] text-text-mute">{t('Og‘ish: markaz — smeta narxi; o‘ngga — manba qimmat, chapga — arzon; 10% dan ortig‘i sariq.')}</span>
           </div>
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full min-w-[980px] text-xs">
-              <thead className="text-text-dim"><tr className="text-left"><th className="px-2 py-1.5" /><th className="px-2 py-1.5">Resurs</th><th className="px-2 py-1.5 text-right">Smeta narxi</th><th className="px-2 py-1.5">Manba (tanlang)</th><th className="px-2 py-1.5 text-right">Manba narxi</th><th className="px-2 py-1.5 text-right">Og‘ish</th><th className="px-2 py-1.5">Sabab</th></tr></thead>
+          <div className="fz-table-wrap">
+            <table className="fz-table min-w-[1080px] text-[12.5px]">
+              <thead><tr><th style={{ width: 32 }} /><th>{t('Resurs')}</th><th className="fz-c-num">{t('Smeta narxi')}</th><th>{t('Manba (tanlang)')}</th><th className="fz-c-num">{t('Manba narxi')}</th><th>{t('Og‘ish')}</th><th>{t('Sabab')}</th></tr></thead>
               <tbody>
-                {natijalar.length === 0 && <tr><td colSpan={7} className="px-2 py-4 text-center text-text-dim">Taklif yo‘q — avval «Narx manbalari»ga katalog/faktura yuklang</td></tr>}
+                {natijalar.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-text-mute">{t('Taklif yo‘q — avval «Narx manbalari»ga katalog/faktura yuklang')}</td></tr>}
                 {natijalar.slice(0, 1000).map((n) => {
                   const nomzodlar = [n.tavsiya, ...n.boshqalar];
                   const tanlangan = tanlov.get(n.qator_id);
                   const tanlanganTaklif = nomzodlar.find((x) => x.manba_qator_id === tanlangan) ?? n.tavsiya;
-                  const ogish = n.smeta_narx ? Math.round(((Number(tanlanganTaklif.manba_narx) - n.smeta_narx) / n.smeta_narx) * 10000) / 100 : null;
+                  const og = narxOgish(Number(tanlanganTaklif.manba_narx), n.smeta_narx);
                   return (
-                    <tr key={n.qator_id} className="border-t align-top">
-                      <td className="px-2 py-1.5"><input type="checkbox" checked={tanlangan != null} onChange={(e) => belgila(n.qator_id, e.target.checked ? tanlanganTaklif.manba_qator_id : null)} /></td>
-                      <td className="px-2 py-1.5"><div>{tanlanganTaklif.nom}</div><div className="text-text-dim">{n.kat} · {tanlanganTaklif.birlik} · {tanlanganTaklif.moslik === 'kod' ? 'kod bo‘yicha' : 'nom+birlik'}</div></td>
-                      <td className="px-2 py-1.5 text-right tabular-nums">{pul(n.smeta_narx)}</td>
-                      <td className="px-2 py-1.5">
-                        <select className="w-full border rounded px-1 py-0.5" value={tanlanganTaklif.manba_qator_id} onChange={(e) => belgila(n.qator_id, Number(e.target.value))}>
+                    <tr key={n.qator_id} className={tanlangan != null ? 'bg-accent/[.05]' : ''} style={{ verticalAlign: 'top' }}>
+                      <td><input type="checkbox" aria-label={t('Tanlash: {nom}', { nom: tanlanganTaklif.nom ?? '' })} checked={tanlangan != null} onChange={(e) => belgila(n.qator_id, e.target.checked ? tanlanganTaklif.manba_qator_id : null)} /></td>
+                      <td><div className="font-medium">{tanlanganTaklif.nom}</div><div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11.5px] text-text-mute">{n.kat && <span className="fz-chip">{n.kat}</span>}<span>{tanlanganTaklif.birlik}</span><span className={`fz-chip ${tanlanganTaklif.moslik === 'kod' ? 'fz-chip--accent' : ''}`}>{MOSLIK[tanlanganTaklif.moslik] ?? tanlanganTaklif.moslik}</span></div></td>
+                      <td className="fz-c-num">{pul(n.smeta_narx)}</td>
+                      <td>
+                        <div className="flex items-center gap-1.5"><ManbaChip tur={tanlanganTaklif.manba_tur} />
+                        <select className="h-7 min-w-0 flex-1 px-1 text-[12px]" value={tanlanganTaklif.manba_qator_id} onChange={(e) => belgila(n.qator_id, Number(e.target.value))}>
                           {nomzodlar.map((x) => <option key={x.manba_qator_id} value={x.manba_qator_id}>{NARX_MANBA_TUR_NOMI[x.manba_tur]}: {manbaRekviziti({ manba_nom: x.manba_nom, manba_raqam: x.manba_raqam, manba_sana: x.manba_sana, yetkazuvchi: x.yetkazuvchi, yetkazuvchi_inn: null, yil: x.yil, kvartal: x.kvartal, region: x.region, nds_holati: x.nds_holati, ishlab_chiqaruvchi: x.ishlab_chiqaruvchi, nds_izoh: x.nds_izoh })} — {pul(x.manba_narx)}</option>)}
-                        </select>
+                        </select></div>
                         {/* Egasi 2026-10-02: narx qayerdan — "katalog 2026 2-kv · Toshkent sh. · zavod · NDS siz". */}
-                        <div className="mt-0.5 text-[10px] text-text-dim">{narxIzohi(tanlanganTaklif)}</div>
+                        <div className="mt-1 text-[11px] text-text-mute">{narxIzohi(tanlanganTaklif)}</div>
                         {tanlanganTaklif.manba_nom_qator && (
-                          <div className="mt-0.5 break-words text-[11px] text-text">
-                            <span className="text-text-dim">{t('Katalogdagi aynan nomi:')} </span>{tanlanganTaklif.manba_nom_qator}
+                          <div className="mt-0.5 break-words text-[11.5px] text-text">
+                            <span className="text-text-mute">{t('Katalogdagi aynan nomi:')} </span>{tanlanganTaklif.manba_nom_qator}
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-1.5 text-right tabular-nums">{pul(tanlanganTaklif.manba_narx)}</td>
-                      <td className={'px-2 py-1.5 text-right tabular-nums ' + (ogish != null && Math.abs(ogish) > 10 ? 'text-warning font-semibold' : '')}>{ogish == null ? '—' : `${ogish > 0 ? '+' : ''}${ogish}%`}</td>
-                      <td className="px-2 py-1.5 text-text-dim">{tanlanganTaklif === n.tavsiya ? n.sabab : 'operator tanlovi'}</td>
+                      <td className="fz-c-num font-medium">{pul(tanlanganTaklif.manba_narx)}</td>
+                      <td><OgishMeter og={og} /></td>
+                      <td className="text-[12px] text-text-dim">{tanlanganTaklif === n.tavsiya ? n.sabab : <span className="fz-chip">{t('operator tanlovi')}</span>}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            {natijalar.length > 1000 && <div className="px-2 py-1 text-xs text-text-dim">Birinchi 1000 ta ko‘rsatildi (jami {natijalar.length.toLocaleString('ru-RU')}); «Barcha tavsiyalarni belgilash» hammasini oladi.</div>}
+            {natijalar.length > 1000 && <div className="px-3 py-1.5 text-[12px] text-text-mute">{t('Birinchi 1000 ta ko‘rsatildi (jami {n}); «Barcha tavsiyalarni belgilash» hammasini oladi.', { n: natijalar.length.toLocaleString('ru-RU') })}</div>}
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[900px] text-xs">
-            <thead className="text-text-dim"><tr className="text-left"><th className="px-2 py-1.5">Resurs</th><th className="px-2 py-1.5 text-right">Smeta narxi</th><th className="px-2 py-1.5">Dalil</th><th className="px-2 py-1.5 text-right">Manba narxi</th><th className="px-2 py-1.5">Kim / qachon</th><th /></tr></thead>
+        <div className="fz-table-wrap">
+          <table className="fz-table min-w-[1000px] text-[12.5px]">
+            <thead><tr><th>{t('Resurs')}</th><th className="fz-c-num">{t('Smeta narxi')}</th><th>{t('Dalil')}</th><th className="fz-c-num">{t('Manba narxi')}</th><th>{t('Og‘ish')}</th><th>{t('Kim / qachon')}</th><th /></tr></thead>
             <tbody>
-              {dalillar.length === 0 && <tr><td colSpan={6} className="px-2 py-4 text-center text-text-dim">Hali dalil bog‘lanmagan</td></tr>}
+              {dalillar.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-text-mute">{t('Hali dalil bog‘lanmagan')}</td></tr>}
               {dalillar.map((d) => (
-                <tr key={d.id} className="border-t">
-                  <td className="px-2 py-1.5">{d.nom}<div className="text-text-dim">{d.kat} · {d.birlik}</div></td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{pul(d.hozirgi_narx)}</td>
-                  <td className="px-2 py-1.5">
-                    <div>{NARX_MANBA_TUR_NOMI[d.manba_tur]}: {manbaRekviziti(d)}</div>
-                    {d.manba_nom_qator && <div className="mt-0.5 break-words text-text-dim">{t('Katalogdagi aynan nomi:')} {d.manba_nom_qator}</div>}
+                <tr key={d.id}>
+                  <td><div className="font-medium">{d.nom}</div><div className="text-[11.5px] text-text-mute">{d.kat} · {d.birlik}</div></td>
+                  <td className="fz-c-num">{pul(d.hozirgi_narx)}</td>
+                  <td>
+                    <div className="flex items-center gap-1.5"><span className="fz-stamp fz-stamp--ok">{t('Tasdiqlangan')}</span><ManbaChip tur={d.manba_tur} /></div>
+                    <div className="mt-1 text-[12px] text-text-dim">{manbaRekviziti(d)}</div>
+                    {d.manba_nom_qator && <div className="mt-0.5 break-words text-[11.5px] text-text-mute">{t('Katalogdagi aynan nomi:')} {d.manba_nom_qator}</div>}
                   </td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{pul(d.manba_narx)}</td>
-                  <td className="px-2 py-1.5 text-text-dim">{d.kim ?? '—'} · {d.vaqt?.slice(0, 10)}</td>
-                  <td className="px-2 py-1.5 text-right"><button type="button" onClick={() => void ochir(d)} className="text-text-dim hover:text-danger" title="Dalilni olib tashlash"><Unlink size={13} /></button></td>
+                  <td className="fz-c-num">{pul(d.manba_narx)}</td>
+                  <td><OgishMeter og={narxOgish(d.manba_narx, d.hozirgi_narx)} /></td>
+                  <td className="text-[12px] text-text-dim">{d.kim ?? '—'} · {d.vaqt?.slice(0, 10) ?? '—'}</td>
+                  <td className="text-right"><button type="button" onClick={() => void ochir(d)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm hover:text-danger" title={t('Dalilni olib tashlash')} aria-label={t('Dalilni olib tashlash')}><Unlink size={13} /></button></td>
                 </tr>
               ))}
             </tbody>
@@ -222,5 +226,6 @@ export default function NarxDalil() {
         </div>
       )}
     </div>
+    </Sahifa>
   );
 }

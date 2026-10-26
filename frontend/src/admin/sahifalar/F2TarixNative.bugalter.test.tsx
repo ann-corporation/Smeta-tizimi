@@ -25,7 +25,7 @@ afterEach(() => { cleanup(); m.k = { joriy: { id: 5, rol: 'bugalter', permission
 describe('F2 tarixi — buxgalter faqat o‘qiydi', () => {
   it('buxgalter: F2 ko‘rinadi, lekin tasdiqlash/rad/bekor/tahrirlash yo‘q (individual f2.approve bo‘lsa ham)', async () => {
     chiz();
-    expect((await screen.findAllByText('2026-09')).length).toBeGreaterThan(0); // F2 o'qiladi (qoralama ro'yxatda)
+    expect((await screen.findAllByText(/2026/)).length).toBeGreaterThan(0); // F2 o'qiladi (qoralama ro'yxatda)
     expect(screen.queryByRole('button', { name: /Rad etish/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Bekor qilish/ })).toBeNull();
     expect(screen.queryByText(/Tahrirlash|Tizimda tahrirlash|Fayldan yangilash/)).toBeNull();

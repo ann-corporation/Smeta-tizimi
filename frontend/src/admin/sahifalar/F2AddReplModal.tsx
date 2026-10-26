@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { F2Oyna } from './F2Oyna';
 import type { T2Qator } from '../../api/supabase';
 import { yangiOperationId } from '../../api/supabase';
 import { t } from '../../i18n/til';
@@ -49,7 +50,7 @@ export interface F2AddReplModalProps {
   onRejali?: (b: ModalRejali) => void;
 }
 
-const TUR_LABEL: Record<string, string> = { rs: 'Resurs (RS)', mat: 'Material (MAT)', ob: 'Uskuna (OB)' };
+const turLabel = (): Record<string, string> => ({ rs: t('Resurs (RS)'), mat: t('Material (MAT)'), ob: t('Uskuna (OB)') });
 
 export function F2AddReplModal(p: F2AddReplModalProps) {
   const { action } = p;
@@ -74,20 +75,22 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
   const [error, setError] = useState('');
 
   const sarlavha =
-    action.kind === 'replacement' ? `Zamena — "${action.oldRow.nom}" o‘rniga`
-      : action.kind === 'additional' ? `Qo‘shimcha ish — "${action.parent.nom}" ostiga`
-        : `Resurs qo‘shish — "${action.parent.nom}" ostiga`;
-  const joyMatni = action.kind === 'replacement' ? `Joyi: «${action.oldRow.nom}» dan keyin`
-    : action.keyinId == null ? 'Joyi: ota qator oxirida'
-      : action.keyinId === action.parent.id ? 'Joyi: birinchi o‘rinda' : 'Joyi: tanlangan qatordan keyin';
+    action.kind === 'replacement' ? t('Zamena — "{nom}" o‘rniga', { nom: action.oldRow.nom ?? '—' })
+      : action.kind === 'additional' ? t('Qo‘shimcha ish — "{nom}" ostiga', { nom: action.parent.nom ?? '—' })
+        : t('Resurs qo‘shish — "{nom}" ostiga', { nom: action.parent.nom ?? '—' });
+  const joyMatni = action.kind === 'replacement' ? t('Joyi: «{nom}» dan keyin', { nom: action.oldRow.nom ?? '—' })
+    : action.keyinId == null ? t('Joyi: ota qator oxirida')
+      : action.keyinId === action.parent.id ? t('Joyi: birinchi o‘rinda') : t('Joyi: tanlangan qatordan keyin');
+  const turNomi = action.kind === 'replacement' ? t('Zamena') : action.kind === 'additional' ? t('Qo‘shimcha ish') : t('Qo‘shimcha resurs');
+  const turStamp = action.kind === 'replacement' ? 'fz-stamp--warn' : 'fz-stamp--info';
 
   async function submit() {
-    if (!nom.trim() || !birlik.trim() || !sabab.trim()) { setError('Nom, birlik va sabab majburiy.'); return; }
+    if (!nom.trim() || !birlik.trim() || !sabab.trim()) { setError(t('Nom, birlik va sabab majburiy.')); return; }
     const hajmSoni = hajm.trim() === '' ? undefined : Number(hajm.replace(',', '.'));
     // Minus hajm ruxsat (egasi 2026-10-24): norma tuzatuvchi ishlar — «на каждый мм изменения толщины …» K=7 —
     // loyiha/norma farqini AYIRADI (masalan 10 mm normada, loyihada 7 mm → minus). Faqat 0 va bo'sh — yo'q.
     if (action.kind !== 'resource' && (hajmSoni === undefined || !Number.isFinite(hajmSoni) || hajmSoni === 0)) {
-      setError('Hajm 0 dan farqli son bo‘lishi shart (minus ham mumkin — norma tuzatuvchi ish).'); return;
+      setError(t('Hajm 0 dan farqli son bo‘lishi shart (minus ham mumkin — norma tuzatuvchi ish).')); return;
     }
     const almSoni = birlikFarqli && almHajm.trim() !== '' ? Number(almHajm.replace(',', '.')) : null;
     if (almSoni != null && (!Number.isFinite(almSoni) || almSoni < 0)) { setError(t('Almashtiriladigan hajm manfiy bo‘lmagan son bo‘lishi shart.')); return; }
@@ -116,7 +119,7 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
           almashtirilayotganQatorId: action.kind === 'replacement' ? action.oldRow.id : undefined,
           resurslar,
         });
-        if (!rr.ok || rr.qator_id == null) { setError(rr.xabar || rr.error || 'Saqlanmadi.'); return; }
+        if (!rr.ok || rr.qator_id == null) { setError(rr.xabar || rr.error || t('Saqlanmadi.')); return; }
         if (almSoni != null) {
           const m = await sbT2ZamenaAlmashtirishBelgila({ kompaniyaId: p.companyId, qatorId: rr.qator_id, hajm: almSoni });
           if (!m.ok) { setError(m.xabar || m.error || t('Almashtirish hajmi saqlanmadi.')); return; }
@@ -129,89 +132,84 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
         : action.kind === 'additional'
           ? (qTur === 'bl' ? await sbT2QoshimchaIshYarat(asos) : await sbT2ResursBolaQosh({ ...asos, tur: qTur, hajm: hajmSoni }))
           : await sbT2ResursBolaQosh({ ...asos, tur: resTur, hajm: hajmSoni });
-      if (!r.ok || r.qator_id == null) { setError(r.xabar || r.error || 'Saqlanmadi.'); return; }
+      if (!r.ok || r.qator_id == null) { setError(r.xabar || r.error || t('Saqlanmadi.')); return; }
       if (action.kind === 'replacement' && almSoni != null) {
         const m = await sbT2ZamenaAlmashtirishBelgila({ kompaniyaId: p.companyId, qatorId: r.qator_id, hajm: almSoni });
         if (!m.ok) { setError(m.xabar || m.error || t('Almashtirish hajmi saqlanmadi.')); return; }
       }
       p.onCreated(r.qator_id);
-    } catch { setError('Tarmoq xatosi — qayta urinib ko‘ring.'); }
+    } catch { setError(t('Tarmoq xatosi — qayta urinib ko‘ring.')); }
     finally { setBusy(false); }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={p.onClose}>
-      <div className="bg-surface border border-border p-5 rounded-2xl w-[440px] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-[15px] text-text">{sarlavha}</h3>
-          <button onClick={p.onClose} className="text-text-mute hover:text-text" aria-label="Yopish"><X size={18} /></button>
+    <F2Oyna label={sarlavha} kenglik={480} onYop={busy ? undefined : p.onClose}>
+      <div className="fz-card__head" style={{ alignItems: 'flex-start' }}>
+        <div className="min-w-0">
+          <span className={`fz-stamp ${turStamp}`}>{turNomi}</span>
+          <h3 className="fz-card__title" style={{ marginTop: 6 }}>{sarlavha}</h3>
+          {action.kind === 'replacement' && <p className="fz-card__sub">{t('Almashtirilayotgan')}: {[action.oldRow.kod, action.oldRow.nom].filter(Boolean).join(' ')} · {action.oldRow.hajm ?? '—'} {action.oldRow.birlik ?? ''}</p>}
         </div>
+        <button type="button" onClick={p.onClose} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label={t('Yopish')} disabled={busy}><X size={16} /></button>
+      </div>
+      <div className="fz-card__body">
         {action.kind === 'additional' && !resurslar.length && (
-          <label className="block text-sm mb-3">
-            <span className="text-text-dim text-[12px]">Pozitsiya turi</span>
-            <select value={qTur} onChange={e => setQTur(e.target.value as 'bl' | 'mat' | 'ob')}
-              className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500">
-              <option value="bl">Ish (resurssiz)</option>
-              <option value="mat">Material («С», kategoriya birlikdan)</option>
-              <option value="ob">Uskuna / oborudovaniye</option>
+          <label className="mb-3 block text-[13px]">
+            <span className="text-[12px] text-text-dim">{t('Pozitsiya turi')}</span>
+            <select value={qTur} onChange={e => setQTur(e.target.value as 'bl' | 'mat' | 'ob')} className="mt-1 block h-9 w-full px-2.5 text-[13px]">
+              <option value="bl">{t('Ish (resurssiz)')}</option>
+              <option value="mat">{t('Material («С», kategoriya birlikdan)')}</option>
+              <option value="ob">{t('Uskuna / oborudovaniye')}</option>
             </select>
           </label>
         )}
         {action.kind === 'resource' && (
-          <label className="block text-sm mb-3">
-            <span className="text-text-dim text-[12px]">Turi</span>
-            <select value={resTur} onChange={e => setResTur(e.target.value as 'rs' | 'mat' | 'ob')}
-              className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500">
-              {Object.entries(TUR_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <label className="mb-3 block text-[13px]">
+            <span className="text-[12px] text-text-dim">{t('Turi')}</span>
+            <select value={resTur} onChange={e => setResTur(e.target.value as 'rs' | 'mat' | 'ob')} className="mt-1 block h-9 w-full px-2.5 text-[13px]">
+              {Object.entries(turLabel()).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
         )}
-        <label className="block text-sm mb-3">
-          <span className="text-text-dim text-[12px]">Kod (ixtiyoriy)</span>
-          <input value={kod} onChange={e => setKod(e.target.value)}
-            className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
+        <label className="mb-3 block text-[13px]">
+          <span className="text-[12px] text-text-dim">{t('Kod (ixtiyoriy)')}</span>
+          <input value={kod} onChange={e => setKod(e.target.value)} className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
         </label>
-        <label className="block text-sm mb-3">
-          <span className="text-text-dim text-[12px]">Nomi</span>
-          <input value={nom} onChange={e => setNom(e.target.value)} autoFocus
-            className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
+        <label className="mb-3 block text-[13px]">
+          <span className="text-[12px] text-text-dim">{t('Nomi')}</span>
+          <input value={nom} onChange={e => setNom(e.target.value)} autoFocus data-boshlang-fokus className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
         </label>
-        <div className="flex gap-3 mb-3">
-          <label className="block text-sm flex-1">
-            <span className="text-text-dim text-[12px]">Birlik</span>
-            <input value={birlik} onChange={e => setBirlik(e.target.value)}
-              className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
+        <div className="mb-3 flex gap-3">
+          <label className="block flex-1 text-[13px]">
+            <span className="text-[12px] text-text-dim">{t('Birlik')}</span>
+            <input value={birlik} onChange={e => setBirlik(e.target.value)} className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
           </label>
-          <label className="block text-sm flex-1">
-            <span className="text-text-dim text-[12px]">Hajm{action.kind === 'resource' ? ' (ixtiyoriy)' : ''}</span>
-            <input type="number" value={hajm} onChange={e => setHajm(e.target.value)}
-              className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
+          <label className="block flex-1 text-[13px]">
+            <span className="text-[12px] text-text-dim">{action.kind === 'resource' ? t('Hajm (ixtiyoriy)') : t('Hajm')}</span>
+            <input type="number" value={hajm} onChange={e => setHajm(e.target.value)} className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
           </label>
         </div>
         {birlikFarqli && (
-          <label className="block text-sm mb-3">
-            <span className="text-text-dim text-[12px]">{t('Asl qatorning qancha hajmini almashtiradi ({birlik}, ixtiyoriy)', { birlik: aslBirlik })}</span>
+          <label className="mb-3 block text-[13px]">
+            <span className="text-[12px] text-text-dim">{t('Asl qatorning qancha hajmini almashtiradi ({birlik}, ixtiyoriy)', { birlik: aslBirlik })}</span>
             <input type="number" min="0" value={almHajm} onChange={e => setAlmHajm(e.target.value)}
-              placeholder={t('Bo‘sh = asl qator to‘liq almashtirilgan')}
-              className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
+              placeholder={t('Bo‘sh = asl qator to‘liq almashtirilgan')} className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
           </label>
         )}
-        <label className="block text-sm mb-4">
-          <span className="text-text-dim text-[12px]">Sabab</span>
-          <input value={sabab} onChange={e => setSabab(e.target.value)}
-            className="mt-1 w-full bg-bg border border-border rounded-xl p-2.5 text-sm text-text outline-none focus:border-sky-500" />
+        <label className="mb-3 block text-[13px]">
+          <span className="text-[12px] text-text-dim">{t('Sabab')}</span>
+          <input value={sabab} onChange={e => setSabab(e.target.value)} className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
         </label>
-        <p className="mb-2 text-[12px] text-accent">{joyMatni}</p>
-        {resurslar.length > 0 && <p className="mb-3 text-[12px] text-text-dim">F2 dagi <b>{resurslar.length}</b> ta resurs ham shu ish ostida birga yaratiladi va bog‘lanadi (bitta amal).</p>}
-        {error && <p role="alert" className="text-danger text-[12px] mb-3">{error}</p>}
-        <div className="flex gap-2 justify-end">
-          <button onClick={p.onClose} className="px-5 py-2 rounded-xl text-sm font-medium text-text-dim hover:bg-surface-2 transition-colors">Bekor qilish</button>
-          <button onClick={() => void submit()} disabled={busy}
-            className="px-5 py-2 rounded-xl text-sm font-medium bg-accent text-white hover:bg-accent/80 transition-colors shadow-lg shadow-accent/20 disabled:opacity-50">
-            {busy ? 'Yaratilmoqda…' : 'Yaratish va bog‘lash'}
-          </button>
-        </div>
+        <p className="fz-note fz-note--info" style={{ marginBottom: 8 }}>{joyMatni}</p>
+        {resurslar.length > 0 && <p className="mb-3 text-[12px] text-text-dim">{t('F2 dagi {n} ta resurs ham shu ish ostida birga yaratiladi va bog‘lanadi (bitta amal).', { n: resurslar.length })}</p>}
+        {error && <p role="alert" className="mb-3 text-[12px] text-danger">{error}</p>}
       </div>
-    </div>
+      <div className="flex justify-end gap-2 border-t border-border bg-surface-2 px-5 py-3">
+        <button type="button" onClick={p.onClose} className="fz-btn" disabled={busy}>{t('Bekor qilish')}</button>
+        <button type="button" onClick={() => void submit()} disabled={busy} className="fz-btn fz-btn--primary">
+          {busy ? t('Yaratilmoqda…') : t('Yaratish va bog‘lash')}
+        </button>
+      </div>
+    </F2Oyna>
   );
 }

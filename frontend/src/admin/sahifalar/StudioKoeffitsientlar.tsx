@@ -15,6 +15,7 @@ import { koefgaAylantir, koefKatalogi, qollanadi, type KoefKatalog, type KoefNom
 import { coefficientCatalogsForDoc, isLibrarySource, libraryCoefficientKey } from '../../lib/smeta-studio/norm-library-coefficients';
 import { coefficientApplyCommand, coefficientCandidates } from '../../lib/smeta-studio/coefficient-agent';
 import { manbaKorinishi } from '../../lib/manba-nomi';
+import { scopeMatn } from '../../components/smeta-studio-workspace/draft-kesim';
 import { smetachiKoefTanla } from '../../api/smeta-ai';
 
 const OP_SCOPES = ['ALL', 'ЧЕЛ', 'МАШ', 'ЧЕЛ+МАШ', 'МАТ'] as const;
@@ -95,9 +96,9 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
   },[workId]);
   if (agentOnly || !works.length) return null;
   const jamiNormativ = works.reduce((s, o) => s + (normativ.get(o.id)?.length ?? 0), 0);
-  return <section aria-label={t('Ish koeffitsientlari')} className="karta space-y-2 p-2 text-[12.5px]">
+  return <section aria-label={t('Ish koeffitsientlari')} className="karta space-y-2 p-2 text-[12.5px] studio-koefs">
     <div className="flex flex-wrap items-center gap-2">
-      <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('Ish koeffitsientlari')}</strong>
+      {!workId && <strong className="fz-panel__h">{t('Ish koeffitsientlari')}</strong>}
       <span className="text-xs text-text-mute">{kat ? t('ШНК texnik qismidan {n} ta normativ koeffitsient shu smeta ishlariga tegishli. Qabul qilinmaguncha hisobga kirmaydi.', { n: jamiNormativ })
         : katXato ? t('Normativ koeffitsientlar ma’lumotnomasi ochilmadi.') : t('Normativ koeffitsientlar yuklanmoqda...')}</span>
     </div>
@@ -117,14 +118,17 @@ export function KoeffitsientlarPaneli({ doc, command, kompaniyaId, workId, sourc
           {(workId ? 2 : 0) < norm.length && <button type="button" className="text-[11px] underline" onClick={() => setOchiq(ochiq === o.id ? null : o.id)}>
             {ochiq === o.id ? t('Yopish') : t('Normativ koeffitsientlar ({n})', { n: norm.length })}</button>}
         </div>
-        {bor.map(k => <div key={k.id} className="mt-1 flex flex-wrap items-center gap-2">
-          <span className={k.accepted ? 'text-ok' : 'text-warn'}>{k.accepted ? '✓' : '•'}</span>
-          <span>{publicSource(k.name)} × <b>{k.value.replace('.', ',')}</b> ({k.scope})</span>
-          <span className="text-[11px] text-text-mute">{publicSource(k.evidence)}{k.origin === 'AI' ? ` · ${t('AI taklifi')}` : k.origin === 'NORM' ? ` · ${t('normativ')}` : ''}</span>
-          <span className="flex-1" />
-          <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => set(o.id, bor.map(x => x.id === k.id ? { ...x, accepted: !x.accepted } : x))}>
-            {k.accepted ? t('Bekor qilish') : t('Qabul qilish')}</button>
-          <button type="button" aria-label={t('Koeffitsientni olib tashlash')} className="text-xs text-text-mute hover:text-danger" onClick={() => set(o.id, bor.filter(x => x.id !== k.id))}>✕</button>
+        {bor.map(k => <div key={k.id} className="studio-koef">
+          <div className="studio-koef__top">
+            <span className={`fz-stamp ${k.accepted ? 'fz-stamp--ok' : 'fz-stamp--warn'}`}>{k.accepted ? t('Hisobda') : t('Taklif')}</span>
+            <span className="fz-chip fz-chip--accent" title={scopeMatn(k.scope)}>×{k.value.replace('.', ',')} <small>{k.scope === 'ALL' ? t('hammasi') : k.scope}</small></span>
+            <span className="flex-1" />
+            <button type="button" className="tugma h-6 px-2 text-[11px]" onClick={() => set(o.id, bor.map(x => x.id === k.id ? { ...x, accepted: !x.accepted } : x))}>
+              {k.accepted ? t('Bekor qilish') : t('Qabul qilish')}</button>
+            <button type="button" aria-label={t('Koeffitsientni olib tashlash')} className="text-xs text-text-mute hover:text-danger" onClick={() => set(o.id, bor.filter(x => x.id !== k.id))}>✕</button>
+          </div>
+          <span className="studio-koef__nom">{publicSource(k.name)}</span>
+          <span className="text-[11px] text-text-mute">{k.accepted ? scopeMatn(k.scope) : t('Qabul qilinmaguncha hisobga kirmaydi.')} · {publicSource(k.evidence)}{k.origin === 'AI' ? ` · ${t('AI taklifi')}` : k.origin === 'NORM' ? ` · ${t('normativ')}` : ''}</span>
         </div>)}
         {(workId || ochiq === o.id) && <ul className="mt-1 space-y-1 border-t border-border/60 pt-1">
           {(workId && ochiq !== o.id ? norm.slice(0, 2) : norm).map(n => <li key={n.kod} className="flex flex-wrap items-start gap-2 text-[11.5px]">

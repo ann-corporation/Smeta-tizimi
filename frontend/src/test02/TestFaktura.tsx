@@ -2,9 +2,12 @@ import { moveRow, RowOrderControls } from '../components/row-order/RowOrderContr
 import { useState, useEffect, useRef } from 'react';
 import { sbFakturalarOl, sbFakturaYoz, sbSkladgaYozish, sbT2ObyektlarOl, yangiOperationId, type T2Faktura, type T2Obyekt } from '../api/supabase';
 import { useFakturaAiParse } from '../api/hooks';
-import { FileText, CheckCircle2, PackagePlus, AlertCircle, Building2, FileUp, X, Save } from 'lucide-react';
+import { CheckCircle2, PackagePlus, AlertCircle, Building2, FileUp, X, Save } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
+import { t } from '../i18n/til';
+import { FmtN } from '../lib/format';
+import { Sahifa } from '../umumiy/ui/Sahifa';
 
 const invoiceRowKeys = new WeakMap<object, string>();
 function invoiceRowKey(row: object) { let key=invoiceRowKeys.get(row); if(!key){key=crypto.randomUUID();invoiceRowKeys.set(row,key);}return key; }
@@ -46,14 +49,14 @@ export default function TestFaktura() {
       if (r.ok) {
         setFakturalar(r.qatorlar || []);
       } else {
-        setXato(r.error || 'Xato yuz berdi');
+        setXato(r.error || t('Xato yuz berdi'));
       }
     });
   };
 
   const skladgaQabulQil = async (faktura: T2Faktura) => {
     if (!tanlanganObId) {
-      setXato('Obyekt tanlanmagan!');
+      setXato(t('Obyekt tanlanmagan!'));
       return;
     }
     
@@ -62,7 +65,7 @@ export default function TestFaktura() {
     
     try {
       if (!faktura.items || faktura.items.length === 0) {
-        setXato('Bu fakturada tovarlar ro\'yxati yo\'q. Skladga qabul qilib bo\'lmaydi.');
+        setXato(t('Bu fakturada tovarlar ro‘yxati yo‘q. Skladga qabul qilib bo‘lmaydi.'));
         setYuklanmoqda(false);
         return;
       }
@@ -85,7 +88,7 @@ export default function TestFaktura() {
 
       fakturalarniYukla();
       setOpId(yangiOperationId());
-      toast('Skladga muvaffaqiyatli qabul qilindi', 'ok');
+      toast(t('Skladga muvaffaqiyatli qabul qilindi'), 'ok');
     } catch (err: any) {
       setXato(err.message);
       toast(err.message, 'danger');
@@ -165,7 +168,7 @@ export default function TestFaktura() {
     try {
       const res = await sbFakturaYoz({ ...yangiFaktura, operation_id: yangiOperationId() });
       if (res.ok) {
-        toast('Faktura muvaffaqiyatli saqlandi', 'ok');
+        toast(t('Faktura muvaffaqiyatli saqlandi'), 'ok');
         setModalOchiq(false);
         setYangiFaktura(null);
         fakturalarniYukla();
@@ -179,181 +182,161 @@ export default function TestFaktura() {
     }
   };
 
+  const summaOl = (f: T2Faktura): number | null => { const x = Number(f.summa); return f.summa == null || !Number.isFinite(x) ? null : x; };
+  const qabul = fakturalar.filter((f) => f.holat === 'tasdiqlangan');
+  const kutil = fakturalar.filter((f) => f.holat !== 'tasdiqlangan');
+  const yig = (r: T2Faktura[]) => r.reduce((a, f) => a + (summaOl(f) ?? 0), 0);
+  const summasizSoni = fakturalar.filter((f) => summaOl(f) == null).length;
+  const jamiSumma = yig(fakturalar), qabulSumma = yig(qabul), kutilSumma = yig(kutil);
+  const kontragentlar = (() => {
+    const m = new Map<string, number>();
+    for (const f of fakturalar) m.set(f.kontragent || '—', (m.get(f.kontragent || '—') ?? 0) + (summaOl(f) ?? 0));
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  })();
+  const maxK = Math.max(1, ...kontragentlar.map(([, v]) => v));
+  const [filtr, setFiltr] = useState<'hammasi' | 'yangi' | 'qabul'>('hammasi');
+  const korinadi = fakturalar.filter((f) => filtr === 'hammasi' || (filtr === 'qabul') === (f.holat === 'tasdiqlangan'));
+  const FILTRLAR: Array<['hammasi' | 'yangi' | 'qabul', string]> = [['hammasi', t('Hammasi')], ['yangi', t('Kutilmoqda')], ['qabul', t('Qabul qilingan')]];
+
   return (
-    <div className="p-6 text-white h-full overflow-y-auto">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-sky-400 flex items-center gap-2">
-            <FileText className="text-sky-400" />
-            Fakturalar (PDF / Didox Integratsiyasi)
-          </h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            Fakturalarni sun'iy intellekt orqali o'qish va Skladga avto-kirim qilish
-          </p>
-        </div>
-        <button 
-          onClick={() => setModalOchiq(true)}
-          className="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-lg"
-        >
-          <FileUp size={18} /> Faktura Yuklash (AI)
-        </button>
-      </div>
+    <Sahifa sarlavha={t('Fakturalar')} tavsif={t('Fakturalarni sun‘iy intellekt orqali o‘qish va skladga avto-kirim qilish (PDF / Didox)')}
+      amallar={<button type="button" className="fz-btn fz-btn--primary" onClick={() => setModalOchiq(true)}><FileUp /> {t('Faktura yuklash (AI)')}</button>}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        {xato && <div role="alert" className="fz-note fz-note--danger"><AlertCircle /><span>{xato}</span></div>}
 
-      {xato && (
-        <div className="bg-red-500/20 text-red-300 p-3 rounded mb-4 flex items-center gap-2 border border-red-500/30">
-          <AlertCircle size={16} /> {xato}
-        </div>
-      )}
-
-      <div className="bg-[var(--surface-2)] border border-border rounded-lg p-4 mb-6 flex items-center gap-4">
-        <Building2 className="text-zinc-400" size={20} />
-        <span className="text-zinc-300">Qaysi obyekt skladiga qabul qilinadi:</span>
-        <select 
-          className="bg-black border border-border rounded p-1.5 text-sm w-64 focus:outline-none focus:border-sky-500"
-          value={tanlanganObId || ''}
-          onChange={e => setTanlanganObId(Number(e.target.value))}
-        >
-          {obyektlar.map(o => (
-            <option key={o.id} value={o.id}>{o.nom}</option>
-          ))}
-        </select>
-      </div>
-
-      {yuklanmoqda && <div className="text-sky-400 mb-4 animate-pulse">Yuklanmoqda...</div>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {fakturalar.map((f, i) => (
-          <div key={i} className="border border-border p-5 bg-[var(--surface-1)] rounded-lg shadow-xl relative overflow-hidden group">
-            {f.holat === 'tasdiqlangan' && (
-              <div className="absolute top-0 right-0 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-bl-lg text-xs font-bold border-b border-l border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle2 size={12} /> Qabul qilingan
-              </div>
-            )}
-            
-            <h2 className="font-bold text-lg mb-2 text-zinc-100 flex items-center gap-2">
-              № {f.raqam}
-            </h2>
-            
-            <div className="grid grid-cols-2 gap-2 text-sm text-zinc-400 mb-4">
-              <div><span className="text-zinc-500">Sana:</span> {f.sana}</div>
-              <div><span className="text-zinc-500">INN:</span> {f.inn}</div>
-              <div className="col-span-2"><span className="text-zinc-500">Kontragent:</span> <span className="text-amber-200/80">{f.kontragent}</span></div>
-              <div className="col-span-2"><span className="text-zinc-500">Summa:</span> <b className="text-emerald-400">{(Number(f.summa)).toLocaleString('ru-RU')} so'm</b></div>
-            </div>
-
-            <div className="bg-black/40 p-3 rounded border border-white/5 mb-4 max-h-[150px] overflow-y-auto custom-scrollbar">
-              <div className="text-xs text-zinc-500 mb-2 font-medium">Tarkibidagi tovarlar:</div>
-              {f.items && f.items.length > 0 ? (
-                <ul className="text-xs text-zinc-300 space-y-1">
-                  {f.items.map((item: any, idx: number) => (
-                    <li key={idx} className="flex justify-between border-b border-white/5 pb-1">
-                      <span className="truncate pr-2" title={item.nomi}>{item.nomi}</span>
-                      <span className="text-sky-400 font-mono shrink-0 whitespace-nowrap">{item.miqdori || item.obyomi} {item.birligi}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-xs text-zinc-600 italic">Tovarlar ro'yxati kelmagan</div>
-              )}
-            </div>
-
-            {f.holat === 'yangi' && (
-              <button 
-                onClick={() => skladgaQabulQil(f)}
-                disabled={yuklanmoqda}
-                className="w-full bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-600/50 py-2 rounded-lg flex items-center justify-center gap-2 transition-all font-medium disabled:opacity-50"
-              >
-                <PackagePlus size={18} />
-                Skladga Kirim Qilish
-              </button>
-            )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <Building2 size={18} style={{ color: 'var(--text-mute)' }} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--text-dim)' }}>{t('Qaysi obyekt skladiga qabul qilinadi')}:</span>
+            <select className="input" style={{ height: 'var(--control-md)', padding: '0 8px', minWidth: 240 }} value={tanlanganObId || ''} onChange={e => setTanlanganObId(Number(e.target.value))}>
+              {obyektlar.map(o => <option key={o.id} value={o.id}>{o.nom}</option>)}
+            </select>
+          </label>
+          <span style={{ flex: 1 }} />
+          <div role="group" aria-label={t('Holat bo‘yicha filtr')} style={{ display: 'flex', gap: 4 }}>
+            {FILTRLAR.map(([k, nom]) => <button key={k} type="button" aria-pressed={filtr === k} className={'fz-btn fz-btn--sm' + (filtr === k ? '' : ' fz-btn--ghost')} style={filtr === k ? { borderColor: 'var(--accent)', background: 'var(--accent-soft)' } : undefined} onClick={() => setFiltr(k)}>{nom}</button>)}
           </div>
-        ))}
-        {fakturalar.length === 0 && !yuklanmoqda && (
-          <div className="col-span-full text-center text-zinc-500 py-10 border border-dashed border-border rounded-lg bg-[var(--surface-1)]">
-            Hozircha fakturalar yo'q. EHF (PDF) fayllarni yuklang.
+        </div>
+
+        {yuklanmoqda && <p role="status" style={{ margin: 0, color: 'var(--text-dim)' }}>{t('Yuklanmoqda…')}</p>}
+
+        {fakturalar.length > 0 && (
+          <section className="fz-card" aria-label={t('Fakturalar ko‘rsatkichlari')}>
+            <div className="fz-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div className="fz-kpis">
+                <div className="fz-kpi"><span className="fz-kpi__label">{t('Jami fakturalar')}</span><span className="fz-kpi__value">{fakturalar.length}</span><span className="fz-kpi__sub">{t('summasi noma’lum: {n}', { n: summasizSoni })}</span></div>
+                <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--border-strong)' }} />{t('Jami summa')}</span><span className="fz-kpi__value"><FmtN val={jamiSumma} /></span><span className="fz-kpi__sub">{t('so‘m')}</span></div>
+                <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--warn)' }} />{t('Kutilmoqda (skladga kirim qilinmagan)')}</span><span className="fz-kpi__value"><FmtN val={kutilSumma} /></span><span className="fz-kpi__sub">{t('{n} ta faktura', { n: kutil.length })}</span></div>
+                <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--ok)' }} />{t('Qabul qilingan')}</span><span className="fz-kpi__value"><FmtN val={qabulSumma} /></span><span className="fz-kpi__sub">{t('{n} ta faktura', { n: qabul.length })}</span></div>
+              </div>
+              <div>
+                <div className="fz-panel__h" style={{ marginBottom: 6 }}><span>{t('Qabul qilingan va kutilayotgan ulushi')}</span><span>{jamiSumma > 0 ? `${Math.round((qabulSumma / jamiSumma) * 100)}%` : '—'}</span></div>
+                <div className="fz-split" role="img" aria-label={t('Qabul qilingan va kutilayotgan fakturalar ulushi')}>
+                  <i style={{ width: `${jamiSumma > 0 ? (qabulSumma / jamiSumma) * 100 : 0}%`, background: 'var(--ok)' }} />
+                  <i style={{ width: `${jamiSumma > 0 ? (kutilSumma / jamiSumma) * 100 : 0}%`, background: 'var(--warn)' }} />
+                </div>
+              </div>
+              <div>
+                <div className="fz-panel__h" style={{ marginBottom: 6 }}><span>{t('Kontragentlar bo‘yicha (eng katta 5)')}</span></div>
+                <div className="fz-bars">
+                  {kontragentlar.map(([nom, v]) => (
+                    <div key={nom} className="fz-bars__q"><span title={nom}>{nom}</span><b><FmtN val={v} /></b><i style={{ ['--w' as string]: `${(v / maxK) * 100}%` }} /></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 'var(--space-4)' }}>
+          {korinadi.map((f, i) => {
+            const qabulQilingan = f.holat === 'tasdiqlangan';
+            const sm = summaOl(f);
+            return (
+              <article key={i} className="fz-card" style={{ position: 'relative' }}>
+                <div className="fz-card__head">
+                  <h2 className="fz-card__title">№ {f.raqam}</h2>
+                  <span className={'fz-stamp ' + (qabulQilingan ? 'fz-stamp--ok' : 'fz-stamp--warn')}>{qabulQilingan ? <><CheckCircle2 size={12} /> {t('Qabul qilingan')}</> : t('Yangi')}</span>
+                </div>
+                <div className="fz-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  <div className="fz-doc__meta" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
+                    <span>{t('Sana')}: <b>{f.sana || '—'}</b></span>
+                    <span>{t('INN')}: <b className="font-mono">{f.inn || '—'}</b></span>
+                    <span style={{ gridColumn: '1 / -1' }}>{t('Kontragent')}: <b>{f.kontragent || '—'}</b></span>
+                  </div>
+                  <div className="fz-kpi"><span className="fz-kpi__label">{t('Summa')}</span><span className="fz-kpi__value">{sm == null ? '—' : <><FmtN val={sm} /> <small style={{ fontSize: 12, color: 'var(--text-mute)' }}>{t('so‘m')}</small></>}</span></div>
+                  <div className="fz-table-wrap" style={{ maxHeight: 150 }}>
+                    {f.items && f.items.length > 0 ? (
+                      <table className="fz-table"><thead><tr><th>{t('Tovar')}</th><th style={{ textAlign: 'right' }}>{t('Miqdor')}</th></tr></thead>
+                        <tbody>{f.items.map((item: any, idx: number) => (
+                          <tr key={idx}><td title={item.nomi} style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.nomi}</td>
+                            <td className="fz-c-num">{item.miqdori || item.obyomi || '—'} {item.birligi}</td></tr>
+                        ))}</tbody></table>
+                    ) : <p style={{ margin: 8, color: 'var(--text-mute)' }}>{t('Tovarlar ro‘yxati kelmagan')}</p>}
+                  </div>
+                  {f.holat === 'yangi' && (
+                    <button type="button" onClick={() => skladgaQabulQil(f)} disabled={yuklanmoqda} className="fz-btn fz-btn--primary" style={{ width: '100%' }}>
+                      <PackagePlus /> {t('Skladga kirim qilish')}
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+          {korinadi.length === 0 && !yuklanmoqda && (
+            <div className="fz-note fz-note--info" style={{ gridColumn: '1 / -1' }}><span>{t('Hozircha fakturalar yo‘q. EHF (PDF) fayllarni yuklang.')}</span></div>
+          )}
+        </div>
+
+        {modalOchiq && (
+          <div role="dialog" aria-modal="true" aria-label={t('AI orqali PDF o‘qish')} style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'color-mix(in srgb, var(--bg) 70%, transparent)' }}>
+            <div className="fz-card" style={{ width: '100%', maxWidth: 760, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-pop)' }}>
+              <div className="fz-card__head">
+                <h2 className="fz-card__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FileUp size={18} />{t('AI orqali PDF o‘qish')}</h2>
+                <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon" aria-label={t('Yopish')} onClick={() => setModalOchiq(false)}><X /></button>
+              </div>
+              <div className="fz-card__body" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                {!yangiFaktura ? (
+                  <div style={{ border: '2px dashed var(--border-strong)', borderRadius: 'var(--radius-md)', padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center', cursor: 'pointer' }} onClick={() => !isParsing && fileInputRef.current?.click()}>
+                    <input type="file" accept=".pdf, image/png, image/jpeg, image/jpg" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                    <FileUp size={32} style={{ color: 'var(--accent-text)' }} />
+                    <div><h3 style={{ margin: 0, font: '600 15px/22px var(--font-display)' }}>{t('PDF hujjat tanlang')}</h3>
+                      <p style={{ margin: 0, color: 'var(--text-dim)' }}>{t('Faktura PDF faylini yuklang, AI o‘zi o‘qiydi')}</p></div>
+                    <button type="button" disabled={isParsing} className="fz-btn fz-btn--primary">{isParsing ? t('O‘qilmoqda…') : t('Fayl tanlash')}</button>
+                    {parsingStatus && <div role="status" style={{ color: 'var(--accent-text)' }}>{parsingStatus}</div>}
+                  </div>
+                ) : (
+                  <>
+                    <div className="fz-panel" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="fz-kpi"><span className="fz-kpi__label">{t('Faktura №')}</span><b>{yangiFaktura.raqam}</b></div>
+                      <div className="fz-kpi"><span className="fz-kpi__label">{t('Sana')}</span><b>{yangiFaktura.sana}</b></div>
+                      <div className="fz-kpi" style={{ gridColumn: '1 / -1' }}><span className="fz-kpi__label">{t('Kontragent')}</span><b>{yangiFaktura.kontragent}</b></div>
+                      <div className="fz-kpi"><span className="fz-kpi__label">{t('INN')}</span><b className="font-mono">{yangiFaktura.inn || '—'}</b></div>
+                      <div className="fz-kpi"><span className="fz-kpi__label">{t('Jami summa')}</span><b>{summaOl(yangiFaktura) == null ? '—' : <><FmtN val={summaOl(yangiFaktura)} /> {t('so‘m')}</>}</b></div>
+                    </div>
+                    <div>
+                      <h3 className="fz-panel__h" style={{ marginBottom: 8 }}>{t('O‘qilgan tovarlar')} ({yangiFaktura.items?.length})</h3>
+                      <div style={{ maxHeight: '30vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {yangiFaktura.items?.map((it, idx) => (
+                          <div key={invoiceRowKey(it)} className="fz-panel" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: '6px 10px' }}>
+                            <RowOrderControls disabled={yuklanmoqda} index={idx} count={yangiFaktura.items?.length ?? 0} label={it.nomi} onMove={to=>setYangiFaktura(current=>current ? {...current, items:moveRow(current.items ?? [],idx,to)} : current)} />
+                            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={it.nomi}>{it.nomi}</span>
+                            <span className="fz-chip font-mono">{it.miqdori} {it.birligi} × {it.narxi == null ? '—' : it.narxi.toLocaleString('ru-RU')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                      <button type="button" className="fz-btn" onClick={() => setYangiFaktura(null)}>{t('Bekor qilish')}</button>
+                      <button type="button" className="fz-btn fz-btn--primary" onClick={handleYangiFakturaSaqlash} disabled={yuklanmoqda}><Save /> {t('Tizimga saqlash')}</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {/* AI Parse Modal */}
-      {modalOchiq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="flex w-full max-w-3xl flex-col shadow-2xl border border-white/10 relative overflow-hidden bg-[#12121a] rounded-xl max-h-[90vh]">
-            <div className="flex items-center justify-between border-b border-white/10 bg-black/40 p-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <FileUp className="text-sky-400" size={20} />
-                AI orqali PDF o'qish
-              </h2>
-              <button onClick={() => setModalOchiq(false)} className="text-zinc-400 hover:text-white transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 flex flex-col gap-4 overflow-y-auto">
-              {!yangiFaktura ? (
-                <div className="border-2 border-dashed border-white/20 rounded-xl p-12 flex flex-col items-center justify-center text-center gap-4 hover:bg-white/5 transition-colors cursor-pointer" onClick={() => !isParsing && fileInputRef.current?.click()}>
-                  <input 
-                    type="file" 
-                    accept=".pdf, image/png, image/jpeg, image/jpg"
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    onChange={handleFileUpload} 
-                  />
-                  <div className="w-16 h-16 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400">
-                    <FileUp size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-white mb-1">PDF Hujjat tanlang</h3>
-                    <p className="text-sm text-zinc-400">Faktura PDF faylini yuklang, AI o'zi o'qiydi</p>
-                  </div>
-                  <button 
-                    disabled={isParsing}
-                    className="bg-sky-600 hover:bg-sky-500 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50 mt-2"
-                  >
-                    {isParsing ? 'O\'qilmoqda...' : 'Fayl tanlash'}
-                  </button>
-                  {parsingStatus && <div className="text-sky-400 text-sm mt-2 animate-pulse">{parsingStatus}</div>}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-2 gap-4 bg-black/30 p-4 rounded-lg border border-white/5">
-                    <div><span className="text-zinc-500 text-xs">Faktura №:</span> <p className="font-bold">{yangiFaktura.raqam}</p></div>
-                    <div><span className="text-zinc-500 text-xs">Sana:</span> <p className="font-bold">{yangiFaktura.sana}</p></div>
-                    <div className="col-span-2"><span className="text-zinc-500 text-xs">Kontragent:</span> <p className="font-bold text-amber-200">{yangiFaktura.kontragent}</p></div>
-                    <div><span className="text-zinc-500 text-xs">INN:</span> <p className="font-mono">{yangiFaktura.inn}</p></div>
-                    <div><span className="text-zinc-500 text-xs">Jami Summa:</span> <p className="font-bold text-emerald-400">{(yangiFaktura.summa).toLocaleString('ru-RU')} so'm</p></div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-300 mb-2 border-b border-white/10 pb-2">O'qilgan Tovarlar ({yangiFaktura.items?.length})</h3>
-                    <div className="max-h-[30vh] overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                      {yangiFaktura.items?.map((it, idx) => (
-                        <div key={invoiceRowKey(it)} className="bg-white/5 p-2 rounded flex items-center justify-between gap-4 border border-transparent hover:border-white/10">
-                          <RowOrderControls disabled={yuklanmoqda} index={idx} count={yangiFaktura.items?.length ?? 0} label={it.nomi} onMove={to=>setYangiFaktura(current=>current ? {...current, items:moveRow(current.items ?? [],idx,to)} : current)} /><span className="text-sm font-medium flex-1 truncate" title={it.nomi}>{it.nomi}</span>
-                          <span className="text-xs bg-black/40 px-2 py-1 rounded text-sky-300 font-mono">
-                            {it.miqdori} {it.birligi} x {it.narxi?.toLocaleString('ru-RU')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-white/10">
-                    <button onClick={() => setYangiFaktura(null)} className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors">
-                      Bekor qilish
-                    </button>
-                    <button onClick={handleYangiFakturaSaqlash} disabled={yuklanmoqda} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium flex items-center gap-2 transition-colors disabled:opacity-50">
-                      <Save size={18} />
-                      Tizimga Saqlash
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </Sahifa>
   );
 }

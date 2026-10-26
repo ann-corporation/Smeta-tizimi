@@ -72,13 +72,13 @@ export function AiFikrPanel({ kompaniyaId, sahifa }: { kompaniyaId: number | und
         className="w-full rounded-lg border border-border bg-surface px-3 py-2 focus:outline-none focus:border-accent"
       />
       <div className="flex items-center gap-2">
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-white/5">
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs hover:bg-surface-3">
           <Paperclip size={14} /> {t('Skrinshot')}
           <input type="file" accept={RASM_TURLARI.join(',')} className="hidden" aria-label={t('Skrinshot')} onChange={(e) => rasmTanla(e.target.files?.[0])} />
         </label>
         {rasm && <span className="truncate text-xs text-text-dim">{rasm.name}</span>}
         <button type="button" disabled={band || matn.trim().length < 3} onClick={() => void yubor()}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-white disabled:opacity-50">
+          className="fz-btn fz-btn--primary fz-btn--sm ml-auto">
           <Send size={14} /> {band ? t('Yuborilmoqda…') : t('Yuborish')}
         </button>
       </div>

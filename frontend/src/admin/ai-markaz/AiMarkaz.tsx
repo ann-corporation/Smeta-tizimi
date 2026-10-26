@@ -42,7 +42,7 @@ export function AiMarkaz({ kompaniyalar }: { kompaniyalar: Array<{ id: number; n
           <button key={id} type="button" aria-pressed={bolim === id} onClick={() => setBolim(id)}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] ${bolim === id ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:text-text'}`}>
             <Ikonka size={14} />{t(nom)}
-            {(nishon[id] ?? 0) > 0 && <span className="rounded-full bg-accent px-1.5 text-[10px] text-white" aria-label={`${nishon[id]}`}>{nishon[id]}</span>}
+            {(nishon[id] ?? 0) > 0 && <span className="rounded-full bg-accent px-1.5 text-[10px] text-[var(--on-accent)]" aria-label={`${nishon[id]}`}>{nishon[id]}</span>}
           </button>
         ))}
       </nav>

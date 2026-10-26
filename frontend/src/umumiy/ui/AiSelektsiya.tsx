@@ -49,7 +49,7 @@ export function AiSelektsiya() {
   return (
     <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={sora} data-testid="ai-selektsiya"
       style={{ position: 'fixed', left: joy.x, top: joy.y, zIndex: 60 }}
-      className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-white shadow-lg hover:bg-accent/90">
+      className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-[var(--on-accent)] shadow-lg hover:brightness-110">
       <Sparkles size={12} /> {t('AI: tushuntir')}
     </button>
   );
