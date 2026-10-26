@@ -18,7 +18,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
-      "note": "QA-only, final mailbox07. Exact1437acb69f7 and144c5965290 independent5PASS +32/37 regressions; marker15417f3f1f2 strengthened2PASS+13; MCP15517703bbb7PASS+43/1skip,TS/build/stdioPASS; design1501e418514NULL fix3PASS+9; sidebar15327ebb87e45PASS. Design previous115dad89 full3429PASS/20skip, normal gatesPASS, governanceFAIL ownership overlaps. Design/sidebar merge4content conflicts. JQA01/02 remain baseline contracts. Architecture PR156 separate docs-only. Claude returns15:00 per owner; L0 owns integration/release. No runtime/DB/main/Cloudflare writes."
+      "note": "Mailbox08 supersedes07 for current status. Source scope maina4fe8b65: postmergeMCP7PASS/marker2PASS/Qamrov5PASS; sidebar153deb85b44 independent7PASS+38regression. Separate fixes:161a65e7c25 JQA01/02;1621195c155 windowing;160dee64acb reviewed lifecycle. PR157 source+live function-definitionSELECT findsP1 client quantity trust; signed negative known-money oracle FAIL retained.25kexact Node bijectionPASS159.6ms, notproductionperformance. No writer/DDL/main promotion. Old integration sandbox is not a release path. Historical main governance23overlaps remain L0 coordination. Runtime owners retained."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",

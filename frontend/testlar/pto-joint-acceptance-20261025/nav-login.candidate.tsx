@@ -5,7 +5,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 
 const m = vi.hoisted(() => ({ invite: null as string | null, share: null as string | null }));
 vi.mock('../../src/components/public-entry/PublicEntry', () => ({ PublicEntry: ({ children }: { children: ReactNode }) => <>{children}</> }));
-vi.mock('framer-motion', () => ({ motion: { div: ({ children }: { children: ReactNode }) => <div>{children}</div> }, AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</> }));
+vi.mock('framer-motion', () => ({ motion: { div: ({ children }: { children: ReactNode }) => <div>{children}</div>, span: ({ children }: { children: ReactNode }) => <span>{children}</span> }, AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</> }));
 vi.mock('../../src/i18n/TilTanlagich', () => ({ TilTanlagich: () => null }));
 vi.mock('../../src/i18n/til', () => ({ t: (s: string) => s }));
 vi.mock('../../src/umumiy/ui/Toast', () => ({ toast: vi.fn() }));

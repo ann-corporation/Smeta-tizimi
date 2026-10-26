@@ -1,3 +1,7 @@
+## 26.10.2026 вечер — актуальный receipt08
+
+Post-merge maina4fe: MCP7/marker2/Qamrov5PASS; sidebar153deb85:7+38PASS. Узкие PR160(dee64acb),161(a65e7c25),162(1195c155) опубликованы. Новые #157 P1 source-trust и P2 signed-money regression переданыL0; writer/DDL не вызывались. Главное: ops/mailbox/PTO-JOINT-QA-20261025/08-codex@Anvar-postmerge-narrow-prs.md. Старый integration sandbox не release path; main23ownership overlaps сохраняются. Архитектурный snapshot остаётся d7bf/06:19,11manual overrides не означают новый live inventory.
+
 # PTO-JOINT-QA-20261025 — независимая приёмка для Claude L0
 
 OWNER: Codex@Anvar. REPO: ann-corporation/Smeta-tizimi. BASE:8b1eb8946dcb5b171db9af5a014d7e031dece585. BRANCH:codex/pto-joint-qa-20261025.
