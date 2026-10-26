@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 18,
+      "id": 19,
       "sana": "2026-10-26",
       "sarlavha": "Chap menyu: ish, kompaniya va platforma ajratildi",
       "bandlar": [
@@ -11,6 +11,16 @@
         "«Fakt kiritish» menyuga qo'shildi (usta, brigadir, prorab, PTO).",
         "Platforma boshqaruvi, sayt xaritasi va sinov yo'llari endi faqat platforma superadminiga ko'rinadi; kompaniya rahbari ularni ko'rmaydi.",
         "Har rol faqat o'z ishiga oid bandni ko'radi: usta, omborchi, haydovchi va buyurtmachiga «AI ishchilar», «Korzinka», «Sayt xaritasi», nakrutka va narx manbalari ko'rinmaydi."
+      ]
+    },
+    {
+      "id": 18,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt jurnali: ish ichidagi materiallar ham ergashadi",
+      "bandlar": [
+        "Ishga fakt kiritsangiz, uning ICHIDAGI material/uskuna qatorlarida ham xira «taklif: +X» chiqadi — ish qancha foiz bajarilgan bo'lsa, material ham shu ulushda (zamena va «bajarilmaydi» qismi ayrilgan).",
+        "Ish qatoridagi «Materiallarni ham olish (n)» endi ichidagi va undan keyingi alohida materiallarni birga oladi — bitta bosish, so'ng Ctrl+S. Taklifni bosib bittalab ham olish mumkin.",
+        "Hech narsa o'zi yozilmaydi: taklif faqat kiritmaga tushadi, saqlashni o'zingiz qilasiz."
       ]
     },
     {

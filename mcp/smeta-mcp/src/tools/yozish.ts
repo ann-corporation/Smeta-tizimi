@@ -4,9 +4,9 @@
  */
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import type { Mijoz } from '../db';
+import { bittaSorov, type Mijoz } from '../db';
 import { qatorTozala } from '../format';
-import { FUNKSIYA_TAVSIF_SQL, funksiyaTavsifQatori, identifikator, overloadTanla, qoshishSorovi, rpcSorovi, USTUN_TURLARI_SQL, yangilashSorovi, type FunksiyaTavsif } from '../sql';
+import { FUNKSIYA_TAVSIF_SQL, funksiyaTavsifQatori, identifikator, overloadTanla, qoshishSorovi, rpcSorovi, tranzaksiyaBuyrugi, USTUN_TURLARI_SQL, yangilashSorovi, type FunksiyaTavsif } from '../sql';
 import { dryRun, obyektIdS, tool } from '../tool';
 
 /** RPC argumentlaridan obyektni aniqlash (snapshot uchun). */
@@ -81,11 +81,14 @@ export const rpc = tool({
 export const sqlYozish = tool({
   nom: 'sql_yozish',
   tavsif: 'Istalgan DML/DDL (INSERT/UPDATE/DELETE/CREATE/ALTER …). `obyekt_id` berilsa — avval snapshot. Natija: ta\'sirlangan qatorlar soni va RETURNING qatorlari (≤200). '
-    + 'Parametrli so\'rov bitta statement bo\'lishi kerak; parametrsiz — bir nechta statement ham mumkin. dry_run — ROLLBACK.',
+    + 'Parametrli so\'rov bitta statement bo\'lishi kerak; parametrsiz — bir nechta statement ham mumkin (dry_run\'da emas). '
+    + 'dry_run — faqat BITTA buyruq, tranzaksiya buyrug\'i (COMMIT/BEGIN/ROLLBACK…) rad etiladi, oxirida ROLLBACK. '
+    + 'Har holda so\'rov MCP tranzaksiyasi chegarasini buzsa — xato qaytadi.',
   kirish: { sql: z.string().min(1), params: z.array(z.any()).optional(), obyekt_id: obyektIdS.optional(), dry_run: dryRun },
   yozadi: true,
   bajar: async (a, mu) => mu.yozish({ tool: 'sql_yozish', args: a, dryRun: a.dry_run, obyektId: a.obyekt_id ?? null }, async (m) => {
-    const r = await m.query(a.sql, a.params ?? []);
+    // dry_run: «bazaga yozilmadi» va'dasi qat'iy bo'lishi uchun bitta buyruq (MCP-QA-01).
+    const r = a.dry_run ? await bittaSorov(m, a.sql, a.params, tranzaksiyaBuyrugi) : await m.query(a.sql, a.params ?? []);
     const natijalar = (Array.isArray(r) ? r : [r]) as Array<{ command?: string; rowCount: number | null; rows: Record<string, unknown>[] }>;
     return natijalar.map((x) => ({ buyruq: x.command ?? null, tasirlangan: x.rowCount, qatorlar: x.rows.slice(0, 200).map(qatorTozala), ...(x.rows.length > 200 ? { qolgan: x.rows.length - 200 } : {}) }));
   }),

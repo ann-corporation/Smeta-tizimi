@@ -1,7 +1,8 @@
 /** Umumiy o'qish: sql_oqish, sxema, aktor, aktor_tanla. */
 import { z } from 'zod';
 import { markdownJadval, qatorTozala } from '../format';
-import { oqishSorovi, sanoqSorovi } from '../sql';
+import { bittaSorov } from '../db';
+import { oqishSorovi, sanoqSorovi, tranzaksiyaBuyrugi } from '../sql';
 import { tool } from '../tool';
 
 export const sqlOqish = tool({
@@ -20,14 +21,14 @@ export const sqlOqish = tool({
   bajar: async (a, mu) => mu.oqish(async (m) => {
     const limit = a.limit ?? 200, offset = a.offset ?? 0;
     const q = oqishSorovi(a.sql, limit, offset);
-    const r = await m.query(q.sql, a.params ?? []);
+    const r = await bittaSorov(m, q.sql, a.params, tranzaksiyaBuyrugi);
     const barcha = (Array.isArray(r) ? (r as Array<{ rows: Record<string, unknown>[] }>).at(-1)?.rows ?? [] : r.rows).map(qatorTozala);
     const yanaBor = barcha.length > limit;
     const qatorlar = barcha.slice(0, limit);
     let jami: number | undefined;
     if (a.jami) {
       const s = sanoqSorovi(a.sql);
-      if (s) jami = Number((await m.query<{ jami: number }>(s, a.params ?? [])).rows[0]?.jami ?? 0);
+      if (s) jami = Number((await bittaSorov<{ jami: number }>(m, s, a.params, tranzaksiyaBuyrugi)).rows[0]?.jami ?? 0);
       else jami = barcha.length;
     }
     if (a.format === 'jadval') {
