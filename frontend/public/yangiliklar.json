@@ -2,6 +2,38 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 20,
+      "sana": "2026-10-26",
+      "sarlavha": "Yangi dizayn «Firuza» — butun tizim",
+      "bandlar": [
+        "Butun tizim yangi ko'rinishda: aniqroq shrift, ranglar va kartalar. Hisob-kitob va funksiyalar o'zgarmagan.",
+        "Smeta sahifasida «anatomiya»: jami, bo'limlar va bajarilish bir qarashda; noma'lum summa «—» bo'lib ko'rinadi (0 emas).",
+        "F2 hujjati, Nakopitelniy, Fakt va rahbar paneli grafiklar va o'lchagichlar bilan; tasdiqlash oynalari yangilandi.",
+        "O'ng yuqori burchakda «Akkaunt markazi»: profil, xavfsizlik va kirish usullari bitta joyda."
+      ]
+    },
+    {
+      "id": 19,
+      "sana": "2026-10-26",
+      "sarlavha": "Smeta va Fakt / LRV: «Versiyalar va farq» — ekspertizagacha smeta bilan solishtirish va da'vo ro'yxati",
+      "bandlar": [
+        "Obyekt sahifasida yangi «Versiyalar va farq» tabi: boshqa smeta versiyasining LRV fayl(lar)ini yuklang (masalan ekspertizaga topshirilgan, ekspertizagacha). Joriy smeta o'zgarmaydi — versiya faqat solishtirish uchun saqlanadi.",
+        "Tizim har pozitsiyani joriy smeta bilan moslaydi: o'zgarmagan, kamaygan, oshgan, almashtirilgan (zamena), o'chirilgan, yangi va noaniq (ishonch % bilan). Bo'limlar bo'yicha eski / joriy / kesilgan / oshgan summalar — ustamasiz va ustamali.",
+        "Noaniq mosliklarni «Mos» / «Mos emas» bilan tasdiqlang; kesilgan pozitsiyalar bo'yicha qaror qo'ying: qurilgan, qurilmagan yoki qisman (qurilgan hajmni kiriting). Klaviatura: H, Y, Q, T, R, ↑/↓, Ctrl+S.",
+        "Ekspertiza kesgan, lekin qurilgan hajm avtomatik minus qilinmaydi — «da'vo» sifatida alohida hisoblanadi. «Da'vo ro'yxati (Excel)» — rasmiy hujjat (rus tilida, NDS faqat oxirida)."
+      ]
+    },
+    {
+      "id": 18,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt jurnali: ish ichidagi materiallar ham ergashadi",
+      "bandlar": [
+        "Ishga fakt kiritsangiz, uning ICHIDAGI material/uskuna qatorlarida ham xira «taklif: +X» chiqadi — ish qancha foiz bajarilgan bo'lsa, material ham shu ulushda (zamena va «bajarilmaydi» qismi ayrilgan).",
+        "Ish qatoridagi «Materiallarni ham olish (n)» endi ichidagi va undan keyingi alohida materiallarni birga oladi — bitta bosish, so'ng Ctrl+S. Taklifni bosib bittalab ham olish mumkin.",
+        "Hech narsa o'zi yozilmaydi: taklif faqat kiritmaga tushadi, saqlashni o'zingiz qilasiz."
+      ]
+    },
+    {
       "id": 17,
       "sana": "2026-10-25",
       "sarlavha": "Fakt jurnali: «Qamrov %» — bo'limni bitta foiz bilan tiklash",

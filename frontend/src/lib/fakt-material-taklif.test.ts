@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ishKeyingiMateriallari, materialTaklifi } from './fakt-material-taklif';
+import { ishKeyingiMateriallari, ishMateriallari, materialTaklifi } from './fakt-material-taklif';
 
 const r = (id: number, ota_id: number | null, tur: string, tartib: number, o: Record<string, unknown> = {}) => ({ id, ota_id, tur, tartib, ...o });
 
@@ -23,6 +23,23 @@ describe('ish → keyingi alohida materiallar (Yo‘l 2,5 km)', () => {
   it('qo‘shimcha/zamena qatorlar zanjirni buzmaydi va bog‘lanmaydi', () => {
     const rows = [r(1, null, 'rz', 1), r(2, 1, 'bl', 2), r(3, 1, 'bl', 3, { zamena: true }), r(4, 1, 'mat', 4), r(5, 1, 'mat', 5, { qoshimcha: true })];
     expect(ishKeyingiMateriallari(rows).get(2)).toEqual([4]);
+  });
+
+  it('ish ichidagi mat/ob bolalari ham ergashadi (rs orqali ham); boshqa ish/qo‘shimcha/zamena orqali emas; avval ichkilar', () => {
+    const rows = [
+      r(1, null, 'rz', 1),
+      r(3, 1, 'bl', 2), r(31, 3, 'mat', 3), r(32, 3, 'rs', 4), r(321, 32, 'ob', 5), r(33, 3, 'rs', 6), r(34, 3, 'mat', 7, { zamena: true }),
+      r(4, 1, 'mat', 8),                       // ishdan keyingi alohida
+      r(5, 1, 'bl', 9, { qoshimcha: true }), r(51, 5, 'mat', 10),
+    ];
+    const m = ishMateriallari(rows);
+    expect(m.get(3)).toEqual([31, 321, 4]);
+    expect(m.has(5)).toBe(false);
+  });
+
+  it('taklif asosi: material smetasidan zamena/bajarilmaydi qismi ayriladi', () => {
+    expect(materialTaklifi(50, 100, 40, 0, 10)).toBe(15);
+    expect(materialTaklifi(50, 100, 40, 0, 40)).toBeNull();
   });
 
   it('taklif = ish ulushi × material smetasi − material fakti; noma‘lum/chegirma/to‘liq — null', () => {

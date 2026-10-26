@@ -22,7 +22,7 @@ import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalPaket, jurnalQur,
 import { zamenaBoglanishOl } from '../../lib/fakt-zamena-boglanish';
 import { almashtirildiMatn, ochiqdanOrtiqcha, ochiqQoldiq } from '../../lib/zamena-qoldiq';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
-import { ishKeyingiMateriallari, materialTaklifi } from '../../lib/fakt-material-taklif';
+import { ishMateriallari, materialTaklifi } from '../../lib/fakt-material-taklif';
 import { toast } from '../../umumiy/ui/Toast';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
 import { abcXato, ishAbcOchir, type NarxManba } from '../../api/t2-ish-abc';
@@ -149,9 +149,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const { bolimlar, bolimIshlari } = useMemo(() => jurnalQur(rows, states, zb, bajHajm), [rows, states, zb, bajHajm]);
   const summalar = useMemo(() => bolimSummalari(rows, states), [rows, states]);
   // Ishdan KEYIN turgan alohida materiallar (ota = bo'lim) — ish ulushida fakt TAKLIFI (avtomatik yozilmaydi).
-  const keyingiMat = useMemo(() => ishKeyingiMateriallari(rows), [rows]);
+  // Ish ichidagi mat/ob bolalari va ishdan keyingi alohida mat/ob — ish ulushida TAKLIF (ergashish qoidasi; avtomatik yozilmaydi).
+  const keyingiMat = useMemo(() => ishMateriallari(rows), [rows]);
   const matIshi = useMemo(() => { const m = new Map<number, number>(); for (const [ish, ms] of keyingiMat) for (const x of ms) m.set(x, ish); return m; }, [keyingiMat]);
   const jurnalById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of bolimIshlari.values()) for (const x of arr) m.set(x.id, x); return m; }, [bolimIshlari]);
+  /** Barcha jurnal qatorlari (ishlar va ularning resurslari). */
+  const barchaById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of bolimIshlari.values()) for (const x of arr) { m.set(x.id, x); for (const r of x.resurslar) m.set(r.id, r); } return m; }, [bolimIshlari]);
   const faktlar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, Number(x.fakt_hajm ?? 0)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? 0])); }, [rows, states]);
   useEffect(() => { if (bolimId == null && bolimlar.length) setBolimId(bolimlar[0].id); }, [bolimId, bolimlar]);
 
@@ -225,11 +228,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     const k = kiritmalar[q.id]; const n = k ? sonOqi(k.qiymat) : null;
     return n == null || !Number.isFinite(n) ? q.fakt : k!.rejim === '+' ? q.fakt + n : n;
   };
-  /** Alohida material uchun taklif (ish ulushida), yoki null. */
+  /** Ishga ergashadigan material (ichki yoki alohida) uchun taklif (ish ulushida; zamena/bajarilmaydi qismi ayrilgan), yoki null. */
   const matTaklifi = (matId: number): { ish: JurnalQator; hajm: number } | null => {
-    const ishId = matIshi.get(matId); const ish = ishId != null ? jurnalById.get(ishId) : undefined; const m = jurnalById.get(matId);
+    const ishId = matIshi.get(matId); const ish = ishId != null ? jurnalById.get(ishId) : undefined; const m = barchaById.get(matId);
     if (!ish || !m) return null;
-    const h = materialTaklifi(samaraliFakt(ish), ish.smeta, m.smeta, m.fakt);
+    const h = materialTaklifi(samaraliFakt(ish), ish.smeta, m.smeta, m.fakt, (m.almashtirilgan ?? 0) + (m.bajarilmaydi ?? 0));
     return h == null ? null : { ish, hajm: h };
   };
   /** Ish(lar)ning keyingi alohida materiallariga taklifni KIRITMAGA oladi (saqlash — foydalanuvchi o'zi, Ctrl+S). */
@@ -431,7 +434,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           {alohida && <span className="text-[11px] text-text-mute">{t('alohida resurs')}</span>}
           {belgilar(ish)}
           {takliflar > 0 && <button type="button" tabIndex={-1} onClick={() => materiallarniOl([ish.id])} data-testid="materiallarni-ol"
-            title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')} aria-label={t('Materiallarni ham olish: {nom}', { nom: ish.nom })}
+            title={t('Ish ichidagi va undan keyingi materiallarga ish ulushida taklif (avtomatik yozilmaydi)')} aria-label={t('Materiallarni ham olish: {nom}', { nom: ish.nom })}
             className="fz-chip border border-accent/40 bg-transparent text-[var(--accent-text)] hover:bg-accent/10">{t('Materiallarni ham olish ({n})', { n: String(takliflar) })}</button>}
           {tk && <button type="button" tabIndex={-1} onClick={() => kirit(ish.id, { rejim: '+', qiymat: String(tk.hajm) })} data-testid="material-taklif"
             title={t('«{nom}» ishi ulushida taklif — bosing, kiritmaga olinadi', { nom: tk.ish.nom })}
@@ -452,7 +455,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 
   /** Resurs qatori (ish ichida, chekinish bilan): kiritiladigan (mat/ob) yoki avto (rs: norma × ish fakti, xira). */
   const resursQatori = (r: JurnalQator, avto: boolean) => {
-    const ikkinchi = belgiBor(r) || r.holat === 'oshdi';
+    // #144: ish ichidagi mat/ob ham ish ulushida taklif oladi (kiritmasiz qatorda xira «taklif: +X»).
+    const tk = !avto && !kiritmalar[r.id]?.qiymat.trim() ? matTaklifi(r.id) : null;
+    const ikkinchi = belgiBor(r) || r.holat === 'oshdi' || tk != null;
     return <div key={r.id} className={`${USTUN} py-1 pl-3 pr-3 ${avto ? 'opacity-80' : ''} ${satrFon(r)}`} data-testid={`resurs-${r.id}`}>
       <div className="flex min-w-0 flex-col gap-0.5 pl-9">
         <div className="flex min-w-0 items-center gap-1.5">
@@ -462,7 +467,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
           {r.kod && <span className="shrink-0 font-mono text-[10.5px] text-text-mute">{r.kod}</span>}
           <span className={`truncate text-[12px] ${avto ? 'text-text-mute' : 'text-text-dim'}`} title={`${r.kod ? r.kod + ' ' : ''}${r.nom}`}>{r.nom}</span>
         </div>
-        {ikkinchi && <div className="flex min-w-0 flex-wrap items-center gap-1 pl-4">{r.holat === 'oshdi' && <HolatMuhr holat="oshdi" />}{belgilar(r)}</div>}
+        {ikkinchi && <div className="flex min-w-0 flex-wrap items-center gap-1 pl-4">{r.holat === 'oshdi' && <HolatMuhr holat="oshdi" />}{belgilar(r)}
+          {tk && <button type="button" tabIndex={-1} onClick={() => kirit(r.id, { rejim: '+', qiymat: String(tk.hajm) })} data-testid="material-taklif"
+            title={t('«{nom}» ishi ulushida taklif — bosing, kiritmaga olinadi', { nom: tk.ish.nom })}
+            className="fz-chip border border-dashed border-border-strong bg-transparent text-text-mute hover:border-accent hover:text-[var(--accent-text)]">{t('taklif')}: +{fmt(tk.hajm)}</button>}
+        </div>}
       </div>
       {raqamlar(r, avto
         ? <span className="text-right text-[11px] text-text-mute" title={t('Avtomatik: norma × ish fakti')}>{r.norma != null ? `${t('norma')} ${fmt(r.norma)}` : t('avto')}</span>
@@ -546,7 +555,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                   {bolimTakliflar > 0 && <button type="button" onClick={() => materiallarniOl(bolimMaterialIdlar)} data-testid="bolim-materiallarni-ol"
-                    title={t('Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)')}
+                    title={t('Ish ichidagi va undan keyingi materiallarga ish ulushida taklif (avtomatik yozilmaydi)')}
                     className="fz-btn fz-btn--sm border-accent/40 text-[var(--accent-text)]">{t('Bo‘lim: materiallarni ham olish ({n})', { n: String(bolimTakliflar) })}</button>}
                   <button type="button" onClick={() => { setHammaYopiq((v) => !v); setTeskari(new Set()); }} className="fz-btn fz-btn--ghost fz-btn--sm" aria-label={hammaYopiq ? t('Hamma resurslarni ochish') : t('Hamma resurslarni yopish')}>
                     {hammaYopiq ? <ChevronRight size={13} /> : <ChevronDown size={13} />}{hammaYopiq ? t('Hammasini ochish') : t('Hammasini yopish')}</button>
