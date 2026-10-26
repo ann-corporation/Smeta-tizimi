@@ -12,6 +12,8 @@
  * Asl smeta o'zgarmaydi; pul to'qilmaydi (narx NULL → summa NULL, «narxsiz» sanaladi); hajm bloklanmaydi.
  */
 import { sbT2AktBekor } from '../api/supabase';
+import { bajarilmadiRoyxatOl } from '../api/t2-bajarilmadi';
+import { bajarilmadiHajmlar } from './fakt-studio';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from './ustamali-summa';
 import type { JurnalHolat, JurnalIsh, JurnalQator } from './fakt-jurnal';
 
@@ -37,6 +39,11 @@ export type QamrovReja = {
   yopiq: number;
   /** Smetasi noma'lum (NULL) — foiz hisoblanmaydi. */
   smetasiz: number;
+  /**
+   * Smetadan (ochiq qoldiqdan) OSHGAN qatorlar — foiz/100% ularni HECH QACHON kamaytirmaydi (JQA-03: 120 → 100 yo'q).
+   * hajm — faqat alohida «Tuzatish» amali uchun taklif (ochiq qoldiqni 0 ga keltiradigan manfiy delta); avtomatik yozilmaydi.
+   */
+  oshganlar: QamrovQator[];
 };
 
 export type QamrovOpsiya = {
@@ -62,11 +69,30 @@ export function ishlarniYangila(ishlar: readonly JurnalIsh[], holat: ReadonlyMap
   return ishlar.map((ish) => ({ ...q1(ish), resurslar: ish.resurslar.map(q1) }));
 }
 
+/**
+ * Markirovka (t2_qator.kat) bo'yicha qamrov (Daraxt «Markirovka bo'yicha 100%», JQA-03): shu kat'li ishlar (faqat shu kat'li
+ * ichki resurslari bilan) va kat'i mos, lekin ishi mos bo'lmagan resurslar — alohida qator sifatida. Qatorma-qator
+ * `fakt_belgila_v2` o'rniga bitta qamrov tranzaksiyasi: oshgan fakt hech qachon kamaytirilmaydi.
+ */
+export function markirovkaIshlari(bolimIshlari: ReadonlyMap<number, readonly JurnalIsh[]>, marker: string, ildizIshlari: readonly JurnalIsh[] = []): JurnalIsh[] {
+  const m = marker.trim();
+  const mos = (q: JurnalQator) => (q.kat ?? '').trim() === m;
+  const out: JurnalIsh[] = []; const bor = new Set<number>();
+  const qosh = (x: JurnalIsh) => { if (!bor.has(x.id)) { bor.add(x.id); out.push(x); } };
+  for (const ishlar of [...bolimIshlari.values(), ildizIshlari]) for (const ish of ishlar) {
+    if (ish.tur !== 'bl') { if (mos(ish)) qosh(ish); continue; }
+    const ichki = ish.resurslar.filter(mos);
+    if (mos(ish)) qosh({ ...ish, resurslar: ichki });
+    else for (const r of ichki) qosh({ ...r, resurslar: [], avtomatik: [] });
+  }
+  return out;
+}
+
 /** Qamrov rejasi (sof): yozilmaydi, faqat hisoblanadi. `ishlar` — qamrovdagi jurnal ishlari (bo'lim avlodlari bilan). */
 export function qamrovReja(ishlar: readonly JurnalIsh[], foiz: number, holat: ReadonlyMap<number, JurnalHolat>, op: QamrovOpsiya = {}): QamrovReja {
   const ichki = op.ichkiResurslar ?? true;
   const narxOl = op.narxOl ?? ((id: number) => son(holat.get(id)?.smeta_narx));
-  const out: QamrovQator[] = [];
+  const out: QamrovQator[] = []; const oshganlar: QamrovQator[] = [];
   let yopiq = 0, smetasiz = 0;
   const korildi = new Set<number>();
   const f = Number.isFinite(foiz) ? foiz : 0;
@@ -76,7 +102,13 @@ export function qamrovReja(ishlar: readonly JurnalIsh[], foiz: number, holat: Re
     korildi.add(q.id);
     if (q.smeta == null || q.qoldiq == null) { smetasiz += 1; return; }
     const ochiqBor = q.smeta < 0 ? q.qoldiq < -1e-9 : q.qoldiq > 1e-9;
-    if (!ochiqBor) { yopiq += 1; return; }
+    if (!ochiqBor) {
+      if (Math.abs(q.qoldiq) > 1e-9) { // oshgan: o'zgarmaydi, faqat tuzatish taklifi
+        const hajm = yaxlit(q.qoldiq); const s = summaHisob(hajm);
+        oshganlar.push({ id: q.id, tur: q.tur, kod: q.kod, nom: q.nom, birlik: q.birlik, otaIshId, smeta: q.smeta, fakt: q.fakt, ochiq: q.qoldiq, hajm, summa: s.summa, kesim: s.kesim, istisnolar: s.narxsiz ? ['narxsiz'] : [] });
+      } else yopiq += 1;
+      return;
+    }
     const hajm = yaxlit(q.qoldiq * f / 100);
     if (Math.abs(hajm) < 1e-9) return;
     const s = summaHisob(hajm);
@@ -116,7 +148,7 @@ export function qamrovReja(ishlar: readonly JurnalIsh[], foiz: number, holat: Re
       if (ichki) for (const r of ish.resurslar) qosh(r, ish.id, resursSumma(r));
     } else if (ish.tur === 'mat' || ish.tur === 'ob') qosh(ish, null, resursSumma(ish));
   }
-  return { foiz: f, qatorlar: out, yopiq, smetasiz };
+  return { foiz: f, qatorlar: out, yopiq, smetasiz, oshganlar };
 }
 
 export type QamrovJami = {
@@ -167,4 +199,16 @@ export function foizOqi(v: string): number | null {
   if (!/^\d+(\.\d+)?$/.test(t)) return null;
   const n = Number(t);
   return n > 0 && n <= 1000 ? n : null;
+}
+
+/** Holat xaritasi (qator_id → holat) — ochiq qoldiq va narx uchun. */
+export function holatXarita(states: readonly JurnalHolat[]): Map<number, JurnalHolat> {
+  return new Map(states.map((s) => [s.qator_id, s] as const));
+}
+/** Faol «bajarilmaydi» hajmlari (ochiq qoldiqdan ayriladi); o'qib bo'lmasa — bo'sh (qoldiq kamroq ayriladi, hech narsa yozilmaydi). */
+export async function bajarilmaydiXarita(kompaniyaId: number, obyektId: number): Promise<Map<number, number>> {
+  try {
+    const r = await bajarilmadiRoyxatOl(kompaniyaId, obyektId);
+    return r?.ok ? bajarilmadiHajmlar(r.qatorlar) : new Map();
+  } catch { return new Map(); }
 }

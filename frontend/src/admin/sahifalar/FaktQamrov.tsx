@@ -52,6 +52,10 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
   const reja = useMemo(() => qamrovReja(ishlarJoriy, foiz ?? 0, holatMap, { ichkiResurslar: ichki, narxOl }), [ishlarJoriy, foiz, holatMap, ichki, narxOl]);
   const jami = useMemo(() => qamrovJami(reja, chiqarilgan), [reja, chiqarilgan]);
   const istisnoli = useMemo(() => reja.qatorlar.filter((q) => q.istisnolar.length > 0), [reja]);
+  /** Alohida «Tuzatish» (JQA-03): faqat oshgan qatorlar, faqat egasi ochib tasdiqlaganda; 100%/foiz yo'li hech qachon kamaytirmaydi. */
+  const [tuzatishOchiq, setTuzatishOchiq] = useState(false);
+  const [tuzTanlangan, setTuzTanlangan] = useState<Set<number>>(new Set());
+  const tuzPaket = useMemo(() => reja.oshganlar.filter((q) => tuzTanlangan.has(q.id)).map((q) => ({ qator_id: q.id, hajm: q.hajm })), [reja, tuzTanlangan]);
   const yanaSoni = Math.max(0, istisnoli.length - KORSAT_CHEGARA);
   const turNomi = (tur: string) => (tur === 'bl' ? t('ISH') : tur === 'ob' ? t('uskuna') : t('material'));
 
@@ -85,18 +89,21 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
    * qayta yuboriladi: server tasdiqlangan bo'lakka eski aktni (takror) qaytaradi, yozilmaganini yozadi. Aks holda birinchi
    * so'rovdan OLDIN yangi snapshot muzlatilib saqlanadi. Har bo'lak javobi receipt sifatida darhol saqlanadi.
    */
-  const yoz = async () => {
+  const yoz = async (tuzatish?: readonly { qator_id: number; hajm: number }[]) => {
     if (band) return;
     let u = urinishRef.current;
     if (!u) {
-      if (foiz == null || !jami.paket.length) return;
+      const paket = tuzatish ?? jami.paket;
+      if ((!tuzatish && foiz == null) || !paket.length) return;
       if (yozilgan) {
         // Oldingi yozuv jadvalda hali ko'rinmasa — reja eski qoldiqdan: tasdiqlangan hajm ikki marta yozilardi (JQA-09).
         if (!jadvalYangi) { toast(t('Jadval hali yangilanmagan — oldingi yozuv ko‘rinmayapti. «Jadvalni yangilash» ni bosing.'), 'warn'); return; }
         yozilganQoy(null);
       }
-      const faktlar = new Map(reja.qatorlar.map((q) => [q.id, q.fakt] as const));
-      u = urinishYarat({ kompaniyaId, obyektId, sana, sarlavha, foiz }, qamrovBolaklari(jami.paket), yangiOperationId, undefined, (id) => faktlar.get(id) ?? 0);
+      const faktlar = new Map([...reja.qatorlar, ...reja.oshganlar].map((q) => [q.id, q.fakt] as const));
+      u = urinishYarat(tuzatish
+        ? { kompaniyaId, obyektId, sana, sarlavha, foiz: 100, tur: 'tuzatish', izohBosh: 'Tuzatish (oshgan fakt → smeta)' }
+        : { kompaniyaId, obyektId, sana, sarlavha, foiz: foiz ?? 0 }, qamrovBolaklari(paket), yangiOperationId, undefined, (id) => faktlar.get(id) ?? 0);
     }
     setBand(true);
     urinishQoy(u);
@@ -115,7 +122,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
       if (holat === 'toliq') {
         yozilganQoy(yozilganYasa(u));
         urinishQoy(null);
-        toast(t('Qamrov {foiz}%: {n} qator faktga yozildi', { foiz: String(u.foiz), n: String(qatorSoni) }), 'ok', undefined, 15000,
+        toast(u.tur === 'tuzatish' ? t('Tuzatish: {n} qator fakti smetaga tushirildi', { n: String(qatorSoni) }) : t('Qamrov {foiz}%: {n} qator faktga yozildi', { foiz: String(u.foiz), n: String(qatorSoni) }), 'ok', undefined, 15000,
           aktlar.length ? { label: 'Bekor qilish', onClick: bekorQil(aktlar) } : undefined);
         onYop();
         await onBajarildi();
@@ -153,31 +160,31 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
   const BOLAK_HOLAT: Record<string, string> = { confirmed: 'tasdiqlandi', failed: 'rad etildi', unknown: 'noma’lum', kutmoqda: 'kutmoqda' };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={t('Qamrov %')}>
-      <div className="karta flex max-h-[88vh] w-full max-w-4xl flex-col gap-3 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] p-4" role="dialog" aria-modal="true" aria-label={t('Qamrov %')}>
+      <div className="fz-card flex max-h-[88vh] w-full max-w-4xl flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-[14px] font-semibold text-text">{t('Qamrov %')} · {t('Tiklash rejimi')}</h2>
             <p className="truncate text-[12px] text-text-dim" title={sarlavha}>{sarlavha}</p>
           </div>
-          <button type="button" onClick={onYop} aria-label={t('Yopish')} className="rounded p-1 text-text-mute hover:text-text"><X size={16} /></button>
+          <button type="button" onClick={onYop} aria-label={t('Yopish')} className="fz-btn fz-btn--ghost fz-btn--icon"><X size={16} /></button>
         </div>
 
-        {urinish && <div className="rounded-lg border border-warn/60 bg-warn/10 px-3 py-2 text-[12px]" role="alert" data-testid="qamrov-urinish">
+        {urinish && <div className="fz-note fz-note--warn flex-col items-start text-[12px]" role="alert" data-testid="qamrov-urinish">
           <p className="font-semibold text-text">{uHolat === 'nomalum' ? t('Oldingi urinish natijasi noma’lum — avval shuni hal qiling') : t('Oldingi urinish to‘liq yozilmadi — avval shuni hal qiling')}</p>
           <p className="text-text-dim">{t('Qamrov')}: {urinish.sarlavha} · {urinish.foiz}% · {t('Sana')}: {urinish.sana} · {t('bo‘laklar')}: {urinish.bolaklar.map((b, i) => `${i + 1}:${t(BOLAK_HOLAT[b.holat])}${b.aktId != null ? ` (№${b.aktId})` : ''}`).join(', ')}</p>
           <p className="text-text-dim">{t('«Qayta yuborish» xuddi shu amalni bir xil ID bilan yuboradi — server yozilganini qaytadan yozmaydi. Foizni o‘zgartirish bu urinish hal bo‘lgach mumkin.')}</p>
           <div className="mt-1 flex flex-wrap gap-2">
-            {uAktlar.length > 0 && <button type="button" className="tugma" onClick={bekorQil(uAktlar)} data-testid="urinish-bekor">{t('Yozilgan {n} hujjatni bekor qilish', { n: String(uAktlar.length) })}</button>}
-            {uHolat !== 'nomalum' && <button type="button" className="tugma" onClick={urinishniTashla} data-testid="urinish-tashla">{t('Urinishni tashlash (yangisiga yo‘l)')}</button>}
+            {uAktlar.length > 0 && <button type="button" className="fz-btn fz-btn--sm fz-btn--danger" onClick={bekorQil(uAktlar)} data-testid="urinish-bekor">{t('Yozilgan {n} hujjatni bekor qilish', { n: String(uAktlar.length) })}</button>}
+            {uHolat !== 'nomalum' && <button type="button" className="fz-btn fz-btn--sm" onClick={urinishniTashla} data-testid="urinish-tashla">{t('Urinishni tashlash (yangisiga yo‘l)')}</button>}
           </div>
         </div>}
-        {!urinish && yozilgan && <div className={`rounded-lg border px-3 py-2 text-[12px] ${jadvalYangi ? 'border-border bg-surface-2/40' : 'border-warn/60 bg-warn/10'}`} data-testid="qamrov-yozilgan">
+        {!urinish && yozilgan && <div className={`fz-note ${jadvalYangi ? 'fz-note--info' : 'fz-note--warn'} flex-col items-start text-[12px]`} data-testid="qamrov-yozilgan">
           <p className="text-text">{t('Oldin yozilgan')}: {yozilgan.sarlavha} · {yozilgan.foiz}% · {t('hujjatlar')}: {yozilgan.aktlar.map((a) => `№${a}`).join(', ') || '—'} · {t('{n} qator', { n: String(yozilgan.tekshir.length) })}</p>
           {!jadvalYangi && <p className="text-text-dim">{t('Jadval bu yozuvni hali ko‘rsatmayapti — yangi qamrov eski qoldiqdan hisoblanib, ikki marta yozilishi mumkin edi. Yangilanmaguncha yozish yopiq.')}</p>}
           <div className="mt-1 flex flex-wrap gap-2">
-            {yozilgan.aktlar.length > 0 && <button type="button" className="tugma" onClick={bekorQil(yozilgan.aktlar)} data-testid="yozilgan-bekor">{t('Yozilgan {n} hujjatni bekor qilish', { n: String(yozilgan.aktlar.length) })}</button>}
-            {!jadvalYangi && <button type="button" className="tugma" onClick={() => void onBajarildi()} data-testid="jadval-yangila">{t('Jadvalni yangilash')}</button>}
+            {yozilgan.aktlar.length > 0 && <button type="button" className="fz-btn fz-btn--sm fz-btn--danger" onClick={bekorQil(yozilgan.aktlar)} data-testid="yozilgan-bekor">{t('Yozilgan {n} hujjatni bekor qilish', { n: String(yozilgan.aktlar.length) })}</button>}
+            {!jadvalYangi && <button type="button" className="fz-btn fz-btn--sm" onClick={() => void onBajarildi()} data-testid="jadval-yangila">{t('Jadvalni yangilash')}</button>}
           </div>
         </div>}
         <div className="flex flex-wrap items-center gap-3 text-[12px]">
@@ -186,17 +193,18 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.ctrlKey) { e.preventDefault(); void yoz(); } }}
               aria-label={t('Bajarilish foizi')} className={`input h-8 w-20 px-2 text-right font-mono ${foiz == null ? 'border-warn' : ''}`} />%</label>
           <div className="flex gap-1">{[25, 50, 70, 100].map((p) => <button key={p} type="button" disabled={!!urinish} onClick={() => setFoizMatn(String(p))}
-            className={`rounded border px-2 py-0.5 text-[11px] disabled:opacity-50 ${foiz === p ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:border-accent'}`}>{p}%</button>)}</div>
+            className={`fz-btn fz-btn--sm ${foiz === p ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{p}%</button>)}</div>
           <label className="flex items-center gap-1.5 text-text-dim"><input type="checkbox" checked={ichki} disabled={!!urinish} onChange={(e) => setIchki(e.target.checked)} /> {t('Ish ichidagi material/uskuna ham')}</label>
         </div>
         <p className="text-[11px] text-text-mute">{t('Har qatorga: foiz × ochiq qoldiq (smeta − fakt − almashtirilgan − bajarilmaydi). Mehnat va mashina norma bo‘yicha o‘zi ergashadi. Hech narsa bloklanmaydi.')}</p>
 
-        <div className="flex flex-wrap items-start gap-x-5 gap-y-1 rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-[12px]" data-testid="qamrov-jami">
+        <div className="fz-note fz-note--info flex-wrap items-start gap-x-5 gap-y-1 text-[12px]" data-testid="qamrov-jami">
           <span><b className="text-text">{jami.paket.length}</b> {t('qator yoziladi')}</span>
           <span className="inline-flex items-start gap-1">{t('Summa')}: <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.ustamasiz} katKesim={jami.kesim} /></span>
           {jami.narxsiz > 0 && <span className="text-warn">{t('summa noma’lum: {n} qator', { n: String(jami.narxsiz) })}</span>}
           {reja.yopiq > 0 && <span className="text-text-mute">{t('ochiq qoldig‘i yo‘q: {n}', { n: String(reja.yopiq) })}</span>}
           {reja.smetasiz > 0 && <span className="text-text-mute">{t('smetasi noma’lum: {n}', { n: String(reja.smetasiz) })}</span>}
+          {reja.oshganlar.length > 0 && <span className="fz-chip fz-chip--warn" data-testid="qamrov-oshgan-soni">{t('allaqachon ≥100% (smetadan oshgan, o‘zgarmaydi): {n}', { n: String(reja.oshganlar.length) })}</span>}
           {chiqarilgan.size > 0 && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(chiqarilgan.size) })}</span>}
           {jami.paket.length > 3000 && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
         </div>
@@ -209,10 +217,10 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
                 const hammasi = reja.qatorlar.filter((q) => q.istisnolar.includes(k));
                 const chiq = hammasi.every((q) => chiqarilgan.has(q.id));
                 return <button key={k} type="button" onClick={() => turniChiqar(k, !chiq)} data-testid={`istisno-tur-${k}`}
-                  className={`rounded border px-2 py-0.5 ${chiq ? 'border-danger/50 text-danger' : 'border-border text-text-dim hover:border-accent'}`}>
+                  className={`fz-chip ${chiq ? 'fz-chip--danger' : 'fz-chip--accent'} hover:brightness-110`}>
                   {t(ISTISNO_NOM[k])}: {hammasi.length} · {chiq ? t('qaytarish') : t('olib tashlash')}</button>;
               })}</div>
-              <table className="w-full text-[12px]">
+              <table className="fz-table w-full text-[12px]">
                 <thead><tr className="border-b border-border text-left text-text-mute">
                   <th className="w-6 px-1" /><th className="px-1">{t('Qator')}</th><th className="px-1">{t('Istisno')}</th>
                   <th className="px-1 text-right">{t('Fakt')}</th><th className="px-1 text-right">{t('Ochiq qoldiq')}</th><th className="px-1 text-right">{t('Yoziladi')}</th><th className="px-1 text-right">{t('Summa')}</th>
@@ -232,14 +240,41 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
               </table>
               {yanaSoni > 0 && <p className="pt-1 text-[11px] text-text-mute">{t('yana {n} ta istisno — yuqoridagi tur tugmalari bilan boshqaring', { n: String(yanaSoni) })}</p>}
             </>}
+          {!urinish && reja.oshganlar.length > 0 && <div className="fz-note fz-note--warn mt-3 flex-col items-stretch text-[12px]" data-testid="qamrov-oshganlar">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-text-dim">{t('Smetadan oshgan qatorlar foiz bilan KAMAYTIRILMAYDI. Kamaytirish kerak bo‘lsa — alohida tuzatish (oldindan ko‘rish bilan).')}</span>
+              {!tuzatishOchiq && <button type="button" className="fz-btn fz-btn--sm" onClick={() => { setTuzTanlangan(new Set(reja.oshganlar.map((q) => q.id))); setTuzatishOchiq(true); }} data-testid="tuzatish-och">{t('Tuzatishni ko‘rish ({n})', { n: String(reja.oshganlar.length) })}</button>}
+            </div>
+            {tuzatishOchiq && <>
+              <table className="fz-table mt-2 w-full text-[12px]">
+                <thead><tr className="border-b border-border text-left text-text-mute">
+                  <th className="w-6 px-1" /><th className="px-1">{t('Qator')}</th><th className="px-1 text-right">{t('Smeta')}</th>
+                  <th className="px-1 text-right">{t('Hozirgi fakt')}</th><th className="px-1 text-right">{t('Yangi fakt')}</th><th className="px-1 text-right">{t('Farq')}</th>
+                </tr></thead>
+                <tbody>{reja.oshganlar.slice(0, KORSAT_CHEGARA).map((q) => <tr key={q.id} className="border-b border-border/40" data-testid={`tuzatish-${q.id}`}>
+                  <td className="px-1"><input type="checkbox" checked={tuzTanlangan.has(q.id)} onChange={() => setTuzTanlangan((s) => { const n = new Set(s); if (n.has(q.id)) n.delete(q.id); else n.add(q.id); return n; })} aria-label={t('Tuzatilsin: {nom}', { nom: q.nom })} /></td>
+                  <td className="max-w-[300px] truncate px-1" title={q.nom}><span className="text-text-mute">{turNomi(q.tur)}</span> {q.kod ? `${q.kod} ` : ''}{q.nom}</td>
+                  <td className="px-1 text-right tabular-nums">{fmt(q.smeta)}</td>
+                  <td className="px-1 text-right tabular-nums">{fmt(q.fakt)}</td>
+                  <td className="px-1 text-right tabular-nums">{fmt(q.fakt + q.hajm)}</td>
+                  <td className="px-1 text-right font-semibold tabular-nums text-danger">{fmt(q.hajm)} {q.birlik ?? ''}</td>
+                </tr>)}</tbody>
+              </table>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" className="fz-btn fz-btn--sm fz-btn--ghost" onClick={() => setTuzatishOchiq(false)}>{t('Bekor')}</button>
+                <button type="button" className="fz-btn fz-btn--sm fz-btn--danger" disabled={band || tuzPaket.length === 0 || !jadvalYangi} onClick={() => void yoz(tuzPaket)} data-testid="tuzatish-yoz">
+                  {t('Tuzatishni yozish — faktni kamaytirish ({n})', { n: String(tuzPaket.length) })}</button>
+              </div>
+            </>}
+          </div>}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-2 text-[12px]">
           <span className="text-text-mute">{t('Sana')}: {sana}</span>
           <div className="ml-auto flex gap-2">
-            <button type="button" className="tugma" onClick={onYop}>{t('Bekor')}</button>
-            <button type="button" className="tugma tugma-asosiy" disabled={band || (!urinish && (foiz == null || jami.paket.length === 0 || !jadvalYangi))} onClick={() => void yoz()}>
-              {band ? t('Yozilmoqda…') : urinish ? t('Faktga yozish — qayta yuborish (bir xil ID)') : t('Faktga yozish ({n})', { n: String(jami.paket.length) })} <kbd className="ml-1 rounded bg-white/20 px-1 text-[10px]">{'Ctrl+Enter'}</kbd></button>
+            <button type="button" className="fz-btn fz-btn--ghost" onClick={onYop}>{t('Bekor')}</button>
+            <button type="button" className="fz-btn fz-btn--primary" disabled={band || (!urinish && (foiz == null || jami.paket.length === 0 || !jadvalYangi))} onClick={() => void yoz()}>
+              {band ? t('Yozilmoqda…') : urinish ? t('Faktga yozish — qayta yuborish (bir xil ID)') : t('Faktga yozish ({n})', { n: String(jami.paket.length) })} <kbd className="fz-kbd ml-1">{'Ctrl+Enter'}</kbd></button>
           </div>
         </div>
       </div>

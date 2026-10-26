@@ -61,7 +61,9 @@ async function roleAuthorityDb(sess: Sess, env: { SUPABASE_URL: string; SUPABASE
     });
     if (!r.ok) return { authority: null };
     const j = await r.json() as { ok?: boolean; platform_role?: string; foydalanuvchi?: { holat?: string; sessiya_bekor_dan?: string | null }; context_kompaniyalar?: { kompaniya_id: number; effective_role: string; permissions?: string[]; explicit_denials?: string[]; modullar_off?: string[] }[]; azoliklar?: { kompaniya_id: number; rol: string; faol?: boolean }[] };
-    if (!j.ok) return { authority: null };
+    // Hisob bazada yo'q yoki boshqa hisobga birlashtirilgan (t2_men_v1 → ACTOR_NOT_FOUND) — cookie yaroqsiz, vaqtinchalik
+    // xato emas: 401 + cookie tozalash (aks holda eski «admin» cookie'si bilan 503 «Server bilan aloqa yo'q» da qotib qoladi).
+    if (!j.ok) return j && (j as { code?: string }).code === 'ACTOR_NOT_FOUND' ? { authority: null, yaroqsiz: true } : { authority: null };
     // Hisob topildi, lekin faol emas (bloklangan yoki boshqa hisobga birlashtirilgan) — vaqtinchalik xato emas.
     if (j.foydalanuvchi?.holat && j.foydalanuvchi.holat !== 'faol') return { authority: null, yaroqsiz: true };
     if (j.foydalanuvchi?.holat !== 'faol') return { authority: null };

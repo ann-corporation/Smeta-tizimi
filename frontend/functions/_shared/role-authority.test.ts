@@ -127,6 +127,16 @@ describe('yaroqsiz sessiya 401 bilan farqlanadi (503 emas)', () => {
     expect(await roleAuthority(b, env)).toBeNull();
     expect(sessiyaYaroqsizmi(b)).toBe(false);
   });
+  it('hisob topilmadi / birlashtirilgan (t2_men_v1 ACTOR_NOT_FOUND) — yaroqsiz (401), boshqa ok:false — yaroqsiz emas (503)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: false, code: 'ACTOR_NOT_FOUND' }), { status: 200 })));
+    const a = { ...sess, foydalanuvchi_id: 94 };
+    expect(await roleAuthority(a, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(a)).toBe(true);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: false, code: 'BOSHQA' }), { status: 200 })));
+    const b = { ...sess, foydalanuvchi_id: 95 };
+    expect(await roleAuthority(b, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(b)).toBe(false);
+  });
   it('bekor qilingan sessiya (kesh orqali ham) — yaroqsiz; javob 401 va cookie tozalanadi', async () => {
     const bekor = new Date(Date.now() + 60_000).toISOString();
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...model(), foydalanuvchi: { holat: 'faol', sessiya_bekor_dan: bekor } }), { status: 200 })));
