@@ -253,6 +253,8 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-26: 1C akt-sverka importi — Продажа ↔ F2 moslash (F2 ustama bilan), to'lov taqsimoti. `stable`, a'zolik + f2.read ichida. */
+        sverka_moslash_v1: 'kompaniya_actor',
         /* Egasi 2026-10-24: rahbarlar uchun pul tahlili (P0) — kategoriya × {smeta, F2} + zanjir. `stable`; a'zolik + f2.read + financial.read. */
         pul_tahlil_v1: 'kompaniya_actor',
         pul_tahlil_v2: 'kompaniya_actor',
