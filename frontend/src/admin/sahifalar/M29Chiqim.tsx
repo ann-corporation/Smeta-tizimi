@@ -1,3 +1,4 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useMemo, useState } from 'react';
 import { PackageMinus, RotateCcw } from 'lucide-react';
 import { t } from '../../i18n/til';
@@ -48,12 +49,12 @@ export function M29Chiqim({ kompaniyaId, obyektId, davr, materiallar, onYangilan
         }
         if (r.code === 'TRIGGER_CHIQIM_BOR' && !triggerBekor) {
           const n = r.trigger?.length ?? 0;
-          if (!window.confirm(t('Bu davrda Fakt kiritilganda {n} ta material omborda avtomatik chiqim qilingan (eski tartib). M-29 ular o‘rniga yoziladi: eski yozuvlar o‘chirilmaydi, «bekor» deb belgilanadi va qoldiqqa qaytariladi — ikki marta yechilmaydi. Davom etilsinmi?', { n }))) return;
+          if (!await tasdiqSora(t('Bu davrda Fakt kiritilganda {n} ta material omborda avtomatik chiqim qilingan (eski tartib). M-29 ular o‘rniga yoziladi: eski yozuvlar o‘chirilmaydi, «bekor» deb belgilanadi va qoldiqqa qaytariladi — ikki marta yechilmaydi. Davom etilsinmi?', { n }))) return;
           triggerBekor = true; continue;
         }
         if (r.code === 'QOLDIQ_YETMAYDI' && !manfiy) {
           const ro = (r.yetmaydi ?? []).slice(0, 8).map((y) => `• ${y.nomi}: ${t('kerak')} ${fmt(y.kerak)}, ${t('omborda')} ${fmt(y.bor)} ${y.birligi ?? ''}`).join('\n');
-          if (!window.confirm(t('Omborda yetarli qoldiq yo‘q ({n} ta material) — kirim kiritilmagan bo‘lishi mumkin:', { n: r.yetmaydi?.length ?? 0 })
+          if (!await tasdiqSora(t('Omborda yetarli qoldiq yo‘q ({n} ta material) — kirim kiritilmagan bo‘lishi mumkin:', { n: r.yetmaydi?.length ?? 0 })
             + '\n' + ro + '\n\n' + t('Baribir chiqim qilinsinmi? Qoldiq minusga tushadi (keyin kirim kiritsangiz tenglashadi).'))) return;
           manfiy = true; continue;
         }
@@ -79,37 +80,37 @@ export function M29Chiqim({ kompaniyaId, obyektId, davr, materiallar, onYangilan
 
   if (hujjat === undefined) return null;
   return (
-    <section className="karta space-y-2 p-3 text-[12px]" aria-label={t('Ombordan chiqim (M-29)')}>
+    <section className={`fz-card space-y-2 p-3 text-[12px] ${hujjat ? '' : 'border-l-2'}`} style={hujjat ? undefined : { borderLeftColor: 'var(--accent)' }} aria-label={t('Ombordan chiqim (M-29)')}>
       <div className="flex flex-wrap items-center gap-2">
-        <PackageMinus size={16} className="text-accent" />
+        <PackageMinus size={16} style={{ color: 'var(--accent-text)' }} />
         <span className="font-semibold text-text">{t('Ombordan chiqim (M-29)')}</span>
         {hujjat
-          ? <span className="text-ok">{t('Bajarilgan: {n} ta material · {sana}', { n: hujjat.qator_soni, sana: String(hujjat.bajarildi).slice(0, 10) })}{hujjat.manfiy_qoldiq ? ' · ' + t('qoldiq minusga tushgan') : ''}</span>
+          ? <span className="fz-stamp fz-stamp--ok">{t('Bajarilgan: {n} ta material · {sana}', { n: hujjat.qator_soni, sana: String(hujjat.bajarildi).slice(0, 10) })}{hujjat.manfiy_qoldiq ? ' · ' + t('qoldiq minusga tushgan') : ''}</span>
           : <span className="text-text-dim">{t('Bu davr uchun hali bajarilmagan — ombor Fakt bilan emas, M-29 bilan kamayadi.')}</span>}
         <span className="ml-auto flex gap-1.5">
           {hujjat
-            ? <button type="button" disabled={band} onClick={() => void bekor()} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text"><RotateCcw size={13} />{t('Bekor qilish')}</button>
-            : <button type="button" disabled={band || !taklif.length} onClick={() => setOchiq((x) => !x)} className="inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"><PackageMinus size={13} />{ochiq ? t('Yopish') : t('Ombordan chiqim qilish')}</button>}
+            ? <button type="button" disabled={band} onClick={() => void bekor()} className="fz-btn fz-btn--sm fz-btn--danger"><RotateCcw />{t('Bekor qilish')}</button>
+            : <button type="button" disabled={band || !taklif.length} onClick={() => setOchiq((x) => !x)} className={`fz-btn fz-btn--sm ${ochiq ? '' : 'fz-btn--primary'}`}><PackageMinus />{ochiq ? t('Yopish') : t('Ombordan chiqim qilish')}</button>}
         </span>
       </div>
       {!hujjat && !taklif.length && <p className="text-text-mute">{t('Bu davrda norma bo‘yicha sarflangan material yo‘q (tasdiqlangan F2 yo‘q).')}</p>}
       {!hujjat && ochiq && (
         <div className="space-y-2">
           <p className="text-text-mute">{t('Miqdor — davrning norma bo‘yicha sarfi; haqiqatda boshqacha bo‘lsa o‘zgartiring. 0 — chiqim qilinmaydi.')}</p>
-          <div className="max-h-[50vh] overflow-auto rounded border border-border/60">
-            <table className="w-full text-[12px]">
-              <thead className="sticky top-0 bg-surface text-left text-[11px] text-text-mute">
-                <tr><th className="px-2 py-1">{t('Material')}</th><th className="px-2">{t('Birlik')}</th><th className="px-2 text-right">{t('Chiqim miqdori')}</th></tr>
+          <div className="fz-table-wrap max-h-[50vh]">
+            <table className="fz-table">
+              <thead>
+                <tr><th>{t('Material')}</th><th>{t('Birlik')}</th><th className="fz-c-num">{t('Chiqim miqdori')}</th></tr>
               </thead>
               <tbody>
                 {qatorlar.map((q, i) => (
-                  <tr key={q.nomi + '|' + q.birligi} className="border-t border-border/40">
-                    <td className="px-2 py-1 text-text">{q.nomi}</td>
-                    <td className="px-2 text-text-dim">{q.birligi ?? '—'}</td>
-                    <td className="px-2 text-right">
+                  <tr key={q.nomi + '|' + q.birligi}>
+                    <td>{q.nomi}</td>
+                    <td className="fz-c-unit">{q.birligi ?? '—'}</td>
+                    <td className="fz-c-num">
                       <input type="number" min={0} step="any" aria-label={t('Chiqim miqdori')} value={Number.isFinite(q.miqdor) ? q.miqdor : 0}
                         onChange={(e) => { const v = Number(e.target.value); setQatorlar((s) => s.map((x, j) => (j === i ? { ...x, miqdor: Number.isFinite(v) && v > 0 ? v : 0 } : x))); }}
-                        className="input h-7 w-32 text-right tabular-nums" />
+                        className="h-7 w-32 px-2 text-right tabular-nums" />
                     </td>
                   </tr>
                 ))}
@@ -117,7 +118,7 @@ export function M29Chiqim({ kompaniyaId, obyektId, davr, materiallar, onYangilan
             </table>
           </div>
           <div className="flex justify-end">
-            <button type="button" disabled={band} onClick={() => void bajar()} className="rounded-md bg-accent px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50">
+            <button type="button" disabled={band} onClick={() => void bajar()} className="fz-btn fz-btn--primary">
               {band ? '…' : t('M-29 ni bajarish — ombordan chiqim')}
             </button>
           </div>

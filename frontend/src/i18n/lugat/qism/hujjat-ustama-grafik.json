@@ -1,0 +1,98 @@
+{
+  "Bajarilgan fakt": {
+    "ru": "Выполненный факт",
+    "en": "Completed actual"
+  },
+  "Bo‘limdagi ishlar hajm ulushining o‘rtachasi (summa emas)": {
+    "ru": "Среднее долей объёма работ раздела (не сумма)",
+    "en": "Average volume share of the section’s works (not an amount)"
+  },
+  "Bo‘limlar bajarilishi": {
+    "ru": "Выполнение по разделам",
+    "en": "Progress by section"
+  },
+  "Jami: ustamali (katta) va ustamasiz (kichik), NDS siz": {
+    "ru": "Итого: с наценкой (крупно) и без наценки (мелко), без НДС",
+    "en": "Total: with markup (large) and without markup (small), excl. VAT"
+  },
+  "Jami: {a} obyekt": {
+    "ru": "Итого: объектов {a}",
+    "en": "Total: {a} objects"
+  },
+  "Norma: {n} · fakt: {f}": {
+    "ru": "Норма: {n} · факт: {f}",
+    "en": "Norm: {n} · actual: {f}"
+  },
+  "Normadan eng ko‘p chetlashganlar": {
+    "ru": "Наибольшие отклонения от нормы",
+    "en": "Largest deviations from norm"
+  },
+  "Oldin olingan: {o}% · shu F2: {s}%": {
+    "ru": "Ранее принято: {o}% · эта Ф2: {s}%",
+    "en": "Previously accepted: {o}% · this F2: {s}%"
+  },
+  "Oylar bo‘yicha F2 summasi": {
+    "ru": "Сумма Ф2 по месяцам",
+    "en": "F2 amount by month"
+  },
+  "Oylik F2 grafigi": {
+    "ru": "График Ф2 по месяцам",
+    "en": "Monthly F2 chart"
+  },
+  "Reja (smeta)": {
+    "ru": "План (смета)",
+    "en": "Plan (estimate)"
+  },
+  "Reja va fakt": {
+    "ru": "План и факт",
+    "en": "Plan vs actual"
+  },
+  "Resurs vedomosti jami": {
+    "ru": "Итоги ресурсной ведомости",
+    "en": "Resource statement totals"
+  },
+  "Smeta jami": {
+    "ru": "Итого по смете",
+    "en": "Estimate total"
+  },
+  "Smeta summasi ko‘rinishi": {
+    "ru": "Вид суммы сметы",
+    "en": "Estimate amount view"
+  },
+  "Tasdiqlangan F2 (jamlanma)": {
+    "ru": "Утверждённые Ф2 (накопительно)",
+    "en": "Approved F2 (cumulative)"
+  },
+  "Ustamali": {
+    "ru": "С наценкой",
+    "en": "With markup"
+  },
+  "norma = 100%": {
+    "ru": "норма = 100%",
+    "en": "norm = 100%"
+  },
+  "oldin olingan": {
+    "ru": "ранее принято",
+    "en": "previously accepted"
+  },
+  "ustamali, NDS siz": {
+    "ru": "с наценкой, без НДС",
+    "en": "with markup, excl. VAT"
+  },
+  "ustamasiz, NDS siz (narx farqi)": {
+    "ru": "без наценки, без НДС (разница цен)",
+    "en": "without markup, excl. VAT (price difference)"
+  },
+  "ustamasiz, NDS siz · holat bo‘yicha": {
+    "ru": "без наценки, без НДС · по статусу",
+    "en": "without markup, excl. VAT · by status"
+  },
+  "ustamasiz, NDS siz — ustamali summa hujjat ichida": {
+    "ru": "без наценки, без НДС — сумма с наценкой внутри документа",
+    "en": "without markup, excl. VAT — amount with markup inside the document"
+  },
+  "{n} ta F2 ning summasi noma’lum — grafikka kirmagan": {
+    "ru": "Сумма неизвестна у {n} Ф2 — в график не вошли",
+    "en": "Amount unknown for {n} F2 — not included in the chart"
+  }
+}

@@ -86,7 +86,7 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
       onMouseEnter={() => setFaol(i)}
       aria-selected={i === faol}
       role="option"
-      className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg transition-colors ${i === faol ? 'bg-surface text-white' : 'text-text hover:bg-surface'}`}
+      className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-[var(--radius-sm)] transition-colors ${i === faol ? 'bg-[var(--accent-soft)] text-text' : 'text-text-dim hover:bg-surface-3 hover:text-text'}`}
     >
       {n.tur === 'obyekt' ? <Building size={16} className="text-text-dim flex-shrink-0" /> : <Search size={16} className="text-accent flex-shrink-0" />}
       <span className="flex-1 truncate">{n.nom}</span>
@@ -96,9 +96,9 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-bg/80 p-4 pt-[12vh] backdrop-blur-sm" onMouseDown={() => setIsOpen(false)}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-bg/70 p-4 pt-[12vh]" onMouseDown={() => setIsOpen(false)}>
       <div role="dialog" aria-modal="true" aria-labelledby={dialogTitleId} onMouseDown={(e) => e.stopPropagation()}
-        className="flex max-h-[72vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-2xl">
+        className="flex max-h-[72vh] w-full max-w-xl flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-pop)]">
         <div className="flex items-center px-4 py-3 border-b border-border gap-3">
           <Search className="text-text-dim" size={20} />
           <span id={dialogTitleId} className="sr-only">{t('Buyruq markazi')}</span>
@@ -106,7 +106,7 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
             ref={inputRef}
             autoFocus
             type="text"
-            className="flex-1 bg-transparent border-none text-white focus:outline-none placeholder:text-text-dim/50"
+            className="flex-1 bg-transparent border-none text-[15px] text-text focus:outline-none shadow-none placeholder:text-text-mute"
             aria-label={t('Sahifa yoki obyekt izlash...')}
             placeholder={t('Sahifa yoki obyekt izlash...')}
             value={query}
@@ -118,11 +118,11 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
 
         <div className="overflow-y-auto p-2" role="listbox" aria-label={t('Natijalar')}>
           {sahifalar.length > 0 && (
-            <div className="px-3 py-2 text-xs font-semibold text-text-dim uppercase tracking-wider mb-1">{t('Sahifalar')}</div>
+            <div className="px-3 py-2 text-[11px] font-semibold text-text-mute uppercase tracking-[.06em] mb-1">{t('Sahifalar')}</div>
           )}
           {sahifalar.map((n, i) => qator(n, i))}
           {obyektNatija.length > 0 && (
-            <div className="px-3 py-2 text-xs font-semibold text-text-dim uppercase tracking-wider mb-1 mt-2">{t('Obyektlar')}</div>
+            <div className="px-3 py-2 text-[11px] font-semibold text-text-mute uppercase tracking-[.06em] mb-1 mt-2">{t('Obyektlar')}</div>
           )}
           {obyektNatija.map((n, i) => qator(n, sahifalar.length + i))}
           {natijalar.length === 0 && (

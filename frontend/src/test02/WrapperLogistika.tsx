@@ -1,52 +1,30 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Box, Building2, ShoppingCart, Layers, ClipboardList } from 'lucide-react';
+import { t } from '../i18n/til';
+import { OpsTablar } from '../components/kompaniya-ops/OpsUi';
 import TestSklad from './TestSklad';
 import TestKontragent from './TestKontragent';
 import TestBirja from './TestBirja';
 import TestMaterialAlias from './TestMaterialAlias';
 import TestZayavka from './TestZayavka';
 
+type Tab = 'zayavka' | 'sklad' | 'kontragent' | 'birja' | 'alias';
+
+/** Logistika: zayavka (talab) → sklad (qoldiq) → kontragent / birja (xarid) → material nomlari sozlamasi. */
 export default function WrapperLogistika() {
-  const [activeTab, setActiveTab] = useState<'zayavka' | 'sklad' | 'kontragent' | 'birja' | 'alias'>('zayavka');
-
+  const [activeTab, setActiveTab] = useState<Tab>('zayavka');
   return (
-    <div className="h-full flex flex-col bg-transparent">
-      {/* Wrapper Tabs */}
-      <div className="flex items-center gap-2 px-6 pt-4 border-b border-white/10 bg-black/20">
-        <button
-          onClick={() => setActiveTab('zayavka')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'zayavka' ? 'border-amber-500 text-amber-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <ClipboardList size={16} /> Zayavkalar (PTO)
-        </button>
-        <button
-          onClick={() => setActiveTab('sklad')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'sklad' ? 'border-amber-500 text-amber-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <Box size={16} /> Sklad (WMS)
-        </button>
-        <button
-          onClick={() => setActiveTab('kontragent')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'kontragent' ? 'border-amber-500 text-amber-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <Building2 size={16} /> Kontragentlar
-        </button>
-        <button
-          onClick={() => setActiveTab('birja')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'birja' ? 'border-amber-500 text-amber-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <ShoppingCart size={16} /> Ta'minot & Birja
-        </button>
-        <button
-          onClick={() => setActiveTab('alias')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'alias' ? 'border-amber-500 text-amber-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <Layers size={16} /> Material AI Sozlama
-        </button>
+    <div className="flex h-full flex-col">
+      <div className="px-6 pt-3">
+        <OpsTablar<Tab> yorliq={t('Logistika bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+          { id: 'zayavka', nom: t('Zayavkalar'), ikon: <ClipboardList /> },
+          { id: 'sklad', nom: t('Sklad (qoldiq)'), ikon: <Box /> },
+          { id: 'kontragent', nom: t('Kontragentlar'), ikon: <Building2 /> },
+          { id: 'birja', nom: t('Ta’minot va birja'), ikon: <ShoppingCart /> },
+          { id: 'alias', nom: t('Material nomlari (AI)'), ikon: <Layers /> },
+        ]} />
       </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="relative flex-1 overflow-hidden">
         {activeTab === 'zayavka' && <TestZayavka />}
         {activeTab === 'sklad' && <TestSklad />}
         {activeTab === 'kontragent' && <TestKontragent />}

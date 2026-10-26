@@ -3,9 +3,10 @@ import { AlertTriangle, CheckCircle2, ShieldAlert, XCircle } from 'lucide-react'
 import { harakatNatijasi, harakatQarori, type HarakatTaklif } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { HARAKAT_MAYDONLARI, HARAKAT_NOMI, XAVF_NOMI, harakatniBajar } from './ai-harakat';
+import { HARAKAT_MUHR, XAVF_MUHR } from '../../lib/ai-korinish';
 
 type Holat = 'kutilmoqda' | 'bajarilmoqda' | 'bajarildi' | 'xato' | 'rad';
-const XAVF_USLUB: Record<string, string> = { past: 'border-ok/50 text-ok', orta: 'border-warn/60 text-warn', yuqori: 'border-danger/60 text-danger' };
+const XAVF_CHIZIQ: Record<string, string> = { past: 'var(--ok)', orta: 'var(--warn)', yuqori: 'var(--danger)' };
 
 /**
  * AI taklif qilgan harakat. Qaror HAR DOIM foydalanuvchida: past xavf + «avto» sozlamasi bo'lsa — o'zi bajariladi (va ko'rsatiladi),
@@ -36,16 +37,20 @@ export function AiHarakatKarta({ h, kompaniyaId }: { h: HarakatTaklif; kompaniya
   }, []);
 
   return (
-    <div role="group" aria-label={t(HARAKAT_NOMI[h.amal] ?? h.amal)} className={`mt-2 rounded-xl border bg-surface-2 p-3 text-sm ${XAVF_USLUB[h.xavf] ?? 'border-border'}`}>
-      <div className="flex items-center gap-2">
-        {yuqori ? <ShieldAlert size={16} /> : <AlertTriangle size={16} />}
-        <b className="text-text">{t(HARAKAT_NOMI[h.amal] ?? h.amal)}</b>
-        <span className="ml-auto rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide">{t(XAVF_NOMI[h.xavf] ?? h.xavf)}</span>
+    <div role="group" aria-label={t(HARAKAT_NOMI[h.amal] ?? h.amal)} className="fz-panel mt-2 gap-2 text-sm" style={{ borderLeft: `3px solid ${XAVF_CHIZIQ[h.xavf] ?? 'var(--border-strong)'}` }} data-testid="ai-harakat-karta">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-text-mute" aria-hidden="true">{yuqori ? <ShieldAlert size={16} /> : <AlertTriangle size={16} />}</span>
+        <span className="fz-panel__h">{t('AI taklif qilgan amal')}</span>
+        <span className="ml-auto flex items-center gap-1.5">
+          <span className={`fz-stamp ${XAVF_MUHR[h.xavf] ?? ''}`} title={t('Xavf darajasi')}>{t(XAVF_NOMI[h.xavf] ?? h.xavf)}</span>
+          <span className={`fz-stamp ${HARAKAT_MUHR[holat].cls}`} data-testid="ai-harakat-holat">{t(HARAKAT_MUHR[holat].matn)}</span>
+        </span>
       </div>
-      {h.tushuntirish && <p className="mt-1 text-xs text-text-dim">{h.tushuntirish}</p>}
-      {h.ogohlantirish && <p role="alert" className="mt-1 rounded border border-danger/50 bg-danger/10 px-2 py-1 text-xs text-danger">{h.ogohlantirish}</p>}
+      <b className="font-[family-name:var(--font-display)] text-[14px] text-text">{t(HARAKAT_NOMI[h.amal] ?? h.amal)}</b>
+      {h.tushuntirish && <p className="text-xs text-text-dim">{h.tushuntirish}</p>}
+      {h.ogohlantirish && <p role="alert" className="fz-note fz-note--danger text-xs">{h.ogohlantirish}</p>}
 
-      <dl className="mt-2 grid grid-cols-[auto,1fr] items-center gap-x-2 gap-y-1 text-xs text-text">
+      <dl className="grid grid-cols-[auto,1fr] items-center gap-x-3 gap-y-1 rounded-[var(--radius-sm)] bg-surface-2 p-2 text-xs text-text">
         {maydonlar.map((m) => (
           <div key={m.kalit} className="contents">
             <dt className="text-text-mute">{t(m.nom)}</dt>
@@ -53,8 +58,8 @@ export function AiHarakatKarta({ h, kompaniyaId }: { h: HarakatTaklif; kompaniya
               {holat === 'kutilmoqda' ? (
                 <input aria-label={t(m.nom)} type={m.tur === 'son' ? 'number' : m.tur === 'sana' ? 'date' : 'text'} value={String(qiymat[m.kalit] ?? '')}
                   onChange={(e) => setQiymat({ ...qiymat, [m.kalit]: m.tur === 'son' ? e.target.value : e.target.value })}
-                  className="w-full rounded border border-border bg-surface px-1.5 py-0.5" />
-              ) : <span>{String(qiymat[m.kalit] ?? '—')}</span>}
+                  className="h-7 w-full px-1.5" />
+              ) : <span className="font-medium tabular-nums">{String(qiymat[m.kalit] ?? '—')}</span>}
             </dd>
           </div>
         ))}
@@ -62,7 +67,7 @@ export function AiHarakatKarta({ h, kompaniyaId }: { h: HarakatTaklif; kompaniya
       </dl>
 
       {holat === 'kutilmoqda' && (
-        <div className="mt-3 space-y-2">
+        <div className="space-y-2">
           {yuqori && (
             <label className="flex items-start gap-1.5 text-xs text-danger">
               <input type="checkbox" checked={tushundim} onChange={(e) => setTushundim(e.target.checked)} className="mt-0.5" />
@@ -71,15 +76,15 @@ export function AiHarakatKarta({ h, kompaniyaId }: { h: HarakatTaklif; kompaniya
           )}
           <div className="flex gap-2">
             <button type="button" disabled={yuqori && !tushundim} onClick={() => void bajar(true)}
-              className={`rounded-md px-3 py-1.5 text-xs text-white disabled:opacity-40 ${yuqori ? 'bg-danger' : 'bg-accent'}`}>{yuqori ? t('Baribir bajarish') : t('Tasdiqlash va bajarish')}</button>
-            <button type="button" onClick={() => void rad()} className="rounded-md border border-border px-3 py-1.5 text-xs text-text-dim hover:bg-white/5">{t('Rad etish')}</button>
+              className={`fz-btn fz-btn--sm ${yuqori ? 'fz-btn--danger' : 'fz-btn--primary'}`}>{yuqori ? t('Baribir bajarish') : t('Tasdiqlash va bajarish')}</button>
+            <button type="button" onClick={() => void rad()} className="fz-btn fz-btn--ghost fz-btn--sm">{t('Rad etish')}</button>
           </div>
         </div>
       )}
-      {holat === 'bajarilmoqda' && <p className="mt-2 text-xs text-text-dim" role="status">{t('Bajarilmoqda…')}</p>}
-      {holat === 'bajarildi' && <p className="mt-2 flex items-center gap-1 text-xs text-ok" role="status"><CheckCircle2 size={14} /> {t(xabar)}{h.avto ? ` · ${t('avtomatik (sozlamangizga ko‘ra)')}` : ''}</p>}
-      {holat === 'xato' && <p className="mt-2 flex items-center gap-1 text-xs text-danger" role="alert"><XCircle size={14} /> {xabar}</p>}
-      {holat === 'rad' && <p className="mt-2 text-xs text-text-dim" role="status">{t('Rad etildi — hech narsa o‘zgarmadi')}</p>}
+      {holat === 'bajarilmoqda' && <p className="text-xs text-text-dim" role="status">{t('Bajarilmoqda…')}</p>}
+      {holat === 'bajarildi' && <p className="flex items-center gap-1 text-xs text-ok" role="status"><CheckCircle2 size={14} /> {t(xabar)}{h.avto ? ` · ${t('avtomatik (sozlamangizga ko‘ra)')}` : ''}</p>}
+      {holat === 'xato' && <p className="flex items-center gap-1 text-xs text-danger" role="alert"><XCircle size={14} /> {xabar}</p>}
+      {holat === 'rad' && <p className="text-xs text-text-dim" role="status">{t('Rad etildi — hech narsa o‘zgarmadi')}</p>}
     </div>
   );
 }

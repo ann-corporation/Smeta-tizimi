@@ -20,7 +20,7 @@ function ctxOf(body: unknown) {
 }
 
 function fetchMock(opts: { parolTekshir?: unknown; gas?: unknown; kirishRoyxat?: unknown }) {
-  return vi.fn(async (url: string) => {
+  return vi.fn(async (url: string, _init?: RequestInit) => {
     if (url.includes('/rpc/t2_parol_tekshir_v1')) {
       return { ok: true, json: async () => opts.parolTekshir } as Response;
     }
@@ -62,5 +62,31 @@ describe('kirish -- Supabase/GAS dual-check', () => {
     expect(res.status).toBe(401);
     // GAS'da (nazariy) mos kelishi mumkin bo'lsa ham -- chaqirilmasligi SHART.
     expect(fetchSpy.mock.calls.some((c) => c[0] === ENV.GAS_URL)).toBe(false);
+  });
+});
+
+describe('kirish -- birlashtirilgan hisob (t2_hisob_birlashtir_v1)', () => {
+  it('RPC omon qolgan hisobni qaytarsa — sessiya O\'SHA hisobga beriladi (login kanonik resolve ga ham shu ketadi)', async () => {
+    const fetchSpy = fetchMock({
+      parolTekshir: { ok: true, foydalanuvchi_id: 183, login: 'anvar@gmail.com', rol: 'superadmin' },
+      kirishRoyxat: { ok: true, foydalanuvchi_id: 183, azoliklar: [{ kompaniya_id: 1, rol: 'superadmin' }, { kompaniya_id: 39, rol: 'pto' }] },
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+    const res = await onRequestPost(ctxOf({ login: 'admin', parol: 'eski-admin-parol' }));
+    expect(res.status).toBe(200);
+    const resolve = fetchSpy.mock.calls.find((c) => String(c[0]).includes('/rpc/t2_kirish_royxatga_ol'))!;
+    expect(JSON.parse(String((resolve[1] as RequestInit).body)).p_login).toBe('anvar@gmail.com');
+    const { tekshir } = await import('../_shared/auth');
+    const s = await tekshir(res.headers.get('Set-Cookie')!.split(';')[0], ENV.SESSIYA_KALIT);
+    expect(s?.foydalanuvchi_id).toBe(183);
+    expect(s?.email).toBe('anvar@gmail.com');
+    expect(fetchSpy.mock.calls.some((c) => c[0] === ENV.GAS_URL)).toBe(false);
+  });
+  it('oddiy hisobda `login` kelmaydi → kiritilgan login ishlatiladi (o\'zgarish yo\'q)', async () => {
+    const fetchSpy = fetchMock({ parolTekshir: { ok: true, foydalanuvchi_id: 7, rol: 'prorab' } });
+    vi.stubGlobal('fetch', fetchSpy);
+    await onRequestPost(ctxOf({ login: 'yangi_azo', parol: 'togri-parol-123' }));
+    const resolve = fetchSpy.mock.calls.find((c) => String(c[0]).includes('/rpc/t2_kirish_royxatga_ol'))!;
+    expect(JSON.parse(String((resolve[1] as RequestInit).body)).p_login).toBe('yangi_azo');
   });
 });

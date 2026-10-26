@@ -25,6 +25,8 @@ import { useState } from 'react';
 import { X, Loader2, CheckCircle2, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 import { useF2JobHolat, useF2JobTozala } from '../../api/hooks';
 import { toast } from './Toast';
+import { tasdiqSora } from './Tasdiq';
+import { t } from '../../i18n/til';
 
 /** Siljimay turgan ish shu vaqtdan oshsa — qotgan deb ogohlantiramiz */
 const QOTDI_MS = 10 * 60 * 1000;
@@ -53,113 +55,89 @@ export default function F2NavbatChip() {
   const jim = j.yangilandi ? Date.now() - Number(j.yangilandi) : 0;
   const qotdi = ishlayapti && jim > QOTDI_MS;
 
-  // F5 (reload) qilganda tugagan yoki xato qotib qolgan eski ishlarni yashiramiz
-  if ((tugadi || xato || qotdi) && jim > 60_000) return null;
+  // F5 (reload) qilganda tugagan yoki xato bilan to'xtagan ESKI ishlarni yashiramiz. QOTGAN ish (hali ishlayapti, lekin 10 daqiqadan beri
+  // siljimagan) yashirilmaydi: aynan shu holatda ogohlantirish va «To'xtatish» kerak (avval bu shart qotganni ham yashirib, ogohlantirish hech qachon chiqmasdi).
+  if ((tugadi || xato) && jim > 60_000) return null;
 
+  const yomon = xato || qotdi;
+  const rang = yomon ? 'var(--danger)' : tugadi ? 'var(--ok)' : 'var(--accent)';
+  const sarlavha = qotdi ? t('F2 yozish — qotgan')
+    : xato ? t('F2 yozish — xato')
+    : tugadi ? t('F2 yozish tugadi')
+    : t('F2 yozilmoqda… {foiz}%', { foiz });
+  const jimDaq = Math.round(jim / 60000);
 
-  const ramka = xato || qotdi ? 'border-danger/50 bg-danger/10'
-    : tugadi ? 'border-ok/40 bg-ok/10'
-    : 'border-accent/40 bg-[var(--surface-1)]';
+  async function toxtat() {
+    const ok = await tasdiqSora({
+      xavfli: true,
+      sarlavha: t('Yozish ishini to‘xtatamizmi?'),
+      tasdiqMatni: t('To‘xtatish va tozalash'),
+      matn: t('Qotib qolgan yozish ishi to‘xtatiladi va tozalanadi.') + '\n\n' + t('Smetaga ALLAQACHON yozilgan qatorlar JOYIDA QOLADI — ular o‘chmaydi.') + '\n\n' + t('Davom etamizmi?'),
+    });
+    if (!ok) return;
+    tozala.mutate(undefined, {
+      onSuccess: (r) => toast(r.xabar || t('Tozalandi'), 'ok', undefined, 8000),
+      onError: (e: Error) => toast(e.message, 'danger'),
+    });
+  }
 
   return (
-    /* ⚡ 2026-08-16: avval `bottom-4 right-4` edi va AI tugmasining
-       USTIGA tushardi (foydalanuvchi skrinshoti). Endi undan yuqorida. */
-    <div className={`fixed bottom-24 right-4 z-[60] w-[330px] rounded-xl border shadow-2xl
-                     backdrop-blur-md ${ramka}`}>
-      {/* Sarlavha — bosilsa yig'iladi/ochiladi */}
-      <div className="flex items-center gap-2 px-3 py-2 cursor-pointer"
-           onClick={() => setYigilgan((p) => !p)}>
-        {xato || qotdi ? <AlertTriangle size={16} className="text-danger flex-shrink-0" />
-          : tugadi ? <CheckCircle2 size={16} className="text-ok flex-shrink-0" />
-          : <Loader2 size={16} className="text-accent flex-shrink-0 animate-spin" />}
-
-        <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-medium text-text truncate">
-            {qotdi ? 'Ф2 yozish — QOTGAN'
-              : xato ? 'Ф2 yozish — xato'
-              : tugadi ? 'Ф2 yozish tugadi'
-              : `Ф2 yozilmoqda… ${foiz}%`}
-          </p>
-          <p className="text-[10px] text-text-mute truncate">
-            {j.oyNom || ''}{j.obyekt ? ` · ${j.obyekt}` : ''}
-          </p>
-        </div>
-
-        {yigilgan ? <ChevronUp size={14} className="text-text-mute" />
-                  : <ChevronDown size={14} className="text-text-mute" />}
-        <button
-          onClick={(e) => { e.stopPropagation(); setYopilgan(kalit); sessionStorage.setItem("f2_chip_yopiq", kalit); }}
-          className="text-text-mute hover:text-text p-0.5 rounded hover:bg-white/10"
-          title="Yashirish">
-          <X size={13} />
+    /* AI tugmasidan yuqorida (pastki o'ng burchak). Tinch (polite) e'lon: xato bo'lsagina — alert. */
+    <div role={yomon ? 'alert' : 'status'} aria-live={yomon ? 'assertive' : 'polite'} data-f2-navbat={j.status}
+      className="fz-card fixed bottom-24 right-4 z-[60] w-[330px] max-w-[calc(100vw-2rem)]"
+      style={{ borderColor: `color-mix(in srgb, ${rang} 50%, var(--border))`, boxShadow: 'var(--shadow-pop)' }}>
+      <div className="flex items-center gap-2 px-3 py-2">
+        <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={!yigilgan}
+          aria-label={yigilgan ? t('Batafsil ko‘rsatish') : t('Yig‘ish')} onClick={() => setYigilgan((x) => !x)}>
+          {yomon ? <AlertTriangle size={16} className="shrink-0" style={{ color: rang }} aria-hidden />
+            : tugadi ? <CheckCircle2 size={16} className="shrink-0" style={{ color: rang }} aria-hidden />
+            : <Loader2 size={16} className="shrink-0 animate-spin" style={{ color: rang }} aria-hidden />}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[12.5px] font-semibold text-text">{sarlavha}</span>
+            <span className="block truncate text-[11px] text-text-mute">{j.oyNom || ''}{j.obyekt ? ` · ${j.obyekt}` : ''}</span>
+          </span>
+          {yigilgan ? <ChevronUp size={14} className="text-text-mute" aria-hidden /> : <ChevronDown size={14} className="text-text-mute" aria-hidden />}
+        </button>
+        <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Yashirish')} aria-label={t('Yashirish')}
+          onClick={() => { setYopilgan(kalit); sessionStorage.setItem("f2_chip_yopiq", kalit); }}>
+          <X size={14} aria-hidden />
         </button>
       </div>
 
       {/* Progress chizig'i — yig'ilganda ham ko'rinadi */}
-      <div className="h-1 bg-[var(--surface-2)] overflow-hidden">
-        <div className={`h-full transition-all duration-500 ${
-          xato || qotdi ? 'bg-danger' : tugadi ? 'bg-ok' : 'bg-accent'}`}
-          style={{ width: `${xato ? 100 : foiz}%` }} />
+      <div className="fz-meter__t" style={{ height: 4, borderRadius: 0 }} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={xato ? 100 : foiz} aria-label={t('Yozish jarayoni')}>
+        <i style={{ width: `${xato ? 100 : foiz}%`, background: rang, transition: 'width .5s ease' }} />
       </div>
 
       {!yigilgan && (
-        <div className="px-3 py-2 space-y-1.5">
-          <p className="text-[11px] text-text-dim tabular-nums">
-            {bajarildi} / {jami} qator
-            {jim > 60_000 && ishlayapti && (
-              <span className="text-text-mute"> · {Math.round(jim / 60000)} daq. jim</span>
-            )}
+        <div className="space-y-2 px-3 py-2">
+          <p className="m-0 text-[12px] tabular-nums text-text-dim">
+            {t('{a} / {b} qator', { a: bajarildi, b: jami })}
+            {jim > 60_000 && ishlayapti && <span className="text-text-mute"> · {t('{n} daq. jim', { n: jimDaq })}</span>}
           </p>
 
           {job.data?.hozir && (
-            <p className="text-[11px] text-text leading-snug line-clamp-3">
-              {String(job.data.hozir)}
+            <p className="m-0 line-clamp-3 text-[12px] leading-snug text-text">{String(job.data.hozir)}</p>
+          )}
+
+          {qotdi && (
+            <p className="fz-note fz-note--danger m-0" style={{ padding: '8px 10px' }}>
+              <AlertTriangle aria-hidden />
+              <span>{t('{n} daqiqadan beri siljimadi. Server ishni tashlab yuborgan bo‘lishi mumkin.', { n: jimDaq })}</span>
             </p>
           )}
 
-          {/* ⚡ 2026-08-16: TO'XTATISH endi DOIM ko'rinadi.
-              Avval faqat «qotgan» deb aniqlangandan keyin (10 daqiqa)
-              chiqardi — foydalanuvchi: «san aytgan to'xtatish degan narsa
-              yo'q bunda». Qotmagan bo'lsa ham to'xtatish huquqi bo'lishi
-              kerak: xato F2 yuborilgan bo'lishi mumkin. */}
+          {xato && j.xabar && <p className="m-0 text-[12px] leading-snug text-danger">{j.xabar}</p>}
+
+          {/* To'xtatish DOIM mavjud: qotmagan bo'lsa ham xato yuborilgan F2 ni to'xtatish huquqi bo'lishi kerak. */}
           {(ishlayapti || xato) && (
-            <div className={`rounded-lg border p-2 ${qotdi
-              ? 'border-danger/40 bg-danger/10' : 'border-border bg-white/[.03]'}`}>
-              {qotdi && (
-                <p className="text-[11px] text-danger leading-snug mb-1.5">
-                  {Math.round(jim / 60000)} daqiqadan beri siljimadi. Server ishni
-                  tashlab yuborgan bo'lishi mumkin.
-                </p>
-              )}
-              <button
-                onClick={() => {
-                  if (!window.confirm(
-                    'Qotib qolgan yozish ishi to\'xtatiladi va tozalanadi.\n\n' +
-                    'Smetaga ALLAQACHON yozilgan qatorlar JOYIDA QOLADI — ' +
-                    'ular o\'chmaydi.\n\nDavom etamizmi?')) return;
-                  tozala.mutate(undefined, {
-                    onSuccess: (r) => toast(r.xabar || 'Tozalandi', 'ok', undefined, 8000),
-                    onError: (e: Error) => toast(e.message, 'danger'),
-                  });
-                }}
-                disabled={tozala.isPending}
-                className={`w-full px-2 py-1 rounded text-[11px] font-medium
-                            transition-colors disabled:opacity-50 ${qotdi
-                  ? 'bg-danger/20 hover:bg-danger/30 text-danger'
-                  : 'bg-white/5 hover:bg-white/10 text-text-mute hover:text-danger'}`}>
-                {tozala.isPending ? 'To\'xtatilmoqda…' : '⏹ To\'xtatish va tozalash'}
-              </button>
-            </div>
+            <button type="button" onClick={() => void toxtat()} disabled={tozala.isPending}
+              className={`fz-btn fz-btn--sm w-full ${qotdi ? 'fz-btn--danger' : 'fz-btn--ghost'}`}>
+              {tozala.isPending ? t('To‘xtatilmoqda…') : t('To‘xtatish va tozalash')}
+            </button>
           )}
 
-          {xato && j.xabar && (
-            <p className="text-[11px] text-danger leading-snug">{j.xabar}</p>
-          )}
-          {ishlayapti && !qotdi && (
-            <p className="text-[10px] text-text-mute">
-              Brauzerni yopsangiz ham davom etadi.
-            </p>
-          )}
+          {ishlayapti && !qotdi && <p className="m-0 text-[11px] text-text-mute">{t('Brauzerni yopsangiz ham davom etadi.')}</p>}
         </div>
       )}
     </div>

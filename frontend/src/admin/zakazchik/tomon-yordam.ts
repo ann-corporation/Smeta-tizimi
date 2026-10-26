@@ -1,6 +1,6 @@
 /** Tomon sahifalari uchun komponent bo'lmagan yordamchilar (tomon-ui.tsx dagi komponentlar bilan birga ishlatiladi). */
 import { tilOl } from '../../i18n/til';
-import type { TomonResurs } from '../../api/t2-tomon';
+import type { TaqdimHolat, TomonResurs } from '../../api/t2-tomon';
 
 export const ROL_TAKLIFLARI = ['pudratchi', 'zakazchik', 'subpudratchi', 'texnadzor', 'laboratoriya', 'taminotchi', 'loyihachi', 'investor', 'bank'] as const;
 export const TUR_TAKLIFLARI = ['shartnoma', 'nazorat', 'ta‘minot', 'loyiha', 'moliya'] as const;
@@ -22,6 +22,12 @@ export const HODISA_NOMI: Record<string, string> = {
   grant: 'Ruxsat berildi', grant_bekor: 'Ruxsat qaytarildi', taqdim: 'Hujjat yuborildi', korilmoqda: 'Ko‘rib chiqila boshlandi', qaror: 'Qaror', izoh: 'Izoh', qaytarish: 'Hujjat qaytarib olindi',
 };
 
-export const inp = 'rounded border border-border bg-bg px-2 py-1 text-sm outline-none focus:border-accent';
-export const tugma = 'inline-flex items-center gap-1 rounded border border-border px-3 py-1 text-xs hover:border-accent disabled:opacity-40';
-export const tugmaAsosiy = 'inline-flex items-center gap-1 rounded bg-accent px-3 py-1 text-xs text-white disabled:opacity-40';
+/** Firuza (2026-10-25): kiritma va tugmalar dizayn tizimi klasslarida — rang tokenlardan. */
+export const inp = 'px-2 py-1 text-[13px]';
+export const tugma = 'fz-btn fz-btn--sm';
+export const tugmaAsosiy = 'fz-btn fz-btn--sm fz-btn--primary';
+
+/** Taqdim (yuborilgan hujjat) holati nomi — muhr va filtr uchun yagona manba. */
+export const TAQDIM_HOLAT_NOMI: Record<TaqdimHolat, string> = {
+  yuborilgan: 'Yuborilgan', ko_rilmoqda: 'Ko‘rib chiqilmoqda', qabul: 'Qabul qilingan', rad: 'Rad etilgan', tuzatish: 'Tuzatish so‘ralgan', qaytarilgan: 'Qaytarib olingan',
+};

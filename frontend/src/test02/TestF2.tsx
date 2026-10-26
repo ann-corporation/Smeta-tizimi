@@ -160,8 +160,8 @@ export default function TestF2() {
            bolalarining yig'indisi va ikki marta sanalardi. */
         filtr: 'obyekt_id=eq.' + obyektId + '&tur=in.(rs,mat,ob)',
         ustunlar: 'id,tur,raqam,nom,birlik,kat,smeta_summa,fakt_summa,' +
-                  'f2_summa,qoldiq_summa,f2_mumkin_summa,' +
-                  'smeta_hajm,smeta_narx,fakt_hajm,f2_hajm,f2_mumkin_hajm',
+ 'f2_summa,qoldiq_summa,f2_mumkin_summa,' +
+ 'smeta_hajm,smeta_narx,fakt_hajm,f2_hajm,f2_mumkin_hajm',
         tartib: 'raqam.asc', limit: 20000,
       }),
       sbT2AktReestrOl(obyektId),
@@ -271,7 +271,7 @@ export default function TestF2() {
             <FileText size={14} className="text-accent" />
             Hujjatlar reestri ({reestr.length})
             <button onClick={yangiBoshla} disabled={!obyektId}
-              className="ml-auto px-3 py-1 rounded-lg bg-accent text-white text-[12px]
+              className="ml-auto px-3 py-1 rounded-lg bg-accent text-[var(--on-accent)] text-[12px]
                          font-medium hover:bg-accent/90 disabled:opacity-40
                          inline-flex items-center gap-1.5">
               <Plus size={13} /> Yangi hujjat
@@ -537,11 +537,11 @@ export default function TestF2() {
               <div className="flex items-center gap-2">
                 <button onClick={() => setOchiq(false)}
                   className="px-3 py-1.5 rounded-lg border border-border text-[12px]
-                             text-text-dim hover:bg-white/5">
+                             text-text-dim hover:bg-[var(--surface-3)]">
                   Bekor
                 </button>
                 <button onClick={yubormoq} disabled={yubor}
-                  className="px-4 py-1.5 rounded-lg bg-accent text-white text-[12px]
+                  className="px-4 py-1.5 rounded-lg bg-accent text-[var(--on-accent)] text-[12px]
                              font-medium hover:bg-accent/90 disabled:opacity-40">
                   {yubor ? 'Yaratilmoqda…' : 'Hujjat yaratish'}
                 </button>

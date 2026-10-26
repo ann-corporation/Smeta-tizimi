@@ -13,6 +13,10 @@ import { liniyaXato, shartnomaLiniyaOl, shartnomaSaqlaV2, type Liniya, type Lini
 import {
   ROL_TAKLIF, TUR_TAKLIF, liniyaDaraxt, shaklQur, shaklTekshir, shaklYuk, shartnomasizObyektlar, takliflar, tanlashMumkin, type Shakl,
 } from '../../lib/shartnoma-liniya';
+import { shartnomaSvodOl } from '../../api/t2-nakopitelniy';
+import { shartnomaSvodi, svodJami, type ShartnomaSvodi } from '../../lib/nakopitelniy-svod';
+import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
+import { HisobMeterIxcham, ShartnomaZanjir, ZanjirKpi } from '../../components/shartnoma-liniya/ShartnomaZanjir';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
 const yorliq = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-text-mute';
@@ -43,6 +47,16 @@ export function ShartnomaLiniya() {
     })();
     return () => { faol = false; };
   }, [kid]);
+
+  /** Shartnoma zanjiri (DS → F2 → F3 → to'lov → sverka): faqat ko'rsatish; o'qilmasa — zanjir ko'rinmaydi, tahrir ishlayveradi. */
+  const [svod, setSvod] = useState<ReadonlyMap<number, ShartnomaSvodi> | null>(null);
+  const svodYukla = useCallback(async () => {
+    if (!kid) return;
+    try { const r = await shartnomaSvodOl(kid); setSvod(r.ok ? new Map(r.natija.shartnomalar.map((x) => [x.id, shartnomaSvodi(x)])) : null); }
+    catch { setSvod(null); }
+  }, [kid]);
+  useEffect(() => { void svodYukla(); }, [svodYukla]);
+  const svodJ = useMemo(() => (svod && svod.size ? svodJami([...svod.values()]) : null), [svod]);
 
   const yukla = useCallback(async () => {
     if (!kid) return;
@@ -75,6 +89,7 @@ export function ShartnomaLiniya() {
     if (!r.ok) { toast(liniyaXato(r), 'danger'); return false; }
     toast(xabar, 'ok');
     await yukla();
+    void svodYukla();
     return true;
   }
 
@@ -91,17 +106,19 @@ export function ShartnomaLiniya() {
     return (
       <li key={s.id}>
         <button type="button" onClick={() => ochish(s)} aria-label={`Shartnoma № ${s.raqam}`}
-          className={`w-full rounded-lg border px-3 py-2 text-left transition ${tanlangan ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'}`}>
+          aria-current={tanlangan ? 'true' : undefined}
+          className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${tanlangan ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50 hover:bg-surface-2'}`}>
           <div className="flex items-center gap-2">
             <FileSignature size={14} className={s.asosiy ? 'text-accent' : 'text-text-mute'} />
             <span className="truncate text-[13px] font-semibold text-text">№ {s.raqam}</span>
-            <span className={`shrink-0 rounded px-1 text-[10px] ${s.asosiy ? 'bg-accent/10 text-accent' : 'bg-surface-2 text-text-dim'}`}>{s.asosiy ? 'asosiy' : (s.turi || 'qo‘shimcha')}</span>
-            {s.asosiy && s.turi && <span className="shrink-0 truncate text-[10px] text-text-mute">{s.turi}</span>}
+            <span className={`fz-chip ${s.asosiy ? 'fz-chip--accent' : ''}`}>{s.asosiy ? tr('asosiy') : (s.turi || tr('qo‘shimcha'))}</span>
+            {s.asosiy && s.turi && <span className="shrink-0 truncate text-[11px] text-text-mute">{s.turi}</span>}
             <span className="ml-auto shrink-0 text-right text-sm tabular-nums text-text-dim">{s.jami_nds_bilan != null ? <FmtN val={s.jami_nds_bilan} /> : <span className="text-text-mute">{tr('summa kiritilmagan')}</span>}
-              {(() => { const a = smetaAloqa(s.obyektlar, smetalar); return a.smeta != null ? <span className="block text-xs text-text-mute">{tr('smeta:')} <FmtN val={a.smeta} /></span> : null; })()}</span>
+              {(() => { const a = smetaAloqa(s.obyektlar, smetalar); return a.smeta != null ? <span className="mt-0.5 flex items-start justify-end gap-1.5 text-xs text-text-mute">{tr('smeta:')} <PortfelSummaJuft kichik obyektlar={s.obyektlar.map((obyektId) => ({ obyektId, shartnomaId: s.id ?? null }))} ustamasiz={a.smeta} kompaniyaId={kid} /></span> : null; })()}</span>
           </div>
           {s.nom && <div className="mt-0.5 truncate text-[12px] text-text-dim">{s.nom}</div>}
-          {s.tomonlar.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{s.tomonlar.map((t, i) => <span key={i} className="rounded bg-surface-2 px-1.5 text-[10px] text-text-dim"><span className="text-text-mute">{t.rol}:</span> {t.nom}</span>)}</div>}
+          {svod?.get(s.id) && <div className="mt-1.5 max-w-sm"><HisobMeterIxcham sv={svod.get(s.id)!} /></div>}
+          {s.tomonlar.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{s.tomonlar.map((t, i) => <span key={i} className="fz-chip font-normal"><span className="text-text-mute">{t.rol}:</span> {t.nom}</span>)}</div>}
           {s.obyektlar.length > 0 && <ul className="mt-1.5 space-y-0.5 border-l border-border pl-2">{s.obyektlar.map((o) => <li key={o} className="flex items-center gap-1 truncate text-[12px] text-text"><Building2 size={11} className="shrink-0 text-text-mute" />{obNom.get(o) ?? `#${o}`}</li>)}</ul>}
         </button>
       </li>
@@ -113,38 +130,42 @@ export function ShartnomaLiniya() {
     const q = obQidir.trim().toLocaleLowerCase('ru');
     const korinadi = tanlov.filter((o) => !q || o.nom.toLocaleLowerCase('ru').includes(q) || s.obyektlar.includes(o.id));
     return (
-      <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Shartnoma kartasi">
-        <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-          <FileSignature size={16} className="text-accent" />
-          <h2 className="text-[14px] font-semibold text-text">{s.id ? `Shartnoma № ${s.raqam || '—'}` : 'Yangi shartnoma'}</h2>
-          <button type="button" aria-label="Yopish" onClick={() => setShakl(null)} className="ml-auto rounded p-1 text-text-mute hover:text-text"><X size={16} /></button>
+      <section className="fz-card flex min-h-0 flex-col" aria-label="Shartnoma kartasi">
+        <header className="fz-card__head">
+          <div className="flex min-w-0 items-center gap-2">
+            <FileSignature size={16} className="text-accent" />
+            <h2 className="fz-card__title">{s.id ? `${tr('Shartnoma')} № ${s.raqam || '—'}` : tr('Yangi shartnoma')}</h2>
+            {s.asosiy && <span className="fz-stamp fz-stamp--ok">{tr('asosiy')}</span>}
+          </div>
+          <button type="button" aria-label="Yopish" onClick={() => setShakl(null)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm"><X size={16} /></button>
         </header>
         <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+          {s.id != null && svod?.get(s.id) && <ShartnomaZanjir sv={svod.get(s.id)!} />}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label><span className={yorliq}>Loyiha *</span>
+            <label><span className={yorliq}>{tr('Loyiha')} *</span>
               <select aria-label="Loyiha" className={kirit} value={s.loyiha_id ?? ''} onChange={(e) => ozgar({ loyiha_id: e.target.value ? Number(e.target.value) : null })}>
-                <option value="">— tanlang —</option>
+                <option value="">{tr('— tanlang —')}</option>
                 {liniya?.loyihalar.map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
               </select>
               {xatoJoy('loyiha') && <span className="text-[11px] text-danger">{xatoJoy('loyiha')}</span>}
             </label>
-            <label><span className={yorliq}>Raqam *</span>
+            <label><span className={yorliq}>{tr('Raqam')} *</span>
               <input aria-label="Raqam" className={kirit} value={s.raqam} onChange={(e) => ozgar({ raqam: e.target.value })} />
               {xatoJoy('raqam') && <span className="text-[11px] text-danger">{xatoJoy('raqam')}</span>}
             </label>
-            <label className="sm:col-span-2"><span className={yorliq}>Nomi / predmeti</span>
+            <label className="sm:col-span-2"><span className={yorliq}>{tr('Nomi / predmeti')}</span>
               <input aria-label="Nomi" className={kirit} value={s.nom} onChange={(e) => ozgar({ nom: e.target.value })} />
             </label>
-            <label><span className={yorliq}>Turi (erkin)</span>
-              <input aria-label="Turi" list="sh-turlar" className={kirit} value={s.turi} onChange={(e) => ozgar({ turi: e.target.value })} placeholder="Bosh shartnoma, Subpudrat, Laboratoriya…" />
+            <label><span className={yorliq}>{tr('Turi (erkin)')}</span>
+              <input aria-label="Turi" list="sh-turlar" className={kirit} value={s.turi} onChange={(e) => ozgar({ turi: e.target.value })} placeholder={tr('Bosh shartnoma, Subpudrat, Laboratoriya…')} />
               <datalist id="sh-turlar">{turlar.map((t) => <option key={t} value={t} />)}</datalist>
             </label>
             <label className="flex items-start gap-2 pt-5">
               <input type="checkbox" aria-label="Asosiy shartnoma" checked={s.asosiy} onChange={(e) => ozgar({ asosiy: e.target.checked })} className="mt-0.5" />
-              <span className="text-[12px] text-text">Asosiy (buyurtmachi ↔ pudratchi)<span className="block text-[11px] text-text-mute">Obyekt faqat bitta asosiy shartnomada bo‘ladi; qolganlari cheklanmagan.</span></span>
+              <span className="text-[12px] text-text">{tr('Asosiy (buyurtmachi ↔ pudratchi)')}<span className="block text-[11px] text-text-mute">{tr('Obyekt faqat bitta asosiy shartnomada bo‘ladi; qolganlari cheklanmagan.')}</span></span>
             </label>
             {(['summa_bez_nds', 'nds', 'jami_nds_bilan'] as const).map((k) => (
-              <label key={k}><span className={yorliq}>{k === 'summa_bez_nds' ? 'Summa (QQSsiz)' : k === 'nds' ? 'QQS' : 'Jami (QQS bilan)'}</span>
+              <label key={k}><span className={yorliq}>{k === 'summa_bez_nds' ? tr('Summa (QQSsiz)') : k === 'nds' ? tr('QQS') : tr('Jami (QQS bilan)')}</span>
                 <MoneyInput aria-label={k} inputMode="decimal" className={`${kirit} tabular-nums`} value={s[k]} onValueChange={(value) => ozgar({ [k]: value } as Partial<Shakl>)} />
                 {xatoJoy(k) && <span className="text-[11px] text-danger">{xatoJoy(k)}</span>}
               </label>
@@ -157,11 +178,11 @@ export function ShartnomaLiniya() {
             const f = farq(shSumma, a.smeta);
             const nds = sonOl(s.nds);
             return (
-              <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-[12px]" aria-label={tr('Smeta bilan aloqa')}>
-                <p className="mb-1 font-semibold text-text">{tr('Smeta bilan aloqa')}</p>
+              <div className="fz-panel text-[12.5px]" aria-label={tr('Smeta bilan aloqa')}>
+                <p className="fz-panel__h">{tr('Smeta bilan aloqa')}</p>
                 {a.qatorlar.length === 0 ? <p className="text-text-mute">{tr('Obyekt bog‘lanmagan — pastda obyektlarni tanlang.')}</p> : <>
                   <ul className="space-y-0.5">{a.qatorlar.map((q) => <li key={q.id} className="flex justify-between gap-2"><span className="truncate">{q.nom}</span><span className="tabular-nums">{q.bor ? <FmtN val={q.jami} /> : <span className="text-text-mute">{tr('smeta yo‘q')}</span>}</span></li>)}</ul>
-                  <p className="mt-1 flex justify-between border-t border-border/50 pt-1"><span>{tr('Smeta summasi (nakrutkasiz, QQSsiz)')}</span><b className="tabular-nums">{a.smeta == null ? '—' : <FmtN val={a.smeta} />}</b></p>
+                  <p className="mt-1 flex justify-between border-t border-border/50 pt-1"><span>{tr('Smeta summasi (nakrutkasiz, QQSsiz)')}</span><span className="text-right">{a.smeta == null ? <b>—</b> : <PortfelSummaJuft kichik obyektlar={s.obyektlar.map((obyektId) => ({ obyektId, shartnomaId: s.id ?? null }))} ustamasiz={a.smeta} kompaniyaId={kid} />}</span></p>
                   <p className="flex justify-between"><span>{tr('Shartnoma summasi (QQSsiz)')}</span><b className="tabular-nums">{shSumma == null ? <span className="font-normal text-text-mute">{tr('kiritilmagan')}</span> : <FmtN val={shSumma} />}</b></p>
                   {a.smeta != null && s.id != null && kid != null && <p className="mt-0.5"><UstamaJami companyId={kid} line={liniya} objects={t2Obyektlar} ids={s.obyektlar} contractId={s.id} label={tr('Smeta ustama bilan (QQS bilan)')} /></p>}
                   {f != null && <p className="flex justify-between"><span>{tr('Farq (shartnoma − smeta)')}</span><b className={`tabular-nums ${Math.abs(f) < 0.01 ? 'text-ok' : 'text-text'}`}><FmtN val={f} /></b></p>}
@@ -169,29 +190,29 @@ export function ShartnomaLiniya() {
                   <p className="mt-0.5 text-[11px] text-text-mute">{tr('Smeta summasi nakrutkasiz to‘g‘ri xarajat. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.')}</p>
                 </>}
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={a.smeta == null}
+                  <button type="button" className="fz-btn fz-btn--sm" disabled={a.smeta == null}
                     onClick={() => { const sm = yaxlit2(a.smeta as number); const q = yaxlit2(sm * QQS_STAVKA); ozgar({ summa_bez_nds: String(sm), nds: String(q), jami_nds_bilan: String(yaxlit2(sm + q)) }); }}>{tr('Smeta summasini qo‘yish (+QQS 12%)')}</button>
-                  <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={shSumma == null}
+                  <button type="button" className="fz-btn fz-btn--sm" disabled={shSumma == null}
                     onClick={() => { const q = yaxlit2((shSumma as number) * QQS_STAVKA); ozgar({ nds: String(q), jami_nds_bilan: String(yaxlit2((shSumma as number) + q)) }); }}>{tr('QQS 12% hisoblash')}</button>
-                  <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={shSumma == null}
+                  <button type="button" className="fz-btn fz-btn--sm" disabled={shSumma == null}
                     onClick={() => ozgar({ jami_nds_bilan: String(yaxlit2((shSumma as number) + (nds ?? 0))) })}>{tr('Jami = Summa + QQS')}</button>
-                  <button type="button" className="tugma h-7 px-2 text-[11px]" onClick={() => ozgar({ summa_bez_nds: '', nds: '', jami_nds_bilan: '' })}>{tr('Summalarni tozalash')}</button>
+                  <button type="button" className="fz-btn fz-btn--sm" onClick={() => ozgar({ summa_bez_nds: '', nds: '', jami_nds_bilan: '' })}>{tr('Summalarni tozalash')}</button>
                 </div>
               </div>
             );
           })()}
 
           <div>
-            <div className="mb-1.5 flex items-center gap-2"><Users size={14} className="text-text-mute" /><span className="text-[13px] font-semibold text-text">Tomonlar</span>
-              <button type="button" onClick={() => ozgar({ tomonlar: [...s.tomonlar, { rol: '', nom: '', inn: null }] })} className="ml-auto flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[11px] text-text-dim hover:border-accent hover:text-text"><Plus size={12} />Tomon</button>
+            <div className="mb-1.5 flex items-center gap-2"><Users size={14} className="text-text-mute" /><span className="text-[13px] font-semibold text-text">{tr('Tomonlar')}</span>
+              <button type="button" onClick={() => ozgar({ tomonlar: [...s.tomonlar, { rol: '', nom: '', inn: null }] })} className="fz-btn fz-btn--ghost fz-btn--sm ml-auto"><Plus size={12} />{tr('Tomon')}</button>
             </div>
             <datalist id="sh-rollar">{rollar.map((t) => <option key={t} value={t} />)}</datalist>
             <div className="space-y-1.5">
               {s.tomonlar.map((t, i) => (
                 <div key={i} className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)_minmax(0,7rem)_auto] items-start gap-1.5">
-                  <input aria-label={`${i + 1}-tomon roli`} list="sh-rollar" className={kirit} value={t.rol} placeholder="Rol" onChange={(e) => ozgar({ tomonlar: s.tomonlar.map((x, j) => (j === i ? { ...x, rol: e.target.value } : x)) })} />
-                  <input aria-label={`${i + 1}-tomon nomi`} className={kirit} value={t.nom} placeholder="Tashkilot nomi" onChange={(e) => ozgar({ tomonlar: s.tomonlar.map((x, j) => (j === i ? { ...x, nom: e.target.value } : x)) })} />
-                  <input aria-label={`${i + 1}-tomon INN`} className={kirit} value={t.inn ?? ''} placeholder="INN" onChange={(e) => ozgar({ tomonlar: s.tomonlar.map((x, j) => (j === i ? { ...x, inn: e.target.value } : x)) })} />
+                  <input aria-label={`${i + 1}-tomon roli`} list="sh-rollar" className={kirit} value={t.rol} placeholder={tr('Rol')} onChange={(e) => ozgar({ tomonlar: s.tomonlar.map((x, j) => (j === i ? { ...x, rol: e.target.value } : x)) })} />
+                  <input aria-label={`${i + 1}-tomon nomi`} className={kirit} value={t.nom} placeholder={tr('Tashkilot nomi')} onChange={(e) => ozgar({ tomonlar: s.tomonlar.map((x, j) => (j === i ? { ...x, nom: e.target.value } : x)) })} />
+                  <input aria-label={`${i + 1}-tomon INN`} className={kirit} value={t.inn ?? ''} placeholder={tr('INN')} onChange={(e) => ozgar({ tomonlar: s.tomonlar.map((x, j) => (j === i ? { ...x, inn: e.target.value } : x)) })} />
                   <button type="button" aria-label={`${i + 1}-tomonni olib tashlash`} onClick={() => ozgar({ tomonlar: s.tomonlar.filter((_, j) => j !== i) })} className="rounded-md p-1.5 text-text-mute hover:bg-danger/10 hover:text-danger"><Trash2 size={14} /></button>
                   {xatoJoy(`t${i}`) && <span className="col-span-4 text-[11px] text-danger">{xatoJoy(`t${i}`)}</span>}
                 </div>
@@ -200,46 +221,50 @@ export function ShartnomaLiniya() {
           </div>
 
           <div>
-            <div className="mb-1.5 flex items-center gap-2"><Building2 size={14} className="text-text-mute" /><span className="text-[13px] font-semibold text-text">Obyektlar</span><span className="text-[11px] text-text-mute">{s.obyektlar.length} ta tanlangan</span></div>
-            <input aria-label="Obyekt qidirish" className={`${kirit} mb-1.5`} value={obQidir} onChange={(e) => setObQidir(e.target.value)} placeholder="Obyekt nomi…" />
+            <div className="mb-1.5 flex items-center gap-2"><Building2 size={14} className="text-text-mute" /><span className="text-[13px] font-semibold text-text">{tr('Obyektlar')}</span><span className="fz-chip">{tr('{n} ta tanlangan', { n: s.obyektlar.length })}</span></div>
+            <input aria-label="Obyekt qidirish" className={`${kirit} mb-1.5`} value={obQidir} onChange={(e) => setObQidir(e.target.value)} placeholder={tr('Obyekt nomi…')} />
             <ul className="max-h-64 space-y-0.5 overflow-auto rounded-md border border-border p-1">
-              {korinadi.length === 0 && <li className="px-2 py-1 text-[12px] text-text-mute">Mos obyekt yo‘q{s.asosiy ? ' (boshqa asosiy shartnomadagilar ko‘rsatilmaydi)' : ''}</li>}
+              {korinadi.length === 0 && <li className="px-2 py-1 text-[12px] text-text-mute">{s.asosiy ? tr('Mos obyekt yo‘q (boshqa asosiy shartnomadagilar ko‘rsatilmaydi)') : tr('Mos obyekt yo‘q')}</li>}
               {korinadi.map((o) => (
                 <li key={o.id}><label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[12px] text-text hover:bg-surface-2">
                   <input type="checkbox" aria-label={`Obyekt: ${o.nom}`} checked={s.obyektlar.includes(o.id)}
                     onChange={(e) => ozgar({ obyektlar: e.target.checked ? [...s.obyektlar, o.id] : s.obyektlar.filter((x) => x !== o.id) })} />
                   <span className="truncate">{o.nom}</span>
-                  {o.loyiha_id == null && <span className="ml-auto shrink-0 rounded bg-warn/10 px-1 text-[10px] text-warn">loyihasiz</span>}
+                  {o.loyiha_id == null && <span className="fz-chip fz-chip--warn ml-auto">{tr('loyihasiz')}</span>}
                 </label></li>
               ))}
             </ul>
           </div>
 
-          <label className="block"><span className={yorliq}>Izoh</span>
+          <label className="block"><span className={yorliq}>{tr('Izoh')}</span>
             <textarea aria-label="Izoh" rows={2} className={kirit} value={s.izoh} onChange={(e) => ozgar({ izoh: e.target.value })} />
           </label>
         </div>
         <footer className="flex items-center gap-3 border-t border-border px-4 py-2.5">
-          {xatolar.length > 0 && <span className="flex items-center gap-1 text-[12px] text-warn"><AlertTriangle size={13} />{xatolar.length} ta xato</span>}
+          {xatolar.length > 0 && <span className="fz-chip fz-chip--warn"><AlertTriangle size={13} />{tr('{n} ta xato', { n: xatolar.length })}</span>}
           <button type="button" disabled={saqlanmoqda || xatolar.length > 0} onClick={() => void saqla(s).then((ok) => { if (ok && !s.id) setShakl(null); })}
-            className="ml-auto flex items-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"><Save size={14} />{saqlanmoqda ? 'Saqlanmoqda…' : 'Saqlash'}</button>
+            className="fz-btn fz-btn--primary ml-auto"><Save size={14} />{saqlanmoqda ? tr('Saqlanmoqda…') : tr('Saqlash')}</button>
         </footer>
       </section>
     );
   }
 
+  const bosh = <section className="fz-card hidden items-center justify-center p-6 text-center text-[13px] text-text-mute lg:flex">{tr('Shartnomani tanlang yoki yangisini qo‘shing — bu yerda uning zanjiri (DS → F2 → F3 → to‘lov → akt-sverka) va kartasi ochiladi.')}</section>;
   return (
-    <Sahifa sarlavha="Shartnoma liniyasi" tavsif="Loyiha → shartnoma (tomonlar) → obyektlar" onYangila={() => void yukla()} yangilanmoqda={yuklanmoqda}
-      amallar={<button type="button" onClick={() => ochish(null, daraxt.find((t) => t.id != null)?.id ?? null)} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-semibold text-white"><Plus size={14} />Shartnoma</button>}>
-      {!kid && <section className="karta p-4 text-text-dim">Avval kompaniyani tanlang.</section>}
-      {xato && <section role="alert" className="karta flex items-center gap-2 border-danger/40 bg-danger/5 p-4 text-danger"><AlertTriangle size={16} />{xato}</section>}
+    <Sahifa sarlavha="Shartnoma liniyasi" tavsif="Loyiha → shartnoma (tomonlar) → obyektlar" onYangila={() => { void yukla(); void svodYukla(); }} yangilanmoqda={yuklanmoqda}
+      amallar={<button type="button" onClick={() => ochish(null, daraxt.find((t) => t.id != null)?.id ?? null)} className="fz-btn fz-btn--primary"><Plus size={14} />{tr('Shartnoma')}</button>}>
+      <div className="flex min-h-0 flex-col gap-3">
+      {!kid && <section className="fz-card p-4 text-text-dim">{tr('Avval kompaniyani tanlang.')}</section>}
+      {xato && <section role="alert" className="fz-note fz-note--danger"><AlertTriangle size={16} />{xato}</section>}
       {!liniya && yuklanmoqda && <div className="skel min-h-[280px] rounded-xl" />}
+      {liniya && svodJ && <ZanjirKpi jami={svodJ} soni={svod?.size ?? 0} />}
       {liniya && (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)]">
           <div className="min-h-0 space-y-3 overflow-auto">
             {shartnomasiz.length > 0 && (
-              <section className="karta border-warn/40 p-3" aria-label="Shartnomasiz obyektlar">
-                <div className="mb-2 flex items-center gap-2"><Link2 size={14} className="text-warn" /><span className="text-[13px] font-semibold text-text">Asosiy shartnomasiz obyektlar</span><span className="rounded bg-warn/10 px-1.5 text-[11px] text-warn">{shartnomasiz.length}</span></div>
+              <section className="fz-card border-warn/40 p-3" aria-label="Shartnomasiz obyektlar">
+                <div className="mb-2 flex items-center gap-2"><Link2 size={14} className="text-warn" /><span className="text-[13px] font-semibold text-text">{tr('Asosiy shartnomasiz obyektlar')}</span><span className="fz-chip fz-chip--warn">{shartnomasiz.length}</span>
+                  <span className="text-[12px] text-text-mute">{tr('— F2 va hujjat imzolovchilari shartnomadan olinadi; biriktiring.')}</span></div>
                 <ul className="grid grid-cols-1 gap-1 md:grid-cols-2">
                   {shartnomasiz.map((o) => {
                     const mos = asosiylar.filter((s) => o.loyiha_id == null || s.loyiha_id == null || s.loyiha_id === o.loyiha_id);
@@ -247,8 +272,8 @@ export function ShartnomaLiniya() {
                       <li key={o.id} className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
                         <span className="min-w-0 flex-1 truncate text-[12px] text-text">{o.nom}</span>
                         <select aria-label={`Biriktirish: ${o.nom}`} disabled={saqlanmoqda || mos.length === 0} value="" onChange={(e) => e.target.value && void biriktir(o.id, Number(e.target.value))}
-                          className="max-w-[11rem] shrink-0 rounded border border-border bg-surface px-1 py-0.5 text-[11px] text-text-dim">
-                          <option value="">{mos.length ? 'Shartnomaga…' : 'mos shartnoma yo‘q'}</option>
+                          className="max-w-[11rem] shrink-0 rounded border border-border bg-surface px-1 py-0.5 text-[12px] text-text-dim">
+                          <option value="">{mos.length ? tr('Shartnomaga…') : tr('mos shartnoma yo‘q')}</option>
                           {mos.map((s) => <option key={s.id} value={s.id}>№ {s.raqam}{s.nom ? ` — ${s.nom}` : ''}</option>)}
                         </select>
                       </li>
@@ -258,22 +283,23 @@ export function ShartnomaLiniya() {
               </section>
             )}
             {daraxt.map((t) => (
-              <section key={t.id ?? 'yoq'} className="karta p-3" aria-label={`Loyiha: ${t.nom}`}>
+              <section key={t.id ?? 'yoq'} className="fz-card p-3" aria-label={`Loyiha: ${t.nom}`}>
                 <div className="mb-2 flex items-center gap-2">
-                  <span className={`text-[14px] font-semibold ${t.id == null ? 'text-warn' : 'text-text'}`}>{t.nom}</span>
-                  {t.id != null && <span className="text-[11px] text-text-mute">{t.obyektSoni} obyekt · {t.asosiy.length + t.qoshimcha.length} shartnoma</span>}
-                  {t.id != null && <button type="button" onClick={() => ochish(null, t.id)} className="ml-auto flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[11px] text-text-dim hover:border-accent hover:text-text"><Plus size={12} />Shartnoma</button>}
+                  <span className={`text-[14px] font-semibold ${t.id == null ? 'text-warn' : 'text-text'}`} style={{ fontFamily: 'var(--font-display)' }}>{t.nom}</span>
+                  {t.id != null && <span className="text-[12px] text-text-mute">{tr('{o} obyekt · {s} shartnoma', { o: t.obyektSoni, s: t.asosiy.length + t.qoshimcha.length })}</span>}
+                  {t.id != null && <button type="button" onClick={() => ochish(null, t.id)} className="fz-btn fz-btn--ghost fz-btn--sm ml-auto"><Plus size={12} />{tr('Shartnoma')}</button>}
                 </div>
-                {t.id == null && <p className="mb-2 text-[11px] text-text-mute">Bu shartnomalarga loyiha biriktirilmagan — kartani ochib loyihani tanlang.</p>}
-                {t.asosiy.length + t.qoshimcha.length === 0 ? <p className="text-[12px] text-text-mute">Shartnoma yo‘q</p> : (
+                {t.id == null && <p className="mb-2 text-[12px] text-text-mute">{tr('Bu shartnomalarga loyiha biriktirilmagan — kartani ochib loyihani tanlang.')}</p>}
+                {t.asosiy.length + t.qoshimcha.length === 0 ? <p className="text-[12px] text-text-mute">{tr('Shartnoma yo‘q')}</p> : (
                   <ul className="space-y-1.5">{t.asosiy.map(shartnomaQatori)}{t.qoshimcha.map(shartnomaQatori)}</ul>
                 )}
               </section>
             ))}
           </div>
-          {shakl ? karta(shakl) : <section className="karta hidden items-center justify-center p-6 text-center text-[13px] text-text-mute lg:flex">Shartnomani tanlang yoki yangisini qo‘shing.</section>}
+          {shakl ? karta(shakl) : bosh}
         </div>
       )}
+      </div>
     </Sahifa>
   );
 }

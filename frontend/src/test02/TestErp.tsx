@@ -1,23 +1,33 @@
 import { MoneyInput } from '../umumiy/ui/MoneyInput';
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { sbKadrlarOl, sbKadrYarat, sbTexnikalarOl, sbTexnikaYarat, sbResursBekor, type KadrMustaqil, type TexnikaMustaqil } from '../api/t2-resurs';
-import { Users, Truck, Wrench, ShieldCheck, Plus, Search, Building2, MapPin, HardHat, FileText, CheckCircle2, RefreshCw, Save, X, Trash2 } from 'lucide-react';
+import { Users, Truck, ShieldCheck, Plus, HardHat, RefreshCw, Save, Trash2, Network } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
+import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { onEntityChanged } from '../api/entity-consistency';
+import { t } from '../i18n/til';
+import { Sahifa } from '../umumiy/ui/Sahifa';
+import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsOyna, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+
+/**
+ * ERP — kompaniyaning markaziy kadrlari va texnika parki (egasi 2026-10-25: Firuza ko'rinishi).
+ * Resurs obyektga biriktirilsa — «obyektda / ishlamoqda», aks holda — «zaxirada / garajda».
+ */
+type Modul = 'kadrlar' | 'texnika' | 'sifat';
 
 export default function TestErp() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { joriy } = useKompaniya();
-  const [modul, setModul] = useState<'kadrlar'|'texnika'|'sifat'>((params.get('modul') as any) || 'kadrlar');
+  const [modul, setModul] = useState<Modul>((params.get('modul') as Modul) || 'kadrlar');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [fNomi, setFNomi] = useState('');
   const [fToifa, setFToifa] = useState('');
   const [fNarx, setFNarx] = useState('');
+  const [qidiruv, setQidiruv] = useState('');
 
   const [kadrlarList, setKadrlarList] = useState<KadrMustaqil[]>([]);
   const [texnikaList, setTexnikaList] = useState<TexnikaMustaqil[]>([]);
@@ -28,13 +38,8 @@ export default function TestErp() {
     if (!joriy) return;
     setYuklanmoqda(true);
     try {
-      if (modul === 'kadrlar') {
-        const res = await sbKadrlarOl(joriy.id);
-        setKadrlarList(res.qatorlar || []);
-      } else if (modul === 'texnika') {
-        const res = await sbTexnikalarOl(joriy.id);
-        setTexnikaList(res.qatorlar || []);
-      }
+      if (modul === 'kadrlar') setKadrlarList((await sbKadrlarOl(joriy.id)).qatorlar || []);
+      else if (modul === 'texnika') setTexnikaList((await sbTexnikalarOl(joriy.id)).qatorlar || []);
     } catch (e: any) {
       toast(e.message, 'danger');
     } finally {
@@ -42,40 +47,28 @@ export default function TestErp() {
     }
   };
 
-  useEffect(() => {
-    yukla();
-  }, [joriy, modul]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void yukla(); }, [joriy, modul]);
   useEffect(() => onEntityChanged((event) => {
     const type = modul === 'kadrlar' ? 'kadr' : modul === 'texnika' ? 'texnika' : null;
-    if (joriy && type && event.detail.kompaniyaId === joriy.id && event.detail.type === type) yukla();
+    if (joriy && type && event.detail.kompaniyaId === joriy.id && event.detail.type === type) void yukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [joriy, modul]);
 
   const saqlash = async () => {
     if (!joriy) return;
-    if (!fNomi) return toast("Nomini / F.I.Sh kiriting", "warn");
+    if (!fNomi) return toast(t('Nomini / F.I.Sh kiriting'), 'warn');
     setSaqlamoqda(true);
     try {
       if (modul === 'kadrlar') {
-        await sbKadrYarat({
-          kompaniyaId: joriy.id,
-          ismSharif: fNomi,
-          lavozim: fToifa || 'Ishchi',
-          oylikMaosh: Number(fNarx) || undefined
-        });
+        await sbKadrYarat({ kompaniyaId: joriy.id, ismSharif: fNomi, lavozim: fToifa || 'Ishchi', oylikMaosh: Number(fNarx) || undefined });
       } else if (modul === 'texnika') {
-        await sbTexnikaYarat({
-          kompaniyaId: joriy.id,
-          nomi: fNomi,
-          davlatRaqami: fToifa || undefined,
-          yoqilgiMejori: Number(fNarx) || undefined
-        });
+        await sbTexnikaYarat({ kompaniyaId: joriy.id, nomi: fNomi, davlatRaqami: fToifa || undefined, yoqilgiMejori: Number(fNarx) || undefined });
       }
-      toast("Muvaffaqiyatli saqlandi!", "ok");
+      toast(t('Muvaffaqiyatli saqlandi!'), 'ok');
       setIsFormOpen(false);
-      setFNomi('');
-      setFToifa('');
-      setFNarx('');
-      yukla();
+      setFNomi(''); setFToifa(''); setFNarx('');
+      void yukla();
     } catch (e: any) {
       toast(e.message, 'danger');
     } finally {
@@ -84,237 +77,128 @@ export default function TestErp() {
   };
 
   const bekorQil = async (tur: 'kadr' | 'texnika', id: number, version: number, nom: string) => {
-    if (!joriy || !confirm('«' + nom + '» bekor qilinsinmi? Tarix saqlanadi.')) return;
+    if (!joriy) return;
+    if (!(await tasdiqSora({ sarlavha: t('Bekor qilish'), matn: t('«{nom}» bekor qilinsinmi? Tarix saqlanadi.', { nom }), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
     const r = await sbResursBekor(tur, joriy.id, id, version);
-    if (r.ok) { toast('Bekor qilindi', 'ok'); yukla(); }
-    else toast(r.error || 'Bekor qilinmadi', 'danger');
+    if (r.ok) { toast(t('Bekor qilindi'), 'ok'); void yukla(); }
+    else toast(r.error || t('Bekor qilinmadi'), 'danger');
   };
 
+  const q = qidiruv.toLowerCase();
+  const kadrlar = kadrlarList.filter((k) => `${k.ism_sharif} ${k.lavozim}`.toLowerCase().includes(q));
+  const texnikalar = texnikaList.filter((x) => `${x.nomi} ${x.davlat_raqami ?? ''}`.toLowerCase().includes(q));
+  const kadrObyektda = kadrlarList.filter((k) => k.obyektlar?.length > 0).length;
+  const texIshda = texnikaList.filter((x) => x.obyektlar?.length > 0).length;
+
   return (
-    <div className="p-6 bg-bg min-h-screen text-text">
+    <Sahifa
+      sarlavha="Korxona resurslari (ERP)"
+      tavsif="Markaziy kadrlar va texnika parki — obyektlarga biriktiriladi; biriktirilmagani zaxirada turadi."
+      amallar={<>
+        <button type="button" onClick={() => void yukla()} className="fz-btn fz-btn--ghost" aria-label={t('Yangilash')}><RefreshCw className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}</button>
+        {modul !== 'sifat' && (
+          <button type="button" onClick={() => setIsFormOpen(true)} className="fz-btn fz-btn--primary"><Plus /> {modul === 'kadrlar' ? t('Yangi xodim') : t('Yangi texnika')}</button>
+        )}
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <OpsKpiQator yorliq={t('ERP ko‘rsatkichlari')}>
+          {modul === 'texnika' ? <>
+            <OpsKpi nom={t('Texnikalar')} qiymat={texnikaList.length} />
+            <OpsKpi nom={t('Ishlamoqda (obyektda)')} rang="var(--ok)" qiymat={texIshda} />
+            <OpsKpi nom={t('Garajda')} rang="var(--border-strong)" qiymat={texnikaList.length - texIshda} />
+          </> : <>
+            <OpsKpi nom={t('Xodimlar')} qiymat={kadrlarList.length} />
+            <OpsKpi nom={t('Obyektda')} rang="var(--ok)" qiymat={kadrObyektda} />
+            <OpsKpi nom={t('Zaxirada')} rang="var(--border-strong)" qiymat={kadrlarList.length - kadrObyektda} ost={t('hech bir obyektga biriktirilmagan')} />
+          </>}
+        </OpsKpiQator>
 
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 mb-2">
-            <Building2 className="text-blue-500" />
-            Korxona Resurslarini Boshqarish (ERP)
-          </h1>
-          <p className="text-text-dim text-sm max-w-2xl">
-            Kompaniyaning markazlashgan HR, Maxsus texnikalar parki va Mehnat muhofazasi (HSE) boshqaruvi. Bu resurslar Obyektlarga dinamik biriktiriladi.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={yukla} className="p-2.5 bg-surface border border-border rounded-lg text-text hover:text-white transition-colors">
-            <RefreshCw size={18} className={yuklanmoqda ? "animate-spin" : ""} />
-          </button>
-          <button
-            onClick={() => setIsFormOpen(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-blue-900/20"
-          >
-            <Plus size={18} />
-            {modul === 'kadrlar' ? 'Yangi Xodim' : modul === 'texnika' ? 'Yangi Texnika' : 'Yangi Yozuv'}
-          </button>
-        </div>
-      </div>
+        <OpsTablar<Modul> yorliq={t('ERP bo‘limlari')} joriy={modul} onTanla={(m) => { setModul(m); setQidiruv(''); }} tablar={[
+          { id: 'kadrlar', nom: t('Xodimlar va brigadalar'), ikon: <Users /> },
+          { id: 'texnika', nom: t('Texnika parki'), ikon: <Truck /> },
+          { id: 'sifat', nom: t('Mehnat muhofazasi va sifat'), ikon: <ShieldCheck /> },
+        ]} />
 
-      {/* TABS */}
-      <div className="flex gap-1 bg-surface border border-border p-1 rounded-lg w-max mb-6">
-        {[
-          { id: 'kadrlar', label: 'Xodimlar va Brigadalar', icon: Users },
-          { id: 'texnika', label: 'Texnika Parki va Mexanizatsiya', icon: Truck },
-          { id: 'sifat', label: 'Mehnat Muhofazasi (HSE) va Sifat', icon: ShieldCheck }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setModul(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${modul === tab.id ? 'bg-bg text-white shadow-sm border border-border' : 'text-text-dim hover:text-white hover:bg-surface-2'}`}
-          >
-            <tab.icon size={16} className={modul === tab.id ? 'text-blue-400' : ''} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        {modul !== 'sifat' && <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={modul === 'kadrlar' ? t('F.I.Sh yoki lavozim bo‘yicha…') : t('Texnika nomi yoki davlat raqami bo‘yicha…')} />}
 
-      {/* WRITE FORM MODAL */}
-      {isFormOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-5 border-b border-border flex justify-between items-center bg-bg/50">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                {modul === 'kadrlar' ? <HardHat className="text-blue-400"/> : <Truck className="text-blue-400"/>}
-                {modul === 'kadrlar' ? 'Xodimni ro\'yxatga olish' : 'Texnikani ro\'yxatga olish'}
-              </h3>
-              <button onClick={() => setIsFormOpen(false)} className="text-text-dim hover:text-white"><X size={20}/></button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-text-dim mb-1">
-                  {modul === 'kadrlar' ? 'F.I.Sh' : 'Texnika Nomi / Markasi'}
-                </label>
-                <input
-                  type="text"
-                  value={fNomi}
-                  onChange={e => setFNomi(e.target.value)}
-                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-accent outline-none"
-                  placeholder={modul === 'kadrlar' ? 'G\'aniyev Zafar' : 'CAT 320 Ekskavator'}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-text-dim mb-1">
-                    {modul === 'kadrlar' ? 'Lavozim / Kasb' : 'Davlat Raqami'}
-                  </label>
-                  <input
-                    type="text"
-                    value={fToifa}
-                    onChange={e => setFToifa(e.target.value)}
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-accent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-dim mb-1">
-                    {modul === 'kadrlar' ? 'Oylik Maosh' : 'Yoqilg\'i / Motochas'}
-                  </label>
-                  <MoneyInput grouping={modul === 'kadrlar'} ungroupedType="text"
-
-                    value={fNarx}
-                    onValueChange={(moneyValue) => setFNarx(moneyValue.replace(/[^0-9]/g, ''))}
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-accent outline-none"
-                  />
-                </div>
-              </div>
-              <div className="pt-4 flex justify-end gap-3 border-t border-border mt-4">
-                <button onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-text-dim hover:text-white transition-colors">Bekor qilish</button>
-                <button
-                  onClick={saqlash}
-                  disabled={saqlamoqda}
-                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-5 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-blue-900/20"
-                >
-                  {saqlamoqda ? <RefreshCw size={18} className="animate-spin"/> : <Save size={18}/>}
-                  Saqlash
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONTENT: KADRLAR */}
-      {modul === 'kadrlar' && (
-        <div className="bg-surface border border-border rounded-xl shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-border bg-bg/50">
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-              <input
-                type="text"
-                placeholder="Xodim ishlari, kasb yoki brigada bo'yicha..."
-                className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-accent outline-none"
-              />
-            </div>
-          </div>
-          {kadrlarList.length === 0 && !yuklanmoqda ? (
-            <div className="p-8 text-center text-text-dim">
-              Hali xodimlar kiritilmagan.
-            </div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-surface-2 border-b border-border text-text-dim font-medium">
-                  <th className="px-6 py-4">F.I.Sh</th>
-                  <th className="px-6 py-4">Kasb / Lavozim</th>
-                  <th className="px-6 py-4 text-center">Holat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {kadrlarList.map(k => (
-                  <tr key={k.id} className="hover:bg-bg/50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
-                      <Users size={16} className="text-blue-500" />
-                      {k.ism_sharif}
-                    </td>
-                    <td className="px-6 py-4 text-text-dim">{k.lavozim}</td>
-                    <td className="px-6 py-4 text-center">
-                      <button onClick={() => navigate('/admin/test/xarita?tugun=kadr:' + k.id)} className="text-[11px] text-sky-400 hover:text-sky-300 mr-2">Mindmap</button>
-                      <button onClick={() => bekorQil('kadr', k.id, k.versiya, k.ism_sharif)} className="text-[11px] text-rose-400 hover:text-rose-300 mr-2" title="Soft delete"><Trash2 size={13} /></button>
-                      <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
-                        {k.obyektlar?.length > 0 ? 'Obyektda' : 'Zaxirada'}
+        {modul === 'kadrlar' && (
+          <div className="fz-table-wrap">
+            <table className="fz-table">
+              <thead><tr><th>{t('F.I.Sh')}</th><th>{t('Lavozim')}</th><th>{t('Obyektlar')}</th><th>{t('Holat')}</th><th style={{ textAlign: 'right' }}>{t('Amallar')}</th></tr></thead>
+              <tbody>
+                {kadrlar.length === 0 && !yuklanmoqda && <OpsBoshQator ustun={5} matn={kadrlarList.length ? t('Qidiruvga mos xodim topilmadi.') : t('Hali xodimlar kiritilmagan.')} />}
+                {kadrlar.map((k) => (
+                  <tr key={k.id}>
+                    <td className="font-medium text-text"><span className="inline-flex items-center gap-2"><HardHat size={14} className="text-text-mute" />{k.ism_sharif}</span></td>
+                    <td className="text-text-dim">{k.lavozim}</td>
+                    <td className="text-[12px] text-text-dim">{k.obyektlar?.length ? t('{n} ta obyekt', { n: k.obyektlar.length }) : '—'}</td>
+                    <td><span className={`fz-stamp ${k.obyektlar?.length > 0 ? 'fz-stamp--ok' : ''}`}>{k.obyektlar?.length > 0 ? t('Obyektda') : t('Zaxirada')}</span></td>
+                    <td className="text-right">
+                      <span className="inline-flex gap-1">
+                        <button type="button" onClick={() => navigate('/admin/test/xarita?tugun=kadr:' + k.id)} className="fz-btn fz-btn--ghost fz-btn--sm" title={t('Mindmapda ko‘rish')}><Network /> {t('Mindmap')}</button>
+                        <button type="button" onClick={() => void bekorQil('kadr', k.id, k.versiya, k.ism_sharif)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish (tarix saqlanadi)')} aria-label={t('Bekor qilish')}><Trash2 /></button>
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-      )}
-
-      {/* CONTENT: TEXNIKA */}
-      {modul === 'texnika' && (
-        <div className="bg-surface border border-border rounded-xl shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-border bg-bg/50">
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-              <input
-                type="text"
-                placeholder="Texnika nomi yoki davlat raqami bo'yicha..."
-                className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-accent outline-none"
-              />
-            </div>
           </div>
-          {texnikaList.length === 0 && !yuklanmoqda ? (
-            <div className="p-8 text-center text-text-dim">
-              Hali texnikalar kiritilmagan.
-            </div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-surface-2 border-b border-border text-text-dim font-medium">
-                  <th className="px-6 py-4">Texnika Nomi</th>
-                  <th className="px-6 py-4">Davlat Raqami</th>
-                  <th className="px-6 py-4 text-center">Holat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {texnikaList.map(t => (
-                  <tr key={t.id} className="hover:bg-bg/50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
-                      <Truck size={16} className="text-amber-500" />
-                      {t.nomi}
-                    </td>
-                    <td className="px-6 py-4 font-mono font-bold text-sky-300">
-                      {t.davlat_raqami ? (
-                        <span className="border border-sky-500/30 px-2 py-0.5 rounded bg-sky-950/20">{t.davlat_raqami}</span>
-                      ) : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button onClick={() => navigate('/admin/test/xarita?tugun=texnika:' + t.id)} className="text-[11px] text-sky-400 hover:text-sky-300 mr-2">Mindmap</button>
-                      <button onClick={() => bekorQil('texnika', t.id, t.versiya, t.nomi)} className="text-[11px] text-rose-400 hover:text-rose-300 mr-2" title="Soft delete"><Trash2 size={13} /></button>
-                      <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
-                        {t.obyektlar?.length > 0 ? 'Ishlamoqda' : 'Garajda'}
+        )}
+
+        {modul === 'texnika' && (
+          <div className="fz-table-wrap">
+            <table className="fz-table">
+              <thead><tr><th>{t('Texnika')}</th><th>{t('Davlat raqami')}</th><th className="fz-c-num">{t('Yoqilg‘i me’yori')}</th><th>{t('Holat')}</th><th style={{ textAlign: 'right' }}>{t('Amallar')}</th></tr></thead>
+              <tbody>
+                {texnikalar.length === 0 && !yuklanmoqda && <OpsBoshQator ustun={5} matn={texnikaList.length ? t('Qidiruvga mos texnika topilmadi.') : t('Hali texnikalar kiritilmagan.')} />}
+                {texnikalar.map((x) => (
+                  <tr key={x.id}>
+                    <td className="font-medium text-text"><span className="inline-flex items-center gap-2"><Truck size={14} className="text-text-mute" />{x.nomi}</span></td>
+                    <td>{x.davlat_raqami ? <span className="fz-c-shifr rounded border border-border px-1.5 py-0.5">{x.davlat_raqami}</span> : '—'}</td>
+                    <td className="fz-c-num">{x.yoqilgi_mejori ?? '—'}</td>
+                    <td><span className={`fz-stamp ${x.obyektlar?.length > 0 ? 'fz-stamp--ok' : ''}`}>{x.obyektlar?.length > 0 ? t('Ishlamoqda') : t('Garajda')}</span></td>
+                    <td className="text-right">
+                      <span className="inline-flex gap-1">
+                        <button type="button" onClick={() => navigate('/admin/test/xarita?tugun=texnika:' + x.id)} className="fz-btn fz-btn--ghost fz-btn--sm" title={t('Mindmapda ko‘rish')}><Network /> {t('Mindmap')}</button>
+                        <button type="button" onClick={() => void bekorQil('texnika', x.id, x.versiya, x.nomi)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish (tarix saqlanadi)')} aria-label={t('Bekor qilish')}><Trash2 /></button>
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-      )}
-
-      {/* CONTENT: SIFAT (HSE) */}
-      {modul === 'sifat' && (
-        <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-xl">
-          <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-emerald-500/20">
-            <ShieldCheck size={32} className="text-emerald-400" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-3">Sifat va Mehnat Muhofazasi Jurnallari (HSE)</h2>
-          <p className="text-text-dim max-w-lg mx-auto mb-8">
-            Jarayonda... Obyektlardagi yong'in xavfsizligi, instruktaj jurnallari va GOST sifat nazorati aktlari shu yerda yuritiladi.
-          </p>
-        </div>
-      )}
+        )}
 
-    </div>
+        {modul === 'sifat' && (
+          <section className="fz-note fz-note--info"><ShieldCheck /><span><b>{t('Sifat va mehnat muhofazasi jurnallari')}</b>{' — '}{t('yong‘in xavfsizligi, instruktaj jurnallari va sifat nazorati aktlari shu yerda yuritiladi (jarayonda). Nuqsonlar hozir «ERP · Sifat» sahifasida.')}</span></section>
+        )}
+      </div>
+
+      <OpsOyna ochiq={isFormOpen} onYop={() => setIsFormOpen(false)} band={saqlamoqda}
+        ikon={modul === 'kadrlar' ? <HardHat /> : <Truck />}
+        sarlavha={modul === 'kadrlar' ? t('Xodimni ro‘yxatga olish') : t('Texnikani ro‘yxatga olish')}
+        amallar={<>
+          <button type="button" onClick={() => setIsFormOpen(false)} className="fz-btn fz-btn--ghost">{t('Bekor qilish')}</button>
+          <button type="button" onClick={() => void saqlash()} disabled={saqlamoqda} className="fz-btn fz-btn--primary">
+            {saqlamoqda ? <RefreshCw className="animate-spin" /> : <Save />} {t('Saqlash')}
+          </button>
+        </>}>
+        <OpsMaydon nom={modul === 'kadrlar' ? t('F.I.Sh') : t('Texnika nomi / markasi')} majburiy>
+          <input type="text" value={fNomi} onChange={(e) => setFNomi(e.target.value)} placeholder={modul === 'kadrlar' ? t('G‘aniyev Zafar') : t('CAT 320 ekskavator')} />
+        </OpsMaydon>
+        <div className="grid grid-cols-2 gap-3">
+          <OpsMaydon nom={modul === 'kadrlar' ? t('Lavozim / kasb') : t('Davlat raqami')}>
+            <input type="text" value={fToifa} onChange={(e) => setFToifa(e.target.value)} />
+          </OpsMaydon>
+          <OpsMaydon nom={modul === 'kadrlar' ? t('Oylik maosh') : t('Yoqilg‘i / motochas')}>
+            <MoneyInput grouping={modul === 'kadrlar'} ungroupedType="text" value={fNarx}
+              onValueChange={(moneyValue) => setFNarx(moneyValue.replace(/[^0-9]/g, ''))} className="h-8 w-full px-2 text-right text-[13px] tabular-nums" />
+          </OpsMaydon>
+        </div>
+      </OpsOyna>
+    </Sahifa>
   );
 }

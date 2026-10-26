@@ -9,6 +9,7 @@ import { ParticipantNetworkPage } from '../participants/ParticipantNetworkPage';
 import type { ProjectParticipant } from '../../components/participants';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
+import { t } from '../../i18n/til';
 import { sbT2LoyihalarOl, sbLoyihaQatnashchilarOl, type Loyiha, type LoyihaRol } from '../../api/t2-loyiha';
 
 const ROL_MAP: Record<string, ProjectParticipant['role']> = {
@@ -40,7 +41,7 @@ export default function ParticipantsPage() {
     setYuklanmoqda(true); setXato(null);
     sbLoyihaQatnashchilarOl(loyihaId).then((r) => {
       setYuklanmoqda(false);
-      if (!r.ok) { setXato(r.error || 'Ishtirokchilar o‘qilmadi'); return; }
+      if (!r.ok) { setXato(r.error || t('Ishtirokchilar o‘qilmadi')); return; }
       const row = (r.qatorlar as any[])?.[0];
       setLoyihaNom(row?.loyiha_nom || '');
       const list: ProjectParticipant[] = (row?.qatnashchilar || []).map((q: any) => ({
@@ -60,13 +61,14 @@ export default function ParticipantsPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 px-6 pt-5">
-        <span className="text-[12px] text-text-dim">Loyiha:</span>
-        <select value={loyihaId ?? ''} onChange={(e) => setLoyihaId(Number(e.target.value))}
-          className="bg-surface-2 border border-border rounded px-2 py-1 text-[12px]">
-          {loyihalar.length === 0 && <option value="">— loyiha yo‘q —</option>}
-          {loyihalar.map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
-        </select>
+      <div className="flex flex-wrap items-center gap-3 px-6 pt-5">
+        <label className="flex items-center gap-2 text-[12px] font-medium text-text-dim">{t('Loyiha')}
+          <select value={loyihaId ?? ''} onChange={(e) => setLoyihaId(Number(e.target.value))} className="input min-w-[220px] px-2.5 py-1.5 text-[13px]">
+            {loyihalar.length === 0 && <option value="">{t('— loyiha yo‘q —')}</option>}
+            {loyihalar.map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
+          </select>
+        </label>
+        <span className="fz-chip">{t('{n} ta ishtirokchi', { n: participants.length })}</span>
       </div>
       <ParticipantNetworkPage
         demo={false}
@@ -78,10 +80,8 @@ export default function ParticipantsPage() {
         error={xato}
         onInvite={() => { /* invite backend: t2_loyiha_qatnashchi_biriktir — wired via a command in the next slice */ }}
       />
-      <p className="px-6 pb-6 text-[10px] text-text-mute">
-        Ma’lumot manbai: <code>t2_loyiha_qatnashchilar_royxat</code> (kanonik). Taklif/email
-        yuborish oqimi keyingi vertikal slice’da ulanadi — hozir faqat mavjud ishtirokchilar
-        ko‘rsatiladi. Demo: <code>/admin/_demo/participants</code>.
+      <p className="px-6 pb-6 text-[11.5px] text-text-mute">
+        {t('Ma’lumot manbai')}: <code>{'t2_loyiha_qatnashchilar_royxat'}</code>. {t('Taklif/email yuborish oqimi keyingi bosqichda ulanadi — hozir faqat mavjud ishtirokchilar ko‘rsatiladi.')}
       </p>
     </div>
   );

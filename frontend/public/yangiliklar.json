@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 20,
+      "id": 21,
       "sana": "2026-10-26",
       "sarlavha": "Chap menyu: ish, kompaniya va platforma ajratildi",
       "bandlar": [
@@ -11,6 +11,17 @@
         "«Fakt kiritish» menyuga qo'shildi (usta, brigadir, prorab, PTO).",
         "Platforma boshqaruvi, sayt xaritasi va sinov yo'llari endi faqat platforma superadminiga ko'rinadi; kompaniya rahbari ularni ko'rmaydi.",
         "Har rol faqat o'z ishiga oid bandni ko'radi: usta, omborchi, haydovchi va buyurtmachiga «AI ishchilar», «Korzinka», «Sayt xaritasi», nakrutka va narx manbalari ko'rinmaydi."
+      ]
+    },
+    {
+      "id": 20,
+      "sana": "2026-10-26",
+      "sarlavha": "Yangi dizayn «Firuza» — butun tizim",
+      "bandlar": [
+        "Butun tizim yangi ko'rinishda: aniqroq shrift, ranglar va kartalar. Hisob-kitob va funksiyalar o'zgarmagan.",
+        "Smeta sahifasida «anatomiya»: jami, bo'limlar va bajarilish bir qarashda; noma'lum summa «—» bo'lib ko'rinadi (0 emas).",
+        "F2 hujjati, Nakopitelniy, Fakt va rahbar paneli grafiklar va o'lchagichlar bilan; tasdiqlash oynalari yangilandi.",
+        "O'ng yuqori burchakda «Akkaunt markazi»: profil, xavfsizlik va kirish usullari bitta joyda."
       ]
     },
     {

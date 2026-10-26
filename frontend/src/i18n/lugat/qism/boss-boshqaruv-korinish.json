@@ -1,0 +1,498 @@
+{
+  "30 kunda +{a} · obyektlar: {o}": {
+    "ru": "за 30 дней +{a} · объектов: {o}",
+    "en": "+{a} in 30 days · sites: {o}"
+  },
+  "7 kunda +{a} · 30 kunda +{b} · Google: {g}": {
+    "ru": "за 7 дней +{a} · за 30 дней +{b} · Google: {g}",
+    "en": "+{a} in 7 days · +{b} in 30 days · Google: {g}"
+  },
+  "AI ga savol bering...": {
+    "ru": "Задайте вопрос ИИ...",
+    "en": "Ask the AI..."
+  },
+  "Active modules": {
+    "ru": "Активные модули",
+    "en": "Active modules"
+  },
+  "Amal manbasi va operation ID bilan o‘qiladigan tarix.": {
+    "ru": "История с источником действия и operation ID.",
+    "en": "History with action source and operation ID."
+  },
+  "Amfiteatrda bu oy qancha fakt bajarildi?": {
+    "ru": "Сколько факта выполнено в Амфитеатре в этом месяце?",
+    "en": "How much actual work was done at the Amphitheatre this month?"
+  },
+  "Asinxron operatsiyalar, jarayon va qayta urinish nazorati.": {
+    "ru": "Асинхронные операции, ход выполнения и повторные попытки.",
+    "en": "Asynchronous operations, progress and retry control."
+  },
+  "Asosiy ish oqimlari": {
+    "ru": "Основные рабочие потоки",
+    "en": "Main workflows"
+  },
+  "Assalomu alaykum, Rahbar! Tizimdagi haqiqiy ma’lumot bo‘yicha javob beraman.": {
+    "ru": "Здравствуйте, руководитель! Отвечаю по реальным данным системы.",
+    "en": "Hello, Director! I answer from the system's real data."
+  },
+  "Audit jurnali": {
+    "ru": "Журнал аудита",
+    "en": "Audit log"
+  },
+  "Berilgan (oylik+bonus)": {
+    "ru": "Выдано (месячные+бонус)",
+    "en": "Granted (monthly+bonus)"
+  },
+  "Biznes capability boshqaruvi": {
+    "ru": "Управление бизнес-возможностями",
+    "en": "Business capability control"
+  },
+  "Bloklangan": {
+    "ru": "Заблокирован",
+    "en": "Blocked"
+  },
+  "Boshqaruv": {
+    "ru": "Управление",
+    "en": "Management"
+  },
+  "Boshqaruv bo‘limlari": {
+    "ru": "Разделы управления",
+    "en": "Management sections"
+  },
+  "Bu panel faqat platforma superadmini uchun.": {
+    "ru": "Эта панель только для суперадмина платформы.",
+    "en": "This panel is for the platform superadmin only."
+  },
+  "Butun platforma: foydalanuvchilar, obunalar, hisob, audit, sozlamalar va funksiyalar": {
+    "ru": "Вся платформа: пользователи, подписки, учёт, аудит, настройки и функции",
+    "en": "Whole platform: users, subscriptions, accounting, audit, settings and features"
+  },
+  "Chiqaradi": {
+    "ru": "Выдаёт",
+    "en": "Produces"
+  },
+  "Failed jobs": {
+    "ru": "Сбойные задачи",
+    "en": "Failed jobs"
+  },
+  "Faqat siz ko‘rasiz": {
+    "ru": "Видите только вы",
+    "en": "Only you can see this"
+  },
+  "Fon ishlari": {
+    "ru": "Фоновые задачи",
+    "en": "Background jobs"
+  },
+  "Foydalanuvchilar holati": {
+    "ru": "Состояние пользователей",
+    "en": "User status"
+  },
+  "Google orqali": {
+    "ru": "Через Google",
+    "en": "Via Google"
+  },
+  "Hali sarf yo‘q.": {
+    "ru": "Расхода пока нет.",
+    "en": "No usage yet."
+  },
+  "Hali yo‘q.": {
+    "ru": "Пока нет.",
+    "en": "None yet."
+  },
+  "Har bir qator business command yoki operatsion capability; ichki JS funksiyalar emas.": {
+    "ru": "Каждая строка — бизнес-команда или операционная возможность, а не внутренняя JS-функция.",
+    "en": "Each row is a business command or operational capability, not an internal JS function."
+  },
+  "Health semantikasi: Supabase DOWN = core degraded · R2 DOWN = kanonik fayl tizimi degraded · Drive/Sheets DOWN = faqat replika degraded, core UP · GAS DOWN = faqat legacy/replica ko‘prik degraded.": {
+    "ru": "Семантика здоровья: Supabase DOWN = ядро деградировало · R2 DOWN = каноническое файловое хранилище деградировало · Drive/Sheets DOWN = деградировала только реплика, ядро UP · GAS DOWN = деградировал только legacy/реплика-мост.",
+    "en": "Health semantics: Supabase DOWN = core degraded · R2 DOWN = canonical file storage degraded · Drive/Sheets DOWN = replica only degraded, core UP · GAS DOWN = legacy/replica bridge only degraded."
+  },
+  "Holat real transport contracti ulanmaguncha demo data bilan belgilangan.": {
+    "ru": "Пока реальный транспортный контракт не подключён, состояние показано на демо-данных.",
+    "en": "Until the real transport contract is connected, status is shown with demo data."
+  },
+  "Integratsiya qaydlari mavjud emas.": {
+    "ru": "Записей об интеграциях нет.",
+    "en": "No integration records."
+  },
+  "Ishlar / Jobs": {
+    "ru": "Задачи / Jobs",
+    "en": "Jobs"
+  },
+  "Javob bo‘sh keldi": {
+    "ru": "Пришёл пустой ответ",
+    "en": "Empty response"
+  },
+  "Keyingi iste’molchilar": {
+    "ru": "Следующие потребители",
+    "en": "Downstream consumers"
+  },
+  "Koddan yig‘ilgan texnik qamrov": {
+    "ru": "Технический охват, собранный из кода",
+    "en": "Technical coverage collected from code"
+  },
+  "Koddan yig‘ilgan xarita": {
+    "ru": "Карта, собранная из кода",
+    "en": "Map collected from code"
+  },
+  "Kompaniyalar": {
+    "ru": "Компании",
+    "en": "Companies"
+  },
+  "Ko‘proq": {
+    "ru": "Ещё",
+    "en": "More"
+  },
+  "Kritik incidentlar birinchi navbatda ko‘rinadi; filterlar faqat UI qatlami.": {
+    "ru": "Критические инциденты показываются первыми; фильтры — только слой UI.",
+    "en": "Critical incidents are shown first; filters are UI-only."
+  },
+  "Markaziy operatsion ko‘rinish": {
+    "ru": "Центральный операционный обзор",
+    "en": "Central operational view"
+  },
+  "Menyu": {
+    "ru": "Меню",
+    "en": "Menu"
+  },
+  "Mos sahifa topilmadi.": {
+    "ru": "Подходящая страница не найдена.",
+    "en": "No matching page found."
+  },
+  "Muhit aniqlanmagan": {
+    "ru": "Среда не определена",
+    "en": "Environment unknown"
+  },
+  "Navbatda / to‘xtatilgan": {
+    "ru": "В очереди / остановлено",
+    "en": "Queued / stopped"
+  },
+  "Nazorat ma’lumotini o‘qib bo‘lmadi: {x}.": {
+    "ru": "Не удалось прочитать данные контроля: {x}.",
+    "en": "Could not read control data: {x}."
+  },
+  "Nazorat ma’lumotlari yuklanmoqda…": {
+    "ru": "Загрузка данных контроля…",
+    "en": "Loading control data…"
+  },
+  "Nazorat paneli": {
+    "ru": "Панель контроля",
+    "en": "Control panel"
+  },
+  "Obunalar": {
+    "ru": "Подписки",
+    "en": "Subscriptions"
+  },
+  "Ochiq incidentlar yo‘q.": {
+    "ru": "Открытых инцидентов нет.",
+    "en": "No open incidents."
+  },
+  "Ogohlantirish": {
+    "ru": "Предупреждение",
+    "en": "Warning"
+  },
+  "Open incidents": {
+    "ru": "Открытые инциденты",
+    "en": "Open incidents"
+  },
+  "Oxirgi ro‘yxatdan o‘tganlar": {
+    "ru": "Последние зарегистрированные",
+    "en": "Recent sign-ups"
+  },
+  "Oylar bo‘yicha": {
+    "ru": "По месяцам",
+    "en": "By month"
+  },
+  "Oylik tushum (faol obunalar)": {
+    "ru": "Месячная выручка (активные подписки)",
+    "en": "Monthly revenue (active subscriptions)"
+  },
+  "O‘chirilgan / sozlanmagan": {
+    "ru": "Отключено / не настроено",
+    "en": "Disabled / not configured"
+  },
+  "O‘qish": {
+    "ru": "Чтение",
+    "en": "Read"
+  },
+  "O‘qish oq ro‘yxati": {
+    "ru": "Белый список чтения",
+    "en": "Read allow-list"
+  },
+  "O‘qiydi": {
+    "ru": "Читает",
+    "en": "Reads"
+  },
+  "Pauza / faqat o‘qish": {
+    "ru": "Пауза / только чтение",
+    "en": "Paused / read-only"
+  },
+  "Platforma darajasidagi boshqaruv markaziga ruxsatingiz yo‘q. Bu — platforma-darajasidagi «kill switch»; kompaniya bossi buni boshqara olmaydi.": {
+    "ru": "У вас нет доступа к центру управления уровня платформы. Это «kill switch» уровня платформы; руководитель компании им не управляет.",
+    "en": "You have no access to the platform-level control center. This is a platform-level kill switch; a company boss cannot control it."
+  },
+  "Qaysi obyektda F2 orqada qolgan?": {
+    "ru": "На каком объекте отстают Ф2?",
+    "en": "Which site is behind on F2?"
+  },
+  "Qaysi sahifa nimani o‘qiydi, nimani yozadi va natijasini qayerga beradi — bitta ko‘rinishda.": {
+    "ru": "Какая страница что читает, что пишет и куда передаёт результат — в одном виде.",
+    "en": "Which page reads what, writes what and where it passes the result — in one view."
+  },
+  "Rahbar ish joyi": {
+    "ru": "Рабочее место руководителя",
+    "en": "Director workspace"
+  },
+  "Release ma’lumotlari frontend contractidan olinadi.": {
+    "ru": "Данные релиза берутся из frontend-контракта.",
+    "en": "Release data comes from the frontend contract."
+  },
+  "Sahifa, yo‘l yoki manba bo‘yicha qidiring…": {
+    "ru": "Поиск по странице, пути или источнику…",
+    "en": "Search by page, path or source…"
+  },
+  "Sahifalar doiralar bo‘yicha": {
+    "ru": "Страницы по областям",
+    "en": "Pages by scope"
+  },
+  "Sarflangan": {
+    "ru": "Израсходовано",
+    "en": "Spent"
+  },
+  "Smeta tizimi": {
+    "ru": "Система смет",
+    "en": "Estimate system"
+  },
+  "Sog‘lom": {
+    "ru": "Исправно",
+    "en": "Healthy"
+  },
+  "Sotilgan": {
+    "ru": "Продано",
+    "en": "Sold"
+  },
+  "System Control Center tablari": {
+    "ru": "Вкладки центра управления",
+    "en": "System Control Center tabs"
+  },
+  "System health": {
+    "ru": "Здоровье системы",
+    "en": "System health"
+  },
+  "TIZIM_02 modullari, integratsiyalari, ish jarayonlari va tizim holatini markaziy nazorat qilish": {
+    "ru": "Централизованный контроль модулей, интеграций, процессов и состояния TIZIM_02",
+    "en": "Central control of TIZIM_02 modules, integrations, jobs and system status"
+  },
+  "TIZIM_02 → doira (Global / Kompaniya / Loyiha / Obyekt) → sahifalar": {
+    "ru": "TIZIM_02 → область (Глобально / Компания / Проект / Объект) → страницы",
+    "en": "TIZIM_02 → scope (Global / Company / Project / Site) → pages"
+  },
+  "Titan AI": {
+    "ru": "Titan AI",
+    "en": "Titan AI"
+  },
+  "Titan AI ni ochish": {
+    "ru": "Открыть Titan AI",
+    "en": "Open Titan AI"
+  },
+  "Tizim holati": {
+    "ru": "Состояние системы",
+    "en": "System status"
+  },
+  "Tizim salomatligi": {
+    "ru": "Здоровье системы",
+    "en": "System health"
+  },
+  "Token nimaga sarflanmoqda": {
+    "ru": "На что расходуются токены",
+    "en": "What tokens are spent on"
+  },
+  "Token oqimi": {
+    "ru": "Поток токенов",
+    "en": "Token flow"
+  },
+  "Token oylar bo‘yicha": {
+    "ru": "Токены по месяцам",
+    "en": "Tokens by month"
+  },
+  "Tokenlar": {
+    "ru": "Токены",
+    "en": "Tokens"
+  },
+  "Toʻlovni tasdiqlash": {
+    "ru": "Подтвердить платёж",
+    "en": "Confirm payment"
+  },
+  "Tugagan": {
+    "ru": "Завершено",
+    "en": "Completed"
+  },
+  "UI namuna (demo data)": {
+    "ru": "Образец UI (демо-данные)",
+    "en": "UI sample (demo data)"
+  },
+  "Ulangan": {
+    "ru": "Подключено",
+    "en": "Connected"
+  },
+  "Ulanish holati backenddan keladi. Sozlanmagan integratsiya hech qachon connected deb ko‘rsatilmaydi.": {
+    "ru": "Состояние подключения приходит с бэкенда. Ненастроенная интеграция никогда не показывается как подключённая.",
+    "en": "Connection status comes from the backend. An unconfigured integration is never shown as connected."
+  },
+  "Umumiy qoldiq qancha?": {
+    "ru": "Какой общий остаток?",
+    "en": "What is the total balance?"
+  },
+  "Versiya va muhit": {
+    "ru": "Версия и среда",
+    "en": "Version and environment"
+  },
+  "Warnings": {
+    "ru": "Предупреждения",
+    "en": "Warnings"
+  },
+  "Xarita ko‘rinishi": {
+    "ru": "Вид карты",
+    "en": "Map view"
+  },
+  "Xatolar va incidentlar": {
+    "ru": "Ошибки и инциденты",
+    "en": "Errors and incidents"
+  },
+  "Xatolik yuz berdi: {x}": {
+    "ru": "Произошла ошибка: {x}",
+    "en": "An error occurred: {x}"
+  },
+  "Yangi — 30 kun": {
+    "ru": "Новые — 30 дней",
+    "en": "New — 30 days"
+  },
+  "Yangi — 7 kun": {
+    "ru": "Новые — 7 дней",
+    "en": "New — 7 days"
+  },
+  "Yozadi": {
+    "ru": "Пишет",
+    "en": "Writes"
+  },
+  "Yozish": {
+    "ru": "Запись",
+    "en": "Write"
+  },
+  "Yozish amallari": {
+    "ru": "Действия записи",
+    "en": "Write actions"
+  },
+  "Yo‘q": {
+    "ru": "Нет",
+    "en": "None"
+  },
+  "berilgan {b} · sarf {s} · 30 kunda {m}": {
+    "ru": "выдано {b} · расход {s} · за 30 дней {m}",
+    "en": "granted {b} · spent {s} · {m} in 30 days"
+  },
+  "global navigatsiya daraxti": {
+    "ru": "глобальное дерево навигации",
+    "en": "global navigation tree"
+  },
+  "har o‘zgarish sabab bilan auditga yoziladi": {
+    "ru": "каждое изменение пишется в аудит с причиной",
+    "en": "every change is audited with a reason"
+  },
+  "kompaniyalar soni": {
+    "ru": "число компаний",
+    "en": "number of companies"
+  },
+  "sotilgan token: {n}": {
+    "ru": "продано токенов: {n}",
+    "en": "tokens sold: {n}"
+  },
+  "superadmin emas": {
+    "ru": "не суперадмин",
+    "en": "not superadmin"
+  },
+  "tanlanmagan": {
+    "ru": "не выбран",
+    "en": "not selected"
+  },
+  "{n} marta": {
+    "ru": "{n} раз",
+    "en": "{n} times"
+  },
+  "{n} sahifa katalogda · {o} o‘qish manbasi · {y} yozish amali": {
+    "ru": "{n} страниц в каталоге · {o} источников чтения · {y} действий записи",
+    "en": "{n} pages in catalog · {o} read sources · {y} write actions"
+  },
+  "{n} ta sahifa": {
+    "ru": "{n} страниц",
+    "en": "{n} pages"
+  },
+  "{n} ta sahifa · chiziqlar navigatsiya yo‘nalishini ko‘rsatadi": {
+    "ru": "{n} страниц · линии показывают направление навигации",
+    "en": "{n} pages · lines show navigation direction"
+  },
+  "UMUMIY": {
+    "ru": "ОБЗОР",
+    "en": "OVERVIEW"
+  },
+  "MODULLAR": {
+    "ru": "МОДУЛИ",
+    "en": "MODULES"
+  },
+  "INTEGRATSIYALAR": {
+    "ru": "ИНТЕГРАЦИИ",
+    "en": "INTEGRATIONS"
+  },
+  "ISHLAR / JOBS": {
+    "ru": "ЗАДАЧИ / JOBS",
+    "en": "JOBS"
+  },
+  "XATOLAR": {
+    "ru": "ОШИБКИ",
+    "en": "ERRORS"
+  },
+  "AUDIT": {
+    "ru": "АУДИТ",
+    "en": "AUDIT"
+  },
+  "Umumiy tahlil": {
+    "ru": "Общий анализ",
+    "en": "Overview"
+  },
+  "Kadrlar (tabel)": {
+    "ru": "Кадры (табель)",
+    "en": "Staff (timesheet)"
+  },
+  "Texnika va logistika": {
+    "ru": "Техника и логистика",
+    "en": "Machinery and logistics"
+  },
+  "Ta’minot va sklad": {
+    "ru": "Снабжение и склад",
+    "en": "Supply and warehouse"
+  },
+  "Sifat nazorati (QA)": {
+    "ru": "Контроль качества (QA)",
+    "en": "Quality control (QA)"
+  },
+  "Eski yo‘l": {
+    "ru": "Старый путь",
+    "en": "Legacy route"
+  },
+  "Smeta import": {
+    "ru": "Импорт сметы",
+    "en": "Estimate import"
+  },
+  "F2 qoralama": {
+    "ru": "Черновик Ф2",
+    "en": "F2 draft"
+  },
+  "AI kiruvchi": {
+    "ru": "ИИ входящие",
+    "en": "AI input"
+  },
+  "AI chiquvchi": {
+    "ru": "ИИ исходящие",
+    "en": "AI output"
+  }
+}

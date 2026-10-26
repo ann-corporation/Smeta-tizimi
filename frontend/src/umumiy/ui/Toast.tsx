@@ -34,79 +34,86 @@ export const toast = (
   }
 };
 
-const USLUB: Record<ToastType, string> = {
-  ok: 'border-ok text-ok',
-  warn: 'border-warn text-warn',
-  danger: 'border-danger text-danger',
-};
+/* Firuza (2026-10-25): toast — tinch panel, rangli belgi + so'z, qolgan vaqt chizig'i, prujinali harakat. */
+const RANG: Record<ToastType, string> = { ok: 'var(--ok)', warn: 'var(--warn)', danger: 'var(--danger)' };
 
 export function ToastContainer() {
-  const [toasts, setToasts] = useState<(ToastEvent & { id: number })[]>([]);
+  const [toasts, setToasts] = useState<(ToastEvent & { id: number; ms: number })[]>([]);
 
   useEffect(() => {
     toastListener = (t) => {
       // Millisecond collision prevent
       const id = Date.now() + Math.random();
+      const ms = t.davomiylik ?? (t.onUndo ? 10000 : (t.action ? 10000 : 3000));
       setToasts((prev) => {
-        const next = [...prev, { ...t, id }];
+        const next = [...prev, { ...t, id, ms }];
         // Maksimal 5 ta toast qolishi kerak (eskilari o'chiriladi)
         if (next.length > 5) return next.slice(next.length - 5);
         return next;
       });
       setTimeout(() => {
         setToasts((prev) => prev.filter((toast) => toast.id !== id));
-      }, t.davomiylik ?? (t.onUndo ? 10000 : (t.action ? 10000 : 3000)));
+      }, ms);
     };
     return () => {
       toastListener = null;
     };
   }, []);
 
+  const yop = (id: number) => setToasts((prev) => prev.filter((toast) => toast.id !== id));
+
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-      <AnimatePresence>
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <AnimatePresence initial={false}>
         {toasts.map((item) => (
           <motion.div
             key={item.id}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border bg-surface-2 ${USLUB[item.type]}`}
+            layout
+            role={item.type === 'danger' ? 'alert' : 'status'}
+            initial={{ opacity: 0, x: 24, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 24, scale: 0.96, transition: { duration: 0.15 } }}
+            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+            className="relative flex max-w-[420px] items-start gap-3 overflow-hidden rounded-[var(--radius-md)] border border-border bg-[var(--surface-3)] py-3 pl-3 pr-2 text-[13px] text-text shadow-[var(--shadow-pop)]"
           >
-            {item.type === 'ok' ? <CheckCircle2 size={20} />
-              : item.type === 'warn' ? <AlertTriangle size={20} />
-              : <AlertCircle size={20} />}
-            <span className="text-white font-medium text-sm">{item.message}</span>
+            <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-[var(--radius-sm)]" style={{ color: RANG[item.type], background: `color-mix(in srgb, ${RANG[item.type]} 16%, transparent)` }}>
+              {item.type === 'ok' ? <CheckCircle2 size={15} />
+                : item.type === 'warn' ? <AlertTriangle size={15} />
+                : <AlertCircle size={15} />}
+            </span>
+            <span className="min-w-0 flex-1 py-0.5 font-medium leading-5">{item.message}</span>
             {item.onUndo && (
               <button
-                onClick={() => {
-                  item.onUndo!();
-                  setToasts((prev) => prev.filter((toast) => toast.id !== item.id));
-                }}
-                className="ml-4 px-2 py-1 text-xs font-medium bg-surface rounded border border-border hover:bg-surface-2 transition-colors text-white"
+                onClick={() => { item.onUndo!(); yop(item.id); }}
+                className="fz-btn fz-btn--sm shrink-0"
               >
                 ↶ {t('Bekor qilish')}
               </button>
             )}
             {item.action && (
               <button
-                onClick={() => {
-                  item.action!.onClick();
-                  setToasts((prev) => prev.filter((toast) => toast.id !== item.id));
-                }}
-                className="ml-4 px-2 py-1 text-xs font-medium bg-sky-500/20 text-sky-300 rounded border border-sky-500/50 hover:bg-sky-500/30 transition-colors"
+                onClick={() => { item.action!.onClick(); yop(item.id); }}
+                className="fz-btn fz-btn--sm fz-btn--primary shrink-0"
               >
                 {item.action.label}
               </button>
             )}
             <button
-              onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== item.id))}
+              onClick={() => yop(item.id)}
               aria-label={t('Yopish')}
               title={t('Yopish')}
-              className={`${(item.onUndo || item.action) ? 'ml-2' : 'ml-auto'} p-1 rounded hover:bg-white/10 transition-colors text-text-dim hover:text-white`}
+              className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm shrink-0"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
+            <motion.i
+              aria-hidden="true"
+              className="absolute bottom-0 left-0 h-[2px]"
+              style={{ background: RANG[item.type], width: '100%', transformOrigin: 'left' }}
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: item.ms / 1000, ease: 'linear' }}
+            />
           </motion.div>
         ))}
       </AnimatePresence>

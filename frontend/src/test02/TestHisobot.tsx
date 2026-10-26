@@ -35,54 +35,54 @@ export default function TestHisobot() {
   useEffect(() => { yukla(); }, [joriy]);
 
   return (
-    <div className="p-6 bg-zinc-900 text-white min-h-screen">
-      <div className="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
+    <div className="p-6 bg-[var(--surface)] text-[var(--text)] min-h-screen">
+      <div className="flex justify-between items-center mb-6 border-b border-[var(--border)] pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-violet-400 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-[var(--kat-ob)] flex items-center gap-2">
             <BarChart3 /> Boss Hisoboti (Tahlil)
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">Kompaniya moliya va ko'rsatkichlari dinamikasi</p>
+          <p className="text-sm text-[var(--text-dim)] mt-1">Kompaniya moliya va ko'rsatkichlari dinamikasi</p>
         </div>
-        <button onClick={yukla} className="bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded flex items-center gap-2">
+        <button onClick={yukla} className="bg-[var(--kat-ob)] hover:bg-[var(--kat-ob)] px-4 py-2 rounded flex items-center gap-2">
           <RefreshCw size={16} className={yuklanmoqda ? 'animate-spin' : ''} /> Yangilash
         </button>
       </div>
 
       {xato && (
-        <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg text-sm">{xato}</div>
+        <div className="mb-4 p-3 bg-[var(--danger)]/20 border border-[var(--danger)]/30 text-[var(--danger)] rounded-lg text-sm">{xato}</div>
       )}
 
-      {yuklanmoqda && !initData ? <div className="text-zinc-500 animate-pulse">Yuklanmoqda...</div> : (
+      {yuklanmoqda && !initData ? <div className="text-[var(--text-mute)] animate-pulse">Yuklanmoqda...</div> : (
         <div className="flex flex-col gap-6">
           {!initData && data.length === 0 && !xato && (
-            <div className="text-center text-zinc-500 py-10 border border-dashed border-zinc-800 rounded-lg">
+            <div className="text-center text-[var(--text-mute)] py-10 border border-dashed border-[var(--border)] rounded-lg">
               Hozircha tahlil uchun ma'lumot yo'q.
             </div>
           )}
           {initData && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-black border border-zinc-800 p-4 rounded-lg border-t-4 border-t-emerald-500 shadow-lg">
-                <div className="text-zinc-500 text-sm mb-1">Jami Foyda</div>
-                <div className="text-2xl font-bold text-emerald-400"><FmtN val={initData.foyda || 0} /></div>
+              <div className="bg-[var(--bg)] border border-[var(--border)] p-4 rounded-lg border-t-4 border-t-[var(--ok)] shadow-lg">
+                <div className="text-[var(--text-mute)] text-sm mb-1">Jami Foyda</div>
+                <div className="text-2xl font-bold text-[var(--ok)]"><FmtN val={initData.foyda || 0} /></div>
               </div>
-              <div className="bg-black border border-zinc-800 p-4 rounded-lg border-t-4 border-t-blue-500 shadow-lg">
-                <div className="text-zinc-500 text-sm mb-1">Daromad</div>
-                <div className="text-2xl font-bold text-blue-400"><FmtN val={initData.daromad || 0} /></div>
+              <div className="bg-[var(--bg)] border border-[var(--border)] p-4 rounded-lg border-t-4 border-t-[var(--info)] shadow-lg">
+                <div className="text-[var(--text-mute)] text-sm mb-1">Daromad</div>
+                <div className="text-2xl font-bold text-[var(--info)]"><FmtN val={initData.daromad || 0} /></div>
               </div>
-              <div className="bg-black border border-zinc-800 p-4 rounded-lg border-t-4 border-t-red-500 shadow-lg">
-                <div className="text-zinc-500 text-sm mb-1">Xarajatlar</div>
-                <div className="text-2xl font-bold text-red-400"><FmtN val={initData.xarajat || 0} /></div>
+              <div className="bg-[var(--bg)] border border-[var(--border)] p-4 rounded-lg border-t-4 border-t-[var(--danger)] shadow-lg">
+                <div className="text-[var(--text-mute)] text-sm mb-1">Xarajatlar</div>
+                <div className="text-2xl font-bold text-[var(--danger)]"><FmtN val={initData.xarajat || 0} /></div>
               </div>
-              <div className="bg-black border border-zinc-800 p-4 rounded-lg border-t-4 border-t-amber-500 shadow-lg">
-                <div className="text-zinc-500 text-sm mb-1">Qoldiq Kassa</div>
-                <div className="text-2xl font-bold text-amber-400"><FmtN val={initData.kassa || 0} /></div>
+              <div className="bg-[var(--bg)] border border-[var(--border)] p-4 rounded-lg border-t-4 border-t-[var(--warn)] shadow-lg">
+                <div className="text-[var(--text-mute)] text-sm mb-1">Qoldiq Kassa</div>
+                <div className="text-2xl font-bold text-[var(--warn)]"><FmtN val={initData.kassa || 0} /></div>
               </div>
             </div>
           )}
 
-          <div className="bg-black border border-zinc-800 rounded-lg overflow-hidden shadow-lg">
+          <div className="bg-[var(--bg)] border border-[var(--border)] rounded-lg overflow-hidden shadow-lg">
             <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-800 text-zinc-400">
+              <thead className="bg-[var(--surface-3)] text-[var(--text-dim)]">
                 <tr>
                   <th className="p-4 font-medium">Obyekt / Kategoriya</th>
                   <th className="p-4 font-medium text-right">Kirim</th>
@@ -91,13 +91,13 @@ export default function TestHisobot() {
                 </tr>
               </thead>
               <tbody>
-                {data.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-zinc-500">Hech qanday tahlil topilmadi.</td></tr>}
+                {data.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-[var(--text-mute)]">Hech qanday tahlil topilmadi.</td></tr>}
                 {data.map((d, i) => (
-                  <tr key={i} className="border-t border-zinc-800/50 hover:bg-zinc-800/30">
+                  <tr key={i} className="border-t border-[var(--border)]/50 hover:bg-[var(--surface-2)]">
                     <td className="p-4 font-medium">{d.kategoriya || d.nom || '-'}</td>
-                    <td className="p-4 text-right text-emerald-400"><FmtN val={d.kirim || 0} /></td>
-                    <td className="p-4 text-right text-red-400"><FmtN val={d.chiqim || 0} /></td>
-                    <td className="p-4 text-right font-bold text-blue-400"><FmtN val={(d.kirim || 0) - (d.chiqim || 0)} /></td>
+                    <td className="p-4 text-right text-[var(--ok)]"><FmtN val={d.kirim || 0} /></td>
+                    <td className="p-4 text-right text-[var(--danger)]"><FmtN val={d.chiqim || 0} /></td>
+                    <td className="p-4 text-right font-bold text-[var(--info)]"><FmtN val={(d.kirim || 0) - (d.chiqim || 0)} /></td>
                   </tr>
                 ))}
               </tbody>

@@ -9,6 +9,7 @@ import { bajarilmadiXlsx } from '../../lib/bajarilmadi-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
+import { Info } from 'lucide-react';
 
 const BARG = new Set(['bl', 'rs', 'mat', 'ob']);
 const sabNom = (k: string) => BAJARILMADI_SABABLAR.find((s) => s.kod === k)?.nom ?? k;
@@ -90,55 +91,55 @@ export function BajarilmadiPanel({ kompaniyaId, obyektId, obyektNomi, qatorlar, 
 
   return (
     <div className="space-y-3 text-[12px]" aria-label={t('Bajarilmadi belgisi')}>
-      <p className="text-text-dim">{t('Bajarilmaydigan ishni sabab bilan belgilang — smeta qatori o‘zgarmaydi. Sabab, sana va dalil hujjat saqlanadi; «Bajarilmagan hajmlar ro‘yxati» shundan olinadi.')}</p>
+      <div className="fz-note fz-note--info"><Info aria-hidden="true" /><span>{t('Bajarilmaydigan ishni sabab bilan belgilang — smeta qatori o‘zgarmaydi. Sabab, sana va dalil hujjat saqlanadi; «Bajarilmagan hajmlar ro‘yxati» shundan olinadi.')}</span></div>
       <input aria-label={t('Ishni qidirish')} value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setTanlangan(null); }}
-        placeholder={t('Ish yoki resursni kod/nom bo‘yicha qidiring…')} className="w-full rounded border border-border bg-bg px-2 py-1" />
+        placeholder={t('Ish yoki resursni kod/nom bo‘yicha qidiring…')} className="h-8 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 text-[13px]" />
       {!tanlangan && topildi.length > 0 && (
-        <ul className="max-h-48 overflow-auto rounded border border-border" role="listbox" aria-label={t('Topilgan ishlar')}>
+        <ul className="max-h-48 overflow-auto rounded-md border border-[var(--border-strong)] bg-surface" role="listbox" aria-label={t('Topilgan ishlar')}>
           {topildi.map((q) => (
-            <li key={q.id}><button type="button" onClick={() => setTanlangan(q)} className="w-full px-2 py-1 text-left hover:bg-surface-2">
+            <li key={q.id}><button type="button" onClick={() => setTanlangan(q)} className="w-full px-3 py-1.5 text-left text-[12.5px] hover:bg-surface-3">
               <span className="text-text-mute">{q.kod ?? ''}</span> {q.nom} — <FmtN val={q.hajm ?? 0} /> {q.birlik ?? ''}
             </button></li>
           ))}
         </ul>
       )}
       {tanlangan && (
-        <div className="space-y-2 rounded border border-border p-2">
+        <div className="fz-panel">
           <div><b>{tanlangan.nom}</b> ({tanlangan.birlik ?? '—'}) — {t('smeta')}: <FmtN val={tanlangan.hajm ?? 0} />, {t('bajarilgan')}: <FmtN val={faktOf.get(tanlangan.id) ?? 0} /></div>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="block">{t('Sabab')}
-              <select aria-label={t('Sabab')} value={sabab} onChange={(e) => setSabab(e.target.value as BajarilmadiSabab)} className="mt-1 w-full rounded border border-border bg-bg px-2 py-1">
+              <select aria-label={t('Sabab')} value={sabab} onChange={(e) => setSabab(e.target.value as BajarilmadiSabab)} className="mt-1 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 py-1.5 text-[13px]">
                 {BAJARILMADI_SABABLAR.map((s) => <option key={s.kod} value={s.kod}>{t(s.nom)}</option>)}
               </select></label>
             <label className="block">{t('Sana')}
-              <input aria-label={t('Sana')} type="date" value={sana} onChange={(e) => setSana(e.target.value)} className="mt-1 w-full rounded border border-border bg-bg px-2 py-1" /></label>
+              <input aria-label={t('Sana')} type="date" value={sana} onChange={(e) => setSana(e.target.value)} className="mt-1 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 py-1.5 text-[13px]" /></label>
             <label className="block">{t('Bajarilmagan hajm (bo‘sh = butun qoldiq)')}
-              <input aria-label={t('Bajarilmagan hajm')} inputMode="decimal" value={hajm} onChange={(e) => setHajm(e.target.value)} className="mt-1 w-full rounded border border-border bg-bg px-2 py-1" /></label>
+              <input aria-label={t('Bajarilmagan hajm')} inputMode="decimal" value={hajm} onChange={(e) => setHajm(e.target.value)} className="mt-1 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 py-1.5 text-[13px]" /></label>
             <label className="block">{t('Dalil hujjat № (ixtiyoriy)')}
-              <input aria-label={t('Dalil hujjat raqami')} inputMode="numeric" value={hujjat} onChange={(e) => setHujjat(e.target.value)} className="mt-1 w-full rounded border border-border bg-bg px-2 py-1" /></label>
+              <input aria-label={t('Dalil hujjat raqami')} inputMode="numeric" value={hujjat} onChange={(e) => setHujjat(e.target.value)} className="mt-1 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 py-1.5 text-[13px]" /></label>
           </div>
           <label className="block">{t('Izoh')}
-            <textarea aria-label={t('Izoh')} value={izoh} onChange={(e) => setIzoh(e.target.value)} rows={2} className="mt-1 w-full rounded border border-border bg-bg px-2 py-1" /></label>
+            <textarea aria-label={t('Izoh')} value={izoh} onChange={(e) => setIzoh(e.target.value)} rows={2} className="mt-1 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 py-1.5 text-[13px]" /></label>
           <div className="flex gap-2">
-            <button type="button" disabled={band || (sabab === 'boshqa' && !izoh.trim())} onClick={() => void belgila()} className="rounded bg-accent px-3 py-1 text-white disabled:opacity-40">{t('Bajarilmadi deb belgilash')}</button>
-            <button type="button" onClick={() => setTanlangan(null)} className="rounded border border-border px-3 py-1">{t('Bekor')}</button>
+            <button type="button" disabled={band || (sabab === 'boshqa' && !izoh.trim())} onClick={() => void belgila()} className="fz-btn fz-btn--primary">{t('Bajarilmadi deb belgilash')}</button>
+            <button type="button" onClick={() => setTanlangan(null)} className="fz-btn">{t('Bekor')}</button>
           </div>
         </div>
       )}
-      {xabar && <p role={xabar.tur === 'xato' ? 'alert' : 'status'} className={xabar.tur === 'xato' ? 'text-danger' : 'text-success'}>{xabar.matn}</p>}
-      {faol.length > 0 && <div><button type="button" disabled={band} onClick={() => void eksport()} className="rounded border border-accent/50 px-3 py-1 text-accent disabled:opacity-40">{t('Bajarilmagan hajmlar ro‘yxati (Excel)')}</button></div>}
+      {xabar && <div role={xabar.tur === 'xato' ? 'alert' : 'status'} className={`fz-note ${xabar.tur === 'xato' ? 'fz-note--danger' : 'fz-note--info'}`}><span>{xabar.matn}</span></div>}
+      {faol.length > 0 && <div><button type="button" disabled={band} onClick={() => void eksport()} className="fz-btn">{t('Bajarilmagan hajmlar ro‘yxati (Excel)')}</button></div>}
       {faol.length > 0 && (
-        <table className="w-full border-collapse">
-          <thead><tr className="text-left text-text-mute"><th className="py-1">{t('Ish')}</th><th>{t('Bajarilmagan')}</th><th>{t('Sabab')}</th><th>{t('Sana')}</th><th>{t('Kim')}</th><th /></tr></thead>
+        <div className="fz-table-wrap"><table className="fz-table">
+          <thead><tr><th>{t('Ish')}</th><th>{t('Bajarilmagan')}</th><th>{t('Sabab')}</th><th>{t('Sana')}</th><th>{t('Kim')}</th><th /></tr></thead>
           <tbody>{faol.map((x) => (
-            <tr key={x.id} className="border-t border-border/60 align-top">
-              <td className="py-1 pr-2">{x.kod ? `${x.kod} ` : ''}{x.nom}</td>
-              <td className="pr-2 tabular-nums"><FmtN val={x.bajarilmagan_hajm} /> {x.birlik ?? ''}</td>
-              <td className="pr-2">{t(sabNom(x.sabab_kod))}{x.sabab_izoh ? ` — ${x.sabab_izoh}` : ''}{x.hujjat_nom ? ` · ${x.hujjat_nom}` : ''}</td>
-              <td className="pr-2">{x.sana}</td><td className="pr-2">{x.kim ?? '—'}</td>
-              <td><button type="button" disabled={band} onClick={() => void bekor(x)} className="rounded border border-border px-2 disabled:opacity-40">{t('Bekor qilish')}</button></td>
+            <tr key={x.id}>
+              <td>{x.kod ? `${x.kod} ` : ''}{x.nom}</td>
+              <td className="fz-c-num"><FmtN val={x.bajarilmagan_hajm} /> {x.birlik ?? ''}</td>
+              <td>{t(sabNom(x.sabab_kod))}{x.sabab_izoh ? ` — ${x.sabab_izoh}` : ''}{x.hujjat_nom ? ` · ${x.hujjat_nom}` : ''}</td>
+              <td>{x.sana}</td><td>{x.kim ?? '—'}</td>
+              <td><button type="button" disabled={band} onClick={() => void bekor(x)} className="fz-btn fz-btn--sm">{t('Bekor qilish')}</button></td>
             </tr>))}</tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

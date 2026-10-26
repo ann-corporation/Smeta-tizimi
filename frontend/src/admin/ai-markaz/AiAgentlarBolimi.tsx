@@ -87,7 +87,7 @@ export function AiAgentlarBolimi({ markaz }: { markaz: Markaz | null }) {
           <label className="flex flex-col gap-1">{t('Kirish $/1M')}<MoneyInput inputMode="decimal" value={yKir} onValueChange={(moneyValue) => setYKir(moneyValue)} placeholder={NARX_NAMUNA} className="input h-8 w-20 px-2 text-[12px]" /></label>
           <label className="flex flex-col gap-1">{t('Chiqish $/1M')}<MoneyInput inputMode="decimal" value={yChiq} onValueChange={(moneyValue) => setYChiq(moneyValue)} placeholder={NARX_NAMUNA} className="input h-8 w-20 px-2 text-[12px]" /></label>
           <label className="flex items-center gap-1 pb-1.5"><input type="checkbox" checked={yVis} onChange={(e) => setYVis(e.target.checked)} />{t('Rasm ko‘ra oladi')}</label>
-          <button type="button" disabled={!yId.trim() || yNom.trim().length < 2} onClick={() => void qosh()} className="tugma-asosiy h-8 px-3 text-[12px] disabled:opacity-40">{t('Katalogga qo‘shish')}</button>
+          <button type="button" disabled={!yId.trim() || yNom.trim().length < 2} onClick={() => void qosh()} className="fz-btn fz-btn--primary h-8 px-3 text-[12px] disabled:opacity-40">{t('Katalogga qo‘shish')}</button>
         </div>
       </section>
     </div>

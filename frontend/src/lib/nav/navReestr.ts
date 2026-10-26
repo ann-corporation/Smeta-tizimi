@@ -181,6 +181,8 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Ish joylarim', ikonka: 'LayoutDashboard', sahifalar: [{ yol: '/admin/ish-joylarim', nom: 'Ish joylarim', ruxsat: [] }] },
       { nom: 'Mening topshiriqlarim', ikonka: 'ClipboardList', sahifalar: [{ yol: '/admin/topshiriqlar', nom: 'Mening topshiriqlarim', ruxsat: [] }] },
       { nom: 'Mening xizmatlarim', ikonka: 'Briefcase', sahifalar: [{ yol: '/admin/mutaxassis', nom: 'Mening xizmatlarim', ruxsat: [] }] },
+      /* Firuza (#150): o'ng yuqoridagi akkaunt menyusi ham shu sahifaga olib boradi (profil, til, bildirishnoma, ko'rinish). */
+      { nom: 'Akkaunt markazi', ikonka: 'User', sahifalar: [{ yol: '/admin/akkaunt', nom: 'Akkaunt markazi', ruxsat: [] }] },
     ],
   },
   {
@@ -200,6 +202,11 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
 /** Reestrdagi barcha sahifalar (guruh va band bilan). */
 export const NAV_SAHIFALAR: ReadonlyArray<NavSahifa & { guruh: NavGuruh; band: NavBand }> =
   NAV_GURUHLAR.flatMap((guruh) => guruh.bandlar.flatMap((band) => band.sahifalar.map((s) => ({ ...s, guruh, band }))));
+
+/** «Shaxsiy» qatlam sahifalari — akkaunt menyusi (components/akkaunt/AkkauntTugmasi) shu ro'yxatni o'qishi uchun.
+ *  Sidebar pastida ham qoladi (egasi javobi kelguncha ikkala joyda). */
+export const SHAXSIY_SAHIFALAR: readonly NavSahifa[] = NAV_SAHIFALAR.filter((s) => s.guruh.qatlam === 'shaxsiy')
+  .map(({ yol, nom, ruxsat }) => ({ yol, nom, ruxsat }));
 
 /** Yo'l (aniq yoki uning ichki yo'li, masalan `/admin/holat/12`) reestrdagi qaysi sahifa. */
 export function navSahifa(yol: string): (NavSahifa & { guruh: NavGuruh; band: NavBand }) | null {

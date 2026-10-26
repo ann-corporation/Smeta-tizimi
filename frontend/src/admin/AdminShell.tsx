@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useSessiya } from '../api/hooks';
 import { HotkeyYordam } from '../lib/hotkeys/HotkeyYordam';
 import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
-import { Map, LogOut, Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X } from 'lucide-react';
+import { Map, LogOut, Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Inbox, Truck, User } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
@@ -15,6 +15,8 @@ import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
+import { AkkauntTugmasi } from '../components/akkaunt/AkkauntTugmasi';
+import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
@@ -77,7 +79,19 @@ function AdminShellInner() {
   // katta ochiladigan bo'lmasa faqat belgichalari ko'rinib turadigan".
   const [kengaygan, setKengaygan] = useState(false);
   const [mobilMenyuOchiq, setMobilMenyuOchiq] = useState(false);
-  const sidebarKengaygan = kengaygan || mobilMenyuOchiq;
+  const [mahkam, setMahkam] = useState<boolean>(() => {
+    try { return localStorage.getItem('fz-sidebar-mahkam') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('fz-sidebar-mahkam', mahkam ? '1' : '0'); } catch { /* brauzer xotirasi yopiq */ }
+  }, [mahkam]);
+  /* Akkaunt markazi («Ko‘rinish») yon panel mahkamligini o‘zgartirsa — shu yerda ham darhol aks etadi. */
+  useEffect(() => {
+    const f = (e: Event) => setMahkam(!!(e as CustomEvent<boolean>).detail);
+    window.addEventListener(SIDEBAR_HODISA, f);
+    return () => window.removeEventListener(SIDEBAR_HODISA, f);
+  }, []);
+  const sidebarKengaygan = mahkam || kengaygan || mobilMenyuOchiq;
 
   // Qaysi guruhlar ochiq ekanligini saqlash
   const [ochiqGuruhlar, setOchiqGuruhlar] = useState<Record<string, boolean>>(() => {
@@ -107,7 +121,7 @@ function AdminShellInner() {
 
   if (sess.isLoading) {
     return (
-      <div className="h-screen bg-[#020617] flex items-center justify-center">
+      <div className="h-screen bg-bg flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-white/20 border-t-accent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-text-dim text-sm">Kirish tekshirilmoqda…</p>
@@ -120,7 +134,7 @@ function AdminShellInner() {
 
   if (sessiyaYoq) {
     return (
-      <div className="h-screen bg-[#020617] flex items-center justify-center">
+      <div className="h-screen bg-bg flex items-center justify-center">
         <div className="text-center max-w-sm px-6">
           <AlertTriangle size={28} className="text-warn mx-auto mb-3" />
           <p className="text-text font-medium mb-1">Kirish talab qilinadi</p>
@@ -135,7 +149,7 @@ function AdminShellInner() {
 
   if (sess.isError) {
     return (
-      <div className="h-screen bg-[#020617] flex items-center justify-center">
+      <div className="h-screen bg-bg flex items-center justify-center">
         <div className="text-center max-w-sm px-6">
           <AlertTriangle size={28} className="text-warn mx-auto mb-3" />
           <p className="text-text font-medium mb-1">Server bilan aloqa yo'q</p>
@@ -177,127 +191,95 @@ function AdminShellInner() {
   const bandFaol = (m: MenyuQator, isActive: boolean) => isActive || !!m.tablar?.some(tb => joy.pathname === tb.yol || joy.pathname.startsWith(tb.yol + '/'));
 
   return (
-    <div className="os-app-shell flex h-screen overflow-hidden text-white relative font-sans selection:bg-accent/30">
+    <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans">
       <HotkeyYordam />
       <CommandPalette bandlar={palitraBandlari} />
 
-      {/* Sidebar -- 2026-09-07: standart holatda faqat belgichalar (ikonalar)
-       * qatori, sichqoncha ustiga borilganda to'liq (nomlar bilan) kengayadi.
-       * Foydalanuvchi: "yon panelni sichqoncha borsa katta ochiladigan
-       * bo'lmasa faqat belgichalari ko'rinib turadigan qilib ber". */}
+      {/* Firuza YonPanel (2026-10-25): rels (60px, faqat ikonka) yoki mahkamlangan ochiq panel (264px).
+       * Rels holatda sichqoncha kelsa panel kontent USTIDA ochiladi — sahifa siljimaydi (avval kontent
+       * har hoverda sakrardi). Mahkamlash tanlovi brauzerda eslab qolinadi. */}
+      <div className={`fz-shell-rail ${mahkam ? 'fz-shell-rail--pinned' : ''}`}>
       <aside
         onMouseEnter={() => setKengaygan(true)}
         onMouseLeave={() => setKengaygan(false)}
-        aria-label="Asosiy navigatsiya"
-        className={`os-sidebar relative z-30 border-r backdrop-blur-xl flex flex-col flex-shrink-0 overflow-hidden transition-[width] duration-200 ease-out ${
-          mobilMenyuOchiq ? 'os-sidebar--open' : ''
-        } ${
-          mobilMenyuOchiq ? 'w-[min(19rem,88vw)]' : sidebarKengaygan ? 'w-64 xl:w-72' : 'w-[68px]'
-        }`}
+        aria-label={t('Asosiy navigatsiya')}
+        className={`fz-sidebar ${sidebarKengaygan ? 'fz-sidebar--open' : ''} ${sidebarKengaygan && !mahkam && !mobilMenyuOchiq ? 'fz-sidebar--float' : ''} ${mobilMenyuOchiq ? 'fz-sidebar--mobile' : ''}`}
       >
-        <div className={`p-4 border-b border-border flex items-center ${sidebarKengaygan ? 'gap-3' : 'justify-center'}`}>
+        <div className="fz-sidebar__brand">
           <KompaniyaLogoRasm
             kompaniyaId={k.globalRejim ? null : k.joriy?.id}
-            className="w-8 h-8 rounded-lg object-contain bg-white flex-shrink-0"
-            zaxira={<div className="os-brand-mark w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FlaskConical className="text-white" size={18} />
-            </div>}
+            className="w-8 h-8 rounded-md object-contain bg-white flex-shrink-0"
+            zaxira={<span className="fz-sidebar__mark" aria-hidden="true">{(!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'S').trim().charAt(0).toUpperCase()}</span>}
           />
           {sidebarKengaygan && (
-            <div className="min-w-0">
-              <h1 className="text-[15px] font-bold text-text leading-tight tracking-wider whitespace-nowrap truncate" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'SMETA TIZIM 02'}</h1>
-              <p className="text-[11px] text-text-dim uppercase tracking-wider font-medium mt-0.5 text-accent/80 whitespace-nowrap">
-                👑 {k.superadmin ? 'Superadmin · platforma' : (k.joriy?.rol === 'boss' ? 'Kompaniya rahbari' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan')))}
-                {k.superadmin && k.joriy?.membershipRole && <span className="block text-[11px] font-normal">Kompaniyadagi vazifa: {k.joriy.membershipRole}</span>}
-              </p>
+            <div className="min-w-0 flex-1">
+              <span className="fz-sidebar__name" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'Smeta tizimi'}</span>
+              <span className="fz-sidebar__role">
+                {k.superadmin ? 'Superadmin · platforma' : (k.joriy?.rol === 'boss' ? 'Kompaniya rahbari' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan')))}
+                {k.superadmin && k.joriy?.membershipRole && <> · {k.joriy.membershipRole}</>}
+              </span>
             </div>
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-3 space-y-4">
-          {!sidebarKengaygan ? (
-            /* Belgichalar qatori: guruh sarlavhalarisiz, faqat ikonalar --
-             * har bir guruh orasida yupqa ajratuvchi chiziq. */
-            <div className="space-y-1">
-              {filtrKilinganGuruhlar.map((guruh, gi) => (
-                <div key={guruh.id} className={gi > 0 ? 'space-y-1 pt-3 mt-3 border-t border-white/10' : 'space-y-1'}>
-                  {guruh.menyular.map(m => (
-                    <NavLink
-                      key={m.yol}
-                      to={m.yol}
-                      title={t(m.nom)}
-                      className={({ isActive }) =>
-                        `os-nav-link flex items-center justify-center h-10 rounded-lg transition-colors duration-[120ms] cursor-pointer ${
-                          bandFaol(m, isActive) ? 'os-nav-link--active' : ''
-                        }`
-                      }
-                    >
-                      {({ isActive }) => <m.Ikonka className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={bandFaol(m, isActive) ? 2 : 1.5} />}
-                    </NavLink>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              {filtrKilinganGuruhlar.map(guruh => (
-                <div key={guruh.id} className="space-y-1">
-                  <button
-                    onClick={() => toggleGuruh(guruh.id)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] font-bold text-text-dim uppercase tracking-wider hover:text-text transition-colors group"
-                  >
-                    <guruh.Ikonka size={14} className="text-text-dim group-hover:text-accent transition-colors" />
-                    <span className="flex-1 text-left whitespace-nowrap">{t(guruh.nom)}</span>
-                    {ochiqGuruhlar[guruh.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <div className="fz-sidebar__scroll">
+          <nav className="fz-nav">
+            {filtrKilinganGuruhlar.map((guruh, gi) => (
+              <div key={guruh.id}>
+                {sidebarKengaygan ? (
+                  <button type="button" className="fz-nav__group" aria-expanded={!!ochiqGuruhlar[guruh.id]} onClick={() => toggleGuruh(guruh.id)}>
+                    <span className="flex-1 truncate">{t(guruh.nom)}</span>
+                    {ochiqGuruhlar[guruh.id] ? <ChevronDown /> : <ChevronRight />}
                   </button>
+                ) : gi > 0 ? <div className="fz-sidebar__sep" /> : null}
+                {(!sidebarKengaygan || ochiqGuruhlar[guruh.id]) && guruh.menyular.map(m => (
+                  <NavLink
+                    key={m.yol}
+                    to={m.yol}
+                    title={sidebarKengaygan ? undefined : t(m.nom)}
+                    className={({ isActive }) => `fz-nav__item ${bandFaol(m, isActive) ? 'fz-nav__item--active' : ''}`}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <m.Ikonka strokeWidth={bandFaol(m, isActive) ? 2 : 1.75} />
+                        {sidebarKengaygan && <span>{t(m.nom)}</span>}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </nav>
+        </div>
 
-                  <div className={`space-y-0.5 pl-2 ${ochiqGuruhlar[guruh.id] ? 'block' : 'hidden'}`}>
-                    {guruh.menyular.map(m => (
-                      <NavLink
-                        key={m.yol}
-                        to={m.yol}
-                        className={({ isActive }) =>
-                          `os-nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] font-medium transition-colors duration-[120ms] cursor-pointer relative ${
-                            bandFaol(m, isActive)
-                              ? 'os-nav-link--active'
-                              : ''
-                          }`
-                        }
-                      >
-                        {({ isActive }) => (
-                          <>
-                            <m.Ikonka className="w-[16px] h-[16px] flex-shrink-0" strokeWidth={bandFaol(m, isActive) ? 2 : 1.5} />
-                            <span className="truncate">{t(m.nom)}</span>
-                          </>
-                        )}
-                      </NavLink>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-            </>
-          )}
-        </nav>
-
-        <div className="p-3 border-t border-border space-y-1">
+        <div className="fz-sidebar__foot">
           <button
-            onClick={handleLogout}
-            title="Tizimdan chiqish"
-            className={`flex items-center w-full rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors ${
-              sidebarKengaygan ? 'gap-3 px-3 py-2 text-left' : 'justify-center h-10'
-            }`}
+            type="button"
+            onClick={() => setMahkam(v => !v)}
+            title={mahkam ? t('Panelni yig‘ish') : t('Panelni mahkamlash')}
+            aria-pressed={mahkam}
+            className="fz-nav__item os-desktop-only"
           >
-            <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-            {sidebarKengaygan && <span className="text-sm font-medium whitespace-nowrap">Tizimdan Chiqish</span>}
+            {mahkam ? <PanelLeftClose strokeWidth={1.75} /> : <PanelLeftOpen strokeWidth={1.75} />}
+            {sidebarKengaygan && <span>{mahkam ? t('Panelni yig‘ish') : t('Panelni mahkamlash')}</span>}
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title={t('Tizimdan chiqish')}
+            className="fz-nav__item fz-nav__item--danger"
+          >
+            <LogOut strokeWidth={1.75} />
+            {sidebarKengaygan && <span>{t('Tizimdan chiqish')}</span>}
           </button>
         </div>
       </aside>
+      </div>
       {mobilMenyuOchiq && <button type="button" className="os-sidebar-backdrop" aria-label="Navigatsiyani yopish" onClick={() => setMobilMenyuOchiq(false)} />}
 
       <main className="os-workspace relative z-10 flex-1 overflow-hidden flex flex-col">
         {/* YAGONA kompaniya konteksti — barcha /admin/* sahifalari shuni ishlatadi */}
-        <div className="os-context-bar flex-shrink-0 flex flex-wrap items-center gap-3 px-6 py-2 border-b backdrop-blur-sm z-20">
+        <div className="os-context-bar flex-shrink-0 flex flex-wrap items-center gap-3 z-20">
           <button type="button" className="os-mobile-only os-menu-button" aria-label={mobilMenyuOchiq ? 'Navigatsiyani yopish' : 'Navigatsiyani ochish'} aria-expanded={mobilMenyuOchiq} onClick={() => setMobilMenyuOchiq((open) => !open)}>
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
@@ -305,7 +287,7 @@ function AdminShellInner() {
           {k.superadmin && <span className="rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="text-[10px] text-text-dim">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <div className="ml-auto"><TilTanlagich ixcham /></div>
+          <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`

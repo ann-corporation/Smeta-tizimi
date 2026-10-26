@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { menyuQur, menyuYollari, type NavKontekst } from './navFiltr';
-import { NAV_GURUHLAR, NAV_SAHIFALAR } from './navReestr';
+import { NAV_GURUHLAR, NAV_SAHIFALAR, SHAXSIY_SAHIFALAR } from './navReestr';
 import { menyuRuxsati } from '../company-authorization/route-permission';
 import { ROLE_PERMISSIONS } from '../company-authorization/effective-authorization';
 import { MENYU_MODUL } from '../modullar';
@@ -66,7 +66,7 @@ const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 
 const TAMINOT = a('logistika', 'zayavka', 'erp');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
 const KOMPANIYA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka');
-const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis');
+const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis', 'akkaunt');
 const PLATFORMA = a('boshqaruv', 'sayt-xaritasi', 'fayl-boglash', 'test');
 const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).includes(x));
 
@@ -184,6 +184,10 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
     for (const g of NAV_GURUHLAR) { nomlar.add(g.nom); for (const b of g.bandlar) nomlar.add(b.nom); }
     for (const s of NAV_SAHIFALAR) nomlar.add(s.nom);
     expect([...nomlar].filter((n) => !(n in LUGAT_RU) || !(n in LUGAT_EN))).toEqual([]);
+  });
+
+  it('akkaunt menyusi uchun «Shaxsiy» qatlam ro‘yxati reestrdan', () => {
+    expect(SHAXSIY_SAHIFALAR.map((s) => s.yol)).toEqual(SHAXSIY);
   });
 
   it('har yo‘l reestrda faqat bir marta', () => {

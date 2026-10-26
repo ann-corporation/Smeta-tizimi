@@ -1,0 +1,19 @@
+{
+  "Ustamali smeta (ИТОГО-4, QQS siz)": { "ru": "Смета с накрутками (ИТОГО-4, без НДС)", "en": "Estimate with markup (TOTAL-4, excl. VAT)" },
+  "To‘g‘ridan-to‘g‘ri xarajat (ustamasiz)": { "ru": "Прямые затраты (без накруток)", "en": "Direct cost (without markup)" },
+  "Smeta jami — faol obyektlar bo‘limlari yig‘indisi (nakrutkasiz); smeta o‘zgarishining qoralamalari (qoralama) bunga kirmaydi.": { "ru": "Смета — сумма разделов активных объектов (без накруток); черновики изменений сметы в неё не входят.", "en": "Estimate is the sum of section totals of active objects (no markup); draft estimate changes are not included." },
+  "Smeta: ustamali / ustamasiz": { "ru": "Смета: с накрутками / без", "en": "Estimate: with / without markup" },
+  "To‘g‘ridan-to‘g‘ri": { "ru": "Прямые", "en": "Direct" },
+  "Ustama va qo‘shimchalar": { "ru": "Накрутки и добавки", "en": "Markup and additions" },
+  "ИТОГО-4": { "ru": "ИТОГО-4", "en": "TOTAL-4" },
+  "QQS": { "ru": "НДС", "en": "VAT" },
+  "ВСЕГО": { "ru": "ВСЕГО", "en": "GRAND TOTAL" },
+  "Ustama sharsharasi": { "ru": "Каскад накруток", "en": "Markup waterfall" },
+  "To‘g‘ridan-to‘g‘ri xarajatdan ustamali jamigacha (hisoblangan obyektlar yig‘indisi)": { "ru": "От прямых затрат до итога с накрутками (сумма рассчитанных объектов)", "en": "From direct cost to total with markup (sum of calculated sites)" },
+  "Ustamali hisob mavjud emas — sharshara chizilmaydi.": { "ru": "Расчёта с накрутками нет — каскад не строится.", "en": "No markup calculation — waterfall is not drawn." },
+  "ИТОГО-4 — QQS siz ustamali jami; QQS alohida ko‘rsatilgan.": { "ru": "ИТОГО-4 — итог с накрутками без НДС; НДС показан отдельно.", "en": "TOTAL-4 is the total with markup excl. VAT; VAT is shown separately." },
+  "Boshqa material (БЕЗ СКЛАД, КАБ, М/К)": { "ru": "Прочие материалы (БЕЗ СКЛАД, КАБ, М/К)", "en": "Other materials (БЕЗ СКЛАД, КАБ, М/К)" },
+  "Xarajat kategoriyalari": { "ru": "Категории затрат", "en": "Cost categories" },
+  "To‘g‘ridan-to‘g‘ri xarajat (ustamasiz) kategoriya bo‘yicha; qismlar yig‘indisi jamiga teng.": { "ru": "Прямые затраты (без накруток) по категориям; сумма частей равна итогу.", "en": "Direct cost (no markup) by category; the parts add up to the total." },
+  "Kategoriya kesimi yuklanmadi.": { "ru": "Разрез по категориям не загружен.", "en": "Category breakdown failed to load." }
+}

@@ -9,6 +9,8 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
+import { t } from '../../i18n/til';
+import './hujjat-korinish.css';
 
 const kalit = (kompaniyaId: number | null | undefined) => `hujjat-tomonlari:${kompaniyaId ?? 'umumiy'}`;
 
@@ -29,27 +31,38 @@ export function useHujjatTomonlari(kompaniyaId: number | null | undefined): [Imz
   return [nomlar, saqla];
 }
 
-const MAYDONLAR: Array<{ k: keyof ImzoNomlar; yorliq: string }> = [
-  { k: 'zakazchik', yorliq: 'Buyurtmachi (ЗАКАЗЧИК)' },
-  { k: 'pudratchi', yorliq: 'Pudratchi (ПОДРЯДЧИК)' },
-  { k: 'subpudratchi', yorliq: 'Subpudratchi (СУБПОДРЯДЧИК) — 3 tomonlama bo‘lsa' },
-  { k: 'texnadzor', yorliq: 'Texnik nazorat (ТЕХНАДЗОР)' },
-  { k: 'tuzuvchi', yorliq: 'Tuzuvchi (СОСТАВИЛ)' },
+const MAYDONLAR: Array<{ k: keyof ImzoNomlar; rol: string; ru: string; izoh?: string }> = [
+  { k: 'zakazchik', rol: 'Buyurtmachi', ru: 'ЗАКАЗЧИК' },
+  { k: 'pudratchi', rol: 'Pudratchi', ru: 'ПОДРЯДЧИК' },
+  { k: 'subpudratchi', rol: 'Subpudratchi', ru: 'СУБПОДРЯДЧИК', izoh: '3 tomonlama bo‘lsa' },
+  { k: 'texnadzor', rol: 'Texnik nazorat', ru: 'ТЕХНАДЗОР' },
+  { k: 'tuzuvchi', rol: 'Tuzuvchi', ru: 'СОСТАВИЛ' },
 ];
 
-/** Yig'iladigan kichik panel: hujjat imzo tomonlari. */
+/** Yig'iladigan panel: hujjat imzo tomonlari — har tomon alohida blok (rol, hujjatdagi rus yozuvi, nom). */
 export function HujjatTomonlariPanel({ qiymat, onChange }: { qiymat: ImzoNomlar; onChange: (next: ImzoNomlar) => void }) {
+  const tolgan = MAYDONLAR.filter((m) => (qiymat[m.k] ?? '').trim()).length;
   return (
-    <details className="text-[12px] text-text-dim">
-      <summary className="cursor-pointer select-none">Hujjat imzolari: {qiymat.zakazchik || qiymat.pudratchi ? [qiymat.zakazchik, qiymat.pudratchi].filter(Boolean).join(' / ') : 'kiritilmagan (hujjatda chiziq)'}</summary>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        {MAYDONLAR.map((m) => (
-          <label key={m.k} className="block">
-            {m.yorliq}
-            <input aria-label={m.yorliq} value={qiymat[m.k] ?? ''} onChange={(e) => onChange({ ...qiymat, [m.k]: e.target.value })}
-              placeholder="tashkilot, lavozim, F.I.O." className="mt-1 block h-8 w-full rounded border border-border bg-surface-2 px-2 text-text" />
-          </label>
-        ))}
+    <details className="ht-panel">
+      <summary className="ht-summary">
+        <span className="ht-summary__h">{t('Hujjat imzolari')}</span>
+        <span className={`fz-chip ${tolgan ? 'fz-chip--accent' : 'fz-chip--warn'}`}>{tolgan ? t('{a} / {b} tomon kiritilgan', { a: tolgan, b: MAYDONLAR.length }) : t('kiritilmagan (hujjatda chiziq)')}</span>
+        {Boolean(qiymat.zakazchik || qiymat.pudratchi) && <span className="ht-summary__n">{[qiymat.zakazchik, qiymat.pudratchi].filter(Boolean).join(' / ')}</span>}
+      </summary>
+      <div className="ht-grid">
+        {MAYDONLAR.map((m) => {
+          const yorliq = `${t(m.rol)} (${m.ru})${m.izoh ? ` — ${t(m.izoh)}` : ''}`;
+          const bor = (qiymat[m.k] ?? '').trim().length > 0;
+          return (
+            <label key={m.k} className={`ht-blok ${bor ? 'ht-blok--bor' : ''}`}>
+              <span className="ht-blok__rol"><b>{t(m.rol)}</b><i>{m.ru}</i></span>
+              {m.izoh && <span className="ht-blok__izoh">{t(m.izoh)}</span>}
+              <input aria-label={yorliq} value={qiymat[m.k] ?? ''} onChange={(e) => onChange({ ...qiymat, [m.k]: e.target.value })}
+                placeholder={t('tashkilot, lavozim, F.I.O.')} className="ht-blok__input" />
+              <span className="ht-blok__chiziq" aria-hidden="true">{bor ? '' : t('hujjatda chiziq bo‘ladi')}</span>
+            </label>
+          );
+        })}
       </div>
     </details>
   );

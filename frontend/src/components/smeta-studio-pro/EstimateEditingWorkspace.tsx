@@ -58,7 +58,7 @@ export function EstimateEditingWorkspace({ doc, labels, command, onTargetSection
         const amount = row.recipeId ? line?.amount : calculation.occurrences[id]?.amount;
         return `${quantity ?? labels.unknown} · ${amount ?? labels.unknown}`;
       } : undefined} />
-    <aside aria-label={labels.inspector} className="karta min-w-0 space-y-2 p-3 text-sm xl:sticky xl:top-2 xl:max-h-[calc(100vh-120px)] xl:overflow-auto">
+    <aside aria-label={labels.inspector} className="fz-card min-w-0 space-y-2 p-3 text-sm xl:sticky xl:top-2 xl:max-h-[calc(100vh-120px)] xl:overflow-auto">
       {!selected || !section || (selected.occurrenceId && !work) ? <p className="text-text-dim">{labels.choose}</p> :
         <Inspector key={JSON.stringify([doc.draftId, doc.context.companyId, selected.key])}
           doc={doc} row={selected} labels={labels} command={command} pricing={pricing} />}
@@ -118,20 +118,20 @@ export function Inspector({ doc, row, labels: l, command, pricing, resourceOnly=
     {failed && <p role="alert" className="text-danger">{l.failed}</p>}
     {!work ? <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => { e.preventDefault(); run({ type: 'RENAME_SECTION', sectionId: row.sectionId, name }); }}>
       <label className="block text-[11.5px] text-text-dim">{l.name}<input className={inputClass} value={name} onChange={e => setName(e.target.value)} /></label>
-      <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]">{l.save}</button>
+      <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary mt-1">{l.save}</button>
       <div className="flex gap-1">{[-1, 1].map(direction => {
         const section=doc.sections[row.sectionId], siblings=section.parentId ? doc.sections[section.parentId].children : doc.rootOrder;
         const index=siblings.indexOf(section.id)+direction;
         return <button key={direction} type="button" aria-label={direction < 0 ? l.move + ' ↑' : l.move + ' ↓'} disabled={index < 0 || index >= siblings.length}
-          className="tugma h-7 px-2" onClick={()=>run({type:'MOVE_SECTION',sectionId:section.id,parentId:section.parentId,index})}>{direction < 0 ? '↑' : '↓'}</button>;
+          className="fz-btn fz-btn--sm" onClick={()=>run({type:'MOVE_SECTION',sectionId:section.id,parentId:section.parentId,index})}>{direction < 0 ? '↑' : '↓'}</button>;
       })}</div>
     </form> : <>
-      {!resourceOnly && <><button type="button" className="tugma h-7 px-2 text-danger" onClick={() => run({ type: 'REMOVE_OCCURRENCE', occurrenceId: work.id })}>{t('Ishni olib tashlash')}</button>
+      {!resourceOnly && <><button type="button" className="fz-btn fz-btn--sm text-danger" onClick={() => run({ type: 'REMOVE_OCCURRENCE', occurrenceId: work.id })}>{t('Ishni olib tashlash')}</button>
       <p className="text-[12px] text-text-dim">{work.source.code} · {work.basis.unitLabel ?? l.unknown}</p>
       <p className="text-[12px] text-text-dim">{l.amount}: {calc?.amount ?? l.unknown}</p>
       <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => { e.preventDefault(); run({ type: 'SET_QUANTITY', occurrenceId: work.id, quantity: quantity.trim() || null }); }}>
         <label className="block text-[11.5px] text-text-dim">{l.quantity}<input className={inputClass} inputMode="decimal" value={quantity} onChange={e => setQuantity(e.target.value)} /></label>
-        <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]">{l.save}</button>
+        <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary mt-1">{l.save}</button>
       </form>
       {l.basisScale && l.basisUnit && l.basisEvidence && <form className="space-y-1 rounded border border-border/60 p-2" onSubmit={e => {
         e.preventDefault(); run({ type: 'SET_BASIS', occurrenceId: work.id, basis: {
@@ -142,7 +142,7 @@ export function Inspector({ doc, row, labels: l, command, pricing, resourceOnly=
         <label className="block text-[11.5px] text-text-dim">{l.basisScale}<input className={inputClass} inputMode="decimal" value={scale} onChange={e => setScale(e.target.value)} /></label>
         <label className="block text-[11.5px] text-text-dim">{l.basisUnit}<input className={inputClass} value={basisUnit} onChange={e => setBasisUnit(e.target.value)} /></label>
         <label className="block text-[11.5px] text-text-dim">{l.basisEvidence}<input className={inputClass} value={basisEvidence} onChange={e => setBasisEvidence(e.target.value)} /></label>
-        <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]" disabled={!!scale.trim() && !basisEvidence.trim()}>{l.save}</button>
+        <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary mt-1" disabled={!!scale.trim() && !basisEvidence.trim()}>{l.save}</button>
       </form>}
       <label className="block text-[11.5px] text-text-dim">{l.search}<input className={inputClass} value={sectionSearch} onChange={e => setSectionSearch(e.target.value)} /></label>
       <label className="block text-[11.5px] text-text-dim">{l.move}<select className={inputClass} value={work.sectionId} onChange={e => run({ type: 'MOVE_OCCURRENCE', occurrenceId: work.id, sectionId: e.target.value })}>
@@ -160,7 +160,7 @@ export function Inspector({ doc, row, labels: l, command, pricing, resourceOnly=
             {Object.entries(l.priceBases).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select></label>
           <label className="block text-[11.5px] text-text-dim">{l.evidence}<input className={inputClass} value={evidence} onChange={e => setEvidence(e.target.value)} /></label>
-          <button type="submit" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]" disabled={!!price.trim() && !evidence.trim()}>{l.save}</button>
+          <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary mt-1" disabled={!!price.trim() && !evidence.trim()}>{l.save}</button>
         </form>
         <label className="block text-[11.5px] text-text-dim">{l.candidates}<select className={inputClass} value={priceSource ?? ''} disabled={!!override?.substitution}
           onChange={e => {
@@ -185,9 +185,9 @@ export function Inspector({ doc, row, labels: l, command, pricing, resourceOnly=
           <label className="block text-[11.5px] text-text-dim">{l.conversion}<input className={inputClass} inputMode="decimal" value={conversion} onChange={e => setConversion(e.target.value)} /></label>
           <label className="block text-[11.5px] text-text-dim">{l.conversionEvidence}<input className={inputClass} value={conversionEvidence} onChange={e => setConversionEvidence(e.target.value)} /></label>
           {!permitted && <p role="status">{l.blocked}</p>}
-          <button type="button" className="tugma tugma-asosiy mt-1 h-7 px-2 text-[11.5px]" disabled={!permitted} onClick={() => requested && run({ type: 'SUBSTITUTE_RESOURCE', occurrenceId: work.id, recipeId: recipe.recipeId, substitution: requested })}>{l.save}</button>
+          <button type="button" className="fz-btn fz-btn--sm fz-btn--primary mt-1" disabled={!permitted} onClick={() => requested && run({ type: 'SUBSTITUTE_RESOURCE', occurrenceId: work.id, recipeId: recipe.recipeId, substitution: requested })}>{l.save}</button>
         </>}
-        {override?.substitution && <button type="button" className="tugma h-7 px-2 text-[11.5px]" onClick={() => run({ type: 'SUBSTITUTE_RESOURCE', occurrenceId: work.id, recipeId: recipe.recipeId, substitution: null })}>{l.restore}</button>}
+        {override?.substitution && <button type="button" className="fz-btn fz-btn--sm" onClick={() => run({ type: 'SUBSTITUTE_RESOURCE', occurrenceId: work.id, recipeId: recipe.recipeId, substitution: null })}>{l.restore}</button>}
       </>}
     </>}
   </div>;
@@ -205,7 +205,7 @@ function CatalogPriceSearch({ pricing, labels: l, name, unit, onPick }: {
     {!pricing.source ? <p className="text-xs text-text-mute">{l.catalogLoading}</p> : <>
       <form className="flex gap-1" onSubmit={e => { e.preventDefault(); find(query); }}>
         <input aria-label={l.catalogSearch} className="input h-7 flex-1 text-[12px]" value={query} onChange={e => setQuery(e.target.value)} />
-        <button type="submit" className="tugma h-7 px-2 text-[11px]">{l.catalogFind}</button>
+        <button type="submit" className="fz-btn fz-btn--sm">{l.catalogFind}</button>
       </form>
       {offers && !offers.length && <p className="mt-1 text-xs text-text-mute">{l.catalogNone}</p>}
       {offers && offers.length > 0 && <ul className="mt-1 max-h-56 space-y-0.5 overflow-auto text-[11.5px]">
@@ -216,7 +216,7 @@ function CatalogPriceSearch({ pricing, labels: l, name, unit, onPick }: {
             <span className="block text-[10.5px] text-text-mute">{[k.hudud, k.ishlab_chiqaruvchi, k.yil ? k.yil + (k.kvartal ? '/' + k.kvartal : '') : null, k.nds_holati].filter(Boolean).join(' · ')}</span>
           </span>
           <span className="shrink-0 tabular-nums font-medium">{k.narx?.toLocaleString('ru-RU')}</span>
-          <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[10.5px]" onClick={() => onPick(k)}>{l.catalogUse}</button>
+          <button type="button" className="fz-btn fz-btn--sm shrink-0 px-1.5" onClick={() => onPick(k)}>{l.catalogUse}</button>
         </li>)}
       </ul>}
     </>}

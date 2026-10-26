@@ -1,5 +1,5 @@
 import { tekshir } from '../_shared/auth';
-import { roleAuthority } from '../_shared/role-authority';
+import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { SCOPED_APIS, requestPermission, yopiqModul } from '../_shared/permission-policy';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
@@ -17,6 +17,7 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   const verified = await tekshir(ctx.request.headers.get('Cookie'),ctx.env.SESSIYA_KALIT);
   if (!verified) return fail('AUTH_REQUIRED',401);
   const authority = await roleAuthority(verified,ctx.env);
+  if (!authority && sessiyaYaroqsizmi(verified)) return yaroqsizSessiyaJavob();
   if (!authority) return fail('AUTHORITY_UNAVAILABLE',503);
   ctx.data.roleAuthority = authority;
   let b:Record<string,unknown>={};

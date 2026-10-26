@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
+import './dizayn/firuza.css'
 import App from './App.tsx'
 import { TilChegarasi } from './i18n/TilTanlagich'
 

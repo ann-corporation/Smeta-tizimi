@@ -1,3 +1,4 @@
+import { t } from '../../i18n/til';
 import { ObyektOptionlari } from '../ui/ObyektOptionlari';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -454,7 +455,7 @@ export function PTOWorkspaceBar() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2" data-testid="pto-workspace-bar">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-dim">PTO scope</span>
+      <span className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-text-mute">{t('Ish doirasi')}</span>
       <label className="sr-only" htmlFor="pto-project-select">Loyiha</label>
       <select id="pto-project-select" aria-label="PTO loyiha" value={workspace.scope.projectId ?? ''} onChange={(event) => workspace.setProjectId(event.target.value ? Number(event.target.value) : null)} className="min-w-[150px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text">
         <option value="">Loyiha tanlang</option>

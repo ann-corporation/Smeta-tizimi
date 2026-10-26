@@ -1,31 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Network, Plus, Save, Trash2, RefreshCw, Layers, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Network, Save, Trash2, RefreshCw, Sparkles, ArrowRight } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
-import { 
-  sbMaterialAliaslarOl, 
-  sbMaterialAliasYoz, 
-  sbMaterialAliasOchir, 
-  type MaterialAlias 
-} from '../api/t2-material-alias';
+import { tasdiqSora } from '../umumiy/ui/Tasdiq';
+import { t } from '../i18n/til';
+import { Sahifa } from '../umumiy/ui/Sahifa';
+import { sbMaterialAliaslarOl, sbMaterialAliasYoz, sbMaterialAliasOchir, type MaterialAlias } from '../api/t2-material-alias';
+import { OpsBoshQator, OpsMaydon } from '../components/kompaniya-ops/OpsUi';
 
+/**
+ * Material nomlari (alias → kanonik kalit) — egasi 2026-10-25: Firuza ko'rinishi.
+ * Har xil yozilgan nom bitta standart kalitga bog'lanadi; kompaniya tanlanmagan bo'lsa — global qoida.
+ */
 export default function TestMaterialAlias() {
   const { joriy } = useKompaniya();
   const [aliaslar, setAliaslar] = useState<MaterialAlias[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
-  
-  const [form, setForm] = useState({
-    aliasNom: '',
-    kanonikNomKey: '',
-    kanonikBirlikKey: ''
-  });
-  
+  const [form, setForm] = useState({ aliasNom: '', kanonikNomKey: '', kanonikBirlikKey: '' });
   const [qoshmoqda, setQoshmoqda] = useState(false);
 
   const yukla = async () => {
     setYuklanmoqda(true);
     try {
-      // Hozirgi kompaniyaning aliaslari (yoki null bo'lsa global)
+      // Joriy kompaniyaning aliaslari (kompaniya yo'q bo'lsa — global)
       const res = await sbMaterialAliaslarOl(joriy?.id || null);
       setAliaslar(res.qatorlar || []);
     } catch (e: any) {
@@ -34,27 +31,17 @@ export default function TestMaterialAlias() {
       setYuklanmoqda(false);
     }
   };
-
-  useEffect(() => {
-    yukla();
-  }, [joriy]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void yukla(); }, [joriy]);
 
   const handleSaqlash = async () => {
-    if (!form.aliasNom || !form.kanonikNomKey) {
-      return toast("Alias va Kanonik kalit majburiy!", "warn");
-    }
-    
+    if (!form.aliasNom || !form.kanonikNomKey) return toast(t('Alias va kanonik kalit majburiy!'), 'warn');
     setQoshmoqda(true);
     try {
-      await sbMaterialAliasYoz({
-        aliasNom: form.aliasNom,
-        kanonikNomKey: form.kanonikNomKey,
-        kanonikBirlikKey: form.kanonikBirlikKey || undefined,
-        kompaniyaId: joriy?.id
-      });
-      toast("Material aliasingiz saqlandi", "ok");
+      await sbMaterialAliasYoz({ aliasNom: form.aliasNom, kanonikNomKey: form.kanonikNomKey, kanonikBirlikKey: form.kanonikBirlikKey || undefined, kompaniyaId: joriy?.id });
+      toast(t('Material aliasingiz saqlandi'), 'ok');
       setForm({ aliasNom: '', kanonikNomKey: '', kanonikBirlikKey: '' });
-      yukla();
+      void yukla();
     } catch (e: any) {
       toast(e.message, 'danger');
     } finally {
@@ -62,185 +49,81 @@ export default function TestMaterialAlias() {
     }
   };
 
-  const handleOchirish = async (id: number) => {
-    if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+  const handleOchirish = async (a: MaterialAlias) => {
+    if (!(await tasdiqSora({ sarlavha: t('Aliasni o‘chirish'), matn: t('«{a}» → «{k}» bog‘lanishi o‘chirilsinmi?', { a: a.alias_nom, k: a.kanonik_nom_key }), tasdiqMatni: t('O‘chirish'), xavfli: true }))) return;
     try {
-      await sbMaterialAliasOchir(id);
-      toast("Alias o'chirildi", "ok");
-      yukla();
+      await sbMaterialAliasOchir(a.id);
+      toast(t('Alias o‘chirildi'), 'ok');
+      void yukla();
     } catch (e: any) {
       toast(e.message, 'danger');
     }
   };
 
+  const global = aliaslar.filter((a) => a.kompaniya_id === null).length;
+
   return (
-    <div className="h-full flex flex-col bg-bg">
-      <div className="p-4 border-b border-border flex items-center justify-between bg-surface z-10 shadow-sm">
-        <div>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <Layers className="text-amber-500" />
-            Material Semantikasi (AI Config)
-          </h1>
-          <p className="text-xs text-text-dim mt-1">
-            Har xil yozilgan material nomlarini bitta standart <b>Kanonik</b> kodga bog'lash
-          </p>
+    <Sahifa
+      sarlavha="Material nomlari (AI sozlama)"
+      tavsif="Har xil yozilgan material nomini bitta standart (kanonik) kalitga bog‘lash — qidiruv va moslashtirish shu orqali ishlaydi."
+      amallar={<button type="button" onClick={() => void yukla()} className="fz-btn fz-btn--ghost" aria-label={t('Yangilash')}><RefreshCw className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}</button>}
+    >
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+        <div className="space-y-3 lg:col-span-4">
+          <section className="fz-card" aria-label={t('Yangi bog‘lanish')}>
+            <div className="fz-card__head"><h2 className="fz-card__title inline-flex items-center gap-2"><Network size={16} />{t('Yangi bog‘lanish')}</h2></div>
+            <div className="space-y-3 p-5">
+              <OpsMaydon nom={t('Erkin yozilish (alias)')} majburiy izoh={t('AI ushbu yozuvni qidirganda kanonik kalitga o‘tkazadi.')}>
+                <input type="text" value={form.aliasNom} onChange={(e) => setForm((p) => ({ ...p, aliasNom: e.target.value }))} placeholder={t('Masalan: M-200 beton, sement M400')} className="font-mono" />
+              </OpsMaydon>
+              <OpsMaydon nom={t('Kanonik nom (kalit)')} majburiy izoh={t('Smeta yoki narxlash bazasidagi qat’iy nom/kod.')}>
+                <input type="text" value={form.kanonikNomKey} onChange={(e) => setForm((p) => ({ ...p, kanonikNomKey: e.target.value }))} placeholder={t('Masalan: M200')} className="font-semibold" />
+              </OpsMaydon>
+              <OpsMaydon nom={t('Kanonik birlik')}>
+                <input type="text" value={form.kanonikBirlikKey} onChange={(e) => setForm((p) => ({ ...p, kanonikBirlikKey: e.target.value }))} placeholder={t('m3, tn, kg (ixtiyoriy)')} />
+              </OpsMaydon>
+              <button type="button" onClick={() => void handleSaqlash()} disabled={qoshmoqda || !form.aliasNom || !form.kanonikNomKey} className="fz-btn fz-btn--primary w-full">
+                {qoshmoqda ? <RefreshCw className="animate-spin" /> : <Save />} {t('Bog‘lash')}
+              </button>
+            </div>
+          </section>
+          <section className="fz-note fz-note--info">
+            <Sparkles />
+            <span><b>{t('Global va lokal')}</b>{' — '}{t('kompaniya tanlanmagan bo‘lsa bog‘lanish global qoidaga aylanadi va barcha foydalanuvchilarga yordam beradi; kompaniya tanlangan bo‘lsa — faqat shu kompaniya uchun ishlaydi.')}</span>
+          </section>
         </div>
-        <button onClick={yukla} className="p-2 text-text-dim hover:text-white transition-colors bg-surface-2 rounded-lg border border-border">
-          <RefreshCw size={16} className={yuklanmoqda ? "animate-spin" : ""} />
-        </button>
-      </div>
 
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* YANGI QO'SHISH */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-surface border border-border rounded-xl shadow-xl p-5">
-              <h2 className="font-bold text-white mb-4 border-b border-border pb-2 flex items-center gap-2">
-                <Network size={16} className="text-amber-500" />
-                Yangi Bog'lanish
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-text-dim mb-1 uppercase tracking-wider">Erkin Yozilish (Alias) *</label>
-                  <input 
-                    type="text"
-                    value={form.aliasNom}
-                    onChange={e => setForm(p => ({...p, aliasNom: e.target.value}))}
-                    placeholder="Masalan: M-200 beton, sement M400"
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-amber-500 outline-none text-sm"
-                  />
-                  <p className="text-[10px] text-text-dim mt-1">AI ushbu yozuvni qidirganda kanonik kodga o'tkazadi.</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-text-dim mb-1 uppercase tracking-wider flex items-center justify-between">
-                    <span>Kanonik Nom (Key) *</span>
-                    <Sparkles size={12} className="text-amber-500" />
-                  </label>
-                  <input 
-                    type="text"
-                    value={form.kanonikNomKey}
-                    onChange={e => setForm(p => ({...p, kanonikNomKey: e.target.value}))}
-                    placeholder="Masalan: M200"
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-amber-500 outline-none text-sm font-bold tracking-wider"
-                  />
-                  <p className="text-[10px] text-text-dim mt-1">Smeta yoki Narxlash bazasidagi qat'iy nom/kod.</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-text-dim mb-1 uppercase tracking-wider">Kanonik Birlik</label>
-                  <input 
-                    type="text"
-                    value={form.kanonikBirlikKey}
-                    onChange={e => setForm(p => ({...p, kanonikBirlikKey: e.target.value}))}
-                    placeholder="m3, tn, kg (ixtiyoriy)"
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-amber-500 outline-none text-sm"
-                  />
-                </div>
-
-                <div className="pt-2 border-t border-border mt-2">
-                  <button 
-                    onClick={handleSaqlash}
-                    disabled={qoshmoqda || !form.aliasNom || !form.kanonikNomKey}
-                    className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:hover:bg-amber-500 text-black px-4 py-2.5 rounded-lg font-bold flex justify-center items-center gap-2 transition-colors shadow-lg shadow-amber-500/20 text-sm"
-                  >
-                    {qoshmoqda ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
-                    Bog'lash
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-              <h3 className="text-amber-500 font-bold text-sm flex items-center gap-2 mb-2">
-                <Sparkles size={16} />
-                Global va Lokal
-              </h3>
-              <p className="text-xs text-text leading-relaxed opacity-90">
-                Agar siz admin sifatida kirsangiz va hech qanday kompaniya tanlanmagan bo'lsa, bu <b>Global AI qoidasiga</b> aylanadi va barcha foydalanuvchilar qidiruviga yordam beradi. Agar kompaniya tanlangan bo'lsa, bu faqat sizning obyektlaringiz uchun ishlaydi.
-              </p>
-            </div>
+        <div className="lg:col-span-8">
+          <div className="mb-2 flex gap-2 text-[12px]">
+            <span className="fz-chip">{t('{n} ta bog‘lanish', { n: aliaslar.length })}</span>
+            <span className="fz-chip">{t('global: {n}', { n: global })}</span>
+            <span className="fz-chip fz-chip--accent">{t('lokal: {n}', { n: aliaslar.length - global })}</span>
           </div>
-
-          {/* JADVAL */}
-          <div className="lg:col-span-8">
-            <div className="bg-surface border border-border rounded-xl shadow-xl flex flex-col h-full min-h-[400px]">
-              <div className="p-0 overflow-x-auto rounded-xl">
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-surface-2 border-b border-border">
-                    <tr className="text-text-dim text-[11px] uppercase tracking-wider font-bold">
-                      <th className="px-5 py-4">Erkin Yozuv (Alias)</th>
-                      <th className="px-5 py-4">Kanonik Standart (Key)</th>
-                      <th className="px-5 py-4">Turi</th>
-                      <th className="px-5 py-4 text-right">Amallar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {aliaslar.length === 0 && !yuklanmoqda ? (
-                      <tr>
-                        <td colSpan={4} className="px-5 py-8 text-center text-text-dim">
-                          Hali hech qanday alias kiritilmagan.
+          <div className="fz-table-wrap">
+            <table className="fz-table whitespace-nowrap">
+              <thead><tr><th>{t('Erkin yozuv (alias)')}</th><th /><th>{t('Kanonik standart (kalit)')}</th><th>{t('Turi')}</th><th style={{ textAlign: 'right' }}>{t('Amallar')}</th></tr></thead>
+              <tbody>
+                {yuklanmoqda ? <tr><td colSpan={5}><div className="skel h-20 rounded" /></td></tr>
+                  : aliaslar.length === 0 ? <OpsBoshQator ustun={5} matn={t('Hali hech qanday alias kiritilmagan.')} />
+                    : aliaslar.map((a) => (
+                      <tr key={a.id} className="group">
+                        <td className="font-medium text-text">{a.alias_nom}</td>
+                        <td className="w-6 text-text-mute"><ArrowRight size={14} /></td>
+                        <td>
+                          <span className="fz-chip fz-chip--accent font-mono">{a.kanonik_nom_key}</span>
+                          {a.kanonik_birlik_key && <span className="ml-1.5 text-[11.5px] text-text-mute">/ {a.kanonik_birlik_key}</span>}
+                        </td>
+                        <td><span className={`fz-stamp ${a.kompaniya_id === null ? 'fz-stamp--info' : ''}`}>{a.kompaniya_id === null ? t('Global') : t('Lokal')}</span></td>
+                        <td className="text-right">
+                          <button type="button" onClick={() => void handleOchirish(a)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('O‘chirish')} aria-label={t('O‘chirish')}><Trash2 /></button>
                         </td>
                       </tr>
-                    ) : yuklanmoqda ? (
-                      <tr>
-                        <td colSpan={4} className="px-5 py-8 text-center text-text-dim animate-pulse">
-                          Yuklanmoqda...
-                        </td>
-                      </tr>
-                    ) : (
-                      aliaslar.map(a => (
-                        <tr key={a.id} className="hover:bg-bg/50 transition-colors group">
-                          <td className="px-5 py-3">
-                            <div className="font-bold text-white text-[13px]">{a.alias_nom}</div>
-                          </td>
-                          <td className="px-5 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[12px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded font-mono border border-amber-500/20">
-                                {a.kanonik_nom_key}
-                              </span>
-                              {a.kanonik_birlik_key && (
-                                <span className="text-[11px] text-text-dim">
-                                  / {a.kanonik_birlik_key}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-5 py-3">
-                            {a.kompaniya_id === null ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border border-border bg-surface-2 text-text">
-                                Global
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border border-indigo-500/30 bg-indigo-500/10 text-indigo-400">
-                                Lokal
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => handleOchirish(a.id)}
-                                className="p-1.5 text-text-dim hover:text-rose-400 bg-surface-2 hover:bg-rose-400/10 rounded transition-colors"
-                                title="O'chirish"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                    ))}
+              </tbody>
+            </table>
           </div>
-
         </div>
       </div>
-    </div>
+    </Sahifa>
   );
 }

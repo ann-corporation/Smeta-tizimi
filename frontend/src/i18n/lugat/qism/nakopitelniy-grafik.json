@@ -1,0 +1,12 @@
+{
+  "mlrd": { "ru": "млрд", "en": "bn" },
+  "mln": { "ru": "млн", "en": "M" },
+  "Nakopitelniy grafigi": { "ru": "График накопительной", "en": "Cumulative chart" },
+  "Oyma-oy tasdiqlangan F2 va jamlanma": { "ru": "Утверждённые Ф2 по месяцам и накопительно", "en": "Approved F2 by month and cumulative" },
+  "smetaning {p}% topshirildi · ustamasiz": { "ru": "сдано {p}% сметы · без накруток", "en": "{p}% of the estimate certified · without markups" },
+  "oy bo‘yicha F2": { "ru": "Ф2 за месяц", "en": "F2 per month" },
+  "jamlanma": { "ru": "накопительно", "en": "cumulative" },
+  "smeta = 100%": { "ru": "смета = 100%", "en": "estimate = 100%" },
+  "bajarilgan fakt": { "ru": "выполнено (факт)", "en": "completed (actual)" },
+  "summasi noma’lum qatorlar bor": { "ru": "есть строки без суммы", "en": "some lines have no amount" }
+}
