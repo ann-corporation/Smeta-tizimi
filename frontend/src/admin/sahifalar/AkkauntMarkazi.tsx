@@ -5,14 +5,15 @@
 import { useCallback, useRef, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Bell, Building2, CreditCard, LayoutGrid, Palette, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Building2, CreditCard, KeyRound, LayoutGrid, Palette, ShieldCheck, UserRound } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
 import {
-  BildirishnomaBolimi, HubBolimi, KompaniyalarBolimi, KorinishBolimi, ProfilBolimi, TarifBolimi, XavfsizlikBolimi,
+  BildirishnomaBolimi, HubBolimi, KirishBolimi, KompaniyalarBolimi, KorinishBolimi, ProfilBolimi, TarifBolimi, XavfsizlikBolimi,
 } from '../../components/akkaunt/Bolimlar';
 
 const BOLIMLAR = [
+  { id: 'kirish', nom: 'Kirish usullari', Ikon: KeyRound, Korinish: KirishBolimi },
   { id: 'profil', nom: 'Profil', Ikon: UserRound, Korinish: ProfilBolimi },
   { id: 'kompaniyalar', nom: 'Kompaniyalar va rollar', Ikon: Building2, Korinish: KompaniyalarBolimi },
   { id: 'xavfsizlik', nom: 'Xavfsizlik', Ikon: ShieldCheck, Korinish: XavfsizlikBolimi },
@@ -26,7 +27,7 @@ export default function AkkauntMarkazi() {
   const [qp, setQp] = useSearchParams();
   const kamaytir = useReducedMotion();
   const navRef = useRef<HTMLDivElement>(null);
-  const faol = BOLIMLAR.find((b) => b.id === qp.get('bolim')) ?? BOLIMLAR[0];
+  const faol = BOLIMLAR.find((b) => b.id === qp.get('bolim')) ?? BOLIMLAR.find((b) => b.id === 'profil') ?? BOLIMLAR[0];
   const tanla = useCallback((id: string) => setQp({ bolim: id }, { replace: true }), [setQp]);
 
   const klavish = (e: KeyboardEvent) => {

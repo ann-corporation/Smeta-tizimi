@@ -12,19 +12,23 @@ import { tizimdanChiq } from '../../umumiy/kontekst/chiqish';
 import { MavzuTanlagich } from '../../umumiy/ui/Mavzu';
 import { useSessiya } from '../../api/hooks';
 import { useMen } from '../../api/t2-men';
+import { RANG_RE, rangUstidaMatn, useProfil } from '../../api/profil';
 import { t } from '../../i18n/til';
 import { initsiallar, kompaniyaRollari, rolNomi } from './akkaunt-lib';
 import { zichlikOqi, zichlikQollash } from './korinish-sozlama';
 
-export function Avatar({ ism, rasm, olcham = 32 }: { ism: string; rasm?: string | null; olcham?: number }) {
+export function Avatar({ ism, rasm, rang, olcham = 32 }: { ism: string; rasm?: string | null; rang?: string | null; olcham?: number }) {
   const [xato, setXato] = useState(false);
   const stil = { width: olcham, height: olcham, fontSize: Math.round(olcham * 0.38) };
   if (rasm && !xato) {
     return <img src={rasm} alt="" referrerPolicy="no-referrer" onError={() => setXato(true)} className="rounded-full object-cover shrink-0" style={stil} />;
   }
+  const rangli = rang && RANG_RE.test(rang) ? rang : null;
   return (
-    <span aria-hidden="true" className="rounded-full inline-flex items-center justify-center font-semibold shrink-0 select-none"
-      style={{ ...stil, background: 'var(--accent-soft)', color: 'var(--accent-text)', border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)' }}>
+    <span aria-hidden="true" data-avatar-rang={rangli ?? undefined} className="rounded-full inline-flex items-center justify-center font-semibold shrink-0 select-none"
+      style={rangli
+        ? { ...stil, background: rangli, color: rangUstidaMatn(rangli), border: '1px solid color-mix(in srgb, #000 12%, transparent)' }
+        : { ...stil, background: 'var(--accent-soft)', color: 'var(--accent-text)', border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)' }}>
       {ism}
     </span>
   );
@@ -42,6 +46,7 @@ export function AkkauntTugmasi() {
   const k = useKompaniya();
   const men = useMen();
   const sess = useSessiya();
+  const profil = useProfil().data?.profil ?? null;
   const kamaytir = useReducedMotion();
   const [ochiq, setOchiq] = useState(false);
   const tugmaRef = useRef<HTMLButtonElement>(null);
@@ -51,8 +56,9 @@ export function AkkauntTugmasi() {
   useEffect(() => { zichlikQollash(zichlikOqi()); }, []);
 
   const email = k.foydalanuvchi?.email ?? sess.data?.email ?? null;
-  const ism = k.foydalanuvchi?.ism || k.foydalanuvchi?.login || email || '';
-  const bosh = initsiallar(k.foydalanuvchi?.ism, k.foydalanuvchi?.login, email);
+  const ism = profil?.ism || k.foydalanuvchi?.ism || k.foydalanuvchi?.login || email || '';
+  const bosh = initsiallar(profil?.ism || k.foydalanuvchi?.ism, k.foydalanuvchi?.login, email);
+  const avatarRang = profil?.avatar_rang ?? null;
 
   const rollar = useMemo(() => {
     const m = men.data;
@@ -118,7 +124,7 @@ export function AkkauntTugmasi() {
         onClick={() => setOchiq((v) => !v)}
         className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-1.5 py-1 hover:bg-[var(--surface-3)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--focus)] max-w-[300px]"
       >
-        <Avatar ism={bosh} />
+        <Avatar ism={bosh} rang={avatarRang} />
         <span className="hidden sm:flex flex-col items-start min-w-0 leading-tight">
           <span className="text-[12px] font-semibold text-text truncate max-w-[150px]">{nomKorinish}</span>
           <span className="flex items-center gap-1 min-w-0">
@@ -145,7 +151,7 @@ export function AkkauntTugmasi() {
             style={{ boxShadow: 'var(--shadow-pop, 0 12px 32px rgba(0,0,0,.35))' }}
           >
             <div className="flex items-center gap-3 p-3 border-b border-[var(--border)]">
-              <Avatar ism={bosh} olcham={40} />
+              <Avatar ism={bosh} rang={avatarRang} olcham={40} />
               <div className="min-w-0">
                 <div className="text-[13px] font-semibold text-text truncate">{nomKorinish}</div>
                 <div className="text-[12px] text-text-dim truncate">{email ?? '—'}</div>

@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Briefcase, Building2, Calculator, Crown, FileStack, FileText, FlaskConical, Gauge, HardHat, KeyRound, LayoutDashboard,
-  Link2, Map as MapIkon, Search, Settings, ShieldAlert, ShieldCheck, Tags, Trash2, Users, Clock, Info,
+  Briefcase, Building2, Calculator, Crown, FileStack, FileText, FlaskConical, Gauge, HardHat, LayoutDashboard,
+  Link2, Map as MapIkon, Search, Settings, ShieldAlert, ShieldCheck, Tags, Trash2, Users, Info,
 } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { useMen, useKompaniyaRoyxatlar } from '../../api/t2-men';
@@ -19,6 +19,12 @@ import { TilTanlagich } from '../../i18n/TilTanlagich';
 import { MavzuTanlagich } from '../../umumiy/ui/Mavzu';
 import { t } from '../../i18n/til';
 import { PERMISSION_LABELS } from '../../lib/company-authorization/permission-labels';
+import { topshiriqlarOl } from '../../api/t2-topshiriq';
+import { SERVER_YANGILANMAGAN, ProfilXatosi, useProfil, xatoMatn } from '../../api/profil';
+import { ProfilForma } from './ProfilForma';
+import { BirlashtirKarta } from './BirlashtirKarta';
+import { GoogleKarta, ParolForma, SessiyaKarta } from './XavfsizlikKartalar';
+import { Karta, Nota, Qator, Skelet, Tezorada, XatoQayta } from './AkkauntUi';
 import { Avatar } from './AkkauntTugmasi';
 import {
   HUB_BANDLAR, HUB_GURUH_NOMI, hubFiltr, hubGuruhla, initsiallar, kompaniyaRollari, rolNomi, sessiyaTugashi, sonYoki,
@@ -32,33 +38,6 @@ function ruxsatNomi(kod: string): string {
 }
 
 /* ───────── umumiy bo‘laklar ───────── */
-function Karta({ sarlavha, tavsif, children }: { sarlavha: string; tavsif?: string; children: ReactNode }) {
-  return (
-    <section className="fz-card">
-      <header className="px-4 pt-4 pb-2">
-        <h3 className="text-[14px] font-semibold text-text m-0">{t(sarlavha)}</h3>
-        {tavsif && <p className="text-[12px] text-text-dim mt-1 mb-0">{t(tavsif)}</p>}
-      </header>
-      <div className="px-4 pb-4 flex flex-col gap-3">{children}</div>
-    </section>
-  );
-}
-function Qator({ yorliq, qiymat }: { yorliq: string; qiymat: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] last:border-0 py-2">
-      <span className="text-[12px] text-text-dim shrink-0">{t(yorliq)}</span>
-      <span className="text-[13px] text-text text-right min-w-0 break-words">{qiymat}</span>
-    </div>
-  );
-}
-function Tezorada({ matn }: { matn: string }) {
-  return (
-    <div className="flex items-start gap-2 rounded-md border border-dashed border-[var(--border-strong)] p-3 text-[12px] text-text-dim">
-      <Clock size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-      <span><b className="text-text">{t('Tez orada')}</b> — {t(matn)}</span>
-    </div>
-  );
-}
 function Kpi({ yorliq, qiymat, izoh }: { yorliq: string; qiymat: string; izoh?: string }) {
   return (
     <div className="fz-kpi fz-card p-3">
@@ -78,31 +57,62 @@ function useAkkaunt() {
 }
 
 /* ───────── Profil ───────── */
+/** Profil so‘rovi holatlari: yuklanmoqda (skelet) / xato (qayta urinish) / 404 (server yangilanmagan) / tayyor. */
+function ProfilKutish({ q, children }: { q: ReturnType<typeof useProfil>; children: (p: NonNullable<typeof q.data>) => ReactNode }) {
+  if (q.isLoading) return <Skelet qatorlar={4} />;
+  if (q.data) return <>{children(q.data)}</>;
+  return null;
+}
+function yangilanmagan(q: ReturnType<typeof useProfil>): boolean {
+  return q.error instanceof ProfilXatosi && q.error.code === SERVER_YANGILANMAGAN;
+}
+function ProfilXatoNota({ q }: { q: ReturnType<typeof useProfil> }) {
+  if (!q.isError) return null;
+  if (yangilanmagan(q)) return <Nota tur="warn"><b>{t('Server yangilanmagan')}</b> — {t('profil API hali yoqilmagan, shuning uchun tahrirlash vaqtincha o‘chirilgan. Quyida mavjud ma‘lumotlar faqat o‘qiladi.')}</Nota>;
+  const kod = q.error instanceof ProfilXatosi ? q.error.code : 'NOMA_LUM';
+  return <XatoQayta matn={xatoMatn(kod)} onQayta={() => { void q.refetch(); }} />;
+}
+
 export function ProfilBolimi() {
   const { k, email, bosh } = useAkkaunt();
+  const q = useProfil();
   const f = k.foydalanuvchi;
   return (
     <div className="flex flex-col gap-4">
-      <Karta sarlavha="Profil" tavsif="Akkaunt ma‘lumotlari. Tahrirlash uchun alohida server amali hali yo‘q — shu sabab maydonlar faqat o‘qiladi.">
-        <div className="flex items-center gap-3">
-          <Avatar ism={bosh} olcham={56} />
-          <div className="min-w-0">
-            <div className="text-[15px] font-semibold text-text truncate">{f?.ism || f?.login || '—'}</div>
-            <div className="text-[12px] text-text-dim truncate">{email ?? '—'}</div>
+      {q.isError && <ProfilXatoNota q={q} />}
+      <ProfilKutish q={q}>{(d) => <ProfilForma key={d.profil.id} profil={d.profil} />}</ProfilKutish>
+      {q.isError && (
+        <Karta sarlavha="Profil" tavsif="Hozirgi ma‘lumotlar (faqat o‘qiladi).">
+          <div className="flex items-center gap-3">
+            <Avatar ism={bosh} olcham={56} />
+            <div className="min-w-0">
+              <div className="text-[15px] font-semibold text-text truncate">{f?.ism || f?.login || '—'}</div>
+              <div className="text-[12px] text-text-dim truncate">{email ?? '—'}</div>
+            </div>
           </div>
-        </div>
-        <div>
-          <Qator yorliq="Ism" qiymat={f?.ism || '—'} />
-          <Qator yorliq="Login" qiymat={f?.login || '—'} />
-          <Qator yorliq="Elektron pochta" qiymat={email ?? '—'} />
-          <Qator yorliq="Telefon" qiymat="—" />
-          <Qator yorliq="Holat" qiymat={f?.holat || '—'} />
-        </div>
-        <Tezorada matn="Ism, telefon va rasmni o‘zgartirish hamda Google rasmini ulash — akkaunt profili serveri tayyor bo‘lgach." />
-      </Karta>
-      <Karta sarlavha="Til" tavsif="Interfeys tili brauzerda saqlanadi.">
+          <div>
+            <Qator yorliq="Ism" qiymat={f?.ism || '—'} />
+            <Qator yorliq="Login" qiymat={f?.login || '—'} />
+            <Qator yorliq="Elektron pochta" qiymat={email ?? '—'} />
+            <Qator yorliq="Telefon" qiymat="—" />
+            <Qator yorliq="Holat" qiymat={f?.holat || '—'} />
+          </div>
+        </Karta>
+      )}
+      <Karta sarlavha="Til" tavsif="Interfeys tili brauzerda saqlanadi; profildagi til saqlanganda u ham almashadi.">
         <TilTanlagich />
       </Karta>
+    </div>
+  );
+}
+
+/* ───────── Kirish usullari (bitta hisob) ───────── */
+export function KirishBolimi() {
+  const q = useProfil();
+  return (
+    <div className="flex flex-col gap-4">
+      <ProfilXatoNota q={q} />
+      <ProfilKutish q={q}>{(d) => <BirlashtirKarta profil={d.profil} />}</ProfilKutish>
     </div>
   );
 }
@@ -129,8 +139,8 @@ export function KompaniyalarBolimi() {
   });
   const mening = (roy.data?.royxatlar ?? []).filter((r) => r.holat === 'kutilmoqda');
 
-  if (men.isLoading) return <p className="text-[13px] text-text-dim">{t('Yuklanmoqda…')}</p>;
-  if (men.isError) return <p role="alert" className="text-[13px] text-[var(--danger)]">{t('Kompaniya ma‘lumotini o‘qib bo‘lmadi.')}</p>;
+  if (men.isLoading) return <Skelet qatorlar={4} />;
+  if (men.isError) return <XatoQayta matn={t('Kompaniya ma‘lumotini o‘qib bo‘lmadi.')} onQayta={() => { void men.refetch(); }} />;
 
   return (
     <div className="flex flex-col gap-4">
@@ -185,28 +195,87 @@ export function KompaniyalarBolimi() {
 /* ───────── Xavfsizlik ───────── */
 export function XavfsizlikBolimi() {
   const { sess, email } = useAkkaunt();
-  const tugash = sessiyaTugashi(sess.data?.tugaydi);
+  const q = useProfil();
+  if (q.isError) {
+    // Server yangilanmagan yoki xato: mavjud faqat-o‘qish ma‘lumotlar bilan.
+    const tugash = sessiyaTugashi(sess.data?.tugaydi);
+    return (
+      <div className="flex flex-col gap-4">
+        <ProfilXatoNota q={q} />
+        <Karta sarlavha="Joriy sessiya" tavsif="Sessiya serverda HttpOnly cookie sifatida saqlanadi.">
+          <Qator yorliq="Hisob" qiymat={email ?? '—'} />
+          <Qator yorliq="Sessiya tugashi" qiymat={tugash ? tugash.toLocaleString() : '—'} />
+        </Karta>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-4">
-      <Karta sarlavha="Joriy sessiya" tavsif="Sessiya serverda HttpOnly cookie sifatida saqlanadi.">
-        <Qator yorliq="Hisob" qiymat={email ?? '—'} />
-        <Qator yorliq="Sessiya tugashi" qiymat={tugash ? tugash.toLocaleString() : '—'} />
-        <Qator yorliq="Boshqa qurilmalardagi sessiyalar" qiymat="—" />
-      </Karta>
-      <Karta sarlavha="Parol va Google">
-        <Tezorada matn="Parolni o‘zgartirish, faol sessiyalar ro‘yxati va Google akkauntini ulash/uzish — server amallari tayyor bo‘lgach. Hozir Google orqali kirish kirish sahifasida ishlaydi." />
-        <div className="flex items-center gap-2 text-[12px] text-text-dim"><KeyRound size={14} aria-hidden="true" />{t('Parolni kompaniya rahbari a‘zolar bo‘limidan belgilashi mumkin.')}</div>
-      </Karta>
+      <ProfilKutish q={q}>
+        {(d) => (
+          <>
+            <ParolForma key={String(d.profil.parol_bor)} parolBor={d.profil.parol_bor} parolYangilandi={d.profil.parol_yangilandi} />
+            <SessiyaKarta sessiya={d.sessiya} />
+            <GoogleKarta profil={d.profil} />
+          </>
+        )}
+      </ProfilKutish>
     </div>
   );
 }
 
 /* ───────── Bildirishnomalar ───────── */
+const TOPSHIRIQ_TUR_NOMI: Readonly<Record<string, string>> = { ish: 'Ish', tasdiq: 'Tasdiq', hujjat: 'Hujjat', tekshiruv: 'Tekshiruv' };
+const YOPIQ_HOLATLAR = ['tasdiqlandi', 'bekor', 'rad'];
+
 export function BildirishnomaBolimi() {
+  const { k } = useAkkaunt();
+  const id = k.joriyId;
+  const q = useQuery({
+    queryKey: ['akkaunt-topshiriq-menga', id],
+    queryFn: async () => { const r = await topshiriqlarOl(id as number, 'menga'); if (!r.ok) throw new Error(r.error); return r.qatorlar; },
+    enabled: !!id, staleTime: 30_000,
+  });
+  const qatorlar = q.data ?? null;
+  const ochiq = qatorlar ? qatorlar.filter((x) => !YOPIQ_HOLATLAR.includes(x.holat)) : null;
+  const yangi = qatorlar ? qatorlar.filter((x) => x.holat === 'berildi').length : null;
+  const jarayonda = qatorlar ? qatorlar.filter((x) => x.holat === 'bajarilmoqda').length : null;
+  const turlar = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const x of ochiq ?? []) m.set(x.tur, (m.get(x.tur) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [ochiq]);
+
   return (
-    <Karta sarlavha="Bildirishnomalar" tavsif="Qaysi hodisa haqida qanday xabar olishingizni shu yerda tanlaysiz.">
-      <Tezorada matn="Bildirishnoma sozlamalari uchun server API hali yaratilmagan; soxta tugmalar ko‘rsatilmaydi." />
-    </Karta>
+    <div className="flex flex-col gap-4">
+      <Karta sarlavha="Sizdan kutilmoqda" tavsif="Ilova ichidagi kirish qutingiz: sizga berilgan topshiriqlar (joriy kompaniya).">
+        {!id && <p className="text-[13px] text-text-dim m-0">{t('Avval kompaniyani tanlang.')}</p>}
+        {!!id && q.isLoading && <Skelet qatorlar={2} />}
+        {!!id && q.isError && <XatoQayta matn={t('Topshiriqlarni o‘qib bo‘lmadi.')} onQayta={() => { void q.refetch(); }} />}
+        {!!id && q.data && (
+          <>
+            <div className="fz-kpis">
+              <Kpi yorliq="Faol topshiriqlar" qiymat={sonYoki(ochiq ? ochiq.length : null)} />
+              <Kpi yorliq="Yangi (qabul kutilmoqda)" qiymat={sonYoki(yangi)} />
+              <Kpi yorliq="Bajarilmoqda" qiymat={sonYoki(jarayonda)} />
+            </div>
+            {ochiq && ochiq.length === 0 && <p className="text-[13px] text-text-dim m-0">{t('Hozir sizdan hech narsa kutilmayapti.')}</p>}
+            {turlar.length > 0 && (
+              <div className="flex flex-wrap gap-1" aria-label={t('Turlar bo‘yicha')}>
+                {turlar.map(([tur, n]) => <span key={tur} className="fz-chip">{TOPSHIRIQ_TUR_NOMI[tur] ? t(TOPSHIRIQ_TUR_NOMI[tur]) : tur}: {sonYoki(n)}</span>)}
+              </div>
+            )}
+          </>
+        )}
+        <Link to="/admin/topshiriqlar" className="fz-btn fz-btn--sm self-start">{t('Barcha topshiriqlarni ochish')}</Link>
+      </Karta>
+      <Karta sarlavha="Kanallar" tavsif="Xabarlar qaysi kanal orqali keladi.">
+        <Qator yorliq="Ilova ichida" qiymat={<span className="fz-chip fz-chip--accent">{t('Faol')}</span>} />
+        <Qator yorliq="Telegram" qiymat={<span className="fz-chip">{t('Ulanmagan')}</span>} />
+        <Qator yorliq="Elektron pochta" qiymat={<span className="fz-chip">{t('Ulanmagan')}</span>} />
+        <Nota tur="info">{t('Telegram va elektron pochta orqali xabar yuborish hali ulanmagan, shuning uchun sozlama tugmalari ko‘rsatilmaydi.')}</Nota>
+      </Karta>
+    </div>
   );
 }
 

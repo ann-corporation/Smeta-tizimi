@@ -35,16 +35,19 @@ export function originRuxsatmi(joriy: string, originlar: readonly string[]): boo
 
 export type GoogleNatija = { ok: true; rol: string; yangi: boolean; demo: boolean } | { ok: false; xato: string };
 
-export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
-  matn: 'signin_with' | 'signup_with';
-  onNatija: (n: GoogleNatija) => void;
+export default function GoogleKirish({ matn, onNatija, onBoshlandi, onCredential }: {
+  matn: 'signin_with' | 'signup_with' | 'continue_with';
+  onNatija?: (n: GoogleNatija) => void;
   onBoshlandi?: () => void;
+  /** «Ulash» rejimi (akkaunt markazi): ID token bilan KIRILMAYDI — credential shu funksiyaga beriladi (masalan `google_ulash`). */
+  onCredential?: (credential: string) => unknown;
 }) {
   const joy = useRef<HTMLDivElement>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   /** Ruxsat etilmagan manzil (preview deploy, boshqa domen): Google tugmasi o'rniga asosiy manzilga o'tish. */
   const [asosiy, setAsosiy] = useState<string | null>(null);
-  const natijaRef = useRef(onNatija); natijaRef.current = onNatija;
+  const natijaRef = useRef<(n: GoogleNatija) => void>(() => undefined); natijaRef.current = onNatija ?? (() => undefined);
+  const credRef = useRef(onCredential); credRef.current = onCredential;
   const boshRef = useRef(onBoshlandi); boshRef.current = onBoshlandi;
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
         callback: async ({ credential }) => {
           if (!credential) { natijaRef.current({ ok: false, xato: 'Google javob bermadi' }); return; }
           boshRef.current?.();
+          if (credRef.current) { await credRef.current(credential); return; }
           try {
             const r = await fetch('/api/kirish-google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }) });
             const d = await r.json();
@@ -97,9 +101,11 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi }: {
     <div className="flex flex-col gap-3">
       {/* colorScheme: 'normal' — qorong'i sahifada Google iframe'i atrofidagi oq fon chiqmasligi uchun. */}
       <div ref={joy} className="w-full flex justify-center min-h-[44px]" style={{ colorScheme: 'normal' }} data-testid="google-kirish" />
-      <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-text-mute">
-        <span className="h-px flex-1 bg-border" />{t('yoki')}<span className="h-px flex-1 bg-border" />
-      </div>
+      {!onCredential && (
+        <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-text-mute">
+          <span className="h-px flex-1 bg-border" />{t('yoki')}<span className="h-px flex-1 bg-border" />
+        </div>
+      )}
     </div>
   );
 }

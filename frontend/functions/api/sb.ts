@@ -30,7 +30,7 @@ import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
-import { roleAuthority } from '../_shared/role-authority';
+import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
 import { otaKeshOl, otaKeshYoz } from '../_shared/ota-kesh';
 
@@ -172,7 +172,9 @@ export const onRequestPost: PagesFunction<{
       });
     }
 
+    const tekshirilgan = sess;
     sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
+    if (!sess && sessiyaYaroqsizmi(tekshirilgan)) return yaroqsizSessiyaJavob();
     if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE', error: 'Joriy ruxsatlarni tekshirib bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
 
     const so = await ctx.request.json<{
