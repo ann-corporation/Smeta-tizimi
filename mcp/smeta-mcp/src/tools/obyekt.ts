@@ -29,7 +29,8 @@ export const obyektlar = tool({
 function juftlar(b: BolimSumma | undefined, u: Ustama) {
   if (!b) return null;
   const j = (k: BolimSumma['smeta']) => summaJuft(k.ustamasiz ?? kesimJami(k.kesim), u.hisobla(k.kesim));
-  return { smeta: j(b.smeta), f2: j(b.f2), fakt: j(b.fakt), qoldiq: j(b.qoldiq) };
+  // qoshimcha — qo'shimcha/zamena ishlar smetasi («smeta» ga kirmaydi; Nakopitelniy smeta = smeta + qoshimcha).
+  return { smeta: j(b.smeta), qoshimcha: b.qoshimcha ? j(b.qoshimcha) : null, f2: j(b.f2), fakt: j(b.fakt), qoldiq: j(b.qoldiq) };
 }
 
 export const obyektHolat = tool({
