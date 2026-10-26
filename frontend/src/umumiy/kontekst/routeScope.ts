@@ -15,22 +15,22 @@
  * <KompaniyaKerak/> professional bo'sh holatini ko'rsatadi — xom xato EMAS.
  * GLOBAL marshrutlar hech qachon bu qo'riqchini ko'rsatmaydi.
  */
+import { NAV_SAHIFALAR } from '../../lib/nav/navReestr';
+
 export type RouteScope = 'GLOBAL' | 'COMPANY_SCOPED' | 'PROJECT_SCOPED' | 'OBJECT_SCOPED' | 'USER_SCOPED' | 'LEGACY';
+
+/* 2026-10-26 (tizim xaritasi S1): menyudagi sahifalarning kontekst sinfi — yagona navigatsiya reestridan
+ * (lib/nav/navReestr.ts `scope`). Bu yerda faqat menyuda YO'Q yo'llar qoladi (kirish, eski /admin/test/*).
+ * Natijaviy xarita avvalgisi bilan aynan bir xil (navFiltr.test.ts) — RuxsatGuard xulqi o'zgarmagan.
+ *   /admin/kompaniya — identity + a'zoliklar + registry (t2_men_v1)
+ *   /admin/system-control — kompaniya_id yo'q → t2_system_control_global_v1 (platforma roli); bor → t2_system_control_v1 */
+const MENYUDAN = Object.fromEntries(NAV_SAHIFALAR.flatMap((s) => (s.scope ? [[s.yol, s.scope]] : []))) as Record<string, RouteScope>;
 
 export const ROUTE_SCOPE: Record<string, RouteScope> = {
   '/': 'USER_SCOPED',
+  ...MENYUDAN,
 
-  // GLOBAL — kompaniya tanlamasdan ishlaydi
-  '/admin/kompaniya': 'GLOBAL',                 // identity + a'zoliklar + registry (t2_men_v1)
-  '/admin/system-control': 'GLOBAL',            // T2-COMPANY-CONTROL-CLOSEOUT: split done — no kompaniya_id -> t2_system_control_global_v1 (platform-role gated); kompaniya_id present -> unchanged company-scoped t2_system_control_v1
-
-  // COMPANY_SCOPED
-  '/admin/dashboard': 'COMPANY_SCOPED',
-  '/admin/documents': 'COMPANY_SCOPED',
-  '/admin/loyiha': 'COMPANY_SCOPED',
-  '/admin/obyektlar': 'COMPANY_SCOPED',
-  '/admin/f2-reestr': 'COMPANY_SCOPED',
-  '/admin/mindmap': 'COMPANY_SCOPED',
+  // COMPANY_SCOPED (eski SINOV qobig'i)
   '/admin/test/portfel': 'COMPANY_SCOPED',
   '/admin/test/moliya': 'COMPANY_SCOPED',
   '/admin/test/logistika': 'COMPANY_SCOPED',
@@ -43,20 +43,9 @@ export const ROUTE_SCOPE: Record<string, RouteScope> = {
   '/admin/test/sozlama': 'COMPANY_SCOPED',
 
   // PROJECT_SCOPED
-  '/admin/participants': 'PROJECT_SCOPED',
   '/admin/test/aosr': 'PROJECT_SCOPED',
 
   // OBJECT_SCOPED
-  '/admin/holat': 'OBJECT_SCOPED',
-  '/admin/f2': 'OBJECT_SCOPED',
-  '/admin/f2-tayyorlash': 'OBJECT_SCOPED',
-  '/admin/f2-tarix': 'OBJECT_SCOPED',
-  '/admin/fakt': 'OBJECT_SCOPED',
-  '/admin/nakopitelniy': 'OBJECT_SCOPED',
-  '/admin/narxlar': 'OBJECT_SCOPED',
-  '/admin/smeta-narxlash': 'OBJECT_SCOPED',
-  '/admin/hujjat-nazorat': 'OBJECT_SCOPED',
-  '/admin/storage': 'OBJECT_SCOPED',
   '/admin/test/obyektlar': 'OBJECT_SCOPED',
   '/admin/test/saqlash': 'OBJECT_SCOPED',
 };
