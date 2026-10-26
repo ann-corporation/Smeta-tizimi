@@ -19,7 +19,9 @@ import type { AktNode } from '../../lib/f2-match-engine';
 import { varaqniTahlilQil } from '../../lib/smeta-anatomiya/varaq';
 import { hamrohDaraxti, hamrohTanlovniYig, lrvDaraxti, ustunSozlamasi, ustunXaritasigaQayt, varaqRoli, type HamrohTanlovKalitlari } from '../../lib/smeta-anatomiya/yuklash';
 import { kitobHamrohlari } from '../../lib/smeta-anatomiya';
-import type { Katak } from '../../lib/smeta-anatomiya/turlar';
+import { nakrutkaPodvaliniOqi, nakrutkaVaraqlari } from '../../lib/smeta-anatomiya/nakrutka';
+import { SmetaPodvalNakrutka } from './SmetaPodvalNakrutka';
+import type { Katak, KirishKitob } from '../../lib/smeta-anatomiya/turlar';
 import { HamrohVaraqlarPaneli } from './HamrohVaraqlarPaneli';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from '../../lib/res-kategoriya';
@@ -1828,16 +1830,27 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
 
   /* Import oldidan hujjat anatomiyasi: import aynan shu daraxtni quradi — bu yerda faqat o'qiladi, hech narsa yozilmaydi. */
   /** Hamroh natijalar (svod qatorlari, tn·km, perevozka RES, «tushunilmadi» darvozasi) — yagona anatomiya yadrosidan. */
-  const hamroh = useMemo(() => {
+  const anatKitob = useMemo<KirishKitob | null>(() => {
     if (!book) return null;
-    try {
-      const varaqlar = book.sheets.flatMap((s) => {
-        const sheet = book.sheet(s.name);
-        return sheet ? [{ nom: s.name, rows: sheet.rows as Katak[][], merges: sheet.merges, formulalar: sheet.formulalar }] : [];
-      });
-      return kitobHamrohlari({ fayl: rawFile.current?.name ?? 'fayl', varaqlar });
-    } catch { return null; }
+    const varaqlar = book.sheets.flatMap((s) => {
+      const sheet = book.sheet(s.name);
+      return sheet ? [{ nom: s.name, rows: sheet.rows as Katak[][], merges: sheet.merges, formulalar: sheet.formulalar }] : [];
+    });
+    return { fayl: rawFile.current?.name ?? 'fayl', varaqlar };
   }, [book]);
+  const hamroh = useMemo(() => {
+    if (!anatKitob) return null;
+    try { return kitobHamrohlari(anatKitob); } catch { return null; }
+  }, [anatKitob]);
+  /** Smeta podvalidan nakrutka (egasi 2026-10-26): svod o'qigan varaqlar, bo'lmasa operator tanlagan LRV/RES. Faqat o'qish. */
+  const nakrutkaOqish = useMemo(() => {
+    if (!anatKitob || !hamroh) return null;
+    try {
+      const tegli = Object.entries(varaqTeglari).filter(([, x]) => x === 'lrv' || x === 'res').map(([n]) => n);
+      if (!tegli.length && sheetName) tegli.push(sheetName);
+      return nakrutkaPodvaliniOqi(anatKitob, { varaqlar: nakrutkaVaraqlari(anatKitob, { varaqlar: hamroh.varaqlar, asosiyLrv: null, dublikat: [] }, tegli) });
+    } catch { return null; }
+  }, [anatKitob, hamroh, varaqTeglari, sheetName]);
 
   const tahlil = useMemo(() => {
     if (!book || !cols || result) return null;
@@ -2014,6 +2027,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       )}
       {book && !result && hamroh && (
         <HamrohVaraqlarPaneli erkin={hamroh.erkin} svod={hamroh.svod} tushunilmadi={hamroh.tushunilmadi} tanlov={hamrohTanlov} onTanlov={setHamrohTanlov} />
+      )}
+      {objectId && (book ? nakrutkaOqish : alreadyHasSmeta) && (
+        <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name} />
       )}
       {book && cols && !result && (
         <>

@@ -36,6 +36,8 @@ export const NAKRUTKA_KOEF_IZOH: Record<NakrutkaKoefKod, string> = {
 };
 
 export type NakrutkaKoeffitsientlar = Record<NakrutkaKoefKod, number>;
+/** Amaldagi koeffitsientlar qaysi qatlamdan: smeta podvali (obyekt) → shartnoma → kompaniya → sukut. */
+export type NakrutkaManba = 'smeta_podvali' | 'shartnoma' | 'kompaniya' | 'sukut';
 export type NakrutkaKategoriyaJadval = Record<'ЧЕЛ' | 'МАШ' | 'МАТ' | 'ОБ' | 'М/К' | 'КАБ' | 'БЕЗСКЛАД', number>;
 export type NakrutkaKaskad = {
   pryamye: number; chel: number; mash: number; mat: number; ob: number; kab: number;
@@ -80,11 +82,14 @@ export async function t2ObyektNakrutka(obyektId: number, shartnomaId?: number | 
   ok: boolean; code?: string; error?: string; obyekt_id?: number; shartnoma_id?: number | null;
   cats?: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
   koeffitsientlar?: NakrutkaKoeffitsientlar; nakrutka?: NakrutkaKaskad; jadval?: NakrutkaKategoriyaJadval;
+  /** Koeffitsient manbai (migratsiya 20261113420000): smeta podvali / shartnoma / kompaniya / sukut. Eski server — yo'q. */
+  nk_manba?: NakrutkaManba; nakrutka_podval_id?: number | null;
 }> {
   const r = await soroOqi<{
     ok: boolean; code?: string; obyekt_id: number; shartnoma_id: number | null;
     cats: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
     koeffitsientlar: NakrutkaKoeffitsientlar; nakrutka: NakrutkaKaskad; jadval: NakrutkaKategoriyaJadval;
+    nk_manba?: NakrutkaManba; nakrutka_podval_id?: number | null;
   }>({ soro: 'obyekt_nakrutka_v1', obyekt_id: obyektId, shartnoma_id: shartnomaId ?? undefined });
   if (!r.ok || !r.natija || r.natija.ok !== true) {
     return { ok: false, error: r.error || r.natija?.code || 'Nakrutka hisoblanmadi', code: r.natija?.code };
