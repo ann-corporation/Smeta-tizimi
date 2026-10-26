@@ -1,0 +1,76 @@
+{
+  "observed_date": "2026-10-26",
+  "qa_runtime_edited": false,
+  "production_writer_called": false,
+  "fakt143": {
+    "sha": "7acb69f70b349c97d73d473e7e3717ce6e64a724",
+    "independent_pass": 5,
+    "regression_pass": 32,
+    "main_merge": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9"
+  },
+  "fakt144": {
+    "sha": "c5965290d4a76c5929734b4919c82c91d258c311",
+    "independent_pass": 5,
+    "regression_pass": 37
+  },
+  "marker154": {
+    "sha": "17f3f1f2c6cee451cfc476336e486a7c7b20175a",
+    "independent_pass": 2,
+    "regression_pass": 13,
+    "scope": "section/mixed marker/default no reduction/explicit correction"
+  },
+  "mcp155": {
+    "sha": "17703bbbf2a4db9b2fa5008de5cc555a913419d4",
+    "independent_pass": 7,
+    "regression_pass": 43,
+    "regression_skip": 1,
+    "typecheck": "PASS",
+    "build": "PASS",
+    "stdio_tools": 22,
+    "live_database_integration": false
+  },
+  "design150": {
+    "sha": "1e418514ee44d30e2d89df4e162b183e06545bb8",
+    "independent_pass": 3,
+    "helper_i18n_pass": 9,
+    "full_suite_sha": "115dad890bb735a917fd8da85655c69c1c4f4b29",
+    "full_suite_pass": 3429,
+    "full_suite_skip": 20,
+    "normal_gates": "app/functions TS,oxlint,site-map,build PASS; tekshir PASS after sparse materialization",
+    "governance": "FAIL existing ownership overlaps"
+  },
+  "sidebar153": {
+    "sha": "27ebb87e90d6f0ca5acd64c59913e3a79ec985f7",
+    "regression_files": 4,
+    "regression_pass": 45,
+    "page_guard_body_changed": false
+  },
+  "integration_conflicts": [
+    "frontend/src/App.tsx",
+    "frontend/src/admin/AdminShell.tsx",
+    "frontend/src/admin/sahifalar/FaktJurnal.tsx",
+    "frontend/src/lib/sayt-xaritasi/generated.ts"
+  ],
+  "architecture": {
+    "pr": 156,
+    "sha": "32de9cda",
+    "source": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9",
+    "tables": 207,
+    "public_routines": 578,
+    "current": 180,
+    "compat": 2,
+    "backup": 14,
+    "temp": 1,
+    "unclassified": 10,
+    "unresolved_module_owner": 1
+  },
+  "current_main_checks": {
+    "sha": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9",
+    "frontend": "success",
+    "mcp": "success",
+    "cloudflare_pages": "success",
+    "run": 40277714005,
+    "deployment": "3f8cada6-86dc-45a4-81eb-24f0e3c1dc7a",
+    "authenticated_smoke": false
+  }
+}

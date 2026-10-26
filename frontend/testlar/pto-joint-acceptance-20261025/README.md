@@ -61,3 +61,11 @@ Synthetic scope компании уникален на каждый Qamrov scena
 PR143a634072b: independent5PASS, author regressions32PASS — JQA04/08/09 закрыты. Main69db8d45: bugalter UI/default role gap JQA10 закрыт компонентно6PASS и SELECT default capabilities; custom grants остаются отдельной политикой.
 
 MCP на69db8d45: `npx vitest run --config testlar/pto-joint-acceptance-20261025/mcp.config.ts` → 1controlPASS/1OPEN FAIL (MCP-QA01 dry_run COMMIT escape). Это fake-pool transaction ledger с настоящим dispatcher, без сети/ключей; не PostgreSQL integration. Исправление у MCP автора, не в этом QA lane. Файл candidate специально исключён из обычной test discovery.
+
+## Итог26.10 — mailbox07 / receipt-20261026-final.json
+
+Исторические OPEN FAIL выше не являются текущим verdict исправленных candidates. На exact requested sources: Fakt143/144 independent5PASS; marker154 strengthened section/mixed2PASS (completion.config.ts); MCP1557PASS (mcp.config.ts, pg.Client protocol model, no sockets); design150NULL fix3PASS (design.config.ts); sidebar15345PASS. Ordinary design115dad89 full3429PASS/20skip — отдельный source. Normal legacy pereraschetJQA01/02 остаются открыты; общий config.ts на baseline всё ещё намеренно красный. Только completion.config.ts изолирует исправленныйJQA03.
+
+mcp-stdio-smoke.mjs запускается `node testlar/pto-joint-acceptance-20261025/mcp-stdio-smoke.mjs <repo-root>` после build MCP. Child env allowlisted, SMETA_DB_URL empty; проверка22tools и missing-DB error не вызывает writer. Fixture transaction ledger не заменяет PostgreSQL integration/restore acceptance.
+
+Design/sidebar имеют реальные merge conflicts и design ownership gateFAIL — детали mailbox07. Full production/owner acceptance не заявлена. Runtime исправляют прежние авторы; QA файлы не заменяют их тесты и не входят в обычную discovery.
