@@ -9,6 +9,7 @@ import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package
 import { PRICE_STATE_BADGE, type PriceControlLine } from '../../api/t2-price-control';
 import { NARX_MUHR } from './narx-muhr';
 import { QatorTahrirModal } from '../ui/QatorTahrirModal';
+import { muhrBelgisi, muhrJuftlar, muhrManbaMatn, MUHR_MAYDON_NOMI, jurnalsiz, type QatorMuhrFarq } from '../../lib/qator-muhr/farq';
 
 interface SmetaTreeProps {
   data: TreeNode[];
@@ -29,6 +30,8 @@ interface SmetaTreeProps {
   /** Konteyner balandligini qatorlar soniga moslaydi: kam qator — past; ko'p — ekran balandligigacha (keyin ichki skroll).
    *  Berilmasa daraxt ota-konteynerni to'ldiradi (`h-full`) — eski sahifalar o'zgarmaydi. */
   moslashuvchan?: boolean;
+  /** SMETA CONST: qator muhridan farq (view `t2_qator_muhr_farq`), `qator_id` bo'yicha. Berilmasa belgi ko'rinmaydi. */
+  muhrFarq?: ReadonlyMap<number, QatorMuhrFarq>;
   onFaktSave?: (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => Promise<{
     ok: boolean;
     message?: string;
@@ -36,7 +39,7 @@ interface SmetaTreeProps {
   }>;
 }
 
-type TezFiltr = 'all' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis';
+type TezFiltr = 'all' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis' | 'muhr';
 type Preset = 'ASOSIY' | 'F2' | 'NARX' | 'TOLIQ';
 const PRESET_KALIT = 't2-smeta-tree-preset';
 const omborOqi = (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -66,7 +69,7 @@ function Olchov({ sm, fk, f2, katta = false }: { sm: number | null | undefined; 
   );
 }
 
-export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen, moslashuvchan = false }: SmetaTreeProps) {
+export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen, moslashuvchan = false, muhrFarq }: SmetaTreeProps) {
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
   const [expandedDetailId, setExpandedDetailId] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<TreeNode | null>(null);
@@ -132,7 +135,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
       || (quickFilter === 'mat' && n.type === 'mat')
       || (quickFilter === 'frozen' && (priceControlByQatorId.get(n.id || -1)?.frozen_amount || 0) > 0)
       || (quickFilter === 'risk' && (priceControlByQatorId.get(n.id || -1)?.at_risk_amount || 0) > 0)
-      || (quickFilter === 'basis' && priceControlByQatorId.get(n.id || -1)?.price_state === 'ABOVE_REFERENCE_MISSING_BASIS');
+      || (quickFilter === 'basis' && priceControlByQatorId.get(n.id || -1)?.price_state === 'ABOVE_REFERENCE_MISSING_BASIS')
+      || (quickFilter === 'muhr' && n.id != null && !!muhrFarq?.has(n.id));
     const suz = (nodes: TreeNode[]): TreeNode[] => {
       const chiq: TreeNode[] = [];
       for (const n of nodes) {
@@ -143,7 +147,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
       return chiq;
     };
     return quickFilter === 'all' && !s ? data : suz(data);
-  }, [data, qidiruvKech, quickFilter, priceControlByQatorId]);
+  }, [data, qidiruvKech, quickFilter, priceControlByQatorId, muhrFarq]);
 
   /* Qidiruvda hamma shox ochiq bo'lishi kerak, aks holda mos kelgan
      ichkaridagi qator ko'rinmay qoladi. */
@@ -159,7 +163,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
 
   /* Tezkor filtr nishonlari: har filtrga nechta qator mos kelishi (butun daraxt bo'yicha, qidiruvdan mustaqil). */
   const tezSoni = useMemo(() => {
-    const c: Record<TezFiltr, number> = { all: 0, f2: 0, qosh: 0, zamena: 0, bl: 0, mat: 0, frozen: 0, risk: 0, basis: 0 };
+    const c: Record<TezFiltr, number> = { all: 0, f2: 0, qosh: 0, zamena: 0, bl: 0, mat: 0, frozen: 0, risk: 0, basis: 0, muhr: 0 };
     const yur = (nodes: TreeNode[]) => {
       for (const n of nodes) {
         if (Number(n.f2mum) > 0) c.f2++;
@@ -167,6 +171,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
         if (n.isZamena) c.zamena++;
         if (n.type === 'bl') c.bl++;
         if (n.type === 'mat') c.mat++;
+        if (n.id != null && muhrFarq?.has(n.id)) c.muhr++;
         const pc = n.id == null ? undefined : priceControlByQatorId.get(n.id);
         if (pc) {
           if ((pc.frozen_amount || 0) > 0) c.frozen++;
@@ -178,10 +183,11 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     };
     yur(data);
     return c;
-  }, [data, priceControlByQatorId]);
+  }, [data, priceControlByQatorId, muhrFarq]);
   const tezRoyxat: ReadonlyArray<readonly [TezFiltr, string]> = [
     ['all', 'Hammasi'], ['f2', 'F2 olish mumkin'], ['qosh', 'Qo‘shimcha'], ['zamena', 'Zamena'], ['bl', 'Faqat BL'], ['mat', 'Materiallar'],
     ...(priceControlReady ? [['frozen', 'Muzlagan'], ['risk', 'Xavf ostida'], ['basis', 'Protokolsiz']] as const : []),
+    ...(muhrFarq?.size ? [['muhr', 'Asl smetadan farq']] as const : []),
   ];
 
   const rowVirtualizer = useVirtualizer({
@@ -425,7 +431,17 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     <span className={`truncate flex-1 ${node.type === 'rz' ? 'text-accent' : node.type === 'bl' ? 'text-text' : 'text-text-dim'}`} title={node.nom || 'Nomsiz'}>
                       {node.nom || <span className="text-text-mute italic">{t('Nomsiz')}</span>}
                     </span>
-                    
+                    {/* SMETA CONST: asl smeta muhridan farq (o'zgargan / qo'shilgan / narx qo'yildi). */}
+                    {(() => {
+                      const mf = node.id != null ? muhrFarq?.get(node.id) : undefined;
+                      if (!mf) return null;
+                      const b = muhrBelgisi(mf);
+                      const tafsil = mf.maydonlar.length ? `: ${mf.maydonlar.map((m) => t(MUHR_MAYDON_NOMI[m])).join(', ')}` : '';
+                      return <button type="button" className={`fz-stamp fz-stamp--${b.ton} flex-shrink-0`} style={{ height: 18, padding: '0 5px', fontSize: 9.5, cursor: 'pointer' }}
+                        title={`${t(b.izoh)}${tafsil}`} aria-label={`${t(b.soz)}${tafsil}`}
+                        onClick={(e) => { e.stopPropagation(); setSelectedKey(key); setDrawerTab('umumiy'); setDrawerOpen(true); }}>{t(b.soz)}</button>;
+                    })()}
+
                     {/* Birlik */}
                     <span className="text-text-dim w-12 text-center flex-shrink-0">{node.birlik}</span>
 
@@ -635,6 +651,34 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                 <span className="text-text-mute">{t('Qoldiq')}</span><b className="text-right tabular-nums"><FmtN val={selected.node.stOst} /></b>
               </div>
             </div>}
+            {(() => {
+              const mf = selected.node.id != null ? muhrFarq?.get(selected.node.id) : undefined;
+              if (!mf) return null;
+              const b = muhrBelgisi(mf);
+              const juft = muhrJuftlar(mf);
+              return <div className="rounded-md border border-border bg-surface-2 p-3" aria-label={t('Asl smetadan farq')}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="fz-panel__h">{t('Asl smetadan farq')}</p>
+                  <span className={`fz-stamp fz-stamp--${b.ton}`}>{t(b.soz)}</span>
+                  {mf.ekspertizagacha && <span className="fz-chip">{t('ekspertizagacha bo‘lim')}</span>}
+                </div>
+                <p className="mt-1 text-[11.5px] text-text-mute">{t(b.izoh)}. {t('Muhr')}: {t(muhrManbaMatn(mf.muhr_manba))}{mf.asos_vaqt ? ` · ${new Date(mf.asos_vaqt).toLocaleDateString('ru-RU')}` : ''}</p>
+                {juft.length > 0 && <table className="mt-2 w-full text-[12px]">
+                  <thead><tr className="text-left text-text-mute"><th className="py-1 pr-2 font-medium">{t('Maydon')}</th><th className="py-1 pr-2 font-medium">{t('Avval (asl smeta)')}</th><th className="py-1 font-medium">{t('Endi')}</th></tr></thead>
+                  <tbody>{juft.map((j) => <tr key={j.maydon} className="border-t border-border align-top">
+                    <td className="py-1 pr-2 text-text-dim">{t(MUHR_MAYDON_NOMI[j.maydon])}</td>
+                    <td className="py-1 pr-2 tabular-nums text-text-mute" style={{ overflowWrap: 'anywhere' }}>{j.avval ?? <i>{t('bo‘sh')}</i>}</td>
+                    <td className="py-1 tabular-nums font-semibold text-text" style={{ overflowWrap: 'anywhere' }}>{j.endi ?? <i>{t('bo‘sh')}</i>}</td>
+                  </tr>)}</tbody>
+                </table>}
+                {mf.tekshirilmagan?.length > 0 && <p className="mt-2 text-[11px] text-text-mute">{t('Asl qiymati tekshirilmagan maydonlar')}: {mf.tekshirilmagan.map((m) => t(MUHR_MAYDON_NOMI[m as keyof typeof MUHR_MAYDON_NOMI] ?? m)).join(', ')}</p>}
+                {mf.holat === 'ozgargan' && <p className={`mt-2 text-[11.5px] ${jurnalsiz(mf) ? 'text-warn' : 'text-text-mute'}`}>
+                  {jurnalsiz(mf)
+                    ? t('O‘zgarishlar jurnalida yozuv yo‘q — o‘zgarish import yoki ommaviy amal orqali qilingan.')
+                    : `${t('Jurnal')}: ${mf.jurnal_soni} ${t('ta yozuv')}${mf.oxirgi_tahrir ? ` · ${new Date(mf.oxirgi_tahrir).toLocaleString('ru-RU')}` : ''} · ${mf.oxirgi_kim ? mf.oxirgi_kim : t('kim — noma’lum')}`}
+                </p>}
+              </div>;
+            })()}
           </div>}
           {drawerTabEff === 'fakt' && <div className="space-y-4">
             {onFaktSave ? <>

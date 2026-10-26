@@ -215,6 +215,7 @@ export const GENERATED_SITE_MAP = {
     "t2_smeta_versiya_pozitsiya",
     "t2_smeta_versiya_moslik",
     "t2_smeta_versiya_dava",
+    "t2_qator_muhr_farq",
     "t2_korzinka",
     "t2_audit_reestr",
     "t2_obyekt_hujjat_royxat",
