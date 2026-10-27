@@ -1,4 +1,5 @@
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 /**
  * Smeta studiyasi bosqichlari (egasi 2026-10-13): ① LRV oynada yasaladi → ② «Narxlashga o'tish»: foiz stavkalari,
  * kataloglar va manbalarga asoslangan narxlar (AI har resursni MA'NOSI bo'yicha topadi) → ③ RES va hujjatlar.
@@ -688,8 +689,7 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
   const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(kompaniyaId, doc.context.objectId ?? null);
   const [protokol, setProtokol] = useState({ raqam: '1', sana: new Date().toISOString().slice(0, 10) });
   const yuklabBer = (bytes: Uint8Array, nom: string) => {
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    const a = document.createElement('a'); a.href = url; a.download = nom; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    downloadBlob(bytes, nom); // tizim imzosi shu yo'lda qo'yiladi
   };
   /** Official documents are billed by filled cells like every other document (token session 2026-10-16); the file is given only after payment. */
   async function tokenBilanBer(bytes: Uint8Array, nom: string, hujjat: string, sabab: string): Promise<string | null> {

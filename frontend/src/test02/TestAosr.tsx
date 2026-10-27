@@ -1,4 +1,5 @@
 import { MoneyInput } from '../umumiy/ui/MoneyInput';
+import { downloadBlob } from '../lib/construction-document-control/export/download-helper';
 /**
  * TestAosr.tsx — Ijro hujjatlari: АОСР (ШНК 3.01.01-22 Прил.6) va laboratoriya.
  * ═══════════════════════════════════════════════════════════════════
@@ -147,10 +148,7 @@ export default function TestAosr() {
       });
       if (!kompaniyaId) { toast(t('Kompaniyani tanlang'), 'warn'); return; }
       const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `АОСР № ${a.raqam ?? ''} · ${a.obyekt ?? ''}` }, () => {
-        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-        const el = document.createElement('a');
-        el.href = url; el.download = aosrFaylNomi(a.obyekt, a.raqam, a.sana); el.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        downloadBlob(bytes, aosrFaylNomi(a.obyekt, a.raqam, a.sana)); // tizim imzosi shu yo'lda qo'yiladi
       });
       if (!tk.ok) toast(tk.xabar, 'danger'); else if (tk.xabar) toast(tk.xabar, 'ok');
     } catch (e) {
@@ -166,10 +164,7 @@ export default function TestAosr() {
       const imzo = { pudratchi: joriy?.nom };
       const { bytes, faylNomi } = tur === 'aosr' ? aosrReestrXlsx(aktlar, { obyektNomi, imzo }) : labReestrXlsx(protokollar, { obyektNomi, imzo });
       const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: tur === 'aosr' ? 'REESTR_AOSR' : 'REESTR_LAB', sabab: `${tur === 'aosr' ? 'Реестр АОСР' : 'Реестр протоколов'} · ${obyektNomi}`, obyekt: obyektId }, () => {
-        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-        const el = document.createElement('a');
-        el.href = url; el.download = faylNomi; el.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        downloadBlob(bytes, faylNomi);
       });
       if (!tk.ok) toast(tk.xabar, 'danger'); else if (tk.xabar) toast(tk.xabar, 'ok');
     } catch (e) {
