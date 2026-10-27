@@ -149,6 +149,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   smeta_versiya_bekor_v1: 'smeta.write',
   xarajat_kirit_v1: 'financial.write',
   xarajat_bekor_v1: 'financial.write',
+  moliya_qolda_yoz_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
   fakt_belgila_v2: 'fakt.write',
   fakt_belgila: 'fakt.write',
