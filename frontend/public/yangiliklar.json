@@ -1,11 +1,25 @@
 {
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
+{
+  "id": 32,
+  "sana": "2026-10-27",
+  "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
+  "bandlar": [
+    "Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.",
+    "Qidiruv va fakt kiritilmagan ishlar filtri to‘liq ro‘yxatda ishlaydi. Obyekt, oy va Fakt=F2 boshqaruvlari saqlangan; jadval ustidagi takror sarlavha ixchamlashtirilgan."
+  ]
+},
+
     {
-      "id": 32,
+      "id": 31,
       "sana": "2026-10-27",
-      "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
-      "bandlar": ["Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.", "Qidiruv va fakt kiritilmagan ishlar filtri to‘liq ro‘yxatda ishlaydi. Obyekt, oy va Fakt=F2 boshqaruvlari saqlangan; jadval ustidagi takror sarlavha ixchamlashtirilgan."]
+      "sarlavha": "Svoddagi yaxlit summalarga ustama qo'shilmaydi",
+      "bandlar": [
+        "Ekspertiza svodida yoki «письмо заказчика» bo'yicha yaxlit summa bilan kelgan bo'lim belgilansa, uning qatorlariga transport/sklad/прочие/sug'urta qayta qo'shilmaydi: summa svodning o'zidan (ҚҚС siz) olinadi va ИТОГО-4 ga ustamasiz qo'shiladi, ҚҚС faqat oxirida bir marta.",
+        "Nakrutka sahifasi va Nakopitelniy ВСЕГО shu qoidaga amal qiladi; to'g'ri xarajat (ustamasiz) avvalgidek barcha smeta qatorlari.",
+        "Tasdiqlangan F2 lar o'zgarmaydi. Belgisiz obyektlarda hech narsa o'zgarmaydi."
+      ]
     },
     {
       "id": 30,

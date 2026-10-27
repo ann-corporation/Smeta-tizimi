@@ -1,5 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { QueryClient, QueryClientContext, useQueries, useQuery } from '@tanstack/react-query';
+import { kaskadCats } from '../../lib/svod-yaxlit';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
@@ -67,7 +68,7 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
   royxat.forEach((o, i) => {
     const r = nak[i]?.data;
     if (!r?.cats || !pod.data) { boYicha.set(o.obyektId, null); nomalum++; return; }
-    const kesim = katKesimServerdan(r.cats);
+    const kesim = katKesimServerdan(kaskadCats(r) ?? r.cats, r.svod_yaxlit);
     const p = podvalTanla(pod.data, { obyektId: o.obyektId, shartnomaId: o.shartnomaId ?? null });
     const u = ustamaliHisobla(kesim, r.koeffitsientlar, p ? { versiya: 1, nom: p.nom, qatorlar: p.qatorlar } : null);
     ustamasiz += u.ustamasiz; ustamasizBor = true;
