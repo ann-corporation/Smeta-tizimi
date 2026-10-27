@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gas } from './client';
 import { navbatgaQoshish } from '../_shared/navbat';
+import { tizimImzoFoydalanuvchi } from '../lib/hujjat-yozuvchi/tizim-imzo-foydalanuvchi';
 import { yangiUid } from '../_shared/idempotent';
 import { t2AiFakturaParse } from './t2-ai';
 import { sbT2ObyektlarOlKomp } from './supabase';
@@ -1400,7 +1401,9 @@ export function useSessiya() {
       const r = await fetch('/api/sessiya');
       if (r.status === 401 || r.status === 403) throw new Error("Sessiya yo'q");
       if (!r.ok) throw new Error('Server xatosi: ' + r.status);
-      return r.json() as Promise<{ ok: boolean; rol: string; email: string; yozaOladi: boolean; tugaydi: number }>;
+      const s = await (r.json() as Promise<{ ok: boolean; rol: string; email: string; yozaOladi: boolean; tugaydi: number }>);
+      tizimImzoFoydalanuvchi(s?.email); // hujjatlardagi tizim imzosi: «kim yaratdi»
+      return s;
     },
     staleTime: 5 * 60 * 1000,
     /* ⚠️ 2026-08-17: avval `retry: false` edi — BITTA tarmoq uzilishi yetardi.

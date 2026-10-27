@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 38,
+      "sana": "2026-10-27",
+      "sarlavha": "Har bir hujjatda tizim imzosi",
+      "bandlar": [
+        "Tizimdan yuklab olinadigan har Excel hujjat (F2, F3, LRV, Nakopitelniy, ostatka, sverka, pereraschet, oferta va boshqalar) sahifa pastida tizim imzosini oladi: «Smeta tizimi · smeta-tizimi.pages.dev», hujjat nomi, kim yaratgani, sana-vaqt va tekshirish kodi.",
+        "Tekshirish kodi hujjat mazmunidan olinadi: bir xil hujjat — bir xil kod, raqam o'zgarsa — kod ham o'zgaradi. Fayl xususiyatlarida (Muallif / Tashkilot / Izoh) ham shu imzo bor.",
+        "Imzo faqat kolontitulda — rasmiy shakllar, jadval va Подрядчик/Заказчик imzo bloklari joyidan siljimaydi. F2 oylik paket ichidagi har fayl ham imzolanadi."
+      ]
+    },
+    {
       "id": 35,
       "sana": "2026-10-27",
       "sarlavha": "Pul tahlilida «Moliyaviy tahlil» jadvali",
