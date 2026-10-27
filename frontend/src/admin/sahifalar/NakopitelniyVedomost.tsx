@@ -8,7 +8,7 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
-import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
+import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyProgress, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
 import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3Holat, type SvodShartnoma, type SverkaImportNatija, type TolovTur } from '../../lib/nakopitelniy-svod';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
@@ -67,6 +67,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [obyektKompaniyaId, setObyektKompaniyaId] = useState<number | null>(null);
   const [qidiruv, setQidiruv] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Katta obyekt: sahifalab yuklash progressi (prod 2026-10-27 — foydalanuvchi kutayotganini ko'rsin). */
+  const [progress, setProgress] = useState<NakopitelniyProgress | null>(null);
   const [xato, setXato] = useState('');
   const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
   /** Egasi 2026-09-30: jadvalda ham har tasdiqlangan F2 oyi alohida ustun (+ ИТОГО). */
@@ -158,7 +160,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       // Yagona smeta modeli (lib/smeta-model): daraxt, zamena bog'lanishi va o'zgarish izohlari bir joydan.
       const [r, model, taf] = await Promise.all([
-        t2NakopitelniyToliq(objId, tanlanganDavr || null),
+        t2NakopitelniyToliq(objId, tanlanganDavr || null, false, { onProgress: (p) => { if (currentRequest === requestId.current) setProgress(p); } }),
         smetaModeliniYukla(objId),
         sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' }).catch(() => null),
       ]);
@@ -177,7 +179,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
       setTruncated(Boolean(r.truncated));
     } catch { if (currentRequest === requestId.current) setXato('Ma’lumotlarni yuklab bo‘lmadi. Yangilab qayta urinib ko‘ring.'); }
-    finally { if (currentRequest === requestId.current) setBusy(false); }
+    finally { if (currentRequest === requestId.current) { setBusy(false); setProgress(null); } }
   };
 
   useEffect(() => {
@@ -245,14 +247,14 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!truncated) return qatorlar;
     setEksportBusy(true);
     try {
-      const r = await t2NakopitelniyToliq(Number(objectId), davr || null);
+      const r = await t2NakopitelniyToliq(Number(objectId), davr || null, false, { onProgress: setProgress });
       if (!r.ok) {
         setXato(r.code === 'NAKOPITELNIY_OZGARDI' ? 'O‘qish paytida smeta qatorlari o‘zgardi — qayta urinib ko‘ring.' : (r.xato || r.code || 'Yuklanmadi'));
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
       return tartibla(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, modelRef.current), norma: modelRef.current?.byId.get(q.qator_id)?.norma ?? null })), modelRef.current);
-    } finally { setEksportBusy(false); }
+    } finally { setEksportBusy(false); setProgress(null); }
   };
   const stavkaOl = (): number | null => {
     const t = ndsFoiz.trim();
@@ -473,7 +475,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         )}
         {!objectId && <div className="fz-note fz-note--info"><span>{t('Reestrni ko‘rish uchun yuqoridan obyektni tanlang.')}</span></div>}
 
-        {busy && <p role="status" style={{ margin: 0 }}>{t('Yuklanmoqda…')}</p>}
+        {busy && <p role="status" style={{ margin: 0 }}>{progress?.jami ? t('Yuklanmoqda… {n} / {jami} qator', { n: progress.yuklandi.toLocaleString('ru-RU'), jami: progress.jami.toLocaleString('ru-RU') }) : t('Yuklanmoqda…')}</p>}
         {eksportBusy && <p role="status" style={{ margin: 0 }}>{t('To‘liq ro‘yxat serverdan sahifalab o‘qilmoqda…')}</p>}
         {forma3Busy && <p role="status" style={{ margin: 0 }}>{t('Форма № 3 manbalari yig‘ilmoqda (nakopitelniy + tasdiqlangan F2)…')}</p>}
         {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{xato}</span></div>}
