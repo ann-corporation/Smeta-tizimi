@@ -38,9 +38,9 @@ export function UstamaXulosaKarta({ obyektlar, ustamasiz, kompaniyaId }: { obyek
   const kor = p.ustamali == null ? null : qisman && bil ? p.ustamali + Math.max(0, ustamasiz! - p.hisoblanganUstamasiz) : p.ustamali;
   const holat = p.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : null;
   return (
-    <div className="karta p-5" data-testid="ustama-xulosa">
+    <div className="karta @container min-w-0 p-4 xl:p-5" data-testid="ustama-xulosa">
       <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{t('Ustamali smeta (ИТОГО-4, QQS siz)')}</p>
-      <p className="mt-1 text-[26px] font-semibold leading-8 text-text">
+      <p className="kpi-qiymat mt-1 font-semibold text-text">
         {holat ?? (kor == null ? '—' : <>{qisman ? '≈ ' : ''}<SanaYurish qiymat={kor} />{' UZS'}</>)}
       </p>
       <p className="mt-1 text-xs tabular-nums text-text-mute">{t('ustamasiz')}: {bil ? <>{toliq.format(ustamasiz!)} UZS</> : '—'}</p>

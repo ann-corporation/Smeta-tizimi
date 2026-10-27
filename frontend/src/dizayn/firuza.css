@@ -187,13 +187,15 @@ h1, h2 { font-family: var(--font-display); }
 ::selection { background: var(--selection); color: var(--text); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-xs); }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
+/* 2026-10-27 (egasi: «surish imkoni yo'q, slider yo'q»): surface-3 qorong'i fonda ko'rinmasdi — endi aniq ko'rinadi. */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-3);
+  background: color-mix(in srgb, var(--text-mute) 55%, transparent);
   border: 2px solid transparent; background-clip: padding-box; border-radius: 10px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--border-strong); background-clip: padding-box; }
-* { scrollbar-color: var(--surface-3) transparent; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); background-clip: padding-box; }
+* { scrollbar-color: color-mix(in srgb, var(--text-mute) 60%, transparent) color-mix(in srgb, var(--surface-2) 70%, transparent); }
 
 /* text-text-mute 830+ joyda ishlatilgan, lekin @theme da yo'q edi — matn rangsiz (meros) chiqardi. */
 .text-text-mute { color: var(--text-mute); }
@@ -609,3 +611,20 @@ h1, h2 { font-family: var(--font-display); }
 .text-success { color: var(--ok); }
 .bg-success { background-color: var(--ok); }
 .border-success\/40 { border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+
+/* ---------- 7. Ekranga moslashuv (2026-10-27, egasi: «noutbuk ekraniga sig'maydi») ----------
+ * Noutbuk (1280–1600px eni, 700–900px bo'yi) — sarlavha, kontekst paneli va KPI kartalari ixchamroq,
+ * shunda jadval/grafikka ko'proq joy qoladi. Katta monitorda o'zgarish yo'q. */
+/* Asosiy ish maydoni (daraxt/jadval) yuqoridagi filtr va kartalar ostida siqilib qolmasin: kamida ekranning
+ * deyarli to'liq bo'yi — sahifa pastga suriladi, ish maydoni esa butun ekranni oladi. */
+.ish-maydoni { min-height: max(380px, calc(100dvh - 150px)); }
+.kpi-qiymat { font-size: clamp(15px, 7.4cqi, 26px); line-height: 1.25; overflow-wrap: anywhere; }
+@media (max-width: 1599px), (max-height: 900px) {
+  .fz-pagehead { padding: 14px var(--space-5, 20px) 10px; gap: var(--space-3, 12px); }
+  .fz-pagehead__title { font-size: 19px; line-height: 24px; }
+  .fz-pagehead__desc { font-size: 12px; line-height: 17px; margin-top: 2px; }
+  .os-app-shell .os-context-bar { min-height: 44px; padding: 4px var(--space-4, 16px); gap: 8px; }
+}
+@media (max-height: 800px) {
+  .fz-pagehead__desc { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+}

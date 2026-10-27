@@ -585,7 +585,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
             <p className="max-w-md text-[13px] text-text-dim">{t('Bu obyektda smeta yo‘q. Bajarilgan ishlarni resurslari bilan to‘g‘ridan-to‘g‘ri kiriting — ular faktga yoziladi va F2 ga tayyor bo‘ladi.')}</p>
             <button onClick={() => setModal({ rejim: { tur: 'additional' } })} className="fz-btn fz-btn--primary fz-btn--lg"><Plus size={16} /> {t('Bajarilgan ishni kiritish')}</button>
           </section>
-        : <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[272px_minmax(0,1fr)]">
+        : <div className="ish-maydoni grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[clamp(220px,20vw,272px)_minmax(0,1fr)]">
           <aside className="fz-card flex min-h-0 flex-col" aria-label={t('Bo‘limlar')}>
             <div className="fz-panel__h border-b border-border px-3 py-2.5"><span>{t('Bo‘limlar')}</span><span className="tabular-nums">{t('{a} / {b} tugagan', { a: String(xulosa.bolimTugagan), b: String(xulosa.bolimJami) })}</span></div>
             <nav className="min-h-0 flex-1 overflow-auto py-1">

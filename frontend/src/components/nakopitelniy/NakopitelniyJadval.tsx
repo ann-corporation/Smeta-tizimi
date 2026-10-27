@@ -98,7 +98,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
   const oyKenglik = 116;
   const thG = (rang: string): CSSProperties => ({ top: 0, height: 26, textAlign: 'center', fontSize: 10.5, borderBottom: `2px solid ${rang}`, ...chap });
   const th2: CSSProperties = { top: 26, height: 30, textAlign: 'right' };
-  const stickyTh: CSSProperties = { left: 0, zIndex: 3, minWidth: 250, textAlign: 'left' };
+  const stickyTh: CSSProperties = { left: 0, zIndex: 3, minWidth: 'clamp(170px, 18vw, 250px)', textAlign: 'left' };
 
   const hdr = (matn: string, izoh: string): ReactNode => <span title={izoh}>{matn}</span>;
 
@@ -153,7 +153,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
     const rang = q.tur === 'bl' ? 'fz-row-bl' : 'fz-row-res';
     return (
       <tr key={q.qator_id} className={rang} style={{ background: 'var(--surface)' }}>
-        <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'inherit', ...bosh(q), maxWidth: 420 }} title={q.ozgarish_izoh || q.kod || ''}>
+        <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'inherit', ...bosh(q), maxWidth: 'clamp(200px, 24vw, 420px)' }} title={q.ozgarish_izoh || q.kod || ''}>
           {q.kod ? <span className="fz-c-shifr" style={{ marginRight: 6 }}>{q.kod}</span> : null}{q.nom}
           {q.ozgarish_izoh && <span className="fz-chip fz-chip--accent" style={{ marginLeft: 6 }}>{q.zamena ? t('zamena') : t('qo‘shimcha')}</span>}
         </td>
@@ -222,7 +222,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
         </div>
       </div>
 
-      <div className="fz-table-wrap" style={{ maxHeight: '72vh' }}>
+      <div className="fz-table-wrap" style={{ maxHeight: 'max(320px, calc(100dvh - 150px))' }}>
         <table className="fz-table" style={{ minWidth: 980 }}>
           <thead>
             <tr>
