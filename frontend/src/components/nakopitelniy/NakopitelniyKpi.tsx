@@ -6,6 +6,7 @@ import type { NakopitelniyDavr, NakopitelniyJami, NakopitelniyQator } from '../.
 import { katKesimNomalumBilan, katKesimYigish, type KatKesim } from '../../lib/ustamali-summa';
 import { foizOl, smetaTaqsimot } from '../../lib/nakopitelniy-korinish';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 
 /**
  * Nakopitelniy KPI chizig'i (egasi 2026-10-25: «reestrga qarab vaziyat tushunarli bo'lsin»): har summa — ustamali + ustamasiz (SummaJuft),
@@ -20,22 +21,26 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
   jami: NakopitelniyJami; qatorlar: NakopitelniyQator[]; truncated: boolean; obyektId: number; kompaniyaId: number;
   smetaNakrutka: SmetaNakrutkaKorinish | null; kaskadBor: boolean; davr: NakopitelniyDavr | undefined;
 }) {
+  // Svod yaxlit (20261113500000): belgili bo'lim avlodlariga ustama qo'llanmaydi; to'liq smeta — server kesimi (svod bilan).
+  const ust = useUstamaliSumma(obyektId, { kompaniyaId });
+  const { yaxlitIdlari, obyektKesim } = ust;
   /** Ustama hisobi kategoriya kesimini talab qiladi; ro'yxat qirqilgan bo'lsa kesim to'liq emas — «ustamali noma'lum» (o'ylab topilmaydi). */
   const kesim = useMemo(() => {
     if (truncated) return null;
     const barglar = qatorlar.filter((q) => !BARG_EMAS.has(q.tur));
+    const yax = yaxlitIdlari ? yaxlitIdlari(qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id }))) : new Set<number>();
     const yig = (summa: (q: NakopitelniyQator) => number | null | undefined, sarlavha: number): KatKesim => {
-      const k = katKesimYigish(barglar, (q) => q.kat, summa);
-      const bor = Object.values(k.summalar).reduce((a, b) => a + (b ?? 0), 0) + k.nomalum;
+      const k = katKesimYigish(barglar, (q) => q.kat, summa, (q) => yax.has(q.qator_id));
+      const bor = Object.values(k.summalar).reduce((a, b) => a + (b ?? 0), 0) + k.nomalum + (k.yaxlitQator ?? 0);
       return katKesimNomalumBilan(k, sarlavha - bor);
     };
     return {
-      smeta: yig((q) => q.smeta_summa, jami.smeta_summa),
+      smeta: obyektKesim ?? yig((q) => q.smeta_summa, jami.smeta_summa),
       fakt: yig((q) => q.fakt_summa, jami.fakt_summa),
       f2: yig((q) => q.jami_summa, jami.jami_tasdiqlangan_summa),
       joriy: yig((q) => q.joriy_summa, jami.joriy_tasdiqlangan_summa),
     };
-  }, [qatorlar, truncated, jami]);
+  }, [qatorlar, truncated, jami, yaxlitIdlari, obyektKesim]);
 
   const taq = smetaTaqsimot({ smeta: jami.smeta_summa, oldingi: jami.oldingi_summa, joriy: jami.joriy_tasdiqlangan_summa, fakt: jami.fakt_summa });
   const faktFoiz = foizOl(jami.fakt_summa, jami.smeta_summa);

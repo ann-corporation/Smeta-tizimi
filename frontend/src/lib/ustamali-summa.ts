@@ -15,7 +15,7 @@
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import type { Podval } from './nakrutka-konstruktor';
 import { nakrutkaKaskad } from './nakrutka-kaskad';
-import { yaxlitBilanYakun, type SvodYaxlit } from './svod-yaxlit';
+import { kaskadCats, kaskadgaYaxlit, type SvodYaxlit } from './svod-yaxlit';
 import { nakrutkaKat, podvalliKaskad, NAKRUTKA_KATLAR, type KatSummalar, type NakrutkaHisobJS, type NakrutkaKat } from './nakrutka-podval';
 
 /** Kategoriya kesimi: aniq kat bo'yicha summalar + kat noma'lum qismi. */
@@ -31,13 +31,19 @@ export type KatKesim = {
    * arglar — ularning smetadagi to'g'ri xarajati (ustamasiz jamiga qo'shiladi). Yo'q — o'zgarishsiz.
    */
   yaxlit?: { qqssiz: number; barglar: number };
+  /**
+   * Svod yaxlit bo'limi AVLODI bo'lgan qatorlar summasi (qator darajasi: F2/fakt/qoldiq kesimlari) — ustama
+   * koeffitsienti QO'LLANMAYDI, ИТОГО-4 ga ustamasiz qo'shiladi (QQS bir marta). katKesimgaQosh(…, true) to'ldiradi.
+   */
+  yaxlitQator?: number;
 };
 
 export const bosKatKesim = (): KatKesim => ({ summalar: {}, nomalum: 0, nomalumSoni: 0, summasizSoni: 0 });
 
 /** Bitta qatorni kesimga qo'shadi (kesim joyida o'zgaradi — katta ro'yxatlar uchun). */
-export function katKesimgaQosh(k: KatKesim, kat: string | null | undefined, summa: number | null | undefined): KatKesim {
+export function katKesimgaQosh(k: KatKesim, kat: string | null | undefined, summa: number | null | undefined, yaxlitmi = false): KatKesim {
   if (summa == null || !Number.isFinite(summa)) { k.summasizSoni++; return k; }
+  if (yaxlitmi) { k.yaxlitQator = (k.yaxlitQator ?? 0) + summa; return k; }
   const nk = nakrutkaKat(kat);
   if (nk == null) { k.nomalum += summa; k.nomalumSoni++; return k; }
   k.summalar[nk] = (k.summalar[nk] ?? 0) + summa;
@@ -46,14 +52,14 @@ export function katKesimgaQosh(k: KatKesim, kat: string | null | undefined, summ
 
 /** Kesim nusxasi + kat noma'lum qo'shimcha summa (masalan hujjat jami va qatorlar yig'indisi farqi). Farq ~0 bo'lsa — o'zgarishsiz. */
 export function katKesimNomalumBilan(k: KatKesim, farq: number | null | undefined): KatKesim {
-  const nusxa: KatKesim = { ...k, summalar: { ...k.summalar } };
+  const nusxa: KatKesim = { ...k, summalar: { ...k.summalar }, ...(k.yaxlit ? { yaxlit: { ...k.yaxlit } } : {}) };
   if (farq != null && Number.isFinite(farq) && Math.abs(farq) >= 0.005) { nusxa.nomalum += farq; nusxa.nomalumSoni += 1; }
   return nusxa;
 }
 
-export function katKesimYigish<T>(qatorlar: Iterable<T>, kat: (x: T) => string | null | undefined, summa: (x: T) => number | null | undefined): KatKesim {
+export function katKesimYigish<T>(qatorlar: Iterable<T>, kat: (x: T) => string | null | undefined, summa: (x: T) => number | null | undefined, yaxlitmi?: (x: T) => boolean): KatKesim {
   const k = bosKatKesim();
-  for (const q of qatorlar) katKesimgaQosh(k, kat(q), summa(q));
+  for (const q of qatorlar) katKesimgaQosh(k, kat(q), summa(q), yaxlitmi?.(q) ?? false);
   return k;
 }
 
@@ -101,7 +107,7 @@ export function ustamaZanjiri(q: NakrutkaHisobJS, nk: Partial<NakrutkaKoeffitsie
 export function ustamaliHisobla(kesim: KatKesim, koef: Partial<NakrutkaKoeffitsientlar> | null | undefined, podval?: Podval | null): UstamaNatija {
   const nomalum = { summa: kesim.nomalum, soni: kesim.nomalumSoni };
   const s = sanoq(kesim);
-  const ustamasiz = NAKRUTKA_KATLAR.reduce((t, k) => t + s[k], 0) + (kesim.yaxlit?.barglar ?? 0);
+  const ustamasiz = NAKRUTKA_KATLAR.reduce((t, k) => t + s[k], 0) + (kesim.yaxlit?.barglar ?? 0) + (kesim.yaxlitQator ?? 0);
   const bosh: UstamaNatija = { ustamali: null, ndsBilan: null, ustamasiz, nomalum, qadamlar: null, zanjir: [] };
   if (!koef || Object.keys(koef).length === 0) return { ...bosh, xato: 'KOEF_YOQ' };
   try {
@@ -109,14 +115,40 @@ export function ustamaliHisobla(kesim: KatKesim, koef: Partial<NakrutkaKoeffitsi
     // Podval bor: podval bo'yicha (Nakopitelniy kabi).
     const q: NakrutkaHisobJS = podval ? podvalliKaskad(s, koef, podval)
       : nakrutkaKaskad({ chel: s.ЧЕЛ, mash: s.МАШ, mat: s.МАТ + s['М/К'] + s.КАБ + s['БЕЗ СКЛАД'], ob: s.ОБ, mk: s['М/К'], kab: s.КАБ, bez: s['БЕЗ СКЛАД'] }, koef) as unknown as NakrutkaHisobJS;
-    const y = kesim.yaxlit ? yaxlitBilanYakun(q.itogo4, kesim.yaxlit.qqssiz, Number(koef.НДС ?? 0)) : null;
-    if (y) {
+    const yq = yaxlitQoshimcha(kesim);
+    if (yq != null) {
       // Svod yaxlit: ustamasiz ИТОГО-4 ga, QQS bir marta (server t2_nakrutka_yaxlit_qosh_v1 bilan bir xil).
+      const y = kaskadgaYaxlit(q, yq, Number(koef.НДС ?? 0));
       const zanjir = ustamaZanjiri(q, koef).map((z) => (z.kod === 'itogo' ? { ...z, summa: y.itogo4 } : z));
-      return { ...bosh, ustamali: y.itogo4, ndsBilan: y.vsego, qadamlar: { ...q, itogo4: y.itogo4, nds: y.nds, vsego: y.vsego, yaxlit: kesim.yaxlit!.qqssiz }, zanjir };
+      return { ...bosh, ustamali: y.itogo4, ndsBilan: y.vsego, qadamlar: y, zanjir };
     }
     return { ...bosh, ustamali: q.itogo4, ndsBilan: q.vsego, qadamlar: q, zanjir: ustamaZanjiri(q, koef) };
   } catch {
     return { ...bosh, xato: 'PODVAL_TOLIQ_EMAS' };
   }
+}
+
+/** Kesimdagi ustamasiz ИТОГО-4 ga qo'shiladigan summa (svod yaxlit + yaxlit bo'lim qatorlari). Yo'q — null. */
+export function yaxlitQoshimcha(kesim: KatKesim): number | null {
+  if (!kesim.yaxlit && kesim.yaxlitQator == null) return null;
+  return (kesim.yaxlit?.qqssiz ?? 0) + (kesim.yaxlitQator ?? 0);
+}
+
+type ServerCats = { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
+/** Server javobi (	2_obyekt_nakrutka_v1) → obyekt darajasidagi kesim: cats_kaskad (bo'lmasa cats) + svod yaxlit. */
+export function obyektKesimi(r: { cats?: ServerCats; cats_kaskad?: ServerCats; svod_yaxlit?: SvodYaxlit | null }): KatKesim | null {
+  const c = kaskadCats(r) ?? r.cats;
+  return c ? katKesimServerdan(c, r.svod_yaxlit) : null;
+}
+
+/**
+ * OBYEKT darajasidagi ustamali / ВСЕГО — YAGONA yo'l (ekranlar, panel, eksport izohi): server kesimi + svod yaxlit →
+ * ustamaliHisobla (podval bo'lsa u bo'yicha). Belgisiz obyektda natija avvalgidek (cats bilan).
+ */
+export function obyektUstamali(
+  r: { cats?: ServerCats; cats_kaskad?: ServerCats; svod_yaxlit?: SvodYaxlit | null; koeffitsientlar?: Partial<NakrutkaKoeffitsientlar> | null },
+  podval?: Podval | null, koef?: Partial<NakrutkaKoeffitsientlar> | null,
+): UstamaNatija | null {
+  const k = obyektKesimi(r);
+  return k ? ustamaliHisobla(k, koef ?? r.koeffitsientlar ?? null, podval) : null;
 }

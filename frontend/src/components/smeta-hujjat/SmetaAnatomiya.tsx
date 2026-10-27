@@ -4,6 +4,7 @@ import type { TreeNode } from '../../api/types';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { katKesimYigish } from '../../lib/ustamali-summa';
 import { KAT_GURUH_NOMI } from '../../lib/f2-hujjat-korinish';
 import { barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type Kesim } from '../../lib/smeta-korinish';
@@ -32,7 +33,9 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   const bolimlar = useMemo(() => bolimlarKorinishi(tree), [tree]);
   const kat = useMemo(() => katSmeta(tree), [tree]);
   const diqqat = useMemo(() => oshganQatorlar(tree), [tree]);
-  const kesim = useMemo(() => katKesimYigish([...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => b.smeta), [tree]);
+  const daraxtKesim = useMemo(() => katKesimYigish([...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => b.smeta), [tree]);
+  // Svod yaxlit belgili obyektda butun smeta ustamalisi — server kesimi (yaxlit bo'limlar ustamasiz, QQS bir marta).
+  const kesim = useUstamaliSumma(obyektId).obyektKesim ?? daraxtKesim;
   if (!tree.length) return null;
   const pct = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
   const toliqEmas = umumiy.toliq ? null : t('To‘liq emas: {s} bo‘limda smeta, {f} da fakt, {f2} da F2 summasi noma’lum — ko‘rsatilgan qiymat faqat ma’lum qismlar yig‘indisi', { s: umumiy.nomalum.smeta, f: umumiy.nomalum.fakt, f2: umumiy.nomalum.f2 });

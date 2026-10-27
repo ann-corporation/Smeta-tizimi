@@ -18,9 +18,10 @@ import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions } from '../.
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
-import { obyektPodvali, serverCatsKatga } from '../../api/t2-nakrutka-podval';
+import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from '../../lib/nakrutka-konstruktor';
-import { podvalliKaskad } from '../../lib/nakrutka-podval';
+import { obyektUstamali } from '../../lib/ustamali-summa';
+import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
@@ -82,19 +83,21 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [nakrutkaKaskadi, setNakrutkaKaskadi] = useState<NakrutkaKaskad | null>(null);
   /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
   const [podval, setPodval] = useState<Podval | null>(null);
-  const [nakrutkaCats, setNakrutkaCats] = useState<ReturnType<typeof serverCatsKatga> | null>(null);
+  /** Server kesimi (cats / cats_kaskad / svod_yaxlit) — obyekt ustamalisi yagona obyektUstamali orqali. */
+  const [nakrutkaJavob, setNakrutkaJavob] = useState<Awaited<ReturnType<typeof t2ObyektNakrutka>> | null>(null);
+  const svodYaxlit: SvodYaxlit | null = nakrutkaJavob?.svod_yaxlit ?? null;
   useEffect(() => {
     let active = true;
     setNakrutka(null);
     setNakrutkaKaskadi(null);
     setPodval(null);
-    setNakrutkaCats(null);
+    setNakrutkaJavob(null);
     if (!objectId) return;
     void t2ObyektNakrutka(Number(objectId)).then(async (r) => {
       if (!active || !r.ok) return;
       if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
       if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
-      if (r.cats) setNakrutkaCats(serverCatsKatga(r.cats));
+      if (r.cats) setNakrutkaJavob(r);
       const p = await obyektPodvali(companyId, Number(objectId), r.shartnoma_id ?? null);
       if (active) setPodval(p);
     }).catch(() => undefined);
@@ -218,11 +221,11 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [truncated, setTruncated] = useState(false);
   const smetaNakrutka = useMemo(() => {
     // Maxsus podval — ekrandagi smeta к оплате ham shu podval bo'yicha (hujjat bilan bir xil).
-    if (podval && nakrutkaCats && nakrutka) {
-      try {
-        const k = podvalliKaskad(nakrutkaCats, nakrutka, podvalgaKoefQoy(podval, nakrutka));
-        return { pryamye: k.pryamye, itogo4: k.itogo4, nds: k.nds, nds_foiz: nakrutka.НДС ?? null, vsego: k.vsego };
-      } catch { return null; }
+    // Svod yaxlit bo'lsa kaskad cats_kaskad bo'yicha + yaxlit ustamasiz (server bilan bir xil) — yagona yordamchi.
+    if (podval && nakrutkaJavob && nakrutka) {
+      const u = obyektUstamali(nakrutkaJavob, podvalgaKoefQoy(podval, nakrutka), nakrutka);
+      if (!u || u.ustamali == null || u.ndsBilan == null || !u.qadamlar) return null;
+      return { pryamye: u.qadamlar.pryamye + (svodYaxlit?.barglar ?? 0), itogo4: u.ustamali, nds: u.qadamlar.nds, nds_foiz: nakrutka.НДС ?? null, vsego: u.ndsBilan };
     }
     if (!nakrutkaKaskadi) return jami?.smeta_nakrutka ?? null;
     return {
@@ -232,7 +235,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       nds_foiz: nakrutka?.НДС ?? null,
       vsego: nakrutkaKaskadi.vsego,
     };
-  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi, podval, nakrutkaCats]);
+  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi, podval, nakrutkaJavob, svodYaxlit]);
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
    *  (server sukuti 500 qator) — server sahifalari avtomat oxirigacha o'qiladi
@@ -383,7 +386,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
       const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar });
+      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar, svodYaxlit });
       const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');

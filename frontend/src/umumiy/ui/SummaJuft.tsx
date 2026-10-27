@@ -35,6 +35,7 @@ export function SummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniy
       <span className={katta} data-testid="summa-ustamali">{asosiy}</span>
       {!bilinmaydi && <span className="text-[10.5px] text-text-mute" data-testid="summa-ustamasiz">{t('ustamasiz')}: <FmtN val={ustamasiz} /></span>}
       {taxminiy && <span className="text-[10px] text-warn" data-testid="summa-taxminiy">{t('taxminiy (kat noma’lum: {pul} so‘m)', { pul: pul(u!.nomalum.summa) })}</span>}
+      {u?.qadamlar?.yaxlit != null && <span className="text-[10px] text-text-mute" data-testid="summa-svod-yaxlit">{t('shundan svod yaxlit (ustamasiz): {pul} so‘m', { pul: pul(u.qadamlar.yaxlit) })}</span>}
       {hechBiriYoq && <span className="text-[10px] text-warn" data-testid="summa-kat-nomalum">{t('kat noma’lum: {pul} so‘m', { pul: pul(u!.nomalum.summa) })}</span>}
       {h.holat === 'xato' && katKesim && !bilinmaydi && <button type="button" className="text-left text-[10px] text-warn underline" onClick={h.retry}>{t('Ustama o‘qilmadi — qayta urinish')}</button>}
     </span>

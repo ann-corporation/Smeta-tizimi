@@ -10,8 +10,10 @@ import { obyektImzochilarOl } from './obyekt-imzochi';
 import { kompaniyaSozlamaOl } from './kompaniya-sozlama';
 import type { ImzoNomlar } from '../lib/hujjat-yozuvchi';
 import type { Podval } from '../lib/nakrutka-konstruktor';
+import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
-export type F2HujjatKonteksti = { imzo: ImzoNomlar; shartnoma: string | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; podval: Podval | null };
+/** svodYaxlit — smeta darajasidagi hujjatlar (LRV) uchun; tasdiqlangan F2 hujjati undan foydalanmaydi. */
+export type F2HujjatKonteksti = { imzo: ImzoNomlar; shartnoma: string | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; podval: Podval | null; svodYaxlit?: SvodYaxlit | null };
 
 /**
  * Imzo: obyektdagi tayinlangan imzochi > shartnoma tomoni > bo'sh; tuzuvchi/tekshiruvchi — kompaniya sukuti.
@@ -35,7 +37,7 @@ export async function f2HujjatKonteksti(kompaniyaId: number, obyektId: number): 
     kompaniya: sukut && typeof sukut === 'object' ? sukut as ImzoNomlar : null,
   });
   const podval = await obyektPodvali(kompaniyaId, obyektId, nk?.ok ? nk.shartnoma_id : null);
-  return { imzo, shartnoma, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval };
+  return { imzo, shartnoma, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, svodYaxlit: nk?.ok ? nk.svod_yaxlit ?? null : null };
 }
 
 /** F2 hujjati "kimligi" — bir xil F2 (obyekt + oy + raqam) uchun token bir marta olinadi, qayta chiqarish bepul. */

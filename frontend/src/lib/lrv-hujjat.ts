@@ -25,6 +25,7 @@ import { lrvKalitYoz } from './lrv-qayta-import';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { pivotQosh, type PivotKatak } from './hujjat-yozuvchi/pivot';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { YAXLIT_IZOH, YAXLIT_KAT, type SvodYaxlit } from './svod-yaxlit';
 
 export type LrvHujjatOpsiya = {
   obyektNom: string;
@@ -36,6 +37,10 @@ export type LrvHujjatOpsiya = {
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
   podval?: Podval | null;
   mavzu?: RangMavzusi;
+  /** Svod yaxlit bo'limlari va avlodlari (`yaxlitQatorIdlari`): ustama kaskadiga kirmaydi, podvalda alohida qator. */
+  yaxlitIdlar?: ReadonlySet<number> | null;
+  /** Svod yaxlit xulosasi (server) — smeta ustunidagi yaxlit summa svoddan (QQS siz). */
+  svodYaxlit?: SvodYaxlit | null;
 };
 
 const U: RasmiyUstun[] = [
@@ -111,6 +116,9 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     N: Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar,
   };
   const jamiJS: Record<(typeof PUL)[number], number | null> = { H: 0, L: 0, N: 0 };
+  /** Svod yaxlit qatorlari summasi (ustamasiz) — kategoriya kesimiga kirmaydi. */
+  const yaxJS: Record<(typeof PUL)[number], number> = { H: 0, L: 0, N: 0 };
+  let yaxBor = false;
   const diqqat: Array<{ nom: string; sabab: string; joy?: string }> = [];
   let n = 0;
   const birinchi = v.r;
@@ -157,9 +165,11 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const f2Summa = son(hq?.f2_summa) ?? (f2 === 0 ? 0 : narx != null ? yaxlit2(f2 * narx) : null);
     const summa = narx != null ? yaxlit2(smetaHajm * narx) : null;
     if (narxBildirishnomaKerak(q, narx)) diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: NARX_YOQ_SABAB });
+    const yx = !!o.yaxlitIdlar?.has(q.id);
+    if (yx) yaxBor = true;
     for (const [c, x] of [['H', summa], ['L', faktSumma], ['N', f2Summa]] as const) {
       if (x != null) jamiJS[c] = yaxlit2((jamiJS[c] ?? 0) + x);
-      if (kat && x != null) ks[c][kat] = yaxlit2(ks[c][kat] + x);
+      if (yx) { if (x != null) yaxJS[c] = yaxlit2(yaxJS[c] + x); } else if (kat && x != null) ks[c][kat] = yaxlit2(ks[c][kat] + x);
     }
     const rk = `${kat ?? ''}|${(q.kod ?? '').trim()}|${(q.nom ?? '').trim()}|${(q.birlik ?? '').trim()}`;
     const res = resurslar.get(rk) ?? { kalit: `Р${resurslar.size + 1}`, kat, kod: (q.kod ?? '').trim(), nom: (q.nom ?? '').trim() || 'Nomsiz', birlik: (q.birlik ?? '').trim(), narxlar: new Set<number>(), hajm: 0, summa: 0, fakt: 0, faktSumma: 0 };
@@ -176,7 +186,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     v.qator('oddiy', (r): Qiymat[] => [++n, q.kod ?? '', q.nom || 'Nomsiz', q.birlik ?? '',
       norma != null ? { n: norma, uslub: 'norma' } : null,
       normaFormula ? { f: `ROUND(E${r}*F${ishQator},6)`, v: smetaHajm } : smetaHajm,
-      narx, narx != null ? { f: `ROUND(F${r}*G${r},2)`, v: summa } : null, tur, kat ?? '',
+      narx, narx != null ? { f: `ROUND(F${r}*G${r},2)`, v: summa } : null, tur, yx ? YAXLIT_KAT : kat ?? '',
       fakt, faktSumma == null ? null : son(hq?.fakt_summa) != null || fakt === 0 ? faktSumma : { f: `IF(G${r}="","",ROUND(K${r}*G${r},2))`, v: faktSumma },
       f2, f2Summa,
       { f: `ROUND(F${r}-K${r},6)`, v: y6(smetaHajm - fakt) }, { f: `IF(OR(H${r}="",L${r}=""),"",ROUND(H${r}-L${r},2))`, v: summa == null || faktSumma == null ? '' : yaxlit2(summa - faktSumma) },
@@ -199,12 +209,14 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
   const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
-  nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: [...PUL], foizUstun: 'G', nk, katSummalar: ks, kfJadval: false });
+  const yaxlit = yaxBor ? { H: o.svodYaxlit?.qqssiz ?? yaxJS.H, L: yaxJS.L, N: yaxJS.N } : null;
+  nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: [...PUL], foizUstun: 'G', nk, katSummalar: ks, kfJadval: false, yaxlit });
+  if (yaxBor) v.izoh(YAXLIT_IZOH);
   v.diqqat(diqqat);
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
 
   const rv = resursVedomosti([...resurslar.values()], { nom: v.nom, a: birinchi, b: oxirgi, itogoR, jami: jamiJS.H, obyektNom: o.obyektNom });
-  const sv = svod({ nom: v.nom, a: birinchi, b: oxirgi, obyektNom: o.obyektNom, ks, jamiJS });
+  const sv = svod({ nom: v.nom, a: birinchi, b: oxirgi, obyektNom: o.obyektNom, ks, jamiJS, yaxJS: yaxBor ? yaxJS : null });
   const kitob = rasmiyKitob([v, rv, sv], { mavzu: o.mavzu, tur: 'lrv' });
   // Haqiqiy Excel pivot: xarajat turi → resurs; smeta / fakt / ostatka summalari (ochilganda yangilanadi).
   const bytes = pivotQatorlar.length ? pivotQosh(kitob.bytes, {
@@ -308,7 +320,7 @@ const SVOD: RasmiyUstun[] = [
 ];
 
 /** Свод по видам затрат — LRV dan SUMIF (Кат. bo'yicha); har raqam formula. */
-function svod(o: { nom: string; a: number; b: number; obyektNom: string; ks: Record<(typeof PUL)[number], KatSummalar>; jamiJS: Record<(typeof PUL)[number], number | null> }): RasmiyVaraq {
+function svod(o: { nom: string; a: number; b: number; obyektNom: string; ks: Record<(typeof PUL)[number], KatSummalar>; jamiJS: Record<(typeof PUL)[number], number | null>; yaxJS?: Record<(typeof PUL)[number], number> | null }): RasmiyVaraq {
   const w = new RasmiyVaraq({ nom: 'Свод', sarlavha: 'СВОД ПО ВИДАМ ЗАТРАТ', titul: [['Объект:', o.obyektNom]], ustunlar: SVOD, yonalish: 'landscape' });
   const ref = (c: string) => `'${o.nom}'!${c}${o.a}:${c}${o.b}`;
   const boshi = w.r;
@@ -322,6 +334,18 @@ function svod(o: { nom: string; a: number; b: number; obyektNom: string; ks: Rec
       { f: `ROUND(D${r}-E${r},2)`, v: yaxlit2(o.ks.L[k] - o.ks.N[k]) },
       { f: `IF(C${r}=0,"",ROUND(D${r}/C${r}*100,1))`, v: o.ks.H[k] ? Math.round(o.ks.L[k] / o.ks.H[k] * 1000) / 10 : '' },
     ], { rang: (RANG_TARTIB as readonly string[]).includes(k) ? k as QatorRangi : null });
+  }
+  if (o.yaxJS) {
+    // Svod yaxlit bo'limlari (письмо заказчика) — kategoriyalarga kirmaydi, alohida qator (прямые затраты, ustamasiz).
+    const y = o.yaxJS;
+    w.qator('oddiy', (r): Qiymat[] => [++n, 'РАЗДЕЛЫ ПО СВОДУ (без накладных расходов)',
+      { f: `SUMIF(${ref(C.J)},"${YAXLIT_KAT}",${ref(C.H)})`, v: y.H },
+      { f: `SUMIF(${ref(C.J)},"${YAXLIT_KAT}",${ref(C.L)})`, v: y.L },
+      { f: `SUMIF(${ref(C.J)},"${YAXLIT_KAT}",${ref(C.N)})`, v: y.N },
+      { f: `ROUND(C${r}-D${r},2)`, v: yaxlit2(y.H - y.L) },
+      { f: `ROUND(D${r}-E${r},2)`, v: yaxlit2(y.L - y.N) },
+      { f: `IF(C${r}=0,"",ROUND(D${r}/C${r}*100,1))`, v: y.H ? Math.round(y.L / y.H * 1000) / 10 : '' },
+    ]);
   }
   const oxiri = w.r - 1;
   w.qator('vsego', (r): Qiymat[] => [null, 'ВСЕГО ПРЯМЫЕ ЗАТРАТЫ',
