@@ -99,9 +99,12 @@ describe('HujjatTomonlariPanel — obyekt rejimi', () => {
     render(<Namuna razdel />);
     const sel = (await screen.findAllByLabelText('Qaysi darajaga saqlanadi', { selector: '#ht-daraja-pudratchi' }))[0] as HTMLSelectElement;
     expect([...sel.options].map((o) => o.value)).toEqual(['razdel', 'obyekt', 'loyiha']);
-    const taklif = screen.getByLabelText(/\(ПОДРЯДЧИК\) — Oldin kiritilganlar/) as HTMLSelectElement;
+    // Avval saqlangan qiymat va takliflar yuklanib bo'lsin — aks holda kech kelgan javob tanlovni bosib ketadi (CI'da beqaror edi).
+    await waitFor(() => expect((screen.getByLabelText(/\(ПОДРЯДЧИК\) — Tashkilot/) as HTMLInputElement).value).toBe('Bizning MChJ'));
+    const taklif = await screen.findByLabelText(/\(ПОДРЯДЧИК\) — Oldin kiritilganlar/) as HTMLSelectElement;
+    await waitFor(() => expect([...taklif.options].some((o) => o.textContent?.includes('Eski MChJ'))).toBe(true));
     fireEvent.change(taklif, { target: { value: '0' } });
-    expect((screen.getByLabelText(/\(ПОДРЯДЧИК\) — Tashkilot/) as HTMLInputElement).value).toBe('Eski MChJ');
+    await waitFor(() => expect((screen.getByLabelText(/\(ПОДРЯДЧИК\) — Tashkilot/) as HTMLInputElement).value).toBe('Eski MChJ'));
     expect((screen.getByLabelText(/\(ПОДРЯДЧИК\) — F\.I\.O\./) as HTMLInputElement).value).toBe('Soliyev S.');
   });
 });
