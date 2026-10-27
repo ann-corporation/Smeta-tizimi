@@ -1,6 +1,6 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
+import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { chiqarilganmi, chiqarishRuxsat, MEHNAT_ZAMENA_YOQ, mehnatResursmi } from '../../lib/resurs-amal';
 import { ResursChiqarishModal, type ChiqarishQator } from './ResursChiqarishModal';
 import { sbT2ZamenaAlmashtirishBelgila } from '../../api/t2-additional-replacement';
@@ -63,6 +63,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   tuzilmaniYangila: () => Promise<void> | void;
 }) {
   const [sana, setSana] = useState(() => new Date().toISOString().slice(0, 10));
+  /* Bo'limlar paneli (egasi 2026-10-27): noutbukda standart yopiq — jadvalga joy; chap chetdagi keng tugma bilan ochiladi.
+   * Foydalanuvchi tanlovi shu brauzerda eslab qolinadi. */
+  const [panelOchiq, setPanelOchiq] = useState(() => {
+    try { const v = localStorage.getItem('fakt:bolim-panel'); if (v) return v === 'ochiq'; } catch { /* saqlanmagan */ }
+    return typeof window === 'undefined' || window.innerWidth >= 1600;
+  });
+  const panelAlmashtir = () => setPanelOchiq((v) => { try { localStorage.setItem('fakt:bolim-panel', v ? 'yopiq' : 'ochiq'); } catch { /* saqlanmasa ham ishlaydi */ } return !v; });
   const [kiritmalar, setKiritmalar] = useState<Record<number, Kiritma>>({});
   const [bolimId, setBolimId] = useState<number | null>(boshBolimId);
   const [qidiruv, setQidiruv] = useState('');
@@ -361,15 +368,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     const ortiqcha = xato || yangiFakt == null ? null : ochiqdanOrtiqcha({ smeta: q.smeta, fakt: yangiFakt, almashtirilgan: q.almashtirilgan, bajarilmaydi: q.bajarilmaydi });
     const oshdi = (ortiqcha ?? 0) > 0;
     const izoh = yangiFakt != null && <div className={`absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] ${oshdi ? 'font-semibold text-warn' : 'text-text-mute'}`} data-testid={oshdi ? 'qoldiqdan-oshdi' : undefined}>→ {fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}{oshdi ? ` · ${t('qoldiqdan oshdi')} +${fmt(ortiqcha)}` : ''}</div>;
-    return <div className="flex items-center justify-end gap-1.5">
-      <div className="flex w-[78px] justify-end gap-0.5">{!kichik && [25, 50, 100].map((p) => { const v = qoldiqUlushi(q, p); return v ? <button key={p} type="button" tabIndex={-1} onClick={() => kirit(q.id, { rejim: '+', qiymat: v })} title={t('Ochiq qoldiqning {p}% i', { p: String(p) })} className="h-6 rounded-[var(--radius-xs)] border border-border px-1 font-mono text-[10.5px] text-text-dim hover:border-accent hover:text-text">{p}%</button> : null; })}</div>
+    return <div className="flex flex-wrap-reverse items-center justify-end gap-1">
+      <div className="flex w-full justify-end gap-0.5 empty:hidden">{!kichik && [25, 50, 100].map((p) => { const v = qoldiqUlushi(q, p); return v ? <button key={p} type="button" tabIndex={-1} onClick={() => kirit(q.id, { rejim: '+', qiymat: v })} title={t('Ochiq qoldiqning {p}% i', { p: String(p) })} className="h-6 rounded-[var(--radius-xs)] border border-border px-1 font-mono text-[10.5px] text-text-dim hover:border-accent hover:text-text">{p}%</button> : null; })}</div>
       <div className="inline-flex h-6 overflow-hidden rounded-[var(--radius-xs)] border border-border-strong text-[12px]" role="group" aria-label={t('Kiritish rejimi')}>
         {(['+', '='] as Rejim[]).map((r) => <button key={r} type="button" tabIndex={-1} aria-pressed={k.rejim === r} title={r === '+' ? t('Bugun bajarilgan hajm (qo‘shiladi)') : t('Jami fakt (shu qiymatga tenglashtiriladi)')} onClick={() => kirit(q.id, { rejim: r })} className={`w-6 font-semibold ${k.rejim === r ? 'bg-accent text-[var(--on-accent)]' : 'text-text-dim hover:bg-surface-3'}`}>{r}</button>)}
       </div>
       <div className="relative">
         <input ref={(el) => { inputlar.current[i] = el; }} onFocus={(e) => e.currentTarget.select()} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, i, q.id)} inputMode="decimal"
           placeholder={k.rejim === '+' ? t('bugun') : t('jami')} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
-          className={`h-7 w-[92px] rounded-[var(--radius-sm)] border bg-bg px-2 text-right font-mono text-[13px] tabular-nums outline-none focus:border-accent ${xato || oshdi ? 'border-warn' : k.qiymat ? 'border-accent' : 'border-border-strong'}`} />
+          className={`h-7 w-[80px] rounded-[var(--radius-sm)] border bg-bg px-2 text-right font-mono text-[13px] tabular-nums outline-none focus:border-accent ${xato || oshdi ? 'border-warn' : k.qiymat ? 'border-accent' : 'border-border-strong'}`} />
         {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] font-semibold text-warn">{t(JURNAL_XATO_MATN[xato])}</div> : izoh}
       </div>
     </div>;
@@ -380,7 +387,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
    * Ish/resurs (holat muhri + bitta belgi guruhi) | Smeta (hajm, birlik, narx) | Bajarilish (chiziq) | Bu fakt |
    * Ochiq qoldiq | F2 ga olish mumkin | Fakt summasi | amallar.
    */
-  const USTUN = 'grid grid-cols-[minmax(220px,1fr)_100px_190px_236px_88px_104px_136px_92px] items-center gap-x-2';
+  const USTUN = 'grid grid-cols-[minmax(220px,1fr)_92px_132px_140px_80px_84px_112px_auto] items-start gap-x-2';
   const sonKatak = 'text-right font-mono text-[12px] tabular-nums';
   /** F2 qoldig'i (smeta − F2 − almashtirilgan) — yagona `ochiqQoldiq` ning F2 rejimi. */
   const f2QoldiqOl = (q: JurnalQator): number | null => ochiqQoldiq({ smeta: q.smeta, f2: Number(holatMap.get(q.id)?.f2_hajm ?? 0), almashtirilgan: q.almashtirilgan }, 'f2');
@@ -474,13 +481,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     const tk = alohida && !kiritmalar[ish.id]?.qiymat.trim() ? matTaklifi(ish.id) : null;
     return <div className={`${USTUN} px-3 py-2 ${satrFon(ish)}`} data-testid={`ish-${ish.id}`}>
       <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 items-start gap-1.5">
           {bolaSoni > 0
             ? <button type="button" tabIndex={-1} onClick={() => ishAlmashtir(ish.id)} aria-expanded={ochiq} aria-label={t('Resurslar: {nom}', { nom: ish.nom })} title={ochiq ? t('Resurslarni yopish') : t('Resurslarni ochish ({n} ta)', { n: String(bolaSoni) })} className="rounded p-0.5 text-text-mute hover:text-text">{ochiq ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
             : <span className="w-[18px] shrink-0" />}
           {alohida ? <KatNishon kat={ish.kat ?? katAniqla(null, ish.tur, ish.birlik)} /> : <span className="fz-kat shrink-0 bg-accent/15 text-[var(--accent-text)]" data-testid="ish-belgi">{t('ISH')}</span>}
           {ish.kod && <span className="shrink-0 font-mono text-[11px] text-text-mute">{ish.kod}</span>}
-          <span className="truncate text-[13px] font-semibold text-text" title={`${ish.kod ? ish.kod + ' ' : ''}${ish.nom}`}>{ish.nom}</span>
+          <span className="nom-toliq min-w-0 flex-1 text-[13px] font-semibold leading-[17px] text-text" title={`${ish.kod ? ish.kod + ' ' : ''}${ish.nom}`}>{ish.nom}</span>
           {!ochiq && bolaSoni > 0 && <span className="shrink-0 text-[11px] text-text-mute">{t('{n} resurs', { n: String(bolaSoni) })}</span>}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-1 pl-6">
@@ -514,12 +521,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     const ikkinchi = belgiBor(r) || r.holat === 'oshdi' || tk != null;
     return <div key={r.id} className={`${USTUN} py-1 pl-3 pr-3 ${avto ? 'opacity-80' : ''} ${satrFon(r)}`} data-testid={`resurs-${r.id}`}>
       <div className="flex min-w-0 flex-col gap-0.5 pl-9">
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 items-start gap-1.5">
           <span className="text-text-mute/60" aria-hidden="true">└</span>
           <KatNishon kat={r.kat ?? katAniqla(null, r.tur, r.birlik)} />
           {avto && <span className="fz-chip shrink-0" title={t('Avtomatik: norma × ish fakti')} data-testid="avto-belgi"><Cpu size={10} aria-hidden="true" />{t('avto')}</span>}
           {r.kod && <span className="shrink-0 font-mono text-[10.5px] text-text-mute">{r.kod}</span>}
-          <span className={`truncate text-[12px] ${avto ? 'text-text-mute' : 'text-text-dim'}`} title={`${r.kod ? r.kod + ' ' : ''}${r.nom}`}>{r.nom}</span>
+          <span className={`nom-toliq min-w-0 flex-1 text-[12px] leading-4 ${avto ? 'text-text-mute' : 'text-text-dim'}`} title={`${r.kod ? r.kod + ' ' : ''}${r.nom}`}>{r.nom}</span>
         </div>
         {ikkinchi && <div className="flex min-w-0 flex-wrap items-center gap-1 pl-4">{r.holat === 'oshdi' && <HolatMuhr holat="oshdi" />}{belgilar(r)}
           {tk && <button type="button" tabIndex={-1} onClick={() => kirit(r.id, { rejim: '+', qiymat: String(tk.hajm) })} data-testid="material-taklif"
@@ -585,9 +592,17 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
             <p className="max-w-md text-[13px] text-text-dim">{t('Bu obyektda smeta yo‘q. Bajarilgan ishlarni resurslari bilan to‘g‘ridan-to‘g‘ri kiriting — ular faktga yoziladi va F2 ga tayyor bo‘ladi.')}</p>
             <button onClick={() => setModal({ rejim: { tur: 'additional' } })} className="fz-btn fz-btn--primary fz-btn--lg"><Plus size={16} /> {t('Bajarilgan ishni kiritish')}</button>
           </section>
-        : <div className="ish-maydoni grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[clamp(220px,20vw,272px)_minmax(0,1fr)]">
-          <aside className="fz-card flex min-h-0 flex-col" aria-label={t('Bo‘limlar')}>
-            <div className="fz-panel__h border-b border-border px-3 py-2.5"><span>{t('Bo‘limlar')}</span><span className="tabular-nums">{t('{a} / {b} tugagan', { a: String(xulosa.bolimTugagan), b: String(xulosa.bolimJami) })}</span></div>
+        : <div className={`ish-maydoni grid min-h-0 flex-1 grid-cols-1 gap-2 ${panelOchiq ? 'md:grid-cols-[clamp(220px,20vw,272px)_minmax(0,1fr)]' : 'md:grid-cols-[44px_minmax(0,1fr)]'}`}>
+          {!panelOchiq && <button type="button" onClick={panelAlmashtir} data-testid="bolim-panel-och"
+            aria-label={t('Bo‘limlar panelini ochish')} title={t('Bo‘limlar panelini ochish')}
+            className="fz-card group hidden min-h-0 flex-col items-center gap-3 py-3 text-text-dim transition-colors hover:border-accent hover:bg-accent/10 hover:text-[var(--accent-text)] md:flex">
+            <PanelLeftOpen size={20} />
+            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] [writing-mode:vertical-rl] rotate-180">{t('Bo‘limlar')} · {t('{a} / {b} tugagan', { a: String(xulosa.bolimTugagan), b: String(xulosa.bolimJami) })}</span>
+          </button>}
+          <aside className={`fz-card min-h-0 flex-col ${panelOchiq ? 'flex' : 'flex md:hidden'}`} aria-label={t('Bo‘limlar')}>
+            <div className="fz-panel__h flex items-center gap-2 border-b border-border py-1.5 pl-3 pr-1.5"><span>{t('Bo‘limlar')}</span><span className="ml-auto tabular-nums">{t('{a} / {b} tugagan', { a: String(xulosa.bolimTugagan), b: String(xulosa.bolimJami) })}</span>
+              <button type="button" onClick={panelAlmashtir} data-testid="bolim-panel-yop" aria-label={t('Bo‘limlar panelini yig‘ish')} title={t('Bo‘limlar panelini yig‘ish')}
+                className="hidden h-8 w-8 items-center justify-center rounded-md border border-border text-text-dim hover:border-accent hover:bg-accent/10 hover:text-[var(--accent-text)] md:inline-flex"><PanelLeftClose size={16} /></button></div>
             <nav className="min-h-0 flex-1 overflow-auto py-1">
               {bolimlar.filter(bolimKorinadi).map((b) => { const tanlangan = b.id === bolimId && !qidiruv; return <div key={b.id} className={`group flex items-center gap-1 border-l-2 pr-2 ${tanlangan ? 'border-l-accent bg-accent/10' : 'border-l-transparent hover:bg-surface-3'}`} style={{ paddingLeft: 4 + b.daraja * 14 }}>
                 {bolaliBolim.has(b.id)
@@ -623,7 +638,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
               <MeterLegenda />
             </header>
             <div className="min-h-0 flex-1 overflow-auto pb-16" data-testid="fakt-jadval">
-              <div className="min-w-[1220px]">
+              <div className="min-w-[980px]">
                 <div className={`${USTUN} sticky top-0 z-10 border-b border-border-strong bg-surface-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim`} role="row">
                   {ustunSarlavha(t('Ish / resurs'), t('holat · belgilar'))}
                   {ustunSarlavha(t('Smeta'), t('hajm · birlik narxi'), { ong: true })}

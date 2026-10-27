@@ -628,3 +628,5 @@ h1, h2 { font-family: var(--font-display); }
 @media (max-height: 800px) {
   .fz-pagehead__desc { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 }
+/* Ish/resurs nomi kesilmaydi: 4 qatorgacha o'raladi (egasi: «to'liq o'qib bo'ladigan bo'lsin»), qolgani title'da. */
+.nom-toliq { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }

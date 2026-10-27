@@ -130,5 +130,13 @@
  "Son qiymati": {
   "ru": "Значение",
   "en": "Value"
+ },
+ "Bo‘limlar panelini ochish": {
+  "ru": "Открыть панель разделов",
+  "en": "Open sections panel"
+ },
+ "Bo‘limlar panelini yig‘ish": {
+  "ru": "Свернуть панель разделов",
+  "en": "Collapse sections panel"
  }
 }
