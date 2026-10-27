@@ -21,6 +21,7 @@ import { kaskadZinapoya, umumiyUstama } from '../../lib/narx-korinish';
 import { KaskadZinapoya, ZinapoyaLegenda } from '../../components/narx/NarxKorinish';
 import { PodvalKonstruktor } from './PodvalKonstruktor';
 import { NakrutkaManbaChip } from './SmetaPodvalNakrutka';
+import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 
 /**
  * T1->T2 PTO gap-close: NAKRUTKA (markup/overhead) sahifasi -- T1 GAS'ning
@@ -46,6 +47,7 @@ const KASKAD_QATORLAR: { key: keyof NakrutkaKaskad; label: string }[] = [
   { key: 'itogo3', label: 'ИТОГО-3' },
   { key: 'strax', label: 'Sug\'urta' },
   { key: 'risk', label: 'Risk' },
+  { key: 'yaxlit', label: 'Svod yaxlit bo‘limlari (ustamasiz, ҚҚС siz)' },
   { key: 'itogo4', label: 'ИТОГО-4' },
   { key: 'nds', label: 'ҚҚС' },
   { key: 'vsego', label: 'ВСЕГО', },
@@ -138,6 +140,7 @@ function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: 
   const [kaskad, setKaskad] = useState<NakrutkaKaskad | null>(null);
   const [jadval, setJadval] = useState<NakrutkaKategoriyaJadval | null>(null);
   const [manba, setManba] = useState<NakrutkaManba | null>(null);
+  const [svodYaxlit, setSvodYaxlit] = useState<SvodYaxlit | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -145,7 +148,7 @@ function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: 
     void t2ObyektNakrutka(obyektId, contractId).then(r => {
       if (!active) return;
       if (!r.ok) { setXato(r.error || r.code || 'Hisoblanmadi'); setCats(null); setKaskad(null); setJadval(null); return; }
-      setCats(r.cats ?? null); setKaskad(r.nakrutka ?? null); setJadval(r.jadval ?? null); setManba(r.nk_manba ?? null);
+      setCats(r.cats ?? null); setKaskad(r.nakrutka ?? null); setJadval(r.jadval ?? null); setManba(r.nk_manba ?? null); setSvodYaxlit(r.svod_yaxlit ?? null);
     }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
   }, [obyektId, contractId]);
@@ -154,7 +157,10 @@ function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: 
   if (xato) return <p className="fz-note fz-note--danger">{xato}</p>;
   if (!kaskad || !cats) return null;
 
-  const qadamlar = kaskadZinapoya(kaskad as unknown as Record<string, unknown>, KASKAD_QATORLAR.map((q) => ({ ...q, label: t(q.label) })));
+  // Svod yaxlit qatori faqat belgilangan bo'lim bo'lsa (server nakrutka.yaxlit).
+  const qadamlar = kaskadZinapoya(kaskad as unknown as Record<string, unknown>, KASKAD_QATORLAR
+    .filter((q) => q.key !== 'yaxlit' || kaskad.yaxlit != null)
+    .map((q) => ({ ...q, label: t(q.label) })));
   const ustama = umumiyUstama(kaskad.pryamye, kaskad.vsego);
   const katJami = KAT_BOLAK.reduce((a, k) => a + Math.max(0, cats[k.kalit] ?? 0), 0);
   const jadvalMax = jadval ? Math.max(1e-9, ...Object.values(jadval)) : 1;
@@ -168,6 +174,11 @@ function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: 
             <span className="text-text-dim">{t('ВСЕГО (ustamali, ҚҚС bilan)')}</span><b className="text-right font-[family-name:var(--font-display)] text-[18px] tabular-nums text-text"><FmtN val={kaskad.vsego} /></b>
           </div>
           <NakrutkaManbaChip manba={manba} />
+          {svodYaxlit && (
+            <p className="fz-note fz-note--info text-[12px]" data-testid="svod-yaxlit">
+              {t('Svod yaxlit bo‘limlari ({n}) ustamasiz qo‘shildi: {s} so‘m (ҚҚС siz) — summa svodning o‘zidan, ustama hisoblanmaydi.', { n: String(svodYaxlit.bolimlar.length), s: svodYaxlit.qqssiz.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) })}
+            </p>
+          )}
           <span className="fz-chip fz-chip--accent self-start" data-testid="umumiy-ustama">{t('Umumiy ustama')}: {ustama == null ? '—' : `+${ustama.toFixed(2)}%`}</span>
         </section>
         <section className="fz-panel" aria-label={t('Kategoriyalar bo‘yicha')}>

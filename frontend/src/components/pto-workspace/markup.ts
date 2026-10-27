@@ -4,6 +4,7 @@ import { NAKRUTKA_KOEF_KODLAR, type t2ObyektNakrutka } from '../../api/t2-nakrut
 import { podvalTanla, serverCatsKatga, type PodvalYozuv } from '../../api/t2-nakrutka-podval';
 import { podvalgaKoefQoy, podvalHisobla, podvalTekshir } from '../../lib/nakrutka-konstruktor';
 import type { Aggregate } from './hierarchy';
+import { kaskadCats, yaxlitBilanYakun } from '../../lib/svod-yaxlit';
 
 export function effectiveContract(line: Liniya, objectId: number): number | null | undefined {
   const o = line.obyektlar.find(x => x.id === objectId);
@@ -25,7 +26,14 @@ export function markupAmount(object: T2Obyekt, result: Awaited<ReturnType<typeof
   if (!record) return Number.isFinite(result.nakrutka.vsego) ? result.nakrutka.vsego : null;
   const podval = podvalgaKoefQoy({versiya:1,nom:record.nom,qatorlar:record.qatorlar},result.koeffitsientlar);
   if (podvalTekshir(podval).length) return null;
-  const total = podvalHisobla(podval,serverCatsKatga(result.cats)).vsego;
+  // Svod yaxlit bo'limlari kaskaddan chiqariladi va ИТОГО-4 ga ustamasiz qo'shiladi (server bilan bir xil).
+  const n = podvalHisobla(podval,serverCatsKatga(kaskadCats(result) ?? result.cats));
+  if (result.svod_yaxlit) {
+    const i4 = n.qiymat.itogo4; // podvalda ИТОГО-4 bo'lmasa — taxmin qilinmaydi (NULL ≠ 0)
+    if (i4 == null || !Number.isFinite(i4)) return null;
+    return yaxlitBilanYakun(i4, result.svod_yaxlit.qqssiz, Number(result.koeffitsientlar.НДС ?? 0))?.vsego ?? null;
+  }
+  const total = n.vsego;
   return total != null && Number.isFinite(total) ? total : null;
 }
 
