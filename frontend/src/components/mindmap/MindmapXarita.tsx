@@ -18,6 +18,7 @@ import {
 } from '../../lib/mindmap-korinish';
 import { XaritaKanvas } from './XaritaKanvas';
 import { XaritaPanel, type HodisaHolati } from './XaritaPanel';
+import type { MasulBoshqaruv } from './XaritaJamoa';
 import { XaritaRoyxat } from './XaritaRoyxat';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
 import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
@@ -74,9 +75,11 @@ type Props = {
   onTahrirdaOch?: (id: string) => void;
   /** Tahrir ruxsati (berilmasa — cheklov yo‘q). Yopiq bo‘lsa Tahrir yorlig‘i va tahrir tugmalari chiqmaydi. */
   tahrir?: TahrirRuxsati;
+  /** Mas'ul biriktirish (v4): berilmasa yoki `mumkin=false` — faqat ko'rsatish. */
+  masul?: MasulBoshqaruv;
 };
 
-export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYangila, tanlangan, onTanla, korinish, onKorinish, hodisalar, onTahrirdaOch, tahrir }: Props) {
+export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYangila, tanlangan, onTanla, korinish, onKorinish, hodisalar, onTahrirdaOch, tahrir, masul }: Props) {
   useTil();
   const tahrirMumkin = !tahrir || tahrir.mumkin;
   const yopiqMatn = tahrirYopiqMatni(tahrir);
@@ -141,7 +144,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
 
   const panel = (
     <XaritaPanel daraxt={daraxt} graf={graf} tanlangan={tanlangan} onTanla={onTanla} guruhNomi={guruhNomi}
-      hodisalar={hodisalar} onTahrirdaOch={tahrirMumkin ? onTahrirdaOch : undefined} onHolatFiltr={holatniTanla} holatFiltri={holatFiltri}
+      hodisalar={hodisalar} onTahrirdaOch={tahrirMumkin ? onTahrirdaOch : undefined} onHolatFiltr={holatniTanla} holatFiltri={holatFiltri} masul={masul}
       onYop={katta ? (tanlangan ? () => onTanla(null) : undefined) : () => { setPanelOchiq(false); onTanla(null); }} />
   );
 
@@ -202,6 +205,16 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
           </div>
         </div>
         {!bosh && <Korsatkichlar daraxt={daraxt} graf={graf} onHolat={holatniTanla} />}
+        {daraxt.doiraCheklangan && (
+          <p role="status" data-testid="mindmap-doira" className="mt-2 inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent-soft)] px-2 py-1 text-[12px] text-text">
+            <Info aria-hidden className="h-3.5 w-3.5" />{t('Siz faqat sizga biriktirilgan obyektlarni ko‘ryapsiz')}
+          </p>
+        )}
+        {daraxt.pulYoq && (
+          <p role="status" data-testid="mindmap-pul-yoq" className="mt-2 inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-2 py-1 text-[12px] text-text-dim">
+            <Info aria-hidden className="h-3.5 w-3.5" />{t('Summalar ko‘rsatilmaydi (moliyaviy ruxsat yo‘q)')}
+          </p>
+        )}
         {yopiqMatn && <p role="note" data-testid="mindmap-faqat-oqish" className="mt-2 inline-flex items-center gap-1.5 text-[11.5px] text-text-mute"><Info aria-hidden className="h-3.5 w-3.5" />{yopiqMatn}</p>}
       </header>
 
@@ -274,18 +287,20 @@ function Korsatkichlar({ daraxt, graf, onHolat }: { daraxt: XDaraxt; graf: Mindm
   const loyihaSoni = r.bolalar.filter((id) => daraxt.tugunlar.get(id)!.tur === 'loyiha').length;
   const smetasiz = j?.smetasiz_obyekt ?? null;
   const taxm = r.smetaToliq ? '' : '≈ ';
+  const pulYoq = daraxt.pulYoq;
+  const sabab = t('moliyaviy ruxsat yo‘q');
   return (
     <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-7">
       <Kpi nom={t('Obyektlar')} qiymat={String(r.obyektSoni)} izoh={t('{n} ta loyihada', { n: loyihaSoni })} />
-      <Kpi nom={t('Smeta (ustamasiz)')} qiymat={r.smeta == null ? '—' : taxm + pulQ(r.smeta)}
-        izoh={smetasiz ? t('{n} obyektda smeta yo‘q', { n: smetasiz }) : t('barcha obyektlarda bor')} ogoh={!!smetasiz} />
-      <Kpi nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulQ(r.fakt)} izoh={t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
-        <Bajarilish faktFoiz={r.faktFoiz} f2Foiz={0} smetaBor={r.smeta != null} matn={foizMatn(r.faktFoiz)} />
+      <Kpi nom={t('Smeta (ustamasiz)')} qiymat={r.smeta == null || pulYoq ? '—' : taxm + pulQ(r.smeta)}
+        izoh={pulYoq ? sabab : smetasiz ? t('{n} obyektda smeta yo‘q', { n: smetasiz }) : t('barcha obyektlarda bor')} ogoh={!pulYoq && !!smetasiz} />
+      <Kpi nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat={pulYoq ? '—' : pulQ(r.fakt)} izoh={pulYoq ? sabab : t('smetadan')} title={t('Foiz faqat smetasi bor obyektlar bo‘yicha')}>
+        {!pulYoq && <Bajarilish faktFoiz={r.faktFoiz} f2Foiz={0} smetaBor={r.smeta != null} matn={foizMatn(r.faktFoiz)} />}
       </Kpi>
-      <Kpi nom={t('F2 (tasdiqlangan)')} rang="var(--accent)" qiymat={pulQ(r.f2)}
-        izoh={r.f2Tasdiqlangan ? t('qoralama: {x}', { x: pulQ(r.f2Qoralama) }) : t('asosi noma’lum (server yangilanmagan)')} ogoh={!r.f2Tasdiqlangan && r.obyektSoni > 0}
+      <Kpi nom={t('F2 (tasdiqlangan)')} rang="var(--accent)" qiymat={pulYoq ? '—' : pulQ(r.f2)}
+        izoh={pulYoq ? sabab : r.f2Tasdiqlangan ? t('qoralama: {x}', { x: pulQ(r.f2Qoralama) }) : t('asosi noma’lum (server yangilanmagan)')} ogoh={!pulYoq && !r.f2Tasdiqlangan && r.obyektSoni > 0}
         title={t('Faqat tasdiqlangan F2 aktlar. Foiz faqat smetasi bor obyektlar bo‘yicha')}>
-        <Bajarilish faktFoiz={r.f2Foiz} f2Foiz={r.f2Foiz} smetaBor={r.smeta != null} />
+        {!pulYoq && <Bajarilish faktFoiz={r.f2Foiz} f2Foiz={r.f2Foiz} smetaBor={r.smeta != null} />}
       </Kpi>
       <div className="fz-kpi">
         <span className="fz-kpi__label">{t('Obyektlar holati')}</span>

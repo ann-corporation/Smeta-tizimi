@@ -843,6 +843,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "mindmap_tugun_ochir",
       "rpc": "t2_mindmap_tugun_ochir_v2"
+    },
+    {
+      "amal": "mindmap_masul",
+      "rpc": "t2_mindmap_masul_v1"
     }
   ]
 } as const;

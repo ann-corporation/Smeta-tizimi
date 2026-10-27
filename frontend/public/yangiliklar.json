@@ -12,6 +12,16 @@
       ]
     },
     {
+      "id": 36,
+      "sana": "2026-10-27",
+      "sarlavha": "Xarita: jamoa va mas'ullar; jadval ustun filtrlari",
+      "bandlar": [
+        "Xaritada obyekt/loyihaga mas'ul biriktirish va jamoa ko'rinishi; har kim faqat o'ziga ruxsat berilgan qismni ko'radi.",
+        "Nakopitelniy jadvalida Excel'dagidek ustun filtrlari; grafiklar endi cho'zilib ketmaydi.",
+        "Fakt ekrani ixchamroq, suzuvchi AI tugmalari jadval raqamlarini to'smaydi."
+      ]
+    },
+    {
       "id": 35,
       "sana": "2026-10-27",
       "sarlavha": "Pul tahlilida «Moliyaviy tahlil» jadvali",

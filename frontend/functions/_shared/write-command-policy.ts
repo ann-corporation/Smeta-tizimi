@@ -163,6 +163,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   mindmap_bog_ochir: 'document.write',
   mindmap_joylashuv_saqla: 'document.write',
   mindmap_tugun_ochir: 'document.write',
+  mindmap_masul: 'company.member.manage',
 };
 
 export function writeCommandPermission(amal: string, body: Record<string, unknown> = {}): string {

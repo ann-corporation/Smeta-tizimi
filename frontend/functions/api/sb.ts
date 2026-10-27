@@ -216,6 +216,8 @@ export const onRequestPost: PagesFunction<{
            BITTA chaqiruvda oladi — jadval-jadval o'qish o'rniga. */
         mindmap_grafi: 'kompaniya',
         mindmap_grafi_v2: 'kompaniya',
+        /* 2026-11-11 (mindmap 2-bosqich): odamlar + ko'rish doirasi — actor SESSIYADAN (p_actor_id), a'zolik shu yerda tekshiriladi. */
+        mindmap_grafi_v4: 'kompaniya_actor',
         hodisa_obyekt_lenta: 'obyekt_kompaniya',
         /* T2-REAL-PARK-LRV-VERTICAL-SLICE-004: Price Control + exact-F2
            read models. p_actor_id ALWAYS from the verified session --

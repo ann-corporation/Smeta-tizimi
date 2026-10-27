@@ -35,3 +35,19 @@ export function tahrirYopiqMatni(r: TahrirRuxsati | undefined): string | null {
   if (r.sabab === 'boshqa_kompaniya') return t('Faqat ko‘rish: bu xarita joriy kompaniyangiz emas.');
   return t('Faqat ko‘rish: tahrirlash uchun «Hujjatlar bilan ishlash» (document.write) ruxsati kerak.');
 }
+
+/**
+ * «Mas‘ul biriktirish» ruxsati (2-bosqich). Server `t2_mindmap_masul_v1` `company.member.manage` YOKI
+ * `control.company.write` ni talab qiladi; UI shu qoidani oldindan ko‘rsatadi (server baribir yakuniy to‘siq).
+ * Ruxsatlar ro‘yxati kelmagan bo‘lsa (eski `t2_men`) — aniqlab bo‘lmaydi: tugma CHIQMAYDI (yangi imkoniyat, taxmin qilinmaydi).
+ */
+export const MASUL_RUXSATLARI = ['company.member.manage', 'control.company.write'] as const;
+
+export function mindmapMasulRuxsati({ superadmin = false, joriy, kompaniyaId }: RuxsatKirish): boolean {
+  if (!joriy) return false;
+  if (kompaniyaId != null && kompaniyaId !== joriy.id) return false;
+  if ([joriy.rol, joriy.membershipRole].some((r) => (r ?? '').toLowerCase() === 'rahbar')) return false;
+  if (superadmin) return true;
+  if (!joriy.permissions) return false;
+  return MASUL_RUXSATLARI.some((p) => joriy.permissions!.includes(p));
+}
