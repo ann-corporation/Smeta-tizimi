@@ -1005,6 +1005,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   const [phase, setPhase] = useState('');
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ qator_soni: number } | null>(null);
+  /** Import boshlanishida obyektda smeta bor edimi: yo'q bo'lsa (YANGI smeta) — podval foizlari avtomatik saqlanadi. */
+  const smetaOldinBor = useRef<boolean | null>(null);
   // JONLI_SINOV_TOPILMALARI #15: yakunlash yiqilsa sessiya «ochiq» qoladi (bo'laklar bazada) — qayta yubormasdan
   // shu sessiyani yakunlash yoki toza bekor qilish; katta importda rollup yiqilsa — faqat rollupni qayta chaqirish.
   const [ochiqImport, setOchiqImport] = useState<{ sessiyaId: number; paket: boolean; obyektId: number } | null>(null);
@@ -1382,7 +1384,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
     const lrvs = paketVaraqlar.filter((sheet) => sheet.selectedRole === 'lrv');
     const reses = paketVaraqlar.filter((sheet) => sheet.selectedRole === 'res');
     if (lrvs.some((sheet) => !sheet.lrvCols)) { setError('LRV deb tanlangan varaqdan ish/hajm ustunlari aniqlanmadi. Ustunlarni tuzating yoki rolini o‘zgartiring.'); return; }
-    setError(''); setResult(null); setPaketBand(true); setBusy(true); setPhase('Tasdiqlangan smeta paketi tayyorlanmoqda');
+    smetaOldinBor.current = alreadyHasSmeta; setError(''); setResult(null); setPaketBand(true); setBusy(true); setPhase('Tasdiqlangan smeta paketi tayyorlanmoqda');
     try {
       const objId = Number(objectId);
       const pricedTrees: Array<{ sourceKey: string; tree: AktNode[] }> = [];
@@ -1587,7 +1589,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
 
   async function importQil() {
     if (!book || !cols || !objectId) return;
-    setError(''); setResult(null); const token = generation.current; setBusy(true); setPhase('Import qilinmoqda');
+    smetaOldinBor.current = alreadyHasSmeta; setError(''); setResult(null); const token = generation.current; setBusy(true); setPhase('Import qilinmoqda');
     setImportQadamlari([]);
     const jonli = () => generation.current === token;
     /** Yangi qadam boshlanganini ko'rsatadi -- ro'yxatga qo'shiladi, holati "ishlamoqda". */
@@ -2029,7 +2031,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         <HamrohVaraqlarPaneli erkin={hamroh.erkin} svod={hamroh.svod} tushunilmadi={hamroh.tushunilmadi} tanlov={hamrohTanlov} onTanlov={setHamrohTanlov} />
       )}
       {objectId && (book ? nakrutkaOqish : alreadyHasSmeta) && (
-        <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name} />
+        <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name}
+          avtoSaqla={!!book && !!result && smetaOldinBor.current === false} />
       )}
       {book && cols && !result && (
         <>
