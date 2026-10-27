@@ -2,6 +2,12 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 31,
+      "sana": "2026-10-27",
+      "sarlavha": "Qayta hisobda noma’lum summa va hajmsiz F2 alohida ko‘rsatiladi",
+      "bandlar": ["Tasdiqlangan F2 summasi noma’lum bo‘lsa, narx farqi nol deb hisoblanmaydi. Hajmi nol, summasi bor qatorlar avtomatik tuzatishga kirmaydi — avval aktlarni tekshirish uchun ajratiladi.", "Qayta hisobdagi pul ko‘rinishi umumiy ustamali va ustamasiz ko‘rsatishga moslashtirildi."]
+    },
+    {
       "id": 30,
       "sana": "2026-10-27",
       "sarlavha": "Yangi smeta importida nakrutka foizlari podvaldan avtomatik saqlanadi",
