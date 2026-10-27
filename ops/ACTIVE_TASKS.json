@@ -3,25 +3,28 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "OWNERSHIP-COORD-20261026",
+      "title": "Release inactive Codex editor slots while retaining unfinished semantic tasks",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/ownership-coord-20261026",
+      "base_sha": "a4fe8b6583556c725ae0aab00db392cd48fcc9ec",
+      "status": "ready_for_review",
+      "owns": ["ops/handoff/OWNERSHIP_COORD_20261026.md"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "production_write_allowed": false,
+      "note": "Human asks continued work with parallel agents. Only four Codex-owned editor-slot records are changed; all original statuses/backlogs and every Claude task stay unchanged. Main remains unchanged until L0 review/merge. Guard remains enabled, foreign overlaps and production flag policy error are explicitly open."
+    },
+    {
       "id": "ARCHITECTURE-PACK-20261026",
       "title": "Live metadata Data Model Registry and current architecture pack for Claude L0",
       "owner": "codex",
       "machine": "Anvar",
-      "branch": "codex/architecture-pack-20261026",
+      "branch": "codex/architecture-registry-review-20261026",
       "base_sha": "69db8d45050cc82dfd67baae6dec7153b727a219",
       "status": "ready_for_review",
-      "owns": [
-        "docs/architecture/DATA_MODEL_REGISTRY.yaml",
-        "docs/architecture/CURRENT_SYSTEM_MAP.md",
-        "docs/architecture/DOMAIN_MAP.md",
-        "docs/architecture/PTO_STATE_MACHINE.md",
-        "docs/architecture/ROUTE_RPC_MAP.md",
-        "docs/architecture/RISK_REGISTER.md",
-        "docs/architecture/GOLDEN_FLOWS.md",
-        "docs/architecture/SCHEMA_METADATA_20261026.json",
-        "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json",
-        "docs/architecture/generate-architecture-pack.mjs"
-      ],
+      "owns": ["docs/architecture/DATA_MODEL_REGISTRY.yaml", "docs/architecture/DATA_MODEL_CLASSIFICATION_OVERRIDES.json", "docs/architecture/CURRENT_SYSTEM_MAP.md", "docs/architecture/DOMAIN_MAP.md", "docs/architecture/PTO_STATE_MACHINE.md", "docs/architecture/ROUTE_RPC_MAP.md", "docs/architecture/RISK_REGISTER.md", "docs/architecture/GOLDEN_FLOWS.md", "docs/architecture/SCHEMA_METADATA_20261026.json", "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json", "docs/architecture/generate-architecture-pack.mjs"],
       "depends_on": [],
       "must_read": [
         "AGENTS.md",
@@ -29,7 +32,7 @@
         "docs/governance/AGENT_CAPABILITY_POLICY.md"
       ],
       "production_write_allowed": false,
-      "note": "Explicit L0 item4. Documentation-only, refreshed source d7bf7353 after143/152. Public202+snapshot5=207 tables, public578 routines; SELECT only. 180current/2COMPAT/14BACKUP/1TEMP/10NULL lifecycle entries; one module owner NULL. Static routine bodies exclude acceptance/rollback SQL and trailing migration DML. No DEPRECATED/delete claims, snapshot infrastructure excluded from cleanup. Existing pageCatalog reused. Claude L0 reviews PR156/merges; no runtime/DB/deploy writes."
+      "note": "PR156 merged. Narrow follow-up:11 source-evidenced manual classification overrides, snapshot remains d7bf7353/06:19UTC. Public202+snapshot5=207 tables/public578 routines.185CANONICAL/4COMPAT/14BACKUP/0TEMP/4NULL; one ownerNULL. UnknownERP staysNULL; tmp name only candidateTEMP; observation canonical only for immutable provenance, not approved runtime recipe. All delete_authorized false, usage unverified. No DB/runtime edits."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",
@@ -67,17 +70,12 @@
         "ops/ACTIVE_TASKS.json",
         "ops/mailbox/SMETA-STUDIO-WORKSPACE-V2-20261022/",
         "docs/architecture/SMETA_STUDIO_WORKSPACE_V2.md",
-        "frontend/src/admin/sahifalar/SmetaStudio.tsx",
         "frontend/src/admin/sahifalar/SmetaStudio.test.tsx",
         "frontend/src/admin/sahifalar/StudioKoeffitsientlar.tsx",
         "frontend/src/admin/sahifalar/StudioKoeffitsientlar.test.tsx",
         "frontend/src/admin/sahifalar/StudioBosqichlar.tsx",
         "frontend/src/admin/sahifalar/SmetaAiChat.tsx",
         "frontend/src/admin/sahifalar/studioAgent.ts",
-        "frontend/src/components/smeta-studio-pro/EstimateOutline.tsx",
-        "frontend/src/components/smeta-studio-pro/EstimateEditingWorkspace.tsx",
-        "frontend/src/components/smeta-studio-pro/SmetaDocumentPanel.tsx",
-        "frontend/src/components/smeta-studio-workspace/",
         "frontend/src/lib/smeta-studio/koef-notation.ts",
         "frontend/src/lib/smeta-studio/koef-notation.test.ts",
         "frontend/src/lib/smeta-studio/coefficient-agent.ts",
@@ -98,6 +96,43 @@
         "frontend/src/components/row-order/",
         "frontend/src/test02/TestFaktura.tsx",
         "docs/architecture/ROW_ORDER_CONTROL.md"
+      ],
+      "released_editor_paths": [
+        {
+          "path": "frontend/src/admin/sahifalar/SmetaStudio.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/components/smeta-studio-pro/EstimateOutline.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/components/smeta-studio-pro/EstimateEditingWorkspace.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/components/smeta-studio-pro/SmetaDocumentPanel.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/components/smeta-studio-workspace/",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        }
       ],
       "depends_on": [],
       "must_read": [
@@ -154,11 +189,34 @@
       "base_sha": "1ef3e6d4b8b282fda8e534196c7d55d1918f135f",
       "status": "ready_for_review",
       "owns": [
-        "frontend/src/components/public-entry/",
-        "frontend/src/kirish/KirishSahifa.tsx",
-        "frontend/src/kirish/KirishSahifa.public.test.tsx",
         "ops/handoff/T2_PUBLIC_ENTRY_SUPPORT_20261008.md",
         "ops/mailbox/T2-PUBLIC-ENTRY-UI-20261008/"
+      ],
+      "released_editor_paths": [
+        {
+          "path": "frontend/src/components/public-entry/",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025",
+            "AKKAUNT-KIRISH-20261026"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/kirish/KirishSahifa.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025",
+            "AKKAUNT-KIRISH-20261026"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/kirish/KirishSahifa.public.test.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025",
+            "AKKAUNT-KIRISH-20261026"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        }
       ],
       "depends_on": [],
       "must_read": [
@@ -2519,13 +2577,9 @@
       "base_sha": "bfe6d13369583667bb9d261cf3eb2037a45c7819",
       "status": "in_progress",
       "owns": [
-        "frontend/src/umumiy/daraxt/SmetaTree.tsx",
         "frontend/src/umumiy/daraxt/SmetaTree.interaction.test.tsx",
-        "frontend/src/components/pto-workspace/",
-        "frontend/src/test02/TestObyektlar.tsx",
         "frontend/src/test02/TestLoyiha.tsx",
         "frontend/src/admin/sahifalar/HolatNative.workspace.test.tsx",
-        "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
         "frontend/src/lib/forma3-export.ts",
         "frontend/src/lib/forma3-export.hujjat.test.ts",
         "frontend/src/lib/nakopitelniy-vedomost-export.ts",
@@ -2542,7 +2596,6 @@
         "frontend/src/api/supabase.ts",
         "frontend/src/api/t2-toliq-oqish.ts",
         "frontend/src/api/t2-toliq-oqish.test.ts",
-        "frontend/src/index.css",
         "frontend/src/lib/smeta-ai/ifoda.test.ts",
         "frontend/src/lib/smeta-ai/ifoda.ts",
         "frontend/src/lib/smeta-ai/included-work.test.ts",
@@ -2566,12 +2619,9 @@
         "frontend/src/lib/smeta-studio/company-prices.test.ts",
         "frontend/src/lib/smeta-studio/market-comparison.ts",
         "frontend/src/lib/smeta-studio/market-comparison.test.ts",
-        "frontend/src/components/smeta-studio-pro/MarketPriceComparison.tsx",
-        "frontend/src/components/smeta-studio-pro/MarketPriceComparison.test.tsx",
         "frontend/src/admin/sahifalar/NarxNazoratNative.tsx",
         "frontend/src/admin/sahifalar/OfertaNative.tsx",
         "frontend/src/admin/sahifalar/NarxlarNative.tsx",
-        "frontend/src/admin/sahifalar/HolatNative.tsx",
         "frontend/src/lib/narx-dalil/semantik.ts",
         "frontend/src/lib/narx-dalil/semantik.test.ts",
         "frontend/src/lib/narx-dalil/taklif.ts",
@@ -2589,6 +2639,64 @@
         "supabase/migrations/20261106410000_t2_smeta_price_name_unit_v2.acceptance.sql",
         "frontend/testlar/t2_kompaniya.test.cjs (RES v2 named RPC allowlist only)",
         "frontend/src/admin/sahifalar/F2V3Workbench.operator.test.tsx"
+      ],
+      "released_editor_paths": [
+        {
+          "path": "frontend/src/components/smeta-studio-pro/MarketPriceComparison.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/components/smeta-studio-pro/MarketPriceComparison.test.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/admin/sahifalar/HolatNative.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/test02/TestObyektlar.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/components/pto-workspace/",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/umumiy/daraxt/SmetaTree.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/admin/sahifalar/NakopitelniyVedomost.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/index.css",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        }
       ],
       "depends_on": [],
       "must_read": [
@@ -2631,8 +2739,6 @@
       "base_sha": "ee2a7028",
       "status": "ready_for_review",
       "owns": [
-        "frontend/src/admin/sahifalar/F2ImportV3.tsx",
-        "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
         "frontend/src/lib/f2-moslash-v3/",
         "frontend/src/admin/sahifalar/F2V3Workbench.qoshilgan.test.tsx",
         "frontend/src/admin/sahifalar/IshAbcModal.tsx",
@@ -2651,6 +2757,22 @@
         "frontend/src/admin/sahifalar/F2ImportV3.qoralama.test.tsx",
         "frontend/functions/api/sb-yoz.f2-conflict.test.ts",
         "frontend/testlar/t2_kompaniya.test.cjs (F2 added-row named RPC allowlist only)"
+      ],
+      "released_editor_paths": [
+        {
+          "path": "frontend/src/admin/sahifalar/F2ImportV3.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        },
+        {
+          "path": "frontend/src/admin/sahifalar/F2V3Workbench.tsx",
+          "recipient": [
+            "DIZAYN-FIRUZA-V1-20261025"
+          ],
+          "why": "Текущая редакторская блокировка передана активной задаче из-за пересечения owns; тематический backlog и статус исходной задачи сохранены."
+        }
       ],
       "depends_on": [],
       "must_read": [
