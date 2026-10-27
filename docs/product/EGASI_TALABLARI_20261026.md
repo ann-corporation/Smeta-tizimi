@@ -31,7 +31,7 @@
 - Holat (2026-10-26 tekshiruv): bazada to'lov 0, xarajat 0, faktura 1, kadr 0 — haqiqiy foydani hisoblab bo'lmaydi; panel buni «0» emas «kiritilmagan» deb ko'rsatishi va qayerga kiritishni aytishi kerak. `t2_pul_tahlil_v2` butun kompaniyada 19 s — tezlashtirish kerak. — ⏳
 
 ### B3. Summalarga ishonch (QO'POL XATO bo'lmasin)
-- Misol: Amfiteatr — ekspertiza xulosasi **56 mlrd QQS bilan, 43 mlrd to'g'ridan-to'g'ri xarajat**, tizim **50 mlrd** ko'rsatadi; boshqa obyektlarda ham shunday. — ❓ Taxmin: 50 = ustamali ИТОГО-4 QQSsiz (56/1,12 = 50,0). Bazada tasdiqlash kerak (Supabase tasdig'i kutilmoqda). Har summa yonida asos yozilishi kerak: ustamali/ustamasiz, QQSli/QQSsiz; ekspertiza bilan solishtirish uchun QQSli jami.
+- Misol: Amfiteatr — ekspertiza xulosasi **56 mlrd QQS bilan, 43 mlrd to'g'ridan-to'g'ri xarajat**, tizim **50 mlrd** ko'rsatadi; boshqa obyektlarda ham shunday. — ✅ 2026-10-27 bazadan tasdiqlandi (obyekt 151, «Amfiteatr va sahna»): pryamye 43,60 mlrd = ekspertiza 43; ИТОГО-4 (nakrutka, QQSsiz) 50,45 mlrd = tizimdagi «50»; QQS 12% 6,05 mlrd; ВСЕГО 56,50 mlrd = ekspertiza 56. Xato hisobda emas — yorliqda: «ИТОГО-4» QQSsiz ekani yozilmagan ⏳. Har summa yonida asos yozilishi kerak: ustamali/ustamasiz, QQSli/QQSsiz; ekspertiza bilan solishtirish uchun QQSli jami.
 - 399 mlrd «primoy zatrat» — to'g'ri (399,35), lekin ~90 mlrd hujjatsiz qo'shimcha qatorlar bor (Stella 41, Sun'iy ko'l 47) — ❓ egasi ko'rib chiqishi kerak.
 - Har joyda summa **ustamali + ustamasiz** (AGENTS.md 2b).
 
