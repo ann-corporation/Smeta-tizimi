@@ -183,6 +183,8 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Mening xizmatlarim', ikonka: 'Briefcase', sahifalar: [{ yol: '/admin/mutaxassis', nom: 'Mening xizmatlarim', ruxsat: [] }] },
       /* Firuza (#150): o'ng yuqoridagi akkaunt menyusi ham shu sahifaga olib boradi (profil, til, bildirishnoma, ko'rinish). */
       { nom: 'Akkaunt markazi', ikonka: 'User', sahifalar: [{ yol: '/admin/akkaunt', nom: 'Akkaunt markazi', ruxsat: [] }] },
+      /* Sozlamalar markazi (egasi 2026-10-26): akkaunt / kompaniya / tizim sozlamalarining yagona reestri — har kim o'z qatlamini ko'radi. */
+      { nom: 'Sozlamalar markazi', ikonka: 'Settings', sahifalar: [{ yol: '/admin/sozlamalar', nom: 'Sozlamalar markazi', ruxsat: [] }] },
     ],
   },
   {
