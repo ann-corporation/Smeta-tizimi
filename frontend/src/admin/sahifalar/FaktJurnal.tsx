@@ -30,8 +30,12 @@ import { toast } from '../../umumiy/ui/Toast';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
 import { abcXato, ishAbcOchir, type NarxManba } from '../../api/t2-ish-abc';
 import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
-import { f2OlishMumkin, faktMeter, jurnalXulosa, obyektUlushi as obyektUlushiHisobla } from '../../lib/fakt-korinish';
+import { HOLAT_MUHR, f2OlishMumkin, faktMeter, jurnalXulosa, obyektUlushi as obyektUlushiHisobla } from '../../lib/fakt-korinish';
 import { BolimMeter, FaktXulosaPanel, HolatMuhr, MeterLegenda, QatorMeter } from '../../components/fakt/FaktKorinish';
+import type { Daraxt, Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
+import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
+import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
+import { FAKT_DARAXT, faktFiltrQatorlar, faktFiltrQoll, type FaktFiltrQator } from './FaktJadvalFiltr';
 
 const MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'];
 
@@ -230,7 +234,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   // Ko'rinadigan bo'laklar: qidiruv bo'lsa — butun obyekt bo'yicha (har ish o'z bo'lim yo'li bilan);
   // aks holda tanlangan bo'lim va uning BARCHA avlod bo'limlari (egasi 2026-10-25: «ichi bo'sh» chiqmasin).
   type Bolak = { bolim: JurnalBolim | null; nisbiy: number; yol?: string; ishlar: JurnalIsh[] };
-  const korinadi = useMemo((): Bolak[] => {
+  const korinadiAsos = useMemo((): Bolak[] => {
     const q = qidiruv.trim().toLowerCase();
     const mos = (x: JurnalQator) => `${x.kod ?? ''} ${x.nom}`.toLowerCase().includes(q);
     // «Fakti yo'q, lekin F2 olingan» (pereraschet → fakt jurnali): tasdiqlangan F2 bor, fakt 0.
@@ -254,7 +258,6 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     for (let i = tarkib.length - 1; i >= 0; i--) { const x = tarkib[i]; if (x.ishlar.length || toliq.has(x.bolim.id)) { toliq.add(x.bolim.id); if (x.bolim.otaId != null) toliq.add(x.bolim.otaId); } }
     return tarkib.filter((x) => x.nisbiy === 0 || toliq.has(x.bolim.id)).map((x) => ({ bolim: x.nisbiy === 0 ? null : x.bolim, nisbiy: x.nisbiy, ishlar: x.ishlar }));
   }, [qidiruv, faqatQoldiq, faktsizF2, holatMap, bolimId, bolimlar, bolimIshlari]);
-  const korinadiIshSoni = korinadi.reduce((s, x) => s + x.ishlar.length, 0);
 
   const kirit = (id: number, patch: Partial<Kiritma>) => setKiritmalar((o) => {
     const eski = o[id] ?? { rejim: '+' as Rejim, qiymat: '' };
@@ -469,6 +472,53 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       <span className="flex justify-end">{ts && !chiqRes ? <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ts.faktSumma} katKesim={ts.fakt} className="items-end" /> : <span className="text-[12px] text-text-mute">—</span>}</span>
     </>;
   };
+  /*
+   * Excel uslubidagi ustun filtrlari (egasi 2026-10-27): qidiruv va belgilar (faqat bajarilmaganlar, …) bilan VA.
+   * Qiymatlar qator chizadigan manbalardan (holatMap, kiritmalar, taxminKesim) — foydalanuvchi ko'rgani bo'yicha.
+   * Filtr ish darajasida (FaktJadvalFiltr): resurs mos bo'lsa — ota ishi; bo'lim guruhi saqlanadi.
+   */
+  type FQ = FaktFiltrQator<JurnalQator>;
+  const filtrUstunlar = useMemo((): Ustun<FQ>[] => {
+    const f2Ol = (q: JurnalQator) => { const h = holatMap.get(q.id); return h?.f2_hajm == null ? null : Number(h.f2_hajm); };
+    const chiqR = (q: JurnalQator) => q.tur !== 'bl' && chiq(q);
+    return [
+      { kalit: 'kod', nom: t('Kod'), tur: 'matn', qiymat: (r) => r.q.kod },
+      { kalit: 'nom', nom: t('Nomi'), tur: 'matn', qiymat: (r) => r.q.nom },
+      { kalit: 'tur', nom: t('Kat / tur'), tur: 'matn', qiymat: (r) => (!r.bola && r.q.tur === 'bl' ? t('ISH') : r.q.kat ?? katAniqla(null, r.q.tur, r.q.birlik)) },
+      { kalit: 'holat', nom: t('Holat'), tur: 'matn', qiymat: (r) => t(HOLAT_MUHR[r.q.holat].matn) },
+      { kalit: 'hajm', nom: t('Smeta hajmi'), tur: 'son', qiymat: (r) => r.q.smeta },
+      { kalit: 'birlik', nom: t('Birlik'), tur: 'matn', qiymat: (r) => r.q.birlik },
+      { kalit: 'narx', nom: t('Birlik narxi'), tur: 'son', qiymat: (r) => {
+        const n = narxOl(r.q.id); if (n != null) return n;
+        if (r.q.tur === 'bl') { const ts = taxminKesim(r.q); if (ts && r.q.smeta) return ts.smetaSumma / r.q.smeta; }
+        return null;
+      } },
+      { kalit: 'foiz', nom: t('Bajarilish foizi'), tur: 'son', qiymat: (r) => {
+        const f = faktMeter(r.q.smeta, r.q.fakt, f2Ol(r.q)).foiz;
+        // Ko'rinishdagi foizMatn bilan bir xil: 99.6% → 99 (tugamagan ish 100 emas), kichik foiz 0.1 aniqlikda.
+        return f == null || !Number.isFinite(f) ? null : f > 99 && f < 100 ? 99 : Math.abs(f) < 1 ? Math.round(f * 10) / 10 : Math.round(f);
+      } },
+      { kalit: 'fakt', nom: t('Fakt hajm'), tur: 'son', qiymat: (r) => r.q.fakt },
+      { kalit: 'f2', nom: t('F2 hajmi'), tur: 'son', qiymat: (r) => f2Ol(r.q) },
+      { kalit: 'kiritma', nom: t('Bu fakt'), tur: 'son', qiymat: (r) => { const n = sonOqi(kiritmalar[r.q.id]?.qiymat ?? ''); return n != null && Number.isFinite(n) ? n : null; } },
+      { kalit: 'ochiq', nom: t('Ochiq qoldiq'), tur: 'son', qiymat: (r) => (chiqR(r.q) ? null : r.q.qoldiq) },
+      { kalit: 'f2mumkin', nom: t('F2 ga olish mumkin'), tur: 'son', qiymat: (r) => f2OlishMumkin(holatMap.get(r.q.id)) },
+      { kalit: 'summa', nom: t('Fakt summasi'), tur: 'son', qiymat: (r) => { const ts = taxminKesim(r.q); return ts && !chiqR(r.q) ? ts.faktSumma : null; } },
+    ];
+    // taxminKesim/chiq — holatMap, rowById, bajHajm ga tayanadigan render yopilmalari.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holatMap, rowById, bajHajm, kiritmalar, narxOl]);
+  const filtrQatorlar = useMemo(() => faktFiltrQatorlar<JurnalQator>(korinadiAsos), [korinadiAsos]);
+  const jf = useJadvalFiltr<FQ>(filtrQatorlar, filtrUstunlar, FAKT_DARAXT as Daraxt<FQ>);
+  const { bolaklar: korinadi, bolaKorinadi } = useMemo(() => faktFiltrQoll<JurnalQator, JurnalIsh, Bolak>(korinadiAsos, filtrUstunlar, jf.holat, jf.saralash), [korinadiAsos, filtrUstunlar, jf.holat, jf.saralash]);
+  const korinadiIshSoni = korinadi.reduce((s, x) => s + x.ishlar.length, 0);
+  const asosIshSoni = korinadiAsos.reduce((s, x) => s + x.ishlar.length, 0);
+  /** Sarlavhadagi filtr tugmasi (bo'lim ichida saralash ham mumkin — ierarxiya buzilmaydi). */
+  const F = (kalit: string) => <UstunFiltrTugma {...jf.tugma(kalit)} saralashMumkin />;
+  /** Izoh satrida: kichik nom + filtr tugmasi (bir ustunda bir nechta maydon). */
+  const FN = (nom: string, kalit: string) => <span className="inline-flex items-center whitespace-nowrap">{nom}{F(kalit)}</span>;
+  const bolaKor = (ishId: number) => (r: JurnalQator) => !bolaKorinadi || bolaKorinadi(ishId, r.id);
+
   const satrFon = (q: JurnalQator) => `transition-colors focus-within:bg-accent/[.07] ${saqlangan.has(q.id) ? 'bg-ok/10' : kiritmalar[q.id]?.qiymat ? 'bg-accent/[.05]' : ''} border-l-2 ${q.zamena ? 'border-l-[var(--info)]' : q.qoshimcha ? 'border-l-accent' : 'border-l-transparent'}`;
 
   /** ISH qatori (yoki ishsiz alohida resurs): 1-satr — nom; 2-satr — holat muhri va bitta belgi guruhi. */
@@ -558,8 +608,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const sarlavha = qidiruv ? t('Qidiruv: «{q}»', { q: qidiruv }) : tanlanganBolim?.nom ?? t('Bo‘limni tanlang');
   const bolimMaterialIdlar = korinadi.flatMap((b) => b.ishlar.map((i) => i.id));
   const bolimTakliflar = takliflarSoni(bolimMaterialIdlar);
-  const ustunSarlavha = (nom: string, izoh: string, o?: { ong?: boolean; title?: string }) => <span className={`flex flex-col ${o?.ong ? 'items-end text-right' : ''}`} title={o?.title}>
-    <span>{nom}</span><span className="text-[10.5px] font-normal normal-case tracking-normal text-text-mute">{izoh}</span>
+  /** `filtr` — nom yonida bitta filtr tugmasi; `maydonlar` — bir nechta maydonli ustunda uchinchi satr (nom + tugma). */
+  const ustunSarlavha = (nom: string, izoh: string, o?: { ong?: boolean; title?: string; filtr?: ReactNode; maydonlar?: ReactNode }) => <span className={`flex min-w-0 flex-col ${o?.ong ? 'items-end text-right' : ''}`} title={o?.title}>
+    <span className={`flex items-start ${o?.ong ? 'justify-end' : ''}`}><span>{nom}</span>{o?.filtr}</span><span className="text-[10.5px] font-normal normal-case tracking-normal text-text-mute">{izoh}</span>
+    {o?.maydonlar && <span className={`mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] font-normal normal-case tracking-normal text-text-mute ${o.ong ? 'justify-end' : ''}`}>{o.maydonlar}</span>}
   </span>;
 
   return (
@@ -636,20 +688,21 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
                 </div>
               </div>
               <MeterLegenda />
+              <FiltrHolatQatori soni={jf.soni} natija={korinadiIshSoni} jami={asosIshSoni} tozala={jf.tozala} />
             </header>
             <div className="min-h-0 flex-1 overflow-auto pb-16" data-testid="fakt-jadval">
               <div className="min-w-[980px]">
                 <div className={`${USTUN} sticky top-0 z-10 border-b border-border-strong bg-surface-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim`} role="row">
-                  {ustunSarlavha(t('Ish / resurs'), t('holat · belgilar'))}
-                  {ustunSarlavha(t('Smeta'), t('hajm · birlik narxi'), { ong: true })}
-                  {ustunSarlavha(t('Bajarilish'), t('fakt va F2, smetaga nisbatan'))}
-                  {ustunSarlavha(t('Bu fakt'), t('+ bugun · = jami'), { ong: true })}
-                  {ustunSarlavha(t('Ochiq qoldiq'), t('smeta − fakt'), { ong: true, title: t('Ochiq qoldiq = smeta − fakt − almashtirilgan − bajarilmaydi') })}
-                  {ustunSarlavha(t('F2 ga olish mumkin'), t('fakt − F2'), { ong: true, title: t('F2 ga olish mumkin = fakt − tasdiqlangan F2') })}
-                  {ustunSarlavha(t('Fakt summasi'), t('ustamali · ustamasiz'), { ong: true })}
+                  {ustunSarlavha(t('Ish / resurs'), t('holat · belgilar'), { maydonlar: <>{FN(t('kod'), 'kod')}{FN(t('nom'), 'nom')}{FN(t('tur'), 'tur')}{FN(t('holat'), 'holat')}</> })}
+                  {ustunSarlavha(t('Smeta'), t('hajm · birlik narxi'), { ong: true, maydonlar: <>{FN(t('hajm'), 'hajm')}{FN(t('birlik'), 'birlik')}{FN(t('narx'), 'narx')}</> })}
+                  {ustunSarlavha(t('Bajarilish'), t('fakt va F2, smetaga nisbatan'), { maydonlar: <>{FN(t('foiz'), 'foiz')}{FN(t('fakt'), 'fakt')}{FN(t('F2'), 'f2')}</> })}
+                  {ustunSarlavha(t('Bu fakt'), t('+ bugun · = jami'), { ong: true, filtr: F('kiritma') })}
+                  {ustunSarlavha(t('Ochiq qoldiq'), t('smeta − fakt'), { ong: true, title: t('Ochiq qoldiq = smeta − fakt − almashtirilgan − bajarilmaydi'), filtr: F('ochiq') })}
+                  {ustunSarlavha(t('F2 ga olish mumkin'), t('fakt − F2'), { ong: true, title: t('F2 ga olish mumkin = fakt − tasdiqlangan F2'), filtr: F('f2mumkin') })}
+                  {ustunSarlavha(t('Fakt summasi'), t('ustamali · ustamasiz'), { ong: true, filtr: F('summa') })}
                   <span />
                 </div>
-                {korinadiIshSoni === 0 && <p className="p-6 text-center text-[13px] text-text-mute">{qidiruv ? t('Hech narsa topilmadi.') : t('Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q.')}</p>}
+                {korinadiIshSoni === 0 && <p className="p-6 text-center text-[13px] text-text-mute">{qidiruv || jf.soni ? t('Hech narsa topilmadi.') : t('Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q.')}</p>}
                 {korinadi.map((bk, bi) => <div key={bk.bolim?.id ?? `b${bi}`}>
                   {bk.yol && <div className="border-b border-border bg-surface-2 px-3 py-1 text-[11px] text-text-mute">{bk.yol}</div>}
                   {bk.bolim && <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border bg-surface-2 py-2 pr-3" style={{ paddingLeft: 12 + (bk.nisbiy - 1) * 16 }} data-testid={`bolim-sarlavha-${bk.bolim.id}`}>
@@ -666,8 +719,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
                   </div>}
                   {bk.ishlar.map((ish) => <div key={ish.id} className="border-b border-border">
                     {ishQatori(ish)}
-                    {ishOchiq(ish.id) && ish.resurslar.map((r) => resursQatori(r, false))}
-                    {ishOchiq(ish.id) && ish.avtomatik.map((a) => resursQatori(a, true))}
+                    {ishOchiq(ish.id) && ish.resurslar.filter(bolaKor(ish.id)).map((r) => resursQatori(r, false))}
+                    {ishOchiq(ish.id) && ish.avtomatik.filter(bolaKor(ish.id)).map((a) => resursQatori(a, true))}
                   </div>)}
                 </div>)}
               </div>
