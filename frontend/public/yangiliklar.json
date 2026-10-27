@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 35,
+      "sana": "2026-10-27",
+      "sarlavha": "Pul tahlilida «Moliyaviy tahlil» jadvali",
+      "bandlar": [
+        "Nakopitelniy → Shartnoma svodi → Pul tahlili ichida 16 ko'rsatkichli moliyaviy tahlil (mlrd so'm, QQS bilan): fakt, F2, tushgan pul, sarf, qarz, yakunlash va yakuniy farq.",
+        "Har qator yonida manba belgisi (tizim / qo'lda / hisoblangan) va formula; tizimda yo'q qiymatlarni (qarz, kutilayotgan F2, yakunlash uchun talab) shu yerning o'zida qo'lda kiritish mumkin — sana va muallif saqlanadi.",
+        "Noma'lum qiymat «—» bo'lib qoladi va unga bog'liq hisoblar ham «—» — nol bilan aldamaydi. Excel'ga (rus tilida) egasi jadvali tartibida yuklab olinadi."
+      ]
+    },
+    {
       "id": 34,
       "sana": "2026-10-27",
       "sarlavha": "Katta obyektlarda Nakopitelniy ishonchli ochiladi",

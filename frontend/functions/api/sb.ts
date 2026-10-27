@@ -260,6 +260,8 @@ export const onRequestPost: PagesFunction<{
         /* Egasi 2026-10-24: rahbarlar uchun pul tahlili (P0) — kategoriya × {smeta, F2} + zanjir. `stable`; a'zolik + f2.read + financial.read. */
         pul_tahlil_v1: 'kompaniya_actor',
         pul_tahlil_v2: 'kompaniya_actor',
+        /* Egasi 2026-10-27: «Парк объектининг молиявий таҳлили» — 16 ko'rsatkich (tizim + qo'lda). `stable`; a'zolik + financial.read. */
+        moliya_tahlil_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
@@ -361,6 +363,11 @@ export const onRequestPost: PagesFunction<{
         const oid = Number(so.obyekt_id);
         if (!Number.isInteger(oid) || oid <= 0) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
         q.set('p_obyekt_id', String(oid));
+      }
+      if (so.soro === 'moliya_tahlil_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {
+        const id = Number(so.obyekt_id);
+        if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: "obyekt_id noto'g'ri" });
+        q.set('p_obyekt_id', String(id));
       }
       if (so.soro === 'pul_tahlil_v1' || so.soro === 'pul_tahlil_v2') {
         for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {

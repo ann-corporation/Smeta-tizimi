@@ -789,6 +789,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_xarajat_bekor_v1"
     },
     {
+      "amal": "moliya_qolda_yoz_v1",
+      "rpc": "t2_moliya_qolda_yoz_v1"
+    },
+    {
       "amal": "fakt_yoz_v2",
       "rpc": "t2_fakt_yoz_v2"
     },

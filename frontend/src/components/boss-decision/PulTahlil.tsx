@@ -4,6 +4,7 @@ import { t } from '../../i18n/til';
 import { pulTahlilOl, pulXarajatBekor, type PulDalilQator, type PulTahlilJavob, type PulXarajatQator } from '../../api/t2-pul-tahlil';
 import { toast } from '../../umumiy/ui/Toast';
 import XarajatKiritish from './XarajatKiritish';
+import MoliyaviyTahlil from './MoliyaviyTahlil';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Maydon } from '../../umumiy/ui/Sahifa';
 import { IkkiTomonQator, Eksa, Rang } from '../nakopitelniy/PereraschetGrafik';
@@ -113,6 +114,9 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
         </div>
       </div>
       <div className="fz-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {/* Egasi 2026-10-27: «Парк объектининг молиявий таҳлили» — kompaniya yoki tanlangan obyekt kesimida (shartnoma rejimida — kompaniya). */}
+      <MoliyaviyTahlil companyId={companyId} obyektId={qamrov.startsWith('o:') ? Number(qamrov.slice(2)) : null}
+        qamrovNomi={qamrov.startsWith('o:') ? (obyektlar.find((o) => `o:${o.id}` === qamrov)?.nom ?? qamrov) : t('Jami (kompaniya)')} />
       {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{t(xato)}</span></div>}
       {data && (
         <>
