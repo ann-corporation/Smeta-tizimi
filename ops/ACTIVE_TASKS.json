@@ -5,7 +5,7 @@
     {
       "id": "C11-WAREHOUSE-CONTRACT-20261027", "owner": "codex", "machine": "Anvar",
       "title": "C11 warehouse/supply canonical map and first-release contract",
-      "branch": "codex/c11-warehouse-contract-20261027", "status": "ready_for_review",
+      "branch": "codex/c11-warehouse-contract-20261027", "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b", "status": "ready_for_review",
       "owns": ["docs/architecture/warehouse/"], "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md"],
       "production_write_allowed": false,
