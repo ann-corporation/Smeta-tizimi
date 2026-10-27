@@ -72,11 +72,11 @@ export function AiHelper() {
   return (
     <>
       {location.pathname.startsWith('/admin') && <AiSelektsiya />}
-      {!isOpen && taklifKarta && <div className="fixed bottom-24 right-6 z-40 w-72">{taklifKarta}</div>}
+      {!isOpen && taklifKarta && <div className="fixed bottom-16 right-3 z-40 w-72">{taklifKarta}</div>}
       {!isOpen && (
         <button onClick={() => setIsOpen(true)} aria-label={t('Jarvis AI yordamchisini ochish')}
-          className="group fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-[var(--on-accent)] shadow-xl transition-transform hover:scale-105 hover:brightness-110">
-          <Bot size={26} />
+          className="group fixed bottom-3 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-[var(--on-accent)] opacity-75 shadow-xl transition hover:scale-105 hover:opacity-100 hover:brightness-110 focus-visible:opacity-100">
+          <Bot size={21} />
           <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-bg bg-ok"></span>
           <div className="pointer-events-none absolute right-full mr-4 whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{t('Jarvis AI yordamchisi')}</div>
         </button>
