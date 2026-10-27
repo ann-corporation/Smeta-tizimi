@@ -83,9 +83,33 @@ export function foiz(qism: number | null | undefined, jami: number | null | unde
   return Math.round((qism / jami) * 1000) / 10;
 }
 
+/** Obyektda fakt umuman kiritilganmi (fakt summasi > 0). `null` — ma'lumot yo'q. */
+export function faktKiritilgan(t: MindmapTugun | null | undefined): boolean | null {
+  const f = son(t?.meta?.fakt);
+  return f == null ? null : f > 0;
+}
+
+/** F2 smetadan oshganmi (obyekt jami bo'yicha). */
+function f2SmetadanOshgan(t: MindmapTugun): boolean {
+  const f2 = son(t.meta?.f2), sm = son(t.meta?.smeta);
+  return f2 != null && sm != null && sm > 0 && f2 > sm;
+}
+
+/**
+ * Belgilar. Egasi 2026-10-27 tekshiruvi: «ortiqcha» 18 obyektda yongan, 17 tasida fakt UMUMAN kiritilmagan — bu
+ * F2 ortiqchasi emas, fakt bo'shligi. Shuning uchun: fakt yo'q obyektda server `ortiqcha` belgisi (agar F2 smetadan
+ * ham oshmagan bo'lsa) `fakt_yoq` (info) bilan almashtiriladi — signal asosli bo'lishi uchun.
+ */
 export function belgilariOl(t: MindmapTugun | null | undefined): MindmapBelgi[] {
   const b = t?.meta?.belgi;
-  return Array.isArray(b) ? (b as MindmapBelgi[]) : [];
+  const xom = Array.isArray(b) ? (b as MindmapBelgi[]) : [];
+  if (!t || faktKiritilgan(t) !== false || f2SmetadanOshgan(t)) return xom;
+  const f2 = son(t.meta?.f2);
+  const qolgan = xom.filter((x) => x.tur !== 'ortiqcha');
+  if (f2 != null && f2 > 0 && !qolgan.some((x) => x.tur === 'fakt_yoq')) {
+    qolgan.push({ tur: 'fakt_yoq', daraja: 'info', matn: 'Fakt kiritilmagan — F2 ni fakt bilan solishtirib bo‘lmaydi' });
+  }
+  return qolgan;
 }
 
 /** Serverdan `ortiqcha_soni` kelganmi (v3). Kelmasa — eski RPC shakli. */
@@ -96,7 +120,8 @@ export function serverOrtiqchaBilar(t: MindmapTugun): boolean {
 /** F2 oshishi: v3 da — server belgisi (`ortiqcha_soni > 0`); eski RPC shaklida — foiz > 100 (zaxira). */
 export function obyektOshgan(t: MindmapTugun): boolean {
   const o = son(t.meta?.ortiqcha_soni);
-  if (o != null) return o > 0;
+  // Fakt umuman kiritilmagan bo'lsa — faqat F2 smetadan oshgani ortiqcha hisoblanadi (yuqoridagi izohga qarang).
+  if (o != null) return o > 0 && (faktKiritilgan(t) !== false || f2SmetadanOshgan(t));
   const fk = son(t.meta?.fakt_foiz), f2 = son(t.meta?.f2_foiz);
   return (fk != null && fk > 100) || (f2 != null && f2 > 100);
 }

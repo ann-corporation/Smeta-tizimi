@@ -31,6 +31,7 @@ const BELGI_QISQA: Record<MindmapBelgi['tur'], string> = {
   smeta_yoq: 'smeta yo\'q',
   resurs_yoq: 'resurs yo\'q',
   ortiqcha: 'F2 ortiqcha',
+  fakt_yoq: 'fakt kiritilmagan',
 };
 
 /* ⚡ 2026-08-28 (2-bosqich) — foydalanuvchi shikoyatlari bo'yicha:

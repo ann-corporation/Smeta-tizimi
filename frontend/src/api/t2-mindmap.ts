@@ -54,7 +54,9 @@ export type BelgiTur = 'zayavka' | 'narx_yoq' | 'kozgu' | 'smeta_yoq'
   /** v3: smeta (rz) bor, lekin resurs qatorlari yo'q. */
   | 'resurs_yoq'
   /** v3: t2_overbilling_radar — F2 fakt yoki smetadan oshgan qatorlar. */
-  | 'ortiqcha';
+  | 'ortiqcha'
+  /** Mijozda: obyektda F2 bor, lekin fakt umuman kiritilmagan — «F2 > fakt» bu holatda ortiqcha EMAS, fakt bo'shligi. */
+  | 'fakt_yoq';
 
 /** v3: obyektning ochiq signali (t2_mindmap_signal_summary.top_signals, eng og'ir 3 tasi). */
 export type MindmapSignal = { title: string | null; severity: string | null; type?: string | null };

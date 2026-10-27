@@ -23,8 +23,8 @@ describe('mindmap-korinish v3 holat qoidalari', () => {
     // Server «ortiqcha yo‘q» desa — foiz 130% bo‘lsa ham (masalan qoralama aralashgan) oshgan emas.
     expect(obyektOshgan(ob(1, { ortiqcha_soni: 0, f2_foiz: 130, fakt_foiz: 130 }))).toBe(false);
     expect(obyektHolati(ob(1, { ortiqcha_soni: 0, f2_foiz: 130 }))).toBe('yaxshi');
-    expect(obyektOshgan(ob(2, { ortiqcha_soni: 2, f2_foiz: 10 }))).toBe(true);
-    expect(obyektHolati(ob(2, { ortiqcha_soni: 2, belgi: [{ tur: 'ortiqcha', daraja: 'info', matn: '2 qatorda F2 oshgan', soni: 2 }] }))).toBe('etibor');
+    expect(obyektOshgan(ob(2, { ortiqcha_soni: 2, f2_foiz: 10, fakt: 50 }))).toBe(true);
+    expect(obyektHolati(ob(2, { ortiqcha_soni: 2, fakt: 50, belgi: [{ tur: 'ortiqcha', daraja: 'info', matn: '2 qatorda F2 oshgan', soni: 2 }] }))).toBe('etibor');
   });
 
   it('eski RPC shakli (ortiqcha_soni yo‘q): foiz > 100 zaxira qoidasi ishlaydi', () => {
@@ -52,7 +52,7 @@ describe('mindmap-korinish v3 daraxt: yangi va eski RPC shakli', () => {
       kompaniya,
       ob(1, { smeta: 1000, f2: 300, f2_asos: 'tasdiqlangan', f2_qoralama: 200, f2_foiz: 30, fakt: 500, fakt_foiz: 50, signal_count: 2, critical_count: 1, ortiqcha_soni: 0,
         top_signals: [{ title: 'Kritik signal', severity: 'critical' }, { title: 'Ogohlantirish', severity: 'warning' }] }),
-      ob(2, { smeta: 2000, f2: 0, f2_asos: 'tasdiqlangan', f2_qoralama: 0, f2_foiz: 0, fakt: 0, fakt_foiz: 0, signal_count: 0, critical_count: 0, ortiqcha_soni: 3 }),
+      ob(2, { smeta: 2000, f2: 0, f2_asos: 'tasdiqlangan', f2_qoralama: 0, f2_foiz: 0, fakt: 10, fakt_foiz: 1, signal_count: 0, critical_count: 0, ortiqcha_soni: 3 }),
     ],
     bogichlar: [],
     jamlanma: { obyekt_soni: 2, smeta_jami: 3000, fakt_jami: 500, f2_jami: 300, f2_asos: 'tasdiqlangan', f2_qoralama_jami: 200, zayavka_kutilmoqda: 0, narxsiz_obyekt: 0, smetasiz_obyekt: 0, kozgu_eskirgan: 0 },
@@ -106,5 +106,27 @@ describe('mindmap-korinish v3 daraxt: yangi va eski RPC shakli', () => {
     expect(guruh.f2Qoralama).toBeNull();
     expect(guruh.f2Tasdiqlangan).toBe(false);
     expect(guruh.signalSoni).toBe(2);
+  });
+});
+
+describe('fakt kiritilmagan obyekt — «ortiqcha» asossiz signal emas (egasi 2026-10-27)', () => {
+  const tugun = (meta: Record<string, unknown>) => ({ id: 'obyekt:1', tur: 'obyekt', nom: 'A', meta } as never);
+  it('fakt 0, F2 smetadan oshmagan → ortiqcha o‘rniga fakt_yoq, oshgan emas', async () => {
+    const { belgilariOl, obyektOshgan } = await import('./mindmap-korinish');
+    const t = tugun({ fakt: 0, f2: 100, smeta: 1000, ortiqcha_soni: 5, belgi: [{ tur: 'ortiqcha', daraja: 'info', matn: 'x', soni: 5 }] });
+    expect(belgilariOl(t).map((b) => b.tur)).toEqual(['fakt_yoq']);
+    expect(obyektOshgan(t)).toBe(false);
+  });
+  it('fakt 0, lekin F2 smetadan oshgan → ortiqcha qoladi', async () => {
+    const { belgilariOl, obyektOshgan } = await import('./mindmap-korinish');
+    const t = tugun({ fakt: 0, f2: 1200, smeta: 1000, ortiqcha_soni: 5, belgi: [{ tur: 'ortiqcha', daraja: 'info', matn: 'x', soni: 5 }] });
+    expect(belgilariOl(t).map((b) => b.tur)).toEqual(['ortiqcha']);
+    expect(obyektOshgan(t)).toBe(true);
+  });
+  it('fakt bor → server belgisi o‘zgarmaydi', async () => {
+    const { belgilariOl, obyektOshgan } = await import('./mindmap-korinish');
+    const t = tugun({ fakt: 50, f2: 100, smeta: 1000, ortiqcha_soni: 2, belgi: [{ tur: 'ortiqcha', daraja: 'info', matn: 'x', soni: 2 }] });
+    expect(belgilariOl(t).map((b) => b.tur)).toEqual(['ortiqcha']);
+    expect(obyektOshgan(t)).toBe(true);
   });
 });
