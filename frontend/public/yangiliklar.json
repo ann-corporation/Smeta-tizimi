@@ -2,6 +2,26 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 34,
+      "sana": "2026-10-27",
+      "sarlavha": "Katta obyektlarda Nakopitelniy ishonchli ochiladi",
+      "bandlar": [
+        "Katta obyektlarda (25 ming+ qator) Nakopitelniy endi «keyinroq qayta urinib ko'ring» demaydi: sahifalar serverga bir vaqtda 4 tadan emas, ko'pi bilan 2 tadan so'raladi, server vaqtincha band bo'lsa o'zi 2 marta qayta urinadi.",
+        "Yuklash paytida nechta qator o'qilgani ko'rinadi («Yuklanmoqda… 10 000 / 26 475 qator»).",
+        "Pul tahlili, shartnoma svodi va F2 reestri Nakopitelniy yuklanib bo'lgach o'qiladi — bir vaqtda serverni to'ldirmaydi. Raqamlar o'zgarmaydi."
+      ]
+    },
+    {
+      "id": 33,
+      "sana": "2026-10-27",
+      "sarlavha": "Svod yaxlit bo'limlari — barcha ekran va hujjatlarda ustamasiz",
+      "bandlar": [
+        "Svodda (письмо заказчика / ekspertiza) yaxlit summa bilan berilgan bo'limlarga endi hech qaysi ekranda ustama qo'shilmaydi: smeta qiymati, Nakopitelniy ko'rsatkichlari va «к оплате» paneli, Resurs vedomosti, Pereraschet, nakrutka podvali konstruktori va smeta podvali preview'i server ВСЕГО bilan bir xil raqam ko'rsatadi.",
+        "Nakopitelniy, Ostatka, Slichitelniy va LRV Excel hujjatlarida bu bo'limlar qatorlarida «к оплате» = to'g'ri xarajat (koeffitsientsiz), podvalda esa alohida «Разделы по своду целой суммой (без накладных расходов, без НДС)» qatori ИТОГО-4 ga qo'shiladi, НДС bir marta.",
+        "Tasdiqlangan F2 aktlari va F2 hujjati o'zgarmaydi."
+      ]
+    },
+    {
       "id": 32,
       "sana": "2026-10-27",
       "sarlavha": "Email kod bilan kirish, Sozlamalar markazi va obyekt imzochilari",

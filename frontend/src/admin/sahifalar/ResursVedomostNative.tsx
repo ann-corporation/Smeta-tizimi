@@ -12,6 +12,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { t } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { katKesimYigish } from '../../lib/ustamali-summa';
 import { AlertTriangle, Eye, FileSpreadsheet, Search } from 'lucide-react';
 
@@ -81,9 +82,11 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   const jamiSmeta = kategoriyalar.reduce((x, k) => x + k.jamiSmetaSumma, 0);
   const jamiF2 = kategoriyalar.reduce((x, k) => x + k.jamiF2Summa, 0);
   const jamiQoldiq = kategoriyalar.reduce((x, k) => x + k.jamiQoldiqSumma, 0);
-  const smetaKesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiSmetaSumma);
-  const f2Kesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiF2Summa);
   const oid = Number(objectId) || null;
+  // Svod yaxlit belgili obyektda butun smeta ustamalisi — server kesimi (yaxlit bo'limlar ustamasiz, QQS bir marta).
+  const obyektKesim = useUstamaliSumma(oid, { kompaniyaId: companyId }).obyektKesim;
+  const smetaKesim = obyektKesim ?? katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiSmetaSumma);
+  const f2Kesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiF2Summa);
   return (
     <div className="space-y-3">
       {korinish.oyna}

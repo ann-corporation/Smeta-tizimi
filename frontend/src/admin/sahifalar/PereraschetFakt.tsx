@@ -56,7 +56,9 @@ export function PereraschetFakt({ companyId, obyektId, obyektNom, tomonlar, ndsF
   const [yozilmoqda, setYozilmoqda] = useState(false);
   const operationId = useRef({ a: yangiOperationId(), b: yangiOperationId() });
 
-  const n = useMemo(() => faktPereraschetHisobla(rows, { qoshimchaIdlar: qoshimcha, bolimId: bolim }), [rows, qoshimcha, bolim]);
+  const yaxlitIdlari = ustama.yaxlitIdlari;
+  const yaxlitIdlar = useMemo(() => yaxlitIdlari?.(rows.map((r) => ({ id: r.qator_id, ota_id: r.ota_id }))), [rows, yaxlitIdlari]);
+  const n = useMemo(() => faktPereraschetHisobla(rows, { qoshimchaIdlar: qoshimcha, bolimId: bolim, yaxlitIdlar }), [rows, qoshimcha, bolim, yaxlitIdlar]);
 
   /** Ustamali (ИТОГО-4, NDS siz): kat noma'lum qism ustamasiz qo'shiladi (SummaJuft bilan bir xil qoida). */
   const ustamali = (k: KatKesim): number | null => { const u = ustama.hisobla(k); return u?.ustamali == null ? null : u.ustamali + u.nomalum.summa; };
