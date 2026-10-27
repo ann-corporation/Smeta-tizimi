@@ -83,8 +83,11 @@ describe('token API: tannarx, foyda va ustama faqat superadminga', () => {
     expect(tokenJavobTozala({ ok: true, hisob: HISOB })).toEqual({ ok: true, hisob: { amal: 'f2_hujjat', nom: 'F2', birlik_soni: 792, birlik: 100, qism: 8, yakuniy_som: 36400, token_som: 100, token: 364 } });
     const t = tokenHolatTozala(holat(false)) as ReturnType<typeof holat>;
     expect(t.sozlama).not.toHaveProperty('usd_kurs');
-    expect(aiJavobTozala({ ok: true, model: 'vendor/x', provider: 'openrouter', usage: { cost: 1 }, model_manba: 'kompaniya', qadamlar: [{ belgi: '🤖', matn: 'Model: vendor/x — limit' }] }))
-      .toEqual({ ok: true, model: 'ai', qadamlar: [{ belgi: '🤖', matn: 'Model tanlandi — limit' }] });
+    // Egasi 2026-10-27 (2-javob): «AI doimgiday ishlashi kerak» — model nomi, provayder, qadamlar qoladi; faqat USD sarfi ketadi.
+    expect(aiJavobTozala({ ok: true, model: 'vendor/x', provider: 'openrouter', usage: { inputTokens: 10, outputTokens: 5, cost: 1 }, model_manba: 'kompaniya', narx_usd: 0.2,
+      natija: [{ model: 'vendor/y', mijoz_usd: 1 }], qadamlar: [{ belgi: '🤖', matn: 'Model: vendor/x — limit' }] }))
+      .toEqual({ ok: true, model: 'vendor/x', provider: 'openrouter', usage: { inputTokens: 10, outputTokens: 5 }, model_manba: 'kompaniya',
+        natija: [{ model: 'vendor/y' }], qadamlar: [{ belgi: '🤖', matn: 'Model: vendor/x — limit' }] });
   });
 });
 

@@ -273,9 +273,10 @@ describe('egasi 2026-10-27: tizimga oid hamma narsa — faqat platforma superadm
     const boss = sozlamaFiltr({ superadmin: false, permissions: [...serverRuxsat('boss'), 'control.global.read'] });
     expect(boss.filter((s) => s.qatlam === 'tizim')).toEqual([]);
     expect(boss.filter((s) => faqatSuperadminYolmi(s.yol))).toEqual([]);
-    for (const id of ['kompaniya.tizim_nazorat', 'kompaniya.integratsiya', 'kompaniya.gas_sinx', 'kompaniya.ai_modellar', 'kompaniya.ai_model_siyosati'])
+    for (const id of ['kompaniya.tizim_nazorat', 'kompaniya.integratsiya', 'kompaniya.gas_sinx', 'tizim.ai_modellar'])
       expect(boss.map((s) => s.id)).not.toContain(id);
-    expect(boss.map((s) => s.id)).toEqual(expect.arrayContaining(['kompaniya.tokenlar', 'kompaniya.ai_yoqish', 'kompaniya.audit', 'kompaniya.korzinka']));
+    // Egasi 2026-10-27 (2-javob): AI model tanlovi va model siyosati — kompaniya qatlamida (katalog/ustama — Tizimda).
+    expect(boss.map((s) => s.id)).toEqual(expect.arrayContaining(['kompaniya.tokenlar', 'kompaniya.ai_yoqish', 'kompaniya.audit', 'kompaniya.korzinka', 'kompaniya.ai_modellar', 'kompaniya.ai_model_siyosati']));
     expect(sozlamaFiltr({ superadmin: true, permissions: [] })).toHaveLength(SOZLAMALAR.length);
   });
 });

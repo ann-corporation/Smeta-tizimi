@@ -3,7 +3,6 @@
  * tokenlar balansi va shu oy sarfi (agentlar bo'yicha). Hamma a'zo ko'radi; o'zgartirish — admin/boss/direktor (server tekshiradi).
  * Tannarx va ustama kompaniyaga ko'rsatilmaydi — faqat token.
  */
-import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { useCallback, useEffect, useState } from 'react';
 import { kompaniyaSozlamaOl, kompaniyaSozlamaSaqla, sarfHisobotiOl, type KompaniyaSozlama, type SarfHisoboti } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
@@ -15,7 +14,6 @@ const son = (n: number) => Math.round(n).toLocaleString('ru-RU');
 const LIMIT_NAMUNA = 'Cheklovsiz';
 
 export function AgentKompaniyaSozlama({ kompaniyaId }: { kompaniyaId: number }) {
-  const { superadmin } = useKompaniya();
   const [z, setZ] = useState<KompaniyaSozlama | null>(null);
   const [h, setH] = useState<SarfHisoboti | null>(null);
   const [xato, setXato] = useState<string | null>(null);
@@ -78,7 +76,7 @@ export function AgentKompaniyaSozlama({ kompaniyaId }: { kompaniyaId: number }) 
           : <p className="text-[12px] text-text-mute">{t('Sozlamalarni admin, boss yoki direktor o‘zgartira oladi.')}</p>}
       </div>
 
-      {superadmin && <AgentModelSiyosati kompaniyaId={kompaniyaId} />}
+      <AgentModelSiyosati kompaniyaId={kompaniyaId} />
       <AgentKompaniyaBilimi kompaniyaId={kompaniyaId} tahrir={tahrir} />
 
       {h && h.agentlar.length > 0 && (

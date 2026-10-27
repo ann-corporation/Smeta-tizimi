@@ -1,8 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const sa = vi.hoisted(() => ({ superadmin: true }));
-vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ superadmin: sa.superadmin }) }));
 const m = vi.hoisted(() => ({ toast: vi.fn(), kompaniyaSozlamaOl: vi.fn(), kompaniyaSozlamaSaqla: vi.fn(), sarfHisobotiOl: vi.fn(), bilimOl: vi.fn(), bilimYoz: vi.fn(), siyosatOl: vi.fn(), siyosatSaqla: vi.fn() }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../api/t2-agent-ish', () => ({ kompaniyaSozlamaOl: m.kompaniyaSozlamaOl, kompaniyaSozlamaSaqla: m.kompaniyaSozlamaSaqla, sarfHisobotiOl: m.sarfHisobotiOl, bilimOl: m.bilimOl, bilimYoz: m.bilimYoz, modelSiyosatOl: m.siyosatOl, modelSiyosatSaqla: m.siyosatSaqla }));
@@ -11,7 +9,6 @@ import { AgentKompaniyaSozlama } from './AgentKompaniyaSozlama';
 
 const soz = (o: Record<string, unknown> = {}) => ({ ok: true, natija: { ai_yoqilgan: true, oylik_token_limit: 2000, kuzatuv_ruxsat: true, oy_token: 889, balans: 5000, tahrir_mumkin: true, ...o } });
 beforeEach(() => {
-  sa.superadmin = true;
   Object.values(m).forEach((f) => f.mockReset());
   m.kompaniyaSozlamaOl.mockResolvedValue(soz());
   m.sarfHisobotiOl.mockResolvedValue({ ok: true, natija: { oy_token: 889, balans: 5000, agentlar: [{ profil: 'pto_smeta', chaqiruv: 3, token: 889 }], kunlar: [] } });
@@ -86,14 +83,6 @@ describe('AgentKompaniyaSozlama', () => {
     cleanup(); m.siyosatOl.mockResolvedValue({ ok: true, natija: { model_erkin: true, tahrir_mumkin: false } });
     render(<AgentKompaniyaSozlama kompaniyaId={5} />);
     expect(((await screen.findByLabelText(/A’zolar AI modelini o‘zi tanlay olsin/)) as HTMLInputElement).disabled).toBe(true);
-  });
-
-  it('egasi 2026-10-27: kompaniya bossi (superadmin emas) — AI yoqish/limit/sarf (token) bor, model siyosati umuman yo‘q va so‘ralmaydi', async () => {
-    sa.superadmin = false;
-    render(<AgentKompaniyaSozlama kompaniyaId={5} />);
-    expect(await screen.findByText('Ombor tartibi')).toBeTruthy();
-    expect(screen.queryByLabelText(/A’zolar AI modelini o‘zi tanlay olsin/)).toBeNull();
-    expect(m.siyosatOl).not.toHaveBeenCalled();
   });
 
   it('huquqsiz a‘zo bilimni ko‘radi, lekin yoza olmaydi', async () => {

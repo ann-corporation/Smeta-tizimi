@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import ReactMarkdown from 'react-markdown';
 import { ArrowRight, Bot, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +40,6 @@ function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (
 
 /** Kasb ishchisi bilan suhbat: har savolda AI qadamlari JONLI ko'rinadi; harakat takliflari tasdiq kartasi bilan keladi. */
 export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi }: { kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void }) {
-  const { superadmin } = useKompaniya(); // model nomi — tizimga oid (egasi 2026-10-27)
   const navigate = useNavigate();
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [matn, setMatn] = useState('');
@@ -167,7 +165,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
               {m.yakun?.ok && !m.yakun.rad && m.yakun.model !== 'local' && (
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 border-t border-border pt-1.5 text-[10.5px] text-text-mute">
                   {(m.yakun.toifalar ?? []).map((x) => <span key={x} className="fz-chip" title={t('Javob shu ma’lumot toifasiga tayangan')}>{t(TOIFA_NOMI[x] ?? x)}</span>)}
-                  <span className="ml-auto">{superadmin ? `${m.yakun.model} · ` : ''}{((m.yakun.ms ?? 0) / 1000).toFixed(1)} s</span>
+                  <span className="ml-auto">{m.yakun.model} · {((m.yakun.ms ?? 0) / 1000).toFixed(1)} s</span>
                 </div>
               )}
             </div>

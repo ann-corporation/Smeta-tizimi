@@ -4,10 +4,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
 const m = vi.hoisted(() => ({
-  id: 11 as number | null, superadmin: true, savol: vi.fn(), kasbOl: vi.fn(), yordam: vi.fn(), modellar: vi.fn(), shaxsiyModel: vi.fn(), tanla: vi.fn(),
+  id: 11 as number | null, savol: vi.fn(), kasbOl: vi.fn(), yordam: vi.fn(), modellar: vi.fn(), shaxsiyModel: vi.fn(), tanla: vi.fn(),
   uslubOl: vi.fn(), uslubSaqla: vi.fn(), uslubTozala: vi.fn(), baho: vi.fn(), siyosat: vi.fn(),
 }));
-vi.mock('../kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriyId: m.id, superadmin: m.superadmin }) }));
+vi.mock('../kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriyId: m.id }) }));
 vi.mock('../../api/t2-agent-ish', () => ({
   kasbOl: m.kasbOl, kasbSavolOqim: m.savol, tizimYordamSavol: m.yordam, modellarOl: m.modellar, modelShaxsiyOl: m.shaxsiyModel, modelShaxsiyTanla: m.tanla, modelSiyosatOl: m.siyosat,
   uslubOl: m.uslubOl, uslubSaqla: m.uslubSaqla, uslubTozala: m.uslubTozala, javobBaho: m.baho,
@@ -26,7 +26,6 @@ function Joy() { const l = useLocation(); return <div data-testid="joy">{l.pathn
 const view = () => <MemoryRouter initialEntries={['/admin/f2']}><AiHelper /><Joy /></MemoryRouter>;
 const och = () => fireEvent.click(screen.getByLabelText('Jarvis AI yordamchisini ochish'));
 beforeEach(() => {
-  m.superadmin = true;
   m.id = 11; Element.prototype.scrollIntoView = vi.fn();
   for (const f of [m.savol, m.kasbOl, m.yordam, m.modellar, m.shaxsiyModel, m.tanla, m.uslubOl, m.uslubSaqla, m.uslubTozala, m.baho, m.siyosat]) f.mockReset();
   m.kasbOl.mockResolvedValue({ ok: true, natija: KASB });
@@ -69,16 +68,7 @@ it('istalgan joydan `ai:ochish` hodisasi chatni tayyor savol bilan ochadi (bir m
   expect(m.savol).toHaveBeenCalledTimes(1);
 });
 
-it('egasi 2026-10-27: superadmin bo‘lmagan foydalanuvchiga model tanlagich (katalog, narx) umuman chiqmaydi, katalog so‘ralmaydi', async () => {
-  m.superadmin = false;
-  render(view()); och();
-  await screen.findByText(/Prorab|yordamchi/i).catch(() => null);
-  expect(screen.queryByTestId('model-chip')).toBeNull();
-  expect(screen.queryByTestId('model-chip-qulf')).toBeNull();
-  expect(m.modellar).not.toHaveBeenCalled();
-});
-
-it('model chip (superadmin): standart ko‘rinadi, tanlov saqlanadi', async () => {
+it('model chip: standart ko‘rinadi, tanlov saqlanadi', async () => {
   render(view()); och();
   const chip = await screen.findByTestId('model-chip');
   expect(chip.textContent).toContain('standart');

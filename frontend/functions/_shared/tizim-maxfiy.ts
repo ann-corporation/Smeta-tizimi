@@ -7,7 +7,8 @@
  *
  * Bu yerda yashiriladi:
  *   • token tannarxi, foyda foizi, platforma ustamasi (token_holat_v1, token_sarfla_v1 javoblari);
- *   • AI provayder/model nomi, model manbasi, provayder sarfi (usage, USD) — AI javoblari va AI jurnali;
+ *   • AI provayder sarfi (usage.cost, *_usd) — AI javoblari va AI jurnali (model nomi ko'rinadi);
+ *   • AI model narxi — kompaniyaga USD/ustama o'rniga MIJOZ narxi (token) va narx darajasi (ai-mijoz-narx.ts);
  *   • tizim boshqaruv markazi (sog'liq, integratsiya, fon ishlari, imkoniyat bayroqlari) — kompaniyaga faqat o'z audit jurnali.
  */
 import { cachedAuthority } from './permission-policy';
@@ -64,23 +65,21 @@ export function tokenJavobTozala(j: unknown): unknown {
   return 'hisob' in r ? { ...r, hisob: tokenHisobTozala(r.hisob) } : r;
 }
 
-/** Jonli qadam matnidagi model nomi (agent-ish kasbQuvur: «Model: X — …», «Javob olindi (X): …») olib tashlanadi. */
-export function qadamMatnTozala(matn: unknown): unknown {
-  if (typeof matn !== 'string') return matn;
-  return matn.replace(/^Model: .*? — /, 'Model tanlandi — ').replace(/^Javob olindi \([^)]*\):/, 'Javob olindi:');
-}
-const qadamTozala = (q: unknown) => (q && typeof q === 'object' && !Array.isArray(q) && 'matn' in q
-  ? { ...(q as Record<string, unknown>), matn: qadamMatnTozala((q as Record<string, unknown>).matn) } : q);
-
-/** AI javobi: provayder, model manbasi va provayder sarfi (usage — USD narx bilan) olib tashlanadi; model nomi
- *  «ai» ga almashtiriladi ('local' — mahalliy javob — qoladi, UI token sarfi yo'qligini shundan biladi). */
+/** AI javobi (JSON, NDJSON oqim qatori, jurnal): model nomi, provayder, qadamlar — O'ZGARMAYDI (egasi 2026-10-27: «AI doimgiday
+ *  ishlashi kerak»). Faqat provayder sarfi (USD) olib tashlanadi: `usage.cost` va har darajadagi `*_usd` maydonlari. */
 export function aiJavobTozala(j: unknown): unknown {
-  if (!j || typeof j !== 'object' || Array.isArray(j)) return j;
-  const { provider: _p, usage: _u, model_manba: _mm, ...r } = j as Record<string, unknown>;
-  if ('model' in r && r.model != null && r.model !== 'local') r.model = 'ai';
-  if (r.t === 'qadam' && 'matn' in r) r.matn = qadamMatnTozala(r.matn);
-  if (Array.isArray(r.qadamlar)) r.qadamlar = r.qadamlar.map(qadamTozala);
-  if (Array.isArray(r.natija)) r.natija = r.natija.map((x) => (x && typeof x === 'object' && !Array.isArray(x) ? aiJavobTozala(x) : x));
+  if (Array.isArray(j)) return j.map(aiJavobTozala);
+  if (!j || typeof j !== 'object') return j;
+  const r: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
+    if (/_usd$/.test(k)) continue;
+    if (k === 'usage' && v && typeof v === 'object' && !Array.isArray(v)) {
+      const { cost: _c, ...u } = v as Record<string, unknown>;
+      r[k] = aiJavobTozala(u);
+      continue;
+    }
+    r[k] = aiJavobTozala(v);
+  }
   return r;
 }
 
@@ -94,8 +93,7 @@ export function tizimNazoratTozala(j: unknown): unknown {
 /** Kompaniya o'zi boshqaradigan imkoniyatlar — faqat modullar (Kompaniya → Modullar). Qolgan bayroqlar tizimniki. */
 export const kompaniyaModulKodimi = (kod: unknown): boolean => typeof kod === 'string' && /^module\.[a-z0-9_]+$/.test(kod);
 
-/** AI katalog/model marshruti/ustama: GET bo'limlari va POST amallari — faqat platforma superadmini. */
-export const AI_TIZIM_BOLIMLAR: ReadonlySet<string> = new Set(['modellar', 'openrouter_modellar', 'model_shaxsiy', 'model_siyosat']);
-export const AI_TIZIM_AMALLAR: ReadonlySet<string> = new Set([
-  'model_tanla', 'model_shaxsiy_tanla', 'model_siyosat_saqla', 'model_katalog_yoz', 'model_openrouterdan_qosh', 'ustama_belgila', 'byudjet_belgila',
-]);
+/** Platforma AI iqtisodiyoti va global katalog — faqat platforma superadmini (egasi 2026-10-27, 2-javob):
+ *  katalogni yozish, OpenRouter'dan katalogga qo'shish, ustama (markup) va USD byudjet (platforma limiti, `t2_agent_byudjet` USD da).
+ *  Model TANLASH (kompaniya va shaxsiy) va kompaniya model SIYOSATI — kompaniyaga qaytarildi (bazadagi ruxsat bilan). */
+export const AI_TIZIM_AMALLAR: ReadonlySet<string> = new Set(['model_katalog_yoz', 'model_openrouterdan_qosh', 'ustama_belgila', 'byudjet_belgila']);
