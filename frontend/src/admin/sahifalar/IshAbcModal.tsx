@@ -105,8 +105,10 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
   const savedResult = useRef<{message:string;id:number|null}|null>(null);
   const [written,setWritten]=useState(false);
 
-  const birlikFarqli = rejim.tur === 'replacement' && !tahrir && !!almashtirishBelgila
-    && !!ish.birlik.trim() && !!rejim.eski.birlik && ish.birlik.trim().toLowerCase() !== rejim.eski.birlik.trim().toLowerCase();
+  // Ish zamenasi: yangi ish birligi; resurs zamenasi (egasi 2026-10-27): yangi resurs birligi — asl birligidan farqli bo'lsa.
+  const yangiBirlik = (rejim.tur === 'resurs_zamena' ? resurslar[0]?.birlik ?? '' : ish.birlik).trim();
+  const birlikFarqli = (rejim.tur === 'replacement' || rejim.tur === 'resurs_zamena') && !tahrir && !!almashtirishBelgila
+    && !!yangiBirlik && !!rejim.eski.birlik && yangiBirlik.toLowerCase() !== rejim.eski.birlik.trim().toLowerCase();
   const ishHajm = rejim.tur ==='resurs_zamena' ? (rejim.ishHajm != null ? String(rejim.ishHajm) : '') : ish.hajm;
   /** Resurs zamenasida ota ish hajmi noma'lum (alohida resurs) — norma qo'llanmaydi, aniq hajm kiritiladi. */
   const normaQollanadi = !(rejim.tur === 'resurs_zamena' && rejim.ishHajm == null);
@@ -209,9 +211,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
       const yangiId = Number((res as { qator_id?: unknown }).qator_id);
       if (almN != null && almN > 0 && almashtirishBelgila && Number.isSafeInteger(yangiId)) {
         const m = await almashtirishBelgila(yangiId, almN).catch(() => null);
-        almXabar = m?.ok ? ` ${t('Almashtirilgan hajm: {n} {birlik}.', { n: String(almN), birlik: rejim.tur === 'replacement' ? rejim.eski.birlik ?? '' : '' })}` : ` ${t('Almashtirilgan hajm yozilmadi — keyin belgilang.')}`;
+        almXabar = m?.ok ? ` ${t('Almashtirilgan hajm: {n} {birlik}.', { n: String(almN), birlik: rejim.tur !== 'additional' ? rejim.eski.birlik ?? '' : '' })}` : ` ${t('Almashtirilgan hajm yozilmadi — keyin belgilang.')}`;
       }
-      const message=tahrir ? 'O‘zgartirishlar saqlandi.' : rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».`
+      const message=tahrir ? 'O‘zgartirishlar saqlandi.' : rejim.tur === 'resurs_zamena' ? `Resurs almashtirildi: «${resurslar[0].nom}».${almXabar}`
         : `${rejim.tur === 'replacement' ? 'Zamena' : 'Qo‘shimcha ish'} saqlandi: ${resurslar.length} resurs, summa ${fmt(hisob.jami)} so‘m${son(fakt) ? `, fakt ${fakt}` : ''}.${almXabar}`;
       const id=Number.isSafeInteger(Number((res as { qator_id?: unknown }).qator_id)) ? Number((res as { qator_id?: unknown }).qator_id) : null;
       savedResult.current={message,id}; setWritten(true);
@@ -327,6 +329,9 @@ export function IshAbcModal({ kompaniyaId, obyektId, sana, bolimlar, rejim, tahr
         {birlikFarqli && rejim.tur === 'replacement' && <label className="block max-w-md text-[12px] font-medium">{t('Asl ishning qancha hajmini almashtiradi')} ({rejim.eski.birlik})
           <input value={almHajm} onChange={(e) => setAlmHajm(e.target.value)} inputMode="decimal" placeholder={t('ixtiyoriy')} className={`${num} mt-1`} aria-label={t('Almashtirilgan hajm (asl birlikda)')} />
           <span className="mt-0.5 block text-[11px] font-normal text-text-mute">{t('Birliklar farqli ({a} → {b}): bo‘sh qoldirsangiz asl qoldiq o‘zgarmaydi.', { a: rejim.eski.birlik ?? '', b: ish.birlik })}</span></label>}
+        {birlikFarqli && rejim.tur === 'resurs_zamena' && <label className="block max-w-md text-[12px] font-medium">{t('Asl resursning qancha hajmini almashtiradi')} ({rejim.eski.birlik})
+          <input value={almHajm} onChange={(e) => setAlmHajm(e.target.value)} inputMode="decimal" placeholder={t('ixtiyoriy')} className={`${num} mt-1`} aria-label={t('Almashtirilgan hajm (asl birlikda)')} />
+          <span className="mt-0.5 block text-[11px] font-normal text-text-mute">{t('Birliklar farqli ({a} → {b}): bo‘sh qoldirsangiz asl resurs zamenaning bajarilgan ulushida yopiladi.', { a: rejim.eski.birlik ?? '', b: yangiBirlik })}</span></label>}
         <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
           {!resursRejim && <label className="text-[12px] font-medium">Bajarilgan hajm (fakt)<input value={fakt} onChange={(e) => setFakt(e.target.value)} inputMode="decimal" placeholder="ixtiyoriy" className={`${num} mt-1`} aria-label="Bajarilgan hajm" /></label>}
           <label className={`text-[12px] font-medium ${resursRejim ? 'sm:col-span-2' : ''}`}>Sabab (majburiy)<input value={sabab} onChange={(e) => setSabab(e.target.value)} placeholder="masalan: loyihachi xati № …, buyurtmachi topshirig‘i" className={`${inp} mt-1`} aria-label="Sabab" /></label>

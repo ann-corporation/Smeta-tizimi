@@ -15,7 +15,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "runtime_sublease": { "from_task": "DIZAYN-FIRUZA-V1-20261025", "paths": ["frontend/src/admin/sahifalar/FaktJurnal.tsx", "frontend/src/admin/sahifalar/FaktNative.tsx"], "basis": "L0 17:40 and18:50 asks for isolated small PR on current main after154. Runtime author ownership retained, no transfer of other files; L0 review/merge." },
-      "note": "Window journal DOM only; complete draft/save/section scope and keyboard order retained. Remove silent200work search cap; Latin/Cyrillic same search. Compact optional analysis, shared workspace object picker remains. Isolated synthetic read-only UI harness; no DB/runtime authorization changes."
+      "note": "Windowing/header/search on main95e9f743 compatibility: preserve whole-object Fakt=F2, chosen month, factless-F2 filter and resource replacement/exclusion. Six focused files49PASS incl300eligible factless+Cyrillic without200cap, app/functionsTS,lint/build pass; final static gate rerun after materializing missing trackedMCP build file. Guard23baseline errors unchanged;163separate own-lock release. No business writer or main promotion. Historical a2a41073 CI5PASS precedes this merge, newheadneedsfreshCI."
     },
     {
       "id": "ARCHITECTURE-PACK-20261026",

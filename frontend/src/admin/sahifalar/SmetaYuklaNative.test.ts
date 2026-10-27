@@ -537,6 +537,17 @@ describe('varaqTuriTaxmin (owner: bitta faylda ham LRV, ham RES varaqlari bo‘l
   it('bo‘sh/mazmunsiz varaqni taxmin qilmaydi', () => {
     expect(varaqTuriTaxmin([['x'], [], []])).toBe('nomalum');
   });
+
+  it('svod va tn·km varag‘i — hamroh (tashlanmaydi, LRV ham qilinmaydi; C4 PR-1)', () => {
+    const tkm = [
+      ['', '№', 'Наименование материалов', 'Ед.изм', 'Кол-во', 'Кол-во (тн)', 'Дальность возки (км)', 'Грузооборот тн.км.', 'Стоимость тн.км в сум', 'Стоимость всего сум.'],
+      ['', 1, 'Материал А', 'тн', 100, 100, 10, 1000, 1000, 1000000],
+      ['', '', 'ИТОГО:', 'сум', '', '', '', '', '', 1000000],
+    ];
+    expect(varaqTuriTaxmin(tkm, 'трансп.')).toBe('hamroh');
+    const svod = [['№№ ПП', 'НАИМЕНОВАНИЕ ЗАТРАТ', 'Цена'], [1, 'ЗАТРАТЫ НА МАТЕРИАЛЫ', 100], [2, 'НДС -12%', 12]];
+    expect(varaqTuriTaxmin(svod, 'сводн.')).toBe('hamroh');
+  });
 });
 
 describe('smeta paket fayl tanlovi', () => {

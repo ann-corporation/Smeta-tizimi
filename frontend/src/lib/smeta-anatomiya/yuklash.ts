@@ -14,11 +14,17 @@
  */
 import { varaqniTahlilQil } from './varaq';
 import { anatomiyadanAktDaraxt } from './akt-daraxt';
-import type { Katak, UstunXaritasi, VaraqAnatomiyasi } from './turlar';
+import type { ErkinVaraq, Katak, SvodQatori, SvodVaraq, UstunXaritasi, VaraqAnatomiyasi } from './turlar';
 import type { AktNode } from '../f2-match-engine';
 import { resBolimKategoriya } from '../res-kategoriya';
 
-export type YuklashRoli = 'lrv' | 'res' | 'etiborsiz' | 'nomalum';
+/**
+ * `hamroh` (C4 PR-1, 2026-10-26) — svod / tn·km transport varag'i: LRV yoki RES manbasi EMAS, lekin tashlab ham
+ * yuborilmaydi. Anatomiya uning qatorlarini o'qiydi (`KitobAnatomiyasi.erkin` / `.svod`), operator ularni
+ * «hamroh varaqlar» panelida ko'radi va qaysisi smetaga kirishini O'ZI tanlaydi (avtomatik yozilmaydi).
+ * `etiborsiz` hozircha anatomiyada ishlatilmaydi (tur iste'molchilar uchun saqlanadi).
+ */
+export type YuklashRoli = 'lrv' | 'res' | 'hamroh' | 'etiborsiz' | 'nomalum';
 
 export interface VaraqRoliXulosa {
   rol: YuklashRoli;
@@ -29,10 +35,10 @@ export interface VaraqRoliXulosa {
   anatomiya: VaraqAnatomiyasi;
 }
 
-/** Faqat shakli aniq manba bo'lmagan rollar. "erkin" (miqdorsiz narx ro'yxati ham shunga tushadi) hal qiluvchi emas. */
-const ETIBORSIZ_SABAB: Partial<Record<VaraqAnatomiyasi['rol'], string>> = {
-  svod: 'svod / obyekt qiymati xulosasi — kanonik LRV yoki RES manbasi emas',
-  transport: 'transport hisobi (tn·km) — LRV yoki RES emas',
+/** LRV/RES manbasi bo'lmagan, lekin o'qiladigan hamroh rollar. "erkin" (miqdorsiz narx ro'yxati ham shunga tushadi) hal qiluvchi emas. */
+const HAMROH_SABAB: Partial<Record<VaraqAnatomiyasi['rol'], string>> = {
+  svod: 'svod / xarajat moddalari — LRV yoki RES manbasi emas, qatorlari hamroh panelda (operator tanlaydi)',
+  transport: 'transport hisobi (tn·km) — LRV yoki RES emas, material qatorlari hamroh panelda (operator tanlaydi)',
 };
 
 /** Ustun xaritasi (anatomiya) → eski import ustun sozlamasi (UI muharriri shu shaklda ishlaydi). */
@@ -67,8 +73,12 @@ export function varaqRoli(nom: string, rows: readonly (readonly Katak[])[]): Var
   if (a.rol === 'res' && a.vedomost.length >= 3) {
     return { rol: 'res', aniq: true, ishonch: a.vedomost.length >= 10 ? 'high' : 'medium', dalil: [`anatomiya: ${a.vedomost.length} ta resurs qatori`, ...dalil], anatomiya: a };
   }
-  const sabab = ETIBORSIZ_SABAB[a.rol];
-  if (sabab) return { rol: 'etiborsiz', aniq: true, ishonch: 'medium', dalil: [`anatomiya: ${sabab}`, ...dalil], anatomiya: a };
+  // Sarlavhasiz RES (`16.Перевоз`: 2 resurs) — ustunlar arifmetika bilan isbotlangan, kam qator ham yetarli.
+  if (a.rol === 'res' && a.vedomost.length >= 1 && a.rolDalil.some((d) => d.qoida === 'res:sarlavhasiz_arifmetika')) {
+    return { rol: 'res', aniq: true, ishonch: 'medium', dalil: [`anatomiya: sarlavhasiz RES, ${a.vedomost.length} ta resurs qatori`, ...dalil], anatomiya: a };
+  }
+  const sabab = HAMROH_SABAB[a.rol];
+  if (sabab) return { rol: 'hamroh', aniq: true, ishonch: 'medium', dalil: [`anatomiya: ${sabab}`, ...dalil], anatomiya: a };
   // Eski import evristikasidan ko'chirildi (egasi Q3; qoidani egasi 2026-09-10 tasdiqlagan):
   // kamida IKKI xil RES bo'lim sarlavhasi (ЗАТРАТЫ ТРУДА / МАШИНЫ / МАТЕРИАЛЫ / ОБОРУДОВАНИЕ …)
   // bo'lsa — bu RES; LRV ish ierarxiyasida bunday bo'limlar bo'lmaydi.
@@ -97,4 +107,88 @@ export function lrvDaraxti(nom: string, rows: readonly (readonly Katak[])[], tay
   const d = anatomiyadanAktDaraxt(a);
   if (!d.tree.length) return { tree: [], anatomiya: false, otkazildi: d.otkazildi, vedomost: a.vedomost.length, sabab: 'anatomiya daraxti bo‘sh chiqdi' };
   return { tree: d.tree, anatomiya: true, otkazildi: d.otkazildi, vedomost: a.vedomost.length, sabab: null };
+}
+
+// ─── Hamroh varaqlar → import daraxti (faqat operator tanlovi bilan) ──────────
+
+/**
+ * Svod xat lump-sum qatorining smetaga kiradigan narxi (so'm, НДС siz — tizimda narx doim НДС siz).
+ * Faqat hujjat dalili bilan: ming so'm masshtabi ustun sarlavhasidan, НДС holati ustundan (yoki formula o'qigan svod
+ * ustunidan), НДС stavkasi svodning o'zidan (`*1.12` / «НДС 12%»). Biror dalil yetmasa — narx null va sabab (taxmin yo'q).
+ */
+export function xatQatoriNarxi(svod: SvodVaraq, q: SvodQatori): { narx: number | null; ndsBilan: number | null; sabab: string | null } {
+  const s = q.summa;
+  if (!s) return { narx: null, ndsBilan: null, sabab: 'summa yo‘q' };
+  if (s.masshtab == null) return { narx: null, ndsBilan: null, sabab: 'ustun birligi (so‘m / ming so‘m) aniqlanmadi' };
+  const somda = s.qiymat * s.masshtab;
+  if (s.ndsBilan === false) return { narx: Math.round(somda * 100) / 100, ndsBilan: null, sabab: null };
+  if (s.ndsBilan == null) return { narx: null, ndsBilan: somda, sabab: 'НДС holati (с НДС / без НДС) aniqlanmadi' };
+  if (!svod.nds) return { narx: null, ndsBilan: somda, sabab: 'svodda НДС stavkasi topilmadi' };
+  return { narx: Math.round((somda / (1 + svod.nds.stavka)) * 100) / 100, ndsBilan: somda, sabab: null };
+}
+
+export interface HamrohTanlov {
+  /** Smetaga qo'shiladigan tn·km varaqlari: har material — alohida perevozka resursi (egasi qarori, F2 da qisman bajarish uchun). */
+  transport: readonly ErkinVaraq[];
+  /** Smeta tarkibiga yaxlit (resurssiz) ish bo'lib kiradigan svod xat qatorlari. */
+  xatlar: ReadonlyArray<{ svod: SvodVaraq; qator: SvodQatori }>;
+}
+
+/**
+ * Operator tanlagan hamroh qatorlari → import daraxti (`AktNode`), LRV daraxtiga QO'SHIMCHA ildizlar.
+ *  - tn·km: `rz «ПЕРЕВОЗКА ГРУЗОВ (<varaq>)»` → har material `rs` (birlik т·км, hajm = tn·km, narx/summa hujjatdan);
+ *    tn·km bo'sh yoki 0 bo'lgan qator kirmaydi (`otkazildi`).
+ *  - xat lump-sum: `rz «СВОДНЫЕ ПОЗИЦИИ … (<varaq>)»` → har xat `bl` (resurssiz yaxlit ish, f2-yaxlit odati: birlik «сум»,
+ *    hajm 1, narx = НДС siz summa). Belgisi kod ustunida: «ПИСЬМО ЗАКАЗЧИКА №133 ОТ 02.05.2026» (qoshimcha = false,
+ *    change_type NULL — smeta tarkibi, qo'shimcha ish EMAS). Narxi dalilsiz bo'lsa yoki nusxa bo'lsa — kirmaydi.
+ * Hech narsa avtomatik tanlanmaydi; bo'sh tanlov — bo'sh massiv (bo'sh bo'lim yaratilmaydi).
+ */
+export function hamrohDaraxti(tanlov: HamrohTanlov): { tree: AktNode[]; otkazildi: number } {
+  const tree: AktNode[] = [];
+  let otkazildi = 0;
+  for (const e of tanlov.transport) {
+    const children: AktNode[] = [];
+    for (const q of e.qatorlar ?? []) {
+      if (!q.tnKm) { otkazildi++; continue; }
+      children.push({
+        uid: `hamroh_t_${e.varaq}_${q.manzil.qator}`, type: 'rs', kod: '', nom: `ПЕРЕВОЗКА: ${q.xom}`, bir: 'т·км', hajm: q.tnKm,
+        ...(q.narx != null ? { narx: q.narx } : {}), ...(q.summa != null ? { summa: q.summa } : {}), children: [],
+      });
+    }
+    if (children.length) tree.push({ uid: `hamroh_t_${e.varaq}`, type: 'rz', nom: `ПЕРЕВОЗКА ГРУЗОВ (${e.varaq})`, children });
+  }
+  const svodlar = new Map<string, AktNode>();
+  for (const { svod, qator: q } of tanlov.xatlar) {
+    if (q.tur !== 'xat_lumpsum' || q.nusxa) { otkazildi++; continue; }
+    const n = xatQatoriNarxi(svod, q);
+    if (n.narx == null) { otkazildi++; continue; }
+    let rz = svodlar.get(svod.varaq);
+    if (!rz) {
+      rz = { uid: `hamroh_s_${svod.varaq}`, type: 'rz', nom: `СВОДНЫЕ ПОЗИЦИИ ПО ПИСЬМАМ ЗАКАЗЧИКА (${svod.varaq})`, children: [] };
+      svodlar.set(svod.varaq, rz);
+      tree.push(rz);
+    }
+    rz.children!.push({
+      uid: `hamroh_s_${svod.varaq}_${q.manzil.qator}`, type: 'bl',
+      kod: `ПИСЬМО ЗАКАЗЧИКА №${q.xat?.raqam ?? ''}${q.xat?.sana ? ` ОТ ${q.xat.sana}` : ''}`,
+      nom: q.xom, bir: 'сум', hajm: 1, narx: n.narx, summa: n.narx, children: [],
+    });
+  }
+  return { tree, otkazildi };
+}
+
+/** UI tanlov kalitlari (holatda saqlanadi): tn·km varaq nomlari va xat qatorlari `${varaq}!${qator}`. */
+export interface HamrohTanlovKalitlari {
+  transport: string[];
+  xatlar: string[];
+}
+
+export const xatKaliti = (s: SvodVaraq, q: SvodQatori): string => `${s.varaq}!${q.manzil.qator}`;
+
+/** UI kalitlari → `hamrohDaraxti` tanlovi. Faqat belgilangan va anatomiya o'qigan qatorlar. */
+export function hamrohTanlovniYig(h: { erkin: readonly ErkinVaraq[]; svod: readonly SvodVaraq[] }, k: HamrohTanlovKalitlari): HamrohTanlov {
+  return {
+    transport: h.erkin.filter((e) => e.rol === 'transport' && k.transport.includes(e.varaq)),
+    xatlar: h.svod.flatMap((s) => s.qatorlar.filter((q) => q.tur === 'xat_lumpsum' && k.xatlar.includes(xatKaliti(s, q))).map((qator) => ({ svod: s, qator }))),
+  };
 }

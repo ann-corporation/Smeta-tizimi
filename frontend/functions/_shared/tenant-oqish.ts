@@ -61,6 +61,8 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   t2_narx_protokol_royxat: K, t2_narx_protokol_qator: K,
   /* Smeta versiyasi → farq → da'vo (PTO-CORE-001): hammasida kompaniya_id bor. */
   t2_smeta_versiya: K, t2_smeta_versiya_pozitsiya: K, t2_smeta_versiya_moslik: K, t2_smeta_versiya_dava: K,
+  /* Smeta CONST — qator muhridan farq (o'qish modeli, kompaniya_id bor). */
+  t2_qator_muhr_farq: K,
 };
 
 /** PostgREST filtri — faqat oddiy `ustun=op.qiymat` shakllari (`or=`, embedding va h.k. yo'q). */

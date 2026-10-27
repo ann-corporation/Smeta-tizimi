@@ -154,5 +154,17 @@ it('finds all 300 matches with Latin and equivalent Uzbek Cyrillic search', asyn
   expect(screen.getByTestId('fakt-royxat-soni').textContent).toMatch(/300 ish\s*·\s*300 qator/);
 });
 
+it('keeps all 300 eligible works in the new factless-F2 filter after merging the object workflow', () => {
+  const rows = jurnalIshlari(300, { name: (i) => `G‘isht terish ${String(i + 1).padStart(3, '0')}` });
+  const states = rows.filter((r) => r.tur === 'bl').map((r) => ({
+    qator_id: r.id, smeta_hajm: 100, fakt_hajm: 0, f2_hajm: 1,
+    smeta_summa: 1000, fakt_summa: 0, f2_summa: 10, qoldiq_summa: 990,
+  }));
+  render(<FaktJurnal {...props(rows)} states={states} boshFaktsizF2 />);
+  expect(screen.getByTestId('fakt-royxat-soni').textContent).toMatch(/300 ish\s*·\s*300 qator/);
+  fireEvent.change(screen.getByLabelText('Qidirish'), { target: { value: 'ғишт' } });
+  expect(screen.getByTestId('fakt-royxat-soni').textContent).toMatch(/300 ish\s*·\s*300 qator/);
+});
+
 
 

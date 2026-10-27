@@ -226,6 +226,48 @@ export function f3SotuvdanHisobla(sh: Pick<SvodShartnoma, 'f3' | 'ds' | 'jami_nd
   };
 }
 
+/* ───────────── obyekt kesimi: F3 (sotuv) / to'langan / qarz yoki avans (1C sverka importi, 2026-10-26) ─────────────
+ * Sotuv (F3) obyektga bog'lanmagan (shartnoma darajasida). Obyektga ulushi — shu Продажага bog'langan F2 lar (QQS bilan) nisbatida,
+ * tiyin «eng katta qoldiq» usulida bo'linadi (jami aynan sotuv summasiga teng). F2 bog'lanmagan Продажа: shartnomada bitta obyekt bo'lsa —
+ * o'sha obyekt, aks holda «taqsimlanmagan» (obyektId null). To'lov: saqlangan taqsimot → to'lovning obyekti → yagona obyekt → taqsimlanmagan. */
+
+export type ObyektKesimQator = { obyektId: number | null; nom: string | null; f3: number; tolangan: number; qoldiq: number };
+export type ObyektKesimSotuv = { summa: number; ulush: readonly { obyektId: number; vazn: number }[] };
+export type ObyektKesimTolov = { summa: number; obyektId: number | null; taqsimot: readonly { obyektId: number | null; summa: number }[] };
+
+/** Butun sonni vaznlar bo'yicha bo'ladi (eng katta qoldiq usuli); jami aynan `jami`. */
+export function ulushlarga(jami: number, vaznlar: readonly number[]): number[] {
+  const s = vaznlar.reduce((a, b) => a + Math.max(0, b), 0);
+  if (!(s > 0)) return vaznlar.map(() => 0);
+  const xom = vaznlar.map((v) => (jami * Math.max(0, v)) / s);
+  const butun = xom.map((x) => Math.trunc(x));
+  let qol = jami - butun.reduce((a, b) => a + b, 0);
+  const tartib = xom.map((x, i) => ({ i, f: Math.abs(x - Math.trunc(x)) })).sort((a, b) => b.f - a.f || a.i - b.i);
+  for (let k = 0; qol !== 0 && k < tartib.length * 2; k++) { const d = Math.sign(qol); butun[tartib[k % tartib.length].i] += d; qol -= d; }
+  return butun;
+}
+
+export function obyektKesimi(p: { obyektlar: readonly SvodObyekt[]; sotuvlar: readonly ObyektKesimSotuv[]; tolovlar: readonly ObyektKesimTolov[] }): ObyektKesimQator[] {
+  const yagona = p.obyektlar.length === 1 ? p.obyektlar[0].id : null;
+  const q = new Map<number | null, { f3: number; tolangan: number }>();
+  const ol = (id: number | null) => { const v = q.get(id) ?? { f3: 0, tolangan: 0 }; q.set(id, v); return v; };
+  p.obyektlar.forEach((o) => ol(o.id));
+  for (const s of p.sotuvlar) {
+    const u = s.ulush.filter((x) => x.vazn > 0);
+    if (u.length) ulushlarga(s.summa, u.map((x) => x.vazn)).forEach((v, i) => { ol(u[i].obyektId).f3 += v; });
+    else ol(yagona).f3 += s.summa;
+  }
+  for (const t of p.tolovlar) {
+    if (t.taqsimot.length) { const ishora = t.summa < 0 ? -1 : 1; t.taqsimot.forEach((x) => { ol(x.obyektId).tolangan += ishora * x.summa; }); }
+    else ol(t.obyektId ?? yagona).tolangan += t.summa;
+  }
+  const nom = new Map(p.obyektlar.map((o) => [o.id, o.nom]));
+  return [...q.entries()]
+    .filter(([id, v]) => id != null || v.f3 !== 0 || v.tolangan !== 0)
+    .map(([id, v]) => ({ obyektId: id, nom: id == null ? null : nom.get(id) ?? null, f3: v.f3, tolangan: v.tolangan, qoldiq: v.f3 - v.tolangan }))
+    .sort((a, b) => (a.obyektId == null ? 1 : 0) - (b.obyektId == null ? 1 : 0) || (a.nom ?? '').localeCompare(b.nom ?? ''));
+}
+
 /* ───────────── akt-sverka matnini o'qish (nusxa-joylash) ───────────── */
 
 export type SverkaImportQator = { sana: string; tur: 'sotuv' | TolovTur; raqam: string | null; summa: number };
