@@ -7,14 +7,59 @@
  * Qoidalar: noma’lum qiymat 0 emas — `null` (smeta yuklanmagan obyekt foizi yo‘q); jamlanma qisman bo‘lsa
  * `smetaToliq=false` bilan aniq aytiladi. Pul — serverdagi ustamasiz (rz qatorlar yig‘indisi) qiymat.
  */
-import type { MindmapBelgi, MindmapGraf, MindmapSignal, MindmapTugun, TugunTur } from '../api/t2-mindmap';
+import type { MindmapBelgi, MindmapGraf, MindmapKorinish, MindmapSignal, MindmapTugun, TugunTur } from '../api/t2-mindmap';
 import { qidiruvdaBor } from '../i18n/lotin-kirill';
 
 export type XHolat = 'xavf' | 'etibor' | 'yaxshi' | 'nomalum';
 export const HOLAT_TARTIB: XHolat[] = ['xavf', 'etibor', 'yaxshi', 'nomalum'];
 const HOLAT_OGIRLIK: Record<XHolat, number> = { xavf: 0, etibor: 1, nomalum: 2, yaxshi: 3 };
 
-export type XTur = 'kompaniya' | 'loyiha' | 'obyekt' | 'guruh';
+export type XTur = 'kompaniya' | 'loyiha' | 'obyekt' | 'guruh' | 'jamoa' | 'odam';
+
+/* ───────────── Jamoa (v4: odamlar) ───────────── */
+export type JamoaGuruhKalit = 'rahbariyat' | 'pto' | 'prorab' | 'bugalter' | 'boshqa';
+export const JAMOA_TARTIB: JamoaGuruhKalit[] = ['rahbariyat', 'pto', 'prorab', 'bugalter', 'boshqa'];
+export const JAMOA_ID = 'jamoa:odamlar';
+
+/** A'zolik roli → «Jamoa» guruhi. Noma'lum rol — `boshqa` (yashirilmaydi). */
+export function jamoaGuruhi(rol: string | null | undefined): JamoaGuruhKalit {
+  const r = (rol ?? '').toLowerCase();
+  if (['boss', 'admin', 'rahbar', 'superadmin', 'direktor'].includes(r)) return 'rahbariyat';
+  if (r === 'pto') return 'pto';
+  if (r === 'prorab') return 'prorab';
+  if (r === 'bugalter') return 'bugalter';
+  return 'boshqa';
+}
+
+/** Ism → bosh harflar («Anvar Ahatqulov» → «AA»). Bo'sh bo'lsa «?». */
+export function bosharflar(nom: string | null | undefined): string {
+  const sozlar = (nom ?? '').trim().split(/\s+/).filter(Boolean);
+  if (!sozlar.length) return '?';
+  const h = sozlar.slice(0, 2).map((x) => Array.from(x)[0] ?? '').join('');
+  return h.toLocaleUpperCase('uz-UZ') || '?';
+}
+
+export type MasulYozuv = { odamId: string; nom: string; initsial: string; rol: string | null; ruxsat: string | null };
+export type XOdamBiriktirma = { id: string; ruxsat: string | null };
+export type XOdam = {
+  id: string;
+  /** `t2_foydalanuvchi.id`. */
+  sonId: number | null;
+  nom: string;
+  login: string | null;
+  rol: string | null;
+  rollar: string[];
+  guruh: JamoaGuruhKalit;
+  initsial: string;
+  /** Mas'ul bo'lgan (serverning ko'rish doirasidagi) obyekt/loyihalar. */
+  obyektlar: XOdamBiriktirma[];
+  loyihalar: XOdamBiriktirma[];
+};
+export type XJamoa = {
+  odamlar: Map<string, XOdam>;
+  /** Faqat bo'sh bo'lmagan guruhlar, `JAMOA_TARTIB` tartibida; odamlar nom bo'yicha. */
+  guruhlar: { kalit: JamoaGuruhKalit; odamlar: string[] }[];
+};
 export type ResursSanoq = { shartnoma: number; sklad: number; texnika: number; kadr: number; kontragent: number };
 export type HolatSanoq = Record<XHolat, number>;
 
@@ -57,6 +102,10 @@ export type XTugun = {
   kritikSoni: number | null;
   /** Eng og‘ir 3 signal (obyektda). */
   topSignallar: MindmapSignal[];
+  /** v4: shu obyekt/loyihaga mas'ul odamlar (boshqa turlarda bo'sh). */
+  masullar: MasulYozuv[];
+  /** `odam` turida — odam yozuvi. */
+  odam: XOdam | null;
 };
 
 export type XDaraxt = {
@@ -67,6 +116,14 @@ export type XDaraxt = {
   /** Hech bir obyekt/loyihaga biriktirilmagan resurslar. */
   biriktirilmagan: ResursSanoq;
   maxSmeta: number;
+  /** v4: odamlar. `null` — server odam yubormagan (eski RPC). */
+  jamoa: XJamoa | null;
+  /** Server `korinish` (v4). `null` — eski RPC (cheklov noma'lum). */
+  korinish: MindmapKorinish | null;
+  /** `true` — moliyaviy ruxsat yo'q: summalar serverda olib tashlangan, UI «—» va sababini ko'rsatadi (0 EMAS). */
+  pulYoq: boolean;
+  /** `true` — obyektlarning bir qismi shu foydalanuvchidan yashirilgan. */
+  doiraCheklangan: boolean;
 };
 
 const bosResurs = (): ResursSanoq => ({ shartnoma: 0, sklad: 0, texnika: 0, kadr: 0, kontragent: 0 });
@@ -178,7 +235,7 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
     id, tur, nom, manba, ota, bolalar: [], daraja, tomon: 0, holat: 'nomalum',
     smeta: null, smetaToliq: false, fakt: null, f2: null, faktFoiz: null, f2Foiz: null,
     belgilar: [], zayavka: null, narxsiz: null, obyektSoni: 0, holatSanoq: bosHolat(), resurs: bosResurs(), oshgan: false,
-    f2Qoralama: null, f2Tasdiqlangan: false, signalSoni: null, kritikSoni: null, topSignallar: [],
+    f2Qoralama: null, f2Tasdiqlangan: false, signalSoni: null, kritikSoni: null, topSignallar: [], masullar: [], odam: null,
   });
   tugunlar.set(ildiz, yangi(ildiz, 'kompaniya', kompaniya?.nom ?? '', kompaniya, null, 0));
 
@@ -309,14 +366,67 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
 
   const tartib = [ildiz, ...root.bolalar, ...root.bolalar.flatMap((id) => tugunlar.get(id)!.bolalar)];
   const maxSmeta = Math.max(0, ...[...tugunlar.values()].filter((x) => x.daraja === 2).map((x) => x.smeta ?? 0));
-  return { ildiz, tugunlar, tartib, biriktirilmagan, maxSmeta };
+
+  // Jamoa (v4) — loyiha/obyekt hisobidan KEYIN qo'shiladi, `root.bolalar` ga kirmaydi (u faqat loyihalar).
+  const jamoa = jamoaQur(graf, tugunlar, yangi, ildiz);
+  if (jamoa) {
+    tartib.push(JAMOA_ID);
+    for (const g of jamoa.guruhlar) tartib.push(...g.odamlar);
+  }
+  const korinish = graf.korinish ?? null;
+  return { ildiz, tugunlar, tartib, biriktirilmagan, maxSmeta, jamoa, korinish,
+    pulYoq: korinish?.pul === false, doiraCheklangan: korinish?.toliq === false };
+}
+
+const masulRuxsatTartib = (r: string | null) => (r === 'manage' ? 0 : r === 'write' ? 1 : r === 'read' ? 2 : 3);
+
+function jamoaQur(graf: MindmapGraf, tugunlar: Map<string, XTugun>,
+  yangi: (id: string, tur: XTur, nom: string, manba: MindmapTugun | null, ota: string | null, daraja: 0 | 1 | 2) => XTugun, ildiz: string): XJamoa | null {
+  const odamNodelar = graf.tugunlar.filter((t) => t.tur === 'foydalanuvchi');
+  if (!odamNodelar.length) return null;
+  const odamlar = new Map<string, XOdam>();
+  for (const n of odamNodelar) {
+    const m = n.meta ?? {};
+    const rol = typeof m.rol === 'string' && m.rol ? m.rol : null;
+    const rollar = Array.isArray(m.rollar) ? (m.rollar as unknown[]).filter((r): r is string => typeof r === 'string') : rol ? [rol] : [];
+    odamlar.set(n.id, {
+      id: n.id, sonId: entityId(n.id), nom: n.nom, login: typeof m.login === 'string' ? m.login : null,
+      rol, rollar, guruh: jamoaGuruhi(rol ?? rollar[0]), initsial: bosharflar(n.nom), obyektlar: [], loyihalar: [],
+    });
+  }
+  for (const b of graf.bogichlar) {
+    if (b.tur !== 'masul_obyekt' && b.tur !== 'masul_loyiha') continue;
+    const od = odamlar.get(b.manba);
+    const nishon = tugunlar.get(b.maqsad);
+    if (!od || !nishon || nishon.tur !== (b.tur === 'masul_obyekt' ? 'obyekt' : 'loyiha')) continue;
+    const ruxsat = b.ruxsat ?? null;
+    (b.tur === 'masul_obyekt' ? od.obyektlar : od.loyihalar).push({ id: nishon.id, ruxsat });
+    nishon.masullar.push({ odamId: od.id, nom: od.nom, initsial: od.initsial, rol: od.rol, ruxsat });
+  }
+  for (const x of tugunlar.values()) x.masullar.sort((a, c) => masulRuxsatTartib(a.ruxsat) - masulRuxsatTartib(c.ruxsat) || a.nom.localeCompare(c.nom));
+
+  const guruhlar = JAMOA_TARTIB.map((kalit) => ({
+    kalit,
+    odamlar: [...odamlar.values()].filter((o) => o.guruh === kalit).sort((a, c) => a.nom.localeCompare(c.nom)).map((o) => o.id),
+  })).filter((g) => g.odamlar.length > 0);
+
+  const j = yangi(JAMOA_ID, 'jamoa', '', null, ildiz, 1);
+  j.bolalar = guruhlar.flatMap((g) => g.odamlar);
+  j.obyektSoni = 0;
+  tugunlar.set(JAMOA_ID, j);
+  for (const o of odamlar.values()) {
+    const x = yangi(o.id, 'odam', o.nom, odamNodelar.find((n) => n.id === o.id) ?? null, JAMOA_ID, 2);
+    x.odam = o;
+    tugunlar.set(o.id, x);
+  }
+  return { odamlar, guruhlar };
 }
 
 /* ───────────── Joylashuv ───────────── */
 
 export type Joy = { x: number; y: number; w: number; h: number };
 export type Chegara = { x1: number; y1: number; x2: number; y2: number };
-export type Joylashuv = { joylar: Map<string, Joy>; chegara: Chegara; tomon: Map<string, -1 | 1> };
+export type Joylashuv = { joylar: Map<string, Joy>; chegara: Chegara; tomon: Map<string, -1 | 1>; /** Jamoa guruhlari sarlavhalari (x, y — matn boshi). */ yorliqlar: { kalit: JamoaGuruhKalit; x: number; y: number }[] };
 
 export const OLCHAM = {
   ildiz: { w: 228, h: 108 },
@@ -325,6 +435,8 @@ export const OLCHAM = {
   /** Ildiz markazidan loyiha / obyekt markazigacha. */
   dx1: 262, dx2: 530,
   qator: 94, loyihaOraligi: 26,
+  /** Jamoa shoxi: kompaniya tagida, odam kartalari qatorlarda (qatorda ko'pi bilan `odamQatorda`). */
+  jamoa: { w: 228, h: 64 }, odam: { w: 200, h: 64 }, odamDx: 214, odamQatorda: 5, jamoaBoshlanish: 96,
 } as const;
 
 /**
@@ -362,7 +474,28 @@ export function mindmapJoyla(d: XDaraxt, yigilgan: ReadonlySet<string> = new Set
       y += b + OLCHAM.loyihaOraligi;
     }
   }
-  return { joylar, chegara: chegaraHisobla(joylar.values()), tomon };
+  const yorliqlar: Joylashuv['yorliqlar'] = [];
+  if (d.jamoa) {
+    const O = OLCHAM;
+    const yMax = chegaraHisobla(joylar.values()).y2;
+    const jy = yMax + O.jamoaBoshlanish + O.jamoa.h / 2;
+    joylar.set(JAMOA_ID, { x: 0, y: jy, ...O.jamoa });
+    if (!yigilgan.has(JAMOA_ID)) {
+      let y = jy + O.jamoa.h / 2 + 52;
+      for (const g of d.jamoa.guruhlar) {
+        const kenglik = Math.min(g.odamlar.length, O.odamQatorda) * O.odamDx;
+        yorliqlar.push({ kalit: g.kalit, x: -kenglik / 2 + 4, y });
+        y += 10;
+        for (let i = 0; i < g.odamlar.length; i += O.odamQatorda) {
+          const qator = g.odamlar.slice(i, i + O.odamQatorda);
+          qator.forEach((id, k) => joylar.set(id, { x: (k - (qator.length - 1) / 2) * O.odamDx, y: y + O.odam.h / 2, ...O.odam }));
+          y += O.odam.h + 14;
+        }
+        y += 24;
+      }
+    }
+  }
+  return { joylar, chegara: chegaraHisobla(joylar.values()), tomon, yorliqlar };
 }
 
 /** Kichik karta uchun radial joylashuv: loyihalar 1-halqada (obyekt soniga mutanosib sektor), obyektlar 2-halqada. */
@@ -439,10 +572,14 @@ export function qidiruvMoslari(d: XDaraxt, q: string, guruhNomi = ''): { mos: Se
 /** Tanlangan tugunning yo‘li: ajdodlar + o‘zi + avlodlari. */
 export function fokusYoli(d: XDaraxt, id: string): Set<string> {
   const s = new Set<string>();
-  let c: string | null = id;
-  while (c) { s.add(c); c = d.tugunlar.get(c)?.ota ?? null; }
+  const yuqori = (boshi: string) => { let c: string | null = boshi; while (c) { s.add(c); c = d.tugunlar.get(c)?.ota ?? null; } };
+  yuqori(id);
   const ich = (x: string) => { for (const b of d.tugunlar.get(x)?.bolalar ?? []) { s.add(b); ich(b); } };
   ich(id);
+  // Mas'ullik: obyekt tanlansa — mas'ul odamlar; odam tanlansa — uning obyekt/loyihalari (ajdodlari bilan).
+  const x = d.tugunlar.get(id);
+  if (x?.tur === 'obyekt' || x?.tur === 'loyiha') for (const m of x.masullar) yuqori(m.odamId);
+  if (x?.tur === 'odam' && x.odam) for (const b of [...x.odam.obyektlar, ...x.odam.loyihalar]) yuqori(b.id);
   return s;
 }
 
@@ -452,6 +589,23 @@ export function klaviaturaQadam(d: XDaraxt, j: Joylashuv, id: string, kalit: str
   if (!x) return null;
   const s = j.tomon.get(id) ?? 0;
   const korBolalar = (t: XTugun) => (yigilgan.has(t.id) ? [] : t.bolalar);
+  // Jamoa shoxi pastda: kompaniya ↓ jamoa ↓ odamlar; odamlar orasida ← → ↑ ↓ qator bo'yicha.
+  if (x.tur === 'kompaniya' && kalit === 'ArrowDown') return d.tugunlar.has(JAMOA_ID) ? JAMOA_ID : null;
+  if (x.tur === 'jamoa') {
+    if (kalit === 'ArrowUp') return d.ildiz;
+    if (kalit === 'ArrowDown') return korBolalar(x)[0] ?? null;
+    return null;
+  }
+  if (x.tur === 'odam') {
+    const q = d.tugunlar.get(JAMOA_ID)?.bolalar ?? [];
+    const i = q.indexOf(id);
+    if (kalit === 'ArrowUp') return JAMOA_ID;
+    if (kalit === 'ArrowRight') return q[i + 1] ?? null;
+    if (kalit === 'ArrowLeft') return q[i - 1] ?? null;
+    if (kalit === 'ArrowDown') return q[i + 5] ?? null;
+    if (kalit === 'Home') return d.ildiz;
+    return null;
+  }
   if (kalit === 'ArrowRight' || kalit === 'ArrowLeft') {
     const yon = kalit === 'ArrowRight' ? 1 : -1;
     if (x.tur === 'kompaniya') return x.bolalar.find((b) => j.tomon.get(b) === yon) ?? null;

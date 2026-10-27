@@ -238,7 +238,9 @@ const AMALLAR = {
   mindmap_bog: { rpc: 't2_mindmap_bog_v2' },
   mindmap_bog_ochir: { rpc: 't2_mindmap_bog_ochir_v2' },
   mindmap_joylashuv_saqla: { rpc: 't2_mindmap_joylashuv_saqla_v2' },
-  mindmap_tugun_ochir: { rpc: 't2_mindmap_tugun_ochir_v2' }
+  mindmap_tugun_ochir: { rpc: 't2_mindmap_tugun_ochir_v2' },
+  /* 2026-11-11: odamni obyekt/loyihaga mas'ul qilib biriktirish/olib tashlash (company.member.manage yoki control.company.write). */
+  mindmap_masul: { rpc: 't2_mindmap_masul_v1' }
 } as const;
 
 type Amal = keyof typeof AMALLAR;
@@ -333,7 +335,7 @@ export const onRequestPost: PagesFunction<{
       if (!uuidRe.test(operationId)) {
         return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi shart' });
       }
-      if (amal !== 'mindmap_joylashuv_saqla' && amal !== 'resurs_yarat_v2' &&
+      if (amal !== 'mindmap_joylashuv_saqla' && amal !== 'mindmap_masul' && amal !== 'resurs_yarat_v2' &&
           (!Number.isInteger(Number(so.expected_version)) || Number(so.expected_version) < 0)) {
         return Response.json({ ok: false, error: 'expected_version noto\'g\'ri' });
       }
@@ -2478,6 +2480,29 @@ export const onRequestPost: PagesFunction<{
           p_kutilgan_versiya: Number(so.expected_version), p_operation_id: operationId,
           p_actor_label: sess.email || null };
       }
+
+    /* ══════════ MINDMAP — MAS'ULLARNI BIRIKTIRISH ══════════
+       Odam (a'zo) → obyekt YOKI loyiha. `ruxsat` null = olib tashlash. Aʼzolik/egalik RPC ichida ham tekshiriladi. */
+    } else if (amal === 'mindmap_masul') {
+      const obyektId = so.obyekt_id == null || so.obyekt_id === '' ? null : Number(so.obyekt_id);
+      const loyihaId = so.loyiha_id == null || so.loyiha_id === '' ? null : Number(so.loyiha_id);
+      const userId = Number(so.foydalanuvchi_id);
+      if ((obyektId == null) === (loyihaId == null)) {
+        return Response.json({ ok: false, error: "obyekt_id yoki loyiha_id (faqat bittasi) kerak" });
+      }
+      for (const v of [obyektId, loyihaId]) {
+        if (v != null && (!Number.isInteger(v) || v <= 0)) return Response.json({ ok: false, error: "obyekt_id/loyiha_id noto'g'ri" });
+      }
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return Response.json({ ok: false, error: "foydalanuvchi_id noto'g'ri" });
+      }
+      const ruxsat = so.ruxsat == null || so.ruxsat === '' ? null : String(so.ruxsat);
+      if (ruxsat != null && !['read', 'write', 'manage'].includes(ruxsat)) {
+        return Response.json({ ok: false, error: "ruxsat noto'g'ri" });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: Number(so.kompaniya_id),
+        p_obyekt_id: obyektId, p_loyiha_id: loyihaId, p_foydalanuvchi_id: userId,
+        p_ruxsat: ruxsat, p_operation_id: operationId };
 
     /* Tugun sudrab ko'chirilganda joylashuv saqlanadi — aks holda har
        ochilganda avtomatik qayta terilib, odam terib qo'ygan tartib

@@ -6,13 +6,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as RKeyboardEvent, type PointerEvent as RPointerEvent } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { AlertTriangle, FileText, HardHat, Maximize2, Minus, Plus, ShieldAlert, Truck, Warehouse, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { AlertTriangle, FileText, HardHat, Maximize2, Minus, Plus, ShieldAlert, Truck, Users, Warehouse, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { t } from '../../i18n/til';
 import {
   hajmOlcham, klaviaturaQadam, markazlaKamera, sigdirKamera, zumla, chegaraHisobla,
   type Joy, type Joylashuv, type Kamera, type XDaraxt, type XHolat, type XTugun,
 } from '../../lib/mindmap-korinish';
 import { HOLAT_RANG, foizMatn, holatNomi, pulQ } from './holat';
+import { guruhNomi as jamoaGuruhNomi, rolNomi } from './jamoa-nomlar';
+import { JAMOA_ID } from '../../lib/mindmap-korinish';
 
 type Props = {
   daraxt: XDaraxt;
@@ -47,8 +49,11 @@ function kes(matn: string, maxPx: number, shrift: string, px: number): string {
 const SHRIFT_NOM = (px: number) => `600 ${px}px Geologica, "IBM Plex Sans", system-ui, sans-serif`;
 
 function ariaMatn(x: XTugun, guruhNomi: string): string {
+  if (x.tur === 'jamoa') return t('Jamoa') + ', ' + t('{n} ta a’zo', { n: x.bolalar.length });
+  if (x.tur === 'odam' && x.odam) return [x.nom, t('A’zo'), rolNomi(x.odam.rol), t('{n} ta obyekt', { n: x.odam.obyektlar.length })].join(', ');
   const tur = x.tur === 'kompaniya' ? t('Kompaniya') : x.tur === 'loyiha' ? t('Loyiha') : x.tur === 'guruh' ? t('Guruh') : t('Obyekt');
   const parts = [x.tur === 'guruh' ? guruhNomi : x.nom, tur, t('holat: {h}', { h: holatNomi(x.holat) })];
+  if (x.masullar.length) parts.push(t('Mas‘ullar') + ': ' + x.masullar.map((m) => m.nom).join(', '));
   if (x.f2Foiz != null) parts.push(t('F2 (tasdiqlangan) {p}', { p: foizMatn(x.f2Foiz) }));
   if ((x.kritikSoni ?? 0) > 0) parts.push(t('{n} kritik signal', { n: x.kritikSoni ?? 0 }));
   else if ((x.signalSoni ?? 0) > 0) parts.push(t('{n} ochiq signal', { n: x.signalSoni ?? 0 }));
@@ -224,6 +229,15 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
   const tanlanganYoli = yoritilgan;
   const xira = (id: string) => !!tanlanganYoli && !tanlanganYoli.has(id);
   const maxLoyihaSmeta = useMemo(() => Math.max(0, ...[...daraxt.tugunlar.values()].filter((x) => x.daraja === 1).map((x) => x.smeta ?? 0)), [daraxt]);
+  /** Tanlangan obyekt/loyiha yoki odam uchun odam ↔ biriktirma punktir chiziqlari. */
+  const masulChiziqlar = useMemo(() => {
+    const x = tanlangan ? daraxt.tugunlar.get(tanlangan) : null;
+    if (!x) return [] as { odam: string; nishon: string }[];
+    if (x.tur === 'obyekt' || x.tur === 'loyiha') return x.masullar.map((m) => ({ odam: m.odamId, nishon: x.id }));
+    if (x.tur === 'odam' && x.odam) return [...x.odam.obyektlar, ...x.odam.loyihalar].map((b) => ({ odam: x.id, nishon: b.id }));
+    return [];
+  }, [tanlangan, daraxt]);
+  const pulYoq = daraxt.pulYoq;
   const otish = kamQisqarish ? { duration: 0 } : { type: 'spring' as const, stiffness: 260, damping: 30 };
 
   const tugunlar = daraxt.tartib.map((id) => daraxt.tugunlar.get(id)!).filter((x) => joylashuv.joylar.has(x.id));
@@ -247,6 +261,17 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
           <g fill="none">
             {tugunlar.filter((x) => x.ota && joylashuv.joylar.has(x.ota)).map((x) => {
               const a = joylashuv.joylar.get(x.ota!)!, b = joylashuv.joylar.get(x.id)!;
+              if (x.tur === 'jamoa' || x.tur === 'odam') {
+                // Jamoa shoxi pastga: ota tubidan bola tepasiga tik egri chiziq.
+                const y1 = a.y + a.h / 2, y2 = b.y - b.h / 2, my = (y1 + y2) / 2;
+                const dv = `M ${a.x} ${y1} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${y2}`;
+                const yorugV = !!tanlangan && !xira(x.id) && !xira(x.ota!);
+                return (
+                  <motion.path key={'c' + x.id} initial={false} animate={{ d: dv, opacity: xira(x.id) ? 0.18 : 1 }} transition={otish}
+                    strokeWidth={1.5} strokeLinecap="round" data-jamoa-chiziq
+                    style={{ stroke: yorugV ? 'var(--accent)' : 'var(--border-strong)', strokeOpacity: yorugV ? 0.85 : 0.5 }} />
+                );
+              }
               const s = Math.sign(b.x - a.x) || 1;
               const x1 = a.x + (s * a.w) / 2, x2 = b.x - (s * b.w) / 2;
               const mx = (x1 + x2) / 2;
@@ -260,7 +285,20 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
                   style={{ stroke: yorug ? 'var(--accent)' : 'var(--border-strong)', strokeOpacity: yorug ? 0.85 : 0.55 }} />
               );
             })}
+            {masulChiziqlar.map((c) => {
+              const a = joylashuv.joylar.get(c.odam), b = joylashuv.joylar.get(c.nishon);
+              if (!a || !b) return null;
+              const x1 = a.x, y1 = a.y - a.h / 2, x2 = b.x, y2 = b.y + (b.h / 2) * (b.y < a.y ? 1 : -1);
+              const my = (y1 + y2) / 2;
+              return <path key={'m' + c.odam + c.nishon} d={`M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`} strokeWidth={1.75} strokeDasharray="6 5" data-masul-chiziq
+                style={{ stroke: 'var(--accent)', strokeOpacity: 0.7 }} />;
+            })}
           </g>
+          {joylashuv.yorliqlar.map((y) => (
+            <text key={'y' + y.kalit} x={y.x} y={y.y} data-jamoa-yorliq style={{ fill: 'var(--text-mute)', font: '600 12px var(--font-sans)', letterSpacing: '0.04em' }}>
+              {jamoaGuruhNomi(y.kalit).toLocaleUpperCase()}
+            </text>
+          ))}
           {tugunlar.map((x) => {
             const j = joylashuv.joylar.get(x.id)!;
             return (
@@ -280,9 +318,15 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
                 )}
                 {(x.tur === 'loyiha' || x.tur === 'guruh') && !ixcham && (
                   <LoyihaKarta x={x} w={j.w} h={j.h} nom={x.tur === 'guruh' ? guruhNomi : x.nom} tanlangan={tanlangan === x.id} fokus={fokusId === x.id}
-                    yigilgan={yigilgan.has(x.id)} tomon={joylashuv.tomon.get(x.id) ?? 1} onYig={() => onYigToggle(x.id)} maxSmeta={maxLoyihaSmeta} />
+                    yigilgan={yigilgan.has(x.id)} tomon={joylashuv.tomon.get(x.id) ?? 1} onYig={() => onYigToggle(x.id)} maxSmeta={maxLoyihaSmeta} pulYoq={pulYoq} />
                 )}
-                {x.tur === 'obyekt' && <ObyektKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} ixcham={ixcham} maxSmeta={daraxt.maxSmeta} />}
+                {x.tur === 'obyekt' && <ObyektKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} ixcham={ixcham} maxSmeta={daraxt.maxSmeta} pulYoq={pulYoq} />}
+                {x.tur === 'jamoa' && (ixcham
+                  ? <IxchamKarta nom={t('Jamoa')} holat="nomalum" w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon="var(--surface-2)" />
+                  : <JamoaKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} yigilgan={yigilgan.has(JAMOA_ID)} onYig={() => onYigToggle(JAMOA_ID)} />)}
+                {x.tur === 'odam' && x.odam && (ixcham
+                  ? <IxchamKarta nom={x.nom} holat="nomalum" w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />
+                  : <OdamKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />)}
               </motion.g>
             );
           })}
@@ -415,8 +459,8 @@ function IldizKarta({ x, w, h, tanlangan, fokus }: { x: XTugun; w: number; h: nu
   );
 }
 
-function LoyihaKarta({ x, w, h, nom, tanlangan, fokus, yigilgan, tomon, onYig, maxSmeta }: {
-  x: XTugun; w: number; h: number; nom: string; tanlangan: boolean; fokus: boolean; yigilgan: boolean; tomon: -1 | 1; onYig: () => void; maxSmeta: number;
+function LoyihaKarta({ x, w, h, nom, tanlangan, fokus, yigilgan, tomon, onYig, maxSmeta, pulYoq }: {
+  x: XTugun; w: number; h: number; nom: string; tanlangan: boolean; fokus: boolean; yigilgan: boolean; tomon: -1 | 1; onYig: () => void; maxSmeta: number; pulYoq: boolean;
 }) {
   const r = hajmOlcham(x.smeta, maxSmeta, 6, 11);
   const [n1, n2] = ikkiQator(nom, w - 46, 14.5);
@@ -434,7 +478,7 @@ function LoyihaKarta({ x, w, h, nom, tanlangan, fokus, yigilgan, tomon, onYig, m
       <text x={36} y={y0} style={{ fill: 'var(--text)', font: SHRIFT_NOM(14.5) }}>{n1}</text>
       {n2 && <text x={36} y={y0 + 17} style={{ fill: 'var(--text)', font: SHRIFT_NOM(14.5) }}>{n2}</text>}
       <text x={36} y={ySub} style={{ fill: 'var(--text-dim)', font: '500 12px var(--font-sans)' }}>
-        {t('{n} ta obyekt', { n: x.obyektSoni }) + ' · ' + (x.smeta == null ? t('smeta yo‘q') : (x.smetaToliq ? '' : '≈ ') + pulQ(x.smeta))}
+        {t('{n} ta obyekt', { n: x.obyektSoni }) + ' · ' + (x.smeta == null ? (pulYoq ? '—' : t('smeta yo‘q')) : (x.smetaToliq ? '' : '≈ ') + pulQ(x.smeta))}
       </text>
       <MeterSvg x={36} y={yMet} w={w - 92} h={7} faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} />
       <text x={w - 10} y={yMet + 7} textAnchor="end" style={{ fill: 'var(--text-dim)', font: '600 12px var(--font-mono)' }}>{foizMatn(x.f2Foiz)}</text>
@@ -452,7 +496,7 @@ function LoyihaKarta({ x, w, h, nom, tanlangan, fokus, yigilgan, tomon, onYig, m
   );
 }
 
-function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta }: { x: XTugun; w: number; h: number; tanlangan: boolean; fokus: boolean; ixcham: boolean; maxSmeta: number }) {
+function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta, pulYoq }: { x: XTugun; w: number; h: number; tanlangan: boolean; fokus: boolean; ixcham: boolean; maxSmeta: number; pulYoq: boolean }) {
   const r = hajmOlcham(x.smeta, maxSmeta, 4.5, 10);
   const ogoh = x.belgilar.filter((b) => b.daraja === 'ogoh').length;
   const info = x.belgilar.length - ogoh;
@@ -479,7 +523,7 @@ function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta }: { x: XTugu
     { kalit: 'signal', n: signalSoni, ikon: ShieldAlert, rang: kritik > 0 ? 'var(--danger)' : 'var(--warn)', fon: kritik > 0 ? 'var(--danger-soft)' : 'var(--warn-soft)',
       sarlavha: t('{n} ochiq signal, {k} kritik', { n: signalSoni, k: kritik }) + (x.topSignallar.length ? '\n' + x.topSignallar.map((q) => '• ' + (q.title ?? '')).join('\n') : '') },
   ].filter((c) => c.n > 0);
-  const summa = x.smeta == null ? t('smeta yo‘q') : pulQ(x.smeta);
+  const summa = x.smeta == null ? (pulYoq ? '—' : t('smeta yo‘q')) : pulQ(x.smeta);
   const summaKeng = summa.length * 7.4 + 10;
   return (
     <g>
@@ -488,7 +532,7 @@ function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta }: { x: XTugu
       <rect x={0} y={10} width={3} height={h - 20} rx={1.5} style={{ fill: HOLAT_RANG[x.holat] }} />
       <RombSvg cx={19} cy={21} r={r * 0.72} holat={x.holat} />
       <text x={35} y={26} style={{ fill: 'var(--text)', font: SHRIFT_NOM(14.5) }}>{kes(x.nom, w - 44 - summaKeng, SHRIFT_NOM(14.5), 14.5)}</text>
-      <text x={w - 10} y={26} textAnchor="end" style={{ fill: x.smeta == null ? 'var(--warn)' : 'var(--text-dim)', font: '500 12px var(--font-mono)' }}>{summa}</text>
+      <text x={w - 10} y={26} textAnchor="end" style={{ fill: x.smeta == null && !pulYoq ? 'var(--warn)' : 'var(--text-dim)', font: '500 12px var(--font-mono)' }}>{summa}</text>
       <MeterSvg x={35} y={37} w={w - 104} h={8} faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} />
       <text x={w - 10} y={45} textAnchor="end" style={{ fill: x.oshgan ? 'var(--warn)' : 'var(--text-dim)', font: '600 12px var(--font-mono)' }}>
         {x.smeta == null ? '—' : 'F2 ' + foizMatn(x.f2Foiz)}
@@ -514,6 +558,61 @@ function ObyektKarta({ x, w, h, tanlangan, fokus, ixcham, maxSmeta }: { x: XTugu
           );
         })}
       </g>
+      {x.masullar.length > 0 && (
+        <g data-masul-chiplar transform={`translate(${w - 12} ${h - 18})`}>
+          <title>{x.masullar.map((m) => m.nom).join(', ')}</title>
+          {x.masullar.length > 3 && <text x={0} y={4} textAnchor="end" style={{ fill: 'var(--text-dim)', font: '600 11px var(--font-mono)' }}>{'+' + (x.masullar.length - 3)}</text>}
+          {x.masullar.slice(0, 3).map((m, i) => (
+            <g key={m.odamId} data-masul-avatar transform={`translate(${-(x.masullar.length > 3 ? 26 : 0) - i * 17 - 8} 0)`}>
+              <circle r={9} style={{ fill: 'var(--accent-soft)', stroke: 'var(--accent)' }} strokeWidth={1} />
+              <text y={3.5} textAnchor="middle" style={{ fill: 'var(--accent-text)', font: '700 8.5px var(--font-sans)' }}>{m.initsial}</text>
+            </g>
+          ))}
+        </g>
+      )}
+    </g>
+  );
+}
+
+function JamoaKarta({ x, w, h, tanlangan, fokus, yigilgan, onYig }: { x: XTugun; w: number; h: number; tanlangan: boolean; fokus: boolean; yigilgan: boolean; onYig: () => void }) {
+  return (
+    <g>
+      <title>{t('Jamoa')}</title>
+      <Ramka w={w} h={h} tanlangan={tanlangan} fokus={fokus} fon="var(--surface-2)" chegara="var(--accent)" />
+      <Users x={16} y={h / 2 - 11} width={22} height={22} style={{ color: 'var(--accent-text)' }} />
+      <text x={50} y={26} style={{ fill: 'var(--text)', font: SHRIFT_NOM(16) }}>{t('Jamoa')}</text>
+      <text x={50} y={46} style={{ fill: 'var(--text-dim)', font: '500 12.5px var(--font-sans)' }}>{t('{n} ta a’zo', { n: x.bolalar.length })}</text>
+      {x.bolalar.length > 0 && (
+        <g data-boshqaruv onClick={(e) => { e.stopPropagation(); onYig(); }} onPointerDown={(e) => e.stopPropagation()} transform={`translate(${w - 28} ${h / 2 - 10})`} style={{ cursor: 'pointer' }}>
+          <title>{yigilgan ? t('A’zolarni ko‘rsatish ({n})', { n: x.bolalar.length }) : t('A’zolarni yig‘ish')}</title>
+          <circle cx={10} cy={10} r={10} style={{ fill: 'var(--surface)', stroke: yigilgan ? 'var(--accent)' : 'var(--border-strong)' }} />
+          {yigilgan
+            ? <text x={10} y={14} textAnchor="middle" style={{ fill: 'var(--accent-text)', font: '700 11px var(--font-mono)' }}>{String(x.bolalar.length)}</text>
+            : <path d="M5.5 10 H14.5" strokeWidth={1.8} style={{ stroke: 'var(--text-dim)' }} />}
+        </g>
+      )}
+    </g>
+  );
+}
+
+function OdamKarta({ x, w, h, tanlangan, fokus }: { x: XTugun; w: number; h: number; tanlangan: boolean; fokus: boolean }) {
+  const o = x.odam!;
+  const soni = o.obyektlar.length + o.loyihalar.length;
+  return (
+    <g>
+      <title>{x.nom + ' — ' + rolNomi(o.rol)}</title>
+      <Ramka w={w} h={h} tanlangan={tanlangan} fokus={fokus} />
+      <g transform={`translate(26 ${h / 2})`} data-odam-avatar>
+        <circle r={17} style={{ fill: 'var(--accent-soft)', stroke: 'var(--accent)' }} strokeWidth={1.25} />
+        <text y={4.5} textAnchor="middle" style={{ fill: 'var(--accent-text)', font: '700 13px var(--font-sans)' }}>{o.initsial}</text>
+      </g>
+      <text x={52} y={26} style={{ fill: 'var(--text)', font: SHRIFT_NOM(13.5) }}>{kes(x.nom, w - 62, SHRIFT_NOM(13.5), 13.5)}</text>
+      <text x={52} y={45} style={{ fill: 'var(--text-dim)', font: '500 11.5px var(--font-sans)' }}>
+        {kes(rolNomi(o.rol), 70, '500 11.5px var(--font-sans)', 11.5)}
+      </text>
+      <text x={w - 10} y={45} textAnchor="end" data-odam-soni style={{ fill: soni ? 'var(--accent-text)' : 'var(--text-mute)', font: '600 11.5px var(--font-mono)' }}>
+        {t('{n} ta obyekt', { n: o.obyektlar.length })}
+      </text>
     </g>
   );
 }

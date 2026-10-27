@@ -6,19 +6,21 @@
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, ArrowLeft, Building2, ChevronRight, Clock, ExternalLink, FileText, FolderKanban, HardHat,
-  PencilLine, Truck, Users, Warehouse, X, ClipboardList, History, Gauge, ShieldAlert,
+  PencilLine, Truck, Users, Warehouse, X, ClipboardList, History, Gauge, ShieldAlert, Info,
 } from 'lucide-react';
 import type { MindmapGraf, MindmapTugun } from '../../api/t2-mindmap';
 import type { Hodisa } from '../../api/t2-hodisa';
 import { qachon } from '../../api/t2-hodisa';
 import { t, raqamFormatla } from '../../i18n/til';
 import {
-  boglanganlar, diqqatRoyxati, entityId, HOLAT_TARTIB,
+  boglanganlar, diqqatRoyxati, entityId, HOLAT_TARTIB, JAMOA_ID,
   type XDaraxt, type XHolat, type XTugun,
 } from '../../lib/mindmap-korinish';
 import { Bajarilish, HolatChiziq, HolatHalqa, Romb } from './belgilar';
 import { foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 import { RESURS_YOLI } from '../../lib/mindmap-yollar';
+import { Avatar, JamoaPanel, MasullarBlok, OdamPanel, type MasulBoshqaruv } from './XaritaJamoa';
+import { guruhNomi as guruhNomiOl } from './jamoa-nomlar';
 
 export type HodisaHolati = { qatorlar: Hodisa[]; yuklanmoqda: boolean; xato: string };
 
@@ -34,6 +36,8 @@ type Props = {
   holatFiltri?: XHolat | null;
   /** Mobil ko‘rinishda yopish tugmasi. */
   onYop?: () => void;
+  /** Mas'ul biriktirish (v4). Berilmasa — faqat ko‘rsatish. */
+  masul?: MasulBoshqaruv;
 };
 
 const STAMP: Record<XHolat, string> = { xavf: 'fz-stamp--danger', etibor: 'fz-stamp--warn', yaxshi: 'fz-stamp--ok', nomalum: '' };
@@ -64,7 +68,20 @@ function Havola({ to, ikon: I, matn, asosiy = false }: { to: string; ikon: typeo
   );
 }
 
-function PulBloki({ x }: { x: XTugun }) {
+function PulBloki({ x, pulYoq = false }: { x: XTugun; pulYoq?: boolean }) {
+  if (pulYoq) {
+    return (
+      <section className="fz-panel" data-testid="xarita-pul-yoq">
+        <div className="fz-panel__h"><span>{t('Bajarilish')}</span></div>
+        <div className="fz-note fz-note--info"><Info aria-hidden /><span>{t('Summalar ko‘rsatilmaydi (moliyaviy ruxsat yo‘q)')}</span></div>
+        <div className="grid grid-cols-2 gap-3">
+          <Raqam nom={t('Smeta (ustamasiz)')} qiymat="—" izoh={t('moliyaviy ruxsat yo‘q')} />
+          <Raqam nom={t('F2 (tasdiqlangan)')} rang="var(--accent)" qiymat="—" izoh={t('moliyaviy ruxsat yo‘q')} />
+          <Raqam nom={t('Bajarilgan (fakt)')} rang="var(--info)" qiymat="—" izoh={t('moliyaviy ruxsat yo‘q')} />
+        </div>
+      </section>
+    );
+  }
   const qoldiq = x.smeta != null && x.f2 != null ? x.smeta - x.f2 : null;
   const taxm = x.smetaToliq ? '' : '≈ ';
   return (
@@ -106,14 +123,14 @@ function SignalBloki({ x }: { x: XTugun }) {
   );
 }
 
-function ObyektQatori({ x, onTanla }: { x: XTugun; onTanla: (id: string) => void }) {
+function ObyektQatori({ x, onTanla, pulYoq = false }: { x: XTugun; onTanla: (id: string) => void; pulYoq?: boolean }) {
   return (
     <button type="button" className="fz-list__q" onClick={() => onTanla(x.id)}>
       <span className="flex min-w-0 items-center gap-2">
         <Romb holat={x.holat} olcham={8} />
         <span className="truncate text-[13px] font-semibold">{x.nom}</span>
       </span>
-      <span className="text-right font-mono text-[11.5px] text-text-dim tabular-nums">{x.smeta == null ? t('smeta yo‘q') : pulQ(x.smeta)}</span>
+      <span className="text-right font-mono text-[11.5px] text-text-dim tabular-nums">{x.smeta == null ? (pulYoq ? '—' : t('smeta yo‘q')) : pulQ(x.smeta)}</span>
       <span className="col-span-2"><Bajarilish faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} /></span>
     </button>
   );
@@ -136,11 +153,13 @@ function Sarlavha({ kicker, ikon: I, nom, holat, onYop, ortga }: { kicker: strin
   );
 }
 
-export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodisalar, onTahrirdaOch, onHolatFiltr, holatFiltri, onYop }: Props) {
+export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodisalar, onTahrirdaOch, onHolatFiltr, holatFiltri, onYop, masul }: Props) {
   const x = tanlangan ? daraxt.tugunlar.get(tanlangan) ?? null : null;
   const root = daraxt.tugunlar.get(daraxt.ildiz)!;
 
   if (!x || x.tur === 'kompaniya') return <KompaniyaPanel root={root} daraxt={daraxt} onTanla={onTanla} guruhNomi={guruhNomi} onHolatFiltr={onHolatFiltr} holatFiltri={holatFiltri} onYop={onYop} />;
+  if (x.tur === 'jamoa') return <JamoaPanel daraxt={daraxt} onTanla={onTanla} onYop={onYop} />;
+  if (x.tur === 'odam' && x.odam) return <OdamPanel x={x} daraxt={daraxt} onTanla={onTanla} onYop={onYop} rolOzgartir={!!masul?.mumkin} />;
   const ota = x.ota ? daraxt.tugunlar.get(x.ota) : null;
   const ortga = ota ? { matn: ota.tur === 'guruh' ? guruhNomi : (ota.nom || t('Kompaniya')), onClick: () => onTanla(ota.id) } : undefined;
 
@@ -154,7 +173,8 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
         <Sarlavha kicker={x.tur === 'guruh' ? t('Guruh') : t('Loyiha')} ikon={FolderKanban} nom={x.tur === 'guruh' ? guruhNomi : x.nom} holat={x.holat} onYop={onYop} ortga={ortga} />
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
           {x.tur === 'guruh' && <div className="fz-note fz-note--info"><AlertTriangle aria-hidden /><span>{t('Bu obyektlar hech bir loyihaga biriktirilmagan. Tahrir rejimida loyihaga bog‘lang.')}</span></div>}
-          <PulBloki x={x} />
+          <PulBloki x={x} pulYoq={daraxt.pulYoq} />
+          {x.tur === 'loyiha' && <MasullarBlok x={x} daraxt={daraxt} onTanla={onTanla} masul={masul} />}
           {byudjet != null && Number.isFinite(byudjet) && (
             <section className="fz-panel">
               <div className="fz-panel__h"><span>{t('Loyiha byudjeti')}</span><span>{pulQ(byudjet)}</span></div>
@@ -167,7 +187,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-text-dim">
               {HOLAT_TARTIB.filter((h) => x.holatSanoq[h] > 0).map((h) => <span key={h} className="inline-flex items-center gap-1.5"><Romb holat={h} olcham={7} />{holatNomi(h) + ' · ' + x.holatSanoq[h]}</span>)}
             </div>
-            <div className="fz-list -mx-2 p-0">{bolalar.map((b) => <ObyektQatori key={b.id} x={b} onTanla={onTanla} />)}</div>
+            <div className="fz-list -mx-2 p-0">{bolalar.map((b) => <ObyektQatori key={b.id} x={b} onTanla={onTanla} pulYoq={daraxt.pulYoq} />)}</div>
             {!bolalar.length && <p className="text-[12.5px] text-text-mute">{t('Bu loyihada hali obyekt yo‘q.')}</p>}
           </section>
           {(boglar.length > 0 || qatnashchi.length > 0) && (
@@ -202,7 +222,8 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
           </section>
         )}
         <SignalBloki x={x} />
-        <PulBloki x={x} />
+        <MasullarBlok x={x} daraxt={daraxt} onTanla={onTanla} masul={masul} />
+        <PulBloki x={x} pulYoq={daraxt.pulYoq} />
         <section className="fz-panel">
           <div className="fz-panel__h"><span>{t('Ma’lumot sifati')}</span></div>
           <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-[12.5px]">
@@ -356,6 +377,23 @@ function KompaniyaPanel({ root, daraxt, onTanla, guruhNomi, onHolatFiltr, holatF
           </ul>
         </section>
 
+        {daraxt.jamoa && (
+          <section className="fz-panel" data-testid="xarita-jamoa-qisqa">
+            <div className="fz-panel__h"><span>{t('Jamoa')}</span><span>{daraxt.jamoa.odamlar.size}</span></div>
+            <ul className="space-y-1">
+              {daraxt.jamoa.guruhlar.map((g) => (
+                <li key={g.kalit}>
+                  <button type="button" onClick={() => onTanla(g.odamlar[0])} className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1 text-left hover:bg-[var(--surface-3)]">
+                    <span className="flex -space-x-1.5">{g.odamlar.slice(0, 3).map((id) => <Avatar key={id} initsial={daraxt.jamoa!.odamlar.get(id)!.initsial} olcham={22} />)}</span>
+                    <span className="flex-1 text-[12.5px] text-text-dim">{guruhNomiOl(g.kalit)}</span>
+                    <b className="font-mono text-[12px] tabular-nums text-text">{g.odamlar.length}</b>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="fz-btn fz-btn--sm justify-start" onClick={() => onTanla(JAMOA_ID)}><Users aria-hidden />{t('Butun jamoani ochish')}</button>
+          </section>
+        )}
         {biriktirilmagan.length > 0 && (
           <div className="fz-note fz-note--info">
             <AlertTriangle aria-hidden />
