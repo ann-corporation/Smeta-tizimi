@@ -1,0 +1,4 @@
+{
+  "Svod yaxlit bo‘limlari (ustamasiz, ҚҚС siz)": { "ru": "Целые разделы свода (без накрутки, без НДС)", "en": "Lump-sum summary sections (no markup, excl. VAT)" },
+  "Svod yaxlit bo‘limlari ({n}) ustamasiz qo‘shildi: {s} so‘m (ҚҚС siz) — summa svodning o‘zidan, ustama hisoblanmaydi.": { "ru": "Целые разделы свода ({n}) добавлены без накрутки: {s} сум (без НДС) — сумма взята из самого свода, накрутка не начисляется.", "en": "Lump-sum summary sections ({n}) added without markup: {s} UZS (excl. VAT); the amount comes from the summary itself, no markup applied." }
+}
