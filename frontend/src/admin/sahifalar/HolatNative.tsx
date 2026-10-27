@@ -50,7 +50,6 @@ export function HolatNative() {
   const [exportsOpen,setExportsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(requestedPanel === 'smeta' ? 'yuklash' : 'smeta');
   const { joriy } = useKompaniya();
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(joriy?.id);
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   /* Sahifaning o'z xatolari (obyektlar ro'yxati, eksport). Daraxt xatosi hook'dan. */
   const [sahifaXato, setError] = useState('');
@@ -62,6 +61,7 @@ export function HolatNative() {
 
   const obyektId = Number(id);
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(joriy?.id, validId ? obyektId : null);
   /* Eksport FAKT/OSTATKA/F2 ustunlarini holatXom dan oladi -- daraxt qurish
      uchun allaqachon o'qilyapti, qayta so'rov yo'q. */
   const {
@@ -345,7 +345,7 @@ export function HolatNative() {
                 </label>)}
               <details className="border-t border-border py-2.5">
                 <summary className="cursor-pointer text-[12.5px] font-medium text-text-dim">{t('Hujjatlardagi imzo va tomonlar')}</summary>
-                <div className="mt-2"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+                <div className="mt-2"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
               </details>
             </>) : <p className="py-3 text-[12.5px] text-text-mute">{t('Eksport uchun obyektda smeta qatorlari bo‘lishi kerak.')}</p>}
           </div>

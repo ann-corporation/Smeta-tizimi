@@ -2,7 +2,7 @@
  * Kompaniya xaritasining ro‘yxat ko‘rinishi (mobil sukut va ekran o‘quvchilar uchun): loyiha kartalari ichida
  * obyekt qatorlari — holat rombi, smeta, F2/fakt o‘lchagichi va ogohlantirish chiplari.
  */
-import { AlertTriangle, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ShieldAlert } from 'lucide-react';
 import { t } from '../../i18n/til';
 import type { XDaraxt, XTugun } from '../../lib/mindmap-korinish';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
@@ -55,14 +55,19 @@ function ObyektQator({ o, tanlangan, onTanla }: { o: XTugun; tanlangan: boolean;
         <Romb holat={o.holat} olcham={8} />
         <span className="min-w-0">
           <span className="block truncate text-[13.5px] font-semibold text-text">{o.nom}</span>
-          <span className="block text-[11.5px] text-text-mute">{holatNomi(o.holat) + ' · ' + (o.smeta == null ? t('smeta yo‘q') : pulQ(o.smeta)) + ' · ' + t('F2 {p}', { p: foizMatn(o.f2Foiz) })}</span>
+          <span className="block text-[11.5px] text-text-mute">{holatNomi(o.holat) + ' · ' + (o.smeta == null ? t('smeta yo‘q') : pulQ(o.smeta)) + ' · ' + t('F2 (tasdiqlangan) {p}', { p: foizMatn(o.f2Foiz) })}</span>
         </span>
         <ChevronRight aria-hidden className="h-4 w-4 text-text-mute" />
         <span className="col-start-2 col-end-4"><Bajarilish faktFoiz={o.faktFoiz} f2Foiz={o.f2Foiz} smetaBor={o.smeta != null} /></span>
-        {(ogoh.length > 0 || info.length > 0) && (
+        {(ogoh.length > 0 || info.length > 0 || (o.signalSoni ?? 0) > 0) && (
           <span className="col-start-2 col-end-4 flex flex-wrap gap-1">
             {ogoh.map((b, i) => <span key={'o' + i} className="fz-chip fz-chip--danger"><AlertTriangle aria-hidden className="h-3 w-3" />{b.matn}</span>)}
             {info.map((b, i) => <span key={'i' + i} className="fz-chip fz-chip--warn"><AlertTriangle aria-hidden className="h-3 w-3" />{b.matn}</span>)}
+            {(o.signalSoni ?? 0) > 0 && (
+              <span className={'fz-chip ' + ((o.kritikSoni ?? 0) > 0 ? 'fz-chip--danger' : 'fz-chip--warn')} title={o.topSignallar.map((q) => q.title ?? '').filter(Boolean).join('\n')}>
+                <ShieldAlert aria-hidden className="h-3 w-3" />{(o.kritikSoni ?? 0) > 0 ? t('{n} kritik signal', { n: o.kritikSoni ?? 0 }) : t('{n} ochiq signal', { n: o.signalSoni ?? 0 })}
+              </span>
+            )}
           </span>
         )}
       </button>

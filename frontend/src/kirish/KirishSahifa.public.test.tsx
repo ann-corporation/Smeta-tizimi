@@ -20,16 +20,18 @@ describe('Public kirish sayti', () => {
     expect(screen.getAllByRole('link').filter(a => a.getAttribute('href') === `tel:${OWNER_PHONE}`).length).toBeGreaterThan(1);
     expect(screen.getByPlaceholderText('foydalanuvchi_nomi')).toBeTruthy();
     expect(screen.queryByText(/Anvar/i)).toBeNull();
+    // Egasi 2026-10-26: «Superadmin/Admin» va «Rahbar» tezkor tugmalari olib tashlandi.
+    expect(screen.queryByRole('button', { name: /^Admin$|Superadmin|Rahbar kirishi/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Kod yuborish' })).toBeTruthy();
   });
   it('hero CTA signup formasini tanlaydi', async () => {
     render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
     fireEvent.click(screen.getAllByRole('button', { name: 'Hisob ochish' })[0]);
     expect(await screen.findByPlaceholderText('F.I.Sh.')).toBeTruthy();
     expect(screen.getByLabelText('Ismingiz').getAttribute('autocomplete')).toBe('name');
-    expect(screen.getByLabelText(/Telefon/).getAttribute('type')).toBe('tel');
-    expect(screen.getByLabelText(/^Kompaniya \(ixtiyoriy\)$/).getAttribute('autocomplete')).toBe('organization');
     expect(screen.getByLabelText('Email manzili').getAttribute('type')).toBe('email');
-    expect(screen.getByLabelText(/Parol \(kamida 8 belgi\)/).getAttribute('autocomplete')).toBe('new-password');
+    // Egasi 2026-10-26: ro'yxat — email kod bilan, parol o'ylab topish shart emas.
+    expect(document.querySelector('input[autocomplete="new-password"]')).toBeNull();
   });
   it('mavjud login API va role yo‘naltirishi saqlangan', async () => {
     const fetchMock = vi.fn(async () => ({ json: async () => ({ ok: true, rol: 'pto' }) }));

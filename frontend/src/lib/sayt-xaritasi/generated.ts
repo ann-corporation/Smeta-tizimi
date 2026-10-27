@@ -47,6 +47,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/topshiriqlar",
     "/admin/mutaxassis",
     "/admin/akkaunt",
+    "/admin/sozlamalar",
     "/admin/boshqaruv",
     "/admin/sayt-xaritasi",
     "/admin/fayl-boglash",

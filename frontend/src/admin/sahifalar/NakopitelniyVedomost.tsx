@@ -213,7 +213,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   // RZ bo'limlarida bunday usul bo'limlarni yo'qotadi.
   const gorunumRows = korinadigan;
 
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(companyId);
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(companyId, objectId ? Number(objectId) : null);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const [truncated, setTruncated] = useState(false);
   const smetaNakrutka = useMemo(() => {
@@ -500,7 +500,7 @@ function Sessiya({ companyId }: { companyId: number }) {
               <span style={{ marginLeft: 'auto', fontWeight: 400, color: 'var(--text-mute)', fontSize: 12 }}>{ndsFoiz.trim() === '' ? t('QQS qo‘shilmaydi') : t('QQS {p}%', { p: ndsFoiz })}</span>
             </summary>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 'var(--space-4)', marginTop: 'var(--space-3)' }}>
-              <div style={{ minWidth: 280, flex: 1 }}><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+              <div style={{ minWidth: 280, flex: 1 }}><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--text-dim)', maxWidth: 260 }} title={t('F2 resurs qatorlari QQS siz; QQS hujjat oxirida bir marta qo‘shiladi')}>
                 <span className="fz-kpi__label">{t('QQS (НДС) stavkasi, % — hujjat oxirida bir marta')}</span>
                 <input aria-label={t('QQS stavkasi')} value={ndsFoiz} onChange={e => setNdsFoiz(e.target.value)} placeholder={t('bo‘sh — QQS qo‘shilmaydi')}

@@ -66,7 +66,7 @@ const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 
 const TAMINOT = a('logistika', 'zayavka', 'erp');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
 const KOMPANIYA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka');
-const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis', 'akkaunt');
+const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis', 'akkaunt', 'sozlamalar');
 const PLATFORMA = a('boshqaruv', 'sayt-xaritasi', 'fayl-boglash', 'test');
 const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).includes(x));
 

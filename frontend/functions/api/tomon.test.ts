@@ -155,3 +155,39 @@ describe('tomon shlyuzi — o‘qish va xatolar', () => {
     expect(xatoJavobi('<html>').status).toBe(502);
   });
 });
+
+describe('tomon shlyuzi — obyekt imzochilari', () => {
+  it('imzochi_saqla yuki: rol, daraja, razdel; maydonlar kesiladi, actor tashlanadi', () => {
+    const y = yozishYuki('imzochi_saqla', { kompaniya_id: 3, obyekt_id: 12, rol: 'texnadzor', tashkilot: ' Nazorat MChJ ', lavozim: '', fio: 'Karimov K.', p_actor_id: 1, operation_id: 'xato' }) as Record<string, unknown>;
+    expect(y).toMatchObject({ p_kompaniya_id: 3, p_obyekt_id: 12, p_rol: 'texnadzor', p_daraja: 'obyekt', p_razdel_id: null, p_tashkilot: 'Nazorat MChJ', p_lavozim: null, p_fio: 'Karimov K.' });
+    expect(y).not.toHaveProperty('p_actor_id');
+    expect(String(y.p_operation_id)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(yozishYuki('imzochi_saqla', { kompaniya_id: 3, obyekt_id: 1, rol: 'zakazchik', daraja: 'razdel', razdel_id: 55, razdel_id_x: 1 })).toMatchObject({ p_daraja: 'razdel', p_razdel_id: 55 });
+    expect(yozishYuki('imzochi_saqla', { kompaniya_id: 3, obyekt_id: 1, rol: 'zakazchik', daraja: 'loyiha', razdel_id: 55 })).toMatchObject({ p_daraja: 'loyiha', p_razdel_id: null });
+    expect(yozishYuki('imzochi_saqla', { kompaniya_id: 3, obyekt_id: 1, rol: 'zakazchik', daraja: 'razdel' })).toMatch(/razdel_id/);
+    expect(yozishYuki('imzochi_saqla', { kompaniya_id: 3, obyekt_id: 1, rol: 'zakazchik', daraja: 'butun' })).toMatch(/daraja/);
+    expect((yozishYuki('imzochi_saqla', { kompaniya_id: 3, obyekt_id: 1, rol: 'zakazchik', fio: 'x'.repeat(500) }) as Record<string, string>).p_fio).toHaveLength(200);
+    expect(yozishYuki('imzochi_saqla', { kompaniya_id: 3, obyekt_id: 12, rol: 'tuzuvchi' })).toMatch(/rol/);
+    expect(yozishYuki('imzochi_saqla', { kompaniya_id: 3, rol: 'zakazchik' })).toMatch(/obyekt_id/);
+  });
+
+  it('imzochilar va imzochi_tarix o‘qish', () => {
+    expect(oqishYuki('imzochilar', new URLSearchParams('kompaniya_id=3&obyekt_id=12'))).toEqual({ p_kompaniya_id: 3, p_obyekt_id: 12, p_razdel_id: null });
+    expect(oqishYuki('imzochilar', new URLSearchParams('kompaniya_id=3&obyekt_id=12&razdel_id=9'))).toEqual({ p_kompaniya_id: 3, p_obyekt_id: 12, p_razdel_id: 9 });
+    expect(oqishYuki('imzochilar', new URLSearchParams('kompaniya_id=3'))).toMatch(/obyekt_id/);
+    expect(oqishYuki('imzochi_tarix', new URLSearchParams('kompaniya_id=3'))).toEqual({ p_kompaniya_id: 3 });
+  });
+
+  it('POST va GET to‘g‘ri RPC ga, actor sessiyadan boradi', async () => {
+    const chaqiruvlar: Array<{ url: string; body: Record<string, unknown> }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (u: string, init?: { body?: string }) => { chaqiruvlar.push({ url: u, body: JSON.parse(String(init?.body)) }); return new Response(JSON.stringify({ ok: true }), { status: 200 }); }));
+    await onRequestPost(post({ amal: 'imzochi_saqla', kompaniya_id: 3, obyekt_id: 12, rol: 'zakazchik', fio: 'V', p_actor_id: 1 }));
+    await onRequestGet(get('bolim=imzochilar&kompaniya_id=3&obyekt_id=12'));
+    await onRequestGet(get('bolim=imzochi_tarix&kompaniya_id=3'));
+    expect(chaqiruvlar[0].url).toContain('/rpc/t2_obyekt_imzochi_saqla_v1');
+    expect(chaqiruvlar[0].body.p_actor_id).toBe(7);
+    expect(chaqiruvlar[1].url).toContain('/rpc/t2_obyekt_imzochilar_v1');
+    expect(chaqiruvlar[1].body).toEqual({ p_actor_id: 7, p_kompaniya_id: 3, p_obyekt_id: 12, p_razdel_id: null });
+    expect(chaqiruvlar[2].url).toContain('/rpc/t2_imzochi_tarix_v1');
+  });
+});

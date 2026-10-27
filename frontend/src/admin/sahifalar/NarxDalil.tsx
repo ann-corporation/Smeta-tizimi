@@ -32,9 +32,9 @@ const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toL
 export default function NarxDalil() {
   const { joriy } = useKompaniya();
   const kompaniyaId = joriy?.id ?? null;
-  const [tomonlar] = useHujjatTomonlari(kompaniyaId ?? undefined);
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [obyektId, setObyektId] = useState<number | null>(null);
+  const [tomonlar] = useHujjatTomonlari(kompaniyaId ?? undefined, obyektId);
   const [takliflar, setTakliflar] = useState<NarxTaklif[]>([]);
   const [dalillar, setDalillar] = useState<NarxDalilHolat[]>([]);
   const [resurslar, setResurslar] = useState<AsoslashResurs[]>([]);

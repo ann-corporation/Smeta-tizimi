@@ -20,7 +20,7 @@ const BOLIMLAR = [
   { id: 'bildirishnoma', nom: 'Bildirishnomalar', Ikon: Bell, Korinish: BildirishnomaBolimi },
   { id: 'korinish', nom: 'Ko‘rinish', Ikon: Palette, Korinish: KorinishBolimi },
   { id: 'tarif', nom: 'Tarif va hisob', Ikon: CreditCard, Korinish: TarifBolimi },
-  { id: 'hub', nom: 'Tizim sozlamalari', Ikon: LayoutGrid, Korinish: HubBolimi },
+  { id: 'hub', nom: 'Sozlamalar markazi', Ikon: LayoutGrid, Korinish: HubBolimi },
 ] as const;
 
 export default function AkkauntMarkazi() {
@@ -46,7 +46,7 @@ export default function AkkauntMarkazi() {
 
   const Korinish = faol.Korinish;
   return (
-    <Sahifa sarlavha="Akkaunt markazi" tavsif="Akkaunt, kompaniyalar va rollar, xavfsizlik, ko‘rinish, tarif va barcha tizim sozlamalari — bir joyda.">
+    <Sahifa sarlavha="Akkaunt markazi" tavsif="Akkaunt, kompaniyalar va rollar, xavfsizlik, ko‘rinish va tarif. Kompaniya va tizim sozlamalari — Sozlamalar markazida.">
       <div className="flex flex-col md:flex-row gap-4 items-start">
         <div ref={navRef} role="tablist" aria-orientation="vertical" aria-label={t('Akkaunt bo‘limlari')} onKeyDown={klavish}
           className="flex md:flex-col gap-1 w-full md:w-56 shrink-0 overflow-x-auto md:overflow-visible pb-1 md:pb-0 md:sticky md:top-0">

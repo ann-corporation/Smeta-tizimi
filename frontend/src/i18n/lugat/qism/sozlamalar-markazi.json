@@ -1,0 +1,802 @@
+{
+  "AI agent modellari": {
+    "ru": "Модели AI-агентов",
+    "en": "AI agent models"
+  },
+  "AI ishchilar": {
+    "ru": "AI-работники",
+    "en": "AI workers"
+  },
+  "AI ishchilar foydalanadigan kompaniya qoidalari va atamalari.": {
+    "ru": "Правила и термины компании, которые используют AI-работники.",
+    "en": "Company rules and terms used by AI workers."
+  },
+  "AI ishingizni kuzatib, o‘zi taklif berishi (standart: o‘chiq).": {
+    "ru": "AI наблюдает за работой и сам предлагает (по умолчанию выключено).",
+    "en": "The AI watches your work and offers suggestions (off by default)."
+  },
+  "AI kuzatuvi": {
+    "ru": "Наблюдение AI",
+    "en": "AI watch"
+  },
+  "AI markazi": {
+    "ru": "Центр AI",
+    "en": "AI center"
+  },
+  "AI model siyosati": {
+    "ru": "Политика моделей AI",
+    "en": "AI model policy"
+  },
+  "AI qachon so‘rasin, javob tili va uslubi (AI yordamchi oynasidagi «Sozlama» tabi).": {
+    "ru": "Когда AI спрашивает, язык и стиль ответа (вкладка «Настройки» в окне AI-помощника).",
+    "en": "When the AI should ask, answer language and style (the “Settings” tab in the AI assistant window)."
+  },
+  "AI qoidalari va manbalari": {
+    "ru": "Правила и источники AI",
+    "en": "AI rules and sources"
+  },
+  "AI shaxsiy uslubi": {
+    "ru": "Личный стиль AI",
+    "en": "Personal AI style"
+  },
+  "AI standart modellari": {
+    "ru": "Модели AI по умолчанию",
+    "en": "Default AI models"
+  },
+  "AI ustama foizi": {
+    "ru": "Процент наценки на AI",
+    "en": "AI markup %"
+  },
+  "AI xarajat limiti": {
+    "ru": "Лимит расходов на AI",
+    "en": "AI spending cap"
+  },
+  "AI xarajatiga standart ustama va kompaniyaga alohida ustama.": {
+    "ru": "Стандартная наценка на стоимость AI и отдельная — для компании.",
+    "en": "Default markup on AI cost and per-company markup."
+  },
+  "AI xarajatini hisoblash uchun kurs.": {
+    "ru": "Курс для расчёта стоимости AI.",
+    "en": "Rate used to compute AI cost."
+  },
+  "AI yoqish va oylik limit": {
+    "ru": "Включение AI и месячный лимит",
+    "en": "AI on/off and monthly limit"
+  },
+  "AI yordamchi": {
+    "ru": "AI-помощник",
+    "en": "AI assistant"
+  },
+  "AOSR, narx, loyiha, ERP modullarini yoqish/o‘chirish.": {
+    "ru": "Включение/выключение модулей АОСР, цены, проект, ERP.",
+    "en": "Turn the AOSR, pricing, project and ERP modules on or off."
+  },
+  "Alohida a‘zo uchun rolga qo‘shimcha ruxsat berish.": {
+    "ru": "Выдача отдельному участнику разрешений сверх роли.",
+    "en": "Grant an individual member permissions beyond the role."
+  },
+  "Aloqa telefon raqami.": {
+    "ru": "Контактный номер телефона.",
+    "en": "Contact phone number."
+  },
+  "Asosiy valyuta": {
+    "ru": "Основная валюта",
+    "en": "Base currency"
+  },
+  "Audit jurnali": {
+    "ru": "Журнал аудита",
+    "en": "Audit log"
+  },
+  "Avatar rangi": {
+    "ru": "Цвет аватара",
+    "en": "Avatar color"
+  },
+  "A‘zo qo‘shish, olib tashlash, rolini o‘zgartirish, vaqtinchalik parol.": {
+    "ru": "Добавление, удаление, смена роли участника, временный пароль.",
+    "en": "Add or remove members, change roles, set a temporary password."
+  },
+  "A‘zoga qo‘shimcha ruxsatlar": {
+    "ru": "Дополнительные разрешения участнику",
+    "en": "Extra permissions per member"
+  },
+  "A‘zolar": {
+    "ru": "Участники",
+    "en": "Members"
+  },
+  "A‘zolar AI modelini o‘zi tanlay oladimi yoki qulflanadimi.": {
+    "ru": "Могут ли участники сами выбирать модель AI или она заблокирована.",
+    "en": "Whether members can pick the AI model themselves or it is locked."
+  },
+  "A‘zolar va rollar": {
+    "ru": "Участники и роли",
+    "en": "Members and roles"
+  },
+  "Bildirishnomalar": {
+    "ru": "Уведомления",
+    "en": "Notifications"
+  },
+  "Boshqa kompaniya bilan bir martalik kod orqali bog‘lanish va ko‘rish huquqini berish.": {
+    "ru": "Связь с другой компанией по одноразовому коду и выдача права просмотра.",
+    "en": "Connect to another company by one-time code and grant view access."
+  },
+  "Boshqaruvchi agent, o‘rganish, qoidalar va manbalar.": {
+    "ru": "Управляющий агент, обучение, правила и источники.",
+    "en": "Managing agent, learning, rules and sources."
+  },
+  "Butun platforma bo‘yicha audit jurnali.": {
+    "ru": "Журнал аудита по всей платформе.",
+    "en": "Audit log across the whole platform."
+  },
+  "Buyurtmachi kabineti": {
+    "ru": "Кабинет заказчика",
+    "en": "Customer cabinet"
+  },
+  "Buyurtmachi, pudratchi yoki loyihachi — qaysi sozlamalar mosligini belgilaydi.": {
+    "ru": "Заказчик, подрядчик или проектировщик — определяет, какие настройки применимы.",
+    "en": "Customer, contractor or designer — decides which settings apply."
+  },
+  "Demo obyekt": {
+    "ru": "Демо-объект",
+    "en": "Demo object"
+  },
+  "Didox (EHF) kaliti": {
+    "ru": "Ключ Didox (ЭСФ)",
+    "en": "Didox (e-invoice) key"
+  },
+  "Dollar kursi": {
+    "ru": "Курс доллара",
+    "en": "Dollar rate"
+  },
+  "Elektron hujjat almashinuvi uchun API kaliti.": {
+    "ru": "API-ключ для электронного документооборота.",
+    "en": "API key for electronic document exchange."
+  },
+  "Email kod bilan kirish": {
+    "ru": "Вход по коду из письма",
+    "en": "Sign in with an email code"
+  },
+  "Emailga kelgan bir martalik kod orqali kirish.": {
+    "ru": "Вход по одноразовому коду из письма.",
+    "en": "Sign in with a one-time code sent by email."
+  },
+  "Eski GAS Drive tabi: fayllarni obyekt va hujjatlarga bog‘lash.": {
+    "ru": "Старая вкладка GAS Drive: привязка файлов к объектам и документам.",
+    "en": "Legacy GAS Drive tab: link files to objects and documents."
+  },
+  "Eski GAS sinxronizatsiyasini yoqish.": {
+    "ru": "Включение старой синхронизации GAS.",
+    "en": "Enable the legacy GAS sync."
+  },
+  "Eski sinov qobig‘i": {
+    "ru": "Старая тестовая оболочка",
+    "en": "Legacy test shell"
+  },
+  "Excel va ko‘rinishdagi rang mavzusi, hujjat turlari bo‘yicha.": {
+    "ru": "Цветовая тема Excel и предпросмотра по типам документов.",
+    "en": "Excel and preview color theme per document type."
+  },
+  "F2 jarayoni": {
+    "ru": "Процесс F2",
+    "en": "F2 workflow"
+  },
+  "F2 tasdiq rejimi": {
+    "ru": "Режим утверждения F2",
+    "en": "F2 approval mode"
+  },
+  "Fayl bog‘lash (eski)": {
+    "ru": "Привязка файлов (старая)",
+    "en": "File linking (legacy)"
+  },
+  "Fayl saqlash (Storage)": {
+    "ru": "Хранение файлов (Storage)",
+    "en": "File storage"
+  },
+  "Fon ishlari, hodisalar va deploy holatini boshqarish.": {
+    "ru": "Управление фоновыми задачами, инцидентами и состоянием деплоя.",
+    "en": "Manage background jobs, incidents and deploy state."
+  },
+  "Foydalanuvchilar": {
+    "ru": "Пользователи",
+    "en": "Users"
+  },
+  "Foydalanuvchilarga ko‘rsatiladigan to‘lov ma‘lumotlari.": {
+    "ru": "Платёжные данные, показываемые пользователям.",
+    "en": "Payment details shown to users."
+  },
+  "Foydalanuvchini bloklash, a‘zolik va rollarni belgilash.": {
+    "ru": "Блокировка пользователей, назначение членства и ролей.",
+    "en": "Block users, assign memberships and roles."
+  },
+  "Funksiyalarni yoqish va o‘chirish": {
+    "ru": "Включение и выключение функций",
+    "en": "Feature switches"
+  },
+  "Google Sheets avto-sinxronizatsiyasi": {
+    "ru": "Автосинхронизация Google Sheets",
+    "en": "Google Sheets auto-sync"
+  },
+  "Google bilan kirish": {
+    "ru": "Вход через Google",
+    "en": "Sign in with Google"
+  },
+  "Google hisobini ulash yoki uzish.": {
+    "ru": "Подключить или отключить аккаунт Google.",
+    "en": "Link or unlink your Google account."
+  },
+  "Har bir kompaniya agenti qaysi modeldan foydalanadi.": {
+    "ru": "Какую модель использует каждый агент компании.",
+    "en": "Which model each company agent uses."
+  },
+  "Hisobdagi ism — hujjat va jamoada shu ko‘rinadi.": {
+    "ru": "Имя в аккаунте — отображается в документах и команде.",
+    "en": "Account name — shown in documents and to your team."
+  },
+  "Hujjat dizayni": {
+    "ru": "Дизайн документов",
+    "en": "Document design"
+  },
+  "Hujjat imzo tomonlari": {
+    "ru": "Стороны подписания документов",
+    "en": "Document signatories"
+  },
+  "Hujjatlar": {
+    "ru": "Документы",
+    "en": "Documents"
+  },
+  "Imkoniyatni global, loyiha yoki kompaniya bo‘yicha yoqish va avariyada o‘chirish.": {
+    "ru": "Включение возможностей глобально, по проекту или компании и аварийное отключение.",
+    "en": "Turn capabilities on globally, per project or per company, with an emergency kill-switch."
+  },
+  "Integratsiyalar holati": {
+    "ru": "Состояние интеграций",
+    "en": "Integration status"
+  },
+  "Interfeys tili": {
+    "ru": "Язык интерфейса",
+    "en": "Interface language"
+  },
+  "Ish joylari va rollar": {
+    "ru": "Рабочие места и роли",
+    "en": "Workspaces and roles"
+  },
+  "Ish joylarim": {
+    "ru": "Мои рабочие места",
+    "en": "My workspaces"
+  },
+  "Ishlar va joylashtirish holati": {
+    "ru": "Задачи и состояние развёртывания",
+    "en": "Jobs and deployment state"
+  },
+  "Ism": {
+    "ru": "Имя",
+    "en": "Name"
+  },
+  "Joriy sessiya muddati va xavfsizlik holati.": {
+    "ru": "Срок текущей сессии и состояние безопасности.",
+    "en": "Current session expiry and security status."
+  },
+  "Kasb, hudud, tajriba va kompaniyalarga xizmat takliflari.": {
+    "ru": "Профессия, регион, опыт и предложения услуг компаниям.",
+    "en": "Profession, region, experience and service offers to companies."
+  },
+  "Katalog, faktura va tijoriy takliflar manbalari.": {
+    "ru": "Источники: каталоги, счета-фактуры и коммерческие предложения.",
+    "en": "Catalogs, invoices and commercial quotes."
+  },
+  "Kataloglar va narx indeksi": {
+    "ru": "Каталоги и индекс цен",
+    "en": "Catalogs and price index"
+  },
+  "Kirish va xavfsizlik": {
+    "ru": "Вход и безопасность",
+    "en": "Sign-in and security"
+  },
+  "Kompaniya Drive papkasini ulash va loyiha papkalarini yaratish.": {
+    "ru": "Подключение папки Drive компании и создание папок проектов.",
+    "en": "Bind the company Drive folder and provision project folders."
+  },
+  "Kompaniya bilimi (AI qoidalari)": {
+    "ru": "Знания компании (правила AI)",
+    "en": "Company knowledge (AI rules)"
+  },
+  "Kompaniya darajasidagi imkoniyatlar, ishlar va hodisalar.": {
+    "ru": "Возможности, задачи и инциденты на уровне компании.",
+    "en": "Company-level capabilities, jobs and incidents."
+  },
+  "Kompaniya logotipi": {
+    "ru": "Логотип компании",
+    "en": "Company logo"
+  },
+  "Kompaniya loyihalari va obyektlari ro‘yxati.": {
+    "ru": "Список проектов и объектов компании.",
+    "en": "List of company projects and objects."
+  },
+  "Kompaniya profili": {
+    "ru": "Профиль компании",
+    "en": "Company profile"
+  },
+  "Kompaniya turi": {
+    "ru": "Тип компании",
+    "en": "Company type"
+  },
+  "Kompaniya, shartnoma va obyekt bo‘yicha ustama.": {
+    "ru": "Наценка по компании, договору и объекту.",
+    "en": "Markup by company, contract and object."
+  },
+  "Kompaniyada AI yoqish, oylik token limiti, a‘zolarni kuzatish ruxsati.": {
+    "ru": "Включение AI в компании, месячный лимит токенов, разрешение наблюдения за участниками.",
+    "en": "Turn AI on for the company, monthly token limit, permission to observe members."
+  },
+  "Kompaniyadagi muhim o‘zgarishlar jurnali.": {
+    "ru": "Журнал важных изменений в компании.",
+    "en": "Log of important changes in the company."
+  },
+  "Kompaniyalar va obunalar": {
+    "ru": "Компании и подписки",
+    "en": "Companies and subscriptions"
+  },
+  "Kompaniyalar, tarif biriktirish va balanslar.": {
+    "ru": "Компании, назначение тарифа и балансы.",
+    "en": "Companies, plan assignment and balances."
+  },
+  "Kompaniyalarim va rollarim": {
+    "ru": "Мои компании и роли",
+    "en": "My companies and roles"
+  },
+  "Korzinka": {
+    "ru": "Корзина",
+    "en": "Recycle bin"
+  },
+  "Ko‘rinish": {
+    "ru": "Внешний вид",
+    "en": "Appearance"
+  },
+  "Loyiha va obyektlar": {
+    "ru": "Проекты и объекты",
+    "en": "Projects and objects"
+  },
+  "Mavzu": {
+    "ru": "Тема",
+    "en": "Theme"
+  },
+  "Mening xizmatlarim (mutaxassis profili)": {
+    "ru": "Мои услуги (профиль специалиста)",
+    "en": "My services (specialist profile)"
+  },
+  "Modullar": {
+    "ru": "Модули",
+    "en": "Modules"
+  },
+  "Modullar va integratsiya": {
+    "ru": "Модули и интеграции",
+    "en": "Modules and integrations"
+  },
+  "Moliyaviy cheklovlarni qat‘iy qo‘llash.": {
+    "ru": "Строгое применение финансовых ограничений.",
+    "en": "Enforce financial limits strictly."
+  },
+  "Moslik uchun saqlangan /admin/test sahifalari.": {
+    "ru": "Страницы /admin/test, сохранённые для совместимости.",
+    "en": "/admin/test pages kept for compatibility."
+  },
+  "Mutaxassislardan kelgan va ularga yuborilgan takliflar.": {
+    "ru": "Предложения от специалистов и отправленные им.",
+    "en": "Offers received from and sent to specialists."
+  },
+  "Nakrutka koeffitsientlari": {
+    "ru": "Коэффициенты накрутки",
+    "en": "Markup coefficients"
+  },
+  "Nakrutka podvalini qatorma-qator qurish.": {
+    "ru": "Построчная сборка подвала накрутки.",
+    "en": "Build the markup footer line by line."
+  },
+  "Narx chetlanishi, kategoriya va diapazonlar.": {
+    "ru": "Отклонения цен, категории и диапазоны.",
+    "en": "Price deviations, categories and ranges."
+  },
+  "Narx manbalari": {
+    "ru": "Источники цен",
+    "en": "Price sources"
+  },
+  "Narx va nakrutka": {
+    "ru": "Цены и накрутка",
+    "en": "Pricing and markup"
+  },
+  "Narx va tarif": {
+    "ru": "Цены и тарифы",
+    "en": "Pricing and plans"
+  },
+  "Narxlar nazorati": {
+    "ru": "Контроль цен",
+    "en": "Price control"
+  },
+  "Nazorat va xizmat": {
+    "ru": "Контроль и сервис",
+    "en": "Control and service"
+  },
+  "Obyekt F2 va xulosasini tashqi tomonga 7 kunlik havola bilan ko‘rsatish.": {
+    "ru": "Показ F2 и заключения объекта внешней стороне по 7-дневной ссылке.",
+    "en": "Show an object’s F2 and summary to an outside party via a 7-day link."
+  },
+  "Obyektni havola bilan ulashish": {
+    "ru": "Доступ к объекту по ссылке",
+    "en": "Share an object by link"
+  },
+  "Oylik USD limit.": {
+    "ru": "Месячный лимит в USD.",
+    "en": "Monthly USD cap."
+  },
+  "O‘chirilgan yozuvlarni tiklash.": {
+    "ru": "Восстановление удалённых записей.",
+    "en": "Restore deleted records."
+  },
+  "O‘zbek (lotin/kirill), rus yoki ingliz.": {
+    "ru": "Узбекский (латиница/кириллица), русский или английский.",
+    "en": "Uzbek (Latin/Cyrillic), Russian or English."
+  },
+  "Panellar kengligi, 2/3 panel rejimi va narx hududi.": {
+    "ru": "Ширина панелей, режим 2/3 панелей и ценовой регион.",
+    "en": "Panel widths, 2/3 panel mode and pricing region."
+  },
+  "Parol": {
+    "ru": "Пароль",
+    "en": "Password"
+  },
+  "Parolni o‘rnatish yoki almashtirish.": {
+    "ru": "Установка или смена пароля.",
+    "en": "Set or change your password."
+  },
+  "Platforma auditi": {
+    "ru": "Аудит платформы",
+    "en": "Platform audit"
+  },
+  "Platforma boshqaruvi": {
+    "ru": "Управление платформой",
+    "en": "Platform management"
+  },
+  "Podval konstruktori": {
+    "ru": "Конструктор подвала",
+    "en": "Footer builder"
+  },
+  "Profil belgisining rangi.": {
+    "ru": "Цвет значка профиля.",
+    "en": "Color of the profile badge."
+  },
+  "Profil va til": {
+    "ru": "Профиль и язык",
+    "en": "Profile and language"
+  },
+  "Pudratchi taqdim etgan ishlar va hujjatlar.": {
+    "ru": "Работы и документы, представленные подрядчиком.",
+    "en": "Work and documents submitted by the contractor."
+  },
+  "Pudratchilardan kelgan obyektlar va hujjatlarni ko‘rish.": {
+    "ru": "Просмотр объектов и документов от подрядчиков.",
+    "en": "View objects and documents from contractors."
+  },
+  "Qat‘iy moliyaviy nazorat": {
+    "ru": "Строгий финансовый контроль",
+    "en": "Strict financial control"
+  },
+  "Qaysi kompaniyada qanday rolingiz borligi, ish joyini almashtirish.": {
+    "ru": "В какой компании какая у вас роль, переключение рабочего места.",
+    "en": "Which role you hold in which company; switch workspace."
+  },
+  "Qulay yoki ixcham boshqaruv o‘lchamlari.": {
+    "ru": "Комфортный или компактный размер элементов.",
+    "en": "Comfortable or compact control sizes."
+  },
+  "Rekvizitlar": {
+    "ru": "Реквизиты",
+    "en": "Details"
+  },
+  "Rol, muddat va odam soni bilan taklif havolasi yaratish.": {
+    "ru": "Создание ссылки-приглашения с ролью, сроком и числом людей.",
+    "en": "Create an invite link with a role, expiry and people limit."
+  },
+  "Rol-ruxsat jadvali (faqat o‘qish).": {
+    "ru": "Таблица ролей и разрешений (только чтение).",
+    "en": "Role-permission matrix (read-only)."
+  },
+  "Rollar va ruxsatlar": {
+    "ru": "Роли и разрешения",
+    "en": "Roles and permissions"
+  },
+  "Ro‘yxatdan o‘tish bonusi": {
+    "ru": "Бонус за регистрацию",
+    "en": "Sign-up bonus"
+  },
+  "Sahifa va oqimlar xaritasi (faqat o‘qish).": {
+    "ru": "Карта страниц и потоков (только чтение).",
+    "en": "Page and flow map (read-only)."
+  },
+  "Sayt xaritasi": {
+    "ru": "Карта сайта",
+    "en": "Site map"
+  },
+  "Sessiya": {
+    "ru": "Сессия",
+    "en": "Session"
+  },
+  "Shaxsiy (bir kishi) yoki korporativ (tayyorlovchi, tekshiruvchi va tasdiqlovchi alohida).": {
+    "ru": "Личный (один человек) или корпоративный (составитель, проверяющий и утверждающий — разные люди).",
+    "en": "Personal (one person) or corporate (preparer, checker and approver are different people)."
+  },
+  "Shaxsiy yoki tashkilot ish joyi yaratish, taklifga qo‘shilish.": {
+    "ru": "Создание личного или организационного рабочего места, присоединение по приглашению.",
+    "en": "Create a personal or organization workspace, or join by invitation."
+  },
+  "Smeta Studio ko‘rinishi va hududi": {
+    "ru": "Вид и регион Smeta Studio",
+    "en": "Smeta Studio layout and region"
+  },
+  "Smeta daraxti ustunlari va zichligi": {
+    "ru": "Столбцы и плотность дерева сметы",
+    "en": "Estimate tree columns and density"
+  },
+  "Taklif havolalari": {
+    "ru": "Пригласительные ссылки",
+    "en": "Invite links"
+  },
+  "Taqdimlar": {
+    "ru": "Представления",
+    "en": "Submissions"
+  },
+  "Tarif": {
+    "ru": "Тариф",
+    "en": "Plan"
+  },
+  "Tarif kodi, nomi, oylik token va narxi.": {
+    "ru": "Код, название, месячные токены и цена тарифа.",
+    "en": "Plan code, name, monthly tokens and price."
+  },
+  "Tarif rejalari": {
+    "ru": "Тарифные планы",
+    "en": "Subscription plans"
+  },
+  "Tarif va hisob": {
+    "ru": "Тариф и счёт",
+    "en": "Plan and billing"
+  },
+  "Tarif, token balansi va saqlash holatini ko‘rish.": {
+    "ru": "Просмотр тарифа, баланса токенов и состояния хранилища.",
+    "en": "View your plan, token balance and storage status."
+  },
+  "Tashqi integratsiyalar sog‘lig‘i (faqat o‘qish).": {
+    "ru": "Состояние внешних интеграций (только чтение).",
+    "en": "Health of external integrations (read-only)."
+  },
+  "Telefon": {
+    "ru": "Телефон",
+    "en": "Phone"
+  },
+  "Texnik imkoniyatlar va nazorat": {
+    "ru": "Технические возможности и контроль",
+    "en": "Capabilities and control"
+  },
+  "Tizim agentlari standart modeli va OpenRouter model galereyasi.": {
+    "ru": "Модель системных агентов по умолчанию и галерея моделей OpenRouter.",
+    "en": "Default model of system agents and the OpenRouter model gallery."
+  },
+  "Token balansi, sotib olish va amal narxlari (faqat o‘qish).": {
+    "ru": "Баланс токенов, покупка и цены действий (только чтение).",
+    "en": "Token balance, purchase and action prices (read-only)."
+  },
+  "Token hisobi": {
+    "ru": "Учёт токенов",
+    "en": "Token ledger"
+  },
+  "Token jurnali va qaytarish jarayoni.": {
+    "ru": "Журнал токенов и процесс возврата.",
+    "en": "Token ledger and refund process."
+  },
+  "Token narxi va amal narxlari": {
+    "ru": "Цена токена и цены действий",
+    "en": "Token price and action prices"
+  },
+  "Token narxi, umumiy foyda foizi va amallar narx jadvali.": {
+    "ru": "Цена токена, общий процент прибыли и таблица цен действий.",
+    "en": "Token price, global profit % and the action price table."
+  },
+  "Token sotib olish so‘rovlarini tasdiqlash yoki rad etish.": {
+    "ru": "Подтверждение или отклонение запросов на покупку токенов.",
+    "en": "Approve or reject token purchase requests."
+  },
+  "Token va obuna": {
+    "ru": "Токены и подписка",
+    "en": "Tokens and subscription"
+  },
+  "Tokenlar va obuna": {
+    "ru": "Токены и подписка",
+    "en": "Tokens and subscription"
+  },
+  "Tomonlar aloqasi": {
+    "ru": "Связь сторон",
+    "en": "Party connections"
+  },
+  "Topshiriqlar va xabarlar qutisi; Telegram/Email kanallari hali ulanmagan.": {
+    "ru": "Поручения и входящие; каналы Telegram/Email пока не подключены.",
+    "en": "Tasks and inbox; Telegram/Email channels are not connected yet."
+  },
+  "To‘liq nom, STIR, manzil, rahbar, bank va hisob raqam — F2/F3/akt sarlavhalariga tushadi.": {
+    "ru": "Полное название, ИНН, адрес, руководитель, банк и счёт — попадают в шапки F2/F3/акта.",
+    "en": "Full name, tax ID, address, head, bank and account — used in F2/F3/act headers."
+  },
+  "To‘lov rekvizitlari": {
+    "ru": "Платёжные реквизиты",
+    "en": "Payment details"
+  },
+  "To‘lov so‘rovlari": {
+    "ru": "Запросы на оплату",
+    "en": "Payment requests"
+  },
+  "UZS yoki USD.": {
+    "ru": "UZS или USD.",
+    "en": "UZS or USD."
+  },
+  "Umumiy platforma katalogi nashri va narx indeksi.": {
+    "ru": "Выпуск общего каталога платформы и индекс цен.",
+    "en": "Release of the shared platform catalog and price index."
+  },
+  "Umumiy sozlamalar": {
+    "ru": "Общие настройки",
+    "en": "General settings"
+  },
+  "Ustun preseti (asosiy/F2/narx/to‘liq) va zichlik.": {
+    "ru": "Пресет столбцов (основной/F2/цена/полный) и плотность.",
+    "en": "Column preset (basic/F2/price/full) and density."
+  },
+  "Xizmat takliflari": {
+    "ru": "Предложения услуг",
+    "en": "Service offers"
+  },
+  "Yangi foydalanuvchiga beriladigan boshlang‘ich tokenlar.": {
+    "ru": "Начальные токены новому пользователю.",
+    "en": "Starting tokens given to a new user."
+  },
+  "Yangi foydalanuvchilarga nusxalanadigan namuna obyekt.": {
+    "ru": "Образец объекта, копируемый новым пользователям.",
+    "en": "Sample object copied to new users."
+  },
+  "Yon menyu va hujjatlarda ko‘rinadigan logotip (PNG/JPEG, 300 KB gacha).": {
+    "ru": "Логотип в боковом меню и документах (PNG/JPEG, до 300 КБ).",
+    "en": "Logo shown in the sidebar and documents (PNG/JPEG, up to 300 KB)."
+  },
+  "Yon menyuni mahkamlash.": {
+    "ru": "Закрепить боковое меню.",
+    "en": "Pin the side menu."
+  },
+  "Yon panelni doim ochiq tutish": {
+    "ru": "Всегда держать боковую панель открытой",
+    "en": "Keep the sidebar pinned open"
+  },
+  "Yorug‘, qorong‘i yoki tizim mavzusi.": {
+    "ru": "Светлая, тёмная или системная тема.",
+    "en": "Light, dark or system theme."
+  },
+  "Zakazchik, pudratchi, texnadzor va tuzuvchi nomlari — barcha rasmiy hujjatlarda.": {
+    "ru": "Имена заказчика, подрядчика, технадзора и составителя — во всех официальных документах.",
+    "en": "Names of customer, contractor, technical supervisor and author — in all official documents."
+  },
+  "Zichlik": {
+    "ru": "Плотность",
+    "en": "Density"
+  },
+  "Sozlamalar markazi": {
+    "ru": "Центр настроек",
+    "en": "Settings center"
+  },
+  "Akkaunt — faqat siz uchun; Kompaniya — admin panelida butun jamoa uchun; Tizim — butun platforma uchun (superadmin).": {
+    "ru": "Аккаунт — только для вас; Компания — в админ-панели для всей команды; Система — для всей платформы (суперадмин).",
+    "en": "Account — for you only; Company — in the admin panel for the whole team; System — for the whole platform (superadmin)."
+  },
+  "Akkaunt": {
+    "ru": "Аккаунт",
+    "en": "Account"
+  },
+  "Kompaniya": {
+    "ru": "Компания",
+    "en": "Company"
+  },
+  "Tizim": {
+    "ru": "Система",
+    "en": "System"
+  },
+  "Faqat siz uchun: profil, til, kirish, ko‘rinish.": {
+    "ru": "Только для вас: профиль, язык, вход, внешний вид.",
+    "en": "For you only: profile, language, sign-in, appearance."
+  },
+  "Kompaniya admin panelidan boshqariladi: a‘zolar, hujjatlar, narx, AI.": {
+    "ru": "Управляется из админ-панели компании: участники, документы, цены, AI.",
+    "en": "Managed from the company admin panel: members, documents, pricing, AI."
+  },
+  "Butun platforma uchun — faqat superadmin.": {
+    "ru": "Для всей платформы — только суперадмин.",
+    "en": "For the whole platform — superadmin only."
+  },
+  "Buyurtmachi": {
+    "ru": "Заказчик",
+    "en": "Customer"
+  },
+  "Pudratchi": {
+    "ru": "Подрядчик",
+    "en": "Contractor"
+  },
+  "Loyihachi": {
+    "ru": "Проектировщик",
+    "en": "Designer"
+  },
+  "Serverda": {
+    "ru": "На сервере",
+    "en": "On the server"
+  },
+  "Faqat shu brauzerda": {
+    "ru": "Только в этом браузере",
+    "en": "Only in this browser"
+  },
+  "Jami {n} sozlama": {
+    "ru": "Всего настроек: {n}",
+    "en": "{n} settings in total"
+  },
+  "Tizimda jami {n} ta sozlama mavjud": {
+    "ru": "Всего в системе настроек: {n}",
+    "en": "The system has {n} settings in total"
+  },
+  "Sozlamalar qatlamlari": {
+    "ru": "Уровни настроек",
+    "en": "Settings layers"
+  },
+  "Kompaniya tanlanmagan — kompaniya sozlamalarini ko‘rish uchun ish joyini tanlang.": {
+    "ru": "Компания не выбрана — выберите рабочее место, чтобы увидеть настройки компании.",
+    "en": "No company selected — pick a workspace to see company settings."
+  },
+  "turi belgilanmagan": {
+    "ru": "тип не указан",
+    "en": "type not set"
+  },
+  "Kompaniya turini belgilash": {
+    "ru": "Указать тип компании",
+    "en": "Set company type"
+  },
+  "Sozlamalarni qidirish…": {
+    "ru": "Поиск настроек…",
+    "en": "Search settings…"
+  },
+  "Hech narsa topilmadi.": {
+    "ru": "Ничего не найдено.",
+    "en": "Nothing found."
+  },
+  "Boshqa turdagi kompaniyalar uchun": {
+    "ru": "Для компаний другого типа",
+    "en": "For other company types"
+  },
+  "Sozlamalar markazini ochish": {
+    "ru": "Открыть центр настроек",
+    "en": "Open settings center"
+  },
+  "Akkaunt, kompaniya va tizim sozlamalari bitta joyda.": {
+    "ru": "Настройки аккаунта, компании и системы в одном месте.",
+    "en": "Account, company and system settings in one place."
+  },
+  "{n} ta sozlama": {
+    "ru": "Настроек: {n}",
+    "en": "{n} settings"
+  },
+  "Faqat siz uchun": {
+    "ru": "Только для вас",
+    "en": "For you only"
+  },
+  "Kompaniya admin panelida": {
+    "ru": "В админ-панели компании",
+    "en": "In the company admin panel"
+  },
+  "Butun platforma (superadmin)": {
+    "ru": "Вся платформа (суперадмин)",
+    "en": "Whole platform (superadmin)"
+  },
+  "Akkaunt, kompaniyalar va rollar, xavfsizlik, ko‘rinish va tarif. Kompaniya va tizim sozlamalari — Sozlamalar markazida.": {
+    "ru": "Аккаунт, компании и роли, безопасность, внешний вид и тариф. Настройки компании и системы — в Центре настроек.",
+    "en": "Account, companies and roles, security, appearance and plan. Company and system settings live in the Settings center."
+  }
+}

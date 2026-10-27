@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 32,
+      "sana": "2026-10-27",
+      "sarlavha": "Email kod bilan kirish, Sozlamalar markazi va obyekt imzochilari",
+      "bandlar": [
+        "Kirish sahifasida email orqali kirish: emailingizga 6 xonali kod keladi (10 daqiqa amal qiladi), kodni kiritib kirasiz — parol shart emas. Yangi hisob ochilganda kompaniya avtomatik ochilmaydi: kompaniyaga taklif havolasi orqali qo'shilasiz yoki STIR bilan kompaniya ochish so'rovini yuborasiz.",
+        "«Sozlamalar markazi» (yon menyuda): hujjat imzo tomonlari, hujjat dizayni va F2 tasdiq rejimi endi kompaniya bo'yicha serverda saqlanadi — boshqa kompyuterda yoki boshqa xodimda ham bir xil.",
+        "Hujjat imzochilari loyiha, obyekt yoki razdel darajasida belgilanadi; har tomon (zakazchik, pudratchi, texnadzor…) o'z imzochisini o'zi tayinlaydi, avval kiritilgan nomlar taklif sifatida chiqadi.",
+        "Kompaniya xaritasida (mindmap) F2 faqat tasdiqlangan aktlardan hisoblanadi, qoralama alohida; fakt kiritilmagan obyekt «fakt kiritilmagan» deb ko'rsatiladi."
+      ]
+    },
+    {
       "id": 31,
       "sana": "2026-10-27",
       "sarlavha": "Svoddagi yaxlit summalarga ustama qo'shilmaydi",
