@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 39,
+      "sana": "2026-10-27",
+      "sarlavha": "Tizim xaritasi — tizimda nima bo'layotgani jonli",
+      "bandlar": [
+        "Yangi «Tizim xaritasi» sahifasi: kompaniyalar → modullar (smeta, fakt, F2, Nakopitelniy, sverka, ombor, agentlar), har birida oxirgi amal, 24 soatdagi xatolar va navbatdagi ishlar.",
+        "Yon tomonda «Oxirgi hodisalar» lentasi; xarita har 30 soniyada o'zi yangilanadi (yashirin tabda to'xtaydi).",
+        "Faqat platforma superadmini va u ruxsat bergan odamlar ko'radi; ruxsatlar shu sahifada beriladi va olinadi, har amal auditga yoziladi."
+      ]
+    },
+    {
       "id": 38,
       "sana": "2026-10-27",
       "sarlavha": "Har bir hujjatda tizim imzosi",

@@ -24,7 +24,12 @@ export type NavKontekst = {
   /** Joriy kompaniyadagi capability lar (t2_men_v1); null/undefined — eski javob. */
   permissions?: readonly string[] | null;
   modullar?: readonly Modul[];
+  /** Server (`tizim_xaritasi_ruxsat_tekshir_v1`) tizim xaritasini ko'rishga ruxsat berdimi. Kelmagan — yo'q. */
+  tizimXaritasi?: boolean;
 };
+
+/** Platforma darajasidagi ruxsat bilan ochiladigan sahifa (kompaniya capability si emas). */
+export const TIZIM_XARITASI_YOL = '/admin/tizim-xaritasi';
 
 export type MenyuTab = { yol: string; nom: string };
 /** Sidebar bandi: `yol` — birinchi ko'ringan sahifa; `tablar` — 2+ sahifa bo'lsa (BolimTablari). */
@@ -39,6 +44,8 @@ function ruxsatlar(k: NavKontekst): readonly string[] {
 /** Bitta sahifa (yo'l) shu kontekstda menyuda ko'rinadimi. */
 export function sahifaKorinadi(guruh: Pick<NavGuruh, 'qatlam'>, yol: string, k: NavKontekst): boolean {
   if (!menyuModulYoqilgan(yol, k.modullar)) return false;
+  // Tizim xaritasi: faqat server ruxsati (superadmin ham server javobi orqali) — rol/qatlamdan qat'i nazar.
+  if (yol === TIZIM_XARITASI_YOL) return k.tizimXaritasi === true;
   if (guruh.qatlam === 'platforma') return k.superadmin;
   if (k.superadmin) return true;
   if (menyuRolYopiq(k.rol, yol)) return false;

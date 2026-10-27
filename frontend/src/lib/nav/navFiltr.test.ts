@@ -126,6 +126,22 @@ describe('egasi qarori 2026-10-26: PTO qurilishdagi pulga aloqador HAMMA joyni k
   });
 });
 
+describe('Tizim xaritasi — faqat server ruxsati bilan (superadmin yoki berilgan grant)', () => {
+  const TX = '/admin/tizim-xaritasi';
+  it('server ruxsat bermagan — hech kimda yo‘q (boss, admin, hatto superadmin javobi kelmaguncha)', () => {
+    for (const rol of ['boss', 'admin', 'rahbar', 'pto', 'superadmin']) expect(menyu(rol)).not.toContain(TX);
+    expect(menyu('boss', { tizimXaritasi: false })).not.toContain(TX);
+  });
+  it('server ruxsat bergan — ko‘rinadi (grant olgan oddiy a’zo ham), Platforma guruhida', () => {
+    expect(menyu('superadmin', { tizimXaritasi: true })).toContain(TX);
+    const m = menyuQur({ superadmin: false, rol: 'pto', permissions: serverRuxsat('pto'), tizimXaritasi: true });
+    expect(menyuYollari(m)).toContain(TX);
+    expect(m.find((g) => g.bandlar.some((b) => b.yol === TX))?.id).toBe('platforma');
+    // Grant faqat shu sahifani ochadi — boshqa platforma sahifalari superadminniki bo'lib qoladi.
+    expect(menyuYollari(m)).not.toContain('/admin/boshqaruv');
+  });
+});
+
 describe('qatlamlar', () => {
   it('Platforma — faqat platforma superadmini; boss/admin `control.global.read` bo‘lsa ham ko‘rmaydi', () => {
     for (const rol of ['boss', 'admin']) {

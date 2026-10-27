@@ -194,6 +194,9 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
        * bu guruhni ko'rmaydi (tadqiqot M3). Server baribir alohida tekshiradi. */
       { nom: 'Platforma boshqaruvi', ikonka: 'Crown', sahifalar: [{ yol: '/admin/boshqaruv', nom: 'Platforma boshqaruvi', ruxsat: [] }] },
       { nom: 'Sayt xaritasi', ikonka: 'Map', sahifalar: [{ yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', ruxsat: [] }] },
+      /* Egasi 2026-10-27: tizim darajasidagi jonli mindmap. Superadmin YOKI u ruxsat bergan odam — menyuda faqat server
+       * tasdiqlasa (`NavKontekst.tizimXaritasi`, navFiltr); sahifa va RPC ham alohida tekshiradi. Kompaniya roli bilan EMAS. */
+      { nom: 'Tizim xaritasi', ikonka: 'Gauge', sahifalar: [{ yol: '/admin/tizim-xaritasi', nom: 'Tizim xaritasi', ruxsat: [] }] },
       { nom: 'Fayl bog‘lash (texnik)', ikonka: 'Link2', sahifalar: [{ yol: '/admin/fayl-boglash', nom: 'Fayl bog‘lash (texnik)', ruxsat: [] }] },
       /* Eski SINOV qobig'i (/admin/test/*) — yo'llar o'chirilmagan, menyuda faqat superadmin uchun. _demo/* menyuda yo'q. */
       { nom: 'Sinov qobig‘i (eski)', ikonka: 'FlaskConical', sahifalar: [{ yol: '/admin/test', nom: 'Sinov qobig‘i (eski)', ruxsat: [] }] },
