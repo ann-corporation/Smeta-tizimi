@@ -51,6 +51,6 @@
   "Faylda «Приход» varag‘i topilmadi.": { "ru": "В файле не найден лист «Приход».", "en": "The “Приход” sheet was not found in the file." },
   "Kirim ustunlari topilmadi. Sana, nom, birlik va miqdor ustunlarini tekshiring.": { "ru": "Не найдены столбцы прихода. Проверьте столбцы даты, наименования, единицы измерения и количества.", "en": "Receipt columns were not found. Check the date, name, unit, and quantity columns." },
   "Avval kompaniya va omborni tanlang.": { "ru": "Сначала выберите компанию и склад.", "en": "Select a company and warehouse first." },
-  "Takrorlar ombor bilan hali solishtirilmagan.": { "ru": "Дубликаты ещё не сверены с данными склада.", "en": "Duplicates have not yet been checked against warehouse records." }, 
+  "Takrorlar ombor bilan hali solishtirilmagan.": { "ru": "Дубликаты ещё не сверены с данными склада.", "en": "Duplicates have not yet been checked against warehouse records." },
   "Manba: {qator}-qator": {"ru":"Исходная строка: {qator}","en":"Source row: {qator}"}
 }
