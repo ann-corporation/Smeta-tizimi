@@ -37,6 +37,7 @@ import { NakopitelniyKpi } from '../../components/nakopitelniy/NakopitelniyKpi';
 import { NakopitelniyJadval } from '../../components/nakopitelniy/NakopitelniyJadval';
 import { ShartnomaQuvur } from '../../components/nakopitelniy/ShartnomaQuvur';
 import { PereraschetBolimi } from './PereraschetBolimi';
+import { SverkaImportPanel } from '../../components/sverka-import/SverkaImportPanel';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -515,6 +516,8 @@ function Sessiya({ companyId }: { companyId: number }) {
         {shartnomaId != null && (
           <ShartnomaSvodBolimi companyId={companyId} shartnomaId={shartnomaId} tashkilot={kompaniyalar.find((x) => x.id === companyId)?.nom ?? null} />
         )}
+        {/* Egasi 2026-10-26: 1C akt-sverka importi — kompaniya darajasida (bir faylda bir nechta shartnoma). */}
+        <SverkaImportPanel companyId={companyId} />
         {objectId && !busy && !xato && !qatorlar.length && (
           <div className="fz-note fz-note--info"><span>{t('Bu obyektda smeta qatori topilmadi.')}</span></div>
         )}

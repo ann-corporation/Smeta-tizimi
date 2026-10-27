@@ -3,6 +3,7 @@ import type { BajarilmadiQator } from '../api/t2-bajarilmadi';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from './ustamali-summa';
 import type { JurnalHolat } from './fakt-jurnal';
 import { ochiqQoldiq } from './zamena-qoldiq';
+import { chiqarilganmi } from './resurs-amal';
 
 /**
  * Fakt Studio yig'indisi (egasi 2026-10-24): fakt kiritish ekranida doimiy ko'rinadigan hisob.
@@ -39,11 +40,15 @@ export function faktYigindiHisobla(
   const son = (v: unknown): number | null => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
   const faktKesim = bosKatKesim(); const yangiKesim = bosKatKesim();
   let faktUstamasiz = 0; let yangiUstamasiz = 0; let yangiSoni = 0;
+  // Ishdan chiqarilgan resurs (faol «bajarilmaydi» butun smeta hajmini qoplaydi; lib/resurs-amal) — F2 ga kirmaydi,
+  // norma × ish faktidan hosila fakt summasi ham jamiga qo'shilmaydi.
+  const bajMap = bajarilmadiHajmlar(bajarilmadi);
   for (const r of rows) {
     const ota = r.ota_id != null ? byId.get(r.ota_id) : undefined;
     // Yangi pozitsiya = qo'shimcha/zamena ildizi (ota-bobosi yangi bo'lgan resurslar alohida sanalmaydi).
     if (ildiz(r) && (r.tur === 'bl' || r.tur === 'mat' || r.tur === 'ob') && !(ota && yangiMi(ota))) yangiSoni++;
     if (!BARG.has(r.tur ?? '')) continue;
+    if (bajMap.has(r.id) && chiqarilganmi(son(holat.get(r.id)?.smeta_hajm), bajMap.get(r.id))) continue;
     const s = son(holat.get(r.id)?.fakt_summa);
     katKesimgaQosh(faktKesim, r.kat, s);
     if (s != null) faktUstamasiz += s;

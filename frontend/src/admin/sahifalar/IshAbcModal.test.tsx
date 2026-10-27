@@ -74,6 +74,19 @@ describe('IshAbcModal (kichik ABC)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
     await waitFor(() => expect(m.saqla).toHaveBeenCalledWith(expect.objectContaining({ command: 'resurs_zamena', almashtirilayotganQatorId: 605428, ish: null })));
   });
+  it('resurs zamenasi, birlik farqli: «asl resursning qancha hajmini almashtiradi» — zamena saqlangach mavjud RPC bilan yoziladi', async () => {
+    m.saqla.mockResolvedValue({ ok: true, qator_id: 77 });
+    const belgila = vi.fn(async () => ({ ok: true }));
+    render(<IshAbcModal kompaniyaId={1} obyektId={81} sana="2026-10-01" bolimlar={[]} almashtirishBelgila={belgila}
+      rejim={{ tur: 'resurs_zamena', eski: { id: 500, nom: 'ЩЕБЕНЬ', birlik: 'М3', kat: 'МАТ', norma: 1.2 }, ishHajm: 10 }} onYop={vi.fn()} onSaqlandi={vi.fn()} />);
+    expect(screen.queryByLabelText('Almashtirilgan hajm (asl birlikda)')).toBeNull(); // birlik bir xil — 1:1, maydon yo'q
+    fireEvent.change(screen.getByLabelText('1-resurs nomi'), { target: { value: 'ГРАВИЙ' } });
+    fireEvent.change(screen.getByLabelText('1-resurs birligi'), { target: { value: 'Т' } });
+    fireEvent.change(screen.getByLabelText('Almashtirilgan hajm (asl birlikda)'), { target: { value: '9' } });
+    fireEvent.change(screen.getByLabelText('Sabab'), { target: { value: 'yetkazib berilmadi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
+    await waitFor(() => expect(belgila).toHaveBeenCalledWith(77, 9));
+  });
   it('retries binding refresh after a saved edit without writing another row', async () => {
     m.edit.mockResolvedValue({ok:true,qator_id:8});
     const onSaqlandi=vi.fn().mockRejectedValueOnce(new Error('refresh')).mockResolvedValue(undefined);

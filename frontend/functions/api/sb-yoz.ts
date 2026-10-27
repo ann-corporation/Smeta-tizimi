@@ -52,6 +52,13 @@ const AMALLAR = {
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   sverka_yozuv_v1: { rpc: 't2_sverka_yozuv_v1' },
+  /* Egasi 2026-10-26: 1C akt-sverka importi (partiya ≤ 200: to'lov + F3 sotuv + F2 to'plami), to'lov taqsimoti, Продажа ↔ F2.
+     RPC a'zolik + financial.write ni o'zi tekshiradi; idempotent (operation_id). */
+  sverka_import_v1: { rpc: 't2_sverka_import_v1' },
+  tolov_taqsimot_saqla_v1: { rpc: 't2_tolov_taqsimot_saqla_v1' },
+  forma3_f2_bog_v1: { rpc: 't2_forma3_f2_bog_v1' },
+  /* Rasmiy F2 reestri jamilari (QQSsiz / QQS / QQS bilan): t2_akt.hujjat_jami — bog'langan qatorlar pryamye, hujjat jami emas. */
+  f2_reestr_yoz_v1: { rpc: 't2_f2_reestr_yoz_v1' },
   /* Egasi 2026-10-20: fayl menejeri — o'z papkalari, ko'rinadigan nom, ko'chirish, savat (kanonik hujjat o'zgarmaydi). */
   fayl_amal_v1: { rpc: 't2_fayl_amal_v1' },
   /* Egasi 2026-10-21 (ADR-3): ombor Fakt orqali emas — bajarilgan M-29 orqali kamayadi. */
@@ -692,14 +699,15 @@ export const onRequestPost: PagesFunction<{
     } else if (amal === 'sverka_yozuv_v1') {
       const m = so.malumot;
       const yid = so.yozuv_id == null || so.yozuv_id === '' ? null : Number(so.yozuv_id);
-      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !['ds', 'f2_reestr', 'sotuv'].includes(String(so.tur))
+      // 'f3_sotuv' — RPC (20261106820000) aynan shu nomni kutadi; avval BFF uni rad etardi (F3 sotuvdan qo'lda kiritish ishlamasdi).
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !['ds', 'f3_sotuv', 'f2_reestr', 'sotuv'].includes(String(so.tur))
           || !Number.isSafeInteger(Number(so.shartnoma_id)) || Number(so.shartnoma_id) <= 0
           || (yid != null && (!Number.isSafeInteger(yid) || yid <= 0))
           || !m || typeof m !== 'object' || Array.isArray(m)) {
         return Response.json({ ok: false, error: 'Sverka yozuvi: shartnoma, tur (ds | f2_reestr | sotuv), ma\'lumot va operatsiya talab qilinadi.' }, { status: 400 });
       }
       const mk = ['raqam', 'sana', 'jami_nds_bilan', 'izoh', 'holat', 'reestr_raqam', 'oy', 'obyekt_id', 'summa_nds_siz', 'summa_nds_bilan',
-        'akt_id', 'nom', 'fayl', 'summa', 'nds_foiz', 'davr_boshi', 'davr_oxiri', 'f3_holat', 'manba'];
+        'akt_id', 'nom', 'fayl', 'summa', 'nds_foiz', 'davr_boshi', 'davr_oxiri', 'f3_holat', 'manba', 'sotuv_sana', 'sotuv_summa'];
       const malumot: Record<string, unknown> = {};
       for (const k of mk) {
         const x = m[k];
@@ -714,6 +722,75 @@ export const onRequestPost: PagesFunction<{
         p_yozuv_id: yid, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
         p_malumot: malumot, p_operation_id: so.operation_id,
       };
+    } else if (amal === 'sverka_import_v1') {
+      /* 1C akt-sverka partiyasi: har qator faqat ruxsat etilgan maydonlar bilan (RPC qolganini tekshiradi). */
+      const qs = so.qatorlar;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Array.isArray(qs) || qs.length === 0 || qs.length > 200) {
+        return Response.json({ ok: false, error: 'Sverka importi: 1–200 qator va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      const kalitlar = ['tur', 'shartnoma_id', 'sana', 'summa', 'raqam', 'izoh', 'operation_id', 'obyekt_id', 'f3_holat', 'nds_foiz', 'davr_boshi'];
+      const qatorlar: Record<string, unknown>[] = [];
+      for (const q of qs) {
+        if (!q || typeof q !== 'object' || Array.isArray(q)) return Response.json({ ok: false, error: 'Sverka importi: qator obyekt bo‘lishi kerak.' }, { status: 400 });
+        const r: Record<string, unknown> = {};
+        for (const k of kalitlar) {
+          const x = (q as Record<string, unknown>)[k];
+          if (x === undefined) continue;
+          if (x !== null && typeof x !== 'string' && typeof x !== 'number') return Response.json({ ok: false, error: 'Sverka importi: maydon matn yoki son bo‘lishi kerak.' }, { status: 400 });
+          r[k] = typeof x === 'string' ? x.slice(0, 500) : x;
+        }
+        const tq = (q as Record<string, unknown>).taqsimot;
+        if (tq != null) {
+          if (!Array.isArray(tq) || tq.length > 100) return Response.json({ ok: false, error: 'Sverka importi: taqsimot ro‘yxati noto‘g‘ri.' }, { status: 400 });
+          r.taqsimot = tq.map((t) => ({ obyekt_id: (t as Record<string, unknown>)?.obyekt_id ?? null, summa: (t as Record<string, unknown>)?.summa ?? null, manba: (t as Record<string, unknown>)?.manba ?? null }));
+        }
+        for (const k of ['f2_akt_ids', 'f2_reestr_ids'] as const) {
+          const ak = (q as Record<string, unknown>)[k];
+          if (ak == null) continue;
+          if (!Array.isArray(ak) || ak.length > 500 || ak.some((x) => !Number.isSafeInteger(Number(x)))) return Response.json({ ok: false, error: 'Sverka importi: F2 ro‘yxati noto‘g‘ri.' }, { status: 400 });
+          r[k] = ak.map(Number);
+        }
+        qatorlar.push(r);
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_qatorlar: qatorlar, p_operation_id: so.operation_id };
+    } else if (amal === 'tolov_taqsimot_saqla_v1') {
+      const qs = so.qatorlar;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.tolov_id)) || Number(so.tolov_id) <= 0
+          || !Array.isArray(qs) || qs.length > 100) {
+        return Response.json({ ok: false, error: 'Taqsimot: to‘lov, ≤100 qator va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_tolov_id: Number(so.tolov_id), p_operation_id: so.operation_id,
+        p_qatorlar: qs.map((t) => ({ obyekt_id: (t as Record<string, unknown>)?.obyekt_id ?? null, summa: (t as Record<string, unknown>)?.summa ?? null, manba: (t as Record<string, unknown>)?.manba ?? null })),
+      };
+    } else if (amal === 'forma3_f2_bog_v1') {
+      const ak = so.akt_ids;
+      const re = so.reestr_ids ?? [];
+      const idlar = (x: unknown): x is unknown[] => Array.isArray(x) && x.length <= 500 && x.every((v) => Number.isSafeInteger(Number(v)) && Number(v) > 0);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.forma3_id)) || Number(so.forma3_id) <= 0
+          || !idlar(ak) || !idlar(re)) {
+        return Response.json({ ok: false, error: 'Продажа ↔ F2: F3, ≤500 akt/reestr va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_forma3_id: Number(so.forma3_id), p_akt_ids: ak.map(Number), p_reestr_ids: re.map(Number), p_operation_id: so.operation_id };
+    } else if (amal === 'f2_reestr_yoz_v1') {
+      const qs = so.qatorlar;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Array.isArray(qs) || qs.length === 0 || qs.length > 200) {
+        return Response.json({ ok: false, error: 'F2 reestri: 1–200 qator va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      const kalitlar = ['shartnoma_id', 'akt_id', 'raqam', 'lot', 'obyekt_ish', 'davr', 'oy', 'qqssiz', 'qqs', 'qqs_bilan', 'holat_matn'];
+      const qatorlar: Record<string, unknown>[] = [];
+      for (const q of qs) {
+        if (!q || typeof q !== 'object' || Array.isArray(q)) return Response.json({ ok: false, error: 'F2 reestri: qator obyekt bo‘lishi kerak.' }, { status: 400 });
+        const r: Record<string, unknown> = {};
+        for (const k of kalitlar) {
+          const x = (q as Record<string, unknown>)[k];
+          if (x === undefined) continue;
+          if (x !== null && typeof x !== 'string' && typeof x !== 'number') return Response.json({ ok: false, error: 'F2 reestri: maydon matn yoki son bo‘lishi kerak.' }, { status: 400 });
+          r[k] = typeof x === 'string' ? x.slice(0, 500) : x;
+        }
+        qatorlar.push(r);
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_qatorlar: qatorlar, p_operation_id: so.operation_id };
     } else if (amal === 'shartnoma_saqla_v2') {
       const m = so.malumot;
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !m || typeof m !== 'object' || Array.isArray(m)

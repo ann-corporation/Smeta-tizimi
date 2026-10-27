@@ -156,6 +156,55 @@ function matnYoki(row: readonly Katak[], i: number): string | null {
   return t || null;
 }
 
+/**
+ * Sarlavhasiz RES (ekspertiza kitobi `16.Перевоз`, 2026-10-26): ustun-sarlavha qatori YO'Q — titul, keyin bitta
+ * guruh sarlavhasi («СТРОИТЕЛЬНЫЕ МАШИНЫ И МЕХАНИЗМЫ»), keyin `N | nom | birlik | miqdor | narx | summa` qatorlari va ИТОГО.
+ * Faqat ARIFMETIK isbot bilan: kamida 2 qatorda va qatorlarning ≥ 80 % ida miqdor × narx ≈ summa (bir xil ustunlarda).
+ * Isbotlansa — RES uchun sun'iy sarlavha bloki (ustunlar ma'lumotdan), aks holda null (varaq avvalgidek `erkin`).
+ */
+function sarlavhasizResBloki(rows: readonly Katak[][]): { blok: SarlavhaBloki; izoh: string } | null {
+  const chegara = Math.min(rows.length, QIDIRUV_SARLAVHASIZ);
+  for (let g = 0; g < chegara; g++) {
+    const gRow = rows[g] ?? [];
+    const gt = toliqUstunlar(gRow);
+    if (gt.length !== 1 || typeof gRow[gt[0]] !== 'string' || !VEDOMOST_BOSHI.test(kalit(gRow[gt[0]]))) continue;
+    const juftlar = new Map<string, { mos: number; jami: number }>();
+    let malumot = 0;
+    for (let r = g + 1; r < Math.min(rows.length, g + 3000); r++) {
+      const row = rows[r] ?? [];
+      const t = toliqUstunlar(row);
+      if (!t.length) continue;
+      if (t.some((i) => JAMI.test(kalit(row[i])))) break;
+      if (t.length === 1 && typeof row[t[0]] === 'string') continue; // keyingi guruh sarlavhasi
+      const [c0, c1, c2] = t;
+      if (t.length < 6 || !butunTartib(row[c0]) || typeof row[c1] !== 'string' || !/[A-Za-zА-Яа-яЁё]{3}/.test(row[c1] as string)
+        || typeof row[c2] !== 'string' || (row[c2] as string).trim().length > 12) continue;
+      const sonlar = t.slice(3).filter((i) => typeof row[i] === 'number');
+      if (sonlar.length < 3) continue;
+      malumot++;
+      const [d, e, f] = sonlar;
+      const kalitU = `${c0}|${c1}|${c2}|${d}|${e}|${f}`;
+      const h = juftlar.get(kalitU) ?? { mos: 0, jami: 0 };
+      h.jami++;
+      const D = row[d] as number, E = row[e] as number, F = row[f] as number;
+      if (Math.abs(D * E - F) <= Math.max(Math.abs(F) * 0.005, 0.5)) h.mos++;
+      juftlar.set(kalitU, h);
+    }
+    const eng = [...juftlar.entries()].sort((a, b) => b[1].mos - a[1].mos)[0];
+    if (!eng || eng[1].mos < 2 || eng[1].mos / malumot < 0.8) return null;
+    const [tartib, nom, birlik, hajm, narx, summa] = eng[0].split('|').map(Number);
+    const sarlavhalar: string[] = Array.from({ length: summa + 1 }, () => '');
+    sarlavhalar[tartib] = '№'; sarlavhalar[nom] = 'НАИМЕНОВАНИЕ'; sarlavhalar[birlik] = 'ЕД. ИЗМ.';
+    sarlavhalar[hajm] = 'КОЛ-ВО'; sarlavhalar[narx] = 'ЦЕНА'; sarlavhalar[summa] = 'СУММА';
+    return {
+      blok: { bosh: g, oxir: g, malumotBoshi: g, sarlavhalar },
+      izoh: `ustun-sarlavha qatori yo'q; «${xom(gRow[gt[0]])}» guruhidan keyin ${eng[1].mos}/${malumot} qatorda miqdor × narx = summa — RES ustunlari ma'lumotdan isbotlandi`,
+    };
+  }
+  return null;
+}
+const QIDIRUV_SARLAVHASIZ = 40;
+
 // ─── Rol ─────────────────────────────────────────────────────────────────────
 
 function rolAniqla(nom: string, blok: SarlavhaBloki | null, rows: readonly Katak[][]): { rol: VaraqRoli; dalil: Dalil[] } {
@@ -274,10 +323,19 @@ export type AnatomiyaOpsiya = { ustunlar?: Partial<Omit<UstunXaritasi, 'sarlavha
 
 export function varaqniTahlilQil(fayl: string, varaq: KirishVaraq, sarlavhaBoshId = 1, opsiya: AnatomiyaOpsiya = {}): VaraqAnatomiyasi {
   const rows = varaq.rows;
-  const blok = sarlavhaBlokiniTop(rows);
+  let blok = sarlavhaBlokiniTop(rows);
+  const sarlavhasiz = blok ? null : sarlavhasizResBloki(rows);
+  if (sarlavhasiz) blok = sarlavhasiz.blok;
   const aniqlangan = rolAniqla(varaq.nom, blok, rows);
   let rol = aniqlangan.rol;
   const rolDalil = aniqlangan.dalil;
+  if (sarlavhasiz && rol === 'res') {
+    rolDalil.push({ qoida: 'res:sarlavhasiz_arifmetika', ishonch: 'orta', izoh: sarlavhasiz.izoh });
+    const titulMatn = rows.slice(0, sarlavhasiz.blok.bosh).flatMap((row) => row.map(kalit)).join(' ');
+    if (/ПЕРЕВОЗ/.test(`${kalit(varaq.nom)} ${titulMatn}`)) {
+      rolDalil.push({ qoida: 'perevozka_res', ishonch: 'orta', izoh: 'varaq nomi/titulida «ПЕРЕВОЗКА» — perevozka resurs smetasi' });
+    }
+  }
   const u: UstunXaritasi | null = blok ? ustunXaritasi(blok) : null;
   if (u && opsiya.ustunlar) {
     for (const [k, v] of Object.entries(opsiya.ustunlar)) if (typeof v === 'number' && v >= -1) (u as unknown as Record<string, number>)[k] = v;

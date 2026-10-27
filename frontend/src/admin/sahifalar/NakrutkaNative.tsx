@@ -8,7 +8,7 @@ import {
   t2NakrutkaKoefOl, t2NakrutkaKoefSaqla, t2ObyektNakrutka,
   NAKRUTKA_KOEF_KODLAR, NAKRUTKA_KOEF_IZOH,
   type NakrutkaKoefKod, type NakrutkaKoeffitsientlar,
-  type NakrutkaKaskad, type NakrutkaKategoriyaJadval,
+  type NakrutkaKaskad, type NakrutkaKategoriyaJadval, type NakrutkaManba,
 } from '../../api/t2-nakrutka';
 import {
   t2ShartnomaQamrovOl, t2ShartnomaQamrovSaqla,
@@ -20,6 +20,8 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { kaskadZinapoya, umumiyUstama } from '../../lib/narx-korinish';
 import { KaskadZinapoya, ZinapoyaLegenda } from '../../components/narx/NarxKorinish';
 import { PodvalKonstruktor } from './PodvalKonstruktor';
+import { NakrutkaManbaChip } from './SmetaPodvalNakrutka';
+import { shartnomaSmetaFarqlari } from '../../lib/nakrutka-smetadan';
 
 /**
  * T1->T2 PTO gap-close: NAKRUTKA (markup/overhead) sahifasi -- T1 GAS'ning
@@ -130,12 +132,15 @@ const KAT_BOLAK: { kalit: 'chel' | 'mash' | 'mat' | 'ob'; nom: string; cls: stri
   { kalit: 'mat', nom: 'МАТ — materiallar', cls: 'fz-bg-mat' }, { kalit: 'ob', nom: 'ОБ — jihozlar', cls: 'fz-bg-ob' },
 ];
 
-function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: number | null }) {
+function ObyektKaskad({ companyId, obyektId, contractId }: { companyId: number; obyektId: number; contractId: number | null }) {
   const [busy, setBusy] = useState(false);
   const [xato, setXato] = useState('');
   const [cats, setCats] = useState<{ chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number } | null>(null);
   const [kaskad, setKaskad] = useState<NakrutkaKaskad | null>(null);
   const [jadval, setJadval] = useState<NakrutkaKategoriyaJadval | null>(null);
+  const [manba, setManba] = useState<NakrutkaManba | null>(null);
+  /** Smeta podvali shartnoma/kompaniya foizidan farq qilsa — qaysi qiymat ishlatilayotgani (egasi 2026-10-27). */
+  const [ustunlik, setUstunlik] = useState<{ shartnomaBor: boolean; farqlar: ReturnType<typeof shartnomaSmetaFarqlari> } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -143,10 +148,18 @@ function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: 
     void t2ObyektNakrutka(obyektId, contractId).then(r => {
       if (!active) return;
       if (!r.ok) { setXato(r.error || r.code || 'Hisoblanmadi'); setCats(null); setKaskad(null); setJadval(null); return; }
-      setCats(r.cats ?? null); setKaskad(r.nakrutka ?? null); setJadval(r.jadval ?? null);
+      setCats(r.cats ?? null); setKaskad(r.nakrutka ?? null); setJadval(r.jadval ?? null); setManba(r.nk_manba ?? null);
+      setUstunlik(null);
+      if (r.nk_manba === 'smeta_podvali' && r.koeffitsientlar) {
+        const amaldagi = r.koeffitsientlar;
+        const sid = r.shartnoma_id ?? null;
+        void t2NakrutkaKoefOl(companyId, sid).then((s) => {
+          if (active && s.ok) setUstunlik({ shartnomaBor: sid != null, farqlar: shartnomaSmetaFarqlari(s.koeffitsientlar, amaldagi) });
+        }).catch(() => { /* faqat ma'lumot — xato hisobni to'xtatmaydi */ });
+      }
     }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
-  }, [obyektId, contractId]);
+  }, [companyId, obyektId, contractId]);
 
   if (busy) return <div className="skel h-48 rounded-[var(--radius-md)]" role="status" aria-label={t('Hisoblanmoqda…')} />;
   if (xato) return <p className="fz-note fz-note--danger">{xato}</p>;
@@ -165,6 +178,7 @@ function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: 
             <span className="text-text-dim">{t('To‘g‘ri xarajat (ustamasiz)')}</span><b className="text-right tabular-nums"><FmtN val={kaskad.pryamye} /></b>
             <span className="text-text-dim">{t('ВСЕГО (ustamali, ҚҚС bilan)')}</span><b className="text-right font-[family-name:var(--font-display)] text-[18px] tabular-nums text-text"><FmtN val={kaskad.vsego} /></b>
           </div>
+          <NakrutkaManbaChip manba={manba} />
           <span className="fz-chip fz-chip--accent self-start" data-testid="umumiy-ustama">{t('Umumiy ustama')}: {ustama == null ? '—' : `+${ustama.toFixed(2)}%`}</span>
         </section>
         <section className="fz-panel" aria-label={t('Kategoriyalar bo‘yicha')}>
@@ -186,6 +200,19 @@ function ObyektKaskad({ obyektId, contractId }: { obyektId: number; contractId: 
           </div>
         </section>
       </div>
+      {ustunlik && ustunlik.farqlar.length > 0 && (
+        <div className="fz-note fz-note--info" role="status" data-testid="nakrutka-smeta-ustun">
+          <ul className="flex flex-col gap-0.5 text-[12.5px]">
+            {ustunlik.farqlar.map((f) => (
+              <li key={f.kod}>
+                <b>{NAKRUTKA_KOEF_IZOH[f.kod]}</b>: {ustunlik.shartnomaBor
+                  ? t('shartnomada {x}%, smetada {y}% — smetadagisi ishlatilmoqda', { x: String(f.shartnoma), y: String(f.smeta) })
+                  : t('kompaniya standartida {x}%, smetada {y}% — smetadagisi ishlatilmoqda', { x: String(f.shartnoma), y: String(f.smeta) })}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <ZinapoyaLegenda />
       <KaskadZinapoya qadamlar={qadamlar} />
       {jadval && (
@@ -395,7 +422,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         <p className="max-w-[60ch] text-[12px] text-text-mute">{t('Shartnoma tanlansa, uning nakrutka koeffitsientlari va qamrov qarorlari barcha ulangan obyektlarga bir xil qo‘llanadi.')}</p>
       </section>
       {objectId
-        ? <ObyektKaskad key={`${objectId}:${contractId ?? 'default'}`} obyektId={Number(objectId)} contractId={contractId} />
+        ? <ObyektKaskad key={`${objectId}:${contractId ?? 'default'}`} companyId={companyId} obyektId={Number(objectId)} contractId={contractId} />
         : <p className="fz-note fz-note--info">{t('Obyekt tanlang — to‘g‘ri xarajatdan ВСЕГО gacha ustama zinapoyasi shu yerda chiziladi.')}</p>}
       <KoefTahrirchi companyId={companyId} contractId={contractId} />
       {qamrovBlok}

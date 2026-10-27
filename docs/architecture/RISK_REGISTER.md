@@ -32,3 +32,6 @@ Snapshot cron active21:00UTC подтверждён SELECT. Restore correctness,
 ## Уже проверенные исправления
 
 JQA04/08/09: independent5PASS на PR1437acb69f7 и PR144c5965290; regressions32/37PASS. JQA06/07: nav7PASS на80fa2363. JQA10 UI/default capabilities:6PASS + SELECT на69db8d45. JQA05 отозван как неверный ранний consumer oracle. Эти пункты не открывать повторно без новой регрессии; component PASS не равен authenticated owner acceptance всего продукта.
+
+### Уточнение lifecycle после ручного review — 26.10.2026
+DATA_MODEL_CLASSIFICATION_OVERRIDES.json содержит11 решений с источником и границами доказательств. t2_tmp_eq_lot1 теперьNULL, TEMP только кандидат по имени. t2_erp_kadr/t2_erp_texnika/t2_erp_sifat остаютсяNULL до reconciliation и решения владельца. Каноничность t2_work_resource_observation относится к неизменяемым наблюдениям и provenance; автоматическое признание утверждённой рецептурой запрещено. Наличие таблиц/внешних ключей не доказывает фактическое использование; usage_verified=false. Никакого разрешения на DELETE/DROP нет.

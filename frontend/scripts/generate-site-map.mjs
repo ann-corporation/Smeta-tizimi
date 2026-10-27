@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const app = fs.readFileSync(path.join(root, 'src/App.tsx'), 'utf8');
-const shell = fs.readFileSync(path.join(root, 'src/admin/AdminShell.tsx'), 'utf8');
+// Menyu yo'llari — yagona navigatsiya reestridan (sidebar, Ctrl+K, tablar, routeScope shu fayldan o'qiydi).
+const shell = fs.readFileSync(path.join(root, 'src/lib/nav/navReestr.ts'), 'utf8');
 const sb = fs.readFileSync(path.join(root, 'functions/api/sb.ts'), 'utf8');
 const sbWrite = fs.readFileSync(path.join(root, 'functions/api/sb-yoz.ts'), 'utf8');
 const out = path.join(root, 'src/lib/sayt-xaritasi/generated.ts');

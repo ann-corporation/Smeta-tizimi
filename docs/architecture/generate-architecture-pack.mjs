@@ -9,7 +9,32 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(dir, '../..');
 const metadata = JSON.parse(fs.readFileSync(path.join(dir, 'SCHEMA_METADATA_20261026.json'), 'utf8'));
 const liveRefs = JSON.parse(fs.readFileSync(path.join(dir, 'ROUTINE_TABLE_REFERENCES_20261026.json'), 'utf8'));
+const relationNames = new Set(metadata.tables.map(t => `${t.schema}.${t.name}`));
 const pin = 'd7bf735359e8a54ef9e589c9a23cc28fc67876a9';
+const overridesPath = path.join(dir, 'DATA_MODEL_CLASSIFICATION_OVERRIDES.json');
+const overridesDoc = JSON.parse(fs.readFileSync(overridesPath, 'utf8'));
+if (overridesDoc.source_pin !== pin || !Array.isArray(overridesDoc.overrides)) {
+  throw new Error('Classification overrides must identify the pinned source and contain an overrides array');
+}
+const allowedClasses = new Set(['CANONICAL', 'COMPAT', 'DEPRECATED', 'BACKUP', 'TEMP', null]);
+const overrides = new Map();
+for (const entry of overridesDoc.overrides) {
+  if (!entry.table || overrides.has(entry.table) || !allowedClasses.has(entry.classification)) {
+    throw new Error(`Invalid or duplicate classification override: ${entry.table ?? '(missing table)'}`);
+  }
+  if (!entry.business_role || !entry.manual_review_basis || typeof entry.usage_verified !== 'boolean' || !Array.isArray(entry.classification_evidence) || !entry.classification_evidence.length) {
+    throw new Error(`Override requires business_role, usage_verified, manual_review_basis and evidence: ${entry.table}`);
+  }
+  if (!/^[^.]+\.[^.]+$/.test(entry.table) || !relationNames.has(entry.table)) {
+    throw new Error(`Override must match a fully qualified schema.table in metadata: ${entry.table}`);
+  }
+  for (const evidence of entry.classification_evidence) {
+    if (!evidence.path || !Number.isInteger(evidence.line) || evidence.line < 1 || !evidence.revision || !evidence.supports) {
+      throw new Error(`Invalid path:line evidence for ${entry.table}`);
+    }
+  }
+  overrides.set(entry.table, entry);
+}
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
 const tracked = git('ls-tree', '-r', '--name-only', pin).split('\n');
 const sourceFiles = tracked.filter(p => /^(frontend\/(src|functions)\/.*\.(ts|tsx)|mcp\/smeta-mcp\/src\/.*\.ts)$/.test(p) && !/\.(test|spec)\./.test(p));
@@ -69,21 +94,38 @@ const manifest = metadata.tables.map(t => {
   const temporary = /_tmp_/.test(t.name);
   const compat = t.name === 't2_company_storage_legacy_allowlist' || t.name === 't2_sheets_writeback_log';
   const routines = liveRefs.find(r => r.schema === t.schema && r.table === t.name)?.routine_references ?? [];
-  const status = backup ? 'BACKUP' : temporary ? 'TEMP' : compat ? 'COMPAT' : refs.length || writes.length || t.triggers.length || routines.length ? 'CANONICAL' : null;
+  const inferredStatus = backup ? 'BACKUP' : temporary ? 'TEMP' : compat ? 'COMPAT' : refs.length || writes.length || t.triggers.length || routines.length ? 'CANONICAL' : null;
   const domain = domains.find(([, re]) => re.test(t.name));
-  return {
-    table: `${t.schema}.${t.name}`, classification: t.schema === 'snapshot' ? 'BACKUP' : status,
-    classification_basis: t.schema === 'snapshot' ? 'Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления' : backup || temporary ? 'Имя резервного/временного отношения; назначение и срок хранения требуют review' : compat ? 'Мост/совместимость, не альтернативная бизнес-истина' : status ? 'Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды' : 'Недостаточно доказательств для lifecycle-класса; классификация оставлена NULL',
-    owner_module: t.schema === 'snapshot' ? 'Snapshot / Recovery' : domain?.[2] ?? null, owner_basis: t.schema === 'snapshot' ? 'Выделенная snapshot schema' : domain ? `Правило доменного префикса ${domain[0]}; review L0` : 'Назначить L0',
+  const table = `${t.schema}.${t.name}`;
+  const override = overrides.get(table);
+  if (override?.candidate_class && !allowedClasses.has(override.candidate_class)) throw new Error(`Invalid candidate_class for ${table}`);
+  const classification = override ? override.classification : t.schema === 'snapshot' ? 'BACKUP' : inferredStatus;
+  const generatedBasis = t.schema === 'snapshot' ? 'Рабочее хранилище восстановления: BACKUP означает назначение, не кандидат удаления' : backup || temporary ? 'Имя резервного/временного отношения; назначение и срок хранения требуют review' : compat ? 'Мост/совместимость, не альтернативная бизнес-истина' : inferredStatus ? 'Текущее хранилище модуля: runtime reference / source SQL / trigger; не доказательство полноты команды' : 'Недостаточно доказательств для lifecycle-класса; классификация оставлена NULL';
+  const generatedOwner = t.schema === 'snapshot' ? 'Snapshot / Recovery' : domain?.[2] ?? null;
+  const record = {
+    table, classification,
+    classification_basis: override?.classification_basis ?? generatedBasis,
+    owner_module: Object.hasOwn(override ?? {}, 'owner_module') ? override.owner_module : generatedOwner,
+    owner_basis: override?.owner_basis ?? (t.schema === 'snapshot' ? 'Выделенная snapshot schema' : domain ? `Правило доменного префикса ${domain[0]}; review L0` : 'Назначить L0'),
     replacement: null, delete_authorized: false,
     rls: t.rls, force_rls: t.force_rls,
     write_path: { database_triggers: t.triggers, live_routine_text_references: routines, migration_dml_candidates: writes, completeness: 'CANDIDATES_ONLY: live body token references may read only or occur in comments; source SQL may be superseded; dynamic SQL may not be detected' },
     runtime_references: refs,
     foreign_keys: t.foreign_keys,
   };
+  if (override) Object.assign(record, {
+    business_role: override.business_role,
+    usage_verified: override.usage_verified,
+    classification_evidence: override.classification_evidence,
+    manual_review_basis: override.manual_review_basis,
+  });
+  if (override?.candidate_class) record.candidate_class = override.candidate_class;
+  return record;
 });
+const unknownOverrides = [...overrides.keys()].filter(name => !relationNames.has(name));
+if (unknownOverrides.length) throw new Error(`Overrides reference relations absent from metadata: ${unknownOverrides.join(', ')}`);
 const counts = Object.fromEntries(['CANONICAL', 'COMPAT', 'DEPRECATED', 'BACKUP', 'TEMP', 'UNCLASSIFIED'].map(k => [k, manifest.filter(t => (t.classification ?? 'UNCLASSIFIED') === k).length]));
-const header = { generated_at: metadata.observed_at, git_commit: pin, db_migration_head: metadata.migration_head.version, db_migration_head_name: metadata.migration_head.name, migration_head_semantics: 'lexicographic max(version), not latest DDL/apply time', schemas: ['public', 'snapshot'], excluded_schemas: ['auth', 'storage', 'realtime', 'cron', 'vault', 'supabase_migrations', 'pg_catalog', 'information_schema'], relation_kinds: ['ordinary_table', 'partitioned_table'], table_count: manifest.length, counts, source_of_truth: 'Live catalog SELECT metadata; no business rows; static source references pinned to git_commit', classification_policy: 'CANONICAL means current module storage, not canonical financial entitlement; NULL means unresolved. No table is deprecated/deletable merely by name.', tables: manifest };
+const header = { generated_at: metadata.observed_at, git_commit: pin, db_migration_head: metadata.migration_head.version, db_migration_head_name: metadata.migration_head.name, migration_head_semantics: 'lexicographic max(version), not latest DDL/apply time', schemas: ['public', 'snapshot'], excluded_schemas: ['auth', 'storage', 'realtime', 'cron', 'vault', 'supabase_migrations', 'pg_catalog', 'information_schema'], relation_kinds: ['ordinary_table', 'partitioned_table'], table_count: manifest.length, counts, source_of_truth: 'Live catalog SELECT metadata; no business rows; static source references pinned to git_commit', classification_policy: 'CANONICAL означает каноническое хранение данных по указанной бизнес-роли, включая факты происхождения; это не доказывает использование при выполнении или в боевой среде и не означает финансовое право. NULL означает, что жизненный цикл не установлен. Одно имя таблицы не разрешает её удаление.', tables: manifest };
 // JSON is a YAML 1.2 subset. Keep parsing dependency-free and NULL explicit.
 fs.writeFileSync(path.join(dir, 'DATA_MODEL_REGISTRY.yaml'), JSON.stringify(header, null, 2) + '\n');
 const raw = fs.readFileSync(path.join(sourceRoot, 'frontend/src/lib/sayt-xaritasi/generated.ts'), 'utf8');

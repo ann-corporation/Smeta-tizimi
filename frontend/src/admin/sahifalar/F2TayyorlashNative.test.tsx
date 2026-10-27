@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import type { T2Qator } from '../../api/supabase';
 
-const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn(), yangila: vi.fn(), oqi: vi.fn() }));
+const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn(), yangila: vi.fn(), oqi: vi.fn(), belgila: vi.fn(), baj: [] as unknown[] }));
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
   hajm: null, narx: null, summa: null, kat: null, narx_usul: null, qoshimcha: false, zamena: false,
@@ -37,6 +37,9 @@ vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(async (_p: unknown, ish
 vi.mock('../../api/t2-fakt', () => ({ sbQatorHolatOl: vi.fn(async () => ({ ok: true, qatorlar: holat })), sbF2QoralamaHajmlar: vi.fn(async () => ({ ok: true, hajm: new Map(), aktSoni: 0 })) }));
 vi.mock('../../api/t2-narx-protokol', async (asl) => ({ ...(await asl<typeof import('../../api/t2-narx-protokol')>()), narxProtokolQatorlariOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('../../api/t2-aosr', () => ({ sbAosrCoverageOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
+// «Bajarilmaydi» qatlami (ishdan chiqarilgan resurslar): ro'yxat m.baj dan; belgilash — m.belgila.
+vi.mock('../../api/t2-bajarilmadi', async (asl) => ({ ...(await asl<typeof import('../../api/t2-bajarilmadi')>()),
+  bajarilmadiRoyxatOl: vi.fn(async () => ({ ok: true, qatorlar: m.baj })), bajarilmadiBelgila: m.belgila, bajarilmadiBekor: vi.fn() }));
 vi.mock('../../api/t2-shartnoma-liniya', () => ({ shartnomaLiniyaOl: vi.fn(async () => ({ ok: true, natija: {
   loyihalar: [], rollar: [], turlar: [],
   obyektlar: [{ id: 8, nom: 'Ko‘l', loyiha_id: 1, asosiy_shartnoma_id: 45 }],
@@ -80,11 +83,57 @@ describe('F2 tayyorlash', () => {
       .toEqual([[2, 6, null, true], [3, 12, 300000, false], [4, 3, null, true]]);
   });
 
+  it('resurs amallari: mehnat (ЧЕЛ) zamenasi va chiqarish YO‘Q; kran — ishdan chiqarish to‘liq smeta hajmi bilan yoziladi', async () => {
+    const kran = holat[2] as Record<string, unknown>; kran.smeta_hajm = 5;
+    m.belgila.mockResolvedValue({ ok: true, yaratildi: 1, otkazildi: 0 });
+    try {
+      ochish();
+      await screen.findByLabelText('F2 hajmi: Beton quyish');
+      fireEvent.click(screen.getByRole('button', { name: 'Resurslarni ko‘rish: Beton quyish' }));
+      expect(screen.getByTitle(/zamena qilinmaydi/)).toBeTruthy();                      // Ishchi (ЧЕЛ) — zamena yo'q, sababi tooltip'da
+      expect(screen.getByTitle(/ishdan chiqarib bo‘lmaydi/)).toBeTruthy();             // va hozircha chiqarilmaydi
+      expect(screen.queryByRole('button', { name: 'Ishdan chiqarish: Ishchi' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Zamena: Kran' })).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Ishdan chiqarish: Kran' }));
+      expect(screen.getByTestId('chiqarish-hajm').textContent).toBe('5');
+      fireEvent.click(screen.getByRole('button', { name: /^Chiqarish/ }));
+      await waitFor(() => expect(m.belgila).toHaveBeenCalledTimes(1));
+      expect(m.belgila.mock.calls[0][0]).toMatchObject({ kompaniyaId: 1, obyektId: 8, qatorlar: [{ qator_id: 4, hajm: 5 }], sabab: 'buyurtmachi_chiqardi' });
+    } finally { delete kran.smeta_hajm; }
+  });
+
+  it('ishdan chiqarilgan resurs (kran) F2 qoralamaga KIRMAYDI; belgisi ko‘rinadi', async () => {
+    const kran = holat[2] as Record<string, unknown>; kran.smeta_hajm = 5;
+    m.baj = [{ id: 9, obyekt_id: 8, qator_id: 4, bajarilmagan_hajm: 5, hajm: 5, holat: 'faol' }];
+    m.yarat.mockResolvedValue({ ok: true, akt_id: 1 });
+    try {
+      ochish();
+      await screen.findByLabelText('F2 hajmi: Beton quyish');
+      fireEvent.click(screen.getByRole('button', { name: 'Resurslarni ko‘rish: Beton quyish' }));
+      await screen.findByTestId('chiqarilgan-belgi');
+      fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+      fireEvent.change(screen.getByLabelText('F2 raqami'), { target: { value: '8' } });
+      const saqla = screen.getByRole('button', { name: /F2 qoralama yaratish/ }) as HTMLButtonElement;
+      await waitFor(() => expect(saqla.disabled).toBe(false)); // kran narxsiz edi — endi u F2 da yo'q, blok ham yo'q
+      fireEvent.click(saqla);
+      await waitFor(() => expect(m.yarat).toHaveBeenCalledTimes(1));
+      expect(m.yarat.mock.calls[0][0].qatorlar.map((x: { qatorId: number }) => x.qatorId)).toEqual([2, 3]);
+    } finally { delete kran.smeta_hajm; m.baj = []; }
+  });
+
   it('?avto=1 (fakt oynasidan): barcha mumkin hajm bir yo‘la olinadi, qoralama o‘zi yaratilmaydi', async () => {
     render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&avto=1']}><F2TayyorlashNative /></MemoryRouter>);
     const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish');
     await waitFor(() => expect((hajm as HTMLInputElement).value).toBe('6'));
     expect(m.toast).toHaveBeenCalledWith(expect.stringContaining('Fakt bo‘yicha'), 'ok');
+    expect(m.yarat).not.toHaveBeenCalled();
+  });
+  it('«Faktdan F2» tez yo‘li (?avto=1&oy=YYYY-MM): davr fakt sahifasidagi oy, faqat olinganlar ko‘rinadi; qoralama — faqat operator tasdig‘i bilan', async () => {
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&avto=1&oy=2026-09']}><F2TayyorlashNative /></MemoryRouter>);
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish');
+    await waitFor(() => expect((hajm as HTMLInputElement).value).toBe('6'));
+    expect((screen.getByLabelText('F2 davri') as HTMLInputElement).value).toBe('2026-09');
+    expect((screen.getByRole('checkbox', { name: 'Faqat kiritilganlar' }) as HTMLInputElement).checked).toBe(true);
     expect(m.yarat).not.toHaveBeenCalled();
   });
   it('bo‘limlar navigatori va qidiruv', async () => {
