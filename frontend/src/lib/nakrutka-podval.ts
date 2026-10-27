@@ -1,6 +1,7 @@
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { yaxlit2, type Qiymat, type RasmiyVaraq } from './hujjat-yozuvchi';
 import { podvalHisobla, podvalHisoblaSummasiz, podvalKf, type Podval } from './nakrutka-konstruktor';
+import { YAXLIT_PODVAL_NOM, kaskadgaYaxlit } from './svod-yaxlit';
 
 /**
  * NAKRUTKA PODVALI va IKKI NARX — egasi (2026-09-25): "hamma joyda ikki narx
@@ -70,8 +71,10 @@ export function kategoriyaKf(nk: Partial<NakrutkaKoeffitsientlar>, podval?: Podv
   };
 }
 
-/** Qatorning к оплате summasi (Excel `ROUND(summa*Kf,2)` bilan bir xil). */
-export function kOplate(summa: number | null, kat: NakrutkaKat | null, kf: Record<NakrutkaKat, number>): number | null {
+/** Qatorning к оплате summasi (Excel `ROUND(summa*Kf,2)` bilan bir xil). `yaxlitmi` — svod yaxlit bo'limi avlodi:
+ *  ustama koeffitsienti qo'llanmaydi, к оплате = to'g'ri xarajat (`ROUND(summa,2)`), QQS podvalda bir marta. */
+export function kOplate(summa: number | null, kat: NakrutkaKat | null, kf: Record<NakrutkaKat, number>, yaxlitmi = false): number | null {
+  if (yaxlitmi) return summa == null ? null : yaxlit2(summa);
   if (summa == null || kat == null) return null;
   return yaxlit2(summa * kf[kat]);
 }
@@ -147,10 +150,10 @@ export const PODVAL_QATORLAR = 1 + NAKRUTKA_KATLAR.length + 1 + KASKAD.length + 
 
 /** Podval `bosh` qatoridan boshlansa — har kategoriya Kf katagi qaysi qatorda
  *  (maxsus podvalda qatorlar soni boshqacha — `podval` berilsin). */
-export function podvalKfQatorlari(bosh: number, podval?: Podval | null): Record<NakrutkaKat, number> {
-  const kf0 = podval
+export function podvalKfQatorlari(bosh: number, podval?: Podval | null, yaxlitBor = false): Record<NakrutkaKat, number> {
+  const kf0 = (podval
     ? bosh + 1 + NAKRUTKA_KATLAR.length + podval.qatorlar.length + 1
-    : bosh + 1 + NAKRUTKA_KATLAR.length + 1 + KASKAD.length + 1;
+    : bosh + 1 + NAKRUTKA_KATLAR.length + 1 + KASKAD.length + 1) + (yaxlitBor ? 1 : 0);
   return Object.fromEntries(NAKRUTKA_KATLAR.map((k, i) => [k, kf0 + i])) as Record<NakrutkaKat, number>;
 }
 
@@ -178,7 +181,32 @@ export type PodvalOpsiya = {
   katFormulasiz?: boolean;
   /** Maxsus podval (konstruktor) — berilsa standart kaskad o'rniga shu yoziladi. */
   podval?: Podval | null;
+  /**
+   * Svod yaxlit (20261113500000): pul ustuni → ИТОГО-4 ga ustamasiz qo'shiladigan summa (QQS siz). Berilsa ИТОГО-4
+   * dan oldin alohida «Свод яхлит» qatori yoziladi va ИТОГО-4 = kaskad + yaxlit, НДС bir marta (server
+   * `t2_nakrutka_yaxlit_qosh_v1` bilan bir xil). Kategoriya ustunida yaxlit qatorlar `YAXLIT_KAT` — SUMIF ga kirmaydi.
+   * `podvalKfQatorlari(…, podvalYaxlitBor(yaxlit))` bilan birga ishlatiladi.
+   */
+  yaxlit?: Record<string, number> | null;
 };
+
+/** QQS foizi: maxsus podvalning `nds` foiz qatori, bo'lmasa koeffitsientlardagi НДС. */
+export const podvalNdsFoiz = (podval: Podval | null | undefined, nk: Partial<NakrutkaKoeffitsientlar>): number =>
+  Number(podval?.qatorlar.find((x) => x.kod === 'nds' && x.tur === 'foiz')?.foiz ?? nk.НДС ?? 0);
+
+/**
+ * Maxsus podval hisobi (`podvalHisobla().qiymat`) + svod yaxlit → ИТОГО-4/НДС/oxirgi (ВСЕГО) qatorlar yaxlit bilan
+ * (eksport podvali bilan bir xil qadam). itogo4 qatori yo'q yoki noma'lum — o'zgarishsiz.
+ */
+export function podvalQiymatYaxlit(qiymat: Record<string, number | null>, podval: Podval, yaxlitQqssiz: number | null | undefined, nk: Partial<NakrutkaKoeffitsientlar>): Record<string, number | null> {
+  const vk = podval.qatorlar[podval.qatorlar.length - 1]?.kod ?? 'vsego';
+  if (yaxlitQqssiz == null || qiymat.itogo4 == null) return qiymat;
+  const y = kaskadgaYaxlit({ itogo4: qiymat.itogo4, nds: qiymat.nds ?? 0, vsego: qiymat[vk] ?? 0 }, yaxlitQqssiz, podvalNdsFoiz(podval, nk));
+  return { ...qiymat, itogo4: y.itogo4, nds: y.nds, [vk]: y.vsego, yaxlit: yaxlit2(yaxlitQqssiz) };
+}
+
+/** Podvalda yaxlit qatori bormi (`podvalKfQatorlari` uchinchi argumenti shu bilan bir xil bo'lsin). */
+export const podvalYaxlitBor = (y: Record<string, number> | null | undefined): boolean => !!y && Object.keys(y).length > 0;
 
 const colIdx = (h: string) => h.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
 
@@ -192,10 +220,21 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
   const fi = colIdx(o.foizUstun);
   const bosh = v.r;
   const kaskad: Record<string, NakrutkaHisobJS> = {};
-  o.pulUstunlar.forEach((c, i) => { kaskad[c] = podvalliKaskad(o.katSummalar[c], o.nk, o.podval, i === 0); });
+  const yaxlitBor = podvalYaxlitBor(o.yaxlit);
+  const ndsFoiz = podvalNdsFoiz(o.podval, o.nk);
+  const vsegoKod = o.podval ? o.podval.qatorlar[o.podval.qatorlar.length - 1]?.kod ?? 'vsego' : 'vsego';
+  if (yaxlitBor && o.podval && !o.podval.qatorlar.some((x) => x.kod === 'itogo4')) throw new Error('SVOD_YAXLIT_PODVAL_ITOGO4_YOQ: maxsus podvalda ИТОГО-4 (itogo4) qatori yo‘q — svod yaxlit qo‘shib bo‘lmaydi');
+  o.pulUstunlar.forEach((c, i) => {
+    const k = podvalliKaskad(o.katSummalar[c], o.nk, o.podval, i === 0);
+    kaskad[c] = yaxlitBor ? kaskadgaYaxlit(k, yaxlit2(o.yaxlit![c] ?? 0), ndsFoiz, vsegoKod) : k;
+  });
   const kfJS = kategoriyaKf(o.nk, o.podval);
-  const kfQator = podvalKfQatorlari(bosh, o.podval);
+  const kfQator = podvalKfQatorlari(bosh, o.podval, yaxlitBor);
   const row = (fill: (cells: Qiymat[], r: number) => void) => (r: number) => { const c: Qiymat[] = Array(n).fill(null); fill(c, r); return c; };
+  const yaxlitQatori = () => v.qator('oddiy', row((c) => {
+    c[mc] = YAXLIT_PODVAL_NOM;
+    for (const col of o.pulUstunlar) c[colIdx(col)] = yaxlit2(o.yaxlit![col] ?? 0);
+  }));
   const [a, b] = o.oraliq;
 
   v.bolim(o.sarlavha ?? 'РАСЧЕТ СТОИМОСТИ К ОПЛАТЕ (прямые затраты → накладные и прочие расходы → НДС)', { daraja: 0 });
@@ -211,13 +250,14 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
       for (const col of o.pulUstunlar) c[colIdx(col)] = o.katFormulasiz ? yaxlit2(o.katSummalar[col][k]) : { f: `SUMIF(${o.katUstun}${a}:${o.katUstun}${b},"${k}",${col}${a}:${col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
     }));
   }
-  if (o.podval) return maxsusPodvalQatorlari(v, o, o.podval, { bosh, katQ, kaskad, kfJS, kfQator, row, mc, fi });
+  if (o.podval) return maxsusPodvalQatorlari(v, o, o.podval, { bosh, katQ, kaskad, kfJS, kfQator, row, mc, fi, yaxlitQatori: yaxlitBor ? yaxlitQatori : null });
   const pryQ = v.qator('jami', row((c) => {
     c[mc] = 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО';
     for (const col of o.pulUstunlar) c[colIdx(col)] = { f: `ROUND(${NAKRUTKA_KATLAR.map((k) => `${col}${katQ[k]}`).join('+')},2)`, v: kaskad[col].pryamye };
   }));
   const q: Record<string, number> = { pryamye: pryQ };
   for (const k of KASKAD) {
+    if (k.kod === 'itogo4' && yaxlitBor) q.yaxlit = yaxlitQatori();
     const r = v.r;
     q[k.kod] = r;
     const F = `${o.foizUstun}${r}`;
@@ -237,7 +277,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
         case 'itogo3': return `ROUND(${Q('itogo2')}+${K('ОБ')}+${Q('tr_ob')}+${Q('zag_ob')},2)`;
         case 'strax': return `ROUND(${Q('itogo3')}*${F}/100,2)`;
         case 'risk': return `ROUND(${Q('itogo3')}*${F}/100,2)`;
-        case 'itogo4': return `ROUND(${Q('itogo3')}+${Q('strax')}+${Q('risk')},2)`;
+        case 'itogo4': return `ROUND(${Q('itogo3')}+${Q('strax')}+${Q('risk')}${yaxlitBor ? `+${Q('yaxlit')}` : ''},2)`;
         case 'nds': return `ROUND(${Q('itogo4')}*${F}/100,2)`;
         default: return `ROUND(${Q('itogo4')}+${Q('nds')},2)`;
       }
@@ -279,12 +319,14 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
  *  koeffitsientlar qiymat sifatida (maxsus podvalda ular foizlardan umumiy formula bilan chiqmaydi). */
 function maxsusPodvalQatorlari(
   v: RasmiyVaraq, o: PodvalOpsiya, podval: Podval,
-  x: { bosh: number; katQ: Record<NakrutkaKat, number>; kaskad: Record<string, NakrutkaHisobJS>; kfJS: Record<NakrutkaKat, number>; kfQator: Record<NakrutkaKat, number>; row: (fill: (cells: Qiymat[], r: number) => void) => (r: number) => Qiymat[]; mc: number; fi: number },
+  x: { bosh: number; katQ: Record<NakrutkaKat, number>; kaskad: Record<string, NakrutkaHisobJS>; kfJS: Record<NakrutkaKat, number>; kfQator: Record<NakrutkaKat, number>; row: (fill: (cells: Qiymat[], r: number) => void) => (r: number) => Qiymat[]; mc: number; fi: number; yaxlitQatori: (() => number) | null },
 ): { bosh: number; vsegoQator: number; kfQator: Record<NakrutkaKat, number>; kaskad: Record<string, NakrutkaHisobJS> } {
   const qr: Record<string, number> = {};
   const oxirgi = podval.qatorlar[podval.qatorlar.length - 1]?.kod;
   const asosiyUstun = o.pulUstunlar[0];
+  let yaxlitR: number | null = null;
   for (const q of podval.qatorlar) {
+    if (q.kod === 'itogo4' && x.yaxlitQatori) yaxlitR = x.yaxlitQatori();
     const r = v.r;
     qr[q.kod] = r;
     const F = `${o.foizUstun}${r}`;
@@ -301,7 +343,7 @@ function maxsusPodvalQatorlari(
       for (const col of o.pulUstunlar) {
         const val = x.kaskad[col][q.kod] ?? null;
         if (q.tur === 'summa') c[colIdx(col)] = col === asosiyUstun ? (q.summa ?? null) : null;
-        else if (q.tur === 'jami') c[colIdx(col)] = { f: `ROUND(${hadlar(col)},2)`, v: val };
+        else if (q.tur === 'jami') c[colIdx(col)] = { f: `ROUND(${hadlar(col)}${q.kod === 'itogo4' && yaxlitR != null ? `+${col}${yaxlitR}` : ''},2)`, v: val };
         else c[colIdx(col)] = { f: `ROUND((${hadlar(col)})*${F}/100,2)`, v: val };
       }
     }));

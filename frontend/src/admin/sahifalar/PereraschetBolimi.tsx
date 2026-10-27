@@ -88,7 +88,9 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
   };
 
   const bolimlar = useMemo(() => (rows ? pereraschetBolimlari(rows) : []), [rows]);
-  const natija = useMemo(() => (rows ? pereraschetHisobla(rows, { zamenaIdlar: zamena.z, aslIdlar: zamena.a, bolimId: bolim }) : null), [rows, zamena, bolim]);
+  const yaxlitIdlari = ustama.yaxlitIdlari;
+  const yaxlitIdlar = useMemo(() => (rows ? yaxlitIdlari?.(rows.map((r) => ({ id: r.qator_id, ota_id: r.ota_id }))) : undefined), [rows, yaxlitIdlari]);
+  const natija = useMemo(() => (rows ? pereraschetHisobla(rows, { zamenaIdlar: zamena.z, aslIdlar: zamena.a, bolimId: bolim, yaxlitIdlar }) : null), [rows, zamena, bolim, yaxlitIdlar]);
   const bolimNomi = bolim != null ? bolimlar.find((b) => b.id === bolim)?.nom ?? null : null;
 
   /** Ustamali (ИТОГО-4, NDS siz): kat noma'lum qism ustamasiz qo'shiladi (SummaJuft bilan bir xil qoida). */
