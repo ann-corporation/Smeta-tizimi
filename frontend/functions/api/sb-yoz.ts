@@ -207,6 +207,8 @@ const AMALLAR = {
   /* Egasi 2026-10-24 (pul tahlili P1): haqiqiy xarajatni kategoriya/obyekt bilan qo'lda kiritish (idempotent) va bekor qilish. */
   xarajat_kirit_v1: { rpc: 't2_xarajat_kirit_v1' },
   xarajat_bekor_v1: { rpc: 't2_xarajat_bekor_v1' },
+  /* Egasi 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish/almashtirish/bekor (append-only, idempotent). */
+  moliya_qolda_yoz_v1: { rpc: 't2_moliya_qolda_yoz_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
   fakt_belgila_v2: { rpc: 't2_fakt_belgila_v2' },
   fakt_belgila: { rpc: 't2_fakt_belgila' },
@@ -2175,6 +2177,25 @@ export const onRequestPost: PagesFunction<{
         p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_shartnoma_id: shartnomaId,
         p_sana: String(so.sana), p_kat: String(so.kat), p_summa: summa,
         p_hujjat_ref: so.hujjat_ref ? String(so.hujjat_ref).slice(0, 300) : null, p_izoh: so.izoh ? String(so.izoh).slice(0, 1000) : null,
+        p_operation_id: String(so.operation_id),
+      };
+
+    } else if (amal === 'moliya_qolda_yoz_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = so.obyekt_id == null || so.obyekt_id === '' ? null : Number(so.obyekt_id);
+      const qiymat = so.qiymat == null || so.qiymat === '' ? null : Number(so.qiymat);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || (obyektId != null && !(Number.isInteger(obyektId) && obyektId > 0))) {
+        return Response.json({ ok: false, error: 'kompaniya_id yoki obyekt_id noto\'g\'ri' });
+      }
+      if (!['fakt', 'f2', 'f2_kutilgan', 'tushgan', 'sarf', 'qarz', 'yakunlash_talab', 'qmi'].includes(String(so.kod))) return Response.json({ ok: false, error: 'kod noto\'g\'ri' });
+      if (qiymat != null && (!Number.isFinite(qiymat) || Math.abs(qiymat) > 1e15)) return Response.json({ ok: false, error: 'qiymat noto\'g\'ri' });
+      if (so.sana != null && so.sana !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana))) return Response.json({ ok: false, error: 'sana YYYY-MM-DD shaklida bo\'lishi kerak' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_kod: String(so.kod),
+        p_qiymat: qiymat, p_sana: so.sana ? String(so.sana) : null, p_izoh: so.izoh ? String(so.izoh).slice(0, 1000) : null,
         p_operation_id: String(so.operation_id),
       };
 
