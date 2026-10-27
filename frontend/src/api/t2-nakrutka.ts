@@ -13,6 +13,7 @@
  */
 
 import { yangiOperationId } from './supabase';
+import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
 export const NAKRUTKA_KOEF_KODLAR = [
   'ЗТР_СОЦСТРАХ', 'ТРАНСПОРТ_МАТЕРИАЛ', 'СКЛАДСКИЕ_МАТЕРИАЛ', 'СКЛАДСКИЕ_МК',
@@ -45,6 +46,8 @@ export type NakrutkaKaskad = {
   itogo1: number; prochie: number; itogo2: number;
   tr_ob: number; zag_ob: number; itogo3: number;
   strax: number; risk: number; itogo4: number; nds: number; vsego: number;
+  /** Svod yaxlit bo'limlari (20261113500000): ИТОГО-4 ga ustamasiz qo'shilgan summa (QQS siz). Belgi yo'q — kalit yo'q. */
+  yaxlit?: number; yaxlit_barglar?: number; kaskad_pryamye?: number; kaskad_itogo4?: number;
 };
 
 async function soroOqi<T>(body: Record<string, unknown>): Promise<{ ok: boolean; natija?: T; error?: string }> {
@@ -84,12 +87,17 @@ export async function t2ObyektNakrutka(obyektId: number, shartnomaId?: number | 
   koeffitsientlar?: NakrutkaKoeffitsientlar; nakrutka?: NakrutkaKaskad; jadval?: NakrutkaKategoriyaJadval;
   /** Koeffitsient manbai (migratsiya 20261113420000): smeta podvali / shartnoma / kompaniya / sukut. Eski server — yo'q. */
   nk_manba?: NakrutkaManba; nakrutka_podval_id?: number | null;
+  /** Svod yaxlit belgisi bo'lsa (20261113500000): kaskad kategoriyalari (yaxlit avlodlarisiz) va bo'limlar xulosasi. */
+  cats_kaskad?: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
+  svod_yaxlit?: SvodYaxlit | null;
 }> {
   const r = await soroOqi<{
     ok: boolean; code?: string; obyekt_id: number; shartnoma_id: number | null;
     cats: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
     koeffitsientlar: NakrutkaKoeffitsientlar; nakrutka: NakrutkaKaskad; jadval: NakrutkaKategoriyaJadval;
     nk_manba?: NakrutkaManba; nakrutka_podval_id?: number | null;
+    cats_kaskad?: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
+    svod_yaxlit?: SvodYaxlit | null;
   }>({ soro: 'obyekt_nakrutka_v1', obyekt_id: obyektId, shartnoma_id: shartnomaId ?? undefined });
   if (!r.ok || !r.natija || r.natija.ok !== true) {
     return { ok: false, error: r.error || r.natija?.code || 'Nakrutka hisoblanmadi', code: r.natija?.code };
