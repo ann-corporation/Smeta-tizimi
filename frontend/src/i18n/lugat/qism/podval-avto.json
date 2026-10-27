@@ -1,0 +1,9 @@
+{
+  "Yangi smeta: podvaldagi foizlar obyektga avtomatik yozildi (manba — smeta podvali). Natija va ogohlantirishlar quyida.": { "ru": "Новая смета: проценты из подвала автоматически записаны в объект (источник — подвал сметы). Результат и предупреждения ниже.", "en": "New estimate: footer percentages were saved to the object automatically (source: estimate footer). Result and warnings below." },
+  "Avtomatik yozuv bekor qilindi — obyekt avvalgi koeffitsientlarga qaytdi. Kerak bo‘lsa pastda qayta tasdiqlang.": { "ru": "Автоматическая запись отменена — объект вернулся к прежним коэффициентам. При необходимости подтвердите заново ниже.", "en": "Automatic save undone: the object is back to its previous coefficients. Confirm again below if needed." },
+  "Avval %": { "ru": "Было %", "en": "Before %" },
+  "Avval": { "ru": "Было", "en": "Before" },
+  "Har smetaning o‘z foizlari: yangi smetada podvaldan o‘qilgan foizlar obyektga avtomatik yoziladi (bekor qilish mumkin).": { "ru": "У каждой сметы свои проценты: в новой смете проценты из подвала записываются в объект автоматически (можно отменить).", "en": "Each estimate has its own percentages: for a new estimate, footer percentages are saved to the object automatically (can be undone)." },
+  "shartnomada {x}%, smetada {y}% — smetadagisi ishlatilmoqda": { "ru": "в договоре {x}%, в смете {y}% — используется сметный", "en": "contract {x}%, estimate {y}%: the estimate value is used" },
+  "kompaniya standartida {x}%, smetada {y}% — smetadagisi ishlatilmoqda": { "ru": "в стандарте компании {x}%, в смете {y}% — используется сметный", "en": "company standard {x}%, estimate {y}%: the estimate value is used" }
+}
