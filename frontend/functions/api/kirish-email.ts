@@ -15,6 +15,9 @@ import { supabaseBaseUrl } from '../_shared/supabase-url';
 type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; RESEND_API_KEY?: string; EMAIL_FROM?: string };
 /** EMAIL_FROM berilmasa — Resend sinov manzili (domen tasdiqlanmaguncha kod faqat Resend hisobi egasiga yetadi). */
 export const STANDART_FROM = 'Smeta OS <onboarding@resend.dev>';
+/** Email tasdiqlanmagan parolli hisobga email kod bilan kirish rad etilgan (hisobni oldindan egallab olish himoyasi). */
+export const PAROLLI_HISOB_KOD = 'EMAIL_TASDIQLANMAGAN_PAROLLI_HISOB';
+export const PAROLLI_HISOB_XABAR = 'Bu email bilan parolli hisob bor. Parol bilan kiring yoki administratorga murojaat qiling.';
 const EMAIL = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const json = (b: unknown, status = 200, headers: Record<string, string> = {}) =>
@@ -109,6 +112,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (!r.ok) d = null;
     } catch { d = null; }
     if (!d) return json({ ok: false, code: 'SERVER_XATO', xabar: 'Kirib bo‘lmadi. Qayta urinib ko‘ring.' }, 502);
+    // Email tasdiqlanmagan parolli hisob (oldindan egallab olish himoyasi, 20261113600000) — sessiya berilmaydi.
+    if (d.code === PAROLLI_HISOB_KOD) return json({ ok: false, code: d.code, xabar: PAROLLI_HISOB_XABAR }, 409);
     if (!d.ok || !d.foydalanuvchi_id || !d.login || !d.rol) return json({ ok: false, code: d.code, xabar: d.xabar || 'Kirib bo‘lmadi.', qolgan_urinish: d.qolgan_urinish }, 400);
     let sess: string;
     try { sess = await imzola({ rol: d.rol as Rol, email: d.login, foydalanuvchi_id: d.foydalanuvchi_id, kompaniyalar: d.azoliklar || [] }, SESSIYA_KALIT); }

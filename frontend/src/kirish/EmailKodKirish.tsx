@@ -62,6 +62,12 @@ export function EmailKodKirish({ royxat = false, onKirdi, onXizmatYoq }: {
     try {
       const { d } = await sorov({ amal: 'tasdiqla', email, tasdiqlash_id: tid, kod: qiymat, ism: ism.trim() || undefined, operation_id: opId.current });
       if (!d.ok) {
+        if (d.code === 'EMAIL_TASDIQLANMAGAN_PAROLLI_HISOB') {
+          // Bu email bilan parolli (email tasdiqlanmagan) hisob bor — kod bilan kirilmaydi; login-parol formasi ochiladi.
+          setXato(t('Bu email bilan parolli hisob bor. Parol bilan kiring yoki administratorga murojaat qiling.'));
+          setTid(null); setKod(''); setQayta(0); onXizmatYoq?.();
+          return;
+        }
         const qolgan = typeof d.qolgan_urinish === 'number' && d.qolgan_urinish >= 0 ? ' ' + t('Qolgan urinish: {n}', { n: d.qolgan_urinish }) : '';
         setXato((d.xabar || t('Kirib bo‘lmadi.')) + qolgan);
         if (d.code === 'KOD_NOTOGRI') { setKod(''); kodRef.current?.focus(); }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tekshir } from '../_shared/auth';
-import { kodXesh, onRequestGet, onRequestPost, STANDART_FROM, xatTanasi, yangiKod } from './kirish-email';
+import { kodXesh, onRequestGet, onRequestPost, PAROLLI_HISOB_KOD, PAROLLI_HISOB_XABAR, STANDART_FROM, xatTanasi, yangiKod } from './kirish-email';
 
 const ENV = { SESSIYA_KALIT: 'k'.repeat(32), SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_KEY: 'service', RESEND_API_KEY: 're_x', EMAIL_FROM: 'Smeta OS <kod@smeta.uz>' };
 const TID = '11111111-1111-4111-8111-111111111111';
@@ -92,6 +92,14 @@ describe('/api/kirish-email — tasdiqla', () => {
     const r = await post({ amal: 'tasdiqla', email: 'a@b.uz', tasdiqlash_id: TID, kod: '123 456' });
     expect(r.status).toBe(400);
     expect(await r.json()).toMatchObject({ ok: false, code: 'KOD_NOTOGRI', qolgan_urinish: 3 });
+  });
+  it('email tasdiqlanmagan parolli hisob → 409, tushunarli xabar, sessiya cookie YO‘Q', async () => {
+    mockFetch({ t2_email_kod_kirish_v1: () => ({ ok: false, code: PAROLLI_HISOB_KOD }) });
+    const r = await post({ amal: 'tasdiqla', email: 'a@b.uz', tasdiqlash_id: TID, kod: '123456' });
+    expect(r.status).toBe(409);
+    expect(r.headers.get('Set-Cookie')).toBeNull();
+    expect(await r.json()).toEqual({ ok: false, code: 'EMAIL_TASDIQLANMAGAN_PAROLLI_HISOB', xabar: PAROLLI_HISOB_XABAR });
+    expect(PAROLLI_HISOB_XABAR).toMatch(/^Bu email bilan parolli hisob bor\. Parol bilan kiring/);
   });
   it('muvaffaqiyat: sessiya cookie DB qaytargan foydalanuvchi uchun imzolanadi', async () => {
     let yuk: any = null;

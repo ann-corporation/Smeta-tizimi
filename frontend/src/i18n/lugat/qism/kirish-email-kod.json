@@ -15,5 +15,6 @@
   "1 daqiqada hisob oching: emailingizga kod keladi — parol o‘ylab topish shart emas. Bepul tokenlar bilan smeta import, F2 va hujjatlarni o‘zingiz sinab ko‘ring.": { "ru": "Откройте аккаунт за минуту: на почту придёт код — пароль придумывать не нужно. Попробуйте импорт смет, Ф2 и документы на бесплатных токенах.", "en": "Open an account in a minute: a code arrives by email — no password to invent. Try estimate import, F2 and documents with free tokens." },
   "Email yoki Google orqali — parol shart emas. Hisobingiz bo‘lmasa, avtomatik ochiladi.": { "ru": "Через почту или Google — пароль не нужен. Если аккаунта нет, он откроется автоматически.", "en": "Via email or Google — no password needed. If you don't have an account, one is created automatically." },
   "Login va parol bilan kirish": { "ru": "Войти по логину и паролю", "en": "Sign in with login and password" },
-  "Login yoki email": { "ru": "Логин или почта", "en": "Login or email" }
+  "Login yoki email": { "ru": "Логин или почта", "en": "Login or email" },
+  "Bu email bilan parolli hisob bor. Parol bilan kiring yoki administratorga murojaat qiling.": { "ru": "С этой почтой уже есть аккаунт с паролем. Войдите по паролю или обратитесь к администратору.", "en": "An account with a password already exists for this email. Sign in with your password or contact an administrator." }
 }

@@ -64,6 +64,16 @@ describe('Email kod bilan kirish', () => {
     expect(m.navigate).not.toHaveBeenCalled();
   });
 
+  it('email tasdiqlanmagan parolli hisob: tushunarli xabar, kirilmaydi, login-parol formasi ochiladi', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: { body?: string }) => JSON.parse(String(init?.body)).amal === 'kod'
+      ? javob({ ok: true, tasdiqlash_id: TID }) : javob({ ok: false, code: 'EMAIL_TASDIQLANMAGAN_PAROLLI_HISOB', xabar: 'x' }, 409)));
+    render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
+    fireEvent.change(await kodSora('egasi@b.uz'), { target: { value: '222222' } });
+    expect(await screen.findByText('Bu email bilan parolli hisob bor. Parol bilan kiring yoki administratorga murojaat qiling.')).toBeTruthy();
+    expect(m.navigate).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Login va parol bilan kirish' }).getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('yaroqsiz email — serverga bormaydi', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
