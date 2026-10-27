@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bolimSummalari, bolimTarkibi, holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi, zamenaTartibla } from './fakt-jurnal';
+import { bolimSummalari, bolimTarkibi, nakopitelniyMoslik, holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi, zamenaTartibla } from './fakt-jurnal';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 1, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: 'n', birlik: 'м3',
@@ -122,6 +122,41 @@ describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', ()
     expect(s.get(2)?.fakt.ustamasiz).toBe(80);
     expect(s.get(0)?.qoldiq.ustamasiz).toBe(90);
     expect(s.get(0)?.f2.ustamasiz).toBe(40);
+    expect(s.get(0)?.qoshimcha.ustamasiz).toBe(30); // zamena ostidagi smeta — alohida («smeta» ga kirmaydi)
+    // Ishdan chiqarilgan resurs (4): fakt summasi bo'lim/obyekt jamisiga kirmaydi; smeta va F2 o'zgarmaydi.
+    const c = bolimSummalari(r, h, new Set([4]));
+    expect(c.get(2)?.fakt.ustamasiz).toBe(30);
+    expect(c.get(0)?.fakt.ustamasiz).toBe(30);
+    expect(c.get(1)?.smeta.ustamasiz).toBe(100);
+    expect(c.get(0)?.f2.ustamasiz).toBe(40);
+  });
+
+  it('bolimSummalari: ISH qatorining O‘Z F2/fakt summasi bo‘limga qo‘shiladi, bolalarniki alohida — ikki marta sanalmaydi (L0, Sun‘iy ko‘l 5,51 mlrd)', () => {
+    const r = [
+      q({ id: 1, tur: 'rz', nom: 'A' }), q({ id: 2, tur: 'rz', ota_id: 1, nom: 'A.1' }),
+      q({ id: 3, tur: 'bl', ota_id: 2, hajm: 10 }), q({ id: 4, tur: 'mat', ota_id: 3, kat: 'МАТ' }),
+      q({ id: 8, tur: 'bl', ota_id: 1, hajm: 5, qoshimcha: true }),                       // bolasiz ish, F2 to'g'ridan-to'g'ri ishga
+      q({ id: 9, tur: 'bl', ota_id: 2, hajm: 2 }), q({ id: 10, tur: 'rs', ota_id: 9, kat: 'ЧЕЛ' }), // ishga ham, bolasiga ham F2
+    ];
+    const h = [
+      { qator_id: 3, smeta_hajm: 10, fakt_hajm: 2, smeta_summa: 1000, f2_summa: 0, fakt_summa: 0 },          // ish smetasi = bolalar yig'indisi (takror) — olinmaydi
+      { qator_id: 4, smeta_hajm: 1, fakt_hajm: 1, smeta_summa: 1000, fakt_summa: 200, f2_summa: 300, qoldiq_summa: 700 },
+      { qator_id: 8, smeta_hajm: 5, fakt_hajm: 0, smeta_summa: null, f2_summa: 5000, fakt_summa: 0 },
+      { qator_id: 9, smeta_hajm: 2, fakt_hajm: 1, smeta_summa: 400, f2_summa: 70, fakt_summa: 10 },
+      { qator_id: 10, smeta_hajm: 2, fakt_hajm: 1, smeta_summa: 400, fakt_summa: 100, f2_summa: 30, qoldiq_summa: 370 },
+    ];
+    const s = bolimSummalari(r, h);
+    expect(s.get(0)?.f2.ustamasiz).toBe(300 + 5000 + 70 + 30);
+    expect(s.get(2)?.f2.ustamasiz).toBe(300 + 70 + 30);
+    expect(s.get(1)?.f2.ustamasiz).toBe(5400);
+    expect(s.get(0)?.fakt.ustamasiz).toBe(200 + 10 + 100);
+    expect(s.get(0)?.smeta.ustamasiz).toBe(1400);          // faqat barglar (asl)
+    expect(s.get(0)?.qoldiq.ustamasiz).toBe(700 + 370 - 5000 - 70);
+    // Nakopitelniy bilan muvofiqlik: smeta = daraxt + qo'shimcha; F2 = jami tasdiqlangan.
+    expect(nakopitelniyMoslik(s.get(0)!, { smeta_summa: 1400, jami_tasdiqlangan_summa: 5400 }).mos).toBe(true);
+    const f = nakopitelniyMoslik(s.get(0)!, { smeta_summa: 1400, jami_tasdiqlangan_summa: 5500 });
+    expect(f).toMatchObject({ mos: false, f2Farq: -100, smetaFarq: 0 });
+    expect(nakopitelniyMoslik(s.get(0)!, null)).toMatchObject({ mos: true, f2Farq: null, smetaJami: 1400 });
   });
 });
 

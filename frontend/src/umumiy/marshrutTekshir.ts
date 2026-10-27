@@ -30,6 +30,11 @@ export const ADMIN_MARSHRUTLARI = [
   'mindmap', 'storage', 'system-control', 'kompaniya',
   'test/smeta', 'test/moliya', 'test/logistika', 'test/zayavka', 'test/aosr', 'test/erp',
   'test/sozlama', 'test/xodimlar', 'test/korzinka',
+  /* 2026-10-26: yagona navigatsiya reestridagi (lib/nav/navReestr.ts) qolgan yo'llar — navFiltr.test.ts tekshiradi. */
+  'smeta-studio', 'm29', 'aosr', 'narx-dalil', 'nakrutka', 'narx-manbalari', 'oferta', 'loyiha', 'shartnoma-liniya',
+  'crm', 'aloqalar', 'zakazchik', 'taqdimlar', 'murojaatlar', 'moliya', 'logistika', 'zayavka', 'erp', 'f2-reestr',
+  'nakopitelniy', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka', 'ish-joylarim',
+  'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt',
 ] as const;
 
 /**

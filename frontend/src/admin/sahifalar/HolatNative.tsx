@@ -35,6 +35,7 @@ import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPane
 import { BajarilmadiPanel } from './BajarilmadiPanel';
 import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 import { SmetaVersiyaFarq } from './SmetaVersiyaFarq';
+import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -67,6 +68,8 @@ export function HolatNative() {
     rows: daraxtXom, states: holatXom, tree, price: priceControlLines,
     loading, yangilanmoqda, error: daraxtXato, yuklash,
   } = useT2Daraxt(validId ? obyektId : null);
+  /* SMETA CONST (egasi 2026-10-27): asl smeta muhridan farq — daraxt qayta yuklanganda yangilanadi. */
+  const muhr = useMuhrFarq(validId ? obyektId : null, daraxtXom);
   useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(requestedPanel === 'smeta' ? 'yuklash' : 'smeta'); }, [obyektId, joriy?.id, requestedPanel]);
   const error = sahifaXato || daraxtXato;
   // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
@@ -379,6 +382,7 @@ export function HolatNative() {
 
         {/* Firuza (egasi 2026-10-25): smeta anatomiyasi — daraxt ustida bir qarashda holat (smeta / fakt / F2 / qoldiq — yagona jami). */}
         {selected && tree.length > 0 && activeTab === 'smeta' && <SmetaAnatomiya tree={tree} obyektId={obyektId} />}
+        {selected && tree.length > 0 && activeTab === 'smeta' && <MuhrFarqXulosa royxat={muhr.royxat} />}
         {selected && !loading && !error && activeTab === 'smeta' && (
           <details className="fz-card" open={ochiqPanel === 'istisno'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'istisno' : null)}>
             <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
@@ -395,7 +399,7 @@ export function HolatNative() {
             </div>}
           </details>
         )}
-        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
+        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} muhrFarq={muhr.xarita} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
         {activeTab === 'shartnoma' && selected && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 

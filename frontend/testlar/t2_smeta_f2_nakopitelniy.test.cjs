@@ -153,7 +153,7 @@ const fn = R('frontend', 'functions', 'api', 'hujjat-nazorat.ts');
 const adapter = R('frontend', 'src', 'api', 't2-document-control.ts');
 const page = R('frontend', 'src', 'admin', 'pages', 'HujjatNazoratPage.tsx');
 const app = R('frontend', 'src', 'App.tsx');
-const shell = R('frontend', 'src', 'admin', 'AdminShell.tsx');
+const shell = R('frontend', 'src', 'lib', 'nav', 'navReestr.ts'); // menyu — yagona navigatsiya reestrida
 const routes = R('frontend', 'src', 'umumiy', 'marshrutTekshir.ts');
 must('Cloudflare fn resolves actor from session + forwards to canonical RPCs only',
   /from '\.\.\/_shared\/auth'/.test(fn) && /t2_workbench_(?:exact_)?v1/.test(fn) && /t2_smeta_ozgarish_tasdiqlash_v[12]/.test(fn) && /t2_forma3_yarat_v1/.test(fn));

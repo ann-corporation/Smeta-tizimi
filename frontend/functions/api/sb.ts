@@ -81,6 +81,8 @@ const RUXSAT_JADVALLAR = new Set([
   't2_narx_protokol_royxat', 't2_narx_protokol_qator',
   /* Smeta versiyasi → farq → da'vo (PTO-CORE-001, 2026-10-26): tashqi versiya, pozitsiyalar, moslik/qaror, da'vo o'qish modeli. */
   't2_smeta_versiya', 't2_smeta_versiya_pozitsiya', 't2_smeta_versiya_moslik', 't2_smeta_versiya_dava',
+  /* Smeta CONST (2026-10-27): qator muhridan farq — o'zgargan / o'chirilgan / qo'shilgan, avval/endi. */
+  't2_qator_muhr_farq',
   /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval
      birlashgan VIEW — `holat='bekor'`, is_deleted EMAS). */
   't2_korzinka',
@@ -253,6 +255,8 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-26: 1C akt-sverka importi — Продажа ↔ F2 moslash (F2 ustama bilan), to'lov taqsimoti. `stable`, a'zolik + f2.read ichida. */
+        sverka_moslash_v1: 'kompaniya_actor',
         /* Egasi 2026-10-24: rahbarlar uchun pul tahlili (P0) — kategoriya × {smeta, F2} + zanjir. `stable`; a'zolik + f2.read + financial.read. */
         pul_tahlil_v1: 'kompaniya_actor',
         pul_tahlil_v2: 'kompaniya_actor',
