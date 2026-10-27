@@ -8,6 +8,7 @@ import { buildPtoLineLedger } from '../../lib/pto-document-lineage';
 import { oylikNuqtalar } from '../../lib/nakopitelniy-grafik';
 import { foizOl, yashirinIdlar } from '../../lib/nakopitelniy-korinish';
 import type { f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 /**
  * Kumulyativ reestr jadvali (egasi 2026-10-25): bitta uzluksiz jadval — sticky birinchi ustun va sarlavha, har oy bitta ixcham ustun
@@ -237,7 +238,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
                 : <th colSpan={2} style={thG('var(--accent)')}>{t('Tasdiqlangan F2')}</th>}
             </tr>
             <tr>
-              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Hajm')}</th><th className="fz-c-num" style={th2}>{t('Narx')}</th><th className="fz-c-num" style={th2}>{t('Summa')}</th>
+              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Hajm')}</th><th className="fz-c-num" style={th2}>{t('Narx')}<SummaYorliq tur="narx" /></th><th className="fz-c-num" style={th2}>{t('Summa')}</th>
               <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Summa')}</th><th style={{ ...th2, textAlign: 'left' }}>{t('Bajarilish')}</th>
               <th className="fz-c-num" style={{ ...th2, ...chap }}>{hdr(t('Smetadan qoldi'), t('Smeta hajmi − fakt hajmi: hali bajarilmagan qism.'))}</th>
               <th className="fz-c-num" style={th2}>{hdr(t('F2 ga olish mumkin'), t('Fakt hajmi − tasdiqlangan F2 hajmi: bajarilgan, lekin aktga kiritilmagan qism. Qizil — F2 faktdan oshib ketgan.'))}</th>

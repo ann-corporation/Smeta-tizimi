@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 36,
+      "sana": "2026-10-27",
+      "sarlavha": "Obyekt qiymati endi QQS bilan — asosiy raqam",
+      "bandlar": [
+        "Har obyekt, bo'lim, shartnoma va portfel jami summasida katta raqam endi QQS bilan qiymat (ВСЕГО, server hisobi bilan bir xil). Ostida kichik: «ustamali, QQS siz» (ИТОГО-4) va «to'g'ri xarajat (ustamasiz)».",
+        "Rahbar paneli, Nakopitelniy kartalari (smeta, fakt, F2, faktdan F2 ga mumkin), Smeta anatomiyasi, Resurs vedomosti, Pereraschet sof natijasi, Pul tahlili, F2 reestri, shartnoma va obyekt kartalarida shunday. QQS stavkasi koeffitsientlardan olinadi.",
+        "Qiymat noma'lum bo'lsa «—» (sababi sichqoncha ostida), 0 emas; kategoriyasi noma'lum qism bo'lsa ikkala qiymat ham «≈ taxminiy».",
+        "Smeta va F2 narxlari, qator summalari, tasdiqlangan F2 aktlari va rasmiy hujjat/Excel shakllari o'zgarmaydi. Tasdiqlangan F2 jami (hujjat jami) hozircha «ustamasiz, QQS siz» yorlig'i bilan ko'rsatiladi."
+      ]
+    },
+    {
       "id": 34,
       "sana": "2026-10-27",
       "sarlavha": "Katta obyektlarda Nakopitelniy ishonchli ochiladi",

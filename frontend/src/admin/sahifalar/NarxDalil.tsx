@@ -26,6 +26,7 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { dalilQamrovi, narxOgish } from '../../lib/narx-korinish';
 import { ManbaChip, OgishMeter, QamrovChizigi } from '../../components/narx/NarxKorinish';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const pul = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 
@@ -163,7 +164,7 @@ export default function NarxDalil() {
           </div>
           <div className="fz-table-wrap">
             <table className="fz-table min-w-[1080px] text-[12.5px]">
-              <thead><tr><th style={{ width: 32 }} /><th>{t('Resurs')}</th><th className="fz-c-num">{t('Smeta narxi')}</th><th>{t('Manba (tanlang)')}</th><th className="fz-c-num">{t('Manba narxi')}</th><th>{t('Og‘ish')}</th><th>{t('Sabab')}</th></tr></thead>
+              <thead><tr><th style={{ width: 32 }} /><th>{t('Resurs')}</th><th className="fz-c-num">{t('Smeta narxi')}<SummaYorliq tur="narx" /></th><th>{t('Manba (tanlang)')}</th><th className="fz-c-num">{t('Manba narxi')}</th><th>{t('Og‘ish')}</th><th>{t('Sabab')}</th></tr></thead>
               <tbody>
                 {natijalar.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-text-mute">{t('Taklif yo‘q — avval «Narx manbalari»ga katalog/faktura yuklang')}</td></tr>}
                 {natijalar.slice(0, 1000).map((n) => {
@@ -203,7 +204,7 @@ export default function NarxDalil() {
       ) : (
         <div className="fz-table-wrap">
           <table className="fz-table min-w-[1000px] text-[12.5px]">
-            <thead><tr><th>{t('Resurs')}</th><th className="fz-c-num">{t('Smeta narxi')}</th><th>{t('Dalil')}</th><th className="fz-c-num">{t('Manba narxi')}</th><th>{t('Og‘ish')}</th><th>{t('Kim / qachon')}</th><th /></tr></thead>
+            <thead><tr><th>{t('Resurs')}</th><th className="fz-c-num">{t('Smeta narxi')}<SummaYorliq tur="narx" /></th><th>{t('Dalil')}</th><th className="fz-c-num">{t('Manba narxi')}</th><th>{t('Og‘ish')}</th><th>{t('Kim / qachon')}</th><th /></tr></thead>
             <tbody>
               {dalillar.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-text-mute">{t('Hali dalil bog‘lanmagan')}</td></tr>}
               {dalillar.map((d) => (

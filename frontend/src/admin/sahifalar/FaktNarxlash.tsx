@@ -89,8 +89,8 @@ export function FaktNarxlash({ kompaniyaId, obyektId, qator, onYop, onSaqlandi }
       <label className="block">{t('Qo‘lda narx')}
         <input ref={qoldaRef} aria-label={t('Qo‘lda narx')} inputMode="decimal" value={qolda} onChange={(e) => setQolda(e.target.value)} className="mt-1 w-full rounded border border-border bg-bg px-2 py-1 text-right font-mono text-[13px]" /></label>
       {sm && <div className="grid grid-cols-2 gap-3 rounded border border-border bg-surface-2 p-2" data-testid="narx-korinish">
-        <div><div className="text-[10px] uppercase text-text-mute">{t('Fakt summasi')}</div><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={sm.faktSumma} katKesim={sm.faktKesim} /></div>
-        {sm.smetaSumma != null && sm.smetaKesim && <div><div className="text-[10px] uppercase text-text-mute">{t('Smeta summasi')}</div><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={sm.smetaSumma} katKesim={sm.smetaKesim} /></div>}
+        <div><div className="text-[10px] uppercase text-text-mute">{t('Fakt summasi')}</div><SummaJuft rejim="ustamali" kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={sm.faktSumma} katKesim={sm.faktKesim} /></div>
+        {sm.smetaSumma != null && sm.smetaKesim && <div><div className="text-[10px] uppercase text-text-mute">{t('Smeta summasi')}</div><SummaJuft rejim="ustamali" kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={sm.smetaSumma} katKesim={sm.smetaKesim} /></div>}
       </div>}
       {xato && <p role="alert" className="text-danger">{xato}</p>}
       <div className="flex justify-end gap-2">

@@ -6,10 +6,10 @@ import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
 import { makeSummarizer, contractObjects, projectObjects, unassignedObjects, type Aggregate, type Metric } from './hierarchy';
 import { useCompanyLineage } from './useLineage';
-import { useMarkupTotals } from './useMarkupTotals';
 import { useObjectFinancials } from './useObjectFinancials';
 import { FINANCIAL_METRICS, type FinancialMetric, type FinancialTotals } from './financials';
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 import { KatTaqsimot, LoyihaStack, ProgressQadam, type StackQator } from './ObyektGrafik';
 
 const financialLabels: Record<FinancialMetric, string> = { smeta: 'Smeta', fakt: 'Fakt', f2: 'Tasdiqlangan F2', ostatka: 'Ostatka' };
@@ -54,7 +54,6 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
   onEdit: (o: T2Obyekt) => void; onArchive: (o: T2Obyekt) => void; onShare?: (o: T2Obyekt) => void;
 }) {
   const { data: line, isPending, error, refetch } = useCompanyLineage(companyId);
-  const money = useMarkupTotals(companyId,line,objects);
   const financials = useObjectFinancials(companyId, objects);
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState('');
@@ -86,12 +85,11 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
   const amount = (objectIds: number[], metric: FinancialMetric, sid?: number) => {
     const agg = financials.sum(objectIds)[metric];
     if (metric === 'smeta') return <>
-      {/* Egasi 2026-10-24: ustamali (katta) + ustamasiz (kichik); QQS bilan qiymat alohida yorliq bilan. */}
+      {/* Egasi 2026-10-27: QQS bilan (katta) + ustamali va ustamasiz (kichik) — yagona QiymatUchlik (PortfelSummaJuft). */}
       <PortfelSummaJuft obyektlar={objectIds.map(obyektId => ({ obyektId, shartnomaId: sid ?? null }))} ustamasiz={agg.present === 0 ? null : agg.known} />
       {agg.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-text-mute">{t('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida')}</span>}
-      <span className="mt-1 block text-[11.5px] font-normal text-text-dim">{t('Nakrutkalar bilan (QQS bilan)')}: {money.loading ? t('Hisoblanmoqda…') : <Value value={money.sum(objectIds,sid)} money />}</span>
     </>;
-    return <Value value={agg} money />;
+    return <><Value value={agg} money /><SummaYorliq tur="ustamasiz" /></>;
   };
   const stackQatorlar: StackQator[] = projectId === undefined && !contractRaw
     ? line.loyihalar.map(p => ({ kalit: `p${p.id}`, nom: p.nom, fin: financials.sum(projectObjects(line, p.id)) }))
@@ -133,10 +131,9 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
       </div>
     </div>}
     {!financials.loading && !financials.failed && stackQatorlar.length > 0 && <LoyihaStack qatorlar={stackQatorlar} />}
-    <p className="text-[11px] text-text-dim">{t('Smeta: katta raqam — ustamali (QQSsiz), kichik — ustamasiz. QQS bilan qiymat alohida yorliqda.')}</p>
+    <p className="text-[11px] text-text-dim">{t('Smeta: katta raqam — QQS bilan; ostida ustamali (QQS siz) va to‘g‘ri xarajat. Fakt, F2 va Ostatka — to‘g‘ri xarajat (ustamasiz): bu ro‘yxatda kategoriya kesimi yo‘q.')}</p>
     {technicalDetails(ids, projectId === undefined ? t('Barcha loyihalar') : contract?.nom ?? projectName)}
     {financials.failed && <p role="status" className="fz-note fz-note--warn">{t('Moliyaviy ko‘rsatkichlar o‘qilmadi.')}<button type="button" className="fz-btn fz-btn--sm ml-2" onClick={financials.retry}>{t('Qayta urinish')}</button></p>}
-    {money.failed && <p role="status" className="fz-note fz-note--warn">{t('Nakrutka hisobi o‘qilmadi. Qayta yangilang.')}<button type="button" className="fz-btn fz-btn--sm ml-2" onClick={money.retry}>{t('Qayta urinish')}</button></p>}
     <div className="flex flex-wrap items-center gap-3">
       <h3 className="text-[16px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{contractRaw ? t('Obyektlar') : projectId !== undefined ? t('Shartnomalar') : t('Loyihalar')}</h3>
       <label className="relative ml-auto w-full sm:w-80"><Search size={15} className="absolute left-2.5 top-[9px] text-text-mute" aria-hidden="true" /><input aria-label={t('Navigator qidiruvi')} className="h-8 w-full rounded-md border border-[var(--border-strong)] bg-bg pl-8 pr-3 text-[13px]" placeholder={t('Nom bo‘yicha qidirish')} value={query} onChange={e => setQuery(e.target.value)} /></label>

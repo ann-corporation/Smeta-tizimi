@@ -58,6 +58,7 @@ import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { ishMeter, keyingiF2Raqam, qoralamaKatTaqsimot, tekshiruvBandlari, tekshiruvSanoq, type TekshiruvBand } from '../../lib/f2-tayyorlash-korinish';
 import { F2KatPanel, F2QoralamaSarlavha, F2TekshiruvPanel, IshMeter, MeterIzohi, NarxManbaChip } from '../../components/f2-tayyorlash/F2TayyorlashKorinish';
 import { avlodKalitlari, bolimTuguni, f2BolimIerarxiya, f2Uchastkalar, korinadiganTugunlar } from '../../lib/f2-bolim-daraxti';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
 const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
@@ -627,7 +628,7 @@ export function F2TayyorlashNative() {
           <table className="w-full border-t border-border text-[12.5px]">
             <thead><tr className="text-[10.5px] uppercase tracking-wide text-text-mute">
               <th className="py-1 pl-9 pr-2 text-left font-semibold">{t('Resurs')}</th><th className="px-2 text-right font-semibold">{t('Birlik')}</th>
-              <th className="px-2 text-right font-semibold">{t('Hajm')}</th><th className="px-2 text-right font-semibold">{t('Narx · manba')}</th>
+              <th className="px-2 text-right font-semibold">{t('Hajm')}</th><th className="px-2 text-right font-semibold">{t('Narx · manba')}<SummaYorliq tur="narx" /></th>
               <th className="px-2 text-right font-semibold">{t('Summa')}</th><th className="px-2 text-left font-semibold">{t('Holat')}</th>
             </tr></thead>
             <tbody>{i.resurslar.map((r) => resursQatori(r, i))}</tbody>
