@@ -1,6 +1,6 @@
 -- Qabul (BEGIN..ROLLBACK): migratsiyani qo'llab, jadval/funksiyalar, ruxsatlar va hisoblangan ko'rsatkichlarning NULL tarqalishini tekshiradi.
+-- Avval asosiy migratsiya qo'llangan bo'lishi kerak (shu tranzaksiyada yoki prodda).
 begin;
-\i 20261113800000_t2_moliya_tahlil_v1.sql
 do $t$
 declare v_komp bigint; v_actor bigint; r jsonb; v_k jsonb;
 begin

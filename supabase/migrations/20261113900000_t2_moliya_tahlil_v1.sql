@@ -1,4 +1,4 @@
--- 20261113800000 — «Парк объектининг молиявий таҳлили» (egasi 2026-10-27): 16 ko'rsatkich, kompaniya va obyekt kesimida.
+-- 20261113900000 — «Парк объектининг молиявий таҳлили» (egasi 2026-10-27): 16 ko'rsatkich, kompaniya va obyekt kesimida.
 -- DUBLIKAT YO'Q: fakt/F2/smeta — mavjud t2_qator_holat + t2_obyekt_nakrutka_v1 + t2_nakrutka_hisobla_v1 kaskadi (yangi formula yo'q);
 -- F2 reestri — t2_f2_reestr_jami (qqs_bilan); tushgan pul — t2_tolov (1C sverka importi ham shu yerga yozadi); sarf — t2_xarajat.
 -- Tizimda yo'q qiymatlar (kutilayotgan F2, qarz, yakunlash uchun talab, va tizim qiymatini egasi aniqlashtirgan holatlar) —
