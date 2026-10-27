@@ -1,0 +1,14 @@
+# C11.3a — receipt-only source review
+
+Base main4fd84562; C11.0 design PR179. Explicit owner/L0 reallocation: Codex warehouse/supply only. C4/C7–C10 and161/162 now L0, these lanes not changed here.
+
+Implemented a typed receipt-book parser, a Web Worker reader and a responsive review component accessible from /admin/logistika → Sklad → Kirim Exceli. Only the explicitly named Приход worksheet feeds candidate movements; other sheets are listed as excluded, never balances/control truth. Source price/amount/VAT unknownNULL; dates never become today. Incomplete entered lines remain visible; prefilled empty templates do not become receipts. Date-formatted quantities are flagged instead of becoming large serial quantities. Alias/transliteration/typo groups are suggestions only; raw names remain unchanged.
+
+Dedup key uses tenant+warehouse+date+conservative name/unit+quantity+supplier+physical source row. Two identical rows on different source positions remain separate. Duplicate count remains unknown unless trusted prior keys were actually supplied; this UI does not read persisted keys yet and says so. No Save/RPC/fake-stock action. Warehouse changes/cancellation/replacement discard stale results. Worker keeps parsing off the UI thread; review/search covers all candidates with50rowsmounted perpage. Individual source row numbers visible.
+
+Central Excel policy preserved: readXlsxCellEvidence is an optional export in f2-import-parse/xlsxReader.ts. Existing readXlsx behavior unchanged. Narrow former Codex catalog editor slot transferred in own task metadata, catalog backlog retained; lint guard not disabled. No direct xlsx import in business adapter.
+
+Verification: current focused36PASS (13parser,3worker cancellation,7UI,9existingreader,4i18n). Independent actual private workbook read-only compound testPASS; originalSHA unchanged. Browser synthetic workbook read by actualworker at360px, no business writes. App/functions TypeScript, lint/static checks passed; final build running at initial receipt (follow-up/CI carries exact result). Root governance has3foreignbaseline AKKAUNT/DIZAYN errors, no new C11 conflict; guard notbypassed.
+
+All public fixtures synthetic. Actual workbook, private test, source names/amounts/issue coordinates and local browser harness NOT staged. Private source profile in Obsidian C11_SKLAD_20261027. This is source REVIEW, not completed warehouse import, created canonical warehouse, R2 registration, or owner acceptance. Model/RPC/storno/R2/C11.2 mobilewrites remain next reviewed stages; production DDL/main promotion L0.
+Final local gates:36focusedPASS; actual private source regressionPASS; app/functionsTS+lint+tekshir+finalbuildPASS. Browser360px:documentwidth352<=360,8interactive targetsall48pxheight, actualWebWorkerparsedsyntheticXLSX; screenshotmobile-preview.png. DBwrites0,warehousecreation0,R2uploads0. NewCI pending afterpush; previoussourceCI not reused.

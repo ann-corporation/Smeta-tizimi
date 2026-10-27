@@ -11,13 +11,14 @@ import { sbSkladlarOl } from '../api/t2-resurs';
 import { sbSkladKonsolidatsiyaOl, type SkladKonsolidatsiya } from '../api/t2-sklad-konsolidatsiya';
 import { obyektUlushlari, skladXulosa } from '../lib/kompaniya-ops-korinish';
 import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsOyna, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+import { PrixodKitobPreview } from '../components/ombor/PrixodKitobPreview';
 
 /**
  * Ombor (sklad) — qoldiq va kirim/chiqim yozuvi (egasi 2026-10-25: Firuza ko'rinishi).
  * Jamlangan ombor: har material bo'yicha jami qoldiq va uning obyektlar orasida taqsimoti (chiziq).
  * Obyekt qoldiqlari: manfiy qoldiq (kirim kiritilmagan chiqim) qizil bilan aniq belgilanadi.
  */
-type Tab = 'qoldiq' | 'kirim' | 'm29' | 'konsolidatsiya';
+type Tab = 'qoldiq' | 'kirim' | 'm29' | 'konsolidatsiya' | 'excel';
 const OBYEKT_RANGLARI = ['var(--kat-chel)', 'var(--kat-mat)', 'var(--kat-mash)', 'var(--kat-ob)', 'var(--accent)', 'var(--info)'];
 
 export default function TestSklad() {
@@ -138,8 +139,19 @@ export default function TestSklad() {
           { id: 'konsolidatsiya', nom: t('Jamlangan ombor'), ikon: <Layers /> },
           { id: 'qoldiq', nom: t('Obyekt qoldiqlari'), ikon: <Box />, soni: skladQoldiq.length },
           { id: 'kirim', nom: t('Harakatlar tarixi'), ikon: <History /> },
+          { id: 'excel', nom: t('Kirim Exceli'), ikon: <ArrowDownToLine /> },
           { id: 'm29', nom: t('M-29 hisobot'), ikon: <ClipboardCheck /> },
         ]} />
+
+        {activeTab === 'excel' && <>
+          <OpsMaydon nom={t('Markaziy sklad')}>
+            <select className="fz-select min-h-12" value={markaziyId ?? ''} onChange={(e) => setMarkaziyId(e.target.value ? Number(e.target.value) : null)}>
+              <option value="">{t('Tanlang…')}</option>
+              {markaziySkladlar.map((s) => <option key={s.id} value={s.id}>{s.nomi}</option>)}
+            </select>
+          </OpsMaydon>
+          <PrixodKitobPreview kompaniyaId={aktKomp} skladId={markaziyId} skladNomi={markaziySkladlar.find(s => s.id === markaziyId)?.nomi} />
+        </>}
 
         {activeTab === 'konsolidatsiya' && (
           <div className="flex flex-col gap-3">

@@ -40,6 +40,40 @@ export interface XlsxWorkbook {
   sheet(name: string): XlsxSheet | null;
 }
 
+/** Optional cell evidence for non-estimate source adapters. Default readXlsx is unchanged. */
+export type XlsxCellEvidence = {
+  value: CellValue; displayed: string; type: string; dateFormatted: boolean;
+  excelDate: { y: number; m: number; d: number } | null; formula: string | null;
+};
+
+/** Read one explicitly selected worksheet with its original number/date-format evidence. */
+export async function readXlsxCellEvidence(bytes: Uint8Array, wantedSheet: string): Promise<{
+  sheetNames: string[]; sheet: { name: string; cells: Array<Array<XlsxCellEvidence | undefined>> } | null;
+}> {
+  const XLSX = await import('xlsx');
+  const source = Uint8Array.from(bytes);
+  const metadata = XLSX.read(source, { type: 'array', bookSheets: true });
+  const names = metadata.SheetNames.filter(n => n.normalize('NFKC').trim().toLowerCase() === wantedSheet.normalize('NFKC').trim().toLowerCase());
+  if (names.length !== 1) return { sheetNames: metadata.SheetNames, sheet: null };
+  const name = names[0];
+  const book = XLSX.read(source, { type: 'array', sheets: [name], cellNF: true, cellDates: false, cellFormula: true });
+  const cells: Array<Array<XlsxCellEvidence | undefined>> = [];
+  const date1904 = !!book.Workbook?.WBProps?.date1904;
+  for (const [address, raw] of Object.entries(book.Sheets[name] ?? {})) {
+    if (address.startsWith('!')) continue;
+    const cell = raw as import('xlsx').CellObject;
+    const { r, c } = XLSX.utils.decode_cell(address);
+    const date = typeof cell.v === 'number' ? XLSX.SSF.parse_date_code(cell.v, { date1904 }) : null;
+    (cells[r] ??= [])[c] = {
+      value: cell.v == null ? null : typeof cell.v === 'string' || typeof cell.v === 'number' ? cell.v : String(cell.v),
+      displayed: String(cell.w ?? cell.v ?? ''), type: cell.t,
+      dateFormatted: cell.t === 'd' || (typeof cell.z === 'string' && XLSX.SSF.is_date(cell.z)),
+      excelDate: date ? { y: date.y, m: date.m, d: date.d } : null, formula: cell.f ?? null,
+    };
+  }
+  return { sheetNames: metadata.SheetNames, sheet: { name, cells } };
+}
+
 /** OLE2/CFBF magic bytes -- every legacy binary `.xls` (Excel 97-2003, BIFF8)
  *  file starts with exactly this signature, regardless of extension. Real
  *  `.xlsx` is a ZIP and never starts with this. */
