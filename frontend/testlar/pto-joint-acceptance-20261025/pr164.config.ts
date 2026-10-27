@@ -1,0 +1,2 @@
+import { defineConfig } from 'vitest/config';
+export default defineConfig({ test: { environment: 'jsdom', globals: true, setupFiles: ['./vitest.setup.ts'], include: ['testlar/pto-joint-acceptance-20261025/pr164-independent.candidate.tsx'], maxWorkers: 1 } });

@@ -110,3 +110,7 @@ GitHub exact maind7bf735359e8a54ef9e589c9a23cc28fc67876a9: frontend/mcp/Cloudfla
 ## Остаток
 
 JQA01/02 остаются baseline contract cases (live incidence/NULL ограничения см.05/канонический отчёт). JQA03/MCP/дизайн fixes имеют exact-source QA выше, но требуют L0 integration. Новая source-edition UI/claim цепь и owner acceptance ещё не готовы. Порядок возврата:143 ужеmain → rebase144 →154 →155; согласовать design/sidebar conflicts/locks, принять PR156; exact final gates и owner smoke, затем release. QA branch и architecture branch не заменяют main.
+
+
+## 27.10.2026 — mailbox09 supersedes08
+C1 private financial reconciliation/draft delivered; C2 oldsource2PASS (new168 requiresseparateacceptance); C3 PR164 P1 immutable-attempt2FAIL+scope1FAIL with4controlsPASS, productionwriternevercalled.165retry5PASS, conditionalpartialmoneyhardening. New canonical receipt:ops/mailbox/PTO-JOINT-QA-20261025/09-codex@Anvar-c1-c3-20261027.md. Main95e9f743 is remote readback, not Codexpromotion. Own162a2a41073/1630aa96e98 checks5/5PASS;162 compatibilitywithnewmainnext.

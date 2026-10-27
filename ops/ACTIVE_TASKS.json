@@ -18,7 +18,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
-      "note": "Mailbox08 supersedes07 for current status. Source scope maina4fe8b65: postmergeMCP7PASS/marker2PASS/Qamrov5PASS; sidebar153deb85b44 independent7PASS+38regression. Separate fixes:161a65e7c25 JQA01/02;1621195c155 windowing;160dee64acb reviewed lifecycle. PR157 source+live function-definitionSELECT findsP1 client quantity trust; signed negative known-money oracle FAIL retained.25kexact Node bijectionPASS159.6ms, notproductionperformance. No writer/DDL/main promotion. Old integration sandbox is not a release path. Historical main governance23overlaps remain L0 coordination. Runtime owners retained."
+      "note": "Mailbox09 current27.10: C1 private source/cost-basis reconciliation and readonly migration draft delivered in Obsidian; C2 baseline transport2PASS, implementation belongs Claude168. C3 164 P1 edited payload reuses UUID after partial/unknown, parent7probes4PASS/3FAIL; live function definitions SELECT only. 165 retry5PASS, incomplete money conditional contract finding, no live incidence claim. Version signed5PASS/2FAIL, pricing1PASS/2FAIL preserved. Own162a2a41073 header64px/all5checksPASS;1630aa96e98 own lock release18/all5checksPASS, guard23errors to3foreignownererrors. Runtime/main/DB owners retained, no production writer/DDL/main promotion."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",
