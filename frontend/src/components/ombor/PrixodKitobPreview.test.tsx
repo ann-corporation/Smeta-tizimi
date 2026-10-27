@@ -3,10 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { PrixodKitobPreview } from './PrixodKitobPreview';
 import type { PrixodKitob, PrixodQator } from '../../lib/ombor-prixod/turlar';
 
-const mocks = vi.hoisted(() => ({ read: vi.fn() }));
+const mocks = vi.hoisted(() => ({ read: vi.fn(), excel: vi.fn(), download: vi.fn() }));
 vi.mock('../../lib/ombor-prixod/read-fonda', () => ({ prixodKitobFonda: mocks.read }));
+vi.mock('../../lib/ombor-prixod/davr-eksport', () => ({ omborDavrExcel: mocks.excel }));
+vi.mock('../../lib/construction-document-control/export/download-helper', () => ({ downloadBlob: mocks.download }));
 
-afterEach(() => { cleanup(); mocks.read.mockReset(); });
+afterEach(() => { cleanup(); mocks.read.mockReset(); mocks.excel.mockReset(); mocks.download.mockReset(); });
 
 function qator(i: number, holat: PrixodQator['holat'] = 'yangi', nom = `Tovar ${i}`): PrixodQator {
   return {
@@ -136,6 +138,8 @@ describe('PrixodKitobPreview', () => {
     faylYukla(xlsx('rows.xlsx'));
 
     expect(await screen.findByText('Tovar 49')).not.toBeNull();
+    expect(screen.getByText('Mahalliy qoralama')).not.toBeNull();
+    expect(screen.getByText('Tasdiqlash faqat mahalliy qoralamani belgilaydi; DBga yozilmaydi.')).not.toBeNull();
     expect(screen.queryByText('Tovar 50')).toBeNull();
     expect(screen.getByText('Bo‘sh shablon qatorlari').nextElementSibling?.textContent).toBe('2');
     expect(screen.getByText(/Narx va summa hozircha noma’lum/)).not.toBeNull();
@@ -156,5 +160,126 @@ describe('PrixodKitobPreview', () => {
     expect(screen.getByText('sement qop')).not.toBeNull();
     expect(screen.queryByText('Tovar 1')).toBeNull();
     expect(mocks.read).toHaveBeenCalledTimes(1);
+  });
+
+  it('edits and explicitly confirms all draft fields, preserves source rows, and invalidates approval after editing', async () => {
+    const source = qator(21, 'xato', '');
+    source.sana = null; source.birlik = ''; source.miqdor = 0; source.miqdorMatni = '0';
+    source.xatolar = ['SANA_YOQ', 'NOM_YOQ', 'BIRLIK_YOQ', 'MIQDOR_XATO'];
+    const before = structuredClone(source);
+    mocks.read.mockResolvedValue(kitob([source], true));
+    render(<PrixodKitobPreview kompaniyaId={1} skladId={4} />);
+    faylYukla(xlsx('editable-invalid.xlsx'));
+    await screen.findByText('Manba: 23-qator');
+    expect((screen.getByRole('button', { name: /^Takror/ }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Tahrirlash' }));
+
+    fireEvent.change(screen.getByLabelText('Sana'), { target: { value: '2026-10-27' } });
+    expect((screen.getByRole('button', { name: /^Takror/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Material nomi'), { target: { value: 'Sement' } });
+    fireEvent.change(screen.getByLabelText('O‘lchov birligi'), { target: { value: 'kg' } });
+    fireEvent.change(screen.getByLabelText('Miqdor'), { target: { value: '2.5' } });
+    fireEvent.change(screen.getByLabelText('Yetkazuvchi'), { target: { value: 'Ta’minotchi A' } });
+    fireEvent.change(screen.getByLabelText('Hujjat raqami'), { target: { value: 'H-21' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasi to‘g‘ri — tasdiqlash' }));
+
+    expect(await screen.findByText('Kiritish tasdiqlandi — hali saqlanmagan.')).not.toBeNull();
+    expect(screen.getByText('Sement')).not.toBeNull();
+    expect(screen.getByText('Ta’minotchi A')).not.toBeNull();
+    expect(source).toEqual(before);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tahrirlash' }));
+    fireEvent.change(screen.getByLabelText('Miqdor'), { target: { value: '' } });
+    expect((screen.getByRole('button', { name: 'Hammasi to‘g‘ri — tasdiqlash' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('Tahrirlangan qoralama — tasdiqlash kerak.')).not.toBeNull();
+    expect(source).toEqual(before);
+  });
+
+  it('clears local drafts on company change and when another file is selected', async () => {
+    const source = qator(31, 'yangi', 'Original material');
+    const before = structuredClone(source);
+    mocks.read.mockResolvedValue(kitob([source]));
+    const view = render(<PrixodKitobPreview kompaniyaId={1} skladId={4} />);
+    faylYukla(xlsx('draft-first.xlsx'));
+    await screen.findByText('Original material');
+    fireEvent.click(screen.getByRole('button', { name: 'Tahrirlash' }));
+    fireEvent.change(screen.getByLabelText('Material nomi'), { target: { value: 'Company draft' } });
+
+    view.rerender(<PrixodKitobPreview kompaniyaId={2} skladId={4} />);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    faylYukla(xlsx('draft-company-two.xlsx'));
+    expect(await screen.findByText('Original material')).not.toBeNull();
+    expect(screen.queryByText('Company draft')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tahrirlash' }));
+    fireEvent.change(screen.getByLabelText('Material nomi'), { target: { value: 'File draft' } });
+    faylYukla(xlsx('draft-replacement.xlsx'));
+    expect(await screen.findByText('Original material')).not.toBeNull();
+    expect(screen.queryByText('File draft')).toBeNull();
+    expect(source).toEqual(before);
+  });
+
+  it('exports only explicitly confirmed drafts with the requested period metadata', async () => {
+    const approvedSource = qator(40, 'yangi', 'Confirmed stone');
+    approvedSource.hujjat = 'IN-40';
+    const untouchedSource = qator(41, 'yangi', 'Unconfirmed sand');
+    mocks.read.mockResolvedValue(kitob([approvedSource, untouchedSource]));
+    mocks.excel.mockResolvedValue(new Uint8Array([3, 4, 5]));
+    render(<PrixodKitobPreview kompaniyaId={27} skladId={8} skladNomi="Warehouse Eight" />);
+    faylYukla(xlsx('source-book.xlsx'));
+    await screen.findByText('Confirmed stone');
+    const exportButton = screen.getByRole('button', { name: 'Tasdiqlangan qoralamalar — RU Excel' }) as HTMLButtonElement;
+    expect(exportButton.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Davr boshi'), { target: { value: '2026-10-01' } });
+    fireEvent.change(screen.getByLabelText('Davr oxiri'), { target: { value: '2026-10-31' } });
+    expect(exportButton.disabled).toBe(true);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Tahrirlash' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasi to‘g‘ri — tasdiqlash' }));
+    expect(exportButton.disabled).toBe(false);
+    fireEvent.click(exportButton);
+    await waitFor(() => expect(mocks.excel).toHaveBeenCalledTimes(1));
+
+    const [rows, davr] = mocks.excel.mock.calls[0] as [Array<Record<string, unknown>>, Record<string, unknown>];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual(expect.objectContaining({
+      id: '42', sana: '2026-10-27', operatsiya: 'prixod', nom: 'Confirmed stone', birlik: 'kg',
+      miqdor: 40.25, tomon: 'Ta’minotchi', hujjat: 'IN-40', manbaQator: 42, tasdiqlangan: true,
+    }));
+    expect(davr).toEqual(expect.objectContaining({
+      bosh: '2026-10-01', oxir: '2026-10-31', kompaniya: 'Kompaniya 27', ombor: 'Warehouse Eight',
+      holat: 'qoralama', rasxodKiritilgan: false, manbaNomi: 'synthetic.xlsx', manbaSha256: 'synthetic-only',
+    }));
+    await waitFor(() => expect(mocks.download).toHaveBeenCalledWith(expect.any(Uint8Array), expect.stringContaining('Kirim_qoralama_')));
+  });
+
+  it('keeps period export disabled without a warehouse even for a confirmed draft', async () => {
+    mocks.read.mockResolvedValue(kitob([qator(50, 'yangi', 'No-warehouse material')]));
+    render(<PrixodKitobPreview kompaniyaId={27} skladId={null} />);
+    faylYukla(xlsx('no-warehouse.xlsx'));
+    await screen.findByText('No-warehouse material');
+    fireEvent.change(screen.getByLabelText('Davr boshi'), { target: { value: '2026-10-01' } });
+    fireEvent.change(screen.getByLabelText('Davr oxiri'), { target: { value: '2026-10-31' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Tahrirlash' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasi to‘g‘ri — tasdiqlash' }));
+    expect((screen.getByRole('button', { name: 'Tasdiqlangan qoralamalar — RU Excel' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(mocks.excel).not.toHaveBeenCalled();
+  });
+
+  it('discards a delayed draft export after company changes', async () => {
+    mocks.read.mockResolvedValue(kitob([qator(60)]));
+    const pending = kechikkan<Uint8Array>(); mocks.excel.mockReturnValue(pending.promise);
+    const view = render(<PrixodKitobPreview kompaniyaId={1} skladId={4} />);
+    faylYukla(xlsx('company-one.xlsx')); await screen.findByText('Tovar 60');
+    fireEvent.change(screen.getByLabelText('Davr boshi'), {target:{value:'2026-10-01'}});
+    fireEvent.change(screen.getByLabelText('Davr oxiri'), {target:{value:'2026-10-31'}});
+    fireEvent.click(screen.getByRole('button',{name:'Tahrirlash'}));
+    fireEvent.click(screen.getByRole('button',{name:'Hammasi to‘g‘ri — tasdiqlash'}));
+    fireEvent.click(screen.getByRole('button',{name:'Tasdiqlangan qoralamalar — RU Excel'}));
+    await waitFor(()=>expect(mocks.excel).toHaveBeenCalledOnce());
+    view.rerender(<PrixodKitobPreview kompaniyaId={2} skladId={4}/>);
+    pending.resolve(new Uint8Array([1]));
+    await waitFor(()=>expect(screen.queryByText('Tovar 60')).toBeNull());
+    expect(mocks.download).not.toHaveBeenCalled();
   });
 });

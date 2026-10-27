@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
-import { AlertCircle, Check, ChevronLeft, ChevronRight, FileSpreadsheet, LoaderCircle, Search, ShieldAlert, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronLeft, ChevronRight, Download, FileSpreadsheet, LoaderCircle, Search, ShieldAlert, X } from 'lucide-react';
 import { t, raqamFormatla } from '../../i18n/til';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { prixodKitobFonda } from '../../lib/ombor-prixod/read-fonda';
+import { PrixodQatorEditor } from './PrixodQatorEditor';
+import { materialTaklifQur } from '../../lib/ombor-prixod/taklif';
+import { prixodQoralama, qoralamaQator, qoralamaTasdiqlangan, type PrixodQoralama } from '../../lib/ombor-prixod/qoralama';
 import type { PrixodKitob, PrixodQator, PrixodXato, PrixodOgoh } from '../../lib/ombor-prixod/turlar';
+import { omborDavrExcel, type OmborDavr, type OmborHisobotQator } from '../../lib/ombor-prixod/davr-eksport';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 
 const SAHIFA_HAJMI = 50;
 type Filtr = 'hammasi' | 'yangi' | 'takror' | 'xato';
@@ -78,6 +83,13 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
   const [qidiruv, setQidiruv] = useState('');
   const [filtr, setFiltr] = useState<Filtr>('hammasi');
   const [sahifa, setSahifa] = useState(0);
+  const [qoralamalar, setQoralamalar] = useState<Map<number, PrixodQoralama>>(() => new Map());
+  const [tahrirQatori, setTahrirQatori] = useState<number | null>(null);
+  const [takrorTekshiruviEskirdi, setTakrorTekshiruviEskirdi] = useState(false);
+  const [davrBoshi, setDavrBoshi] = useState('');
+  const [davrOxiri, setDavrOxiri] = useState('');
+  const [eksportYuklanmoqda, setEksportYuklanmoqda] = useState(false);
+  const [eksportXatosi, setEksportXatosi] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
   const generationRef = useRef(0);
   const faylRef = useRef<HTMLInputElement>(null);
@@ -86,6 +98,9 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
     sorovniEskirtirVaBekorQil(generationRef, requestRef);
     setHolat(null);
     setQidiruv(''); setFiltr('hammasi'); setSahifa(0);
+    setQoralamalar(new Map()); setTahrirQatori(null);
+    setTakrorTekshiruviEskirdi(false);
+    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(false); setEksportYuklanmoqda(false);
     return () => {
       sorovniEskirtirVaBekorQil(generationRef, requestRef);
     };
@@ -102,6 +117,9 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
     const scope = { kompaniyaId, skladId };
     setHolat({ scope, faylNomi: file.name, kitob: null, yuklanmoqda: true, xato: null });
     setQidiruv(''); setFiltr('hammasi'); setSahifa(0);
+    setQoralamalar(new Map()); setTahrirQatori(null);
+    setTakrorTekshiruviEskirdi(false);
+    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(false); setEksportYuklanmoqda(false);
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (controller.signal.aborted || generation !== generationRef.current) return;
@@ -118,11 +136,32 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
 
   const scopeMos = holat?.scope.kompaniyaId === kompaniyaId && holat.scope.skladId === skladId;
   const kitob = scopeMos ? holat?.kitob ?? null : null;
+  const takrorTekshirildi = kitob?.takrorTekshirildi === true && !takrorTekshiruviEskirdi;
   const kutyapti = scopeMos && holat?.yuklanmoqda === true;
   const xato = scopeMos ? holat?.xato ?? null : null;
+  const qatorTakliflari = useMemo(() => kitob ? materialTaklifQur(kitob.qatorlar) : [], [kitob]);
+  const korinadiganManbaQatorlar = useMemo(() => (kitob?.qatorlar ?? []).map((source) => {
+    const draft = qoralamalar.get(source.manbaQator);
+    return draft ? qoralamaQator(draft) : source;
+  }), [kitob, qoralamalar]);
+  const jami = useMemo(() => ({
+    yangi: korinadiganManbaQatorlar.filter((q) => q.holat === 'yangi').length,
+    takror: korinadiganManbaQatorlar.filter((q) => q.holat === 'takror').length,
+    xato: korinadiganManbaQatorlar.filter((q) => q.holat === 'xato').length,
+  }), [korinadiganManbaQatorlar]);
+  const tasdiqlanganEksportQatorlari = useMemo<OmborHisobotQator[]>(() => [...qoralamalar.values()]
+    .filter(qoralamaTasdiqlangan)
+    .map((draft) => {
+      const row = qoralamaQator(draft);
+      return {
+        id: String(row.manbaQator), sana: row.sana!, operatsiya: 'prixod', nom: row.nom, birlik: row.birlik,
+        miqdor: row.miqdor!, tomon: row.yetkazuvchi, hujjat: row.hujjat, manbaQator: row.manbaQator,
+        tasdiqlangan: true,
+      };
+    }), [qoralamalar]);
   const queryKey = qidiruvKaliti(qidiruv);
-  const mosQatorlar = useMemo(() => (kitob?.qatorlar ?? []).filter((q) =>
-    (filtr === 'hammasi' || q.holat === filtr) && (!queryKey || qidiruvKaliti(qatorQidiruvMatni(q)).includes(queryKey))), [kitob, filtr, queryKey]);
+  const mosQatorlar = useMemo(() => korinadiganManbaQatorlar.filter((q) =>
+    (filtr === 'hammasi' || q.holat === filtr) && (!queryKey || qidiruvKaliti(qatorQidiruvMatni(q)).includes(queryKey))), [korinadiganManbaQatorlar, filtr, queryKey]);
   const sahifalarSoni = Math.max(1, Math.ceil(mosQatorlar.length / SAHIFA_HAJMI));
   const joriySahifa = Math.min(sahifa, sahifalarSoni - 1);
   const qatorlar = mosQatorlar.slice(joriySahifa * SAHIFA_HAJMI, (joriySahifa + 1) * SAHIFA_HAJMI);
@@ -130,14 +169,45 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
   const bekorQil = () => {
     sorovniEskirtirVaBekorQil(generationRef, requestRef);
     setHolat(null); setQidiruv(''); setFiltr('hammasi'); setSahifa(0);
+    setQoralamalar(new Map()); setTahrirQatori(null);
+    setTakrorTekshiruviEskirdi(false);
+    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(false); setEksportYuklanmoqda(false);
+  };
+
+  const eksportMumkin = [
+    kitob != null, tasdiqlanganEksportQatorlari.length !== 0,
+    davrBoshi.length !== 0, davrOxiri.length !== 0, davrBoshi <= davrOxiri,
+    Math.sign(kompaniyaId) === 1, skladId != null, !eksportYuklanmoqda,
+  ].every(Boolean);
+
+  const davrExcelYukla = async () => {
+    if (!eksportMumkin || !kitob || skladId == null) return;
+    const generation = generationRef.current;
+    setEksportYuklanmoqda(true); setEksportXatosi(false);
+    const davr: OmborDavr = {
+      bosh: davrBoshi, oxir: davrOxiri, kompaniya: `${t('Kompaniya')} ${kompaniyaId}`,
+      ombor: skladNomi || `${t('Ombor')} ${skladId}`, holat: 'qoralama', rasxodKiritilgan: false,
+      manbaNomi: kitob.faylNomi, manbaSha256: kitob.sha256,
+    };
+    try {
+      const bytes = await omborDavrExcel(tasdiqlanganEksportQatorlari, davr);
+      if (generation !== generationRef.current) return;
+      const nom = `Kirim_qoralama_${davrBoshi}_${davrOxiri}.xlsx`;
+      downloadBlob(bytes, nom);
+    } catch {
+      if (generation === generationRef.current) setEksportXatosi(true);
+    } finally {
+      if (generation === generationRef.current) setEksportYuklanmoqda(false);
+    }
   };
 
   const filtrlar: { id: Filtr; label: string; soni: number | string; disabled?: boolean }[] = kitob ? [
-    { id: 'hammasi', label: t('Barchasi'), soni: kitob.qatorlar.length },
-    { id: 'yangi', label: t('Yangi'), soni: kitob.jami.yangi },
-    { id: 'takror', label: t('Takror'), soni: kitob.takrorTekshirildi ? kitob.jami.takror : '—', disabled: !kitob.takrorTekshirildi },
-    { id: 'xato', label: t('Xato'), soni: kitob.jami.xato },
+    { id: 'hammasi', label: t('Barchasi'), soni: korinadiganManbaQatorlar.length },
+    { id: 'yangi', label: t('Yangi'), soni: jami.yangi },
+    { id: 'takror', label: t('Takror'), soni: takrorTekshirildi ? jami.takror : '—', disabled: !takrorTekshirildi },
+    { id: 'xato', label: t('Xato'), soni: jami.xato },
   ] : [];
+  const faolQoralama = tahrirQatori == null ? null : qoralamalar.get(tahrirQatori) ?? null;
 
   return <section className="fz-card min-w-0" aria-label={t('Kirim hujjatini ko‘rib chiqish')}>
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
@@ -147,19 +217,19 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
         </div>
         <p className="mb-0 mt-1 text-[12px] leading-4 text-text-dim">{t('Faqat «Приход» varag‘i ko‘riladi. Narx va summa hozircha noma’lum; 0 deb olinmaydi.')}</p>
       </div>
-      <span className="fz-stamp fz-stamp--info">{t('Faqat ko‘rish')}</span>
+      <span className="fz-stamp fz-stamp--info">{t('Mahalliy qoralama')}</span>
     </header>
 
     <div className="space-y-3 p-3 sm:p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-md border border-[var(--border-strong)] bg-surface-2 px-3 text-center text-[13px] font-medium text-text hover:bg-surface-3 sm:flex-1">
+        <label className="flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-md border border-[var(--border-strong)] bg-surface-2 px-3 text-center text-[13px] font-medium text-text hover:bg-surface-3 sm:flex-1">
           <FileSpreadsheet size={17} aria-hidden="true" />{t('Excel faylini tanlang')}
           <input ref={faylRef} aria-label={t('XLSX fayli')} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={kompaniyaId <= 0} onChange={(e) => void faylTanla(e)} className="sr-only" />
         </label>
-        {scopeMos && holat?.faylNomi && <div className="flex min-h-12 min-w-0 items-center justify-between gap-2 rounded-md bg-surface-2 px-3 text-[12px] text-text-dim sm:flex-1">
+        {scopeMos && holat?.faylNomi && <div className="flex min-h-[48px] min-w-0 items-center justify-between gap-2 rounded-md bg-surface-2 px-3 text-[12px] text-text-dim sm:flex-1">
           <span className="truncate" title={holat.faylNomi}>{holat.faylNomi}</span>
-          {kutyapti ? <button type="button" onClick={bekorQil} className="fz-btn fz-btn--ghost min-h-12 min-w-12 px-2" aria-label={t('O‘qishni bekor qilish')}><X size={16} aria-hidden="true" /></button>
-            : <button type="button" onClick={bekorQil} className="fz-btn fz-btn--ghost min-h-12 px-3">{t('Tozalash')}</button>}
+          {kutyapti ? <button type="button" onClick={bekorQil} className="fz-btn fz-btn--ghost min-h-[48px] min-w-[48px] px-2" aria-label={t('O‘qishni bekor qilish')}><X size={16} aria-hidden="true" /></button>
+            : <button type="button" onClick={bekorQil} className="fz-btn fz-btn--ghost min-h-[48px] px-3">{t('Tozalash')}</button>}
         </div>}
       </div>
 
@@ -171,14 +241,36 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
       {xato && <div className="fz-note fz-note--danger" role="alert"><AlertCircle size={16} aria-hidden="true" />{xato}</div>}
 
       {kitob && <>
+        <section className="rounded-md border border-border bg-surface-2 p-3" aria-label={t('Tasdiqlangan qoralamalar eksporti')}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <label className="min-w-0 flex-1 text-[12px] font-medium text-text-dim">
+              {t('Davr boshi')}
+              <input type="date" value={davrBoshi} onChange={(e) => { setDavrBoshi(e.target.value); setEksportXatosi(false); }}
+                className="mt-1 h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text" />
+            </label>
+            <label className="min-w-0 flex-1 text-[12px] font-medium text-text-dim">
+              {t('Davr oxiri')}
+              <input type="date" value={davrOxiri} onChange={(e) => { setDavrOxiri(e.target.value); setEksportXatosi(false); }}
+                className="mt-1 h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text" />
+            </label>
+            <button type="button" disabled={!eksportMumkin} onClick={() => void davrExcelYukla()}
+              className="fz-btn fz-btn--primary min-h-[48px] justify-center px-3 disabled:cursor-not-allowed disabled:opacity-50">
+              {eksportYuklanmoqda ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} aria-hidden="true" />}
+              {eksportYuklanmoqda ? t('Excel tayyorlanmoqda…') : t('Tasdiqlangan qoralamalar — RU Excel')}
+            </button>
+          </div>
+          <p className="mb-0 mt-2 text-[11px] text-text-mute">{t('Tasdiqlangan qoralamalar: {soni}', { soni: tasdiqlanganEksportQatorlari.length })} · {t('Eksportda faqat tasdiqlangan qoralamalar olinadi.')}</p>
+          {eksportXatosi && <p className="mb-0 mt-1 text-[12px] text-danger" role="alert">{t('Excelni tayyorlab bo‘lmadi. Tasdiqlangan qatorlar va davrni tekshiring.')}</p>}
+        </section>
+
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Summary label={t('Yangi')} value={kitob.jami.yangi} tone="ok" />
-          <Summary label={t('Takror')} value={kitob.takrorTekshirildi ? kitob.jami.takror : '—'} tone="warn" />
-          <Summary label={t('Xato')} value={kitob.jami.xato} tone="danger" />
+          <Summary label={t('Yangi')} value={jami.yangi} tone="ok" />
+          <Summary label={t('Takror')} value={takrorTekshirildi ? jami.takror : '—'} tone="warn" />
+          <Summary label={t('Xato')} value={jami.xato} tone="danger" />
           <Summary label={t('Bo‘sh shablon qatorlari')} value={kitob.boshQatorlar} tone="muted" />
         </div>
 
-        {!kitob.takrorTekshirildi && <div className="fz-note fz-note--warn" role="status">{t('Takrorlar ombor bilan hali solishtirilmagan.')}</div>}
+        {!takrorTekshirildi && <div className="fz-note fz-note--warn" role="status">{t('Takrorlar ombor bilan hali solishtirilmagan.')}</div>}
 
         {(kitob.ogohlar.length > 0 || kitob.otkazilganVaraqlar.length > 0) && <div className="fz-note fz-note--warn" role="status">
           <ShieldAlert size={16} aria-hidden="true" /><div className="min-w-0 space-y-1">
@@ -191,13 +283,13 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
           <div className="flex flex-wrap gap-1" role="group" aria-label={t('Qator holati filtri')}>
             {filtrlar.map((f) => <button key={f.id} type="button" aria-pressed={filtr === f.id} onClick={() => { setFiltr(f.id); setSahifa(0); }}
               disabled={f.disabled}
-              className={`min-h-12 rounded-md border px-3 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50 ${filtr === f.id ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]' : 'border-border bg-surface text-text-dim hover:bg-surface-2'}`}>
+              className={`min-h-[48px] rounded-md border px-3 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-50 ${filtr === f.id ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]' : 'border-border bg-surface text-text-dim hover:bg-surface-2'}`}>
               {f.label}<span className="ml-1.5 tabular-nums">{f.soni}</span></button>)}
           </div>
           <label className="relative block min-w-0 sm:w-64">
             <Search size={15} className="absolute left-3 top-4 text-text-mute" aria-hidden="true" />
             <input aria-label={t('Qatorlarni qidirish')} value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setSahifa(0); }}
-              placeholder={t('Nom, birlik yoki yetkazuvchi')} className="h-12 w-full rounded-md border border-[var(--border-strong)] bg-bg pl-9 pr-3 text-[13px] text-text outline-none focus:border-[var(--accent)]" />
+              placeholder={t('Nom, birlik yoki yetkazuvchi')} className="h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg pl-9 pr-3 text-[13px] text-text outline-none focus:border-[var(--accent)]" />
           </label>
         </div>
 
@@ -220,7 +312,15 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
                     <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-text-mute md:hidden">{t('Holat va izoh')}</span>
                     <HolatNishoni q={q} />
                     <span className="mt-1 block text-[11px] text-text-mute">{t('Manba: {qator}-qator', { qator: q.manbaQator })}</span>
+                    {qoralamalar.has(q.manbaQator) && <span className={`mt-1 block text-[11px] ${qoralamaTasdiqlangan(qoralamalar.get(q.manbaQator)!) ? 'text-ok' : 'text-warn'}`}>
+                      {t(qoralamaTasdiqlangan(qoralamalar.get(q.manbaQator)!) ? 'Kiritish tasdiqlandi — hali saqlanmagan.' : 'Tahrirlangan qoralama — tasdiqlash kerak.')}
+                    </span>}
                     {izohlar.length > 0 && <ul className="mb-0 mt-1 list-disc space-y-0.5 pl-4 text-[11px] leading-4 text-warn">{izohlar.map((s, i) => <li key={`${s}-${i}`}>{s}</li>)}</ul>}
+                    <button type="button" className="fz-btn mt-2 min-h-[48px] px-3" onClick={() => {
+                      const draft = qoralamalar.get(q.manbaQator) ?? prixodQoralama(q);
+                      if (!qoralamalar.has(q.manbaQator)) setQoralamalar((old) => new Map(old).set(q.manbaQator, draft));
+                      setTahrirQatori(q.manbaQator);
+                    }}>{t('Tahrirlash')}</button>
                   </td>
                 </tr>;
               })}
@@ -235,10 +335,17 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
             gacha: String(Math.min((joriySahifa + 1) * SAHIFA_HAJMI, mosQatorlar.length)), jami: String(mosQatorlar.length),
           })}</span>
           <div className="flex gap-2">
-            <button type="button" className="fz-btn min-h-12 min-w-12 px-3" disabled={joriySahifa <= 0} onClick={() => setSahifa((n) => Math.max(0, n - 1))} aria-label={t('Oldingi sahifa')}><ChevronLeft size={17} aria-hidden="true" />{t('Oldingi')}</button>
-            <button type="button" className="fz-btn min-h-12 px-3" disabled={joriySahifa + 1 >= sahifalarSoni} onClick={() => setSahifa((n) => Math.min(sahifalarSoni - 1, n + 1))} aria-label={t('Keyingi sahifa')}>{t('Keyingi')}<ChevronRight size={17} aria-hidden="true" /></button>
+            <button type="button" className="fz-btn min-h-[48px] min-w-[48px] px-3" disabled={joriySahifa <= 0} onClick={() => setSahifa((n) => Math.max(0, n - 1))} aria-label={t('Oldingi sahifa')}><ChevronLeft size={17} aria-hidden="true" />{t('Oldingi')}</button>
+            <button type="button" className="fz-btn min-h-[48px] px-3" disabled={joriySahifa + 1 >= sahifalarSoni} onClick={() => setSahifa((n) => Math.min(sahifalarSoni - 1, n + 1))} aria-label={t('Keyingi sahifa')}>{t('Keyingi')}<ChevronRight size={17} aria-hidden="true" /></button>
           </div>
         </div>
+        {faolQoralama && <PrixodQatorEditor kompaniyaId={kompaniyaId} qoralama={faolQoralama} takliflar={qatorTakliflari}
+          onOzgar={(updated) => {
+            const oldDraft = qoralamalar.get(updated.manba.manbaQator);
+            if (oldDraft && oldDraft.versiya !== updated.versiya) setTakrorTekshiruviEskirdi(true);
+            setQoralamalar((old) => new Map(old).set(updated.manba.manbaQator, updated));
+            if (qoralamaTasdiqlangan(updated)) setTahrirQatori(null);
+          }} onYop={() => setTahrirQatori(null)} />}
       </>}
 
       {!kitob && !kutyapti && !xato && <div className="flex min-h-32 flex-col items-center justify-center rounded-md border border-dashed border-[var(--border-strong)] px-4 py-6 text-center">
@@ -248,7 +355,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
       </div>}
 
       <div className="fz-note fz-note--info" role="status">
-        <Check size={15} aria-hidden="true" /><span>{t('Bu — oldindan ko‘rish. Hali omborga yozilmagan.')}</span>
+        <Check size={15} aria-hidden="true" /><span>{t('Tasdiqlash faqat mahalliy qoralamani belgilaydi; DBga yozilmaydi.')}</span>
       </div>
     </div>
   </section>;

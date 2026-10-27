@@ -9,12 +9,12 @@
       "branch": "codex/c11-prixod-preview-20261027",
       "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b",
       "status": "ready_for_review",
-      "owns": ["frontend/src/lib/f2-import-parse/xlsxReader.ts", "frontend/src/lib/ombor-prixod/", "frontend/src/components/ombor/PrixodKitobPreview.tsx", "frontend/src/components/ombor/PrixodKitobPreview.test.tsx", "frontend/src/workers/ombor-prixod.worker.ts", "frontend/src/i18n/lugat/qism/ombor-prixod-preview.json", "frontend/src/test02/TestSklad.tsx", "ops/mailbox/C11-SKLAD-20261027/"],
+      "owns": ["frontend/src/lib/f2-import-parse/xlsxReader.ts", "frontend/src/lib/ombor-prixod/", "frontend/src/components/ombor/PrixodKitobPreview.tsx", "frontend/src/components/ombor/PrixodKitobPreview.test.tsx", "frontend/src/components/ombor/PrixodQatorEditor.tsx", "frontend/src/components/ombor/PrixodQatorEditor.test.tsx", "frontend/src/components/ombor/OmborOvozYordam.tsx", "frontend/src/components/ombor/OmborOvozYordam.test.tsx", "frontend/src/workers/ombor-prixod.worker.ts", "frontend/src/i18n/lugat/qism/ombor-prixod-preview.json", "frontend/src/i18n/lugat/qism/ombor-ovoz-qoralama.json", "frontend/src/test02/TestSklad.tsx", "ops/mailbox/C11-SKLAD-20261027/"],
       "runtime_sublease": {"from_task":"CATALOG-IMPORT-AUDIT-20261023","paths":["frontend/src/lib/f2-import-parse/xlsxReader.ts"],"basis":"C11 explicit owner task; default reader unchanged, source-cell evidence export only. Catalog semantic backlog retained."},
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md"],
       "production_write_allowed": false,
-      "note": "L0 kech(5), directowner27Oct: Codex exclusively C11warehouse/supply; otherPTO handedL0. ONLY receipt sheet, copied/expenditure/balance sheets notimported/notoracle. Private workbook neverpublic. ThisPR parser/review only, no warehouse writes/stockclaims; single-ledger model in separate reviewedPR, migrationsappliedL0."
+      "note": "L0 kech(5), directowner27Oct: Codex exclusively C11warehouse/supply. ONLY receipt sheet, other sheets notimported/notoracle. Editable localdrafts, source-backed suggestions, whole-entry confirmation invalidated byedits, RUperioddraft exports, voice-to-draft UI. Voiceendpoint dependencyPR182, serversecretL0; no livepaidcall or warehouseposting. Private workbook neverpublic. Single-ledger model separatelyreviewed, migrationsappliedL0."
     },
     {
       "id": "OWNERSHIP-COORD-20261026",
