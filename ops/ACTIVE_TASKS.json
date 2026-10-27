@@ -7,14 +7,14 @@
       "title": "Live metadata Data Model Registry and current architecture pack for Claude L0",
       "owner": "codex",
       "machine": "Anvar",
-      "branch": "codex/architecture-pack-20261026",
+      "branch": "codex/architecture-registry-review-20261026",
       "base_sha": "69db8d45050cc82dfd67baae6dec7153b727a219",
       "status": "ready_for_review",
-      "owns": ["docs/architecture/DATA_MODEL_REGISTRY.yaml", "docs/architecture/CURRENT_SYSTEM_MAP.md", "docs/architecture/DOMAIN_MAP.md", "docs/architecture/PTO_STATE_MACHINE.md", "docs/architecture/ROUTE_RPC_MAP.md", "docs/architecture/RISK_REGISTER.md", "docs/architecture/GOLDEN_FLOWS.md", "docs/architecture/SCHEMA_METADATA_20261026.json", "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json", "docs/architecture/generate-architecture-pack.mjs"],
+      "owns": ["docs/architecture/DATA_MODEL_REGISTRY.yaml", "docs/architecture/DATA_MODEL_CLASSIFICATION_OVERRIDES.json", "docs/architecture/CURRENT_SYSTEM_MAP.md", "docs/architecture/DOMAIN_MAP.md", "docs/architecture/PTO_STATE_MACHINE.md", "docs/architecture/ROUTE_RPC_MAP.md", "docs/architecture/RISK_REGISTER.md", "docs/architecture/GOLDEN_FLOWS.md", "docs/architecture/SCHEMA_METADATA_20261026.json", "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json", "docs/architecture/generate-architecture-pack.mjs"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md"],
       "production_write_allowed": false,
-      "note": "Explicit L0 item4. Documentation-only, refreshed source d7bf7353 after143/152. Public202+snapshot5=207 tables, public578 routines; SELECT only. 180current/2COMPAT/14BACKUP/1TEMP/10NULL lifecycle entries; one module owner NULL. Static routine bodies exclude acceptance/rollback SQL and trailing migration DML. No DEPRECATED/delete claims, snapshot infrastructure excluded from cleanup. Existing pageCatalog reused. Claude L0 reviews PR156/merges; no runtime/DB/deploy writes."
+      "note": "PR156 merged. Narrow follow-up:11 source-evidenced manual classification overrides, snapshot remains d7bf7353/06:19UTC. Public202+snapshot5=207 tables/public578 routines.185CANONICAL/4COMPAT/14BACKUP/0TEMP/4NULL; one ownerNULL. UnknownERP staysNULL; tmp name only candidateTEMP; observation canonical only for immutable provenance, not approved runtime recipe. All delete_authorized false, usage unverified. No DB/runtime edits."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",
