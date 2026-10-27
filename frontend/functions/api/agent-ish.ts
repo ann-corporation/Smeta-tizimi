@@ -24,6 +24,7 @@ import { qidiruvSozlari } from '../../src/lib/jarvis/qidiruv-sozlari';
 import { studioKontekstTekshir } from '../../src/lib/jarvis/studio-kontekst';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
 import { openrouterBalans } from '../_shared/openrouter-balans';
+import { AI_TIZIM_AMALLAR, AI_TIZIM_BOLIMLAR, aiJavobTozala, platformaSuperadminmi } from '../_shared/tizim-maxfiy';
 
 type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
 
@@ -73,7 +74,7 @@ function doira(v: unknown): number | null | 'xato' {
   return sonmi(v) ? Number(v) : 'xato';
 }
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+const oqishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Response> => {
   const k = await kirish(ctx); if (k instanceof Response) return k;
   if (k.kalit) return xato('Kalit bilan o‘qish yo‘q', 403);
   const u = new URL(ctx.request.url);
@@ -371,7 +372,7 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   return { status: 200, body: { ok: true, kasb: ish, javob: ajr.javob, harakatlar, sahifalar, toifalar: ishlatilgan, model: r.model, model_manba: m.data.model_manba ?? null, provider: r.provider, ms: Date.now() - t0, jurnal_id: jid } };
 }
 
-export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Response> => {
   const k = await kirish(ctx); if (k instanceof Response) return k;
   let so: Yuk;
   try { so = await ctx.request.json() as Yuk; } catch { return xato('Noto‘g‘ri so‘rov'); }
@@ -743,4 +744,49 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
   }
   return xato('Amal ochiq emas');
+};
+
+/* ═══ Egasi 2026-10-27: tizimga oid AI ma'lumoti — faqat platforma superadmini (server qatlami) ═══
+ * • model katalogi, OpenRouter ro'yxati, model tanlash/siyosati, AI ustama va byudjet — superadmin bo'lmaganga 403;
+ * • AI javoblari va jurnali: provayder, model nomi, model manbasi va provayder sarfi (USD) olib tashlanadi.
+ * Davriy kalit (X-Kuzatuv-Kalit) — superadmin nomidan (KUZATUV_ACTOR_ID) va faqat oq ro'yxatdagi amallar. */
+const kalitBilan = (ctx: EventContext<Env, string, unknown>) => ctx.request.headers.has('X-Kuzatuv-Kalit');
+const tizimRad = () => Response.json({ ok: false, code: 'SUPERADMIN_REQUIRED', error: 'Bu bo‘lim faqat platforma administratori uchun' }, { status: 403, ...JAVOB });
+
+/** JSON yoki NDJSON (oqim) javobini superadmin bo'lmagan uchun tozalaydi (aiJavobTozala). */
+export async function jsonTozala(r: Response): Promise<Response> {
+  const tur = r.headers.get('Content-Type') || '';
+  const sarlavha = new Headers(r.headers); sarlavha.delete('Content-Length');
+  if (/application\/x-ndjson/.test(tur) && r.body) {
+    const dek = new TextDecoder(); const enc = new TextEncoder(); let qoldiq = '';
+    const qator = (q: string) => { if (!q.trim()) return q; try { return JSON.stringify(aiJavobTozala(JSON.parse(q))); } catch { return q; } };
+    const oqim = r.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+      transform(bolak, c) { qoldiq += dek.decode(bolak, { stream: true }); const q = qoldiq.split('\n'); qoldiq = q.pop() ?? ''; for (const x of q) c.enqueue(enc.encode(qator(x) + '\n')); },
+      flush(c) { qoldiq += dek.decode(); if (qoldiq) c.enqueue(enc.encode(qator(qoldiq))); },
+    }));
+    return new Response(oqim, { status: r.status, headers: sarlavha });
+  }
+  if (!/json/.test(tur)) return r;
+  const matn = await r.text();
+  let j: unknown;
+  try { j = JSON.parse(matn); } catch { return new Response(matn, { status: r.status, headers: sarlavha }); }
+  return new Response(JSON.stringify(aiJavobTozala(j)), { status: r.status, headers: sarlavha });
+}
+
+export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+  const sa = kalitBilan(ctx) || platformaSuperadminmi(ctx);
+  const bolim = new URL(ctx.request.url).searchParams.get('bolim') ?? '';
+  if (!sa && AI_TIZIM_BOLIMLAR.has(bolim)) return tizimRad();
+  const r = await oqishIchki(ctx);
+  return sa ? r : jsonTozala(r);
+};
+
+export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+  const sa = kalitBilan(ctx) || platformaSuperadminmi(ctx);
+  if (!sa) {
+    const amal = await ctx.request.clone().json().then((b) => String((b as { amal?: unknown })?.amal ?? '')).catch(() => '');
+    if (AI_TIZIM_AMALLAR.has(amal)) return tizimRad();
+  }
+  const r = await yozishIchki(ctx);
+  return sa ? r : jsonTozala(r);
 };

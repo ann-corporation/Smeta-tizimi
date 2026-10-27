@@ -3,7 +3,11 @@
  * Uch qatlam: akkaunt (shaxsiy), kompaniya (admin panel), tizim (platforma, faqat superadmin).
  * Har yozuv — sozlama qayerda o'zgartirilishi (`yol`) va qiymat qayerda saqlanishi (`saqlash`).
  * Yangi sozlama qo'shilsa — shu yerga ham yoziladi (test `yol` marshrutini App.tsx bilan solishtiradi).
+ * Tizimga oid (egasi 2026-10-27): `faqatSuperadmin: true` YOKI `yol` navReestr.faqatSuperadminYolmi bo'yicha tizim yo'li —
+ * faqat platforma superadmini ko'radi (menyu va marshrut qo'riqchisi bilan bitta manba).
  */
+import { faqatSuperadminYolmi } from '../nav/navReestr';
+
 export type SozlamaQatlam = 'akkaunt' | 'kompaniya' | 'tizim';
 export type Mavqe = 'zakazchik' | 'pudratchi' | 'loyihachi';
 
@@ -58,13 +62,13 @@ export const SOZLAMALAR: readonly Sozlama[] = [
   { id: 'kompaniya.tomonlar_aloqa', nom: 'Tomonlar aloqasi', izoh: 'Boshqa kompaniya bilan bir martalik kod orqali bog‘lanish va ko‘rish huquqini berish.', qatlam: 'kompaniya', bolim: 'A‘zolar va rollar', yol: '/admin/aloqalar', saqlash: 'server', ruxsat: ['company.member.manage'] },
   { id: 'kompaniya.modullar', nom: 'Modullar', izoh: 'AOSR, narx, loyiha, ERP modullarini yoqish/o‘chirish.', qatlam: 'kompaniya', bolim: 'Modullar va integratsiya', yol: '/admin/kompaniya?tab=modullar', saqlash: 'server', ruxsat: ['control.company.write'] },
   { id: 'kompaniya.loyiha_obyekt', nom: 'Loyiha va obyektlar', izoh: 'Kompaniya loyihalari va obyektlari ro‘yxati.', qatlam: 'kompaniya', bolim: 'Modullar va integratsiya', yol: '/admin/kompaniya?tab=loyiha', saqlash: 'server', ruxsat: ['project.read'] },
-  { id: 'kompaniya.integratsiya', nom: 'Integratsiyalar holati', izoh: 'Tashqi integratsiyalar sog‘lig‘i (faqat o‘qish).', qatlam: 'kompaniya', bolim: 'Modullar va integratsiya', yol: '/admin/kompaniya?tab=integratsiya', saqlash: 'server', ruxsat: ['control.company.read'] },
+  { id: 'kompaniya.integratsiya', nom: 'Integratsiyalar holati', izoh: 'Tashqi integratsiyalar sog‘lig‘i (faqat o‘qish).', qatlam: 'tizim', bolim: 'Modullar va integratsiya', yol: '/admin/kompaniya?tab=integratsiya', saqlash: 'server', ruxsat: ['control.company.read'], faqatSuperadmin: true },
   { id: 'kompaniya.audit', nom: 'Audit jurnali', izoh: 'Kompaniyadagi muhim o‘zgarishlar jurnali.', qatlam: 'kompaniya', bolim: 'Modullar va integratsiya', yol: '/admin/kompaniya?tab=audit', saqlash: 'server', ruxsat: ['control.company.read'] },
-  { id: 'kompaniya.tizim_nazorat', nom: 'Texnik imkoniyatlar va nazorat', izoh: 'Kompaniya darajasidagi imkoniyatlar, ishlar va hodisalar.', qatlam: 'kompaniya', bolim: 'Modullar va integratsiya', yol: '/admin/system-control', saqlash: 'server', ruxsat: ['control.company.read'] },
+  { id: 'kompaniya.tizim_nazorat', nom: 'Texnik imkoniyatlar va nazorat', izoh: 'Kompaniya darajasidagi imkoniyatlar, ishlar va hodisalar.', qatlam: 'tizim', bolim: 'Modullar va integratsiya', yol: '/admin/system-control', saqlash: 'server', ruxsat: ['control.company.read'], faqatSuperadmin: true },
   { id: 'kompaniya.valyuta', nom: 'Asosiy valyuta', izoh: 'UZS yoki USD.', qatlam: 'kompaniya', bolim: 'Umumiy sozlamalar', yol: '/admin/tizim-sozlama', saqlash: 'server', ruxsat: ['company.read'] },
   { id: 'kompaniya.qatiy_nazorat', nom: 'Qat‘iy moliyaviy nazorat', izoh: 'Moliyaviy cheklovlarni qat‘iy qo‘llash.', qatlam: 'kompaniya', bolim: 'Umumiy sozlamalar', yol: '/admin/tizim-sozlama', saqlash: 'server', ruxsat: ['company.read'] },
   { id: 'kompaniya.didox', nom: 'Didox (EHF) kaliti', izoh: 'Elektron hujjat almashinuvi uchun API kaliti.', qatlam: 'kompaniya', bolim: 'Umumiy sozlamalar', yol: '/admin/tizim-sozlama', saqlash: 'server', ruxsat: ['company.read'] },
-  { id: 'kompaniya.gas_sinx', nom: 'Google Sheets avto-sinxronizatsiyasi', izoh: 'Eski GAS sinxronizatsiyasini yoqish.', qatlam: 'kompaniya', bolim: 'Umumiy sozlamalar', yol: '/admin/tizim-sozlama', saqlash: 'server', ruxsat: ['company.read'] },
+  { id: 'kompaniya.gas_sinx', nom: 'Google Sheets avto-sinxronizatsiyasi', izoh: 'Eski GAS sinxronizatsiyasini yoqish.', qatlam: 'tizim', bolim: 'Umumiy sozlamalar', yol: '/admin/tizim-sozlama', saqlash: 'server', ruxsat: ['company.read'], faqatSuperadmin: true },
   { id: 'kompaniya.f2_tasdiq_rejimi', nom: 'F2 tasdiq rejimi', izoh: 'Shaxsiy (bir kishi) yoki korporativ (tayyorlovchi, tekshiruvchi va tasdiqlovchi alohida).', qatlam: 'kompaniya', bolim: 'F2 jarayoni', yol: '/admin/kompaniya?tab=sozlamalar', saqlash: 'server', ruxsat: ['company.profile.update'], mavqe: ['pudratchi'] },
   { id: 'kompaniya.hujjat_imzo_tomonlari', nom: 'Hujjat imzochilari', izoh: 'Imzochilar har obyektda (loyiha, obyekt yoki razdel darajasida) alohida: buyurtmachi o‘z odamlarini, pudratchi o‘zinikini tayinlaydi. Hujjat sahifalaridagi «Hujjat imzolari» panelida.', qatlam: 'kompaniya', bolim: 'F2 jarayoni', yol: '/admin/obyektlar', saqlash: 'server', ruxsat: ['company.read'] },
   { id: 'kompaniya.hujjat_dizayni', nom: 'Hujjat dizayni', izoh: 'Excel va ko‘rinishdagi rang mavzusi, hujjat turlari bo‘yicha.', qatlam: 'kompaniya', bolim: 'Hujjatlar', yol: '/admin/kompaniya?tab=sozlamalar', saqlash: 'server', ruxsat: ['company.read'] },
@@ -76,8 +80,8 @@ export const SOZLAMALAR: readonly Sozlama[] = [
   { id: 'kompaniya.narx_manbalari', nom: 'Narx manbalari', izoh: 'Katalog, faktura va tijoriy takliflar manbalari.', qatlam: 'kompaniya', bolim: 'Narx va nakrutka', yol: '/admin/narx-manbalari', saqlash: 'server', ruxsat: ['narx.read'], mavqe: ['pudratchi'] },
   { id: 'kompaniya.narx_nazorati', nom: 'Narxlar nazorati', izoh: 'Narx chetlanishi, kategoriya va diapazonlar.', qatlam: 'kompaniya', bolim: 'Narx va nakrutka', yol: '/admin/narxlar', saqlash: 'server', ruxsat: ['narx.read'], mavqe: ['pudratchi'] },
   { id: 'kompaniya.ai_yoqish', nom: 'AI yoqish va oylik limit', izoh: 'Kompaniyada AI yoqish, oylik token limiti, a‘zolarni kuzatish ruxsati.', qatlam: 'kompaniya', bolim: 'AI ishchilar', yol: '/admin/ai-agentlar', saqlash: 'server', ruxsat: ['control.company.read'] },
-  { id: 'kompaniya.ai_model_siyosati', nom: 'AI model siyosati', izoh: 'A‘zolar AI modelini o‘zi tanlay oladimi yoki qulflanadimi.', qatlam: 'kompaniya', bolim: 'AI ishchilar', yol: '/admin/ai-agentlar', saqlash: 'server', ruxsat: ['control.company.read'] },
-  { id: 'kompaniya.ai_modellar', nom: 'AI agent modellari', izoh: 'Har bir kompaniya agenti qaysi modeldan foydalanadi.', qatlam: 'kompaniya', bolim: 'AI ishchilar', yol: '/admin/ai-agentlar', saqlash: 'server', ruxsat: ['control.company.read'] },
+  { id: 'kompaniya.ai_model_siyosati', nom: 'AI model siyosati', izoh: 'A‘zolar AI modelini o‘zi tanlay oladimi yoki qulflanadimi.', qatlam: 'tizim', bolim: 'AI ishchilar', yol: '/admin/ai-agentlar', saqlash: 'server', ruxsat: ['control.company.read'], faqatSuperadmin: true },
+  { id: 'kompaniya.ai_modellar', nom: 'AI agent modellari', izoh: 'Har bir kompaniya agenti qaysi modeldan foydalanadi.', qatlam: 'tizim', bolim: 'AI ishchilar', yol: '/admin/ai-agentlar', saqlash: 'server', ruxsat: ['control.company.read'], faqatSuperadmin: true },
   { id: 'kompaniya.ai_bilim', nom: 'Kompaniya bilimi (AI qoidalari)', izoh: 'AI ishchilar foydalanadigan kompaniya qoidalari va atamalari.', qatlam: 'kompaniya', bolim: 'AI ishchilar', yol: '/admin/ai-agentlar', saqlash: 'server', ruxsat: ['control.company.read'] },
   { id: 'kompaniya.tokenlar', nom: 'Tokenlar va obuna', izoh: 'Token balansi, sotib olish va amal narxlari (faqat o‘qish).', qatlam: 'kompaniya', bolim: 'Token va obuna', yol: '/admin/tokenlar', saqlash: 'server', ruxsat: ['company.read'] },
   { id: 'kompaniya.buyurtmachi_kabineti', nom: 'Buyurtmachi kabineti', izoh: 'Pudratchilardan kelgan obyektlar va hujjatlarni ko‘rish.', qatlam: 'kompaniya', bolim: 'Buyurtmachi kabineti', yol: '/admin/zakazchik', saqlash: 'server', ruxsat: ['company.read'], mavqe: ['zakazchik'] },
@@ -123,7 +127,7 @@ export type SozlamaKontekst = { superadmin: boolean; permissions: readonly strin
 /** Foydalanuvchi ko'ra oladigan sozlamalar. Superadmin — hammasi; `mavqe` berilsa mos kelmaganlar tushiriladi. */
 export function sozlamaFiltr(ctx: SozlamaKontekst, royxat: readonly Sozlama[] = SOZLAMALAR): Sozlama[] {
   return royxat.filter((s) => {
-    if (s.faqatSuperadmin && !ctx.superadmin) return false;
+    if ((s.faqatSuperadmin || faqatSuperadminYolmi(s.yol)) && !ctx.superadmin) return false;
     if (!ctx.superadmin && !ruxsatMos(s.ruxsat, ctx.permissions)) return false;
     if (ctx.mavqe !== undefined && !mavqeMos(s, ctx.mavqe)) return false;
     return true;

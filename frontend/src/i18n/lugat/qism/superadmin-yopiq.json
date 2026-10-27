@@ -1,0 +1,7 @@
+{
+  "Bu sahifa faqat platforma administratori uchun.": { "ru": "Эта страница доступна только администратору платформы.", "en": "This page is available to the platform administrator only." },
+  "Didox": { "ru": "Didox", "en": "Didox" },
+  "Narx tizim hisoblagan kataklar soni boʻyicha. Har sarfning hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.": { "ru": "Цена зависит от количества ячеек, рассчитанных системой. Расчёт каждого списания виден ниже. Повторная загрузка того же документа бесплатна; при ошибке токены возвращаются; ввод данных бесплатен.", "en": "The price depends on the number of cells calculated by the system. Each charge is itemised below. Re-uploading the same document is free; tokens are refunded on error; data entry is free." },
+  "{a} soʻm + har {b} birlikka {c} soʻm": { "ru": "{a} сум + {c} сум за каждые {b} ед.", "en": "{a} UZS + {c} UZS per {b} units" },
+  "Akkaunt — faqat siz uchun; Kompaniya — admin panelida butun jamoa uchun.": { "ru": "Аккаунт — только для вас; Компания — в панели администратора для всей команды.", "en": "Account — just for you; Company — in the admin panel for the whole team." }
+}

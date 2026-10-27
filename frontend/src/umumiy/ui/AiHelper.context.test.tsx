@@ -55,7 +55,9 @@ it('savol joriy kompaniya va sahifa bilan yuboriladi; qadamlar JONLI keladi; jav
   send('Omborda sement qancha?');
   expect(m.savol).toHaveBeenCalledWith(11, 'Omborda sement qancha?', expect.objectContaining({ sahifa: '/admin/f2' }));
   expect(await screen.findByText('10 t')).toBeTruthy();
-  expect(screen.getByText('google/gemini-2.5-flash-lite · 1.8 s')).toBeTruthy();
+  // Egasi 2026-10-27: model/provayder nomi — tizimga oid; oddiy foydalanuvchiga faqat vaqt.
+  expect(screen.getByText('1.8 s')).toBeTruthy();
+  expect(document.body.textContent).not.toContain('gemini');
   fireEvent.click(screen.getByRole('button', { name: /AI qanday ishladi/ }));
   expect(await screen.findByText('Tayyor: 1.8 s · 850 token')).toBeTruthy();
 });

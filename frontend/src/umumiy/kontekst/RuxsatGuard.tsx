@@ -11,12 +11,17 @@
  *      t2_effective_authorization_v1 (via useAuthorize) gates the render.
  *      A stale/forged company id or a since-revoked membership is rejected
  *      here, server-side — not just hidden from the sidebar.
- * GLOBAL routes (/admin/kompaniya, /admin/system-control) are not gated
- * here: their own endpoints (t2_men_v1, t2_system_control_global_v1) do
- * their own authorization and already fail closed.
+ * GLOBAL routes (/admin/kompaniya) are not gated here: their own endpoints
+ * (t2_men_v1) do their own authorization and already fail closed.
+ *
+ * 0. (egasi 2026-10-27) Tizimga oid yo'llar (navReestr.faqatSuperadminYolmi —
+ *    menyu filtri bilan BIR XIL manba) faqat platforma superadminiga: boshqalarga
+ *    to'g'ridan-to'g'ri URL bilan ham «Ruxsat yo'q». Server ham alohida rad etadi.
  */
 import { Outlet, useLocation } from 'react-router-dom';
 import { routePermission } from '../../lib/company-authorization/route-permission';
+import { faqatSuperadminYolmi } from '../../lib/nav/navReestr';
+import { t } from '../../i18n/til';
 import { ShieldAlert, LogOut, RefreshCw, Loader2 } from 'lucide-react';
 import { useKompaniya } from './KompaniyaKontekst';
 import { KompaniyaKerak } from './KompaniyaKerak';
@@ -34,12 +39,13 @@ const REASON_MATN: Record<string, string> = {
 
 function RuxsatYoq({ reason }: { reason?: string }) {
   const auth = reason === 'AUTH_REQUIRED';
+  const matn = reason === 'SUPERADMIN_REQUIRED' ? t('Bu sahifa faqat platforma administratori uchun.') : (REASON_MATN[reason || ''] || 'Bu sahifani ko‘rish uchun ruxsatingiz yo‘q.');
   return (
     <div className="p-8 max-w-lg">
       <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-5 py-4">
         <div className="flex items-center gap-2 text-rose-100 font-medium"><ShieldAlert size={16} /> Ruxsat yo‘q</div>
         <p className="text-[13px] text-rose-100/80 mt-2">
-          {REASON_MATN[reason || ''] || 'Bu sahifani ko‘rish uchun ruxsatingiz yo‘q.'}
+          {matn}
         </p>
         <div className="mt-3">
           {auth
@@ -55,6 +61,12 @@ export function RuxsatGuard() {
   const { pathname } = useLocation();
   const k = useKompaniya();
   const kerak = kompaniyaKerakmi(pathname);
+
+  // 0. Tizimga oid yo'l — faqat platforma superadmini (kontekst yuklanguncha hech narsa chizilmaydi).
+  if (faqatSuperadminYolmi(pathname)) {
+    if (k.yuklanmoqda) return <KompaniyaKerak />;
+    if (!k.superadmin) return <RuxsatYoq reason="SUPERADMIN_REQUIRED" />;
+  }
 
   // Company context still resolving, or route doesn't need one -> render.
   if (!kerak) return <Outlet />;

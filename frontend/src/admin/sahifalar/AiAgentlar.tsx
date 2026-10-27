@@ -30,7 +30,7 @@ const ISHCHILAR = {
 } as const;
 
 export default function AiAgentlar() {
-  const { joriy } = useKompaniya();
+  const { joriy, superadmin } = useKompaniya();
   const [data, setData] = useState<AgentControlReadModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +104,8 @@ export default function AiAgentlar() {
         <details className="fz-panel">
           <summary className="cursor-pointer text-sm font-medium">{t('Kompaniya AI sozlamalari (admin)')}</summary>
           <div className="mt-3 space-y-4">
-            <AgentModellar kompaniyaId={joriy.id} tizim={false} />
+            {/* Model katalogi va tanlovi — tizimga oid, faqat platforma superadmini (egasi 2026-10-27). */}
+            {superadmin && <AgentModellar kompaniyaId={joriy.id} tizim={false} />}
             <AgentTakliflar kompaniyaId={joriy.id} tizim={false} />
           </div>
         </details>

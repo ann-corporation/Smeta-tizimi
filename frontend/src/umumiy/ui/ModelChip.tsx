@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import { modelShaxsiyOl, modelShaxsiyTanla, modelSiyosatOl, modellarOl, type ModelKatalogi } from '../../api/t2-agent-ish';
 import { ModelTanlagich } from '../../admin/ai-markaz/ModelTanlagich';
 import { t } from '../../i18n/til';
@@ -9,7 +10,13 @@ import { toast } from './Toast';
  * tavsiya, «mos emas» ogohlantirishi va narx — ModelTanlagich beradi. Faqat superadmin tasdiqlagan katalogdan; tanlanmasa — admin belgilagan standart.
  * Migratsiya/server hali tayyor bo'lmasa chip jim yashirinadi (AI ishlayveradi).
  */
-export function ModelChip({ profil, kompaniyaId, yorliq }: { profil: string; kompaniyaId: number | null; yorliq?: string }) {
+export function ModelChip(p: { profil: string; kompaniyaId: number | null; yorliq?: string }) {
+  /* Egasi 2026-10-27: AI model katalogi va tanlovi — tizimga oid, faqat platforma superadmini (server ham 403 beradi). */
+  const { superadmin } = useKompaniya();
+  return superadmin ? <ModelChipIchki {...p} /> : null;
+}
+
+function ModelChipIchki({ profil, kompaniyaId, yorliq }: { profil: string; kompaniyaId: number | null; yorliq?: string }) {
   const [katalog, setKatalog] = useState<ModelKatalogi[] | null>(null);
   const [tanlov, setTanlov] = useState<string | null>(null);
   const [standart, setStandart] = useState<string | null>(null);

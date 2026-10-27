@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import { jurnalOl, type JurnalYozuvi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { AiQadamlar } from './AiQadamlar';
@@ -10,6 +11,8 @@ const HOLAT: Record<string, string> = { kutilmoqda: 'Tasdiq kutmoqda', tasdiqlan
 
 /** AI faoliyat jurnali: har savol, har qadam, har taklif qilingan harakat va uning taqdiri. Admin butun kompaniya jurnalini ko'radi. */
 export function AiJurnal({ kompaniyaId, admin }: { kompaniyaId: number; admin: boolean }) {
+  /* Egasi 2026-10-27: AI model/provayder nomi — tizimga oid, faqat platforma superadmini (server ham yashiradi). */
+  const { superadmin } = useKompaniya();
   const [royxat, setRoyxat] = useState<JurnalYozuvi[] | null>(null);
   const [xato, setXato] = useState<string | null>(null);
   const [hamma, setHamma] = useState(false);
@@ -33,7 +36,7 @@ export function AiJurnal({ kompaniyaId, admin }: { kompaniyaId: number; admin: b
             <span className={`fz-stamp ${j.rad ? 'fz-stamp--warn' : j.tur === 'xato' ? 'fz-stamp--danger' : 'fz-stamp--info'}`}>{t(TUR[j.tur] ?? j.tur)}</span>
             <span>{new Date(j.vaqt).toLocaleString('ru-RU')}</span>
             {j.kim && <span>· {j.kim}</span>}
-            <span className="ml-auto tabular-nums">{j.model && j.model !== 'local' ? `${j.model} · ${j.kirish_token + j.chiqish_token} ${t('token')}` : t('token sarflanmadi')}</span>
+            <span className="ml-auto tabular-nums">{j.model && j.model !== 'local' ? `${superadmin ? `${j.model} · ` : ''}${j.kirish_token + j.chiqish_token} ${t('token')}` : t('token sarflanmadi')}</span>
           </div>
           {j.model && j.model !== 'local' && (() => { const kir = tokenMatn(j.kirish_token), chiq = tokenMatn(j.chiqish_token); return (
             <div className="flex flex-wrap gap-1.5 text-[11px]" data-testid="ai-token-sarf">
