@@ -18,7 +18,7 @@
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
-      "note": "Mailbox09 current27.10: C1 private source/cost-basis reconciliation and readonly migration draft delivered in Obsidian; C2 baseline transport2PASS, implementation belongs Claude168. C3 164 P1 edited payload reuses UUID after partial/unknown, parent7probes4PASS/3FAIL; live function definitions SELECT only. 165 retry5PASS, incomplete money conditional contract finding, no live incidence claim. Version signed5PASS/2FAIL, pricing1PASS/2FAIL preserved. Own162a2a41073 header64px/all5checksPASS;1630aa96e98 own lock release18/all5checksPASS, guard23errors to3foreignownererrors. Runtime/main/DB owners retained, no production writer/DDL/main promotion."
+      "note": "Mailbox10 supersedes09status:162f39d3789 compatiblewithmain95e,local49PASS+app/functionsTS/lint/tekshir/buildPASS,commitAPI3checksSUCCESS. Rootguard23baseline errors explicit;16318ownlocksreleaseproposal separate. C3/1684actualroadbooks24rows sourceqty/amount preserved/hashunchanged; noDBimport. NewfixedsvodBL100+existing50 gives50vs150 strictconsumerFAIL, productionincidence notclaimed. C3/164P1editedbody/UUID afterpartial/unknown retained, authornotified. C1privatecostbasis andreadonlyreclassificationdraft delivered; snapshot26.10 notnew169priceclaim. NoCodeXmain/DBwriter/DDL, owners retained."
     },
     {
       "id": "CATALOG-IMPORT-AUDIT-20261023",
