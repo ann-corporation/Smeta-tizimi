@@ -63,6 +63,24 @@ export function koefFarqi(o: NakrutkaPodvalOqish, joriy: Partial<NakrutkaKoeffit
   });
 }
 
+/**
+ * Smeta podvali shartnoma (yoki kompaniya standarti) foizidan ustun (egasi 2026-10-27): farq qiladigan kodlar —
+ * Nakrutka sahifasidagi «shartnomada X%, smetada Y% — smetadagisi ishlatilmoqda» xabari uchun. Faqat ikkalasi ham
+ * son bo'lgan va farq qiladigan kodlar (NULL ≠ 0: qiymati yo'q kod taqqoslanmaydi).
+ */
+export function shartnomaSmetaFarqlari(
+  shartnoma: Partial<NakrutkaKoeffitsientlar> | null | undefined,
+  amaldagi: Partial<NakrutkaKoeffitsientlar> | null | undefined,
+): Array<{ kod: NakrutkaKoefKod; shartnoma: number; smeta: number }> {
+  if (!shartnoma || !amaldagi) return [];
+  return NAKRUTKA_FOIZ_KODLARI.flatMap((kod) => {
+    const s = shartnoma[kod];
+    const m = amaldagi[kod];
+    if (typeof s !== 'number' || typeof m !== 'number' || !Number.isFinite(s) || !Number.isFinite(m)) return [];
+    return Math.abs(s - m) > 1e-9 ? [{ kod, shartnoma: s, smeta: m }] : [];
+  });
+}
+
 export type UstamaTasiri = {
   ustamasiz: number;
   eski: { itogo4: number; vsego: number };

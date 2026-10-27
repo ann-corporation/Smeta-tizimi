@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { catsKat, koefFarqi, podvalSmetaNk, smetadanPodval, ustamaTasiri } from './nakrutka-smetadan';
+import { catsKat, koefFarqi, podvalSmetaNk, shartnomaSmetaFarqlari, smetadanPodval, ustamaTasiri } from './nakrutka-smetadan';
 import { podvalTekshir } from './nakrutka-konstruktor';
 import type { NakrutkaPodvalOqish } from './smeta-anatomiya/nakrutka';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
@@ -41,5 +41,20 @@ describe('smeta podvali → obyekt podvali', () => {
     expect(t.eski.vsego).toBe(1325.83);
     expect(t.yangi.vsego).toBe(1361.35);
     expect(t.kfYangi.ЧЕЛ).toBeGreaterThan(t.kfEski.ЧЕЛ);
+  });
+});
+
+describe('shartnoma ↔ smeta podvali (egasi 2026-10-27: smetadagisi ustun)', () => {
+  it('faqat farq qiladigan kodlar, NULL taqqoslanmaydi', () => {
+    const amaldagi = { ...SUKUT, ТРАНСПОРТ_МАТЕРИАЛ: 6, НДС: 15 };
+    const f = shartnomaSmetaFarqlari({ ...SUKUT, ЗАГОТ_СКЛАД_ОБОРУД: undefined as unknown as number }, amaldagi);
+    expect(f).toEqual([
+      { kod: 'ТРАНСПОРТ_МАТЕРИАЛ', shartnoma: 5, smeta: 6 },
+      { kod: 'НДС', shartnoma: 12, smeta: 15 },
+    ]);
+  });
+  it('bir xil yoki maʼlumotsiz — boʻsh', () => {
+    expect(shartnomaSmetaFarqlari(SUKUT, SUKUT)).toEqual([]);
+    expect(shartnomaSmetaFarqlari(null, SUKUT)).toEqual([]);
   });
 });
