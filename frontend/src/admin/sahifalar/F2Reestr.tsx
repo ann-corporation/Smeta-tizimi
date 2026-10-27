@@ -26,8 +26,10 @@ import { f2ReestrOl, obyektF2Fayllari, type ReestrMalumot } from '../../api/t2-f
 import type { CenterDocument } from '../../api/t2-hujjat-canonical';
 import { aktsizFayllar, bosqich, filtrla, reestrQur, tartibla, type F2Bosqich, type Ogoh, type ReestrAkt, type ReestrFiltr, type ReestrJami, type ReestrQator, type Summa } from '../../lib/f2-reestr/reestr';
 import { manbaTaqsimot, reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
-
-const BOSQICH_NOMI: Record<F2Bosqich, string> = { tasdiqlangan: 'Tasdiqlangan', jarayonda: 'Jarayonda', rad: 'Rad etilgan', bekor: 'Bekor qilingan' };
+import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
+import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
+import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
+import { aktUstunlar, BOSQICH_NOMI, reestrUstunlar } from './F2JadvalFiltr';
 /** Holat — rang bilan emas, SO'Z bilan (shtamp): tasdiqlangan — muhrlangan, jarayonda — qoralama chizig'i. */
 const BOSQICH_STAMP: Record<F2Bosqich, string> = { tasdiqlangan: 'fz-stamp--ok', jarayonda: 'fz-stamp--warn fz-stamp--draft', rad: 'fz-stamp--danger', bekor: '' };
 
@@ -51,6 +53,33 @@ function ManbaBelgi({ a, fayl }: { a: ReestrAkt; fayl: string | null }) {
   if (a.manba !== 'import') return <span className="fz-chip fz-chip--warn">{t('aniqlanmadi')}</span>;
   const izoh = fayl ? ` · ${fayl}` : a.hujjat_id ? ` · ${t('hujjat №{n}', { n: a.hujjat_id })}` : '';
   return <span className="text-text-dim">{t('Import')}{izoh}</span>;
+}
+
+/** Obyekt aktlari jadvali (qator ochilganda) — Excel uslubidagi ustun filtrlari bilan (tekis: saralash mumkin). */
+function AktlarJadval({ aktlar, nomi }: { aktlar: ReestrAkt[]; nomi: ReadonlyMap<number, string> }) {
+  const ustunlar = useMemo<Ustun<ReestrAkt>[]>(() => aktUstunlar((a) => (a.hujjat_id != null ? nomi.get(a.hujjat_id) ?? null : null)), [nomi]);
+  const f = useJadvalFiltr(aktlar, ustunlar);
+  const F = (kalit: string) => <UstunFiltrTugma {...f.tugma(kalit)} />;
+  const bosh = f.natija.length === 0;
+  return <>
+    <div className="mb-1"><FiltrHolatQatori soni={f.soni} natija={f.natija.length} jami={aktlar.length} tozala={f.tozala} /></div>
+    <div className="fz-table-wrap"><table className="fz-table">
+      <thead><tr><th>{t('Oy')}{F('oy')}</th><th>{t('Raqam')}{F('raqam')}</th><th>{t('Manba')}{F('manba')}</th><th>{t('Holat')}{F('holat')}</th>
+        <th className="fz-c-num">{t('Summa')}{F('summa')}</th><th className="fz-c-num">{t('Qatorlar')}{F('qatorlar')}</th></tr></thead>
+      <tbody>{f.natija.map(a => {
+        const b = bosqich(a);
+        const narxsiz = (a.narxsiz_qator ?? 0) > 0 ? t('({n} narxsiz)', { n: a.narxsiz_qator ?? 0 }) : null;
+        return <tr key={a.id}>
+          <td className="whitespace-nowrap">{davr(a.oy)}</td><td>{a.raqam ?? <span className="text-text-mute">—</span>}</td>
+          <td><ManbaBelgi a={a} fayl={a.hujjat_id != null ? nomi.get(a.hujjat_id) ?? null : null} /></td>
+          <td><span className={`fz-stamp ${BOSQICH_STAMP[b]}`}>{t(BOSQICH_NOMI[b])}</span></td>
+          <td className="fz-c-num">{a.hujjat_jami != null ? <FmtN val={a.hujjat_jami} /> : <span className="fz-chip fz-chip--warn">{t('noma’lum')}</span>}</td>
+          <td className="fz-c-num">{a.qator_soni ?? '—'}{narxsiz && <span className="ml-1 text-warn">{narxsiz}</span>}</td>
+        </tr>;
+      })}
+      {bosh && <tr><td colSpan={6} className="text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</td></tr>}</tbody>
+    </table></div>
+  </>;
 }
 
 /** «Smeta = 100%» chizig'i: import (kulrang) + tizimda yasalgan (firuza) + manbasi aniqlanmagan. Summa nisbati — jismoniy bajarilish emas. */
@@ -171,16 +200,26 @@ export default function F2Reestr() {
   const [summaTur, setSummaTur] = useState<'ustamasiz' | 'ustamali'>('ustamasiz');
   const portfelHammasi = useMemo(() => (reestr ? reestr.qatorlar.map(q => ({ obyektId: q.obyekt.id })) : []), [reestr]);
   const portfelUstamali = usePortfelUstamali(portfelHammasi);
-  const korinadiganPortfel = useMemo(() => qatorlar.map(q => ({ obyektId: q.obyekt.id })), [qatorlar]);
+  /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): yuqoridagi qidiruv/holat filtri bilan VA; tekis — saralash mumkin. */
+  /* usePortfelUstamali har renderda yangi Map beradi — ustunlar faqat qiymatlar o'zgarganda qayta quriladi. */
+  const ustamaliImzo = summaTur === 'ustamali' ? [...portfelUstamali.boYicha].map(([id, v]) => `${id}:${v ?? ''}`).join('|') : '';
+  const ustunlar = useMemo(() => {
+    const m = new Map(ustamaliImzo ? ustamaliImzo.split('|').map((x) => { const [id, v] = x.split(':'); return [Number(id), v === '' ? null : Number(v)] as const; }) : []);
+    return reestrUstunlar((q) => (ustamaliImzo ? m.get(q.obyekt.id) ?? null : q.obyekt.jami));
+  }, [ustamaliImzo]);
+  const uf = useJadvalFiltr(qatorlar, ustunlar);
+  const F = (kalit: string) => <UstunFiltrTugma {...uf.tugma(kalit)} />;
+  const korinadi = uf.natija;
+  const korinadiganPortfel = useMemo(() => korinadi.map(q => ({ obyektId: q.obyekt.id })), [korinadi]);
   const korinadiganJami = useMemo(() => {
     let smeta: number | null = null; let tasdiq: Summa = { malum: 0, nomalum: 0, soni: 0 };
-    for (const q of qatorlar) {
+    for (const q of korinadi) {
       if (q.obyekt.jami != null) smeta = (smeta ?? 0) + q.obyekt.jami;
       const x = q.boyicha.tasdiqlangan;
       tasdiq = { malum: tasdiq.malum + x.malum, nomalum: tasdiq.nomalum + x.nomalum, soni: tasdiq.soni + x.soni };
     }
     return { smeta, tasdiq };
-  }, [qatorlar]);
+  }, [korinadi]);
 
   function ochYop(obyektId: number) {
     setOchiq(s => { const x = new Set(s); if (x.has(obyektId)) x.delete(obyektId); else x.add(obyektId); return x; });
@@ -228,20 +267,21 @@ export default function F2Reestr() {
         <span className="ml-auto flex flex-wrap items-center gap-3 pb-1.5 text-text-mute">
           <span className="inline-flex items-center gap-1.5"><i className="fz-meter__oldin inline-block h-2 w-3 rounded-sm" />{t('Import')}</span>
           <span className="inline-flex items-center gap-1.5"><i className="fz-meter__shu inline-block h-2 w-3 rounded-sm" />{t('Tizimda tayyorlangan')}</span>
-          <span>{t('{a} / {b} obyekt', { a: qatorlar.length, b: reestr.qatorlar.length })}</span>
+          <span>{t('{a} / {b} obyekt', { a: korinadi.length, b: reestr.qatorlar.length })}</span>
         </span>
       </section>}
 
+      {reestr && <FiltrHolatQatori soni={uf.soni} natija={korinadi.length} jami={qatorlar.length} tozala={uf.tozala} />}
       {reestr && <div className="fz-table-wrap">
         <table className="fz-table min-w-[1040px]">
           <thead><tr>
-            <th className="w-8" /><th>{t('Obyekt')}</th><th>{t('Shartnoma')}</th>
-            <th className="fz-c-num">{t('Smeta')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}</th><th>{t('Smetaga nisbatan')}</th>
-            <th className="fz-c-num">{t('Import / tizimda')}</th><th>{t('Jarayonda · rad · bekor')}</th>
-            <th>{t('Oxirgi oy')}</th><th />
+            <th className="w-8" /><th>{t('Obyekt')}{F('obyekt')}{F('loyiha')}</th><th>{t('Shartnoma')}{F('shartnoma')}</th>
+            <th className="fz-c-num">{t('Smeta')}{F('smeta')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}{F('tasdiq')}</th><th>{t('Smetaga nisbatan')}{F('nisbat')}</th>
+            <th className="fz-c-num">{t('Import / tizimda')}{F('import')}{F('tizim')}</th><th>{t('Jarayonda · rad · bekor')}{F('holat')}</th>
+            <th>{t('Oxirgi oy')}{F('oy')}</th><th />
           </tr></thead>
           <tbody>
-            {qatorlar.map(q => {
+            {korinadi.map(q => {
               const o = ochiq.has(q.obyekt.id);
               const fl = fayllar.get(q.obyekt.id);
               const nomi = new Map([...malumot!.faylNomlari, ...(Array.isArray(fl) ? fl : []).map(d => [Number(d.id), d.filename] as const)]);
@@ -273,21 +313,7 @@ export default function F2Reestr() {
                     {t('F2 tarixi')}<ExternalLink aria-hidden="true" /></Link>}</td>
                 </tr>
                 {o && <tr><td /><td colSpan={9} className="bg-surface-2 pb-3 pt-2">
-                  {q.aktlar.length ? <div className="fz-table-wrap"><table className="fz-table">
-                    <thead><tr><th>{t('Oy')}</th><th>{t('Raqam')}</th><th>{t('Manba')}</th><th>{t('Holat')}</th>
-                      <th className="fz-c-num">{t('Summa')}</th><th className="fz-c-num">{t('Qatorlar')}</th></tr></thead>
-                    <tbody>{q.aktlar.map(a => {
-                      const b = bosqich(a);
-                      const narxsiz = (a.narxsiz_qator ?? 0) > 0 ? t('({n} narxsiz)', { n: a.narxsiz_qator ?? 0 }) : null;
-                      return <tr key={a.id}>
-                        <td className="whitespace-nowrap">{davr(a.oy)}</td><td>{a.raqam ?? <span className="text-text-mute">—</span>}</td>
-                        <td><ManbaBelgi a={a} fayl={a.hujjat_id != null ? nomi.get(a.hujjat_id) ?? null : null} /></td>
-                        <td><span className={`fz-stamp ${BOSQICH_STAMP[b]}`}>{t(BOSQICH_NOMI[b])}</span></td>
-                        <td className="fz-c-num">{a.hujjat_jami != null ? <FmtN val={a.hujjat_jami} /> : <span className="fz-chip fz-chip--warn">{t('noma’lum')}</span>}</td>
-                        <td className="fz-c-num">{a.qator_soni ?? '—'}{narxsiz && <span className="ml-1 text-warn">{narxsiz}</span>}</td>
-                      </tr>;
-                    })}</tbody>
-                  </table></div> : <p className="text-[12px] text-text-mute">{t('Bu obyektda F2 akt yo‘q.')}</p>}
+                  {q.aktlar.length ? <AktlarJadval aktlar={q.aktlar} nomi={nomi} /> : <p className="text-[12px] text-text-mute">{t('Bu obyektda F2 akt yo‘q.')}</p>}
                   {fl === 'yuklanmoqda' && <p className="mt-2 text-[12px] text-text-mute">{t('Import fayllari o‘qilmoqda…')}</p>}
                   {fl === 'xato' && <div className="fz-note fz-note--warn mt-2">{t('Import fayllari ro‘yxati o‘qilmadi.')}</div>}
                   {aktsiz.length > 0 && <div className="fz-note fz-note--info mt-2"><div>
@@ -298,9 +324,10 @@ export default function F2Reestr() {
                 </td></tr>}
               </Fragment>;
             })}
+            {korinadi.length === 0 && qatorlar.length > 0 && <tr><td /><td colSpan={9} className="text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</td></tr>}
           </tbody>
-          {qatorlar.length > 0 && <tfoot><tr className="fz-row-total">
-            <td /><td colSpan={2}>{t('Jami: {a} obyekt', { a: qatorlar.length })}</td>
+          {korinadi.length > 0 && <tfoot><tr className="fz-row-total">
+            <td /><td colSpan={2}>{uf.soni > 0 ? t('Jami (filtr bo‘yicha): {a} obyekt', { a: korinadi.length }) : t('Jami: {a} obyekt', { a: korinadi.length })}</td>
             <td className="fz-c-num"><PortfelSummaJuft obyektlar={korinadiganPortfel} ustamasiz={korinadiganJami.smeta} kichik className="items-end text-right" /></td>
             <td className="fz-c-num"><SummaKorinish s={korinadiganJami.tasdiq} qisqa /><div className="text-[11px] font-normal text-text-mute">{t('ustamasiz')}</div></td>
             <td colSpan={5} />
