@@ -2,6 +2,12 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 32,
+      "sana": "2026-10-27",
+      "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
+      "bandlar": ["Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.", "Qidiruv va fakt kiritilmagan ishlar filtri to‘liq ro‘yxatda ishlaydi. Obyekt, oy va Fakt=F2 boshqaruvlari saqlangan; jadval ustidagi takror sarlavha ixchamlashtirilgan."]
+    },
+    {
       "id": 30,
       "sana": "2026-10-27",
       "sarlavha": "Yangi smeta importida nakrutka foizlari podvaldan avtomatik saqlanadi",
