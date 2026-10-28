@@ -73,7 +73,7 @@ export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavh
   }
 
   if (!ochiq) return <button type="button" onClick={() => setOchiq(true)} aria-label={t('AI yordamchini ochish')} title={t('AI yordamchi: qidiradi, tushuntiradi, taklif qiladi — yozuv faqat sizning tasdig‘ingiz bilan')}
-    className="fixed bottom-24 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[13px] font-semibold text-[var(--on-accent)] shadow-xl hover:brightness-110" data-testid="ai-yordamchi-ochish">
+    className="fixed bottom-3 right-16 z-40 inline-flex h-11 items-center gap-1.5 rounded-full bg-accent px-3 text-[12px] font-semibold text-[var(--on-accent)] opacity-75 shadow-xl transition hover:opacity-100 hover:brightness-110 focus-visible:opacity-100" data-testid="ai-yordamchi-ochish">
     <Sparkles size={16} /> {t('AI yordamchi')}</button>;
 
   return <aside role="dialog" aria-modal="false" aria-label={sarlavha} className="fixed bottom-4 right-4 z-50 flex max-h-[85vh] w-[28rem] max-w-[calc(100vw-2rem)] flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-surface p-3 text-sm shadow-2xl" data-testid="ai-yordamchi-panel">

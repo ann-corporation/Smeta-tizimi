@@ -1,4 +1,5 @@
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 /**
  * Smeta studiyasi bosqichlari (egasi 2026-10-13): ① LRV oynada yasaladi → ② «Narxlashga o'tish»: foiz stavkalari,
  * kataloglar va manbalarga asoslangan narxlar (AI har resursni MA'NOSI bo'yicha topadi) → ③ RES va hujjatlar.
@@ -36,6 +37,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { PriceResearchQueue } from '../../components/smeta-studio-workspace/PriceResearchQueue';
 import { researchKey, retainResearch } from '../../components/smeta-studio-workspace/price-research-store';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 type UnitText = (code: string | null) => string | null;
 /** «… ПО ПРОЕКТУ» without the project's material is never priced by a guess. */
@@ -468,7 +470,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         <table className="w-full text-[12px]">
           <thead className="sticky top-0 bg-surface-1 text-text-mute"><tr>
             <th className="px-2 py-1 text-left">{t('Resurs')}</th><th className="px-1 text-left">{t('Birlik')}</th><th className="px-1 text-right">{t('Miqdor')}</th>
-            <th className="px-1 text-right">{t('Narx')}</th><th className="px-1 text-right">{t('Summa')}</th><th className="px-2 text-left">{t('Manba va dalil')}</th>
+            <th className="px-1 text-right">{t('Narx')}<SummaYorliq tur="narx" /></th><th className="px-1 text-right">{t('Summa')}</th><th className="px-2 text-left">{t('Manba va dalil')}</th>
           </tr></thead>
           <tbody>
             {korinadi.map((g, i) => {
@@ -685,11 +687,10 @@ function JamiSatri({ doc, hisob, unitText }: { doc: EstimateDoc; hisob: DocCalc;
 export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack }: { doc: EstimateDoc; hisob: DocCalc; unitText: UnitText;
   katalog: StudioNormCatalog | null; kompaniyaId: number | null; onBack: () => void }) {
   const [xabar, setXabar] = useState('');
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(kompaniyaId);
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(kompaniyaId, doc.context.objectId ?? null);
   const [protokol, setProtokol] = useState({ raqam: '1', sana: new Date().toISOString().slice(0, 10) });
   const yuklabBer = (bytes: Uint8Array, nom: string) => {
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    const a = document.createElement('a'); a.href = url; a.download = nom; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    downloadBlob(bytes, nom); // tizim imzosi shu yo'lda qo'yiladi
   };
   /** Official documents are billed by filled cells like every other document (token session 2026-10-16); the file is given only after payment. */
   async function tokenBilanBer(bytes: Uint8Array, nom: string, hujjat: string, sabab: string): Promise<string | null> {
@@ -769,7 +770,7 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
     <section aria-label={t('Narxlarni kelishish protokoli')} className="fz-card space-y-2 p-3 text-[12.5px]">
       <strong className="fz-panel__h">{t('Narxlarni kelishish protokoli (buyurtmachi — pudratchi)')}</strong>
       <p className="text-xs text-text-mute">{t('Har resurs: asos hujjatdagi narx (smeta birligida), smetaga qo‘yilgan kelishiladigan narx, og‘ish va obosnovaniye. Ikki tomon imzosi bilan.')}</p>
-      <HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} />
+      <HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} />
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-xs">{t('Protokol raqami')}<input aria-label={t('Protokol raqami')} className="input mt-0.5 block h-8 w-24" value={protokol.raqam} onChange={e => setProtokol({ ...protokol, raqam: e.target.value })} /></label>
         <label className="text-xs">{t('Sana')}<input aria-label={t('Protokol sanasi')} type="date" className="input mt-0.5 block h-8" value={protokol.sana} onChange={e => setProtokol({ ...protokol, sana: e.target.value || protokol.sana })} /></label>

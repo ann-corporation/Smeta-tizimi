@@ -23,6 +23,7 @@
  */
 
 import { t2ToliqOqi, t2ToliqOqiParallel } from './t2-toliq-oqish';
+import { ogirYuklashKut } from './ogir-sorov-navbat';
 
 export type SbJavob<T> = {
   ok: boolean;
@@ -364,7 +365,9 @@ export type T2AktReestr = {
   manba_bor?: boolean; manba?: string | null; import_job_id?: number | null; hujjat_id?: number | null;
 };
 
-export function sbT2AktReestrOl(obyektId: number) {
+export async function sbT2AktReestrOl(obyektId: number) {
+  // Nakopitelniy to'liq yuklanayotgan bo'lsa — tugashini kutadi (prod 2026-10-27: parallel og'ir so'rovlar 30 s timeout).
+  await ogirYuklashKut();
   return sbOqi<T2AktReestr>({
     jadval: 't2_akt_reestr',
     filtr: 'obyekt_id=eq.' + obyektId,

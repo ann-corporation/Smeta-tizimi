@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Bell, Building2, Check, ChevronDown, CreditCard, Globe, LogOut, Settings, ShieldCheck, UserCog } from 'lucide-react';
+import { Bell, Building2, Check, ChevronDown, CreditCard, Globe, LogOut, Settings, ShieldCheck, SlidersHorizontal, UserCog } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { tizimdanChiq } from '../../umumiy/kontekst/chiqish';
 import { MavzuTanlagich } from '../../umumiy/ui/Mavzu';
@@ -189,8 +189,8 @@ export function AkkauntTugmasi() {
                   <Ikon size={14} aria-hidden="true" /><span>{t(nom)}</span>
                 </Link>
               ))}
-              <Link to="/admin/akkaunt?bolim=hub" data-akkaunt-el onClick={() => yop(false)} className={unsur}>
-                <Settings size={14} aria-hidden="true" /><span>{t('Tizim sozlamalari')}</span>
+              <Link to="/admin/sozlamalar" data-akkaunt-el onClick={() => yop(false)} className={unsur}>
+                <SlidersHorizontal size={14} aria-hidden="true" /><span>{t('Sozlamalar markazi')}</span>
               </Link>
             </div>
 

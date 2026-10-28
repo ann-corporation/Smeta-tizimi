@@ -87,6 +87,8 @@ export type PKontekst = {
   aslIdlar?: ReadonlySet<number>;
   /** Filtr: faqat shu razdel (rz id) ostidagilar. */
   bolimId?: number | null;
+  /** Svod yaxlit bo'limlari va avlodlari (yaxlitQatorIdlari): ustamali summada koeffitsient qo'llanmaydi. */
+  yaxlitIdlar?: ReadonlySet<number>;
 };
 
 const BARG = new Set(['rs', 'mat', 'ob']);
@@ -297,8 +299,8 @@ export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): 
     for (const b of q.bandlar) {
       const t = turBoyicha[b.tur];
       t.soni++;
-      if (b.summa > 0) { t.plus += b.summa; jami.plus += b.summa; bj.plus += b.summa; katKesimgaQosh(plusKesim, q.kat, b.summa); if (b.tur === 'olinmagan' && q.eslatma.includes('fakt_norma')) faktNormaPlus += b.summa; }
-      else { t.minus += -b.summa; jami.minus += -b.summa; bj.minus += -b.summa; katKesimgaQosh(minusKesim, q.kat, -b.summa); }
+      if (b.summa > 0) { t.plus += b.summa; jami.plus += b.summa; bj.plus += b.summa; katKesimgaQosh(plusKesim, q.kat, b.summa, !!k.yaxlitIdlar?.has(q.qatorId)); if (b.tur === 'olinmagan' && q.eslatma.includes('fakt_norma')) faktNormaPlus += b.summa; }
+      else { t.minus += -b.summa; jami.minus += -b.summa; bj.minus += -b.summa; katKesimgaQosh(minusKesim, q.kat, -b.summa, !!k.yaxlitIdlar?.has(q.qatorId)); }
     }
     bolimMap.set(bk, bj);
   }

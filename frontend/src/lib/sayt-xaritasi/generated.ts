@@ -47,8 +47,9 @@ export const GENERATED_SITE_MAP = {
     "/admin/topshiriqlar",
     "/admin/mutaxassis",
     "/admin/akkaunt",
+    "/admin/sozlamalar",
     "/admin/boshqaruv",
-    "/admin/sayt-xaritasi",
+    "/admin/tizim-xaritasi",
     "/admin/fayl-boglash",
     "/admin/test"
   ],
@@ -115,6 +116,7 @@ export const GENERATED_SITE_MAP = {
     "zakazchik/obyekt/:aloqaId/:obyektId",
     "akkaunt",
     "sayt-xaritasi",
+    "tizim-xaritasi",
     "_demo/documents",
     "_demo/participants",
     "_demo/system-control",
@@ -788,6 +790,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_xarajat_bekor_v1"
     },
     {
+      "amal": "moliya_qolda_yoz_v1",
+      "rpc": "t2_moliya_qolda_yoz_v1"
+    },
+    {
       "amal": "fakt_yoz_v2",
       "rpc": "t2_fakt_yoz_v2"
     },
@@ -838,6 +844,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "mindmap_tugun_ochir",
       "rpc": "t2_mindmap_tugun_ochir_v2"
+    },
+    {
+      "amal": "mindmap_masul",
+      "rpc": "t2_mindmap_masul_v1"
     }
   ]
 } as const;

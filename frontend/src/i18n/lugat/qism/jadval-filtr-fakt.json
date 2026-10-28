@@ -1,0 +1,8 @@
+{
+  "Kat / tur": { "ru": "Кат. / тип", "en": "Cat. / type" },
+  "kod": { "ru": "код", "en": "code" },
+  "nom": { "ru": "наим.", "en": "name" },
+  "tur": { "ru": "тип", "en": "type" },
+  "holat": { "ru": "статус", "en": "status" },
+  "foiz": { "ru": "%", "en": "%" }
+}

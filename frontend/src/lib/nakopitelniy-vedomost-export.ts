@@ -36,6 +36,7 @@ import {
 } from './nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 import { narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { YAXLIT_IZOH, YAXLIT_KAT, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export interface NakopitelniyVedomostExportOptions {
   obyektNom: string;
@@ -56,6 +57,8 @@ export interface NakopitelniyVedomostExportOptions {
   smetaNakrutka?: SmetaNakrutka | null;
   /** Oy kesimi (egasi 2026-09-30): har tasdiqlangan F2 oyi alohida ustun + ИТОГО. Berilmasa — "ранее / за период". */
   oylar?: NakopitelniyOylar | null;
+  /** Svod yaxlit bo'limlari (t2_obyekt_nakrutka_v1.svod_yaxlit): avlod qatorlariga ustama qo'llanmaydi, podvalda alohida qator. */
+  svodYaxlit?: SvodYaxlit | null;
 }
 
 /** Tasdiqlangan F2 qatorlari oy bo'yicha: oylar — 'YYYY-MM' o'sish tartibida (oxirgisi — hisobot davri). */
@@ -265,10 +268,14 @@ export function nakopitelniyVedomostHujjat(
   const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
   const kfJS = kategoriyaKf(nk, podval);
   const podvalBosh = bosh + reja.length + 2;
-  const kfQ = podvalKfQatorlari(podvalBosh, podval);
+  const yaxIds = yaxlitQatorIdlari(qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id })), o.svodYaxlit);
+  const yaxlitmi = (q: NakopitelniyQator) => yaxIds.has(q.qator_id);
+  const yaxlitBor = !!o.svodYaxlit && bargRows.length > 0;
+  const kfQ = podvalKfQatorlari(podvalBosh, podval, yaxlitBor);
   const koOf = (q: NakopitelniyQator) => {
     const kat = nakrutkaKat(q.kat);
-    return { kat, per: kOplate(perS(q), kat, kfJS), jami: kOplate(jamiS(q), kat, kfJS) };
+    const y = yaxlitmi(q);
+    return { kat, yaxlit: y, per: kOplate(perS(q), kat, kfJS, y), jami: kOplate(jamiS(q), kat, kfJS, y) };
   };
   /** Pul ustuni qiymati (barg). */
   const pulOf = (q: NakopitelniyQator, c: string): number | null => {
@@ -365,7 +372,12 @@ export function nakopitelniyVedomostHujjat(
         c[col(U.mozhno)] = { f: `H${rr}-${U.jamiH}${rr}`, v: q!.fakt_hajm - jh };
         if (barg) {
           const ko = koOf(q!);
-          if (ko.kat) {
+          if (ko.yaxlit) {
+            // Svod yaxlit bo'limi: ustama koeffitsienti qo'llanmaydi (к оплате = прямые), podvalda «Свод яхлит» qatori.
+            c[col(U.koPer)] = { f: `ROUND(${U.davrS[U.davrS.length - 1]}${rr},2)`, v: ko.per ?? '' };
+            c[col(U.koJami)] = { f: `ROUND(${U.jamiS}${rr},2)`, v: ko.jami ?? '' };
+            c[col(U.kat)] = YAXLIT_KAT;
+          } else if (ko.kat) {
             const kf = `F${kfQ[ko.kat]}`;
             c[col(U.koPer)] = { f: `ROUND(${U.davrS[U.davrS.length - 1]}${rr}*${kf},2)`, v: ko.per ?? '' };
             c[col(U.koJami)] = { f: `ROUND(${U.jamiS}${rr}*${kf},2)`, v: ko.jami ?? '' };
@@ -417,12 +429,24 @@ export function nakopitelniyVedomostHujjat(
       for (const i of bargRows) {
         const q = reja[i].q!;
         const kat = nakrutkaKat(q.kat);
-        if (!kat) continue;
+        if (!kat || yaxlitmi(q)) continue;
         ks[kat] += p === U.ostS ? (q.smeta_summa == null ? 0 : q.smeta_summa - jamiS(q)) : (pulOf(q, p) ?? 0);
       }
       katSummalar[p] = ks;
     }
-    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [bosh, bosh + reja.length - 1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar });
+    // Svod yaxlit: smeta ustunida — svod summasi (QQS siz, server bilan bir xil); boshqa ustunlarda — yaxlit
+    // qatorlarning o'z summasi (ustamasiz); остаток = svod − с начала.
+    let yaxlit: Record<string, number> | null = null;
+    if (yaxlitBor) {
+      const yq = bargRows.map((i) => reja[i].q!).filter(yaxlitmi);
+      yaxlit = {};
+      for (const c of U.pul) {
+        yaxlit[c] = c === 'G' ? o.svodYaxlit!.qqssiz
+          : c === U.ostS ? o.svodYaxlit!.qqssiz - yq.reduce((t, q) => t + jamiS(q), 0)
+            : yq.reduce((t, q) => t + (pulOf(q, c) ?? 0), 0);
+      }
+    }
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [bosh, bosh + reja.length - 1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar, yaxlit });
     if (p.bosh !== podvalBosh) throw new Error('NAKOPITELNIY_PODVAL_SILJIDI');
     kaskad = p.kaskad;
   }
@@ -431,6 +455,7 @@ export function nakopitelniyVedomostHujjat(
     ? 'Принято по утвержденным актам формы № 2 — отдельно за каждый месяц; «С начала строительства» — итог за все месяцы (формула). «Можно предъявить» = выполнено по факту − принято с начала строительства. Суммы по разделам подводятся по ресурсам.'
     : 'Графы «Принято ранее», «За отчетный период» и «С начала строительства» — по утвержденным актам формы № 2. «Можно предъявить» = выполнено по факту − принято с начала строительства. Суммы по разделам подводятся по ресурсам (материалам, труду, машинам, оборудованию).');
   v.izoh('Суммы — прямые затраты (без накладных расходов и НДС). Графы «К оплате» — прямые затраты × коэффициент по виду затрат (раздел «Расчет стоимости к оплате»); расхождение с итогом расчета — только округление. Позиции с пометкой [ЗАМЕНА] / [ДОПОЛНИТЕЛЬНАЯ РАБОТА] — изменения к смете.');
+  if (yaxIds.size) v.izoh(YAXLIT_IZOH);
   if (!o.nakrutka || !Object.keys(o.nakrutka).length) diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — в расчете приняты 0 %; стоимость к оплате отличается от прямых затрат только НДС' });
   const sn = o.smetaNakrutka;
   if (sn) {

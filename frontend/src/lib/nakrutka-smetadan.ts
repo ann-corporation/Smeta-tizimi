@@ -14,6 +14,7 @@ import type { Katak, KirishKitob } from './smeta-anatomiya/turlar';
 import { readXlsxFonda } from './f2-import-parse/xlsxFonda';
 import { standartPodval, type Podval } from './nakrutka-konstruktor';
 import { kategoriyaKf, nakrutkaKaskadJS, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
+import { kaskadgaYaxlit, type SvodYaxlit } from './svod-yaxlit';
 
 export const SMETA_PODVAL_NOMI = 'Smeta podvali';
 
@@ -95,12 +96,13 @@ export function catsKat(c: { chel: number; mash: number; mat: number; ob: number
   return { ЧЕЛ: c.chel, МАШ: c.mash, МАТ: c.mat - c.kab - c.mk - c.bez, ОБ: c.ob, КАБ: c.kab, 'М/К': c.mk, 'БЕЗ СКЛАД': c.bez };
 }
 
-/** Obyekt jami summasiga ta'sir: ustamasiz (to'g'ri xarajat) va ustamali (ИТОГО-4, ВСЕГО). */
-export function ustamaTasiri(s: KatSummalar, eski: Partial<NakrutkaKoeffitsientlar>, yangi: Partial<NakrutkaKoeffitsientlar>): UstamaTasiri {
-  const e = nakrutkaKaskadJS(s, eski);
-  const y = nakrutkaKaskadJS(s, yangi);
+/** Obyekt jami summasiga ta'sir: ustamasiz (to'g'ri xarajat) va ustamali (ИТОГО-4, ВСЕГО). yaxlit — svod yaxlit
+ *  (server svod_yaxlit): s shunda cats_kaskad bo'lishi kerak; yaxlit ИТОГО-4 ga ustamasiz, QQS bir marta. */
+export function ustamaTasiri(s: KatSummalar, eski: Partial<NakrutkaKoeffitsientlar>, yangi: Partial<NakrutkaKoeffitsientlar>, yaxlit?: SvodYaxlit | null): UstamaTasiri {
+  const e = kaskadgaYaxlit(nakrutkaKaskadJS(s, eski), yaxlit?.qqssiz, Number(eski.НДС ?? 0));
+  const y = kaskadgaYaxlit(nakrutkaKaskadJS(s, yangi), yaxlit?.qqssiz, Number(yangi.НДС ?? 0));
   return {
-    ustamasiz: e.pryamye,
+    ustamasiz: e.pryamye + (yaxlit?.barglar ?? 0),
     eski: { itogo4: e.itogo4, vsego: e.vsego },
     yangi: { itogo4: y.itogo4, vsego: y.vsego },
     kfEski: kategoriyaKf(eski),

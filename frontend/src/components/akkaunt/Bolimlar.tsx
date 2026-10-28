@@ -3,18 +3,13 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Briefcase, Building2, Calculator, Crown, FileStack, FileText, FlaskConical, Gauge, HardHat, LayoutDashboard,
-  Link2, Map as MapIkon, Search, Settings, ShieldAlert, ShieldCheck, Tags, Trash2, Users, Info,
-} from 'lucide-react';
+import { Building2, Info, ServerCog, UserRound } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { useMen, useKompaniyaRoyxatlar } from '../../api/t2-men';
 import { useSessiya } from '../../api/hooks';
-import { useModullar } from '../../api/t2-modul';
 import { ishJoylarim, takliflar } from '../../api/t2-ish-joyi';
 import { tokenHolatOl } from '../../api/t2-token';
 import { companyStorageOl } from '../../api/t2-storage';
-import { menyuModulYoqilgan } from '../../lib/modullar';
 import { TilTanlagich } from '../../i18n/TilTanlagich';
 import { MavzuTanlagich } from '../../umumiy/ui/Mavzu';
 import { t } from '../../i18n/til';
@@ -27,8 +22,9 @@ import { GoogleKarta, ParolForma, SessiyaKarta } from './XavfsizlikKartalar';
 import { Karta, Nota, Qator, Skelet, Tezorada, XatoQayta } from './AkkauntUi';
 import { Avatar } from './AkkauntTugmasi';
 import {
-  HUB_BANDLAR, HUB_GURUH_NOMI, hubFiltr, hubGuruhla, initsiallar, kompaniyaRollari, rolNomi, sessiyaTugashi, sonYoki,
+  initsiallar, kompaniyaRollari, rolNomi, sessiyaTugashi, sonYoki,
 } from './akkaunt-lib';
+import { qatlamSoni, sozlamaFiltr } from '../../lib/sozlama/sozlamaReestr';
 import { sidebarMahkamOqi, sidebarMahkamSaqla, zichlikOqi, zichlikSaqla, type Zichlik } from './korinish-sozlama';
 
 const RUXSAT_NOMLARI: Readonly<Record<string, string>> = PERMISSION_LABELS;
@@ -352,51 +348,33 @@ export function TarifBolimi() {
   );
 }
 
-/* ───────── Tizim sozlamalari hub ───────── */
-const IKONKALAR: Record<string, typeof Settings> = {
-  layout: LayoutDashboard, briefcase: Briefcase, gauge: Gauge, building: Building2, users: Users, settings: Settings,
-  calc: Calculator, tags: Tags, file: FileText, shield: ShieldCheck, stack: FileStack, hdd: HardHat, link: Link2,
-  alert: ShieldAlert, flask: FlaskConical, map: MapIkon, trash: Trash2, crown: Crown,
-};
+/* ───────── Sozlamalar markazi (3 qatlam) umumiy ko‘rinishi ───────── */
+const QATLAM_KARTALAR = [
+  { id: 'akkaunt', nom: 'Akkaunt', izoh: 'Faqat siz uchun', Ikon: UserRound },
+  { id: 'kompaniya', nom: 'Kompaniya', izoh: 'Kompaniya admin panelida', Ikon: Building2 },
+  { id: 'tizim', nom: 'Tizim', izoh: 'Butun platforma (superadmin)', Ikon: ServerCog },
+] as const;
 export function HubBolimi() {
   const { k } = useAkkaunt();
-  const modul = useModullar(k.globalRejim ? null : k.joriy?.id);
-  const [q, setQ] = useState('');
-  const kont = useMemo(() => ({
-    superadmin: k.superadmin, permissions: k.joriy?.permissions, rol: k.joriy?.rol,
-    modulYoqilgan: (yol: string) => menyuModulYoqilgan(yol, modul.data),
-  }), [k.superadmin, k.joriy, modul.data]);
-  const guruhlar = hubGuruhla(hubFiltr(HUB_BANDLAR, kont, q, t));
+  const soni = qatlamSoni(sozlamaFiltr({ superadmin: k.superadmin, permissions: k.joriy?.permissions ?? [] }));
   const kamaytir = useReducedMotion();
   return (
     <div className="flex flex-col gap-4">
-      <label className="relative block max-w-md">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-mute" aria-hidden="true" />
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Sozlamalarni qidirish…')} aria-label={t('Sozlamalarni qidirish…')}
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] pl-8 pr-3 text-[13px] text-text outline-none focus:border-[var(--accent)]" style={{ height: 'var(--control-md)' }} />
-      </label>
-      {guruhlar.length === 0 && <p className="text-[13px] text-text-dim m-0">{t('Hech narsa topilmadi.')}</p>}
-      {guruhlar.map((g) => (
-        <section key={g.id} aria-label={t(HUB_GURUH_NOMI[g.id])}>
-          <h3 className="fz-panel__h mb-2"><span>{t(HUB_GURUH_NOMI[g.id])}</span></h3>
-          <motion.div layout={!kamaytir} className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-            {g.bandlar.map((b) => {
-              const Ikon = IKONKALAR[b.ikonka] ?? Settings;
-              return (
-                <motion.div key={b.yol} layout={!kamaytir} initial={kamaytir ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.14 }}>
-                  <Link to={b.yol} className="fz-card flex gap-3 p-3 h-full hover:bg-[var(--surface-3)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]">
-                    <span className="shrink-0 rounded-md inline-flex items-center justify-center" style={{ width: 32, height: 32, background: 'var(--accent-soft)', color: 'var(--accent-text)' }}><Ikon size={16} aria-hidden="true" /></span>
-                    <span className="min-w-0">
-                      <span className="block text-[13px] font-semibold text-text">{t(b.nom)}</span>
-                      <span className="block text-[12px] text-text-dim">{t(b.izoh)}</span>
-                    </span>
-                  </Link>
-                </motion.div>
-              );
-            })}
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))' }}>
+        {QATLAM_KARTALAR.filter((c) => c.id !== 'tizim' || k.superadmin).map(({ id, nom, izoh, Ikon }, i) => (
+          <motion.div key={id} initial={kamaytir ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.14, delay: kamaytir ? 0 : i * 0.04 }}>
+            <Link to={`/admin/sozlamalar?qatlam=${id}`} className="fz-card flex gap-3 p-3 h-full hover:bg-[var(--surface-3)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]">
+              <span className="shrink-0 rounded-md inline-flex items-center justify-center" style={{ width: 32, height: 32, background: 'var(--accent-soft)', color: 'var(--accent-text)' }}><Ikon size={16} aria-hidden="true" /></span>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-semibold text-text">{t(nom)}</span>
+                <span className="block text-[12px] text-text-dim">{t(izoh)}</span>
+                <span className="block text-[12px] text-text-mute mt-1">{t('{n} ta sozlama', { n: soni[id] })}</span>
+              </span>
+            </Link>
           </motion.div>
-        </section>
-      ))}
+        ))}
+      </div>
+      <Link to="/admin/sozlamalar" className="fz-btn fz-btn--sm self-start">{t('Sozlamalar markazini ochish')}</Link>
       <p className="text-[11px] text-text-mute flex items-center gap-1 m-0"><Info size={12} aria-hidden="true" />{t('Ko‘rinadigan sahifalar rolingiz ruxsatlariga bog‘liq; yakuniy tekshiruv serverda.')}</p>
     </div>
   );

@@ -17,7 +17,8 @@ import {
   hadNomi, podvalBelgilanganSumma, podvalHisobla, podvalKf, podvalTekshir, standartPodval, yangiKod,
   type Podval, type PodvalHad, type PodvalQator,
 } from '../../lib/nakrutka-konstruktor';
-import { NAKRUTKA_KATLAR, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
+import { NAKRUTKA_KATLAR, podvalQiymatYaxlit, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
+import { kaskadCats, type SvodYaxlit } from '../../lib/svod-yaxlit';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -72,6 +73,8 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   const [royxat, setRoyxat] = useState<PodvalYozuv[]>([]);
   const [koef, setKoef] = useState<Partial<NakrutkaKoeffitsientlar>>({});
   const [kat, setKat] = useState<Partial<KatSummalar> | null>(null);
+  /** Svod yaxlit (belgi bo'lsa): kat shunda kaskad kategoriyalari, yaxlit ИТОГО-4 ga ustamasiz. */
+  const [svodYaxlit, setSvodYaxlit] = useState<SvodYaxlit | null>(null);
   const [doira, setDoira] = useState<Doira>(objectId ? 'obyekt' : contractId ? 'shartnoma' : 'kompaniya');
   const [tahrir, setTahrir] = useState<(Podval & { id?: number; versiya?: number }) | null>(null);
   const [xabar, setXabar] = useState('');
@@ -86,9 +89,10 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   useEffect(() => { void yukla(); }, [companyId, contractId]);
   useEffect(() => { setDoira(objectId ? 'obyekt' : contractId ? 'shartnoma' : 'kompaniya'); }, [objectId, contractId]);
   useEffect(() => {
-    if (!objectId) { setKat(null); return; }
+    if (!objectId) { setKat(null); setSvodYaxlit(null); return; }
     void t2ObyektNakrutka(objectId, contractId).then((r) => {
-      const c = r.ok ? r.cats : null;
+      const c = r.ok ? kaskadCats(r) ?? r.cats : null;
+      setSvodYaxlit(r.ok ? r.svod_yaxlit ?? null : null);
       // Server bucket: МАТ = МАТ+КАБ+М/К+БЕЗ — konstruktorda alohida kategoriyalar.
       setKat(c ? { ЧЕЛ: c.chel, МАШ: c.mash, МАТ: c.mat - c.kab - c.mk - c.bez, ОБ: c.ob, КАБ: c.kab, 'М/К': c.mk, 'БЕЗ СКЛАД': c.bez } : null);
     });
@@ -110,7 +114,8 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
 
   const korinadigan: Podval = tahrir ?? (amaldagi ? { versiya: 1, nom: amaldagi.nom, qatorlar: amaldagi.qatorlar } : standart);
   const xatolar = tahrir ? podvalTekshir(tahrir) : [];
-  const hisob = kat ? podvalHisobla(korinadigan, kat) : null;
+  const hisob0 = kat ? podvalHisobla(korinadigan, kat) : null;
+  const hisob = hisob0 && svodYaxlit ? { ...hisob0, qiymat: podvalQiymatYaxlit(hisob0.qiymat, korinadigan, svodYaxlit.qqssiz, koef) } : hisob0;
   const kf = podvalKf(korinadigan);
   const belgilangan = podvalBelgilanganSumma(korinadigan);
 
@@ -226,6 +231,7 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
           </tbody>
         </table>
       </div>
+      {svodYaxlit && hisob && <div className="fz-note text-[12px]" data-testid="podval-svod-yaxlit">{t('Svod yaxlit bo‘limlari ({n}) ustamasiz qo‘shildi: {s} so‘m (ҚҚС siz) — summa svodning o‘zidan, ustama hisoblanmaydi.', { n: String(svodYaxlit.bolimlar.length), s: svodYaxlit.qqssiz.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) })}</div>}
 
       {tahrir && (
         <div className="flex flex-wrap items-center gap-2">

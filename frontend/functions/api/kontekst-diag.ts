@@ -10,10 +10,14 @@
  */
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { superadminActor } from '../_shared/superadmin';
 
 type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string };
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+  /* Egasi 2026-10-27: texnik diagnostika (server sozlamalari holati) — faqat platforma superadmini (bazada qayta tekshiriladi). */
+  const sa = await superadminActor(ctx.request, { SESSIYA_KALIT: ctx.env.SESSIYA_KALIT, SUPABASE_URL: ctx.env.SUPABASE_URL ?? '', SUPABASE_KEY: ctx.env.SUPABASE_KEY ?? '' });
+  if ('code' in sa) return Response.json({ ok: false, code: sa.code }, { status: sa.status });
   const out: Record<string, unknown> = {
     supabase_url_set: !!ctx.env.SUPABASE_URL,
     supabase_key_set: !!ctx.env.SUPABASE_KEY,

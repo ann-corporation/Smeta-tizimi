@@ -22,12 +22,14 @@ import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 import { Maydon } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { IkkiTomonQator, MiniFarq, Eksa, Rang } from '../../components/nakopitelniy/PereraschetGrafik';
 import { useObyektF2Aktlari } from './F2DublikatPanel';
-import { katKesimYigish, type KatKesim } from '../../lib/ustamali-summa';
+import { katKesimYigish, qiymatUchligi, uchlikAyir, type KatKesim } from '../../lib/ustamali-summa';
 import { PereraschetFakt } from './PereraschetFakt';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const SAHIFA = 100;
 const bandNomi = (b: BandTur) => ({ ortiqcha: t('Ortiqcha olingan'), narx_farqi: t('Narx farqi'), olinmagan: t('Olinmay qolgan (faktda bor)'), chegirma: t('Chegirma (исключать) — asosiy ishga mutanosib emas') })[b];
@@ -90,7 +92,9 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
   };
 
   const bolimlar = useMemo(() => (rows ? pereraschetBolimlari(rows) : []), [rows]);
-  const natija = useMemo(() => (rows ? pereraschetHisobla(rows, { zamenaIdlar: zamena.z, aslIdlar: zamena.a, bolimId: bolim }) : null), [rows, zamena, bolim]);
+  const yaxlitIdlari = ustama.yaxlitIdlari;
+  const yaxlitIdlar = useMemo(() => (rows ? yaxlitIdlari?.(rows.map((r) => ({ id: r.qator_id, ota_id: r.ota_id }))) : undefined), [rows, yaxlitIdlari]);
+  const natija = useMemo(() => (rows ? pereraschetHisobla(rows, { zamenaIdlar: zamena.z, aslIdlar: zamena.a, bolimId: bolim, yaxlitIdlar }) : null), [rows, zamena, bolim, yaxlitIdlar]);
   const bolimNomi = bolim != null ? bolimlar.find((b) => b.id === bolim)?.nom ?? null : null;
 
   /** Ustamali (ИТОГО-4, NDS siz): kat noma'lum qism ustamasiz qo'shiladi (SummaJuft bilan bir xil qoida). */
@@ -102,8 +106,8 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
   const uPlus = ustamali(natija?.plusKesim);
   const uMinus = ustamali(natija?.minusKesim);
   const uSof = uPlus != null && uMinus != null ? uPlus - uMinus : null;
-  const ndsAsos = uSof ?? natija?.jami.sof ?? 0;
-  const nds = ndsFoiz != null ? Math.round(ndsAsos * ndsFoiz) / 100 : null;
+  /** Sof natija uchligi (egasi 2026-10-27): QQS bilan asosiy — koeffitsientlar kaskadidan (stavka qo'lda emas). */
+  const sofUchlik = natija ? uchlikAyir(qiymatUchligi(ustama.hisobla(natija.plusKesim), natija.jami.plus), qiymatUchligi(ustama.hisobla(natija.minusKesim), natija.jami.minus)) : null;
 
   const tarixOch = async (id: number) => {
     if (ochiq === id) { setOchiq(null); return; }
@@ -233,16 +237,8 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
                 <SummaJuft obyektId={obyektId} kompaniyaId={companyId} ustamasiz={natija.jami.minus} katKesim={natija.minusKesim} />
               </div>
               <div className="fz-kpi">
-                <span className="fz-kpi__label"><i style={{ background: rangSof(uSof ?? natija.jami.sof) }} />{t('Sof natija (NDS siz)')}</span>
-                <span className="tabular-nums" style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.25 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: rangSof(uSof ?? natija.jami.sof) }}>{uSof == null ? <span style={{ color: 'var(--warn)' }}>{t('ustamali noma’lum')}</span> : <FmtN val={uSof} />}</span>
-                  <span style={{ fontSize: 10.5, color: 'var(--text-mute)' }}>{t('ustamasiz')}: <FmtN val={natija.jami.sof} /></span>
-                </span>
-              </div>
-              <div className="fz-kpi">
-                <span className="fz-kpi__label"><i style={{ background: rangSof(ndsAsos) }} />{t('Sof natija NDS bilan')}{ndsFoiz != null ? ` (${ndsFoiz}%)` : ''}</span>
-                <span className="fz-kpi__value" style={{ fontSize: 14, color: nds == null ? 'var(--text-mute)' : rangSof(ndsAsos) }}>{nds == null ? t('QQS stavkasi kiritilmagan') : <FmtN val={ndsAsos + nds} />}</span>
-                {uSof == null && <span className="fz-kpi__sub" style={{ color: 'var(--warn)' }}>{t('ustamasiz summadan hisoblandi')}</span>}
+                <span className="fz-kpi__label"><i style={{ background: rangSof(sofUchlik?.qqsBilan ?? natija.jami.sof) }} />{t('Sof natija')}</span>
+                {sofUchlik && <QiymatUchlik q={{ ...sofUchlik, ustamasiz: natija.jami.sof }} rang={sofUchlik.qqsBilan == null ? undefined : rangSof(sofUchlik.qqsBilan)} />}
               </div>
             </div>
 
@@ -294,7 +290,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
                 <thead><tr>
                   <th style={{ width: 28 }} /><th style={th}>{t('Ish / resurs')}</th><th>{t('Birlik')}</th>
                   <th style={thN}>{t('Smeta hajm')}</th><th style={thN}>{t('Fakt')}</th><th style={thN}>{t('F2 hajm')}</th>
-                  <th style={thN}>{t('Smeta narx / F2 narx')}</th><th style={th}>{t('Sabab')}</th><th style={thN}>{t('Summa (ustamasiz)')}</th>
+                  <th style={thN}>{t('Smeta narx / F2 narx')}<SummaYorliq tur="narx" /></th><th style={th}>{t('Sabab')}</th><th style={thN}>{t('Summa (ustamasiz)')}</th>
                 </tr></thead>
                 <tbody>
                   {korinadi.map((q) => (

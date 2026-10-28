@@ -27,9 +27,10 @@ export function TayyorlanganF2lar({ kompaniyaId, obyektId, yangilash = 0 }: { ko
   }, [obyektId, yangilash]);
   if (!aktlar?.length) return null;
   return (
-    <section className="karta space-y-1.5 p-3 text-[12px]" aria-label={t('Tayyorlangan F2 lar')}>
-      <p className="font-semibold text-text">{t('Shu obyektda tayyorlangan F2 lar')}</p>
-      <ul className="space-y-1">
+    /* 2026-10-27: ro'yxat ish maydonini pastga surib yubormasin — ko'p bo'lsa yig'iq, ochilganda o'zi scroll. */
+    <details className="karta p-3 text-[12px]" aria-label={t('Tayyorlangan F2 lar')} open={aktlar.length <= 2}>
+      <summary className="cursor-pointer font-semibold text-text">{t('Shu obyektda tayyorlangan F2 lar')} <span className="font-normal text-text-dim">({aktlar.length})</span></summary>
+      <ul className="mt-1.5 max-h-[32dvh] space-y-1 overflow-auto">
         {aktlar.map((a) => (
           <li key={a.id} className="flex flex-wrap items-center gap-2 border-b border-border/40 pb-1 last:border-0">
             <span className="font-medium text-text">№ {a.raqam || '—'}</span>
@@ -46,6 +47,6 @@ export function TayyorlanganF2lar({ kompaniyaId, obyektId, yangilash = 0 }: { ko
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }

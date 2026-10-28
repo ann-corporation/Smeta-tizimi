@@ -17,6 +17,7 @@ import { Bolim, HolatBelgi } from './tomon-ui';
 import { QatorIzohMuloqot, QatorIzohTugma } from './QatorIzohlari';
 import { useQatorIzohlari } from './qator-izohlari-hook';
 import { HODISA_NOMI, inp, oyMatn, pul, sana, TAQDIM_HOLAT_NOMI, tugma, tugmaAsosiy } from './tomon-yordam';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const OCHIQ = ['yuborilgan', 'ko_rilmoqda'];
 const KORINADIGAN_QATOR = 200;
@@ -79,7 +80,7 @@ function Tafsilot({ kompaniyaId, id, yangila }: { kompaniyaId: number; id: numbe
         <div className="fz-table-wrap max-h-96">
           <table className="fz-table min-w-[720px]">
             <thead><tr><th>№</th><th>{t('Kod')}</th><th>{t('Nomi')}</th><th>{t('Birlik')}</th>
-              <th className="fz-c-num">{t('Hajm')}</th><th className="fz-c-num">{t('Narx')}</th><th className="fz-c-num">{t('Summa')}</th>{aktId != null && <th>{t('Izoh')}</th>}</tr></thead>
+              <th className="fz-c-num">{t('Hajm')}</th><th className="fz-c-num">{t('Narx')}<SummaYorliq tur="narx" /></th><th className="fz-c-num">{t('Summa')}</th>{aktId != null && <th>{t('Izoh')}</th>}</tr></thead>
             <tbody>{qatorlar.map((x) => (
               <Fragment key={x.qator_id}>
                 <tr><td className="tabular-nums text-text-mute">{x.tartib}</td><td className="fz-c-shifr">{x.kod}</td><td>{x.nom}</td><td className="fz-c-unit">{x.birlik}</td>

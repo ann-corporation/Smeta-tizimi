@@ -175,7 +175,7 @@ export default function TestKontragent() {
                       <td><span className="fz-c-shifr block">{k.inn || '—'}</span><span className="fz-c-shifr">{k.mfo || '—'}</span></td>
                       <td><span className="fz-chip">{rolNomi(k.mavqe)}</span></td>
                       <td className="whitespace-nowrap text-right">
-                        <button type="button" onClick={() => navigate('/admin/test/xarita?tugun=kontragent:' + k.id)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmap')}</button>
+                        <button type="button" onClick={() => navigate('/admin/mindmap?tugun=kontragent:' + k.id)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmap')}</button>
                         <button type="button" onClick={() => void handleOchir(k)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('O‘chirish')} aria-label={t('O‘chirish')}><Trash2 /></button>
                       </td>
                     </tr>

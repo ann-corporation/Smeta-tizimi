@@ -1,4 +1,5 @@
 import { yozAmali } from './supabase';
+import { t } from '../i18n/til';
 import { sbSkladYarat, sbKadrYarat, sbTexnikaYarat } from './t2-resurs';
 import { sbT2LoyihaYoz } from './t2-loyiha';
 import { sbKontragentSaqla } from './t2-kontragent';
@@ -24,7 +25,9 @@ import { entityIdFromResult, type EntityCommandResult } from './entity-consisten
 
 export type TugunTur =
   | 'kompaniya' | 'loyiha' | 'obyekt' | 'shartnoma'
-  | 'sklad' | 'texnika' | 'kadr' | 'kontragent' | 'zayavka';
+  | 'sklad' | 'texnika' | 'kadr' | 'kontragent' | 'zayavka'
+  /** v4: kompaniya a'zosi (odam). `id` = `foydalanuvchi:<t2_foydalanuvchi.id>`. */
+  | 'foydalanuvchi';
 
 export type BogTur =
   | 'loyiha_kompaniya'   // tuzilmaviy — uzib bo'lmaydi
@@ -34,7 +37,11 @@ export type BogTur =
   | 'sklad_obyekt'       // manba=sklad,      maqsad=obyekt
   | 'texnika_obyekt'     // manba=texnika,    maqsad=obyekt
   | 'kadr_obyekt'        // manba=kadr,       maqsad=obyekt
-  | 'qatnashchi';        // manba=kontragent, maqsad=loyiha
+  | 'qatnashchi'         // manba=kontragent, maqsad=loyiha
+  /* v4 (odamlar). Bular mindmapdan chiziq tortib o'zgartirilmaydi — `sbMindmapMasul` orqali. */
+  | 'azo_kompaniya'      // manba=kompaniya,  maqsad=foydalanuvchi
+  | 'masul_obyekt'       // manba=foydalanuvchi, maqsad=obyekt
+  | 'masul_loyiha';      // manba=foydalanuvchi, maqsad=loyiha
 
 /* ⚡ 2026-08-28 (Claude) — foydalanuvchi maqsadi (audit hujjatida):
  * «rahbar mindmapni ochsa butun tashkilot holatini ko'rsin; PTO
@@ -50,7 +57,16 @@ export type BogTur =
  *     kozgu    → t2_kozgu (holat='farqli')
  *     smeta_yoq→ obyektda umuman resurs qatori yo'q
  * Manba bo'sh bo'lsa belgi CHIQMAYDI (bo'sh massiv), soxta 0 emas. */
-export type BelgiTur = 'zayavka' | 'narx_yoq' | 'kozgu' | 'smeta_yoq';
+export type BelgiTur = 'zayavka' | 'narx_yoq' | 'kozgu' | 'smeta_yoq'
+  /** v3: smeta (rz) bor, lekin resurs qatorlari yo'q. */
+  | 'resurs_yoq'
+  /** v3: t2_overbilling_radar — F2 fakt yoki smetadan oshgan qatorlar. */
+  | 'ortiqcha'
+  /** Mijozda: obyektda F2 bor, lekin fakt umuman kiritilmagan — «F2 > fakt» bu holatda ortiqcha EMAS, fakt bo'shligi. */
+  | 'fakt_yoq';
+
+/** v3: obyektning ochiq signali (t2_mindmap_signal_summary.top_signals, eng og'ir 3 tasi). */
+export type MindmapSignal = { title: string | null; severity: string | null; type?: string | null };
 
 export type MindmapBelgi = {
   tur: BelgiTur;
@@ -70,7 +86,19 @@ export type ObyektMeta = {
   narxsiz: number;
   /** `false` — jami TO'LIQ EMAS, moliyaviy qaror uchun ishlatilmasin. */
   toliq: boolean;
-  fakt: number; f2: number;
+  fakt: number;
+  /** F2. v3 dan: FAQAT tasdiqlangan aktlar (`f2_asos === 'tasdiqlangan'`). Eski RPC qoralamani ham qo'shgan. */
+  f2: number;
+  /** v3: `'tasdiqlangan'`. Maydon yo'q — eski RPC shakli (F2 asosi noma'lum, qoralama aralash bo'lishi mumkin). */
+  f2_asos?: string;
+  /** v3: tasdiqlanmagan F2 qoralamalar summasi (f2 ga kirmaydi). Eski RPCda yo'q. */
+  f2_qoralama?: number | null;
+  /** v3: rz qatorlari soni. */
+  rz_qatori?: number;
+  /** v3: ochiq signallar. */
+  signal_count?: number; critical_count?: number; top_signals?: MindmapSignal[];
+  /** v3: overbilling radaridagi qatorlar soni (server belgisi). */
+  ortiqcha_soni?: number;
   /** Smeta 0/`null` bo'lsa `null` — yolg'on «0%» ko'rsatilmaydi. */
   fakt_foiz: number | null; f2_foiz: number | null;
   zayavka: number;
@@ -95,26 +123,56 @@ export type MindmapTugun = {
 };
 
 export type MindmapBogich = {
-  manba: string; maqsad: string; tur: BogTur; uzsa_boladi: boolean; rol?: string;
+  manba: string; maqsad: string; tur: BogTur; uzsa_boladi: boolean;
+  /** `qatnashchi` chiziqlarida (v3 dan server yuboradi). */
+  rol?: string;
+  /** `qatnashchi` ishtirokchi qatorining ID si (v3). */
+  id?: number;
+  /** v4: `masul_obyekt` / `masul_loyiha` — `read` | `write` | `manage`. */
+  ruxsat?: string;
+};
+
+/** v4: foydalanuvchi tuguni metasi. */
+export type FoydalanuvchiMeta = { rol?: string | null; rollar?: string[]; login?: string | null };
+
+/** v4: kim nimani ko'ryapti (server `korinish`). `toliq=false` — ba'zi obyektlar sizga yashirilgan; `pul=false` — summalar olib tashlangan. */
+export type MindmapKorinish = { toliq: boolean; pul: boolean; rol: string; yashirin_obyekt?: number };
+
+/** v3: shartnoma tuguni metasi (barcha maydon ixtiyoriy — eski RPCda yo'q). */
+export type ShartnomaMeta = {
+  nom?: string | null; taraf?: string | null; versiya?: number;
+  /** NDS bilan. */
+  summa?: number | null; summa_bez_nds?: number | null;
+  holat?: string | null; loyiha_id?: number | null;
+  obyekt_soni?: number; obyekt_idlar?: number[];
+  tomonlar?: { rol: string | null; nom: string | null; kontragent_id?: number | null }[];
 };
 
 /** Butun tashkilot bo'yicha bir qarashda ko'riladigan jamlanma. */
 export type MindmapJamlanma = {
   obyekt_soni: number;
-  smeta_jami: number | null;
-  fakt_jami: number;
-  f2_jami: number;
+  /** v4: moliyaviy ruxsat yo'q bo'lsa pul maydonlari umuman kelmaydi (0 emas, `undefined`). */
+  smeta_jami?: number | null;
+  fakt_jami?: number;
+  f2_jami?: number;
   zayavka_kutilmoqda: number;
   /** Nechta obyektda narxsiz qator bor — ya'ni jami to'liq emas. */
   narxsiz_obyekt: number;
   smetasiz_obyekt: number;
   kozgu_eskirgan: number;
+  /** v3 maydonlari (eski RPCda yo'q). */
+  f2_asos?: string;
+  f2_qoralama_jami?: number | null;
+  resurssiz_obyekt?: number;
+  ortiqcha_obyekt?: number;
 };
 
 export type MindmapGraf = {
   tugunlar: MindmapTugun[];
   bogichlar: MindmapBogich[];
   jamlanma?: MindmapJamlanma;
+  /** v4 dan: ko'rish doirasi. Eski RPCda yo'q (`undefined` — cheklov noma'lum, butun graf). */
+  korinish?: MindmapKorinish;
 };
 
 /** Mutation operation ID is created once by the caller and reused on retry. */
@@ -132,38 +190,86 @@ export function belgiDarajasi(t: MindmapTugun): 'ogoh' | 'info' | null {
   return b.some((x) => x.daraja === 'ogoh') ? 'ogoh' : 'info';
 }
 
-/** Butun kompaniya grafi — BITTA so'rovda (zero re-fetch). */
+/** v4 yo'q (migratsiya qo'llanmagan / eski worker) — faqat shu holatda v1 ga qaytiladi; ruxsat xatosida EMAS. */
+export function v4YoqmiXato(xato: string | undefined | null): boolean {
+  const x = xato || '';
+  return /\(404\)/.test(x) || /So'rov ochiq emas/i.test(x) || /So‘rov ochiq emas/i.test(x);
+}
+
+/** Odamlar (v4) tugunlari va chiziqlarisiz graf — eski tahrir kanvasi va 2D/3D graf uchun (ular odamni bilmaydi). */
+export function grafOdamsiz(g: MindmapGraf): MindmapGraf {
+  const odam = new Set(g.tugunlar.filter((t) => t.tur === 'foydalanuvchi').map((t) => t.id));
+  if (!odam.size) return g;
+  return {
+    ...g,
+    tugunlar: g.tugunlar.filter((t) => !odam.has(t.id)),
+    bogichlar: g.bogichlar.filter((b) => !odam.has(b.manba) && !odam.has(b.maqsad)),
+  };
+}
+
+async function grafSorov(body: Record<string, unknown>): Promise<{ ok: true; graf: MindmapGraf } | { ok: false; error: string }> {
+  const res = await fetch('/api/sb', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const j = await res.json();
+  if (!j.ok) return { ok: false, error: j.error || 'Graf o\'qilmadi' };
+  const graf = (j.natija || {}) as MindmapGraf;
+  return {
+    ok: true,
+    graf: {
+      tugunlar: graf.tugunlar || [],
+      bogichlar: graf.bogichlar || [],
+      /* Rahbar paneli uchun kompaniya bo'yicha jamlanma ham shu
+       * bitta javobda keladi. Uni tashlab yuborish API kontraktini
+       * jimgina buzib, UI'ni yana soxta KPI qo'yishga undaydi. */
+      jamlanma: graf.jamlanma,
+      korinish: graf.korinish,
+    },
+  };
+}
+
+/** Butun kompaniya grafi — BITTA so'rovda (zero re-fetch).
+ *  Avval v4 (odamlar + ko'rish doirasi, actor sessiyadan); v4 hali yo'q bo'lsa (404 / ochiq emas) — v1. */
 export async function sbMindmapGrafOl(kompaniyaId: number, drilldown?: { mode: 'taminot' | 'obyekt'; obyektId: number }): Promise<
   { ok: true; graf: MindmapGraf } | { ok: false; error: string }
 > {
   try {
-    const res = await fetch('/api/sb', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // Productionda V2 migration hali o'rnatilmagan bo'lishi mumkin. Asosiy
-      // xarita mavjud, barqaror RPC bilan ochilishi shart; V2 faqat drilldown
-      // uchun kerak bo'lganda chaqiriladi.
-      body: JSON.stringify(drilldown
-        ? { soro: 'mindmap_grafi_v2', kompaniya_id: kompaniyaId, mode: drilldown.mode, obyekt_id: drilldown.obyektId }
-        : { soro: 'mindmap_grafi', kompaniya_id: kompaniyaId }),
-    });
-    const j = await res.json();
-    if (!j.ok) return { ok: false, error: j.error || 'Graf o\'qilmadi' };
-    const graf = (j.natija || {}) as MindmapGraf;
-    return {
-      ok: true,
-      graf: {
-        tugunlar: graf.tugunlar || [],
-        bogichlar: graf.bogichlar || [],
-        /* Rahbar paneli uchun kompaniya bo'yicha jamlanma ham shu
-         * bitta javobda keladi. Uni tashlab yuborish API kontraktini
-         * jimgina buzib, UI'ni yana soxta KPI qo'yishga undaydi. */
-        jamlanma: graf.jamlanma,
-      },
-    };
+    // Productionda V2 migration hali o'rnatilmagan bo'lishi mumkin. Asosiy
+    // xarita mavjud, barqaror RPC bilan ochilishi shart; V2 faqat drilldown
+    // uchun kerak bo'lganda chaqiriladi.
+    if (drilldown) {
+      return await grafSorov({ soro: 'mindmap_grafi_v2', kompaniya_id: kompaniyaId, mode: drilldown.mode, obyekt_id: drilldown.obyektId });
+    }
+    const v4 = await grafSorov({ soro: 'mindmap_grafi_v4', kompaniya_id: kompaniyaId });
+    if (v4.ok || !v4YoqmiXato(v4.error)) return v4;
+    return await grafSorov({ soro: 'mindmap_grafi', kompaniya_id: kompaniyaId });
   } catch (e: any) {
     return { ok: false, error: 'Tarmoq: ' + (e?.message || String(e)) };
   }
+}
+
+export type MasulRuxsat = 'read' | 'write' | 'manage';
+
+/** Odamni obyekt YOKI loyihaga mas'ul qilib biriktiradi; `ruxsat: null` — olib tashlaydi. Actor sessiyadan. */
+export async function sbMindmapMasul(
+  kompaniyaId: number,
+  a: { obyektId?: number; loyihaId?: number; foydalanuvchiId: number; ruxsat: MasulRuxsat | null },
+): Promise<{ ok: boolean; error?: string }> {
+  const r = await yozAmali({
+    amal: 'mindmap_masul', kompaniya_id: kompaniyaId,
+    obyekt_id: a.obyektId ?? null, loyiha_id: a.loyihaId ?? null,
+    foydalanuvchi_id: a.foydalanuvchiId, ruxsat: a.ruxsat, operation_id: yangiOperationId(),
+  });
+  if (r.ok) return { ok: true };
+  const kod = (r as { code?: string }).code;
+  const KOD_MATNI: Record<string, string> = {
+    AUTHORIZATION_DENIED: t('Mas‘ul biriktirish uchun «A’zolarni boshqarish» ruxsati kerak.'),
+    TARGET_NOT_MEMBER: t('Bu odam kompaniyaning faol a’zosi emas.'),
+    OBYEKT_NOT_FOUND: t('Obyekt topilmadi.'), LOYIHA_NOT_FOUND: t('Loyiha topilmadi.'),
+  };
+  return { ok: false, error: r.error || (kod && KOD_MATNI[kod]) || t('Mas‘ul saqlanmadi') };
 }
 
 /** Chiziq tortilganda — bog'lanish saqlanadi. */

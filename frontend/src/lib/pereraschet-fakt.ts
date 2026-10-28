@@ -85,6 +85,8 @@ export type FKontekst = {
   qoshimchaIdlar?: ReadonlySet<number>;
   /** Filtr: faqat shu razdel (rz id) ostidagilar. */
   bolimId?: number | null;
+  /** Svod yaxlit bo'limlari va avlodlari (yaxlitQatorIdlari): ustamali summada koeffitsient qo'llanmaydi. */
+  yaxlitIdlar?: ReadonlySet<number>;
 };
 
 const BARG = new Set(['rs', 'mat', 'ob']);
@@ -174,10 +176,11 @@ export function faktPereraschetHisobla(rows: readonly PQator[], k: FKontekst = {
   for (const p of hisobda) {
     kerak += p.kerak; olingan += p.f2Summa; if (!p.boglangan) olinganB += p.f2Summa;
     // Kesim MUTLAQ qiymatda: manfiy olingan (eski tuzatish) — teskari tomonga.
-    if (p.kerak > 0) katKesimgaQosh(kerakKesim, p.kat, p.kerak);
-    if (p.f2Summa > 0) katKesimgaQosh(olinganKesim, p.kat, p.f2Summa); else if (p.f2Summa < 0) katKesimgaQosh(kerakKesim, p.kat, -p.f2Summa);
-    if (p.farq > 0) { plus += p.farq; katKesimgaQosh(plusKesim, p.kat, p.farq); }
-    else if (p.farq < 0) { minus += -p.farq; katKesimgaQosh(minusKesim, p.kat, -p.farq); }
+    const yx = !!k.yaxlitIdlar?.has(p.qatorId);
+    if (p.kerak > 0) katKesimgaQosh(kerakKesim, p.kat, p.kerak, yx);
+    if (p.f2Summa > 0) katKesimgaQosh(olinganKesim, p.kat, p.f2Summa, yx); else if (p.f2Summa < 0) katKesimgaQosh(kerakKesim, p.kat, -p.f2Summa, yx);
+    if (p.farq > 0) { plus += p.farq; katKesimgaQosh(plusKesim, p.kat, p.farq, yx); }
+    else if (p.farq < 0) { minus += -p.farq; katKesimgaQosh(minusKesim, p.kat, -p.farq, yx); }
     const bk = String(p.bolimId ?? 'yoq');
     const bj = bolimMap.get(bk) ?? { bolimId: p.bolimId, yol: p.bolimYol, kerak: 0, olingan: 0, plus: 0, minus: 0, sof: 0, soni: 0 };
     bj.soni++; bj.kerak += p.kerak; bj.olingan += p.f2Summa;
