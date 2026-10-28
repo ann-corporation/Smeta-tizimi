@@ -12,7 +12,10 @@ export type AgentModelQatori = {
   kod: string; nom: string | null; rol: string | null; izoh: string | null; permission_mode: string; default_scope: string;
   model_id: string | null; model_manba: 'kompaniya' | 'platforma' | 'standart';
 };
-export type ModelKatalogi = { id: string; nom: string; tavsif: string | null; narx_izoh: string | null; vision: boolean; narx_kirish_usd?: number | null; narx_chiqish_usd?: number | null };
+/** Mijoz narxi (server hisoblaydi, `functions/_shared/ai-mijoz-narx.ts`): 1 so'rov ≈ N token va narx darajasi. Kompaniyaga USD/ustama chiqmaydi. */
+export type NarxDaraja = 'arzon' | 'orta' | 'qimmat';
+export type MijozNarx = { javob_token?: number | null; narx_daraja?: NarxDaraja | null };
+export type ModelKatalogi = MijozNarx & { id: string; nom: string; tavsif: string | null; narx_izoh?: string | null; vision: boolean; narx_kirish_usd?: number | null; narx_chiqish_usd?: number | null };
 export type ModellarJavobi = { rol: string; tanlash_mumkin: boolean; agentlar: AgentModelQatori[]; katalog: ModelKatalogi[] };
 
 export type AgentTaklif = {
@@ -97,9 +100,10 @@ export type KasbIshchi = { rol: string; profil: string; nom: string; vazifa: str
 export type KasbJavobi = { javob: string; kasb: { nom: string; rol: string; profil: string }; toifalar?: string[]; rad?: boolean; model?: string; ms?: number };
 export const kasbOl = (k: number) => agentOqi<KasbIshchi>('kasb', k);
 export const kasbSavol = (k: number, savol: string, sahifa?: string, obyektId?: number | null) => agentYoz<KasbJavobi>('kasb_savol', k, { savol, sahifa, obyekt_id: obyektId ?? undefined });
-export type ModelMoslik = {
-  id: string; nom: string; kirish_usd: number; chiqish_usd: number; kontekst: number; vision: boolean; tools: boolean; json: boolean; reasoning: boolean;
-  ball: number; manba: 'tanilgan' | 'taxmin'; daraja: 'juda_mos' | 'mos' | 'chegarada' | 'kuchsiz'; talab: number; sabablar: string[]; ogohlantirish: string | null; javob_narxi_usd: number;
+/** USD maydonlari — faqat superadminga (server kompaniyaga olib tashlaydi). */
+export type ModelMoslik = MijozNarx & {
+  id: string; nom: string; kirish_usd?: number; chiqish_usd?: number; kontekst: number; vision: boolean; tools: boolean; json: boolean; reasoning: boolean;
+  ball: number; manba: 'tanilgan' | 'taxmin'; daraja: 'juda_mos' | 'mos' | 'chegarada' | 'kuchsiz'; talab: number; sabablar: string[]; ogohlantirish: string | null; javob_narxi_usd?: number;
 };
 export type ModellarRoyxati = { jami: number; tavsiya: string[]; talab: { min: number; izoh: string }; natija: ModelMoslik[] };
 export const openrouterModellarOl = (p: { profil?: string | null; q?: string; ids?: string[] } = {}) =>

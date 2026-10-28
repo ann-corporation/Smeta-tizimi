@@ -6,8 +6,9 @@
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, ArrowLeft, Building2, ChevronRight, Clock, ExternalLink, FileText, FolderKanban, HardHat,
-  PencilLine, Truck, Users, Warehouse, X, ClipboardList, History, Gauge, ShieldAlert, Info,
+  PencilLine, Truck, Users, Warehouse, X, ClipboardList, History, Gauge, ShieldAlert, Info, MoreHorizontal,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { MindmapGraf, MindmapTugun } from '../../api/t2-mindmap';
 import type { Hodisa } from '../../api/t2-hodisa';
 import { qachon } from '../../api/t2-hodisa';
@@ -21,6 +22,7 @@ import { foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 import { RESURS_YOLI } from '../../lib/mindmap-yollar';
 import { Avatar, JamoaPanel, MasullarBlok, OdamPanel, type MasulBoshqaruv } from './XaritaJamoa';
 import { guruhNomi as guruhNomiOl } from './jamoa-nomlar';
+import { resursNishoni, tugunNishoni, type AmalNishon } from '../../lib/mindmap-amallar';
 
 export type HodisaHolati = { qatorlar: Hodisa[]; yuklanmoqda: boolean; xato: string };
 
@@ -38,7 +40,24 @@ type Props = {
   onYop?: () => void;
   /** Mas'ul biriktirish (v4). Berilmasa — faqat ko‘rsatish. */
   masul?: MasulBoshqaruv;
+  /** Tugun amallari menyusini ochish (tugma ostida). Berilmasa — «⋯ Amallar» tugmalari yo‘q. */
+  amalOch?: (n: AmalNishon, el: HTMLElement) => void;
+  /** Nishonda nechta amal bor (0 — tugma chiqmaydi). */
+  amalSoni?: (n: AmalNishon) => number;
 };
+
+type AmalProps = Pick<Props, 'amalOch' | 'amalSoni'>;
+
+/** «⋯ Amallar» tugmasi (panel sarlavhasida). Amal bo‘lmasa — chiqmaydi. */
+export function AmallarTugma({ nishon, amalOch, amalSoni }: { nishon: AmalNishon | null } & AmalProps) {
+  if (!nishon || !amalOch || !amalSoni || amalSoni(nishon) === 0) return null;
+  return (
+    <button type="button" className="fz-btn fz-btn--sm" aria-haspopup="menu" data-testid="xarita-amallar-tugma"
+      onClick={(e) => amalOch(nishon, e.currentTarget)}>
+      <MoreHorizontal aria-hidden />{t('Amallar')}
+    </button>
+  );
+}
 
 const STAMP: Record<XHolat, string> = { xavf: 'fz-stamp--danger', etibor: 'fz-stamp--warn', yaxshi: 'fz-stamp--ok', nomalum: '' };
 const RESURS_IKON: Record<string, typeof FileText> = { shartnoma: FileText, sklad: Warehouse, texnika: Truck, kadr: HardHat, kontragent: Users };
@@ -136,7 +155,7 @@ function ObyektQatori({ x, onTanla, pulYoq = false }: { x: XTugun; onTanla: (id:
   );
 }
 
-function Sarlavha({ kicker, ikon: I, nom, holat, onYop, ortga }: { kicker: string; ikon: typeof FileText; nom: string; holat?: XHolat; onYop?: () => void; ortga?: { matn: string; onClick: () => void } }) {
+function Sarlavha({ kicker, ikon: I, nom, holat, onYop, ortga, amallar }: { kicker: string; ikon: typeof FileText; nom: string; holat?: XHolat; onYop?: () => void; ortga?: { matn: string; onClick: () => void }; amallar?: ReactNode }) {
   return (
     <header className="sticky top-0 z-[1] border-b border-border bg-surface px-4 pb-3 pt-3">
       <div className="flex items-center justify-between gap-2">
@@ -148,18 +167,22 @@ function Sarlavha({ kicker, ikon: I, nom, holat, onYop, ortga }: { kicker: strin
           {onYop && <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" onClick={onYop} aria-label={t('Panelni yopish')}><X /></button>}
         </span>
       </div>
-      <h2 className="mt-1.5 text-[18px] font-semibold leading-6 text-text break-words">{nom}</h2>
+      <div className="mt-1.5 flex items-start justify-between gap-2">
+        <h2 className="min-w-0 text-[18px] font-semibold leading-6 text-text break-words">{nom}</h2>
+        {amallar && <span className="shrink-0">{amallar}</span>}
+      </div>
     </header>
   );
 }
 
-export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodisalar, onTahrirdaOch, onHolatFiltr, holatFiltri, onYop, masul }: Props) {
+export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodisalar, onTahrirdaOch, onHolatFiltr, holatFiltri, onYop, masul, amalOch, amalSoni }: Props) {
   const x = tanlangan ? daraxt.tugunlar.get(tanlangan) ?? null : null;
   const root = daraxt.tugunlar.get(daraxt.ildiz)!;
+  const amallarTugma = (tg: XTugun) => <AmallarTugma nishon={tugunNishoni(tg, !!daraxt.jamoa)} amalOch={amalOch} amalSoni={amalSoni} />;
 
-  if (!x || x.tur === 'kompaniya') return <KompaniyaPanel root={root} daraxt={daraxt} onTanla={onTanla} guruhNomi={guruhNomi} onHolatFiltr={onHolatFiltr} holatFiltri={holatFiltri} onYop={onYop} />;
-  if (x.tur === 'jamoa') return <JamoaPanel daraxt={daraxt} onTanla={onTanla} onYop={onYop} />;
-  if (x.tur === 'odam' && x.odam) return <OdamPanel x={x} daraxt={daraxt} onTanla={onTanla} onYop={onYop} rolOzgartir={!!masul?.mumkin} />;
+  if (!x || x.tur === 'kompaniya') return <KompaniyaPanel root={root} daraxt={daraxt} onTanla={onTanla} guruhNomi={guruhNomi} onHolatFiltr={onHolatFiltr} holatFiltri={holatFiltri} onYop={onYop} amallar={amallarTugma(root)} />;
+  if (x.tur === 'jamoa') return <JamoaPanel daraxt={daraxt} onTanla={onTanla} onYop={onYop} amallar={amallarTugma(x)} />;
+  if (x.tur === 'odam' && x.odam) return <OdamPanel x={x} daraxt={daraxt} onTanla={onTanla} onYop={onYop} rolOzgartir={!!masul?.mumkin} amallar={amallarTugma(x)} />;
   const ota = x.ota ? daraxt.tugunlar.get(x.ota) : null;
   const ortga = ota ? { matn: ota.tur === 'guruh' ? guruhNomi : (ota.nom || t('Kompaniya')), onClick: () => onTanla(ota.id) } : undefined;
 
@@ -170,7 +193,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
     const byudjet = x.manba?.meta?.byudjet != null ? Number(x.manba.meta.byudjet) : null;
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        <Sarlavha kicker={x.tur === 'guruh' ? t('Guruh') : t('Loyiha')} ikon={FolderKanban} nom={x.tur === 'guruh' ? guruhNomi : x.nom} holat={x.holat} onYop={onYop} ortga={ortga} />
+        <Sarlavha kicker={x.tur === 'guruh' ? t('Guruh') : t('Loyiha')} ikon={FolderKanban} nom={x.tur === 'guruh' ? guruhNomi : x.nom} holat={x.holat} onYop={onYop} ortga={ortga} amallar={amallarTugma(x)} />
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
           {x.tur === 'guruh' && <div className="fz-note fz-note--info"><AlertTriangle aria-hidden /><span>{t('Bu obyektlar hech bir loyihaga biriktirilmagan. Tahrir rejimida loyihaga bog‘lang.')}</span></div>}
           <PulBloki x={x} pulYoq={daraxt.pulYoq} />
@@ -193,7 +216,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
           {(boglar.length > 0 || qatnashchi.length > 0) && (
             <section className="fz-panel">
               <div className="fz-panel__h"><span>{t('Shartnoma va qatnashchilar')}</span><span>{boglar.length}</span></div>
-              <ResursRoyxat tugunlar={boglar} rollar={new Map(qatnashchi.map((q) => [q.manba, q.rol ?? '']))} />
+              <ResursRoyxat tugunlar={boglar} rollar={new Map(qatnashchi.map((q) => [q.manba, q.rol ?? '']))} amalOch={amalOch} amalSoni={amalSoni} />
             </section>
           )}
           <div className="grid gap-2">
@@ -211,7 +234,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
   const boglar = boglanganlar(graf, x.id);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <Sarlavha kicker={t('Obyekt')} ikon={Building2} nom={x.nom} holat={x.holat} onYop={onYop} ortga={ortga} />
+      <Sarlavha kicker={t('Obyekt')} ikon={Building2} nom={x.nom} holat={x.holat} onYop={onYop} ortga={ortga} amallar={amallarTugma(x)} />
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         <p className="-mt-1 text-[12px] text-text-mute">{holatIzohi(x.holat)}</p>
         {x.belgilar.length > 0 && (
@@ -236,7 +259,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
         {boglar.length > 0 && (
           <section className="fz-panel">
             <div className="fz-panel__h"><span>{t('Biriktirilgan')}</span><span>{boglar.length}</span></div>
-            <ResursRoyxat tugunlar={boglar} />
+            <ResursRoyxat tugunlar={boglar} obyektId={oid} amalOch={amalOch} amalSoni={amalSoni} />
           </section>
         )}
         {hodisalar && (
@@ -273,7 +296,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
   );
 }
 
-function ResursRoyxat({ tugunlar, rollar }: { tugunlar: MindmapTugun[]; rollar?: Map<string, string> }) {
+function ResursRoyxat({ tugunlar, rollar, obyektId, amalOch, amalSoni }: { tugunlar: MindmapTugun[]; rollar?: Map<string, string>; obyektId?: number | null } & AmalProps) {
   const tartib = ['shartnoma', 'kontragent', 'sklad', 'texnika', 'kadr'];
   const sort = [...tugunlar].sort((a, b) => tartib.indexOf(a.tur) - tartib.indexOf(b.tur) || a.nom.localeCompare(b.nom));
   return (
@@ -282,15 +305,25 @@ function ResursRoyxat({ tugunlar, rollar }: { tugunlar: MindmapTugun[]; rollar?:
         const I = RESURS_IKON[r.tur] ?? FileText;
         const rol = rollar?.get(r.id);
         const qoshimcha = r.tur === 'shartnoma' && r.meta?.summa != null ? pulQ(Number(r.meta.summa)) : rol || (r.tur === 'kadr' ? r.meta?.lavozim : r.tur === 'texnika' ? r.meta?.davlat_raqami : '') || '';
+        const nishon = amalOch && amalSoni ? resursNishoni(r, obyektId) : null;
+        const amalBor = !!nishon && amalSoni!(nishon) > 0;
         return (
-          <li key={r.id}>
-            <Link to={RESURS_YOLI[r.tur] ?? '/admin'} className="group flex items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1 text-[12.5px] text-text no-underline hover:bg-[var(--surface-3)]">
+          <li key={r.id} className="flex items-center gap-1"
+            onContextMenu={amalBor ? (e) => { e.preventDefault(); amalOch!(nishon!, e.currentTarget.querySelector<HTMLElement>('[data-resurs-amal]') ?? e.currentTarget); } : undefined}
+            onKeyDown={amalBor ? (e) => { if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); amalOch!(nishon!, e.currentTarget.querySelector<HTMLElement>('[data-resurs-amal]') ?? e.currentTarget); } } : undefined}>
+            <Link to={RESURS_YOLI[r.tur] ?? '/admin'} className="group flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] px-1.5 py-1 text-[12.5px] text-text no-underline hover:bg-[var(--surface-3)]">
               <I aria-hidden className="h-3.5 w-3.5 shrink-0 text-text-mute" />
               <span className="min-w-0 flex-1 truncate">{r.nom}</span>
               <span className="fz-chip">{turNomi(r.tur)}</span>
               {qoshimcha && <span className="max-w-[90px] truncate font-mono text-[11px] text-text-mute">{String(qoshimcha)}</span>}
               <ChevronRight aria-hidden className="h-3.5 w-3.5 text-text-mute opacity-0 group-hover:opacity-100" />
             </Link>
+            {amalBor && (
+              <button type="button" data-resurs-amal aria-haspopup="menu" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm shrink-0"
+                aria-label={t('Amallar: {nom}', { nom: r.nom })} title={t('Amallar')} onClick={(e) => amalOch!(nishon!, e.currentTarget)}>
+                <MoreHorizontal />
+              </button>
+            )}
           </li>
         );
       })}
@@ -298,9 +331,9 @@ function ResursRoyxat({ tugunlar, rollar }: { tugunlar: MindmapTugun[]; rollar?:
   );
 }
 
-function KompaniyaPanel({ root, daraxt, onTanla, guruhNomi, onHolatFiltr, holatFiltri, onYop }: {
+function KompaniyaPanel({ root, daraxt, onTanla, guruhNomi, onHolatFiltr, holatFiltri, onYop, amallar }: {
   root: XTugun; daraxt: XDaraxt; onTanla: (id: string | null) => void; guruhNomi: string;
-  onHolatFiltr?: (h: XHolat) => void; holatFiltri?: XHolat | null; onYop?: () => void;
+  onHolatFiltr?: (h: XHolat) => void; holatFiltri?: XHolat | null; onYop?: () => void; amallar?: ReactNode;
 }) {
   const loyihalar = root.bolalar.map((id) => daraxt.tugunlar.get(id)!);
   const maxS = Math.max(0, ...loyihalar.map((l) => l.smeta ?? 0));
@@ -312,7 +345,7 @@ function KompaniyaPanel({ root, daraxt, onTanla, guruhNomi, onHolatFiltr, holatF
   ].filter((q) => q.n > 0);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <Sarlavha kicker={t('Kompaniya')} ikon={Building2} nom={root.nom || t('Kompaniya')} holat={root.obyektSoni ? root.holat : undefined} onYop={onYop} />
+      <Sarlavha kicker={t('Kompaniya')} ikon={Building2} nom={root.nom || t('Kompaniya')} holat={root.obyektSoni ? root.holat : undefined} onYop={onYop} amallar={amallar} />
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         <section className="fz-panel">
           <div className="fz-panel__h"><span>{t('Obyektlar holati')}</span><span>{t('bosing — filtr')}</span></div>

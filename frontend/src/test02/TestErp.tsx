@@ -136,7 +136,7 @@ export default function TestErp() {
                     <td><span className={`fz-stamp ${k.obyektlar?.length > 0 ? 'fz-stamp--ok' : ''}`}>{k.obyektlar?.length > 0 ? t('Obyektda') : t('Zaxirada')}</span></td>
                     <td className="text-right">
                       <span className="inline-flex gap-1">
-                        <button type="button" onClick={() => navigate('/admin/test/xarita?tugun=kadr:' + k.id)} className="fz-btn fz-btn--ghost fz-btn--sm" title={t('Mindmapda ko‘rish')}><Network /> {t('Mindmap')}</button>
+                        <button type="button" onClick={() => navigate('/admin/mindmap?tugun=kadr:' + k.id)} className="fz-btn fz-btn--ghost fz-btn--sm" title={t('Mindmapda ko‘rish')}><Network /> {t('Mindmap')}</button>
                         <button type="button" onClick={() => void bekorQil('kadr', k.id, k.versiya, k.ism_sharif)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish (tarix saqlanadi)')} aria-label={t('Bekor qilish')}><Trash2 /></button>
                       </span>
                     </td>
@@ -161,7 +161,7 @@ export default function TestErp() {
                     <td><span className={`fz-stamp ${x.obyektlar?.length > 0 ? 'fz-stamp--ok' : ''}`}>{x.obyektlar?.length > 0 ? t('Ishlamoqda') : t('Garajda')}</span></td>
                     <td className="text-right">
                       <span className="inline-flex gap-1">
-                        <button type="button" onClick={() => navigate('/admin/test/xarita?tugun=texnika:' + x.id)} className="fz-btn fz-btn--ghost fz-btn--sm" title={t('Mindmapda ko‘rish')}><Network /> {t('Mindmap')}</button>
+                        <button type="button" onClick={() => navigate('/admin/mindmap?tugun=texnika:' + x.id)} className="fz-btn fz-btn--ghost fz-btn--sm" title={t('Mindmapda ko‘rish')}><Network /> {t('Mindmap')}</button>
                         <button type="button" onClick={() => void bekorQil('texnika', x.id, x.versiya, x.nomi)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish (tarix saqlanadi)')} aria-label={t('Bekor qilish')}><Trash2 /></button>
                       </span>
                     </td>

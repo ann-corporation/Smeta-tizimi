@@ -8,13 +8,15 @@
  * `smetaToliq=false` bilan aniq aytiladi. Pul — serverdagi ustamasiz (rz qatorlar yig‘indisi) qiymat.
  */
 import type { MindmapBelgi, MindmapGraf, MindmapKorinish, MindmapSignal, MindmapTugun, TugunTur } from '../api/t2-mindmap';
+import type { TizimMeta, TizimTugunTur } from '../api/t2-tizim-xaritasi';
 import { qidiruvdaBor } from '../i18n/lotin-kirill';
 
 export type XHolat = 'xavf' | 'etibor' | 'yaxshi' | 'nomalum';
 export const HOLAT_TARTIB: XHolat[] = ['xavf', 'etibor', 'yaxshi', 'nomalum'];
 const HOLAT_OGIRLIK: Record<XHolat, number> = { xavf: 0, etibor: 1, nomalum: 2, yaxshi: 3 };
 
-export type XTur = 'kompaniya' | 'loyiha' | 'obyekt' | 'guruh' | 'jamoa' | 'odam';
+/** `tizim` / `modul` / `platforma` — «Tizim xaritasi» (lib/tizim-xaritasi.ts) tugunlari; kompaniya xaritasida uchramaydi. */
+export type XTur = 'kompaniya' | 'loyiha' | 'obyekt' | 'guruh' | 'jamoa' | 'odam' | 'tizim' | 'modul' | 'platforma';
 
 /* ───────────── Jamoa (v4: odamlar) ───────────── */
 export type JamoaGuruhKalit = 'rahbariyat' | 'pto' | 'prorab' | 'bugalter' | 'boshqa';
@@ -106,6 +108,8 @@ export type XTugun = {
   masullar: MasulYozuv[];
   /** `odam` turida — odam yozuvi. */
   odam: XOdam | null;
+  /** Faqat «Tizim xaritasi» tugunlarida: server tuguni (tur + meta). Kompaniya xaritasida — yo'q. */
+  tizim?: { tur: TizimTugunTur; meta: TizimMeta } | null;
 };
 
 export type XDaraxt = {
@@ -126,8 +130,8 @@ export type XDaraxt = {
   doiraCheklangan: boolean;
 };
 
-const bosResurs = (): ResursSanoq => ({ shartnoma: 0, sklad: 0, texnika: 0, kadr: 0, kontragent: 0 });
-const bosHolat = (): HolatSanoq => ({ xavf: 0, etibor: 0, yaxshi: 0, nomalum: 0 });
+export const bosResurs = (): ResursSanoq => ({ shartnoma: 0, sklad: 0, texnika: 0, kadr: 0, kontragent: 0 });
+export const bosHolat = (): HolatSanoq => ({ xavf: 0, etibor: 0, yaxshi: 0, nomalum: 0 });
 export const son = (v: unknown): number | null => {
   if (v == null || v === '') return null;
   const n = Number(v);
@@ -224,6 +228,16 @@ function yigindi(qiymatlar: (number | null)[]): { jami: number | null; toliq: bo
 
 const LOYIHASIZ = 'guruh:loyihasiz';
 
+/** Bo'sh (hali hisoblanmagan) tugun — noma'lum qiymatlar `null`, 0 emas. Tizim xaritasi ham shundan quradi. */
+export function bosTugun(id: string, tur: XTur, nom: string, manba: MindmapTugun | null, ota: string | null, daraja: 0 | 1 | 2): XTugun {
+  return {
+    id, tur, nom, manba, ota, bolalar: [], daraja, tomon: 0, holat: 'nomalum',
+    smeta: null, smetaToliq: false, fakt: null, f2: null, faktFoiz: null, f2Foiz: null,
+    belgilar: [], zayavka: null, narxsiz: null, obyektSoni: 0, holatSanoq: bosHolat(), resurs: bosResurs(), oshgan: false,
+    f2Qoralama: null, f2Tasdiqlangan: false, signalSoni: null, kritikSoni: null, topSignallar: [], masullar: [], odam: null,
+  };
+}
+
 /** MindmapGraf → Kompaniya → Loyiha → Obyekt daraxti, real holat bilan. */
 export function daraxtQur(graf: MindmapGraf): XDaraxt {
   const tugunlar = new Map<string, XTugun>();
@@ -231,12 +245,7 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
   const kompaniya = graf.tugunlar.find((t) => t.tur === 'kompaniya') ?? null;
   const ildiz = kompaniya?.id ?? 'kompaniya:0';
 
-  const yangi = (id: string, tur: XTur, nom: string, manba: MindmapTugun | null, ota: string | null, daraja: 0 | 1 | 2): XTugun => ({
-    id, tur, nom, manba, ota, bolalar: [], daraja, tomon: 0, holat: 'nomalum',
-    smeta: null, smetaToliq: false, fakt: null, f2: null, faktFoiz: null, f2Foiz: null,
-    belgilar: [], zayavka: null, narxsiz: null, obyektSoni: 0, holatSanoq: bosHolat(), resurs: bosResurs(), oshgan: false,
-    f2Qoralama: null, f2Tasdiqlangan: false, signalSoni: null, kritikSoni: null, topSignallar: [], masullar: [], odam: null,
-  });
+  const yangi = bosTugun;
   tugunlar.set(ildiz, yangi(ildiz, 'kompaniya', kompaniya?.nom ?? '', kompaniya, null, 0));
 
   // Obyekt → loyiha: avval bog‘lanish (obyekt_loyiha), keyin meta.loyiha_id.

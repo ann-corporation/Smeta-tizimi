@@ -66,6 +66,7 @@ const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const AkkauntMarkazi = lazy(() => import('./admin/sahifalar/AkkauntMarkazi'));
 const SozlamalarMarkazi = lazy(() => import('./admin/sahifalar/SozlamalarMarkazi'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
+const TizimXaritasi = lazy(() => import('./admin/sahifalar/TizimXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
 const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
 const ZakazchikKabinet = lazy(() => import('./admin/zakazchik/ZakazchikKabinet'));
@@ -214,6 +215,8 @@ export default function App() {
           <Route path="zakazchik/obyekt/:aloqaId/:obyektId" element={<Suspense fallback={<SahifaYuklanmoqda />}><ObyektPortali /></Suspense>} />
           <Route path="akkaunt" element={<Suspense fallback={<SahifaYuklanmoqda />}><AkkauntMarkazi /></Suspense>} />
           <Route path="sayt-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SaytXaritasi /></Suspense>} />
+          {/* Egasi 2026-10-27: tizim darajasidagi jonli mindmap — faqat superadmin va u ruxsat berganlar (sahifa avval serverdan so'raydi). */}
+          <Route path="tizim-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><TizimXaritasi /></Suspense>} />
           {/* Demo harnesses — explicit, never the default route. */}
           <Route path="_demo/documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentCenterDemo /></Suspense>} />
           <Route path="_demo/participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantNetworkDemo /></Suspense>} />

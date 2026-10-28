@@ -165,7 +165,7 @@ export default function TestLoyiha() {
                       </td>
                       <td><span className={`fz-stamp ${h.cls}`}>{t(h.nom)}</span></td>
                       <td className="fz-c-num">
-                        <button type="button" onClick={() => navigate(`/admin/test/xarita?tugun=loyiha:${l.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network size={14} />{t('Mindmapda ko‘rish')}</button>
+                        <button type="button" onClick={() => navigate(`/admin/mindmap?tugun=loyiha:${l.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network size={14} />{t('Mindmapda ko‘rish')}</button>
                       </td>
                     </tr>
                   );
