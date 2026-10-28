@@ -10,6 +10,8 @@ import { Graf3D } from './Graf3D';
 import { Graf2D } from './Graf2D';
 import { MindmapXarita, KorinishTanlagich, type MindmapKorinishTuri } from '../components/mindmap';
 import { mindmapMasulRuxsati, mindmapTahrirRuxsati, tahrirYopiqMatni } from '../lib/mindmap-ruxsat';
+import { amalKorishQur } from '../lib/mindmap-amallar';
+import { topshiriqBer, topshiriqXato } from '../api/t2-topshiriq';
 import { SAHIFA_YOLI, belgiYoli, obyektZayavkaYoli } from '../lib/mindmap-yollar';
 import { t } from '../i18n/til';
 import { toast } from '../umumiy/ui/Toast';
@@ -601,6 +603,14 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
       return r;
     },
   }), [masulMumkin, aktKomp, yukla]);
+  /** Tugun amallari menyusi: sahifa ruxsatlari (menyu bilan bir manba) va «Topshiriq berish» (mavjud /api/topshiriq). */
+  const amalKorish = useMemo(() => amalKorishQur({ superadmin, joriy, kompaniyaId }), [superadmin, joriy, kompaniyaId]);
+  const vazifa = useMemo(() => ({
+    onBer: async (a: { sarlavha: string; muddat?: string; obyektId?: number | null; foydalanuvchiId?: number | null }) => {
+      const r = await topshiriqBer({ kompaniyaId: aktKomp, sarlavha: a.sarlavha, muddat: a.muddat, obyektId: a.obyektId ?? null, ijrochiFoydalanuvchiId: a.foydalanuvchiId ?? null });
+      return r.ok ? { ok: true } : { ok: false, error: topshiriqXato(r) };
+    },
+  }), [aktKomp]);
 
   const tugunMuammolari = (t: MindmapTugun) => (Array.isArray(t.meta?.belgi) ? t.meta.belgi : []) as MindmapBelgi[];
   const qidiruvKalit = qidiruv.trim().toLocaleLowerCase('uz-UZ');
@@ -625,7 +635,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
   if (korinish === 'xarita' || korinish === 'royxat') {
     return (
-      <MindmapXarita graf={grafToliq} masul={masul} yuklanmoqda={yuklanmoqda} xato={xato} oxirgiYangilanish={oxirgiYangilanish} onYangila={yukla}
+      <MindmapXarita graf={grafToliq} masul={masul} amalKorish={amalKorish} vazifa={vazifa} yuklanmoqda={yuklanmoqda} xato={xato} oxirgiYangilanish={oxirgiYangilanish} onYangila={yukla}
         tanlangan={tanlangan} onTanla={(id) => { setTanlangan(id); setTanlanganBog(null); }}
         korinish={korinish} onKorinish={setKorinish}
         hodisalar={{ qatorlar: obyektHodisalari, yuklanmoqda: hodisaYuklanmoqda, xato: hodisaXato }}
