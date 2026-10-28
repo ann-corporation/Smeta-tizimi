@@ -373,8 +373,10 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
       if (b.transport) blokQator.set(b.transport.qator, { b, tur: 'transport' });
       if (b.zagot) blokQator.set(b.zagot.qator, { b, tur: 'zagot' });
       resBloklar.push({ varaq: v.nom, qator: b.itogoQator + 1, kat: b.kat, baza: b.baza, transport: b.transport?.foiz ?? null, zagot: b.zagot?.foiz ?? null, transportSumma: b.transport?.summa ?? null, zagotSumma: b.zagot?.summa ?? null });
-      if (b.kat === 'БЕЗ СКЛАД') {
-        review.push({ kod: 'bez_sklad_qollab_quvvatlanmaydi', bloklovchi: true, izoh: `БЕЗ СКЛАД qo'llab-quvvatlanmaydi: «${v.nom}» ${b.itogoQator + 1}-qator bloki («${(b.sarlavha ?? '—').slice(0, 50)}», baza ${b.baza ?? '?'}) zagot-skladsiz — tizim bu blokka МАТ zagot foizini qo'llaydi; operator tekshiradi`, manzil: { fayl: kitob.fayl, varaq: v.nom, qator: b.itogoQator + 1, ustun: 1 } });
+      // Zagotsiz blok: transport isbotli bo'lsa — hujjat aytgan БЕЗСКЛАД (resurslar shu kategoriyaga, zagot yo'q).
+      // Isbotsiz bo'lsa — kategoriya berilmaydi, operator tekshiradi (bloklovchi).
+      if (b.kat === 'БЕЗ СКЛАД' && !b.transport?.isbot) {
+        review.push({ kod: 'bez_sklad_isbotsiz', bloklovchi: true, izoh: `«${v.nom}» ${b.itogoQator + 1}-qator bloki («${(b.sarlavha ?? '—').slice(0, 50)}», baza ${b.baza ?? '?'}) zagot-skladsiz, lekin transport foizi isbotlanmadi — БЕЗСКЛАД avtomatik berilmadi; operator tekshiradi`, manzil: { fayl: kitob.fayl, varaq: v.nom, qator: b.itogoQator + 1, ustun: 1 } });
       }
     }
     for (let r = 0; r < v.rows.length; r++) {

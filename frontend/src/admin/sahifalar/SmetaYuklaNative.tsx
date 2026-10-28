@@ -361,12 +361,18 @@ export function resSatrlariniOl(rows: SheetGrid, cols: F2ColumnConfig): ResNarxY
      ЗАГОТ… / ВСЕГО) va guruh (ВСЕГО МАТЕРИАЛОВ / ВСЕГО ОБОРУДОВАНИЯ) bilan yopiladi. Blok kategoriyasi
      yagona yadrodan (res-blok.ts: guruh → sarlavha → zagot/resurslar); podvali isbotlangan blokda u
      qator nom/birlik taxminidan ustun (hujjat ustamani aynan shu blok bo'yicha hisoblagan). ЧЕЛ/МАШ
-     birligi baribir eng ustun. БЕЗ СКЛАД bloki (zagotsiz) — §8: kategoriya o'zgarmaydi, review chiqadi. */
+     birligi baribir eng ustun. Zagotsiz blok (transport isbotli, ЗАГОТ qatori yo'q) — hujjatning o'zi
+     aytgan БЕЗСКЛАД (L0 qarori §8.1); isbotsiz bo'lsa — kategoriya berilmaydi, review qoladi. Zagotli
+     isbotli blokda hujjat bloki beton/rastvor м³ qoidasidan ustun (hujjat zagotni qo'llagan). */
   const rb = resBloklari(rows);
   const isbotliBlokKat = new Map<number, T2ResursKategoriya>();
   for (const b of rb.bloklar) {
+    if (b.kat === 'БЕЗ СКЛАД') {
+      if (b.transport?.isbot && !b.zagot) for (const q of b.resursQatorlari) isbotliBlokKat.set(q, 'БЕЗСКЛАД');
+      continue;
+    }
     if (!(b.transport?.isbot || b.zagot?.isbot)) continue;
-    for (const q of b.resursQatorlari) isbotliBlokKat.set(q, b.kat === 'БЕЗ СКЛАД' ? 'МАТ' : b.kat);
+    for (const q of b.resursQatorlari) isbotliBlokKat.set(q, b.kat);
   }
   for (const [ri, row] of rows.entries()) {
     const kod = cols.kod >= 0 ? String(row[cols.kod] ?? '').trim() : '';
@@ -410,7 +416,8 @@ export function resSatrlariniOl(rows: SheetGrid, cols: F2ColumnConfig): ResNarxY
     const blokKat = isbotliBlokKat.get(ri);
     const qatorKat = resursMkKabAniqla(nom, bir, blokKat ?? joriyKat);
     const asosiy = blokKat && qatorKat !== 'ЧЕЛ' && qatorKat !== 'МАШ' ? blokKat : qatorKat;
-    const bez = asosiy === 'МАТ' ? bezSkladKategoriyaAniqla(nom, null, bir) : null;
+    // Isbotli zagotli ALL blokida hujjat kategoriyasi ustun — beton м³ qoidasi qo'llanmaydi.
+    const bez = asosiy === 'МАТ' && !blokKat ? bezSkladKategoriyaAniqla(nom, null, bir) : null;
     out.push({
       kod: kod || undefined, nom: nom || undefined, birlik: bir || undefined, narx,
       kat: bez?.kategoriya ?? asosiy,

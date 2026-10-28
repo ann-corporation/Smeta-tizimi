@@ -179,7 +179,7 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
             {bloklovchiSoni > 0 && (
               <div className="fz-note fz-note--warn" role="alert" data-testid="podval-bloklovchi">
                 <AlertTriangle aria-hidden="true" />
-                <span>{t('Hal qilinmagan podval bloklari ({n}): БЕЗ СКЛАД qo‘llab-quvvatlanmaydi — tafsilot ogohlantirishlarda.', { n: String(bloklovchiSoni) })}</span>
+                <span>{t('Hal qilinmagan podval bloklari ({n}): isboti yo‘q — operator tekshiradi, tafsilot ogohlantirishlarda.', { n: String(bloklovchiSoni) })}</span>
               </div>
             )}
             <div className="fz-table-wrap">

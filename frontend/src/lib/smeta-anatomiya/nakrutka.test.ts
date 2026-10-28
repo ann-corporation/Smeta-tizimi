@@ -244,17 +244,25 @@ describe('ALL RES podvali — foiz КОЛ-ВО ustunidan, blok kategoriyasi', ()
     expect(n.review.some((r) => r.kod === 'nakrutka_ziddiyat' && r.izoh.startsWith('СКЛАДСКИЕ_МАТЕРИАЛ'))).toBe(true);
   });
 
-  it('zagotsiz blok — БЕЗ СКЛАД bloklovchi review (blok summasi bilan)', () => {
+  it('zagotsiz isbotli blok — БЕЗ СКЛАД (bloklovchi review yo‘q), transport МАТ foizi bilan bir xil', () => {
     const n = nakrutkaPodvaliniOqi(kitob(ALL_RES(
       ...blok('МЕСТНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ', [R('ЦЕМЕНТ', 'Т', 2, 500)], [5, 50], [1, 10]),
       ...blok('ИНЕРТНЫЕ МАТЕРИАЛЫ', [R('ЩЕБЕНЬ', 'М3', 4, 100)], [5, 20], null),
       P('ВСЕГО МАТЕРИАЛОВ', null, 1480),
     )));
-    const b = n.review.find((r) => r.kod === 'bez_sklad_qollab_quvvatlanmaydi');
+    expect(n.resBloklar?.map((b) => b.kat)).toEqual(['МАТ', 'БЕЗ СКЛАД']);
+    expect(n.review.some((r) => r.bloklovchi)).toBe(false);
+    expect(n.koeffitsientlar).toEqual({ ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 1 });
+  });
+
+  it('zagotsiz blok, transport isbotsiz — БЕЗСКЛАД berilmaydi, bloklovchi review (blok bazasi bilan)', () => {
+    const n = nakrutkaPodvaliniOqi(kitob(ALL_RES(
+      ...blok('ИНЕРТНЫЕ МАТЕРИАЛЫ', [R('ЩЕБЕНЬ', 'М3', 4, 100)], [5, 33], null),
+      P('ВСЕГО МАТЕРИАЛОВ', null, 433),
+    )));
+    const b = n.review.find((r) => r.kod === 'bez_sklad_isbotsiz');
     expect(b?.bloklovchi).toBe(true);
-    expect(b?.izoh).toMatch(/БЕЗ СКЛАД qo'llab-quvvatlanmaydi/);
     expect(b?.izoh).toMatch(/baza 400/);
-    expect(n.koeffitsientlar.ТРАНСПОРТ_МАТЕРИАЛ).toBe(5);
   });
 
   it('lokal podval (prochie/НДС yo‘q) — holat «topilmadi» emas, lokal; prochie meros', () => {

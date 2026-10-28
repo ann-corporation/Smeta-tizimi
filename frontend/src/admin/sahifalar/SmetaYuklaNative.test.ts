@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { kitobAnatomiyasi } from '../../lib/smeta-anatomiya';
-import { bargKategoriyasi, daraxtKategoriyaNomzodlari, kitobVaraqTeglari, narxTaklifiniTop, obKodTaklifi, bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur, lokallarBoyichaNarxla, resLokallargaBol } from './SmetaYuklaNative';
+import { bargKategoriyasi, daraxtKategoriyaNomzodlari, kitobVaraqTeglari, narxTaklifiniTop, obKodTaklifi, resKategoriyaNomzodlariniOl, bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur, lokallarBoyichaNarxla, resLokallargaBol } from './SmetaYuklaNative';
 import type { AktNode } from '../../lib/f2-match-engine';
 import type { F2ColumnConfig } from '../../lib/f2-import-parse';
 
@@ -770,6 +770,37 @@ describe('ALL to‘plami — qat’iy varaq rollari va RES bloklari', () => {
     expect(bargKategoriyasi({ kod: '2301-1', nom: 'ЩИТ ОСВЕЩЕНИЯ ТИП Б', bir: 'ШТ', narx: 6999 }, idx)).toBe('МАТ');
     expect(daraxtKategoriyaNomzodlari([{ uid: 'a', type: 'ob', kod: '2301-1', nom: 'ЩИТ ОСВЕЩЕНИЯ ТИП Б', bir: 'ШТ', narx: 7000 }], idx))
       .toEqual([{ nom: 'ЩИТ ОСВЕЩЕНИЯ ТИП Б', birlik: 'ШТ', tanlangan: 'ОБ' }]);
+  });
+});
+
+describe('ALL zagotsiz blok → БЕЗСКЛАД; zagotli blokda hujjat beton qoidasidan ustun', () => {
+  const c: F2ColumnConfig = { kod: 2, nom: 3, bir: 4, norma: -1, obyom: 5, narx: 6, sum: 7 };
+  const T = (s: string) => [s, null, null, null, null, null, null, null];
+  const R = (nom: string, bir: string, k: number, narx: number) => ['1', null, 'X-1', nom, bir, k, narx, k * narx];
+  const P = (s: string, p: number | null, sum: number) => [null, null, null, s, 'СУМ', p, null, sum];
+  const rows = [
+    T('МЕСТНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ'), R('БЕТОН ТЯЖЕЛЫЙ В15', 'М3', 2, 500), R('ЦЕМЕНТ', 'Т', 1, 1000),
+    P('ИТОГО', null, 2000), P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 100), P('ЗАГОТОВИТЕЛЬНО-СКЛАДСКИЕ РАСХОДЫ', 1, 20), P('ВСЕГО', null, 2120),
+    T('ИНЕРТНЫЕ МАТЕРИАЛЫ'), R('ЩЕБЕНЬ', 'М3', 4, 100), R('ПЕСОК', 'М3', 2, 300),
+    P('ИТОГО', null, 1000), P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 50), P('ВСЕГО', null, 1050),
+    P('ВСЕГО МАТЕРИАЛОВ', null, 3170),
+  ];
+  it('kategoriyalar va kaskad = hujjat podvali (±1)', async () => {
+    const s = resSatrlariniOl(rows, c);
+    const kat = (n: string) => s.find((x) => x.nom === n)?.kat;
+    expect(kat('ЩЕБЕНЬ')).toBe('БЕЗСКЛАД');
+    expect(kat('ПЕСОК')).toBe('БЕЗСКЛАД');
+    expect(kat('БЕТОН ТЯЖЕЛЫЙ В15')).toBe('МАТ'); // zagotli isbotli blok — hujjat zagotni qo'llagan
+    expect(resKategoriyaNomzodlariniOl(s).map((x) => [x.nom, x.tanlangan])).toEqual([['ЩЕБЕНЬ', 'БЕЗСКЛАД'], ['ПЕСОК', 'БЕЗСКЛАД']]);
+    const { nakrutkaKaskadJS } = await import('../../lib/nakrutka-podval');
+    const k = nakrutkaKaskadJS({ ЧЕЛ: 0, МАШ: 0, МАТ: 2000, ОБ: 0, КАБ: 0, 'М/К': 0, 'БЕЗ СКЛАД': 1000 }, { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 1 });
+    expect(k.tr_mat + k.skl_mat).toBeCloseTo(100 + 20 + 50, 2);
+  });
+  it('zagotsiz blok transporti isbotsiz — БЕЗСКЛАД berilmaydi (eski qoidalar)', () => {
+    const buzuq = rows.map((r) => (r[3] === 'ТРАНСПОРТНЫЕ РАСХОДЫ' && r[7] === 50 ? P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 77) : r));
+    const s = resSatrlariniOl(buzuq, c);
+    expect(s.find((x) => x.nom === 'ЩЕБЕНЬ')?.kat).not.toBe('БЕЗСКЛАД');
+    expect(resKategoriyaNomzodlariniOl(s).some((x) => x.nom === 'ЩЕБЕНЬ')).toBe(false);
   });
 });
 
