@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { kitobAnatomiyasi } from '../../lib/smeta-anatomiya';
-import { bargKategoriyasi, daraxtKategoriyaNomzodlari, kitobVaraqTeglari, narxTaklifiniTop, obKodTaklifi, resKategoriyaNomzodlariniOl, bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur, lokallarBoyichaNarxla, resLokallargaBol } from './SmetaYuklaNative';
+import { smetaDaraxtniYoy } from '../../lib/smeta-flatten';
+import { bargKategoriyasi, daraxtKategoriyaNomzodlari, kitobVaraqTeglari, narxTaklifiniTop, obKodTaklifi, resKategoriyaNomzodlariniOl, hujjatKategoriyalariniBelgila, bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur, lokallarBoyichaNarxla, resLokallargaBol } from './SmetaYuklaNative';
 import type { AktNode } from '../../lib/f2-match-engine';
 import type { F2ColumnConfig } from '../../lib/f2-import-parse';
 
@@ -791,7 +792,19 @@ describe('ALL zagotsiz blok → БЕЗСКЛАД; zagotli blokda hujjat beton qo
     expect(kat('ЩЕБЕНЬ')).toBe('БЕЗСКЛАД');
     expect(kat('ПЕСОК')).toBe('БЕЗСКЛАД');
     expect(kat('БЕТОН ТЯЖЕЛЫЙ В15')).toBe('МАТ'); // zagotli isbotli blok — hujjat zagotni qo'llagan
-    expect(resKategoriyaNomzodlariniOl(s).map((x) => [x.nom, x.tanlangan])).toEqual([['ЩЕБЕНЬ', 'БЕЗСКЛАД'], ['ПЕСОК', 'БЕЗСКЛАД']]);
+    // Hujjat БЕЗСКЛАД registrga yozilmaydi (kompaniya bo'yicha nom+birlik riski) — import qatorida keladi.
+    expect(resKategoriyaNomzodlariniOl(s)).toEqual([]);
+    const idx = resNarxIndeksiQur(s);
+    const tree = hujjatKategoriyalariniBelgila([{ uid: 'b', type: 'bl', nom: 'ИШ', children: [
+      { uid: 'r1', type: 'rs', nom: 'ЩЕБЕНЬ', bir: 'М3', hajm: 1 },
+      { uid: 'r2', type: 'rs', nom: 'БЕТОН ТЯЖЕЛЫЙ В15', bir: 'М3', hajm: 1 },
+      { uid: 'r3', type: 'rs', nom: 'ЗАТРАТЫ ТРУДА', bir: 'ЧЕЛ-Ч', hajm: 1 },
+    ] }], idx);
+    const flat = smetaDaraxtniYoy(tree);
+    expect(flat.find((x) => x.local_id === 'r1')).toMatchObject({ kat: 'БЕЗСКЛАД', kat_manba: 'hujjat_blok' });
+    expect(flat.find((x) => x.local_id === 'r2')).toMatchObject({ kat: 'МАТ', kat_manba: 'hujjat_blok' });
+    expect(flat.find((x) => x.local_id === 'r3')).not.toHaveProperty('kat_manba');
+    expect(flat.find((x) => x.local_id === 'b')).not.toHaveProperty('kat');
     const { nakrutkaKaskadJS } = await import('../../lib/nakrutka-podval');
     const k = nakrutkaKaskadJS({ ЧЕЛ: 0, МАШ: 0, МАТ: 2000, ОБ: 0, КАБ: 0, 'М/К': 0, 'БЕЗ СКЛАД': 1000 }, { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 1 });
     expect(k.tr_mat + k.skl_mat).toBeCloseTo(100 + 20 + 50, 2);

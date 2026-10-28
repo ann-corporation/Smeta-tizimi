@@ -28,18 +28,25 @@ export interface SmetaFlatQator {
    *  (`t2_smeta_import_yakunla_v1`/`_bulk_v1`), chunki `treeBuild.ts` rs
    *  bo'lmagan tugunlarga 0 qo'yadi, bu esa haqiqiy nol emas. */
   norma: number | null;
+  /** ALL RES blok podvali isbotlagan kategoriya (faqat `kat_manba='hujjat_blok'` bilan; server shu qator uchun
+   *  registr va beton trigger'idan ustun qo'yadi). Yo'q bo'lsa — kalit umuman yuborilmaydi (eski xatti-harakat). */
+  kat?: string;
+  kat_manba?: 'hujjat_blok';
 }
 
 export function smetaDaraxtniYoy(
   nodes: AktNode[], parentLocalId: string | null = null, out: SmetaFlatQator[] = [],
 ): SmetaFlatQator[] {
   for (const node of nodes) {
-    const norma = (node as unknown as { norma?: number }).norma;
+    const ext = node as unknown as { norma?: number; kat?: string; kat_manba?: string };
+    const norma = ext.norma;
     out.push({
       local_id: node.uid, parent_local_id: parentLocalId, tur: node.type,
       kod: node.kod ?? null, nom: node.nom ?? null, birlik: node.bir ?? null,
       hajm: node.hajm ?? null, narx: node.narx ?? null, summa: node.summa ?? null,
       norma: node.type === 'rs' && norma ? norma : null,
+      ...(ext.kat_manba === 'hujjat_blok' && ext.kat && (node.type === 'rs' || node.type === 'mat' || node.type === 'ob')
+        ? { kat: ext.kat, kat_manba: 'hujjat_blok' as const } : {}),
     });
     if (node.children && node.children.length) smetaDaraxtniYoy(node.children, node.uid, out);
   }

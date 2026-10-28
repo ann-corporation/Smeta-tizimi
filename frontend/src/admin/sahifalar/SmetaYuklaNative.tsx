@@ -196,6 +196,8 @@ export type ResNarxYozuv = {
   kod?: string; nom?: string; birlik?: string; narx: number;
   /** RES faylining BO'LIM sarlavhasidan aniqlangan kategoriya (quyiga qarang). */
   kat?: T2ResursKategoriya;
+  /** Kategoriya ALL RES blok podvali isbotlagan hujjat qoidasidan (import qatorida `kat_manba='hujjat_blok'`). */
+  hujjatBlok?: boolean;
 };
 /** Birlik guruhi ichidagi bitta RES yozuvi -- token bo'yicha moslash uchun. */
 export type ResBirlikYozuv = { nk: string; sozlar: string[]; raqamlar: string; narx: number;
@@ -415,12 +417,14 @@ export function resSatrlariniOl(rows: SheetGrid, cols: F2ColumnConfig): ResNarxY
     // Yakuniy qaror bazadagi trigger (t2_bez_sklad_qoida); bu yerda oldindan ko'rsatish.
     const blokKat = isbotliBlokKat.get(ri);
     const qatorKat = resursMkKabAniqla(nom, bir, blokKat ?? joriyKat);
-    const asosiy = blokKat && qatorKat !== 'ЧЕЛ' && qatorKat !== 'МАШ' ? blokKat : qatorKat;
+    const hujjatBlok = !!blokKat && qatorKat !== 'ЧЕЛ' && qatorKat !== 'МАШ';
+    const asosiy = hujjatBlok ? blokKat : qatorKat;
     // Isbotli zagotli ALL blokida hujjat kategoriyasi ustun — beton м³ qoidasi qo'llanmaydi.
     const bez = asosiy === 'МАТ' && !blokKat ? bezSkladKategoriyaAniqla(nom, null, bir) : null;
     out.push({
       kod: kod || undefined, nom: nom || undefined, birlik: bir || undefined, narx,
       kat: bez?.kategoriya ?? asosiy,
+      ...(hujjatBlok ? { hujjatBlok: true } : {}),
     });
   }
   return out;
@@ -706,18 +710,47 @@ export function bargKategoriyasi(n: { kod?: string; nom?: string; bir?: string; 
  * meros olinadi: kod RES da YAGONA, birlik va narx aynan teng. Narx bu yo'l bilan hech qachon qo'yilmaydi.
  */
 function kodNarxKategoriyasi(n: { kod?: string; bir?: string; narx?: number }, idx: ResNarxIndeks | null): T2ResursKategoriya | undefined {
+  return kodNarxYozuvi(n, idx)?.kat;
+}
+
+function kodNarxYozuvi(n: { kod?: string; bir?: string; narx?: number }, idx: ResNarxIndeks | null): ResNarxYozuv | undefined {
   const kk = resKalit(n.kod);
   if (!kk || !/\d/.test(kk) || n.narx == null || !n.narx || !idx?.yozuvlar) return undefined;
   const bs = birlikSinfi(n.bir);
   if (bs === 'ЧЕЛЧ' || bs === 'МАШЧ') return undefined;
   const narxTeng = (y: ResNarxYozuv) => birlikSinfi(y.birlik) === bs && Math.abs(y.narx - n.narx!) <= 0.005;
   const kodli = idx.yozuvlar.filter((y) => resKalit(y.kod) === kk);
-  if (kodli.length) return kodli.length === 1 && narxTeng(kodli[0]) ? kodli[0].kat : undefined;
+  if (kodli.length) return kodli.length === 1 && narxTeng(kodli[0]) ? kodli[0] : undefined;
   // RES kod ustuni bo'sh/boshqa joyda (ALL: uskuna kodi alohida ustunda) — birlik + aynan narx; barcha mos
   // yozuvlar bitta kategoriyada bo'lsagina (2–3 ta bir narxli shit ham bir xil ОБ).
   const mos = idx.yozuvlar.filter(narxTeng);
   const katlar = new Set(mos.map((y) => y.kat));
-  return mos.length && mos.length <= 3 && katlar.size === 1 ? mos[0].kat : undefined;
+  return mos.length && mos.length <= 3 && katlar.size === 1 ? mos[0] : undefined;
+}
+
+/** Bargga mos RES yozuvi (kod+nom+birlik → nom+birlik → kod/birlik/aynan narx). */
+function bargResYozuvi(n: { kod?: string; nom?: string; bir?: string; narx?: number }, idx: ResNarxIndeks | null): ResNarxYozuv | undefined {
+  if (!idx?.yozuvlar) return undefined;
+  const nb = resKalit(n.nom) + '|' + resKalit(n.bir);
+  const kk = resKalit(n.kod);
+  const nomli = idx.yozuvlar.filter((y) => resKalit(y.nom) + '|' + resKalit(y.birlik) === nb);
+  return (kk ? nomli.find((y) => resKalit(y.kod) === kk) : undefined) ?? nomli[0] ?? kodNarxYozuvi(n, idx);
+}
+
+/**
+ * ALL RES blok podvali isbotlagan kategoriyani barg ustiga qo'yadi: import qatorida `kat` + `kat_manba='hujjat_blok'`
+ * (server: shu import qatori uchun registr va beton м³ trigger'idan ustun — migratsiya 20261114300000). Registr
+ * (kompaniya bo'yicha nom+birlik) o'zgarmaydi — boshqa obyektlarga ta'sir yo'q.
+ */
+export function hujjatKategoriyalariniBelgila(tree: AktNode[], idx: ResNarxIndeks | null): AktNode[] {
+  if (!idx?.yozuvlar?.some((y) => y.hujjatBlok)) return tree;
+  const walk = (n: AktNode): AktNode => {
+    if (n.children?.length) return { ...n, children: n.children.map(walk) };
+    if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return n;
+    const y = bargResYozuvi(n, idx);
+    return y?.hujjatBlok && y.kat ? ({ ...n, kat: y.kat, kat_manba: 'hujjat_blok' } as AktNode) : n;
+  };
+  return tree.map(walk);
 }
 
 /**
@@ -924,6 +957,9 @@ export function resKategoriyaNomzodlariniOl(satrlar: ResNarxYozuv[]): ResKategor
   const out: ResKategoriyaNomzodi[] = [];
   for (const s of satrlar) {
     if (!s.nom || !s.birlik) continue;
+    // Hujjat bloki aytgan БЕЗСКЛАД registrga yozilmaydi (kompaniya bo'yicha nom+birlik — boshqa obyektdagi zagotli
+    // blokni buzardi); u import qatorida `kat_manba='hujjat_blok'` bilan keladi.
+    if (s.hujjatBlok && s.kat === 'БЕЗСКЛАД') continue;
     const serverTaxmini = katTaxmini(s.nom, s.birlik);
     const haqiqiy = s.kat ?? serverTaxmini;
     if (haqiqiy === serverTaxmini) continue;
@@ -1578,7 +1614,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         const rows = tashqiResRows.length ? tashqiResRows : ichkiResRows;
         const idx = rows.length ? resNarxIndeksiQur(rows) : null;
         const resManbalar = tashqiResRows.length ? tashqiManbalar : [{ rows: split.embeddedResRows, cols: lrv.resCols }];
-        const applied = idx ? lokallarBoyichaNarxla(tree, resManbalar, idx) : tree;
+        const applied = idx ? hujjatKategoriyalariniBelgila(lokallarBoyichaNarxla(tree, resManbalar, idx), idx) : tree;
         pricedTrees.push({ sourceKey: lrv.sourceKey, tree: applied });
         categoryCandidates.push(...resKategoriyaNomzodlariniOl(rows), ...daraxtKategoriyaNomzodlari(applied, idx));
       }
@@ -1827,7 +1863,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       if (importResIndex) {
         qadam('RES narxlari LRV daraxtiga ulanmoqda');
         const qollangan = narxlarniDaraxtgaQoll(lrvTree, importResIndex);
-        importTree = qollangan.tree;
+        importTree = hujjatKategoriyalariniBelgila(qollangan.tree, importResIndex);
         setNarxsizlar(qollangan.narxsizlar);
         yakunla('tayyor', qollangan.mosSoni + ' ta mos, ' + qollangan.mosEmasSoni + ' ta narxsiz qoldi');
         // RES da boshqa nom bilan jamlangan barglar (kod+birlik+narx aynan) — kategoriyasi registrga.
