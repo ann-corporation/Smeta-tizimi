@@ -8,6 +8,7 @@ import { buildPtoLineLedger } from '../../lib/pto-document-lineage';
 import { oylikNuqtalar } from '../../lib/nakopitelniy-grafik';
 import { foizOl, yashirinIdlar } from '../../lib/nakopitelniy-korinish';
 import type { f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 import type { Daraxt, Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
@@ -272,7 +273,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
                 : <th colSpan={2} style={thG('var(--accent)')}>{t('Tasdiqlangan F2')}</th>}
             </tr>
             <tr>
-              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Hajm')}{F('hajm')}</th><th className="fz-c-num" style={th2}>{t('Narx')}{F('narx')}</th><th className="fz-c-num" style={th2}>{t('Summa')}{F('summa')}</th>
+              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Hajm')}{F('hajm')}</th><th className="fz-c-num" style={th2}>{t('Narx')}<SummaYorliq tur="narx" />{F('narx')}</th><th className="fz-c-num" style={th2}>{t('Summa')}{F('summa')}</th>
               <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Summa')}{F('f2')}</th><th style={{ ...th2, textAlign: 'left' }}>{t('Bajarilish')}{F('foiz')}</th>
               <th className="fz-c-num" style={{ ...th2, ...chap }}>{hdr(t('Smetadan qoldi'), t('Smeta hajmi − fakt hajmi: hali bajarilmagan qism.'))}{F('qoldi')}</th>
               <th className="fz-c-num" style={th2}>{hdr(t('F2 ga olish mumkin'), t('Fakt hajmi − tasdiqlangan F2 hajmi: bajarilgan, lekin aktga kiritilmagan qism. Qizil — F2 faktdan oshib ketgan.'))}{F('f2ga')}</th>

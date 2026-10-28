@@ -1,0 +1,78 @@
+{
+  "Smeta qiymati (QQS bilan)": {
+    "ru": "Стоимость сметы (с НДС)",
+    "en": "Estimate value (incl. VAT)"
+  },
+  "Kategoriya koeffitsientlari (ustama × QQS) bo‘yicha — QQS bilan": {
+    "ru": "По коэффициентам категорий (накрутки × НДС) — с НДС",
+    "en": "By category coefficients (markup × VAT) — incl. VAT"
+  },
+  "Jami, QQS bilan": {
+    "ru": "Итого, с НДС",
+    "en": "Total, incl. VAT"
+  },
+  "JAMI (QQS bilan)": {
+    "ru": "ИТОГО (с НДС)",
+    "en": "TOTAL (incl. VAT)"
+  },
+  "F2, QQS bilan": {
+    "ru": "Ф2, с НДС",
+    "en": "F2, incl. VAT"
+  },
+  "Fakt, QQS bilan": {
+    "ru": "Факт, с НДС",
+    "en": "Actual, incl. VAT"
+  },
+  "Qoldiq, QQS bilan": {
+    "ru": "Остаток, с НДС",
+    "en": "Remainder, incl. VAT"
+  },
+  "Jami: QQS bilan (katta); ustamali QQS siz va ustamasiz (kichik)": {
+    "ru": "Итого: с НДС (крупно); с накрутками без НДС и без накруток (мелко)",
+    "en": "Total: incl. VAT (large); with markup excl. VAT and direct cost (small)"
+  },
+  "Smeta: katta raqam — QQS bilan; ostida ustamali (QQS siz) va to‘g‘ri xarajat. Fakt, F2 va Ostatka — to‘g‘ri xarajat (ustamasiz): bu ro‘yxatda kategoriya kesimi yo‘q.": {
+    "ru": "Смета: крупная цифра — с НДС; ниже — с накрутками (без НДС) и прямые затраты. Факт, Ф2 и Остаток — прямые затраты (без накруток): в этом списке нет разреза по категориям.",
+    "en": "Estimate: the large figure is incl. VAT; below are with markup (excl. VAT) and direct cost. Actual, F2 and Remainder are direct cost (no markup): this list has no category breakdown."
+  },
+  "bajarilmagan qism": {
+    "ru": "невыполненная часть",
+    "en": "unfinished part"
+  },
+  "qoldiq (ustamasiz)": {
+    "ru": "остаток (без накруток)",
+    "en": "remainder (no markup)"
+  },
+  "{n} ta obyektning ustamasi va QQS hisoblanmadi — ular to‘g‘ri xarajati bilan qo‘shilgan": {
+    "ru": "Для {n} объектов накрутки и НДС не рассчитаны — они добавлены по прямым затратам",
+    "en": "Markup and VAT were not calculated for {n} objects — they are added at direct cost"
+  },
+  "Qatorlarning kategoriyasi noma’lum — QQS bilan qiymat hisoblanmaydi": {
+    "ru": "Категория строк неизвестна — стоимость с НДС не рассчитывается",
+    "en": "Row categories are unknown — the value incl. VAT is not calculated"
+  },
+  "QQS stavkasi koeffitsientlarda yo‘q — QQS bilan qiymat noma’lum": {
+    "ru": "Ставки НДС нет в коэффициентах — стоимость с НДС неизвестна",
+    "en": "The VAT rate is missing from the coefficients — the value incl. VAT is unknown"
+  },
+  "Bu manbada kategoriya kesimi yo‘q — ustamali va QQS bilan qiymat hisoblanmaydi (Nakopitelniy / Pul tahlilida bor)": {
+    "ru": "В этом источнике нет разреза по категориям — стоимость с накрутками и с НДС не рассчитывается (есть в Накопительной / Анализе денег)",
+    "en": "This source has no category breakdown — the values with markup and incl. VAT are not calculated (see Cumulative / Money analysis)"
+  },
+  "ustamali, QQS siz": {
+    "ru": "с накрутками, без НДС",
+    "en": "with markup, excl. VAT"
+  },
+  "to‘g‘ri xarajat (ustamasiz)": {
+    "ru": "прямые затраты (без накруток)",
+    "en": "direct cost (no markup)"
+  },
+  "Smeta qiymati: QQS bilan (katta), ostida ustamali va to‘g‘ri xarajat. «Smeta summasini qo‘yish» to‘g‘ri xarajatdan oladi. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.": {
+    "ru": "Стоимость сметы: с НДС (крупно), ниже — с накрутками и прямые затраты. «Подставить сумму сметы» берёт прямые затраты. Система сама не меняет сумму договора — при необходимости заполните кнопкой и отредактируйте.",
+    "en": "Estimate value: incl. VAT (large), below — with markup and direct cost. “Insert estimate amount” uses the direct cost. The system never changes the contract amount by itself — fill it with the button and edit if needed."
+  },
+  "ustamasiz, QQS siz": {
+    "ru": "без накруток, без НДС",
+    "en": "no markup, excl. VAT"
+  }
+}

@@ -5,9 +5,8 @@ import { AlertTriangle, Building2, FileSignature, Link2, Plus, Save, Trash2, Use
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
-import { UstamaJami } from '../../components/pto-workspace/UstamaJami';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
-import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
+import { sbT2ObyektlarOlKomp, yangiOperationId } from '../../api/supabase';
 import { QQS_STAVKA, farq, smetaAloqa, yaxlit2, type ObyektSmeta } from '../../lib/shartnoma-smeta';
 import { liniyaXato, shartnomaLiniyaOl, shartnomaSaqlaV2, type Liniya, type LiniyaShartnoma } from '../../api/t2-shartnoma-liniya';
 import {
@@ -37,12 +36,11 @@ export function ShartnomaLiniya() {
   const [obQidir, setObQidir] = useState('');
   // Obyektlarning smeta summasi (nakrutkasiz) — shartnoma summasi bilan solishtirish uchun.
   const [smetalar, setSmetalar] = useState<ReadonlyMap<number, ObyektSmeta>>(new Map());
-  const [t2Obyektlar, setT2Obyektlar] = useState<T2Obyekt[]>([]);
   useEffect(() => {
     if (!kid) return;
     let faol = true;
     void (async () => {
-      try { const r = await sbT2ObyektlarOlKomp(kid); if (faol && r.ok) setT2Obyektlar(r.qatorlar ?? []); if (faol && r.ok) setSmetalar(new Map((r.qatorlar ?? []).map((o) => [o.id, { id: o.id, nom: o.nom, jami: o.jami }]))); }
+      try { const r = await sbT2ObyektlarOlKomp(kid); if (faol && r.ok) setSmetalar(new Map((r.qatorlar ?? []).map((o) => [o.id, { id: o.id, nom: o.nom, jami: o.jami }]))); }
       catch { /* smeta summasi ko'rsatilmaydi — tahrir ishlayveradi */ }
     })();
     return () => { faol = false; };
@@ -182,12 +180,11 @@ export function ShartnomaLiniya() {
                 <p className="fz-panel__h">{tr('Smeta bilan aloqa')}</p>
                 {a.qatorlar.length === 0 ? <p className="text-text-mute">{tr('Obyekt bog‘lanmagan — pastda obyektlarni tanlang.')}</p> : <>
                   <ul className="space-y-0.5">{a.qatorlar.map((q) => <li key={q.id} className="flex justify-between gap-2"><span className="truncate">{q.nom}</span><span className="tabular-nums">{q.bor ? <FmtN val={q.jami} /> : <span className="text-text-mute">{tr('smeta yo‘q')}</span>}</span></li>)}</ul>
-                  <p className="mt-1 flex justify-between border-t border-border/50 pt-1"><span>{tr('Smeta summasi (nakrutkasiz, QQSsiz)')}</span><span className="text-right">{a.smeta == null ? <b>—</b> : <PortfelSummaJuft kichik obyektlar={s.obyektlar.map((obyektId) => ({ obyektId, shartnomaId: s.id ?? null }))} ustamasiz={a.smeta} kompaniyaId={kid} />}</span></p>
+                  <p className="mt-1 flex justify-between border-t border-border/50 pt-1"><span>{tr('Smeta qiymati')}</span><span className="text-right">{a.smeta == null ? <b>—</b> : <PortfelSummaJuft kichik obyektlar={s.obyektlar.map((obyektId) => ({ obyektId, shartnomaId: s.id ?? null }))} ustamasiz={a.smeta} kompaniyaId={kid} />}</span></p>
                   <p className="flex justify-between"><span>{tr('Shartnoma summasi (QQSsiz)')}</span><b className="tabular-nums">{shSumma == null ? <span className="font-normal text-text-mute">{tr('kiritilmagan')}</span> : <FmtN val={shSumma} />}</b></p>
-                  {a.smeta != null && s.id != null && kid != null && <p className="mt-0.5"><UstamaJami companyId={kid} line={liniya} objects={t2Obyektlar} ids={s.obyektlar} contractId={s.id} label={tr('Smeta ustama bilan (QQS bilan)')} /></p>}
                   {f != null && <p className="flex justify-between"><span>{tr('Farq (shartnoma − smeta)')}</span><b className={`tabular-nums ${Math.abs(f) < 0.01 ? 'text-ok' : 'text-text'}`}><FmtN val={f} /></b></p>}
                   {a.nomalum > 0 && <p className="text-text-mute">{a.nomalum} {tr('ta obyektda smeta yo‘q — summaga kirmagan.')}</p>}
-                  <p className="mt-0.5 text-[11px] text-text-mute">{tr('Smeta summasi nakrutkasiz to‘g‘ri xarajat. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.')}</p>
+                  <p className="mt-0.5 text-[11px] text-text-mute">{tr('Smeta qiymati: QQS bilan (katta), ostida ustamali va to‘g‘ri xarajat. «Smeta summasini qo‘yish» to‘g‘ri xarajatdan oladi. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.')}</p>
                 </>}
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   <button type="button" className="fz-btn fz-btn--sm" disabled={a.smeta == null}

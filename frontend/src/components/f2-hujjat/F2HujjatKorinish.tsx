@@ -10,6 +10,7 @@ import { katKesimYigish } from '../../lib/ustamali-summa';
 import type { F2IerQator } from '../../lib/f2-ierarxiya';
 import type { PtoLifecycleStatus } from '../../api/t2-akt-lifecycle';
 import type { F2TasdiqRejimi } from '../../lib/f2-lifecycle-workflow';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 import {
   bolimBajarilish, bolimJamilari, davrNomi, f2BirlikNarx, f2Miqdor, f2Pul, f2Tekshiruv, hajmXaritasi, katTaqsimot,
   KAT_GURUH_NOMI, oldingiTasdiqlanganAktlar, qatorBajarilish, type F2KorQator, type QatorBajarilish,
@@ -136,7 +137,7 @@ export function F2HujjatKorinish(p: {
           </div>
           <div className="fz-doc__total">
             <small>{t('Hujjat summasi')}</small>
-            <SummaJuft obyektId={p.obyektId} ustamasiz={qatorlarJami} katKesim={katKesim} className="items-end text-right [&_[data-testid=summa-ustamali]]:text-[20px] [&_[data-testid=summa-ustamali]]:font-semibold" />
+            <SummaJuft obyektId={p.obyektId} ustamasiz={qatorlarJami} katKesim={katKesim} yorliq={t('F2, QQS bilan')} className="items-end text-right [&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" />
           </div>
         </div>
         <Yol status={p.status} rejim={p.rejim} kim={birinchi?.akt_kim} sana={birinchi?.akt_sana} />
@@ -197,7 +198,7 @@ export function F2HujjatKorinish(p: {
           <thead><tr>
             <th>{t('Bo‘lim / ish / resurs')}{F('kod')}{F('nom')}</th><th>{t('Birlik')}{F('birlik')}</th>
             <th className="fz-c-num">{t('Smeta')}{F('smeta')}</th><th className="fz-c-num">{t('Oldin olingan')}{F('oldin')}</th><th className="fz-c-num">{t('Shu F2')}{F('shu')}</th>
-            <th>{t('Bajarilish')}{F('foiz')}</th><th className="fz-c-num">{t('Narx')}{F('narx')}</th><th className="fz-c-num">{t('Summa')} <small className="font-normal text-text-mute">({t('ustamasiz')})</small>{F('summa')}</th>
+            <th>{t('Bajarilish')}{F('foiz')}</th><th className="fz-c-num">{t('Narx')}<SummaYorliq tur="narx" />{F('narx')}</th><th className="fz-c-num">{t('Summa')} <small className="font-normal text-text-mute">({t('ustamasiz')})</small>{F('summa')}</th>
           </tr></thead>
           <tbody>
             {f.natija.map((r) => {
@@ -243,7 +244,7 @@ export function F2HujjatKorinish(p: {
             )}
             {lines.length > 0 && (
               <tr className="fz-row-total">
-                <td colSpan={7}>{t('Jami: ustamali (katta) va ustamasiz (kichik), NDS siz')}{f.soni > 0 && <span className="print:hidden"> · {t('butun hujjat bo‘yicha')}</span>}</td>
+                <td colSpan={7}>{t('Jami: QQS bilan (katta); ustamali QQS siz va ustamasiz (kichik)')}{f.soni > 0 && <span className="print:hidden"> · {t('butun hujjat bo‘yicha')}</span>}</td>
                 <td className="fz-c-num"><SummaJuft obyektId={p.obyektId} ustamasiz={qatorlarJami} katKesim={katKesim} className="items-end text-right" /></td>
               </tr>
             )}

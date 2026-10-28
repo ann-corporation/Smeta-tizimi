@@ -6,7 +6,7 @@
  *
  * Firuza ko'rinishi (2026-10-25): yuqorida bitta xulosa tasmasi; har obyekt qatorida «smeta = 100%» chizig'i
  * (import · tizimda · manbasi aniqlanmagan), holatlar — so'z bilan (chip/shtamp), F2 tarixiga to'g'ridan-to'g'ri havola.
- * Summalar F2 hujjat jami (ustamasiz) — ustamali summa obyekt kategoriyasi kesimisiz hisoblanmaydi.
+ * Summalar F2 hujjat jami (ustamasiz) — ustamali summa obyekt kategoriyasi kesimisiz hisoblanmaydi. Smeta ustuni — sukut QQS bilan (egasi 2026-10-27).
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -34,6 +34,7 @@ import { aktUstunlar, BOSQICH_NOMI, reestrUstunlar } from './F2JadvalFiltr';
 const BOSQICH_STAMP: Record<F2Bosqich, string> = { tasdiqlangan: 'fz-stamp--ok', jarayonda: 'fz-stamp--warn fz-stamp--draft', rad: 'fz-stamp--danger', bekor: '' };
 
 const davr = (oy: string | null | undefined) => (oy ? davrNomi(oy, tilLocale()) || oy.slice(0, 7) : '');
+const SUMMA_TUR_NOMI: Record<'qqs' | 'ustamasiz' | 'ustamali', () => string> = { qqs: () => t('QQS bilan'), ustamali: () => t('Ustamali'), ustamasiz: () => t('Ustamasiz') };
 
 /** Ma'lum summa + noma'lumlar soni (NULL ≠ 0). */
 function SummaKorinish({ s, qisqa = false }: { s: Summa; qisqa?: boolean }) {
@@ -196,8 +197,8 @@ export default function F2Reestr() {
 
   const reestr = useMemo(() => (malumot ? reestrQur(malumot) : null), [malumot]);
   const qatorlar = useMemo(() => (reestr ? tartibla(filtrla(reestr.qatorlar, filtr)) : []), [reestr, filtr]);
-  /** Smeta ustuni: qatorda ustamasiz (asos), «Ustamali» tanlansa — obyekt bo‘yicha ustamali; jami qatorida har doim ikkalasi. */
-  const [summaTur, setSummaTur] = useState<'ustamasiz' | 'ustamali'>('ustamasiz');
+  /** Smeta ustuni (egasi 2026-10-27): sukut — obyekt qiymati QQS bilan; «Ustamali» (QQS siz) yoki «Ustamasiz» tanlash mumkin; jami qatorida har doim uchalasi. */
+  const [summaTur, setSummaTur] = useState<'qqs' | 'ustamasiz' | 'ustamali'>('qqs');
   const portfelHammasi = useMemo(() => (reestr ? reestr.qatorlar.map(q => ({ obyektId: q.obyekt.id })) : []), [reestr]);
   const portfelUstamali = usePortfelUstamali(portfelHammasi);
   /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): yuqoridagi qidiruv/holat filtri bilan VA; tekis — saralash mumkin. */
@@ -260,8 +261,8 @@ export default function F2Reestr() {
         <div className="pb-0.5" role="group" aria-label={t('Smeta summasi ko‘rinishi')}>
           <span className="mb-1 block text-text-dim">{t('Smeta summasi')}</span>
           <span className="inline-flex items-center gap-0.5 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5">
-            {(['ustamasiz', 'ustamali'] as const).map(k => <button key={k} type="button" aria-pressed={summaTur === k} onClick={() => setSummaTur(k)}
-              className={`fz-btn fz-btn--sm ${summaTur === k ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{k === 'ustamali' ? t('Ustamali') : t('Ustamasiz')}</button>)}
+            {(['qqs', 'ustamali', 'ustamasiz'] as const).map(k => <button key={k} type="button" aria-pressed={summaTur === k} onClick={() => setSummaTur(k)}
+              className={`fz-btn fz-btn--sm ${summaTur === k ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{SUMMA_TUR_NOMI[k]()}</button>)}
           </span>
         </div>
         <span className="ml-auto flex flex-wrap items-center gap-3 pb-1.5 text-text-mute">
@@ -299,8 +300,9 @@ export default function F2Reestr() {
                   <td>{q.shartnomalar.length ? q.shartnomalar.map(s => <div key={s.id}>№ {s.raqam}{s.nom ? ` · ${s.nom}` : ''}
                     <span className="ml-1 text-[12px] text-text-mute">{s.jami_nds_bilan != null ? pulQisqa(s.jami_nds_bilan) : t('summa yo‘q')}</span></div>)
                     : <span className="text-text-mute">{t('biriktirilmagan')}</span>}</td>
-                  <td className="fz-c-num">{summaTur === 'ustamali'
-                    ? (portfelUstamali.boYicha.get(q.obyekt.id) != null ? <span title={t('ustamali, NDS siz')}>{pulQisqa(portfelUstamali.boYicha.get(q.obyekt.id))}</span> : <span className="text-text-mute" title={portfelUstamali.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : t('ustamali noma’lum')}>—</span>)
+                  <td className="fz-c-num">{summaTur !== 'ustamasiz'
+                    ? (() => { const v = (summaTur === 'qqs' ? portfelUstamali.qqsBoYicha : portfelUstamali.boYicha).get(q.obyekt.id);
+                      return v != null ? <span title={summaTur === 'qqs' ? t('QQS bilan') : t('ustamali, NDS siz')}>{pulQisqa(v)}</span> : <span className="text-text-mute" title={portfelUstamali.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : t('ustamali noma’lum')}>—</span>; })()
                     : q.obyekt.jami != null ? pulQisqa(q.obyekt.jami) : <span className="text-text-mute">—</span>}
                     {(q.obyekt.narxsiz ?? 0) > 0 && <div><span className="fz-chip fz-chip--warn">{t('{n} narxsiz qator', { n: q.obyekt.narxsiz ?? 0 })}</span></div>}</td>
                   <td className="fz-c-num"><span className="font-semibold"><SummaKorinish s={q.boyicha.tasdiqlangan} qisqa /></span>

@@ -62,6 +62,7 @@ import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
 import { f2Elementlar, f2ElementUstunlar, f2QaytaQur, f2ResursUstunlar, type F2FiltrKontekst } from './F2JadvalFiltr';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
 const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
@@ -84,7 +85,7 @@ function ResursJadval({ resurslar, ustunlar, qator }: { resurslar: F2Resurs[]; u
     <table className="w-full border-t border-border text-[12.5px]">
       <thead><tr className="text-[10.5px] uppercase tracking-wide text-text-mute">
         <th className="py-1 pl-9 pr-2 text-left font-semibold">{t('Resurs')}{F('nom')}</th><th className="px-2 text-right font-semibold">{t('Birlik')}{F('birlik')}</th>
-        <th className="px-2 text-right font-semibold">{t('Hajm')}{F('hajm')}</th><th className="px-2 text-right font-semibold">{t('Narx · manba')}{F('narx')}</th>
+        <th className="px-2 text-right font-semibold">{t('Hajm')}{F('hajm')}</th><th className="px-2 text-right font-semibold">{t('Narx · manba')}<SummaYorliq tur="narx" />{F('narx')}</th>
         <th className="px-2 text-right font-semibold">{t('Summa')}{F('summa')}</th><th className="px-2 text-left font-semibold">{t('Holat')}{F('holat')}</th>
       </tr></thead>
       <tbody>{f.natija.map(qator)}{bosh && <tr><td colSpan={6} className="py-1.5 pl-9 text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</td></tr>}</tbody>
