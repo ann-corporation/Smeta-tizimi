@@ -6,11 +6,11 @@
  *    qator TASDIQLANGAN F2 qatorining narxi bilan (certified_unit_price ?? narx; bir necha F2 da turli narx — hajm bo'yicha
  *    o'rtacha), manbasi bilan (narx_manba='f2_sertifikat', narx_manba_id = F2 akt, narx_izoh — akt raqamlari).
  *    F2 narxi NULL — narx to'qilmaydi: narx yuborilmaydi (server smeta narxini oladi) yoki narxsiz qoladi. 0 — 0.
- *  - Ish tanlansa — mehnat/mashina (rs) resurslari norma bo'yicha ergashadi (view t2_qator_holat: ota bl fakti × norma ×
- *    smeta narxi), alohida yozilmaydi (fakt_yoz_v2 rs qatorini rad etadi: FAKT_DERIVED_OR_ROLLUP_LINE). Oldindan ko'rish
- *    summasi aynan shu qoidada hisoblanadi — ko'rilgan summa = yoziladigan summa.
+ *  - Mehnat/mashina (rs): F2 da bor bo'lsa — o'z F2 hajmi (F2 − o'z fakti) va narxi bilan yoziladi (T2-FAKT-F2-RS-001,
+ *    narx_manba='f2_sertifikat'); o'z fakti bo'lgan rs hosiladan chiqadi (view). F2 da yo'q rs — ishga norma bo'yicha smeta
+ *    narxida ergashadi. F2 da bl/rs narxi yo'q — narx_yoq (summa to'qilmaydi). Ko'rilgan summa = yoziladigan summa.
  *  - Faqat fakt jadvaliga (fakt_yoz_v2) yoziladi. Asl smeta qatorlari (t2_qator) HECH QACHON o'zgarmaydi.
- *  - Manfiy reja (chegirma) qatorlari bu bosqichda o'tkazib yuboriladi.
+ *  - Chegirma (manfiy reja) qatorlari ham ko'zgulanadi: farq manfiy (F2 tomon); teskari ishorali farq o'tkazib yuboriladi.
  */
 import { sbT2AktBekor } from '../api/supabase';
 import type { JurnalHolat, JurnalIsh, JurnalQator } from './fakt-jurnal';
@@ -25,8 +25,10 @@ export type F2AktQator = {
 export type F2Narx = { narx: number | null; aktlar: readonly number[]; aralash: boolean };
 
 /**
- * Qator → F2 narxi. Hamma F2 qatori narxli: bitta narx — o'sha; turli narx — Σ summa / Σ hajm (hajm bo'yicha o'rtacha).
- * Birorta F2 qatorida narx yo'q — narx null (narxsiz hajmga narx to'qilmaydi). Narx 0 — 0 (NULL emas).
+ * Qator → F2 narxi. Hamma F2 qatori narxli: narx = Σ summa / Σ hajm (sertifikat summasi ustun) — shunda faktga yozilgan
+ * summa F2 summasiga aynan teng (sertifikatda summa birlik narx × hajmdan farq qilsa ham). Bitta narx va summa unga mos —
+ * o'sha birlik narxi (yaxlit ko'rinsin). Birorta F2 qatorida narx yo'q — narx null (narxsiz hajmga narx to'qilmaydi).
+ * Narx 0 — 0 (NULL emas).
  */
 export function f2NarxYigish(qatorlar: readonly F2AktQator[]): Map<number, F2Narx> {
   const guruh = new Map<number, F2AktQator[]>();
@@ -37,28 +39,35 @@ export function f2NarxYigish(qatorlar: readonly F2AktQator[]): Map<number, F2Nar
     const birlik = xs.map((x) => son(x.certified_unit_price) ?? son(x.narx));
     const narxli = birlik.filter((u): u is number => u != null);
     if (!narxli.length || narxli.length < xs.length) { out.set(id, { narx: null, aktlar, aralash: narxli.length > 0 }); continue; }
-    let narx: number | null = null;
-    if (new Set(narxli).size === 1) narx = narxli[0];
-    else {
-      let qty = 0, amt = 0;
-      xs.forEach((x, i) => { const h = son(x.certified_quantity) ?? son(x.hajm) ?? 0; qty += h; amt += son(x.certified_amount) ?? son(x.summa) ?? h * birlik[i]!; });
-      narx = Math.abs(qty) > 1e-12 ? yaxlit(amt / qty) : null;
-    }
+    let qty = 0, amt = 0;
+    xs.forEach((x, i) => { const h = son(x.certified_quantity) ?? son(x.hajm) ?? 0; qty += h; amt += son(x.certified_amount) ?? son(x.summa) ?? h * birlik[i]!; });
+    let narx: number | null;
+    if (new Set(narxli).size === 1 && Math.abs(qty * narxli[0] - amt) < 0.005) narx = narxli[0];
+    else narx = Math.abs(qty) > 1e-12 ? amt / qty : new Set(narxli).size === 1 ? narxli[0] : null;
     out.set(id, { narx, aktlar, aralash: false });
   }
   return out;
 }
 
-/** fakt_yoz_v2 qatori: F2 narxi bo'lsa — narx va manbasi bilan (t2_akt_yarat shu maydonlarni qabul qiladi). */
-export type FaktF2PaketQator = { qator_id: number; hajm: number; narx?: number; narx_manba?: 'f2_sertifikat'; narx_manba_id?: number; narx_izoh?: string };
-/** Narx manbasi: F2 narxi / smeta narxi (F2 da narx yo'q) / narxsiz (summa noma'lum). */
+/**
+ * fakt_yoz_v2 qatori: F2 narxi bilan — narx + manba; F2 da narx yo'q (bl/rs) — narx_yoq (hajm yoziladi, summa yo'q).
+ * rs qatori server tomonida faqat narx_manba='f2_sertifikat' bilan qabul qilinadi (T2-FAKT-F2-RS-001).
+ */
+export type FaktF2PaketQator = { qator_id: number; hajm: number; narx?: number; narx_yoq?: true; narx_manba?: 'f2_sertifikat'; narx_manba_id?: number; narx_izoh?: string };
+/** Narx manbasi: F2 narxi / smeta narxi (F2 da narx yo'q) / narxsiz (summa noma'lum yoki F2 bo'yicha narxsiz). */
 export type TenglashNarxManba = 'f2' | 'smeta' | 'narxsiz';
-/** Reja konteksti: F2 narxlari (qator → F2Narx) va smeta narxi (holat smeta_narx yo'q bo'lsa — daraxt qatori narxi). */
-export type TenglashKontekst = { f2Narx?: ReadonlyMap<number, F2Narx>; smetaNarx?: (id: number) => number | null };
+/**
+ * Reja konteksti: F2 narxlari (qator → F2Narx), smeta narxi (holat smeta_narx yo'q bo'lsa — daraxt qatori narxi) va
+ * qatorning O'Z (DIRECT) fakti — bekor qilinmagan fakt hujjatlari yig'indisi. directFakt berilsa rs (mehnat/mashina)
+ * ham ko'zgulanadi: delta = F2 − o'z fakti (view rs uchun o'z fakti bo'lsa hosilani olmaydi).
+ */
+export type TenglashKontekst = { f2Narx?: ReadonlyMap<number, F2Narx>; smetaNarx?: (id: number) => number | null; directFakt?: ReadonlyMap<number, number> };
 
 export type BekorNatija = { ok: boolean; error?: string };
 export type AktBekorFn = (aktId: number) => Promise<BekorNatija>;
-export type TenglashOyna = { sarlavha: string; reja: TenglashReja };
+/** Oldin (F2 narxisiz, smeta narxida) yozilgan «Fakt = F2» hujjati — bekor qilib qayta yozish taklif qilinadi. */
+export type EskiF2Akt = { id: number; raqam: string | null; sana: string | null; jami: number | null };
+export type TenglashOyna = { sarlavha: string; reja: TenglashReja; eskiAktlar?: readonly EskiF2Akt[] };
 
 /** Fakt = F2 hujjatini bekor qilish (akt_bekor) — faqat shu hujjat, smeta qatorlariga tegmaydi. */
 export const faktF2Bekor: AktBekorFn = async (aktId) => {
@@ -81,8 +90,10 @@ export type TenglashQator = {
   narxManba?: TenglashNarxManba;
   /** F2 narxi olingan tasdiqlangan F2 aktlari (narxManba='f2'). */
   aktlar?: readonly number[];
-  /** Shu ish ostidagi mehnat/mashina (rs) qatorlaridan F2 da alohida borlari: soni va F2 summasi — ular norma bo'yicha ergashadi. */
-  rsF2?: { soni: number; summa: number | null };
+  /** F2 bo'yicha narxsiz (bl/rs) — narx_yoq bilan yuboriladi: hajm yoziladi, summa yo'q (smeta narxi to'qilmaydi). */
+  narxYoq?: boolean;
+  /** Shu ish ostidagi F2 da yo'q mehnat/mashina (rs) — norma bo'yicha smeta narxida ergashadi (soni, summa; summa ish summasida). */
+  rsHosila?: { soni: number; summa: number | null };
 };
 
 export type TenglashReja = {
@@ -97,75 +108,96 @@ export type TenglashReja = {
 const son = (v: number | null | undefined) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 const yaxlit = (x: number) => Math.round(x * 1e6) / 1e6;
 
-/** Yuboriladigan qator: F2 narxi bo'lsa narx, narx_manba, narx_manba_id (bitta akt), narx_izoh (akt raqamlari). */
-export function paketQator(q: Pick<TenglashQator, 'id' | 'delta' | 'narx' | 'narxManba' | 'aktlar'>): FaktF2PaketQator {
+/**
+ * Yuboriladigan qator: F2 narxi bo'lsa narx; F2 bo'yicha narxsiz (bl/rs) — narx_yoq; ikkalasida ham narx_manba=
+ * 'f2_sertifikat', narx_manba_id (bitta akt), narx_izoh (akt raqamlari). Smeta narxiga tushgan qator — faqat hajm.
+ */
+export function paketQator(q: Pick<TenglashQator, 'id' | 'delta' | 'narx' | 'narxManba' | 'aktlar' | 'narxYoq'>): FaktF2PaketQator {
   const p: FaktF2PaketQator = { qator_id: q.id, hajm: q.delta };
-  if (q.narxManba !== 'f2' || q.narx == null) return p;
+  const f2Narxli = q.narxManba === 'f2' && q.narx != null;
+  if (!f2Narxli && !q.narxYoq) return p;
   const aktlar = q.aktlar ?? [];
-  p.narx = q.narx; p.narx_manba = 'f2_sertifikat';
+  if (f2Narxli) p.narx = q.narx as number; else p.narx_yoq = true;
+  p.narx_manba = 'f2_sertifikat';
   if (aktlar.length === 1) p.narx_manba_id = aktlar[0];
   const nomer = aktlar.map((a) => `№${a}`).join(', ');
-  p.narx_izoh = (aktlar.length > 1 ? `Fakt = F2: F2 ${nomer} — hajm bo'yicha o'rtacha narx` : `Fakt = F2: F2 ${nomer} narxi`).slice(0, 480);
+  p.narx_izoh = (q.narxYoq ? `Fakt = F2: F2 ${nomer} da narx yo'q` : aktlar.length > 1 ? `Fakt = F2: F2 ${nomer} — hajm bo'yicha o'rtacha narx` : `Fakt = F2: F2 ${nomer} narxi`).slice(0, 480);
   return p;
 }
 
+/** Ko'zgulanadigan qator hajmi: F2 − o'z fakti. Musbat reja — faqat musbat farq; chegirma (manfiy reja) — faqat manfiy farq. */
+const farqOl = (f2: number, fakt: number, manfiy: boolean): number | null => {
+  const d = yaxlit(f2 - fakt);
+  return manfiy ? (d < -1e-9 ? d : null) : (d > 1e-9 ? d : null);
+};
+
+type SummaNatija = { narx: number | null; summa: number | null; kesim: KatKesim; narxManba: TenglashNarxManba; aktlar?: readonly number[]; narxYoq?: boolean; rsHosila?: { soni: number; summa: number | null } };
+
 /**
  * Qator summasi (ustamasiz, NDS siz) — serverda yoziladigan summa bilan aynan bir xil qoida:
- *  - qatorning o'zi: delta × narx; narx = F2 narxi (F2Narx.narx) ?? smeta narxi (server ham narx yuborilmasa smeta narxini
- *    oladi: t2_akt_yarat coalesce(narx, q.narx)); ikkalasi yo'q — NULL (0 to'qilmaydi);
- *  - ish (bl): + ergashadigan rs (to'g'ridan-to'g'ri bolasi, norma bor): delta × norma × rs smeta narxi
- *    (t2_qator_holat: BL_NORMA — rs o'z fakti bo'lmasa). rs smeta narxi yo'q — o'sha qism NULL.
+ *  - qatorning o'zi: delta × narx; narx = F2 narxi ?? (F2 da narx yo'q: bl/rs — narx_yoq, summa yo'q; mat/ob — smeta
+ *    narxi: server ham narx yuborilmasa coalesce(narx, smeta narxi)); hech biri yo'q — NULL (0 to'qilmaydi);
+ *  - ish (bl): + ergashadigan rs (to'g'ridan-to'g'ri bolasi, norma bor, shu rejada ko'zgulanmaydi, o'z fakti yo'q):
+ *    delta × norma × rs smeta narxi (t2_qator_holat BL_NORMA). rs smeta narxi yo'q — o'sha qism NULL.
  */
-function summaHisob(q: JurnalQator, ish: JurnalIsh | null, delta: number, holat: ReadonlyMap<number, TenglashHolat>, ktx: TenglashKontekst):
-  { narx: number | null; summa: number | null; kesim: KatKesim; narxManba: TenglashNarxManba; aktlar?: readonly number[]; rsF2?: { soni: number; summa: number | null } } {
+function summaHisob(q: JurnalQator, ish: JurnalIsh | null, delta: number, holat: ReadonlyMap<number, TenglashHolat>, ktx: TenglashKontekst,
+  ozgacha: (r: JurnalQator) => boolean): SummaNatija {
   const kesim = bosKatKesim();
   const smetaNarx = (id: number) => ktx.smetaNarx?.(id) ?? son(holat.get(id)?.smeta_narx);
   const f2 = ktx.f2Narx?.get(q.id);
   const f2n = f2?.narx ?? null;
-  const narx = f2n ?? smetaNarx(q.id);
+  const narxYoq = !!f2 && f2n == null && (q.tur === 'bl' || q.tur === 'rs');
+  const narx = narxYoq ? null : f2n ?? smetaNarx(q.id);
   const oz = narx == null ? null : yaxlit(delta * narx);
-  const ergash = ish ? ish.avtomatik.filter((r) => r.otaId === ish.id && r.norma != null) : [];
+  const ergash = ish ? ish.avtomatik.filter((r) => r.otaId === ish.id && r.norma != null && !ozgacha(r)) : [];
   let summa: number | null = oz;
+  let rsHosila: SummaNatija['rsHosila'];
   if (ergash.length) {
     if (oz != null) katKesimgaQosh(kesim, q.kat, oz);
+    rsHosila = { soni: 0, summa: null };
     for (const r of ergash) {
       const rn = smetaNarx(r.id);
       const v = rn == null ? null : yaxlit(delta * (r.norma as number) * rn);
       katKesimgaQosh(kesim, r.kat, v);
-      if (v != null) summa = (summa ?? 0) + v;
+      rsHosila.soni += 1;
+      if (v != null) { summa = (summa ?? 0) + v; rsHosila.summa = yaxlit((rsHosila.summa ?? 0) + v); }
     }
-  } else katKesimgaQosh(kesim, q.kat, oz);
-  let rsF2: { soni: number; summa: number | null } | undefined;
-  if (ish) for (const r of ish.avtomatik) {
-    const h = holat.get(r.id);
-    if (!((son(h?.f2_hajm) ?? 0) > 1e-9)) continue;
-    rsF2 ??= { soni: 0, summa: null };
-    rsF2.soni += 1; const s = son(h?.f2_summa); if (s != null) rsF2.summa = yaxlit((rsF2.summa ?? 0) + s);
-  }
-  const narxManba: TenglashNarxManba = f2n != null ? 'f2' : summa != null ? 'smeta' : 'narxsiz';
-  return { narx, summa: summa == null ? null : yaxlit(summa), kesim, narxManba, aktlar: f2n != null ? f2?.aktlar : undefined, rsF2 };
+  } else if (!narxYoq) katKesimgaQosh(kesim, q.kat, oz);
+  const narxManba: TenglashNarxManba = f2n != null ? 'f2' : narxYoq ? 'narxsiz' : summa != null ? 'smeta' : 'narxsiz';
+  return { narx, summa: summa == null ? null : yaxlit(summa), kesim, narxManba, aktlar: f2 ? f2.aktlar : undefined, narxYoq, rsHosila };
 }
 
 export function faktF2Reja(ishlar: readonly JurnalIsh[], holat: ReadonlyMap<number, TenglashHolat>, bolim: string | null = null, ktx: TenglashKontekst = {}): TenglashReja {
   const qatorlar: TenglashQator[] = [];
   let manfiyReja = 0, f2Yoq = 0;
   const korildi = new Set<number>();
+  const smetaHajm = (q: JurnalQator) => son(holat.get(q.id)?.smeta_hajm) ?? q.smeta ?? 0;
+  /** Qatorning o'z fakti: rs uchun DIRECT (directFakt), qolganlari holat fakt_hajm (bl/mat/ob da u DIRECT). */
+  const faktOl = (q: JurnalQator) => (q.tur === 'rs' ? ktx.directFakt?.get(q.id) ?? 0 : son(holat.get(q.id)?.fakt_hajm) ?? 0);
+  /** rs shu rejada o'zi yoziladimi (keyin u ishga ergashmaydi) yoki o'z fakti bormi (hozir ham ergashmaydi). */
+  const rsOzgacha = (r: JurnalQator) => {
+    if (!ktx.directFakt) return false;
+    if (Math.abs(ktx.directFakt.get(r.id) ?? 0) > 1e-9) return true;
+    return farqOl(son(holat.get(r.id)?.f2_hajm) ?? 0, 0, smetaHajm(r) < 0) != null;
+  };
   for (const ish of ishlar) {
-    for (const q of [ish as JurnalQator, ...ish.resurslar]) {
+    const rsLar = ktx.directFakt ? ish.avtomatik : [];
+    for (const q of [ish as JurnalQator, ...ish.resurslar, ...rsLar]) {
       if (korildi.has(q.id)) continue;
       korildi.add(q.id);
       const h = holat.get(q.id);
       const f2 = son(h?.f2_hajm) ?? 0;
-      const fakt = son(h?.fakt_hajm) ?? 0;
-      if ((son(h?.smeta_hajm) ?? q.smeta ?? 0) < 0) { manfiyReja += 1; continue; }
-      const delta = yaxlit(f2 - fakt);
-      if (delta <= 1e-9) { if (f2 <= 1e-9) f2Yoq += 1; continue; }
+      const fakt = faktOl(q);
+      const manfiy = smetaHajm(q) < 0;
+      const delta = farqOl(f2, fakt, manfiy);
+      if (delta == null) { if (manfiy) manfiyReja += 1; else if (f2 <= 1e-9) f2Yoq += 1; continue; }
       const oz = q === (ish as JurnalQator);
-      const s = summaHisob(q, oz && ish.tur === 'bl' ? ish : null, delta, holat, ktx);
+      const s = summaHisob(q, oz && ish.tur === 'bl' ? ish : null, delta, holat, ktx, rsOzgacha);
       qatorlar.push({
         id: q.id, tur: q.tur, nom: q.nom, birlik: q.birlik, fakt, f2, delta, narx: s.narx,
         summa: s.summa, avtomatik: oz ? ish.avtomatik.length : 0, bolim, kesim: s.kesim,
-        narxManba: s.narxManba, ...(s.aktlar ? { aktlar: s.aktlar } : {}), ...(s.rsF2 ? { rsF2: s.rsF2 } : {}),
+        narxManba: s.narxManba, ...(s.aktlar ? { aktlar: s.aktlar } : {}), ...(s.narxYoq ? { narxYoq: true } : {}),
+        ...(s.rsHosila ? { rsHosila: s.rsHosila } : {}),
       });
     }
   }
@@ -185,7 +217,7 @@ function rejaYasa(qatorlar: TenglashQator[], manfiyReja: number, f2Yoq: number):
 /**
  * BUTUN OBYEKT bo'yicha «Fakt = F2» (egasi 2026-10-26: «fakt qilingan ishni tez hisoblab F2 qilib Nakopitelniy'ga»):
  * har bo'lim O'Z ishlari (avlodlarisiz — har ish bir marta) + bo'limsiz ishlar. Qator bo'lim nomi bilan belgilanadi.
- * Faqat musbat farq; fakt hech qachon kamaytirilmaydi.
+ * Musbat reja — faqat musbat farq (fakt kamaytirilmaydi); chegirma (manfiy reja) — F2 tomon manfiy farq.
  */
 export function obyektF2Reja(guruhlar: readonly { nom: string; ishlar: readonly JurnalIsh[] }[], holat: ReadonlyMap<number, TenglashHolat>, ktx: TenglashKontekst = {}): TenglashReja {
   const qatorlar: TenglashQator[] = []; let manfiy = 0, f2Yoq = 0; const bor = new Set<number>();
@@ -203,8 +235,8 @@ export type TenglashJami = {
   ustamasiz: number | null; kesim: KatKesim; narxsiz: number;
   /** Narx manbasi bo'yicha qator soni: F2 narxi / smeta narxi (F2 da narx yo'q). Narxsiz — `narxsiz`. */
   f2Narxli: number; smetaNarxli: number;
-  /** Mehnat/mashina (rs) qatorlari F2 da alohida bor — ular norma bo'yicha smeta narxida ergashadi (soni, F2 summasi). */
-  rsF2: { soni: number; summa: number | null };
+  /** F2 da yo'q mehnat/mashina (rs) — ishga norma bo'yicha smeta narxida ergashadi (soni, summa; summa jamiga kirgan). */
+  rsHosila: { soni: number; summa: number | null };
   /** Bo'lim bo'yicha jami (rejadagi tartibda; istisno qilingan bo'lim ham ko'rinadi — soni 0). */
   bolimlar: TenglashBolimJami[];
 };
@@ -219,7 +251,7 @@ const kesimQosh = (a: KatKesim, b: KatKesim | undefined) => {
 export function tenglashJami(reja: TenglashReja, chiqQator: ReadonlySet<number>, chiqBolim: ReadonlySet<string>): TenglashJami {
   const paket: TenglashJami['paket'] = [];
   const kesim = bosKatKesim(); let ustamasiz: number | null = null; let narxsiz = 0; let f2Narxli = 0; let smetaNarxli = 0;
-  const rsF2 = { soni: 0, summa: null as number | null };
+  const rsHosila = { soni: 0, summa: null as number | null };
   const bm = new Map<string, TenglashBolimJami>();
   for (const q of reja.qatorlar) {
     const nom = q.bolim ?? '';
@@ -230,11 +262,11 @@ export function tenglashJami(reja: TenglashReja, chiqQator: ReadonlySet<number>,
     if (q.summa == null) { narxsiz += 1; b.narxsiz += 1; }
     else { ustamasiz = (ustamasiz ?? 0) + q.summa; b.ustamasiz = (b.ustamasiz ?? 0) + q.summa; }
     if (q.narxManba === 'f2' && q.narx != null) f2Narxli += 1; else if (q.summa != null) smetaNarxli += 1;
-    if (q.rsF2) { rsF2.soni += q.rsF2.soni; if (q.rsF2.summa != null) rsF2.summa = yaxlit((rsF2.summa ?? 0) + q.rsF2.summa); }
+    if (q.rsHosila) { rsHosila.soni += q.rsHosila.soni; if (q.rsHosila.summa != null) rsHosila.summa = yaxlit((rsHosila.summa ?? 0) + q.rsHosila.summa); }
     kesimQosh(kesim, q.kesim); kesimQosh(b.kesim, q.kesim);
   }
   for (const b of bm.values()) if (b.ustamasiz != null) b.ustamasiz = yaxlit(b.ustamasiz);
-  return { paket, ustamasiz: ustamasiz == null ? null : yaxlit(ustamasiz), kesim, narxsiz, f2Narxli, smetaNarxli, rsF2, bolimlar: [...bm.values()] };
+  return { paket, ustamasiz: ustamasiz == null ? null : yaxlit(ustamasiz), kesim, narxsiz, f2Narxli, smetaNarxli, rsHosila, bolimlar: [...bm.values()] };
 }
 
 /** Bo'lim (va ixtiyoriy ichki bo'limlar) ishlari. `bolimIshlari` — jurnalQur natijasi; `ichkilar` — bo'lim id → ichki bo'limlar id. */

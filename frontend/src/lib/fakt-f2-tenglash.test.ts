@@ -22,7 +22,7 @@ const rows = [
   q({ id: 21, tur: 'bl', ota_id: 1, nom: 'Chegirma', hajm: -3 }),
 ];
 const st = (qator_id: number, smeta: number, fakt: number, f2: number, narx: number | null = 100): JurnalHolat => ({ qator_id, smeta_hajm: smeta, fakt_hajm: fakt, f2_hajm: f2, smeta_narx: narx });
-const states = [st(10, 10, 3, 8), st(11, 20, 6, 16), st(12, 5, 5, 4), st(20, 4, 4, 4), st(21, -3, -1, -3)];
+const states = [st(10, 10, 3, 8), st(11, 20, 6, 16), st(12, 5, 5, 4), st(20, 4, 4, 4), st(21, -3, -3, -3)];
 
 describe('Fakt = F2 — reja', () => {
   const { bolimIshlari, bolimlar } = jurnalQur(rows, states);
@@ -145,26 +145,70 @@ describe('Fakt = F2 — F2 narxi faktga (egasi 2026-10-28)', () => {
     expect([j.f2Narxli, j.smetaNarxli, j.narxsiz]).toEqual([2, 0, 0]);
   });
 
-  it('F2 narxi NULL — narx yuborilmaydi (smeta narxi), smeta ham yo‘q — narxsiz (NULL, 0 emas)', () => {
-    const h = new Map(holat); h.set(12, st(12, 5, 1, 4, null));
+  it('F2 narxi NULL: bl — narx_yoq (hajm yoziladi, summa yo‘q, smeta narxi to‘qilmaydi); mat/ob — smeta narxi; ikkalasi yo‘q — narxsiz', () => {
+    const h = new Map(holat); h.set(12, st(12, 5, 1, 4, 100));
     const r = faktF2Reja(ishlar(), h, null, { f2Narx: f2NarxYigish([l(31, 10, 8, null), l(31, 12, 4, null)]) });
-    expect(r.paket).toEqual([{ qator_id: 10, hajm: 5 }, { qator_id: 12, hajm: 3 }]);
+    expect(r.paket).toEqual([
+      { qator_id: 10, hajm: 5, narx_yoq: true, narx_manba: 'f2_sertifikat', narx_manba_id: 31, narx_izoh: "Fakt = F2: F2 №31 da narx yo'q" },
+      { qator_id: 12, hajm: 3 },
+    ]);
     const j = tenglashJami(r, new Set(), new Set());
     expect([j.f2Narxli, j.smetaNarxli, j.narxsiz]).toEqual([0, 1, 1]);
-    expect(j.ustamasiz).toBe(500);
+    expect(j.ustamasiz).toBe(300);
+    const h2 = new Map(h); h2.set(12, st(12, 5, 1, 4, null));
+    expect(tenglashJami(faktF2Reja(ishlar(), h2, null, { f2Narx: f2NarxYigish([l(31, 12, 4, null)]) }), new Set(), new Set()).paket[1]).toEqual({ qator_id: 12, hajm: 3 });
   });
 
-  it('smetaNarx konteksti (daraxt qatori narxi) holatda smeta_narx bo‘lmasa ishlatiladi; F2 dagi rs qatorlari hisobotda', () => {
-    const h = new Map<number, JurnalHolat>([[10, { qator_id: 10, smeta_hajm: 10, fakt_hajm: 3, f2_hajm: 8 }], [11, { qator_id: 11, smeta_hajm: 20, fakt_hajm: 6, f2_hajm: 16, f2_summa: 1600 }]]);
-    const r = faktF2Reja(ishlar(), h, null, { smetaNarx: (id) => (id === 10 ? 7 : null) });
-    expect(r.qatorlar[0].summa).toBe(35);
-    expect(tenglashJami(r, new Set(), new Set()).rsF2).toEqual({ soni: 1, summa: 1600 });
+  it('f2NarxYigish: sertifikat summasi birlik × hajmdan farq qilsa — Σ summa / Σ hajm (fakt summasi F2 ga aynan teng)', () => {
+    const m = f2NarxYigish([l(5, 1, 3, 10, { certified_quantity: 3, certified_unit_price: 10, certified_amount: 31 })]);
+    expect((m.get(1)?.narx ?? 0) * 3).toBeCloseTo(31, 9);
   });
 
+  describe('mehnat/mashina (rs) — F2 hajmi va narxi bilan (T2-FAKT-F2-RS-001)', () => {
+    const rowsN = rows.map((x) => (x.id === 11 ? { ...x, norma: 2 } as T2Qator : x));
+    const rsQ = (x: number) => q({ id: x, tur: 'rs', ota_id: 10, kat: 'МАШ', nom: `rs${x}`, norma: 1 } as Partial<T2Qator> & { id: number; tur: string });
+    const jur = (r: T2Qator[]) => { const j = jurnalQur(r, states); const b = new Map<number, number[]>(); for (const x of j.bolimlar) if (x.otaId != null) b.set(x.otaId, [...(b.get(x.otaId) ?? []), x.id]); return bolimIshlariYigish(1, j.bolimIshlari, b, true); };
+
+    it('rs F2 da bor: delta = F2 − o‘z (DIRECT) fakti, F2 narxi bilan; ish summasiga hosila qo‘shilmaydi; bl narx_yoq', () => {
+      const h = new Map(holat); h.set(10, st(10, 10, 3, 8, null)); h.set(11, { ...st(11, 20, 6, 16, 5), f2_summa: 144 });
+      const r = faktF2Reja(jur(rowsN), h, null, { f2Narx: f2NarxYigish([l(40, 10, 8, null), l(40, 11, 16, 9)]), directFakt: new Map() });
+      expect(r.paket).toEqual([
+        { qator_id: 10, hajm: 5, narx_yoq: true, narx_manba: 'f2_sertifikat', narx_manba_id: 40, narx_izoh: "Fakt = F2: F2 №40 da narx yo'q" },
+        { qator_id: 11, hajm: 16, narx: 9, narx_manba: 'f2_sertifikat', narx_manba_id: 40, narx_izoh: 'Fakt = F2: F2 №40 narxi' },
+      ]);
+      const j = tenglashJami(r, new Set(), new Set());
+      expect(j.ustamasiz).toBe(144);                     // = Σ F2 (bl summasi yo'q, rs 16 × 9); hosila (5×2×5) yo'q
+      expect(j.rsHosila.soni).toBe(0);
+      // O'z fakti bor rs: delta = 16 − 10.
+      const r2 = faktF2Reja(jur(rowsN), h, null, { f2Narx: f2NarxYigish([l(40, 10, 8, null), l(40, 11, 16, 9)]), directFakt: new Map([[11, 10]]) });
+      expect(r2.paket.find((p) => p.qator_id === 11)?.hajm).toBe(6);
+    });
+
+    it('F2 da yo‘q rs (norma bor) ishga smeta narxida ergashadi — ish summasida va rsHosila da; directFakt berilmasa rs yozilmaydi', () => {
+      const h = new Map(holat); h.set(10, st(10, 10, 3, 8, null)); h.set(11, { ...st(11, 20, 6, 16, 5) }); h.set(13, { qator_id: 13, smeta_hajm: 10, fakt_hajm: 3, f2_hajm: 0, smeta_narx: 4 });
+      const r = faktF2Reja(jur([...rowsN, rsQ(13)]), h, null, { f2Narx: f2NarxYigish([l(40, 10, 8, null), l(40, 11, 16, 9)]), directFakt: new Map() });
+      const bl = r.qatorlar.find((x) => x.id === 10)!;
+      expect(bl.summa).toBe(20);                         // rs13: 5 × 1 × 4
+      expect(bl.rsHosila).toEqual({ soni: 1, summa: 20 });
+      expect(tenglashJami(r, new Set(), new Set()).ustamasiz).toBe(20 + 144);
+      expect(faktF2Reja(jur(rowsN), h).paket.some((p) => p.qator_id === 11)).toBe(false);
+    });
+  });
+
+  it('chegirma (manfiy reja): F2 tomon manfiy farq yoziladi; teskari ishora — o‘tkazib yuboriladi', () => {
+    const h = new Map(holat); h.set(21, st(21, -3, -1, -3, 100));
+    const r = faktF2Reja(ishlar(), h, null, { f2Narx: f2NarxYigish([l(50, 21, -3, 100)]) });
+    expect(r.paket.find((p) => p.qator_id === 21)).toMatchObject({ hajm: -2, narx: 100 });
+    expect(r.qatorlar.find((x) => x.id === 21)?.summa).toBe(-200);
+    h.set(21, st(21, -3, -3, -1));
+    const r2 = faktF2Reja(ishlar(), h);
+    expect(r2.paket.some((p) => p.qator_id === 21)).toBe(false);
+    expect(r2.otkazildi.manfiyReja).toBe(1);
+  });
   it('urinish snapshoti narx maydonlarini saqlaydi (qayta yuborish — aynan shu), boshqa kalitlar tashlanadi', () => {
     const u = urinishYarat({ kompaniyaId: 1, obyektId: 2, sana: '2026-01-01', sarlavha: 's', foiz: 100, tur: 'f2' },
-      [[{ qator_id: 1, hajm: 2, narx: 5, narx_manba: 'f2_sertifikat', narx_manba_id: 9, narx_izoh: 'x', boshqa: 1 } as never, { qator_id: 3, hajm: 1 }]], () => 'op');
-    expect(u.bolaklar[0].qatorlar).toEqual([{ qator_id: 1, hajm: 2, narx: 5, narx_manba: 'f2_sertifikat', narx_manba_id: 9, narx_izoh: 'x' }, { qator_id: 3, hajm: 1 }]);
+      [[{ qator_id: 1, hajm: 2, narx: 5, narx_manba: 'f2_sertifikat', narx_manba_id: 9, narx_izoh: 'x', boshqa: 1 } as never, { qator_id: 3, hajm: 1, narx_yoq: true }]], () => 'op');
+    expect(u.bolaklar[0].qatorlar).toEqual([{ qator_id: 1, hajm: 2, narx: 5, narx_manba: 'f2_sertifikat', narx_manba_id: 9, narx_izoh: 'x' }, { qator_id: 3, hajm: 1, narx_yoq: true }]);
   });
 });
 

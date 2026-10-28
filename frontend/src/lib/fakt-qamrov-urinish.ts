@@ -14,10 +14,11 @@
  */
 export type BolakHolat = 'kutmoqda' | 'confirmed' | 'failed' | 'unknown';
 /** Yuboriladigan fakt qatori. «Fakt = F2» F2 narxini manbasi bilan qo'shadi (snapshotda muzlatiladi — qayta yuborishda aynan shu). */
-export type UrinishQator = { qator_id: number; hajm: number; narx?: number; narx_manba?: string; narx_manba_id?: number; narx_izoh?: string };
+export type UrinishQator = { qator_id: number; hajm: number; narx?: number; narx_yoq?: boolean; narx_manba?: string; narx_manba_id?: number; narx_izoh?: string };
 const qatorNusxa = (x: UrinishQator): UrinishQator => {
   const n: UrinishQator = { qator_id: x.qator_id, hajm: x.hajm };
   if (x.narx != null) n.narx = x.narx;
+  if (x.narx_yoq === true) n.narx_yoq = true;
   if (x.narx_manba != null) n.narx_manba = x.narx_manba;
   if (x.narx_manba_id != null) n.narx_manba_id = x.narx_manba_id;
   if (x.narx_izoh != null) n.narx_izoh = x.narx_izoh;

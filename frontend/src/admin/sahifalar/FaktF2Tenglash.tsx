@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { yangiOperationId } from '../../api/supabase';
-import { tenglashJami, type AktBekorFn, type TenglashReja } from '../../lib/fakt-f2-tenglash';
+import { tenglashJami, type AktBekorFn, type EskiF2Akt, type TenglashReja } from '../../lib/fakt-f2-tenglash';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { toast } from '../../umumiy/ui/Toast';
 import { qamrovBolaklari } from '../../lib/fakt-qamrov';
 import { urinishYarat } from '../../lib/fakt-qamrov-urinish';
 import type { JurnalHolat } from '../../lib/fakt-jurnal';
@@ -17,10 +19,13 @@ const KORSAT_CHEGARA = 300;
  * «Fakt = F2» oldindan ko'rish (bo'lim yoki BUTUN OBYEKT): qaysi qatorlar, qancha hajm, summa (ustamasiz + ustamali),
  * bo'lim bo'yicha jami; egasi qator yoki butun bo'limni istisno qiladi. Yozish — Qamrov % bilan bir xil bitta urinish
  * yo'li (useFaktUrinish: fakt_yoz_v2, katta paket — bo'laklar, receipt, qayta yuborish bir xil ID bilan, bekor qilish).
- * Fakt faqat oshadi (musbat farq); smeta qatorlariga tegilmaydi.
+ * Fakt faqat F2 tomon o'zgaradi (musbat reja — oshadi; chegirma — manfiy farq); smeta qatorlariga tegilmaydi.
  */
-export function FaktF2Tenglash({ sarlavha, reja, obyektId, kompaniyaId, sana, holatMap, onYop, onBajarildi, aktBekor }: {
-  sarlavha: string; reja: TenglashReja; obyektId: number; kompaniyaId: number; sana: string;
+export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, kompaniyaId, sana, holatMap, onYop, onBajarildi, aktBekor }: {
+  sarlavha: string; reja: TenglashReja;
+  /** Oldin smeta narxida yozilgan «Fakt = F2» hujjatlari — bekor qilib qayta yozish taklifi (avtomatik bekor yo'q). */
+  eskiAktlar?: readonly EskiF2Akt[];
+  obyektId: number; kompaniyaId: number; sana: string;
   holatMap: ReadonlyMap<number, JurnalHolat>;
   onYop: () => unknown; onBajarildi: () => unknown;
   /** Hujjatni bekor qilish (akt_bekor). */
@@ -43,6 +48,22 @@ export function FaktF2Tenglash({ sarlavha, reja, obyektId, kompaniyaId, sana, ho
       qamrovBolaklari(jami.paket), yangiOperationId, undefined, (id) => faktlar.get(id) ?? 0);
   });
   const yozMumkin = !band && (!!urinish || (jami.paket.length > 0 && jadvalYangi));
+  const [eskiBand, setEskiBand] = useState(false);
+  /** Eski «Fakt = F2» hujjatlarini bekor qilish (tasdiq bilan, ro'yxat ko'rsatib). Keyin jadval yangilanadi va oyna yopiladi — qayta ochilsa reja F2 narxida hisoblanadi. */
+  const eskiniBekorQil = async () => {
+    if (eskiBand || !eskiAktlar.length) return;
+    const royxat = eskiAktlar.map((a) => `№${a.raqam ?? a.id}${a.sana ? ` (${a.sana})` : ''}${a.jami != null ? ` — ${fmt(a.jami)}` : ''}`).join('\n');
+    if (!await tasdiqSora(t('Quyidagi {n} ta «Fakt = F2» hujjati bekor qilinsinmi? Keyin «Fakt = F2» ni qayta oching — F2 narxida yoziladi.', { n: String(eskiAktlar.length) }) + '\n' + royxat)) return;
+    setEskiBand(true);
+    try {
+      const natija = await Promise.all(eskiAktlar.map((a) => aktBekor(a.id)));
+      const xato = natija.filter((b) => !b.ok);
+      if (xato.length) toast(xato[0].error || t('Bekor qilinmadi.'), 'danger');
+      else toast(t('{n} ta eski «Fakt = F2» hujjati bekor qilindi — «Fakt = F2» ni qayta oching.', { n: String(eskiAktlar.length) }), 'ok');
+      await onBajarildi();
+      if (!xato.length) onYop();
+    } finally { setEskiBand(false); }
+  };
 
   useHotkeys('fakt-f2', t('Fakt = F2 oynasi'), [
     { id: 'fakt-f2.yop', keys: 'esc', nom: t('Yopish'), inInput: true, run: () => { onYop(); } },
@@ -60,16 +81,21 @@ export function FaktF2Tenglash({ sarlavha, reja, obyektId, kompaniyaId, sana, ho
           <button type="button" onClick={onYop} aria-label={t('Yopish')} className="fz-btn fz-btn--ghost fz-btn--icon"><X size={16} /></button>
         </div>
         <FaktUrinishPanel u={ur} />
+        {eskiAktlar.length > 0 && <div className="fz-note fz-note--warn flex-col items-start text-[12px]" data-testid="f2-tenglash-eski">
+          <p className="text-text">{t('Oldin smeta narxida yozilgan «Fakt = F2» hujjatlari bor: {n} ta — ularning qatorlari F2 narxiga o‘tmaydi.', { n: String(eskiAktlar.length) })}</p>
+          <p className="text-text-dim">{eskiAktlar.map((a) => `№${a.raqam ?? a.id}${a.sana ? ` (${a.sana})` : ''}`).join(', ')}</p>
+          <button type="button" className="fz-btn fz-btn--sm fz-btn--danger mt-1" disabled={eskiBand || band} onClick={() => void eskiniBekorQil()} data-testid="f2-tenglash-eski-bekor">{t('Bekor qilib qayta yozish')}</button>
+        </div>}
         {reja.qatorlar.length === 0
           ? <p className="text-[13px] text-text-dim">{t('Fakt allaqachon F2 ga teng yoki undan ko‘p — qo‘shiladigan hajm yo‘q.')}</p>
           : <>
-            <p className="text-[12px] text-text-dim">{t('Faqat F2 hajmi fakt dan KO‘P bo‘lgan qatorlarga farq qo‘shiladi. Mehnat va mashina norma bo‘yicha o‘zi ergashadi.')}</p>
+            <p className="text-[12px] text-text-dim">{t('Faqat F2 hajmi fakt dan KO‘P bo‘lgan qatorlarga farq qo‘shiladi — F2 narxi bilan. Mehnat va mashina F2 da bo‘lsa o‘z F2 hajmi va narxi bilan yoziladi.')}</p>
             <div className="fz-note fz-note--info flex-wrap items-start gap-x-5 gap-y-1 text-[12px]" data-testid="f2-tenglash-jami">
               <span><b className="text-text">{jami.paket.length}</b> {t('qator yoziladi')}</span>
               <span className="inline-flex items-start gap-1">{t('Summa')}: <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.ustamasiz} katKesim={jami.kesim} /></span>
               <span data-testid="f2-tenglash-narx-manba">{t('F2 narxi: {n} qator', { n: String(jami.f2Narxli) })} · {t('smeta narxi: {n} qator', { n: String(jami.smetaNarxli) })} · {t('narxsiz: {n} qator', { n: String(jami.narxsiz) })}</span>
               {jami.narxsiz > 0 && <span className="text-warn">{t('summa noma’lum: {n} qator', { n: String(jami.narxsiz) })}</span>}
-              {jami.rsF2.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-rs">{t('Mehnat/mashina: F2 da {n} qator (F2 summasi {s}) — faktga norma bo‘yicha smeta narxida ergashadi, alohida yozilmaydi.', { n: String(jami.rsF2.soni), s: fmt(jami.rsF2.summa) })}</span>}
+              {jami.rsHosila.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-rs">{t('Mehnat/mashina: F2 da yo‘q {n} qator norma bo‘yicha smeta narxida ergashadi ({s}) — summaga kirgan.', { n: String(jami.rsHosila.soni), s: fmt(jami.rsHosila.summa) })}</span>}
               {reja.otkazildi.manfiyReja > 0 && <span className="text-text-mute">{reja.otkazildi.manfiyReja} {t('chegirma qatori o‘tkazib yuborildi')}</span>}
               {(chiqQator.size > 0 || chiqBolim.size > 0) && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(reja.qatorlar.length - jami.paket.length) })}</span>}
               {jami.paket.length > 3000 && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}

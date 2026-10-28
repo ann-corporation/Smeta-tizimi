@@ -14,7 +14,7 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../../lib/ustamali-summa';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
-import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, obyektF2Reja, type TenglashKontekst, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
+import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, obyektF2Reja, type EskiF2Akt, type TenglashKontekst, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { sbF2TasdiqNarxlar } from '../../api/t2-f2-narx';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
 import { FaktQamrov } from './FaktQamrov';
@@ -220,27 +220,27 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
    * F2 narxlari yuklanmasa oyna OCHILMAYDI: aks holda ko'rilgan summa yoziladigandan farq qilardi.
    */
   const [tenglashYuk, setTenglashYuk] = useState(false);
-  const tenglashKontekst = async (): Promise<TenglashKontekst | null> => {
+  const tenglashKontekst = async (): Promise<{ ktx: TenglashKontekst; eskiAktlar: EskiF2Akt[] } | null> => {
     setTenglashYuk(true);
     try {
       const r = await sbF2TasdiqNarxlar(obyektId);
       if (!r.ok) { toast(t('F2 narxlari yuklanmadi — «Fakt = F2» ochilmadi. Qayta urinib ko‘ring.'), 'danger'); return null; }
-      return { f2Narx: r.narxlar, smetaNarx: (id) => narxOl(id) };
+      return { ktx: { f2Narx: r.narxlar, directFakt: r.directFakt, smetaNarx: (id) => narxOl(id) }, eskiAktlar: r.eskiAktlar };
     } finally { setTenglashYuk(false); }
   };
   const tenglashOch = async (sarlavha: string, ishlar: JurnalIsh[]) => {
     if (tenglashYuk) return;
     kiritmaOgoh();
-    const ktx = await tenglashKontekst(); if (!ktx) return;
-    setTenglash({ sarlavha, reja: faktF2Reja(ishlar, holatMap, null, ktx) });
+    const k = await tenglashKontekst(); if (!k) return;
+    setTenglash({ sarlavha, reja: faktF2Reja(ishlar, holatMap, null, k.ktx), eskiAktlar: k.eskiAktlar });
   };
   /** «Fakt = F2» BUTUN OBYEKT bo'yicha: har bo'limning o'z ishlari (har ish bir marta) + bo'limsiz ishlar; oldindan ko'rishda bo'lim jamisi. */
   const tenglashObyekt = async () => {
     if (tenglashYuk) return;
     kiritmaOgoh();
-    const ktx = await tenglashKontekst(); if (!ktx) return;
+    const k = await tenglashKontekst(); if (!k) return;
     const guruhlar = [...bolimlar.map((b) => ({ nom: b.nom, ishlar: bolimIshlari.get(b.id) ?? [] })), { nom: t('Bo‘limsiz'), ishlar: ildizIshlari }];
-    setTenglash({ sarlavha: t('Butun obyekt (barcha bo‘limlar)'), reja: obyektF2Reja(guruhlar, holatMap, ktx) });
+    setTenglash({ sarlavha: t('Butun obyekt (barcha bo‘limlar)'), reja: obyektF2Reja(guruhlar, holatMap, k.ktx), eskiAktlar: k.eskiAktlar });
   };
 
   // ── «Qamrov %» (Tiklash rejimi): bo'lim (avlodlari bilan) yoki ish → foiz × ochiq qoldiq; oldindan ko'rish + bitta tranzaksiya + bekor qilish. ──
@@ -763,7 +763,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         malumot={{ bolimlar, bolimIshlari, holatMap, summalar, bajHajm, materialTakliflari: (id) => takliflarSoni([id]), kiritmaSoni: ozgarishSoni }}
         amallar={{ kirit: (id, k) => kirit(id, k), materiallarniOl, korsat: (q) => setQidiruv(q.kod || q.nom), zamena: (q, n) => zamenaOch(q, n), bajarilmaydi: (q, h) => bajOch(q, h) }} />
 
-      {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana} holatMap={holatMap}
+      {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} eskiAktlar={tenglash.eskiAktlar} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana} holatMap={holatMap}
         onYop={() => setTenglash(null)} onBajarildi={() => holatniYangila()}
         aktBekor={faktF2Bekor} />}
 
