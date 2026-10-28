@@ -58,3 +58,18 @@ describe('СВЕРКА ЛРВ и РС', () => {
     expect(s.resYoq).toBe(true);
   });
 });
+
+describe('СВЕРКА — manba xatolari review (import hujjatdagidek)', () => {
+  it('faqat LRV dagi qator saqlanadi va review chiqaradi; ВСЕГО ≠ ИТОГО С ОБОРУДОВАНИЕМ — review', () => {
+    const podvalli: Katak[][] = [
+      ...LRV,
+      [null, null, 'ВСЕГО', 'СУМ', null, null, null, 1500],
+      [null, null, 'ИТОГО С ОБОРУДОВАНИЕМ', 'СУМ', null, null, null, 1400],
+    ];
+    const s = sverkaManbalardan([{ nom: 'F5', rows: podvalli }], [{ nom: 'RES', rows: RES }]);
+    const arm = s.pozitsiyalar.find((x) => x.nom.startsWith('АРМАТУРА А500'))!;
+    expect(arm.holat).toBe('faqat_lrv');
+    expect(s.review.some((r) => r.kod === 'sverka_faqat_lrv' && r.izoh.includes('АРМАТУРА А500'))).toBe(true);
+    expect(s.review.find((r) => r.kod === 'sverka_vsego_itogo_farq')?.izoh).toMatch(/ВСЕГО 1500 ≠ ИТОГО С ОБОРУДОВАНИЕМ 1400/);
+  });
+});

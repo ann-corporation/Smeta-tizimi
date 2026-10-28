@@ -16,7 +16,7 @@
  */
 import { varaqniTahlilQil } from './varaq';
 import { kalit } from './matn';
-import type { Katak, Manzil, Resurs, VaraqAnatomiyasi } from './turlar';
+import type { Katak, Manzil, Resurs, ReviewBand, VaraqAnatomiyasi } from './turlar';
 
 export type SverkaKat = 'ЧЕЛ' | 'МАШ' | 'МАТ' | 'ОБ';
 export type SverkaHolat = 'mos' | 'farq' | 'faqat_lrv' | 'faqat_res' | 'noaniq' | 'mashinist';
@@ -47,6 +47,11 @@ export interface SverkaNatija {
   resYoq: boolean;
   /** Muammo: farq + faqat birida + noaniq (mashinist va mos emas). */
   muammo: number;
+  /**
+   * Manba xatolari (import to'xtatilmaydi, hujjat qanday bo'lsa shunday): faqat LRV da bor qatorlar va
+   * LRV yakuniy podvalida «ВСЕГО» ≠ «ИТОГО С ОБОРУДОВАНИЕМ».
+   */
+  review: ReviewBand[];
 }
 
 export const SVERKA_KAT_NOMI: Record<SverkaKat, string> = {
@@ -162,7 +167,22 @@ export function lrvResSverka(lrv: readonly VaraqAnatomiyasi[], res: readonly Res
   out.sort((a, b) => KAT_TARTIB.indexOf(a.kat) - KAT_TARTIB.indexOf(b.kat) || holatTartib[a.holat] - holatTartib[b.holat] || a.nom.localeCompare(b.nom, 'ru'));
   const soni: Record<SverkaHolat, number> = { mos: 0, farq: 0, faqat_lrv: 0, faqat_res: 0, noaniq: 0, mashinist: 0 };
   for (const p of out) soni[p.holat]++;
-  return { pozitsiyalar: out, soni, resYoq: res.length === 0, muammo: soni.farq + soni.faqat_lrv + soni.faqat_res + soni.noaniq };
+  const review: ReviewBand[] = [];
+  if (res.length) {
+    for (const p of out) {
+      if (p.holat !== 'faqat_lrv') continue;
+      review.push({ kod: 'sverka_faqat_lrv', izoh: `«${p.nom.slice(0, 70)}» [${p.birlik}] faqat LRV da (RES da yo'q)${p.lrvSumma != null ? `, LRV summasi ${p.lrvSumma}` : ''} — hujjatdagidek import qilinadi, manbani tekshiring`, ...(p.lrvManzil ? { manzil: p.lrvManzil } : {}) });
+    }
+  }
+  for (const v of lrv) {
+    const oxirgi = (re: RegExp) => [...v.jamilar].reverse().find((j) => re.test(kalit(j.xom)) && j.qiymat != null);
+    const vsego = oxirgi(/^ВСЕГО:?$/);
+    const sOb = oxirgi(/^ИТОГО\s+С\s+ОБОРУДОВАНИЕМ/);
+    if (vsego?.qiymat != null && sOb?.qiymat != null && Math.abs(vsego.qiymat - sOb.qiymat) > 1) {
+      review.push({ kod: 'sverka_vsego_itogo_farq', izoh: `«${v.varaq}»: ВСЕГО ${vsego.qiymat} ≠ ИТОГО С ОБОРУДОВАНИЕМ ${sOb.qiymat} (farq ${yaxlit(vsego.qiymat - sOb.qiymat, 2)}) — manba xatosi, hujjatdagidek import qilinadi`, manzil: vsego.manzil });
+    }
+  }
+  return { pozitsiyalar: out, soni, resYoq: res.length === 0, muammo: soni.farq + soni.faqat_lrv + soni.faqat_res + soni.noaniq, review };
 }
 
 export type SverkaManba = { nom: string; rows: Katak[][] };
