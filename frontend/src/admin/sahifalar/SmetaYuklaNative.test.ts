@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur, lokallarBoyichaNarxla, resLokallargaBol } from './SmetaYuklaNative';
+import { kitobAnatomiyasi } from '../../lib/smeta-anatomiya';
+import { smetaDaraxtniYoy } from '../../lib/smeta-flatten';
+import { bargKategoriyasi, daraxtKategoriyaNomzodlari, kitobVaraqTeglari, narxTaklifiniTop, obKodTaklifi, resKategoriyaNomzodlariniOl, hujjatKategoriyalariniBelgila, bolakniQaytaUrinibYubor, paketImportFayllariniSarala, spreadsheetReadError, resSatrlariniOl, resNarxIndeksiQur, narxlarniDaraxtgaQoll, katTaxmini, varaqTuriTaxmin, resBolimKategoriya, resursMkKabAniqla, podvalBlokTuri, tanlanganResManbalariniYig, tanlanganLrvVaraqlaridanDaraxtQur, lokallarBoyichaNarxla, resLokallargaBol } from './SmetaYuklaNative';
 import type { AktNode } from '../../lib/f2-match-engine';
 import type { F2ColumnConfig } from '../../lib/f2-import-parse';
 
@@ -696,5 +698,145 @@ describe('Prime Towers shakli (2026-10-24, sintetik): RES narxi to‘liq ulanadi
     const narx = (i: number) => out[0].children![i].children![0].children![0].narx;
     expect(narx(0)).toBe(47965.99);
     expect(narx(1)).toBe(47965.9936);
+  });
+});
+/* ─── Ekspertiza «ALL» to'plami (sintetik): RES / F5 / VED / TNDR ─── */
+describe('ALL to‘plami — qat’iy varaq rollari va RES bloklari', () => {
+  const allCols: F2ColumnConfig = { kod: 2, nom: 3, bir: 4, norma: -1, obyom: 5, narx: 6, sum: 7 };
+  const T = (s: string) => [s, null, null, null, null, null, null, null];
+  const R = (kod: string, nom: string, bir: string, k: number, narx: number) => ['1', null, kod, nom, bir, k, narx, k * narx];
+  const P = (s: string, p: number | null, sum: number) => [null, null, null, s, 'СУМ', p, null, sum];
+  const RES = [
+    T('ЛОКАЛЬНАЯ РЕСУРСНАЯ СМЕТА № 01'),
+    T('ТРУДОВЫЕ РЕСУРСЫ'), R('1', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'ЧЕЛ-Ч', 10, 30), P('ИТОГО', null, 300),
+    T('МЕСТНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ'), R('M-1', 'СКАМЕЙКА', 'КОМПЛ', 2, 500), R('M-2', 'ПРОВОД ПВ-1', '1000М', 1, 1000),
+    P('ИТОГО', null, 2000), P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 100), P('ЗАГОТОВИТЕЛЬНО-СКЛАДСКИЕ РАСХОДЫ', 1, 20), P('ВСЕГО', null, 2120),
+    P('ВСЕГО МАТЕРИАЛОВ', null, 2120),
+    T('ОБОРУДОВАНИЕ'), R('2301-1', 'ЩИТ ОСВЕЩЕНИЯ', 'ШТ', 1, 7000), R('1501-9', 'КАБЕЛЬ КОНТРОЛЬНЫЙ', 'М', 10, 300),
+    P('ИТОГО', null, 10000), P('ТРАНСПОРТНЫЕ РАСХОДЫ', 2, 200), P('ЗАГОТОВИТЕЛЬНО-СКЛАДСКИЕ РАСХОДЫ', 1, 100), P('ВСЕГО', null, 10300),
+    P('ВСЕГО ОБОРУДОВАНИЯ', null, 10300),
+    P('ИТОГО С ОБОРУДОВАНИЕМ', null, 12720),
+  ];
+  const F5 = [
+    ['ЛОКАЛЬНАЯ РЕСУРСНАЯ ВЕДОМОСТЬ № 01'],
+    ['№№', 'ОБОСНОВАНИЕ', 'НАИМЕНОВАНИЕ РАБОТ И РЕСУРСОВ', 'ЕД.ИЗМ', 'КОЛ-ВО', '', 'ЦЕНА', 'СУММА'],
+    ['', '', '', '', 'НА ЕДИНИЦУ', 'ПО ПРОЕКТУ', '', ''],
+    ['1', 'Е10-1-1', 'УСТАНОВКА ЩИТА', 'ШТ', '1', '', '7300', '7300'],
+    ['1.1', '000001', 'ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ', 'ЧЕЛ-Ч', '10', '10', '30', '300'],
+    ['2', '2301-1', 'ЩИТ ОСВЕЩЕНИЯ', 'ШТ', '1', '', '7000', '7000'],
+    [null, null, 'ЗАРПЛАТА', 'СУМ', null, null, null, 300],
+    [null, null, 'ЭКСПЛУАТАЦИЯ МАШИН', 'СУМ', null, null, null, 0],
+    [null, null, 'ИТОГО С ОБОРУДОВАНИЕМ', 'СУМ', null, null, null, 12720],
+  ];
+  const VED = [['ВЕДОМОСТЬ ОБЪЕМОВ РАБОТ № 01'], ['№№', 'ОБОСНОВАНИЕ', 'НАИМЕНОВАНИЕ РАБОТ', 'ЕД.ИЗМ', 'КОЛ-ВО'], ['1', 'Е10-1-1', 'УСТАНОВКА ЩИТА', 'ШТ', '1']];
+  const TNDR = [['ЛОКАЛЬНАЯ РЕСУРСНАЯ ВЕДОМОСТЬ № 01'], ['№№', 'ОБОСНОВАНИЕ', 'НАИМЕНОВАНИЕ', 'ЕД.ИЗМ', 'КОЛ-ВО', '', 'ЦЕНА', 'СУММА'], ['1', 'Е10-1-1', 'УСТАНОВКА ЩИТА', 'ШТ', '1', '', '9999', '9999']];
+  const kitob = [{ name: 'RES', rows: RES }, { name: 'F5', rows: F5 }, { name: 'VED', rows: VED }, { name: 'TNDR', rows: TNDR }];
+
+  it('F5 = lrv, RES = res, VED/TNDR = etibor_bermaslik; asosiy LRV = F5', () => {
+    expect(kitobVaraqTeglari(kitob)).toEqual({ RES: 'res', F5: 'lrv', VED: 'etibor_bermaslik', TNDR: 'etibor_bermaslik' });
+    expect(varaqTuriTaxmin(VED, 'VED', kitob)).toBe('nomalum');
+    const a = kitobAnatomiyasi({ fayl: 'sintetik.xls', varaqlar: kitob.map((s) => ({ nom: s.name, rows: s.rows as never })) });
+    expect(a.asosiyLrv).toBe('F5');
+    expect(a.dublikat.map((d) => d.varaq).sort()).toEqual(['TNDR', 'VED']);
+  });
+
+  it('faqat uskunali F5 (resurssiz ishlar) ham LRV; nomi o‘zgartirilgan RES/F5 mazmundan', () => {
+    const faqatOb = [F5[0], F5[1], F5[2], F5[5], F5[6], F5[7], F5[8]];
+    expect(kitobVaraqTeglari([{ name: 'RES', rows: RES }, { name: 'F5', rows: faqatOb }, { name: 'TNDR', rows: TNDR }]).F5).toBe('lrv');
+    const nomsiz = kitobVaraqTeglari([{ name: 'Лист1', rows: RES }, { name: 'Лист2', rows: F5 }, { name: 'VED', rows: VED }]);
+    expect(nomsiz).toMatchObject({ Лист1: 'res', Лист2: 'lrv', VED: 'etibor_bermaslik' });
+  });
+
+  it('TNDR narxi indeksga kirmaydi (operator ongli tanlamasa)', () => {
+    const tndrCols: F2ColumnConfig = { kod: 1, nom: 2, bir: 3, norma: -1, obyom: 4, narx: 6, sum: 7 };
+    expect(tanlanganResManbalariniYig([{ rows: TNDR, cols: tndrCols, tender: true }])).toEqual([]);
+    expect(tanlanganResManbalariniYig([{ rows: TNDR, cols: tndrCols, tender: true, operatorTanladi: true }]).length).toBe(1);
+  });
+
+  it('ОБ guruhidagi «X, ШТ» → ОБ (kabel nomi ham guruhga bo‘ysunadi); МАТ guruhidagi «X, КОМПЛ» → МАТ', () => {
+    const s = resSatrlariniOl(RES, allCols);
+    const kat = (nom: string) => s.find((x) => x.nom === nom)?.kat;
+    expect(kat('ЩИТ ОСВЕЩЕНИЯ')).toBe('ОБ');
+    expect(kat('КАБЕЛЬ КОНТРОЛЬНЫЙ')).toBe('ОБ');
+    expect(kat('СКАМЕЙКА')).toBe('МАТ');
+    expect(kat('ПРОВОД ПВ-1')).toBe('МАТ');
+    expect(kat('ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ')).toBe('ЧЕЛ');
+    // F5 bargi RES qatoridan meros oladi (kod+nom+birlik); faqat 1504- prefiksi — taklif, avtomatik emas.
+    const idx = resNarxIndeksiQur(s);
+    expect(bargKategoriyasi({ kod: '2301-1', nom: 'ЩИТ ОСВЕЩЕНИЯ', bir: 'ШТ' }, idx)).toBe('ОБ');
+    expect(bargKategoriyasi({ kod: '1504-7', nom: 'НАСОС ЦИРКУЛЯЦИОННЫЙ', bir: 'ШТ' }, idx)).toBe('МАТ');
+    expect(obKodTaklifi('1504-7')).toBe(true);
+    // RES bitta kod ostida jamlagan, F5 da boshqa nom: kod RES da yo'q (bo'sh ustun) — birlik + aynan narx
+    expect(bargKategoriyasi({ kod: '2301-1', nom: 'ЩИТ ОСВЕЩЕНИЯ ТИП Б', bir: 'ШТ', narx: 7000 }, idx)).toBe('ОБ');
+    expect(bargKategoriyasi({ kod: '2301-1', nom: 'ЩИТ ОСВЕЩЕНИЯ ТИП Б', bir: 'ШТ', narx: 6999 }, idx)).toBe('МАТ');
+    expect(daraxtKategoriyaNomzodlari([{ uid: 'a', type: 'ob', kod: '2301-1', nom: 'ЩИТ ОСВЕЩЕНИЯ ТИП Б', bir: 'ШТ', narx: 7000 }], idx))
+      .toEqual([{ nom: 'ЩИТ ОСВЕЩЕНИЯ ТИП Б', birlik: 'ШТ', tanlangan: 'ОБ' }]);
+  });
+});
+
+describe('ALL zagotsiz blok → БЕЗСКЛАД; zagotli blokda hujjat beton qoidasidan ustun', () => {
+  const c: F2ColumnConfig = { kod: 2, nom: 3, bir: 4, norma: -1, obyom: 5, narx: 6, sum: 7 };
+  const T = (s: string) => [s, null, null, null, null, null, null, null];
+  const R = (nom: string, bir: string, k: number, narx: number) => ['1', null, 'X-1', nom, bir, k, narx, k * narx];
+  const P = (s: string, p: number | null, sum: number) => [null, null, null, s, 'СУМ', p, null, sum];
+  const rows = [
+    T('МЕСТНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ'), R('БЕТОН ТЯЖЕЛЫЙ В15', 'М3', 2, 500), R('ЦЕМЕНТ', 'Т', 1, 1000),
+    P('ИТОГО', null, 2000), P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 100), P('ЗАГОТОВИТЕЛЬНО-СКЛАДСКИЕ РАСХОДЫ', 1, 20), P('ВСЕГО', null, 2120),
+    T('ИНЕРТНЫЕ МАТЕРИАЛЫ'), R('ЩЕБЕНЬ', 'М3', 4, 100), R('ПЕСОК', 'М3', 2, 300),
+    P('ИТОГО', null, 1000), P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 50), P('ВСЕГО', null, 1050),
+    P('ВСЕГО МАТЕРИАЛОВ', null, 3170),
+  ];
+  it('kategoriyalar va kaskad = hujjat podvali (±1)', async () => {
+    const s = resSatrlariniOl(rows, c);
+    const kat = (n: string) => s.find((x) => x.nom === n)?.kat;
+    expect(kat('ЩЕБЕНЬ')).toBe('БЕЗСКЛАД');
+    expect(kat('ПЕСОК')).toBe('БЕЗСКЛАД');
+    expect(kat('БЕТОН ТЯЖЕЛЫЙ В15')).toBe('МАТ'); // zagotli isbotli blok — hujjat zagotni qo'llagan
+    // Hujjat БЕЗСКЛАД registrga yozilmaydi (kompaniya bo'yicha nom+birlik riski) — import qatorida keladi.
+    expect(resKategoriyaNomzodlariniOl(s)).toEqual([]);
+    const idx = resNarxIndeksiQur(s);
+    const tree = hujjatKategoriyalariniBelgila([{ uid: 'b', type: 'bl', nom: 'ИШ', children: [
+      { uid: 'r1', type: 'rs', nom: 'ЩЕБЕНЬ', bir: 'М3', hajm: 1 },
+      { uid: 'r2', type: 'rs', nom: 'БЕТОН ТЯЖЕЛЫЙ В15', bir: 'М3', hajm: 1 },
+      { uid: 'r3', type: 'rs', nom: 'ЗАТРАТЫ ТРУДА', bir: 'ЧЕЛ-Ч', hajm: 1 },
+    ] }], idx);
+    const flat = smetaDaraxtniYoy(tree);
+    expect(flat.find((x) => x.local_id === 'r1')).toMatchObject({ kat: 'БЕЗСКЛАД', kat_manba: 'hujjat_blok' });
+    expect(flat.find((x) => x.local_id === 'r2')).toMatchObject({ kat: 'МАТ', kat_manba: 'hujjat_blok' });
+    expect(flat.find((x) => x.local_id === 'r3')).not.toHaveProperty('kat_manba');
+    expect(flat.find((x) => x.local_id === 'b')).not.toHaveProperty('kat');
+    const { nakrutkaKaskadJS } = await import('../../lib/nakrutka-podval');
+    const k = nakrutkaKaskadJS({ ЧЕЛ: 0, МАШ: 0, МАТ: 2000, ОБ: 0, КАБ: 0, 'М/К': 0, 'БЕЗ СКЛАД': 1000 }, { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 1 });
+    expect(k.tr_mat + k.skl_mat).toBeCloseTo(100 + 20 + 50, 2);
+  });
+  it('zagotsiz blok transporti isbotsiz — БЕЗСКЛАД berilmaydi (eski qoidalar)', () => {
+    const buzuq = rows.map((r) => (r[3] === 'ТРАНСПОРТНЫЕ РАСХОДЫ' && r[7] === 50 ? P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 77) : r));
+    const s = resSatrlariniOl(buzuq, c);
+    expect(s.find((x) => x.nom === 'ЩЕБЕНЬ')?.kat).not.toBe('БЕЗСКЛАД');
+    expect(resKategoriyaNomzodlariniOl(s).some((x) => x.nom === 'ЩЕБЕНЬ')).toBe(false);
+  });
+});
+
+describe('Yo‘l paketi LRV↔RES — faqat TAKLIF, avtomatik birlashtirish yo‘q', () => {
+  const c: F2ColumnConfig = { kod: 0, nom: 1, bir: 2, norma: -1, obyom: -1, narx: 3, sum: -1 };
+  it('«PLITA TIP 1» va «TIP 2» hech qachon avtomatik birlashmaydi; yagona kod+birlik nomzodi — taklif', () => {
+    const idx = resNarxIndeksiQur(resSatrlariniOl([
+      ['ПЛ-01', 'ПЛИТА ТАКТИЛЬНАЯ ТИП 2', 'М2', '150000'],
+      ['ТР-05', 'ТРУБА ПЭ ГАЗОВАЯ 110', 'М', '42000'],
+    ], c));
+    const tree: AktNode[] = [{ uid: 'r', type: 'rz', nom: 'R', children: [
+      { uid: 'a', type: 'mat', kod: 'ПЛ-01', nom: 'ПЛИТА ТАКТИЛЬНАЯ ТИП 1', bir: 'М2', hajm: 10 },
+      { uid: 'b', type: 'mat', kod: 'X-9', nom: 'ТРУБА ПЭ НАПОРНАЯ 110', bir: 'М', hajm: 5 },
+    ] }];
+    const q = narxlarniDaraxtgaQoll(tree, idx);
+    expect(q.mosSoni).toBe(0);
+    const a = q.narxsizlar.find((x) => x.uid === 'a')!;
+    expect(a.taklif).toMatchObject({ sabab: 'kod_birlik', nom: 'ПЛИТА ТАКТИЛЬНАЯ ТИП 2', narx: 150000, sonlarMos: false });
+    expect(q.narxsizlar.find((x) => x.uid === 'b')?.taklif).toMatchObject({ sabab: 'nom_token', nom: 'ТРУБА ПЭ ГАЗОВАЯ 110', sonlarMos: true });
+  });
+  it('turli narxli bir nechta nomzod — taklif yo‘q', () => {
+    expect(narxTaklifiniTop({ kod: 'Z', nom: 'ПЛИТА ТАКТИЛЬНАЯ', bir: 'М2' }, [
+      { kod: 'Z', nom: 'ПЛИТА ТАКТИЛЬНАЯ А', birlik: 'М2', narx: 1 }, { kod: 'Z', nom: 'ПЛИТА ТАКТИЛЬНАЯ Б', birlik: 'М2', narx: 2 },
+    ])).toBeNull();
   });
 });

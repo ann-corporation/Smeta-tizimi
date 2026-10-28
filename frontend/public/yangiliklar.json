@@ -12,6 +12,16 @@
 },
 
     {
+      "id": 43,
+      "sana": "2026-10-28",
+      "sarlavha": "Ekspertiza «ALL» smetalari qo'lda belgilashsiz o'qiladi",
+      "bandlar": [
+        "RES / F5 / VED / TNDR varaqli ekspertiza fayli yuklanganda rollar avtomatik: F5 — LRV (faqat uskunali smeta ham), RES — narx va podval manbai, VED va TNDR — e'tiborsiz. TNDR narxini faqat ongli tanlasangiz oladi (ogohlantirish bilan).",
+        "RES podvalidagi transport va zagot-sklad foizlari КОЛ-ВО ustunidan o'qiladi va blok summasi bilan isbotlanadi; material, metallokonstruksiya, kabel va uskuna bloklari o'z koeffitsientiga tushadi. Uskunalar RES guruhi bo'yicha ОБ bo'ladi.",
+        "Zagot-skladsiz bloklar (transport bor, zagot qatori yo'q) hujjatdagidek БЕЗСКЛАД kategoriyasiga tushadi. Isbotsiz bloklar, LRV↔RES manba xatolari va RES nomi farqli qatorlar uchun narx takliflari ko'rinadigan ogohlantirish sifatida chiqadi — hech narsa avtomatik birlashtirilmaydi."
+      ]
+    },
+    {
       "id": 42,
       "sana": "2026-10-27",
       "sarlavha": "Tizim xaritasi — tizimda nima bo'layotgani jonli",
