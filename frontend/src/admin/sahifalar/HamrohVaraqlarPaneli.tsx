@@ -90,6 +90,11 @@ export function HamrohVaraqlarPaneli({ erkin, svod, tushunilmadi, tanlov, onTanl
             )}
             {!qatorlar.length && <p className="text-[11px] text-warn">{t('Material qatorlari ustunlari tanilmadi — smetaga qo‘shib bo‘lmaydi.')}</p>}
             {qatorlar.length > 0 && (
+              <p className="text-[11px] text-warn" data-testid="tkm-ikki-marta">
+                {t('Diqqat: tn·km perevozka material sifatida qo‘shilsa, smeta podvalidagi transport ustamasi bilan ikki marta hisoblanishi mumkin — alohida transport kategoriyasi hali yo‘q (review).')}
+              </p>
+            )}
+            {qatorlar.length > 0 && (
               <>
                 <label className="flex items-center gap-2 text-[12px] py-1">
                   <input type="checkbox" aria-label={t('«{v}» — smetaga qo‘shish', { v: e.varaq })} checked={tanlangan} onChange={(ev) => almashTransport(e.varaq, ev.target.checked)} />

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, FileSearch, RefreshCw, Undo2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileSearch, RefreshCw, Undo2 } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
 import { t2ObyektNakrutka, NAKRUTKA_KOEF_IZOH, type NakrutkaKoeffitsientlar, type NakrutkaManba } from '../../api/t2-nakrutka';
@@ -107,6 +107,8 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
   useEffect(() => {
     if (!avtoSaqla || avtoUrinildi.current || !oqish || !holat || band) return;
     if (oqish.holat === 'topilmadi' || !Object.keys(oqish.koeffitsientlar).length) return;
+    // Bloklovchi review (masalan БЕЗ СКЛАД bloki) — avtomatik yozilmaydi, operator ko'rib tasdiqlaydi.
+    if (oqish.review.some((r) => r.bloklovchi)) return;
     avtoUrinildi.current = true;
     void saqla(true);
   }, [avtoSaqla, oqish, holat, band]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -131,6 +133,7 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
 
   const isbotMos = oqish?.isbot.filter((b) => b.mos).length ?? 0;
   const isbotNomos = oqish?.isbot.filter((b) => !b.mos) ?? [];
+  const bloklovchiSoni = oqish?.review.filter((r) => r.bloklovchi).length ?? 0;
   const masshtabNom = oqish?.masshtab === 1000 ? t('ming so‘m') : t('so‘m');
 
   return (
@@ -171,7 +174,14 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
               <span className="fz-chip">{t('Varaqlar')}: {oqish.varaqlar.join(', ') || '—'}</span>
               <span className="fz-chip">{t('Hujjat birligi')}: {masshtabNom}</span>
               <span className={`fz-chip ${isbotNomos.length ? 'fz-chip--warn' : 'fz-chip--accent'}`}>{t('Arifmetik isbot: {a} mos, {b} nomos', { a: String(isbotMos), b: String(isbotNomos.length) })}</span>
+              {oqish.lokal && <span className="fz-chip">{t('Lokal podval: prochie/ҚҚС meros qoladi')}</span>}
             </div>
+            {bloklovchiSoni > 0 && (
+              <div className="fz-note fz-note--warn" role="alert" data-testid="podval-bloklovchi">
+                <AlertTriangle aria-hidden="true" />
+                <span>{t('Hal qilinmagan podval bloklari ({n}): isboti yo‘q — operator tekshiradi, tafsilot ogohlantirishlarda.', { n: String(bloklovchiSoni) })}</span>
+              </div>
+            )}
             <div className="fz-table-wrap">
               <table className="fz-table">
                 <thead><tr>

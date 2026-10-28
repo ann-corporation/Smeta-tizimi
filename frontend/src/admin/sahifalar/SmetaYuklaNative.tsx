@@ -25,6 +25,8 @@ import type { Katak, KirishKitob } from '../../lib/smeta-anatomiya/turlar';
 import { HamrohVaraqlarPaneli } from './HamrohVaraqlarPaneli';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
 import { podvalBlokTuri, resBolimKategoriya, resursMkKabAniqla } from '../../lib/res-kategoriya';
+import { resBloklari } from '../../lib/smeta-anatomiya/res-blok';
+import { allToplamRollari } from '../../lib/smeta-anatomiya/all-toplam';
 import { bezSkladKategoriyaAniqla } from '../../lib/resurs-kategoriyasi/bez-sklad';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { t } from '../../i18n/til';
@@ -194,6 +196,8 @@ export type ResNarxYozuv = {
   kod?: string; nom?: string; birlik?: string; narx: number;
   /** RES faylining BO'LIM sarlavhasidan aniqlangan kategoriya (quyiga qarang). */
   kat?: T2ResursKategoriya;
+  /** Kategoriya ALL RES blok podvali isbotlagan hujjat qoidasidan (import qatorida `kat_manba='hujjat_blok'`). */
+  hujjatBlok?: boolean;
 };
 /** Birlik guruhi ichidagi bitta RES yozuvi -- token bo'yicha moslash uchun. */
 export type ResBirlikYozuv = { nk: string; sozlar: string[]; raqamlar: string; narx: number;
@@ -210,6 +214,8 @@ export type ResNarxIndeks = {
    *  va chel Chas birliklaridan topish ... Bunaqa usul variantlar sonini
    *  kamaytirib ishni tezlatadi". */
   byBirlik: Map<string, ResBirlikYozuv[]>;
+  /** Asl yozuvlar — narxsiz qatorlarga faqat TAKLIF (narxTaklifiniTop) uchun. */
+  yozuvlar?: readonly ResNarxYozuv[];
 };
 
 /** Nega bu qatorga narx qo'yilmadi -- foydalanuvchiga aynan shu ko'rsatiladi. */
@@ -223,7 +229,41 @@ export type NarxsizSabab =
 export type NarxsizQator = {
   uid?: string; kod?: string; nom?: string; bir?: string; hajm?: number;
   sabab: NarxsizSabab;
+  /** Faqat TAKLIF (operator tasdiqlaydi) — avtomatik birlashtirilmaydi. */
+  taklif?: NarxTaklifi;
 };
+
+/**
+ * Narxsiz qator uchun RES nomzodi (yo'l paketi: LRV va RES nomlari farqli yozilgan). Avtomatik kalitlar
+ * o'zgarmaydi — bu faqat operator tasdig'i uchun taklif:
+ *   `kod_birlik` — kod + birlik bo'yicha yagona RES nomzodi;
+ *   `nom_token`  — birlik guruhida nom so'zlari qisman mos va SONLAR TENG yagona narxli nomzod.
+ * Sonlar farqli (ТИП 1 ↔ ТИП 2) bo'lsa `sonlarMos: false` — hech qachon avtomatik qo'shilmaydi;
+ * turli narxli bir nechta nomzod — taklif yo'q.
+ */
+export type NarxTaklifi = { kod?: string; nom?: string; birlik?: string; narx: number; sabab: 'kod_birlik' | 'nom_token'; sonlarMos: boolean };
+
+export function narxTaklifiniTop(n: { kod?: string; nom?: string; bir?: string }, yozuvlar: readonly ResNarxYozuv[]): NarxTaklifi | null {
+  const bs = birlikSinfi(n.bir);
+  const t = narxTokenlar(n.nom);
+  const kk = resKalit(n.kod);
+  const yagona = (xs: readonly ResNarxYozuv[]) => (new Set(xs.map((x) => x.narx)).size === 1 ? xs[0] : null);
+  if (kk) {
+    const x = yagona(yozuvlar.filter((y) => resKalit(y.kod) === kk && birlikSinfi(y.birlik) === bs));
+    if (x) return { kod: x.kod, nom: x.nom, birlik: x.birlik, narx: x.narx, sabab: 'kod_birlik', sonlarMos: narxTokenlar(x.nom).raqamlar === t.raqamlar };
+  }
+  if (t.sozlar.length < 2) return null;
+  const sozlar = new Set(t.sozlar);
+  const nomzod = yozuvlar.filter((y) => {
+    if (birlikSinfi(y.birlik) !== bs) return false;
+    const yt = narxTokenlar(y.nom);
+    if (yt.raqamlar !== t.raqamlar) return false;
+    const umumiy = yt.sozlar.filter((w) => sozlar.has(w)).length;
+    return umumiy >= 2 && umumiy * 2 >= Math.min(yt.sozlar.length, t.sozlar.length) + 1;
+  });
+  const x = yagona(nomzod);
+  return x ? { kod: x.kod, nom: x.nom, birlik: x.birlik, narx: x.narx, sabab: 'nom_token', sonlarMos: true } : null;
+}
 
 export const NARXSIZ_SABAB_MATN: Record<NarxsizSabab, string> = {
   res_yuklanmagan: 'RES fayli ulanmagan — narx manbai yo‘q',
@@ -319,7 +359,24 @@ export function resSatrlariniOl(rows: SheetGrid, cols: F2ColumnConfig): ResNarxY
   /* Sarlavhasiz blok podvalidan aniqlanganda orqaga qarab belgilash uchun
      shu blok qayerdan boshlanganini eslab turamiz. */
   let blokBoshi = 0;
-  for (const row of rows) {
+  /* Ekspertiza «ALL» RES: har material bloki o'z podvali bilan (ИТОГО / ТРАНСПОРТНЫЕ | СУМ | p | S /
+     ЗАГОТ… / ВСЕГО) va guruh (ВСЕГО МАТЕРИАЛОВ / ВСЕГО ОБОРУДОВАНИЯ) bilan yopiladi. Blok kategoriyasi
+     yagona yadrodan (res-blok.ts: guruh → sarlavha → zagot/resurslar); podvali isbotlangan blokda u
+     qator nom/birlik taxminidan ustun (hujjat ustamani aynan shu blok bo'yicha hisoblagan). ЧЕЛ/МАШ
+     birligi baribir eng ustun. Zagotsiz blok (transport isbotli, ЗАГОТ qatori yo'q) — hujjatning o'zi
+     aytgan БЕЗСКЛАД (L0 qarori §8.1); isbotsiz bo'lsa — kategoriya berilmaydi, review qoladi. Zagotli
+     isbotli blokda hujjat bloki beton/rastvor м³ qoidasidan ustun (hujjat zagotni qo'llagan). */
+  const rb = resBloklari(rows);
+  const isbotliBlokKat = new Map<number, T2ResursKategoriya>();
+  for (const b of rb.bloklar) {
+    if (b.kat === 'БЕЗ СКЛАД') {
+      if (b.transport?.isbot && !b.zagot) for (const q of b.resursQatorlari) isbotliBlokKat.set(q, 'БЕЗСКЛАД');
+      continue;
+    }
+    if (!(b.transport?.isbot || b.zagot?.isbot)) continue;
+    for (const q of b.resursQatorlari) isbotliBlokKat.set(q, b.kat);
+  }
+  for (const [ri, row] of rows.entries()) {
     const kod = cols.kod >= 0 ? String(row[cols.kod] ?? '').trim() : '';
     const nom = cols.nom >= 0 ? String(row[cols.nom] ?? '').trim() : '';
     const bir = cols.bir >= 0 ? String(row[cols.bir] ?? '').trim() : '';
@@ -358,11 +415,16 @@ export function resSatrlariniOl(rows: SheetGrid, cols: F2ColumnConfig): ResNarxY
     }
     // Egasi qoidasi (beton/rastvor + м³) faqat material qatoriga — ОБ/М/К/КАБ ga tegmaydi.
     // Yakuniy qaror bazadagi trigger (t2_bez_sklad_qoida); bu yerda oldindan ko'rsatish.
-    const asosiy = resursMkKabAniqla(nom, bir, joriyKat);
-    const bez = asosiy === 'МАТ' ? bezSkladKategoriyaAniqla(nom, null, bir) : null;
+    const blokKat = isbotliBlokKat.get(ri);
+    const qatorKat = resursMkKabAniqla(nom, bir, blokKat ?? joriyKat);
+    const hujjatBlok = !!blokKat && qatorKat !== 'ЧЕЛ' && qatorKat !== 'МАШ';
+    const asosiy = hujjatBlok ? blokKat : qatorKat;
+    // Isbotli zagotli ALL blokida hujjat kategoriyasi ustun — beton м³ qoidasi qo'llanmaydi.
+    const bez = asosiy === 'МАТ' && !blokKat ? bezSkladKategoriyaAniqla(nom, null, bir) : null;
     out.push({
       kod: kod || undefined, nom: nom || undefined, birlik: bir || undefined, narx,
       kat: bez?.kategoriya ?? asosiy,
+      ...(hujjatBlok ? { hujjatBlok: true } : {}),
     });
   }
   return out;
@@ -399,7 +461,16 @@ export type VaraqTegi = 'lrv' | 'res' | 'hamroh' | 'etibor_bermaslik';
  * Ikkalasi ham yo'q yoki juda kam ma'lumot -- "nomalum" (foydalanuvchi
  * qo'lda belgilaydi, hech narsa taxmin qilib yozilmaydi).
  */
-export function varaqTuriTaxmin(rows: SheetGrid | null | undefined, nom = ''): 'lrv' | 'res' | 'hamroh' | 'nomalum' {
+export function varaqTuriTaxmin(
+  rows: SheetGrid | null | undefined, nom = '',
+  /** Butun kitob varaqlari — ekspertiza «ALL» to'plami (RES/F5/VED/TNDR) qat'iy rollari uchun. */
+  kitob?: ReadonlyArray<{ name: string; rows: SheetGrid | null | undefined }>,
+): 'lrv' | 'res' | 'hamroh' | 'nomalum' {
+  if (kitob) {
+    const all = kitobAllToplami(kitob);
+    const teg = all?.teglar[nom];
+    if (teg) return teg === 'etibor_bermaslik' ? 'nomalum' : teg;
+  }
   const grid = safeSheetRows(rows);
   /* C4: rolni avval yagona anatomiya aytadi (katalog, 1C hisobot, svod —
      LRV deb olinmaydi; LRV_PLUS — RES deb olinmaydi). Aniq xulosa bo'lmasa
@@ -418,6 +489,27 @@ export function varaqTuriTaxmin(rows: SheetGrid | null | undefined, nom = ''): '
   } catch { /* zaxira evristika */ }
   const eski = eskiVaraqTuri(grid);
   return eski === 'lrv' && !anatLrv ? 'nomalum' : eski;
+}
+
+/** Kitob ALL-to'plammi (yadro: smeta-anatomiya/all-toplam). */
+export function kitobAllToplami(kitob: ReadonlyArray<{ name: string; rows: SheetGrid | null | undefined }>) {
+  return allToplamRollari(kitob.map((s) => ({ nom: s.name, rows: safeSheetRows(s.rows) as unknown as Katak[][] })));
+}
+
+/**
+ * Kitobdagi barcha varaqlar teglari (fayl yuklanganda avtomatik). ALL to'plamida qat'iy: F5 — LRV (faqat
+ * uskunali smeta ham), RES — RES, VED/TNDR — e'tibor bermaslik. Aks holda har varaq `varaqTuriTaxmin`.
+ */
+export function kitobVaraqTeglari(kitob: ReadonlyArray<{ name: string; rows: SheetGrid | null | undefined }>): Record<string, VaraqTegi> {
+  const all = kitobAllToplami(kitob);
+  const out: Record<string, VaraqTegi> = {};
+  for (const s of kitob) {
+    const allTeg = all?.teglar[s.name];
+    if (allTeg) { out[s.name] = allTeg; continue; }
+    const x = varaqTuriTaxmin(s.rows, s.name);
+    out[s.name] = x === 'nomalum' ? 'etibor_bermaslik' : x;
+  }
+  return out;
 }
 
 function eskiVaraqTuri(grid: SheetGrid): 'lrv' | 'res' | 'nomalum' {
@@ -598,7 +690,94 @@ export function resNarxIndeksiQur(rows: ResNarxYozuv[]): ResNarxIndeks {
       if (r.kat && !katByKodNomBir.has(kb)) katByKodNomBir.set(kb, r.kat);
     }
   }
-  return { byNomBir, byKodNomBir, katByNomBir, katByKodNomBir, nomlar, byBirlik };
+  return { byNomBir, byKodNomBir, katByNomBir, katByKodNomBir, nomlar, byBirlik, yozuvlar: rows };
+}
+
+/**
+ * Daraxt bargining RES kategoriyasi (kod+nom+birlik, keyin nom+birlik) — server registri ham shu nom+birlik
+ * bo'yicha oladi. RES da yo'q — `katTaxmini` (birlik). Birlik (шт/компл) yolg'iz ОБ ni aniqlamaydi; kod
+ * prefiksi (1504-/502-/1514-) faqat taklif — bu yerda ishlatilmaydi.
+ */
+export function bargKategoriyasi(n: { kod?: string; nom?: string; bir?: string; narx?: number }, idx: ResNarxIndeks | null): T2ResursKategoriya {
+  const nb = resKalit(n.nom) + '|' + resKalit(n.bir);
+  const kk = resKalit(n.kod);
+  return (kk ? idx?.katByKodNomBir.get(kk + '|' + nb) : undefined) ?? idx?.katByNomBir.get(nb) ?? kodNarxKategoriyasi(n, idx) ?? katTaxmini(n.nom ?? '', n.bir ?? '');
+}
+
+/**
+ * Nomi RES dan farqli yozilgan barg (ekspertiza RES bir kodli pozitsiyalarni bitta nom ostida jamlaydi: F5 da
+ * ikki xil nom — bir kod, bir narx, RES da bitta qator). Kategoriya faqat qat'iy dalil bilan
+ * meros olinadi: kod RES da YAGONA, birlik va narx aynan teng. Narx bu yo'l bilan hech qachon qo'yilmaydi.
+ */
+function kodNarxKategoriyasi(n: { kod?: string; bir?: string; narx?: number }, idx: ResNarxIndeks | null): T2ResursKategoriya | undefined {
+  return kodNarxYozuvi(n, idx)?.kat;
+}
+
+function kodNarxYozuvi(n: { kod?: string; bir?: string; narx?: number }, idx: ResNarxIndeks | null): ResNarxYozuv | undefined {
+  const kk = resKalit(n.kod);
+  if (!kk || !/\d/.test(kk) || n.narx == null || !n.narx || !idx?.yozuvlar) return undefined;
+  const bs = birlikSinfi(n.bir);
+  if (bs === 'ЧЕЛЧ' || bs === 'МАШЧ') return undefined;
+  const narxTeng = (y: ResNarxYozuv) => birlikSinfi(y.birlik) === bs && Math.abs(y.narx - n.narx!) <= 0.005;
+  const kodli = idx.yozuvlar.filter((y) => resKalit(y.kod) === kk);
+  if (kodli.length) return kodli.length === 1 && narxTeng(kodli[0]) ? kodli[0] : undefined;
+  // RES kod ustuni bo'sh/boshqa joyda (ALL: uskuna kodi alohida ustunda) — birlik + aynan narx; barcha mos
+  // yozuvlar bitta kategoriyada bo'lsagina (2–3 ta bir narxli shit ham bir xil ОБ).
+  const mos = idx.yozuvlar.filter(narxTeng);
+  const katlar = new Set(mos.map((y) => y.kat));
+  return mos.length && mos.length <= 3 && katlar.size === 1 ? mos[0] : undefined;
+}
+
+/** Bargga mos RES yozuvi (kod+nom+birlik → nom+birlik → kod/birlik/aynan narx). */
+function bargResYozuvi(n: { kod?: string; nom?: string; bir?: string; narx?: number }, idx: ResNarxIndeks | null): ResNarxYozuv | undefined {
+  if (!idx?.yozuvlar) return undefined;
+  const nb = resKalit(n.nom) + '|' + resKalit(n.bir);
+  const kk = resKalit(n.kod);
+  const nomli = idx.yozuvlar.filter((y) => resKalit(y.nom) + '|' + resKalit(y.birlik) === nb);
+  return (kk ? nomli.find((y) => resKalit(y.kod) === kk) : undefined) ?? nomli[0] ?? kodNarxYozuvi(n, idx);
+}
+
+/**
+ * ALL RES blok podvali isbotlagan kategoriyani barg ustiga qo'yadi: import qatorida `kat` + `kat_manba='hujjat_blok'`
+ * (server: shu import qatori uchun registr va beton м³ trigger'idan ustun — migratsiya 20261114300000). Registr
+ * (kompaniya bo'yicha nom+birlik) o'zgarmaydi — boshqa obyektlarga ta'sir yo'q.
+ */
+export function hujjatKategoriyalariniBelgila(tree: AktNode[], idx: ResNarxIndeks | null): AktNode[] {
+  if (!idx?.yozuvlar?.some((y) => y.hujjatBlok)) return tree;
+  const walk = (n: AktNode): AktNode => {
+    if (n.children?.length) return { ...n, children: n.children.map(walk) };
+    if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return n;
+    const y = bargResYozuvi(n, idx);
+    return y?.hujjatBlok && y.kat ? ({ ...n, kat: y.kat, kat_manba: 'hujjat_blok' } as AktNode) : n;
+  };
+  return tree.map(walk);
+}
+
+/**
+ * Daraxt barglari uchun registr nomzodlari: RES qatoriga faqat kod+birlik+narx orqali bog'langan (nomi farqli)
+ * barglar — server registri nom+birlik bo'yicha ishlaydi, shuning uchun shu barg nomi ham yoziladi.
+ */
+export function daraxtKategoriyaNomzodlari(tree: readonly AktNode[], idx: ResNarxIndeks | null): Array<{ nom: string; birlik: string; tanlangan: T2ResursKategoriya }> {
+  const out: Array<{ nom: string; birlik: string; tanlangan: T2ResursKategoriya }> = [];
+  const korilgan = new Set<string>();
+  const walk = (n: AktNode) => {
+    if (n.children?.length) { n.children.forEach(walk); return; }
+    if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return;
+    if (!n.nom || !n.bir) return;
+    const nb = resKalit(n.nom) + '|' + resKalit(n.bir);
+    if (idx?.katByNomBir.has(nb) || korilgan.has(nb)) return;
+    const k = kodNarxKategoriyasi(n, idx);
+    if (!k || k === katTaxmini(n.nom, n.bir)) return;
+    korilgan.add(nb);
+    out.push({ nom: n.nom, birlik: n.bir, tanlangan: k });
+  };
+  tree.forEach(walk);
+  return out;
+}
+
+/** ОБ uchun kod prefiksi TAKLIFI (avtomatik emas): RES ОБОРУДОВАНИЕ guruhidagi odatiy kodlar. */
+export function obKodTaklifi(kod?: string | null): boolean {
+  return /^(1504|502|1514)-/.test(String(kod ?? '').trim());
 }
 
 /**
@@ -629,7 +808,8 @@ export function narxlarniDaraxtgaQoll(
   const resBosh = idx.nomlar.size === 0;
   const belgila = (n: AktNode, sabab: NarxsizSabab) => {
     mosEmasSoni++;
-    narxsizlar.push({ uid: n.uid, kod: n.kod, nom: n.nom, bir: n.bir, hajm: n.hajm, sabab });
+    const taklif = (sabab === 'res_da_yoq' || sabab === 'birlik_mos_emas') && idx.yozuvlar ? narxTaklifiniTop(n, idx.yozuvlar) : null;
+    narxsizlar.push({ uid: n.uid, kod: n.kod, nom: n.nom, bir: n.bir, hajm: n.hajm, sabab, ...(taklif ? { taklif } : {}) });
   };
   function walk(n: AktNode): AktNode {
     if (n.children && n.children.length) return { ...n, children: n.children.map(walk) };
@@ -758,9 +938,13 @@ export function narxsizImportOgohlantirishi(h: { jami: number; narxsiz: number }
  * kod yolg'iz moslash kaliti emas, mavjud `resNarxIndeksiQur` qonuni saqlanadi.
  */
 export function tanlanganResManbalariniYig(
-  manbalar: ReadonlyArray<{ rows: SheetGrid; cols: F2ColumnConfig }>,
+  manbalar: ReadonlyArray<{
+    rows: SheetGrid; cols: F2ColumnConfig;
+    /** ALL to'plamidagi TNDR (tender narxi transport ichida) — narx manbai EMAS, faqat operator ongli tanlasa. */
+    tender?: boolean; operatorTanladi?: boolean;
+  }>,
 ): ResNarxYozuv[] {
-  return manbalar.flatMap(({ rows, cols }) => resSatrlariniOl(rows, cols));
+  return manbalar.flatMap(({ rows, cols, tender, operatorTanladi }) => (tender && !operatorTanladi ? [] : resSatrlariniOl(rows, cols)));
 }
 
 type ResKategoriyaNomzodi = { nom: string; birlik: string; tanlangan: T2ResursKategoriya };
@@ -773,6 +957,9 @@ export function resKategoriyaNomzodlariniOl(satrlar: ResNarxYozuv[]): ResKategor
   const out: ResKategoriyaNomzodi[] = [];
   for (const s of satrlar) {
     if (!s.nom || !s.birlik) continue;
+    // Hujjat bloki aytgan БЕЗСКЛАД registrga yozilmaydi (kompaniya bo'yicha nom+birlik — boshqa obyektdagi zagotli
+    // blokni buzardi); u import qatorida `kat_manba='hujjat_blok'` bilan keladi.
+    if (s.hujjatBlok && s.kat === 'БЕЗСКЛАД') continue;
     const serverTaxmini = katTaxmini(s.nom, s.birlik);
     const haqiqiy = s.kat ?? serverTaxmini;
     if (haqiqiy === serverTaxmini) continue;
@@ -1034,6 +1221,15 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
    *  har bir varaq turi mazmuniga qarab avtomatik taxmin qilinadi
    *  (varaqTuriTaxmin), foydalanuvchi shu yerda tasdiqlaydi/tuzatadi. */
   const [varaqTeglari, setVaraqTeglari] = useState<Record<string, VaraqTegi>>({});
+  /** Operator qo'lda o'zgartirgan varaq teglari (TNDR narxini faqat ongli tanlov bilan olish uchun). */
+  const operatorTeglari = useRef<Set<string>>(new Set());
+  /** Ekspertiza «ALL» to'plami (RES/F5/VED/TNDR) — yuklangan kitob uchun bir marta. */
+  const bookAll = useMemo(() => {
+    if (!book) return null;
+    try {
+      return kitobAllToplami(book.sheets.flatMap((s) => { const sh = book.sheet(s.name); return sh ? [{ name: s.name, rows: sh.rows }] : []; }));
+    } catch { return null; }
+  }, [book]);
   /** Hamroh varaqlar (svod / tn·km) — operator tanlovi; sukut bilan bo'sh (hech narsa o'zi yozilmaydi). */
   const [hamrohTanlov, setHamrohTanlov] = useState<HamrohTanlovKalitlari>({ transport: [], xatlar: [] });
   /** Har tanlangan LRV varag'i o'z ustun xaritasini saqlaydi. Bu bir
@@ -1088,6 +1284,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
     generation.current++; setError(''); setResult(null); setCols(null); setPreview([]);
     setResBook(null); setResSheetNames([]); setResColsBySheet({}); setResIndex(null); setResIndexSize(0); setResError('');
     setVaraqTeglari({}); setInFileLrvCols({}); setInFileResCols({}); setKatKorib([]); setReimportDiff(null);
+    operatorTeglari.current = new Set();
     setHamrohTanlov({ transport: [], xatlar: [] });
     setPaketVaraqlar([]); setPaketTasdiqImzosi(null); setPaketKalit(''); setPaketNom(''); setPaketBand(false); paketImportOperationId.current = '';
   }
@@ -1098,6 +1295,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
    * bir necha uchastka smetasidan iborat bo'lishi, RES esa bir necha narx
    * bo'limiga ajralishi mumkin. */
   function varaqTegBelgila(workbook: XlsxWorkbook, name: string, teg: VaraqTegi) {
+    operatorTeglari.current.add(name);
     setVaraqTeglari(prev => ({ ...prev, [name]: teg }));
     setResIndex(null); setResIndexSize(0); setKatKorib([]);
     if (teg === 'lrv') chooseSheet(workbook, name);
@@ -1168,10 +1366,15 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       const resUstunlari: Record<string, F2ColumnConfig> = {};
       let lrvTanlandi = '';
       const hamrohlar: string[] = [];
+      // ALL to'plami (RES/F5/VED/TNDR) — qat'iy rollar yadrodan; boshqa kitoblar — har varaq mazmuniga qarab.
+      const avtoTeglar = kitobVaraqTeglari(workbook.sheets.flatMap((s) => {
+        const sheet = workbook.sheet(s.name);
+        return sheet ? [{ name: s.name, rows: sheet.rows }] : [];
+      }));
       for (const s of workbook.sheets) {
         const sheet = workbook.sheet(s.name);
-        const taxmin = sheet ? varaqTuriTaxmin(sheet.rows, s.name) : 'nomalum';
-        teglar[s.name] = taxmin === 'nomalum' ? 'etibor_bermaslik' : taxmin;
+        const taxmin = (sheet && avtoTeglar[s.name]) || 'etibor_bermaslik';
+        teglar[s.name] = taxmin;
         if (taxmin === 'hamroh') hamrohlar.push(s.name);
         if (taxmin === 'lrv' && sheet) {
           lrvUstunlari[s.name] = avtoUstunlar(sheet.rows, s.name);
@@ -1246,8 +1449,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       setResBook(workbook);
       const detected: Record<string, F2ColumnConfig> = {};
       const tanlangan: string[] = [];
+      const kitobV = workbook.sheets.map((s) => ({ name: s.name, rows: s.rows }));
       for (const s of workbook.sheets) {
-        if (varaqTuriTaxmin(s.rows, s.name) !== 'res') continue;
+        if (varaqTuriTaxmin(s.rows, s.name, kitobV) !== 'res') continue;
         detected[s.name] = avtoUstunlar(s.rows, s.name);
         tanlangan.push(s.name);
       }
@@ -1410,9 +1614,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         const rows = tashqiResRows.length ? tashqiResRows : ichkiResRows;
         const idx = rows.length ? resNarxIndeksiQur(rows) : null;
         const resManbalar = tashqiResRows.length ? tashqiManbalar : [{ rows: split.embeddedResRows, cols: lrv.resCols }];
-        const applied = idx ? lokallarBoyichaNarxla(tree, resManbalar, idx) : tree;
+        const applied = idx ? hujjatKategoriyalariniBelgila(lokallarBoyichaNarxla(tree, resManbalar, idx), idx) : tree;
         pricedTrees.push({ sourceKey: lrv.sourceKey, tree: applied });
-        categoryCandidates.push(...resKategoriyaNomzodlariniOl(rows));
+        categoryCandidates.push(...resKategoriyaNomzodlariniOl(rows), ...daraxtKategoriyaNomzodlari(applied, idx));
       }
       const paketNarxHisobi = narxsizImportHisobi(pricedTrees.flatMap((p) => p.tree));
       if (paketNarxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(paketNarxHisobi))) {
@@ -1494,13 +1698,14 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
    *  bo'lmasligi mumkin -- owner: "bitta hujjat ichida ham lrv ham res
    *  sahifalari ham bo'lishi mumkin". */
   function resSatrlariBarchaManbadan(): ResNarxYozuv[] {
-    const manbalar: Array<{ rows: SheetGrid; cols: F2ColumnConfig }> = [];
+    const manbalar: Array<{ rows: SheetGrid; cols: F2ColumnConfig; tender?: boolean; operatorTanladi?: boolean }> = [];
     if (book) {
       for (const s of book.sheets) {
         if (varaqTeglari[s.name] !== 'res') continue;
         const sheet = book.sheet(s.name);
         if (!sheet) continue;
-        manbalar.push({ rows: sheet.rows, cols: inFileResCols[s.name] || avtoUstunlar(sheet.rows, s.name) });
+        manbalar.push({ rows: sheet.rows, cols: inFileResCols[s.name] || avtoUstunlar(sheet.rows, s.name),
+          tender: bookAll?.rollar[s.name] === 'tndr', operatorTanladi: operatorTeglari.current.has(s.name) });
       }
     }
     if (resBook) {
@@ -1658,9 +1863,16 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       if (importResIndex) {
         qadam('RES narxlari LRV daraxtiga ulanmoqda');
         const qollangan = narxlarniDaraxtgaQoll(lrvTree, importResIndex);
-        importTree = qollangan.tree;
+        importTree = hujjatKategoriyalariniBelgila(qollangan.tree, importResIndex);
         setNarxsizlar(qollangan.narxsizlar);
         yakunla('tayyor', qollangan.mosSoni + ' ta mos, ' + qollangan.mosEmasSoni + ' ta narxsiz qoldi');
+        // RES da boshqa nom bilan jamlangan barglar (kod+birlik+narx aynan) — kategoriyasi registrga.
+        const bargNomzodlari = daraxtKategoriyaNomzodlari(importTree, importResIndex);
+        if (bargNomzodlari.length) {
+          qadam(t('Barg kategoriyalari (RES kodi bo‘yicha) saqlanmoqda'));
+          await katNomzodlariniSaqla(bargNomzodlari);
+          yakunla('tayyor', t('{n} ta resurs turi registrga yozildi', { n: bargNomzodlari.length }));
+        }
       }
 
       // C4 PR-1: operator belgilagan hamroh qatorlari (tn·km — har material alohida perevozka resursi; svod xat
@@ -2073,6 +2285,17 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                   ))}
                 </tbody>
               </table>
+              {bookAll && (
+                <p className="text-[11px] text-text-mute" data-testid="all-toplam">
+                  {t('ALL to‘plami: LRV — «{f5}», RES — «{res}»; VED/TNDR avtomatik e’tiborsiz (hajm vedomosti / tender narxi).', { f5: bookAll.f5, res: bookAll.res })}
+                </p>
+              )}
+              {bookAll?.tndr.some((n) => varaqTeglari[n] === 'res') && (
+                <div className="fz-note fz-note--warn" data-testid="tndr-ogohlantirish">
+                  <AlertTriangle aria-hidden="true" />
+                  <span>{t('TNDR — tender narxi, transport ichida: RES narx manbai sifatida faqat ongli tanlang (ustama ikki marta hisoblanishi mumkin).')}</span>
+                </div>
+              )}
               {book.sheets.filter(s => varaqTeglari[s.name] === 'lrv').map(s => {
                 const c = inFileLrvCols[s.name];
                 if (!c) return null;
@@ -2159,7 +2382,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                     </thead>
                     <tbody>
                       {resBook.sheets.map(s => {
-                        const taxmin = varaqTuriTaxmin(s.rows, s.name);
+                        const taxmin = varaqTuriTaxmin(s.rows, s.name, resBook.sheets);
                         return (
                           <tr key={s.name} className="border-t border-border/40">
                             <td className="py-1 pr-2">
@@ -2293,7 +2516,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                         <th className="text-left py-0.5 pr-2">Kod</th>
                         <th className="text-left py-0.5 pr-2">Nom</th>
                         <th className="text-left py-0.5 pr-2">Birlik</th>
-                        <th className="text-left py-0.5">Nega narxsiz</th>
+                        <th className="text-left py-0.5 pr-2">Nega narxsiz</th>
+                        <th className="text-left py-0.5">{t('RES taklifi (tasdiqlash kerak)')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2302,7 +2526,15 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                           <td className="py-0.5 pr-2 text-text-mute">{r.kod || '—'}</td>
                           <td className="py-0.5 pr-2">{r.nom || '(nomsiz)'}</td>
                           <td className="py-0.5 pr-2 text-text-mute">{r.bir || '—'}</td>
-                          <td className="py-0.5">{NARXSIZ_SABAB_MATN[r.sabab]}</td>
+                          <td className="py-0.5 pr-2">{NARXSIZ_SABAB_MATN[r.sabab]}</td>
+                          <td className="py-0.5 text-text-mute">
+                            {r.taklif
+                              ? <span title={r.taklif.sabab === 'kod_birlik' ? t('kod va birlik bo‘yicha yagona nomzod') : t('nom qisman mos, sonlar teng')}>
+                                  {r.taklif.kod ? `${r.taklif.kod} · ` : ''}{r.taklif.nom} [{r.taklif.birlik}] = {r.taklif.narx.toLocaleString('ru-RU')}
+                                  {!r.taklif.sonlarMos && <b className="text-warn"> · {t('sonlar farqli — avtomatik qo‘shilmaydi')}</b>}
+                                </span>
+                              : '—'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

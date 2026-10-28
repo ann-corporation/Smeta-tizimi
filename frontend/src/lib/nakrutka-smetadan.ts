@@ -37,8 +37,10 @@ export function smetadanPodval(o: NakrutkaPodvalOqish, joriy: Partial<NakrutkaKo
       if (q.tur !== 'foiz' || !q.koefKod) return q;
       const kk = q.koefKod as (typeof NAKRUTKA_FOIZ_KODLARI)[number];
       const m = o.manba[kk];
-      if (o.koeffitsientlar[kk] != null && m) {
-        return { ...q, manba: 'smeta' as const, dalil: m.dalil, katak: `${m.manzil.varaq}!${m.manzil.ustun ? ustun(m.manzil.ustun - 1) : ''}${m.manzil.qator}` };
+      const smeta = o.koeffitsientlar[kk];
+      // Hujjatda aniq yozilgan 0 ham smeta qiymati (masalan РИСК *0); topilmagan kod — meros (joriy qiymat).
+      if (typeof smeta === 'number' && Number.isFinite(smeta)) {
+        return { ...q, foiz: smeta, manba: 'smeta' as const, ...(m ? { dalil: m.dalil, katak: `${m.manzil.varaq}!${m.manzil.ustun ? ustun(m.manzil.ustun - 1) : ''}${m.manzil.qator}` } : {}) };
       }
       return { ...q, manba: 'meros' as const };
     }),
