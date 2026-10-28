@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 39,
+      "sana": "2026-10-28",
+      "sarlavha": "Ekspertiza «ALL» smetalari qo'lda belgilashsiz o'qiladi",
+      "bandlar": [
+        "RES / F5 / VED / TNDR varaqli ekspertiza fayli yuklanganda rollar avtomatik: F5 — LRV (faqat uskunali smeta ham), RES — narx va podval manbai, VED va TNDR — e'tiborsiz. TNDR narxini faqat ongli tanlasangiz oladi (ogohlantirish bilan).",
+        "RES podvalidagi transport va zagot-sklad foizlari КОЛ-ВО ustunidan o'qiladi va blok summasi bilan isbotlanadi; material, metallokonstruksiya, kabel va uskuna bloklari o'z koeffitsientiga tushadi. Uskunalar RES guruhi bo'yicha ОБ bo'ladi.",
+        "Zagot-skladsiz (БЕЗ СКЛАД) bloklar, LRV↔RES manba xatolari va RES nomi farqli qatorlar uchun narx takliflari ko'rinadigan ogohlantirish sifatida chiqadi — hech narsa avtomatik birlashtirilmaydi."
+      ]
+    },
+    {
       "id": 38,
       "sana": "2026-10-27",
       "sarlavha": "Har bir hujjatda tizim imzosi",

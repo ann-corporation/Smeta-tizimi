@@ -1,0 +1,14 @@
+{
+  "ALL to‘plami: LRV — «{f5}», RES — «{res}»; VED/TNDR avtomatik e’tiborsiz (hajm vedomosti / tender narxi).": { "ru": "Комплект ALL: ЛРВ — «{f5}», РС — «{res}»; VED/TNDR автоматически не учитываются (ведомость объёмов / тендерная цена).", "en": "ALL set: LRV — “{f5}”, RES — “{res}”; VED/TNDR are ignored automatically (volume list / tender price)." },
+  "TNDR — tender narxi, transport ichida: RES narx manbai sifatida faqat ongli tanlang (ustama ikki marta hisoblanishi mumkin).": { "ru": "TNDR — тендерная цена с учётом транспорта: выбирайте её источником цен РС только осознанно (наценка может учесться дважды).", "en": "TNDR is a tender price including transport: use it as a RES price source only deliberately (the markup may be counted twice)." },
+  "RES taklifi (tasdiqlash kerak)": { "ru": "Предложение из РС (нужно подтвердить)", "en": "RES suggestion (needs confirmation)" },
+  "kod va birlik bo‘yicha yagona nomzod": { "ru": "единственный кандидат по коду и единице", "en": "single candidate by code and unit" },
+  "nom qisman mos, sonlar teng": { "ru": "наименование совпадает частично, числа равны", "en": "name partly matches, numbers are equal" },
+  "sonlar farqli — avtomatik qo‘shilmaydi": { "ru": "числа различаются — автоматически не связывается", "en": "numbers differ — never linked automatically" },
+  "Barg kategoriyalari (RES kodi bo‘yicha) saqlanmoqda": { "ru": "Сохраняются категории позиций (по коду РС)", "en": "Saving line categories (by RES code)" },
+  "{n} ta resurs turi registrga yozildi": { "ru": "В реестр записано типов ресурсов: {n}", "en": "{n} resource types written to the registry" },
+  "Diqqat: tn·km perevozka material sifatida qo‘shilsa, smeta podvalidagi transport ustamasi bilan ikki marta hisoblanishi mumkin — alohida transport kategoriyasi hali yo‘q (review).": { "ru": "Внимание: если перевозку в т·км добавить как материал, она может учесться дважды вместе с транспортной наценкой подвала сметы — отдельной транспортной категории пока нет (на проверку).", "en": "Note: if t·km haulage is added as material it may be counted twice together with the estimate footer transport markup — there is no separate transport category yet (review)." },
+  "Manba xatolari — hujjatdagidek import qilinadi ({n})": { "ru": "Ошибки источника — импортируется как в документе ({n})", "en": "Source issues — imported as in the document ({n})" },
+  "Lokal podval: prochie/ҚҚС meros qoladi": { "ru": "Локальный подвал: прочие/НДС наследуются", "en": "Local footer: overheads/VAT are inherited" },
+  "Hal qilinmagan podval bloklari ({n}): БЕЗ СКЛАД qo‘llab-quvvatlanmaydi — tafsilot ogohlantirishlarda.": { "ru": "Нерешённые блоки подвала ({n}): БЕЗ СКЛАД не поддерживается — подробности в предупреждениях.", "en": "Unresolved footer blocks ({n}): БЕЗ СКЛАД (no warehousing) is not supported — see warnings for details." }
+}

@@ -217,6 +217,8 @@ export interface ReviewBand {
   kod: string;
   izoh: string;
   manzil?: Manzil;
+  /** Operator hal qilmaguncha natijani ishonchli deb bo'lmaydi (masalan qo'llab-quvvatlanmaydigan БЕЗ СКЛАД bloki). */
+  bloklovchi?: boolean;
 }
 
 export interface VaraqAnatomiyasi {
