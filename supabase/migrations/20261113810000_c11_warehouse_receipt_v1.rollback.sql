@@ -18,6 +18,8 @@ END
 $guard$;
 
 DROP VIEW IF EXISTS public.t2_sklad_ombor_qoldiq_v1;
+DROP FUNCTION IF EXISTS public.t2_sklad_kirim_royxat_v1(bigint,bigint,bigint,jsonb,integer,integer);
+DROP FUNCTION IF EXISTS public.t2_sklad_c11_qidiruv_kaliti_v1(text);
 DROP FUNCTION IF EXISTS public.t2_sklad_markaziy_prixod_storno_v1(bigint,bigint,bigint,text,uuid);
 DROP FUNCTION IF EXISTS public.t2_sklad_markaziy_prixod_import_v1(bigint,bigint,bigint,bigint,text,jsonb,uuid);
 DROP TRIGGER IF EXISTS t2_sklad_c11_append_only_guard_v1 ON public.t2_sklad_harakat;
@@ -43,6 +45,8 @@ DROP INDEX IF EXISTS public.t2_sklad_harakat_c11_operation_idx;
 
 ALTER TABLE public.t2_sklad_harakat
   ALTER COLUMN obyekt_id SET NOT NULL,
+  DROP COLUMN c11_sf_tasdiq,
+  DROP COLUMN c11_manba_turi,
   DROP COLUMN c11_taminot_id,
   DROP COLUMN c11_kontragent_id,
   DROP COLUMN c11_storno_of_id,

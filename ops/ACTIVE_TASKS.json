@@ -3124,8 +3124,8 @@
       "owner": "codex",
       "machine": "Anvar",
       "branch": "codex/c11-warehouse-ledger-20261027",
-      "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b",
-      "status": "in_progress",
+      "base_sha": "f0eddfc05253717e6c259fad86d68fc7cafcbfbc",
+      "status": "ready_for_review",
       "owns": [
         "supabase/migrations/20261113810000_c11_warehouse_receipt_v1.sql",
         "supabase/migrations/20261113810000_c11_warehouse_receipt_v1.rollback.sql",
@@ -3140,7 +3140,7 @@
         "C:/Temp/GAS-c11-contract-20261027/docs/architecture/warehouse/C11_CONTRACT.md"
       ],
       "production_write_allowed": false,
-      "note": "Bounded source-only C11.1 ledger packet. Uses existing t2_sklad_harakat/t2_sklad_mustaqil, verified R2 document provenance, named receipt/storno RPC and derived stock view. Synthetic PGlite migration/acceptance/rollback passed with mock guards; target PostgreSQL/Supabase auth parity and concurrency remain untested. No production apply, commit or push; parent review required. Task lock was added after first draft files existed, before subsequent edits."
+      "note": "L0 review 2026-10-28 (3), PR189 only: self-seeded rollback acceptance, permission-checked receipt list/totals, <=1000 rows and exact receipt replay. Clean worktree C:/Temp/GAS-c11-ledger-review-20261028, working branch codex/c11-ledger-review-20261028; delivery to existing PR189 branch. PR190/182 frozen, no push. Synthetic SQL runner uses explicit mock guards; target Supabase acceptance/apply/merge remain L0. No production DDL/DML by Codex."
     }
   ]
 }

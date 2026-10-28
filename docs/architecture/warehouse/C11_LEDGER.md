@@ -1,56 +1,49 @@
 # C11.1 — центральный приходной журнал
 
-**Статус:** implementation sidecar для review родителем/L0. SQL migration и acceptance написаны, но не применялись. Это минимальная первая поставка: импорт прихода в существующий журнал и сторно этого прихода. Выдача, transfer, M-29 cutover, цены/НДС и product-facing release не заявлены готовыми.
+Статус: PR189, исправления по L0 review от 28.10.2026. Production apply и merge выполняет L0 после целевого acceptance. PR190 и PR182 заморожены; PR-B начинается после merge189.
 
-## Источники и scope
+## Источники и границы
 
-- База checkout: `4fd84562a2aee44a145f6f79da67e8d4622cb23b`; ветка `codex/c11-warehouse-ledger-20261027`.
-- Архитектурные ограничения: `docs/governance/CONSTITUTION.md` и внешний контракт `C:\Temp\GAS-c11-contract-20261027\docs\architecture\warehouse\C11_CONTRACT.md`.
-- Разрешённый inventory: `D:\Obsidian\Anvar_Brain\20_PROJECTS\Smeta-tizimi\PTO_C1_SVOD_20261026\WAREHOUSE_LIVE_INVENTORY_20261027.json` (колонки/функции/ограничения/сводное представление) и `D:\Obsidian\Anvar_Brain\20_PROJECTS\Smeta-tizimi\C11_SKLAD_20261027\DOCUMENT_LEDGER_CONSTRAINTS_20261027.json`.
-- Эти локальные статические метаданные подтверждают старый `t2_sklad_harakat.obyekt_id NOT NULL`, `t2_sklad_qoldiq UNIQUE (obyekt_id, nomi)`, `t2_sklad_mustaqil` с `kompaniya_id`, и текущий object-to-warehouse consolidation view. В registry для R2-документа используются `provider='cloudflare_r2'`, `status='active'`, `canonical_storage_status='stored'`, `sha256_verified`.
-- Не читались БД, private business workbooks и сеть. Ни production DDL, ни данные не записывались.
+Чистая база main `f0eddfc05253717e6c259fad86d68fc7cafcbfbc`, существующий PR189 `bc27306a6b7080bfac6e8a7fd1ba3948bac9e911` включён обычным merge. Рабочая ветка `codex/c11-ledger-review-20261028`; доставка в существующую ветку PR189 `codex/c11-warehouse-ledger-20261027` без force.
+
+Канонические требования: `docs/governance/CONSTITUTION.md` и Obsidian `KOORDINATSIYA.md`, раздел 2026-10-28 (3). Метаданные действующих таблиц, FK, actor/permission функций и INSERT-trigger inventory проверены SELECT-only 28.10.2026. Ни production DDL/DML, ни чтение частной книги в этой итерации не выполнялись. Публичные fixtures синтетические.
 
 ## Каноническая модель
 
-`public.t2_sklad_harakat` остаётся единственным журналом фактов. Новых inventory/receipt tables нет. На существующий журнал добавлены nullable `c11_*` поля для склада, документа и физической строки, SHA-256 исходного файла, request id/hash, сторно-связи и optional links к существующим `t2_kontragent`/`t2_erp_taminot`. Старые строки и старый объектный cache не переписываются.
+Единственный журнал — существующий `public.t2_sklad_harakat`. Nullable `c11_*` поля сохраняют склад, актор, исходный документ/лист/физическую строку/SHA-256, operation/hash и сторно-связь. `c11_manba_turi` и `c11_sf_tasdiq` сохраняют исходную классификацию/отметку, не заменяя доменное `turi='mat'`. Цены, НДС, оплаты и новая таблица остатков не добавляются.
 
-Новые приходные строки имеют `obyekt_id=NULL` только вместе с tenant-matched `c11_sklad_id`; это закреплено CHECK и композитным FK `(kompaniya_id,c11_sklad_id) → t2_sklad_mustaqil(kompaniya_id,id)`. Импорт принимает только лист `Приход` и требует исходный документ из R2, принадлежащий тому же tenant, со статусами active/stored и серверным `sha256_verified=true`. Actor хранится типизированно в `c11_actor_id` с FK на существующего `t2_foydalanuvchi`; обе формы строки (приход/сторно) требуют его наличия.
+`obyekt_id=NULL` разрешён только при реальном tenant-matched складе; CHECK и composite FK обязательны. Исторические object-only строки и legacy cache не переписываются. Append-only trigger запрещает UPDATE/DELETE C11 строк; исправление — отдельное сторно.
 
-`public.t2_sklad_ombor_qoldiq_v1` — read-only view, рассчитанный суммой активных движений по точному `(tenant, warehouse, name, unit)`. Нормализация имени, aliases и цены в ключ не входят. `t2_sklad_qoldiq` остаётся legacy object cache и этим PR не объявляется центральным остатком.
+`public.t2_sklad_ombor_qoldiq_v1` суммирует только активные C11 движения по точным `(tenant, warehouse, name, unit)`. Это НЕ полный складской остаток: legacy writers/M-29 и отсутствующий расход не включены. Разные единицы не объединяются; поиск не меняет идентичность материала.
 
-## Команды и безопасность
+## Именованные команды
 
-- `t2_sklad_markaziy_prixod_import_v1(actor, company, warehouse, document, sheet, rows, operation_id)`: до вставки валидирует весь пакет (1–500 исходных строк), подтверждает склад/tenant, R2 metadata и optional supplier/request IDs, проверяет уникальность исходных физических строк, затем атомарно пишет приходные движения. Цена не принимается и не вычисляется.
-- Request hash — SHA-256 от канонического JSONB параметров команды, только для обнаружения отличающегося retry; это не подпись документа и не security credential. Ключ replay scoped по `(kompaniya_id, c11_operation_id)`. Тот же payload возвращает ранее созданные movement IDs; тот же ключ с другим hash/командой возвращает `OPERATION_ID_CONFLICT`.
-- Проверка registry явно отвергает `sha256 IS NULL`, в том числе при `sha256_verified=true`. Идентичность физических строк определяется `(tenant, warehouse, lower(source SHA-256), sheet, source_row)`, а не только registry ID: повторно зарегистрированный тот же файл не создаст второй приход в том же складе. Source-level advisory xact lock сериализует одновременные повторные импорты того же файла/склада; уникальный индекс — последняя защита.
-- Append-only trigger на существующем журнале блокирует `UPDATE` и `DELETE` строки C11 прихода/сторно. Старые cancellation/update RPCs не могут менять `holat` C11 строки, из-за чего она пропала бы из view; исправление — отдельное новое сторно-движение.
-- `t2_sklad_markaziy_prixod_storno_v1(actor, company, movement, reason, operation_id)`: только для C11 прихода не старше 24 часов; добавляет противоположное `rasxod` движение, ссылается на исходное. Идемпотентен по своему operation ID; unique index запрещает второе сторно. Исходная строка не меняется и не удаляется.
-- Обе `SECURITY DEFINER` команды имеют пустой `search_path`, полные schema-qualified обращения, actor/company membership и текущую `document.write` permission. Проверенный actor guard возвращает роль `text` и сам бросает `42501` при нарушении tenant membership; permission guard возвращает `void` и сам бросает `42501` при отказе. EXECUTE закрыт от PUBLIC/anon/authenticated и дан только `service_role` gateway.
+`t2_sklad_markaziy_prixod_import_v1(actor, company, warehouse, document, sheet, rows, operation_id)` принимает 1–1000 строк только листа `Приход`. До первой вставки проверяет весь пакет, положительное количество, дату, физические номера и tenant-scoped optional supplier/request links. Невалидная строка возвращает код и исходный номер; частичной записи нет.
 
-## Rollback, ограничения и риски review
+Источник: registry того же tenant, provider `cloudflare_r2`, active/stored, непустые bucket/key и серверно подтверждённый 64-символьный SHA-256. SHARE lock удерживает склад и метаданные документа во время записи. БД доверяет registry, но не скачивает файл из R2 и не доказывает соответствие payload исходной книге: это обязанность существующего server parser/preview/gateway.
 
-Rollback сначала отказывается продолжать при любой строке C11 или warehouse-only row; он не удаляет складские бизнес-факты. Только при отсутствии таких строк возвращает `obyekt_id NOT NULL` и убирает добавленные метаданные/view/functions.
+Повторное выполнение одного operation_id с теми же параметрами возвращает **точно тот же JSON**, включая movement IDs и `takror:false`. Этот флаг не является индикатором повторной записи; UI должен использовать сохранённую квитанцию операции. JSONB hash канонизирует порядок строк, поэтому перестановка массива не меняет retry. Изменённый payload/actor/command с тем же UUID даёт `OPERATION_ID_CONFLICT`. Результат всегда отсортирован по source_row.
 
-1. Новая модель сохраняет R2 document id + sheet + physical row, но сама БД не извлекает строку повторно из R2. Gateway/parser обязан показать оригинал, полный preview и соответствие строки перед вызовом RPC.
-2. `document.write` — существующее широкое разрешение; отдельного `warehouse.receive` в базовом контракте нет. Гранулярная роль/route требует отдельного L0 изменения.
-3. Есть отдельные legacy writers, включая `t2_skladga_yozish`, trigger material movement и M-29. Они продолжают писать object-only/legacy cache и пока не используют C11 warehouse fields. Поэтому view намеренно ограничен C11 source rows; он не является полным складским балансом.
-4. Миграция добавляет tenant-composite FK для склада. Supplier/request ссылки проверяются tenant-scoped в RPC и имеют FK на уже существующие entities; при дальнейшей прямой сервисной записи нужен такой же composite FK для этих таблиц.
-5. `security_invoker` view, trigger/legacy-writer interaction, grants и поддержку `pg_catalog.sha256(bytea)` нужно подтвердить на целевой версии Supabase/PostgreSQL перед применением.
-6. RPC использует существующий широкий `document.write`; dedicated warehouse permission отсутствует в проверенном контракте. Это ограничение требует L0 review до production exposure.
-7. Source SHA-256 доверяется только после server-side `sha256_verified=true`; request hash предназначен для replay conflict detection, не для аутентификации.
+Физический dedup: `(tenant, warehouse, source SHA-256, sheet, source_row)`, поэтому повторная регистрация тех же байтов под другим document ID не создаёт приход. При новом UUID уже проведённый пакет получает `SOURCE_ROW_ALREADY_POSTED`, новых строк 0; это не успешная новая квитанция. Advisory transaction locks по операции/файлу и уникальный индекс защищают запись.
 
-## Acceptance и состояние проверки
+`t2_sklad_markaziy_prixod_storno_v1(actor, company, movement, reason, operation_id)` добавляет противоположное движение только для C11 прихода не старше24ч. Исходник не меняется; второе сторно запрещено unique index. Старый контракт replay сторно сохранён.
 
-`supabase/tests/c11_warehouse_receipt_v1.sql` — rollback-only синтетический контракт с изолированными fixture IDs. Он покрывает invalid JSON batch, `verified=true` с NULL hash, один SHA-256 на двух registry IDs, replay/hash conflict, физический dedup при сохранении разных source rows, forged tenant/actor, чужой склад, unit-separated balance view, storno replay/24h, блокировку legacy UPDATE/DELETE и lock/index наличие.
+## Чтение экрана
 
-Внешний `C:\Temp\c11-sql-runtime\check-c11.mjs` на `@electric-sql/pglite 0.5.12` выполнил migration, rollback-only acceptance и guarded rollback: **PASS_SYNTHETIC_SQL_ONLY**. Портируемая копия runner — `supabase/tests/c11-warehouse-pglite.mjs`; PGlite устанавливается отдельно по инструкции в самом файле, без зависимости frontend. Проверены, среди прочего, null SHA rejection, повторный registry ID с тем же SHA, типизированный actor FK для прихода/сторно, ошибочная форма batch, append-only update/delete, tenant/unit checks и rollback postconditions. Схема минимальная; actor/permission/audit routines — явно заданные mocks, поэтому тест не доказывает production auth parity. PGlite использует одно соединение и не доказывает реальную конкурентность; production Supabase grants/RLS и целевую runtime совместимость также надо подтвердить отдельно. Окончательное принятие — за родителем/L0.
+`t2_sklad_kirim_royxat_v1(p_actor_id,p_kompaniya_id,p_sklad_id,p_filtr,p_limit,p_offset)` проверяет membership и `document.read`. Фильтр: `dan`, `gacha` (включительно), `qidir`, `tur`, `yetkazuvchi`; неизвестные ключи/неверные даты/типы отвергаются. Размер страницы 1–1000, offset≥0; порядок `sana DESC,id DESC`.
 
-## Изменённые пути
+Ответ: `qatorlar` с provenance/actor/source category/SF/storno, `jami` по всему фильтру, `jami_materiallar` по точным имени+единице (`kirim`, `storno`, `sof_kirim`), `limit`, `offset`, `rasxod_kiritilgan:false`. Итоги не ограничены страницей и не называются доступным остатком. Латинско-кириллическая нормализация используется только для поиска: `sheb` находит `Щебень`, но не сливает номенклатуру.
 
-- `supabase/migrations/20261113810000_c11_warehouse_receipt_v1.sql`
-- `supabase/migrations/20261113810000_c11_warehouse_receipt_v1.rollback.sql`
-- `supabase/tests/c11_warehouse_receipt_v1.sql`
-- `supabase/tests/c11-warehouse-pglite.mjs`
-- `docs/architecture/warehouse/C11_LEDGER.md`
+Все SECURITY DEFINER RPC имеют пустой search_path и schema-qualified обращения, EXECUTE закрыт PUBLIC/anon/authenticated и разрешён только service_role gateway. Запись требует `document.write`; отдельное складское право в действующей модели пока отсутствует. Gateway должен брать actor из проверенной сессии, а не доверять клиентскому ID.
 
-Файлы созданы вручную по шаблону репозитория: Supabase CLI отсутствует в среде, поэтому `supabase migration new` нельзя было запустить. Commit, push, migration apply и rollout не выполнялись.
+## Acceptance и rollback
+
+`supabase/tests/c11_warehouse_receipt_v1.sql` сам создаёт уникальные синтетические company/user/membership/warehouse/registry fixtures внутри BEGIN..ROLLBACK. Внешние SET и существующие пользовательские ID не требуются. R2 fixtures — только метаданные для теста; файл в R2 не создаётся, проверка физического объекта не заявляется.
+
+Покрытие: 1000 строк и точный replay без роста журнала; отказ1001; reordered retry/hash conflict; SHA-level dedup; NULL hash; actor/tenant/permission denial; фильтры/пагинация/итоги/кириллический поиск; source fields; разные единицы; сторно/24ч; append-only; закрытый EXECUTE.
+
+Portable runner: `supabase/tests/c11-warehouse-pglite.mjs`; `C11_PGLITE_DIR` указывает на отдельно установленный `@electric-sql/pglite`. Минимальная схема и auth/audit mocks явно ограничены: это не production auth/RLS parity и не двухсессионная проверка конкурентности. Runner выполняет acceptance дважды и проверяет нулевой остаток fixtures после каждого rollback; затем guarded schema rollback и его postconditions.
+
+28.10.2026: parent независимо повторил **PASS_SYNTHETIC_SQL_ONLY** на PGlite0.5.12: acceptance дважды, migration→rollback→migration→rollback, отсутствие всех C11 колонок/view/guard/list/search после каждого снятия. Исправлен найденный при review регресс: guard возвращал OLD для legacy UPDATE; теперь возвращает NEW, сохраняя запрет изменения C11. Harness подтвердил legacy insert/update/delete; production object FK этим не проверен. `node --check` и `git diff --check` PASS. Governance: три прежних ошибки чужих AKKAUNT/DIZAYN locks/production flag, воспроизводимые на исходной main; не исправлялись и не обходились в C11.
+
+Rollback отказывается удалять любые C11 бизнес-факты. Только пустая C11 схема снимается, возвращая legacy `obyekt_id NOT NULL`. L0 отдельно выполняет acceptance на целевом Supabase/PostgreSQL и применяет миграцию. После merge189: существующий Sklad.tsx + preview181 + подтверждение/R2/progress/retry1000; никакой голосовой/autonomous posting в первом этапе.
