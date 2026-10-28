@@ -15,6 +15,10 @@ import {
   bolimBajarilish, bolimJamilari, davrNomi, f2BirlikNarx, f2Miqdor, f2Pul, f2Tekshiruv, hajmXaritasi, katTaqsimot,
   KAT_GURUH_NOMI, oldingiTasdiqlanganAktlar, qatorBajarilish, type F2KorQator, type QatorBajarilish,
 } from '../../lib/f2-hujjat-korinish';
+import type { Daraxt, Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
+import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
+import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
+import { hujjatDaraxti, hujjatQatorlar, korinadiganJami, type HujjatQator } from './f2HujjatFiltr';
 
 /**
  * F2 ni HUJJAT sifatida ko'rsatadi (egasi 2026-10-25): sarlavha varag'i, tasdiqlash yo'li, kategoriya taqsimoti,
@@ -23,6 +27,8 @@ import {
  */
 type Line = F2KorQator & { akt_qator_id: number; kod: string | null; nom: string | null; birlik: string | null; akt_kim?: string | null; akt_sana?: string | null };
 type Akt = { id: number; raqam: string | null; oy: string; holat: string; hujjat_jami: number | null; yozilgan_jami: number; qator_soni: number | null };
+
+const DARAXT: Daraxt<HujjatQator<Line>> = hujjatDaraxti();
 
 const STAMP: Record<PtoLifecycleStatus, string> = {
   draft: 'fz-stamp--draft', submitted: 'fz-stamp--info', checked: 'fz-stamp--info', approved: 'fz-stamp--frozen',
@@ -86,6 +92,28 @@ export function F2HujjatKorinish(p: {
   const birinchi = lines[0];
   const farq = akt.hujjat_jami != null ? akt.hujjat_jami - akt.yozilgan_jami : null;
   const bajar = (id: number) => qatorBajarilish(p.smetaHajm.get(id) ?? null, oldin.get(id) ?? 0, shu.get(id) ?? 0);
+  /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27) — faqat ekrandagi jadval; Excel/rasmiy hujjat chiqishi o'zgarmaydi.
+   * Faqat hujjat qatorlari filtrlanadi, mos qatorning bo'lim/bloki ko'rinadi. Smeta/oldin/bajarilish — smeta qatori bo'yicha
+   * (bitta smeta qatoridagi barcha hujjat qatorlariga bir xil). */
+  const tekis = useMemo(() => hujjatQatorlar(p.ierarxiya), [p.ierarxiya]);
+  const ustunlar = useMemo<Ustun<HujjatQator<Line>>[]>(() => {
+    const bj = (r: HujjatQator<Line>) => qatorBajarilish(p.smetaHajm.get(r.q.qator_id) ?? null, oldin.get(r.q.qator_id) ?? 0, shu.get(r.q.qator_id) ?? 0);
+    return [
+      { kalit: 'kod', nom: t('Shifr'), tur: 'matn', qiymat: (r) => r.line?.kod },
+      { kalit: 'nom', nom: t('Bo‘lim / ish / resurs'), tur: 'matn', qiymat: (r) => r.line ? r.line.nom || t('Nomsiz qator') : r.q.nom },
+      { kalit: 'birlik', nom: t('Birlik'), tur: 'matn', qiymat: (r) => r.line?.birlik },
+      { kalit: 'smeta', nom: t('Smeta'), tur: 'son', qiymat: (r) => bj(r).smeta },
+      { kalit: 'oldin', nom: t('Oldin olingan'), tur: 'son', qiymat: (r) => bj(r).oldin },
+      { kalit: 'shu', nom: t('Shu F2'), tur: 'son', qiymat: (r) => (r.line ? f2Miqdor(r.line) : null) },
+      { kalit: 'foiz', nom: t('Bajarilish'), tur: 'son', qiymat: (r) => { const f = bj(r).foiz; return f == null ? null : Math.round(f); } },
+      { kalit: 'narx', nom: t('Narx'), tur: 'son', qiymat: (r) => (r.line ? f2BirlikNarx(r.line) : null) },
+      { kalit: 'summa', nom: t('Summa'), tur: 'son', qiymat: (r) => (r.line ? f2Pul(r.line) : null) },
+    ];
+  }, [p.smetaHajm, oldin, shu]);
+  const f = useJadvalFiltr(tekis, ustunlar, DARAXT);
+  const F = (kalit: string) => <span className="print:hidden"><UstunFiltrTugma {...f.tugma(kalit)} /></span>;
+  const filtrJami = useMemo(() => korinadiganJami(f.natija, f2Pul), [f.natija]);
+  const filtrQatorSoni = filtrJami.soni;
   const varaqCls = p.status === 'draft' || p.status === 'submitted' || p.status === 'checked' ? 'fz-doc__sheet--draft' : p.status === 'rejected' || p.status === 'cancelled' ? 'fz-doc__sheet--danger' : '';
 
   const tekQator = (holat: 'ok' | 'warn' | 'bad', Ikon: typeof CheckCircle2, matn: string) => (
@@ -164,19 +192,21 @@ export function F2HujjatKorinish(p: {
 
       {p.ostida}
 
+      <div className="print:hidden"><FiltrHolatQatori soni={f.soni} natija={filtrQatorSoni} jami={lines.length} tozala={f.tozala} /></div>
       <div className="fz-table-wrap">
         <table className="fz-table">
           <thead><tr>
-            <th>{t('Bo‘lim / ish / resurs')}</th><th>{t('Birlik')}</th>
-            <th className="fz-c-num">{t('Smeta')}</th><th className="fz-c-num">{t('Oldin olingan')}</th><th className="fz-c-num">{t('Shu F2')}</th>
-            <th>{t('Bajarilish')}</th><th className="fz-c-num">{t('Narx')}<SummaYorliq tur="narx" /></th><th className="fz-c-num">{t('Summa')} <small className="font-normal text-text-mute">({t('ustamasiz')})</small></th>
+            <th>{t('Bo‘lim / ish / resurs')}{F('kod')}{F('nom')}</th><th>{t('Birlik')}{F('birlik')}</th>
+            <th className="fz-c-num">{t('Smeta')}{F('smeta')}</th><th className="fz-c-num">{t('Oldin olingan')}{F('oldin')}</th><th className="fz-c-num">{t('Shu F2')}{F('shu')}</th>
+            <th>{t('Bajarilish')}{F('foiz')}</th><th className="fz-c-num">{t('Narx')}<SummaYorliq tur="narx" />{F('narx')}</th><th className="fz-c-num">{t('Summa')} <small className="font-normal text-text-mute">({t('ustamasiz')})</small>{F('summa')}</th>
           </tr></thead>
           <tbody>
-            {p.ierarxiya.map((q) => {
+            {f.natija.map((r) => {
+              const { q } = r;
               const pad = { paddingLeft: 12 + q.daraja * 18 };
               const belgiMatn = q.zamena ? t('zamena') : q.qoshimcha ? t('qo‘shimcha') : null;
               const belgi = belgiMatn && <span className="fz-chip fz-chip--accent" style={{ marginLeft: 6 }}>{belgiMatn}</span>;
-              if (q.bolaSoni > 0 || q.tur === 'rz') {
+              if (!r.line) {
                 const b = q.tur === 'bl' && q.qatorlar.length ? bajar(q.qator_id) : null;
                 return (
                   <tr key={'o' + q.qator_id} className={q.tur === 'rz' ? 'fz-row-rz' : 'fz-row-bl'}>
@@ -188,7 +218,8 @@ export function F2HujjatKorinish(p: {
                 );
               }
               const b = bajar(q.qator_id);
-              return q.qatorlar.map((line, k) => (
+              const { line, k } = r;
+              return (
                 <tr key={line.akt_qator_id} className="fz-row-res">
                   <td style={pad}>
                     {k === 0 && <KatNishon kat={line.kat} className="mr-1.5" />}
@@ -202,11 +233,18 @@ export function F2HujjatKorinish(p: {
                   <td className="fz-c-num"><FmtN val={f2BirlikNarx(line)} /></td>
                   <td className="fz-c-num"><FmtN val={f2Pul(line)} /></td>
                 </tr>
-              ));
+              );
             })}
+            {f.soni > 0 && filtrQatorSoni === 0 && <tr className="print:hidden"><td colSpan={8} className="text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</td></tr>}
+            {f.soni > 0 && filtrQatorSoni > 0 && (
+              <tr className="fz-row-total print:hidden" data-testid="f2-filtr-jami">
+                <td colSpan={7}>{t('Filtr bo‘yicha: {a} / {b} qator (ustamasiz, NDS siz)', { a: filtrQatorSoni, b: lines.length })}</td>
+                <td className="fz-c-num">{filtrJami.summa != null ? <FmtN val={filtrJami.summa} /> : <span className="text-text-mute">—</span>}</td>
+              </tr>
+            )}
             {lines.length > 0 && (
               <tr className="fz-row-total">
-                <td colSpan={7}>{t('Jami: QQS bilan (katta); ustamali QQS siz va ustamasiz (kichik)')}</td>
+                <td colSpan={7}>{t('Jami: QQS bilan (katta); ustamali QQS siz va ustamasiz (kichik)')}{f.soni > 0 && <span className="print:hidden"> · {t('butun hujjat bo‘yicha')}</span>}</td>
                 <td className="fz-c-num"><SummaJuft obyektId={p.obyektId} ustamasiz={qatorlarJami} katKesim={katKesim} className="items-end text-right" /></td>
               </tr>
             )}
