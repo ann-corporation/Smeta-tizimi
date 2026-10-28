@@ -3150,6 +3150,31 @@
       ],
       "production_write_allowed": false,
       "note": "L0 review 2026-10-28 (3), PR189 only: self-seeded rollback acceptance, permission-checked receipt list/totals, <=1000 rows and exact receipt replay. Clean worktree C:/Temp/GAS-c11-ledger-review-20261028, working branch codex/c11-ledger-review-20261028; delivery to existing PR189 branch. PR190/182 frozen, no push. Synthetic SQL runner uses explicit mock guards; target Supabase acceptance/apply/merge remain L0. No production DDL/DML by Codex."
+    },
+    {
+      "id": "RAHBAR-PANEL-20261028",
+      "title": "Rahbar paneli + yagona summa paketi (issue #195) — PR1: server + api turlari",
+      "owner": "claude",
+      "machine": "cloud",
+      "branch": "claude/rahbar-panel-server",
+      "base_sha": "9bd0aae2",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261114200000_t2_rahbar_panel_v1.sql",
+        "supabase/migrations/20261114200000_t2_rahbar_panel_v1.rollback.sql",
+        "supabase/migrations/20261114200000_t2_rahbar_panel_v1.acceptance.sql",
+        "frontend/functions/api/sb.ts (faqat rahbar_panel_v1 o'qish ro'yxati)",
+        "frontend/functions/_shared/permission-policy.ts (faqat rahbar_panel → financial.read)",
+        "frontend/src/api/t2-rahbar-panel.ts",
+        "frontend/src/lib/summa-paket.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Issue #195 (L0 → cloud, egasi 2026-10-29). Migratsiyani prodga faqat L0 qo'llaydi. Keyingi PR'lar: (2) SummaJuft kengaytirish + inventarizatsiya, (3) panel §1–§5, (4) §6–§7."
     }
   ]
 }

@@ -265,6 +265,9 @@ export const onRequestPost: PagesFunction<{
         pul_tahlil_v2: 'kompaniya_actor',
         /* Egasi 2026-10-27: «Парк объектининг молиявий таҳлили» — 16 ko'rsatkich (tizim + qo'lda). `stable`; a'zolik + financial.read. */
         moliya_tahlil_v1: 'kompaniya_actor',
+        /* Issue #195 (egasi 2026-10-29): RAHBAR PANELI — kartalar, pul oqimi, obyektlar matritsasi, diqqat (top-10), tasdiq navbati.
+           Summalar yagona «summa paketi» (QQS bilan · ustamali · прямые + kesim). `stable`; a'zolik + financial.read ichida. */
+        rahbar_panel_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
@@ -381,6 +384,19 @@ export const onRequestPost: PagesFunction<{
         const id = Number(so.obyekt_id);
         if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: "obyekt_id noto'g'ri" });
         q.set('p_obyekt_id', String(id));
+      }
+      if (so.soro === 'rahbar_panel_v1') {
+        if (so.obyekt_id != null && String(so.obyekt_id) !== '') {
+          const id = Number(so.obyekt_id);
+          if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: "obyekt_id noto'g'ri" });
+          q.set('p_obyekt_id', String(id));
+        }
+        for (const [kalit, param] of [['davr_dan', 'p_davr_dan'], ['davr_gacha', 'p_davr_gacha']] as const) {
+          const v = so[kalit];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string' || !/^\d{4}-\d{2}(-\d{2})?$/.test(v)) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, v.length === 7 ? `${v}-01` : v);
+        }
       }
       if (so.soro === 'pul_tahlil_v1' || so.soro === 'pul_tahlil_v2') {
         for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
