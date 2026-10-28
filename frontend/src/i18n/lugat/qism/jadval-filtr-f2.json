@@ -1,0 +1,8 @@
+{
+  "Filtr bo‘yicha qator topilmadi.": { "ru": "По фильтру строк не найдено.", "en": "No rows match the filter." },
+  "Jami (filtr bo‘yicha): {a} obyekt": { "ru": "Итого (по фильтру): {a} объектов", "en": "Total (filtered): {a} objects" },
+  "Ustun filtrlari": { "ru": "Фильтры столбцов", "en": "Column filters" },
+  "Pastdagi «Jami» — butun F2 qoralama bo‘yicha (filtrga bog‘liq emas); «Topilganlarni to‘liq olish» faqat ko‘rinadiganlarga qo‘llanadi.": { "ru": "«Итого» внизу — по всему черновику Ф-2 (не зависит от фильтра); «Взять найденные целиком» применяется только к видимым.", "en": "The «Total» below covers the whole F2 draft (not affected by the filter); «Take all found in full» applies only to visible rows." },
+  "Filtr bo‘yicha: {a} / {b} qator (ustamasiz, NDS siz)": { "ru": "По фильтру: {a} / {b} строк (без накрутки, без НДС)", "en": "Filtered: {a} / {b} rows (without markup, excl. VAT)" },
+  "butun hujjat bo‘yicha": { "ru": "по всему документу", "en": "for the whole document" }
+}

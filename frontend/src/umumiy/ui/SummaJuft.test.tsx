@@ -23,12 +23,13 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('SummaJuft — ustamali (katta) + ustamasiz (kichik)', () => {
-  it('server natijasiga (ИТОГО-4) tiyinigacha teng, ustamasiz yonida', async () => {
+describe('SummaJuft (sukut, jami) — QQS bilan katta; ustamali va ustamasiz kichik (egasi 2026-10-27)', () => {
+  it('asosiy — server ВСЕГО (QQS bilan) tiyinigacha; ostida ИТОГО-4 va ustamasiz', async () => {
     wrap(<SummaJuft obyektId={7} kompaniyaId={17} ustamasiz={1283792838.67} katKesim={katKesimServerdan(CATS)} />);
-    await waitFor(() => expect(matn('summa-ustamali')).toBe('1 507 951 902.86'));
+    await waitFor(() => expect(matn('summa-qqs')).toBe('QQS bilan 1 688 906 131.21'));
+    expect(matn('summa-ustamali')).toBe('ustamali, QQS siz: 1 507 951 902.86');
     expect(matn('summa-ustamasiz')).toContain('1 283 792 838.67');
-    expect((screen.getByTestId('summa-juft').getAttribute('title') ?? '').replace(/\s/g, ' ')).toContain('QQS bilan (alohida): 1 688 906 131,21');
+    expect((screen.getByTestId('qiymat-uchlik').getAttribute('title') ?? '').replace(/\s/g, ' ')).toContain('QQS bilan (alohida): 1 688 906 131,21');
   });
 
   it('kat noma’lum qismi bo‘lsa — «taxminiy» va so‘m aniq ko‘rsatiladi', async () => {
@@ -40,27 +41,43 @@ describe('SummaJuft — ustamali (katta) + ustamasiz (kichik)', () => {
     expect(matn('summa-taxminiy')).toContain('taxminiy');
     expect(matn('summa-taxminiy')).toContain('500');
     // 1000 × МАТ: ИТОГО-4 (QQS siz) = 1 266.64, + kat noma'lum 500 ustamasiz qo'shiladi (taxminiy) → ≈ 1 766.64;
-    // asosiy raqam hech qachon ustamasizdan kichik chiqmaydi.
-    expect(matn('summa-ustamali')).toBe('≈ 1 766.64');
+    // asosiy raqam hech qachon ustamasizdan kichik chiqmaydi. QQS qatori ham taxminiy: 1 418.64 + 500 × 1,12 = 1 978.64.
+    expect(matn('summa-ustamali')).toBe('ustamali, QQS siz: ≈ 1 766.64');
+    expect(matn('summa-qqs')).toBe('QQS bilan ≈ 1 978.64');
   });
 
-  it('hamma qator kat’siz — ustamali 0 emas, NOMA’LUM', async () => {
+  it('hamma qator kat’siz — QQS bilan ham, ustamali ham 0 emas, «—»', async () => {
     const k = bosKatKesim();
     katKesimgaQosh(k, null, 500);
     wrap(<SummaJuft obyektId={7} kompaniyaId={17} ustamasiz={500} katKesim={k} />);
     await waitFor(() => expect(screen.getByTestId('summa-kat-nomalum')).toBeTruthy());
-    expect(matn('summa-ustamali')).toContain('noma’lum');
+    expect(matn('summa-qqs')).toBe('QQS bilan —');
+    expect(matn('summa-ustamali')).toBe('ustamali, QQS siz: —');
   });
 
-  it('koeffitsientlar o‘qilmasa — ustamali noma’lum, ustamasiz ko‘rinadi', async () => {
+  it('koeffitsientlar o‘qilmasa — QQS bilan «—», ustamasiz ko‘rinadi', async () => {
     m.nak.mockResolvedValue({ ok: false, error: 'x' });
     wrap(<SummaJuft obyektId={7} kompaniyaId={17} ustamasiz={1000} katKesim={katKesimServerdan(CATS)} />);
-    await waitFor(() => expect(matn('summa-ustamali')).toContain('noma’lum'));
+    await waitFor(() => expect(screen.getByText('Ustama o‘qilmadi — qayta urinish')).toBeTruthy());
+    expect(matn('summa-qqs')).toBe('QQS bilan —');
     expect(matn('summa-ustamasiz')).toContain('1 000');
   });
 
   it('summa noma’lum (null) — tire, 0 emas', () => {
     wrap(<SummaJuft obyektId={7} kompaniyaId={17} ustamasiz={null} katKesim={bosKatKesim()} />);
+    expect(matn('summa-qqs')).toBe('QQS bilan —');
+    expect(matn('summa-ustamasiz')).toBe('to‘g‘ri xarajat (ustamasiz): —');
+  });
+});
+
+describe('SummaJuft rejim="ustamali" — faqat ish jadvalidagi QATOR summasi (avvalgi juftlik)', () => {
+  it('ustamali katta, ustamasiz kichik — QQS asosiy emas', async () => {
+    wrap(<SummaJuft rejim="ustamali" obyektId={7} kompaniyaId={17} ustamasiz={1283792838.67} katKesim={katKesimServerdan(CATS)} />);
+    await waitFor(() => expect(matn('summa-ustamali')).toBe('1 507 951 902.86'));
+    expect(screen.queryByTestId('summa-qqs')).toBeNull();
+  });
+  it('summa noma’lum (null) — tire, 0 emas', () => {
+    wrap(<SummaJuft rejim="ustamali" obyektId={7} kompaniyaId={17} ustamasiz={null} katKesim={bosKatKesim()} />);
     expect(matn('summa-ustamali')).toBe('—');
     expect(screen.queryByTestId('summa-ustamasiz')).toBeNull();
   });

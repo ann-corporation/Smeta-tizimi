@@ -10,6 +10,8 @@ import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { somga, type ShartnomaSvodi, type SvodJami } from '../../lib/nakopitelniy-svod';
 import { hisobChizigi, qoldiqMazmuni } from '../../lib/shartnoma-zanjir-korinish';
+import { ustamasizUchlik } from '../../lib/ustamali-summa';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 
 const Pul = ({ v }: { v: number | null | undefined }) => (v == null ? <span className="text-text-mute">—</span> : <FmtN val={v} kasr={0} />);
 
@@ -28,7 +30,7 @@ export function ZanjirKpi({ jami, soni }: { jami: SvodJami; soni: number }) {
     <section className="fz-card p-4" aria-label={t('Shartnomalar bo‘yicha jami')}>
       <div className="fz-kpis">
         {k('var(--text-dim)', t('Shartnomalar (DS bilan)'), <Pul v={somga(jami.shartnomaSumma)} />, jami.shartnomaNomalum > 0 ? t('{n} ta shartnoma · {m} tasida summa yo‘q', { n: soni, m: jami.shartnomaNomalum }) : t('{n} ta shartnoma · QQS bilan', { n: soni }))}
-        {k('var(--border-strong)', t('F2 tasdiqlangan'), <Pul v={somga(jami.f2)} />, t('ustamasiz — boshqa daraja'))}
+        {k('var(--border-strong)', t('F2 tasdiqlangan'), <QiymatUchlik q={ustamasizUchlik(somga(jami.f2))} yorliq={t('F2, QQS bilan')} />, t('ustamasiz — boshqa daraja'))}
         {k('var(--accent)', t('F3 (sotuv)'), <Pul v={somga(jami.f3)} />, t('QQS bilan'))}
         {k('var(--ok)', t('To‘lov'), <Pul v={somga(jami.tolov)} />, t('avans + to‘lov − qaytarim'))}
         {k(qoldiq === 'buyurtmachi_qarzi' ? 'var(--warn)' : 'var(--info)', t('Akt-sverka qoldig‘i'), <Pul v={somga(jami.qoldiq)} />, qoldiqIzoh)}
@@ -60,9 +62,9 @@ export function ShartnomaZanjir({ sv }: { sv: ShartnomaSvodi }) {
   const harakat = (ulush: number, kechik: number) => ({ initial: kam ? false as const : { width: 0 }, animate: { width: `${ulush * 100}%` }, transition: kam ? { duration: 0 } : { duration: 0.7, delay: kechik, ease: 'easeOut' as const } });
   const q = qoldiqMazmuni(sv.qoldiq);
   const dsIzoh = sv.joriy.manba === 'ds' && sv.joriy.ds ? t('DS № {r} dan ({s})', { r: sv.joriy.ds.raqam, s: sv.joriy.ds.sana.slice(0, 10) }) : sv.joriy.manba === 'shartnoma' ? t('asl shartnoma summasi') : t('summa kiritilmagan');
-  const bosqichlar: { kalit: string; nom: string; qiymat: number | null; izoh: string; rang: string; holat?: 'warn' }[] = [
+  const bosqichlar: { kalit: string; nom: string; qiymat: number | null; izoh: string; rang: string; holat?: 'warn'; faqatUstamasiz?: boolean }[] = [
     { kalit: 'sh', nom: t('Shartnoma / DS'), qiymat: c.shartnoma, izoh: dsIzoh, rang: 'var(--text-dim)', holat: c.shartnoma == null ? 'warn' : undefined },
-    { kalit: 'f2', nom: t('F2 tasdiqlangan'), qiymat: somga(sv.f2), izoh: t('{n} ta akt · ustamasiz', { n: sv.f2Soni }), rang: 'var(--border-strong)', holat: sv.f2SummasizSoni ? 'warn' : undefined },
+    { kalit: 'f2', nom: t('F2 tasdiqlangan'), qiymat: somga(sv.f2), izoh: t('{n} ta akt · ustamasiz', { n: sv.f2Soni }), rang: 'var(--border-strong)', holat: sv.f2SummasizSoni ? 'warn' : undefined, faqatUstamasiz: true },
     { kalit: 'f3', nom: t('F3 (sotuv)'), qiymat: c.f3, izoh: t('{n} ta · {m} tasi imzolangan', { n: sv.f3Soni, m: sv.f3Imzolangan }), rang: 'var(--accent)', holat: sv.f3Soni > sv.f3Imzolangan || c.oshdi ? 'warn' : undefined },
     { kalit: 'tl', nom: t('To‘lov'), qiymat: c.tolov, izoh: t('{n} ta to‘lov yozuvi', { n: sv.shartnoma.tolovlar.length }), rang: 'var(--ok)' },
     { kalit: 'sv', nom: t('Akt-sverka qoldig‘i'), qiymat: somga(sv.qoldiq), izoh: q === 'buyurtmachi_qarzi' ? t('buyurtmachi qarzi') : q === 'avans' ? t('ishlanmagan avans') : t('hisob teng'), rang: q === 'buyurtmachi_qarzi' ? 'var(--warn)' : 'var(--info)' },
@@ -75,7 +77,8 @@ export function ShartnomaZanjir({ sv }: { sv: ShartnomaSvodi }) {
           <Fragment key={b.kalit}>
             <li className="relative flex min-w-0 flex-col gap-0.5 rounded-md border border-border bg-surface-2 px-2.5 py-2" style={{ borderTop: `3px solid ${b.rang}` }}>
               <span className="flex items-start gap-1 text-[10.5px] font-semibold uppercase leading-tight tracking-wide text-text-mute"><span className="shrink-0 tabular-nums">{i + 1}</span><span className="min-w-0">{b.nom}</span></span>
-              <b className="truncate text-[15px] tabular-nums text-text"><Pul v={b.qiymat} /></b>
+              {b.faqatUstamasiz ? <QiymatUchlik q={ustamasizUchlik(b.qiymat)} yorliq={t('F2, QQS bilan')} kichik />
+                : <b className="truncate text-[15px] tabular-nums text-text"><Pul v={b.qiymat} /></b>}
               <span className={`text-[11.5px] ${b.holat === 'warn' ? 'text-warn' : 'text-text-mute'}`}>{b.izoh}</span>
               {i < bosqichlar.length - 1 && <ChevronRight aria-hidden="true" size={14} className="absolute -right-[11px] top-1/2 z-10 hidden -translate-y-1/2 text-text-mute sm:block" />}
             </li>
