@@ -5,7 +5,7 @@ import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
-import { katKesimYigish } from '../../lib/ustamali-summa';
+import { katKesimJamiBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { KAT_GURUH_NOMI } from '../../lib/f2-hujjat-korinish';
 import { barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type Kesim } from '../../lib/smeta-korinish';
 
@@ -35,7 +35,31 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   const diqqat = useMemo(() => oshganQatorlar(tree), [tree]);
   const daraxtKesim = useMemo(() => katKesimYigish([...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => b.smeta), [tree]);
   // Svod yaxlit belgili obyektda butun smeta ustamalisi — server kesimi (yaxlit bo'limlar ustamasiz, QQS bir marta).
-  const kesim = useUstamaliSumma(obyektId).obyektKesim ?? daraxtKesim;
+  const ust = useUstamaliSumma(obyektId);
+  const kesim = ust.obyektKesim ?? daraxtKesim;
+  const { yaxlitIdlari } = ust;
+  /** Fakt / F2 / qoldiq kartalari ham QQS bilan (egasi 2026-10-27): barg qatorlar kesimi; jamidan farqi — kat noma'lum (≈). */
+  const kartaKesim = useMemo(() => {
+    const juft: { id: number; ota_id: number | null }[] = [];
+    const yur = (x: TreeNode, ota: number | null) => { if (x.id != null) juft.push({ id: x.id, ota_id: ota }); x.children?.forEach((c) => yur(c, x.id ?? null)); };
+    tree.forEach((r) => yur(r, null));
+    const yax = yaxlitIdlari(juft);
+    const bs = [...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl');
+    const son = (v: number | null | undefined) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+    const yig = (summa: (b: TreeNode) => number | null, jami: number | null) =>
+      katKesimJamiBilan(bs, (b) => b.kat, summa, jami, (b) => b.id != null && yax.has(b.id));
+    return {
+      /** Bo'lim jami (bo'lim darajasi) — tree[i] ↔ bolimlar[i]. */
+      bolim: tree.map((r) => katKesimJamiBilan([...barglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => son(b.smeta), son(r.smeta),
+        (b) => b.id != null && yax.has(b.id))),
+      fakt: yig((b) => son(b.stFakt), umumiy.fakt),
+      f2: yig((b) => son(b.stF2), umumiy.f2),
+      qoldiq: yig((b) => {
+        const sm = son(b.smeta), fk = son(b.stFakt), f2 = son(b.stF2);
+        return sm == null ? null : sm - Math.max(fk ?? 0, f2 ?? 0);
+      }, umumiy.qoldiq),
+    };
+  }, [tree, umumiy, yaxlitIdlari]);
   if (!tree.length) return null;
   const pct = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
   const toliqEmas = umumiy.toliq ? null : t('To‘liq emas: {s} bo‘limda smeta, {f} da fakt, {f2} da F2 summasi noma’lum — ko‘rsatilgan qiymat faqat ma’lum qismlar yig‘indisi', { s: umumiy.nomalum.smeta, f: umumiy.nomalum.fakt, f2: umumiy.nomalum.f2 });
@@ -45,10 +69,10 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
     <section className="fz-doc" aria-label={t('Smeta anatomiyasi')}>
       <div className="fz-doc__sheet">
         <div className="fz-kpis">
-          <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta qiymati')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className="[&_[data-testid=summa-ustamali]]:text-[20px] [&_[data-testid=summa-ustamali]]:font-semibold" />{nomalumBelgi(umumiy.nomalum.smeta)}</div>
-          <div className="fz-kpi"><span className="fz-kpi__label"><i className="fz-bg-nomalum" style={{ background: 'var(--info)' }} />{t('Bajarilgan (fakt)')}</span><span className="fz-kpi__value"><FmtN val={umumiy.fakt} kasr={0} />{nomalumBelgi(umumiy.nomalum.fakt)}</span><span className="fz-kpi__sub">{pct(umumiy.faktUlush)} {t('smetadan')}</span></div>
-          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('F2 bilan topshirilgan')}</span><span className="fz-kpi__value"><FmtN val={umumiy.f2} kasr={0} />{nomalumBelgi(umumiy.nomalum.f2)}</span><span className="fz-kpi__sub">{pct(umumiy.f2Ulush)} {t('smetadan')}</span></div>
-          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--surface-3)', boxShadow: 'inset 0 0 0 1px var(--border-strong)' }} />{t('Qoldiq')}</span><span className="fz-kpi__value"><FmtN val={umumiy.qoldiq} kasr={0} />{nomalumBelgi(umumiy.nomalum.smeta + umumiy.nomalum.fakt + umumiy.nomalum.f2)}</span><span className="fz-kpi__sub">{t('bajarilmagan qism (ustamasiz)')}</span></div>
+          <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta qiymati')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className="[&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" />{nomalumBelgi(umumiy.nomalum.smeta)}</div>
+          <div className="fz-kpi"><span className="fz-kpi__label"><i className="fz-bg-nomalum" style={{ background: 'var(--info)' }} />{t('Bajarilgan (fakt)')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.fakt} katKesim={kartaKesim.fakt} yorliq={t('Fakt, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.fakt)}<span className="fz-kpi__sub">{pct(umumiy.faktUlush)} {t('smetadan')}</span></div>
+          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('F2 bilan topshirilgan')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.f2} katKesim={kartaKesim.f2} yorliq={t('F2, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.f2)}<span className="fz-kpi__sub">{pct(umumiy.f2Ulush)} {t('smetadan')}</span></div>
+          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--surface-3)', boxShadow: 'inset 0 0 0 1px var(--border-strong)' }} />{t('Qoldiq')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.qoldiq} katKesim={kartaKesim.qoldiq} yorliq={t('Qoldiq, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.smeta + umumiy.nomalum.fakt + umumiy.nomalum.f2)}<span className="fz-kpi__sub">{t('bajarilmagan qism')}</span></div>
         </div>
         <Chiziq k={umumiy} katta />
         {toliqEmas && <p className="fz-note fz-note--warn" role="note"><AlertTriangle aria-hidden="true" />{toliqEmas}</p>}
@@ -89,13 +113,13 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
       <section className="fz-panel" aria-label={t('Bo‘limlar')}>
         <div className="fz-panel__h"><span>{t('Bo‘limlar kesimi')}</span><span className="flex gap-3"><span><i className="inline-block h-2 w-2 rounded-sm" style={{ background: 'var(--accent)' }} /> F2</span><span><i className="inline-block h-2 w-2 rounded-sm" style={{ background: 'var(--info)' }} /> {t('fakt')}</span></span></div>
         <div>
-          {bolimlar.map((b) => (
+          {bolimlar.map((b, i) => (
             <div key={b.id} className="fz-bolim">
               <div className="fz-bolim__nom"><b title={b.nom}>{b.nom || t('Nomsiz bo‘lim')}</b>
                 <small>{t('{n} ish', { n: b.ishSoni })} · {t('{n} resurs', { n: b.resursSoni })}{b.oshgan > 0 && <span className="fz-chip fz-chip--warn">{t('{n} oshgan', { n: b.oshgan })}</span>}{b.zamena > 0 && <span className="fz-chip fz-chip--accent">{t('zamena {n}', { n: b.zamena })}</span>}{b.qoshimcha > 0 && <span className="fz-chip fz-chip--accent">{t('qo‘shimcha {n}', { n: b.qoshimcha })}</span>}</small>
               </div>
               <Chiziq k={b} />
-              <div className="fz-bolim__sum"><FmtN val={b.smeta} kasr={0} /><small>{t('qoldiq')}: <FmtN val={b.qoldiq} kasr={0} /></small></div>
+              <div className="fz-bolim__sum"><SummaJuft kichik obyektId={obyektId} ustamasiz={b.smeta} katKesim={kartaKesim.bolim[i]} className="items-end text-right" /><small>{t('qoldiq (ustamasiz)')}: <FmtN val={b.qoldiq} kasr={0} /></small></div>
             </div>
           ))}
         </div>

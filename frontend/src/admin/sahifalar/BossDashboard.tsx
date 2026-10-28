@@ -19,6 +19,7 @@ import ExecutiveCockpit from '../../components/boss-decision/ExecutiveCockpit';
 import { F2Oqimi, MoliyaUstunlari, SignalTasma, SmetaF2Ustunlari } from '../../components/rahbar-panel/RahbarGrafiklar';
 import { MindmapSlot } from '../../components/rahbar-panel/MindmapSlot';
 import { KategoriyaDonut, SanaYurish, UstamaSharshara, UstamaXulosaKarta } from '../../components/rahbar-panel/RahbarUstama';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
 
 type Dashboard = NonNullable<ReturnType<typeof useBossDashboard>['data']>;
@@ -73,7 +74,7 @@ function Xulosa({ data, e }: { data: Dashboard; e: BossExecutive | null }) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {e && <UstamaXulosaKarta obyektlar={obyektlar} ustamasiz={amount(e.totals.estimate_known)} kompaniyaId={data.kompaniya.kompaniya_id} />}
         <KpiKarta nom={t('To‘g‘ridan-to‘g‘ri xarajat (ustamasiz)')} qiymat={e && amount(e.totals.estimate_known) != null ? <><SanaYurish qiymat={amount(e.totals.estimate_known)} />{' UZS'}</> : '—'} ost={smetaIzoh} />
-        <KpiKarta nom={t('Tasdiqlangan F2 hujjatlari summasi')} qiymat={e && amount(e.totals.approved_known) != null ? <><SanaYurish qiymat={amount(e.totals.approved_known)} />{' UZS'}</> : '—'} ost={f2Izoh} />
+        <KpiKarta nom={t('Tasdiqlangan F2 hujjatlari summasi')} qiymat={e && amount(e.totals.approved_known) != null ? <><SanaYurish qiymat={amount(e.totals.approved_known)} />{' UZS'}<SummaYorliq tur="ustamasiz" /></> : '—'} ost={f2Izoh} />
         <KpiKarta nom={t('F2: tekshiruv / qoralama')} qiymat={jarayon} ost={t('Tasdiqlangan aktlardan alohida')} />
         <KpiKarta nom={t('Muhim ochiq signallar')} qiymat={<span className={data.signal.kritik_soni > 0 ? 'text-danger' : ''}>{data.signal.kritik_soni}</span>} ost={signalIzoh} />
       </div>
@@ -181,7 +182,7 @@ function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number)
       <div className="fz-table-wrap">
         <table className="fz-table min-w-[760px]">
           <thead><tr>
-            <th>{t('Obyekt')}</th><th className="fz-c-num">{t('Smeta: ustamali / ustamasiz')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}</th><th>{t('E’tibor talab qiladi')}</th>
+            <th>{t('Obyekt')}</th><th className="fz-c-num">{t('Smeta qiymati (QQS bilan)')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}</th><th>{t('E’tibor talab qiladi')}</th>
           </tr></thead>
           <tbody>
             {objects.map(o => <tr key={o.object_id}>
@@ -195,7 +196,7 @@ function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number)
                 </a>
               </td>
               <td className="fz-c-num">
-                <Link className="underline decoration-dotted underline-offset-4 hover:text-accent" to={objectUrl(o.object_id, o.project_id, 'f2-tarix')}>{money(o.approved_known)}</Link>
+                <Link className="underline decoration-dotted underline-offset-4 hover:text-accent" to={objectUrl(o.object_id, o.project_id, 'f2-tarix')}>{money(o.approved_known)}</Link><SummaYorliq tur="ustamasiz" />
               </td>
               <td><ObyektBelgilari o={o} /></td>
             </tr>)}
