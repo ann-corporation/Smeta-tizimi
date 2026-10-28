@@ -1,10 +1,9 @@
 import { useContext, useMemo } from 'react';
 import { QueryClient, QueryClientContext, useQueries, useQuery } from '@tanstack/react-query';
-import { kaskadCats } from '../../lib/svod-yaxlit';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
-import { katKesimServerdan, ustamaliHisobla } from '../../lib/ustamali-summa';
+import { obyektKesimi, ustamaliHisobla } from '../../lib/ustamali-summa';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 
 export type PortfelObyekt = { obyektId: number; shartnomaId?: number | null };
@@ -22,6 +21,8 @@ export type PortfelUstamali = {
   jamiSoni: number;
   /** Obyekt bo‘yicha ustamali (null — noma’lum). */
   boYicha: Map<number, number | null>;
+  /** Obyekt bo‘yicha QQS bilan (ВСЕГО; null — noma’lum). Egasi 2026-10-27: jami qiymatning asosiy raqami. */
+  qqsBoYicha: Map<number, number | null>;
   retry: () => void;
 };
 
@@ -64,16 +65,18 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
 
   const kutyapti = !bor || pod.isPending || nak.some((q) => q.isPending);
   const boYicha = new Map<number, number | null>();
+  const qqsBoYicha = new Map<number, number | null>();
   let ustamali = 0, ustamasiz = 0, hisUs = 0, nds = 0, hisoblandi = 0, nomalum = 0, ustamasizBor = false;
   royxat.forEach((o, i) => {
     const r = nak[i]?.data;
-    if (!r?.cats || !pod.data) { boYicha.set(o.obyektId, null); nomalum++; return; }
-    const kesim = katKesimServerdan(kaskadCats(r) ?? r.cats, r.svod_yaxlit);
+    if (!r?.cats || !pod.data) { boYicha.set(o.obyektId, null); qqsBoYicha.set(o.obyektId, null); nomalum++; return; }
+    const kesim = obyektKesimi(r)!;
     const p = podvalTanla(pod.data, { obyektId: o.obyektId, shartnomaId: o.shartnomaId ?? null });
     const u = ustamaliHisobla(kesim, r.koeffitsientlar, p ? { versiya: 1, nom: p.nom, qatorlar: p.qatorlar } : null);
     ustamasiz += u.ustamasiz; ustamasizBor = true;
-    if (u.ustamali == null) { boYicha.set(o.obyektId, null); nomalum++; return; }
+    if (u.ustamali == null) { boYicha.set(o.obyektId, null); qqsBoYicha.set(o.obyektId, null); nomalum++; return; }
     boYicha.set(o.obyektId, u.ustamali);
+    qqsBoYicha.set(o.obyektId, u.ndsBilan);
     ustamali += u.ustamali; hisUs += u.ustamasiz; nds += u.ndsBilan ?? 0; hisoblandi++;
   });
   const xato = !kutyapti && (pod.isError || nak.some((q) => q.isError));
@@ -86,6 +89,7 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     hisoblanganUstamasiz: hisUs,
     jamiSoni: royxat.length,
     boYicha,
+    qqsBoYicha,
     retry: () => { void pod.refetch(); nak.forEach((q) => { void q.refetch(); }); },
   };
 }

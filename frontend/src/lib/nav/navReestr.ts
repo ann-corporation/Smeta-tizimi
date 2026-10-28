@@ -12,7 +12,12 @@
  *               HAMMA bandini ko'radi (navFiltr.test.ts da qat'iy tekshiriladi). Muammo — tartibsizlik, son emas.
  *   kompaniya — «⚙ Kompaniya»: a'zolar/rollar, integratsiya/audit, sozlama, shablonlar, tokenlar, AI ishchilar, korzinka.
  *   shaxsiy   — ish joylarim, topshiriqlarim, xizmatlarim (avatar/akkaunt menyusiga ko'chishga tayyor).
- *   platforma — faqat platforma superadmini (`k.superadmin`, capability EMAS): boshqaruv, sayt xaritasi, texnik.
+ *   platforma — faqat platforma superadmini (`k.superadmin`, capability EMAS): boshqaruv, texnik.
+ *
+ * TIZIMGA OID HAMMA NARSA — FAQAT PLATFORMA SUPERADMINI (egasi 2026-10-27: «tizim uchun taaluqli hamma narsalar superadmindan
+ * boshqada umuman chiqmasligi shart»). Yagona mexanizm: `faqatSuperadmin: true` (yoki «Platforma» guruhi) — navFiltr menyudan
+ * yashiradi, RuxsatGuard (`faqatSuperadminYolmi`) to'g'ridan-to'g'ri URL ni ham yopadi. Menyuda yo'q tizim yo'llari —
+ * `SUPERADMIN_YOLLAR_QOSHIMCHA`. Server baribir alohida tekshiradi (functions/_shared/tizim-maxfiy.ts).
  *
  * `ruxsat` — menyu ko'rinishi (xavfsizlik EMAS; sahifani server va RuxsatGuard qo'riqlaydi):
  *   [] — har kirgan foydalanuvchi;  ['a', 'b'] — kamida bittasi;  'a+b' — ikkalasi birga.
@@ -41,6 +46,8 @@ export type NavSahifa = {
   modul?: string;
   /** Kontekst sinfi (RuxsatGuard). Faqat routeScope'da bor sahifalarga yoziladi — qo'riqchi xulqi o'zgarmaydi. */
   scope?: RouteScope;
+  /** Tizimga oid sahifa: faqat platforma superadmini (menyu ham, marshrut ham). Capability EMAS — `k.superadmin`. */
+  faqatSuperadmin?: true;
 };
 
 /** Sidebar bandi: bitta sahifa yoki bir nechta sahifa — tepada tablar (BolimTablari, App.tsx dagi layout). */
@@ -165,7 +172,9 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       /* Sozlamalar 5 joyda, audit 4, AI 3 (M7) → bitta «Kompaniya» bandi, tepada tablar. */
       { nom: 'Kompaniya boshqaruvi', ikonka: 'Settings', sahifalar: [
         { yol: '/admin/kompaniya', nom: 'Kompaniya, a‘zolar va modullar', ruxsat: [RAHBARIYAT, 'company.member.manage', 'company.profile.update'], scope: 'GLOBAL' },
-        { yol: '/admin/system-control', nom: 'Integratsiyalar va audit', ruxsat: [RAHBARIYAT], scope: 'GLOBAL' },
+        /* Tizim sog'lig'i, integratsiyalar, fon ishlari, imkoniyat bayroqlari — tizimga oid (egasi 2026-10-27). Kompaniyaning
+         * o'z audit jurnali «Kompaniya → Audit» tabida qoladi. */
+        { yol: '/admin/system-control', nom: 'Integratsiyalar va audit', ruxsat: [RAHBARIYAT], scope: 'GLOBAL', faqatSuperadmin: true },
         { yol: '/admin/tizim-sozlama', nom: 'Sozlamalar', ruxsat: [RAHBARIYAT] },
         { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', ruxsat: [RAHBARIYAT, 'company.profile.update'] },
         { yol: '/admin/tokenlar', nom: 'Tokenlar va obuna', ruxsat: [RAHBARIYAT, 'company.member.manage'] },
@@ -183,6 +192,8 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Mening xizmatlarim', ikonka: 'Briefcase', sahifalar: [{ yol: '/admin/mutaxassis', nom: 'Mening xizmatlarim', ruxsat: [] }] },
       /* Firuza (#150): o'ng yuqoridagi akkaunt menyusi ham shu sahifaga olib boradi (profil, til, bildirishnoma, ko'rinish). */
       { nom: 'Akkaunt markazi', ikonka: 'User', sahifalar: [{ yol: '/admin/akkaunt', nom: 'Akkaunt markazi', ruxsat: [] }] },
+      /* Sozlamalar markazi (egasi 2026-10-26): akkaunt / kompaniya / tizim sozlamalarining yagona reestri — har kim o'z qatlamini ko'radi. */
+      { nom: 'Sozlamalar markazi', ikonka: 'Settings', sahifalar: [{ yol: '/admin/sozlamalar', nom: 'Sozlamalar markazi', ruxsat: [] }] },
     ],
   },
   {
@@ -191,13 +202,25 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       /* Faqat platforma superadmini (`k.superadmin`). Kompaniya boss/admin `control.global.read` ni katalogdan olsa ham
        * bu guruhni ko'rmaydi (tadqiqot M3). Server baribir alohida tekshiradi. */
       { nom: 'Platforma boshqaruvi', ikonka: 'Crown', sahifalar: [{ yol: '/admin/boshqaruv', nom: 'Platforma boshqaruvi', ruxsat: [] }] },
-      { nom: 'Sayt xaritasi', ikonka: 'Map', sahifalar: [{ yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', ruxsat: [] }] },
+      /* Egasi 2026-10-27: tizim darajasidagi jonli mindmap. Superadmin YOKI u ruxsat bergan odam — menyuda faqat server
+       * tasdiqlasa (`NavKontekst.tizimXaritasi`, navFiltr); sahifa va RPC ham alohida tekshiradi. Kompaniya roli bilan EMAS. */
+      { nom: 'Tizim xaritasi', ikonka: 'Gauge', sahifalar: [{ yol: '/admin/tizim-xaritasi', nom: 'Tizim xaritasi', ruxsat: [] }] },
       { nom: 'Fayl bog‘lash (texnik)', ikonka: 'Link2', sahifalar: [{ yol: '/admin/fayl-boglash', nom: 'Fayl bog‘lash (texnik)', ruxsat: [] }] },
       /* Eski SINOV qobig'i (/admin/test/*) — yo'llar o'chirilmagan, menyuda faqat superadmin uchun. _demo/* menyuda yo'q. */
       { nom: 'Sinov qobig‘i (eski)', ikonka: 'FlaskConical', sahifalar: [{ yol: '/admin/test', nom: 'Sinov qobig‘i (eski)', ruxsat: [] }] },
     ],
   },
 ];
+
+/** Menyuda YO'Q, lekin tizimga oid marshrutlar (prefiks; ichki yo'llari ham) — faqat platforma superadmini.
+ *  Sayt xaritasi menyudan olib tashlandi (egasi 2026-10-27); sahifa superadmin uchun Boshqaruv panelidan ochiladi.
+ *  Diqqat: bu yerda `yol:` kaliti ishlatilmaydi — sayt xaritasi generatori uni menyu yo'li deb o'qiydi. */
+export const SUPERADMIN_YOLLAR_QOSHIMCHA: readonly string[] = ['/admin/sayt-xaritasi', '/admin/_demo', '/admin/test', '/admin/fayl-boglash', '/admin/boshqaruv'];
+
+/** Eski /admin/test/* ichidagi biznes sahifalar — hali production manzili yo'q, kompaniya ishlatadi (CRM «Batafsil» havolasi). */
+/* `/admin/tizim-xaritasi` — superadmin YOKI u ruxsat bergan odam (server `t2_tizim_xaritasi_ruxsat` bilan hal qiladi; sahifa
+ * va menyu o'z tekshiruvini qiladi), shuning uchun umumiy «faqat superadmin» qoidasidan istisno. */
+export const SUPERADMIN_ISTISNO: readonly string[] = ['/admin/test/kontragent', '/admin/tizim-xaritasi'];
 
 /** Reestrdagi barcha sahifalar (guruh va band bilan). */
 export const NAV_SAHIFALAR: ReadonlyArray<NavSahifa & { guruh: NavGuruh; band: NavBand }> =
@@ -217,4 +240,15 @@ export function navSahifa(yol: string): (NavSahifa & { guruh: NavGuruh; band: Na
 export function ruxsatMos(ruxsat: readonly string[], permissions: readonly string[]): boolean {
   if (ruxsat.length === 0) return true;
   return ruxsat.some((r) => r.split('+').every((p) => permissions.includes(p)));
+}
+
+const yolOstimi = (yol: string, asos: string) => yol === asos || yol.startsWith(asos + '/');
+
+/** Yo'l (yoki uning ichki yo'li) faqat platforma superadminigami — menyu (navFiltr) va marshrut qo'riqchisi (RuxsatGuard) shu
+ *  bitta funksiyani o'qiydi. Manba: «Platforma» guruhi, `faqatSuperadmin: true` sahifalar va SUPERADMIN_YOLLAR_QOSHIMCHA. */
+export function faqatSuperadminYolmi(yol: string): boolean {
+  const toza = yol.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
+  if (SUPERADMIN_ISTISNO.some((x) => yolOstimi(toza, x))) return false;
+  if (SUPERADMIN_YOLLAR_QOSHIMCHA.some((x) => yolOstimi(toza, x))) return true;
+  return NAV_SAHIFALAR.some((s) => (s.faqatSuperadmin || s.guruh.qatlam === 'platforma') && yolOstimi(toza, s.yol));
 }

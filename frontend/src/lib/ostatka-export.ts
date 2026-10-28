@@ -5,6 +5,7 @@ import {
 } from './hujjat-yozuvchi';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, type KatSummalar } from './nakrutka-podval';
+import { YAXLIT_IZOH, YAXLIT_KAT } from './svod-yaxlit';
 import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
 import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
 
@@ -157,6 +158,8 @@ export type OstatkaHujjatOpsiya = {
   podval?: Podval | null;
   /** НДС stavkasi (sukut: nakrutkadagi НДС, u ham bo'lmasa 12 %). */
   ndsFoiz?: number | null;
+  /** Svod yaxlit bo'limlari va avlodlari (`yaxlitQatorIdlari`): ularga ustama qo'llanmaydi, podvalda alohida qator. */
+  yaxlitIdlar?: ReadonlySet<number> | null;
 };
 
 /** Hujjat modeli qatori — UI va Excel bir xil sonni shu modeldan oladi. */
@@ -369,13 +372,15 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   nk.НДС = o.ndsFoiz ?? nk.НДС ?? 12;
   const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
   const kfJS = kategoriyaKf(nk, podval);
-  const kfQ = podvalKfQatorlari(bosh + model.qatorlar.length + 2, podval);
+  const yax = (q: OstatkaModelQator) => q.tur === 'barg' && !!o.yaxlitIdlar?.has(q.id);
+  const yaxlitBor = model.qatorlar.some(yax);
+  const kfQ = podvalKfQatorlari(bosh + model.qatorlar.length + 2, podval, yaxlitBor);
   const koMemo = new Map<number, number | null>();
   const koOf = (i: number): number | null => {
     if (koMemo.has(i)) return koMemo.get(i)!;
     const q = model.qatorlar[i];
     let val: number | null;
-    if (q.tur === 'barg') val = kOplate(q.summa, nakrutkaKat(q.kat), kfJS);
+    if (q.tur === 'barg') val = kOplate(q.summa, nakrutkaKat(q.kat), kfJS, yax(q));
     else if (q.tur === 'rz') val = null;
     else { const vs = q.bolalar.map(koOf); val = !vs.length || vs.some((x) => x == null) ? null : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); }
     koMemo.set(i, val);
@@ -400,6 +405,8 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
         { f: `IF(OR(G${n}="",H${n}=""),"",ROUND(G${n}*H${n},2))`, v: q.summa ?? '' },
         mashinistMehnati(q) ? 0 : { f: `IF(I${n}="",1,0)`, v: q.nomalum },
         ...((): Qiymat[] => {
+          // Svod yaxlit bo'limi: ustama koeffitsienti qo'llanmaydi (к оплате = прямые).
+          if (yax(q)) return [{ f: `IF(I${n}="","",ROUND(I${n},2))`, v: koOf(i) ?? '' }, YAXLIT_KAT];
           const kat = nakrutkaKat(q.kat);
           if (!kat) { katsiz.push(`${q.nom}${q.birlik ? `, ${q.birlik}` : ''}`); return [null, null]; }
           return [{ f: `IF(I${n}="","",ROUND(I${n}*H${kfQ[kat]},2))`, v: koOf(i) ?? '' }, kat];
@@ -438,8 +445,9 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   if (model.ildizlar.length) {
     v.bosh();
     const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
-    for (const q of model.qatorlar) { const kat = q.tur === 'barg' ? nakrutkaKat(q.kat) : null; if (kat && q.summa != null) ks[kat] += q.summa; }
-    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'L', oraliq: [bosh, bosh + model.qatorlar.length - 1], pulUstunlar: ['I'], foizUstun: 'H', nk, katSummalar: { I: ks } });
+    for (const q of model.qatorlar) { const kat = q.tur === 'barg' && !yax(q) ? nakrutkaKat(q.kat) : null; if (kat && q.summa != null) ks[kat] += q.summa; }
+    const yaxlit = yaxlitBor ? { I: model.qatorlar.filter(yax).reduce((t, q) => t + (q.summa ?? 0), 0) } : null;
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'L', oraliq: [bosh, bosh + model.qatorlar.length - 1], pulUstunlar: ['I'], foizUstun: 'H', nk, katSummalar: { I: ks }, yaxlit });
     if (p.kfQator.ЧЕЛ !== kfQ.ЧЕЛ) throw new Error('OSTATKA_PODVAL_SILJIDI');
     kOplataVsego = model.jami == null ? null : p.kaskad.I.vsego;
   }
@@ -466,6 +474,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   }
   v.bosh();
   v.izoh('Графа 9 — стоимость остатка по сметным ценам (прямые затраты), без накладных расходов и НДС; графа 10 — стоимость остатка к оплате: прямые затраты × коэффициент по виду затрат (раздел «Расчет стоимости к оплате»). Позиции с неизвестным количеством, выполнением или ценой оставлены без суммы; итоги по ним не подводятся до уточнения.');
+  if (yaxlitBor) v.izoh(YAXLIT_IZOH);
   if (katsiz.length) v.diqqat(katsiz.map((nom) => ({ nom, sabab: 'не указан вид затрат — стоимость к оплате не определена' })), 'ВИД ЗАТРАТ НЕ УКАЗАН');
   if (!o.nakrutka || !Object.keys(o.nakrutka).length) v.izoh('Проценты накладных и прочих расходов для объекта не заданы — в расчете стоимости к оплате приняты 0 % (учтен только НДС).');
   v.diqqat(model.diqqat);

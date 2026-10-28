@@ -48,6 +48,7 @@ import { lrvKalitYoz } from './lrv-qayta-import';
 import { resursVedomostAoa } from './resurs-vedomost';
 import { boshKeshQoy, chopNomlariAbsolyut, ogohlantirishlarniOchir, bugunSana, hujjatFaylNomi, imzoMatni, imzoMuhrli, imzoTomonlari, IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, type ImzoNomlar } from './hujjat-yozuvchi';
 import { narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { downloadBlob } from './construction-document-control/export/download-helper';
 
 import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
 const katta = <T,>(v: T): T => (typeof v === 'string' ? kattaHarfga(v) as T : v);
@@ -1097,17 +1098,5 @@ export function lrvPlusFaylNomi(obyektNomi: string, rejim: LrvPlusRejim = 'toliq
 
 /** Brauzerda faylni yuklab olishga majburlaydi (blob + vaqtinchalik link). */
 export function lrvPlusYuklab(bytes: Uint8Array, obyektNomi: string, rejim: LrvPlusRejim = 'toliq'): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const blob = new Blob([bytes as any], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  try {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = lrvPlusFaylNomi(obyektNomi, rejim);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  downloadBlob(bytes, lrvPlusFaylNomi(obyektNomi, rejim)); // tizim imzosi shu yo'lda qo'yiladi
 }

@@ -35,6 +35,7 @@ import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPane
 import { BajarilmadiPanel } from './BajarilmadiPanel';
 import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 import { SmetaVersiyaFarq } from './SmetaVersiyaFarq';
+import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
 
 /**
@@ -50,7 +51,6 @@ export function HolatNative() {
   const [exportsOpen,setExportsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(requestedPanel === 'smeta' ? 'yuklash' : 'smeta');
   const { joriy } = useKompaniya();
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(joriy?.id);
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   /* Sahifaning o'z xatolari (obyektlar ro'yxati, eksport). Daraxt xatosi hook'dan. */
   const [sahifaXato, setError] = useState('');
@@ -62,6 +62,7 @@ export function HolatNative() {
 
   const obyektId = Number(id);
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(joriy?.id, validId ? obyektId : null);
   /* Eksport FAKT/OSTATKA/F2 ustunlarini holatXom dan oladi -- daraxt qurish
      uchun allaqachon o'qilyapti, qayta so'rov yo'q. */
   const {
@@ -184,6 +185,7 @@ export function HolatNative() {
       const h = lrvHujjat(daraxtXom, holatXom, {
         obyektNom: selected.nom, davr: new Date().toISOString().slice(0, 10), imzo: { ...ctx.imzo, ...qolda }, shartnoma: ctx.shartnoma,
         ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval,
+        svodYaxlit: ctx.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, ctx.svodYaxlit),
       });
       const xesh = await mazmunXeshi(h.bytes);
       const r = await tokenBilan({ kompaniyaId: joriy.id, amal: 'hujjat', birlikSoni: h.yacheykalar,
@@ -224,7 +226,8 @@ export function HolatNative() {
     try {
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
-      const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval });
+      const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
+        yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, nk?.ok ? nk.svod_yaxlit : null) });
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'OSTATKA', sabab: `Ведомость остатка · ${selected.nom}`, obyekt: obyektId },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
@@ -261,7 +264,8 @@ export function HolatNative() {
     try {
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
-      const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval });
+      const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: selected.nom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
+        svodYaxlit: nk?.ok ? nk.svod_yaxlit ?? null : null, yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, nk?.ok ? nk.svod_yaxlit : null) });
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${selected.nom}`, obyekt: obyektId },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
@@ -345,7 +349,7 @@ export function HolatNative() {
                 </label>)}
               <details className="border-t border-border py-2.5">
                 <summary className="cursor-pointer text-[12.5px] font-medium text-text-dim">{t('Hujjatlardagi imzo va tomonlar')}</summary>
-                <div className="mt-2"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+                <div className="mt-2"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
               </details>
             </>) : <p className="py-3 text-[12.5px] text-text-mute">{t('Eksport uchun obyektda smeta qatorlari bo‘lishi kerak.')}</p>}
           </div>

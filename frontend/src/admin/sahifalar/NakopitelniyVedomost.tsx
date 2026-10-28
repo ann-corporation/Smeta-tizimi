@@ -8,7 +8,7 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
-import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
+import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyProgress, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
 import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3Holat, type SvodShartnoma, type SverkaImportNatija, type TolovTur } from '../../lib/nakopitelniy-svod';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
@@ -18,9 +18,10 @@ import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions } from '../.
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
-import { obyektPodvali, serverCatsKatga } from '../../api/t2-nakrutka-podval';
+import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { podvalgaKoefQoy, type Podval } from '../../lib/nakrutka-konstruktor';
-import { podvalliKaskad } from '../../lib/nakrutka-podval';
+import { obyektUstamali } from '../../lib/ustamali-summa';
+import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
@@ -66,6 +67,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [obyektKompaniyaId, setObyektKompaniyaId] = useState<number | null>(null);
   const [qidiruv, setQidiruv] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Katta obyekt: sahifalab yuklash progressi (prod 2026-10-27 — foydalanuvchi kutayotganini ko'rsin). */
+  const [progress, setProgress] = useState<NakopitelniyProgress | null>(null);
   const [xato, setXato] = useState('');
   const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
   /** Egasi 2026-09-30: jadvalda ham har tasdiqlangan F2 oyi alohida ustun (+ ИТОГО). */
@@ -82,19 +85,21 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [nakrutkaKaskadi, setNakrutkaKaskadi] = useState<NakrutkaKaskad | null>(null);
   /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
   const [podval, setPodval] = useState<Podval | null>(null);
-  const [nakrutkaCats, setNakrutkaCats] = useState<ReturnType<typeof serverCatsKatga> | null>(null);
+  /** Server kesimi (cats / cats_kaskad / svod_yaxlit) — obyekt ustamalisi yagona obyektUstamali orqali. */
+  const [nakrutkaJavob, setNakrutkaJavob] = useState<Awaited<ReturnType<typeof t2ObyektNakrutka>> | null>(null);
+  const svodYaxlit: SvodYaxlit | null = nakrutkaJavob?.svod_yaxlit ?? null;
   useEffect(() => {
     let active = true;
     setNakrutka(null);
     setNakrutkaKaskadi(null);
     setPodval(null);
-    setNakrutkaCats(null);
+    setNakrutkaJavob(null);
     if (!objectId) return;
     void t2ObyektNakrutka(Number(objectId)).then(async (r) => {
       if (!active || !r.ok) return;
       if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
       if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
-      if (r.cats) setNakrutkaCats(serverCatsKatga(r.cats));
+      if (r.cats) setNakrutkaJavob(r);
       const p = await obyektPodvali(companyId, Number(objectId), r.shartnoma_id ?? null);
       if (active) setPodval(p);
     }).catch(() => undefined);
@@ -155,7 +160,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       // Yagona smeta modeli (lib/smeta-model): daraxt, zamena bog'lanishi va o'zgarish izohlari bir joydan.
       const [r, model, taf] = await Promise.all([
-        t2NakopitelniyToliq(objId, tanlanganDavr || null),
+        t2NakopitelniyToliq(objId, tanlanganDavr || null, false, { onProgress: (p) => { if (currentRequest === requestId.current) setProgress(p); } }),
         smetaModeliniYukla(objId),
         sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' }).catch(() => null),
       ]);
@@ -174,7 +179,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
       setTruncated(Boolean(r.truncated));
     } catch { if (currentRequest === requestId.current) setXato('Ma’lumotlarni yuklab bo‘lmadi. Yangilab qayta urinib ko‘ring.'); }
-    finally { if (currentRequest === requestId.current) setBusy(false); }
+    finally { if (currentRequest === requestId.current) { setBusy(false); setProgress(null); } }
   };
 
   useEffect(() => {
@@ -213,16 +218,16 @@ function Sessiya({ companyId }: { companyId: number }) {
   // RZ bo'limlarida bunday usul bo'limlarni yo'qotadi.
   const gorunumRows = korinadigan;
 
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(companyId);
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(companyId, objectId ? Number(objectId) : null);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const [truncated, setTruncated] = useState(false);
   const smetaNakrutka = useMemo(() => {
     // Maxsus podval — ekrandagi smeta к оплате ham shu podval bo'yicha (hujjat bilan bir xil).
-    if (podval && nakrutkaCats && nakrutka) {
-      try {
-        const k = podvalliKaskad(nakrutkaCats, nakrutka, podvalgaKoefQoy(podval, nakrutka));
-        return { pryamye: k.pryamye, itogo4: k.itogo4, nds: k.nds, nds_foiz: nakrutka.НДС ?? null, vsego: k.vsego };
-      } catch { return null; }
+    // Svod yaxlit bo'lsa kaskad cats_kaskad bo'yicha + yaxlit ustamasiz (server bilan bir xil) — yagona yordamchi.
+    if (podval && nakrutkaJavob && nakrutka) {
+      const u = obyektUstamali(nakrutkaJavob, podvalgaKoefQoy(podval, nakrutka), nakrutka);
+      if (!u || u.ustamali == null || u.ndsBilan == null || !u.qadamlar) return null;
+      return { pryamye: u.qadamlar.pryamye + (svodYaxlit?.barglar ?? 0), itogo4: u.ustamali, nds: u.qadamlar.nds, nds_foiz: nakrutka.НДС ?? null, vsego: u.ndsBilan };
     }
     if (!nakrutkaKaskadi) return jami?.smeta_nakrutka ?? null;
     return {
@@ -232,7 +237,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       nds_foiz: nakrutka?.НДС ?? null,
       vsego: nakrutkaKaskadi.vsego,
     };
-  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi, podval, nakrutkaCats]);
+  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi, podval, nakrutkaJavob, svodYaxlit]);
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
    *  (server sukuti 500 qator) — server sahifalari avtomat oxirigacha o'qiladi
@@ -242,14 +247,14 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!truncated) return qatorlar;
     setEksportBusy(true);
     try {
-      const r = await t2NakopitelniyToliq(Number(objectId), davr || null);
+      const r = await t2NakopitelniyToliq(Number(objectId), davr || null, false, { onProgress: setProgress });
       if (!r.ok) {
         setXato(r.code === 'NAKOPITELNIY_OZGARDI' ? 'O‘qish paytida smeta qatorlari o‘zgardi — qayta urinib ko‘ring.' : (r.xato || r.code || 'Yuklanmadi'));
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
       return tartibla(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, modelRef.current), norma: modelRef.current?.byId.get(q.qator_id)?.norma ?? null })), modelRef.current);
-    } finally { setEksportBusy(false); }
+    } finally { setEksportBusy(false); setProgress(null); }
   };
   const stavkaOl = (): number | null => {
     const t = ndsFoiz.trim();
@@ -383,7 +388,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
       const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar });
+      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar, svodYaxlit });
       const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
@@ -470,7 +475,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         )}
         {!objectId && <div className="fz-note fz-note--info"><span>{t('Reestrni ko‘rish uchun yuqoridan obyektni tanlang.')}</span></div>}
 
-        {busy && <p role="status" style={{ margin: 0 }}>{t('Yuklanmoqda…')}</p>}
+        {busy && <p role="status" style={{ margin: 0 }}>{progress?.jami ? t('Yuklanmoqda… {n} / {jami} qator', { n: progress.yuklandi.toLocaleString('ru-RU'), jami: progress.jami.toLocaleString('ru-RU') }) : t('Yuklanmoqda…')}</p>}
         {eksportBusy && <p role="status" style={{ margin: 0 }}>{t('To‘liq ro‘yxat serverdan sahifalab o‘qilmoqda…')}</p>}
         {forma3Busy && <p role="status" style={{ margin: 0 }}>{t('Форма № 3 manbalari yig‘ilmoqda (nakopitelniy + tasdiqlangan F2)…')}</p>}
         {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{xato}</span></div>}
@@ -500,7 +505,7 @@ function Sessiya({ companyId }: { companyId: number }) {
               <span style={{ marginLeft: 'auto', fontWeight: 400, color: 'var(--text-mute)', fontSize: 12 }}>{ndsFoiz.trim() === '' ? t('QQS qo‘shilmaydi') : t('QQS {p}%', { p: ndsFoiz })}</span>
             </summary>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 'var(--space-4)', marginTop: 'var(--space-3)' }}>
-              <div style={{ minWidth: 280, flex: 1 }}><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+              <div style={{ minWidth: 280, flex: 1 }}><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--text-dim)', maxWidth: 260 }} title={t('F2 resurs qatorlari QQS siz; QQS hujjat oxirida bir marta qo‘shiladi')}>
                 <span className="fz-kpi__label">{t('QQS (НДС) stavkasi, % — hujjat oxirida bir marta')}</span>
                 <input aria-label={t('QQS stavkasi')} value={ndsFoiz} onChange={e => setNdsFoiz(e.target.value)} placeholder={t('bo‘sh — QQS qo‘shilmaydi')}
