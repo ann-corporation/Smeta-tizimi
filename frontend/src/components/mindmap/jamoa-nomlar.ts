@@ -2,7 +2,7 @@
 import { t } from '../../i18n/til';
 import type { JamoaGuruhKalit } from '../../lib/mindmap-korinish';
 
-export const AZOLAR_YOLI = '/admin/kompaniya?tab=azolar';
+export { AZOLAR_YOLI } from '../../lib/mindmap-yollar';
 
 export function guruhNomi(k: JamoaGuruhKalit): string {
   if (k === 'rahbariyat') return t('Rahbariyat');

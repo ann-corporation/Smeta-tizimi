@@ -37,6 +37,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { PriceResearchQueue } from '../../components/smeta-studio-workspace/PriceResearchQueue';
 import { researchKey, retainResearch } from '../../components/smeta-studio-workspace/price-research-store';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 type UnitText = (code: string | null) => string | null;
 /** «… ПО ПРОЕКТУ» without the project's material is never priced by a guess. */
@@ -469,7 +470,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         <table className="w-full text-[12px]">
           <thead className="sticky top-0 bg-surface-1 text-text-mute"><tr>
             <th className="px-2 py-1 text-left">{t('Resurs')}</th><th className="px-1 text-left">{t('Birlik')}</th><th className="px-1 text-right">{t('Miqdor')}</th>
-            <th className="px-1 text-right">{t('Narx')}</th><th className="px-1 text-right">{t('Summa')}</th><th className="px-2 text-left">{t('Manba va dalil')}</th>
+            <th className="px-1 text-right">{t('Narx')}<SummaYorliq tur="narx" /></th><th className="px-1 text-right">{t('Summa')}</th><th className="px-2 text-left">{t('Manba va dalil')}</th>
           </tr></thead>
           <tbody>
             {korinadi.map((g, i) => {

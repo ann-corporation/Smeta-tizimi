@@ -6,6 +6,8 @@ import type { ReactNode } from 'react';
 import { t } from '../../i18n/til';
 import type { AktUstama, AloqaHolat, TaqdimHolat } from '../../api/t2-tomon';
 import { pul, TAQDIM_HOLAT_NOMI } from './tomon-yordam';
+import { serverUchligi } from '../../lib/ustamali-summa';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 
 const ALOQA_NOMI: Record<AloqaHolat, string> = {
   taklif: 'Taklif (javob kutilmoqda)', faol: 'Faol', toxtatilgan: 'To‘xtatilgan', yopilgan: 'Yopilgan', rad: 'Rad etilgan', bekor: 'Bekor qilingan',
@@ -42,14 +44,18 @@ const PODVAL_NOMI: Array<[keyof AktUstama['podval'], string]> = [
   ['itogo4', 'ИТОГО (без НДС)'], ['nds', 'НДС'], ['vsego', 'ВСЕГО (с НДС)'],
 ];
 
-/** Egasi qoidasi: USTAMALI asosiy (katta), ustamasiz yonida kichik, NDS siz. Kategoriyasiz qism taxminiy deb aytiladi. */
-export function TomonSummaJuft({ u, kichik = false }: { u: Pick<AktUstama, 'pryamye' | 'ustamali' | 'katsiz' | 'narxsiz_qator'>; kichik?: boolean }) {
+/**
+ * Egasi qoidasi (2026-10-27): QQS BILAN asosiy (katta; server podvali `vsego`), ostida ustamali (QQS siz) va to‘g‘ri xarajat —
+ * yagona `QiymatUchlik`. Kategoriyasiz qism taxminiy deb aytiladi («≈» ikkala ustamali qiymatda ham).
+ */
+export function TomonSummaJuft({ u, kichik = false }: { u: Pick<AktUstama, 'pryamye' | 'ustamali' | 'katsiz' | 'narxsiz_qator'> & { podval?: AktUstama['podval'] }; kichik?: boolean }) {
+  const q = { ...serverUchligi({ itogo4: u.ustamali, vsego: u.podval?.vsego ?? null }, u.pryamye), taxminiy: u.katsiz > 0, nomalum: u.katsiz };
   return (
-    <span className="inline-flex flex-col leading-tight tabular-nums" data-testid="tomon-summa-juft">
-      <b className={kichik ? 'text-[12px]' : 'text-[14px]'} data-testid="tomon-ustamali">{u.katsiz > 0 ? '≈ ' : ''}{pul(u.ustamali)}</b>
-      <span className="text-[10.5px] text-text-mute" data-testid="tomon-ustamasiz">{t('ustamasiz')}: {pul(u.pryamye)}</span>
-      {u.katsiz > 0 && <span className="text-[10px] text-warn">{t('taxminiy (kat noma’lum: {pul} so‘m)', { pul: pul(u.katsiz) })}</span>}
-      {u.narxsiz_qator > 0 && <span className="text-[10px] text-warn">{t('narxsiz qator: {n} ta', { n: u.narxsiz_qator })}</span>}
+    <span className="contents" data-testid="tomon-summa-juft">
+      <QiymatUchlik q={q} kichik={kichik}>
+        {u.katsiz > 0 && <span className="text-[10px] text-warn">{t('taxminiy (kat noma’lum: {pul} so‘m)', { pul: pul(u.katsiz) })}</span>}
+        {u.narxsiz_qator > 0 && <span className="text-[10px] text-warn">{t('narxsiz qator: {n} ta', { n: u.narxsiz_qator })}</span>}
+      </QiymatUchlik>
     </span>
   );
 }

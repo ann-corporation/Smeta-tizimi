@@ -23,6 +23,7 @@ import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, type NavIkonka } from '../lib/nav/navReestr';
 import { menyuQur } from '../lib/nav/navFiltr';
+import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
 import { useModullar } from '../api/t2-modul';
 import { MENYU_MODUL } from '../lib/modullar';
 
@@ -66,6 +67,8 @@ function AdminShellInner() {
   const sess = useSessiya();
   const k = useKompaniya();
   const modulQuery = useModullar(k.globalRejim ? null : k.joriy?.id);
+  /* Tizim xaritasi menyusi — faqat server ruxsat bersa (superadmin yoki berilgan grant); 5 daqiqa kesh. */
+  const tizimRuxsat = useTizimRuxsat(!!sess.data);
   const joy = useLocation();
   // Effective role for THIS render: the active company's own membership
   // role, or a platform-level label when no company is selected. Never the
@@ -181,7 +184,7 @@ function AdminShellInner() {
   // (bu ko'rinish, xavfsizlik emas; L0 2026-10-22: Codex varianti xato bo'lganda ishni to'xtatardi).
   const moduleOpen = !routeModule || !modullar?.some(m => m.kod === routeModule && m.holat === 'off');
   /* Rol/ruxsat/modul/qatlam filtri — sof funksiya (lib/nav/navFiltr.ts, rol snapshot testlari bilan). */
-  const filtrKilinganGuruhlar = menyuQur({ superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar })
+  const filtrKilinganGuruhlar = menyuQur({ superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar, tizimXaritasi: tizimRuxsat.data?.ruxsat === true })
     .map(g => ({ nom: g.nom, id: g.id, Ikonka: IKONKALAR[g.ikonka], menyular: g.bandlar.map((b): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar })) }));
   /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3); tablar alohida topiladi. */
   const palitraBandlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar

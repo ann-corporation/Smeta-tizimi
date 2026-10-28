@@ -1521,10 +1521,10 @@ function Sessiya({ companyId }: { companyId: number }) {
             <span className="font-semibold text-text">{akt.fayl} · {akt.varaq}</span>
             <span className="text-text-dim">Ish: <b className="text-text">{akt.ishlarSoni}</b></span>
             <span className="text-text-dim">Qator (pul): <b className="text-text">{akt.barglarSoni}</b></span>
-            <span className="inline-flex items-start gap-1 text-text-dim">Hujjat ИТОГО ПРЯМЫЕ: <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.jami.pryamye}
+            <span className="inline-flex items-start gap-1 text-text-dim">Hujjat ИТОГО ПРЯМЫЕ: <SummaJuft rejim="ustamali" obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.jami.pryamye}
               katKesim={qatorlarKesimi ? katKesimNomalumBilan(qatorlarKesimi, jamiFarq == null ? null : -jamiFarq) : null} /></span>
             <span className="inline-flex items-start gap-1 text-text-dim">Qatorlar yig‘indisi: <span className={jamiFarq != null && Math.abs(jamiFarq) > 1 ? 'text-warn' : 'text-ok'}>
-              <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.qatorlarJami} katKesim={qatorlarKesimi} /></span></span>
+              <SummaJuft rejim="ustamali" obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.qatorlarJami} katKesim={qatorlarKesimi} /></span></span>
             {akt.jami.ranee != null && <span className="text-text-dim">Ранее оформленным: <b className="tabular-nums text-text">{fmt(akt.jami.ranee)}</b></span>}
           </div>
           {kumReja && !done && (

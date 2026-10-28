@@ -19,6 +19,16 @@ export const SAHIFA_YOLI: Partial<Record<TugunTur, (id: number, nom: string) => 
 export const obyektZayavkaYoli = (obyektId: number, yarat = false) =>
   '/admin/zayavka?obyekt=' + obyektId + (yarat ? '&yarat=1' : '');
 
+/** Kompaniya a'zolari va rollari (Kompaniya → A'zolar). */
+export const AZOLAR_YOLI = '/admin/kompaniya?tab=azolar';
+
+/** Obyekt doirasidagi PTO sahifalari — PTO workspace `?obyekt=` ni o'qiydi (PTOWorkspaceContext). */
+export type ObyektPtoSahifa = 'fakt' | 'f2-tayyorlash' | 'f2-tarix' | 'nakopitelniy';
+export const obyektPtoYoli = (sahifa: ObyektPtoSahifa, obyektId: number) => '/admin/' + sahifa + '?obyekt=' + obyektId;
+
+/** Obyekt LRV sahifasi; `smetaYuklash` — «Smeta yuklash» bandi ochiq holda (HolatNative `?panel=smeta`). */
+export const obyektHolatYoli = (obyektId: number, smetaYuklash = false) => '/admin/holat/' + obyektId + (smetaYuklash ? '?panel=smeta' : '');
+
 /** Tugundagi belgi bosilganda boriladigan kanonik sahifa. */
 export function belgiYoli(tugun: Pick<MindmapTugun, 'id' | 'tur' | 'entity_id'>, belgi: Pick<MindmapBelgi, 'tur'>): string {
   const oid = tugun.entity_id ?? Number(tugun.id.split(':')[1]);

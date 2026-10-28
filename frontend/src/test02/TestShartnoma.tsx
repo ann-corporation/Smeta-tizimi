@@ -144,7 +144,7 @@ export default function TestShartnoma() {
                       </td>
                       <td><span className={`fz-stamp ${HOLAT[s.holat]?.stamp ?? ''}`}>{t(HOLAT[s.holat]?.nom ?? s.holat)}</span></td>
                       <td className="text-right">
-                        <button type="button" onClick={() => navigate(`/admin/test/xarita?tugun=shartnoma:${s.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmapda ko‘rish')}</button>
+                        <button type="button" onClick={() => navigate(`/admin/mindmap?tugun=shartnoma:${s.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmapda ko‘rish')}</button>
                       </td>
                     </tr>
                   ))}

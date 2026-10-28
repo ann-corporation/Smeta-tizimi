@@ -2,13 +2,56 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 39,
+      "id": 43,
       "sana": "2026-10-28",
       "sarlavha": "Ekspertiza «ALL» smetalari qo'lda belgilashsiz o'qiladi",
       "bandlar": [
         "RES / F5 / VED / TNDR varaqli ekspertiza fayli yuklanganda rollar avtomatik: F5 — LRV (faqat uskunali smeta ham), RES — narx va podval manbai, VED va TNDR — e'tiborsiz. TNDR narxini faqat ongli tanlasangiz oladi (ogohlantirish bilan).",
         "RES podvalidagi transport va zagot-sklad foizlari КОЛ-ВО ustunidan o'qiladi va blok summasi bilan isbotlanadi; material, metallokonstruksiya, kabel va uskuna bloklari o'z koeffitsientiga tushadi. Uskunalar RES guruhi bo'yicha ОБ bo'ladi.",
         "Zagot-skladsiz bloklar (transport bor, zagot qatori yo'q) hujjatdagidek БЕЗСКЛАД kategoriyasiga tushadi. Isbotsiz bloklar, LRV↔RES manba xatolari va RES nomi farqli qatorlar uchun narx takliflari ko'rinadigan ogohlantirish sifatida chiqadi — hech narsa avtomatik birlashtirilmaydi."
+      ]
+    },
+    {
+      "id": 42,
+      "sana": "2026-10-27",
+      "sarlavha": "Tizim xaritasi — tizimda nima bo'layotgani jonli",
+      "bandlar": [
+        "Yangi «Tizim xaritasi» sahifasi: kompaniyalar → modullar (smeta, fakt, F2, Nakopitelniy, sverka, ombor, agentlar), har birida oxirgi amal, 24 soatdagi xatolar va navbatdagi ishlar.",
+        "Yon tomonda «Oxirgi hodisalar» lentasi; xarita har 30 soniyada o'zi yangilanadi (yashirin tabda to'xtaydi).",
+        "Faqat platforma superadmini va u ruxsat bergan odamlar ko'radi; ruxsatlar shu sahifada beriladi va olinadi, har amal auditga yoziladi."
+      ]
+    },
+    {
+      "id": 41,
+      "sana": "2026-10-27",
+      "sarlavha": "Xarita: tugundan to'g'ridan-to'g'ri amal",
+      "bandlar": [
+        "Xaritada tugunni o'ng tugma bilan bosing (yoki panel sarlavhasidagi «Amallar», klaviaturada Shift+F10) — shu tugun uchun amallar menyusi ochiladi.",
+        "Obyektda: LRV, fakt kiritish, F2 tayyorlash va tarixi, Nakopitelniy, smeta yuklash, zayavka, mas'ul biriktirish va topshiriq berish. Odamda: mas'ul qilish, topshiriq berish, rolni o'zgartirish. Shartnomada: to'lov va akt-sverka; skladda: prixod/rasxod.",
+        "Ruxsatingiz yo'q amal qulf bilan ko'rinadi va sababi yoziladi; moliyaviy ruxsat bo'lmasa pulga oid amallar chiqmaydi. Har yozuvchi amal mavjud server buyrug'i orqali — ruxsat va audit serverda."
+      ]
+    },
+    {
+      "id": 40,
+      "sana": "2026-10-27",
+      "sarlavha": "Tizimga oid bo'limlar faqat platforma administratorida",
+      "bandlar": [
+        "Menyudan «Sayt xaritasi» olib tashlandi.",
+        "Tizimning o'ziga oid bo'limlar (integratsiyalar holati, texnik nazorat, AI model katalogi va ustamasi, sinov sahifalari) endi faqat platforma administratoriga ko'rinadi — menyuda ham, to'g'ridan-to'g'ri havola bilan ham.",
+        "Kompaniya va uning a'zolari AI modelini avvalgidek o'zi tanlaydi (qimmat modellarni ham), kompaniya model siyosatini ham o'zi belgilaydi. Har model yonida narxi ko'rinadi: «arzon / o'rta / qimmat» va «1 so'rov ≈ N token»; qimmat model tanlanganda narxi bilan ogohlantirish chiqadi.",
+        "«Tokenlar va obuna» sahifasida kompaniya o'z balansini, sarfini va har amalning yakuniy narxini ko'radi; narxning ichki tarkibi ko'rsatilmaydi.",
+        "AI yordamchisi, chat, takliflar va AI jurnali avvalgidek ishlaydi (javob bergan model nomi ham ko'rinadi). Kompaniyaning o'z sozlamalari, a'zolari, modullari va audit jurnali ham o'zgarmagan."
+      ]
+    },
+    {
+      "id": 39,
+      "sana": "2026-10-27",
+      "sarlavha": "Obyekt qiymati endi QQS bilan — asosiy raqam",
+      "bandlar": [
+        "Har obyekt, bo'lim, shartnoma va portfel jami summasida katta raqam endi QQS bilan qiymat (ВСЕГО, server hisobi bilan bir xil). Ostida kichik: «ustamali, QQS siz» (ИТОГО-4) va «to'g'ri xarajat (ustamasiz)».",
+        "Rahbar paneli, Nakopitelniy kartalari (smeta, fakt, F2, faktdan F2 ga mumkin), Smeta anatomiyasi, Resurs vedomosti, Pereraschet sof natijasi, Pul tahlili, F2 reestri, shartnoma va obyekt kartalarida shunday. QQS stavkasi koeffitsientlardan olinadi.",
+        "Qiymat noma'lum bo'lsa «—» (sababi sichqoncha ostida), 0 emas; kategoriyasi noma'lum qism bo'lsa ikkala qiymat ham «≈ taxminiy».",
+        "Smeta va F2 narxlari, qator summalari, tasdiqlangan F2 aktlari va rasmiy hujjat/Excel shakllari o'zgarmaydi. Tasdiqlangan F2 jami (hujjat jami) hozircha «ustamasiz, QQS siz» yorlig'i bilan ko'rsatiladi."
       ]
     },
     {

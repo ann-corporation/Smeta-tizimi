@@ -20,6 +20,7 @@
  * Ikkisini bir faylda saqlash — kelajakda tasodifan yozishga ruxsat
  * berib qo'yishning eng qisqa yo'li.
  */
+import { tokenJavobTozala } from '../_shared/tizim-maxfiy';
 import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
@@ -2945,6 +2946,8 @@ export const onRequestPost: PagesFunction<{
 
     /* Baza `{ok:false, sabab:'ziddiyat'|'invariant', …}` qaytarishi
        MUMKIN va bu xato emas — normal holat. O'zgartirmasdan uzatamiz. */
+    /* Egasi 2026-10-27: sarf hisobidagi tannarx va foyda — faqat platforma superadmini (vakolat bazadan). */
+    if (amal === 'token_sarfla_v1' && sess.rol !== 'superadmin') natija = tokenJavobTozala(natija);
     return Response.json({ ...natija, amal, ms: Date.now() - t0 });
 
   } catch (err: unknown) {

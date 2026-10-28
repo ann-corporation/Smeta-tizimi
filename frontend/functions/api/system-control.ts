@@ -16,6 +16,7 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream, xavfsizXato } from '../_shared/xato';
+import { kompaniyaModulKodimi, platformaSuperadminmi, tizimNazoratTozala } from '../_shared/tizim-maxfiy';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
 
@@ -102,7 +103,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       const code = (j && j.code) || 'SYSTEM_CONTROL_FAILED';
       return xavfsizUpstream(r.status, j || text, httpStatusFor(code, text));
     }
-    return Response.json(j);
+    // Egasi 2026-10-27: sog'liq, integratsiyalar, fon ishlari, hodisalar, imkoniyat bayroqlari va versiya — tizimga oid,
+    // faqat platforma superadmini. Kompaniya rahbariyatiga faqat O'Z audit jurnali (Kompaniya → Audit).
+    return Response.json(platformaSuperadminmi(ctx) ? j : tizimNazoratTozala(j));
   } catch (err: any) {
     return xavfsizXato('SYSTEM_CONTROL_FAILED', 500, err?.message || String(err));
   }
@@ -116,6 +119,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const action: string = bodyIn?.action;
     if (!action || !(action in RPC) || action === 'read') {
       return Response.json({ ok: false, code: 'CONTROL_ACTION_INVALID' }, { status: 400 });
+    }
+    // Egasi 2026-10-27: superadmin bo'lmaganga yagona ruxsat — o'z kompaniyasida MODULni yoqish/o'chirish
+    // (Kompaniya → Modullar). Qolgan imkoniyat bayroqlari, kill-switch, fon ishlari va deploy — faqat superadmin.
+    if (!platformaSuperadminmi(ctx) && !(action === 'capability_override_set' && String(bodyIn?.scope) === 'company' && kompaniyaModulKodimi(bodyIn?.kod))) {
+      return Response.json({ ok: false, code: 'SUPERADMIN_REQUIRED' }, { status: 403 });
     }
     // Defense in depth: global-scope writes are re-checked against the
     // shared authorization core BEFORE reaching the existing command RPC
