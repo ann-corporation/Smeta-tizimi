@@ -3,11 +3,15 @@
 -- ikki marta sanalmaydi; (3) manfiy rs hajmi ham qabul qilinadi; (4) bl narx_yoq — hajm yoziladi, summa yo'q;
 -- (4d-4o) view: F2 dan ko'chirilgan ish ulushi rs hosilasini bermaydi, qo'lda ulush ergashadi; minus F2 qatorlari
 -- (bl/mat/rs) aynan yoziladi va yakuniy manfiy fakt to'g'ri hisoblanadi; f2_sertifikatsiz ma'lumotda hosila o'zgarmaydi;
+-- (7) F2 qatorma-qator nusxa: har satr aynan (minus, 0 hajmli satr, takroriy qator), iz (manba_akt_qator_id), view va
+-- Nakopitelniy jamisi = Σ F2, idempotent takror, ikki marta ko'chirish va noto'g'ri manba rad, qo'lda qoidalar o'zgarmagan;
 -- (5) asl smeta qatorlari o'zgarmaydi; (6) ruxsatlar yopiq.
 begin;
 do $test$
 declare c bigint; a bigint; o bigint; rz bigint; bl bigint; rs bigint; rs2 bigint; rs3 bigint; mat bigint; r jsonb; h record; s1 jsonb; s2 jsonb; v numeric;
   o2 bigint; rz2 bigint; bl2 bigint; rs4 bigint;
+  o3 bigint; rz3 bigint; bl3 bigint; mat3 bigint; rs5 bigint; f2a bigint; f2b bigint; l1 bigint; l2 bigint; l3 bigint; l4 bigint; l5 bigint; l6 bigint;
+  fakt7 bigint; op7 uuid;
 begin
   insert into public.t2_kompaniya(nom,kod) values('_TEST_FF2RS_',gen_random_uuid()::text) returning id into c;
   insert into public.t2_foydalanuvchi(login) values('_TEST_FF2RS_'||gen_random_uuid()) returning id into a;
@@ -102,6 +106,76 @@ begin
     and hh.fakt_hajm is distinct from coalesce((select sum(x.hajm) from public.t2_akt_qator x join public.t2_akt xa on xa.id=x.akt_id
                     where x.qator_id=p.id and xa.tur='fakt' and xa.holat<>'bekor'),0::numeric) * q.norma;
   if v <> 0 then raise exception '4o: f2_sertifikatsiz % rs qatorida hosila o''zgardi', v; end if;
+
+  -- 7) F2 qatorma-qator NUSXA (manba_akt_qator_id): alohida sintetik obyekt — tasdiqlangan F2 ning har satri aynan.
+  insert into public.t2_obyekt(nom,kompaniya_id) values('_TEST_FF2RS_nusxa',c) returning id into o3;
+  insert into public.t2_qator(obyekt_id,kompaniya_id,tur,nom,tartib) values(o3,c,'rz','_TEST_FF2RS_rz3',1) returning id into rz3;
+  insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,tartib) values(o3,c,rz3,'bl','_TEST_FF2RS_bl3','m3',10,2) returning id into bl3;
+  insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,narx,summa,kat,tartib) values(o3,c,bl3,'mat','_TEST_FF2RS_mat3','t',5,40,200,'МАТ',3) returning id into mat3;
+  insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,narx,summa,norma,kat,tartib) values(o3,c,bl3,'rs','_TEST_FF2RS_rs5','chel.-soat',20,5,100,2,'ЧЕЛ',4) returning id into rs5;
+  insert into public.t2_akt(obyekt_id,tur,oy,holat) values(o3,'f2','2026-10-01','qoralama') returning id into f2a;
+  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2a,mat3,o3,3,40) returning id into l1;          -- +3 × 40
+  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2a,mat3,o3,-1,40) returning id into l2;         -- minus satr
+  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx,certified_quantity,certified_amount)
+    values(f2a,mat3,o3,1,40,0,15) returning id into l3;                                                                       -- satrning o'zida hajm 0, summa 15
+  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2a,rs5,o3,2,7) returning id into l4;            -- rs aniq
+  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2a,bl3,o3,4,null) returning id into l5;         -- ish, narxsiz
+  update public.t2_akt set holat='tasdiqlangan' where id=f2a;
+  select coalesce(sum(coalesce(certified_amount,summa)),0) into v from public.t2_akt_qator where akt_id=f2a;                -- Σ F2 = 120 − 40 + 15 + 14 = 109
+  if v <> 109 then raise exception '7a: sintetik F2 jami % (kutilgan 109)', v; end if;
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(
+         jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l1,'narx_manba','f2_sertifikat','hajm',999,'narx',1),
+         jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l2,'narx_manba','f2_sertifikat'),
+         jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l3,'narx_manba','f2_sertifikat'),
+         jsonb_build_object('qator_id',rs5,'manba_akt_qator_id',l4,'narx_manba','f2_sertifikat'),
+         jsonb_build_object('qator_id',bl3,'manba_akt_qator_id',l5,'narx_manba','f2_sertifikat')),a,gen_random_uuid(),'acceptance');
+  if not coalesce((r->>'ok')::boolean,false) then raise exception '7b: F2 nusxasi yozilmadi: %', r; end if;
+  fakt7 := (r->>'akt_id')::bigint;
+  -- Har satr 1:1, aynan (hajm, narx, summa; mijoz yuborgan 999/1 e'tiborsiz) va izi bilan.
+  select count(*) into v from public.t2_akt_qator f join public.t2_akt_qator s on s.id=f.manba_akt_qator_id
+   where f.akt_id=fakt7 and (f.qator_id<>s.qator_id or f.hajm<>coalesce(s.certified_quantity,s.hajm)
+         or f.summa is distinct from coalesce(s.certified_amount,s.summa) or f.narx_manba<>'f2_sertifikat' or f.narx_manba_id<>f2a);
+  if v <> 0 then raise exception '7c: % nusxa satri manbadan farq qiladi', v; end if;
+  if (select count(*) from public.t2_akt_qator where akt_id=fakt7 and manba_akt_qator_id is not null) <> 5 then raise exception '7d: 5 ta satr emas'; end if;
+  if (select hajm from public.t2_akt_qator where akt_id=fakt7 and manba_akt_qator_id=l3) <> 0 then raise exception '7e: 0 hajmli satr yozilmadi'; end if;
+  -- Takroriy qatorli va manfiy satrli fakt jamlanishi: view va Nakopitelniy.
+  select * into h from public.t2_qator_holat where qator_id=mat3;
+  if h.fakt_hajm <> 2 or h.fakt_summa <> 95 or h.f2_summa <> 95 then raise exception '7f: mat3 view fakt % / % (F2 %)', h.fakt_hajm, h.fakt_summa, h.f2_summa; end if;
+  select * into h from public.t2_qator_holat where qator_id=rs5;
+  if h.fakt_manbasi <> 'DIRECT' or h.fakt_hajm <> 2 or h.fakt_summa <> 14 then raise exception '7g: rs5 % % %', h.fakt_manbasi, h.fakt_hajm, h.fakt_summa; end if;
+  select sum(fakt_summa) into v from public.t2_qator_holat where obyekt_id=o3 and tur in ('rs','mat','ob');
+  if v <> 109 then raise exception '7h: view fakt jami % (kutilgan 109 = Σ F2)', v; end if;
+  r := public.t2_nakopitelniy_v2(o3,a);
+  if (r->'jami'->>'fakt_summa')::numeric <> 109 then raise exception '7i: Nakopitelniy fakt jami % (kutilgan 109): %', r->'jami'->>'fakt_summa', r->'jami'; end if;
+  -- Qayta yuborish (o'sha operation_id) — takror, yangi hujjat yo'q; yangi operation_id bilan — F2_SOURCE_ALREADY_COPIED.
+  select operation_id into op7 from public.t2_akt where id=fakt7;
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l1,'narx_manba','f2_sertifikat')),a,op7,'acceptance');
+  if not coalesce((r->>'takror')::boolean,false) or (r->>'akt_id')::bigint <> fakt7 then raise exception '7j: idempotent takror emas: %', r; end if;
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l1,'narx_manba','f2_sertifikat')),a,gen_random_uuid(),'acceptance');
+  if r->>'code' <> 'F2_SOURCE_ALREADY_COPIED' then raise exception '7k: F2 satri ikki marta ko''chirildi: %', r; end if;
+  -- Rad etishlar: bir hujjatda bir manba ikki marta; boshqa qatorning manbasi; f2_sertifikatsiz manba; qoralama F2 manbasi.
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l2,'narx_manba','f2_sertifikat'),
+         jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l2,'narx_manba','f2_sertifikat')),a,gen_random_uuid(),'acceptance');
+  if r->>'code' <> 'DUPLICATE_FAKT_SOURCE_LINE' then raise exception '7l: takror manba qabul qilindi: %', r; end if;
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',rs5,'manba_akt_qator_id',l1,'narx_manba','f2_sertifikat')),a,gen_random_uuid(),'acceptance');
+  if r->>'code' <> 'F2_SOURCE_LINE_INVALID' then raise exception '7m: boshqa qator manbasi qabul qilindi: %', r; end if;
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l1,'narx_manba','smeta')),a,gen_random_uuid(),'acceptance');
+  if r->>'code' <> 'F2_SOURCE_LINE_INVALID' then raise exception '7n: f2_sertifikatsiz manba qabul qilindi: %', r; end if;
+  insert into public.t2_akt(obyekt_id,tur,oy,holat) values(o3,'f2','2026-10-01','qoralama') returning id into f2b;
+  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2b,mat3,o3,1,40) returning id into l6;
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l6,'narx_manba','f2_sertifikat')),a,gen_random_uuid(),'acceptance');
+  if r->>'code' <> 'F2_SOURCE_LINE_INVALID' then raise exception '7o: qoralama F2 manbasi qabul qilindi: %', r; end if;
+  -- Qo'lda kiritilgan fakt: eski qoidalar (takror qator, 0 hajm) va ichki «summa_aynan» kaliti e'tiborsiz.
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'hajm',1),jsonb_build_object('qator_id',mat3,'hajm',2)),a,gen_random_uuid(),'acceptance');
+  if r->>'code' <> 'DUPLICATE_FAKT_SOURCE_LINE' then raise exception '7p: qo''lda takror qator qabul qilindi: %', r; end if;
+  r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'hajm',1,'narx',40,'summa_aynan',999)),a,gen_random_uuid(),'acceptance');
+  if not coalesce((r->>'ok')::boolean,false) then raise exception '7q: qo''lda qator yozilmadi: %', r; end if;
+  if (select summa from public.t2_akt_qator where akt_id=(r->>'akt_id')::bigint) <> 40 then raise exception '7r: summa_aynan qo''lda qatorga o''tdi'; end if;
+  begin
+    insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(fakt7,mat3,o3,0,40);
+    raise exception '7s: manbasiz 0 hajm CHECK dan o''tdi';
+  exception when check_violation then null;
+  end;
 
   -- 5) rz (yig'indi) qatori f2_sertifikat bilan ham rad.
   r := public.t2_fakt_yoz_v2(o,current_date,jsonb_build_array(jsonb_build_object('qator_id',rz,'hajm',1,'narx_manba','f2_sertifikat')),a,gen_random_uuid(),'acceptance');

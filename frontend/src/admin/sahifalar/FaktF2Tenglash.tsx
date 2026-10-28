@@ -98,6 +98,7 @@ export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, komp
               {jami.narxsiz > 0 && <span className="text-warn">{t('summa noma’lum: {n} qator', { n: String(jami.narxsiz) })}</span>}
               {jami.rsHosila.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-rs">{t('Mehnat/mashina: F2 da yo‘q {n} qator norma bo‘yicha smeta narxida ergashadi ({s}) — summaga kirgan.', { n: String(jami.rsHosila.soni), s: fmt(jami.rsHosila.summa) })}</span>}
               {jami.rsIstisno.soni > 0 && <span className="text-warn" data-testid="f2-tenglash-rs-istisno">{t('Istisno qilingan mehnat/mashina: {n} qator — F2 dan ko‘chirilgan ish ulushiga ergashmaydi, faktga tushmaydi ({s} jamiga kirmagan).', { n: String(jami.rsIstisno.soni), s: fmt(jami.rsIstisno.summa) })}</span>}
+              {jami.nusxaSoni > 0 && <span data-testid="f2-tenglash-nusxa">{t('1:1: {n} ta F2 satri → {n} ta fakt qatori (hajm, narx, summa aynan, manbasi bilan)', { n: String(jami.nusxaSoni) })}</span>}
               {jami.manfiySoni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-manfiy">{t('F2 dagi minus qatorlar: {n} — hujjatdagidek manfiy yoziladi.', { n: String(jami.manfiySoni) })}</span>}
               {jami.faktOrtiq.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-fakt-ortiq">{t('Fakt F2 dan ko‘p: {n} qator ({s}) — topshirilmagan ish, o‘zgartirilmaydi.', { n: String(jami.faktOrtiq.soni), s: fmt(jami.faktOrtiq.summa) })}</span>}
               {reja.otkazildi.manfiyReja > 0 && <span className="text-text-mute">{reja.otkazildi.manfiyReja} {t('chegirma qatori o‘tkazib yuborildi')}</span>}
@@ -124,7 +125,7 @@ export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, komp
                 <tbody>{korinadi.slice(0, KORSAT_CHEGARA).map((q) => { const chiq = chiqQator.has(q.id); return (
                   <tr key={q.id} className={`border-b border-border/40 ${chiq ? 'opacity-50' : ''}`} data-testid={`f2-tenglash-${q.id}`}>
                     <td className="px-1"><input type="checkbox" checked={!chiq} onChange={() => qatorAlmashtir(q.id)} aria-label={t('Olinsin: {nom}', { nom: q.nom })} /></td>
-                    <td className="max-w-[320px] truncate px-1" title={q.nom}>{q.nom}{q.tur === 'ob' ? ` · ${t('uskuna')}` : q.tur === 'mat' ? ` · ${t('material')}` : ''}{q.avtomatik > 0 ? ` · +${q.avtomatik} ${t('mehnat/mashina avtomatik')}` : ''}</td>
+                    <td className="max-w-[320px] truncate px-1" title={q.nom}>{q.nom}{q.tur === 'ob' ? ` · ${t('uskuna')}` : q.tur === 'mat' ? ` · ${t('material')}` : ''}{q.nusxa?.length ? ` · ${t('{n} ta F2 satri', { n: String(q.nusxa.length) })}` : q.avtomatik > 0 ? ` · +${q.avtomatik} ${t('mehnat/mashina avtomatik')}` : ''}</td>
                     <td className="px-1 text-right tabular-nums">{fmt(q.fakt)}</td>
                     <td className="px-1 text-right tabular-nums">{fmt(q.f2)}</td>
                     <td className="px-1 text-right font-semibold tabular-nums">+{fmt(q.delta)} {q.birlik ?? ''}</td>

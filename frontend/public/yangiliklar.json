@@ -8,7 +8,8 @@
       "bandlar": [
         "«Fakt = F2» (obyekt, bo'lim yoki tanlangan ish) har qatorni tasdiqlangan F2 dagi narx bilan faktga yozadi — material va uskunaning haqiqiy olingan narxi faktga o'tadi. Narx manbasi (F2 hujjat raqami) qatorda saqlanadi.",
         "F2 da narx bo'lmasa narx to'qilmaydi: smeta narxi olinadi yoki qator «narxsiz» bo'lib qoladi. Tasdiqlash oynasida: ustamasiz jami, F2 narxli / smeta narxli / narxsiz qatorlar soni — ko'rgan summangiz aynan yoziladigan summa.",
-        "Mehnat va mashina F2 da bo'lsa o'z F2 hajmi va narxi bilan faktga yoziladi; F2 da ish narxi bo'lmasa (summa resurslarda) ish summasi ikki marta sanalmaydi.",
+        "Tasdiqlangan F2 ning har satri (minus satrlar ham) o'z fakt qatoriga 1:1 ko'chiriladi — hajm, narx va summa hujjatdagidek, har fakt qatorida qaysi F2 satridan kelgani saqlanadi; bir F2 satri ikki marta ko'chirilmaydi.",
+        "Mehnat va mashina F2 dagi aniq qatorlaridan yoziladi; F2 dan ko'chirilgan ish uchun norma bo'yicha qo'shimcha hisoblanmaydi (ikki marta sanash yo'q). Qo'lda kiritilgan fakt avvalgidek ishlaydi.",
         "Oldin smeta narxida yozilgan «Fakt = F2» hujjatlari bo'lsa, oynada ro'yxati va «Bekor qilib qayta yozish» tugmasi chiqadi (tasdiq bilan) — keyin «Fakt = F2» ni qayta oching."
       ]
     },

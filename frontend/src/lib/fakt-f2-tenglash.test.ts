@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import type { T2Qator } from '../api/supabase';
 import { jurnalQur, type JurnalHolat, type JurnalIsh } from './fakt-jurnal';
 import { bolimIshlariYigish, f2NarxYigish, faktF2Reja, obyektF2Reja, tenglashJami, type F2AktQator } from './fakt-f2-tenglash';
-import { urinishYarat } from './fakt-qamrov-urinish';
+import { urinishYarat, yozilganYasa } from './fakt-qamrov-urinish';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 1, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'm3',
@@ -216,6 +216,40 @@ describe('Fakt = F2 — F2 narxi faktga (egasi 2026-10-28)', () => {
     expect(r.paket.some((p) => p.qator_id === 20)).toBe(false);
   });
 
+  describe('qatorma-qator nusxa (1:1, egasining yuridik qoidasi)', () => {
+    const satr = (id: number, akt: number, qator: number, hajm: number, narx: number | null, o: Partial<F2AktQator> = {}): F2AktQator => ({ ...l(akt, qator, hajm, narx, o), id });
+    const f2Satrlar = (xs: F2AktQator[]) => { const m = new Map<number, F2AktQator[]>(); for (const x of xs) m.set(x.qator_id, [...(m.get(x.qator_id) ?? []), x]); return m; };
+
+    it('har F2 satri → o‘z fakt qatori (minus va satrning o‘zida 0 hajm ham); summa = Σ F2; ko‘chirilgani takrorlanmaydi', () => {
+      const xs = [satr(101, 70, 12, 3, 40), satr(102, 70, 12, -1, 40), satr(103, 71, 12, 1, 40, { certified_quantity: 0, certified_amount: 15 }), satr(104, 71, 12, 2, 40)];
+      const h = new Map(holat); h.set(12, st(12, 5, 0, 4, 40));
+      const ktx = { f2Narx: f2NarxYigish(xs), f2Satrlar: f2Satrlar(xs), nusxalangan: new Set([104]), qolda: new Map(), f2Delta: new Map(), directFakt: new Map() };
+      const r = faktF2Reja(ishlar(), h, null, ktx);
+      const p12 = r.paket.filter((p) => p.qator_id === 12);
+      expect(p12).toEqual([
+        { qator_id: 12, hajm: 3, manba_akt_qator_id: 101, narx_manba: 'f2_sertifikat', narx_manba_id: 70, narx_izoh: 'Fakt = F2: F2 №70 qatori #101' },
+        { qator_id: 12, hajm: -1, manba_akt_qator_id: 102, narx_manba: 'f2_sertifikat', narx_manba_id: 70, narx_izoh: 'Fakt = F2: F2 №70 qatori #102' },
+        { qator_id: 12, hajm: 0, manba_akt_qator_id: 103, narx_manba: 'f2_sertifikat', narx_manba_id: 71, narx_izoh: 'Fakt = F2: F2 №71 qatori #103' },
+      ]);
+      const q12 = r.qatorlar.find((x) => x.id === 12)!;
+      expect(q12.summa).toBe(120 - 40 + 15);
+      expect(q12.delta).toBe(2);
+      const j = tenglashJami(r, new Set(), new Set());
+      expect(j.nusxaSoni).toBeGreaterThanOrEqual(3);
+      expect(j.paket.filter((p) => p.qator_id === 12)).toHaveLength(3);
+    });
+
+    it('qo‘lda fakti bor qator — yig‘ma farq (F2 − fakt), nusxa emas; urinish tekshiruvi qator bo‘yicha yig‘iladi', () => {
+      const xs = [satr(201, 80, 12, 3, 40), satr(202, 80, 12, 1, 40)];
+      const h = new Map(holat); h.set(12, st(12, 5, 1, 4, 40));
+      const r = faktF2Reja(ishlar(), h, null, { f2Narx: f2NarxYigish(xs), f2Satrlar: f2Satrlar(xs), nusxalangan: new Set(), qolda: new Map([[12, 1]]), f2Delta: new Map(), directFakt: new Map() });
+      expect(r.paket.filter((p) => p.qator_id === 12)).toEqual([expect.objectContaining({ qator_id: 12, hajm: 3, narx: 40 })]);
+      const u = urinishYarat({ kompaniyaId: 1, obyektId: 2, sana: '2026-01-01', sarlavha: 's', foiz: 100, tur: 'f2' },
+        [[{ qator_id: 5, hajm: 3, manba_akt_qator_id: 1 }, { qator_id: 5, hajm: -1, manba_akt_qator_id: 2 }], [{ qator_id: 5, hajm: 0, manba_akt_qator_id: 3 }]], () => 'op', undefined, () => 10);
+      const done = { ...u, bolaklar: u.bolaklar.map((b) => ({ ...b, holat: 'confirmed' as const, aktId: 1 })) };
+      expect(yozilganYasa(done)?.tekshir).toEqual([{ qator_id: 5, kutilgan: 12, ishora: 1 }]);
+    });
+  });
   it('chegirma (manfiy reja): F2 tomon manfiy farq yoziladi; teskari ishora — o‘tkazib yuboriladi', () => {
     const h = new Map(holat); h.set(21, st(21, -3, -1, -3, 100));
     const r = faktF2Reja(ishlar(), h, null, { f2Narx: f2NarxYigish([l(50, 21, -3, 100)]) });

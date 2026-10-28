@@ -225,7 +225,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     try {
       const r = await sbF2TasdiqNarxlar(obyektId);
       if (!r.ok) { toast(t('F2 narxlari yuklanmadi — «Fakt = F2» ochilmadi. Qayta urinib ko‘ring.'), 'danger'); return null; }
-      return { ktx: { f2Narx: r.narxlar, directFakt: r.directFakt, smetaNarx: (id) => narxOl(id) }, eskiAktlar: r.eskiAktlar };
+      return { ktx: { f2Narx: r.narxlar, directFakt: r.directFakt, f2Satrlar: r.f2Satrlar, nusxalangan: r.nusxalangan, qolda: r.qolda, f2Delta: r.f2Delta, smetaNarx: (id) => narxOl(id) }, eskiAktlar: r.eskiAktlar };
     } finally { setTenglashYuk(false); }
   };
   const tenglashOch = async (sarlavha: string, ishlar: JurnalIsh[]) => {

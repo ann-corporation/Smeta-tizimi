@@ -1,23 +1,163 @@
--- T2-FAKT-F2-RS-001 (egasi 2026-10-28, L0 qarori): «Fakt = F2» mehnat/mashina (rs) qatorlarini ham tasdiqlangan F2
--- hajmi va narxi bilan ko'zgulaydi. Oldin t2_fakt_yoz_v2 rs qatorini doim rad etardi (FAKT_DERIVED_OR_ROLLUP_LINE):
--- rs faktga faqat ota BL fakti × norma × smeta narxi bo'lib ergashardi, F2 dagi rs hajm/narxi faktga tushmasdi.
+-- T2-FAKT-F2-RS-001 (egasi 2026-10-28/29, L0 qarorlari): «Fakt = F2» tasdiqlangan F2 ni faktga AYNAN ko'chiradi.
+-- Tasdiqlangan F2 — muhrlangan yuridik hujjat: har qatori (minus ham) ishorasi, hajmi, narxi va summasi bilan, izi bilan.
 --
--- Yangi qoida (faqat shu RPC; boshqa hech narsa o'zgarmaydi):
---   * bl/mat/ob — avvalgidek;
---   * rs — FAQAT narx_manba = 'f2_sertifikat' (Fakt = F2 ko'zgusi) bilan, hajm musbat yoki manfiy (0 emas);
---   * rs boshqa manba bilan — avvalgidek FAKT_DERIVED_OR_ROLLUP_LINE.
--- Ikki marta sanash yo'q: t2_qator_holat rs uchun o'z (DIRECT) fakti bo'lsa BL_NORMA hosilasini olmaydi
--- (case when bl_soni > 0 and direct_fakt_hajm = 0 then hosila else direct) — acceptance shuni isbotlaydi.
--- Asl smeta (t2_qator) o'zgarmaydi; t2_akt_yarat o'zgarmaydi (narx/narx_yoq/narx_manba/narx_manba_id/narx_izoh ni qabul qiladi).
+--   1-qism. t2_akt_qator.manba_akt_qator_id — fakt qatori qaysi tasdiqlangan F2 akt qatoridan ko'chirilgani (haqiqiy iz);
+--           hajm CHECK faqat shunday nusxada 0 hajmga ruxsat beradi (F2 satrining o'zida hajm 0, summa ≠ 0).
+--   2-qism. t2_akt_yarat — manba_akt_qator_id va aynan summani (certified_amount) yozadi; boshqa chaqiruvchilarda o'zgarish yo'q.
+--   3-qism. t2_fakt_yoz_v2:
+--           * qo'lda kiritilgan fakt — avvalgidek (bl/mat/ob; hajm ≠ 0; bir qator bir marta — DUPLICATE_FAKT_SOURCE_LINE);
+--           * rs — faqat narx_manba='f2_sertifikat' bilan;
+--           * F2 nusxasi (manba_akt_qator_id + f2_sertifikat): bir hujjatda bir qator takrorlanishi mumkin, kalit — manba
+--             qatori; manba tasdiqlangan F2, o'sha obyekt/kompaniya va o'sha qator bo'lishi shart; bir F2 qatori faol fakt
+--             hujjatlarida ikki marta ko'chirilmaydi (F2_SOURCE_ALREADY_COPIED); hajm/narx/summa SERVERDA manbadan olinadi.
+--   4-qism. t2_qator_holat — rs BL_NORMA hosilasi = (bl fakti − f2_sertifikat manbali bl fakti) × norma.
+-- Asl smeta (t2_qator) o'zgarmaydi. Idempotentlik: mavjud operation_id — t2_akt_yarat eski hujjatni qaytaradi.
 begin;
 
+-- ── 1-qism: manba izi va hajm CHECK ───────────────────────────────────────────────────────────────────────────────
+alter table public.t2_akt_qator add column if not exists manba_akt_qator_id bigint references public.t2_akt_qator(id);
+comment on column public.t2_akt_qator.manba_akt_qator_id is 'Fakt = F2: shu fakt qatori ko''chirilgan tasdiqlangan F2 akt qatori (iz).';
+create index if not exists t2_akt_qator_manba_akt_qator_idx on public.t2_akt_qator(manba_akt_qator_id) where manba_akt_qator_id is not null;
+create unique index if not exists t2_akt_qator_akt_manba_uq on public.t2_akt_qator(akt_id, manba_akt_qator_id) where manba_akt_qator_id is not null;
+alter table public.t2_akt_qator drop constraint if exists t2_akt_qator_hajm_check;
+alter table public.t2_akt_qator add constraint t2_akt_qator_hajm_check
+  check (hajm <> 0::numeric or (narx_manba = 'f2_sertifikat' and manba_akt_qator_id is not null));
+
+-- ── 2-qism: t2_akt_yarat (prod ta'rifi + manba_akt_qator_id, certified_amount) ───────────────────────────────────────CREATE OR REPLACE FUNCTION public.t2_akt_yarat(p_obyekt_id bigint, p_tur text, p_oy date, p_qatorlar jsonb, p_raqam text DEFAULT NULL::text, p_operation_id uuid DEFAULT NULL::uuid, p_manba text DEFAULT 'frontend'::text, p_kim text DEFAULT NULL::text, p_majburiy boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_akt_id bigint; v_bor bigint; v_komp bigint;
+  v_jami numeric; v_soni int; v_narxsiz int; v_buzilish jsonb;
+  v_ogoh_soni int := 0; v_izoh text; v_rev bigint; v_actor bigint;
+begin
+  if p_operation_id is not null then
+    select id into v_bor from t2_akt where operation_id = p_operation_id;
+    if found then
+      return jsonb_build_object('ok',true,'takror',true,'akt_id',v_bor,
+        'izoh','Bu operatsiya allaqachon bajarilgan — yangi hujjat yaratilmadi.');
+    end if;
+  end if;
+  if p_tur not in ('fakt','f2') then
+    return jsonb_build_object('ok',false,'sabab','tur',
+      'xabar','tur faqat «fakt» yoki «f2» bo''ladi, berilgani: '||coalesce(p_tur,'(bo''sh)'));
+  end if;
+  if p_oy is null then
+    return jsonb_build_object('ok',false,'sabab','oy','xabar','Oy ko''rsatilmagan');
+  end if;
+  if p_qatorlar is null or jsonb_array_length(p_qatorlar)=0 then
+    return jsonb_build_object('ok',false,'sabab','bosh','xabar','Hujjatda bironta qator yo''q');
+  end if;
+  select kompaniya_id into v_komp from t2_obyekt where id=p_obyekt_id;
+  if not found then
+    return jsonb_build_object('ok',false,'sabab','obyekt','xabar','Obyekt topilmadi: '||p_obyekt_id);
+  end if;
+
+  v_actor := (regexp_match(coalesce(p_kim,''), '^actor:(\d+)$'))[1]::bigint;
+  perform public.t2_smeta_baseline_kafolat_v1(p_obyekt_id, v_actor);
+  select id into v_rev from public.t2_smeta_revision where obyekt_id = p_obyekt_id order by seq desc limit 1;
+
+  drop table if exists _kir;
+  create temp table _kir on commit drop as
+  select (x->>'qator_id')::bigint qator_id, t2_son(x->>'hajm') hajm,
+         case when x ? 'narx' then t2_son(x->>'narx') end narx_kir,
+         coalesce((x->>'narx_yoq')::boolean, false) narx_yoq,
+         nullif(btrim(coalesce(x->>'narx_manba','')),'') narx_manba_kir,
+         case when x ? 'actual_narx' then t2_son(x->>'actual_narx') end actual_kir,
+         nullif(x->>'narx_manba_id','')::bigint narx_manba_id_kir,
+         nullif(btrim(coalesce(x->>'narx_izoh','')),'') narx_izoh_kir,
+         nullif(btrim(coalesce(x->>'izoh','')),'') izoh,
+         -- T2-FAKT-F2-RS-001: «Fakt = F2» qatorma-qator nusxa — manba F2 akt qatori va uning aynan summasi
+         -- (faqat t2_fakt_yoz_v2 manbadan to'ldiradi; boshqa chaqiruvchilar bu kalitlarni yubormaydi).
+         nullif(x->>'manba_akt_qator_id','')::bigint manba_akt_qator_id_kir,
+         case when x ? 'summa_aynan' then t2_son(x->>'summa_aynan') end summa_aynan_kir
+  from jsonb_array_elements(p_qatorlar) x;
+
+  if exists (select 1 from _kir k left join t2_qator q
+             on q.id=k.qator_id and q.obyekt_id=p_obyekt_id where q.id is null) then
+    return jsonb_build_object('ok',false,'sabab','qator',
+      'xabar','Ba''zi qatorlar bu obyektga tegishli emas',
+      'qatorlar',(select jsonb_agg(k.qator_id) from _kir k left join t2_qator q
+                  on q.id=k.qator_id and q.obyekt_id=p_obyekt_id where q.id is null));
+  end if;
+  if exists (select 1 from _kir where hajm is null) then
+    return jsonb_build_object('ok',false,'sabab','hajm',
+      'xabar','Ba''zi qatorlarda hajm son emas',
+      'qatorlar',(select jsonb_agg(qator_id) from _kir where hajm is null));
+  end if;
+
+  select jsonb_agg(jsonb_build_object('qator_id',t.qator_id,'nom',t.nom,
+           'bor',t.bor,'qoshilmoqda',t.qosh,'chegara',t.chegara))
+    into v_buzilish
+  from (select k.qator_id, h.nom,
+               case when p_tur='fakt' then h.fakt_hajm else h.f2_hajm end bor,
+               k.hajm qosh,
+               case when p_tur='fakt' then h.smeta_hajm else h.fakt_hajm end chegara
+        from _kir k join t2_qator_holat h on h.id=k.qator_id and h.obyekt_id=p_obyekt_id) t
+  where t.chegara is not null
+    and (abs(t.bor+t.qosh) > abs(t.chegara)+0.000001 or (t.bor+t.qosh)*t.chegara < 0);
+
+  v_ogoh_soni := coalesce(jsonb_array_length(v_buzilish), 0);
+
+  insert into t2_akt (obyekt_id,kompaniya_id,tur,raqam,oy,holat,operation_id,manba,kim,revision_id)
+  values (p_obyekt_id,v_komp,p_tur,p_raqam,date_trunc('month',p_oy)::date,
+          'qoralama',p_operation_id,p_manba,p_kim,v_rev)
+  returning id into v_akt_id;
+
+  insert into t2_akt_qator (akt_id,qator_id,obyekt_id,kompaniya_id,hajm,narx,izoh,
+                            baseline_narx,baseline_summa,actual_narx,narx_manba,narx_manba_id,narx_izoh,revision_id,
+                            manba_akt_qator_id,certified_amount)
+  select v_akt_id,k.qator_id,p_obyekt_id,v_komp,k.hajm,
+         case when k.narx_yoq then null else coalesce(k.narx_kir,q.narx) end,
+         k.izoh,
+         q.narx,
+         case when k.hajm is not null and q.narx is not null then k.hajm * q.narx end,
+         k.actual_kir,
+         coalesce(k.narx_manba_kir,
+                  case when k.actual_kir is not null then 'qol_nomalum'
+                       when k.narx_yoq then 'smeta'
+                       when k.narx_kir is not null and q.narx is not null and k.narx_kir <> q.narx then 'qol_nomalum'
+                       else 'smeta' end),
+         k.narx_manba_id_kir,
+         k.narx_izoh_kir,
+         v_rev,
+         k.manba_akt_qator_id_kir,
+         case when k.manba_akt_qator_id_kir is not null then k.summa_aynan_kir end
+  from _kir k join t2_qator q on q.id=k.qator_id;
+
+  select count(*),count(*) filter (where summa is null),sum(summa)
+    into v_soni,v_narxsiz,v_jami from t2_akt_qator where akt_id=v_akt_id;
+  update t2_akt set hujjat_jami=v_jami where id=v_akt_id;
+
+  if v_ogoh_soni > 0 then
+    v_izoh := v_ogoh_soni || ' qatorda ' ||
+              case when p_tur='fakt' then 'FAKT smetadan' else 'Ф2 FAKTdan' end ||
+              ' oshadi — tekshiring';
+    update t2_akt set izoh = coalesce(izoh||' | ','') || v_izoh where id = v_akt_id;
+  end if;
+
+  return jsonb_build_object('ok',true,'takror',false,'akt_id',v_akt_id,'tur',p_tur,
+    'holat','qoralama','oy',to_char(date_trunc('month',p_oy),'YYYY-MM'),'revision_id',v_rev,
+    'qator_soni',v_soni,'narxsiz',v_narxsiz,'jami',v_jami,
+    'toliq',(v_narxsiz=0),
+    'ogohlantirish',v_buzilish,
+    'ogohlantirish_soni',v_ogoh_soni,
+    'izoh', trim(both ' |' from
+      case when v_narxsiz>0 then v_narxsiz||' qatorda narx yo''q — JAMI TO''LIQ EMAS.' else '' end
+      || case when v_ogoh_soni>0 then ' | '||v_izoh else '' end
+      || case when v_narxsiz=0 and v_ogoh_soni=0 then 'Barcha qator narxlangan, ogohlantirish yo''q.' else '' end));
+end $function$;
+
+-- ── 3-qism: t2_fakt_yoz_v2 ──────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.t2_fakt_yoz_v2(p_obyekt_id bigint, p_sana date, p_qatorlar jsonb, p_actor_id bigint, p_operation_id uuid, p_izoh text default null::text, p_raqam text default null::text, p_actor_label text default null::text)
  returns jsonb
  language plpgsql
  security definer
  set search_path to 'public', 'pg_temp'
 as $function$
-declare v_kompaniya_id bigint; v_result jsonb;
+declare v_kompaniya_id bigint; v_result jsonb; v_q jsonb; v_band jsonb;
 begin
   select o.kompaniya_id into v_kompaniya_id from public.t2_obyekt o where o.id=p_obyekt_id;
   if v_kompaniya_id is null then return jsonb_build_object('ok',false,'code','OBYEKT_NOT_FOUND'); end if;
@@ -25,8 +165,20 @@ begin
   if p_operation_id is null then return jsonb_build_object('ok',false,'code','OPERATION_ID_REQUIRED'); end if;
   if p_sana is null then return jsonb_build_object('ok',false,'code','FAKT_DATE_REQUIRED'); end if;
   if p_qatorlar is null or jsonb_typeof(p_qatorlar) <> 'array' or jsonb_array_length(p_qatorlar)=0 then return jsonb_build_object('ok',false,'code','FAKT_LINES_REQUIRED'); end if;
-  if exists (select 1 from jsonb_array_elements(p_qatorlar) x where coalesce(x->>'qator_id','') !~ '^[1-9][0-9]*$' or coalesce(x->>'hajm','') !~ '^-?[0-9]+(\.[0-9]+)?$' or (x->>'hajm')::numeric=0) then return jsonb_build_object('ok',false,'code','FAKT_LINE_INVALID'); end if;
-  if exists (select 1 from jsonb_array_elements(p_qatorlar) x group by x->>'qator_id' having count(*)>1) then return jsonb_build_object('ok',false,'code','DUPLICATE_FAKT_SOURCE_LINE'); end if;
+  -- F2 nusxasi: manba qatori id si va f2_sertifikat manbasi majburiy.
+  if exists (select 1 from jsonb_array_elements(p_qatorlar) x where x ? 'manba_akt_qator_id'
+             and (coalesce(x->>'manba_akt_qator_id','') !~ '^[1-9][0-9]*$' or coalesce(btrim(x->>'narx_manba'),'') <> 'f2_sertifikat')) then
+    return jsonb_build_object('ok',false,'code','F2_SOURCE_LINE_INVALID');
+  end if;
+  -- Qo'lda kiritilgan qator: hajm son va 0 emas (avvalgidek). F2 nusxasida hajm manbadan olinadi.
+  if exists (select 1 from jsonb_array_elements(p_qatorlar) x where coalesce(x->>'qator_id','') !~ '^[1-9][0-9]*$'
+             or (not (x ? 'manba_akt_qator_id') and (coalesce(x->>'hajm','') !~ '^-?[0-9]+(\.[0-9]+)?$' or (x->>'hajm')::numeric=0))) then
+    return jsonb_build_object('ok',false,'code','FAKT_LINE_INVALID');
+  end if;
+  if exists (select 1 from jsonb_array_elements(p_qatorlar) x where not (x ? 'manba_akt_qator_id') group by x->>'qator_id' having count(*)>1)
+     or exists (select 1 from jsonb_array_elements(p_qatorlar) x where x ? 'manba_akt_qator_id' group by x->>'manba_akt_qator_id' having count(*)>1) then
+    return jsonb_build_object('ok',false,'code','DUPLICATE_FAKT_SOURCE_LINE');
+  end if;
   if exists (
     select 1 from jsonb_array_elements(p_qatorlar) x left join public.t2_qator q on q.id=(x->>'qator_id')::bigint
     where q.id is null or q.obyekt_id<>p_obyekt_id
@@ -36,11 +188,48 @@ begin
     where q.tur not in ('bl','mat','ob')
       and not (q.tur='rs' and coalesce(btrim(x->>'narx_manba'),'')='f2_sertifikat')
   ) then return jsonb_build_object('ok',false,'code','FAKT_DERIVED_OR_ROLLUP_LINE','message','Fakt faqat BL, MAT yoki OB qatoriga kiritiladi; RS norma orqali BL Faktdan hisoblanadi (RS faqat «Fakt = F2» — tasdiqlangan F2 narxi bilan).'); end if;
-  select public.t2_fakt_yoz(p_obyekt_id,p_sana,p_qatorlar,p_actor_label,p_operation_id,p_izoh,p_raqam) into v_result;
-  return coalesce(v_result,jsonb_build_object('ok',false,'code','FAKT_ENGINE_NO_RESULT')) || jsonb_build_object('contract','FAKT_V2','actor_id',p_actor_id,'entry_policy','BL_MAT_OB_RS_F2');
+  -- Manba: tasdiqlangan F2, shu obyekt va kompaniya, shu qator.
+  if exists (
+    select 1 from jsonb_array_elements(p_qatorlar) x
+    left join public.t2_akt_qator s on s.id=(x->>'manba_akt_qator_id')::bigint
+    left join public.t2_akt sa on sa.id=s.akt_id
+    where x ? 'manba_akt_qator_id'
+      and (s.id is null or sa.tur is distinct from 'f2' or sa.holat is distinct from 'tasdiqlangan'
+           or sa.obyekt_id is distinct from p_obyekt_id or s.kompaniya_id is distinct from v_kompaniya_id
+           or s.qator_id is distinct from (x->>'qator_id')::bigint)
+  ) then return jsonb_build_object('ok',false,'code','F2_SOURCE_LINE_INVALID'); end if;
+  -- Bir F2 qatori faol fakt hujjatlarida bir marta (qayta yuborish — o'sha operation_id — t2_akt_yarat takror qaytaradi).
+  if not exists (select 1 from public.t2_akt where operation_id=p_operation_id) then
+    perform 1 from public.t2_akt_qator s
+      where s.id in (select (x->>'manba_akt_qator_id')::bigint from jsonb_array_elements(p_qatorlar) x where x ? 'manba_akt_qator_id')
+      order by s.id for update;
+    select jsonb_agg(distinct f.manba_akt_qator_id) into v_band
+    from public.t2_akt_qator f join public.t2_akt fa on fa.id=f.akt_id and fa.tur='fakt' and fa.holat<>'bekor'
+    where f.manba_akt_qator_id in (select (x->>'manba_akt_qator_id')::bigint from jsonb_array_elements(p_qatorlar) x where x ? 'manba_akt_qator_id');
+    if v_band is not null then return jsonb_build_object('ok',false,'code','F2_SOURCE_ALREADY_COPIED','manba_qatorlar',v_band); end if;
+  end if;
+  -- F2 nusxasi qatorlari manbadan AYNAN: hajm = coalesce(certified_quantity, hajm), narx = coalesce(certified_unit_price, narx)
+  -- (narx yo'q, summa bor — summa/hajm; hajm 0 bo'lsa 0), summa = coalesce(certified_amount, summa). Qo'lda qatordan ichki kalit olib tashlanadi.
+  select jsonb_agg(
+           case when e.x ? 'manba_akt_qator_id' then
+             (e.x - 'summa_aynan' - 'narx_yoq' - 'narx') || jsonb_build_object(
+               'hajm', coalesce(s.certified_quantity, s.hajm),
+               'narx', n.narx, 'narx_yoq', n.narx is null,
+               'summa_aynan', coalesce(s.certified_amount, s.summa),
+               'narx_manba_id', coalesce(nullif(e.x->>'narx_manba_id','')::bigint, s.akt_id))
+           else e.x - 'summa_aynan' - 'manba_akt_qator_id' end
+           order by e.ord)
+    into v_q
+  from jsonb_array_elements(p_qatorlar) with ordinality e(x, ord)
+  left join public.t2_akt_qator s on e.x ? 'manba_akt_qator_id' and s.id=(e.x->>'manba_akt_qator_id')::bigint
+  left join lateral (select coalesce(s.certified_unit_price, s.narx,
+            case when coalesce(s.certified_amount, s.summa) is not null and coalesce(s.certified_quantity, s.hajm) <> 0
+                 then coalesce(s.certified_amount, s.summa) / coalesce(s.certified_quantity, s.hajm) end,
+            case when coalesce(s.certified_amount, s.summa) is not null then 0::numeric end) as narx) n on true;
+  select public.t2_fakt_yoz(p_obyekt_id,p_sana,v_q,p_actor_label,p_operation_id,p_izoh,p_raqam) into v_result;
+  return coalesce(v_result,jsonb_build_object('ok',false,'code','FAKT_ENGINE_NO_RESULT')) || jsonb_build_object('contract','FAKT_V2','actor_id',p_actor_id,'entry_policy','BL_MAT_OB_RS_F2_COPY');
 end $function$;
-
--- ── 2-qism (L0 2026-10-29): t2_qator_holat — rs BL_NORMA hosilasi = (bl fakti − shu bl ning f2_sertifikat manbali
+-- ── 4-qism (L0 2026-10-29): t2_qator_holat — rs BL_NORMA hosilasi = (bl fakti − shu bl ning f2_sertifikat manbali
 -- fakti) × norma. F2 dan ko'chirilgan ish ulushining mehnat/mashinasi F2 dagi aniq rs qatorlaridan keladi (DIRECT);
 -- qo'lda kiritilgan ish fakti avvalgidek ergashadi. f2_sertifikat yozuvi bo'lmagan obyektlarda natija o'zgarmaydi.
 -- Qolgan ustunlar va qoidalar prod ta'rifi bilan bir xil (pg_get_viewdef, 2026-10-29).

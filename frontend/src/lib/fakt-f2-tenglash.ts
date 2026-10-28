@@ -66,7 +66,7 @@ export function f2NarxYigish(qatorlar: readonly F2AktQator[]): Map<number, F2Nar
  * fakt_yoz_v2 qatori: F2 narxi bilan — narx + manba; F2 da narx yo'q (bl/rs) — narx_yoq (hajm yoziladi, summa yo'q).
  * rs qatori server tomonida faqat narx_manba='f2_sertifikat' bilan qabul qilinadi (T2-FAKT-F2-RS-001).
  */
-export type FaktF2PaketQator = { qator_id: number; hajm: number; narx?: number; narx_yoq?: true; narx_manba?: 'f2_sertifikat'; narx_manba_id?: number; narx_izoh?: string };
+export type FaktF2PaketQator = { qator_id: number; hajm: number; manba_akt_qator_id?: number; narx?: number; narx_yoq?: true; narx_manba?: 'f2_sertifikat'; narx_manba_id?: number; narx_izoh?: string };
 /** Narx manbasi: F2 narxi / smeta narxi (F2 da narx yo'q) / narxsiz (summa noma'lum yoki F2 bo'yicha narxsiz). */
 export type TenglashNarxManba = 'f2' | 'smeta' | 'narxsiz';
 /**
@@ -74,7 +74,20 @@ export type TenglashNarxManba = 'f2' | 'smeta' | 'narxsiz';
  * qatorning O'Z (DIRECT) fakti — bekor qilinmagan fakt hujjatlari yig'indisi. directFakt berilsa rs (mehnat/mashina)
  * ham ko'zgulanadi: delta = F2 − o'z fakti (view rs uchun o'z fakti bo'lsa hosilani olmaydi).
  */
-export type TenglashKontekst = { f2Narx?: ReadonlyMap<number, F2Narx>; smetaNarx?: (id: number) => number | null; directFakt?: ReadonlyMap<number, number> };
+export type TenglashKontekst = {
+  f2Narx?: ReadonlyMap<number, F2Narx>; smetaNarx?: (id: number) => number | null; directFakt?: ReadonlyMap<number, number>;
+  /**
+   * Qatorma-qator nusxa (L0 2026-10-29, egasining yuridik qoidasi): qator → tasdiqlangan F2 satrlari; 
+usxalangan — faol
+   * fakt hujjatlariga allaqachon ko'chirilgan F2 satrlari (manba_akt_qator_id); qolda — qatorning f2_sertifikat bo'lmagan
+   * (qo'lda) fakti; 2Delta — manbasiz f2_sertifikat fakti (eski yig'ma usul). Qo'lda/yig'ma fakti yo'q qator — har F2
+   * satri o'z fakt qatoriga 1:1; bor bo'lsa — yig'ma farq (F2 − fakt).
+   */
+  f2Satrlar?: ReadonlyMap<number, readonly F2AktQator[]>; nusxalangan?: ReadonlySet<number>;
+  qolda?: ReadonlyMap<number, number>; f2Delta?: ReadonlyMap<number, number>;
+};
+/** Bitta F2 satri → bitta fakt qatori (server hajm/narx/summani manbadan AYNAN oladi). */
+export type NusxaSatr = { manba: number; akt: number; hajm: number; summa: number | null };
 
 export type BekorNatija = { ok: boolean; error?: string };
 export type AktBekorFn = (aktId: number) => Promise<BekorNatija>;
@@ -109,6 +122,8 @@ export type TenglashQator = {
   narxYoq?: boolean;
   /** Shu ish ostidagi F2 da yo'q mehnat/mashina (rs) — norma bo'yicha smeta narxida ergashadi (soni, summa; summa ish summasida). */
   rsHosila?: { soni: number; summa: number | null };
+  /** Qatorma-qator nusxa: har F2 satri → o'z fakt qatori (bo'lsa, delta = Σ hajm, summa = Σ F2 summa). */
+  nusxa?: readonly NusxaSatr[];
   /** Qisman narxli F2 (soni qatordan narxsizSoni tasida narx yo'q): narx = Σ narxli summa / Σ barcha hajm. */
   qisman?: { soni: number; narxsizSoni: number };
 };
@@ -145,6 +160,12 @@ export function paketQator(q: Pick<TenglashQator, 'id' | 'delta' | 'narx' | 'nar
   return p;
 }
 
+/** Reja qatori → fakt_yoz_v2 qatorlari: 1:1 nusxada har F2 satri alohida (manba_akt_qator_id), aks holda bitta yig'ma qator. */
+export function paketQatorlar(q: Parameters<typeof paketQator>[0] & Pick<TenglashQator, 'nusxa'>): FaktF2PaketQator[] {
+  if (!q.nusxa?.length) return [paketQator(q)];
+  return q.nusxa.map((x) => ({ qator_id: q.id, hajm: x.hajm, manba_akt_qator_id: x.manba, narx_manba: 'f2_sertifikat' as const, narx_manba_id: x.akt,
+    narx_izoh: `Fakt = F2: F2 №${x.akt} qatori #${x.manba}` }));
+}
 /**
  * Ko'zgulanadigan qator hajmi (egasi 2026-10-29: tasdiqlangan F2 — muhrlangan hujjat, har qatori ishorasi bilan aynan
  * ko'chiriladi): farq = F2 − o'z fakti, F2 tomon — F2 musbat bo'lsa oshiradi, F2 manfiy bo'lsa (minus norma, sof manfiy
@@ -206,6 +227,7 @@ export function faktF2Reja(ishlar: readonly JurnalIsh[], holat: ReadonlyMap<numb
   const rsOzgacha = (r: JurnalQator) => {
     if (!ktx.directFakt) return false;
     if (Math.abs(ktx.directFakt.get(r.id) ?? 0) > 1e-9) return true;
+    if (ktx.f2Satrlar?.get(r.id)?.length) return true;
     return farqOl(son(holat.get(r.id)?.f2_hajm) ?? 0, 0) != null;
   };
   for (const ish of ishlar) {
@@ -217,6 +239,29 @@ export function faktF2Reja(ishlar: readonly JurnalIsh[], holat: ReadonlyMap<numb
       const f2 = son(h?.f2_hajm) ?? 0;
       const fakt = faktOl(q);
       const manfiy = smetaHajm(q) < 0;
+      const oz0 = q === (ish as JurnalQator);
+      // 1:1 nusxa: qatorda qo'lda / yig'ma fakt yo'q — har ko'chirilmagan F2 satri o'z fakt qatoriga.
+      if (ktx.f2Satrlar && Math.abs(ktx.qolda?.get(q.id) ?? 0) <= 1e-9 && Math.abs(ktx.f2Delta?.get(q.id) ?? 0) <= 1e-9) {
+        const nusxa: NusxaSatr[] = [];
+        for (const x of ktx.f2Satrlar.get(q.id) ?? []) {
+          const id = Number(x.id); if (!Number.isSafeInteger(id) || ktx.nusxalangan?.has(id)) continue;
+          const hj = son(x.certified_quantity) ?? son(x.hajm) ?? 0; const sm = son(x.certified_amount) ?? son(x.summa);
+          if (Math.abs(hj) <= 1e-12 && (sm == null || sm === 0)) continue;
+          nusxa.push({ manba: id, akt: Number(x.akt_id), hajm: hj, summa: sm });
+        }
+        if (!nusxa.length) { if (manfiy) manfiyReja += 1; if (Math.abs(f2) <= 1e-9) f2Yoq += 1; continue; }
+        const malum = nusxa.filter((x) => x.summa != null);
+        const summa = malum.length ? yaxlit(malum.reduce((a, x) => a + (x.summa as number), 0)) : null;
+        const kesim = bosKatKesim(); katKesimgaQosh(kesim, q.kat, summa);
+        const f2n = ktx.f2Narx?.get(q.id);
+        qatorlar.push({
+          id: q.id, tur: q.tur, nom: q.nom, birlik: q.birlik, fakt, f2, delta: yaxlit(nusxa.reduce((a, x) => a + x.hajm, 0)), narx: f2n?.narx ?? null,
+          summa, avtomatik: oz0 ? ish.avtomatik.length : 0, bolim, kesim, narxManba: summa != null ? 'f2' : 'narxsiz',
+          aktlar: [...new Set(nusxa.map((x) => x.akt))].sort((a, b) => a - b), nusxa,
+          ...(f2n?.aralash ? { qisman: { soni: f2n.soni ?? 0, narxsizSoni: f2n.narxsizSoni ?? 0 } } : {}),
+        });
+        continue;
+      }
       const delta = farqOl(f2, fakt);
       if (delta == null) {
         if (manfiy) manfiyReja += 1;
@@ -240,7 +285,7 @@ export function faktF2Reja(ishlar: readonly JurnalIsh[], holat: ReadonlyMap<numb
 function rejaYasa(qatorlar: TenglashQator[], manfiyReja: number, f2Yoq: number, faktOrtiq: TenglashReja['faktOrtiq']): TenglashReja {
   return {
     qatorlar,
-    paket: qatorlar.map(paketQator),
+    paket: qatorlar.flatMap(paketQatorlar),
     jamiSumma: yaxlit(qatorlar.reduce((s, x) => s + (x.summa ?? 0), 0)),
     narxsiz: qatorlar.filter((x) => x.summa == null).length,
     otkazildi: { manfiyReja, f2Yoq }, faktOrtiq,
@@ -276,6 +321,8 @@ export type TenglashJami = {
   qisman: number;
   /** Istisno qilingan mehnat/mashina (rs): F2 dan ko'chirilgan ish ulushiga ergashmaydi — faktga tushmaydi (soni, ko'rilmagan summa). */
   rsIstisno: { soni: number; summa: number | null };
+  /** 1:1 nusxa: shuncha F2 satri → shuncha fakt qatori. */
+  nusxaSoni: number;
   /** Manfiy hajmli qatorlar (F2 dagi minus — aynan ko'chiriladi): soni, ma'lumot uchun. */
   manfiySoni: number;
   /** Fakt F2 dan ko'p — signal (soni, ortiq summa). */
@@ -294,7 +341,7 @@ const kesimQosh = (a: KatKesim, b: KatKesim | undefined) => {
 export function tenglashJami(reja: TenglashReja, chiqQator: ReadonlySet<number>, chiqBolim: ReadonlySet<string>): TenglashJami {
   const paket: TenglashJami['paket'] = [];
   const kesim = bosKatKesim(); let ustamasiz: number | null = null; let narxsiz = 0; let f2Narxli = 0; let smetaNarxli = 0;
-  const rsHosila = { soni: 0, summa: null as number | null }; let qisman = 0;
+  const rsHosila = { soni: 0, summa: null as number | null }; let qisman = 0; let nusxaSoni = 0;
   const rsIstisno = { soni: 0, summa: null as number | null };
   const bm = new Map<string, TenglashBolimJami>();
   for (const q of reja.qatorlar) {
@@ -305,17 +352,18 @@ export function tenglashJami(reja: TenglashReja, chiqQator: ReadonlySet<number>,
       continue;
     }
     if (q.qisman && q.narxManba === 'f2') qisman += 1;
-    paket.push(paketQator(q));
+    paket.push(...paketQatorlar(q));
     b.soni += 1;
     if (q.summa == null) { narxsiz += 1; b.narxsiz += 1; }
     else { ustamasiz = (ustamasiz ?? 0) + q.summa; b.ustamasiz = (b.ustamasiz ?? 0) + q.summa; }
-    if (q.narxManba === 'f2' && q.narx != null) f2Narxli += 1; else if (q.summa != null) smetaNarxli += 1;
+    if (q.nusxa) nusxaSoni += q.nusxa.length;
+    if (q.narxManba === 'f2' && (q.narx != null || q.nusxa)) f2Narxli += 1; else if (q.summa != null) smetaNarxli += 1;
     if (q.rsHosila) { rsHosila.soni += q.rsHosila.soni; if (q.rsHosila.summa != null) rsHosila.summa = yaxlit((rsHosila.summa ?? 0) + q.rsHosila.summa); }
     kesimQosh(kesim, q.kesim); kesimQosh(b.kesim, q.kesim);
   }
   for (const b of bm.values()) if (b.ustamasiz != null) b.ustamasiz = yaxlit(b.ustamasiz);
   const yig = (xs: readonly (number | null)[]) => xs.reduce<number | null>((a, v) => (v == null ? a : yaxlit((a ?? 0) + v)), null);
-  return { paket, ustamasiz: ustamasiz == null ? null : yaxlit(ustamasiz), kesim, narxsiz, f2Narxli, smetaNarxli, rsHosila, qisman, rsIstisno,
+  return { paket, ustamasiz: ustamasiz == null ? null : yaxlit(ustamasiz), kesim, narxsiz, f2Narxli, smetaNarxli, rsHosila, qisman, rsIstisno, nusxaSoni,
     manfiySoni: paket.filter((x) => x.hajm < 0).length,
     faktOrtiq: { soni: reja.faktOrtiq.length, summa: yig(reja.faktOrtiq.map((x) => x.ortiq)) },
     bolimlar: [...bm.values()] };

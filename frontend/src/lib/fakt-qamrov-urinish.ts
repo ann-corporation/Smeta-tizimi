@@ -14,9 +14,10 @@
  */
 export type BolakHolat = 'kutmoqda' | 'confirmed' | 'failed' | 'unknown';
 /** Yuboriladigan fakt qatori. «Fakt = F2» F2 narxini manbasi bilan qo'shadi (snapshotda muzlatiladi — qayta yuborishda aynan shu). */
-export type UrinishQator = { qator_id: number; hajm: number; narx?: number; narx_yoq?: boolean; narx_manba?: string; narx_manba_id?: number; narx_izoh?: string };
+export type UrinishQator = { qator_id: number; hajm: number; manba_akt_qator_id?: number; narx?: number; narx_yoq?: boolean; narx_manba?: string; narx_manba_id?: number; narx_izoh?: string };
 const qatorNusxa = (x: UrinishQator): UrinishQator => {
   const n: UrinishQator = { qator_id: x.qator_id, hajm: x.hajm };
+  if (x.manba_akt_qator_id != null) n.manba_akt_qator_id = x.manba_akt_qator_id;
   if (x.narx != null) n.narx = x.narx;
   if (x.narx_yoq === true) n.narx_yoq = true;
   if (x.narx_manba != null) n.narx_manba = x.narx_manba;
@@ -124,6 +125,18 @@ export function urinishOchir(kompaniyaId: number, obyektId: number): void {
 export type YozilganTekshir = { qator_id: number; kutilgan: number; ishora: 1 | -1 };
 export type QamrovYozilgan = { kalit: string; sarlavha: string; foiz: number; aktlar: readonly number[]; tekshir: readonly YozilganTekshir[] };
 
+/**
+ * Kutilgan fakt — qator bo'yicha: asos (urinish yaratilgandagi fakt) + shu qatorning BARCHA yozilgan hajmlari yig'indisi.
+ * «Fakt = F2» 1:1 nusxada bir qator bir necha fakt qatori (har F2 satri) bo'ladi — har birini alohida tekshirish noto'g'ri.
+ */
+function tekshirYig(tasdiq: readonly UrinishBolak[]): YozilganTekshir[] {
+  const m = new Map<number, { asos: number; jami: number }>();
+  for (const b of tasdiq) b.qatorlar.forEach((q, i) => {
+    const x = m.get(q.qator_id);
+    if (x) x.jami += q.hajm; else m.set(q.qator_id, { asos: b.asos?.[i] ?? 0, jami: q.hajm });
+  });
+  return [...m].map(([qator_id, x]) => ({ qator_id, kutilgan: Math.round((x.asos + x.jami) * 1e6) / 1e6, ishora: (x.jami < 0 ? -1 : 1) as 1 | -1 }));
+}
 /** Urinishning tasdiqlangan bo'laklaridan yozuv (tasdiqlangani bo'lmasa null). */
 export function yozilganYasa(u: QamrovUrinish): QamrovYozilgan | null {
   const tasdiq = u.bolaklar.filter((b) => b.holat === 'confirmed');
@@ -131,7 +144,7 @@ export function yozilganYasa(u: QamrovUrinish): QamrovYozilgan | null {
   return {
     kalit: u.kalit, sarlavha: u.sarlavha, foiz: u.foiz,
     aktlar: tasdiq.flatMap((b) => (b.aktId != null ? [b.aktId] : [])),
-    tekshir: tasdiq.flatMap((b) => b.qatorlar.map((q, i) => ({ qator_id: q.qator_id, kutilgan: Math.round(((b.asos?.[i] ?? 0) + q.hajm) * 1e6) / 1e6, ishora: (q.hajm < 0 ? -1 : 1) as 1 | -1 }))),
+    tekshir: tekshirYig(tasdiq),
   };
 }
 /** Jadval (holat fakt_hajm) yozilgan hajmlarni ko'rsatyaptimi? Qator holati yo'q — hali yo'q deb hisoblanadi. */
