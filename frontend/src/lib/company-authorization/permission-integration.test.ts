@@ -13,6 +13,10 @@ describe('role integration architecture',()=>{
       /* Global immutable reference data, not tenant rows: session + pinned file whitelist;
          norm-library.test.ts proves auth fails closed before any R2 access. */
       'norm-library',
+      /* C11 multipart audio: handler bounds the stream before parsing, refreshes roleAuthority,
+         checks company membership/document.write/explicit deny and never writes stock.
+         ombor-ovoz.test.ts proves unauthenticated/foreign/denied requests make no provider call. */
+      'ombor-ovoz',
       /* «Telegram modeli» (2026-10-22): havola orqali qo'shilayotgan odam hali a'zo emas — middleware ruxsat ro'yxati qo'llanmaydi.
          Actor sessiyadan; a'zolik, company.member.manage, muddat, soni va cheklov — har RPC ichida bazada (ish-joyi.test.ts). */
       'ish-joyi',

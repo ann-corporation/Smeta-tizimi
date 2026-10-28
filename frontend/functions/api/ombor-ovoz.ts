@@ -2,11 +2,17 @@ import { tekshir, type Sess } from '../_shared/auth';
 import { cachedAuthority, yopiqModul } from '../_shared/permission-policy';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; ELEVENLABS_API_KEY?: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; ELEVENLABS_API_KEY?: string; ELEVENLABS_COMPANY_IDS?: string };
 type Context = Parameters<PagesFunction<Env>>[0];
 const MAX_BODY = 8 * 1024 * 1024;
 const json = (body: unknown, status = 200) => Response.json(body, {status,headers:{'Cache-Control':'no-store'}});
 const fail = (code: string, status: number) => json({ok:false,code},status);
+function providerScope(env:Env,kid:number):Response|null {
+  if(!env.ELEVENLABS_API_KEY)return fail('VOICE_NOT_CONFIGURED',503);
+  const ids=env.ELEVENLABS_COMPANY_IDS?.trim();
+  if(!ids||!/^\d+(\s*,\s*\d+)*$/.test(ids))return fail('VOICE_SCOPE_NOT_CONFIGURED',503);
+  return ids.split(',').some(id=>Number(id)===kid)?null:fail('VOICE_COMPANY_NOT_ENABLED',403);
+}
 
 async function actor(ctx: Context): Promise<Sess | Response> {
   const cached = cachedAuthority(ctx);
@@ -55,7 +61,7 @@ async function multipart(req: Request): Promise<FormData | Response> {
 export const onRequestGet: PagesFunction<Env> = async ctx => {
   const session=await actor(ctx);if(session instanceof Response)return session;
   const denied=access(session,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')));
-  return denied ?? json({ok:true,enabled:!!ctx.env.ELEVENLABS_API_KEY,provider:'elevenlabs',draft_only:true});
+  return denied ?? json({ok:true,enabled:providerScope(ctx.env,Number(new URL(ctx.request.url).searchParams.get('kompaniya_id')))===null,provider:'elevenlabs',draft_only:true});
 };
 
 export const onRequestPost: PagesFunction<Env> = async ctx => {
@@ -66,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   try {form=await multipart(ctx.request);}catch{return fail('AUDIO_FORM_REQUIRED',400);}
   if(form instanceof Response)return form;
   const denied=access(session,Number(form.get('kompaniya_id')));if(denied)return denied;
-  if(!ctx.env.ELEVENLABS_API_KEY)return fail('VOICE_NOT_CONFIGURED',503);
+  const scope=providerScope(ctx.env,Number(form.get('kompaniya_id')));if(scope)return scope;
   const audio:unknown=form.get('audio');
   if(!(audio instanceof Blob)||audio.size===0)return fail('AUDIO_REQUIRED',400);
   if(audio.size>MAX_BODY)return fail('AUDIO_TOO_LARGE',413);
@@ -79,7 +85,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   try {
     // Provider transcription only: this endpoint never creates stock, expenses or payments.
     const r=await fetch('https://api.elevenlabs.io/v1/speech-to-text',{
-      method:'POST',headers:{'xi-api-key':ctx.env.ELEVENLABS_API_KEY},body:upload,
+      method:'POST',headers:{'xi-api-key':ctx.env.ELEVENLABS_API_KEY!},body:upload,
       signal:AbortSignal.any([ctx.request.signal,AbortSignal.timeout(60_000)]),
     });
     if(!r.ok){await r.body?.cancel();return fail(r.status===429?'VOICE_BUSY':'VOICE_PROVIDER_ERROR',r.status===429?503:502);}

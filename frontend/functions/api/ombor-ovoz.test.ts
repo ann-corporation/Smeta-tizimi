@@ -3,8 +3,8 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { onRequestGet, onRequestPost } from './ombor-ovoz';
 import { imzola, type Sess } from '../_shared/auth';
 import { vakolatKeshTozala } from '../_shared/role-authority';
-const env={SUPABASE_URL:'https://synthetic.supabase.co',SUPABASE_KEY:'synthetic-service',SESSIYA_KALIT:'k'.repeat(32),ELEVENLABS_API_KEY:'synthetic-provider-secret'};
-type TestEnv=Omit<typeof env,'ELEVENLABS_API_KEY'>&{ELEVENLABS_API_KEY?:string};
+const env={SUPABASE_URL:'https://synthetic.supabase.co',SUPABASE_KEY:'synthetic-service',SESSIYA_KALIT:'k'.repeat(32),ELEVENLABS_API_KEY:'synthetic-provider-secret',ELEVENLABS_COMPANY_IDS:'123'};
+type TestEnv=Omit<typeof env,'ELEVENLABS_API_KEY'|'ELEVENLABS_COMPANY_IDS'>&{ELEVENLABS_API_KEY?:string;ELEVENLABS_COMPANY_IDS?:string};
 const session:Sess={rol:'pto',exp:Date.now()+600000,jti:'synthetic',foydalanuvchi_id:183,kompaniyalar:[{kompaniya_id:123,rol:'pto'}],permissionsByCompany:{123:['document.write']}};
 const data=()=>({roleAuthority:structuredClone(session)});
 afterEach(()=>{vi.unstubAllGlobals();vakolatKeshTozala();});
@@ -23,6 +23,14 @@ it('foreign tenant and explicit denials cannot spend provider credits',async()=>
   expect((await post(request(audio('999')))).status).toBe(403);
   const denied=data();denied.roleAuthority.explicitDenialsByCompany={123:['document.write']};
   expect((await post(request(audio()),denied)).status).toBe(403);expect(f).not.toHaveBeenCalled();
+});
+it('a global provider secret is not automatically available to every company',async()=>{
+  const f=vi.fn();vi.stubGlobal('fetch',f);
+  expect((await post(request(audio()),data(),{...env,ELEVENLABS_COMPANY_IDS:undefined})).status).toBe(503);
+  expect((await post(request(audio()),data(),{...env,ELEVENLABS_COMPANY_IDS:'999'})).status).toBe(403);
+  expect((await get('123',data(),{...env,ELEVENLABS_COMPANY_IDS:'999'})).status).toBe(200);
+  expect(await(await get('123',data(),{...env,ELEVENLABS_COMPANY_IDS:'999'})).json()).toMatchObject({enabled:false});
+  expect(f).not.toHaveBeenCalled();
 });
 it('signed role alone is not current authority when the database is unavailable',async()=>{
   const cookie='sess='+await imzola({rol:'boss',foydalanuvchi_id:183,kompaniyalar:[{kompaniya_id:123,rol:'boss'}]},env.SESSIYA_KALIT);

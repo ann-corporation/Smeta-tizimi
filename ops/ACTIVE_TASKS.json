@@ -7,7 +7,7 @@
       "title": "C11 server-only voice transcription to editable draft",
       "branch": "codex/c11-elevenlabs-transcription-20261027",
       "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b", "status": "ready_for_review",
-      "owns": ["frontend/functions/api/ombor-ovoz.ts", "frontend/functions/api/ombor-ovoz.test.ts", "ops/mailbox/C11-VOICE-20261027/"],
+      "owns": ["frontend/functions/api/ombor-ovoz.ts", "frontend/functions/api/ombor-ovoz.test.ts", "frontend/src/lib/company-authorization/permission-integration.test.ts", "ops/mailbox/C11-VOICE-20261027/"],
       "depends_on": [], "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
       "production_write_allowed": false,
       "note": "Directowner requests ElevenLabs voice forC11. STT only, no ledger/financial writer; fresh actor/tenant/document.write, bounded bodies, APIkey server-only. Local key not found byname; mockedprovider verified, paidlivecall NOTperformed. L0 config/deploy; no secret inGit."
