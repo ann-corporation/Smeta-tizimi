@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({ read: vi.fn(), excel: vi.fn(), download: vi.fn
 vi.mock('../../lib/ombor-prixod/read-fonda', () => ({ prixodKitobFonda: mocks.read }));
 vi.mock('../../lib/ombor-prixod/davr-eksport', () => ({ omborDavrExcel: mocks.excel }));
 vi.mock('../../lib/construction-document-control/export/download-helper', () => ({ downloadBlob: mocks.download }));
+vi.mock('../../lib/token-hujjat',()=>({hujjatTokenBilan:async(_p:unknown,deliver:()=>void)=>{deliver();return{ok:true};}}));
 
 afterEach(() => { cleanup(); mocks.read.mockReset(); mocks.excel.mockReset(); mocks.download.mockReset(); });
 

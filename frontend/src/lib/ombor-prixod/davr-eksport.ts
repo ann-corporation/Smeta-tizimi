@@ -33,17 +33,26 @@ export async function omborDavrExcel(rows: readonly OmborHisobotQator[], davr: O
   const ws = wb.addWorksheet('Реестр', {views:[{state:'frozen',ySplit:7}]});
   ws.addRow([title]); ws.addRow(['Организация',davr.kompaniya]); ws.addRow(['Склад',davr.ombor]);
   ws.addRow(['Период',davr.bosh,davr.oxir]); ws.addRow([note]); ws.addRow(['Цены, суммы и НДС не определены; нулевые значения не подставлены.']);
-  ws.addRow(['№','Дата','Операция','Материал','Ед. изм.','Количество','Поставщик / получатель','Документ','Строка источника','Статус']);
+  const groupIds=new Map<string,number>();
+  for(const row of selected){const key=JSON.stringify([row.nom,row.birlik]);if(!groupIds.has(key))groupIds.set(key,groupIds.size+1);}
+  ws.addRow(['№','Дата','Операция','Материал','Ед. изм.','Количество','Поставщик / получатель','Документ','Строка источника','Статус','Группа (служебная)']);
   selected.forEach((row,i)=>ws.addRow([i+1,row.sana,row.operatsiya==='prixod'?'Приход':'Расход',row.nom,row.birlik,row.miqdor,
-    row.tomon || 'Не указан',row.hujjat,row.manbaQator,davr.holat==='qoralama'?'Подтверждено в черновике; не проведено':'Проведено']));
+    row.tomon || 'Не указан',row.hujjat,row.manbaQator,davr.holat==='qoralama'?'Подтверждено в черновике; не проведено':'Проведено',groupIds.get(JSON.stringify([row.nom,row.birlik]))]));
   ws.autoFilter = {from:{row:7,column:1},to:{row:Math.max(7,ws.rowCount),column:10}};
   ws.columns.forEach((c,i)=>{c.width=[7,14,12,45,12,17,33,24,18,43][i];}); ws.getColumn(6).numFmt='#,##0.########';
+  ws.getColumn(11).hidden=true;
   const summary=wb.addWorksheet('Свод');
   summary.addRow([title]);summary.addRow([note]);summary.addRow(['Материал','Ед. изм.','Приход за период','Расход за период','Разница оборотов (не остаток)']);
   const groups=new Map<string,{nom:string;birlik:string;kirim:number;chiqim:number}>();
   for(const row of selected){const key=JSON.stringify([row.nom,row.birlik]);const g=groups.get(key)??{nom:row.nom,birlik:row.birlik,kirim:0,chiqim:0};
     if(row.operatsiya==='prixod')g.kirim+=row.miqdor;else g.chiqim+=row.miqdor;groups.set(key,g);}
-  for(const g of groups.values())summary.addRow([g.nom,g.birlik,g.kirim,davr.rasxodKiritilgan?g.chiqim:null,davr.rasxodKiritilgan?g.kirim-g.chiqim:null]);
+  const last=Math.max(8,ws.rowCount);
+  for(const [key,g] of groups){
+    const rowNo=summary.rowCount+1;const groupId=groupIds.get(key)!;
+    const total=(kind:string,result:number)=>({formula:`SUMIFS('Реестр'!F8:F${last},'Реестр'!K8:K${last},${groupId},'Реестр'!C8:C${last},"${kind}")`,result});
+    summary.addRow([g.nom,g.birlik,total('Приход',g.kirim),davr.rasxodKiritilgan?total('Расход',g.chiqim):null,
+      davr.rasxodKiritilgan?{formula:`C${rowNo}-D${rowNo}`,result:g.kirim-g.chiqim}:null]);
+  }
   summary.columns.forEach((c,i)=>{c.width=[45,13,22,22,35][i];});for(const c of [3,4,5])summary.getColumn(c).numFmt='#,##0.########';
   const meta=wb.addWorksheet('Источник');
   meta.addRow(['Параметр','Значение']);meta.addRows([

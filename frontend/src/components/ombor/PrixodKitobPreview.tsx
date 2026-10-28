@@ -4,6 +4,7 @@ import { t, raqamFormatla } from '../../i18n/til';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { prixodKitobFonda } from '../../lib/ombor-prixod/read-fonda';
 import { PrixodQatorEditor } from './PrixodQatorEditor';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { materialTaklifQur } from '../../lib/ombor-prixod/taklif';
 import { prixodQoralama, qoralamaQator, qoralamaTasdiqlangan, type PrixodQoralama } from '../../lib/ombor-prixod/qoralama';
 import type { PrixodKitob, PrixodQator, PrixodXato, PrixodOgoh } from '../../lib/ombor-prixod/turlar';
@@ -89,7 +90,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
   const [davrBoshi, setDavrBoshi] = useState('');
   const [davrOxiri, setDavrOxiri] = useState('');
   const [eksportYuklanmoqda, setEksportYuklanmoqda] = useState(false);
-  const [eksportXatosi, setEksportXatosi] = useState(false);
+  const [eksportXatosi, setEksportXatosi] = useState<string | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const generationRef = useRef(0);
   const faylRef = useRef<HTMLInputElement>(null);
@@ -100,7 +101,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
     setQidiruv(''); setFiltr('hammasi'); setSahifa(0);
     setQoralamalar(new Map()); setTahrirQatori(null);
     setTakrorTekshiruviEskirdi(false);
-    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(false); setEksportYuklanmoqda(false);
+    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(null); setEksportYuklanmoqda(false);
     return () => {
       sorovniEskirtirVaBekorQil(generationRef, requestRef);
     };
@@ -119,7 +120,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
     setQidiruv(''); setFiltr('hammasi'); setSahifa(0);
     setQoralamalar(new Map()); setTahrirQatori(null);
     setTakrorTekshiruviEskirdi(false);
-    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(false); setEksportYuklanmoqda(false);
+    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(null); setEksportYuklanmoqda(false);
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       if (controller.signal.aborted || generation !== generationRef.current) return;
@@ -171,7 +172,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
     setHolat(null); setQidiruv(''); setFiltr('hammasi'); setSahifa(0);
     setQoralamalar(new Map()); setTahrirQatori(null);
     setTakrorTekshiruviEskirdi(false);
-    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(false); setEksportYuklanmoqda(false);
+    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(null); setEksportYuklanmoqda(false);
   };
 
   const eksportMumkin = [
@@ -183,7 +184,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
   const davrExcelYukla = async () => {
     if (!eksportMumkin || !kitob || skladId == null) return;
     const generation = generationRef.current;
-    setEksportYuklanmoqda(true); setEksportXatosi(false);
+    setEksportYuklanmoqda(true); setEksportXatosi(null);
     const davr: OmborDavr = {
       bosh: davrBoshi, oxir: davrOxiri, kompaniya: `${t('Kompaniya')} ${kompaniyaId}`,
       ombor: skladNomi || `${t('Ombor')} ${skladId}`, holat: 'qoralama', rasxodKiritilgan: false,
@@ -193,9 +194,14 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
       const bytes = await omborDavrExcel(tasdiqlanganEksportQatorlari, davr);
       if (generation !== generationRef.current) return;
       const nom = `Kirim_qoralama_${davrBoshi}_${davrOxiri}.xlsx`;
-      downloadBlob(bytes, nom);
+      const natija = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OMBOR_QORALAMA_REESTR',
+        sabab: `Черновик прихода · ${davr.bosh} — ${davr.oxir} · склад ${skladId}` }, () => {
+        if (generation !== generationRef.current) throw new Error('EXPORT_SCOPE_CHANGED');
+        downloadBlob(bytes, nom);
+      });
+      if (!natija.ok && generation === generationRef.current) setEksportXatosi(natija.xabar);
     } catch {
-      if (generation === generationRef.current) setEksportXatosi(true);
+      if (generation === generationRef.current) setEksportXatosi(t('Excelni tayyorlab bo‘lmadi. Tasdiqlangan qatorlar va davrni tekshiring.'));
     } finally {
       if (generation === generationRef.current) setEksportYuklanmoqda(false);
     }
@@ -245,12 +251,12 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <label className="min-w-0 flex-1 text-[12px] font-medium text-text-dim">
               {t('Davr boshi')}
-              <input type="date" value={davrBoshi} onChange={(e) => { setDavrBoshi(e.target.value); setEksportXatosi(false); }}
+              <input type="date" value={davrBoshi} onChange={(e) => { setDavrBoshi(e.target.value); setEksportXatosi(null); }}
                 className="mt-1 h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text" />
             </label>
             <label className="min-w-0 flex-1 text-[12px] font-medium text-text-dim">
               {t('Davr oxiri')}
-              <input type="date" value={davrOxiri} onChange={(e) => { setDavrOxiri(e.target.value); setEksportXatosi(false); }}
+              <input type="date" value={davrOxiri} onChange={(e) => { setDavrOxiri(e.target.value); setEksportXatosi(null); }}
                 className="mt-1 h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text" />
             </label>
             <button type="button" disabled={!eksportMumkin} onClick={() => void davrExcelYukla()}
@@ -260,7 +266,8 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi }: { kompan
             </button>
           </div>
           <p className="mb-0 mt-2 text-[11px] text-text-mute">{t('Tasdiqlangan qoralamalar: {soni}', { soni: tasdiqlanganEksportQatorlari.length })} · {t('Eksportda faqat tasdiqlangan qoralamalar olinadi.')}</p>
-          {eksportXatosi && <p className="mb-0 mt-1 text-[12px] text-danger" role="alert">{t('Excelni tayyorlab bo‘lmadi. Tasdiqlangan qatorlar va davrni tekshiring.')}</p>}
+          <p className="mb-0 mt-1 text-[11px] text-text-mute">{t('Eksport amaldagi hujjat tarifiga kiradi.')}</p>
+          {eksportXatosi && <p className="mb-0 mt-1 text-[12px] text-danger" role="alert">{eksportXatosi}</p>}
         </section>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

@@ -23,5 +23,7 @@ it('exports both directions without adding different unit quantities or evaluati
   const bytes=await omborDavrExcel([row({nom:'=1+1'}),row({id:'2',nom:'=1+1',operatsiya:'rasxod',miqdor:1}),row({id:'3',birlik:'т'})],{...davr,rasxodKiritilgan:true,holat:'jurnal'});
   const wb=new Workbook();await wb.xlsx.load(bytes.buffer as ArrayBuffer);
   expect(wb.getWorksheet('Реестр')!.getCell('D8').value).toBe('=1+1');
-  expect(wb.getWorksheet('Свод')!.getCell('E4').value).toBe(3);expect(wb.getWorksheet('Свод')!.rowCount).toBe(5);
+  expect(wb.getWorksheet('Свод')!.getCell('E4').value).toEqual({formula:'C4-D4',result:3});expect(wb.getWorksheet('Свод')!.rowCount).toBe(5);
+  expect(wb.getWorksheet('Свод')!.getCell('C4').formula).toContain('SUMIFS');
+  expect(wb.getWorksheet('Реестр')!.getColumn(11).hidden).toBe(true);
 });
