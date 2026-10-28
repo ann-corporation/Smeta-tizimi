@@ -1,4 +1,4 @@
--- ROLLBACK 20261114200000_t2_rahbar_panel_v1: yangi funksiyalar olib tashlanadi, `_t2_f2_ustamali` va
+-- ROLLBACK 20261114600000_t2_rahbar_panel_v1: yangi funksiyalar olib tashlanadi, `_t2_f2_ustamali` va
 -- `t2_svod_yaxlit_obyekt_v1` avvalgi tanasiga qaytadi. Subpudrat/ustamasiz belgilari FAOLSIZLANTIRILADI (tarix qatorda
 -- qoladi), keyin yangi ustunlar olib tashlanadi — svod belgilari (turi='svod') o'zgarmaydi.
 begin;
@@ -86,7 +86,7 @@ revoke all on function public.t2_svod_yaxlit_obyekt_v1(bigint) from public, anon
 grant execute on function public.t2_svod_yaxlit_obyekt_v1(bigint) to service_role;
 
 update public.t2_svod_yaxlit
-   set faol = false, versiya = versiya + 1, yangilandi = now(), ochirish_sabab = coalesce(ochirish_sabab, 'rollback 20261114200000')
+   set faol = false, versiya = versiya + 1, yangilandi = now(), ochirish_sabab = coalesce(ochirish_sabab, 'rollback 20261114600000')
  where faol and turi <> 'svod';
 alter table public.t2_svod_yaxlit drop constraint if exists t2_svod_yaxlit_svod_faqat_chk;
 alter table public.t2_svod_yaxlit drop constraint if exists t2_svod_yaxlit_turi_chk;

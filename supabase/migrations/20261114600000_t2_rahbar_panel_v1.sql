@@ -1,4 +1,4 @@
--- 20261114200000 — RAHBAR PANELI v1 + YAGONA SUMMA PAKETI (issue #195, egasi 2026-10-29).
+-- 20261114600000 — RAHBAR PANELI v1 + YAGONA SUMMA PAKETI (issue #195, egasi 2026-10-29).
 --
 -- Egasi: «tizimda summalar bir tizimda emas — qayerdadir NDS bilan, qayerdadir прямые, qayerdadir NDS siz».
 -- Yechim — bitta hisob yo'li (DUBLIKAT FORMULA YO'Q, mavjud kaskad qayta ishlatiladi):
