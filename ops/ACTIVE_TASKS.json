@@ -3,6 +3,29 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "SMETA-VERSIYA-SIGNED-20261027",
+      "title": "C6 signed claim amounts and XLSX preservation",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/signed-dava-20261027",
+      "base_sha": "8b596fb820dca6204a27fd2963331ca3fb64de3f",
+      "status": "ready_for_review",
+      "owns": ["frontend/src/lib/smeta-versiya/hisob.ts", "frontend/src/lib/smeta-versiya/dava-export.ts", "frontend/src/lib/smeta-versiya/hisob-signed.test.ts", "frontend/src/lib/smeta-versiya/dava-export.test.ts"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md"],
+      "production_write_allowed": false,
+      "note": "Explicit C6 sublease by Claude L0 in Obsidian KOORDINATSIYA 2026-10-27. Only signed nonzero denominators and signed export inclusion; source pricing and P1 SQL trust stay L0. Synthetic tests, no DB writes/migrations; final main integration L0."
+    },
+    {
+      "id": "C11-WAREHOUSE-CONTRACT-20261027", "owner": "codex", "machine": "Anvar",
+      "title": "C11 warehouse/supply canonical map and first-release contract",
+      "branch": "codex/c11-warehouse-contract-20261027", "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b", "status": "ready_for_review",
+      "owns": ["docs/architecture/warehouse/"], "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md"],
+      "production_write_allowed": false,
+      "note": "L0 kech(5) and directowner assign onlyC11 warehouse/supply toCodex. Docs/owner guide only; single-ledger evolution, receipt-onlypreview first. No DB mutation or commercial source published; separate model/RPC PR reviewed/appliedL0."
+    },
+    {
       "id": "OWNERSHIP-COORD-20261026",
       "title": "Release inactive Codex editor slots while retaining unfinished semantic tasks",
       "owner": "codex",

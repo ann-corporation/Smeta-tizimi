@@ -278,7 +278,7 @@ export const onRequestPost: PagesFunction<{
         tizim_xaritasi_v1: 'tizim_actor',
         tizim_xaritasi_ruxsat_tekshir_v1: 'tizim_actor',
         /* C11 PR-B (2026-10-29): markaziy ombor kirimi ro'yxati — qatorlar + material bo'yicha jami. `stable`
-           (20261114200000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
+           (20261114400000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
         sklad_kirim_royxat_v1: 'kompaniya_actor',
       };
       const tur = OQISH_RPC[so.soro];
