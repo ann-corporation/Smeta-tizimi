@@ -23,6 +23,7 @@ import { useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
 import { NarxProtokolPanel } from './NarxProtokolPanel';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { dalilQamrovi, narxOgish } from '../../lib/narx-korinish';
 import { ManbaChip, OgishMeter, QamrovChizigi } from '../../components/narx/NarxKorinish';
@@ -107,9 +108,7 @@ export default function NarxDalil() {
     if (!obyekt || !kompaniyaId) return;
     const { bytes, faylNomi, tasdiqlangan, dalilsiz } = narxAsoslashXlsx(resurslar, dalillar, { obyektNomi: obyekt.nom, imzo: tomonlar });
     const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OBOSNOVANIE_NARX', sabab: `Обоснование цен · ${obyekt.nom}`, obyekt: obyekt.id }, () => {
-      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      const a = document.createElement('a'); a.href = url; a.download = faylNomi; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      downloadBlob(bytes, faylNomi); // tizim imzosi shu yo'lda qo'yiladi
     });
     if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
     toast(`«Обоснование цен»: ${tasdiqlangan} tasdiqlangan, ${dalilsiz} dalilsiz${tk.xabar ? ' · ' + tk.xabar : ''}`, 'ok');

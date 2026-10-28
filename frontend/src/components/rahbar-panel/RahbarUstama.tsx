@@ -40,9 +40,9 @@ export function UstamaXulosaKarta({ obyektlar, ustamasiz, kompaniyaId }: { obyek
   const p = usePortfelUstamali(obyektlar, { kompaniyaId });
   const q = portfelUchligi(p, ustamasiz);
   return (
-    <div className="karta p-5" data-testid="ustama-xulosa">
+    <div className="karta @container min-w-0 p-4 xl:p-5" data-testid="ustama-xulosa">
       <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{t('Smeta qiymati (QQS bilan)')}</p>
-      <QiymatUchlik q={q} yuklanmoqda={p.holat === 'yuklanmoqda'} className="mt-1 [&_[data-testid=summa-qqs]]:text-[26px] [&_[data-testid=summa-qqs]]:font-semibold [&_[data-testid=summa-qqs]]:leading-8">
+      <QiymatUchlik q={q} yuklanmoqda={p.holat === 'yuklanmoqda'} className="mt-1 [&_[data-testid=summa-qqs]]:text-[clamp(15px,7.4cqi,26px)] [&_[data-testid=summa-qqs]]:font-semibold [&_[data-testid=summa-qqs]]:leading-8">
         {q.taxminiy && <span className="text-[11px] text-warn">{t('{n} / {jami} obyekt ustamasi noma’lum', { n: p.nomalumSoni, jami: p.jamiSoni })}</span>}
       </QiymatUchlik>
     </div>

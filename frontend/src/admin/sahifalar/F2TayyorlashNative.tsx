@@ -733,7 +733,7 @@ export function F2TayyorlashNative() {
         <F2QoralamaSarlavha raqam={aktId != null ? (akt?.raqam ?? raqam) : raqam} muhr={aktKorish ? 'locked' : aktId != null ? 'edit' : 'draft'} davr={davrNomi(oy, tilLocale())} obyekt={obyektNom} manba={manba}
           shartnoma={avto.shartnoma} ishSoni={jami.ish} qatorSoni={jami.qator}
           jami={<SummaJuft obyektId={obyektId} kompaniyaId={joriy?.id} ustamasiz={qatorlar.length ? jami.summa : null} katKesim={katKesim} className="items-end text-right [&_[data-testid=summa-ustamali]]:text-[20px] [&_[data-testid=summa-ustamali]]:font-semibold" />} />
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)] xl:h-[calc(100vh-13rem)] xl:min-h-[30rem] xl:grid-cols-[16rem_minmax(0,1fr)_20rem]">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[clamp(12rem,16vw,16rem)_minmax(0,1fr)] xl:h-[max(30rem,calc(100dvh-8rem))] xl:grid-cols-[clamp(12rem,15vw,16rem)_minmax(0,1fr)_clamp(15rem,19vw,20rem)]">
           {bolimPaneli}
           <section className="karta flex max-h-[78vh] min-h-0 flex-col overflow-hidden xl:max-h-none" aria-label={t('F2 ishlari')}>
             <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
