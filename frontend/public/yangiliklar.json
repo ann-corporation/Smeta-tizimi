@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 43,
+      "sana": "2026-10-28",
+      "sarlavha": "«Fakt = F2» endi F2 narxi bilan yozadi",
+      "bandlar": [
+        "«Fakt = F2» (obyekt, bo'lim yoki tanlangan ish) har qatorni tasdiqlangan F2 dagi narx bilan faktga yozadi — material va uskunaning haqiqiy olingan narxi faktga o'tadi. Narx manbasi (F2 hujjat raqami) qatorda saqlanadi.",
+        "F2 da narx bo'lmasa narx to'qilmaydi: smeta narxi olinadi yoki qator «narxsiz» bo'lib qoladi. Tasdiqlash oynasida: ustamasiz jami, F2 narxli / smeta narxli / narxsiz qatorlar soni — ko'rgan summangiz aynan yoziladigan summa.",
+        "Oldin smeta narxida yozilgan «Fakt = F2» hujjatini F2 narxiga o'tkazish uchun: o'sha hujjatni bekor qiling va «Fakt = F2» ni qayta bosing. Mehnat/mashina hozircha norma bo'yicha smeta narxida ergashadi (oynada ko'rsatiladi)."
+      ]
+    },
+    {
       "id": 42,
       "sana": "2026-10-27",
       "sarlavha": "Tizim xaritasi — tizimda nima bo'layotgani jonli",

@@ -67,7 +67,9 @@ export function FaktF2Tenglash({ sarlavha, reja, obyektId, kompaniyaId, sana, ho
             <div className="fz-note fz-note--info flex-wrap items-start gap-x-5 gap-y-1 text-[12px]" data-testid="f2-tenglash-jami">
               <span><b className="text-text">{jami.paket.length}</b> {t('qator yoziladi')}</span>
               <span className="inline-flex items-start gap-1">{t('Summa')}: <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.ustamasiz} katKesim={jami.kesim} /></span>
+              <span data-testid="f2-tenglash-narx-manba">{t('F2 narxi: {n} qator', { n: String(jami.f2Narxli) })} · {t('smeta narxi: {n} qator', { n: String(jami.smetaNarxli) })} · {t('narxsiz: {n} qator', { n: String(jami.narxsiz) })}</span>
               {jami.narxsiz > 0 && <span className="text-warn">{t('summa noma’lum: {n} qator', { n: String(jami.narxsiz) })}</span>}
+              {jami.rsF2.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-rs">{t('Mehnat/mashina: F2 da {n} qator (F2 summasi {s}) — faktga norma bo‘yicha smeta narxida ergashadi, alohida yozilmaydi.', { n: String(jami.rsF2.soni), s: fmt(jami.rsF2.summa) })}</span>}
               {reja.otkazildi.manfiyReja > 0 && <span className="text-text-mute">{reja.otkazildi.manfiyReja} {t('chegirma qatori o‘tkazib yuborildi')}</span>}
               {(chiqQator.size > 0 || chiqBolim.size > 0) && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(reja.qatorlar.length - jami.paket.length) })}</span>}
               {jami.paket.length > 3000 && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
@@ -96,7 +98,7 @@ export function FaktF2Tenglash({ sarlavha, reja, obyektId, kompaniyaId, sana, ho
                     <td className="px-1 text-right tabular-nums">{fmt(q.fakt)}</td>
                     <td className="px-1 text-right tabular-nums">{fmt(q.f2)}</td>
                     <td className="px-1 text-right font-semibold tabular-nums">+{fmt(q.delta)} {q.birlik ?? ''}</td>
-                    <td className="px-1 text-right tabular-nums">{q.summa == null ? '—' : fmt(q.summa)}</td>
+                    <td className="px-1 text-right tabular-nums" title={q.narxManba === 'f2' ? t('F2 narxi: {narx}', { narx: fmt(q.narx) }) : undefined}>{q.summa == null ? '—' : fmt(q.summa)}{q.narxManba === 'f2' ? <span className="ml-1 text-[10px] text-[var(--info)]">F2</span> : null}</td>
                   </tr>); })}</tbody>
               </table>
               {korinadi.length - KORSAT_CHEGARA > 0 && <p className="pt-1 text-[11px] text-text-mute">{t('yana {n} ta qator — bo‘lim jadvali bilan boshqaring', { n: String(korinadi.length - KORSAT_CHEGARA) })}</p>}

@@ -13,9 +13,19 @@
  * Hech qanday pul/hajm to'qilmaydi; snapshot faqat mijoz buyrug'ining nusxasi.
  */
 export type BolakHolat = 'kutmoqda' | 'confirmed' | 'failed' | 'unknown';
+/** Yuboriladigan fakt qatori. «Fakt = F2» F2 narxini manbasi bilan qo'shadi (snapshotda muzlatiladi — qayta yuborishda aynan shu). */
+export type UrinishQator = { qator_id: number; hajm: number; narx?: number; narx_manba?: string; narx_manba_id?: number; narx_izoh?: string };
+const qatorNusxa = (x: UrinishQator): UrinishQator => {
+  const n: UrinishQator = { qator_id: x.qator_id, hajm: x.hajm };
+  if (x.narx != null) n.narx = x.narx;
+  if (x.narx_manba != null) n.narx_manba = x.narx_manba;
+  if (x.narx_manba_id != null) n.narx_manba_id = x.narx_manba_id;
+  if (x.narx_izoh != null) n.narx_izoh = x.narx_izoh;
+  return n;
+};
 export type UrinishBolak = {
   operationId: string;
-  qatorlar: readonly { qator_id: number; hajm: number }[];
+  qatorlar: readonly UrinishQator[];
   izoh: string;
   holat: BolakHolat;
   aktId: number | null;
@@ -35,14 +45,14 @@ export const urinishKaliti = (kompaniyaId: number, obyektId: number) => `${kompa
 
 /** Snapshot: bo'laklar va UUID'lar shu yerda muzlatiladi (keyin o'zgarmaydi). */
 export function urinishYarat(p: { kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number; /** Izoh boshi (standart: «Qamrov N%»). */ izohBosh?: string; tur?: 'qamrov' | 'tuzatish' | 'f2' },
-  bolaklar: readonly (readonly { qator_id: number; hajm: number }[])[], yangiId: () => string, hozir: () => string = () => new Date().toISOString(),
+  bolaklar: readonly (readonly UrinishQator[])[], yangiId: () => string, hozir: () => string = () => new Date().toISOString(),
   faktOl: (id: number) => number = () => 0): QamrovUrinish {
   const n = bolaklar.length;
   return Object.freeze({
     kalit: urinishKaliti(p.kompaniyaId, p.obyektId), kompaniyaId: p.kompaniyaId, obyektId: p.obyektId, sana: p.sana, sarlavha: p.sarlavha, foiz: p.foiz, tur: p.tur ?? 'qamrov',
     yaratildi: hozir(),
     bolaklar: bolaklar.map((q, i) => Object.freeze({
-      operationId: yangiId(), qatorlar: q.map((x) => ({ qator_id: x.qator_id, hajm: x.hajm })),
+      operationId: yangiId(), qatorlar: q.map(qatorNusxa),
       izoh: `${p.izohBosh ?? `Qamrov ${p.foiz}%`}: ${p.sarlavha}`.slice(0, 480) + (n > 1 ? ` (${i + 1}/${n})` : ''),
       holat: 'kutmoqda' as BolakHolat, aktId: null, xato: null, asos: q.map((x) => faktOl(x.qator_id)),
     })),

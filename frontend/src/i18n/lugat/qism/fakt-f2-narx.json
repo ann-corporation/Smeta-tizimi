@@ -1,0 +1,8 @@
+{
+  "F2 narxi: {n} qator": { "ru": "цена Ф2: строк — {n}", "en": "F2 price: {n} rows" },
+  "smeta narxi: {n} qator": { "ru": "цена сметы: строк — {n}", "en": "estimate price: {n} rows" },
+  "narxsiz: {n} qator": { "ru": "без цены: строк — {n}", "en": "no price: {n} rows" },
+  "F2 narxi: {narx}": { "ru": "Цена Ф2: {narx}", "en": "F2 price: {narx}" },
+  "Mehnat/mashina: F2 da {n} qator (F2 summasi {s}) — faktga norma bo‘yicha smeta narxida ergashadi, alohida yozilmaydi.": { "ru": "Труд/машины: в Ф2 строк — {n} (сумма Ф2 {s}) — в факт переходят по норме по цене сметы, отдельно не записываются.", "en": "Labour/machines: {n} rows in F2 (F2 amount {s}) — they follow actuals by norm at estimate price and are not written separately." },
+  "F2 narxlari yuklanmadi — «Fakt = F2» ochilmadi. Qayta urinib ko‘ring.": { "ru": "Цены Ф2 не загрузились — «Факт = Ф2» не открыт. Попробуйте ещё раз.", "en": "F2 prices failed to load — “Actual = F2” was not opened. Please try again." }
+}
