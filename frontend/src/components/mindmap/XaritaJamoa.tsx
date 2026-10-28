@@ -2,7 +2,7 @@
  * «Jamoa» — kompaniya a'zolari xaritada (2-bosqich): avatar, rol, mas'ul bo'lgan obyektlar va mas'ul biriktirish.
  * Ma'lumot — `t2_mindmap_grafi_v4` (foydalanuvchi tugunlari + masul_* chiziqlari). Yozish — faqat `onSaqla` (ota komponent).
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Building2, ExternalLink, FolderKanban, Plus, UserCog, Users, X } from 'lucide-react';
 import { t } from '../../i18n/til';
@@ -80,7 +80,7 @@ export function MasullarBlok({ x, daraxt, onTanla, masul }: { x: XTugun; daraxt:
             : (
               <>
                 <div className="grid grid-cols-[1fr_auto] gap-2">
-                  <select value={tanlanganOdam} onChange={(e) => setTanlanganOdam(e.target.value)} aria-label={t('A’zo')}
+                  <select data-masul-fokus value={tanlanganOdam} onChange={(e) => setTanlanganOdam(e.target.value)} aria-label={t('A’zo')}
                     className="h-8 min-w-0 rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-surface px-2 text-[12.5px]">
                     <option value="">{t('A’zoni tanlang…')}</option>
                     {nomzodlar.map((o) => <option key={o.id} value={o.id}>{o.nom + ' · ' + rolNomi(o.rol)}</option>)}
@@ -120,7 +120,7 @@ function BiriktirmaQator({ id, ruxsat, daraxt, onTanla }: { id: string; ruxsat: 
   );
 }
 
-function PanelSarlavha({ kicker, nom, ortga, onYop }: { kicker: string; nom: string; ortga?: { matn: string; onClick: () => void }; onYop?: () => void }) {
+function PanelSarlavha({ kicker, nom, ortga, onYop, amallar }: { kicker: string; nom: string; ortga?: { matn: string; onClick: () => void }; onYop?: () => void; amallar?: ReactNode }) {
   return (
     <header className="sticky top-0 z-[1] border-b border-border bg-surface px-4 pb-3 pt-3">
       <div className="flex items-center justify-between gap-2">
@@ -129,17 +129,20 @@ function PanelSarlavha({ kicker, nom, ortga, onYop }: { kicker: string; nom: str
           : <span className="fz-doc__eyebrow inline-flex items-center gap-1.5"><Users aria-hidden className="h-3.5 w-3.5" />{kicker}</span>}
         {onYop && <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" onClick={onYop} aria-label={t('Panelni yopish')}><X /></button>}
       </div>
-      <h2 className="mt-1.5 break-words text-[18px] font-semibold leading-6 text-text">{nom}</h2>
+      <div className="mt-1.5 flex items-start justify-between gap-2">
+        <h2 className="min-w-0 break-words text-[18px] font-semibold leading-6 text-text">{nom}</h2>
+        {amallar && <span className="shrink-0">{amallar}</span>}
+      </div>
     </header>
   );
 }
 
 /** Tanlangan odam: rol, mas'ul bo'lgan obyekt/loyihalar, rolni o'zgartirish havolasi. */
-export function OdamPanel({ x, daraxt, onTanla, onYop, rolOzgartir }: { x: XTugun; daraxt: XDaraxt; onTanla: (id: string | null) => void; onYop?: () => void; rolOzgartir: boolean }) {
+export function OdamPanel({ x, daraxt, onTanla, onYop, rolOzgartir, amallar }: { x: XTugun; daraxt: XDaraxt; onTanla: (id: string | null) => void; onYop?: () => void; rolOzgartir: boolean; amallar?: ReactNode }) {
   const o = x.odam as XOdam;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PanelSarlavha kicker={t('A’zo')} nom={o.nom} ortga={{ matn: t('Jamoa'), onClick: () => onTanla(JAMOA_ID) }} onYop={onYop} />
+      <PanelSarlavha kicker={t('A’zo')} nom={o.nom} ortga={{ matn: t('Jamoa'), onClick: () => onTanla(JAMOA_ID) }} onYop={onYop} amallar={amallar} />
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         <section className="fz-panel" data-testid="xarita-odam">
           <div className="flex items-center gap-3">
@@ -172,10 +175,10 @@ export function OdamPanel({ x, daraxt, onTanla, onYop, rolOzgartir }: { x: XTugu
 }
 
 /** «Jamoa» tuguni paneli: guruhlar bo'yicha odamlar. */
-export function JamoaPanel({ daraxt, onTanla, onYop }: { daraxt: XDaraxt; onTanla: (id: string | null) => void; onYop?: () => void }) {
+export function JamoaPanel({ daraxt, onTanla, onYop, amallar }: { daraxt: XDaraxt; onTanla: (id: string | null) => void; onYop?: () => void; amallar?: ReactNode }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PanelSarlavha kicker={t('Jamoa')} nom={t('Jamoa')} ortga={{ matn: t('Kompaniya'), onClick: () => onTanla(daraxt.ildiz) }} onYop={onYop} />
+      <PanelSarlavha kicker={t('Jamoa')} nom={t('Jamoa')} ortga={{ matn: t('Kompaniya'), onClick: () => onTanla(daraxt.ildiz) }} onYop={onYop} amallar={amallar} />
       <div className="flex-1 space-y-3 overflow-y-auto p-4"><JamoaGuruhlar daraxt={daraxt} onTanla={onTanla} /></div>
     </div>
   );

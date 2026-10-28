@@ -3,6 +3,9 @@ import { useState, useMemo, useRef, useEffect, useDeferredValue } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TreeNode } from '../../api/types';
 import { flattenTree, getAllKeys } from './utils';
+import { daraxtniKes, daraxtniYassila, LRV_DARAXT, lrvUstunlar } from './smetaTreeFiltr';
+import { useJadvalFiltr } from '../jadval-filtr/useJadvalFiltr';
+import { FiltrHolatQatori, UstunFiltrTugma } from '../jadval-filtr/UstunFiltrTugma';
 import { FmtN } from '../../lib/format';
 import { KatNishon } from '../ui/KatNishon';
 import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package, Pickaxe, Box, Pencil, Info, Rows3, Rows2, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
@@ -42,6 +45,9 @@ interface SmetaTreeProps {
 type TezFiltr = 'all' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis' | 'muhr';
 type Preset = 'ASOSIY' | 'F2' | 'NARX' | 'TOLIQ';
 const PRESET_KALIT = 't2-smeta-tree-preset';
+/** Sarlavha katagi: matn + filtr tugmasi; kenglik o'zgarmaydi (matn qisqaradi). O — o'ngga, C — chapga tekislangan. */
+const USTUN_O = 'flex min-w-0 items-center justify-end';
+const USTUN_C = 'flex min-w-0 items-center';
 const omborOqi = (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } };
 const omborYoz = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* xotira yopiq — sozlama faqat shu seans uchun */ } };
 
@@ -122,7 +128,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
   /* 27 000 qatorda har harf butun daraxtni filtrlaydi — kiritish darhol
      ko'rinadi, filtr esa kechiktirilgan qiymatdan hisoblanadi (egasi 2026-09-23). */
   const qidiruvKech = useDeferredValue(qidiruv);
-  const filtrlangan = useMemo(() => {
+  const qidiruvNatija = useMemo(() => {
     const s = qidiruvKech.trim().toLowerCase();
     const mos = (n: TreeNode) =>
       !s || String(n.nom || '').toLowerCase().includes(s) ||
@@ -149,13 +155,37 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     return quickFilter === 'all' && !s ? data : suz(data);
   }, [data, qidiruvKech, quickFilter, priceControlByQatorId, muhrFarq]);
 
-  /* Qidiruvda hamma shox ochiq bo'lishi kerak, aks holda mos kelgan
-     ichkaridagi qator ko'rinmay qoladi. */
+  /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): qidiruv/tezkor filtr natijasiga VA bilan qo'shiladi.
+     Faqat ish/resurs qatorlari tekshiriladi; mos qatorning razdel/bo'lim/ish otalari ham qoladi (LRV_DARAXT).
+     Saralash daraxtda o'chiq (tartib buzilmasin). Qiymatlar qatorda ko'rsatilgan maydonlarning o'zidan. */
+  const tekis = useMemo(() => daraxtniYassila(qidiruvNatija), [qidiruvNatija]);
+  const ustunlar = useMemo(() => lrvUstunlar({
+    kod: t('Shifr'), nom: t('Nom'), birlik: t('Birlik'), smetaHajm: t('Smeta hajmi'), fakt: t('Fakt hajmi'), f2ol: t('F2 hajmi'),
+    foiz: t('Bajarilish, %'), f2mum: t('F2 mumkin'), qoldiq: t('Qoldiq hajmi'), narxHolati: t('Narx holati'),
+    smeta: t('Smeta summasi'), stFakt: t('Fakt summasi'), stF2: t('F2 summasi'), stF2Mum: t('F2 mumkin summasi'), stOst: t('Qoldiq summasi'),
+  }, (n) => {
+    const pc = n.id == null ? undefined : priceControlByQatorId.get(n.id);
+    return pc ? t(NARX_MUHR[pc.price_state].soz) : null;
+  }), [priceControlByQatorId]);
+  const uf = useJadvalFiltr(tekis, ustunlar, LRV_DARAXT);
+  const filtrlangan = useMemo(
+    () => (uf.soni ? daraxtniKes(qidiruvNatija, new Set(uf.natija.map((r) => r.key))) : qidiruvNatija),
+    [uf.soni, uf.natija, qidiruvNatija]);
+  const ufSanoq = useMemo(() => (uf.soni
+    ? { natija: uf.natija.filter(LRV_DARAXT.barg!).length, jami: tekis.filter(LRV_DARAXT.barg!).length }
+    : { natija: 0, jami: 0 }), [uf.soni, uf.natija, tekis]);
+  const F = (kalit: string) => <UstunFiltrTugma {...uf.tugma(kalit)} />;
+
+  /* Qidiruv yoki ustun filtri faol bo'lsa mos qatorlar ko'rinishi uchun hamma shox ochiladi; foydalanuvchi
+     shu holatda ham shoxni yig'a oladi (`filtrUstidan` — filtr/qidiruv o'zgarguncha amal qiladi). */
+  const filtrRejimi = !!qidiruvKech.trim() || uf.soni > 0;
+  const [filtrUstidan, setFiltrUstidan] = useState<{ h: unknown; q: string; m: Record<string, boolean> }>({ h: null, q: '', m: {} });
+  const ustidanM = filtrUstidan.h === uf.holat && filtrUstidan.q === qidiruvKech ? filtrUstidan.m : null;
   const kengaytirilgan = useMemo(
-    () => (qidiruvKech.trim()
-      ? Object.fromEntries(getAllKeys(filtrlangan).map((k) => [k, true]))
+    () => (filtrRejimi
+      ? { ...Object.fromEntries(getAllKeys(filtrlangan).map((k) => [k, true])), ...ustidanM }
       : expandedMap),
-    [qidiruvKech, filtrlangan, expandedMap]);
+    [filtrRejimi, filtrlangan, expandedMap, ustidanM]);
 
   const flatNodes = useMemo(
     () => flattenTree(filtrlangan, kengaytirilgan),
@@ -202,6 +232,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
   });
 
   const toggleExpand = (key: string) => {
+    if (filtrRejimi) { setFiltrUstidan({ h: uf.holat, q: qidiruvKech, m: { ...ustidanM, [key]: !kengaytirilgan[key] } }); return; }
     setExpandedMap(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -210,9 +241,13 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     const newMap: Record<string, boolean> = {};
     keys.forEach(k => newMap[k] = true);
     setExpandedMap(newMap);
+    setFiltrUstidan({ h: null, q: '', m: {} });
   };
 
-  const collapseAll = () => setExpandedMap({});
+  const collapseAll = () => {
+    setExpandedMap({});
+    if (filtrRejimi) setFiltrUstidan({ h: uf.holat, q: qidiruvKech, m: Object.fromEntries(getAllKeys(filtrlangan).map((k) => [k, false])) });
+  };
   const changeDensity = (next: 'compact' | 'comfort') => {
     setDensity(next); omborYoz('t2-smeta-tree-density', next);
   };
@@ -277,7 +312,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
               />
               {qidiruv && <button type="button" onClick={() => setQidiruv('')} aria-label={t('Qidiruvni tozalash')} className="absolute right-1.5 top-[7px] text-text-mute hover:text-text"><X size={14} /></button>}
             </div>
-            {!!qidiruv.trim() && <span className="whitespace-nowrap text-[11.5px] text-text-mute tabular-nums">{flatNodes.length} {t('ta qator topildi')}</span>}
+            {(!!qidiruv.trim() || uf.soni > 0) && <span className="whitespace-nowrap text-[11.5px] text-text-mute tabular-nums">{flatNodes.length} {t('ta qator topildi')}</span>}
             <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
             <select value={preset} onChange={(e) => { const x = e.target.value as Preset; setPreset(x); omborYoz(PRESET_KALIT, x); }} className="h-8 rounded-md border border-[var(--border-strong)] bg-surface px-2 text-[12.5px]" aria-label="Ustun preset" title={t('Ko‘rinadigan ustunlar to‘plami')}>
               <option value="ASOSIY">{t('Asosiy')}</option><option value="F2">F2</option><option value="NARX">{t('Narx nazorati')}</option><option value="TOLIQ">{t('To‘liq (pul ustunlari bilan)')}</option>
@@ -292,6 +327,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
             {tezRoyxat.map(([id, label]) => <button key={id} type="button" aria-pressed={quickFilter === id} onClick={() => setQuickFilter(id)} className="fz-chip whitespace-nowrap" style={{ height: 24, padding: '0 9px', border: '1px solid ' + (quickFilter === id ? 'var(--accent)' : 'var(--border)'), cursor: 'pointer', ...(quickFilter === id ? { background: 'var(--accent)', color: 'var(--on-accent)' } : { background: 'var(--surface)' }) }}>{t(label)}{id !== 'all' && tezSoni[id] != null && <span className="tabular-nums opacity-80">{tezSoni[id]}</span>}</button>)}
             {!priceControlReady && <span className="px-2 text-[11px] text-text-mute" title={t('Muzlagan / Xavf ostida / Protokolsiz filtrlari narx nazorati ma’lumoti kelganda chiqadi')}>{t('Narx nazorati filtrlari: ma’lumot ulanmagan')}</span>}
           </div>
+          {uf.soni > 0 && <div className="mt-2"><FiltrHolatQatori soni={uf.soni} natija={ufSanoq.natija} jami={ufSanoq.jami} tozala={uf.tozala} /></div>}
         </div>
 
       {/* ⚠️ Sarlavha va qatorlar AVVAL ikki alohida gorizontal kontekstda edi:
@@ -300,23 +336,23 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           sarlavha tananing scrollLeft'iga ergashadi (pastdagi onScroll). */}
       <div ref={sarlavhaRef} className="overflow-x-hidden">
       <div style={{ minWidth: minimumWidth, width:bodyWidth }} className="h-9 border-b border-[var(--border-strong)] bg-surface-2 flex items-center text-[10.5px] font-semibold text-text-dim uppercase tracking-[.06em]">
-        <div className="flex-1 min-w-0 px-4">{t('Nom / Birlik')}</div>
+        <div className="flex flex-1 min-w-0 items-center px-4"><span className="truncate">{t('Nom / Birlik')}</span>{F('kod')}{F('nom')}{F('birlik')}</div>
         <div className="flex items-center h-full pr-4 flex-shrink-0 gap-4">
-          {showSmetaAndFakt && <div className="w-20 text-right" title={t('Smeta hajmi')}>{t('Smeta')}</div>}
-          {showSmetaAndFakt && <div className="w-24 text-right" title={t('Fakt hajmi')}>{t('Fakt')}</div>}
-          <div className="w-24 text-right" title={t('F2 hajmi')}>{t('F2 olingan')}</div>
-          <div className="w-28 text-left" title={t('F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%')}>{t('Bajarilish')}</div>
-          <div className="w-24 text-right" title={t('F2 mumkin — bajarilgan (fakt), lekin hali F2 akti bilan topshirilmagan qism.')}>{t('F2 mumkin')}</div>
-          <div className="w-20 text-right" title={t('Qoldiq hajmi')}>{t('Qoldiq')}</div>
-          <div className="w-28 text-left text-text-mute" title={t('Narx nazorati holati')}>{t('Narx holati')}</div>
+          {showSmetaAndFakt && <div className={`w-20 ${USTUN_O}`} title={t('Smeta hajmi')}><span className="truncate">{t('Smeta')}</span>{F('smetaHajm')}</div>}
+          {showSmetaAndFakt && <div className={`w-24 ${USTUN_O}`} title={t('Fakt hajmi')}><span className="truncate">{t('Fakt')}</span>{F('fakt')}</div>}
+          <div className={`w-24 ${USTUN_O}`} title={t('F2 hajmi')}><span className="truncate">{t('F2 olingan')}</span>{F('f2ol')}</div>
+          <div className={`w-28 ${USTUN_C}`} title={t('F2 olingan (firuza) va bajarilgan fakt (lojuvard) — smeta = 100%')}><span className="truncate">{t('Bajarilish')}</span>{F('foiz')}</div>
+          <div className={`w-24 ${USTUN_O}`} title={t('F2 mumkin — bajarilgan (fakt), lekin hali F2 akti bilan topshirilmagan qism.')}><span className="truncate">{t('F2 mumkin')}</span>{F('f2mum')}</div>
+          <div className={`w-20 ${USTUN_O}`} title={t('Qoldiq hajmi')}><span className="truncate">{t('Qoldiq')}</span>{F('qoldiq')}</div>
+          <div className={`w-28 ${USTUN_C} text-text-mute`} title={t('Narx nazorati holati')}><span className="truncate">{t('Narx holati')}</span>{F('narxHolati')}</div>
           
           {showMoney && <div className="w-4 border-r border-border h-full mx-2"></div>}
           
-          {showMoney && <><div className="w-24 text-right" title={t('Smeta summasi')}>{t('Smeta, so‘m')}</div>
-          <div className="w-24 text-right" title={t('Fakt summasi')}>{t('Fakt, so‘m')}</div>
-          <div className="w-24 text-right" title={t('F2 summasi')}>{t('F2, so‘m')}</div>
-          <div className="w-24 text-right" title={t('F2 mumkin')}>{t('F2 mumkin')}</div>
-          <div className="w-24 text-right" title={t('Qoldiq summasi')}>{t('Qoldiq, so‘m')}</div></>}
+          {showMoney && <><div className={`w-24 ${USTUN_O}`} title={t('Smeta summasi')}><span className="truncate">{t('Smeta, so‘m')}</span>{F('smeta')}</div>
+          <div className={`w-24 ${USTUN_O}`} title={t('Fakt summasi')}><span className="truncate">{t('Fakt, so‘m')}</span>{F('stFakt')}</div>
+          <div className={`w-24 ${USTUN_O}`} title={t('F2 summasi')}><span className="truncate">{t('F2, so‘m')}</span>{F('stF2')}</div>
+          <div className={`w-24 ${USTUN_O}`} title={t('F2 mumkin')}><span className="truncate">{t('F2 mumkin')}</span>{F('stF2Mum')}</div>
+          <div className={`w-24 ${USTUN_O}`} title={t('Qoldiq summasi')}><span className="truncate">{t('Qoldiq, so‘m')}</span>{F('stOst')}</div></>}
         </div>
       </div>
       </div>

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { SOZLAMALAR, qatlamSoni, sozlamaFiltr } from '../../lib/sozlama/sozlamaReestr';
+import { qatlamSoni, sozlamaFiltr } from '../../lib/sozlama/sozlamaReestr';
 
 const ctx = vi.hoisted(() => ({ superadmin: false, permissions: ['company.read'] as string[], mavqe: null as string | null }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({
@@ -27,7 +27,8 @@ describe('SozlamalarMarkazi', () => {
     chiz();
     const n = qatlamSoni(sozlamaFiltr({ superadmin: false, permissions: ['company.read'] }));
     expect(screen.getByRole('status').textContent).toContain(`Jami ${n.akkaunt + n.kompaniya} sozlama`);
-    expect(screen.getByRole('status').textContent).toContain(`Tizimda jami ${SOZLAMALAR.length} ta sozlama mavjud`);
+    // Egasi 2026-10-27: tizimdagi umumiy son (yashirin tizim sozlamalari bilan) — faqat superadminga.
+    expect(screen.getByRole('status').textContent).not.toContain('Tizimda jami');
     expect(screen.getAllByRole('tab').map((x) => x.textContent?.replace(/\d+$/, ''))).toEqual(['Akkaunt', 'Kompaniya']);
   });
 

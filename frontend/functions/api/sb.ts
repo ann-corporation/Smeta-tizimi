@@ -25,6 +25,7 @@
  *   { ok: true, qatorlar: [...], soni: 1234, ms: 87 }
  *   { ok: false, error: "..." }
  */
+import { tokenHolatTozala } from '../_shared/tizim-maxfiy';
 import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
@@ -444,7 +445,10 @@ export const onRequestPost: PagesFunction<{
         return Response.json(
           { ok: false, error: 'So\'rov bajarilmadi (' + rr.status + ')' });
       }
-      const natija = await rr.json();
+      let natija: unknown = await rr.json();
+      /* Egasi 2026-10-27: token tannarxi, foyda foizi va platforma ustamasi — faqat platforma superadmini. Bayroq RPC ning
+         o'zidan (t2_platforma_superadmin(actor)) — superadmin bo'lmaganga javob SERVERDA tozalanadi. */
+      if (so.soro === 'token_holat_v1' && (natija as { superadmin?: unknown } | null)?.superadmin !== true) natija = tokenHolatTozala(natija);
       return Response.json({ ok: true, natija, ms: Date.now() - t0 });
     }
 

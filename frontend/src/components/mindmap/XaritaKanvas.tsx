@@ -28,6 +28,8 @@ type Props = {
   onYigToggle: (id: string) => void;
   onHammasiniYig: (yig: boolean) => void;
   guruhNomi: string;
+  /** Tugun amallari menyusi (o‘ng tugma, ContextMenu / Shift+F10): ekran koordinatasi bilan. */
+  onAmallar?: (id: string, x: number, y: number) => void;
   children?: React.ReactNode;
 };
 
@@ -64,7 +66,7 @@ function ariaMatn(x: XTugun, guruhNomi: string): string {
   return parts.join(', ');
 }
 
-export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan, yigilgan, onYigToggle, onHammasiniYig, guruhNomi, children }: Props) {
+export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan, yigilgan, onYigToggle, onHammasiniYig, guruhNomi, onAmallar, children }: Props) {
   const kamQisqarish = useReducedMotion();
   const quti = useRef<HTMLDivElement>(null);
   const [olcham, setOlcham] = useState({ w: 0, h: 0 });
@@ -215,6 +217,15 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
     if (e.key === '-' || e.key === '_') { e.preventDefault(); zumTugma(0.8); return; }
     if (e.key === '0') { e.preventDefault(); sigdir(); return; }
     if (e.key === 'Escape') { onTanla(null); return; }
+    if (onAmallar && (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) {
+      const id = tg.getAttribute?.('data-tugun');
+      if (id) {
+        e.preventDefault();
+        const r = tg.getBoundingClientRect();
+        onAmallar(id, r.left + Math.min(24, r.width / 2), r.bottom + 4);
+      }
+      return;
+    }
     const joriy = tg.getAttribute?.('data-tugun') ?? fokusId ?? tanlangan ?? daraxt.ildiz;
     if (e.key === 'Enter' || e.key === ' ') {
       if (tg.getAttribute?.('data-tugun')) { e.preventDefault(); onTanla(joriy); }
@@ -311,6 +322,8 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
                 transition={otish}
                 onFocus={() => setFokusId(x.id)}
                 onClick={(e) => { e.stopPropagation(); if (!oxirgiKochdi.current) onTanla(x.id); }}
+                onContextMenu={onAmallar ? (e) => { e.preventDefault(); e.stopPropagation(); onAmallar(x.id, e.clientX, e.clientY); } : undefined}
+                aria-haspopup={onAmallar && x.tur !== 'guruh' ? 'menu' : undefined}
                 style={{ cursor: 'pointer', outline: 'none' }} className="mm-tugun">
                 {x.tizim && (ixcham
                   ? <IxchamKarta nom={x.tur === 'tizim' ? t('Tizim') : x.nom} holat={x.holat} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon={x.tur === 'modul' ? undefined : 'var(--surface-2)'} />

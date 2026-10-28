@@ -1,0 +1,15 @@
+{
+  "Bu sahifa faqat platforma administratori uchun.": { "ru": "Эта страница доступна только администратору платформы.", "en": "This page is available to the platform administrator only." },
+  "Didox": { "ru": "Didox", "en": "Didox" },
+  "Narx tizim hisoblagan kataklar soni boʻyicha. Har sarfning hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.": { "ru": "Цена зависит от количества ячеек, рассчитанных системой. Расчёт каждого списания виден ниже. Повторная загрузка того же документа бесплатна; при ошибке токены возвращаются; ввод данных бесплатен.", "en": "The price depends on the number of cells calculated by the system. Each charge is itemised below. Re-uploading the same document is free; tokens are refunded on error; data entry is free." },
+  "{a} soʻm + har {b} birlikka {c} soʻm": { "ru": "{a} сум + {c} сум за каждые {b} ед.", "en": "{a} UZS + {c} UZS per {b} units" },
+  "Akkaunt — faqat siz uchun; Kompaniya — admin panelida butun jamoa uchun.": { "ru": "Аккаунт — только для вас; Компания — в панели администратора для всей команды.", "en": "Account — just for you; Company — in the admin panel for the whole team." },
+  "Arzon": { "ru": "Дешёвая", "en": "Cheap" },
+  "O‘rta narx": { "ru": "Средняя цена", "en": "Mid price" },
+  "Qimmat": { "ru": "Дорогая", "en": "Expensive" },
+  "≈ {n} token / so‘rov": { "ru": "≈ {n} токенов / запрос", "en": "≈ {n} tokens / request" },
+  "Qimmat model": { "ru": "Дорогая модель", "en": "Expensive model" },
+  "Bu model qimmat: 1 so‘rov ≈ {n} token. Davom etasizmi?": { "ru": "Эта модель дорогая: 1 запрос ≈ {n} токенов. Продолжить?", "en": "This model is expensive: 1 request ≈ {n} tokens. Continue?" },
+  "Bu model qimmat: har so‘rov ko‘p token sarflaydi. Davom etasizmi?": { "ru": "Эта модель дорогая: каждый запрос расходует много токенов. Продолжить?", "en": "This model is expensive: each request uses many tokens. Continue?" },
+  "Ha, tanlash": { "ru": "Да, выбрать", "en": "Yes, choose" }
+}

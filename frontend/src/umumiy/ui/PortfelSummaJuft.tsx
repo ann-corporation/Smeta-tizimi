@@ -1,33 +1,28 @@
-import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
+import { portfelUchligi } from '../../lib/ustamali-summa';
+import { QiymatUchlik } from './QiymatUchlik';
 import { usePortfelUstamali, type PortfelObyekt } from './usePortfelUstamali';
 
 /**
- * Bir nechta obyekt yig‘indisi uchun pul JUFTI: USTAMALI (asosiy, katta) + ustamasiz (kichik).
+ * Bir nechta obyekt (loyiha, shartnoma, portfel) JAMI qiymati — egasi qoidasi 2026-10-27: QQS BILAN asosiy (katta),
+ * ostida ustamali (QQS siz) va to‘g‘ri xarajat (ustamasiz). Yagona `QiymatUchlik` ko‘rinishi; hisob `portfelUchligi`.
  * `ustamasiz` — sahifadagi mavjud manba summasi (masalan smeta jami); berilmasa server kesimidan olinadi.
- * Ustamali hisoblanmagan obyekt bo‘lsa — «≈» va nechtasi kirmagani aniq yoziladi (0 deb olinmaydi).
+ * Ustamasi hisoblanmagan obyekt bo‘lsa — «≈» va nechtasi kirmagani aniq yoziladi (0 deb olinmaydi).
  */
-export function PortfelSummaJuft({ obyektlar, ustamasiz, kompaniyaId, kichik = false, className = '' }: {
-  obyektlar: readonly PortfelObyekt[]; ustamasiz?: number | null; kompaniyaId?: number | null; kichik?: boolean; className?: string;
+export function PortfelSummaJuft({ obyektlar, ustamasiz, kompaniyaId, kichik = false, className = '', yorliq }: {
+  obyektlar: readonly PortfelObyekt[]; ustamasiz?: number | null; kompaniyaId?: number | null; kichik?: boolean; className?: string; yorliq?: string;
 }) {
   const p = usePortfelUstamali(obyektlar, { kompaniyaId });
   const asos = ustamasiz !== undefined ? ustamasiz : p.ustamasiz;
-  const katta = kichik ? 'text-[12px]' : 'text-[15px]';
-  const bilinmaydi = asos == null || !Number.isFinite(asos);
-  const qisman = p.ustamali != null && p.nomalumSoni > 0;
-  // Qisman: ustamasi noma'lum obyektlar ustamasiz qiymati bilan qo'shiladi (ustama o'ylab topilmaydi, pul tushib qolmaydi).
-  const korinadi = p.ustamali == null ? null : qisman && !bilinmaydi ? p.ustamali + Math.max(0, asos! - p.hisoblanganUstamasiz) : p.ustamali;
+  const q = portfelUchligi(p, asos);
+  const qisman = q.taxminiy;
   return (
-    <span className={`inline-flex flex-col leading-tight tabular-nums ${className}`} data-testid="portfel-summa-juft"
-      title={qisman ? t('{n} ta obyektning ustamasi hisoblanmadi — ular ustamasiz qiymati bilan qo‘shilgan', { n: p.nomalumSoni }) : undefined}>
-      <span className={katta} data-testid="summa-ustamali">
-        {p.holat === 'yuklanmoqda' ? <span className="text-text-mute">{t('Hisoblanmoqda…')}</span>
-          : p.ustamali != null ? <b className="text-text">{qisman ? '≈ ' : ''}<FmtN val={korinadi} /></b>
-            : p.jamiSoni === 0 ? <span className="text-text-mute">—</span>
-              : <button type="button" className="text-warn underline" onClick={p.retry}>{t('ustamali noma’lum')}</button>}
-      </span>
-      {!bilinmaydi && <span className="text-[10.5px] text-text-mute" data-testid="summa-ustamasiz">{t('ustamasiz')}: <FmtN val={asos} /></span>}
-      {qisman && <span className="text-[10px] text-warn">{t('{n} / {jami} obyekt ustamasi noma’lum', { n: p.nomalumSoni, jami: p.jamiSoni })}</span>}
+    <span className="contents" data-testid="portfel-summa-juft">
+      <QiymatUchlik q={q} kichik={kichik} className={className} yorliq={yorliq} yuklanmoqda={p.holat === 'yuklanmoqda'}
+        title={qisman ? t('{n} ta obyektning ustamasi va QQS hisoblanmadi — ular to‘g‘ri xarajati bilan qo‘shilgan', { n: p.nomalumSoni }) : undefined}>
+        {qisman && <span className="text-[10px] text-warn">{t('{n} / {jami} obyekt ustamasi noma’lum', { n: p.nomalumSoni, jami: p.jamiSoni })}</span>}
+        {p.holat !== 'yuklanmoqda' && p.ustamali == null && p.jamiSoni > 0 && <button type="button" className="text-left text-[10px] text-warn underline" onClick={p.retry}>{t('Ustama o‘qilmadi — qayta urinish')}</button>}
+      </QiymatUchlik>
     </span>
   );
 }
