@@ -1,4 +1,5 @@
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 /**
  * Smeta studiyasi bosqichlari (egasi 2026-10-13): ① LRV oynada yasaladi → ② «Narxlashga o'tish»: foiz stavkalari,
  * kataloglar va manbalarga asoslangan narxlar (AI har resursni MA'NOSI bo'yicha topadi) → ③ RES va hujjatlar.
@@ -36,6 +37,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { PriceResearchQueue } from '../../components/smeta-studio-workspace/PriceResearchQueue';
 import { researchKey, retainResearch } from '../../components/smeta-studio-workspace/price-research-store';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 type UnitText = (code: string | null) => string | null;
 /** «… ПО ПРОЕКТУ» without the project's material is never priced by a guess. */
@@ -468,7 +470,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
         <table className="w-full text-[12px]">
           <thead className="sticky top-0 bg-surface-1 text-text-mute"><tr>
             <th className="px-2 py-1 text-left">{t('Resurs')}</th><th className="px-1 text-left">{t('Birlik')}</th><th className="px-1 text-right">{t('Miqdor')}</th>
-            <th className="px-1 text-right">{t('Narx')}</th><th className="px-1 text-right">{t('Summa')}</th><th className="px-2 text-left">{t('Manba va dalil')}</th>
+            <th className="px-1 text-right">{t('Narx')}<SummaYorliq tur="narx" /></th><th className="px-1 text-right">{t('Summa')}</th><th className="px-2 text-left">{t('Manba va dalil')}</th>
           </tr></thead>
           <tbody>
             {korinadi.map((g, i) => {
@@ -688,8 +690,7 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
   const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(kompaniyaId, doc.context.objectId ?? null);
   const [protokol, setProtokol] = useState({ raqam: '1', sana: new Date().toISOString().slice(0, 10) });
   const yuklabBer = (bytes: Uint8Array, nom: string) => {
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    const a = document.createElement('a'); a.href = url; a.download = nom; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    downloadBlob(bytes, nom); // tizim imzosi shu yo'lda qo'yiladi
   };
   /** Official documents are billed by filled cells like every other document (token session 2026-10-16); the file is given only after payment. */
   async function tokenBilanBer(bytes: Uint8Array, nom: string, hujjat: string, sabab: string): Promise<string | null> {

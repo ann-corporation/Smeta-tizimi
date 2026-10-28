@@ -22,6 +22,8 @@ const QATLAM_IZOH: Record<SozlamaQatlam, string> = {
   kompaniya: 'Kompaniya admin panelidan boshqariladi: a‘zolar, hujjatlar, narx, AI.',
   tizim: 'Butun platforma uchun — faqat superadmin.',
 };
+/* Egasi 2026-10-27: tizim qatlami haqidagi gap ham faqat superadminga (boshqalar uchun u umuman yo'q). */
+const TAVSIF_KOMPANIYA = 'Akkaunt — faqat siz uchun; Kompaniya — admin panelida butun jamoa uchun.';
 const QATLAM_IKON: Record<SozlamaQatlam, typeof UserRound> = { akkaunt: UserRound, kompaniya: Building2, tizim: ServerCog };
 const MAVQE_NOMI: Record<string, string> = { zakazchik: 'Buyurtmachi', pudratchi: 'Pudratchi', loyihachi: 'Loyihachi' };
 
@@ -95,12 +97,12 @@ export default function SozlamalarMarkazi() {
   const mavqeMatn = mavqe && MAVQE_NOMI[mavqe] ? t(MAVQE_NOMI[mavqe]) : null;
 
   return (
-    <Sahifa sarlavha="Sozlamalar markazi" tavsif="Akkaunt — faqat siz uchun; Kompaniya — admin panelida butun jamoa uchun; Tizim — butun platforma uchun (superadmin).">
+    <Sahifa sarlavha="Sozlamalar markazi" tavsif={k.superadmin ? 'Akkaunt — faqat siz uchun; Kompaniya — admin panelida butun jamoa uchun; Tizim — butun platforma uchun (superadmin).' : TAVSIF_KOMPANIYA}>
       <div className="flex flex-col gap-4 max-w-5xl">
         <div className="fz-card px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]" role="status">
           <b className="text-text">{t('Jami {n} sozlama', { n: jami })}</b>
           {qatlamlar.map((x) => <span key={x} className="text-text-dim">· {t(QATLAM_NOMI[x])} {soni[x]}</span>)}
-          <span className="text-text-mute text-[12px] sm:ml-auto">{t('Tizimda jami {n} ta sozlama mavjud', { n: jamiTizimda })}</span>
+          {k.superadmin && <span className="text-text-mute text-[12px] sm:ml-auto">{t('Tizimda jami {n} ta sozlama mavjud', { n: jamiTizimda })}</span>}
         </div>
 
         <div role="tablist" aria-label={t('Sozlamalar qatlamlari')} className="flex gap-1 overflow-x-auto pb-1">

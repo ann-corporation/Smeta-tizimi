@@ -257,7 +257,7 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
         </div>
         {yaratilgan.length > 0 && <div className="rounded-lg border border-ok/40 bg-ok/5 p-2 text-[11px] text-text-dim"><div className="font-semibold text-text">{t('Yangi qoʻshimcha qatorlar (fakt yozilgan)')}</div>{yaratilgan.map((y, i) => <div key={i} className="flex justify-between gap-2"><span className="truncate">{y.nom}</span><span className="shrink-0">{fmt(y.hajm)} {y.birlik}</span></div>)}</div>}
         <dl className="space-y-0.5 border-t border-border pt-2 text-[12px]">
-          <div className="flex justify-between"><dt className="font-semibold text-text">{t('Ustamali jami')}</dt><dd className="font-semibold text-text">{pul(jami.ustamali)}</dd></div>
+          <div className="flex justify-between"><dt className="font-semibold text-text" title={t('Kategoriya koeffitsientlari (ustama × QQS) bo‘yicha — QQS bilan')}>{t('Jami, QQS bilan')}</dt><dd className="font-semibold text-text">{pul(jami.ustamali)}</dd></div>
           <div className="flex justify-between text-[11px] text-text-mute"><dt>{t('Ustamasiz')}</dt><dd>{pul(jami.asos)}</dd></div>
           {jami.narxsiz > 0 && <div className="text-[11px] text-warn">{t('Narxsiz qatorlar: {n} — jamiga kirmaydi', { n: jami.narxsiz })}</div>}
         </dl>

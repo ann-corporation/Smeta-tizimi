@@ -4,6 +4,7 @@
  */
 import type { ReactNode } from 'react';
 import { yumaloqMax } from '../../lib/nakopitelniy-grafik';
+import { useKenglik } from '../../umumiy/ui/useKenglik';
 
 const sonFmt = (x: number | null | undefined) => (x == null || !Number.isFinite(x) ? '—' : Number(x).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
 const foiz = (v: number, max: number) => `${max > 0 ? Math.max(0, Math.min(1, v / max)) * 100 : 0}%`;
@@ -57,7 +58,8 @@ export function Tasma({ qismlar, label }: { qismlar: { nom: string; qiymat: numb
 
 /** Oylar bo'yicha guruhlangan ustunlar (SVG): Y o'qi bitta shkalada, har ustunda <title>. */
 export function OylikUstunlar({ oylar, seriyalar, label }: { oylar: { oy: string; qiymatlar: (number | null)[] }[]; seriyalar: { nom: string; rang: string }[]; label: string }) {
-  const W = 640, H = 220, CHAP = 56, PAST = 26, TEPA = 8;
+  const [quti, kenglik] = useKenglik<HTMLDivElement>(640);
+  const W = Math.max(320, kenglik), H = 220, CHAP = 64, PAST = 26, TEPA = 8;
   const max = yumaloqMax(Math.max(0, ...oylar.flatMap((o) => o.qiymatlar.map((v) => v ?? 0))));
   const ichkiW = W - CHAP - 8, ichkiH = H - PAST - TEPA;
   const gw = oylar.length ? ichkiW / oylar.length : ichkiW;
@@ -65,8 +67,8 @@ export function OylikUstunlar({ oylar, seriyalar, label }: { oylar: { oy: string
   const y = (v: number) => TEPA + ichkiH - (v / max) * ichkiH;
   const belgilar = [0, 0.25, 0.5, 0.75, 1].map((f) => max * f);
   return (
-    <div className="flex flex-col gap-2">
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={label}>
+    <div ref={quti} className="flex flex-col gap-2">
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block" role="img" aria-label={label}>
         {belgilar.map((b) => <g key={b}>
           <line x1={CHAP} x2={W - 8} y1={y(b)} y2={y(b)} stroke="var(--border)" strokeWidth={1} />
           <text x={CHAP - 6} y={y(b) + 4} textAnchor="end" fontSize={11} fill="var(--text-mute)">{sonFmt(b)}</text>
@@ -77,7 +79,7 @@ export function OylikUstunlar({ oylar, seriyalar, label }: { oylar: { oy: string
             {o.qiymatlar.map((v, j) => v == null ? null : <rect key={j} x={x0 + j * uw} y={y(Math.max(0, v))} width={uw - 1} height={Math.max(0, TEPA + ichkiH - y(Math.max(0, v)))} rx={1.5} fill={seriyalar[j]?.rang}>
               <title>{`${o.oy} · ${seriyalar[j]?.nom}: ${sonFmt(v)}`}</title>
             </rect>)}
-            {(oylar.length <= 8 || i % 2 === 0) && <text x={CHAP + i * gw + gw / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--text-mute)">{o.oy.slice(0, 7)}</text>}
+            {(gw >= 48 || i % Math.ceil(48 / Math.max(1, gw)) === 0) && <text x={CHAP + i * gw + gw / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--text-mute)">{o.oy.slice(0, 7)}</text>}
           </g>;
         })}
       </svg>

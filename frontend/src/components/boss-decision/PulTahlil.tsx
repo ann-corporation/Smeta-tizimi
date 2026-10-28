@@ -3,7 +3,10 @@ import { AlertTriangle } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { pulTahlilOl, pulXarajatBekor, type PulDalilQator, type PulTahlilJavob, type PulXarajatQator } from '../../api/t2-pul-tahlil';
 import { toast } from '../../umumiy/ui/Toast';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
+import { serverUchligi } from '../../lib/ustamali-summa';
 import XarajatKiritish from './XarajatKiritish';
+import MoliyaviyTahlil from './MoliyaviyTahlil';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Maydon } from '../../umumiy/ui/Sahifa';
 import { IkkiTomonQator, Eksa, Rang } from '../nakopitelniy/PereraschetGrafik';
@@ -24,18 +27,9 @@ const RANG: Record<string, string> = { '1': 'text-danger', '-1': 'text-success' 
 const rang = (x: number | null) => (x == null ? '' : RANG[String(Math.sign(x))] ?? '');
 const nom = (k: string) => t(KAT_NOM[k] ?? k);
 
-/** Summa katagi: ASOSIY = ustamali (QQS siz); kichik: ustamasiz va QQS bilan (egasi qoidasi 2026-10-24). Ustama bazadan keladi — bu yerda hisoblanmaydi. */
+/** Summa katagi (egasi qoidasi 2026-10-27): ASOSIY = QQS bilan (ВСЕГО); kichik: ustamali (QQS siz) va to‘g‘ri xarajat. Yagona `QiymatUchlik`; ustama bazadan keladi — bu yerda hisoblanmaydi. */
 function UstamaliKatak({ ustamali, ustamasiz, bosish }: { ustamali: PulUstamali | null | undefined; ustamasiz: number | null | undefined; bosish?: () => void }) {
-  const asosiy = ustamali ? pul(ustamali.itogo4) : pul(ustamasiz);
-  return (
-    <div>
-      {bosish ? <button type="button" className="underline decoration-dotted" onClick={bosish}>{asosiy}</button> : asosiy}
-      <div className="text-[10px] leading-tight text-text-mute">
-        {t('ustamasiz')}: {pul(ustamasiz)}
-        {ustamali && <> · {t('QQS bilan')}: {pul(ustamali.vsego)}</>}
-      </div>
-    </div>
-  );
+  return <QiymatUchlik q={serverUchligi(ustamali, ustamasiz)} kichik className="items-end text-right" asosiyBosish={bosish} />;
 }
 
 export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { companyId: number; shartnomaId: number | null; obyektlar: Array<{ id: number; nom: string }> }) {
@@ -113,6 +107,9 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
         </div>
       </div>
       <div className="fz-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {/* Egasi 2026-10-27: «Парк объектининг молиявий таҳлили» — kompaniya yoki tanlangan obyekt kesimida (shartnoma rejimida — kompaniya). */}
+      <MoliyaviyTahlil companyId={companyId} obyektId={qamrov.startsWith('o:') ? Number(qamrov.slice(2)) : null}
+        qamrovNomi={qamrov.startsWith('o:') ? (obyektlar.find((o) => `o:${o.id}` === qamrov)?.nom ?? qamrov) : t('Jami (kompaniya)')} />
       {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{t(xato)}</span></div>}
       {data && (
         <>
@@ -161,7 +158,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                 );
               })}
               <tr className="fz-row-total">
-                <td>{t('JAMI (ustama bilan, QQS siz)')}</td>
+                <td>{t('JAMI (QQS bilan)')}</td>
                 <td className="fz-c-num"><UstamaliKatak ustamali={data.jami.smeta_ustamali} ustamasiz={data.jami.smeta_ustamasiz} /></td>
                 <td className="fz-c-num"><UstamaliKatak ustamali={data.jami.f2_ustamali} ustamasiz={data.jami.f2_yopilgan} /></td>
                 <td className="fz-c-num">{pul(data.jami.xarajat)}</td>

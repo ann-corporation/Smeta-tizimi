@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, Search, Sparkles } from 'lucide-react';
-import { modelOpenrouterdanQosh, openrouterModellarOl, type ModelKatalogi, type ModelMoslik } from '../../api/t2-agent-ish';
+import { modelOpenrouterdanQosh, openrouterModellarOl, type MijozNarx, type ModelKatalogi, type ModelMoslik, type NarxDaraja } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { toast } from '../../umumiy/ui/Toast';
@@ -10,14 +10,45 @@ const DARAJA: Record<string, [string, string]> = {
 };
 const QIDIRUV_NAMUNA = 'Model nomini qidiring (masalan: gemini, llama, qwen)…';
 
-export const narxMatni = (m: Pick<ModelMoslik, 'kirish_usd' | 'chiqish_usd'>) => `$${m.kirish_usd}/$${m.chiqish_usd}`;
+/** USD narx (1M token) — faqat superadmin ko'radi (kompaniyaga server bu maydonlarni bermaydi). */
+export const narxMatni = (m: Pick<ModelMoslik, 'kirish_usd' | 'chiqish_usd'>) => (m.kirish_usd == null || m.chiqish_usd == null ? '' : `$${m.kirish_usd}/$${m.chiqish_usd}`);
+
+const NARX_DARAJA: Record<NarxDaraja, [string, string]> = { arzon: ['Arzon', 'bg-ok/15 text-ok'], orta: ['O‘rta narx', 'bg-surface-3 text-text-dim'], qimmat: ['Qimmat', 'bg-danger/15 text-danger'] };
+
+/** Mijoz narxi yorlig'i: daraja + «≈ N token / so'rov» (token — kompaniya hamyonidan yechiladigan narx). */
+export function NarxBelgi({ n }: { n: MijozNarx | null | undefined }) {
+  if (!n || (n.narx_daraja == null && n.javob_token == null)) return null;
+  const d = n.narx_daraja ? NARX_DARAJA[n.narx_daraja] : null;
+  return (
+    <span className="mt-0.5 inline-flex flex-wrap items-center justify-end gap-1 text-[10px] tabular-nums" data-testid="model-narx">
+      {d && <span className={`rounded px-1 ${d[1]}`}>{t(d[0])}</span>}
+      {n.javob_token != null && <span className="text-text-mute">{t('≈ {n} token / so‘rov', { n: n.javob_token })}</span>}
+    </span>
+  );
+}
+
+/** Qimmat model: eng yuqori narx darajasi YOKI joriy modeldan kamida 3 barobar qimmat. */
+function qimmatmi(yangi: MijozNarx | null | undefined, joriy: MijozNarx | null | undefined): boolean {
+  if (!yangi) return false;
+  if (yangi.narx_daraja === 'qimmat') return true;
+  return yangi.javob_token != null && joriy?.javob_token != null && joriy.javob_token > 0 && yangi.javob_token >= 3 * joriy.javob_token;
+}
+
+/** Qimmat model tanlanayotganda — narxi bilan aniq ogohlantirish (egasi 2026-10-27: «faqat narxi bilan ogohlantirish kerak»). */
+function qimmatTasdiq(n: MijozNarx): Promise<boolean> {
+  return tasdiqSora({
+    sarlavha: t('Qimmat model'),
+    matn: n.javob_token != null ? t('Bu model qimmat: 1 so‘rov ≈ {n} token. Davom etasizmi?', { n: n.javob_token }) : t('Bu model qimmat: har so‘rov ko‘p token sarflaydi. Davom etasizmi?'),
+    tasdiqMatni: t('Ha, tanlash'),
+  });
+}
 
 function Nishon({ m }: { m: ModelMoslik }) {
   const [nom, uslub] = DARAJA[m.daraja] ?? DARAJA.chegarada;
   return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${uslub}`} title={m.sabablar.join('\n')}>{t(nom)}{m.manba === 'taxmin' ? ' *' : ''}</span>;
 }
 
-function Qator({ m, tavsiya, katalogda, tanlangan, onTanla }: { m: ModelMoslik; tavsiya: boolean; katalogda: boolean; tanlangan: boolean; onTanla: (m: ModelMoslik) => void }) {
+function Qator({ m, narx, tavsiya, katalogda, tanlangan, onTanla }: { m: ModelMoslik; narx: MijozNarx | null; tavsiya: boolean; katalogda: boolean; tanlangan: boolean; onTanla: (m: ModelMoslik) => void }) {
   return (
     <li role="presentation">
       <button type="button" role="option" aria-selected={tanlangan} onClick={() => onTanla(m)} className={`flex w-full items-start gap-2 px-2.5 py-1.5 text-left hover:bg-surface-3 ${tanlangan ? 'bg-accent/10' : ''}`}>
@@ -28,7 +59,8 @@ function Qator({ m, tavsiya, katalogda, tanlangan, onTanla }: { m: ModelMoslik; 
           </span>
           <span className="block truncate text-[10px] text-text-mute">{m.id}{!katalogda ? ` · ${t('katalogda yo‘q')}` : ''}</span>
         </span>
-        <span className="shrink-0 text-right"><Nishon m={m} /><span className="mt-0.5 block text-[10px] tabular-nums text-text-mute">{narxMatni(m)} · ≈${m.javob_narxi_usd.toFixed(4)}</span></span>
+        <span className="flex shrink-0 flex-col items-end text-right"><Nishon m={m} /><NarxBelgi n={narx} />
+          {m.javob_narxi_usd != null && <span className="mt-0.5 block text-[10px] tabular-nums text-text-mute">{narxMatni(m)} · ≈${m.javob_narxi_usd.toFixed(4)}</span>}</span>
       </button>
     </li>
   );
@@ -76,8 +108,20 @@ export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq
   }, [och]);
 
   const joriy = katalogBaho.find((x) => x.id === qiymat) ?? null;
+  /* Mijoz narxi: katalog (kompaniya ustamasi bilan hisoblangan) ustun, aks holda baholash ro'yxatidagisi. */
+  const narxi = useCallback((id: string | null): MijozNarx | null => {
+    if (!id) return null;
+    const k = katalog.find((x) => x.id === id);
+    if (k && (k.javob_token != null || k.narx_daraja != null)) return k;
+    return [...katalogBaho, ...qidiruv].find((x) => x.id === id) ?? null;
+  }, [katalog, katalogBaho, qidiruv]);
+  const qimmatOk = useCallback(async (id: string) => {
+    const n = narxi(id);
+    return !n || !qimmatmi(n, narxi(qiymat)) || qimmatTasdiq(n);
+  }, [narxi, qiymat]);
   const tanla = useCallback(async (m: ModelMoslik) => {
     if (m.daraja === 'kuchsiz' && !(await tasdiqSora({ sarlavha: t('Kuchsiz model'), matn: `${m.ogohlantirish ?? t('Bu model bu ish uchun kuchsiz.')}\n\n${t('Baribir tanlaysizmi?')}`, tasdiqMatni: t('Baribir tanlash') }))) return;
+    if (!(await qimmatOk(m.id))) return;
     if (!katalogSet.has(m.id)) {
       if (rejim !== 'superadmin') return;
       const r = await modelOpenrouterdanQosh(m.id);
@@ -85,9 +129,10 @@ export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq
       toast(t('Model katalogga qo‘shildi'), 'ok');
     }
     setOch(false); onTanla(m.id);
-  }, [katalogSet, rejim, onTanla]);
+  }, [katalogSet, rejim, onTanla, qimmatOk]);
 
-  const katalogQatorlari = katalogBaho.slice().sort((a, c) => (tavsiya.includes(c.id) ? 1 : 0) - (tavsiya.includes(a.id) ? 1 : 0) || a.javob_narxi_usd - c.javob_narxi_usd);
+  const narxTartib = (m: ModelMoslik) => m.javob_narxi_usd ?? narxi(m.id)?.javob_token ?? 0;
+  const katalogQatorlari = katalogBaho.slice().sort((a, c) => (tavsiya.includes(c.id) ? 1 : 0) - (tavsiya.includes(a.id) ? 1 : 0) || narxTartib(a) - narxTartib(c));
   const baholanmagan = baholandi ? katalog.filter((k) => !katalogBaho.some((b) => b.id === k.id)) : [];
   const qidiruvNatija = qidiruv.filter((x) => !katalogSet.has(x.id));
 
@@ -98,6 +143,7 @@ export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq
         <span className="min-w-0 flex-1 truncate">{joriy?.nom ?? katalog.find((x) => x.id === qiymat)?.nom ?? (qiymat ?? t('Server standarti'))}</span>
         {joriy && <Nishon m={joriy} />}<ChevronDown size={14} className="shrink-0 text-text-mute" />
       </button>
+      {qiymat && <div className="mt-0.5 flex justify-end"><NarxBelgi n={narxi(qiymat)} /></div>}
       {joriy?.ogohlantirish && (
         <p role="alert" className={`mt-1 flex items-start gap-1 rounded px-1.5 py-1 text-[11px] ${joriy.daraja === 'kuchsiz' ? 'bg-danger/10 text-danger' : 'bg-warn/10 text-warn'}`}>
           <AlertTriangle size={12} className="mt-0.5 shrink-0" />{joriy.ogohlantirish}
@@ -117,13 +163,13 @@ export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq
           <ul role="listbox" aria-label={t('Modellar')}>
             <li role="presentation"><button type="button" role="option" aria-selected={!qiymat} onClick={() => { setOch(false); onTanla(null); }} className={`w-full px-2.5 py-1.5 text-left text-[12px] hover:bg-surface-3 ${!qiymat ? 'bg-accent/10' : ''}`}>{t('Server standarti')}</button></li>
             {katalogQatorlari.length > 0 && <li className="px-2.5 pt-2 text-[10px] uppercase text-text-mute" role="presentation">{t('Tasdiqlangan katalog')}</li>}
-            {katalogQatorlari.map((m) => <Qator key={m.id} m={m} tavsiya={tavsiya.includes(m.id)} katalogda tanlangan={m.id === qiymat} onTanla={(x) => void tanla(x)} />)}
+            {katalogQatorlari.map((m) => <Qator key={m.id} m={m} narx={narxi(m.id)} tavsiya={tavsiya.includes(m.id)} katalogda tanlangan={m.id === qiymat} onTanla={(x) => void tanla(x)} />)}
             {baholanmagan.map((k) => (
-              <li key={k.id} role="presentation"><button type="button" role="option" aria-selected={k.id === qiymat} onClick={() => { setOch(false); onTanla(k.id); }} className="w-full px-2.5 py-1.5 text-left text-[12px] hover:bg-surface-3">{k.nom} <span className="text-[10px] text-text-mute">{t('baholanmagan')}</span></button></li>
+              <li key={k.id} role="presentation"><button type="button" role="option" aria-selected={k.id === qiymat} onClick={() => void (async () => { if (!(await qimmatOk(k.id))) return; setOch(false); onTanla(k.id); })()} className="flex w-full items-start gap-2 px-2.5 py-1.5 text-left text-[12px] hover:bg-surface-3"><span className="min-w-0 flex-1">{k.nom} <span className="text-[10px] text-text-mute">{t('baholanmagan')}</span></span><NarxBelgi n={k} /></button></li>
             ))}
             {rejim === 'superadmin' && (<>
               <li className="px-2.5 pt-2 text-[10px] uppercase text-text-mute" role="presentation">{t('OpenRouter ro‘yxati')} {yuk ? '…' : ''}</li>
-              {qidiruvNatija.map((m) => <Qator key={m.id} m={m} tavsiya={tavsiya.includes(m.id)} katalogda={false} tanlangan={false} onTanla={(x) => void tanla(x)} />)}
+              {qidiruvNatija.map((m) => <Qator key={m.id} m={m} narx={m} tavsiya={tavsiya.includes(m.id)} katalogda={false} tanlangan={false} onTanla={(x) => void tanla(x)} />)}
               {!yuk && qidiruvNatija.length === 0 && <li className="px-2.5 py-2 text-[11px] text-text-mute" role="presentation">{t('Hech narsa topilmadi')}</li>}
               <li className="px-2.5 py-1.5 text-[10px] text-text-mute" role="presentation">* {t('taxminiy baho: model tanilgan ro‘yxatda yo‘q, narx va hajmdan hisoblangan')}</li>
             </>)}

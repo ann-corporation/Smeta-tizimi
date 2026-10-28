@@ -149,6 +149,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   smeta_versiya_bekor_v1: 'smeta.write',
   xarajat_kirit_v1: 'financial.write',
   xarajat_bekor_v1: 'financial.write',
+  moliya_qolda_yoz_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
   fakt_belgila_v2: 'fakt.write',
   fakt_belgila: 'fakt.write',
@@ -162,6 +163,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   mindmap_bog_ochir: 'document.write',
   mindmap_joylashuv_saqla: 'document.write',
   mindmap_tugun_ochir: 'document.write',
+  mindmap_masul: 'company.member.manage',
 };
 
 export function writeCommandPermission(amal: string, body: Record<string, unknown> = {}): string {

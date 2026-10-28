@@ -20,6 +20,8 @@ const OQISH: Record<string, string> = {
   audit: 't2_boshqaruv_audit_v1',
   tolovlar: 't2_boshqaruv_tolovlar_v1',
   token_saga: 't2_boshqaruv_token_saga_v1',
+  /* Egasi 2026-10-27: «Tizim xaritasi» ko'rish ruxsatlari ro'yxati (faqat superadmin, bazada tekshiriladi). */
+  tizim_ruxsat: 't2_tizim_xaritasi_ruxsat_royxat_v1',
 };
 const YOZISH: Record<string, string> = {
   foydalanuvchi_holat: 't2_boshqaruv_foydalanuvchi_holat_v1',
@@ -29,6 +31,8 @@ const YOZISH: Record<string, string> = {
   tolov_hal: 't2_tolov_hal_qil_v1',
   tarif: 't2_boshqaruv_tarif_saqla_v1',
   token_saga_hal: 't2_boshqaruv_token_saga_hal_v1',
+  tizim_ruxsat_ber: 't2_tizim_xaritasi_ruxsat_ber_v1',
+  tizim_ruxsat_ol: 't2_tizim_xaritasi_ruxsat_ol_v1',
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,6 +77,10 @@ export function yozishYuki(amal: string, so: Record<string, unknown>): Record<st
       }
       return { p_sarf_operation_id: String(so.sarf_operation_id), p_qaror: String(so.qaror), p_sabab: sabab.slice(0, 500) };
     }
+    case 'tizim_ruxsat_ber':
+    case 'tizim_ruxsat_ol':
+      if (!sonmi(so.foydalanuvchi_id) || !UUID.test(String(so.operation_id ?? ''))) return 'foydalanuvchi_id va operation_id (uuid) kerak';
+      return { p_foydalanuvchi_id: Number(so.foydalanuvchi_id), p_izoh: matn(so.izoh, 300), p_operation_id: String(so.operation_id) };
     default: return 'Amal ochiq emas';
   }
 }

@@ -9,7 +9,9 @@ import { useKompaniya } from './KompaniyaTanlov';
 import { Graf3D } from './Graf3D';
 import { Graf2D } from './Graf2D';
 import { MindmapXarita, KorinishTanlagich, type MindmapKorinishTuri } from '../components/mindmap';
-import { mindmapTahrirRuxsati, tahrirYopiqMatni } from '../lib/mindmap-ruxsat';
+import { mindmapMasulRuxsati, mindmapTahrirRuxsati, tahrirYopiqMatni } from '../lib/mindmap-ruxsat';
+import { amalKorishQur } from '../lib/mindmap-amallar';
+import { topshiriqBer, topshiriqXato } from '../api/t2-topshiriq';
 import { SAHIFA_YOLI, belgiYoli, obyektZayavkaYoli } from '../lib/mindmap-yollar';
 import { t } from '../i18n/til';
 import { toast } from '../umumiy/ui/Toast';
@@ -18,7 +20,7 @@ import { sbObyektHodisalariOl, qachon, MODUL_RANG, type Hodisa } from '../api/t2
 import { onEntityChanged } from '../api/entity-consistency';
 import { mindmapCreateValidation, mindmapEntityNodeId, mindmapRoleValidation } from './mindmap-create-ux';
 import {
-  sbMindmapGrafOl, sbMindmapBog, sbMindmapBogOchir, sbMindmapTugunYarat,
+  sbMindmapGrafOl, sbMindmapMasul, grafOdamsiz, sbMindmapBog, sbMindmapBogOchir, sbMindmapTugunYarat,
   sbMindmapJoylashuvSaqla, sbMindmapTugunOchir, bogTuriniTop, RUXSAT_BOGLANISH, OCHIRSA_BOLADI,
   type MindmapGraf, type MindmapTugun, type TugunTur, type MindmapBelgi, type ShartnomaMeta, type MindmapSignal,
 } from '../api/t2-mindmap';
@@ -62,17 +64,17 @@ const KANVAS_H = 4000;
 const TUR_RANG: Record<TugunTur, string> = {
   kompaniya: '#b9a2f5', loyiha: '#86a6ff', obyekt: '#62c97a', shartnoma: '#2ec4b6',
   sklad: '#e9a94f', texnika: '#f0b450', kadr: '#74b8f2', kontragent: '#ff7a6e',
-  zayavka: '#5fd6ca',
+  zayavka: '#5fd6ca', foydalanuvchi: '#c0c8c6',
 };
 const TUR_IKONKA: Record<TugunTur, any> = {
   kompaniya: Building2, loyiha: FolderKanban, obyekt: Building2, shartnoma: FileText,
   sklad: Warehouse, texnika: Truck, kadr: HardHat, kontragent: Users,
-  zayavka: FileText,
+  zayavka: FileText, foydalanuvchi: Users,
 };
 const TUR_NOM: Record<TugunTur, string> = {
   kompaniya: 'Kompaniya', loyiha: 'Loyiha', obyekt: 'Obyekt', shartnoma: 'Shartnoma',
   sklad: 'Sklad', texnika: 'Texnika', kadr: 'Xodim', kontragent: 'Kontragent',
-  zayavka: 'Ta’minot zayavkasi',
+  zayavka: 'Ta’minot zayavkasi', foydalanuvchi: 'A’zo',
 };
 
 const BOG_TUR_NOM: Record<string, string> = {
@@ -128,7 +130,9 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   const tahrirMumkin = ruxsat.mumkin;
   const yopiqMatn = tahrirYopiqMatni(ruxsat);
 
+  /** `graf` — odamlarsiz (eski tahrir kanvasi/2D/3D odamni bilmaydi); `grafToliq` — v4 (odamlar + doira) yangi «Xarita»/«Ro'yxat» uchun. */
   const [graf, setGraf] = useState<MindmapGraf>({ tugunlar: [], bogichlar: [] });
+  const [grafToliq, setGrafToliq] = useState<MindmapGraf>({ tugunlar: [], bogichlar: [] });
   const [joylar, setJoylar] = useState<Record<string, XY>>({});
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState('');
@@ -185,7 +189,9 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   const sorovNomeri = useRef(0);
 
   /** Server grafini holatga qo'llaydi. Sudralayotgan tugun joyi yangilanishda O'ZGARMAYDI. */
-  const qollaGraf = useCallback((g: MindmapGraf) => {
+  const qollaGraf = useCallback((gToliq: MindmapGraf) => {
+    const g = grafOdamsiz(gToliq);
+    setGrafToliq(gToliq);
     setGraf(g);
     setOxirgiYangilanish(new Date());
     const saqlangan: Record<string, XY> = {};
@@ -237,8 +243,8 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   useEffect(() => {
     if (ichki) return;   // ichki nusxada `?tugun=` sahifaniki (BossDashboard/TugunDosye), xaritaniki emas
     const nodeKey = params.get('tugun');
-    if (nodeKey && graf.tugunlar.some((tg) => tg.id === nodeKey)) setTanlangan(nodeKey);
-  }, [ichki, params, graf.tugunlar]);
+    if (nodeKey && grafToliq.tugunlar.some((tg) => tg.id === nodeKey)) setTanlangan(nodeKey);
+  }, [ichki, params, grafToliq.tugunlar]);
 
   /* Module tabdagi real mutation ham shu grafni qayta o'qitadi.  UI hech
      qachon vaqtinchalik node'ni authoritative holat deb qabul qilmaydi. */
@@ -587,6 +593,25 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /* Rahbar muammo chiqqan joyni tez ajratib olishi uchun canvas filtrlari.
      Filtr faqat ko'rinishni o'zgartiradi — grafdagi hech qanday yozuvni
      o'chirmaydi yoki yashirincha qayta bog'lamaydi. */
+  /** Mas'ul biriktirish: ruxsat (UI oldindan) + saqlagach grafni qayta o'qish. Server baribir yakuniy to'siq. */
+  const masulMumkin = useMemo(() => mindmapMasulRuxsati({ superadmin, joriy, kompaniyaId }), [superadmin, joriy, kompaniyaId]);
+  const masul = useMemo(() => ({
+    mumkin: masulMumkin,
+    onSaqla: async (a: Parameters<typeof sbMindmapMasul>[1]) => {
+      const r = await sbMindmapMasul(aktKomp, a);
+      if (r.ok) await yukla();
+      return r;
+    },
+  }), [masulMumkin, aktKomp, yukla]);
+  /** Tugun amallari menyusi: sahifa ruxsatlari (menyu bilan bir manba) va «Topshiriq berish» (mavjud /api/topshiriq). */
+  const amalKorish = useMemo(() => amalKorishQur({ superadmin, joriy, kompaniyaId }), [superadmin, joriy, kompaniyaId]);
+  const vazifa = useMemo(() => ({
+    onBer: async (a: { sarlavha: string; muddat?: string; obyektId?: number | null; foydalanuvchiId?: number | null }) => {
+      const r = await topshiriqBer({ kompaniyaId: aktKomp, sarlavha: a.sarlavha, muddat: a.muddat, obyektId: a.obyektId ?? null, ijrochiFoydalanuvchiId: a.foydalanuvchiId ?? null });
+      return r.ok ? { ok: true } : { ok: false, error: topshiriqXato(r) };
+    },
+  }), [aktKomp]);
+
   const tugunMuammolari = (t: MindmapTugun) => (Array.isArray(t.meta?.belgi) ? t.meta.belgi : []) as MindmapBelgi[];
   const qidiruvKalit = qidiruv.trim().toLocaleLowerCase('uz-UZ');
   const korsatilganTugunlar = graf.tugunlar.filter((t) => {
@@ -610,7 +635,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
   if (korinish === 'xarita' || korinish === 'royxat') {
     return (
-      <MindmapXarita graf={graf} yuklanmoqda={yuklanmoqda} xato={xato} oxirgiYangilanish={oxirgiYangilanish} onYangila={yukla}
+      <MindmapXarita graf={grafToliq} masul={masul} amalKorish={amalKorish} vazifa={vazifa} yuklanmoqda={yuklanmoqda} xato={xato} oxirgiYangilanish={oxirgiYangilanish} onYangila={yukla}
         tanlangan={tanlangan} onTanla={(id) => { setTanlangan(id); setTanlanganBog(null); }}
         korinish={korinish} onKorinish={setKorinish}
         hodisalar={{ qatorlar: obyektHodisalari, yuklanmoqda: hodisaYuklanmoqda, xato: hodisaXato }}

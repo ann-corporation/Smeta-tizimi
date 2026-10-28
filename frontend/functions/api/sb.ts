@@ -25,6 +25,7 @@
  *   { ok: true, qatorlar: [...], soni: 1234, ms: 87 }
  *   { ok: false, error: "..." }
  */
+import { tokenHolatTozala } from '../_shared/tizim-maxfiy';
 import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
@@ -209,13 +210,15 @@ export const onRequestPost: PagesFunction<{
      *
      * Rol: `boss`/`rahbar` ham CHAQIRA OLADI — bu faqat o'qish. */
     if (so.soro) {
-      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor'> = {
+      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
         ai_kontekst: 'obyekt',
         ai_umumiy: 'kompaniya',
         /* ⚡ 2026-08-28: mindmap butun grafni (tugunlar + bog'lanishlar)
            BITTA chaqiruvda oladi — jadval-jadval o'qish o'rniga. */
         mindmap_grafi: 'kompaniya',
         mindmap_grafi_v2: 'kompaniya',
+        /* 2026-11-11 (mindmap 2-bosqich): odamlar + ko'rish doirasi — actor SESSIYADAN (p_actor_id), a'zolik shu yerda tekshiriladi. */
+        mindmap_grafi_v4: 'kompaniya_actor',
         hodisa_obyekt_lenta: 'obyekt_kompaniya',
         /* T2-REAL-PARK-LRV-VERTICAL-SLICE-004: Price Control + exact-F2
            read models. p_actor_id ALWAYS from the verified session --
@@ -260,12 +263,18 @@ export const onRequestPost: PagesFunction<{
         /* Egasi 2026-10-24: rahbarlar uchun pul tahlili (P0) — kategoriya × {smeta, F2} + zanjir. `stable`; a'zolik + f2.read + financial.read. */
         pul_tahlil_v1: 'kompaniya_actor',
         pul_tahlil_v2: 'kompaniya_actor',
+        /* Egasi 2026-10-27: «Парк объектининг молиявий таҳлили» — 16 ko'rsatkich (tizim + qo'lda). `stable`; a'zolik + financial.read. */
+        moliya_tahlil_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
         modul_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: fayl menejeri — kompaniya fayllari loyiha/obyekt/tur bo'yicha (a'zolik ichida). */
         fayl_explorer_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-27: «Tizim xaritasi» — FAQAT platforma superadmini va u ruxsat bergan odamlar (kompaniya roli yetarli
+           EMAS). Ruxsat bazada (`_t2_tizim_xaritasi_ruxsatmi`); actor SESSIYADAN; kompaniya_id — faqat ixtiyoriy filtr. `stable`. */
+        tizim_xaritasi_v1: 'tizim_actor',
+        tizim_xaritasi_ruxsat_tekshir_v1: 'tizim_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -311,7 +320,7 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_shartnoma_id', String(id));
       }
-      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor') {
+      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
         if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
           return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo\'q' }, { status: 401 });
         }
@@ -348,6 +357,12 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_kompaniya_id', String(kid));
       }
+      /* Tizim xaritasi: kompaniya a'zoligi TEKSHIRILMAYDI (platforma darajasi) — ruxsatni baza beradi. Filtr faqat raqam. */
+      if (so.soro === 'tizim_xaritasi_v1' && so.kompaniya_id != null && String(so.kompaniya_id) !== '') {
+        const kid = Number(so.kompaniya_id);
+        if (!Number.isSafeInteger(kid) || kid <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
+        q.set('p_kompaniya_id', String(kid));
+      }
       if (so.soro === 'nakrutka_koef_ol_v1' || so.soro === 'obyekt_nakrutka_v1') {
         if (so.shartnoma_id != null && String(so.shartnoma_id) !== '') {
           const sid = Number(so.shartnoma_id);
@@ -361,6 +376,11 @@ export const onRequestPost: PagesFunction<{
         const oid = Number(so.obyekt_id);
         if (!Number.isInteger(oid) || oid <= 0) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
         q.set('p_obyekt_id', String(oid));
+      }
+      if (so.soro === 'moliya_tahlil_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {
+        const id = Number(so.obyekt_id);
+        if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: "obyekt_id noto'g'ri" });
+        q.set('p_obyekt_id', String(id));
       }
       if (so.soro === 'pul_tahlil_v1' || so.soro === 'pul_tahlil_v2') {
         for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
@@ -425,7 +445,10 @@ export const onRequestPost: PagesFunction<{
         return Response.json(
           { ok: false, error: 'So\'rov bajarilmadi (' + rr.status + ')' });
       }
-      const natija = await rr.json();
+      let natija: unknown = await rr.json();
+      /* Egasi 2026-10-27: token tannarxi, foyda foizi va platforma ustamasi — faqat platforma superadmini. Bayroq RPC ning
+         o'zidan (t2_platforma_superadmin(actor)) — superadmin bo'lmaganga javob SERVERDA tozalanadi. */
+      if (so.soro === 'token_holat_v1' && (natija as { superadmin?: unknown } | null)?.superadmin !== true) natija = tokenHolatTozala(natija);
       return Response.json({ ok: true, natija, ms: Date.now() - t0 });
     }
 

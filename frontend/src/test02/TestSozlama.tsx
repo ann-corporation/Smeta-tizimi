@@ -9,7 +9,7 @@ import { t } from '../i18n/til';
 
 /** Tizim sozlamalari (Firuza, 2026-10-25): chapda bo'limlar, o'ngda bitta karta; saqlash — sarlavhadagi asosiy tugma. */
 export default function TestSozlama() {
-  const { joriy } = useKompaniya();
+  const { joriy, superadmin } = useKompaniya();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any>({});
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
@@ -38,11 +38,12 @@ export default function TestSozlama() {
     setSaqlanmoqda(false);
   };
 
+  /* Egasi 2026-10-27: tizimga oid qismlar (GAS ko'prigi, texnik audit qobig'i) — faqat platforma superadmini. */
   const tabs = [
     { id: 'umumiy', nomi: 'Umumiy akkaunt', izoh: 'Rekvizitlar qayerda', icon: Building2 },
     { id: 'moliya', nomi: 'Moliya va nazorat', izoh: 'Valyuta, qat’iy nazorat', icon: CreditCard },
-    { id: 'integratsiya', nomi: 'Integratsiyalar', izoh: 'Didox, Google Sheets', icon: LinkIcon },
-    { id: 'xavfsizlik', nomi: 'Xavfsizlik va audit', izoh: 'O‘zgarmas jurnal', icon: ShieldAlert },
+    { id: 'integratsiya', nomi: 'Integratsiyalar', izoh: superadmin ? 'Didox, Google Sheets' : 'Didox', icon: LinkIcon },
+    ...(superadmin ? [{ id: 'xavfsizlik', nomi: 'Xavfsizlik va audit', izoh: 'O‘zgarmas jurnal', icon: ShieldAlert }] as const : []),
   ] as const;
   const yorliq = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-mute';
   const sarlavha = (matn: string) => <h2 className="fz-card__title border-b border-border pb-2">{matn}</h2>;
@@ -102,13 +103,13 @@ export default function TestSozlama() {
                   </div>
                   <p className="mt-2 text-[12px] text-text-mute">{t('Elektron hisob-fakturalarni (EHF) avtomatlashtirish uchun.')}</p>
                 </div>
-                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-text">
+                {superadmin && <label className="flex cursor-pointer items-center gap-2 text-[13px] text-text">
                   <input type="checkbox" checked={data?.avto_sinxronizatsiya || false} onChange={(e) => setData({ ...data, avto_sinxronizatsiya: e.target.checked })} className="h-4 w-4" />
                   {t('Google Sheets (GAS) bilan uzluksiz sinxronizatsiya')}
-                </label>
+                </label>}
               </>)}
 
-              {activeTab === 'xavfsizlik' && (<>
+              {activeTab === 'xavfsizlik' && superadmin && (<>
                 <h2 className="fz-card__title flex items-center gap-2 border-b border-border pb-2"><ShieldAlert size={18} className="text-danger" />{t('Xavfsizlik va jurnallar')}</h2>
                 <p className="text-[13px] text-text-dim">{t('Tizimdagi barcha kiritish, o‘zgartirish va o‘chirish amallari o‘zgartirib bo‘lmaydigan (immutable) jurnallarda (PostgreSQL triggerlari orqali) saqlanadi.')}</p>
                 <Link to="/admin/test/tizim" className="group flex flex-col rounded-lg border border-border bg-surface-2 p-4 transition-colors hover:border-accent">

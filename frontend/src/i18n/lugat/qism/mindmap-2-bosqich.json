@@ -1,0 +1,138 @@
+{
+  "A’zo": {
+    "ru": "Участник",
+    "en": "Member"
+  },
+  "A’zolarni ko‘rsatish ({n})": {
+    "ru": "Показать участников ({n})",
+    "en": "Show members ({n})"
+  },
+  "A’zolarni yig‘ish": {
+    "ru": "Свернуть участников",
+    "en": "Collapse members"
+  },
+  "A’zoni tanlang…": {
+    "ru": "Выберите участника…",
+    "en": "Select a member…"
+  },
+  "Biriktiriladigan boshqa a’zo yo‘q.": {
+    "ru": "Других участников для назначения нет.",
+    "en": "No other members to assign."
+  },
+  "Boshqarish": {
+    "ru": "Управление",
+    "en": "Manage"
+  },
+  "Boss": {
+    "ru": "Босс",
+    "en": "Boss"
+  },
+  "Brigadir": {
+    "ru": "Бригадир",
+    "en": "Foreman"
+  },
+  "Bu odam kompaniyaning faol a’zosi emas.": {
+    "ru": "Этот человек не является активным участником компании.",
+    "en": "This person is not an active member of the company."
+  },
+  "Bugalter": {
+    "ru": "Бухгалтер",
+    "en": "Accountant"
+  },
+  "Butun jamoani ochish": {
+    "ru": "Открыть всю команду",
+    "en": "Open the whole team"
+  },
+  "Diqqat: ofis xodimiga birinchi biriktirish xaritada uning ko‘rinishini faqat biriktirilgan obyektlar bilan cheklaydi.": {
+    "ru": "Внимание: первое назначение офисному сотруднику ограничит его вид на карте только назначенными объектами.",
+    "en": "Note: the first assignment for an office employee limits what they see on the map to the assigned objects only."
+  },
+  "Hali mas‘ul biriktirilmagan.": {
+    "ru": "Ответственный пока не назначен.",
+    "en": "No one is assigned yet."
+  },
+  "Hali obyekt biriktirilmagan.": {
+    "ru": "Объекты пока не назначены.",
+    "en": "No objects assigned yet."
+  },
+  "Inspektor": {
+    "ru": "Инспектор",
+    "en": "Inspector"
+  },
+  "Jamoa": {
+    "ru": "Команда",
+    "en": "Team"
+  },
+  "Mas‘ul biriktirish": {
+    "ru": "Назначить ответственного",
+    "en": "Assign responsible"
+  },
+  "Mas‘ul biriktirish uchun «A’zolarni boshqarish» ruxsati kerak.": {
+    "ru": "Для назначения ответственного нужно право «Управление участниками».",
+    "en": "Assigning a responsible person requires the “Manage members” permission."
+  },
+  "Mas‘ul bo‘lgan loyihalar": {
+    "ru": "Проекты под ответственностью",
+    "en": "Projects responsible for"
+  },
+  "Mas‘ul bo‘lgan obyektlar": {
+    "ru": "Объекты под ответственностью",
+    "en": "Objects responsible for"
+  },
+  "Mas‘ul obyektlar soni": {
+    "ru": "Количество объектов под ответственностью",
+    "en": "Number of objects responsible for"
+  },
+  "Mas‘ul saqlanmadi": {
+    "ru": "Ответственный не сохранён",
+    "en": "Responsible person was not saved"
+  },
+  "Mas‘ullar": {
+    "ru": "Ответственные",
+    "en": "Responsible"
+  },
+  "Mas‘ullikni olib tashlash: {nom}": {
+    "ru": "Снять ответственность: {nom}",
+    "en": "Remove responsibility: {nom}"
+  },
+  "Obyekt topilmadi.": {
+    "ru": "Объект не найден.",
+    "en": "Object not found."
+  },
+  "PTO": {
+    "ru": "ПТО",
+    "en": "PTO"
+  },
+  "Rahbariyat": {
+    "ru": "Руководство",
+    "en": "Management"
+  },
+  "Rolni o‘zgartirish (A’zolar)": {
+    "ru": "Изменить роль (Участники)",
+    "en": "Change role (Members)"
+  },
+  "Ruxsat darajasi": {
+    "ru": "Уровень доступа",
+    "en": "Access level"
+  },
+  "Siz faqat sizga biriktirilgan obyektlarni ko‘ryapsiz": {
+    "ru": "Вы видите только объекты, назначенные вам",
+    "en": "You only see the objects assigned to you"
+  },
+  "Summalar ko‘rsatilmaydi (moliyaviy ruxsat yo‘q)": {
+    "ru": "Суммы не показываются (нет финансового доступа)",
+    "en": "Amounts are hidden (no financial permission)"
+  },
+  "Usta": {
+    "ru": "Мастер",
+    "en": "Site foreman"
+  },
+  "moliyaviy ruxsat yo‘q": {
+    "ru": "нет финансового доступа",
+    "en": "no financial permission"
+  },
+  "{n} ta a’zo": {
+    "ru": "{n} участн.",
+    "en": "{n} members"
+  }
+}

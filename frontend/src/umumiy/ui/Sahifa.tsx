@@ -247,9 +247,10 @@ export function Nishon({ matn, tur = 'neytral' }: { matn: string; tur?: 'ok' | '
 
 export function KpiKarta({ nom, qiymat, ost }: { nom: string; qiymat: ReactNode; ost?: ReactNode }) {
   return (
-    <div className="karta p-5">
+    <div className="karta @container min-w-0 p-4 xl:p-5">
       <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{t(nom)}</p>
-      <p className="text-[26px] leading-8 font-semibold text-text mt-1 tabular-nums">{qiymat}</p>
+      {/* Raqam karta eniga moslashadi (noutbukda kartadan chiqib ketmaydi). */}
+      <p className="kpi-qiymat mt-1 font-semibold text-text tabular-nums">{qiymat}</p>
       {ost && <p className="text-xs text-text-mute mt-1 tabular-nums">{ost}</p>}
     </div>
   );

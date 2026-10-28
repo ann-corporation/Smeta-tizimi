@@ -1822,7 +1822,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 ].map(([t, v, c, iz, kk]) => (
                   <div key={t as string} className="rounded-md bg-surface-2/50 px-2 py-1.5">
                     <span className="block text-[10.5px] text-text-mute">{t as string}</span>
-                    {/* Egasi 2026-10-24: har summa ustamali (asosiy) + ustamasiz (kichik). */}
+                    {/* Egasi 2026-10-27: jami — QQS bilan (asosiy), ustamali va ustamasiz (kichik). */}
                     <SummaJuft className={`block ${c as string}`} obyektId={p.objectId} kompaniyaId={p.companyId} ustamasiz={v as number} katKesim={kk as KatKesim} />
                     {iz ? <span className="block text-[10px] text-text-mute">{iz as string}</span> : null}
                   </div>
