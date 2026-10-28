@@ -2994,7 +2994,7 @@
       "machine": "cloud",
       "branch": "claude/blissful-cannon-a0ja8l",
       "base_sha": "c479101c0c00cda4f60efae1827cec1736a9c981",
-      "status": "in_progress",
+      "status": "merged",
       "owns": [
         "frontend/src/dizayn/",
         "frontend/src/main.tsx",
@@ -3075,7 +3075,7 @@
         "docs/governance/CONSTITUTION.md"
       ],
       "production_write_allowed": false,
-      "note": "Egasi 2026-10-25: dizayn ideal/ergonomik/professional bo'lsin. Kanonik manba — Design System artifact «Firuza». index.css T2-SMETACHI-RELIABILITY-20261009 qulfida — tegilmadi; firuza.css undan keyin ulanib eski Liquid Glass qatlamini bosadi. Deploy faqat egasi va Obsidian KOORDINATSIYA kelishuvidan keyin; PR draft. 2026-10-25 kech: egasi «Codex ishlamayapti, hamma joyga kiraver» — SmetaStudio, F2 import, Holat, Nakopitelniy, index.css shu vazifaga o'tdi (boshqa agentlar ertalabgacha to'xtatilgan)."
+      "note": "Egasi 2026-10-25: dizayn ideal/ergonomik/professional bo'lsin. Kanonik manba — Design System artifact «Firuza». index.css T2-SMETACHI-RELIABILITY-20261009 qulfida — tegilmadi; firuza.css undan keyin ulanib eski Liquid Glass qatlamini bosadi. Deploy faqat egasi va Obsidian KOORDINATSIYA kelishuvidan keyin; PR draft. 2026-10-25 kech: egasi «Codex ishlamayapti, hamma joyga kiraver» — SmetaStudio, F2 import, Holat, Nakopitelniy, index.css shu vazifaga o'tdi (boshqa agentlar ertalabgacha to'xtatilgan). | 2026-10-28: Firuza dizayni (PR #150, #158) main da; qulf yopildi."
     },
     {
       "id": "AKKAUNT-KIRISH-20261026",
@@ -3084,7 +3084,7 @@
       "machine": "cloud",
       "branch": "claude/blissful-cannon-a0ja8l",
       "base_sha": "b0202f6b",
-      "status": "in_progress",
+      "status": "merged",
       "owns": [
         "frontend/functions/api/profil.ts",
         "frontend/functions/_shared/role-authority.ts",
@@ -3115,8 +3115,8 @@
         "AGENTS.md",
         "docs/governance/CONSTITUTION.md"
       ],
-      "production_write_allowed": true,
-      "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing. | 2026-10-26 (2): email kod bilan kirish/ro'yxat (/api/kirish-email); migratsiyalar 20261105333000 (ilgari qo'llanmagan edi) va 20261111300000 jonli bazaga qo'llandi; login sahifasidan Admin/Rahbar tezkor tugmalari olib tashlandi. Email yuborish uchun Cloudflare Pages env: RESEND_API_KEY, EMAIL_FROM (egasi sozlaydi). | 2026-10-26: Sozlamalar markazi — /admin/sozlamalar (3 qatlam reestri) va kompaniya sozlamalari serverda (t2_kompaniya_sozlama, egasi ruxsati bilan prodga qo'llandi, additiv). AdminShell/navReestr ga TEGILMAYDI (#153 L0 niki) — menyu bandi #153 merge'dan keyin."
+      "production_write_allowed": false,
+      "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing. | 2026-10-26 (2): email kod bilan kirish/ro'yxat (/api/kirish-email); migratsiyalar 20261105333000 (ilgari qo'llanmagan edi) va 20261111300000 jonli bazaga qo'llandi; login sahifasidan Admin/Rahbar tezkor tugmalari olib tashlandi. Email yuborish uchun Cloudflare Pages env: RESEND_API_KEY, EMAIL_FROM (egasi sozlaydi). | 2026-10-26: Sozlamalar markazi — /admin/sozlamalar (3 qatlam reestri) va kompaniya sozlamalari serverda (t2_kompaniya_sozlama, egasi ruxsati bilan prodga qo'llandi, additiv). AdminShell/navReestr ga TEGILMAYDI (#153 L0 niki) — menyu bandi #153 merge'dan keyin. | 2026-10-28: PR #158 va #177 main da; qulf yopildi (L0↔cloud kelishuvi, ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028)."
     }
   ]
 }
