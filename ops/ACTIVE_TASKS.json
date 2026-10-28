@@ -9,12 +9,25 @@
       "branch": "codex/c11-prixod-preview-20261027",
       "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b",
       "status": "ready_for_review",
-      "owns": ["frontend/src/lib/f2-import-parse/xlsxReader.ts", "frontend/src/lib/ombor-prixod/", "frontend/src/components/ombor/PrixodKitobPreview.tsx", "frontend/src/components/ombor/PrixodKitobPreview.test.tsx", "frontend/src/components/ombor/PrixodQatorEditor.tsx", "frontend/src/components/ombor/PrixodQatorEditor.test.tsx", "frontend/src/components/ombor/OmborOvozYordam.tsx", "frontend/src/components/ombor/OmborOvozYordam.test.tsx", "frontend/src/workers/ombor-prixod.worker.ts", "frontend/src/i18n/lugat/qism/ombor-prixod-preview.json", "frontend/src/i18n/lugat/qism/ombor-ovoz-qoralama.json", "frontend/src/test02/TestSklad.tsx", "ops/mailbox/C11-SKLAD-20261027/"],
+      "owns": ["frontend/src/lib/f2-import-parse/xlsxReader.ts", "frontend/src/lib/ombor-prixod/", "frontend/src/components/ombor/PrixodKitobPreview.tsx", "frontend/src/components/ombor/PrixodKitobPreview.test.tsx", "frontend/src/components/ombor/PrixodQatorEditor.tsx", "frontend/src/components/ombor/PrixodQatorEditor.test.tsx", "frontend/src/components/ombor/OmborOvozYordam.tsx", "frontend/src/components/ombor/OmborOvozYordam.test.tsx", "frontend/src/workers/ombor-prixod.worker.ts", "frontend/src/i18n/lugat/qism/ombor-prixod-preview.json", "frontend/src/i18n/lugat/qism/ombor-ovoz-qoralama.json", "ops/mailbox/C11-SKLAD-20261027/"],
       "runtime_sublease": {"from_task":"CATALOG-IMPORT-AUDIT-20261023","paths":["frontend/src/lib/f2-import-parse/xlsxReader.ts"],"basis":"C11 explicit owner task; default reader unchanged, source-cell evidence export only. Catalog semantic backlog retained."},
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md"],
       "production_write_allowed": false,
       "note": "L0 kech(5), directowner27Oct: Codex exclusively C11warehouse/supply. ONLY receipt sheet, other sheets notimported/notoracle. Editable localdrafts, source-backed suggestions, whole-entry confirmation invalidated byedits, RUperioddraft exports, voice-to-draft UI. Voiceendpoint dependencyPR182, serversecretL0; no livepaidcall or warehouseposting. Private workbook neverpublic. Single-ledger model separatelyreviewed, migrationsappliedL0."
+    },
+    {
+      "id": "C11-DAILY-WAREHOUSE-20261027",
+      "title": "Object-scoped daily warehouse receipt and issue with recoverable confirmation",
+      "owner": "codex", "machine": "Anvar",
+      "branch": "codex/c11-daily-warehouse-20261027",
+      "base_sha": "c2b9952b130a3fa573c6a0910c0931420aaa4a79",
+      "status": "in_progress",
+      "owns": ["frontend/src/test02/TestSklad.tsx", "frontend/src/components/ombor/KirimKunlikForm.tsx", "frontend/src/components/ombor/KirimKunlikForm.test.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.test.tsx", "frontend/src/i18n/lugat/qism/ombor-kunlik.json", "frontend/src/lib/ombor-kunlik/", "ops/mailbox/C11-DAILY-WAREHOUSE-20261027/"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "production_write_allowed": false,
+      "note": "Owner-authorized isolated daily flow after PR181. Existing object warehouse only; keep Excel historical import as secondary. Explicit date/object/recipient/purpose and full review; stable operation_id, immutable retry on ambiguous result, no auto-post on restore. Read-only object/company journal; unknown actor/purpose stay unknown. No central-stock writes, API/function/schema changes, private source data, commit, or push. UI targets use explicit 48px and scoped close styling; no OpsUi/global changes."
     },
     {
       "id": "OWNERSHIP-COORD-20261026",
