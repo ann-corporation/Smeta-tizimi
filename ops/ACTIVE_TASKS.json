@@ -23,7 +23,7 @@
       "branch": "codex/c11-daily-warehouse-20261027",
       "base_sha": "c2b9952b130a3fa573c6a0910c0931420aaa4a79",
       "status": "ready_for_review",
-      "owns": ["frontend/src/test02/TestSklad.tsx", "frontend/src/components/ombor/KirimKunlikForm.tsx", "frontend/src/components/ombor/KirimKunlikForm.test.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.test.tsx", "frontend/src/i18n/lugat/qism/ombor-kunlik.json", "frontend/src/lib/ombor-kunlik/", "ops/mailbox/C11-DAILY-WAREHOUSE-20261027/"],
+      "owns": ["frontend/src/test02/TestSklad.tsx", "frontend/src/components/ombor/KirimKunlikForm.tsx", "frontend/src/components/ombor/KirimKunlikForm.test.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.test.tsx", "frontend/src/components/ombor/OmborTanlov.tsx", "frontend/src/components/ombor/OmborTanlov.test.tsx", "frontend/src/components/ombor/ombor-tanlov.css", "frontend/src/i18n/lugat/qism/ombor-tanlov.json", "frontend/src/i18n/lugat/qism/ombor-tez-kiritish.json", "frontend/src/i18n/lugat/qism/ombor-kunlik.json", "frontend/src/lib/ombor-kunlik/", "ops/mailbox/C11-DAILY-WAREHOUSE-20261027/"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,

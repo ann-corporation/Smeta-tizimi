@@ -1,0 +1,14 @@
+{
+  "Variantlarni qidirish": {
+    "ru": "Поиск вариантов",
+    "en": "Search options"
+  },
+  "Yozing yoki variantni bosing": {
+    "ru": "Введите текст или выберите вариант",
+    "en": "Type or select an option"
+  },
+  "Mos variant topilmadi": {
+    "ru": "Подходящий вариант не найден",
+    "en": "No matching option"
+  }
+}

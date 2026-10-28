@@ -14,6 +14,7 @@ import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsQidiruv, OpsTablar } f
 import { PrixodKitobPreview } from '../components/ombor/PrixodKitobPreview';
 import { KirimKunlikForm } from '../components/ombor/KirimKunlikForm';
 import { KirimKunlikJurnal } from '../components/ombor/KirimKunlikJurnal';
+import { OmborTanlov } from '../components/ombor/OmborTanlov';
 
 /**
  * Ombor (sklad) — qoldiq va kirim/chiqim yozuvi (egasi 2026-10-25: Firuza ko'rinishi).
@@ -110,10 +111,8 @@ export default function TestSklad() {
       amallar={<>
         <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">
           <Building2 size={15} className="text-text-mute" />
-          <select aria-label={t('Obyekt')} className="h-[48px] min-h-[48px] max-w-[260px] px-2 text-[13px]" value={tanlanganObyekt?.id ?? ''} disabled={!aktKomp || obyektlarYuklanmoqda} onChange={(e) => setObyektId(e.target.value ? Number(e.target.value) : null)}>
-            <option value="">{obyektlarYuklanmoqda ? t('Obyektlar yuklanmoqda…') : t('Obyektni tanlang')}</option>
-            {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
-          </select>
+          <OmborTanlov label={t('Obyekt')} value={tanlanganObyekt?String(tanlanganObyekt.id):''} disabled={!aktKomp||obyektlarYuklanmoqda}
+            options={obyektlar.map(o=>({value:String(o.id),label:o.nom}))} onChange={v=>setObyektId(Number(v))}/>
         </label>
         <button type="button" disabled={!tanlanganObyekt} onClick={() => ochOyna('chiqim')} className="fz-btn min-h-[48px] disabled:opacity-50"><ArrowUpFromLine /> {t('BERDIM — ombordan chiqim')}</button>
         <button type="button" disabled={!tanlanganObyekt} onClick={() => ochOyna('kirim')} className="fz-btn fz-btn--primary min-h-[48px] disabled:opacity-50"><ArrowDownToLine /> {t('KELDI — omborga kirim')}</button>

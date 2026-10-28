@@ -3,6 +3,8 @@ import { AlertTriangle, Check, RotateCcw, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { prixodMiqdor, prixodSana } from '../../lib/ombor-prixod/kitob';
+import { kunlikBugun,kunlikMatnTaklif,type KunlikMaydonlar } from '../../lib/ombor-kunlik/tez-kiritish';
+import { OmborTanlov } from './OmborTanlov';
 import { KUNLIK_SERVIS,type KunlikServis,type KunlikTarix as Harakat } from '../../lib/ombor-kunlik/servis';
 export type { KunlikServis } from '../../lib/ombor-kunlik/servis';
 import {
@@ -11,7 +13,7 @@ import {
 } from '../../api/supabase';
 
 type Amal = 'prixod' | 'rasxod';
-type Kiritish = { sana: string; nomi: string; birligi: string; miqdor: string; postavshik: string; qabulQiluvchi: string; qabulTuri: string; izoh: string; hujjat: string };
+type Kiritish = KunlikMaydonlar;
 type Buyruq = { versiya: 1; kompaniyaId: number; obyektId: number; amal: Amal; operationId: string; payload: T2SkladHarakat };
 type Scope = { kompaniyaId: number; obyektId: number };
 
@@ -60,6 +62,10 @@ export function KirimKunlikForm({ kompaniyaId, obyekt, amal, onYop, onYozildi, s
   const sending = useRef(new Set<string>());
   const [data, setData] = useState<Kiritish>(BOSh);
   const [tekshiruv, setTekshiruv] = useState(false);
+  const [tezMatn,setTezMatn]=useState('');
+  const [batafsil,setBatafsil]=useState(false);
+  const dateRef=useRef<HTMLInputElement>(null);
+  const quickDateRef=useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Buyruq | null>(null);
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
@@ -68,7 +74,7 @@ export function KirimKunlikForm({ kompaniyaId, obyekt, amal, onYop, onYozildi, s
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setData(BOSh); setTekshiruv(false); setXato(''); setPending(null); setBand(false);
+    setData({...BOSh,sana:kunlikBugun()}); setTekshiruv(false); setXato(''); setPending(null); setBand(false);setTezMatn('');setBatafsil(false);
     if (kompaniyaId <= 0 || objectId<=0 || objectCompany !== kompaniyaId) return;
     setPending(saqlanganOqish(scopeKalit, {kompaniyaId,obyektId:objectId}));
   }, [kompaniyaId, objectId,objectCompany, scopeKalit]);
@@ -113,6 +119,16 @@ export function KirimKunlikForm({ kompaniyaId, obyekt, amal, onYop, onYozildi, s
   const postavshikTakliflari = useMemo(() => noyob(manbalar.tarix
     .filter((r) => r.nomi?.toLocaleLowerCase() === data.nomi.trim().toLocaleLowerCase())
     .map((r) => r.postavshik)).slice(0, 8), [manbalar, data.nomi]);
+  const tezTaklif=useMemo(()=>kunlikMatnTaklif(tezMatn,manbalar.tarix,amal,data.nomi),[tezMatn,manbalar.tarix,amal,data.nomi]);
+  const tezQolla=(nom?:string)=>{
+    const result=kunlikMatnTaklif(tezMatn,manbalar.tarix,amal,nom);
+    if(!result.mos)return;
+    setData(old=>({...old,nomi:'',birligi:'',miqdor:'',postavshik:'',qabulTuri:'',izoh:'',hujjat:'',...result.fields}));setTekshiruv(false);setXato('');
+  };
+  const takrorla=(row:Harakat)=>{
+    setData({sana:kunlikBugun(),nomi:row.nomi,birligi:row.birligi,miqdor:String(row.obyomi),postavshik:row.postavshik??'',qabulQiluvchi:row.qabul_qiluvchi??'',qabulTuri:row.qabul_turi??'',izoh:(row.izoh??'').split('\n')[0].replace(/^(Hujjat|Документ|Document):.*$/i,''),hujjat:''});
+    setTezMatn('');setTekshiruv(false);setXato('');
+  };
 
   const izohTayyor = data.izoh.trim() && data.hujjat.trim()
     ? `${data.izoh.trim()}\n${t('Hujjat')}: ${data.hujjat.trim()}` : data.izoh.trim() || (data.hujjat.trim() ? `${t('Hujjat')}: ${data.hujjat.trim()}` : '');
@@ -173,7 +189,7 @@ export function KirimKunlikForm({ kompaniyaId, obyekt, amal, onYop, onYozildi, s
   const maydon = (label: string, field: keyof Kiritish, options: { maxLength?: number; type?: string; inputMode?: 'decimal'; required?: boolean } = {}) => (
     <label key={field} className="grid min-w-0 gap-1 text-[12px] font-medium text-text-dim">
       {t(label)}{options.required && <span aria-hidden="true" className="text-danger"> *</span>}
-      <input type={options.type ?? 'text'} inputMode={options.inputMode} maxLength={options.maxLength}
+      <input ref={field==='sana'?dateRef:undefined} type={options.type ?? 'text'} inputMode={options.inputMode} maxLength={options.maxLength}
         disabled={!!pending || band || !objectValid} value={data[field]}
         onChange={(e) => edit(field, e.target.value)}
         className="h-[48px] min-h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text outline-none focus:border-[var(--accent)] disabled:opacity-60" />
@@ -212,6 +228,41 @@ export function KirimKunlikForm({ kompaniyaId, obyekt, amal, onYop, onYozildi, s
         </div>
       </section> : <>
         {xato&&<p role="alert" className="rounded-md border border-danger p-3 text-[13px] text-danger">{xato}</p>}
+        <section className="mb-4 space-y-3 rounded-xl border border-[var(--accent)] bg-[var(--surface-2)] p-3">
+          <label className="block text-[14px] font-semibold">{t('Bir gap bilan kiriting')}
+            <textarea aria-label={t('Bir gap bilan kiriting')} value={tezMatn} maxLength={500} onChange={e=>{setTezMatn(e.target.value);setTekshiruv(false);}}
+              placeholder={t(amal==='prixod'?'Masalan: 10 kub sheben keldi, Karyerdan':'Masalan: 2 kub sheben Anvarga berdim')}
+              className="mt-2 min-h-[90px] w-full rounded-lg border border-border bg-bg p-3 text-[15px] text-text" />
+          </label>
+          {tezMatn&&!tezTaklif.mos&&<p role="alert" className="text-[12px] text-danger">{t('Matndagi harakat tanlangan kirim yoki chiqimga mos emas.')}</p>}
+          {tezMatn&&tezTaklif.nomlar.length>0&&<Suggestions label="Material variantini tanlang" values={tezTaklif.nomlar} onPick={tezQolla}/>}
+          <button type="button" className="fz-btn fz-btn--primary min-h-[48px]" disabled={!tezMatn.trim()||!tezTaklif.mos||!tezTaklif.fields.nomi} onClick={()=>tezQolla(data.nomi)}>{t('Gapdan qator tayyorlash')}</button>
+          <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={t('Tez sana tanlash')}>
+            <button type="button" className="fz-btn min-h-[48px] shrink-0" aria-pressed={data.sana===kunlikBugun()} onClick={()=>edit('sana',kunlikBugun())}>{t('Bugun')}</button>
+            <button type="button" className="fz-btn min-h-[48px] shrink-0" aria-pressed={data.sana===kunlikBugun(-1)} onClick={()=>edit('sana',kunlikBugun(-1))}>{t('Kecha')}</button>
+            <div className="relative shrink-0"><button type="button" className="fz-btn min-h-[48px]" onClick={()=>{try{quickDateRef.current?.showPicker();}catch{setBatafsil(true);requestAnimationFrame(()=>dateRef.current?.focus());}}}>{data.sana} · {t('Kalendar')}</button>
+              <input ref={quickDateRef} type="date" aria-label={t('Kalendar sanasi')} tabIndex={-1} className="sr-only" value={data.sana} onChange={e=>edit('sana',e.target.value)}/>
+            </div>
+          </div>
+          {data.nomi&&<div className="rounded-lg border border-border p-3 text-[14px]"><b>{data.nomi}</b><p className="mb-0 mt-1">{data.miqdor||'—'} {data.birligi||'—'} · {data.postavshik||data.qabulQiluvchi||t('Kimdan yoki kimga ekanini tanlang')}</p></div>}
+          {!batafsil&&data.nomi&&birlikTakliflari.length>0&&<Suggestions label="Manbada uchragan birliklar" values={birlikTakliflari} onPick={v=>edit('birligi',v)}/>}
+          {!batafsil&&amal==='prixod'&&data.nomi&&postavshikTakliflari.length>0&&<Suggestions label="Manbada uchragan yetkazuvchilar" values={postavshikTakliflari} onPick={v=>edit('postavshik',v)}/>}
+          {noyob(manbalar.tarix.map(r=>r.qabul_qiluvchi)).length>0&&<Suggestions label="Qabul qiluvchini tanlang" values={noyob(manbalar.tarix.map(r=>r.qabul_qiluvchi)).slice(0,6)} onPick={v=>edit('qabulQiluvchi',v)}/>}
+          {!batafsil&&data.nomi&&<div className="grid gap-3 sm:grid-cols-2">
+            {!data.birligi&&maydon('O‘lchov birligi','birligi',{maxLength:50,required:true})}
+            {!data.miqdor&&maydon('Miqdor','miqdor',{inputMode:'decimal',required:true})}
+            {amal==='prixod'&&!data.postavshik&&maydon('Yetkazuvchi','postavshik',{maxLength:200,required:true})}
+            {!data.qabulQiluvchi&&maydon('Qabul qiluvchi','qabulQiluvchi',{maxLength:200,required:true})}
+            {!data.izoh&&maydon('Sabab / maqsad izohi','izoh',{maxLength:500,required:true})}
+            {amal==='rasxod'&&!data.qabulTuri&&<div role="group" aria-label={t('Qabul turi / berish maqsadi')} className="flex flex-wrap gap-2 sm:col-span-2">{Object.entries(TUR_TAKLIFLARI).map(([k,v])=><button type="button" key={k} className="fz-btn min-h-[48px]" onClick={()=>edit('qabulTuri',k)}>{t(v)}</button>)}</div>}
+          </div>}
+          {!tezMatn&&manbalar.tarix.filter(r=>r.operatsiya===amal&&r.obyomi>0).length>0&&<div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={t('Oldingi yozuvdan takrorlash')}>
+            {manbalar.tarix.filter(r=>r.operatsiya===amal&&r.obyomi>0).slice(0,3).map(row=><button key={row.id} type="button" className="min-h-[64px] min-w-[150px] rounded-lg border border-border bg-bg p-3 text-left text-[12px]" onClick={()=>takrorla(row)}><b className="block">{row.nomi}</b>{row.obyomi} {row.birligi} · {t('Bugungi takror')}</button>)}
+          </div>}
+          {!formValid&&<button type="button" className="fz-btn min-h-[48px]" onClick={()=>setBatafsil(true)}>{t('Yetishmagan qiymatlarni to‘ldirish')}</button>}
+        </section>
+        <details open={batafsil} className="mb-3 rounded-lg border border-border p-3">
+        <summary onClick={e=>{e.preventDefault();setBatafsil(v=>!v);}} className="min-h-[48px] cursor-pointer py-3 font-medium">{t('Batafsil tahrirlash')}</summary>
         <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {maydon('Sana', 'sana', { type: 'date', required: true })}
           {maydon('Material nomi', 'nomi', { maxLength: 300, required: true })}
@@ -222,21 +273,20 @@ export function KirimKunlikForm({ kompaniyaId, obyekt, amal, onYop, onYozildi, s
           {amal === 'prixod' && maydon('Yetkazuvchi', 'postavshik', { maxLength: 200, required: true })}
           {amal === 'prixod' && postavshikTakliflari.length > 0 && <Suggestions label="Manbada uchragan yetkazuvchilar" values={postavshikTakliflari} onPick={(v) => edit('postavshik', v)} />}
           {maydon('Qabul qiluvchi', 'qabulQiluvchi', { maxLength: 200, required: true })}
-          {amal === 'rasxod' && <label className="grid gap-1 text-[12px] font-medium text-text-dim">{t('Qabul turi / berish maqsadi')} *
-            <select className="h-[48px] min-h-[48px] rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text" value={data.qabulTuri} disabled={!!pending || band} onChange={(e) => edit('qabulTuri', e.target.value)}>
-              <option value="">{t('Tanlang')}</option>{Object.entries(TUR_TAKLIFLARI).map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}
-            </select>
-          </label>}
+          {amal === 'rasxod' && <div className="grid gap-1 text-[12px] font-medium text-text-dim"><span>{t('Qabul turi / berish maqsadi')} *</span>
+            <OmborTanlov label={t('Qabul turi / berish maqsadi')} value={data.qabulTuri} disabled={!!pending||band} options={Object.entries(TUR_TAKLIFLARI).map(([value,label])=>({value,label:t(label)}))} onChange={value=>edit('qabulTuri',value)}/>
+          </div>}
           {maydon('Sabab / maqsad izohi', 'izoh', { maxLength: 500, required: true })}
           {maydon('Hujjat raqami (ixtiyoriy)', 'hujjat', { maxLength: 200 })}
         </div>
+        </details>
         <p className="my-2 text-[12px] text-text-dim">{manbaYuklanmoqda ? t('Obyektning mavjud materiallari va tarixidan takliflar olinmoqda…') : t('Takliflar faqat shu kompaniya va obyektning qoldiq/tarixidan olinadi; birlik yoki yetkazuvchi avtomatik tanlanmaydi.')}</p>
         {izohTayyor.length > 500 && <p className="text-sm text-danger" role="alert">{t('Izoh va hujjat raqami birga 500 belgidan oshmasin; matn qisqartirilmaydi.')}</p>}
-        {!tekshiruv ? <button type="button" className="h-[48px] min-h-[48px] rounded-md bg-accent px-4 text-sm text-white disabled:opacity-50" disabled={!formValid || !!pending || band} onClick={() => setTekshiruv(true)}>{t('Barcha qiymatlarni tekshirish')}</button> : <>
+        {!(tekshiruv||(!batafsil&&formValid)) ? <button type="button" className="h-[48px] min-h-[48px] rounded-md bg-accent px-4 text-sm text-white disabled:opacity-50" disabled={!formValid || !!pending || band} onClick={() => setTekshiruv(true)}>{t('Barcha qiymatlarni tekshirish')}</button> : <>
           <Review command={{ versiya: 1, kompaniyaId, obyektId: scope.obyektId, amal, operationId: '', payload: toBuyruq(data, amal, scope, '') }} obyektNomi={obyekt.nom} />
           <p className="text-[12px] text-text-dim">{t('Tekshiruv ko‘rinishi: harakat hali yuborilmadi.')}</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="h-[48px] min-h-[48px] rounded-md border border-border px-4 text-sm" onClick={() => setTekshiruv(false)}>{t('Tahrirlash')}</button>
+            <button type="button" className="h-[48px] min-h-[48px] rounded-md border border-border px-4 text-sm" onClick={() => {setTekshiruv(false);setBatafsil(true);}}>{t('Tahrirlash')}</button>
             <button type="button" className="inline-flex h-[48px] min-h-[48px] items-center gap-2 rounded-md bg-accent px-4 text-sm text-white disabled:opacity-50" disabled={!formValid || band} onClick={submit}><Check size={16} />{t('Tasdiqlab yuborish')}</button>
           </div>
         </>}

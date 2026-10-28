@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { StrictMode } from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode,type ReactElement } from 'react';
+import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
 import { KirimKunlikForm } from './KirimKunlikForm';
 import type { T2Obyekt } from '../../api/supabase';
 
 const api = vi.hoisted(() => ({ read: vi.fn(), stock: vi.fn(), write: vi.fn(), operationId: vi.fn(() => 'op-stable-1') }));
+function render(ui:ReactElement){const view=rtlRender(ui);const details=screen.queryByText('Batafsil tahrirlash');if(details)fireEvent.click(details);return view;}
 vi.mock('../../api/supabase', () => ({
   sbOqi: api.read,
   sbSkladQoldiqOl: api.stock,
@@ -36,6 +37,17 @@ beforeEach(() => {
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 
 describe('KirimKunlikForm', () => {
+  it('builds a receipt from one sentence and source choices without opening the full manual form or posting automatically',async()=>{
+    api.read.mockResolvedValue({ok:true,qatorlar:[{id:81,kompaniya_id:17,obyekt_id:41,nomi:'Щебень 5-20',birligi:'м3',obyomi:3,postavshik:'Karyer',qabul_qiluvchi:'Anvar',operatsiya:'prixod'}]});
+    rtlRender(<KirimKunlikForm kompaniyaId={17} obyekt={object()} amal="prixod" onYop={vi.fn()} onYozildi={vi.fn()}/>);
+    expect(screen.getByText('Batafsil tahrirlash').closest('details')?.open).toBe(false);
+    fireEvent.change(screen.getByLabelText('Bir gap bilan kiriting'),{target:{value:'10 kub sheben keldi Karyerdan'}});
+    fireEvent.click(await screen.findByRole('button',{name:'Щебень 5-20'}));
+    fireEvent.click(screen.getByRole('button',{name:'Anvar'}));
+    expect(screen.getByRole('region',{name:'To‘liq tasdiqlash ko‘rinishi'})).toBeTruthy();
+    expect(screen.getByRole('button',{name:'Tasdiqlab yuborish'})).toBeTruthy();
+    expect(screen.getByText('10')).toBeTruthy();expect(api.write).not.toHaveBeenCalled();
+  });
   it('keeps real history suggestions available after StrictMode cleanup and remount',async()=>{
     api.read.mockResolvedValue({ok:true,qatorlar:[{id:8,kompaniya_id:17,obyekt_id:41,nomi:'Щебень 5-20',birligi:'м3',postavshik:'Sinov'}]});
     render(<StrictMode><KirimKunlikForm kompaniyaId={17} obyekt={object()} amal="prixod" onYop={vi.fn()} onYozildi={vi.fn()}/></StrictMode>);
@@ -48,7 +60,7 @@ describe('KirimKunlikForm', () => {
     const onYozildi = vi.fn();
     render(<KirimKunlikForm kompaniyaId={17} obyekt={object()} amal="prixod" onYop={vi.fn()} onYozildi={onYozildi} />);
 
-    expect((screen.getByLabelText(/^Sana/) as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText(/^Sana/) as HTMLInputElement).value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect((screen.getByLabelText(/^O‘lchov birligi/) as HTMLInputElement).value).toBe('');
     fillReceipt();
     expect(await screen.findByRole('group', { name: 'Manbada uchragan yetkazuvchilar' })).toBeTruthy();
@@ -80,7 +92,8 @@ describe('KirimKunlikForm', () => {
     fireEvent.change(screen.getByLabelText(/^Sabab \/ maqsad izohi/), { target: { value: 'Material bo‘limga beriladi' } });
     expect((screen.getByRole('button', { name: 'Barcha qiymatlarni tekshirish' }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByLabelText(/^Qabul qiluvchi/), { target: { value: 'Usta A' } });
-    fireEvent.change(screen.getByLabelText(/^Qabul turi/), { target: { value: 'prarab' } });
+    fireEvent.click(screen.getByRole('combobox',{name:'Qabul turi / berish maqsadi'}));
+    fireEvent.click(screen.getByRole('option',{name:'Prorabga'}));
     expect((screen.getByRole('button', { name: 'Barcha qiymatlarni tekshirish' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
