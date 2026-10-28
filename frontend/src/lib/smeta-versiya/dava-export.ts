@@ -61,7 +61,7 @@ export function davaXlsx(qatorlar: readonly DavaEksportQator[], o: DavaEksportOp
     yonalish: 'landscape',
     muzlatUstun: 3,
   });
-  const hisobda = qatorlar.filter((q) => q.dava != null && q.davaHajm != null && q.davaHajm > 0);
+  const hisobda = qatorlar.filter((q) => q.dava != null && q.davaHajm != null && q.davaHajm !== 0);
   const aniqlanmagan = qatorlar.filter((q) => q.dava == null || q.davaHajm == null);
   const guruh = new Map<string, DavaEksportQator[]>();
   for (const q of hisobda) { const k = lsNomi(q); const a = guruh.get(k); if (a) a.push(q); else guruh.set(k, [q]); }

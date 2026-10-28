@@ -92,6 +92,14 @@ export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi }: {
       {natija.muammo > 0 && (
         <p className="text-[11.5px] text-text-mute">{t('Import to‘xtatilmaydi — bu ogohlantirish. Solishtirish nom + birlik bo‘yicha; kod bir xil, nomi farqli pozitsiyalar birlashtirilmaydi, izohda ko‘rsatiladi.')}</p>
       )}
+      {(natija.review ?? []).length > 0 && (
+        <details className="text-[11.5px]" data-testid="sverka-review">
+          <summary className="cursor-pointer text-warn">{t('Manba xatolari — hujjatdagidek import qilinadi ({n})', { n: natija.review.length })}</summary>
+          <ul className="list-disc pl-5 text-text-dim">
+            {natija.review.slice(0, 50).map((r, i) => <li key={i}>{r.izoh}</li>)}
+          </ul>
+        </details>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim">
           <input type="checkbox" checked={faqatFarq} onChange={(e) => setFaqatFarq(e.target.checked)} /> faqat farqlilar

@@ -68,8 +68,21 @@ async function sbOqi<T>(body: Record<string, unknown>): Promise<TizimNatija<T>> 
 }
 
 /** Tizim xaritasi grafi. `kompaniyaId` — ixtiyoriy filtr (ruxsat bazada). */
-export function tizimXaritasiOl(p: { kompaniyaId?: number | null } = {}): Promise<TizimNatija<TizimGraf>> {
-  return sbOqi<TizimGraf>({ soro: 'tizim_xaritasi_v1', ...(p.kompaniyaId ? { kompaniya_id: p.kompaniyaId } : {}) });
+export async function tizimXaritasiOl(p: { kompaniyaId?: number | null } = {}): Promise<TizimNatija<TizimGraf>> {
+  const r = await sbOqi<TizimGraf>({ soro: 'tizim_xaritasi_v1', ...(p.kompaniyaId ? { kompaniya_id: p.kompaniyaId } : {}) });
+  return r.ok ? { ok: true, natija: tizimGrafTozala(r.natija) } : r;
+}
+
+/** Serverdan kelgan grafdagi bo'sh/buzuq elementlarni tashlaydi (2026-10-28: prodda bitta modul tuguni `null` kelib,
+ *  butun sahifa yiqildi). Bitta buzuq tugun butun xaritani o'chirmasin — qolganlari ko'rsatiladi. */
+export function tizimGrafTozala(g: TizimGraf): TizimGraf {
+  const obyektmi = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
+  const ro = <T,>(a: unknown): T[] => (Array.isArray(a) ? a : []) as T[];
+  const tugunlar = ro<TizimTugun>(g.tugunlar).filter((n) => obyektmi(n) && typeof n.id === 'string' && typeof n.tur === 'string');
+  const idlar = new Set(tugunlar.map((n) => n.id));
+  const bogichlar = ro<TizimBogich>(g.bogichlar).filter((b) => obyektmi(b) && idlar.has(b.manba) && idlar.has(b.maqsad));
+  const oxirgi_hodisalar = ro<TizimHodisa>(g.oxirgi_hodisalar).filter(obyektmi);
+  return { ...g, tugunlar, bogichlar, oxirgi_hodisalar };
 }
 
 export type TizimRuxsatHolati = { ruxsat: boolean; superadmin: boolean };

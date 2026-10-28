@@ -18,6 +18,8 @@
  */
 import { kalit, son, xom } from './matn';
 import type { Katak, KirishKitob, KirishVaraq, Manzil, ReviewBand } from './turlar';
+import { resBloklari, type ResBlok, type ResBlokKat } from './res-blok';
+import { allToplamRollari } from './all-toplam';
 
 /** `t2_nakrutka_koef` / `NakrutkaKoeffitsientlar` kodlari (server bilan bir xil). */
 export type NakrutkaKoefKodi =
@@ -33,7 +35,8 @@ export type PodvalQatorKodi =
   | 'pryamye' | 'tr_mat' | 'skl_mat' | 'tr_kab' | 'itogo1' | 'prochie' | 'itogo2' | 'tr_ob' | 'zag_ob'
   | 'itogo3' | 'strax' | 'risk' | 'itogo4' | 'nds' | 'vsego' | 'zimnee' | 'kf';
 
-export type NakrutkaDalilTuri = 'formula' | 'yorliq' | 'summa_nisbati';
+/** `kolvo_ustun` — ALL RES podvali: foiz КОЛ-ВО ustunida, summa СУММА da, blok ИТОГО ga isbotlangan. */
+export type NakrutkaDalilTuri = 'formula' | 'yorliq' | 'summa_nisbati' | 'kolvo_ustun';
 
 export type ResursKfKat = 'ЧЕЛ' | 'МАШ' | 'МАТ' | 'ОБ' | 'М/К' | 'КАБ' | 'БЕЗ СКЛАД';
 
@@ -91,6 +94,10 @@ export interface NakrutkaPodvalOqish {
   review: ReviewBand[];
   /** `topildi` — kamida prochie/НДС/transport topildi; `qisman` — ba'zisi; `topilmadi` — podval yo'q. */
   holat: 'topildi' | 'qisman' | 'topilmadi';
+  /** Lokal smeta podvali: faqat material/uskuna (transport, zagot) foizlari, prochie/НДС yo'q — ular meros qoladi. */
+  lokal?: boolean;
+  /** RES «ALL» bloklari (kategoriya, baza, foiz, summa) — svodka bilan solishtirish va БЕЗ СКЛАД uchun. */
+  resBloklar?: Array<{ varaq: string; qator: number; kat: ResBlokKat; baza: number | null; transport: number | null; zagot: number | null; transportSumma: number | null; zagotSumma: number | null }>;
 }
 
 // ─── Yorliq tasnifi ──────────────────────────────────────────────────────────
@@ -100,6 +107,8 @@ const OB_SOZ = /ОБОРУД/;
 function yorliqTuri(k: string): PodvalQatorKodi | null {
   if (/КОЭФФИЦИЕНТ\s+К\s+ОПЛАТ|^КФ(\s|$)/.test(k)) return 'kf';
   if (/ЗАКАЗЧИК/.test(k)) return null;
+  // «ШАФФОФ ҚУРИЛИШ ФОНДИ» (ochiq qurilish jamg'armasi) — buyurtmachi ajratmasi, pudratchi nakrutkasi emas.
+  if (/ШАФФОФ|ШАФФОФ\s+ҚУРИЛИШ|ҚУРИЛИШ\s+ФОНДИ/.test(k)) return null;
   if (/^ИТОГО\s*[-–—]?\s*1(?!\d)/.test(k)) return 'itogo1';
   if (/^ИТОГО\s*[-–—]?\s*2(?!\d)/.test(k)) return 'itogo2';
   if (/^ИТОГО\s*[-–—]?\s*3(?!\d)/.test(k)) return 'itogo3';
@@ -335,8 +344,11 @@ export function nakrutkaVaraqlari(
   }
   if (tanlangan.size > svodlar.length) return kitob.varaqlar.map((v) => v.nom).filter((n) => tanlangan.has(n));
   const dub = new Set(a.dublikat.map((d) => d.varaq));
+  // ALL to'plam: VED (hajm vedomosti) va TNDR (tender narxi) podval manbai emas.
+  const all = allToplamRollari(kitob.varaqlar);
+  if (all) for (const [n, t] of Object.entries(all.teglar)) if (t === 'etibor_bermaslik') dub.add(n);
   return a.varaqlar
-    .filter((v) => !dub.has(v.varaq) && (v.varaq === a.asosiyLrv || tegli?.includes(v.varaq) || v.rol === 'res' || v.rol === 'svod'))
+    .filter((v) => !dub.has(v.varaq) && (v.varaq === a.asosiyLrv || tegli?.includes(v.varaq) || v.rol === 'res' || v.rol === 'svod' || v.varaq === all?.f5 || v.varaq === all?.res))
     .map((v) => v.varaq);
 }
 
@@ -350,14 +362,45 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
   const varaqlar = kitob.varaqlar.filter((v) => !o.varaqlar || o.varaqlar.includes(v.nom));
   const qatorlar: NakrutkaPodvalQatori[] = [];
   const review: ReviewBand[] = [];
+  const resBloklar: NonNullable<NakrutkaPodvalOqish['resBloklar']> = [];
   for (const v of varaqlar) {
     const mv = masshtabi(v);
+    // ALL RES bloklari: foiz КОЛ-ВО ustunidan, blok kategoriyasi guruh/sarlavha/zagotdan (res-blok.ts).
+    const rb = resBloklari(v.rows);
+    review.push(...rb.review.map((x) => ({ ...x, izoh: `«${v.nom}»: ${x.izoh}` })));
+    const blokQator = new Map<number, { b: ResBlok; tur: 'transport' | 'zagot' }>();
+    for (const b of rb.bloklar) {
+      if (b.transport) blokQator.set(b.transport.qator, { b, tur: 'transport' });
+      if (b.zagot) blokQator.set(b.zagot.qator, { b, tur: 'zagot' });
+      resBloklar.push({ varaq: v.nom, qator: b.itogoQator + 1, kat: b.kat, baza: b.baza, transport: b.transport?.foiz ?? null, zagot: b.zagot?.foiz ?? null, transportSumma: b.transport?.summa ?? null, zagotSumma: b.zagot?.summa ?? null });
+      // Zagotsiz blok: transport isbotli bo'lsa — hujjat aytgan БЕЗСКЛАД (resurslar shu kategoriyaga, zagot yo'q).
+      // Isbotsiz bo'lsa — kategoriya berilmaydi, operator tekshiradi (bloklovchi).
+      if (b.kat === 'БЕЗ СКЛАД' && !b.transport?.isbot) {
+        review.push({ kod: 'bez_sklad_isbotsiz', bloklovchi: true, izoh: `«${v.nom}» ${b.itogoQator + 1}-qator bloki («${(b.sarlavha ?? '—').slice(0, 50)}», baza ${b.baza ?? '?'}) zagot-skladsiz, lekin transport foizi isbotlanmadi — БЕЗСКЛАД avtomatik berilmadi; operator tekshiradi`, manzil: { fayl: kitob.fayl, varaq: v.nom, qator: b.itogoQator + 1, ustun: 1 } });
+      }
+    }
     for (let r = 0; r < v.rows.length; r++) {
       const row = v.rows[r] ?? [];
       const yorliqU = row.findIndex(harfli);
       if (yorliqU < 0) continue;
       const yorliq = xom(row[yorliqU]);
       const k = kalit(yorliq);
+      const bq = blokQator.get(r);
+      if (bq) {
+        const satr = bq.tur === 'transport' ? bq.b.transport! : bq.b.zagot!;
+        const kat = bq.b.kat;
+        const kod: PodvalQatorKodi = bq.tur === 'transport'
+          ? (kat === 'ОБ' ? 'tr_ob' : kat === 'КАБ' ? 'tr_kab' : 'tr_mat')
+          : (kat === 'ОБ' ? 'zag_ob' : 'skl_mat');
+        const koefKod: NakrutkaKoefKodi = bq.tur === 'transport'
+          ? (kat === 'ОБ' ? 'ТРАНСПОРТ_ОБОРУД' : kat === 'КАБ' ? 'ТРАНСПОРТ_КАБЕЛЬ' : 'ТРАНСПОРТ_МАТЕРИАЛ')
+          : (kat === 'ОБ' ? 'ЗАГОТ_СКЛАД_ОБОРУД' : kat === 'М/К' ? 'СКЛАДСКИЕ_МК' : 'СКЛАДСКИЕ_МАТЕРИАЛ');
+        const manzil: Manzil = { fayl: kitob.fayl, varaq: v.nom, qator: r + 1, ustun: satr.ustun + 1 };
+        const q: NakrutkaPodvalQatori = { kod, xom: yorliq, summa: satr.summa, foizlar: [], manzil, masshtab: mv, formulaIsbot: null };
+        if (satr.foiz != null) q.foizlar.push({ koefKod, foiz: satr.foiz, dalil: 'kolvo_ustun' });
+        qatorlar.push(q);
+        continue;
+      }
       let kod = yorliqTuri(k);
       if (!kod) continue;
       // Summa: yorliqdan o'ngdagi birinchi son katagi.
@@ -456,12 +499,18 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
     if (n) { koeffitsientlar.НДС = n.foiz; manba.НДС = { dalil: 'summa_nisbati', manzil: n.manzil, xom: n.xom }; }
   }
   for (const b of isbot) if (!b.mos) review.push({ kod: 'nakrutka_isbot_nomos', izoh: `${b.nom}: qayta hisob ${b.kutilgan} ≠ hujjat ${b.hujjat} (farq ${b.farq})`, manzil: b.manzil });
-  for (const kk of ['ПРОЧИЕ_ПОДРЯДЧИК', 'НДС', 'ТРАНСПОРТ_МАТЕРИАЛ'] as const) {
-    if (koeffitsientlar[kk] == null && !review.some((x) => x.izoh.startsWith(kk))) review.push({ kod: 'nakrutka_topilmadi', izoh: `${kk}: smeta podvalida isbotli foiz topilmadi — shartnoma/sukut qiymati qoladi` });
-  }
   const soni = Object.keys(koeffitsientlar).length;
+  // Lokal smeta podvali (faqat material/uskuna bloklari): prochie/НДС bu hujjatda yo'q — meros qoladi, «topilmadi» emas.
+  const lokal = soni > 0 && koeffitsientlar.ПРОЧИЕ_ПОДРЯДЧИК == null && koeffitsientlar.НДС == null && !qatorlar.some((q) => q.kod === 'prochie' || q.kod === 'nds');
+  for (const kk of ['ПРОЧИЕ_ПОДРЯДЧИК', 'НДС', 'ТРАНСПОРТ_МАТЕРИАЛ'] as const) {
+    if (koeffitsientlar[kk] == null && !review.some((x) => x.izoh.startsWith(kk))) {
+      review.push(lokal && kk !== 'ТРАНСПОРТ_МАТЕРИАЛ'
+        ? { kod: 'nakrutka_lokal_meros', izoh: `${kk}: lokal smeta podvalida yo'q (faqat material/uskuna ustamalari) — obyekt/shartnoma qiymati meros qoladi` }
+        : { kod: 'nakrutka_topilmadi', izoh: `${kk}: smeta podvalida isbotli foiz topilmadi — shartnoma/sukut qiymati qoladi` });
+    }
+  }
   const holat = soni === 0 ? 'topilmadi' : (['ПРОЧИЕ_ПОДРЯДЧИК', 'НДС'] as const).every((x) => koeffitsientlar[x] != null) ? 'topildi' : 'qisman';
-  return { fayl: kitob.fayl, varaqlar: varaqlar.map((v) => v.nom), masshtab, qatorlar, koeffitsientlar, manba, resursKf, nostandart, isbot, review, holat };
+  return { fayl: kitob.fayl, varaqlar: varaqlar.map((v) => v.nom), masshtab, qatorlar, koeffitsientlar, manba, resursKf, nostandart, isbot, review, holat, ...(lokal ? { lokal } : {}), ...(resBloklar.length ? { resBloklar } : {}) };
 }
 
 /** Bir varaq/ustundagi oldingi jami qator (НДС bazasi): yaqin 4 qator ichida, summali. */

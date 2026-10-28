@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 43,
+      "id": 44,
       "sana": "2026-10-29",
       "sarlavha": "Telegram bot @qur_uz_bot va Telegram ichidagi ilova",
       "bandlar": [
@@ -10,6 +10,16 @@
         "Botdagi «Smeta» menyu tugmasi tizimni Telegram ichida ochadi — siz o'z rolingiz va ruxsatlaringiz bilan kirasiz, alohida parol kerak emas.",
         "Bot buyruqlari: /men (hisob, ish joylari, rollar), /ilova, /yordam, /chiqish. Yangi topshiriq berilsa — Telegramga xabar (o'chirib qo'yish mumkin).",
         "Keyingi bosqichlar: fakt kiritish (rasm/ovoz), F2 holati, ombor KELDI/BERDIM, rahbar kunlik xulosasi — bot orqali."
+      ]
+    },
+    {
+      "id": 43,
+      "sana": "2026-10-28",
+      "sarlavha": "Ekspertiza «ALL» smetalari qo'lda belgilashsiz o'qiladi",
+      "bandlar": [
+        "RES / F5 / VED / TNDR varaqli ekspertiza fayli yuklanganda rollar avtomatik: F5 — LRV (faqat uskunali smeta ham), RES — narx va podval manbai, VED va TNDR — e'tiborsiz. TNDR narxini faqat ongli tanlasangiz oladi (ogohlantirish bilan).",
+        "RES podvalidagi transport va zagot-sklad foizlari КОЛ-ВО ustunidan o'qiladi va blok summasi bilan isbotlanadi; material, metallokonstruksiya, kabel va uskuna bloklari o'z koeffitsientiga tushadi. Uskunalar RES guruhi bo'yicha ОБ bo'ladi.",
+        "Zagot-skladsiz bloklar (transport bor, zagot qatori yo'q) hujjatdagidek БЕЗСКЛАД kategoriyasiga tushadi. Isbotsiz bloklar, LRV↔RES manba xatolari va RES nomi farqli qatorlar uchun narx takliflari ko'rinadigan ogohlantirish sifatida chiqadi — hech narsa avtomatik birlashtirilmaydi."
       ]
     },
     {
