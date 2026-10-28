@@ -191,6 +191,8 @@ export const onRequestPost: PagesFunction<{
       davr_gacha?: string; davr_dan?: string; dalil_kat?: string; dalil_turi?: string;
       /* ABC kutubxona qidiruvi (2026-10-01). */
       q?: string; kat?: string; items?: Array<{ nom?: string; birlik?: string }>;
+      /* C11 ombor kirimi ro'yxati (2026-10-29). */
+      sklad_id?: number; offset?: number;
     }>();
 
     if (sess.permissionsByCompany && sess.rol!=='superadmin') {
@@ -278,6 +280,9 @@ export const onRequestPost: PagesFunction<{
            EMAS). Ruxsat bazada (`_t2_tizim_xaritasi_ruxsatmi`); actor SESSIYADAN; kompaniya_id — faqat ixtiyoriy filtr. `stable`. */
         tizim_xaritasi_v1: 'tizim_actor',
         tizim_xaritasi_ruxsat_tekshir_v1: 'tizim_actor',
+        /* C11 PR-B (2026-10-29): markaziy ombor kirimi ro'yxati — qatorlar + material bo'yicha jami. `stable`
+           (20261114400000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
+        sklad_kirim_royxat_v1: 'kompaniya_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -442,6 +447,28 @@ export const onRequestPost: PagesFunction<{
       if (so.soro === 'resurs_narx_taklif_v1') {
         const items = Array.isArray(so.items) ? so.items.slice(0, 80).map((x, i) => ({ i, nom: String(x?.nom ?? '').slice(0, 300), birlik: String(x?.birlik ?? '').slice(0, 30) })) : [];
         q.set('p_items', JSON.stringify(items));
+      }
+      if (so.soro === 'sklad_kirim_royxat_v1') {
+        const sid = Number(so.sklad_id);
+        if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: 'sklad_id noto\'g\'ri' });
+        const lim = Number(so.limit ?? 50), off = Number(so.offset ?? 0);
+        if (!Number.isInteger(lim) || lim < 1 || lim > 1000 || !Number.isInteger(off) || off < 0 || off > 10_000_000) {
+          return Response.json({ ok: false, error: 'limit/offset noto\'g\'ri' });
+        }
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string> = {};
+        for (const k of ['dan', 'gacha', 'qidir', 'tur', 'yetkazuvchi']) {
+          const v = f[k];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string') return Response.json({ ok: false, error: 'filtr noto\'g\'ri' });
+          if ((k === 'dan' || k === 'gacha') && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: 'sana YYYY-MM-DD bo\'lishi kerak' });
+          filtr[k] = v.slice(0, 200);
+        }
+        q.set('p_sklad_id', String(sid));
+        q.set('p_filtr', JSON.stringify(filtr));
+        q.set('p_limit', String(lim));
+        q.set('p_offset', String(off));
       }
       if (so.soro === 'hodisa_obyekt_lenta') {
         const lim = Math.min(100, Math.max(1, Number(so.limit || 20)));
