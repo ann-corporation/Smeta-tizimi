@@ -3117,6 +3117,30 @@
       ],
       "production_write_allowed": true,
       "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing. | 2026-10-26 (2): email kod bilan kirish/ro'yxat (/api/kirish-email); migratsiyalar 20261105333000 (ilgari qo'llanmagan edi) va 20261111300000 jonli bazaga qo'llandi; login sahifasidan Admin/Rahbar tezkor tugmalari olib tashlandi. Email yuborish uchun Cloudflare Pages env: RESEND_API_KEY, EMAIL_FROM (egasi sozlaydi). | 2026-10-26: Sozlamalar markazi — /admin/sozlamalar (3 qatlam reestri) va kompaniya sozlamalari serverda (t2_kompaniya_sozlama, egasi ruxsati bilan prodga qo'llandi, additiv). AdminShell/navReestr ga TEGILMAYDI (#153 L0 niki) — menyu bandi #153 merge'dan keyin."
+    },
+    {
+      "id": "C11-WAREHOUSE-LEDGER-20261027",
+      "title": "C11.1 central receipt ledger + storno source packet",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/c11-warehouse-ledger-20261027",
+      "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261113810000_c11_warehouse_receipt_v1.sql",
+        "supabase/migrations/20261113810000_c11_warehouse_receipt_v1.rollback.sql",
+        "supabase/tests/c11_warehouse_receipt_v1.sql",
+        "supabase/tests/c11-warehouse-pglite.mjs",
+        "docs/architecture/warehouse/C11_LEDGER.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "C:/Temp/GAS-c11-contract-20261027/docs/architecture/warehouse/C11_CONTRACT.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Bounded source-only C11.1 ledger packet. Uses existing t2_sklad_harakat/t2_sklad_mustaqil, verified R2 document provenance, named receipt/storno RPC and derived stock view. Synthetic PGlite migration/acceptance/rollback passed with mock guards; target PostgreSQL/Supabase auth parity and concurrency remain untested. No production apply, commit or push; parent review required. Task lock was added after first draft files existed, before subsequent edits."
     }
   ]
 }
