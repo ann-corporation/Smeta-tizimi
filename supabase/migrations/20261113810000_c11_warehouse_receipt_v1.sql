@@ -440,9 +440,9 @@ BEGIN
   END;
 
   PERFORM public.t2_audit_yoz(
-    p_kompaniya_id, 'c11_warehouse_receipt_posted', 'sklad', p_sklad_id,
-    pg_catalog.format('document_id=%s; sheet=%s; rows=%s; operation_id=%s; actor_role=%s',
-                      p_document_id, p_source_sheet, v_qator_soni, p_operation_id, v_actor_role),
+    p_kompaniya_id, 'c11_warehouse_receipt_posted', 'sklad', NULL,
+    pg_catalog.format('sklad_id=%s; document_id=%s; sheet=%s; rows=%s; operation_id=%s; actor_role=%s',
+                      p_sklad_id, p_document_id, p_source_sheet, v_qator_soni, p_operation_id, v_actor_role),
     'actor:' || p_actor_id, NULL
   );
 
@@ -551,9 +551,9 @@ BEGIN
   ) RETURNING id INTO v_storno_id;
 
   PERFORM public.t2_audit_yoz(
-    p_kompaniya_id, 'c11_warehouse_receipt_storno', 'sklad', v_original.c11_sklad_id,
-    pg_catalog.format('harakat_id=%s; storno_id=%s; sabab=%s; actor_id=%s; actor_role=%s',
-                      p_harakat_id, v_storno_id, v_sabab, p_actor_id, v_actor_role),
+    p_kompaniya_id, 'c11_warehouse_receipt_storno', 'sklad', NULL,
+    pg_catalog.format('sklad_id=%s; harakat_id=%s; storno_id=%s; sabab=%s; actor_id=%s; actor_role=%s',
+                      v_original.c11_sklad_id, p_harakat_id, v_storno_id, v_sabab, p_actor_id, v_actor_role),
     'actor:' || p_actor_id, NULL
   );
 
