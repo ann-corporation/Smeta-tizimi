@@ -93,6 +93,8 @@ function tugunYasa(n: TizimTugun, tur: XTur, ota: string | null, daraja: 0 | 1 |
 /** Tizim grafi → mindmap daraxti. Noma'lum/yetim tugunlar tashlanadi (xato emas). */
 export function tizimDaraxtQur(graf: Pick<TizimGraf, 'tugunlar' | 'bogichlar'>): XDaraxt {
   const tugunlar = new Map<string, XTugun>();
+  // Himoya: bo'sh/buzuq tugun butun xaritani yiqitmasin (API qatlami ham tozalaydi).
+  graf = { ...graf, tugunlar: (graf.tugunlar ?? []).filter((n) => !!n && typeof n.id === 'string'), bogichlar: (graf.bogichlar ?? []).filter((b) => !!b) };
   const tizimNode = graf.tugunlar.find((n) => n.tur === 'tizim') ?? null;
   const kompaniyalar = graf.tugunlar.filter((n) => n.tur === 'kompaniya');
   const rootSrc = tizimNode ?? kompaniyalar[0] ?? null;
