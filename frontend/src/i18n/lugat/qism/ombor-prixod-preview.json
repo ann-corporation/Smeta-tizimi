@@ -72,6 +72,7 @@
   "Kiritish tasdiqlandi — hali saqlanmagan.": { "ru": "Ввод подтверждён — ещё не сохранён.", "en": "Entry confirmed — not saved yet." },
   "Tahrirlangan qoralama — tasdiqlash kerak.": { "ru": "Черновик изменён — требуется подтверждение.", "en": "Draft edited — confirmation required." },
   "Tahrirlash": { "ru": "Редактировать", "en": "Edit" },
+  "Eksport amaldagi hujjat tarifiga kiradi.": { "ru": "Экспорт оплачивается по действующему тарифу документов.", "en": "Export uses the current document tariff." },
   "Mahalliy qoralama": { "ru": "Локальный черновик", "en": "Local draft" },
   "Tasdiqlash faqat mahalliy qoralamani belgilaydi; DBga yozilmaydi.": { "ru": "Подтверждение отмечает только локальный черновик; в базу данных не записывается.", "en": "Confirmation marks only the local draft; nothing is written to the database." },
   "Tasdiqlangan qoralamalar eksporti": { "ru": "Экспорт подтверждённых черновиков", "en": "Export confirmed drafts" },
