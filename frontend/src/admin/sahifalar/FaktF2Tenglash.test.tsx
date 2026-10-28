@@ -14,7 +14,7 @@ import { urinishOchir, urinishOl, yozilganOchir } from '../../lib/fakt-qamrov-ur
 const q = (id: number, bolim: string | null = null, summa: number | null = 500): TenglashQator => ({ id, tur: 'bl', nom: `Ish ${id}`, birlik: 'm3', fakt: 3, f2: 8, delta: 5, narx: 100, summa, avtomatik: 2, bolim });
 const rejaYasa = (qatorlar: TenglashQator[]): TenglashReja => ({
   qatorlar, paket: qatorlar.map((x) => ({ qator_id: x.id, hajm: x.delta })), jamiSumma: qatorlar.reduce((s, x) => s + (x.summa ?? 0), 0),
-  narxsiz: qatorlar.filter((x) => x.summa == null).length, otkazildi: { manfiyReja: 0, f2Yoq: 0 },
+  narxsiz: qatorlar.filter((x) => x.summa == null).length, otkazildi: { manfiyReja: 0, f2Yoq: 0 }, faktOrtiq: [],
 });
 const reja = rejaYasa([q(10)]);
 const holat = new Map();

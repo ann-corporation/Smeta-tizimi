@@ -19,7 +19,8 @@ const KORSAT_CHEGARA = 300;
  * «Fakt = F2» oldindan ko'rish (bo'lim yoki BUTUN OBYEKT): qaysi qatorlar, qancha hajm, summa (ustamasiz + ustamali),
  * bo'lim bo'yicha jami; egasi qator yoki butun bo'limni istisno qiladi. Yozish — Qamrov % bilan bir xil bitta urinish
  * yo'li (useFaktUrinish: fakt_yoz_v2, katta paket — bo'laklar, receipt, qayta yuborish bir xil ID bilan, bekor qilish).
- * Fakt faqat F2 tomon o'zgaradi (musbat reja — oshadi; chegirma — manfiy farq); smeta qatorlariga tegilmaydi.
+ * Fakt F2 tomon, ishorasi bilan o'zgaradi (tasdiqlangan F2 — muhrlangan hujjat: minus qatorlar ham aynan); fakt F2 dan
+ * oshgan qator o'zgarmaydi (signal); smeta qatorlariga tegilmaydi.
  */
 export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, kompaniyaId, sana, holatMap, onYop, onBajarildi, aktBekor }: {
   sarlavha: string; reja: TenglashReja;
@@ -89,13 +90,16 @@ export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, komp
         {reja.qatorlar.length === 0
           ? <p className="text-[13px] text-text-dim">{t('Fakt allaqachon F2 ga teng yoki undan ko‘p — qo‘shiladigan hajm yo‘q.')}</p>
           : <>
-            <p className="text-[12px] text-text-dim">{t('Faqat F2 hajmi fakt dan KO‘P bo‘lgan qatorlarga farq qo‘shiladi — F2 narxi bilan. Mehnat va mashina F2 da bo‘lsa o‘z F2 hajmi va narxi bilan yoziladi.')}</p>
+            <p className="text-[12px] text-text-dim">{t('Tasdiqlangan F2 qatorlari ishorasi, hajmi va narxi bilan aynan ko‘chiriladi (minus qatorlar ham). Fakt F2 dan oshgan qatorlar o‘zgarmaydi.')}</p>
             <div className="fz-note fz-note--info flex-wrap items-start gap-x-5 gap-y-1 text-[12px]" data-testid="f2-tenglash-jami">
               <span><b className="text-text">{jami.paket.length}</b> {t('qator yoziladi')}</span>
               <span className="inline-flex items-start gap-1">{t('Summa')}: <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.ustamasiz} katKesim={jami.kesim} /></span>
-              <span data-testid="f2-tenglash-narx-manba">{t('F2 narxi: {n} qator', { n: String(jami.f2Narxli) })} · {t('smeta narxi: {n} qator', { n: String(jami.smetaNarxli) })} · {t('narxsiz: {n} qator', { n: String(jami.narxsiz) })}</span>
+              <span data-testid="f2-tenglash-narx-manba">{t('F2 narxi: {n} qator', { n: String(jami.f2Narxli) })} · {t('smeta narxi: {n} qator', { n: String(jami.smetaNarxli) })} · {t('narxsiz: {n} qator', { n: String(jami.narxsiz) })}{jami.qisman > 0 ? <> · <span className="text-warn" data-testid="f2-tenglash-qisman">{t('qisman narxli F2: {n} qator', { n: String(jami.qisman) })}</span></> : null}</span>
               {jami.narxsiz > 0 && <span className="text-warn">{t('summa noma’lum: {n} qator', { n: String(jami.narxsiz) })}</span>}
               {jami.rsHosila.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-rs">{t('Mehnat/mashina: F2 da yo‘q {n} qator norma bo‘yicha smeta narxida ergashadi ({s}) — summaga kirgan.', { n: String(jami.rsHosila.soni), s: fmt(jami.rsHosila.summa) })}</span>}
+              {jami.rsIstisno.soni > 0 && <span className="text-warn" data-testid="f2-tenglash-rs-istisno">{t('Istisno qilingan mehnat/mashina: {n} qator — F2 dan ko‘chirilgan ish ulushiga ergashmaydi, faktga tushmaydi ({s} jamiga kirmagan).', { n: String(jami.rsIstisno.soni), s: fmt(jami.rsIstisno.summa) })}</span>}
+              {jami.manfiySoni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-manfiy">{t('F2 dagi minus qatorlar: {n} — hujjatdagidek manfiy yoziladi.', { n: String(jami.manfiySoni) })}</span>}
+              {jami.faktOrtiq.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-fakt-ortiq">{t('Fakt F2 dan ko‘p: {n} qator ({s}) — topshirilmagan ish, o‘zgartirilmaydi.', { n: String(jami.faktOrtiq.soni), s: fmt(jami.faktOrtiq.summa) })}</span>}
               {reja.otkazildi.manfiyReja > 0 && <span className="text-text-mute">{reja.otkazildi.manfiyReja} {t('chegirma qatori o‘tkazib yuborildi')}</span>}
               {(chiqQator.size > 0 || chiqBolim.size > 0) && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(reja.qatorlar.length - jami.paket.length) })}</span>}
               {jami.paket.length > 3000 && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}

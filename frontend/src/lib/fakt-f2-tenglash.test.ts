@@ -116,10 +116,11 @@ describe('Fakt = F2 — F2 narxi faktga (egasi 2026-10-28)', () => {
       l(7, 5, 4, 0),
       l(7, 6, 2, 10, { certified_quantity: 4, certified_unit_price: 12, certified_amount: 48 }),
     ]);
-    expect(m.get(1)).toEqual({ narx: 50, aktlar: [7, 8], aralash: false });
+    expect(m.get(1)).toEqual({ narx: 50, aktlar: [7, 8], aralash: false, soni: 2, narxsizSoni: 0 });
     expect(m.get(2)?.narx).toBe(25);                  // (10 + 90) / 4
-    expect(m.get(3)).toEqual({ narx: null, aktlar: [7, 8], aralash: true });
-    expect(m.get(4)).toEqual({ narx: null, aktlar: [7], aralash: false });
+    // Qisman narxli: Σ narxli summa / Σ barcha hajm = 10 / 2 — fakt summasi F2 summasiga teng, narx to'qilmaydi.
+    expect(m.get(3)).toEqual({ narx: 5, aktlar: [7, 8], aralash: true, soni: 2, narxsizSoni: 1 });
+    expect(m.get(4)).toEqual({ narx: null, aktlar: [7], aralash: false, soni: 1, narxsizSoni: 1 });
     expect(m.get(5)?.narx).toBe(0);
     expect(m.get(6)?.narx).toBe(12);
   });
@@ -187,12 +188,32 @@ describe('Fakt = F2 — F2 narxi faktga (egasi 2026-10-28)', () => {
     it('F2 da yo‘q rs (norma bor) ishga smeta narxida ergashadi — ish summasida va rsHosila da; directFakt berilmasa rs yozilmaydi', () => {
       const h = new Map(holat); h.set(10, st(10, 10, 3, 8, null)); h.set(11, { ...st(11, 20, 6, 16, 5) }); h.set(13, { qator_id: 13, smeta_hajm: 10, fakt_hajm: 3, f2_hajm: 0, smeta_narx: 4 });
       const r = faktF2Reja(jur([...rowsN, rsQ(13)]), h, null, { f2Narx: f2NarxYigish([l(40, 10, 8, null), l(40, 11, 16, 9)]), directFakt: new Map() });
+      // Ish F2 dan ko'chiriladi (f2_sertifikat) — F2 da yo'q rs13 shu ulushga ERGASHMAYDI (view v5): Σ = Σ F2.
       const bl = r.qatorlar.find((x) => x.id === 10)!;
-      expect(bl.summa).toBe(20);                         // rs13: 5 × 1 × 4
-      expect(bl.rsHosila).toEqual({ soni: 1, summa: 20 });
-      expect(tenglashJami(r, new Set(), new Set()).ustamasiz).toBe(20 + 144);
+      expect(bl.summa).toBeNull();
+      expect(tenglashJami(r, new Set(), new Set()).ustamasiz).toBe(144);
+      // Ishning F2 manbasi yo'q (kontekstda bl yo'q) — avvalgidek ergashadi: rs13 5 × 1 × 4.
+      const r3 = faktF2Reja(jur([...rowsN, rsQ(13)]), h, null, { f2Narx: f2NarxYigish([l(40, 11, 16, 9)]), directFakt: new Map() });
+      expect(r3.qatorlar.find((x) => x.id === 10)?.rsHosila).toEqual({ soni: 1, summa: 20 });
+      // Istisno qilingan rs: jamidan chiqadi va ogohlantiriladi.
+      const j3 = tenglashJami(r, new Set([11]), new Set());
+      expect(j3.ustamasiz).toBeNull();
+      expect(j3.rsIstisno).toEqual({ soni: 1, summa: 144 });
       expect(faktF2Reja(jur(rowsN), h).paket.some((p) => p.qator_id === 11)).toBe(false);
     });
+  });
+
+  it('F2 minus qatorlari aynan (egasi 2026-10-29): musbat smetada sof manfiy F2 ham yoziladi; manba akt qatori izda; fakt > F2 — signal', () => {
+    const h = new Map(holat); h.set(12, { ...st(12, 5, 0, -2, 100), f2_summa: -180 }); h.set(20, { ...st(20, 4, 6, 4), fakt_summa: 600, f2_summa: 400 });
+    const r = faktF2Reja(ishlar(), h, null, { f2Narx: f2NarxYigish([{ ...l(60, 12, -2, 90), id: 901 }, { ...l(61, 12, 0, 90), id: 902 }]) });
+    const p12 = r.paket.find((p) => p.qator_id === 12);
+    expect(p12).toMatchObject({ hajm: -2, narx_manba: 'f2_sertifikat' });
+    expect((p12?.hajm ?? 0) * (p12?.narx ?? 0)).toBeCloseTo(-180, 9);
+    expect(p12?.narx_izoh).toContain('[qator: 901, 902]');
+    const j = tenglashJami(r, new Set(), new Set());
+    expect(j.manfiySoni).toBe(1);
+    expect(j.faktOrtiq).toEqual({ soni: 1, summa: 200 });   // Ish B: fakt 6 > F2 4 — o'zgarmaydi
+    expect(r.paket.some((p) => p.qator_id === 20)).toBe(false);
   });
 
   it('chegirma (manfiy reja): F2 tomon manfiy farq yoziladi; teskari ishora — o‘tkazib yuboriladi', () => {

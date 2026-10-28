@@ -54,7 +54,7 @@ export async function sbF2TasdiqNarxlar(obyektId: number): Promise<F2TenglashMan
   if (!a.ok) return { ...bosh, error: a.error };
   if (!f.ok) return { ...bosh, error: f.error };
   const [f2q, fq] = await Promise.all([
-    qatorlarOl<F2AktQator>(idlar(a.qatorlar), 'akt_id,qator_id,hajm,narx,summa,certified_quantity,certified_unit_price,certified_amount'),
+    qatorlarOl<F2AktQator>(idlar(a.qatorlar), 'id,akt_id,qator_id,hajm,narx,summa,certified_quantity,certified_unit_price,certified_amount'),
     qatorlarOl<FaktAktQator>(idlar(f.qatorlar), 'akt_id,qator_id,hajm,narx_manba'),
   ]);
   if (!f2q.ok) return { ...bosh, error: f2q.error };
