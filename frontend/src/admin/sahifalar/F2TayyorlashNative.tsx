@@ -6,7 +6,7 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { isCompleteMoney, reportMoneyValidity } from '../../lib/money-input';
 import { t, tilLocale } from '../../i18n/til';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ChevronDown, ChevronRight, Download, Eye, Save, Search, Sparkles, Zap } from 'lucide-react';
@@ -58,6 +58,11 @@ import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { ishMeter, keyingiF2Raqam, qoralamaKatTaqsimot, tekshiruvBandlari, tekshiruvSanoq, type TekshiruvBand } from '../../lib/f2-tayyorlash-korinish';
 import { F2KatPanel, F2QoralamaSarlavha, F2TekshiruvPanel, IshMeter, MeterIzohi, NarxManbaChip } from '../../components/f2-tayyorlash/F2TayyorlashKorinish';
 import { avlodKalitlari, bolimTuguni, f2BolimIerarxiya, f2Uchastkalar, korinadiganTugunlar } from '../../lib/f2-bolim-daraxti';
+import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
+import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
+import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
+import { f2Elementlar, f2ElementUstunlar, f2QaytaQur, f2ResursUstunlar, type F2FiltrKontekst } from './F2JadvalFiltr';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
 const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
@@ -69,6 +74,24 @@ type AktBand = { qator_id: number; hajm: number | string | null; certified_quant
 type TahrirAkt = { id: number; raqam: string | null; oy: string | null; holat: string; lifecycle_status: string | null; versiya: number; qatorlar: AktBand[] };
 const sonQ = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 const kirit = 'rounded border border-border bg-bg px-2 py-1 text-right tabular-nums outline-none focus:border-accent';
+
+/** Ish ichidagi resurslar jadvali — Excel uslubidagi ustun filtrlari bilan (har ish kartasida o'z filtri; tekis — saralash mumkin). */
+function ResursJadval({ resurslar, ustunlar, qator }: { resurslar: F2Resurs[]; ustunlar: Ustun<F2Resurs>[]; qator: (r: F2Resurs) => ReactNode }) {
+  const f = useJadvalFiltr(resurslar, ustunlar);
+  const F = (kalit: string) => <UstunFiltrTugma {...f.tugma(kalit)} />;
+  const bosh = f.natija.length === 0;
+  return <>
+    {f.soni > 0 && <div className="border-t border-border px-3 py-1"><FiltrHolatQatori soni={f.soni} natija={f.natija.length} jami={resurslar.length} tozala={f.tozala} /></div>}
+    <table className="w-full border-t border-border text-[12.5px]">
+      <thead><tr className="text-[10.5px] uppercase tracking-wide text-text-mute">
+        <th className="py-1 pl-9 pr-2 text-left font-semibold">{t('Resurs')}{F('nom')}</th><th className="px-2 text-right font-semibold">{t('Birlik')}{F('birlik')}</th>
+        <th className="px-2 text-right font-semibold">{t('Hajm')}{F('hajm')}</th><th className="px-2 text-right font-semibold">{t('Narx · manba')}<SummaYorliq tur="narx" />{F('narx')}</th>
+        <th className="px-2 text-right font-semibold">{t('Summa')}{F('summa')}</th><th className="px-2 text-left font-semibold">{t('Holat')}{F('holat')}</th>
+      </tr></thead>
+      <tbody>{f.natija.map(qator)}{bosh && <tr><td colSpan={6} className="py-1.5 pl-9 text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</td></tr>}</tbody>
+    </table>
+  </>;
+}
 
 /**
  * F2 tayyorlash (egasi, 2026-10-01: "fakt kiritishdan ideal F2 gacha").
@@ -288,6 +311,26 @@ export function F2TayyorlashNative() {
   }, [bolimlar, qidirKech, tanlanganAvlod, faqatKiritilgan, k.hajm]);
   const royxatRejimi = !!qidirKech.trim() || faqatKiritilgan;
 
+  /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): ishlar ro'yxati kartalarda — sarlavha o'rnida ixcham filtr qatori.
+   * Qidiruv, bo'lim tanlovi va «Faqat kiritilganlar» bilan VA. Saralash — har bo'lim ichida. */
+  const filtrKtx = useMemo((): F2FiltrKontekst & { narx: (r: F2Resurs) => number | null } => ({
+    hajm: (id) => { const x = byId.get(id); if (x && !x.xato) return x.hajm; const v = sonOqi(k.hajm[id]); return typeof v === 'number' ? v : null; },
+    summa: (id) => byId.get(id)?.summa ?? null,
+    narx: (r) => byId.get(r.id)?.narx ?? r.taklifNarx ?? null,
+    holat: (id) => {
+      const x = byId.get(id);
+      if (x?.xato) return t(XATO_MATN[x.xato]);
+      if (x?.ogoh) return t(OGOH_MATN[x.ogoh]);
+      if (k.narxsiz[id] === true) return t('narxsiz');
+      return x ? t('Kiritilgan') : t('Kiritilmagan');
+    },
+  }), [byId, k.hajm, k.narxsiz]);
+  const elementlar = useMemo(() => f2Elementlar(korinadi), [korinadi]);
+  const elementUstunlar = useMemo(() => f2ElementUstunlar(filtrKtx), [filtrKtx]);
+  const resursUstunlar = useMemo(() => f2ResursUstunlar(filtrKtx), [filtrKtx]);
+  const uf = useJadvalFiltr(elementlar, elementUstunlar);
+  const korinadiF = useMemo(() => (uf.soni ? f2QaytaQur(korinadi, uf.natija) : korinadi), [uf.soni, uf.natija, korinadi]);
+
   const yoz = (maydon: keyof F2Kiritma, id: number, qiymat: string | boolean | undefined) => setK((o) => {
     const m = { ...o[maydon] } as Record<number, string | boolean>;
     if (qiymat === undefined || qiymat === '') delete m[id]; else m[id] = qiymat;
@@ -379,7 +422,7 @@ export function F2TayyorlashNative() {
   const qatorgaOtish = (id: number) => {
     const q = byId.get(id);
     const ish = q?.ishId ?? id;
-    setQidir('');
+    setQidir(''); uf.tozala();
     if (qatorBolim.has(ish)) setBolimId(qatorBolim.get(ish) ?? -1);
     if (q && q.tur !== 'bl' && q.ishId != null) setOchiq((o) => new Set(o).add(q.ishId!));
     setKorsatLimit((n) => Math.max(n, 5000));
@@ -623,16 +666,7 @@ export function F2TayyorlashNative() {
         {x?.xato && <div className="px-10 pb-1.5 text-[12px] text-danger">{XATO_MATN[x.xato]}</div>}
         {x?.ogoh && <div className="px-10 pb-1.5 text-[12px] text-warn">{OSH_OGOH.has(x.ogoh) ? t(OGOH_MATN[x.ogoh]) : OGOH_MATN[x.ogoh]}</div>}
         {tkmBirlikmi(i.birlik) && tkmTaklifQator(i)}
-        {ochilgan && i.resurslar.length > 0 && (
-          <table className="w-full border-t border-border text-[12.5px]">
-            <thead><tr className="text-[10.5px] uppercase tracking-wide text-text-mute">
-              <th className="py-1 pl-9 pr-2 text-left font-semibold">{t('Resurs')}</th><th className="px-2 text-right font-semibold">{t('Birlik')}</th>
-              <th className="px-2 text-right font-semibold">{t('Hajm')}</th><th className="px-2 text-right font-semibold">{t('Narx · manba')}</th>
-              <th className="px-2 text-right font-semibold">{t('Summa')}</th><th className="px-2 text-left font-semibold">{t('Holat')}</th>
-            </tr></thead>
-            <tbody>{i.resurslar.map((r) => resursQatori(r, i))}</tbody>
-          </table>
-        )}
+        {ochilgan && i.resurslar.length > 0 && <ResursJadval resurslar={i.resurslar} ustunlar={resursUstunlar} qator={(r) => resursQatori(r, i)} />}
       </div>
     );
   }
@@ -645,7 +679,7 @@ export function F2TayyorlashNative() {
     el.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
     el.querySelector<HTMLInputElement>('input:not([disabled]):not([type="checkbox"])')?.focus({ preventScroll: true });
     setSakrash(null);
-  }, [sakrash, korinadi, ochiq]);
+  }, [sakrash, korinadiF, ochiq]);
 
   const bolimKorinadi = useMemo(() => korinadiganTugunlar(bolimIer, kengaygan, tanlanganBolim, faqatMumkin), [bolimIer, kengaygan, tanlanganBolim, faqatMumkin]);
   const bolimPaneli = bolimlar.length > 0 && <aside className="karta flex max-h-[70vh] min-h-0 flex-col overflow-hidden xl:max-h-none" aria-label={t('Bo‘limlar')}>
@@ -667,9 +701,9 @@ export function F2TayyorlashNative() {
   </aside>;
 
   const obyektNom = obyektlar.find((o) => o.id === obyektId)?.nom ?? '';
-  const olishMatn = royxatRejimi ? t('Topilganlarni to‘liq olish') : t('Bo‘limni to‘liq olish');
+  const olishMatn = royxatRejimi || uf.soni > 0 ? t('Topilganlarni to‘liq olish') : t('Bo‘limni to‘liq olish');
   const royxatSarlavha = royxatRejimi
-    ? `${faqatKiritilgan && !qidirKech.trim() ? t('Kiritilganlar') : t('Qidiruv')}: ${korinadi.reduce((s, b) => s + b.ishlar.length + b.alohida.length, 0)} ta`
+    ? `${faqatKiritilgan && !qidirKech.trim() ? t('Kiritilganlar') : t('Qidiruv')}: ${korinadiF.reduce((s, b) => s + b.ishlar.length + b.alohida.length, 0)} ta`
     : null;
   const uchastkaYol = tanlanganTugun && tanlanganTugun.ildizNom !== tanlanganTugun.nom ? <span className="mr-1 font-normal text-text-mute" data-testid="tanlangan-uchastka">{t('Uchastka/fayl')}: {tanlanganTugun.ildizNom} ›</span> : null;
   const bandAmali = (b: TekshiruvBand) => {
@@ -741,18 +775,27 @@ export function F2TayyorlashNative() {
                 <MeterIzohi />
               </div>
               <div className="ml-auto flex flex-wrap items-center gap-1.5">
-                <button type="button" onClick={() => bolimniOl(korinadi)} className="fz-btn fz-btn--sm"><Zap aria-hidden="true" />{olishMatn}</button>
+                <button type="button" onClick={() => bolimniOl(korinadiF)} className="fz-btn fz-btn--sm"><Zap aria-hidden="true" />{olishMatn}</button>
                 <button type="button" onClick={() => bolimniOl(bolimlar)} className="fz-btn fz-btn--ghost fz-btn--sm">{t('Barcha mumkin hajmni olish')}</button>
                 {Object.keys(k.hajm).length > 0 && <button type="button" onClick={() => setK(bosKiritma())} className="fz-btn fz-btn--ghost fz-btn--sm">{t('Tozalash')}</button>}
               </div>
             </div>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-border px-3 py-1 text-[11px] text-text-mute" role="group" aria-label={t('Ustun filtrlari')}>
+              <span className="font-semibold">{t('Ustun filtrlari')}:</span>
+              {elementUstunlar.map((u) => <span key={u.kalit} className="inline-flex items-center whitespace-nowrap">{u.nom}<UstunFiltrTugma {...uf.tugma(u.kalit)} /></span>)}
+            </div>
+            {uf.soni > 0 && <div className="flex flex-col gap-1 border-b border-border px-3 py-1.5">
+              <FiltrHolatQatori soni={uf.soni} natija={uf.natija.length} jami={elementlar.length} tozala={uf.tozala} />
+              <span className="text-[11px] text-text-mute">{t('Pastdagi «Jami» — butun F2 qoralama bo‘yicha (filtrga bog‘liq emas); «Topilganlarni to‘liq olish» faqat ko‘rinadiganlarga qo‘llanadi.')}</span>
+            </div>}
             <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
-              {(() => { let qolgan = korsatLimit; return korinadi.map((b) => { const kes = b.ishlar.slice(0, Math.max(0, qolgan)); qolgan -= kes.length; return <div key={b.id ?? 'yoq'} className="space-y-2">
+              {uf.soni > 0 && korinadiF.length === 0 && <div className="p-3 text-[12.5px] text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</div>}
+              {(() => { let qolgan = korsatLimit; return korinadiF.map((b) => { const kes = b.ishlar.slice(0, Math.max(0, qolgan)); qolgan -= kes.length; return <div key={b.id ?? 'yoq'} className="space-y-2">
                 {royxatRejimi && <div className="fz-panel__h pt-1">{b.nom}</div>}
                 {kes.map(ishKartasi)}
                 {b.alohida.length > 0 && <div className="rounded-lg border border-border"><div className="px-3 py-1.5 text-[12px] font-semibold text-text-dim">{t('Alohida materiallar')}</div><table className="w-full text-[12.5px]"><tbody>{b.alohida.map((r) => resursQatori(r))}</tbody></table></div>}
               </div>; }); })()}
-              {korinadi.reduce((s, b) => s + b.ishlar.length, 0) > korsatLimit && <button type="button" onClick={() => setKorsatLimit((n) => n + 500)} className="fz-btn w-full">{t('Yana ko‘rsatish')}</button>}
+              {korinadiF.reduce((s, b) => s + b.ishlar.length, 0) > korsatLimit && <button type="button" onClick={() => setKorsatLimit((n) => n + 500)} className="fz-btn w-full">{t('Yana ko‘rsatish')}</button>}
             </div>
           </section>
           <div className="order-first grid min-h-0 content-start gap-3 lg:col-span-2 lg:grid-cols-2 xl:order-none xl:col-span-1 xl:grid-cols-1 xl:overflow-auto">

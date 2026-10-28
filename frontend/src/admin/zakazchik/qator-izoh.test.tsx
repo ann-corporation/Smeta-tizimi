@@ -30,8 +30,9 @@ describe('Obyekt portali: ustamali + ustamasiz + podval + so‘rov', () => {
     m.taqdimlarOl.mockResolvedValue({ ok: true, natija: [] });
     render(<MemoryRouter initialEntries={['/o/1/3']}><Routes><Route path="/o/:aloqaId/:obyektId" element={<ObyektPortali />} /></Routes></MemoryRouter>);
     await screen.findByText('Sertifikatlangan F2 aktlar');
-    expect(screen.getAllByTestId('tomon-ustamali').length).toBeGreaterThanOrEqual(2);       // karta + akt
-    expect(screen.getAllByTestId('tomon-ustamasiz')[0].textContent).toMatch(/2\s?200/);
+    expect(screen.getAllByTestId('tomon-summa-juft').length).toBeGreaterThanOrEqual(2);     // karta + akt
+    expect(screen.getAllByTestId('summa-qqs')[0].textContent).toMatch(/QQS bilan.*2\s?900/);  // asosiy — QQS bilan (podval vsego)
+    expect(screen.getAllByTestId('summa-ustamasiz')[0].textContent).toMatch(/2\s?200/);
     expect(screen.getByText(/taxminiy/)).toBeTruthy();                                       // katsiz=200
     expect(screen.getByText('Прочие затраты подрядчика')).toBeTruthy();                      // rasmiy podval nomi
     expect(screen.getByText('ВСЕГО (с НДС)')).toBeTruthy();
