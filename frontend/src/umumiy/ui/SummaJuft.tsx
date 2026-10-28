@@ -5,6 +5,7 @@ import { qiymatUchligi, type KatKesim } from '../../lib/ustamali-summa';
 import { pulMatni as pul, ustamaIzohi } from './ustamaIzohi';
 import { useUstamaliSumma } from './useUstamaliSumma';
 import { QiymatUchlik } from './QiymatUchlik';
+import { katKesimdanPaket, kesimMosmi, paketUchligi, type SummaPaket } from '../../lib/summa-paket';
 
 /**
  * JAMI summa (egasi 2026-10-27, doimiy qoida): sukut `rejim="qqs"` — QQS BILAN qiymat asosiy (katta), ostida kichik:
@@ -16,8 +17,29 @@ import { QiymatUchlik } from './QiymatUchlik';
  * `ustamaliHisobla` (mavjud nakrutka kaskadi). Kat noma’lum qismi taxminiy deb aniq yoziladi — o‘ylab topilmaydi.
  * `ustamasiz` — ko‘rsatiladigan to‘liq summa (NDS siz); `katKesim` — shu summaning kategoriya bo‘yicha taqsimoti.
  */
-export function SummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniyaId, kichik = false, className = '', rejim = 'qqs', yorliq }: {
-  obyektId: number | null | undefined; ustamasiz: number | null | undefined; katKesim?: KatKesim | null;
+export function SummaJuft(p: SummaJuftProps) {
+  // Server summa paketi berilsa — hisob serverniki (yagona yo'l), mijozda qayta hisoblanmaydi.
+  if (p.paket !== undefined) {
+    return <QiymatUchlik q={paketUchligi(p.paket)} kichik={p.kichik} className={p.className} yorliq={p.yorliq}
+      kesim={p.kesimYoq ? null : p.paket} kiritishYoli={p.kiritishYoli} />;
+  }
+  return <MijozSummaJuft {...p} />;
+}
+
+type SummaJuftProps = {
+  obyektId?: number | null; ustamasiz?: number | null; katKesim?: KatKesim | null;
+  shartnomaId?: number | null; kompaniyaId?: number | null; kichik?: boolean; className?: string;
+  rejim?: 'qqs' | 'ustamali'; yorliq?: string;
+  /** Server summa paketi (`_t2_summa_paket_*`): QQS bilan · ustamali · прямые + ▸ kesim. `null` — kiritilmagan/noma’lum. */
+  paket?: SummaPaket | null;
+  /** Paket bilan: ▸ kesimni ko‘rsatmaslik (zich jadval kataklari). */
+  kesimYoq?: boolean;
+  /** Paket `null` bo‘lsa — «kiritilmagan» + qayerdan kiritiladi havolasi. */
+  kiritishYoli?: { yol: string; matn?: string };
+};
+
+function MijozSummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniyaId, kichik = false, className = '', rejim = 'qqs', yorliq }: {
+  obyektId?: number | null | undefined; ustamasiz?: number | null | undefined; katKesim?: KatKesim | null;
   shartnomaId?: number | null; kompaniyaId?: number | null; kichik?: boolean; className?: string;
   /** `qqs` (sukut) — jami: QQS bilan asosiy; `ustamali` — qator summasi (ish jadvali ichida). */
   rejim?: 'qqs' | 'ustamali';
@@ -28,8 +50,11 @@ export function SummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniy
   const u = katKesim ? h.hisobla(katKesim) : null;
   if (rejim === 'qqs') {
     const q = qiymatUchligi(u, ustamasiz);
+    // ▸ kesim faqat Σ kesim = ko'rsatilgan прямые bo'lsa (aks holda chalg'itadi).
+    const kp = katKesim && !kichik && q.ustamasiz != null ? katKesimdanPaket(katKesim, q) : null;
     return (
       <QiymatUchlik q={q} kichik={kichik} className={className} yorliq={yorliq} title={ustamaIzohi(u, ustamasiz)}
+        kesim={kp && kesimMosmi(kp) ? kp : null}
         yuklanmoqda={!!katKesim && q.sabab !== 'SUMMA_YOQ' && h.holat === 'yuklanmoqda'}>
         {q.taxminiy && <span className="text-[10px] text-warn" data-testid="summa-taxminiy">{t('taxminiy (kat noma’lum: {pul} so‘m)', { pul: pul(q.nomalum) })}</span>}
         {u?.qadamlar?.yaxlit != null && <span className="text-[10px] text-text-mute" data-testid="summa-svod-yaxlit">{t('shundan svod yaxlit (ustamasiz): {pul} so‘m', { pul: pul(u.qadamlar.yaxlit) })}</span>}

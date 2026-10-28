@@ -5,6 +5,8 @@
  * NULL ≠ 0: serverdan kelmagan paket — `null` (UI «kiritilmagan» deydi), hech qachon 0 ga aylantirilmaydi.
  */
 
+import type { KatKesim, QiymatUchlik as QiymatUchlikTuri } from './ustamali-summa';
+
 export type SummaKesim = {
   chel: number; mash: number; mat: number; ob: number;
   subpudrat: number; svod: number; ustamasiz: number; nomalum: number;
@@ -80,4 +82,32 @@ export function kesimMosmi(p: SummaPaket): boolean {
 export function foiz(surat: number | null | undefined, maxraj: number | null | undefined): number | null {
   if (surat == null || maxraj == null || !Number.isFinite(surat) || !Number.isFinite(maxraj) || maxraj === 0) return null;
   return Math.round((surat / maxraj) * 1000) / 10;
+}
+
+/**
+ * Server paketi → `QiymatUchlik` (yagona 3 qatorli ko'rinish). Paket yo'q → «—» (SUMMA_YOQ), 0 emas.
+ * Server hisobi to'liq (kat noma'lum qism ustamasiz qo'shilgan, QQS bir marta) — «≈» belgisi qo'yilmaydi;
+ * noma'lum qism `nomalum` da (izoh uchun).
+ */
+export function paketUchligi(p: SummaPaket | null | undefined): QiymatUchlikTuri {
+  if (!p) return { qqsBilan: null, ustamali: null, ustamasiz: null, taxminiy: false, nomalum: 0, sabab: 'SUMMA_YOQ' };
+  return { qqsBilan: p.qqs_bilan, ustamali: p.ustamali, ustamasiz: p.ustamasiz, taxminiy: false, nomalum: p.kesim.nomalum, sabab: null };
+}
+
+/**
+ * Mijoz tomonidagi kategoriya kesimi (`KatKesim`) → ▸ kesim ko'rinishi uchun paket (soatlar yo'q — 0).
+ * Svod yaxlit qismi «svod» da, kat noma'lum — «nomalum» da. Uchlik qiymatlari o'zgarmaydi (faqat ko'rsatish).
+ */
+export function katKesimdanPaket(k: KatKesim, q: QiymatUchlikTuri): SummaPaket {
+  const s = k.summalar;
+  const n = (v: number | undefined) => (v != null && Number.isFinite(v) ? v : 0);
+  return {
+    qqs_bilan: n(q.qqsBilan ?? undefined), qqs: 0, ustamali: n(q.ustamali ?? undefined), ustamasiz: n(q.ustamasiz ?? undefined),
+    qqs_foiz: null, ustamasiz_qism: 0,
+    kesim: {
+      chel: n(s['ЧЕЛ']), mash: n(s['МАШ']), mat: n(s['МАТ']) + n(s['КАБ']) + n(s['М/К']) + n(s['БЕЗ СКЛАД']), ob: n(s['ОБ']),
+      subpudrat: 0, svod: n(k.yaxlit?.barglar) + n(k.yaxlitQator), ustamasiz: 0, nomalum: n(k.nomalum),
+    },
+    soat: { chel: 0, mash: 0, mashinist: 0 }, subpudratchilar: [], narxsiz_soni: k.summasizSoni, qator_soni: 0,
+  };
 }

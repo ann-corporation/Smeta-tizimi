@@ -3166,7 +3166,11 @@
         "frontend/functions/api/sb.ts (faqat rahbar_panel_v1 o'qish ro'yxati)",
         "frontend/functions/_shared/permission-policy.ts (faqat rahbar_panel → financial.read)",
         "frontend/src/api/t2-rahbar-panel.ts",
-        "frontend/src/lib/summa-paket.ts"
+        "frontend/src/lib/summa-paket.ts",
+        "frontend/src/umumiy/ui/SummaJuft.tsx (PR2: server paket + kesim)",
+        "frontend/src/umumiy/ui/QiymatUchlik.tsx (PR2: kesim + kiritilmagan)",
+        "frontend/src/umumiy/ui/SummaKesimi.tsx",
+        "frontend/public/yangiliklar.json (PR2 yozuvi)"
       ],
       "depends_on": [],
       "must_read": [

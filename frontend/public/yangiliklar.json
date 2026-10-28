@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 43,
+      "sana": "2026-10-28",
+      "sarlavha": "Summalar bir xil ko'rinishda: QQS bilan, ustamali, to'g'ri xarajat va kesim",
+      "bandlar": [
+        "Har jami summa ostida «▸ kesim»: ЧЕЛ (chel-soat bilan), МАШ (mash-soat bilan), МАТ, ОБ, subpudrat (kim ekani bilan), kat noma'lum — yig'indisi to'g'ri xarajatga teng.",
+        "Kiritilmagan qiymat endi «kiritilmagan» deb yoziladi (0 yoki bo'sh chiziq emas); Moliyaviy tahlilda uchala qator ko'rinadi.",
+        "Shartnoma sahifasi: «Farq» endi shartnoma (QQS siz) va smetaning ustamali qiymati (ИТОГО-4) o'rtasida — avval to'g'ri xarajat bilan solishtirilardi; «Smeta qiymatini qo'yish» ustamali + QQS ni oladi.",
+        "M29: tejash / ortiqcha / sof natija jamilari QQS bilan asosiy ko'rinishda."
+      ]
+    },
+    {
       "id": 42,
       "sana": "2026-10-27",
       "sarlavha": "Tizim xaritasi — tizimda nima bo'layotgani jonli",
