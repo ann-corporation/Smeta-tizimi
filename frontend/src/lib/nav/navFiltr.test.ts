@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { menyuQur, menyuYollari, type NavKontekst } from './navFiltr';
-import { NAV_GURUHLAR, NAV_SAHIFALAR, SHAXSIY_SAHIFALAR } from './navReestr';
+import { NAV_GURUHLAR, NAV_SAHIFALAR, SHAXSIY_SAHIFALAR, faqatSuperadminYolmi } from './navReestr';
+import { SOZLAMALAR, sozlamaFiltr } from '../sozlama/sozlamaReestr';
 import { menyuRuxsati } from '../company-authorization/route-permission';
 import { ROLE_PERMISSIONS } from '../company-authorization/effective-authorization';
 import { MENYU_MODUL } from '../modullar';
@@ -55,6 +56,7 @@ function serverRuxsat(rol: string): string[] {
 const menyu = (rol: string, qosh: Partial<NavKontekst> = {}) =>
   menyuYollari(menyuQur({ superadmin: rol === 'superadmin', rol, permissions: serverRuxsat(rol), ...qosh }));
 const a = (...s: string[]) => s.map((x) => `/admin/${x}`);
+const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).includes(x));
 
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
 const OBYEKT = a('dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
@@ -65,13 +67,15 @@ const MOLIYA = a('moliya', 'shartnoma-liniya', 'crm', 'aloqalar');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar');
 const TAMINOT = a('logistika', 'zayavka', 'erp');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
-const KOMPANIYA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka');
+/* Egasi 2026-10-27: «Integratsiyalar va audit» (tizim boshqaruv markazi) — faqat platforma superadmini. */
+const KOMPANIYA_SA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka');
+const KOMPANIYA = bez(KOMPANIYA_SA, 'system-control');
 const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis', 'akkaunt', 'sozlamalar');
-const PLATFORMA = a('boshqaruv', 'sayt-xaritasi', 'fayl-boglash', 'test');
-const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).includes(x));
+/* «Sayt xaritasi» menyudan butunlay olib tashlandi (superadmin uchun ham); sahifa faqat superadminga, Boshqaruv panelidan. */
+const PLATFORMA = a('boshqaruv', 'fayl-boglash', 'test');
 
 const KUTILGAN: Record<string, string[]> = {
-  superadmin: [...ISH, ...KOMPANIYA, ...SHAXSIY, ...PLATFORMA],
+  superadmin: [...ISH, ...KOMPANIYA_SA, ...SHAXSIY, ...PLATFORMA],
   boss: [...ISH, ...KOMPANIYA, ...SHAXSIY],
   admin: [...ISH, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
@@ -234,5 +238,45 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp',
       '/admin/erp': 'module.erp', '/admin/mindmap': 'module.erp',
     });
+  });
+});
+
+describe('egasi 2026-10-27: tizimga oid hamma narsa — faqat platforma superadmini (yagona mexanizm)', () => {
+  const TIZIM = [...PLATFORMA, ...a('system-control', 'sayt-xaritasi', '_demo/documents', '_demo/system-control', 'test/tizim', 'test/portfel')];
+
+  it('«Sayt xaritasi» hech kimning menyusida yo‘q (superadmin ham), reestrda ham yo‘q', () => {
+    for (const rol of Object.keys(KUTILGAN)) expect(menyu(rol), rol).not.toContain('/admin/sayt-xaritasi');
+    expect(NAV_SAHIFALAR.map((s) => s.yol)).not.toContain('/admin/sayt-xaritasi');
+    expect(GENERATED_SITE_MAP.menuRoutes).not.toContain('/admin/sayt-xaritasi');
+  });
+
+  it('kompaniya bossi/admini/rahbari: tizim bandlari menyuda yo‘q, `control.global.read` bo‘lsa ham', () => {
+    for (const rol of ['boss', 'admin', 'rahbar', 'pto', 'bugalter']) {
+      const m = menyu(rol, { permissions: [...serverRuxsat(rol), 'control.global.read', 'control.global.write'] });
+      expect(m.filter((y) => faqatSuperadminYolmi(y)), rol).toEqual([]);
+      for (const y of TIZIM) expect(m, `${rol} ${y}`).not.toContain(y);
+    }
+  });
+
+  it('marshrut qo‘riqchisi o‘qiydigan funksiya: tizim yo‘llari (ichki yo‘l va so‘rov satri bilan) — superadmin; biznes yo‘llari — yo‘q', () => {
+    for (const y of [...TIZIM, '/admin/system-control?tab=x', '/admin/boshqaruv/', '/admin/sayt-xaritasi#a']) expect(faqatSuperadminYolmi(y), y).toBe(true);
+    for (const y of a('kompaniya', 'tokenlar', 'ai-agentlar', 'korzinka', 'tizim-sozlama', 'hujjat-dizayn', 'sozlamalar', 'holat/12', 'test/kontragent', 'testlar'))
+      expect(faqatSuperadminYolmi(y), y).toBe(false);
+  });
+
+  it('superadmin hamon hammasini ko‘radi (tizim boshqaruv markazi, platforma bandlari)', () => {
+    const m = menyu('superadmin');
+    for (const y of [...PLATFORMA, '/admin/system-control']) expect(m).toContain(y);
+  });
+
+  it('Sozlamalar markazi: tizim yo‘lidagi yoki tizimga oid sozlama kompaniya bossiga ko‘rinmaydi, superadminga ko‘rinadi', () => {
+    const boss = sozlamaFiltr({ superadmin: false, permissions: [...serverRuxsat('boss'), 'control.global.read'] });
+    expect(boss.filter((s) => s.qatlam === 'tizim')).toEqual([]);
+    expect(boss.filter((s) => faqatSuperadminYolmi(s.yol))).toEqual([]);
+    for (const id of ['kompaniya.tizim_nazorat', 'kompaniya.integratsiya', 'kompaniya.gas_sinx', 'tizim.ai_modellar'])
+      expect(boss.map((s) => s.id)).not.toContain(id);
+    // Egasi 2026-10-27 (2-javob): AI model tanlovi va model siyosati — kompaniya qatlamida (katalog/ustama — Tizimda).
+    expect(boss.map((s) => s.id)).toEqual(expect.arrayContaining(['kompaniya.tokenlar', 'kompaniya.ai_yoqish', 'kompaniya.audit', 'kompaniya.korzinka', 'kompaniya.ai_modellar', 'kompaniya.ai_model_siyosati']));
+    expect(sozlamaFiltr({ superadmin: true, permissions: [] })).toHaveLength(SOZLAMALAR.length);
   });
 });

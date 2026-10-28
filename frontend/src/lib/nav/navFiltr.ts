@@ -4,7 +4,8 @@
  *
  * Tartib:
  *   1) modul o'chirilgan → yo'q (lib/modullar);
- *   2) «Platforma» qatlami → faqat platforma superadmini (`k.superadmin`, capability emas);
+ *   2) tizimga oid sahifa («Platforma» qatlami yoki `faqatSuperadmin`, navReestr.faqatSuperadminYolmi) → faqat platforma
+ *      superadmini (`k.superadmin`, capability emas). Marshrut qo'riqchisi (RuxsatGuard) AYNAN shu funksiyani o'qiydi;
  *   3) superadmin → qolgan hammasi;
  *   4) rolga yopiq capability (buxgalter F2 yozmaydi — menyuRolYopiq) → yo'q;
  *   5) reestr ruxsati (menyuRuxsati; reestrda yo'q → yo'q) joriy kompaniya capability lariga mosmi.
@@ -15,7 +16,7 @@ import { ROLE_PERMISSIONS, type CompanyMembershipRole } from '../company-authori
 import { menyuRuxsati } from '../company-authorization/route-permission';
 import { menyuModulYoqilgan } from '../modullar';
 import { menyuRolYopiq } from './menyuRolYopiq';
-import { NAV_GURUHLAR, ruxsatMos, type NavGuruh, type NavIkonka, type NavQatlam } from './navReestr';
+import { NAV_GURUHLAR, faqatSuperadminYolmi, ruxsatMos, type NavGuruh, type NavIkonka, type NavQatlam } from './navReestr';
 
 export type NavKontekst = {
   superadmin: boolean;
@@ -39,7 +40,7 @@ function ruxsatlar(k: NavKontekst): readonly string[] {
 /** Bitta sahifa (yo'l) shu kontekstda menyuda ko'rinadimi. */
 export function sahifaKorinadi(guruh: Pick<NavGuruh, 'qatlam'>, yol: string, k: NavKontekst): boolean {
   if (!menyuModulYoqilgan(yol, k.modullar)) return false;
-  if (guruh.qatlam === 'platforma') return k.superadmin;
+  if (guruh.qatlam === 'platforma' || faqatSuperadminYolmi(yol)) return k.superadmin;
   if (k.superadmin) return true;
   if (menyuRolYopiq(k.rol, yol)) return false;
   const r = menyuRuxsati(yol);
