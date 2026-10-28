@@ -57,6 +57,7 @@ export const GENERATED_SITE_MAP = {
     "/",
     "/qoshil/:kod",
     "/ulash/:kod",
+    "/tg",
     "/admin",
     "dashboard",
     "holat",
