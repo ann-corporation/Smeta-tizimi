@@ -210,7 +210,7 @@ export const onRequestPost: PagesFunction<{
      *
      * Rol: `boss`/`rahbar` ham CHAQIRA OLADI — bu faqat o'qish. */
     if (so.soro) {
-      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor'> = {
+      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
         ai_kontekst: 'obyekt',
         ai_umumiy: 'kompaniya',
         /* ⚡ 2026-08-28: mindmap butun grafni (tugunlar + bog'lanishlar)
@@ -271,6 +271,10 @@ export const onRequestPost: PagesFunction<{
         modul_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: fayl menejeri — kompaniya fayllari loyiha/obyekt/tur bo'yicha (a'zolik ichida). */
         fayl_explorer_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-27: «Tizim xaritasi» — FAQAT platforma superadmini va u ruxsat bergan odamlar (kompaniya roli yetarli
+           EMAS). Ruxsat bazada (`_t2_tizim_xaritasi_ruxsatmi`); actor SESSIYADAN; kompaniya_id — faqat ixtiyoriy filtr. `stable`. */
+        tizim_xaritasi_v1: 'tizim_actor',
+        tizim_xaritasi_ruxsat_tekshir_v1: 'tizim_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -316,7 +320,7 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_shartnoma_id', String(id));
       }
-      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor') {
+      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
         if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
           return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo\'q' }, { status: 401 });
         }
@@ -351,6 +355,12 @@ export const onRequestPost: PagesFunction<{
           return Response.json(
             { ok: false, error: 'Bu kompaniyaga ruxsat yo\'q' }, { status: 403 });
         }
+        q.set('p_kompaniya_id', String(kid));
+      }
+      /* Tizim xaritasi: kompaniya a'zoligi TEKSHIRILMAYDI (platforma darajasi) — ruxsatni baza beradi. Filtr faqat raqam. */
+      if (so.soro === 'tizim_xaritasi_v1' && so.kompaniya_id != null && String(so.kompaniya_id) !== '') {
+        const kid = Number(so.kompaniya_id);
+        if (!Number.isSafeInteger(kid) || kid <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
         q.set('p_kompaniya_id', String(kid));
       }
       if (so.soro === 'nakrutka_koef_ol_v1' || so.soro === 'obyekt_nakrutka_v1') {

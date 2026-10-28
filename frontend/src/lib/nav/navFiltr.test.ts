@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { menyuQur, menyuYollari, type NavKontekst } from './navFiltr';
+import { menyuQur, menyuYollari, sahifaKorinadi, type NavKontekst } from './navFiltr';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, SHAXSIY_SAHIFALAR, faqatSuperadminYolmi } from './navReestr';
 import { SOZLAMALAR, sozlamaFiltr } from '../sozlama/sozlamaReestr';
 import { menyuRuxsati } from '../company-authorization/route-permission';
@@ -127,6 +127,22 @@ describe('egasi qarori 2026-10-26: PTO qurilishdagi pulga aloqador HAMMA joyni k
   it('PTO menyusida platforma va kompaniya boshqaruvi yo‘q (aralashmaydi)', () => {
     const m = menyu('pto');
     for (const y of [...PLATFORMA, ...KOMPANIYA]) expect(m).not.toContain(y);
+  });
+});
+
+describe('Tizim xaritasi — faqat server ruxsati bilan (superadmin yoki berilgan grant)', () => {
+  const TX = '/admin/tizim-xaritasi';
+  it('server ruxsat bermagan — hech kimda yo‘q (boss, admin, hatto superadmin javobi kelmaguncha)', () => {
+    for (const rol of ['boss', 'admin', 'rahbar', 'pto', 'superadmin']) expect(menyu(rol)).not.toContain(TX);
+    expect(menyu('boss', { tizimXaritasi: false })).not.toContain(TX);
+  });
+  it('server ruxsat bergan — ko‘rinadi (grant olgan oddiy a’zo ham), Platforma guruhida', () => {
+    expect(menyu('superadmin', { tizimXaritasi: true })).toContain(TX);
+    const m = menyuQur({ superadmin: false, rol: 'pto', permissions: serverRuxsat('pto'), tizimXaritasi: true });
+    expect(menyuYollari(m)).toContain(TX);
+    expect(m.find((g) => g.bandlar.some((b) => b.yol === TX))?.id).toBe('platforma');
+    // Grant faqat shu sahifani ochadi — boshqa platforma sahifalari superadminniki bo'lib qoladi.
+    expect(menyuYollari(m)).not.toContain('/admin/boshqaruv');
   });
 });
 
@@ -262,6 +278,15 @@ describe('egasi 2026-10-27: tizimga oid hamma narsa — faqat platforma superadm
     for (const y of [...TIZIM, '/admin/system-control?tab=x', '/admin/boshqaruv/', '/admin/sayt-xaritasi#a']) expect(faqatSuperadminYolmi(y), y).toBe(true);
     for (const y of a('kompaniya', 'tokenlar', 'ai-agentlar', 'korzinka', 'tizim-sozlama', 'hujjat-dizayn', 'sozlamalar', 'holat/12', 'test/kontragent', 'testlar'))
       expect(faqatSuperadminYolmi(y), y).toBe(false);
+  });
+
+  it('tizim xaritasi umumiy «faqat superadmin» qoidasidan istisno — ruxsat berilgan odam ham ochadi; menyuda faqat server ruxsati bilan', () => {
+    expect(faqatSuperadminYolmi('/admin/tizim-xaritasi')).toBe(false);
+    const g = NAV_GURUHLAR.find((x) => x.qatlam === 'platforma')!;
+    const ctx = { rol: 'pto', superadmin: false, modullar: null } as unknown as NavKontekst;
+    expect(sahifaKorinadi(g, '/admin/tizim-xaritasi', { ...ctx, tizimXaritasi: true })).toBe(true);
+    expect(sahifaKorinadi(g, '/admin/tizim-xaritasi', { ...ctx, tizimXaritasi: false })).toBe(false);
+    expect(sahifaKorinadi(g, '/admin/boshqaruv', { ...ctx, tizimXaritasi: true })).toBe(false);
   });
 
   it('superadmin hamon hammasini ko‘radi (tizim boshqaruv markazi, platforma bandlari)', () => {

@@ -208,7 +208,8 @@ export function amalKorishQur(kirish: RuxsatKirish): AmalKorish {
 
 /** Xarita tugunidan nishon (`guruh` — loyihasiz obyektlar guruhi — amalsiz: `null`). */
 export function tugunNishoni(x: XTugun, jamoaBor: boolean): AmalNishon | null {
-  if (x.tur === 'guruh') return null;
+  // Tizim xaritasi tugunlari (tizim / modul / platforma) — o'z paneli va havolalari bor; biznes amallari yo'q.
+  if (x.tur === 'guruh' || x.tur === 'tizim' || x.tur === 'modul' || x.tur === 'platforma') return null;
   const n = Number(x.id.split(':')[1]);
   const entityId = x.manba?.entity_id ?? (Number.isSafeInteger(n) && n > 0 ? n : null);
   return {

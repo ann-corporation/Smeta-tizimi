@@ -49,6 +49,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/akkaunt",
     "/admin/sozlamalar",
     "/admin/boshqaruv",
+    "/admin/tizim-xaritasi",
     "/admin/fayl-boglash",
     "/admin/test"
   ],
@@ -115,6 +116,7 @@ export const GENERATED_SITE_MAP = {
     "zakazchik/obyekt/:aloqaId/:obyektId",
     "akkaunt",
     "sayt-xaritasi",
+    "tizim-xaritasi",
     "_demo/documents",
     "_demo/participants",
     "_demo/system-control",

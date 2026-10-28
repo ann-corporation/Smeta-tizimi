@@ -46,6 +46,9 @@ export function requestPermission(api: string, method: string, b: Record<string,
     if (String(b.action).startsWith('member_') || String(b.action).startsWith('azolik_ruxsat')) return 'company.member.manage';
     return null; // Company requests / platform approval have their own director/platform guard.
   }
+  /* Tizim xaritasi — platforma darajasi: kompaniya capability si bilan BERILMAYDI va to'silmaydi. Yagona ruxsat — bazada
+   * (superadmin YOKI t2_tizim_xaritasi_ruxsat qatori), actor sessiyadan (sb.ts `tizim_actor`). */
+  if (api === 'sb' && (b.soro === 'tizim_xaritasi_v1' || b.soro === 'tizim_xaritasi_ruxsat_tekshir_v1')) return null;
   if (api === 'sb') return b.soro === 'modul_holat_v1' ? 'company.read' : dataPermission(String(b.jadval || b.soro || ''),false,b);
   // Yozish — faqat aniq reyestr orqali (fail-closed): reyestrda yo'q amal hech kimga ruxsat etilmaydi.
   if (api === 'sb-yoz') return writeCommandPermission(String(b.amal || 'qator_tahrir'),b);

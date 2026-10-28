@@ -202,6 +202,9 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       /* Faqat platforma superadmini (`k.superadmin`). Kompaniya boss/admin `control.global.read` ni katalogdan olsa ham
        * bu guruhni ko'rmaydi (tadqiqot M3). Server baribir alohida tekshiradi. */
       { nom: 'Platforma boshqaruvi', ikonka: 'Crown', sahifalar: [{ yol: '/admin/boshqaruv', nom: 'Platforma boshqaruvi', ruxsat: [] }] },
+      /* Egasi 2026-10-27: tizim darajasidagi jonli mindmap. Superadmin YOKI u ruxsat bergan odam — menyuda faqat server
+       * tasdiqlasa (`NavKontekst.tizimXaritasi`, navFiltr); sahifa va RPC ham alohida tekshiradi. Kompaniya roli bilan EMAS. */
+      { nom: 'Tizim xaritasi', ikonka: 'Gauge', sahifalar: [{ yol: '/admin/tizim-xaritasi', nom: 'Tizim xaritasi', ruxsat: [] }] },
       { nom: 'Fayl bog‘lash (texnik)', ikonka: 'Link2', sahifalar: [{ yol: '/admin/fayl-boglash', nom: 'Fayl bog‘lash (texnik)', ruxsat: [] }] },
       /* Eski SINOV qobig'i (/admin/test/*) — yo'llar o'chirilmagan, menyuda faqat superadmin uchun. _demo/* menyuda yo'q. */
       { nom: 'Sinov qobig‘i (eski)', ikonka: 'FlaskConical', sahifalar: [{ yol: '/admin/test', nom: 'Sinov qobig‘i (eski)', ruxsat: [] }] },
@@ -215,7 +218,9 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
 export const SUPERADMIN_YOLLAR_QOSHIMCHA: readonly string[] = ['/admin/sayt-xaritasi', '/admin/_demo', '/admin/test', '/admin/fayl-boglash', '/admin/boshqaruv'];
 
 /** Eski /admin/test/* ichidagi biznes sahifalar — hali production manzili yo'q, kompaniya ishlatadi (CRM «Batafsil» havolasi). */
-export const SUPERADMIN_ISTISNO: readonly string[] = ['/admin/test/kontragent'];
+/* `/admin/tizim-xaritasi` — superadmin YOKI u ruxsat bergan odam (server `t2_tizim_xaritasi_ruxsat` bilan hal qiladi; sahifa
+ * va menyu o'z tekshiruvini qiladi), shuning uchun umumiy «faqat superadmin» qoidasidan istisno. */
+export const SUPERADMIN_ISTISNO: readonly string[] = ['/admin/test/kontragent', '/admin/tizim-xaritasi'];
 
 /** Reestrdagi barcha sahifalar (guruh va band bilan). */
 export const NAV_SAHIFALAR: ReadonlyArray<NavSahifa & { guruh: NavGuruh; band: NavBand }> =

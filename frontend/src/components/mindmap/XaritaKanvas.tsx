@@ -15,6 +15,7 @@ import {
 import { HOLAT_RANG, foizMatn, holatNomi, pulQ } from './holat';
 import { guruhNomi as jamoaGuruhNomi, rolNomi } from './jamoa-nomlar';
 import { JAMOA_ID } from '../../lib/mindmap-korinish';
+import { modulHolati, modulNomi, oldin } from '../../lib/tizim-xaritasi';
 
 type Props = {
   daraxt: XDaraxt;
@@ -51,6 +52,7 @@ function kes(matn: string, maxPx: number, shrift: string, px: number): string {
 const SHRIFT_NOM = (px: number) => `600 ${px}px Geologica, "IBM Plex Sans", system-ui, sans-serif`;
 
 function ariaMatn(x: XTugun, guruhNomi: string): string {
+  if (x.tizim) return tizimAriaMatn(x);
   if (x.tur === 'jamoa') return t('Jamoa') + ', ' + t('{n} ta a’zo', { n: x.bolalar.length });
   if (x.tur === 'odam' && x.odam) return [x.nom, t('A’zo'), rolNomi(x.odam.rol), t('{n} ta obyekt', { n: x.odam.obyektlar.length })].join(', ');
   const tur = x.tur === 'kompaniya' ? t('Kompaniya') : x.tur === 'loyiha' ? t('Loyiha') : x.tur === 'guruh' ? t('Guruh') : t('Obyekt');
@@ -323,7 +325,11 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
                 onContextMenu={onAmallar ? (e) => { e.preventDefault(); e.stopPropagation(); onAmallar(x.id, e.clientX, e.clientY); } : undefined}
                 aria-haspopup={onAmallar && x.tur !== 'guruh' ? 'menu' : undefined}
                 style={{ cursor: 'pointer', outline: 'none' }} className="mm-tugun">
-                {x.tur === 'kompaniya' && (ixcham
+                {x.tizim && (ixcham
+                  ? <IxchamKarta nom={x.tur === 'tizim' ? t('Tizim') : x.nom} holat={x.holat} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon={x.tur === 'modul' ? undefined : 'var(--surface-2)'} />
+                  : <TizimKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id}
+                      yigilgan={yigilgan.has(x.id)} tomon={joylashuv.tomon.get(x.id) ?? 1} onYig={() => onYigToggle(x.id)} />)}
+                {!x.tizim && x.tur === 'kompaniya' && (ixcham
                   ? <IxchamKarta nom={x.nom || t('Kompaniya')} holat={x.holat} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon="var(--surface-2)" />
                   : <IldizKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />)}
                 {(x.tur === 'loyiha' || x.tur === 'guruh') && ixcham && (
@@ -626,6 +632,79 @@ function OdamKarta({ x, w, h, tanlangan, fokus }: { x: XTugun; w: number; h: num
       <text x={w - 10} y={45} textAnchor="end" data-odam-soni style={{ fill: soni ? 'var(--accent-text)' : 'var(--text-mute)', font: '600 11.5px var(--font-mono)' }}>
         {t('{n} ta obyekt', { n: o.obyektlar.length })}
       </text>
+    </g>
+  );
+}
+
+/* ───────────── «Tizim xaritasi» kartalari (lib/tizim-xaritasi.ts) ───────────── */
+
+function tizimSarlavha(x: XTugun): string {
+  if (x.tur === 'tizim') return t('Tizim');
+  if (x.tur === 'modul') return modulNomi(x.tizim?.meta.modul);
+  if (x.tur === 'platforma') {
+    const tur = x.tizim?.tur;
+    return tur === 'integratsiya' ? t('Integratsiyalar') : tur === 'deploy' ? t('Deploy') : t('Fon ishlari');
+  }
+  return x.nom;
+}
+
+/** Karta ostidagi ikki qator — «nima bo'lyapti». Son kelmagan joyda «—» (0 emas). */
+function tizimQatorlar(x: XTugun): [string, string] {
+  const m = x.tizim?.meta ?? {};
+  const son = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? String(v) : '—');
+  if (x.tur === 'tizim') {
+    return [t('{k} ta kompaniya · {o} ta obyekt', { k: son(m.kompaniya_soni), o: son(m.obyekt_soni) }),
+      t('24 soat: {x} xato · navbat {n}', { x: son(m.xato_24s), n: son(m.navbat) })];
+  }
+  if (x.tur === 'kompaniya') {
+    return [t('{o} ta obyekt · {s} ochiq signal', { o: son(m.obyekt_soni), s: son(m.ochiq_signal) }),
+      t('24 soat: {x} xato · navbat {n}', { x: son(m.xato_24s), n: son(m.navbat) })];
+  }
+  if (x.tur === 'modul') {
+    const oa = m.oxirgi_amal;
+    const navbat = m.navbat == null ? '' : ' · ' + t('navbat {n}', { n: son(m.navbat) });
+    return [oa?.vaqt ? t('oxirgi: {v}', { v: oldin(oa.vaqt) }) : t('7 kunda amal yo‘q'),
+      t('24 soat: {a} amal · {x} xato', { a: son(m.soni_24s), x: son(m.xato_24s) }) + navbat];
+  }
+  const qatorlar = Array.isArray(m.qatorlar) ? m.qatorlar.length : null;
+  return [qatorlar == null ? t('holat yozuvi') : t('{n} ta yozuv', { n: qatorlar }), ''];
+}
+
+function tizimAriaMatn(x: XTugun): string {
+  const [a, b] = tizimQatorlar(x);
+  return [tizimSarlavha(x), t('holat: {h}', { h: holatNomi(x.holat) }), a, b].filter(Boolean).join(', ');
+}
+
+function TizimKarta({ x, w, h, tanlangan, fokus, yigilgan, tomon, onYig }: {
+  x: XTugun; w: number; h: number; tanlangan: boolean; fokus: boolean; yigilgan: boolean; tomon: -1 | 1; onYig: () => void;
+}) {
+  const ildiz = x.daraja === 0;
+  const nom = tizimSarlavha(x);
+  const [q1, q2] = tizimQatorlar(x);
+  const px = ildiz ? 16 : 14.5;
+  const tx = tomon === 1 ? w + 3 : -23;
+  const xatoBor = x.tur === 'modul' && modulHolati(x.tizim?.meta) === 'xato';
+  return (
+    <g data-tizim-tur={x.tur}>
+      <title>{nom}</title>
+      <Ramka w={w} h={h} tanlangan={tanlangan} fokus={fokus} fon={x.tur === 'modul' ? 'var(--surface)' : 'var(--surface-2)'}
+        chegara={ildiz ? 'var(--accent)' : xatoBor ? 'var(--danger)' : 'var(--border-strong)'} />
+      <rect x={0} y={10} width={3} height={h - 20} rx={1.5} style={{ fill: HOLAT_RANG[x.holat] }} />
+      <RombSvg cx={19} cy={22} r={ildiz ? 7 : 5.5} holat={x.holat} />
+      <text x={34} y={27} style={{ fill: 'var(--text)', font: SHRIFT_NOM(px) }}>{kes(nom, w - 46, SHRIFT_NOM(px), px)}</text>
+      <text x={34} y={ildiz ? 50 : 47} style={{ fill: 'var(--text-dim)', font: '500 12px var(--font-sans)' }}>{kes(q1, w - 44, '500 12px var(--font-sans)', 12)}</text>
+      {q2 && <text x={34} y={ildiz ? 68 : 64} style={{ fill: xatoBor ? 'var(--danger)' : 'var(--text-mute)', font: '500 11.5px var(--font-mono)' }}>{kes(q2, w - 44, '500 11.5px var(--font-mono)', 11.5)}</text>}
+      {x.bolalar.length > 0 && <HolatSvg x={14} y={h - 9} w={w - 28} h={4} sanoq={x.holatSanoq} />}
+      {!ildiz && x.bolalar.length > 0 && (
+        <g data-boshqaruv onClick={(e) => { e.stopPropagation(); onYig(); }} onPointerDown={(e) => e.stopPropagation()}
+          transform={`translate(${tx} ${h / 2 - 10})`} style={{ cursor: 'pointer' }}>
+          <title>{yigilgan ? t('Modullarni ko‘rsatish ({n})', { n: x.bolalar.length }) : t('Modullarni yig‘ish')}</title>
+          <circle cx={10} cy={10} r={10} style={{ fill: 'var(--surface)', stroke: yigilgan ? 'var(--accent)' : 'var(--border-strong)' }} />
+          {yigilgan
+            ? <text x={10} y={14} textAnchor="middle" style={{ fill: 'var(--accent-text)', font: '700 11px var(--font-mono)' }}>{String(x.bolalar.length)}</text>
+            : <path d="M5.5 10 H14.5" strokeWidth={1.8} style={{ stroke: 'var(--text-dim)' }} />}
+        </g>
+      )}
     </g>
   );
 }
