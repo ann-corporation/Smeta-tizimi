@@ -22,12 +22,12 @@
       "owner": "codex", "machine": "Anvar",
       "branch": "codex/c11-daily-warehouse-20261027",
       "base_sha": "c2b9952b130a3fa573c6a0910c0931420aaa4a79",
-      "status": "in_progress",
+      "status": "ready_for_review",
       "owns": ["frontend/src/test02/TestSklad.tsx", "frontend/src/components/ombor/KirimKunlikForm.tsx", "frontend/src/components/ombor/KirimKunlikForm.test.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.tsx", "frontend/src/components/ombor/KirimKunlikJurnal.test.tsx", "frontend/src/i18n/lugat/qism/ombor-kunlik.json", "frontend/src/lib/ombor-kunlik/", "ops/mailbox/C11-DAILY-WAREHOUSE-20261027/"],
       "depends_on": [],
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
-      "note": "Owner-authorized isolated daily flow after PR181. Existing object warehouse only; keep Excel historical import as secondary. Explicit date/object/recipient/purpose and full review; stable operation_id, immutable retry on ambiguous result, no auto-post on restore. Read-only object/company journal; unknown actor/purpose stay unknown. No central-stock writes, API/function/schema changes, private source data, commit, or push. UI targets use explicit 48px and scoped close styling; no OpsUi/global changes."
+      "note": "Owner-authorized isolated daily flow after PR181, publishedPR190. Existing object warehouse only; Excel historical import secondary. Explicit date/object/recipient/purpose and full review; stable operation_id, immutable retry on ambiguous result, no auto-post on restore. Read-only object/company journal usesactualyaratildi; unknown actor/purpose stay unknown. Parent13focusedPASS/buildPASS/scopedlint0warnings; CI/main/owner production smoke pendingL0. No central-stock writes, API/function/schema changes or private source data. UI uses explicit48px; no OpsUi/global changes."
     },
     {
       "id": "OWNERSHIP-COORD-20261026",
