@@ -11,7 +11,7 @@ tizimi yo'q. Har bot amali server tomonda `t2_men_v1` vakolati + mavjud `permiss
 
 | Qism | Fayl |
 |---|---|
-| Migratsiya (yozildi, L0 qo'llaydi) | `supabase/migrations/20261114100000_t2_telegram_v1{,.rollback,.acceptance}.sql` |
+| Migratsiya (yozildi, L0 qo'llaydi) | `supabase/migrations/20261114400000_t2_telegram_v1{,.rollback,.acceptance}.sql` |
 | Umumiy mantiq (initData HMAC, webhook siri, kod, Bot API, `telegramYubor`) | `frontend/functions/_shared/telegram.ts` |
 | Webhook (sir, idempotent update_id, limit, darhol 200) | `frontend/functions/api/telegram/webhook.ts` |
 | Mini App kirish (initData → oddiy sessiya) | `frontend/functions/api/telegram/miniapp.ts` |

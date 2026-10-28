@@ -1,4 +1,4 @@
--- Acceptance: 20261114100000 — Telegram bot + Mini App poydevori. SINTETIK yozuvlar (o'zi yaratadi). BEGIN … ROLLBACK.
+-- Acceptance: 20261114400000 — Telegram bot + Mini App poydevori. SINTETIK yozuvlar (o'zi yaratadi). BEGIN … ROLLBACK.
 -- Avval asosiy migratsiya qo'llangan bo'lishi kerak (shu tranzaksiyada yoki prodda). Real foydalanuvchi ma'lumoti o'qilmaydi.
 -- S1 jadvallar RLS + yopiq; RPC faqat service_role.  S2 kod: yaratish, format, avvalgisi bekor.
 -- S3 ulash: bir martalik (ikkinchi marta KOD_ISHLATILGAN), muddati o'tgan rad, boshqa hisobdagi Telegram rad.
