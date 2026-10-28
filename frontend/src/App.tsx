@@ -13,6 +13,7 @@ import UlashSahifa from './kirish/UlashSahifa';
 
 const AdminShell = lazy(() => import('./admin/AdminShell'));
 const BossShell = lazy(() => import('./boss/BossShell'));
+const TgKirish = lazy(() => import('./telegram/TgKirish'));
 
 // Admin pages
 import { HolatNative } from './admin/sahifalar/HolatNative';
@@ -117,6 +118,8 @@ export default function App() {
         <Route path="/qoshil/:kod" element={<QoshilSahifa />} />
         {/* T5: obyektni ulashish havolasi — qabul qilgan odam obyektni o'z ish joyida faqat ko'radi. */}
         <Route path="/ulash/:kod" element={<UlashSahifa />} />
+        {/* Telegram Mini App (@qur_uz_bot menyu tugmasi): imzolangan initData → oddiy sessiya → rol bosh sahifasi. */}
+        <Route path="/tg" element={<Suspense fallback={<SahifaYuklanmoqda />}><TgKirish /></Suspense>} />
 
         {/* Admin shell and routes */}
         <Route path="/admin" element={
