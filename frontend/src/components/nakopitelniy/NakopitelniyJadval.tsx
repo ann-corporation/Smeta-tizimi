@@ -8,6 +8,10 @@ import { buildPtoLineLedger } from '../../lib/pto-document-lineage';
 import { oylikNuqtalar } from '../../lib/nakopitelniy-grafik';
 import { foizOl, yashirinIdlar } from '../../lib/nakopitelniy-korinish';
 import type { f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
+import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
+import type { Daraxt, Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
+import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
+import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
 
 /**
  * Kumulyativ reestr jadvali (egasi 2026-10-25): bitta uzluksiz jadval — sticky birinchi ustun va sarlavha, har oy bitta ixcham ustun
@@ -87,7 +91,38 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
 
   const bolalariBor = useMemo(() => { const s = new Set<number>(); for (const q of qatorlar) if (q.ota_id != null) s.add(q.ota_id); return s; }, [qatorlar]);
   const yashirin = useMemo(() => yashirinIdlar(qatorlar, yigilgan), [qatorlar, yigilgan]);
-  const korinar = useMemo(() => (yigilgan.size ? korinadigan.filter((q) => !yashirin.has(q.qator_id)) : korinadigan), [korinadigan, yashirin, yigilgan]);
+
+  /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27). Faqat ish/resurs qatorlari filtrlanadi; mos qatorning
+   * razdel/bloki ham ko'rinadi (daraxt buzilmaydi). */
+  const daraxt = useMemo<Daraxt<NakopitelniyQator>>(() => ({ id: (q) => q.qator_id, ota: (q) => q.ota_id, barg: (q) => q.tur !== 'rz' && !bolalariBor.has(q.qator_id) }), [bolalariBor]);
+  const ustunlar = useMemo<Ustun<NakopitelniyQator>[]>(() => {
+    const led = (q: NakopitelniyQator) => buildPtoLineLedger({ lineId: q.qator_id, baselineQuantity: q.smeta_hajm, baselineUnitPrice: q.smeta_narx, baselineAmount: q.smeta_summa,
+      factQuantity: q.fakt_hajm, factAmount: q.fakt_summa, previousApprovedQuantity: q.oldingi_hajm, previousApprovedAmount: q.oldingi_summa,
+      currentApprovedQuantity: q.joriy_hajm, currentApprovedAmount: q.joriy_summa, approvedF2Quantity: q.jami_hajm, approvedF2Amount: q.jami_summa });
+    const u: Ustun<NakopitelniyQator>[] = [
+      { kalit: 'kod', nom: t('Shifr'), tur: 'matn', qiymat: (q) => q.kod },
+      { kalit: 'nom', nom: t('Ish'), tur: 'matn', qiymat: (q) => q.nom },
+      { kalit: 'birlik', nom: t('Birlik'), tur: 'matn', qiymat: (q) => q.birlik },
+      { kalit: 'hajm', nom: t('Smeta hajmi'), tur: 'son', qiymat: (q) => q.smeta_hajm },
+      { kalit: 'narx', nom: t('Narx'), tur: 'son', qiymat: (q) => q.smeta_narx },
+      { kalit: 'summa', nom: t('Smeta summasi'), tur: 'son', qiymat: (q) => q.smeta_summa },
+      { kalit: 'fakt', nom: t('Fakt hajm'), tur: 'son', qiymat: (q) => q.fakt_hajm },
+      { kalit: 'f2', nom: t('F2 jami (tasdiqlangan)'), tur: 'son', qiymat: (q) => q.jami_summa },
+      { kalit: 'foiz', nom: t('Bajarilish'), tur: 'son', qiymat: (q) => foizOl(q.jami_summa, q.smeta_summa) },
+      { kalit: 'qoldi', nom: t('Smetadan qoldi'), tur: 'son', qiymat: (q) => led(q).smetaRemainingQuantity },
+      { kalit: 'f2ga', nom: t('F2 ga olish mumkin'), tur: 'son', qiymat: (q) => led(q).f2AvailableQuantity },
+      { kalit: 'shartnoma', nom: t('Shartnomadan qoldi'), tur: 'son', qiymat: (q) => led(q).contractualRemainingQuantity },
+    ];
+    for (const oy of oyKesim?.oylar ?? []) u.push({ kalit: 'oy:' + oy, nom: davrNomi(oy, tilLocale()), tur: 'son', qiymat: (q) => oyKesim?.qiymat.get(q.qator_id)?.get(oy)?.summa });
+    if (!oyKesim?.oylar.length) {
+      u.push({ kalit: 'oldingi', nom: t('Oldingi F2'), tur: 'son', qiymat: (q) => q.oldingi_summa });
+      u.push({ kalit: 'joriy', nom: t('Joriy F2'), tur: 'son', qiymat: (q) => q.joriy_summa });
+    }
+    return u;
+  }, [oyKesim]);
+  const f = useJadvalFiltr(korinadigan, ustunlar, daraxt);
+  const F = (kalit: string) => <UstunFiltrTugma {...f.tugma(kalit)} />;
+  const korinar = useMemo(() => (yigilgan.size ? f.natija.filter((q) => !yashirin.has(q.qator_id)) : f.natija), [f.natija, yashirin, yigilgan]);
   const qatorlarKorinadi = korinar.slice(0, limit);
   const yigiladigan = useMemo(() => qatorlar.filter((q) => q.tur === 'rz' && bolalariBor.has(q.qator_id)).map((q) => q.qator_id), [qatorlar, bolalariBor]);
   const almashtir = (id: number) => setYigilgan((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -98,7 +133,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
   const oyKenglik = 116;
   const thG = (rang: string): CSSProperties => ({ top: 0, height: 26, textAlign: 'center', fontSize: 10.5, borderBottom: `2px solid ${rang}`, ...chap });
   const th2: CSSProperties = { top: 26, height: 30, textAlign: 'right' };
-  const stickyTh: CSSProperties = { left: 0, zIndex: 3, minWidth: 250, textAlign: 'left' };
+  const stickyTh: CSSProperties = { left: 0, zIndex: 3, minWidth: 'clamp(170px, 18vw, 250px)', textAlign: 'left' };
 
   const hdr = (matn: string, izoh: string): ReactNode => <span title={izoh}>{matn}</span>;
 
@@ -153,7 +188,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
     const rang = q.tur === 'bl' ? 'fz-row-bl' : 'fz-row-res';
     return (
       <tr key={q.qator_id} className={rang} style={{ background: 'var(--surface)' }}>
-        <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'inherit', ...bosh(q), maxWidth: 420 }} title={q.ozgarish_izoh || q.kod || ''}>
+        <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'inherit', ...bosh(q), maxWidth: 'clamp(200px, 24vw, 420px)' }} title={q.ozgarish_izoh || q.kod || ''}>
           {q.kod ? <span className="fz-c-shifr" style={{ marginRight: 6 }}>{q.kod}</span> : null}{q.nom}
           {q.ozgarish_izoh && <span className="fz-chip fz-chip--accent" style={{ marginLeft: 6 }}>{q.zamena ? t('zamena') : t('qo‘shimcha')}</span>}
         </td>
@@ -222,14 +257,15 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
         </div>
       </div>
 
-      <div className="fz-table-wrap" style={{ maxHeight: '72vh' }}>
+      <FiltrHolatQatori soni={f.soni} natija={f.natija.filter(daraxt.barg!).length} jami={korinadigan.filter(daraxt.barg!).length} tozala={f.tozala} />
+      <div className="fz-table-wrap" style={{ maxHeight: 'max(320px, calc(100dvh - 150px))' }}>
         <table className="fz-table" style={{ minWidth: 980 }}>
           <thead>
             <tr>
-              <th rowSpan={2} style={{ ...stickyTh, top: 0 }}>{t('Ish')}</th>
-              <th rowSpan={2} style={{ top: 0, textAlign: 'center' }}>{t('Birlik')}</th>
+              <th rowSpan={2} style={{ ...stickyTh, top: 0 }}>{t('Shifr')}{F('kod')} · {t('Ish')}{F('nom')}</th>
+              <th rowSpan={2} style={{ top: 0, textAlign: 'center' }}>{t('Birlik')}{F('birlik')}</th>
               <th colSpan={3} style={thG('var(--border-strong)')}>{hdr(t('Smeta'), t('Shartnoma (smeta) bo‘yicha reja: hajm, narx va summa.'))}</th>
-              <th rowSpan={2} className="fz-c-num" style={{ top: 0, textAlign: 'right', ...chap }}>{hdr(t('Fakt hajm'), t('Haqiqatda bajarilgan hajm (fakt jurnalidan). Hali F2 ga kirmagan bo‘lishi mumkin.'))}</th>
+              <th rowSpan={2} className="fz-c-num" style={{ top: 0, textAlign: 'right', ...chap }}>{hdr(t('Fakt hajm'), t('Haqiqatda bajarilgan hajm (fakt jurnalidan). Hali F2 ga kirmagan bo‘lishi mumkin.'))}{F('fakt')}</th>
               <th colSpan={2} style={thG('var(--accent)')}>{oyUstunlar ? t('F2 jami (barcha oylar)') : t('F2 jami (tasdiqlangan)')}</th>
               <th colSpan={3} style={thG('var(--info)')}>{t('Qoldiq (hajm)')}</th>
               {oyUstunlar
@@ -237,25 +273,25 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
                 : <th colSpan={2} style={thG('var(--accent)')}>{t('Tasdiqlangan F2')}</th>}
             </tr>
             <tr>
-              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Hajm')}</th><th className="fz-c-num" style={th2}>{t('Narx')}</th><th className="fz-c-num" style={th2}>{t('Summa')}</th>
-              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Summa')}</th><th style={{ ...th2, textAlign: 'left' }}>{t('Bajarilish')}</th>
-              <th className="fz-c-num" style={{ ...th2, ...chap }}>{hdr(t('Smetadan qoldi'), t('Smeta hajmi − fakt hajmi: hali bajarilmagan qism.'))}</th>
-              <th className="fz-c-num" style={th2}>{hdr(t('F2 ga olish mumkin'), t('Fakt hajmi − tasdiqlangan F2 hajmi: bajarilgan, lekin aktga kiritilmagan qism. Qizil — F2 faktdan oshib ketgan.'))}</th>
-              <th className="fz-c-num" style={th2}>{hdr(t('Shartnomadan qoldi'), t('Shartnoma (tasdiqlangan o‘zgarishlar bilan) hajmi − tasdiqlangan F2 hajmi.'))}</th>
+              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Hajm')}{F('hajm')}</th><th className="fz-c-num" style={th2}>{t('Narx')}<SummaYorliq tur="narx" />{F('narx')}</th><th className="fz-c-num" style={th2}>{t('Summa')}{F('summa')}</th>
+              <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Summa')}{F('f2')}</th><th style={{ ...th2, textAlign: 'left' }}>{t('Bajarilish')}{F('foiz')}</th>
+              <th className="fz-c-num" style={{ ...th2, ...chap }}>{hdr(t('Smetadan qoldi'), t('Smeta hajmi − fakt hajmi: hali bajarilmagan qism.'))}{F('qoldi')}</th>
+              <th className="fz-c-num" style={th2}>{hdr(t('F2 ga olish mumkin'), t('Fakt hajmi − tasdiqlangan F2 hajmi: bajarilgan, lekin aktga kiritilmagan qism. Qizil — F2 faktdan oshib ketgan.'))}{F('f2ga')}</th>
+              <th className="fz-c-num" style={th2}>{hdr(t('Shartnomadan qoldi'), t('Shartnoma (tasdiqlangan o‘zgarishlar bilan) hajmi − tasdiqlangan F2 hajmi.'))}{F('shartnoma')}</th>
               {oyUstunlar ? oyUstunlar.map((oy, i) => (
                 <th key={oy} className="fz-c-num" style={{ ...th2, minWidth: oyKenglik, ...(i === 0 ? chap : {}), color: oy === oxirgiOy ? 'var(--accent-text)' : undefined }}
                   title={oy === oxirgiOy ? t('hisobot davri') : undefined}>
-                  {oyNomi(oy)}
+                  {oyNomi(oy)}{F('oy:' + oy)}
                 </th>
               )) : <>
-                <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Oldingi F2')}</th><th className="fz-c-num" style={th2}>{t('Joriy F2')}</th>
+                <th className="fz-c-num" style={{ ...th2, ...chap }}>{t('Oldingi F2')}{F('oldingi')}</th><th className="fz-c-num" style={th2}>{t('Joriy F2')}{F('joriy')}</th>
               </>}
             </tr>
           </thead>
           <tbody>
             {qatorlarKorinadi.map((q) => <Fragment key={q.qator_id}>{rowQ(q)}</Fragment>)}
-            {!qatorlarKorinadi.length && <tr><td colSpan={99} style={{ color: 'var(--text-mute)' }}>{filtrBor ? t('Qidiruv bo‘yicha qator topilmadi.') : t('Ko‘rsatiladigan qator yo‘q.')}</td></tr>}
-            {korinar.length <= limit && !filtrBor && jamiQator}
+            {!qatorlarKorinadi.length && <tr><td colSpan={99} style={{ color: 'var(--text-mute)' }}>{filtrBor || f.soni ? t('Qidiruv bo‘yicha qator topilmadi.') : t('Ko‘rsatiladigan qator yo‘q.')}</td></tr>}
+            {korinar.length <= limit && !filtrBor && !f.soni && jamiQator}
           </tbody>
         </table>
       </div>

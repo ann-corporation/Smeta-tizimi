@@ -1,7 +1,7 @@
 /**
  * RAHBAR PANELI — ustama bilan bog‘liq vizual bloklar (egasi 2026-10-26):
  * KPI count-up, ustama sharsharasi (waterfall), kategoriya donuti ("Boshqa material" segmenti bilan).
- * Yangi formula yo‘q: ustamali/ustamasiz/QQS `usePortfelUstamali` dan (= ustamaliHisobla), kategoriya — t2_obyekt_jami.
+ * Xulosa: QQS bilan asosiy (egasi 2026-10-27). Yangi formula yo‘q: ustamali/ustamasiz/QQS `usePortfelUstamali` dan (= ustamaliHisobla), kategoriya — t2_obyekt_jami.
  * Ranglar — Firuza tokenlari; harakat — prefers-reduced-motion hurmat qilinadi. NULL ≠ 0: noma’lum «—».
  */
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
@@ -11,6 +11,8 @@ import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis
 import { sbT2ObyektlarOl, type T2Obyekt } from '../../api/supabase';
 import { t } from '../../i18n/til';
 import { usePortfelUstamali, type PortfelObyekt } from '../../umumiy/ui/usePortfelUstamali';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
+import { portfelUchligi } from '../../lib/ustamali-summa';
 import { compactMoney } from '../boss-decision/decision-v2';
 import { GrafikKarta } from './RahbarGrafiklar';
 
@@ -30,21 +32,19 @@ export function SanaYurish({ qiymat, format = (n: number) => toliq.format(n) }: 
   return <span className="tabular-nums">{x == null ? '—' : format(x)}</span>;
 }
 
-/** Barcha obyektlar uchun xulosa kartasi: ustamali (katta) + ustamasiz (to‘g‘ridan-to‘g‘ri xarajat) yonma-yon. */
+/**
+ * Barcha obyektlar uchun xulosa kartasi (egasi 2026-10-27: QQS bilan — ASOSIY): portfel qiymati QQS bilan (katta),
+ * ostida ustamali (QQS siz) va to‘g‘ri xarajat (ustamasiz) — yagona `QiymatUchlik` ko‘rinishi.
+ */
 export function UstamaXulosaKarta({ obyektlar, ustamasiz, kompaniyaId }: { obyektlar: readonly PortfelObyekt[]; ustamasiz: number | null; kompaniyaId?: number | null }) {
   const p = usePortfelUstamali(obyektlar, { kompaniyaId });
-  const qisman = p.ustamali != null && p.nomalumSoni > 0;
-  const bil = ustamasiz != null && Number.isFinite(ustamasiz);
-  const kor = p.ustamali == null ? null : qisman && bil ? p.ustamali + Math.max(0, ustamasiz! - p.hisoblanganUstamasiz) : p.ustamali;
-  const holat = p.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : null;
+  const q = portfelUchligi(p, ustamasiz);
   return (
-    <div className="karta p-5" data-testid="ustama-xulosa">
-      <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{t('Ustamali smeta (ИТОГО-4, QQS siz)')}</p>
-      <p className="mt-1 text-[26px] font-semibold leading-8 text-text">
-        {holat ?? (kor == null ? '—' : <>{qisman ? '≈ ' : ''}<SanaYurish qiymat={kor} />{' UZS'}</>)}
-      </p>
-      <p className="mt-1 text-xs tabular-nums text-text-mute">{t('ustamasiz')}: {bil ? <>{toliq.format(ustamasiz!)} UZS</> : '—'}</p>
-      {qisman && <p className="text-[11px] text-warn">{t('{n} / {jami} obyekt ustamasi noma’lum', { n: p.nomalumSoni, jami: p.jamiSoni })}</p>}
+    <div className="karta @container min-w-0 p-4 xl:p-5" data-testid="ustama-xulosa">
+      <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{t('Smeta qiymati (QQS bilan)')}</p>
+      <QiymatUchlik q={q} yuklanmoqda={p.holat === 'yuklanmoqda'} className="mt-1 [&_[data-testid=summa-qqs]]:text-[clamp(15px,7.4cqi,26px)] [&_[data-testid=summa-qqs]]:font-semibold [&_[data-testid=summa-qqs]]:leading-8">
+        {q.taxminiy && <span className="text-[11px] text-warn">{t('{n} / {jami} obyekt ustamasi noma’lum', { n: p.nomalumSoni, jami: p.jamiSoni })}</span>}
+      </QiymatUchlik>
     </div>
   );
 }

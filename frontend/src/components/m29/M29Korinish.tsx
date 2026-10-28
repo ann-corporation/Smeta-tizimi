@@ -54,7 +54,7 @@ function PulFarq({ obyektId, summa, kesim, kichik = false }: { obyektId: number;
   return (
     <span className="inline-flex flex-col items-end">
       <small className={`text-[10.5px] font-semibold uppercase tracking-wide ${rang}`}>{soz}</small>
-      <SummaJuft obyektId={obyektId} ustamasiz={Math.abs(summa!)} katKesim={kesim} kichik={kichik} className="items-end text-right" />
+      <SummaJuft rejim="ustamali" obyektId={obyektId} ustamasiz={Math.abs(summa!)} katKesim={kesim} kichik={kichik} className="items-end text-right" />
     </span>
   );
 }
@@ -126,17 +126,17 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
               </div>
             </Korsatkich>
             <Korsatkich nom={t('Tejash (normadan kam)')} ikon={<TrendingDown size={15} />} rang="var(--ok)" ost={t('smeta narxida')}>
-              <SummaJuft obyektId={oid} ustamasiz={natija.jami.tejashSumma} katKesim={kesim.tejash} />
+              <SummaJuft rejim="ustamali" obyektId={oid} ustamasiz={natija.jami.tejashSumma} katKesim={kesim.tejash} />
             </Korsatkich>
             <Korsatkich nom={t('Ortiqcha sarf (normadan ko‘p)')} ikon={<TrendingUp size={15} />} rang="var(--danger)" ost={t('smeta narxida')}>
-              <SummaJuft obyektId={oid} ustamasiz={natija.jami.ortiqchaSumma} katKesim={kesim.ortiqcha} />
+              <SummaJuft rejim="ustamali" obyektId={oid} ustamasiz={natija.jami.ortiqchaSumma} katKesim={kesim.ortiqcha} />
             </Korsatkich>
             <Korsatkich nom={t('Sof natija')} ikon={<Scale size={15} />} ost={t('ortiqcha sarf − tejash')}>
               {natija.jami.farqSummaJami == null
                 ? <span className="text-text-mute" title={t('Ayrim materiallar narxi noma’lum')}>—</span>
                 : <span className="flex flex-col gap-0.5">
                   <span className={`text-[12px] font-semibold ${natija.jami.farqSummaJami > 0 ? 'text-danger' : 'text-ok'}`}>{natija.jami.farqSummaJami > 0 ? t('Zarar — normadan ortiq sarflangan') : t('Foyda — normadan kam sarflangan')}</span>
-                  <SummaJuft obyektId={oid} ustamasiz={Math.abs(natija.jami.farqSummaJami)} katKesim={kesim.sof} />
+                  <SummaJuft rejim="ustamali" obyektId={oid} ustamasiz={Math.abs(natija.jami.farqSummaJami)} katKesim={kesim.sof} />
                 </span>}
             </Korsatkich>
             <M29ChetlanishDiagramma royxat={chetlanish} />

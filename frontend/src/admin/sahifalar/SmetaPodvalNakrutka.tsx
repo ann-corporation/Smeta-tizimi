@@ -7,6 +7,7 @@ import { sbPodvallarOl, sbPodvalOchir, sbPodvalSaqla, type PodvalYozuv } from '.
 import { hujjatOl, hujjatRoyxatOl } from '../../api/t2-hujjat-canonical';
 import { yangiOperationId } from '../../api/supabase';
 import type { NakrutkaPodvalOqish } from '../../lib/smeta-anatomiya/nakrutka';
+import { kaskadCats, type SvodYaxlit } from '../../lib/svod-yaxlit';
 import { catsKat, fayldanNakrutkaOqi, koefFarqi, smetadanPodval, SMETA_PODVAL_NOMI, ustamaTasiri } from '../../lib/nakrutka-smetadan';
 
 /** Koeffitsient manbai yorlig'i (UI): smeta podvalidan / shartnoma / kompaniya / sukut. */
@@ -21,6 +22,8 @@ type Holat = {
   cats: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
   manba: NakrutkaManba | null;
   podval: PodvalYozuv | null;
+  /** Svod yaxlit (belgi bo'lsa): cats shunda kaskad kategoriyalari (cats_kaskad). */
+  svodYaxlit: SvodYaxlit | null;
 };
 
 /**
@@ -50,7 +53,7 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
   const yukla = async (): Promise<Holat | null> => {
     const [n, p] = await Promise.all([t2ObyektNakrutka(obyektId), sbPodvallarOl(kompaniyaId)]);
     if (!n.ok || !n.koeffitsientlar || !n.cats) { setXato(n.error || t('Joriy nakrutka o‘qilmadi')); return null; }
-    const h: Holat = { koef: n.koeffitsientlar, cats: n.cats, manba: n.nk_manba ?? null, podval: (p.ok ? p.qatorlar ?? [] : []).find((x) => x.obyekt_id === obyektId) ?? null };
+    const h: Holat = { koef: n.koeffitsientlar, cats: kaskadCats(n) ?? n.cats, svodYaxlit: n.svod_yaxlit ?? null, manba: n.nk_manba ?? null, podval: (p.ok ? p.qatorlar ?? [] : []).find((x) => x.obyekt_id === obyektId) ?? null };
     setHolat(h);
     return h;
   };
@@ -63,7 +66,7 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
   const tasir = useMemo(() => {
     if (!oqish || !holat || !joriy) return null;
     const yangi = { ...joriy, ...oqish.koeffitsientlar };
-    return ustamaTasiri(catsKat(holat.cats), joriy, yangi);
+    return ustamaTasiri(catsKat(holat.cats), joriy, yangi, holat.svodYaxlit);
   }, [oqish, holat, joriy]);
 
   const r2danOqi = async () => {

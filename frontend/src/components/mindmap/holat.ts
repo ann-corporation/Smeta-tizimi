@@ -17,9 +17,9 @@ export function holatNomi(h: XHolat): string {
 }
 
 export function holatIzohi(h: XHolat): string {
-  if (h === 'xavf') return t('Narxsiz qator, smeta yo‘q yoki ko‘zgu farqi');
-  if (h === 'etibor') return t('Ochiq zayavka yoki smetadan oshish');
-  if (h === 'yaxshi') return t('Belgi yo‘q');
+  if (h === 'xavf') return t('Narxsiz qator, smeta yo‘q, ko‘zgu farqi yoki kritik signal');
+  if (h === 'etibor') return t('Ochiq zayavka, resurs qatorlari yo‘q, F2 ortiqcha (overbilling) yoki ochiq signal');
+  if (h === 'yaxshi') return t('Belgi va ochiq signal yo‘q');
   return t('Holat o‘qilmadi');
 }
 

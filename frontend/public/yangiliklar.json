@@ -2,8 +2,8 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
 {
-  "id": 32,
-  "sana": "2026-10-27",
+  "id": 45,
+  "sana": "2026-10-29",
   "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
   "bandlar": [
     "Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.",
@@ -11,6 +11,110 @@
   ]
 },
 
+    {
+      "id": 42,
+      "sana": "2026-10-27",
+      "sarlavha": "Tizim xaritasi — tizimda nima bo'layotgani jonli",
+      "bandlar": [
+        "Yangi «Tizim xaritasi» sahifasi: kompaniyalar → modullar (smeta, fakt, F2, Nakopitelniy, sverka, ombor, agentlar), har birida oxirgi amal, 24 soatdagi xatolar va navbatdagi ishlar.",
+        "Yon tomonda «Oxirgi hodisalar» lentasi; xarita har 30 soniyada o'zi yangilanadi (yashirin tabda to'xtaydi).",
+        "Faqat platforma superadmini va u ruxsat bergan odamlar ko'radi; ruxsatlar shu sahifada beriladi va olinadi, har amal auditga yoziladi."
+      ]
+    },
+    {
+      "id": 41,
+      "sana": "2026-10-27",
+      "sarlavha": "Xarita: tugundan to'g'ridan-to'g'ri amal",
+      "bandlar": [
+        "Xaritada tugunni o'ng tugma bilan bosing (yoki panel sarlavhasidagi «Amallar», klaviaturada Shift+F10) — shu tugun uchun amallar menyusi ochiladi.",
+        "Obyektda: LRV, fakt kiritish, F2 tayyorlash va tarixi, Nakopitelniy, smeta yuklash, zayavka, mas'ul biriktirish va topshiriq berish. Odamda: mas'ul qilish, topshiriq berish, rolni o'zgartirish. Shartnomada: to'lov va akt-sverka; skladda: prixod/rasxod.",
+        "Ruxsatingiz yo'q amal qulf bilan ko'rinadi va sababi yoziladi; moliyaviy ruxsat bo'lmasa pulga oid amallar chiqmaydi. Har yozuvchi amal mavjud server buyrug'i orqali — ruxsat va audit serverda."
+      ]
+    },
+    {
+      "id": 40,
+      "sana": "2026-10-27",
+      "sarlavha": "Tizimga oid bo'limlar faqat platforma administratorida",
+      "bandlar": [
+        "Menyudan «Sayt xaritasi» olib tashlandi.",
+        "Tizimning o'ziga oid bo'limlar (integratsiyalar holati, texnik nazorat, AI model katalogi va ustamasi, sinov sahifalari) endi faqat platforma administratoriga ko'rinadi — menyuda ham, to'g'ridan-to'g'ri havola bilan ham.",
+        "Kompaniya va uning a'zolari AI modelini avvalgidek o'zi tanlaydi (qimmat modellarni ham), kompaniya model siyosatini ham o'zi belgilaydi. Har model yonida narxi ko'rinadi: «arzon / o'rta / qimmat» va «1 so'rov ≈ N token»; qimmat model tanlanganda narxi bilan ogohlantirish chiqadi.",
+        "«Tokenlar va obuna» sahifasida kompaniya o'z balansini, sarfini va har amalning yakuniy narxini ko'radi; narxning ichki tarkibi ko'rsatilmaydi.",
+        "AI yordamchisi, chat, takliflar va AI jurnali avvalgidek ishlaydi (javob bergan model nomi ham ko'rinadi). Kompaniyaning o'z sozlamalari, a'zolari, modullari va audit jurnali ham o'zgarmagan."
+      ]
+    },
+    {
+      "id": 39,
+      "sana": "2026-10-27",
+      "sarlavha": "Obyekt qiymati endi QQS bilan — asosiy raqam",
+      "bandlar": [
+        "Har obyekt, bo'lim, shartnoma va portfel jami summasida katta raqam endi QQS bilan qiymat (ВСЕГО, server hisobi bilan bir xil). Ostida kichik: «ustamali, QQS siz» (ИТОГО-4) va «to'g'ri xarajat (ustamasiz)».",
+        "Rahbar paneli, Nakopitelniy kartalari (smeta, fakt, F2, faktdan F2 ga mumkin), Smeta anatomiyasi, Resurs vedomosti, Pereraschet sof natijasi, Pul tahlili, F2 reestri, shartnoma va obyekt kartalarida shunday. QQS stavkasi koeffitsientlardan olinadi.",
+        "Qiymat noma'lum bo'lsa «—» (sababi sichqoncha ostida), 0 emas; kategoriyasi noma'lum qism bo'lsa ikkala qiymat ham «≈ taxminiy».",
+        "Smeta va F2 narxlari, qator summalari, tasdiqlangan F2 aktlari va rasmiy hujjat/Excel shakllari o'zgarmaydi. Tasdiqlangan F2 jami (hujjat jami) hozircha «ustamasiz, QQS siz» yorlig'i bilan ko'rsatiladi."
+      ]
+    },
+    {
+      "id": 38,
+      "sana": "2026-10-27",
+      "sarlavha": "Har bir hujjatda tizim imzosi",
+      "bandlar": [
+        "Tizimdan yuklab olinadigan har Excel hujjat (F2, F3, LRV, Nakopitelniy, ostatka, sverka, pereraschet, oferta va boshqalar) sahifa pastida tizim imzosini oladi: «Smeta tizimi · smeta-tizimi.pages.dev», hujjat nomi, kim yaratgani, sana-vaqt va tekshirish kodi.",
+        "Tekshirish kodi hujjat mazmunidan olinadi: bir xil hujjat — bir xil kod, raqam o'zgarsa — kod ham o'zgaradi. Fayl xususiyatlarida (Muallif / Tashkilot / Izoh) ham shu imzo bor.",
+        "Imzo faqat kolontitulda — rasmiy shakllar, jadval va Подрядчик/Заказчик imzo bloklari joyidan siljimaydi. F2 oylik paket ichidagi har fayl ham imzolanadi."
+      ]
+    },
+    {
+      "id": 36,
+      "sana": "2026-10-27",
+      "sarlavha": "Xarita: jamoa va mas'ullar; jadval ustun filtrlari",
+      "bandlar": [
+        "Xaritada obyekt/loyihaga mas'ul biriktirish va jamoa ko'rinishi; har kim faqat o'ziga ruxsat berilgan qismni ko'radi.",
+        "Nakopitelniy jadvalida Excel'dagidek ustun filtrlari; grafiklar endi cho'zilib ketmaydi.",
+        "Fakt ekrani ixchamroq, suzuvchi AI tugmalari jadval raqamlarini to'smaydi."
+      ]
+    },
+    {
+      "id": 35,
+      "sana": "2026-10-27",
+      "sarlavha": "Pul tahlilida «Moliyaviy tahlil» jadvali",
+      "bandlar": [
+        "Nakopitelniy → Shartnoma svodi → Pul tahlili ichida 16 ko'rsatkichli moliyaviy tahlil (mlrd so'm, QQS bilan): fakt, F2, tushgan pul, sarf, qarz, yakunlash va yakuniy farq.",
+        "Har qator yonida manba belgisi (tizim / qo'lda / hisoblangan) va formula; tizimda yo'q qiymatlarni (qarz, kutilayotgan F2, yakunlash uchun talab) shu yerning o'zida qo'lda kiritish mumkin — sana va muallif saqlanadi.",
+        "Noma'lum qiymat «—» bo'lib qoladi va unga bog'liq hisoblar ham «—» — nol bilan aldamaydi. Excel'ga (rus tilida) egasi jadvali tartibida yuklab olinadi."
+      ]
+    },
+    {
+      "id": 34,
+      "sana": "2026-10-27",
+      "sarlavha": "Katta obyektlarda Nakopitelniy ishonchli ochiladi",
+      "bandlar": [
+        "Katta obyektlarda (25 ming+ qator) Nakopitelniy endi «keyinroq qayta urinib ko'ring» demaydi: sahifalar serverga bir vaqtda 4 tadan emas, ko'pi bilan 2 tadan so'raladi, server vaqtincha band bo'lsa o'zi 2 marta qayta urinadi.",
+        "Yuklash paytida nechta qator o'qilgani ko'rinadi («Yuklanmoqda… 10 000 / 26 475 qator»).",
+        "Pul tahlili, shartnoma svodi va F2 reestri Nakopitelniy yuklanib bo'lgach o'qiladi — bir vaqtda serverni to'ldirmaydi. Raqamlar o'zgarmaydi."
+      ]
+    },
+    {
+      "id": 33,
+      "sana": "2026-10-27",
+      "sarlavha": "Svod yaxlit bo'limlari — barcha ekran va hujjatlarda ustamasiz",
+      "bandlar": [
+        "Svodda (письмо заказчика / ekspertiza) yaxlit summa bilan berilgan bo'limlarga endi hech qaysi ekranda ustama qo'shilmaydi: smeta qiymati, Nakopitelniy ko'rsatkichlari va «к оплате» paneli, Resurs vedomosti, Pereraschet, nakrutka podvali konstruktori va smeta podvali preview'i server ВСЕГО bilan bir xil raqam ko'rsatadi.",
+        "Nakopitelniy, Ostatka, Slichitelniy va LRV Excel hujjatlarida bu bo'limlar qatorlarida «к оплате» = to'g'ri xarajat (koeffitsientsiz), podvalda esa alohida «Разделы по своду целой суммой (без накладных расходов, без НДС)» qatori ИТОГО-4 ga qo'shiladi, НДС bir marta.",
+        "Tasdiqlangan F2 aktlari va F2 hujjati o'zgarmaydi."
+      ]
+    },
+    {
+      "id": 32,
+      "sana": "2026-10-27",
+      "sarlavha": "Email kod bilan kirish, Sozlamalar markazi va obyekt imzochilari",
+      "bandlar": [
+        "Kirish sahifasida email orqali kirish: emailingizga 6 xonali kod keladi (10 daqiqa amal qiladi), kodni kiritib kirasiz — parol shart emas. Yangi hisob ochilganda kompaniya avtomatik ochilmaydi: kompaniyaga taklif havolasi orqali qo'shilasiz yoki STIR bilan kompaniya ochish so'rovini yuborasiz.",
+        "«Sozlamalar markazi» (yon menyuda): hujjat imzo tomonlari, hujjat dizayni va F2 tasdiq rejimi endi kompaniya bo'yicha serverda saqlanadi — boshqa kompyuterda yoki boshqa xodimda ham bir xil.",
+        "Hujjat imzochilari loyiha, obyekt yoki razdel darajasida belgilanadi; har tomon (zakazchik, pudratchi, texnadzor…) o'z imzochisini o'zi tayinlaydi, avval kiritilgan nomlar taklif sifatida chiqadi.",
+        "Kompaniya xaritasida (mindmap) F2 faqat tasdiqlangan aktlardan hisoblanadi, qoralama alohida; fakt kiritilmagan obyekt «fakt kiritilmagan» deb ko'rsatiladi."
+      ]
+    },
     {
       "id": 31,
       "sana": "2026-10-27",

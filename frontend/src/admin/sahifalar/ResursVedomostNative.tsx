@@ -12,6 +12,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { t } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { katKesimYigish } from '../../lib/ustamali-summa';
 import { AlertTriangle, Eye, FileSpreadsheet, Search } from 'lucide-react';
 
@@ -29,7 +30,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   const [error, setError] = useState('');
   const [qidiruv, setQidiruv] = useState('');
   const [holatlar, setHolatlar] = useState<T2QatorHolat[]>([]);
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(companyId);
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(companyId, Number(objectId) || null);
 
   useEffect(() => {
     let active = true;
@@ -81,9 +82,11 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
   const jamiSmeta = kategoriyalar.reduce((x, k) => x + k.jamiSmetaSumma, 0);
   const jamiF2 = kategoriyalar.reduce((x, k) => x + k.jamiF2Summa, 0);
   const jamiQoldiq = kategoriyalar.reduce((x, k) => x + k.jamiQoldiqSumma, 0);
-  const smetaKesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiSmetaSumma);
-  const f2Kesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiF2Summa);
   const oid = Number(objectId) || null;
+  // Svod yaxlit belgili obyektda butun smeta ustamalisi — server kesimi (yaxlit bo'limlar ustamasiz, QQS bir marta).
+  const obyektKesim = useUstamaliSumma(oid, { kompaniyaId: companyId }).obyektKesim;
+  const smetaKesim = obyektKesim ?? katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiSmetaSumma);
+  const f2Kesim = katKesimYigish(kategoriyalar, k => k.kat, k => k.jamiF2Summa);
   return (
     <div className="space-y-3">
       {korinish.oyna}
@@ -119,7 +122,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
               onClick={() => void hujjat(false)}><FileSpreadsheet aria-hidden="true" />Ресурсная ведомость (Excel)</button>
             <button type="button" className="fz-btn" title={t('Saytda hujjatdagiday ko‘rish')}
               onClick={() => void hujjat(true)}><Eye aria-hidden="true" />{t('Ko‘rish')}</button>
-            <div className="min-w-[260px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
+            <div className="min-w-[260px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
           </div>
           <label className="relative block max-w-sm">
             <Search size={14} aria-hidden="true" className="absolute left-2.5 top-[9px] text-text-mute" />

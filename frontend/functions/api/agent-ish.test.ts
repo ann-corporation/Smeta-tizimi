@@ -4,8 +4,12 @@ const m = vi.hoisted(() => ({ tekshir: vi.fn() }));
 vi.mock('../_shared/auth', () => ({ tekshir: m.tekshir }));
 
 import { buyruqIssueMatni, izTozala, onRequestGet, onRequestPost } from './agent-ish';
+import { mijozNarxKeshTozala } from '../_shared/ai-mijoz-narx';
 
 const env = (o: Record<string, unknown> = {}) => ({ SUPABASE_URL: 'https://x.supabase.co', SUPABASE_KEY: 'svc', SESSIYA_KALIT: 's', AGENT_ISH_YOQILGAN: '1', GROQ_API_KEY: 'g', ...o });
+/** Platforma superadmini (middleware bazadan olgan vakolat) — model katalogi/ustama kabi tizim amallari faqat shunga. */
+const SA = { roleAuthority: { rol: 'superadmin', foydalanuvchi_id: 7 } };
+const postSa = (body: unknown, e = env()) => onRequestPost({ request: new Request('https://t/api/agent-ish', { method: 'POST', body: JSON.stringify(body) }), env: e, data: SA } as never);
 const post = (body: unknown, e = env()) => onRequestPost({ request: new Request('https://t/api/agent-ish', { method: 'POST', body: JSON.stringify(body) }), env: e } as never);
 
 const rpcJavob = (d: unknown) => new Response(JSON.stringify(d), { status: 200 });
@@ -126,10 +130,77 @@ describe('agent-ish shlyuzi', () => {
     expect(await r.json()).toMatchObject({ ok: true, taklif: 'Bu yerga o‘ting', yol: null });
   });
 
+  describe('egasi 2026-10-27 (2-javob): kompaniya modelni tanlaydi, narxi TOKEN da; platforma iqtisodiyoti yopiq', () => {
+    beforeEach(() => mijozNarxKeshTozala());
+    /** Sintetik: katalog (USD tannarx), token sozlamasi (1 token = 100 so'm, kurs 12 000, ustama 50%). */
+    const baza = () => vi.fn(async (u: string) => {
+      const url = String(u);
+      if (url.includes('/rest/v1/t2_token_sozlama')) return rpcJavob([{ token_som: 100, usd_kurs: 12000, ai_ustama_foiz: 50 }]);
+      if (url.includes('/rest/v1/t2_agent_ustama')) return rpcJavob([]);
+      if (url.includes('t2_agent_modellar_v1')) return rpcJavob({ ok: true, rol: 'boss', tanlash_mumkin: true, agentlar: [{ kod: 'prorab', model_id: 'vendor/arzon', model_manba: 'kompaniya' }], katalog: [
+        { id: 'vendor/arzon', nom: 'Arzon', narx_izoh: '≈ $0.0005 / javob', narx_kirish_usd: 0.1, narx_chiqish_usd: 0.4 },
+        { id: 'vendor/qimmat', nom: 'Qimmat', narx_izoh: '≈ $0.0825 / javob', narx_kirish_usd: 15, narx_chiqish_usd: 75 },
+      ] });
+      if (url.includes('openrouter.ai')) return rpcJavob({ data: [{ id: 'vendor/qimmat', name: 'Qimmat', context_length: 200000, pricing: { prompt: '0.000015', completion: '0.000075' }, supported_parameters: ['response_format'] }] });
+      return rpcJavob({ ok: true, tanlovlar: [], model_erkin: true, tahrir_mumkin: true });
+    });
+    const USD = /_usd|narx_izoh|ustama|usd_kurs|token_som|"\$|\$0|"narx":/;
+
+    it('boss (superadmin emas): modellar ro‘yxati — USD/ustamasiz, mijoz narxi (token/so‘rov) va daraja bilan', async () => {
+      vi.stubGlobal('fetch', baza());
+      const r = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=modellar&kompaniya_id=5'), env: env() } as never);
+      expect(r.status).toBe(200);
+      const j = await r.json() as { katalog: Array<Record<string, unknown>> };
+      expect(JSON.stringify(j)).not.toMatch(USD);
+      // t2_agent_sarf_yoz_v1: ceil(round(usd × 1.5, 6) × 12000 / 100); usd = (3000·kir + 500·chiq) / 1e6
+      expect(j.katalog).toEqual([
+        { id: 'vendor/arzon', nom: 'Arzon', javob_token: 1, narx_daraja: 'arzon' },
+        { id: 'vendor/qimmat', nom: 'Qimmat', javob_token: 15, narx_daraja: 'qimmat' },
+      ]);
+    });
+
+    it('superadmin: USD tannarx ham, mijoz narxi ham', async () => {
+      vi.stubGlobal('fetch', baza());
+      const j = await (await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=modellar&kompaniya_id=5'), env: env(), data: SA } as never)).json() as { katalog: Array<Record<string, unknown>> };
+      expect(j.katalog[1]).toMatchObject({ narx_kirish_usd: 15, javob_token: 15, narx_daraja: 'qimmat' });
+    });
+
+    it('boss: katalog baholash (openrouter_modellar, ids) — USD va «$» matnlarsiz; erkin qidiruv (import uchun) — 403', async () => {
+      vi.stubGlobal('fetch', baza());
+      const r = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=openrouter_modellar&kompaniya_id=5&profil=prorab&ids=vendor/qimmat'), env: env() } as never);
+      expect(r.status).toBe(200);
+      const j = await r.json() as { natija: Array<Record<string, unknown>> };
+      expect(JSON.stringify(j)).not.toMatch(USD);
+      expect(j.natija[0]).toMatchObject({ id: 'vendor/qimmat', javob_token: 15, narx_daraja: 'qimmat', ogohlantirish: 'Qimmat model: har so‘rov ≈ 15 token.' });
+      expect((await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=openrouter_modellar&kompaniya_id=5&q=claude'), env: env() } as never)).status).toBe(403);
+    });
+
+    it('boss: shaxsiy model, siyosat — o‘qish; model tanlash, shaxsiy tanlash, siyosatni saqlash — bazaga uzatiladi (200)', async () => {
+      const f = baza(); vi.stubGlobal('fetch', f);
+      for (const b of ['model_shaxsiy', 'model_siyosat']) {
+        expect((await onRequestGet({ request: new Request(`https://t/api/agent-ish?bolim=${b}&kompaniya_id=5`), env: env() } as never)).status, b).toBe(200);
+      }
+      for (const amal of ['model_tanla', 'model_shaxsiy_tanla', 'model_siyosat_saqla']) {
+        expect((await post({ amal, kompaniya_id: 5, profil: 'prorab', model_id: 'vendor/qimmat', model_erkin: true })).status, amal).toBe(200);
+      }
+      const rpclar = f.mock.calls.map(([u]) => String(u));
+      for (const n of ['t2_agent_model_tanla_v1', 't2_agent_model_shaxsiy_tanla_v1', 't2_agent_model_siyosat_saqla_v1']) expect(rpclar.some((u) => u.includes(n)), n).toBe(true);
+    });
+
+    it('boss: katalog yozish, OpenRouter importi, ustama, USD byudjet — 403 (bazaga yetmaydi); superadminga ochiq', async () => {
+      const f = baza(); vi.stubGlobal('fetch', f);
+      for (const amal of ['model_katalog_yoz', 'model_openrouterdan_qosh', 'ustama_belgila', 'byudjet_belgila']) {
+        expect((await post({ amal, model_id: 'vendor/qimmat', nom: 'Q', foiz: 5, limit_usd: 5 })).status, amal).toBe(403);
+      }
+      expect(f).not.toHaveBeenCalled();
+      expect((await postSa({ amal: 'ustama_belgila', foiz: 30 })).status).toBe(200);
+    });
+  });
+
   it('model_katalog_yoz kompaniya doirasida rad; model_tanla profil talab qiladi', async () => {
     vi.stubGlobal('fetch', vi.fn());
-    expect((await post({ amal: 'model_katalog_yoz', kompaniya_id: 5, model_id: 'a/b', nom: 'X' })).status).toBe(403);
-    expect((await post({ amal: 'model_tanla', kompaniya_id: 5, profil: 'BAD PROFIL', model_id: 'a/b' })).status).toBe(400);
+    expect((await postSa({ amal: 'model_katalog_yoz', kompaniya_id: 5, model_id: 'a/b', nom: 'X' })).status).toBe(403);
+    expect((await postSa({ amal: 'model_tanla', kompaniya_id: 5, profil: 'BAD PROFIL', model_id: 'a/b' })).status).toBe(400);
   });
 
   it('AI o‘chiq bo‘lsa ham boshqaruv amallari ishlaydi: model tanlash va fikrni SAQLASH (model chaqirilmaydi)', async () => {
@@ -181,12 +252,12 @@ describe('agent-ish shlyuzi', () => {
   it('AI markazi va limit belgilash faqat tizim doirasida; sozlama holati kalitsiz (faqat true/false)', async () => {
     const f = vi.fn(async (u: string) => (String(u).includes('t2_agent_markaz_v1') ? rpcJavob({ ok: true, oy_sarfi_usd: 1.5, limit_usd: 50 }) : new Response('{}', { status: 500 })));
     vi.stubGlobal('fetch', f);
-    const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=markaz'), env: env({ OPENROUTER_API_KEY: 'sir-kalit' }) } as never);
+    const g = await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=markaz'), env: env({ OPENROUTER_API_KEY: 'sir-kalit' }), data: SA } as never);
     const j = await g.json() as Record<string, unknown>;
     expect(j).toMatchObject({ ok: true, oy_sarfi_usd: 1.5, sozlama: { ai_yoqilgan: true, openrouter: true, github: false } });
     expect(JSON.stringify(j)).not.toContain('sir-kalit');
     expect((await onRequestGet({ request: new Request('https://t/api/agent-ish?bolim=markaz&kompaniya_id=5'), env: env() } as never)).status).toBe(403);
-    expect((await post({ amal: 'byudjet_belgila', kompaniya_id: 5, limit_usd: 'abc' })).status).toBe(400);
+    expect((await postSa({ amal: 'byudjet_belgila', kompaniya_id: 5, limit_usd: 'abc' })).status).toBe(400);
   });
 
   it('kompaniya sozlamasi: saqlash, kuzatuv ruxsati yo‘q bo‘lsa qadam_taklif model chaqirmaydi; ustama faqat tizim RPC iga', async () => {
@@ -205,8 +276,8 @@ describe('agent-ish shlyuzi', () => {
     const q = await post({ amal: 'qadam_taklif', kompaniya_id: 5, iz: [{ t: 3, tur: 'sahifa', nom: 'a' }, { t: 2, tur: 'xato', nom: 'b' }, { t: 1, tur: 'xato', nom: 'c' }] });
     expect(await q.json()).toMatchObject({ ok: true, taklif: null, kuzatuv: 'ochirilgan' });
     expect(f.mock.calls.some(([u]) => String(u).includes('openrouter.ai') || String(u).includes('t2_agent_sarf_'))).toBe(false);
-    expect((await post({ amal: 'ustama_belgila', kompaniya_id: 5, foiz: 25 })).status).toBe(403);
-    expect((await post({ amal: 'ustama_belgila', foiz: 'x' })).status).toBe(400);
+    expect((await postSa({ amal: 'ustama_belgila', kompaniya_id: 5, foiz: 25 })).status).toBe(403);
+    expect((await postSa({ amal: 'ustama_belgila', foiz: 'x' })).status).toBe(400);
   });
 
   it('token yetmasa/AI o‘chirilgan bo‘lsa model chaqirilmaydi va tushunarli xabar (402)', async () => {
@@ -264,6 +335,16 @@ describe('agent-ish shlyuzi', () => {
       expect(model.model).toBe('google/gemini-2.5-flash-lite');
       expect(JSON.stringify(model.messages)).toContain('Sement');
       expect(f.mock.calls.some(([u]) => String(u).includes('t2_agent_sarf_yoz_v1'))).toBe(true);
+    });
+
+    it('superadmin bo‘lmagan: javobda model nomi va provayder BOR (AI doimgiday); faqat provayder sarfi (USD) yo‘q', async () => {
+      vi.stubGlobal('fetch', mock(PROR));
+      const r = await post({ amal: 'kasb_savol', kompaniya_id: 5, savol: 'Omborda sement qancha qolgan?' }, env({ OPENROUTER_API_KEY: 'k', GROQ_API_KEY: undefined }));
+      const j = await r.json() as Record<string, unknown>;
+      expect(j.javob).toContain('10 t sement');
+      expect(j.model).toBe('google/gemini-2.5-flash-lite');
+      expect(j).toHaveProperty('provider');
+      expect(JSON.stringify(j)).not.toMatch(/"cost"|_usd/);
     });
 
     it('salomlashuv — mahalliy (model chaqirilmaydi), ishchi nomi va namunalar bilan', async () => {

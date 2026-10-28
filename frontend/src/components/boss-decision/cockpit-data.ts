@@ -3,7 +3,7 @@ import type { BossExecutive } from './model';
 import { amount } from './model';
 
 export const entityTypes: TugunTur[] = ['kompaniya','loyiha','shartnoma','obyekt','sklad','texnika','kadr','kontragent','zayavka'];
-export const entityLabels: Record<TugunTur,string> = {kompaniya:'Kompaniya',loyiha:'Loyiha',shartnoma:'Shartnoma',obyekt:'Obyekt',sklad:'Ombor',texnika:'Texnika',kadr:'Xodim',kontragent:'Hamkor',zayavka:'Ta’minot so‘rovi'};
+export const entityLabels: Record<TugunTur,string> = {kompaniya:'Kompaniya',loyiha:'Loyiha',shartnoma:'Shartnoma',obyekt:'Obyekt',sklad:'Ombor',texnika:'Texnika',kadr:'Xodim',kontragent:'Hamkor',zayavka:'Ta’minot so‘rovi',foydalanuvchi:'A’zo'};
 export type GraphSnapshot = { graph:MindmapGraf; omittedEdges:number; readAt:string };
 const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 export function entityKey(value:unknown):value is string {

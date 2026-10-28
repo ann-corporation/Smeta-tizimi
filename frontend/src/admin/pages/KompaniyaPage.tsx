@@ -18,8 +18,10 @@ import { Fragment, useMemo, useState } from 'react';
 import {
   Building2, Crown, ShieldCheck, Loader2, AlertTriangle, Trash2, Users, LogOut,
   User, KeyRound, Layers, FolderKanban, Plug, History, Save, RefreshCw,
-  Send, Clock, CheckCircle2, XCircle, Check, Info,
+  Send, Clock, CheckCircle2, XCircle, Check, Info, Settings2,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { KompaniyaSozlamaPanel } from '../../components/kompaniya-sozlama/KompaniyaSozlamaPanel';
 import { useMen, useOnboardingCommands, useKompaniyaAzolari, useKompaniyaProfil, useProfilYangila, useKompaniyaRoyxatlar, useAzolikRuxsatlari, type Azolik, type KompaniyaProfil, type KompaniyaRoyxat } from '../../api/t2-men';
 import { useSystemControl } from '../../api/t2-control';
 import { useModullar, useModulOzgartir } from '../../api/t2-modul';
@@ -367,6 +369,7 @@ function QoshimchaRuxsatlarBoshqaruv({ kompaniyaId, isDirector }: { kompaniyaId:
 /** «Telegram modeli» (egasi 2026-10-21): kompaniya o'ziga kerak modullarni yoqadi, o'chirilgani menyuda ko'rinmaydi.
  *  PTO yadrosi (obyekt, smeta, Fakt, F2, Nakopitelniy, M-29) — doim yoqilgan, modul emas. O'zgartirish — boss/superadmin. */
 function ModullarTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirector: boolean }) {
+  const { superadmin } = useKompaniya();
   const q = useModullar(kompaniyaId);
   const ozgartir = useModulOzgartir(kompaniyaId);
   const yoqilgan = (q.data ?? []).filter((m) => m.holat === 'on').length;
@@ -398,7 +401,8 @@ function ModullarTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirec
         </div>
         {ozgartir.isError && <div className="px-4 pb-4"><Xato matn={`${t('O‘zgartirilmadi')}: ${(ozgartir.error as Error)?.message}`} /></div>}
       </section>
-      <TexnikImkoniyatlar kompaniyaId={kompaniyaId} />
+      {/* Texnik imkoniyatlar (capability bayroqlari) — tizimga oid, faqat platforma superadmini (egasi 2026-10-27). */}
+      {superadmin && <TexnikImkoniyatlar kompaniyaId={kompaniyaId} />}
     </div>
   );
 }
@@ -559,15 +563,24 @@ const TABS = [
   { key: 'loyiha', nom: 'Loyiha/Obyekt', Ikonka: FolderKanban },
   { key: 'integratsiya', nom: 'Integratsiyalar', Ikonka: Plug },
   { key: 'audit', nom: 'Audit', Ikonka: History },
+  { key: 'sozlamalar', nom: 'Sozlamalar', Ikonka: Settings2 },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
+const TIZIM_TABLAR: ReadonlySet<TabKey> = new Set<TabKey>(['integratsiya']);
 
 function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaId: number; kompaniyaNom: string; isDirector: boolean }) {
-  const [tab, setTab] = useState<TabKey>('profil');
+  const [params, setParams] = useSearchParams();
+  const { superadmin } = useKompaniya();
+  /* «Integratsiyalar» (tizim integratsiyalari sog'lig'i) — tizimga oid, faqat platforma superadmini (egasi 2026-10-27).
+   * «Audit» — kompaniyaning o'z biznes amallari jurnali, rahbariyatda qoladi. */
+  const tablar = TABS.filter((x) => superadmin || !TIZIM_TABLAR.has(x.key));
+  const tabParam = params.get('tab');
+  const tab: TabKey = tablar.some((x) => x.key === tabParam) ? tabParam as TabKey : 'profil';
+  const setTab = (k: TabKey) => setParams((p) => { const n = new URLSearchParams(p); n.set('tab', k); return n; }, { replace: true });
   return (
     <div>
       <div role="tablist" aria-label={t('Kompaniya boshqaruvi')} className="flex items-center gap-1 overflow-x-auto border-b border-border">
-        {TABS.map((x) => (
+        {tablar.map((x) => (
           <button key={x.key} type="button" role="tab" aria-selected={tab === x.key} onClick={() => setTab(x.key)}
             className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors ${tab === x.key ? 'border-accent text-text' : 'border-transparent text-text-dim hover:text-text'}`}>
             <x.Ikonka size={14} className={tab === x.key ? 'text-accent' : ''} /> {t(x.nom)}
@@ -582,6 +595,7 @@ function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniy
         {tab === 'loyiha' && <LoyihaObyektTab />}
         {tab === 'integratsiya' && <IntegratsiyalarTab kompaniyaId={kompaniyaId} />}
         {tab === 'audit' && <AuditTab kompaniyaId={kompaniyaId} />}
+        {tab === 'sozlamalar' && <KompaniyaSozlamaPanel kompaniyaId={kompaniyaId} />}
       </div>
     </div>
   );

@@ -27,9 +27,9 @@ import { M29Chiqim } from './M29Chiqim';
 function Sessiya({ companyId }: { companyId: number }) {
   const workspace = usePTOWorkspace();
   const korinish = useHujjatKorinish();
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(companyId);
   const [objects, setObjects] = useState<T2Obyekt[]>([]);
   const [objectId, setObjectId] = useState('');
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(companyId, Number(objectId) || null);
   const [kirish, setKirish] = useState<M29Kirish | null>(null);
   const [davr, setDavr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -152,7 +152,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         {objectId && (
           <section className="fz-panel" aria-label={t('Hujjat imzolari')}>
             <div className="fz-panel__h"><span className="inline-flex items-center gap-1.5"><FileSignature size={13} />{t('Excel М-29 imzo tomonlari')}</span></div>
-            <HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} />
+            <HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} />
           </section>
         )}
       </div>

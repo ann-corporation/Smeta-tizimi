@@ -28,6 +28,8 @@ const OQISH: Record<string, string> = {
   murojaat_turlari: 't2_tomon_murojaat_turlari_v1',
   ulashlar: 't2_obyekt_ulashlar_v1',
   izohlar: 't2_izohlar_v1',
+  imzochilar: 't2_obyekt_imzochilar_v1',
+  imzochi_tarix: 't2_imzochi_tarix_v1',
 };
 /** Yozish amallari: amal → RPC. */
 const YOZISH: Record<string, string> = {
@@ -50,6 +52,7 @@ const YOZISH: Record<string, string> = {
   ulash: 't2_obyekt_ulash_v1',
   qator_izoh: 't2_izoh_yoz_v1',
   qator_izoh_hal: 't2_izoh_hal_v1',
+  imzochi_saqla: 't2_obyekt_imzochi_saqla_v1',
 };
 /** T5: obyektni havola bilan ulashishda ochiladigan resurslar (faqat ko'rish). */
 const ULASH_RESURSLARI = ['shartnoma_xulosa', 'f2'];
@@ -61,6 +64,8 @@ const ixtSon = (v: unknown) => (sonmi(v) ? Number(v) : null);
 const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
 const rolMatn = (v: unknown) => { const s = String(v ?? '').trim(); return s.length >= 2 && s.length <= 40 ? s : null; };
 const opId = (v: unknown) => (typeof v === 'string' && UUID.test(v) ? v : crypto.randomUUID());
+const IMZO_DARAJALAR = ['loyiha', 'obyekt', 'razdel'];
+const IMZO_ROLLAR = ['zakazchik', 'pudratchi', 'subpudratchi', 'texnadzor', 'loyihachi'];
 const KALIT = /^[a-z][a-z0-9_]{1,40}$/;
 const AMAL = /^[a-z_]{2,20}$/;
 
@@ -178,6 +183,14 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
     case 'qator_izoh_hal':
       if (!sonmi(so.izoh_id) || !sonmi(so.versiya) || typeof so.hal !== 'boolean') return 'izoh_id, versiya va hal (true/false) kerak';
       return { p_kompaniya_id, p_operation_id: opId(so.operation_id), p_izoh_id: son(so.izoh_id), p_kutilgan_versiya: son(so.versiya), p_hal: so.hal };
+    case 'imzochi_saqla': {
+      if (!sonmi(so.obyekt_id) || !IMZO_ROLLAR.includes(String(so.rol))) return 'obyekt_id va rol (zakazchik/pudratchi/subpudratchi/texnadzor/loyihachi) kerak';
+      const daraja = so.daraja == null || so.daraja === '' ? 'obyekt' : String(so.daraja);
+      if (!IMZO_DARAJALAR.includes(daraja)) return 'daraja: loyiha | obyekt | razdel';
+      if (daraja === 'razdel' && !sonmi(so.razdel_id)) return 'razdel darajasida razdel_id kerak';
+      return { p_kompaniya_id, p_obyekt_id: son(so.obyekt_id), p_rol: String(so.rol), p_daraja: daraja, p_razdel_id: daraja === 'razdel' ? son(so.razdel_id) : null,
+               p_tashkilot: matn(so.tashkilot, 200), p_lavozim: matn(so.lavozim, 200), p_fio: matn(so.fio, 200), p_operation_id: opId(so.operation_id) };
+    }
     case 'loyiha_umumiy':
       return { p_kompaniya_id };
     case 'murojaat_bekor':
@@ -198,7 +211,7 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
   if (!sonmi(k)) return 'kompaniya_id kerak';
   const p_kompaniya_id = Number(k);
   switch (bolim) {
-    case 'aloqalar': case 'obyektlar': case 'resurslar': case 'murojaat_turlari': return { p_kompaniya_id };
+    case 'aloqalar': case 'obyektlar': case 'resurslar': case 'murojaat_turlari': case 'imzochi_tarix': return { p_kompaniya_id };
     case 'murojaat': return sonmi(q.get('murojaat_id')) ? { p_kompaniya_id, p_id: Number(q.get('murojaat_id')) } : 'murojaat_id kerak';
     case 'murojaatlar': {
       const y = q.get('yonalish'), h = q.get('holat');
@@ -212,6 +225,7 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
                p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
     }
     case 'izohlar': return sonmi(q.get('akt_id')) ? { p_kompaniya_id, p_akt_id: Number(q.get('akt_id')), p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 500, p_keyin_id: ixtSon(q.get('keyin_id')) ?? 0 } : 'akt_id kerak';
+    case 'imzochilar': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')), p_razdel_id: ixtSon(q.get('razdel_id')) } : 'obyekt_id kerak';
     case 'ulashlar': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')) } : 'obyekt_id kerak';
     case 'qidir': {
       const inn = (q.get('inn') ?? '').trim();

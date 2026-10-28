@@ -1,5 +1,6 @@
 import { yozAmali, type AktNatija } from './supabase';
 import type { PulKesim, PulUstamali } from '../lib/pul-tahlil';
+import { ogirYuklashKut } from './ogir-sorov-navbat';
 
 /** Rahbarlar uchun pul tahlili (egasi 2026-10-24). O'qish: /api/sb `pul_tahlil_v1` (stable, a'zolik + f2.read + financial.read). */
 export type PulDalilQator = {
@@ -23,6 +24,8 @@ export type PulTahlilSoro = { dalilTuri?: 'xarajat' | null; kompaniyaId: number;
 
 export async function pulTahlilOl(p: PulTahlilSoro): Promise<{ ok: true; natija: PulTahlilJavob } | { ok: false; error: string }> {
   try {
+    // Nakopitelniy to'liq yuklanayotgan bo'lsa — tugashini kutadi (prod 2026-10-27: parallel og'ir so'rovlar 30 s timeout).
+    await ogirYuklashKut();
     const r = await fetch('/api/sb', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
