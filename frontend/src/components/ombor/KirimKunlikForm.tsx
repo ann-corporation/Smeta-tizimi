@@ -72,7 +72,10 @@ export function KirimKunlikForm({ kompaniyaId, obyekt, amal, onYop, onYozildi, s
     if (kompaniyaId <= 0 || objectId<=0 || objectCompany !== kompaniyaId) return;
     setPending(saqlanganOqish(scopeKalit, {kompaniyaId,obyektId:objectId}));
   }, [kompaniyaId, objectId,objectCompany, scopeKalit]);
-  useEffect(() => () => { if (activeScope.current === scopeKalit) activeScope.current = ''; }, [scopeKalit]);
+  useEffect(() => {
+    activeScope.current=scopeKalit;
+    return () => { if (activeScope.current === scopeKalit) activeScope.current = ''; };
+  }, [scopeKalit]);
 
   useEffect(() => {
     if (kompaniyaId <= 0 || objectId<=0 || objectCompany !== kompaniyaId) { setManbalar({ qoldiq: [], tarix: [] }); return; }

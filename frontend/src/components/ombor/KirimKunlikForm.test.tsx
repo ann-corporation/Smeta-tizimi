@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { KirimKunlikForm } from './KirimKunlikForm';
 import type { T2Obyekt } from '../../api/supabase';
@@ -35,6 +36,12 @@ beforeEach(() => {
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 
 describe('KirimKunlikForm', () => {
+  it('keeps real history suggestions available after StrictMode cleanup and remount',async()=>{
+    api.read.mockResolvedValue({ok:true,qatorlar:[{id:8,kompaniya_id:17,obyekt_id:41,nomi:'Щебень 5-20',birligi:'м3',postavshik:'Sinov'}]});
+    render(<StrictMode><KirimKunlikForm kompaniyaId={17} obyekt={object()} amal="prixod" onYop={vi.fn()} onYozildi={vi.fn()}/></StrictMode>);
+    fireEvent.change(screen.getByLabelText(/^Material nomi/),{target:{value:'sheb'}});
+    expect(await screen.findByRole('button',{name:'Щебень 5-20'})).toBeTruthy();
+  });
   it('shows the complete receipt confirmation then sends explicit fields through the existing named action', async () => {
     api.read.mockResolvedValue({ ok: true, qatorlar: [{ id: 1, kompaniya_id: 17, obyekt_id: 41, operatsiya: 'prixod', sana: '2026-01-01', nomi: 'Sement M400', birligi: 'qop', obyomi: 2, postavshik: 'Yetkazuvchi tarixiy', qabul_qiluvchi: null, qabul_turi: null, izoh: null, operation_id: 'old', holat: 'faol', yaratildi: null, kim: null }] });
     api.write.mockResolvedValue({ ok: true, operation_id: 'op-stable-1' });
