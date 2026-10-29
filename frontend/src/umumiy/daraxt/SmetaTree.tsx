@@ -2,8 +2,8 @@ import { t } from '../../i18n/til';
 import { useState, useMemo, useRef, useEffect, useDeferredValue } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { TreeNode } from '../../api/types';
-import { flattenTree, getAllKeys } from './utils';
-import { daraxtniKes, daraxtniYassila, LRV_DARAXT, lrvUstunlar } from './smetaTreeFiltr';
+import { flattenTree, getAllKeys, nodeKey } from './utils';
+import { daraxtniKes, daraxtniYassila, LRV_DARAXT, lrvUstunlar, ozgarishFiltrMos } from './smetaTreeFiltr';
 import { useJadvalFiltr } from '../jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../jadval-filtr/UstunFiltrTugma';
 import { FmtN } from '../../lib/format';
@@ -35,6 +35,8 @@ interface SmetaTreeProps {
   moslashuvchan?: boolean;
   /** SMETA CONST: qator muhridan farq (view `t2_qator_muhr_farq`), `qator_id` bo'yicha. Berilmasa belgi ko'rinmaydi. */
   muhrFarq?: ReadonlyMap<number, QatorMuhrFarq>;
+  /** Avvalgi (almashtirilgan) smeta versiyasi daraxti — alohida filtr «Avvalgi versiya», kulrang; asosiy ro'yxatga kirmaydi. */
+  avvalgiVersiya?: TreeNode[];
   onFaktSave?: (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => Promise<{
     ok: boolean;
     message?: string;
@@ -42,7 +44,11 @@ interface SmetaTreeProps {
   }>;
 }
 
-type TezFiltr = 'all' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis' | 'muhr';
+type TezFiltr = 'all' | 'avvalgi' | 'asl' | 'f2' | 'qosh' | 'zamena' | 'bl' | 'mat' | 'frozen' | 'risk' | 'basis' | 'muhr';
+/** Asl smeta / Qo'shimcha / Zamena — qat'iy filtr: faqat mos ish/resurs qatorlari (ota bo'lim/ish — yo'l sifatida). */
+const GURUH_FILTR: ReadonlySet<TezFiltr> = new Set(['asl', 'qosh', 'zamena']);
+const hajmK = (x: number) => (Math.round(x * 1e4) / 1e4).toLocaleString('ru-RU', { maximumFractionDigits: 4 });
+const qisqa = (s: string, max = 32) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
 type Preset = 'ASOSIY' | 'F2' | 'NARX' | 'TOLIQ';
 const PRESET_KALIT = 't2-smeta-tree-preset';
 /** Sarlavha katagi: matn + filtr tugmasi; kenglik o'zgarmaydi (matn qisqaradi). O — o'ngga, C — chapga tekislangan. */
@@ -75,7 +81,7 @@ function Olchov({ sm, fk, f2, katta = false }: { sm: number | null | undefined; 
   );
 }
 
-export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen, moslashuvchan = false, muhrFarq }: SmetaTreeProps) {
+export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, setEdits, onNodeDrop, priceControlLines, onQatorTahrirlandi, onFaktSave, onFaktOpen, moslashuvchan = false, muhrFarq, avvalgiVersiya }: SmetaTreeProps) {
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
   const [expandedDetailId, setExpandedDetailId] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<TreeNode | null>(null);
@@ -133,10 +139,11 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     const mos = (n: TreeNode) =>
       !s || String(n.nom || '').toLowerCase().includes(s) ||
       String((n as any).kod || '').toLowerCase().includes(s);
+    const qatiy = GURUH_FILTR.has(quickFilter);
     const tezMos = (n: TreeNode) => quickFilter === 'all'
+      || quickFilter === 'avvalgi'
       || (quickFilter === 'f2' && Number(n.f2mum) > 0)
-      || (quickFilter === 'qosh' && !!n.isQosh)
-      || (quickFilter === 'zamena' && !!n.isZamena)
+      || ((quickFilter === 'asl' || quickFilter === 'qosh' || quickFilter === 'zamena') && n.type !== 'rz' && ozgarishFiltrMos(n, quickFilter))
       || (quickFilter === 'bl' && n.type === 'bl')
       || (quickFilter === 'mat' && n.type === 'mat')
       || (quickFilter === 'frozen' && (priceControlByQatorId.get(n.id || -1)?.frozen_amount || 0) > 0)
@@ -147,13 +154,16 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
       const chiq: TreeNode[] = [];
       for (const n of nodes) {
         const bolalar = n.children ? suz(n.children) : [];
-        if (mos(n) && tezMos(n)) chiq.push(n); // o'zi mos — butun shoxi bilan
+        // O'zi mos — butun shoxi bilan; guruh filtrida (asl/qo'shimcha/zamena) bolalar ham o'z guruhi bo'yicha kesiladi.
+        if (mos(n) && tezMos(n)) chiq.push(qatiy && n.children?.length ? { ...n, children: bolalar } : n);
         else if (bolalar.length) chiq.push({ ...n, children: bolalar });
       }
       return chiq;
     };
+    // «Avvalgi versiya» — asosiy daraxt emas, almashtirilgan versiya qatorlari (kulrang, faqat ko'rish).
+    if (quickFilter === 'avvalgi') return !s ? (avvalgiVersiya ?? []) : suz(avvalgiVersiya ?? []);
     return quickFilter === 'all' && !s ? data : suz(data);
-  }, [data, qidiruvKech, quickFilter, priceControlByQatorId, muhrFarq]);
+  }, [data, avvalgiVersiya, qidiruvKech, quickFilter, priceControlByQatorId, muhrFarq]);
 
   /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): qidiruv/tezkor filtr natijasiga VA bilan qo'shiladi.
      Faqat ish/resurs qatorlari tekshiriladi; mos qatorning razdel/bo'lim/ish otalari ham qoladi (LRV_DARAXT).
@@ -178,7 +188,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
 
   /* Qidiruv yoki ustun filtri faol bo'lsa mos qatorlar ko'rinishi uchun hamma shox ochiladi; foydalanuvchi
      shu holatda ham shoxni yig'a oladi (`filtrUstidan` — filtr/qidiruv o'zgarguncha amal qiladi). */
-  const filtrRejimi = !!qidiruvKech.trim() || uf.soni > 0;
+  // Asl/Qo'shimcha/Zamena filtrida ham mos qatorlar darhol ko'rinsin (shoxlar ochiladi).
+  const filtrRejimi = !!qidiruvKech.trim() || uf.soni > 0 || GURUH_FILTR.has(quickFilter);
   const [filtrUstidan, setFiltrUstidan] = useState<{ h: unknown; q: string; m: Record<string, boolean> }>({ h: null, q: '', m: {} });
   const ustidanM = filtrUstidan.h === uf.holat && filtrUstidan.q === qidiruvKech ? filtrUstidan.m : null;
   const kengaytirilgan = useMemo(
@@ -193,12 +204,15 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
 
   /* Tezkor filtr nishonlari: har filtrga nechta qator mos kelishi (butun daraxt bo'yicha, qidiruvdan mustaqil). */
   const tezSoni = useMemo(() => {
-    const c: Record<TezFiltr, number> = { all: 0, f2: 0, qosh: 0, zamena: 0, bl: 0, mat: 0, frozen: 0, risk: 0, basis: 0, muhr: 0 };
+    const c: Record<TezFiltr, number> = { all: 0, avvalgi: 0, asl: 0, f2: 0, qosh: 0, zamena: 0, bl: 0, mat: 0, frozen: 0, risk: 0, basis: 0, muhr: 0 };
     const yur = (nodes: TreeNode[]) => {
       for (const n of nodes) {
         if (Number(n.f2mum) > 0) c.f2++;
-        if (n.isQosh) c.qosh++;
-        if (n.isZamena) c.zamena++;
+        if (n.type !== 'rz') {
+          if (ozgarishFiltrMos(n, 'asl')) c.asl++;
+          if (ozgarishFiltrMos(n, 'qosh')) c.qosh++;
+          if (ozgarishFiltrMos(n, 'zamena')) c.zamena++;
+        }
         if (n.type === 'bl') c.bl++;
         if (n.type === 'mat') c.mat++;
         if (n.id != null && muhrFarq?.has(n.id)) c.muhr++;
@@ -212,12 +226,15 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
       }
     };
     yur(data);
+    const av = (nodes: TreeNode[]) => { for (const n of nodes) { if (n.type !== 'rz') c.avvalgi++; if (n.children?.length) av(n.children); } };
+    av(avvalgiVersiya ?? []);
     return c;
-  }, [data, priceControlByQatorId, muhrFarq]);
+  }, [data, avvalgiVersiya, priceControlByQatorId, muhrFarq]);
   const tezRoyxat: ReadonlyArray<readonly [TezFiltr, string]> = [
-    ['all', 'Hammasi'], ['f2', 'F2 olish mumkin'], ['qosh', 'Qo‘shimcha'], ['zamena', 'Zamena'], ['bl', 'Faqat BL'], ['mat', 'Materiallar'],
+    ['all', 'Hammasi'], ['asl', 'Asl smeta'], ['qosh', 'Qo‘shimcha'], ['zamena', 'Zamena'], ['f2', 'F2 olish mumkin'], ['bl', 'Faqat BL'], ['mat', 'Materiallar'],
     ...(priceControlReady ? [['frozen', 'Muzlagan'], ['risk', 'Xavf ostida'], ['basis', 'Protokolsiz']] as const : []),
     ...(muhrFarq?.size ? [['muhr', 'Asl smetadan farq']] as const : []),
+    ...(avvalgiVersiya?.length ? [['avvalgi', 'Avvalgi versiya (almashtirilgan)']] as const : []),
   ];
 
   const rowVirtualizer = useVirtualizer({
@@ -230,6 +247,36 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
     },
     overscan: 20,
   });
+
+  /* Zamena ↔ asl qator havolasi (egasi 2026-10-29): bosilganda filtr/qidiruv tozalanadi, ota shoxlar ochiladi va qatorga suriladi. */
+  const otaYollari = useMemo(() => {
+    const m = new Map<number, string[]>();
+    let bor = false;
+    const yur = (nodes: TreeNode[], yol: string[]) => {
+      for (const n of nodes) {
+        if (n.almashtiradi || n.almashtirganlar?.length) bor = true;
+        if (n.id != null) m.set(n.id, yol);
+        if (n.children?.length) yur(n.children, [...yol, nodeKey(n)]);
+      }
+    };
+    yur(data, []);
+    return bor ? m : null;
+  }, [data]);
+  const [otishKalit, setOtishKalit] = useState<string | null>(null);
+  const qatorgaOt = (id: number) => {
+    const yol = otaYollari?.get(id);
+    if (!yol) return;
+    setQuickFilter('all'); setQidiruv(''); if (uf.soni) uf.tozala();
+    setFiltrUstidan({ h: null, q: '', m: {} });
+    setExpandedMap((prev) => ({ ...prev, ...Object.fromEntries(yol.map((k) => [k, true])) }));
+    setSelectedKey(`t2:${id}`);
+    setOtishKalit(`t2:${id}`);
+  };
+  useEffect(() => {
+    if (!otishKalit) return;
+    const i = flatNodes.findIndex((r) => r.key === otishKalit);
+    if (i >= 0) { rowVirtualizer.scrollToIndex(i, { align: 'center' }); setOtishKalit(null); }
+  }, [otishKalit, flatNodes, rowVirtualizer]);
 
   const toggleExpand = (key: string) => {
     if (filtrRejimi) { setFiltrUstidan({ h: uf.holat, q: qidiruvKech, m: { ...ustidanM, [key]: !kengaytirilgan[key] } }); return; }
@@ -464,9 +511,20 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
                     {node.kod && <span className="text-text-dim font-mono text-xs flex-shrink-0 w-24 truncate">{node.kod}</span>}
                     
                     {/* Nom */}
-                    <span className={`truncate flex-1 ${node.type === 'rz' ? 'text-accent' : node.type === 'bl' ? 'text-text' : 'text-text-dim'}`} title={node.nom || 'Nomsiz'}>
+                    <span className={`truncate flex-1 ${node.type === 'rz' ? 'text-accent' : node.type === 'bl' ? 'text-text' : 'text-text-dim'}${node.almashtirganlar?.length || node.avvalgiVersiya != null ? ' italic' : ''}${node.avvalgiVersiya != null ? ' !text-text-mute' : ''}`} title={node.nom || 'Nomsiz'}>
                       {node.nom || <span className="text-text-mute italic">{t('Nomsiz')}</span>}
                     </span>
+                    {/* Qo'shimcha ish / zamena / almashtirilgan asl (egasi 2026-10-29: «smetadan emasligini bilib bo'lmayapti»). */}
+                    {node.ozgarishGuruh === 'qoshimcha' && <span className="fz-stamp fz-stamp--warn flex-shrink-0" style={{ height: 18, padding: '0 5px', fontSize: 9.5 }} title={t('Qo‘shimcha ish — asl smetada yo‘q')}>{t('QO‘SHIMCHA')}</span>}
+                    {node.ozgarishGuruh === 'zamena' && <span className="fz-stamp fz-stamp--info flex-shrink-0" style={{ height: 18, padding: '0 5px', fontSize: 9.5 }} title={t('Zamena — asl smeta qatori o‘rniga')}>{t('ZAMENA')}</span>}
+                    {node.avvalgiVersiya != null && <span className="fz-stamp flex-shrink-0 italic" style={{ height: 18, padding: '0 5px', fontSize: 9.5 }} title={`${t('Avvalgi versiya — yangi smeta versiyasi bilan almashtirilgan; jamlarga kirmaydi')}${node.avvalgiVersiya ? `: ${node.avvalgiVersiya}` : ''}`}>{t('AVVALGI VERSIYA')}</span>}
+                    {node.almashtiradi && <button type="button" className="flex-shrink-0 truncate text-[11px] text-accent-text underline decoration-dotted hover:text-accent" style={{ maxWidth: 260 }}
+                      title={`${t('Almashtirilgan asl qator')}: ${node.almashtiradi.nom}`} onClick={(e) => { e.stopPropagation(); qatorgaOt(node.almashtiradi!.id); }}>
+                      ← {node.almashtiradi.poz != null ? `${t('poz.')} ${node.almashtiradi.poz}: ` : ''}{qisqa(node.almashtiradi.nom)}</button>}
+                    {!!node.almashtirganlar?.length && <button type="button" className="fz-stamp flex-shrink-0 italic" style={{ height: 18, padding: '0 5px', fontSize: 9.5, cursor: 'pointer' }}
+                      title={`${t('Zamena qilingan')}: ${node.almashtirganlar.map((z) => z.nom).join('; ')}`} onClick={(e) => { e.stopPropagation(); qatorgaOt(node.almashtirganlar![0].id); }}>
+                      {t('ALMASHTIRILGAN')} → {node.almashtirganlar.map((z) => (z.poz != null ? `${t('poz.')} ${z.poz}` : '…')).join(', ')}</button>}
+                    {!!node.almashtirganlar?.length && node.qoldiq != null && <span className="flex-shrink-0 text-[11px] italic text-text-mute tabular-nums" title={t('Zamenadan keyin asl qatorning qoldiq hajmi')}>{t('qoldiq')}: {hajmK(node.qoldiq)}{node.birlik ? ` ${node.birlik}` : ''}</span>}
                     {/* SMETA CONST: asl smeta muhridan farq (o'zgargan / qo'shilgan / narx qo'yildi). */}
                     {(() => {
                       const mf = node.id != null ? muhrFarq?.get(node.id) : undefined;
@@ -761,7 +819,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           {drawerTabEff === 'audit' && <dl className="space-y-3 text-[12.5px]">
             <div><dt className="fz-panel__h">{t('Qator identifikatori')}</dt><dd className="mt-1 font-mono text-text-dim">{selected.node.id ?? t('Kanonik ID yo‘q')}</dd></div>
             {selected.node.versiya != null && <div><dt className="fz-panel__h">{t('Versiya')}</dt><dd className="mt-1 font-mono text-text-dim">{selected.node.versiya}</dd></div>}
-            <div><dt className="fz-panel__h">{t('O‘zgarish holati')}</dt><dd className="mt-1 text-text-dim">{selected.node.isZamena ? t('Zamena aloqasi mavjud') : selected.node.isQosh ? t('Qo‘shimcha ish') : t('Oddiy qator')}</dd></div>
+            <div><dt className="fz-panel__h">{t('O‘zgarish holati')}</dt><dd className="mt-1 text-text-dim">{selected.node.isZamena ? t('Zamena aloqasi mavjud') : selected.node.isQosh ? t('Qo‘shimcha ish') : selected.node.almashtirganlar?.length ? t('Almashtirilgan asl qator') : t('Oddiy qator')}</dd></div>
           </dl>}
           </div>
         </aside>

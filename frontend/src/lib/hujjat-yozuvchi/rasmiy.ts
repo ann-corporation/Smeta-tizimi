@@ -146,11 +146,17 @@ const R = 'horizontal="right" vertical="top"';
  * hamma hujjatlarga"). Chop etishda ham yengil: och pastel, matn qora qoladi.
  * Uslub indeksi = baza (0..28) + 29 × (1 + rang tartibi).
  */
-export const RANG_TARTIB = ['bolim', 'ish', 'ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'jami', 'vsego', 'header', 'КАБ', 'М/К', 'БЕЗ СКЛАД'] as const;
+export const RANG_TARTIB = ['bolim', 'ish', 'ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'jami', 'vsego', 'header', 'КАБ', 'М/К', 'БЕЗ СКЛАД', 'qoshimcha', 'zamena', 'almashtirilgan'] as const;
 export type QatorRangi = typeof RANG_TARTIB[number];
+/**
+ * Qo'shimcha ish / zamena / almashtirilgan asl qator (egasi 2026-10-29, LRV) — MA'NOLI ranglar: har rangli mavzuda
+ * bir xil (faqat «rangsiz» da fon yo'q). Almashtirilgan — kursiv ham.
+ */
+const OZGARISH_RANG = { qoshimcha: 'FFF59D', zamena: 'BDD7EE', almashtirilgan: 'E0E0E0' } as const;
 export const RANG_HEX: Record<QatorRangi, string> = {
   bolim: 'DCE6F1', ish: 'FFF4D6', ЧЕЛ: 'EAF2FB', МАШ: 'FDEEDF', МАТ: 'EAF5E7', ОБ: 'F1EAF7',
   jami: 'EDEDED', vsego: 'D9D9D9', header: 'DDE3EE', КАБ: 'E6F4F4', 'М/К': 'EEF0F3', 'БЕЗ СКЛАД': 'F2F6E4',
+  ...OZGARISH_RANG,
 };
 /**
  * Rang mavzulari (egasi, 2026-10-02: "har bir hujjatda ranglarni gradientdan tanlash mumkin bo'lsin — kamalak hujjatga
@@ -163,13 +169,15 @@ export type RangMavzusi = typeof RANG_MAVZULARI[number];
 export const RANG_MAVZU_NOMI: Record<RangMavzusi, string> = { kulrang: 'Kulrang', kok: 'Ko‘k', yashil: 'Yashil', qahva: 'Qahvarang', rangsiz: 'Rangsiz', kategoriya: 'Xarajat turi bo‘yicha' };
 const gradient = (header: string, bolim: string, ish: string, jami: string, vsego: string): Record<QatorRangi, string | null> => ({
   header, bolim, ish, jami, vsego, ЧЕЛ: null, МАШ: null, МАТ: null, ОБ: null, КАБ: null, 'М/К': null, 'БЕЗ СКЛАД': null,
+  ...OZGARISH_RANG,
 });
 export const MAVZU_HEX: Record<RangMavzusi, Record<QatorRangi, string | null>> = {
   kulrang: gradient('E4E7EB', 'E9ECEF', 'F5F6F7', 'EEF0F2', 'DDE1E5'),
   kok: gradient('DCE5F0', 'E3EBF5', 'F2F6FB', 'E9EFF6', 'D5E0EC'),
   yashil: gradient('DDE9DE', 'E4EFE5', 'F3F8F3', 'EAF2EB', 'D6E5D8'),
   qahva: gradient('EAE2D5', 'EFE8DD', 'F9F6F0', 'F2EDE4', 'E3D9CA'),
-  rangsiz: gradient('', '', '', '', '') as Record<QatorRangi, string | null>,
+  // «Rangsiz» — umuman fon yo'q (egasi tanlovi); o'zgarish qatorlari bu mavzuda Примечание ustuni va kursiv bilan ajraladi.
+  rangsiz: { ...gradient('', '', '', '', ''), qoshimcha: '', zamena: '', almashtirilgan: '' } as Record<QatorRangi, string | null>,
   kategoriya: RANG_HEX,
 };
 for (const k of RANG_TARTIB) if (MAVZU_HEX.rangsiz[k] === '') MAVZU_HEX.rangsiz[k] = null;
@@ -247,17 +255,25 @@ const XF_BAZA: ReadonlyArray<(fill: number) => string> = [
   (fill: number) => xf(0, 0, 1, C, fill), // 28 quti (ramkali, oddiy, markaz)
 ];
 
+/** «almashtirilgan» rangi — kulrang KURSIV: oddiy shrift → kulrang kursiv (6), qalin → qalin kursiv (5). */
+function kursivga(r: QatorRangi, xml: string): string {
+  if (r !== 'almashtirilgan') return xml;
+  return xml.replace('fontId="0"', 'fontId="6"').replace('fontId="1"', 'fontId="5"');
+}
+
 export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang'): string {
   const hex = MAVZU_HEX[mavzu];
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
   + '<numFmts count="2"><numFmt numFmtId="165" formatCode="#,##0.000###"/><numFmt numFmtId="166" formatCode="0.0000##"/></numFmts>'
-  + '<fonts count="5">'
+  + '<fonts count="7">'
   + '<font><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
   + '<font><b/><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
   + '<font><b/><sz val="13"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
   + '<font><i/><sz val="8"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
   + '<font><i/><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
+  + '<font><b/><i/><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
+  + '<font><i/><sz val="10"/><color rgb="FF595959"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
   + '</fonts>'
   + `<fills count="${2 + RANG_TARTIB.length}"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>`
   + RANG_TARTIB.map((r) => (hex[r] ? `<fill><patternFill patternType="solid"><fgColor rgb="FF${hex[r]}"/><bgColor indexed="64"/></patternFill></fill>` : '<fill><patternFill patternType="none"/></fill>')).join('') + '</fills>'
@@ -265,7 +281,7 @@ export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang'): string {
   + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
   + `<cellXfs count="${29 * (1 + RANG_TARTIB.length)}">`
   + XF_BAZA.map((f) => f(0)).join('')
-  + RANG_TARTIB.map((_r, i) => XF_BAZA.map((f) => f(2 + i)).join('')).join('')
+  + RANG_TARTIB.map((r, i) => XF_BAZA.map((f) => kursivga(r, f(2 + i))).join('')).join('')
   + '</cellXfs>'
   + '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
   + '</styleSheet>';
