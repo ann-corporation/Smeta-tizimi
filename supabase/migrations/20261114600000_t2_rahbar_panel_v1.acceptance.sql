@@ -73,8 +73,8 @@ begin
   -- 5. F2 (qoralama akt): _t2_f2_ustamali eski kalitlari + paket; subpudrat qatori ustamasiz
   insert into public.t2_akt (obyekt_id, kompaniya_id, tur, raqam, oy, holat) values (v_ob, v_komp, 'f2', 'ACCEPT-F2', date_trunc('month', current_date), 'qoralama')
   returning id into v_akt;
-  insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id, hajm, summa)
-  select v_akt, q.id, v_ob, v_komp, q.hajm, q.summa from public.t2_qator q where q.obyekt_id = v_ob and q.tur in ('rs', 'mat', 'ob');
+  insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id, hajm, narx)
+  select v_akt, q.id, v_ob, v_komp, q.hajm, q.narx from public.t2_qator q where q.obyekt_id = v_ob and q.tur in ('rs', 'mat', 'ob');
   p := public._t2_f2_ustamali(v_komp, null, array[v_akt]);
   if not (p ? 'pryamye' and p ? 'katsiz' and p ? 'narxsiz_qator' and p ? 'ustamali' and p->'podval' ? 'vsego' and p ? 'paket') then
     raise exception 'ACCEPT_FAIL: _t2_f2_ustamali kalitlari: %', p;

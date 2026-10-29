@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 43,
+      "id": 46,
       "sana": "2026-10-28",
       "sarlavha": "Summalar bir xil ko'rinishda: QQS bilan, ustamali, to'g'ri xarajat va kesim",
       "bandlar": [
@@ -10,6 +10,37 @@
         "Kiritilmagan qiymat endi «kiritilmagan» deb yoziladi (0 yoki bo'sh chiziq emas); Moliyaviy tahlilda uchala qator ko'rinadi.",
         "Shartnoma sahifasi: «Farq» endi shartnoma (QQS siz) va smetaning ustamali qiymati (ИТОГО-4) o'rtasida — avval to'g'ri xarajat bilan solishtirilardi; «Smeta qiymatini qo'yish» ustamali + QQS ni oladi.",
         "M29: tejash / ortiqcha / sof natija jamilari QQS bilan asosiy ko'rinishda."
+      ]
+    },
+    {
+      "id": 45,
+      "sana": "2026-10-29",
+      "sarlavha": "Ombor: Excel'dagi «Приход» endi tizimda",
+      "bandlar": [
+        "«Ombor» sahifasida yangi «Kirim» yorlig'i: omborni tanlang va «Excel'dan yuklash» ni bosing — faqat «Приход» varag'i o'qiladi, boshqa varaqlar import qilinmaydi.",
+        "Yozishdan oldin har qator ko'rsatiladi: yangi, takror (shu fayldan oldin yozilgan) va xato (qizil, tuzatish mumkin). «Tasdiqlab yozish» asl faylni saqlaydi va qatorlarni 1000 tadan yozadi; aloqa uzilsa «Davom ettirish» qolganini yozadi, takror yozuv bo'lmaydi.",
+        "Kirim ro'yxatida filtr, 50 talik sahifa va material bo'yicha jami bor; xato kirimni 24 soat ichida sabab yozib storno qilish mumkin. «Qoldiq» yorlig'ida rasxod hali kiritilmagani aniq yoziladi. Narx bu bosqichda yo'q."
+      ]
+    },
+    {
+      "id": 44,
+      "sana": "2026-10-29",
+      "sarlavha": "Telegram bot @qur_uz_bot va Telegram ichidagi ilova",
+      "bandlar": [
+        "Akkaunt → Bildirishnomalar → «Telegramni ulash»: bitta bosish bilan Telegram hisobingiz tizimga ulanadi (havola 10 daqiqa, bir marta ishlaydi). Uzish — shu yerdan yoki botda /chiqish.",
+        "Botdagi «Smeta» menyu tugmasi tizimni Telegram ichida ochadi — siz o'z rolingiz va ruxsatlaringiz bilan kirasiz, alohida parol kerak emas.",
+        "Bot buyruqlari: /men (hisob, ish joylari, rollar), /ilova, /yordam, /chiqish. Yangi topshiriq berilsa — Telegramga xabar (o'chirib qo'yish mumkin).",
+        "Keyingi bosqichlar: fakt kiritish (rasm/ovoz), F2 holati, ombor KELDI/BERDIM, rahbar kunlik xulosasi — bot orqali."
+      ]
+    },
+    {
+      "id": 43,
+      "sana": "2026-10-28",
+      "sarlavha": "Ekspertiza «ALL» smetalari qo'lda belgilashsiz o'qiladi",
+      "bandlar": [
+        "RES / F5 / VED / TNDR varaqli ekspertiza fayli yuklanganda rollar avtomatik: F5 — LRV (faqat uskunali smeta ham), RES — narx va podval manbai, VED va TNDR — e'tiborsiz. TNDR narxini faqat ongli tanlasangiz oladi (ogohlantirish bilan).",
+        "RES podvalidagi transport va zagot-sklad foizlari КОЛ-ВО ustunidan o'qiladi va blok summasi bilan isbotlanadi; material, metallokonstruksiya, kabel va uskuna bloklari o'z koeffitsientiga tushadi. Uskunalar RES guruhi bo'yicha ОБ bo'ladi.",
+        "Zagot-skladsiz bloklar (transport bor, zagot qatori yo'q) hujjatdagidek БЕЗСКЛАД kategoriyasiga tushadi. Isbotsiz bloklar, LRV↔RES manba xatolari va RES nomi farqli qatorlar uchun narx takliflari ko'rinadigan ogohlantirish sifatida chiqadi — hech narsa avtomatik birlashtirilmaydi."
       ]
     },
     {
