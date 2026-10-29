@@ -5,6 +5,8 @@ import { sbT2QatorHolatQisman } from '../../api/t2-holat-qisman';
 import { priceControlOl, type PriceControlLine } from '../../api/t2-price-control';
 import { faktTaalluqliIdlar, holatlarniAlmashtir } from '../../lib/fakt-yangilash';
 import type { TreeNode } from '../../api/types';
+import { avvalgiVersiyaOl, ozgarishMalumotOl, type AvvalgiVersiya } from '../../api/t2-ozgarish';
+import { ozgarishniQosh } from '../../lib/lrv-ozgarish';
 
 /**
  * LRV (HolatNative) va Fakt (FaktNative) sahifalarining yagona ma'lumot liniyasi.
@@ -29,6 +31,16 @@ export function useT2Daraxt(obyektId: number | null) {
   rowsRef.current = rows;
 
   const tree: TreeNode[] = useMemo(() => (rows.length ? sbT2TreeQur(rows, states) : []), [rows, states]);
+  const [avvalgi, setAvvalgi] = useState<AvvalgiVersiya | null>(null);
+  /** Avvalgi versiya daraxti (kulrang, faqat ko'rish): holatsiz — fakt/F2 faol versiyada. */
+  const avvalgiTree: TreeNode[] = useMemo(() => {
+    if (!avvalgi) return [];
+    const nomi = new Map(avvalgi.qatorlar.map((q) => [q.id, avvalgi.versiyaNomi.get(q.almashtirgan_versiya_id ?? -1) ?? ''] as const));
+    const belgila = (nodes: TreeNode[]) => { for (const n of nodes) { n.avvalgiVersiya = nomi.get(n.id ?? -1) ?? ''; n.versiya = undefined; if (n.children?.length) belgila(n.children); } };
+    const t = sbT2TreeQur(avvalgi.qatorlar);
+    belgila(t);
+    return t;
+  }, [avvalgi]);
 
   const narxNazorati = useCallback(async (id: number, raqam: number) => {
     const p = await priceControlOl(id).catch(() => null);
@@ -43,14 +55,18 @@ export function useT2Daraxt(obyektId: number | null) {
     if (birinchi) setLoading(true); else setYangilanmoqda(true);
     setError('');
     try {
-      const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI)]);
+      // Qo'shimcha/zamena belgilari (change_type, replaces_line_id) — ixtiyoriy: o'qilmasa daraxt belgilarsiz chiqadi.
+      // Avvalgi (almashtirilgan) versiya qatorlari — alohida (t2_daraxt faqat faol qatorlarni beradi).
+      const [d, h, oz, av] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI),
+        ozgarishMalumotOl(obyektId).catch(() => null), avvalgiVersiyaOl(obyektId).catch(() => null)]);
       if (raqam !== navbat.current) return;
       if (!d.ok || !h.ok) {
         setError(d.error || h.error || 'Kanonik daraxt o‘qilmadi.');
         if (birinchi) { setRows([]); setStates([]); }
         return;
       }
-      setRows((d.qatorlar || []) as T2Qator[]);
+      setRows(ozgarishniQosh((d.qatorlar || []) as T2Qator[], oz));
+      setAvvalgi(av && av.qatorlar.length ? av : null);
       setStates((h.qatorlar || []) as T2QatorHolat[]);
       void narxNazorati(obyektId, raqam);
     } catch {
@@ -91,9 +107,9 @@ export function useT2Daraxt(obyektId: number | null) {
   // Obyekt almashsa — eski daraxt boshqa obyektniki, darhol tozalanadi.
   useEffect(() => {
     rowsRef.current = [];
-    setRows([]); setStates([]); setPrice([]);
+    setRows([]); setStates([]); setPrice([]); setAvvalgi(null);
     void yuklash();
   }, [yuklash]);
 
-  return { rows, states, tree, price, loading, yangilanmoqda, error, yuklash, holatniYangila };
+  return { rows, states, tree, price, loading, yangilanmoqda, error, yuklash, holatniYangila, avvalgi, avvalgiTree };
 }

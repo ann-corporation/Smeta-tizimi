@@ -24,6 +24,7 @@
 
 import { t2ToliqOqi, t2ToliqOqiParallel } from './t2-toliq-oqish';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
+import { lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishXaritasi } from '../lib/lrv-ozgarish';
 
 export type SbJavob<T> = {
   ok: boolean;
@@ -339,6 +340,13 @@ export type T2Qator = {
   versiya: number;
   raqam: string | null;
   norma: number | null;
+  /** `t2_qator.change_type` (NULL — asl smeta, 'ADDITIONAL', 'REPLACEMENT'). `t2_daraxt` view'ida yo'q —
+   *  daraxt yo'lida `api/t2-ozgarish` bilan alohida o'qib qo'shiladi (LRV belgilari, faqat ko'rsatish). */
+  change_type?: string | null;
+  /** Zamena qatori → u almashtirgan asl qator id (`t2_qator.replaces_line_id`). */
+  replaces_line_id?: number | null;
+  /** Faqat almashtirilgan (avvalgi) versiya qatorlarida: uni almashtirgan `t2_smeta_versiya.id`. */
+  almashtirgan_versiya_id?: number | null;
 };
 
 export function sbT2QatorHolatOl(obyektId: number, ustunlar?: string) {
@@ -451,6 +459,25 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
       zamena: Boolean(r.zamena),
       children: [],
     });
+  }
+
+  /* 1b: qo'shimcha / zamena belgilari (egasi 2026-10-29) — faqat change_type ma'lum bo'lsa. */
+  if (ozgarishBor(qatorlar)) {
+    const oz = ozgarishXaritasi(qatorlar);
+    const poz = lrvPozitsiyaRaqamlari(qatorlar);
+    const nomi = new Map(qatorlar.map((r) => [r.id, r.nom ?? ''] as const));
+    const hav = (id: number) => ({ id, poz: poz.get(id) ?? null, nom: nomi.get(id) ?? '' });
+    for (const r of qatorlar) {
+      const n = xarita.get(r.id)!;
+      const x = oz.get(r.id)!;
+      n.ozgarishGuruh = x.guruh;
+      n.ozgarishOzi = x.ozi;
+      n.lrvPoz = poz.get(r.id) ?? null;
+      n.isQosh = x.guruh === 'qoshimcha';
+      n.isZamena = x.guruh === 'zamena';
+      n.almashtiradi = x.almashtiradi != null ? hav(x.almashtiradi) : null;
+      if (x.almashtirilgan.length) n.almashtirganlar = x.almashtirilgan.map(hav);
+    }
   }
 
   /* 2-o'tish: ota-bola bog'lash */

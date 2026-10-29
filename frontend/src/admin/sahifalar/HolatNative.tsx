@@ -67,7 +67,7 @@ export function HolatNative() {
      uchun allaqachon o'qilyapti, qayta so'rov yo'q. */
   const {
     rows: daraxtXom, states: holatXom, tree, price: priceControlLines,
-    loading, yangilanmoqda, error: daraxtXato, yuklash,
+    loading, yangilanmoqda, error: daraxtXato, yuklash, avvalgi, avvalgiTree,
   } = useT2Daraxt(validId ? obyektId : null);
   /* SMETA CONST (egasi 2026-10-27): asl smeta muhridan farq — daraxt qayta yuklanganda yangilanadi. */
   const muhr = useMuhrFarq(validId ? obyektId : null, daraxtXom);
@@ -186,6 +186,7 @@ export function HolatNative() {
         obyektNom: selected.nom, davr: new Date().toISOString().slice(0, 10), imzo: { ...ctx.imzo, ...qolda }, shartnoma: ctx.shartnoma,
         ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval,
         svodYaxlit: ctx.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, ctx.svodYaxlit),
+        avvalgiVersiya: avvalgi,
       });
       const xesh = await mazmunXeshi(h.bytes);
       const r = await tokenBilan({ kompaniyaId: joriy.id, amal: 'hujjat', birlikSoni: h.yacheykalar,
@@ -199,7 +200,7 @@ export function HolatNative() {
     } catch {
       setError('Excel fayli tuzilmadi. Qayta urinib ko‘ring.');
     } finally { setEksportBolmoqda(false); }
-  }, [selected, daraxtXom, holatXom, obyektId, joriy?.id, exportGate.ok, eksportSababi, tomonlar, korinish]);
+  }, [selected, daraxtXom, holatXom, obyektId, joriy?.id, exportGate.ok, eksportSababi, tomonlar, korinish, avvalgi]);
 
   /* Egasi (2026-09-23): "tizim ostatka ishlarni ham bittada smeta shaklida bera
      oladigan bo'lishi kerak". Ostatka = smeta − fakt; hujjat — rasmiy
@@ -403,7 +404,7 @@ export function HolatNative() {
             </div>}
           </details>
         )}
-        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} priceControlLines={priceControlLines} muhrFarq={muhr.xarita} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
+        {selected && tree.length > 0 && <div hidden={activeTab !== 'smeta'} className="h-[65vh] min-h-[420px] shrink-0"><SmetaTree data={tree} avvalgiVersiya={avvalgiTree} priceControlLines={priceControlLines} muhrFarq={muhr.xarita} onFaktOpen={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} onQatorTahrirlandi={yuklash} /></div>}
         {activeTab === 'shartnoma' && selected && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {activeTab === 'narx' && selected && validId && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 
