@@ -113,7 +113,7 @@ begin
   insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,tartib) values(o3,c,rz3,'bl','_TEST_FF2RS_bl3','m3',10,2) returning id into bl3;
   insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,narx,summa,kat,tartib) values(o3,c,bl3,'mat','_TEST_FF2RS_mat3','t',5,40,200,'МАТ',3) returning id into mat3;
   insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,narx,summa,norma,kat,tartib) values(o3,c,bl3,'rs','_TEST_FF2RS_rs5','chel.-soat',20,5,100,2,'ЧЕЛ',4) returning id into rs5;
-  insert into public.t2_akt(obyekt_id,tur,oy,holat) values(o3,'f2','2026-10-01','qoralama') returning id into f2a;
+  insert into public.t2_akt(obyekt_id,tur,oy,holat,raqam) values(o3,'f2','2026-10-01','qoralama','ACC-F2-1') returning id into f2a;
   insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2a,mat3,o3,3,40) returning id into l1;          -- +3 × 40
   insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2a,mat3,o3,-1,40) returning id into l2;         -- minus satr
   insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx,certified_quantity,certified_amount)
@@ -161,7 +161,7 @@ begin
   if r->>'code' <> 'F2_SOURCE_LINE_INVALID' then raise exception '7m: boshqa qator manbasi qabul qilindi: %', r; end if;
   r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l1,'narx_manba','smeta')),a,gen_random_uuid(),'acceptance');
   if r->>'code' <> 'F2_SOURCE_LINE_INVALID' then raise exception '7n: f2_sertifikatsiz manba qabul qilindi: %', r; end if;
-  insert into public.t2_akt(obyekt_id,tur,oy,holat) values(o3,'f2','2026-10-01','qoralama') returning id into f2b;
+  insert into public.t2_akt(obyekt_id,tur,oy,holat,raqam) values(o3,'f2','2026-10-01','qoralama','ACC-F2-2') returning id into f2b;
   insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f2b,mat3,o3,1,40) returning id into l6;
   r := public.t2_fakt_yoz_v2(o3,current_date,jsonb_build_array(jsonb_build_object('qator_id',mat3,'manba_akt_qator_id',l6,'narx_manba','f2_sertifikat')),a,gen_random_uuid(),'acceptance');
   if r->>'code' <> 'F2_SOURCE_LINE_INVALID' then raise exception '7o: qoralama F2 manbasi qabul qilindi: %', r; end if;

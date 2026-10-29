@@ -23,7 +23,8 @@ alter table public.t2_akt_qator drop constraint if exists t2_akt_qator_hajm_chec
 alter table public.t2_akt_qator add constraint t2_akt_qator_hajm_check
   check (hajm <> 0::numeric or (narx_manba = 'f2_sertifikat' and manba_akt_qator_id is not null));
 
--- ── 2-qism: t2_akt_yarat (prod ta'rifi + manba_akt_qator_id, certified_amount) ───────────────────────────────────────CREATE OR REPLACE FUNCTION public.t2_akt_yarat(p_obyekt_id bigint, p_tur text, p_oy date, p_qatorlar jsonb, p_raqam text DEFAULT NULL::text, p_operation_id uuid DEFAULT NULL::uuid, p_manba text DEFAULT 'frontend'::text, p_kim text DEFAULT NULL::text, p_majburiy boolean DEFAULT false)
+-- ── 2-qism: t2_akt_yarat (prod ta'rifi + manba_akt_qator_id, certified_amount) ───────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.t2_akt_yarat(p_obyekt_id bigint, p_tur text, p_oy date, p_qatorlar jsonb, p_raqam text DEFAULT NULL::text, p_operation_id uuid DEFAULT NULL::uuid, p_manba text DEFAULT 'frontend'::text, p_kim text DEFAULT NULL::text, p_majburiy boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
