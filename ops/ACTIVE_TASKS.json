@@ -3,6 +3,29 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "SMETA-VERSIYA-SIGNED-20261027",
+      "title": "C6 signed claim amounts and XLSX preservation",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/signed-dava-20261027",
+      "base_sha": "8b596fb820dca6204a27fd2963331ca3fb64de3f",
+      "status": "ready_for_review",
+      "owns": ["frontend/src/lib/smeta-versiya/hisob.ts", "frontend/src/lib/smeta-versiya/dava-export.ts", "frontend/src/lib/smeta-versiya/hisob-signed.test.ts", "frontend/src/lib/smeta-versiya/dava-export.test.ts"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md"],
+      "production_write_allowed": false,
+      "note": "Explicit C6 sublease by Claude L0 in Obsidian KOORDINATSIYA 2026-10-27. Only signed nonzero denominators and signed export inclusion; source pricing and P1 SQL trust stay L0. Synthetic tests, no DB writes/migrations; final main integration L0."
+    },
+    {
+      "id": "C11-WAREHOUSE-CONTRACT-20261027", "owner": "codex", "machine": "Anvar",
+      "title": "C11 warehouse/supply canonical map and first-release contract",
+      "branch": "codex/c11-warehouse-contract-20261027", "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b", "status": "ready_for_review",
+      "owns": ["docs/architecture/warehouse/"], "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md"],
+      "production_write_allowed": false,
+      "note": "L0 kech(5) and directowner assign onlyC11 warehouse/supply toCodex. Docs/owner guide only; single-ledger evolution, receipt-onlypreview first. No DB mutation or commercial source published; separate model/RPC PR reviewed/appliedL0."
+    },
+    {
       "id": "OWNERSHIP-COORD-20261026",
       "title": "Release inactive Codex editor slots while retaining unfinished semantic tasks",
       "owner": "codex",
@@ -3117,6 +3140,69 @@
       ],
       "production_write_allowed": true,
       "note": "Egasi 2026-10-26: «Gmail va kompaniya login/paroli alohida — absurd, birlashtirish kerak»; migratsiya 20261110200000_t2_profil_xavfsizlik_v1 egasi ruxsati bilan JONLI bazaga qo'llandi (2 qism: t2_profil_xavfsizlik_v1_a/_b). Egasi ruxsati bilan hisob 4 (admin) → 183 (Gmail) ga birlashtirildi: endi `admin` login/paroli bilan kirish 183 hisobiga tushadi — agentlar sinov uchun `admin` dan foydalansa, alohida hisob oching. Keyingi: login sahifasi (superadmin/rahbar tugmalari olib tashlanadi), email kod bilan kirish/ro'yxat. Lokal Claude Code ham ishlayapti — shu fayllarga tegishdan oldin mailbox orqali kelishing. | 2026-10-26 (2): email kod bilan kirish/ro'yxat (/api/kirish-email); migratsiyalar 20261105333000 (ilgari qo'llanmagan edi) va 20261111300000 jonli bazaga qo'llandi; login sahifasidan Admin/Rahbar tezkor tugmalari olib tashlandi. Email yuborish uchun Cloudflare Pages env: RESEND_API_KEY, EMAIL_FROM (egasi sozlaydi). | 2026-10-26: Sozlamalar markazi — /admin/sozlamalar (3 qatlam reestri) va kompaniya sozlamalari serverda (t2_kompaniya_sozlama, egasi ruxsati bilan prodga qo'llandi, additiv). AdminShell/navReestr ga TEGILMAYDI (#153 L0 niki) — menyu bandi #153 merge'dan keyin."
+    },
+    {
+      "id": "TELEGRAM-BOT-V1-20261028",
+      "title": "Telegram bot @qur_uz_bot + Mini App poydevori (PR 1): ulash, /men, /chiqish, Mini App sessiya, bildirishnoma, superadmin holati",
+      "owner": "claude",
+      "machine": "Anvar",
+      "branch": "claude/telegram-bot-v1",
+      "base_sha": "f0eddfc05253717e6c259fad86d68fc7cafcbfbc",
+      "status": "ready_for_review",
+      "owns": ["frontend/functions/_shared/telegram.ts", "frontend/functions/api/telegram/", "frontend/src/telegram/", "frontend/src/api/t2-telegram.ts", "frontend/src/api/t2-telegram.test.ts", "frontend/src/i18n/lugat/qism/telegram-bot.json", "supabase/migrations/20261114100000_t2_telegram_v1*", "docs/product/TELEGRAM_BOT_REJA.md"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/product/TELEGRAM_BOT_REJA.md"],
+      "production_write_allowed": false,
+      "note": "Migratsiya faqat fayl (L0 qo'llaydi). Boshqa lane larga minimal additiv tegish: App.tsx (/tg route), components/akkaunt/Bolimlar.tsx (Kanallar kartasida TelegramKarta), BoshqaruvPanel.tsx (Telegram bot bo'limi), api/topshiriq.ts (ber muvaffaqiyatidan keyin opt-in xabar), tsconfig.functions.json (resolveJsonModule), sayt-xaritasi/generated.ts (generator). Eski stub functions/tg/webhook.ts (matnni log qilardi) o'chirildi."
+    },
+    {
+      "id": "C11-WAREHOUSE-LEDGER-20261027",
+      "title": "C11.1 central receipt ledger + storno source packet",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/c11-warehouse-ledger-20261027",
+      "base_sha": "f0eddfc05253717e6c259fad86d68fc7cafcbfbc",
+      "status": "ready_for_review",
+      "owns": [
+        "supabase/migrations/20261113810000_c11_warehouse_receipt_v1.sql",
+        "supabase/migrations/20261113810000_c11_warehouse_receipt_v1.rollback.sql",
+        "supabase/tests/c11_warehouse_receipt_v1.sql",
+        "supabase/tests/c11-warehouse-pglite.mjs",
+        "docs/architecture/warehouse/C11_LEDGER.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "C:/Temp/GAS-c11-contract-20261027/docs/architecture/warehouse/C11_CONTRACT.md"
+      ],
+      "production_write_allowed": false,
+      "note": "L0 review 2026-10-28 (3), PR189 only: self-seeded rollback acceptance, permission-checked receipt list/totals, <=1000 rows and exact receipt replay. Clean worktree C:/Temp/GAS-c11-ledger-review-20261028, working branch codex/c11-ledger-review-20261028; delivery to existing PR189 branch. PR190/182 frozen, no push. Synthetic SQL runner uses explicit mock guards; target Supabase acceptance/apply/merge remain L0. No production DDL/DML by Codex."
+    },
+    {
+      "id": "RAHBAR-PANEL-20261028",
+      "title": "Rahbar paneli + yagona summa paketi (issue #195) — PR1: server + api turlari",
+      "owner": "claude",
+      "machine": "cloud",
+      "branch": "claude/rahbar-panel-server",
+      "base_sha": "9bd0aae2",
+      "status": "in_progress",
+      "owns": [
+        "supabase/migrations/20261114200000_t2_rahbar_panel_v1.sql",
+        "supabase/migrations/20261114200000_t2_rahbar_panel_v1.rollback.sql",
+        "supabase/migrations/20261114200000_t2_rahbar_panel_v1.acceptance.sql",
+        "frontend/functions/api/sb.ts (faqat rahbar_panel_v1 o'qish ro'yxati)",
+        "frontend/functions/_shared/permission-policy.ts (faqat rahbar_panel → financial.read)",
+        "frontend/src/api/t2-rahbar-panel.ts",
+        "frontend/src/lib/summa-paket.ts"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
+      ],
+      "production_write_allowed": false,
+      "note": "Issue #195 (L0 → cloud, egasi 2026-10-29). Migratsiyani prodga faqat L0 qo'llaydi. Keyingi PR'lar: (2) SummaJuft kengaytirish + inventarizatsiya, (3) panel §1–§5, (4) §6–§7."
     }
   ]
 }

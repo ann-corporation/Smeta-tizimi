@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720" role="img" aria-labelledby="title desc">
+<title id="title">C11 ombor — telefon ekranlari taklifi</title><desc id="desc">Ko‘rinish namunasi: uchta asosiy amal, kelgan materialni uch qadamda qabul qilish va chiqim hali kiritilmagan qoldiq.</desc>
+<rect width="1120" height="720" fill="#eef2f1"/>
+<g font-family="Arial,sans-serif" fill="#163d39">
+<text x="36" y="45" font-size="25" font-weight="700">Ombor: kelgan, berilgan va qolgan material</text>
+<text x="36" y="75" font-size="15" fill="#637975">C11 · ko‘rinish namunasi · ma’lumotlar sun’iy · yozish amali bajarilmaydi</text>
+<g transform="translate(34 105)">
+<rect width="332" height="575" rx="30" fill="white" stroke="#b6cbc6" stroke-width="2"/>
+<rect x="120" y="12" width="92" height="7" rx="4" fill="#d6e3df"/>
+<text x="23" y="65" font-size="22" font-weight="700">Ombor</text><text x="23" y="91" font-size="14" fill="#637975">Markaziy ombor  ▾</text>
+<rect x="20" y="124" width="292" height="100" rx="18" fill="#137a6a"/>
+<text x="45" y="170" font-size="27" font-weight="700" fill="white">↓  KELDI</text><text x="45" y="197" font-size="14" fill="#d8eee6">Materialni qabul qilish</text>
+<rect x="20" y="241" width="292" height="100" rx="18" fill="#e8f2ef"/>
+<text x="45" y="286" font-size="27" font-weight="700">↑  BERDIM</text><text x="45" y="313" font-size="14" fill="#637975">Ustaga yoki obyektga</text>
+<rect x="20" y="358" width="292" height="100" rx="18" fill="#e8f2ef"/>
+<text x="45" y="404" font-size="27" font-weight="700">▤  QOLDIQ</text><text x="45" y="431" font-size="14" fill="#637975">Omborda nima bor?</text>
+<text x="23" y="511" font-size="13" fill="#637975">Oxirgi amallar →</text><text x="23" y="539" font-size="12" fill="#637975">Telefon · katta tugmalar · bir qo‘l bilan</text>
+</g>
+<g transform="translate(394 105)">
+<rect width="332" height="575" rx="30" fill="white" stroke="#b6cbc6" stroke-width="2"/>
+<rect x="120" y="12" width="92" height="7" rx="4" fill="#d6e3df"/>
+<text x="23" y="65" font-size="22" font-weight="700">← KELDI</text><text x="23" y="94" font-size="14" fill="#637975">1 Material   →   2 Miqdor   →   3 Kimdan</text>
+<text x="23" y="147" font-size="14">Tanlangan material</text><rect x="20" y="163" width="292" height="65" rx="12" fill="#eef4f2"/>
+<text x="35" y="190" font-size="19" font-weight="700">Sement</text><text x="35" y="212" font-size="13" fill="#637975">Birlik: qop</text>
+<text x="23" y="270" font-size="14">Qancha keldi?</text><rect x="20" y="285" width="292" height="83" rx="12" fill="#fff" stroke="#137a6a" stroke-width="2"/>
+<text x="38" y="340" font-size="40" font-weight="700">50</text><text x="248" y="335" font-size="18" fill="#637975">qop</text>
+<text x="23" y="403" font-size="13" fill="#637975">Narx va hujjatni keyin to‘ldirish mumkin</text>
+<rect x="20" y="440" width="292" height="58" rx="12" fill="#137a6a"/><text x="117" y="476" font-size="19" font-weight="700" fill="white">Davom etish</text>
+<text x="23" y="539" font-size="12" fill="#637975">Tasdiqlashdan oldin miqdor yana ko‘rinadi</text>
+</g>
+<g transform="translate(754 105)">
+<rect width="332" height="575" rx="30" fill="white" stroke="#b6cbc6" stroke-width="2"/>
+<rect x="120" y="12" width="92" height="7" rx="4" fill="#d6e3df"/>
+<text x="23" y="65" font-size="22" font-weight="700">← QOLDIQ</text><text x="23" y="94" font-size="14" fill="#637975">Markaziy ombor  ▾</text>
+<rect x="20" y="120" width="292" height="51" rx="12" fill="#eef4f2"/><text x="35" y="152" font-size="15" fill="#637975">Materialni qidirish…</text>
+<rect x="20" y="187" width="292" height="70" rx="12" fill="#fff5dd"/>
+<text x="34" y="214" font-size="14" font-weight="700" fill="#80591f">Chiqim hali kiritilmagan</text><text x="34" y="238" font-size="12" fill="#80591f">Qoldiq faqat yozilgan harakatlar bo‘yicha</text>
+<text x="23" y="302" font-size="19" font-weight="700">Sement</text><text x="253" y="302" font-size="24" font-weight="700">50</text>
+<text x="23" y="329" font-size="13" fill="#637975">Keldi 50 · berildi hali kiritilmagan</text><text x="267" y="329" font-size="13" fill="#637975">qop</text>
+<path d="M20 350H312" stroke="#d6e3df"/>
+<text x="23" y="392" font-size="19" font-weight="700">Armatura</text><text x="264" y="392" font-size="24" font-weight="700">2</text>
+<text x="23" y="419" font-size="13" fill="#637975">Narx: noma’lum</text><text x="279" y="419" font-size="13" fill="#637975">t</text>
+<text x="23" y="501" font-size="13" fill="#637975">Miqdorlar birliklar bo‘yicha alohida</text><text x="23" y="539" font-size="12" fill="#637975">Tasdiqlanmagan ma’lumot to‘qilmaydi</text>
+</g></g></svg>

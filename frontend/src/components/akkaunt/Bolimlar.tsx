@@ -17,6 +17,7 @@ import { PERMISSION_LABELS } from '../../lib/company-authorization/permission-la
 import { topshiriqlarOl } from '../../api/t2-topshiriq';
 import { SERVER_YANGILANMAGAN, ProfilXatosi, useProfil, xatoMatn } from '../../api/profil';
 import { ProfilForma } from './ProfilForma';
+import { TelegramKarta } from '../../telegram/TelegramKarta';
 import { BirlashtirKarta } from './BirlashtirKarta';
 import { GoogleKarta, ParolForma, SessiyaKarta } from './XavfsizlikKartalar';
 import { Karta, Nota, Qator, Skelet, Tezorada, XatoQayta } from './AkkauntUi';
@@ -267,9 +268,9 @@ export function BildirishnomaBolimi() {
       </Karta>
       <Karta sarlavha="Kanallar" tavsif="Xabarlar qaysi kanal orqali keladi.">
         <Qator yorliq="Ilova ichida" qiymat={<span className="fz-chip fz-chip--accent">{t('Faol')}</span>} />
-        <Qator yorliq="Telegram" qiymat={<span className="fz-chip">{t('Ulanmagan')}</span>} />
+        <TelegramKarta />
         <Qator yorliq="Elektron pochta" qiymat={<span className="fz-chip">{t('Ulanmagan')}</span>} />
-        <Nota tur="info">{t('Telegram va elektron pochta orqali xabar yuborish hali ulanmagan, shuning uchun sozlama tugmalari ko‘rsatilmaydi.')}</Nota>
+        <Nota tur="info">{t('Elektron pochta orqali xabar yuborish hali ulanmagan.')}</Nota>
       </Karta>
     </div>
   );

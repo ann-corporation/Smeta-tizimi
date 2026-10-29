@@ -7,6 +7,7 @@ import { varaqniTahlilQil } from './varaq';
 import { erkinVaraqlar } from './erkin';
 import { svodVaraqlari } from './svod';
 import { tushunilmaganVaraqlar } from './darvoza';
+import { allToplamRollari } from './all-toplam';
 import { analyzeWorkbookEvidence, type WorkbookEvidence } from '../document-understanding/evidence';
 import type { ErkinVaraq, KirishKitob, ReviewBand, SvodVaraq, TushunilmaganVaraq, VaraqAnatomiyasi } from './turlar';
 
@@ -76,13 +77,16 @@ export function kitobHamrohlari(kitob: KirishKitob): Pick<KitobAnatomiyasi, 'fay
   return { fayl: kitob.fayl, varaqlar, ...hamrohlar(kitob, varaqlar, review), review };
 }
 
+const resursSoni = (v: VaraqAnatomiyasi) => v.ishlar.reduce((n, i) => n + i.resurslar.length, 0);
+
 export function kitobAnatomiyasi(kitob: KirishKitob): KitobAnatomiyasi {
   const varaqlar = varaqlarniTahlilQil(kitob);
-  // Eng kam review'li LRV asosiy: F5_UZB va LRV bir xil ishlarni beradi, lekin
-  // F5_UZB da resurslar to'liq emas (Navoiy STR: 19 065 vs 19 838).
+  const all = allToplamRollari(kitob.varaqlar);
+  // Resursli varaq asosiy (VED/TNDR — ish+hajm, resurssiz — hech qachon asosiy LRV emas); keyin eng kam review'li:
+  // F5_UZB va LRV bir xil ishlarni beradi, lekin F5_UZB da resurslar to'liq emas (Navoiy STR: 19 065 vs 19 838).
   const lrvlar = varaqlar
-    .filter((v) => v.rol === 'lrv' && v.ishlar.length)
-    .sort((a, b) => a.review.length - b.review.length);
+    .filter((v) => (all ? v.varaq === all.f5 : v.rol === 'lrv') && v.ishlar.length)
+    .sort((a, b) => Number(resursSoni(b) > 0) - Number(resursSoni(a) > 0) || a.review.length - b.review.length);
   const dublikat: KitobAnatomiyasi['dublikat'] = [];
   const asosiylar: VaraqAnatomiyasi[] = [];
   for (const v of lrvlar) {
@@ -91,11 +95,22 @@ export function kitobAnatomiyasi(kitob: KirishKitob): KitobAnatomiyasi {
     else asosiylar.push(v);
   }
   const review: ReviewBand[] = [];
+  if (all) {
+    for (const n of [...all.ved, ...all.tndr]) {
+      const asl = all.rollar[n] === 'ved' ? 'hajm vedomosti' : 'tender narxi, transport ichida';
+      dublikat.push({ varaq: n, asl: all.f5, sabab: `ALL to'plam: ${asl} — import manbai emas` });
+    }
+    review.push({ kod: 'all_toplam', izoh: `ALL to'plam: LRV — «${all.f5}», RES — «${all.res}»; ${[...all.ved, ...all.tndr].map((n) => `«${n}»`).join(', ')} — e'tibor berilmaydi${all.mazmundan.length ? ` (mazmundan: ${all.mazmundan.join(', ')})` : ''}` });
+  }
   if (asosiylar.length > 1) {
     review.push({ kod: 'kop_lrv', izoh: `bitta faylda ${asosiylar.length} ta turli LRV: ${asosiylar.map((a) => a.varaq).join(', ')} — operator tanlaydi` });
   }
+  if (/(^|[\\/])\s*\d*\.?\s*итог[^\\/]*\.xlsx?$/i.test(kitob.fayl)) {
+    review.push({ kod: 'import_manbai_emas', izoh: `«${kitob.fayl.split(/[\\/]/).pop()}» — yig'ma (итог) fayl: faqat svod, import manbai emas; uchastka (lokal) fayllarini yuklang` });
+  }
   const h = hamrohlar(kitob, varaqlar, review);
-  const result = { fayl: kitob.fayl, varaqlar, ...h, asosiyLrv: asosiylar[0]?.varaq ?? null, dublikat, review };
+  const asosiyLrv = asosiylar[0]?.varaq ?? (all && varaqlar.some((v) => v.varaq === all.f5) ? all.f5 : null);
+  const result = { fayl: kitob.fayl, varaqlar, ...h, asosiyLrv, dublikat, review };
   return { ...result, sourceEvidence: analyzeWorkbookEvidence(kitob, result) };
 }
 
@@ -103,6 +118,8 @@ export { sarlavhaYoli } from './ierarxiya';
 export { moddaliSvodniOqi, svodVaraqlari } from './svod';
 export { nakrutkaPodvaliniOqi, nakrutkaVaraqlari, formulaniHisobla, NAKRUTKA_FOIZ_KODLARI, type NakrutkaPodvalOqish, type NakrutkaPodvalQatori, type NakrutkaIsbot } from './nakrutka';
 export { transportQatorlari } from './erkin';
+export { allToplamRollari, type AllToplam, type AllRol, type AllTeg } from './all-toplam';
+export { resBloklari, podvalFoizSumma, type ResBlok, type ResBlokKat, type ResBloklarNatija } from './res-blok';
 export { tushunilmaganVaraqlar, sonliQatorlar } from './darvoza';
 export { hamrohDaraxti, xatQatoriNarxi, type HamrohTanlov } from './yuklash';
 export { varaqRoliniAniqla, varaqNomiRoli, nomTokenlari, type VaraqRol, type VaraqRolXulosa } from './rol';

@@ -78,3 +78,19 @@ describe('tizim xaritasi: modul holati', () => {
     expect(oldin(null, hozir)).toBe('—');
   });
 });
+
+describe('tizim xaritasi: buzuq server javobi sahifani yiqitmaydi (2026-10-28 prod xatosi)', () => {
+  it('tugunlar orasida null bo‘lsa — qolganlari chiziladi, null tashlanadi', async () => {
+    const { tizimGrafTozala } = await import('../api/t2-tizim-xaritasi');
+    const g = sintetikGraf();
+    const buzuq = { ...g, tugunlar: [...g.tugunlar.slice(0, 3), null, ...g.tugunlar.slice(3)] as unknown as typeof g.tugunlar,
+      bogichlar: [...g.bogichlar, null, { manba: 'yoq:1', maqsad: 'yoq:2', tur: 'x' }] as unknown as typeof g.bogichlar,
+      oxirgi_hodisalar: [null, ...(g.oxirgi_hodisalar ?? [])] as unknown as typeof g.oxirgi_hodisalar };
+    const toza = tizimGrafTozala(buzuq);
+    expect(toza.tugunlar).toHaveLength(g.tugunlar.length);
+    expect(toza.bogichlar.every((b) => !!b && toza.tugunlar.some((n) => n.id === b.manba))).toBe(true);
+    expect(toza.oxirgi_hodisalar.every(Boolean)).toBe(true);
+    expect(() => tizimDaraxtQur(buzuq)).not.toThrow();
+    expect(tizimDaraxtQur(buzuq).tugunlar.size).toBe(tizimDaraxtQur(g).tugunlar.size);
+  });
+});
