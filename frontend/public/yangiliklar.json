@@ -13,6 +13,17 @@
       ]
     },
     {
+      "id": 47,
+      "sana": "2026-10-29",
+      "sarlavha": "LRV: qo'shimcha ish va zamena endi aniq ko'rinadi",
+      "bandlar": [
+        "LRV daraxtida har qatorda belgi: «QO'SHIMCHA» (asl smetada yo'q ish) va «ZAMENA» (qaysi asl qator o'rniga — «← poz. N: nomi», bosilsa o'sha qatorga o'tadi). Almashtirilgan asl qator kursivda «ALMASHTIRILGAN → poz. M» va qoldiq hajmi bilan.",
+        "Tezkor filtrlar: Hammasi / Asl smeta / Qo'shimcha / Zamena. Yangi smeta versiyasi bilan almashtirilgan eski qatorlar asosiy ro'yxatga kirmaydi — «Avvalgi versiya (almashtirilgan)» filtrida kulrang ko'rinadi.",
+        "LRV Excel'da shakl o'zgarmaydi, oxirida «Примечание» ustuni: «ДОПОЛНИТЕЛЬНАЯ РАБОТА», «ЗАМЕНА поз. N (…)», «ЗАМЕНЕНО → поз. M, остаток X». Rang: qo'shimcha — sariq, zamena — ko'k, almashtirilgan — kulrang kursiv.",
+        "Excel oxirida jamlar: asl smeta / qo'shimcha ishlar / zamena — ustamasiz (formula) va ustama bilan (QQS siz va QQS bilan), uchtasi smeta jami bilan sverka qilinadi; rang izohi. Avvalgi versiya qatorlari alohida «Пред. версия» varag'ida (jamlarga kirmaydi)."
+      ]
+    },
+    {
       "id": 46,
       "sana": "2026-10-28",
       "sarlavha": "«Fakt = F2» endi F2 narxi bilan yozadi",

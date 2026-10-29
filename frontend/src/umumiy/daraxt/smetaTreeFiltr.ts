@@ -27,6 +27,16 @@ export function daraxtniYassila(nodes: readonly TreeNode[]): TekisTugun[] {
 /** Filtr faqat ish/resurs qatorlarida (razdel emas); razdel/bo'lim mos qatorning otasi sifatida ko'rinadi. */
 export const LRV_DARAXT: Daraxt<TekisTugun> = { id: (r) => r.key, ota: (r) => r.ota, barg: (r) => r.node.type !== 'rz' };
 
+/**
+ * Tezkor filtr «Asl smeta / Qo'shimcha / Zamena» mosligi (egasi 2026-10-29; `t2_qator.change_type`, lib/lrv-ozgarish).
+ * Zamena filtrida almashtirilgan asl qatorlar ham ko'rinadi (zamena nimani almashtirgani yonma-yon bo'lsin).
+ */
+export function ozgarishFiltrMos(n: TreeNode, f: 'asl' | 'qosh' | 'zamena'): boolean {
+  if (f === 'asl') return (n.ozgarishGuruh ?? 'asl') === 'asl';
+  if (f === 'qosh') return !!n.isQosh;
+  return !!n.isZamena || !!n.almashtirganlar?.length;
+}
+
 /** Qatordagi «Bajarilish» foizi — qator chizig'i bilan bir xil formula; smeta noma'lum yoki razdel bo'lsa — bo'sh (0 emas). */
 export function bajarilishFoizi(n: TreeNode): number | null {
   const sm = n.smetaHajm;

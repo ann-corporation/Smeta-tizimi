@@ -14,6 +14,10 @@ vi.mock('../../api/supabase', async (asl) => ({
 }));
 vi.mock('../../api/t2-holat-qisman', () => ({ sbT2QatorHolatQisman: api.qisman }));
 vi.mock('../../api/t2-price-control', () => ({ priceControlOl: api.narx }));
+vi.mock('../../api/t2-ozgarish', () => ({
+  ozgarishMalumotOl: async () => new Map([[4, { change_type: 'ADDITIONAL', replaces_line_id: null }]]),
+  avvalgiVersiyaOl: async () => ({ qatorlar: [{ ...q(90, null, 'rz'), almashtirgan_versiya_id: 5 }, { ...q(91, 90, 'bl'), almashtirgan_versiya_id: 5 }], versiyaNomi: new Map([[5, 'V2']]) }),
+}));
 
 import { useT2Daraxt } from './useT2Daraxt';
 
@@ -45,6 +49,14 @@ describe('useT2Daraxt — katta smetada qotmaslik', () => {
     const { result } = renderHook(() => useT2Daraxt(7));
     await waitFor(() => expect(result.current.tree.length).toBe(1));
     expect(api.daraxt).toHaveBeenCalledTimes(1);
+    // change_type alohida o'qilib qatorlarga qo'shiladi (t2_daraxt view'ida yo'q).
+    expect(result.current.rows.find((r) => r.id === 4)!.change_type).toBe('ADDITIONAL');
+    expect(result.current.rows.find((r) => r.id === 2)!.change_type).toBeNull();
+    // Avvalgi (almashtirilgan) versiya — asosiy daraxtga kirmaydi, alohida daraxt (kulrang).
+    expect(result.current.rows.some((r) => r.id === 90)).toBe(false);
+    expect(result.current.avvalgiTree.length).toBe(1);
+    expect(result.current.avvalgiTree[0].avvalgiVersiya).toBe('V2');
+    expect(result.current.avvalgiTree[0].children![0].avvalgiVersiya).toBe('V2');
 
     api.qisman.mockResolvedValue({ ok: true, qatorlar: [h(2, 4), h(3, 4), h(1, 4)] });
     const loadingKorildi: boolean[] = [];

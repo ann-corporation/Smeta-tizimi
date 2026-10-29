@@ -51,6 +51,8 @@ import { narxBildirishnomaKerak } from './narx-bildirishnoma';
 import { downloadBlob } from './construction-document-control/export/download-helper';
 
 import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
+import { OZGARISH_HEX, OZGARISH_KOD, OZGARISH_LEGENDA, OZGARISH_NOMI_RU, ozgarishBor, ozgarishIzohi, ozgarishRangi, ozgarishXaritasi, type OzgarishGuruh } from './lrv-ozgarish';
+import { nakrutkaKat, podvalliKaskad, NAKRUTKA_KATLAR, type KatSummalar } from './nakrutka-podval';
 const katta = <T,>(v: T): T => (typeof v === 'string' ? kattaHarfga(v) as T : v);
 /**
  * `toliq` — butun LRV_PLUS (A..W + yashirin Даража).
@@ -341,6 +343,9 @@ export const LRV_PLUS_USTUNLAR = [
 export const LRV_FORMA2_USTUNLAR = [
   ...LRV_PLUS_USTUNLAR.slice(0, 15), 'ЗАМЕЧАНИЕ', 'Даража', 'КАЛИТ',
 ] as const;
+
+/** Qo'shimcha/zamena bor obyektda oxiriga qo'shiladigan ustunlar: izoh (ko'rinadi) va guruh kodi (yashirin). */
+export const LRV_OZGARISH_USTUNLAR = ['ПРИМЕЧАНИЕ (ДОП. РАБОТА / ЗАМЕНА)', 'ИЗМ'] as const;
 
 /** Fayl qaysi obyekt/davrga tegishli ekanini mashina o'qiy oladigan belgi —
  *  tahrirlangan fayl BOSHQA obyektga import qilinib ketmasligi uchun. */
@@ -691,8 +696,19 @@ export async function lrvPlusFaylBaytlari(
   }
   const rejim = options?.rejim ?? 'toliq';
   const darajaUstun = LRV_DARAJA_USTUN[rejim];
-  const ustunlar = rejim === 'forma2' ? LRV_FORMA2_USTUNLAR : LRV_PLUS_USTUNLAR;
+  /* Qo'shimcha ish / zamena (egasi 2026-10-29) — faqat o'zgarish bor obyektda oxiriga ПРИМЕЧАНИЕ (ko'rinadi) va
+     ИЗМ (yashirin guruh kodi, pastdagi jamlar SUMIFS uchun); mavjud ustunlar o'rni o'zgarmaydi. */
+  const oz = ozgarishBor(qatorlar) ? ozgarishXaritasi(qatorlar) : null;
+  const asosUstunlar: readonly string[] = rejim === 'forma2' ? LRV_FORMA2_USTUNLAR : LRV_PLUS_USTUNLAR;
+  const ustunlar: readonly string[] = oz ? [...asosUstunlar, ...LRV_OZGARISH_USTUNLAR] : asosUstunlar;
   const hisob = lrvPlusQatorlarniHisobla(qatorlar, holatlar, darajaUstun);
+  const holatXarita = new Map((holatlar ?? []).map((x) => [x.qator_id, x] as const));
+  const noXarita = new Map(hisob.map((q) => [q.id, q.no] as const));
+  const qatorXarita = new Map(qatorlar.map((q) => [q.id, q] as const));
+  const izohi = (id: number): string | null => (oz ? ozgarishIzohi(id, oz, {
+    poz: (x) => noXarita.get(x), nom: (x) => qatorXarita.get(x)?.nom, ota: (x) => qatorXarita.get(x)?.ota_id,
+    qoldiq: (x) => { const v = holatXarita.get(x)?.qoldiq_hajm; return v == null ? null : Number(v); }, birlik: (x) => qatorXarita.get(x)?.birlik,
+  }) : null);
   const ildiz = hisob.filter((q) => q.daraja === 0);
   // Egasi qoidasi (2026-10-08): jami — ma'lum summalar yig'indisi; narxsiz qator jamini bo'shatmaydi.
   const knownSum = (items: LrvPlusQator[], pick: (row: LrvPlusQator) => number | null): number | null =>
@@ -710,6 +726,17 @@ export async function lrvPlusFaylBaytlari(
       katQatorSoni[q.kat] += 1;
       katYigindi[q.kat] += q.summaQiymat ?? 0;
     }
+  }
+  /* Guruh (asl / qo'shimcha / zamena) jamlari — faqat barglar (rs/mat/ob), ustamali uchun kategoriya kesimida. */
+  const guruhJS = Object.fromEntries((['asl', 'qoshimcha', 'zamena'] as const).map((g) => [g, {
+    H: 0, ks: Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar,
+  }])) as Record<OzgarishGuruh, { H: number; ks: KatSummalar }>;
+  if (oz) for (const q of hisob) {
+    if (!LEAF_TUR.has(q.tur) || q.summaQiymat == null) continue;
+    const g = guruhJS[oz.get(q.id)?.guruh ?? 'asl'];
+    g.H += q.summaQiymat;
+    const k = nakrutkaKat(q.kat) ?? (q.tur === 'mat' ? 'МАТ' : q.tur === 'ob' ? 'ОБ' : null);
+    if (k) g.ks[k] += q.summaQiymat;
   }
 
   const XLSX = await import('xlsx-js-style');
@@ -747,9 +774,10 @@ export async function lrvPlusFaylBaytlari(
       q.tur,
       ...kat,
     ];
+    const ozgarishKatak: (string | null)[] = oz ? [katta(izohi(q.id)), OZGARISH_KOD[oz.get(q.id)?.guruh ?? 'asl']] : [];
     if (rejim === 'forma2') {
       // A..O + ЗАМЕЧАНИЕ (bo'sh, buyurtmachi to'ldiradi) + Даража + КАЛИТ.
-      aoa.push([...asosiy, '', q.daraja, lrvKalitYoz(q.id, q.kod, q.nom, q.birlik)]);
+      aoa.push([...asosiy, '', q.daraja, lrvKalitYoz(q.id, q.kod, q.nom, q.birlik), ...ozgarishKatak]);
     } else {
       aoa.push([
         ...asosiy,
@@ -757,6 +785,7 @@ export async function lrvPlusFaylBaytlari(
         q.faktSumma, q.summaQiymat == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa, q.faktSumma - q.f2Summa,
         q.daraja,
         lrvKalitYoz(q.id, q.kod, q.nom, q.birlik),
+        ...ozgarishKatak,
       ]);
     }
   }
@@ -841,7 +870,11 @@ export async function lrvPlusFaylBaytlari(
   // Sarlavha qiymatlari o'zgarmaydi; guruhlar rang va qalin ajratgich bilan
   // ko'rinadi. Har bir katakka og'ir chegara chizilmaydi.
   for (const q of hisob) {
-    const rang = RANG[q.tur];
+    // Qo'shimcha — och sariq, zamena — och ko'k, almashtirilgan asl — kulrang kursiv (tur rangidan ustun).
+    const ozr = oz ? ozgarishRangi(oz.get(q.id)) : null;
+    const rang = ozr
+      ? { fill: { patternType: 'solid', fgColor: { rgb: OZGARISH_HEX[ozr] } }, font: { bold: RANG[q.tur]?.font?.bold, ...(ozr === 'almashtirilgan' ? { italic: true, color: { rgb: '595959' } } : {}) } }
+      : RANG[q.tur];
     for (let c = 0; c < NCOLS; c++) {
       const ref = XLSX.utils.encode_cell({ r: q.row - 1, c });
       const cell = ws[ref];
@@ -934,6 +967,7 @@ export async function lrvPlusFaylBaytlari(
         { wch: 7, hidden: true },   // Даража
         { wch: 18, hidden: true },  // КАЛИТ
       ];
+  if (oz) (ws['!cols'] as Array<{ wch: number; hidden?: boolean }>).push({ wch: 40 }, { wch: 6, hidden: true }); // ПРИМЕЧАНИЕ, ИЗМ
   const oxirgiMalumotQator = 3 + hisob.length;
   ws['!autofilter'] = { ref: `A2:${XLSX.utils.encode_col(NCOLS - 1)}${oxirgiMalumotQator}` };
 
@@ -1059,6 +1093,51 @@ export async function lrvPlusFaylBaytlari(
       if (font) c.font = font;
       c.alignment = { vertical: 'top', wrapText: false };
     };
+    if (oz && hisob.length) {
+      /* Asl smeta / Qo'shimcha / Zamena jamlari (egasi 2026-10-29): ustamasiz — SUMIFS (barglar I∈rs/mat/ob,
+         yashirin ИЗМ kodi bo'yicha), ustamali — koeffitsientlar berilgan bo'lsa mavjud kaskad bilan. Oxirida rang izohi. */
+      const c1 = hisob[0].row, c2 = hisob[hisob.length - 1].row;
+      const kodUstun = XLSX.utils.encode_col(ustunlar.length - 1);
+      const sumifs = (kod: string) => [...LEAF_TUR].map((t) => `SUMIFS(H${c1}:H${c2},I${c1}:I${c2},"${t}",${kodUstun}${c1}:${kodUstun}${c2},"${kod}")`).join('+');
+      const pul = (row: number, col: number, v: number | null, f?: string) => {
+        const c = asosiy.getCell(row, col);
+        c.value = f ? { formula: f, result: v ?? undefined } as import('exceljs').CellFormulaValue : v;
+        c.numFmt = PUL_FORMAT;
+        c.alignment = { horizontal: 'right' };
+      };
+      const boya = (row: number, hex: string | null, italic = false) => {
+        if (!hex) return;
+        for (let col = 1; col <= 8; col++) {
+          const c = asosiy.getCell(row, col);
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${hex}` } };
+          if (italic) c.font = { ...(c.font ?? {}), italic: true };
+        }
+      };
+      matn(r++, 3, 'ИТОГИ ПО ВИДАМ ПОЗИЦИЙ: ОСНОВНАЯ СМЕТА / ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ / ЗАМЕНЫ (графа «СУММА»)', { bold: true });
+      const pryamye: number[] = [];
+      for (const g of ['asl', 'qoshimcha', 'zamena'] as const) {
+        const x = guruhJS[g];
+        const hex = g === 'asl' ? null : OZGARISH_HEX[g];
+        matn(r, 3, `${kattaHarfga(OZGARISH_NOMI_RU[g])} — ПРЯМЫЕ ЗАТРАТЫ (БЕЗ НАКРУТКИ)`);
+        pul(r, 8, Math.round(x.H * 100) / 100, sumifs(OZGARISH_KOD[g]));
+        boya(r, hex); pryamye.push(r); r++;
+        if (options?.nakrutka) {
+          let k: { itogo4: number; vsego: number } | null = null;
+          try { k = podvalliKaskad(x.ks, options.nakrutka, null); } catch { k = null; }
+          matn(r, 3, `${kattaHarfga(OZGARISH_NOMI_RU[g])} — С НАКРУТКОЙ, БЕЗ НДС`); pul(r, 8, k ? k.itogo4 : null); boya(r, hex); r++;
+          matn(r, 3, `${kattaHarfga(OZGARISH_NOMI_RU[g])} — С НАКРУТКОЙ И НДС`); pul(r, 8, k ? k.vsego : null); boya(r, hex); r++;
+        }
+      }
+      const jamiV = Math.round((guruhJS.asl.H + guruhJS.qoshimcha.H + guruhJS.zamena.H) * 100) / 100;
+      matn(r, 3, 'ВСЕГО ПРЯМЫЕ ЗАТРАТЫ ПО ВИДАМ ПОЗИЦИЙ', { bold: true });
+      pul(r, 8, jamiV, pryamye.map((x) => `H${x}`).join('+')); const jR = r++;
+      matn(r, 3, 'СВЕРКА: ПО ВИДАМ ПОЗИЦИЙ − ЖАМИ (ДОЛЖНО БЫТЬ 0,00)', { italic: true });
+      pul(r, 8, jamiSumma == null ? null : Math.round((jamiV - jamiSumma) * 100) / 100, `IF(H3="","",ROUND(H${jR}-H3,2))`); r++;
+      r++;
+      matn(r++, 3, 'УСЛОВНЫЕ ОБОЗНАЧЕНИЯ', { bold: true });
+      for (const [rang, izoh] of OZGARISH_LEGENDA) { matn(r, 3, izoh.toLocaleUpperCase('ru-RU'), rang === 'almashtirilgan' ? { italic: true } : undefined); boya(r, OZGARISH_HEX[rang], rang === 'almashtirilgan'); r++; }
+      r++;
+    }
     if (nomalumlar.length) {
       matn(r++, 3, `ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ (${nomalumlar.length})`, { bold: true });
       const LIMIT = 500;
@@ -1080,7 +1159,7 @@ export async function lrvPlusFaylBaytlari(
       r++;
     }
     // Chop hududi: ko'rinadigan oxirgi ustungacha (yashirin Даража/КАЛИТ kirmaydi) va imzogacha.
-    const oxirgiKorinadigan = rejim === 'toliq' ? 'W' : 'P';
+    const oxirgiKorinadigan = oz ? XLSX.utils.encode_col(ustunlar.length - 2) : rejim === 'toliq' ? 'W' : 'P';
     asosiy.pageSetup.printArea = `A1:${oxirgiKorinadigan}${r}`;
   }
   const manbaWs = ewb.getWorksheet('МАНБА');
