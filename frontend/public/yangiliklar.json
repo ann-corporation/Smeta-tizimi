@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 48,
+      "sana": "2026-10-29",
+      "sarlavha": "Smeta versiyasi: hamma joyda faqat joriy smeta, eski versiya bilan farq bir joyda",
+      "bandlar": [
+        "Smeta yangi versiyaga (masalan ekspertiza xulosasi) almashtirilgan obyektlarda endi barcha ekran, eksport, AI javoblari, narxlash va qidiruv faqat JORIY smetani oladi — eski va yangi qatorlar qo'shilib smeta ikki barobar chiqmaydi.",
+        "Eski smeta o'chirilmaydi: undagi tasdiqlangan F2 tarixda qoladi va bajarilganda bir marta sanaladi. Pereraschet va to'liq eksport eski qatorlarni ham ko'radi.",
+        "Obyekt sahifasida «Smeta yangi versiyaga almashtirilgan — eski va yangi farqi» tugmasi: «Versiyalar va farq» da eski → joriy zanjiri, jamilar (QQS bilan, ustamali QQS siz, прямые), har pozitsiya bo'yicha kamaygan / oshgan / yangi / o'chirilgan / o'zgarmagan, eski va yangi hajm/narx/summa, eski qatordagi F2 va pereraschet ishorasi (eski F2 minus, joriy narxda plus).",
+        "Tizim o'zini tekshiradi: smeta qatorlarini versiyani hisobga olmasdan o'qiydigan yangi hisob paydo bo'lsa, xato signali chiqadi."
+      ]
+    },
+    {
       "id": 46,
       "sana": "2026-10-28",
       "sarlavha": "«Fakt = F2» endi F2 narxi bilan yozadi",

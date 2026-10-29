@@ -6,6 +6,7 @@ import { sbOqi, yozAmali, type AktNatija } from './supabase';
 import { t2ToliqOqiParallel } from './t2-toliq-oqish';
 import { t } from '../i18n/til';
 import type { MoslikHolat, MoslikQator, PozitsiyaQator, Qaror, SmetaVersiya, VersiyaTur, VPozitsiya } from '../lib/smeta-versiya/turlar';
+import type { F2Qator, FPozitsiya, VQator } from '../lib/smeta-versiya/faollashtirish-farq';
 
 export type VersiyaNatija = AktNatija & {
   code?: string; versiya_id?: number; yozildi?: number; otkazildi?: number; qolgan?: number; yangilandi?: number;
@@ -29,6 +30,30 @@ export async function mosliklarOl(versiyaId: number) {
     ustunlar: 'id,versiya_id,pozitsiya_id,qator_id,holat,ishonch,usul,birlik_farq,eski_hajm,joriy_hajm,joriy_kod,joriy_nom,joriy_birlik,tasdiq,qaror,qurilgan_hajm,qaror_izoh,qaror_vaqt,versiya',
     limit: 60000,
   }, 'id');
+}
+
+/** Faollashtirish versiyasi pozitsiyalari — `manba.qator_id` (eski smeta qatori) bilan. */
+export async function faollashtirishPozitsiyalariOl(versiyaId: number) {
+  return t2ToliqOqiParallel<FPozitsiya>(sbOqi, {
+    jadval: 't2_smeta_versiya_pozitsiya', filtr: `versiya_id=eq.${versiyaId}`,
+    ustunlar: 'id,versiya_id,tartib,ls_kod,ls_nom,razdel,blok,raqam,kod,nom,birlik,hajm,manba', limit: 50000,
+  }, 'id');
+}
+
+/** Shu versiya bilan almashtirilgan ESKI qatorlar — aniq opt-in `versiya: 'tarix'` (shlyuz sukut bo'yicha faqat faolni beradi). */
+export async function eskiQatorlarOl(obyektId: number, versiyaId: number) {
+  return t2ToliqOqiParallel<VQator>(sbOqi, {
+    jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&almashtirgan_versiya_id=eq.${versiyaId}`,
+    ustunlar: 'id,ota_id,tur,kat,hajm,narx,summa', limit: 200000, versiya: 'tarix',
+  }, 'id');
+}
+
+/** Eski (almashtirilgan) qatorlardagi tasdiqlangan F2 — tarix, o'zgarmaydi. */
+export async function eskiF2Ol(obyektId: number) {
+  return t2ToliqOqiParallel<F2Qator>(sbOqi, {
+    jadval: 't2_qator_holat', filtr: `obyekt_id=eq.${obyektId}&versiya_holat=eq.almashtirilgan&or=(f2_hajm.neq.0,f2_summa.neq.0)`,
+    ustunlar: 'qator_id,f2_hajm,f2_summa', limit: 200000,
+  }, 'qator_id');
 }
 
 /** E — «bajarilgan, smetadan tashqari / da'vo» o'qish modeli (fakt jurnali uchun; faktga avtomatik yozilmaydi). */

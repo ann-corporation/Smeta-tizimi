@@ -203,11 +203,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     if (body.action === 'projection.pull') {
       const state = await getRows(ctx.env,
-        `/rest/v1/t2_qator_holat?obyekt_id=eq.${objectId}`
+        /* Smeta proyeksiyasi — faqat FAOL versiya (eski qatorlar F2 tarixi uchun bazada qoladi, ko'zguga chiqmaydi). */
+        `/rest/v1/t2_qator_holat?obyekt_id=eq.${objectId}&versiya_holat=eq.faol`
         + '&order=qator_id.asc&select=qator_id,tur,kod,nom,birlik,kat,smeta_hajm,smeta_narx,smeta_summa'
         + ',fakt_hajm,fakt_summa,f2_hajm,f2_summa,qoldiq_hajm,qoldiq_summa'
         + ',f2_mumkin_hajm,f2_mumkin_summa,f2_narx,fakt_narx,f2_narx_farq_foiz');
-      const versions = await getRows(ctx.env, `/rest/v1/t2_qator?obyekt_id=eq.${objectId}&select=id,versiya&order=id.asc`);
+      const versions = await getRows(ctx.env, `/rest/v1/t2_qator?obyekt_id=eq.${objectId}&versiya_holat=eq.faol&select=id,versiya&order=id.asc`);
       if (!state.ok || !versions.ok) return json({ ok: false, code: 'PROJECTION_READ_FAILED' }, { status: 502 });
       const versionById = new Map<number, number>();
       for (const row of versions.rows) {

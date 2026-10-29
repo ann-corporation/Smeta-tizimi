@@ -34,7 +34,7 @@ import NarxNazoratNative from './NarxNazoratNative';
 import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPanel';
 import { BajarilmadiPanel } from './BajarilmadiPanel';
 import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
-import { SmetaVersiyaFarq } from './SmetaVersiyaFarq';
+import { SmetaVersiyaFarq, VersiyaAlmashtirilganBelgi } from './SmetaVersiyaFarq';
 import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
 
@@ -49,7 +49,8 @@ export function HolatNative() {
   const [searchParams] = useSearchParams();
   const requestedPanel = searchParams.get('panel');
   const [exportsOpen,setExportsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(requestedPanel === 'smeta' ? 'yuklash' : 'smeta');
+  const panelTab = requestedPanel === 'smeta' ? 'yuklash' : requestedPanel === 'versiya' ? 'versiya' : 'smeta';
+  const [activeTab, setActiveTab] = useState(panelTab);
   const { joriy } = useKompaniya();
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   /* Sahifaning o'z xatolari (obyektlar ro'yxati, eksport). Daraxt xatosi hook'dan. */
@@ -71,7 +72,7 @@ export function HolatNative() {
   } = useT2Daraxt(validId ? obyektId : null);
   /* SMETA CONST (egasi 2026-10-27): asl smeta muhridan farq — daraxt qayta yuklanganda yangilanadi. */
   const muhr = useMuhrFarq(validId ? obyektId : null, daraxtXom);
-  useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(requestedPanel === 'smeta' ? 'yuklash' : 'smeta'); }, [obyektId, joriy?.id, requestedPanel]);
+  useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(panelTab); }, [obyektId, joriy?.id, requestedPanel, panelTab]);
   const error = sahifaXato || daraxtXato;
   // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
   const marketLines = useMemo(() => activeTab === 'narx' ? daraxtXom
@@ -379,6 +380,7 @@ export function HolatNative() {
             })}
           </div>
           <span className="ml-auto flex flex-wrap items-center gap-1.5">
+            <VersiyaAlmashtirilganBelgi obyektId={obyektId} onOch={() => setActiveTab('versiya')} />
             <button type="button" className="fz-btn fz-btn--sm" onClick={() => navigate(`/admin/f2?obyekt=${obyektId}`)}>{t('F2 import')}</button>
             <button type="button" className="fz-btn fz-btn--sm" onClick={() => navigate(`/admin/nakopitelniy?obyekt=${obyektId}`)}>{t('Nakopitelniy va F3')}</button>
           </span>
