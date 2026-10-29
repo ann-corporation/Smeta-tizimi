@@ -52,6 +52,9 @@ export type SbSoro = {
   ustunlar?: string;
   tartib?: string;
   limit?: number;
+  /** Smeta versiyasi (2026-10-29): `t2_qator` shlyuzda SUKUT bo'yicha faqat faol versiya. `'tarix'` — aniq opt-in:
+   *  almashtirilgan (eski) qatorlar ham (F2/fakt tarixi, pereraschet, to'liq eksport). `id=eq./in.` qidiruvi doim barcha versiya. */
+  versiya?: 'faol' | 'tarix';
 };
 
 /* Egasi (2026-10-02): fakt saqlashda tugma 10 daqiqa «Saqlanmoqda…» da qotdi — server yozib bo'lgan, javob esa yo'lda

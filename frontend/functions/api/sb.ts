@@ -34,6 +34,7 @@ import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
 import { otaKeshOl, otaKeshYoz } from '../_shared/ota-kesh';
+import { versiyaFiltri } from '../_shared/versiya-oqish';
 
 /* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA va `_shared/tenant-oqish.ts` dagi
    OQISH_SIYOSATI ga (aniq izolyatsiya siyosati bilan) qo'shiladi — ikkalasi bir xil bo'lishi testda majburiy.
@@ -185,6 +186,8 @@ export const onRequestPost: PagesFunction<{
     const so = await ctx.request.json<{
       jadval?: string; filtr?: string; ustunlar?: string;
       tartib?: string; limit?: number;
+      /* Smeta versiyasi (2026-10-29): t2_qator sukut — faqat faol; 'tarix' — aniq opt-in (F2/fakt tarixi, eksport). */
+      versiya?: string;
       soro?: string; obyekt_id?: number; kompaniya_id?: number; akt_id?: number; job_id?: number;
       shartnoma_id?: number;
       /* pul_tahlil_v1 (2026-10-24) */
@@ -515,7 +518,10 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu ma\'lumotga ruxsat yo\'q' }, { status: 403 });
       }
     }
-    const majburiyFiltr = qaror.qoshimchaFiltr.map((f) => {
+    /* SMETA VERSIYASI — markaziy qoida (har ekranda emas): t2_qator sukut bo'yicha faqat faol versiya. */
+    const vq = versiyaFiltri(jadval, so);
+    if (!vq.ok) return Response.json({ ok: false, code: 'VERSIYA_INVALID', error: vq.error }, { status: 400 });
+    const majburiyFiltr = (vq.filtr ? [...qaror.qoshimchaFiltr, vq.filtr] : qaror.qoshimchaFiltr).map((f) => {
       const i = f.indexOf('=');
       return encodeURIComponent(f.slice(0, i)) + '=' + encodeURIComponent(f.slice(i + 1));
     }).join('&');

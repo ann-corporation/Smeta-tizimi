@@ -53,12 +53,13 @@ export async function faylBaytlari(id: number): Promise<Uint8Array> {
 }
 
 /** ZIP ga kiradigan ma'lumot jadvallari: nom (zip ichida) → /api/sb jadvali + ustunlar. */
-export const EKSPORT_JADVALLARI: ReadonlyArray<{ nom: string; jadval: string; ustunlar?: string }> = [
+export const EKSPORT_JADVALLARI: ReadonlyArray<{ nom: string; jadval: string; ustunlar?: string; versiya?: 'tarix' }> = [
   { nom: 'loyihalar', jadval: 't2_loyiha_royxat' },
   { nom: 'obyektlar', jadval: 't2_obyekt' },
   { nom: 'shartnomalar', jadval: 't2_shartnoma' },
   { nom: 'kontragentlar', jadval: 't2_kontragent_royxat' },
-  { nom: 'smeta_qatorlari', jadval: 't2_qator', ustunlar: 'id,obyekt_id,ota_id,tartib,tur,kod,nom,birlik,hajm,narx,summa,kat,norma,raqam' },
+  /* To'liq eksport — barcha versiyalar (akt_qatorlari eski qatorlarga ham ishora qiladi); versiya_holat ustuni bilan. */
+  { nom: 'smeta_qatorlari', jadval: 't2_qator', ustunlar: 'id,obyekt_id,ota_id,tartib,tur,kod,nom,birlik,hajm,narx,summa,kat,norma,raqam,versiya_holat', versiya: 'tarix' },
   { nom: 'aktlar_fakt_f2', jadval: 't2_akt' },
   { nom: 'akt_qatorlari', jadval: 't2_akt_qator' },
   { nom: 'tolovlar', jadval: 't2_tolov' },
@@ -68,12 +69,12 @@ export const EKSPORT_JADVALLARI: ReadonlyArray<{ nom: string; jadval: string; us
 ];
 
 /** Jadvalning shu kompaniyadagi barcha qatorlari — id bo'yicha sahifalab (har so'rov ≤ 20 000). */
-export async function jadvalHammasi(jadval: string, kompaniyaId: number, ustunlar?: string): Promise<Record<string, unknown>[]> {
+export async function jadvalHammasi(jadval: string, kompaniyaId: number, ustunlar?: string, versiya?: 'tarix'): Promise<Record<string, unknown>[]> {
   const natija: Record<string, unknown>[] = [];
   let oxirgi = 0;
   for (let i = 0; i < 100; i++) {
     const r = await sbOqi<Record<string, unknown>>({
-      jadval, ustunlar, tartib: 'id.asc', limit: 20000,
+      jadval, ustunlar, tartib: 'id.asc', limit: 20000, ...(versiya ? { versiya } : {}),
       filtr: `kompaniya_id=eq.${kompaniyaId}&id=gt.${oxirgi}`,
     });
     if (!r.ok) throw new Error(`${jadval}: ${r.error || 'o‘qilmadi'}`);
