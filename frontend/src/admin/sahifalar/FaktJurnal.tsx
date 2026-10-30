@@ -63,7 +63,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   saqlashRef?: { current: SaqlashFn | null };
   rows: readonly T2Qator[]; states: readonly JurnalHolat[];
   /** Faqat fakt/F2 holatini qayta o'qish (tez). */
-  holatniYangila: () => Promise<void> | void;
+  /** Saqlangan qator id lari berilsa — faqat ular (va ota/bolalari) holati qayta o'qiladi. */
+  holatniYangila: (qatorIdlar?: readonly number[]) => Promise<void> | void;
   /** Qator qo'shilganda (zamena/qo'shimcha) — to'liq qayta o'qish. */
   tuzilmaniYangila: () => Promise<void> | void;
 }) {
@@ -333,7 +334,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       toast(`${ids.size} ta qator saqlandi — F2 qoldig‘i yangilandi.`, 'ok');
       // Saqlash tugadi — tugma darhol bo'shaydi; holat fonda yangilanadi (sekin o'qish tugmani qotirmasin).
       setBand(false);
-      void Promise.resolve(holatniYangila()).catch(() => toast('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.', 'warn'));
+      void Promise.resolve(holatniYangila([...ids])).catch(() => toast('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.', 'warn'));
       return true;
     } catch { toast('Javob olinmadi. Qayta saqlang — takror xavfsiz (bir xil amal ID).', 'danger'); }
     finally { setBand(false); }

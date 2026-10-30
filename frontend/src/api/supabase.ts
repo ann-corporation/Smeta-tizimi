@@ -22,7 +22,7 @@
  * xato turi.
  */
 
-import { t2ToliqOqi, t2ToliqOqiParallel } from './t2-toliq-oqish';
+import { t2ToliqOqiParallel } from './t2-toliq-oqish';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
 import { lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishXaritasi } from '../lib/lrv-ozgarish';
 
@@ -352,8 +352,10 @@ export type T2Qator = {
   almashtirgan_versiya_id?: number | null;
 };
 
+/** Katta obyektda kalit (qator_id) oynalari PARALLEL o'qiladi — natija ketma-ket o'qish bilan aynan bir xil
+ *  (qator_id bo'yicha o'sish tartibi, to'liqlik tekshiruvi; xato bo'lsa ketma-ket yo'lga qaytadi). */
 export function sbT2QatorHolatOl(obyektId: number, ustunlar?: string) {
-  return t2ToliqOqi<T2QatorHolat>(sbOqi, {
+  return t2ToliqOqiParallel<T2QatorHolat>(sbOqi, {
     jadval: 't2_qator_holat',
     filtr: 'obyekt_id=eq.' + obyektId,
     limit: 200000,

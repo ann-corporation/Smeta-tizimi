@@ -27,7 +27,7 @@ interface SmetaTreeProps {
    *  (chaqiruvchi daraxtni qayta yuklashi uchun). Faqat kanonik qatorlarda
    *  (`node.id` va `node.versiya` mavjud bo'lganda) tahrirlash tugmasi
    *  ko'rinadi — GAS-nom asosidagi eski daraxtda bu maydonlar yo'q. */
-  onQatorTahrirlandi?: () => void;
+  onQatorTahrirlandi?: (qatorId: number) => void;
   /** LRV ichidagi kichik, canonical Fakt yozish porti. Backend qoidalari parentda qoladi. */
   onFaktOpen?: () => void;
   /** Konteyner balandligini qatorlar soniga moslaydi: kam qator — past; ko'p — ekran balandligigacha (keyin ichki skroll).
@@ -839,7 +839,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
             },
           }}
           yop={() => setTahrirNode(null)}
-          saqlandi={() => onQatorTahrirlandi?.()}
+          saqlandi={() => onQatorTahrirlandi?.(tahrirNode.id!)}
         />
       )}
     </div>
