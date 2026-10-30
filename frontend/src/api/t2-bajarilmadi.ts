@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali } from './supabase';
 
 /**
@@ -23,7 +24,7 @@ export type BajarilmadiQator = {
 };
 
 export async function bajarilmadiRoyxatOl(kompaniyaId: number, obyektId?: number | null): Promise<{ ok: boolean; qatorlar: BajarilmadiQator[]; error?: string }> {
-  const r = await fetch('/api/sb', {
+  const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ soro: 'bajarilmadi_royxat_v1', kompaniya_id: kompaniyaId, ...(obyektId ? { obyekt_id: obyektId } : {}) }),
   });

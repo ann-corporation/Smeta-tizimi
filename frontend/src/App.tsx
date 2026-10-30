@@ -15,10 +15,11 @@ const AdminShell = lazy(() => import('./admin/AdminShell'));
 const BossShell = lazy(() => import('./boss/BossShell'));
 const TgKirish = lazy(() => import('./telegram/TgKirish'));
 
-// Admin pages
-import { HolatNative } from './admin/sahifalar/HolatNative';
-import { FaktNative } from './admin/sahifalar/FaktNative';
-import FaylBoglash from './admin/sahifalar/FaylBoglash';
+// Admin pages — tez yuklash (2026-10-30): hammasi lazy; Suspense + xato chegarasi qobiq Outlet'ida
+// (`SahifaChegarasi`), shuning uchun kirish sahifasi bu og'ir sahifalarni yuklamaydi.
+const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
+const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
+const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
 const TestKorzinka  = lazy(() => import('./test02/TestKorzinka'));
@@ -80,18 +81,20 @@ const F2Reestr = lazy(() => import('./admin/sahifalar/F2Reestr'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
 const ParticipantNetworkDemo = lazy(() => import('./admin/participants/ParticipantNetworkDemo'));
 const SystemControlDemo = lazy(() => import('./admin/system-control/SystemControlDemo'));
-import F2ImportV3 from './admin/sahifalar/F2ImportV3';
-import M29Native from './admin/sahifalar/M29Native';
-import { F2TayyorlashNative } from './admin/sahifalar/F2TayyorlashNative';
-import NakopitelniyVedomost from './admin/sahifalar/NakopitelniyVedomost';
-import NakrutkaNative from './admin/sahifalar/NakrutkaNative';
-import F2TarixNative from './admin/sahifalar/F2TarixNative';
-import SmetaNarxlashResNative from './admin/sahifalar/SmetaNarxlashResNative';
-import OfertaNative from './admin/sahifalar/OfertaNative';
-import { Narxlar } from './admin/sahifalar/Narxlar';
-import RolBoshSahifa from './admin/RolBoshSahifa';
-import BolimTablari from './admin/BolimTablari';
-import { AiHelper } from './umumiy/ui/AiHelper';
+const F2ImportV3 = lazy(() => import('./admin/sahifalar/F2ImportV3'));
+const M29Native = lazy(() => import('./admin/sahifalar/M29Native'));
+const F2TayyorlashNative = lazy(() => import('./admin/sahifalar/F2TayyorlashNative'));
+const NakopitelniyVedomost = lazy(() => import('./admin/sahifalar/NakopitelniyVedomost'));
+const NakrutkaNative = lazy(() => import('./admin/sahifalar/NakrutkaNative'));
+const F2TarixNative = lazy(() => import('./admin/sahifalar/F2TarixNative'));
+const SmetaNarxlashResNative = lazy(() => import('./admin/sahifalar/SmetaNarxlashResNative'));
+const OfertaNative = lazy(() => import('./admin/sahifalar/OfertaNative'));
+const Narxlar = lazy(() => import('./admin/sahifalar/Narxlar'));
+const RolBoshSahifa = lazy(() => import('./admin/RolBoshSahifa'));
+const BolimTablari = lazy(() => import('./admin/BolimTablari'));
+// AiHelper (48 KB) faqat admin'dan tashqari sahifalarda — lazy, kirish sahifasini og'irlashtirmaydi.
+const AiHelperLazy = lazy(() => import('./umumiy/ui/AiHelper').then((m) => ({ default: m.AiHelper })));
+function AiHelper() { return <Suspense fallback={null}><AiHelperLazy /></Suspense>; }
 
 // Boss pages
 const Umumiy = lazy(() => import('./boss/sahifalar/Umumiy'));

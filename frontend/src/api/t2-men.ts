@@ -3,6 +3,7 @@
  * Reads /api/company?me=1 -> Supabase t2_men_v1. Commands -> /api/company (POST).
  * NO /api/gas, NO Drive/Sheets. Actor identity is server-side (session).
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export type Azolik = {
@@ -58,7 +59,7 @@ export type KompaniyaAzo = {
   foydalanuvchi_id: number; login: string; email: string | null; ism: string | null;
 };
 export async function kompaniyaAzolariOl(kompaniyaId: number): Promise<KompaniyaAzo[]> {
-  const r = await fetch('/api/sb', {
+  const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jadval: 't2_azolik_royxat', filtr: 'kompaniya_id=eq.' + kompaniyaId, tartib: 'login.asc', limit: 500 }),
   });

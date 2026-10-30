@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { useSessiya } from '../api/hooks';
 import { gas } from '../api/client';
 import ReactMarkdown from 'react-markdown';
@@ -119,7 +120,7 @@ export default function BossShell() {
           <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon" aria-label={t('Menyu')} aria-expanded={mobil} onClick={() => setMobil(true)}><Menu aria-hidden="true" /></button>
           <span className="font-semibold">{t('Rahbar ish joyi')}</span>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden"><Outlet /></div>
+        <div className="min-h-0 flex-1 overflow-hidden"><SahifaChegarasi><Outlet /></SahifaChegarasi></div>
       </main>
 
       {/* TITAN AI — tugma */}

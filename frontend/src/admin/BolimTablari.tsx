@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BolimTablariKontekst, joriyTabGuruhi, tabXotiraKaliti, tabXotiraOl, tabXotiraYoz } from './bolimTablariKontekst';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { t } from '../i18n/til';
+import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 
 /**
  * Tab-qobiq (tizim xaritasi P1): bir sidebar bandi ostidagi sahifalar tepada tab bo'lib turadi.
@@ -42,7 +43,8 @@ export default function BolimTablari() {
           ))}
         </nav>
       )}
-      <Outlet />
+      {/* Sahifa yiqilsa ham tablar ko'rinib turadi (xato faqat sahifa joyida). */}
+      <SahifaChegarasi><Outlet /></SahifaChegarasi>
     </div>
   );
 }
