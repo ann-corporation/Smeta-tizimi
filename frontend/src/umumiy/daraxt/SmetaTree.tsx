@@ -840,6 +840,7 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
           }}
           yop={() => setTahrirNode(null)}
           saqlandi={() => onQatorTahrirlandi?.(tahrirNode.id!)}
+          ziddiyatda={() => onQatorTahrirlandi?.(tahrirNode.id!)}
         />
       )}
     </div>

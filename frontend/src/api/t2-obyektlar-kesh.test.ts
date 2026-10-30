@@ -4,6 +4,7 @@ import { QueryClient } from '@tanstack/react-query';
 const api = vi.hoisted(() => ({ ol: vi.fn() }));
 vi.mock('./supabase', () => ({ sbT2ObyektlarOlKomp: api.ol }));
 import { obyektlarKeshdan } from './t2-obyektlar-kesh';
+import { obyektlarEskirdi } from './obyektlar-kesh-belgi';
 
 beforeEach(() => { api.ol.mockReset(); });
 
@@ -33,6 +34,15 @@ describe('obyektlarKeshdan — sahifalar orasida bitta t2_obyekt_jami so‘rovi'
   it('provider yo‘q (izolyatsiyalangan test) — to‘g‘ridan-to‘g‘ri o‘qish', async () => {
     api.ol.mockResolvedValue({ ok: true, qatorlar: [] });
     await obyektlarKeshdan(null, 17); await obyektlarKeshdan(null, 17);
+    expect(api.ol).toHaveBeenCalledTimes(2);
+  });
+  it('obyekt yaratish/nomlashdan keyin (obyektlarEskirdi) — keyingi o‘qish serverdan', async () => {
+    api.ol.mockResolvedValue({ ok: true, qatorlar: [] });
+    const qc = new QueryClient();
+    await obyektlarKeshdan(qc, 17); await obyektlarKeshdan(qc, 17);
+    expect(api.ol).toHaveBeenCalledTimes(1);
+    obyektlarEskirdi();
+    await obyektlarKeshdan(qc, 17);
     expect(api.ol).toHaveBeenCalledTimes(2);
   });
 });

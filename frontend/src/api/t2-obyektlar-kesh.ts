@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { QueryClientContext, type QueryClient } from '@tanstack/react-query';
 import { sbT2ObyektlarOlKomp, type SbJavob, type T2Obyekt } from './supabase';
+import { obyektlarKlientiQayd } from './obyektlar-kesh-belgi';
 
 /**
  * Kompaniya obyektlari ro'yxati (`t2_obyekt_jami`) — sahifalar orasida bitta react-query kaliti.
@@ -19,6 +20,7 @@ export async function obyektlarKeshdan(
   qc: QueryClient | null | undefined, kompaniyaId: number, majburiy = false,
 ): Promise<SbJavob<T2Obyekt>> {
   if (!qc) return sbT2ObyektlarOlKomp(kompaniyaId) as Promise<SbJavob<T2Obyekt>>;
+  obyektlarKlientiQayd(qc);
   try {
     const qatorlar = await qc.fetchQuery({
       queryKey: obyektlarKaliti(kompaniyaId),

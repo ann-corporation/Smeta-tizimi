@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sbT2TreeQur, type T2Qator, type T2QatorHolat } from '../../api/supabase';
 
 const api = vi.hoisted(() => ({
-  daraxt: vi.fn(), holat: vi.fn(), qisman: vi.fn(), daraxtQisman: vi.fn(), narx: vi.fn(),
+  daraxt: vi.fn(), holat: vi.fn(), qisman: vi.fn(), daraxtQisman: vi.fn(), narx: vi.fn(), oz: vi.fn(),
 }));
 
 vi.mock('../../api/supabase', async (asl) => ({
@@ -17,11 +17,11 @@ vi.mock('../../api/supabase', async (asl) => ({
 vi.mock('../../api/t2-holat-qisman', () => ({ sbT2QatorHolatQisman: api.qisman, sbT2DaraxtQisman: api.daraxtQisman }));
 vi.mock('../../api/t2-price-control', () => ({ priceControlOl: api.narx }));
 vi.mock('../../api/t2-ozgarish', () => ({
-  ozgarishMalumotOl: async () => new Map([[4, { change_type: 'ADDITIONAL', replaces_line_id: null }]]),
+  ozgarishMalumotOl: (...a: unknown[]) => api.oz(...a),
   avvalgiVersiyaOl: async () => ({ qatorlar: [{ ...q(90, null, 'rz'), almashtirgan_versiya_id: 5 }, { ...q(91, 90, 'bl'), almashtirgan_versiya_id: 5 }], versiyaNomi: new Map([[5, 'V2']]) }),
 }));
 
-import { daraxtKeshiniEskirt, useT2Daraxt } from './useT2Daraxt';
+import { daraxtKaliti, useT2Daraxt } from './useT2Daraxt';
 
 function q(id: number, ota_id: number | null, tur: string): T2Qator {
   return {
@@ -44,6 +44,7 @@ beforeEach(() => {
   api.daraxt.mockResolvedValue({ ok: true, qatorlar: ROWS });
   api.holat.mockResolvedValue({ ok: true, qatorlar: ROWS.map((r) => h(r.id, 0)) });
   api.narx.mockResolvedValue({ ok: true, qatorlar: [] });
+  api.oz.mockResolvedValue(new Map([[4, { change_type: 'ADDITIONAL', replaces_line_id: null }]]));
 });
 
 describe('useT2Daraxt — katta smetada qotmaslik', () => {
@@ -177,29 +178,30 @@ describe('useT2Daraxt — qator tahriridan keyin qisman yangilash', () => {
 describe('useT2Daraxt — sahifalar orasida umumiy kesh', () => {
   const wrapper = (qc: QueryClient) => ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: qc }, children);
 
-  it('Holat → Fakt → qaytish: daraxt qayta o‘qilmaydi va darhol ko‘rinadi; tahrir yamog‘i keshda qoladi', async () => {
+  it('Holat → Fakt → qaytish: kesh darhol ko‘rinadi, lekin fonda DOIM qayta tekshiriladi; tasdiqgacha serverTasdiq=false', async () => {
     const qc = new QueryClient();
     const birinchi = renderHook(() => useT2Daraxt(7), { wrapper: wrapper(qc) });
     await waitFor(() => expect(birinchi.result.current.qoshimchaTayyor).toBe(true));
+    expect(birinchi.result.current.serverTasdiq).toBe(true);
     api.qisman.mockResolvedValue({ ok: true, qatorlar: [h(2, 4), h(3, 4), h(1, 4)] });
     await act(async () => { await birinchi.result.current.holatniYangila(2); });
     birinchi.unmount();
+    expect(qc.getQueryData(daraxtKaliti(7))).toBeTruthy();
 
+    let tugat: (v: unknown) => void = () => {};
+    api.daraxt.mockImplementationOnce(() => new Promise((r) => { tugat = r; }));
     const ikkinchi = renderHook(() => useT2Daraxt(7), { wrapper: wrapper(qc) });
     expect(ikkinchi.result.current.tree.length).toBe(1); // skeleton yo'q
     expect(ikkinchi.result.current.loading).toBe(false);
     expect(ikkinchi.result.current.states.find((s) => s.qator_id === 2)!.fakt_hajm).toBe(4);
-    expect(ikkinchi.result.current.rows.find((r) => r.id === 4)!.change_type).toBe('ADDITIONAL');
-    expect(api.daraxt).toHaveBeenCalledTimes(1);
-    expect(api.holat).toHaveBeenCalledTimes(1);
-    ikkinchi.unmount();
-
-    // Boshqa sahifa daraxtni o'zgartirsa — keyingi ochilishda jim qayta o'qiladi (kesh darhol ko'rsatiladi).
-    daraxtKeshiniEskirt(qc, 7);
-    const uchinchi = renderHook(() => useT2Daraxt(7), { wrapper: wrapper(qc) });
-    expect(uchinchi.result.current.tree.length).toBe(1);
-    await waitFor(() => expect(api.daraxt).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(uchinchi.result.current.yangilanmoqda).toBe(false));
+    // Keshdan — hali server tasdiqlamagan: eksport yopiq bo'lishi kerak.
+    expect(ikkinchi.result.current.serverTasdiq).toBe(false);
+    expect(ikkinchi.result.current.yangilanmoqda).toBe(true);
+    expect(api.daraxt).toHaveBeenCalledTimes(2);
+    await act(async () => { tugat({ ok: true, qatorlar: ROWS }); });
+    await waitFor(() => expect(ikkinchi.result.current.serverTasdiq).toBe(true));
+    await waitFor(() => expect(ikkinchi.result.current.yangilanmoqda).toBe(false));
+    expect(ikkinchi.result.current.qoshimchaTayyor).toBe(true);
   });
 
   it('boshqa obyekt keshi aralashmaydi', async () => {
@@ -212,5 +214,71 @@ describe('useT2Daraxt — sahifalar orasida umumiy kesh', () => {
     const b = renderHook(() => useT2Daraxt(8), { wrapper: wrapper(qc) });
     expect(b.result.current.tree.length).toBe(0);
     await waitFor(() => expect(api.daraxt).toHaveBeenCalledWith(8, expect.any(String)));
+  });
+});
+
+describe('useT2Daraxt — poyga holatlari va qo‘shimcha belgilar', () => {
+  beforeEach(() => {
+    api.daraxt.mockResolvedValue({ ok: true, qatorlar: PUL_ROWS });
+    api.holat.mockResolvedValue({ ok: true, qatorlar: PUL_HOLAT });
+  });
+
+  it('ketma-ket ikki tez tahrir — ikkalasi ham daraxtda (id lar jamlanadi)', async () => {
+    const { result } = renderHook(() => useT2Daraxt(7));
+    await waitFor(() => expect(result.current.qoshimchaTayyor).toBe(true));
+    let birinchiTugat: (v: unknown) => void = () => {};
+    // 1-tahrir (rs3) javobi sekin; 2-tahrir (bl4) tez — u 1-ning id larini ham o'qishi kerak.
+    api.daraxtQisman
+      .mockImplementationOnce(() => new Promise((r) => { birinchiTugat = r; }))
+      .mockImplementationOnce(async (_o: number, idlar: number[]) => ({ ok: true, toliq: true,
+        qatorlar: idlar.map((id) => id === 3 ? { ...PUL_ROWS[2], narx: 30, summa: 300 } : id === 4 ? { ...PUL_ROWS[3], nom: 'yangi nom' } : PUL_ROWS[id - 1]) }));
+    api.qisman.mockResolvedValue({ ok: true, qatorlar: [] });
+    await act(async () => {
+      const p1 = result.current.qatorniYangila(3);
+      const p2 = result.current.qatorniYangila(4);
+      await p2;
+      birinchiTugat({ ok: true, toliq: true, qatorlar: [PUL_ROWS[0], PUL_ROWS[1], PUL_ROWS[2]] }); // eskirgan — tashlanadi
+      await p1;
+    });
+    expect([...(api.daraxtQisman.mock.calls[1][1] as number[])].sort()).toEqual([1, 2, 3, 4]);
+    expect(result.current.rows.find((r) => r.id === 3)!.summa).toBe(300);
+    expect(result.current.rows.find((r) => r.id === 4)!.nom).toBe('yangi nom');
+    expect(api.daraxt).toHaveBeenCalledTimes(1);
+    expect(result.current.yangilanmoqda).toBe(false);
+  });
+
+  it('jim to‘liq yuklash paytidagi tahrir uni bekor qilmaydi — qisman o‘qish undan KEYIN', async () => {
+    const { result } = renderHook(() => useT2Daraxt(7));
+    await waitFor(() => expect(result.current.qoshimchaTayyor).toBe(true));
+    let toliqTugat: (v: unknown) => void = () => {};
+    api.daraxt.mockImplementationOnce(() => new Promise((r) => { toliqTugat = r; }));
+    api.daraxtQisman.mockImplementation(async () => ({ ok: true, toliq: true, qatorlar: [PUL_ROWS[0], PUL_ROWS[1], { ...PUL_ROWS[2], summa: 999 }] }));
+    api.qisman.mockResolvedValue({ ok: true, qatorlar: [] });
+    await act(async () => {
+      const toliq = result.current.yuklash();
+      const qisman = result.current.qatorniYangila(3);
+      await Promise.resolve();
+      expect(api.daraxtQisman).not.toHaveBeenCalled(); // to'liq yuklashni kutyapti
+      toliqTugat({ ok: true, qatorlar: PUL_ROWS.map((r) => (r.id === 4 ? { ...r, nom: 'toliqdan' } : r)) });
+      await toliq; await qisman;
+    });
+    expect(result.current.rows.find((r) => r.id === 4)!.nom).toBe('toliqdan'); // to'liq natija qo'llangan (bekor qilinmadi)
+    expect(result.current.rows.find((r) => r.id === 3)!.summa).toBe(999);       // tahrir ham
+    expect(result.current.serverTasdiq).toBe(true);
+  });
+
+  it('qo‘shimcha/zamena belgilari o‘qilmasa — qoshimchaHolat=xato (LRV eksporti bloklanadi)', async () => {
+    api.oz.mockResolvedValue(null);
+    const { result } = renderHook(() => useT2Daraxt(7));
+    await waitFor(() => expect(result.current.qoshimchaHolat).toBe('xato'));
+    expect(result.current.qoshimchaTayyor).toBe(false);
+    expect(result.current.tree.length).toBe(1); // daraxt baribir ko'rinadi
+    // Qayta yuklashda holat avval 'yuklanmoqda', muvaffaqiyatda 'tayyor'.
+    api.oz.mockResolvedValue(new Map());
+    let p: Promise<void> = Promise.resolve();
+    act(() => { p = result.current.yuklash(); });
+    expect(result.current.qoshimchaHolat).toBe('yuklanmoqda');
+    await act(async () => { await p; });
+    expect(result.current.qoshimchaHolat).toBe('tayyor');
   });
 });
