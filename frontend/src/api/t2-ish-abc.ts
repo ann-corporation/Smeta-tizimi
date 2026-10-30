@@ -3,6 +3,7 @@
  * (yangi smeta yuklanishi bilan avtomatik kengayadi) + katalog; narx takliflari; ШНК tuzilishida saqlash.
  * O'qish: /api/sb (OQISH_RPC, GET → faqat stable funksiyalar). Yozish: /api/sb-yoz `ish_abc_saqla_v1`.
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 
 export type Kat = 'ЧЕЛ' | 'МАШ' | 'МАТ' | 'ОБ';
@@ -24,7 +25,7 @@ export type NarxVariant = { manba: NarxManba; narx: number; izoh: string };
 
 async function soroOqi<T>(body: Record<string, unknown>): Promise<T | null> {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json() as { ok: boolean; natija?: T };
     return j.ok ? (j.natija ?? null) : null;
   } catch { return null; }

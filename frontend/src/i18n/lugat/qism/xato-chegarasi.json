@@ -1,0 +1,11 @@
+{
+  "Bu bo‘limni ko‘rsatib bo‘lmadi": { "ru": "Не удалось показать этот раздел", "en": "This section could not be displayed" },
+  "Sahifani ko‘rsatib bo‘lmadi": { "ru": "Не удалось показать страницу", "en": "The page could not be displayed" },
+  "Sahifa fayli yuklanmadi — ehtimol tizim yangilandi yoki internet uzildi.": { "ru": "Файл страницы не загрузился — возможно, система обновилась или пропал интернет.", "en": "The page file did not load — the system may have been updated or the connection was lost." },
+  "Kutilmagan nosozlik. Tizimning boshqa qismlari ishlayveradi.": { "ru": "Непредвиденный сбой. Остальные части системы продолжают работать.", "en": "Unexpected failure. The rest of the system keeps working." },
+  "Qayta urinish": { "ru": "Повторить", "en": "Try again" },
+  "Sahifani yangilash": { "ru": "Обновить страницу", "en": "Reload page" },
+  "Ilova yuklanmadi": { "ru": "Приложение не загрузилось", "en": "The application did not load" },
+  "Internet aloqasini tekshirib, sahifani qayta yuklang.": { "ru": "Проверьте подключение к интернету и перезагрузите страницу.", "en": "Check your internet connection and reload the page." },
+  "Qayta yuklash": { "ru": "Перезагрузить", "en": "Reload" }
+}

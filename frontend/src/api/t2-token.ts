@@ -9,6 +9,7 @@
  *   token       = ceil(yakuniy_som / token_som)
  * Server (t2_token_hisobla_v2) yakuniy; bu yerdagi `narxHisob` — oldindan ko'rsatish uchun AYNAN o'sha formula.
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId, yozAmali, type AktNatija } from './supabase';
 
 export type TokenAmal = 'smeta_import' | 'f2_import' | 'katalog_import' | 'f2_qoralama' | 'f2_hujjat' | 'hujjat' | 'ai_kirish' | 'ai_chiqish';
@@ -40,7 +41,7 @@ export type TokenHolat = {
 
 export async function tokenHolatOl(kompaniyaId: number): Promise<{ ok: true; natija: TokenHolat } | { ok: false; error: string }> {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'token_holat_v1', kompaniya_id: kompaniyaId }) });
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'token_holat_v1', kompaniya_id: kompaniyaId }) });
     const j = await r.json() as { ok: boolean; natija?: TokenHolat; error?: string };
     return j.ok && j.natija ? { ok: true, natija: j.natija } : { ok: false, error: j.error || 'Token holatini o‘qib bo‘lmadi' };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Tarmoq xatosi' }; }

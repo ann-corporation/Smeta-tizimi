@@ -4,6 +4,7 @@
  * Yozish: `/api/sb-yoz` amal `sklad_kirim_import_v1` / `sklad_kirim_storno_v1` (document.write RPC ichida).
  * Narx bu yo'lda yo'q — kirim qatorida narx NULL (0 emas).
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, yangiOperationId } from './supabase';
 import type { KirimBolak } from '../lib/ombor-prixod/yozish';
 
@@ -28,7 +29,7 @@ export async function sbSkladKirimRoyxat(p: {
   kompaniyaId: number; skladId: number; filtr?: KirimFiltr; limit?: number; offset?: number;
 }): Promise<KirimRoyxat | KirimXato> {
   try {
-    const r = await fetch('/api/sb', {
+    const r = await vaqtliOqish('/api/sb', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ soro: 'sklad_kirim_royxat_v1', kompaniya_id: p.kompaniyaId, sklad_id: p.skladId,
         filtr: tozaFiltr(p.filtr ?? {}), limit: p.limit ?? 50, offset: p.offset ?? 0 }),
