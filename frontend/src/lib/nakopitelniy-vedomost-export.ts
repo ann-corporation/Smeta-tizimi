@@ -284,6 +284,9 @@ export function nakopitelniyVedomostHujjat(
     const lq = bargRows.map((i) => reja[i].q!).filter((q) => ids.has(q.qator_id));
     if (!lq.length) continue;
     for (const [id, x] of yaxlitQatorlarga(Number(b.qqssiz), lq.map((q) => ({ id: q.qator_id, summa: q.smeta_summa }))) ?? []) gTaqsim.set(id, x);
+    // Smetasi noma'lum qatorlar taqsimga kirmaydi (null qoladi) — diqqatga.
+    const bilinmas = lq.filter((q) => q.smeta_summa == null).length;
+    if (bilinmas) diqqat.push({ nom: `Раздел по своду: ${b.nom ?? b.qator_id}`, sabab: `нет сметной стоимости по ${bilinmas} поз. — в распределение суммы свода не включены` });
     for (const [k, f] of [['per', perS], ['jami', jamiS]] as const) {
       for (const [id, x] of yaxlitKOplateTaqsim(new Map(lq.map((q) => [q.qator_id, f(q)])), ndsFoiz) ?? []) koTaqsim.set(`${id}${k}`, x);
     }
@@ -494,7 +497,7 @@ export function nakopitelniyVedomostHujjat(
     let nomalum: Record<string, number> | null = null, nomalumF: Record<string, string> | null = null;
     if (nomalumBor) {
       const nq = bargRows.map((i) => reja[i].q!).filter(katsizmi);
-      nomalum = Object.fromEntries(U.pul.map((p) => [p, yaxlit2(nq.reduce((t, q) => t + (p === U.ostS ? (smetaOf(q) ?? 0) - jamiS(q) : pulOf(q, p) ?? 0), 0))]));
+      nomalum = Object.fromEntries(U.pul.map((p) => [p, yaxlit2(nq.reduce((t, q) => t + (p === U.ostS ? (smetaOf(q) == null ? 0 : smetaOf(q)! - jamiS(q)) : pulOf(q, p) ?? 0), 0))]));
       nomalumF = Object.fromEntries(U.pul.map((p) => [p, `SUMIF(${U.kat}${a1}:${U.kat}${b1},"${NOMALUM_KAT}",${p}${a1}:${p}${b1})`]));
     }
     const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [a1, b1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar, yaxlit, nomalum, nomalumF });

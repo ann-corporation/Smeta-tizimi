@@ -123,7 +123,8 @@ export function podvalTekshir(p: Podval): PodvalXato[] {
     kodlar.add(q.kod);
   }
   const vk = podvalVsegoKodi(p);
-  if (p.qatorlar.find((q) => q.kod === vk)?.tur !== 'jami') x.push({ kod: vk, xabar: 'ВСЕГО qatori (`vsego` yoki oxirgi) jami bo‘lishi shart' });
+  if (vk == null) x.push({ kod: null, xabar: 'ВСЕГО dan keyin buyurtmachi qatorlari bor — ВСЕГО qatori `vsego` kodi bilan bo‘lishi shart' });
+  else if (p.qatorlar.find((q) => q.kod === vk)?.tur !== 'jami') x.push({ kod: vk, xabar: 'ВСЕГО qatori (`vsego` yoki oxirgi) jami bo‘lishi shart' });
   return x;
 }
 
@@ -140,8 +141,11 @@ export type PodvalNatija = {
  * ВСЕГО (pudratchi yakuni) qatori: `vsego` kodli qator, bo'lmasa oxirgi qator. Undan KEYINGI qatorlar — buyurtmachi
  * xarajatlari (bazasi yaxlit svod qo'shilgan ВСЕГО), pudratchi summasiga kirmaydi.
  */
-export function podvalVsegoKodi(p: Podval): string {
-  return p.qatorlar.some((q) => q.kod === 'vsego') ? 'vsego' : p.qatorlar[p.qatorlar.length - 1]?.kod ?? '';
+export function podvalVsegoKodi(p: Podval): string | null {
+  if (p.qatorlar.some((q) => q.kod === 'vsego')) return 'vsego';
+  // Buyurtmachi qatorlari (`amal`) bor-u `vsego` kodi yo'q — oxirgi qator ВСЕГО deb OLINMAYDI: aniq xato (null).
+  if (p.qatorlar.some((q) => q.amal)) return null;
+  return p.qatorlar[p.qatorlar.length - 1]?.kod ?? null;
 }
 
 export type PodvalRejim = {
@@ -182,8 +186,9 @@ export function podvalBahola(p: Podval, s: Partial<Record<Kat, number>>, r: Podv
     qiymat[q.kod] = v;
     if (v == null) nomalum.push(q.kod);
   }
-  const vsegoKod = podvalVsegoKodi(p);
-  return { qiymat, vsego: qiymat[vsegoKod] ?? null, vsegoKod, nomalum };
+  const vsegoKod = podvalVsegoKodi(p) ?? '';
+  if (!vsegoKod) nomalum.push('vsego');
+  return { qiymat, vsego: vsegoKod ? qiymat[vsegoKod] ?? null : null, vsegoKod, nomalum };
 }
 
 /** Kategoriya koeffitsientlari (chiziqli qism, yaxlitlashsiz, summa qatorlarisiz). Noma'lum foiz — null. */

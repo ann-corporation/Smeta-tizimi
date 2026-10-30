@@ -9,7 +9,7 @@
  *  - `svodYaxlitQqs` / `bolimQqsBilan` — yaxlit summa QQS BILAN (svodda НДС dan keyin, yakuniy — egasi 2026-10-30).
  * Hisob qadami yadroda (`lib/hisob-yadro/yaxlit-svod.ts`).
  */
-import { yaxlit2 as r2, yaxlitKOplate } from './hisob-yadro';
+import { katJami, kesimNomalumBilan, kesimYigish, yaxlit2 as r2, yaxlitKOplate, yaxlitKorinish, type Kesim } from './hisob-yadro';
 
 export type SvodYaxlitBolim = {
   id: number; qator_id: number; nom: string | null;
@@ -97,18 +97,58 @@ export function bolimBarglari<T extends { id: number; tur: string; bolalar: read
 export function bolimJamilari(
   qatorlar: ReadonlyArray<{ id: number; ota_id?: number | null; tur?: string | null; hajm?: number | null; narx?: number | null }>,
   faktHajm: (id: number) => number | null, svod: SvodYaxlit | null | undefined,
-): Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number }> {
-  const out = new Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number }>();
+): Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number; faktNomalum: number }> {
+  const out = new Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number; faktNomalum: number }>();
   for (const b of svod?.bolimlar ?? []) {
     const ids = yaxlitQatorIdlari(qatorlar, { ...svod!, bolimlar: [b] });
-    let smeta = 0, fakt = 0;
+    let smeta = 0, fakt = 0, faktNomalum = 0;
     const bolasi = new Set(qatorlar.filter((q) => q.ota_id != null).map((q) => q.ota_id as number));
     for (const q of qatorlar) {
       if (!ids.has(q.id) || bolasi.has(q.id) || q.narx == null) continue;
       smeta += (q.hajm ?? 0) * q.narx;
-      fakt += (faktHajm(q.id) ?? 0) * q.narx;
+      // Fakt noma'lum — 0 emas: faqat ma'lum qatorlar yig'iladi, noma'lumlar soni qaytariladi (diqqat uchun).
+      const fh = faktHajm(q.id);
+      if (fh == null) faktNomalum++; else fakt += fh * q.narx;
     }
-    out.set(Number(b.qator_id), { qqssiz: Number(b.qqssiz), svodSumma: b.svod_summa == null ? null : Number(b.svod_summa), smeta: r2(smeta), fakt: r2(fakt) });
+    out.set(Number(b.qator_id), { qqssiz: Number(b.qqssiz), svodSumma: b.svod_summa == null ? null : Number(b.svod_summa), smeta: r2(smeta), fakt: r2(fakt), faktNomalum });
   }
   return out;
+}
+/**
+ * EKRAN kesimi (eksport bilan bir model, egasi qoidasi): oddiy barglar — kategoriya kesimi; svod bo'limi barglari —
+ * bo'lim bo'yicha `yaxlit × (ko'rinish / smeta)` (smeta ko'rinishida yaxlitning o'zi), QQS bilan svod summasi bo'lsa —
+ * u ham shu ulushda (aynan). `masshtab: false` — F2 kabi aynan olinadigan ko'rinish (QQS bilan = ×(1+QQS)).
+ * Noma'lum qatorlar (null) yig'ilmaydi. `jami` berilsa — farq kat noma'lum qismga (taxminiy).
+ */
+export function svodKorinishKesimi<T>(
+  daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[],
+  f: { id: (x: T) => number | null | undefined; kat: (x: T) => string | null | undefined; summa: (x: T) => number | null | undefined; smeta: (x: T) => number | null | undefined },
+  svod: SvodYaxlit | null | undefined, o: { jami?: number | null; masshtab?: boolean } = {},
+): Kesim {
+  const bolimOf = new Map<number, SvodYaxlitBolim>();
+  for (const b of svod?.bolimlar ?? []) for (const id of yaxlitQatorIdlari(daraxt, { ...svod!, bolimlar: [b] })) bolimOf.set(id, b);
+  const oddiy = barglar.filter((x) => { const id = f.id(x); return id == null || !bolimOf.has(id); });
+  const k = kesimYigish(oddiy, f.kat, f.summa);
+  const agg = new Map<SvodYaxlitBolim, { sm: number; kr: number }>();
+  for (const x of barglar) {
+    const id = f.id(x); const b = id == null ? undefined : bolimOf.get(id);
+    if (!b) continue;
+    const a = agg.get(b) ?? { sm: 0, kr: 0 }; agg.set(b, a);
+    const s = f.smeta(x), v = f.summa(x);
+    if (s != null && Number.isFinite(s)) a.sm += s;
+    if (v == null || !Number.isFinite(v)) k.summasizSoni++; else a.kr += v;
+  }
+  if (agg.size) {
+    let qqssiz = 0, barg = 0, svQ = 0, svS = 0;
+    for (const [b, a] of agg) {
+      barg += a.kr;
+      const s = o.masshtab === false ? r2(a.kr) : yaxlitKorinish(Number(b.qqssiz), a.sm, a.kr) ?? r2(a.kr);
+      qqssiz += s;
+      if (o.masshtab !== false && b.svod_summa != null) { const q = yaxlitKorinish(Number(b.svod_summa), a.sm, a.kr); if (q != null) { svQ += q; svS += s; } }
+    }
+    k.yaxlit = { qqssiz: r2(qqssiz), barglar: r2(barg), svodQqsBilan: r2(svQ), svodQqssiz: r2(svS) };
+  }
+  if (o.jami == null) return k;
+  const bor = katJami(k.summalar) + k.nomalum + (k.yaxlit?.barglar ?? 0);
+  return kesimNomalumBilan(k, o.jami - bor);
 }

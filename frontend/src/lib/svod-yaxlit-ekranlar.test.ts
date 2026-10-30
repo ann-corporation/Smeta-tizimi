@@ -203,3 +203,25 @@ describe('fakt F2 yonida — ishoraga qarab (manfiy qatorlar nolga tushirilmaydi
     expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBe(-4000);
   });
 });
+describe('ko‘rib chiqish: NULL taqsimda 0 bo‘lmaydi, F2 ishorasi', () => {
+  it('fakti noma‘lum svod qatori taqsimga kirmaydi, null qoladi, diqqatda aytiladi', () => {
+    const HF = DARAXT.filter((x) => x.id !== 13).map((x) => h(x.id, x.id === 12 ? 0.15 : 0));
+    const m = slichitelniyModeli(DARAXT, HF, { svodYaxlit: SVOD });
+    expect(m.qatorlar.find((x) => x.id === 13)!.faktSumma).toBeNull();
+    expect(m.diqqat.some((d) => /нет данных о выполнении/.test(d.sabab))).toBe(true);
+  });
+  it('fakt va F2 ishorasi har xil — fakt o‘zgarmaydi, diqqat', () => {
+    const D: T2Qator[] = [q(1, null, 'rz', null), q(2, 1, 'bl', 1), q(3, 2, 'rs', -5, 'МАТ')];
+    const H = [h(1, 0), h(2, 0), { ...h(3, -3), f2_hajm: 4, f2_summa: null }] as T2QatorHolat[];
+    const m = slichitelniyModeli(D, H);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktHajm).toBe(-3);
+    expect(m.diqqat.some((d) => /разного знака/.test(d.sabab))).toBe(true);
+  });
+  it('F2 summasi null, hajmi bor — hajm qoidasi, summa F2 dan olinmaydi (0 deb emas)', () => {
+    const D: T2Qator[] = [q(1, null, 'rz', null), q(2, 1, 'bl', 1), q(3, 2, 'rs', 5, 'МАТ')];
+    const H = [h(1, 0), h(2, 0), { ...h(3, 2), f2_hajm: 4, f2_summa: null }] as T2QatorHolat[];
+    const m = slichitelniyModeli(D, H);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktHajm).toBe(4);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBe(4000);
+  });
+});

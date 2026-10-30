@@ -310,6 +310,9 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       const fakt = yaxlitBolimJami(b.qqssiz, b.smeta, b.fakt);
       if (!leaves?.length || fakt == null) continue;
       const t = yaxlitQatorlarga(yadroYaxlit2(b.qqssiz - fakt), leaves.map((i) => ({ id: i, summa: out[i].summa })));
+      // Noma'lum (null) qatorlar taqsimga kirmaydi, null qoladi; bo'lim fakti noma'lum qatorlarsiz — diqqatga.
+      const bilinmas = leaves.filter((i) => out[i].summa == null).length + b.faktNomalum;
+      if (bilinmas) diqqat.push({ nom: `Раздел по своду (строка ${qatorId})`, sabab: `нет данных о выполнении или цене по ${bilinmas} поз. — в распределение суммы свода не включены` });
       if (!t) continue;
       for (const [i, v] of t) { out[i].summa = v; yaxlitTaqsimlangan.set(out[i].id, qatorId); }
     }

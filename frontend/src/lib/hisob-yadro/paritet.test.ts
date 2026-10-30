@@ -146,7 +146,7 @@ describe('PARITET: yadro == SQL t2_nakrutka_hisobla_v1 (≤ 0,01 so‘m; farq fa
   });
 });
 
-describe('Kf JADVALI == SQL t2_nakrutka_koef_jadval_v1 (round(1 so‘mlik ВСЕГО, 2)) — ekran va hujjat jadvali bitta', () => {
+describe('Kf JADVALI (SQL modeli) == SQL t2_nakrutka_koef_jadval_v1 (round(1 so‘mlik ВСЕГО, 2)) — faqat solishtirish uchun; frontend ekran va hujjatlari yaxlitlanmagan yadro Kf ni ko‘rsatadi', () => {
   it('kategoriyaKfJadval', () => {
     const j = kategoriyaKfJadval(standartPodval(NK));
     const sql = (c: Partial<ServerCats>) => sqlHisobla({ chel: 0, mash: 0, mat: 0, ob: 0, mk: 0, kab: 0, bez: 0, ...c }, NK).vsego;

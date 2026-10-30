@@ -19,7 +19,7 @@ import {
 } from '../../lib/nakrutka-konstruktor';
 import { NAKRUTKA_KATLAR, podvalQiymatYaxlit, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
 import { kaskadCats, svodYaxlitQqs, type SvodYaxlit } from '../../lib/svod-yaxlit';
-import { podvalNdsFoizi } from '../../lib/hisob-yadro';
+import { podvalNdsFoizi, podvalVsegoKodi } from '../../lib/hisob-yadro';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -197,7 +197,8 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
           </tr></thead>
           <tbody>
             {korinadigan.qatorlar.map((q, i) => {
-              const oxirgi = i === korinadigan.qatorlar.length - 1;
+              // ВСЕГО qatori — `podvalVsegoKodi` (oxirgi qator emas: undan keyin buyurtmachi qatorlari bo'lishi mumkin).
+              const oxirgi = q.kod === podvalVsegoKodi(korinadigan) || i === korinadigan.qatorlar.length - 1;
               const v = hisob?.qiymat[q.kod];
               return (
                 <tr key={q.kod} className={q.tur === 'jami' ? 'fz-row-total' : ''}>

@@ -91,9 +91,10 @@ export function ustamaliHisobla(kesim: KatKesim, koef: Partial<NakrutkaKoeffitsi
   const r = s0.kaskad!;
   bosh.ndsFoiz = r.qqsFoiz;
   bosh.yadro = yadro;
-  if (r.nomalumQatorlar.length || s0.ustamali == null || r.vsego == null) return { ...bosh, xato: 'PODVAL_TOLIQ_EMAS' };
-  const vsego = s0.qqsBilan ?? r.vsego;
-  const qadamlar = { ...(r.qiymat as Record<string, number>), pryamye: r.pryamye, itogo4: s0.ustamali, nds: s0.qqs ?? 0, vsego } as NakrutkaHisobJS;
+  if (r.nomalumQatorlar.length || s0.ustamali == null) return { ...bosh, xato: 'PODVAL_TOLIQ_EMAS' };
+  // QQS bilan va QQS — yadrodan, hech qanday o'rinbosarsiz: podvalda НДС yo'q bo'lsa noma'lum (null), 0 emas.
+  const vsego = s0.qqsBilan;
+  const qadamlar = { ...(r.qiymat as Record<string, number>), pryamye: r.pryamye, itogo4: s0.ustamali, nds: s0.qqs, vsego } as unknown as NakrutkaHisobJS;
   const zanjir = ustamaZanjiri({ ...qadamlar, itogo4: r.kaskadItogo4 ?? s0.ustamali }, koef).map((z) => (z.kod === 'itogo' ? { ...z, summa: s0.ustamali as number } : z));
   return { ...bosh, ustamali: s0.ustamali, ndsBilan: vsego, qadamlar, zanjir };
 }

@@ -149,9 +149,15 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     let fh = h ? Number(h.fakt_hajm ?? 0) : null;
     const f2Hajm = h ? Number(h.f2_hajm ?? 0) : 0;
     const f2Summa = h ? Number(h.f2_summa ?? 0) : 0;
+    // Hisob uchun NULL saqlanadi (0 emas): summa noma'lum-u hajm bor — summa qoidasi qo'llanmaydi.
+    const f2HajmV = h?.f2_hajm == null ? null : Number(h.f2_hajm);
+    const f2SummaV = h?.f2_summa == null ? null : Number(h.f2_summa);
     // Qoida faqat tasdiqlangan F2 BOR qatorda (hajm yoki summa 0 dan farqli); F2 yo'q — fakt o'zgarmaydi.
-    const f2Bor = !!h && ((h.f2_hajm != null && Number(h.f2_hajm) !== 0) || (h.f2_summa != null && Number(h.f2_summa) !== 0));
-    const useMax = !!maxOp && f2Bor && !maxOp.istisno?.has(q.id);
+    const f2Bor = (f2HajmV != null && f2HajmV !== 0) || (f2SummaV != null && f2SummaV !== 0);
+    // F2 ishorasi hajmdan (hajm 0/yo'q bo'lsa summadan). Fakt bilan ishora har xil — fakt o'zgarmaydi, diqqatga.
+    const f2Ishora = Math.sign(f2HajmV || f2SummaV || 0);
+    const aralash = f2Bor && fh != null && fh !== 0 && Math.sign(fh) !== f2Ishora;
+    const useMax = !!maxOp && f2Bor && !aralash && !maxOp.istisno?.has(q.id);
     // Fakt faqat ish (bl) qatorida yozilgan, resurslarda 0 — resurs fakti = hajm × (bl fakt / bl smeta hajmi).
     if (useMax && fh === 0 && q.ota_id != null && BARG.has(q.tur ?? '')) {
       const ota = byId.get(q.ota_id); const oh = ota ? holat.get(ota.id) : undefined;
@@ -160,22 +166,23 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
         fh = (q.hajm * Number(oh.fakt_hajm)) / (ota.hajm as number);
     }
     // Egasi qoidasi (2026-10-29): fakt F2 dan «kam» emas, ishoraga qarab (manfiyda MIN) — yadro `faktF2Max`.
-    const fakt = useMax ? faktF2Max(fh, h?.f2_hajm == null ? null : f2Hajm) : fh;
+    const fakt = useMax ? faktF2Max(fh, f2HajmV) : fh;
     const farq = smeta == null || fakt == null ? null : nol(fakt - smeta);
-    return { h, smeta, fakt, farq, useMax, f2dan: useMax && fh != null && fakt != null && Math.abs(fakt - fh) > EPS, f2Hajm, f2Summa };
+    return { h, smeta, fakt, farq, useMax, aralash, f2dan: useMax && fh != null && fakt != null && Math.abs(fakt - fh) > EPS, f2Hajm, f2Summa, f2SummaV };
   };
 
   const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number, otaIdx: number | null = null): number | null => {
     const tur = q.tur ?? '';
     const kids = bolalar.get(q.id) ?? [];
     if (BARG.has(tur) || (tur === 'bl' && !kids.length)) {
-      const { smeta, fakt, farq, f2Hajm, f2Summa, useMax, f2dan } = olchov(q);
+      const { smeta, fakt, farq, f2Hajm, f2Summa, f2SummaV, useMax, f2dan, aralash } = olchov(q);
       if (o.faqatFarq && farq === 0 && q.narx != null) return null;
       const narx = q.narx ?? null;
       const smetaSumma = qatorSumma(smeta, narx);
       const faktHN = qatorSumma(fakt, narx);
       // MAX qoidasi: summa = MAX(fakt × narx, F2 summa) (yadro); narxsiz qatorda — F2 summasi aynan.
-      const faktSumma = useMax ? faktSummaF2Max(fakt, narx, f2Summa) : faktHN;
+      const faktSumma = useMax ? faktSummaF2Max(fakt, narx, f2SummaV) : faktHN;
+      if (aralash) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'факт и принятое по Ф-2 разного знака — факт не изменен, проверьте акты', joy: yolOf(q) || undefined });
       const faktF2: 'hajm' | 'summa' | undefined = useMax ? (f2dan ? 'hajm' : faktSumma != null && Math.abs(faktSumma - (faktHN ?? 0)) > 0.005 ? 'summa' : undefined) : undefined;
       const farqSumma = qatorSumma(farq, narx);
       const sabab = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narxBildirishnomaKerak(q, narx) ? 'нет сметной цены — строка не включена в сумму' : ''].filter(Boolean);
@@ -240,10 +247,19 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       const lump = Number(b.qqssiz);
       const sm = yigindi2(leaves.map((i) => out[i].smetaSumma)), fk = yigindi2(leaves.map((i) => out[i].faktSumma));
       const fJami = yaxlitBolimJami(lump, sm, fk);
+      // Noma'lum (null) qatorlar taqsimga kirmaydi va null qoladi (0 emas); fakt — faqat ma'lum qatorlar bo'yicha, diqqatda aytiladi.
       const G = yaxlitQatorlarga(lump, leaves.map((i) => ({ id: i, summa: out[i].smetaSumma })));
       const I = fJami == null ? null : yaxlitQatorlarga(fJami, leaves.map((i) => ({ id: i, summa: out[i].faktSumma })));
-      if (!G || !I) continue;
-      for (const i of leaves) { const r = out[i]; r.smetaSumma = G.get(i)!; r.faktSumma = I.get(i)!; r.farqSumma = yaxlit2(r.faktSumma - r.smetaSumma); r.yaxlitTaqsim = Number(b.qator_id); }
+      if (!G) continue;
+      for (const i of leaves) {
+        const r = out[i];
+        r.smetaSumma = G.get(i) ?? null;
+        r.faktSumma = I?.get(i) ?? null;
+        r.farqSumma = r.faktSumma == null || r.smetaSumma == null ? null : yaxlit2(r.faktSumma - r.smetaSumma);
+        r.yaxlitTaqsim = Number(b.qator_id);
+      }
+      const bilinmas = leaves.filter((i) => out[i].faktSumma == null).length;
+      if (bilinmas) diqqat.push({ nom: `Раздел по своду: ${b.nom ?? b.qator_id}`, sabab: `нет данных о выполнении по ${bilinmas} поз. — в распределение суммы свода не включены (выполнение раздела — только по известным позициям)` });
     }
     const qayt = (i: number) => { const r = out[i]; if (r.tur === 'barg' || !r.bolalar.length) return; r.bolalar.forEach(qayt); yigindi(r, r.bolalar); };
     out.forEach((r, i) => { if (r.tur === 'itogo' || r.tur === 'bl') qayt(i); });
@@ -326,7 +342,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   const koTaqsim = new Map<string, number>();
   {
     const guruh = new Map<number, { I: Map<number, number>; G: Map<number, number> }>();
-    model.qatorlar.forEach((q, i) => { if (q.yaxlitTaqsim == null) return; const g = guruh.get(q.yaxlitTaqsim) ?? { I: new Map(), G: new Map() }; g.I.set(i, q.faktSumma ?? 0); g.G.set(i, q.smetaSumma ?? 0); guruh.set(q.yaxlitTaqsim, g); });
+    model.qatorlar.forEach((q, i) => { if (q.yaxlitTaqsim == null) return; const g = guruh.get(q.yaxlitTaqsim) ?? { I: new Map(), G: new Map() }; if (q.faktSumma != null) g.I.set(i, q.faktSumma); if (q.smetaSumma != null) g.G.set(i, q.smetaSumma); guruh.set(q.yaxlitTaqsim, g); });
     for (const [bid, g] of guruh) {
       const b = bolimOf.get(bid);
       const qb = b ? bolimQqsBilan(b, ndsFoiz) : null;
@@ -335,7 +351,8 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       const P = pJami == null ? yaxlitKOplateTaqsim(g.I, ndsFoiz) : yaxlitQatorlarga(pJami, [...g.I].map(([id, summa]) => ({ id, summa })));
       const Gk = qb == null ? yaxlitKOplateTaqsim(g.G, ndsFoiz) : yaxlitQatorlarga(qb, [...g.G].map(([id, summa]) => ({ id, summa })));
       if (!P || !Gk) continue;
-      for (const [i, pv] of P) { koTaqsim.set(`${i}P`, pv); koTaqsim.set(`${i}Q`, yaxlit2(pv - Gk.get(i)!)); koTaqsim.set(`${i}G`, Gk.get(i)!); }
+      for (const [i, gv] of Gk) koTaqsim.set(`${i}G`, gv);
+      for (const [i, pv] of P) { koTaqsim.set(`${i}P`, pv); const gv = Gk.get(i); if (gv != null) koTaqsim.set(`${i}Q`, yaxlit2(pv - gv)); }
     }
   }  const koMemo = new Map<string, number | null>();
   const koOf = (i: number, c: 'P' | 'Q'): number | null => {
@@ -378,7 +395,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
         q.narx == null && mashinistMehnati(q) ? 0 : { f: `IF(OR(G${n}="",I${n}="",M${n}=""),1,0)`, v: q.nomalum },
         ...((): Qiymat[] => {
           // Svod yaxlit bo'limi: ustama yo'q, faqat QQS (к оплате = прямые × (1+НДС)).
-          if (koTaqsim.has(`${i}P`)) return [koTaqsim.get(`${i}P`)!, koTaqsim.get(`${i}Q`)!, YAXLIT_KAT];
+          if (koTaqsim.has(`${i}P`)) return [koTaqsim.get(`${i}P`)!, koTaqsim.get(`${i}Q`) ?? null, YAXLIT_KAT];
           if (yax(q)) return ndsQ == null || ndsFoiz == null ? [null, null, YAXLIT_KAT] : [{ f: `IF(I${n}="","",ROUND(I${n}*${yaxKf},2))`, v: koOf(i, 'P') ?? '' }, { f: `IF(M${n}="","",ROUND(M${n}*${yaxKf},2))`, v: koOf(i, 'Q') ?? '' }, YAXLIT_KAT];
           const kat = nakrutkaKat(q.kat);
           if (!kat) {
@@ -451,7 +468,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       const pSum = yigindi2(yi.map((i) => koOf(i, 'P')));
       const svQ = o.svodYaxlit && !o.faqatFarq ? svodYaxlitQqs(o.svodYaxlit, ndsFoiz)?.qqsBilan ?? null : null;
       const taqsimlangan = yi.some((i) => koTaqsim.has(`${i}G`));
-      const gSum = taqsimlangan ? yigindi2(yi.map((i) => koTaqsim.get(`${i}G`) ?? 0)) : svQ ?? yaxlitKOplate(yigindi2(yi.map((i) => model.qatorlar[i].smetaSumma)), ndsFoiz) ?? 0;
+      const gSum = taqsimlangan ? yigindi2(yi.map((i) => koTaqsim.get(`${i}G`))) : svQ ?? yaxlitKOplate(yigindi2(yi.map((i) => model.qatorlar[i].smetaSumma)), ndsFoiz) ?? 0;
       yaxlit = { G: gSum, I: pSum, K: kSum, M: yaxlit2(pSum - gSum) };
       yaxlitF = { I: sumif(YAXLIT_KAT, 'P'), K: `ROUND(${sumif(YAXLIT_KAT, 'K')}*${yaxKf},2)`, M: `ROUND(${sumif(YAXLIT_KAT, 'P')}-${gSum},2)` };
     }    const nomalumP = nomalumBor ? Object.fromEntries(Object.entries(nomalumQ).map(([k, x]) => [k, yaxlit2(x)])) : null;

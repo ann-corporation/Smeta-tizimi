@@ -87,7 +87,8 @@ export function podvalQatorRaqami(bosh: number, podval: Podval | null | undefine
   if (i < 0) return null;
   const i4 = qs.findIndex((q) => q.kod === 'itogo4');
   // Kat noma'lum qatori ИТОГО-4 dan oldin, yaxlit (QQS bilan) qatori ВСЕГО qatoridan oldin turadi.
-  const vi = qs.findIndex((q) => q.kod === podvalVsegoKodi(podval ?? standartPodval({})));
+  const vk = podvalVsegoKodi(podval ?? standartPodval({}));
+  const vi = vk == null ? qs.length : qs.findIndex((q) => q.kod === vk);
   return bosh + 1 + NAKRUTKA_KATLAR.length + i + (nomalumBor && i4 >= 0 && i >= i4 ? 1 : 0) + (yaxlitBor && i >= vi ? 1 : 0);
 }
 
@@ -140,8 +141,8 @@ export const podvalNdsFoiz = (podval: Podval | null | undefined, nk: Partial<Nak
  */
 export function podvalQiymatYaxlit(qiymat: Record<string, number | null>, podval: Podval, yaxlit: { qqsBilan: number; qqssiz: number } | null | undefined): Record<string, number | null> {
   // Podval QATORLARI: ИТОГО-4/НДС — ishlar; ВСЕГО = ishlar ВСЕГО + yaxlit (QQS bilan, aynan). QQS siz — alohida kalit.
-  const vk = podval.qatorlar[podval.qatorlar.length - 1]?.kod ?? 'vsego';
-  if (!yaxlit || qiymat[vk] == null) return qiymat;
+  const vk = podvalVsegoKodi(podval);
+  if (!yaxlit || !vk || qiymat[vk] == null) return qiymat;
   return { ...qiymat, [vk]: yaxlit2((qiymat[vk] as number) + yaxlit.qqsBilan), yaxlit: yaxlit2(yaxlit.qqsBilan), yaxlit_qqssiz: yaxlit2(yaxlit.qqssiz) };
 }
 
@@ -230,6 +231,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
   const qr: Record<string, number> = {};
   // ВСЕГО (pudratchi yakuni) qatori; undan keyingilar — buyurtmachi xarajatlari (bazasi yaxlit qo'shilgan ВСЕГО).
   const oxirgi = podvalVsegoKodi(podval);
+  if (!oxirgi) throw new Error('VSEGO_KODI_YOQ: podvalda ВСЕГО dan keyin buyurtmachi qatorlari bor — ВСЕГО qatori `vsego` kodi bilan bo‘lishi shart');
   const asosiyUstun = o.pulUstunlar[0];
   const qoshR: number[] = [];
   let yaxR: number | null = null;

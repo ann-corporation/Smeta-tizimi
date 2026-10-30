@@ -42,7 +42,7 @@ export type KaskadNatija = {
   /** Noma'lum podval qatorlari kodlari (foiz/summa kiritilmagan). */
   nomalumQatorlar: string[];
   /** Aniq rad etish sababi (jim tashlab yuborilmaydi). */
-  xato?: 'SVOD_YAXLIT_ITOGO4_DAN_KEYIN_QATOR';
+  xato?: 'SVOD_YAXLIT_ITOGO4_DAN_KEYIN_QATOR' | 'VSEGO_KODI_YOQ';
 };
 
 /**
@@ -75,10 +75,13 @@ export function kaskad(s0: Partial<KatSummalar>, podval: Podval, o: KaskadOpsiya
   // Bosqichlar bo'yicha yig'ish.
   const kirish: YaxlitKirish[] = [...(o.yaxlit && raqam(o.yaxlit.qqsBilan) ? [o.yaxlit] : []), ...(o.yaxlitlar ?? [])];
   const s: Partial<KatSummalar> = { ...s0 };
-  let qqssizOldin = 0; let qqsBilanKeyin = 0; let qqssizKeyin: number | null = 0; let keyinBor = false;
+  let qqssizOldin = 0; let qqsBilanKeyin = 0; let qqssizKeyin: number | null = 0; let keyinBor = false; let togriNomalum = false;
   const qqsFoiz = podvalNdsFoizi(podval);
   for (const y of kirish) {
-    if (y.bosqich === 'togri_xarajat') { for (const [k, v] of Object.entries(y.kategoriyalar)) s[k as Kat] = (s[k as Kat] ?? 0) + (v ?? 0); }
+    if (y.bosqich === 'togri_xarajat') {
+      // Noma'lum (null) kategoriya summasi — 0 emas: butun natija noma'lum bo'ladi (pastda).
+      for (const [k, v] of Object.entries(y.kategoriyalar)) { if (v == null || !Number.isFinite(v)) togriNomalum = true; else s[k as Kat] = (s[k as Kat] ?? 0) + v; }
+    }
     else if (y.bosqich === 'qqssiz_ustamadan_keyin') qqssizOldin += y.qqssiz;
     else {
       keyinBor = true; qqsBilanKeyin += y.qqsBilan;
@@ -99,6 +102,13 @@ export function kaskad(s0: Partial<KatSummalar>, podval: Podval, o: KaskadOpsiya
   const yaxlitN = keyinBor ? { qqsBilan: yaxlit2(qqsBilanKeyin), qqssiz: qqssizKeyin == null ? null : yaxlit2(qqssizKeyin) } : null;
   const vk = n.vsegoKod;
   const vi = podval.qatorlar.findIndex((x) => x.kod === vk);
+  if (togriNomalum) {
+    return { pryamye, qiymat: q, qadamlar: qadamlar(q), itogo4: null, kaskadItogo4, qqs: null, qqsBilan: null, qqsFoiz, vsego: null, nomalumQism: nom, yaxlit: null, buyurtmachi: [], buyurtmachiJami: null, nomalumQatorlar: [...nomalumQatorlar, 'togri_xarajat'] };
+  }
+  if (!vk) {
+    // Buyurtmachi qatorlari bor-u ВСЕГО (`vsego`) belgilanmagan — aniq xato, oxirgi qator ВСЕГО deb olinmaydi.
+    return { pryamye, qiymat: q, qadamlar: qadamlar(q), itogo4: null, kaskadItogo4, qqs: null, qqsBilan: null, qqsFoiz, vsego: null, nomalumQism: nom, yaxlit: null, buyurtmachi: [], buyurtmachiJami: null, nomalumQatorlar, xato: 'VSEGO_KODI_YOQ' };
+  }
   const buyurtmachi = (qq: Record<string, number | null>, vsego: number | null) => {
     const b = podval.qatorlar.slice(vi + 1).map((x) => ({ kod: x.kod, nom: x.nom, summa: qq[x.kod] ?? null, amal: x.amal ?? 'qoshiladi' as const }));
     const jami = !b.length || vsego == null ? null : b.some((x) => x.amal !== 'korsatish' && x.summa == null) ? null

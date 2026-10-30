@@ -88,13 +88,17 @@ export function yaxlitKOplate(summa: number | null | undefined, ndsFoiz: number 
 }
 
 /**
- * Bo'lim qatorlariga taqsim (egasi: «butun tarkib aynan yaxlit summaga yig'iladi»): `jami` qatorlarning o'z summalari
- * ulushida tiyingacha taqsimlanadi (Σ = jami aynan). Hammasi 0 va jami 0 — har qator 0. Aks holda taqsimlab bo'lmasa — null.
+ * Bo'lim qatorlariga taqsim (egasi: «butun tarkib aynan yaxlit summaga yig'iladi»): `jami` MA'LUM qatorlarning o'z summalari
+ * ulushida tiyingacha taqsimlanadi (Σ = jami aynan). Noma'lum qator taqsimga kirmaydi (null qoladi). Hammasi 0 va jami 0 —
+ * har qator 0. Aks holda taqsimlab bo'lmasa — null.
  */
 export function yaxlitQatorlarga<T extends { id: number | string; summa: number | null }>(jami: number, qatorlar: readonly T[]): Map<T['id'], number> | null {
-  const t = yaxlitTaqsim(jami, qatorlar.map((q) => ({ ...q, summa: q.summa ?? 0 })));
+  // Noma'lum (null) qatorlar taqsimga KIRMAYDI va natijada yo'q (null qoladi, 0 emas) — chaqiruvchi diqqatga yozadi.
+  const malum = qatorlar.filter((q) => q.summa != null && Number.isFinite(q.summa));
+  if (!malum.length) return null;
+  const t = yaxlitTaqsim(jami, malum);
   if (t) return t;
-  if (Math.abs(jami) < 0.005 && qatorlar.length) return new Map(qatorlar.map((q) => [q.id, 0]));
+  if (Math.abs(jami) < 0.005) return new Map(malum.map((q) => [q.id, 0]));
   return null;
 }
 

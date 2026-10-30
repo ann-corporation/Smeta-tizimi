@@ -48,7 +48,7 @@ import {
 } from './hujjat-yozuvchi';
 
 import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
-import { kaskad as yadroKaskad, standartPodval, type Kat, type KatSummalar, type Podval } from './hisob-yadro';
+import { kaskad as yadroKaskad, podvalVsegoKodi, standartPodval, type Kat, type KatSummalar, type Podval } from './hisob-yadro';
 import { podvalQatorFormulasi, podvalQatorNomi } from './nakrutka-podval';
 // Oferta V3 API si o'zgarmaydi: umumiy qismlar hujjat-yozuvchi modulidan qayta eksport.
 export { ustunHarfi, engOngUstun, formulaKochir } from './hujjat-yozuvchi';
@@ -359,7 +359,7 @@ function jamiVaraqXml(
   const katS = (j: Partial<Record<OfertaKategoriya, number>>): KatSummalar => ({ ЧЕЛ: j.ЧЕЛ ?? 0, МАШ: j.МАШ ?? 0, МАТ: j.МАТ ?? 0, ОБ: j.ОБ ?? 0, КАБ: j.КАБ ?? 0, 'М/К': j['М/К'] ?? 0, 'БЕЗ СКЛАД': j.БЕЗСКЛАД ?? 0 });
   const xk = yadroKaskad(katS(h.kategoriyaJami), p), mk = yadroKaskad(katS(h.manbaKategoriyaJami), tp);
   const c = (r: number) => `C${r}`;
-  const step = (nom: string, f: string, v: number, mv: number | null, izoh: string, jami = false) =>
+  const step = (nom: string, f: string, v: number | '', mv: number | null, izoh: string, jami = false) =>
     qator('', nom, fCell(2, jami ? st.jamiSon : st.son, f, v), mv, izoh, jami);
   const katB = (k: Kat) => B(k === 'БЕЗ СКЛАД' ? 'БЕЗСКЛАД' : k as OfertaKategoriya);
   step('Материалы всего (МАТ + М/К + КАБ + без склада)', `${B('МАТ')}+${B('М/К')}+${B('КАБ')}+${B('БЕЗСКЛАД')}`, h.asos.mat, null, '');
@@ -367,9 +367,10 @@ function jamiVaraqXml(
   for (const q of p.qatorlar) {
     const f = q.tur === 'summa' ? c(rTransport as number) : podvalQatorFormulasi(q, { kat: katB, qator: (kod) => c(qr[kod]), foiz: q.koefKod ? K(q.koefKod) : '0' }) as string;
     const izoh = q.tur === 'summa' ? 'по листу перевозки' : q.tur === 'foiz' && q.koefKod ? `× ${pct(q.koefKod)}` : '';
-    qr[q.kod] = step(podvalQatorNomi(q), f, xk.qiymat[q.kod] ?? 0, mk.qiymat[q.kod] ?? null, izoh, q.tur === 'jami');
+    // Noma'lum qiymat — bo'sh kesh (0 emas).
+    qr[q.kod] = step(podvalQatorNomi(q), f, xk.qiymat[q.kod] ?? '', mk.qiymat[q.kod] ?? null, izoh, q.tur === 'jami');
   }
-  const rVs = qr[p.qatorlar[p.qatorlar.length - 1].kod];
+  const rVs = qr[podvalVsegoKodi(p) ?? 'vsego'];
   const unresolved = varaqlar.length ? varaqlar.map((v) => {
     const kat = `${sheetRef(v.nom)}!${v.L.kategoriya}:${v.L.kategoriya}`;
     const sum = `${sheetRef(v.nom)}!${v.L.summa}:${v.L.summa}`;

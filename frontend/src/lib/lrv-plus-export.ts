@@ -607,11 +607,12 @@ export async function lrvPlusFaylBaytlari(
   const bezJS = { summa: 0, qatorlar: [] as number[] };
   const nomJS = { summa: 0, qatorlar: [] as number[] };
   for (const q of hisob) {
-    if (LEAF_TUR.has(q.tur) && q.kat in katYigindi) {
-      katQatorSoni[q.kat] += 1;
-      katYigindi[q.kat] += q.summaQiymat ?? 0;
+    const nk = nakrutkaKat(q.kat) ?? ''; // kategoriya normallashtiriladi (мат → МАТ, БЕЗСКЛАД → БЕЗ СКЛАД)
+    if (LEAF_TUR.has(q.tur) && nk in katYigindi) {
+      katQatorSoni[nk] += 1;
+      katYigindi[nk] += q.summaQiymat ?? 0;
     } else if (LEAF_TUR.has(q.tur) && q.summaQiymat != null) {
-      const t = nakrutkaKat(q.kat) === 'БЕЗ СКЛАД' ? bezJS : nomJS;
+      const t = nk === 'БЕЗ СКЛАД' ? bezJS : nomJS;
       t.summa += q.summaQiymat; t.qatorlar.push(q.row);
     }
   }
@@ -652,7 +653,7 @@ export async function lrvPlusFaylBaytlari(
   for (const q of hisob) {
     const kat: (string | number | null)[] = Array.from({ length: 6 }, () => null);
     if (LEAF_TUR.has(q.tur)) {
-      const idx = KAT_INDEX.get(q.kat) ?? -1;
+      const idx = KAT_INDEX.get(nakrutkaKat(q.kat) ?? '') ?? -1;
       if (idx >= 0) kat[idx] = q.summaQiymat ?? null;
     }
     // Egasi (2026-10-14): smeta qatorlari to'liq KATTA HARFDA (qayta-import kaliti katta-kichik harfni farqlamaydi).
@@ -695,7 +696,7 @@ export async function lrvPlusFaylBaytlari(
     }
     // Kategoriya ustunlari — H ga havola (faqat bargda).
     if (LEAF_TUR.has(q.tur)) {
-      const ustun = KAT_USTUN[q.kat];
+      const ustun = KAT_USTUN[nakrutkaKat(q.kat) ?? ''];
       if (ustun) ws[`${ustun}${q.row}`] = kesh(`H${q.row}`, q.summaQiymat);
     }
     if (rejim === 'toliq') {

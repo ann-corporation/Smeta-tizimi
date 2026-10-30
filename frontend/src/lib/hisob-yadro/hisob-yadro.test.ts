@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   NDS_SUKUT_FOIZ, faktF2Max, faktSummaF2Max, hajmMasshtab, hisob, kaskad, kOplate, kategoriyaKf, kesimYigish, korinishKesim,
-  korinishSummasi, qatorSumma, qoldiq, qqsBilan, serverMerosKoefQoy, standartPodval, yaxlit2, yaxlitBilanYakun, yaxlitKOplate, yaxlitSvodSumma, faktF2MaxFormula,
+  korinishSummasi, podvalTekshir, podvalVsegoKodi, qatorSumma, qoldiq, qqsBilan, serverMerosKoefQoy, yaxlitQatorlarga, standartPodval, yaxlit2, yaxlitBilanYakun, yaxlitKOplate, yaxlitSvodSumma, faktF2MaxFormula,
   yaxlitKorinish, yaxlitQqssiz, yaxlitTaqsim, yigindi2Qatiy, type KorinishQator, type Podval,
 } from './index';
 
@@ -233,5 +233,29 @@ describe('ko‘rinishlar (Construct uslubi)', () => {
     const k = korinishKesim([q({ id: 1 }), q({ id: 2, kat: 'ЧЕЛ' })], 'smeta', { yaxlitIdlar: new Set([2]) });
     expect(k.yaxlitQator).toBe(1000);
     expect(k.summalar.МАТ).toBe(1000);
+  });
+});
+
+describe('ko‘rib chiqish tuzatishlari (NULL ≠ 0, ВСЕГО kodi)', () => {
+  it('taqsim: noma‘lum qator taqsimga kirmaydi va null qoladi (0 emas)', () => {
+    const t = yaxlitQatorlarga(1000, [{ id: 1, summa: 300 }, { id: 2, summa: null }, { id: 3, summa: 700 }])!;
+    expect(t.has(2)).toBe(false);
+    expect(yaxlit2(t.get(1)! + t.get(3)!)).toBe(1000);
+    expect(yaxlitQatorlarga(10, [{ id: 1, summa: null }])).toBeNull();
+  });
+  it('togri_xarajat: noma‘lum kategoriya summasi — natija noma‘lum', () => {
+    const r = kaskad({ ЧЕЛ: 1000 }, standartPodval(NK), { yaxlitlar: [{ bosqich: 'togri_xarajat', kategoriyalar: { МАТ: null as unknown as number } }] });
+    expect(r.qqsBilan).toBeNull();
+    expect(r.nomalumQatorlar).toContain('togri_xarajat');
+  });
+  it('buyurtmachi qatorlari bor-u `vsego` kodi yo‘q — oxirgi qator ВСЕГО deb olinmaydi, aniq xato', () => {
+    const p = standartPodval(NK);
+    p.qatorlar = p.qatorlar.map((q) => (q.kod === 'vsego' ? { ...q, kod: 'jami_tolov' } : q));
+    p.qatorlar.push({ kod: 'zakazchik', nom: 'Прочие затраты заказчика, %', tur: 'foiz', foiz: 5, baza: [{ qator: 'jami_tolov' }], amal: 'qoshiladi' });
+    expect(podvalVsegoKodi(p)).toBeNull();
+    expect(podvalTekshir(p).some((x) => /vsego/.test(x.xabar))).toBe(true);
+    const r = kaskad({ ЧЕЛ: 1000 }, p);
+    expect(r.xato).toBe('VSEGO_KODI_YOQ');
+    expect(r.qqsBilan).toBeNull();
   });
 });
