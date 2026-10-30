@@ -3,13 +3,14 @@
  * O'qish: /api/sb `sverka_moslash_v1` (stable, a'zolik + f2.read). Yozish: /api/sb-yoz — `sverka_import_v1` (partiya ≤ 200),
  * `f2_reestr_yoz_v1`, `tolov_taqsimot_saqla_v1`, `forma3_f2_bog_v1` (hammasi financial.write, idempotent operation_id).
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 import type { MoslashShartnoma } from '../lib/sverka-1c/turlar';
 import { barqarorUuid } from '../lib/sverka-1c/reja';
 
 export async function sverkaMoslashOl(kompaniyaId: number): Promise<{ ok: true; shartnomalar: MoslashShartnoma[] } | { ok: false; error: string }> {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'sverka_moslash_v1', kompaniya_id: kompaniyaId }) });
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'sverka_moslash_v1', kompaniya_id: kompaniyaId }) });
     const j = await r.json() as { ok: boolean; natija?: { ok: boolean; shartnomalar?: MoslashShartnoma[] }; error?: string };
     if (!j.ok || !j.natija || !Array.isArray(j.natija.shartnomalar)) return { ok: false, error: j.error || 'Moslash ma’lumotini o‘qib bo‘lmadi.' };
     return { ok: true, shartnomalar: j.natija.shartnomalar };

@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
 import type { MoliyaTahlilJavob } from '../lib/moliya-tahlil';
@@ -6,7 +7,7 @@ import type { MoliyaTahlilJavob } from '../lib/moliya-tahlil';
 export async function moliyaTahlilOl(p: { kompaniyaId: number; obyektId?: number | null }): Promise<{ ok: true; natija: MoliyaTahlilJavob } | { ok: false; error: string }> {
   try {
     await ogirYuklashKut();
-    const r = await fetch('/api/sb', {
+    const r = await vaqtliOqish('/api/sb', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ soro: 'moliya_tahlil_v1', kompaniya_id: p.kompaniyaId, ...(p.obyektId ? { obyekt_id: p.obyektId } : {}) }),
     });

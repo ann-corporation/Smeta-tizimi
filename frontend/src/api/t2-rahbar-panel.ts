@@ -3,6 +3,7 @@
  * Javob — `t2_rahbar_panel_v1`: §1 kartalar, §2 pul oqimi, §3 obyektlar matritsasi, §4 diqqat (top-10), §5 tasdiq navbati.
  * Summalar — yagona summa paketi (lib/summa-paket). Kiritilmagan qiymat — null (UI «kiritilmagan»), 0 emas.
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
 import { summaPaket, type SummaPaket } from '../lib/summa-paket';
 
@@ -103,7 +104,7 @@ export async function rahbarPanelOl(p: {
 }): Promise<{ ok: true; natija: RahbarPanel } | { ok: false; error: string; code?: string }> {
   try {
     await ogirYuklashKut();
-    const r = await fetch('/api/sb', {
+    const r = await vaqtliOqish('/api/sb', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         soro: 'rahbar_panel_v1', kompaniya_id: p.kompaniyaId,

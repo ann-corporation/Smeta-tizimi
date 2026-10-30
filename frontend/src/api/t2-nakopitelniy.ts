@@ -10,6 +10,7 @@
  * engine never modeled Fakt at all.
  */
 
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 import type { SvodShartnoma, TolovTur } from '../lib/nakopitelniy-svod';
 import { ogirYuklashBoshla, ogirYuklashKut } from './ogir-sorov-navbat';
@@ -205,7 +206,7 @@ export type ShartnomaSvodJavob = { ok: true; generated_at: string; shartnomalar:
 export async function shartnomaSvodOl(kompaniyaId: number): Promise<{ ok: true; natija: ShartnomaSvodJavob } | { ok: false; error: string }> {
   try {
     await ogirYuklashKut(); // Nakopitelniy sahifalari bilan bir vaqtda DB ni to'yintirmasin (prod 2026-10-27).
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_svod_v1', kompaniya_id: kompaniyaId }) });
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_svod_v1', kompaniya_id: kompaniyaId }) });
     const j = await r.json() as { ok: boolean; natija?: ShartnomaSvodJavob; error?: string };
     if (!j.ok || !j.natija || !Array.isArray(j.natija.shartnomalar)) return { ok: false, error: j.error || 'Svodni o‘qib bo‘lmadi.' };
     return { ok: true, natija: j.natija };

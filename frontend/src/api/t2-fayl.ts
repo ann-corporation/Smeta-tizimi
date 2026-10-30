@@ -3,6 +3,7 @@
  * yuklab olish — /api/hujjat-ol (R2, a'zolik RPC ichida); yuklash — /api/hujjat-yukla (ikki bosqichli).
  * Ma'lumot eksporti — /api/sb jadvallari (server har o'qishga kompaniya filtrini majburan qo'shadi).
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { sbOqi, yozAmali, type AktNatija } from './supabase';
 import type { Fayl, FaylPapka } from '../lib/fayl-daraxt';
 
@@ -36,7 +37,7 @@ export async function faylAmal(kompaniyaId: number, amal: FaylAmali,
 }
 
 export async function faylExplorerOl(kompaniyaId: number): Promise<FaylExplorer> {
-  const r = await fetch('/api/sb', {
+  const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ soro: 'fayl_explorer_v1', kompaniya_id: kompaniyaId }),
   });
