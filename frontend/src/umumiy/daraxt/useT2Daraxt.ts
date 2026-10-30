@@ -59,16 +59,19 @@ export function useT2Daraxt(obyektId: number | null) {
   const [yangilanmoqda, setYangilanmoqda] = useState(false);
   const [error, setError] = useState('');
 
-  /** Navbatlar: to'liq yuklash, qator yamog'i, holat yamog'i, narx nazorati — har biri o'z eskirishi bilan. */
+  /** Davr (epoch): obyekt almashganda oshadi — eski obyekt amallari yangi obyekt ko'rinishiga/keshiga yozmaydi. */
+  const davr = useRef(0);
+  const joriyObyekt = useRef<number | null>(obyektId);
+  const tirik = (e: number, id: number) => e === davr.current && id === joriyObyekt.current;
+  /** To'liq yuklash va narx nazorati navbatlari. */
   const toliqNavbat = useRef(0);
-  const qatorNavbat = useRef(0);
-  const holatNavbat = useRef(0);
   const narxNavbat = useRef(0);
   /** Ketayotgan to'liq yuklash (qisman o'qishlar uni kutadi, bekor qilmaydi). */
   const toliqJarayon = useRef<Promise<boolean> | null>(null);
-  /** Hali qo'llanmagan qisman so'rovlar (ildiz qator id lari). */
+  /** Hali o'qilmagan qisman so'rovlar (ildiz qator id lari) va ularni KETMA-KET bajaruvchi yagona ishchi. */
   const qatorKut = useRef(new Set<number>());
   const holatKut = useRef({ ids: new Set<number>(), hammasi: false });
+  const ishchi = useRef<Promise<void> | null>(null);
   const ishlar = useRef(0);
 
   const rowsRef = useRef<T2Qator[]>([]);
@@ -86,10 +89,12 @@ export function useT2Daraxt(obyektId: number | null) {
   const tugat = () => { ishlar.current = Math.max(0, ishlar.current - 1); setYangilanmoqda(ishlar.current > 0 && rowsRef.current.length > 0); };
   const toliqniKut = async () => { while (toliqJarayon.current) await toliqJarayon.current.catch(() => false); };
 
-  const keshgaYoz = useCallback((id: number) => {
-    if (!qc || !rowsRef.current.length) return;
+  /** Kesh faqat SHU obyekt va SHU davr ma'lumoti bilan yoziladi (boshqa obyekt qatorlari begona kalitga tushmasin). */
+  const keshgaYoz = useCallback((id: number, e: number) => {
+    if (!qc || !rowsRef.current.length || !tirik(e, id)) return;
     const snap: DaraxtKesh = { rows: rowsRef.current, states: statesRef.current, price: priceRef.current, avvalgi: avvalgiRef.current, oz: ozRef.current };
     qc.setQueryData(daraxtKaliti(id), snap);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qc]);
 
   const tree: TreeNode[] = useMemo(() => (rows.length ? sbT2TreeQur(rows, states) : []), [rows, states]);
@@ -103,24 +108,24 @@ export function useT2Daraxt(obyektId: number | null) {
     return t;
   }, [avvalgi]);
 
-  const narxNazorati = useCallback(async (id: number) => {
+  const narxNazorati = useCallback(async (id: number, e: number) => {
     const raqam = ++narxNavbat.current;
     const p = await priceControlOl(id).catch(() => null);
-    if (raqam === narxNavbat.current) { setPrice(p?.ok ? p.qatorlar : []); keshgaYoz(id); }
+    if (raqam === narxNavbat.current && tirik(e, id)) { setPrice(p?.ok ? p.qatorlar : []); keshgaYoz(id, e); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keshgaYoz]);
 
   /** Qo'shimcha/zamena belgilari va avvalgi versiya — daraxt ekranda bo'lgach qo'shiladi; o'qilmasa — 'xato'. */
-  const qoshimchalarniQosh = useCallback(async (id: number, toliq: number,
+  const qoshimchalarniQosh = useCallback(async (id: number, toliq: number, e: number,
     p: Promise<[OzgarishMalumot | null, AvvalgiVersiya | null]>) => {
     const [oz, av] = await p;
-    if (toliq !== toliqNavbat.current) return;
+    if (toliq !== toliqNavbat.current || !tirik(e, id)) return;
     if (oz == null || av == null) { setQoshimchaHolat('xato'); return; }
     ozRef.current = oz;
     setRows(ozgarishniQosh(rowsRef.current, oz));
     setAvvalgi(av.qatorlar.length ? av : null);
     setQoshimchaHolat('tayyor');
-    keshgaYoz(id);
+    keshgaYoz(id, e);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keshgaYoz]);
   const qoshimchalarniOl = (id: number) => Promise.all([
@@ -129,8 +134,11 @@ export function useT2Daraxt(obyektId: number | null) {
 
   /** To'liq yuklash. Daraxt bor bo'lsa — jim (ekrandan olinmaydi). Yangi to'liq yuklash eskisini almashtiradi. */
   const yuklash = useCallback(async () => {
+    if (obyektId == null) { ++toliqNavbat.current; setRows([]); setStates([]); setPrice([]); setError(''); return; }
+    // Eski obyekt yopilmasidan chaqirilgan (masalan qisman yo'ldan) — yangi obyektni bosib ketmaydi.
+    if (obyektId !== joriyObyekt.current) return;
+    const e = davr.current;
     const toliq = ++toliqNavbat.current;
-    if (obyektId == null) { setRows([]); setStates([]); setPrice([]); setError(''); return; }
     const birinchi = rowsRef.current.length === 0;
     if (birinchi) setLoading(true);
     boshla();
@@ -141,7 +149,7 @@ export function useT2Daraxt(obyektId: number | null) {
     const jarayon = (async (): Promise<boolean> => {
       try {
         const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI)]);
-        if (toliq !== toliqNavbat.current) return false;
+        if (toliq !== toliqNavbat.current || !tirik(e, obyektId)) return false;
         if (!d.ok || !h.ok) {
           setError(d.error || h.error || 'Kanonik daraxt o‘qilmadi.');
           if (birinchi) { setRows([]); setStates([]); }
@@ -151,102 +159,119 @@ export function useT2Daraxt(obyektId: number | null) {
         setRows(ozgarishniQosh((d.qatorlar || []) as T2Qator[], ozRef.current));
         setStates((h.qatorlar || []) as T2QatorHolat[]);
         setServerTasdiq(true);
-        keshgaYoz(obyektId);
-        void narxNazorati(obyektId);
+        keshgaYoz(obyektId, e);
+        void narxNazorati(obyektId, e);
         return true;
       } catch {
-        if (toliq === toliqNavbat.current) setError('Kanonik daraxt o‘qilmadi. Tarmoq yoki ruxsatni tekshiring.');
+        if (toliq === toliqNavbat.current && tirik(e, obyektId)) setError('Kanonik daraxt o‘qilmadi. Tarmoq yoki ruxsatni tekshiring.');
         return false;
       }
     })();
     toliqJarayon.current = jarayon;
     const ok = await jarayon;
     if (toliqJarayon.current === jarayon) toliqJarayon.current = null;
-    if (toliq === toliqNavbat.current) setLoading(false);
+    const joriy = toliq === toliqNavbat.current && tirik(e, obyektId);
+    if (joriy) setLoading(false);
     tugat();
-    if (ok) await qoshimchalarniQosh(obyektId, toliq, qoshP);
-    else if (toliq === toliqNavbat.current) setQoshimchaHolat('xato');
+    if (ok) await qoshimchalarniQosh(obyektId, toliq, e, qoshP);
+    else if (joriy) setQoshimchaHolat('xato');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obyektId, narxNazorati, keshgaYoz, qoshimchalarniQosh]);
 
+  /**
+   * Qisman yangilashlar uchun YAGONA ketma-ket ishchi: har aylanishda kutilayotgan barcha qator (tahrir) va holat
+   * (fakt) id lari bitta o'qishda olinadi — holat o'qishi ham qator yamog'ining id larini qamraydi, shuning uchun
+   * eski holat javobi yangi qator yamog'ini bosib keta olmaydi. To'liq yuklash ketayotgan bo'lsa — undan keyin.
+   * Obyekt almashsa (davr) — ishchi to'xtaydi, hech narsa yozmaydi.
+   */
+  const ishchiniBoshla = useCallback((): Promise<void> => {
+    if (ishchi.current) return ishchi.current;
+    if (obyektId == null || obyektId !== joriyObyekt.current) return Promise.resolve();
+    const id = obyektId;
+    const e = davr.current;
+    const qolgan = () => qatorKut.current.size > 0 || holatKut.current.ids.size > 0 || holatKut.current.hammasi;
+    boshla();
+    // eslint-disable-next-line prefer-const
+    let p: Promise<void> | null = null;
+    p = (async () => {
+      try {
+        while (tirik(e, id) && qolgan()) {
+          await toliqniKut();
+          if (!tirik(e, id)) return;
+          const qIldiz = [...qatorKut.current]; qatorKut.current.clear();
+          const hk = holatKut.current; holatKut.current = { ids: new Set(), hammasi: false };
+          const qIdlar = qIldiz.length ? taalluqliBirlashma(rowsRef.current, qIldiz) : [];
+          if (qIdlar == null) { await yuklash(); continue; } // tuzilma kutilmagan — to'liq (u holatni ham o'qiydi)
+          const hIdlar = hk.hammasi ? null : taalluqliBirlashma(rowsRef.current, [...qIldiz, ...hk.ids]);
+          let toliqKerak = false;
+          try {
+            const [d, h] = await Promise.all([
+              qIdlar.length ? sbT2DaraxtQisman(id, qIdlar) : Promise.resolve(null),
+              hIdlar ? sbT2QatorHolatQisman(id, hIdlar) : sbT2QatorHolatOl(id, T2_HOLAT_DARAXT_USTUNLARI),
+            ]);
+            if (!tirik(e, id)) return;
+            const dq = (d?.qatorlar || []) as T2Qator[];
+            if (d && (!d.ok || d.toliq === false || dq.length !== qIdlar.length)) toliqKerak = true;
+            else {
+              let hOk = h.ok && h.toliq !== false;
+              let holatlar = (h.qatorlar || []) as T2QatorHolat[];
+              let toliqHolat = !hIdlar;
+              if (!hOk && hIdlar) { // qisman holat o'qilmadi — butun holat jadvali
+                const hh = await sbT2QatorHolatOl(id, T2_HOLAT_DARAXT_USTUNLARI);
+                if (!tirik(e, id)) return;
+                hOk = hh.ok; holatlar = (hh.qatorlar || []) as T2QatorHolat[]; toliqHolat = true;
+              }
+              if (d) setRows(qatorlarniYamala(rowsRef.current, dq));
+              if (hOk) setStates(toliqHolat ? holatlar : holatlarniAlmashtir(statesRef.current, holatlar));
+              else if (d) toliqKerak = true; // qator yamalgan, holati o'qilmadi — mos kelmasin
+              else setError(h.error || 'Holat yangilanmadi — sahifani yangilang.');
+              keshgaYoz(id, e);
+              void narxNazorati(id, e);
+            }
+          } catch {
+            if (!tirik(e, id)) return;
+            if (qIdlar.length) toliqKerak = true; else setError('Holat yangilanmadi — sahifani yangilang.');
+          }
+          if (toliqKerak && tirik(e, id)) await yuklash();
+        }
+      } finally {
+        if (ishchi.current === p) ishchi.current = null;
+        tugat();
+      }
+    })();
+    ishchi.current = p;
+    return p;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obyektId, narxNazorati, keshgaYoz, yuklash]);
+
   /** Faqat holat jadvali (qator tuzilmasi o'zgarmagan: fakt/F2). Bir yoki bir nechta qator id; id siz — butun holat. */
   const holatniYangila = useCallback(async (qatorId?: number | readonly number[]) => {
-    if (obyektId == null) return;
+    if (obyektId == null || obyektId !== joriyObyekt.current) return;
     const royxat = qatorId == null ? [] : typeof qatorId === 'number' ? [qatorId] : qatorId;
-    const kut = holatKut.current;
-    if (!royxat.length) kut.hammasi = true; else for (const id of royxat) kut.ids.add(id);
-    boshla();
-    try {
-      await toliqniKut();
-      const raqam = ++holatNavbat.current;
-      const ildizlar = [...kut.ids];
-      const hammasi = kut.hammasi;
-      const idlar = hammasi ? null : taalluqliBirlashma(rowsRef.current, ildizlar);
-      const tozala = () => { for (const id of ildizlar) kut.ids.delete(id); if (hammasi) kut.hammasi = false; };
-      if (idlar) {
-        const q = await sbT2QatorHolatQisman(obyektId, idlar);
-        if (raqam !== holatNavbat.current) return; // yangiroq so'rov bu id larni ham qamragan
-        if (q.ok) {
-          setStates(holatlarniAlmashtir(statesRef.current, (q.qatorlar || []) as T2QatorHolat[]));
-          tozala();
-          keshgaYoz(obyektId);
-          void narxNazorati(obyektId);
-          return;
-        }
-      }
-      const h = await sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI);
-      if (raqam !== holatNavbat.current) return;
-      if (h.ok) { setStates((h.qatorlar || []) as T2QatorHolat[]); tozala(); keshgaYoz(obyektId); }
-      else setError(h.error || 'Holat yangilanmadi — sahifani yangilang.');
-      void narxNazorati(obyektId);
-    } catch {
-      setError('Holat yangilanmadi — sahifani yangilang.');
-    } finally {
-      tugat();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [obyektId, narxNazorati, keshgaYoz]);
+    if (!royxat.length) holatKut.current.hammasi = true; else for (const id of royxat) holatKut.current.ids.add(id);
+    await ishchiniBoshla();
+    // Ishchi bu so'rovni olishdan oldin ishlayotgan aylanishda bo'lgan bo'lsa — keyingi aylanish ham tugashini kutamiz.
+    if (ishchi.current) await ishchi.current;
+  }, [obyektId, ishchiniBoshla]);
 
   /**
    * Qator tahriridan keyin (nom/hajm/narx/birlik/kat): butun smeta (~16 MB) EMAS — faqat shu qator,
    * ota-bobolari (bazadagi t2_rollup yig'indilari) va bolalari (norma kaskadi) `t2_daraxt` + holatdan
    * qayta o'qiladi. RZ/BL jamilari klientda sbT2TreeQur bilan qayta yig'iladi. Biror qator topilmasa
-   * yoki o'qish to'liq bo'lmasa — to'liq yuklash. Ketma-ket tahrirlar id lari jamlanadi.
+   * yoki o'qish to'liq bo'lmasa — to'liq yuklash. Ketma-ket tahrirlar yo'qolmaydi (navbatda jamlanadi).
    */
   const qatorniYangila = useCallback(async (qatorId: number) => {
-    if (obyektId == null) return;
+    if (obyektId == null || obyektId !== joriyObyekt.current) return;
     qatorKut.current.add(qatorId);
-    boshla();
-    /** true — qisman yo'l yaramadi, to'liq yuklash kerak. */
-    const ish = async (): Promise<boolean> => {
-      await toliqniKut();
-      const raqam = ++qatorNavbat.current;
-      const ildizlar = [...qatorKut.current];
-      const tozala = () => { for (const id of ildizlar) qatorKut.current.delete(id); };
-      const idlar = taalluqliBirlashma(rowsRef.current, ildizlar);
-      if (!idlar) { tozala(); return true; }
-      const [d, h] = await Promise.all([sbT2DaraxtQisman(obyektId, idlar), sbT2QatorHolatQisman(obyektId, idlar)]);
-      if (raqam !== qatorNavbat.current) return false; // yangiroq so'rov bu id larni ham qamragan
-      const dq = (d.qatorlar || []) as T2Qator[];
-      tozala();
-      if (!d.ok || !h.ok || d.toliq === false || h.toliq === false || dq.length !== idlar.length) return true;
-      setRows(qatorlarniYamala(rowsRef.current, dq));
-      setStates(holatlarniAlmashtir(statesRef.current, (h.qatorlar || []) as T2QatorHolat[]));
-      keshgaYoz(obyektId);
-      void narxNazorati(obyektId);
-      return false;
-    };
-    let toliqKerak: boolean;
-    try { toliqKerak = await ish(); } catch { qatorKut.current.clear(); toliqKerak = true; } finally { tugat(); }
-    if (toliqKerak) await yuklash();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [obyektId, narxNazorati, keshgaYoz, yuklash]);
+    await ishchiniBoshla();
+    if (ishchi.current) await ishchi.current;
+  }, [obyektId, ishchiniBoshla]);
 
-  // Obyekt almashsa — eski so'rovlar eskiradi. Keshda bo'lsa darhol ko'rsatiladi; har holda serverdan qayta tekshiriladi.
+  // Obyekt almashsa — yangi davr: eski so'rovlar hech narsa yozmaydi. Keshda bo'lsa darhol ko'rsatiladi; har holda serverdan.
   useEffect(() => {
-    qatorNavbat.current++; holatNavbat.current++; narxNavbat.current++;
+    davr.current++; joriyObyekt.current = obyektId; narxNavbat.current++;
     qatorKut.current.clear(); holatKut.current = { ids: new Set(), hammasi: false };
-    toliqJarayon.current = null;
+    toliqJarayon.current = null; ishchi.current = null;
     setServerTasdiq(false); setError('');
     const kesh = qc && obyektId != null ? qc.getQueryData<DaraxtKesh>(daraxtKaliti(obyektId)) : undefined;
     if (kesh && kesh.rows.length) {

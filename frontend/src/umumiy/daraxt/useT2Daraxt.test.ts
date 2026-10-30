@@ -92,7 +92,7 @@ describe('useT2Daraxt — katta smetada qotmaslik', () => {
     expect(result.current.states.every((s) => s.fakt_hajm === 1)).toBe(true);
   });
 
-  it('eskirgan javob yangisini bosib ketmaydi', async () => {
+  it('qisman so‘rovlar ketma-ket: keyingi saqlash oldingisidan KEYIN o‘qiladi, eski javob yangisini bosmaydi', async () => {
     const { result } = renderHook(() => useT2Daraxt(7));
     await waitFor(() => expect(result.current.tree.length).toBe(1));
     let sekinTugat: (v: unknown) => void = () => {};
@@ -101,10 +101,14 @@ describe('useT2Daraxt — katta smetada qotmaslik', () => {
       .mockResolvedValueOnce({ ok: true, qatorlar: [h(2, 9)] });
     await act(async () => {
       const sekin = result.current.holatniYangila(2);
-      await result.current.holatniYangila(2);
+      await vi.waitFor(() => expect(api.qisman).toHaveBeenCalledTimes(1));
+      const keyingi = result.current.holatniYangila(2);
+      await Promise.resolve();
+      expect(api.qisman).toHaveBeenCalledTimes(1); // ikkinchisi birinchi tugashini kutadi
       sekinTugat({ ok: true, qatorlar: [h(2, 1)] });
-      await sekin;
+      await sekin; await keyingi;
     });
+    expect(api.qisman).toHaveBeenCalledTimes(2);
     expect(result.current.states.find((s) => s.qator_id === 2)!.fakt_hajm).toBe(9);
   });
 });
@@ -223,30 +227,82 @@ describe('useT2Daraxt — poyga holatlari va qo‘shimcha belgilar', () => {
     api.holat.mockResolvedValue({ ok: true, qatorlar: PUL_HOLAT });
   });
 
-  it('ketma-ket ikki tez tahrir — ikkalasi ham daraxtda (id lar jamlanadi)', async () => {
+  it('ketma-ket ikki tez tahrir — ikkalasi ham daraxtda (navbatda yo‘qolmaydi)', async () => {
     const { result } = renderHook(() => useT2Daraxt(7));
     await waitFor(() => expect(result.current.qoshimchaTayyor).toBe(true));
     let birinchiTugat: (v: unknown) => void = () => {};
-    // 1-tahrir (rs3) javobi sekin; 2-tahrir (bl4) tez — u 1-ning id larini ham o'qishi kerak.
+    // 1-tahrir (rs3) javobi sekin; 2-tahrir (bl4) uni kutadi va undan keyin o'qiladi.
     api.daraxtQisman
       .mockImplementationOnce(() => new Promise((r) => { birinchiTugat = r; }))
       .mockImplementationOnce(async (_o: number, idlar: number[]) => ({ ok: true, toliq: true,
-        qatorlar: idlar.map((id) => id === 3 ? { ...PUL_ROWS[2], narx: 30, summa: 300 } : id === 4 ? { ...PUL_ROWS[3], nom: 'yangi nom' } : PUL_ROWS[id - 1]) }));
+        qatorlar: idlar.map((id) => id === 4 ? { ...PUL_ROWS[3], nom: 'yangi nom' } : PUL_ROWS[id - 1]) }));
     api.qisman.mockResolvedValue({ ok: true, qatorlar: [] });
     await act(async () => {
       const p1 = result.current.qatorniYangila(3);
+      await vi.waitFor(() => expect(api.daraxtQisman).toHaveBeenCalledTimes(1));
       const p2 = result.current.qatorniYangila(4);
-      await p2;
-      birinchiTugat({ ok: true, toliq: true, qatorlar: [PUL_ROWS[0], PUL_ROWS[1], PUL_ROWS[2]] }); // eskirgan — tashlanadi
-      await p1;
+      await Promise.resolve();
+      expect(api.daraxtQisman).toHaveBeenCalledTimes(1);
+      birinchiTugat({ ok: true, toliq: true, qatorlar: [PUL_ROWS[0], PUL_ROWS[1], { ...PUL_ROWS[2], narx: 30, summa: 300 }] });
+      await p1; await p2;
     });
-    expect([...(api.daraxtQisman.mock.calls[1][1] as number[])].sort()).toEqual([1, 2, 3, 4]);
+    expect([...(api.daraxtQisman.mock.calls[1][1] as number[])].sort()).toEqual([1, 4]);
     expect(result.current.rows.find((r) => r.id === 3)!.summa).toBe(300);
     expect(result.current.rows.find((r) => r.id === 4)!.nom).toBe('yangi nom');
     expect(api.daraxt).toHaveBeenCalledTimes(1);
     expect(result.current.yangilanmoqda).toBe(false);
   });
 
+  it('kutilayotgan fakt holati va qator tahriri bitta o‘qishda — eski holat yangi yamoqni bosmaydi', async () => {
+    const { result } = renderHook(() => useT2Daraxt(7));
+    await waitFor(() => expect(result.current.qoshimchaTayyor).toBe(true));
+    let toliqTugat: (v: unknown) => void = () => {};
+    api.daraxt.mockImplementationOnce(() => new Promise((r) => { toliqTugat = r; }));
+    api.daraxtQisman.mockResolvedValue({ ok: true, toliq: true, qatorlar: [PUL_ROWS[0], PUL_ROWS[1], PUL_ROWS[2]] });
+    api.qisman.mockImplementation(async (_o: number, idlar: number[]) => ({ ok: true, qatorlar: idlar.map((id) => hp(id, 500, id === 4 ? 7 : 0)) }));
+    await act(async () => {
+      const toliq = result.current.yuklash();
+      const a = result.current.holatniYangila([4]);
+      const b = result.current.qatorniYangila(3);
+      toliqTugat({ ok: true, qatorlar: PUL_ROWS });
+      await toliq; await a; await b;
+    });
+    expect(api.qisman).toHaveBeenCalledTimes(1);
+    expect([...(api.qisman.mock.calls[0][1] as number[])].sort()).toEqual([1, 2, 3, 4]);
+    expect(result.current.states.find((s) => s.qator_id === 4)!.fakt_summa).toBe(7);
+    expect(result.current.states.find((s) => s.qator_id === 3)!.smeta_summa).toBe(500);
+  });
+
+  it('obyekt almashsa — eski obyekt tahriri/yuklashi yangi obyektga ham, keshiga ham yozmaydi', async () => {
+    const qc = new QueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: qc }, children);
+    const B_ROWS = [{ ...q(100, null, 'rz'), obyekt_id: 8 }, { ...q(101, 100, 'bl'), obyekt_id: 8 }];
+    const { result, rerender } = renderHook(({ id }) => useT2Daraxt(id), { wrapper, initialProps: { id: 7 } });
+    await waitFor(() => expect(result.current.qoshimchaTayyor).toBe(true));
+    const aKesh = qc.getQueryData(daraxtKaliti(7));
+    let aTugat: (v: unknown) => void = () => {};
+    api.daraxt.mockImplementation((id: number) => id === 8 ? Promise.resolve({ ok: true, qatorlar: B_ROWS })
+      : new Promise((r) => { aTugat = r; }));
+    api.holat.mockImplementation(async (id: number) => ({ ok: true, qatorlar: id === 8 ? [h(100, 0), h(101, 0)] : PUL_HOLAT }));
+    api.daraxtQisman.mockResolvedValue({ ok: true, toliq: true, qatorlar: [PUL_ROWS[0], PUL_ROWS[1], PUL_ROWS[2]] });
+    api.qisman.mockResolvedValue({ ok: true, qatorlar: [hp(3, 1)] });
+    let tahrir: Promise<void> = Promise.resolve(); let fakt: Promise<void> = Promise.resolve();
+    await act(async () => {
+      void result.current.yuklash();               // A: sekin to'liq yuklash
+      tahrir = result.current.qatorniYangila(3);   // A: uni kutadi
+      fakt = result.current.holatniYangila();      // A: butun holat
+    });
+    rerender({ id: 8 });
+    await waitFor(() => expect(result.current.rows.map((r) => r.id)).toEqual([100, 101]));
+    await act(async () => { aTugat({ ok: true, qatorlar: PUL_ROWS }); await tahrir; await fakt; });
+    expect(result.current.rows.map((r) => r.id)).toEqual([100, 101]);
+    expect(result.current.states.map((s) => s.qator_id).sort()).toEqual([100, 101]);
+    expect(api.daraxtQisman).not.toHaveBeenCalled();
+    expect(api.qisman).not.toHaveBeenCalled();
+    expect(qc.getQueryData(daraxtKaliti(7))).toBe(aKesh);   // A keshi o'zgarmagan
+    expect((qc.getQueryData(daraxtKaliti(8)) as { rows: T2Qator[] }).rows.map((r) => r.id)).toEqual([100, 101]);
+    expect(result.current.error).toBe('');
+  });
   it('jim to‘liq yuklash paytidagi tahrir uni bekor qilmaydi — qisman o‘qish undan KEYIN', async () => {
     const { result } = renderHook(() => useT2Daraxt(7));
     await waitFor(() => expect(result.current.qoshimchaTayyor).toBe(true));
