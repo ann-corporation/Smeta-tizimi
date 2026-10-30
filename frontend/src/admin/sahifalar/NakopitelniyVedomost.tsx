@@ -5,7 +5,8 @@ import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, Clipboar
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyProgress, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
@@ -52,6 +53,7 @@ import { SverkaImportPanel } from '../../components/sverka-import/SverkaImportPa
 
 function Sessiya({ companyId }: { companyId: number }) {
   const [objects, setObjects] = useState<T2Obyekt[]>([]);
+  const qc = useIxtiyoriyQueryClient();
   const workspace = usePTOWorkspace();
   const objectId = workspace.scope.objectId ? String(workspace.scope.objectId) : '';
   const setObjectId = (value: string) => workspace.setObjectId(value ? Number(value) : null);
@@ -76,9 +78,10 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   useEffect(() => {
     let active = true;
-    void sbT2ObyektlarOlKomp(companyId).then(r => { if (active && r.ok) setObjects((r.qatorlar || []) as T2Obyekt[]); });
+    // Umumiy kesh (Holat/Fakt/PTO kontekst bilan bitta so'rov).
+    void obyektlarKeshdan(qc, companyId).then(r => { if (active && r.ok) setObjects((r.qatorlar || []) as T2Obyekt[]); });
     return () => { active = false; };
-  }, [companyId]);
+  }, [companyId, qc]);
 
   // Ikki narx (egasi): hujjatda к оплате = прямые × Kf — obyekt/shartnoma nakrutka foizlari.
   const [nakrutka, setNakrutka] = useState<NakrutkaKoeffitsientlar | null>(null);

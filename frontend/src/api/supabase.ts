@@ -22,7 +22,8 @@
  * xato turi.
  */
 
-import { t2ToliqOqi, t2ToliqOqiParallel } from './t2-toliq-oqish';
+import { t2ToliqOqiParallel } from './t2-toliq-oqish';
+import { obyektlarEskirdi } from './obyektlar-kesh-belgi';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
 import { lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishXaritasi } from '../lib/lrv-ozgarish';
 
@@ -352,8 +353,10 @@ export type T2Qator = {
   almashtirgan_versiya_id?: number | null;
 };
 
+/** Katta obyektda kalit (qator_id) oynalari PARALLEL o'qiladi — natija ketma-ket o'qish bilan aynan bir xil
+ *  (qator_id bo'yicha o'sish tartibi, to'liqlik tekshiruvi; xato bo'lsa ketma-ket yo'lga qaytadi). */
 export function sbT2QatorHolatOl(obyektId: number, ustunlar?: string) {
-  return t2ToliqOqi<T2QatorHolat>(sbOqi, {
+  return t2ToliqOqiParallel<T2QatorHolat>(sbOqi, {
     jadval: 't2_qator_holat',
     filtr: 'obyekt_id=eq.' + obyektId,
     limit: 200000,
@@ -1072,6 +1075,7 @@ export async function sbObyektOchirish(id: number, nomi: string): Promise<any> {
     body: JSON.stringify({ amal: 'korzinkaga_tashlash', jadval: 't2_obyekt', id })
   });
   const data = await res.json();
+  obyektlarEskirdi();
 
   // 2. Drive'da trash qutisiga ko'chirish
   fetch('/api/gas', {
@@ -1108,7 +1112,9 @@ export async function sbT2ObyektYarat(p: { kompaniyaId: number; loyihaId?: numbe
       nom: p.nom, operation_id: p.operationId || yangiOperationId(),
     }),
   });
-  return await res.json();
+  const j = (await res.json()) as { ok: boolean; obyekt_id?: number; code?: string; error?: string; xato?: string };
+  obyektlarEskirdi();
+  return j;
 }
 
 /** T2-PTO-OWNER-CRITICAL-CLOSURE: resurs kategoriya (ЧЕЛ/МАШ/МАТ/ОБ/М/К/КАБ/БЕЗСКЛАД)
@@ -1134,6 +1140,7 @@ export async function sbObyektTahrirlash(id: number, nomi: string, tur: string):
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'obyekt_yangila', id, nomi, tur })
   });
+  obyektlarEskirdi();
   
   // Drive'da nomini yangilash
   fetch('/api/gas', {
@@ -1151,6 +1158,7 @@ export async function sbKorzinkadanTiklash(jadval: string, id: number, nomi: str
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'korzinkadan_tiklash', jadval, id })
   });
+  obyektlarEskirdi();
   
   fetch('/api/gas', {
     method: 'POST',
@@ -1167,6 +1175,7 @@ export async function sbButunlayOchirish(jadval: string, id: number, nomi: strin
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'butunlay_ochirish', jadval, id })
   });
+  obyektlarEskirdi();
   
   fetch('/api/gas', {
     method: 'POST',

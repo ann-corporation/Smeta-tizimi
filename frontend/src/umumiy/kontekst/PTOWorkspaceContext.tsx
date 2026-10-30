@@ -3,7 +3,8 @@ import { ObyektOptionlari } from '../ui/ObyektOptionlari';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaKontekst';
-import { sbT2ObyektlarOlKomp, sbT2AktReestrOl, type T2AktReestr, type T2Obyekt } from '../../api/supabase';
+import { sbT2AktReestrOl, type T2AktReestr, type T2Obyekt } from '../../api/supabase';
+import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
 import { hujjatRoyxatOl, type DocRegistry } from '../../api/t2-hujjat-canonical';
 import type { CenterDocument } from '../../components/document-center';
@@ -275,6 +276,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<LoadingState>({ hierarchy: false, periods: false, documents: false });
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const qc = useIxtiyoriyQueryClient();
   /** Company whose project/object lists are really loaded — before that a URL object is not judged
    *  (owner 2026-09-29: ?obyekt=78 used to vanish against an empty list). */
   const [loadedCompany, setLoadedCompany] = useState<number | null>(null);
@@ -317,7 +319,8 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
     }
     let alive = true;
     setLoading((old) => ({ ...old, hierarchy: true }));
-    Promise.all([sbT2LoyihalarOl(companyId), sbT2ObyektlarOlKomp(companyId)])
+    // Obyektlar umumiy keshdan; qo'lda yangilash (refresh) keshni chetlab o'tadi.
+    Promise.all([sbT2LoyihalarOl(companyId), obyektlarKeshdan(qc, companyId, refreshToken > 0)])
       .then(([projectResult, objectResult]) => {
         if (!alive) return;
         if (!projectResult.ok || !objectResult.ok) {
@@ -333,7 +336,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
       .catch(() => { if (alive) setError('PTO iyerarxiyasini yuklab bo‘lmadi.'); })
       .finally(() => { if (alive) setLoading((old) => ({ ...old, hierarchy: false })); });
     return () => { alive = false; };
-  }, [companyId, refreshToken]);
+  }, [companyId, refreshToken, qc]);
 
   useEffect(() => {
     if (companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
