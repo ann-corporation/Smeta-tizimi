@@ -1112,7 +1112,7 @@ export async function sbT2ObyektYarat(p: { kompaniyaId: number; loyihaId?: numbe
       nom: p.nom, operation_id: p.operationId || yangiOperationId(),
     }),
   });
-  const j = await res.json();
+  const j = (await res.json()) as { ok: boolean; obyekt_id?: number; code?: string; error?: string; xato?: string };
   obyektlarEskirdi();
   return j;
 }
