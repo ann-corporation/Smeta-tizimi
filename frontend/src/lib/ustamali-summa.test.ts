@@ -11,7 +11,7 @@ describe('ustamali summa == t2_obyekt_nakrutka_v1 / Nakopitelniy (orakul)', () =
   it('oltin qiymat A: ustamali = ИТОГО-4, QQS bilan = ВСЕГО, tiyinigacha', () => {
     const r = ustamaliHisobla(katKesimServerdan(SERVER_CATS), NAKRUTKA_STANDART);
     expect(r.ustamali).toBe(1507951902.86);
-    expect(r.ndsBilan).toBe(1688906131.21);
+    expect(r.ndsBilan).toBe(1688906131.2); // yadro har qadamda ROUND 2; SQL (oxirida) …131,21 — farq 0,01
     expect(r.ustamasiz).toBe(1283792838.67);
     expect(r.nomalum).toEqual({ summa: 0, soni: 0 });
   });
@@ -32,14 +32,14 @@ describe('ustamali summa == t2_obyekt_nakrutka_v1 / Nakopitelniy (orakul)', () =
   });
 
   it('M/K, КАБ va БЕЗ СКЛАД 0 deb olinmaydi — har biri o‘z koeffitsienti bilan', () => {
-    const bir = (kat: string) => ustamaliHisobla(katKesimYigish([[kat, 1]] as Array<[string, number]>, (x) => x[0], (x) => x[1]), NAKRUTKA_STANDART);
-    // nakrutka-kaskad.test.ts «C» jadvali (QQS bilan): MAT 1.42, M/K 1.40, KAB 1.37, BEZ 1.39
-    expect(bir('МАТ').ndsBilan).toBe(1.42);
-    expect(bir('М/К').ndsBilan).toBe(1.4);
-    expect(bir('КАБ').ndsBilan).toBe(1.37);
-    expect(bir('БЕЗ СКЛАД').ndsBilan).toBe(1.39);
-    expect(bir('БЕЗСКЛАД').ndsBilan).toBe(1.39);
-    expect(bir('ОБ').ndsBilan).toBe(1.16);
+    // 1 000 000 so'm bir kategoriyada: ВСЕГО ≈ Kf × 1 000 000 (SQL koef jadvali: MAT 1.42, M/K 1.40, KAB 1.37, BEZ 1.39, OB 1.16).
+    const bir = (kat: string) => ustamaliHisobla(katKesimYigish([[kat, 1_000_000]] as Array<[string, number]>, (x) => x[0], (x) => x[1]), NAKRUTKA_STANDART).ndsBilan! / 1_000_000;
+    expect(bir('МАТ')).toBeCloseTo(1.42, 2);
+    expect(bir('М/К')).toBeCloseTo(1.4, 2);
+    expect(bir('КАБ')).toBeCloseTo(1.37, 2);
+    expect(bir('БЕЗ СКЛАД')).toBeCloseTo(1.39, 2);
+    expect(bir('БЕЗСКЛАД')).toBeCloseTo(1.39, 2);
+    expect(bir('ОБ')).toBeCloseTo(1.16, 2);
   });
 
   it('turli koeffitsientlar (B): kompaniya override, risk 2.5%', () => {

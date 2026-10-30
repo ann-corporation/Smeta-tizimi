@@ -805,9 +805,10 @@ describe('ALL zagotsiz blok → БЕЗСКЛАД; zagotli blokda hujjat beton qo
     expect(flat.find((x) => x.local_id === 'r2')).toMatchObject({ kat: 'МАТ', kat_manba: 'hujjat_blok' });
     expect(flat.find((x) => x.local_id === 'r3')).not.toHaveProperty('kat_manba');
     expect(flat.find((x) => x.local_id === 'b')).not.toHaveProperty('kat');
-    const { nakrutkaKaskadJS } = await import('../../lib/nakrutka-podval');
-    const k = nakrutkaKaskadJS({ ЧЕЛ: 0, МАШ: 0, МАТ: 2000, ОБ: 0, КАБ: 0, 'М/К': 0, 'БЕЗ СКЛАД': 1000 }, { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 1 });
-    expect(k.tr_mat + k.skl_mat).toBeCloseTo(100 + 20 + 50, 2);
+    // Faqat transport/sklad foizlari berilgan — qolgan kaskad noma'lum (0 deb olinmaydi), shu qadamlar yadrodan.
+    const { kaskad, standartPodval } = await import('../../lib/hisob-yadro');
+    const k = kaskad({ ЧЕЛ: 0, МАШ: 0, МАТ: 2000, ОБ: 0, КАБ: 0, 'М/К': 0, 'БЕЗ СКЛАД': 1000 }, standartPodval({ ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 1 })).qiymat;
+    expect((k.tr_mat as number) + (k.skl_mat as number)).toBeCloseTo(100 + 20 + 50, 2);
   });
   it('zagotsiz blok transporti isbotsiz — БЕЗСКЛАД berilmaydi (eski qoidalar)', () => {
     const buzuq = rows.map((r) => (r[3] === 'ТРАНСПОРТНЫЕ РАСХОДЫ' && r[7] === 50 ? P('ТРАНСПОРТНЫЕ РАСХОДЫ', 5, 77) : r));

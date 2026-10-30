@@ -277,7 +277,8 @@ describe('ALL RES podvali — foiz КОЛ-ВО ustunidan, blok kategoriyasi', ()
   });
 
   it('kaskad: tr + skl + tr_ob + zag_ob = podval summalari (±1)', async () => {
-    const { nakrutkaKaskadJS } = await import('../nakrutka-podval');
+    // Lokal podval (prochie/НДС yo'q) — butun kaskad noma'lum, lekin transport/sklad qadamlari ma'lum: yadro qiymatlari.
+    const { kaskad, standartPodval } = await import('../hisob-yadro');
     const n = nakrutkaPodvaliniOqi(kitob(ALL_RES(
       ...blok('МЕСТНЫЕ МАТЕРИАЛЫ И КОНСТРУКЦИИ', [R('ЦЕМЕНТ', 'Т', 3, 1234.57)], [5, 185.19], [1, 37.04]),
       ...blok('МЕТАЛЛОКОНСТРУКЦИИ', [R('КОНСТРУКЦИИ СТАЛЬНЫЕ', 'Т', 1.5, 9876.5)], [5, 740.74], [0.75, 111.11]),
@@ -287,8 +288,8 @@ describe('ALL RES podvali — foiz КОЛ-ВО ustunidan, blok kategoriyasi', ()
       P('ВСЕГО ОБОРУДОВАНИЯ', null, 0),
     )));
     const baza = (k: string) => (n.resBloklar ?? []).filter((b) => b.kat === k).reduce((a, b) => a + (b.baza ?? 0), 0);
-    const k = nakrutkaKaskadJS({ ЧЕЛ: 0, МАШ: 0, МАТ: baza('МАТ'), ОБ: baza('ОБ'), КАБ: baza('КАБ'), 'М/К': baza('М/К'), 'БЕЗ СКЛАД': 0 }, n.koeffitsientlar);
-    const tizim = k.tr_mat + k.skl_mat + k.skl_mk + k.tr_kab + k.tr_ob + k.zag_ob;
+    const k = kaskad({ ЧЕЛ: 0, МАШ: 0, МАТ: baza('МАТ'), ОБ: baza('ОБ'), КАБ: baza('КАБ'), 'М/К': baza('М/К'), 'БЕЗ СКЛАД': 0 }, standartPodval(n.koeffitsientlar)).qiymat;
+    const tizim = ['tr_mat', 'skl_mat', 'skl_mk', 'tr_kab', 'tr_ob', 'zag_ob'].reduce((a, kod) => a + (k[kod] as number), 0);
     const hujjat = (n.resBloklar ?? []).reduce((a, b) => a + (b.transportSumma ?? 0) + (b.zagotSumma ?? 0), 0);
     expect(Math.abs(tizim - hujjat)).toBeLessThanOrEqual(1);
   });

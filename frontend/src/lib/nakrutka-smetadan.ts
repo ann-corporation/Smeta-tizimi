@@ -12,9 +12,8 @@ import { NAKRUTKA_FOIZ_KODLARI, nakrutkaPodvaliniOqi, nakrutkaVaraqlari, type Na
 import { kitobHamrohlari } from './smeta-anatomiya';
 import type { Katak, KirishKitob } from './smeta-anatomiya/turlar';
 import { readXlsxFonda } from './f2-import-parse/xlsxFonda';
-import { standartPodval, type Podval } from './nakrutka-konstruktor';
-import { kategoriyaKf, nakrutkaKaskadJS, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
-import { kaskadgaYaxlit, type SvodYaxlit } from './svod-yaxlit';
+import { kaskad, kategoriyaKf, serverCatsdan, standartPodval, type Kat as NakrutkaKat, type KatSummalar, type Podval, type ServerCats } from './hisob-yadro';
+import type { SvodYaxlit } from './svod-yaxlit';
 
 export const SMETA_PODVAL_NOMI = 'Smeta podvali';
 
@@ -86,29 +85,29 @@ export function shartnomaSmetaFarqlari(
 
 export type UstamaTasiri = {
   ustamasiz: number;
-  eski: { itogo4: number; vsego: number };
-  yangi: { itogo4: number; vsego: number };
-  /** Kategoriya koeffitsientlari (к оплате, НДС bilan). */
-  kfEski: Record<NakrutkaKat, number>;
-  kfYangi: Record<NakrutkaKat, number>;
+  /** null — foiz noma'lum (0 emas). */
+  eski: { itogo4: number | null; vsego: number | null };
+  yangi: { itogo4: number | null; vsego: number | null };
+  /** Kategoriya koeffitsientlari (к оплате, НДС bilan). Noma'lum foiz — null. */
+  kfEski: Record<NakrutkaKat, number | null>;
+  kfYangi: Record<NakrutkaKat, number | null>;
 };
 
-/** Server kategoriya jamilari (`t2_obyekt_nakrutka_v1.cats`) → konstruktor kategoriyalari. */
-export function catsKat(c: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number }): KatSummalar {
-  return { ЧЕЛ: c.chel, МАШ: c.mash, МАТ: c.mat - c.kab - c.mk - c.bez, ОБ: c.ob, КАБ: c.kab, 'М/К': c.mk, 'БЕЗ СКЛАД': c.bez };
-}
+/** Server kategoriya jamilari (`t2_obyekt_nakrutka_v1.cats`) → konstruktor kategoriyalari (yadro). */
+export const catsKat: (c: ServerCats) => KatSummalar = serverCatsdan;
 
-/** Obyekt jami summasiga ta'sir: ustamasiz (to'g'ri xarajat) va ustamali (ИТОГО-4, ВСЕГО). yaxlit — svod yaxlit
+/** Obyekt jami summasiga ta'sir (yadro kaskadi): ustamasiz va ustamali (ИТОГО-4, ВСЕГО). yaxlit — svod yaxlit
  *  (server svod_yaxlit): s shunda cats_kaskad bo'lishi kerak; yaxlit ИТОГО-4 ga ustamasiz, QQS bir marta. */
 export function ustamaTasiri(s: KatSummalar, eski: Partial<NakrutkaKoeffitsientlar>, yangi: Partial<NakrutkaKoeffitsientlar>, yaxlit?: SvodYaxlit | null): UstamaTasiri {
-  const e = kaskadgaYaxlit(nakrutkaKaskadJS(s, eski), yaxlit?.qqssiz, Number(eski.НДС ?? 0));
-  const y = kaskadgaYaxlit(nakrutkaKaskadJS(s, yangi), yaxlit?.qqssiz, Number(yangi.НДС ?? 0));
+  const pe = standartPodval(eski), py = standartPodval(yangi);
+  const e = kaskad(s, pe, { ustamasizQism: yaxlit?.qqssiz ?? null });
+  const y = kaskad(s, py, { ustamasizQism: yaxlit?.qqssiz ?? null });
   return {
     ustamasiz: e.pryamye + (yaxlit?.barglar ?? 0),
     eski: { itogo4: e.itogo4, vsego: e.vsego },
     yangi: { itogo4: y.itogo4, vsego: y.vsego },
-    kfEski: kategoriyaKf(eski),
-    kfYangi: kategoriyaKf(yangi),
+    kfEski: kategoriyaKf(pe),
+    kfYangi: kategoriyaKf(py),
   };
 }
 

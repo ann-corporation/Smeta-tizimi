@@ -78,10 +78,12 @@ describe('svod yaxlit — obyekt darajasidagi ko‘rinishlar server bilan bir xi
     expect(u0.ustamali).toBe(ESKI.itogo4);
   });
 
-  it('qator darajasi: yaxlit avlodlari koeffitsientsiz (kOplate, kesim)', () => {
+  it('qator darajasi: yaxlit avlodlari ustamasiz, faqat QQS (kOplate ×1,12), kesim', () => {
     const kf = kategoriyaKf(NK);
-    expect(kOplate(300, 'ЧЕЛ', kf, true)).toBe(300);
-    expect(kOplate(300, 'ЧЕЛ', kf)).toBe(r2(300 * kf.ЧЕЛ));
+    // Qasddan o'zgarish (hisob yadrosi): к оплате ustuni QQS bilan — yaxlit qatorda ham QQS (1 + 12 %), ustama yo'q.
+    expect(kOplate(300, 'ЧЕЛ', kf, true, 12)).toBe(336);
+    expect(kOplate(300, 'ЧЕЛ', kf, true)).toBeNull(); // QQS stavkasi noma'lum — taxmin yo'q
+    expect(kOplate(300, 'ЧЕЛ', kf)).toBe(r2(300 * kf.ЧЕЛ!));
     const barglar = DARAXT.filter((x) => x.tur === 'rs');
     const k = katKesimYigish(barglar, (x) => x.kat, (x) => (x.hajm ?? 0) * 1000, (x) => IDLAR.has(x.id));
     expect(k.yaxlitQator).toBe(1000);
@@ -115,15 +117,15 @@ describe('svod yaxlit — obyekt darajasidagi ko‘rinishlar server bilan bir xi
     const rows = DARAXT.map((x) => nq({ qator_id: x.id, ota_id: x.ota_id, tur: x.tur as NakopitelniyQator['tur'], kat: x.kat, nom: x.nom,
       smeta_summa: x.tur === 'rs' ? (x.hajm ?? 0) * 1000 : null, joriy_summa: x.id === 12 ? 100 : x.id === 22 ? 200 : 0 }));
     const h1 = nakopitelniyVedomostHujjat(rows, { obyektNom: 'Объект', davr: '2026-09-01', nakrutka: NK, ndsFoiz: 12, svodYaxlit: SVOD });
-    expect(h1.kaskad!.G.itogo4).toBe(ORAKUL.itogo4);
-    expect(h1.kaskad!.G.vsego).toBe(ORAKUL.vsego);
+    expect(h1.kaskad!.G!.itogo4).toBe(ORAKUL.itogo4);
+    expect(h1.kaskad!.G!.vsego).toBe(ORAKUL.vsego);
     const t = tekshir(h1.bytes);
     expect(t.matnlar).toEqual(expect.arrayContaining([NOM]));
     expect(t.varaqlar[0].kataklar.some((k) => k.matn === YAXLIT_KAT || k.v === YAXLIT_KAT)).toBe(true);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
     const h0 = nakopitelniyVedomostHujjat(rows, { obyektNom: 'Объект', davr: '2026-09-01', nakrutka: NK, ndsFoiz: 12 });
-    expect(h0.kaskad!.G.vsego).toBe(ESKI.vsego);
+    expect(h0.kaskad!.G!.vsego).toBe(ESKI.vsego);
     expect(tekshir(h0.bytes).matnlar).not.toContain(NOM);
   });
 

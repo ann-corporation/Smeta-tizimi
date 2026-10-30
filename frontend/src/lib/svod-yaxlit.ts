@@ -7,7 +7,10 @@
  * Ekran/eksportlar shu yerdagi yordamchilardan foydalanadi:
  *  - `yaxlitQatorIdlari` — belgili bo'lim va uning barcha avlodlari (qator darajasida ustama qo'llanmaydi);
  *  - `kaskadgaYaxlit` — kaskad natijasiga yaxlit qatorini qo'shish (ИТОГО-4 → НДС → ВСЕГО).
+ * Hisob qadami yadroda (`lib/hisob-yadro/yaxlit-svod.ts`).
  */
+import { yaxlit2 as r2, yaxlitBilanYakun as yadroYakun } from './hisob-yadro';
+
 export type SvodYaxlitBolim = {
   id: number; qator_id: number; nom: string | null;
   svod_summa: number | null; qqs_stavka: number | null;
@@ -20,8 +23,6 @@ export type SvodYaxlitBolim = {
 };
 export type SvodYaxlit = { qqssiz: number; barglar: number; summasiz: number; bolimlar: SvodYaxlitBolim[] };
 
-const r2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
-
 /** Eksport hujjatlaridagi yashirin kategoriya ustuniga yaxlit qatorlar uchun yoziladigan belgi — SUMIF ga kirmaydi. */
 export const YAXLIT_KAT = 'СВОД';
 /** Eksport podvalidagi alohida qator nomi. */
@@ -31,10 +32,8 @@ export const YAXLIT_IZOH = 'Разделы, принятые по своду (п
 
 /** Kaskad ИТОГО-4 (yaxlit bo'limlarsiz) + yaxlit (QQS siz) → ИТОГО-4, QQS, ВСЕГО. yaxlit yo'q — o'zgarishsiz. */
 export function yaxlitBilanYakun(itogo4: number, yaxlitQqssiz: number | null | undefined, ndsFoiz: number): { itogo4: number; nds: number; vsego: number } | null {
-  if (yaxlitQqssiz == null || !Number.isFinite(yaxlitQqssiz)) return null;
-  const i4 = r2(itogo4 + yaxlitQqssiz);
-  const nds = r2((i4 * ndsFoiz) / 100);
-  return { itogo4: i4, nds, vsego: r2(i4 + nds) };
+  const y = yadroYakun(itogo4, yaxlitQqssiz, ndsFoiz);
+  return y && y.nds != null && y.vsego != null ? { itogo4: y.itogo4, nds: y.nds, vsego: y.vsego } : null;
 }
 
 /**
