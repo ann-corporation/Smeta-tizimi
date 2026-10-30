@@ -294,7 +294,7 @@ export default function NarxlarNative() {
           {xulosa.xavf > 0 && <button type="button" onClick={() => setFaqatXavf((v) => !v)} className="fz-chip fz-chip--warn self-start">
             <ShieldAlert size={12} aria-hidden="true" />{t('{n} ta resurs obyektlararo 5% dan ortiq farq bilan narxlangan', { n: String(xulosa.xavf) })}</button>}
         </section>
-        <PanelXatoChegarasi nom="katalog-import"><Suspense fallback={null}><KatalogManbaImport /></Suspense></PanelXatoChegarasi>
+        <PanelXatoChegarasi nom="katalog-import"><Suspense fallback={<div className="fz-card min-h-[120px] p-4" aria-busy="true"><div className="skel h-4 w-48" /></div>}><KatalogManbaImport /></Suspense></PanelXatoChegarasi>
         <PanelXatoChegarasi nom="bozor-narx"><MarketPriceComparison objectId={obyektId} companyId={kompaniyaId} /></PanelXatoChegarasi>
         <div className="fz-card fz-card__body flex flex-wrap items-end gap-2">
           <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}

@@ -60,10 +60,12 @@ export class XatoChegarasi extends Component<Props, Holat> {
           ? t('Sahifa fayli yuklanmadi — ehtimol tizim yangilandi yoki internet uzildi.')
           : t('Kutilmagan nosozlik. Tizimning boshqa qismlari ishlayveradi.')}</p>}
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={this.qaytaUrin} className="fz-chip inline-flex items-center gap-1">
-            <RotateCcw size={12} aria-hidden="true" />{t('Qayta urinish')}
-          </button>
-          {chunk && <button type="button" onClick={() => location.reload()} className="fz-chip">{t('Sahifani yangilash')}</button>}
+          {/* Chunk xatosida «Qayta urinish» foydasiz: React.lazy rad etilgan importni keshlaydi — faqat yangilash. */}
+          {chunk
+            ? <button type="button" onClick={() => location.reload()} className="fz-chip">{t('Sahifani yangilash')}</button>
+            : <button type="button" onClick={this.qaytaUrin} className="fz-chip inline-flex items-center gap-1">
+                <RotateCcw size={12} aria-hidden="true" />{t('Qayta urinish')}
+              </button>}
         </div>
       </div>
     );

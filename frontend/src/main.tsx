@@ -7,7 +7,7 @@ import { TilChegarasi } from './i18n/TilTanlagich'
 import { t, tilTayyorla } from './i18n/til'
 
 import { kuzatuvniBoshlash } from './_shared/kuzatuv';
-import { versiyaKuzatuvi } from './_shared/versiya';
+import { reloadQoriqchisiniTozala, versiyaKuzatuvi } from './_shared/versiya';
 
 kuzatuvniBoshlash();
 versiyaKuzatuvi();
@@ -58,6 +58,8 @@ void tilTayyorla().then(() => import('./App.tsx')).then(({ default: App }) => {
       </ErrorBoundary>
     </StrictMode>,
   )
+  // Ilova chizildi — 10 s barqaror ishlagach reload qo'riqchisi tozalanadi (doimiy yiqilishda cheksiz reload bo'lmaydi).
+  window.setTimeout(reloadQoriqchisiniTozala, 10_000)
 }).catch((e) => {
   // App chunk yuklanmasa (tarmoq uzildi / yangi deploy) — oq ekran o'rniga qisqa xabar.
   console.error('[main] ilova yuklanmadi', e);

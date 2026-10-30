@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { _tilniTestdaQoy, raqamFormatla, sanaFormatla, t, tilLocale, tilOl, tilQoy } from './til';
+import { _tilniTestdaQoy, kutilayotganTil, lugatniYukla, lugatTayyormi, raqamFormatla, sanaFormatla, t, tilLocale, tilOl, tilQoy } from './til';
+import { lugatHolat } from './lugat-holat';
 import { LUGAT_EN as en, LUGAT_RU as ru } from './lugat';
 import { ENTITY_CONFIGS } from '../umumiy/ui/forms/SharedForms';
 
@@ -25,6 +26,22 @@ describe('interfeys tili', () => {
     expect(tilOl()).toBe('en');
     expect(localStorage.getItem('til')).toBe('en');
     expect(document.documentElement.lang).toBe('en');
+  });
+
+  it('lug‘at yuklanmagan bo‘lsa: avval «kutilmoqda», yuklangach til almashadi va tinglovchilar xabar oladi', async () => {
+    const asl = lugatHolat.lugat;
+    lugatHolat.lugat = null;
+    try {
+      tilQoy('en');
+      expect(tilOl()).toBe('uz'); // yarim tarjima ko'rinmasin — til hali almashmagan
+      expect(kutilayotganTil()).toBe('en');
+      expect(lugatTayyormi()).toBe(true); // uz uchun lug'at kerak emas
+      await lugatniYukla();
+      await Promise.resolve();
+      expect(tilOl()).toBe('en');
+      expect(kutilayotganTil()).toBeNull();
+      expect(t('Saqlash')).toBe('Save');
+    } finally { lugatHolat.lugat = asl; }
   });
 
   it('raqam va sana tanlangan locale bilan ko‘rsatiladi, noaniq qiymat nolga aylanmaydi', () => {

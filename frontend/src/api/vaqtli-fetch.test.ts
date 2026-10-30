@@ -11,12 +11,21 @@ function osilganFetch() {
 }
 
 describe('vaqtliOqish', () => {
-  it('chegara o‘tsa so‘rov uziladi va aniq o‘zbekcha xato chiqadi', async () => {
+  it('sukut chegarasi 60 s: og‘ir RPC (31–35 s) uzilmaydi, 60 s dan keyin aniq o‘zbekcha xato', async () => {
     vi.useFakeTimers();
+    let javobBer: (r: Response) => void = () => {};
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((ok) => { javobBer = ok; })));
+    const ogir = vaqtliOqish('/api/sb', { method: 'POST' });
+    await vi.advanceTimersByTimeAsync(35_000);
+    const javob = new Response('{"ok":true}');
+    javobBer(javob);
+    await expect(ogir).resolves.toBe(javob);
+
     vi.stubGlobal('fetch', osilganFetch());
-    const p = vaqtliOqish('/api/sb', { method: 'POST' }, 30_000);
-    const tekshir = expect(p).rejects.toThrow('So‘rov 30 soniyada javob bermadi');
-    await vi.advanceTimersByTimeAsync(30_000);
+    const p = vaqtliOqish('/api/sb', { method: 'POST' });
+    const tekshir = expect(p).rejects.toThrow('Server 60 soniyada javob bermadi');
+    await vi.advanceTimersByTimeAsync(59_999);
+    await vi.advanceTimersByTimeAsync(1);
     await tekshir;
   });
 

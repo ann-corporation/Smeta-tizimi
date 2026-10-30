@@ -57,19 +57,28 @@ function yangila(til: Til, saqla: boolean): void {
   // Lug'at hali yuklanmagan bo'lsa — avval yuklab, keyin almashtiramiz (yarim tarjima ko'rinmasin).
   if (lugatKerak(til) && !lugatHolat.lugat) {
     kutilayotgan = til;
+    xabarBer(); // til tanlagichi «yuklanmoqda» holatini ko'rsatadi
     void lugatniYukla().then(
-      () => { if (kutilayotgan === til) { kutilayotgan = null; yangila(til, saqla); } },
-      (e) => { if (kutilayotgan === til) kutilayotgan = null; console.error('[til] lug\'at yuklanmadi', e); });
+      () => {
+        if (kutilayotgan !== til) return;
+        kutilayotgan = null;
+        const oldin = joriy;
+        yangila(til, saqla);
+        // Boshlang'ich yuklash yiqilgan (joriy allaqachon ru/en) — til o'zgarmadi, lekin lug'at keldi: qayta chizamiz.
+        if (oldin === til) xabarBer();
+      },
+      (e) => { if (kutilayotgan === til) { kutilayotgan = null; xabarBer(); } console.error('[til] lug\'at yuklanmadi', e); });
     return;
   }
-  kutilayotgan = null;
+  if (kutilayotgan !== null) { kutilayotgan = null; xabarBer(); }
   if (til === joriy) return;
   joriy = til;
   kirillKesh.clear();
   if (saqla) try { localStorage.setItem(KALIT, til); } catch { /* xotira yopiq */ }
   if (typeof document !== 'undefined') document.documentElement.lang = til;
-  tinglovchilar.forEach((f) => f());
+  xabarBer();
 }
+function xabarBer(): void { tinglovchilar.forEach((f) => f()); }
 
 /** Bitta foydalanuvchi bir necha tabda ishlasa, ko‘rinish tili ham bir xil qoladi. */
 if (typeof window !== 'undefined') window.addEventListener('storage', (event) => {
@@ -89,6 +98,16 @@ export function tilQoy(til: Til): void {
 }
 
 function tilObuna(f: () => void): () => void { tinglovchilar.add(f); return () => { tinglovchilar.delete(f); }; }
+
+/** Joriy til uchun lug'at tayyormi (uz/uz-Cyrl — doim). `TilChegarasi` kaliti: lug'at kech kelsa ham qayta chiziladi. */
+export function lugatTayyormi(): boolean { return !lugatKerak(joriy) || lugatHolat.lugat !== null; }
+/** Lug'at yuklanayotgan bo'lsa — so'ralgan til (til tanlagichidagi kichik «yuklanmoqda» holati uchun). */
+export function kutilayotganTil(): Til | null { return kutilayotgan; }
+export function useTilHolati(): { tayyor: boolean; kutilayotgan: Til | null } {
+  const tayyor = useSyncExternalStore(tilObuna, lugatTayyormi, lugatTayyormi);
+  const kut = useSyncExternalStore(tilObuna, kutilayotganTil, kutilayotganTil);
+  return { tayyor, kutilayotgan: kut };
+}
 
 /** Tarjima: `manba` — o'zbek lotin matn (kalit). `{nom}` o'rinbosarlari `p` dan to'ldiriladi. */
 export function t(manba: string, p?: Record<string, string | number>): string {

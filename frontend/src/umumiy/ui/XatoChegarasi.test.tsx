@@ -21,6 +21,15 @@ describe('XatoChegarasi', () => {
     konsol.mockRestore();
   });
 
+  it('chunk yuklanmasa faqat «Sahifani yangilash» (keshlangan lazy importga «Qayta urinish» yo‘q)', () => {
+    const konsol = vi.spyOn(console, 'error').mockImplementation(() => {});
+    function Chunk(): never { throw new TypeError('Failed to fetch dynamically imported module: /assets/X.js'); }
+    render(<XatoChegarasi><Chunk /></XatoChegarasi>);
+    expect(screen.getByText('Sahifani yangilash')).toBeTruthy();
+    expect(screen.queryByText('Qayta urinish')).toBeNull();
+    konsol.mockRestore();
+  });
+
   it('kalit (manzil) o‘zgarsa xato o‘zi tozalanadi', () => {
     const konsol = vi.spyOn(console, 'error').mockImplementation(() => {});
     yiqil = true;
