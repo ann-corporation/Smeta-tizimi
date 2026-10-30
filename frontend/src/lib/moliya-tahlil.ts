@@ -3,7 +3,6 @@
  * bu yerda faqat ko'rsatish (mlrd so'm), nomlar va Excel eksport (RU, egasi jadvali tartibida). Yangi formula yo'q.
  * NULL ≠ 0: noma'lum qiymat «—» bo'lib qoladi.
  */
-import ExcelJS from 'exceljs';
 
 export type MoliyaManba = 'tizim' | 'qolda' | 'hisoblangan';
 export type MoliyaQolda = { qiymat: number; sana: string; kim: string | null; izoh: string | null; yaratildi: string } | null;
@@ -64,6 +63,7 @@ const MANBA_RU: Record<MoliyaManba, string> = { tizim: 'Система', qolda: 
 
 export async function moliyaXlsx(j: MoliyaTahlilJavob, o: { qamrovNomi: string; sana?: string }): Promise<{ bytes: Uint8Array; faylNomi: string }> {
   const sana = o.sana ?? new Date().toISOString().slice(0, 10);
+  const ExcelJS = (await import('exceljs')).default; // og'ir kutubxona — faqat eksportda yuklanadi
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Финансовый анализ');
   ws.addRow([`ФИНАНСОВЫЙ АНАЛИЗ ОБЪЕКТА: ${o.qamrovNomi}`]).font = { bold: true, size: 13 };

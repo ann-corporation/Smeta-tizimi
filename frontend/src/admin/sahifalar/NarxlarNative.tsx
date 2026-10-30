@@ -8,7 +8,7 @@ import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketP
  * `t2_narx_markaz`ning bazadagi ko‘rinishidan olinadi. Flag-off legacy
  * ekran boshqa modulda o‘z holicha qoladi.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, RefreshCw, Save, Search, ShieldAlert, Tags } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { FmtN } from '../../lib/format';
@@ -24,10 +24,13 @@ import {
   type NarxDalilHolat, type NarxManba, type NarxManbaQidiruvQatori,
 } from '../../api/t2-narx-dalil';
 import { birlikKalit, narxSemantikNomzodlari, nomKalit, type NarxQidiruvResurs, type NarxSemantikNomzod } from '../../lib/narx-dalil/semantik';
-import KatalogManbaImport from './KatalogManbaImport';
+import { PanelXatoChegarasi } from '../../umumiy/ui/XatoChegarasi';
 import { t } from '../../i18n/til';
 import { MARKAZ_MANBA, markazXulosa, narxOgish } from '../../lib/narx-korinish';
 import { ManbaChip, OgishMeter, QamrovChizigi } from '../../components/narx/NarxKorinish';
+
+// Katalog importi (xlsx/pdf tahlili, ~475 KB) — lazy: Narxlar sahifasi usiz tez ochiladi.
+const KatalogManbaImport = lazy(() => import('./KatalogManbaImport'));
 
 type NarxRegistr = {
   id: number;
@@ -291,8 +294,8 @@ export default function NarxlarNative() {
           {xulosa.xavf > 0 && <button type="button" onClick={() => setFaqatXavf((v) => !v)} className="fz-chip fz-chip--warn self-start">
             <ShieldAlert size={12} aria-hidden="true" />{t('{n} ta resurs obyektlararo 5% dan ortiq farq bilan narxlangan', { n: String(xulosa.xavf) })}</button>}
         </section>
-        <KatalogManbaImport />
-        <MarketPriceComparison objectId={obyektId} companyId={kompaniyaId} />
+        <PanelXatoChegarasi nom="katalog-import"><Suspense fallback={null}><KatalogManbaImport /></Suspense></PanelXatoChegarasi>
+        <PanelXatoChegarasi nom="bozor-narx"><MarketPriceComparison objectId={obyektId} companyId={kompaniyaId} /></PanelXatoChegarasi>
         <div className="fz-card fz-card__body flex flex-wrap items-end gap-2">
           <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
             <select value={obyektId ?? ''} onChange={e => { const id = Number(e.target.value); setObyektId(Number.isSafeInteger(id) && id > 0 ? id : null); workspace.setObjectId(Number.isSafeInteger(id) && id > 0 ? id : null); }}
