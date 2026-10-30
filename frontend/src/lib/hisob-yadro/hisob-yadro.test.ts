@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   NDS_SUKUT_FOIZ, faktF2Max, faktSummaF2Max, hajmMasshtab, hisob, kaskad, kOplate, kategoriyaKf, kesimYigish, korinishKesim,
-  korinishSummasi, qatorSumma, qoldiq, qqsBilan, serverMerosKoefQoy, standartPodval, yaxlit2, yaxlitBilanYakun, yaxlitKOplate,
+  korinishSummasi, qatorSumma, qoldiq, qqsBilan, serverMerosKoefQoy, standartPodval, yaxlit2, yaxlitBilanYakun, yaxlitKOplate, yaxlitSvodSumma, faktF2MaxFormula,
   yaxlitKorinish, yaxlitQqssiz, yaxlitTaqsim, yigindi2Qatiy, type KorinishQator, type Podval,
 } from './index';
 
@@ -60,6 +60,8 @@ describe('podval: foiz faqat podvaldan, noma‘lum — aniq belgi', () => {
     const f = (kod: string) => m.qatorlar.find((q) => q.kod === kod)!.foiz;
     expect(f('prochie')).toBe(20);     // smetadan — chaqiruvchi almashtira olmaydi
     expect(f('strax')).toBe(0.5);      // meros — server kabi koeffitsientdan
+    expect(m.qatorlar.find((q) => q.kod === 'strax')!.merosIzoh).toMatch(/по умолчанию/); // manba ko'rinadi, jim emas
+    expect(serverMerosKoefQoy(p, NK, 'shartnoma').qatorlar.find((q) => q.kod === 'strax')!.merosIzoh).toMatch(/из договора/);
     expect(f('tr_kab')).toBeNull();    // koeffitsient yo'q — noma'lum, 0 emas
   });
   it('Kf: noma‘lum foiz — null; kOplate null qaytaradi', () => {
@@ -125,16 +127,68 @@ describe('yaxlit svod — universal, faqat QQS', () => {
     expect(yaxlitKOplate(1000, null)).toBeNull();
     expect(kOplate(1000, 'МАТ', kategoriyaKf(standartPodval(NK)), true, 12)).toBe(1120);
   });
-  it('yaxlit ИТОГО-4 ga ustamasiz, QQS bir marta', () => {
-    expect(yaxlitBilanYakun(100, 50, 12)).toEqual({ itogo4: 150, nds: 18, vsego: 168 });
-    expect(yaxlitBilanYakun(100, 50, null)).toEqual({ itogo4: 150, nds: null, vsego: null });
-    expect(yaxlitBilanYakun(100, null, 12)).toBeNull();
+  it('yaxlit svod QQS BILAN, НДС dan keyin: ВСЕГО = ishlar + svod AYNAN; QQS siz/QQS — ayirma bilan (egasi 2026-10-30)', () => {
+    expect(yaxlitBilanYakun({ itogo4: 100, nds: 12, vsego: 112 }, { qqsBilan: 1000.01, qqssiz: 892.87 })).toEqual({ itogo4: 992.87, nds: 119.14, vsego: 1112.01 });
+    expect(yaxlitBilanYakun({ itogo4: 100, nds: 12, vsego: 112 }, null)).toBeNull();
+    const s = yaxlitSvodSumma(1000.01, 12, null, 12);
+    expect(s.qqsBilan).toBe(1000.01);
+    expect(yaxlit2(s.qqssiz! + s.qqs!)).toBe(1000.01); // ÷/× aylanmasiz, yig'indi aynan qaytadi
+    const r = kaskad({ ЧЕЛ: 1000 }, standartPodval(NK), { yaxlit: { qqsBilan: 777777.77 } });
+    const w = kaskad({ ЧЕЛ: 1000 }, standartPodval(NK));
+    expect(r.vsego).toBe(yaxlit2(w.vsego! + 777777.77));
+    expect(r.qiymat.itogo4).toBe(w.qiymat.itogo4); // podval ИТОГО-4/НДС — ishlarniki (yaxlit НДС dan keyin)
+    expect(r.qiymat.nds).toBe(w.qiymat.nds);
+    expect(yaxlit2(r.itogo4! + r.qqs!)).toBe(r.qqsBilan);
   });
   it('maxsus podvalda ИТОГО-4 yo‘q — yaxlit qo‘shib bo‘lmaydi: null, taxmin yo‘q', () => {
     const p: Podval = { versiya: 1, qatorlar: [{ kod: 'jami', nom: 'ВСЕГО', tur: 'jami', baza: [{ kat: 'ЧЕЛ' }] }] };
-    const r = kaskad({ ЧЕЛ: 10 }, p, { ustamasizQism: 5 });
+    const r = kaskad({ ЧЕЛ: 10 }, p, { nomalumQism: 5 });
     expect(r.itogo4).toBeNull();
     expect(r.nomalumQatorlar).toContain('itogo4');
+  });
+  it('ИТОГО-4 va ВСЕГО orasida maxsus qator + qo‘shiladigan qism — aniq rad etiladi (jim tashlanmaydi)', () => {
+    const p = standartPodval(NK);
+    const i = p.qatorlar.findIndex((q) => q.kod === 'nds');
+    p.qatorlar.splice(i, 0, { kod: 'bonus', nom: 'Бонус', tur: 'foiz', foiz: 1, baza: [{ qator: 'itogo4' }] });
+    const r = kaskad({ ЧЕЛ: 10 }, p, { yaxlit: { qqsBilan: 5 } });
+    expect(r.xato).toBe('SVOD_YAXLIT_ITOGO4_DAN_KEYIN_QATOR');
+    expect(r.vsego).toBeNull();
+  });
+});
+
+describe('yaxlit kirish bosqichlari va buyurtmachi xarajatlari (ABC-4 ekspert svodlari)', () => {
+  it('qqssiz_ustamadan_keyin — ИТОГО-4 ga, faqat QQS oladi', () => {
+    const w = kaskad({ ЧЕЛ: 1000 }, standartPodval(NK));
+    const r = kaskad({ ЧЕЛ: 1000 }, standartPodval(NK), { yaxlitlar: [{ bosqich: 'qqssiz_ustamadan_keyin', qqssiz: 500 }] });
+    expect(r.qiymat.itogo4).toBe(yaxlit2(w.qiymat.itogo4! + 500));
+    expect(r.qqs).toBe(yaxlit2(r.qiymat.itogo4! * 0.12));
+  });
+  it('togri_xarajat — o‘z smetasining to‘g‘ri xarajati kategoriyalar bo‘yicha, to‘liq kaskad (manba ustamasi olinmaydi)', () => {
+    const a = kaskad({ ЧЕЛ: 1000, МАТ: 300 }, standartPodval(NK));
+    const b = kaskad({ ЧЕЛ: 1000 }, standartPodval(NK), { yaxlitlar: [{ bosqich: 'togri_xarajat', kategoriyalar: { МАТ: 300 } }] });
+    expect(b.qqsBilan).toBe(a.qqsBilan);
+  });
+  it('uskuna (ОБ): прочие 18 % bazasiga kirmaydi, o‘z transport/zagot foizi bilan', () => {
+    const r = kaskad({ ОБ: 1000 }, standartPodval(NK));
+    expect(r.qiymat.itogo1).toBe(0);
+    expect(r.qiymat.prochie).toBe(0);
+    expect(r.qiymat.tr_ob).toBe(20);
+    expect(r.qiymat.zag_ob).toBe(12);
+  });
+  it('buyurtmachi xarajatlari ВСЕГО dan keyin, baza = ВСЕГО + yaxlit; pudratchi summasiga kirmaydi', () => {
+    const p = standartPodval(NK);
+    p.qatorlar.push(
+      { kod: 'zakazchik', nom: 'Прочие затраты заказчика, %', tur: 'foiz', foiz: 5, baza: [{ qator: 'vsego' }] },
+      { kod: 'shaffof', nom: 'Фонд Шаффоф, %', tur: 'foiz', foiz: 0.05, baza: [{ qator: 'vsego' }] },
+      { kod: 'malumot', nom: 'Справочно', tur: 'foiz', foiz: 1, baza: [{ qator: 'vsego' }], amal: 'korsatish' },
+    );
+    const r = kaskad({ ЧЕЛ: 1000 }, p, { yaxlit: { qqsBilan: 10000 } });
+    const w = kaskad({ ЧЕЛ: 1000 }, standartPodval(NK), { yaxlit: { qqsBilan: 10000 } });
+    expect(r.qqsBilan).toBe(w.qqsBilan); // pudratchi daromadi o'zgarmaydi
+    expect(r.qiymat.zakazchik).toBe(yaxlit2(r.vsego! * 0.05));
+    expect(r.qiymat.shaffof).toBe(yaxlit2(r.vsego! * 0.0005));
+    expect(r.buyurtmachiJami).toBe(yaxlit2(r.vsego! + r.qiymat.zakazchik! + r.qiymat.shaffof!));
+    expect(r.buyurtmachi.map((x) => x.amal)).toEqual(['qoshiladi', 'qoshiladi', 'korsatish']);
   });
 });
 
@@ -149,6 +203,16 @@ describe('ko‘rinishlar (Construct uslubi)', () => {
   it('F2 summasi aynan (ishorali), masshtablanmaydi', () => {
     expect(korinishSummasi(q({ f2Summa: -123.45 }), 'f2')).toBe(-123.45);
     expect(korinishSummasi(q({ f2Summa: null }), 'f2')).toBeNull();
+  });
+  it('manfiy qator: F2 yo‘q — fakt o‘zgarmaydi; F2 manfiy — MIN (|fakt| ≥ |F2|); narxsiz manfiy F2 — aynan', () => {
+    expect(faktF2Max(-5, null)).toBe(-5);           // F2 yo'q — nolga tushirilmaydi
+    expect(faktF2Max(-5, -7)).toBe(-7);             // manfiy F2: fakt «kamroq bajarilgan» bo'lolmaydi
+    expect(faktF2Max(-9, -7)).toBe(-9);
+    expect(faktSummaF2Max(-5, 10, null)).toBe(-50);
+    expect(faktSummaF2Max(-5, 10, -80)).toBe(-80);
+    expect(faktSummaF2Max(5, null, -33)).toBe(-33); // narxsiz, manfiy F2 — aynan
+    expect(faktSummaF2Max(5, null, 0)).toBe(0);     // 0 ≠ null
+    expect(faktF2MaxFormula('X1', 'K1')).toBe('IF(ISNUMBER(K1),IF(X1="",K1,IF(K1<0,MIN(X1,K1),MAX(X1,K1))),X1)');
   });
   it('fakt hech qachon F2 dan kam emas (MAX)', () => {
     expect(faktF2Max(5, 7)).toBe(7);

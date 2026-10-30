@@ -3,7 +3,7 @@
  * HAJM ko'rinishi boshqa. Oylik pul = o'sha kaskad, masshtablangan hajm ko'rinishida.
  *  - F2 summalari tasdiqlangan import qatorlaridan AYNAN olinadi (ishorali, minus ruxsat), hech qachon masshtablanmaydi.
  *  - Qoldiq = smeta − F2 − almashtirilgan; smeta summasi noma'lum — qoldiq ham noma'lum (0 emas).
- *  - Fakt hech qachon tasdiqlangan F2 dan kam emas (egasi 2026-10-29): `faktF2Max`.
+ *  - Fakt tasdiqlangan F2 dan «kam bajarilgan» emas, ishoraga qarab (egasi 2026-10-29): `faktF2Max`.
  */
 import { bosKesim, kesimgaQosh, type Kesim } from './kategoriya';
 import { qatorSumma, yaxlit2 } from './yaxlit';
@@ -26,23 +26,35 @@ export type KorinishQator = {
   davrHajm?: number | null;
 };
 
-/** MAX(fakt, F2): fakt noma'lum — noma'lum; F2 yo'q — 0 deb olinadi (tasdiqlangan hujjat yo'q). */
+/**
+ * Fakt F2 dan «kam bajarilgan» bo'lmaydi (egasi 2026-10-29), ISHORAGA qarab: F2 ≥ 0 — MAX(fakt, F2); F2 < 0 (manfiy qator,
+ * chegirma) — MIN(fakt, F2), ya'ni |fakt| ≥ |F2|. Tasdiqlangan F2 yo'q (null) — fakt o'zgarmaydi. Fakt noma'lum — null.
+ * Bu qoida ko'rinish yadrosida: fakt F2 yonida ko'rsatiladigan har joy (ekran va hujjat) shuni ishlatadi.
+ */
 export function faktF2Max(fakt: number | null | undefined, f2: number | null | undefined): number | null {
   if (fakt == null || !Number.isFinite(fakt)) return null;
-  return Math.max(fakt, f2 ?? 0);
+  if (f2 == null || !Number.isFinite(f2)) return fakt;
+  return f2 < 0 ? Math.min(fakt, f2) : Math.max(fakt, f2);
 }
 
 /**
- * Fakt summasi MAX qoidasi bilan: MAX(fakt × narx, F2 summa). Fakt hajmi noma'lum — null. Narxsiz qator
- * (protokol narxli) — F2 summasi aynan (F2 ham yo'q bo'lsa null).
+ * Fakt SUMMASI xuddi shu qoida bilan: `faktF2Max(fakt × narx, F2 summa)`. Fakt hajmi noma'lum — null. Narxsiz qator
+ * (protokol narxli) — F2 summasi aynan (0 ham — 0 ≠ null); F2 ham yo'q — null.
  */
 export function faktSummaF2Max(faktHajm: number | null | undefined, narx: number | null | undefined, f2Summa: number | null | undefined): number | null {
   if (faktHajm == null || !Number.isFinite(faktHajm)) return null;
   const f = qatorSumma(faktHajm, narx);
-  if (f == null) return f2Summa ? f2Summa : null;
-  return Math.max(f, f2Summa ?? 0);
+  if (f == null) return f2Summa == null || !Number.isFinite(f2Summa) ? null : f2Summa;
+  return faktF2Max(f, f2Summa);
 }
 
+/**
+ * Excel formulasi (kesh = formula): `fakt` — fakt summa ifodasi (narxsiz bo'lsa ""), `f2` — F2 summa katagi.
+ * F2 son bo'lmasa — fakt; narxsiz — F2; manfiy F2 — MIN, aks holda MAX.
+ */
+export function faktF2MaxFormula(fakt: string, f2: string): string {
+  return `IF(ISNUMBER(${f2}),IF(${fakt}="",${f2},IF(${f2}<0,MIN(${fakt},${f2}),MAX(${fakt},${f2}))),${fakt})`;
+}
 /** Qoldiq = smeta − F2 − almashtirilgan (ROUND 2). Smeta noma'lum — null. F2/almashtirilgan yo'q — 0. */
 export function qoldiq(smeta: number | null | undefined, f2: number | null | undefined, almashtirilgan?: number | null): number | null {
   if (smeta == null || !Number.isFinite(smeta)) return null;

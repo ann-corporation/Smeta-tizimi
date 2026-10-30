@@ -1,13 +1,12 @@
 /**
  * YAXLIT SVOD bo'limlari (egasi qoidasi): yaxlit svod summasi — bu boshqa shartnoma yoki ish (smeta, shartnoma yoki
  * boshqa manbadan — yechim universal). Uning BUTUN tarkibi aynan shu summaga yig'iladi; QQS dan boshqa ustama YO'Q.
- * Server: `t2_svod_yaxlit_obyekt_v1` (qqssiz = svod_summa / (1 + qqs_stavka/100), dalil bo'lmasa — bolalar summasi) va
- * `t2_nakrutka_yaxlit_qosh_v1` (ИТОГО-4 + yaxlit, QQS bir marta).
+ * Egasi (2026-10-30): svodda yaxlit qator НДС dan KEYIN — summa QQS BILAN va yakuniy; ВСЕГО = ishlar ВСЕГО + svod aynan.
+ * (Server `t2_nakrutka_yaxlit_qosh_v1` hozircha QQS siz qismni ИТОГО-4 ga qo'shib QQS ni qayta hisoblaydi — keyingi migratsiyada tekislanadi.)
  *
  * «Ustamasiz» ko'rsatkich tarkibdan kelib chiqadi: bolalar summasi svod summasiga MASSHTABLANADI va tiyingacha
  * TAQSIMLANADI (eng katta qoldiq usuli), shunda Σ bolalar = svod summasi (QQS siz) aynan.
  */
-import { qqsSumma } from './nds';
 import { yaxlit2 } from './yaxlit';
 
 /** Bo'lim QQS siz yaxlit summasi: svod summasi (QQS bilan) va stavka bo'lsa — undan; aks holda bolalar summasi. */
@@ -54,16 +53,61 @@ export function yaxlitKorinish(yaxlit: number | null | undefined, smetaBolalar: 
   return k == null || korinishBolalar == null ? null : yaxlit2(korinishBolalar * k);
 }
 
-/** ИТОГО-4 + yaxlit (QQS siz) → ИТОГО-4, QQS, ВСЕГО (server `t2_nakrutka_yaxlit_qosh_v1` qadami). */
-export function yaxlitBilanYakun(itogo4: number, yaxlitQqssizSumma: number | null | undefined, ndsFoiz: number | null | undefined): { itogo4: number; nds: number | null; vsego: number | null } | null {
-  if (yaxlitQqssizSumma == null || !Number.isFinite(yaxlitQqssizSumma)) return null;
-  const i4 = yaxlit2(itogo4 + yaxlitQqssizSumma);
-  const nds = qqsSumma(i4, ndsFoiz);
-  return { itogo4: i4, nds, vsego: nds == null ? null : yaxlit2(i4 + nds) };
+/**
+ * Yaxlit svod summasi (egasi 2026-10-30): svodda yaxlit qator НДС dan KEYIN — `svodSumma` QQS BILAN va YAKUNIY.
+ * QQS siz = ROUND(svod / (1 + stavka), 2) — faqat ko'rsatish/tahlil; QQS = svod − QQS siz (AYIRMA, yig'indi aynan qaytadi).
+ * Svod summasi yo'q (sof tarkib) — bolalar summasi QQS siz, QQS bilan = ×(1 + QQS) (stavka noma'lum — null).
+ */
+export function yaxlitSvodSumma(svodSumma: number | null | undefined, qqsStavka: number | null | undefined, bolalarSumma: number | null | undefined, ndsFoiz: number | null | undefined): { qqsBilan: number | null; qqssiz: number | null; qqs: number | null } {
+  if (svodSumma != null && Number.isFinite(svodSumma)) {
+    const qqsBilan = yaxlit2(svodSumma);
+    const st = qqsStavka ?? ndsFoiz;
+    const qqssiz = st == null || !Number.isFinite(st) ? null : yaxlit2(svodSumma / (1 + st / 100));
+    return { qqsBilan, qqssiz, qqs: qqssiz == null ? null : yaxlit2(qqsBilan - qqssiz) };
+  }
+  if (bolalarSumma == null) return { qqsBilan: null, qqssiz: null, qqs: null };
+  const qqssiz = yaxlit2(bolalarSumma);
+  const qqsBilan = yaxlitKOplate(qqssiz, ndsFoiz);
+  return { qqsBilan, qqssiz, qqs: qqsBilan == null ? null : yaxlit2(qqsBilan - qqssiz) };
 }
 
+/**
+ * Ishlar natijasi (ИТОГО-4, НДС, ВСЕГО) + yaxlit svod (QQS bilan, aynan) → sarlavha: ВСЕГО = ishlar ВСЕГО + svod
+ * (aynan, ÷/× aylanmasiz); ИТОГО-4 = ishlar + svod QQS siz; НДС = ishlar НДС + (svod − svod QQS siz). Yaxlit yo'q — null.
+ */
+export function yaxlitBilanYakun(ishlar: { itogo4: number; nds: number | null; vsego: number | null }, yaxlit: { qqsBilan: number; qqssiz: number | null } | null | undefined): { itogo4: number | null; nds: number | null; vsego: number | null } | null {
+  if (!yaxlit || !Number.isFinite(yaxlit.qqsBilan)) return null;
+  const vsego = ishlar.vsego == null ? null : yaxlit2(ishlar.vsego + yaxlit.qqsBilan);
+  if (yaxlit.qqssiz == null) return { itogo4: null, nds: null, vsego };
+  return { itogo4: yaxlit2(ishlar.itogo4 + yaxlit.qqssiz), nds: ishlar.nds == null ? null : yaxlit2(ishlar.nds + yaxlit.qqsBilan - yaxlit.qqssiz), vsego };
+}
 /** Yaxlit qatorning «к оплате» (QQS bilan) summasi: ustama yo'q, faqat QQS — koeffitsient (1 + НДС/100), masalan 1,12. */
 export function yaxlitKOplate(summa: number | null | undefined, ndsFoiz: number | null | undefined): number | null {
   if (summa == null || ndsFoiz == null || !Number.isFinite(summa)) return null;
   return yaxlit2(summa * (1 + ndsFoiz / 100));
+}
+
+/**
+ * Bo'lim qatorlariga taqsim (egasi: «butun tarkib aynan yaxlit summaga yig'iladi»): `jami` qatorlarning o'z summalari
+ * ulushida tiyingacha taqsimlanadi (Σ = jami aynan). Hammasi 0 va jami 0 — har qator 0. Aks holda taqsimlab bo'lmasa — null.
+ */
+export function yaxlitQatorlarga<T extends { id: number | string; summa: number | null }>(jami: number, qatorlar: readonly T[]): Map<T['id'], number> | null {
+  const t = yaxlitTaqsim(jami, qatorlar.map((q) => ({ ...q, summa: q.summa ?? 0 })));
+  if (t) return t;
+  if (Math.abs(jami) < 0.005 && qatorlar.length) return new Map(qatorlar.map((q) => [q.id, 0]));
+  return null;
+}
+
+/** Taqsimlangan qatorlarning «к оплате» (×(1+QQS)): Σ = ROUND(Σ × (1+QQS), 2) aynan. QQS noma'lum — null. */
+export function yaxlitKOplateTaqsim<K>(taqsim: ReadonlyMap<K, number>, ndsFoiz: number | null | undefined): Map<K, number> | null {
+  if (ndsFoiz == null) return null;
+  const qs = [...taqsim].map(([id, summa]) => ({ id: id as unknown as number, summa }));
+  const jami = yaxlitKOplate(qs.reduce((a, b) => a + b.summa, 0), ndsFoiz);
+  if (jami == null) return null;
+  return yaxlitQatorlarga(jami, qs) as unknown as Map<K, number> | null;
+}
+
+/** Bo'limning ko'rinishdagi jami: smeta ko'rinishida — yaxlitning o'zi; boshqasida yaxlit × (ko'rinish / smeta). */
+export function yaxlitBolimJami(yaxlit: number, smeta: number | null | undefined, korinish: number | null | undefined, smetaKorinishmi = false): number | null {
+  return smetaKorinishmi ? yaxlit2(yaxlit) : yaxlitKorinish(yaxlit, smeta, korinish);
 }

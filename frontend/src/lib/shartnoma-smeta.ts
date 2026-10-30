@@ -1,4 +1,4 @@
-import { NDS_SUKUT_FOIZ, yaxlit2 } from './hisob-yadro';
+import { NDS_SUKUT_ULUSH, yaxlit2 } from './hisob-yadro';
 /**
  * Shartnoma ↔ smeta summasi aloqasi (egasi 2026-10-20: «smeta summasi va shartnoma o'rtasidagi aloqani ta'minla va
  * to'liq tahrir imkoniyati bo'lsin»). Smeta summasi — bog'langan obyektlarning nakrutkasiz to'g'ri xarajatlari
@@ -30,5 +30,5 @@ export function farq(shartnoma: number | null, smeta: number | null): number | n
 }
 
 /** QQS stavkasi (ulush) — yadrodagi yagona manbadan. */
-export const QQS_STAVKA = NDS_SUKUT_FOIZ / 100;
+export const QQS_STAVKA = NDS_SUKUT_ULUSH;
 export { yaxlit2 };

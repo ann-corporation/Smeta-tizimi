@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  hisob, kaskad, katAniqla, kategoriyaKf, kesimYigish, serverCatsdan, standartPodval, yaxlit2, bosKesim,
+  hisob, kaskad, katAniqla, kategoriyaKf, kategoriyaKfJadval, kesimYigish, serverCatsdan, standartPodval, yaxlit2, bosKesim,
   type KatSummalar, type ServerCats,
 } from './index';
 
@@ -17,6 +17,10 @@ import {
  */
 
 const r2 = (x: number) => yaxlit2(x);
+
+/** SQL yadrosi har qadam ROUND 2 ga o'tkazilganda (koordinator rejasi) — true: paritet AYNAN tenglikka o'tadi. */
+const SQL_QADAM_YAXLITLASH = false;
+const TOL = SQL_QADAM_YAXLITLASH ? 0 : 0.01;
 
 /** SQL `t2_nakrutka_hisobla_v1` (20261014090000) — oraliq qiymatlar yaxlitlanmaydi, chiqishda round(…, 2). */
 function sqlHisobla(c: ServerCats, nk: Record<string, number>) {
@@ -97,8 +101,8 @@ describe('PARITET: yadro == SQL t2_nakrutka_hisobla_v1 (≤ 0,01 so‘m; farq fa
     const s = sqlHisobla(c, nk);
     const y = yadro(c, nk);
     expect(y.pryamye).toBe(s.pryamye);
-    for (const kod of ['itogo1', 'itogo2', 'itogo3', 'itogo4'] as const) expect(Math.abs((y.qiymat[kod] as number) - s[kod]), kod).toBeLessThanOrEqual(0.01 + 1e-6);
-    expect(Math.abs((y.qqsBilan as number) - s.vsego)).toBeLessThanOrEqual(0.01 + 1e-6);
+    for (const kod of ['itogo1', 'itogo2', 'itogo3', 'itogo4'] as const) expect(Math.abs((y.qiymat[kod] as number) - s[kod]), kod).toBeLessThanOrEqual(TOL + 1e-6);
+    expect(Math.abs((y.qqsBilan as number) - s.vsego)).toBeLessThanOrEqual(TOL + 1e-6);
   });
 
   it('tasodifiy 500 obyekt: |yadro − SQL| ≤ 0,05 (har qadam yaxlitlash chegarasi)', () => {
@@ -112,30 +116,46 @@ describe('PARITET: yadro == SQL t2_nakrutka_hisobla_v1 (≤ 0,01 so‘m; farq fa
       const s = sqlHisobla(c, NK2), y = yadro(c, NK2);
       max = Math.max(max, Math.abs((y.qqsBilan as number) - s.vsego), Math.abs((y.itogo4 as number) - s.itogo4));
     }
-    expect(max).toBeLessThanOrEqual(0.05 + 1e-6);
+    expect(max).toBeLessThanOrEqual(SQL_QADAM_YAXLITLASH ? 0 : 0.05 + 1e-6);
   });
 
-  it('svod yaxlit: ИТОГО-4 + yaxlit, QQS bir marta == t2_nakrutka_yaxlit_qosh_v1 (kaskad ИТОГО-4 dan aynan)', () => {
+  it('svod yaxlit — QASDDAN FARQ: yadro svod summasini (QQS bilan) НДС dan keyin AYNAN qo‘shadi; SQL QQS siz qismni ИТОГО-4 ga qo‘shib QQS ni qayta hisoblaydi', () => {
     const c = OBYEKTLAR[0][1];
-    const y0 = yadro(c, NK);
-    const y = kaskad(serverCatsdan(c), standartPodval(NK), { ustamasizQism: 9876543.21 });
-    const s = sqlYaxlitQosh({ itogo4: y0.itogo4 as number }, 9876543.21, NK);
-    expect(y.itogo4).toBe(s.itogo4);
-    expect(y.qqs).toBe(s.nds);
-    expect(y.qqsBilan).toBe(s.vsego);
+    const svod = 9876543.21; // QQS bilan, yakuniy (egasi 2026-10-30)
+    const sqlIshlar = sqlHisobla(c, NK); // SQL port to'liq (yadro qiymatlari berilmaydi)
+    const sqlQqssiz = r2(svod / 1.12);
+    const s = sqlYaxlitQosh({ itogo4: sqlIshlar.itogo4 }, sqlQqssiz, NK);
+    const y = kaskad(serverCatsdan(c), standartPodval(NK), { yaxlit: { qqsBilan: svod, qqssiz: sqlQqssiz } });
+    const w = yadro(c, NK);
+    expect(y.vsego).toBe(r2(w.vsego! + svod)); // aynan, ÷1,12 ×1,12 aylanmasi yo'q
+    expect(Math.abs(y.vsego! - s.vsego)).toBeLessThanOrEqual(0.05); // SQL bilan farq — faqat aylanma tiyinlari
+    expect(Math.abs(y.itogo4! - s.itogo4)).toBeLessThanOrEqual(TOL + 1e-6);
   });
 
-  it('_t2_summa_paket_hisob_v1: kat noma‘lum + svod qism ИТОГО-4 ga ustamasiz, ustamasiz jami hammasini o‘z ichiga oladi', () => {
+  it('_t2_summa_paket_hisob_v1: kat noma‘lum ИТОГО-4 ga ustamasiz (SQL kabi); svod — QQS bilan, НДС dan keyin', () => {
     const k = kesimYigish([['ЧЕЛ', 1000], ['МАТ', 2000], ['XYZ', 300], [null, 200]] as Array<[string | null, number]>, (x) => x[0], (x) => x[1]);
-    k.yaxlit = { qqssiz: 500, barglar: 450 };
+    k.yaxlit = { qqssiz: 500, barglar: 450 }; // svod summasi yo'q — QQS bilan = 500 × 1,12
     const h = hisob(k, { koef: NK });
     const base = eskiTsKaskad({ ЧЕЛ: 1000, МАШ: 0, МАТ: 2000, ОБ: 0, КАБ: 0, 'М/К': 0, 'БЕЗ СКЛАД': 0 }, NK);
-    const s = sqlYaxlitQosh({ itogo4: base.itogo4 }, 500 + 500, NK); // qism = svod_qqssiz + nomalum
-    expect(h.ustamali).toBe(s.itogo4);
-    expect(h.qqsBilan).toBe(s.vsego);
+    const s = sqlYaxlitQosh({ itogo4: base.itogo4 }, 500, NK); // faqat kat noma'lum qism (SQL)
+    expect(h.ustamali).toBe(r2(s.itogo4 + 500));
+    expect(h.qqsBilan).toBe(r2(s.vsego + 560));
     expect(h.ustamasiz).toBe(1000 + 2000 + 500 + 450);
     expect(h.nomalumSoni).toBe(2);
     expect(h.taxminiy).toBe(true);
+  });
+});
+
+describe('Kf JADVALI == SQL t2_nakrutka_koef_jadval_v1 (round(1 so‘mlik ВСЕГО, 2)) — ekran va hujjat jadvali bitta', () => {
+  it('kategoriyaKfJadval', () => {
+    const j = kategoriyaKfJadval(standartPodval(NK));
+    const sql = (c: Partial<ServerCats>) => sqlHisobla({ chel: 0, mash: 0, mat: 0, ob: 0, mk: 0, kab: 0, bez: 0, ...c }, NK).vsego;
+    expect(j.ЧЕЛ).toBe(sql({ chel: 1 }));
+    expect(j.МАТ).toBe(sql({ mat: 1 }));
+    expect(j.ОБ).toBe(sql({ ob: 1 }));
+    expect(j['М/К']).toBe(sql({ mat: 1, mk: 1 }));
+    expect(j.КАБ).toBe(sql({ mat: 1, kab: 1 }));
+    expect(j['БЕЗ СКЛАД']).toBe(sql({ mat: 1, bez: 1 }));
   });
 });
 

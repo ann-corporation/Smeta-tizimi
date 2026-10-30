@@ -6,10 +6,10 @@
  * Bu fayl — o'sha qadamning JS oynasi (SQL `t2_nakrutka_yaxlit_qosh_v1` bilan tiyingacha bir xil), yangi formula emas.
  * Ekran/eksportlar shu yerdagi yordamchilardan foydalanadi:
  *  - `yaxlitQatorIdlari` — belgili bo'lim va uning barcha avlodlari (qator darajasida ustama qo'llanmaydi);
- *  - `kaskadgaYaxlit` — kaskad natijasiga yaxlit qatorini qo'shish (ИТОГО-4 → НДС → ВСЕГО).
+ *  - `svodYaxlitQqs` / `bolimQqsBilan` — yaxlit summa QQS BILAN (svodda НДС dan keyin, yakuniy — egasi 2026-10-30).
  * Hisob qadami yadroda (`lib/hisob-yadro/yaxlit-svod.ts`).
  */
-import { yaxlit2 as r2, yaxlitBilanYakun as yadroYakun } from './hisob-yadro';
+import { yaxlit2 as r2, yaxlitKOplate } from './hisob-yadro';
 
 export type SvodYaxlitBolim = {
   id: number; qator_id: number; nom: string | null;
@@ -26,27 +26,32 @@ export type SvodYaxlit = { qqssiz: number; barglar: number; summasiz: number; bo
 /** Eksport hujjatlaridagi yashirin kategoriya ustuniga yaxlit qatorlar uchun yoziladigan belgi — SUMIF ga kirmaydi. */
 export const YAXLIT_KAT = 'СВОД';
 /** Eksport podvalidagi alohida qator nomi. */
-export const YAXLIT_PODVAL_NOM = 'Разделы по своду целой суммой (без накладных расходов, без НДС)';
+export const YAXLIT_PODVAL_NOM = 'Разделы по своду целой суммой (с НДС; без накладных расходов, НДС не начисляется повторно)';
 /** Eksport izohi (qator darajasi). */
-export const YAXLIT_IZOH = 'Разделы, принятые по своду (письмо заказчика / экспертиза) целой суммой: накладные и прочие расходы на их строки НЕ начисляются — «к оплате» по ним равно прямым затратам; в расчете стоимости к оплате они учтены одной строкой «Разделы по своду целой суммой» (сумма свода без НДС), НДС — один раз в конце.';
-
-/** Kaskad ИТОГО-4 (yaxlit bo'limlarsiz) + yaxlit (QQS siz) → ИТОГО-4, QQS, ВСЕГО. yaxlit yo'q — o'zgarishsiz. */
-export function yaxlitBilanYakun(itogo4: number, yaxlitQqssiz: number | null | undefined, ndsFoiz: number): { itogo4: number; nds: number; vsego: number } | null {
-  const y = yadroYakun(itogo4, yaxlitQqssiz, ndsFoiz);
-  return y && y.nds != null && y.vsego != null ? { itogo4: y.itogo4, nds: y.nds, vsego: y.vsego } : null;
-}
+export const YAXLIT_IZOH = 'Разделы, принятые по своду (письмо заказчика / экспертиза) целой суммой: накладные и прочие расходы на их строки НЕ начисляются; сумма свода указана С НДС и является итоговой — в расчете стоимости к оплате она учтена одной строкой «Разделы по своду целой суммой (с НДС)» после НДС, без повторного начисления НДС; по строкам раздела сумма распределена так, что итог раздела равен сумме свода.';
 
 /**
- * Kaskad natijasi (`itogo4` bor) + yaxlit → yangi natija (`itogo4/nds/vsego` almashtiriladi, `kaskad_itogo4` va
- * `yaxlit` qo'shiladi). `vsegoKod` — maxsus podvaldagi oxirgi qator kodi (u ham ВСЕГО ga tenglashtiriladi).
- * yaxlit null — natija AYNAN o'zi (invariant).
+ * Bo'lim yaxlit summasi QQS BILAN (egasi 2026-10-30: svodda yaxlit qator НДС dan keyin — summa yakuniy): svod summasi
+ * kiritilgan bo'lsa — aynan o'zi; aks holda (sof tarkib) QQS siz × (1 + QQS). Stavka noma'lum — null.
  */
-export function kaskadgaYaxlit<T extends { itogo4: number; nds: number; vsego: number }>(q: T, yaxlitQqssiz: number | null | undefined, ndsFoiz: number, vsegoKod = 'vsego'): T {
-  const y = yaxlitBilanYakun(q.itogo4, yaxlitQqssiz, ndsFoiz);
-  if (!y) return q;
-  return { ...q, kaskad_itogo4: q.itogo4, yaxlit: r2(yaxlitQqssiz!), itogo4: y.itogo4, nds: y.nds, vsego: y.vsego, [vsegoKod]: y.vsego } as T;
+export function bolimQqsBilan(b: Pick<SvodYaxlitBolim, 'svod_summa' | 'qqssiz'>, ndsFoiz: number | null | undefined): number | null {
+  return b.svod_summa != null ? r2(Number(b.svod_summa)) : yaxlitKOplate(Number(b.qqssiz), ndsFoiz);
 }
 
+/** Obyekt yaxlit svodi: QQS bilan (aynan, bo'limlar yig'indisi) va QQS siz (ko'rsatish). */
+export function svodYaxlitQqs(svod: SvodYaxlit | null | undefined, ndsFoiz: number | null | undefined): { qqsBilan: number; qqssiz: number } | null {
+  if (!svod?.bolimlar?.length) return null;
+  let qqsBilan = 0;
+  for (const b of svod.bolimlar) { const x = bolimQqsBilan(b, ndsFoiz); if (x == null) return null; qqsBilan += x; }
+  return { qqsBilan: r2(qqsBilan), qqssiz: r2(svod.qqssiz) };
+}
+
+/** Server svod xulosasi → kesim yaxlit qismi (svod summasi bor bo'limlar QQS bilan aynan ajratiladi). */
+export function svodKesimYaxlit(svod: SvodYaxlit): { qqssiz: number; barglar: number; svodQqsBilan: number; svodQqssiz: number } {
+  let svodQqsBilan = 0, svodQqssiz = 0;
+  for (const b of svod.bolimlar ?? []) if (b.svod_summa != null) { svodQqsBilan += Number(b.svod_summa); svodQqssiz += Number(b.qqssiz); }
+  return { qqssiz: svod.qqssiz, barglar: svod.barglar, svodQqsBilan: r2(svodQqsBilan), svodQqssiz: r2(svodQqssiz) };
+}
 /** Server javobidan ustama kaskadi uchun kategoriya summalari: belgi bo'lsa `cats_kaskad`, aks holda `cats`. */
 export function kaskadCats<C>(r: { cats?: C; cats_kaskad?: C; svod_yaxlit?: SvodYaxlit | null }): C | undefined {
   return r.svod_yaxlit && r.cats_kaskad ? r.cats_kaskad : r.cats;
@@ -71,6 +76,39 @@ export function yaxlitQatorIdlari(qatorlar: Iterable<{ id: number; ota_id?: numb
     if (out.has(id)) continue;
     out.add(id);
     for (const c of bolalar.get(id) ?? []) navbat.push(c);
+  }
+  return out;
+}
+
+/**
+ * Hujjat modelidagi bo'lim (svod) barglari: model qatorlarida `id` — t2_qator.id, `bolalar` — model indekslari.
+ * `qatorId` li ИТОГО yoki ish (bl) qatoridan pastga barcha barglar (tur 'barg'). Topilmasa — null.
+ */
+export function bolimBarglari<T extends { id: number; tur: string; bolalar: readonly number[] }>(qatorlar: readonly T[], qatorId: number): number[] | null {
+  const i = qatorlar.findIndex((q) => q.id === qatorId && (q.tur === 'itogo' || q.tur === 'bl'));
+  if (i < 0) return null;
+  const out: number[] = [];
+  const w = (k: number) => { const q = qatorlar[k]; if (q.tur === 'barg') out.push(k); else q.bolalar.forEach(w); };
+  qatorlar[i].bolalar.forEach(w);
+  return out;
+}
+
+/** Daraxtda bo'lim (svod) avlodlari bo'yicha barg summalari jami (smeta va fakt to'liq bo'lim bo'yicha — filtrsiz). */
+export function bolimJamilari(
+  qatorlar: ReadonlyArray<{ id: number; ota_id?: number | null; tur?: string | null; hajm?: number | null; narx?: number | null }>,
+  faktHajm: (id: number) => number | null, svod: SvodYaxlit | null | undefined,
+): Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number }> {
+  const out = new Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number }>();
+  for (const b of svod?.bolimlar ?? []) {
+    const ids = yaxlitQatorIdlari(qatorlar, { ...svod!, bolimlar: [b] });
+    let smeta = 0, fakt = 0;
+    const bolasi = new Set(qatorlar.filter((q) => q.ota_id != null).map((q) => q.ota_id as number));
+    for (const q of qatorlar) {
+      if (!ids.has(q.id) || bolasi.has(q.id) || q.narx == null) continue;
+      smeta += (q.hajm ?? 0) * q.narx;
+      fakt += (faktHajm(q.id) ?? 0) * q.narx;
+    }
+    out.set(Number(b.qator_id), { qqssiz: Number(b.qqssiz), svodSumma: b.svod_summa == null ? null : Number(b.svod_summa), smeta: r2(smeta), fakt: r2(fakt) });
   }
   return out;
 }

@@ -25,8 +25,11 @@ export type Kesim = {
   nomalumSoni: number;
   /** Summasi o'zi noma'lum (null) qatorlar soni — narxsiz. */
   summasizSoni: number;
-  /** Svod yaxlit (server xulosasi): `qqssiz` ИТОГО-4 ga ustamasiz qo'shiladi, `barglar` — ustamasiz jamiga. */
-  yaxlit?: { qqssiz: number; barglar: number };
+  /**
+   * Svod yaxlit (server xulosasi): `qqssiz` — QQS siz (ko'rsatish), `barglar` — ustamasiz jamiga. `svodQqsBilan` — svod
+   * summasi kiritilgan bo'limlar jami (QQS BILAN, yakuniy — aynan olinadi), `svodQqssiz` — shu bo'limlarning QQS siz qismi.
+   */
+  yaxlit?: { qqssiz: number; barglar: number; svodQqsBilan?: number; svodQqssiz?: number };
   /** Yaxlit bo'lim avlodi qatorlar summasi (qator darajasi) — ustamasiz ИТОГО-4 ga. */
   yaxlitQator?: number;
 };

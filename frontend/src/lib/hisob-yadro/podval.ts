@@ -36,6 +36,14 @@ export type PodvalQator = {
   koefKod?: KoefKod;
   /** `smeta` — foiz smeta hujjatidan isbotli; `meros` — hujjatda topilmadi (shartnoma/sukut). */
   manba?: 'smeta' | 'meros';
+  /**
+   * ABC «определитель» ekvivalenti — ВСЕГО dan KEYINGI qatorlar (buyurtmachi xarajatlari: «Прочие затраты заказчика» 5 %,
+   * «Фонд Шаффоф» 0,05 % …) uchun: `qoshiladi` (sukut) — buyurtmachi jamiga qo'shiladi, `ayiriladi` — ayiriladi,
+   * `korsatish` — faqat ko'rsatiladi. Pudratchi daromadi (ВСЕГО) ga hech qachon kirmaydi.
+   */
+  amal?: 'qoshiladi' | 'korsatish' | 'ayiriladi';
+  /** Server meros rejimida foiz qayerdan olingani (`из договора` / `по умолчанию` …) — hujjatda ko'rinadi. */
+  merosIzoh?: string;
   dalil?: string;
   katak?: string;
 };
@@ -86,9 +94,13 @@ export function standartPodval(nk: Partial<Record<KoefKod, number | null>> | nul
  * `manba = 'smeta'` qatorlar o'zgarmaydi; qolgan `koefKod` li foiz qatorlari — `nk` dagi qiymat (yo'q — null).
  * Boshqa hech qanday holatda chaqiruvchi podval foizini almashtira olmaydi.
  */
-export function serverMerosKoefQoy(p: Podval, nk: Partial<Record<KoefKod, number | null>> | null | undefined): Podval {
-  return { ...p, qatorlar: p.qatorlar.map((q) => (q.koefKod && q.tur === 'foiz' && q.manba !== 'smeta' ? { ...q, foiz: foizOl(nk, q.koefKod) } : q)) };
+export function serverMerosKoefQoy(p: Podval, nk: Partial<Record<KoefKod, number | null>> | null | undefined, nkManba?: string | null): Podval {
+  const izoh = MEROS_IZOH[nkManba ?? ''] ?? 'из договора / по умолчанию';
+  return { ...p, qatorlar: p.qatorlar.map((q) => (q.koefKod && q.tur === 'foiz' && q.manba !== 'smeta' ? { ...q, foiz: foizOl(nk, q.koefKod), manba: 'meros' as const, merosIzoh: `% ${izoh}` } : q)) };
 }
+
+/** Server `nk_manba` → hujjat izohi. */
+const MEROS_IZOH: Record<string, string> = { shartnoma: 'из договора', kompaniya: 'по настройкам компании', sukut: 'по умолчанию', smeta_podvali: 'из договора / по умолчанию' };
 
 export type PodvalXato = { kod: string | null; xabar: string };
 
@@ -110,7 +122,8 @@ export function podvalTekshir(p: Podval): PodvalXato[] {
     }
     kodlar.add(q.kod);
   }
-  if (p.qatorlar[p.qatorlar.length - 1].tur !== 'jami') x.push({ kod: p.qatorlar[p.qatorlar.length - 1].kod, xabar: 'Oxirgi qator — ВСЕГО (jami) bo‘lishi shart' });
+  const vk = podvalVsegoKodi(p);
+  if (p.qatorlar.find((q) => q.kod === vk)?.tur !== 'jami') x.push({ kod: vk, xabar: 'ВСЕГО qatori (`vsego` yoki oxirgi) jami bo‘lishi shart' });
   return x;
 }
 
@@ -123,11 +136,21 @@ export type PodvalNatija = {
   nomalum: string[];
 };
 
+/**
+ * ВСЕГО (pudratchi yakuni) qatori: `vsego` kodli qator, bo'lmasa oxirgi qator. Undan KEYINGI qatorlar — buyurtmachi
+ * xarajatlari (bazasi yaxlit svod qo'shilgan ВСЕГО), pudratchi summasiga kirmaydi.
+ */
+export function podvalVsegoKodi(p: Podval): string {
+  return p.qatorlar.some((q) => q.kod === 'vsego') ? 'vsego' : p.qatorlar[p.qatorlar.length - 1]?.kod ?? '';
+}
+
 export type PodvalRejim = {
   /** Har qadam ROUND 2 (sukut true). false — faqat chiziqli koeffitsient uchun. */
   yaxlit?: boolean;
   /** Belgilangan summalar qo'shilsinmi (sukut true; ko'p ustunli hujjatning 2-ustunidan boshlab false). */
   summaQosh?: boolean;
+  /** Qator hisoblangandan keyin uning qiymatini almashtirish (kaskad: ИТОГО-4/НДС/ВСЕГО ga qo'shimchalar; keyingi qatorlar shu qiymatdan). */
+  almashtir?: Record<string, number | null>;
 };
 
 /** Podval baholovchisi — YAGONA kaskad hisobi. Kategoriya summasi yo'q — 0 so'm (foiz emas). */
@@ -155,10 +178,11 @@ export function podvalBahola(p: Podval, s: Partial<Record<Kat, number>>, r: Podv
       const f = q.foiz == null || !Number.isFinite(Number(q.foiz)) ? null : Number(q.foiz);
       v = b == null ? null : b === 0 ? 0 : f == null ? null : yax((b * f) / 100);
     }
+    if (r.almashtir && q.kod in r.almashtir) v = r.almashtir[q.kod];
     qiymat[q.kod] = v;
     if (v == null) nomalum.push(q.kod);
   }
-  const vsegoKod = p.qatorlar[p.qatorlar.length - 1]?.kod ?? '';
+  const vsegoKod = podvalVsegoKodi(p);
   return { qiymat, vsego: qiymat[vsegoKod] ?? null, vsegoKod, nomalum };
 }
 
@@ -191,7 +215,8 @@ export function podvalAniqla(podval: Podval | null | undefined, koef: Partial<Re
 
 /** Standart shablondan farq qiladimi (server meros rejimidan keyin solishtiriladi). */
 export function standartmi(p: Podval, nk: Partial<Record<KoefKod, number | null>>): boolean {
-  return JSON.stringify(standartPodval(nk).qatorlar) === JSON.stringify(serverMerosKoefQoy(p, nk).qatorlar);
+  const toza = (qs: PodvalQator[]) => JSON.stringify(qs.map(({ merosIzoh: _m, manba: _b, ...q }) => q));
+  return toza(standartPodval(nk).qatorlar) === toza(serverMerosKoefQoy(p, nk).qatorlar);
 }
 
 export function yangiKod(p: Podval, asos = 'qator'): string {

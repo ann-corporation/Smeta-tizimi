@@ -24,3 +24,22 @@ export function ndsFoizTozala(x: unknown): number | null {
   const n = x == null || x === '' ? NaN : Number(x);
   return Number.isFinite(n) && n >= 0 && n < 100 ? n : null;
 }
+
+/** Sukut stavka ulush sifatida (0,12) — `NDS_SUKUT_FOIZ` dan. */
+export const NDS_SUKUT_ULUSH = NDS_SUKUT_FOIZ / 100;
+
+/** QQS koeffitsienti (1 + foiz/100). Foiz noma'lum — null. */
+export function qqsKoef(foiz: number | null | undefined): number | null {
+  return foiz == null || !Number.isFinite(foiz) ? null : 1 + foiz / 100;
+}
+
+/** QQS bilan summadan (tiyinda) [QQS siz, QQS, jami]: QQS siz = ROUND(jami / (1 + st)), QQS = jami − QQS siz (ayirma). */
+export function qqsAjratTiyin(jamiTiyin: number, foiz: number): [number, number, number] {
+  const siz = Math.round(jamiTiyin / (1 + foiz / 100));
+  return [siz, jamiTiyin - siz, jamiTiyin];
+}
+
+/** Excel QQS formulasi (kesh — `qqsSumma`): ROUND(asos × foiz / 100, 2). */
+export function qqsFormulasi(asosRef: string, foiz: number | string): string {
+  return `ROUND(${asosRef}*${foiz}/100,2)`;
+}

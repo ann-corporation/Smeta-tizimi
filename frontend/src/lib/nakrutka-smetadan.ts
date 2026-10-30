@@ -12,8 +12,8 @@ import { NAKRUTKA_FOIZ_KODLARI, nakrutkaPodvaliniOqi, nakrutkaVaraqlari, type Na
 import { kitobHamrohlari } from './smeta-anatomiya';
 import type { Katak, KirishKitob } from './smeta-anatomiya/turlar';
 import { readXlsxFonda } from './f2-import-parse/xlsxFonda';
-import { kaskad, kategoriyaKf, serverCatsdan, standartPodval, type Kat as NakrutkaKat, type KatSummalar, type Podval, type ServerCats } from './hisob-yadro';
-import type { SvodYaxlit } from './svod-yaxlit';
+import { kaskad, kategoriyaKf, podvalNdsFoizi, serverCatsdan, standartPodval, type Kat as NakrutkaKat, type KatSummalar, type Podval, type ServerCats } from './hisob-yadro';
+import { svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
 
 export const SMETA_PODVAL_NOMI = 'Smeta podvali';
 
@@ -100,8 +100,9 @@ export const catsKat: (c: ServerCats) => KatSummalar = serverCatsdan;
  *  (server svod_yaxlit): s shunda cats_kaskad bo'lishi kerak; yaxlit ИТОГО-4 ga ustamasiz, QQS bir marta. */
 export function ustamaTasiri(s: KatSummalar, eski: Partial<NakrutkaKoeffitsientlar>, yangi: Partial<NakrutkaKoeffitsientlar>, yaxlit?: SvodYaxlit | null): UstamaTasiri {
   const pe = standartPodval(eski), py = standartPodval(yangi);
-  const e = kaskad(s, pe, { ustamasizQism: yaxlit?.qqssiz ?? null });
-  const y = kaskad(s, py, { ustamasizQism: yaxlit?.qqssiz ?? null });
+  // Yaxlit svod — QQS bilan, НДС dan keyin, aynan (egasi 2026-10-30).
+  const e = kaskad(s, pe, { yaxlit: svodYaxlitQqs(yaxlit, podvalNdsFoizi(pe)) });
+  const y = kaskad(s, py, { yaxlit: svodYaxlitQqs(yaxlit, podvalNdsFoizi(py)) });
   return {
     ustamasiz: e.pryamye + (yaxlit?.barglar ?? 0),
     eski: { itogo4: e.itogo4, vsego: e.vsego },

@@ -18,7 +18,8 @@ import {
   type Podval, type PodvalHad, type PodvalQator,
 } from '../../lib/nakrutka-konstruktor';
 import { NAKRUTKA_KATLAR, podvalQiymatYaxlit, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
-import { kaskadCats, type SvodYaxlit } from '../../lib/svod-yaxlit';
+import { kaskadCats, svodYaxlitQqs, type SvodYaxlit } from '../../lib/svod-yaxlit';
+import { podvalNdsFoizi } from '../../lib/hisob-yadro';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -115,7 +116,7 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   const korinadigan: Podval = tahrir ?? (amaldagi ? { versiya: 1, nom: amaldagi.nom, qatorlar: amaldagi.qatorlar } : standart);
   const xatolar = tahrir ? podvalTekshir(tahrir) : [];
   const hisob0 = kat ? podvalHisobla(korinadigan, kat) : null;
-  const hisob = hisob0 && svodYaxlit ? { ...hisob0, qiymat: podvalQiymatYaxlit(hisob0.qiymat, korinadigan, svodYaxlit.qqssiz, koef) } : hisob0;
+  const hisob = hisob0 && svodYaxlit ? { ...hisob0, qiymat: podvalQiymatYaxlit(hisob0.qiymat, korinadigan, svodYaxlitQqs(svodYaxlit, podvalNdsFoizi(korinadigan))) } : hisob0;
   const kf = podvalKf(korinadigan);
   const belgilangan = podvalBelgilanganSumma(korinadigan);
 

@@ -2,9 +2,9 @@ import type { T2Obyekt } from '../../api/supabase';
 import type { Liniya } from '../../api/t2-shartnoma-liniya';
 import { NAKRUTKA_KOEF_KODLAR, type t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, type PodvalYozuv } from '../../api/t2-nakrutka-podval';
-import { kaskad, podvalTekshir, serverCatsdan, serverMerosKoefQoy, yaxlit2 } from '../../lib/hisob-yadro';
+import { kaskad, podvalNdsFoizi, podvalTekshir, serverCatsdan, serverMerosKoefQoy, yaxlit2 } from '../../lib/hisob-yadro';
 import type { Aggregate } from './hierarchy';
-import { kaskadCats } from '../../lib/svod-yaxlit';
+import { kaskadCats, svodYaxlitQqs } from '../../lib/svod-yaxlit';
 
 export function effectiveContract(line: Liniya, objectId: number): number | null | undefined {
   const o = line.obyektlar.find(x => x.id === objectId);
@@ -28,7 +28,7 @@ export function markupAmount(object: T2Obyekt, result: Awaited<ReturnType<typeof
   const podval = serverMerosKoefQoy({versiya:1,nom:record.nom,qatorlar:record.qatorlar},result.koeffitsientlar);
   if (podvalTekshir(podval).length) return null;
   // Svod yaxlit bo'limlari kaskaddan chiqariladi va ИТОГО-4 ga ustamasiz qo'shiladi (yadro, server bilan bir xil).
-  const n = kaskad(serverCatsdan(kaskadCats(result) ?? result.cats), podval, { ustamasizQism: result.svod_yaxlit?.qqssiz ?? null });
+  const n = kaskad(serverCatsdan(kaskadCats(result) ?? result.cats), podval, { yaxlit: svodYaxlitQqs(result.svod_yaxlit, podvalNdsFoizi(podval)) });
   return n.vsego != null && Number.isFinite(n.vsego) ? n.vsego : null;
 }
 

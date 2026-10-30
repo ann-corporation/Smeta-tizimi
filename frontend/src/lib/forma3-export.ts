@@ -44,7 +44,7 @@ import {
   NAKRUTKA_KATLAR, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz,
   type KatSummalar,
 } from './nakrutka-podval';
-import { NDS_SUKUT_FOIZ, kaskad as yadroKaskad, kOplate, serverMerosKoefQoy, standartPodval, type KaskadNatija, type Podval } from './hisob-yadro';
+import { NDS_SUKUT_FOIZ, qqsAjratTiyin, kaskad as yadroKaskad, kOplate, podvalNdsFoizi, serverMerosKoefQoy, standartPodval, type KaskadNatija, type Podval } from './hisob-yadro';
 
 /**
  * Bir tomonning TO'LIQ rekvizitlari — haqiqiy SPRAVKA-SCHET-FAKTURA blankasi
@@ -335,15 +335,29 @@ export function f3KatSumma(rows: readonly QatorReja[], idx: readonly number[], c
 }
 
 /** F2 tenglik nazorati uchun qiymat «к оплате» si (Nakopitelniy semantikasi). */
-export function f3QiymatKOplate(x: F3Qiymat, c: F3PulUstun, kf: Record<string, number | null>): number | null {
+export function f3QiymatKOplate(x: F3Qiymat, c: F3PulUstun, kf: Record<string, number | null>, ndsFoiz: number | null = null): number | null {
   const qiymat = c === 'G' ? x.smetnaya : c === 'H' ? x.f2.boshidan : c === 'I' ? x.f2.yildan : x.f2.davr;
-  return kOplate(qiymat, nakrutkaKat(x.q.kat), kf);
+  // Vid zatrat ko'rsatilmagan — ustamasiz, faqat QQS (yadro `kOplate`).
+  return kOplate(qiymat, nakrutkaKat(x.q.kat), kf, false, ndsFoiz);
+}
+
+/** Kategoriyasi ko'rsatilmagan qiymatlar jami (ustamasiz qism — podvalda alohida qator). */
+export function f3NomalumSumma(rows: readonly QatorReja[], idx: readonly number[], c: F3PulUstun): number {
+  let t = 0;
+  for (const i of idx) {
+    const x = rows[i];
+    if (!x || x.tur !== 'qiymat' || nakrutkaKat(x.x.q.kat)) continue;
+    t += (c === 'G' ? x.x.smetnaya : c === 'H' ? x.x.f2.boshidan : c === 'I' ? x.x.f2.yildan : x.x.f2.davr) ?? 0;
+  }
+  return yaxlit2(t);
 }
 
 /** Hujjat ustunlari natijasi: kategoriya jamilari, kaskad, к оплате nazorati. */
 export interface F3UstunNatija {
   kat: Record<F3PulUstun, KatSummalar>;
   kaskad: Record<F3PulUstun, KaskadNatija>;
+  /** Kategoriyasi ko'rsatilmagan summa (ustamasiz qism). */
+  nomalum: Record<F3PulUstun, number>;
   /** Σ ROUND(qiymat × Kf, 2); kat noma'lum qiymat bo'lsa null. */
   kOplate: Record<F3PulUstun, number | null>;
 }
@@ -353,22 +367,25 @@ export function f3UstunlarNatijasi(rows: readonly QatorReja[], qiymatIdx: readon
   const kat = {} as Record<F3PulUstun, KatSummalar>;
   const kaskad = {} as Record<F3PulUstun, KaskadNatija>;
   const p = podval ?? standartPodval(nk);
+  const nds = podvalNdsFoizi(p);
+  const nomalum = {} as Record<F3PulUstun, number>;
   const ko = {} as Record<F3PulUstun, number | null>;
   for (const c of F3_PUL) {
     kat[c] = f3KatSumma(rows, qiymatIdx, c);
-    kaskad[c] = yadroKaskad(kat[c], p, { asosiy: c === F3_PUL[0] });
+    nomalum[c] = f3NomalumSumma(rows, qiymatIdx, c);
+    kaskad[c] = yadroKaskad(kat[c], p, { asosiy: c === F3_PUL[0], nomalumQism: nomalum[c] || null });
     let jami: number | null = 0;
     let bor = false;
     for (const i of qiymatIdx) {
       const x = rows[i];
       if (!x || x.tur !== 'qiymat') continue;
       bor = true;
-      const k = f3QiymatKOplate(x.x, c, kf);
+      const k = f3QiymatKOplate(x.x, c, kf, nds);
       if (k == null) jami = null; else if (jami != null) jami += k;
     }
     ko[c] = bor ? (jami == null ? null : yaxlit2(jami)) : 0;
   }
-  return { kat, kaskad, kOplate: ko };
+  return { kat, kaskad, nomalum, kOplate: ko };
 }
 
 // ───────────────────────── Excel hujjati ─────────────────────────
@@ -680,10 +697,15 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   const katSummalar: Record<string, KatSummalar> = {};
   for (const c of F3_PUL) katSummalar[VARAQ_USTUN[c]] = ustunlar.kat[c];
   katSummalar.G = ustunlar.kat.G; // «в т.ч. на текущий год» = всего (график не задан)
+  // Kategoriyasi ko'rsatilmagan qiymatlar — podvalda alohida «без накрутки» qatori (server kabi ИТОГО-4 ga ustamasiz).
+  const nomF3: Record<string, number> = {};
+  for (const c of F3_PUL) nomF3[VARAQ_USTUN[c]] = ustunlar.nomalum[c];
+  nomF3.G = ustunlar.nomalum.G;
+  const nomalumF3 = Object.values(nomF3).some((x) => Math.abs(x) >= 0.005) ? nomF3 : null;
   const s = umumiy.soat;
   const p = nakrutkaPodvaliYoz(v, { podval,
     katUstun: KAT_USTUN, oraliq: [itogoQ, itogoQ], pulUstunlar: ['F', 'G', 'J', 'M', 'P'], foizUstun: 'C', nk, katSummalar,
-    katFormulasiz: true, kfJadval: false,
+    katFormulasiz: true, kfJadval: false, nomalum: nomalumF3,
     sarlavha: 'РАСЧЕТ СТОИМОСТИ К ОПЛАТЕ ПО ОБЪЕКТУ: прямые затраты по видам (физ. показатели и стоимость) → накладные и прочие → НДС',
     vsegoNom: 'ИТОГО К ОПЛАТЕ (с учетом НДС)',
     katHajm: {
@@ -800,7 +822,7 @@ export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: { tashkil
     ustunlar: F3_SOTUV_USTUN, yonalish: 'landscape',
   });
   const shT = h.shartnoma;
-  const shSiz = shT == null ? null : Math.round(shT / (1 + nds / 100));
+  const shSiz = shT == null ? null : qqsAjratTiyin(shT, nds)[0];
   const r1 = v.qator('oddiy', [1, 'Стоимость выполненных работ и затрат без НДС', shSiz == null ? null : somga(shSiz), somga(h.boshidan[0]), somga(h.yilBoshidan[0]), somga(h.davr[0])]);
   const r2 = v.qator('oddiy', [2, `НДС ${nds}%`, shT == null || shSiz == null ? null : somga(shT - shSiz), somga(h.boshidan[1]), somga(h.yilBoshidan[1]), somga(h.davr[1])]);
   const harf = (i: number) => v.harf(i);

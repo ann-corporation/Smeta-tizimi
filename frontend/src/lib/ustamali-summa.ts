@@ -8,10 +8,10 @@
  */
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import {
-  bosKesim, hisob, kaskad, katSummalari, katJami, kesimgaQosh, kesimNomalumBilan, kesimYigish, podvalAniqla, qqsBilan as yadroQqsBilan,
+  bosKesim, hisob, katSummalari, katJami, kesimgaQosh, kesimNomalumBilan, kesimYigish, podvalAniqla, qqsBilan as yadroQqsBilan,
   serverCatsdan, yaxlit2, type HisobNatija, type Kesim, type Podval,
 } from './hisob-yadro';
-import { kaskadCats, type SvodYaxlit } from './svod-yaxlit';
+import { kaskadCats, svodKesimYaxlit, type SvodYaxlit } from './svod-yaxlit';
 import type { NakrutkaHisobJS } from './nakrutka-podval';
 
 /** Kategoriya kesimi (yadro `Kesim`). */
@@ -34,7 +34,7 @@ export function katKesimJamiBilan<T>(qatorlar: Iterable<T>, kat: (x: T) => strin
 export function katKesimServerdan(c: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number }, yaxlit?: SvodYaxlit | null): KatKesim {
   const k = bosKesim();
   k.summalar = serverCatsdan(c);
-  if (yaxlit) k.yaxlit = { qqssiz: yaxlit.qqssiz, barglar: yaxlit.barglar };
+  if (yaxlit) k.yaxlit = svodKesimYaxlit(yaxlit); // svod summasi (QQS bilan) aynan saqlanadi
   return k;
 }
 
@@ -86,15 +86,17 @@ export function ustamaliHisobla(kesim: KatKesim, koef: Partial<NakrutkaKoeffitsi
   const p = podvalAniqla(podval, koef);
   if (!p || (!podval && (!koef || Object.keys(koef).length === 0))) return { ...bosh, xato: 'KOEF_YOQ' };
   const yadro = hisob(kesim, { podval: p });
-  const r = kaskad(s, p, { ustamasizQism: yaxlitQoshimcha(kesim) });
+  // Kat noma'lum qismsiz natija (eski ma'no: ustamali — aniq kategoriyalar + yaxlit); uchlik esa ``yadro`` dan.
+  const s0 = hisob({ ...kesim, nomalum: 0, nomalumSoni: 0 }, { podval: p });
+  const r = s0.kaskad!;
   bosh.ndsFoiz = r.qqsFoiz;
   bosh.yadro = yadro;
-  if (r.nomalumQatorlar.length || r.itogo4 == null || r.vsego == null) return { ...bosh, xato: 'PODVAL_TOLIQ_EMAS' };
-  const qadamlar = { ...(r.qiymat as Record<string, number>), pryamye: r.pryamye, itogo4: r.itogo4, nds: r.qqs ?? 0, vsego: r.vsego } as NakrutkaHisobJS;
-  const zanjir = ustamaZanjiri({ ...qadamlar, itogo4: r.kaskadItogo4 ?? r.itogo4 }, koef).map((z) => (z.kod === 'itogo' ? { ...z, summa: r.itogo4 as number } : z));
-  return { ...bosh, ustamali: r.itogo4, ndsBilan: r.vsego, qadamlar, zanjir };
+  if (r.nomalumQatorlar.length || s0.ustamali == null || r.vsego == null) return { ...bosh, xato: 'PODVAL_TOLIQ_EMAS' };
+  const vsego = s0.qqsBilan ?? r.vsego;
+  const qadamlar = { ...(r.qiymat as Record<string, number>), pryamye: r.pryamye, itogo4: s0.ustamali, nds: s0.qqs ?? 0, vsego } as NakrutkaHisobJS;
+  const zanjir = ustamaZanjiri({ ...qadamlar, itogo4: r.kaskadItogo4 ?? s0.ustamali }, koef).map((z) => (z.kod === 'itogo' ? { ...z, summa: s0.ustamali as number } : z));
+  return { ...bosh, ustamali: s0.ustamali, ndsBilan: vsego, qadamlar, zanjir };
 }
-
 type ServerCats = { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
 /** Server javobi → obyekt darajasidagi kesim: cats_kaskad (bo'lmasa cats) + svod yaxlit. */
 export function obyektKesimi(r: { cats?: ServerCats; cats_kaskad?: ServerCats; svod_yaxlit?: SvodYaxlit | null }): KatKesim | null {
