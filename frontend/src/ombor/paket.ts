@@ -13,6 +13,7 @@
  * (faqat faol versiya qatorlari keladi). PR4 da bu `lib/hisob-yadro/holat.ts` ga ko'chadi.
  */
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
+import { holatHosilalari } from '../lib/hisob-yadro/holat';
 
 export const PAKET_FORMAT = 't2-paket/1';
 
@@ -183,13 +184,7 @@ export function holatHosila(i: number, p: Paket) {
   const faktH = son(p.fakt_hajm, i), faktS = son(p.fakt_summa, i);
   const f2H = son(p.f2_hajm, i) ?? 0, f2S = son(p.f2_summa, i) ?? 0;
   const alH = son(p.almashtirilgan_hajm, i), alS = son(p.almashtirilgan_summa, i) ?? 0;
-  return {
-    smeta_hajm: hajm, smeta_summa: summa,
-    qoldiq_hajm: hajm == null || alH == null ? null : hajm - f2H - alH,
-    qoldiq_summa: summa == null ? null : summa - f2S - alS,
-    f2_mumkin_hajm: faktH == null ? 0 : Math.max(faktH - f2H, 0),
-    f2_mumkin_summa: faktS == null ? 0 : Math.max(faktS - f2S, 0),
-  };
+  return holatHosilalari({ hajm, summa, faktH, faktS, f2H, f2S, alH, alS });
 }
 
 /** `T2_HOLAT_DARAXT_USTUNLARI` shaklidagi holatlar (qator_id bo'yicha o'sish — `sbT2QatorHolatOl` bilan bir xil). */
