@@ -7,7 +7,7 @@ import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import type { NakopitelniyJami, NakopitelniyQator } from '../../api/t2-nakopitelniy';
 import { buildPtoLineLedger } from '../../lib/pto-document-lineage';
 import { oylikNuqtalar } from '../../lib/nakopitelniy-grafik';
-import { foizOl, yashirinIdlar } from '../../lib/nakopitelniy-korinish';
+import { foizOl, nakFaktJami, nakFaktSumma, yashirinIdlar } from '../../lib/nakopitelniy-korinish';
 import type { f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
 import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 import type { Daraxt, Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
@@ -20,7 +20,7 @@ import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/Ust
  * Hisob o'zgarmadi: razdel jami — barg qatorlar yig'indisi (avvalgidek), qoldiq — buildPtoLineLedger.
  */
 type OyKesim = ReturnType<typeof f2OyKesimi>;
-type RzJami = { smeta: number | null; oldingi: number; joriy: number; jami: number; oy: Map<string, number> };
+type RzJami = { smeta: number | null; fakt: number | null; oldingi: number; joriy: number; jami: number; oy: Map<string, number> };
 
 const QADAM = 200;
 const jamiHajmSafe = (q: NakopitelniyQator) => q.smeta_hajm ?? 0;
@@ -72,9 +72,11 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
       if (q.tur === 'rz' || otaBor.has(q.qator_id)) continue;
       for (let o = q.ota_id != null ? byId.get(q.ota_id) : undefined; o; o = o.ota_id != null ? byId.get(o.ota_id) : undefined) {
         if (o.tur !== 'rz' && o.tur !== 'bl') continue;
-        const x = m.get(o.qator_id) ?? { smeta: null, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
+        const x = m.get(o.qator_id) ?? { smeta: null, fakt: null, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
         // Yig'indi — yadro ROUND 2 (tiyingacha aynan). Smeta: NULL ≠ 0 (hammasi noma'lum — bo'sh). F2: tasdiqlangan F2 yo'q — 0 (aynan, ishorali).
         if (q.smeta_summa != null) x.smeta = yigindi2([x.smeta, q.smeta_summa]);
+        // Fakt pul — yadro narx qoidasi (F2 bor — F2 narxida), sahifadagi boshqa jamilar bilan bir xil. NULL ≠ 0.
+        const fs = nakFaktSumma(q); if (fs != null) x.fakt = yigindi2([x.fakt, fs]);
         x.oldingi = yigindi2([x.oldingi, q.oldingi_summa]); x.joriy = yigindi2([x.joriy, q.joriy_summa]); x.jami = yigindi2([x.jami, q.jami_summa]);
         for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, yigindi2([x.oy.get(oy), v.summa])); // noma'lum (null) — jamiga kirmaydi, qatorning o'zi bo'sh
         m.set(o.qator_id, x);
@@ -99,7 +101,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
   const daraxt = useMemo<Daraxt<NakopitelniyQator>>(() => ({ id: (q) => q.qator_id, ota: (q) => q.ota_id, barg: (q) => q.tur !== 'rz' && !bolalariBor.has(q.qator_id) }), [bolalariBor]);
   const ustunlar = useMemo<Ustun<NakopitelniyQator>[]>(() => {
     const led = (q: NakopitelniyQator) => buildPtoLineLedger({ lineId: q.qator_id, baselineQuantity: q.smeta_hajm, baselineUnitPrice: q.smeta_narx, baselineAmount: q.smeta_summa,
-      factQuantity: q.fakt_hajm, factAmount: q.fakt_summa, previousApprovedQuantity: q.oldingi_hajm, previousApprovedAmount: q.oldingi_summa,
+      factQuantity: q.fakt_hajm, factAmount: nakFaktSumma(q), previousApprovedQuantity: q.oldingi_hajm, previousApprovedAmount: q.oldingi_summa,
       currentApprovedQuantity: q.joriy_hajm, currentApprovedAmount: q.joriy_summa, approvedF2Quantity: q.jami_hajm, approvedF2Amount: q.jami_summa });
     const u: Ustun<NakopitelniyQator>[] = [
       { kalit: 'kod', nom: t('Shifr'), tur: 'matn', qiymat: (q) => q.kod },
@@ -179,7 +181,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
       baselineUnitPrice: q.smeta_narx,
       baselineAmount: amount.smeta,
       factQuantity: q.fakt_hajm,
-      factAmount: q.fakt_summa,
+      factAmount: sum ? sum.fakt : nakFaktSumma(q),
       previousApprovedQuantity: q.oldingi_hajm,
       previousApprovedAmount: amount.oldingi,
       currentApprovedQuantity: q.joriy_hajm,
@@ -214,12 +216,14 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
     );
   };
 
+  // Pastki qator fakt jami — KPI va grafik bilan bitta manba (nakFaktJami).
+  const faktJami = jami ? nakFaktJami(qatorlar, jami.fakt_summa, truncated) : { summa: 0, taxminiy: false };
   const jamiQator = jami && (
     <tr className="fz-row-total" style={{ background: 'var(--surface-2)' }}>
       <td style={{ position: 'sticky', left: 0, bottom: 0, zIndex: 2, background: 'var(--surface-2)' }}>{t('JAMI — butun smeta (ustamasiz)')}</td>
       <td style={{ position: 'sticky', bottom: 0, background: 'var(--surface-2)' }} /><td style={{ ...chap, position: 'sticky', bottom: 0, background: 'var(--surface-2)' }} /><td style={{ position: 'sticky', bottom: 0, background: 'var(--surface-2)' }} />
       <td className="fz-c-num" style={{ position: 'sticky', bottom: 0, background: 'var(--surface-2)' }}><FmtN val={jami.smeta_summa} /></td>
-      <td className="fz-c-num" style={{ ...chap, position: 'sticky', bottom: 0, background: 'var(--surface-2)' }}><FmtN val={jami.fakt_summa} /></td>
+      <td className="fz-c-num" style={{ ...chap, position: 'sticky', bottom: 0, background: 'var(--surface-2)' }}>{faktJami.taxminiy ? <span title={t('сервер: без пересчёта по цене Ф-2')}>≈ </span> : null}<FmtN val={faktJami.summa} /></td>
       <td className="fz-c-num" style={{ ...chap, position: 'sticky', bottom: 0, background: 'var(--surface-2)' }}><FmtN val={jami.jami_tasdiqlangan_summa} /></td>
       <td style={{ position: 'sticky', bottom: 0, background: 'var(--surface-2)' }}><Meter smeta={jami.smeta_summa} oldingi={jami.oldingi_summa} joriy={jami.joriy_tasdiqlangan_summa} jami={jami.jami_tasdiqlangan_summa} /></td>
       <td style={{ ...chap, position: 'sticky', bottom: 0, background: 'var(--surface-2)' }} /><td style={{ position: 'sticky', bottom: 0, background: 'var(--surface-2)' }} /><td style={{ position: 'sticky', bottom: 0, background: 'var(--surface-2)' }} />

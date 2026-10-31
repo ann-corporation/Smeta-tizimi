@@ -4,11 +4,11 @@ import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
 import type { NakopitelniyDavr, NakopitelniyJami, NakopitelniyQator } from '../../api/t2-nakopitelniy';
 import { katKesimJamiBilan, type KatKesim } from '../../lib/ustamali-summa';
-import { foizOl, smetaTaqsimot } from '../../lib/nakopitelniy-korinish';
+import { foizOl, nakBarglar, nakFaktJami, nakFaktSumma, smetaTaqsimot } from '../../lib/nakopitelniy-korinish';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { summaTuriMatni } from '../../umumiy/ui/qiymatYorliq';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
-import { ayirma2, faktSummaF2Narxda, yigindi2 } from '../../lib/hisob-yadro';
+import { ayirma2, yigindi2 } from '../../lib/hisob-yadro';
 
 /**
  * Nakopitelniy KPI chizig'i (egasi 2026-10-25: «reestrga qarab vaziyat tushunarli bo'lsin»): har jami — QQS bilan (asosiy, egasi
@@ -19,8 +19,7 @@ import { ayirma2, faktSummaF2Narxda, yigindi2 } from '../../lib/hisob-yadro';
 export type SmetaNakrutkaKorinish = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number; /** Kat noma'lum qism bor — «≈». */ taxminiy?: boolean };
 
 const BARG_EMAS = new Set(['rz', 'bl']);
-/** Qator fakt summasi — yadro narx qoidasi (F2 bor — F2 birlik narxida). */
-const faktQ = (q: NakopitelniyQator) => faktSummaF2Narxda(q.fakt_hajm, q.jami_hajm, q.jami_summa, q.fakt_summa).summa;
+const faktQ = nakFaktSumma;
 
 export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniyaId, smetaNakrutka, smetaNakrutkaSabab = null, kaskadBor, davr }: {
   jami: NakopitelniyJami; qatorlar: NakopitelniyQator[]; truncated: boolean; obyektId: number; kompaniyaId: number;
@@ -32,15 +31,14 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
   const ust = useUstamaliSumma(obyektId, { kompaniyaId });
   const { korinishKesimi, obyektKesim } = ust;
   /**
-   * Fakt summasi — yadro narx qoidasi (`faktSummaF2Narxda`): tasdiqlangan F2 (с начала) bor qatorda F2 birlik narxida, fakt hajmi
-   * yozilganidek. Ro'yxat qirqilgan bo'lsa — server jamisi (qator bo'yicha qayta narxlab bo'lmaydi).
+   * Fakt summasi — sahifadagi YAGONA jami (`nakFaktJami`, jadval pastki qatori va grafik bilan bir xil): barglar F2 narxida.
+   * Ro'yxat qirqilgan bo'lsa — server jamisi (qayta narxlanmagan), «≈» bilan.
    */
   const ef = useMemo(() => {
-    if (truncated) return { fakt: jami.fakt_summa, mumkin: jami.f2_mumkin_summa };
-    const b = qatorlar.filter((q) => !BARG_EMAS.has(q.tur));
-    return { fakt: yigindi2(b.map(faktQ)), mumkin: yigindi2(b.map((q) => { const f = faktQ(q); return f == null ? null : ayirma2(f, q.jami_summa ?? 0); })) };
-  }, [qatorlar, truncated, jami]);
-  /** Ustama hisobi kategoriya kesimini talab qiladi; ro'yxat qirqilgan bo'lsa kesim to'liq emas — «ustamali noma'lum» (o'ylab topilmaydi). */
+    const f = nakFaktJami(qatorlar, jami.fakt_summa, truncated);
+    if (truncated) return { fakt: f.summa, taxminiy: true, mumkin: jami.f2_mumkin_summa };
+    return { fakt: f.summa, taxminiy: false, mumkin: yigindi2(nakBarglar(qatorlar).map((q) => { const x = nakFaktSumma(q); return x == null ? null : ayirma2(x, q.jami_summa ?? 0); })) };
+  }, [qatorlar, truncated, jami]);  /** Ustama hisobi kategoriya kesimini talab qiladi; ro'yxat qirqilgan bo'lsa kesim to'liq emas — «ustamali noma'lum» (o'ylab topilmaydi). */
   const kesim = useMemo(() => {
     if (truncated) return null;
     const barglar = qatorlar.filter((q) => !BARG_EMAS.has(q.tur));
@@ -65,7 +63,8 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
   const f2Foiz = foizOl(jami.jami_tasdiqlangan_summa, jami.smeta_summa);
   const qoralama = !!davr && !davr.certified;
   const faktQoldi = Math.max(0, ef.fakt - jami.jami_tasdiqlangan_summa);
-  const qolgan = Math.max(0, jami.smeta_summa - Math.max(ef.fakt, jami.jami_tasdiqlangan_summa));
+  // Qoldiq = smeta − F2 AYNAN (fakt ≥ F2 qoidasi yo'q). Yadro `ayirma2`.
+  const qolgan = ayirma2(jami.smeta_summa, jami.jami_tasdiqlangan_summa) ?? 0;
   // Smeta к оплате aniqlanmagan: sabab bo'lsa «не определена» + sabab, aks holda hali hisoblanmoqda.
   const koplateYoq = smetaNakrutkaSabab
     ? <span style={{ color: 'var(--warn)' }} data-testid="smeta-koplate-nomalum">{t('к оплате: не определена')} — {smetaNakrutkaSabab}</span>
@@ -87,6 +86,7 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
           <div className="fz-kpi">
             <span className="fz-kpi__label"><i style={{ background: 'var(--info)' }} />{t('Fakt jami')}</span>
             <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ef.fakt} katKesim={kesim?.fakt} yorliq={t('Fakt, QQS bilan')} />
+            {ef.taxminiy && <span className="fz-kpi__sub" data-testid="fakt-server-taxminiy" title={t('сервер: без пересчёта по цене Ф-2')}>≈ {t('сервер: без пересчёта по цене Ф-2')}</span>}
             <span className="fz-kpi__sub">{faktFoiz == null ? '—' : t('smetaning {p}%', { p: faktFoiz })}</span>
           </div>
           <div className="fz-kpi">
@@ -124,7 +124,7 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={sw('var(--border-strong)')} />{t('oldingi oylar F2')}: <b style={{ color: 'var(--text)' }}><FmtN val={jami.oldingi_summa} /></b></span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={sw('var(--accent)')} />{t('shu davr F2')}: <b style={{ color: 'var(--text)' }}><FmtN val={jami.joriy_tasdiqlangan_summa} /></b></span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={sw('var(--info)')} />{t('faktda bor, F2 ga kirmagan')}: <b style={{ color: 'var(--text)' }}><FmtN val={faktQoldi} /></b></span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={sw('var(--surface-3)')} />{t('ishlanmagan qoldiq')}: <b style={{ color: 'var(--text)' }}><FmtN val={qolgan} /></b></span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><i style={sw('var(--surface-3)')} />{t('qoldiq (smeta − F2)')}: <b style={{ color: 'var(--text)' }}><FmtN val={qolgan} /></b></span>
             </div>
           </div>
         )}

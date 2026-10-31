@@ -185,6 +185,7 @@ export function sbDaraxtQur(qatorlar: SbHolatQator[]): SbTugun[] {
  * daraxt varaq/qator TARTIBI bo'yicha tiklanadi.
  * ══════════════════════════════════════════════════════════════════ */
 import type { TreeNode } from './types';
+import { f2MumkinIshorali, faktSummaF2Narxda } from '../lib/hisob-yadro';
 
 export function sbTreeQur(qatorlar: SbHolatQator[]): TreeNode[] {
   const son = (v: unknown) => Number(v) || 0;
@@ -206,7 +207,7 @@ export function sbTreeQur(qatorlar: SbHolatQator[]): TreeNode[] {
     /* ⚠️ `f2mum` (F2 mumkin = fakt − f2ol) jadvalda SAQLANMAYDI.
        O'zimiz to'qib chiqarmaymiz — mavjud ikki ustundan hisoblaymiz,
        bu GAS dagi ta'rif bilan bir xil. */
-    f2mum: Math.max(0, son(r.fakt) - son(r.f2ol)),
+    f2mum: f2MumkinIshorali(son(r.fakt), son(r.f2ol), son(r.smeta_hajm)) ?? 0, // ishorali: manfiy qator nolga tushirilmaydi
     stFakt: son(r.st_fakt),
     stF2: son(r.st_f2),
     children: [],
@@ -410,6 +411,16 @@ export async function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
  *
  * Bu yerda TAXMIN YO'Q: bog'lanish bazadan keladi.
  */
+/**
+ * «F2 ga olish mumkin» (pul), ishorali: fakt summasi F2 narxida qayta hisoblangan bo'lsa — yadro bilan qayta (server qiymati
+ * smeta narxida); aks holda server `f2_mumkin_summa`, u bo'lmasa yadro. NULL — NULL.
+ */
+function f2MumkinSumma(h: T2QatorHolat, smetaHajm: number | null): number | null {
+  const fr = faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa);
+  if (fr.manba === 'fakt' && h.f2_mumkin_summa != null) return h.f2_mumkin_summa;
+  return f2MumkinIshorali(fr.summa, h.f2_summa, smetaHajm);
+}
+
 export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): TreeNode[] {
   const son = (v: unknown): number | null => {
     if (v == null || String(v).trim() === '') return null;
@@ -450,13 +461,14 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
          yig'iladi. Uni nolga tushirish native LRVda "F2 olish mumkin"
          qiymatini noto'g'ri kattalashtirib yuborardi. */
       f2ol: h ? h.f2_hajm : 0,
-      f2mum: h ? (h.f2_mumkin_hajm ?? Math.max(0, h.fakt_hajm - h.f2_hajm)) : 0,
-      stFakt: h ? h.fakt_summa : 0,
+      f2mum: h ? (h.f2_mumkin_hajm ?? f2MumkinIshorali(h.fakt_hajm, h.f2_hajm, son(r.hajm)) ?? 0) : 0,
+      // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida; NULL — NULL.
+      stFakt: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa).summa : 0,
       stF2: h ? h.f2_summa : 0,
       stOst: h ? h.qoldiq_summa : son(r.summa),
       /* `f2mum` hajm ustuni bilan bir xil qoida — bazadagi tayyor
          `f2_mumkin_summa`, u bo'lmasa fakt-f2 (manfiy bo'lmasin). */
-      stF2Mum: h ? (h.f2_mumkin_summa ?? Math.max(0, h.fakt_summa - h.f2_summa)) : 0,
+      stF2Mum: h ? f2MumkinSumma(h, son(r.hajm)) : 0,
       faktHajm: h ? h.fakt_hajm : 0,
       qoldiqHajm: h ? h.qoldiq_hajm : son(r.hajm),
       qoldiqSumma: h ? h.qoldiq_summa : son(r.summa),

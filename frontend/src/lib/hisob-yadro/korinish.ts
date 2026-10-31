@@ -56,6 +56,20 @@ export function faktSummaF2NarxFormula(fakt: string, f2Hajm: string, f2Summa: st
   return `IF(AND(ISNUMBER(${f2Hajm}),${f2Hajm}<>0),IF(AND(ISNUMBER(${f2Summa}),${fakt}<>""),ROUND(${fakt}*${f2Summa}/${f2Hajm},2),""),${asl})`;
 }
 
+/**
+ * «F2 ga olish mumkin» = fakt − F2, ISHORAGA qarab (manfiy qatorlar nolga tushirilmaydi): musbat qatorda MAX(0, fakt − F2),
+ * manfiy qatorda (smeta < 0; smeta noma'lum/0 bo'lsa fakt yoki F2 manfiy) MIN(0, fakt − F2). Fakt noma'lum — null.
+ */
+export function f2MumkinIshorali(fakt: number | null | undefined, f2: number | null | undefined, smeta?: number | null): number | null {
+  const fk = son(fakt);
+  if (fk == null) return null;
+  const f = son(f2) ?? 0;
+  const sm = son(smeta);
+  const manfiy = sm != null && sm !== 0 ? sm < 0 : fk < 0 || f < 0;
+  const d = yaxlit2(fk - f);
+  return manfiy ? Math.min(0, d) : Math.max(0, d);
+}
+
 /** Svod (yaxlit) bo'limi F2 qoldig'i = yaxlit − F2 AYNAN (F2 masshtablanmaydi). Yaxlit noma'lum — null. */
 export function yaxlitQoldiqF2(yaxlit: number | null | undefined, f2Jami: number | null | undefined): number | null {
   return yaxlit == null || !Number.isFinite(yaxlit) ? null : yaxlit2(yaxlit - (son(f2Jami) ?? 0));

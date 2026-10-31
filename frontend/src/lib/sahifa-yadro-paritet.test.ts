@@ -70,6 +70,10 @@ describe('sahifalar yadro bilan: Fakt jurnali / Fakt Studio = Сличитель
     expect(qator(23).faktSumma).toBe(800);  // 1 × 800
     expect(qator(25).faktSumma).toBe(-500); // −0,5 × 1 000
     expect(qator(22).f2Narxda).toBe(true);
+    // 4 — отклонение SUMMA = I − G (F2 narxidagi fakt − smeta), qator ichida izchil.
+    expect(qator(22).farqSumma).toBe(1750 - 1000);
+    expect(qator(23).farqSumma).toBe(800 - 2000);
+    expect(qator(26).farqSumma).toBeNull(); // fakt NULL
   });
 
   it('smeta: svod yaxlit (QQS siz); narxsiz qator yig‘ilmaydi (NULL ≠ 0)', () => {

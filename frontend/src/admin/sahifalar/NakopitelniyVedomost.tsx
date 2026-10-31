@@ -1,6 +1,7 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { NakopitelniyGrafik } from '../../components/nakopitelniy/NakopitelniyGrafik';
+import { nakFaktJami } from '../../lib/nakopitelniy-korinish';
 import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, ClipboardPaste, FileSpreadsheet, FileText, History, Settings2 } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -504,7 +505,8 @@ function Sessiya({ companyId }: { companyId: number }) {
           smetaNakrutka={smetaNakrutka} smetaNakrutkaSabab={smetaNakrutkaHisob.sabab} kaskadBor={!!nakrutkaKaskadi} davr={davrQator} />}
 
         {/* Firuza (egasi 2026-10-25): oyma-oy F2 va jamlanma grafigi. */}
-        {jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={jami.fakt_summa} />}
+        {/* Fakt — sahifadagi yagona jami (KPI/jadval bilan bir xil, F2 narxida). */}
+        {jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={nakFaktJami(qatorlar, jami.fakt_summa, truncated).summa} />}
 
         {qatorlar.length > 0 && (
           <NakopitelniyJadval qatorlar={qatorlar} korinadigan={gorunumRows} oyKesim={oyKesim} jami={jami} truncated={truncated} filtrBor={!!filtr} />
