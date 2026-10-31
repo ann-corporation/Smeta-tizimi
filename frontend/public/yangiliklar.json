@@ -23,8 +23,7 @@
         "Ustama (podval), QQS, yaxlit svod va yaxlitlash endi bitta joyda hisoblanadi — сличительная, остаток, накопительная, Ф-3, ЛРВ, ЛРВ+, Ф-2, oylik paket va tender bir xil raqam beradi; Excel formulasi ekrandagi qiymat bilan tiyinigacha teng.",
         "Yaxlit svod summasi QQS bilan, НДС qatoridan keyin alohida qator bo'lib turadi va ВСЕГО ga aynan qo'shiladi; ichidagi qatorlar tiyinigacha shu summaga taqsimlanadi.",
         "Svoddagi «Прочие затраты заказчика» va «Фонд Шаффоф» ВСЕГО dan keyin alohida ko'rsatiladi — pudratchi summasiga qo'shilmaydi.",
-        "Podvalda kiritilmagan foiz endi jimgina 0% olinmaydi — «не определена» deb ko'rsatiladi; shartnomadan olingan foiz manbasi bilan yoziladi.",
-        "Fakt F2 dan kam bo'lmaydi (minus qatorlarda ham to'g'ri); F2 yo'q bo'lsa fakt o'zgarmaydi."
+        "Podvalda kiritilmagan foiz endi jimgina 0% olinmaydi — «не определена» deb ko'rsatiladi; shartnomadan olingan foiz manbasi bilan yoziladi."
       ]
     },
     {
