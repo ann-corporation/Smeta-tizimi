@@ -57,4 +57,32 @@ mod tests {
         assert!(token_tekshir("test\r\nforged").is_err());
         assert!(token_tekshir(&"a".repeat(2401)).is_err());
     }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn windows_credential_roundtrip() {
+        // Alohida test service/account: haqiqiy sessiya credentialiga tegmaydi.
+        let account = format!(
+            "smoke-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        );
+        struct Cleanup(keyring::Entry);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = self.0.delete_credential();
+            }
+        }
+        let fixture = Cleanup(keyring::Entry::new("uz.anncorp.smeta.test", &account).unwrap());
+        fixture.0.set_password("SYNTHETIC_LOCAL_TEST").unwrap();
+        assert_eq!(fixture.0.get_password().unwrap(), "SYNTHETIC_LOCAL_TEST");
+        fixture.0.delete_credential().unwrap();
+        assert!(matches!(
+            fixture.0.get_password(),
+            Err(keyring::Error::NoEntry)
+        ));
+    }
 }

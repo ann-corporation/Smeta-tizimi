@@ -32,3 +32,15 @@ Rust stable MSVC mavjud. Birinchi cargo check `link.exe not found`: mavjud VS Co
 MSVC14.44 + Win11SDK26100 o‘rnatildi; Rust `cargo check --locked` PASS (2m29s). `maxfiy.rs` Windows-native keyring3.6.3 bilan sessiya tokenini faqat fixed service/account uchun saqlash/o‘qish/o‘chirish; serialized mutex, max2400byte, control chars rad; logga token yo‘q. Bu uch command Tauri local invoke_handlerga ulandi. `cargo check` keyring bilan ham PASS (10.28s). Pure validation Rust testi yozilgan, hali cargo test ishlatilmagan. Haqiqiy credential yozilmadi.
 
 Release installer build ishga tushirildi: `C:/Temp/desktop-tauri-installer-build.log`. Yakun natijasi olinmaguncha installer ready emas. Keyring API: https://docs.rs/keyring/3.6.3/keyring/ . Auth token issuance/CORS/bootstrap va ombor key lifecycle ulash ishlari ochiq.
+
+## Yakuniy o‘lchangan checkpoint — 23:03
+
+- Release compile PASS. `.exe` 10,147,328 bytes; local WebView2 oynasi ochildi.
+- Microsoft bootstrapper native downloader timeout; official URLdan curl bilan olindi, Authenticode `Valid`, Microsoft Corporation. `desktop-bootstrap.ps1` shu tekshiruvni buildga ulaydi.
+- NSIS bundle PASS: `frontend/src-tauri/target/release/bundle/nsis/Smeta Tizimi_0.1.0_x64-setup.exe`, 7,525,872 bytes; SHA256 `104AED091F61FBBA1E465A7584758E023AAB41EAF4F511703152428F8633F1E2`. Runtime source checkpoint `fa6d535`; keyingi o‘zgarishlar test/build-helper/docs.
+- `/S /D=C:\Temp\SmetaDesktopSmoke` → exit0; o‘rnatilgan `.exe` va uninstall mavjud. HKCU uninstall entry mavjud. Installed `.exe` SHA256 `437D2CF3343F1F380162BF07CD4BBF7502F127BC58186CD742B58216C56B80A5`.
+- O‘rnatilgan `C:/Temp/SmetaDesktopSmoke/smeta-desktop.exe` Windows oynasida `http://tauri.localhost/` lokal landing interfeysi real ochildi. Login yoki canonical biznes amallari sinovdan o‘tmadi, fallback auth yo‘q.
+- Rust test2/2 PASS: token validator va alohida synthetic Windows Credential Manager service’da set/get/delete/NoEntry. Real sessiya credentiali o‘zgarmadi.
+- NSIS qayta bundle qilganda `__TAURI_BUNDLE_TYPE variable not found` warning chiqdi; updater hali yozilmagan, updater acceptance OPEN. Installer imzosiz (`NotSigned`); sertifikat hali yo‘q.
+
+GOAL ACTIVE. To‘liq vazifa D1–D8 bo‘yicha tugamagan. Keyingi: Claude bilan D1b/session kontrakti, desktop bootstrap/serverBearer/CORS, keyin offline/delta/worker/commands/licensing/catalog acceptance. Shu installer daily-use yoki offline-ready deb tarqatilmaydi.

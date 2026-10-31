@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 $desktopFrontend = Split-Path -Parent $PSScriptRoot
 Push-Location $desktopFrontend
 try {
+    & (Join-Path $PSScriptRoot 'desktop-bootstrap.ps1')
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) { throw 'Rust MSVC toolchain kerak.' }
     if (-not (Test-Path -LiteralPath 'node_modules/typescript/bin/tsc')) {
         & npm ci
