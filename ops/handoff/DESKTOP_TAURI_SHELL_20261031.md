@@ -26,3 +26,9 @@ Rust stable MSVC mavjud. Birinchi cargo check `link.exe not found`: mavjud VS Co
 - Governance: 4 oldingi AKKAUNT/DIZAYN/C11 flag/lock xatosi; yangi desktop lane boshqa yo‘llarga kesishmaydi.
 
 `fetch-shim.ts` standalone: faqat lokal `/api/` → qat’iy production origin, Bearer sessiya portidan; caller Cookie/Authorization olib tashlanadi; redirect error; tashqi/asset so‘rovlarda token o‘qilmaydi. Bootstrapga ulanmagan: server Bearer/keyring lifecycle keyingi ulash talabidir. Qo‘llanmada auth tayyor yoki offline ishlaydi deb ko‘rsatilmaydi.
+
+## Yangilanish — 22:48
+
+MSVC14.44 + Win11SDK26100 o‘rnatildi; Rust `cargo check --locked` PASS (2m29s). `maxfiy.rs` Windows-native keyring3.6.3 bilan sessiya tokenini faqat fixed service/account uchun saqlash/o‘qish/o‘chirish; serialized mutex, max2400byte, control chars rad; logga token yo‘q. Bu uch command Tauri local invoke_handlerga ulandi. `cargo check` keyring bilan ham PASS (10.28s). Pure validation Rust testi yozilgan, hali cargo test ishlatilmagan. Haqiqiy credential yozilmadi.
+
+Release installer build ishga tushirildi: `C:/Temp/desktop-tauri-installer-build.log`. Yakun natijasi olinmaguncha installer ready emas. Keyring API: https://docs.rs/keyring/3.6.3/keyring/ . Auth token issuance/CORS/bootstrap va ombor key lifecycle ulash ishlari ochiq.

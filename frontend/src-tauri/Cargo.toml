@@ -3,7 +3,7 @@ name = "smeta-desktop"
 version = "0.1.0"
 description = "TIZIM 02 Windows client"
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.99"
 publish = false
 
 [lib]
@@ -15,6 +15,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+keyring = { version = "=3.6.3", features = ["windows-native"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
