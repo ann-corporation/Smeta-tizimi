@@ -8,6 +8,7 @@ import { foizOl, smetaTaqsimot } from '../../lib/nakopitelniy-korinish';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { summaTuriMatni } from '../../umumiy/ui/qiymatYorliq';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
+import { ayirma2 } from '../../lib/hisob-yadro';
 
 /**
  * Nakopitelniy KPI chizig'i (egasi 2026-10-25: «reestrga qarab vaziyat tushunarli bo'lsin»): har jami — QQS bilan (asosiy, egasi
@@ -19,9 +20,11 @@ export type SmetaNakrutkaKorinish = { pryamye: number; itogo4: number; nds: numb
 
 const BARG_EMAS = new Set(['rz', 'bl']);
 
-export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniyaId, smetaNakrutka, kaskadBor, davr }: {
+export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniyaId, smetaNakrutka, smetaNakrutkaSabab = null, kaskadBor, davr }: {
   jami: NakopitelniyJami; qatorlar: NakopitelniyQator[]; truncated: boolean; obyektId: number; kompaniyaId: number;
   smetaNakrutka: SmetaNakrutkaKorinish | null; kaskadBor: boolean; davr: NakopitelniyDavr | undefined;
+  /** Smeta к оплате aniqlanmagan sabab (yadro kirishi yetishmaydi / nakrutka o'qilmadi). null — hisoblanmoqda. */
+  smetaNakrutkaSabab?: string | null;
 }) {
   // Svod yaxlit (20261113500000): belgili bo'lim avlodlariga ustama qo'llanmaydi; to'liq smeta — server kesimi (svod bilan).
   const ust = useUstamaliSumma(obyektId, { kompaniyaId });
@@ -41,7 +44,8 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
       f2: yig((q) => q.jami_summa, jami.jami_tasdiqlangan_summa, false),
       joriy: yig((q) => q.joriy_summa, jami.joriy_tasdiqlangan_summa, false),
       // Fakt − tasdiqlangan F2 (qator bo'yicha ayirma) — F2 aynan bo'lgani uchun masshtablanmaydi.
-      mumkin: yig((q) => (q.fakt_summa == null && q.jami_summa == null ? null : (q.fakt_summa ?? 0) - (q.jami_summa ?? 0)), jami.f2_mumkin_summa, false),
+      // Fakt noma'lum — ayirma ham noma'lum (NULL ≠ 0); tasdiqlangan F2 yo'q — 0 (aynan). Yadro `ayirma2`.
+      mumkin: yig((q) => (q.fakt_summa == null ? null : ayirma2(q.fakt_summa, q.jami_summa ?? 0)), jami.f2_mumkin_summa, false),
     };
   }, [qatorlar, truncated, jami, korinishKesimi, obyektKesim]);
 
@@ -51,6 +55,10 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
   const qoralama = !!davr && !davr.certified;
   const faktQoldi = Math.max(0, jami.fakt_summa - jami.jami_tasdiqlangan_summa);
   const qolgan = Math.max(0, jami.smeta_summa - Math.max(jami.fakt_summa, jami.jami_tasdiqlangan_summa));
+  // Smeta к оплате aniqlanmagan: sabab bo'lsa «не определена» + sabab, aks holda hali hisoblanmoqda.
+  const koplateYoq = smetaNakrutkaSabab
+    ? <span style={{ color: 'var(--warn)' }} data-testid="smeta-koplate-nomalum">{t('к оплате: не определена')} — {smetaNakrutkaSabab}</span>
+    : <span className="text-text-mute">{t('Hisoblanmoqda…')}</span>;
   const sw = (bg: string): CSSProperties => ({ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: bg, flexShrink: 0 });
   const bolak = (w: number): CSSProperties => ({ width: `${Math.max(0, Math.min(100, w))}%` });
 
@@ -62,7 +70,7 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
             <span className="fz-kpi__label"><i style={{ background: 'var(--border-strong)' }} />{t('Smeta qiymati')}</span>
             <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.smeta_summa} katKesim={kesim?.smeta} />
             <span className="fz-kpi__sub">
-              {smetaNakrutka ? <>{t('к оплате (nakrutka + QQS)')} · {t('hujjat')}: <FmtN val={smetaNakrutka.vsego} /></> : <span style={{ color: 'var(--warn)' }}>{t('Nakrutka hisoblanmadi')}</span>}
+              {smetaNakrutka ? <>{t('к оплате (nakrutka + QQS)')} · {t('hujjat')}: <FmtN val={smetaNakrutka.vsego} /></> : koplateYoq}
             </span>
           </div>
           <div className="fz-kpi">

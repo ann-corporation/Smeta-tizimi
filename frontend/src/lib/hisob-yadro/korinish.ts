@@ -38,6 +38,18 @@ export function faktF2Max(fakt: number | null | undefined, f2: number | null | u
 }
 
 /**
+ * Fakt ↔ tasdiqlangan F2 (ekran yig'indilari uchun, summa darajasida): F2 yo'q yoki 0 — fakt o'zgarmaydi; fakt va F2
+ * ishorasi har xil — fakt O'ZGARMAYDI va `aralash` (chaqiruvchi izoh ko'rsatadi); aks holda `faktF2Max`. NULL — null.
+ */
+export function faktF2Qoida(fakt: number | null | undefined, f2: number | null | undefined): { qiymat: number | null; aralash: boolean; f2dan: boolean } {
+  const fk = fakt == null || !Number.isFinite(fakt) ? null : fakt;
+  if (f2 == null || !Number.isFinite(f2) || f2 === 0) return { qiymat: fk, aralash: false, f2dan: false };
+  if (fk != null && fk !== 0 && Math.sign(fk) !== Math.sign(f2)) return { qiymat: fk, aralash: true, f2dan: false };
+  const q = faktF2Max(fk, f2);
+  return { qiymat: q, aralash: false, f2dan: q != null && fk != null && q !== fk };
+}
+
+/**
  * Fakt SUMMASI xuddi shu qoida bilan: `faktF2Max(fakt × narx, F2 summa)`. Fakt hajmi noma'lum — null. Narxsiz qator
  * (protokol narxli) — F2 summasi aynan (0 ham — 0 ≠ null); F2 ham yo'q — null.
  */

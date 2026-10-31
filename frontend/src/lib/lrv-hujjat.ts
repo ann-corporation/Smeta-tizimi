@@ -37,6 +37,8 @@ export type LrvHujjatOpsiya = {
   ndsFoiz?: number | null;
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
   podval?: Podval | null;
+  /** Server `nk_manba` — meros foizlari izohi (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   mavzu?: RangMavzusi;
   /** Svod yaxlit bo'limlari va avlodlari (`yaxlitQatorIdlari`): ustama kaskadiga kirmaydi, podvalda alohida qator. */
   yaxlitIdlar?: ReadonlySet<number> | null;
@@ -238,7 +240,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   v.bosh();
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
   // Yaxlit svod podval qatori — QQS BILAN (НДС dan keyin, aynan): smeta ustunida svod summasi, qolganida ×(1+QQS).
   const ndsY = podvalNdsFoiz(podval, nk);
   const svQ = svodYaxlitQqs(o.svodYaxlit, ndsY);

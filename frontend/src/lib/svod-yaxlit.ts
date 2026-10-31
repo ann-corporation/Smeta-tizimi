@@ -123,8 +123,10 @@ export function bolimJamilari(
 export function svodKorinishKesimi<T>(
   daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[],
   f: { id: (x: T) => number | null | undefined; kat: (x: T) => string | null | undefined; summa: (x: T) => number | null | undefined; smeta: (x: T) => number | null | undefined },
-  svod: SvodYaxlit | null | undefined, o: { jami?: number | null; masshtab?: boolean } = {},
+  svod: SvodYaxlit | null | undefined, o: { jami?: number | null; masshtab?: boolean; bolimSmeta?: ReadonlyMap<number, number> | null } = {},
 ): Kesim {
+  // `bolimSmeta` (bo'lim qator_id → BUTUN bo'lim smetasi): barglar bo'limning bir qismi bo'lsa (ichki bo'lim kesimi),
+  // ulush butun bo'lim smetasiga nisbatan olinadi — aks holda qism butun yaxlitni ko'rsatardi.
   const bolimOf = new Map<number, SvodYaxlitBolim>();
   for (const b of svod?.bolimlar ?? []) for (const id of yaxlitQatorIdlari(daraxt, { ...svod!, bolimlar: [b] })) bolimOf.set(id, b);
   const oddiy = barglar.filter((x) => { const id = f.id(x); return id == null || !bolimOf.has(id); });
@@ -141,6 +143,8 @@ export function svodKorinishKesimi<T>(
   if (agg.size) {
     let qqssiz = 0, barg = 0, svQ = 0, svS = 0;
     for (const [b, a] of agg) {
+      const toliq = o.bolimSmeta?.get(Number(b.qator_id));
+      if (toliq != null && Number.isFinite(toliq)) a.sm = toliq;
       barg += a.kr;
       const s = o.masshtab === false ? r2(a.kr) : yaxlitKorinish(Number(b.qqssiz), a.sm, a.kr) ?? r2(a.kr);
       qqssiz += s;

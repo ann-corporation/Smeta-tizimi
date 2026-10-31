@@ -189,7 +189,7 @@ export function HolatNative() {
       const qolda = Object.fromEntries(Object.entries(tomonlar).filter(([, x]) => typeof x === 'string' && x.trim()));
       const h = lrvHujjat(daraxtXom, holatXom, {
         obyektNom: obyektNom, davr: new Date().toISOString().slice(0, 10), imzo: { ...ctx.imzo, ...qolda }, shartnoma: ctx.shartnoma,
-        ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval,
+        ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval, nkManba: ctx.nkManba ?? null,
         svodYaxlit: ctx.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, ctx.svodYaxlit),
         avvalgiVersiya: avvalgi,
       });
@@ -223,17 +223,20 @@ export function HolatNative() {
       setError('Ostatka: bekor qilingan ishlar ro‘yxati o‘qilmadi — hujjat tuzilmadi. Qayta urinib ko‘ring.');
       return;
     }
-    const model = ostatkaHujjatModeli(daraxtXom, holatXom, istisnolar);
-    if (!model.barglar) {
-      toast(`Ostatka yo‘q: barcha ishlar bajarilgan${model.oshibKetgan.length ? `, ${model.oshibKetgan.length} ta qatorda fakt smetadan oshgan` : ''}.`, 'warn');
-      return;
-    }
     setEksportBolmoqda(true);
     try {
+      // Svod yaxlit va ustama — model qurishdan OLDIN (qator taqsimi va QQS bilan svod qoidasi modelda). O'qilmasa — jim emas.
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
-      const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
-      const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: obyektNom, imzo: tomonlar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
-        yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, nk?.ok ? nk.svod_yaxlit : null) });
+      if (!nk?.ok) { setError(`Ostatka: ustama/svod ma’lumoti o‘qilmadi${nk?.error ? ` (${nk.error})` : ''} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
+      const svodYaxlit = nk.svod_yaxlit ?? null;
+      const model = ostatkaHujjatModeli(daraxtXom, holatXom, istisnolar, svodYaxlit);
+      if (!model.barglar) {
+        toast(`Ostatka yo‘q: barcha ishlar bajarilgan${model.oshibKetgan.length ? `, ${model.oshibKetgan.length} ta qatorda fakt smetadan oshgan` : ''}.`, 'warn');
+        return;
+      }
+      const podval = await obyektPodvali(joriy?.id, obyektId, nk.shartnoma_id ?? null);
+      const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: obyektNom, imzo: tomonlar, nakrutka: nk.koeffitsientlar ?? null, podval, nkManba: nk.nk_manba ?? null,
+        yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, svodYaxlit) });
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'OSTATKA', sabab: `Ведомость остатка · ${obyektNom}`, obyekt: obyektId },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
@@ -264,14 +267,17 @@ export function HolatNative() {
       setError('Slichitelniy: bekor qilingan ishlar ro‘yxati o‘qilmadi — hujjat tuzilmadi. Qayta urinib ko‘ring.');
       return;
     }
-    const model = slichitelniyModeli(daraxtXom, holatXom, { faqatFarq: slichFaqatFarq, istisnolar });
-    if (!model.barglar) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
     setEksportBolmoqda(true);
     try {
+      // Svod yaxlit model qurishdan OLDIN — bo'lim qatorlari yaxlit summaga taqsimlanadi (ekran/hujjat bir model).
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
-      const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
-      const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval,
-        svodYaxlit: nk?.ok ? nk.svod_yaxlit ?? null : null, yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, nk?.ok ? nk.svod_yaxlit : null) });
+      if (!nk?.ok) { setError(`Slichitelniy: ustama/svod ma’lumoti o‘qilmadi${nk?.error ? ` (${nk.error})` : ''} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
+      const svodYaxlit = nk.svod_yaxlit ?? null;
+      const model = slichitelniyModeli(daraxtXom, holatXom, { faqatFarq: slichFaqatFarq, istisnolar, svodYaxlit });
+      if (!model.barglar) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
+      const podval = await obyektPodvali(joriy?.id, obyektId, nk.shartnoma_id ?? null);
+      const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk.koeffitsientlar ?? null, podval, nkManba: nk.nk_manba ?? null,
+        svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, svodYaxlit) });
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }

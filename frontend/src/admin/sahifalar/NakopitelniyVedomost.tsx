@@ -20,8 +20,9 @@ import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
-import { podvalgaKoefQoy, type Podval } from '../../lib/nakrutka-konstruktor';
-import { obyektUstamali } from '../../lib/ustamali-summa';
+import type { Podval } from '../../lib/hisob-yadro';
+import type { SmetaNakrutka } from '../../api/t2-nakopitelniy';
+import { obyektSmetaKOplate } from '../../lib/ustamali-summa';
 import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
@@ -91,21 +92,28 @@ function Sessiya({ companyId }: { companyId: number }) {
   /** Server kesimi (cats / cats_kaskad / svod_yaxlit) — obyekt ustamalisi yagona obyektUstamali orqali. */
   const [nakrutkaJavob, setNakrutkaJavob] = useState<Awaited<ReturnType<typeof t2ObyektNakrutka>> | null>(null);
   const svodYaxlit: SvodYaxlit | null = nakrutkaJavob?.svod_yaxlit ?? null;
+  /** Podval o'qildi (null — standart kaskad); o'qilmaguncha smeta к оплате hisoblanmaydi (standart bilan «miltillamasin»). */
+  const [podvalOqildi, setPodvalOqildi] = useState(false);
+  /** Nakrutka o'qish xatosi — jim yutilmaydi, ekranda ko'rsatiladi. */
+  const [nakrutkaXato, setNakrutkaXato] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     setNakrutka(null);
     setNakrutkaKaskadi(null);
     setPodval(null);
+    setPodvalOqildi(false);
     setNakrutkaJavob(null);
+    setNakrutkaXato(null);
     if (!objectId) return;
     void t2ObyektNakrutka(Number(objectId)).then(async (r) => {
-      if (!active || !r.ok) return;
+      if (!active) return;
+      if (!r.ok) { setNakrutkaXato(r.error || r.code || 'Nakrutka o‘qilmadi'); return; }
       if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
       if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
       if (r.cats) setNakrutkaJavob(r);
       const p = await obyektPodvali(companyId, Number(objectId), r.shartnoma_id ?? null);
-      if (active) setPodval(p);
-    }).catch(() => undefined);
+      if (active) { setPodval(p); setPodvalOqildi(true); }
+    }).catch(() => { if (active) setNakrutkaXato('Nakrutka o‘qilmadi (tarmoq xatosi)'); });
     return () => { active = false; };
   }, [objectId]);
 
@@ -224,23 +232,16 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(companyId, objectId ? Number(objectId) : null);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const [truncated, setTruncated] = useState(false);
-  const smetaNakrutka = useMemo(() => {
-    // Maxsus podval — ekrandagi smeta к оплате ham shu podval bo'yicha (hujjat bilan bir xil).
-    // Svod yaxlit bo'lsa kaskad cats_kaskad bo'yicha + yaxlit ustamasiz (server bilan bir xil) — yagona yordamchi.
-    if (podval && nakrutkaJavob && nakrutka) {
-      const u = obyektUstamali(nakrutkaJavob, podvalgaKoefQoy(podval, nakrutka), nakrutka);
-      if (!u || u.ustamali == null || u.ndsBilan == null || !u.qadamlar) return null;
-      return { pryamye: u.qadamlar.pryamye + (svodYaxlit?.barglar ?? 0), itogo4: u.ustamali, nds: u.qadamlar.nds, nds_foiz: nakrutka.НДС ?? null, vsego: u.ndsBilan };
-    }
-    if (!nakrutkaKaskadi) return jami?.smeta_nakrutka ?? null;
-    return {
-      pryamye: nakrutkaKaskadi.pryamye,
-      itogo4: nakrutkaKaskadi.itogo4,
-      nds: nakrutkaKaskadi.nds,
-      nds_foiz: nakrutka?.НДС ?? null,
-      vsego: nakrutkaKaskadi.vsego,
-    };
-  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi, podval, nakrutkaJavob, svodYaxlit]);
+  /**
+   * Smeta «к оплате» — BITTA yadro hisobi (`obyektUstamali`: server kesimi + svod yaxlit + podval/koeffitsientlar), hujjat bilan
+   * bir xil. Muqobil manbalar (server kaskadi / jami.smeta_nakrutka) yo'q: kirish yetishmasa — «не определена» va sababi.
+   */
+  const smetaNakrutkaHisob = useMemo((): { qiymat: SmetaNakrutka | null; sabab: string | null } => {
+    if (nakrutkaXato) return { qiymat: null, sabab: nakrutkaXato };
+    if (!podvalOqildi) return { qiymat: null, sabab: null }; // hali o'qilmoqda
+    return obyektSmetaKOplate(nakrutkaJavob, podval, nakrutka);
+  }, [nakrutka, podval, podvalOqildi, nakrutkaJavob, nakrutkaXato]);
+  const smetaNakrutka = smetaNakrutkaHisob.qiymat;
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
    *  (server sukuti 500 qator) — server sahifalari avtomat oxirigacha o'qiladi
@@ -492,7 +493,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         )}
 
         {jami && <NakopitelniyKpi jami={jami} qatorlar={qatorlar} truncated={truncated} obyektId={Number(objectId)} kompaniyaId={companyId}
-          smetaNakrutka={smetaNakrutka} kaskadBor={!!nakrutkaKaskadi} davr={davrQator} />}
+          smetaNakrutka={smetaNakrutka} smetaNakrutkaSabab={smetaNakrutkaHisob.sabab} kaskadBor={!!nakrutkaKaskadi} davr={davrQator} />}
 
         {/* Firuza (egasi 2026-10-25): oyma-oy F2 va jamlanma grafigi. */}
         {jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={jami.fakt_summa} />}

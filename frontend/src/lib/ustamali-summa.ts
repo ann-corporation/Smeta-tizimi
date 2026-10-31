@@ -9,7 +9,7 @@
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import {
   bosKesim, hisob, katSummalari, katJami, kesimgaQosh, kesimNomalumBilan, kesimYigish, podvalAniqla, qqsBilan as yadroQqsBilan,
-  serverCatsdan, yaxlit2, type HisobNatija, type Kesim, type Podval,
+  serverCatsdan, serverMerosKoefQoy, yaxlit2, type HisobNatija, type Kesim, type Podval,
 } from './hisob-yadro';
 import { kaskadCats, svodKesimYaxlit, type SvodYaxlit } from './svod-yaxlit';
 import type { NakrutkaHisobJS } from './nakrutka-podval';
@@ -112,6 +112,23 @@ export function obyektUstamali(
 ): UstamaNatija | null {
   const k = obyektKesimi(r);
   return k ? ustamaliHisobla(k, koef ?? r.koeffitsientlar ?? null, podval) : null;
+}
+
+/**
+ * Smeta «к оплате» (obyekt) — YAGONA hisob: server kesimi + svod yaxlit + podval (server meros rejimi, `nkManba` izohi)
+ * yoki koeffitsientlardan standart. Kirish yetishmasa — qiymat null va sabab (muqobil manba yo'q, taxmin yo'q).
+ */
+export type SmetaKOplate = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number };
+export function obyektSmetaKOplate(
+  r: (Parameters<typeof obyektUstamali>[0] & { nk_manba?: string | null }) | null | undefined,
+  podval: Podval | null | undefined, koef: Partial<NakrutkaKoeffitsientlar> | null | undefined,
+): { qiymat: SmetaKOplate | null; sabab: string | null } {
+  if (!r || !koef) return { qiymat: null, sabab: 'koeffitsientlar yoki smeta kesimi yo‘q' };
+  const p = podval ? serverMerosKoefQoy(podval, koef, r.nk_manba) : null;
+  const u = obyektUstamali(r, p, koef);
+  if (!u) return { qiymat: null, sabab: 'koeffitsientlar yoki smeta kesimi yo‘q' };
+  if (u.ustamali == null || u.ndsBilan == null || !u.qadamlar || u.qadamlar.nds == null) return { qiymat: null, sabab: u.xato === 'PODVAL_TOLIQ_EMAS' ? 'podval foizlari to‘liq emas' : 'QQS yoki ustama foizi noma’lum' };
+  return { qiymat: { pryamye: yaxlit2(u.ustamasiz), itogo4: u.ustamali, nds: u.qadamlar.nds, nds_foiz: u.ndsFoiz ?? null, vsego: u.ndsBilan }, sabab: null };
 }
 
 /* ───────────── OBYEKT QIYMATI (egasi 2026-10-27: QQS bilan — ASOSIY) ───────────── */

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactN
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { t, tilLocale } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
+import { yigindi2 } from '../../lib/hisob-yadro';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import type { NakopitelniyJami, NakopitelniyQator } from '../../api/t2-nakopitelniy';
 import { buildPtoLineLedger } from '../../lib/pto-document-lineage';
@@ -72,9 +73,10 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
       for (let o = q.ota_id != null ? byId.get(q.ota_id) : undefined; o; o = o.ota_id != null ? byId.get(o.ota_id) : undefined) {
         if (o.tur !== 'rz' && o.tur !== 'bl') continue;
         const x = m.get(o.qator_id) ?? { smeta: null, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
-        if (q.smeta_summa != null) x.smeta = (x.smeta ?? 0) + q.smeta_summa;
-        x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
-        for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, (x.oy.get(oy) ?? 0) + (v.summa ?? 0)); // noma'lum (null) — jamiga kirmaydi, qatorning o'zi bo'sh
+        // Yig'indi — yadro ROUND 2 (tiyingacha aynan). Smeta: NULL ≠ 0 (hammasi noma'lum — bo'sh). F2: tasdiqlangan F2 yo'q — 0 (aynan, ishorali).
+        if (q.smeta_summa != null) x.smeta = yigindi2([x.smeta, q.smeta_summa]);
+        x.oldingi = yigindi2([x.oldingi, q.oldingi_summa]); x.joriy = yigindi2([x.joriy, q.joriy_summa]); x.jami = yigindi2([x.jami, q.jami_summa]);
+        for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, yigindi2([x.oy.get(oy), v.summa])); // noma'lum (null) — jamiga kirmaydi, qatorning o'zi bo'sh
         m.set(o.qator_id, x);
       }
     }

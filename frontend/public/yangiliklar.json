@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 50,
+      "sana": "2026-10-31",
+      "sarlavha": "Fakt jurnali, Nakopitelniy va Studio ham bitta hisob yadrosida",
+      "bandlar": [
+        "Fakt jurnali bo'lim summalari va «Fakt (hozircha)» endi Сличительная bilan bir xil: fakt tasdiqlangan F2 dan kam bo'lmaydi (minus qatorda ham), ishorasi har xil bo'lsa fakt o'zgarmaydi va ogohlantirish chiqadi.",
+        "Yaxlit svod bo'limi Fakt jurnalida ham ustamasiz, svod summasi ulushida ko'rsatiladi; narxsiz qator 0 deb sanalmaydi.",
+        "Ostatka va Сличительная eksporti svod bo'limini qatorlarga taqsimlab beradi; ustama/svod o'qilmasa hujjat jimgina chala chiqmaydi — sababi ko'rsatiladi.",
+        "Nakopitelniy: smeta «к оплате» bitta hisobdan; ma'lumot yetishmasa «не определена» va sababi yoziladi.",
+        "Studio RES: ustama kaskadi podval qatorlari bo'yicha, buyurtmachi xarajatlari alohida (pudratchi summasiga qo'shilmaydi); jami QQS bilan birinchi."
+      ]
+    },
+    {
       "id": 49,
       "sana": "2026-10-30",
       "sarlavha": "Bitta hisob yadrosi: ekran va barcha Excel hujjatlar endi bir xil hisoblaydi",

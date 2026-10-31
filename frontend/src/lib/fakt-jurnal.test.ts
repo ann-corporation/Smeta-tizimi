@@ -149,7 +149,9 @@ describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', ()
     expect(s.get(0)?.f2.ustamasiz).toBe(300 + 5000 + 70 + 30);
     expect(s.get(2)?.f2.ustamasiz).toBe(300 + 70 + 30);
     expect(s.get(1)?.f2.ustamasiz).toBe(5400);
-    expect(s.get(0)?.fakt.ustamasiz).toBe(200 + 10 + 100);
+    // Fakt tasdiqlangan F2 dan kam emas (yadro faktF2Max, egasi 2026-10-29): 4 → 300, ish 8 → 5000, ish 9 → 70; 10 — o'zi (100 > 30).
+    expect(s.get(0)?.fakt.ustamasiz).toBe(300 + 5000 + 70 + 100);
+    expect(s.get(0)?.faktF2).toEqual({ f2dan: 3, aralash: 0 });
     expect(s.get(0)?.smeta.ustamasiz).toBe(1400);          // faqat barglar (asl)
     expect(s.get(0)?.qoldiq.ustamasiz).toBe(700 + 370 - 5000 - 70);
     // Nakopitelniy bilan muvofiqlik: smeta = daraxt + qo'shimcha; F2 = jami tasdiqlangan.

@@ -156,6 +156,8 @@ export type OstatkaHujjatOpsiya = {
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
   /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
   podval?: Podval | null;
+  /** Server `nk_manba` — meros foizlari izohi (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   /** НДС stavkasi (sukut: nakrutkadagi НДС, u ham bo'lmasa 12 %). */
   ndsFoiz?: number | null;
   /** Svod yaxlit bo'limlari va avlodlari (`yaxlitQatorIdlari`): ularga ustama qo'llanmaydi, podvalda alohida qator. */
@@ -402,7 +404,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   nk.НДС = o.ndsFoiz ?? nk.НДС ?? NDS_SUKUT_FOIZ;
   // Foizlar faqat podvaldan (server meros rejimi); noma'lum — к оплате bo'sh, 0 emas.
-  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
   const kfJS = kategoriyaKf(nk, podval);
   const ndsFoiz = podvalNdsFoiz(podval, nk);
   const taqsim = model.yaxlitTaqsimlangan;

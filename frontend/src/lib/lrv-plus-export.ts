@@ -88,6 +88,8 @@ export type LrvPlusOptions = {
   nakrutka?: NakrutkaKoeffitsientlar;
   /** Obyekt smeta podvali — berilsa foizlar shundan (server meros rejimi), aks holda `nakrutka` dan standart. */
   podval?: Podval | null;
+  /** Server `nk_manba` (smeta_podvali / shartnoma / kompaniya / sukut) — meros foizlari izohi hujjatda (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   /** Imzo blokidagi tomonlar (saytdan; bo'sh — chiziq). */
   imzo?: ImzoNomlar;
 };
@@ -576,7 +578,7 @@ export async function lrvPlusFaylBaytlari(
   // Ustama podvali (yadro): obyekt podvali bo'lsa u (server meros rejimi), aks holda koeffitsientlardan standart.
   // Koeffitsient ham, podval ham yo'q — jadval chiqmaydi (o'ylab topilgan son yo'q).
   const podvalJ: Podval | null = options?.podval
-    ? (options.nakrutka ? serverMerosKoefQoy(options.podval, options.nakrutka) : options.podval)
+    ? (options.nakrutka ? serverMerosKoefQoy(options.podval, options.nakrutka, options.nkManba) : options.podval)
     : options?.nakrutka ? standartPodval(options.nakrutka) : null;
   /* Qo'shimcha ish / zamena (egasi 2026-10-29) — faqat o'zgarish bor obyektda oxiriga ПРИМЕЧАНИЕ (ko'rinadi) va
      ИЗМ (yashirin guruh kodi, pastdagi jamlar SUMIFS uchun); mavjud ustunlar o'rni o'zgarmaydi. */
