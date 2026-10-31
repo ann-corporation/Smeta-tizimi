@@ -13,6 +13,8 @@ Codex@noutbuk; base `fc4f0eab8bba5e24d9752f5e1d27618742999ee7`; `codex/desktop-d
 
 Focused20 PASS: existing paket parity, core guard, synthetic hosila oracle, Worker request/close/race/timeout/error,30k fixture. AppTS/FunctionsTS/lint PASS; tekshir PASS; Vite app build PASS; Worker alohida Vite production build PASS (6.09kB). Lintdagi mavjud warninglar saqlangan. Governance4oldingi owns/policy FAIL; bu lane yangi conflict kiritmadi.
 
+Full Vitest:584fayl/4262test PASS,12fayl/25test skip,471.77s (`C:/Temp/desktop-d3-vitest.log`). TypeScript va Functions alohida exit0; `git diff --check` PASS. Ruxsatli branch push/PR bor, main integratsiyasi yo‘q.
+
 `node src/ombor/hisob-thread-smoke.mjs` (`frontend`dan) production Worker bundle’ni alohida Node thread’da WebWorker port adapteri orqali ishlatadi.26k synthetic qator, exact F2 saqlanishi PASS. O‘lchov: compute cold47.15ms, warm17.75/14.17/10.20ms; to‘liq message roundtrip121.59/92.27/93.71/79.88ms. Bu haqiqiy thread, lekin browser render/login yoki server parity acceptance emas. Vaqt mashina/yuklamaga bog‘liq.
 
 ## D3 hali tugamagan
