@@ -8,10 +8,12 @@ import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type Bajarilmad
 import { bajarilmadiHajmlar, faktYigindiHisobla, narxlashMumkin } from '../../lib/fakt-studio';
 import { FaktNarxlash, type NarxlashQator } from './FaktNarxlash';
 import { FaktBajarilmadiTez, type BajarilmadiQatorInfo } from './FaktBajarilmadiTez';
-import { FaktStudioBar } from './FaktStudioBar';
+import { FaktF2Izoh, FaktStudioBar } from './FaktStudioBar';
 import { FaktAiYordamchi } from './FaktAiYordamchi';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../../lib/ustamali-summa';
+import { yaxlit2, yigindi2 } from '../../lib/hisob-yadro';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, obyektF2Reja, type EskiF2Akt, type TenglashKontekst, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
@@ -150,7 +152,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   /** Resurs ishdan chiqarilganmi (faol «bajarilmaydi» butun smeta hajmini qoplaydi) — F2 ga kirmaydi. */
   const chiq = (q: Pick<JurnalQator, 'id' | 'smeta'>) => chiqarilganmi(q.smeta, bajHajm.get(q.id));
   const [chiqModal, setChiqModal] = useState<ChiqarishQator | null>(null);
-  const yigindi = useMemo(() => faktYigindiHisobla(rows, states, bajarilmadi), [rows, states, bajarilmadi]);
+  // Svod yaxlit (ustama o'qishi bilan bir so'rov, react-query keshi) — bo'lim/obyekt summalari eksport modeli bilan bir xil.
+  const { svodYaxlit } = useUstamaliSumma(obyektId, { kompaniyaId });
+  const yigindi = useMemo(() => faktYigindiHisobla(rows, states, bajarilmadi, svodYaxlit), [rows, states, bajarilmadi, svodYaxlit]);
   const [narxModal, setNarxModal] = useState<NarxlashQator | null>(null);
   const qatorlarRef = useRef(new Map<number, JurnalQator>());
   const bajBekor = async (qatorId: number, nom: string) => {
@@ -183,7 +187,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     for (const r of rows) if ((r.tur === 'rs' || r.tur === 'mat' || r.tur === 'ob') && bajHajm.has(r.id) && chiqarilganmi(sm.get(r.id) ?? r.hajm, bajHajm.get(r.id))) s.add(r.id);
     return s;
   }, [rows, states, bajHajm]);
-  const summalar = useMemo(() => bolimSummalari(rows, states, chiqarilganlar), [rows, states, chiqarilganlar]);
+  const summalar = useMemo(() => bolimSummalari(rows, states, chiqarilganlar, svodYaxlit), [rows, states, chiqarilganlar, svodYaxlit]);
   // Ishdan KEYIN turgan alohida materiallar (ota = bo'lim) — ish ulushida fakt TAKLIFI (avtomatik yozilmaydi).
   // Ish ichidagi mat/ob bolalari va ishdan keyingi alohida mat/ob — ish ulushida TAKLIF (ergashish qoidasi; avtomatik yozilmaydi).
   const keyingiMat = useMemo(() => ishMateriallari(rows), [rows]);
@@ -203,16 +207,18 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
   const holatMap = useMemo(() => new Map(states.map((s) => [s.qator_id, s])), [states]);
   /** Ustamali summa (egasi 2026-10-24): resurs kat'i smeta qatoridan (t2_qator.kat) - M/K, КАБ, БЕЗ СКЛАД ham aniq; ish (bl) o'z narxiga ega emas - resurslar yig'indisi. */
   const taxminKesim = (q: JurnalQator): { fakt: KatKesim; smeta: KatKesim; faktSumma: number; smetaSumma: number } | null => {
-    const sm = (x: JurnalQator) => Number(holatMap.get(x.id)?.smeta_summa ?? 0);
+    // NULL ≠ 0: summasi noma'lum resurs 0 deb olinmaydi — kesimda «summasiz», yig'indiga kirmaydi (yadro yigindi2).
+    const sm = (x: JurnalQator): number | null => { const v = holatMap.get(x.id)?.smeta_summa; return v == null || !Number.isFinite(Number(v)) ? null : Number(v); };
     const bolalar = 'resurslar' in q ? [...(q as JurnalIsh).resurslar, ...(q as JurnalIsh).avtomatik] : [];
     const qismlar = q.tur === 'bl' ? bolalar : [q];
-    const asos = qismlar.reduce((s, x) => s + sm(x), 0);
+    const asos = yigindi2(qismlar.map(sm));
     if (!(asos > 0) || q.ulush == null) return null;
+    const ulush = q.ulush;
     const fakt = bosKatKesim(), smeta = bosKatKesim();
     // Ishdan chiqarilgan resurs (F2 ga kirmaydi) fakt summasiga qo'shilmaydi; smeta summasi o'zgarmaydi (asl smeta CONST).
-    let faktAsos = 0;
-    for (const x of qismlar) { const kat = rowById.get(x.id)?.kat; katKesimgaQosh(smeta, kat, sm(x)); if (q.tur === 'bl' && chiq(x)) continue; katKesimgaQosh(fakt, kat, sm(x) * q.ulush); faktAsos += sm(x); }
-    return { fakt, smeta, faktSumma: faktAsos * q.ulush, smetaSumma: asos };
+    const faktQism: Array<number | null> = [];
+    for (const x of qismlar) { const kat = rowById.get(x.id)?.kat; const s = sm(x); katKesimgaQosh(smeta, kat, s); if (q.tur === 'bl' && chiq(x)) continue; const f = s == null ? null : yaxlit2(s * ulush); katKesimgaQosh(fakt, kat, f); faktQism.push(f); }
+    return { fakt, smeta, faktSumma: yigindi2(faktQism), smetaSumma: asos };
   };
   const bolimBolalari = useMemo(() => { const m = new Map<number, number[]>(); for (const b of bolimlar) if (b.otaId != null) m.set(b.otaId, [...(m.get(b.otaId) ?? []), b.id]); return m; }, [bolimlar]);
   const kiritmaOgoh = () => { if (ozgarishSoni) toast(t('Saqlanmagan kiritmalar bor — qamrov serverdagi faktdan hisoblanadi; avval saqlang yoki tozalang.'), 'warn'); };
@@ -620,6 +626,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 
   const summaQatori = (s: BolimSumma | undefined) => s ? <div className="flex flex-wrap items-start gap-x-5 gap-y-1 text-[11px] text-text-mute" data-testid="bolim-summalar">
     {([['smeta', t('Smeta')], ['f2', t('F2')], ['fakt', t('Fakt')], ['qoldiq', t('F2 qoldiq')]] as const).map(([k, l]) => <span key={k} className="inline-flex items-start gap-1.5"><span className="pt-0.5 font-semibold uppercase tracking-wide">{l}</span><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={s[k].ustamasiz} katKesim={s[k].kesim} /></span>)}
+    <FaktF2Izoh f2Narxda={s.faktF2.f2Narxda} />
   </div> : null;
 
   const tanlanganBolim = bolimlar.find((b) => b.id === bolimId);

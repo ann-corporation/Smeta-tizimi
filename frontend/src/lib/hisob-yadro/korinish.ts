@@ -3,7 +3,7 @@
  * HAJM ko'rinishi boshqa. Oylik pul = o'sha kaskad, masshtablangan hajm ko'rinishida.
  *  - F2 summalari tasdiqlangan import qatorlaridan AYNAN olinadi (ishorali, minus ruxsat), hech qachon masshtablanmaydi.
  *  - Qoldiq = smeta − F2 − almashtirilgan; smeta summasi noma'lum — qoldiq ham noma'lum (0 emas).
- *  - Fakt tasdiqlangan F2 dan «kam bajarilgan» emas, ishoraga qarab (egasi 2026-10-29): `faktF2Max`.
+ *  - Fakt hajmi yozilganidek (F2 dan chiqarilmaydi); tasdiqlangan F2 bor qatorda fakt summasi F2 narxida: `faktSummaF2Narxda`.
  */
 import { bosKesim, kesimgaQosh, type Kesim } from './kategoriya';
 import { qatorSumma, yaxlit2 } from './yaxlit';
@@ -18,6 +18,8 @@ export type KorinishQator = {
   faktHajm?: number | null;
   /** Tasdiqlangan F2 summasi (ishorali, aynan). */
   f2Summa?: number | null;
+  /** Tasdiqlangan F2 hajmi (fakt qoidasi hajm darajasida). */
+  f2Hajm?: number | null;
   /** Qoralama F2 summasi (aynan). */
   f2QoralamaSumma?: number | null;
   /** Almashtirilgan (replaced) summa — qoldiqdan ayriladi. */
@@ -26,34 +28,51 @@ export type KorinishQator = {
   davrHajm?: number | null;
 };
 
+/** Fakt summasi natijasi: `manba` — 'f2' (tasdiqlangan F2 narxida) yoki 'fakt' (odatdagi fakt summasi). */
+export type FaktSummaNatija = { summa: number | null; manba: 'f2' | 'fakt'; narx: number | null };
+
+const son = (x: number | null | undefined): number | null => (x == null || !Number.isFinite(x) ? null : x);
+
 /**
- * Fakt F2 dan «kam bajarilgan» bo'lmaydi (egasi 2026-10-29), ISHORAGA qarab: F2 ≥ 0 — MAX(fakt, F2); F2 < 0 (manfiy qator,
- * chegirma) — MIN(fakt, F2), ya'ni |fakt| ≥ |F2|. Tasdiqlangan F2 yo'q (null) — fakt o'zgarmaydi. Fakt noma'lum — null.
- * Bu qoida ko'rinish yadrosida: fakt F2 yonida ko'rsatiladigan har joy (ekran va hujjat) shuni ishlatadi.
+ * NARX QOIDASI (egasi, YAGONA): fakt HAJMI qanday yozilgan bo'lsa shunday (F2 dan hech narsa chiqarilmaydi; fakt < F2 —
+ * normal, F2 oldindan olinadi). Qatorda tasdiqlangan F2 bo'lsa — fakt SUMMASI F2 birlik narxida:
+ * F2 narx = Σ F2 summa / Σ F2 hajm (qator bo'yicha, `f2NarxYigish` ma'nosi); summa = ROUND(fakt × F2 summa / F2 hajm, 2).
+ * F2 summasi noma'lum — narx to'qilmaydi (null). F2 yo'q (hajm 0/null) — odatdagi fakt summasi (`faktSummaAsl`).
+ * Fakt noma'lum — null (NULL ≠ 0); 0 — 0.
  */
-export function faktF2Max(fakt: number | null | undefined, f2: number | null | undefined): number | null {
-  if (fakt == null || !Number.isFinite(fakt)) return null;
-  if (f2 == null || !Number.isFinite(f2)) return fakt;
-  return f2 < 0 ? Math.min(fakt, f2) : Math.max(fakt, f2);
+export function faktSummaF2Narxda(faktHajm: number | null | undefined, f2Hajm: number | null | undefined, f2Summa: number | null | undefined, faktSummaAsl: number | null | undefined): FaktSummaNatija {
+  const fk = son(faktHajm), f2h = son(f2Hajm), f2s = son(f2Summa);
+  if (f2h == null || f2h === 0) return { summa: son(faktSummaAsl), manba: 'fakt', narx: null };
+  if (f2s == null) return { summa: null, manba: 'f2', narx: null };
+  // Excel bilan bir xil tartib: (H × K) / J, so'ng ROUND 2.
+  return { summa: fk == null ? null : yaxlit2((fk * f2s) / f2h), manba: 'f2', narx: f2s / f2h };
 }
 
 /**
- * Fakt SUMMASI xuddi shu qoida bilan: `faktF2Max(fakt × narx, F2 summa)`. Fakt hajmi noma'lum — null. Narxsiz qator
- * (protokol narxli) — F2 summasi aynan (0 ham — 0 ≠ null); F2 ham yo'q — null.
+ * Excel formulasi (kesh = `faktSummaF2Narxda`): F2 hajmi (J) 0 dan farqli — F2 summasi (K) son bo'lsa
+ * ROUND(fakt × K / J, 2), aks holda ""; F2 yo'q — odatdagi `asl` ifoda (masalan ROUND(H × F, 2)).
  */
-export function faktSummaF2Max(faktHajm: number | null | undefined, narx: number | null | undefined, f2Summa: number | null | undefined): number | null {
-  if (faktHajm == null || !Number.isFinite(faktHajm)) return null;
-  const f = qatorSumma(faktHajm, narx);
-  if (f == null) return f2Summa == null || !Number.isFinite(f2Summa) ? null : f2Summa;
-  return faktF2Max(f, f2Summa);
+export function faktSummaF2NarxFormula(fakt: string, f2Hajm: string, f2Summa: string, asl: string): string {
+  return `IF(AND(ISNUMBER(${f2Hajm}),${f2Hajm}<>0),IF(AND(ISNUMBER(${f2Summa}),${fakt}<>""),ROUND(${fakt}*${f2Summa}/${f2Hajm},2),""),${asl})`;
 }
 
 /**
- * Excel formulasi (kesh = formula): `fakt` — fakt summa ifodasi (narxsiz bo'lsa ""), `f2` — F2 summa katagi.
- * F2 son bo'lmasa — fakt; narxsiz — F2; manfiy F2 — MIN, aks holda MAX.
+ * «F2 ga olish mumkin» = fakt − F2, ISHORAGA qarab (manfiy qatorlar nolga tushirilmaydi): musbat qatorda MAX(0, fakt − F2),
+ * manfiy qatorda (smeta < 0; smeta noma'lum/0 bo'lsa fakt yoki F2 manfiy) MIN(0, fakt − F2). Fakt noma'lum — null.
  */
-export function faktF2MaxFormula(fakt: string, f2: string): string {
-  return `IF(ISNUMBER(${f2}),IF(${fakt}="",${f2},IF(${f2}<0,MIN(${fakt},${f2}),MAX(${fakt},${f2}))),${fakt})`;
+export function f2MumkinIshorali(fakt: number | null | undefined, f2: number | null | undefined, smeta?: number | null): number | null {
+  const fk = son(fakt);
+  if (fk == null) return null;
+  const f = son(f2) ?? 0;
+  const sm = son(smeta);
+  const manfiy = sm != null && sm !== 0 ? sm < 0 : fk < 0 || f < 0;
+  const d = yaxlit2(fk - f);
+  return manfiy ? Math.min(0, d) : Math.max(0, d);
+}
+
+/** Svod (yaxlit) bo'limi F2 qoldig'i = yaxlit − F2 AYNAN (F2 masshtablanmaydi). Yaxlit noma'lum — null. */
+export function yaxlitQoldiqF2(yaxlit: number | null | undefined, f2Jami: number | null | undefined): number | null {
+  return yaxlit == null || !Number.isFinite(yaxlit) ? null : yaxlit2(yaxlit - (son(f2Jami) ?? 0));
 }
 /** Qoldiq = smeta − F2 − almashtirilgan (ROUND 2). Smeta noma'lum — null. F2/almashtirilgan yo'q — 0. */
 export function qoldiq(smeta: number | null | undefined, f2: number | null | undefined, almashtirilgan?: number | null): number | null {
@@ -68,15 +87,15 @@ export function hajmMasshtab(hajm: number | null | undefined, ulush: number | nu
 }
 
 export type KorinishOpsiya = {
-  /** Fakt ko'rinishida MAX(fakt × narx, F2 summa) qoidasi. */
-  faktF2Max?: boolean;
+  /** Fakt ko'rinishida narx qoidasi: tasdiqlangan F2 bor qatorda fakt summasi F2 narxida (`faktSummaF2Narxda`). */
+  f2Narx?: boolean;
 };
 
 /** Qatorning ko'rinishdagi to'g'ri xarajat summasi (QQS siz, ustamasiz). null — noma'lum. */
 export function korinishSummasi(q: KorinishQator, k: Korinish, o: KorinishOpsiya = {}): number | null {
   switch (k) {
     case 'smeta': return qatorSumma(q.smetaHajm, q.narx);
-    case 'fakt': return o.faktF2Max ? faktSummaF2Max(q.faktHajm, q.narx, q.f2Summa) : qatorSumma(q.faktHajm, q.narx);
+    case 'fakt': return o.f2Narx ? faktSummaF2Narxda(q.faktHajm, q.f2Hajm, q.f2Summa, qatorSumma(q.faktHajm, q.narx)).summa : qatorSumma(q.faktHajm, q.narx);
     case 'f2': return q.f2Summa == null ? null : q.f2Summa;
     case 'f2_qoralama': return q.f2QoralamaSumma == null ? null : q.f2QoralamaSumma;
     case 'qoldiq': return qoldiq(qatorSumma(q.smetaHajm, q.narx), q.f2Summa, q.almashtirilganSumma);

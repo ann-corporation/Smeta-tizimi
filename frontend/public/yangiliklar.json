@@ -2,6 +2,20 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 50,
+      "sana": "2026-10-31",
+      "sarlavha": "Fakt summasi tasdiqlangan F2 narxida; Fakt jurnali, Nakopitelniy va Studio bitta hisob yadrosida",
+      "bandlar": [
+        "Qatorda tasdiqlangan F2 bo'lsa, fakt summasi F2 birlik narxida hisoblanadi (masalan smeta 12 000, F2 35 000 bo'lsa — fakt hajmi × 35 000). F2 yo'q qatorda fakt summasi avvalgidek.",
+        "Fakt hajmi qanday kiritilgan bo'lsa shunday ko'rsatiladi: fakt F2 dan kam bo'lishi normal (F2 oldindan olinadi), fakt F2 dan avtomatik olinmaydi. «Fakt = F2» faqat o'sha tugma orqali yoziladi.",
+        "Fakt jurnali, «Fakt (hozircha)», Сличительная, Накопительная, ЛРВ va ЛРВ+ shu bitta narx qoidasidan foydalanadi; Excel formulasi ekrandagi qiymat bilan teng.",
+        "Yaxlit svod bo'limi: fakt — svod summasi × (bo'lim fakti / bo'lim smetasi), F2 qoldig'i — svod summasi − F2 (aynan); narxsiz qator 0 deb sanalmaydi.",
+        "Ostatka, Сличительная, ЛРВ va Накопительная/Ф-3 eksporti ustama yoki podval o'qilmasa jimgina chiqmaydi — sababi ko'rsatiladi.",
+        "Nakopitelniy: smeta «к оплате» bitta hisobdan, kategoriyasi ko'rsatilmagan qism ham kiradi (≈); ma'lumot yetishmasa «не определена» va sababi yoziladi.",
+        "Studio RES: ustama kaskadi podval qatorlari bo'yicha, buyurtmachi xarajatlari alohida, kategoriyasiz qatorlar ustamasiz qo'shiladi (≈); jami QQS bilan birinchi."
+      ]
+    },
+    {
       "id": 49,
       "sana": "2026-10-30",
       "sarlavha": "Bitta hisob yadrosi: ekran va barcha Excel hujjatlar endi bir xil hisoblaydi",

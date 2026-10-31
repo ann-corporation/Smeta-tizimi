@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  NDS_SUKUT_FOIZ, faktF2Max, faktSummaF2Max, hajmMasshtab, hisob, kaskad, kOplate, kategoriyaKf, kesimYigish, korinishKesim,
-  korinishSummasi, podvalTekshir, podvalVsegoKodi, qatorSumma, qoldiq, qqsBilan, serverMerosKoefQoy, yaxlitQatorlarga, standartPodval, yaxlit2, yaxlitBilanYakun, yaxlitKOplate, yaxlitSvodSumma, faktF2MaxFormula,
+  NDS_SUKUT_FOIZ, faktSummaF2Narxda, faktSummaF2NarxFormula, yaxlitQoldiqF2, hajmMasshtab, hisob, kaskad, kOplate, kategoriyaKf, kesimYigish, korinishKesim,
+  korinishSummasi, podvalTekshir, podvalVsegoKodi, qatorSumma, qoldiq, qqsBilan, serverMerosKoefQoy, yaxlitQatorlarga, standartPodval, yaxlit2, yaxlitBilanYakun, yaxlitKOplate, yaxlitSvodSumma,
   yaxlitKorinish, yaxlitQqssiz, yaxlitTaqsim, yigindi2Qatiy, type KorinishQator, type Podval,
 } from './index';
 
@@ -204,26 +204,24 @@ describe('ko‘rinishlar (Construct uslubi)', () => {
     expect(korinishSummasi(q({ f2Summa: -123.45 }), 'f2')).toBe(-123.45);
     expect(korinishSummasi(q({ f2Summa: null }), 'f2')).toBeNull();
   });
-  it('manfiy qator: F2 yo‘q — fakt o‘zgarmaydi; F2 manfiy — MIN (|fakt| ≥ |F2|); narxsiz manfiy F2 — aynan', () => {
-    expect(faktF2Max(-5, null)).toBe(-5);           // F2 yo'q — nolga tushirilmaydi
-    expect(faktF2Max(-5, -7)).toBe(-7);             // manfiy F2: fakt «kamroq bajarilgan» bo'lolmaydi
-    expect(faktF2Max(-9, -7)).toBe(-9);
-    expect(faktSummaF2Max(-5, 10, null)).toBe(-50);
-    expect(faktSummaF2Max(-5, 10, -80)).toBe(-80);
-    expect(faktSummaF2Max(5, null, -33)).toBe(-33); // narxsiz, manfiy F2 — aynan
-    expect(faktSummaF2Max(5, null, 0)).toBe(0);     // 0 ≠ null
-    expect(faktF2MaxFormula('X1', 'K1')).toBe('IF(ISNUMBER(K1),IF(X1="",K1,IF(K1<0,MIN(X1,K1),MAX(X1,K1))),X1)');
-  });
-  it('fakt hech qachon F2 dan kam emas (MAX)', () => {
-    expect(faktF2Max(5, 7)).toBe(7);
-    expect(faktF2Max(null, 7)).toBeNull();
-    expect(faktSummaF2Max(5, 10, 80)).toBe(80);
-    expect(faktSummaF2Max(5, 10, 20)).toBe(50);
-    expect(faktSummaF2Max(5, null, 33)).toBe(33);
-    expect(korinishSummasi(q({ faktHajm: 5, f2Summa: 80 }), 'fakt', { faktF2Max: true })).toBe(80);
+  it('narx qoidasi: F2 bor — fakt summasi F2 narxida (smeta 12 000, F2 35 000); fakt hajmi yozilganidek', () => {
+    // Fakt < F2 — normal (F2 oldindan olinadi): hajm o'zgarmaydi, summa F2 narxida.
+    expect(faktSummaF2Narxda(2, 5, 175000, 24000)).toEqual({ summa: 70000, manba: 'f2', narx: 35000 });
+    // Fakt NULL, F2 bor — fakt NULL qoladi (F2 dan chiqarilmaydi).
+    expect(faktSummaF2Narxda(null, 5, 175000, null).summa).toBeNull();
+    // F2 yo'q — odatdagi fakt summasi.
+    expect(faktSummaF2Narxda(2, 0, 0, 24000)).toEqual({ summa: 24000, manba: 'fakt', narx: null });
+    expect(faktSummaF2Narxda(2, null, null, 24000).manba).toBe('fakt');
+    // Manfiy qator: ishorali narx; F2 summasi noma'lum — narx to'qilmaydi; 0 — 0.
+    expect(faktSummaF2Narxda(-1, -2, -70000, -12000).summa).toBe(-35000);
+    expect(faktSummaF2Narxda(2, 5, null, 24000)).toEqual({ summa: null, manba: 'f2', narx: null });
+    expect(faktSummaF2Narxda(2, 5, 0, 24000).summa).toBe(0);
+    expect(faktSummaF2NarxFormula('H1', 'J1', 'K1', 'ROUND(H1*F1,2)')).toBe('IF(AND(ISNUMBER(J1),J1<>0),IF(AND(ISNUMBER(K1),H1<>""),ROUND(H1*K1/J1,2),""),ROUND(H1*F1,2))');
+    expect(korinishSummasi(q({ faktHajm: 5, f2Hajm: 8, f2Summa: 80 }), 'fakt', { f2Narx: true })).toBe(50);
+    expect(korinishSummasi(q({ faktHajm: 5, f2Hajm: 8, f2Summa: 160 }), 'fakt', { f2Narx: true })).toBe(100);
     expect(korinishSummasi(q({ faktHajm: 5, f2Summa: 80 }), 'fakt')).toBe(50);
-  });
-  it('oylik pul = o‘sha kaskad masshtablangan hajm ko‘rinishida', () => {
+    expect(yaxlitQoldiqF2(1200, 400)).toBe(800);
+  });  it('oylik pul = o‘sha kaskad masshtablangan hajm ko‘rinishida', () => {
     const qs = [q({ id: 1, kat: 'ЧЕЛ', narx: 1000, smetaHajm: 10, davrHajm: hajmMasshtab(10, 0.3) }), q({ id: 2, kat: 'МАТ', narx: 500, smetaHajm: 40, davrHajm: hajmMasshtab(40, 0.3) })];
     const oy = hisob(korinishKesim(qs, 'oy'), { koef: NK });
     const togri = hisob(kesimYigish([['ЧЕЛ', 3000], ['МАТ', 6000]] as Array<[string, number]>, (x) => x[0], (x) => x[1]), { koef: NK });

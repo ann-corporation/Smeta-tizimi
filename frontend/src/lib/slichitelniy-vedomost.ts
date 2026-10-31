@@ -7,7 +7,7 @@ import type { OstatkaIstisno } from './ostatka-export';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami, type KatSummalar } from './nakrutka-podval';
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimQqsBilan, svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
-import { NDS_SUKUT_FOIZ, faktF2Max, faktF2MaxFormula, faktSummaF2Max, qatorSumma, serverMerosKoefQoy, yaxlitBolimJami, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitKorinish, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
+import { NDS_SUKUT_FOIZ, faktSummaF2Narxda, faktSummaF2NarxFormula, qatorSumma, serverMerosKoefQoy, yaxlitBolimJami, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitKorinish, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
 import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
 
 /**
@@ -45,6 +45,8 @@ export type SlichitelniyOpsiya = {
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
   /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
   podval?: Podval | null;
+  /** Server `nk_manba` — meros foizlari izohi (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   /** НДС stavkasi (sukut: nakrutkadagi НДС, u ham bo'lmasa 12 %). */
   ndsFoiz?: number | null;
   /** Svod yaxlit bo'limlari va avlodlari (`yaxlitQatorIdlari`): ularga ustama qo'llanmaydi, podvalda alohida qator. */
@@ -53,9 +55,8 @@ export type SlichitelniyOpsiya = {
   svodYaxlit?: SvodYaxlit | null;
 };
 
-/** Model opsiyalari. `faktF2Max` (sukut yoqilgan, egasi 2026-10-29): fakt hech qachon tasdiqlangan F2 dan kam emas. */
+/** Model opsiyalari. Fakt hajmi yozilganidek; fakt summasi — tasdiqlangan F2 bor qatorda F2 narxida (yadro). */
 export type SlichitelniyModelOpsiya = Pick<SlichitelniyOpsiya, 'faqatFarq' | 'istisnolar'> & {
-  faktF2Max?: boolean | { istisno?: ReadonlySet<number> };
   /** Svod yaxlit (server): bo'lim qatorlari yaxlit summaga taqsimlanadi (smeta, fakt, отклонение) — to'liq ro'yxatda. */
   svodYaxlit?: SvodYaxlit | null;
 };
@@ -84,9 +85,10 @@ export type SlichitelniyQator = {
   nomalum: number;
   /** Svod yaxlit bo'limiga taqsimlangan qator — G/I/M qiymat (formula emas). */
   yaxlitTaqsim?: number;
-  /** MAX(fakt, F2) qoidasi qo'llangan / qiymat F2 dan olingan ('hajm' — fakt hajmi F2 dan kichik; 'summa' — F2 summasi). */
-  faktMax?: boolean;
-  faktF2?: 'hajm' | 'summa';
+  /** Fakt summasi tasdiqlangan F2 birlik narxida (narx qoidasi). */
+  f2Narxda?: boolean;
+  /** Tasdiqlangan F2 summasi noma'lum (NULL) — hujjatda K katagi bo'sh (formula kesh bilan teng bo'lsin). */
+  f2SummaNomalum?: boolean;
   /** Resurs normasi va ota ish qatori indeksi — hujjatda smeta hajmi = norma × ish hajmi (tirik formula). */
   norma?: number | null;
   otaIdx?: number | null;
@@ -111,7 +113,6 @@ const EPS = 1e-9;
 const nol = (x: number): number => (Math.abs(x) < EPS ? 0 : x);
 
 export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: readonly T2QatorHolat[], o: SlichitelniyModelOpsiya = {}): SlichitelniyModel {
-  const maxOp = o.faktF2Max === false ? null : typeof o.faktF2Max === 'object' ? o.faktF2Max : {};
   const rows = [...qatorlar].sort((a, b) => (a.tartib ?? 0) - (b.tartib ?? 0) || a.id - b.id);
   const byId = new Map(rows.map((q) => [q.id, q]));
   const holat = new Map(holatlar.map((h) => [h.qator_id, h]));
@@ -146,45 +147,29 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
   const olchov = (q: T2Qator) => {
     const h = holat.get(q.id);
     const smeta = q.hajm ?? null;
-    let fh = h ? Number(h.fakt_hajm ?? 0) : null;
+    // Fakt hajmi yozilganidek (egasi): F2 dan hech narsa chiqarilmaydi, fakt < F2 — normal. NULL — NULL (0 emas).
+    const fakt = h?.fakt_hajm == null ? null : Number(h.fakt_hajm);
     const f2Hajm = h ? Number(h.f2_hajm ?? 0) : 0;
     const f2Summa = h ? Number(h.f2_summa ?? 0) : 0;
-    // Hisob uchun NULL saqlanadi (0 emas): summa noma'lum-u hajm bor — summa qoidasi qo'llanmaydi.
     const f2HajmV = h?.f2_hajm == null ? null : Number(h.f2_hajm);
     const f2SummaV = h?.f2_summa == null ? null : Number(h.f2_summa);
-    // Qoida faqat tasdiqlangan F2 BOR qatorda (hajm yoki summa 0 dan farqli); F2 yo'q — fakt o'zgarmaydi.
-    const f2Bor = (f2HajmV != null && f2HajmV !== 0) || (f2SummaV != null && f2SummaV !== 0);
-    // F2 ishorasi hajmdan (hajm 0/yo'q bo'lsa summadan). Fakt bilan ishora har xil — fakt o'zgarmaydi, diqqatga.
-    const f2Ishora = Math.sign(f2HajmV || f2SummaV || 0);
-    const aralash = f2Bor && fh != null && fh !== 0 && Math.sign(fh) !== f2Ishora;
-    const useMax = !!maxOp && f2Bor && !aralash && !maxOp.istisno?.has(q.id);
-    // Fakt faqat ish (bl) qatorida yozilgan, resurslarda 0 — resurs fakti = hajm × (bl fakt / bl smeta hajmi).
-    if (useMax && fh === 0 && q.ota_id != null && BARG.has(q.tur ?? '')) {
-      const ota = byId.get(q.ota_id); const oh = ota ? holat.get(ota.id) : undefined;
-      const sib = ota ? bolalar.get(ota.id) ?? [] : [];
-      if (ota?.tur === 'bl' && oh && Number(oh.fakt_hajm ?? 0) > 0 && (ota.hajm ?? 0) > 0 && q.hajm != null && sib.every((x) => Number(holat.get(x.id)?.fakt_hajm ?? 0) === 0))
-        fh = (q.hajm * Number(oh.fakt_hajm)) / (ota.hajm as number);
-    }
-    // Egasi qoidasi (2026-10-29): fakt F2 dan «kam» emas, ishoraga qarab (manfiyda MIN) — yadro `faktF2Max`.
-    const fakt = useMax ? faktF2Max(fh, f2HajmV) : fh;
+    // NARX qoidasi (yadro `faktSummaF2Narxda`): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida.
+    const asl = qatorSumma(fakt, q.narx ?? null);
+    const r = faktSummaF2Narxda(fakt, f2HajmV, f2SummaV, asl);
     const farq = smeta == null || fakt == null ? null : nol(fakt - smeta);
-    return { h, smeta, fakt, farq, useMax, aralash, f2dan: useMax && fh != null && fakt != null && Math.abs(fakt - fh) > EPS, f2Hajm, f2Summa, f2SummaV };
-  };
-
-  const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number, otaIdx: number | null = null): number | null => {
+    return { h, smeta, fakt, faktSumma: r.summa,
+      // Izoh faqat F2 narxi summani o'zgartirganda (F2 narxi = smeta narxi bo'lsa shovqin yo'q).
+      f2Narxda: r.manba === 'f2' && (r.summa == null ? asl != null : asl == null || Math.abs(r.summa - asl) > 0.005), farq, f2Hajm, f2Summa, f2SummaV };
+  };  const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number, otaIdx: number | null = null): number | null => {
     const tur = q.tur ?? '';
     const kids = bolalar.get(q.id) ?? [];
     if (BARG.has(tur) || (tur === 'bl' && !kids.length)) {
-      const { smeta, fakt, farq, f2Hajm, f2Summa, f2SummaV, useMax, f2dan, aralash } = olchov(q);
+      const { smeta, fakt, faktSumma, f2Narxda, farq, f2Hajm, f2Summa, f2SummaV } = olchov(q);
       if (o.faqatFarq && farq === 0 && q.narx != null) return null;
       const narx = q.narx ?? null;
       const smetaSumma = qatorSumma(smeta, narx);
-      const faktHN = qatorSumma(fakt, narx);
-      // MAX qoidasi: summa = MAX(fakt × narx, F2 summa) (yadro); narxsiz qatorda — F2 summasi aynan.
-      const faktSumma = useMax ? faktSummaF2Max(fakt, narx, f2SummaV) : faktHN;
-      if (aralash) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: 'факт и принятое по Ф-2 разного знака — факт не изменен, проверьте акты', joy: yolOf(q) || undefined });
-      const faktF2: 'hajm' | 'summa' | undefined = useMax ? (f2dan ? 'hajm' : faktSumma != null && Math.abs(faktSumma - (faktHN ?? 0)) > 0.005 ? 'summa' : undefined) : undefined;
-      const farqSumma = qatorSumma(farq, narx);
+      // Отклонение SUMMA = I − G (fakt summasi F2 narxida − smeta summasi) — qator ichida izchil.
+      const farqSumma = faktSumma == null || smetaSumma == null ? null : yaxlit2(faktSumma - smetaSumma);
       const sabab = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narxBildirishnomaKerak(q, narx) ? 'нет сметной цены — строка не включена в сумму' : ''].filter(Boolean);
       if (sabab.length) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: sabab.join('; '), joy: yolOf(q) || undefined });
       barglar++;
@@ -194,8 +179,8 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       out.push({
         id: q.id, tur: 'barg', daraja, tartib: blNo ? `${blNo}.${k}` : String(++no), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma,
-        izoh: [izohOf(q, smeta, fakt, farq), faktF2 === 'hajm' ? 'акт факта нет или меньше — по утвержденной Ф-2' : faktF2 === 'summa' ? 'сумма по утвержденной Ф-2' : ''].filter(Boolean).join('; '),
-        nomalum, kat: q.kat ?? null, bolalar: [], norma: q.norma ?? null, otaIdx, faktMax: useMax || undefined, faktF2,
+        izoh: [izohOf(q, smeta, fakt, farq), f2Narxda ? 'сумма факта — по цене утвержденной Ф-2' : ''].filter(Boolean).join('; '),
+        nomalum, kat: q.kat ?? null, bolalar: [], norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2SummaV == null || undefined,
       });
       return out.length - 1;
     }
@@ -246,6 +231,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       if (!leaves?.length) continue;
       const lump = Number(b.qqssiz);
       const sm = yigindi2(leaves.map((i) => out[i].smetaSumma)), fk = yigindi2(leaves.map((i) => out[i].faktSumma));
+      // Svod: fakt = yaxlit × (bo'lim fakti / bo'lim smetasi); bo'lim fakti summalari narx qoidasidan (F2 narxida). F2 aynan.
       const fJami = yaxlitBolimJami(lump, sm, fk);
       // Noma'lum (null) qatorlar taqsimga kirmaydi va null qoladi (0 emas); fakt — faqat ma'lum qatorlar bo'yicha, diqqatda aytiladi.
       const G = yaxlitQatorlarga(lump, leaves.map((i) => ({ id: i, summa: out[i].smetaSumma })));
@@ -323,7 +309,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   nk.НДС = o.ndsFoiz ?? nk.НДС ?? NDS_SUKUT_FOIZ;
   // Foizlar faqat podvaldan (server meros rejimi); noma'lum — к оплате bo'sh, 0 emas.
-  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
   const kfJS = kategoriyaKf(nk, podval);
   const ndsFoiz = podvalNdsFoiz(podval, nk);
   const yax = (q: SlichitelniyQator) => q.tur === 'barg' && (!!o.yaxlitIdlar?.has(q.id) || q.yaxlitTaqsim != null);
@@ -385,12 +371,11 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
         // Svod bo'limiga taqsimlangan qator: G/I/M — bo'lim yaxlit summasidan taqsim (qiymat, formula emas).
         q.yaxlitTaqsim != null ? qiy(q.smetaSumma) : { f: `IF(OR(E${n}="",F${n}=""),"",ROUND(E${n}*F${n},2))`, v: q.smetaSumma ?? '' },
         qiy(q.faktHajm),
-        q.yaxlitTaqsim != null ? qiy(q.faktSumma) : q.faktMax
-          ? { f: `IF(H${n}="","",${faktF2MaxFormula(`IF(F${n}="","",ROUND(H${n}*F${n},2))`, `K${n}`)})`, v: q.faktSumma ?? '' }
-          : { f: `IF(OR(H${n}="",F${n}=""),"",ROUND(H${n}*F${n},2))`, v: q.faktSumma ?? '' },
-        q.f2Hajm, q.f2Summa,
+        // Narx qoidasi (yadro): F2 bor — ROUND(H × K / J); yo'q — ROUND(H × F). Kesh = formula.
+        q.yaxlitTaqsim != null ? qiy(q.faktSumma) : { f: faktSummaF2NarxFormula(`H${n}`, `J${n}`, `K${n}`, `IF(OR(H${n}="",F${n}=""),"",ROUND(H${n}*F${n},2))`), v: q.faktSumma ?? '' },
+        q.f2Hajm, q.f2SummaNomalum ? '' : q.f2Summa,
         { f: `IF(OR(E${n}="",H${n}=""),"",H${n}-E${n})`, v: q.farqHajm ?? '' },
-        q.yaxlitTaqsim != null ? { f: `ROUND(I${n}-G${n},2)`, v: q.farqSumma ?? '' } : { f: `IF(OR(L${n}="",F${n}=""),"",ROUND(L${n}*F${n},2))`, v: q.farqSumma ?? '' },
+        q.yaxlitTaqsim != null ? { f: `ROUND(I${n}-G${n},2)`, v: q.farqSumma ?? '' } : { f: `IF(OR(G${n}="",I${n}=""),"",ROUND(I${n}-G${n},2))`, v: q.farqSumma ?? '' },
         q.izoh || null,
         q.narx == null && mashinistMehnati(q) ? 0 : { f: `IF(OR(G${n}="",I${n}="",M${n}=""),1,0)`, v: q.nomalum },
         ...((): Qiymat[] => {

@@ -6,6 +6,14 @@ import type { FaktYigindi } from '../../lib/fakt-studio';
 import { nakopitelniyMoslik, type BolimSumma } from '../../lib/fakt-jurnal';
 import { t2NakopitelniyOl, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
 
+/** Narx qoidasi izohi (yadro `faktSummaF2Narxda`): tasdiqlangan F2 bor pozitsiyalarda fakt summasi F2 narxida. */
+export function FaktF2Izoh({ f2Narxda }: { f2Narxda: number }) {
+  if (!f2Narxda) return null;
+  return <div className="text-[10px] text-text-mute" data-testid="fakt-f2-izoh">
+    {t('fakt summasi tasdiqlangan F2 narxida: {n} ta pozitsiya (fakt hajmi o‘zgarmaydi)', { n: String(f2Narxda) })}
+  </div>;
+}
+
 /**
  * Fakt Studio yig'indi paneli: shu obyekt bo'yicha fakt (ustamali + ustamasiz), smetada yo'q yangi ishlar,
  * bajarilmaydigan hajmlar va F2 tayyorlashga o'tish. Barcha summalar SummaJuft orqali (ustamali asosiy, ustamasiz kichik).
@@ -33,7 +41,8 @@ export function FaktStudioBar({ yigindi, obyektId, kompaniyaId, onF2, onYangiIsh
   const ml = jami ? nakopitelniyMoslik(jami, nak) : null;
   return <section className="karta flex flex-wrap items-start gap-x-6 gap-y-2 px-3 py-2" aria-label={t('Fakt yig‘indisi')} data-testid="fakt-studio-bar">
     <div><div className="text-[10px] uppercase text-text-mute">{t('Fakt (hozircha)')}</div>
-      <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={y.faktUstamasiz} katKesim={y.faktKesim} /></div>
+      <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={y.faktUstamasiz} katKesim={y.faktKesim} />
+      <FaktF2Izoh f2Narxda={y.faktF2Narxda} /></div>
     {jami && ([['smeta', t('Smeta')], ['f2', t('F2 (tasdiqlangan)')], ['qoldiq', t('Qoldiq')]] as const).map(([k, l]) => <div key={k} data-testid={`fs-jami-${k}`}><div className="text-[10px] uppercase text-text-mute">{l}</div>
       <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami[k].ustamasiz} katKesim={jami[k].kesim} /></div>)}
     <div><div className="text-[10px] uppercase text-text-mute">{t('Smetada yo‘q ishlar')}: <b className="text-text" data-testid="fs-yangi-soni">{y.yangiSoni}</b></div>
