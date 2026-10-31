@@ -35,6 +35,6 @@ describe('F2 tarixi — buxgalter faqat o‘qiydi', () => {
     m.k = { joriy: { id: 5, rol: 'pto', permissions: ['company.read', 'f2.read', 'f2.prepare', 'f2.approve', 'f2.cancel'] }, superadmin: false };
     chiz();
     expect(await screen.findByRole('button', { name: /Rad etish/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Bekor qilish/ })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Bekor qilish/ }).length).toBeGreaterThan(0);
   });
 });

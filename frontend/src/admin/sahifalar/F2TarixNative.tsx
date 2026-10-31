@@ -1,6 +1,6 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Download, Eye, FileText, Pencil, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
+import { Ban, CheckCircle2, Download, Eye, FileText, Pencil, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { F2HujjatKorinish } from '../../components/f2-hujjat/F2HujjatKorinish';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
@@ -31,6 +31,10 @@ import { downloadBlob } from '../../lib/construction-document-control/export/dow
 import { t, tilLocale } from '../../i18n/til';
 import { ZakazchigaYuborish } from '../zakazchik/ZakazchigaYuborish';
 import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
+import { f2BekorMumkin } from '../../lib/f2-bekor';
+import { F2BekorOyna, type F2BekorOynaAkt } from './F2BekorOyna';
+import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
+import { daraxtKaliti } from '../../umumiy/daraxt/useT2Daraxt';
 
 type F2Detail = F2Tafsilot;
 
@@ -89,9 +93,15 @@ export function F2TarixNative() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [actionReason, setActionReason] = useState('');
   const [error, setError] = useState('');
+  /** Bekor qilish uchun belgilangan aktlar (bitta obyekt) va ochiq tasdiq oynasi. */
+  const [tanlangan, setTanlangan] = useState<ReadonlySet<number>>(new Set());
+  const [bekorOyna, setBekorOyna] = useState<F2BekorOynaAkt[] | null>(null);
+  const qc = useIxtiyoriyQueryClient();
 
   const obyektId = Number(params.get('obyekt'));
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
+  // Obyekt almashsa — belgilar va oyna tozalanadi (bir amal faqat bitta obyekt aktlari).
+  useEffect(() => { setTanlangan(new Set()); setBekorOyna(null); }, [obyektId]);
   const f2Reestr = useMemo(() => reestr.filter((a) => a.tur === 'f2'), [reestr]);
   const selectedAkt = f2Reestr.find((a) => a.id === selectedAktId) ?? f2Reestr[0] ?? null;
   useEffect(() => {
@@ -262,6 +272,25 @@ export function F2TarixNative() {
   const obyektNom = obyektlar.find((o) => o.id === obyektId)?.nom || '';
   const smetaHajm = useMemo(() => new Map(smetaRows.map((r) => [r.id, r.hajm == null ? null : Number(r.hajm)] as const)), [smetaRows]);
   const statusOf = (akt: T2AktReestr): PtoLifecycleStatus => akt.lifecycle_status ?? (akt.holat === 'tasdiqlangan' ? 'approved' : akt.holat === 'bekor' ? 'cancelled' : 'draft');
+  /** Bekor qilish ruxsati: f2.cancel; tasdiqlangan F2 uchun qo'shimcha f2.approve (server ham tekshiradi). */
+  const bekorMumkin = (akt: T2AktReestr) => !f2YozishYopiq && f2BekorMumkin(statusOf(akt), { mayCancel, mayApprove });
+  const bekorAkt = (akt: T2AktReestr): F2BekorOynaAkt => ({ id: akt.id, versiya: akt.versiya, lifecycle_status: statusOf(akt),
+    raqam: akt.raqam, oy: akt.oy, hujjat_jami: akt.hujjat_jami, qator_soni: akt.qator_soni });
+  const tanlanganAktlar = f2Reestr.filter((a) => tanlangan.has(a.id) && bekorMumkin(a));
+  const belgila = (id: number, on: boolean) => setTanlangan((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
+  /** Bekor qilingandan keyin: daraxt (LRV/fakt) keshi va obyektlar ro'yxati eskirgan — tashlanadi, reestr qayta o'qiladi. */
+  async function bekorTugadi(n: { bajarildi: number[]; xato: unknown }) {
+    if (n.bajarildi.length) {
+      qc?.removeQueries({ queryKey: daraxtKaliti(obyektId) });
+      void qc?.invalidateQueries({ queryKey: ['t2-obyektlar'] });
+      toast(t('{n} ta F2 bekor qilindi — LRV, qoldiq va Nakopitelniy yangilanadi.', { n: n.bajarildi.length }), 'ok');
+      setTanlangan(new Set());
+      await yuklash();
+    }
+    // Xatoda oyna ochiq qoladi (xabar ko'rinadi) — faqat hali bekor qilinmaganlar bilan.
+    if (!n.xato) setBekorOyna(null);
+    else setBekorOyna((s) => s?.filter((a) => !n.bajarildi.includes(a.id)) ?? null);
+  }
   const stampCls = (s: PtoLifecycleStatus) => ({ draft: 'fz-stamp--draft', submitted: 'fz-stamp--info', checked: 'fz-stamp--info', approved: 'fz-stamp--ok', rejected: 'fz-stamp--danger', cancelled: 'fz-stamp--danger', superseded: '' } as const)[s];
 
   /** Qoralamani tahrirlash havolalari: import orqali yaratilgan — import oynasi; tizimda yaratilgan — F2 tayyorlash. */
@@ -270,7 +299,10 @@ export function F2TarixNative() {
     : <><Link className="fz-btn fz-btn--sm" to={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${akt.id}`} title={t('F2 tayyorlashda ochib, hajm va narxni yangilash')}><Pencil />{t('Tizimda tahrirlash')}</Link><Link className="fz-btn fz-btn--sm fz-btn--ghost" to={`/admin/f2?obyekt=${obyektId}&akt=${akt.id}`} title={t('Yangi (tuzatilgan) Excel faylni shu qoralamaga yuklash')}><Upload />{t('Fayldan yangilash')}</Link></>);
 
   return (
-    <>{korinish.oyna}<Sahifa
+    <>{korinish.oyna}
+    {bekorOyna && (workspace.companyId ?? joriy?.id) && <F2BekorOyna kompaniyaId={(workspace.companyId ?? joriy?.id) as number} aktlar={bekorOyna}
+      onYop={() => setBekorOyna(null)} onTugadi={(n) => void bekorTugadi(n)} />}
+    <Sahifa
       sarlavha="F2 tarixi va tasdiqlash"
       tavsif="Qoralama ko‘rib chiqiladi; faqat tasdiqlangan aniq manba LRV va Nakopitelniyga kiradi"
       amallar={<button type="button" onClick={() => void yuklash()} disabled={!validId || loading} className="fz-btn fz-btn--ghost"><RefreshCw className={loading ? 'animate-spin' : ''} /> {t('Yangilash')}</button>}
@@ -284,6 +316,7 @@ export function F2TarixNative() {
             </select>
           </label>
           <div className="flex gap-2 text-[12px] text-text-dim"><span className="fz-chip">{t('{n} ta F2', { n: f2Reestr.length })}</span><span className="fz-chip fz-chip--accent">{t('{n} tasi tasdiqlangan', { n: f2Reestr.filter((a) => a.holat === 'tasdiqlangan').length })}</span></div>
+          {tanlanganAktlar.length > 0 && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna(tanlanganAktlar.map(bekorAkt))}><Ban />{t('Tanlanganlarni bekor qilish ({n})', { n: tanlanganAktlar.length })}</button>}
         </section>
 
         {!validId && <section className="fz-note fz-note--info"><FileText /> {t('Avval obyektni tanlang — uning barcha F2 hujjatlari shu yerda ko‘rinadi.')}</section>}
@@ -298,7 +331,10 @@ export function F2TarixNative() {
                   const active = (selectedAkt?.id ?? null) === akt.id;
                   const st = statusOf(akt);
                   return (
-                    <button key={akt.id} type="button" className="fz-list__q" aria-current={active} onClick={() => setSelectedAktId(akt.id)}>
+                    <div key={akt.id} className="flex items-start">
+                    {bekorMumkin(akt) && <input type="checkbox" className="ml-2 mt-3 shrink-0" aria-label={t('F2 №{r} ni bekor qilish uchun tanlash', { r: akt.raqam || String(akt.id) })}
+                      checked={tanlangan.has(akt.id)} onChange={(e) => belgila(akt.id, e.target.checked)} />}
+                    <button type="button" className="fz-list__q min-w-0 flex-1" aria-current={active} onClick={() => setSelectedAktId(akt.id)}>
                       <span className="min-w-0">
                         <span className="fz-list__nom block truncate">{davrNomi(akt.oy, tilLocale()) || t('Davr noma’lum')}</span>
                         <span className="fz-list__sub">№ {akt.raqam || '—'} · {t('{n} qator', { n: akt.qator_soni ?? '—' })}</span>
@@ -312,6 +348,7 @@ export function F2TarixNative() {
                         {akt.reestr_holat === 'jami_nomalum' && <span className="fz-chip">{t('jami noma’lum')}</span>}
                       </span>
                     </button>
+                    </div>
                   );
                 })}
                 {f2Reestr.length === 0 && <div className="p-5 text-[13px] text-text-dim">{t('Bu obyektda F2 hujjati hali yo‘q.')}</div>}
@@ -333,6 +370,7 @@ export function F2TarixNative() {
                     </>}
                     {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="fz-btn"><FileText />{t('Форма №3 (счёт-фактура)')}</Link>}
                     {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && !importAkt.import && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
+                    {bekorMumkin(selectedAkt) && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna([bekorAkt(selectedAkt)])} disabled={savingId != null}><Ban />{t('Bekor qilish')}</button>}
                   </>}
                   ostida={<>
                     {importAkt?.id === selectedAkt.id && importAkt.import && <p className="fz-note fz-note--info"><FileText />{t('F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.')}</p>}
