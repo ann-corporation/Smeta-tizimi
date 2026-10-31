@@ -28,7 +28,15 @@ Independent Claude reviewdan keyin merge. Production DBga yozish yo‘q. Bu PRni
 - `npx tsc -p tsconfig.functions.json`: xatosiz; functions o‘zgarmadi.
 - `npm run lint`: PASS, mavjud warninglar bor; yangi ombor fayllari focused oxlint xatosiz.
 - `git diff --check`: PASS.
-- To‘liq `npx vitest run --maxWorkers=4`: ishga tushirilgan; natija hali olinmagan, PASS deb hisoblanmaydi. Lokal log: `C:/Temp/desktop-d1-vitest.log`.
+- To‘liq `npx vitest run --maxWorkers=4` (`a25c5dc`): 583 fayl PASS / 12 skip; 4258 test PASS / 25 skip, 522.50s. Lokal log: `C:/Temp/desktop-d1-vitest.log`.
 - `node ops/governance-check.cjs`: FAIL — avvalgi 4 xato: AKKAUNT production flag, AKKAUNT/DIZAYN kirish va public-entry overlaps, C11 contract/ledger overlap. Yangi D1 owns boshqa tasklar bilan kesishmaydi.
 
 Qabul: saqlash mantiqi focused testda tekshirildi; real IndexedDB browser smoke, auth/logout ulanishi, 26k performance, D1b va independent review hali kerak. Umumiy release READY emas.
+
+## Davomi — o‘qish adapteri
+
+`oqish.ts`: portlar bilan tekshiriladigan o‘qish oqimi. Flag yoki paket ruxsati o‘chiq — avvalgi reader. Kesh hech qachon serverTasdiq bermaydi; 403 → ombor yopilib, eski API o‘z ruxsatini tekshiradi; 401 yopiladi va fallback yo‘q. Javobdagi company/object tekshiriladi, epoch bilan eski javoblar chiqmaydi. Kesh o‘qish/yozish xatosi yoki osilib qolishi server javobini to‘xtatmaydi. `bayroq.ts`: `t2.ombor=1`, sukut o‘chiq. Runtime hook HALI ulanmagan; shu sabab flagni yoqish hozir saytni tezlashtirmaydi.
+
+Davom tekshiruvi: 3 fayl/24 focused test PASS; `tsc -b` PASS; ombor focused oxlint PASS; diff-check PASS. Oldingi full suite natijasi yuqorida o‘z SHA doirasida qayd etildi; yangi loader suite alohida o‘tdi.
+
+Claude bilan kelishiladigan ulash: session CryptoKey lifecycle (refresh/offline va logout) hamda `useT2Daraxt.ts` uchun owns. Bu fayllarga parallel tahrir qilinmadi. D1ning qolgan qabul mezonlari ochiq.
