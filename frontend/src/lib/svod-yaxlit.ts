@@ -1,9 +1,10 @@
 /**
  * Svod yaxlit bo'limlari (egasi 2026-10-27, migratsiya 20261113500000_t2_svod_yaxlit_v1): svoddagi «письмо
  * заказчика» / ekspertiza yaxlit summalariga ustama HISOBLANMAYDI. Server (`t2_obyekt_nakrutka_v1`) belgili bo'lim
- * avlodlarini kategoriyalardan chiqaradi va bo'lim summasini (QQS siz) ИТОГО-4 ga ustamasiz qo'shadi; QQS bir marta.
+ * avlodlarini kategoriyalardan chiqaradi; svod summasi (QQS bilan) НДС dan keyin aynan qo'shiladi, ИТОГО-4 ga uning
+ * QQS siz qismi (egasi 2026-10-30; SQL `t2_nakrutka_yaxlit_qosh_v2`, 20261116000000).
  *
- * Bu fayl — o'sha qadamning JS oynasi (SQL `t2_nakrutka_yaxlit_qosh_v1` bilan tiyingacha bir xil), yangi formula emas.
+ * Bu fayl — o'sha qadamning JS oynasi (SQL bilan tiyingacha bir xil), yangi formula emas.
  * Ekran/eksportlar shu yerdagi yordamchilardan foydalanadi:
  *  - `yaxlitQatorIdlari` — belgili bo'lim va uning barcha avlodlari (qator darajasida ustama qo'llanmaydi);
  *  - `svodYaxlitQqs` / `bolimQqsBilan` — yaxlit summa QQS BILAN (svodda НДС dan keyin, yakuniy — egasi 2026-10-30).

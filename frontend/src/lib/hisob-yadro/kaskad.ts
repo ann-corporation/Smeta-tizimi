@@ -146,8 +146,9 @@ export function kategoriyaKf(podval: Podval): Record<Kat, number | null> {
 }
 
 /**
- * Kf JADVALI (ko'rsatish uchun) — SQL `t2_nakrutka_koef_jadval_v1` bilan bir xil: 1 so'mlik kaskad ВСЕГО, `round(…, 2)`.
- * Ekran va hujjatdagi koeffitsient JADVALI shu. Pul hisobi (к оплате) yaxlitlashsiz Kf bilan — aks holda katta
+ * Kf JADVALI (ko'rsatish uchun) — 1 so'mlik kaskad ВСЕГО, `round(…, 2)`. SQL `t2_nakrutka_koef_jadval_v1`
+ * (20261116000000 dan) yaxlitlanmagan Kf qaytaradi (= `kategoriyaKf`); bu jadval — uning 2 xonali ko'rinishi.
+ * Pul hisobi (к оплате) yaxlitlashsiz Kf bilan — aks holda katta
  * summalarda 0,5 % gacha xato bo'lardi (1 mlrd → 5 mln so'm).
  */
 export function kategoriyaKfJadval(podval: Podval): Record<Kat, number | null> {
