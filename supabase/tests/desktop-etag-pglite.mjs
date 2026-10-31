@@ -1,0 +1,83 @@
+// Local synthetic-only test. PGLITE_DIR points to an installed @electric-sql/pglite package.
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import assert from 'node:assert/strict';
+const runtime = process.env.PGLITE_DIR;
+const { PGlite } = await import(runtime ? pathToFileURL(resolve(runtime,'dist/index.js')).href : '@electric-sql/pglite');
+const db = new PGlite();
+const migration = new URL('../migrations/20261031181105_t2_obyekt_paket_muhr_v1.sql',import.meta.url);
+const rollback = new URL('../migrations/20261031181105_t2_obyekt_paket_muhr_v1.rollback.sql',import.meta.url);
+let checks=0;
+try {
+  await db.exec(`
+    create role anon; create role authenticated; create role service_role;
+    create schema snapshot;
+    create table snapshot.qaytarish_jurnal(id bigint,kompaniya_id bigint,obyekt_id bigint);
+    create table t2_obyekt(id bigint primary key,kompaniya_id bigint,nom text);
+    create table t2_qator(id bigint primary key,obyekt_id bigint,versiya int not null,versiya_holat text,nom text);
+    create table t2_akt(id bigint primary key,obyekt_id bigint,versiya int not null,holat text);
+    create table t2_akt_qator(id bigint primary key,akt_id bigint,versiya int not null,certified_amount numeric);
+    create table t2_nakrutka_podval(id bigint,obyekt_id bigint,kompaniya_id bigint,nom text,versiya int,qatorlar jsonb,faol boolean);
+    create table t2_svod_yaxlit(id bigint,obyekt_id bigint,qator_id bigint,svod_summa numeric,qqs_stavka numeric,turi text,versiya int,faol boolean,dalil text,kontragent_nom text);
+    create table t2_smeta_versiya(id bigint,obyekt_id bigint,nom text,tur text,holat text,manba_sana date,yaratildi timestamptz);
+    create table t2_nakrutka_koef(id bigint,kompaniya_id bigint,shartnoma_id bigint,koef_kod text,qiymat numeric,versiya int);
+    create table t2_shartnoma_bog(id bigint,obyekt_id bigint,shartnoma_id bigint,holat text);
+    create view t2_qator_holat as select id from t2_qator;
+    create view t2_zamena_qoplash as select id from t2_qator;
+    create function t2_actor_kompaniya_azo_tekshir(k bigint,a bigint) returns text language plpgsql as $$begin
+      if k<>8 or a<>7 then raise exception 'DENIED' using errcode='42501'; end if; return 'pto'; end$$;
+    create function t2_obyekt_nakrutka_v1(o bigint,a bigint,s bigint) returns jsonb language plpgsql stable as $$begin raise exception 'SLOW_NK_MUST_NOT_RUN_IN_PROBE'; end$$;
+    create function t2_nakrutka_default_v1() returns jsonb language sql immutable as $$select '{}'::jsonb$$;
+    create function t2_nakrutka_koef_ol_v1(k bigint,a bigint,s bigint) returns jsonb language sql stable as $$select '{}'::jsonb$$;
+    create function t2_nakrutka_podval_smeta_nk_v1(q jsonb) returns jsonb language sql immutable as $$select q$$;
+    create function t2_svod_yaxlit_obyekt_v1(o bigint) returns jsonb language sql stable as $$select '{}'::jsonb$$;
+    create function t2_almashtirilgan_hajm(q bigint) returns numeric language sql stable as $$select 0::numeric$$;
+    create function t2_almashtirilgan_oz_hajm(q bigint) returns numeric language sql stable as $$select 0::numeric$$;
+    create function t2_obyekt_paket_v1(o bigint,a bigint) returns json language sql stable as $$select json_build_object('obyekt_id',o,'fixture',true)$$;
+    insert into t2_obyekt values(4,8,'SYNTHETIC'),(5,9,'FOREIGN_SYNTHETIC');
+    insert into t2_qator values(10,4,1,'faol','ACTIVE'),(11,4,1,'almashtirilgan','HISTORY');
+    insert into t2_akt values(20,4,1,'qoralama');
+    insert into t2_akt_qator values(30,20,1,null);
+  `);
+  const sql=await readFile(migration,'utf8'); await db.exec(sql);
+  const hash=async()=> (await db.query('select t2_obyekt_paket_muhr_v1(4,7) h')).rows[0].h;
+  const changed=async(q)=>{const before=await hash(); await db.exec(q); assert.notEqual(await hash(),before);checks++;};
+  const first=await hash(); assert.match(first,/^W\/"t2-paket-1-[a-f0-9]{32}"$/); checks++;
+  assert.equal(await hash(),first); checks++;
+  // Monotonic versiya comes from live verified t2_versiya_oshir; no business writer is mocked as verified.
+  await changed('update t2_qator set versiya=versiya+1 where id=10');
+  await changed('update t2_qator set versiya=versiya+1 where id=11'); // historical replacement dependency
+  await changed('update t2_akt set holat=\'bekor\',versiya=versiya+1 where id=20');
+  await changed('update t2_akt_qator set certified_amount=0,versiya=versiya+1 where id=30');
+  await changed('insert into t2_akt_qator values(31,20,1,0)');
+  await changed('delete from t2_akt_qator where id=31');
+  await changed("insert into t2_nakrutka_koef values(70,8,null,'SYNTHETIC',1,1)");
+  await changed("update t2_nakrutka_koef set qiymat=2,versiya=versiya+1 where id=70");
+  await changed("insert into t2_shartnoma_bog values(80,4,90,'faol')");
+  await changed("insert into t2_nakrutka_koef values(71,8,90,'SYNTHETIC',3,1)");
+  await changed("create or replace function t2_nakrutka_default_v1() returns jsonb language sql immutable as $$select '{\"synthetic\":null}'::jsonb$$");
+  await changed("update t2_obyekt set nom='SYNTHETIC_RENAMED' where id=4");
+  await changed("insert into t2_nakrutka_podval values(40,4,8,'P',1,'[]',true)");
+  await changed("insert into t2_svod_yaxlit values(50,4,10,0,null,'fixture',1,true,null,null)");
+  await changed("update t2_svod_yaxlit set dalil='SYNTHETIC_EVIDENCE' where id=50");
+  await changed("insert into t2_smeta_versiya values(60,4,'V','fixture','faol',null,null)");
+  await changed("update t2_qator set nom='RESTORED' where id=10; insert into snapshot.qaytarish_jurnal values(1,8,4)");
+  await changed("insert into snapshot.qaytarish_jurnal values(2,8,null)");
+  const otherScope=await hash(); await db.exec('insert into snapshot.qaytarish_jurnal values(3,9,null)'); assert.equal(await hash(),otherScope);checks++;
+  const same=await hash(); await db.exec('update t2_qator set nom=nom where id=10'); assert.equal(await hash(),same); checks++;
+  await assert.rejects(db.query('select t2_obyekt_paket_muhr_v1(5,7)')); checks++;
+  await db.exec('begin');
+  const original=(await db.query('select t2_obyekt_paket_v1(4,7) j')).rows[0].j;
+  const wrapped=(await db.query('select t2_obyekt_paket_etag_v1(4,7) j')).rows[0].j;
+  assert.deepEqual(wrapped,original);checks++;
+  const headers=(await db.query("select current_setting('response.headers') h")).rows[0].h;
+  assert.equal(JSON.parse(headers)[0].ETag,await hash());checks++;
+  await db.exec('rollback');
+  const grants=await db.query("select has_function_privilege('anon','t2_obyekt_paket_muhr_v1(bigint,bigint)','execute') a, has_function_privilege('authenticated','t2_obyekt_paket_etag_v1(bigint,bigint)','execute') b, has_function_privilege('service_role','t2_obyekt_paket_etag_v1(bigint,bigint)','execute') s");
+  assert.deepEqual(grants.rows[0],{a:false,b:false,s:true});checks++;
+  await db.exec(await readFile(rollback,'utf8'));
+  assert.equal((await db.query("select to_regprocedure('t2_obyekt_paket_muhr_v1(bigint,bigint)') p")).rows[0].p,null);checks++;
+  await db.exec(sql); checks++;
+  console.log(JSON.stringify({checks,status:'PASS',scope:'synthetic schema; real actor policy/performance not proven'}));
+} finally {await db.close();}
