@@ -1,4 +1,4 @@
--- 20261116400000_t2_obyekt_paket_v1 — OBYEKT PAKETI (ADR docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md §1.2, PR1).
+-- 20261116400000_t2_obyekt_paket_v1 — OBYEKT PAKETI (ADR docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md §1.2, PR1a).
 --
 -- Bitta chaqiruvda butun obyekt (faqat FAOL smeta versiyasi): qatorlar (t2_daraxt ustunlari) + holat (t2_qator_holat
 -- ning xom ustunlari) + F2 ro'yxati + meta (nakrutka, versiyalar). USTUNLI JSON: har maydon — tartib bo'yicha massiv,
@@ -14,7 +14,8 @@
 --   * q.qoshimcha/zamena, h.fakt_manbasi — 0/1 (fakt_manbasi: 0 DIRECT, 1 BL_NORMA);
 --   * q.xom_qator, h.almashtirilgan_hajm/summa — siyrak obyekt {id: qiymat} (yo'q kalit — null / 0 / 0);
 --   * qaytish turi `json` (jsonb emas): massivlar bo'sh joysiz chiqadi — 26k qatorli obyektda ~20% kam bayt.
---     Boshida rev/meta_rev turadi — shlyuz birinchi bo'lakdan o'qiydi (JSON parse qilmasdan).
+--   * PR1a: TRIGGERSIZ — reviziya/ETag yo'q (PR1b: kompozit muhr, PR3: xid8 jurnal);
+--   * lugat.tur qat'iy: noma'lum tur jim null bo'lmaydi — xato.
 
 create or replace function public.t2_obyekt_paket_v1(p_obyekt_id bigint, p_actor_id bigint)
 returns json
@@ -23,16 +24,14 @@ set search_path to 'public', 'pg_temp'
 set work_mem to '32MB'
 as $$
 declare
-  v_komp bigint; v_nom text; v_r public.t2_obyekt_rev; v_nk jsonb; v_meta json; v_f2 json; v_asos record;
+  v_komp bigint; v_nom text; v_nk jsonb; v_meta json; v_f2 json; v_asos record;
 begin
   if p_obyekt_id is null or p_obyekt_id <= 0 then raise exception 'obyekt_id majburiy' using errcode = '22023'; end if;
   select o.kompaniya_id, o.nom into v_komp, v_nom from public.t2_obyekt o where o.id = p_obyekt_id;
   if v_komp is null then raise exception 'obyekt topilmadi' using errcode = 'P0002'; end if;
   perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id);
 
-  -- STABLE funksiya: barcha so'rovlar bitta snapshot'da — rev va ma'lumot o'zaro mos.
-  select * into v_r from public.t2_obyekt_rev where obyekt_id = p_obyekt_id;
-
+  -- STABLE funksiya: barcha so'rovlar bitta snapshot'da — qator, holat, F2 va meta o'zaro mos.
   with q as (
     select q.id, q.ota_id, q.daraja, q.tartib, q.tur, q.kat, q.kod, q.nom, q.birlik, q.hajm, q.narx, q.summa, q.norma,
            q.narx_usul, q.versiya, q.qoshimcha, q.zamena, q.xom_qator,
@@ -53,6 +52,7 @@ begin
   )
   select
     count(*) soni,
+    count(*) filter (where tur_i is null) tur_nomalum,
     json_build_object(
       'nom', (select coalesce(array_to_json(array_agg(v order by i)), '[]'::json) from ln),
       'kod', (select coalesce(array_to_json(array_agg(v order by i)), '[]'::json) from lk),
@@ -90,6 +90,10 @@ begin
       'almashtirilgan_summa', coalesce(json_object_agg(id, almashtirilgan_summa) filter (where almashtirilgan_summa is distinct from 0), '{}'::json)) h
   into v_asos
   from qx;
+  -- Noma'lum tur jim null bo'lib ketmasin (ro'yxat t2_qator_tur_check bilan bir xil).
+  if v_asos.tur_nomalum > 0 then
+    raise exception 'obyekt paketi: % qatorda noma''lum tur (rz/bl/rs/mat/ob kutilgan)', v_asos.tur_nomalum using errcode = 'XX000';
+  end if;
 
   -- F2 ro'yxati (server ustun). muhr_xesh — akt qatorlari (id:versiya) izi: eksport aynan shu holatni muhrlaydi.
   select coalesce(json_agg(json_build_object(
@@ -122,33 +126,11 @@ begin
                      from public.t2_smeta_versiya v where v.obyekt_id = p_obyekt_id));
 
   return json_build_object(
-    'rev', coalesce(v_r.rev, 0), 'meta_rev', coalesce(v_r.meta_rev, 0), 'toliq_rev', coalesce(v_r.toliq_rev, 0),
     'format', 't2-paket/1', 'obyekt_id', p_obyekt_id, 'obyekt_nom', v_nom, 'kompaniya_id', v_komp,
     'soni', v_asos.soni, 'lugat', v_asos.lugat, 'q', v_asos.q, 'h', v_asos.h, 'f2', v_f2, 'meta', v_meta);
 end $$;
 comment on function public.t2_obyekt_paket_v1(bigint, bigint) is
   'Obyekt paketi (ADR OBYEKT_PAKET §1.2): faqat faol versiya qatorlari + t2_qator_holat xom ustunlari + F2 ro''yxati + meta, ustunli JSON. A''zolik t2_actor_kompaniya_azo_tekshir; faqat service_role (shlyuz /api/obyekt-paket).';
 
--- Arzon probe: shlyuz ETag ("rev.meta_rev") va mijoz sinxroni uchun.
-create or replace function public.t2_obyekt_rev_v1(p_obyekt_id bigint, p_actor_id bigint)
-returns json
-language plpgsql stable security definer
-set search_path to 'public', 'pg_temp'
-as $$
-declare v_komp bigint; v_r public.t2_obyekt_rev;
-begin
-  if p_obyekt_id is null or p_obyekt_id <= 0 then raise exception 'obyekt_id majburiy' using errcode = '22023'; end if;
-  select o.kompaniya_id into v_komp from public.t2_obyekt o where o.id = p_obyekt_id;
-  if v_komp is null then raise exception 'obyekt topilmadi' using errcode = 'P0002'; end if;
-  perform public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id);
-  select * into v_r from public.t2_obyekt_rev where obyekt_id = p_obyekt_id;
-  return json_build_object('rev', coalesce(v_r.rev, 0), 'meta_rev', coalesce(v_r.meta_rev, 0),
-    'toliq_rev', coalesce(v_r.toliq_rev, 0), 'min_rev', coalesce(v_r.min_rev, 0),
-    'obyekt_id', p_obyekt_id, 'kompaniya_id', v_komp);
-end $$;
-comment on function public.t2_obyekt_rev_v1(bigint, bigint) is 'Obyekt reviziyasi probe: {rev, meta_rev, toliq_rev, min_rev}. A''zolik tekshiriladi; faqat service_role.';
-
 revoke all on function public.t2_obyekt_paket_v1(bigint, bigint) from public, anon, authenticated;
-revoke all on function public.t2_obyekt_rev_v1(bigint, bigint) from public, anon, authenticated;
 grant execute on function public.t2_obyekt_paket_v1(bigint, bigint) to service_role;
-grant execute on function public.t2_obyekt_rev_v1(bigint, bigint) to service_role;

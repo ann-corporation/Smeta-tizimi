@@ -1,5 +1,5 @@
 /**
- * OBYEKT PAKETI — mijoz tomoni (ADR docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md §1.2, §2; PR1).
+ * OBYEKT PAKETI — mijoz tomoni (ADR docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md §1.2, §2; PR1a — reviziyasiz).
  *
  * Server (`t2_obyekt_paket_v1`) obyektni USTUNLI JSON bilan beradi. Bu modul:
  *   1) `paketDekod` — struct-of-arrays: raqamlar Float64Array + NULL bitmap (NULL ≠ 0), matnlar lug'at indeksi
@@ -20,7 +20,7 @@ export const PAKET_FORMAT = 't2-paket/1';
 export type PaketXom = {
   format: string;
   obyekt_id: number; obyekt_nom: string | null; kompaniya_id: number;
-  rev: number; meta_rev: number; toliq_rev: number; soni: number;
+  soni: number;
   lugat: { nom: string[]; kod: string[]; birlik: string[]; tur: string[]; kat: string[] };
   q: {
     id: number[]; ota_id: (number | null)[]; daraja: (number | null)[]; tartib: (number | null)[];
@@ -45,8 +45,7 @@ export type SonUstun = { q: Float64Array; bor: Uint8Array };
 export type LugatUstun = { i: Int32Array; lugat: readonly string[] };
 
 export type Paket = {
-  format: string; obyekt_id: number; obyekt_nom: string | null; kompaniya_id: number;
-  rev: number; meta_rev: number; toliq_rev: number; soni: number;
+  format: string; obyekt_id: number; obyekt_nom: string | null; kompaniya_id: number; soni: number;
   /** id → massiv indeksi. */
   indeks: Map<number, number>;
   id: Float64Array;
@@ -101,13 +100,16 @@ function siyrakUstun(n: number, nomi: string, xom: Record<string, number | null>
   return { q, bor };
 }
 
-function lugatUstun(n: number, nomi: string, xom: ReadonlyArray<number | null> | undefined, lugat: readonly string[] | undefined): LugatUstun {
+function lugatUstun(n: number, nomi: string, xom: ReadonlyArray<number | null> | undefined, lugat: readonly string[] | undefined, majburiy = false): LugatUstun {
   if (!Array.isArray(xom) || xom.length !== n) throw new PaketXato(`paket: ${nomi} uzunligi ${xom?.length} (${n} kutilgan)`);
   const l = Array.isArray(lugat) ? lugat : [];
   const i32 = new Int32Array(n);
   for (let i = 0; i < n; i++) {
     const v = xom[i];
-    if (v == null) { i32[i] = -1; continue; }
+    if (v == null) {
+      if (majburiy) throw new PaketXato(`paket: ${nomi}[${i}] bo'sh — noma'lum qiymat`);
+      i32[i] = -1; continue;
+    }
     if (!Number.isInteger(v) || v < 0 || v >= l.length) throw new PaketXato(`paket: ${nomi}[${i}] lug'atda yo'q`);
     i32[i] = v;
   }
@@ -140,9 +142,10 @@ export function paketDekod(x: PaketXom): Paket {
   const L = x.lugat;
   return {
     format: x.format, obyekt_id: x.obyekt_id, obyekt_nom: x.obyekt_nom ?? null, kompaniya_id: x.kompaniya_id,
-    rev: x.rev, meta_rev: x.meta_rev, toliq_rev: x.toliq_rev, soni: n, indeks, id,
+    soni: n, indeks, id,
     ota_id: sonUstun(n, 'ota_id', x.q.ota_id), daraja: sonUstun(n, 'daraja', x.q.daraja), tartib: sonUstun(n, 'tartib', x.q.tartib),
-    tur: lugatUstun(n, 'tur', x.q.tur, L?.tur), kat: lugatUstun(n, 'kat', x.q.kat, L?.kat), kod: lugatUstun(n, 'kod', x.q.kod, L?.kod),
+    // tur jim null bo'lmaydi (majburiy) — noma'lum tur xato.
+    tur: lugatUstun(n, 'tur', x.q.tur, L?.tur, true), kat: lugatUstun(n, 'kat', x.q.kat, L?.kat), kod: lugatUstun(n, 'kod', x.q.kod, L?.kod),
     nom: lugatUstun(n, 'nom', x.q.nom, L?.nom), birlik: lugatUstun(n, 'birlik', x.q.birlik, L?.birlik),
     hajm: sonUstun(n, 'hajm', x.q.hajm), narx: sonUstun(n, 'narx', x.q.narx), summa: sonUstun(n, 'summa', x.q.summa),
     norma: sonUstun(n, 'norma', x.q.norma), narx_usul: x.q.narx_usul.map((v) => (v == null ? null : String(v))), versiya,

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PaketXato, bormi, paketDekod, paketdanHolatlar, paketdanQatorlar, son, type PaketXom } from './paket';
 import { sbT2TreeQur, type T2Qator, type T2QatorHolat } from '../api/supabase';
 import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI } from '../api/t2-daraxt-ustunlar';
-import { obyektPaketOl, obyektRevOl } from '../api/t2-obyekt-paket';
+import { obyektPaketOl } from '../api/t2-obyekt-paket';
 
 /* ── Sintetik obyekt (real ma'lumot emas). Eski o'quvchilar qaytaradigan qatorlar (t2_daraxt / t2_qator_holat,
    aynan useT2Daraxt so'raydigan ustunlar) va server `t2_obyekt_paket_v1` shu obyekt uchun beradigan paket. ── */
@@ -25,7 +25,7 @@ const ESKI_HOLATLAR: Partial<T2QatorHolat>[] = [
   h({ qator_id: 14, tur: 'rs', kod: 'C1', nom: 'ЦЕМЕНТ', birlik: 'Т', kat: 'МАТ', smeta_hajm: 5, smeta_summa: 500, fakt_hajm: 0, fakt_summa: 0, f2_hajm: 0, f2_summa: 0, qoldiq_hajm: 4, qoldiq_summa: 500, f2_mumkin_hajm: 0, f2_mumkin_summa: 0 }),
 ];
 const PAKET: PaketXom = {
-  rev: 7, meta_rev: 3, toliq_rev: 1, format: 't2-paket/1', obyekt_id: 4, obyekt_nom: 'SINOV', kompaniya_id: 17, soni: 5,
+  format: 't2-paket/1', obyekt_id: 4, obyekt_nom: 'SINOV', kompaniya_id: 17, soni: 5,
   lugat: { nom: ['ГИПС', 'ИШ', 'РАЗДЕЛ', 'ЦЕМЕНТ'], kod: ['C1', 'C2', 'E1-1'], birlik: ['КГ', 'М3', 'Т'], tur: ['rz', 'bl', 'rs', 'mat', 'ob'], kat: ['МАТ'] },
   q: {
     id: [10, 11, 12, 13, 14], ota_id: [null, 10, 11, 11, 11], daraja: [0, 1, 2, 2, 2], tartib: [1, 2, 3, 3, 4],
@@ -66,6 +66,8 @@ describe('paketDekod — struct-of-arrays', () => {
     expect(() => paketDekod(qisqa)).toThrow(/hajm uzunligi/);
     const lug = nusxa(PAKET); lug.q.nom[0] = 99;
     expect(() => paketDekod(lug)).toThrow(/lug'atda yo'q/);
+    const tur = nusxa(PAKET); tur.q.tur[1] = null;
+    expect(() => paketDekod(tur)).toThrow(/tur\[1\] bo'sh/);
     const tak = nusxa(PAKET); tak.q.id[1] = 10;
     expect(() => paketDekod(tak)).toThrow(/takror/);
     const beg = nusxa(PAKET); beg.h.almashtirilgan_hajm = { 999: 1 };
@@ -110,7 +112,7 @@ describe('materializator = eski o‘quvchilar (t2_daraxt + t2_qator_holat)', () 
     const ust = <K extends keyof T2Qator>(k: K) => eski.map((r) => (r[k] ?? null)) as never;
     const n = eski.length; const nol = () => new Array(n).fill(0);
     const xom: PaketXom = {
-      rev: 1, meta_rev: 1, toliq_rev: 1, format: 't2-paket/1', obyekt_id: 4, obyekt_nom: 'SINOV', kompaniya_id: 17, soni: n, lugat: L,
+      format: 't2-paket/1', obyekt_id: 4, obyekt_nom: 'SINOV', kompaniya_id: 17, soni: n, lugat: L,
       q: { id: ust('id'), ota_id: ust('ota_id'), daraja: ust('daraja'), tartib: ust('tartib'), tur: eski.map((r) => idx(L.tur, r.tur)),
         kat: eski.map((r) => idx(L.kat, r.kat)), kod: eski.map((r) => idx(L.kod, r.kod)), nom: eski.map((r) => idx(L.nom, r.nom)),
         birlik: eski.map((r) => idx(L.birlik, r.birlik)), hajm: ust('hajm'), narx: ust('narx'), summa: ust('summa'), norma: ust('norma'),
@@ -132,20 +134,18 @@ describe('materializator = eski o‘quvchilar (t2_daraxt + t2_qator_holat)', () 
 
 describe('api/t2-obyekt-paket — mijoz porti', () => {
   afterEach(() => vi.unstubAllGlobals());
-  it('paket, 304 va xato javoblari; If-None-Match yuboriladi', async () => {
+  it('paket va xato javoblari; keshsiz so‘rov', async () => {
     const chaqiruv: Array<{ url: string; init: RequestInit }> = [];
-    let javob: Response = Response.json(PAKET, { headers: { ETag: '"7.3"', 'X-Paket-Kesh': 'r2' } });
+    let javob: Response = Response.json(PAKET);
     vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit) => { chaqiruv.push({ url, init }); return javob; }));
     const a = await obyektPaketOl(4);
-    expect(a).toMatchObject({ ok: true, ozgarmagan: false, etag: '"7.3"', kesh: 'r2' });
+    expect(a).toMatchObject({ ok: true });
+    expect(a.ok && a.paket.soni).toBe(5);
     expect(chaqiruv[0].url).toBe('/api/obyekt-paket?obyekt_id=4');
-    javob = new Response(null, { status: 304, headers: { ETag: '"7.3"' } });
-    expect(await obyektPaketOl(4, '"7.3"')).toEqual({ ok: true, ozgarmagan: true, etag: '"7.3"' });
-    expect((chaqiruv[1].init.headers as Record<string, string>)['If-None-Match']).toBe('"7.3"');
+    expect(chaqiruv[0].init.cache).toBe('no-store');
     javob = Response.json({ ok: false, code: 'PERMISSION_DENIED', error: 'yo‘q' }, { status: 403 });
     expect(await obyektPaketOl(4)).toEqual({ ok: false, status: 403, code: 'PERMISSION_DENIED', error: 'yo‘q' });
-    javob = Response.json({ rev: 7, meta_rev: 3, toliq_rev: 1, min_rev: 1, obyekt_id: 4, kompaniya_id: 17 });
-    expect(await obyektRevOl(4)).toMatchObject({ ok: true, rev: { rev: 7, meta_rev: 3 } });
-    expect(chaqiruv[3].url).toBe('/api/obyekt-paket?obyekt_id=4&rev_faqat=1');
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('tarmoq'); }));
+    expect(await obyektPaketOl(4)).toMatchObject({ ok: false, status: 0 });
   });
 });

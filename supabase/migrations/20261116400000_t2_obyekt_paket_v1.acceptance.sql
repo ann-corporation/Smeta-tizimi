@@ -1,16 +1,16 @@
--- Acceptance: 20261116400000 — obyekt paketi. BEGIN … ROLLBACK (faqat o'qiydi).
---   P0 huquq: faqat service_role; STABLE + SECURITY DEFINER; probe bor.
+-- Acceptance: 20261116400000 — obyekt paketi (PR1a, triggersiz; reviziyaga bog'liq emas). BEGIN … ROLLBACK (faqat o'qiydi).
+--   P0 huquq: faqat service_role; STABLE + SECURITY DEFINER.
 --   P1 dekod qilingan paket = t2_daraxt (ikki tomonga EXCEPT, qator ustunlari) va = t2_qator_holat (faqat faol,
 --      xom ustunlar + mijoz hosila formulalari: smeta_*, qoldiq_*, f2_mumkin_*) — eng katta 3 obyekt + almashtirilgan
---      qatorli 2 obyekt. rev = t2_obyekt_rev.rev; soni = faol qatorlar soni.
+--      qatorli 2 obyekt; soni = faol qatorlar soni; rev maydonlari yo'q. (Barcha obyekt — alohida read-only skript.)
 --   P2 a'zo bo'lmagan aktor rad etiladi (42501).
 begin;
 do $acc$
 declare
-  v_a bigint; v_o bigint; v_j jsonb; v_p jsonb; r record; v_begona bigint; v_rad boolean;
+  v_a bigint; v_o bigint; v_j jsonb; r record; v_begona bigint; v_rad boolean;
 begin
   if has_function_privilege('authenticated', 'public.t2_obyekt_paket_v1(bigint,bigint)', 'execute')
-     or has_function_privilege('anon', 'public.t2_obyekt_rev_v1(bigint,bigint)', 'execute') then raise exception 'P0: anon/authenticated chaqira oladi'; end if;
+     or has_function_privilege('anon', 'public.t2_obyekt_paket_v1(bigint,bigint)', 'execute') then raise exception 'P0: anon/authenticated chaqira oladi'; end if;
   if not has_function_privilege('service_role', 'public.t2_obyekt_paket_v1(bigint,bigint)', 'execute') then raise exception 'P0: service_role chaqira olmaydi'; end if;
   if (select provolatile from pg_proc where oid = 'public.t2_obyekt_paket_v1(bigint,bigint)'::regprocedure) <> 's'
      or not (select prosecdef from pg_proc where oid = 'public.t2_obyekt_paket_v1(bigint,bigint)'::regprocedure) then
@@ -26,10 +26,8 @@ begin
     (select obyekt_id from public.t2_qator where versiya_holat = 'almashtirilgan' group by obyekt_id order by count(*) desc limit 2)
   loop
     v_j := public.t2_obyekt_paket_v1(v_o, v_a)::jsonb;
-    v_p := public.t2_obyekt_rev_v1(v_o, v_a)::jsonb;
     if (v_j->>'format') <> 't2-paket/1' or (v_j->>'obyekt_id')::bigint <> v_o then raise exception 'P1 %: format/obyekt_id', v_o; end if;
-    if (v_j->>'rev')::bigint is distinct from (select rev from public.t2_obyekt_rev where obyekt_id = v_o)
-       or (v_p->>'rev') <> (v_j->>'rev') or (v_p->>'meta_rev') <> (v_j->>'meta_rev') then raise exception 'P1 %: rev mos emas', v_o; end if;
+    if v_j ? 'rev' or v_j ? 'meta_rev' then raise exception 'P1 %: PR1a paketida rev bo''lmasligi kerak', v_o; end if;
     if (v_j->>'soni')::int <> (select count(*) from public.t2_qator where obyekt_id = v_o and versiya_holat = 'faol') then raise exception 'P1 %: soni', v_o; end if;
     with pk as (select v_j j),
     l as (select
@@ -111,9 +109,6 @@ begin
     v_rad := false;
     begin perform public.t2_obyekt_paket_v1(v_o, v_begona); exception when insufficient_privilege then v_rad := true; end;
     if not v_rad then raise exception 'P2: begona aktor paketni oldi'; end if;
-    v_rad := false;
-    begin perform public.t2_obyekt_rev_v1(v_o, v_begona); exception when insufficient_privilege then v_rad := true; end;
-    if not v_rad then raise exception 'P2: begona aktor probe oldi'; end if;
   end if;
   raise notice 'ACCEPT OK: 20261116400000_t2_obyekt_paket_v1';
 end $acc$;

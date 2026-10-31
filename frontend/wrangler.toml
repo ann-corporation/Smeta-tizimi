@@ -20,9 +20,3 @@ binding = "AI"
 [[r2_buckets]]
 binding = "R2_CANONICAL"
 bucket_name = "smeta-tizimi-canonical"
-
-# Obyekt paketi keshi (ADR OBYEKT_PAKET §1.4) — kanonik bucket EMAS: o'chirilsa hech narsa yo'qolmaydi (bazadan qayta yig'iladi).
-# Kalit: paket/{kompaniya_id}/{obyekt_id}/{rev}.{meta_rev}.json.gz. Kod binding'siz ham ishlaydi; deploydan oldin bucket yaratilishi shart.
-[[r2_buckets]]
-binding = "R2_KESH"
-bucket_name = "smeta-tizimi-kesh"
