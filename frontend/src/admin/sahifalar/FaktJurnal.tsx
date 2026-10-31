@@ -626,7 +626,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 
   const summaQatori = (s: BolimSumma | undefined) => s ? <div className="flex flex-wrap items-start gap-x-5 gap-y-1 text-[11px] text-text-mute" data-testid="bolim-summalar">
     {([['smeta', t('Smeta')], ['f2', t('F2')], ['fakt', t('Fakt')], ['qoldiq', t('F2 qoldiq')]] as const).map(([k, l]) => <span key={k} className="inline-flex items-start gap-1.5"><span className="pt-0.5 font-semibold uppercase tracking-wide">{l}</span><SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={s[k].ustamasiz} katKesim={s[k].kesim} /></span>)}
-    <FaktF2Izoh f2dan={s.faktF2.f2dan} aralash={s.faktF2.aralash} />
+    <FaktF2Izoh f2Narxda={s.faktF2.f2Narxda} />
   </div> : null;
 
   const tanlanganBolim = bolimlar.find((b) => b.id === bolimId);

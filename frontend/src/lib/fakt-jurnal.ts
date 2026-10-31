@@ -11,7 +11,7 @@
 import type { T2Qator } from '../api/supabase';
 import { bosKatKesim, type KatKesim } from './ustamali-summa';
 import { ochiqQoldiq } from './zamena-qoldiq';
-import { ayirma2, faktF2Qoida, katJami, yigindi2 } from './hisob-yadro';
+import { ayirma2, faktSummaF2Narxda, katJami, yigindi2 } from './hisob-yadro';
 import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export type JurnalHolat = {
@@ -197,8 +197,8 @@ export type BolimSumma = {
   smeta: SummaKesim; f2: SummaKesim; fakt: SummaKesim; qoldiq: SummaKesim;
   /** Qo'shimcha/zamena ishlar smetasi (barglar) — «smeta» ga kirmaydi; Nakopitelniy smeta = smeta + qoshimcha. */
   qoshimcha: SummaKesim;
-  /** Fakt ↔ F2 qoidasi: fakt F2 dan olingan pozitsiyalar va ishorasi har xil (fakt o'zgarmagan) pozitsiyalar soni. */
-  faktF2: { f2dan: number; aralash: number };
+  /** Narx qoidasi: fakt summasi tasdiqlangan F2 birlik narxida hisoblangan pozitsiyalar soni (fakt hajmi o'zgarmaydi). */
+  faktF2: { f2Narxda: number };
 };
 const BARG = new Set(['rs', 'mat', 'ob']);
 
@@ -225,19 +225,20 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   const bos = (): SummaKesim => ({ ustamasiz: null, kesim: bosKatKesim() });
   const out = new Map<number, BolimSumma>();
   // Qiymatlar to'planadi; kesim va jami oxirida YADRODAN (`svodKorinishKesimi` + `yigindi2`). Hammasi NULL — NULL.
-  type Element = { id: number; kat: string | null; summa: number | null; smeta: number | null };
+  type Element = { id: number; kat: string | null; summa: number | null; smeta: number | null; f2: number | null };
   const elementlar = new Map<SummaKesim, Element[]>();
   const masshtabsiz = new Set<SummaKesim>();
+  const qoldiqlar = new Set<SummaKesim>();
   const yaxlitIds = yaxlitQatorIdlari(rows, svod);
-  const ol = (id: number) => { let x = out.get(id); if (!x) { x = { smeta: bos(), f2: bos(), fakt: bos(), qoldiq: bos(), qoshimcha: bos(), faktF2: { f2dan: 0, aralash: 0 } }; masshtabsiz.add(x.f2); out.set(id, x); } return x; };
-  const qosh = (s: SummaKesim, kat: string | null, v: number | null, id = 0, smeta: number | null = null) => {
-    const l = elementlar.get(s); const e = { id, kat, summa: v, smeta };
+  const ol = (id: number) => { let x = out.get(id); if (!x) { x = { smeta: bos(), f2: bos(), fakt: bos(), qoldiq: bos(), qoshimcha: bos(), faktF2: { f2Narxda: 0 } }; masshtabsiz.add(x.f2); qoldiqlar.add(x.qoldiq); out.set(id, x); } return x; };
+  const qosh = (s: SummaKesim, kat: string | null, v: number | null, id = 0, smeta: number | null = null, f2: number | null = null) => {
+    const l = elementlar.get(s); const e = { id, kat, summa: v, smeta, f2 };
     if (l) l.push(e); else elementlar.set(s, [e]);
   };
   const v = (x: unknown) => son(x as number | null | undefined);
-  /** Fakt F2 yonida: yadro qoidasi (ishorali, faqat tasdiqlangan F2 bo'lsa; ishora har xil — o'zgarmaydi, izoh). */
-  const faktOl = (h: JurnalHolat | undefined) => faktF2Qoida(v(h?.fakt_summa), v(h?.f2_summa));
-  const belgi = (x: BolimSumma, q: ReturnType<typeof faktOl>) => { if (q.f2dan) x.faktF2.f2dan++; if (q.aralash) x.faktF2.aralash++; };
+  /** Fakt summasi — yadro narx qoidasi: tasdiqlangan F2 bor qatorda F2 birlik narxida; hajm yozilganidek, NULL — NULL. */
+  const faktOl = (h: JurnalHolat | undefined) => faktSummaF2Narxda(v(h?.fakt_hajm), v(h?.f2_hajm), v(h?.f2_summa), v(h?.fakt_summa));
+  const belgi = (x: BolimSumma, q: ReturnType<typeof faktOl>) => { if (q.manba === 'f2' && q.summa != null) x.faktF2.f2Narxda++; };
   /** Ota-bobolari: yangi (qo'shimcha/zamena) ekanligi va bo'limlari (0 — obyekt). */
   const yol = (r: T2Qator) => {
     let yangi = !!r.qoshimcha || !!r.zamena; const bolimlar: number[] = [0];
@@ -248,11 +249,11 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   for (const r of rows) {
     if (r.tur === 'bl') {
       const h = holat.get(r.id);
-      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = fq.qiymat;
+      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = fq.summa;
       if ((f2 == null || f2 === 0) && (fakt == null || fakt === 0)) continue;
       for (const b of yol(r).bolimlar) {
         const x = ol(b);
-        if (f2 != null && f2 !== 0) { qosh(x.f2, r.kat, f2, r.id); qosh(x.qoldiq, r.kat, -f2, r.id); }
+        if (f2 != null && f2 !== 0) { qosh(x.f2, r.kat, f2, r.id); qosh(x.qoldiq, r.kat, -f2, r.id, null, f2); }
         if (fakt != null && fakt !== 0) { qosh(x.fakt, r.kat, fakt, r.id); belgi(x, fq); }
       }
       continue;
@@ -268,11 +269,12 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
       qosh(yangi ? x.qoshimcha : x.smeta, r.kat, sm, r.id, sm);
       qosh(x.f2, r.kat, v(h?.f2_summa), r.id, sm);
       // Chiqarilgan resurs fakti qo'shilmaydi; svod bo'limida esa ulush uchun smetasi bilan 0 (bajarilmaydi) sifatida.
-      if (!chiq) { qosh(x.fakt, r.kat, fq.qiymat, r.id, sm); belgi(x, fq); } else if (yaxlitIds.has(r.id)) qosh(x.fakt, r.kat, 0, r.id, sm);
-      qosh(x.qoldiq, r.kat, v(h?.qoldiq_summa), r.id, sm);
+      if (!chiq) { qosh(x.fakt, r.kat, fq.summa, r.id, sm); belgi(x, fq); } else if (yaxlitIds.has(r.id)) qosh(x.fakt, r.kat, 0, r.id, sm);
+      qosh(x.qoldiq, r.kat, v(h?.qoldiq_summa), r.id, sm, v(h?.f2_summa));
     }
   }
   const f = { id: (e: Element) => e.id, kat: (e: Element) => e.kat, summa: (e: Element) => e.summa, smeta: (e: Element) => e.smeta };
+  const f2Of = (e: Element) => e.f2;
   // Svod bo'limi BUTUN smetasi (barcha barglari) — ichki bo'lim kesimida ulush shunga nisbatan.
   const bolimSmeta = new Map<number, number>();
   for (const b of svod?.bolimlar ?? []) {
@@ -280,8 +282,8 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
     bolimSmeta.set(Number(b.qator_id), yigindi2(rows.filter((r) => ids.has(r.id) && BARG.has(r.tur ?? '')).map((r) => v(holat.get(r.id)?.smeta_summa))));
   }
   for (const [s, l] of elementlar) {
-    // F2 — aynan (masshtablanmaydi); boshqa ko'rinishlar svod bo'limida yaxlit × (ko'rinish / smeta).
-    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), bolimSmeta });
+    // F2 — aynan (masshtablanmaydi); qoldiq svod bo'limida = yaxlit − F2 aynan; qolganlari yaxlit × (ko'rinish / smeta).
+    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
     if (!l.some((e) => e.summa != null && Number.isFinite(e.summa))) { s.ustamasiz = null; continue; }
     s.ustamasiz = yigindi2([katJami(s.kesim.summalar), s.kesim.nomalum, s.kesim.yaxlit?.qqssiz]);
   }

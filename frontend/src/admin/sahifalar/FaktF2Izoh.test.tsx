@@ -4,11 +4,10 @@ import { FaktF2Izoh } from './FaktStudioBar';
 
 afterEach(cleanup);
 
-// Fakt ↔ F2 izohi (yadro faktF2Qoida): ishora har xil — fakt o'zgarmaydi va ogohlantirish ko'rinadi.
-it('ishora har xil va F2 dan olingan pozitsiyalar — izoh; hech biri yo‘q — hech narsa', () => {
-  const { container } = render(<FaktF2Izoh f2dan={0} aralash={0} />);
+// Narx qoidasi izohi: F2 narxida hisoblangan pozitsiyalar soni; yo'q — hech narsa.
+it('F2 narxida hisoblangan pozitsiyalar — izoh; yo‘q — bo‘sh', () => {
+  const { container } = render(<FaktF2Izoh f2Narxda={0} />);
   expect(container.textContent).toBe('');
-  render(<FaktF2Izoh f2dan={2} aralash={1} />);
+  render(<FaktF2Izoh f2Narxda={2} />);
   expect(screen.getByTestId('fakt-f2-izoh').textContent).toContain('2');
-  expect(screen.getByTestId('fakt-f2-aralash').textContent).toContain('1');
 });

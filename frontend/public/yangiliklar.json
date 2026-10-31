@@ -4,13 +4,15 @@
     {
       "id": 50,
       "sana": "2026-10-31",
-      "sarlavha": "Fakt jurnali, Nakopitelniy va Studio ham bitta hisob yadrosida",
+      "sarlavha": "Fakt summasi tasdiqlangan F2 narxida; Fakt jurnali, Nakopitelniy va Studio bitta hisob yadrosida",
       "bandlar": [
-        "Fakt jurnali bo'lim summalari va «Fakt (hozircha)» endi Сличительная bilan bir xil: fakt tasdiqlangan F2 dan kam bo'lmaydi (minus qatorda ham), ishorasi har xil bo'lsa fakt o'zgarmaydi va ogohlantirish chiqadi.",
-        "Yaxlit svod bo'limi Fakt jurnalida ham ustamasiz, svod summasi ulushida ko'rsatiladi; narxsiz qator 0 deb sanalmaydi.",
-        "Ostatka va Сличительная eksporti svod bo'limini qatorlarga taqsimlab beradi; ustama/svod o'qilmasa hujjat jimgina chala chiqmaydi — sababi ko'rsatiladi.",
-        "Nakopitelniy: smeta «к оплате» bitta hisobdan; ma'lumot yetishmasa «не определена» va sababi yoziladi.",
-        "Studio RES: ustama kaskadi podval qatorlari bo'yicha, buyurtmachi xarajatlari alohida (pudratchi summasiga qo'shilmaydi); jami QQS bilan birinchi."
+        "Qatorda tasdiqlangan F2 bo'lsa, fakt summasi F2 birlik narxida hisoblanadi (masalan smeta 12 000, F2 35 000 bo'lsa — fakt hajmi × 35 000). F2 yo'q qatorda fakt summasi avvalgidek.",
+        "Fakt hajmi qanday kiritilgan bo'lsa shunday ko'rsatiladi: fakt F2 dan kam bo'lishi normal (F2 oldindan olinadi), fakt F2 dan avtomatik olinmaydi. «Fakt = F2» faqat o'sha tugma orqali yoziladi.",
+        "Fakt jurnali, «Fakt (hozircha)», Сличительная, Накопительная, ЛРВ va ЛРВ+ shu bitta narx qoidasidan foydalanadi; Excel formulasi ekrandagi qiymat bilan teng.",
+        "Yaxlit svod bo'limi: fakt — svod summasi × (bo'lim fakti / bo'lim smetasi), F2 qoldig'i — svod summasi − F2 (aynan); narxsiz qator 0 deb sanalmaydi.",
+        "Ostatka, Сличительная, ЛРВ va Накопительная/Ф-3 eksporti ustama yoki podval o'qilmasa jimgina chiqmaydi — sababi ko'rsatiladi.",
+        "Nakopitelniy: smeta «к оплате» bitta hisobdan, kategoriyasi ko'rsatilmagan qism ham kiradi (≈); ma'lumot yetishmasa «не определена» va sababi yoziladi.",
+        "Studio RES: ustama kaskadi podval qatorlari bo'yicha, buyurtmachi xarajatlari alohida, kategoriyasiz qatorlar ustamasiz qo'shiladi (≈); jami QQS bilan birinchi."
       ]
     },
     {

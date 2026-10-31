@@ -666,30 +666,33 @@ function studioPodval(r: NonNullable<EstimateDoc['rates']>): Podval {
   return r.podval ?? standartPodval(r.values);
 }
 /** Studio kaskadi — YAGONA yadro (`hisob-yadro` `kaskad`); stavka tasdiqlanmagan — null. */
-function studioKaskad(doc: EstimateDoc, ks: KatSummalar): KaskadNatija | null {
-  return doc.rates ? yadroKaskad(ks, studioPodval(doc.rates)) : null;
+/** Kategoriyasi aniqlanmagan summa tashlanmaydi: ИТОГО-4 ga ustamasiz (`nomalumQism`), natija taxminiy (≈). */
+function studioKaskad(doc: EstimateDoc, ks: KatSummalar, nomalumQism = 0): KaskadNatija | null {
+  return doc.rates ? yadroKaskad(ks, studioPodval(doc.rates), { nomalumQism }) : null;
 }
-function katSummalari(doc: EstimateDoc, hisob: DocCalc, unitText: UnitText): { ks: KatSummalar; narxsiz: number; aniqlanmagan: number } {
+function katSummalari(doc: EstimateDoc, hisob: DocCalc, unitText: UnitText): { ks: KatSummalar; narxsiz: number; aniqlanmagan: number; nomalumSumma: number } {
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map(k => [k, 0])) as KatSummalar;
-  let narxsiz = 0, aniqlanmagan = 0;
+  let narxsiz = 0, aniqlanmagan = 0, nomalumSumma = 0;
   for (const o of Object.values(doc.occurrences)) for (const l of hisob.occurrences[o.id]?.lines ?? []) {
     if (!l.resource) continue;
     const kat: NakrutkaKat | null = qatorKategoriyasi(o, l.recipeId, l.resource, unitText);
     if (l.amount == null) { if (l.price == null) narxsiz++; continue; }
-    if (!kat) { aniqlanmagan++; continue; }
+    if (!kat) { aniqlanmagan++; nomalumSumma = yaxlit2(nomalumSumma + Number(l.amount)); continue; }
     ks[kat] = yaxlit2(ks[kat] + Number(l.amount));
   }
-  return { ks, narxsiz, aniqlanmagan };
+  return { ks, narxsiz, aniqlanmagan, nomalumSumma };
 }
 
 function JamiSatri({ doc, hisob, unitText }: { doc: EstimateDoc; hisob: DocCalc; unitText: UnitText }) {
-  const { ks, narxsiz } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
-  const pryamye = yigindi2(NAKRUTKA_KATLAR.map((k) => ks[k]));
+  const { ks, narxsiz, nomalumSumma } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
+  const pryamye = yigindi2([...NAKRUTKA_KATLAR.map((k) => ks[k]), nomalumSumma]);
   // Yadro kaskadi (standart yoki maxsus podval) — tartib: QQS bilan, ustamali (QQS siz), ustamasiz.
-  const k = useMemo(() => studioKaskad(doc, ks), [doc, ks]);
+  const k = useMemo(() => studioKaskad(doc, ks, nomalumSumma), [doc, ks, nomalumSumma]);
+  const tx = nomalumSumma !== 0 ? '≈ ' : '';
   return <div className="fz-card flex flex-wrap items-center gap-4 p-2 text-[12.5px]">
-    {k?.vsego != null && <span>{t('Jami to‘lovga (nakrutka va QQS bilan)')}: <b className="tabular-nums">{fmt(k.vsego)}</b></span>}
-    {k?.itogo4 != null && <span>{t('QQS siz jami')}: <b className="tabular-nums">{fmt(k.itogo4)}</b></span>}
+    {k?.vsego != null && <span>{t('Jami to‘lovga (nakrutka va QQS bilan)')}: <b className="tabular-nums">{tx}{fmt(k.vsego)}</b></span>}
+    {k?.itogo4 != null && <span>{t('QQS siz jami')}: <b className="tabular-nums">{tx}{fmt(k.itogo4)}</b></span>}
+    {k && k.vsego == null && <span className="text-warn" data-testid="studio-podval-sabab">{t('Podval to‘liq emas — jami hisoblanmadi: {kod}', { kod: k.nomalumQatorlar.join(', ') || k.xato || '—' })}</span>}
     <span>{t('To‘g‘ri xarajatlar')}: <b className="tabular-nums">{fmt(pryamye)}</b></span>
     {narxsiz > 0 && <span className="text-warn">{t('Narxsiz resurs qatorlari: {n} — jami faqat ma’lum qismdan', { n: narxsiz })}</span>}
   </div>;
@@ -725,9 +728,9 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
       setXabar(m); return m;
     } catch { setXabar(t('Hujjat tayyorlanmadi. Qayta urinib ko‘ring.')); return null; }
   }
-  const { ks, narxsiz, aniqlanmagan } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
+  const { ks, narxsiz, aniqlanmagan, nomalumSumma } = useMemo(() => katSummalari(doc, hisob, unitText), [doc, hisob, unitText]);
   // Standart va maxsus podval — bitta yadro kaskadi; qatorlar podvaldan (qadam arifmetikasi sahifada yo'q).
-  const kaskadN = useMemo(() => studioKaskad(doc, ks), [doc, ks]);
+  const kaskadN = useMemo(() => studioKaskad(doc, ks, nomalumSumma), [doc, ks, nomalumSumma]);
   const podvalJ = doc.rates ? studioPodval(doc.rates) : null;
   const vsegoKod = podvalJ && kaskadN ? podvalVsegoKodi(podvalJ) : null;
   const vsegoI = podvalJ && vsegoKod ? podvalJ.qatorlar.findIndex((q) => q.kod === vsegoKod) : -1;
@@ -767,7 +770,7 @@ export function ResBosqichi({ doc, hisob, unitText, katalog, kompaniyaId, onBack
     <section aria-label={t('Resurs smeta (RES)')} className="fz-card space-y-2 p-3 text-[12.5px]">
       <strong className="fz-panel__h">{t('Resurs smeta (RES) — hisob')}</strong>
       {narxsiz > 0 && <p className="text-warn">{t('Narxsiz resurs qatorlari: {n} — jami faqat ma’lum qismdan', { n: narxsiz })}</p>}
-      {aniqlanmagan > 0 && <p className="text-warn">{t('Kategoriyasi aniqlanmagan {n} qator nakrutka hisobiga kirmadi.', { n: aniqlanmagan })}</p>}
+      {aniqlanmagan > 0 && <p className="text-warn">{t('Kategoriyasi aniqlanmagan {n} qator ИТОГО-4 ga ustamasiz qo‘shildi — natija taxminiy (≈).', { n: aniqlanmagan })}</p>}
       <table className="w-full max-w-2xl"><tbody>
         {NAKRUTKA_KATLAR.filter(k => ks[k]).map(k => qator(t(KAT_NOMI[k]), ks[k]))}
         {podvalQatorlar ?? tasdiqsizQator}

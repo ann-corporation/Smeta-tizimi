@@ -61,7 +61,7 @@ export type NakopitelniyJami = {
 };
 
 /** Smeta: to'g'ri xarajat → ИТОГО-4 (без НДС) → НДС → ВСЕГО (t2_obyekt_nakrutka). */
-export type SmetaNakrutka = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number };
+export type SmetaNakrutka = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number; /** Kat noma'lum qism bor — taxminiy. */ taxminiy?: boolean };
 
 export type NakopitelniyJavob = {
   ok: true; generated_at: string;

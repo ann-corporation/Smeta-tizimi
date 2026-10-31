@@ -118,19 +118,24 @@ export function obyektUstamali(
  * Smeta «к оплате» (obyekt) — YAGONA hisob: server kesimi + svod yaxlit + podval (server meros rejimi, `nkManba` izohi)
  * yoki koeffitsientlardan standart. Kirish yetishmasa — qiymat null va sabab (muqobil manba yo'q, taxmin yo'q).
  */
-export type SmetaKOplate = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number };
+export type SmetaKOplate = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number; /** Kat noma'lum qism bor — «≈». */ taxminiy: boolean };
 export function obyektSmetaKOplate(
   r: (Parameters<typeof obyektUstamali>[0] & { nk_manba?: string | null }) | null | undefined,
   podval: Podval | null | undefined, koef: Partial<NakrutkaKoeffitsientlar> | null | undefined,
+  /** Smeta jami (to'g'ri xarajat, server). Kesimdan farqi — kategoriyasi ko'rsatilmagan qism: tashlanmaydi, ИТОГО-4 ga ustamasiz (≈). */
+  smetaJami?: number | null,
 ): { qiymat: SmetaKOplate | null; sabab: string | null } {
   if (!r || !koef) return { qiymat: null, sabab: 'koeffitsientlar yoki smeta kesimi yo‘q' };
+  const k0 = obyektKesimi(r);
+  if (!k0) return { qiymat: null, sabab: 'koeffitsientlar yoki smeta kesimi yo‘q' };
+  const bor = katJami(k0.summalar) + (k0.yaxlit?.barglar ?? 0) + (k0.yaxlitQator ?? 0);
+  const k = smetaJami == null || !Number.isFinite(smetaJami) ? k0 : kesimNomalumBilan(k0, smetaJami - bor);
   const p = podval ? serverMerosKoefQoy(podval, koef, r.nk_manba) : null;
-  const u = obyektUstamali(r, p, koef);
-  if (!u) return { qiymat: null, sabab: 'koeffitsientlar yoki smeta kesimi yo‘q' };
-  if (u.ustamali == null || u.ndsBilan == null || !u.qadamlar || u.qadamlar.nds == null) return { qiymat: null, sabab: u.xato === 'PODVAL_TOLIQ_EMAS' ? 'podval foizlari to‘liq emas' : 'QQS yoki ustama foizi noma’lum' };
-  return { qiymat: { pryamye: yaxlit2(u.ustamasiz), itogo4: u.ustamali, nds: u.qadamlar.nds, nds_foiz: u.ndsFoiz ?? null, vsego: u.ndsBilan }, sabab: null };
+  const h = hisob(k, { podval: p, koef });
+  if (h.sabab === 'KOEF_YOQ') return { qiymat: null, sabab: 'koeffitsientlar yo‘q' };
+  if (h.itogo4 == null || h.qqsBilan == null || h.qqs == null) return { qiymat: null, sabab: h.sabab === 'PODVAL_TOLIQ_EMAS' ? 'podval foizlari to‘liq emas' : 'QQS yoki ustama foizi noma’lum' };
+  return { qiymat: { pryamye: h.ustamasiz, itogo4: h.itogo4, nds: h.qqs, nds_foiz: h.qqsFoiz, vsego: h.qqsBilan, taxminiy: h.taxminiy }, sabab: null };
 }
-
 /* ───────────── OBYEKT QIYMATI (egasi 2026-10-27: QQS bilan — ASOSIY) ───────────── */
 
 export type UchlikSabab = 'SUMMA_YOQ' | 'HISOBLANMADI' | 'KOEF_YOQ' | 'PODVAL_TOLIQ_EMAS' | 'KAT_NOMALUM' | 'QQS_STAVKA_YOQ' | 'KESIM_YOQ';

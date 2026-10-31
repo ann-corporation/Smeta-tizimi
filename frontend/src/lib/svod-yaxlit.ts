@@ -9,7 +9,7 @@
  *  - `svodYaxlitQqs` / `bolimQqsBilan` — yaxlit summa QQS BILAN (svodda НДС dan keyin, yakuniy — egasi 2026-10-30).
  * Hisob qadami yadroda (`lib/hisob-yadro/yaxlit-svod.ts`).
  */
-import { katJami, kesimNomalumBilan, kesimYigish, yaxlit2 as r2, yaxlitKOplate, yaxlitKorinish, type Kesim } from './hisob-yadro';
+import { katJami, kesimNomalumBilan, kesimYigish, yaxlit2 as r2, yaxlitKOplate, yaxlitKorinish, yaxlitQoldiqF2, type Kesim } from './hisob-yadro';
 
 export type SvodYaxlitBolim = {
   id: number; qator_id: number; nom: string | null;
@@ -123,7 +123,7 @@ export function bolimJamilari(
 export function svodKorinishKesimi<T>(
   daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[],
   f: { id: (x: T) => number | null | undefined; kat: (x: T) => string | null | undefined; summa: (x: T) => number | null | undefined; smeta: (x: T) => number | null | undefined },
-  svod: SvodYaxlit | null | undefined, o: { jami?: number | null; masshtab?: boolean; bolimSmeta?: ReadonlyMap<number, number> | null } = {},
+  svod: SvodYaxlit | null | undefined, o: { jami?: number | null; masshtab?: boolean; bolimSmeta?: ReadonlyMap<number, number> | null; qoldiqF2?: (x: T) => number | null | undefined } = {},
 ): Kesim {
   // `bolimSmeta` (bo'lim qator_id → BUTUN bo'lim smetasi): barglar bo'limning bir qismi bo'lsa (ichki bo'lim kesimi),
   // ulush butun bo'lim smetasiga nisbatan olinadi — aks holda qism butun yaxlitni ko'rsatardi.
@@ -131,11 +131,13 @@ export function svodKorinishKesimi<T>(
   for (const b of svod?.bolimlar ?? []) for (const id of yaxlitQatorIdlari(daraxt, { ...svod!, bolimlar: [b] })) bolimOf.set(id, b);
   const oddiy = barglar.filter((x) => { const id = f.id(x); return id == null || !bolimOf.has(id); });
   const k = kesimYigish(oddiy, f.kat, f.summa);
-  const agg = new Map<SvodYaxlitBolim, { sm: number; kr: number }>();
+  // `qoldiqF2` (F2 qoldig'i ko'rinishi): svod bo'limida qoldiq = yaxlit (shu qism ulushi) − F2 AYNAN (F2 masshtablanmaydi).
+  const agg = new Map<SvodYaxlitBolim, { sm: number; kr: number; f2: number }>();
   for (const x of barglar) {
     const id = f.id(x); const b = id == null ? undefined : bolimOf.get(id);
     if (!b) continue;
-    const a = agg.get(b) ?? { sm: 0, kr: 0 }; agg.set(b, a);
+    const a = agg.get(b) ?? { sm: 0, kr: 0, f2: 0 }; agg.set(b, a);
+    const f2 = o.qoldiqF2?.(x); if (f2 != null && Number.isFinite(f2)) a.f2 += f2;
     const s = f.smeta(x), v = f.summa(x);
     if (s != null && Number.isFinite(s)) a.sm += s;
     if (v == null || !Number.isFinite(v)) k.summasizSoni++; else a.kr += v;
@@ -144,8 +146,19 @@ export function svodKorinishKesimi<T>(
     let qqssiz = 0, barg = 0, svQ = 0, svS = 0;
     for (const [b, a] of agg) {
       const toliq = o.bolimSmeta?.get(Number(b.qator_id));
+      const qism = a.sm;
       if (toliq != null && Number.isFinite(toliq)) a.sm = toliq;
       barg += a.kr;
+      if (o.qoldiqF2) {
+        const lump = yaxlitKorinish(Number(b.qqssiz), a.sm, qism) ?? Number(b.qqssiz);
+        const s = yaxlitQoldiqF2(lump, a.f2) as number;
+        qqssiz += s;
+        // QQS bilan: svod (shu qism) − F2 × (1 + QQS) — F2 aynan.
+        const sv = b.svod_summa == null ? null : yaxlitKorinish(Number(b.svod_summa), a.sm, qism);
+        const f2q = yaxlitKOplate(a.f2, b.qqs_stavka);
+        if (sv != null && f2q != null) { svQ += r2(sv - f2q); svS += s; }
+        continue;
+      }
       const s = o.masshtab === false ? r2(a.kr) : yaxlitKorinish(Number(b.qqssiz), a.sm, a.kr) ?? r2(a.kr);
       qqssiz += s;
       if (o.masshtab !== false && b.svod_summa != null) { const q = yaxlitKorinish(Number(b.svod_summa), a.sm, a.kr); if (q != null) { svQ += q; svS += s; } }

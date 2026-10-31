@@ -1,6 +1,7 @@
 {
   "Buyurtmachi xarajatlari (pudratchi summasiga kirmaydi)": { "ru": "Расходы заказчика (не входят в сумму подрядчика)", "en": "Customer costs (not included in the contractor amount)" },
+  "Podval to‘liq emas — jami hisoblanmadi: {kod}": { "ru": "Подвал заполнен не полностью — итог не рассчитан: {kod}", "en": "Footer is incomplete — total not calculated: {kod}" },
+  "Kategoriyasi aniqlanmagan {n} qator ИТОГО-4 ga ustamasiz qo‘shildi — natija taxminiy (≈).": { "ru": "{n} строк без вида затрат добавлены в ИТОГО-4 без накрутки — результат приблизительный (≈).", "en": "{n} lines without a cost category added to TOTAL-4 without markup — result is approximate (≈)." },
   "к оплате: не определена": { "ru": "к оплате: не определена", "en": "payable: not determined" },
-  "fakt tasdiqlangan F2 dan kam emas: {n} ta pozitsiyada F2 bo‘yicha": { "ru": "факт не меньше утверждённой Ф-2: по {n} поз. — по Ф-2", "en": "actual is not below approved F2: {n} item(s) taken from F2" },
-  "fakt va F2 ishorasi har xil: {n} ta pozitsiya — fakt o‘zgartirilmadi, aktlarni tekshiring": { "ru": "знак факта и Ф-2 различается: {n} поз. — факт не изменён, проверьте акты", "en": "actual and F2 have different signs: {n} item(s) — actual left unchanged, check the acts" }
+  "fakt summasi tasdiqlangan F2 narxida: {n} ta pozitsiya (fakt hajmi o‘zgarmaydi)": { "ru": "сумма факта по цене утвержденной Ф-2: {n} поз. (объем факта не меняется)", "en": "actual amount at the approved F2 price: {n} item(s) (actual quantity unchanged)" }
 }

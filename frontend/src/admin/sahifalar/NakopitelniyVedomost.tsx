@@ -19,7 +19,7 @@ import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions } from '../.
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
-import { obyektPodvali } from '../../api/t2-nakrutka-podval';
+import { obyektPodvaliOqi } from '../../api/t2-nakrutka-podval';
 import type { Podval } from '../../lib/hisob-yadro';
 import type { SmetaNakrutka } from '../../api/t2-nakopitelniy';
 import { obyektSmetaKOplate } from '../../lib/ustamali-summa';
@@ -111,8 +111,11 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
       if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
       if (r.cats) setNakrutkaJavob(r);
-      const p = await obyektPodvali(companyId, Number(objectId), r.shartnoma_id ?? null);
-      if (active) { setPodval(p); setPodvalOqildi(true); }
+      // «Podval yo'q» (standart) va «o'qilmadi» farqlanadi; o'qilmasa — xato ko'rsatiladi, eksport bloklanadi.
+      const p = await obyektPodvaliOqi(companyId, Number(objectId), r.shartnoma_id ?? null, r.nakrutka_podval_id ?? null);
+      if (!active) return;
+      if (!p.ok) { setNakrutkaXato(p.xato); return; }
+      setPodval(p.podval); setPodvalOqildi(true);
     }).catch(() => { if (active) setNakrutkaXato('Nakrutka o‘qilmadi (tarmoq xatosi)'); });
     return () => { active = false; };
   }, [objectId]);
@@ -239,8 +242,11 @@ function Sessiya({ companyId }: { companyId: number }) {
   const smetaNakrutkaHisob = useMemo((): { qiymat: SmetaNakrutka | null; sabab: string | null } => {
     if (nakrutkaXato) return { qiymat: null, sabab: nakrutkaXato };
     if (!podvalOqildi) return { qiymat: null, sabab: null }; // hali o'qilmoqda
-    return obyektSmetaKOplate(nakrutkaJavob, podval, nakrutka);
-  }, [nakrutka, podval, podvalOqildi, nakrutkaJavob, nakrutkaXato]);
+    // Kategoriyasi ko'rsatilmagan smeta qismi (jami − kesim) tashlanmaydi — ИТОГО-4 ga ustamasiz, taxminiy (≈).
+    return obyektSmetaKOplate(nakrutkaJavob, podval, nakrutka, jami?.smeta_summa ?? null);
+  }, [nakrutka, podval, podvalOqildi, nakrutkaJavob, nakrutkaXato, jami?.smeta_summa]);
+  /** Eksport darvozasi: ustama/podval o'qilmagan yoki xato — hujjat yasalmaydi (sababi bilan). */
+  const ustamaTayyorEmas = (): string | null => (nakrutkaXato ? `Hujjat yasalmadi: ${nakrutkaXato}.` : !podvalOqildi ? 'Hujjat yasalmadi: ustama (nakrutka) va podval hali o‘qilmoqda — biroz kuting.' : null);
   const smetaNakrutka = smetaNakrutkaHisob.qiymat;
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
@@ -303,6 +309,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [forma3Diqqat, setForma3Diqqat] = useState<Array<{ nom: string; sabab: string }>>([]);
   const forma3EksportQil = async (korish = false) => {
     setXato(''); setForma3Diqqat([]);
+    const ux = ustamaTayyorEmas(); if (ux) { setXato(ux); return; }
     if (!objectId || !davr) { setXato('F3 uchun tasdiqlangan F2 davri yo‘q — hujjat yasalmadi.'); return; }
     setForma3Busy(true);
     try {
@@ -376,16 +383,17 @@ function Sessiya({ companyId }: { companyId: number }) {
   })());
   useEffect(() => {
     const a = f3Avto.current;
-    if (!a || busy || !objectId || !davr || !qatorlar.length) return;
+    if (!a || busy || !objectId || !davr || !qatorlar.length || (!podvalOqildi && !nakrutkaXato)) return;
     if (a.davr && davr.slice(0, 7) !== a.davr) { f3Avto.current = null; toast(t('F3 davri F2 davriga mos kelmadi — kerakli davrni tanlab «Форма № 3» ni bosing.'), 'warn'); return; }
     const timer = window.setTimeout(() => { if (f3Avto.current) { f3Avto.current = null; void forma3EksportQil(true); } }, 1500);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busy, objectId, davr, qatorlar.length, nakrutka, podval, shartnoma, zakazchikRek, pudratchiRek, tomonlar]);
+  }, [busy, objectId, davr, qatorlar.length, nakrutka, podval, podvalOqildi, nakrutkaXato, shartnoma, zakazchikRek, pudratchiRek, tomonlar]);
 
   const korinish = useHujjatKorinish();
   const eksportQil = async (korish = false) => {
     setXato('');
+    const ux = ustamaTayyorEmas(); if (ux) { setXato(ux); return; }
     try {
       const rows = await toliqQatorlar();
       if (!rows) return;

@@ -6,12 +6,11 @@ import type { FaktYigindi } from '../../lib/fakt-studio';
 import { nakopitelniyMoslik, type BolimSumma } from '../../lib/fakt-jurnal';
 import { t2NakopitelniyOl, type NakopitelniyJami } from '../../api/t2-nakopitelniy';
 
-/** Fakt ↔ tasdiqlangan F2 izohi (yadro `faktF2Qoida`): F2 dan olingan va ishorasi har xil pozitsiyalar. */
-export function FaktF2Izoh({ f2dan, aralash }: { f2dan: number; aralash: number }) {
-  if (!f2dan && !aralash) return null;
+/** Narx qoidasi izohi (yadro `faktSummaF2Narxda`): tasdiqlangan F2 bor pozitsiyalarda fakt summasi F2 narxida. */
+export function FaktF2Izoh({ f2Narxda }: { f2Narxda: number }) {
+  if (!f2Narxda) return null;
   return <div className="text-[10px] text-text-mute" data-testid="fakt-f2-izoh">
-    {f2dan > 0 && <span>{t('fakt tasdiqlangan F2 dan kam emas: {n} ta pozitsiyada F2 bo‘yicha', { n: String(f2dan) })}</span>}
-    {aralash > 0 && <span className="block text-warn" data-testid="fakt-f2-aralash">{t('fakt va F2 ishorasi har xil: {n} ta pozitsiya — fakt o‘zgartirilmadi, aktlarni tekshiring', { n: String(aralash) })}</span>}
+    {t('fakt summasi tasdiqlangan F2 narxida: {n} ta pozitsiya (fakt hajmi o‘zgarmaydi)', { n: String(f2Narxda) })}
   </div>;
 }
 
@@ -43,7 +42,7 @@ export function FaktStudioBar({ yigindi, obyektId, kompaniyaId, onF2, onYangiIsh
   return <section className="karta flex flex-wrap items-start gap-x-6 gap-y-2 px-3 py-2" aria-label={t('Fakt yig‘indisi')} data-testid="fakt-studio-bar">
     <div><div className="text-[10px] uppercase text-text-mute">{t('Fakt (hozircha)')}</div>
       <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={y.faktUstamasiz} katKesim={y.faktKesim} />
-      <FaktF2Izoh f2dan={y.faktF2dan} aralash={y.faktF2Aralash} /></div>
+      <FaktF2Izoh f2Narxda={y.faktF2Narxda} /></div>
     {jami && ([['smeta', t('Smeta')], ['f2', t('F2 (tasdiqlangan)')], ['qoldiq', t('Qoldiq')]] as const).map(([k, l]) => <div key={k} data-testid={`fs-jami-${k}`}><div className="text-[10px] uppercase text-text-mute">{l}</div>
       <SummaJuft kichik obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami[k].ustamasiz} katKesim={jami[k].kesim} /></div>)}
     <div><div className="text-[10px] uppercase text-text-mute">{t('Smetada yo‘q ishlar')}: <b className="text-text" data-testid="fs-yangi-soni">{y.yangiSoni}</b></div>
