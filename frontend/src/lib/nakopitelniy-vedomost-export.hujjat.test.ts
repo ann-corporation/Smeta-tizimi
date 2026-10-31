@@ -102,12 +102,12 @@ describe('Накопительная ведомость — hujjat standarti', (
     expect(t.keshsizFormulalar).toEqual([]);
     expect(t.matnlar).toEqual(expect.arrayContaining(['К ОПЛАТЕ (с накладными расходами и НДС)', 'ВСЕГО К ОПЛАТЕ (С НАКЛАДНЫМИ РАСХОДАМИ И НДС)', 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', 'ИТОГО-4 (БЕЗ НДС)']));
     // Kaskad (за период, L): ЧЕЛ 200 000,50; МАТ 180 000 + 4 590 000.
-    const L = r.kaskad!.L;
+    const L = r.kaskad!.L!;
     expect(L.pryamye).toBe(4_970_000.5);
     expect(L.vsego).toBeGreaterThan(L.pryamye);
     // Qator к оплате yig'indisi podval ВСЕГО bilan teng (faqat yaxlitlash farqi).
     expect(Math.abs((r.kOplata.davr ?? 0) - L.vsego)).toBeLessThan(0.05);
-    expect(Math.abs((r.kOplata.jami ?? 0) - r.kaskad!.N.vsego)).toBeLessThan(0.05);
+    expect(Math.abs((r.kOplata.jami ?? 0) - r.kaskad!.N!.vsego)).toBeLessThan(0.05);
     const k = t.varaqlar[0].kataklar;
     // Qator formulasi: ROUND(L×Kf) — Kf katagi foiz kataklaridan formula.
     expect(k.some((c) => /^ROUND\(L\d+\*F\d+,2\)$/.test(c.f ?? ''))).toBe(true);
@@ -115,10 +115,13 @@ describe('Накопительная ведомость — hujjat standarti', (
     expect(k.some((c) => /^SUMIF\(T\d+:T\d+,"МАТ",L\d+:L\d+\)$/.test(c.f ?? ''))).toBe(true);
   });
 
-  it('nakrutka foizlari berilmasa — 0 %, к оплате = прямые + НДС, hujjatda aytiladi', () => {
+  it('nakrutka foizlari berilmasa — к оплате NOMA‘LUM (0 % deb olinmaydi), hujjatda aytiladi', () => {
+    // Qasddan o'zgarish (hisob yadrosi): avval 0 % deb olinardi (к оплате = прямые + НДС). Endi foiz faqat podvaldan.
     const r = nakopitelniyVedomostHujjat(ROWS, { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12 });
     const t = hujjatTekshir(r.bytes);
-    expect(r.kaskad!.L.vsego).toBe(yaxlit(4_970_000.5 * 1.12));
+    expect(r.kaskad!.L).toBeNull();
+    expect(r.kOplata.davr).toBeNull();
+    void yaxlit;
     expect(t.matnlar.some((m) => m.includes('Проценты накладных и прочих расходов') && m.includes('не заданы'))).toBe(true);
   });
 

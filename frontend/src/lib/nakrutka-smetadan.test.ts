@@ -40,7 +40,7 @@ describe('smeta podvali → obyekt podvali', () => {
     expect(t.yangi.itogo4).toBe(1183.78);
     expect(t.eski.vsego).toBe(1325.83);
     expect(t.yangi.vsego).toBe(1361.35);
-    expect(t.kfYangi.ЧЕЛ).toBeGreaterThan(t.kfEski.ЧЕЛ);
+    expect(t.kfYangi.ЧЕЛ!).toBeGreaterThan(t.kfEski.ЧЕЛ!);
   });
 });
 

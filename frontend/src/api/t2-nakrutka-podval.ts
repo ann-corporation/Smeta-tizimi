@@ -7,6 +7,7 @@
  */
 import { sbOqi } from './supabase';
 import type { Podval, PodvalQator } from '../lib/nakrutka-konstruktor';
+import { serverCatsdan } from '../lib/hisob-yadro';
 
 export type PodvalYozuv = {
   id: number; kompaniya_id: number; obyekt_id: number | null; obyekt: string | null;
@@ -65,6 +66,5 @@ export async function obyektPodvali(kompaniyaId: number | null | undefined, obye
 }
 
 /** Server kategoriya bucketi (МАТ = МАТ+КАБ+М/К+БЕЗ СКЛАД) → konstruktor kategoriyalari. */
-export function serverCatsKatga(c: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number }) {
-  return { ЧЕЛ: c.chel, МАШ: c.mash, МАТ: c.mat - c.kab - c.mk - c.bez, ОБ: c.ob, КАБ: c.kab, 'М/К': c.mk, 'БЕЗ СКЛАД': c.bez };
-}
+/** Server `cats` → kategoriyalar (yadro `serverCatsdan`). */
+export const serverCatsKatga = serverCatsdan;

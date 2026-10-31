@@ -19,14 +19,14 @@
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
-import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, podvalliKaskad, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
+import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, podvalNdsFoiz, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
 import { OZGARISH_KOD, OZGARISH_LEGENDA, OZGARISH_NOMI_RU, lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishIzohi, ozgarishRangi, ozgarishXaritasi, type OzgarishGuruh } from './lrv-ozgarish';
-import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
+import { kaskad as yadroKaskad, podvalNdsFoizi, serverMerosKoefQoy, standartPodval, yaxlitKOplate, type Podval } from './hisob-yadro';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { pivotQosh, type PivotKatak } from './hujjat-yozuvchi/pivot';
 import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from './narx-bildirishnoma';
-import { YAXLIT_IZOH, YAXLIT_KAT, type SvodYaxlit } from './svod-yaxlit';
+import { YAXLIT_IZOH, YAXLIT_KAT, svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
 
 export type LrvHujjatOpsiya = {
   obyektNom: string;
@@ -121,7 +121,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   const ozRang = (id: number): QatorRangi | null => (oz ? ozgarishRangi(oz.get(id)) : null);
   const GURUHLAR: readonly OzgarishGuruh[] = ['asl', 'qoshimcha', 'zamena'];
   const bosh0 = () => Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
-  const guruhJS = Object.fromEntries(GURUHLAR.map((g) => [g, { H: 0, L: 0, N: 0, ks: bosh0(), yax: 0 }])) as Record<OzgarishGuruh, { H: number; L: number; N: number; ks: KatSummalar; yax: number }>;
+  const guruhJS = Object.fromEntries(GURUHLAR.map((g) => [g, { H: 0, L: 0, N: 0, ks: bosh0(), yax: 0, nom: 0 }])) as Record<OzgarishGuruh, { H: number; L: number; N: number; ks: KatSummalar; yax: number; nom: number }>;
   const v = new RasmiyVaraq({
     nom: 'LRV',
     sarlavha: 'ЛИМИТНО-РЕСУРСНАЯ ВЕДОМОСТЬ (ЛРВ)',
@@ -142,6 +142,8 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   const jamiJS: Record<(typeof PUL)[number], number | null> = { H: 0, L: 0, N: 0 };
   /** Svod yaxlit qatorlari summasi (ustamasiz) — kategoriya kesimiga kirmaydi. */
   const yaxJS: Record<(typeof PUL)[number], number> = { H: 0, L: 0, N: 0 };
+  /** Kategoriyasi ko'rsatilmagan barglar summasi (ustamasiz, QQS bilan — podvalda alohida qator). */
+  const nomJS: Record<(typeof PUL)[number], number> = { H: 0, L: 0, N: 0 };
   let yaxBor = false;
   const diqqat: Array<{ nom: string; sabab: string; joy?: string }> = [];
   let n = 0;
@@ -152,7 +154,8 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   const yoz = (t: Tugun, daraja: number, ishQator: number | null, ishHajm: number | null, bolimNom = '') => {
     const q = t.q;
     const hq = h.get(q.id);
-    const kat = nakrutkaKat(q.kat) ?? (q.tur === 'mat' ? 'МАТ' : q.tur === 'ob' ? 'ОБ' : null);
+    // Kategoriya faqat qatorning o'zidan (tur bo'yicha МАТ/ОБ taxmin yo'q); yo'q — «вид затрат не указан», ustamasiz.
+    const kat = nakrutkaKat(q.kat);
     const kalit = lrvKalitYoz(q.id, q.kod, q.nom, q.birlik);
     const tur = q.tur ?? '';
     if (q.tur === 'rz') {
@@ -194,10 +197,10 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const gj = oz ? guruhJS[oz.get(q.id)?.guruh ?? 'asl'] : null;
     for (const [c, x] of [['H', summa], ['L', faktSumma], ['N', f2Summa]] as const) {
       if (x != null) jamiJS[c] = yaxlit2((jamiJS[c] ?? 0) + x);
-      if (yx) { if (x != null) yaxJS[c] = yaxlit2(yaxJS[c] + x); } else if (kat && x != null) ks[c][kat] = yaxlit2(ks[c][kat] + x);
+      if (yx) { if (x != null) yaxJS[c] = yaxlit2(yaxJS[c] + x); } else if (kat && x != null) ks[c][kat] = yaxlit2(ks[c][kat] + x); else if (x != null) nomJS[c] = yaxlit2(nomJS[c] + x);
       if (gj && x != null) gj[c] = yaxlit2(gj[c] + x);
     }
-    if (gj && summa != null) { if (yx) gj.yax = yaxlit2(gj.yax + summa); else if (kat) gj.ks[kat] = yaxlit2(gj.ks[kat] + summa); }
+    if (gj && summa != null) { if (yx) gj.yax = yaxlit2(gj.yax + summa); else if (!kat) gj.nom = yaxlit2(gj.nom + summa); else gj.ks[kat] = yaxlit2(gj.ks[kat] + summa); }
     const rk = `${kat ?? ''}|${(q.kod ?? '').trim()}|${(q.nom ?? '').trim()}|${(q.birlik ?? '').trim()}`;
     const res = resurslar.get(rk) ?? { kalit: `Р${resurslar.size + 1}`, kat, kod: (q.kod ?? '').trim(), nom: (q.nom ?? '').trim() || 'Nomsiz', birlik: (q.birlik ?? '').trim(), narxlar: new Set<number>(), hajm: 0, summa: 0, fakt: 0, faktSumma: 0 };
     res.hajm = y6(res.hajm + smetaHajm); res.fakt = y6(res.fakt + fakt);
@@ -235,9 +238,14 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   v.bosh();
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
-  const yaxlit = yaxBor ? { H: o.svodYaxlit?.qqssiz ?? yaxJS.H, L: yaxJS.L, N: yaxJS.N } : null;
-  nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: [...PUL], foizUstun: 'G', nk, katSummalar: ks, kfJadval: false, yaxlit });
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  // Yaxlit svod podval qatori — QQS BILAN (НДС dan keyin, aynan): smeta ustunida svod summasi, qolganida ×(1+QQS).
+  const ndsY = podvalNdsFoiz(podval, nk);
+  const svQ = svodYaxlitQqs(o.svodYaxlit, ndsY);
+  const qb = (x: number) => yaxlitKOplate(x, ndsY);
+  const yaxlit = yaxBor && ndsY != null ? { H: svQ?.qqsBilan ?? qb(yaxJS.H)!, L: qb(yaxJS.L)!, N: qb(yaxJS.N)! } : null;
+  const nomalum = Object.values(nomJS).some((x) => Math.abs(x) >= 0.005) ? { ...nomJS } : null;
+  nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: [...PUL], foizUstun: 'G', nk, katSummalar: ks, kfJadval: false, yaxlit, nomalum });
   if (yaxBor) v.izoh(YAXLIT_IZOH);
   if (oz) ozgarishJamlari(v, { a: birinchi, b: oxirgi, itogoR, jami: jamiJS.H, guruhJS, nk, podval, ustamaBor: o.nakrutka != null || o.podval != null });
   v.diqqat(diqqat);
@@ -272,7 +280,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
  */
 function ozgarishJamlari(v: RasmiyVaraq, o: {
   a: number; b: number; itogoR: number; jami: number | null;
-  guruhJS: Record<OzgarishGuruh, { H: number; L: number; N: number; ks: KatSummalar; yax: number }>;
+  guruhJS: Record<OzgarishGuruh, { H: number; L: number; N: number; ks: KatSummalar; yax: number; nom: number }>;
   nk: Partial<NakrutkaKoeffitsientlar>; podval: Podval | null; ustamaBor: boolean;
 }): void {
   const { a, b } = o;
@@ -289,13 +297,12 @@ function ozgarishJamlari(v: RasmiyVaraq, o: {
     pryamye.push(qator(`${OZGARISH_NOMI_RU[g]} — прямые затраты (без накрутки)`,
       { f: sumifs(C.H, kod), v: x.H }, { f: sumifs(C.L, kod), v: x.L }, { f: sumifs(C.N, kod), v: x.N }, 'oddiy', RANG[g]));
     if (!o.ustamaBor) continue;
-    let itogo4: number | null = null, vsego: number | null = null;
-    try {
-      const k = podvalliKaskad(x.ks, o.nk, o.podval);
-      // Svod yaxlit bo'limlari — ustamasiz (svod xati), QQS bir marta.
-      itogo4 = yaxlit2(k.itogo4 + x.yax);
-      vsego = yaxlit2(k.vsego + x.yax * (1 + Number(o.nk.НДС ?? 0) / 100));
-    } catch { /* podval to'liq emas — ustamali qiymat noma'lum (NULL ≠ 0), katak bo'sh */ }
+    // Yadro: kat ko'rsatilmagan — ИТОГО-4 ga ustamasiz; svod yaxlit — QQS bilan, НДС dan keyin. To'liq emas — null.
+    const pg = o.podval ?? standartPodval(o.nk);
+    const yq = x.yax ? yaxlitKOplate(x.yax, podvalNdsFoizi(pg)) : null;
+    const k = yadroKaskad(x.ks, pg, { nomalumQism: x.nom || null, yaxlit: yq != null ? { qqsBilan: yq, qqssiz: x.yax } : null });
+    const tolik = !k.nomalumQatorlar.length;
+    const itogo4 = tolik ? k.itogo4 : null, vsego = tolik ? k.vsego : null;
     qator(`${OZGARISH_NOMI_RU[g]} — с накруткой, без НДС`, itogo4, null, null, 'oddiy', RANG[g]);
     qator(`${OZGARISH_NOMI_RU[g]} — с накруткой и НДС`, vsego, null, null, 'oddiy', RANG[g]);
   }

@@ -31,12 +31,12 @@ import {
 import { shartnomaSvodi, somga, svodJami, sverkaHisobla, tiyin, type SvodShartnoma } from './nakopitelniy-svod';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import {
-  NAKRUTKA_KATLAR, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari,
+  NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami,
   type KatSummalar, type NakrutkaHisobJS,
 } from './nakrutka-podval';
-import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
+import { faktF2Max, serverMerosKoefQoy, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitQatorlarga, type Podval } from './hisob-yadro';
 import { narxBildirishnomaKerak } from './narx-bildirishnoma';
-import { YAXLIT_IZOH, YAXLIT_KAT, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
+import { YAXLIT_IZOH, YAXLIT_KAT, svodYaxlitQqs, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export interface NakopitelniyVedomostExportOptions {
   obyektNom: string;
@@ -68,8 +68,8 @@ export interface NakopitelniyOylar {
   qiymat: ReadonlyMap<number, ReadonlyMap<string, { hajm: number; summa: number | null }>>;
 }
 
-/** НДС stavkasi sukuti (egasi qarori Q2): 12 %, o'zgartiriladi. */
-export const NDS_SUKUT_FOIZ = 12;
+/** НДС stavkasi sukuti (egasi qarori Q2) — yadrodagi yagona manba. */
+export { NDS_SUKUT_FOIZ } from './hisob-yadro';
 
 export class HujjatToliqEmasXato extends Error {
   readonly sabab: string;
@@ -167,7 +167,7 @@ export async function nakopitelniyVedomostExportXlsx(
 export function nakopitelniyVedomostHujjat(
   qatorlar: readonly NakopitelniyQator[],
   o: NakopitelniyVedomostExportOptions,
-): { bytes: Uint8Array; faylNomi: string; jamilar: NakopitelniyJamilar; kaskad: Record<string, NakrutkaHisobJS> | null; kOplata: { davr: number | null; jami: number | null } } {
+): { bytes: Uint8Array; faylNomi: string; jamilar: NakopitelniyJamilar; kaskad: Record<string, NakrutkaHisobJS | null> | null; kOplata: { davr: number | null; jami: number | null } } {
   if (o.truncated) throw new HujjatToliqEmasXato('ro‘yxat server chegarasida qirqilgan');
   const davrlar = davrUstunlari(o);
   const U = ustunRejasi(davrlar);
@@ -224,6 +224,8 @@ export function nakopitelniyVedomostHujjat(
   /* Noma'lum oy summasi (null) jamiga qo'shilmaydi — faqat ma'lum qism (katak bo'sh, diqqat ro'yxatida aytiladi). */
   const jamiS = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + (d.summa(q) ?? 0), 0);
   const perS = (q: NakopitelniyQator) => davrlar[davrlar.length - 1].summa(q) ?? 0;
+  /** Ko'rsatiladigan fakt hajmi: yadro `faktF2Max` (F2 = 0 — tasdiqlangan F2 yo'q, fakt o'zgarmaydi). */
+  const faktKor = (q: NakopitelniyQator): number => { const f2 = jamiH(q); return faktF2Max(q.fakt_hajm, f2 === 0 ? null : f2) ?? q.fakt_hajm; };
 
   const reja: Rej[] = [];
   const bargRows: number[] = [];
@@ -241,7 +243,7 @@ export function nakopitelniyVedomostHujjat(
       bargRows.push(i);
       const q = node.q;
       if (q.smeta_hajm == null || (q.smeta_summa == null && narxBildirishnomaKerak(q, null))) diqqat.push({ nom: nomi(q), sabab: 'нет объема или стоимости по смете — строка не включена в сумму' });
-      if (!nakrutkaKat(q.kat)) diqqat.push({ nom: nomi(q), sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
+      if (!nakrutkaKat(q.kat)) diqqat.push({ nom: nomi(q), sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — к оплате без накрутки (только НДС), в расчете отдельной строкой' });
       const mozhno = q.fakt_hajm - jamiH(q);
       // Reja ishorasiga nisbatan: chegirma ishida (manfiy smeta) akt fakt’dan «manfiyroq» bo‘lsa — ortiqcha qabul.
       if ((q.smeta_hajm ?? 0) < 0 ? mozhno > 1e-9 : mozhno < -1e-9) diqqat.push({ nom: nomi(q), sabab: `принято по актам больше, чем выполнено по факту (на ${fmt(Math.abs(mozhno))})` });
@@ -265,21 +267,47 @@ export function nakopitelniyVedomostHujjat(
   const rowOf = (i: number) => bosh + i;
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
+  // Foizlar faqat podvaldan (server meros rejimi); noma'lum foiz — к оплате bo'sh, 0 emas.
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
   const kfJS = kategoriyaKf(nk, podval);
+  const ndsFoiz = podvalNdsFoiz(podval, nk);
   const podvalBosh = bosh + reja.length + 2;
   const yaxIds = yaxlitQatorIdlari(qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id })), o.svodYaxlit);
   const yaxlitmi = (q: NakopitelniyQator) => yaxIds.has(q.qator_id);
   const yaxlitBor = !!o.svodYaxlit && bargRows.length > 0;
-  const kfQ = podvalKfQatorlari(podvalBosh, podval, yaxlitBor);
+  // Svod yaxlit (egasi): bo'lim smetasi qatorlarga tiyingacha taqsimlanadi (Σ = yaxlit aynan); F2 summalari aynan,
+  // ularning к оплате ×(1+QQS) bo'lim bo'yicha taqsim (Σ aynan). Qoldiq = taqsimlangan smeta − F2.
+  const gTaqsim = new Map<number, number>();
+  const koTaqsim = new Map<string, number>();
+  for (const b of o.svodYaxlit?.bolimlar ?? []) {
+    const ids = yaxlitQatorIdlari(qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id })), { ...o.svodYaxlit!, bolimlar: [b] });
+    const lq = bargRows.map((i) => reja[i].q!).filter((q) => ids.has(q.qator_id));
+    if (!lq.length) continue;
+    for (const [id, x] of yaxlitQatorlarga(Number(b.qqssiz), lq.map((q) => ({ id: q.qator_id, summa: q.smeta_summa }))) ?? []) gTaqsim.set(id, x);
+    // Smetasi noma'lum qatorlar taqsimga kirmaydi (null qoladi) — diqqatga.
+    const bilinmas = lq.filter((q) => q.smeta_summa == null).length;
+    if (bilinmas) diqqat.push({ nom: `Раздел по своду: ${b.nom ?? b.qator_id}`, sabab: `нет сметной стоимости по ${bilinmas} поз. — в распределение суммы свода не включены` });
+    for (const [k, f] of [['per', perS], ['jami', jamiS]] as const) {
+      for (const [id, x] of yaxlitKOplateTaqsim(new Map(lq.map((q) => [q.qator_id, f(q)])), ndsFoiz) ?? []) koTaqsim.set(`${id}${k}`, x);
+    }
+  }
+  const smetaOf = (q: NakopitelniyQator): number | null => gTaqsim.get(q.qator_id) ?? q.smeta_summa;
+  // Kategoriyasi ko'rsatilmagan barglar: ustamasiz, faqat QQS (server kabi); podvalda alohida qator.
+  const katsizmi = (q: NakopitelniyQator) => !yaxlitmi(q) && !nakrutkaKat(q.kat);
+  const nomalumBor = bargRows.some((i) => katsizmi(reja[i].q!) && Math.abs((smetaOf(reja[i].q!) ?? 0)) + Math.abs(jamiS(reja[i].q!)) >= 0.005);
+  const kfQ = podvalKfQatorlari(podvalBosh, podval, yaxlitBor, nomalumBor);
+  const ndsQ = podvalQatorRaqami(podvalBosh, podval, 'nds', yaxlitBor, nomalumBor);
   const koOf = (q: NakopitelniyQator) => {
     const kat = nakrutkaKat(q.kat);
     const y = yaxlitmi(q);
-    return { kat, yaxlit: y, per: kOplate(perS(q), kat, kfJS, y), jami: kOplate(jamiS(q), kat, kfJS, y) };
+    const tq = (k: string) => koTaqsim.get(`${q.qator_id}${k}`);
+    return { kat, yaxlit: y, taqsim: tq('per') != null, per: tq('per') ?? kOplate(perS(q), kat, kfJS, y, ndsFoiz), jami: tq('jami') ?? kOplate(jamiS(q), kat, kfJS, y, ndsFoiz) };
   };
+  // Yaxlit (svod) qatori к оплате: ustama yo'q, faqat QQS — ×(1+НДС%/100).
+  const yaxKf = ndsQ != null ? `(1+F${ndsQ}/100)` : '1';
   /** Pul ustuni qiymati (barg). */
   const pulOf = (q: NakopitelniyQator, c: string): number | null => {
-    if (c === 'G') return q.smeta_summa;
+    if (c === 'G') return smetaOf(q);
     if (c === U.jamiS) return jamiS(q);
     const k = U.davrS.indexOf(c);
     return k >= 0 ? davrlar[k].summa(q) : null;
@@ -320,7 +348,7 @@ export function nakopitelniyVedomostHujjat(
   };
   const ostatok = (idx: readonly number[]): number | string => {
     const bl = bargIdx(idx);
-    return bl.reduce((s, k) => s + (reja[k].q!.smeta_summa ?? 0) - jamiS(reja[k].q!), 0);
+    return bl.reduce((s, k) => s + (smetaOf(reja[k].q!) ?? 0) - jamiS(reja[k].q!), 0);
   };
   const n = (x: number | null | undefined): Qiymat => (x == null ? null : x);
   // Excel читает числа с 15 значащими цифрами; сравнение должно использовать ту же точность.
@@ -356,10 +384,13 @@ export function nakopitelniyVedomostHujjat(
         // Сохранённый источник важнее округлённой нормы. При изменении работы формула остаётся живой.
         c[4] = normaF ? { f: `IF(E${rowOf(x.ota!)}=${excelSource(ota!.q!.smeta_hajm!)},${excelSource(q!.smeta_hajm!)},${normFormula})`, v: q!.smeta_hajm! } : n(q!.smeta_hajm);
         c[5] = barg ? n(q!.smeta_narx) : null;
-        c[6] = barg
+        c[6] = barg && gTaqsim.has(q!.qator_id) ? smetaOf(q!) // svod bo'limiga taqsim — qiymat (formula emas)
+          : barg
           ? (q!.smeta_narx != null && q!.smeta_hajm != null && q!.smeta_summa != null ? { f: `IF(OR(E${rr}="",F${rr}=""),"",IF(AND(E${rr}=${excelSource(q!.smeta_hajm)},F${rr}=${excelSource(q!.smeta_narx)}),${q!.smeta_summa},ROUND(E${rr}*F${rr},2)))`, v: q!.smeta_summa } : n(q!.smeta_summa))
           : pulYig('G', x.bolalar);
-        c[7] = q!.fakt_hajm;
+        // Fakt F2 yonida — yadro qoidasi: tasdiqlangan F2 dan «kam» emas (ishoraga qarab); xom farq diqqatda aytiladi.
+        const faktK = faktKor(q!);
+        c[7] = faktK;
         davrlar.forEach((d, k) => {
           c[col(U.davrH[k])] = d.hajm(q!);
           c[col(U.davrS[k])] = barg ? d.summa(q!) : pulYig(U.davrS[k], x.bolalar);
@@ -368,15 +399,28 @@ export function nakopitelniyVedomostHujjat(
         c[col(U.jamiH)] = { f: jamiHF(rr), v: jh };
         c[col(U.jamiS)] = barg ? { f: jamiSF(rr), v: jamiS(q!) } : pulYig(U.jamiS, x.bolalar);
         c[col(U.ostH)] = { f: `IF(E${rr}="","",E${rr}-${U.jamiH}${rr})`, v: q!.smeta_hajm == null ? '' : q!.smeta_hajm - jh };
-        c[col(U.ostS)] = barg || x.bolalar.length ? { f: `IF(G${rr}="","",G${rr}-${U.jamiS}${rr})`, v: barg ? (q!.smeta_summa == null ? '' : q!.smeta_summa - jamiS(q!)) : ostatok(x.bolalar) } : null;
-        c[col(U.mozhno)] = { f: `H${rr}-${U.jamiH}${rr}`, v: q!.fakt_hajm - jh };
+        c[col(U.ostS)] = barg || x.bolalar.length ? { f: `IF(G${rr}="","",G${rr}-${U.jamiS}${rr})`, v: barg ? (smetaOf(q!) == null ? '' : smetaOf(q!)! - jamiS(q!)) : ostatok(x.bolalar) } : null;
+        c[col(U.mozhno)] = { f: `H${rr}-${U.jamiH}${rr}`, v: faktK - jh };
         if (barg) {
           const ko = koOf(q!);
-          if (ko.yaxlit) {
-            // Svod yaxlit bo'limi: ustama koeffitsienti qo'llanmaydi (к оплате = прямые), podvalda «Свод яхлит» qatori.
-            c[col(U.koPer)] = { f: `ROUND(${U.davrS[U.davrS.length - 1]}${rr},2)`, v: ko.per ?? '' };
-            c[col(U.koJami)] = { f: `ROUND(${U.jamiS}${rr},2)`, v: ko.jami ?? '' };
+          if (ko.taqsim) {
+            c[col(U.koPer)] = ko.per; c[col(U.koJami)] = ko.jami; c[col(U.kat)] = YAXLIT_KAT; // bo'lim bo'yicha taqsim
+          } else if (ko.yaxlit && (ndsQ == null || ndsFoiz == null)) {
+            c[col(U.kat)] = YAXLIT_KAT; // QQS stavkasi noma'lum — к оплате bo'sh
+          } else if (ko.yaxlit) {
+            // Svod yaxlit bo'limi: ustama yo'q, faqat QQS (к оплате = прямые × (1+НДС)); podvalda «Свод яхлит» qatori.
+            c[col(U.koPer)] = { f: `ROUND(${U.davrS[U.davrS.length - 1]}${rr}*${yaxKf},2)`, v: ko.per ?? '' };
+            c[col(U.koJami)] = { f: `ROUND(${U.jamiS}${rr}*${yaxKf},2)`, v: ko.jami ?? '' };
             c[col(U.kat)] = YAXLIT_KAT;
+          } else if (!ko.kat) {
+            // Vid zatrat ko'rsatilmagan: ustamasiz, faqat QQS; podvalda «ВИД ЗАТРАТ НЕ УКАЗАН» qatori.
+            if (ndsQ != null && ndsFoiz != null) {
+              c[col(U.koPer)] = { f: `ROUND(${U.davrS[U.davrS.length - 1]}${rr}*${yaxKf},2)`, v: ko.per ?? '' };
+              c[col(U.koJami)] = { f: `ROUND(${U.jamiS}${rr}*${yaxKf},2)`, v: ko.jami ?? '' };
+            }
+            c[col(U.kat)] = NOMALUM_KAT;
+          } else if (ko.kat && kfJS[ko.kat] == null) {
+            c[col(U.kat)] = ko.kat; // Kf noma'lum — к оплате bo'sh, formula yo'q
           } else if (ko.kat) {
             const kf = `F${kfQ[ko.kat]}`;
             c[col(U.koPer)] = { f: `ROUND(${U.davrS[U.davrS.length - 1]}${rr}*${kf},2)`, v: ko.per ?? '' };
@@ -405,7 +449,7 @@ export function nakopitelniyVedomostHujjat(
     }
     if (r !== rowOf(i)) throw new Error('NAKOPITELNIY_QATOR_SILJIDI');
   });
-  let kaskad: Record<string, NakrutkaHisobJS> | null = null;
+  let kaskad: Record<string, NakrutkaHisobJS | null> | null = null;
   let kOplataJami: { davr: number | null; jami: number | null } = { davr: null, jami: null };
   if (bargRows.length) {
     v.qator('vsego', (rr) => {
@@ -437,16 +481,26 @@ export function nakopitelniyVedomostHujjat(
     // Svod yaxlit: smeta ustunida — svod summasi (QQS siz, server bilan bir xil); boshqa ustunlarda — yaxlit
     // qatorlarning o'z summasi (ustamasiz); остаток = svod − с начала.
     let yaxlit: Record<string, number> | null = null;
-    if (yaxlitBor) {
+    // Svod yaxlit podval qatori — QQS BILAN (НДС dan keyin, aynan; egasi 2026-10-30): smeta ustunida svod summasi
+    // (yakuniy), F2 ustunlarida F2 × (1+QQS), остаток = svod − с начала (QQS bilan).
+    const svQ = svodYaxlitQqs(o.svodYaxlit, ndsFoiz);
+    if (yaxlitBor && svQ && ndsFoiz != null) {
       const yq = bargRows.map((i) => reja[i].q!).filter(yaxlitmi);
+      const qb = (x: number) => yaxlitKOplate(x, ndsFoiz) as number;
+      const jamiQb = qb(yq.reduce((t, q) => t + jamiS(q), 0));
       yaxlit = {};
       for (const c of U.pul) {
-        yaxlit[c] = c === 'G' ? o.svodYaxlit!.qqssiz
-          : c === U.ostS ? o.svodYaxlit!.qqssiz - yq.reduce((t, q) => t + jamiS(q), 0)
-            : yq.reduce((t, q) => t + (pulOf(q, c) ?? 0), 0);
+        yaxlit[c] = c === 'G' ? svQ.qqsBilan : c === U.ostS ? yaxlit2(svQ.qqsBilan - jamiQb) : qb(yq.reduce((t, q) => t + (pulOf(q, c) ?? 0), 0));
       }
     }
-    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [bosh, bosh + reja.length - 1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar, yaxlit });
+    const [a1, b1] = [bosh, bosh + reja.length - 1];
+    let nomalum: Record<string, number> | null = null, nomalumF: Record<string, string> | null = null;
+    if (nomalumBor) {
+      const nq = bargRows.map((i) => reja[i].q!).filter(katsizmi);
+      nomalum = Object.fromEntries(U.pul.map((p) => [p, yaxlit2(nq.reduce((t, q) => t + (p === U.ostS ? (smetaOf(q) == null ? 0 : smetaOf(q)! - jamiS(q)) : pulOf(q, p) ?? 0), 0))]));
+      nomalumF = Object.fromEntries(U.pul.map((p) => [p, `SUMIF(${U.kat}${a1}:${U.kat}${b1},"${NOMALUM_KAT}",${p}${a1}:${p}${b1})`]));
+    }
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [a1, b1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar, yaxlit, nomalum, nomalumF });
     if (p.bosh !== podvalBosh) throw new Error('NAKOPITELNIY_PODVAL_SILJIDI');
     kaskad = p.kaskad;
   }
@@ -456,7 +510,7 @@ export function nakopitelniyVedomostHujjat(
     : 'Графы «Принято ранее», «За отчетный период» и «С начала строительства» — по утвержденным актам формы № 2. «Можно предъявить» = выполнено по факту − принято с начала строительства. Суммы по разделам подводятся по ресурсам (материалам, труду, машинам, оборудованию).');
   v.izoh('Суммы — прямые затраты (без накладных расходов и НДС). Графы «К оплате» — прямые затраты × коэффициент по виду затрат (раздел «Расчет стоимости к оплате»); расхождение с итогом расчета — только округление. Позиции с пометкой [ЗАМЕНА] / [ДОПОЛНИТЕЛЬНАЯ РАБОТА] — изменения к смете.');
   if (yaxIds.size) v.izoh(YAXLIT_IZOH);
-  if (!o.nakrutka || !Object.keys(o.nakrutka).length) diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — в расчете приняты 0 %; стоимость к оплате отличается от прямых затрат только НДС' });
+  if (Object.values(kfJS).some((x) => x == null)) diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — стоимость к оплате не определена (проценты не принимаются равными 0)' });
   const sn = o.smetaNakrutka;
   if (sn) {
     v.izoh(`Сметная стоимость объекта: прямые затраты ${fmt2(sn.pryamye)} сум; с накладными расходами и прочими затратами (без НДС) ${fmt2(sn.itogo4)} сум; НДС${sn.nds_foiz != null ? ` ${String(sn.nds_foiz).replace('.', ',')} %` : ''} ${fmt2(sn.nds)} сум; всего с НДС ${fmt2(sn.vsego)} сум.`);

@@ -18,7 +18,8 @@ import {
   type Podval, type PodvalHad, type PodvalQator,
 } from '../../lib/nakrutka-konstruktor';
 import { NAKRUTKA_KATLAR, podvalQiymatYaxlit, type KatSummalar, type NakrutkaKat } from '../../lib/nakrutka-podval';
-import { kaskadCats, type SvodYaxlit } from '../../lib/svod-yaxlit';
+import { kaskadCats, svodYaxlitQqs, type SvodYaxlit } from '../../lib/svod-yaxlit';
+import { podvalNdsFoizi, podvalVsegoKodi } from '../../lib/hisob-yadro';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -115,7 +116,7 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   const korinadigan: Podval = tahrir ?? (amaldagi ? { versiya: 1, nom: amaldagi.nom, qatorlar: amaldagi.qatorlar } : standart);
   const xatolar = tahrir ? podvalTekshir(tahrir) : [];
   const hisob0 = kat ? podvalHisobla(korinadigan, kat) : null;
-  const hisob = hisob0 && svodYaxlit ? { ...hisob0, qiymat: podvalQiymatYaxlit(hisob0.qiymat, korinadigan, svodYaxlit.qqssiz, koef) } : hisob0;
+  const hisob = hisob0 && svodYaxlit ? { ...hisob0, qiymat: podvalQiymatYaxlit(hisob0.qiymat, korinadigan, svodYaxlitQqs(svodYaxlit, podvalNdsFoizi(korinadigan))) } : hisob0;
   const kf = podvalKf(korinadigan);
   const belgilangan = podvalBelgilanganSumma(korinadigan);
 
@@ -196,7 +197,8 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
           </tr></thead>
           <tbody>
             {korinadigan.qatorlar.map((q, i) => {
-              const oxirgi = i === korinadigan.qatorlar.length - 1;
+              // ВСЕГО qatori — `podvalVsegoKodi` (oxirgi qator emas: undan keyin buyurtmachi qatorlari bo'lishi mumkin).
+              const oxirgi = q.kod === podvalVsegoKodi(korinadigan) || i === korinadigan.qatorlar.length - 1;
               const v = hisob?.qiymat[q.kod];
               return (
                 <tr key={q.kod} className={q.tur === 'jami' ? 'fz-row-total' : ''}>
@@ -251,10 +253,10 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
       <div className="fz-panel">
         <div className="fz-panel__h"><span>{t('Kategoriya koeffitsientlari (ustama %)')}</span><span>{t('1 so‘m to‘g‘ri xarajat → ВСЕГО')}</span></div>
         <div className="fz-bars">
-          {NAKRUTKA_KATLAR.map((k) => { const u = kfUstamaFoiz(kf[k]); const kfMax = Math.max(1e-9, ...NAKRUTKA_KATLAR.map((x) => kf[x])); return (
-            <div key={k} className="fz-bars__q" title={`Kf ${k} = ${kf[k].toFixed(6)}`}>
-              <span>{k} <small className="font-mono text-text-mute">kf {kf[k].toFixed(6)}</small></span><b>{u == null ? '—' : `+${u.toFixed(2)}%`}</b>
-              <i style={{ ['--w' as string]: `${Math.max(0, (kf[k] / kfMax) * 100)}%` }} />
+          {NAKRUTKA_KATLAR.map((k) => { const kk = kf[k]; const u = kk == null ? null : kfUstamaFoiz(kk); const kfMax = Math.max(1e-9, ...NAKRUTKA_KATLAR.map((x) => kf[x] ?? 0)); return (
+            <div key={k} className="fz-bars__q" title={`Kf ${k} = ${kk == null ? '—' : kk.toFixed(6)}`}>
+              <span>{k} <small className="font-mono text-text-mute">kf {kk == null ? '—' : kk.toFixed(6)}</small></span><b>{u == null ? '—' : `+${u.toFixed(2)}%`}</b>
+              <i style={{ ['--w' as string]: `${Math.max(0, ((kk ?? 0) / kfMax) * 100)}%` }} />
             </div>); })}
         </div>
       </div>

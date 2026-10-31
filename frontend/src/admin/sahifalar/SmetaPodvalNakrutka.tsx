@@ -215,7 +215,7 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
                 <span className="text-right tabular-nums"><b><FmtN val={tasir.yangi.vsego} /></b></span>
                 <span className="text-text-dim">{t('Farq (ВСЕГО)')}</span>
                 <span />
-                <span className="text-right tabular-nums"><FmtN val={tasir.yangi.vsego - tasir.eski.vsego} /></span>
+                <span className="text-right tabular-nums"><FmtN val={tasir.yangi.vsego == null || tasir.eski.vsego == null ? null : tasir.yangi.vsego - tasir.eski.vsego} /></span>
               </div>
             )}
             {(isbotNomos.length > 0 || oqish.review.length > 0) && (

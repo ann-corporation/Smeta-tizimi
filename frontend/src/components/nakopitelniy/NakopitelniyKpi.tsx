@@ -25,23 +25,25 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
 }) {
   // Svod yaxlit (20261113500000): belgili bo'lim avlodlariga ustama qo'llanmaydi; to'liq smeta — server kesimi (svod bilan).
   const ust = useUstamaliSumma(obyektId, { kompaniyaId });
-  const { yaxlitIdlari, obyektKesim } = ust;
+  const { korinishKesimi, obyektKesim } = ust;
   /** Ustama hisobi kategoriya kesimini talab qiladi; ro'yxat qirqilgan bo'lsa kesim to'liq emas — «ustamali noma'lum» (o'ylab topilmaydi). */
   const kesim = useMemo(() => {
     if (truncated) return null;
     const barglar = qatorlar.filter((q) => !BARG_EMAS.has(q.tur));
-    const yax = yaxlitIdlari ? yaxlitIdlari(qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id }))) : new Set<number>();
-    const yig = (summa: (q: NakopitelniyQator) => number | null | undefined, sarlavha: number): KatKesim =>
-      katKesimJamiBilan(barglar, (q) => q.kat, summa, sarlavha, (q) => yax.has(q.qator_id));
+    const daraxt = qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id }));
+    // Svod bo'limlari eksport bilan bir xil: smeta/fakt — yaxlit × (ko'rinish / smeta); F2 — aynan (masshtablanmaydi).
+    const yig = (summa: (q: NakopitelniyQator) => number | null | undefined, sarlavha: number, masshtab = true): KatKesim | null => (korinishKesimi
+      ? korinishKesimi(daraxt, barglar, { id: (q) => q.qator_id, kat: (q) => q.kat, summa, smeta: (q) => q.smeta_summa }, { jami: sarlavha, masshtab })
+      : katKesimJamiBilan(barglar, (q) => q.kat, summa, sarlavha));
     return {
       smeta: obyektKesim ?? yig((q) => q.smeta_summa, jami.smeta_summa),
       fakt: yig((q) => q.fakt_summa, jami.fakt_summa),
-      f2: yig((q) => q.jami_summa, jami.jami_tasdiqlangan_summa),
-      joriy: yig((q) => q.joriy_summa, jami.joriy_tasdiqlangan_summa),
-      // Fakt − tasdiqlangan F2 (qator bo'yicha ayirma; kaskad chiziqli) — «Faktdan F2ga mumkin» qoldig'i QQS bilan.
-      mumkin: yig((q) => (q.fakt_summa == null && q.jami_summa == null ? null : (q.fakt_summa ?? 0) - (q.jami_summa ?? 0)), jami.f2_mumkin_summa),
+      f2: yig((q) => q.jami_summa, jami.jami_tasdiqlangan_summa, false),
+      joriy: yig((q) => q.joriy_summa, jami.joriy_tasdiqlangan_summa, false),
+      // Fakt − tasdiqlangan F2 (qator bo'yicha ayirma) — F2 aynan bo'lgani uchun masshtablanmaydi.
+      mumkin: yig((q) => (q.fakt_summa == null && q.jami_summa == null ? null : (q.fakt_summa ?? 0) - (q.jami_summa ?? 0)), jami.f2_mumkin_summa, false),
     };
-  }, [qatorlar, truncated, jami, yaxlitIdlari, obyektKesim]);
+  }, [qatorlar, truncated, jami, korinishKesimi, obyektKesim]);
 
   const taq = smetaTaqsimot({ smeta: jami.smeta_summa, oldingi: jami.oldingi_summa, joriy: jami.joriy_tasdiqlangan_summa, fakt: jami.fakt_summa });
   const faktFoiz = foizOl(jami.fakt_summa, jami.smeta_summa);
