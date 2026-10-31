@@ -3,6 +3,14 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "DESKTOP-TAURI-SHELL-20261031", "owner": "codex", "machine": "noutbuk",
+      "title": "Qabul qilingan D6 Tauri Windows qobig‘i va lokal build",
+      "branch": "codex/desktop-tauri-shell", "base_sha": "fc4f0eab8bba5e24d9752f5e1d27618742999ee7", "status": "active",
+      "owns": ["frontend/src-tauri/", "frontend/src/desktop/", "ops/handoff/DESKTOP_TAURI_SHELL_20261031.md"],
+      "depends_on": [], "must_read": ["docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"],
+      "production_write_allowed": false
+    },
+    {
       "id": "SMETA-VERSIYA-SIGNED-20261027",
       "title": "C6 signed claim amounts and XLSX preservation",
       "owner": "codex",
