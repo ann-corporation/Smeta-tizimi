@@ -72,9 +72,9 @@ function sqlYaxlitQosh(h: { itogo4: number; nds: number; vsego: number }, qqssiz
 function sqlYaxlitQoshV2(h: { itogo4: number; nds: number; vsego: number }, yax: { qqssiz: number; bolimlar: Array<{ svod_summa: number | null; qqssiz: number }> }, nk: Record<string, number>) {
   const sv = yax.bolimlar.filter((b) => b.svod_summa != null);
   const svq = r2(sv.reduce((t, b) => t + (b.svod_summa as number), 0)), svs = r2(sv.reduce((t, b) => t + b.qqssiz, 0));
-  const qolgan = yax.qqssiz - svs;
-  const qb = Math.abs(qolgan) < 0.005 ? 0 : r2(qolgan * (1 + (nk.НДС ?? 0) / 100));
-  return sqlYakun(h, 0, 0, r2(svq + qb), r2(yax.qqssiz), nk);
+  const qolgan = yax.qqssiz - svs; // svod summasiz tarkib — QQS siz, QQS dan oldin
+  const keyin = svq !== 0 || svs !== 0;
+  return sqlYakun(h, 0, Math.abs(qolgan) < 0.005 ? 0 : qolgan, keyin ? svq : null, keyin ? svs : null, nk);
 }
 
 /** Avvalgi TS `nakrutkaKaskadJS` (nakrutka-podval.ts, olib tashlangan) — har qadam ROUND 2. */
@@ -175,17 +175,25 @@ describe('PARITET: yadro == SQL t2_nakrutka_hisobla_v1 (20261116000000 — aynan
     }
   });
 
-  it('hisob(): kat noma‘lum ИТОГО-4 ga ustamasiz (SQL kabi); svod summasiz yaxlit — ×(1+QQS), НДС dan keyin', () => {
+  it('hisob(): kat noma‘lum va svod summasiz yaxlit — ikkalasi QQS siz, ИТОГО-4 ga, QQS jamidan bir marta (paket bilan bir model)', () => {
     const k = kesimYigish([['ЧЕЛ', 1000], ['МАТ', 2000], ['XYZ', 300], [null, 200]] as Array<[string | null, number]>, (x) => x[0], (x) => x[1]);
-    k.yaxlit = { qqssiz: 500, barglar: 450 }; // svod summasi yo'q — QQS bilan = 500 × 1,12
+    k.yaxlit = { qqssiz: 500, barglar: 450 }; // svod summasi yo'q — xom tarkib, QQS siz
     const h = hisob(k, { koef: NK });
     const base = eskiTsKaskad({ ЧЕЛ: 1000, МАШ: 0, МАТ: 2000, ОБ: 0, КАБ: 0, 'М/К': 0, 'БЕЗ СКЛАД': 0 }, NK);
-    const s = sqlYaxlitQosh({ itogo4: base.itogo4, nds: base.nds, vsego: base.vsego }, 500, NK); // faqat kat noma'lum qism (SQL)
-    expect(h.ustamali).toBe(r2(s.itogo4 + 500));
-    expect(h.qqsBilan).toBe(r2(s.vsego + 560));
-    // SQL v2 (obyekt nakrutka) aynan shu: kat noma'lum qismdan keyingi kaskad + svod summasiz yaxlit ×(1+QQS).
-    const v2 = sqlYaxlitQoshV2(s, { qqssiz: 500, bolimlar: [] }, NK);
-    expect(v2.itogo4).toBe(h.ustamali); expect(v2.vsego).toBe(h.qqsBilan); expect(v2.nds).toBe(h.qqs);
+    const ishlar = { itogo4: base.itogo4, nds: base.nds, vsego: base.vsego };
+    const s = sqlYakun(ishlar, 500, 500, null, null, NK); // paket: nomalum 500 + svod summasiz 500 — QQS dan oldin
+    expect(h.ustamali).toBe(s.itogo4); expect(h.qqs).toBe(s.nds); expect(h.qqsBilan).toBe(s.vsego);
+    expect(h.ustamali).toBe(r2(base.itogo4 + 1000));
+    expect(sqlYaxlitQosh(ishlar, 1000, NK)).toEqual(s); // v1 (QQS siz qism QQS dan oldin) — o'sha qadam
+    // SQL v2 (obyekt nakrutka, kat noma'lumsiz) == hisob() (kat noma'lumsiz).
+    const h0 = hisob({ ...k, nomalum: 0, nomalumSoni: 0 }, { koef: NK });
+    const v2 = sqlYaxlitQoshV2(ishlar, { qqssiz: 500, bolimlar: [] }, NK);
+    expect(v2.itogo4).toBe(h0.ustamali); expect(v2.vsego).toBe(h0.qqsBilan); expect(v2.nds).toBe(h0.qqs);
+    // Aralash: svod summasi bor bo'lim (2240 QQS bilan) + summasiz 500,10.
+    const k2 = { ...k, nomalum: 0, nomalumSoni: 0, yaxlit: { qqssiz: 2500.1, barglar: 1300, svodQqsBilan: 2240, svodQqssiz: 2000 } };
+    const h2 = hisob(k2, { koef: NK });
+    const v22 = sqlYaxlitQoshV2(ishlar, { qqssiz: 2500.1, bolimlar: [{ svod_summa: 2240, qqssiz: 2000 }, { svod_summa: null, qqssiz: 500.1 }] }, NK);
+    expect(v22.itogo4).toBe(h2.ustamali); expect(v22.vsego).toBe(h2.qqsBilan); expect(v22.nds).toBe(h2.qqs);
     expect(h.ustamasiz).toBe(1000 + 2000 + 500 + 450);
     expect(h.nomalumSoni).toBe(2);
     expect(h.taxminiy).toBe(true);

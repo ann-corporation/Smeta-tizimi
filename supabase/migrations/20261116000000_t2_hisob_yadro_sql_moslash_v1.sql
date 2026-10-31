@@ -196,8 +196,9 @@ begin
     'yaxlit_barglar', round(coalesce(p_barglar, 0), 2));
 end $function$;
 
--- Obyekt svod xulosasi bilan (yadro hisob() + svodKesimYaxlit aynan): svod summasi bor bo'limlar — QQS bilan aynan;
--- qolgan yaxlit (svod summasiz bo'lim tarkibi) — round(qolgan × (1 + QQS), 2), ikkalasi НДС dan keyin.
+-- Obyekt svod xulosasi bilan (yadro hisob() + svodKesimYaxlit aynan; egasi 2026-10-31 — yagona model, paket bilan bir xil):
+-- svod summasi bor bo'limlar — QQS bilan aynan, НДС dan keyin ('qqsdan_keyin');
+-- qolgan yaxlit (svod summasiz bo'lim tarkibi — xom, QQS siz) — ИТОГО-4 ga, QQS jamidan ('qqssiz_ustamadan_keyin').
 create or replace function public.t2_nakrutka_yaxlit_qosh_v2(p_h jsonb, p_yax jsonb, p_nk jsonb)
  returns jsonb
  language plpgsql
@@ -205,9 +206,7 @@ create or replace function public.t2_nakrutka_yaxlit_qosh_v2(p_h jsonb, p_yax js
  set search_path to 'public', 'pg_temp'
 as $function$
 declare
-  k_nds numeric := coalesce((p_nk->>'НДС')::numeric, 0);
-  v_svq numeric; v_svs numeric; v_yax numeric; v_barg numeric; v_qolgan numeric; v_qolgan_bilan numeric;
-  v_kb numeric; v_ks numeric; v_pr numeric;
+  v_svq numeric; v_svs numeric; v_yax numeric; v_barg numeric; v_qolgan numeric; v_pr numeric;
 begin
   if p_h is null or p_yax is null or jsonb_typeof(p_yax) <> 'object' then return p_h; end if;
   select round(coalesce(sum((b->>'svod_summa')::numeric), 0), 2), round(coalesce(sum((b->>'qqssiz')::numeric), 0), 2)
@@ -217,15 +216,15 @@ begin
   v_yax := coalesce((p_yax->>'qqssiz')::numeric, 0);
   v_barg := coalesce((p_yax->>'barglar')::numeric, 0);
   v_qolgan := v_yax - v_svs;
-  v_qolgan_bilan := case when abs(v_qolgan) < 0.005 then 0 else round(v_qolgan * (1 + k_nds * 0.01), 2) end;
-  v_kb := round(v_svq + v_qolgan_bilan, 2);
-  v_ks := round(v_yax, 2);
   v_pr := coalesce((p_h->>'chel')::numeric + (p_h->>'mash')::numeric + (p_h->>'mat')::numeric + (p_h->>'ob')::numeric,
                    (p_h->>'pryamye')::numeric);
-  return public._t2_kaskad_yakun_v1(p_h, 0, 0, v_kb, v_ks, p_nk) || jsonb_build_object(
+  return public._t2_kaskad_yakun_v1(p_h, 0,
+           case when abs(v_qolgan) < 0.005 then 0 else v_qolgan end,
+           case when v_svq <> 0 or v_svs <> 0 then v_svq end,
+           case when v_svq <> 0 or v_svs <> 0 then v_svs end, p_nk) || jsonb_build_object(
     'kaskad_pryamye', p_h->'pryamye',
     'pryamye', round(v_pr + v_barg, 2),
-    'yaxlit', v_ks,
+    'yaxlit', round(v_yax, 2),
     'yaxlit_barglar', round(v_barg, 2));
 end $function$;
 revoke all on function public.t2_nakrutka_yaxlit_qosh_v2(jsonb, jsonb, jsonb) from public, anon, authenticated;

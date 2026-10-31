@@ -209,20 +209,20 @@ export function hisob(k: Kesim, kirish: HisobKirish): HisobNatija {
   };
   const podval = podvalAniqla(kirish.podval, kirish.koef);
   if (!podval) return { ...bosh, sabab: 'KOEF_YOQ' };
-  // Yaxlit svod: svod summasi (QQS bilan) bor bo'limlar — aynan; svodsiz bo'limlar va qator darajasidagi yaxlit
-  // (QQS siz) — ×(1+QQS). Stavka noma'lum — QQS bilan noma'lum, QQS siz ko'rsatiladi.
+  // Yaxlit svod (egasi 2026-10-31, yagona model): svod summasi (QQS bilan) bor bo'limlar — `qqsdan_keyin`, НДС dan
+  // keyin aynan; svod summasiz bo'limlar va qator darajasidagi yaxlit — xom tarkib, QQS SIZ: `qqssiz_ustamadan_keyin`
+  // (ИТОГО-4 ga, QQS jamidan bir marta) — server `_t2_summa_paket_hisob_v1` / `t2_nakrutka_yaxlit_qosh_v2` bilan aynan.
   let yx: { qqsBilan: number; qqssiz: number } | null = null;
-  let yxSizFaqat: number | null = null;
+  let oldin: YaxlitKirish[] | null = null;
   if (yaxlit != null) {
     const svQ = k.yaxlit?.svodQqsBilan ?? 0, svS = k.yaxlit?.svodQqssiz ?? 0;
     const qolgan = yaxlit - svS;
-    const qolganBilan = Math.abs(qolgan) < 0.005 ? 0 : yaxlitKOplate(qolgan, podvalNdsFoizi(podval));
-    if (qolganBilan == null) yxSizFaqat = yaxlit2(yaxlit);
-    else yx = { qqsBilan: yaxlit2(svQ + qolganBilan), qqssiz: yaxlit2(yaxlit) };
+    if (svQ !== 0 || svS !== 0) yx = { qqsBilan: yaxlit2(svQ), qqssiz: yaxlit2(svS) };
+    if (Math.abs(qolgan) >= 0.005) oldin = [{ bosqich: 'qqssiz_ustamadan_keyin', qqssiz: qolgan }];
   }
-  const r = kaskad(kategoriyalar, podval, { nomalumQism: k.nomalum, yaxlit: yx });
-  const itogo4 = yxSizFaqat != null && r.itogo4 != null ? yaxlit2(r.itogo4 + yxSizFaqat) : r.itogo4;
-  const natija: HisobNatija = { ...bosh, kaskad: r, ustama: r.qadamlar, qqsFoiz: r.qqsFoiz, itogo4, ustamali: itogo4, qqs: yxSizFaqat != null ? null : r.qqs, qqsBilan: yxSizFaqat != null ? null : r.qqsBilan };
+  const r = kaskad(kategoriyalar, podval, { nomalumQism: k.nomalum, yaxlit: yx, yaxlitlar: oldin });
+  const itogo4 = r.itogo4;
+  const natija: HisobNatija = { ...bosh, kaskad: r, ustama: r.qadamlar, qqsFoiz: r.qqsFoiz, itogo4, ustamali: itogo4, qqs: r.qqs, qqsBilan: r.qqsBilan };
   if (r.itogo4 == null) return { ...natija, sabab: 'PODVAL_TOLIQ_EMAS' };
   if (r.qqsBilan == null) return { ...natija, sabab: 'QQS_STAVKA_YOQ' };
   return natija;

@@ -48,10 +48,17 @@ begin
      or (v->>'yaxlit')::numeric is distinct from 2000 or (v->>'ishlar_itogo4')::numeric is distinct from (h->>'itogo4')::numeric then
     raise exception 'ACCEPT_FAIL: v2 (svod summasi) != yadro: %', v;
   end if;
-  -- 3b. Svod summasiz qism (500,10) — round(× 1,12) НДС dan keyin (yadro hisob()).
+  -- 3b. Svod summasiz qism (500,10) — QQS siz, ИТОГО-4 ga, QQS jamidan (yadro hisob(), paket bilan bir model).
   v := public.t2_nakrutka_yaxlit_qosh_v2(h, '{"qqssiz":2500.10,"barglar":1300,"bolimlar":[{"svod_summa":2240,"qqssiz":2000},{"svod_summa":null,"qqssiz":500.10}]}'::jsonb, nk);
-  if (v->>'itogo4')::numeric is distinct from 3683.88 or (v->>'nds')::numeric is distinct from 442.06 or (v->>'vsego')::numeric is distinct from 4125.94 then
+  if (v->>'itogo4')::numeric is distinct from 3683.88 or (v->>'nds')::numeric is distinct from 442.07 or (v->>'vsego')::numeric is distinct from 4125.95
+     or (v->>'ishlar_itogo4')::numeric is distinct from 1683.88 then
     raise exception 'ACCEPT_FAIL: v2 (qolgan) != yadro: %', v;
+  end if;
+  -- 3d. Yagona model: obyekt yo'li (v2) == paket yo'li, bir xil tarkib bilan.
+  p := public._t2_summa_paket_hisob_v1('{"chel":1000,"svod":1300,"svod_qqssiz":2500.10,"svod_qqs_bilan":2240,"svod_summa_qqssiz":2000,"svod_summa_soni":1}'::jsonb, nk);
+  if (p->>'qqs_bilan')::numeric is distinct from (v->>'vsego')::numeric or (p->>'ustamali')::numeric is distinct from (v->>'itogo4')::numeric
+     or (p->>'qqs')::numeric is distinct from (v->>'nds')::numeric then
+    raise exception 'ACCEPT_FAIL: obyekt != paket: % / %', v, p;
   end if;
   -- 3c. Yaxlitsiz — o'zgarishsiz.
   if public.t2_nakrutka_yaxlit_qosh_v2(h, null, nk) is distinct from h then raise exception 'ACCEPT_FAIL: v2 null yaxlit'; end if;
