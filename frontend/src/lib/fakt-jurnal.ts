@@ -11,7 +11,7 @@
 import type { T2Qator } from '../api/supabase';
 import { bosKatKesim, type KatKesim } from './ustamali-summa';
 import { ochiqQoldiq } from './zamena-qoldiq';
-import { ayirma2, faktSummaF2Narxda, katJami, yigindi2 } from './hisob-yadro';
+import { ayirma2, faktSummaF2Narxda, hajmMasshtab, katJami, yigindi2 } from './hisob-yadro';
 import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export type JurnalHolat = {
@@ -339,9 +339,27 @@ export function sonOqi(v: string): number | null {
   return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
 }
 
-export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL' | 'ISHORA';
+/** «50%» / «12,5 %» — smeta hajmining foizi (egasi 2026-10-31: foiz bilan tez kiritish). Foiz yozuvi bo'lmasa — null. */
+export function foizOqi(v: string): number | null {
+  const m = /^(-?\d+(?:\.\d+)?)%$/.exec(v.trim().replace(/\s/g, '').replace(',', '.'));
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Kiritma soni: oddiy son (`sonOqi`) yoki smeta foizi — hajm = smeta × foiz (yadro `hajmMasshtab`, 6 xona).
+ * '+' rejimda — bugungi hajm (smetaning foizi), '=' rejimda — jami fakt. Foiz, lekin smeta noma'lum/0 — 'SMETASIZ' (to'qilmaydi).
+ */
+export function kiritmaSoni(v: string, smeta: number | null | undefined): number | null | 'SMETASIZ' {
+  const f = foizOqi(v);
+  if (f == null) return sonOqi(v);
+  if (smeta == null || !Number.isFinite(smeta) || smeta === 0) return 'SMETASIZ';
+  return hajmMasshtab(smeta, f / 100);
+}
+
+export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL' | 'ISHORA' | 'FOIZ_SMETASIZ';
 export const JURNAL_XATO_MATN: Record<JurnalXato, string> = {
   SON_EMAS: 'Son emas', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
+  FOIZ_SMETASIZ: 'Foiz uchun smeta hajmi kerak',
 };
 
 /**
@@ -354,7 +372,8 @@ export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktl
   for (const [k, v] of Object.entries(kiritmalar)) {
     const id = Number(k); const joriy = faktlar.get(id);
     if (joriy == null) continue;
-    const n = sonOqi(v.qiymat);
+    const n = kiritmaSoni(v.qiymat, smetalar?.get(id));
+    if (n === 'SMETASIZ') { xatolar.set(id, 'FOIZ_SMETASIZ'); continue; }
     if (n == null) continue;
     if (!Number.isFinite(n)) { xatolar.set(id, 'SON_EMAS'); continue; }
     const delta = v.rejim === '+' ? n : yaxlit(n - joriy);

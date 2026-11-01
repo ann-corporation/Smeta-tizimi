@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 52,
+      "sana": "2026-10-31",
+      "sarlavha": "Fakt jurnali: foiz bilan tez kiritish — oynasiz, bitta saqlash",
+      "bandlar": [
+        "Hajm katagiga «50%» yozing — smeta hajmining yarmi olinadi («=» rejimda jami fakt, «+» rejimda bugungi hajm).",
+        "Bo'lim sarlavhasidagi «Jami %: 25 / 50 / 75 / 100» tugmalari ko'rinadigan barcha ish va resurslarga darhol qo'llanadi — oyna ochilmaydi.",
+        "Excel'dan bir ustun qiymatlarni katakka joylasangiz, pastdagi qatorlarga ketma-ket tushadi. Enter — pastga.",
+        "Hamma o'zgarish qoralamada ajralib ko'rinadi; «Orqaga» (Ctrl+Z) oxirgi ommaviy amalni qaytaradi; «Saqlash» hammasini bitta yozadi.",
+        "«Jami» qiymatlar saqlanishdan oldin tekshiriladi: fakt boshqa joyda o'zgargan bo'lsa hech narsa yozilmaydi va jadval yangilanadi."
+      ]
+    },
+    {
       "id": 51,
       "sana": "2026-10-31",
       "sarlavha": "F2 ni bekor qilish — tasdiqlangan F2 ham, bir nechtasini birdaniga",
