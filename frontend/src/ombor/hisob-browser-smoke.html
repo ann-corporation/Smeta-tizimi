@@ -1,0 +1,30 @@
+<!doctype html><html lang="uz"><meta charset="utf-8"><title>Desktop hisob sinovi</title>
+<body><h1>Desktop hisob sinovi — 26 000 sintetik qator</h1>
+<p>Haqiqiy biznes ma’lumotlari ishlatilmaydi. Serverga hech narsa yozilmaydi.</p>
+<button id="run">Worker sinovini boshlash</button><pre id="result">Tayyor</pre>
+<script type="module">
+import { HisobSessiyaMijoz } from './hisob-sessiya-mijoz.ts';
+const button=document.querySelector('#run'),out=document.querySelector('#result');
+button.onclick=async()=>{
+ button.disabled=true;out.textContent='Ishlayapti';const client=new HisobSessiyaMijoz();
+ const n=26000,f=x=>Array(n).fill(x),src=x=>Array.from({length:n},(_,i)=>i<2?null:x);
+ const p={format:'t2-paket/1',obyekt_id:1,obyekt_nom:'SINOV',kompaniya_id:1,soni:n,
+ lugat:{nom:['SINOV'],kod:[],birlik:[],tur:['rz','bl','rs'],kat:['МАТ']},
+ q:{id:Array.from({length:n},(_,i)=>i+1),ota_id:Array.from({length:n},(_,i)=>i===0?null:i===1?1:2),daraja:f(2),tartib:f(1),tur:Array.from({length:n},(_,i)=>i<2?i:2),kat:f(0),kod:f(null),nom:f(0),birlik:f(null),hajm:src(2),narx:src(0.3),summa:src(0.6),norma:src(0.2),narx_usul:f(null),versiya:f(1),qoshimcha:f(0),zamena:f(0),xom_qator:{}},
+ h:{fakt_hajm:f(0),fakt_summa:f(0),f2_hajm:f(1),f2_summa:f(0.31),f2_summa_nomalum:f(0),direct_fakt_hajm:f(0),fakt_manbasi:f(0),almashtirilgan_hajm:{},almashtirilgan_summa:{}},f2:[],meta:{}};
+ p.q.hajm[1]=10;p.q.summa[0]=p.q.summa[1]=15598.8;
+ const times=[],check=(x,msg)=>{if(!x)throw new Error(msg)};
+ async function timed(name,fn){const start=performance.now();const r=await fn();times.push({name,roundtripMs:Math.round((performance.now()-start)*100)/100,workerMs:Math.round(r.vaqtMs*100)/100});return r;}
+ try{
+  await timed('INIT26k',()=>client.och(p));
+  for(const price of ['0.4','0.3','0.5'])await timed('Narx tahriri',()=>client.tahrir({qator_id:n,maydon:'narx',qiymat:price,kutilgan_versiya:1}));
+  const r=await timed('26k norma kaskadi',()=>client.tahrir({qator_id:2,maydon:'hajm',qiymat:'2.5',kutilgan_versiya:1}));
+  check(r.xulosa.jami==='3899.8','Jami teng emas');
+  const leaf=await client.oqi([n]);check(leaf.qatorlar[0].summa==='0.25','Barg summasi teng emas');check(leaf.qatorlar[0].f2_summa===0.31,'F2 o‘zgardi');
+  const b=structuredClone(p);b.kompaniya_id=2;b.obyekt_id=2;await client.och(b);
+  check((await client.oqi([n])).qatorlar[0].summa==='0.6','Oldingi company tahriri sizdi');
+  out.textContent='PASS\nF2 exact saqlandi; company switch toza; FIFO ishladi.\n'+JSON.stringify(times,null,2);
+ }catch(e){out.textContent='FAIL: '+(e instanceof Error?e.message:'Tekshiruv xatosi');}
+ finally{client.yop();button.disabled=false;}
+};
+</script></body></html>
