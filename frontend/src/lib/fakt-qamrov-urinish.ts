@@ -13,9 +13,21 @@
  * Hech qanday pul/hajm to'qilmaydi; snapshot faqat mijoz buyrug'ining nusxasi.
  */
 export type BolakHolat = 'kutmoqda' | 'confirmed' | 'failed' | 'unknown';
+/** Yuboriladigan fakt qatori. «Fakt = F2» F2 narxini manbasi bilan qo'shadi (snapshotda muzlatiladi — qayta yuborishda aynan shu). */
+export type UrinishQator = { qator_id: number; hajm: number; manba_akt_qator_id?: number; narx?: number; narx_yoq?: boolean; narx_manba?: string; narx_manba_id?: number; narx_izoh?: string };
+const qatorNusxa = (x: UrinishQator): UrinishQator => {
+  const n: UrinishQator = { qator_id: x.qator_id, hajm: x.hajm };
+  if (x.manba_akt_qator_id != null) n.manba_akt_qator_id = x.manba_akt_qator_id;
+  if (x.narx != null) n.narx = x.narx;
+  if (x.narx_yoq === true) n.narx_yoq = true;
+  if (x.narx_manba != null) n.narx_manba = x.narx_manba;
+  if (x.narx_manba_id != null) n.narx_manba_id = x.narx_manba_id;
+  if (x.narx_izoh != null) n.narx_izoh = x.narx_izoh;
+  return n;
+};
 export type UrinishBolak = {
   operationId: string;
-  qatorlar: readonly { qator_id: number; hajm: number }[];
+  qatorlar: readonly UrinishQator[];
   izoh: string;
   holat: BolakHolat;
   aktId: number | null;
@@ -35,14 +47,14 @@ export const urinishKaliti = (kompaniyaId: number, obyektId: number) => `${kompa
 
 /** Snapshot: bo'laklar va UUID'lar shu yerda muzlatiladi (keyin o'zgarmaydi). */
 export function urinishYarat(p: { kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number; /** Izoh boshi (standart: «Qamrov N%»). */ izohBosh?: string; tur?: 'qamrov' | 'tuzatish' | 'f2' },
-  bolaklar: readonly (readonly { qator_id: number; hajm: number }[])[], yangiId: () => string, hozir: () => string = () => new Date().toISOString(),
+  bolaklar: readonly (readonly UrinishQator[])[], yangiId: () => string, hozir: () => string = () => new Date().toISOString(),
   faktOl: (id: number) => number = () => 0): QamrovUrinish {
   const n = bolaklar.length;
   return Object.freeze({
     kalit: urinishKaliti(p.kompaniyaId, p.obyektId), kompaniyaId: p.kompaniyaId, obyektId: p.obyektId, sana: p.sana, sarlavha: p.sarlavha, foiz: p.foiz, tur: p.tur ?? 'qamrov',
     yaratildi: hozir(),
     bolaklar: bolaklar.map((q, i) => Object.freeze({
-      operationId: yangiId(), qatorlar: q.map((x) => ({ qator_id: x.qator_id, hajm: x.hajm })),
+      operationId: yangiId(), qatorlar: q.map(qatorNusxa),
       izoh: `${p.izohBosh ?? `Qamrov ${p.foiz}%`}: ${p.sarlavha}`.slice(0, 480) + (n > 1 ? ` (${i + 1}/${n})` : ''),
       holat: 'kutmoqda' as BolakHolat, aktId: null, xato: null, asos: q.map((x) => faktOl(x.qator_id)),
     })),
@@ -113,6 +125,18 @@ export function urinishOchir(kompaniyaId: number, obyektId: number): void {
 export type YozilganTekshir = { qator_id: number; kutilgan: number; ishora: 1 | -1 };
 export type QamrovYozilgan = { kalit: string; sarlavha: string; foiz: number; aktlar: readonly number[]; tekshir: readonly YozilganTekshir[] };
 
+/**
+ * Kutilgan fakt — qator bo'yicha: asos (urinish yaratilgandagi fakt) + shu qatorning BARCHA yozilgan hajmlari yig'indisi.
+ * «Fakt = F2» 1:1 nusxada bir qator bir necha fakt qatori (har F2 satri) bo'ladi — har birini alohida tekshirish noto'g'ri.
+ */
+function tekshirYig(tasdiq: readonly UrinishBolak[]): YozilganTekshir[] {
+  const m = new Map<number, { asos: number; jami: number }>();
+  for (const b of tasdiq) b.qatorlar.forEach((q, i) => {
+    const x = m.get(q.qator_id);
+    if (x) x.jami += q.hajm; else m.set(q.qator_id, { asos: b.asos?.[i] ?? 0, jami: q.hajm });
+  });
+  return [...m].map(([qator_id, x]) => ({ qator_id, kutilgan: Math.round((x.asos + x.jami) * 1e6) / 1e6, ishora: (x.jami < 0 ? -1 : 1) as 1 | -1 }));
+}
 /** Urinishning tasdiqlangan bo'laklaridan yozuv (tasdiqlangani bo'lmasa null). */
 export function yozilganYasa(u: QamrovUrinish): QamrovYozilgan | null {
   const tasdiq = u.bolaklar.filter((b) => b.holat === 'confirmed');
@@ -120,7 +144,7 @@ export function yozilganYasa(u: QamrovUrinish): QamrovYozilgan | null {
   return {
     kalit: u.kalit, sarlavha: u.sarlavha, foiz: u.foiz,
     aktlar: tasdiq.flatMap((b) => (b.aktId != null ? [b.aktId] : [])),
-    tekshir: tasdiq.flatMap((b) => b.qatorlar.map((q, i) => ({ qator_id: q.qator_id, kutilgan: Math.round(((b.asos?.[i] ?? 0) + q.hajm) * 1e6) / 1e6, ishora: (q.hajm < 0 ? -1 : 1) as 1 | -1 }))),
+    tekshir: tekshirYig(tasdiq),
   };
 }
 /** Jadval (holat fakt_hajm) yozilgan hajmlarni ko'rsatyaptimi? Qator holati yo'q — hali yo'q deb hisoblanadi. */

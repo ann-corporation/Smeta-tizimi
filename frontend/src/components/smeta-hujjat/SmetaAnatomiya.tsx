@@ -6,6 +6,7 @@ import { t } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { katKesimJamiBilan, katKesimYigish } from '../../lib/ustamali-summa';
+import { ayirma2 } from '../../lib/hisob-yadro';
 import { KAT_GURUH_NOMI } from '../../lib/f2-hujjat-korinish';
 import { barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type Kesim } from '../../lib/smeta-korinish';
 
@@ -37,29 +38,27 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   // Svod yaxlit belgili obyektda butun smeta ustamalisi — server kesimi (yaxlit bo'limlar ustamasiz, QQS bir marta).
   const ust = useUstamaliSumma(obyektId);
   const kesim = ust.obyektKesim ?? daraxtKesim;
-  const { yaxlitIdlari } = ust;
+  const { korinishKesimi } = ust;
   /** Fakt / F2 / qoldiq kartalari ham QQS bilan (egasi 2026-10-27): barg qatorlar kesimi; jamidan farqi — kat noma'lum (≈). */
   const kartaKesim = useMemo(() => {
     const juft: { id: number; ota_id: number | null }[] = [];
     const yur = (x: TreeNode, ota: number | null) => { if (x.id != null) juft.push({ id: x.id, ota_id: ota }); x.children?.forEach((c) => yur(c, x.id ?? null)); };
     tree.forEach((r) => yur(r, null));
-    const yax = yaxlitIdlari(juft);
     const bs = [...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl');
     const son = (v: number | null | undefined) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
-    const yig = (summa: (b: TreeNode) => number | null, jami: number | null) =>
-      katKesimJamiBilan(bs, (b) => b.kat, summa, jami, (b) => b.id != null && yax.has(b.id));
+    // Svod bo'limlari eksport bilan bir model: yaxlit × (ko'rinish / smeta); F2 — aynan (masshtablanmaydi).
+    const yig = (qs: TreeNode[], summa: (b: TreeNode) => number | null, jami: number | null, masshtab = true) => (korinishKesimi
+      ? korinishKesimi(juft, qs, { id: (b) => b.id, kat: (b) => b.kat, summa, smeta: (b) => son(b.smeta) }, { jami, masshtab })
+      : katKesimJamiBilan(qs, (b) => b.kat, summa, jami));
     return {
       /** Bo'lim jami (bo'lim darajasi) — tree[i] ↔ bolimlar[i]. */
-      bolim: tree.map((r) => katKesimJamiBilan([...barglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => son(b.smeta), son(r.smeta),
-        (b) => b.id != null && yax.has(b.id))),
-      fakt: yig((b) => son(b.stFakt), umumiy.fakt),
-      f2: yig((b) => son(b.stF2), umumiy.f2),
-      qoldiq: yig((b) => {
-        const sm = son(b.smeta), fk = son(b.stFakt), f2 = son(b.stF2);
-        return sm == null ? null : sm - Math.max(fk ?? 0, f2 ?? 0);
-      }, umumiy.qoldiq),
+      bolim: tree.map((r) => yig([...barglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => son(b.smeta), son(r.smeta))),
+      fakt: yig(bs, (b) => son(b.stFakt), umumiy.fakt),
+      f2: yig(bs, (b) => son(b.stF2), umumiy.f2, false),
+      // Qoldiq = smeta − F2 AYNAN (fakt ≥ F2 qoidasi yo'q); F2 yo'q — 0. Yadro `ayirma2`.
+      qoldiq: yig(bs, (b) => ayirma2(son(b.smeta), son(b.stF2) ?? 0), umumiy.qoldiq),
     };
-  }, [tree, umumiy, yaxlitIdlari]);
+  }, [tree, umumiy, korinishKesimi]);
   if (!tree.length) return null;
   const pct = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
   const toliqEmas = umumiy.toliq ? null : t('To‘liq emas: {s} bo‘limda smeta, {f} da fakt, {f2} da F2 summasi noma’lum — ko‘rsatilgan qiymat faqat ma’lum qismlar yig‘indisi', { s: umumiy.nomalum.smeta, f: umumiy.nomalum.fakt, f2: umumiy.nomalum.f2 });

@@ -16,7 +16,8 @@ const tree: TreeNode[] = [
 describe('smeta anatomiyasi', () => {
   it('umumiy kesim va ulushlar', () => {
     const k = umumiyKesim(tree);
-    expect(k).toMatchObject({ smeta: 1000, fakt: 600, f2: 400, qoldiq: 400 });
+    // qoldiq = smeta − F2 (MAX(fakt, F2) qoidasi yo'q)
+    expect(k).toMatchObject({ smeta: 1000, fakt: 600, f2: 400, qoldiq: 600 });
     expect(k.toliq).toBe(false);
     expect(k.f2Ulush).toBeCloseTo(0.4);
     expect(k.faktUlush).toBeCloseTo(0.6);

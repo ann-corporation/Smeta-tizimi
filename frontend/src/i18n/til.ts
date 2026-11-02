@@ -10,7 +10,7 @@
  *  • Til almashganda ilova qayta chiziladi (`TilChegarasi`), shuning uchun `t()` ni render ichida chaqirish kifoya.
  */
 import { useSyncExternalStore } from 'react';
-import { LUGAT_EN, LUGAT_RU, type Lugat } from './lugat';
+import { lugatHolat } from './lugat-holat';
 import kirillIstisno from './lugat/kirill-istisno.json';
 import { lotinKirill, sozIstisnolariniQoy } from './lotin-kirill';
 
@@ -22,7 +22,20 @@ export const TILLAR: { kod: Til; nom: string; qisqa: string }[] = [
   { kod: 'en', nom: 'English', qisqa: 'EN' },
 ];
 
-const LUGAT: Record<'ru' | 'en', Lugat> = { ru: LUGAT_RU, en: LUGAT_EN };
+/* Tez yuklash (2026-10-30): ru/en lug'ati (~1 MB) boshlang'ich bundle'da emas — faqat kerak bo'lganda
+ * dinamik yuklanadi. O'zbek (lotin/kirill) lug'atsiz ishlaydi. `main.tsx` tanlangan tilni render'dan
+ * OLDIN `tilTayyorla()` bilan yuklaydi — tarjimasiz «miltillash» bo'lmaydi. */
+let lugatVada: Promise<void> | null = null;
+function lugatKerak(til: Til): til is 'ru' | 'en' { return til === 'ru' || til === 'en'; }
+
+/** ru/en lug'atini yuklaydi (bir marta). */
+export function lugatniYukla(): Promise<void> {
+  if (lugatHolat.lugat) return Promise.resolve();
+  lugatVada ??= import('./lugat').then((m) => { lugatHolat.lugat = { ru: m.LUGAT_RU, en: m.LUGAT_EN }; })
+    .catch((e) => { lugatVada = null; throw e; });
+  return lugatVada;
+}
+let kutilayotgan: Til | null = null; // lug'at yuklanayotganda oxirgi so'ralgan til
 const ISTISNO = kirillIstisno as { sozlar: Record<string, string>; matnlar: Record<string, string> };
 sozIstisnolariniQoy(ISTISNO.sozlar ?? {});
 
@@ -41,13 +54,31 @@ const tinglovchilar = new Set<() => void>();
 const kirillKesh = new Map<string, string>();
 
 function yangila(til: Til, saqla: boolean): void {
+  // Lug'at hali yuklanmagan bo'lsa — avval yuklab, keyin almashtiramiz (yarim tarjima ko'rinmasin).
+  if (lugatKerak(til) && !lugatHolat.lugat) {
+    kutilayotgan = til;
+    xabarBer(); // til tanlagichi «yuklanmoqda» holatini ko'rsatadi
+    void lugatniYukla().then(
+      () => {
+        if (kutilayotgan !== til) return;
+        kutilayotgan = null;
+        const oldin = joriy;
+        yangila(til, saqla);
+        // Boshlang'ich yuklash yiqilgan (joriy allaqachon ru/en) — til o'zgarmadi, lekin lug'at keldi: qayta chizamiz.
+        if (oldin === til) xabarBer();
+      },
+      (e) => { if (kutilayotgan === til) { kutilayotgan = null; xabarBer(); } console.error('[til] lug\'at yuklanmadi', e); });
+    return;
+  }
+  if (kutilayotgan !== null) { kutilayotgan = null; xabarBer(); }
   if (til === joriy) return;
   joriy = til;
   kirillKesh.clear();
   if (saqla) try { localStorage.setItem(KALIT, til); } catch { /* xotira yopiq */ }
   if (typeof document !== 'undefined') document.documentElement.lang = til;
-  tinglovchilar.forEach((f) => f());
+  xabarBer();
 }
+function xabarBer(): void { tinglovchilar.forEach((f) => f()); }
 
 /** Bitta foydalanuvchi bir necha tabda ishlasa, ko‘rinish tili ham bir xil qoladi. */
 if (typeof window !== 'undefined') window.addEventListener('storage', (event) => {
@@ -57,11 +88,26 @@ if (typeof window !== 'undefined') window.addEventListener('storage', (event) =>
 
 export function tilOl(): Til { return joriy; }
 
+/** Ilova chizilishidan oldin: joriy til ru/en bo'lsa lug'atni yuklaydi. Xato bo'lsa ham ilova ochiladi (o'zbekcha). */
+export function tilTayyorla(): Promise<void> {
+  return lugatKerak(joriy) ? lugatniYukla().catch((e) => console.error('[til] lug\'at yuklanmadi', e)) : Promise.resolve();
+}
+
 export function tilQoy(til: Til): void {
   yangila(til, true);
 }
 
 function tilObuna(f: () => void): () => void { tinglovchilar.add(f); return () => { tinglovchilar.delete(f); }; }
+
+/** Joriy til uchun lug'at tayyormi (uz/uz-Cyrl — doim). `TilChegarasi` kaliti: lug'at kech kelsa ham qayta chiziladi. */
+export function lugatTayyormi(): boolean { return !lugatKerak(joriy) || lugatHolat.lugat !== null; }
+/** Lug'at yuklanayotgan bo'lsa — so'ralgan til (til tanlagichidagi kichik «yuklanmoqda» holati uchun). */
+export function kutilayotganTil(): Til | null { return kutilayotgan; }
+export function useTilHolati(): { tayyor: boolean; kutilayotgan: Til | null } {
+  const tayyor = useSyncExternalStore(tilObuna, lugatTayyormi, lugatTayyormi);
+  const kut = useSyncExternalStore(tilObuna, kutilayotganTil, kutilayotganTil);
+  return { tayyor, kutilayotgan: kut };
+}
 
 /** Tarjima: `manba` — o'zbek lotin matn (kalit). `{nom}` o'rinbosarlari `p` dan to'ldiriladi. */
 export function t(manba: string, p?: Record<string, string | number>): string {
@@ -70,7 +116,7 @@ export function t(manba: string, p?: Record<string, string | number>): string {
   else if (joriy === 'uz-Cyrl') {
     s = kirillKesh.get(manba) ?? '';
     if (!s) { s = ISTISNO.matnlar?.[manba] ?? lotinKirill(manba); kirillKesh.set(manba, s); }
-  } else s = LUGAT[joriy][manba] ?? manba;
+  } else s = lugatHolat.lugat?.[joriy][manba] ?? manba;
   return p ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in p ? String(p[k]) : m)) : s;
 }
 

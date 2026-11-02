@@ -3,6 +3,7 @@
  * O'qish: /api/sb `shartnoma_liniya_v1` (GET → stable, a'zolik ichida). Yozish: /api/sb-yoz `shartnoma_saqla_v2`.
  * Asosiy shartnoma (buyurtmachi ↔ pudratchi) — obyektda bitta; qo'shimchalar (subpudrat, lab, loyihachi…) — cheklanmagan.
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 
 export type LiniyaTomon = { id?: number; rol: string; nom: string; inn: string | null; kontragent_id?: number | null; tomon_kompaniya_id?: number | null; rekvizit?: Record<string, unknown> };
@@ -17,7 +18,7 @@ export type Liniya = { loyihalar: LiniyaLoyiha[]; shartnomalar: LiniyaShartnoma[
 
 export async function shartnomaLiniyaOl(kompaniyaId: number): Promise<{ ok: true; natija: Liniya } | { ok: false; error: string }> {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_liniya_v1', kompaniya_id: kompaniyaId }) });
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_liniya_v1', kompaniya_id: kompaniyaId }) });
     const j = await r.json() as { ok: boolean; natija?: Liniya; error?: string };
     if (!j.ok || !j.natija) return { ok: false, error: j.error || 'Liniyani o‘qib bo‘lmadi.' };
     return { ok: true, natija: j.natija };

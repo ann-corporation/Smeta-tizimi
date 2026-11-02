@@ -54,7 +54,8 @@ describe('Ostatka — rasmiy hujjat (H1–H9)', () => {
   });
 
 it('maxsus nakrutka podvali (konstruktor): qo‘shilgan statya hujjatda, к оплате oshadi, formulalar tirik, $ yo‘q', () => {
-    const NK = { ПРОЧИЕ_ПОДРЯДЧИК: 10, НДС: 12 };
+    // Foizlar to'liq beriladi (hisob yadrosi: kiritilmagan foiz 0 deb olinmaydi).
+    const NK = { ...{ ТРАНСПОРТ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МК: 0, ТРАНСПОРТ_КАБЕЛЬ: 0, ПРОЧИЕ_ПОДРЯДЧИК: 0, ТРАНСПОРТ_ОБОРУД: 0, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0, РИСК: 0, НДС: 12 }, ПРОЧИЕ_ПОДРЯДЧИК: 10 };
     const m = ostatkaHujjatModeli(TOZA, TOZA_H);
     const oddiy = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK });
     const podval = structuredClone(standartPodval(NK));
@@ -174,7 +175,7 @@ describe('Ostatka — ikki narx (прямые va к оплате) + nakrutka pod
   it('Σ qator к оплате = podval ВСЕГО К ОПЛАТЕ (yaxlitlash), formulalar keshlangan', () => {
     const qator = TOZA.map((r) => (r.tur === 'mat' || r.tur === 'rs' ? { ...r, kat: r.id === 4 ? 'ЧЕЛ' : 'МАТ' } : r));
     const m = ostatkaHujjatModeli(qator, TOZA_H);
-    const nakrutka = { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, ПРОЧИЕ_ПОДРЯДЧИК: 18, СТРАХОВАНИЕ: 0.32, НДС: 12 };
+    const nakrutka = { ...{ ТРАНСПОРТ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МК: 0, ТРАНСПОРТ_КАБЕЛЬ: 0, ПРОЧИЕ_ПОДРЯДЧИК: 0, ТРАНСПОРТ_ОБОРУД: 0, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0, РИСК: 0, НДС: 12 }, ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, ПРОЧИЕ_ПОДРЯДЧИК: 18, СТРАХОВАНИЕ: 0.32 };
     const r = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka });
     namunaSaqla('ostatka_k_oplate.xlsx', r.bytes);
     expect(r.kOplata).not.toBeNull();

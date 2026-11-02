@@ -3,8 +3,32 @@
  * Bu yerda yangi biznes formula YO'Q: faqat serverdan kelgan summalarni ko'rsatish uchun foiz/ulush/ierarxiya.
  * Noma'lum (null/NaN) qiymat hech qachon 0 ga aylantirilmaydi.
  */
+import { faktSummaF2Narxda, yigindi2 } from './hisob-yadro';
 
-const son = (x: number | null | undefined): x is number => x != null && Number.isFinite(x);
+const son =(x: number | null | undefined): x is number => x != null && Number.isFinite(x);
+
+type NakQ = { qator_id: number; ota_id?: number | null; tur: string; fakt_hajm: number | null; fakt_summa: number | null; jami_hajm: number | null; jami_summa: number | null };
+
+/** Qator fakt summasi — yadro narx qoidasi: tasdiqlangan F2 (с начала) bor qatorda F2 birlik narxida; NULL — NULL. */
+export function nakFaktSumma(q: NakQ): number | null {
+  return faktSummaF2Narxda(q.fakt_hajm, q.jami_hajm, q.jami_summa, q.fakt_summa).summa;
+}
+
+/** Barg qatorlar (razdel emas, bolasi yo'q) — pul faqat ulardan yig'iladi (bl/rz jamisi takror). */
+export function nakBarglar<T extends NakQ>(qatorlar: readonly T[]): T[] {
+  const ota = new Set<number>();
+  for (const q of qatorlar) if (q.ota_id != null) ota.add(q.ota_id);
+  return qatorlar.filter((q) => q.tur !== 'rz' && !ota.has(q.qator_id));
+}
+
+/**
+ * Sahifadagi YAGONA fakt pul jamisi (KPI, jadval pastki qatori, grafik): barglar F2 narxida. Ro'yxat qirqilgan bo'lsa —
+ * server jamisi (qayta narxlanmagan) va `taxminiy` (UI «≈» + izoh).
+ */
+export function nakFaktJami(qatorlar: readonly NakQ[], serverJami: number, truncated: boolean): { summa: number; taxminiy: boolean } {
+  if (truncated) return { summa: serverJami, taxminiy: true };
+  return { summa: yigindi2(nakBarglar(qatorlar).map(nakFaktSumma)), taxminiy: false };
+}
 
 /** a/b foizi (butun). b noma'lum yoki ≤ 0 bo'lsa — null (0 emas). */
 export function foizOl(a: number | null | undefined, b: number | null | undefined): number | null {

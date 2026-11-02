@@ -9,9 +9,11 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type Keybo
 import { AlertTriangle, Download, RefreshCw, Save, Upload } from 'lucide-react';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import {
+  eskiF2Ol, eskiQatorlarOl, faollashtirishPozitsiyalariOl,
   moslikYoz, mosliklarOl, pozitsiyaYoz, pozitsiyalarOl, qarorYoz, versiyaBekor, versiyaXatoMatni, versiyalarOl, versiyaYarat,
   type MoslikYuk, type QarorYuk, type VersiyaNatija,
 } from '../../api/t2-smeta-versiya';
+import { faollashtirishFarqi, type F2Qator, type FPozitsiya, type VQator } from '../../lib/smeta-versiya/faollashtirish-farq';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { kitobAnatomiyasi } from '../../lib/smeta-anatomiya';
 import { anatomiyadanPozitsiyalar, qatorlardanPozitsiyalar, type JQator } from '../../lib/smeta-versiya/pozitsiya';
@@ -331,6 +333,10 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
       )}
       {versiyalar && !versiyalar.length && <p className="text-text-mute">{t('Bu obyektda hali boshqa smeta versiyasi yuklanmagan.')}</p>}
 
+      {versiya?.tur === 'dastlabki' && versiya.holat === 'tayyor' && mos && (
+        <FaollashtirishFarqiPanel kompaniyaId={kompaniyaId} obyektId={obyektId} versiya={versiya} mosliklar={mos} joriyQatorlar={joriyQatorlar} />
+      )}
+
       {versiya?.holat === 'tayyor' && poz && mos && (
         <>
           <section className="karta overflow-auto" aria-label={t('Bo‘limlar bo‘yicha farq')}>
@@ -450,6 +456,135 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * FAOLLASHTIRILGAN VERSIYA (egasi 2026-10-29): `t2_smeta_versiya_faollashtir_v1` eski smetani 'dastlabki' versiya qilib saqlaydi,
+ * eski qatorlarni 'almashtirilgan' deb belgilaydi (o'chirmaydi — F2 tarixi ularda). Bu panel: eski → joriy (faol) zanjiri,
+ * jamilar (QQS bilan → ustamali QQS siz → прямые), pozitsiya bo'yicha farq va eski qatordagi F2 dan pereraschet ishorasi.
+ */
+const FARQ_HOLATLAR: MoslikHolat[] = ['kamaygan', 'oshgan', 'yangi', 'ochirilgan', 'ozgarmagan', 'noaniq'];
+
+function FaollashtirishFarqiPanel({ kompaniyaId, obyektId, versiya, mosliklar, joriyQatorlar }: {
+  kompaniyaId: number; obyektId: number; versiya: SmetaVersiya; mosliklar: readonly MoslikQator[]; joriyQatorlar: readonly T2Qator[];
+}) {
+  const [data, setData] = useState<{ poz: FPozitsiya[]; eski: VQator[]; f2: F2Qator[] } | null>(null);
+  const [xato, setXato] = useState('');
+  const [holatF, setHolatF] = useState<'hammasi' | MoslikHolat>('hammasi');
+  const [sahifa, setSahifa] = useState(0);
+  useEffect(() => {
+    let tirik = true;
+    setData(null); setXato('');
+    void Promise.all([faollashtirishPozitsiyalariOl(versiya.id), eskiQatorlarOl(obyektId, versiya.id), eskiF2Ol(obyektId)]).then(([p, e, f]) => {
+      if (!tirik) return;
+      if (!p.ok || p.toliq === false || !e.ok || e.toliq === false || !f.ok || f.toliq === false) {
+        setXato(t('Faollashtirish farqi to‘liq o‘qilmadi — chala ma’lumot ustida hisoblanmaydi.')); return;
+      }
+      setData({ poz: p.qatorlar ?? [], eski: e.qatorlar ?? [], f2: f.qatorlar ?? [] });
+    }).catch(() => { if (tirik) setXato(t('Faollashtirish farqi to‘liq o‘qilmadi — chala ma’lumot ustida hisoblanmaydi.')); });
+    return () => { tirik = false; };
+  }, [obyektId, versiya.id]);
+
+  const natija = useMemo(() => (data ? faollashtirishFarqi({
+    pozitsiyalar: data.poz, mosliklar, eskiQatorlar: data.eski, f2: data.f2,
+    yangiQatorlar: joriyQatorlar as unknown as VQator[],
+  }) : null), [data, mosliklar, joriyQatorlar]);
+  const korinadigan = useMemo(() => (natija?.qatorlar ?? [])
+    .filter((q) => holatF === 'hammasi' || q.holat === holatF)
+    .sort((a, b) => Math.abs(b.farq ?? 0) - Math.abs(a.farq ?? 0)), [natija, holatF]);
+  const sahifaSoni = Math.max(1, Math.ceil(korinadigan.length / SAHIFA));
+  const sahifaQatorlari = korinadigan.slice(sahifa * SAHIFA, (sahifa + 1) * SAHIFA);
+
+  if (xato) return <p role="alert" className="flex items-center gap-1.5 text-danger text-[12px]"><AlertTriangle size={14} /> {xato}</p>;
+  if (!natija) return <p role="status" className="text-[12px]">{t('Faollashtirish farqi o‘qilmoqda…')}</p>;
+  const j = natija.jami;
+  const uchlik = (ustamasiz: number, kesim: KatKesim) => <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ustamasiz} katKesim={kesim} kichik />;
+  return (
+    <section className="karta p-3 space-y-2" aria-label={t('Faollashtirilgan versiya: eski → joriy (faol)')} data-testid="faollashtirish-farqi">
+      <h4 className="text-[13px] font-semibold">{t('Faollashtirilgan versiya: eski → joriy (faol)')}</h4>
+      <p className="text-[12px]"><span className="text-text-mute">{versiya.nom} · {versiya.yaratildi?.slice(0, 10)}</span> → <b>{t('Joriy smeta (faol)')}</b></p>
+      <p className="text-[11px] text-text-mute">{t('Eski qatorlar o‘chirilmaydi: ulardagi tasdiqlangan F2 tarixda qoladi va bir marta sanaladi. Smeta jamilari, ustama, AI va hisobotlar faqat joriy (faol) versiyadan.')}</p>
+      <div className="overflow-auto">
+        <table className="w-full text-[12px]">
+          <thead className="bg-surface-2 text-text-mute"><tr>
+            <th className="px-2 py-1 text-left">{t('Eski smeta (almashtirilgan)')}</th>
+            <th className="px-2 text-left">{t('Joriy smeta (faol)')}</th>
+            <th className="px-2 text-left">{t('Farq (joriy − eski)')}</th>
+            <th className="px-2 text-left">{t('Eski versiyada tasdiqlangan F2')}</th>
+            <th className="px-2 text-left">{t('Pereraschet: eski F2 minus / joriy narx plus')}</th>
+          </tr></thead>
+          <tbody><tr className="align-top">
+            <td className="px-2 py-1">{uchlik(j.eski, j.eskiKesim)}</td>
+            <td className="px-2 py-1">{uchlik(j.yangi, j.yangiKesim)}</td>
+            <td className="px-2 py-1">{uchlik(j.farq, j.farqKesim)}</td>
+            <td className="px-2 py-1 tabular-nums"><FmtN val={j.f2Summa} /> <span className="text-[10.5px] text-text-mute">{t('ustamasiz')}</span></td>
+            <td className="px-2 py-1 tabular-nums"><span className="text-danger">−<FmtN val={j.minus} /></span> / <span className="text-success">+<FmtN val={j.plus} /></span>
+              {j.plusNomalum > 0 && <div className="text-[10px] text-warn">{t('yangi narx noma’lum')}: {j.plusNomalum}</div>}</td>
+          </tr></tbody>
+        </table>
+      </div>
+      <p className="text-[11px] text-text-mute">{t('Summalar: QQS bilan → ustamali (QQS siz) → прямые (ustamasiz); narxlar NDS siz.')}
+        {(j.eskiNarxsiz > 0 || j.yangiNarxsiz > 0) && ` ${t('narxsiz qatorlar: eski {e} · joriy {j}', { e: String(j.eskiNarxsiz), j: String(j.yangiNarxsiz) })}`}</p>
+      <div className="flex flex-wrap items-center gap-2 text-[12px]">
+        <label>{t('Holat')}
+          <select className="ml-1 border rounded px-2 py-1" value={holatF} onChange={(e) => { setHolatF(e.target.value as typeof holatF); setSahifa(0); }}>
+            <option value="hammasi">{t('Hamma holatlar')} ({natija.qatorlar.length})</option>
+            {FARQ_HOLATLAR.map((h) => <option key={h} value={h}>{holatNomi(h)} ({j.holatlar[h] ?? 0})</option>)}
+          </select></label>
+      </div>
+      <div className="overflow-auto max-h-[56vh]">
+        <table className="w-full border-collapse text-[11.5px]">
+          <thead className="sticky top-0 z-[1] bg-surface-2 text-text-mute"><tr>
+            <th className="px-2 py-1 text-left">{t('Holat')}</th><th className="px-2 text-left">{t('Pozitsiya')}</th><th className="px-2">{t('Birlik')}</th>
+            <th className="px-2 text-right">{t('Eski: hajm / narx / summa')}</th><th className="px-2 text-right">{t('Joriy: hajm / narx / summa')}</th>
+            <th className="px-2 text-right">{t('Farq (ustamasiz)')}</th><th className="px-2 text-right">{t('F2 (eski qatorda)')}</th><th className="px-2 text-right">{t('Pereraschet ishorasi')}</th>
+          </tr></thead>
+          <tbody>
+            {sahifaQatorlari.map((q) => (
+              <tr key={q.mosId} className="border-t border-border/50 align-top" data-testid="faollashtirish-qator">
+                <td className={`px-2 py-1 ${HOLAT_RANG[q.holat]}`}>{holatNomi(q.holat)}</td>
+                <td className="px-2">{q.kod ? <b>{q.kod} </b> : null}{q.nom}{q.bolim && <div className="text-[10px] text-text-mute">{q.bolim}</div>}</td>
+                <td className="px-2 text-center">{q.birlik ?? '—'}</td>
+                <td className="px-2 text-right tabular-nums">{q.eski ? <><FmtN val={q.eski.hajm} kasr={3} /> / <FmtN val={q.eski.narx} /> / <b><FmtN val={q.eski.summa} /></b></> : '—'}</td>
+                <td className="px-2 text-right tabular-nums">{q.yangi ? <><FmtN val={q.yangi.hajm} kasr={3} /> / <FmtN val={q.yangi.narx} /> / <b><FmtN val={q.yangi.summa} /></b></> : '—'}</td>
+                <td className={`px-2 text-right tabular-nums ${(q.farq ?? 0) < 0 ? 'text-danger' : (q.farq ?? 0) > 0 ? 'text-success' : ''}`}><FmtN val={q.farq} /></td>
+                <td className="px-2 text-right tabular-nums">{q.f2 ? <><FmtN val={q.f2.hajm} kasr={3} /> / <FmtN val={q.f2.summa} /></> : '—'}</td>
+                <td className="px-2 text-right tabular-nums">{q.pereraschet ? <>
+                  <span className="text-danger">−<FmtN val={q.pereraschet.minus} /></span> / {q.pereraschet.plus == null ? <span className="text-warn">{t('yangi narx noma’lum')}</span> : <span className="text-success">+<FmtN val={q.pereraschet.plus} /></span>}
+                  {q.pereraschet.ortiqchaHajm > 0 && <div className="text-[10px] text-warn">{t('Ortiqcha hajm: {h}', { h: String(q.pereraschet.ortiqchaHajm) })}</div>}
+                </> : '—'}</td>
+              </tr>
+            ))}
+            {!sahifaQatorlari.length && <tr><td colSpan={8} className="px-2 py-3 text-text-mute">{t('Filtrga mos qator yo‘q.')}</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      {sahifaSoni > 1 && (
+        <div className="flex items-center gap-2 text-[12px]">
+          <button type="button" disabled={sahifa === 0} onClick={() => setSahifa((p) => p - 1)} className="tugma">{t('Oldingi')}</button>
+          <span>{sahifa + 1} / {sahifaSoni} · {korinadigan.length}</span>
+          <button type="button" disabled={sahifa + 1 >= sahifaSoni} onClick={() => setSahifa((p) => p + 1)} className="tugma">{t('Keyingi')}</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Obyekt sahifasidagi havola: smeta yangi versiyaga almashtirilgan bo'lsa — «Versiyalar va farq» ga o'tish tugmasi. */
+export function VersiyaAlmashtirilganBelgi({ obyektId, onOch }: { obyektId: number; onOch: () => void }) {
+  const [bor, setBor] = useState(false);
+  useEffect(() => {
+    let tirik = true;
+    setBor(false);
+    void versiyalarOl(obyektId).then((r) => { if (tirik && r.ok) setBor((r.qatorlar ?? []).some((v) => v.tur === 'dastlabki' && v.holat === 'tayyor')); }).catch(() => {});
+    return () => { tirik = false; };
+  }, [obyektId]);
+  if (!bor) return null;
+  return (
+    <button type="button" className="fz-btn fz-btn--sm" data-testid="versiya-almashtirilgan-belgi" onClick={onOch}>
+      {t('Smeta yangi versiyaga almashtirilgan — eski va yangi farqi')}
+    </button>
   );
 }
 

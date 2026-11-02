@@ -29,8 +29,8 @@ describe('Nakrutka podval konstruktori', () => {
   it('standart koeffitsientlar — kategoriyaKf bilan bir xil (БЕЗ СКЛАД — transport bor, ombor yo‘q)', () => {
     const a = podvalKf(standartPodval(NK));
     const b = kategoriyaKf(NK);
-    for (const k of NAKRUTKA_KATLAR) expect(a[k]).toBeCloseTo(b[k], 12);
-    expect(b['БЕЗ СКЛАД']).toBeLessThan(b.МАТ);
+    for (const k of NAKRUTKA_KATLAR) expect(a[k]).toBeCloseTo(b[k]!, 12);
+    expect(b['БЕЗ СКЛАД']!).toBeLessThan(b.МАТ!);
   });
 
   it('maxsus qator: vremenniy zdaniya — ИТОГО-2 dan 1.5 % (ИТОГО-3 ga qo‘shiladi)', () => {

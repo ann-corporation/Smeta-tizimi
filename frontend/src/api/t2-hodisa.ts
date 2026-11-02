@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 import { sbOqi } from './supabase';
 
 /* ⚡ 2026-08-28 (Claude) — HODISA LENTASI.
@@ -47,7 +48,7 @@ export function sbHodisaLentaOl(kompaniyaId: number, limit = 50) {
 /** Bitta obyekt tarixi — mindmapda tugun tanlanganda ko'rsatish uchun. */
 export async function sbObyektHodisalariOl(kompaniyaId: number, obyektId: number, limit = 20) {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ soro: 'hodisa_obyekt_lenta', kompaniya_id: kompaniyaId, obyekt_id: obyektId, limit }) });
     const j = await r.json();
     if (!j.ok) return { ok: false, qatorlar: [], error: j.error || 'Hodisa o\'qilmadi' };

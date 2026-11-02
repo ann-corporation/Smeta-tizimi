@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { TenglashQator, TenglashReja } from '../../lib/fakt-f2-tenglash';
 
-const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn(), id: 0 }));
+const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn(), id: 0, tasdiq: vi.fn() }));
+vi.mock('../../umumiy/ui/Tasdiq', () => ({ tasdiqSora: m.tasdiq }));
 vi.mock('../../api/t2-fakt', () => ({ sbFaktYoz: m.yoz }));
 vi.mock('../../api/supabase', () => ({ yangiOperationId: () => `op-${++m.id}`, sbT2AktBekor: vi.fn() }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
@@ -13,7 +14,7 @@ import { urinishOchir, urinishOl, yozilganOchir } from '../../lib/fakt-qamrov-ur
 const q = (id: number, bolim: string | null = null, summa: number | null = 500): TenglashQator => ({ id, tur: 'bl', nom: `Ish ${id}`, birlik: 'm3', fakt: 3, f2: 8, delta: 5, narx: 100, summa, avtomatik: 2, bolim });
 const rejaYasa = (qatorlar: TenglashQator[]): TenglashReja => ({
   qatorlar, paket: qatorlar.map((x) => ({ qator_id: x.id, hajm: x.delta })), jamiSumma: qatorlar.reduce((s, x) => s + (x.summa ?? 0), 0),
-  narxsiz: qatorlar.filter((x) => x.summa == null).length, otkazildi: { manfiyReja: 0, f2Yoq: 0 },
+  narxsiz: qatorlar.filter((x) => x.summa == null).length, otkazildi: { manfiyReja: 0, f2Yoq: 0 }, faktOrtiq: [],
 });
 const reja = rejaYasa([q(10)]);
 const holat = new Map();
@@ -24,6 +25,23 @@ beforeEach(() => { m.id = 0; m.yoz.mockReset(); m.toast.mockReset(); urinishOchi
 afterEach(cleanup);
 
 describe('Fakt = F2 oynasi', () => {
+  it('eski (smeta narxidagi) «Fakt = F2» hujjatlari: ro‘yxat + tasdiq bilan bekor qilish, keyin jadval yangilanadi va oyna yopiladi; rad etilsa hech narsa', async () => {
+    const bekor = vi.fn(async () => ({ ok: true })); const yangila = vi.fn(); const yop = vi.fn();
+    const eski = [{ id: 5, raqam: 'F20261001-01', sana: '2026-10-01', jami: 100 }, { id: 6, raqam: null, sana: null, jami: null }];
+    render(<FaktF2Tenglash sarlavha="x" reja={reja} eskiAktlar={eski} {...props} onYop={yop} onBajarildi={yangila} aktBekor={bekor} />);
+    expect(screen.getByTestId('f2-tenglash-eski').textContent).toContain('№F20261001-01');
+    m.tasdiq.mockResolvedValueOnce(false);
+    fireEvent.click(screen.getByTestId('f2-tenglash-eski-bekor'));
+    await waitFor(() => expect(m.tasdiq).toHaveBeenCalledTimes(1));
+    expect(bekor).not.toHaveBeenCalled();
+    m.tasdiq.mockResolvedValueOnce(true);
+    fireEvent.click(screen.getByTestId('f2-tenglash-eski-bekor'));
+    await waitFor(() => expect(yop).toHaveBeenCalled());
+    expect(bekor.mock.calls.map((c) => (c as unknown[])[0])).toEqual([5, 6]);
+    expect(yangila).toHaveBeenCalled();
+    expect(m.yoz).not.toHaveBeenCalled();
+  });
+
   it('Qo‘llash — urinish yo‘li (fakt_yoz_v2, musbat farq), xabarda «Bekor qilish» akt_bekor ni chaqiradi', async () => {
     m.yoz.mockResolvedValue({ ok: true, akt_id: 77 });
     const bekor = vi.fn(async () => ({ ok: true }));

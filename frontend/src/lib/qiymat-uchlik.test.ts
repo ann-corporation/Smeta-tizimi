@@ -24,7 +24,7 @@ describe('qiymatUchligi — QQS bilan asosiy (egasi 2026-10-27)', () => {
     const q = qiymatUchligi(u, u.ustamasiz);
     expect(q.qqsBilan).toBe(u.ndsBilan);
     expect(q.ustamali).toBe(u.ustamali);
-    expect(q.qqsBilan).toBeCloseTo(1_688_906_131.21, 2);
+    expect(q.qqsBilan).toBeCloseTo(1_688_906_131.2, 2); // yadro (har qadam ROUND 2); SQL …131,21
   });
 
   it('QQS stavkasi koeffitsientdan olinadi (12 qattiq yozilmagan): 20% bo‘lsa ВСЕГО = ИТОГО-4 × 1,2', () => {

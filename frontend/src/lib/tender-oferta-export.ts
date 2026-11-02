@@ -48,6 +48,8 @@ import {
 } from './hujjat-yozuvchi';
 
 import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
+import { kaskad as yadroKaskad, podvalVsegoKodi, standartPodval, type Kat, type KatSummalar, type Podval } from './hisob-yadro';
+import { podvalQatorFormulasi, podvalQatorNomi } from './nakrutka-podval';
 // Oferta V3 API si o'zgarmaydi: umumiy qismlar hujjat-yozuvchi modulidan qayta eksport.
 export { ustunHarfi, engOngUstun, formulaKochir } from './hujjat-yozuvchi';
 
@@ -330,7 +332,7 @@ function jamiVaraqXml(
       kat === 'UNKNOWN' ? 'не входит в расчет — укажите категорию' : '');
   }
   const katQatorlari = Object.values(katRow) as number[];
-  const rPr = qator('', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', fCell(2, st.jamiSon, `SUM(C${Math.min(...katQatorlari)}:C${Math.max(...katQatorlari)})`, h.togridanJami), h.manbaTogridanJami, '', true);
+  qator('', 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', fCell(2, st.jamiSon, `SUM(C${Math.min(...katQatorlari)}:C${Math.max(...katQatorlari)})`, h.togridanJami), h.manbaTogridanJami, '', true);
   let rTransport: number | null = null;
   if (h.transportVaraqJami > 0 || h.transportSiyosati === 'varaq') {
     rTransport = qator('', 'Транспортные расходы по расчету (лист перевозки)', fCell(2, st.son, sumifs('TRANSPORT'), h.transportVaraqJami), null,
@@ -349,30 +351,26 @@ function jamiVaraqXml(
 
   put([]);
   bolim('РАСЧЕТ СТОИМОСТИ');
-  const x = h.kaskadXom, m = h.manbaKaskad;
+  // Hisob — yadro kaskadi (har qadam ROUND 2), Excel formulalari YAGONA quruvchidan (podval qatori → ROUND(…,2)):
+  // formula = kesh. Material transporti varaqdan olinsa — tr_mat qatori belgilangan summa (varaq katagiga havola).
+  const varaqmi = h.transportSiyosati === 'varaq' && rTransport != null;
+  const tp = standartPodval(h.koeffitsientlar);
+  const p: Podval = varaqmi ? { ...tp, qatorlar: tp.qatorlar.map((q) => (q.kod === 'tr_mat' ? { kod: q.kod, nom: q.nom, tur: 'summa' as const, summa: h.transportVaraqJami } : q)) } : tp;
+  const katS = (j: Partial<Record<OfertaKategoriya, number>>): KatSummalar => ({ ЧЕЛ: j.ЧЕЛ ?? 0, МАШ: j.МАШ ?? 0, МАТ: j.МАТ ?? 0, ОБ: j.ОБ ?? 0, КАБ: j.КАБ ?? 0, 'М/К': j['М/К'] ?? 0, 'БЕЗ СКЛАД': j.БЕЗСКЛАД ?? 0 });
+  const xk = yadroKaskad(katS(h.kategoriyaJami), p), mk = yadroKaskad(katS(h.manbaKategoriyaJami), tp);
   const c = (r: number) => `C${r}`;
-  const step = (nom: string, f: string, v: number, mv: number | null, izoh: string, jami = false) =>
+  const step = (nom: string, f: string, v: number | '', mv: number | null, izoh: string, jami = false) =>
     qator('', nom, fCell(2, jami ? st.jamiSon : st.son, f, v), mv, izoh, jami);
-  const rMat = step('Материалы всего (МАТ + М/К + КАБ + без склада)', `${B('МАТ')}+${B('М/К')}+${B('КАБ')}+${B('БЕЗСКЛАД')}`, h.asos.mat, null, '');
-  const rPryam = step('Прямые затраты', c(rPr), x.pryamye, m.pryamye, 'труд + машины + материалы + оборудование');
-  const rTrMat = step('Транспортные расходы — материалы',
-    h.transportSiyosati === 'varaq' && rTransport ? c(rTransport) : `(${c(rMat)}-${B('КАБ')})*${K('ТРАНСПОРТ_МАТЕРИАЛ')}/100`,
-    x.tr_mat, m.tr_mat, h.transportSiyosati === 'varaq' ? 'по листу перевозки' : `(материалы − кабель) × ${pct('ТРАНСПОРТ_МАТЕРИАЛ')}`);
-  const rSkl = step('Заготовительно-складские расходы — материалы', `(${c(rMat)}-${B('БЕЗСКЛАД')}-${B('М/К')})*${K('СКЛАДСКИЕ_МАТЕРИАЛ')}/100+${B('М/К')}*${K('СКЛАДСКИЕ_МК')}/100`,
-    x.skl_mat, m.skl_mat, `× ${pct('СКЛАДСКИЕ_МАТЕРИАЛ')}; М/К × ${pct('СКЛАДСКИЕ_МК')}`);
-  const rTrKab = step('Транспортные расходы — кабель', `${B('КАБ')}*${K('ТРАНСПОРТ_КАБЕЛЬ')}/100`, x.tr_kab, m.tr_kab, `кабель × ${pct('ТРАНСПОРТ_КАБЕЛЬ')}`);
-  const rI1 = step('ИТОГО 1 (без оборудования)', `${c(rPryam)}-${B('ОБ')}+${c(rTrMat)}+${c(rSkl)}+${c(rTrKab)}`, x.itogo1, m.itogo1, '', true);
-  const rPro = step('Прочие расходы подрядчика', `${c(rI1)}*${K('ПРОЧИЕ_ПОДРЯДЧИК')}/100`, x.prochie, m.prochie, `ИТОГО 1 × ${pct('ПРОЧИЕ_ПОДРЯДЧИК')}`);
-  const rI2 = step('ИТОГО 2', `${c(rI1)}+${c(rPro)}`, x.itogo2, m.itogo2, '', true);
-  const rTrOb = step('Транспортные расходы — оборудование', `${B('ОБ')}*${K('ТРАНСПОРТ_ОБОРУД')}/100`, x.tr_ob, m.tr_ob, `оборудование × ${pct('ТРАНСПОРТ_ОБОРУД')}`);
-  const rZag = step('Заготовительно-складские — оборудование', `${B('ОБ')}*${K('ЗАГОТ_СКЛАД_ОБОРУД')}/100`, x.zag_ob, m.zag_ob, `оборудование × ${pct('ЗАГОТ_СКЛАД_ОБОРУД')}`);
-  const rI3 = step('ИТОГО 3', `${c(rI2)}+${B('ОБ')}+${c(rTrOb)}+${c(rZag)}`, x.itogo3, m.itogo3, 'ИТОГО 2 + оборудование', true);
-  const rSt = step('Страхование', `${c(rI3)}*${K('СТРАХОВАНИЕ')}/100`, x.strax, m.strax, `ИТОГО 3 × ${pct('СТРАХОВАНИЕ')}`);
-  const rRisk = step('Риск', `${c(rI3)}*${K('РИСК')}/100`, x.risk, m.risk, `ИТОГО 3 × ${pct('РИСК')}`);
-  const rI4 = step('ИТОГО 4', `${c(rI3)}+${c(rSt)}+${c(rRisk)}`, x.itogo4, m.itogo4, '', true);
-  const rNds = step('НДС', `${c(rI4)}*${K('НДС')}/100`, x.nds, m.nds, `ИТОГО 4 × ${pct('НДС')}`);
-  const rVs = step('ВСЕГО', `${c(rI4)}+${c(rNds)}`, x.vsego, m.vsego, '', true);
-
+  const katB = (k: Kat) => B(k === 'БЕЗ СКЛАД' ? 'БЕЗСКЛАД' : k as OfertaKategoriya);
+  step('Материалы всего (МАТ + М/К + КАБ + без склада)', `${B('МАТ')}+${B('М/К')}+${B('КАБ')}+${B('БЕЗСКЛАД')}`, h.asos.mat, null, '');
+  const qr: Record<string, number> = {};
+  for (const q of p.qatorlar) {
+    const f = q.tur === 'summa' ? c(rTransport as number) : podvalQatorFormulasi(q, { kat: katB, qator: (kod) => c(qr[kod]), foiz: q.koefKod ? K(q.koefKod) : '0' }) as string;
+    const izoh = q.tur === 'summa' ? 'по листу перевозки' : q.tur === 'foiz' && q.koefKod ? `× ${pct(q.koefKod)}` : '';
+    // Noma'lum qiymat — bo'sh kesh (0 emas).
+    qr[q.kod] = step(podvalQatorNomi(q), f, xk.qiymat[q.kod] ?? '', mk.qiymat[q.kod] ?? null, izoh, q.tur === 'jami');
+  }
+  const rVs = qr[podvalVsegoKodi(p) ?? 'vsego'];
   const unresolved = varaqlar.length ? varaqlar.map((v) => {
     const kat = `${sheetRef(v.nom)}!${v.L.kategoriya}:${v.L.kategoriya}`;
     const sum = `${sheetRef(v.nom)}!${v.L.summa}:${v.L.summa}`;

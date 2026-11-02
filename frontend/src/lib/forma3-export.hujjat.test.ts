@@ -113,7 +113,7 @@ describe('F3 — model', () => {
     for (const c of ['G', 'H', 'I', 'J'] as const) {
       // kOplate = Σ ROUND per-row; kaskad = kategoriya jami bo'yicha. Farq faqat
       // yaxlitlashda bo'lishi mumkin (har qator ≤ 0.01 × qatorlar soni).
-      if (u.kOplate[c] != null) expect(Math.abs(u.kOplate[c]! - hujjat.vsegoKOplate[c])).toBeLessThanOrEqual(0.01 * idx.length + 0.005);
+      if (u.kOplate[c] != null) expect(Math.abs(u.kOplate[c]! - hujjat.vsegoKOplate[c]!)).toBeLessThanOrEqual(0.01 * idx.length + 0.005);
     }
     // Nazorat koeffitsienti kategoriyaKf bilan bir xil.
     const kf = kategoriyaKf(NK);
