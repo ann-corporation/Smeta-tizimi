@@ -1,0 +1,10 @@
+{
+  "qoldiq (smeta − F2)": { "ru": "остаток (смета − Ф-2)", "en": "remaining (estimate − F2)" },
+  "сервер: без пересчёта по цене Ф-2": { "ru": "сервер: без пересчёта по цене Ф-2", "en": "server: not re-priced at the F2 price" },
+  "не определена": { "ru": "не определена", "en": "not determined" },
+  "Buyurtmachi xarajatlari (pudratchi summasiga kirmaydi)": { "ru": "Расходы заказчика (не входят в сумму подрядчика)", "en": "Customer costs (not included in the contractor amount)" },
+  "Podval to‘liq emas — jami hisoblanmadi: {kod}": { "ru": "Подвал заполнен не полностью — итог не рассчитан: {kod}", "en": "Footer is incomplete — total not calculated: {kod}" },
+  "Kategoriyasi aniqlanmagan {n} qator ИТОГО-4 ga ustamasiz qo‘shildi — natija taxminiy (≈).": { "ru": "{n} строк без вида затрат добавлены в ИТОГО-4 без накрутки — результат приблизительный (≈).", "en": "{n} lines without a cost category added to TOTAL-4 without markup — result is approximate (≈)." },
+  "к оплате: не определена": { "ru": "к оплате: не определена", "en": "payable: not determined" },
+  "fakt summasi tasdiqlangan F2 narxida: {n} ta pozitsiya (fakt hajmi o‘zgarmaydi)": { "ru": "сумма факта по цене утвержденной Ф-2: {n} поз. (объем факта не меняется)", "en": "actual amount at the approved F2 price: {n} item(s) (actual quantity unchanged)" }
+}

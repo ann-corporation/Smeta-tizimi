@@ -6,6 +6,7 @@ import { t } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { katKesimJamiBilan, katKesimYigish } from '../../lib/ustamali-summa';
+import { ayirma2 } from '../../lib/hisob-yadro';
 import { KAT_GURUH_NOMI } from '../../lib/f2-hujjat-korinish';
 import { barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type Kesim } from '../../lib/smeta-korinish';
 
@@ -54,10 +55,8 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
       bolim: tree.map((r) => yig([...barglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => son(b.smeta), son(r.smeta))),
       fakt: yig(bs, (b) => son(b.stFakt), umumiy.fakt),
       f2: yig(bs, (b) => son(b.stF2), umumiy.f2, false),
-      qoldiq: yig(bs, (b) => {
-        const sm = son(b.smeta), fk = son(b.stFakt), f2 = son(b.stF2);
-        return sm == null ? null : sm - Math.max(fk ?? 0, f2 ?? 0);
-      }, umumiy.qoldiq),
+      // Qoldiq = smeta − F2 AYNAN (fakt ≥ F2 qoidasi yo'q); F2 yo'q — 0. Yadro `ayirma2`.
+      qoldiq: yig(bs, (b) => ayirma2(son(b.smeta), son(b.stF2) ?? 0), umumiy.qoldiq),
     };
   }, [tree, umumiy, korinishKesimi]);
   if (!tree.length) return null;

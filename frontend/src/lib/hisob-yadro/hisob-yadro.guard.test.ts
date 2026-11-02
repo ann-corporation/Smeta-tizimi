@@ -12,7 +12,6 @@ const ILDIZ = join(process.cwd(), 'src'); // vitest frontend/ dan ishga tushadi
 const RUXSAT: Record<string, string> = {
   'lib/nakrutka-podval.ts': 'Excel podvali: Kf FORMULA matni (foiz kataklariga havola), qiymatlar yadrodan',
   'lib/smeta-anatomiya/nakrutka.ts': 'smeta fayli podvalidan foizlarni O\'QIYDI va hujjat summalari bilan solishtiradi (kalkulyator emas)',
-  'admin/sahifalar/StudioBosqichlar.tsx': 'ekran: tayyor kaskad qadamlarini ko\'rsatish uchun qo\'shadi (keyingi bosqichda yadro qadamlari bilan almashtiriladi)',
 };
 const FOIZ = '(ТРАНСПОРТ_МАТЕРИАЛ|СКЛАДСКИЕ_МАТЕРИАЛ|ПРОЧИЕ_ПОДРЯДЧИК|СКЛАДСКИЕ_МК|ТРАНСПОРТ_КАБЕЛЬ|ТРАНСПОРТ_ОБОРУД|ЗАГОТ_СКЛАД_ОБОРУД|СТРАХОВАНИЕ|РИСК|НДС)';
 const QADAM = '(tr_mat|skl_mat|skl_mk|tr_kab|prochie|tr_ob|zag_ob|strax|itogo1|itogo2|itogo3)';

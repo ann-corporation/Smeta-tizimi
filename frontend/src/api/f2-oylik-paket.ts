@@ -20,6 +20,8 @@ export async function oyObyektOl(kompaniyaId: number, obyektId: number, oylar: r
   ]);
   if (!daraxt.ok) throw new Error('SMETA_OQILMADI');
   if (tafsilotlar.some((d) => !d.ok)) throw new Error('F2_TAFSILOT_OQILMADI');
+  // Ustama/podval o'qilmasa paket jimgina standart podval yoki ustamasiz hisoblanmaydi — sabab bilan to'xtaydi.
+  if (kontekst.xato) throw new Error(`USTAMA_OQILMADI: ${kontekst.xato}`);
   const tafsilot = tafsilotlar.flatMap((d) => (d.qatorlar ?? []) as F2Tafsilot[]);
   return { smeta: (daraxt.qatorlar ?? []) as unknown as T2Qator[], tafsilot, kontekst };
 }

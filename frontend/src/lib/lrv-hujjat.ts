@@ -21,7 +21,7 @@ import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
 import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, podvalNdsFoiz, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
 import { OZGARISH_KOD, OZGARISH_LEGENDA, OZGARISH_NOMI_RU, lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishIzohi, ozgarishRangi, ozgarishXaritasi, type OzgarishGuruh } from './lrv-ozgarish';
-import { kaskad as yadroKaskad, podvalNdsFoizi, serverMerosKoefQoy, standartPodval, yaxlitKOplate, type Podval } from './hisob-yadro';
+import { faktSummaF2Narxda, faktSummaF2NarxFormula, kaskad as yadroKaskad, podvalNdsFoizi, serverMerosKoefQoy, standartPodval, yaxlitKOplate, type Podval } from './hisob-yadro';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { pivotQosh, type PivotKatak } from './hujjat-yozuvchi/pivot';
@@ -37,6 +37,8 @@ export type LrvHujjatOpsiya = {
   ndsFoiz?: number | null;
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
   podval?: Podval | null;
+  /** Server `nk_manba` — meros foizlari izohi (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   mavzu?: RangMavzusi;
   /** Svod yaxlit bo'limlari va avlodlari (`yaxlitQatorIdlari`): ustama kaskadiga kirmaydi, podvalda alohida qator. */
   yaxlitIdlar?: ReadonlySet<number> | null;
@@ -187,9 +189,12 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const norma = son(q.norma);
     const normaFormula = ishQator != null && ishHajm != null && norma != null && norma > 0 && Math.abs(y6(norma * ishHajm) - smetaHajm) <= 1e-6;
     const fakt = son(hq?.fakt_hajm) ?? 0;
-    const faktSumma = son(hq?.fakt_summa) ?? (fakt === 0 ? 0 : narx != null ? yaxlit2(fakt * narx) : null);
+    const faktAsl = son(hq?.fakt_summa) ?? (fakt === 0 ? 0 : narx != null ? yaxlit2(fakt * narx) : null);
     const f2 = son(hq?.f2_hajm) ?? 0;
     const f2Summa = son(hq?.f2_summa) ?? (f2 === 0 ? 0 : narx != null ? yaxlit2(f2 * narx) : null);
+    // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida (N / M), fakt hajmi yozilganidek.
+    const fr = faktSummaF2Narxda(fakt, f2, f2Summa, faktAsl);
+    const faktSumma = fr.summa;
     const summa = narx != null ? yaxlit2(smetaHajm * narx) : null;
     if (narxBildirishnomaKerak(q, narx)) diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: NARX_YOQ_SABAB });
     const yx = !!o.yaxlitIdlar?.has(q.id);
@@ -217,7 +222,8 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
       norma != null ? { n: norma, uslub: 'norma' } : null,
       normaFormula ? { f: `ROUND(E${r}*F${ishQator},6)`, v: smetaHajm } : smetaHajm,
       narx, narx != null ? { f: `ROUND(F${r}*G${r},2)`, v: summa } : null, tur, yx ? YAXLIT_KAT : kat ?? '',
-      fakt, faktSumma == null ? null : son(hq?.fakt_summa) != null || fakt === 0 ? faktSumma : { f: `IF(G${r}="","",ROUND(K${r}*G${r},2))`, v: faktSumma },
+      fakt, faktSumma == null ? null : fr.manba === 'f2' ? { f: faktSummaF2NarxFormula(`K${r}`, `M${r}`, `N${r}`, `IF(G${r}="","",ROUND(K${r}*G${r},2))`), v: faktSumma }
+        : son(hq?.fakt_summa) != null || fakt === 0 ? faktSumma : { f: `IF(G${r}="","",ROUND(K${r}*G${r},2))`, v: faktSumma },
       f2, f2Summa,
       { f: `ROUND(F${r}-K${r},6)`, v: y6(smetaHajm - fakt) }, { f: `IF(OR(H${r}="",L${r}=""),"",ROUND(H${r}-L${r},2))`, v: summa == null || faktSumma == null ? '' : yaxlit2(summa - faktSumma) },
       { f: `ROUND(K${r}-M${r},6)`, v: y6(fakt - f2) }, { f: `IF(OR(L${r}="",N${r}=""),"",ROUND(L${r}-N${r},2))`, v: faktSumma == null || f2Summa == null ? '' : yaxlit2(faktSumma - f2Summa) },
@@ -238,7 +244,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   v.bosh();
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
   // Yaxlit svod podval qatori — QQS BILAN (НДС dan keyin, aynan): smeta ustunida svod summasi, qolganida ×(1+QQS).
   const ndsY = podvalNdsFoiz(podval, nk);
   const svQ = svodYaxlitQqs(o.svodYaxlit, ndsY);

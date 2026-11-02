@@ -53,7 +53,7 @@ import { downloadBlob } from './construction-document-control/export/download-he
 import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
 import { OZGARISH_HEX, OZGARISH_KOD, OZGARISH_LEGENDA, OZGARISH_NOMI_RU, ozgarishBor, ozgarishIzohi, ozgarishRangi, ozgarishXaritasi, type OzgarishGuruh } from './lrv-ozgarish';
 import { nakrutkaKat, NAKRUTKA_KATLAR, type KatSummalar } from './nakrutka-podval';
-import { ayirma2, kaskad as yadroKaskad, serverMerosKoefQoy, standartPodval, yaxlit2, type Kat, type Podval } from './hisob-yadro';
+import { ayirma2, kaskad as yadroKaskad, faktSummaF2Narxda, serverMerosKoefQoy, standartPodval, yaxlit2, type Kat, type Podval } from './hisob-yadro';
 import { NOMALUM_PODVAL_NOM, podvalQatorFormulasi, podvalQatorNomi } from './nakrutka-podval';
 const katta = <T,>(v: T): T => (typeof v === 'string' ? kattaHarfga(v) as T : v);
 /**
@@ -88,6 +88,8 @@ export type LrvPlusOptions = {
   nakrutka?: NakrutkaKoeffitsientlar;
   /** Obyekt smeta podvali — berilsa foizlar shundan (server meros rejimi), aks holda `nakrutka` dan standart. */
   podval?: Podval | null;
+  /** Server `nk_manba` (smeta_podvali / shartnoma / kompaniya / sukut) — meros foizlari izohi hujjatda (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   /** Imzo blokidagi tomonlar (saytdan; bo'sh — chiziq). */
   imzo?: ImzoNomlar;
 };
@@ -116,7 +118,8 @@ export interface LrvPlusQator {
   summaFormula: string | null;
   summaQiymat: number | null;
   faktHajm: number;
-  faktSumma: number;
+  /** Fakt summasi (F2 narxida, yadro). null — noma'lum (F2 narxi to'qilmaydi): katak bo'sh, jamiga kirmaydi. */
+  faktSumma: number | null;
   f2Hajm: number;
   f2Summa: number;
   /** X (yashirin) va Excel outline darajasi. */
@@ -287,7 +290,8 @@ export function lrvPlusQatorlarniHisobla(
     out.push({
       id: q.id, row: r, no: i + 1, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', tur,
       kat: q.kat ?? '', birlikHajm, obyomFormula, obyomQiymat, narx, summaFormula, summaQiymat,
-      faktHajm: h ? h.fakt_hajm : 0, faktSumma: h ? h.fakt_summa : 0,
+      // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida; fakt hajmi yozilganidek.
+      faktHajm: h ? h.fakt_hajm : 0, faktSumma: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa).summa : 0,
       f2Hajm: h ? h.f2_hajm : 0, f2Summa: h ? h.f2_summa : 0,
       daraja,
     });
@@ -308,7 +312,8 @@ export function lrvPlusQatorlarniHisobla(
       hasChild = true;
       const childSum = out[j].summaQiymat;
       if (childSum != null) sum += childSum;
-      fakt += out[j].faktSumma; f2 += out[j].f2Summa;
+      // Noma'lum fakt summasi (null) yig'ilmaydi — Excel SUMIF bo'sh katakni o'tkazib yuborgani kabi.
+      fakt += out[j].faktSumma ?? 0; f2 += out[j].f2Summa;
     }
     item.summaQiymat = hasChild ? sum : null;
     if (hasChild) { item.faktSumma = fakt; item.f2Summa = f2; }
@@ -576,7 +581,7 @@ export async function lrvPlusFaylBaytlari(
   // Ustama podvali (yadro): obyekt podvali bo'lsa u (server meros rejimi), aks holda koeffitsientlardan standart.
   // Koeffitsient ham, podval ham yo'q — jadval chiqmaydi (o'ylab topilgan son yo'q).
   const podvalJ: Podval | null = options?.podval
-    ? (options.nakrutka ? serverMerosKoefQoy(options.podval, options.nakrutka) : options.podval)
+    ? (options.nakrutka ? serverMerosKoefQoy(options.podval, options.nakrutka, options.nkManba) : options.podval)
     : options?.nakrutka ? standartPodval(options.nakrutka) : null;
   /* Qo'shimcha ish / zamena (egasi 2026-10-29) — faqat o'zgarish bor obyektda oxiriga ПРИМЕЧАНИЕ (ko'rinadi) va
      ИЗМ (yashirin guruh kodi, pastdagi jamlar SUMIFS uchun); mavjud ustunlar o'rni o'zgarmaydi. */
@@ -671,7 +676,7 @@ export async function lrvPlusFaylBaytlari(
       aoa.push([
         ...asosiy,
         q.faktHajm, q.obyomQiymat == null ? '' : q.obyomQiymat - q.faktHajm, q.f2Hajm, q.faktHajm - q.f2Hajm,
-        q.faktSumma, q.summaQiymat == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa, q.faktSumma - q.f2Summa,
+        q.faktSumma ?? '', q.summaQiymat == null || q.faktSumma == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa, q.faktSumma == null ? '' : q.faktSumma - q.f2Summa,
         q.daraja,
         lrvKalitYoz(q.id, q.kod, q.nom, q.birlik),
         ...ozgarishKatak,
@@ -702,8 +707,8 @@ export async function lrvPlusFaylBaytlari(
     if (rejim === 'toliq') {
       ws[`Q${q.row}`] = kesh(`IF(F${q.row}="","",F${q.row}-P${q.row})`, q.obyomQiymat == null ? null : q.obyomQiymat - q.faktHajm);
       ws[`S${q.row}`] = { t: 'n', f: `P${q.row}-R${q.row}`, v: q.faktHajm - q.f2Hajm };
-      ws[`U${q.row}`] = kesh(`IF(H${q.row}="","",H${q.row}-T${q.row})`, q.summaQiymat == null ? null : q.summaQiymat - q.faktSumma);
-      ws[`W${q.row}`] = { t: 'n', f: `T${q.row}-V${q.row}`, v: q.faktSumma - q.f2Summa };
+      ws[`U${q.row}`] = kesh(`IF(OR(H${q.row}="",T${q.row}=""),"",H${q.row}-T${q.row})`, q.summaQiymat == null || q.faktSumma == null ? null : q.summaQiymat - q.faktSumma);
+      ws[`W${q.row}`] = kesh(`IF(T${q.row}="","",T${q.row}-V${q.row})`, q.faktSumma == null ? null : q.faktSumma - q.f2Summa);
       // Ota (rz/bl) qatorida Fakt (T) va F2 (V) summasi — bevosita bolalar yig'indisi (tirik formula).
       const sumif = OTA_TUR.has(q.tur) ? q.summaFormula?.match(/SUMIF\(([^,]+),([^,]+),H(\d+):H(\d+)\)\)?$/) : null;
       if (sumif) {
@@ -724,6 +729,11 @@ export async function lrvPlusFaylBaytlari(
   for (const [ustun, qiymat] of jamiUstunlar) {
     const f = lrvPlusJamiFormula(hisob, ustun, darajaUstun);
     if (f) ws[`${ustun}3`] = kesh(f, qiymat);
+  }
+  // Fakt jami to'liq emas (F2 narxi noma'lum qatorlar) — «не определена» izohi (jim emas).
+  const faktNomalum = hisob.filter((q) => LEAF_TUR.has(q.tur) && q.faktSumma == null).length;
+  if (rejim === 'toliq' && faktNomalum && ws['T3']) {
+    (ws['T3'] as { c?: unknown }).c = [{ a: 'Smeta tizimi', t: `Итог по факту неполный: сумма факта не определена по ${faktNomalum} поз. (нет цены по утвержденной Ф-2) — в итог не включены.` }];
   }
   if (hisob.length) {
     const c1 = hisob[0].row, c2 = hisob[hisob.length - 1].row;

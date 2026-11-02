@@ -2,6 +2,43 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 52,
+      "sana": "2026-10-31",
+      "sarlavha": "Fakt jurnali: foiz bilan tez kiritish — oynasiz, bitta saqlash",
+      "bandlar": [
+        "Hajm katagiga «50%» yozing — smeta hajmining yarmi olinadi («=» rejimda jami fakt, «+» rejimda bugungi hajm).",
+        "Bo'lim sarlavhasidagi «Jami %: 25 / 50 / 75 / 100» tugmalari ko'rinadigan barcha ish va resurslarga darhol qo'llanadi — oyna ochilmaydi.",
+        "Excel'dan bir ustun qiymatlarni katakka joylasangiz, pastdagi qatorlarga ketma-ket tushadi. Enter — pastga.",
+        "Hamma o'zgarish qoralamada ajralib ko'rinadi; «Orqaga» (Ctrl+Z) oxirgi ommaviy amalni qaytaradi; «Saqlash» hammasini bitta yozadi.",
+        "«Jami» qiymatlar saqlanishdan oldin tekshiriladi: fakt boshqa joyda o'zgargan bo'lsa hech narsa yozilmaydi va jadval yangilanadi."
+      ]
+    },
+    {
+      "id": 51,
+      "sana": "2026-10-31",
+      "sarlavha": "F2 ni bekor qilish — tasdiqlangan F2 ham, bir nechtasini birdaniga",
+      "bandlar": [
+        "«F2 tarixi va tasdiqlash» sahifasida har F2 yonida «Bekor qilish» tugmasi bor — qoralama ham, tasdiqlangan ham.",
+        "Bir obyektning bir nechta F2 sini belgilab, bitta amal bilan bekor qilish mumkin.",
+        "Shu oynaning o'zida tasdiq: F2 raqami, oyi, summasi va qatorlar soni ko'rinadi; sabab yozish majburiy.",
+        "Hech narsa o'chirilmaydi: bekor qilingan F2 tarixda qoladi, lekin LRV, qoldiq va Nakopitelniy jamilaridan chiqadi. Tasdiqlangan F2 ni faqat F2 tasdiqlash huquqi bor xodim yoki rahbar bekor qiladi."
+      ]
+    },
+    {
+      "id": 50,
+      "sana": "2026-10-31",
+      "sarlavha": "Fakt summasi tasdiqlangan F2 narxida; Fakt jurnali, Nakopitelniy va Studio bitta hisob yadrosida",
+      "bandlar": [
+        "Qatorda tasdiqlangan F2 bo'lsa, fakt summasi F2 birlik narxida hisoblanadi (masalan smeta 12 000, F2 35 000 bo'lsa — fakt hajmi × 35 000). F2 yo'q qatorda fakt summasi avvalgidek.",
+        "Fakt hajmi qanday kiritilgan bo'lsa shunday ko'rsatiladi: fakt F2 dan kam bo'lishi normal (F2 oldindan olinadi), fakt F2 dan avtomatik olinmaydi. «Fakt = F2» faqat o'sha tugma orqali yoziladi.",
+        "Fakt jurnali, «Fakt (hozircha)», Сличительная, Накопительная, ЛРВ va ЛРВ+ shu bitta narx qoidasidan foydalanadi; Excel formulasi ekrandagi qiymat bilan teng.",
+        "Yaxlit svod bo'limi: fakt — svod summasi × (bo'lim fakti / bo'lim smetasi), F2 qoldig'i — svod summasi − F2 (aynan); narxsiz qator 0 deb sanalmaydi.",
+        "Ostatka, Сличительная, ЛРВ va Накопительная/Ф-3 eksporti ustama yoki podval o'qilmasa jimgina chiqmaydi — sababi ko'rsatiladi.",
+        "Nakopitelniy: smeta «к оплате» bitta hisobdan, kategoriyasi ko'rsatilmagan qism ham kiradi (≈); ma'lumot yetishmasa «не определена» va sababi yoziladi.",
+        "Studio RES: ustama kaskadi podval qatorlari bo'yicha, buyurtmachi xarajatlari alohida, kategoriyasiz qatorlar ustamasiz qo'shiladi (≈); jami QQS bilan birinchi."
+      ]
+    },
+    {
       "id": 49,
       "sana": "2026-10-30",
       "sarlavha": "Bitta hisob yadrosi: ekran va barcha Excel hujjatlar endi bir xil hisoblaydi",
@@ -9,8 +46,7 @@
         "Ustama (podval), QQS, yaxlit svod va yaxlitlash endi bitta joyda hisoblanadi — сличительная, остаток, накопительная, Ф-3, ЛРВ, ЛРВ+, Ф-2, oylik paket va tender bir xil raqam beradi; Excel formulasi ekrandagi qiymat bilan tiyinigacha teng.",
         "Yaxlit svod summasi QQS bilan, НДС qatoridan keyin alohida qator bo'lib turadi va ВСЕГО ga aynan qo'shiladi; ichidagi qatorlar tiyinigacha shu summaga taqsimlanadi.",
         "Svoddagi «Прочие затраты заказчика» va «Фонд Шаффоф» ВСЕГО dan keyin alohida ko'rsatiladi — pudratchi summasiga qo'shilmaydi.",
-        "Podvalda kiritilmagan foiz endi jimgina 0% olinmaydi — «не определена» deb ko'rsatiladi; shartnomadan olingan foiz manbasi bilan yoziladi.",
-        "Fakt F2 dan kam bo'lmaydi (minus qatorlarda ham to'g'ri); F2 yo'q bo'lsa fakt o'zgarmaydi."
+        "Podvalda kiritilmagan foiz endi jimgina 0% olinmaydi — «не определена» deb ko'rsatiladi; shartnomadan olingan foiz manbasi bilan yoziladi."
       ]
     },
     {

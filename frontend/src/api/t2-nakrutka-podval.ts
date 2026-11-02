@@ -59,7 +59,39 @@ export function sbPodvalOchir(kompaniyaId: number, id: number, kutilganVersiya: 
   return yoz({ amal: 'nakrutka_podval_ochir', kompaniya_id: kompaniyaId, id, kutilgan_versiya: kutilganVersiya });
 }
 
-/** Hujjat yasashdan oldin: obyekt uchun amaldagi maxsus podval (xato bo'lsa — null, standart). */
+/** Podval o'qish natijasi: `podval: null` — maxsus podval HAQIQATAN yo'q (standart); `ok: false` — o'qilmadi. */
+export type PodvalOqish = { ok: true; podval: Podval | null } | { ok: false; xato: string };
+
+/**
+ * Hujjat eksporti uchun podval: «yo'q» va «o'qilmadi» farqlanadi (jim standartga tushilmaydi). Server
+ * `nakrutka_podval_id` ko'rsatgan bo'lsa-yu, ro'yxatda topilmasa — ham `ok: false` (eksport bloklanadi).
+ */
+export async function obyektPodvaliOqi(kompaniyaId: number | null | undefined, obyektId: number, shartnomaId?: number | null, kutilganId?: number | null): Promise<PodvalOqish> {
+  if (!kompaniyaId) return { ok: false, xato: 'kompaniya tanlanmagan — podval o‘qilmadi' };
+  try {
+    const r = await sbPodvallarOl(kompaniyaId);
+    if (!r.ok || (r as { toliq?: boolean }).toliq === false || !Array.isArray(r.qatorlar)) return { ok: false, xato: 'nakrutka podvali o‘qilmadi' };
+    const p = podvalTanla(r.qatorlar, { obyektId, shartnomaId: shartnomaId ?? null });
+    if (kutilganId != null && !r.qatorlar.some((x) => x.id === kutilganId)) return { ok: false, xato: `server ko‘rsatgan podval (№${kutilganId}) o‘qilmadi` };
+    return { ok: true, podval: p ? { versiya: 1, nom: p.nom, qatorlar: p.qatorlar } : null };
+  } catch {
+    return { ok: false, xato: 'nakrutka podvali o‘qilmadi (tarmoq xatosi)' };
+  }
+}
+
+/**
+ * Eksport darvozasi (pure): ustama (nakrutka) javobi va podval o'qishi muvaffaqiyatli bo'lmasa — aniq sabab, aks holda null.
+ * Hujjat jimgina standart podval yoki ustamasiz chiqarilmaydi.
+ */
+export function ustamaKontekstXatosi(nk: { ok: boolean; error?: string; code?: string } | null | undefined, podval: PodvalOqish | null | undefined): string | null {
+  if (!nk) return 'ustama (nakrutka) ma’lumoti o‘qilmadi';
+  if (!nk.ok) return `ustama (nakrutka) ma’lumoti o‘qilmadi${nk.error || nk.code ? ` (${nk.error || nk.code})` : ''}`;
+  if (!podval) return 'nakrutka podvali hali o‘qilmagan';
+  if (!podval.ok) return podval.xato;
+  return null;
+}
+
+/** Hujjat yasashdan oldin: obyekt uchun amaldagi maxsus podval (xato bo'lsa — null, standart). Eksportlar — `obyektPodvaliOqi`. */
 export async function obyektPodvali(kompaniyaId: number | null | undefined, obyektId: number, shartnomaId?: number | null): Promise<Podval | null> {
   if (!kompaniyaId) return null;
   try { return await amaldagiPodval(kompaniyaId, { obyektId, shartnomaId: shartnomaId ?? null }); } catch { return null; }
